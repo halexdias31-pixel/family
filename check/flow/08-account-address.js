@@ -895,11 +895,12 @@ check('proof: a new address typed on the Contact card waits, says so, and the bo
   await wait(300);
   const box = () => d.querySelector('#s-account [data-me="email"]');
   if (!box()) return ['there is no email box on Student settings, so the Contact card was NOT checked'];
-  box().value = 'jsmith1@example.org';
   const card = () => box() && box().closest('.me-form');
   sent.length = 0;
-  t.ACTIONS['me-save'](card().querySelector('[data-do="me-save"]'));
-  await wait(500);
+  /* SAVED AS TYPED (owner, 8 Nov): no Save to press — the card sends itself ~800ms after the last change. */
+  box().value = 'jsmith1@example.org';
+  box().dispatchEvent(new w.Event('input', { bubbles: true }));
+  await wait(1400);
   const post = sent.find(b => b.action === 'updateProfile');
   if (!post || (post.fields || {}).email !== 'jsmith1@example.org') bad.push('the Save did not post the typed address: ' + JSON.stringify(post && post.fields));
   if (!/open the link we sent to jsmith1@example\.org/.test(toastOf_(d))) bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — "Saved" over an address that has not changed');

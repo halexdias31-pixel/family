@@ -77,19 +77,11 @@ function serve() {
   await page.evaluate(id => { try { go(id); } catch (e) {} }, SCREEN);
   await page.waitForTimeout(400);
 
-  /* TYPED IN, NOT SET. `STUFF.q` is what the search box writes to, and painting after setting it
-     directly is the same state — but going through the box is the only version that proves the box
-     still reaches it. */
+  /* CHIPS, NOT WORDS: `--find field=value,field=value` presses those answers (Find has no search box since 8 Nov). */
   if (FIND) {
-    await page.evaluate(q => {
-      /* THROUGH THE BOX ITSELF where there is one — `on('input')` on `#stuff-q` sets `STUFF.q` and repaints, so this is the same path a person's typing takes. § */
-      const box = document.getElementById('stuff-q');
-      if (box) {
-        box.value = q;
-        box.dispatchEvent(new Event('input', { bubbles: true }));
-        return 'typed';
-      }
-      try { STUFF.q = q; paintStuff(); return 'painted'; } catch (e) { return 'failed: ' + e.message; }
+    await page.evaluate(spec => {
+      const filters = spec.split(',').map(p => p.split('=')).filter(p => p[0] && p[1]).map(p => ({ field: p[0].trim(), value: p[1].trim() }));
+      try { finderSet_(null, { filters }); return 'pressed'; } catch (e) { return 'failed: ' + e.message; }
     }, FIND);
     await page.waitForTimeout(600);
   }
@@ -130,7 +122,7 @@ function serve() {
   await page.screenshot({ path: OUT, fullPage: true });
 
   console.log('');
-  console.log('LOOKED AT  %s  @%dpx  as %s%s', SCREEN, WIDTH, AS, FIND ? '  searching "' + FIND + '"' : '');
+  console.log('LOOKED AT  %s  @%dpx  as %s%s', SCREEN, WIDTH, AS, FIND ? '  with chips ' + FIND : '');
   console.log('  payload        : ' + (PAYLOAD_AT || 'check/fixture.json'));
   console.log('  cards drawn    : ' + seen.cards + '   paper covers: ' + seen.papers);
   console.log('  paper bodies   : ' + seen.qpapers + '   question parts: ' + seen.questionParts);

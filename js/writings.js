@@ -106,7 +106,8 @@ const WRITING_SECONDARY = ['Schaff, History of the Christian Church, vol. 1: Apo
   'Schaff, History of the Christian Church, vol. 2: Ante-Nicene Christianity, AD 100–325',
   'Schaff, History of the Christian Church, vol. 3: Nicene and Post-Nicene Christianity, AD 311–600',
   'Schaff, History of the Christian Church, vol. 4: Mediaeval Christianity, AD 590–1073'];
-const WRITING_UNCLEAR = ['Modern Texts (GCSE)'];
+/* A NOVEL OR PLAY STUDIED IS A PRIMARY TEXT (owner, 8 Nov): Modern Texts (GCSE) left this list; it stays for a work too unclear to call */
+const WRITING_UNCLEAR = [];
 const writingPrimacy_ = work => (WRITING_UNCLEAR.indexOf(work) >= 0 ? '' : WRITING_SECONDARY.indexOf(work) >= 0 ? 'Secondary' : 'Primary');
 /* ONE SPELLING AN ANSWER (520): values equal but for case or apostrophe are one answer, the first spelling kept; a unit is bare. */
 const writingFold_ = v => String(v).toLowerCase().replace(/[’‘`']/g, '').replace(/\s+/g, ' ').trim();
@@ -217,9 +218,58 @@ const writingNow_ = () => Object.keys(WRITING_CAME).filter(k => WRITING_CAME[k])
 function writingFreeze_() { if (STUFF.admit == null) STUFF.admit = writingNow_(); }
 /* WHICH SOURCES THIS FINDER ANSWERS OVER: all that came, until a press; at the start again (no chip, no words) all that came. */
 function writingAdmit_() {
-  if (!(STUFF.filters || []).length && !String(STUFF.q || '').trim()) STUFF.admit = null;
+  if (!(STUFF.filters || []).length) STUFF.admit = null;
   return STUFF.admit == null ? writingNow_() : STUFF.admit;
 }
 const writingAdmitted_ = (x, admit) => !x.wSrc || (',' + admit + ',').indexOf(',' + x.wSrc + ',') >= 0;
 /* WHETHER ANY SOURCE'S INDEX IS STILL ON ITS WAY (546) — every loader keeps `asking` on its own state, read here as one list. */
 const writingAsking_ = () => [BIBLE, TALMUD, QURAN, HADITH, WORKS, TEXTS, PDTEXTS, ORTHO, HYMNS].some(S => S && S.asking);
+
+/* ---------- ONE READING LAYOUT FOR EVERY LIBRARY TEXT (owner, 8 Nov): title, a reference in its tradition's own numbering, the text. */
+/* THE NUMBERING IS DATA: `{path}` reads the item, `[...]` drops when a path in it is empty, `a|b` falls back, `@name` is `READING_SAY`. */
+const READING_REF = {
+  bible:     { title: 'The Bible',         ref: '{bb.book} {ch}[:{v}]' },
+  quran:     { title: 'The Quran',         ref: 'Surah {qr.s}:{qr.a}' },
+  hadith:    { title: 'Hadith',            ref: '{w.work} {w.unit}' },
+  talmud:    { title: 'Babylonian Talmud', ref: '{w.book} {w.unit}' },
+  worktext:  { title: '{w.work}',          ref: '[{@author}, ]{w.work}[ {w.chapter}][ {w.unit}]' },
+  writ:      { title: '{w.work}',          ref: '[{@author}, ]{w.book|w.work} [{tx.wn}.]{tx.cite}' },
+  pdtext:    { title: '{w.work}',          ref: '[{@author}, ]{w.work}[ {w.book}][ {w.chapter}][ {w.unit}]' },
+  orthotext: { title: '{w.work}',          ref: '{@author|w.work}[ {w.book}][, {w.chapter}]' },
+  hymn:      { title: '{hy.title}',        ref: 'Hymn [{@hymnNo}]' },
+};
+/* A WORK WHOSE INDEX NAMES NO AUTHOR is cited by the name its tradition cites it by (Desert Fathers, `texts/desert-en`). */
+const READING_AUTHORS = { Conferences: 'Cassian', Institutes: 'Cassian', 'Life of Antony': 'Athanasius',
+  'Dialogue I: The Monks of the East': 'Sulpitius Severus' };
+const READING_SAY = {
+  author: x => { const w = x.w || {}, a = String(w.author || '').replace(/\s*\(.*$/, '').split(/[;&]/)[0].trim();
+    return READING_AUTHORS[w.book] || (/^(unknown|anonymous|various)$/i.test(a) ? '' : a); },
+  hymnNo: x => ((/\bno\.\s*(\d+)/.exec((x.hy && x.hy.source) || '') || [])[1]) || '',
+};
+function readingAt_(x, path) {
+  for (const p of String(path).split('|')) {
+    let v;
+    try { v = p[0] === '@' ? (READING_SAY[p.slice(1)] || (() => ''))(x) : p.split('.').reduce((o, k) => (o == null ? o : o[k]), x); } catch (e) { v = ''; }
+    v = Array.isArray(v) ? v.filter(Boolean)[0] : v;
+    if (v != null && String(v).trim() !== '') return String(v).trim();
+  }
+  return '';
+}
+function readingFill_(x, tpl) {
+  const one = s => s.replace(/\{([^}]+)\}/g, (_, p) => readingAt_(x, p));
+  const kept = String(tpl || '').replace(/\[([^\]]*)\]/g, (_, g) => ((g.match(/\{[^}]+\}/g) || []).every(m => readingAt_(x, m.slice(1, -1))) ? g : ''));
+  return one(kept).replace(/\s+/g, ' ').replace(/^[\s,.:·]+|[\s,.:·]+$/g, '').trim();
+}
+const readingTitle_ = x => readingFill_(x, (READING_REF[x && x.kind] || {}).title) || (x && x.name) || '';
+const readingRef_ = x => readingFill_(x, (READING_REF[x && x.kind] || {}).ref) || (x && x.name) || '';
+/* THE ONE CARD: `o.body` is the text (or its loader); `o.cls`, `o.bodyCls`, `o.data` keep each source's hooks for its redraw. */
+function readingCard_(x, o) {
+  o = o || {};
+  const attrs = d => Object.keys(d || {}).map(n => ` data-${n}="${esc(String(d[n] == null ? '' : d[n]))}"`).join('');
+  const title = readingTitle_(x), ref = readingRef_(x);
+  return `<div class="card fc rd ${esc(o.cls || '')}" data-key="${esc(x.key)}" data-rd="${esc(x.kind || '')}"${attrs(o.cardData)}>
+    <div class="rd-head"><h3 class="rd-title">${esc(title)}</h3>${ref && ref !== title ? `<span class="rd-ref">${esc(ref)}</span>` : ''}</div>
+    <div class="rd-body ${esc(o.bodyCls || '')}"${attrs(o.data)}>${o.body || ''}</div>
+    ${tagRow_(x)}
+  </div>`;
+}

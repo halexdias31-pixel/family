@@ -6,5 +6,7 @@
 {"kind": "manuscript", "cls": "hdb hdb-msc lib-c", "pic": "msPic", "title": "name", "tags": "facets", "lines": "", "tiles": "", "notes": "its fragment where drawn"},
 {"kind": "writing", "cls": "hdb lib-c", "pic": "kindPic", "title": "name", "tags": "facets", "lines": "refs", "tiles": "", "notes": ""},
 {"kind": "event", "cls": "hdb lib-c", "pic": "kindPic", "title": "name", "tags": "facets", "lines": "refs", "tiles": "", "notes": ""},
-{"kind": "people", "cls": "person lib-c", "pic": "boxerPic", "title": "name", "tags": "facets", "lines": "", "tiles": "", "notes": "boxers and figures alike, a pixel portrait"}
+{"kind": "people", "cls": "person lib-c", "pic": "boxerPic", "title": "name", "tags": "facets", "lines": "", "tiles": "", "notes": "boxers and figures alike, a pixel portrait"},
+{"kind": "msg", "cls": "msg-fc", "pic": "msgPic", "title": "msgWho", "tags": "msgTags", "lines": "msgBody,msgTiles", "tiles": "", "notes": "a conversation, closed (36a); Open lays its messages out under it as one card each (me-messages.js)"},
+{"kind": "post", "cls": "post-fc", "pic": "postPic", "title": "postTitle", "tags": "postTags", "lines": "postBody,postTiles", "tiles": "", "notes": "a feed post in Find (36a): first picture, title, date/kind tags, two lines, its own tiles"}
 ]

@@ -262,13 +262,13 @@ function profAvail_(t) {
   if (!days.length) {
     return `<div class="prof-cap">Available</div>
       <p class="prof-say prof-hid prof-nofree">No free hours this week.${typeof isAdmin === 'function' && isAdmin()
-          ? ' Every hour they have ticked is outside ' + hours[0] + ':00–' + hours[hours.length - 1]
-            + ':00, the hours a session can be booked at.' : ''}</p>`;
+          ? ' Every hour they have ticked is outside ' + hours_(hours[0], hours[hours.length - 1])
+            + ', the hours a session can be booked at.' : ''}</p>`;
   }
   /* ---------- SPANS, NOT THE RECEIPT'S DISABLED BUTTONS § */
   const hoursOn = which => days.map(d => {
-    const hs = d.hours.filter(which).map(c => c.h + ':00');
-    return hs.length ? d.label + ' ' + hs.join(', ') : '';
+    const hs = d.hours.filter(which).map(c => time_(c.h + ':00'));
+    return hs.length ? day_(d.label) + ' ' + hs.join(', ') : '';
   }).filter(Boolean).join('; ');
   const said = hoursOn(c => c.lit);
   /* THE TAUGHT HOURS, SAID AFTER THE FREE ONES — see the note over this function. A day drawn only
@@ -280,7 +280,7 @@ function profAvail_(t) {
     hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
     /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; the aria-label above says every hour. */
     const say = !spans.length ? '' : profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '');
-    return spans.length ? `<span class="prof-day">${esc(d.label.slice(0, 3))} ${esc(say)}</span>` : '';
+    return spans.length ? `<span class="prof-day">${esc(day_(d.label))} ${esc(say)}</span>` : '';
   }).filter(Boolean).join('<span class="prof-sep"> </span>');
   const free = line(c => c.lit), busyLine = line(c => c.busy);
   return `<div class="prof-cap">Available</div>
@@ -289,10 +289,8 @@ function profAvail_(t) {
         + (taught ? '. Already teaching ' + taught : ''))}">${free ? `<p class="prof-hour-line">${free}</p>` : ''}${busyLine
         ? `<p class="prof-key prof-busy">Already teaching ${busyLine}</p>` : ''}</div>`;
 }
-/* AN HOUR SPAN AS A PERSON SAYS IT: 4–7pm, 10am–1pm, 12–1pm. */
-const profHr_ = h => (h % 12 || 12) + '';
-const profAm_ = h => (h % 24 < 12 ? 'am' : 'pm');
-const profSpan_ = ([a, b]) => profHr_(a) + (profAm_(a) === profAm_(b) ? '' : profAm_(a)) + '–' + profHr_(b) + profAm_(b);
+/* AN HOUR SPAN, 24-hour (owner, 8 Nov): 16:00–19:00. */
+const profSpan_ = ([a, b]) => hours_(a, b);
 
 /* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS *"a smaller rate to the side so clients can know extra cost for the extra seat"*. § */
 function profSeat_(t) {
@@ -305,7 +303,7 @@ function profSeat_(t) {
 function rateRange_(t) {
   const r = Number(t && t.rate);
   if (!(r > 0)) return '';
-  const say = n => '£' + (Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, '');
+  const say = money_;
   const max = Math.round(Number(t.maxStudents)) || 1, seat = profSeat_(t);
   return max > 1 && seat > 0 ? say(r) + '–' + say(r + seat * (max - 1)).slice(1) + '/hour' : say(r) + '/hour';
 }
@@ -313,6 +311,8 @@ function rateRange_(t) {
 /* ONE CARD FOR EVERY KIND (owner, 8 Nov): picture, title, tags, lines, then its tile row (`cardTiles_`).
    card-fields.json picks each part's fields; check-card-shape holds the shape. */
 const KC_PARTS = ['pic', 'head', 'tags', 'lines'];
+/* WHO A CARD IS DRAWN FOR: undefined is whoever is signed in; a share sets 'public' while it draws (tutorPng_). */
+let CARD_VIEWER;
 /* BEFORE THE SETTINGS FILE ARRIVES, OR FOR A KIND IT DOES NOT NAME: its kind's picture, its name, its facet tags. */
 const KC_BARE = { cls: '', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] };
 const kcRow_ = x => (x && x.row) || {};
@@ -327,7 +327,7 @@ const KC_FIELDS = {
   role: x => { const t = kcRow_(x); return `<h3>${esc([t.role || 'Tutor'].concat(profList_(t.titles)).join(' · '))}${
     t.listed === false ? ` <span class="prof-off">· ${t.pending ? 'asked to tutor' : 'not listed'}</span>` : ''}</h3>`; },
   nameRate: x => { const t = kcRow_(x); return `<div class="prof-who">
-    <span class="prof-line"><span class="prof-name">${esc(t.title)}</span>${t.rate && !childView_()
+    <span class="prof-line"><span class="prof-name">${esc(displayName_(t, CARD_VIEWER))}</span>${t.rate && !childView_()
       ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/hour$/, ''))}<small>/hour</small></span></span>` : ''}</span>
     ${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
     ${t.activity ? `<span class="prof-act">${esc(t.activity)}</span>` : ''}</div>`; },
@@ -345,7 +345,7 @@ const KC_FIELDS = {
   facts: x => { const f = profFacts_(kcRow_(x));
     return f.length ? `<div class="qtags prof-tags prof-teach prof-facts">${f.map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''; },
   /* WHAT THEY WROTE: `doget.gs` already quotes it, so it is printed as said. */
-  say: x => (kcRow_(x).description ? `<p class="prof-say">${esc(kcRow_(x).description)}</p>` : ''),
+  say: x => (kcRow_(x).description ? `<p class="prof-say cut2" data-do="cut-open">${esc(kcRow_(x).description)}</p>` : ''),
   photos: x => { const p = kcRow_(x).photos; return Array.isArray(p) && p.length ? `<div class="prof-photos">${PROF_MORE_(p.map(u =>
     `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy" decoding="async"></span>`), 4).join('')}</div>` : ''; },
   words: x => { const w = profList_(kcRow_(x).tags).slice(0, 3);
@@ -359,7 +359,7 @@ const KC_FIELDS = {
   venueSub: x => (kcRow_(x).subtitle ? `<p class="sub">${mark(kcRow_(x).subtitle)}</p>` : ''),
   /* A CHILD IS TOLD THE SEATS AND NOT THE PRICE (398), and a room with neither says nothing. */
   rooms: x => { const t = kcRow_(x), kid = childView_();
-    const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? money(rate) + '/h' : 'free'].filter(Boolean).join(' · ');
+    const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? money_(rate) + '/h' : 'free'].filter(Boolean).join(' · ');
     const one = (label, max, rate) => (say(max, rate) ? row(label, say(max, rate)) : '');
     return (t.rooms || []).length ? t.rooms.slice(0, 4).map(r => one(r.name || 'Room', r.max, r.rate)).join('') : one('The room', t.maxCapacity, t.bestRate); },
   surcharge: x => { const t = kcRow_(x); if (x.kind === 'level' && !t.priced) return row('Surcharge', 'Not priced yet', 'bad');
@@ -385,6 +385,8 @@ const KC_DEFAULT = {
   writing: { cls: 'hdb lib-c', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['refs'], tiles: [] },
   event: { cls: 'hdb lib-c', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['refs'], tiles: [] },
   people: { cls: 'person lib-c', pic: ['boxerPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] },
+  msg: { cls: 'msg-fc', pic: ['msgPic'], title: ['msgWho'], tags: ['msgTags'], lines: ['msgBody', 'msgTiles'], tiles: [] },
+  post: { cls: 'post-fc', pic: ['postPic'], title: ['postTitle'], tags: ['postTags'], lines: ['postBody', 'postTiles'], tiles: [] },
 };
 /* A KIND'S FIELDS: its row in data/settings/card-fields.json (`DATA.cardFields`, settings.js), else the built-in row, else the bare three. */
 function kcSpec_(kind) {
@@ -398,15 +400,20 @@ function kcTilesFill_(x, html) {
   return html + s.tiles.map(t => { const [act, icon, label] = String(t).split(':');
     return new RegExp('data-do="' + act + '"').test(html) ? '' : tile_({ icon, label: label || act, act, off: true, cls: 'kc-off' }); }).join('');
 }
+/* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
 function findCard(x) {
+  const around = x && !x.kcIn && (window.KC_AROUND || {})[x.kind];
+  if (around) return around(x, extra => findCard(Object.assign({}, x, extra || {}, { kcIn: true })));
   const it = x && x.row ? x : { kind: 'subject', row: x || {} };
   const t = kcRow_(it), name = it.name || t.title || t.name || '';
   const one = it.name ? it : Object.assign({}, it, { name });
   const s = kcSpec_(it.kind);
   const run = list => (list || []).map(k => { try { const f = kcField_(k); return f ? f(one) || '' : ''; } catch (e) { oops_(e, 'card:' + k); return ''; } }).join('');
   const parts = { pic: run(s.pic), head: run(s.title), tags: run(s.tags), lines: run(s.lines) };
-  const off = it.kind === 'tutor' && t.listed === false ? ' is-off' : '';
-  return `<div class="card fc kc kc-${esc(it.kind || 'thing')}${s.cls ? ' ' + esc(s.cls) : ''}${off}" aria-label="${esc(name)}">${
+  const off = (it.kind === 'tutor' && t.listed === false ? ' is-off' : '') + (it.cardCls ? ' ' + esc(it.cardCls) : '');
+  /* `cardData` BECOMES data-* ATTRIBUTES, so a card can be found again where it stands (a post's sheet, a conversation's redraw). */
+  const data = Object.keys(it.cardData || {}).map(k => ` data-${k}="${esc(it.cardData[k])}"`).join('');
+  return `<div class="card fc kc kc-${esc(it.kind || 'thing')}${s.cls ? ' ' + esc(s.cls) : ''}${off}"${data} aria-label="${esc(name)}">${
     KC_PARTS.map(p => `<div class="kc-${p}">${parts[p]}</div>`).join('')}</div>`;
 }
 
@@ -476,7 +483,8 @@ function bookPrefill_() {
   /* THE USUAL CASE FIRST: an instant session, a new one, at home, no extra seats. */
   if (!BOOKING.how) BOOKING.how = 'Instant class';
   if (!BOOKING.joining) BOOKING.joining = NEW_LIST;
-  if (!BOOKING.loc) BOOKING.loc = 'At home';
+  /* AT HOME IS THE VENUE ROW MARKED `takes_all_seats` (48a), by its own label; none marked, the question stays open. */
+  if (!BOOKING.loc) BOOKING.loc = ((bookableSpaces().find(x => x.takesAllSeats) || {}).label) || '';
   const seats = only(bookStep_('n'));
   if (!BOOKING.n && seats.length) BOOKING.n = seats[0];
   /* FIND'S CHIPS: a subject or level already picked there is the answer here. */

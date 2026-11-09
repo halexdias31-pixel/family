@@ -98,10 +98,8 @@ function hadithBody_(hd) {
   return loading_();
 }
 function hadithCard_(x) {
-  return `<div class="card fc qr hd" data-key="${esc(x.key)}">
-    ${tagRow_(x)}
-    <div class="hd-body" data-hf="${x.hd ? esc(x.hd.file) : ''}" data-hi="${x.hd ? x.hd.i : 0}">${x.hd ? hadithBody_(x.hd) : ''}</div>
-  </div>`;
+  return readingCard_(x, { cls: 'qr hd', bodyCls: 'hd-body', body: x.hd ? hadithBody_(x.hd) : '',
+    data: { hf: x.hd ? x.hd.file : '', hi: x.hd ? x.hd.i : 0 } });
 }
 /* ITS WORDS CAME: every card of that book on screen is filled where it stands. */
 function hadithRedraw_(f) {

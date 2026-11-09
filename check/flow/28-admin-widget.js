@@ -374,7 +374,7 @@ check('Mechanics (batch E): Library → Mechanics asks Car or Car part (owner, 7
   if (!all.length) return ['the mechanics files did not load — NOT checked'];
   const S = t.STUFF(), vals = field => w.facetValues(w.stuffFiltered(), w.facetList().find(f => f.field === field)).map(v => v.value);
   const next = () => (w.nextFacet(w.stuffFiltered()) || {}).field;
-  S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Library' }];
+  S.filters = [{ field: 'kindLabel', value: 'Library' }];
   if (vals('subject').indexOf('Mechanics') < 0) bad.push('Library offers no Mechanics subject');
   S.filters.push({ field: 'subject', value: 'Mechanics' });
   const base = S.filters.slice();
@@ -431,7 +431,7 @@ check('Chemistry (550): Library → Chemistry offers Element, Substance and Reac
   const all = w.chemItems_(), bad = [];
   if (!all.length) return ['the chemistry files did not load — NOT checked'];
   const S = t.STUFF(), vals = field => w.facetValues(w.stuffFiltered(), w.facetList().find(f => f.field === field)).map(v => v.value);
-  S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Library' }];
+  S.filters = [{ field: 'kindLabel', value: 'Library' }];
   if (vals('subject').indexOf('Chemistry') < 0) bad.push('Library offers no Chemistry subject');
   S.filters.push({ field: 'subject', value: 'Chemistry' });
   ['Element', 'Reaction', 'Substance'].forEach(k => { if (vals('mKind').indexOf(k) < 0) bad.push('Chemistry → Card type lacks ' + k); });
@@ -470,7 +470,7 @@ check('Library → a subject offers only shelves that subject has — never Book
   if (bv.some(x => !x.bb || 'min_age' in x)) bad.push('a Bible item is not a verse, or carries an age limit');
   const S = t.STUFF();
   const base = [{ field: 'kindLabel', value: 'Library' }];
-  S.q = ''; S.filters = base.slice();
+  S.filters = base.slice();
   const subjects = w.facetValues(w.stuffFiltered(), w.facetList().find(f => f.field === 'subject')).map(v => v.value);
   if (subjects.length < 3) bad.push('Library offers only ' + subjects.length + ' subjects: ' + subjects.join(', '));
   let shelvesSeen = 0;

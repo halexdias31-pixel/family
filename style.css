@@ -193,7 +193,7 @@
   opacity: var(--disabled); cursor: default;
 }
 /* PAPER IS LIGHT: a white wash would not show on it, so the wash on paper is dark. */
-.paper, .pin-slip, .stmt, .scr, .scr-tile, .insh-sheet, .tal-page, .widget-full:has(.cal-head) > .card, .qp-slots { --press-wash: var(--press-wash-paper); }
+.paper, .pin-slip, .stmt, .scr, .scr-tile, .insh-sheet, .tal-page, .widget-full:has(.cal-head) > .card { --press-wash: var(--press-wash-paper); }
 
 /* THE ONE LINE. 4.1vw between 15 and 17px — so a small phone is legible and a large one uses the
    room, and every rem in the file follows without being told. */
@@ -3900,96 +3900,6 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .gd-mark > .qp-verdict { grid-column: 1 / -1; min-height: 1.3em; margin-top: 4px; }
 .gd-mark > .qp-saved { grid-column: 1 / -1; }
 
-/* ---------- A QUESTION CARD'S CHOICES § */
-.qp-opts { display: flex; flex-direction: column; gap: .35rem; margin: .5rem 0 0; }
-.qp-opt { display: block; width: 100%; min-height: 44px; text-align: left;
-          padding: .5rem .6rem; border: 1px solid var(--line); border-radius: var(--r-sm);
-          background: var(--sunk); color: var(--ink);
-          font: inherit; font-size: .8rem; line-height: 1.4; cursor: pointer; }
-.qp-opt:is(:active, .is-pressed) { transform: scale(var(--press-card)); }
-.qp-opt[disabled] { cursor: default; opacity: 1; }
-
-/* ---------- THE QUESTION CARD'S OPTIONS, WHICH TAKE THE VERDICT'S COLOURS § */
-.qp-opt { position: relative; padding-left: 2.2rem;
-                   transition: border-color var(--dur-quick) var(--ease-out), color var(--dur-quick) var(--ease-out); }
-/* INK ON EVERY OPTION OF A QUESTION CARD, by SPECIFICITY rather than by being written later: § */
-.qcard .qp-choices .qp-opt { color: var(--ink); }
-@media (hover: hover) {
-  .qp-choices:not(.is-done) .qp-opt:not(.is-picked):hover { border-color: var(--faint); }
-}
-.qp-opt::before {
-  content: ""; position: absolute; left: .75rem; top: 50%; width: 14px; height: 14px;
-  margin-top: -7px; box-sizing: border-box; border: 1.5px solid var(--faint); border-radius: 50%;
-  font: 700 10px/11px var(--font); text-align: center; color: var(--bg);
-}
-.qp-opt.is-picked { border-width: 1px; border-color: var(--gold);
-                             box-shadow: inset 0 0 0 1px var(--gold); }
-.qp-opt.is-picked::before { border-color: var(--gold); background: var(--gold); }
-.qp-choices.is-done .qp-opt { cursor: default; }
-.qp-choices.is-done .qp-opt:is(:active, .is-pressed) { transform: none; }
-/* `--faint` AND NOT `opacity`: half-transparent ink on this background measures under 4.5:1, and an
-   option nobody should press any more is still a sentence somebody may want to read. */
-.qp-choices.is-done .qp-opt:not(.is-picked):not(.is-ans) { color: var(--ink);
-                                                                     border-color: var(--line-soft); }
-.qp-choices.is-done .qp-opt.is-ans { border-color: var(--good); font-weight: 600;
-                                               box-shadow: inset 0 0 0 1px var(--good); }
-.qp-choices.is-done .qp-opt.is-ans::before { content: "\2713"; border-color: var(--good);
-                                                       background: var(--good); }
-.qp-choices.is-miss .qp-opt.is-picked,
-.qp-choices.is-done .qp-opt.is-picked:not(.is-ans) { border-color: var(--warn);
-                                                               box-shadow: inset 0 0 0 1px var(--warn); }
-.qp-choices.is-miss .qp-opt.is-picked::before,
-.qp-choices.is-done .qp-opt.is-picked:not(.is-ans)::before { border-color: var(--warn);
-                                                                       background: var(--warn); }
-
-/* ---------- AN ORDERING: A STRIP OF SLOTS ON PAPER, THE ITEMS UNDER IT § */
-.qp-order { margin: .9rem 0 .2rem; }
-.qp-slots {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
-  padding: 8px; border-radius: 14px;
-  background: var(--paper); color: var(--paper-ink);
-}
-/* THE ENDS ARE A LINE OF THEIR OWN, the first at the strip's left edge and the last at its right, like the two ends of a number line, with an arrow between them § */
-.qp-ends { flex: 0 0 100%; display: flex; align-items: center; gap: 8px; padding: 0 2px 1px; }
-.qp-end { font: 600 .78rem/1.2 var(--font); color: var(--paper-ink); }
-/* THE ARROW IS DRAWN INSIDE ITS OWN BOX -- the shaft a 1.5px band across the middle, the head a border triangle at the right edge. § */
-.qp-way { flex: 1 1 auto; position: relative; min-width: 16px; height: 10px;
-          background: linear-gradient(var(--paper-dim), var(--paper-dim)) left center / calc(100% - 4px) 1.5px no-repeat; }
-.qp-way::after { content: ""; position: absolute; right: 0; top: .5px;
-                 border: 4.5px solid transparent; border-right: 0; border-left: 7px solid var(--paper-dim); }
-.qp-slot {
-  position: relative; display: inline-flex; align-items: center; justify-content: center;
-  min-width: min(100%, max(44px, calc(var(--qp-ch, 1) * 1ch + 15px))); min-height: 44px;
-  padding: 4px 6px; box-sizing: border-box;
-  border: 1.5px dashed var(--paper-dim); border-radius: 10px; background: none;
-  font: 600 1rem/1.2 var(--font); color: var(--paper-ink);
-}
-.qp-slot.is-full { border-style: solid; border-color: var(--paper-ink); cursor: pointer; }
-.qp-slot-i { font: 600 .72rem/1 var(--mono); color: var(--paper-dim); }
-.qp-slot.is-full .qp-slot-i { position: absolute; top: 3px; left: 5px; font-size: .55rem; }
-.qp-items { display: flex; flex-wrap: wrap; gap: 6px; margin: .6rem 0 0; }
-.qp-item {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 44px; min-height: 44px; padding: 4px 12px; box-sizing: border-box;
-  border: 1.5px solid var(--dim); border-radius: 10px; background: var(--sunk);
-  font: 600 1rem/1.2 var(--font); color: var(--ink); cursor: pointer;
-}
-/* THE FACE IS ONE ELEMENT (`orderBox_`): as flex items of the button itself, a `<sup>` lost its raise
-   and 2² read as "22". One block with an ordinary line inside, and a power sits where it is printed. */
-.qp-face { display: block; }
-.qp-item:not([disabled]):is(:active, .is-pressed), .qp-slot.is-full:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
-/* THE GHOST IS NOT A CONTROL -- `disabled`, so a quick second tap on it does nothing (`orderBox_`). */
-.qp-item.is-placed { border-style: dashed; border-color: var(--faint); color: var(--ink); background: none;
-                     cursor: default; }
-.qp-order.is-right > .qp-slots { box-shadow: 0 0 0 3px var(--good); }
-.qp-order.is-near > .qp-slots { box-shadow: 0 0 0 3px var(--warn); }
-.qp-order > .qp-mark { margin-top: .5rem; gap: 8px; }
-/* THE TILES DO NOT GIVE WAY TO THE VERDICT. § */
-.qp-order > .qp-mark > .tile { flex: none; }
-/* ONE LINE TALL BEFORE IT SAYS ANYTHING: an empty span in a centred row is no height at all, and
-   "Correct" arriving in it moved its own top by half a line -- measured, 7.5px at 390. */
-.qp-order > .qp-mark > .qp-verdict { min-height: 1.3em; }
-
 /* THE FIGHTER'S PROFILE — the boxer card as a tale of the tape. § */
 .boxer, .fight { --boxer-w: var(--gold); --boxer-l: var(--coral); --boxer-d: var(--dim);
                  --boxer-nc: var(--faint); }
@@ -4972,7 +4882,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* ---------- AND MARKING MOVES NOTHING § */
 .qp-mark { display: flex; align-items: center; gap: .7rem; flex-wrap: nowrap; margin: .6rem 0 .2rem;
            min-height: 44px; }
-.qp-choices + .qp-mark { min-height: 1.4rem; margin-top: .45rem; }
 /* GREEN AND AMBER, NOT GREEN AND RED. § */
 /* THE TOKENS RATHER THAN A HEX: § */
 .qp-verdict { flex: 1 1 auto; min-width: 0; font: 600 .78rem/1.3 var(--font); color: var(--ink); }
@@ -5180,7 +5089,6 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 /* HOW THIS PART WILL BE MARKED, one short line under its Check: never a person (markerOf_, qtools.js) */
 /* HOW A PART IS MARKED IS A TAG (owner, 8 Nov: no grey sentences), on its own line under the tool row. */
 .qt-tags { margin: .3rem 0 0; }
-.qp-order-tiles { margin-top: .4rem; }
 .page.mag-host { position: relative; }
 /* BACK TO TOP (463): under every result of a finder, its last row. */
 .find-top { margin-top: .9rem; }
@@ -5851,6 +5759,15 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .wt-refs ol { margin: 0; padding-left: 1.5rem; font-size: .7rem; line-height: 1.4; color: var(--ink); }
 .tx-text p { margin: 0 0 .7rem; font-size: .95rem; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
 
+/* ONE READING LAYOUT (owner, 8 Nov, `readingCard_`): title, its reference, then the text in one type for every tradition. */
+.rd-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .6rem; margin: 0 0 .5rem; }
+.rd-title { margin: 0; font-size: var(--fs-lg); font-weight: 600; line-height: 1.3; overflow-wrap: break-word; }
+.rd-ref { font: 600 .8rem/1.3 var(--mono); color: var(--gold); }
+.rd-body { margin: 0 0 .6rem; }
+.rd-body :is(.bb-v, .wt-text, .qr-en, .tx-text p):not([dir="rtl"]) { margin: 0 0 .6rem; font-size: 1.05rem; line-height: 1.6; color: var(--ink); }
+.rd-body :is(.bb-credit, .wt-credit, .qr-credit) { margin: .4rem 0 0; font: 400 .6rem/1.4 var(--mono); color: var(--faint); }
+.rd-body .bb-tr { margin: 0 0 .3rem; }
+
 /* A MANUSCRIPT AS IT LOOKS (490): paper tokens for the leaf; papyrus and parchment are this component's own tints of them. */
 .hdb-ms { margin: .6rem 0 .3rem; }
 .hdb-ms-sides { display: flex; gap: .6rem; align-items: flex-start; }
@@ -5911,7 +5828,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rules-card .rule-sw { display: flex; gap: .4rem; margin: .35rem 0 0; }
 .rules-card .rule-opt { min-height: 44px; flex: 1 1 0; }
 .rules-card .rule-opt.on { border-color: var(--gold); color: var(--gold); }
-:root[data-uni~="tap-44"] .kp-key, :root[data-uni~="tap-44"] .qp-opt { min-height: var(--tile); }
+:root[data-uni~="tap-44"] .kp-key { min-height: var(--tile); }
 :root[data-uni~="tap-44"] .tile.is-submit { width: var(--tile); height: var(--tile); }
 :root[data-uni~="search-icon"] .search-pill .tile-i { width: var(--tile-i); height: var(--tile-i); }
 /* ---------- EDIT WORDS IN PLACE AND WHO SEES THIS (497, words.js) ---------- */
@@ -6054,6 +5971,15 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .lib-pic { margin: .4rem auto .6rem; width: min(100%, 8rem); background: var(--raised); border-radius: 12px; padding: .5rem; }
 .lib-c .fc-say, .lib-c .fc-lede, .lib-c h4, .lib-c li, .hdb-more .hdb-lines dt, .lib-c .tl-tick i { color: var(--ink); }
 .lib-c > .person-pic { margin: .2rem auto .6rem; }
+/* MESSAGES AND POSTS AS FIND CARDS (36a): the picture, the title, two lines of what was said. */
+.msg-fc-pic { margin: .4rem auto .6rem; width: min(100%, 8rem); background: var(--raised); border-radius: 12px; padding: .5rem; overflow: hidden; }
+.msg-fc-pic .dm-av { width: 100%; height: auto; aspect-ratio: 1; font-size: 2.4rem; }
+.msg-fc-pic .person-pic { margin: 0; width: 100%; padding: 0; }
+.post-fc-pic { width: 100%; padding: 0; }
+.post-fc-img { display: block; width: 100%; max-height: 18rem; object-fit: cover; }
+.msg-fc-body { margin: .3rem 0 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.msg-fc.is-one .msg-fc-pic { width: 4rem; padding: .25rem; }
+.msg-tag.is-new { border-color: var(--gold); color: var(--gold); }
 .pane:has(> .favwrap > .lib-c) > .tile-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 /* ---------- THE TUTOR CARD FITS ONE PHONE SCREEN (8 Nov): small face, name and rate on one line, tight pills, short map, hours as day pills. */
 .tcard .prof-top { gap: .55rem; align-items: center; }
@@ -6119,3 +6045,11 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* A CHIP'S CLOSE IS A TILE (owner, 8 Nov), drawn at the chip's own height so the pill stays one line. */
 .chip > .tile.chip-x, .msg-chip > .tile.msg-chip-x { width: 24px; height: 24px; min-width: 24px; border: 0; background: none; margin-left: .2rem; }
 .chip > .tile.chip-x .tile-i, .msg-chip > .tile.msg-chip-x .tile-i { width: 12px; height: 12px; }
+/* LONG CARD TEXT, CUT TO TWO LINES WITH "…" (owner 8 Nov, 29a); `cut-open` toggles .is-open on a tap. */
+.cut2 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; cursor: pointer; }
+.cut2.is-open { display: block; -webkit-line-clamp: unset; line-clamp: none; overflow: visible; }
+/* THE ONE VIEWER (`fileView_`): a file opened inside its card, the card's width, never full screen. */
+.file-view { margin-top: .75rem; }
+.file-view-f, .file-view-v, .file-view-i { display: block; width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.file-view-f { height: 70vh; }
+.file-view-youtube .file-view-f, .file-view-v { height: auto; aspect-ratio: 16 / 9; }

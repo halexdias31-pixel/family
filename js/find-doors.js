@@ -38,15 +38,15 @@ function msgDoorItems_() {
     msgWith: t.name, text: t.name }))
     .concat(people.map(p => ({ kind: 'msg', name: p.name, key: 'msg:' + (p.id || p.name), sub: '', image: '', to: p, msgWith: p.name, text: p.name })));
 }
-function msgDoorCard_(x) {
+/* A CONVERSATION'S CARD, around the one card maker: somebody not yet written to gets the form, a thread gets `msgFindCard_`. */
+function msgDoorCard_(x, draw) {
   const t = (typeof messageThreads_ === 'function' ? messageThreads_() : []).find(t2 => t2.id === x.thread);
   if (!t && x.to) return `<div class="card dm-card"><div class="dm-head"><h3>${esc(x.name)}</h3></div>
     ${msgForm_(x.to.name, x.to.id)}</div>`;
   if (!t) return `<div class="card"><h3>${esc(x.name)}</h3></div>`;
-  try { markRead_(t.msgs); } catch (e) { oops_(e, 'doors:msg'); }
-  return `<div class="card dm-card"><div class="dm-head">${typeof dmFace_ === 'function' ? dmFace_(t) : ''}<h3>${esc(t.name)}</h3></div>
-    <div class="msg-body">${messagesHtml_(t.msgs)}</div>${msgForm_(t.name, t.id)}</div>`;
+  return msgFindCard_(x, t, draw);
 }
+window.KC_AROUND = Object.assign(window.KC_AROUND || {}, { msg: msgDoorCard_ });
 
 /* ---------- PROFILES: who they are is the menu; admin-only answers are asked by rank ---------- */
 function profileTypes_(p, tutor) {
@@ -223,7 +223,6 @@ function findSettings_(type) {
   try {
     inFinder_(FINDER, () => {
       STUFF.filters = [{ field: 'kindLabel', value: 'Settings' }].concat(USER && type ? [{ field: 'settingFor', value: type }] : []);
-      STUFF.q = '';
     });
     go(FINDER.id);
     inFinder_(FINDER, () => paintStuff());

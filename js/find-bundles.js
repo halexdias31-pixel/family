@@ -54,10 +54,6 @@ function bundleTitle_(items) {
     const n = parts.length;
     try { titlePart_(field); } finally { if (parts.length > n) said[field] = true; }
   });
-  /* THE SEARCH, IN QUOTES, UNLESS THE TITLE ALREADY SAYS IT — `… · 2017 · “2017”` is the year
-     twice, and the search is only there to say what the chips cannot. */
-  const q = String(STUFF.q || '').trim();
-  if (q && !norm(parts.join(' ')).includes(norm(q))) parts.push('“' + q + '”');
   return parts.join(' · ');
 
   function titlePart_(field) {
@@ -195,8 +191,8 @@ function bundlePriceLine_(b) {
   const cash = priced.reduce((n, p) => n + printPrice(p.pages), 0);
   const left = b.printable.length - priced.length;
   if (!priced.length) return 'Priced when it is sent — no page counts yet';
-  if (!left) return pages + ' pages · ' + money(cash);
-  return money(cash) + ' for ' + priced.length + ' · ' + left + ' priced when sent';
+  if (!left) return pages + ' pages · ' + money_(cash);
+  return money_(cash) + ' for ' + priced.length + ' · ' + left + ' priced when sent';
 }
 
 /* WHAT IS ON THE LIST AND NOT IN THE BUNDLE, in one sentence — see the note above `BUNDLE_MIN`. § */
@@ -449,8 +445,24 @@ function stuffCard(x, credits) {
   /* A SECONDARY KIND'S CARD (860) is guarded: its throw is a card saying so, never the Find column. */
   const card = kindOf_(x).card || thingCard_;
   const html = tagsAreTitle_(x, tagsOnTop_(x, tierCore_('kind', x.kind) ? card(x, credits) : tierRun_('card:' + x.kind, card, null, [x, credits], oopsHtml_)));
-  if (!x.key) return html;
-  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
+  const shown = withPic_(x, html);
+  if (!x.key) return shown;
+  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${shown}</div>${cardTiles_(x)}`;
+}
+
+/* EVERY FIND CARD HAS A PICTURE (owner 8 Nov, 25a): one with no photo or drawing gets its kind's 8-bit sign, one helper for every kind. */
+function picFor_(x) {
+  const pix = (typeof LIB_PIX === 'object' && LIB_PIX) || {};
+  const rows = pix[x && x.kind] || pix.content;
+  return rows ? `<figure class="lib-pic">${pixSvg_(rows, (x && x.name) || '')}</figure>` : '';
+}
+/* LONG CARD TEXT IS CUT TO TWO LINES (owner 8 Nov, 29a); a tap on it shows the rest, a second tap cuts it again. */
+on('cut-open', el => { if (el && el.classList) el.classList.toggle('is-open'); });
+function withPic_(x, html) {
+  if (typeof html !== 'string' || /<(img|svg|canvas|video|figure)\b/.test(html)) return html;
+  /* A ONE-CARD-MAKER CARD (cards.js) HAS ITS PICTURE PART: an empty kc-pic is filled, so the shape stays four parts. */
+  if (/<div class="kc-pic"><\/div>/.test(html)) return html.replace('<div class="kc-pic"></div>', '<div class="kc-pic">' + picFor_(x) + '</div>');
+  try { return html.replace(/^(\s*<div class="[^"]*\bcard\b[^"]*"[^>]*>)/, m => m + picFor_(x)); } catch (e) { return html; }
 }
 
 /* WHAT A CHIP READS: the words its button said, in the menu it was picked from (the chips before it), else `answerSay_`. */
@@ -479,9 +491,8 @@ function chipText_(f, i) {
   return /^\d{1,3}$/.test(show.trim()) ? key + ' ' + show.trim() : show;
 }
 
-/* THE CHIPS YOU HAVE CHOSEN. Drawn with the list rather than with the search box above it, because
-   this row grows and shrinks and a fixed control does not. Clear is not one of them — see
-   `filterClear_`. */
+/* THE CHIPS YOU HAVE CHOSEN, drawn with the list because this row grows and shrinks. Clear is not
+   one of them — see `filterClear_`. */
 /* 680: THE ROW NEVER SAYS THE SAME THING TWICE — a second chip with the same words is left out (its filter stays). */
 function filterChips() {
   const said = {};
@@ -502,7 +513,7 @@ function filterChips() {
   </div>`;
 }
 
-/* ---------- CLEAR IS A TILE BESIDE THE SEARCH BOX, NOT A CHIP AT THE END OF THE ROW § */
+/* CLEAR-ALL IS A TILE ABOVE THE CHIPS, not a chip at the end of the row: it empties every answer at once. */
 function filterClear_() {
   return STUFF.filters.length
     ? tile_({ icon: 'bin', label: 'Clear', note: 'every answer', act: 'filter-clear', cls: 'find-clear' })
@@ -648,7 +659,7 @@ function paintStuff(keepPage) {
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');
   if (chips) chips.innerHTML = filterChips();
-  /* THE BIN BESIDE THE BOX, in its own slot so the box itself is never rewritten — see `filterClear_`. */
+  /* THE BIN, in its own slot above the chips — see `filterClear_`. */
   const clear = $(FINDER.id + '-clear');
   if (clear) clear.innerHTML = filterClear_();
   const groups = $(FINDER.id + '-groups');

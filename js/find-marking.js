@@ -673,59 +673,60 @@ function markAnswer_(typed, accept, again) {
   return false;
 }
 
-/* ---------- A MULTIPLE-CHOICE QUESTION IS TAPPED, NOT TYPED § */
-function choiceBox_(x) {
-  /* AN ORDERING HAS `choices` TOO, and they are not options to pick one of: every one is used, and the
-     answer is the order. Its own box, below (`orderBox_`). */
-  if (orderIs_(x)) return orderBox_(x);
-  const k = ansKey_(x);
-  const right = (x.choiceRight || []).slice().sort((a, b) => a - b);
-  const need = Math.max(1, right.length);
-  const picked = String(ansRead_(k) || '').split(',').map(t => parseInt(t, 10)).filter(n => n > 0);
-  const done = right.length && picked.length >= need;
-  const ok = done && picked.slice().sort((a, b) => a - b).join(',') === right.join(',');
-  /* SETTLED (`is-done`) ONLY WHEN RIGHT; a miss (`is-miss`) stays tappable so the child picks again and is marked again (385). */
-  /* THE MARK IS LAID OUT AS THE TYPED BOX'S (`qp-compose`): row, line, open panel and photos each a full line, never squeezed onto one (Review B) */
-  return `<div class="qp-ans qp-choices${ok ? ' is-done' : done ? ' is-miss' : ''}" data-k="${esc(k)}" data-need="${need}"
-      data-right="${esc(right.join(','))}">
-    ${/* NO "<NAME>'S ANSWER" OVER THE OPTIONS -- *"remove 'names answer'. that is redundant."* The
-          person signed in is on the You column; the only thing worth saying here is how many to pick. */
-      need > 1 ? `<span class="qp-ans-k">Choose ${need}</span>` : ''}
-    <div class="qp-opts">${x.choices.map((c, i) => {
-      const n = i + 1, on = picked.includes(n);
-      /* THE TICK GOES ON YOUR PICK WHEN IT IS RIGHT, AND NOWHERE WHEN IT IS NOT. § */
-      const cls = (on ? ' is-picked' : '') + (ok && on ? ' is-ans' : '');
-      /* THE OPTION'S OWN MARKUP, as the question's html is drawn: § */
-      return `<button type="button" class="qp-opt${cls}" data-do="qp-choose"
-        data-n="${n}" aria-pressed="${on}">${typeset_(c)}</button>`;
-    }).join('')}</div>
-  </div><div class="qp-mark qp-compose${done ? (ok ? ' is-right' : ' is-near') : ''}">${qtRow_(x)}${workStrip_(x)}
-    <span class="qp-verdict" role="status" aria-live="polite">${done
-      /* WHERE THE ANSWER IS, NOT WHAT IT IS -- and short enough for one line at 320px: § */
-      ? (ok ? 'Correct' : 'Not yet — have another go')
-      : ''}</span>
-  </div>
-  <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>`;
+/* ---------- OPTIONS ARE READ, AND THE ANSWER IS TYPED (owner, 9 Nov): one typed box for every part; the options are listed A, B, C to type. */
+const CHOICE_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function choiceList_(x) {
+  if (!x || !Array.isArray(x.choices) || x.choices.length < 2) return '';
+  const need = Math.max(1, (x.choiceRight || []).length);
+  const say = orderIs_(x) ? 'Type the letters in order, e.g. B, A, C' : need > 1 ? 'Type ' + need + ' letters, e.g. A, C' : 'Type the letter';
+  return `<ol class="qp-optlist" type="A">${x.choices.map((c, i) =>
+    `<li class="qp-optline"><b class="qp-optl">${CHOICE_LETTERS[i] || i + 1}</b> ${typeset_(c)}</li>`).join('')}</ol>
+  <span class="qp-ans-k">${esc(say)}</span>`;
+}
+/* WHAT WAS TYPED, AS OPTION NUMBERS (1-based): a letter, a number or an option's own words; null for nothing, [] for something that is no option. */
+function choicePicks_(x, typed) {
+  const opts = ((x && x.choices) || []).map(c => markNorm_(String(c).replace(/<[^>]*>/g, ' ')));
+  const t = String(typed == null ? '' : typed).trim();
+  if (!t) return null;
+  const one = p => {
+    const w = markNorm_(p);
+    if (/^[a-z]$/.test(w) && w.charCodeAt(0) - 96 <= opts.length) return w.charCodeAt(0) - 96;
+    if (/^\d+$/.test(w) && +w >= 1 && +w <= opts.length) return +w;
+    const at = opts.indexOf(w);
+    return at >= 0 ? at + 1 : 0;
+  };
+  const whole = one(t);
+  if (whole) return [whole];
+  let parts = t.split(/\s*(?:[,;>\n]|\bthen\b|\band\b)\s*/i).filter(Boolean);
+  if (parts.length === 1) parts = t.split(/\s+/);
+  const out = parts.map(one);
+  return out.some(n => !n) ? [] : out;
 }
 
-/* A tap picks; on "choose two" a second tap adds and a tap on a chosen one takes it back off. § */
-/* THE OPTIONS DRAWN AGAIN FROM THE STORED PICK, where they stand — the verdict row and the saved line under them replaced with them, or the old ones would stay § */
-function choiceRedraw_(box) {
-  const k = box && box.getAttribute('data-k');
-  const x = k && stuffItemsAll_().find(it => ansKey_(it) === k);
-  if (!x) return;
-  const wrap = document.createElement('div');
-  wrap.innerHTML = choiceBox_(x);
-  for (let n = box.nextElementSibling; n && (n.classList.contains('qp-mark') || n.classList.contains('qp-saved'));) {
-    const next = n.nextElementSibling;
-    n.remove();
-    n = next;
+/* ---------- ONE MARKER FOR EVERY TYPED PART (owner, 9 Nov): the mark scheme first — options, order, accepted answers, key words. `{got, of}`; null for nothing typed; `{ai:true}` where only the AI can mark. */
+function markPart_(x, typed) {
+  const m = markerOf_(x || {});
+  if (m.kind === 'choice' || m.kind === 'order') {
+    const p = choicePicks_(x, typed);
+    if (p === null) return null;
+    if (m.kind === 'order') return { got: markOrder_(p, orderWays_(x)) ? 1 : 0, of: 1 };
+    const r = (x.choiceRight || []).slice().sort((a, b) => a - b).join(',');
+    return { got: p.slice().sort((a, b) => a - b).join(',') === r ? 1 : 0, of: 1 };
   }
-  box.replaceWith(...wrap.childNodes);
+  if (m.kind === 'accept') {
+    const v = markAnswer_(typed, x.accept);
+    return v === null ? null : { got: v ? 1 : 0, of: 1 };
+  }
+  if (m.kind === 'words') {
+    const w = markWords_(typed, x.markWords);
+    if (!w) return null;
+    const of = Math.max(1, Math.min(w.of, Number(x.marks) || w.of));
+    return { got: Math.min(w.got, of), of, words: true };
+  }
+  return String(typed == null ? '' : typed).trim() ? { ai: true } : null;
 }
 
-/* AN ORDERING IS TAPPED IN ORDER, NOT TYPED. § */
-const ORDER_HOLE = new Map();
+/* AN ORDERING: its options are typed in order, as letters (`choicePicks_`). */
 
 function orderIs_(x) {
   return !!x && String(x.answerType || '').trim().toLowerCase() === 'order'

@@ -17,15 +17,14 @@ const QT_TOOLS = [
   { id: 'lock',       icon: 'unlock',     label: 'Lock',            note: 'hold this page still',     act: 'q-lock' },
   { id: 'check',      icon: 'send',       label: 'Check',           note: '',                         act: '' },
 ];
-const QT_ORDER = QT_TOOLS.map(t => t.id);
-/* THE TOOLS THAT DRAW ON THE PART'S FIGURE OR SURFACE: drawn only where it has one (`qtRow_`). */
-const QT_DRAWING = { pen: 1, line: 1, ruler: 1, protractor: 1, compass: 1 };
+/* THE ONE ROW EVERY PART SHOWS, identically (owner, 8 Nov); data/settings/qengine.json `row` repeats it (check-answerable) */
+const QT_ROW = ['photo', 'mag', 'read', 'lock', 'ruler', 'protractor'];
+/* THE PEN'S TILES, added only where the part has a figure to draw on (a drawing answer needs its pen) */
+const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
+const QT_ORDER = QT_ROW.concat(Object.keys(QT_DRAWING), ['check']);
 /* THE PEN'S OWN NAME FOR EACH DRAWING TILE: Straight line is the pad's `ruler` mode (a line from press to lift, `padStroke_`). */
 const QT_PAD_TOOL = { pen: 'pen', line: 'ruler', compass: 'compass', protractor: 'protractor' };
-/* THE SAME ROW ON EVERY PART (owner, 7 Nov): magnifier, padlock and Read aloud included; Read aloud reads its own part. */
-const QT_CARD_LEVEL = {};
 const qMulti_ = x => { try { return (questionParts_()[qId_(x)] || []).length > 1; } catch (e) { return false; } };
-const qtHere_ = id => !QT_CARD_LEVEL[id];
 const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
 
 /* ---------- THE PART'S ONE RECORD (text, choice, cells, strokes, photos, the AI's mark): keyed as its answer is. */
@@ -77,11 +76,10 @@ function partRec_(x) {
 
 /* ---------- THE MARKER: the one thing that varies between parts -- qtypes.js `qtMarker_`, which the Function tag reads too. */
 /* WHAT THE LINE UNDER CHECK SAYS, by marker: how this part will be marked, before it is. Never a person. */
-const QT_HOW = {
-  choice: 'Marked by its answer key', order: 'Marked by the right order', cells: 'Each box marked by its own answer',
-  draw: 'Marked by your drawing\u2019s geometry', accept: 'Marked against the accepted answers',
-  words: 'Marked by key words \u2014 then by AI, if you ask', ai: 'Marked by AI against the mark scheme: your answer, drawing and photos',
-};
+/* ONE LINE UNDER EVERY ROW (owner, 9 Nov): marking is one path for every type, so it says the same words everywhere. */
+const QT_HOW_ALL = 'Marked against the mark scheme first \u2014 then by AI, if you ask';
+/* the markers `markPart_` (find-marking.js) reads off the typed box: one Check, `qp-check`, for all of them */
+const QT_SCHEME_KINDS = { choice: 1, order: 1, accept: 1, words: 1 };
 /* `ready` is false where the marker has nothing to mark against yet (no key, no scheme): Check says so instead of asking */
 const QT_NO_SCHEME = 'No mark scheme yet \u2014 flag it and we will add one';
 const qtSchemeIn_ = x => !!x && !!String(x.answer || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;|\s+/g, ' ').trim();
@@ -94,25 +92,22 @@ function markerOf_(x) {
   if (kind === 'choice' || kind === 'order') ready = Array.isArray(x.choiceRight) ? x.choiceRight.length > 0 : !!x.choiceRight;
   /* NO MARK SCHEME is no accept, key words, cells, options or answer (round 4): an importer's note alone is not a scheme to mark against */
   if (kind === 'ai') ready = qtSchemeIn_(x);
-  const how = !ready && kind === 'ai' ? QT_NO_SCHEME : !ready ? 'No answer key yet \u2014 flag it and we will add one' : QT_HOW[kind];
+  const how = ready ? QT_HOW_ALL : QT_NO_SCHEME;
   return { kind, ready, how };
 }
 /* THE CHECK TILE FOR THAT MARKER, last in the row. An AI part whose marker is off says why under the row, not by vanishing. */
 function qtCheck_(x, m) {
   const k = (m || markerOf_(x)).kind;
-  if (k === 'choice') return tile_({ send: true, act: 'qp-choice-check', cls: 'qp-check' });
-  if (k === 'order') return tile_({ send: true, act: 'qp-order-send', cls: 'qp-order-send qp-check' });
+  if (QT_SCHEME_KINDS[k] && (m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-check', cls: 'qp-check' });
   if (k === 'cells') return tile_({ send: true, act: 'qp-cells-check', cls: 'qp-check' });
   if (k === 'draw') return tile_({ send: true, act: 'pad-check', cls: 'qp-check' });
-  if (k === 'accept') return tile_({ send: true, act: 'qp-check', cls: 'qp-check' });
-  if (k === 'words') return tile_({ send: true, act: 'qp-rule', cls: 'qp-check' });
   /* NO SCHEME, NO AI CHECK: a request could only fail, so its Check says so under the row, as options with no key do (round 4) */
   if (!(m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-noscheme', cls: 'qp-check', data: { key: (x && x.key) || '' } });
   const ai = typeof aiOpts_ === 'function' ? tile_(aiOpts_(x)) : '';
   return ai || tile_({ send: true, act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true });
 }
 
-/* ---------- THE ROW. All nine in QT_ORDER (the four drawing tools where there is something to draw on), then Undo, Clear and Check: all drawn from the start (1020). */
+/* ---------- THE ROW. QT_ROW on every part, the pen's tiles where there is a figure, then Undo, Clear and Check (1020). */
 const PEN_OPEN = new Set();
 /* WHAT `qPartCard_` HANDS THE NEXT ROW DRAWN: its part's other tiles; `used` says a row took them */
 const QT_MORE = { html: '', used: false };      // parts whose pen was opened this visit (the surface is made on the first Pen tap)
@@ -129,23 +124,28 @@ function qtToolTile_(t, x) {
   if (t.id === 'photo') {
     return tile_({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } });
   }
-  /* A CARD DRAWN AGAIN keeps the tool in hand lit -- `padArm_`'s rule, read off PAD_ON and PAD_TOOL, which outlive the markup */
+  /* A CARD DRAWN AGAIN keeps the tool in hand lit, by the one rule `padArm_` uses too */
   const pk = (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
-  const held = t.id === 'ruler' ? !!(typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === 'ruler')
-    : !!pk && PAD_ON === pk && (t.id === 'protractor' ? padProtOn_(pk) : (PAD_TOOL.get(pk) || 'pen') === QT_PAD_TOOL[t.id]);
-  const on = held;
+  const on = qtToolOn_(t.id, key, pk, PAD_ON === pk ? (PAD_TOOL.get(pk) || 'pen') : '');
   const cls = 'qt-t' + ((t.id === 'ruler' || t.id === 'protractor') ? ' q-meast' : '');
   return tile_({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } });
+}
+/* IS THIS TOOL IN HAND: the Ruler measures (MEAS), the protractor lies on the pad, the rest are the pad's tool (`inHand`, '' when the pad is off) */
+function qtToolOn_(id, key, pk, inHand) {
+  if (id === 'ruler') return !!(typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === 'ruler');
+  if (!pk || !inHand) return false;
+  if (id === 'protractor') return !!padProtOn_(pk);
+  return inHand === QT_PAD_TOOL[id];
 }
 function qtRow_(x) {
   if (!x || !x.key) return '';
   const key = x.key;
   /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
   if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
-  /* THE DRAWING TOOLS ONLY WHERE THERE IS SOMETHING TO DRAW ON (`padHasArt_`): on a bare part they opened a blank grid -- "the working paper", which the owner had removed (29 Oct) */
-  /* AND ONLY WHERE THE PAD IS ALREADY ON THE CARD (1020), so a tap never redraws it; a passage's grid is the one still made on the first tap */
+  /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
   const art = typeof padReady_ !== 'function' || padReady_(x);
-  const tools = QT_TOOLS.filter(t => t.id !== 'check' && (art || !QT_DRAWING[t.id]) && qtHere_(t.id, x)).map(t => qtToolTile_(t, x)).join('') + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
+  const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
+  const tools = ids.map(qtTool_).filter(Boolean).map(t => qtToolTile_(t, x)).join('') + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
   const m = markerOf_(x);
   /* A PART OF A WHOLE QUESTION (owner, 8 Nov): its Show-the-answer and card tiles join this row, so the part has one row, not three */
   const more = QT_MORE.html; QT_MORE.html = ''; QT_MORE.used = true;
@@ -209,20 +209,7 @@ on('qt-inst', el => {
   if (!pad && tool === 'protractor' && card && card.querySelector('figure svg')) return measOpen_(el);
   qtPenOpen_(el, tool);
 });
-/* ---------- CHECK ON OPTIONS: a tap marks already; Check says the verdict again, or what is missing. */
-on('qp-choice-check', el => {
-  const mark = el.closest('.qp-mark'), card = el.closest('.qcard');
-  const box = card && card.querySelector('.qp-choices');
-  const out = mark && mark.querySelector('.qp-verdict');
-  if (!box || !out) return;
-  const right = box.getAttribute('data-right');
-  if (!right) { out.textContent = 'No answer key for this one yet — flag it and we will add one'; return; }
-  const picked = box.querySelectorAll('.qp-opt.is-picked').length;
-  if (!picked) { out.textContent = 'Tap an option first'; return; }
-  out.textContent = box.classList.contains('is-done') ? 'Correct' : 'Not yet — have another go';
-});
-
-/* ---------- CHECK WITH NO MARK SCHEME: nothing is sent; the verdict line says what is missing, as `qp-choice-check` does for a missing key. */
+/* ---------- CHECK WITH NO MARK SCHEME: nothing is sent; the verdict line says what is missing, for a missing key too. */
 on('qp-noscheme', el => {
   const mark = el.closest('.qp-mark'), out = mark && mark.querySelector('.qp-verdict');
   if (out) out.textContent = QT_NO_SCHEME;

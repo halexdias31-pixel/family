@@ -295,7 +295,7 @@ async function card(env, row) {
     go('stuff', false, true);
     const hit = stuffItemsAll_().find(x => x.row && x.row.row_id === r);
     if (!hit) return null;
-    STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: hit.row.paper_id }];
+    STUFF.filters = [{ field: 'paperId', value: hit.row.paper_id }];
     paintStuff(true);
     await new Promise(z => setTimeout(z, 600));
     const h2 = stuffFiltered().find(x => x.row && x.row.row_id === r) || hit;

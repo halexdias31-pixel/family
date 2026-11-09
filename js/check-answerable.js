@@ -61,7 +61,7 @@ function boot(lib) {
   /* THE FINDER IS FOR MEMBERS (400): signed out it holds only Sign in, so `questionParts_` had no siblings and a whole card one part */
   signedInAs_(MEMBER_)(w);
   const src = order_().map(n => fs.readFileSync(path.join(DIR, n + '.js'), 'utf8')).join('\n');
-  w.eval(src + '\n;window.__a = { DM: DRAW_MARK, qId: qId_, STUFF: () => STUFF, ACTIONS, PADLOCK, QT_ORDER, PEN_OPEN, qtHere: qtHere_, padReady: padReady_ };');
+  w.eval(src + '\n;window.__a = { DM: DRAW_MARK, qId: qId_, STUFF: () => STUFF, ACTIONS, PADLOCK, QT_ORDER, PEN_OPEN, QT_ROW, padReady: padReady_ };');
   return w;
 }
 
@@ -69,8 +69,10 @@ const S = v => (v == null ? '' : String(v)).trim();
 /* THE TOOL ROW AS ITS TOOLS' NAMES, left to right, Check last: read off the tiles' own acts, never off a list in the app */
 /* THE OWNER'S ORDER, written here and not read from the app, so an app that reorders its tools fails */
 /* round 4: no Calculator, Grid, Table or Formula sheet (a question brings its own), and the padlock once, in the row */
-const TOOL_ORDER = ['pen', 'line', 'ruler', 'protractor', 'compass', 'photo', 'mag', 'read', 'lock', 'check'];
-const DRAWING_TOOLS = new Set(['pen', 'line', 'ruler', 'protractor', 'compass']);
+/* THE ONE ROW (owner, 8 Nov) is data: qengine.json `row`, then the pen's tiles where there is a figure, then Check */
+const QT_ROW_DATA = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'settings', 'qengine.json'), 'utf8')).row || []; } catch (e) { return []; } })();
+const DRAWING_TOOLS = new Set(['pen', 'line', 'compass']);
+const TOOL_ORDER = QT_ROW_DATA.concat([...DRAWING_TOOLS], ['check']);
 const TOOL_OF = { 'qt-pen': 'pen', 'qp-work': 'photo', 'q-mag': 'mag', 'read-aloud': 'read', 'q-lock': 'lock' };
 /* EACH TILE ONCE ON A PAGE (round 4: two padlocks, `q-lock` and the widgets' `game-lock`): a tile is its act and tool, and a lock is a lock */
 const SAME_AS = { 'game-lock': 'q-lock' };
@@ -109,8 +111,8 @@ const insText_ = () => {
 /* AN IMPORTER'S NOTE OR SUMMARY STANDING IN FOR THE PAPER'S OWN WORDS (owner, 8 Nov, 1160): "[FUNCTION NOT EXTRACTED — g(x) is a cubic …]" reached a student */
 const STAND_IN = /\[[^\]]*\b(NOT|PARTIALLY) (EXTRACTED|TRANSCRIBED)\b|\bgarbled in extraction\b|\bthe source PDF\b|\bOpen the paper to transcribe\b|\binvolving (terms in|a constant|a positive constant)\b|\bthe given (identity|equation)\b|\bthe corresponding equation involving\b/i;
 const WRONG = ['zzqq wvxk', '987654.321'];
-/* EACH MARKER'S CHECK, written here and not read from the app: a part's Check must be its marker's (Review A) */
-const CHECK_OF = { choice: 'qp-choice-check', order: 'qp-order-send', cells: 'qp-cells-check', draw: 'pad-check', accept: 'qp-check', words: 'qp-rule', ai: 'qp-ai' };
+/* EACH MARKER'S CHECK, written here and not read from the app: every typed scheme is one Check, `qp-check` (owner, 9 Nov) */
+const CHECK_OF = { choice: 'qp-check', order: 'qp-check', cells: 'qp-cells-check', draw: 'pad-check', accept: 'qp-check', words: 'qp-check', ai: 'qp-ai' };
 /* EACH PART'S MARKER FROM ITS OWN ROW, written here and not asked of the app (Review B: an app that handed every accept part to the AI passed) */
 const MARKER_OF = (x, r) => {
   if (Array.isArray(x.choices) && x.choices.length >= 2) return S(x.answerType || r.answer_type).toLowerCase() === 'order' ? 'order' : 'choice';
@@ -220,11 +222,10 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     if (rows.length !== 1) bad('tools', x, rows.length + ' tool rows, wanted one');
     else {
       const got = toolsOf(rows[0]);
-      /* THE DRAWING TOOLS WHERE THERE IS SOMETHING TO DRAW ON (`padHasArt_`): on a bare part they opened a blank working paper (owner, 29 Oct) */
-      /* THE MAGNIFIER AND PADLOCK ARE THE CARD FOOT'S, Read aloud a part's only on a question with parts (`qtHere_`, 1040 r12) */
+      /* THE SAME ROW ON EVERY PART; the pen's tiles only where there is something to draw on (`padHasArt_`, owner 29 Oct) */
       /* AND ONLY WHERE THE PAD IS ON THE CARD (`padReady_`, 1020), with Undo and Clear before the Check */
       const ready = A.padReady(x);
-      const wantRow = TOOL_ORDER.filter(t => (ready || !DRAWING_TOOLS.has(t)) && (t === 'check' || A.qtHere(t, x)));
+      const wantRow = TOOL_ORDER.filter(t => (ready || !DRAWING_TOOLS.has(t)) && true);
       if (ready) wantRow.splice(wantRow.length - 1, 0, 'pad-undo', 'pad-clear');
       if (got.join(' ') !== wantRow.join(' ')) bad('tools', x, 'its row reads ' + got.join(' ') + (ready ? '' : ' — nothing to draw on, so no drawing tools'));
       const box = rows[0].closest('.qp-mark');
@@ -236,7 +237,8 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       if (m && m.kind !== own) bad('marker', x, 'its row says it is marked by ' + own + ', and the app marks it by ' + m.kind);
       if (m && (own === 'choice' || own === 'order') && m.ready !== !!S(r.choice_right)) bad('marker', x, 'its options ' + (S(r.choice_right) ? 'have' : 'have no') + ' key, and the app says it is ' + (m.ready ? '' : 'not ') + 'ready');
       if (m) {
-        const want = own === 'ai' && !SCHEME_IN(r) ? 'qp-noscheme' : CHECK_OF[own];
+        const keyless = (own === 'choice' || own === 'order') && !S(r.choice_right);
+        const want = (own === 'ai' && !SCHEME_IN(r)) || keyless ? 'qp-noscheme' : CHECK_OF[own];
         if (own === 'ai' && m.ready !== SCHEME_IN(r)) bad('marker', x, 'its row ' + (SCHEME_IN(r) ? 'has' : 'has no') + ' mark scheme, and the app says it is ' + (m.ready ? '' : 'not ') + 'ready');
         const go = [...rows[0].querySelectorAll('.is-submit')];
         if (!CHECK_OF[m.kind]) bad('marker', x, 'it is marked by ' + JSON.stringify(m.kind) + ' — only a rule or the AI marks');
@@ -263,7 +265,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       const k = t.getAttribute('data-k'), mark = t.closest('.qp-mark');
       if (!k || !mark || ![...mark.querySelectorAll('.qp-work')].some(s => s.getAttribute('data-k') === k)) bad('photo', x, 'its Photo of working tile has no strip with its key to show the photos in');
     });
-    const boxes = n('.qp-mark .qp-ans-in:not(.kp-in[data-do="qp-multi"])') + n('.qp-multi') + n('.qp-choices') + n('.qp-order') + n('.qp-cells-box');
+    const boxes = n('.qp-mark .qp-ans-in:not(.kp-in[data-do="qp-multi"])') + n('.qp-multi') + n('.qp-cells-box');
     if (boxes !== 1) bad('box', x, boxes + ' answer boxes, wanted one');
     if (pen) count.drawn++;
     else if (DRAWN.has(type) && type !== 'label') bad('pen', x, 'a ' + type + ' part with no pen');

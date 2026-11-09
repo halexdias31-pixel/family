@@ -24,10 +24,7 @@ function bibleVerseCard_(x) {
       });
     }
   }
-  return `<div class="card fc bible bb-verse" data-bb="v" data-bn="${esc(String(k))}" data-key="${esc(x.key)}">
-    ${tagRow_(x)}
-    ${body}
-  </div>`;
+  return readingCard_(x, { cls: 'bible bb-verse', cardData: { bb: 'v', bn: String(k) }, body: body });
 }
 
 /* ---------- THE TILES UNDER IT § */
@@ -43,10 +40,9 @@ function bibleOpts_(x) {
     ? { icon: 'undo', label: 'Try again', note: bb.book, act: 'bible-retry', data: { n: bb.slot } } : null,
   bibleHere_(x) ? null : { icon: 'book', label: 'Chapter', note: bibleCite_(bb, x.ch), act: 'bible-go', data: { key: x.key } }];
 }
-/* IN THIS VERSE'S CHAPTER ALREADY: its Book and Chapter answered, no Verse answer and no words
-   narrowing the chapter — the strip is the chapter, so the tile would land where you are. */
+/* IN THIS VERSE'S CHAPTER ALREADY: its Book and Chapter answered and no Verse answer — the strip is
+   the chapter, so the tile would land where you are. */
 function bibleHere_(x) {
-  if (String(STUFF.q || '').trim()) return false;
   const leaf = f => f && !f.any;
   const fs = STUFF.filters || [];
   if (fs.some(f => leaf(f) && f.field === 'wUnit')) return false;
@@ -144,7 +140,7 @@ function finderWalk_(x) {
 function finderOpen_(x, part, F) {
   F = F || FINDERS.stuff;
   inFinder_(F, () => {
-    /* THE WORDS GO FIRST: the walk asks `stuffFiltered`, which reads them. */
+    /* EMPTIED FIRST: the walk asks `stuffFiltered`, which reads the chips. */
     finderSet_(F, { paint: false });
     finderSet_(F, { filters: finderWalk_(x) });
     if (AT !== F.id) go(F.id);
@@ -181,10 +177,7 @@ on('find-open', el => {
    same three sentences. */
 function stuffNoneHtml_() {
   if (!FIND_MEMO.total) return nothingHere(FINDER.empty, true);
-  const why = STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
-            : STUFF.q                          ? 'Try fewer words.'
-            : STUFF.filters.length             ? 'Nothing matches all of those together.'
-            : '';
+  const why = STUFF.filters.length ? 'Nothing matches all of those together.' : '';
   return empty_(why ? 'Nothing matches. ' + why : 'Nothing matches.');
 }
 

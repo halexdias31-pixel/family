@@ -1,21 +1,22 @@
 {
  "v": 2,
  "tier": "core",
- "score": 76.5,
+ "score": 75.3,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
    "id": "exceptions",
    "label": "Written exceptions in the checks",
-   "count": 70,
+   "count": 79,
    "weight": 0.1,
    "cap": 20,
-   "off": 7,
+   "off": 7.9,
    "where": {
     "js/check-answerable.js ACCEPTED": 6,
     "js/check-answers.js ACCEPTED": 1,
     "js/check-css.js DIM_OK": 9,
     "js/check-dropdowns.js PICKER_OK": 1,
+    "js/check-format.js ALLOW": 9,
     "js/check-library.js KNOWN_F": 1,
     "js/check-loading.js PHRASE_OK": 8,
     "js/check-loading.js ACCEPTED_KEYFRAMES": 14,
@@ -51,10 +52,10 @@
   {
    "id": "special",
    "label": "Per-facet and per-kind special cases",
-   "count": 69,
+   "count": 76,
    "weight": 0.05,
    "cap": 10,
-   "off": 3.5,
+   "off": 3.8,
    "where": {
     "js/cards.js": 4,
     "js/data.js": 4,
@@ -62,7 +63,8 @@
     "js/find-cells.js": 2,
     "js/find-figures.js": 4,
     "js/find-finder.js": 2,
-    "js/find-history.js": 6,
+    "js/find-history.js": 9,
+    "js/find-marking.js": 5,
     "js/find-pad.js": 4,
     "js/keypad-keys.js": 3,
     "js/links.js": 3,
@@ -70,7 +72,7 @@
     "js/me-settings.js": 5,
     "js/predicates.js": 16,
     "js/price-rows.js": 2,
-    "js/qtools.js": 4,
+    "js/qtools.js": 3,
     "js/resource.js": 1,
     "js/submit.js": 6
    }
@@ -94,7 +96,7 @@
   {
    "id": "duplicates",
    "label": "Repeated long lines",
-   "count": 52,
+   "count": 51,
    "weight": 0.02,
    "cap": 10,
    "off": 1,

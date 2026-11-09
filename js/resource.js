@@ -179,16 +179,16 @@ function orderLine_(c, i, full, under) {
     if (full) {
       const p = cartPrint_(c);
       bits.push(c.pages ? c.pages + ' page' + (c.pages === 1 ? '' : 's') : 'pages not counted yet');
-      bits.push(p === null ? 'priced when sent' : money(p));
+      bits.push(p === null ? 'priced when sent' : money_(p));
     }
     if (c.laminate) {
       const lam = laminatePrice(c.pages);
-      bits.push('laminated' + (full && lam !== null ? ' (+' + money(lam) + ')' : ''));
+      bits.push('laminated' + (full && lam !== null ? ' (+' + money_(lam) + ')' : ''));
     }
   } else if (c.cost) {
     bits.push(c.cost + ' credit' + (c.cost === 1 ? '' : 's'));
   } else if (full && Number(c.money) > 0) {
-    bits.push(money(Number(c.money)));
+    bits.push(money_(Number(c.money)));
   }
   const name = under && c.short ? c.short : (c.name || c.key);
   /* ---------- A CHEAT SHEET CARRIES ITS PIECES, AND THE MESSAGE LISTS THEM § */
@@ -216,7 +216,7 @@ function orderText_(cart) {
   const head = 'An order from my basket, sent from the app — please print and send:';
   const foot = [];
   if (cash || tbc) {
-    foot.push('Printing: ' + (cash ? money(cash) : 'nothing priced yet')
+    foot.push('Printing: ' + (cash ? money_(cash) : 'nothing priced yet')
       + (tbc ? ' — ' + tbc + ' still to price when sent' : ''));
   }
   if (credits) foot.push('Credits: ' + credits);

@@ -72,10 +72,7 @@ function hymnsBody_(x) {
   return top + loading_();
 }
 function hymnsCard_(x) {
-  return `<div class="card fc hy" data-key="${esc(x.key)}">
-    ${tagRow_(x)}
-    <div class="hy-body" data-hy="${esc(x.hy ? x.hy.file : '')}" data-k="${esc(x.key)}">${x.hy ? hymnsBody_(x) : ''}</div>
-  </div>`;
+  return readingCard_(x, { cls: 'hy', bodyCls: 'hy-body', body: x.hy ? hymnsBody_(x) : '', data: { hy: x.hy ? x.hy.file : '', k: x.key } });
 }
 /* LISTEN, on the card's one row (`CARD_EXTRAS_`). */
 function hymnExtras_(x) { return x.hy ? { icon: 'play', label: 'Listen on Spotify', note: 'a search, in a new tab', href: hymnSpotify_(x.hy) } : null; }

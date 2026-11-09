@@ -49,13 +49,14 @@ function bookableSpaces() {
         label: v.title + ' \u2014 ' + r.name, venue: v.title, room: r.name,
         rate: r.rate, concession: r.concession, min: r.min, max: r.max, image: v.image,
         avail: r.avail, busy: r.busy || {}, rowIndex: r.rowIndex, fields: r.fields,
-        minHours: v.minHours, maxHours: v.maxHours
+        minHours: v.minHours, maxHours: v.maxHours, takesAllSeats: !!v.takesAllSeats
       }));
     } else {
       out.push({ label: v.title, venue: v.title, room: '',
                  rate: Number(v.bestRate) || 0, concession: 0,
                  min: v.minCapacity || 1, max: v.maxCapacity, image: v.image,
-                 avail: v.avail, minHours: v.minHours, maxHours: v.maxHours });
+                 avail: v.avail, minHours: v.minHours, maxHours: v.maxHours,
+                 takesAllSeats: !!v.takesAllSeats });
     }
   });
   return out;
@@ -104,20 +105,32 @@ function activePromoFactor(ctx) {
 }
 
 
-const fmtTime = t => {
-  let s = String(t ?? '').trim();
+/* FORMATS (owner, 8 Nov): one helper each, and check-format fails on a hand-formatted value. Times are 24-hour: 16:00. */
+const time_ = t => {
+  if (t instanceof Date || typeof t === 'number') { const d = new Date(t); return isNaN(d) ? '' : String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  const s = String(t ?? '').trim();
   if (!s) return '';
   let h, min;
-  const m = s.match(/(\d{1,2}):(\d{2})/);            // HH:MM anywhere in the string
-  if (m) { h = +m[1]; min = +m[2]; }
-  else {
-    const d = new Date(s);
-    if (isNaN(d)) return s;
-    h = d.getHours(); min = d.getMinutes();
-  }
-  const ampm = h >= 12 ? 'pm' : 'am';
-  const h12 = h % 12 || 12;
-  return min ? `${h12}:${String(min).padStart(2,'0')}${ampm}` : `${h12}${ampm}`;
+  const m = s.match(/(\d{1,2}):(\d{2})\s*([ap]m)?/i);
+  const a = m ? null : s.match(/^(\d{1,2})\s*([ap]m)$/i);
+  if (m) { h = +m[1]; min = +m[2]; if (m[3]) h = h % 12 + (/p/i.test(m[3]) ? 12 : 0); }
+  else if (a) { h = +a[1] % 12 + (/p/i.test(a[2]) ? 12 : 0); min = 0; }
+  else { const d = new Date(s); if (isNaN(d)) return s; h = d.getHours(); min = d.getMinutes(); }
+  return String(h).padStart(2, '0') + ':' + String(min).padStart(2, '0');
+};
+/* A whole-hour span, 24-hour: 09:00–10:00. */
+const hours_ = (a, b) => time_(a + ':00') + '–' + time_(b + ':00');
+/* Money always with pence: £12.00, and a minus sign before the pound. */
+const money_ = n => { const v = Number(n) || 0; return (v < 0 ? '−' : '') + '£' + Math.abs(v).toFixed(2); };
+/* Days of the week, short, Monday first: Mon Tue Wed Thu Fri Sat Sun. */
+const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const day_ = v => {
+  if (v instanceof Date) return isNaN(v) ? '' : DAYS_SHORT[(v.getDay() + 6) % 7];
+  const s = String(v ?? '').trim().toLowerCase();
+  const pre = { m: 0, tu: 1, w: 2, th: 3, f: 4, sa: 5, su: 6 };
+  if (s in pre) return DAYS_SHORT[pre[s]];
+  const i = DAYS_SHORT.findIndex(d => s.slice(0, 3) === d.toLowerCase());
+  return i === -1 ? String(v ?? '') : DAYS_SHORT[i];
 };
 
 const ST = {
@@ -173,14 +186,17 @@ function parseDMY(s) {
 }
 
 
-const fmtDate = v => {
+/* Dates always DD/MM/YY (08/11/26), from a Date, ms, ISO or an already-British string. */
+const date_ = v => {
+  if (v instanceof Date || typeof v === 'number') { const d = new Date(v); return isNaN(d) ? '' : `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`; }
   const s = String(v ?? '').trim();
   if (!s) return '';
+  const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (iso) return `${iso[3].padStart(2,'0')}/${iso[2].padStart(2,'0')}/${iso[1].slice(-2)}`;
   const m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);   // already DD/MM/YYYY
   if (m) { const y = m[3].slice(-2); return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${y}`; }
   const d = new Date(s);
-  if (isNaN(d)) return s;
-  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;
+  return isNaN(d) ? s : date_(d);
 };
 
 
@@ -197,23 +213,26 @@ function num(raw) {
 
 function spaceFor(label) {
   const want = norm(label);
-  return bookableSpaces().find(x => norm(x.label) === want) || null;
+  const all = bookableSpaces();
+  /* An older saved "At home" answer is the venue row marked `takes_all_seats`, found by its field. */
+  if (want === norm('At home')) return all.find(x => x.takesAllSeats) || null;
+  return all.find(x => norm(x.label) === want) || null;
 }
 
 
-/* THE CLIENT'S OWN HOUSE, by name — see the note over `seatLimits` for why this is not `isHome`. */
-function atClientHome_(loc) {
-  return /\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(String(loc || ''));
-}
-
-/* AN ONLINE SESSION, by name: a place like the house, holding the same 4. */
-function isOnline_(loc) {
-  return /\bonline\b/i.test(String(loc || ''));
+/* A VENUE WHOSE ROW SAYS `takes_all_seats` (owner, 8 Nov: the client's house): a field, never a name — same as `takesAllSeats_` in booking.gs. */
+function takesAllSeats_(loc) {
+  const want = norm(loc || '');
+  if (!want) return false;
+  const sp = spaceFor(loc);
+  if (sp) return !!sp.takesAllSeats;
+  const v = (DATA.venues || []).find(x => norm(x.title) === want);
+  return !!(v && v.takesAllSeats);
 }
 
 function isHome(loc) {
   const name = String(loc || '');
-  if (/\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(name)) return true;
+  if (takesAllSeats_(name)) return true;
   /* A CHILD IS SENT NO RATES (398), so "no rate" is not "a home" to her phone. */
   if (childView_()) return false;
   const sp = (typeof spaceFor === 'function') ? spaceFor(name) : null;
@@ -227,16 +246,15 @@ function isHome(loc) {
 function seatLimits(space, tutor, loc) {
   const v = (DATA.constants || {}).vars || {};
   const houseMax = Number(v.max_students_per_job) || 0;
-  /* ONLINE AND THE CLIENT'S HOUSE ARE PLACES HOLDING 4 (owner, 7 Nov); a cell can change it, code keeps the fallback. */
-  const placeSeats = Number(v.seats_online_or_home) || 4;
 
   let max = 99, min = 1;
   const why = { max: '', min: '' };
   const capMax = (n, reason) => { if (n > 0 && n < max) { max = n; why.max = reason; } };
   const capMin = (n, reason) => { if (n > 0 && n > min) { min = n; why.min = reason; } };
 
-  if (loc && (atClientHome_(loc) || isOnline_(loc))) capMax(placeSeats, atClientHome_(loc) ? 'a home session' : 'an online session');
-  else if (space) { capMax(Number(space.max), space.label || 'this venue');
+  /* HOME AND ONLINE ARE VENUE ROWS LIKE ANY OTHER (owner, 8 Nov): their seats come from the row. */
+  if (!space && loc) space = spaceFor(loc);
+  if (space) { capMax(Number(space.max), space.label || 'this venue');
                     capMin(Number(space.min), space.label || 'this venue'); }
   /* MAX SEATS = THE SMALLER OF TUTOR AND PLACE (owner, 7 Nov); "No preference" has no tutor row, so the place alone. */
   /* A TUTOR WITH NO CAPACITY SET HOLDS 1 SEAT (owner, 7 Nov). */
@@ -244,7 +262,7 @@ function seatLimits(space, tutor, loc) {
                 capMin(Number(tutor.minStudents), tutor.title); }
   capMax(houseMax, 'your limit');
   /* AT HOME THE BOOKING TAKES EVERY SEAT THE TUTOR HOLDS (owner, 8 Nov): the floor is the cap, priced for all. */
-  if (loc && atClientHome_(loc)) { min = max; why.min = 'a home session'; }
+  if (loc && takesAllSeats_(loc)) { min = max; why.min = 'a home session'; }
   if (min > max) min = max;
 
   return { max, min, why };

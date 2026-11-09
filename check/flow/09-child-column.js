@@ -397,7 +397,7 @@ check('New PIN is on a parent\'s "Manage your child" and not on the child\'s car
   t.USER({ name: 'Pat Parent', personId: 'P-P', role: 'client', roles: ['client'], token: 'tk' });
   D.family = [{ personId: 'P-K', title: 'Kit Parent', relation: 'child', handle: 'kit_kind41', image: '' }];
   D.familyFor = 'P-P';
-  const kit = pageOf('Kit Parent');
+  const kit = pageOf('Kit P.');  // a parent sees first name + initial (19b)
   if (!kit) bad.push('a parent\'s child is not on the You column');
   if (/data-do="kid-pin"/.test(kit)) bad.push('a parent\'s child card on the You column still carries New PIN — it is "Manage your child"\'s');
   try { t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
@@ -686,15 +686,15 @@ check('booking seat cap: the smaller of tutor and place, home and online hold 4,
   const B = w.__t.BOOKING, lim = w.__t.seatLimits;
   const st = w.__t.STEPS.filter(x => x.id === 'n')[0];
   if (!st) return ['the form has no seats step called `n`'];
-  if (lim(null, null, 'At home').max !== 4) bad.push('home holds ' + lim(null, null, 'At home').max + ', not 4');
+  if (lim(null, null, 'Client House').max !== 4) bad.push('home holds ' + lim(null, null, 'Client House').max + ', not 4');
   if (lim(null, null, 'Online').max !== 4) bad.push('online holds ' + lim(null, null, 'Online').max + ', not 4');
-  if (lim(null, null, 'At home').min !== 1) bad.push('home still has a floor of ' + lim(null, null, 'At home').min);
-  if (lim(null, { title: 'T', maxStudents: 2 }, 'At home').max !== 2) bad.push('a tutor holding 2 at home is not capped at 2');
-  if (lim(null, { title: 'T', maxStudents: 9 }, 'At home').max !== 4) bad.push('a tutor holding 9 at home is not capped at the 4 the house holds');
-  if (lim(null, { title: 'T' }, 'At home').max !== 1) bad.push('a tutor with no capacity set does not hold 1');
+  if (lim(null, null, 'Client House').min !== lim(null, null, 'Client House').max) bad.push('home does not take every seat: floor ' + lim(null, null, 'Client House').min);
+  if (lim(null, { title: 'T', maxStudents: 2 }, 'Client House').max !== 2) bad.push('a tutor holding 2 at home is not capped at 2');
+  if (lim(null, { title: 'T', maxStudents: 9 }, 'Client House').max !== 4) bad.push('a tutor holding 9 at home is not capped at the 4 the house holds');
+  if (lim(null, { title: 'T' }, 'Client House').max !== 1) bad.push('a tutor with no capacity set does not hold 1');
   if (lim({ label: 'Big room', max: 10 }, { title: 'T', maxStudents: 6 }, 'Big room').max !== 6) bad.push('a venue of 10 with a tutor of 6 is not capped at 6');
   if (lim({ label: 'Small', max: 3 }, null, 'Small').max !== 3) bad.push('No preference at a room of 3 is not capped by the room');
-  B.tutor = 'No preference'; B.loc = 'At home';
+  B.tutor = 'No preference'; B.loc = 'Client House';
   const home = st.options();
   if (home.length !== 4) bad.push('the seats list is not four choices at home: ' + JSON.stringify(home));
   if (!st.off) bad.push('the seats step cannot grey a choice');
@@ -1001,8 +1001,8 @@ check('taking a seat on a class does not go through the ordinary join', async ()
   return bad;
 });
 
-/* ---------- R1 (522): A DOOR INTO FIND FROM A CARD STARTS A NEW QUESTION — the words typed before go with the box ---------- */
-check('a door into Find from a card (Book this, take a seat, Practise) clears the words typed there: the box empty, its own chip on, the list not empty (522)', async () => {
+/* ---------- R1 (522): A DOOR INTO FIND FROM A CARD STARTS A NEW QUESTION — the chips pressed before go ---------- */
+check('a door into Find from a card (Book this, take a seat, Practise) replaces the chips pressed there: its own chip on, the list not empty (522)', async () => {
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, bad = [];
@@ -1019,15 +1019,11 @@ check('a door into Find from a card (Book this, take a seat, Practise) clears th
   for (const [say, press, want] of doors) {
     if (!want[0].value) continue;
     t.go('stuff', false, true); await wait(120); await woken_();
-    if (!resType_(w, 'stuff', 'fractions')) return bad.concat(['Find drew no search box — NOT checked']);
-    await wait(260);
-    if (t.STUFF().q !== 'fractions') { bad.push('typing into Find left its words ' + JSON.stringify(t.STUFF().q) + ' — ' + say + ' NOT checked'); continue; }
+    w.finderSet_(null, { filters: [{ field: 'shelf', value: 'stale' }] });
+    await wait(120);
     try { press(); } catch (e) { bad.push(say + ' threw: ' + e.message); continue; }
     await wait(LEAVE_MS); await woken_();
-    const box = d.getElementById('stuff-q');
     if (t.AT() !== 'stuff') bad.push(say + ' left the app on ' + t.AT() + ', wanted Find');
-    if (t.STUFF().q) bad.push(say + ' kept the words ' + JSON.stringify(t.STUFF().q) + ' typed before it');
-    if (!box || box.value) bad.push(say + ' left the box ' + (box ? 'saying ' + JSON.stringify(box.value) : 'undrawn'));
     if (JSON.stringify(t.STUFF().filters) !== JSON.stringify(want)) bad.push(say + ' left the chips ' + JSON.stringify(t.STUFF().filters) + ', wanted ' + JSON.stringify(want));
     /* THE LIST IS WHAT FOLLOWS THE QUESTION PAGE: the booking form's pages in front, then the results. */
     const n = w.finderPageCount_('stuff') - 1;
@@ -1037,34 +1033,22 @@ check('a door into Find from a card (Book this, take a seat, Practise) clears th
   return bad;
 });
 
-/* A SWITCH FROM ONE PERSON TO ANOTHER passes `quiet`, so nothing repaints Find: the boxes must be emptied by the one writer, not left saying the last person's words (522). */
-check('signing in over somebody else empties both finders\' words, chips and search boxes, though nothing repaints them (522)', async () => {
+/* A SWITCH FROM ONE PERSON TO ANOTHER passes `quiet`, so nothing repaints Find: the chips must be emptied by the one writer, not left as the last person's (522). */
+check('signing in over somebody else empties both finders\' chips, though nothing repaints them (522)', async () => {
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, bad = [];
   if (typeof w.signedIn_ !== 'function' || typeof w.finderStates_ !== 'function') return ['signedIn_ or finderStates_ is not reachable — NOT checked'];
   const was = t.whoami() || {};
   if (!was.personId) return ['the setup: nobody is signed in, so a switch from one person to another was NOT asked'];
-  const ids = ['stuff', 'res'];
-  for (const id of ids) {
-    t.go(id, false, true); await wait(120); await woken_();
-    if (!resType_(w, id, 'fractions')) return bad.concat([id + ' drew no search box — NOT checked']);
-    await wait(260);
-  }
-  const before = w.finderStates_().map(st => st.q);
-  if (before.some(q => q !== 'fractions')) return bad.concat(['the setup: typing left the words ' + JSON.stringify(before) + ' — NOT checked']);
+  for (const id of ['stuff', 'res']) { t.go(id, false, true); await wait(120); await woken_(); }
   w.finderStates_().forEach(st => { st.filters = [{ field: 'kindLabel', value: 'Library' }]; });
   try { w.signedIn_({ success: true, name: 'Sam Student', personId: was.personId + '-other', role: 'student', roles: ['student'], token: 'tk-other' }, 'sam'); }
   catch (e) { return bad.concat(['signedIn_ threw: ' + e.message]); }
   if ((t.whoami() || {}).personId !== was.personId + '-other') return bad.concat(['the second person did not sign in: ' + JSON.stringify(t.whoami())]);
   await wait(300);
   w.finderStates_().forEach((st, i) => {
-    if (st.q) bad.push('finder ' + i + ' kept the last person\'s words ' + JSON.stringify(st.q));
     if ((st.filters || []).length) bad.push('finder ' + i + ' kept the last person\'s chips ' + JSON.stringify(st.filters));
-  });
-  ids.forEach(id => {
-    const box = d.getElementById(id + '-q');
-    if (box && box.value) bad.push('the ' + id + ' box still says the last person\'s ' + JSON.stringify(box.value) + ' over an empty question');
   });
   t.USER(null);
   return bad;

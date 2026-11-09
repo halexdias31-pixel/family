@@ -637,29 +637,16 @@ check('after a wrong Check every answer can be deleted and checked again — typ
     if (inp.value !== '') bad.push(when + ': a keyboard Backspace left ' + JSON.stringify(inp.value));
     press('7'); press('2'); press('7'); press('!done');
     if (!mark.classList.contains('is-right')) bad.push(when + ': 727 typed after deleting was not marked right: ' + mark.className);
-    /* PICKED: a wrong pick, then another */
-    const box = host.querySelector('.qp-choices');
-    A['qp-choose'](box.querySelector('.qp-opt[data-n="1"]'));
-    const box2 = host.querySelector('.qp-choices');
-    if (!box2.classList.contains('is-miss')) bad.push(when + ': a wrong pick was not "not yet"');
-    A['qp-choose'](box2.querySelector('.qp-opt[data-n="2"]'));
-    if (!host.querySelector('.qp-choices.is-done .qp-opt[data-n="2"].is-picked')) bad.push(when + ': a second pick after a wrong one was not taken');
-    /* ORDERED: a wrong row sent, then a place taken back and Clear */
-    const ob = () => host.querySelector('.qp-order');
-    [1, 2, 3].forEach(n => { const it = ob().querySelector('.qp-item[data-n="' + n + '"]'); if (it) it.click(); });
-    ob().querySelector('.qp-order-send').click();
-    await wait(20);
-    if (!ob().classList.contains('is-near')) bad.push(when + ': a wrong ordering was not "not yet": ' + ob().className);
-    const full = ob().querySelector('.qp-slot.is-full');
-    if (full) full.click(); else bad.push(when + ': no placed item to take back');
-    if (ob().querySelectorAll('.qp-slot.is-full').length !== 2) bad.push(when + ': taking a place back after a wrong Send did nothing');
-    const clr = ob().querySelector('[data-do="qp-order-clear"]');
-    if (clr) { clr.click(); if (ob().querySelectorAll('.qp-slot.is-full').length) bad.push(when + ': Clear after a wrong Send left items placed'); }
+    /* PICKED AND ORDERED ARE TYPED (owner, 9 Nov): a wrong letter, deleted, then the right one */
+    const pc = host.querySelector('.qp-ans-in[data-k="' + w.__t.ansKey(PICK) + '"]').closest('.qcard') || host;
+    const one = d.createElement('div'); one.innerHTML = w.questionCard_(PICK, 0); host.appendChild(one);
+    if (typeChoice_(w, one, PICK, 'A').said === 'Correct') bad.push(when + ': a wrong letter was Correct');
+    if (typeChoice_(w, one, PICK, 'B').said !== 'Correct') bad.push(when + ': the right letter after a wrong one was not Correct');
+    const two = d.createElement('div'); two.innerHTML = w.questionCard_(ORD, 0); host.appendChild(two);
+    if (typeChoice_(w, two, ORD, 'A, B, C').said === 'Correct') bad.push(when + ': a wrong order was Correct');
     await wait(360);   // a person's second go, not a double tap's second half (534)
-    [2, 3, 1].forEach(n => ob().querySelector('.qp-item[data-n="' + n + '"]').click());
-    ob().querySelector('.qp-order-send').click();
-    await wait(20);
-    if (!/Correct/.test((ob().querySelector('.qp-verdict') || {}).textContent || '')) bad.push(when + ': the right order sent after a wrong one was not Correct');
+    if (typeChoice_(w, two, ORD, 'B, C, A').said !== 'Correct') bad.push(when + ': the right order after a wrong one was not Correct');
+    void pc;
     if (errs.length) bad.push(when + ': errors: ' + errs.join(' | '));
     host.remove();
   };
@@ -1073,7 +1060,7 @@ check('split cards (464): an admin\'s Split draws a settings card and a Business
   const pieces = cardsOf(sid);
   if (pieces.length < 2) bad.push('after Split ' + sid + ' is ' + pieces.length + ' card(s)');
   pieces.forEach((pc, i) => {
-    if (!pc.querySelector('[data-do="me-save"]') && !pc.querySelector('[data-me^="qual"]')) bad.push(sid + ' piece ' + i + ' has no Save of its own');
+    if (!pc.querySelector('.me-form') && !pc.querySelector('[data-me^="qual"]')) bad.push(sid + ' piece ' + i + ' is not a form of its own (each saves as typed)');
     if (!pc.querySelector('.wgt-admin [data-do="lay-join"]')) bad.push(sid + ' piece ' + i + ' has no Join');
   });
   const after = [...new Set(pieces.flatMap(pc => [...pc.querySelectorAll('[data-me]')].map(x => x.dataset.me)))];

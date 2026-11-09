@@ -231,22 +231,22 @@ function cardEditCards_(t, e, secs, setCol) {
   const base = cardBaseNow_(e);
   if (!base && !e.err) setTimeout(() => cardFetch_(e), 0);
   return secs.map(s => {
-    /* EVERY CARD TITLED, ONE SHAPE (8 Nov, the owner: "title, one line per field, one Save at the bottom") — `setCard_`. */
+    /* EVERY CARD TITLED, ONE SHAPE (8 Nov): title and one line per field, saved as typed (`autosaveHear_`) — `setCard_`. */
     const title = OWN_SEC_TITLE_[s.id] || s.cap || s.id;
     const card = { title, cls: 'is-prof card-ed own-sec',
       attrs: ` data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}" aria-label="${esc(title)}"` };
-    if (!base) return setCard_(Object.assign(card, { body: e.err ? `<p class="faint me-said">${esc(e.err)}</p>` : loading_(), save: cardEditTiles_(pid, true, true) }));
+    if (!base) return setCard_(Object.assign(card, { body: e.err ? `<p class="faint me-said">${esc(e.err)}</p>` : loading_(), save: cardCancelTile_(pid) }));
     const { vals, held } = cardValues_(e, base, s.id);
     return setCard_(Object.assign(card, { form: cardEditForm_(t, e, vals, [s]), formAttrs: ` data-draw="${cardDrawn_(base)}"`,
-      save: cardEditTiles_(pid, false, true), foot: `<p class="faint me-said">${held ? esc(SET_HELD_SAY) : ''}</p>` }));
+      save: cardCancelTile_(pid), foot: `<p class="faint me-said">${held ? esc(SET_HELD_SAY) : ''}</p>` }));
   });
 }
-/* `bare`: the tiles alone, for `setCard_`'s own foot row. */
-function cardEditTiles_(pid, saveOff, bare) {
-  const t = tile_({ icon: 'save', label: 'Save', note: 'every change', act: 'card-save',
-    off: !!saveOff, data: { pid } }) + tile_({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel', data: { pid } });
-  return bare ? t : `<div class="tile-row ce-tiles">${t}</div>`;
+function cardEditTiles_(pid, saveOff) {
+  return `<div class="tile-row ce-tiles">${tile_({ icon: 'save', label: 'Save', note: 'every change', act: 'card-save',
+    off: !!saveOff, data: { pid } }) + cardCancelTile_(pid)}</div>`;
 }
+/* A SETTINGS SECTION KEEPS ITS CANCEL (what it puts back is the last save) and has no Save: it saves as typed (owner, 8 Nov). */
+const cardCancelTile_ = pid => tile_({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel', data: { pid } });
 /* ---------- ONE LINE A THING, OPENING IN PLACE (docs/history/425) § */
 /* WHICH FOLDS ARE OPEN, as state and not in the DOM, so a repaint (a save, a figure pick) draws them as they were. */
 const CE_OPEN = new Set();
@@ -383,8 +383,8 @@ function cardSeatShare_(f, typed, rate, was) {
 const cardSeatTop_ = f => f === 'extra_seat_cut' ? 2 : STAFF_SEAT_MAX;
 const cardSeatOff_ = (f, v) => { const x = num(v); return !isNaN(x) && (x < 0 || x > cardSeatTop_(f)); };
 const cardSeatOffSay_ = (rate, f) => f === 'extra_seat_cut'
-  ? "@family.'s part is £0 to " + money(pounds2_(rate * 2)) + '/h — twice the rate.'
-  : 'An extra seat adds £0 to ' + money(pounds2_(rate * STAFF_SEAT_MAX)) + '/h — at most what the first student pays.';
+  ? "@family.'s part is £0 to " + money_(pounds2_(rate * 2)) + '/h — twice the rate.'
+  : 'An extra seat adds £0 to ' + money_(pounds2_(rate * STAFF_SEAT_MAX)) + '/h — at most what the first student pays.';
 /* ---------- THREE CARDS, ONE PRICE (620): n students pay x + k·x·(n−1) + g·x·(n−1) an hour — x the rate, k the tutor's share, g @family.'s ---------- */
 /* THE PARTS AS PRICED, through `seatShare_` (the booking's own reader): a blank is the config's usual. */
 function cardSeatParts_(rate, seat, cut) {
@@ -398,27 +398,27 @@ function cardSeatSay_(rate, seat) {
   if (!(rate > 0)) return 'An extra seat is priced from the rate — set it first.';
   if (cardSeatOff_('extra_seat_rate', seat)) return esc(cardSeatOffSay_(rate, 'extra_seat_rate'));
   const p = cardSeatParts_(rate, seat, '');
-  return `<span class="prof-seat">+${esc(money(p.kx))}/h</span> a seat${p.kOwn ? '' : ', usual'}`;
+  return `<span class="prof-seat">+${esc(money_(p.kx))}/h</span> a seat${p.kOwn ? '' : ', usual'}`;
 }
 /* THE @FAMILY SHARE BAR (8 Nov): first seat + the tutor's extra seat + @family's block, from `cardSeatParts_`, the formula's own numbers. */
 function cardShareBar_(rate, seat, cut) {
   if (!(rate > 0)) return '';
   const p = cardSeatParts_(rate, seat, cut), blocks = [['shb-first', rate, 'first seat'], ['shb-seat', p.kx, 'another seat'], ['shb-fam', p.gx, '@family.']];
   const all = blocks.reduce((t, b) => t + b[1], 0) || 1;
-  return blocks.map(([k, v, say], i) => `${i ? '<span class="shb-plus" aria-hidden="true">+</span>' : ''}<span class="shb-blk ${k}" style="flex-grow:${(v / all).toFixed(4)}"><b>${esc(money(v))}</b><small>${esc(say)}</small></span>`).join('');
+  return blocks.map(([k, v, say], i) => `${i ? '<span class="shb-plus" aria-hidden="true">+</span>' : ''}<span class="shb-blk ${k}" style="flex-grow:${(v / all).toFixed(4)}"><b>${esc(money_(v))}</b><small>${esc(say)}</small></span>`).join('');
 }
 /* @FAMILY.'S CARD'S LINE: its part of each extra student, in pounds. */
 function cardCutSay_(rate, cut) {
   if (!(rate > 0)) return "@family.'s part is priced from the rate — set it first.";
   if (cardSeatOff_('extra_seat_cut', cut)) return esc(cardSeatOffSay_(rate, 'extra_seat_cut'));
   const p = cardSeatParts_(rate, '', cut);
-  return `<span class="prof-seat">+${esc(money(p.gx))}/h</span> a seat${p.gOwn ? '' : ', usual'}`;
+  return `<span class="prof-seat">+${esc(money_(p.gx))}/h</span> a seat${p.gOwn ? '' : ', usual'}`;
 }
 /* THE CLASS SIZE CARD'S LINE: one student and a full class, by the formula. */
 function cardSizeSay_(rate, seat, cut, lo, hi) {
   if (!(rate > 0)) return 'Set a rate and the class prices show here.';
   const top = Math.max(1, Math.round(num(hi)) || 1), bottom = Math.max(1, Math.round(num(lo)) || 1);
-  const at = n => n + ': ' + money(cardGroupTotal_(rate, seat, cut, n));
+  const at = n => n + ': ' + money_(cardGroupTotal_(rate, seat, cut, n));
   return esc([...new Set([bottom, top])].sort((x, y) => x - y).map(at).join(' · ') + '/h');
 }
 /* ---------- THE RATE AND THE TUTOR'S EXTRA SEAT, ONE CARD (620): the seat in pounds beside the rate, kept as the share k ---------- */
@@ -437,8 +437,8 @@ function cardRateHtml_(L, val, box, e) {
   return box('rate_per_hour', {}) + bar
     + ceFold_('seat', 'Extra seat', `<span class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'))}</span>`,
       `${pound}<input type="hidden" data-me="extra_seat_rate" value="${esc(String(val('extra_seat_rate')))}">
-       <p class="faint ce-note ce-seat-note">${esc('Blank or £0 is the usual' + (u ? ' ' + money(u.extra_seat_rate) : '')
-         + '; at most ' + (live ? money(pounds2_(rate * STAFF_SEAT_MAX)) : 'the rate') + ' — a seat never costs more than the first student.')}</p>`)
+       <p class="faint ce-note ce-seat-note">${esc('Blank or £0 is the usual' + (u ? ' ' + money_(u.extra_seat_rate) : '')
+         + '; at most ' + (live ? money_(pounds2_(rate * STAFF_SEAT_MAX)) : 'the rate') + ' — a seat never costs more than the first student.')}</p>`)
     + fieldRows_(L.filter(f => f !== 'rate_per_hour' && f !== 'extra_seat_rate'), box);
 }
 /* ---------- @FAMILY.'S SHARE OF AN EXTRA SEAT, ITS OWN CARD (620): a box for an admin (`seatCutRefusal_`'s rule), words for anybody else ---------- */
@@ -452,8 +452,8 @@ function cardCutHtml_(L, val, box) {
     ? fieldHtml('extra_seat_cut', cardSeatShown_('extra_seat_cut', rate, val('extra_seat_cut')), { attr: 'data-pound', label: "@family.'s, £/h",
         readonly: !live, draft: false, extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` })
       + `<input type="hidden" data-me="extra_seat_cut" value="${esc(String(val('extra_seat_cut')))}">`
-      + `<p class="faint ce-note ce-cut-note">${esc('Blank is the usual' + (u ? ' ' + money(u.extra_seat_cut) : '') + ', £0 is no cut.')}</p>`
-    : `<p class="faint ce-note ce-cut-note">${esc((live ? money(p.gx) + '/h of each extra student is @family.\'s' + (p.gOwn ? '' : ', the usual') : "@family.'s part is set by @family.")
+      + `<p class="faint ce-note ce-cut-note">${esc('Blank is the usual' + (u ? ' ' + money_(u.extra_seat_cut) : '') + ', £0 is no cut.')}</p>`
+    : `<p class="faint ce-note ce-cut-note">${esc((live ? money_(p.gx) + '/h of each extra student is @family.\'s' + (p.gOwn ? '' : ', the usual') : "@family.'s part is set by @family.")
         + ' — only @family. sets that.')}</p>`;
   return `<span class="ce-rate" hidden data-rate="${esc(String(rate || 0))}"></span>`
     + ceFold_('cut', "@family.'s share", `<span class="ce-cut" aria-live="polite">${cardCutSay_(rate, val('extra_seat_cut'))}</span>`, body)
@@ -672,32 +672,35 @@ function cardSelfSay_(e) {
 }
 
 /* ---------- SAVE: EVERY CHANGE, ONE REQUEST, THE EXISTING `updateProfile` § */
-on('card-save', el => {
+on('card-save', el => { cardSave_(el, false); });
+/* `auto`: a Settings section saving as typed (`autosaveHear_`) — nothing locks, closes or says "Nothing had changed". */
+function cardSave_(el, auto) {
   const e = cardEditNow_();
+  { const f0 = el.closest('.card-ed'), f1 = f0 && f0.querySelector('.me-form'); if (f1) clearTimeout(AUTOSAVE_T.get(f1)); }
   const pane = el.closest('.pane');
   /* THE CARD THE SAVE IS ON — your own card is a card per section (468). */
   const card = (el.closest('.card-ed')) || (pane && pane.querySelector('.card-ed'));
   const form = card && card.querySelector('.me-form');
   const sec = (card && card.dataset.sec) || '';
-  if (!e || !USER || !form || card.dataset.pid !== e.pid || String(el.dataset.pid || '') !== e.pid) return;
+  if (!e || !USER || !form || card.dataset.pid !== e.pid || String(el.dataset.pid || card.dataset.pid || '') !== e.pid) return;
   const said = form.querySelector('.me-said');
   const base = CARD_DRAWN.get(form.dataset.draw || '');
   if (!base) { cardRepaint_(); return; }
   /* ---------- NOT WHILE A SECTION THAT SAVES ITSELF IS ON THE WIRE (the review of docs/history/339) § */
   const busy = form.querySelector('.pfp.is-sending') ? 'Your picture is still saving'
     : form.querySelector('.is-sending') || form.classList.contains('is-sending') ? 'Part of your card is still saving' : '';
-  if (busy) { toast(busy + ' — Save once it has.'); if (said) said.textContent = busy + ' — Save once it has.'; return; }
+  if (busy) { if (auto) { autosaveLater_(form); return; } toast(busy + ' — Save once it has.'); if (said) said.textContent = busy + ' — Save once it has.'; return; }
   if (qualNameless_(form)) { toast(QUAL_NAMELESS_SAY_); if (said) said.textContent = QUAL_NAMELESS_SAY_; return; }
   if (cardQualHole_(form, base)) { toast(CARD_LEVELLESS_SAY_); if (said) said.textContent = CARD_LEVELLESS_SAY_; return; }
   const fields = cardChanged_(base, cardFormVals_(form));
   const seatNo = cardSeatRefusal_(form, fields);
   if (seatNo && !Object.keys(fields).length) { toast(seatNo + ' Nothing was saved.'); if (said) said.textContent = seatNo + ' Nothing was saved.'; return; }
   /* NOTHING TYPED — BUT A SECTION THAT SAVES ITSELF MAY HAVE BEEN (`cardSelfSaved_`): § */
-  if (!Object.keys(fields).length) { toast(cardSelfSay_(e) || 'Nothing had changed'); cardClose_(e, pane, sec); return; }
+  if (!Object.keys(fields).length) { if (auto) return; toast(cardSelfSay_(e) || 'Nothing had changed'); cardClose_(e, pane, sec); return; }
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === e.pid) || {};
   send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '',
           target: e.own ? USER.name : (t.title || ''), targetId: e.pid, fields },
-        { button: el, busy: 'Saving…', where: said, lock: pane })
+        auto ? { where: said } : { button: el, busy: 'Saving…', where: said, lock: pane })
     .then(d => {
       if (e.own) {
         USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
@@ -710,6 +713,7 @@ on('card-save', el => {
       /* A PART LEFT OUT, HERE OR BY THE SERVER, IS SAID BESIDE WHAT WAS SAVED (620). */
       const word = ((d && d.said) || 'Saved') + (seatNo ? (d && d.refused ? ' ' : ' — the rest. Not saved: ') + seatNo : '');
       toast(word);
+      if (auto) { CARD_DRAWN.set(form.dataset.draw || '', Object.assign({}, base, fields)); autosaveTick_(form, word); return; }
       cardClose_(e, pane, sec);
       /* A SAVE THAT WROTE NOTHING LEAVES THE STORED PAYLOAD ALONE — see `meSave_`; a part left out stays said under the card. */
       const part = (d && d.refused) || seatNo;
@@ -718,8 +722,8 @@ on('card-save', el => {
         else { try { load(); } catch (x) { oops_(x, 'me:cardSelfSay_') } }
       }
     })
-    .catch(() => { /* `send_` has written the refusal under the form, which is still open. */ });
-});
+    .catch(err => { /* `send_` has written the refusal under the form, which is still open. */ if (auto) autosaveFailed_(err); });
+}
 
 /* ---------- CANCEL: WHAT WAS THERE COMES BACK — THE PICTURE TOO § */
 /* ---------- AND THE FIGURE, WHICH THE WARDROBE SAVES A PICK AT A TIME (docs/history/339) § */

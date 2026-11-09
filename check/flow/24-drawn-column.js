@@ -137,7 +137,7 @@ const resAsk_ = w => {
   const R = resView_(w), S = w.__t.RES();
   const x = R.stuffItemsAll_().find(it => it.kind === 'boxer');
   if (!x) return false;
-  S.q = ''; S.filters.length = 0; S.filters.push({ field: 'shelf', value: x.shelf });
+  S.filters.length = 0; S.filters.push({ field: 'shelf', value: x.shelf });
   w.paintFinder_('res');
   return w.document.querySelectorAll('#s-res > .page.is-res').length > 0;
 };
@@ -346,7 +346,7 @@ check('the builder fills the Resources window inside its own binding: Find\'s wo
   if (!t || typeof t.STUFF !== 'function' || typeof t.RES !== 'function') return ['the finders are not reachable — NOT checked'];
   await aheadQuiet_(t);
   const S = t.STUFF();
-  S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Practical' }];
+  S.filters = [{ field: 'kindLabel', value: 'Practical' }];
   w.paintFinder_('stuff');
   await aheadQuiet_(t);
   const lo = t.pageLo().stuff || 0;
@@ -658,7 +658,7 @@ check('a window drawn afresh in front is filled as far as the glass shows, both 
   if (!t || typeof t.STUFF !== 'function') return ['Find is not reachable — NOT checked'];
   t.go('stuff', false, true); await wait(LEAVE_MS); await woken_();
   const S = t.STUFF();
-  S.q = ''; S.filters = P.ask.slice();
+  S.filters = P.ask.slice();
   w.paintFinder_('stuff');
   const first = w.inFinder_(w.finderOf_('stuff'), () => w.stuffFirstResult_());
   t.goPage('stuff', first + 6, true);
@@ -820,7 +820,7 @@ check('a finder drawn for nobody is filled inside the builder\'s slices: no card
   /* AN ASK, so Find has a window of results to fill — with nothing asked a finder is its question alone. Made once
      the builder has drawn Find from the payload, so it lands on Find's own question and not the boot's loader. */
   const S = t.STUFF();
-  S.q = ''; S.filters = P.ask.slice();
+  S.filters = P.ask.slice();
   w.paintFinder_('stuff');
   await aheadQuiet_(t);
   if (!w.document.querySelectorAll('#s-stuff > .page.is-res').length) return ['Find holds no result pages for the paper, so nothing was asked — NOT checked'];
@@ -953,7 +953,7 @@ check('the quiet puts a finder\'s window where a run needs it: the card in front
   if (!t || typeof t.stuffBehind !== 'function') return ['the window is not reachable — NOT checked'];
   t.go('stuff', false, true);
   const S = t.STUFF();
-  S.q = ''; S.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
+  S.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
   w.paintFinder_('stuff');
   await aheadQuiet_(t);
   const first = w.inFinder_(w.finderOf_('stuff'), () => w.stuffFirstResult_());
@@ -1015,8 +1015,7 @@ check('a chosen book of the Bible is fetched by the builder before any card of i
   try { w.bibleIndex_(); } catch (e) {}
   for (let k = 0; k < 100 && !(t.BIBLE() && t.BIBLE().index); k++) await wait(50);
   if (!(t.BIBLE() && t.BIBLE().index)) return ['the Bible\'s index never landed — NOT checked'];
-  t.RES().q = '';
-  t.RES().filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wLanguage', value: 'English' }, { field: 'wText', value: 'King James Version (1611)' },
+    t.RES().filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wLanguage', value: 'English' }, { field: 'wText', value: 'King James Version (1611)' },
     { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Torah' }, { field: 'wBook', value: 'Leviticus' }];
   t.PAGE().res = 0;
   /* WHO ASKED, at the moment of asking: `bibleLoad_` is where a book is asked for, and its fetch itself waits a
@@ -1055,8 +1054,7 @@ check('every question has an Accuracy and a Function tag on its card and as funn
   const host = d.createElement('div');
   d.body.appendChild(host);
   t.STUFF().filters = [];
-  t.STUFF().q = '';
-  const all = w.stuffItemsAll_();
+    const all = w.stuffItemsAll_();
   const h1 = all.find(x => x.row && x.row.row_id === 'HX-1'), h2 = all.find(x => x.row && x.row.row_id === 'HX-2');
   if (!h1 || !h2) return ['the fixture paper did not come through the loader into Find'];
   const fnOf = x => (!w.qtIncomplete_(x.row).length && w.qtMachine_(x.row)) ? 'Function verified' : 'Function unverified';

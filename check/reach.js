@@ -376,7 +376,7 @@ let PORT = 0;
     };
     if (want('find')) await go_(`${at} find`, async () => {
       await window.__rc.place('stuff', 0);
-      STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
+      STUFF.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
       paintStuff();
       goPage('stuff', stuffFirstResult_(), true);
       const n = AXES.y.count('stuff') - stuffFirstResult_();
@@ -387,7 +387,7 @@ let PORT = 0;
       return inFinder_(finderOf_('res'), () => {
         const x = stuffItemsAll_().find(it => isBoxer_(it));
         if (!x) return { err: 'no boxer on the Resources column' };
-        STUFF.q = ''; STUFF.filters = [{ field: 'shelf', value: [].concat(x.shelf)[0] }];
+        STUFF.filters = [{ field: 'shelf', value: [].concat(x.shelf)[0] }];
         paintStuff();
         let first = stuffFirstResult_();
         if (AXES.y.count('res') <= first + 2) {
@@ -421,7 +421,7 @@ let PORT = 0;
     /* FIND REPAINTED WITH THE CARD IN FRONT THREE INTO THE PAPER, then turned once — a star, a save or a landing draws the window again from nothing; on an iPad the § */
     if (want('findland')) await go_(`${at} find repainted`, async () => {
       await window.__rc.place('stuff', 0);
-      STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
+      STUFF.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
       paintStuff();
       goPage('stuff', stuffFirstResult_() + 3, true);
       const n = AXES.y.count('stuff') - stuffFirstResult_();

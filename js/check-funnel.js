@@ -54,8 +54,8 @@ function boot(cb) {
   try {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
       ' facetSplit_, facetBits_, facetInside_, kindNamed_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
-      ' filterHit, facetOwn_, STUFF, stuffHay_, norm,' +
-      ' stuffNarrow_, stuffWords_, tagOf_, FACET_KEYS, FACET_COVERAGE, facetWhy_, facetSay_,' +
+      ' filterHit, facetOwn_, STUFF, norm,' +
+      ' stuffNarrow_, tagOf_, FACET_KEYS, FACET_COVERAGE, facetWhy_, facetSay_,' +
       ' answerCmp_, placeChipDead_, NEED_WORDS,' +
       /* THE LIST THE APP DRAWS, SORTED, AND THE LAST-RESORT QUESTION -- so 4e can ask what a person
          is shown once a paper is chosen, through the same two functions the screen asks. */
@@ -348,12 +348,12 @@ boot(f => {
     const was = f.STUFF.filters.slice();
     const asks = chips => {
       f.STUFF.filters = chips.slice();
-      const facet = f.nextFacet(f.stuffNarrow_(items, chips, [], null));
+      const facet = f.nextFacet(f.stuffNarrow_(items, chips, null));
       return facet ? facet.field : '(nothing)';
     };
     const valuesAt = (chips, facet) => {
       f.STUFF.filters = chips.slice();
-      return f.facetValues(f.stuffNarrow_(items, chips, [], null), facet);
+      return f.facetValues(f.stuffNarrow_(items, chips, null), facet);
     };
     const paperF = facets.find(x => x.field === 'paperId');
     let walked = 0;
@@ -466,7 +466,7 @@ boot(f => {
     }
   });
   if (f.stuffFiltered && f.nextFacet && syear && smonth) {
-    const was = { q: f.STUFF.q, filters: f.STUFF.filters.slice() };
+    const was = { filters: f.STUFF.filters.slice() };
     const byPaper = {};
     items.forEach(x => { const id = x.row && x.row.paper_id; if (id && x.kind === 'question') (byPaper[id] = byPaper[id] || []).push(x); });
     const after = {}, out = [];
@@ -475,7 +475,6 @@ boot(f => {
       Object.keys(byPaper).forEach(id => {
         const one = byPaper[id][0];
         const y = f.facetOwn_(syear, one)[0], m = f.facetOwn_(smonth, one)[0];
-        f.STUFF.q = '';
         f.STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }]
           .concat(y ? [{ field: 'examYear', value: y }] : [])
           .concat(m ? [{ field: 'examMonth', value: m }] : [])
@@ -504,7 +503,7 @@ boot(f => {
           }
         }
       });
-    } finally { f.STUFF.q = was.q; f.STUFF.filters = was.filters; }
+    } finally { f.STUFF.filters = was.filters; }
     const askedAfter = Object.keys(after);
     if (out.length) {
       bad.push('a chosen paper ends the funnel where the one rule would still ask: ' + out.join('; '));
@@ -540,63 +539,13 @@ boot(f => {
               + hits.map(h => h.field + ' (' + h.n + ')').join(', '));
   });
 
-  /* ---------- 6. WHAT THE SEARCH BOX CAN SEE, PER KIND § */
-  const byKind = {};
-  items.forEach(x => {
-    const k = x.kind || '(none)';
-    const b = byKind[k] = byKind[k] || { n: 0, withText: 0, chars: 0 };
-    b.n++;
-    if (x.text && String(x.text).trim()) { b.withText++; b.chars += String(x.text).length; }
-  });
-  console.log('\nWHAT THE SEARCH BOX CAN SEE — items whose own words are in the haystack:');
-  Object.keys(byKind).sort((a, b) => byKind[b].n - byKind[a].n).forEach(k => {
-    const b = byKind[k];
-    console.log('  ' + k.padEnd(12) + String(b.withText).padStart(5) + ' of ' + String(b.n).padEnd(6)
-      + (b.withText ? ' (' + Math.round(b.chars / b.withText) + ' chars each)'
-                    : ' — findable by its name and nothing else'));
-  });
-
-  /* ---------- 6b. THE CODE PRINTED ON THE COVER HAS TO FIND THE PAPER § */
+  /* THE CODE PRINTED ON EACH PAPER'S COVER, for the backlog below. */
   const docCode = {};
   LIBRARY.forEach(r => {
     if (!r || r.kind !== 'document' || !r.paper_id) return;
     const c = String(r.spec_code || '').trim();
     if (c) docCode[r.paper_id] = c;
   });
-  const codeOf = {};
-  items.forEach(x => {
-    const r = x.row || {};
-    if (!r.paper_id) return;
-    const c = String(r.spec_code || '').trim() || docCode[r.paper_id] || '';
-    if (c) codeOf[r.paper_id] = c;
-  });
-  const unreachable = [];
-  Object.keys(codeOf).forEach(pid => {
-    const want = f.norm(codeOf[pid]).split(/\s+/).filter(Boolean);
-    const hit = items.filter(x => x.row && x.row.paper_id === pid
-      && want.every(w => f.stuffHay_(x).includes(w)));
-    if (!hit.length) unreachable.push(pid + ' prints `' + codeOf[pid] + '` and typing it finds '
-      + 'none of its rows');
-  });
-  unreachable.slice(0, 10).forEach(u => bad.push(u));
-  if (unreachable.length > 10) bad.push('… and ' + (unreachable.length - 10) + ' more papers '
-    + 'whose own code does not find them');
-
-  /* ---------- 6c. A PAST PAPER IS FOUND BY THE WORDS A STUDENT SAYS IT IN (365): level, tier, its name. "Paper 2" finds no Paper 1. */
-  const said = {};
-  items.forEach(x => {
-    const r = x.row || {};
-    if (x.kind !== 'question' || !r.paper_id || !x.tier || !r.level || !/past paper/i.test(x.documentType || '') || said[r.paper_id]) return;
-    said[r.paper_id] = [r.level, x.subject, x.tier, x.sub].join(' ');
-  });
-  const byWords = Object.keys(said).filter(pid => {
-    const got = f.stuffNarrow_(items, [], f.stuffWords_(said[pid]));
-    const n = /\bpaper (\d+)/i.exec(said[pid]);
-    return !got.some(x => x.row && x.row.paper_id === pid)
-      || (n && got.some(x => x.row && /\bpaper (\d+)/i.test(x.sub || '') && /\bpaper (\d+)/i.exec(x.sub)[1] !== n[1]));
-  });
-  if (Object.keys(said).length < 20) bad.push('only ' + Object.keys(said).length + ' past papers with a tier and a level reached 6c — the search was NOT proved');
-  byWords.slice(0, 10).forEach(pid => bad.push(pid + ': typing "' + said[pid] + '" does not find it, or finds another numbered paper with it'));
   /* THE BACKLOG, PRINTED. § */
   const papers = {};
   items.forEach(x => {
@@ -730,8 +679,8 @@ boot(f => {
   /* ---------- 4f. UNDER A YEAR OR MONTH CHIP, EVERY PAPER ANSWER IS ONE NAME, AND ITS CHIP SAYS WHAT IT SAID (396) § */
   if (f.nextFacet && f.stuffNarrow_ && f.chipShow_ && syear && smonth) {
     const paperF = facets.find(x => x.field === 'paperId');
-    const was = { q: f.STUFF.q, filters: f.STUFF.filters.slice() };
-    const listAt = chips => { f.STUFF.q = ''; f.STUFF.filters = chips.slice(); return f.stuffNarrow_(items, chips, [], null); };
+    const was = { filters: f.STUFF.filters.slice() };
+    const listAt = chips => { f.STUFF.filters = chips.slice(); return f.stuffNarrow_(items, chips, null); };
     const chipOf = (v, field) => ({ field: field, value: v.value });
     const folders = [];
     const seenAt = new Set();
@@ -791,7 +740,7 @@ boot(f => {
           unsaid += shows.length;
         });
       });
-    } finally { f.STUFF.q = was.q; f.STUFF.filters = was.filters; }
+    } finally { f.STUFF.filters = was.filters; }
     console.log('  Paper answers under a Year or Month chip: ' + read + ' read and pressed at ' + folders.length
                 + ' year folder(s); ' + unsaid + ' compared, none reading the same as another');
     if (!read) bad.push('no Paper answer was read under a Year or Month chip, so the half-a-date rule proves nothing');
@@ -861,7 +810,7 @@ boot(f => {
         const say = level + ' with the Year skipped' + (route[1].any ? ' and the Month' : ', ' + route[1].value);
         try {
           f.STUFF.filters = doors.slice();
-          const list = f.stuffNarrow_(items, doors, [], null);
+          const list = f.stuffNarrow_(items, doors, null);
           f.facetValues(list, paperF).forEach(a => {
             skipped++;
             const show = String(a.show || a.value);
@@ -1184,10 +1133,10 @@ function underTypes_(f, items) {
 /* THE OWNER'S PAPER PATHS (8 Nov): after a level and Past paper, Subject is asked before any paper name, and the funnel never ends while Subject still splits the list. */
 const PAPER_PATHS = [['GCSE', 'Any tier', 'Any function', 'Past paper', 'Any accuracy'], ['GCSE', 'Past paper', 'Higher', 'Any accuracy', 'Any function']];
 function pathsAsked_(f, items) {
-  const S = f.STUFF, was = { q: S.q, filters: S.filters };
+  const S = f.STUFF, was = { filters: S.filters };
   try {
     PAPER_PATHS.forEach(path => {
-      S.filters = []; S.q = '';
+      S.filters = [];
       const trail = [];
       /* EACH CHIP AS THE OWNER PRESSED IT, on whichever question holds that answer: the path, not the order it was asked in. */
       const press = want => {
@@ -1207,6 +1156,8 @@ function pathsAsked_(f, items) {
       for (const w of path) if (!press(w)) return bad.push('paper path: "' + w + '" was never offered after ' + trail.join(' > '));
       const list = f.stuffFiltered();
       const fac = f.nextFacet(list) || f.overFacet_(list);
+      /* ONE ANSWER IS NEVER A QUESTION (owner 8 Nov, 22a): it is skipped and the next real question asked. */
+      if (fac && f.facetValues(list, fac).length < 2) bad.push('paper path ' + trail.join(' > ') + ': offers `' + fac.field + '` with ' + f.facetValues(list, fac).length + ' answer(s)');
       const subj = f.facetList().find(x => x.field === 'subject');
       const nSubj = subj ? f.facetValues(list, subj).length : 0;
       console.log('\nPAPER PATH ' + trail.join(' > ') + ': ' + list.length + ' left, next ' + (fac ? fac.field + ' (' + f.facetValues(list, fac).length + ' answers)' : 'NOTHING') + ', subjects ' + nSubj);
@@ -1234,7 +1185,7 @@ function pathsAsked_(f, items) {
       if (!fac) bad.push('paper path ' + trail.join(' > ') + ': nothing left to narrow with ' + list.length + ' across ' + nSubj + ' subjects');
       else if (nSubj > 1 && fac.field !== 'subject') bad.push('paper path ' + trail.join(' > ') + ': asks `' + fac.field + '` before Subject (' + nSubj + ' subjects)');
     });
-  } finally { S.q = was.q; S.filters = was.filters; }
+  } finally { S.filters = was.filters; }
 }
 
 function walkFunnels_(f, items) {
@@ -1242,14 +1193,14 @@ function walkFunnels_(f, items) {
     let seed = Number(process.env.FUNNEL_SEED || 1);
     const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
     const pick = a => a[Math.floor(rnd() * a.length)];
-    const S = f.STUFF, was = { q: S.q, filters: S.filters };
+    const S = f.STUFF, was = { filters: S.filters };
     const fails = {};
     const fail = (k, m) => { (fails[k] = fails[k] || []).push(m); };
     const runs = Number(process.env.FUNNEL_RUNS || 80);
-    let steps = 0, answered = 0, anys = 0, typed = 0;
+    let steps = 0, answered = 0, anys = 0;
     try {
       for (let r = 0; r < runs; r++) {
-        S.filters = []; S.q = '';
+        S.filters = [];
         const trail = [];
         const at = () => trail.join(' > ') || 'the first question';
         for (let st = 0; st < 14; st++) {
@@ -1266,11 +1217,12 @@ function walkFunnels_(f, items) {
           if (S.filters.some(c => c.field === fac.field)) fail('twice', '`' + fac.field + '` asked again after ' + at());
           /* c. THE COUNT ON EACH ANSWER IS WHAT PRESSING IT GIVES. */
           const vals = f.facetValues(list, fac);
+          if (vals.length < 2) fail('one', '`' + fac.field + '` offered with ' + vals.length + ' answer(s) after ' + at());
           /* f. NO PATH'S CHIPS REPEAT A LABEL (680): an answer already chosen is never offered again under another question. */
           const chosen = new Set(S.filters.filter(c => !c.any).map(c => String(c.value).toLowerCase()));
           vals.forEach(v => { if (chosen.has(String(v.show || v.value).toLowerCase())) fail('repeat', '`' + fac.field + '` offers "' + (v.show || v.value) + '", already a chip, after ' + at()); });
           vals.forEach(v => {
-            const got = f.stuffNarrow_(list, [{ field: fac.field, value: v.value }], [], 0).length;
+            const got = f.stuffNarrow_(list, [{ field: fac.field, value: v.value }], 0).length;
             if (got !== v.n) fail('count', '`' + fac.field + '` "' + (v.show || v.value) + '" says ' + v.n + ', gives ' + got + ' after ' + at());
           });
           const a = rnd();
@@ -1288,29 +1240,18 @@ function walkFunnels_(f, items) {
             anys++;
             const after = f.stuffFiltered();
             if (after.length !== list.length || after.some((x, i) => x !== list[i])) fail('any', 'Doesn\'t matter on `' + fac.field + '` took ' + list.length + ' to ' + after.length + ' after ' + at());
-          } else if (a < 0.9 && S.filters.length) {
+          } else if (S.filters.length) {
             S.filters = S.filters.slice(0, -1);
             trail.push('back');
-          } else {
-            /* e. A WORD TYPED NEVER WIDENS THE LIST, AND KEEPS THE ITEM IT WAS READ OFF. */
-            const x = pick(list);
-            const ws = String(x.name || '').split(/\s+/).filter(t => t.length > 3);
-            if (!ws.length) continue;
-            S.q = (S.q + ' ' + pick(ws)).trim();
-            trail.push('words "' + S.q + '"');
-            typed++;
-            const after = f.stuffFiltered();
-            if (after.length > list.length) fail('typing', '"' + S.q + '" widened ' + list.length + ' to ' + after.length + ' after ' + at());
-            if (after.indexOf(x) < 0) fail('typing', '"' + S.q + '" lost "' + x.name + '", the item the word came from, after ' + at());
           }
         }
       }
-    } finally { S.q = was.q; S.filters = was.filters; }
-    const SAY = { memo: 'the memo is not the list filtered afresh', order: 'the memo holds the list filtered afresh in another order', twice: 'a question is asked twice', count: 'an answer\'s count is not what pressing it gives', any: 'Doesn\'t matter changed the list', typing: 'typing widened the list or lost its own item', repeat: 'a chip\'s label is offered again' };
+    } finally { S.filters = was.filters; }
+    const SAY = { memo: 'the memo is not the list filtered afresh', order: 'the memo holds the list filtered afresh in another order', twice: 'a question is asked twice', count: 'an answer\'s count is not what pressing it gives', any: 'Doesn\'t matter changed the list', repeat: 'a chip\'s label is offered again', one: 'a question with fewer than 2 answers is offered' };
     Object.keys(fails).forEach(k => bad.push(fails[k].length + ' step(s) where ' + SAY[k] + ' — first: ' + fails[k].slice(0, 3).join('; ')));
-    WALKED = runs + ' walks, ' + steps + ' steps (' + answered + ' answers, ' + anys + ' Doesn\'t matter, ' + typed + ' words), ' + Object.keys(fails).length + ' invariant(s) broken';
+    WALKED = runs + ' walks, ' + steps + ' steps (' + answered + ' answers, ' + anys + ' Doesn\'t matter), ' + Object.keys(fails).length + ' invariant(s) broken';
     console.log('\nRANDOM FUNNELS: ' + WALKED);
-    if (answered < 100 || anys < 20 || typed < 10) bad.push('the random funnels pressed ' + answered + ' answers, ' + anys + ' Doesn\'t matter and typed ' + typed + ' words — too few to prove the invariants, not a pass');
+    if (answered < 100 || anys < 20) bad.push('the random funnels pressed ' + answered + ' answers and ' + anys + ' Doesn\'t matter — too few to prove the invariants, not a pass');
   } else bad.push('`stuffFind`, `stuffFiltered`, `nextFacet` or `stuffNarrow_` is not exported, so the random funnels were NOT walked — not a pass');
 }
 

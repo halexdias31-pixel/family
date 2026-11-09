@@ -33,10 +33,6 @@ const KEPT = [
   { file: 'me.js', has: 'createElement(input)',
     why: 'the qualification shelf\'s "Something else…" box — saved on its own `change` like the select it replaces',
     proof: [['me.js', /sel\.replaceWith\(box\)/], ['me.js', /qualCommit_\(slot\);/]] },
-  /* ONE BOX IN THE SOURCE FOR BOTH FINDERS — Find's `stuff-q` and the second finder's `res-q` are the same template under the finder's id § */
-  { file: 'find.js', fn: 'finderScreen_', has: 'id="${F.id}-q"',
-    why: 'a finder\'s search (Find\'s `stuff-q`, the second finder\'s `res-q`) — kept with that finder\'s place for a reload (`findPlaceKeep_`), never on its own',
-    proof: [['find.js', /function findPlaceKeep_[\s\S]{0,900}?STUFF\.q/], ['find.js', /draftKeep_\(F\.place, 'place'/], ['shell.js', /findPlaceBack_\(\)/]] },
   { file: 'find.js', fn: 'paintDocket', has: 'dock-tick',
     why: 'a docket tick — saved the moment it is ticked (`docketSave`), and sent as the page goes',
     proof: [['find.js', /keepDue_\('docket', sendTodo\)/]] },

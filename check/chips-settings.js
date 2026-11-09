@@ -124,10 +124,9 @@ async function colSettings(col) {
           if (i.type === 'checkbox') i.checked = v; else i.value = v;
           i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true }));
           out[i.dataset.me] = i.type === 'checkbox' ? (v ? 'TRUE' : 'FALSE') : String(v).trim(); forms.add(i.closest('.me-form')); });
-        /* A SETTINGS FORM'S SAVE (me-save), or its card's (card-save, your own card's sections, 468). */
-        [...forms].forEach(f => { const c = f.closest('.card-ed'), b = f.querySelector('[data-do="me-save"]') || (c && c.querySelector('[data-do="card-save"]'));
-          if (b) b.click(); else out['(no Save on a form)'] = '?'; });
-        await new Promise(r => setTimeout(r, 2000));
+        /* SAVED AS TYPED (owner, 8 Nov): no Save to press — a Save tile still on a settings form is a finding. */
+        [...forms].forEach(f => { if (f.querySelector('[data-do="me-save"], [data-do="card-save"]')) out['(a Save tile on a form)'] = '?'; });
+        await new Promise(r => setTimeout(r, 2500));
         return { col, out };
       }, { col, nv: newValue.toString(), cs: colSettings.toString() });
       if (r.none) continue;
@@ -159,8 +158,7 @@ async function colSettings(col) {
       for (const c of col) { const s = await (0, eval)('(' + cs + ')')(c); if (!s) continue;
         const i = [...s.querySelectorAll('.me-form [data-me]')].find(i => i.offsetParent !== null && !i.disabled && i.type !== 'checkbox' && i.tagName !== 'SELECT'); if (!i) continue;
         i.value = newValue(i); i.dispatchEvent(new Event('input', { bubbles: true }));
-        const b = i.closest('.me-form').querySelector('[data-do="me-save"]'); if (!b) continue;
-        b.click(); await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 2500));
         return document.body.innerText.indexOf(fail) !== -1 ? 'ok' : 'no words'; }
       return 'none';
     }, { col: COLS, nv: newValue.toString(), cs: colSettings.toString(), fail });

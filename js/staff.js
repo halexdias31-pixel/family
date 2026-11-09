@@ -179,8 +179,8 @@ function priceSplit_(n) {
 /* WHAT IS WRONG WITH THE BOXES, in the words the server would use — '' when Save may go. */
 function priceWrong_() {
   if (!(PRICE.rate > 0)) return 'Your rate is pounds an hour — more than £0.';
-  if (PRICE.rate > STAFF_RATE_MAX) return 'Your rate is at most ' + money(STAFF_RATE_MAX) + ' an hour.';
-  if (PRICE.seat < 0 || PRICE.seat > PRICE.rate * STAFF_SEAT_MAX) return 'An extra seat adds £0 to ' + money(PRICE.rate * STAFF_SEAT_MAX) + ' an hour — at most what the first student pays.';
+  if (PRICE.rate > STAFF_RATE_MAX) return 'Your rate is at most ' + money_(STAFF_RATE_MAX) + ' an hour.';
+  if (PRICE.seat < 0 || PRICE.seat > PRICE.rate * STAFF_SEAT_MAX) return 'An extra seat adds £0 to ' + money_(PRICE.rate * STAFF_SEAT_MAX) + ' an hour — at most what the first student pays.';
   return '';
 }
 const PRICE_SEGS = [['tutor', 'You'], ['room', 'Room'], ['fees', 'Card fees'], ['business', '@family.']];
@@ -190,10 +190,10 @@ function priceBarsHtml_() {
   /* EACH PART ENDS WHERE THE SUM SO FAR ENDS: the bars are drawn on top of each other and scaled, not laid side by side (537). */
   const x = (r, i) => (PRICE_SEGS.slice(0, i + 1).reduce((a, [k]) => a + Math.max(0, r[k]), 0) / full).toFixed(4);
   return rows.map(r => `<div class="pb-row" data-n="${r.n}">
-      <p class="pb-cap"><b>${r.n} ${r.n === 1 ? 'student' : 'students'}</b> <span class="pb-paid">family pays ${esc(money(r.charged))} an hour</span></p>
-      <div class="pb-bar" role="img" aria-label="${esc(PRICE_SEGS.map(([k, l]) => l + ' ' + money(r[k])).join(', '))}">${
+      <p class="pb-cap"><b>${r.n} ${r.n === 1 ? 'student' : 'students'}</b> <span class="pb-paid">family pays ${esc(money_(r.charged))} an hour</span></p>
+      <div class="pb-bar" role="img" aria-label="${esc(PRICE_SEGS.map(([k, l]) => l + ' ' + money_(r[k])).join(', '))}">${
         PRICE_SEGS.map(([k], i) => `<span class="pb-seg is-${k}" style="--x:${x(r, i)}"></span>`).join('')}</div>
-      <p class="pb-say">${PRICE_SEGS.map(([k, l]) => `<span class="pb-k is-${k}">${esc(l)} <b>${esc((r[k] < 0 ? '−' : '') + money(Math.abs(r[k])))}</b></span>`).join('')}</p>
+      <p class="pb-say">${PRICE_SEGS.map(([k, l]) => `<span class="pb-k is-${k}">${esc(l)} <b>${esc((r[k] < 0 ? '−' : '') + money_(Math.abs(r[k])))}</b></span>`).join('')}</p>
     </div>`).join('') + (rows[0].business < 0
       ? `<p class="faint pb-note">With one student @family. keeps no share and pays the card fee itself.</p>` : '');
 }
@@ -202,7 +202,7 @@ function priceHtml_() {
   const usual = priceUsualSeat_(PRICE.rate);
   const s = typeof seatShare_ === 'function' ? seatShare_(t) : { bUsed: 0 };
   const v = ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
-  const fee = [Number(v.card_fee_pct) > 0 ? v.card_fee_pct + '%' : '', Number(v.card_fee_fixed) > 0 ? money(v.card_fee_fixed) + ' a payment' : ''].filter(Boolean).join(' + ');
+  const fee = [Number(v.card_fee_pct) > 0 ? v.card_fee_pct + '%' : '', Number(v.card_fee_fixed) > 0 ? money_(v.card_fee_fixed) + ' a payment' : ''].filter(Boolean).join(' + ');
   const ctl = (k, label, min, max, step, val, note) => `<div class="pf-var hub-var" data-pv="${k}">
       <p class="pf-name">${esc(label)}<span class="pf-from">${esc(note)}</span></p>
       <input type="range" data-pv="${k}" data-noswipe min="${min}" max="${max}" step="${step}" value="${val}" aria-label="${esc(label)}">
@@ -215,12 +215,12 @@ function priceHtml_() {
     <p class="faint hub-lead">Try a rate and an extra seat and watch where an hour’s booking goes — worked out by the booking form’s own sum. Nothing here is saved: your rate lives on your card.</p>
     <div class="pf-vars">
       ${ctl('rate', 'Your rate, £ an hour', 5, Math.max(80, PRICE.rate), 0.5, PRICE.rate, PRICE.open ? 'none yet: the open rate' : 'the first student')}
-      ${ctl('seat', 'Each extra seat adds, £ an hour', 0, Math.max(1, PRICE.rate * STAFF_SEAT_MAX), 0.25, PRICE.seat, '0 is the usual ' + money(usual))}
+      ${ctl('seat', 'Each extra seat adds, £ an hour', 0, Math.max(1, PRICE.rate * STAFF_SEAT_MAX), 0.25, PRICE.seat, '0 is the usual ' + money_(usual))}
     </div>
     <label class="field hub-room"><span>room</span><select data-pv="loc" aria-label="Room">${opt('', 'No room hire (online or at home)')}${
-      rooms.map(r => opt(r.title, r.title + ' · ' + money(parseFloat(r.bestRate)) + '/h')).join('')}</select></label>
+      rooms.map(r => opt(r.title, r.title + ' · ' + money_(parseFloat(r.bestRate)) + '/h')).join('')}</select></label>
     <div class="pb" aria-live="polite">${priceBarsHtml_()}</div>
-    <p class="faint hub-note">@family.’s share of each extra seat is ${esc(money((PRICE.rate || 0) * (s.bUsed || 0)))} an hour, set by @family.${
+    <p class="faint hub-note">@family.’s share of each extra seat is ${esc(money_((PRICE.rate || 0) * (s.bUsed || 0)))} an hour, set by @family.${
       fee ? ' Card fees are ' + esc(fee) + '.' : ''} What you charge can change once a month.</p>
     <div class="tile-row">${tile_({ icon: 'edit', label: 'Set it', note: 'on your Rate and class size card', act: 'price-card' })}</div>
     <p class="faint me-said hub-said" aria-live="polite">${esc(priceWrong_())}</p>
@@ -241,10 +241,10 @@ function priceRedraw_() {
       sum += Math.max(0, r[k]);
       if (seg) seg.style.setProperty('--x', (sum / full).toFixed(4));
       const say = row.querySelectorAll('.pb-k b')[i];
-      if (say) say.textContent = (r[k] < 0 ? '−' : '') + money(Math.abs(r[k]));
+      if (say) say.textContent = (r[k] < 0 ? '−' : '') + money_(Math.abs(r[k]));
     });
-    row.querySelector('.pb-paid').textContent = 'family pays ' + money(r.charged) + ' an hour';
-    row.querySelector('.pb-bar').setAttribute('aria-label', PRICE_SEGS.map(([k, l]) => l + ' ' + money(r[k])).join(', '));
+    row.querySelector('.pb-paid').textContent = 'family pays ' + money_(r.charged) + ' an hour';
+    row.querySelector('.pb-bar').setAttribute('aria-label', PRICE_SEGS.map(([k, l]) => l + ' ' + money_(r[k])).join(', '));
   });
   const note = box.querySelector('.pb-note');
   if (note) note.hidden = !(rows[0].business < 0);
@@ -288,17 +288,17 @@ function stmtMonths_() {
 }
 function stmtPaper_(s) {
   const own = !STMT.tutorId || (USER && String(STMT.tutorId) === String(USER.personId));
-  const day = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? (+m[3]) + ' ' + MONTH_NAMES[+m[2] - 1].slice(0, 3) : iso; };
+  const day = date_;
   const rows = (s.sessions || []).map(r => `<tr><td><b>${esc(day(r.date))}</b><span>${esc(r.what)}</span></td><td>${esc(String(r.hours))}</td>
-      <td>${esc(String(r.students))}</td><td>${esc(money(r.paid))}</td><td>${esc(money(r.business))}</td><td>${esc(money(r.tutor))}</td></tr>`).join('');
+      <td>${esc(String(r.students))}</td><td>${esc(money_(r.paid))}</td><td>${esc(money_(r.business))}</td><td>${esc(money_(r.tutor))}</td></tr>`).join('');
   const T = s.totals || {};
   return `<div class="stmt">
     <div class="stmt-head"><b>${esc(brand('name', '@family.'))}</b><span>Statement</span></div>
-    <p class="stmt-who">${esc(s.tutor || '')} · ${esc(ymSay_(s.month))}</p>
+    <p class="stmt-who">${esc(displayName_(s.tutor || ''))} · ${esc(ymSay_(s.month))}</p>
     ${rows ? `<table class="stmt-t"><thead><tr><th>Session</th><th>Hrs</th><th>Pupils</th><th>Paid</th><th title="@family.’s share">Share</th><th>${own ? 'You' : 'Tutor'}</th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr><td>${esc(String(T.sessions || 0))} ${T.sessions === 1 ? 'session' : 'sessions'}</td><td>${esc(String(T.hours || 0))}</td><td></td>
-        <td>${esc(money(T.paid))}</td><td>${esc(money(T.business))}</td><td>${esc(money(T.tutor))}</td></tr></tfoot></table>`
+        <td>${esc(money_(T.paid))}</td><td>${esc(money_(T.business))}</td><td>${esc(money_(T.tutor))}</td></tr></tfoot></table>`
       : `<p class="stmt-none">No paid sessions in ${esc(ymSay_(s.month))}.</p>`}
     <p class="stmt-note">A statement of sessions taught, not a payslip. Paid is what the family paid for each session and Share is @family.’s; ${own ? 'you are' : 'the tutor is'} self-employed and responsible for ${own ? 'your' : 'their'} own tax and National Insurance.</p>
   </div>`;

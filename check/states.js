@@ -9,7 +9,7 @@ const STATES = {
       enter: () => inFinder_(finderOf_('stuff'), () => {
         window.__LIB_FAIL = { rows: LIBRARY_ROWS, f: LIBRARY_FAILED };
         LIBRARY_ROWS = []; LIBRARY_FAILED = 'the question file answered 500';
-        stuffForget_(); STUFF.filters = []; STUFF.q = '';
+        stuffForget_(); STUFF.filters = [];
         paintStuff();
       }),
       leave: () => inFinder_(finderOf_('stuff'), () => {
@@ -31,7 +31,7 @@ const STATES = {
         LIBRARY_ROWS = null;
         /* EVERY MEMO, AND `DATA` IS WHAT THEY ARE KEYED ON. § */
         stuffForget_();
-        STUFF.filters = []; STUFF.q = '';
+        STUFF.filters = [];
         paintStuff();
       },
       leave: () => {
@@ -47,7 +47,7 @@ const STATES = {
       wants: 'the Find screen showing the one loader while the questions are on their way, not saying there are none' },
     { name: 'the results',
       enter: () => {
-        STUFF.q = 'work out';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
         paintStuff();
         goPage('stuff', stuffFirstResult_(), true);
       },
@@ -57,7 +57,6 @@ const STATES = {
     /* ---------- AND THE FUNNEL SEVERAL ANSWERS DEEP § */
     { name: 'six answers in',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
@@ -85,7 +84,6 @@ const STATES = {
     /* ---------- THE SITTING, ASKED AS THE YEAR AND THEN THE MONTH § */
     { name: 'the year folder',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
@@ -106,7 +104,6 @@ const STATES = {
       wants: 'the Year question, bare years only, drawn as chips sharing a line' },
     { name: 'the month folder inside the year',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
@@ -129,7 +126,6 @@ const STATES = {
     /* ---------- THE PAPER FOLDER WITH THE YEAR SKIPPED § */
     { name: 'the paper folder with the year skipped',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
@@ -153,7 +149,6 @@ const STATES = {
     /* ---------- A PAPER CHOSEN, AND THE ONE RULE ASKS ITS QUESTION NEXT (396) § */
     { name: 'a paper chosen',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
@@ -180,7 +175,6 @@ const STATES = {
     /* ---------- A LONG LIST, DRAWN WHOLE § */
     { name: 'a long list, drawn whole',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
@@ -199,7 +193,6 @@ const STATES = {
     /* ---------- A BUNDLE OF PAPERS, WHICH ONLY A NARROWED LIST OFFERS § */
     { name: 'a bundle of papers',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
@@ -382,11 +375,9 @@ const STATES = {
       },
       wants: 'the four sine grids under the pen, its tiles at 44px, nothing drawn smaller whole, the figure no narrower than the floor and narrowed only once the words have given way',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
-    /* ---------- A MULTIPLE-CHOICE QUESTION, ANSWERED BY TAPPING § */
+    /* ---------- A MULTIPLE-CHOICE QUESTION, ANSWERED IN THE ONE TYPED BOX (41a): its options listed A, B, C over the box */
     { name: 'a multiple-choice question',
       enter: () => {
-        /* NOT AN ORDERING: it has `choices` and a `choiceRight` too, and draws a strip, not options
-           (`orderBox_`) -- it has states of its own below. */
         const mc = stuffItemsAll_().find(it => it.kind === 'question'
           && Array.isArray(it.choices) && it.choices.length >= 2 && (it.choiceRight || []).length
           && !orderIs_(it));
@@ -400,13 +391,12 @@ const STATES = {
           + stuffPageOf_(mc));
       },
       expect: () => {
-        const box = document.querySelector('#s-stuff .page.on .qp-choices')
-          || [...document.querySelectorAll('#s-stuff .qp-choices')].find(b => b.getAttribute('data-k') === window.__mcKey);
-        const card = box && box.closest('.qcard');
-        return !!box && box.querySelectorAll('button.qp-opt').length >= 2
-               && !card.querySelector('textarea.qp-ans-in');
+        const inp = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === window.__mcKey);
+        const card = inp && inp.closest('.qcard');
+        return !!card && card.querySelectorAll('.qp-optlist .qp-optline').length >= 2
+               && !card.querySelector('button.qp-opt, .qp-choices');
       },
-      wants: 'a question whose options are buttons, with no text box on its card',
+      wants: 'a question whose options are listed A, B, C over the one typed box, with no tap-to-pick buttons',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- AN OPTIONS PART WITH ITS TOOLS OPEN (Review B: the mark sat on one flex line; round 4: the owner's nine, one padlock) */
     { name: 'a multiple-choice question, its tools open',
@@ -826,7 +816,6 @@ const STATES = {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
         if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         const first = typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1;
@@ -857,7 +846,6 @@ const STATES = {
         const q1 = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-subtraction-1');
         if (!q1) throw new Error('Q-CBM-subtraction-1 is not in the library');
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(q1) }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(q1), true);
@@ -875,7 +863,6 @@ const STATES = {
     /* ---------- WHAT KIND: QUESTIONS FIRST § */
     { name: 'What kind, Questions first',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' }];
         paintStuff();
         goPage('stuff', stuffQuestionPage_(), true);
@@ -1055,53 +1042,12 @@ const STATES = {
         ANS_SHOWN.clear();
         STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
-    /* ---------- AN ORDERING, HALF PLACED, AND THEN SENT RIGHT § */
-    { name: 'an ordering, half placed',
-      enter: () => {
-        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-4');
-        if (!it) throw new Error('Q-1MA1-2406-1F-4 is not in the library');
-        if (!orderIs_(it)) throw new Error('Q-1MA1-2406-1F-4 is not an ordering — its answer_type is ' + it.answerType);
-        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        /* AND ANY VERDICT IT WAS LAST SENT WITH, which the strip draws from (js/submit.js). */
-        ORDER_HOLE.clear();
-        try {
-          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
-          delete all[subKeyOf_(ansKey_(it))];
-          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
-        } catch (e) {}
-        subForget_();
-        const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
-        paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
-        window.__ordKey = ansKey_(it);
-        const box = () => [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
-        const run = () => {
-          if (!box()) return false;
-          [3, 4].forEach(n => { const b = box(); const el = b && b.querySelector('.qp-item[data-n="' + n + '"]'); if (el) el.click(); });
-          return true;
-        };
-        if (!run()) setTimeout(run, 150);
-      },
-      expect: () => {
-        const box = [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
-        const card = box && box.closest('.qcard');
-        const full = box ? [...box.querySelectorAll('.qp-slot')].map(s => (s.classList.contains('is-full') ? s.getAttribute('data-n') : '_')).join(' ') : '';
-        return !!box && full === '3 4 _ _ _' && box.querySelectorAll('.qp-item.is-placed').length === 2
-               && box.querySelectorAll('.qp-item').length === 5 && !card.querySelector('textarea, .qp-ans-in, .qp-opt');
-      },
-      wants: 'the real 1F Q4 as an ordering: 0.03 and 0.1 in the first two slots, their ghosts in the row under it, three slots empty, no text box',
-      leave: () => {
-        try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
-        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
-      } },
+    /* ---------- AN ORDERING, TYPED AS LETTERS IN THE ONE BOX (41a): wrong, then right, nothing moved */
     { name: 'an ordering, sent wrong then right, nothing moved',
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-4');
         if (!it) throw new Error('Q-1MA1-2406-1F-4 is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        /* AND ANY VERDICT IT WAS LAST SENT WITH, which the strip draws from (js/submit.js). */
-        ORDER_HOLE.clear();
         try {
           const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
           delete all[subKeyOf_(ansKey_(it))];
@@ -1113,55 +1059,41 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__ordKey = ansKey_(it);
-        window.__qStable = null;
-        const box = () => [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        window.__qStable = null; window.__qCard = null;
         const run = () => {
-          if (!box()) return false;
-          /* AND FILLING IT MOVES NOTHING EITHER: every slot, and the row of items where the finger is,
-             measured before the first tap and after the last -- the strip is one shape throughout. */
-          const shape = () => [...box().querySelectorAll('.qp-slot')].map(s => { const r = s.getBoundingClientRect(); return [r.left, r.top, r.width]; })
-            .concat([[0, box().querySelector('.qp-items').getBoundingClientRect().top, 0]]);
-          const shape0 = shape();
-          const tap = n => { const b = box(); const el = b && b.querySelector('.qp-item[data-n="' + n + '"]'); if (el) el.click(); };
-          const card = box().closest('.qcard');
+          const inp = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === window.__ordKey);
+          const card = window.__qCard = inp && inp.closest('.qcard');
+          const btn = card && card.querySelector('.qp-check');
+          if (!inp || !btn) return false;
+          const type = v => { inp.value = v; inp.dispatchEvent(new Event('input', { bubbles: true })); };
           const at = () => [card.querySelector('.qsheet').getBoundingClientRect().top,
-                            box().querySelector('.qp-slots').getBoundingClientRect().top,
-                            box().querySelector('.qp-verdict').getBoundingClientRect().top,
+                            card.querySelector('.qp-ans').getBoundingClientRect().top,
                             card.getBoundingClientRect().height];
-          const tiles = () => ['.qp-order-send', '.qp-order-clear'].map(q => { const r = box().querySelector(q).getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; });
-          /* WRONG FIRST: the row reversed, its long verdict beside the two tiles. § */
-          const row = () => { const r = box().querySelector('.qp-mark').getBoundingClientRect(); return [r.top, r.height]; };
-          const atRow = () => [card.querySelector('.qsheet').getBoundingClientRect().top,
-                               box().querySelector('.qp-slots').getBoundingClientRect().top,
-                               card.getBoundingClientRect().height].concat(row(), ...tiles());
-          [1, 2, 5, 4, 3].forEach(tap);
-          const w0 = atRow();
-          box().querySelector('.qp-order-send').click();
-          const wrong = { a: w0, b: atRow(), say: (box().querySelector('.qp-verdict') || {}).textContent };
-          box().querySelector('.qp-order-clear').click();
-          [3, 4, 5, 2, 1].forEach(tap);
+          const a0 = at();
+          type('A, B, E, D, C');
+          btn.click();
+          const wrong = { a: a0, b: at(), say: (card.querySelector('.qp-verdict') || {}).textContent };
+          type('C, D, E, B, A');
           const a = at();
-          box().querySelector('.qp-order-send').click();
-          window.__qStable = { a, b: at(), fill: [shape0, shape()], wrong };
+          btn.click();
+          window.__qStable = { a, b: at(), wrong };
           return true;
         };
         if (!run()) setTimeout(run, 150);
       },
       expect: () => {
-        const s = window.__qStable;
-        const box = [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
-        return !!s && !!box && box.classList.contains('is-right')
-               && (box.querySelector('.qp-verdict') || {}).textContent === 'Correct'
+        const s = window.__qStable, card = window.__qCard;
+        const mark = card && card.querySelector('.qp-mark');
+        return !!s && !!mark && mark.classList.contains('is-right')
+               && (mark.querySelector('.qp-verdict') || {}).textContent === 'Correct'
+               && /^Not yet/.test(s.wrong.say || '')
                && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5)
-               && s.wrong.say === 'Not yet — have another go'
-               && s.wrong.a.length === 13 && s.wrong.a.every((v, i) => Math.abs(v - s.wrong.b[i]) < 0.5)
-               && s.fill[0].length === s.fill[1].length
-               && s.fill[0].every((p, i) => p.every((v, j) => Math.abs(v - s.fill[1][i][j]) < 0.5));
+               && s.wrong.a.every((v, i) => Math.abs(v - s.wrong.b[i]) < 0.5)
+               && card.querySelectorAll('.qp-optlist .qp-optline').length === 5 && !card.querySelector('.qp-order, .qp-item, .qp-slot');
       },
-      wants: 'the reversed order sent and marked Not yet, then the right one marked Correct, with the question, the strip, the verdict\'s row, the card\'s height and the Send and Clear tiles (place and size) where they were each time, and every slot and the items where they were before the first tap',
+      wants: 'the real 1F Q4 typed as letters: the reversed order marked Not yet, then the right one marked Correct, the question, the box and the card\'s height where they were each time, its five options listed and no tap-to-place strip',
       leave: () => {
         try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
-        ORDER_HOLE.clear();
         try {
           const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
           delete all[subKeyOf_(window.__ordKey)];
@@ -1170,15 +1102,12 @@ const STATES = {
         subForget_();
         STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
-    /* ---------- AN ORDERING OF POWERS: A POWER IS RAISED IN THE ROW AS IT IS IN THE QUESTION § */
+    /* ---------- AN ORDERING OF POWERS: A POWER IS RAISED IN THE OPTIONS AS IT IS IN THE QUESTION § */
     { name: 'an ordering of powers, raised as printed',
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-5AD-F-0603-1');
         if (!it) throw new Error('Q-CBM-5AD-F-0603-1 is not in the library');
-        if (!orderIs_(it)) throw new Error('Q-CBM-5AD-F-0603-1 is not an ordering — its answer_type is ' + it.answerType);
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        /* AND ANY VERDICT IT WAS LAST SENT WITH, which the strip draws from (js/submit.js). */
-        ORDER_HOLE.clear();
         try {
           const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
           delete all[subKeyOf_(ansKey_(it))];
@@ -1190,18 +1119,20 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__ordKey = ansKey_(it);
-        const box = () => [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        window.__qStable = null; window.__qCard = null;
         const run = () => {
-          if (!box()) return false;
-          const el = box().querySelector('.qp-item[data-n="1"]');
-          if (el) el.click();
+          const inp = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === window.__ordKey);
+          const card = window.__qCard = inp && inp.closest('.qcard');
+          const btn = card && card.querySelector('.qp-check');
+          if (!inp || !btn) return false;
+
           return true;
         };
         if (!run()) setTimeout(run, 150);
       },
       expect: () => {
-        const box = [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
-        if (!box || !box.querySelector('.qp-slot.is-full[data-n="1"]')) return false;
+        const card = window.__qCard;
+        if (!card) return false;
         /* HOW FAR A <sup> SITS ABOVE THE BOTTOM OF THE TEXT JUST BEFORE IT, in px. */
         const raise = sup => {
           const t = sup.previousSibling;
@@ -1209,14 +1140,13 @@ const STATES = {
           const r = document.createRange(); r.selectNodeContents(t);
           return r.getBoundingClientRect().bottom - sup.getBoundingClientRect().bottom;
         };
-        const sups = [...box.querySelectorAll('.qp-slot sup, .qp-item sup')];
-        const q = box.closest('.qcard').querySelector('.qsheet sup');
-        return sups.length >= 3 && q && raise(q) > 2 && sups.every(x => raise(x) !== null && raise(x) >= 2);
+        const sups = [...card.querySelectorAll('.qp-optlist sup')];
+        const q = card.querySelector('.qsheet sup');
+        return sups.length >= 2 && q && raise(q) > 2 && sups.every(x => raise(x) !== null && raise(x) >= 2);
       },
-      wants: '2² placed in slot 1, and every power in the strip and the row (2² and 1³, the ghost included) raised at least 2px above its digit, as the question prints it',
+      wants: 'every power in the listed options (2² and 1³) raised at least 2px above its digit, as the question prints it',
       leave: () => {
         try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
-        ORDER_HOLE.clear();
         try {
           const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
           delete all[subKeyOf_(window.__ordKey)];
@@ -1225,51 +1155,59 @@ const STATES = {
         subForget_();
         STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
-    { name: 'a tapped answer, not yet, nothing moved',
+    /* ---------- A MULTIPLE-CHOICE ANSWER, TYPED WRONG: marked not yet, nothing moved, no answer given away */
+    { name: 'a typed choice, not yet, nothing moved',
       enter: () => {
-        const id = 'Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12';
-        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
-        if (!it) throw new Error(id + ' is not in the library');
-        if (!(it.choiceRight || []).length) throw new Error(id + ' has no credited choice to miss');
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12');
+        if (!it) throw new Error('Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12 is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(ansKey_(it))];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__ordKey = ansKey_(it);
         window.__qStable = null; window.__qCard = null;
-        /* AT ONCE, by key, where the page is already built; after a tick only if not -- a loaded run's 150ms
-           timer is what left this state unreached (the answer states above say more). */
         const run = () => {
-          const hit = [...document.querySelectorAll('#s-stuff .qp-choices')].find(b => b.getAttribute('data-k') === ansKey_(it));
-          const card = window.__qCard = hit && hit.closest('.qcard');
-          const opts = card ? [...card.querySelectorAll('.qp-opt')] : [];
-          if (opts.length < 2) return false;
-          const miss = it.choiceRight[0] === 1 ? 2 : 1;
+          const inp = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === window.__ordKey);
+          const card = window.__qCard = inp && inp.closest('.qcard');
+          const btn = card && card.querySelector('.qp-check');
+          if (!inp || !btn) return false;
+          const type = v => { inp.value = v; inp.dispatchEvent(new Event('input', { bubbles: true })); };
+          const it = stuffItemsAll_().find(x => ansKey_(x) === window.__ordKey);
+          const miss = (it.choiceRight || [])[0] === 1 ? 'B' : 'A';
           const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
-                            card.querySelector('.qp-opt[data-n="' + miss + '"]').getBoundingClientRect().top,
+                            card.querySelector('.qp-ans').getBoundingClientRect().top,
                             card.getBoundingClientRect().height];
           const a = at();
-          opts[miss - 1].click();
+          type(miss);
+          btn.click();
           window.__qStable = { a, b: at() };
           return true;
         };
         if (!run()) setTimeout(run, 150);
       },
       expect: () => {
-        const s = window.__qStable;
-        const box = window.__qCard && window.__qCard.querySelector('.qp-choices');
-        const mark = box && box.nextElementSibling;
-        return !!s && !!box && box.classList.contains('is-miss')
-               /* THE MISS, AND NO TICK ANYWHERE: the right option is the answer, and it waits behind
-                  Show on the answer page like every other one (`choiceBox_`). */
-               && !!box.querySelector('.qp-opt.is-picked:not(.is-ans)') && !box.querySelector('.qp-opt.is-ans')
-               && !!mark && mark.classList.contains('is-near')
+        const s = window.__qStable, card = window.__qCard;
+        const mark = card && card.querySelector('.qp-mark');
+        return !!s && !!mark && mark.classList.contains('is-near')
+               && !card.querySelector('.qp-optline.is-ans')
                && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5);
       },
-      wants: 'a wrong tap marked, no option ticked as the answer, and the question, the option and the card\'s height unmoved',
+      wants: 'a wrong letter marked not yet, no option ticked as the answer, and the question, the box and the card\'s height unmoved',
       leave: () => {
-        const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12');
-        try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(window.__ordKey)];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- THE MATHS KEYPAD, UP, WITH A FRACTION HALF BUILT § */
@@ -1326,7 +1264,6 @@ const STATES = {
         if (!it) throw new Error('1F Q23b is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
@@ -1365,7 +1302,6 @@ const STATES = {
         if (!it) throw new Error('1F Q23b is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
@@ -1413,7 +1349,6 @@ const STATES = {
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         kpClose_();
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         window.__restK = ansKey_(it);
@@ -1447,7 +1382,6 @@ const STATES = {
         if (!it) throw new Error('Q0664 is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
@@ -1488,7 +1422,6 @@ const STATES = {
         if (!it) throw new Error('Q0664 is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
@@ -1592,7 +1525,6 @@ const STATES = {
         if (!it) throw new Error(id + ' is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         window.__abcKey = ansKey_(it);
@@ -1643,7 +1575,6 @@ const STATES = {
         if (!it) throw new Error(id + ' is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         window.__essayKey = ansKey_(it);
@@ -1774,7 +1705,6 @@ const STATES = {
     { name: 'no films in Find, an admin’s',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [];
         paintStuff();
         goPage('stuff', stuffQuestionPage_(), true);
@@ -1784,36 +1714,22 @@ const STATES = {
         const isFilm = x => x && (x.kind === 'film' || films.some(f => f.title === x.name));
         const kl = facetList().find(f => f.field === 'kindLabel');
         const kinds = kl ? facetValues(stuffItems(), kl).map(v => String(v.value)) : [];
-        const was = STUFF.q;
-        let found = 0;
-        try { films.forEach(f => { STUFF.q = f.title; found += stuffFiltered().filter(isFilm).length; }); }
-        finally { STUFF.q = was; }
-        return films.length >= 2 && kinds.length >= 1 && kinds.indexOf('Films') === -1 && !found
+        return films.length >= 2 && kinds.length >= 1 && kinds.indexOf('Films') === -1
                && !!document.querySelector('#stuff-groups [data-do="facet-pick"]')
                && !stuffItemsAll_().some(isFilm)
                && !document.querySelector('#s-stuff .card.film');
       },
-      wants: 'the admin’s first question in Find drawn with the films in the payload, no Films answer What kind could give, no film found by its title, and no film anywhere in Find' },
+      wants: 'the admin’s first question in Find drawn with the films in the payload, no Films answer What kind could give, and no film anywhere in Find' },
     /* ---------- THE TWO WAYS THE FUNNEL ENDS WITHOUT A QUESTION § */
-    { name: 'a search that matches nothing',
-      enter: () => { STUFF.filters = []; STUFF.q = 'zqxjv nothing is called this'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
+    { name: 'chips that match nothing',
+      enter: () => { STUFF.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }, { field: 'boxKind', value: 'Fighters' }]; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
       expect: () => /Nothing matches/.test((document.querySelector('#stuff-groups .empty') || {}).textContent || ''),
       wants: 'the funnel saying Nothing matches',
-      leave: () => { STUFF.q = ''; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
-    /* AND A SEARCH A CHIP HIDES. § */
-    { name: 'a search a chip hides',
-      enter: () => { STUFF.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }]; STUFF.q = 'Olivares'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
-      expect: () => {
-        const g = document.querySelector('#stuff-groups');
-        return !!g && /take a filter off/.test(g.textContent) && !g.querySelector('[data-do="finder-words"]');
-      },
-      wants: 'Find\'s empty search under a chip saying "Try fewer words, or take a filter off." and offering no other column',
-      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     { name: 'nothing left to narrow',
       /* ANSWERED BY THE FUNNEL'S OWN ROWS until it stops asking, over the projects — eight things,
          so it runs out of questions in two or three answers whatever the data says next week. */
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }];
         paintStuff();
         for (let i = 0; i < 8; i++) {
@@ -1833,9 +1749,8 @@ const STATES = {
       wants: 'the funnel ending on "Nothing left to narrow" in its own class, with a rule under the chosen chips',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- "STABLE": AN ANSWER PRESSED MOVES NOTHING ABOVE IT § */
-    { name: 'an answer pressed, the search box and the chips still',
+    { name: 'an answer pressed, the controls and the chips still',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' }];
         paintStuff();
         goPage('stuff', stuffQuestionPage_(), true);
@@ -1844,10 +1759,10 @@ const STATES = {
            timer is what left this state unreached (the answer states above say more). */
         const run = () => {
           const pane = document.getElementById('stuff-controls');
-          if (!pane || !document.getElementById('stuff-q')) return false;
+          if (!pane || !document.getElementById('stuff-chips')) return false;
           const at = () => {
             const top = pane.getBoundingClientRect().top;
-            const q = document.getElementById('stuff-q').getBoundingClientRect().top - top;
+            const q = document.getElementById('stuff-chips').getBoundingClientRect().top - top;
             const chip = document.querySelector('#stuff-chips .chip');
             return [q, chip ? chip.getBoundingClientRect().top - top : -1,
                     chip ? chip.getBoundingClientRect().left : -1];
@@ -1865,14 +1780,13 @@ const STATES = {
         const s = window.__findStill;
         return !!s && s.n === 2 && s.a[1] >= 0 && s.a.every((v, i) => Math.abs(v - s.b[i]) < .5);
       },
-      wants: 'a second chip added with the search box and the first chip exactly where they were',
+      wants: 'a second chip added with the chips row and the first chip exactly where they were',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- AND A CARD'S OWN PAGES FILLING MOVE NOTHING ON IT § */
     { name: "a practical's pages filled, its card still",
       enter: () => {
         const x = stuffItemsAll_().find(it => it.kind === 'practical' && !it.row.excluded && it.row.diagram);
         if (!x) throw new Error('no practical with a diagram');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }];
         paintStuff();
         const first = stuffFirstResult_();
@@ -1915,7 +1829,7 @@ const STATES = {
       enter: () => inFinder_(finderOf_('res'), () => {
         window.__LIB_FAIL = { rows: LIBRARY_ROWS, f: LIBRARY_FAILED };
         LIBRARY_ROWS = []; LIBRARY_FAILED = 'the question file answered 500';
-        stuffForget_(); STUFF.filters = []; STUFF.q = '';
+        stuffForget_(); STUFF.filters = [];
         paintStuff();
       }),
       leave: () => inFinder_(finderOf_('res'), () => {
@@ -1932,7 +1846,6 @@ const STATES = {
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-STATS-9', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && !pg.part);
@@ -1960,7 +1873,6 @@ const STATES = {
       enter: new Function(`inFinder_(finderOf_('res'), () => {
         const K = 'ct:TB-GCSE-STATS-9', P = '${P}', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
@@ -1978,7 +1890,6 @@ const STATES = {
       enter: new Function(`inFinder_(finderOf_('res'), () => {
         const K = 'pr:PR-FN05', P = ${JSON.stringify(P)}, x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' practical in the list — data/practicals.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && (pg.part || null) === P);
@@ -1997,7 +1908,6 @@ const STATES = {
       enter: new Function(`inFinder_(finderOf_('res'), () => {
         const K = 'ct:TB-KS2-MATHS-1', P = ${JSON.stringify(P)}, x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && (pg.part || null) === P);
@@ -2019,7 +1929,6 @@ const STATES = {
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-MATHS-17', P = 'an17-pyth', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
@@ -2042,7 +1951,6 @@ const STATES = {
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-STATS-15', P = 'an15-bayes', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
@@ -2065,7 +1973,6 @@ const STATES = {
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-MATHS-2', P = 'an2-sf', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
@@ -2086,7 +1993,6 @@ const STATES = {
     { name: 'the Bible, the KJV question',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }];
         paintStuff();
         goPage('res', stuffQuestionPage_(), true);
@@ -2103,7 +2009,6 @@ const STATES = {
     { name: 'the Bible, Psalms\'s chapters',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
                          { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Poetry & Wisdom' },
                          { field: 'wBook', value: 'Psalms' }];
@@ -2115,7 +2020,6 @@ const STATES = {
     { name: 'the Bible, Psalm 119\'s verses',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
                          { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Poetry & Wisdom' },
                          { field: 'wBook', value: 'Psalms' }, { field: 'wChapter', value: '119' }];
@@ -2127,7 +2031,6 @@ const STATES = {
     { name: 'the Bible, Genesis 1:3',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
                          { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Torah' },
                          { field: 'wBook', value: 'Genesis' }, { field: 'wChapter', value: '1' },
@@ -2145,7 +2048,6 @@ const STATES = {
     { name: 'the Bible, Esther 8:9',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
                          { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'History' },
                          { field: 'wBook', value: 'Esther' }, { field: 'wChapter', value: '8' },
@@ -2159,11 +2061,10 @@ const STATES = {
         return !!v && !v.closest('.bb-verse').querySelector('.loading') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
       },
       wants: 'Esther 8:9, the longest verse, drawn whole with no bracket',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
     /* THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM § */
     { name: 'the boxers, on the shared head',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Boxers' }];
         paintStuff();
@@ -2194,9 +2095,8 @@ const STATES = {
     /* ---------- THE PHOTO'S CREDIT, AS A LINK A FINGER CAN HIT § */
     { name: 'a boxer photo\'s credit, a link a finger can hit',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = 'Muhammad Ali';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
+                         { field: 'boxKind', value: 'Boxers' }, { field: 'fighter', value: 'Muhammad Ali' }];
         paintStuff();
         goPage('res', stuffFirstResult_(), true);
       }),
@@ -2226,10 +2126,9 @@ const STATES = {
                && parseFloat(getComputedStyle(a).fontSize) >= .62 * rem - .05;
       },
       wants: 'Ali\'s photo credit as a link to its Commons file page, a 44px block at its own size, under the picture and across the card, its words at least .62rem',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
     { name: 'the fights, on the shared head',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Fights' }];
         paintStuff();
@@ -2254,9 +2153,8 @@ const STATES = {
     /* ---------- THE FIGHTER IN THE RING LOOKS LIKE HIM, IN THE COLOURS A BROWSER ACTUALLY PAINTS § */
     { name: 'a boxer who looks like himself',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = 'Lennox Lewis';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
+                         { field: 'boxKind', value: 'Boxers' }, { field: 'fighter', value: 'Lennox Lewis' }];
         paintStuff();
         goPage('res', stuffFirstResult_(), true);
       }),
@@ -2292,10 +2190,9 @@ const STATES = {
                && c.scrollWidth <= c.clientWidth + 1;
       },
       wants: 'Lennox Lewis drawn as himself — dreads behind the head and inside the frame, goatee, his skin and his white trunks in the figure\'s own colours, never the gold stand-in\'s',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
     { name: 'a fight in that night\'s trunks',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Fights' }];
         paintStuff();
@@ -2346,7 +2243,6 @@ const STATES = {
     /* ---------- A FIGHTER WITH NO ROW IS A SILHOUETTE, NOT A PALE BLOND MAN § */
     { name: 'a fighter with no row is a silhouette',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Fights' }];
         paintStuff();
@@ -2379,9 +2275,8 @@ const STATES = {
     /* ---------- EVERY COLOUR OF THE FIGURE SHOWS AGAINST THE DARK HE STANDS IN § */
     { name: 'every colour of the eight-bit fighter shows against the stage',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = 'Mike Tyson';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
+                         { field: 'boxKind', value: 'Boxers' }, { field: 'fighter', value: 'Mike Tyson' }];
         paintStuff();
         goPage('res', stuffFirstResult_(), true);
       }),
@@ -2444,7 +2339,7 @@ const STATES = {
         return bad.length === 0 && Object.keys(fills).length === cases.length;
       },
       wants: 'every skin, hair colour, trunks colour, the silhouette and the unrecorded trunks at 2:1 or more against the stage, a black beard 2:1 on every skin, Tyson\'s own hair and trunks too, and the unrecorded trunks 50 or more from every trunks word',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
     /* ---------- THE LONGEST TAG ROW, EVERY TAG INSIDE THE CARD § */
     { name: "a content card's tag row, every tag inside the card",
       enter: () => inFinder_(finderOf_('res'), () => {
@@ -2452,7 +2347,6 @@ const STATES = {
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-MATHS-20', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && !pg.part);
@@ -3565,7 +3459,7 @@ const STATES = {
           && !pg.querySelector('.pfp') && !pg.querySelector('[data-me="photo"]') && !!pg.querySelector('[data-me="video"]')
           && shown.length === 2 && shown.every(s => s.querySelector('.ph-thumb img'))
           && pg.querySelectorAll('[data-do="shelf-more"]').length === 1
-          && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 8 : 0;
+          && pg.querySelectorAll('[data-do="me-save"]').length === 0 ? 8 : 0;
       },
       wants: 'the video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another — and no picture picker, which is on your own card' },
     /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE, WHICH THE FIXTURE HAD NEVER SENT § */
@@ -3615,7 +3509,7 @@ const STATES = {
         return lo && hi && want && offers(lo) === want && offers(hi) === want
           && lo.value === '8' && hi.value === 'Adults'
           && !pg.querySelector('[data-me="rate_per_hour"]')
-          && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 2 : 0;
+          && pg.querySelectorAll('[data-do="me-save"]').length === 0 ? 2 : 0;
       },
       wants: 'the ages as one [youngest] – [oldest] row of two selects, 8 and Adults chosen, on a page without the rate' },
 
@@ -4604,7 +4498,7 @@ const STATES = {
         if (!ok || bars.size !== n) return 0;
         /* THE FIT RULE'S PROMISE, read off the page rather than restated: no smaller than its floor, and the
            tick on the glass or one scroll of the pane away. */
-        const pane = faces[0].closest('.pane'), tick = pg.querySelector('[data-do="me-save"]');
+        const pane = faces[0].closest('.pane'), tick = pg.querySelector('.me-form .me-said') || pg.querySelector('.me-form');
         if (!pane || !tick || typeof PANE_ZOOM_MIN !== 'number') return 0;
         const zoom = Math.min(1, ...[...pane.children].map(k => Number(k.style.zoom || 1)));
         if (zoom < PANE_ZOOM_MIN - 0.001) return 0;

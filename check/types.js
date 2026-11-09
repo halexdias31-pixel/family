@@ -111,7 +111,7 @@ async function open(env, row) {
       try { delete all[subKeyOf_(padKey_(hit))]; } catch (e) {} localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all)); } catch (e) {}
     try { subForget_(); } catch (e) {}
     try { ORDER_HOLE.clear(); } catch (e) {}
-    STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: hit.row.paper_id }];
+    STUFF.filters = [{ field: 'paperId', value: hit.row.paper_id }];
     paintStuff(true);
     await new Promise(z => setTimeout(z, 600));
     const h2 = stuffFiltered().find(x => x.row && x.row.row_id === r) || hit;
@@ -331,32 +331,29 @@ const TYPED = ['value', 'unit', 'fraction', 'expr', 'words', 'reason', 'multi', 
 const CELLS = ['match', 'table'];
 const DRAWN = ['label', 'points', 'line', 'shape', 'shade', 'hand', 'graph', 'construct', 'numline'];
 
+/* OPTIONS AND ORDERINGS ARE TYPED (owner, 9 Nov, 41a): letters in the one box, then the one Check, `qp-check` */
+const LETTER_ = n => String.fromCharCode(64 + n);
+async function typedCheck_(env, ctx, letters, say, when) {
+  if (!(await typeInto(env, ctx, C + ' .qp-ans-in', 0, letters.map(LETTER_).join(', '), 'answer box', C + ' .kp-field'))) return false;
+  await tap(env, ctx, C + ' .qp-mark [data-do="qp-check"]', 0, 'Check', { wait: 400 });
+  await expectSay(env, ctx, say, when);
+  return true;
+}
+
 async function driveChoice(env, ctx) {
   const o = await env.page.evaluate(sel => {
-    const box = document.querySelector(sel + ' .qp-choices');
-    if (!box) return null;
-    return { n: box.querySelectorAll('.qp-opt').length, need: +box.getAttribute('data-need') || 1,
-             right: (box.getAttribute('data-right') || '').split(',').map(Number).filter(Boolean) };
+    const card = document.querySelector(sel);
+    const x = stuffItemsAll_().find(it => ansKey_(it) === window.__tk.k);
+    if (!card || !x) return null;
+    return { n: card.querySelectorAll('.qp-optlist .qp-optline').length, right: (x.choiceRight || []).map(Number).filter(Boolean) };
   }, C);
   if (!o || !o.right.length) return 'no options with a credited choice on the card';
-  const OPT = C + ' .qp-opt';
+  if (o.n < 2) return 'the options are not listed A, B, C over the box';
   const wrongs = []; for (let n = 1; n <= o.n; n++) if (o.right.indexOf(n) === -1) wrongs.push(n);
   if (!wrongs.length) return 'every option is right';
-  /* WRONG: all but one of the right ones, and a wrong one -- then a second wrong one, a child guessing on */
-  const miss = o.right.slice(0, o.need - 1).concat(wrongs[0]);
-  for (const n of miss) await tap(env, ctx, OPT, n - 1, 'option ' + n);
-  await expectSay(env, ctx, 'wrong', 'after a wrong pick');
-  if (wrongs.length > 1 && o.need === 1) {
-    await tap(env, ctx, OPT, wrongs[1] - 1, 'option ' + wrongs[1] + ' (a second try)');
-    await expectSay(env, ctx, 'wrong', 'after a second wrong pick');
-  }
-  /* RIGHT: take the wrong one off (choose several), then the missing right one */
-  if (o.need > 1) await tap(env, ctx, OPT, (o.need === 1 ? wrongs[1] || wrongs[0] : wrongs[0]) - 1, 'the wrong option, taken back');
-  for (const n of o.right) {
-    const on = await env.page.evaluate(([sel, n]) => !!document.querySelector(`${sel} .qp-opt[data-n="${n}"].is-picked`), [C, n]);
-    if (!on) await tap(env, ctx, OPT, n - 1, 'option ' + n + ' (right)');
-  }
-  await expectSay(env, ctx, 'right', 'after the right pick');
+  /* WRONG: all but one of the right ones, and a wrong one */
+  if (!(await typedCheck_(env, ctx, o.right.slice(0, o.right.length - 1).concat(wrongs[0]), 'wrong', 'after a wrong choice'))) return '';
+  await typedCheck_(env, ctx, o.right, 'right', 'after the right choice');
   return '';
 }
 
@@ -369,14 +366,8 @@ async function driveOrder(env, ctx) {
   const right = o.ways[0].map(Number);
   let wrong = right.slice().reverse();
   if (o.ways.some(w => w.join(',') === wrong.join(','))) wrong = right.slice(1).concat(right[0]);
-  const ITEM = n => `${C} .qp-item[data-n="${n}"]`;
-  for (const n of wrong) await tap(env, ctx, ITEM(n), 0, 'item ' + n);
-  await tap(env, ctx, C + ' .qp-order-send', 0, 'Check');
-  await expectSay(env, ctx, 'wrong', 'after a wrong order');
-  await tap(env, ctx, C + ' .qp-order-clear', 0, 'Clear');
-  for (const n of right) await tap(env, ctx, ITEM(n), 0, 'item ' + n);
-  await tap(env, ctx, C + ' .qp-order-send', 0, 'Check');
-  await expectSay(env, ctx, 'right', 'after the right order');
+  if (!(await typedCheck_(env, ctx, wrong, 'wrong', 'after a wrong order'))) return '';
+  await typedCheck_(env, ctx, right, 'right', 'after the right order');
   return '';
 }
 
@@ -387,7 +378,7 @@ async function driveTyped(env, ctx) {
     if (!mark) return null;
     const boxes = card.querySelectorAll('.qp-ans-in').length;
     const accept = mark.getAttribute('data-accept') || '', rule = mark.getAttribute('data-rule') || '';
-    const check = mark.querySelector('[data-do="qp-check"]') ? 'qp-check' : mark.querySelector('[data-do="qp-rule"]') ? 'qp-rule' : '';
+    const check = mark.querySelector('[data-do="qp-check"]') ? 'qp-check' : '';
     const ways = accept.split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w));
     const parts = w => {
       if (boxes <= 1) return [w];
@@ -402,7 +393,7 @@ async function driveTyped(env, ctx) {
     return { boxes, check, cands, ruled, wrong, accept };
   }, C);
   if (!o) return 'no answer box and Check on the card';
-  if (!o.check) return 'no Check (qp-check or qp-rule) beside the box';
+  if (!o.check) return 'no Check (qp-check) beside the box';
   let right = o.cands.find(p => p.every(s => !env.cdp || KEYPAD_SAFE(s))) || o.cands[0];
   if (!right && o.ruled.length) right = o.ruled;
   if (!right) return 'no accepted way splits into its ' + o.boxes + ' box(es)';
@@ -738,7 +729,7 @@ async function vector(env) {
   steps++;
   if (s1.v !== 'Translation \u27ee5,-4\u27ef') fail(env.E, 'vector', row, `the box holds ${JSON.stringify(s1.v)}, wanted "Translation ⟮5,-4⟯"`);
   if (!s1.vec || s1.vec[0] !== '5' || !/^[-\u2212]4$/.test(s1.vec[1])) fail(env.E, 'vector', row, `the box draws the vector as ${JSON.stringify(s1.vec)}, wanted 5 over -4`);
-  await tap(env, ctx, C + ' .qp-mark [data-do="qp-rule"], ' + C + ' .qp-mark [data-do="qp-check"]', 0, 'Check', { wait: 400 });
+  await tap(env, ctx, C + ' .qp-mark [data-do="qp-check"]', 0, 'Check', { wait: 400 });
   await expectSay(env, ctx, 'right', 'after "Translation" and the vector');
   console.log(`  ${env.E.id} vector ${row}: ${JSON.stringify(s1.v)} drawn ${JSON.stringify(s1.vec)}`);
   await env.page.evaluate(() => { try { document.activeElement && document.activeElement.blur(); kpClose_(); } catch (e) {} });

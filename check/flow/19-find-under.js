@@ -7,12 +7,12 @@ check('Find 2 across a sign-in: signed out it is the members card, signed in it 
     const { w } = b, t = w.__t, d = w.document;
     if (t.whoami()) return ['the app opened signed in — signed OUT was NOT checked'];
     t.go('res', false, true); await wait(100);
-    if (!d.querySelector('#s-res .members-only') || d.getElementById('res-q')) bad.push('signed out, Find 2 is not the members card alone');
+    if (!d.querySelector('#s-res .members-only') || d.getElementById('res-chips')) bad.push('signed out, Find 2 is not the members card alone');
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
     await wait(80);
     t.go('res', false, true); w.paint('res'); await wait(100);
     if ((t.whoami() || {}).personId !== 'P12') return ['the child did not sign in: ' + JSON.stringify(t.whoami())];
-    if (!d.getElementById('res-q') || d.querySelector('#s-res .members-only')) bad.push('signed in, Find 2 is not the finder');
+    if (!d.getElementById('res-chips') || d.querySelector('#s-res .members-only')) bad.push('signed in, Find 2 is not the finder');
   }
   /* ---- AN ADMIN, ON THE BOOKS SHELF IN FIND 2 (both finders hold it), SIGNS OUT ---- */
   {
@@ -21,13 +21,12 @@ check('Find 2 across a sign-in: signed out it is the members card, signed in it 
     const { w } = b, t = w.__t, d = w.document;
     t.go('res', false, true);
     t.RES().filters = [{ field: 'shelf', value: 'Writings' }];
-    t.RES().q = 'genesis';
     w.paintFinder_('res');
     if (!/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin\'s Find 2 chips do not name the Writings shelf, so its going was NOT checked');
     t.ACTIONS.signout(d.createElement('button'));
     await wait(60);
     if (t.whoami()) bad.push('Sign out left somebody signed in');
-    if (t.RES().filters.length || t.RES().q) bad.push('an admin signed out from the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    if (t.RES().filters.length) bad.push('an admin signed out from the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters));
     t.go('res', false, true); await wait(60);
     if (/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, Find 2\'s chips still name the Writings shelf');
   }
@@ -80,8 +79,8 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   });
   /* ---- ON SAVED: star each, and Find 2 holds a place of its own that opening must not touch ---- */
   [book, boxer, fight, proj].forEach(x => { const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); const fav = el.querySelector('[data-do="fav"]'); if (fav) A.fav(fav); });
-  t.RES().filters = [{ field: 'kindLabel', value: 'Library' }]; t.RES().q = 'ali';
-  const r0 = JSON.stringify([t.RES().filters, t.RES().q]);
+  t.RES().filters = [{ field: 'kindLabel', value: 'Library' }];
+  const r0 = JSON.stringify(t.RES().filters);
   t.STUFF().filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' }];
   t.go('saved', false, true); await wait(150); await woken_();
   const openOn = x => [...d.getElementById('s-saved').querySelectorAll('[data-do="find-open"]')].find(el => el.getAttribute('data-key') === x.key);
@@ -98,7 +97,7 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   A['find-open'](forBook);
   await wait(150);
   onCard(book, 'a content card opened from Saved', 'an15-bayes');
-  if (JSON.stringify([t.RES().filters, t.RES().q]) !== r0) bad.push('opening from Saved changed Find 2\'s place: ' + JSON.stringify([t.RES().filters, t.RES().q]));
+  if (JSON.stringify(t.RES().filters) !== r0) bad.push('opening from Saved changed Find 2\'s place: ' + JSON.stringify(t.RES().filters));
   for (const [x, tile, next] of [[boxer, forBoxer, w.pageParts_(boxer)[1]], [proj, forProj, w.pageParts_(proj)[1]]]) {
     if (!tile) { bad.push('the ' + x.kind + ' kept on Saved has no Open tile'); continue; }
     t.go('saved', false, true); await wait(120);
@@ -160,8 +159,7 @@ check('writings (520): answering Doesn\'t matter at every step never raises the 
   if (steps < 2) bad.push('only ' + steps + ' questions were answered Doesn\'t matter — the funnel was NOT walked');
   /* A FRESH START (no chip, no words) has every writing that came. */
   t.STUFF().filters = [];
-  t.STUFF().q = '';
-  w.paintStuff();
+    w.paintStuff();
   await wait(100);
   const fresh = seen().kinds, want = ['bible', 'talmud', 'quran', 'hadith', 'worktext', 'writ', 'pdtext', 'orthotext', 'hymn'];
   const missing = want.filter(k => !fresh.has(k));
@@ -589,44 +587,24 @@ check('the history timeline: events are found under Learning, Content, History, 
 
 /* THE REVIEW OF THE SECOND FINDER (docs/history/329, "the review"). § */
 
-/* ---------- AN EMPTY SEARCH SAYS WHAT TO DO HERE, AND OFFERS NO OTHER COLUMN § */
-check('an empty search on either finder says "take a filter off" under a chip that hides the hit, "Try fewer words." for a word nobody has, and offers no other column; a boxer\'s name is found where it is typed', async () => {
+/* AN EMPTY ANSWER SAYS WHAT TO DO HERE, AND OFFERS NO OTHER COLUMN (chips only since 8 Nov). */
+check('an empty list on either finder says "Nothing matches all of those together." under chips that hide everything, and offers no other column', async () => {
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, bad = [];
-  const olivares = w.stuffItemsAll_().find(x => x.kind === 'people' && /Olivares/.test(x.name));
-  if (!olivares) return ['no Ruben Olivares among the boxers — NOT checked'];
   for (const id of ['stuff', 'res']) {
     const name = id === 'stuff' ? 'Find' : 'Find 2';
     const st = () => (id === 'stuff' ? t.STUFF() : t.RES());
     const list = () => (id === 'stuff' ? w.stuffFiltered() : inRes_(w, () => w.stuffFiltered()));
     const said = () => ((d.getElementById(id + '-groups') || {}).textContent || '').replace(/\s+/g, ' ').trim();
-    const tile = () => d.querySelector('#s-' + id + ' [data-do="finder-words"]');
     t.go(id, false, true); await wait(80); await woken_();
-    st().filters = []; st().q = '';
-    w.paintFinder_(id);
-    /* HIS NAME, FOUND WHERE IT IS TYPED. */
-    if (!resType_(w, id, 'Olivares')) { bad.push(name + ' has no search box — NOT checked'); continue; }
-    await wait(260); await woken_();
-    if (st().q !== 'Olivares') { bad.push('typing into #' + id + '-q did not reach ' + name + '\'s words — NOT checked'); continue; }
-    if (list().indexOf(olivares) < 0) bad.push(name + ' does not find Ruben Olivares by name — both finders hold the boxers');
-    /* UNDER A CHIP THAT HIDES HIM: take a filter off — and no tile to the other column. */
-    st().filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' }];
+    st().filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' }, { field: 'boxKind', value: 'Fighters' }];
     w.paintFinder_(id);
     await wait(60); await woken_();
-    if (list().length) bad.push('the setup: ' + name + ' still finds ' + list().length + ' thing(s) for "Olivares" under Projects — the empty answer was NOT checked');
-    else {
-      if (!/Try fewer words, or take a filter off/.test(said())) bad.push(name + '\'s empty search under a chip does not say "Try fewer words, or take a filter off.": "' + said() + '"');
-      if (/\bin (Find|Find 2|Resources)\b/.test(said())) bad.push(name + '\'s empty search points to another column: "' + said() + '"');
-      if (tile()) bad.push(name + '\'s empty search draws a finder-words tile — it would carry the words into the other column and clear its chips');
-    }
-    /* A WORD NOBODY HAS. */
+    if (list().length) { bad.push('the setup: ' + name + ' still finds ' + list().length + ' thing(s) under Projects and Fighters — the empty answer was NOT checked'); continue; }
+    if (!/Nothing matches all of those together/.test(said())) bad.push(name + '\'s empty list under chips does not say "Nothing matches all of those together.": "' + said() + '"');
+    if (/\bin (Find|Find 2|Resources)\b/.test(said())) bad.push(name + '\'s empty list points to another column: "' + said() + '"');
     st().filters = [];
-    resType_(w, id, 'zqxjv');
-    await wait(260); await woken_();
-    if (!/Try fewer words\./.test(said()) || /take a filter off/.test(said())) bad.push('a word nobody has does not say "Try fewer words." on ' + name + ': "' + said() + '"');
-    if (tile()) bad.push('a word nobody has drew an Open tile to the other finder on ' + name);
-    st().q = '';
   }
   return bad;
 });
@@ -694,31 +672,6 @@ check('a Find place kept inside the Bible comes back inside Genesis 1 for an adm
 });
 
 /* ---------- WORK THAT RUNS LATER, BOUND TO ITS FINDER § */
-check('Find 2\'s search box repaints Find 2 after its debounce, even with an answer pressed on Find inside the 180ms', async () => {
-  const b = await resBoot_();
-  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
-  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  t.go('res', false, true); await wait(120); await woken_();
-  const resQ0 = d.getElementById('res-groups').innerHTML;
-  resType_(w, 'res', 'frequency density');
-  t.go('stuff', false, true);
-  const pick = d.querySelector('#s-stuff #stuff-groups [data-do="facet-pick"]');
-  if (pick) A['facet-pick'](pick); else bad.push('Find drew no answer to press inside the debounce');
-  const findGroups = d.getElementById('stuff-groups').innerHTML;
-  const findF = JSON.stringify(t.STUFF().filters);
-  await wait(400); await woken_();
-  if (t.RES().q !== 'frequency density') bad.push('Find 2\'s words are ' + JSON.stringify(t.RES().q));
-  if (t.STUFF().q) bad.push('Find\'s words are ' + JSON.stringify(t.STUFF().q));
-  /* NORMALISED THROUGH AN ELEMENT, as the screen's own markup is once the browser has parsed it. */
-  const tmp = d.createElement('div'); tmp.innerHTML = inRes_(w, () => w.stuffQuestion());
-  const want = tmp.innerHTML;
-  if (want === resQ0) return bad.concat(['the setup: "frequency density" does not change Find 2\'s question, so its repaint was NOT checked']);
-  if (d.getElementById('res-groups').innerHTML !== want) bad.push('Find 2\'s question on screen is not what its own state draws after the debounce (unchanged since before typing: ' + (d.getElementById('res-groups').innerHTML === resQ0) + ')');
-  if (d.getElementById('stuff-groups').innerHTML !== findGroups) bad.push('Find\'s question was repainted by Find 2\'s debounce');
-  if (JSON.stringify(t.STUFF().filters) !== findF) bad.push('Find\'s chips changed under Find 2\'s debounce');
-  return bad;
-});
-
 check('a landing repaint on a Find 2 result leaves the page in front drawn (the draw\'s microtask fills in Find 2\'s binding)', async () => {
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
@@ -774,7 +727,7 @@ check('a content card plays its animation on Find 2: Pythagoras after the Pythag
   const R = resView_(w);
   t.go('res');
   const S = t.RES();
-  S.q = ''; S.filters.length = 0;
+  S.filters.length = 0;
   S.filters.push({ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Maths' });
   w.paintFinder_('res');
   const pages = R.stuffPages_();
@@ -850,7 +803,7 @@ check('a content card plays its animation on Find 2: Pythagoras after the Pythag
 });
 
 /* ---------- THE OWNER'S TEST: A TOPIC FINDS THE CONTENT CARD BESIDE THE QUESTIONS, ON EITHER FINDER § */
-check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pythagoras\' Theorem, Standard Form, Simultaneous Equations, Histograms holds the content card, and typing the topic finds it beside the questions', async () => {
+check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pythagoras\' Theorem, Standard Form, Simultaneous Equations, Histograms holds the content card, and Maths · GCSE opens on a question', async () => {
   const p = await resPayload_();
   if (!p) return ['libraryExtras_ is not reachable — the owner\'s test was NOT run'];
   const TOPICS = ['Surds', 'Pythagoras\' Theorem', 'Standard Form', 'Simultaneous Equations', 'Histograms'];
@@ -871,29 +824,16 @@ check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pyth
     if (!cards.length) { bad.push('no GCSE Maths content card is tagged "' + T + '" — spelled as the library spells it'); return; }
     finders.forEach(([name, V, S]) => {
       const st = S();
-      st.q = '';
       st.filters.length = 0;
       st.filters.push({ field: 'subject', value: 'Maths' }, { field: 'level', value: 'GCSE' }, { field: 'topic', value: T });
       const byChip = V.stuffFiltered();
       cards.forEach(c => { if (!byChip.some(x => x.key === c.key)) bad.push(name + ': Maths · GCSE · Topic ' + T + ' does not hold "' + c.name + '"'); });
+      /* A BROWSE OPENS ON A QUESTION, not on a page of reading (13 Oct — the note over `sortKey_`). */
       st.filters.length = 0;
       st.filters.push({ field: 'subject', value: 'Maths' }, { field: 'level', value: 'GCSE' });
-      st.q = T.toLowerCase();
-      const hits = V.stuffFiltered();
-      const at = hits.findIndex(x => x.kind === 'content' && cards.some(c => c.key === x.key));
-      const qs = hits.filter(x => x.kind === 'question' && tops(x.row || {}).indexOf(key(T)) !== -1).length;
-      if (at < 0) bad.push(name + ': typing "' + T.toLowerCase() + '" under Maths · GCSE does not find the ' + T + ' card');
-      else if (at >= 10) bad.push(name + ': typing "' + T.toLowerCase() + '" puts the ' + T + ' card at hit ' + (at + 1) + ' of ' + hits.length + ' — not beside the questions, 10 down at most');
-      if (!qs) bad.push(name + ': typing "' + T.toLowerCase() + '" under Maths · GCSE finds no question tagged ' + T + ' — the card is not beside anything');
-      /* AND FIND STAYS A PLACE TO DO QUESTIONS: a browse, or words in every worked example, opens on a
-         question, not on a page of reading (13 Oct — the note over `sortKey_`). */
-      st.q = '';
       const browse = V.stuffFiltered();
-      if (browse.length && browse[0].kind === 'content') bad.push(name + ': Maths · GCSE with no words opens on a content card, "' + browse[0].name + '", not a question');
-      st.q = 'work out';
-      const worked = V.stuffFiltered();
-      if (worked.length && worked[0].kind === 'content') bad.push(name + ': typing "work out" under Maths · GCSE leads with a content card, "' + worked[0].name + '" — words in its worked lines, not its title or topics');
-      st.q = ''; st.filters.length = 0;
+      if (browse.length && browse[0].kind === 'content') bad.push(name + ': Maths · GCSE opens on a content card, "' + browse[0].name + '", not a question');
+      st.filters.length = 0;
     });
   });
   return bad;
@@ -953,8 +893,7 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
     if (!t || !t.STUFF) { bad.push(what + ': the app did not load, so it was NOT checked'); continue; }
     if (u && !(t.whoami() && t.whoami().role === u.role)) { bad.push(what + ' was not signed in at boot, so it was NOT checked'); continue; }
     t.go('res');
-    t.RES().q = '';
-    t.RES().filters = [{ field: 'kindLabel', value: 'Library' }];
+        t.RES().filters = [{ field: 'kindLabel', value: 'Library' }];
     w.paintFinder_('res');
     await wait(30);
     const shelf = w.facetList().find(f => f.field === 'shelf');
@@ -962,12 +901,7 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
     if (shelves.indexOf('Books') >= 0) bad.push(what + ' is offered the Books shelf');
     if (shelves.indexOf('Boxing') < 0) bad.push(what + ' was not offered the Boxing shelf — the walk did not reach the resources, so the absence proves nothing');
     if (w.stuffItemsAll_().some(x => x.kind === 'bible')) bad.push(what + ' has the Bible on the list of everything the app holds');
-    for (const q of ['bible', 'genesis', 'king james', 'kjv', 'psalms']) {
-      t.RES().filters = []; t.RES().q = q;
-      if (R.stuffFiltered().some(x => x.kind === 'bible')) bad.push(what + ' finds the Bible by searching "' + q + '"');
-    }
-    t.RES().q = '';
-    t.RES().filters = [];
+        t.RES().filters = [];
     w.paintFinder_('res');
     if (w.document.querySelector('.card.bible, [data-do^="bible-"]')) bad.push(what + ' has a Bible card or button drawn');
     /* AND THE BIBLE'S ANSWERS, PRESSED ANYWAY — forged, because nothing draws them for this visitor. */
@@ -1009,7 +943,7 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
   if (!R.stuffItems().some(i => i.kind === 'bible')) bad.push('Find 2 does not carry the verses for an admin');
   t.go('res');
   const S = t.RES();
-  S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }, { field: 'wWork', value: 'Bible' }];
+  S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }, { field: 'wWork', value: 'Bible' }];
   /* WHAT IT IS FIRST (594): the testament and its section, then the language and whose translation (546); the New Testament's one Source is not asked. */
   const route = [['wCollection', 'New Testament'], ['wSection', 'Gospels'], ['wLanguage', 'English'], ['wText', 'King James Version (1611)'], ['wBook', 'John'], ['wChapter', '3'], ['wUnit', '16']];
   for (const [field, value] of route) {
@@ -1082,8 +1016,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Bible apart �
       const V = fid === 'res' ? R : w;
       const S = fid === 'res' ? t.RES() : t.STUFF();
       t.go(fid);
-      S.q = '';
-      S.filters = [];
+            S.filters = [];
       const out = [];
       steps.forEach(s => {
         if (s === 'skip') {

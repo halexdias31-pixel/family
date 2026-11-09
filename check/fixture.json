@@ -198,6 +198,7 @@
     "step-free"
    ],
    "maxCapacity": 8,
+   "takesAllSeats": false,
    "minCapacity": 1,
    "minHours": 1,
    "maxHours": 4,

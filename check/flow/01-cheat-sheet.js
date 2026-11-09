@@ -774,7 +774,7 @@ check('a settings save still works against a server older than the site', async 
   const plain = cardWith('borough') || cardWith('headline'), packed = cardWith('phone_no') || cardWith('dob_d');
   if (!plain || !packed) return ['the settings column has no card of plain fields or no Contact card to press'];
   const bad = [];
-  const press = form => t.ACTIONS['me-save'](form.querySelector('[data-do="me-save"]'));
+  const press = form => t.ACTIONS['me-save'](form);
   sent.length = 0;
   press(plain);
   await wait(300);
@@ -861,7 +861,7 @@ check('a several-of-a-list field opens into ticks under it, marks its card, and 
     det.open = true;
   }
   sent.length = 0;
-  try { t.ACTIONS['me-save'](form.querySelector('[data-do="me-save"]')); } catch (e) { bad.push('Save threw: ' + e.message); }
+  try { t.ACTIONS['me-save'](form); } catch (e) { bad.push('Save threw: ' + e.message); }
   await wait(400);
   const post = sent.find(b => b.action === 'updateProfile');
   if (!post) bad.push('Save posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no updateProfile');

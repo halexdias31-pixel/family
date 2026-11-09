@@ -64,7 +64,7 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
     while (queue.length && nodes.length < ${MAX_NODES}) {
       const filters = queue.shift(), t1 = Date.now();
       const r = inFinder_(FINDERS.stuff, () => {
-        STUFF.filters = filters; STUFF.q = ''; STUFF.admit = null;
+        STUFF.filters = filters; STUFF.admit = null;
         const items = stuffFiltered();
         if (!items.length) return null;
         const f = nextFacet(items) || overFacet_(items);
@@ -142,13 +142,13 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
           .forEach(a => queue.push(filters.concat([{ field: r.field, value: a[0] }])));
     }
     /* TAG ASKED (920): every facet a front-page card carries as a tag, with its label, to compare with the questions ever asked. */
-    const carried = inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.q = ''; STUFF.admit = null; const all = stuffFiltered();
+    const carried = inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.admit = null; const all = stuffFiltered();
       return facetList().map(G => { const has = all.filter(x => { try { return asList_(G.tagOf ? G.tagOf(x, '') : facetOwn_(G, x)).some(v => String(v == null ? '' : v).trim()); } catch (e) { return false; } });
         /* ASKED ON ITS OWN CARDS: the walk stops at grids and its cap; a facet the rules would ask once its cards are reached (a long one as the paged list) is askable. */
         let why; try { why = facetWhy_(has, G, true); } catch (e) { why = 'unread: ' + e.message; }
         return { field: G.field, label: G.label, cards: has.length, why }; })
         .filter(c => c.cards > 0); });
-    inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.q = ''; STUFF.admit = null; });
+    inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.admit = null; });
     return JSON.stringify({ nodes, carried });
   })()`));
   A.close();

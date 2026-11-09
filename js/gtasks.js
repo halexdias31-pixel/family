@@ -85,7 +85,7 @@ async function gtSync_() {
       if (t) { if (t.status === 'completed') done++; await gtCall_('/lists/' + encodeURIComponent(list.id) + '/tasks/' + encodeURIComponent(t.id), { method: 'PATCH', body }); kept++; }
       else { await gtCall_('/lists/' + encodeURIComponent(list.id) + '/tasks', { method: 'POST', body }); made++; }
     }
-    const at = new Date().toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+    const at = day_(new Date()) + ' ' + time_(new Date());
     GT.last = 'Synced ' + at + ' · ' + (made + kept) + ' tasks' + (made ? ', ' + made + ' new' : '') + (done ? ', ' + done + ' ticked off in Google' : '');
     try { localStorage.setItem('gtasksLast', GT.last); } catch (e) {}
   } catch (e) { GT.err = (e && e.message) || 'Sync failed.'; }

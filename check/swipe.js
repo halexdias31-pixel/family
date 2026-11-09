@@ -640,9 +640,9 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
     if (want('hold')) {
       const a = await page.evaluate(async () => {
         await window.__sw.place('stuff', 0);
-        STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_(), true);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_(), true);
         await window.__sw.still('stuff');
-        const q = document.getElementById('stuff-q');
+        const q = document.getElementById('stuff-controls');
         const pg = document.querySelector('#s-stuff > .page.on');
         const row = pg && [...pg.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')].find(r => {
           const b = r.getBoundingClientRect();
@@ -654,7 +654,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
         return { q: q.getBoundingClientRect().top, h: pg.offsetHeight, n: AXES.y.count('stuff'),
                  x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) };
       });
-      if (!a) fail('REACH', `${at} held card`, 'the funnel has no search box or no answer a finger can reach — nothing was asked');
+      if (!a) fail('REACH', `${at} held card`, 'the funnel has no controls or no answer a finger can reach — nothing was asked');
       else {
         const T0 = Date.now();
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', timestamp: T0 / 1000, touchPoints: [{ x: a.x, y: a.y, id: 1, radiusX: 8, radiusY: 8, force: 1 }] });
@@ -663,13 +663,13 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
         const b = await page.evaluate(async () => {
           await window.__sw.still('stuff');
           const pg = document.querySelector('#s-stuff > .page.on');
-          return { q: document.getElementById('stuff-q').getBoundingClientRect().top, h: pg.offsetHeight,
+          return { q: document.getElementById('stuff-controls').getBoundingClientRect().top, h: pg.offsetHeight,
                    picked: STUFF.filters.length, n: AXES.y.count('stuff') };
         });
         reached++;
-        note(`${at} held card: answer picked ${b.picked}; card ${a.h} → ${b.h}px; search box ${a.q.toFixed(1)} → ${b.q.toFixed(1)}`);
+        note(`${at} held card: answer picked ${b.picked}; card ${a.h} → ${b.h}px; controls ${a.q.toFixed(1)} → ${b.q.toFixed(1)}`);
         if (!b.picked || b.h === a.h) fail('REACH', `${at} held card`, `the tap ${b.picked ? 'did not change the card\'s height' : 'picked nothing'} — nothing was asked`);
-        else if (Math.abs(b.q - a.q) > 0.5) fail('HELD WHILE USED', `${at} stuff/0`, `pressing an answer moved the search box ${(b.q - a.q).toFixed(1)}px on the screen — the card was put back in the middle under the finger`);
+        else if (Math.abs(b.q - a.q) > 0.5) fail('HELD WHILE USED', `${at} stuff/0`, `pressing an answer moved Find's controls ${(b.q - a.q).toFixed(1)}px on the screen — the card was put back in the middle under the finger`);
         /* AND LET GO: a page away and back, by the app's own turn, and the funnel is centred again. */
         const c = await page.evaluate(async () => {
           if (AXES.y.count('stuff') < 2) return null;
@@ -694,7 +694,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
       const PAPER = 'RS1786302107764-481';
       const pages = await page.evaluate(async id => {
         await window.__sw.place('stuff', 0);
-        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: id }]; paintStuff(true);
+        STUFF.filters = [{ field: 'paperId', value: id }]; paintStuff(true);
         await window.__sw.still('stuff');
         const host = document.getElementById('s-stuff'), out = [], n = AXES.y.count('stuff');
         for (let p = 0; p < n && out.length < 5; p++) {
@@ -783,7 +783,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
         try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {}
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(it) }]; paintStuff(true);
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }]; paintStuff(true);
         await window.__sw.still('stuff');
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         await window.__sw.still('stuff');
@@ -1297,7 +1297,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
             .sort((a, b) => (opts(b.row) - opts(a.row)) || (plain(b.row.html + b.row.choices) - plain(a.row.html + a.row.choices))).slice(0, 6);
           let best = null;
           for (const want of ranked) {
-            STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
+            STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
             paintStuff(true);
             await new Promise(r => setTimeout(r, 400));
             const items = stuffFiltered();
@@ -1397,14 +1397,14 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
           }
           await page.evaluate(() => window.__sw.place('stuff'));
         }
-        await page.evaluate(() => { STUFF.filters = []; STUFF.q = ''; paintStuff(true); });
+        await page.evaluate(() => { STUFF.filters = []; paintStuff(true); });
       }
 
       /* D. FIND EMPTIES PAGES WITHOUT ASKING PANES THAT NEVER SCROLLED TO SCROLL. § */
       const fill = await page.evaluate(async () => {
         if (typeof stuffItems !== 'function') return null;
         await window.__sw.place('stuff');
-        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
+        STUFF.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
         paintStuff(true);
         await new Promise(r => setTimeout(r, 400));
         const n = AXES.y.count('stuff');
@@ -1425,7 +1425,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
           for (const p of [first + STUFF_WIN, first + STUFF_WIN + 6, first + STUFF_WIN + 12]) { goPage('stuff', p, true); await window.__sw.still('stuff'); }
         } finally { Object.defineProperty(Element.prototype, 'scrollTop', d); window.stuffBlank_ = blank; }
         const out = { n, bad, sets, emptied, p: PAGE.stuff };
-        STUFF.filters = []; STUFF.q = ''; paintStuff(true);
+        STUFF.filters = []; paintStuff(true);
         return out;
       });
       reached++;
@@ -1621,7 +1621,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
         for (let i = 0; i < 100 && !(typeof LIBRARY_ROWS !== 'undefined' && Array.isArray(LIBRARY_ROWS) && LIBRARY_ROWS.length); i++) await wait(100);
         if (typeof stuffFirstResult_ !== 'function') return null;
         await window.__sw.place('stuff');
-        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: 'W-CBM-subtraction' }];
+        STUFF.filters = [{ field: 'paperId', value: 'W-CBM-subtraction' }];
         paintStuff();
         goPage('stuff', stuffFirstResult_(), true);
         await window.__sw.still('stuff');
@@ -1689,7 +1689,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
         const long = phase !== 'from the first result';
         if (long) {
           const ok = await page.evaluate(async () => {
-            STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
+            STUFF.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
             paintStuff();
             const first = stuffFirstResult_(), n = AXES.y.count('stuff');
             if (n < first + STUFF_WIN + 12) return { n, need: first + STUFF_WIN + 12 };

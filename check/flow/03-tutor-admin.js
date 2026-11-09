@@ -254,9 +254,7 @@ check('Availability on Tutor settings (487): the week a tutor teaches is the Ava
   const before = cell();
   box.checked = true; box.dispatchEvent(new a.w.Event('change', { bubbles: true }));
   box.dispatchEvent(new a.w.Event('input', { bubbles: true }));
-  const save = sec.closest('.card') && sec.closest('.card').querySelector('[data-do="card-save"]') || a.d.querySelector('#s-staff [data-do="card-save"]');
-  if (!save) return bad.concat(['the Available card has no Save']);
-  a.A('card-save', save);
+  /* SAVED AS TYPED (owner, 8 Nov): the tick alone sends it, ~800ms later. */
   for (let k = 0; k < 30 && !a.sent.some(x => x.action === 'updateProfile' && x.fields && x.fields[code] === 'TRUE'); k++) await wait(100);
   const post = a.sent.filter(x => x.action === 'updateProfile').pop();
   if (!post || !post.fields || post.fields[code] !== 'TRUE') bad.push('Save posted ' + JSON.stringify(post && post.fields && post.fields[code]) + ' for ' + code + ', wanted TRUE');
@@ -523,10 +521,10 @@ check('every role\'s own card is edited, a card per section, with picture, figur
     if (c.err) { bad.push(who + ': ' + c.err); continue; }
     for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
     if (!c.form()) { bad.push(who + '\'s settings column draws no editing cards'); continue; }
-    /* 468: A CARD PER SECTION, already open, each its own Save. */
+    /* 468: A CARD PER SECTION, already open, each saving as typed (owner, 8 Nov) — no Save tile. */
     const secs = [...c.form().querySelectorAll('.ce-sec')].map(x => x.dataset.sec);
     if (JSON.stringify(secs) !== JSON.stringify(order) || JSON.stringify(c.secs()) !== JSON.stringify(order)) bad.push(who + '\'s own cards are ' + JSON.stringify(c.secs()) + ' holding ' + JSON.stringify(secs) + ', wanted ' + JSON.stringify(order));
-    if (c.cards().some(k => !k.querySelector('[data-do="card-save"]'))) bad.push(who + ': a section card has no Save of its own');
+    if (c.cards().some(k => k.querySelector('[data-do="card-save"]'))) bad.push(who + ': a section card still has a Save tile — it saves as typed');
     const fig = c.form().querySelector('.ce-sec[data-sec="figure"]');
     if (!fig || fig.querySelectorAll('.av-card .av-figure').length !== 1 || !fig.querySelector('[data-do="av-colour"]') || !fig.querySelector('[data-do="av-pick"]'))
       bad.push(who + '\'s figure section is not the wardrobe — one figure, the colours and the slots');

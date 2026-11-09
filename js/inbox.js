@@ -8,8 +8,7 @@ const INBOX_SHOWN = 4;
 function inboxWhen_(ms) {
   if (!ms) return '';
   const d = new Date(ms), now = new Date();
-  if (d.toDateString() === now.toDateString()) return d.toTimeString().slice(0, 5);
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + (d.getFullYear() === now.getFullYear() ? '' : ' ' + d.getFullYear());
+  return d.toDateString() === now.toDateString() ? time_(d) : date_(d);
 }
 function inboxRowHtml_(r) {
   return `<div class="ib-row${r.unread ? ' is-unread' : ''}">

@@ -68,7 +68,6 @@ async function turnTo(page, r) {
     const x = stuffItemsAll_().find(it => it.kind === 'content' && it.key === key);
     if (!x) return 'no content card ' + key;
     const miss = inFinder_(finderOf_('res'), () => {
-      STUFF.q = '';
       STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
       paintStuff();
       const at = stuffPages_().findIndex(pg => pg.part === part);

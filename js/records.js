@@ -117,7 +117,7 @@ function bizPages_() {
   /* PROFIT FIRST, as the column opens; then applications, staff and the records. The site's own cards are the Site column's (491). */
   /* STAFF (405) after applications: who has agreed to the tutor terms, and any tutor's statement — `staffCard_` in staff.js. */
   const staff = typeof staffCard_ === 'function' ? [staffCard_()].filter(Boolean) : [];
-  return profitCards_().concat([familyShareCard_()], typeof bizCheckCard_ === 'function' ? [bizCheckCard_()].filter(Boolean) : [], appsCard_(), errsCard_(), staff, [].concat(...BIZ_PAGES.map(bizCard_)));
+  return profitCards_().concat([bizSettingsCard_()], typeof bizCheckCard_ === 'function' ? [bizCheckCard_()].filter(Boolean) : [], appsCard_(), errsCard_(), staff, [].concat(...BIZ_PAGES.map(bizCard_)));
 }
 /* THE SITE COLUMN'S CARDS (491): Setup (400), posts and reports to moderate, the library import, the weekly email. */
 function siteBizPages_() {
@@ -159,7 +159,7 @@ function appsCard_() {
 }
 function appsInner_(wait) {
   const list = (APPS.list || []).filter(a => a.status === 'new' || a.status === 'interview');
-  const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
+  const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const line = (k, v) => v ? `<p class="app-line"><b>${esc(k)}</b> ${esc(v)}</p>` : '';
   const item = a => `<div class="biz-item app-item" data-id="${esc(a.id)}">
       <p class="biz-cap"><b>${esc(a.name || a.handle)}</b> <span class="qtags biz-when"><span class="qtag">${esc(APP_STATUS_SAID[a.status] || a.status)} · ${esc(when(a.at))}</span></span></p>
@@ -220,7 +220,7 @@ function errsCard_() {
 }
 function errsInner_(wait) {
   const list = ERRS.list || [];
-  const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
+  const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const item = r => `<div class="biz-item err-item" data-id="${esc(r.id)}">
       <p class="biz-cap"><b>${esc(r.message)}</b></p>
       <p class="faint">${esc([r.where, r.screen ? 'on ' + r.screen : '', r.version].filter(Boolean).join(' · '))}</p>
@@ -271,7 +271,7 @@ function reportsCard_() {
 const REP_FINDS_ = ['question', 'content', 'practical', 'project', 'talmud', 'quran', 'bible'];
 function reportsInner_(wait) {
   const list = REPS.list || [];
-  const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
+  const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const st = (r, decision, icon, label, note) => tile_({ icon, label, note, act: 'rep-status', data: { id: r.id, decision } });
   const item = r => `<div class="biz-item rep-item" data-id="${esc(r.id)}">
       <p class="biz-cap"><b>${esc(r.label || r.itemId)}</b> <span class="qtags biz-when"><span class="qtag">${esc(r.kind)}</span></span></p>
@@ -365,7 +365,7 @@ function libImpSaid_(r) {
 /* THE HOURLY RUN (443): when it last found files, and what it imported. */
 function libImpAuto_(a) {
   if (!a || !a.at) return '<p class="faint libimp-auto">Imports itself every hour; it has not found a file yet.</p>';
-  const when = new Date(a.at), said = isNaN(when) ? String(a.at) : when.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+  const when = new Date(a.at), said = isNaN(when) ? String(a.at) : date_(when) + ' ' + time_(when);
   const n = Number(a.imported) || 0, f = Number(a.failed) || 0;
   return `<p class="faint libimp-auto">Last automatic import ${esc(said)}: ${n} ${n === 1 ? 'file' : 'files'} imported${f ? ', ' + f + ' not' : ''}.</p>${libImpSaid_(a)}`;
 }
@@ -443,9 +443,9 @@ const einkList_ = () => (einkMode_() === 'icon' ? EINK.icons : einkMode_() === '
 function einkToday_(at) {
   const d = at || new Date();
   return { date: true, wd: d.getDay(), d: d.getDate(), mo: d.getMonth(), y: d.getFullYear(),
-           text: d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) };
+           text: day_(d) + ' ' + date_(d) };
 }
-const EINK_WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const EINK_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const EINK_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 /* THE SCREEN'S OWN PIXELS (482): verse.cpp's layout, line for line, with its three Adafruit GFX fonts (data/eink-fonts.json),
    into a 200x200 1-bit page — what the widget shows is what the screen draws. */
@@ -825,9 +825,8 @@ function profitSum_(x, period) {
   return { N, revenue, tutor, room, fees, other, profit: revenue - tutor - room - fees - other };
 }
 
-const profitMoney_ = x => (x < 0 ? '−' : '') + '£' + Math.abs(x).toLocaleString('en-GB', { maximumFractionDigits: Math.abs(x) >= 1000 ? 0 : 2, minimumFractionDigits: Math.abs(x) >= 1000 ? 0 : 2 });
-const profitShort_ = x => { const a = Math.abs(x), s = x < 0 ? '−' : '';
-  return s + '£' + (a >= 1e4 ? Math.round(a / 1000) + 'k' : a >= 1000 ? (a / 1000).toFixed(1) + 'k' : Math.round(a)); };
+const profitMoney_ = money_;
+const profitShort_ = money_;
 
 /* THE BARS: revenue up, each cost down from where the last left off, profit what is left. */
 function profitBars_(r) {
@@ -867,7 +866,7 @@ function profitLine_(x, period) {
   const X = t => L + (t - p.min) / ((p.max - p.min) || 1) * (W - L - R), Y = y => top + (hi - y) / span * (base - top);
   const d = pts.map((q, i) => (i ? 'L' : 'M') + X(q[0]).toFixed(1) + ' ' + Y(q[1]).toFixed(1)).join('');
   const cx = X(Math.min(p.max, Math.max(p.min, x[p.k]))), cy = Y(cur);
-  const fmt = t => p.cash ? '£' + t : p.pct ? t + '%' : String(t);
+  const fmt = t => p.cash ? money_(t) : p.pct ? t + '%' : String(t);
   return `<svg class="pf-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc('Profit against ' + p.label + '; now ' + profitMoney_(cur) + ' at ' + fmt(x[p.k]))}">
     <line class="pf-zero" x1="${L}" x2="${W - R}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}"/>
     <text class="pf-axis" x="${L - 4}" y="${(top + 4).toFixed(1)}" text-anchor="end">${esc(profitShort_(hi))}</text>
@@ -1093,25 +1092,40 @@ on('digest-words-save', el => {
     });
 });
 
-/* ---------- THE @FAMILY SHARE (8 Nov): ONE VALUE FOR EVERYONE, config B — `seatShare_` prices every extra seat with it; admin only ---------- */
-const familyShareNow_ = () => { try { const v = num(((DATA.constants || {}).vars || {}).B); return isNaN(v) ? 0 : v; } catch (e) { return 0; } };
-function familyShareCard_() {
+/* ---------- BUSINESS SETTINGS (owner, 9 Nov): share B, fees, discounts and rates in one list, set here and only here; bookings only read them. Venues and rooms below it. ---------- */
+const BIZ_SETTINGS = [
+  ['B', "@family.'s share of each extra seat (0.5 is half)"], ['c', "the tutor's share of each extra seat"],
+  ['M', 'fallback tutor pay per hour'], ['w', 'markup on tutor pay (1 is none)'], ['s', 'extra per hour for each extra subject'],
+  ['b', 'bulk discount per session booked'], ['a', 'advance-booking discount per week ahead'], ['h', 'hours per session'],
+  ['open_rate', 'pay per hour with No preference'], ['open_tutor_rate', 'a waitlist seat’s tutor rate'],
+  ['waitlist_seats', 'seats on a waitlist session'], ['waitlist_extra_seat', 'added per hour for each seat after the first'],
+  ['max_students_per_job', 'seat cap when neither tutor nor venue sets one'], ['max_open_requests', 'live requests one family may hold'],
+  ['travel_on_client', '1 adds venue travel to the client’s price'],
+  ['print_rate_per_page', 'a printed page'], ['print_minimum', 'least a print job costs'], ['postage_flat', 'postage per order'],
+];
+const bizSettingNow_ = k => { try { const v = ((DATA.constants || {}).vars || {})[k]; return v == null ? '' : String(v); } catch (e) { return ''; } };
+function bizSettingsCard_() {
   const admin = typeof isAdmin === 'function' && isAdmin();
-  return `<div class="card biz family-share set-shape${admin ? '' : ' is-locked'}"><h3 class="set-title">@family.'s share</h3>
-    <p class="sub">Of each extra seat, as a share of the tutor's rate (0.5 is half). One value for every tutor.</p>
-    ${fieldHtml('family_share', String(familyShareNow_()), { label: 'share, 0–2', draft: false,
-      extra: `type="number" min="0" max="2" step="0.05" inputmode="decimal"${admin ? '' : ' disabled'}` })}
-    <div class="tile-row set-save">${tile_({ icon: 'save', label: 'Save', act: 'family-share-save', off: !admin })}</div>
+  const line = ([k, say]) => `<div class="biz-item biz-setting" data-key="${esc(k)}">${fieldHtml('biz_' + k, bizSettingNow_(k), { label: say, draft: false,
+      extra: `type="number" min="0" step="any" inputmode="decimal"${admin ? '' : ' disabled'}` })}
+    <div class="tile-row set-save">${tile_({ icon: 'save', label: 'Save', act: 'biz-setting-save', off: !admin, data: { key: k } })}</div></div>`;
+  const places = ((DATA && DATA.venues) || []).map(v => `<li>${esc(v.title || '')} · ${esc(money_(Number(v.bestRate) || 0))}/h · ${esc(String(v.maxCapacity || ''))} seats${v.takesAllSeats ? ' · takes all the tutor’s seats' : ''}${(v.rooms || []).length ? ' · ' + v.rooms.length + ' rooms' : ''}</li>`).join('');
+  return `<div class="card biz biz-settings set-shape${admin ? '' : ' is-locked'}"><h3 class="set-title">Business settings</h3>
+    <p class="sub">Every price rule in one place. Bookings read these; nothing else sets them.</p>
+    ${BIZ_SETTINGS.map(line).join('')}
+    <h4>Venues and rooms</h4><p class="faint">Home and Online are venues like any other. Edit them on the Venues and Rooms tabs of the sheet.</p>
+    <ul class="biz-venues">${places || '<li class="faint">No venues yet.</li>'}</ul>
     <p class="faint fs-said" aria-live="polite"></p></div>`;
 }
-on('family-share-save', el => {
-  const card = el.closest('.family-share'), box = card && card.querySelector('input');
-  if (!box || !USER || !(typeof isAdmin === 'function' && isAdmin())) return;
-  send_({ action: 'familyShareSave', personId: USER.personId || '', share: String(box.value).trim() }, { button: el, where: card.querySelector('.fs-said') || undefined, busy: 'Saving…' })
+on('biz-setting-save', el => {
+  const item = el.closest('.biz-setting'), card = el.closest('.biz-settings'), box = item && item.querySelector('input');
+  const key = el.getAttribute('data-key') || '';
+  if (!box || !key || !USER || !(typeof isAdmin === 'function' && isAdmin())) return;
+  send_({ action: 'businessSettingSave', personId: USER.personId || '', key, value: String(box.value).trim() }, { button: el, where: (card && card.querySelector('.fs-said')) || undefined, busy: 'Saving…' })
     .then(d => {
       if (!d || !d.success) return;
-      try { ((DATA.constants = DATA.constants || {}).vars = DATA.constants.vars || {}).B = d.share; } catch (x) { /* the next payload carries it */ }
-      toast("@family.'s share is saved");
+      try { ((DATA.constants = DATA.constants || {}).vars = DATA.constants.vars || {})[d.key] = d.value; } catch (x) { /* the next payload carries it */ }
+      toast('Saved');
     });
 });
 

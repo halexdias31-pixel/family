@@ -419,13 +419,6 @@ function ansRefresh_(keys) {
         if (out) out.textContent = '';
       });
     });
-    document.querySelectorAll('.qp-choices[data-k]').forEach(box => {
-      if (has(box.getAttribute('data-k')) && typeof choiceRedraw_ === 'function') choiceRedraw_(box);
-    });
-    /* AN ORDERING'S ROW, drawn again from the store by `orderBox_` exactly as a tap does. */
-    document.querySelectorAll('.qp-order[data-k]').forEach(box => {
-      if (has(box.getAttribute('data-k')) && typeof orderRedraw_ === 'function') orderRedraw_(box, '');
-    });
     document.querySelectorAll('.qpad[data-k]').forEach(pad => {
       const k = pad.getAttribute('data-k');
       if (has(k) && typeof padRepaint_ === 'function') padRepaint_(pad, padRead_(k));
@@ -677,7 +670,7 @@ document.addEventListener('focusout', e => {
 });
 /* TO A BACKEND FROM BEFORE `submitAnswer` ONLY, now: § */
 document.addEventListener('click', e => {
-  const t = e.target && e.target.closest && e.target.closest('[data-do="qp-check"], [data-do="qp-choose"], [data-do="qp-order-send"], [data-do="qp-ai"], [data-do="qp-send"]');
+  const t = e.target && e.target.closest && e.target.closest('[data-do="qp-check"], [data-do="qp-ai"], [data-do="qp-send"]');
   if (t) answersPush_(true);
 });
 document.addEventListener('visibilitychange', () => {

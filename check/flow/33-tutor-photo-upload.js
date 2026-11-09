@@ -41,7 +41,7 @@ check('Photos: an extra photo is chosen from the phone, sent once (photoFile) as
   if (!slot.querySelector('.ph-thumb img')) bad.push('the slot shows no preview of the uploaded photo');
   const form = shelf.closest('.me-form');
   sent.length = 0;
-  try { t.ACTIONS['me-save'](form.querySelector('[data-do="me-save"]')); } catch (e) { bad.push('Save threw: ' + e.message); }
+  try { t.ACTIONS['me-save'](form); } catch (e) { bad.push('Save threw: ' + e.message); }
   await wait(400);
   const post = sent.find(b => b.action === 'updateProfile');
   const f = (post && post.fields) || {};

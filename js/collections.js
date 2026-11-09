@@ -130,7 +130,7 @@ function lamControl_(c) {
   if (!c || c.kind !== 'print') return '';
   if (typeof laminateOffered_ === 'function' && !laminateOffered_()) return '';
   const p = typeof laminatePrice === 'function' ? laminatePrice(c.pages) : null;
-  const cost = p === null ? '' : ' ' + money(p);
+  const cost = p === null ? '' : ' ' + money_(p);
   const at = ` data-key="${esc(c.key)}" data-kind="${esc(c.kind)}"`;
   /* ---------- ✓ LAMINATED, NOT "laminated · plain" § */
   return c.laminate
@@ -168,7 +168,7 @@ function cartRow_(c, i, under) {
        `cart-add` writes `money` for a paper and `cost` for anything bought with credits. */
     /* `tbc`, NOT `free`, FOR A PAPER NOBODY HAS COUNTED — the `cost: 0` fault written down four times in this repository, on the one column that is a price. § */
     total: c.kind === 'print' && cartUnpriced_(c) ? 'tbc'
-         : cartMoney_(c) ? money(cartMoney_(c)) : (c.cost ? c.cost + ' cr' : 'free'),
+         : cartMoney_(c) ? money_(cartMoney_(c)) : (c.cost ? c.cost + ' cr' : 'free'),
     /* THE ✕ IS THE ROW'S OWN CONTROL, drawn where a receipt's line already ends. */
     end: true,
   });
@@ -221,7 +221,7 @@ function cartCard_() {
   const foot = `
     <button class="btn rc-do" ${short ? 'disabled' : ''} data-do="cart-send">${
       short ? (due - credits) + ' more credits needed'
-            : 'Send order' + (cash ? ' · ' + money(cash) + (tbc ? ' + tbc' : '') : '')}</button>
+            : 'Send order' + (cash ? ' · ' + money_(cash) + (tbc ? ' + tbc' : '') : '')}</button>
     <p class="rc-terms">${paper
       ? 'Printing is at cost — paper only — posted or kept for you to collect. Anything marked tbc '
         + 'is priced before you are charged for it.'
@@ -237,7 +237,7 @@ function cartCard_() {
        a Pay button under it and money genuinely about to move. */
     /* "SO FAR" WHEN ANY LINE IS STILL TO BE PRICED, because the figure beside it is then a floor rather than the bill. § */
     totalLabel: paper ? (tbc ? 'So far' : 'Total') : 'Credits',
-    total: cash ? money(cash) : tbc ? 'tbc' : String(due),
+    total: cash ? money_(cash) : tbc ? 'tbc' : String(due),
     foot: foot,
   });
 }

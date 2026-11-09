@@ -232,7 +232,7 @@ function kpBoundSays_(w, el, face, name) {
   if (el.readOnly || el.hasAttribute('readonly')) out.push(name + ' is readonly — the readonly lock is the answer box\'s, and a box elsewhere is a field a screen reader can edit');
   return out;
 }
-check('a message, the Find box, Find 2\'s box and a settings box type on the @family keypad: tapped, the pad comes up on the right face, its keys type, a laptop and a paste still type, and the phone\'s keyboard has no way in (528)', async () => {
+check('a message and a settings box type on the @family keypad: tapped, the pad comes up on the right face, its keys type, a laptop and a paste still type, and the phone\'s keyboard has no way in (528)', async () => {
   const { w, sent } = boot({ reply: b => (b.action === 'myProfile' ? { error: 'That action is not recognised.' } : { success: true, changed: 1 }) });
   await wait(300);
   const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
@@ -305,29 +305,7 @@ check('a message, the Find box, Find 2\'s box and a settings box type on the @fa
   }
   host.remove();
 
-  /* 2. THE FIND BOX AND FIND 2's: one line, letters, and the words reach the finder they belong to */
-  for (const id of ['stuff', 'res']) {
-    try { t.go(id, false, true); w.paint(id); } catch (e) { bad.push('drawing ' + id + ' threw: ' + e.message); continue; }
-    await wait(50);
-    const q = d.getElementById(id + '-q');
-    bad.push(...kpBoundSays_(w, q, 'abc', 'the ' + id + '-q box'));
-    if (!q) continue;
-    kpTap_(w, q);
-    if (!up()) { bad.push('a tap on ' + id + '-q did not bring the pad up'); continue; }
-    if (pad().querySelector('.kp-key[data-v="!nl"]')) bad.push(id + '-q is one line and its pad has a return key');
-    kpTypeOn_(w, 'frac', bad);
-    if (q.value !== 'frac') bad.push('the pad typed ' + JSON.stringify(q.value) + ' into ' + id + '-q');
-    await wait(260);
-    const st = (w.finderStates_ ? w.finderStates_() : [])[id === 'stuff' ? 0 : 1];
-    if (!st || st.q !== 'frac') bad.push('the words typed on the pad did not reach ' + id + '\'s finder (q=' + JSON.stringify(st && st.q) + ')');
-    A['kp-key'](pad().querySelector('.kp-key[data-v="!back"]'));
-    if (q.value !== 'fra') bad.push('⌫ on the pad left ' + JSON.stringify(q.value) + ' in ' + id + '-q');
-    A['kp-key'](pad().querySelector('.kp-key.kp-done'));
-    if (up()) bad.push('✓ on ' + id + '-q left the pad up');
-    try { w.finderSet_(w.finderOf_(id), { q: '' }); } catch (e) { /* the next journey starts its own app */ }
-  }
-
-  /* 3. A SETTINGS BOX: its words typed and kept; the phone number opens on the digits */
+  /* 2. A SETTINGS BOX: its words typed and kept; the phone number opens on the digits */
   try { t.go('account', false, true); w.paint('account'); } catch (e) { return bad.concat(['drawing settings threw: ' + e.message]); }
   await wait(300);
   const head = d.querySelector('#s-account input[data-me="borough"]') || d.querySelector('#s-account input[data-me="city"]');

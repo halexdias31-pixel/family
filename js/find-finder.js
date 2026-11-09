@@ -2,11 +2,10 @@
 
 /* ---------- SHOP & RESOURCES § */
 /* FILTERS YOU ADD, not a mode you pick. § */
-/* `sort` was here and is gone with the control that set it — see `stuffFiltered`. What is left is
-   the two things this screen actually holds: what you typed, and what you have narrowed to. */
+/* WHAT YOU HAVE NARROWED TO, and nothing typed: Find is chips only (owner, 8 Nov). */
 /* `whose` IS ONLY EVER SET WHILE NOBODY IS SIGNED IN: § */
 /* A `let` SINCE THE SECOND FINDER (below): § */
-let STUFF = { q: '', filters: [], whose: '' };
+let STUFF = { filters: [], whose: '' };
 
 /* A FINDER'S RECORD: who it is and — while it is not the bound one — its parked state. § */
 const finder_ = o => Object.assign({
@@ -14,7 +13,7 @@ const finder_ = o => Object.assign({
   found: { key: null, from: null, items: null, total: 0 },
   pages: { from: null, pages: [] },
   chips: { key: null, from: null, out: {} },
-  late: 0, typing: null, tried: false,
+  late: 0, tried: false,
   /* THE PAGES ABOVE THE QUESTION (526) and how many: none, but Find's for an admin (What's missing, missing.js). */
   lead: () => [], leadN: () => 0, leadOn: 0,
 }, o);
@@ -29,11 +28,11 @@ const FINDERS = {
 let FINDER = FINDERS.stuff;
 function finderPark_(F) {
   F.st = STUFF; F.items = ITEM_MEMO; F.found = FIND_MEMO; F.pages = STUFF_PAGES;
-  F.late = STUFF_LATE; F.typing = stuffTimer; F.tried = FIND_PLACE_TRIED;
+  F.late = STUFF_LATE; F.tried = FIND_PLACE_TRIED;
 }
 function finderUnpark_(F) {
   STUFF = F.st; ITEM_MEMO = F.items; FIND_MEMO = F.found; STUFF_PAGES = F.pages;
-  STUFF_LATE = F.late; stuffTimer = F.typing; FIND_PLACE_TRIED = F.tried;
+  STUFF_LATE = F.late; FIND_PLACE_TRIED = F.tried;
 }
 function inFinder_(F, fn) {
   if (!F || F === FINDER) return fn();
@@ -42,17 +41,12 @@ function inFinder_(F, fn) {
   try { return fn(); }
   finally { finderPark_(F); finderUnpark_(was); FINDER = was; }
 }
-/* THE ONE WRITER of a finder's question (R1): chips, words and box set together, so a door opened from a card never keeps old words under its new chips. `paint: false` only to count first. */
+/* THE ONE WRITER of a finder's question (R1): its chips, set whole. A `q` from an old caller is ignored (no box since 8 Nov). `paint: false` only to count first. */
 function finderSet_(F, o) {
   F = F || FINDERS.stuff;
   o = o || {};
   return inFinder_(F, () => {
-    clearTimeout(stuffTimer);
-    stuffTimer = null;
     STUFF.filters = Array.isArray(o.filters) ? o.filters.map(c => Object.assign({}, c)) : [];
-    STUFF.q = typeof o.q === 'string' ? o.q : '';
-    const box = $(F.id + '-q');
-    if (box) box.value = STUFF.q;
     /* WITHOUT `keepPage`, paintStuff puts the column back on its question page. */
     if (o.paint !== false) paintStuff();
   });
@@ -198,15 +192,15 @@ const KINDS = {
   /* SETTINGS (owner, 4 Nov): their own answer in Find; each card Coming soon until it is turned back on. */
   setting: { group: 'Settings', label: 'Settings', card: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)) },
   /* MESSAGES (owner, 4 Nov): its own answer; Coming soon while the DM column is off. */
-  msg: { group: 'Messages', label: 'Messages', card: x => (x.soon ? soonCard_(x) : msgDoorCard_(x)) },
+  msg: { group: 'Messages', label: 'Messages', card: x => (x.soon ? soonCard_(x) : findCard(x)) },
   /* THE SWITCHED-OFF AREAS' ONE CARD EACH (OFF_KINDS). */
   offPosts: { group: 'Posts', label: 'Posts', card: x => soonCard_(x) },
   offShop: { group: 'Shop', label: 'Shop', card: x => soonCard_(x) },
   offBooking: { group: 'Booking', label: 'Booking', card: x => soonCard_(x) },
   /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
   health: { group: 'Settings', label: 'Settings', card: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : '') },
-  /* POSTS (owner, 4 Nov): the feed's posts as Find cards, drawn by the feed's own postCard_. */
-  post: { group: 'Posts', label: 'Posts', card: x => `<div class="card post-door">${typeof postCard_ === 'function' ? postCard_(x.row, 0) : `<p>${esc(x.name)}</p>`}</div>` },
+  /* POSTS (owner, 8 Nov, 36a): the standard Find card shape (card-fields.json `post`, around it `postFindCard_`), not the feed's look. */
+  post: { group: 'Posts', label: 'Posts', card: x => findCard(x) },
 
   /* ---------- `link` WAS A KIND HERE, AND THE LINKS ARE OFF FIND § */
 
@@ -290,7 +284,7 @@ function thingCard_(x, credits) {
       : x.cost === undefined
         ? ''   /* "Not priced yet" is its Price tag now (499) */
       : `<span class="qtags"><span class="qtag price ${free ? 'free' : afford ? 'can' : ''}">${
-          free ? 'free' : x.pence ? money(x.cost / 100) : x.cost + ' credits'}</span></span>`;
+          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}</span></span>`;
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
        so it is marked as one and coloured as one, the same way a subject and a venue are. */
     /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. § */
@@ -589,7 +583,9 @@ const FACETS = [
     of: x => { const n = qPagesOf_(x); return n > 1 ? n + ' pages' : ''; },
     tagOf: (x, page) => { const n = qPagesOf_(x); return n > 1 && qPageAt_(x, page) ? n + ' pages' : ''; } },
   { field: 'marks',     label: 'Marks',
-    of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '' },
+    of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '',
+    /* SAID AS THE PAPER PRINTS IT (owner 8 Nov, 28b): "[1]", while the value stays "1 mark". */
+    showOf: v => { const m = /^(\d+) marks?$/.exec(String(v)); return m ? '[' + m[1] + ']' : v; } },
   /* A WORKSHEET'S MAKER (O3): Publisher went, being the exam board twice or this. */
   { field: 'source',    label: 'Source',      of: x => sourceOf_(x) },
   { field: 'needs',     label: 'What you need', of: x => asList_(x.needs) },

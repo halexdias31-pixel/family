@@ -100,61 +100,6 @@ const mpBank_ = () => [
   mpRow_('P-MP-W', 'Whole', 21, '', { html: '<p>On the grid, draw the line y = 2x.</p>', answerType: 'drawing' }),
 ];
 
-/* FINDING 1: a search hit on one part brings the whole question, in order, and lands on the part. */
-check('multipart: a search that finds one part brings its whole question, in order, landing on that part', async () => {
-  const { w } = boot();
-  await wait(300);
-  const bad = [];
-  const need = ['questionItems', 'stuffFiltered', 'stuffPages_', 'stuffPageOf_'].filter(n => typeof w[n] !== 'function');
-  if (need.length) return [need.join(', ') + ' not reachable — renamed? The whole question was NOT checked'];
-  const lib = mpLibrary_(w, mpBank_());
-  const S = w.__t.STUFF();
-  try {
-    S.q = 'reasonword'; S.filters = [];
-    const hits = w.stuffFiltered();
-    if (hits.length !== 1 || hits[0].qPart !== 'ii') bad.push('the search should MATCH one part, Q8(ii) -- it matched ' + hits.map(x => x.name).join(', '));
-    /* ONE CARD PER QUESTION NUMBER (960): the hit brings one page, its whole question, every part in order; only the hit is open. */
-    const strip = w.stuffPages_().map(pg => pg.x.name + ':' + (pg.part || 'card') + '[' + (pg.parts || []).map(x => x.name + (pg.open && pg.open.has(x) ? '*' : '')).join(' ') + ']').join(' ');
-    const want = 'Q8(i):q[Q8(i) Q8(ii)*]';
-    if (strip !== want) bad.push('the strip reads "' + strip + '", wanted the whole question: "' + want + '"');
-    if (hits[0]) {
-      const at = w.stuffPageOf_(hits[0]);
-      const pg = w.stuffPages_()[at];
-      if (!pg || pg.part !== 'q' || (pg.parts || []).indexOf(hits[0]) < 0) bad.push('turning to the hit lands on page ' + at + ' (' + (pg ? pg.x.name + ':' + pg.part : 'nothing') + '), not on Q8\'s card holding Q8(ii)');
-      else if (at !== 0) bad.push('the hit is page ' + at + ' -- its question is the one page there is');
-    }
-  } finally { lib.put(); S.q = ''; S.filters = []; }
-  return bad;
-});
-
-/* FINDING 10: a question's number typed into the box is that question. */
-check('multipart: typing a question reference -- q8, 8ii, 1dii, 1d(ii), Q 8 -- matches that question exactly', async () => {
-  const { w } = boot();
-  await wait(300);
-  const bad = [];
-  if (typeof w.stuffFiltered !== 'function' || typeof w.questionItems !== 'function') return ['stuffFiltered or questionItems not reachable — the references were NOT checked'];
-  const lib = mpLibrary_(w, mpBank_());
-  const S = w.__t.STUFF();
-  const names = (q, filters) => {
-    S.q = q; S.filters = filters || [];
-    return w.stuffFiltered().map(x => x.row.paper.slice(-1) + x.name).join(' ');
-  };
-  try {
-    [['q8', [], 'VQ8 WQ8(i) WQ8(ii)', 'both papers\' Q8 and every part -- and not Q18'],
-     ['Q 8', [], 'VQ8 WQ8(i) WQ8(ii)', '"Q 8" with a space'],
-     ['q8ii', [], 'WQ8(ii)', '"q8ii"'], ['8ii', [], 'WQ8(ii)', '"8ii"'], ['q8(ii)', [], 'WQ8(ii)', '"q8(ii)"'],
-     ['1dii', [], 'WQ1d(ii)', '"1dii"'], ['1d(ii)', [], 'WQ1d(ii)', '"1d(ii)"'], ['q1d', [], 'WQ1d(i) WQ1d(ii)', '"q1d", the whole of (d)'],
-     ['q8', [{ field: 'paperId', value: 'P-MP-W' }], 'WQ8(i) WQ8(ii)', '"q8" inside a chosen paper'],
-    ].forEach(([q, f, want, what]) => {
-      const got = names(q, f);
-      if (got !== want) bad.push(what + ' found "' + got + '", wanted "' + want + '"');
-    });
-    /* A BARE NUMBER IS STILL WORDS: "8" is not read as Q8. */
-    if (names('eighteen', []) !== 'WQ18') bad.push('an ordinary word search broke: "eighteen" found "' + names('eighteen', []) + '"');
-  } finally { lib.put(); S.q = ''; S.filters = []; }
-  return bad;
-});
-
 /* FINDING 8: two kept parts of one question on Saved -- and on Spotlight -- draw its opening once. */
 check('multipart: Saved and Spotlight draw a question\'s opening and its figure once for several kept parts', async () => {
   const { w } = boot();
@@ -274,7 +219,7 @@ check('multipart: a figure the words name and nobody drew is a "not drawn yet" p
       const x = find(n);
       if (x && gap(x)) bad.push(n + ' says "not drawn yet" though its question has a figure, or it is answered on a surface');
     });
-  } finally { lib.put(); S.q = ''; S.filters = []; }
+  } finally { lib.put(); S.filters = []; }
   return bad;
 });
 
@@ -291,7 +236,7 @@ check('multipart: "Answers" is a kind at the start of the funnel, and choosing i
   const S = w.__t.STUFF();
   try {
     /* OFFERED AT THE START, as a kind. */
-    S.q = ''; S.filters = [];
+    S.filters = [];
     /* UNDER PRACTICE (610), a question's own kinds are Which answers. */
     const kind = w.facetList().find(x => x.field === 'kindOwn');
     const said = x => { try { return [].concat(kind.of(x)); } catch (e) { return []; } };
@@ -348,7 +293,7 @@ check('multipart: "Answers" is a kind at the start of the funnel, and choosing i
       const part = draw(pg).querySelector('.qb[data-part="' + x.key + '"] .qb-part');
       if (!part || !part.querySelector('.qans-card') || part.innerHTML.indexOf('qans-card') < part.innerHTML.indexOf('qsheet')) bad.push('with no kind chosen, ' + x.name + '\'s answer is not in its card after its words');
     });
-  } finally { lib.put(); S.q = ''; S.filters = []; if (w.__t.go) { try { w.__t.go('stuff', false, true); } catch (e) {} } }
+  } finally { lib.put(); S.filters = []; if (w.__t.go) { try { w.__t.go('stuff', false, true); } catch (e) {} } }
   return bad;
 });
 
@@ -367,7 +312,7 @@ check('multipart: with Questions chosen, no page of a two-part paper is an answe
     for (const [who, u] of [['a pupil', { name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'] }],
                             ['a tutor', { name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] }]]) {
       w.__t.USER(u);
-      S.q = ''; S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
+      S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
       const pages = w.stuffPages_().filter(pg => pg.x.qNumber === '8' || String(pg.x.qNumber) === '8');
       if (pages.filter(pg => !pg.part).length !== 2) { bad.push(who + ': Q8 drew ' + pages.filter(pg => !pg.part).length + ' question cards, wanted its two parts -- nothing was asked'); continue; }
       pages.forEach(pg => {
@@ -379,7 +324,7 @@ check('multipart: with Questions chosen, no page of a two-part paper is an answe
         SAYS.forEach(t => { if (h.innerHTML.indexOf(t) >= 0) bad.push(at + ' carries the answer "' + t + '" in its markup'); });
       });
     }
-  } finally { w.__t.USER(null); lib.put(); S.q = ''; S.filters = []; }
+  } finally { w.__t.USER(null); lib.put(); S.filters = []; }
   return bad;
 });
 
@@ -411,7 +356,7 @@ check('multipart: What kind offers Questions first and Answers next to it, by th
 });
 
 /* ---------- FILMS ARE NOT IN FIND, FOR ANYBODY — AN ADMIN WITH THE FILMS IN HAND INCLUDED § */
-check('films are not in Find for an admin with films in the payload — not by title, not under What kind — and the videos card still finds one', async () => {
+check('films are not in Find for an admin with films in the payload — not under What kind — and the videos card still finds one', async () => {
   /* THE PROJECTS AND THE PRACTICALS, REAL, so `What kind` has answers of its own to draw — the fixture has no library, and a Learning holding nothing but films § */
   const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
@@ -434,29 +379,9 @@ check('films are not in Find for an admin with films in the payload — not by t
   const strays = w.stuffItemsAll_().filter(isFilm);
   if (strays.length) bad.push('Find holds ' + strays.length + ' item(s) made of the admin’s films: ' + strays.map(x => x.kind + ' "' + x.name + '"').join(', '));
 
-  /* ---- THE SEARCH BOX, TYPED INTO ---- */
   t.go('stuff', false, true);
   await wait(60);
-  t.STUFF().filters.length = 0; t.STUFF().q = '';
-  w.paintStuff();
-  await wait(30);
-  const box = d.getElementById('stuff-q');
-  if (!box) return bad.concat(['the Find screen has no search box, so a search was NOT checked']);
-  const title = FILMS_[0].title;
-  box.value = title;
-  box.dispatchEvent(new w.Event('input', { bubbles: true }));
-  await wait(260);
-  if (t.STUFF().q !== title) return bad.concat(['typing into Find’s box did not reach its search (q is ' + JSON.stringify(t.STUFF().q) + '), so NOT checked']);
-  const hit = w.stuffFiltered().filter(isFilm);
-  if (hit.length) bad.push('typing "' + title + '" into Find finds ' + hit.map(x => x.kind + ' "' + x.name + '"').join(', ') + ' — films are found in Games → Videos');
-  const drawn = [...d.querySelectorAll('#s-stuff .card h3')].filter(h => h.textContent.trim() === title).length;
-  if (drawn || d.querySelector('#s-stuff .card.film')) bad.push('Find draws a card for "' + title + '"');
-  FILMS_.slice(1).map(f => f.title).concat(['XY9', 'unfinished']).forEach(q => {
-    t.STUFF().q = q;
-    const got = w.stuffFiltered().filter(isFilm);
-    if (got.length) bad.push('searching Find for "' + q + '" finds ' + got.map(x => '"' + x.name + '"').join(', '));
-  });
-  box.value = ''; t.STUFF().q = '';
+  t.STUFF().filters.length = 0;
 
   /* ---- WHAT KIND, AS THE QUESTION PAGE DRAWS IT ---- */
   w.paintStuff();
@@ -527,7 +452,7 @@ check('multipart: a "use your graph" part has no "not drawn yet" page and no bla
 });
 
 /* THE REVIEW, FINDING 6: the line above the strip counts what the strip holds -- questions, not the parts
-   that matched -- and names the question when a search found one inside a paper. */
+   that matched. */
 check('multipart: inside a chosen paper the funnel goes on by the one rule — Question, then Part — and Answers keeps the answer pages', async () => {
   const { w } = boot();
   await wait(300);
@@ -535,8 +460,8 @@ check('multipart: inside a chosen paper the funnel goes on by the one rule — Q
   if (typeof w.stuffQuestion !== 'function' || typeof w.stuffFiltered !== 'function' || typeof w.stuffPages_ !== 'function') return ['stuffQuestion, stuffFiltered or stuffPages_ not reachable — the paper was NOT checked'];
   const lib = mpLibrary_(w, mpBank_());
   const S = w.__t.STUFF();
-  const ask = (q, more) => {
-    S.q = q; S.filters = [{ field: 'paperId', value: 'P-MP-W' }].concat(more || []);
+  const ask = more => {
+    S.filters = [{ field: 'paperId', value: 'P-MP-W' }].concat(more || []);
     const h = w.document.createElement('div');
     h.innerHTML = w.stuffQuestion();
     const btns = [...h.querySelectorAll('[data-do="facet-pick"]')];
@@ -545,22 +470,22 @@ check('multipart: inside a chosen paper the funnel goes on by the one rule — Q
   try {
     /* THE WHOLE PAPER: its six questions, each once however many parts — asked, not an end (396). */
     /* WHICH FIRST (660): a kind question is asked however lopsided — "why has it not asked me for question or answer?" */
-    const which = ask('');
+    const which = ask();
     if (which.field !== 'kindOwn' || which.vals.join(' ') !== 'Questions Answers') bad.push('the chosen paper asks ' + (which.field || 'nothing') + ' ' + JSON.stringify(which.vals) + ' first — Which, Questions Answers (660)');
-    const all = ask('', [{ field: 'kindOwn', value: 'Questions' }]);
+    const all = ask([{ field: 'kindOwn', value: 'Questions' }]);
     if (all.field !== 'qNumber' || all.vals.join(' ') !== 'Q1 Q8 Q14 Q18 Q20 Q21') bad.push('the chosen paper asks ' + (all.field || 'nothing') + ' ' + JSON.stringify(all.vals) + ' — Question, Q1 Q8 Q14 Q18 Q20 Q21');
-    /* "q8": Q8's two parts, so the next question splits them. */
-    const q8 = ask('q8');
-    if (q8.field === 'qNumber') bad.push('"q8" in the paper still asks Question — it has one answer');
-    if (w.stuffFiltered().some(x => x.qNumber !== '8' && String(x.qNumber) !== '8')) bad.push('"q8" keeps a part that is not Q8');
+    /* Q8 PRESSED: its two parts, so the next question splits them. */
+    const q8 = ask([{ field: 'kindOwn', value: 'Questions' }, { field: 'qNumber', value: 'Q8' }]);
+    if (q8.field === 'qNumber') bad.push('Q8 pressed in the paper still asks Question — it has one answer');
+    if (w.stuffFiltered().some(x => String(x.qNumber) !== '8')) bad.push('Q8 pressed keeps a part that is not Q8');
     /* ANSWERS: the answer pages, and only those, through the page's own tag. */
-    ask('', [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Answers' }]);
+    ask([{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Answers' }]);
     const pages = w.stuffPages_();
     /* ONE CARD PER QUESTION NUMBER (960): each kept page is its question's card with its answers on. */
     if (!pages.length || pages.some(p => p.part !== 'q' || !p.ans)) bad.push('with Answers chosen the strip holds ' + pages.map(p => (p.part || 'card') + (p.ans ? '+ans' : '')).join(', ') + ' — wanted each question\'s page with its answers on');
-    ask('', [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }]);
+    ask([{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }]);
     if (w.stuffPages_().some(p => p.part === 'ans' || p.ans)) bad.push('with Questions chosen the strip still holds an answer');
-  } finally { lib.put(); S.q = ''; S.filters = []; }
+  } finally { lib.put(); S.filters = []; }
   return bad;
 });
 
@@ -611,7 +536,8 @@ const ansCards_ = (w, tag) => {
   const q = sel => host.querySelector(sel);
   const ta = () => q('[data-k$="' + words.key + '"].qp-ans-in');
   const kp = () => q('[data-k$="' + maths.key + '"].qp-ans-in');
-  const box = () => q('.qp-choices');
+  /* THE PICK IS TYPED (owner, 9 Nov): its one box, keyed as the others */
+  const box = () => q('[data-k$="' + pick.key + '"].qp-ans-in');
   const pad = () => q('.qpad');
   const saidFor = x => { const el = q('.qp-saved[data-k$="' + x.key + '"]'); return el ? savedWords_(el) : null; };
   const ringed = () => [...host.querySelectorAll('[data-circ] .qw.is-circled')].map(s2 => s2.getAttribute('data-w'));
@@ -647,7 +573,7 @@ check('answers: typed, picked and drawn go to the account a moment later, and th
   if (c.saidFor(c.words) !== '') bad.push('an empty box already says ' + JSON.stringify(c.saidFor(c.words)) + ' — a line about saving nothing');
   /* TYPED, PICKED, DRAWN — with no Check and no leaving the box, so only the debounce sends them. */
   ['b', 'be', 'because', 'because 180'].forEach(v => ansType_(w, c.ta(), v));
-  w.__t.ACTIONS['qp-choose'](c.box().querySelector('[data-n="2"]'));
+  ansType_(w, c.box(), 'B');
   ansStroke_(w, c, [[10, 10], [20, 20], [30, 30], [40, 40], [50, 50], [60, 60], [70, 70], [80, 80]]);
   if (c.saidFor(c.words) !== 'Saving…') bad.push('while it is on its way the line says ' + JSON.stringify(c.saidFor(c.words)) + ', wanted "Saving…"');
   await wait(200);
@@ -659,7 +585,7 @@ check('answers: typed, picked and drawn go to the account a moment later, and th
   if (s.token !== 'tok-P7' || s.personId !== 'P7') bad.push('saveAnswers went as ' + JSON.stringify({ token: s.token, personId: s.personId }) + ' — the token is who the server writes for, and personId must ride with it');
   const typed = by['ans:' + c.words.key], picked = by['ans:' + c.pick.key], drawn = by['pad:' + c.pen.key];
   if (!typed || typed.v !== 'because 180') bad.push('the typed answer went up as ' + JSON.stringify(typed) + ' — wanted key ans:' + c.words.key + ' (no person in it) and "because 180"');
-  if (!picked || picked.v !== '2') bad.push('the pick went up as ' + JSON.stringify(picked) + ' — wanted "2"');
+  if (!picked || picked.v !== 'B') bad.push('the typed pick went up as ' + JSON.stringify(picked) + ' — wanted "B"');
   if (!drawn) bad.push('the drawing did not go up: ' + JSON.stringify(Object.keys(by)));
   else if (drawn.v !== '[[10,10,80,80]]') bad.push('the drawing went up as ' + drawn.v + ' — a straight stroke of eight points is two after simplifying, and the device keeps all eight');
   if (typed && !(typed.at > 0 && typed.at <= Date.now())) bad.push('the typed answer went up with no edit time: ' + JSON.stringify(typed));
@@ -706,7 +632,7 @@ check('answers: on another device, the account fills the box, the keypad drawing
   const server = {
     'ans:q:Q-ANS-W-B': { v: 'because the angles make a line', at },
     'ans:q:Q-ANS-M-B': { v: '(3)/(4)', at },
-    'ans:q:Q-ANS-C-B': { v: '2', at },
+    'ans:q:Q-ANS-C-B': { v: 'B', at },
     'pad:q:Q-ANS-P-B': { v: '[[10,20,30,40]]', at },
     'pad:q:Q-ANS-P-B:words': { v: '["0.1"]', at },
   };
@@ -725,8 +651,7 @@ check('answers: on another device, the account fills the box, the keypad drawing
   if (c.kp().value !== '(3)/(4)') bad.push('the keypad box reads ' + JSON.stringify(c.kp().value));
   const show = c.kp().parentNode.querySelector('.kp-show');
   if (!show || !/frac/.test(show.innerHTML)) bad.push('the keypad’s drawing was not redrawn — the input holds (3)/(4) under a picture of nothing: ' + (show && show.innerHTML.slice(0, 80)));
-  const on = c.box() && c.box().querySelector('.qp-opt.is-picked');
-  if (!on || on.getAttribute('data-n') !== '2') bad.push('the picked option on screen is ' + (on ? on.getAttribute('data-n') : 'none') + ', wanted 2');
+  if (!c.box() || c.box().value !== 'B') bad.push('the typed pick on screen is ' + JSON.stringify(c.box() && c.box().value) + ', wanted B');
   if (c.pad().querySelectorAll('.qpad-g path').length !== 1) bad.push('the pad shows ' + c.pad().querySelectorAll('.qpad-g path').length + ' strokes, wanted the account’s one');
   if (c.ringed().join() !== '0.1') bad.push('the ringed words on screen are [' + c.ringed().join() + '], wanted the account’s "tall" (0.1)');
   if (c.saidFor(c.words) !== 'Saved to Ada’s account') bad.push('a box filled from the account says ' + JSON.stringify(c.saidFor(c.words)));
@@ -962,7 +887,7 @@ check('a reload keeps every answer — words, maths, a 3,000-character essay, a 
   const e1 = reloadEssayBox_(one.w);
   if (!e1) return ['the essay card drew no answer box — nothing was reloaded'];
   ansType_(one.w, e1, RELOAD_ESSAY);
-  one.w.__t.ACTIONS['qp-choose'](c.box().querySelector('[data-n="2"]'));
+  ansType_(one.w, c.box(), 'B');
   ansStroke_(one.w, c, [[10, 10], [60, 60], [90, 20]]);
   one.w.dispatchEvent(new one.w.Event('pagehide'));
   const two = boot({ before: fromStore_(keptStore_(one.w)) });
@@ -974,8 +899,7 @@ check('a reload keeps every answer — words, maths, a 3,000-character essay, a 
   if (c.kp().value !== '(3)/(4)') bad.push('after the reload the maths box holds ' + JSON.stringify(c.kp().value));
   const e2 = reloadEssayBox_(w);
   if (!e2 || e2.value !== RELOAD_ESSAY) bad.push('after the reload the essay is ' + (e2 ? e2.value.length : 'no box,') + ' characters, wanted ' + RELOAD_ESSAY.length);
-  const on = c.box().querySelector('.qp-opt.is-picked');
-  if (!on || on.getAttribute('data-n') !== '2') bad.push('after the reload the picked option is ' + (on ? on.getAttribute('data-n') : 'none') + ', wanted 2');
+  if (!c.box() || c.box().value !== 'B') bad.push('after the reload the typed pick is ' + JSON.stringify(c.box() && c.box().value) + ', wanted B');
   if (c.pad().querySelectorAll('.qpad-g path').length !== 1) bad.push('after the reload the pad shows ' + c.pad().querySelectorAll('.qpad-g path').length + ' strokes, wanted 1');
   /* SIGNED OUT: the device's key, and the same again. */
   w.__t.USER(null);

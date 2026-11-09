@@ -266,44 +266,23 @@ check('mark sound: a right answer chimes once and a wrong one buzzes once, for e
     bad.push('the second press did not cut the first sound (its gain cancelled and ramped to 0, then disconnected): ' + JSON.stringify(first && first.gain.ev));
   }
 
-  /* ---- A PICK: the one that completes the answer is the press. ---- */
+  /* ---- OPTIONS AND AN ORDERING ARE TYPED (owner, 9 Nov): Check on the letters is the press, heard like any other. ---- */
+  const tc = (card, x, v) => earIn_(rec, () => typeChoice_(w, card, x, v));
   const pick = subDraw_(w, PICK);
-  earTap_(rec, pick.querySelector('.qp-opt[data-n="1"]')); await wait(30);
-  expect(['buzzer'], 'a wrong pick');
-  /* A MISS IS NOT FINAL (385): the next pick is marked again and heard; once right, a further tap is ignored */
-  earTap_(rec, pick.querySelector('.qp-opt[data-n="2"]')); await wait(30);
-  expect(['chime'], 'a second, right pick after a wrong one');
-  earTap_(rec, (pick.isConnected ? pick : document).querySelector('.qp-choices.is-done .qp-opt[data-n="1"]') || pick.querySelector('.qp-opt[data-n="1"]')); await wait(30);
-  expect([], 'a tap on a settled (right) pick (ignored)');
-  const pick2 = subDraw_(w, PICK2);
-  earTap_(rec, pick2.querySelector('.qp-opt[data-n="2"]')); await wait(30);
-  expect(['chime'], 'a right pick');
+  tc(pick, PICK, 'A'); await wait(30);
+  expect(['buzzer'], 'a wrong letter');
+  tc(pick, PICK, 'B'); await wait(30);
+  expect(['chime'], 'a second, right letter after a wrong one');
   const two = subDraw_(w, TWO);
-  earTap_(rec, two.querySelector('.qp-opt[data-n="1"]')); await wait(30);
-  expect([], 'the first of two picks (not an answer yet)');
-  earTap_(rec, two.querySelector('.qp-opt[data-n="3"]')); await wait(30);
-  expect(['chime'], 'the pick that completes a right "choose two"');
+  tc(two, TWO, 'A, C'); await wait(30);
+  expect(['chime'], 'the two letters of a right "choose two"');
   const open = subDraw_(w, OPEN);
-  earTap_(rec, open.querySelector('.qp-opt[data-n="1"]')); await wait(30);
-  expect([], 'a pick nothing can mark (sent)');
-
-  /* ---- AN ORDERING: a gap is not an answer; Send on a full row is. ---- */
+  if (!open.querySelector('[data-do="qp-noscheme"]')) bad.push('options with no key do not say so on their Check');
   const ord = subDraw_(w, ORD);
-  const obox = () => ord.parentNode.querySelector('.qp-order');
-  [2, 3].forEach(n => earTap_(rec, obox().querySelector('.qp-item[data-n="' + n + '"]')));
-  earTap_(rec, obox().querySelector('.qp-order-send')); await wait(30);
-  expect([], 'placing two items, and Send on a row with a place still empty');
-  earTap_(rec, obox().querySelector('.qp-item[data-n="1"]'));
-  earTap_(rec, obox().querySelector('.qp-order-send')); await wait(30);
-  expect(['chime'], 'Send on the right order');
-  earTap_(rec, obox().querySelector('.qp-slot.is-full[data-n="1"]'));
-  earTap_(rec, obox().querySelector('.qp-item[data-n="1"]'));
-  await wait(30);
-  expect([], 'an item taken out of the ordering and put back, so "Correct" is drawn again (placing is not a press)');
-  [2, 3, 1].forEach(n => earTap_(rec, obox().querySelector('.qp-slot.is-full[data-n="' + n + '"]')));
-  [3, 2, 1].forEach(n => earTap_(rec, obox().querySelector('.qp-item[data-n="' + n + '"]')));
-  earTap_(rec, obox().querySelector('.qp-order-send')); await wait(30);
-  expect(['buzzer'], 'Send on a wrong order (' + w.ansRead_(w.__t.ansKey(ORD)) + ')');
+  tc(ord, ORD, 'B, C, A'); await wait(30);
+  expect(['chime'], 'Check on the right order');
+  tc(ord, ORD, 'C, B, A'); await wait(30);
+  expect(['buzzer'], 'Check on a wrong order');
 
   /* ---- A BOX NO RULE MARKS (round 3: its Check is the AI's, never a plain Send): no verdict here, so silent. ---- */
   const free = subDraw_(w, FREE);
@@ -334,10 +313,8 @@ check('mark sound: a right answer chimes once and a wrong one buzzes once, for e
   const k = w.__t.ansKey(TYPED);
   w.subPaintAll_(); w.subBoxPaint_(k); w.subPaint_(k);
   if (typeof w.ansRefresh_ === 'function') w.ansRefresh_([k, w.__t.ansKey(PICK), w.__t.ansKey(ORD)]);
-  w.choiceRedraw_(pick.querySelector('.qp-choices'));
-  w.orderRedraw_(obox(), '');
   await wait(30);
-  expect([], 'the slots and the boxes painted again (subPaintAll_, subBoxPaint_, ansRefresh_, choiceRedraw_, orderRedraw_)');
+  expect([], 'the slots and the boxes painted again (subPaintAll_, subBoxPaint_, ansRefresh_)');
   awake();
   type(card, '17'); type(card, '15'); await wait(30);
   expect([], 'a box typed away from its answer and back, so "Correct" is drawn again');
@@ -639,9 +616,9 @@ check('a tutor\'s ticked hours are on their card as lines (467), taught ones sai
   if (!caps.includes('Available')) bad.push('a tutor with hours ticked has no "Available" caption on their card');
   /* LINES, NOT A GRID (467): each day its hours merged, the taught ones said after. */
   const line = ((box.querySelector('.prof-week .prof-hour-line') || {}).textContent || '').replace(/\s+/g, ' ').trim();
-  if (line !== 'Mon 4–5pm, Sat 10–11am, Sun 6–7pm') bad.push('the card\'s hours read "' + line + '", wanted "Mon 4–5pm, Sat 10–11am, Sun 6–7pm"');
+  if (line !== 'Mon 16:00–17:00, Sat 10:00–11:00, Sun 18:00–19:00') bad.push('the card\'s hours read "' + line + '", wanted "Mon 16:00–17:00, Sat 10:00–11:00, Sun 18:00–19:00"');
   const key = ((box.querySelector('.prof-week .prof-key') || {}).textContent || '').replace(/\s+/g, ' ').trim();
-  if (key !== 'Already teaching Mon 5–6pm') bad.push('the taught hour reads "' + key + '", wanted "Already teaching Mon 5–6pm"');
+  if (key !== 'Already teaching Mon 17:00–18:00') bad.push('the taught hour reads "' + key + '", wanted "Already teaching Mon 17:00–18:00"');
   if (box.querySelector('.prof-week .hr, .prof-week .slot-row')) bad.push('the card still draws a grid of hours');
   if (box.querySelector('.prof-week button, .prof-week input, .prof-week label')) bad.push('the card\'s hours hold a control, so they can be pressed and are counted as a tap target');
   if (!/Monday 16:00/.test(((box.querySelector('.prof-week') || {}).getAttribute || (() => ''))
@@ -681,9 +658,9 @@ check('a tutor\'s card draws only the days they work, and ticks outside the span
   /* A DAY WHOSE ONLY TICKED HOUR IS ALREADY TAUGHT IS STILL A DAY THEY WORK — greyed, not gone. */
   const taught = card({ tu10: 'TRUE', th16: 'TRUE' }, { th16: 'Maths' });
   if (days(taught) !== 'Tue Thu') bad.push('a Thursday whose ticked hour is already taught is drawn as [' + days(taught) + '], wanted [Tue Thu]');
-  if (((two.querySelector('.prof-hour-line') || {}).textContent || '').trim() !== 'Tue 10am–12pm, Thu 4–5pm') bad.push('two hours in a row are not merged: "' + ((two.querySelector('.prof-hour-line') || {}).textContent || '').trim() + '"');
+  if (((two.querySelector('.prof-hour-line') || {}).textContent || '').trim() !== 'Tue 10:00–12:00, Thu 16:00–17:00') bad.push('two hours in a row are not merged: "' + ((two.querySelector('.prof-hour-line') || {}).textContent || '').trim() + '"');
   const key = taught.querySelector('.prof-week .prof-key');
-  if (!key || key.textContent.replace(/\s+/g, ' ').trim() !== 'Already teaching Thu 4–5pm') bad.push('a week with a taught hour does not say it: ' + (key ? '"' + key.textContent.trim() + '"' : 'no line'));
+  if (!key || key.textContent.replace(/\s+/g, ' ').trim() !== 'Already teaching Thu 16:00–17:00') bad.push('a week with a taught hour does not say it: ' + (key ? '"' + key.textContent.trim() + '"' : 'no line'));
   if (two.querySelector('.prof-key')) bad.push('a week with nothing taught still draws the "already teaching" key');
   const taughtSaid = (taught.querySelector('.prof-week') || { getAttribute: () => '' }).getAttribute('aria-label') || '';
   if (!/^Available Tuesday 10:00\. Already teaching Thursday 16:00$/.test(taughtSaid)) {
@@ -850,7 +827,7 @@ async function pfpRoleJourney(key) {
   };
   /* SAVE ON THE PICTURE'S CARD (468): it saved itself, so this says so and the profile column is drawn again. */
   const shut = async () => {
-    const save = d.querySelector(H + ' .card-ed[data-sec="picture"] [data-do="card-save"][data-pid="' + P.personId + '"]');
+    const save = d.querySelector(H + ' .card-ed[data-sec="picture"][data-pid="' + P.personId + '"]');
     if (save) t.ACTIONS['card-save'](save);
     await wait(300);
     try { w.paint(t.homeCol()); } catch (e) {}

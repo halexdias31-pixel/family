@@ -399,7 +399,7 @@ function msgPost_(p) {
     p.state = 'sent'; p.id = (d && d.id) || '';
     /* THE SERVER HAS IT, SO THE DRAFT GOES — unless the box has been written in again since Send. */
     try { if (typeof draftSentDone_ === 'function') draftSentDone_('msg', p.withId, p.body); } catch (e) { oops_(e, 'me:msgPost_') }
-    toast(p.inSheet ? 'Sent to ' + p.withName : 'Sent');
+    toast(p.inSheet ? 'Sent to ' + displayName_(p.withName) : 'Sent');
     return loadMessages().then(() => {
       if (!MSG_FAILED) {
         MSG_PENDING = MSG_PENDING.filter(x => x !== p);
@@ -422,6 +422,7 @@ function msgPost_(p) {
 
 /* Repaint the column and stay on the conversation somebody is in. § */
 function dmRedraw_(key) {
+  try { msgFindRedraw_(key); } catch (e) { oops_(e, 'me:findRedraw'); }
   if (typeof paint !== 'function' || !$('s-dm')) return;
   paint('dm');
   const at = messageThreads_().findIndex(t => t.id === key);
@@ -453,7 +454,7 @@ on('msg-send', el => {
   MSG_PENDING.push(p);
   delete MSG_QUEUE[key];
   if (box) { box.value = ''; box.style.height = ''; }
-  if (p.inSheet) { closeSheet(); toast('Sending to ' + p.withName + '…'); }
+  if (p.inSheet) { closeSheet(); toast('Sending to ' + displayName_(p.withName) + '…'); }
   dmRedraw_(p.withId);
   msgPost_(p);
 });
@@ -546,14 +547,11 @@ function msgDay_(ms) {
   const gap = Math.round((day(now) - day(d)) / 864e5);
   if (gap === 0) return 'Today';
   if (gap === 1) return 'Yesterday';
-  const opt = { weekday: 'short', day: 'numeric', month: 'short' };
-  if (d.getFullYear() !== now.getFullYear()) opt.year = 'numeric';
-  try { return d.toLocaleDateString('en-GB', opt); } catch (e) { return d.toDateString(); }
+  return day_(d) + ' ' + date_(d);
 }
 function msgClock_(ms, raw) {
   if (!ms) return String(raw || '');
-  const d = new Date(ms);
-  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  return time_(ms);
 }
 
 /* ---------- PICTURE, CLIP OR FILE: THE TYPE, AND THE NAME WHEN THERE IS NO TYPE § */
@@ -651,7 +649,7 @@ const messagesHtml_ = ms => {
       ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestTile_`, 486). */''}
       ${!mine && m.id && !m.tmp ? '<div class="msg-line">' : ''}<div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
         words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>${!mine && m.id && !m.tmp
-        ? suggestTile_('message', m.id, 'Message from ' + (m.fromName || m.withName || 'someone'), 'msg-flag') + '</div>' : ''}
+        ? suggestTile_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag') + '</div>' : ''}
       ${state || (runEnd ? `<p class="faint msg-when">${esc(mine ? 'you' : (m.fromName || 'them'))} · ${
         esc(msgClock_(t, m.at))}</p>` : '')}
     </div>`;
@@ -771,3 +769,86 @@ function kidAddSec_() {
       ${esc(tabLabel_('students', 'Student profile'))} and tap Add as my child on their card. They say yes before anything is linked.</p>
   </div>`;
 }
+
+/* ---------- MESSAGES AS FIND CARDS (owner, 8 Nov, 36a): picture, title, tags, two lines, tiles, the shape every Find card has. */
+/* The closed conversation is cards.js's `findCard` (card-fields.json's `msg` row); its messages, once open, are cards of their own. */
+const MSG_OPEN = {};
+const msgDate_ = ms => (ms ? date_(ms) : '');
+/* THEIR FACE, or an 8-bit stand-in so no card has an empty corner. */
+function msgFacePic_(t, mine) {
+  let face = '';
+  try {
+    if (mine && USER) face = personFace_({ pic: USER.photo || '', avatar: USER.avatar || '', handle: USER.handle, name: USER.name, personId: USER.personId }, { cls: 'dm-pic', size: 48 });
+    else face = typeof dmFace_ === 'function' ? dmFace_(t) : '';
+  } catch (e) { face = ''; }
+  if (!/has-pic|<img|<svg/.test(face) && typeof personPic_ === 'function') face = personPic_(mine ? (USER || {}).personId : t.id, mine ? 'you' : t.name);
+  return `<figure class="msg-fc-pic">${face}</figure>`;
+}
+/* THE SHARED TAG LINE, with what no facet says (when, unread, kind) added to its end. */
+function msgTags_(x, extra) {
+  const row = typeof tagRow_ === 'function' && x ? String(tagRow_(x) || '') : '';
+  const more = extra.filter(Boolean).map(t => `<span class="qtag msg-tag${t.cls ? ' ' + t.cls : ''}">${esc(t.text)}</span>`).join('');
+  return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, more + '</div>') : `<div class="qtags qcard-tags">${more}</div>`;
+}
+function msgKindWord_(m) {
+  const a = (m && m.attachments) || [];
+  if (!a.length) return 'Message';
+  const k = msgKind_(a[0]);
+  return k === 'image' ? 'Photo' : k === 'video' ? 'Clip' : 'File';
+}
+/* ONE CONVERSATION, closed: the last thing said, cut to two lines; Open lays its messages out under it. */
+function msgFindCard_(x, t, draw) {
+  const open = !!MSG_OPEN[t.id], extra = { kind: 'msg', name: t.name, row: t, cardCls: t.unread ? 'unread' : '', cardData: { thread: t.id } };
+  const head = draw ? draw(extra) : findCard(Object.assign({}, x, extra, { kcIn: true }));
+  if (!open) return head;
+  try { markRead_(t.msgs); } catch (e) { oops_(e, 'msg:find-read'); }
+  return head + t.msgs.map(m => msgFindOne_(t, m)).join('')
+    + `<div class="card fc msg-fc msg-fc-form" data-thread="${esc(t.id)}">${msgForm_(t.name, t.id)}</div>`;
+}
+/* THE CLOSED CONVERSATION'S FIELDS for the one card maker; `x.row` is the thread. */
+window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
+  msgPic: x => msgFacePic_(x.row),
+  msgWho: x => `<h3>${esc(x.row.name)}</h3>`,
+  msgTags: x => { const t = x.row, last = t.last || {}; return msgTags_(x, [{ text: msgDate_(msgTime_(last)) }, t.unread ? { text: t.unread + ' unread', cls: 'is-new' } : null, { text: 'Conversation' }]); },
+  msgBody: x => { const last = x.row.last || {}; return `<p class="msg-fc-body">${esc((last.mine ? 'You: ' : '') + (String(last.body || '').trim() || msgKindWord_(last)))}</p>`; },
+  msgTiles: x => { const t = x.row, open = !!MSG_OPEN[t.id]; return tileRow_(tile_([
+    { icon: open ? 'close' : 'open', label: open ? 'Close' : 'Open', note: 'the conversation', act: 'msg-open', data: { k: t.id } },
+    { icon: 'chat', label: 'Reply', note: t.name, act: 'msg-reply', data: { k: t.id } }])); },
+});
+/* ONE MESSAGE, one card: who, when, what; a failed one carries its Retry and Remove as tiles. */
+function msgFindOne_(t, m) {
+  const mine = !!m.mine, ms = msgTime_(m), fresh = !mine && (!m.read || m.fresh);
+  const tiles = m.state === 'failed' ? tile_([
+    { icon: 'again', label: 'Retry', note: msgFailSaid_(m.err) || 'not sent', act: 'msg-retry', data: { k: m.tmp } },
+    m.why === 'files' && m.body && (m.queue || []).length ? { icon: 'doc', label: 'Words only', act: 'msg-words', data: { k: m.tmp } } : null,
+    { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp } }]) + msgFixLinks_(m.err)
+    : !mine && m.id && !m.tmp && typeof suggestTile_ === 'function' ? suggestTile_('message', m.id, 'Message from ' + (m.fromName || t.name)) : '';
+  const words = String(m.body || '').trim();
+  return `<div class="card fc msg-fc is-one${mine ? ' mine' : ''}${fresh ? ' unread' : ''}" data-thread="${esc(t.id)}">
+    ${msgTags_(null, [{ text: msgDate_(ms) + ' ' + msgClock_(ms, m.at) }, fresh ? { text: 'unread', cls: 'is-new' } : null,
+      { text: msgKindWord_(m) }, m.state === 'sending' ? { text: 'sending…' } : m.tmp && m.state !== 'failed' ? { text: 'sent' } : null])}
+    ${msgFacePic_(t, mine)}<h3>${esc(mine ? 'You' : (m.fromName || t.name))}</h3>
+    ${words ? `<p class="msg-fc-body">${mark(words)}</p>` : ''}${msgAttachHtml_(m.attachments)}
+    ${tiles ? tileRow_(tiles) : ''}</div>`;
+}
+/* REDRAWN WHERE IT STANDS in Find: that conversation's cards go, its new set takes the first one's place. */
+function msgFindRedraw_(key) {
+  if (typeof document === 'undefined') return;
+  const cards = [].slice.call(document.querySelectorAll('#s-stuff .msg-fc[data-thread]')).filter(c => c.dataset.thread === key);
+  const t = cards.length && messageThreads_().find(t2 => t2.id === key);
+  if (!t) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = msgFindCard_({ kind: 'msg', name: t.name, key: 'msg:' + t.id, thread: t.id, msgWith: t.name, text: t.name }, t);
+  const first = cards[0];
+  [].slice.call(tmp.children).forEach(c => first.parentNode.insertBefore(c, first));
+  cards.forEach(c => c.remove());
+}
+on('msg-open', el => { const k = el.dataset.k; MSG_OPEN[k] = !MSG_OPEN[k]; msgFindRedraw_(k); });
+on('msg-reply', el => {
+  const k = el.dataset.k;
+  MSG_OPEN[k] = true;
+  msgFindRedraw_(k);
+  const f = [].slice.call(document.querySelectorAll('#s-stuff .msg-fc-form')).filter(c => c.dataset.thread === k)[0];
+  const box = f && f.querySelector('.msg-text');
+  if (box) { box.focus(); try { f.scrollIntoView({ block: 'center' }); } catch (e) {} }
+});

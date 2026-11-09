@@ -154,7 +154,7 @@ check('a drawn answer is never sent to a person: a made-up surface and a figure 
 });
 
 /* ---------- THE TOOL ROW, THE LAYER AND THE LINE (Review A of round 3; round 4: the owner's nine, no Calculator, Grid, Table or Formula sheet) ---------- */
-check('a part\'s tool row is the owner\'s nine in order with one padlock, the drawing tools only where there is something to draw on (owner, 29 Oct); a named grid\'s first Pen tap lays it; the pad opens on the layer of the scheme\'s own answer; the line under Check says how it is marked', async () => {
+check('a part\'s tool row is the owner\'s one row with one padlock (8 Nov), the pen\'s tiles only where there is something to draw on (owner, 29 Oct); a named grid\'s first Pen tap lays it; the pad opens on the layer of the scheme\'s own answer; the line under Check says how it is marked', async () => {
   const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS3', pages_checked: 'True', kind: 'question', name: 'Tools', paper_id: 'GR', marks: '1', answer_type: 'calculation' };
   const R_ = o => Object.assign({}, base, o);
   const rows = [
@@ -175,19 +175,20 @@ check('a part\'s tool row is the owner\'s nine in order with one padlock, the dr
   if (!x1) { host.remove(); return ['GR-1 did not reach Find']; }
   host.innerHTML = w.questionCard_(x1, 0);
   const how = (host.querySelector('.qt-how') || {}).textContent || '';
-  if (how !== 'Marked against the accepted answers') bad.push('the line under Check says ' + JSON.stringify(how));
+  if (how !== 'Marked against the mark scheme first \u2014 then by AI, if you ask') bad.push('the line under Check says ' + JSON.stringify(how));
   /* THE OWNER'S ROW, by the tiles' own names: "get rid of that calculator button … and grid button … table … formula sheet … still two lock buttons" */
   const row = host.querySelector('.qt-row');
   const names = row ? [...row.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
   /* NOTHING TO DRAW ON, NO PEN (owner, 29 Oct: "a button which opens the working paper … remove that") */
   /* THE SAME ROW ON EVERY PART (owner, 7 Nov, over 1040 r12): magnifier, Read aloud and padlock are each part's. */
-  if (names.join(' | ') !== 'Photo of working | Magnifier | Read aloud | Lock | Check') bad.push('a part with no figure: the tool row reads ' + names.join(' | '));
+  /* RULER AND PROTRACTOR ON EVERY PART, figure or not (owner, 8 Nov) */
+  if (names.join(' | ') !== 'Photo of working | Magnifier | Read aloud | Lock | Ruler | Protractor | Check') bad.push('a part with no figure: the tool row reads ' + names.join(' | '));
   const x3 = item('GR-3');
   host.innerHTML = x3 ? w.questionCard_(x3, 0) : '';
   const row3 = host.querySelector('.qt-row');
   const names3 = row3 ? [...row3.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
   /* UNDO AND CLEAR ARE THE PAD'S, IN THIS ONE ROW FROM THE START (1020): a tap never adds or moves a control. */
-  if (names3.join(' | ') !== 'Pen | Straight line | Ruler | Protractor | Compass | Photo of working | Magnifier | Read aloud | Lock | Undo | Clear | Check') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
+  if (names3.join(' | ') !== 'Photo of working | Magnifier | Read aloud | Lock | Ruler | Protractor | Pen | Straight line | Compass | Undo | Clear | Check') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
   if (d.querySelectorAll('[data-do="qt-grid"], [data-do="qt-panel"], .qcalc, .qt-table, .qt-formula').length) bad.push('a Grid, Table, Calculator or Formula sheet is still drawn on the part');
   const whole = d.createElement('div'); whole.innerHTML = x3 ? w.questionWhole_(x3, [x3], null, true) : '';
   const locks = whole.querySelectorAll('[data-do="q-lock"], [data-do="game-lock"]').length;
@@ -238,7 +239,7 @@ check('every part of the 71 Corbettmaths primary worksheets has an answer and a 
   const bad = [];
   if (typeof w.questionCard_ !== 'function') return ['questionCard_ not reachable — NOT checked'];
   w.__t.STUFF().filters = [];
-  const SEND = '[data-do="qp-check"], [data-do="qp-cells-check"], [data-do="qp-choose"], [data-do="qp-order-send"], [data-do="qp-rule"], [data-do="pad-send"], [data-do="pad-check"]';
+  const SEND = '[data-do="qp-check"], [data-do="qp-cells-check"], [data-do="pad-send"], [data-do="pad-check"]';
   /* a typed answer with no scheme is marked by a person or AI: Send or the AI tile, which come with signing in */
   const host = w.document.createElement('div');
   w.document.body.appendChild(host);
@@ -344,7 +345,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
     host.innerHTML = w.questionCard_(x, 0);
     /* ITS FIGURE MAY BE A PAD WITH THE PEN OFF (1020, owner 7 Nov: the pen is off until chosen); drawn on means a drawing Check. */
     if (host.querySelector('.qpad-send [data-do="pad-check"], .qpad.is-drawing')) bad.push(id + ': made a box, and still drawn on');
-    const cells = [...host.querySelectorAll('.qp-cell')], opts = [...host.querySelectorAll('[data-do="qp-choose"]')];
+    const cells = [...host.querySelectorAll('.qp-cell')], opts = [];
     if (cells.length) {
       const ways = w.cellsOf_(x);
       cells.forEach(c => { const v = ways[Number(c.getAttribute('data-n'))]; c.value = v ? v.ways.split('|')[0].trim() : ''; });
@@ -496,22 +497,22 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
   const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  if (!A['qp-rule']) return ['the qp-rule handler is not reachable — nothing was checked'];
+  if (!A['qp-check']) return ['the qp-check handler is not reachable — nothing was checked'];
   const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === 'MW-1');
   if (!x) return ['the fixture row did not reach Find'];
   const host = d.createElement('div');
   d.body.appendChild(host);
   host.innerHTML = w.questionCard_(x, 0);
-  const go = host.querySelector('.qp-mark[data-rule] [data-do="qp-rule"]');
+  const go = host.querySelector('.qp-mark[data-rule] [data-do="qp-check"]');
   if (!go) return ['a row with mark_words has no Check by its key words'];
   const later = host.querySelector('.qp-ai-later');
   if (later && !later.hidden) bad.push('the AI tile shows before the rule has marked');
   const inp = host.querySelector('.qp-ans-in'), out = host.querySelector('.qp-verdict');
   inp.value = 'just carbon';
-  A['qp-rule'](go);
+  A['qp-check'](go);
   if (!/^1 of 2 marks · by key words/.test(out.textContent)) bad.push('one point of two says ' + JSON.stringify(out.textContent));
   inp.value = 'Hydrogen and carbon';
-  A['qp-rule'](go);
+  A['qp-check'](go);
   if (out.textContent !== '2 of 2 marks · by key words') bad.push('both points say ' + JSON.stringify(out.textContent));
   if (later && !later.hidden) bad.push('full marks by rule still offers the AI');
   const latest = typeof w.subLatest_ === 'function' ? w.subLatest_(inp.getAttribute('data-k')) : null;
@@ -533,18 +534,18 @@ check('a part with photos of its working: Check sends the photos to the AI marke
   await wait(300);
   const w = one.w, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
   const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === 'PF-1');
-  if (!x || !A['qp-rule']) return ['the fixture row or the qp-rule handler is not reachable — nothing was checked'];
+  if (!x || !A['qp-check']) return ['the fixture row or the qp-check handler is not reachable — nothing was checked'];
   const host = d.createElement('div');
   d.body.appendChild(host);
   host.innerHTML = w.questionCard_(x, 0);
-  const go = host.querySelector('.qp-mark[data-rule] [data-do="qp-rule"]');
+  const go = host.querySelector('.qp-mark[data-rule] [data-do="qp-check"]');
   if (!go) return ['the proof row has no Check by its key words — the fixture no longer exercises the rule'];
   const inp = host.querySelector('.qp-ans-in'), out = host.querySelector('.qp-verdict');
   const k = inp.getAttribute('data-k');
   inp.value = 'see photo, multiple';
   t.workPics()[k] = [{ url: 'data:image/jpeg;base64,/9j/AAAA' }];
   w.workPaint_(k);
-  A['qp-rule'](go);
+  A['qp-check'](go);
   await wait(120);
   const went = one.sent.filter(b => b.action === 'markWorking');
   if (went.length !== 1) bad.push('Check with a photo sent ' + went.length + ' markWorking requests — the photo was not given to the AI marker');
@@ -556,7 +557,7 @@ check('a part with photos of its working: Check sends the photos to the AI marke
   t.workPics()[k] = [];
   w.workPaint_(k);
   inp.value = 'it is 4n so a multiple of 4';
-  A['qp-rule'](go);
+  A['qp-check'](go);
   if (!/by key words/.test(out.textContent)) bad.push('with no photo the key words did not mark: ' + JSON.stringify(out.textContent));
   host.remove();
   return bad;

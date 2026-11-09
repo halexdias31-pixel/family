@@ -486,7 +486,8 @@ const cardOpen_ = async (W, who, more) => {
     sec: id => all('.card-ed[data-sec="' + id + '"]')[0] || null,
     form: () => all('.card-ed .me-form').length ? both : null,
     box: f => all('.card-ed [data-me="' + f + '"]')[0] || null,
-    tileOn: (id, act) => c.sec(id) && c.sec(id).querySelector('[data-do="' + act + '"]'),
+    /* NO SAVE TILE ON A SETTINGS SECTION (owner, 8 Nov: saved as typed); `card-save` on the card itself saves it now, as the wait would. */
+    tileOn: (id, act) => c.sec(id) && (act === 'card-save' ? c.sec(id) : c.sec(id).querySelector('[data-do="' + act + '"]')),
     /* SAVE ON EACH NAMED SECTION'S CARD, one after the other, as a person goes down the column. */
     saveAll: async ids => { for (const id of ids) { const t1 = c.tileOn(id, 'card-save'); if (t1) { c.A('card-save', t1); await wait(400); } } },
     /* A BOX TYPED INTO AND LEFT, the way a person does it: `input`, then `change`, both bubbling. */
@@ -562,7 +563,7 @@ check('a tutor edits every section of their tutor card on Tutor settings, each s
     const untitled = ['headline', 'photos', 'words', 'glance', 'quals', 'where', 'figure', 'handle'].indexOf(id) !== -1;
     if (!!k.querySelector('h3') === untitled || !k.querySelector('.card-say')) bad.push('the ' + id + ' card ' + (untitled ? 'has a title its first line already says (491)' : 'has no title') + ', or no line saying what it is for');
     const sv = k.querySelector('[data-do="card-save"]'), cn = k.querySelector('[data-do="card-cancel"]');
-    if (!sv || !cn || !sv.classList.contains('tile') || !cn.classList.contains('tile')) bad.push('the ' + id + ' card has no Save and Cancel tiles');
+    if (sv || !cn || !cn.classList.contains('tile')) bad.push('the ' + id + ' card has ' + (sv ? 'a Save tile (it saves as typed)' : 'no Cancel tile'));
     if (k.dataset.pid !== 'P-T1' || !k.classList.contains('is-prof')) bad.push('the ' + id + ' card is not Ada\'s');
   });
   /* EVERY FIELD A TUTOR'S FIVE PAGES HELD HAS A BOX HERE (the picture is the picker). */

@@ -98,10 +98,8 @@ function quranBody_(x) {
   return loading_();
 }
 function quranCard_(x) {
-  return `<div class="card fc qr" data-key="${esc(x.key)}">
-    ${tagRow_(x)}
-    <div class="qr-body" data-qs="${x.qr ? x.qr.s : 0}" data-qa="${x.qr ? x.qr.a : 0}" data-ql="${x.qr && x.qr.lang === 'en' ? 'en' : 'ar'}">${x.qr ? quranBody_(x) : ''}</div>
-  </div>`;
+  return readingCard_(x, { cls: 'qr', bodyCls: 'qr-body', body: x.qr ? quranBody_(x) : '',
+    data: { qs: x.qr ? x.qr.s : 0, qa: x.qr ? x.qr.a : 0, ql: x.qr && x.qr.lang === 'en' ? 'en' : 'ar' } });
 }
 /* ITS TEXT CAME: every card of that surah on screen is filled where it stands. */
 function quranRedraw_(n) {

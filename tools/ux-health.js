@@ -246,7 +246,6 @@ function instruments() {
     const sig = el => { const c = getComputedStyle(el); return { h: Math.round(el.getBoundingClientRect().height), radius: c.borderTopLeftRadius, font: c.fontSize + ' ' + c.fontFamily.split(',')[0],
       padR: c.paddingRight, bg: c.backgroundColor, border: c.borderTopWidth + ' ' + c.borderTopStyle + ' ' + c.borderTopColor }; };
     const vis = el => el && el.getBoundingClientRect().width > 0;
-    try { go('stuff'); await wait(400); const s = document.querySelector('#s-stuff input[type="search"], #s-stuff input.search, #stuff-q'); if (vis(s)) out.push({ where: 'Find search', sig: sig(s) }); } catch (e) { /* not reached: left out */ }
     try { const qs = stuffItemsAll_().filter(x => x && x.kind === 'question');
       for (let i = 0; i < Math.min(qs.length, 300); i += 11) { finderOpen_(qs[i], null, FINDERS.stuff); await wait(120);
         const a = document.querySelector('#s-stuff .page.on .qp-bar > .qp-ans'); if (vis(a)) { out.push({ where: 'question answer box', sig: sig(a) }); break; } } } catch (e) { /* not reached: left out */ }

@@ -96,11 +96,7 @@ function insertCard_(x) {
 }
 /* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies; a timeline's animation (`tlExtras_`). */
 function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
-  .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'ins-official', data: { url: o.url } }))); }
-on('ins-official', el => {
-  const u = String(el.getAttribute('data-url') || '');
-  if (/^https:\/\//.test(u)) window.open(u, '_blank', 'noopener');
-});
+  .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'file-view', data: { url: o.url, title: o.label } }))); }
 /* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
 on('ins-print', el => {
   const r = insertRow_(el.getAttribute('data-id'));
@@ -380,7 +376,7 @@ function histExtras_(x) {
   const icon = l => (l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'flag');
   return [read ? { icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } } : null]
     .concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => ({ icon: icon(l), label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })),
-      histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u => ({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u }))); }
+      histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u => ({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], act: 'file-view', data: { url: u, title: 'Source' } }))); }
 
 /* THE BIBLE (KING JAMES VERSION) — ASKED LIKE EVERYTHING ELSE ON FIND, AND SHOWN ONLY TO AN ADMIN. § */
 const BIBLE_NAME = 'The Bible';
@@ -397,7 +393,7 @@ const BIBLE_TR_WORDS = { KJV: 'KJV King James Authorized Version', WEB: 'WEB Wor
 
 /* EVERYTHING IT KNOWS, IN ONE PLACE. § */
 const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {}, also: {},
-                item: null, verses: null, rank: null, hays: null };
+                item: null, verses: null, rank: null };
 
 /* ---------- WHO IS SHOWN IT § */
 /* A RULE (496, 504): `kjv-admin` — Universal by default, everyone like the Talmud and the Quran; Exception, an admin only. check-bible reads this line. */
@@ -454,7 +450,7 @@ function bibleIndex_() {
                                    && b.chapterVerses.every(c => Number.isInteger(c) && c > 0)
                                    && b.chapterVerses.reduce((s, c) => s + c, 0) === b.verses);
       BIBLE.asking = null;
-      if (ok) { BIBLE.index = d; BIBLE.rank = bibleRankOf_(d); BIBLE.hays = d.books.map(bibleHay_); WRITING_CAME.bible = true; }
+      if (ok) { BIBLE.index = d; BIBLE.rank = bibleRankOf_(d); WRITING_CAME.bible = true; }
       else BIBLE.failed = true;
       /* THE VERSES ARRIVE: every finder's list is built again with them (499). */
       bibleRedraw_();
@@ -499,8 +495,6 @@ const bibleTestament_ = t => (t === 'NT' ? 'New Testament' : 'Old Testament');
 const bibleCite_ = (b, ch) => (b.book === 'Psalms' ? 'Psalm' : b.book) + ' ' + ch;
 /* THE WORDS EVERY VERSE OF ONE BOOK CARRIES — its Bible, its testament, its group and its book — so a search that names any of them finds it. § */
 const bibleBookWords_ = b => [BIBLE_NAME, BIBLE_WORDS, bibleTestament_(b.testament), b.group, b.book].join(' ');
-/* WHAT EVERY VERSE OF ONE BOOK IS FOUND BY, BAR ITS OWN NUMBERS: § */
-const bibleHay_ = b => stuffHay_({ name: bibleCite_(b, ''), sub: b.book, text: bibleBookWords_(b) });
 
 /* ---------- THE ORDER THE ANSWERS ARE DRAWN IN, WHICH IS THE BIBLE'S § */
 function bibleRankOf_(ix) {
@@ -657,3 +651,33 @@ function bibleCard_(x) {
 /* A MANUSCRIPT'S OWN FRAGMENT WHERE DRAWN (else its kind's picture), and a writing's references, as fields of the one card shape. */
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
   msPic: x => msFragSvg_(x.row || {}, x.msSideIx) || libPic_('manuscript', x.name), refs: x => writingRefs_((x.row || {}).id) });
+
+/* ---------- THE ONE VIEWER (owner, 9 Nov): a library card's book, paper, video or PDF opens inside its own card, never a new tab; a video plays there, not full screen. */
+function fileViewKind_(u) {
+  const s = String(u || '');
+  if (/youtube\.com\/watch|youtu\.be\//i.test(s)) return 'youtube';
+  if (/\.(mp4|webm|m4v|mov)(\?|#|$)/i.test(s)) return 'video';
+  if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(s)) return 'image';
+  return 'page';
+}
+function fileView_(u, host, title) {
+  if (!host || !/^(https:\/\/|data\/)/.test(String(u || ''))) return false;
+  const had = host.querySelector(':scope > .file-view');
+  if (had) { const same = had.getAttribute('data-url') === u; had.remove(); if (same) return true; }
+  const kind = fileViewKind_(u), name = esc(title || 'File');
+  const yt = kind === 'youtube' ? (/[?&]v=([\w-]{6,})/.exec(u) || /youtu\.be\/([\w-]{6,})/.exec(u) || [])[1] : '';
+  const body = kind === 'video' ? `<video class="file-view-v" src="${esc(u)}" controls playsinline preload="metadata"></video>`
+    : kind === 'image' ? `<img class="file-view-i" src="${esc(u)}" alt="${name}">`
+    : `<iframe class="file-view-f" src="${esc(yt ? 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(yt) + '?playsinline=1' : u)}" title="${name}" loading="lazy" allow="encrypted-media; picture-in-picture"></iframe>`;
+  const box = document.createElement('div');
+  box.className = 'file-view file-view-' + kind;
+  box.setAttribute('data-url', u);
+  box.innerHTML = body + `<div class="tile-row">${tile_({ icon: 'close', label: 'Close', act: 'file-view-close' })}</div>`;
+  host.appendChild(box);
+  return true;
+}
+on('file-view', el => {
+  const host = el.closest('.card, .qcard') || el.parentElement;
+  fileView_(String(el.getAttribute('data-url') || ''), host, el.getAttribute('data-title') || el.getAttribute('aria-label'));
+});
+on('file-view-close', el => { const v = el.closest('.file-view'); if (v) v.remove(); });

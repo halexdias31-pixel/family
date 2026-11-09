@@ -105,10 +105,7 @@ function orthoBody_(x) {
   return loading_();
 }
 function orthoCard_(x) {
-  return `<div class="card fc wt" data-key="${esc(x.key)}">
-    ${tagRow_(x)}
-    <div class="wt-body" data-ot="${esc(x.ot ? x.ot.id : '')}" data-k="${esc(x.key)}">${x.ot ? orthoBody_(x) : ''}</div>
-  </div>`;
+  return readingCard_(x, { cls: 'wt', bodyCls: 'wt-body', body: x.ot ? orthoBody_(x) : '', data: { ot: x.ot ? x.ot.id : '', k: x.key } });
 }
 function orthoRedraw_(id) {
   if (typeof document === 'undefined') return;
