@@ -1,10 +1,10 @@
 [
-{"kind": "tutor", "cls": "is-widget is-prof tcard", "pic": "face", "title": "role,nameRate", "tags": "teaches,facts", "lines": "listedNote,say,photos,words,quals,jobs,places,avail", "notes": "the compact one-screen tutor card (547): rate on the name line, subject pills, the map, day pills"},
-{"kind": "venue", "cls": "venue-door", "pic": "venuePic", "title": "name", "tags": "facets", "lines": "venueSub,rooms", "notes": "an 8-bit building, its name, its facet tags, its rooms"},
-{"kind": "level", "cls": "is-level", "pic": "kindPic", "title": "name", "tags": "facets", "lines": "surcharge,levelSubjects,tutorCount,bookingForm,tutorNames", "notes": ""},
-{"kind": "subject", "cls": "is-subject", "pic": "kindPic", "title": "name", "tags": "facets", "lines": "surcharge,levels,tutorNames", "notes": ""},
-{"kind": "manuscript", "cls": "hdb hdb-msc lib-c", "pic": "msPic", "title": "name", "tags": "facets", "lines": "", "notes": "its fragment where drawn"},
-{"kind": "writing", "cls": "hdb lib-c", "pic": "kindPic", "title": "name", "tags": "facets", "lines": "refs", "notes": ""},
-{"kind": "event", "cls": "hdb lib-c", "pic": "kindPic", "title": "name", "tags": "facets", "lines": "refs", "notes": ""},
-{"kind": "people", "cls": "person lib-c", "pic": "boxerPic", "title": "name", "tags": "facets", "lines": "", "notes": "boxers and figures alike, a pixel portrait"}
+{"kind": "tutor", "cls": "is-widget is-prof tcard", "pic": "face", "title": "role,nameRate", "tags": "teaches,facts", "lines": "listedNote,say,photos,words,quals,jobs,places,avail", "tiles": "book-with:book:Book,msg-open:msg:Message", "notes": "the compact one-screen tutor card (547): rate on the name line, subject pills, the map, day pills"},
+{"kind": "venue", "cls": "venue-door", "pic": "venuePic", "title": "name", "tags": "facets", "lines": "venueSub,rooms", "tiles": "", "notes": "an 8-bit building, its name, its facet tags, its rooms"},
+{"kind": "level", "cls": "is-level", "pic": "kindPic", "title": "name", "tags": "facets", "lines": "surcharge,levelSubjects,tutorCount,bookingForm,tutorNames", "tiles": "book-with:book:Book", "notes": ""},
+{"kind": "subject", "cls": "is-subject", "pic": "kindPic", "title": "name", "tags": "facets", "lines": "surcharge,levels,tutorNames", "tiles": "book-with:book:Book", "notes": ""},
+{"kind": "manuscript", "cls": "hdb hdb-msc lib-c", "pic": "msPic", "title": "name", "tags": "facets", "lines": "", "tiles": "", "notes": "its fragment where drawn"},
+{"kind": "writing", "cls": "hdb lib-c", "pic": "kindPic", "title": "name", "tags": "facets", "lines": "refs", "tiles": "", "notes": ""},
+{"kind": "event", "cls": "hdb lib-c", "pic": "kindPic", "title": "name", "tags": "facets", "lines": "refs", "tiles": "", "notes": ""},
+{"kind": "people", "cls": "person lib-c", "pic": "boxerPic", "title": "name", "tags": "facets", "lines": "", "tiles": "", "notes": "boxers and figures alike, a pixel portrait"}
 ]

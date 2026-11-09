@@ -310,11 +310,11 @@ function rateRange_(t) {
   return max > 1 && seat > 0 ? say(r) + '–' + say(r + seat * (max - 1)).slice(1) + '/hour' : say(r) + '/hour';
 }
 
-/* ONE CARD FOR EVERY KIND (owner, 8 Nov): picture, title, tags, lines; its buttons follow as the card's tile row (`cardTiles_`).
-   Which field fills each part is data (data/settings/card-fields.json); check/card-shape.js holds the four parts. */
+/* ONE CARD FOR EVERY KIND (owner, 8 Nov): picture, title, tags, lines, then its tile row (`cardTiles_`).
+   card-fields.json picks each part's fields; check-card-shape holds the shape. */
 const KC_PARTS = ['pic', 'head', 'tags', 'lines'];
 /* BEFORE THE SETTINGS FILE ARRIVES, OR FOR A KIND IT DOES NOT NAME: its kind's picture, its name, its facet tags. */
-const KC_BARE = { cls: '', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: [] };
+const KC_BARE = { cls: '', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] };
 const kcRow_ = x => (x && x.row) || {};
 const kcPct_ = m => (m === 1 ? '—' : (m > 1 ? '+' : '−') + Math.abs(Math.round((m - 1) * 100)) + '%');
 /* EACH FIELD A CARD CAN SHOW, BY NAME: the settings file picks, and a field with nothing to say says ''. */
@@ -374,10 +374,28 @@ const KC_FIELDS = {
 };
 /* A FIELD ITS OWN FILE DRAWS (tags, a venue's building, a manuscript, a boxer) is added to `window.KC_FIELDS_MORE` there; no load order needed. */
 const kcField_ = k => KC_FIELDS[k] || (window.KC_FIELDS_MORE || {})[k];
-/* A KIND'S FIELDS: its row in data/settings/card-fields.json (`DATA.cardFields`, settings.js) or the bare three. */
+/* THE FILE'S ROWS BEFORE IT ARRIVES (or if it never does): the same rows, held equal to the file by check-card-shape. */
+const KC_DEFAULT = {
+  tutor: { cls: 'is-widget is-prof tcard', pic: ['face'], title: ['role', 'nameRate'], tags: ['teaches', 'facts'], lines: ['listedNote', 'say', 'photos', 'words', 'quals', 'jobs', 'places', 'avail'], tiles: ['book-with:book:Book', 'msg-open:msg:Message'] },
+  venue: { cls: 'venue-door', pic: ['venuePic'], title: ['name'], tags: ['facets'], lines: ['venueSub', 'rooms'], tiles: [] },
+  level: { cls: 'is-level', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['surcharge', 'levelSubjects', 'tutorCount', 'bookingForm', 'tutorNames'], tiles: ['book-with:book:Book'] },
+  subject: { cls: 'is-subject', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['surcharge', 'levels', 'tutorNames'], tiles: ['book-with:book:Book'] },
+  manuscript: { cls: 'hdb hdb-msc lib-c', pic: ['msPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] },
+  writing: { cls: 'hdb lib-c', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['refs'], tiles: [] },
+  event: { cls: 'hdb lib-c', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['refs'], tiles: [] },
+  people: { cls: 'person lib-c', pic: ['boxerPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] },
+};
+/* A KIND'S FIELDS: its row in data/settings/card-fields.json (`DATA.cardFields`, settings.js), else the built-in row, else the bare three. */
 function kcSpec_(kind) {
-  const rows = (typeof DATA !== 'undefined' && DATA && DATA.cardFields) || {};
+  const rows = (typeof DATA !== 'undefined' && DATA && DATA.cardFields) || KC_DEFAULT;
   return rows[kind] || KC_BARE;
+}
+/* EVERY CARD OF A KIND SHOWS ITS KIND'S TILES (owner 35a, 8 Nov): one this card cannot use is drawn greyed (`off`), never left out. */
+function kcTilesFill_(x, html) {
+  const s = x && x.key ? kcSpec_(x.kind) : null;
+  if (!s || !(s.tiles || []).length) return html;
+  return html + s.tiles.map(t => { const [act, icon, label] = String(t).split(':');
+    return new RegExp('data-do="' + act + '"').test(html) ? '' : tile_({ icon, label: label || act, act, off: true, cls: 'kc-off' }); }).join('');
 }
 function findCard(x) {
   const it = x && x.row ? x : { kind: 'subject', row: x || {} };

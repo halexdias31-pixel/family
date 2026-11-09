@@ -420,12 +420,12 @@ function cardTiles_(x) {
   /* THEN WHAT ANY KIND MAY ADD: Read aloud, Hear it, speed, magnifier, Open, a column's `more`, the padlock. */
   /* ONE READ-ALOUD PER CARD (owner's look rule): a language card's Hear it stands in for Read aloud, never beside it. */
   const hear = typeof hearItOpts_ === 'function' ? hearItOpts_(x) : null;
-  const mine = cardCore_(x) + cardExtras_(x)
+  const mine = (typeof kcTilesFill_ === 'function' ? kcTilesFill_ : (a, h) => h)(x, cardCore_(x) + cardExtras_(x)
     /* a question's Read aloud is each part's (`qtRow_`) */
     + tile_(hear || (typeof readAloudOpts_ === 'function' && !isQ_(x) ? readAloudOpts_(x) : null))
     + tile_([typeof speedOpts_ === 'function' ? speedOpts_(x) : null, typeof magCardOpts_ === 'function' ? magCardOpts_(x) : null, finderOpenOpts_(x)]) + (x.more || '')
     /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
-    + (x.key && !isMeCard_(x) && !isQ_(x) && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '');
+    + (x.key && !isMeCard_(x) && !isQ_(x) && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : ''));
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
   /* YOUR OWN CARD IS ALL YOURS: nothing on it is split off as an admin's (the hub's gold means "terms to agree" there). */

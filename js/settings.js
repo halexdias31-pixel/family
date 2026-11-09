@@ -129,7 +129,7 @@ function setColumns_(d, extra) {
     /* AND NOT AN EMPTY LIST. § */
     if (live.length) d.columns = live;
     /* SWITCHED OFF (880): each is a Coming soon card in Find, its first plain line its notes; switched on again, its card goes. */
-    d.columnsOff = columns.filter(r => libS(r.screen) && !libOn(r.active) && libS(r.screen) !== 'res')
+    d.columnsOff = columns.filter(r => libS(r.screen) && !libOn(r.active))
       .map(r => ({ screen: libS(r.screen), label: libS(r.label) || libS(r.screen), what: libS(r.notes).split(/ — |\. |\(/)[0].trim() }));
   }
 }
@@ -165,7 +165,7 @@ function setCardFields_(d, extra) {
   const rows = extra['settings/card-fields'];
   const list = v => libS(v).split(',').map(t => t.trim()).filter(Boolean);
   if (rows && rows.length) d.cardFields = Object.fromEntries(rows.filter(r => libS(r.kind).trim()).map(r => [libS(r.kind).trim(),
-    { cls: libS(r.cls).trim(), pic: list(r.pic), title: list(r.title), tags: list(r.tags), lines: list(r.lines) }]));
+    { cls: libS(r.cls).trim(), pic: list(r.pic), title: list(r.title), tags: list(r.tags), lines: list(r.lines), tiles: list(r.tiles) }]));
 }
 
 function settingsInto_(d, extra) {

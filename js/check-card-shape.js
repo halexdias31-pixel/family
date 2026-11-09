@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/* @family. — check-card-shape.js ONE CARD SHAPE FOR EVERY KIND (owner, 8 Nov): every Find card that `findCard` draws has the same class
-   head and the same four parts in order (picture, title, tags, lines), whatever its kind; every field card-fields.json names exists. */
+/* @family. — check-card-shape.js ONE CARD SHAPE (owner, 8 Nov): every `findCard` card has one
+   class head and four parts in order, whatever its kind; every field card-fields.json names exists. */
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.join(__dirname, '..');
@@ -16,18 +16,19 @@ const OWN = new Set();
 const stub = new Proxy(function () { return ''; }, { get: (f, k) => (k === Symbol.toPrimitive ? () => '' : stub), apply: () => '' });
 const scope = new Proxy({
   esc: s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])),
-  libS: v => (v == null ? '' : String(v)), oops_: () => {}, on: () => {}, window: {}, console, Object, Array, String, Number, JSON, Math, Set, Map, Symbol,
+  libS: v => (v == null ? '' : String(v)), oops_: () => {}, on: () => {}, window: {}, console, Object, Array, String, Number, JSON, Math, Set, Map, Symbol, Boolean, RegExp, Date,
   DATA: {},
 }, { has: (o, k) => !OWN.has(k), get: (o, k) => (k in o ? o[k] : k === Symbol.unscopables ? undefined : stub), set: (o, k, v) => { o[k] = v; return true; } });
 /* eslint-disable-next-line no-new-func */
 const run = new Function('scope', 'with (scope) {\n' + cards.replace(/^(const|let) /gm, 'var ') + '\n'
-  + settings.replace(/^(const|let) /gm, 'var ') + '\n}\nreturn { findCard, setCardFields_, KC_FIELDS };');
+  + settings.replace(/^(const|let) /gm, 'var ') + '\n}\nreturn { findCard, setCardFields_, KC_FIELDS, KC_DEFAULT, kcTilesFill_ };');
 let got = {};
 try { got = run(scope); } catch (e) { bad.push('js/cards.js or js/settings.js would not load in the shape check: ' + e.message); }
 
 const d = {};
 try { got.setCardFields_(d, { 'settings/card-fields': rows }); } catch (e) { bad.push('setCardFields_ threw: ' + e.message); }
 scope.DATA = d;
+if (JSON.stringify(got.KC_DEFAULT) !== JSON.stringify(d.cardFields)) bad.push('KC_DEFAULT in js/cards.js is not data/settings/card-fields.json as settings.js reads it — change both together');
 const fields = got.KC_FIELDS && typeof got.KC_FIELDS === 'object' ? Object.keys(got.KC_FIELDS) : [];
 /* AND THE FIELDS OTHER FILES ADD (`window.KC_FIELDS_MORE`), read by name off their source. */
 fs.readdirSync(path.join(ROOT, 'js')).filter(f => /\.js$/.test(f)).forEach(f => {
@@ -58,6 +59,15 @@ rows.map(r => r.kind).concat(['some-new-kind']).forEach(kind => {
   const why = shapeOf(html);
   if (why) bad.push(kind + ' card: ' + why);
 });
+/* THE SAME TILES ON EVERY CARD OF A KIND (35a): a card without one of its kind's tiles shows it greyed, never twice; each has a handler. */
+const allJs = fs.readdirSync(path.join(ROOT, 'js')).filter(f => /\.js$/.test(f)).map(f => fs.readFileSync(path.join(ROOT, 'js', f), 'utf8')).join('\n');
+scope.tile_ = o => '<button class="tile" data-do="' + o.act + '"' + (o.off ? ' disabled' : '') + '></button>';
+rows.forEach(r => String(r.tiles || '').split(',').map(s => s.trim()).filter(Boolean).forEach(t => {
+  const act = t.split(':')[0], out = String(got.kcTilesFill_({ kind: r.kind, key: r.kind + ':1', row: {} }, ''));
+  if (!new RegExp('data-do="' + act + '" disabled').test(out)) bad.push(r.kind + ': a card without its ' + act + ' tile does not show it greyed');
+  if (String(got.kcTilesFill_({ kind: r.kind, key: 'k' }, '<button data-do="' + act + '"></button>')).split('data-do="' + act + '"').length !== 2) bad.push(r.kind + ': a card with its ' + act + ' tile gets a second, greyed one');
+  if (!new RegExp("on\\('" + act + "'").test(allJs)) bad.push(r.kind + ': tile ' + act + ' has no on() handler');
+}));
 /* EVERY KIND THE SETTINGS FILE SHAPES IS DRAWN BY `findCard` IN FIND, not by a card maker of its own. */
 rows.forEach(r => { if (r.kind === 'tutor') return;
   const m = new RegExp('\\n  ' + r.kind + ':\\s+\\{[^\\n]*?card: x => ([^}]*?) \\}').exec(finder);
