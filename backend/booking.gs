@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-08-home-seats-1";
+const BOOKING_VERSION = "2026-11-09-venue-rows-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -318,17 +318,15 @@ function capacityFor(kind, name) {
   return p ? N(p.max_students) : 0;
 }
 
-/* THE CLIENT'S OWN HOUSE, by name — the same words as `atClientHome_` on the phone. */
-function atClientHome_(loc) {
-  return /\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(S(loc));
+/* A VENUE WHOSE ROW SAYS `takes_all_seats` (owner, 8 Nov: the client's house) — a field, not a name; same as `takesAllSeats_` on the phone. */
+function takesAllSeats_(loc) {
+  const v = S(loc) ? spaceOf_(loc).venue : null;
+  return !!v && TRUE_(v.takes_all_seats);
 }
 
-/* THE SEAT CAP A NEW BOOKING MEETS (owner, 7 Nov): the smaller of the tutor's and the place's; online and the client's house hold 4. Same rule as `seatLimits` on the phone. */
+/* THE SEAT CAP A NEW BOOKING MEETS (owner, 7 Nov): the smaller of the tutor's and the place's — every venue row, Home and Online too. Same rule as `seatLimits` on the phone. */
 function seatCapFor_(location, tutorName) {
-  const at = S(location);
-  const place = /\b(online|home|house|client\s*(house|home|place)|your venue)\b/i.test(at)
-    ? (N(config().seats_online_or_home) || 4)
-    : capacityFor('venue', at);
+  const place = capacityFor('venue', S(location));
   /* A NAMED TUTOR WITH NO CAPACITY SET HOLDS 1 SEAT (owner, 7 Nov). */
   const tutorCap = S(tutorName) && findPerson(S(tutorName)) ? (capacityFor('person', tutorName) || 1) : 0;
   const caps = [place, tutorCap].filter(x => x > 0);
@@ -718,8 +716,6 @@ function waitlistWhen(jobId) {
 /* ---------- WHAT THE JOURNEY TO A VENUE COSTS § */
 function travelCost(venueName, sessions) {
   if (!S(venueName)) return 0;
-  /* ONLINE, BY NAME. The venue row for it has no travel cost and never will, so this changes nothing today — it is here because "Online" is the one venue whose § */
-  if (/^online$/i.test(S(venueName))) return 0;
   /* THE BUILDING, WHICHEVER ROOM. § */
   const v = spaceOf_(venueName).venue;
   if (!v) return 0;

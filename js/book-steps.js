@@ -303,7 +303,7 @@ function slotGrid() {
   const venue = (DATA.venues || []).find(x => norm(x.title) === norm(BOOKING.loc));
   const tAvail = availSet_(t && t.avail);
   /* A CLIENT'S HOUSE KEEPS NO HOURS (445): a stray cell on its row emptied the grid; it is open whenever the tutor is. */
-  const vAvail = atClientHome_(BOOKING.loc) ? {} : availSet_((sp && sp.avail) || (venue && venue.avail));
+  const vAvail = takesAllSeats_(BOOKING.loc) ? {} : availSet_((sp && sp.avail) || (venue && venue.avail));
   const haveT = Object.keys(tAvail).length, haveV = Object.keys(vAvail).length;
 
   /* NOTHING SET WAS READ AS EVERYTHING FREE, and for a TUTOR that is over. § */
@@ -522,7 +522,7 @@ const BOOK_STEPS = [
     } },
 
   { id: 'loc', label: 'Where?', short: 'Venue', only: 'wait, tutoring',
-    options: () => ['At home'].concat(bookableSpaces().map(x => x.label)),
+    options: () => bookableSpaces().map(x => x.label),
     /* THE ANSWER WRAPS. A room is "Venue — Room", and the three rooms of one building are the same
        answer until its last word — see the note at the foot of `stepSelect_`. */
     wrap: true,
@@ -540,9 +540,9 @@ const BOOK_STEPS = [
   /* A CLASS IS AT A VENUE. Somebody's front room is not a place three other families are going. */
   { id: 'hosting', label: 'Are you providing the space?', short: 'Space', only: 'wait, tutoring',
     /* AT THE CLIENT'S OWN HOUSE THE CLIENT IS THE SPACE (owner, 29 Oct: "the space field is redundant"): no options, so the row is text, `Yes`. */
-    fallback: () => atClientHome_(BOOKING.loc) ? 'Yes' : '',
+    fallback: () => takesAllSeats_(BOOKING.loc) ? 'Yes' : '',
     options: () => {
-      if (isWaiting_() || atClientHome_(BOOKING.loc)) return [];
+      if (isWaiting_() || takesAllSeats_(BOOKING.loc)) return [];
       const rate = venueRate_();
       /* Nothing to charge means nothing to decide: hosting is already true and asking would be
          the app consulting somebody about a fact. */
@@ -619,7 +619,7 @@ const BOOK_STEPS = [
 
 /* A HOME BOOKING'S SEAT COUNT, the tutor's whole capacity (owner, 8 Nov); 0 when not at home or on a waiting list. */
 function homeSeats_() {
-  if (isWaiting_() || !atClientHome_(BOOKING.loc)) return 0;
+  if (isWaiting_() || !takesAllSeats_(BOOKING.loc)) return 0;
   return seatLimits(null, tutorRow_(), BOOKING.loc).max;
 }
 
@@ -638,7 +638,7 @@ const tutorRow_ = () => (DATA.tutors || []).find(t => norm(t.title) === norm(BOO
    room and a large one at the same venue are different prices and the building's single figure
    could only ever be right for one of them. */
 function venueRate_() {
-  if (!BOOKING.loc || BOOKING.loc === 'At home') return 0;
+  if (!BOOKING.loc) return 0;
   const sp = spaceFor(BOOKING.loc);
   if (sp) return Number(sp.rate) || 0;
   const v = (DATA.venues || []).find(x => norm(x.title) === norm(BOOKING.loc));
@@ -712,11 +712,11 @@ function bookSpec() {
   const firstHour = runs.length ? String(runs[0].hour).padStart(2, '0') + ':00' : '';
   return Object.assign({
     subjects: BOOKING.subjects, level: BOOKING.level, n: Number(BOOKING.n) || 1,
-    loc: BOOKING.loc === 'At home' ? '' : BOOKING.loc,
+    loc: (spaceFor(BOOKING.loc) || {}).label || BOOKING.loc,
     /* The answer, or the rule when it has not been given: a venue that charges nothing is hosted
        whether or not anybody said so. */
-    hosting: atClientHome_(BOOKING.loc) ? true : BOOKING.hosting ? BOOKING.hosting === 'Yes'
-                             : (BOOKING.loc === 'At home' || isHome(BOOKING.loc)),
+    hosting: takesAllSeats_(BOOKING.loc) ? true : BOOKING.hosting ? BOOKING.hosting === 'Yes'
+                             : isHome(BOOKING.loc),
     /* HOW MANY OTHERS, counted from the addresses given rather than picked separately. */
     splitOthers: (BOOKING.split || []).filter(x => String(x).trim()).length,
     day: days.join(', '), time: firstHour,

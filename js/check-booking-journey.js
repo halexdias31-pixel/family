@@ -21,7 +21,10 @@ const ALL = Object.keys(WHO);
 const nameOf = id => WHO[id][1] + ' Walktest';
 b.seed('people', ALL.map(id => Object.assign({ person_id: id, role: WHO[id][0], first_name: WHO[id][1],
   handle: WHO[id][2], email: WHO[id][3], max_students: WHO[id][4] }, base)));
-b.seed('venues', [{ venue_id: 'WV1', name: 'Walktest Library', town: 'Mitcham', cost_per_hour: 15, max_students: 3 }]);
+b.seed('venues', [{ venue_id: 'WV1', name: 'Walktest Library', town: 'Mitcham', cost_per_hour: 15, max_students: 3 },
+  /* HOME AND ONLINE ARE VENUE ROWS (owner, 8 Nov): their seats come from the row like any other. */
+  { venue_id: 'WV2', name: 'Online', cost_per_hour: 0, max_students: 4 },
+  { venue_id: 'WV3', name: 'Client House', cost_per_hour: 0, max_students: 4, takes_all_seats: 'TRUE' }]);
 const tk = {};
 ALL.forEach(id => { const d = b.post({ action: 'verifyLogin', email: WHO[id][3], pin: '0000' }); if (d && d.success) tk[id] = d; });
 if (Object.keys(tk).length !== ALL.length) {

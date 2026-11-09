@@ -208,7 +208,7 @@ document.addEventListener('change', e => {
   /* ANOTHER CLIENT, ANOTHER FAMILY: a child the new client does not have is not on their booking (two clients' children showed, 29 Oct). */
   if (step.id === 'client') bookKidsFor_();
   /* AND AT THE CLIENT'S OWN HOUSE THE SPACE IS THEIRS — an earlier `No` must not stand under a row that cannot be answered. */
-  if (step.id === 'loc' && atClientHome_(BOOKING.loc)) BOOKING.hosting = '';
+  if (step.id === 'loc' && takesAllSeats_(BOOKING.loc)) BOOKING.hosting = '';
 
   /* ---------- CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS § */
   if (step.id === 'joining') {

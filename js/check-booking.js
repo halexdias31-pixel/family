@@ -488,7 +488,7 @@ const MONEY_DATA = (vars) => ({
   /* B IS A SHARE OF THE EXTRA-SEAT RATE SINCE 8 NOV: 0.4 x c 0.5 = 0.2 of the rate, so the owner's examples keep their pennies. */
   constants: { vars: Object.assign({ c: 0.5, B: 0.4 }, vars || {}) },
   tutors: [{ title: 'Tutor', rate: 30 }], multipliers: {},
-  venues: [{ title: 'Somewhere', bestRate: 15 }],
+  venues: [{ title: 'Somewhere', bestRate: 15 }, { title: 'Client House', bestRate: 0, maxCapacity: 4, takesAllSeats: true }],
 });
 const quote = (spec, vars) => {
   money_.setData(MONEY_DATA(vars));
@@ -563,7 +563,7 @@ if (money_) {
         const data = MONEY_DATA();
         data.tutors = [{ title: 'Tutor', rate: 12, maxStudents: cap }];
         money_.setData(data);
-        const lim = money_.seatLimits(null, data.tutors[0], 'At home');
+        const lim = money_.seatLimits(null, data.tutors[0], 'Client House');
         if (lim.max !== want || lim.min !== want) bad.push('a tutor holding ' + cap + ' at home allows ' + lim.min + '–' + lim.max + ' seats, wanted exactly ' + want);
         const L = money_.priceFrom({ subjects: [], tutor: 'Tutor', n: lim.max, hours: 2, hoursPerWeek: 4, slots: 12, day: 'Wednesday, Sunday', hosting: true });
         const perHour = r2(12 * (1 + (0.5 + 0.2) * (want - 1)));
