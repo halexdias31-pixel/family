@@ -792,21 +792,26 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .check .box {
   /* The box is small, but the LABEL around it is the target — .7rem of padding above and below
      gives the whole row a 44px reach without a 44px square, which would look absurd. */
-  flex: none; width: max(22px, 1.5rem); height: max(22px, 1.5rem); border-radius: var(--r-ui);
-  /* THE EDGE AND THE GROUND ARE THE ARGUMENT, not the values. § */
-  border: 1.5px solid color-mix(in srgb, var(--white) 14%, transparent);
-  background: color-mix(in srgb, var(--white) 4%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 5%, transparent);
+  flex: none; width: max(22px, 1.5rem); height: max(22px, 1.5rem);
   display: flex; align-items: center; justify-content: center;
   font-size: var(--fs-body); color: var(--on-gold);
   transition: background var(--dur-quick) var(--ease-out), border-color var(--dur-quick) var(--ease-out),
               box-shadow var(--dur-quick) var(--ease-out);
 }
+/* ---------- ONE TICK (owner 63a, 9 Nov): every tick, checkbox and stage box is this square with a ✓ in it, ghosted when off, gold when on. ---------- */
+:is(.check .box, .dock-row .box, .bk-tick, .mat-list input) {
+  border-radius: var(--r-ui);
+  border: 1.5px solid color-mix(in srgb, var(--white) 14%, transparent);
+  background: color-mix(in srgb, var(--white) 4%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 5%, transparent);
+  display: inline-flex; align-items: center; justify-content: center; }
+.dock-row .box { flex: none; width: max(22px, 1.5rem); height: max(22px, 1.5rem); }
 /* The ghost of the mark, so an empty box says what would go in it. */
-.check .box::after { content: '✓'; font-weight: 700; color: color-mix(in srgb, var(--white) 16%, transparent); }
+:is(.check .box, .dock-row .box, .mat-list input)::after { content: '✓'; font-weight: 700; line-height: 1; color: color-mix(in srgb, var(--white) 16%, transparent); }
+.bk-tick { color: color-mix(in srgb, var(--white) 16%, transparent); }
 .check:is(:active, .is-pressed) .box { border-color: var(--gold); }
-.check input:checked + .box { background: var(--gold); border-color: var(--gold); box-shadow: none; }
-.check input:checked + .box::after { color: var(--on-gold); }
+:is(.check input:checked + .box, .dock-row input:checked + .box, .bk-tick.on, .mat-list input:checked) { background: var(--gold); border-color: var(--gold); box-shadow: none; color: var(--on-gold); }
+:is(.check input:checked + .box, .dock-row input:checked + .box, .mat-list input:checked)::after { color: var(--on-gold); }
 
 /* ---------- YOUR ROLES: A TICK WITH ITS MEANING UNDER THE WORD § */
 .notify-card .role-pick { align-items: flex-start; }
@@ -2303,16 +2308,8 @@ label.bk-k { cursor: pointer; }
   display: inline-flex; align-items: center; justify-content: center;
   width: 1.05em; height: 1.05em; flex: none;
   vertical-align: middle;
-  border-radius: var(--r-ui);
-  border: 1.5px solid color-mix(in srgb, var(--white) 14%, transparent);
-  background: color-mix(in srgb, var(--white) 4%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 5%, transparent);
   font-size: inherit; line-height: 1;
-  /* THE GHOST OF THE MARK. The same glyph as a ticked one, at the alpha `.check .box::after` uses,
-     so an empty box says what would go in it rather than sitting there as an empty square. */
-  color: color-mix(in srgb, var(--white) 16%, transparent);
 }
-.bk-tick.on { background: var(--gold); border-color: var(--gold); box-shadow: none; color: var(--on-gold); }
 /* THE DATE BESIDE `Requested`, and it is the only stage that has one — see `JOB_STAGES`. Set like
    `.bk-dates`, because it is the same kind of thing: a date, subordinate to the row it is on. */
 .bk-when { font-size: var(--fs-small); color: var(--ink); }
@@ -3248,12 +3245,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* DRAWN, NOT STYLED — a background on a native checkbox stops the browser drawing its own control and there is nothing left to replace the tick. § */
 .mat-list input { appearance: none; -webkit-appearance: none; flex: none; position: relative;
                   width: 1rem; height: 1rem; min-height: 0; padding: 0; margin: 0;
-                  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-ui);
-                  cursor: pointer; }
-.mat-list input:checked { background: var(--gold); border-color: var(--gold); }
-.mat-list input:checked::after { content: ""; position: absolute; left: 5px; top: 1px;
-  width: 4px; height: 8px; border: solid var(--bg); border-width: 0 2px 2px 0;
-  transform: rotate(43deg); }
+                  font-size: var(--fs-small); cursor: pointer; }
 /* THE GAUGE turns red at 100%, not at 90% — a warning that fires early is one people learn to
    ignore, and then ignore when it matters. */
 .mat-gauge { height: .45rem; background: var(--sunk); border-radius: var(--r-ui); overflow: hidden; }

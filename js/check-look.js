@@ -163,5 +163,14 @@ for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
 }
 if (!/\.card\s*\{[^}]*padding: var\(--card-gap\) 0/.test(noComments)) bad.push('62a a bare card is not padded var(--card-gap) either side of its rule');
 
+/* ---------- 63a. ONE TICK: every ticked box is drawn by the ONE TICK rules; a week-grid hour is a cell, not a tick ---------- */
+const TICK_ONE = /^:is\(\.check input:checked \+ \.box/;
+for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  const sel = m[1].trim();
+  if (!/input:checked|\.bk-tick\.on|\.box\b/.test(sel) || /option\[|\.hr\b/.test(sel) || TICK_ONE.test(sel)) continue;
+  if (/(^|;)\s*(background|border|box-shadow)(-color)?\s*:/.test(m[2]) && /:checked|\.on\b/.test(sel)) bad.push(`63a a tick drawn its own way: "${sel.slice(0, 60)}" — the ONE TICK rules`);
+}
+if ((noComments.match(/border: 1\.5px solid color-mix\(in srgb, var\(--white\) 14%/g) || []).length !== 1) bad.push('63a the tick\'s edge is written more than once — one :is(...) rule draws every tick');
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');
