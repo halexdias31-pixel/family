@@ -214,5 +214,16 @@ files.forEach(({ n, src }) => {
 });
 if (!/!o\.leave && \/\^https/.test(tilesSrc)) bad.push('68a tile_ no longer opens an https tile in place (fileView_)');
 
+/* ---------- 69a. A TIME IS A SPAN, start–end, and hours_ (core.js) is the one that writes it ---------- */
+/* book-steps sends the first hour as data (`time`) to the backend: a field, not words on screen. */
+files.forEach(({ n, src }) => {
+  if (n === 'core') return;
+  const code = stripC(src);
+  const k = (code.match(/time_\([^()]*\+ ':00'\)/g) || []).length - (n === 'book-steps' ? 1 : 0);
+  if (k > 0) bad.push(`69a an hour said by hand in ${n}.js — hours_(start, end): 16:00–18:00`);
+  if (/time_\([^)]*\)\s*\+\s*'\s*[–-]\s*'\s*\+\s*time_\(/.test(code)) bad.push(`69a a span built by hand in ${n}.js — hours_(start, end)`);
+});
+if (!/const hours_ = \(a, b\) => time_\(a \+ ':00'\) \+ '–' \+ time_\(b \+ ':00'\)/.test(coreSrc)) bad.push('69a hours_ no longer writes start–end');
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');

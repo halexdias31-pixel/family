@@ -267,7 +267,7 @@ function profAvail_(t) {
   }
   /* ---------- SPANS, NOT THE RECEIPT'S DISABLED BUTTONS § */
   const hoursOn = which => days.map(d => {
-    const hs = d.hours.filter(which).map(c => time_(c.h + ':00'));
+    const hs = d.hours.filter(which).map(c => hours_(c.h, c.h + 1));
     return hs.length ? day_(d.label) + ' ' + hs.join(', ') : '';
   }).filter(Boolean).join('; ');
   const said = hoursOn(c => c.lit);
