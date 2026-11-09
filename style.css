@@ -6005,6 +6005,13 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tcard .prof-handle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tcard .prof-say { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .tcard .prof-quals .prof-tag, .tcard .prof-jobs .prof-tag, .tcard .prof-places .prof-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A PILL'S LEVEL AND GRADE ON ITS OWN LINE, IN ITS OWN SIZE (owner, 9 Nov: "A-Level" spilled out of the pill): read "Maths A-Level, GCSE"; a long one wraps inside. */
+.tcard .prof-tags .prof-tag { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
+.tcard .prof-tags .prof-lv { font-size: inherit; line-height: inherit; vertical-align: baseline; }
+.tcard .prof-quals .prof-tag { white-space: normal; text-overflow: clip; }
+.tcard .prof-tags .prof-iso { display: inline; margin: 0 0 0 1ch; font-size: inherit; line-height: inherit; vertical-align: baseline; color: inherit; }
+.tcard .prof-tags .prof-iso :is(sup, sub) { display: inline; margin: 0; }
+.tcard .prof-tags .prof-iso sup + sub { margin-left: 1ch; }
 .tcard h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- BOOKING CARD AT 390px (owner 7 Nov: no grey text; read like the tutor card) ---------- */

@@ -49,6 +49,8 @@ const SUITE = [
   /* ---------- THE FAULT CLAUDE.md CALLS THE WORST ONE HERE § */
   { file: 'check-payload.js', what: 'DATA keys read vs DATA keys sent' },
   { file: 'check-reading.js', what: 'every Library text drawn by readingCard_ (one reading layout)' },
+  /* A TUTOR CARD'S PILLS SPILLED THEIR LEVELS AND ITS RATE SAID "/h /hour" (9 Nov): a browser at 390 and 830, a few seconds. */
+  { file: 'check-tutor-card.js', what: 'a tutor card at 390 and 830: every pill holds its text, the rate says /h once, no-hours in the ink', par: true },
   /* A STEM'S TABLE DREW WITH NO BORDERS (`.qsheet table` only): a browser, about 10s, so it stays in --fast. */
   { file: 'check-tables.js', what: 'every table in a question, at 390 wide in its card: bordered, no cell under 1.5em, columns in line, inside .qtext', par: true },
   /* THE RUNTIME SAFETY NET (R6): one sink, malformed rows, and empty catches only falling. */
