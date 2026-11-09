@@ -1731,11 +1731,10 @@ const STATES = {
       expect: () => {
         const end = document.querySelector('#stuff-groups .find-end');
         const chips = document.querySelector('#stuff-chips .chips');
-        return !!end && /Nothing left to narrow/.test(end.textContent) && !end.hasAttribute('style')
-               && !!end.querySelector('b') && !!chips
+        return !(end && /Nothing left to narrow/.test(end.textContent)) && !!chips
                && parseFloat(getComputedStyle(chips).borderBottomWidth) >= 1;
       },
-      wants: 'the funnel ending on "Nothing left to narrow" in its own class, with a rule under the chosen chips',
+      wants: 'the funnel ending with no "Nothing left to narrow" line, with a rule under the chosen chips',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- "STABLE": AN ANSWER PRESSED MOVES NOTHING ABOVE IT § */
     { name: 'an answer pressed, the controls and the chips still',

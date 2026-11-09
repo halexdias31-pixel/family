@@ -567,14 +567,13 @@ function stuffQuestion() {
     ? tileRow_(tile_({ icon: 'plus', label: 'Add someone by their handle', word: 'Add', act: 'friend-add-open' }), 'find-end') : '';
   if (!facet) {
     /* ---------- "NOTHING LEFT TO NARROW" WAS NOT TRUE, AND IT WAS THE LAST THING ON THE SCREEN § */
-    const n = items.length === 1 ? 'one' : items.length;
     /* AND WHEN A PAPER ENDED IT, IT SAYS SO. § */
     /* ---------- ONE CLASS FOR THE LAST LINE, NOT AN INLINE MARGIN ON EACH § */
     /* AND OVER THE BIBLE, WHICH VERSES — or why there is no question over its cover yet. */
     const be = bibleEnd_(items);
     if (be) return be + adding;
-    return `<p class="find-end">Nothing left to narrow.
-      <b>${SWIPE_UP} for the ${n}.</b></p>` + adding;
+    /* NO END LINE (owner, 9 Nov: "remove that text"): the cards under the chips say it. */
+    return adding;
   }
 
   /* ---------- EVERY ANSWER, IN THE ORDER EVERY OTHER QUESTION USES § */
