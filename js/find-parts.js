@@ -328,7 +328,7 @@ function answerBlock_(x) {
   const p = answerParts_(x.answer);
   return `<div class="qans">
     <span class="qans-head">Answer${kind ? ` &middot; ${esc(kind)}` : ''}</span>
-    <div class="qans-body">${typeset_(p.head)}</div>
+    <div class="qans-body qtext">${typeset_(p.head)}</div>
   </div>`;
 }
 
