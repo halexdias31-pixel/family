@@ -346,8 +346,27 @@ function stuffFiltered() {
 
 /* ---------- THE PAGES, WHICH ARE NOT THE SAME LIST AS THE RESULTS § */
 let STUFF_PAGES = { from: null, pages: [] };
+/* CARDS ONLY ONCE THE FUNNEL HAS NOTHING LEFT TO ASK (owner, 9 Nov): the last card, no next question, or a door/tile
+   that showed these chips (`STUFF.shown`). One rule for every kind; while asking, no card is built. */
+const FIND_DONE = new WeakMap();
+function findDone_(F) {
+  return inFinder_(F || FINDER, () => {
+    const items = stuffFiltered(), fkey = JSON.stringify(STUFF.filters || []);
+    if (STUFF.shown === fkey || items.length <= 1) return true;
+    const m = FIND_DONE.get(items);
+    if (m && m.fkey === fkey && m.data === DATA) return m.v;
+    let v = true;
+    try { v = !finderTagsAt_() && !(nextFacet(items) || overFacet_(items) || (!(STUFF.filters || []).length ? facetBy('kindLabel') : null)); }
+    catch (e) { v = true; }
+    FIND_DONE.set(items, { fkey: fkey, data: DATA, v: v });
+    return v;
+  });
+}
+/* A DOOR OR THE REVEAL TILE SHOWS THE CARDS UNDER THESE CHIPS, until the next chip change. */
+function findShow_() { STUFF.shown = JSON.stringify(STUFF.filters || []); }
 function stuffPages_() {
   const items = stuffFiltered();
+  if (!findDone_()) return [];
   if (STUFF_PAGES.from === items) return STUFF_PAGES.pages;
   /* BACK TO A LIST JUST SEEN (slow taps, 8 Nov): its pages are kept with it, as `stuffFiltered` keeps the list. */
   const fkey = JSON.stringify(STUFF.filters || []);

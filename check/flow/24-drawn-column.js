@@ -789,6 +789,8 @@ check('a finder drawn for nobody is filled inside the builder\'s slices: no card
      the builder has drawn Find from the payload, so it lands on Find's own question and not the boot's loader. */
   const S = t.STUFF();
   S.filters = P.ask.slice();
+  /* THE PAPER'S CHIPS STILL ASK, so its cards are shown as the reveal tile shows them (`findDone_`). */
+  w.inFinder_(w.finderOf_('stuff'), () => w.findShow_());
   w.paintFinder_('stuff');
   await aheadQuiet_(t);
   if (!w.document.querySelectorAll('#s-stuff > .page.is-res').length) return ['Find holds no result pages for the paper, so nothing was asked — NOT checked'];
@@ -923,6 +925,7 @@ check('the quiet puts a finder\'s window where a run needs it: the card in front
   t.go('stuff', false, true);
   const S = t.STUFF();
   S.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
+  w.inFinder_(w.finderOf_('stuff'), () => w.findShow_());
   w.paintFinder_('stuff');
   await aheadQuiet_(t);
   const first = w.inFinder_(w.finderOf_('stuff'), () => w.stuffFirstResult_());

@@ -388,7 +388,8 @@ const keepRows_ = () => LIB_FULL.rows('questions')
 const keepCard_ = (pg, id) => !!(pg && pg.x && (!pg.part || pg.part === 'q') && (pg.parts || [pg.x]).some(p => p && p.row && p.row.row_id === id));
 const keepWalk_ = async (w, id) => {
   const d = w.document, S = w.__t.STUFF(), said = [];
-  const cardOn = () => w.stuffPages_().some(pg => keepCard_(pg, id));
+  /* BY THE LIST, NOT THE PAGES: no page is built while the funnel still asks (`findDone_`). */
+  const cardOn = () => w.stuffFiltered().some(x => x && x.row && x.row.row_id === id);
   for (let step = 0; step < 16; step++) {
     /* THE QUESTION BEING ASKED, and a child walking the funnel answers what it asks. */
     const picks = [...d.querySelectorAll('#s-stuff #stuff-groups .answers [data-do="facet-pick"]')];
@@ -404,6 +405,9 @@ const keepWalk_ = async (w, id) => {
     /* THE PAPER CHOSEN, A CHILD SWIPES UP THROUGH IT: the funnel would go on to ask Question (396), and the card is found by its page. */
     if (keeps.dataset.field === 'paperId') break;
   }
+  /* THE FUNNEL STILL ASKS Question, so the child presses "Show what's here so far" (owner, 9 Nov). */
+  const peek = d.querySelector('#s-stuff [data-do="find-reveal"]');
+  if (peek) { peek.click(); await wait(20); }
   return said;
 };
 /* ---------- THE FINDER IS FOR MEMBERS (400) — the owner, 24 Oct: signed out, Find is one card, Sign in or Join ---------- */

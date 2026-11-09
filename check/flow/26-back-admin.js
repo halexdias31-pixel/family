@@ -8,6 +8,7 @@ check('a part with an answer box, its words landed from the Ledger, shows them o
   const open_ = async (W, rid) => {
     for (let i = 0; i < 100 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.row && x.row.row_id === rid)); i++) await wait(50);
     W.__t.STUFF().filters = [{ field: 'paperId', value: PID }];
+    W.findShow_();
     W.__t.go('stuff');
     W.paintStuff();
     const i = W.stuffPages_().findIndex(pg => pg.x.row && pg.x.row.row_id === rid);
@@ -89,6 +90,7 @@ check('a new content card (lib_pending) is asked for, drawn whole when the Ledge
     if (!x) return [target.book_id + ' chapter ' + target.chapter + ' did not come into Find as a content card — nothing was checked'];
     if (!x.row.pending) bad.push('the chapter row says lib_pending and its content card is not marked pending');
     W.__t.STUFF().filters = [{ field: 'kindLabel', value: 'Library' }];
+    W.findShow_();
     W.__t.go('stuff');
     W.paintStuff();
     const i = W.stuffPages_().findIndex(pg => pg.x === x);
@@ -188,6 +190,8 @@ async function libScrollRun_(o) {
   if (o.disk) W.libDisk_ = () => o.disk;
   for (let i = 0; i < 100 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.row && x.row.paper_id === LIB_AHEAD_PID)); i++) await wait(50);
   W.__t.STUFF().filters = [{ field: 'paperId', value: LIB_AHEAD_PID }];
+  /* THE PAPER'S CHIP STILL ASKS, so its cards are shown as the reveal tile shows them (`findDone_`). */
+  W.findShow_();
   W.__t.go('stuff');
   W.paintStuff();
   await wait(o.lat + 1200);
@@ -774,6 +778,7 @@ check('back to top: every result page of Find ends in a Back to top tile, and it
     t.go(id, false, true); await wait(120); await woken_();
     /* EVERY QUESTION, as a child narrowing to Questions would have them */
     t.STUFF().filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
+    w.inFinder_(F, () => w.findShow_());
     w.finderForgetFound_();
     w.paintFinder_(id); await wait(150); await woken_();
     const n = w.inFinder_(F, () => w.stuffPageCount());

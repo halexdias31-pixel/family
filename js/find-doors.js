@@ -223,6 +223,7 @@ function findSettings_(type) {
   try {
     inFinder_(FINDER, () => {
       STUFF.filters = [{ field: 'kindLabel', value: 'Settings' }].concat(USER && type ? [{ field: 'settingFor', value: type }] : []);
+      findShow_();
     });
     go(FINDER.id);
     inFinder_(FINDER, () => paintStuff());
@@ -234,7 +235,7 @@ function screenGone_(id) {
   if (to[0] !== 'find' || !to[1] || TABS.some(t => t.id === id)) return false;
   if (to[1] === 'Settings') { findSettings_(to[2] || ''); return true; }
   try { if (typeof OPEN_JOB !== 'undefined' && OPEN_JOB) BOOK_OPEN = false; } catch (e) { oops_(e, 'doors:gone'); }
-  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: to[1] }] }); go('stuff'); return true;
+  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: to[1] }], show: true }); go('stuff'); return true;
 }
 /* A VENUE'S 8-BIT BUILDING AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
