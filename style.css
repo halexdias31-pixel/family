@@ -6280,3 +6280,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .bk-row.is-blank .bk-k { color: var(--ink); }
 .bk-dates, .bk-when { font-size: inherit; }
 .bk-row.is-cols :is(.bk-k, .bk-v, .bk-m, .bk-r, .bk-t) { color: var(--gold); }
+
+/* THE ONE VIEWER (`fileView_`): a file opened inside its card, the card's width, never full screen. */
+.file-view { margin-top: .75rem; }
+.file-view-f, .file-view-v, .file-view-i { display: block; width: 100%; border: 1px solid var(--line); border-radius: .5rem; background: var(--bg); }
+.file-view-f { height: 70vh; }
+.file-view-youtube .file-view-f, .file-view-v { height: auto; aspect-ratio: 16 / 9; }

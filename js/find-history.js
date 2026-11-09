@@ -96,11 +96,7 @@ function insertCard_(x) {
 }
 /* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies; a timeline's animation (`tlExtras_`). */
 function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
-  .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'ins-official', data: { url: o.url } }))); }
-on('ins-official', el => {
-  const u = String(el.getAttribute('data-url') || '');
-  if (/^https:\/\//.test(u)) window.open(u, '_blank', 'noopener');
-});
+  .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'file-view', data: { url: o.url, title: o.label } }))); }
 /* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
 on('ins-print', el => {
   const r = insertRow_(el.getAttribute('data-id'));
@@ -380,7 +376,7 @@ function histExtras_(x) {
   const icon = l => (l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'flag');
   return [read ? { icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } } : null]
     .concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => ({ icon: icon(l), label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })),
-      histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u => ({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u }))); }
+      histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u => ({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], act: 'file-view', data: { url: u, title: 'Source' } }))); }
 function histCard_(x) {
   const r = x.row || {};
   /* A MANUSCRIPT IS MINIMAL (owner, 7 Nov): its picture first where drawn, then its facts as tags; no title, no grey line. */
@@ -666,3 +662,33 @@ function bibleItems_() {
 function bibleCard_(x) {
   return x && x.bb ? bibleVerseCard_(x) : '';
 }
+
+/* ---------- THE ONE VIEWER (owner, 9 Nov): a library card's book, paper, video or PDF opens inside its own card, never a new tab; a video plays there, not full screen. */
+function fileViewKind_(u) {
+  const s = String(u || '');
+  if (/youtube\.com\/watch|youtu\.be\//i.test(s)) return 'youtube';
+  if (/\.(mp4|webm|m4v|mov)(\?|#|$)/i.test(s)) return 'video';
+  if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(s)) return 'image';
+  return 'page';
+}
+function fileView_(u, host, title) {
+  if (!host || !/^(https:\/\/|data\/)/.test(String(u || ''))) return false;
+  const had = host.querySelector(':scope > .file-view');
+  if (had) { const same = had.getAttribute('data-url') === u; had.remove(); if (same) return true; }
+  const kind = fileViewKind_(u), name = esc(title || 'File');
+  const yt = kind === 'youtube' ? (/[?&]v=([\w-]{6,})/.exec(u) || /youtu\.be\/([\w-]{6,})/.exec(u) || [])[1] : '';
+  const body = kind === 'video' ? `<video class="file-view-v" src="${esc(u)}" controls playsinline preload="metadata"></video>`
+    : kind === 'image' ? `<img class="file-view-i" src="${esc(u)}" alt="${name}">`
+    : `<iframe class="file-view-f" src="${esc(yt ? 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(yt) + '?playsinline=1' : u)}" title="${name}" loading="lazy" allow="encrypted-media; picture-in-picture"></iframe>`;
+  const box = document.createElement('div');
+  box.className = 'file-view file-view-' + kind;
+  box.setAttribute('data-url', u);
+  box.innerHTML = body + `<div class="tile-row">${tile_({ icon: 'close', label: 'Close', act: 'file-view-close' })}</div>`;
+  host.appendChild(box);
+  return true;
+}
+on('file-view', el => {
+  const host = el.closest('.card, .qcard') || el.parentElement;
+  fileView_(String(el.getAttribute('data-url') || ''), host, el.getAttribute('data-title') || el.getAttribute('aria-label'));
+});
+on('file-view-close', el => { const v = el.closest('.file-view'); if (v) v.remove(); });
