@@ -1041,7 +1041,7 @@ check('signing in over somebody else empties both finders\' chips, though nothin
   if (typeof w.signedIn_ !== 'function' || typeof w.finderStates_ !== 'function') return ['signedIn_ or finderStates_ is not reachable — NOT checked'];
   const was = t.whoami() || {};
   if (!was.personId) return ['the setup: nobody is signed in, so a switch from one person to another was NOT asked'];
-  for (const id of ['stuff', 'res']) { t.go(id, false, true); await wait(120); await woken_(); }
+  for (const id of ['stuff']) { t.go(id, false, true); await wait(120); await woken_(); }
   w.finderStates_().forEach(st => { st.filters = [{ field: 'kindLabel', value: 'Library' }]; });
   try { w.signedIn_({ success: true, name: 'Sam Student', personId: was.personId + '-other', role: 'student', roles: ['student'], token: 'tk-other' }, 'sam'); }
   catch (e) { return bad.concat(['signedIn_ threw: ' + e.message]); }

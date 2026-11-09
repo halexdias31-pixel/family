@@ -60,6 +60,8 @@ const SUITE = [
   { file: 'check-access.js', what: 'every action past the permissions gate' },
   /* AND WHETHER ANYTHING ASKS FOR IT (433): a handler nothing calls is a door onto nothing from the other side. */
   { file: 'check-actions.js', what: 'every doPost action has a caller or a written reason' },
+  { file: 'check-shape.js', what: 'every item in the one shape {id, kind, title, tags, text, picture, tiles} (report only, 82a)' },
+  { file: 'check-permissions.js', what: 'the permissions table and ACTION_ACCESS agree for every action and role (86a)' },
   /* AND WHO THE ACTION IS ABOUT. `check-access` asks whether an action may be performed; this asks
      whether the person it names can be found again tomorrow. */
   /* ---------- AND WHETHER A REFUSAL IS REPORTED AS ONE § */
@@ -138,7 +140,7 @@ const SUITE = [
   /* WHO SEES WHOM (386): a child siblings and friends, a parent her children — nobody else in the payload. */
   { file: 'check-visibility.js', what: 'a child sees siblings and friends, never a parent; a parent her children, never a co-parent' },
   { file: 'check-kid-prices.js', what: 'a child is sent no rate, price or £, and her money actions ask a parent (398)' },
-  { file: 'check-booking-journey.js', what: 'a booking walks from the ask to paid as client, tutor and admin: seat caps, the room, Mark paid, the receipt' },
+  { file: 'check-booking-journey.js', what: 'a booking walks from the ask to paid as client, tutor and admin: seat caps, the room, paid through Stripe, the receipt' },
   { file: 'check-pay-return.js', what: 'a card payment coming back from Stripe books once, and a refresh, a typed ref or a child does not (430)' },
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
@@ -229,12 +231,12 @@ const SUITE = [
   { file: 'check/tiles.js',   what: 'every tile is tile_(), 44px with a 16px mark, no overlap, spill or orphan at four widths, and never drawn under a fingertip in any state (533)', slow: true, heavy: true },
   { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503)', slow: true },
   { file: 'check/chip-feel.js', what: 'at 4x CPU a tapped Find answer is lit in a frame before the funnel redraws, and three taps in a row are three answers (720)', slow: true },
-  { file: 'check/kp-centred.js', what: 'Find and Find 2 centred above the @family. keypad, the box still as you type, centred again when it goes (720)', slow: true },
+  { file: 'check/kp-centred.js', what: 'Find centred above the @family. keypad, the box still as you type, centred again when it goes (720)', slow: true },
   { file: 'check/later.js', what: 'every column gone to and started while the LATER files are away reads none of their names; they arrive in one task (720)', slow: true },
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
   { file: 'check/calc-steady.js', what: 'pressing keys never changes the calculator\'s size or shape, nor any key\'s (472)', slow: true },
   { file: 'check/fluid.js',   what: 'any shape of screen: seven phone, tablet and desktop sizes scroll no wider than the window and leave no blank side', slow: true },
-  { file: 'check/centred.js', what: 'Find and Find 2 float back to the middle when words or chips are cleared (508)', slow: true },
+  { file: 'check/centred.js', what: 'Find floats back to the middle when words or chips are cleared (508)', slow: true },
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
   { file: 'check/slide.js',   what: 'the slide between columns as iOS does it: landings, a spring, the rubber band, a held row (527)', slow: true },
   /* ---------- AND A FINGER ON THE PEN § */

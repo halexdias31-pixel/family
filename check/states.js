@@ -1314,24 +1314,13 @@ const STATES = {
           if (!inp || moving || !inp.closest('#screen .page.on')) { if (++tries < 60) setTimeout(up, 50); return; }
           inp.focus();
           if (KP_AT !== inp) kpOpen_(inp);
-          /* A FINGER ON THE STRIP, once the pad has made its room */
-          setTimeout(() => { const q = document.querySelector('#kp > .kp-q'); if (q) { q.click(); window.__kqTapped = true; } }, 120);
         };
         up();
       },
-      /* THE STRIP, A FINGERTIP TALL, ABOVE EVERY KEY, SAYING THE QUESTION'S OWN FIRST WORDS; TAPPED, THE QUESTION'S FIRST LINE IS ON SCREEN ABOVE THE PAD. A wide screen draws none. */
+      /* NO STRIP ON THE PAD (owner, 9 Nov): the pad is up on the box and never repeats the question. */
       expect: () => {
         const pad = document.getElementById('kp');
-        const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__kqKey);
-        const q = pad && pad.querySelector(':scope > .kp-q');
-        const sheet = inp && inp.closest('.qcard') && inp.closest('.qcard').querySelector('.qsheet');
-        if (!pad || pad.hidden || !inp || !q || !sheet || !window.__kqTapped) return false;
-        if (innerWidth >= 640) return getComputedStyle(q).display === 'none';
-        const r = q.getBoundingClientRect(), keys = [...pad.querySelectorAll('.kp-key')].map(k => k.getBoundingClientRect().top);
-        const first = kpWordsOf_(inp.closest('.qcard').querySelector('.qsheet-part') || sheet).slice(0, 20);
-        const s = sheet.getBoundingClientRect();
-        return r.height >= 44 && keys.every(t => t >= r.bottom - 1) && q.textContent.trim().indexOf(first) === 0
-               && s.top >= 0 && s.top + 16 <= r.top;
+        return !!pad && !pad.hidden && !pad.querySelector('.kp-q');
       },
       wants: '1F Q23b’s keypad up with the question’s first lines on a 44px strip above the keys, and after a tap on it the question’s first line on screen above the pad (none on a wide screen)',
       leave: () => {
@@ -1820,28 +1809,8 @@ const STATES = {
       },
       wants: "a practical's card with its title, its foot and its pane's height unchanged after its pages filled",
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
-  ],
-  /* FIND 2, RIGHT OF FIND (docs/history/329, 347) § */
-  res: [
-    { name: 'the question' },
-    /* ---------- THE QUESTION FILE FAILED (531): the column draws, and never a loader that waits for ever (U13). D adds the failure card with Try again. */
-    { name: 'the library failed',
-      enter: () => inFinder_(finderOf_('res'), () => {
-        window.__LIB_FAIL = { rows: LIBRARY_ROWS, f: LIBRARY_FAILED };
-        LIBRARY_ROWS = []; LIBRARY_FAILED = 'the question file answered 500';
-        stuffForget_(); STUFF.filters = [];
-        paintStuff();
-      }),
-      leave: () => inFinder_(finderOf_('res'), () => {
-        const h = window.__LIB_FAIL || {};
-        LIBRARY_ROWS = h.rows || null; LIBRARY_FAILED = h.f || '';
-        stuffForget_(); paintStuff();
-      }),
-      expect: () => document.querySelectorAll('#s-res > .page').length && !document.querySelector('#s-res .loading') ? 1 : 0,
-      wants: 'the column drawn with the question file failed, and no loader waiting for it' },
-    /* ---------- A CONTENT CARD, REACHED BY WHAT KIND · CONTENT AND ITS SUBJECT § */
     { name: 'a content card',
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-STATS-9', x = stuffItemsAll_().find(it => it.key === K);
@@ -1850,10 +1819,10 @@ const STATES = {
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && !pg.part);
         if (at < 0) throw new Error(K + ' has no ' + 'card' + ' page under Content · ' + x.subject);
-        goPage('res', stuffFirstResult_() + at);
+        goPage('stuff', stuffFirstResult_() + at);
       }),
       expect: () => {
-        const ch = [...document.querySelectorAll('#s-res .card.ct')]
+        const ch = [...document.querySelectorAll('#s-stuff .card.ct')]
           .find(el => /spread/i.test((el.querySelector('h3') || {}).textContent || ''));
         /* ONE WIDGET PER THING (408): the card is its key words; its formulas and worked lines are the next pages. */
         return !!ch && !ch.querySelector('.fc-flag')
@@ -1863,68 +1832,68 @@ const STATES = {
                && !!ch.querySelector('.tb-words li b')
                && !ch.querySelector('.tb-math, .tb-points')
                /* NOTHING BUT CONTENT HERE — a boxer would mean the chip did not hold. */
-               && !document.querySelector('#s-res .card:not(.tb) .boxer-rec');
+               && !document.querySelector('#s-stuff .card:not(.tb) .boxer-rec');
       },
       wants: 'a content card — its head and tag row and its key words, and nothing else',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) },
     /* ---------- ITS FORMULAS AND ITS WORKED LINES, A TITLED PAGE EACH (408) */
     ...[['formulas', 'Formulas', '.tb-math .frac .frac-d'], ['worked', 'Worked examples', '.tb-points li']].map(([P, T, has]) => ({
       name: 'a content card: ' + T,
-      enter: new Function(`inFinder_(finderOf_('res'), () => {
+      enter: new Function(`inFinder_(finderOf_('stuff'), () => {
         const K = 'ct:TB-GCSE-STATS-9', P = '${P}', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
         if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
-        goPage('res', stuffFirstResult_() + at);
+        goPage('stuff', stuffFirstResult_() + at);
       });`),
-      expect: new Function(`const card = document.querySelector('#s-res .card.tb-page.is-${P}');
+      expect: new Function(`const card = document.querySelector('#s-stuff .card.tb-page.is-${P}');
         return !!card && ((card.querySelector(':scope > h3') || {}).textContent || '') === '${T}'
                && !!card.querySelector('${has}') && !card.querySelector('h4');`),
       wants: 'Measures of spread\'s ' + T + ' page: the card\'s name above, "' + T + '" as its title, and only that',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) })),
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) })),
     /* ---------- AN A-LEVEL PRACTICAL'S PAGES, EACH TITLED (408): the card, then Diagram, Equipment, Steps, Worksheet */
     ...[[null, 'card'], ['fig', 'Diagram'], ['steps', 'Steps']].map(([P, T]) => ({
       name: 'an A-level practical: ' + T,
-      enter: new Function(`inFinder_(finderOf_('res'), () => {
+      enter: new Function(`inFinder_(finderOf_('stuff'), () => {
         const K = 'pr:PR-FN05', P = ${JSON.stringify(P)}, x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' practical in the list — data/practicals.json did not load');
         STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && (pg.part || null) === P);
         if (at < 0) throw new Error(K + ' has no ' + (P || 'card') + ' page');
-        goPage('res', stuffFirstResult_() + at);
+        goPage('stuff', stuffFirstResult_() + at);
       });`),
       expect: P
-        ? new Function(`const c = document.querySelector('#s-res .card.prac-part.is-${P}');
+        ? new Function(`const c = document.querySelector('#s-stuff .card.prac-part.is-${P}');
             return !!c && ((c.querySelector(':scope > h3') || {}).textContent || '') === '${T}';`)
-        : () => !!document.querySelector('#s-res .card.prac:not(.prac-part) .fc-head h3'),
+        : () => !!document.querySelector('#s-stuff .card.prac:not(.prac-part) .fc-head h3'),
       wants: 'Buffon\'s needle (GCSE–A-level Maths), its ' + T + ' page, titled',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) })),
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) })),
     /* ---------- A SATs CARD, AND ITS DRAWING ON A PAGE OF ITS OWN (408) */
     ...[[null, 'a SATs content card'], ['an1-fit', 'a SATs content card animation']].map(([P, N]) => ({
       name: N,
-      enter: new Function(`inFinder_(finderOf_('res'), () => {
+      enter: new Function(`inFinder_(finderOf_('stuff'), () => {
         const K = 'ct:TB-KS2-MATHS-1', P = ${JSON.stringify(P)}, x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && (pg.part || null) === P);
         if (at < 0) throw new Error(K + ' has no ' + (P || 'card') + ' page under Content · ' + x.subject);
-        goPage('res', stuffFirstResult_() + at);
+        goPage('stuff', stuffFirstResult_() + at);
       });`),
       expect: P
-        ? () => { const c = document.querySelector('#s-res .card.tb-an.is-an1-fit');
+        ? () => { const c = document.querySelector('#s-stuff .card.tb-an.is-an1-fit');
                   return !!c && /^Watch: /.test((c.querySelector(':scope > h3') || {}).textContent || '')
                          && c.querySelectorAll('.tb-an-stage').length === 1 && !c.querySelector('h4'); }
-        : () => !!document.querySelector('#s-res .card.ct .tb-words li b'),
+        : () => !!document.querySelector('#s-stuff .card.ct .tb-words li b'),
       wants: P ? 'the SATs drawing alone on its page, titled Watch and its name, its caption and Play again under it'
                : 'the SATs content card: its title, its tags, its key words',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) })),
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) })),
     /* ---------- A CONTENT CARD'S ANIMATION, ON ITS PAGE AFTER ITS CARD § */
     { name: 'a content card animation: Pythagoras',
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-MATHS-17', P = 'an17-pyth', x = stuffItemsAll_().find(it => it.key === K);
@@ -1933,10 +1902,10 @@ const STATES = {
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
         if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
-        goPage('res', stuffFirstResult_() + at);
+        goPage('stuff', stuffFirstResult_() + at);
       }),
       expect: () => {
-        const card = document.querySelector('#s-res .card.tb-an.is-an17-pyth');
+        const card = document.querySelector('#s-stuff .card.tb-an.is-an17-pyth');
         const stage = card && card.querySelector('.tb-an-stage[data-anim="pyth"]');
         return !!stage && !!stage.querySelector('.an-pyth')
                && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
@@ -1944,9 +1913,9 @@ const STATES = {
                && !!document.head.querySelector('style[data-anim="pyth"]');
       },
       wants: 'Pythagoras after the Pythagoras and trigonometry card: the drawing from its row, Play again, and the card\'s own lines about it',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) },
     { name: 'a content card animation: Bayes',
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-STATS-15', P = 'an15-bayes', x = stuffItemsAll_().find(it => it.key === K);
@@ -1955,10 +1924,10 @@ const STATES = {
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
         if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
-        goPage('res', stuffFirstResult_() + at);
+        goPage('stuff', stuffFirstResult_() + at);
       }),
       expect: () => {
-        const card = document.querySelector('#s-res .card.tb-an.is-an15-bayes');
+        const card = document.querySelector('#s-stuff .card.tb-an.is-an15-bayes');
         const stage = card && card.querySelector('.tb-an-stage[data-anim="bayes"]');
         return !!stage && !!stage.querySelector('.an-bayes')
                && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
@@ -1966,9 +1935,9 @@ const STATES = {
                && !!document.head.querySelector('style[data-anim="bayes"]');
       },
       wants: 'Bayes after the Probability card: the drawing from its row, Play again, and the card\'s own lines about it',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) },
     { name: 'a content card animation: standard form',
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-MATHS-2', P = 'an2-sf', x = stuffItemsAll_().find(it => it.key === K);
@@ -1977,10 +1946,10 @@ const STATES = {
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
         if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
-        goPage('res', stuffFirstResult_() + at);
+        goPage('stuff', stuffFirstResult_() + at);
       }),
       expect: () => {
-        const card = document.querySelector('#s-res .card.tb-an.is-an2-sf');
+        const card = document.querySelector('#s-stuff .card.tb-an.is-an2-sf');
         const stage = card && card.querySelector('.tb-an-stage[data-anim="sf"]');
         return !!stage && !!stage.querySelector('.an-sf')
                && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
@@ -1988,14 +1957,14 @@ const STATES = {
                && !!document.head.querySelector('style[data-anim="sf"]');
       },
       wants: 'Standard form after the Indices, surds and standard form card: the drawing from its row, Play again, and the card\'s own lines about it',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) },
     /* ---------- THE BIBLE, WHICH ONLY THE ADMIN VISITOR IS SHOWN § */
     { name: 'the Bible, the KJV question',
       only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }];
         paintStuff();
-        goPage('res', stuffQuestionPage_(), true);
+        goPage('stuff', stuffQuestionPage_(), true);
         bibleLoad_(1);
         bibleLoad_(17);
         bibleLoad_(19);
@@ -2003,77 +1972,77 @@ const STATES = {
       expect: () => {
         const a = [...document.querySelectorAll('#res-groups [data-do="facet-pick"]')];
         return a.length >= 1 && a.every(b => b.dataset.field === 'wCollection') && a.some(b => b.dataset.value === 'Old Testament')
-               && !!document.querySelector('#s-res .card.bible[data-bb="card"]');
+               && !!document.querySelector('#s-stuff .card.bible[data-bb="card"]');
       },
       wants: 'the Writings shelf answered: the Bible\'s cover, and one question, Collection (594), the Old Testament among its answers' },
     { name: 'the Bible, Psalms\'s chapters',
       only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
                          { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Poetry & Wisdom' },
                          { field: 'wBook', value: 'Psalms' }];
         paintStuff();
-        goPage('res', stuffQuestionPage_(), true);
+        goPage('stuff', stuffQuestionPage_(), true);
       }),
       expect: () => document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="wChapter"]').length === 150,
       wants: 'Psalms\'s Chapter question, 1 to 150, drawn as a grid' },
     { name: 'the Bible, Psalm 119\'s verses',
       only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
                          { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Poetry & Wisdom' },
                          { field: 'wBook', value: 'Psalms' }, { field: 'wChapter', value: '119' }];
         paintStuff();
-        goPage('res', stuffQuestionPage_(), true);
+        goPage('stuff', stuffQuestionPage_(), true);
       }),
       expect: () => document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="wUnit"]').length === 176,
       wants: 'Psalm 119\'s Verse question, 1 to 176, drawn as a grid' },
     { name: 'the Bible, Genesis 1:3',
       only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
                          { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Torah' },
                          { field: 'wBook', value: 'Genesis' }, { field: 'wChapter', value: '1' },
                          { field: 'wUnit', value: '3' }];
         paintStuff();
-        goPage('res', stuffFirstResult_(), true);
+        goPage('stuff', stuffFirstResult_(), true);
       }),
       expect: () => {
         /* `.bb-v` IS ONLY DRAWN ONCE THE BOOK IS IN — waiting, the card holds the one loader instead. */
-        const v = document.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v');
+        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v');
         return !!v && !v.closest('.bb-verse').querySelector('.loading') && /Let there be light/.test(v.textContent)
-               && !!document.querySelector('#s-res [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
+               && !!document.querySelector('#s-stuff [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
       },
       wants: 'the card for Genesis 1:3, "Let there be light", its tags, and its Chapter tile' },
     { name: 'the Bible, Esther 8:9',
       only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
                          { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'History' },
                          { field: 'wBook', value: 'Esther' }, { field: 'wChapter', value: '8' },
                          { field: 'wUnit', value: '9' }];
         paintStuff();
-        goPage('res', stuffFirstResult_(), true);
+        goPage('stuff', stuffFirstResult_(), true);
       }),
       /* THE LONGEST VERSE IN THE BIBLE, 534 characters — the one card that fills a small phone. */
       expect: () => {
-        const v = document.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:17:8:9"] .bb-v');
+        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:17:8:9"] .bb-v');
         return !!v && !v.closest('.bb-verse').querySelector('.loading') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
       },
       wants: 'Esther 8:9, the longest verse, drawn whole with no bracket',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) },
     /* THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM § */
     { name: 'the boxers, on the shared head',
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Boxers' }];
         paintStuff();
-        goPage('res', stuffFirstResult_(), true);
+        goPage('stuff', stuffFirstResult_(), true);
       }),
       /* ---------- AND THE PROFILE IT BECAME § */
       expect: () => {
-        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)')
-               || document.querySelector('#s-res .card.fc.boxer:not(.is-fights)');
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)')
+               || document.querySelector('#s-stuff .card.fc.boxer:not(.is-fights)');
         if (!c || c.querySelector('.thing')) return false;
         /* THE HEAD IS ITS TITLE; WHAT IT IS IS THE Boxers-or-fights ANSWER, in the tag row under it (355). */
         const h3 = c.querySelector('.fc-head > h3'), flag = c.querySelector('.qtags .qtag[data-f="boxKind"]');
@@ -2091,17 +2060,17 @@ const STATES = {
                && c.scrollWidth <= c.clientWidth + 1;
       },
       wants: 'a boxer\'s profile — the name at the title size with its [Boxers] tag under it, a 4:5 picture box to its left, the record as a scoreboard of whole numbers (or "no record on file"), nothing scrolling sideways',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) },
     /* ---------- THE PHOTO'S CREDIT, AS A LINK A FINGER CAN HIT § */
     { name: 'a boxer photo\'s credit, a link a finger can hit',
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Boxers' }, { field: 'fighter', value: 'Muhammad Ali' }];
         paintStuff();
-        goPage('res', stuffFirstResult_(), true);
+        goPage('stuff', stuffFirstResult_(), true);
       }),
       expect: () => {
-        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)');
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
         const b = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Muhammad Ali');
         const box = c && c.querySelector('.boxer-pic');
         if (!c || !b || !b.image || !box || !/Muhammad Ali/.test(c.querySelector('h3').textContent)) return false;
@@ -2126,18 +2095,18 @@ const STATES = {
                && parseFloat(getComputedStyle(a).fontSize) >= .62 * rem - .05;
       },
       wants: 'Ali\'s photo credit as a link to its Commons file page, a 44px block at its own size, under the picture and across the card, its words at least .62rem',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) },
     { name: 'the fights, on the shared head',
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Fights' }];
         paintStuff();
-        goPage('res', stuffFirstResult_(), true);
+        goPage('stuff', stuffFirstResult_(), true);
       }),
       /* AND NO `.note` PARAGRAPHS. § */
       expect: () => {
-        const c = document.querySelector('#s-res .page.on .card.fc.fight')
-               || document.querySelector('#s-res .card.fc.fight');
+        const c = document.querySelector('#s-stuff .page.on .card.fc.fight')
+               || document.querySelector('#s-stuff .card.fc.fight');
         if (!c || c.querySelector('p.note')) return false;
         const flag = c.querySelector('.qtags .qtag[data-f="boxKind"]');
         const how = c.querySelector('.fc-meta');
@@ -2149,17 +2118,17 @@ const STATES = {
                && faces.length === 2 && faces.every(r => r.width > 0 && Math.abs(r.width - r.height) < 1.5);
       },
       wants: 'a fight led by its tags (no A v B title, 490), its [Fights] tag, how it ended in sentence case, both corners\' faces square, no loose note paragraphs',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) },
     /* ---------- THE FIGHTER IN THE RING LOOKS LIKE HIM, IN THE COLOURS A BROWSER ACTUALLY PAINTS § */
     { name: 'a boxer who looks like himself',
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Boxers' }, { field: 'fighter', value: 'Lennox Lewis' }];
         paintStuff();
-        goPage('res', stuffFirstResult_(), true);
+        goPage('stuff', stuffFirstResult_(), true);
       }),
       expect: () => {
-        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)');
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
         const row = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Lennox Lewis');
         if (!c || !row || !row.look || !/Lennox Lewis/.test((c.querySelector('h3') || {}).textContent || '')) return false;
         const frame = c.querySelector('.boxer-pic .boxer-frame'), ring = frame && frame.querySelector('svg.boxer-ring');
@@ -2190,18 +2159,18 @@ const STATES = {
                && c.scrollWidth <= c.clientWidth + 1;
       },
       wants: 'Lennox Lewis drawn as himself — dreads behind the head and inside the frame, goatee, his skin and his white trunks in the figure\'s own colours, never the gold stand-in\'s',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) },
     { name: 'a fight in that night\'s trunks',
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Fights' }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.id === 'FT0033' && !pg.part);
         if (at < 0) throw new Error('FT0033, the Fight of the Century, is not in the Fights list');
-        goPage('res', stuffFirstResult_() + at, true);
+        goPage('stuff', stuffFirstResult_() + at, true);
       }),
       expect: () => {
-        const c = document.querySelector('#s-res .page.on .card.fc.fight');
+        const c = document.querySelector('#s-stuff .page.on .card.fc.fight');
         const fr = ((typeof DATA !== 'undefined' && DATA.fights) || []).find(r => r.id === 'FT0033');
         if (!c || !fr || fr.trunksA !== 'red/white' || fr.trunksB !== 'green/gold') return false;
         const rings = [...c.querySelectorAll('.fight-faces .boxer-pic svg.boxer-ring')];
@@ -2239,19 +2208,19 @@ const STATES = {
                && blankStripes === 0;
       },
       wants: 'Ali v Frazier 1971 in that night\'s trunks — red trimmed white facing right, green trimmed gold facing left — and a corner with no trunks on file painted the corner\'s muted colour with no stripe',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) },
     /* ---------- A FIGHTER WITH NO ROW IS A SILHOUETTE, NOT A PALE BLOND MAN § */
     { name: 'a fighter with no row is a silhouette',
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Fights' }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.id === 'FT0060' && !pg.part);
         if (at < 0) throw new Error('FT0060, Tyson v Berbick, is not in the Fights list');
-        goPage('res', stuffFirstResult_() + at, true);
+        goPage('stuff', stuffFirstResult_() + at, true);
       }),
       expect: () => {
-        const c = document.querySelector('#s-res .page.on .card.fc.fight');
+        const c = document.querySelector('#s-stuff .page.on .card.fc.fight');
         const fr = ((typeof DATA !== 'undefined' && DATA.fights) || []).find(r => r.id === 'FT0060');
         if (!c || !fr || fr.bId || fr.trunksB !== 'black') return false;
         const rings = [...c.querySelectorAll('.fight-faces .boxer-pic svg.boxer-ring')];
@@ -2271,17 +2240,17 @@ const STATES = {
                && fill(rb, '.bf-trunks') === paint(rb, 'var(--bf-tk-black)');
       },
       wants: 'Tyson v Berbick 1986 — Tyson in his own skin, Berbick (no row) a silhouette in one shadow tone, neither paper nor gold nor any skin, still in his black trunks',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) },
     /* ---------- EVERY COLOUR OF THE FIGURE SHOWS AGAINST THE DARK HE STANDS IN § */
     { name: 'every colour of the eight-bit fighter shows against the stage',
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Boxers' }, { field: 'fighter', value: 'Mike Tyson' }];
         paintStuff();
-        goPage('res', stuffFirstResult_(), true);
+        goPage('stuff', stuffFirstResult_(), true);
       }),
       expect: () => {
-        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)');
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
         if (!c || !/Mike Tyson/.test((c.querySelector('h3') || {}).textContent || '')) return false;
         const col = v => {
           let m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(v);
@@ -2339,10 +2308,10 @@ const STATES = {
         return bad.length === 0 && Object.keys(fills).length === cases.length;
       },
       wants: 'every skin, hair colour, trunks colour, the silhouette and the unrecorded trunks at 2:1 or more against the stage, a black beard 2:1 on every skin, Tyson\'s own hair and trunks too, and the unrecorded trunks 50 or more from every trunks word',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) },
     /* ---------- THE LONGEST TAG ROW, EVERY TAG INSIDE THE CARD § */
     { name: "a content card's tag row, every tag inside the card",
-      enter: () => inFinder_(finderOf_('res'), () => {
+      enter: () => inFinder_(finderOf_('stuff'), () => {
         /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-MATHS-20', x = stuffItemsAll_().find(it => it.key === K);
@@ -2351,17 +2320,17 @@ const STATES = {
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && !pg.part);
         if (at < 0) throw new Error(K + ' has no ' + 'card' + ' page under Content · ' + x.subject);
-        goPage('res', stuffFirstResult_() + at);
+        goPage('stuff', stuffFirstResult_() + at);
       }),
       expect: () => {
-        const c = [...document.querySelectorAll('#s-res .card.ct')].find(el => /Data and statistics/.test((el.querySelector('h3') || {}).textContent || ''));
+        const c = [...document.querySelectorAll('#s-stuff .card.ct')].find(el => /Data and statistics/.test((el.querySelector('h3') || {}).textContent || ''));
         const tags = c ? [...c.querySelectorAll('.qtags .qtag')] : [];
         if (tags.length < 10) return false;
         const box = c.getBoundingClientRect();
         return tags.every(t => { const r = t.getBoundingClientRect(); return r.left >= box.left - 0.5 && r.right <= box.right + 0.5; });
       },
       wants: "the Data and statistics card's thirteen topic tags, every one inside the card",
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('stuff'), () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); }) },
   ],
 
   /* ---------- THE TWO WIDGETS THAT ARE TALLER THAN A SCREEN § */

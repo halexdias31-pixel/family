@@ -269,7 +269,7 @@ function loadMessages() {
 /* THE SHEET IS THE SAME FORM IN A SHEET. § */
 function messageSheet(to, toId) {
   openSheet('Message ' + to, msgForm_(to, toId,
-    'One message every five minutes. It goes to their e-mail and appears in Messages for both '
+    '1 message every 5 minutes. It goes to their e-mail and appears in Messages for both '
   + 'of you.', 5));
 }
 
@@ -579,7 +579,7 @@ function msgAttachHtml_(list) {
     const url = String(a.url || '');
     const kind = msgKind_(a);
     if (kind === 'image') {
-      return `<a class="msg-pic" href="${esc(url)}" target="_blank" rel="noopener"
+      return `<a class="msg-pic" href="${esc(url)}" data-do="file-view" target="_blank" rel="noopener"
         aria-label="Open ${esc(a.name || 'the photo')}">
         <img src="${esc(pic(url))}" alt="${esc(a.name || 'photo')}" loading="lazy" decoding="async"></a>`;
     }
@@ -587,7 +587,7 @@ function msgAttachHtml_(list) {
       return `<video class="msg-vid post-vid" src="${esc(/^blob:/.test(url) ? url : postVidSrc_(url))}"
         data-open="${esc(url)}" controls playsinline preload="metadata"></video>`;
     }
-    return `<a class="msg-file" href="${esc(url)}" target="_blank" rel="noopener">
+    return `<a class="msg-file" href="${esc(url)}" data-do="file-view" target="_blank" rel="noopener">
       <b>${esc(msgFileMark_(a))}</b><span>${esc(a.name || 'a file')}</span></a>`;
   }).join('')}</div>`;
 }
@@ -697,7 +697,7 @@ function uploadsHtml_(d) {
   /* THE ADDRESSES A STEP NEEDS ARE TILES UNDER THE LIST, not links in its sentence — a link in a line of 0.78rem type is a 14px target, and a tile is 44px from the § */
   const go = (d.steps || []).map(st => {
     const href = String(st.href || (st.setup && typeof API === 'string' ? API + '?setup=1' : ''));
-    return href ? tile_({ icon: 'open', href: href,
+    return href ? tile_({ icon: 'open', href: href, leave: true,
       label: st.setup ? 'Open ?setup=1' : 'Allow it', note: st.setup ? 'adds the column' : 'consent' }) : '';
   }).filter(Boolean).join('');
   return tile + `<ul class="up-list">${rows}</ul>
@@ -706,7 +706,7 @@ function uploadsHtml_(d) {
       : 'Not yet. In this order:'}</p>
     ${steps ? `<ol class="up-steps">${steps}</ol>` : ''}
     ${go ? `<div class="tile-row">${go}</div>` : ''}
-    <p class="faint up-ver">backend ${esc(d.version || '—')}</p>`;
+    <p class="faint up-ver">backend ${esc(dash_(d.version))}</p>`;
 }
 
 /* EVERY `.up-box` ON THE PAGE — a class rather than the id alone, for the reason `cart-box` gives:

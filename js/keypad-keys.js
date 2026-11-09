@@ -370,49 +370,8 @@ function kpLayout_(inp) {
   pad.setAttribute('data-layer', KP_LAYER);
   pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : KP_LAYER === 'sym' ? 'Symbols keypad' : site ? 'Numbers keypad' : 'Maths keypad');
   kpShiftPaint_();
-  kpStrip_(pad, inp);
   return pad;
 }
-/* ---------- THE QUESTION ABOVE THE PAD (round 4): on a phone the pad's eight rows can hide what is asked, so its first lines ride on the pad, and a tap goes to it whole */
-/* THE WORDS OF A SHEET: a paragraph's end is a space ("…set, E Find the…", not "EFind"), and a figure's labels are not words */
-function kpWordsOf_(sheet) {
-  const c = sheet.cloneNode(true);
-  c.querySelectorAll('svg, figure, img').forEach(el => el.remove());
-  c.querySelectorAll('p, div, li, br, h3, h4, tr, td, th').forEach(el => el.appendChild(document.createTextNode(' ')));
-  return String(c.textContent || '').replace(/\s+/g, ' ').trim();
-}
-function kpStrip_(pad, inp) {
-  let q = pad.querySelector(':scope > .kp-q');
-  const card = inp && inp.closest && inp.closest('.qcard');
-  const sheet = card && (card.querySelector('.qsheet-part') || card.querySelector('.qsheet'));
-  const said = sheet ? kpWordsOf_(sheet) : '';
-  if (!said) { if (q) q.remove(); return; }
-  if (!q) {
-    q = document.createElement('button');
-    q.type = 'button';
-    q.className = 'kp-q';
-    q.setAttribute('data-do', 'kp-q');
-    q.innerHTML = '<span class="kp-q-t"></span>';
-  }
-  if (pad.firstElementChild !== q) pad.insertBefore(q, pad.firstElementChild);
-  q.firstElementChild.textContent = said;
-  q.setAttribute('aria-label', 'Show the question: ' + said.slice(0, 160));
-}
-/* THE TAP: the lift and the room for the pad let go, and the question's own scroller brought to its first line; the next key brings the box back */
-on('kp-q', () => {
-  const inp = kpLive_();
-  const card = inp && inp.closest('.qcard');
-  const sheet = card && (card.querySelector('.qsheet') || card);
-  if (!sheet) return;
-  kpRoomBack_();
-  let el = sheet.parentNode;
-  while (el && el !== document.body) {
-    const oy = getComputedStyle(el).overflowY;
-    if (oy === 'auto' || oy === 'scroll') break;
-    el = el.parentNode;
-  }
-  if (el && el !== document.body) el.scrollTop += sheet.getBoundingClientRect().top - el.getBoundingClientRect().top - 8;
-});
 /* ✓ READS "next" IN A BOX WITH ANOTHER AFTER IT (one box per value, 362), and is Send again on the last. */
 function kpNextPaint_(pad, inp) {
   const d = pad.querySelector('.kp-key.kp-done:not(.kp-done-k)');

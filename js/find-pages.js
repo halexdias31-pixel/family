@@ -548,9 +548,9 @@ function finderTagsAt_() {
 }
 
 function stuffQuestion() {
+  const pre = finderTagsAt_() || finderTagsLook_();
+  if (pre) return facetAnswersHtml_(pre.facet, pre.values, '') + findPeek_();
   const items = stuffFiltered();
-  const pre = finderTagsAt_();
-  if (pre) return facetAnswersHtml_(pre.facet, pre.values, '');
   /* NOBODY YET, and a way to fix that. § */
   if (STUFF.filters.some(f => f.value === 'Friends') && !items.length) {
     return `${empty_('No friends yet.')}
@@ -582,8 +582,11 @@ function stuffQuestion() {
   const values = facetValues(items, facet);
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, MORE ANSWERS ARE COMING § */
   const sw = scriptureWait_(items);
-  return facetAnswersHtml_(facet, values, (sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '') + facetNoneHtml_(items, facet));
+  return facetAnswersHtml_(facet, values, (sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '') + facetNoneHtml_(items, facet)) + findPeek_();
 }
+/* WHILE A QUESTION IS ASKED, THE CARDS SO FAR ON ASK (`findDone_`): one tile, gone once they are shown. */
+const findPeek_ = () => findDone_() ? '' : tileRow_(tile_({ icon: 'down', label: 'Show what\'s here so far', word: 'Show', act: 'find-reveal' }), 'find-end');
+on('find-reveal', el => { const F = finderAt_(el); inFinder_(F, () => { findShow_(); paintStuff(true); }); });
 /* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): § */
 const FACET_NONE_SHOWN = false; /* owner 5 Nov: "Accuracy verified 0" read as noise; switched off, kept */
 function facetNoneHtml_(items, shown) {
@@ -620,7 +623,7 @@ function facetAnswersHtml_(facet, values, more) {
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap${facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? ' is-off' : ''}" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
         grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
-        <span class="k">${mark(answerSay_(facet, v.value))}</span>
+        <span class="k">${mark(v.say != null ? v.say : answerSay_(facet, v.value))}</span>
       </div>`).join('') + skip + '</div>' + more;
 }
 

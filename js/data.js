@@ -431,6 +431,16 @@ const isWearable = x => {
 
 /* Whether the person signed in is an admin. § */
 const isAdmin = () => !!USER && rankAtLeast_('admin');
+/* THE VIEWER'S ROLE IN THE PERMISSIONS TABLE (86a): anyone, member, child or admin. */
+const myRole_ = () => (!USER ? 'anyone' : isAdmin() ? 'admin' : (typeof childView_ === 'function' && childView_()) ? 'child' : 'member');
+/* MAY THIS ROLE DO IT: DATA.permissions (data/settings/permissions.json), else admin only — the table the backend's gate reads too. */
+const can_ = (role, kind, action) => {
+  try {
+    const row = ((((typeof DATA !== 'undefined' && DATA && DATA.permissions) || {})[kind] || {})[action]);
+    if (row && typeof row[role] === 'boolean') return row[role];
+  } catch (e) {}
+  return role === 'admin';
+};
 
 /* ---------- THE LAWS § */
 

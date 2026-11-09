@@ -30,6 +30,10 @@ const fresh = () => { try { return fs.readFileSync(STAMP, 'utf8').trim() === inp
 module.exports = { fresh };
 /* HOW MANY ANSWERS DEEP (1070: 1 → 3): a finger taps three menus in before the library lands, and each must already be the final answer. */
 const DEPTH = 3;
+/* AND DEEPER WHILE A LIST IS BIG (1100): a tap over more than DEEP cards is looked up, not counted, so it settles at once on a phone at 4x; under it the live count is quick. */
+const DEEP = 400, DEEPEST = 12;
+/* ONLY IN THE COMMON FUNNEL, PRACTICE (1100): Library's writings run to some lists that take minutes each to ask; past depth 3 they are counted live. */
+const DEEP_UNDER = /^kindLabel=Practice(&|$)/;
 /* AND THE PLACES A CHECK HOLDS THE FUNNEL TO (check-writings: Religion is asked first in Library › Religious Studies). */
 const NAMED = [[{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }]];
 
@@ -40,7 +44,7 @@ const render = T => {
   const vs = Object.keys(T.views), line = (o, k) => '  ' + JSON.stringify(k) + ': ' + JSON.stringify(o[k]);
   const same = Object.keys(T.views[vs[0]] || {}).filter(k => vs.every(v => JSON.stringify(T.views[v][k]) === JSON.stringify(T.views[vs[0]][k])));
   const own = v => Object.keys(T.views[v]).filter(k => !same.includes(k));
-  return HEAD + 'const FINDER_TAGS = {\n"same": {\n' + same.map(k => line(T.views[vs[0]], k)).join(',\n') + '\n},\n"views": {\n'
+  return HEAD + 'const FINDER_TAGS = {\n"facets": ' + JSON.stringify(T.facets) + ',\n"same": {\n' + same.map(k => line(T.views[vs[0]], k)).join(',\n') + '\n},\n"views": {\n'
     + vs.map(v => JSON.stringify(v) + ': {\n' + own(v).map(k => line(T.views[v], k)).join(',\n') + '\n}').join(',\n') + '\n}};\n';
 };
 
@@ -58,8 +62,10 @@ if (require.main === module) (async () => {
   }
   if (had === null || !/const FINDER_TAGS = /.test(had)) fs.writeFileSync(OUT, HEAD + 'const FINDER_TAGS = null;\n');
   const { app, tick } = require('../check/jsdom-app.js');
+  /* THE LIBRARY AS THE SITE SERVES IT (check/lib-full.js, words and all), so what is counted here is what a phone counts. */
+  const lib = require('../check/lib-full.js');
   const payload = JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8'));
-  const A = await app(payload);
+  const A = await app(payload, (f, j) => { const t = lib.serve(path.join(ROOT, f)); return t !== null ? JSON.parse(t) : j; });
   const ev = s => A.w.__ev(s);
   /* EVERY SOURCE IN: the payload, the library and its extras, and each writings index this admin may have. */
   const t0 = Date.now();
@@ -77,29 +83,39 @@ if (require.main === module) (async () => {
   const viewers = [{ role: 'Admin', roles: ['admin'] }, { role: 'Student', roles: ['student'], profile: {} }];
   const views = {};
   for (const v of viewers) {
-    const got = JSON.parse(ev(`(() => {
+    const key = ev(`(() => {
       USER = Object.assign({ name: 'T', personId: 'P-T' }, ${JSON.stringify(v)});
       stuffForget_();
-      const key = (isAdmin() ? 'admin+' : '') + (bibleFor_() ? 'bible' : '');
-      const at = filters => inFinder_(FINDERS.stuff, () => {
+      window.__at = filters => inFinder_(FINDERS.stuff, () => {
         STUFF.filters = filters; STUFF.admit = null;
         const items = stuffFiltered();
         if (!items.length) return null;
         const f = nextFacet(items) || overFacet_(items);
-        return f ? [f.field, facetValues(items, f).map(x => x.show && x.show !== x.value ? [x.value, x.show] : [x.value])] : null;
+        if (!f) return null;
+        const vs = facetValues(items, f);
+        return JSON.stringify([f.field, vs.map(x => x.show && x.show !== x.value ? [x.value, x.show] : [x.value]), vs.map(x => x.n), items.length, vs.map(x => answerSay_(f, x.value))]);
       });
-      const out = {};
-      const walk = (filters, depth) => {
-        const q = at(filters);
-        if (!q) return;
-        out[filters.map(f => f.field + '=' + f.value).join('&')] = q;
-        if (depth < ${DEPTH}) q[1].forEach(x => walk(filters.concat([{ field: q[0], value: x[0] }]), depth + 1));
-      };
-      walk([], 0);
-      ${JSON.stringify(NAMED)}.forEach(st => walk(st, ${DEPTH}));
-      inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.admit = null; });
-      return JSON.stringify({ key, out });
-    })()`));
+      return (isAdmin() ? 'admin+' : '') + (bibleFor_() ? 'bible' : '');
+    })()`);
+    /* EACH QUESTION ITS OWN CALL, so a long walk says where it is (PROGRESS=1). */
+    const out = {}, t1 = Date.now();
+    const walk = (filters, depth) => {
+      const r = ev('__at(' + JSON.stringify(filters) + ')');
+      if (!r) return;
+      const q = JSON.parse(r), k = filters.map(f => f.field + '=' + f.value).join('&');
+      out[k] = q;
+      if (process.env.PROGRESS) process.stderr.write(Object.keys(out).length + ' ' + ((Date.now() - t1) / 1000 | 0) + 's ' + q[3] + ' ' + k.slice(0, 120) + '\n');
+      if (depth < DEPTH || (q[3] > DEEP && depth < DEEPEST && DEEP_UNDER.test(k))) q[1].forEach(x => walk(filters.concat([{ field: q[0], value: x[0] }]), depth + 1));
+    };
+    walk([], 0);
+    NAMED.forEach(st => walk(st, DEPTH));
+    ev('inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.admit = null; })');
+    /* EACH ANSWER'S WORDS WHERE THEY ARE NOT ITS PLAIN ONES (answerSay_: a paper's cover code), over the whole list, so a tag row never tallies the library. */
+    out['#says'] = JSON.parse(ev(`inFinder_(FINDERS.stuff, () => { const all = stuffItems(), o = {};
+      facetList().forEach(f => { const m = {}; facetTally_(all, f).values.forEach(v => { const s = v.show || v.text || v.value; if (s !== facetSay_(f, v.value)) m[v.value] = s; });
+        if (Object.keys(m).length) o[f.field] = m; });
+      return JSON.stringify(o); })`));
+    const got = { key: key, out: out };
     /* TWO VIEWERS ON ONE KEY MUST SEE ONE LIBRARY, or the key is missing what tells them apart. */
     if (views[got.key] && JSON.stringify(views[got.key]) !== JSON.stringify(got.out)) {
       console.error('finder-tags: two viewers share the view ' + got.key + ' and see different answers; `finderTagsView_` needs what tells them apart');
@@ -107,8 +123,10 @@ if (require.main === module) (async () => {
     }
     views[got.key] = got.out;
   }
+  /* THE FACETS IT WAS COUNTED WITH: a settled finder looks an answer up only while its own are these (finderTagsSame_). */
+  const facets = ev('facetList().map(f => f.field).join(",")');
   A.close();
-  const text = render({ views: views });
+  const text = render({ views: views, facets: facets });
   if (CHECK) {
     if (text === had) { console.log('finder-tags: js/finder-tags.js is current (' + Object.keys(views).length + ' views)'); process.exit(0); }
     console.error('finder-tags: js/finder-tags.js is STALE — the finder\'s first answers have changed. Run: node tools/finder-tags.js');

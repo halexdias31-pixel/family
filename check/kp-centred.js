@@ -56,7 +56,7 @@ const geo = (page, col) => page.evaluate(col => {
     /* ONE SCROLLING PAGE (900): Find's box keeps the phone's own keyboard and the column lift is off, so the box is checked to stay put in view with no @family. pad; a column switched off (columns.json, 880) is skipped. */
     const COLS = require('../data/settings/columns.json'), on = c => String((COLS.find(r => r.screen === c) || {}).active).toUpperCase() !== 'FALSE';
     if (await page.evaluate(() => document.documentElement.classList.contains('flow'))) {
-      for (const col of ['stuff', 'res'].filter(c => { if (!on(c)) said.push(c + ': off in columns.json, skipped'); return on(c); })) {
+      for (const col of ['stuff'].filter(c => { if (!on(c)) said.push(c + ': off in columns.json, skipped'); return on(c); })) {
         await page.evaluate(col => go(col, true), col);
         await page.waitForTimeout(2000);
         const box = page.locator('#s-' + col + ' input').first();
@@ -76,7 +76,7 @@ const geo = (page, col) => page.evaluate(col => {
       await ctx.close();
       return finish();
     }
-    for (const col of ['stuff', 'res']) {
+    for (const col of ['stuff']) {
       await page.evaluate(col => go(col, true), col);
       await page.waitForTimeout(2000);
       const box = page.locator('#s-' + col + ' > .page.on input').first();

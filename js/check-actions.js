@@ -60,6 +60,13 @@ site.concat(tools).forEach(p => {
   for (const m of src.matchAll(/['"`](\w+)['"`]/g)) (callers[m[1]] = callers[m[1]] || new Set()).add(p);
 });
 
+/* THE OTHER DIRECTION (83a): every `action: '…'` the site posts must be a postActions_ key, or the button posts into nothing. */
+const pa = require('../tools/post-actions.js');
+const keys = new Set(pa.postTable(strip(pa.postSrc(O))).map(x => x.action));
+const front = {};
+site.forEach(p => { for (const m of strip(read(p)).matchAll(/\baction\s*:\s*['"](\w+)['"]/g)) (front[m[1]] = front[m[1]] || new Set()).add(p); });
+const noKey = Object.keys(front).filter(a => !keys.has(a)).sort();
+
 const all = [...new Set([...handlers, ...gate])].sort();
 const noHandler = [...gate].filter(a => !handlers.has(a)).sort();
 const noGate = [...handlers].filter(a => !gate.has(a)).sort();
@@ -87,7 +94,10 @@ if (kept.length) {
   console.log('KEPT WITH A REASON  (' + kept.length + ')');
   kept.forEach(a => console.log('  ' + a + ' — ' + REASONS[a]));
 }
-const bad = uncalled.length + noHandler.length + noGate.length + staleReason.length;
+console.log('');
+console.log('A FRONT-END action: WITH NO postActions_ KEY  (' + noKey.length + ' of ' + Object.keys(front).length + ' posted, ' + keys.size + ' keys)');
+console.log(noKey.length ? noKey.map(a => '  ' + a + '  — ' + [...front[a]].join(', ')).join('\n') : '  none');
+const bad = uncalled.length + noHandler.length + noGate.length + staleReason.length + noKey.length;
 console.log('');
 console.log(bad ? 'FAILED — ' + bad + ' action(s) above.'
   : 'OK — every one of ' + all.length + ' actions has a caller or a reason.');

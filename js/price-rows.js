@@ -124,7 +124,7 @@ function priceCells(row, L, fmt) {
   // With no hours there is no total to state. Every row goes quiet together, rather than a column
   // of £0.00 that looks like a set of prices.
   const known = hours > 0;
-  const signed = (x, unit) => (x === 0 ? '—'
+  const signed = (x, unit) => (x === 0 ? dash_()
     : (x > 0 ? '+ ' : '− ') + money_(Math.abs(x)) + (unit || ''));
 
   /* A rate row produces a running RATE; a shape row produces a running TOTAL. Which column a row
@@ -137,7 +137,7 @@ function priceCells(row, L, fmt) {
     const why = !L.hoursPerWeek ? 'tick some hours'
               : !L.weeksBooked  ? 'pick a time interval'
               : '';
-    return { total: (row.key === 'hoursweek' && why) ? `<span class="note">${why}</span>` : '—' };
+    return { total: (row.key === 'hoursweek' && why) ? `<span class="note">${why}</span>` : dash_() };
   };
 
   /* --- a multiplier on the finished total: length, term, split, bulk, advance --------------- */
@@ -179,11 +179,11 @@ function priceCells(row, L, fmt) {
     if (row.key === 'level' && (!L.tutor || /^no preference$/i.test(L.tutor)) && L.level) {
       const at = row.of(L) * (m || 1);
       out.mul = m && m !== 1 ? '× ' + Number(m).toFixed(m % 1 ? (m * 100 % 1 ? 3 : 2) : 0) : '';
-      out.rate = money_(at) + '/h';
+      out.rate = perHour_(at);
       Object.assign(out, running());
       return out;
     }
-    if (!m || m === 1) { out.mul = row.value && row.value(L) ? '—' : ''; return out; }
+    if (!m || m === 1) { out.mul = row.value && row.value(L) ? dash_() : ''; return out; }
     const base = row.of(L);
     const perHour = pence_(runningAfter(row.key, L) - base);
     /* The multiplier AND the percentage. § */
@@ -207,7 +207,7 @@ function priceCells(row, L, fmt) {
      multiplied. */
   /* NO "× 30" BESIDE "£30.00/h" (owner, 7 Nov): the same figure twice read as a multiplier nobody could explain. */
   out.mul   = '';
-  out.rate  = row.isBase ? money_(perHour) + '/h' : signed(perHour, '/h');
+  out.rate  = row.isBase ? perHour_(perHour) : signed(perHour, '/h');
   Object.assign(out, running());
   return out;
 }

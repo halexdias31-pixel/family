@@ -47,6 +47,7 @@ function finderSet_(F, o) {
   o = o || {};
   return inFinder_(F, () => {
     STUFF.filters = Array.isArray(o.filters) ? o.filters.map(c => Object.assign({}, c)) : [];
+    if (o.show) findShow_();
     /* WITHOUT `keepPage`, paintStuff puts the column back on its question page. */
     if (o.paint !== false) paintStuff();
   });
@@ -683,12 +684,12 @@ const RETIRED_FACETS = {
   paper: 'the "Printed?" facet was deleted for reading a literal — and the `paper` COLUMN it would '
        + 'now read means which paper of the set (1, 2, 3), so the sheet\'s old label sits over '
        + 'completely different data. Use `Paper`, which asks the same thing by name.',
-  examWave: 'the sitting is asked as two questions now, `examYear` (2018) and then `examMonth` '
+  examWave: 'the sitting is asked as 2 questions now, `examYear` (2018) and then `examMonth` '
           + '(June). A sheet row naming `examWave` would read the raw column and offer `Summer 2018` '
-          + 'beside them, which is the one answer wearing two questions this split took apart.',
+          + 'beside them, which is the one answer wearing 2 questions this split took apart.',
   examSeries: 'the owner asked for months rather than seasons -- "I don\'t want it to ask summer or '
             + 'autumn I\'d rather it just do the months" -- so `examMonth` asks it. A sheet row naming '
-            + '`examSeries` would offer `Summer` beside `May` and `June`, two vocabularies for one fact.',
+            + '`examSeries` would offer `Summer` beside `May` and `June`, 2 vocabularies for 1 fact.',
   category: 'the links\' own question, and the links are gone -- "Get rid of links that\'s almost '
           + 'redundant now." A sheet row naming `category` would read that column off whatever else '
           + 'carries one and offer it as a question nobody wrote a label for.',

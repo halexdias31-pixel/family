@@ -341,7 +341,7 @@ async function drawAheadRuntime_() {
     if (sc.user) w.localStorage.setItem('familyUser', JSON.stringify(sc.user));
     w.localStorage.setItem('familyCart', JSON.stringify(BASKET));
     w.__aheadHold = true;
-    w.eval(appSrc + '\n;window.__wt = { paint, findAll: g => { finderSet_(FINDERS.stuff, { filters: [{ field: "forLabel", value: g }] }); go("stuff", false, true); inFinder_(FINDERS.stuff, () => { const f = stuffFirstResult_(); for (let i = 0; i < stuffPages_().length; i++) stuffFillOne_(f + i); }); }, widgetsOn: c => widgetsOn_(c), slotOn: (c, i) => slotOn_(c, i),'
+    w.eval(appSrc + '\n;window.__wt = { paint, findAll: g => { finderSet_(FINDERS.stuff, { filters: [{ field: "forLabel", value: g }], show: true }); go("stuff", false, true); inFinder_(FINDERS.stuff, () => { const f = stuffFirstResult_(); for (let i = 0; i < stuffPages_().length; i++) stuffFillOne_(f + i); }); }, widgetsOn: c => widgetsOn_(c), slotOn: (c, i) => slotOn_(c, i),'
       + ' HOME: WIDGET_HOME, loading: () => loading_(), STALE: () => STALE, loaded: () => LOADED, user: () => USER,'
       + ' send: typeof send_ === "function" ? send_ : null, ahead: v => { AHEAD.running = v; } };');
     if (typeof w.send_ === 'function') { const s0 = w.send_; w.send_ = function () { hit('send_'); return s0.apply(this, arguments); }; }

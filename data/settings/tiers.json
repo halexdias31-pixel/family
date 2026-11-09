@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "notes": "THE TWO TIERS (docs/history/860). The owner: \"all I really care about is the finder working\". core = Find (stuff, and res, which shares its engine), the library and question pages (marking, keypad, pen), sign-in and accounts enough to reach Find, the boot path, and the payload and backend they need. Everything else is secondary: guarded at run time (tierRun_, shell.js), loaded only in LATER unless eagerSecondary says why, and its checks report-only. js/check-tiers.js holds this file to the code. off (the owner, 4 Nov) = deactivated: a cut-list REMOVE or HIDE IN EXTRAS widget shows only its name, \"Coming soon\" and Suggest; a file all of whose widgets are off is never fetched; its checks are skipped, counted. Turn one on: its line here, then node tools/tiers.js.",
+  "notes": "THE TWO TIERS (docs/history/860). The owner: \"all I really care about is the finder working\". core = Find (stuff), the library and question pages (marking, keypad, pen), sign-in and accounts enough to reach Find, the boot path, and the payload and backend they need. Everything else is secondary: guarded at run time (tierRun_, shell.js), loaded only in LATER unless eagerSecondary says why, and its checks report-only. js/check-tiers.js holds this file to the code. off (the owner, 4 Nov) = deactivated: a cut-list REMOVE or HIDE IN EXTRAS widget shows only its name, \"Coming soon\" and Suggest; a file all of whose widgets are off is never fetched; its checks are skipped, counted. Turn one on: its line here, then node tools/tiers.js.",
   "screens": {
     "spotlight": "secondary",
     "feed": "secondary",
@@ -127,6 +127,7 @@
     "find-levels": "core",
     "find-bundles": "core",
     "find-pages": "core",
+    "find-quick": "core",
     "find-measure": "core",
     "keypad-keys": "core",
     "keypad-pad": "core",
@@ -171,7 +172,6 @@
     "push": "secondary",
     "inbox": "secondary",
     "missing": "secondary",
-    "resume": "core",
     "boot": "core"
   },
   "eagerSecondary": {
@@ -206,6 +206,8 @@
     "check-widgets.js": "secondary",
     "check-access.js": "core",
     "check-actions.js": "core",
+    "check-shape.js": "secondary",
+    "check-permissions.js": "secondary",
     "check-replies.js": "core",
     "check-said.js": "core",
     "check-drafts.js": "core",
@@ -398,6 +400,7 @@
     "find-levels",
     "find-bundles",
     "find-pages",
+    "find-quick",
     "find-measure"
   ],
   "lazy": ["mat", "records", "biz-check", "one-place", "inbox"],

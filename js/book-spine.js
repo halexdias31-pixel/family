@@ -130,7 +130,7 @@ function spineRows_(rows, opts) {
   const out = SPINE.map(k => (say[k] || (fill && !gone[k]
     && onlyHas_(ONLY_ON[k], on) ? {
     /* `blank` MARKS A ROW THE SPINE ADDED because neither document had one — it holds its place in the sequence and takes half the height of a row with something in § */
-    n: '', k: k, v: TICK_ROW[k] ? '' : '—', mul: '', rate: '', total: '', free: true,
+    n: '', k: k, v: TICK_ROW[k] ? '' : dash_(), mul: '', rate: '', total: '', free: true,
     faint: !TICK_ROW[k], blank: !TICK_ROW[k], tick: TICK_ROW[k] ? false : undefined,
   } : null))).filter(Boolean);
   return out.concat(extra);
@@ -240,7 +240,7 @@ function bookingDoc_(j, foot, price) {
     client: BOOKING.client || (USER && USER.name) || '',
     noTotal: kid || !!pays,
     /* £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE. */
-    total: (L && L.total > 0) ? money_(L.total) : '\u2014',
+    total: (L && L.total > 0) ? money_(L.total) : dash_(),
   }));
   return receiptHtml(Object.assign(base, {
     /* `done` marks the saved document read-only; `stage`, `was` and `accepted` pick its stamp. */
@@ -415,7 +415,7 @@ function receiptRow(r) {
           readers that look for `class="bk-k">` find the words either way. */
       r.ctl && r.sel ? `<label for="${esc(r.ctl)}" class="bk-k">${esc(r.k)}</label>`
                      : `<span class="bk-k">${esc(r.k)}</span>`}
-    <span class="bk-v">${heads && String(r.v) === '\u2014' ? '' : value}</span>
+    <span class="bk-v">${heads && String(r.v) === dash_() ? '' : value}</span>
     <span class="bk-m">${esc(r.mul)}</span>
     <span class="bk-r">${esc(r.rate)}</span>
     <span class="bk-t">${esc(r.total)}</span>
@@ -491,7 +491,7 @@ function jobRows(j) {
   /* THE SAME EVERY-DATE LIST AS THE BOOKING CARD — see the note there. § */
   /* ---------- HOW MANY DATES IS NOT A FIGURE, AND THE FIGURE COLUMN IS SIZED FOR MONEY § */
   /* THE SAME COUNT AS THE BOOKING CARD, THROUGH `opts` BECAUSE THIS `push` HARDCODES `mul: ''`. § */
-  push('Dates', dates.length ? dates.join(', ') : '—', '',
+  push('Dates', dates.length ? dates.join(', ') : dash_(), '',
        { free: true, dates: true, mul: dates.length > 1 ? '× ' + dates.length : '' });
 
   push('Child', (j.forChildren || []).filter(Boolean).join(', '));
@@ -574,7 +574,7 @@ function jobAccepted_(j) {
 /* ---------- THREE PEOPLE, THREE FIGURES, AND EACH SEES THEIR OWN § */
 function jobMoney_(j) {
   const has = v => v !== '' && v != null && isFinite(Number(v));
-  const say = v => has(v) ? money_(Number(v)) : '—';
+  const say = v => has(v) ? money_(Number(v)) : dash_();
   if (typeof isAdmin === 'function' && isAdmin()) {
     /* A WAITING LIST'S `price` IS ONE SEAT, NOT A TOTAL — `doGet` says so beside it — so "Client pays" over it would name the per-seat figure as everything the § */
     const seat = norm(j.kind) === 'waitlist';
@@ -623,7 +623,7 @@ function discountRow_(L) {
   return receiptRow({ n: '', k: 'Discount', v: '', mul: '', cls: 'rc-disc', ctl: bkCtl_('discValue'),
     /* CAPPED WHERE @FAMILY'S SHARE RUNS OUT (owner, 8 Nov): the most it can be is said in the rate column. */
     rate: e.capped ? 'max ' + e.maxPct + '%' : '',
-    total: e.discount > 0 ? '− ' + money_(e.discount / ((L && L.splitShares) || 1)) : '—',
+    total: e.discount > 0 ? '− ' + money_(e.discount / ((L && L.splitShares) || 1)) : dash_(),
     sel: `<input class="bk-in" id="${bkCtl_('discValue')}" data-do="book-disc" data-field="discValue" type="number"
       inputmode="decimal" min="0" max="100" step="1" value="${admin ? esc(BOOKING.discValue) : ''}" placeholder="% off"${admin ? '' : ' disabled'}
       aria-label="Discount, per cent off">` });
@@ -646,7 +646,7 @@ function formMoney_(L) {
   if (!(typeof isAdmin === 'function' && isAdmin())) return { label: null, more: [] };
   /* THE SAME THREE FIGURES THE BOOKING ROW KEEPS (`bookShares_`): after the discount, so pays = tutor + admin + fees to the penny. */
   const sh = typeof bookShares_ === 'function' ? bookShares_(L) : null;
-  const dash = '\u2014';
+  const dash = dash_();
   return { label: 'Client pays', total: sh ? money_(sh.pays) : dash,
            more: [{ k: 'Tutor earns', t: sh ? money_(sh.tutor) : dash }]
              .concat(sh && sh.fees > 0 ? [{ k: 'Room and fees', t: money_(sh.fees) }] : [])
@@ -665,7 +665,7 @@ function payRow_(L) {
 /* THE SAVED BOOKING'S DISCOUNT LINE: the form's box, read-only, so the two documents keep one line list. */
 function discountSaid_(j) {
   const pc = Number(j && j.discountValue) || 0;
-  return receiptRow({ n: '', k: 'Discount', v: '', mul: '', rate: '', cls: 'rc-disc', total: '\u2014',
+  return receiptRow({ n: '', k: 'Discount', v: '', mul: '', rate: '', cls: 'rc-disc', total: dash_(),
     sel: `<input class="bk-in" type="number" value="${pc > 0 ? esc(String(pc)) : ''}" placeholder="% off" disabled aria-label="Discount, per cent off">` });
 }
 
@@ -686,10 +686,10 @@ function bookFieldsSaid_() {
         : st.grid ? bookRuns().map(r => day_(r.dayName) + ' ' + hours_(r.hour, r.hour + r.hours)).join(', ')
         : st.multi ? (list.join(', ') || fb(st))
         : (st.label_ && v ? st.label_(v) : (v || fb(st)));
-      return st.short + ': ' + (String(said || '').trim() || '\u2014');
+      return st.short + ': ' + dash_(String(said || '').trim());
     });
     const admin = typeof isAdmin === 'function' && isAdmin();
-    if (admin && !isWaiting_()) out.push('Discount: ' + (Number(BOOKING.discValue) > 0 ? BOOKING.discValue + '%' : '\u2014'));
+    if (admin && !isWaiting_()) out.push('Discount: ' + (Number(BOOKING.discValue) > 0 ? BOOKING.discValue + '%' : dash_()));
     const L = bookPrice();
     if (L && L.total > 0) out.push((admin && !isWaiting_() ? 'Client pays' : 'Cost') + ': ' + money_(L.total));
     if (String(BOOKING.note || '').trim()) out.push('Note: written (not copied)');

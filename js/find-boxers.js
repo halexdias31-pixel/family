@@ -102,7 +102,7 @@ on('bible-go', el => {
   if (x) f.splice(2, 0, { field: 'wSource', value: writingAt_(x, 'source') });
   if (x) f.push({ field: 'wBook', value: x.bb.book }, { field: 'wChapter', value: x.ch });
   inFinder_(F, () => {
-    finderSet_(F, { filters: f });
+    finderSet_(F, { filters: f, show: !!x });
     if (AT !== F.id) go(F.id);
     goPage(F.id, x ? stuffFirstResult_() + stuffPageOf_(x) : stuffQuestionPage_());
   });
@@ -142,7 +142,7 @@ function finderOpen_(x, part, F) {
   inFinder_(F, () => {
     /* EMPTIED FIRST: the walk asks `stuffFiltered`, which reads the chips. */
     finderSet_(F, { paint: false });
-    finderSet_(F, { filters: finderWalk_(x) });
+    finderSet_(F, { filters: finderWalk_(x), show: true });
     if (AT !== F.id) go(F.id);
     const pages = stuffPages_();
     let i = pages.findIndex(pg => pg.x === x && (pg.part || null) === (part || null));

@@ -564,7 +564,7 @@ on('job-request-answer', el => {
 /* ---------- THE FAMILY LEAVING § */
 on('job-leave', el => {
   const paid = !!el.dataset.paid;
-  if (!sure_(el, paid ? 'Mark unpaid?' : 'Mark paid?')) return;
+  if (!sure_(el, paid ? 'Withdraw? (refunds go through Stripe)' : 'Withdraw?')) return;
   el.disabled = true;
   api({ action: 'move', jobId: el.dataset.id, role: 'client',
         /* THE ID AS WELL AS THE NAME — `move` now asks WHO is posting (a tutor seat needs a tutor),
@@ -575,27 +575,6 @@ on('job-leave', el => {
       el.disabled = false;
       if (d && d.error) { toast(d.error); return; }
       toast('Withdrawn');
-      load();
-    })
-    .catch(err => { el.disabled = false; toast(why_(err)); });
-});
-
-/* MARKING IT PAID BY HAND. § */
-/* NO SHEET (owner, 7 Nov): the how-was-it-paid box is on an accepted receipt from the start (`jobPaidForm_`, tiles.js). */
-on('job-paid', el => {
-  const f = el.closest('.paid-form');
-  const how = ((f && (f.querySelector('.paid-how') || {}).value) || '').trim();
-  const said = f && f.querySelector('.paid-said');
-  if (!how) { if (said) said.textContent = 'Say how, even roughly.'; return; }
-  el.disabled = true;
-  el.textContent = 'Saving…';
-  api({ action: 'markPaid', jobId: el.dataset.id,
-        name: USER.name, adminName: USER.name, how: how,
-        requestId: 'paid-' + el.dataset.id + '-' + Date.now() })
-    .then(d => {
-      el.disabled = false;
-      if (d && d.error) { toast(d.error); return; }
-      toast(d && d.alreadyPaid ? 'Already marked paid' : 'Marked paid');
       load();
     })
     .catch(err => { el.disabled = false; toast(why_(err)); });
@@ -618,7 +597,7 @@ on('job-take-seat', el => {
   BOOKING.done = uniq((BOOKING.done || [])
     .concat(['how', 'joining', 'subjects', 'level', 'loc', 'n']));
   closeSheet();
-  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }] });
+  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true });
   go('stuff');
   /* ONE PAGE ON FROM THE QUESTION, which is the form. */
   PAGE.stuff = stuffQuestionPage_() + 1;
@@ -640,7 +619,7 @@ on('job-join', el => {
   BOOKING.done = uniq((BOOKING.done || [])
     .concat(['how', 'joining', 'subjects', 'level', 'loc', 'n']));
   closeSheet();
-  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }] });
+  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true });
   go('stuff');
   PAGE.stuff = stuffQuestionPage_() + 1;
   paintPager('stuff', true);

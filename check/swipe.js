@@ -198,13 +198,12 @@ async function boot(browser, W, H, opts = {}) {
   await page.route('**://script.google.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
   await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof placeGrid === 'function' && typeof SLIDE_UNTIL === 'number'
-    && document.querySelector('#s-stuff .page') && document.querySelector('#s-res .page'), null, { timeout: 30000 });
+    && document.querySelector('#s-stuff .page'), null, { timeout: 30000 });
   /* AND THE PAYLOAD'S SCREEN UP, so the builder is open (docs/history/341). § */
   await page.waitForFunction(() => typeof AHEAD === 'undefined' || AHEAD.open, null, { timeout: 60000 }).catch(() => {});
-  /* THE TOOLS AND GAMES ARE FIND CARDS (790): Find answers Tools and Find 2 Games, side by side as the two columns were. */
+  /* THE TOOLS AND GAMES ARE FIND CARDS (790): Find answers Tools; a game case turns it to Games and back. */
   await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED, null, { timeout: 60000 }).catch(() => {});
-  await page.evaluate(() => { finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Tools' }], q: '' });
-    finderSet_(FINDERS.res, { filters: [{ field: 'forLabel', value: 'Games' }], q: '' }); });
+  await page.evaluate(() => { finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Tools' }], q: '' }); });
   await sleep(1500);
   await page.evaluate(() => window.__sw.arm());
   const cdp = await ctx.newCDPSession(page);
@@ -261,14 +260,14 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
     const next = id => tabs[tabs.indexOf(id) + 1];
     const prev = id => tabs[tabs.indexOf(id) - 1];
     const count = await page.evaluate(() => Object.fromEntries(TABS.map(t => [t.id, AXES.y.count(t.id) || 1])));
-    if ((count.stuff || 0) < 3 || (count.res || 0) < 3) {
-      fail('REACH', at, `Tools has ${count.stuff} pages and Games ${count.res}; the gestures need three each — nothing was asked`);
+    if ((count.stuff || 0) < 3) {
+      fail('REACH', at, `Find on Tools has ${count.stuff} pages; the gestures need three — nothing was asked`);
       await env.ctx.close(); continue;
     }
     /* A ONE-PAGE COLUMN WITH A COLUMN AFTER IT — named rather than found first in the row. § */
     const one = ['saved', 'spotlight', 'booking', 'dm'].find(id => count[id] === 1 && next(id));
     /* PAGES WITH BARE CARD ON THEM, and a page below each for a turn up to land on. */
-    const TOOLS = [1, 2, 4, 5, 6, 7], GAMES = [1, 3, 4, 5, 6];
+    const TOOLS = [1, 2, 4, 5, 6, 7];
     if (!one) fail('REACH', at, 'there is no one-page column to ask the diagonal of');
 
     /* ---------- 1. ONE CELL, OR BACK WHERE IT WAS § */
@@ -306,14 +305,14 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
     await turn('flick up', { col: 'stuff', p: TOOLS, g: G.flick(0, -90) }, down1);
     await turn('flick down', { col: 'stuff', p: [2, 4, 5, 6, 7], g: G.flick(0, 90) }, up1);
     await turnCol('flick left', { col: 'stuff', p: TOOLS, g: G.flick(-90, 0) }, nextCol);
-    await turnCol('flick right', { col: 'res', p: GAMES, g: G.flick(90, 0) }, s => prev(s.AT) + '/0');
-    await turn('40px up, held still', { col: 'res', p: GAMES, g: G.still(0, -40) }, same);
-    await turn('70px up, held still — a peek, not a turn', { col: 'res', p: GAMES, g: G.still(0, -70) }, same);
+    await turnCol('flick right', { col: 'stuff', p: TOOLS, g: G.flick(90, 0) }, s => prev(s.AT) + '/0');
+    await turn('40px up, held still', { col: 'stuff', p: TOOLS, g: G.still(0, -40) }, same);
+    await turn('70px up, held still — a peek, not a turn', { col: 'stuff', p: TOOLS, g: G.still(0, -70) }, same);
     await turn('70px left, held still — a peek, not a turn', { col: 'stuff', p: TOOLS, g: G.still(-70, 0) }, same);
-    await turn('180px up, pulled back to 120 and let go moving home', { col: 'res', p: GAMES, ys: [0.75, 0.65, 0.55, 0.5], g: G.back(0, -1) }, same);
+    await turn('180px up, pulled back to 120 and let go moving home', { col: 'stuff', p: TOOLS, ys: [0.75, 0.65, 0.55, 0.5], g: G.back(0, -1) }, same);
     await turn('180px left, pulled back to 120 and let go moving home', { col: 'stuff', p: TOOLS, xs: [0.78, 0.7, 0.62], g: G.back(-1, 0) }, same);
     /* AND THE CONTROL: a deliberate drag most of the way, held still, still turns the page. */
-    await turn('half a card up, held still', { col: 'res', p: GAMES, g: G.still(0, -Math.round(H * 0.45)) }, down1);
+    await turn('half a card up, held still', { col: 'stuff', p: TOOLS, g: G.still(0, -Math.round(H * 0.45)) }, down1);
     }
 
     /* ---------- 1b. THE CARD STAYS UNDER THE FINGER WHEN THE MOVES ARRIVE FOLDED TOGETHER § */
@@ -352,7 +351,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
     }
 
     /* ---------- 3. A SWIPE THAT BEGINS ON A CONTROL PRESSES NOTHING ----------------------------- */
-    if (want('tile')) await turn('up, starting on a tile', { col: 'res', p: GAMES, on: '.tile-row [data-do], .tile[data-do]', g: G.flick(0, -140, 130) }, down1);
+    if (want('tile')) await turn('up, starting on a tile', { col: 'stuff', p: TOOLS, on: '.tile-row [data-do], .tile[data-do]', g: G.flick(0, -140, 130) }, down1);
 
     /* ---------- 4. A TAP ON A CARD STILL SLIDING IS NOT A PRESS § */
     if (want('slide')) {
@@ -363,10 +362,10 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
           el.dispatchEvent(new PointerEvent('pointerup', o));
           el.click();
         };
-        await window.__sw.place('res', 1);
-        AXES.y.go((PAGE.res || 0) + 1);
+        await window.__sw.place('stuff', 1);
+        AXES.y.go((PAGE.stuff || 0) + 1);
         placeNow_('y', false, 0);
-        const pg = document.querySelector('#s-res > .page.on');
+        const pg = document.querySelector('#s-stuff > .page.on');
         const star = pg && pg.querySelector('[data-do="fav"]');
         if (!star) return { none: true };
         const out = { sliding: performance.now() < SLIDE_UNTIL - 60 };
@@ -375,11 +374,11 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
         out.mid = window.__sw.acts.map(a => a.act);
         await window.__sw.still();
         window.__sw.reset();
-        const again = document.querySelector('#s-res > .page.on [data-do="fav"]');
+        const again = document.querySelector('#s-stuff > .page.on [data-do="fav"]');
         if (again) press(again);
         out.after = window.__sw.acts.map(a => a.act);
         /* AND THE STAR PUT BACK THE WAY IT WAS. */
-        if (again && out.after.length) { await window.__sw.still(); press(document.querySelector('#s-res > .page.on [data-do="fav"]')); }
+        if (again && out.after.length) { await window.__sw.still(); press(document.querySelector('#s-stuff > .page.on [data-do="fav"]')); }
         return out;
       });
       reached++;
@@ -397,7 +396,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
       const r = await page.evaluate(async () => {
         /* EVERYTHING IN ONE TASK, with a style read forcing each step: § */
         const out = {};
-        await window.__sw.place('res', 1);
+        await window.__sw.place('stuff', 1);
         await window.__sw.place('stuff', 1);
         const ti = TABS.findIndex(t => t.id === 'stuff');
         AXES.x.go(ti + 1);
@@ -413,10 +412,10 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
         SWIPE.live = false; SWIPE.axis = null;
         placeCells('y');
         await window.__sw.still();
-        await window.__sw.place('res', 1);
+        await window.__sw.place('stuff', 1);
         const yProp = colProp_('y');
-        const g = document.getElementById('s-res');
-        AXES.y.go((PAGE.res || 0) + 1);
+        const g = document.getElementById('s-stuff');
+        AXES.y.go((PAGE.stuff || 0) + 1);
         placeNow_('y', false, 0);
         void getComputedStyle(g).translate;
         out.yBefore = g.getAnimations().some(a => a.transitionProperty === yProp);
@@ -439,9 +438,9 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
       }
       /* AND WITH A REAL FINGER: sideways, then up 60ms later, lands one column over and one page down. */
       /* FROM A COLUMN WHOSE RIGHT NEIGHBOUR HAS A PAGE BELOW: Tools → Games until 392, Games → You since (Book beside Tools is one page). */
-      const from = ['stuff', 'res'].find(id => next(id) && (count[next(id)] || 1) >= 2);
+      const from = ['stuff'].find(id => next(id) && (count[next(id)] || 1) >= 2);
       let sp = null;
-      for (const p of (from === 'res' ? GAMES : TOOLS)) { if (!from) break; await page.evaluate(([c, p]) => window.__sw.place(c, p), [from, p]); sp = await page.evaluate(() => window.__sw.spot()); if (sp) break; }
+      for (const p of TOOLS) { if (!from) break; await page.evaluate(([c, p]) => window.__sw.place(c, p), [from, p]); sp = await page.evaluate(() => window.__sw.spot()); if (sp) break; }
       if (sp) {
         const want = await page.evaluate(() => {
           const id = TABS[TABS.findIndex(t => t.id === AT) + 1].id;
@@ -966,12 +965,12 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
         else if (!blocks.some(m => /-webkit-user-select:\s*none/.test(m[2]) && /-webkit-touch-callout:\s*none/.test(m[2])))
           fail('NOTHING LIGHTS UP', 'style.css', `the rule on the game card (${blocks[0][1].trim()}) lacks \`-webkit-user-select: none\` or \`-webkit-touch-callout: none\` — the two that iOS Safari reads`);
       }
-      const idx = await page.evaluate(() => { try { localStorage.setItem('cs-game', 'flabby'); } catch (e) {} const at = inFinder_(FINDERS.res, () => stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === 'console')); return at < 0 ? -1 : inFinder_(FINDERS.res, () => stuffFirstResult_()) + at; });
+      const idx = await page.evaluate(() => { try { localStorage.setItem('cs-game', 'flabby'); } catch (e) {} finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Games' }], q: '' }); paintStuff(); const at = stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === 'console'); return at < 0 ? -1 : stuffFirstResult_() + at; });
       const g = idx < 0 ? null : await page.evaluate(async i => {
         const wait = ms => new Promise(r => setTimeout(r, ms));
-        await window.__sw.place('res', i);
+        await window.__sw.place('stuff', i);
         const live = () => typeof flappyState !== 'undefined' && flappyState
-          && document.querySelector('#s-res > .page.on #flappy-canvas');
+          && document.querySelector('#s-stuff > .page.on #flappy-canvas');
         for (let k = 0; k < 60 && !live(); k++) await wait(60);
         const c = live();
         if (!c) return null;
@@ -1012,7 +1011,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
         const drawn = () => chain.map(el => PROPS.map(p => getComputedStyle(el).getPropertyValue(p)).join('|'));
         const us = el => { const s = getComputedStyle(el); return s.getPropertyValue('user-select') || s.getPropertyValue('-webkit-user-select'); };
         /* THE CONTROL: text on another card on this column, and the page itself, still select. */
-        const other = document.querySelector('#s-res > .page:not(.on) .card h3, #s-res > .page:not(.on) .card p');
+        const other = document.querySelector('#s-stuff > .page:not(.on) .card h3, #s-stuff > .page:not(.on) .card p');
         window.__flap = { sel: 0, focus: 0, down: 0, chain, drawn, before: drawn(), active: document.activeElement };
         if (!window.__flapArmed) {
           document.addEventListener('selectstart', () => window.__flap.sel++, true);
@@ -1084,17 +1083,18 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
         await stop();
         /* AND THE SWIPE THAT STARTS ON IT STILL TURNS THE PAGE — up when there is a card below, down
            when the game is the last one. */
-        if (idx < count.res - 1) await turn('up, starting on the game', { col: 'res', p: idx, on: '.flappy', g: G.flick(0, -140, 130) }, down1);
-        else await turn('down, starting on the game', { col: 'res', p: idx, on: '.flappy', g: G.flick(0, 140, 130) }, up1);
+        if (idx < (await page.evaluate(() => AXES.y.count('stuff'))) - 1) await turn('up, starting on the game', { col: 'stuff', p: idx, on: '.flappy', g: G.flick(0, -140, 130) }, down1);
+        else await turn('down, starting on the game', { col: 'stuff', p: idx, on: '.flappy', g: G.flick(0, 140, 130) }, up1);
         await stop();
       }
+      await page.evaluate(() => { finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Tools' }], q: '' }); paintStuff(); });
     }
 
     /* ---------- 9. ARRIVING AT A COLUMN OF WIDGETS STARTS THEM A FEW AT A TIME § */
     if (want('widgets')) {
       const r = await page.evaluate(async () => {
         const wait = ms => new Promise(res => setTimeout(res, ms));
-        await window.__sw.place('res', 0);
+        await window.__sw.place('stuff', 0);
         /* THE BUILDER HELD, AND TOOLS MARKED STALE, so the arrival draws the column from nothing and starts its widgets through the queue — what this asks about. § */
         window.__aheadHold = true; repaint();
         /* THE ROSTER'S OWN OBJECTS ONLY: a widget made from data (a session you are in) is a fresh
@@ -1134,7 +1134,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
            the gestures above use. The finger goes down the moment the queue has something in it. */
         let spot = null;
         for (const p of [2, 4, 5, 6, 7]) { await window.__sw.place('stuff', p); spot = window.__sw.spot(); if (spot) break; }
-        await window.__sw.place('res', 0);
+        await window.__sw.place('stuff', 0);
         /* HELD AND MARKED AGAIN, for the reason the arrival above is (docs/history/341). */
         window.__aheadHold = true; repaint();
         const ws = widgetsOf_('tool').filter(w => typeof WIDGETS !== 'undefined' && WIDGETS.indexOf(w) !== -1 && w.start);
@@ -1185,7 +1185,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
       cdp.on('Tracing.dataCollected', d => events.push(...d.value));
       /* WARMED UP: both columns visited once, because the first visit after the payload lands is a
          REPAINT of the column by design (`STALE`) — the cost of new data, not of a swipe. */
-      await page.evaluate(async () => { await window.__sw.place('res', 1); await window.__sw.place('stuff', 1); });
+      await page.evaluate(async () => { await window.__sw.place('stuff', 1); await window.__sw.place('stuff', 1); });
       const traced = async (name, code) => {
         events.length = 0;
         await page.evaluate(() => window.__sw.place('stuff', 1));
@@ -1215,17 +1215,17 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
         window.camStop_ = function () { n++; return real.apply(this, arguments); };
         const out = {};
         await window.__sw.place('stuff', 1);
-        n = 0; go('res', false); await window.__sw.still(); out.across = n;
+        n = 0; go(TABS[TABS.findIndex(t => t.id === 'stuff') + 1].id, false); await window.__sw.still(); out.across = n;
         await window.__sw.place('feed');
         n = 0; go(TABS[TABS.findIndex(t => t.id === 'feed') + 1].id, false); await window.__sw.still(); out.leaving = n;
         window.camStop_ = real;
         return out;
       });
       reached++;
-      note(`${at} camStop_: ${cam ? cam.across + ' call(s) from Tools to Games, ' + cam.leaving + ' leaving the feed' : 'not reachable'}`);
+      note(`${at} camStop_: ${cam ? cam.across + ' call(s) from Tools to the next column, ' + cam.leaving + ' leaving the feed' : 'not reachable'}`);
       if (!cam) fail('REACH', `${at} camera`, 'camStop_ is not reachable — nothing was asked');
       else {
-        if (cam.across) fail('RELEASE COST', `${at} Tools to Games`, `camStop_ ran ${cam.across} time(s) on a column change that never touched the feed — a whole-document layout for a camera that was never on`);
+        if (cam.across) fail('RELEASE COST', `${at} Tools to the next column`, `camStop_ ran ${cam.across} time(s) on a column change that never touched the feed — a whole-document layout for a camera that was never on`);
         if (cam.leaving !== 1) fail('RELEASE COST', `${at} leaving the feed`, `camStop_ ran ${cam.leaving} time(s) leaving the feed, not once — the camera must still be let go`);
       }
     }
@@ -1840,7 +1840,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
          arrival; the moment its widgets are queued, a page turn — counted. */
       const turn = await page.evaluate(async () => {
         const R = window.__swSweep;
-        await window.__sw.place('res', 0);
+        await window.__sw.place('stuff', 0);
         try { ACTIONS['filter-clear'](document.createElement('button')); } catch (e) {}
         R.starts = []; R.paints = 0; R.on = true; R.arm = true; R.armed = null;
         go('stuff', false);

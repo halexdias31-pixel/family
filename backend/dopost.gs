@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-09-uniform-2";
+const DOPOST_VERSION = "2026-11-09-stripe-perm-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -124,11 +124,11 @@ function doPost(e) {
       ? { error: denied, why: 'signed-out' } : { error: denied });
     /* ---------- WHO THE REPLY IS FOR (342) § */
     {
-      const need = ACTION_ACCESS[action];
+      const need = permNeed_(action);
       netViewerSet_(need === 'self' || need === 'admin' ? findPerson('', S(body.personId)) : authWhoIs_(body.token));
     }
     /* ---------- A CHILD DOES NOT SPEND MONEY (398): she is sent no price, so a parent books and pays. */
-    if (netViewerIsChild_() && (KID_MONEY_ACTIONS.indexOf(action) !== -1
+    if (netViewerIsChild_() && (permChildDenied_(action)
         || (action === 'move' && KID_MONEY_MOVES.indexOf(norm(body.move)) !== -1))) {
       return jsonOut({ error: KID_ASK_PARENT, why: 'ask-a-parent' });
     }
@@ -219,7 +219,6 @@ function postActions_() {
     createCheckout: postCreateCheckout_,
     finalizePayment: postFinalizePayment_,
     setRoom: postSetRoom_,
-    markPaid: postMarkPaid_,
     move: postMove_,
     answerRequest: postAnswerRequest_,
     createJob: postCreateJob_,

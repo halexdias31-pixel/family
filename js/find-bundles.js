@@ -213,7 +213,7 @@ function bundleStrayLine_(b) {
 /* WHAT A BUNDLE CARD'S TAG ROW IS ASKED OF: § */
 const BUNDLE_ITEM = { kind: 'bundle', kindLabel: 'Bundles' };
 /* A BUNDLE CARRIES EVERY TAG ITS PAPERS SHARE (owner, 6 Nov: "the same tags the sections have"), after its own Bundles tag. */
-function bundleTags_(b) {
+function bundleTagsOf_(b) {
   const own = String(tagRow_(BUNDLE_ITEM) || '<div class="qtags qcard-tags"></div>'), RE = /<span class="qtag"[^>]*data-f="([^"]*)"[^>]*>[\s\S]*?<\/span>/g, skip = /^(kindLabel|kindOwn|qNumber|qPart|qSub|marks|myResult)$/;
   const sets = (b.firsts || []).map(x => { const m = {}; String(tagRow_(x) || '').replace(RE, (t, f) => { if (!skip.test(f)) m[t] = 1; return t; }); return m; });
   return sets.length ? own.replace(/<\/div>\s*$/, Object.keys(sets[0]).filter(t => sets.every(m => m[t])).join('') + '</div>') : own;
@@ -470,6 +470,8 @@ function withPic_(x, html) {
 function chipShow_(f, i) {
   const facet = facetBy(f.field), was = STUFF.filters;
   if (!facet) return f.value;
+  const built = i != null && Array.isArray(was) ? chipShowBuilt_(was.slice(0, i), f) : null;
+  if (built != null) return built;
   if (i != null && Array.isArray(was)) try { STUFF.filters = was.slice(0, i);
     const w = (facetTally_(stuffFiltered(), facet).values || []).find(v => spellKey_(v.value) === spellKey_(f.value));
     if (w) return w.show || w.text || w.value; } catch (e) { oops_(e, 'find:chipShow_') } finally { STUFF.filters = was; }
@@ -502,7 +504,8 @@ function filterChips() {
       if (said[key]) return '';
       said[key] = 1;
       return `
-      <span class="chip sm"${f.any ? '' : tagAttr_(f.field)}>
+      <span class="chip sm" data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}>
+        ${/* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it. */ ''}
         ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody made and has to be able to unmake. § */
              ''}
         ${/* ---------- THE CHIP SHOWS WHAT THE BUTTON SHOWED, NOT WHAT IT MATCHES ON § */
@@ -530,7 +533,7 @@ function filterClear_() {
 on('facet-pick', el => inFinder_(finderAt_(el), () => {
   writingFreeze_();
   STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value });
-  paintStuff();
+  paintStuffSoon_();
   /* A BOOK OF THE BIBLE CHOSEN WAS FETCHED HERE TOO (docs/history/341), and the review of 12 Oct found nothing could tell: § */
 }));
 /* ---------- AND NOT ANSWERING IT IS ALSO AN ANSWER ----------------------------------------------
@@ -539,9 +542,9 @@ on('facet-pick', el => inFinder_(finderAt_(el), () => {
 on('facet-skip', el => inFinder_(finderAt_(el), () => {
   writingFreeze_();
   STUFF.filters.push({ field: el.dataset.field, any: true });
-  paintStuff();
+  paintStuffSoon_();
 }));
-on('filter-drop', el => inFinder_(finderAt_(el), () => { STUFF.filters.splice(Number(el.dataset.i), 1); paintStuff(); }));
+on('filter-drop', el => inFinder_(finderAt_(el), () => { STUFF.filters.splice(Number(el.dataset.i), 1); paintStuffSoon_(); }));
 on('filter-clear', el => inFinder_(finderAt_(el), () => { STUFF.filters = []; paintStuff(); }));
 
 /* REDRAW THE RESULTS AND NOTHING ELSE. § */
@@ -664,6 +667,7 @@ function paintStuff(keepPage) {
   if (clear) clear.innerHTML = filterClear_();
   const groups = $(FINDER.id + '-groups');
   if (groups) groups.innerHTML = stuffQuestion();
+  try { frontWarm_(); } catch (e) { /* only ever a head start */ }
   /* ---------- A NEW QUESTION IS READ FROM THE TOP OF ITS PANE § */
   if (groups && !keepPage) {
     const qp = groups.closest('.pane');
@@ -774,10 +778,10 @@ function layout(which) {
       const r = page ? page.getBoundingClientRect() : null;
       return {
         tab: t.id,
-        cardLeft: r ? +r.left.toFixed(0) : '—',
-        cardWidth: r ? +r.width.toFixed(0) : '—',
-        widthPct: r ? +(100 * r.width / innerWidth).toFixed(1) : '—',
-        onScreen: r ? +(Math.max(0, Math.min(innerWidth, r.right) - Math.max(0, r.left))).toFixed(0) : '—',
+        cardLeft: r ? +r.left.toFixed(0) : dash_(),
+        cardWidth: r ? +r.width.toFixed(0) : dash_(),
+        widthPct: r ? +(100 * r.width / innerWidth).toFixed(1) : dash_(),
+        onScreen: r ? +(Math.max(0, Math.min(innerWidth, r.right) - Math.max(0, r.left))).toFixed(0) : dash_(),
         opacity: +cs.opacity,
         visibility: cs.visibility,
       };

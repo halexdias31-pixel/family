@@ -270,8 +270,8 @@ function stuffNarrow_(out, filters, credits) {
     (byField[f.field] = byField[f.field] || []).push(f);
   });
   Object.keys(byField).forEach(field => {
-    const list = byField[field];
-    out = out.filter(x => list.some(f => filterHit(x, f, credits)));
+    const list = byField[field], ix = list.length === 1 ? narrowIndex_(out, field) : null;
+    out = ix ? (ix.get(spellKey_(list[0].value)) || []) : out.filter(x => list.some(f => filterHit(x, f, credits)));
   });
   return out;
 }
@@ -326,16 +326,15 @@ function stuffFiltered() {
   /* ---------- A TAP ONLY EVER NARROWS, SO IT NARROWS WHAT IS ALREADY HERE § */
   const prev = FIND_MEMO;
   let items = null;
-  if (prev.key !== null && prev.from === DATA && prev.all === all && prev.credits === credits
-      && prev.filters
-      && prev.filters.length <= STUFF.filters.length) {
-    const same = prev.filters.every((f, i) => JSON.stringify(f) === JSON.stringify(STUFF.filters[i]));
+  /* FROM THE LONGEST LIST ALREADY NARROWED (1100): the last, a recent one, or one warmed in the quiet (`frontWarm_`), so Back then a new answer never re-walks the library. */
+  const from = [prev].concat(prev.recent || [], FRONT_WARM.list).filter(m => m && m.key !== null && m.from === DATA && m.all === all && m.credits === credits
+    && m.filters && m.filters.length <= STUFF.filters.length).sort((a, b) => b.filters.length - a.filters.length);
+  for (const m of from) {
+    const same = m.filters.every((f, i) => JSON.stringify(f) === JSON.stringify(STUFF.filters[i]));
     const had = {};
-    prev.filters.forEach(f => { if (!f.any) had[f.field] = true; });
-    const added = STUFF.filters.slice(prev.filters.length);
-    if (same && added.every(f => f.any || !had[f.field])) {
-      items = stuffNarrow_(prev.items, added, credits);
-    }
+    m.filters.forEach(f => { if (!f.any) had[f.field] = true; });
+    const added = STUFF.filters.slice(m.filters.length);
+    if (same && added.every(f => f.any || !had[f.field])) { items = stuffNarrow_(m.items, added, credits); break; }
   }
   if (!items) items = stuffFind(all, credits);
   FIND_MEMO = { key: key, from: DATA, items: items, total: all.length, all: all, credits: credits,
@@ -346,7 +345,29 @@ function stuffFiltered() {
 
 /* ---------- THE PAGES, WHICH ARE NOT THE SAME LIST AS THE RESULTS § */
 let STUFF_PAGES = { from: null, pages: [] };
+/* CARDS ONLY ONCE THE FUNNEL HAS NOTHING LEFT TO ASK (owner, 9 Nov): the last card, no next question, or a door/tile
+   that showed these chips (`STUFF.shown`). One rule for every kind; while asking, no card is built. */
+const FIND_DONE = new WeakMap();
+function findDone_(F) {
+  return inFinder_(F || FINDER, () => {
+    /* A LOOKED-UP QUESTION IS STILL ASKING (1100), said before the list is narrowed, which is most of a big tap's wait. */
+    if (STUFF.shown !== JSON.stringify(STUFF.filters || []) && finderTagsLook_()) return false;
+    const items = stuffFiltered(), fkey = JSON.stringify(STUFF.filters || []);
+    if (STUFF.shown === fkey || items.length <= 1) return true;
+    const m = FIND_DONE.get(items);
+    if (m && m.fkey === fkey && m.data === DATA) return m.v;
+    let v = true;
+    try { v = !finderTagsAt_() && !(nextFacet(items) || overFacet_(items) || (!(STUFF.filters || []).length ? facetBy('kindLabel') : null)); }
+    catch (e) { v = true; }
+    FIND_DONE.set(items, { fkey: fkey, data: DATA, v: v });
+    return v;
+  });
+}
+/* A DOOR OR THE REVEAL TILE SHOWS THE CARDS UNDER THESE CHIPS, until the next chip change. */
+function findShow_() { STUFF.shown = JSON.stringify(STUFF.filters || []); }
 function stuffPages_() {
+  /* ASKED FIRST (1100): while a question is asked no card is built, so the list need not be narrowed yet. */
+  if (!findDone_()) return [];
   const items = stuffFiltered();
   if (STUFF_PAGES.from === items) return STUFF_PAGES.pages;
   /* BACK TO A LIST JUST SEEN (slow taps, 8 Nov): its pages are kept with it, as `stuffFiltered` keeps the list. */
@@ -546,8 +567,7 @@ function jobPage_(j) {
   /* THE REQUEST'S STANDING, one paragraph under the row (488). */
   const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
   const roomOk = j && j.id && (admin || (USER && norm(j.tutor || '') === norm(USER.name)));
-  const forms = (roomOk ? jobRoomForm_(j) : '')
-    + (admin && typeof jobPaidForm_ === 'function' ? jobPaidForm_(j, stage, yes) : '');
+  const forms = roomOk ? jobRoomForm_(j) : '';
   const foot = (tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '') + forms
     + (said ? '<p class="note rc-request" role="status">' + esc(said) + '</p>' : '');
   return typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '';

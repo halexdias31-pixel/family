@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-09-uniform-2";
+const BACKEND_VERSION = "2026-11-09-stripe-perm-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1746,9 +1746,6 @@ const ACTION_ACCESS = {
   /* Letting one through, or turning it down. Admin, obviously — this is the whole point of the
      waiting. */
   approvePost: 'admin',
-  /* MARKING A SESSION PAID BY HAND. Admin and nothing else, obviously — it is the one action on
-     this site that says money arrived without a payment processor having said so. */
-  markPaid: 'admin',
   /* THE ROOM IN THE VENUE: `self`, and the handler lets only an admin or the session's tutor write it. */
   setRoom: 'self',
   /* ENDING A SESSION. Admin only, and deliberately: § */

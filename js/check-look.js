@@ -105,5 +105,133 @@ if (!/tone === 'admin' && !\(typeof isAdmin === 'function' && isAdmin\(\)\)\) re
 /* ---------- 30a. ONE LOADING LOOK: THE THREE DOTS (comments aside) ---------- */
 if (/rotate\((360deg|1turn)\)/.test(noComments)) bad.push('30a a spinner in style.css — a wait is the three dots (loading_, .is-busy)');
 
+/* ---------- 57a. ONE CORNER: --r-ui, or round (--r-round, 50%); a slash or four-corner value is a drawn shape ---------- */
+for (const m of noComments.matchAll(/border-radius:\s*([^;}]+?)\s*(?=[;}])/g)) {
+  const v = m[1];
+  if (/\//.test(v) || (/\S\s+\S/.test(v) && !/^var/.test(v))) continue;
+  if (!/^(0|50%|var\(--r-ui\)|var\(--r-round\))$/.test(v)) bad.push(`57a a corner of its own: border-radius: ${v} — var(--r-ui) (or var(--r-round))`);
+}
+
+/* ---------- 58a. ONE PICTURE HEIGHT: a card's picture is var(--pic-h) tall and cropped to fill ---------- */
+if (!/\.card\.kc > \.kc-pic \{[^}]*height: var\(--pic-h\)/.test(noComments) || !/\.kc-pic :is\([^)]*img[^)]*\) \{[^}]*object-fit: cover/.test(noComments)) bad.push('58a a card picture is not var(--pic-h) tall with object-fit: cover');
+for (const m of noComments.matchAll(/([^{}]*kc-pic[^{}]*)\{([^{}]*)\}/g)) {
+  if (/(^|;)\s*(max-|min-)?height:\s*(?!\s|var\(--pic-h\)|100%)/.test(m[2])) bad.push(`58a a picture height of its own in "${m[1].trim().slice(0, 60)}"`);
+}
+
+/* ---------- 59a. ONE COLUMN ON EVERY SCREEN SIZE: no wider-window rule adds a column; the wide grid stays off ---------- */
+for (const m of noComments.matchAll(/@media[^{]*min-width[^{]*\{([^{}]*\{[^{}]*\}\s*)+\}/g)) {
+  if (/grid-template-columns|column-count|(?<![-\w])columns:/.test(m[0])) bad.push(`59a a second column on a wide window: ${m[0].slice(0, 80)}`);
+}
+const bootSrc = (files.find(f => f.n === 'shell-boot') || {}).src || '';
+if (!/const FLOW_LAYOUT = true;/.test(bootSrc)) bad.push('59a FLOW_LAYOUT is not true (shell-boot.js) — the wide multi-column grid would come back');
+
+/* ---------- 60b. NORMAL CASE EVERYWHERE: no uppercase transform, no ALL-CAPS words on screen ---------- */
+/* The one exception is a drawn calculator's printed brand and key labels (.calc-*): a picture of a thing, not the site's words. */
+for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  if (/text-transform:\s*uppercase/.test(m[2]) && !/^\s*(\.calc-|#kp\.is-shift)/.test(m[1])) bad.push(`60b uppercase in "${m[1].trim().slice(0, 60)}" — normal case`);
+}
+files.forEach(({ n, src }) => {
+  if (/text-transform:\s*uppercase/.test(src)) bad.push(`60b inline uppercase in ${n}.js`);
+  for (const m of stripC(src).matchAll(/>\s*([A-Z]{2,}(?: [A-Z]{2,})+)\s*</g)) bad.push(`60b ALL-CAPS words on screen in ${n}.js: "${m[1]}"`);
+});
+
+/* ---------- 61a. THREE TEXT SIZES: --fs-body, --fs-title, --fs-small ---------- */
+/* Not a text size: the root lever (html), a printed sheet at paper size (mm), a drawing scaled to its box (cq*), the Talmud page's viewer-set size. */
+const FS_OK = /^(var\(--fs-(body|title|small)\)|inherit)$|mm\b|cq[whi]\b|^var\(--tal-fs\)$/;
+for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  if (/(^|[\s,}])html\s*$/.test(m[1]) || /^\s*:root\s*$/.test(m[1])) continue;
+  for (const d of m[2].matchAll(/(?:^|;)\s*font-size:\s*([^;]+?)\s*(?=;|$)/g)) {
+    if (!FS_OK.test(d[1])) bad.push(`61a a fourth text size in "${m[1].trim().slice(0, 50)}": ${d[1]} — var(--fs-body|title|small)`);
+  }
+  for (const d of m[2].matchAll(/(?:^|;)\s*font:\s*([^;]+?)\s*(?=;|$)/g)) {
+    if (d[1] === 'inherit') continue;
+    const size = d[1].split(/\s+(?![^(]*\))/).find(t => !/^(italic|normal|bold|oblique|small-caps|\d00)$/.test(t)) || '';
+    if (!FS_OK.test(size.split(/\/(?![^(]*\))/)[0])) bad.push(`61a a fourth text size in "${m[1].trim().slice(0, 50)}": font: ${d[1]}`);
+  }
+}
+if (/--fs-(xs|sm|md|lg|xl|2xl)\b/.test(css)) bad.push('61a an old size token (--fs-xs/sm/md/lg/xl/2xl) is back');
+
+/* ---------- 62a. ONE GAP BETWEEN CARDS: a card's own margin above or below is 0 or var(--card-gap) ---------- */
+const CARD_SEL = /(^|[\s>+~])(\.card|\.qcard)(\.[\w-]+|:[\w-]+(\([^)]*\))?)*$/;
+for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  if (!m[1].split(',').some(s => CARD_SEL.test(s.trim()))) continue;
+  for (const d of m[2].matchAll(/(?:^|;)\s*(margin(?:-top|-bottom|-block)?)\s*:\s*([^;]+?)\s*(?=;|$)/g)) {
+    const parts = d[2].split(/\s+(?![^(]*\))/);
+    const vert = d[1] === 'margin' ? [parts[0], parts[2] !== undefined ? parts[2] : parts[0]] : d[1] === 'margin-block' ? parts : [parts[0]];
+    if (vert.some(v => !/^(0|var\(--card-gap\))$/.test(v))) bad.push(`62a a gap of its own between cards in "${m[1].trim().slice(0, 60)}": ${d[1]}: ${d[2]} — var(--card-gap)`);
+  }
+}
+if (!/\.card\s*\{[^}]*padding: var\(--card-gap\) 0/.test(noComments)) bad.push('62a a bare card is not padded var(--card-gap) either side of its rule');
+
+/* ---------- 63a. ONE TICK: every ticked box is drawn by the ONE TICK rules; a week-grid hour is a cell, not a tick ---------- */
+const TICK_ONE = /^:is\(\.check input:checked \+ \.box/;
+for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  const sel = m[1].trim();
+  if (!/input:checked|\.bk-tick\.on|\.box\b/.test(sel) || /option\[|\.hr\b/.test(sel) || TICK_ONE.test(sel)) continue;
+  if (/(^|;)\s*(background|border|box-shadow)(-color)?\s*:/.test(m[2]) && /:checked|\.on\b/.test(sel)) bad.push(`63a a tick drawn its own way: "${sel.slice(0, 60)}" — the ONE TICK rules`);
+}
+if ((noComments.match(/border: 1\.5px solid color-mix\(in srgb, var\(--white\) 14%/g) || []).length !== 1) bad.push('63a the tick\'s edge is written more than once — one :is(...) rule draws every tick');
+
+/* ---------- 64a. NUMBERS ARE DIGITS: "3 words", never "three words", in anything the site says ---------- */
+/* Content, not copy: facts (chess), revision notes (mat), help for the question types (qtypes), what is read aloud (shell-click, arcade), titles of works. */
+const WORDS_OK = new Set(['chess', 'mat', 'qtypes', 'shell-click', 'arcade', 'writings', 'hadith']);
+const NUM_WORD = /\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|hundred)\b(?! or two)/i;
+const IDIOM = /\bor two\b|\bthe two\b(?! new)|\bone or two\b/i;
+files.forEach(({ n, src }) => {
+  if (WORDS_OK.has(n)) return;
+  for (const m of stripC(src).matchAll(/'((?:\\.|[^'\\\n])*)'|`((?:\\.|[^`\\])*)`/g)) {
+    const s = (m[1] || m[2] || '').replace(/\$\{[^}]*\}/g, ' ').replace(/<[^>]*>/g, ' ');
+    if (/[a-z] [a-z]/i.test(s) && NUM_WORD.test(s) && !IDIOM.test(s)) bad.push(`64a a number in words in ${n}.js: "${s.trim().slice(0, 70)}" — digits`);
+  }
+});
+
+/* ---------- 65a. A MISSING VALUE IS dash_() (core.js), never a hand-typed '—' ---------- */
+/* mat.js's trig table holds "—" as content (tan 90° is undefined), not as a missing value. */
+const coreSrc = (files.find(f => f.n === 'core') || {}).src || '';
+if (!/const dash_ = /.test(coreSrc)) bad.push('65a dash_ is missing from core.js');
+files.forEach(({ n, src }) => {
+  if (n === 'core' || n === 'mat') return;
+  const k = (stripC(src).replace(/placeholder="—"/g, '').match(/'—'|"—"|'\\u2014'|'&mdash;'/g) || []).length;
+  if (k) bad.push(`65a ${k} hand-typed "—" in ${n}.js — dash_(value)`);
+});
+
+/* ---------- 66a. ONE ICON STYLE: thin outline marks in ink, never filled, never a colour of their own ---------- */
+if (!/fill="none" stroke="currentColor" stroke-width="1\.4"/.test(tilesSrc)) bad.push('66a tileIcon_ no longer draws a thin outline (fill="none", stroke 1.4)');
+const iconsSrc = (tilesSrc.match(/const TILE_ICONS = \{[\s\S]*?\n\};/) || [''])[0];
+if (/fill="(?!none)/.test(iconsSrc)) bad.push('66a a filled mark in TILE_ICONS — outline only');
+for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  if (/tile-i/.test(m[1]) && /(^|;)\s*fill:\s*(?!none)/.test(m[2])) bad.push(`66a a filled icon: "${m[1].trim().slice(0, 60)}"`);
+  if (/^\s*\.tile(\.[\w-]+)*\s*$/.test(m[1]) && !/is-sure/.test(m[1]) && /var\(--(bad|alert|warn|coral|green|purple|pink|admin|hue-\d+)\)/.test(m[2])) bad.push(`66a a coloured tile: "${m[1].trim()}" — ink, black and white`);
+}
+
+/* ---------- 68a. WHAT OPENS, OPENS IN PLACE (fileView_), inside its card ---------- */
+/* Leaving is kept only where it must be: Google's sign-in and consent pages, the backend's own page, a sheet (none of them may be framed), a boxer's source site, and links a person typed in a message. */
+const LEAVES = { 'find-boxers': 1, 'me-account': 1, 'me-messages': 1, 'shell-api': 1, tiles: 1 };
+files.forEach(({ n, src }) => {
+  const k = [...stripC(src).matchAll(/<a\b[^>]*target="_blank"[^>]*>/g)].filter(m => !/data-do="file-view"/.test(m[0])).length;
+  if (k > (LEAVES[n] || 0)) bad.push(`68a ${n}.js opens ${k} link(s) in a new tab, allowed ${LEAVES[n] || 0} — data-do="file-view" opens it inside the card`);
+  for (const m of src.matchAll(/tile_\(\{[^}]*\bhref:[^}]*\}\)/g)) if (!/leave: true/.test(m[0]) && n !== 'tiles') bad.push(`68a an href tile in ${n}.js — it opens in place unless leave: true (a sign-in)`);
+});
+if (!/!o\.leave && \/\^https/.test(tilesSrc)) bad.push('68a tile_ no longer opens an https tile in place (fileView_)');
+
+/* ---------- 69a. A TIME IS A SPAN, start–end, and hours_ (core.js) is the one that writes it ---------- */
+/* book-steps sends the first hour as data (`time`) to the backend: a field, not words on screen. */
+files.forEach(({ n, src }) => {
+  if (n === 'core') return;
+  const code = stripC(src);
+  const k = (code.match(/time_\([^()]*\+ ':00'\)/g) || []).length - (n === 'book-steps' ? 1 : 0);
+  if (k > 0) bad.push(`69a an hour said by hand in ${n}.js — hours_(start, end): 16:00–18:00`);
+  if (/time_\([^)]*\)\s*\+\s*'\s*[–-]\s*'\s*\+\s*time_\(/.test(code)) bad.push(`69a a span built by hand in ${n}.js — hours_(start, end)`);
+});
+if (!/const hours_ = \(a, b\) => time_\(a \+ ':00'\) \+ '–' \+ time_\(b \+ ':00'\)/.test(coreSrc)) bad.push('69a hours_ no longer writes start–end');
+
+/* ---------- 70a. A RATE IS £12.00/h, written by perHour_ (core.js); a total stays a total ---------- */
+if (!/const perHour_ = n => money_\(n\) \+ '\/h';/.test(coreSrc)) bad.push('70a perHour_ is missing from core.js');
+files.forEach(({ n, src }) => {
+  if (n === 'core') return;
+  const code = stripC(src);
+  if (/'\/hour'|' per hour'|money_\([^()]*(\([^()]*\))?[^()]*\) \+ '(\/h|\/hr| an hour| per hour| a hour)'/.test(code)) bad.push(`70a a rate written by hand in ${n}.js — perHour_(n): £12.00/h`);
+});
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');

@@ -134,12 +134,12 @@ const SAM_ = { name: 'Sam Student', personId: 'P9', person_id: 'P9', role: 'stud
 /* A QUESTION ANSWERED ON THE RESOURCES COLUMN — the boxing shelf — so it has a window of results to fill;
    with nothing asked a finder is its question alone. */
 const resAsk_ = w => {
-  const R = findView_(w), S = w.__t.RES();
+  const R = findView_(w), S = w.__t.STUFF();
   const x = R.stuffItemsAll_().find(it => it.kind === 'boxer');
   if (!x) return false;
   S.filters.length = 0; S.filters.push({ field: 'shelf', value: x.shelf });
-  w.paintFinder_('res');
-  return w.document.querySelectorAll('#s-res > .page.is-res').length > 0;
+  w.paintFinder_('stuff');
+  return w.document.querySelectorAll('#s-stuff > .page.is-res').length > 0;
 };
 const veiled_ = (w, col) => [...w.document.querySelectorAll('#s-' + col + ' .widget-slot[aria-busy]')]
   .filter(sl => sl.querySelector(':scope > .loading')).map(sl => sl.id);
@@ -789,6 +789,8 @@ check('a finder drawn for nobody is filled inside the builder\'s slices: no card
      the builder has drawn Find from the payload, so it lands on Find's own question and not the boot's loader. */
   const S = t.STUFF();
   S.filters = P.ask.slice();
+  /* THE PAPER'S CHIPS STILL ASK, so its cards are shown as the reveal tile shows them (`findDone_`). */
+  w.inFinder_(w.finderOf_('stuff'), () => w.findShow_());
   w.paintFinder_('stuff');
   await aheadQuiet_(t);
   if (!w.document.querySelectorAll('#s-stuff > .page.is-res').length) return ['Find holds no result pages for the paper, so nothing was asked — NOT checked'];
@@ -827,7 +829,7 @@ check('a finder drawn for nobody after a landing is warmed a step a slice before
   await aheadQuiet_(t);
   w.stuffItemsBuild_ = b0;
   const log = t.aheadLog().filter(x => x.t >= a);
-  ['stuff', 'res'].forEach(fid => {
+  ['stuff'].forEach(fid => {
     if (!t.TABS.some(x => x.id === fid)) return;
     const paintAt = log.findIndex(x => x.key === 'paint:' + fid);
     if (paintAt < 0) { bad.push('the builder never drew ' + fid + ' after the landing, so nothing was asked of it'); return; }
@@ -852,11 +854,11 @@ check('a card the builder fills ahead of the card in front asks for its pictures
   const t = w.__t, bad = [];
   if (!t || typeof t.domIndex !== 'function') return ['the builder is not reachable — NOT checked'];
   if (!resAsk_(w)) return ['the Resources column has no boxing shelf to fill — NOT checked'];
-  t.go('res', false, true);
+  t.go('stuff', false, true);
   await aheadQuiet_(t);
   /* THE CARDS FOUR TO SIX AHEAD EMPTIED AND LEFT TO THE BUILDER — filled again in the quiet with nothing placing the column after, which is the case: § */
-  const pages = () => [...w.document.querySelectorAll('#s-res > .page')];
-  const k = t.domIndex('res', t.PAGE().res || 0);
+  const pages = () => [...w.document.querySelectorAll('#s-stuff > .page')];
+  const k = t.domIndex('stuff', t.PAGE().stuff || 0);
   const ahead = [4, 5, 6].map(d => pages()[k + d]).filter(pg => pg && pg.dataset.filled === '1' && pg.querySelector('img'));
   if (!ahead.length) return ['no filled card with a picture four to six ahead of the card in front, so nothing was asked — NOT checked'];
   ahead.forEach(pg => w.stuffBlank_(pg));
@@ -923,6 +925,7 @@ check('the quiet puts a finder\'s window where a run needs it: the card in front
   t.go('stuff', false, true);
   const S = t.STUFF();
   S.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
+  w.inFinder_(w.finderOf_('stuff'), () => w.findShow_());
   w.paintFinder_('stuff');
   await aheadQuiet_(t);
   const first = w.inFinder_(w.finderOf_('stuff'), () => w.stuffFirstResult_());
@@ -939,30 +942,6 @@ check('the quiet puts a finder\'s window where a run needs it: the card in front
   const lo = t.pageLo().stuff || 0;
   if (lo !== want) bad.push('after a run to result ' + r + ' and the quiet the window starts at ' + lo + ' (slid to ' + slid + ') — the quiet puts it at ' + want + ', ' + t.stuffBehind() + ' behind');
   if (slid === want) bad.push('the run itself left the window where the quiet would, so the centring was NOT asked');
-  return bad;
-});
-
-check('a column\'s widget slots are drawn before any column further out is painted — the one beside you first, every page of it', async () => {
-  /* REVIEW, 12 Oct (a nit, and the loaders it left): § */
-  const { w } = await aheadBoot_();
-  const t = w.__t, bad = [];
-  if (!t || typeof t.aheadLog !== 'function') return ['the builder is not reachable — NOT checked'];
-  /* SAVED IN FRONT, FIND 2 SHOWING TOOLS BESIDE IT (790: the Games column that stood beside Shop is in Find). */
-  t.USER(SAM_); t.findGroupOn('res', 'Tools'); t.go('booking', false, true); t.go('saved', false, true);
-  await aheadQuiet_(t);
-  const a = w.performance.now();
-  t.repaint();
-  await aheadQuiet_(t);
-  const ids = t.TABS.map(x => x.id), ti = ids.indexOf('saved');
-  if (Math.abs(ids.indexOf('res') - ti) !== 1) return ['Find 2 is not beside Saved: ' + ids.join(' ') + ' — NOT checked'];
-  const log = t.aheadLog().filter(x => x.t >= a);
-  const lastGames = log.map(x => x.key).lastIndexOf(log.filter(x => /^widget:res:/.test(x.key)).map(x => x.key).pop());
-  if (lastGames < 0) return ['no widget on Find 2 was drawn by the builder after the repaint — NOT checked'];
-  /* A FINDER'S SLOTS EXIST ONCE ITS PAINT OR A LATER FILL HAS MADE THEIR PAGES (790), so the race is counted from Find 2's last such job. */
-  let from = 0; log.forEach((x, i) => { if (i < lastGames && /res/.test(x.key) && !/^widget:/.test(x.key)) from = i; });
-  const far = log.findIndex((x, i) => i > from && /^paint:/.test(x.key) && Math.abs(ids.indexOf(x.key.slice(6)) - ti) >= 3);
-  if (far >= 0 && far < lastGames) bad.push('the builder painted ' + log[far].key.slice(6) + ', three or more columns from Saved, before it had drawn every widget on Find 2 beside it (' + log[lastGames].key + ' came after)');
-  t.USER(null);
   return bad;
 });
 
@@ -984,7 +963,7 @@ check('a chosen book of the Bible is fetched by the builder before any card of i
   try { w.bibleIndex_(); } catch (e) {}
   for (let k = 0; k < 100 && !(t.BIBLE() && t.BIBLE().index); k++) await wait(50);
   if (!(t.BIBLE() && t.BIBLE().index)) return ['the Bible\'s index never landed — NOT checked'];
-    t.RES().filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wLanguage', value: 'English' }, { field: 'wText', value: 'King James Version (1611)' },
+    t.STUFF().filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wLanguage', value: 'English' }, { field: 'wText', value: 'King James Version (1611)' },
     { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Torah' }, { field: 'wBook', value: 'Leviticus' }];
   t.PAGE().res = 0;
   /* WHO ASKED, at the moment of asking: `bibleLoad_` is where a book is asked for, and its fetch itself waits a

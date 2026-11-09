@@ -676,8 +676,10 @@ function fileView_(u, host, title) {
   host.appendChild(box);
   return true;
 }
-on('file-view', el => {
-  const host = el.closest('.card, .qcard') || el.parentElement;
-  fileView_(String(el.getAttribute('data-url') || ''), host, el.getAttribute('data-title') || el.getAttribute('aria-label'));
+on('file-view', (el, e) => {
+  const host = el.closest('.card, .qcard, .msg, .pane') || el.parentElement;
+  const u = String(el.getAttribute('data-url') || el.getAttribute('href') || '');
+  /* A LINK KEEPS ITS href AS THE FALLBACK: opened in place, the browser's own leaving is stopped (68a). */
+  if (fileView_(u, host, el.getAttribute('data-title') || el.getAttribute('aria-label')) && e && e.preventDefault) e.preventDefault();
 });
 on('file-view-close', el => { const v = el.closest('.file-view'); if (v) v.remove(); });

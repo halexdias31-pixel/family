@@ -135,7 +135,7 @@ function postVidFail_(v) {
   const href = v.dataset.open || '';
   const a = document.createElement('a');
   a.className = v.className.replace('post-vid', 'post-vid-out');
-  a.href = href; a.target = '_blank'; a.rel = 'noopener';
+  a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.dataset.do = 'file-view';
   a.textContent = '\u25b6 Open the video';
   v.replaceWith(a);
 }
@@ -1537,7 +1537,7 @@ on('post-send', el => {
   const said = $('post-said');
   const v = id => String(($(id) || {}).value || '').trim();
   const opts = pollOptsOf_();
-  if (opts.length === 1) { if (said) said.textContent = 'A poll needs at least two options.'; return; }
+  if (opts.length === 1) { if (said) said.textContent = 'A poll needs at least 2 options.'; return; }
   if (!v('post-cap') && !v('post-body') && !opts.length) { if (said) said.textContent = 'Write something first.'; return; }
   /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE (`draftSent_`, data.js). */
   POST_DRAFT_FIELDS.forEach(f => { try { draftSent_('post', f); } catch (e) {} });

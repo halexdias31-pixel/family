@@ -257,8 +257,8 @@ check('suggest a change (489, 494): one tile with that name on a widget, the boo
   if (!again || again.value) bad.push('the Suggest box opened again with the last words in it: ' + (again && again.value));
   t.go('booking', false, true); await wait(300);
   if (!d.querySelector('#s-booking [data-do="rep-box"]')) bad.push('the booking form has no Suggest tile');
-  /* THE FINDER ITSELF (494): "should be on finder widget too" — Find and Find 2 each carry one on the question's page. */
-  for (const f of ['stuff', 'res']) {
+  /* THE FINDER ITSELF (494): "should be on finder widget too" — Find carries one on the question's page. */
+  for (const f of ['stuff']) {
     t.go(f, false, true); await wait(300);
     const n = d.querySelectorAll(`#${f}-controls [data-do="rep-box"][data-rk="finder"]`).length;
     if (n !== 1) bad.push(`#${f}-controls has ${n} Suggest tiles for the finder itself — wanted one`);
@@ -540,7 +540,6 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   if (!item()) return bad.concat(['no What’s missing item in Find for an admin — NOT checked']);
   await draw();
   if (!host.querySelector('.miss-card')) return bad.concat(['the What’s missing item draws no card — NOT checked']);
-  if (d.querySelector('#s-res .miss-card')) bad.push('Find 2 carries the card too');
   const said = () => [...host.querySelectorAll('.miss-card :is(h3, p, .k, .v)')].map(e => e.textContent.trim()).join(' ');
   /* ONE LINE FIRST (660): the rows open behind The list. */
   if (!/papers? missing in \d+ of \d+/.test(said())) bad.push('the card is not one line: ' + said().slice(0, 160));
@@ -589,32 +588,32 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
 });
 
 /* ---------- THE OWNER'S NOTES OF 29 OCT, ON EDEXCEL A-LEVEL MATHS 2021 IN FIND 2 ---------- */
-check('Find 2 › Questions › Maths › Past paper › A-Level › Edexcel › 2021 (owner, 29 Oct): every page of a question has Suggest a change, a part with nothing to draw on has no Pen (no blank working paper), and Function is offered once a paper is picked', async () => {
+check('Find › Questions › Maths › Past paper › A-Level › Edexcel › 2021 (owner, 29 Oct): every page of a question has Suggest a change, a part with nothing to draw on has no Pen (no blank working paper), and Function is offered once a paper is picked', async () => {
   const full = LIB_FULL.rows('questions');
   const one = await resBoot_({ serve: url => (/data\/questions\.json/.test(url) ? full : undefined), before: signedInAs_(LAY_ADMIN_) });
   if (!one) return ['the app did not boot — NOT checked'];
   const W = one.w, T = W.__t, d = W.document, bad = [];
   for (let i = 0; i < 100 && !(W.stuffItemsAll_().some(x => x.row && x.row.paper_id === 'RS1786302107764-506')); i++) await wait(50);
-  T.go('res'); await wait(80);
+  T.go('stuff'); await wait(80);
   const path = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }, { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Past paper' },
     { field: 'level', value: 'A-Level' }, { field: 'examBoard', value: 'Edexcel' }, { field: 'examYear', value: '2021' }];
   const R = findView_(W);
-  T.RES().filters = path.map(f => Object.assign({}, f));
-  W.paintFinder_('res');
+  T.STUFF().filters = path.map(f => Object.assign({}, f));
+  W.paintFinder_('stuff');
   if (R.stuffFiltered().length < 50) return ['the path holds ' + R.stuffFiltered().length + ' questions — the 2021 papers are not in the library, NOT checked'];
   /* FUNCTION, ONCE A PAPER IS PICKED: Paper 2 holds one part that is not machine-marked, so Function splits it and is asked before Question. */
-  T.RES().filters.push({ field: 'paperId', value: 'RS1786302107764-506' });
+  T.STUFF().filters.push({ field: 'paperId', value: 'RS1786302107764-506' });
   const next = R.nextFacet(R.stuffFiltered());
   if (!next || next.field !== 'function') bad.push('after Paper 2 the funnel asks ' + (next ? next.field : 'nothing') + ', not Function — the verified tags are sorted after the questions that pick one question');
   else if (R.facetValues(R.stuffFiltered(), next).map(v => v.value).sort().join() !== 'Function unverified,Function verified') bad.push('Function offers ' + R.facetValues(R.stuffFiltered(), next).map(v => v.value).join(', '));
-  W.paintFinder_('res');
+  W.paintFinder_('stuff');
   /* EVERY PAGE: a stem's page and a long part's first pages carried no Suggest a change (486). */
   const pages = R.stuffPages_(), first = R.stuffFirstResult_();
   let seen = 0, stems = 0, bare = 0, drawn = 0;
   for (let at = 0; at < Math.min(pages.length, 24); at += 3) {
-    T.goPage('res', first + at, true);
+    T.goPage('stuff', first + at, true);
     await wait(120);
-    const host = d.getElementById('s-res');
+    const host = d.getElementById('s-stuff');
     [...host.querySelectorAll(':scope > .page')].forEach(pg => {
       const q = pg.querySelector('.qcard');
       if (!q) return;
@@ -643,15 +642,15 @@ check('Find 2 › Questions › Maths › Past paper › A-Level › Edexcel ›
 });
 
 /* ---------- THE OWNER'S NOTES OF 2 NOV, ON FIND'S FUNNEL (660) ---------- */
-check('Find 2 funnel (owner, 2 Nov, 660): Type under Practice › Maths offers Past paper and Worksheet alone and Which type holds Specimen paper and 5-a-day; Which (a kind question) is asked under Practice and inside one paper however lopsided; Any what kind is never asked finer (Which, Shelf) but Subject; the Hebrew Bible answers Judaism › Tanakh; a path says labels, never field names', async () => {
+check('Find funnel (owner, 2 Nov, 660): Type under Practice › Maths offers Past paper and Worksheet alone and Which type holds Specimen paper and 5-a-day; Which (a kind question) is asked under Practice and inside one paper however lopsided; Any what kind is never asked finer (Which, Shelf) but Subject; the Hebrew Bible answers Judaism › Tanakh; a path says labels, never field names', async () => {
   const full = LIB_FULL.rows('questions');
   const one = await resBoot_({ serve: url => (/data\/questions\.json/.test(url) ? full : undefined), before: signedInAs_(LAY_ADMIN_) });
   if (!one) return ['the app did not boot — NOT checked'];
   const W = one.w, T = W.__t, bad = [];
   for (let i = 0; i < 100 && W.stuffItemsAll_().filter(x => x.kind === 'question').length < 5000; i++) await wait(50);
-  T.go('res'); await wait(80);
+  T.go('stuff'); await wait(80);
   const R = findView_(W);
-  const ask = fs_ => { T.RES().filters = fs_.map(f => Object.assign({}, f)); const l = R.stuffFiltered(); const n = R.nextFacet(l) || R.overFacet_(l); return { n, vals: n ? R.facetValues(l, n).map(v => v.value) : [], l }; };
+  const ask = fs_ => { T.STUFF().filters = fs_.map(f => Object.assign({}, f)); const l = R.stuffFiltered(); const n = R.nextFacet(l) || R.overFacet_(l); return { n, vals: n ? R.facetValues(l, n).map(v => v.value) : [], l }; };
   const P = [{ field: 'kindLabel', value: 'Practice' }];
   if (R.stuffFiltered && ask(P).l.length < 5000) return ['the library holds ' + ask(P).l.length + ' Practice cards — NOT checked'];
   /* 1. Which first, then Type with the types above alone, then Which type with the one below. */
@@ -667,7 +666,7 @@ check('Find 2 funnel (owner, 2 Nov, 660): Type under Practice › Maths offers P
   const WS = P.concat([{ field: 'kindOwn', value: 'Questions' }, { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Worksheet' }]);
   s = ask(WS);
   if (s.n && s.n.field === 'typeOwn' && s.vals.indexOf('Worksheet') >= 0) bad.push('after Worksheet Which type offers ' + s.vals.join(', ') + ' — Worksheet twice (680)');
-  T.RES().filters = WS.concat([{ field: 'typeOwn', value: 'Worksheet' }]).map(f => Object.assign({}, f));
+  T.STUFF().filters = WS.concat([{ field: 'typeOwn', value: 'Worksheet' }]).map(f => Object.assign({}, f));
   const ch = R.filterChips ? R.filterChips() : '';
   const words = (ch.match(/>\s*([^<]+?)<span class="chip-x"/g) || []).map(t => t.replace(/^>\s*|<span.*$/g, '').trim());
   if (!R.filterChips) bad.push('filterChips is not reachable — the chip row NOT checked');
@@ -675,7 +674,7 @@ check('Find 2 funnel (owner, 2 Nov, 660): Type under Practice › Maths offers P
   /* 3. Inside one paper Questions and Answers are the same cards, and Which is still asked. */
   const paper = (s.l.find(x => x.kind === 'question' && x.row && x.row.paper_id && R.questionHasAns_(x)) || {}).row;
   if (paper) {
-    T.RES().filters = [{ field: 'paperId', value: paper.paper_id }];
+    T.STUFF().filters = [{ field: 'paperId', value: paper.paper_id }];
     const why = R.facetWhy_(R.stuffFiltered(), R.facetList().find(f => f.field === 'kindOwn'));
     if (why) bad.push('inside ' + paper.paper_id + ' Which is held back: ' + why);
   } else bad.push('no past paper with answers — Which inside a paper NOT checked');
@@ -683,8 +682,8 @@ check('Find 2 funnel (owner, 2 Nov, 660): Type under Practice › Maths offers P
   s = ask([{ field: 'kindLabel', any: true }]);
   if (!s.n || s.n.field !== 'subject') bad.push('after Any what kind the funnel asks ' + (s.n ? s.n.field + ' (' + s.vals.slice(0, 4).join(', ') + ')' : 'nothing') + ', not Subject');
   /* 3. The path a suggestion carries says labels. */
-  T.RES().filters = [{ field: 'kindLabel', any: true }, { field: 'qNumber', any: true }, { field: 'myResult', any: true }];
-  const said = T.RES().filters.map((f, i) => R.chipText_(f, i)).join(' › ');
+  T.STUFF().filters = [{ field: 'kindLabel', any: true }, { field: 'qNumber', any: true }, { field: 'myResult', any: true }];
+  const said = T.STUFF().filters.map((f, i) => R.chipText_(f, i)).join(' › ');
   if (/kindLabel|qNumber|myResult/.test(said)) bad.push('the path says field names: ' + said);
   /* 4. The Masoretic Hebrew is Judaism's Tanakh too; a translation of it is not. */
   const heb = { kind: 'bible', topic: 'Christianity', bb: { book: 'Genesis', testament: 'Old Testament', group: 'Law', text: 'Hebrew' }, ch: '1', v: '1' };
@@ -692,7 +691,7 @@ check('Find 2 funnel (owner, 2 Nov, 660): Type under Practice › Maths offers P
   const at = (x, k) => [].concat(W.writingAt_(x, k) || []);
   if (at(heb, 'religion').indexOf('Judaism') < 0 || at(heb, 'collection').indexOf('Tanakh') < 0) bad.push('the Hebrew Genesis answers Religion ' + at(heb, 'religion') + ', Collection ' + at(heb, 'collection') + ' — not Judaism, Tanakh');
   if (at(kjv, 'religion').indexOf('Judaism') >= 0) bad.push('the KJV Genesis answers Judaism — a translation is not the Tanakh');
-  T.RES().filters = [];
+  T.STUFF().filters = [];
   return bad;
 });
 

@@ -676,99 +676,13 @@ function dataProblems(deep) {
   });
 
   /* THE JOBS THAT RUN THEMSELVES, AND WHETHER THEY DID. § */
-  {
-    const seen = PropertiesService.getScriptProperties().getProperties() || {};
-    if (seen.SCHEMA_VERSION !== BACKEND_VERSION) {
-      /* WHICH COLUMNS, by name. "The schema has not been brought up to date" is true and gives
-         nobody anything to do; a list of the columns that are not there is the whole answer. */
-      /* WHICH COLUMNS — BUT NOT ON A PAGE LOAD. § */
-      const which = deep ? (function () {
-        try {
-          const gaps = schemaGaps();
-          return Object.keys(gaps).map(t => t + ': ' + gaps[t].join(', ')).join(' · ');
-        } catch (err) { return 'could not check: ' + err; }
-      })() : '';
-      add('the sheet is behind the code',
-          which || ('The schema has not been brought up to date for ' + BACKEND_VERSION),
-          'It runs by itself the next time an admin opens the site after Deploy \u2192 New version. If this stays, '
-          + 'the Setup card on the You screen says what failed.');
-    }
-    MIGRATIONS.forEach(m => {
-      if (seen['MIGRATED_' + m.id]) return;
-      add('a one-off job has not run', m.id + ' — ' + m.what,
-          'It runs by itself the next time an admin opens the site. If it keeps saying this, that attempt '
-          + 'failed — the Setup card on the You screen shows the error, and it retries on the next page load.');
-    });
-  }
-
+  dpJobs_(add, deep);
   /* CAN THE DEPLOYMENT WRITE TO DRIVE? § */
-  {
-    /* ---------- THIS USED TO RUN ON EVERY ADMIN PAGE LOAD § */
-    const folder = deep ? getPostFolder() : null;
-    if (deep && !folder) {
-      add('no posts can be made', 'There is no posts folder',
-          'Add `posts_folder` to the config tab with the id from the folder URL.');
-    } else if (deep) {
-      try {
-        const probe = folder.createFile('family-permission-check.txt', 'safe to delete');
-        probe.setTrashed(true);
-      } catch (err) {
-        /* Not "no posts can be made" — the scan still works, and posting by dropping files into the folder is a complete route. § */
-        add('one way of posting is unavailable',
-            'This deployment can read the posts folder but not write to it',
-            'Posting still works: put photographs in the folder and press ⟳ on the Posts screen. '
-            + 'To upload from inside the app, appsscript.json must list .../auth/drive; then run '
-            + 'authoriseDrive from the editor and accept the prompt, ticking every box; only when '
-            + 'its last line says READY, deploy a NEW VERSION — '
-            + 'a deployed version pins its manifest, so authorising alone changes nothing.');
-      }
-    }
-  }
-
-  /* A PAGE-COUNT TALLY WAS HERE, and so was a second one under `printing` below. § */
-
+  dpDrive_(add, deep);
   /* VENUES WITH NO COORDINATES. § */
-  {
-    const vs = read(TAB.venues).rows.filter(r => S(r.name)
-      && !/^online$/i.test(S(r.name)) && N(r.cost_per_hour) >= 0);
-    const noPost = vs.filter(r => !S(r.postcode)).map(r => S(r.name));
-    const notPlaced = vs.filter(r => S(r.postcode) && !(N(r.lat) && N(r.lng))).map(r => S(r.name));
-    if (noPost.length) {
-      add('venues with no postcode', noPost.length + ' of ' + vs.length + ': ' + noPost.join(', '),
-          'They sit at the edge of the map. Put a postcode in the venues tab and the coordinates '
-          + 'fill themselves in.');
-    }
-    if (notPlaced.length) {
-      add('venues not placed on the map',
-          notPlaced.length + ' have a postcode and no coordinates: ' + notPlaced.join(', '),
-          'The geocoder has not managed to run. It needs the external_request scope, which Apps '
-          + 'Script infers from UrlFetchApp — run any function once from the editor, accept the '
-          + 'prompt, and deploy a new version. It retries on every request until it works.');
-    }
-  }
-
+  dpVenues_(add, deep);
   /* THE ADMIN ACCOUNT ITSELF. § */
-  {
-    const brand = findPerson(ADMIN_NAME);
-    if (!brand) {
-      add('nobody can sign in as it', 'There is no account called ' + ADMIN_NAME,
-          'Run makeBrandAccount(\'0000\') from the editor with a PIN of your own choosing. '
-          + 'Do it BEFORE removing admin from anybody else, or nobody can reach the controls.');
-    /* `hasPin_`, NOT `S(brand.pin)`. § */
-    } else if (!hasPin_(brand)) {
-      add('nobody can sign in as it', ADMIN_NAME + ' has no PIN',
-          'Run makeBrandAccount with one. The row exists and cannot be logged into.');
-    } else if (!hasRole(brand, 'admin')) {
-      add('nobody can sign in as it', ADMIN_NAME + ' is not an admin',
-          'Its role cell says "' + S(brand.role) + '". Every admin control is absent for it.');
-    }
-    const admins = read(TAB.people).rows.filter(r => hasRole(r, 'admin') && hasPin_(r));
-    if (!admins.length) {
-      add('locked out', 'No account with the admin role has a PIN',
-          'Nothing on the site can be edited by anybody. Fix a PIN on an admin row in the sheet.');
-    }
-  }
-
+  dpAdmin_(add, deep);
   /* `brand!logo_square` IS CHECKED ON THE PHONE OR NOWHERE. § */
   if (!S(logoRow && logoRow.value)) {
     add('looks unfinished', 'brand!logo_square is empty',
@@ -776,88 +690,9 @@ function dataProblems(deep) {
   }
 
   /* MONEY OWED BACK. A client who paid and then withdrew is kept on the roster marked `Withdrawn` precisely so this can find them — the seat is gone and the § */
-  {
-    const owed = [];
-    read(TAB.jobs).rows.forEach(j => {
-      const id = S(j.job_id) || String(j._row);
-      if (!id) return;
-      refundsOwedFor_(j, id).forEach(name => {
-        owed.push(name + ' — ' + (S(j.subject) || 'a session')
-          + (S(j.weekday) ? ' on ' + S(j.weekday) : ''));
-      });
-    });
-    if (owed.length) {
-      add('money to give back', owed.length + ' paid, withdrew in time and are owed a refund: ' + owed.join('; '),
-          'Refund them in Stripe. They are kept on the session marked Withdrawn so this does not '
-          + 'disappear — nothing else anywhere says a refund is owed.');
-    }
-  }
-
+  dpRefunds_(add, deep);
   /* ---------- THE TERM DATES, CHECKED AGAINST EACH OTHER § */
-  {
-    const t = read(TAB.terms);
-    if (t.sheet) {
-      const rows = t.rows
-        .map(r => ({ name: S(r.term_name) || S(r.term_id), s: sheetDate(r.start_date),
-                     e: sheetDate(r.end_date) }))
-        .filter(r => r.s && r.e)
-        .sort((a, b) => a.s - b.s);
-
-      const backwards = rows.filter(r => r.e < r.s).map(r => r.name);
-      if (backwards.length) add('terms that end before they start', backwards.join(', '),
-        'Every length worked out from these is negative, so a booking inside one is priced for a '
-        + 'negative number of weeks. Swap the two dates.');
-
-      const overlaps = [], gaps = [];
-      for (let i = 0; i < rows.length - 1; i++) {
-        const a = rows[i], b = rows[i + 1];
-        if (a.e < a.s) continue;                       /* already reported above */
-        if (b.s <= a.e) {
-          overlaps.push(a.name + ' and ' + b.name + ' share '
-            + (Math.round((a.e - b.s) / 864e5) + 1) + ' days');
-        } else {
-          /* A WEEKEND BETWEEN A TERM AND A HOLIDAY IS NOT A GAP — schools break on a Friday and
-             come back on a Monday, so up to three days between rows is ordinary. */
-          const between = Math.round((b.s - a.e) / 864e5) - 1;
-          if (between > 3) gaps.push(between + ' days between ' + a.name + ' and ' + b.name);
-        }
-      }
-      if (overlaps.length) add('terms that overlap', overlaps.join('; '),
-        'A day in two terms at once means a booking can be counted in either, and which one it '
-        + 'lands in depends on the order the sheet happens to be read in.');
-      if (gaps.length) add('days in no term', gaps.join('; '),
-        'A booking on one of these days has no term to belong to, so it cannot be priced by the '
-        + 'week or shown on a timetable.');
-
-      /* ---------- AND WHAT IS MISSING, AGAINST THE COMPUTED YEAR § */
-      const thisYear = (function () {
-        const now = new Date();
-        return now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-      })();
-      const want = termsFor(thisYear);
-      const missing = want.filter(w => !w.fromSheet).map(w => w.name);
-      if (missing.length === want.length) {
-        add('term dates', 'none entered for ' + thisYear + '-' + String(thisYear + 1).slice(2)
-          + ' — using the computed year',
-          'Worked out from Easter, the spring bank holiday and the usual pattern. Close, but the '
-          + 'borough publishes the real ones and they differ by a day now and then. Worth pasting '
-          + 'them in once a year.');
-      } else if (missing.length) {
-        add('terms not entered', missing.join(', '),
-          'These are being computed from the usual pattern while the rest come from the sheet — so '
-          + 'half the year is published dates and half is a guess, which is the combination hardest '
-          + 'to notice being wrong. Either enter them all or none.');
-      }
-
-      const dup = {};
-      rows.forEach(r => { dup[norm(r.name)] = (dup[norm(r.name)] || 0) + 1; });
-      const twice = Object.keys(dup).filter(k => dup[k] > 1);
-      if (twice.length) add('two terms with the same name', twice.join(', '),
-        'Anything that looks a term up by name will find whichever comes first, which is not '
-        + 'reliably the one meant.');
-    }
-  }
-
+  dpTerms_(add, deep);
   /* --- Stripe --- */
   if (!PropertiesService.getScriptProperties().getProperty('STRIPE_TEST_KEY')) {
     add('no money can move', 'Stripe key is not set',
@@ -865,6 +700,171 @@ function dataProblems(deep) {
   }
 
   return out;
+}
+
+/* The parts of dataProblems: each adds what it finds via `add`. */
+function dpJobs_(add, deep) {
+  const seen = PropertiesService.getScriptProperties().getProperties() || {};
+  if (seen.SCHEMA_VERSION !== BACKEND_VERSION) {
+    /* WHICH COLUMNS, by name. "The schema has not been brought up to date" is true and gives
+       nobody anything to do; a list of the columns that are not there is the whole answer. */
+    /* WHICH COLUMNS — BUT NOT ON A PAGE LOAD. § */
+    const which = deep ? (function () {
+      try {
+        const gaps = schemaGaps();
+        return Object.keys(gaps).map(t => t + ': ' + gaps[t].join(', ')).join(' · ');
+      } catch (err) { return 'could not check: ' + err; }
+    })() : '';
+    add('the sheet is behind the code',
+        which || ('The schema has not been brought up to date for ' + BACKEND_VERSION),
+        'It runs by itself the next time an admin opens the site after Deploy \u2192 New version. If this stays, '
+        + 'the Setup card on the You screen says what failed.');
+  }
+  MIGRATIONS.forEach(m => {
+    if (seen['MIGRATED_' + m.id]) return;
+    add('a one-off job has not run', m.id + ' — ' + m.what,
+        'It runs by itself the next time an admin opens the site. If it keeps saying this, that attempt '
+        + 'failed — the Setup card on the You screen shows the error, and it retries on the next page load.');
+  });
+}
+function dpDrive_(add, deep) {
+  /* ---------- THIS USED TO RUN ON EVERY ADMIN PAGE LOAD § */
+  const folder = deep ? getPostFolder() : null;
+  if (deep && !folder) {
+    add('no posts can be made', 'There is no posts folder',
+        'Add `posts_folder` to the config tab with the id from the folder URL.');
+  } else if (deep) {
+    try {
+      const probe = folder.createFile('family-permission-check.txt', 'safe to delete');
+      probe.setTrashed(true);
+    } catch (err) {
+      /* Not "no posts can be made" — the scan still works, and posting by dropping files into the folder is a complete route. § */
+      add('one way of posting is unavailable',
+          'This deployment can read the posts folder but not write to it',
+          'Posting still works: put photographs in the folder and press ⟳ on the Posts screen. '
+          + 'To upload from inside the app, appsscript.json must list .../auth/drive; then run '
+          + 'authoriseDrive from the editor and accept the prompt, ticking every box; only when '
+          + 'its last line says READY, deploy a NEW VERSION — '
+          + 'a deployed version pins its manifest, so authorising alone changes nothing.');
+    }
+  }
+}
+function dpVenues_(add, deep) {
+  const vs = read(TAB.venues).rows.filter(r => S(r.name)
+    && !/^online$/i.test(S(r.name)) && N(r.cost_per_hour) >= 0);
+  const noPost = vs.filter(r => !S(r.postcode)).map(r => S(r.name));
+  const notPlaced = vs.filter(r => S(r.postcode) && !(N(r.lat) && N(r.lng))).map(r => S(r.name));
+  if (noPost.length) {
+    add('venues with no postcode', noPost.length + ' of ' + vs.length + ': ' + noPost.join(', '),
+        'They sit at the edge of the map. Put a postcode in the venues tab and the coordinates '
+        + 'fill themselves in.');
+  }
+  if (notPlaced.length) {
+    add('venues not placed on the map',
+        notPlaced.length + ' have a postcode and no coordinates: ' + notPlaced.join(', '),
+        'The geocoder has not managed to run. It needs the external_request scope, which Apps '
+        + 'Script infers from UrlFetchApp — run any function once from the editor, accept the '
+        + 'prompt, and deploy a new version. It retries on every request until it works.');
+  }
+}
+function dpAdmin_(add, deep) {
+  const brand = findPerson(ADMIN_NAME);
+  if (!brand) {
+    add('nobody can sign in as it', 'There is no account called ' + ADMIN_NAME,
+        'Run makeBrandAccount(\'0000\') from the editor with a PIN of your own choosing. '
+        + 'Do it BEFORE removing admin from anybody else, or nobody can reach the controls.');
+  /* `hasPin_`, NOT `S(brand.pin)`. § */
+  } else if (!hasPin_(brand)) {
+    add('nobody can sign in as it', ADMIN_NAME + ' has no PIN',
+        'Run makeBrandAccount with one. The row exists and cannot be logged into.');
+  } else if (!hasRole(brand, 'admin')) {
+    add('nobody can sign in as it', ADMIN_NAME + ' is not an admin',
+        'Its role cell says "' + S(brand.role) + '". Every admin control is absent for it.');
+  }
+  const admins = read(TAB.people).rows.filter(r => hasRole(r, 'admin') && hasPin_(r));
+  if (!admins.length) {
+    add('locked out', 'No account with the admin role has a PIN',
+        'Nothing on the site can be edited by anybody. Fix a PIN on an admin row in the sheet.');
+  }
+}
+function dpRefunds_(add, deep) {
+  const owed = [];
+  read(TAB.jobs).rows.forEach(j => {
+    const id = S(j.job_id) || String(j._row);
+    if (!id) return;
+    refundsOwedFor_(j, id).forEach(name => {
+      owed.push(name + ' — ' + (S(j.subject) || 'a session')
+        + (S(j.weekday) ? ' on ' + S(j.weekday) : ''));
+    });
+  });
+  if (owed.length) {
+    add('money to give back', owed.length + ' paid, withdrew in time and are owed a refund: ' + owed.join('; '),
+        'Refund them in Stripe. They are kept on the session marked Withdrawn so this does not '
+        + 'disappear — nothing else anywhere says a refund is owed.');
+  }
+}
+function dpTerms_(add, deep) {
+  const t = read(TAB.terms);
+  if (t.sheet) {
+    const rows = t.rows
+      .map(r => ({ name: S(r.term_name) || S(r.term_id), s: sheetDate(r.start_date),
+                   e: sheetDate(r.end_date) }))
+      .filter(r => r.s && r.e)
+      .sort((a, b) => a.s - b.s);
+
+    const backwards = rows.filter(r => r.e < r.s).map(r => r.name);
+    if (backwards.length) add('terms that end before they start', backwards.join(', '),
+      'Every length worked out from these is negative, so a booking inside one is priced for a '
+      + 'negative number of weeks. Swap the two dates.');
+
+    const overlaps = [], gaps = [];
+    for (let i = 0; i < rows.length - 1; i++) {
+      const a = rows[i], b = rows[i + 1];
+      if (a.e < a.s) continue;                       /* already reported above */
+      if (b.s <= a.e) {
+        overlaps.push(a.name + ' and ' + b.name + ' share '
+          + (Math.round((a.e - b.s) / 864e5) + 1) + ' days');
+      } else {
+        /* A WEEKEND BETWEEN A TERM AND A HOLIDAY IS NOT A GAP — schools break on a Friday and
+           come back on a Monday, so up to three days between rows is ordinary. */
+        const between = Math.round((b.s - a.e) / 864e5) - 1;
+        if (between > 3) gaps.push(between + ' days between ' + a.name + ' and ' + b.name);
+      }
+    }
+    if (overlaps.length) add('terms that overlap', overlaps.join('; '),
+      'A day in two terms at once means a booking can be counted in either, and which one it '
+      + 'lands in depends on the order the sheet happens to be read in.');
+    if (gaps.length) add('days in no term', gaps.join('; '),
+      'A booking on one of these days has no term to belong to, so it cannot be priced by the '
+      + 'week or shown on a timetable.');
+
+    /* ---------- AND WHAT IS MISSING, AGAINST THE COMPUTED YEAR § */
+    const thisYear = (function () {
+      const now = new Date();
+      return now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+    })();
+    const want = termsFor(thisYear);
+    const missing = want.filter(w => !w.fromSheet).map(w => w.name);
+    if (missing.length === want.length) {
+      add('term dates', 'none entered for ' + thisYear + '-' + String(thisYear + 1).slice(2)
+        + ' — using the computed year',
+        'Worked out from Easter, the spring bank holiday and the usual pattern. Close, but the '
+        + 'borough publishes the real ones and they differ by a day now and then. Worth pasting '
+        + 'them in once a year.');
+    } else if (missing.length) {
+      add('terms not entered', missing.join(', '),
+        'These are being computed from the usual pattern while the rest come from the sheet — so '
+        + 'half the year is published dates and half is a guess, which is the combination hardest '
+        + 'to notice being wrong. Either enter them all or none.');
+    }
+
+    const dup = {};
+    rows.forEach(r => { dup[norm(r.name)] = (dup[norm(r.name)] || 0) + 1; });
+    const twice = Object.keys(dup).filter(k => dup[k] > 1);
+    if (twice.length) add('two terms with the same name', twice.join(', '),
+      'Anything that looks a term up by name will find whichever comes first, which is not '
+      + 'reliably the one meant.');
+  }
 }
 
 /* RUN THIS FROM THE EDITOR when anything is not appearing. § */

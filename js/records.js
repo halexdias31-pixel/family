@@ -168,7 +168,7 @@ function appsInner_(wait) {
       ${line('Right to work in the UK', a.right_to_work)}${line('Experience', a.experience)}${line('Available', a.availability)}
       ${line('Area', a.area)}${line('References', [a.ref1_name + ' (' + a.ref1_contact + ')', a.ref2_name + ' (' + a.ref2_contact + ')'].join('; '))}
       ${line('Statement', a.statement)}
-      ${/^https:\/\//.test(a.cv_link || '') ? `<p class="app-line"><a href="${esc(a.cv_link)}" target="_blank" rel="noopener">Open the CV</a></p>` : ''}
+      ${/^https:\/\//.test(a.cv_link || '') ? `<p class="app-line"><a href="${esc(a.cv_link)}" data-do="file-view" target="_blank" rel="noopener">Open the CV</a></p>` : ''}
       <div class="tile-row">${tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'lists them as staff', act: 'app-decide', data: { id: a.id, status: 'approved' } })}${
         a.status === 'new' ? tile_({ icon: 'chat', label: 'Interview', note: 'emails them', act: 'app-decide', data: { id: a.id, status: 'interview' } }) : ''}${
         tile_({ icon: 'close', label: 'Decline', act: 'app-decide', data: { id: a.id, status: 'declined' } })}</div>
@@ -1166,7 +1166,7 @@ const bizFillEach_ = () => document.querySelectorAll('.me-form[data-biz-page]')
   });
 
 function bizStart_() {
-  if (!(typeof isAdmin === 'function' && isAdmin()) || BIZ.list || BIZ.asking) return;
+  if (!can_(myRole_(), 'action', 'listRecords') || BIZ.list || BIZ.asking) return;
   BIZ.asking = true; BIZ.error = '';
   api({ action: 'listRecords', name: USER && USER.name })
     .then(d => {
@@ -1180,7 +1180,7 @@ function bizStart_() {
 
 on('biz-save', el => {
   const form = el.closest('.me-form');
-  if (!form || !isAdmin()) return;
+  if (!form || !can_(myRole_(), 'action', 'saveRecordsPage')) return;
   if (!BIZ.list) {
     toast(BIZ.error ? 'The records have not loaded, so nothing was saved — trying again.'
                     : 'The records are still on their way — a moment.');

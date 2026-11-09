@@ -60,6 +60,8 @@ function serve() {
       window.paintStuff = function () { window.__F.push(['paint', performance.now()]); return real.apply(this, arguments); };
     });
     for (let k = 0; k < 3; k++) {
+      /* A TAP COUNTED LIVE SHOWS THE LOADER FIRST (1100, paintStuffSoon_): the next answers are waited for, as a finger does. */
+      await page.waitForSelector('#s-stuff .page.on [data-do="facet-pick"]', { timeout: 30000 }).catch(() => {});
       const el = page.locator('#s-stuff .page.on [data-do="facet-pick"]').first();
       if (!(await el.count())) { fails.push('tap ' + (k + 1) + ': Find\'s front page has no answer to tap, so the rule was NOT checked'); break; }
       const before = await page.evaluate(() => inFinder_(FINDERS[0], () => STUFF.filters.length));
@@ -67,6 +69,7 @@ function serve() {
       await el.tap({ timeout: 10000 });
       await page.waitForFunction(n => inFinder_(FINDERS[0], () => STUFF.filters.length) > n, before, { timeout: 30000 })
         .catch(() => fails.push('tap ' + (k + 1) + ': the answer was tapped and no answer was taken — a lost tap'));
+      await page.waitForFunction(() => window.__F.some(x => x[0] === 'paint'), null, { timeout: 30000 }).catch(() => {});
       const F = await page.evaluate(() => window.__F.slice());
       const click = F.find(x => x[0] === 'click'), paint = F.find(x => x[0] === 'paint');
       if (!click || !paint) { fails.push('tap ' + (k + 1) + ': no click or no redraw was seen'); continue; }

@@ -216,10 +216,11 @@ node check/digest-dry.js --sheets s.json --week 2026-10-18 --out /tmp/sunday   #
 
 ### CI, quick mode and the live smoke test (780)
 
-- `.github/workflows/checks.yml`, every push and every PR to main, 17 jobs in parallel: `fast` (`check.js` + `check-all.js --fast`),
-  `flow k/8` (`FLOW_PART=k/8 node --max-old-space-size=3000 js/check-flow.js`), `browser k/8` (`check-all.js --slow=k/8`: the
-  slow checks but check-flow, dealt round-robin), and on a PR the `stability guard` (`check/stability-guard.js .base`: fails if
-  tools/stability.js scores lower than on the base, the moved signals in the summary). About 15 minutes of wall time.
+- `.github/workflows/checks.yml`, every push and every PR to main, core only (99, 9 Nov), 9 jobs in parallel: `fast` (`check.js` +
+  `check-all.js --fast`) and `flow k/8` (`FLOW_PART=k/8 node --max-old-space-size=3000 js/check-flow.js`, core journeys), and on a
+  PR the `stability guard` (`check/stability-guard.js .base`). About 10 minutes of wall time. `.github/workflows/nightly.yml`
+  (02:41 UTC and by hand, report-only) runs the rest: secondary checks and journeys, `browser k/8` (`check-all.js --slow=k/8`)
+  and `heavy k/6`.
 - **CI has no private words.** It sets `LIB_PRIVATE=absent`: check/lib-full.js then never seeds data-private/ from history,
   and every read of the words throws `LIB_ABSENT`. A check that needs them whole calls `needWords()` (prints "skipped 1
   library check", exits 0); check-flow skips and counts each such journey (`skipParts`); a read a check swallowed is still
@@ -462,7 +463,7 @@ node check/digest-dry.js --sheets s.json --week 2026-10-18 --out /tmp/sunday   #
 core or secondary; core checks and journeys block, secondary ones (`--all`, `FLOW_TIER=all`) only print WARN.
 Each check's header says what it proves, its flags and its port variable. The full list: `docs/map-detail.md`.
 
-**CI** (780): `.github/workflows/checks.yml` runs the suite on every push and PR to main in 17 parallel jobs (~15 min), with
+**CI** (780): `.github/workflows/checks.yml` runs the core suite on every push and PR to main in 9 parallel jobs (~10 min; the rest nightly in `nightly.yml`), with
 `LIB_PRIVATE=absent` — no private words there, so the checks that need them skip, counted in each job's summary (skipped is
 not green). `npm run check:changed` runs only what a change touches. `live.yml` smoke-tests the live site nightly.
 

@@ -73,9 +73,9 @@ function boot(cb) {
       ' levelOf: levelOf_, levelsOf: levelsOf_, DATA: () => DATA,' +
       ' facetsLive: () => (DATA && DATA.facets) || [], FACETS,' +
       ' FACET_TALLY,' +
-      /* THE SECOND FINDER (docs/history/329, 347): its binding, its record and its state, so the pass at
-         the end asks Find 2's questions the way the app asks them. */
-      ' inFinder_, finderOf_, kindOf_, stuffItemsAll_ };');
+      /* THE FINDER'S BINDING (docs/history/329, 347): its record and its state, so the pass at the end can ask
+         that Find is the only finder (10a). */
+      ' inFinder_, finderOf_, kindOf_, stuffItemsAll_, finderTagsView_, finderTagsLook_, finderSettled_, answerSay_ };');
   } catch (e) {
     bad.push('the app did not load: ' + e.message);
     return cb(null);
@@ -102,7 +102,7 @@ boot(f => {
   /* `FUNNEL_ONLY=walk` walks the random funnels alone — about three minutes, and its OK line names only them. */
   if (process.env.FUNNEL_ONLY === 'under') { underTypes_(f, items); return done('the types under another and the timelines alone (545)'); }
   if (process.env.FUNNEL_ONLY === 'email') { emailTags_(f); return done('the Sunday email\'s tags against the card\'s alone (380)'); }
-  if (process.env.FUNNEL_ONLY === 'paths') { pathsAsked_(f, items); return done('the owner\'s paper paths alone (8 Nov)'); }
+  if (process.env.FUNNEL_ONLY === 'paths') { pathsAsked_(f, items); tagsAgree_(f); return done('the owner\'s paper paths and the build\'s looked-up answers alone (8 Nov, 1100)'); }
   if (process.env.FUNNEL_ONLY === 'walk') { walkFunnels_(f, items); return done('the random funnels alone (section 7)'); }
 
   /* ---------- 0. WHAT THE FIND SCREEN HOLDS IS WHAT THE OWNER SAID IT HOLDS § */
@@ -1014,6 +1014,7 @@ boot(f => {
 
   walkFunnels_(f, items);
   pathsAsked_(f, items);
+  tagsAgree_(f);
 
   /* ---------- A RANGE IS EVERY LEVEL IT COVERS (O1): one Level answer per level, and the item found under each ---------- */
   {
@@ -1131,6 +1132,32 @@ function underTypes_(f, items) {
 }
 
 /* THE OWNER'S PAPER PATHS (8 Nov): after a level and Past paper, Subject is asked before any paper name, and the funnel never ends while Subject still splits the list. */
+/* THE BUILD'S ANSWERS ARE THE LIVE ONES (1100): a sample of js/finder-tags.js's paths, each counted live and compared whole. */
+/* Question, answers, counts, list size, words; and the settled finder must look each one up (finderTagsLook_). */
+function tagsAgree_(f) {
+  const S = f.STUFF, was = S.filters, view = f.finderTagsView_();
+  if (!view) return bad.push('js/finder-tags.js gives this admin no view, so its answers were NOT compared with the live ones');
+  const keys = Object.keys(view).filter(k => k && k[0] !== '#' && k.indexOf('=*') === -1).sort();
+  const step = Math.max(1, Math.floor(keys.length / Number(process.env.FUNNEL_TAGS_SAMPLE || 60)));
+  const sample = keys.filter((k, i) => i % step === 0 || /subject=Maths|kindLabel=Library&subject/.test(k) && k.split('&').length <= 3);
+  let same = 0, looked = 0;
+  try {
+    sample.forEach(k => {
+      S.filters = k.split(/&(?=[A-Za-z]+=)/).map(p => { const i = p.indexOf('='); return { field: p.slice(0, i), value: p.slice(i + 1) }; });
+      S.admit = null;
+      const pre = view[k], list = f.stuffFiltered(), fac = f.nextFacet(list) || f.overFacet_(list);
+      const vs = fac ? f.facetValues(list, fac) : [];
+      const live = fac ? [fac.field, vs.map(v => [v.value].concat(v.show && v.show !== v.value ? [v.show] : [])), vs.map(v => v.n), list.length, vs.map(v => f.answerSay_(fac, v.value))] : null;
+      const want = pre.length > 2 ? pre : pre.concat(live ? live.slice(2) : []);
+      if (!live || JSON.stringify(live) !== JSON.stringify(want))
+        return bad.push('finder-tags: ' + (k || '(start)') + ' was built as ' + JSON.stringify(want).slice(0, 200) + ' and is counted live as ' + JSON.stringify(live).slice(0, 200));
+      same++;
+      if (f.finderSettled_() && pre[3] > 1 && f.finderTagsLook_()) looked++;
+    });
+  } finally { S.filters = was; S.admit = null; }
+  console.log('\nFINDER-TAGS AGAINST LIVE: ' + same + ' of ' + sample.length + ' sampled paths (of ' + keys.length + ') agree; ' + looked + ' were looked up by the settled finder');
+  if (same && !looked) bad.push('finder-tags: none of the ' + same + ' agreeing paths was looked up once settled, so a tap still counts the whole list (finderTagsSame_)');
+}
 const PAPER_PATHS = [['GCSE', 'Any tier', 'Any function', 'Past paper', 'Any accuracy'], ['GCSE', 'Past paper', 'Higher', 'Any accuracy', 'Any function']];
 function pathsAsked_(f, items) {
   const S = f.STUFF, was = { filters: S.filters };

@@ -309,23 +309,6 @@ async function shifts(browser) {
   out.push(await visit(page, cdp, 'COLD           ', 'nothing cached anywhere — the first time anybody opens the link'));
   out.push(await visit(page, cdp, 'WARM           ', "everything in the browser's own cache, no deploy since"));
 
-  /* THE WORKER IS REGISTERED AFTER `load` AND DOES NOT CONTROL THE PAGE THAT REGISTERED IT, so it is in charge from the next visit on. § */
-  let controlled = false;
-  try {
-    await page.waitForFunction(() => navigator.serviceWorker
-      && navigator.serviceWorker.controller, null, { timeout: 20000 });
-    controlled = true;
-  } catch (e) {
-    console.log('\n   ! NO SERVICE WORKER TOOK CONTROL. Every row below is without one, and none of'
-              + '\n     them is evidence about it either way.');
-  }
-  if (controlled) {
-    console.log('\n   (the worker is in control from here on. Its own store starts empty, so the'
-              + '\n    next row is it filling up — that cost is paid once.)');
-  }
-  out.push(await visit(page, cdp, 'WORKER FILLING ', 'the worker is in charge and its store is empty'));
-  out.push(await visit(page, cdp, 'WARM, WORKER   ', 'nothing changed — the common case, under the worker'));
-
   /* ---------- A DEPLOY, SIMULATED IN THE ONLY WAY THAT ACTUALLY SIMULATES ONE § */
   const page_ = path.join(ROOT, 'index.html');
   const was = fs.statSync(page_).mtime;
@@ -344,10 +327,6 @@ async function shifts(browser) {
     }
     out.push(await visit(page, cdp, 'AND THE NEXT   ', 'the same deploy, opened a second time'));
   } finally { fs.utimesSync(page_, was, was); }
-
-  /* ---------- NO SIGNAL, BY TAKING THE SERVER AWAY § */
-  await new Promise(d => srv.close(d));
-  out.push(await visit(page, cdp, 'NO SIGNAL      ', 'the server is gone — everything from the worker'));
 
   console.log('\n(These are one machine on one afternoon. What is worth reading is the gap between'
             + '\n the three rows, not the absolute figures.)');

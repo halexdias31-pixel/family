@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* @family. — check/centred.js A WIDGET THAT SHRINKS FLOATS BACK TO THE MIDDLE (508): on Find and Find 2, words typed and cleared, chips added and dropped, the card in front is centred after each. --shots=DIR. Port: CENTRED_PORT */
+/* @family. — check/centred.js A WIDGET THAT SHRINKS FLOATS BACK TO THE MIDDLE (508): on Find, words typed and cleared, chips added and dropped, the card in front is centred after each. --shots=DIR. Port: CENTRED_PORT */
 'use strict';
 require('./quiet');
 const fs = require('fs');
@@ -57,7 +57,7 @@ function where(id) {
     /* ONE SCROLLING PAGE (900): no glass to centre in, so the card in front must hold the place it had at rest (Find first under the top bar, 1070); a column switched off (columns.json) is skipped. */
     const flow = await page.evaluate(() => typeof FLOW_LAYOUT !== 'undefined' && FLOW_LAYOUT);
     const COLS = require('../data/settings/columns.json'), on = c => String((COLS.find(r => r.screen === c) || {}).active).toUpperCase() !== 'FALSE';
-    for (const id of ['stuff', 'res'].filter(on)) {
+    for (const id of ['stuff'].filter(on)) {
       await page.evaluate(i => { try { go(i); } catch (e) {} }, id);
       await page.waitForTimeout(900);
       const sel = `#s-${id} .page.on input[type="search"], #s-${id} .page.on input.search, #s-${id} .page.on .search-pill input`;
@@ -110,5 +110,5 @@ function where(id) {
     bad.forEach(b => console.error('  ' + b));
     process.exit(1);
   }
-  console.log(`centred: Find and Find 2 stay centred across ${looked} changes (words, ${dropped} chips dropped) at 390px`);
+  console.log(`centred: Find stays centred across ${looked} changes (words, ${dropped} chips dropped) at 390px`);
 })();
