@@ -548,9 +548,9 @@ function finderTagsAt_() {
 }
 
 function stuffQuestion() {
-  const items = stuffFiltered();
-  const pre = finderTagsAt_();
+  const pre = finderTagsAt_() || finderTagsLook_();
   if (pre) return facetAnswersHtml_(pre.facet, pre.values, '') + findPeek_();
+  const items = stuffFiltered();
   /* NOBODY YET, and a way to fix that. § */
   if (STUFF.filters.some(f => f.value === 'Friends') && !items.length) {
     return `${empty_('No friends yet.')}
@@ -623,7 +623,7 @@ function facetAnswersHtml_(facet, values, more) {
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap${facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? ' is-off' : ''}" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
         grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
-        <span class="k">${mark(answerSay_(facet, v.value))}</span>
+        <span class="k">${mark(v.say != null ? v.say : answerSay_(facet, v.value))}</span>
       </div>`).join('') + skip + '</div>' + more;
 }
 

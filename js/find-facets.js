@@ -27,6 +27,8 @@ function answerSay_(facet, v) {
   if (!facet) return say;
   let items = [];
   try { items = stuffItems() || []; } catch (e) { return say; }
+  const pre = answerSaysBuilt_(items);
+  if (pre) return (pre[facet.field] && pre[facet.field].get(spellKey_(v))) || say;
   let per = ANSWER_SAY.get(items);
   if (!per) { per = {}; ANSWER_SAY.set(items, per); }
   let m = per[facet.field];
