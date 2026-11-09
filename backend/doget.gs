@@ -1,11 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-<<<<<<< HEAD
-const DOGET_VERSION = "2026-11-08-role-words-1";
-=======
-const DOGET_VERSION = "2026-11-08-old-rows-1";
->>>>>>> worktree-agent-af9b56301a59dd34a
+const DOGET_VERSION = "2026-11-09-uniform-1";
 
 
 function doGet(e) {

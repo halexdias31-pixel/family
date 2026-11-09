@@ -128,11 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-<<<<<<< HEAD
-const BACKEND_VERSION = "2026-11-08-role-words-1";
-=======
-const BACKEND_VERSION = "2026-11-08-old-rows-1";
->>>>>>> worktree-agent-af9b56301a59dd34a
+const BACKEND_VERSION = "2026-11-09-uniform-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
