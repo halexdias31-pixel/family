@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 75.3,
+ "score": 75.2,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -52,10 +52,10 @@
   {
    "id": "special",
    "label": "Per-facet and per-kind special cases",
-   "count": 76,
+   "count": 77,
    "weight": 0.05,
    "cap": 10,
-   "off": 3.8,
+   "off": 3.9,
    "where": {
     "js/cards.js": 4,
     "js/data.js": 4,
@@ -72,7 +72,7 @@
     "js/me-settings.js": 5,
     "js/predicates.js": 16,
     "js/price-rows.js": 2,
-    "js/qtools.js": 3,
+    "js/qtools.js": 4,
     "js/resource.js": 1,
     "js/submit.js": 6
    }

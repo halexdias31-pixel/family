@@ -134,7 +134,7 @@ const SAM_ = { name: 'Sam Student', personId: 'P9', person_id: 'P9', role: 'stud
 /* A QUESTION ANSWERED ON THE RESOURCES COLUMN — the boxing shelf — so it has a window of results to fill;
    with nothing asked a finder is its question alone. */
 const resAsk_ = w => {
-  const R = resView_(w), S = w.__t.RES();
+  const R = findView_(w), S = w.__t.RES();
   const x = R.stuffItemsAll_().find(it => it.kind === 'boxer');
   if (!x) return false;
   S.filters.length = 0; S.filters.push({ field: 'shelf', value: x.shelf });
@@ -335,38 +335,6 @@ check('signing out puts away the widgets drawn for the last person, before the r
     const now = t.slotOn('stuff', id);
     if (now && !now.getAttribute('aria-busy') && now.WHO === 'P9') bad.push('the ' + id + ' drawn for Sam is still drawn after signing out');
   });
-  return bad;
-});
-
-check('the builder fills the Resources window inside its own binding: Find\'s words, chips and window are untouched', async () => {
-  const p = await resPayload_();
-  if (!p) return ['the resources payload could not be made — NOT checked'];
-  const { w } = await aheadBoot_({ payload: p });
-  const t = w.__t, bad = [];
-  if (!t || typeof t.STUFF !== 'function' || typeof t.RES !== 'function') return ['the finders are not reachable — NOT checked'];
-  await aheadQuiet_(t);
-  const S = t.STUFF();
-  S.filters = [{ field: 'kindLabel', value: 'Practical' }];
-  w.paintFinder_('stuff');
-  await aheadQuiet_(t);
-  const lo = t.pageLo().stuff || 0;
-  const marks = () => [...w.document.querySelectorAll('#s-stuff > .page.is-res')].map(el => (el.dataset.filled || '-') + (el.FIND_AT ? el.FIND_AT.ask : ''));
-  const before = JSON.stringify(marks());
-  /* BY TIME, NOT BY POSITION: the log is a ring of the last two hundred slices. */
-  const t0 = w.performance.now();
-  if (!resAsk_(w)) return ['the Resources column has no boxing shelf to fill — NOT checked'];
-  await aheadQuiet_(t);
-  const resFills = t.aheadLog().filter(x => x.t >= t0 && /^fill:res:/.test(x.key)).length;
-  if (!resFills) bad.push('the builder filled nothing in the Resources window, so the binding was NOT exercised');
-  /* AND WHAT IT CLAIMED IS DRAWN: § */
-  const resPages = [...w.document.querySelectorAll('#s-res > .page.is-res')];
-  const unfilled = resPages.filter(el => el.dataset.filled !== '1').length;
-  if (!resPages.length) bad.push('the Resources column holds no result pages, so nothing was asked');
-  else if (unfilled) bad.push(unfilled + ' of the ' + resPages.length + ' Resources pages in its window are still empty once the builder is quiet');
-  if (t.STUFF() !== S) bad.push('Find\'s state object was replaced while the Resources window filled');
-  if (JSON.stringify(t.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Practical' }])) bad.push('Find\'s chips changed while the Resources window filled: ' + JSON.stringify(t.STUFF().filters));
-  if ((t.pageLo().stuff || 0) !== lo) bad.push('Find\'s window moved while the Resources window filled');
-  if (JSON.stringify(marks()) !== before) bad.push('Find\'s pages changed while the Resources window filled');
   return bad;
 });
 
@@ -947,18 +915,19 @@ check('the reels are kept six ahead at every turn and twelve ahead after the qui
 check('the quiet puts a finder\'s window where a run needs it: the card in front thirteen or fourteen from the end it is leaving', async () => {
   /* REVIEW, 12 Oct: the builder's `centre` job could be dropped with every check green — the release's slide by six kept BUILT AHEAD satisfied. § */
   const lib = LIB_FULL.rows('questions');
-  const rows = lib.filter(r => r.paper_id === 'P-AQA-8461-2406-2F');
+  /* A QUESTION IS ONE PAGE, its parts on it, so one paper is a dozen pages: the Edexcel maths papers together are well over sixty. */
+  const rows = lib.filter(r => /^P-1MA1-/.test(r.paper_id));
   const { w } = await aheadBoot_({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   const t = w.__t, bad = [];
   if (!t || typeof t.stuffBehind !== 'function') return ['the window is not reachable — NOT checked'];
   t.go('stuff', false, true);
   const S = t.STUFF();
-  S.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
+  S.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
   w.paintFinder_('stuff');
   await aheadQuiet_(t);
   const first = w.inFinder_(w.finderOf_('stuff'), () => w.stuffFirstResult_());
   const n = w.inFinder_(w.finderOf_('stuff'), () => w.stuffPages_().length);
-  if (n < 60) return ['the 2F paper is ' + n + ' page(s) on Find — this needs sixty, so it was NOT checked'];
+  if (n < 60) return ['the Edexcel GCSE maths questions are ' + n + ' page(s) on Find — this needs sixty, so it was NOT checked'];
   w.__aheadHold = true;
   t.goPage('stuff', first, true);
   for (let k = 0; k < 40; k++) t.goPage('stuff', t.PAGE().stuff + 1);

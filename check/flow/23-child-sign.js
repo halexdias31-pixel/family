@@ -384,9 +384,11 @@ const keepRows_ = () => LIB_FULL.rows('questions')
   .filter(r => /^P-1MA1-2306-[123]H$/.test(r.paper_id) || r.paper_id === 'W-CBM-addition');
 /* PRESS THE CHIPS A CHILD WOULD, to the row's card: at each question the first answer that keeps the
    card of `id` on the strip, through the app's own click dispatcher. Returns the answers pressed. */
+/* A QUESTION IS ONE PAGE (960): its card is the `q` page whose parts hold the row, or a bare card page. */
+const keepCard_ = (pg, id) => !!(pg && pg.x && (!pg.part || pg.part === 'q') && (pg.parts || [pg.x]).some(p => p && p.row && p.row.row_id === id));
 const keepWalk_ = async (w, id) => {
   const d = w.document, S = w.__t.STUFF(), said = [];
-  const cardOn = () => w.stuffPages_().some(pg => pg.x && pg.x.row && pg.x.row.row_id === id && !pg.part);
+  const cardOn = () => w.stuffPages_().some(pg => keepCard_(pg, id));
   for (let step = 0; step < 16; step++) {
     /* THE QUESTION BEING ASKED, and a child walking the funnel answers what it asks. */
     const picks = [...d.querySelectorAll('#s-stuff #stuff-groups .answers [data-do="facet-pick"]')];
@@ -484,9 +486,10 @@ check('both finders are started again when an admin signs out from the admin-onl
 
 /* ---------- A SESSION THAT ENDS UNDER THE CHILD IS THE OWNER'S COMPLAINT BY ANOTHER DOOR § */
 const KEEP_KIT_ = { name: 'Kit Pupil', personId: 'P13', role: 'student', roles: ['student'], token: 'tok-P13', handle: 'kit_bold13' };
-const keepAt_ = w => {
+const keepAt_ = (w, id) => {
   const pg = w.stuffPages_()[w.__t.PAGE().stuff - w.stuffFirstResult_()];
-  return pg && pg.x && pg.x.row ? pg.x.row.row_id + (pg.part ? ':' + pg.part : '') : '(page ' + w.__t.PAGE().stuff + ', no result)';
+  const ids = pg && (pg.parts || [pg.x]).map(p => p && p.row && p.row.row_id).filter(Boolean);
+  return ids && ids.length ? (keepCard_(pg, id) ? id : ids[0] + (pg.part ? ':' + pg.part : '')) : '(page ' + w.__t.PAGE().stuff + ', no result)';
 };
 /* A CHILD SIGNED IN, ON Q13'S CARD WITH "80" TYPED AND THE BOX LEFT, ON A TOKEN THE SERVER HAS ENDED. */
 const keepDead_ = async (more) => {
@@ -507,7 +510,7 @@ const keepDead_ = async (more) => {
   t.go('stuff', false, true);
   await wait(50);
   const walked = await keepWalk_(w, ID);
-  const idx = w.stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.row_id === ID && !pg.part);
+  const idx = w.stuffPages_().findIndex(pg => keepCard_(pg, ID));
   if (walked.length < 2 || idx < 0) return { fail: 'the funnel walk pressed ' + JSON.stringify(walked) + ' and did not reach ' + ID + ' — nothing was checked' };
   const x = w.stuffPages_()[idx].x;
   const page = w.stuffFirstResult_() + idx;
@@ -537,12 +540,14 @@ check('a session that ends while a child types keeps Find for them to sign in ag
     if (t.whoami()) return ['the refused save did not sign the phone out: ' + JSON.stringify(t.whoami()) + ' — the dead session was NOT checked'];
     const said = (d.getElementById('toast') || {}).textContent || '';
     if (!/Signed out/.test(said)) bad.push('the phone signed out without saying so: the toast reads ' + JSON.stringify(said));
-    const look = when => {
+    /* SIGNED OUT, FIND IS THE FRONT DOOR (1040, C+) and lists no questions, so the page and the card are asked once signed in again. */
+    const look = (when, out) => {
       if (JSON.stringify(t.STUFF().filters) !== chips) bad.push(when + ': Find’s chips are ' + JSON.stringify(t.STUFF().filters) + ', were ' + chips + ' — the funnel was thrown away');
+      if (out) return;
       if (t.PAGE().stuff !== page) bad.push(when + ': Find is on page ' + t.PAGE().stuff + ', was ' + page);
-      if (keepAt_(w) !== ID) bad.push(when + ': Find is on ' + keepAt_(w) + ', not ' + ID + '’s card');
+      if (keepAt_(w, ID) !== ID) bad.push(when + ': Find is on ' + keepAt_(w, ID) + ', not ' + ID + '’s card');
     };
-    look('the session ended under the child');
+    look('the session ended under the child', true);
     if (t.STUFF().whose !== 'P12') bad.push('the kept Find does not say whose it is: STUFF.whose = ' + JSON.stringify(t.STUFF().whose));
     if (w.localStorage.getItem('ans:u:P12:' + x.key) !== '80') bad.push('the session ending took the child’s answer off the device: ' + JSON.stringify(w.localStorage.getItem('ans:u:P12:' + x.key)));
     t.go('account');
@@ -797,6 +802,9 @@ check('an ordering: the real 1F Q4 is typed as letters in order, marked by its o
   if (r3.said !== 'Correct') bad.push('the right order typed as the values says ' + JSON.stringify(r3.said));
   host.innerHTML = w.questionCard_(tie, 0);
   ['B, A, C', 'A, B, C'].forEach(v => { const r = typeChoice_(w, host, tie, v); if (r.said !== 'Correct') bad.push('the tie typed ' + v + ' says ' + JSON.stringify(r.said)); });
+  /* TYPED AS A CHILD TYPES: the keypad's input event is what keeps a box's words (`ansStore_`); typeChoice_ only sets the value. */
+  const typed = host.querySelector('.qp-ans-in');
+  if (typed) typed.dispatchEvent(new w.Event('input', { bubbles: true }));
   await w.answersPush_(true);
   const kept = server['P7'] || server;
   if (!JSON.stringify(kept).includes('A, B, C')) bad.push('the typed order did not reach the account');

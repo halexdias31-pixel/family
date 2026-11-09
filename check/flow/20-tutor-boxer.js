@@ -31,30 +31,16 @@ check('every Find kind that is not a question is made of the shared parts: head,
       const host = box(w.stuffCard(x));
       const card = host.querySelector('.favwrap > .card') || host.firstElementChild;
       if (!card || !card.classList.contains('fc')) { bad.push(name + ' is not a `.card.fc`'); return; }
-      /* A FIGHT HAS NO HEAD (490): "just have the tags of both boxes' names" -- it opens on its tag row. */
-      if (kind === 'fight' || kind === 'people') {
-        const tr0 = card.firstElementChild;
-        if (!tr0 || !tr0.classList.contains('qtags') || card.querySelector('h3')) bad.push(name + ' does not open on its tag row');
-        return;
-      }
-      /* THE TAGS ARE THE TITLE (499): a name the tag row already says has no head — the card opens on its row, its name its aria-label. */
-      const tagTitled = card.getAttribute('aria-label') === x.name && !card.querySelector('.fc-head');
-      /* TAGS AT THE TOP OF EVERY CARD (1030): the row may stand above the head instead of under it. */
-      const top = card.firstElementChild, rowFirst = !!top && top.classList.contains('qtags');
-      const head = tagTitled ? null : rowFirst ? top.nextElementSibling : top;
-      if (tagTitled) {
-        const tr0 = card.firstElementChild;
-        if (!tr0 || !tr0.classList.contains('qtags') || !tr0.querySelector('.qtag[data-f="kindLabel"]')) bad.push(name + ' has no head and does not open on its tag row');
-      } else {
-        if (!head || !head.classList.contains('fc-head')) bad.push(name + ' does not open on `.fc-head` (or its tag row, then the head)');
-        else if (!head.querySelector(':scope > h3') || head.querySelector('.fc-flag, .fc-flags')) {
-          bad.push(name + '\'s head is not its title alone');
-        }
-        /* AND THE ONE ROW UNDER IT, opening on the What kind answer (355). */
-        const tr = rowFirst ? top : head && head.nextElementSibling;
-        if (!tr || !tr.classList.contains('qtags') || !tr.querySelector('.qtag[data-f="kindLabel"]')) bad.push(name + '\'s head is not followed by its tag row');
-        if (card.querySelectorAll('.fc-head').length !== 1) bad.push(name + ' has ' + card.querySelectorAll('.fc-head').length + ' heads');
-      }
+      /* ONE CARD SHAPE (owner, 9 Nov, 1a): every kind is findCard's four parts in order — picture, head, tag line, lines. */
+      const kids = [...card.children].map(e => e.className).join(' ');
+      if (kids !== 'kc-pic kc-head kc-tags kc-lines') bad.push(name + ' is not the four parts of one card: ' + kids);
+      const tr = card.querySelector(':scope > .kc-tags .qtags');
+      if (!tr) bad.push(name + ' has no tag row in its tag line');
+      /* THE TAGS ARE THE TITLE (499): a name the tag row already says leaves the head empty, the name its aria-label; a fight (490) has none. */
+      const head = card.querySelector(':scope > .kc-head'), said = head ? head.textContent.trim() : '';
+      if (kind === 'fight' ? !card.getAttribute('aria-label') : card.getAttribute('aria-label') !== x.name) bad.push(name + ' is not named by its aria-label');
+      if (said && (head.querySelectorAll('h3').length !== 1 || head.querySelector('h3').textContent.trim() !== said || said !== x.name)) bad.push(name + '\'s head is not its title alone');
+      if (kind !== 'fight' && kind !== 'people' && !(tr && tr.querySelector('.qtag[data-f="kindLabel"]'))) bad.push(name + '\'s tag row does not carry its What kind');
       const stray = ['.thing', '[style]', 'p.note', '.tile-row'].filter(sel => [...card.querySelectorAll(sel)].some(onCard));
       if (stray.length) bad.push(name + ' carries ' + stray.join(', ') + ' inside the card');
       const pages = w.pageParts_(x).filter(Boolean).map(part => ({ part, el: box(w.stuffPart_(x, part)).firstElementChild }));

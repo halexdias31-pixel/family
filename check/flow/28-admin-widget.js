@@ -598,7 +598,7 @@ check('Find 2 › Questions › Maths › Past paper › A-Level › Edexcel ›
   T.go('res'); await wait(80);
   const path = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }, { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Past paper' },
     { field: 'level', value: 'A-Level' }, { field: 'examBoard', value: 'Edexcel' }, { field: 'examYear', value: '2021' }];
-  const R = resView_(W);
+  const R = findView_(W);
   T.RES().filters = path.map(f => Object.assign({}, f));
   W.paintFinder_('res');
   if (R.stuffFiltered().length < 50) return ['the path holds ' + R.stuffFiltered().length + ' questions — the 2021 papers are not in the library, NOT checked'];
@@ -650,7 +650,7 @@ check('Find 2 funnel (owner, 2 Nov, 660): Type under Practice › Maths offers P
   const W = one.w, T = W.__t, bad = [];
   for (let i = 0; i < 100 && W.stuffItemsAll_().filter(x => x.kind === 'question').length < 5000; i++) await wait(50);
   T.go('res'); await wait(80);
-  const R = resView_(W);
+  const R = findView_(W);
   const ask = fs_ => { T.RES().filters = fs_.map(f => Object.assign({}, f)); const l = R.stuffFiltered(); const n = R.nextFacet(l) || R.overFacet_(l); return { n, vals: n ? R.facetValues(l, n).map(v => v.value) : [], l }; };
   const P = [{ field: 'kindLabel', value: 'Practice' }];
   if (R.stuffFiltered && ask(P).l.length < 5000) return ['the library holds ' + ask(P).l.length + ' Practice cards — NOT checked'];

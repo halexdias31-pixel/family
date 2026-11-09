@@ -170,7 +170,8 @@ function qtRedraw_(card, x) {
   if (!card || !x) return null;
   qtPenSet_(x, PEN_OPEN.has(x.key));
   const t = document.createElement('div');
-  t.innerHTML = questionCard_(x, card);
+  /* A FIND CARD STAYS IN THE ONE CARD SHAPE when drawn again (owner 1a, 8 Nov). */
+  t.innerHTML = card.classList.contains('kc') && x.kind === 'question' ? findCard(x) : questionCard_(x, card);
   const next = t.firstElementChild;
   if (!next) return null;
   card.replaceWith(next);

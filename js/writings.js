@@ -267,9 +267,9 @@ function readingCard_(x, o) {
   o = o || {};
   const attrs = d => Object.keys(d || {}).map(n => ` data-${n}="${esc(String(d[n] == null ? '' : d[n]))}"`).join('');
   const title = readingTitle_(x), ref = readingRef_(x);
-  return `<div class="card fc rd ${esc(o.cls || '')}" data-key="${esc(x.key)}" data-rd="${esc(x.kind || '')}"${attrs(o.cardData)}>
-    <div class="rd-head"><h3 class="rd-title">${esc(title)}</h3>${ref && ref !== title ? `<span class="rd-ref">${esc(ref)}</span>` : ''}</div>
-    <div class="rd-body ${esc(o.bodyCls || '')}"${attrs(o.data)}>${o.body || ''}</div>
-    ${tagRow_(x)}
-  </div>`;
+  /* THE ONE CARD SHAPE (owner 1a, 8 Nov): its heading is the head, its tags the tags, its text the lines (`findCard`). */
+  return findCard(Object.assign({}, x, { kcOwn: { cls: 'rd ' + (o.cls || ''),
+    attrs: ` data-key="${esc(x.key)}" data-rd="${esc(x.kind || '')}"${attrs(o.cardData)}`,
+    head: `<div class="rd-head"><h3 class="rd-title">${esc(title)}</h3>${ref && ref !== title ? `<span class="rd-ref">${esc(ref)}</span>` : ''}</div>`,
+    tags: tagRow_(x), lines: `<div class="rd-body ${esc(o.bodyCls || '')}"${attrs(o.data)}>${o.body || ''}</div>` } }));
 }

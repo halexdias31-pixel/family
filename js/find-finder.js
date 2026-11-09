@@ -103,9 +103,9 @@ const KINDS = {
   /* ---------- YOUR OWN SESSIONS ARE ANSWERS UNDER BOOKING § */
   /* ---------- THE WHOLE RECEIPT, NOT A STUB THAT OPENS ONE § */
   /* ---------- ONE ANSWER, NOT THREE § */
-  receipt:  { group: 'Booking', label: 'Receipts',  card: x => jobPage_(x.row) },
+  receipt:  { group: 'Booking', label: 'Receipts',  card: (x, c) => findCard(x, c) },
   /* THE FORM AS A TAG OF ITS OWN (owner, 8 Nov): "the booking form should be a section which can be found in the menu tags". */
-  bookform: { group: 'Booking', label: 'Booking form', card: () => bookFormCard_() },
+  bookform: { group: 'Booking', label: 'Booking form', card: (x, c) => findCard(x, c) },
 
   /* `coupon` WAS A KIND HERE — the classes with seats going. § */
 
@@ -115,7 +115,91 @@ const KINDS = {
 
   /* ---------- POSTS ARE A THING YOU LOOK FOR § */
 
-  friend: { group: 'Friends', label: 'Friends', card: x => {
+  friend: { group: 'Friends', label: 'Friends', card: (x, c) => findCard(x, c) },
+
+  /* THE KEY ORDER IS THE DEFAULT ORDER OF What kind's ANSWERS (`answerCmp_`), so the work comes first; the kinds tab can move any. */
+  question: { group: 'Learning', label: 'Questions', card: (x, c) => findCard(x, c) },
+  /* `answer` NAMES NO ITEM: it is the label of a question's answer page (`kindLabel`'s `tagOf`), placed here so the kinds tab orders it too. */
+  answer: { group: 'Learning', label: 'Answers', card: (x, c) => findCard(x, c) },
+  /* A widget's card is its name and nothing else — the thing itself is the page it opens. */
+  /* A PRACTICAL IS A THING YOU FIND, which is why it is in the funnel at all and tools and games are not. § */
+  practical: { group: 'Learning', label: 'Practicals', card: (x, c) => findCard(x, c) },
+  /* ---------- A PROJECT IS THE PRACTICAL'S SIBLING, NOT ONE OF ITS SHAPES § */
+  project: { group: 'Learning', label: 'Projects', card: (x, c) => findCard(x, c) },
+  /* ---------- `film` WAS A KIND HERE, AND THE FILMS ARE OFF FIND § */
+  content: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* AN INSERT IS WHAT THE EXAM HANDS YOU (455), and Content (463): the owner, "inserts count as content" -- no tag of its own. */
+  insert: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* THE HISTORY DATABASE (459) and ONE PEOPLE KIND (batch D: boxers and figures alike, a pixel portrait under the tags); `histKind` says which. */
+  manuscript: { group: 'Learning', label: 'Library', card: x => findCard(x) },
+  people: { group: 'Learning', label: 'Library', card: x => findCard(x) },
+  writing: { group: 'Learning', label: 'Library', card: x => findCard(x) },
+  /* ITS FOURTH (461): an event, and a timeline — every event of one `era`, in date order, a tile each. */
+  event: { group: 'Learning', label: 'Library', card: x => findCard(x) },
+  /* A TIMELINE IS ITS OWN KIND OF ITEM (545): the owner, "timelines should have a tag called timeline". */
+  timeline: { group: 'Learning', label: 'Timeline', card: (x, c) => findCard(x, c) },
+  /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
+     because nothing in the app had ever been told the tab existed. */
+  fight: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* ---------- THE BIBLE, AND THE ONE KIND THE PHONE ITSELF KEEPS FROM ALL BUT AN ADMIN § */
+  bible: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* THE TALMUD (473): one item a daf, its page drawn by js/talmud.js. */
+  talmud: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* THE QURAN (490): one card a verse. */
+  quran: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* A WRITING'S OWN WORDS (499): one card a chapter a language, js/works.js. */
+  worktext: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* THE HADITH (504): one card a hadith, js/hadith.js. */
+  hadith: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* MORE WRITINGS (513): a verse, section or chapter a card, one text each — js/texts.js. */
+  writ: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* PUBLIC-DOMAIN TEXTS (514): history's documents and English literature, a card a place, js/pdtexts.js. */
+  pdtext: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* ORTHODOX TEXTS AND CHURCH HISTORY (516): one card a canon, section or chapter, js/orthodox.js. */
+  orthotext: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* THE HYMNS SHELF (517): one card a hymn, js/hymns.js. */
+  hymn: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* MECHANICS (548, 650): parts and cars, Library like the rest; `mKind` says which, js/mechanics.js. */
+  mech: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* CHEMISTRY (550): elements, substances and reactions, Library like the rest; `mKind` says which, js/chemistry.js. */
+  chem: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+
+  /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
+  /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
+  tool: { group: 'Tools', label: 'Tools', card: x => widgetCard_(x) },
+  game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
+  reel: { group: 'Videos', label: 'Videos', card: x => widgetCard_(x) },
+  /* COMING SOON (880): a switched-off column or widget, its name, one line, Coming soon and Suggest; nothing on it works. */
+  soon: { group: 'Coming soon', label: 'Coming soon', card: (x, c) => findCard(x, c) },
+  /* PEOPLE (owner, 4 Nov): everybody an admin may see, one card each, drawn like the people columns drew them. */
+  person: { group: 'Profiles', label: 'Profiles', card: (x, c) => findCard(x, c) },
+  /* SETTINGS (owner, 4 Nov): their own answer in Find; each card Coming soon until it is turned back on. */
+  setting: { group: 'Settings', label: 'Settings', card: (x, c) => findCard(x, c) },
+  /* MESSAGES (owner, 4 Nov): its own answer; Coming soon while the DM column is off. */
+  msg: { group: 'Messages', label: 'Messages', card: (x, c) => findCard(x.soon ? Object.assign({}, x, { kind: 'soon' }) : x, c) },
+  /* THE SWITCHED-OFF AREAS' ONE CARD EACH (OFF_KINDS). */
+  offPosts: { group: 'Posts', label: 'Posts', card: (x, c) => findCard(x, c) },
+  offShop: { group: 'Shop', label: 'Shop', card: (x, c) => findCard(x, c) },
+  offBooking: { group: 'Booking', label: 'Booking', card: (x, c) => findCard(x, c) },
+  /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
+  health: { group: 'Settings', label: 'Settings', card: (x, c) => findCard(x, c) },
+  /* POSTS (owner, 8 Nov, 36a): the standard Find card shape (card-fields.json `post`, around it `postFindCard_`), not the feed's look. */
+  post: { group: 'Posts', label: 'Posts', card: x => findCard(x) },
+
+  /* ---------- `link` WAS A KIND HERE, AND THE LINKS ARE OFF FIND § */
+
+  /* A resource and a shop row share a card: to somebody looking for one they are the same kind of
+     thing — a picture, a name, what it belongs to, and what it costs if it costs anything. */
+  /* `topic` WAS HERE — the documents, labelled `Resources`. The funnel lists the questions inside
+     them now and not the boxes; see the note above `questionItems`. */
+  /* ---------- A QUESTION IS NOT A DIFFERENT KIND OF THING FROM ITS PAPER § */
+  /* ---------- `question` WAS A KIND AND IS NOT ANY MORE § */
+  /* ---------- THE SHOP HAS A COLUMN OF ITS OWN, AND THIS IS NOT A DOOR ANY MORE § */
+  shop:  { group: 'Shop',     label: 'Things',    card: (x, c) => (x.widget ? widgetCard_(x) : findCard(x, c)) },
+};
+
+/* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
+function friendCard_(x) {
     const f = x.row;
     const xp = Number(f.xp) || 0;
     return `<div class="card">
@@ -130,89 +214,16 @@ const KINDS = {
         ${tileRow_(tile_({ icon: 'close', label: 'Remove', act: 'friend-drop', data: { handle: f.handle }, cls: 'text-drop' }))}
       </div>
     </div>`;
-
-  } },
-
-  /* THE KEY ORDER IS THE DEFAULT ORDER OF What kind's ANSWERS (`answerCmp_`), so the work comes first; the kinds tab can move any. */
-  question: { group: 'Learning', label: 'Questions', card: (x, c) => thingCard_(x, c) },
-  /* `answer` NAMES NO ITEM: it is the label of a question's answer page (`kindLabel`'s `tagOf`), placed here so the kinds tab orders it too. */
-  answer: { group: 'Learning', label: 'Answers', card: (x, c) => thingCard_(x, c) },
-  /* A widget's card is its name and nothing else — the thing itself is the page it opens. */
-  /* A PRACTICAL IS A THING YOU FIND, which is why it is in the funnel at all and tools and games are not. § */
-  practical: { group: 'Learning', label: 'Practicals', card: x => practicalCard_(x) },
-  /* ---------- A PROJECT IS THE PRACTICAL'S SIBLING, NOT ONE OF ITS SHAPES § */
-  project: { group: 'Learning', label: 'Projects', card: x => projectCard_(x) },
-  /* ---------- `film` WAS A KIND HERE, AND THE FILMS ARE OFF FIND § */
-  content: { group: 'Learning', label: 'Library', card: x => contentCard_(x) },
-  /* AN INSERT IS WHAT THE EXAM HANDS YOU (455), and Content (463): the owner, "inserts count as content" -- no tag of its own. */
-  insert: { group: 'Learning', label: 'Library', card: x => insertCard_(x) },
-  /* THE HISTORY DATABASE (459) and ONE PEOPLE KIND (batch D: boxers and figures alike, a pixel portrait under the tags); `histKind` says which. */
-  manuscript: { group: 'Learning', label: 'Library', card: x => findCard(x) },
-  people: { group: 'Learning', label: 'Library', card: x => findCard(x) },
-  writing: { group: 'Learning', label: 'Library', card: x => findCard(x) },
-  /* ITS FOURTH (461): an event, and a timeline — every event of one `era`, in date order, a tile each. */
-  event: { group: 'Learning', label: 'Library', card: x => findCard(x) },
-  /* A TIMELINE IS ITS OWN KIND OF ITEM (545): the owner, "timelines should have a tag called timeline". */
-  timeline: { group: 'Learning', label: 'Timeline', card: x => histTimelineCard_(x) },
-  /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
-     because nothing in the app had ever been told the tab existed. */
-  fight: { group: 'Learning', label: 'Library', card: x => fightCard_(x) },
-  /* ---------- THE BIBLE, AND THE ONE KIND THE PHONE ITSELF KEEPS FROM ALL BUT AN ADMIN § */
-  bible: { group: 'Learning', label: 'Library', card: x => bibleCard_(x) },
-  /* THE TALMUD (473): one item a daf, its page drawn by js/talmud.js. */
-  talmud: { group: 'Learning', label: 'Library', card: x => talmudCard_(x) },
-  /* THE QURAN (490): one card a verse. */
-  quran: { group: 'Learning', label: 'Library', card: x => quranCard_(x) },
-  /* A WRITING'S OWN WORDS (499): one card a chapter a language, js/works.js. */
-  worktext: { group: 'Learning', label: 'Library', card: x => worksCard_(x) },
-  /* THE HADITH (504): one card a hadith, js/hadith.js. */
-  hadith: { group: 'Learning', label: 'Library', card: x => hadithCard_(x) },
-  /* MORE WRITINGS (513): a verse, section or chapter a card, one text each — js/texts.js. */
-  writ: { group: 'Learning', label: 'Library', card: x => textsCard_(x) },
-  /* PUBLIC-DOMAIN TEXTS (514): history's documents and English literature, a card a place, js/pdtexts.js. */
-  pdtext: { group: 'Learning', label: 'Library', card: x => pdtextsCard_(x) },
-  /* ORTHODOX TEXTS AND CHURCH HISTORY (516): one card a canon, section or chapter, js/orthodox.js. */
-  orthotext: { group: 'Learning', label: 'Library', card: x => orthoCard_(x) },
-  /* THE HYMNS SHELF (517): one card a hymn, js/hymns.js. */
-  hymn: { group: 'Learning', label: 'Library', card: x => hymnsCard_(x) },
-  /* MECHANICS (548, 650): parts and cars, Library like the rest; `mKind` says which, js/mechanics.js. */
-  mech: { group: 'Learning', label: 'Library', card: x => mechCard_(x) },
-  /* CHEMISTRY (550): elements, substances and reactions, Library like the rest; `mKind` says which, js/chemistry.js. */
-  chem: { group: 'Learning', label: 'Library', card: x => chemCard_(x) },
-
-  /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
-  /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
-  tool: { group: 'Tools', label: 'Tools', card: x => widgetCard_(x) },
-  game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
-  reel: { group: 'Videos', label: 'Videos', card: x => widgetCard_(x) },
-  /* COMING SOON (880): a switched-off column or widget, its name, one line, Coming soon and Suggest; nothing on it works. */
-  soon: { group: 'Coming soon', label: 'Coming soon', card: x => soonCard_(x) },
-  /* PEOPLE (owner, 4 Nov): everybody an admin may see, one card each, drawn like the people columns drew them. */
-  person: { group: 'Profiles', label: 'Profiles', card: x => profileDoorCard_(x) },
-  /* SETTINGS (owner, 4 Nov): their own answer in Find; each card Coming soon until it is turned back on. */
-  setting: { group: 'Settings', label: 'Settings', card: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)) },
-  /* MESSAGES (owner, 4 Nov): its own answer; Coming soon while the DM column is off. */
-  msg: { group: 'Messages', label: 'Messages', card: x => (x.soon ? soonCard_(x) : findCard(x)) },
-  /* THE SWITCHED-OFF AREAS' ONE CARD EACH (OFF_KINDS). */
-  offPosts: { group: 'Posts', label: 'Posts', card: x => soonCard_(x) },
-  offShop: { group: 'Shop', label: 'Shop', card: x => soonCard_(x) },
-  offBooking: { group: 'Booking', label: 'Booking', card: x => soonCard_(x) },
-  /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
-  health: { group: 'Settings', label: 'Settings', card: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : '') },
-  /* POSTS (owner, 8 Nov, 36a): the standard Find card shape (card-fields.json `post`, around it `postFindCard_`), not the feed's look. */
-  post: { group: 'Posts', label: 'Posts', card: x => findCard(x) },
-
-  /* ---------- `link` WAS A KIND HERE, AND THE LINKS ARE OFF FIND § */
-
-  /* A resource and a shop row share a card: to somebody looking for one they are the same kind of
-     thing — a picture, a name, what it belongs to, and what it costs if it costs anything. */
-  /* `topic` WAS HERE — the documents, labelled `Resources`. The funnel lists the questions inside
-     them now and not the boxes; see the note above `questionItems`. */
-  /* ---------- A QUESTION IS NOT A DIFFERENT KIND OF THING FROM ITS PAPER § */
-  /* ---------- `question` WAS A KIND AND IS NOT ANY MORE § */
-  /* ---------- THE SHOP HAS A COLUMN OF ITS OWN, AND THIS IS NOT A DOOR ANY MORE § */
-  shop:  { group: 'Shop',     label: 'Things',    card: (x, c) => (x.widget ? widgetCard_(x) : thingCard_(x, c)) },
-};
+}
+window.KC_OWN = Object.assign(window.KC_OWN || {}, {
+  receipt: x => jobPage_(x.row), bookform: () => bookFormCard_(), friend: friendCard_, question: thingCard_, answer: thingCard_, shop: thingCard_,
+  practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x),
+  timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
+  worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
+  hymn: x => hymnsCard_(x), mech: x => mechCard_(x), chem: x => chemCard_(x), soon: x => soonCard_(x), person: x => profileDoorCard_(x),
+  offPosts: x => soonCard_(x), offShop: x => soonCard_(x), offBooking: x => soonCard_(x),
+  setting: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)), health: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : ''),
+});
 
 /* WHAT A QUESTION'S ANSWER PAGE IS CALLED, as the kinds tab names it. */
 const ansKind_ = () => (kindMap_().answer || {}).label || 'Answers';

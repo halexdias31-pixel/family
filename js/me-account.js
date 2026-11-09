@@ -420,6 +420,8 @@ function signedOut_(opts) {
       else if (opts.ended && was && !wasAdmin) st.whose = String(was.personId || was.name || '');
       else st.whose = '';
     });
+    /* THE PAGE GOES WITH THE KEPT CHIPS (318): signed out the list is too short to hold it, so it is noted for the same child's return. */
+    if (opts.ended && was && !wasAdmin && typeof FINDERS !== 'undefined') Object.keys(FINDERS).forEach(id => { FINDERS[id].st.whoseAt = PAGE[id] || 0; });
     /* Through the one writer, so the box and a parked typing timer go too: a quiet switch never repaints, and the box kept the last person's words (522). */
     if (!opts.keepFind && !(opts.ended && was && !wasAdmin) && typeof finderSet_ === 'function') {
       Object.keys(FINDERS).forEach(id => finderSet_(FINDERS[id], { paint: false }));
@@ -481,10 +483,13 @@ function signedIn_(d, typed) {
                          : (typeof STUFF !== 'undefined' ? [STUFF] : []));
   let whose = '';
   try { whose = String((finders_().find(st => st && st.whose) || {}).whose || ''); } catch (e) { /* no finder yet: nothing to read or clear */ }
+  /* THE SAME CHILD BACK AFTER A SESSION ENDED UNDER THEM: the page Find was on, put back once their list is drawn. */
+  const backAt = {};
+  try { if (fromNobody && whose && whose === pid) Object.keys(FINDERS).forEach(id => { backAt[id] = FINDERS[id].st.whoseAt; }); } catch (e) { /* no finder yet: no page to put back */ }
   if (fromNobody) signedOut_({ quiet: true, keepFind: !whose || whose === pid });
   else if (over) signedOut_({ quiet: true });
   /* SIGNED IN, FIND IS THE PERSON'S OWN, and `USER` says whose — `whose` is only for while nobody is. */
-  try { finders_().forEach(st => { st.whose = ''; }); } catch (e) { /* no finder yet: nothing to read or clear */ }
+  try { finders_().forEach(st => { st.whose = ''; st.whoseAt = 0; }); } catch (e) { /* no finder yet: nothing to read or clear */ }
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
   USER = me;
   if (!USER.name) USER.name = me.handle || typed || '';
@@ -526,6 +531,7 @@ function signedIn_(d, typed) {
       if (back) go(back);
     }
   } catch (e) { /* no way back: they stay on the account screen */ }
+  Object.keys(backAt).forEach(id => { if (backAt[id] > 0) { try { goPage(id, backAt[id], true); } catch (e) { oops_(e, 'me:signedIn_') } } });
   load();
   /* AND WHAT IS OWED ONCE IN — a sentence about held children, a move link waiting. */
   afterSignIn_(d);
