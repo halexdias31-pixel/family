@@ -122,7 +122,7 @@ function bcItem_(item, s) {
   const t = s.tick || {};
   return `<div class="bc-item is-open" data-bc="${esc(item.id)}">${line}
     <p class="bc-why">${esc(item.why)}</p>
-    <p class="bc-how">${esc(item.how)} <a href="${esc(item.link)}" target="_blank" rel="noopener">Official guidance</a></p>
+    <p class="bc-how">${esc(item.how)} <a href="${esc(item.link)}" data-do="file-view" target="_blank" rel="noopener">Official guidance</a></p>
     ${s.auto && s.auto.say ? `<p class="faint bc-sense">${esc(s.auto.say)}</p>` : ''}
     ${s.info ? '' : `<div class="me-form bc-form">
       <div class="lib-row q-row"><label class="field"><input type="date" data-bc-k="done_on" value="${esc(t.done_on || bcToday_())}" aria-label="${esc(item.title + ' — done on')}"></label>

@@ -204,5 +204,15 @@ for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
   if (/^\s*\.tile(\.[\w-]+)*\s*$/.test(m[1]) && !/is-sure/.test(m[1]) && /var\(--(bad|alert|warn|coral|green|purple|pink|admin|hue-\d+)\)/.test(m[2])) bad.push(`66a a coloured tile: "${m[1].trim()}" — ink, black and white`);
 }
 
+/* ---------- 68a. WHAT OPENS, OPENS IN PLACE (fileView_), inside its card ---------- */
+/* Leaving is kept only where it must be: Google's sign-in and consent pages, the backend's own page, a sheet (none of them may be framed), a boxer's source site, and links a person typed in a message. */
+const LEAVES = { 'find-boxers': 1, 'me-account': 1, 'me-messages': 1, 'shell-api': 1, tiles: 1 };
+files.forEach(({ n, src }) => {
+  const k = [...stripC(src).matchAll(/<a\b[^>]*target="_blank"[^>]*>/g)].filter(m => !/data-do="file-view"/.test(m[0])).length;
+  if (k > (LEAVES[n] || 0)) bad.push(`68a ${n}.js opens ${k} link(s) in a new tab, allowed ${LEAVES[n] || 0} — data-do="file-view" opens it inside the card`);
+  for (const m of src.matchAll(/tile_\(\{[^}]*\bhref:[^}]*\}\)/g)) if (!/leave: true/.test(m[0]) && n !== 'tiles') bad.push(`68a an href tile in ${n}.js — it opens in place unless leave: true (a sign-in)`);
+});
+if (!/!o\.leave && \/\^https/.test(tilesSrc)) bad.push('68a tile_ no longer opens an https tile in place (fileView_)');
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');

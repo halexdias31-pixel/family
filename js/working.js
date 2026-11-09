@@ -164,7 +164,7 @@ on('work-see', el => {
     const rows = Array.isArray(d.work) ? d.work : [];
     if (!rows.length) { box.textContent = 'No photographed working yet'; return; }
     box.innerHTML = rows.map(r => `<div class="work-seen-row"><p class="work-seen-say">${esc(r.label || r.key)} · ${esc(workVerdictSay_(r.verdict))}</p>
-      <div class="qp-work-pics">${(r.photos || []).map((u, i) => `<a class="qp-work-pic" href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="Page ${i + 1}"></a>`).join('')}</div></div>`).join('');
+      <div class="qp-work-pics">${(r.photos || []).map((u, i) => `<a class="qp-work-pic" href="${esc(u)}" data-do="file-view" target="_blank" rel="noopener"><img src="${esc(u)}" alt="Page ${i + 1}"></a>`).join('')}</div></div>`).join('');
   }).catch(() => { loaded_(box); box.textContent = 'Could not reach the server'; });
 });
 function workVerdictSay_(v) {

@@ -135,7 +135,7 @@ function postVidFail_(v) {
   const href = v.dataset.open || '';
   const a = document.createElement('a');
   a.className = v.className.replace('post-vid', 'post-vid-out');
-  a.href = href; a.target = '_blank'; a.rel = 'noopener';
+  a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.dataset.do = 'file-view';
   a.textContent = '\u25b6 Open the video';
   v.replaceWith(a);
 }
