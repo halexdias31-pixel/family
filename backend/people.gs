@@ -21,7 +21,7 @@ function titlesOf(row) {
 
 /* ---------- THE THREE SELF-CHOSEN ROLES, AS THE WIDGET SEES THEM § */
 function selfRolesOf_(row) {
-  const held = rolesOf(row).map(x => SELF_ROLE_ALIASES[x] || x);
+  const held = rolesOf(row).map(roleWord_);
   return SELF_ROLES.filter(x => held.indexOf(x) !== -1);
 }
 
@@ -37,7 +37,7 @@ function tutorPending_(row) {
 const RANKS = ['student', 'client', 'staff', 'admin'];
 function rankOf(row) {
   if (!row) return '';
-  const held = rolesOf(row).map(x => SELF_ROLE_ALIASES[x] || x);
+  const held = rolesOf(row).map(roleWord_);
   if (held.indexOf('admin') !== -1) return 'admin';
   if (held.indexOf('tutor') !== -1 && norm(row.listed) !== norm(LISTED_PENDING)) return 'staff';
   if (held.indexOf('client') !== -1) return 'client';
@@ -1055,7 +1055,7 @@ function notifyHeld_(r, kind, subject) {
 
 /* ---------- WHICH ROLES AN EMAIL REACHES SOMEBODY BY — ONE ANSWER FOR THE CARD AND FOR `setNotify` § */
 function notifyRoles_(r) {
-  const held = rolesOf(r).map(x => SELF_ROLE_ALIASES[x] || x).filter(x => NOTIFY_ALL_ROLES.indexOf(x) !== -1);
+  const held = rolesOf(r).map(roleWord_).filter(x => NOTIFY_ALL_ROLES.indexOf(x) !== -1);
   return held.length ? held.filter((x, i) => held.indexOf(x) === i) : ['client'];
 }
 function notifyParent_(r) {

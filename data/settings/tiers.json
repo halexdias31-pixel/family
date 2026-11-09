@@ -278,6 +278,7 @@
     "check-voice.js": "secondary",
     "check-prefs.js": "secondary",
     "check-uploads.js": "secondary",
+    "check-migrate.js": "secondary",
     "check-inbox.js": "secondary",
     "check-rooms.js": "secondary",
     "check-secrets.js": "core",

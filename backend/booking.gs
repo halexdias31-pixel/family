@@ -1,7 +1,11 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
+<<<<<<< HEAD
 const BOOKING_VERSION = "2026-11-08-role-words-1";
+=======
+const BOOKING_VERSION = "2026-11-08-old-rows-1";
+>>>>>>> worktree-agent-af9b56301a59dd34a
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */

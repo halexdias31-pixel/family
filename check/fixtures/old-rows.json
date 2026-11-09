@@ -1,0 +1,18 @@
+{
+  "_note": "Rows in the shapes the sheets held before the current layout, for js/check-migrate.js. Made-up people only.",
+  "people": [
+    { "person_id": "P-A1", "first_name": "Hal", "last_name": "Owner", "handle": "halowner", "email": "owner@example.org", "role": "admin" },
+    { "person_id": "P-L1", "first_name": "Pat", "last_name": "Oldrow", "handle": "patoldrow", "email": "oldparent@example.org", "role": "parent" },
+    { "person_id": "P-L2", "first_name": "Ada", "last_name": "Oldrow", "handle": "adaoldrow", "email": "oldteacher@example.org", "role": "teacher, guardian" },
+    { "person_id": "P-C1", "first_name": "Cy", "last_name": "Newrow", "handle": "cynewrow", "email": "client@example.org", "role": "client" }
+  ],
+  "reports": [
+    { "report_id": "R-1", "question_id": "Q-9", "reason": "typo", "status": "" },
+    { "report_id": "R-2", "question_id": "Q-8", "reason": "fine", "status": "not a problem" },
+    { "report_id": "R-3", "kind": "card", "item_id": "card|x", "reason": "ok", "status": "fixed" }
+  ],
+  "posts": [
+    { "post_id": "PO-1", "author": "Hal Owner", "image": "https://example.org/a.jpg", "approved": "TRUE", "active": "TRUE" },
+    { "post_id": "PO-2", "author": "Hal Owner", "image": "https://example.org/b.jpg", "image_w": 640, "image_h": 480, "approved": "TRUE", "active": "TRUE" }
+  ]
+}

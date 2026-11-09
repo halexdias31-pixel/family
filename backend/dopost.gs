@@ -1,7 +1,11 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
+<<<<<<< HEAD
 const DOPOST_VERSION = "2026-11-08-role-words-1";
+=======
+const DOPOST_VERSION = "2026-11-08-old-rows-1";
+>>>>>>> worktree-agent-af9b56301a59dd34a
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -231,6 +235,7 @@ function postActions_() {
     clientError: postClientError_,
     healthLog: postHealthLog_,
     listClientErrors: postListClientErrors_,
+    tidyOldRows: postTidyOldRows_,
     reportQuestion: postReportQuestion_,
     report: postReport_,
     suggest: postSuggest_,

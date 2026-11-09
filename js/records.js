@@ -231,7 +231,9 @@ function errsInner_(wait) {
       ${list.slice(0, ERRS_DRAWN).map(item).join('')}
       ${list.length > ERRS_DRAWN ? `<p class="faint">And ${list.length - ERRS_DRAWN} more in the client_errors tab.</p>` : ''}
     ${wait ? loading_() : ''}</div>
-    <div class="tile-row">${tile_({ icon: 'sync', label: 'Refresh', act: 'errs-refresh' })}</div>
+    <div class="tile-row">${tile_({ icon: 'sync', label: 'Refresh', act: 'errs-refresh' })}${
+      /* OLD SHEET ROWS INTO TODAY'S SHAPE (owner, 8 Nov): `migrateOldRows_`, safe to press twice. */
+      tile_({ icon: 'merge', label: 'Tidy old rows', act: 'tidy-old-rows' })}</div>
     <p class="faint me-said errs-said">${esc(ERRS.error)}</p>`;
 }
 const errsDraw_ = () => { document.querySelectorAll('[data-errs]').forEach(c => { c.innerHTML = errsInner_(false); }); };
@@ -248,6 +250,13 @@ function errsStart_() {
     .then(errsDraw_);
 }
 on('errs-refresh', () => { ERRS.list = null; ERRS.error = ''; errsDraw_(); document.querySelectorAll('[data-errs] .err-body').forEach(b => { b.setAttribute('aria-busy', 'true'); b.insertAdjacentHTML('beforeend', loading_()); }); errsStart_(); });
+
+on('tidy-old-rows', el => {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  send_({ action: 'tidyOldRows' }, { button: el, where: el.closest('.card').querySelector('.errs-said'), busy: 'Tidying…' })
+    .then(d => { const n = Number(d && d.changed) || 0; toast(n ? n + (n === 1 ? ' old row tidied' : ' old rows tidied') : 'No old rows left'); })
+    .catch(() => {});
+});
 
 /* ---------- SUGGESTIONS (494): a non-admin's, waiting — Confirm sends it to Notes for Claude, Dismiss drops it ----------
    `listSuggestions`, admin at the gate; `null` is "not asked yet". Messages flagged before 486 too. */

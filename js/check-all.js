@@ -177,6 +177,7 @@ const SUITE = [
   { file: 'check-prefs.js', what: 'notification choices: every sender asks, off is held and logged, essentials always go, the token decides whose' },
   /* A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP. § */
   { file: 'check-uploads.js', what: 'chat files: the manifest’s scope, the column, the refusals, both sides drawn' },
+  { file: 'check-migrate.js', what: 'old sheet rows: read as before until Tidy old rows runs, rewritten once, read the same after' },
   { file: 'check-inbox.js', what: 'the Email widget (493): admin only, read-only, the mail kept nowhere' },
   /* THE ROOMS INSIDE A VENUE, THROUGH THE SAME BACKEND. § */
   { file: 'check-rooms.js', what: 'rooms: a blank cell is the venue’s, an explicit 0 stays 0, the caps, the floor, a booking, the waiting list' },
