@@ -250,7 +250,7 @@ function postActions_() {
     rulesSave: postRulesSave_,
     wordsSave: postWordsSave_,
     digestWordsSave: postDigestWordsSave_,
-    familyShareSave: postFamilyShareSave_,
+    businessSettingSave: postBusinessSettingSave_,
     claudeNoteAdd: postClaudeNoteAdd_,
     claudeNoteDone: postClaudeNoteAdd_,
     filmsSync: postFilmsSync_,

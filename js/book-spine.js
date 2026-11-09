@@ -449,7 +449,7 @@ function jobRows(j) {
   push('Extra seats', seatsOf_(j) ? String(Math.max(0, seatsOf_(j) - 1)) : '');
   push('Venue', j.venue || j.location || '');
   push('Room', j.room || 'set by us');
-  push('Space', atClientHome_(j.venue || j.location || '') ? 'Yes'
+  push('Space', takesAllSeats_(j.venue || j.location || '') ? 'Yes'
     : TRUEish_(j.clientHosts) ? 'Yes \u2014 no room hire' : 'No \u2014 we book the room');
   /* ---------- SEVEN DAY ROWS WHERE THE `When` ROW WAS § */
   jobWeekRows_(j).forEach(r => rows.push(r));

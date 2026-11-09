@@ -6140,3 +6140,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* LONG CARD TEXT, CUT TO TWO LINES WITH "…" (owner 8 Nov, 29a); `cut-open` toggles .is-open on a tap. */
 .cut2 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; cursor: pointer; }
 .cut2.is-open { display: block; -webkit-line-clamp: unset; line-clamp: none; overflow: visible; }
+/* THE ONE VIEWER (`fileView_`): a file opened inside its card, the card's width, never full screen. */
+.file-view { margin-top: .75rem; }
+.file-view-f, .file-view-v, .file-view-i { display: block; width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.file-view-f { height: 70vh; }
+.file-view-youtube .file-view-f, .file-view-v { height: auto; aspect-ratio: 16 / 9; }

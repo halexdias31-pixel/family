@@ -483,7 +483,8 @@ function bookPrefill_() {
   /* THE USUAL CASE FIRST: an instant session, a new one, at home, no extra seats. */
   if (!BOOKING.how) BOOKING.how = 'Instant class';
   if (!BOOKING.joining) BOOKING.joining = NEW_LIST;
-  if (!BOOKING.loc) BOOKING.loc = 'At home';
+  /* AT HOME IS THE VENUE ROW MARKED `takes_all_seats` (48a), by its own label; none marked, the question stays open. */
+  if (!BOOKING.loc) BOOKING.loc = ((bookableSpaces().find(x => x.takesAllSeats) || {}).label) || '';
   const seats = only(bookStep_('n'));
   if (!BOOKING.n && seats.length) BOOKING.n = seats[0];
   /* FIND'S CHIPS: a subject or level already picked there is the answer here. */

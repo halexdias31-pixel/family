@@ -538,7 +538,7 @@ function postCreateJob_(body, action, began) {
     return jsonOut({ error: 'That is more seats than ' + seatCap + ' — the most this place and tutor hold. Nothing has been booked.' });
   }
   /* AT HOME THE BOOKING TAKES EVERY SEAT (owner, 8 Nov): fewer than the cap is refused, so nobody pays for one seat of a private session. */
-  if (atClientHome_(body.location) && seatCap > 0 && (N(body.n) || 1) !== seatCap) {
+  if (takesAllSeats_(body.location) && seatCap > 0 && (N(body.n) || 1) !== seatCap) {
     return jsonOut({ error: 'A booking at home takes all ' + seatCap + ' seat' + (seatCap === 1 ? '' : 's') + ' and is priced for each. Nothing has been booked.' });
   }
   /* AN ADMIN'S DISCOUNT, AND NOBODY ELSE'S — asked before anything is written, like the refusals above (`discountRefusal_`, booking.gs). § */
@@ -616,7 +616,7 @@ function createJobRow_(body, ctx) {
       - (N(cfg3.travel_on_client) ? 0 : travelCost(S(body.location), sessionCount))) * 100) / 100,
     // Who else is splitting this booking. Stored on the job because it's a fact ABOUT the
     // booking — who was invited to share it — not about any one person's account.
-    split_emails: atClientHome_(body.location) ? '' : S(body.splitEmails),
+    split_emails: takesAllSeats_(body.location) ? '' : S(body.splitEmails),
     /* AND WHICH CHILDREN IT IS FOR. Different from the split: those are other FAMILIES sharing
        the cost, these are the people in the chairs. A tutor needs the second one and has never
        been told it. */
@@ -626,8 +626,8 @@ function createJobRow_(body, ctx) {
     /* TRUE only where they said so. `TRUE_` reads the word; anything else — blank, absent, an
        older booking — is a no. */
     /* A HOME BOOKING IS PRIVATE AND HOLDS EXACTLY ITS SEATS (owner, 8 Nov). */
-    open_to_others: (TRUE_(body.openToOthers) && !atClientHome_(body.location)) ? 'TRUE' : 'FALSE',
-    max_students: atClientHome_(body.location) ? (N(body.n) || 1) : (N(cfg3.max_students_per_job) || 4),
+    open_to_others: (TRUE_(body.openToOthers) && !takesAllSeats_(body.location)) ? 'TRUE' : 'FALSE',
+    max_students: takesAllSeats_(body.location) ? (N(body.n) || 1) : (N(cfg3.max_students_per_job) || 4),
     // "No preference" IS the consent to being matched; naming a tutor withholds it.
     stealable: named ? 'FALSE' : 'TRUE',
     created_at: new Date(),

@@ -536,7 +536,8 @@ const ansCards_ = (w, tag) => {
   const q = sel => host.querySelector(sel);
   const ta = () => q('[data-k$="' + words.key + '"].qp-ans-in');
   const kp = () => q('[data-k$="' + maths.key + '"].qp-ans-in');
-  const box = () => q('.qp-choices');
+  /* THE PICK IS TYPED (owner, 9 Nov): its one box, keyed as the others */
+  const box = () => q('[data-k$="' + pick.key + '"].qp-ans-in');
   const pad = () => q('.qpad');
   const saidFor = x => { const el = q('.qp-saved[data-k$="' + x.key + '"]'); return el ? savedWords_(el) : null; };
   const ringed = () => [...host.querySelectorAll('[data-circ] .qw.is-circled')].map(s2 => s2.getAttribute('data-w'));
@@ -572,7 +573,7 @@ check('answers: typed, picked and drawn go to the account a moment later, and th
   if (c.saidFor(c.words) !== '') bad.push('an empty box already says ' + JSON.stringify(c.saidFor(c.words)) + ' — a line about saving nothing');
   /* TYPED, PICKED, DRAWN — with no Check and no leaving the box, so only the debounce sends them. */
   ['b', 'be', 'because', 'because 180'].forEach(v => ansType_(w, c.ta(), v));
-  w.__t.ACTIONS['qp-choose'](c.box().querySelector('[data-n="2"]'));
+  ansType_(w, c.box(), 'B');
   ansStroke_(w, c, [[10, 10], [20, 20], [30, 30], [40, 40], [50, 50], [60, 60], [70, 70], [80, 80]]);
   if (c.saidFor(c.words) !== 'Saving…') bad.push('while it is on its way the line says ' + JSON.stringify(c.saidFor(c.words)) + ', wanted "Saving…"');
   await wait(200);
@@ -584,7 +585,7 @@ check('answers: typed, picked and drawn go to the account a moment later, and th
   if (s.token !== 'tok-P7' || s.personId !== 'P7') bad.push('saveAnswers went as ' + JSON.stringify({ token: s.token, personId: s.personId }) + ' — the token is who the server writes for, and personId must ride with it');
   const typed = by['ans:' + c.words.key], picked = by['ans:' + c.pick.key], drawn = by['pad:' + c.pen.key];
   if (!typed || typed.v !== 'because 180') bad.push('the typed answer went up as ' + JSON.stringify(typed) + ' — wanted key ans:' + c.words.key + ' (no person in it) and "because 180"');
-  if (!picked || picked.v !== '2') bad.push('the pick went up as ' + JSON.stringify(picked) + ' — wanted "2"');
+  if (!picked || picked.v !== 'B') bad.push('the typed pick went up as ' + JSON.stringify(picked) + ' — wanted "B"');
   if (!drawn) bad.push('the drawing did not go up: ' + JSON.stringify(Object.keys(by)));
   else if (drawn.v !== '[[10,10,80,80]]') bad.push('the drawing went up as ' + drawn.v + ' — a straight stroke of eight points is two after simplifying, and the device keeps all eight');
   if (typed && !(typed.at > 0 && typed.at <= Date.now())) bad.push('the typed answer went up with no edit time: ' + JSON.stringify(typed));
@@ -631,7 +632,7 @@ check('answers: on another device, the account fills the box, the keypad drawing
   const server = {
     'ans:q:Q-ANS-W-B': { v: 'because the angles make a line', at },
     'ans:q:Q-ANS-M-B': { v: '(3)/(4)', at },
-    'ans:q:Q-ANS-C-B': { v: '2', at },
+    'ans:q:Q-ANS-C-B': { v: 'B', at },
     'pad:q:Q-ANS-P-B': { v: '[[10,20,30,40]]', at },
     'pad:q:Q-ANS-P-B:words': { v: '["0.1"]', at },
   };
@@ -650,8 +651,7 @@ check('answers: on another device, the account fills the box, the keypad drawing
   if (c.kp().value !== '(3)/(4)') bad.push('the keypad box reads ' + JSON.stringify(c.kp().value));
   const show = c.kp().parentNode.querySelector('.kp-show');
   if (!show || !/frac/.test(show.innerHTML)) bad.push('the keypad’s drawing was not redrawn — the input holds (3)/(4) under a picture of nothing: ' + (show && show.innerHTML.slice(0, 80)));
-  const on = c.box() && c.box().querySelector('.qp-opt.is-picked');
-  if (!on || on.getAttribute('data-n') !== '2') bad.push('the picked option on screen is ' + (on ? on.getAttribute('data-n') : 'none') + ', wanted 2');
+  if (!c.box() || c.box().value !== 'B') bad.push('the typed pick on screen is ' + JSON.stringify(c.box() && c.box().value) + ', wanted B');
   if (c.pad().querySelectorAll('.qpad-g path').length !== 1) bad.push('the pad shows ' + c.pad().querySelectorAll('.qpad-g path').length + ' strokes, wanted the account’s one');
   if (c.ringed().join() !== '0.1') bad.push('the ringed words on screen are [' + c.ringed().join() + '], wanted the account’s "tall" (0.1)');
   if (c.saidFor(c.words) !== 'Saved to Ada’s account') bad.push('a box filled from the account says ' + JSON.stringify(c.saidFor(c.words)));
@@ -887,7 +887,7 @@ check('a reload keeps every answer — words, maths, a 3,000-character essay, a 
   const e1 = reloadEssayBox_(one.w);
   if (!e1) return ['the essay card drew no answer box — nothing was reloaded'];
   ansType_(one.w, e1, RELOAD_ESSAY);
-  one.w.__t.ACTIONS['qp-choose'](c.box().querySelector('[data-n="2"]'));
+  ansType_(one.w, c.box(), 'B');
   ansStroke_(one.w, c, [[10, 10], [60, 60], [90, 20]]);
   one.w.dispatchEvent(new one.w.Event('pagehide'));
   const two = boot({ before: fromStore_(keptStore_(one.w)) });
@@ -899,8 +899,7 @@ check('a reload keeps every answer — words, maths, a 3,000-character essay, a 
   if (c.kp().value !== '(3)/(4)') bad.push('after the reload the maths box holds ' + JSON.stringify(c.kp().value));
   const e2 = reloadEssayBox_(w);
   if (!e2 || e2.value !== RELOAD_ESSAY) bad.push('after the reload the essay is ' + (e2 ? e2.value.length : 'no box,') + ' characters, wanted ' + RELOAD_ESSAY.length);
-  const on = c.box().querySelector('.qp-opt.is-picked');
-  if (!on || on.getAttribute('data-n') !== '2') bad.push('after the reload the picked option is ' + (on ? on.getAttribute('data-n') : 'none') + ', wanted 2');
+  if (!c.box() || c.box().value !== 'B') bad.push('after the reload the typed pick is ' + JSON.stringify(c.box() && c.box().value) + ', wanted B');
   if (c.pad().querySelectorAll('.qpad-g path').length !== 1) bad.push('after the reload the pad shows ' + c.pad().querySelectorAll('.qpad-g path').length + ' strokes, wanted 1');
   /* SIGNED OUT: the device's key, and the same again. */
   w.__t.USER(null);

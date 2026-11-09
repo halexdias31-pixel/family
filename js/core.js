@@ -49,13 +49,14 @@ function bookableSpaces() {
         label: v.title + ' \u2014 ' + r.name, venue: v.title, room: r.name,
         rate: r.rate, concession: r.concession, min: r.min, max: r.max, image: v.image,
         avail: r.avail, busy: r.busy || {}, rowIndex: r.rowIndex, fields: r.fields,
-        minHours: v.minHours, maxHours: v.maxHours
+        minHours: v.minHours, maxHours: v.maxHours, takesAllSeats: !!v.takesAllSeats
       }));
     } else {
       out.push({ label: v.title, venue: v.title, room: '',
                  rate: Number(v.bestRate) || 0, concession: 0,
                  min: v.minCapacity || 1, max: v.maxCapacity, image: v.image,
-                 avail: v.avail, minHours: v.minHours, maxHours: v.maxHours });
+                 avail: v.avail, minHours: v.minHours, maxHours: v.maxHours,
+                 takesAllSeats: !!v.takesAllSeats });
     }
   });
   return out;
@@ -212,23 +213,26 @@ function num(raw) {
 
 function spaceFor(label) {
   const want = norm(label);
-  return bookableSpaces().find(x => norm(x.label) === want) || null;
+  const all = bookableSpaces();
+  /* An older saved "At home" answer is the venue row marked `takes_all_seats`, found by its field. */
+  if (want === norm('At home')) return all.find(x => x.takesAllSeats) || null;
+  return all.find(x => norm(x.label) === want) || null;
 }
 
 
-/* THE CLIENT'S OWN HOUSE, by name — see the note over `seatLimits` for why this is not `isHome`. */
-function atClientHome_(loc) {
-  return /\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(String(loc || ''));
-}
-
-/* AN ONLINE SESSION, by name: a place like the house, holding the same 4. */
-function isOnline_(loc) {
-  return /\bonline\b/i.test(String(loc || ''));
+/* A VENUE WHOSE ROW SAYS `takes_all_seats` (owner, 8 Nov: the client's house): a field, never a name — same as `takesAllSeats_` in booking.gs. */
+function takesAllSeats_(loc) {
+  const want = norm(loc || '');
+  if (!want) return false;
+  const sp = spaceFor(loc);
+  if (sp) return !!sp.takesAllSeats;
+  const v = (DATA.venues || []).find(x => norm(x.title) === want);
+  return !!(v && v.takesAllSeats);
 }
 
 function isHome(loc) {
   const name = String(loc || '');
-  if (/\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(name)) return true;
+  if (takesAllSeats_(name)) return true;
   /* A CHILD IS SENT NO RATES (398), so "no rate" is not "a home" to her phone. */
   if (childView_()) return false;
   const sp = (typeof spaceFor === 'function') ? spaceFor(name) : null;
@@ -242,16 +246,15 @@ function isHome(loc) {
 function seatLimits(space, tutor, loc) {
   const v = (DATA.constants || {}).vars || {};
   const houseMax = Number(v.max_students_per_job) || 0;
-  /* ONLINE AND THE CLIENT'S HOUSE ARE PLACES HOLDING 4 (owner, 7 Nov); a cell can change it, code keeps the fallback. */
-  const placeSeats = Number(v.seats_online_or_home) || 4;
 
   let max = 99, min = 1;
   const why = { max: '', min: '' };
   const capMax = (n, reason) => { if (n > 0 && n < max) { max = n; why.max = reason; } };
   const capMin = (n, reason) => { if (n > 0 && n > min) { min = n; why.min = reason; } };
 
-  if (loc && (atClientHome_(loc) || isOnline_(loc))) capMax(placeSeats, atClientHome_(loc) ? 'a home session' : 'an online session');
-  else if (space) { capMax(Number(space.max), space.label || 'this venue');
+  /* HOME AND ONLINE ARE VENUE ROWS LIKE ANY OTHER (owner, 8 Nov): their seats come from the row. */
+  if (!space && loc) space = spaceFor(loc);
+  if (space) { capMax(Number(space.max), space.label || 'this venue');
                     capMin(Number(space.min), space.label || 'this venue'); }
   /* MAX SEATS = THE SMALLER OF TUTOR AND PLACE (owner, 7 Nov); "No preference" has no tutor row, so the place alone. */
   /* A TUTOR WITH NO CAPACITY SET HOLDS 1 SEAT (owner, 7 Nov). */
@@ -259,7 +262,7 @@ function seatLimits(space, tutor, loc) {
                 capMin(Number(tutor.minStudents), tutor.title); }
   capMax(houseMax, 'your limit');
   /* AT HOME THE BOOKING TAKES EVERY SEAT THE TUTOR HOLDS (owner, 8 Nov): the floor is the cap, priced for all. */
-  if (loc && atClientHome_(loc)) { min = max; why.min = 'a home session'; }
+  if (loc && takesAllSeats_(loc)) { min = max; why.min = 'a home session'; }
   if (min > max) min = max;
 
   return { max, min, why };

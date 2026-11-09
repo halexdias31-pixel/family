@@ -300,16 +300,21 @@ function postDigestWordsSave_(body, action, began) {
 }
 
 /* THE @FAMILY SHARE OF AN EXTRA SEAT (8 Nov): config B, the one value `seatShare_` prices with, 0 to 2 of the rate; admin only. */
-function postFamilyShareSave_(body) {
+/* ONE BUSINESS SETTING (owner, 9 Nov): every money rule — share B, fees, discounts, rates — is a config row set from the one Business list; only these keys. */
+const BUSINESS_SETTING_KEYS = ['M', 'w', 's', 'c', 'B', 'b', 'a', 'h', 'max_students_per_job', 'max_open_requests', 'open_rate', 'open_tutor_rate',
+  'waitlist_seats', 'waitlist_extra_seat', 'travel_on_client', 'print_rate_per_page', 'print_minimum', 'postage_flat'];
+function postBusinessSettingSave_(body) {
   const me = findPerson('', S(body.personId));
-  if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Only @family. sets its share. Nothing was saved.' });
-  const v = S(body.share);
-  if (!/^\d*\.?\d+$/.test(v) || Number(v) > 2) return jsonOut({ error: "@family.'s share is a number from 0 to 2, where 0.5 is half. Nothing was saved." });
+  if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Only @family. sets its business settings. Nothing was saved.' });
+  const k = S(body.key), v = S(body.value);
+  if (BUSINESS_SETTING_KEYS.indexOf(k) < 0) return jsonOut({ error: 'That is not a business setting. Nothing was saved.' });
+  if (!/^\d*\.?\d+$/.test(v) || Number(v) > 100000) return jsonOut({ error: 'A business setting is a number, 0 or more. Nothing was saved.' });
+  if (k === 'B' && Number(v) > 2) return jsonOut({ error: "@family.'s share is a number from 0 to 2, where 0.5 is half. Nothing was saved." });
   const t = read(TAB.config);
-  if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the share on.' });
-  const row = t.rows.find(r => S(r.key) === 'B');
+  if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the setting on.' });
+  const row = t.rows.find(r => S(r.key) === k);
   if (row) setCell(t, row, 'value', Number(v));
-  else addRow(t, { key: 'B', value: Number(v), what_it_does: CONFIG_DEFAULTS.find(d => d[0] === 'B')[2] });
+  else addRow(t, { key: k, value: Number(v), what_it_does: (CONFIG_DEFAULTS.find(d => d[0] === k) || [])[2] || '' });
   clearCache();
-  return jsonOut({ success: true, share: Number(v) });
+  return jsonOut({ success: true, key: k, value: Number(v) });
 }

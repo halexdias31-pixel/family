@@ -1,145 +1,3 @@
-
-function orderBox_(x) {
-  const k = ansKey_(x);
-  const n = x.choices.length;
-  const seq = orderSeq_(ansRead_(k), n);
-  const said = orderSay_(seq);
-  /* THE QUESTION'S OWN WORDS FOR ITS ENDS, and a neutral pair where the row has none --
-     `check-library.js` fails such a row, and the box still has to make sense while it does. */
-  const ends = (x.orderEnds || []).length === 2 ? x.orderEnds : ['first', 'last'];
-  const latest = typeof subLatest_ === 'function' ? subLatest_(k) : null;
-  const sent = !!said && !!latest && latest.a === said && (latest.v === 'right' || latest.v === 'wrong');
-  const holed = !sent && ORDER_HOLE.has(k) && ORDER_HOLE.get(k) === said;
-  const verdict = sent ? latest.v === 'right' : holed ? null : undefined;
-  const cls = verdict === true ? ' is-right' : verdict === false ? ' is-near' : '';
-  const say = holed ? 'Put all ' + n + ' in the row first'
-    : verdict === true ? 'Correct' : verdict === false ? 'Not yet — have another go' : '';
-  const placed = new Set(seq.filter(Boolean));
-  /* EVERY SLOT AS WIDE AS THE WIDEST ITEM, EMPTY OR FULL, so the strip is the same shape from the first tap to the last. § */
-  const wide = Math.max(1, ...x.choices.map(c => String(c).replace(/<[^>]*>/g, '')
-    .replace(/&[a-z0-9#]+;/gi, '_').replace(/\s+/g, ' ').trim().length));
-  /* THE FACE IS ONE ELEMENT, `.qp-face`, IN THE SLOT AND IN THE ROW. § */
-  const face = c => `<span class="qp-face">${typeset_(c)}</span>`;
-  /* A PLACED ITEM IS A BUTTON IN ITS SLOT, to take it back; an empty slot is a numbered space and not a button, because pressing it does nothing. § */
-  const slots = seq.map((m, i) => (m
-    ? `<button type="button" class="qp-slot is-full" data-do="qp-place" data-n="${m}"><span class="qp-slot-i">${i + 1}</span>${face(x.choices[m - 1])}</button>`
-    : `<span class="qp-slot"><span class="qp-slot-i">${i + 1}</span></span>`)).join('');
-  /* THE ITEMS STAY WHERE THE PAPER PRINTS THEM. § */
-  const items = x.choices.map((c, i) => {
-    const on = placed.has(i + 1);
-    return `<button type="button" class="qp-item${on ? ' is-placed' : ''}" data-do="qp-place" data-n="${i + 1}"
-      aria-pressed="${on}"${on ? ' disabled' : ''}>${face(c)}</button>`;
-  }).join('');
-  /* THE VERDICT'S LINE IS RESERVED AND THE TILES SIT IN IT, so "Correct" lands in a space that was already there and marking moves nothing (261). § */
-  const clear = tile_({ icon: 'bin', label: 'Clear', note: 'put them all back', act: 'qp-order-clear', cls: 'qp-order-clear', off: !placed.size });
-  /* THE TWO ENDS ARE THE ONLY WORDS SAYING WHICH WAY THE ROW RUNS, so they are a line of their own over the slots, one at each edge with an arrow between, at the § */
-  const word = e => String(e).charAt(0).toUpperCase() + String(e).slice(1);
-  return `<div class="qp-order${cls}" data-k="${esc(k)}" data-n="${n}">
-    <div class="qp-slots" role="group" style="--qp-ch:${wide}" aria-label="${esc('Your order, ' + ends[0] + ' to ' + ends[1])}">
-      <div class="qp-ends" aria-hidden="true"><span class="qp-end">${esc(word(ends[0]))}</span><span class="qp-way"></span><span class="qp-end">${esc(word(ends[1]))}</span></div>${slots}
-    </div>
-    <div class="qp-items">${items}<span class="tile-row qp-order-tiles">${clear}</span></div>
-    <div class="qp-mark qp-compose${cls}">${qtRow_(x)}${workStrip_(x)}
-      <span class="qp-verdict" role="status" aria-live="polite">${esc(say)}</span>
-    </div>
-    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
-  </div>`;
-}
-
-/* DRAWN AGAIN FROM THE STORE, where it stands -- a tap, Clear and Send do this, and so does a row arriving from the account on another device § */
-function orderRedraw_(box, focus) {
-  const k = box && box.getAttribute('data-k');
-  const x = k && stuffItemsAll_().find(it => ansKey_(it) === k);
-  if (!x || !orderIs_(x)) return;
-  const wrap = document.createElement('div');
-  wrap.innerHTML = orderBox_(x);
-  const next = wrap.firstElementChild;
-  box.replaceWith(next);
-  const f = focus && next.querySelector(focus);
-  if (f) { try { f.focus({ preventScroll: true }); } catch (e) { /* an element that cannot take focus is left as it is */ } }
-}
-const orderOf_ = el => {
-  const box = el && el.closest('.qp-order');
-  const k = box && box.getAttribute('data-k');
-  const n = box ? +box.getAttribute('data-n') || 0 : 0;
-  return k && n ? { box, k, n, seq: orderSeq_(ansRead_(k), n), had: document.activeElement === el } : null;
-};
-
-on('qp-place', (el) => {
-  const o = orderOf_(el);
-  const m = +el.getAttribute('data-n');
-  if (!o || !(m >= 1 && m <= o.n)) return;
-  const at = o.seq.indexOf(m);
-  /* A SLOT TAKES BACK AND AN ITEM PLACES, AND NOTHING ELSE. § */
-  const fromSlot = el.classList.contains('qp-slot');
-  if (fromSlot !== (at !== -1)) { orderRedraw_(o.box, ''); return; }
-  /* WHERE THE FOCUS GOES: taken back, to the item, live again in its row; placed, to the next item still
-     to place (its ghost is disabled and cannot hold it), and to Send once every one is placed. */
-  let focus = '.qp-item[data-n="' + m + '"]';
-  if (fromSlot) o.seq[at] = 0;
-  else {
-    const free = o.seq.indexOf(0);
-    if (free === -1) return;
-    o.seq[free] = m;
-    const left = [];
-    for (let i = 1; i <= o.n; i++) if (o.seq.indexOf(i) === -1) left.push(i);
-    const next = left.find(i => i > m) || left[0];
-    focus = next ? '.qp-item[data-n="' + next + '"]' : '.qp-order-send';
-  }
-  /* THROUGH `ansStore_`, the one writer -- kept on this device. A tap is not a submission: Send is. */
-  ansStore_(o.k, orderSay_(o.seq));
-  orderRedraw_(o.box, o.had ? focus : '');
-});
-
-on('qp-order-clear', (el) => {
-  const o = orderOf_(el);
-  if (!o) return;
-  ansStore_(o.k, '');
-  orderRedraw_(o.box, o.had ? '.qp-item[data-n="1"]' : '');
-});
-
-on('qp-order-send', (el) => {
-  const o = orderOf_(el);
-  if (!o) return;
-  const said = orderSay_(o.seq);
-  /* MARKED IS A SUBMISSION, right or not yet -- and a row with a place still empty is neither: it says
-     so, and nothing is recorded. */
-  const x = stuffItemsAll_().find(it => ansKey_(it) === o.k);
-  const v = x ? markOrder_(said, orderWays_(x)) : null;
-  if (v === null) ORDER_HOLE.set(o.k, said);
-  else {
-    ORDER_HOLE.delete(o.k);
-    subRecord_(o.k, said, v ? 'right' : 'wrong');
-  }
-  orderRedraw_(o.box, o.had ? '.qp-order-send' : '');
-});
-
-on('qp-choose', (el) => {
-  const box = el.closest('.qp-choices');
-  const card = el.closest('.qcard');
-  if (!box || !card) return;
-  const k = box.getAttribute('data-k');
-  const need = +box.getAttribute('data-need') || 1;
-  const right = box.getAttribute('data-right');
-  const n = +el.getAttribute('data-n');
-  let picked = String(ansRead_(k) || '').split(',').map(t => parseInt(t, 10)).filter(v => v > 0);
-  const sorted = a => a.slice().sort((p, q) => p - q).join(',');
-  /* ONLY A RIGHT PICK IS FINAL: after "Not yet" any tap is a new try (385, Theo tapping and tapping). */
-  if (right && picked.length >= need && sorted(picked) === right) return;
-  if (need === 1) picked = [n];
-  else if (picked.includes(n)) picked = picked.filter(v => v !== n);
-  else picked = picked.concat(n).slice(-need);
-  /* THROUGH `ansStore_`, the one writer — kept on this device. */
-  ansStore_(k, picked.join(','));
-  /* ENOUGH CHOSEN IS A SUBMISSION, marked at once: § */
-  if (picked.length >= need) {
-    const said = picked.join(',');
-    subRecord_(k, said, !right ? 'sent' : picked.slice().sort((a, b) => a - b).join(',') === right ? 'right' : 'wrong');
-  }
-  choiceRedraw_(box);
-  /* RIGHT DOES NOT OPEN THE ANSWER PAGE ANY MORE. § */
-});
-
 /* ---------- A WORDED ANSWER OF A MARK OR TWO, MARKED BY RULE BEFORE ANY AI (359) */
 /* `mark_words`: points split by `;`, a mark each; ways by `|`; words that must all be there joined by `+`; a number is
    compared as a number. Words are matched on their stems, and a word straight after "not" or "no" does not count. */
@@ -394,24 +252,25 @@ function multiNext_(inp) {
 }
 
 function ansBox_(x) {
-  if (x && Array.isArray(x.choices) && x.choices.length >= 2) return choiceBox_(x);
   if (cellsOf_(x).length) return cellsBox_(x);
+  const opts = choiceList_(x);
   const k = ansKey_(x);
   const m = markerOf_(x);
   const can = m.kind === 'accept' ? String(x.accept || '').trim() : '';
   const rule = isWordsMark_(m) ? String(x.markWords || '').trim() : '';
+  const scheme = QT_SCHEME_KINDS[m.kind] && m.ready;
   const geo = m.kind === 'draw' ? String(x.drawAnswer || '').trim() : '';
   /* ONE KEYPAD THAT TYPES ANYTHING (keypad.js): the answer's shape only picks the layer it opens on */
   const maths = ansMaths_(x);
   /* THE AI MARKS WHAT NO RULE CAN: it is the Check for an `ai` part, and offered after a key-word rule that falls short */
-  const ai = isAiMark_(m) || isWordsMark_(m) ? tile_(aiOpts_(x)) : '';
-  const later = isWordsMark_(m) && ai ? `<span class="qp-ai-later" hidden>${ai}</span>` : '';
+  const ai = isAiMark_(m) || scheme ? tile_(aiOpts_(x)) : '';
+  const later = scheme && ai ? `<span class="qp-ai-later" hidden>${ai}</span>` : '';
   const val = ansRead_(k);
   const ws = workStrip_(x);
   const row = qtRow_(x);
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
   const drawAt = geo ? ` data-k="${esc(k)}" data-pad="${esc(padKey_(x))}" data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '';
-  const isAi = (isAiMark_(m) && m.ready) || (isWordsMark_(m) && ai);
+  const isAi = (isAiMark_(m) && m.ready) || (scheme && ai);
   const cls = 'qp-mark qp-compose' + (isAi ? ' qp-ai' : '') + (geo ? ' qpad-send' : '');
   const dataAt = (can ? ` data-accept="${esc(can)}"` : '') + (rule ? ` data-rule="${esc(rule)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '') + drawAt;
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET: the same one box, bigger § */
@@ -430,10 +289,10 @@ function ansBox_(x) {
   </div>${isAi ? `<p class="qp-ai-why">${own ? esc(own.why) : ''}</p>` : ''}`;
   }
   const many = can ? multiOf_(x) : null;
-  const bar = many ? `<div class="qp-ans-row qp-bar qp-multi-bar">${multiBoxes_(x, k, val, many, maths, 3)}</div>`
+  const bar = opts + (many ? `<div class="qp-ans-row qp-bar qp-multi-bar">${multiBoxes_(x, k, val, many, maths, 3)}</div>`
     : `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${kpField_(k, val, maths ? 'maths' : 'words', 3)}
-  </label></div>`;
+  </label></div>`);
   const note = isAiMark_(m) && !ai ? aiWhyNot_(x) : '';
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
@@ -450,54 +309,35 @@ function subBoxSay_(k, val) {
     ? subSay_(latest.v) : { text: '', cls: '' };
 }
 
-/* ---------- THE VERDICT § */
+/* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `markPart_` against the scheme; short of full marks the AI is offered, if it is on. */
 on('qp-check', (el) => {
   const box = el.closest('.qp-mark');
   const card = el.closest('.qcard');
-  /* ITS OWN BOX'S FIELD FIRST (508), as `qp-rule` and `qp-send` read it: a card with two boxes marked the first one's. */
+  /* ITS OWN BOX'S FIELD FIRST (508): a card with two boxes marked the first one's. */
   const inp = (box && box.querySelector('.qp-multi-val, .qp-ans-in')) || (card && card.querySelector('.qp-multi-val, .qp-ans-in'));
   const out = box && box.querySelector('.qp-verdict');
   if (!box || !inp || !out) return;
-  const verdict = markAnswer_(inp.value, box.getAttribute('data-accept'));
-  box.classList.remove('is-right', 'is-near');
-  if (verdict === null) {
-    out.textContent = 'Write something first';
-    return;
-  }
-  box.classList.add(verdict ? 'is-right' : 'is-near');
-  out.textContent = verdict ? 'Correct' : 'Not yet — have another go';
-  /* MARKED IS A SUBMISSION, right or not yet -- each one its own event on the account, and the latest is
-     what the card and every device show (js/submit.js). Signed out it is this visit's alone. */
-  subRecord_(inp.getAttribute('data-k'), inp.value, verdict ? 'right' : 'wrong');
-  /* A RIGHT ANSWER DOES NOT OPEN THE ANSWER PAGE. § */
-});
-
-/* ---------- BY RULE: full marks is decided; anything less says what the rule found and offers the AI, if it is on (359). */
-on('qp-rule', (el) => {
-  const box = el.closest('.qp-mark');
-  const inp = box && box.querySelector('.qp-multi-val, .qp-ans-in');
-  const out = box && box.querySelector('.qp-verdict');
-  if (!inp || !out) return;
-  /* A PHOTO IS READ BY THE AI MARKER, NEVER KEY WORDS (owner, 29 Oct): key words read only the typed box, so a part with photos goes to `markWorking` with them */
   const k = inp.getAttribute('data-k');
+  const x = stuffItemsAll_().find(it => ansKey_(it) === k);
+  /* A PHOTO IS READ BY THE AI MARKER (owner, 29 Oct): the scheme reads only the typed box, so a part with photos goes to `markWorking` with them */
   const send = typeof WORK_PICS !== 'undefined' && (WORK_PICS[k] || []).length
     ? [].find.call(document.querySelectorAll('.qp-work-send'), b => b.getAttribute('data-k') === k) : null;
+  box.classList.remove('is-right', 'is-near');
   if (send && ACTIONS['qp-work-send']) {
-    box.classList.remove('is-right', 'is-near');
-    out.textContent = 'Your photos go to the AI marker — key words cannot read a photo';
+    out.textContent = 'Your photos go to the AI marker';
     ACTIONS['qp-work-send'](send);
     return;
   }
-  const m = markWords_(inp.value, box.getAttribute('data-rule'));
-  box.classList.remove('is-right', 'is-near');
-  if (!m) { out.textContent = 'Write something first'; return; }
-  const of = Math.max(1, Math.min(m.of, Number(box.getAttribute('data-marks')) || m.of));
-  const got = Math.min(m.got, of);
-  box.classList.add(got >= of ? 'is-right' : 'is-near');
+  const v = x ? markPart_(x, inp.value) : markAnswer_(inp.value, box.getAttribute('data-accept')) === null ? null : { got: markAnswer_(inp.value, box.getAttribute('data-accept')) ? 1 : 0, of: 1 };
+  if (!v) { out.textContent = 'Write something first'; return; }
+  if (v.ai) { if (ACTIONS['qp-ai']) ACTIONS['qp-ai'](el); return; }
+  const full = v.got >= v.of;
+  box.classList.add(full ? 'is-right' : 'is-near');
   const later = box.querySelector('.qp-ai-later');
-  if (later) later.hidden = got >= of;
-  out.textContent = got + ' of ' + of + ' mark' + (of === 1 ? '' : 's') + ' · by key words' + (got < of && later ? ' — or mark it with AI' : '');
-  subRecord_(inp.getAttribute('data-k'), inp.value, 'rule:' + got + '/' + of);
+  if (later) later.hidden = full;
+  out.textContent = (v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? 'Correct' : 'Not yet — have another go') + (!full && later ? ' — or mark it with AI' : '');
+  /* MARKED IS A SUBMISSION, right or not yet (js/submit.js); signed out it is this visit's alone. */
+  subRecord_(k, inp.value, v.words ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
 });
 
 /* ---------- SEND, WHERE NOTHING CAN MARK IT § */

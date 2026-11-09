@@ -36,5 +36,6 @@
 {"card": "type:Business", "for": "Business", "name": "", "notes": "who may open the Business settings: an admin only; they hold the business's own data.", "min_rank": "admin"},
 {"card": "type:Site", "for": "Site", "name": "", "notes": "who may open the Site settings: an admin only.", "min_rank": "admin"},
 {"card": "door:notify", "for": "Business", "name": "", "notes": "who sees the Notifications door under Business (its card is set:notify, which keeps its own place).", "min_rank": "admin"},
-{"card": "door:checks", "for": "Business", "name": "", "notes": "the Checks card (site health, business checker, owner questions, what's missing): an admin's only.", "min_rank": "admin"}
+{"card": "door:checks", "for": "Business", "name": "", "notes": "the Checks card (site health, business checker, owner questions, what's missing): an admin's only.", "min_rank": "admin"},
+{"card": "biz:settings", "for": "Business", "name": "Business settings", "notes": "every business setting in one list (owner, 9 Nov): share B, fees, discounts, rates, then venues and rooms; bookings only read them.", "rank": 7900}
 ]

@@ -266,44 +266,23 @@ check('mark sound: a right answer chimes once and a wrong one buzzes once, for e
     bad.push('the second press did not cut the first sound (its gain cancelled and ramped to 0, then disconnected): ' + JSON.stringify(first && first.gain.ev));
   }
 
-  /* ---- A PICK: the one that completes the answer is the press. ---- */
+  /* ---- OPTIONS AND AN ORDERING ARE TYPED (owner, 9 Nov): Check on the letters is the press, heard like any other. ---- */
+  const tc = (card, x, v) => earIn_(rec, () => typeChoice_(w, card, x, v));
   const pick = subDraw_(w, PICK);
-  earTap_(rec, pick.querySelector('.qp-opt[data-n="1"]')); await wait(30);
-  expect(['buzzer'], 'a wrong pick');
-  /* A MISS IS NOT FINAL (385): the next pick is marked again and heard; once right, a further tap is ignored */
-  earTap_(rec, pick.querySelector('.qp-opt[data-n="2"]')); await wait(30);
-  expect(['chime'], 'a second, right pick after a wrong one');
-  earTap_(rec, (pick.isConnected ? pick : document).querySelector('.qp-choices.is-done .qp-opt[data-n="1"]') || pick.querySelector('.qp-opt[data-n="1"]')); await wait(30);
-  expect([], 'a tap on a settled (right) pick (ignored)');
-  const pick2 = subDraw_(w, PICK2);
-  earTap_(rec, pick2.querySelector('.qp-opt[data-n="2"]')); await wait(30);
-  expect(['chime'], 'a right pick');
+  tc(pick, PICK, 'A'); await wait(30);
+  expect(['buzzer'], 'a wrong letter');
+  tc(pick, PICK, 'B'); await wait(30);
+  expect(['chime'], 'a second, right letter after a wrong one');
   const two = subDraw_(w, TWO);
-  earTap_(rec, two.querySelector('.qp-opt[data-n="1"]')); await wait(30);
-  expect([], 'the first of two picks (not an answer yet)');
-  earTap_(rec, two.querySelector('.qp-opt[data-n="3"]')); await wait(30);
-  expect(['chime'], 'the pick that completes a right "choose two"');
+  tc(two, TWO, 'A, C'); await wait(30);
+  expect(['chime'], 'the two letters of a right "choose two"');
   const open = subDraw_(w, OPEN);
-  earTap_(rec, open.querySelector('.qp-opt[data-n="1"]')); await wait(30);
-  expect([], 'a pick nothing can mark (sent)');
-
-  /* ---- AN ORDERING: a gap is not an answer; Send on a full row is. ---- */
+  if (!open.querySelector('[data-do="qp-noscheme"]')) bad.push('options with no key do not say so on their Check');
   const ord = subDraw_(w, ORD);
-  const obox = () => ord.parentNode.querySelector('.qp-order');
-  [2, 3].forEach(n => earTap_(rec, obox().querySelector('.qp-item[data-n="' + n + '"]')));
-  earTap_(rec, obox().querySelector('.qp-order-send')); await wait(30);
-  expect([], 'placing two items, and Send on a row with a place still empty');
-  earTap_(rec, obox().querySelector('.qp-item[data-n="1"]'));
-  earTap_(rec, obox().querySelector('.qp-order-send')); await wait(30);
-  expect(['chime'], 'Send on the right order');
-  earTap_(rec, obox().querySelector('.qp-slot.is-full[data-n="1"]'));
-  earTap_(rec, obox().querySelector('.qp-item[data-n="1"]'));
-  await wait(30);
-  expect([], 'an item taken out of the ordering and put back, so "Correct" is drawn again (placing is not a press)');
-  [2, 3, 1].forEach(n => earTap_(rec, obox().querySelector('.qp-slot.is-full[data-n="' + n + '"]')));
-  [3, 2, 1].forEach(n => earTap_(rec, obox().querySelector('.qp-item[data-n="' + n + '"]')));
-  earTap_(rec, obox().querySelector('.qp-order-send')); await wait(30);
-  expect(['buzzer'], 'Send on a wrong order (' + w.ansRead_(w.__t.ansKey(ORD)) + ')');
+  tc(ord, ORD, 'B, C, A'); await wait(30);
+  expect(['chime'], 'Check on the right order');
+  tc(ord, ORD, 'C, B, A'); await wait(30);
+  expect(['buzzer'], 'Check on a wrong order');
 
   /* ---- A BOX NO RULE MARKS (round 3: its Check is the AI's, never a plain Send): no verdict here, so silent. ---- */
   const free = subDraw_(w, FREE);
@@ -334,10 +313,8 @@ check('mark sound: a right answer chimes once and a wrong one buzzes once, for e
   const k = w.__t.ansKey(TYPED);
   w.subPaintAll_(); w.subBoxPaint_(k); w.subPaint_(k);
   if (typeof w.ansRefresh_ === 'function') w.ansRefresh_([k, w.__t.ansKey(PICK), w.__t.ansKey(ORD)]);
-  w.choiceRedraw_(pick.querySelector('.qp-choices'));
-  w.orderRedraw_(obox(), '');
   await wait(30);
-  expect([], 'the slots and the boxes painted again (subPaintAll_, subBoxPaint_, ansRefresh_, choiceRedraw_, orderRedraw_)');
+  expect([], 'the slots and the boxes painted again (subPaintAll_, subBoxPaint_, ansRefresh_)');
   awake();
   type(card, '17'); type(card, '15'); await wait(30);
   expect([], 'a box typed away from its answer and back, so "Correct" is drawn again');

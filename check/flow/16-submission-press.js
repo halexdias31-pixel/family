@@ -165,7 +165,7 @@ const savedWords_ = el => { if (!el) return undefined; const w = el.ownerDocumen
   if (w.ansQuiet_(words) ? el.textContent !== '' : el.textContent !== words) throw new Error('the saved line says ' + JSON.stringify(el.textContent) + ' for ' + JSON.stringify(words)); return words; };
 const latestWord_ = v => { if (v === 'right') return ['Correct', 'is-right']; if (v === 'wrong') return ['Not yet', 'is-near']; if (v === 'sent') return ['Sent', '']; const m = /^(ai|rule):(\d+)\/(\d+)$/.exec(String(v || '')); return m ? [m[2] + '/' + m[3], +m[2] >= +m[3] ? 'is-right' : 'is-near'] : ['', '']; };
 const latestOf_ = (w, k) => { if (!(w.whoIs_ && w.whoIs_())) return null; const [t, c] = latestWord_(((w.subLatest_ && w.subLatest_(k)) || {}).v); return { textContent: t, classList: { contains: x => x === c } }; };
-const cardKey_ = card => { const e = card && card.querySelector('.qp-ans-in[data-k], .qp-multi-val[data-k], .qp-mark[data-k], .qp-order[data-k], [data-k]'); return e ? e.getAttribute('data-k') : ''; };
+const cardKey_ = card => { const e = card && card.querySelector('.qp-ans-in[data-k], .qp-multi-val[data-k], .qp-mark[data-k], [data-k]'); return e ? e.getAttribute('data-k') : ''; };
 const subSlotOf_ = card => latestOf_(card.ownerDocument.defaultView, cardKey_(card));
 
 check('submission: the latest one is the verdict beside the star, never a date, for the person signed in alone', async () => {
@@ -173,7 +173,7 @@ check('submission: the latest one is the verdict beside the star, never a date, 
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
   if (typeof w.questionCard_ !== 'function' || typeof w.subRecord_ !== 'function'
-      || !A['qp-check'] || !A['qp-choose'] || !A['qp-send']) {
+      || !A['qp-check'] || !A['qp-send']) {
     return ['subRecord_, questionCard_ or the marking handlers are not reachable — renamed? The verdict was NOT checked'];
   }
   const base = { kind: 'question', name: 'Q8', marks: 2, row: { row_id: 'Q-V-8', paper_id: 'P-V', subject: 'Maths', name: 'Verdict' },
@@ -214,11 +214,11 @@ check('submission: the latest one is the verdict beside the star, never a date, 
   w.stuffItemsAll_ = () => [mc, open];
   try {
     const tc = subDraw_(w, mc);
-    A['qp-choose'](tc.querySelector('.qp-opt[data-n="1"]'));
-    if (say(tc) !== 'Not yet [near]') bad.push('a wrong pick says ' + JSON.stringify(say(tc)) + ' on the card');
+    typeChoice_(w, tc, mc, 'A');
+    if (say(tc) !== 'Not yet [near]') bad.push('a wrong letter says ' + JSON.stringify(say(tc)) + ' on the card');
+    /* OPTIONS WITH NO KEY: their Check says the key is missing and sends nothing (owner, 9 Nov: one path, the scheme first) */
     const to = subDraw_(w, open);
-    A['qp-choose'](to.querySelector('.qp-opt[data-n="2"]'));
-    if (subSlotOf_(to).textContent !== 'Sent' || subSlotOf_(to).classList.contains('is-right') || subSlotOf_(to).classList.contains('is-near')) bad.push('a pick the scheme never settled says ' + JSON.stringify(say(to)) + ' — wanted "Sent", no tick and no arrow');
+    if (!to.querySelector('[data-do="qp-noscheme"]') || subSlotOf_(to).textContent) bad.push('options with no key do not say so on Check, or a submission was made: ' + JSON.stringify(say(to)));
   } finally { w.stuffItemsAll_ = held; }
   /* A BOX NO RULE CAN MARK (round 3): its Check is the AI's, never a plain Send -- a human never marks -- and typing is not a submission. */
   const free = subDraw_(w, Object.assign({}, base, { key: 'q-v-free', accept: '', answerType: 'explain' }));
@@ -372,7 +372,7 @@ check('submission: a pick, an ordering, Mark with AI and a worksheet box are eac
   const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES.concat(['aiMark']), aiMarking: true }),
     reply: ansBackend_(drafts, subBackend_(rows, b => (b.action === 'aiMark' ? { success: true, awarded: 2, available: 3, feedback: 'Say what the heat does.' } : undefined))) });
   await wait(300);
-  const need = ansNeed_(w).concat(['subRecord_', 'orderBox_', 'guideBox_'].filter(n => typeof w[n] !== 'function'));
+  const need = ansNeed_(w).concat(['subRecord_', 'guideBox_'].filter(n => typeof w[n] !== 'function'));
   if (need.length) return [need.join(', ') + ' not reachable — renamed? Nothing was pressed'];
   const bad = [], A = w.__t.ACTIONS;
   w.__t.USER(Object.assign({}, ANS_ADA));
@@ -381,34 +381,23 @@ check('submission: a pick, an ordering, Mark with AI and a worksheet box are eac
   w.stuffItemsAll_ = () => held().concat([ORD, AIQ, PR]);
   const items = () => [].concat(...sent.filter(b => b.action === 'submitAnswer').map(b => b.items || []));
   const of = key => items().filter(i => i.key === key);
-  /* A PICK: marked at once, one event. */
-  A['qp-choose'](c.box().querySelector('[data-n="1"]'));
+  /* A TYPED LETTER: marked on Check, one event (owner, 9 Nov: options are typed). */
+  typeChoice_(w, c.pick.parentNode || c.box().closest('.qcard') || w.document, c.pick, 'A');
   await wait(40);
-  if (of(c.pick.key).length !== 1 || of(c.pick.key)[0].answer !== '1' || of(c.pick.key)[0].verdict !== 'wrong') bad.push('a wrong pick went up as ' + JSON.stringify(of(c.pick.key)) + ' — wanted one event, answer 1, wrong');
-  /* AN ORDERING: placing is not an event, Send is. */
+  if (of(c.pick.key).length !== 1 || of(c.pick.key)[0].answer !== 'A' || of(c.pick.key)[0].verdict !== 'wrong') bad.push('a wrong letter went up as ' + JSON.stringify(of(c.pick.key)) + ' — wanted one event, answer A, wrong');
+  /* AN ORDERING: typed as letters in order; a short row is not an answer, the full one is one event. */
   const host = w.document.createElement('div');
   w.document.body.appendChild(host);
   host.innerHTML = w.questionCard_(ORD, 0);
-  const box = () => host.querySelector('.qp-order');
-  [2, 3].forEach(n => box().querySelector('.qp-item[data-n="' + n + '"]').click());
+  typeChoice_(w, host, ORD, 'B, C');
   await wait(30);
-  if (of('q:Q-SUB-ORD').length) bad.push('placing items in an ordering sent a submission — Send is the press');
-  box().querySelector('.qp-order-send').click();
-  await wait(30);
-  if (of('q:Q-SUB-ORD').length) bad.push('Send on an ordering with a place still empty sent a submission — it is not an answer yet');
-  box().querySelector('.qp-item[data-n="1"]').click();
-  await wait(360);   // a second Send, not a double tap's second half (534)
-  box().querySelector('.qp-order-send').click();
+  if (of('q:Q-SUB-ORD').length !== 1 || of('q:Q-SUB-ORD')[0].verdict !== 'wrong') bad.push('a short order went up as ' + JSON.stringify(of('q:Q-SUB-ORD')) + ' — wanted one event, wrong');
+  await wait(360);
+  const said = typeChoice_(w, host, ORD, 'B, C, A').said;
   await wait(40);
   const o = of('q:Q-SUB-ORD');
-  if (o.length !== 1 || o[0].answer !== '2,3,1' || o[0].verdict !== 'right') bad.push('Send on the full ordering went up as ' + JSON.stringify(o) + ' — wanted one event, 2,3,1, right');
-  if ((box().querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('the ordering’s verdict is ' + JSON.stringify((box().querySelector('.qp-verdict') || {}).textContent));
-  /* DRAWN AGAIN AFTER A MOVE AND BACK: the verdict is the latest press's, drawn while the row is that row. */
-  await wait(360);
-  box().querySelector('.qp-slot.is-full[data-n="1"]').click();
-  if ((box().querySelector('.qp-verdict') || {}).textContent) bad.push('moving an item left the verdict on a row that changed');
-  box().querySelector('.qp-item[data-n="1"]').click();
-  if ((box().querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('put back to the row that was sent, the verdict did not return: ' + JSON.stringify((box().querySelector('.qp-verdict') || {}).textContent));
+  if (o.length !== 2 || o[1].answer !== 'B, C, A' || o[1].verdict !== 'right') bad.push('Check on the full ordering went up as ' + JSON.stringify(o) + ' — wanted a second event, B, C, A, right');
+  if (said !== 'Correct') bad.push('the ordering’s verdict is ' + JSON.stringify(said));
   /* MARK WITH AI: the marks are the verdict, ai:2/3. */
   const ah = w.document.createElement('div');
   w.document.body.appendChild(ah);

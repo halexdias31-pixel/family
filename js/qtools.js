@@ -77,11 +77,10 @@ function partRec_(x) {
 
 /* ---------- THE MARKER: the one thing that varies between parts -- qtypes.js `qtMarker_`, which the Function tag reads too. */
 /* WHAT THE LINE UNDER CHECK SAYS, by marker: how this part will be marked, before it is. Never a person. */
-const QT_HOW = {
-  choice: 'Marked by its answer key', order: 'Marked by the right order', cells: 'Each box marked by its own answer',
-  draw: 'Marked by your drawing\u2019s geometry', accept: 'Marked against the accepted answers',
-  words: 'Marked by key words \u2014 then by AI, if you ask', ai: 'Marked by AI against the mark scheme: your answer, drawing and photos',
-};
+/* ONE LINE UNDER EVERY ROW (owner, 9 Nov): marking is one path for every type, so it says the same words everywhere. */
+const QT_HOW_ALL = 'Marked against the mark scheme first \u2014 then by AI, if you ask';
+/* the markers `markPart_` (find-marking.js) reads off the typed box: one Check, `qp-check`, for all of them */
+const QT_SCHEME_KINDS = { choice: 1, order: 1, accept: 1, words: 1 };
 /* `ready` is false where the marker has nothing to mark against yet (no key, no scheme): Check says so instead of asking */
 const QT_NO_SCHEME = 'No mark scheme yet \u2014 flag it and we will add one';
 const qtSchemeIn_ = x => !!x && !!String(x.answer || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;|\s+/g, ' ').trim();
@@ -94,18 +93,15 @@ function markerOf_(x) {
   if (kind === 'choice' || kind === 'order') ready = Array.isArray(x.choiceRight) ? x.choiceRight.length > 0 : !!x.choiceRight;
   /* NO MARK SCHEME is no accept, key words, cells, options or answer (round 4): an importer's note alone is not a scheme to mark against */
   if (kind === 'ai') ready = qtSchemeIn_(x);
-  const how = !ready && kind === 'ai' ? QT_NO_SCHEME : !ready ? 'No answer key yet \u2014 flag it and we will add one' : QT_HOW[kind];
+  const how = ready ? QT_HOW_ALL : QT_NO_SCHEME;
   return { kind, ready, how };
 }
 /* THE CHECK TILE FOR THAT MARKER, last in the row. An AI part whose marker is off says why under the row, not by vanishing. */
 function qtCheck_(x, m) {
   const k = (m || markerOf_(x)).kind;
-  if (k === 'choice') return tile_({ send: true, act: 'qp-choice-check', cls: 'qp-check' });
-  if (k === 'order') return tile_({ send: true, act: 'qp-order-send', cls: 'qp-order-send qp-check' });
+  if (QT_SCHEME_KINDS[k] && (m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-check', cls: 'qp-check' });
   if (k === 'cells') return tile_({ send: true, act: 'qp-cells-check', cls: 'qp-check' });
   if (k === 'draw') return tile_({ send: true, act: 'pad-check', cls: 'qp-check' });
-  if (k === 'accept') return tile_({ send: true, act: 'qp-check', cls: 'qp-check' });
-  if (k === 'words') return tile_({ send: true, act: 'qp-rule', cls: 'qp-check' });
   /* NO SCHEME, NO AI CHECK: a request could only fail, so its Check says so under the row, as options with no key do (round 4) */
   if (!(m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-noscheme', cls: 'qp-check', data: { key: (x && x.key) || '' } });
   const ai = typeof aiOpts_ === 'function' ? tile_(aiOpts_(x)) : '';
@@ -209,20 +205,7 @@ on('qt-inst', el => {
   if (!pad && tool === 'protractor' && card && card.querySelector('figure svg')) return measOpen_(el);
   qtPenOpen_(el, tool);
 });
-/* ---------- CHECK ON OPTIONS: a tap marks already; Check says the verdict again, or what is missing. */
-on('qp-choice-check', el => {
-  const mark = el.closest('.qp-mark'), card = el.closest('.qcard');
-  const box = card && card.querySelector('.qp-choices');
-  const out = mark && mark.querySelector('.qp-verdict');
-  if (!box || !out) return;
-  const right = box.getAttribute('data-right');
-  if (!right) { out.textContent = 'No answer key for this one yet — flag it and we will add one'; return; }
-  const picked = box.querySelectorAll('.qp-opt.is-picked').length;
-  if (!picked) { out.textContent = 'Tap an option first'; return; }
-  out.textContent = box.classList.contains('is-done') ? 'Correct' : 'Not yet — have another go';
-});
-
-/* ---------- CHECK WITH NO MARK SCHEME: nothing is sent; the verdict line says what is missing, as `qp-choice-check` does for a missing key. */
+/* ---------- CHECK WITH NO MARK SCHEME: nothing is sent; the verdict line says what is missing, for a missing key too. */
 on('qp-noscheme', el => {
   const mark = el.closest('.qp-mark'), out = mark && mark.querySelector('.qp-verdict');
   if (out) out.textContent = QT_NO_SCHEME;

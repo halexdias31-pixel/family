@@ -190,6 +190,7 @@ function getFamilyVenues_(p, meAsked, viewerIsAdmin, venuesTab, payload) {
          filled in offered "0 students" and a tutor with no limits offered a session of no hours
          — neither is a thing you can book. */
       maxCapacity: N(r.max_students), minCapacity: N(r.min_students) || 1,
+      takesAllSeats: TRUE_(r.takes_all_seats),
       minHours: N(r.min_hours) || 1, maxHours: N(r.max_hours),
       minNoticeDays: N(r.notice_days),
       comfort: S(r.tutors_happy_here).split(/[,\n]/).map(x => x.trim()).filter(Boolean),
