@@ -269,7 +269,7 @@ function loadMessages() {
 /* THE SHEET IS THE SAME FORM IN A SHEET. § */
 function messageSheet(to, toId) {
   openSheet('Message ' + to, msgForm_(to, toId,
-    'One message every five minutes. It goes to their e-mail and appears in Messages for both '
+    '1 message every 5 minutes. It goes to their e-mail and appears in Messages for both '
   + 'of you.', 5));
 }
 

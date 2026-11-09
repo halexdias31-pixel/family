@@ -292,7 +292,7 @@ document.addEventListener('change', e => {
 /* ---------- BOXES THAT ARE ONE QUESTION SIT ON ONE LINE § */
 const FIELD_ROWS = [
   { fields: ['first_name', 'last_name'] },
-  { fields: ['adjective_1', 'adjective_2', 'adjective_3'], cap: 'you, in three words',
+  { fields: ['adjective_1', 'adjective_2', 'adjective_3'], cap: 'you, in 3 words',
     ph: ['word 1', 'word 2', 'word 3'] },
   /* ONE LINE PER THING IN A FORM (owner): two different answers (city and town, the two exams) each get their own line. */
   /* "max and min number of students could more efficiently be written as '[] - []'."* One row, one caption, a dash between — and MIN FIRST although the backend § */
@@ -437,8 +437,8 @@ function qualShelf_(list, value) {
       g.slots.map((i, n) => qualSlot_(i, value, { first: n === 0, mine })).join('')}</div>`).join('')}</div>
     <div class="q-pool" hidden>${pool.map(i => qualSlot_(i, value, { mine })).join('')}</div>
     ${shelfAdd_('qualification', 'qual-add', { off: !pool.length, data: { unlocked: '' },
-      note: pool.length ? pool.length + ' more fit' : 'ten is the most' }, 'q-adds')}
-    ${pool.length ? '' : `<p class="faint q-full">Ten is the most this card holds — remove one to add another.</p>`}
+      note: pool.length ? pool.length + ' more fit' : '10 is the most' }, 'q-adds')}
+    ${pool.length ? '' : `<p class="faint q-full">10 is the most this card holds — remove one to add another.</p>`}
   </div>`;
 }
 /* ---------- ONE QUALIFICATION: ITS LINE, AND ITS EDITOR UNDER IT § */

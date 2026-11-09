@@ -263,7 +263,7 @@ function measDraw_(fig) {
   o.setAttribute('data-tool', g.tool);
   o.setAttribute('data-c', g.c.map(v => v.toFixed(2)).join(','));
   o.setAttribute('data-rot', g.rot.toFixed(2));
-  o.setAttribute('aria-label', g.tool === 'protractor' ? 'Protractor: drag it, turn it with two fingers or the round handle' : 'Ruler: drag it, turn it with two fingers or the round handle');
+  o.setAttribute('aria-label', g.tool === 'protractor' ? 'Protractor: drag it, turn it with 2 fingers or the round handle' : 'Ruler: drag it, turn it with 2 fingers or the round handle');
   o.innerHTML = `<g transform="${T}">${body}</g>`;
   fig.classList.add('meas-host');
   /* EXACTLY OVER THE PICTURE, not the figure's whole box: the same viewBox on the same rectangle is the same units */

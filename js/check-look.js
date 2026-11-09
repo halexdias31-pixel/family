@@ -172,5 +172,18 @@ for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
 }
 if ((noComments.match(/border: 1\.5px solid color-mix\(in srgb, var\(--white\) 14%/g) || []).length !== 1) bad.push('63a the tick\'s edge is written more than once — one :is(...) rule draws every tick');
 
+/* ---------- 64a. NUMBERS ARE DIGITS: "3 words", never "three words", in anything the site says ---------- */
+/* Content, not copy: facts (chess), revision notes (mat), help for the question types (qtypes), what is read aloud (shell-click, arcade), titles of works. */
+const WORDS_OK = new Set(['chess', 'mat', 'qtypes', 'shell-click', 'arcade', 'writings', 'hadith']);
+const NUM_WORD = /\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|hundred)\b(?! or two)/i;
+const IDIOM = /\bor two\b|\bthe two\b(?! new)|\bone or two\b/i;
+files.forEach(({ n, src }) => {
+  if (WORDS_OK.has(n)) return;
+  for (const m of stripC(src).matchAll(/'((?:\\.|[^'\\\n])*)'|`((?:\\.|[^`\\])*)`/g)) {
+    const s = (m[1] || m[2] || '').replace(/\$\{[^}]*\}/g, ' ').replace(/<[^>]*>/g, ' ');
+    if (/[a-z] [a-z]/i.test(s) && NUM_WORD.test(s) && !IDIOM.test(s)) bad.push(`64a a number in words in ${n}.js: "${s.trim().slice(0, 70)}" — digits`);
+  }
+});
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');

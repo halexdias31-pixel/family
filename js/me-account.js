@@ -145,7 +145,7 @@ function setupCard_() {
   return `<div class="card setup-card" data-need="setup"><h3>Setup</h3>
     ${need(wrong, wrong + (wrong === 1 ? ' thing to fix' : ' things to fix'))}
     <p class="sub">Backend live: <b>${esc(S_.backend || '—')}</b> · site ${esc(typeof SITE_VERSION !== 'undefined' ? SITE_VERSION : '—')}${odd.length
-      ? ` · <span class="setup-bad">not deployed: ${odd.map(k => esc(k) + '.gs (' + esc(files[k]) + ')').join(', ')}</span>` : ' · all four files agree'}</p>
+      ? ` · <span class="setup-bad">not deployed: ${odd.map(k => esc(k) + '.gs (' + esc(files[k]) + ')').join(', ')}</span>` : ' · all 4 files agree'}</p>
     ${failed.map(j => `<p class="setup-bad">${esc(j.id)} failed: ${esc(j.error)} — it tries again on the next page load.</p>`).join('')}
     <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} <span class="faint">${j.ran
       ? esc(j.ran === 'yes' ? 'done' : setupWhen_(j.ran)) : j.error ? 'failed' : 'waiting'}</span>${
@@ -214,7 +214,7 @@ function applyFormHtml_() {
     ${area('experience', 'experience')}
     ${week ? `<div class="app-week">${week}</div>` : area('availability', 'when you can teach')}
     ${box('area', 'area and venues you can reach')}
-    <h4>Two references</h4>
+    <h4>2 references</h4>
     <div class="f-row" style="--n:2">${box('ref1Name', 'name')}${box('ref1Contact', 'email or phone')}</div>
     <div class="f-row" style="--n:2">${box('ref2Name', 'name')}${box('ref2Contact', 'email or phone')}</div>
     ${area('statement', 'a short statement — why you want to teach')}
