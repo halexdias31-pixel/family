@@ -90,23 +90,24 @@ function profileDoorCard_(x) {
 }
 
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */
-/* Which column's cards answer which type, and who may see that type; the builders are the old columns' own. */
-const SETTING_TYPES = [
-  ['Student', 'account', () => !!USER, true],
-  ['Parent', 'family', () => rankAtLeast_('client'), true],
-  ['Staff', 'staff', () => rankAtLeast_('staff'), true],
-  ['Apprentice', 'apprentice', () => settingMay_('type:Apprentice'), true],
-  ['Business', 'biz', () => settingMay_('type:Business')],
-  ['Site', 'site', () => settingMay_('type:Site')],
-];
-/* WHO MAY SEE AN ADMIN'S SETTING IS DATA: setting-for.json's `min_rank` (and `role`, held instead); absent, an admin's only. */
-function settingMay_(key) {
-  let row = null; try { row = ((DATA && DATA.settingFor) || {})[key] || null; } catch (e) { row = null; }
-  const min = (row && row.minRank) || 'admin', role = row && row.role;
-  return rankAtLeast_(min) || (!!role && hasRole(role));
+/* WHICH COLUMN'S CARDS ANSWER WHICH TYPE, IN THE MENU'S ORDER: setting-for.json's `type:` rows; who opens each is permissions.json's `see` rows. */
+/* Used only while setting-for.json has no `type:` rows, so an empty sheet still has its Settings doors; who opens them is still the table. */
+const SETTING_TYPES_FALLBACK = [['Student', 'account', 1], ['Parent', 'family', 1], ['Staff', 'staff', 1], ['Apprentice', 'apprentice', 1], ['Admin', ''],
+  ['Business', 'biz'], ['Site', 'site']].map(([type, col, peek]) => ({ type, col, peek: !!peek }));
+function settingTypes_() {
+  let rows = [];
+  try { const t = (DATA && DATA.settingFor) || {}; rows = Object.keys(t).filter(k => /^type:/.test(k)).sort((a, b) => (t[a].rank || 0) - (t[b].rank || 0))
+    .map(k => ({ type: k.slice(5), col: t[k].col || '', peek: !!t[k].peek })); } catch (e) { rows = []; }
+  return rows.length ? rows : SETTING_TYPES_FALLBACK;
 }
-/* THE MENU'S ORDER OF ACCOUNT TYPES; Admin has no column, only the data's tags. */
-const SETTING_ORDER = ['Student', 'Parent', 'Staff', 'Apprentice', 'Admin', 'Business', 'Site'];
+/* WHO MAY SEE A SETTING, A DOOR OR A TYPE IS DATA (86a): one question, `seeMay_` (data.js); absent a row, an admin's only. */
+const settingMay_ = key => typeof seeMay_ === 'function' && seeMay_(key);
+/* AN ITEM'S ACCOUNT-TYPE TAGS: setting-for.json's `under` (menu grouping, not who sees it), else its home type. */
+function settingTagsOf_(id, home) {
+  let row = null; try { row = ((DATA && DATA.settingFor) || {})[id] || null; } catch (e) { row = null; }
+  return row && row.under && row.under.length ? row.under.slice() : [home];
+}
+const settingSeeRow_ = id => { try { return (((DATA && DATA.permissions) || {}).see || {})[id] || null; } catch (e) { return null; } };
 const cardTitle_ = h => (String(h).match(/<h3[^>]*>([\s\S]*?)<\/h3>/) || [])[1];
 /* A TITLE CUT FROM DRAWN HTML IS STILL ESCAPED; it is esc()'d again where it is shown, so it goes back to plain text ("Contact &amp; address"). */
 const plain_ = h => String(h || '').replace(/<[^>]+>/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
@@ -129,7 +130,7 @@ function settingName_(html, id, row) {
 }
 /* A COLUMN'S PADLOCK, "NOTHING HERE" LINE OR A TITLE-ONLY PLACEHOLDER IS NOT A SETTING. */
 const settingNone_ = h => /^\s*<div class="card (?:rank-off|set-none|own-lock)\b/.test(h);
-/* EVERY SETTING ONCE (owner, 7 Nov): data/settings/setting-for.json tags it with each account type; one of the same name joins it. */
+/* EVERY SETTING ONCE (owner, 7 Nov): its `see` rows tag it with each account type; one of the same name joins it. */
 /* A type you do not hold still shows its cards, shut (`lockedAs_`); Business and Site hold the business's own data, so stay an admin's. */
 function settingDoorItems_() {
   if (!USER) return [{ kind: 'setting', name: 'Sign in or join', key: 'set:signin', sub: '', image: '', signIn: true, text: 'sign in join make an account pin' }];
@@ -137,28 +138,31 @@ function settingDoorItems_() {
   /* RECORDS ARE LAZY (the weekly email's cards): until that batch lands they are missing, so Find is drawn again once it does. */
   try { if (typeof lazyFiles_ === 'function' && !lazyFiles_.in) doorAsk_(lazyFiles_()); } catch (e) { /* drawn without them; the next paint has them */ }
   const add = (name, id, part, type, mine) => {
-    const row = tags[id], fr = (row && row.for && row.for.length) ? row.for : [type];
+    const row = tags[id], fr = settingTagsOf_(id, type);
     const x = byName[norm(name)];
     if (x) { x.parts.push(part); if (row && (row.rank || 0) < x.rank) x.rank = row.rank || 0; fr.forEach(t => { if (x.settingFor.indexOf(t) === -1) x.settingFor.push(t); }); x.mine = x.mine || mine; return; }
     const it = { kind: 'setting', name: name, key: 'set:' + (id || part.col + ':' + part.at), sub: '', image: '', parts: [part], mine: mine, settingFor: fr.slice(), rank: row ? row.rank || 0 : 5000 + out.length };
     byName[norm(name)] = it; out.push(it);
   };
-  SETTING_TYPES.forEach(([type, col, may, peek]) => {
-    let ok = false;
-    try { ok = may(); } catch (e) { ok = false; }
+  settingTypes_().forEach(({ type, col, peek }) => {
+    if (!col) return;
+    const ok = settingMay_('type:' + type);
     if (!ok && !peek) return;
     settingGroups_(col).forEach((g, i) => {
       const html = g.pages.join('');
       if (settingNone_(html) || (g.id && seen[g.id])) return;
       if (g.id) seen[g.id] = 1;
       const name = settingName_(html, g.id, tags[g.id]);
-      if (name) add(name, g.id, { col: col, at: i, id: g.id || '' }, type, (ok || /^\s*<div\b[^>]*\bdata-yours="1"/.test(html)) && !/^\s*<div\b[^>]*\bis-locked\b/.test(html));
+      /* A CARD WITH ITS OWN `see` ROWS IS YOURS ONLY IF THEY LET YOU (86a); one without keeps its type's answer. */
+      const own = !g.id || !settingSeeRow_(g.id) || settingMay_(g.id);
+      if (name) add(name, g.id, { col: col, at: i, id: g.id || '' }, type, own && (ok || /^\s*<div\b[^>]*\bdata-yours="1"/.test(html)) && !/^\s*<div\b[^>]*\bis-locked\b/.test(html));
     });
   });
   if (settingMay_('door:notify')) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
-  /* ORDER IS DATA (setting-for.json's rows); an untagged card keeps its column's place after them. */
+  /* ORDER IS DATA (setting-for.json's rows, types too); an untagged card keeps its column's place after them. */
   out.sort((a, b) => a.rank - b.rank);
-  out.forEach(x => { x.settingFor.sort((a, b) => SETTING_ORDER.indexOf(a) - SETTING_ORDER.indexOf(b)); x.text = x.name + ' ' + x.settingFor.join(' ') + ' settings'; });
+  const order = settingTypes_().map(t => t.type);
+  out.forEach(x => { x.settingFor.sort((a, b) => order.indexOf(a) - order.indexOf(b)); x.text = x.name + ' ' + x.settingFor.join(' ') + ' settings'; });
   return out;
 }
 function settingPart_(p) {

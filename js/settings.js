@@ -158,12 +158,11 @@ function setInFind_(d, extra) {
 }
 
 function setFor_(d, extra) {
-  /* ---------- EACH SETTING'S ACCOUNT TYPES (owner, 7 Nov): `for` is a comma list, so one item is found under every type it belongs to ---------- */
+  /* ---------- EACH SETTING'S NAME AND PLACE; who sees it is permissions.json's `see` rows (86a), never this file ---------- */
   const setFor = extra['settings/setting-for'];
-  /* THE ROWS' ORDER IS THE ITEMS' ORDER (identity, contact, sign-in, roles, notifications, reading, role-specific); `rank` overrides it. */
+  /* THE ROWS' ORDER IS THE ITEMS' ORDER, account types first (their menu order); `under` is only which menu types list it. */
   if (setFor && setFor.length) d.settingFor = Object.fromEntries(setFor.filter(r => libS(r.card).trim())
-    .map((r, i) => [libS(r.card).trim(), { for: libS(r.for).split(',').map(t => t.trim()).filter(Boolean), name: libS(r.name).trim(), rank: libN(r.rank) || i,
-      minRank: libS(r.min_rank).trim(), role: libS(r.role).trim() }]));
+    .map((r, i) => [libS(r.card).trim(), { under: libS(r.under).split(',').map(t => t.trim()).filter(Boolean), name: libS(r.name).trim(), rank: i, col: libS(r.col).trim(), peek: r.peek === true || libOn(r.peek) }]));
 }
 
 function setCardFields_(d, extra) {

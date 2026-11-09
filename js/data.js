@@ -442,6 +442,22 @@ const can_ = (role, kind, action) => {
   return role === 'admin';
 };
 
+/* THREE ROLES FOR WHO SEES A SETTING (93): every old role word, sheet cell or account type becomes one here, and nowhere else. */
+const ROLE_THREE_ = { student: 'family', parent: 'family', client: 'family', child: 'family', member: 'family', family: 'family',
+  staff: 'tutor', tutor: 'tutor', apprentice: 'tutor', admin: 'admin', business: 'admin', site: 'admin' };
+const SEE_ROLES = ['family', 'tutor', 'admin'];
+const roleThree_ = w => ROLE_THREE_[String(w || '').trim().toLowerCase()] || '';
+/* THE VIEWER'S THREE ROLES: rank and held roles mapped, a higher role holding the lower ones as ranks always have; a pending tutor is not one yet. */
+function seeRoles_() {
+  if (!USER) return [];
+  let words = [];
+  try { words = [rank_()].concat(heldRoles().filter(h => roleThree_(h) !== 'tutor' || !USER.tutorPending)); } catch (e) { words = []; }
+  const top = Math.max(0, ...words.map(w => SEE_ROLES.indexOf(roleThree_(w))));
+  return SEE_ROLES.slice(0, top + 1);
+}
+/* MAY THE VIEWER SEE THIS SETTINGS CARD OR ACCOUNT TYPE: permissions.json's `see` rows; no row, an admin's only (`can_`). */
+const seeMay_ = key => seeRoles_().some(r => can_(r, 'see', key));
+
 /* ---------- THE LAWS § */
 
 /* One place a colour name becomes a class. A law says "green"; the stylesheet decides what green
