@@ -450,7 +450,7 @@ function postSendMessage_(body, action, began) {
     const waited = Date.now() - last.getTime();
     if (waited < MESSAGE_GAP_MS) {
       const left = Math.ceil((MESSAGE_GAP_MS - waited) / 60000);
-      return jsonOut({ error: 'One message every five minutes — ' + left
+      return jsonOut({ error: '1 message every 5 minutes — ' + left
         + ' minute' + (left === 1 ? '' : 's') + ' to go.' });
     }
   }

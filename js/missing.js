@@ -69,7 +69,7 @@ function siteHealthCard_() {
     ${s.next ? `<p><b>${esc(String(s.next))}</b></p>` : ''}${healthTrend_(s.trend)}
     <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} <span class="faint">(${esc(said[t.part] || t.part)}, −${esc(String(t.cost))})</span></li>`).join('')}</ol>
     ${healthWork_(s.worklist)}
-    ${(s.all || []).length > 5 ? tileRow_(tile_({ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top five' : 'Show the full list', act: 'health-all' }), '', true) : ''}</div>`;
+    ${(s.all || []).length > 5 ? tileRow_(tile_({ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top 5' : 'Show the full list', act: 'health-all' }), '', true) : ''}</div>`;
 }
 /* THE TREND (920): the last thirty full runs as one thin line in the text colour, and the commit of the worst drop. */
 function healthTrend_(t) {
@@ -120,7 +120,7 @@ function logicCard_() {
     <p class="faint">${rules.map(r => esc(r.label) + ': ' + esc(String(r.count))).join(' · ') || 'Every rule holds.'}</p>
     <ol class="stab-top">${top.map(line).join('')}</ol>
     <p class="faint">${esc(s.cannot || '')}</p>
-    ${(s.top || []).length > 3 ? tileRow_(tile_({ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top three' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }), '', true) : ''}</div>`;
+    ${(s.top || []).length > 3 ? tileRow_(tile_({ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top 3' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }), '', true) : ''}</div>`;
 }
 on('logic-all', () => { LOGIC.all = !LOGIC.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 

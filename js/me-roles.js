@@ -500,7 +500,7 @@ function stabilityCard_() {
   const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} <span class="faint">(−${esc(String(x.off))})</span></li>`;
   return `<div class="card biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p><p class="sub">${esc(s.verdict || '')}${s.secondary && typeof s.secondary.score === 'number' ? ' Core only (860); the secondary tier is ' + esc(String(s.secondary.score)) + '%.' : ''}</p>
     <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
-    ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top three' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`;
+    ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`;
 }
 on('stab-all', () => { STAB.all = !STAB.all; try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
 

@@ -23,7 +23,7 @@ function qualTeachTo_(slot, el, face, v) {
    press that raced a redraw. */
 function qualTake_(shelf) {
   const slot = shelf && shelf.querySelector('.q-pool > .q-slot');
-  if (!slot) toast('That is the most this card holds — ten qualifications in all.');
+  if (!slot) toast('That is the most this card holds — 10 qualifications in all.');
   return slot || null;
 }
 /* ---------- `+`: A NEW LINE AT THE FOOT, ITS SUBJECT BOX READY § */
@@ -776,7 +776,7 @@ on('pin-save', el => {
   if (!v('pin-now') || !v('pin-new')) { if (said) said.textContent = 'Type your PIN now and the new one.'; return; }
   /* Typed twice, checked here before the server sees it — a PIN you cannot see and typed once is
      a PIN you get locked out by. */
-  if (v('pin-new') !== v('pin-again')) { if (said) said.textContent = 'The two new PINs do not match.'; return; }
+  if (v('pin-new') !== v('pin-again')) { if (said) said.textContent = 'The 2 new PINs do not match.'; return; }
   /* ---------- THE ONE WHERE A NAME COLLISION LOCKS SOMEBODY OUT § */
   /* `send_`, SO A SECOND TAP CANNOT POST A SECOND CHANGE. § */
   const lock = $('pin-now') && $('pin-now').closest('.pin-row');
@@ -854,7 +854,7 @@ function ownCardSections_(col) {
 const OWN_CARD_SECTIONS_ = ['picture', 'figure', 'name', 'handle'];
 /* EACH SECTION'S CARD TITLE, and which a locked settings column shows (468). */
 const OWN_SEC_TITLE_ = { picture: 'Picture', figure: 'Your figure', name: 'Name', handle: 'Handle', seat: 'Rate and extra seat', cut: "@family.'s share", size: 'Class size', headline: 'Headline',
-  photos: 'Photographs', words: 'Three words', glance: 'At a glance', quals: 'Qualifications', jobs: 'Jobs', where: 'Where you teach', week: 'Available' };
+  photos: 'Photographs', words: '3 words', glance: 'At a glance', quals: 'Qualifications', jobs: 'Jobs', where: 'Where you teach', week: 'Available' };
 /* EACH SECTION ON ONE COLUMN FOR EVERYONE, the lowest rank it applies to (469): the owner, "the lowest common denominator". */
 const OWN_SEC_OF_SET_ = { account: OWN_CARD_SECTIONS_, family: [],
   staff: ['seat', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'jobs', 'where', 'week'] };

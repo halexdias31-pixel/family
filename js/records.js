@@ -168,7 +168,7 @@ function appsInner_(wait) {
       ${line('Right to work in the UK', a.right_to_work)}${line('Experience', a.experience)}${line('Available', a.availability)}
       ${line('Area', a.area)}${line('References', [a.ref1_name + ' (' + a.ref1_contact + ')', a.ref2_name + ' (' + a.ref2_contact + ')'].join('; '))}
       ${line('Statement', a.statement)}
-      ${/^https:\/\//.test(a.cv_link || '') ? `<p class="app-line"><a href="${esc(a.cv_link)}" target="_blank" rel="noopener">Open the CV</a></p>` : ''}
+      ${/^https:\/\//.test(a.cv_link || '') ? `<p class="app-line"><a href="${esc(a.cv_link)}" data-do="file-view" target="_blank" rel="noopener">Open the CV</a></p>` : ''}
       <div class="tile-row">${tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'lists them as staff', act: 'app-decide', data: { id: a.id, status: 'approved' } })}${
         a.status === 'new' ? tile_({ icon: 'chat', label: 'Interview', note: 'emails them', act: 'app-decide', data: { id: a.id, status: 'interview' } }) : ''}${
         tile_({ icon: 'close', label: 'Decline', act: 'app-decide', data: { id: a.id, status: 'declined' } })}</div>

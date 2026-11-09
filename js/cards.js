@@ -267,7 +267,7 @@ function profAvail_(t) {
   }
   /* ---------- SPANS, NOT THE RECEIPT'S DISABLED BUTTONS § */
   const hoursOn = which => days.map(d => {
-    const hs = d.hours.filter(which).map(c => time_(c.h + ':00'));
+    const hs = d.hours.filter(which).map(c => hours_(c.h, c.h + 1));
     return hs.length ? day_(d.label) + ' ' + hs.join(', ') : '';
   }).filter(Boolean).join('; ');
   const said = hoursOn(c => c.lit);
@@ -299,13 +299,13 @@ function profSeat_(t) {
   return Math.round(Number(t.rate) * (s.cUsed + s.bUsed) * 100) / 100;
 }
 
-/* A TUTOR'S RATE AS SHOWN: £first-seat–£full-class/hour, or one rate when they take one seat (549). Display only; priceFrom charges. */
+/* A TUTOR'S RATE AS SHOWN: £first-seat–full-class/h, or one rate when they take one seat (549). Display only; priceFrom charges. */
 function rateRange_(t) {
   const r = Number(t && t.rate);
   if (!(r > 0)) return '';
   const say = money_;
   const max = Math.round(Number(t.maxStudents)) || 1, seat = profSeat_(t);
-  return max > 1 && seat > 0 ? say(r) + '–' + say(r + seat * (max - 1)).slice(1) + '/hour' : say(r) + '/hour';
+  return max > 1 && seat > 0 ? say(r) + '–' + perHour_(r + seat * (max - 1)).slice(1) : perHour_(r);
 }
 
 /* ONE CARD FOR EVERY KIND (owner, 8 Nov): picture, title, tags, lines, then its tile row (`cardTiles_`).
@@ -316,7 +316,7 @@ let CARD_VIEWER;
 /* BEFORE THE SETTINGS FILE ARRIVES, OR FOR A KIND IT DOES NOT NAME: its kind's picture, its name, its facet tags. */
 const KC_BARE = { cls: '', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] };
 const kcRow_ = x => (x && x.row) || {};
-const kcPct_ = m => (m === 1 ? '—' : (m > 1 ? '+' : '−') + Math.abs(Math.round((m - 1) * 100)) + '%');
+const kcPct_ = m => (m === 1 ? dash_() : (m > 1 ? '+' : '−') + Math.abs(Math.round((m - 1) * 100)) + '%');
 /* EACH FIELD A CARD CAN SHOW, BY NAME: the settings file picks, and a field with nothing to say says ''. */
 const KC_FIELDS = {
   kindPic: x => libPic_(x.kind, x.name),
@@ -359,7 +359,7 @@ const KC_FIELDS = {
   venueSub: x => (kcRow_(x).subtitle ? `<p class="sub">${mark(kcRow_(x).subtitle)}</p>` : ''),
   /* A CHILD IS TOLD THE SEATS AND NOT THE PRICE (398), and a room with neither says nothing. */
   rooms: x => { const t = kcRow_(x), kid = childView_();
-    const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? money_(rate) + '/h' : 'free'].filter(Boolean).join(' · ');
+    const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? perHour_(rate) : 'free'].filter(Boolean).join(' · ');
     const one = (label, max, rate) => (say(max, rate) ? row(label, say(max, rate)) : '');
     return (t.rooms || []).length ? t.rooms.slice(0, 4).map(r => one(r.name || 'Room', r.max, r.rate)).join('') : one('The room', t.maxCapacity, t.bestRate); },
   surcharge: x => { const t = kcRow_(x); if (x.kind === 'level' && !t.priced) return row('Surcharge', 'Not priced yet', 'bad');

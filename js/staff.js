@@ -218,7 +218,7 @@ function priceHtml_() {
       ${ctl('seat', 'Each extra seat adds, £ an hour', 0, Math.max(1, PRICE.rate * STAFF_SEAT_MAX), 0.25, PRICE.seat, '0 is the usual ' + money_(usual))}
     </div>
     <label class="field hub-room"><span>room</span><select data-pv="loc" aria-label="Room">${opt('', 'No room hire (online or at home)')}${
-      rooms.map(r => opt(r.title, r.title + ' · ' + money_(parseFloat(r.bestRate)) + '/h')).join('')}</select></label>
+      rooms.map(r => opt(r.title, r.title + ' · ' + perHour_(parseFloat(r.bestRate)))).join('')}</select></label>
     <div class="pb" aria-live="polite">${priceBarsHtml_()}</div>
     <p class="faint hub-note">@family.’s share of each extra seat is ${esc(money_((PRICE.rate || 0) * (s.bUsed || 0)))} an hour, set by @family.${
       fee ? ' Card fees are ' + esc(fee) + '.' : ''} What you charge can change once a month.</p>
@@ -243,7 +243,7 @@ function priceRedraw_() {
       const say = row.querySelectorAll('.pb-k b')[i];
       if (say) say.textContent = (r[k] < 0 ? '−' : '') + money_(Math.abs(r[k]));
     });
-    row.querySelector('.pb-paid').textContent = 'family pays ' + money_(r.charged) + ' an hour';
+    row.querySelector('.pb-paid').textContent = 'family pays ' + perHour_(r.charged);
     row.querySelector('.pb-bar').setAttribute('aria-label', PRICE_SEGS.map(([k, l]) => l + ' ' + money_(r[k])).join(', '));
   });
   const note = box.querySelector('.pb-note');

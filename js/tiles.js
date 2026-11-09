@@ -186,6 +186,8 @@ function tile_(o) {
   /* `face` IS A KEYPAD KEY'S OWN DRAWN FACE (a fraction, a power), trusted markup from keypad-keys.js, never data. */
   const body = o.face || tileIcon_(o.icon) || `<span class="tile-k">${esc(o.label)}</span>`;
 
+  /* OPENS IN PLACE (owner 68a, 9 Nov): an https address opens inside its card (`fileView_`); only `leave: true` (a sign-in, a consent) goes to a new tab. */
+  if (o.href && !o.leave && /^https:\/\//i.test(String(o.href))) return tile_(Object.assign({}, o, { href: '', act: 'file-view', data: Object.assign({ url: o.href, title: o.label }, o.data || {}) }));
   /* ---------- A TILE MAY LEAVE, BUT ONLY FOR SOMEWHERE ELSE § */
   if (o.href && /^https?:\/\//i.test(String(o.href))) {
     return `<a class="${cls}" href="${esc(o.href)}"${attrs}

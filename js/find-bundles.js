@@ -774,10 +774,10 @@ function layout(which) {
       const r = page ? page.getBoundingClientRect() : null;
       return {
         tab: t.id,
-        cardLeft: r ? +r.left.toFixed(0) : '—',
-        cardWidth: r ? +r.width.toFixed(0) : '—',
-        widthPct: r ? +(100 * r.width / innerWidth).toFixed(1) : '—',
-        onScreen: r ? +(Math.max(0, Math.min(innerWidth, r.right) - Math.max(0, r.left))).toFixed(0) : '—',
+        cardLeft: r ? +r.left.toFixed(0) : dash_(),
+        cardWidth: r ? +r.width.toFixed(0) : dash_(),
+        widthPct: r ? +(100 * r.width / innerWidth).toFixed(1) : dash_(),
+        onScreen: r ? +(Math.max(0, Math.min(innerWidth, r.right) - Math.max(0, r.left))).toFixed(0) : dash_(),
         opacity: +cs.opacity,
         visibility: cs.visibility,
       };
