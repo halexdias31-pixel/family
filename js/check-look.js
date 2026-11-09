@@ -125,5 +125,15 @@ for (const m of noComments.matchAll(/@media[^{]*min-width[^{]*\{([^{}]*\{[^{}]*\
 const bootSrc = (files.find(f => f.n === 'shell-boot') || {}).src || '';
 if (!/const FLOW_LAYOUT = true;/.test(bootSrc)) bad.push('59a FLOW_LAYOUT is not true (shell-boot.js) — the wide multi-column grid would come back');
 
+/* ---------- 60b. NORMAL CASE EVERYWHERE: no uppercase transform, no ALL-CAPS words on screen ---------- */
+/* The one exception is a drawn calculator's printed brand and key labels (.calc-*): a picture of a thing, not the site's words. */
+for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  if (/text-transform:\s*uppercase/.test(m[2]) && !/^\s*\.calc-/.test(m[1])) bad.push(`60b uppercase in "${m[1].trim().slice(0, 60)}" — normal case`);
+}
+files.forEach(({ n, src }) => {
+  if (/text-transform:\s*uppercase/.test(src)) bad.push(`60b inline uppercase in ${n}.js`);
+  for (const m of stripC(src).matchAll(/>\s*([A-Z]{2,}(?: [A-Z]{2,})+)\s*</g)) bad.push(`60b ALL-CAPS words on screen in ${n}.js: "${m[1]}"`);
+});
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');
