@@ -178,7 +178,7 @@ function tile_(o) {
      appearance is this renderer's alone, which is the point of having one. */
   const cls = 'tile' + (o.tone ? ' is-' + o.tone : '') + (o.on ? ' on' : '') + (o.cls ? ' ' + o.cls : '');
   const name = o.label + (o.note ? ' · ' + o.note : '');
-  /* ITS ONE WORD (owner, 8 Nov): `data-w` is what a worded row (a booking's) prints under the mark; `word` overrides the label's first. */
+  /* ITS ONE WORD (owner, 8 Nov): `data-w` is what a long press shows (`tileWordShow_`); `word` overrides the label's first. */
   const word = String(o.word || o.label || '').split(' ')[0];
   const attrs = ` title="${esc(name)}" aria-label="${esc(name)}" data-w="${esc(word)}"`;
   /* A MARK IS REQUIRED. A control with neither word nor mark is a blank square, so anything that
@@ -195,13 +195,58 @@ function tile_(o) {
     .map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
   /* `pressed` IS FOR A TILE THAT IS A SWITCH -- the pen's lock and its Pen / Ruler / Compass -- and is said in `aria-pressed` beside the `on` the eye reads § */
   const pressed = o.pressed != null ? ` aria-pressed="${o.pressed ? 'true' : 'false'}"` : '';
-  /* SAME TILES FOR EVERY RANK (owner, 6 Nov): an admin's tile is drawn for everyone in its place, greyed for those without the right. */
-  const barred = o.tone === 'admin' && typeof isAdmin === 'function' && !isAdmin() ? ' aria-disabled="true"' : '';
+  /* ONLY AN ADMIN SEES AN ADMIN'S TILE (owner, 8 Nov, 11a), and it looks like any other tile. */
+  if (o.tone === 'admin' && !(typeof isAdmin === 'function' && isAdmin())) return '';
+  const barred = '';
   const style = o.style ? ` style="${esc(o.style)}"` : '';
   return `<button type="button" class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${style}${pressed}${barred}${o.off ? ' disabled' : ''}
     >${body}</button>`;
 }
 
+
+/* ---------- A LONG PRESS SAYS THE WORD (owner, 8 Nov, 4c) ---------- */
+/* One handler for every tile: hold ~500ms (touch or mouse) and its word floats above it; the press that follows is not a tap. */
+const TILE_HOLD = { t: 0, el: null, shown: false };
+function tileWordShow_(el) {
+  const word = el.getAttribute('data-w') || el.getAttribute('aria-label') || '';
+  if (!word) return;
+  const r = el.getBoundingClientRect();
+  let tip = document.querySelector('.tile-word');
+  if (!tip) { tip = document.createElement('span'); tip.className = 'tile-word'; tip.setAttribute('aria-hidden', 'true'); document.body.appendChild(tip); }
+  tip.textContent = word;
+  tip.style.left = (r.left + r.width / 2) + 'px';
+  tip.style.top = r.top + 'px';
+  TILE_HOLD.shown = true;
+}
+function tileWordHide_() {
+  clearTimeout(TILE_HOLD.t); TILE_HOLD.el = null;
+  const tip = typeof document !== 'undefined' && document.querySelector('.tile-word');
+  if (tip) tip.remove();
+}
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('pointerdown', e => {
+    const el = e.target && e.target.closest && e.target.closest('.tile');
+    tileWordHide_(); TILE_HOLD.shown = false;
+    if (!el) return;
+    TILE_HOLD.el = el;
+    TILE_HOLD.t = setTimeout(() => { if (TILE_HOLD.el === el) tileWordShow_(el); }, 500);
+  }, { passive: true });
+  ['pointerup', 'pointercancel', 'scroll'].forEach(k => document.addEventListener(k, () => {
+    clearTimeout(TILE_HOLD.t);
+    if (TILE_HOLD.shown) setTimeout(tileWordHide_, 900);
+  }, { passive: true, capture: true }));
+  /* A HOLD THAT SHOWED THE WORD IS NOT ALSO A PRESS. */
+  document.addEventListener('click', e => {
+    if (!TILE_HOLD.shown || !(e.target && e.target.closest && e.target.closest('.tile'))) return;
+    TILE_HOLD.shown = false; e.preventDefault(); e.stopPropagation();
+  }, true);
+  document.addEventListener('contextmenu', e => { if (e.target && e.target.closest && e.target.closest('.tile')) e.preventDefault(); });
+}
+
+/* ONE EMPTY STATE (owner, 8 Nov): a short, specific sentence in ordinary text ("No bookings yet."), the same everywhere. */
+function empty_(text) {
+  return `<p class="empty">${esc(String(text || 'Nothing here yet.'))}</p>`;
+}
 
 /* ---------- "+" AT THE TOP OF A LIST THAT CAN GROW (373) ---------- */
 /* ONE CARD, THE WHOLE OF IT THE TARGET: a plus and what it adds. `{ act, label, data }`; a list adopts it by putting it first. */

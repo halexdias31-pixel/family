@@ -38,14 +38,14 @@ function paintDocket() {
   /* SIGNED OUT, NO ADD ROW (720): it took a line and did nothing with it, which reads as broken. */
   const row = host.parentElement && host.parentElement.querySelector('.dock-new');
   if (row) row.hidden = !USER;
-  if (!USER) { host.innerHTML = '<p class="empty">Sign in to keep a docket.</p>'; return; }
+  if (!USER) { host.innerHTML = empty_('Sign in to keep a docket.'); return; }
   /* Google Tasks lives with the tasks it copies, not in Student settings (491). */
   const gt = $('docket-gtasks');
   if (gt) gt.innerHTML = typeof gtasksCard_ === 'function' ? gtasksCard_() : '';
 
   const list = docketLines();
   if (!list.length) {
-    host.innerHTML = '<p class="faint" style="padding:.4rem 0">Nothing on it.</p>';
+    host.innerHTML = empty_('Nothing on it yet.');
     return;
   }
   const left = list.filter(l => !l.done).length;
@@ -59,10 +59,9 @@ function paintDocket() {
       <span class="dock-text">${mark(l.text)}</span>
       ${/* A BUTTON, NOT A SPAN. § */
             ''}
-      <button type="button" class="text-drop" data-do="dock-drop" data-i="${i}"
-              data-t="${esc(l.text)}" aria-label="Remove ${esc(l.text)}">\u2715</button>
+      ${tile_({ icon: 'close', label: 'Remove ' + l.text, act: 'dock-drop', data: { i: i, t: l.text }, cls: 'text-drop' })}
     </label>`).join('')
-    + `<div class="row" style="border:0;padding:.4rem 0 0">
+    + `<div class="row dock-foot">
         <span class="k">${left ? left + ' left' : 'All done'}</span>
         ${list.length > left
           ? '<span class="v">' + tile_({ form: true, label: 'Clear done', act: 'dock-clear', kind: 'quiet', cls: 'tiny' }) + '</span>'
@@ -96,6 +95,7 @@ on('dock-drop', (el, e) => {
   /* It sits inside the label, so without this a tap would toggle the tick on its way past. § */
   e?.preventDefault?.();
   e?.stopPropagation?.();
+  if (!sure_(el, 'Remove?')) return;
   const list = docketLines();
   const i = dockRow_(list, el);
   if (i < 0) { paintDocket(); return; }               // already gone: redraw, delete nothing

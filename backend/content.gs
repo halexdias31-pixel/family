@@ -626,13 +626,10 @@ function flaggedMessages_() {
 }
 
 /* ---------- ONE REPORT RULE (486): a row's kind, item, state and weight, old rows included ---------- */
+/* OLD SHAPES ARE FILLED HERE ONLY UNTIL `migrateOldRows_` HAS WRITTEN THEM (`reportTidy_`). */
 function reportRow_(r) {
-  const kind = norm(r.kind) || 'question';
-  const qid = S(r.question_id);
-  const item = S(r.item_id) || (kind === 'question' && qid ? 'q:' + qid : '');
-  const s = norm(r.status);
-  const status = !s || s === 'open' ? 'open' : s === 'not a problem' ? 'dismissed' : s;
-  return { kind: kind, item_id: item, status: status };
+  const x = oldRowsTidied_() ? r : Object.assign({}, r, reportTidy_(r));
+  return { kind: norm(x.kind), item_id: S(x.item_id), status: norm(x.status) };
 }
 /* WHAT IS MARKED (494): every item with an open note for Claude, as `kind|id` — sent to everybody as `reportedItems`, no names in it. */
 function reportedItems_() {

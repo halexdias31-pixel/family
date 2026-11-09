@@ -24,5 +24,6 @@
   "push.gs",
   "records.gs",
   "setup.gs",
+  "migrate.gs",
   "sync.gs"
 ]

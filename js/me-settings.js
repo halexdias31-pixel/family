@@ -64,7 +64,7 @@ function qualRemove_(el, slots, said) {
 on('qual-drop', el => {
   if (qualWhenSaved_(el)) return;
   const slot = el.closest('.q-slot'), shelf = el.closest('.q-shelf');
-  if (!slot || !shelf) return;
+  if (!slot || !shelf || !sure_(el, 'Remove?')) return;
   if (slot.dataset.new) { qualClean_(shelf); qualRedraw_(shelf, qualBlank_(slot)); return; }
   const q = qualRead_(slot);
   let was = {};
@@ -255,10 +255,8 @@ function photoPicker_(value, said, o) {
   const me = USER || {};
   const opt = n => {
     const label = n === 'avatar' ? 'Your figure' : PFP_ART[n].name;
-    return `<button type="button" class="pfp-opt${chosen === n ? ' on' : ''}" data-do="pfp-choose" data-pic="${esc(n)}"
-      aria-pressed="${chosen === n ? 'true' : 'false'}" aria-label="${esc(label)}" title="${esc(label)}">${n === 'avatar'
-        ? avatarFor(me.handle || me.name, 40, me.avatar || '', { bust: true })
-        : pfpArt_(n, 40)}</button>`;
+    return tile_({ label: label, act: 'pfp-choose', data: { pic: n }, on: chosen === n, pressed: chosen === n, cls: 'pfp-opt',
+      face: n === 'avatar' ? avatarFor(me.handle || me.name, 40, me.avatar || '', { bust: true }) : pfpArt_(n, 40) });
   };
   const face = `<span class="pfp-face">${pfpFace_(v)}</span>`;
   const fold = !!(o && o.fold);
@@ -361,7 +359,7 @@ on('pfp-pick', el => {
 });
 on('pfp-remove', el => {
   const box = el.closest('.pfp');
-  if (!USER || !box) return;
+  if (!USER || !box || !sure_(el, 'Remove?')) return;
   send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, remove: true },
         { button: el, where: box.querySelector('.pfp-said'), saying: 'Removing…', lock: box })
     .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Removed. ' + pfpSaid_(got)); toast('Picture removed'); })
@@ -869,7 +867,7 @@ function vidTake_(box, id, msg) {
 on('vid-pick', el => { const inp = el.closest('.vid-pick') && el.closest('.vid-pick').querySelector('.vid-in'); if (inp) inp.click(); });
 on('vid-remove', el => {
   const box = el.closest('.vid-pick');
-  if (!USER || !box) return;
+  if (!USER || !box || !sure_(el, 'Remove?')) return;
   send_({ action: 'videoPart', name: USER.name, personId: USER.personId, remove: true }, { button: el, where: box.querySelector('.vid-said'), saying: 'Removing…', lock: box })
     .then(() => { vidTake_(box, '', 'Removed.'); toast('Video removed'); }).catch(() => { /* the line says why */ });
 });

@@ -87,13 +87,6 @@ const SPINE = (() => {
   return out.concat(tail);
 })();
 
-/* THE RECEIPT'S OLD NAMES FOR SPINE ROWS. Kept as a translation rather than renamed at the twenty
-   call sites, so a `push` anywhere in this file still lands on the right line. */
-/* `Total: ''` DROPS THE ROW. § */
-/* `Extra subjects` → `Extra subj.` WAS THE ONE SHORTENING THAT NEVER REACHED ITS PUSH SITE. § */
-/* `Students` → `Extra seats`, WHICH MOVED WITH THE STEP'S OWN `short`. § */
-const SPINE_ALIAS = { Students: 'Extra seats', Host: 'Space', Total: '',
-                      'Extra subjects': 'Extra subj.' };
 
 /* One row name to the one document that can fill it, read off the two lists that declare rows so there is no third one to keep in step. § */
 /* WHICH DOCUMENTS A FLAG NAMES, READ THE SAME WAY BY BOTH READERS. § */
@@ -123,11 +116,8 @@ function spineRows_(rows, opts) {
   const say = {};
   const extra = [];
   rows.forEach(r => {
-    const k = SPINE_ALIAS[r.k] !== undefined ? SPINE_ALIAS[r.k] : r.k;
-    /* AN ALIAS TO NOTHING IS A ROW THAT SHOULD NOT BE DRAWN, not a row with no home — see `Total`
-       above. It was falling through to `extra` and printing at the foot anyway, which is the
-       opposite of what the alias says. */
-    if (SPINE_ALIAS[r.k] === '') return;
+    /* EVERY ROW IS PUSHED UNDER ITS SPINE NAME (a price row's `row`, the step's `short`): no translation table (check-spine). */
+    const k = r.k;
     if (!k) { extra.push(r); return; }
     if (SPINE.indexOf(k) === -1) { extra.push(r); return; }
     if (!say[k]) say[k] = Object.assign({}, r, { k: k });
@@ -154,13 +144,9 @@ function weekLeft_(steps) {
   return weekLeft;
 }
 
-function bookBreakdown(L, foot) {
+/* THE FORM'S ROWS IN SPINE ORDER: the questions, their priced figures merged on, the room, the note. */
+function formRows_(L) {
   /* `L` IS NULL UNTIL ENOUGH IS ANSWERED TO COST IT — no subjects, or no venue on a shared class. § */
-
-  const venueName = BOOKING.loc || 'No venue yet';
-  const now = new Date();
-  const when = fmtDate(now) + ' ' + String(now.getHours()).padStart(2, '0')
-    + ':' + String(now.getMinutes()).padStart(2, '0');
 
   /* ---------- ONE LIST, AND IT IS THE FORM § */
   const steps = stepRows_();
@@ -191,8 +177,7 @@ function bookBreakdown(L, foot) {
     /* A ROW'S OWN FIGURE STAYS when its priced line has none: the week's `× 4` was wiped by its day lines' blank (525). */
     r.mul = S_(p.mul) ? p.mul : (r.mul || ''); r.rate = p.rate; r.total = S_(p.total) ? p.total : (r.total || '');
     p.used = true;
-    const k = SPINE_ALIAS[p.k] !== undefined ? SPINE_ALIAS[p.k] : p.k;
-    if (k) merged[k] = true;
+    if (p.k) merged[p.k] = true;
   });
 
   /* WHAT THE QUESTIONS ALREADY SAY, both by name and by which step they stand for. § */
@@ -228,34 +213,47 @@ function bookBreakdown(L, foot) {
     .concat([noteRow_()]), { on: bookOn_(), said: Object.assign({}, merged, weekLeft) });
   /* ---------- THE PICTURE IS DRAWN FROM THIS LIST, NOT FROM ITS OWN § */
   /* ---------- ONE SEQUENCE OF LINE NUMBERS, COUNTED AFTER THE MERGE § */
+  return rows;
+}
+
+/* ONE RENDERER, BOTH DOCUMENTS (owner, 8 Nov): the form is `bookingDoc_(null, foot)`, a saved booking `bookingDoc_(j, foot)` — same rows, filled and read-only. */
+function bookingDoc_(j, foot, price) {
+  const L = j ? null : (price !== undefined ? price : bookPrice());
+  const kid = !j && childView_();
+  const rows = j ? jobRows(j) : formRows_(L);
+  /* ONE SEQUENCE OF LINE NUMBERS, counted after the spine has put the rows in order. */
   let seq = 0;
   rows.forEach(r => { if (r.n !== '') r.n = String(++seq).padStart(3, '0'); });
-
-  const out = rows.map(receiptRow);
-  const pays = kid ? '' : payRow_(L);
-
-  return receiptHtml({
-    /* ---------- THE HEAD SAID WHAT THE ROWS SAY § */
+  const pay = j ? jobMoney_(j) : null;
+  const wait = j ? norm(j.kind) === 'waitlist' : isWaiting_();
+  /* THE FOOT, LINE FOR LINE: Discount, then an admin's money lines (`moneyLines_`) or everybody else's total bar. */
+  const lines = j ? !pay.none && !wait && pay.more.length : false;
+  const pays = j ? (lines ? moneyLines_(pay) : '') : (kid ? '' : payRow_(L));
+  const base = {
     lines: [],
-    /* WHO, so `breakdownRows` can put it at the top — the admin may have changed it, so it is read
-       from the booking rather than assumed to be whoever is looking. */
-    client: BOOKING.client || (USER && USER.name) || '',
-    /* DRAW THE COLUMN HEADER. § */
-    cols: !kid,
-    rows: out,
-    /* AN ADMIN'S FORM ENDS ON ORDINARY LINES, Discount, Client pays, Tutor earns, Admin earns (`payRow_`), and so has no total bar. */
-    noTotal: kid || !!pays,
-    /* ---------- £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE § */
-    total: (L && L.total > 0) ? money(L.total) : '—',
-    /* THE DISCOUNT LINE (an admin's to set, greyed for others), then what the client pays — `discountRow_`, `payRow_`. */
-    before: discountRow_(L) + pays,
-    /* PASSED STRAIGHT THROUGH. The actions are built where the rest of the booking's wording is —
-       see `drawBooker_` — and printed where a receipt's footer goes. */
+    cols: j ? !pay.none : !kid,
+    rows: rows.map(receiptRow),
+    before: (j ? (pay.none || wait ? '' : discountSaid_(j)) : discountRow_(L)) + pays,
     foot: foot || '',
-    /* ---------- THE ROSTER IS NOT ON EITHER DOCUMENT § */
-    /* ---------- THE SKIN WAS ONE WORD HERE, AND NOW THERE IS NO WORD § */
-  });
+  };
+  if (!j) return receiptHtml(Object.assign(base, {
+    client: BOOKING.client || (USER && USER.name) || '',
+    noTotal: kid || !!pays,
+    /* £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE. */
+    total: (L && L.total > 0) ? money(L.total) : '\u2014',
+  }));
+  return receiptHtml(Object.assign(base, {
+    /* `done` marks the saved document read-only; `stage`, `was` and `accepted` pick its stamp. */
+    done: true, stage: jobStage_(j), was: norm(j.kind) || 'session', accepted: jobAccepted_(j),
+    totalLabel: pay.label || (wait ? 'Your seat' : 'Cost'),
+    total: pay.total,
+    noTotal: !!pay.none || !!lines,
+    more: lines ? [] : pay.more,
+    ref: 'Session ' + esc(String(j.id || j.jobId || '')),
+  }));
 }
+/* The form's name for it, kept for its callers and the flow checks that call it with the price they hold. */
+const bookBreakdown = (L, foot) => bookingDoc_(null, foot, L);
 
 /* THE RECEIPT ITSELF — paper, head, columns, rows, total, barcode. § */
 /* ---------- THE ROSTER § */
@@ -448,10 +446,10 @@ function jobRows(j) {
   push('Level', j.level || '');
   /* ---------- FOUR ROWS WERE READING NAMES THE PAYLOAD HAS NEVER SENT § */
   /* ---------- AND THE COUNT IS THE EXTRAS, BECAUSE THAT IS WHAT THE FORM ASKED § */
-  push('Students', seatsOf_(j) ? String(Math.max(0, seatsOf_(j) - 1)) : '');
+  push('Extra seats', seatsOf_(j) ? String(Math.max(0, seatsOf_(j) - 1)) : '');
   push('Venue', j.venue || j.location || '');
   push('Room', j.room || 'set by us');
-  push('Host', atClientHome_(j.venue || j.location || '') ? 'Yes'
+  push('Space', atClientHome_(j.venue || j.location || '') ? 'Yes'
     : TRUEish_(j.clientHosts) ? 'Yes \u2014 no room hire' : 'No \u2014 we book the room');
   /* ---------- SEVEN DAY ROWS WHERE THE `When` ROW WAS § */
   jobWeekRows_(j).forEach(r => rows.push(r));
@@ -699,44 +697,7 @@ function bookFieldsSaid_() {
   } catch (e) { return ''; }
 }
 
-function jobReceipt(j, foot) {
-  const rows = jobRows(j);
-  const pay = jobMoney_(j);
-  const stage = jobStage_(j);
-  /* THE FORM'S FOOT, LINE FOR LINE: Discount, then an admin's three lines or everybody else's Cost bar. */
-  const wait = norm(j.kind) === 'waitlist';
-  const lines = !pay.none && !wait && pay.more.length;
-  return receiptHtml({
-    /* ---------- THE SAME SKIN AS THE FORM, WHICH IS THE WHOLE POINT § */
-    /* `done` MARKED THE SAVED DOCUMENT so the screen skin's blinking cursor could be turned off. § */
-    done: true,
-    stage: stage,
-    /* THE JOB'S OWN KIND, WHICH IS NOT THE STAGE. § */
-    was: norm(j.kind) || 'session',
-    /* SO THE STAMP CAN SAY WHICH. An application that has been accepted and one that is still
-       waiting are the same object at two moments, and the difference is the whole point of the
-       stamp. */
-    accepted: jobAccepted_(j),
-    /* NO TAG LINE ABOVE THE ROWS: the form has none, and Venue, Tutor and Term are rows of both (owner, 8 Nov). */
-    lines: [],
-    /* AND THE RECEIPT DRAWS IT TOO. This said `Detail` where the form said `Answer`, because nothing
-       on a receipt is being asked; both are `A` now and the distinction has nowhere to show. */
-    cols: !pay.none,
-    rows: rows.map(receiptRow),
-    before: (pay.none || wait ? '' : discountSaid_(j)) + (lines ? moneyLines_(pay) : ''),
-    /* THE FORM'S WORD FOR THE FIGURE, so the two documents end on the same line. */
-    totalLabel: pay.label || (wait ? 'Your seat' : 'Cost'),
-    total: pay.total,
-    noTotal: !!pay.none || !!lines,
-    more: lines ? [] : pay.more,
-    /* ---------- THE SESSION'S ACTIONS ARE PRINTED ON IT, LIKE THE FORM'S § */
-    foot: foot || '',
-    /* ---------- THE STATUS WORD IS NOT AN ASIDE ON THE TOTAL § */
-    /* NO ROSTER HERE EITHER — see the note on the form. The chairs are `Your sessions`, one widget
-       per class, which is the view that answers "who is in it". */
-    ref: 'Session ' + esc(String(j.id || j.jobId || '')),
-  });
-}
+const jobReceipt = (j, foot) => bookingDoc_(j, foot);
 
 /* ---------- ASKING TO JOIN SOMEBODY ELSE'S SESSION IS A TILE ON ITS PAPER NOW § */
 /* ---------- THE STEP THAT WAS NOT THERE AT ALL § */

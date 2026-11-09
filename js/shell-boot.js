@@ -296,9 +296,12 @@ function applyColumns_() {
 /* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED § */
 /* THE FIRST THING ANYBODY SEES IS FIND (1070): the core and the one front door; the other columns stand below it. */
 const TAB_HOME = 'stuff';
-/* A COLUMN THAT WAS DISSOLVED, AND WHERE ITS THINGS WENT: an old link or a remembered place lands there (461). */
-/* `res` WAS FIND 2 (owner 10a, 8 Nov): everything it held is in the one Find. */
-const TAB_GONE = { progress: 'account', res: 'stuff' };
+/* WHERE A SCREEN THAT MOVED LIVES (461): a column, or `find:<kind>[:<type>]` — columns.json's `moved`/`was`; this copy until it lands (check-doors). */
+const SCREEN_MOVED = { progress: 'account', booking: 'find:Booking', staff: 'find:Settings:Staff', site: 'find:Settings:Site',
+  account: 'find:Settings:Student', family: 'find:Settings:Parent', apprentice: 'find:Settings:Apprentice', biz: 'find:Settings:Business',
+  res: 'stuff' };
+function screenMoved_() { try { return (DATA && DATA.columnsMoved) || SCREEN_MOVED; } catch (e) { return SCREEN_MOVED; } }
+const screenNow_ = id => { const to = screenMoved_()[id]; return to && to.indexOf(':') < 0 ? to : id; };
 
 /* ---------- HOW LONG AWAY COUNTS AS OPENING IT AGAIN § */
 const AWAY_AGAIN = 6 * 60 * 1000;
@@ -319,7 +322,7 @@ let AT = TAB_HOME;
 try { columnsFor_(); } catch (e) { oops_(e, 'shell:screen') }
 try {
   const kept = localStorage.getItem('familyTab');
-  const was = TAB_GONE[kept] || kept;
+  const was = kept && screenNow_(kept);
   const when = Number(localStorage.getItem('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
 } catch { /* a bad stored tab opens the default one */ }
@@ -333,7 +336,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 /* ---------- THE COLUMN BEFORE THIS ONE § */
 let PREV_AT = '';
 function go(id, remember, instant) {
-  id = TAB_GONE[id] || id; if (typeof settingsGone_ === 'function' && settingsGone_(id)) return; if (typeof bookingGone_ === 'function' && bookingGone_(id)) return;  /* a settings column is Find › Settings now (batch C) */
+  id = screenNow_(id); if (typeof screenGone_ === 'function' && screenGone_(id)) return;  /* a column switched off is a Find door now (batch C) */
   const tab = TABS.find(t => t.id === id)
            || TABS.find(t => t.id === TAB_HOME)
            || TABS[0];
@@ -591,7 +594,7 @@ function paint(id, fresh, o) {
   const kept = pre ? null : placeKeep_(el);
   el.innerHTML = html !== null
     ? html
-    : '<p class="empty">Nothing here yet.</p>';
+    : empty_('Nothing here yet.');
   el.DRAWN = { html: html, epoch: ACT_EPOCH };
   PRE_PAYLOAD.delete(id);
   PAINT_N[id] = (PAINT_N[id] || 0) + 1;
@@ -629,16 +632,14 @@ function nothingHere(whenEmpty, needsLibrary) {
   if (asking && !LIBRARY_FAILED) return loading_();
   const why = (asking ? '' : LOAD_FAILED) || LIBRARY_FAILED;
   if (why) {
-    return `<p class="empty">Couldn’t load.<br>
-        <span class="faint">${esc(why)}</span><br>
-        <button type="button" class="text-action" data-do="retry">Try again</button></p>`;
+    return empty_('Couldn’t load.') + tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'retry' }));
   }
   /* ---------- AND STILL COMING IS NOT THE SAME AS EMPTY § */
   /* ---------- AND THE WAIT IS THE ONE LOADER NOW, NOT A SENTENCE OF ITS OWN § */
   if (needsLibrary && typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) {
     return loading_();
   }
-  return `<p class="empty">${whenEmpty}</p>`;
+  return empty_(whenEmpty);
 }
 
 /* WAITING — ONE LOADER FOR EVERY CARD, AND THIS IS THE ONLY PLACE IT IS WRITTEN § */
@@ -646,6 +647,8 @@ function loading_() {
   return '<div class="loading" role="status" aria-label="Loading">'
     + '<span></span><span></span><span></span></div>';
 }
+/* IS THIS THE ONE LOADER? Asked of `loading_()`'s own output, never of a class name read out of some HTML (check-loading). */
+const isLoading_ = h => String(h == null ? '' : h).trim() === loading_();
 
 /* EACH COLUMN'S SHAPE, KEPT ON THE DEVICE (700): page heights in px, no data, so a column waiting next visit holds its final size. */
 const SHAPE_KEY = 'arrival:shape', SHAPE_PAGES = 6;

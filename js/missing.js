@@ -45,7 +45,7 @@ function healthCardOf_(which) {
   if (which === 'health') { try { return healthWithMissing_(siteHealthCard_()); } catch (e) { oops_(e, 'site health'); return ''; } }
   const all = (() => { try { return missingLeadCards_(); } catch (e) { oops_(e, 'health card'); return []; } })();
   const l = LOGIC_SHOWN && logicFor_() ? 1 : 0;
-  return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || '<div class="card"><p class="sub">Nothing to show yet.</p></div>';
+  return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || '<div class="card">' + empty_('Nothing to show yet.') + '</div>';
 }
 
 /* ---------- SITE HEALTH (890): data/health.json, written by tools/health.js — code 40%, Find logic 35%, UI 25%, mechanical ---------- */
@@ -143,7 +143,7 @@ function missingRepaint_() {
   const el = document.getElementById('miss-body');
   if (!el) return;
   const html = missingBody_();
-  if (/class="loading"/.test(html)) return;
+  if (isLoading_(html)) return;
   /* THE CARD'S OWN TILES JOINED INTO THE LIST'S ROW (tileRowsJoin_, 489) are kept, so The list never takes Delete away (660). */
   const kept = [...el.querySelectorAll('.tile-group')];
   el.innerHTML = html;
@@ -271,13 +271,13 @@ function missingBody_() {
 if (typeof on === 'function') on('miss-all', () => { MISSING.all = !MISSING.all; missingRepaint_(); });
 function healthWithMissing_(card) {
   if (!missingFor_()) return card;
-  const body = missingBody_(), waits = /class="loading"/.test(body);
+  const body = missingBody_(), waits = isLoading_(body);
   const part = `<h3 class="miss-head">What’s missing</h3><div id="miss-body"${waits ? ' aria-busy="true"' : ''}>${body}</div>`;
   return /<\/div>\s*$/.test(card) ? card.replace(/^<div class="card logic-card"/, '<div class="card logic-card miss-card"').replace(/<\/div>\s*$/, part + '</div>') : card + `<div class="card miss-card">${part}</div>`;
 }
 function missingCard_() {
   const body = missingBody_();
-  const waits = /class="loading"/.test(body);
+  const waits = isLoading_(body);
   return `<div class="card miss-card"><h3>What’s missing</h3>
     <div id="miss-body"${waits ? ' aria-busy="true"' : ''}>${body}</div></div>`;
 }

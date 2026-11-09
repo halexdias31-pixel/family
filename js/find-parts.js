@@ -711,10 +711,10 @@ function libSay_(x) {
     return '<p class="sub lib-sign">Sign in to see this — your account is a few screens to the right.</p>';
   }
   /* A CARD NEWER THAN ITS WORDS (`lib_pending`, docs/library.md): the Ledger has not had them imported yet. */
-  if (libIdsFor_(x).some(t => LIB.gone.has(t))) return '<p class="empty">' + (x && x.row && (x.row.pending === true || libTrue(x.row.lib_pending)) ? 'Coming soon.' : 'This one is not in the library yet.') + '</p>';
+  if (libIdsFor_(x).some(t => LIB.gone.has(t))) return empty_(x && x.row && (x.row.pending === true || libTrue(x.row.lib_pending)) ? 'Coming soon.' : 'Not in the library yet.');
   if (LIB.failed) {
-    return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br>
-      <button type="button" class="text-action" data-do="lib-retry">Try again</button></p>`;
+    return `${empty_('Couldn’t load this.')}
+      ${tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'lib-retry' }))}`;
   }
   return loading_();
 }

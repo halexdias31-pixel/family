@@ -394,7 +394,7 @@ on('shelf-more', el => {
 /* A LINE'S BIN EMPTIES ITS BOXES AND TUCKS IT AWAY; the card's Save sends the empties, so a reload agrees. */
 on('shelf-drop', el => {
   const line = el.closest('.lib-card'), shelf = el.closest('.lib-shelf');
-  if (!line || !shelf) return;
+  if (!line || !shelf || !sure_(el, 'Remove?')) return;
   line.querySelectorAll('input, select').forEach(i => { i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); });
   line.hidden = true;
   shelf.appendChild(line);

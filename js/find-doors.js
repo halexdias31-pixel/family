@@ -15,7 +15,7 @@ function whenBand_(v) {
   return days < 1 ? 'Today' : days < 7 ? 'This week' : days < 31 ? 'This month' : days < 366 ? 'This year' : 'Older';
 }
 function postDoorItems_() {
-  const admin = typeof isAdmin === 'function' && isAdmin();
+  const admin = rankAtLeast_('admin');
   return ((DATA && DATA.posts) || []).filter(p => p && p.id && (admin || postState_(p) === 'Approved' || p.mine)).map(p => {
     const who = (typeof profileOf_ === 'function' && (profileOf_(p.authorId) || {}).handle) || p.handle || p.author || '';
     return { kind: 'post', name: String(p.text || p.caption || p.title || 'Post').slice(0, 80), key: 'post:' + p.id, sub: who, image: '', row: p,
@@ -74,7 +74,7 @@ function profileDoorItems_() {
   };
   /* Tutors are Booking's tutor items, tagged Profiles too (KIND_UNDER): never a second card here. */
   ((DATA && DATA.tutors) || []).forEach(t => { if (t) seen[String(t.personId || t.title || t.handle || '')] = 1; });
-  if (typeof isAdmin === 'function' && isAdmin()) ((DATA && DATA.everyone) || []).filter(p => p && p.title).forEach(p => add(p, false));
+  if (rankAtLeast_('admin')) ((DATA && DATA.everyone) || []).filter(p => p && p.title).forEach(p => add(p, false));
   if (typeof canTrack === 'function' && canTrack() && typeof friendHandles === 'function') friendHandles().forEach(h => {
     const s2 = ((DATA && DATA.students) || []).find(x => norm(x.handle) === norm(h)) || {};
     add(Object.assign({ handle: h, title: s2.name || h, role: 'Student' }, s2), false);
@@ -95,10 +95,16 @@ const SETTING_TYPES = [
   ['Student', 'account', () => !!USER, true],
   ['Parent', 'family', () => rankAtLeast_('client'), true],
   ['Staff', 'staff', () => rankAtLeast_('staff'), true],
-  ['Apprentice', 'apprentice', () => rankAtLeast_('admin') || hasRole('apprentice'), true],
-  ['Business', 'biz', () => rankAtLeast_('admin')],
-  ['Site', 'site', () => rankAtLeast_('admin')],
+  ['Apprentice', 'apprentice', () => settingMay_('type:Apprentice'), true],
+  ['Business', 'biz', () => settingMay_('type:Business')],
+  ['Site', 'site', () => settingMay_('type:Site')],
 ];
+/* WHO MAY SEE AN ADMIN'S SETTING IS DATA: setting-for.json's `min_rank` (and `role`, held instead); absent, an admin's only. */
+function settingMay_(key) {
+  let row = null; try { row = ((DATA && DATA.settingFor) || {})[key] || null; } catch (e) { row = null; }
+  const min = (row && row.minRank) || 'admin', role = row && row.role;
+  return rankAtLeast_(min) || (!!role && hasRole(role));
+}
 /* THE MENU'S ORDER OF ACCOUNT TYPES; Admin has no column, only the data's tags. */
 const SETTING_ORDER = ['Student', 'Parent', 'Staff', 'Apprentice', 'Admin', 'Business', 'Site'];
 const cardTitle_ = h => (String(h).match(/<h3[^>]*>([\s\S]*?)<\/h3>/) || [])[1];
@@ -149,7 +155,7 @@ function settingDoorItems_() {
       if (name) add(name, g.id, { col: col, at: i, id: g.id || '' }, type, (ok || /^\s*<div\b[^>]*\bdata-yours="1"/.test(html)) && !/^\s*<div\b[^>]*\bis-locked\b/.test(html));
     });
   });
-  if (rankAtLeast_('admin')) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
+  if (settingMay_('door:notify')) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
   /* ORDER IS DATA (setting-for.json's rows); an untagged card keeps its column's place after them. */
   out.sort((a, b) => a.rank - b.rank);
   out.forEach(x => { x.settingFor.sort((a, b) => SETTING_ORDER.indexOf(a) - SETTING_ORDER.indexOf(b)); x.text = x.name + ' ' + x.settingFor.join(' ') + ' settings'; });
@@ -213,7 +219,6 @@ function venueShape_(v) {
 }
 
 /* AN OLD SETTINGS COLUMN ASKED FOR BY NAME (a tile, a link) opens Find › Settings › its type instead. */
-const SETTINGS_HOME = { account: 'Student', family: 'Parent', staff: 'Staff', apprentice: 'Apprentice', biz: 'Business', site: 'Site' };
 function findSettings_(type) {
   try {
     inFinder_(FINDER, () => {
@@ -224,7 +229,14 @@ function findSettings_(type) {
     inFinder_(FINDER, () => paintStuff());
   } catch (e) { oops_(e, 'doors:settings'); }
 }
-function settingsGone_(id) { if (!SETTINGS_HOME[id] || TABS.some(t => t.id === id)) return false; findSettings_(SETTINGS_HOME[id]); return true; }
+/* A SWITCHED-OFF COLUMN THAT MOVED INTO FIND (`SCREEN_MOVED`): Settings for its account type, or its kind's door. */
+function screenGone_(id) {
+  const to = String(screenMoved_()[id] || '').split(':');
+  if (to[0] !== 'find' || !to[1] || TABS.some(t => t.id === id)) return false;
+  if (to[1] === 'Settings') { findSettings_(to[2] || ''); return true; }
+  try { if (typeof OPEN_JOB !== 'undefined' && OPEN_JOB) BOOK_OPEN = false; } catch (e) { oops_(e, 'doors:gone'); }
+  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: to[1] }] }); go('stuff'); return true;
+}
 /* A VENUE'S 8-BIT BUILDING AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
   venuePic: x => `<figure class="person-pic">${pixSvg_(VENUE_PIX[venueShape_(x.row || {})], x.name)}</figure>` });

@@ -370,7 +370,8 @@ const KC_FIELDS = {
   tutorCount: x => { const n = (kcRow_(x).tutors || []).length; return row('Tutors', n ? String(n) : 'None yet', n ? '' : 'bad'); },
   bookingForm: x => (kcRow_(x).listed ? '' : row('Booking form', 'Not offered', 'bad')),
   levels: x => { const l = (kcRow_(x).levels || []).filter(Boolean); return l.length ? row('Levels', l.join(', ')) : ''; },
-  tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<p class="faint kc-who">${esc(t.map(y => y.title).join(', '))}</p>` : ''; },
+  tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<div class="qtags">${t.map(y => `<span class="qtag" data-tag="3">${esc(y.title)}</span>`).join('')}</div>`
+    : x.kind === 'subject' ? row('Tutors', 'None yet', 'bad') : ''; },
 };
 /* A FIELD ITS OWN FILE DRAWS (tags, a venue's building, a manuscript, a boxer) is added to `window.KC_FIELDS_MORE` there; no load order needed. */
 const kcField_ = k => KC_FIELDS[k] || (window.KC_FIELDS_MORE || {})[k];

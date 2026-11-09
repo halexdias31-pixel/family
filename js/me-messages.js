@@ -173,7 +173,7 @@ function friendsSheet() {
     <label class="field"><span>their handle</span>
       <input id="fr-add" placeholder="as it is on their card" autocomplete="off"></label>
     ${tile_({ form: true, label: 'Add', act: 'friend-add' })}
-    <p class="faint" id="fr-said" style="margin:.6rem 0 0">
+    <p class="said" id="fr-said">
       Exactly as they have it. A search that guesses adds the wrong person, and the wrong person is
       harder to notice than nobody — they simply appear on a list you scroll past.</p>`);
 }
@@ -198,8 +198,10 @@ on('friend-add', () => {
   toast('Added ' + found.handle);
 });
 
-on('friend-drop', el => friendsSave(
-  friendHandles().filter(h => norm(h) !== norm(el.dataset.handle)), $('fr-said')));
+on('friend-drop', el => {
+  if (!sure_(el, 'Remove?')) return;
+  friendsSave(friendHandles().filter(h => norm(h) !== norm(el.dataset.handle)), $('fr-said'));
+});
 
 /* Adding one from the Find browse page, where the list is. */
 on('friend-add-open', () => friendsSheet());
@@ -310,8 +312,7 @@ function msgQueueHtml_(key) {
   return q.map((a, i) => `<span class="msg-chip">${
       /^image\//.test(a.type) ? `<img src="${esc(a.url)}" alt="" decoding="async">` : `<b>${esc(msgFileMark_(a))}</b>`}
     <span class="msg-chip-name">${esc(a.name)}</span>
-    <button class="msg-chip-x" data-do="msg-unqueue" data-k="${esc(key)}" data-i="${i}"
-      aria-label="Remove ${esc(a.name)}">×</button></span>`).join('');
+    ${tile_({ icon: 'close', label: 'Remove ' + a.name, act: 'msg-unqueue', data: { k: key, i: i }, cls: 'msg-chip-x' })}</span>`).join('');
 }
 function msgQueueDraw_(form) {
   const key = form && form.dataset.k;
@@ -476,7 +477,7 @@ on('msg-words', el => {
 });
 on('msg-drop', el => {
   const p = MSG_PENDING.find(x => x.tmp === el.dataset.k);
-  if (!p) return;
+  if (!p || !sure_(el, 'Remove?')) return;
   MSG_PENDING = MSG_PENDING.filter(x => x !== p);
   /* What was typed and chosen goes back in the composer rather than being thrown away with the
      bubble — Remove is "I will write it differently", not "I did not mean any of it". */
@@ -505,9 +506,8 @@ function markRead_(msgs) {
   });
 }
 
-/* THE EMPTY INBOX SAYS HOW TO START ONE. § */
-const emptyMessages_ = `<p class="empty">Nothing yet.<br><span class="faint">To write to a tutor,
-     open their card and press Message.</span></p>`;
+/* AN EMPTY INBOX IS ONE SHORT LINE (owner, 8 Nov). */
+const emptyMessages_ = () => empty_('No messages yet.');
 
 /* ---------- ONE THREAD PER PERSON § */
 /* When a message was sent, as a number: § */
@@ -636,12 +636,12 @@ const messagesHtml_ = ms => {
                 || !!m.tmp !== !!next.tmp;
     const words = String(m.body || '').trim();
     const state = m.state === 'failed'
-      ? `<p class="msg-when msg-fail"><span class="msg-fail-why">Not sent — ${esc(msgFailSaid_(m.err) || 'try again')}</span>
-           <button class="msg-act" data-do="msg-retry" data-k="${esc(m.tmp)}">Retry</button>${
-           m.why === 'files' && words && (m.queue || []).length
-             ? `<button class="msg-act" data-do="msg-words" data-k="${esc(m.tmp)}">Words only</button>` : ''}
-           <button class="msg-act" data-do="msg-drop" data-k="${esc(m.tmp)}">Remove</button>${
-           msgFixLinks_(m.err)}</p>`
+      ? `<p class="msg-when msg-fail"><span class="msg-fail-why">Not sent — ${esc(msgFailSaid_(m.err) || 'try again')}</span>${
+           msgFixLinks_(m.err)}</p>${tileRow_(tile_([
+             { icon: 'again', label: 'Retry', act: 'msg-retry', data: { k: m.tmp }, cls: 'msg-act' },
+             m.why === 'files' && words && (m.queue || []).length
+               ? { icon: 'doc', label: 'Words only', act: 'msg-words', data: { k: m.tmp }, cls: 'msg-act' } : null,
+             { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp }, cls: 'msg-act' }]), 'msg-acts')}`
       : m.state === 'sending' ? `<p class="faint msg-when">sending…</p>`
       : m.tmp ? `<p class="faint msg-when">sent</p>` : '';
     return `${newDay ? `<p class="msg-day"><span>${esc(dayWord)}</span></p>` : ''}
@@ -670,13 +670,11 @@ function msgForm_(to, toId, note, rows) {
   return `<div class="msg-form" data-k="${esc(k)}">
     <div class="msg-queue">${msgQueueHtml_(k)}</div>
     ${/* A CHILD SENDS WORDS ONLY (413) — no picker, and `sendMessage` refuses their files too. */
-      rankAtLeast_('client') ? `<button class="btn quiet msg-clip" data-do="msg-attach"
-      aria-label="Attach a photo, video or file">＋</button>
+      rankAtLeast_('client') ? `${tile_({ icon: 'plus', label: 'Attach a photo, video or file', act: 'msg-attach', cls: 'msg-clip' })}
     <input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : ''}
     <textarea class="msg-text" rows="${rows || 1}" maxlength="2000"
       placeholder="Message…" aria-label="Message ${esc(to)}"${draftAttr_('msg', k)}>${esc(msgDraft_(k))}</textarea>
-    <button class="btn msg-go" data-do="msg-send"
-      data-to="${esc(to)}" data-id="${esc(toId || '')}">Send</button>
+    ${tile_({ form: true, label: 'Send', act: 'msg-send', data: { to: to, id: toId || '' }, cls: 'msg-go' })}
     <p class="faint msg-said">${esc(note || '')}</p>
   </div>`;
 }

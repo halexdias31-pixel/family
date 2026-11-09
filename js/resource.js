@@ -153,6 +153,7 @@ on('cart-laminate', el => {
 });
 
 on('cart-drop', el => {
+  if (!sure_(el, 'Take out?')) return;
   CART = CART.filter(c => !(c.key === el.dataset.key && c.kind === el.dataset.kind));
   cartSave();
   /* NO PAGE COUNT TO CHANGE ANY MORE. § */

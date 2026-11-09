@@ -283,7 +283,7 @@ function qPageAt_(x, page) {
 function qWordsOr_(x, html) {
   if (/<(img|svg|figure|canvas|input|table)\b/i.test(html) || String(html).replace(/<[^>]*>|&nbsp;|\s/g, '')) return html;
   if (libSlim_(x)) return `<div class="lib-say">${libSay_(x)}</div>`;
-  return '<p class="empty">This question’s words are missing — flag it and we will put them back.</p>';
+  return empty_('This question’s words are missing.');
 }
 /* `was`, A CARD DRAWN AGAIN (qtools.js): a part of a whole question (960) is drawn as that part again. */
 function questionCard_(x, was) {

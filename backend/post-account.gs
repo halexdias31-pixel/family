@@ -1195,7 +1195,7 @@ function postSetMyRoles_(body, action, began) {
   if (adding.length || dropping.length) {
     /* EVERYTHING THAT IS NOT ONE OF THE THREE, KEPT, with admin first so the cell reads the way
        `mainRole` ranks it — `admin, tutor, head of boxing`, never the title alone. */
-    const rest = rolesOf(r).filter(x => SELF_ROLES.indexOf(SELF_ROLE_ALIASES[x] || x) === -1);
+    const rest = rolesOf(r).filter(x => SELF_ROLES.indexOf(roleWord_(x)) === -1);
     const admin = rest.filter(x => x === 'admin'), other = rest.filter(x => x !== 'admin');
     setCell(t, r, 'role', admin.concat(want, other).join(', '));
     /* THE TUTOR LIST IS IN THE STORED PAYLOAD — the same reason `setListed` clears it. */

@@ -185,7 +185,7 @@ function stuffNoneHtml_() {
             : STUFF.q                          ? 'Try fewer words.'
             : STUFF.filters.length             ? 'Nothing matches all of those together.'
             : '';
-  return `<p class="empty">Nothing matches.${why ? `<br><span class="faint">${esc(why)}</span>` : ''}</p>`;
+  return empty_(why ? 'Nothing matches. ' + why : 'Nothing matches.');
 }
 
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS § */

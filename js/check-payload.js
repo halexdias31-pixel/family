@@ -274,6 +274,17 @@ console.log('');
 console.log('sent by a committed settings file (`settingsInto_`): ' + SENT_BY_FILE.length + ' — ' + SENT_BY_FILE.join(', '));
 console.log('keys read: ' + reads.size + '   keys sent: ' + sent.size
   + '   shapes doGet states: ' + shapeSent.size + '   keys in the fixture: ' + fxRead);
+/* ONE LIST OF ROLE WORDS (batch G): core.js's `ROLE_ALIASES` is only the stand-in for doGet's `roleAliases`, word for word. */
+const roleOff = [];
+try {
+  const lit = (f, re) => { const m = re.exec(fs.readFileSync(path.join(__dirname, '..', f), 'utf8')); return m ? Function('return ' + m[1])() : null; };
+  const gs = lit('backend/constants.gs', /const ROLE_ALIASES = (\{[\s\S]*?\});/), js = lit('js/core.js', /const ROLE_ALIASES = (\{[\s\S]*?\});/);
+  if (!gs || !js) roleOff.push('ROLE_ALIASES not found in ' + (!gs ? 'backend/constants.gs' : 'js/core.js'));
+  else if (JSON.stringify(Object.entries(gs).sort()) !== JSON.stringify(Object.entries(js).sort())) roleOff.push('js/core.js ROLE_ALIASES is not backend/constants.gs ROLE_ALIASES');
+  if (!sent.has('roleAliases')) roleOff.push('doGet does not send roleAliases');
+} catch (e) { roleOff.push('(role words could not be read: ' + e.message + ')'); }
+roleOff.forEach(x => console.log('ROLE WORDS: ' + x));
+if (roleOff.length) process.exitCode = 1;
 /* THE VERDICT MUST NOT OVERSTATE ITSELF. § */
 console.log(fxWrong.length || rowWrong.length || rowExtra.length
   ? 'FAILED — the fixture is not the payload, so nothing served it was really checked.'
@@ -283,4 +294,4 @@ console.log(fxWrong.length || rowWrong.length || rowExtra.length
     ? 'OK — nothing NEW is unsent. ' + accepted.length + ' known dead key'
       + (accepted.length === 1 ? '' : 's') + ' above, each an unbuilt feature rather than a break.'
     : 'OK — everything the site reads, the backend sends.');
-process.exit(readNotSent.length || fxWrong.length || rowWrong.length || rowExtra.length ? 1 : 0);
+process.exit(roleOff.length || readNotSent.length || fxWrong.length || rowWrong.length || rowExtra.length ? 1 : 0);

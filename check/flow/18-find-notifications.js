@@ -290,16 +290,17 @@ check('a chosen answer is only its value, and Clear is a tile beside the search 
   if (d.querySelector('#stuff-chips .chip-k')) bad.push('a chip still carries its field name in a .chip-k: ' + said.join(' | '));
   const labels = ['What for', 'Subject', 'School year'];
   said.forEach(s => labels.forEach(l => { if (s.indexOf(l + ' ') === 0) bad.push('the chip "' + s + '" starts with its field\'s name, ' + l); }));
-  const maths = chips.find(c => text(c) === 'Maths✕');
-  if (!maths) bad.push('no chip reads exactly "Maths✕" — they read ' + said.join(' | '));
+  /* THE ✕ IS A ROUND TILE NOW (owner, 8 Nov): the chip reads its value alone and carries a close tile. */
+  const maths = chips.find(c => text(c) === 'Maths' && c.querySelector('.tile.chip-x[data-do="filter-drop"]'));
+  if (!maths) bad.push('no chip reads exactly "Maths" with its close tile — they read ' + said.join(' | '));
   /* ONE COLOUR PER MENU (1030): the chip wears its facet's hue, h<N> from TAG_OF. */
   else {
     const hue = /^const TAG_OF = \{.*\bsubject: (\d+)/m.exec(require('../tools/find-src.js').findSrc()), want = 'h' + (hue ? hue[1] : '?');
     if (maths.getAttribute('data-tag') !== want) bad.push('the Maths chip lost its colour: data-tag is ' + JSON.stringify(maths.getAttribute('data-tag')) + ', not the subject menu\'s ' + want);
   }
-  if (said.indexOf('Learning✕') < 0) bad.push('the What for chip does not read "Learning✕" — ' + said.join(' | '));
-  if (said.indexOf('Any school year✕') < 0) bad.push('the skipped School year does not read "Any school year✕" — ' + said.join(' | '));
-  if (said.indexOf('Chapter 119✕') < 0) bad.push('a bare 119 does not keep its field as "Chapter 119✕" — ' + said.join(' | '));
+  if (said.indexOf('Learning') < 0) bad.push('the What for chip does not read "Learning" — ' + said.join(' | '));
+  if (said.indexOf('Any school year') < 0) bad.push('the skipped School year does not read "Any school year" — ' + said.join(' | '));
+  if (said.indexOf('Chapter 119') < 0) bad.push('a bare 119 does not keep its field as "Chapter 119" — ' + said.join(' | '));
   if (d.querySelector('#stuff-chips [data-do="filter-clear"]')) bad.push('Clear is still drawn in the row of chips, where it looks like a tag');
   if (tiles().length !== 1) bad.push('four answers in, the Clear slot holds ' + tiles().length + ' Clear tile(s)');
   else {

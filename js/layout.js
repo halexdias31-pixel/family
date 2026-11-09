@@ -791,7 +791,7 @@ function cardsOf_(col) {
   });
   if (start === 'first-person' && firstP !== -1) CARD_START_AT[col] = firstP;
   /* NOTHING LEFT ON IT: one line, never the column's name as a card (770). */
-  if (!out.length && !kind) return [`<div class="card rank-off set-none"><p class="sub rank-off-say">Nothing here yet.</p></div>`];
+  if (!out.length && !kind) return [`<div class="card rank-off set-none">${empty_('Nothing here yet.')}</div>`];
   return out;
 }
 /* A HOUSE, NOT A FLAG (466): the owner, "I had no idea what it was" — the column's home is here. */
