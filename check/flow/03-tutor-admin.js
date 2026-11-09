@@ -597,13 +597,21 @@ check('your figure dressed on your own card\'s Edit is the figure your picture d
   const av = c.sent.filter(x => x.action === 'saveAvatar');
   if (av.length !== 1 || Number(av[0].avatar && av[0].avatar.shirt) !== 2) bad.push('picking shirt 2 posted ' + JSON.stringify(av.map(x => x.avatar)) + ', wanted one saveAvatar in shirt 2');
   if (shirtOf(W.real.row('P-S1').avatar) !== 2 || shirtOf(c.t.whoami().avatar) !== 2) bad.push('after shirt 2 the row holds ' + JSON.stringify(W.real.row('P-S1').avatar) + ' and the phone ' + JSON.stringify(c.t.whoami().avatar));
-  /* THE FIGURE IS NO LONGER A PICTURE (owner, 9 Nov): the picker offers the ten, and no card draws the figure. */
-  if (c.form().querySelector('.pfp-opt[data-pic="avatar"]')) bad.push('the picture picker still offers the figure');
+  const shirt2 = AV_SHIRT_T[2];
+  const opt = c.form().querySelector('.ce-sec[data-sec="picture"] .pfp-opt[data-pic="avatar"]');
+  if (!opt || opt.innerHTML.indexOf(shirt2) === -1) bad.push('the picture\'s "your figure" is not wearing the shirt just picked in the figure section');
   const ringed = c.form().querySelector('.ce-sec[data-sec="figure"] .av-sw.on[data-field="shirt"]');
   if (!ringed || ringed.dataset.value !== '2') bad.push('the ring in the figure section is not on shirt 2');
+  /* CHOSEN AS THE PICTURE, AND THE FORM SHUT: the card's face is the figure, in shirt 2. */
+  c.sent.length = 0;
+  c.A('pfp-choose', opt);
+  await wait(300);
+  if (!c.sent.some(x => x.action === 'savePhoto' && x.choice === 'pfp:avatar')) bad.push('choosing your figure as the picture posted ' + JSON.stringify(c.sent.map(x => x.action)));
   /* SAVE ON THE FIGURE'S CARD: what it would put back is now this look. */
   c.A('card-save', c.tileOn('figure', 'card-save'));
   await wait(400);
+  const face = c.pageOf('P-S1') && c.pageOf('P-S1').querySelector('.prof-pic');
+  if (!face || !face.querySelector('svg.avatar.is-bust') || face.innerHTML.indexOf(shirt2) === -1) bad.push('Sam\'s card\'s face is not the figure in shirt 2: ' + (face ? face.outerHTML.slice(0, 120) : 'none'));
   /* CANCEL PUTS THE LOOK BACK. */
   if (!(await open())) return bad.concat(['the editing cards are gone after Save']);
   await pick(4);

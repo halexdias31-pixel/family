@@ -584,7 +584,8 @@ function stuffQuestion() {
   return facetAnswersHtml_(facet, values, (sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '') + facetNoneHtml_(items, facet)) + findPeek_();
 }
 /* WHILE A QUESTION IS ASKED, THE CARDS SO FAR ON ASK (`findDone_`): one tile, gone once they are shown. */
-const findPeek_ = () => findDone_() ? '' : tileRow_(tile_({ icon: 'down', label: 'Show what\'s here so far', word: 'Show', act: 'find-reveal' }), 'find-end');
+/* NO "SHOW SO FAR" ARROW (owner, 9 Nov: "remove it"): cards come when the menus finish. */
+const findPeek_ = () => '';
 on('find-reveal', el => { const F = finderAt_(el); inFinder_(F, () => { findShow_(); paintStuff(true); }); });
 /* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): § */
 const FACET_NONE_SHOWN = false; /* owner 5 Nov: "Accuracy verified 0" read as noise; switched off, kept */

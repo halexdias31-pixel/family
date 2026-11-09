@@ -126,7 +126,9 @@ function displayName_(person, viewer) {
   const p = person && typeof person === 'object' ? person : { name: person };
   const first = String(p.first_name || p.firstName || '').trim(), last = String(p.last_name || p.lastName || '').trim();
   const full = nameBesideHandle_(String(p.name || p.title || (first + ' ' + last)).trim(), p.handle);
-  /* FIRST NAME AND AN INITIAL FOR EVERY VIEWER, admins too (owner, 9 Nov): `viewer` is kept for callers that pass one. */
+  const v = viewer === undefined ? (typeof USER !== 'undefined' ? USER : null) : viewer;
+  const rs = v && typeof v === 'object' ? (Array.isArray(v.roles) && v.roles.length ? v.roles : [v.role]).map(String) : [];
+  if (rs.indexOf('admin') !== -1) return full;
   if (first && last) return first + ' ' + last.charAt(0).toUpperCase() + '.';
   const w = full.split(/\s+/).filter(Boolean);
   if (w.length < 2 || /[@(]/.test(full)) return full;

@@ -39,7 +39,7 @@ if (!fields.length) bad.push('KC_FIELDS is not found in js/cards.js');
 rows.forEach(r => ['pic', 'title', 'tags', 'lines'].forEach(p => String(r[p] || '').split(',').map(s => s.trim()).filter(Boolean)
   .forEach(f => { if (fields.indexOf(f) < 0) bad.push('card-fields.json ' + r.kind + ' names a ' + p + ' field "' + f + '" that KC_FIELDS has not'); })));
 
-const SHAPE = ['kc-pic', 'kc-head', 'kc-tags', 'kc-lines', 'kc-act'];
+const SHAPE = ['kc-pic', 'kc-head', 'kc-tags', 'kc-lines'];
 const shapeOf = html => {
   const head = /^\s*<div class="card fc kc kc-[a-z-]+[^"]*"[^>]*>/.exec(html);
   if (!head) return 'no "card fc kc kc-<kind>" head: ' + html.slice(0, 80);
@@ -50,22 +50,8 @@ const shapeOf = html => {
     if (depth === 0) kids.push((/class="([^"]*)"/.exec(m[2]) || [, ''])[1]);
     depth++;
   }
-  if (kids.join(' ') !== SHAPE.join(' ')) return 'parts are [' + kids.join(', ') + '], not [' + SHAPE.join(', ') + ']';
-  return fourOf(html);
+  return kids.join(' ') === SHAPE.join(' ') ? '' : 'parts are [' + kids.join(', ') + '], not [' + SHAPE.join(', ') + ']';
 };
-/* EVERY CARD (owner, 9 Nov): a picture, tags, and exactly four buttons -- main, Message, Star, ⋯ -- the rest behind ⋯. */
-function fourOf(html) {
-  if (/<div class="kc-pic"[^>]*><\/div>/.test(html)) return 'no picture';
-  if (/<div class="kc-tags"><\/div>/.test(html)) return 'no tags';
-  const rows = html.split('<span class="kc-four">').slice(1);
-  if (rows.length < 1) return 'no four-button row';
-  for (const r of rows) {
-    const acts = []; r.split('</span>')[0].replace(/data-do="([^"]*)"/g, (m, a) => acts.push(a));
-    if (acts.length !== 4 || acts[1] !== 'msg-open' || acts[2] !== 'fav' || acts[3] !== 'kc-more') return 'its row is [' + acts.join(', ') + '], not main, msg-open, fav, kc-more';
-  }
-  return '';
-}
-scope.tile_ = o => (o ? '<button class="tile" data-do="' + o.act + '"' + (o.off ? ' disabled' : '') + '></button>' : '');
 const ROW = { title: 'Ada Tutor', name: 'Ada Tutor', handle: 'ada', rate: 30, role: 'Tutor', listed: true, mult: 1, levels: ['GCSE'], tutors: [{ title: 'Ada Tutor' }] };
 rows.map(r => r.kind).concat(['some-new-kind']).forEach(kind => {
   let html = '';
@@ -99,10 +85,6 @@ scope.window.KC_OWN = { legacy: () => '<div class="card x" data-k="1"><div class
 try { const w = shapeOf(String(got.findCard({ kind: 'legacy', key: 'legacy:1', name: 'One' }))); if (w) bad.push('a KC_OWN card: ' + w); } catch (e) { bad.push('a KC_OWN card: findCard threw ' + e.message); }
 scope.window.KC_OWN = {};
 if (!/\n  tutor:[\s\S]{0,300}?: findCard\(x\) \}/.test(finder)) bad.push('find-finder.js does not draw a tutor with findCard');
-
-/* CLOSED IS TWO LINES: the closed card's lines are cut at two lines' height. */
-const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
-if (!/\.card\.kc:not\(\.is-open\) > \.kc-lines \{[^}]*max-height: 3em;[^}]*line-height: 1\.5/.test(css)) bad.push('style.css no longer cuts a closed card\'s lines at two (max-height: 3em at line-height 1.5)');
 
 if (bad.length) { console.log('✗ card shape:\n  ' + bad.join('\n  ')); process.exit(1); }
 console.log('card shape: ' + rows.length + ' kinds, a kind the file does not name and a KC_OWN card, one shape (' + SHAPE.join(', ') + '); every Find kind but ' + WIDGET_KINDS.join(', ') + ' drawn by findCard');

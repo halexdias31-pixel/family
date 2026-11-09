@@ -338,7 +338,9 @@ function qPartCard_(x, ans) {
 /* THE CARD'S OWN TILES (share, star, message, top, help) as bare tiles, without the row `cardTiles_` wraps them in */
 function qPartFoot_(p) {
   const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(p, '') : null);
-  return String(cardTiles_(Object.assign(Object.create(p), { lead: help }), true) || '').trim();
+  const row = String(cardTiles_(Object.assign(Object.create(p), { lead: help })) || '').trim();
+  const m = /^<div class="tile-row[^"]*">([\s\S]*)<\/div>$/.exec(row);
+  return m ? m[1] : row;
 }
 /* ONE PART, THE SHAPE OF ANY CARD: its tags, a shared stem the first time a drawn part needs it, its words and box, its whole tile row. */
 function qOneCard_(p, ctx) {

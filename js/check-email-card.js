@@ -20,8 +20,7 @@ try { C = b.ev('DIGEST_CARD'); INK = b.ev('DIGEST_TAG_INK'); } catch (e) { bad.p
 if (C) {
   /* THE PARTS IN findCard's ORDER: `const parts = { pic: …, head: …, tags: …, lines: … }`. */
   const m = /const parts = \{([^\n]*)\};/.exec(cards.slice(cards.indexOf('function findCard(')));
-  /* AN EMAIL HAS NO BUTTONS: the site card's four-button row (`act`) is the one part it leaves out. */
-  const site = m ? (m[1].match(/(\w+):/g) || []).map(x => x.slice(0, -1)).filter(k => k !== 'act') : [];
+  const site = m ? (m[1].match(/(\w+):/g) || []).map(x => x.slice(0, -1)) : [];
   if (JSON.stringify(site) !== JSON.stringify(C.order)) bad.push('the email card\'s parts are ' + JSON.stringify(C.order) + ', findCard\'s ' + JSON.stringify(site));
   if (JSON.stringify(C.lines) !== JSON.stringify(['theirs', 'verdict', 'right'])) bad.push('the email card\'s lines are not their answer, the verdict, the answer: ' + JSON.stringify(C.lines));
   if (C.labels.theirs !== 'Their answer' || C.labels.right !== 'Answer') bad.push('the labels are not "Their answer" and "Answer" (60b normal case): ' + JSON.stringify(C.labels));

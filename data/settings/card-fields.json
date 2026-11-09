@@ -1,5 +1,5 @@
 [
-{"kind": "tutor", "cls": "is-widget is-prof tcard", "pic": "face", "title": "", "tags": "nameTag,teaches,facts", "lines": "listedNote,say,photos,words,quals,jobs,places,avail", "tiles": "book-with:book:Book,msg-open:chat:Message", "notes": "the compact one-screen tutor card (547): rate on the name line, subject pills, the map, day pills"},
+{"kind": "tutor", "cls": "is-widget is-prof tcard", "pic": "face", "title": "role,nameRate", "tags": "teaches,facts", "lines": "listedNote,say,photos,words,quals,jobs,places,avail", "tiles": "book-with:book:Book,msg-open:msg:Message", "notes": "the compact one-screen tutor card (547): rate on the name line, subject pills, the map, day pills"},
 {"kind": "venue", "cls": "venue-door", "pic": "venuePic", "title": "name", "tags": "facets", "lines": "venueSub,rooms", "tiles": "", "notes": "an 8-bit building, its name, its facet tags, its rooms"},
 {"kind": "level", "cls": "is-level", "pic": "kindPic", "title": "name", "tags": "facets", "lines": "surcharge,levelSubjects,tutorCount,bookingForm,tutorNames", "tiles": "book-with:book:Book", "notes": ""},
 {"kind": "subject", "cls": "is-subject", "pic": "kindPic", "title": "name", "tags": "facets", "lines": "surcharge,levels,tutorNames", "tiles": "book-with:book:Book", "notes": ""},

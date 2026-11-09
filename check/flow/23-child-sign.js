@@ -405,9 +405,12 @@ const keepWalk_ = async (w, id) => {
     /* THE PAPER CHOSEN, A CHILD SWIPES UP THROUGH IT: the funnel would go on to ask Question (396), and the card is found by its page. */
     if (keeps.dataset.field === 'paperId') break;
   }
-  /* THE FUNNEL STILL ASKS Question, so the child presses "Show what's here so far" (owner, 9 Nov). */
-  const peek = d.querySelector('#s-stuff [data-do="find-reveal"]');
-  if (peek) { peek.click(); await wait(20); }
+  /* THE FUNNEL STILL ASKS Question: the child answers "Doesn't matter" until the cards come (the peek arrow is gone, 9 Nov). */
+  for (let i = 0; i < 6; i++) {
+    const any = [...d.querySelectorAll('#stuff-groups [data-do="facet-pick"]')].find(b => /doesn.t matter|^any\b/i.test(b.textContent.trim()));
+    if (!any) break;
+    any.click(); await wait(20);
+  }
   return said;
 };
 /* ---------- THE FINDER IS FOR MEMBERS (400) — the owner, 24 Oct: signed out, Find is one card, Sign in or Join ---------- */

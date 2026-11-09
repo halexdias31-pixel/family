@@ -943,16 +943,40 @@ async function pfpRoleJourney(key) {
   };
   const choose = n => () => { const b = opts().find(x => x.dataset.pic === n); if (!b) throw new Error('no ' + n + ' in the grid'); t.ACTIONS['pfp-choose'](b); };
   try {
-    /* THE FIGURE IS NO LONGER A PICTURE (owner, 9 Nov): the grid offers the ten pictures and nothing else. */
-    if (opts().some(x => x.dataset.pic === 'avatar')) bad.push('the picture grid still offers your figure');
-    await step('the ' + P.basic, choose(P.basic), { choice: 'pfp:' + P.basic },
-      { kind: 'basic', name: P.basic, stored: 'pfp:' + P.basic, said: new RegExp('Saved\\. The ' + P.basic + ' is your picture') });
+    await step('your figure', choose('avatar'), { choice: 'pfp:avatar' },
+      { kind: 'avatar', fig: P.avatar, stored: 'pfp:avatar', said: /Saved\. Your figure is your picture/ });
+    /* LIVE, AND DRESSED ON THE SAME FORM: § */
+    const dress = async n => {
+      await openEdit();
+      const sw = d.querySelector(H + ' .card-ed .av-card [data-do="av-colour"][data-field="shirt"][data-value="' + n + '"]');
+      if (!sw) { bad.push('your own card\'s Edit has no wardrobe with shirt ' + n + ' in it'); return false; }
+      sent.length = 0;
+      t.ACTIONS['av-colour'](sw);
+      await wait(250);
+      if (!sent.some(b => b.action === 'saveAvatar' && b.avatar && Number(b.avatar.shirt) === n)) bad.push('picking shirt ' + n + ' on your card posted ' + JSON.stringify(sent.map(b => b.action)) + ', not saveAvatar with that shirt');
+      return true;
+    };
+    const was = t.whoami().avatar;
+    if (await dress(2)) {
+      const opt = box() && box().querySelector('.pfp-opt[data-pic="avatar"]');
+      const inPicker = faceIs(opt, { kind: 'avatar', fig: t.whoami().avatar });
+      if (!/shirt:2/.test(t.whoami().avatar)) bad.push('after shirt 2 was picked your look is ' + JSON.stringify(t.whoami().avatar));
+      if (inPicker) bad.push('the picker\'s "your figure" is not the figure the wardrobe just dressed: ' + inPicker);
+      const pv = faceIs(box() && box().querySelector('.pfp-face > *'), { kind: 'avatar', fig: t.whoami().avatar });
+      if (pv) bad.push('with your figure as your picture, the preview is not the figure the wardrobe just dressed: ' + pv);
+      await shut();
+      const live = faceIs(myCard() && myCard().querySelector('.prof-pic'), { kind: 'avatar', fig: t.whoami().avatar });
+      if (live) bad.push('your figure is not live on your own card after a change of shirt: ' + live);
+      await dress(Number(/shirt:(\d)/.exec(was)[1]));
+    }
     /* A TAP ON THE ONE ALREADY IN USE SENDS NOTHING. */
     await openEdit();
     sent.length = 0;
-    choose(P.basic)();
+    choose('avatar')();
     await wait(100);
-    if (sent.some(b => b.action === 'savePhoto')) bad.push('a tap on the picture already in use posted savePhoto again');
+    if (sent.some(b => b.action === 'savePhoto')) bad.push('a tap on the figure already in use posted savePhoto again');
+    await step('the ' + P.basic, choose(P.basic), { choice: 'pfp:' + P.basic },
+      { kind: 'basic', name: P.basic, stored: 'pfp:' + P.basic, said: new RegExp('Saved\\. The ' + P.basic + ' is your picture') });
     if (!kid) await step('a photograph', async () => {
       w.pfpPrepare_ = () => Promise.resolve('data:image/jpeg;base64,' + Buffer.from('square').toString('base64'));
       const inp = box().querySelector('input.pfp-in[type="file"]');
@@ -965,10 +989,10 @@ async function pfpRoleJourney(key) {
   } catch (e) { bad.push('the journey threw: ' + e.message); }
   return bad;
 }
-check('a student chooses the fox and Remove, and is offered no photo upload (413) — each saved, on their card and on their parent\'s', () => pfpRoleJourney('student'));
-check('a parent chooses the cat, a photo and Remove — each saved, on their card and in their child\'s messages', () => pfpRoleJourney('parent'));
-check('a tutor chooses the robot, a photo and Remove — each saved, on their card and on a visitor\'s people column', () => pfpRoleJourney('tutor'));
-check('an admin chooses the rocket, a photo and Remove — each saved, on their card and on the feed', () => pfpRoleJourney('admin'));
+check('a student chooses their figure, the fox and Remove, and is offered no photo upload (413) — each saved, on their card and on their parent\'s', () => pfpRoleJourney('student'));
+check('a parent chooses their figure, the cat, a photo and Remove — each saved, on their card and in their child\'s messages', () => pfpRoleJourney('parent'));
+check('a tutor chooses their figure, the robot, a photo and Remove — each saved, on their card and on a visitor\'s people column', () => pfpRoleJourney('tutor'));
+check('an admin chooses their figure, the rocket, a photo and Remove — each saved, on their card and on the feed', () => pfpRoleJourney('admin'));
 
 /* ---------- AND UNTIL THE BACKEND IS PULLED, A TAP FAILS OUT LOUD § */
 check('before the backend is pulled, tapping a picture says the server\'s refusal and keeps the old picture', async () => {

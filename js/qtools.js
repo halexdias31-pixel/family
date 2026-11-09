@@ -151,9 +151,7 @@ function qtRow_(x, held) {
   const more = QT_MORE.html; QT_MORE.html = ''; QT_MORE.used = true;
   const wk = typeof ansKey_ === 'function' && isQ_(x) ? ansKey_(x) : '';
   const work = wk && typeof workGoTile_ === 'function' ? `<span class="qp-work-slot" data-k="${esc(wk)}">${workGoTile_(wk)}</span>` : '';
-  /* THE FOUR (owner, 9 Nov): Send/Check, Message, Star, ⋯; the tools, help, share and suggest wait behind ⋯ (`kcFour_`). */
-  const four = kcFour_(x, `<span class="qt-tools">${tools}</span>${held || ''}${work}${more}`, qtCheck_(x, m));
-  return `<div class="tile-row qt-row kc-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${four}</div>
+  return `<div class="tile-row qt-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}"><span class="qt-tools">${tools}</span>${qtCheck_(x, m)}${held || ''}${work}${more}</div>
     <div class="qtags qt-tags"><span class="qtag qt-how" data-tag="8">${esc(m.how)}</span></div>`;
 }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };

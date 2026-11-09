@@ -136,9 +136,6 @@ async function measure(env, sel, i) {
     const all = [...document.querySelectorAll(sel)];
     const el = all[i || 0];
     if (!el) return null;
-    /* A BUTTON BEHIND A CARD'S ⋯ (owner, 9 Nov) is reached the child's way: ⋯ first, then it. */
-    const more = el.closest && el.closest('.kc-more[hidden]'), dots = more && more.parentElement.querySelector('[data-do="kc-more"]');
-    if (dots) dots.click();
     let r = el.getBoundingClientRect();
     if (r.top < 60 || r.bottom > innerHeight - 20) {
       /* INTO VIEW BY ITS OWN SCROLLING COLUMN, never the window: the screens sit side by side */

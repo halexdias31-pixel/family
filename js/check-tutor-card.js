@@ -33,7 +33,7 @@ function scan() {
     const out = [...r.getClientRects()].filter(x => x.width > 0).some(x => x.left < b.left - 0.5 || x.right > b.right + 0.5 || x.top < b.top - 0.5 || x.bottom > b.bottom + 0.5);
     if (out || c.scrollWidth > c.clientWidth + 1) fails.push('"' + c.textContent.trim() + '": text outside its pill');
   });
-  const rates = [...host.querySelectorAll('.prof-tag-rate')].map(p => p.textContent.replace(/\s+/g, ''));
+  const rates = [...host.querySelectorAll('.prof-price')].map(p => p.textContent.replace(/\s+/g, ''));
   if (rates.length !== 2) fails.push('expected two rates, found ' + rates.length);
   rates.forEach(t => { if ((t.match(/\/h/g) || []).length !== 1 || /hour/.test(t)) fails.push('rate "' + t + '" does not say /h once'); });
   const none = host.querySelector('.prof-nohours');
