@@ -5,7 +5,7 @@
 const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 'settings/laws',
                        'settings/facts',
                        'settings/campaigns', 'settings/copy', 'settings/columns',
-                       'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for'];
+                       'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields'];
 
 /* `norm` on the backend. § */
 const setNorm_ = v => libS(v).toLowerCase().trim();
@@ -133,7 +133,7 @@ function setColumns_(d, extra) {
     const moved = {};
     columns.forEach(r => { const id = libS(r.screen); if (!id) return; if (libS(r.moved)) moved[id] = libS(r.moved); if (libS(r.was)) moved[libS(r.was)] = id; });
     if (Object.keys(moved).length) d.columnsMoved = moved;
-    d.columnsOff = columns.filter(r => libS(r.screen) && !libOn(r.active) && libS(r.screen) !== 'res')
+    d.columnsOff = columns.filter(r => libS(r.screen) && !libOn(r.active))
       .map(r => ({ screen: libS(r.screen), label: libS(r.label) || libS(r.screen), what: libS(r.notes).split(/ — |\. |\(/)[0].trim() }));
   }
 }
@@ -165,13 +165,21 @@ function setFor_(d, extra) {
       minRank: libS(r.min_rank).trim(), role: libS(r.role).trim() }]));
 }
 
+function setCardFields_(d, extra) {
+  /* ---------- EACH KIND'S CARD FIELDS (owner, 8 Nov): picture, title, tags and lines, comma lists of `KC_FIELDS` names (cards.js) ---------- */
+  const rows = extra['settings/card-fields'];
+  const list = v => libS(v).split(',').map(t => t.trim()).filter(Boolean);
+  if (rows && rows.length) d.cardFields = Object.fromEntries(rows.filter(r => libS(r.kind).trim()).map(r => [libS(r.kind).trim(),
+    { cls: libS(r.cls).trim(), pic: list(r.pic), title: list(r.title), tags: list(r.tags), lines: list(r.lines), tiles: list(r.tiles) }]));
+}
+
 function settingsInto_(d, extra) {
   if (!d || !extra) return d;
   /* the link tiles WERE MAPPED HERE -------------------------------------------------------------- into `d.links` and `d.dropdowns.linkCategories`, the backend's § */
   /* the campaigns, and the words they say ---------------------------------------------------- ONE PASS OVER `copy`, INDEXED BY CAMPAIGN, so the phone never joins § */
   /* ---------- WHICH COLUMNS THE APP HAS, AND IN WHAT ORDER § */
   setBrand_(d, extra); setFacets_(d, extra); setKinds_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
-  setCampaigns_(d, extra); setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setFor_(d, extra);
+  setCampaigns_(d, extra); setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
   return d;
 }
 

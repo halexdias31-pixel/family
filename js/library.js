@@ -112,7 +112,7 @@ function settingsRows_() {
 }
 /* BOTH LIBRARY FILES ALREADY IN (670) — merged with the payload at once, as before; otherwise after it (`libraryLate_`, shell.js). */
 function libraryHere_() { return !!(LIBRARY_ROWS && LIBRARY_EXTRA); }
-/* THE PAYLOAD IS DRAWN AND THE LIBRARY IS STILL COMING (670): Find and Find 2 wait (546: their first answers never change once shown). */
+/* THE PAYLOAD IS DRAWN AND THE LIBRARY IS STILL COMING (670): Find waits (546: their first answers never change once shown). */
 let LIBRARY_LATE = false;
 async function libraryExtraAsk_(names) {
   const out = {};

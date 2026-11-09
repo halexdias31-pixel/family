@@ -75,7 +75,7 @@ function boot(cb) {
       ' FACET_TALLY,' +
       /* THE SECOND FINDER (docs/history/329, 347): its binding, its record and its state, so the pass at
          the end asks Find 2's questions the way the app asks them. */
-      ' inFinder_, finderOf_, kindOf_, stuffItemsAll_, RES_ST: typeof RES_ST !== "undefined" ? RES_ST : null };');
+      ' inFinder_, finderOf_, kindOf_, stuffItemsAll_ };');
   } catch (e) {
     bad.push('the app did not load: ' + e.message);
     return cb(null);
@@ -1011,7 +1011,6 @@ boot(f => {
     const kinds = {};
     all.forEach(x => { (kinds[x.kind] = kinds[x.kind] || []).push(x); });
     Object.keys(kinds).forEach(k => lookAsk('every ' + k, kinds[k]));
-    if (!(f.inFinder_ && f.finderOf_ && f.finderOf_('res'))) bad.push('the second finder is not exported, so whether it holds Find\'s list was NOT checked — not a pass');
     if (tooLong.length) {
       bad.push('a question is ASKED with more answers than FACET_MAX_ANSWERS, so the whole list is drawn '
                + 'where the other questions should have narrowed it first: ' + tooLong.slice(0, 6).join('; '));
@@ -1094,69 +1093,9 @@ boot(f => {
     console.log('Paper covers: ' + empty.length + ' live cover(s) in the file with no question, ' + covers.length + ' of them reaching the app');
   }
 
-  /* FIND 2, THE SAME FINDER TWICE (docs/history/347). § */
-  if (f.inFinder_ && f.finderOf_ && f.finderOf_('res') && f.RES_ST) {
-    const RF = f.finderOf_('res');
-    const S = f.RES_ST;
-    const keyOf = x => String(x.key || x.kind + ':' + x.name);
-    const fItems = f.stuffItems();
-    const fFirst = f.nextFacet(fItems.slice());
-    const fFirstVals = fFirst ? f.facetValues(fItems, fFirst) : [];
-    const show = (q, vals) => (q ? q.field + ' [' + vals.map(v => (v.show || v.value) + ' ' + v.n).join(' | ') + ']' : 'nothing');
-    /* c, Find's side, outside any binding: the question after each answer of the first. */
-    const nextOf = list => { const q = f.nextFacet(list.slice()); return show(q, q ? f.facetValues(list, q) : []); };
-    const rung = fFirst ? fFirstVals.map(v => {
-      const chip = { field: fFirst.field, value: v.value };
-      f.STUFF.filters = [chip];
-      const l = fItems.filter(x => f.filterHit(x, chip));
-      const said = nextOf(l);
-      f.STUFF.filters = [];
-      return [fFirst.label + ' · ' + (v.show || v.value), chip, said];
-    }) : [];
-    f.inFinder_(RF, () => {
-      S.filters = []; S.q = '';
-      const ritems = f.stuffItems();
-      const held = {};
-      ritems.forEach(x => { held[x.kind] = (held[x.kind] || 0) + 1; });
-      /* a. */
-      if (!ritems.length) { bad.push('Find 2 holds nothing — not a pass'); return; }
-      const fk = fItems.map(keyOf).sort(), rk = ritems.map(keyOf).sort();
-      if (fk.length !== rk.length) bad.push('Find holds ' + fk.length + ' items and Find 2 ' + rk.length + ' — the same finder twice holds the same list');
-      else if (fk.join('\n') !== rk.join('\n')) {
-        const rs = new Set(rk);
-        const onlyF = fk.filter(k => !rs.has(k));
-        bad.push((onlyF.length || 'some') + ' item(s) on Find are not on Find 2, first ' + onlyF.slice(0, 3).join(', '));
-      }
-      /* b. */
-      const first = f.nextFacet(ritems.slice());
-      const firstVals = first ? f.facetValues(ritems, first) : [];
-      if (!first) bad.push('Find 2 asks no first question over ' + ritems.length + ' items');
-      if (show(first, firstVals) !== show(fFirst, fFirstVals)) bad.push('Find 2 asks ' + show(first, firstVals) + ' first, Find asks ' + show(fFirst, fFirstVals));
-      console.log('\nWHAT FIND 2 HOLDS: ' + Object.keys(held).map(k => k + ' ' + held[k]).join(' · ')
-                  + '\n  first question: ' + show(first, firstVals));
-      /* c. */
-      const states = [['Find 2', ritems, []]];
-      rung.forEach(([say, chip, said]) => {
-        S.filters = [Object.assign({}, chip)];
-        const l = ritems.filter(x => f.filterHit(x, chip));
-        const here = nextOf(l);
-        if (here !== said) bad.push('after ' + say + ' Find 2 asks ' + here.slice(0, 200) + ' and Find ' + said.slice(0, 200));
-        states.push(['Find 2 → ' + say, l, [chip]]);
-      });
-      if (rung.length < 2) bad.push('Find\'s first question has ' + rung.length + ' answer(s), so the rung below it was NOT compared — not a pass');
-      /* d. THE SAME ONE RULE ON FIND 2: no Bible question over a list without the Bible. */
-      const leaked = [];
-      states.forEach(([say, list, chips]) => {
-        if (!list.length || list.some(x => x.kind === 'bible')) return;
-        S.filters = chips.map(c => Object.assign({}, c));
-        const q = f.nextFacet(list.slice()) || f.overFacet_(list.slice());
-        if (q && /^bible/.test(q.field)) leaked.push(say + ' asks ' + q.field);
-      });
-      if (leaked.length) bad.push('a Bible question is asked on Find 2 over a list without the Bible: ' + leaked.join('; '));
-      S.filters = []; S.q = '';
-      console.log('  compared: ' + rung.length + ' answers of the first question, the next question after each; the one rule over ' + states.length + ' lists');
-    });
-  } else bad.push('the second finder (`inFinder_`, `finderOf_`, `RES_ST`) is not exported, so Find 2 was NOT checked — not a pass');
+  /* ONE FIND (owner 10a, 8 Nov): Find 2 went into Find; a second finder coming back is a fail, not a feature. */
+  if (!f.finderOf_) bad.push('`finderOf_` is not exported, so whether Find is the only finder was NOT checked — not a pass');
+  else if (f.finderOf_('res')) bad.push('a second finder (`res`, Find 2) is back; the owner merged it into Find (10a)');
 
   emailTags_(f);
 

@@ -8,8 +8,6 @@
 /* A `let` SINCE THE SECOND FINDER (below): § */
 let STUFF = { q: '', filters: [], whose: '' };
 
-/* ---------- ONE FINDER, TWICE § */
-const RES_ST = { q: '', filters: [], whose: '' };
 /* A FINDER'S RECORD: who it is and — while it is not the bound one — its parked state. § */
 const finder_ = o => Object.assign({
   items: { key: null, from: null, items: null },
@@ -26,10 +24,6 @@ const FINDERS = {
                    front: () => [].concat(bookingPages_(), feedPages_(), bundlePages_()),
                    lead: () => (typeof missingLead_ === 'function' ? missingLead_() : []),
                    leadN: () => (typeof missingLeadN_ === 'function' ? missingLeadN_() : 0),
-                   empty: FINDER_EMPTY }),
-  res:   finder_({ id: 'res', st: RES_ST, place: 'res', widgets: false,
-                   /* A RULE (496), locked: `find-front` — the front pages are Find's alone. */
-                   front: () => (typeof ruleOn_ !== 'function' || ruleOn_('find-front')) ? [] : [].concat(bookingPages_(), feedPages_(), bundlePages_()),
                    empty: FINDER_EMPTY }),
 };
 let FINDER = FINDERS.stuff;
@@ -104,13 +98,13 @@ const KINDS = {
              card: x => (USER && typeof meCard === 'function'
                          && norm((x.row || {}).title) === norm(USER.name))
                         ? meCard()
-                        : findCard({ kind: x.kind, row: x.row }) },
+                        : findCard(x) },
   /* ---------- A VENUE IS A BOOKING THING AGAIN, AND THAT IS WHAT TAKES IT OFF FIND § */
-  /* FIND › VENUES (owner, 7 Nov): its own public answer, an 8-bit picture and tags (venueDoorCard_). */
-  venue:   { group: 'Venues', label: 'Venues', card: x => venueDoorCard_(x) },
-  subject: { group: 'Booking', label: 'Subjects', card: x => findCard({ kind: x.kind, row: x.row }) },
+  /* FIND › VENUES (owner, 7 Nov): its own public answer, an 8-bit picture and tags (card-fields.json). */
+  venue:   { group: 'Venues', label: 'Venues', card: x => findCard(x) },
+  subject: { group: 'Booking', label: 'Subjects', card: x => findCard(x) },
   /* A LEVEL IS THE FOURTH THING A BOOKING IS ASSEMBLED FROM — who, where, what, and how far on — and it was the one you could not look at. § */
-  level:   { group: 'Booking', label: 'Levels',   card: x => findCard({ kind: x.kind, row: x.row }) },
+  level:   { group: 'Booking', label: 'Levels',   card: x => findCard(x) },
 
   /* ---------- YOUR OWN SESSIONS ARE ANSWERS UNDER BOOKING § */
   /* ---------- THE WHOLE RECEIPT, NOT A STUB THAT OPENS ONE § */
@@ -159,11 +153,11 @@ const KINDS = {
   /* AN INSERT IS WHAT THE EXAM HANDS YOU (455), and Content (463): the owner, "inserts count as content" -- no tag of its own. */
   insert: { group: 'Learning', label: 'Library', card: x => insertCard_(x) },
   /* THE HISTORY DATABASE (459) and ONE PEOPLE KIND (batch D: boxers and figures alike, a pixel portrait under the tags); `histKind` says which. */
-  manuscript: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
-  people: { group: 'Learning', label: 'Library', card: x => personCard_(x) },
-  writing: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
+  manuscript: { group: 'Learning', label: 'Library', card: x => findCard(x) },
+  people: { group: 'Learning', label: 'Library', card: x => findCard(x) },
+  writing: { group: 'Learning', label: 'Library', card: x => findCard(x) },
   /* ITS FOURTH (461): an event, and a timeline — every event of one `era`, in date order, a tile each. */
-  event: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
+  event: { group: 'Learning', label: 'Library', card: x => findCard(x) },
   /* A TIMELINE IS ITS OWN KIND OF ITEM (545): the owner, "timelines should have a tag called timeline". */
   timeline: { group: 'Learning', label: 'Timeline', card: x => histTimelineCard_(x) },
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,

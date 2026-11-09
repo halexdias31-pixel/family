@@ -633,7 +633,7 @@ function settingsKeep_(id) {
   }
   /* AND SAVED, WHILE THE LIBRARY CARDS ON THEM HOLD TYPING (docs/history/339) — the one form a
      widget slot holds. The rest of the column waits with it, as the rest of Settings waits with a card. */
-  if (['saved', 'stuff', 'res'].indexOf(id) !== -1 && USER) {   /* Find's too: the library cards are a Find card (790) */
+  if (['saved', 'stuff'].indexOf(id) !== -1 && USER) {   /* Find's too: the library cards are a Find card (790) */
     const col = $('s-' + id);
     return !!(col && col.querySelector('.widget-slot .me-form[data-dirty], .widget-slot .me-form.is-sending'));
   }

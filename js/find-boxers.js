@@ -92,7 +92,7 @@ function bibleRedraw_(n) {
 }
 
 /* ---------- INTO THE BIBLE, FROM WHEREVER THE TAP WAS § */
-/* INTO THE FINDER THE TAP WAS IN — a verse's Chapter or the cover's Open pressed in Find 2 stays in Find 2, where the student is reading — and into Find from § */
+/* INTO THE FINDER THE TAP WAS IN — a verse's Chapter or the cover's Open — and into Find from § */
 on('bible-go', el => {
   if (!bibleFor_() || !BIBLE.index || !BIBLE.item) return;
   const k = el && el.getAttribute('data-key');
@@ -495,9 +495,6 @@ function pixSvg_(rows, name, flip, cls) {
   return `<svg class="pp${cls || ''}" viewBox="0 0 16 16" shape-rendering="crispEdges" role="img" aria-label="${esc(name || '')}">${
     flip ? `<g transform="translate(16 0) scale(-1 1)">${paths}</g>` : paths}</svg>`;
 }
-function personCard_(x) {
-  return `<div class="card fc person lib-c" aria-label="${esc(x.name)}"><figure class="person-pic">${personPic_(x.pixId, x.name)}</figure>${tagRow_(x)}</div>`;
-}
 
 /* A COLUMN VECTOR AS TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) DRAWN TOP OVER BOTTOM in one pair of brackets -- the box, the card, Saved */
 function vecHtml_(html) {
@@ -505,3 +502,5 @@ function vecHtml_(html) {
     '<span class="vec"><span class="vec-a">$1</span><span class="vec-b">$2</span></span>');
 }
 window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, manuscript: histExtras_, writing: histExtras_, event: histExtras_, timeline: tlExtras_ });
+/* A BOXER'S OR FIGURE'S PIXEL PORTRAIT AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
+window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, { boxerPic: x => `<figure class="person-pic">${personPic_(x.pixId, x.name)}</figure>` });

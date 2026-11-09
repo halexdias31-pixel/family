@@ -389,7 +389,7 @@ check('a manuscript card (owner, 7 Nov): Papyrus 52 leads with a drawing of the 
   const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'manuscripts.json'), 'utf8'));
   const r = rows.find(q => q.id === 'MS-0001');
   if (!r) return ['data/manuscripts.json has no MS-0001 — NOT checked'];
-  const el = d.createElement('div'); el.innerHTML = w.histCard_({ kind: 'manuscript', name: r.name, key: 'hdb:MS-0001', row: r, histKind: 'Manuscripts' });
+  const el = d.createElement('div'); el.innerHTML = w.findCard({ kind: 'manuscript', name: r.name, key: 'hdb:MS-0001', row: r, histKind: 'Manuscripts' });
   const card = el.firstElementChild;
   if (!card || !card.firstElementChild || !card.firstElementChild.matches('.hdb-ms')) bad.push('the card does not start with its picture');
   if (!card || !card.lastElementChild || !card.lastElementChild.matches('.qcard-tags')) bad.push('the card\'s tags do not follow its picture');
@@ -405,7 +405,7 @@ check('a manuscript card (owner, 7 Nov): Papyrus 52 leads with a drawing of the 
   if (its.length !== 2 || its[0].msSide !== 'Front (recto)' || its[1].msSide !== 'Back (verso)' || its[0].key !== 'hdb:MS-0001' || its[1].key !== 'hdb:MS-0001:back')
     bad.push('Papyrus 52 is not two items, Front at hdb:MS-0001 and Back at hdb:MS-0001:back: ' + JSON.stringify(its.map(i => [i.key, i.msSide])));
   else {
-    const e2 = d.createElement('div'); e2.innerHTML = w.histCard_(its[1]);
+    const e2 = d.createElement('div'); e2.innerHTML = w.findCard(its[1]);
     if (!/verso/i.test((e2.querySelector('.hdb-ms-side svg') || { getAttribute: () => '' }).getAttribute('aria-label') || '') || e2.querySelectorAll('.hdb-ms-side svg').length !== 1) bad.push('the back card does not draw the verso alone');
     if (!e2.querySelector('.qtag[data-f="histRepository"]')) bad.push('the back card has no Held at tag');
     if (!e2.querySelector('.qtag[data-f="histSide"]')) bad.push('the back card carries no Side tag');

@@ -217,9 +217,6 @@ function venueShape_(v) {
   return /librar/i.test(s) ? 'library' : /church|chapel|synagogue|mosque|temple/i.test(s) ? 'church'
     : /school|college|academy|universit/i.test(s) ? 'school' : /home|house|flat/i.test(s) ? 'house' : 'hall';
 }
-function venueDoorCard_(x) {
-  return `<div class="card fc person venue-door" aria-label="${esc(x.name)}">${tagRow_(x)}<figure class="person-pic">${pixSvg_(VENUE_PIX[venueShape_(x.row || {})], x.name)}</figure></div>`;
-}
 
 /* AN OLD SETTINGS COLUMN ASKED FOR BY NAME (a tile, a link) opens Find › Settings › its type instead. */
 function findSettings_(type) {
@@ -240,3 +237,6 @@ function screenGone_(id) {
   try { if (typeof OPEN_JOB !== 'undefined' && OPEN_JOB) BOOK_OPEN = false; } catch (e) { oops_(e, 'doors:gone'); }
   finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: to[1] }] }); go('stuff'); return true;
 }
+/* A VENUE'S 8-BIT BUILDING AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
+window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
+  venuePic: x => `<figure class="person-pic">${pixSvg_(VENUE_PIX[venueShape_(x.row || {})], x.name)}</figure>` });

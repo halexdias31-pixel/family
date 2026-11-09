@@ -414,10 +414,6 @@ function boot(opts) {
       /* THE EIGHT-BIT FIGHTER'S WORDS AND SHAPES — `const`s, so a getter built here, like `STUFF`. The
          boxer journey asks the figure for exactly the pixels these say, rather than a copy of them. */
       'BOXER: () => (typeof BOXER_LOOK !== "undefined" ? { LOOK: BOXER_LOOK, HAIR: BOXER_HAIR, FACE: BOXER_FACE, BODY: BOXER_BODY, UNSAID: BOXER_HAIR_UNSAID } : null),' +
-      /* AND THE SECOND FINDER'S — Find 2's own words and chips (docs/history/329, 347). The
-         object itself, never parked or replaced; `STUFF` outside a binding is Find's, so the two
-         getters name the two finders. */
-      'RES: () => (typeof RES_ST !== "undefined" ? RES_ST : null),' +
       /* THE BIBLE READER'S STATE — a `const`, so a getter built here (see `STUFF`): § */
       'BIBLE: () => (typeof BIBLE !== "undefined" ? BIBLE : null),' +
       /* AND THE FUNNEL'S OWN MEMO OF WHAT IT TALLIED and the chain that orders the Bible's questions — both `const`s, so only this evaluation can hand them over. § */

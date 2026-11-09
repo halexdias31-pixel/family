@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-09-uniform-1";
+const BACKEND_VERSION = "2026-11-09-uniform-1-card";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -735,8 +735,8 @@ const LAYOUT_KEY = 'layout';
 /* THE RULES (496): config's `rules` row, `{set, hist}`; js/rules.js registers each rule. A locked one is in RULES_LOCKED and never saved universal. */
 const RULES_KEY = 'rules';
 const RULE_IDS = ['mag-items', 'speed-long', 'hear-lang', 'tap-44', 'search-icon', 'whole-widgets', 'library-one-card', 'tell-admin', 'kjv-admin', 'finder-members',
-  'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row', 'find-front'];
-const RULES_LOCKED = ['hear-lang', 'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row', 'find-front'];
+  'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row'];
+const RULES_LOCKED = ['hear-lang', 'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row'];
 const RULES_HIST_MAX = 20;
 /* THE WEEKLY PARENT EMAIL'S WORDS (491): config rows an admin edits on the Site column's preview; blank is this default. {child} {parent} {count} {span} are filled in. */
 const DIGEST_WORDS = {

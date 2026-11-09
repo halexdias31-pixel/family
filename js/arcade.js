@@ -696,13 +696,13 @@ function finderWidgets_(col) {
 
 /* WHICH WIDGETS A COLUMN HOLDS, by its id — the lists `toolsStart_` and `savedStart_` start from, asked by `widgetsGlass_` of a column beside the one in front. § */
 /* `reel` (414): the widgets leading the Reels column, before the admin's "+" and the first reel (`reelLead_`, posts.js). */
-/* `stuff` and `res` (790): the tools and games are Find cards, started and stopped as a column's are. */
-const WIDGET_COLS = ['shop', 'stuff', 'res', 'saved', 'reel'];
+/* `stuff` (790): the tools and games are Find cards, started and stopped as a column's are. */
+const WIDGET_COLS = ['shop', 'stuff', 'saved', 'reel'];
 function widgetsOn_(col) {
   if (col === 'saved') return savedWidgets_();
   if (col === 'reel') return widgetsOf_('reel');
   if (col === 'shop') return widgetsOf_('shop');
-  if (col === 'stuff' || col === 'res') return finderWidgets_(col);
+  if (col === 'stuff') return finderWidgets_(col);
   /* A WIDGET THE ADMIN MOVED ONTO A CARD COLUMN OR ONE OF THEIR OWN (710). */
   if (typeof layoutWidgetsIn_ === 'function' && typeof allWidgets === 'function') { const L = layoutNow_(); return L ? layoutWidgetsIn_(col, allWidgets(), L).filter(widgetFor_) : []; }
   return [];

@@ -310,165 +310,104 @@ function rateRange_(t) {
   return max > 1 && seat > 0 ? say(r) + '–' + say(r + seat * (max - 1)).slice(1) + '/hour' : say(r) + '/hour';
 }
 
+/* ONE CARD FOR EVERY KIND (owner, 8 Nov): picture, title, tags, lines, then its tile row (`cardTiles_`).
+   card-fields.json picks each part's fields; check-card-shape holds the shape. */
+const KC_PARTS = ['pic', 'head', 'tags', 'lines'];
+/* BEFORE THE SETTINGS FILE ARRIVES, OR FOR A KIND IT DOES NOT NAME: its kind's picture, its name, its facet tags. */
+const KC_BARE = { cls: '', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] };
+const kcRow_ = x => (x && x.row) || {};
+const kcPct_ = m => (m === 1 ? '—' : (m > 1 ? '+' : '−') + Math.abs(Math.round((m - 1) * 100)) + '%');
+/* EACH FIELD A CARD CAN SHOW, BY NAME: the settings file picks, and a field with nothing to say says ''. */
+const KC_FIELDS = {
+  kindPic: x => libPic_(x.kind, x.name),
+  name: x => `<h3>${esc(x.name || '')}</h3>`,
+  /* THE TUTOR'S COMPACT ONE-SCREEN CARD (547) as fields: face, role, the name line with the rate, then pills and lines. */
+  face: x => { const t = kcRow_(x); return personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title, personId: t.personId },
+    { cls: 'prof-pic', none: 'prof-none', size: 44 }); },
+  role: x => { const t = kcRow_(x); return `<h3>${esc([t.role || 'Tutor'].concat(profList_(t.titles)).join(' · '))}${
+    t.listed === false ? ` <span class="prof-off">· ${t.pending ? 'asked to tutor' : 'not listed'}</span>` : ''}</h3>`; },
+  nameRate: x => { const t = kcRow_(x); return `<div class="prof-who">
+    <span class="prof-line"><span class="prof-name">${esc(t.title)}</span>${t.rate && !childView_()
+      ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/hour$/, ''))}<small>/hour</small></span></span>` : ''}</span>
+    ${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
+    ${t.activity ? `<span class="prof-act">${esc(t.activity)}</span>` : ''}</div>`; },
+  /* A TICKED TUTOR BOX IS A QUESTION TO THE ADMIN, answered by the eye tile; the line says what pressing it means. */
+  listedNote: x => { const t = kcRow_(x); if (!(t.listed === false && isAdmin())) return '';
+    return t.pending ? `<p class="prof-say prof-hid">They ticked Tutor in their settings. Until you list them they are not on the site,
+      cannot be booked and cannot take a session — the crossed-out eye below approves them.</p>`
+      : '<p class="prof-say prof-hid">Clients cannot see them. The crossed-out eye below puts them back on the site.</p>'; },
+  /* SUBJECT PILLS: one chip a subject, its levels raised (`teachGroups_`). */
+  teaches: x => { const t = kcRow_(x), main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
+    return (main.length ? `<div class="prof-cap">Teaches</div><div class="qtags prof-tags prof-teach">${
+      PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 3).join('')}</div>` : '')
+      + (also.length ? `<div class="prof-cap">Can also teach</div><div class="qtags prof-tags prof-teach">${
+      PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 2).join('')}</div>` : ''); },
+  facts: x => { const f = profFacts_(kcRow_(x));
+    return f.length ? `<div class="qtags prof-tags prof-teach prof-facts">${f.map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''; },
+  /* WHAT THEY WROTE: `doget.gs` already quotes it, so it is printed as said. */
+  say: x => (kcRow_(x).description ? `<p class="prof-say">${esc(kcRow_(x).description)}</p>` : ''),
+  photos: x => { const p = kcRow_(x).photos; return Array.isArray(p) && p.length ? `<div class="prof-photos">${PROF_MORE_(p.map(u =>
+    `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy" decoding="async"></span>`), 4).join('')}</div>` : ''; },
+  words: x => { const w = profList_(kcRow_(x).tags).slice(0, 3);
+    return w.length ? `<p class="prof-words">${w.map(v => `<b>${esc(v)}</b>`).join('<i aria-hidden="true">·</i>')}</p>` : ''; },
+  quals: x => profQuals_(kcRow_(x)),
+  jobs: x => profJobs_(kcRow_(x)),
+  /* THE MAP: the venues tab's `tutors_happy_here`; an older backend sends no key and nothing is drawn. */
+  places: x => profHeat_(profList_(kcRow_(x).venues)),
+  /* DAY PILLS. */
+  avail: x => profAvail_(kcRow_(x)),
+  venueSub: x => (kcRow_(x).subtitle ? `<p class="sub">${mark(kcRow_(x).subtitle)}</p>` : ''),
+  /* A CHILD IS TOLD THE SEATS AND NOT THE PRICE (398), and a room with neither says nothing. */
+  rooms: x => { const t = kcRow_(x), kid = childView_();
+    const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? money(rate) + '/h' : 'free'].filter(Boolean).join(' · ');
+    const one = (label, max, rate) => (say(max, rate) ? row(label, say(max, rate)) : '');
+    return (t.rooms || []).length ? t.rooms.slice(0, 4).map(r => one(r.name || 'Room', r.max, r.rate)).join('') : one('The room', t.maxCapacity, t.bestRate); },
+  surcharge: x => { const t = kcRow_(x); if (x.kind === 'level' && !t.priced) return row('Surcharge', 'Not priced yet', 'bad');
+    return row(t.mult === 1 ? 'No surcharge' : 'Surcharge', kcPct_(t.mult)); },
+  /* THE SUBJECTS THAT RUN AT A LEVEL, green as a subject is everywhere. */
+  levelSubjects: x => { const s = kcRow_(x).subjects || [];
+    return s.length ? rowHtml('Subjects', s.map(v => `<span class="subject">${esc(v)}</span>`).join(', ')) : row('Subjects', 'None yet', 'bad'); },
+  tutorCount: x => { const n = (kcRow_(x).tutors || []).length; return row('Tutors', n ? String(n) : 'None yet', n ? '' : 'bad'); },
+  bookingForm: x => (kcRow_(x).listed ? '' : row('Booking form', 'Not offered', 'bad')),
+  levels: x => { const l = (kcRow_(x).levels || []).filter(Boolean); return l.length ? row('Levels', l.join(', ')) : ''; },
+  tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<div class="qtags">${t.map(y => `<span class="qtag" data-tag="3">${esc(y.title)}</span>`).join('')}</div>`
+    : x.kind === 'subject' ? row('Tutors', 'None yet', 'bad') : ''; },
+};
+/* A FIELD ITS OWN FILE DRAWS (tags, a venue's building, a manuscript, a boxer) is added to `window.KC_FIELDS_MORE` there; no load order needed. */
+const kcField_ = k => KC_FIELDS[k] || (window.KC_FIELDS_MORE || {})[k];
+/* THE FILE'S ROWS BEFORE IT ARRIVES (or if it never does): the same rows, held equal to the file by check-card-shape. */
+const KC_DEFAULT = {
+  tutor: { cls: 'is-widget is-prof tcard', pic: ['face'], title: ['role', 'nameRate'], tags: ['teaches', 'facts'], lines: ['listedNote', 'say', 'photos', 'words', 'quals', 'jobs', 'places', 'avail'], tiles: ['book-with:book:Book', 'msg-open:msg:Message'] },
+  venue: { cls: 'venue-door', pic: ['venuePic'], title: ['name'], tags: ['facets'], lines: ['venueSub', 'rooms'], tiles: [] },
+  level: { cls: 'is-level', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['surcharge', 'levelSubjects', 'tutorCount', 'bookingForm', 'tutorNames'], tiles: ['book-with:book:Book'] },
+  subject: { cls: 'is-subject', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['surcharge', 'levels', 'tutorNames'], tiles: ['book-with:book:Book'] },
+  manuscript: { cls: 'hdb hdb-msc lib-c', pic: ['msPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] },
+  writing: { cls: 'hdb lib-c', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['refs'], tiles: [] },
+  event: { cls: 'hdb lib-c', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['refs'], tiles: [] },
+  people: { cls: 'person lib-c', pic: ['boxerPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] },
+};
+/* A KIND'S FIELDS: its row in data/settings/card-fields.json (`DATA.cardFields`, settings.js), else the built-in row, else the bare three. */
+function kcSpec_(kind) {
+  const rows = (typeof DATA !== 'undefined' && DATA && DATA.cardFields) || KC_DEFAULT;
+  return rows[kind] || KC_BARE;
+}
+/* EVERY CARD OF A KIND SHOWS ITS KIND'S TILES (owner 35a, 8 Nov): one this card cannot use is drawn greyed (`off`), never left out. */
+function kcTilesFill_(x, html) {
+  const s = x && x.key ? kcSpec_(x.kind) : null;
+  if (!s || !(s.tiles || []).length) return html;
+  return html + s.tiles.map(t => { const [act, icon, label] = String(t).split(':');
+    return new RegExp('data-do="' + act + '"').test(html) ? '' : tile_({ icon, label: label || act, act, off: true, cls: 'kc-off' }); }).join('');
+}
 function findCard(x) {
-  const t = x.row;
-  /* ---------- A PERSON IS A WIDGET, AND THE LANYARD HAS GONE § */
-  if (x.kind === 'tutor') return tutorCard_(t);
-  /* ---------- A VENUE IS AN ORDINARY CARD § */
-  if (x.kind === 'venue') return venueCard_(t);
-  /* ---------- A LEVEL IS THE OTHER HALF OF A SUBJECT CARD § */
-  if (x.kind === 'level') return levelCard_(t);
-  return subjectCard_(t);
-}
-
-/* A tutor card's top row: the face, name, rate, handle and activity. */
-function tutorTop_(t) {
-  return `
-    <div class="prof-top">
-      ${/* THE FACE IS `personFace_` (links.js), THE ONE FUNCTION EVERY FACE GOES THROUGH: § */
-            ''}
-      ${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title, personId: t.personId },
-                    { cls: 'prof-pic', none: 'prof-none', size: 44 })}
-      <div class="prof-who">
-        <span class="prof-line"><span class="prof-name">${esc(t.title)}</span>
-        ${t.rate && !childView_() ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/hour$/, ''))}<small>/hour</small></span></span>` : ''}
-        </span>
-        ${/* ---------- AND THE HANDLE, WITH THE `@` THAT IS NOT IN THE CELL § */
-              ''}
-        ${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
-        ${/* HOW MANY QUESTIONS AND HOW RECENTLY — set only on a learner in an admin's people column,
-              by `subsLine_` in find.js, off the summary of the sheet's `submissions` tab. Absent
-              everywhere else. */''}
-        ${t.activity ? `<span class="prof-act">${esc(t.activity)}</span>` : ''}
-        ${/* ---------- THE RATE, UP HERE AND BIGGER § */
-              ''}
-        ${/* ---------- NO CITY AND NO DBS STAMP UP HERE § */
-              ''}
-      </div>
-    </div>`;
-}
-
-/* A tutor's card in Find: the profile widget. */
-function tutorCard_(t) {
-  return `
-    <div class="card is-widget is-prof tcard${t.listed === false ? ' is-off' : ''}">
-      ${/* ---------- A TITLE SITS BESIDE THE ROLE, IN THE ROLE'S OWN LABEL § */
-             ''}
-      <h3>${esc([t.role || 'Tutor'].concat(profList_(t.titles)).join(' · '))}${
-        t.listed === false ? ` <span class="prof-off">· ${t.pending ? 'asked to tutor' : 'not listed'}</span>` : ''}</h3>
-      ${/* ---------- AND WHAT `· not listed` MEANS, SAID ONCE, WHERE THE MARK IS § */
-            ''}
-      ${/* A TICKED TUTOR BOX IS A QUESTION TO THE ADMIN, and this is where it is answered — the same switch, so the sentence says what pressing it MEANS for somebody who § */
-            ''}
-      ${t.listed === false && isAdmin()
-        ? (t.pending
-          ? `<p class="prof-say prof-hid">They ticked Tutor in their settings. Until you list them
-               they are not on the site, cannot be booked and cannot take a session — the crossed-out
-               eye below approves them.</p>`
-          : `<p class="prof-say prof-hid">Clients cannot see them. The crossed-out eye below puts
-             them back on the site.</p>`) : ''}
-      ${tutorTop_(t)}
-      ${/* SEVERAL TEACHES. *"when i tick teach for different levels of same subject it unticks the other one. i dont want that"* — so `teachesSpec` is a list, every one § */
-            ''}
-      ${/* ONE CHIP A SUBJECT, ITS LEVELS RAISED — `teachGroups_`. § */
-            ''}
-      ${(() => {
-        const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
-        return (main.length ? `<div class="prof-cap">Teaches</div><div class="qtags prof-tags prof-teach">${
-                  PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 3).join('')}</div>` : '')
-             + (also.length ? `<div class="prof-cap">Can also teach</div><div class="qtags prof-tags prof-teach">${
-                  PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 2).join('')}</div>` : '');
-      })()}
-      ${/* EXPERIENCE, AGES, GROUP SIZE AND SESSION LENGTH, AS PILLS UNDER THE FACE (look rules: every attribute a tag at the top). */
-            ''}
-      ${profFacts_(t).length
-        ? `<div class="qtags prof-tags prof-teach prof-facts">${profFacts_(t)
-             .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''}
-      ${/* WHAT THEY WROTE ABOUT THEMSELVES. `doget.gs` already wraps it in quotation marks, so it
-            is printed as said rather than as a field with a label — which is the difference between
-            a profile and a form. */''}
-      ${t.description ? `<p class="prof-say">${esc(t.description)}</p>` : ''}
-      ${/* ---------- THEIR OTHER PHOTOGRAPHS, AS SMALL SQUARES § */
-            ''}
-      ${Array.isArray(t.photos) && t.photos.length
-        ? `<div class="prof-photos">${PROF_MORE_(t.photos.map(u =>
-             `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy" decoding="async"></span>`), 4).join('')}</div>`
-        : ''}
-      ${/* THE THREE ADJECTIVES OFF THE SHEET, AS BOLD WORDS AND NOT CHIPS. § */
-            ''}
-      ${profList_(t.tags).length
-        ? `<p class="prof-words">${profList_(t.tags).slice(0, 3)
-             .map(v => `<b>${esc(v)}</b>`).join('<i aria-hidden="true">·</i>')}</p>` : ''}
-      ${/* ---------- THE ROWS, AND EVERY ONE OF THEM IS DROPPED WHEN IT IS EMPTY § */
-            ''}
-      ${/* ---------- WHAT THEY TEACH, AS THE SAME CHIPS THE ADJECTIVES ARE § */
-            ''}
-      ${/* ---------- FIVE CAPTIONS, IN THIS ORDER, AND NO OTHERS § */
-            ''}
-      ${/* ---------- QUALIFICATIONS, AS THE SAME CHIPS § */
-            ''}
-      ${profQuals_(t)}
-      ${profJobs_(t)}
-      ${/* WHERE THEY WILL TEACH, off the venues tab's own `tutors_happy_here` column, which a tutor
-            ticks on their Contact & address page. An older backend sends no key: nothing drawn. */''}
-      ${profHeat_(profList_(t.venues))}
-      ${profAvail_(t)}
-    </div>`;
-}
-
-/* A venue's card: its rooms, seats and rate. */
-function venueCard_(t) {
-    /* A CHILD IS TOLD THE SEATS AND NOT THE PRICE (398), and a room with neither says nothing. */
-    const kid = childView_();
-    const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? money(rate) + '/h' : 'free']
-      .filter(Boolean).join(' · ');
-    const roomRow = (label, max, rate) => say(max, rate) ? row(label, say(max, rate)) : '';
-    return `
-    <div class="card">
-      <h3>${esc(t.title)}</h3>
-      ${t.subtitle ? `<p class="sub">${mark(t.subtitle)}</p>` : ''}
-      ${(t.rooms || []).length
-        ? (t.rooms || []).slice(0, 4).map(r => roomRow(r.name || 'Room', r.max, r.rate)).join('')
-        : roomRow('The room', t.maxCapacity, t.bestRate)}
-    </div>`;
-}
-
-/* A level's card: its surcharge, subjects and tutors. */
-function levelCard_(t) {
-  return `
-    <div class="card is-level">
-      <h3>${esc(t.name)}</h3>
-      ${t.priced
-        ? row(t.mult === 1 ? 'No surcharge' : 'Surcharge',
-              t.mult === 1 ? '—'
-            : (t.mult > 1 ? '+' : '−') + Math.abs(Math.round((t.mult - 1) * 100)) + '%')
-        : row('Surcharge', 'Not priced yet', 'bad')}
-      ${/* THE SUBJECTS THAT RUN AT IT — green, because a subject is green wherever it appears, and
-            this is the fact somebody who has chosen a level is actually asking for. */''}
-      ${t.subjects && t.subjects.length
-        ? rowHtml('Subjects', t.subjects.map(s => `<span class="subject">${esc(s)}</span>`).join(', '))
-        : row('Subjects', 'None yet', 'bad')}
-      ${row('Tutors', t.tutors && t.tutors.length ? String(t.tutors.length) : 'None yet',
-            t.tutors && t.tutors.length ? '' : 'bad')}
-      ${t.listed ? '' : row('Booking form', 'Not offered', 'bad')}
-      ${t.tutors && t.tutors.length ? `<div class="qtags">${t.tutors.map(y => `<span class="qtag" data-tag="3">${esc(y.title)}</span>`).join('')}</div>` : ''}
-    </div>`;
-}
-
-/* A subject's card: its surcharge, levels and tutors. */
-function subjectCard_(t) {
-  return `
-    <div class="card is-subject">
-      <h3>${esc(t.name)}</h3>
-      ${row(t.mult === 1 ? 'No surcharge' : 'Surcharge',
-            t.mult === 1 ? '—'
-          : (t.mult > 1 ? '+' : '−') + Math.abs(Math.round((t.mult - 1) * 100)) + '%')}
-      ${/* THE LEVELS, which only the sheet had. One line, and it is the fact that decides whether
-            this subject is the one somebody wants at all. */''}
-      ${t.levels && t.levels.filter(Boolean).length
-        ? row('Levels', t.levels.filter(Boolean).join(', ')) : ''}
-      ${t.tutors && t.tutors.length ? `<div class="qtags">${t.tutors.map(y => `<span class="qtag" data-tag="3">${esc(y.title)}</span>`).join('')}</div>` : row('Tutors', 'None yet', 'bad')}
-    </div>`;
+  const it = x && x.row ? x : { kind: 'subject', row: x || {} };
+  const t = kcRow_(it), name = it.name || t.title || t.name || '';
+  const one = it.name ? it : Object.assign({}, it, { name });
+  const s = kcSpec_(it.kind);
+  const run = list => (list || []).map(k => { try { const f = kcField_(k); return f ? f(one) || '' : ''; } catch (e) { oops_(e, 'card:' + k); return ''; } }).join('');
+  const parts = { pic: run(s.pic), head: run(s.title), tags: run(s.tags), lines: run(s.lines) };
+  const off = it.kind === 'tutor' && t.listed === false ? ' is-off' : '';
+  return `<div class="card fc kc kc-${esc(it.kind || 'thing')}${s.cls ? ' ' + esc(s.cls) : ''}${off}" aria-label="${esc(name)}">${
+    KC_PARTS.map(p => `<div class="kc-${p}">${parts[p]}</div>`).join('')}</div>`;
 }
 
 /* Tapping one opens a sheet rather than expanding the card. § */

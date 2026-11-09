@@ -381,18 +381,6 @@ function histExtras_(x) {
   return [read ? { icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } } : null]
     .concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => ({ icon: icon(l), label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })),
       histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u => ({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u }))); }
-function histCard_(x) {
-  const r = x.row || {};
-  /* A MANUSCRIPT IS MINIMAL (owner, 7 Nov): its picture first where drawn, then its facts as tags; no title, no grey line. */
-  if (isManuscript_(x)) return `<div class="card fc hdb hdb-msc lib-c" aria-label="${esc(x.name)}">${msFragSvg_(r, x.msSideIx) || libPic_('manuscript', x.name)}${tagRow_(x)}</div>`;
-  /* EVERY LIBRARY CARD LOOKS ONE WAY (owner's look rule): its picture, its facts as tags, its name; the long lines are its pages. */
-  return `<div class="card fc hdb lib-c">
-    ${libPic_(x.kind, x.name)}
-    ${tagRow_(x)}
-    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
-    ${writingRefs_(r.id)}
-  </div>`;
-}
 
 /* THE BIBLE (KING JAMES VERSION) — ASKED LIKE EVERYTHING ELSE ON FIND, AND SHOWN ONLY TO AN ADMIN. § */
 const BIBLE_NAME = 'The Bible';
@@ -548,14 +536,14 @@ function bibleLoad_(n, dir) {
 
 /* ---------- THE CHOSEN BOOK, ASKED FOR BEFORE ITS VERSES ARE DRAWN (docs/history/341) § */
 function bibleChosen_() {
-  const st = typeof RES_ST !== 'undefined' ? RES_ST : STUFF;
+  const st = FINDERS.stuff === FINDER ? STUFF : FINDERS.stuff.st;
   const f = (st.filters || []).find(x => x.field === 'wBook' && x.value != null);
   if (!f || !BIBLE.rank || !BIBLE.rank.b) return 0;
   return BIBLE.rank.b[spellKey_(f.value)] || 0;
 }
 /* THE CHOSEN TRANSLATION'S FOLDER: '' for the KJV, or when none is chosen yet. */
 function bibleChosenDir_() {
-  const st = typeof RES_ST !== 'undefined' ? RES_ST : STUFF;
+  const st = FINDERS.stuff === FINDER ? STUFF : FINDERS.stuff.st;
   /* BY THE LANGUAGE AND THE TRANSLATION CHOSEN (546), either or both: an original text (the Septuagint) is its language alone. */
   const f = (st.filters || []).find(x => x.field === 'wText' && x.value != null), l = (st.filters || []).find(x => x.field === 'wLanguage' && x.value != null);
   const t = (f || l) && BIBLE.index ? bibleTrs_(BIBLE.index).find(t => {
@@ -570,9 +558,9 @@ function bibleAhead_() {
   bibleLoad_(n, dir).then(() => bibleRedraw_(k));
 }
 function bibleJobs_() {
-  const n = TABS.some(t => t.id === 'res') ? bibleChosen_() : 0, k = bibleSlot_(n, bibleChosenDir_());
+  const n = TABS.some(t => t.id === 'stuff') ? bibleChosen_() : 0, k = bibleSlot_(n, bibleChosenDir_());
   if (!n || !bibleFor_() || BIBLE.books[k] || BIBLE.loading[k] || BIBLE.missed[k]) return [];
-  return [{ key: 'bible:' + n, kind: 'bible', d: aheadDist_('res', null), run: bibleAhead_ }];
+  return [{ key: 'bible:' + n, kind: 'bible', d: aheadDist_('stuff', null), run: bibleAhead_ }];
 }
 AHEAD_KINDS.push(bibleJobs_);
 
@@ -666,3 +654,6 @@ function bibleItems_() {
 function bibleCard_(x) {
   return x && x.bb ? bibleVerseCard_(x) : '';
 }
+/* A MANUSCRIPT'S OWN FRAGMENT WHERE DRAWN (else its kind's picture), and a writing's references, as fields of the one card shape. */
+window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
+  msPic: x => msFragSvg_(x.row || {}, x.msSideIx) || libPic_('manuscript', x.name), refs: x => writingRefs_((x.row || {}).id) });

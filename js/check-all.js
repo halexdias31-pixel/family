@@ -109,6 +109,7 @@ const SUITE = [
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
   /* THE HISTORY DATABASE (459): manuscripts, figures, writings, linked both ways. */
   { file: 'check-history-db.js', what: 'the history database: schema, ids, links both ways, years, sources' },
+  { file: 'check-card-shape.js', what: 'one card shape for every kind in Find: picture, title, tags, lines (owner, 8 Nov)' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
   { file: 'check-anims.js', what: 'the books\' animations: one source, kept and drawn as their rows', par: true },
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */

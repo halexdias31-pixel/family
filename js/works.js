@@ -102,7 +102,7 @@ function worksRowOf_(id) {
   const w = WORKS.index && WORKS.index.works.find(v => v.id === id);
   return w ? { id: w.id, title_english: w.title, key: worksFirstKey_(id) } : null;
 }
-/* THE FIRST PAGE OF A WORK: a link to it from a history row lands here (histCard_). */
+/* THE FIRST PAGE OF A WORK: a link to it from a history row lands here (findCard). */
 function worksFirstKey_(id) {
   const w = WORKS.index && WORKS.index.works.find(v => v.id === id);
   return w ? 'wt:' + w.id + ':' + (w.languages.indexOf('English') >= 0 ? 'English' : w.languages[0]) + ':0' : '';
