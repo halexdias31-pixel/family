@@ -135,20 +135,20 @@
   }
  ],
  "secondary": {
-  "score": 87.8,
+  "score": 87.9,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
     "id": "exceptions",
     "label": "Written exceptions in the checks",
-    "count": 94,
+    "count": 93,
     "weight": 0.1,
     "cap": 20,
-    "off": 9.4,
+    "off": 9.3,
     "where": {
      "js/check-look.js LIT_OK": 1,
      "js/check-look.js WORDS_OK": 1,
-     "js/check-permissions.js ALLOW": 2,
+     "js/check-permissions.js ALLOW": 1,
      "js/check-widgets.js ACCEPTED_ENGINE": 1,
      "js/check-widgets.js ACCEPTED_IMPURE": 5,
      "check/cascade.js ACCEPTED": 28,

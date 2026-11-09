@@ -43,9 +43,9 @@ function rowsFromAccess() {
   return rows;
 }
 
-/* THE ACTIONS FROM THE BACKEND, then the file's own `see` rows unchanged. */
+/* THE ACTIONS FROM THE BACKEND, then the file's own `see` and `ui` rows unchanged. */
 function seeRows() {
-  try { return JSON.parse(fs.readFileSync(JSON_PATH, 'utf8')).filter(r => r && r.kind === 'see'); } catch (e) { return []; }
+  try { return JSON.parse(fs.readFileSync(JSON_PATH, 'utf8')).filter(r => r && (r.kind === 'see' || r.kind === 'ui')); } catch (e) { return []; }
 }
 const fullRows = () => rowsFromAccess().concat(seeRows());
 

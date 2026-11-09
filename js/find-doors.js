@@ -15,7 +15,7 @@ function whenBand_(v) {
   return days < 1 ? 'Today' : days < 7 ? 'This week' : days < 31 ? 'This month' : days < 366 ? 'This year' : 'Older';
 }
 function postDoorItems_() {
-  const admin = rankAtLeast_('admin');
+  const admin = seeMay_('find:all-posts');
   return ((DATA && DATA.posts) || []).filter(p => p && p.id && (admin || postState_(p) === 'Approved' || p.mine)).map(p => {
     const who = (typeof profileOf_ === 'function' && (profileOf_(p.authorId) || {}).handle) || p.handle || p.author || '';
     return { kind: 'post', name: String(p.text || p.caption || p.title || 'Post').slice(0, 80), key: 'post:' + p.id, sub: who, image: '', row: p,
@@ -50,7 +50,7 @@ window.KC_AROUND = Object.assign(window.KC_AROUND || {}, { msg: msgDoorCard_ });
 
 /* ---------- PROFILES: who they are is the menu; admin-only answers are asked by rank ---------- */
 function profileTypes_(p, tutor) {
-  const out = [], role = String((p && p.role) || ''), admin = rankAtLeast_('admin');
+  const out = [], role = String((p && p.role) || ''), admin = seeMay_('find:admin-tags');
   if (tutor || /tutor|teacher/i.test(role)) out.push('Tutor');
   if (/student|child/i.test(role)) out.push('Student');
   if (/client|parent/i.test(role)) out.push('Parent');
@@ -74,7 +74,7 @@ function profileDoorItems_() {
   };
   /* Tutors are Booking's tutor items, tagged Profiles too (KIND_UNDER): never a second card here. */
   ((DATA && DATA.tutors) || []).forEach(t => { if (t) seen[String(t.personId || t.title || t.handle || '')] = 1; });
-  if (rankAtLeast_('admin')) ((DATA && DATA.everyone) || []).filter(p => p && p.title).forEach(p => add(p, false));
+  if (seeMay_('find:all-people')) ((DATA && DATA.everyone) || []).filter(p => p && p.title).forEach(p => add(p, false));
   if (typeof canTrack === 'function' && canTrack() && typeof friendHandles === 'function') friendHandles().forEach(h => {
     const s2 = ((DATA && DATA.students) || []).find(x => norm(x.handle) === norm(h)) || {};
     add(Object.assign({ handle: h, title: s2.name || h, role: 'Student' }, s2), false);

@@ -457,6 +457,8 @@ function seeRoles_() {
 }
 /* MAY THE VIEWER SEE THIS SETTINGS CARD OR ACCOUNT TYPE: permissions.json's `see` rows; no row, an admin's only (`can_`). */
 const seeMay_ = key => seeRoles_().some(r => can_(r, 'see', key));
+/* MAY THE VIEWER HAVE THIS BUTTON: permissions.json's `ui` rows, by the action roles, so a child differs from a parent; no row, an admin's only. */
+const uiMay_ = key => can_(myRole_(), 'ui', key);
 
 /* ---------- THE LAWS § */
 
