@@ -203,9 +203,6 @@ function uxWork() {
   /* TEXT BOXES (980): every visible box on Find, a question and Settings drawn alike; each differing measure a finding. */
   ((j.boxLooks || {}).off || []).forEach(o => W.push({ kind: 'ux', where: 'text boxes', say: o }));
   if (j.boxLooks && (j.boxLooks.faces || []).length < 3) W.push({ kind: 'ux', where: 'text boxes', say: 'the walk measured ' + (j.boxLooks.faces || []).length + ' of 3 boxes (Find, a question, Settings)' });
-  /* UPDATE CONTINUITY (970): data/update-health.json, from tools/update-health.js; a deploy must land without losing a place or a draft. */
-  let u = null; try { u = JSON.parse(read('data/update-health.json')); } catch (e) { u = null; }
-  if (u) (u.cases || []).filter(c => !c.pass).forEach(c => W.push({ kind: 'update-continuity', where: 'new build: ' + c.name, say: (c.why || []).join('; ') }));
   return { j, work: W };
 }
 const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10],

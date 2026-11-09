@@ -764,36 +764,3 @@ function banner(msg) {
   el.classList.remove('hidden');
 }
 
-/* THE VERSION THE SERVER HAS, ASKED FOR RATHER THAN ASSUMED § */
-let BUILD_TAG = null;
-/* THE SERVER'S `Last-Modified` FOR THE ENTRY POINT, as a time — against the one this page was built
-   from. See `bootStale_`. */
-let BUILD_AT = 0;
-let BUILD_ASKED = 0;
-/* WHEN THE PAGE WENT AWAY, so a resume can be told from an app-switch. See `checkBuild_`. */
-let BUILD_HID = 0;
-/* The number is `AWAY_AGAIN`, up beside `TAB_HOME`, because two things now ask it. */
-
-/* HEAD, so nothing is downloaded, and `no-store` so the answer is the server's rather than the browser's copy of it. § */
-async function buildTag_() {
-  try {
-    const res = await fetch(location.pathname.replace(/[^/]*$/, '') + 'index.html',
-                            { method: 'HEAD', cache: 'no-store' });
-    if (!res || !res.ok) return null;
-    BUILD_AT = Date.parse(res.headers.get('last-modified') || '') || 0;
-    return res.headers.get('etag') || res.headers.get('last-modified') || null;
-  } catch (e) { return null; }
-}
-
-async function watchBuild_() {
-  /* NO SIGNAL MEANS SAY NOTHING. § */
-  BUILD_TAG = await buildTag_();
-  if (!BUILD_TAG) return;
-  bootStale_();
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { BUILD_HID = Date.now(); buildQuietly_(); return; }
-    checkBuild_();
-  });
-  /* ---------- AND `pageshow`, BECAUSE OF THE HOME SCREEN § */
-  window.addEventListener('pageshow', e => { if (e && e.persisted) checkBuild_(); });
-}
