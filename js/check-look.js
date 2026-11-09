@@ -118,5 +118,12 @@ for (const m of noComments.matchAll(/([^{}]*kc-pic[^{}]*)\{([^{}]*)\}/g)) {
   if (/(^|;)\s*(max-|min-)?height:\s*(?!\s|var\(--pic-h\)|100%)/.test(m[2])) bad.push(`58a a picture height of its own in "${m[1].trim().slice(0, 60)}"`);
 }
 
+/* ---------- 59a. ONE COLUMN ON EVERY SCREEN SIZE: no wider-window rule adds a column; the wide grid stays off ---------- */
+for (const m of noComments.matchAll(/@media[^{]*min-width[^{]*\{([^{}]*\{[^{}]*\}\s*)+\}/g)) {
+  if (/grid-template-columns|column-count|(?<![-\w])columns:/.test(m[0])) bad.push(`59a a second column on a wide window: ${m[0].slice(0, 80)}`);
+}
+const bootSrc = (files.find(f => f.n === 'shell-boot') || {}).src || '';
+if (!/const FLOW_LAYOUT = true;/.test(bootSrc)) bad.push('59a FLOW_LAYOUT is not true (shell-boot.js) — the wide multi-column grid would come back');
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');

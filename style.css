@@ -3796,7 +3796,7 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 
 /* ---------- THE TWO HALVES OF THE CANDIDATE TABLE § */
 .prac-tab { display: grid; grid-template-columns: 1fr; gap: .5rem; margin: .65rem 0 0; }
-@media (min-width: 30rem) { .prac-tab { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+/* ONE COLUMN ON EVERY SCREEN SIZE (owner 59a, 9 Nov): the two halves stack, wide or narrow. */
 /* A COLUMN LABEL, NOT A SECTION HEAD, AND IT WAS DRAWN AS BOTH. § */
 .fc-sec .prac-tab h4 { margin: 0 0 .3rem; font: 400 .64rem/1 var(--mono); letter-spacing: .08em;
                text-transform: uppercase; color: var(--ink); }
