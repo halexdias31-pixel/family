@@ -176,16 +176,16 @@ try {
   files.forEach(({ n, src }) => { if (/\b(TAB_GONE|SETTINGS_HOME|settingsGone_|bookingGone_)\b/.test(strip(src))) movedDiffer.push(n + '.js keeps its own moved-screen table'); });
 } catch (e) { movedDiffer = ['(SCREEN_MOVED could not be read: ' + e.message + ')']; }
 
-/* ONE ADMIN CHECK (batch D): Find's doors ask `rankAtLeast_`, and who sees an admin's setting is setting-for.json's `min_rank`. */
+/* ONE ADMIN CHECK (batch D): Find's doors ask `rankAtLeast_`, and who sees an admin's setting is permissions.json's `see` rows (86a). */
 const rankOff = [];
 try {
-  const sf = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'setting-for.json'), 'utf8'));
-  ['type:Apprentice', 'type:Business', 'type:Site', 'door:notify', 'door:checks'].forEach(k => { const r = sf.find(x => x && x.card === k);
-    if (!r || !r.min_rank) rankOff.push('setting-for.json: no `min_rank` on ' + k); });
+  const pr = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'permissions.json'), 'utf8'));
+  ['type:Apprentice', 'type:Business', 'type:Site', 'door:notify', 'door:checks'].forEach(k => {
+    if (!pr.some(x => x && x.kind === 'see' && x.action === k && x.role === 'admin' && x.allow === true)) rankOff.push('permissions.json: no `see` row letting an admin open ' + k); });
   ['find-doors', 'find-aloud'].forEach(n => { const f = files.find(x => x.n === n); if (!f) return;
     strip(f.src).split('\n').forEach((l, i) => { if (/\bisAdmin\(\)|rankAtLeast_\('admin'\)\s*\?\s*\[\{\s*kind/.test(l) || (/\/admin\/i\.test\((?!role\))/.test(l)))
       rankOff.push(n + '.js:' + (i + 1) + ' asks admin another way'); }); });
-} catch (e) { rankOff.push('(setting-for.json could not be read: ' + e.message + ')'); }
+} catch (e) { rankOff.push('(permissions.json could not be read: ' + e.message + ')'); }
 
 /* A CARD'S SECTIONS ARE ONE TABLE (`CARD_SECTION`, me-card.js), never a chain of `s.id === '…'` branches. */
 const sectionChain = files.filter(({ src }) => (strip(src).match(/\bs\.id === '/g) || []).length >= 3).map(({ n }) => n + '.js');
@@ -245,7 +245,7 @@ say('TAB_ORDER AND data/settings/columns.json PUT THE COLUMNS IN DIFFERENT ORDER
 say('A CARD COLUMN IN TABS AND NOT IN columns.json, OR THE OTHER WAY — `cards: true` and the row\'s `cards` part', cardsDiffer,
     t => cardTabs.has(t) ? 'TABS marks it cards: true, the row does not' : 'the row says cards TRUE, TABS does not');
 say('THE BACKEND\'S COPY OF THE COLUMNS IS NOT columns.json\'s', gsStale, t => '');
-say('AN ADMIN TEST THAT IS NOT rankAtLeast_ OR setting-for.json\'s min_rank', rankOff, t => '');
+say('AN ADMIN TEST THAT IS NOT rankAtLeast_ OR permissions.json\'s see rows', rankOff, t => '');
 say('A CARD\'S SECTIONS CHOSEN BY A CHAIN OF s.id === BRANCHES — put them in CARD_SECTION', sectionChain, t => '');
 say('WHERE A SCREEN MOVED IS SAID TWICE — SCREEN_MOVED (shell-boot.js) and columns.json\'s moved/was part', movedDiffer, t => '');
 

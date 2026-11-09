@@ -13,6 +13,8 @@ function gsInto(src, rows) {
   return a !== -1 && b > a ? src.slice(0, a) + block + src.slice(b + END.length) : src.replace(/\n*$/, '\n\n') + block;
 }
 const ROLES = ['anyone', 'member', 'child', 'admin'];
+/* WHO SEES A SETTINGS CARD (93): kind `see`, the three roles; owned by hand in the JSON, kept as they are when the actions are rebuilt. */
+const SEE_ROLES = ['family', 'tutor', 'admin'];
 const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8');
 const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$/gm, '$1');
 
@@ -41,6 +43,12 @@ function rowsFromAccess() {
   return rows;
 }
 
+/* THE ACTIONS FROM THE BACKEND, then the file's own `see` rows unchanged. */
+function seeRows() {
+  try { return JSON.parse(fs.readFileSync(JSON_PATH, 'utf8')).filter(r => r && r.kind === 'see'); } catch (e) { return []; }
+}
+const fullRows = () => rowsFromAccess().concat(seeRows());
+
 function jsonText(rows) { return '[\n' + rows.map(r => JSON.stringify(r)).join(',\n') + '\n]\n'; }
 
 /* THE .gs: each action's allowed roles, and the two readers accessDenied and doPost's child rule ask. */
@@ -66,12 +74,12 @@ function gsText(rows) {
     + '}\n';
 }
 
-module.exports = { ROLES, backendRules, allowOf, rowsFromAccess, gsText, gsInto, GS_PATH };
+module.exports = { ROLES, SEE_ROLES, backendRules, allowOf, rowsFromAccess, gsText, gsInto, GS_PATH };
 if (require.main === module) {
-  const want = process.argv.includes('--from-access') || !fs.existsSync(JSON_PATH) ? jsonText(rowsFromAccess()) : fs.readFileSync(JSON_PATH, 'utf8');
+  const want = process.argv.includes('--from-access') || !fs.existsSync(JSON_PATH) ? jsonText(fullRows()) : fs.readFileSync(JSON_PATH, 'utf8');
   const cur = fs.readFileSync(GS_PATH, 'utf8'), gs = gsInto(cur, JSON.parse(want));
   if (process.argv.includes('--check')) {
-    const okJ = fs.existsSync(JSON_PATH) && fs.readFileSync(JSON_PATH, 'utf8') === jsonText(rowsFromAccess());
+    const okJ = fs.existsSync(JSON_PATH) && fs.readFileSync(JSON_PATH, 'utf8') === jsonText(fullRows());
     const okG = cur === gsInto(cur, JSON.parse(fs.readFileSync(JSON_PATH, 'utf8')));
     console.log((okJ ? 'permissions.json current' : 'permissions.json STALE against ACTION_ACCESS — node tools/permissions.js --from-access')
       + '; ' + (okG ? 'booking.gs block current' : 'booking.gs PERMISSIONS block STALE — node tools/permissions.js'));
