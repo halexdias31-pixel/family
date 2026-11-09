@@ -230,19 +230,18 @@ function settingsCards_(shown, moved, col) {
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
      admin's to set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
   const readonly = (DATA.profileReadonly || []).concat(isAdmin() ? [] : ['extra_seat_cut']);
-  /* ONE SHAPE FOR EVERY CARD (8 Nov): `setCard_` — the title, one line per field, one Save at the foot, the qualifications' too. */
+  /* ONE SHAPE FOR EVERY CARD (8 Nov; 84a): `formCard_` — the title, one line per field, saved as you type. */
   const mail = list => (list || []).indexOf('email') !== -1;
-  const one = (g, list, top, id, n, lid) => setHeldSay_(setCard_({ title: g, cls: id ? 'set-card' : '', lead: (top || '') + shareBarFor_(list, p),
+  const one = (g, list, top, id, n, lid) => setHeldSay_(formCard_({ title: g, cls: id ? 'set-card' : '', lead: (top || '') + shareBarFor_(list, p),
     attrs: (id ? ` data-split="${esc(id)}"` : '') + (lid ? ` data-lay-card="${esc(lid)}"` : ''),
-    form: fieldsHtml({ [g]: list }, {
-      head: false,
-      attr: 'data-me',
+    groups: { [g]: list },
+    fieldOpts: {
       /* THE ADDRESS WAITING TO BE PROVED, in the address's box — see `movingNote_`. */
       value: f => (f === 'email' && p.email_moving) ? p.email_moving : (p[f] ?? ''),
       raw: p,
       readonly: readonly,
       options: fieldOptions_,
-    }),
+    },
     save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
     foot: (mail(list) ? movingNote_(p) : '') + '<p class="faint me-said"></p>',
     after: id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '' }));
@@ -309,12 +308,8 @@ function youSettingsPages_() {
   /* EVERYBODY'S DETAILS, WHATEVER THE RANK (469): a parent's or tutor's own contact is edited here, as a student's is. */
   const shown = settingsSplit_().you;
   const pages = settingsCards_(shown, '', 'account');
-  /* ONE LINE A BOX, ONE Save (8 Nov) — the card shape every settings card has (`setCard_`). */
-  pages.push(setCard_({ title: 'Signing in', body: `
-      <label class="field"><input id="pin-now" aria-label="current PIN" placeholder="current PIN" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
-      <label class="field"><input id="pin-new" aria-label="new PIN, 4 to 8 numbers, not 1234" placeholder="new PIN, 4–8 numbers" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
-      <label class="field"><input id="pin-again" aria-label="new PIN again" placeholder="new PIN again" type="password" inputmode="numeric" autocomplete="one-time-code"></label>`,
-    save: tile_({ icon: 'save', label: 'Save', note: 'your new PIN', act: 'pin-save' }), after: '<p class="faint" id="pin-said"></p>' }));
+  /* ONE LINE A BOX, ONE Save: a PIN is never saved as you type; its boxes are forms.json's `signing-in`. */
+  pages.push(formCard_({ id: 'signing-in' }));
   /* YOUR ROLES, THEN WHICH EMAILS YOU WANT — every signed-in person has both. */
   pages.push(rolesCard_());
   pages.push(notifyCard_());
@@ -598,7 +593,7 @@ function notifyCard_() {
   const f = (DATA && Array.isArray(DATA.features)) ? DATA.features : [];
   const n = notifyList_();
   const said = t => `<p class="faint notify-said" aria-live="polite">${esc(t)}</p>`;
-  let inner;
+  let inner, toggles = [], tail = '';
   /* AN EMPTY LIST BEFORE THE PAYLOAD HAS LANDED IS "NOT KNOWN YET", NOT "OLD" — `LOADED` says which. */
   if (f.indexOf('setNotify') === -1 && (f.length || LOADED)) {
     inner = `<p class="sub notify-old">${esc(NOTIFY_OLD_SAY_ + (isAdmin() ? NOTIFY_OLD_ADMIN_ : ''))}</p>`;
@@ -619,17 +614,15 @@ function notifyCard_() {
     /* ---------- SHORT, BECAUSE IT HAS TO FIT A 320 PHONE WITHOUT SCROLLING § */
     inner = `<p class="sub">To <b style="overflow-wrap:anywhere">${esc(n.to)}</b> · saved as you tick.</p>
       ${n.held ? `<p class="faint notify-held">Until you open the link we sent there, that link is the only
-        thing we send to it.</p>` : ''}
-      ${opt.map(k => `<label class="check role-pick notify-pick">
-        <input type="checkbox" data-do="notify-pick" data-kind="${esc(k.kind)}"${k.on ? ' checked' : ''}>
-        <span class="box"></span><span class="role-pick-say"><b>${esc(k.label)}</b>
-          <span class="faint">${esc(k.note)}${k.idle ? ' — ' + esc(String(k.idle).toLowerCase()) : ''}</span></span></label>`).join('')}
-      ${must.length ? `<p class="notify-cap">Always sent</p>
+        thing we send to it.</p>` : ''}`;
+    toggles = opt.map(k => ({ act: 'notify-pick', cls: 'notify-pick', data: { kind: k.kind }, on: k.on, label: k.label,
+      note: (k.note || '') + (k.idle ? ' — ' + String(k.idle).toLowerCase() : '') }));
+    tail = `${must.length ? `<p class="notify-cap">Always sent</p>
       <ul class="notify-always">${must.map(k => `<li title="${esc(k.note)}">${esc(k.label)}</li>`).join('')}</ul>` : ''}
       ${said(mine)}`;
   }
-  /* THE CARD SHAPE (`setCard_`) WITHOUT A Save: each tick is saved the moment it is ticked (`notify-pick`). */
-  return setCard_({ title: 'Notifications', cls: 'notify-card', body: inner, save: false });
+  /* THE ONE FORM MAKER WITHOUT A Save: each tick is saved the moment it is ticked (`notify-pick`). */
+  return formCard_({ title: 'Notifications', cls: 'notify-card', body: inner, toggles: toggles, tail: tail, save: false });
 }
 
 /* WHAT THE SERVER LAST SAID THIS KIND IS SET TO — the profile's list, not the box. */

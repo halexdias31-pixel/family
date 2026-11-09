@@ -59,7 +59,7 @@
 
   /* ---------- AND THEN THE 230KB WAS A MEGABYTE § */
   /* THE FILES' OWN HASH (750), written by tools/build-stamp.js and held to them by its --check: it moves when a served file changes and never by the clock. */
-  var BUILD_STAMP = '3c5e61ea9bcb';
+  var BUILD_STAMP = 'f00cc24d7b05';
   LOAD = /(?:^|[?&])dev(?:[=&]|$)/.test(location.search)
     ? String(Date.now())                        /* the publisher: nothing may be held */
     : BUILD_STAMP || String(Math.floor(LOAD_AT / 300000));     /* everybody else: the hash; the old rounded build time only if the line was emptied */
@@ -73,7 +73,7 @@
   /* The stylesheet is beside index.html, not in `js/` — so no folder here, deliberately. */
   /* ---------- THE SCRIPTS ARE TOLD ABOUT AT THE SAME MOMENT AS THE STYLESHEET § */
   /* ---------- ONE LIST, AND IT IS THIS ONE § */
-  window.FILES = ['core', 'predicates', 'finder-tags', 'price-rows', 'chess', 'data', 'library', 'qtypes', 'settings', 'shell-boot', 'shell-layout', 'shell-pages', 'shell-click', 'shell-api', 'shell-hold', 'rules', 'cards', 'me-account', 'me-messages', 'me-roles', 'me-shelves', 'me-settings', 'me-card', 'me-people', 'posts',
+  window.FILES = ['core', 'predicates', 'finder-tags', 'price-rows', 'chess', 'data', 'library', 'qtypes', 'settings', 'shell-boot', 'shell-layout', 'shell-pages', 'shell-click', 'shell-api', 'shell-hold', 'rules', 'cards', 'form', 'me-account', 'me-messages', 'me-roles', 'me-shelves', 'me-settings', 'me-card', 'me-people', 'posts',
     'links', 'find-finder', 'find-facets', 'find-history', 'find-timelines', 'find-boxers', 'find-parts', 'find-marking', 'find-cells', 'find-pen', 'find-pad', 'find-loupe', 'find-figures', 'find-aloud', 'find-doors', 'find-levels', 'find-bundles', 'find-pages', 'find-quick', 'find-measure',
     'keypad-keys', 'keypad-pad', 'keypad-edit', 'answers', 'submit', 'working', 'qtools', 'resource', 'arcade', 'map', 'book-steps', 'book-rows', 'book-spine', 'receipt', 'records', 'biz-check', 'one-place', 'mat', 'calc',
     'overworld', 'select', 'collections', 'tiles', 'reader', 'writings', 'talmud', 'quran', 'hadith', 'works', 'texts', 'pdtexts', 'orthodox', 'hymns', 'mechanics', 'chemistry', 'staff', 'help', 'layout', 'words', 'gtasks', 'push', 'inbox', 'missing', 'boot'];
