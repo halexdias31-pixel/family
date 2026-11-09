@@ -24,7 +24,7 @@ function mailHeldNote_() {
   const at = pendingAddr_();
   /* `overflow-wrap:anywhere` ON THE ADDRESS: it is one word with no space in it, and a long one at 320
      took the card sideways — the fault the dotted answer line paid for (check/states.js). */
-  return at ? `<p class="faint mail-held" style="margin:.6rem 0 0">We will email you once you open the link
+  return at ? `<p class="said mail-held">We will email you once you open the link
     we sent to <b style="overflow-wrap:anywhere">${esc(at)}</b>.</p>` : '';
 }
 
@@ -33,7 +33,7 @@ function movingNote_(p) {
   const to = p && p.email_moving ? String(p.email_moving) : '';
   if (!to) return '';
   const was = String((p && p.email) || '');
-  return `<p class="faint mail-moving" style="margin:.6rem 0 0">Your email changes to
+  return `<p class="said mail-moving">Your email changes to
     <b style="overflow-wrap:anywhere">${esc(to)}</b> once you open the link we sent there, on a phone where you
     are signed in.${was ? ` Until then it is still <b style="overflow-wrap:anywhere">${esc(was)}</b> — sign in
     with that, or your handle. Type it back here to keep it.` : ''}</p>`;
@@ -62,7 +62,7 @@ function kidListSec_(held) {
      list that is a moment away is the `nothingHere` fault. The one loader (`loading_`) until it lands. */
   if (!kids.length) {
     return `<div class="kid-sec kid-list">${typeof awaiting_ === 'function' && awaiting_() ? loading_()
-      : `<p class="faint kid-none">No child is linked to you yet.</p>`}</div>`;
+      : empty_('No child linked yet.')}</div>`;
   }
   return `<div class="kid-sec kid-list">${kids.map(f => {
     /* THEIR FIRST NAME, as the server calls a child (docs/history/333), without the `(@handle)` it adds
@@ -340,7 +340,7 @@ function studentSetPages_() {
       typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''}</div>`;
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
   /* WHAT WAS THE PROGRESS COLUMN (461, the owner: "the progress column content can all be moved to student column account settings"). */
-  const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = c => /^<div class="loading/.test(String(c).trim());
+  const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = isLoading_;
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
   const prog = all.filter(c => !isWait(c)).map(c => String(c).replace('<div class="card', '<div class="card prog-w')), wait = coming.length || !all.some(isWait) ? coming : [loading_()];
   /* ONLY SIGN IN HERE (owner, 4 Nov, 880): every other setting is a Coming soon card in Find until it is wanted. */
@@ -434,7 +434,7 @@ function staffPages_() {
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [`<div class="card staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`] : [];
   const out = ownCardSetPage_('staff').concat(top, settingsCards_(settingsSplit_().staff, '', 'staff'));
-  return out.length ? out : [`<div class="card rank-off set-none"><p class="sub rank-off-say">Nothing here yet.</p></div>`];
+  return out.length ? out : [`<div class="card rank-off set-none">${empty_('Nothing here yet.')}</div>`];
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
 
@@ -608,13 +608,11 @@ function notifyCard_() {
     /* NO ADDRESS OF THEIR OWN — `notify` writes to the row's own address and nowhere else, so nothing at
        all is sent to them; a child's forgotten PIN goes to their grown-ups (`authGrownUps_`). */
     const kid = heldRoles().map(roleOf).indexOf('student') !== -1;
-    inner = `<p class="sub notify-none">${esc(kid
-      ? 'There is no email address on your account, so @family. emails you nothing — there is nothing to turn off. If you forget your PIN, a new one goes to your grown-up.'
-      : 'There is no email address on your account, so nothing is emailed to you. Add one on your Contact card and your choices appear here.')}</p>`;
+    inner = empty_(kid ? 'No email address, so no emails.' : 'No email address yet — add one on your Contact card.');
   }
   /* A LIST WITH NOTHING IN IT. § */
   else if (!n.kinds.length) {
-    inner = `<p class="sub notify-none">${esc('We could not tell which emails reach your account, so nothing here can be switched yet — everything is sent as before.')}</p>`;
+    inner = empty_('No email choices yet.');
   } else {
     const opt = n.kinds.filter(k => !k.essential), must = n.kinds.filter(k => k.essential);
     const mine = NOTIFY_SAID.pid && NOTIFY_SAID.pid === String(USER.personId || '') ? NOTIFY_SAID.text : '';

@@ -324,7 +324,7 @@ check('"Manage your child" lists the children linked to you with New PIN beside 
   t.DATA().family = [];
   draw();
   await wait(150);
-  if (!card() || !/No child is linked to you yet/.test(card().textContent) || card().querySelectorAll('.kid-row').length) bad.push('with no child linked the card does not say so');
+  if (!card() || !/No child linked yet/.test(card().textContent) || card().querySelectorAll('.kid-row').length) bad.push('with no child linked the card does not say so');
   if (!card() || !card().querySelector('.kid-add')) bad.push('with no child linked the card lost a section');
   /* HELD: your address waiting — the held sentence where the forms were, and Wren listed with no New PIN. */
   t.DATA().family = [{ personId: 'P-K1', title: 'Wren', relation: 'child', handle: 'wren_kind43', image: '' }];

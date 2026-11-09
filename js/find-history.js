@@ -35,8 +35,8 @@ function insSource_(r) {
 function insSay_(r) {
   if (typeof USER === 'undefined' || !USER || !USER.token) return '<p class="sub lib-sign">Sign in to read the source — your account is a few screens to the right.</p>';
   const t = 'in:' + r.id;
-  if (LIB.gone.has(t)) return '<p class="empty">' + (r.pending ? 'Coming soon.' : 'This source is not in the library yet.') + '</p>';
-  if (LIB.failed) return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br><button type="button" class="text-action" data-do="lib-retry">Try again</button></p>`;
+  if (LIB.gone.has(t)) return empty_(r.pending ? 'Coming soon.' : 'Not in the library yet.');
+  if (LIB.failed) return `${empty_('Couldn’t load this.')}${tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'lib-retry' }))}`;
   return loading_();
 }
 /* ASKED FOR, if it has words in the Ledger and they are not here yet */

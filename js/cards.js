@@ -451,9 +451,7 @@ function levelCard_(t) {
       ${row('Tutors', t.tutors && t.tutors.length ? String(t.tutors.length) : 'None yet',
             t.tutors && t.tutors.length ? '' : 'bad')}
       ${t.listed ? '' : row('Booking form', 'Not offered', 'bad')}
-      ${t.tutors && t.tutors.length
-        ? `<p class="faint" style="margin:.3rem 0 0">${esc(t.tutors.map(y => y.title).join(', '))}</p>`
-        : '<p class="faint" style="margin:.3rem 0 0">Nobody teaches at this level yet</p>'}
+      ${t.tutors && t.tutors.length ? `<div class="qtags">${t.tutors.map(y => `<span class="qtag" data-tag="3">${esc(y.title)}</span>`).join('')}</div>` : ''}
     </div>`;
 }
 
@@ -469,9 +467,7 @@ function subjectCard_(t) {
             this subject is the one somebody wants at all. */''}
       ${t.levels && t.levels.filter(Boolean).length
         ? row('Levels', t.levels.filter(Boolean).join(', ')) : ''}
-      ${t.tutors && t.tutors.length
-        ? `<p class="faint" style="margin:.3rem 0 0">${esc(t.tutors.map(y => y.title).join(', '))}</p>`
-        : '<p class="faint" style="margin:.3rem 0 0">Nobody teaches this yet</p>'}
+      ${t.tutors && t.tutors.length ? `<div class="qtags">${t.tutors.map(y => `<span class="qtag" data-tag="3">${esc(y.title)}</span>`).join('')}</div>` : row('Tutors', 'None yet', 'bad')}
     </div>`;
 }
 

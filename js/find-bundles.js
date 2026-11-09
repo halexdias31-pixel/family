@@ -491,13 +491,13 @@ function filterChips() {
       if (said[key]) return '';
       said[key] = 1;
       return `
-      <button class="chip sm" data-do="filter-drop" data-i="${i}"${f.any ? '' : tagAttr_(f.field)}>
+      <span class="chip sm"${f.any ? '' : tagAttr_(f.field)}>
         ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody made and has to be able to unmake. § */
              ''}
         ${/* ---------- THE CHIP SHOWS WHAT THE BUTTON SHOWED, NOT WHAT IT MATCHES ON § */
              ''}
-        ${esc(show)}<span class="chip-x">✕</span>
-      </button>`;
+        ${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}
+      </span>`;
     }).join('')}
   </div>`;
 }

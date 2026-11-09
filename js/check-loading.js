@@ -64,10 +64,8 @@ const LOADER_CLASS = 'loading';
 
 /* ---------- 3. THE STYLESHEET § */
 const WAIT_KEYFRAME = /(^|-)(sk|skeleton|shimmer|spin\w*|load\w*|wait\w*|pulse\w*|busy\w*)($|-)/;
-const ACCEPTED_KEYFRAMES = {
-  'btn-spin': 'the busy ring on a pressed button or tile (`.btn.is-busy`, `.tile.is-busy`) — an action in flight, '
-            + 'not content on its way: docs/history/094. The loader is dots so the two can never be mistaken.',
-};
+/* NONE ACCEPTED (owner, 8 Nov, 30a): a pressed button or tile waits with the same three dots as a page, so no spinner keyframe may exist. */
+const ACCEPTED_KEYFRAMES = {};
 const BLOCK_START = '---------- WAITING: ONE LOADER';
 
 const bad = [];
@@ -122,6 +120,8 @@ for (const f of appFiles_()) {
       if (t.value === 'loading_') { calls++; callers.add(f); }
       if (t.value === 'loaded_') loadedCalls++;
     }
+    /* 0. A WAIT FOUND BY READING ITS HTML: `isLoading_(h)` asks, a regex for the class never does. */
+    if (t.type.label === 'regexp' && /class=.{0,2}"?loading/.test(String((t.value && t.value.pattern) || ''))) bad.push(`${f}:${lineOf(src, t.start)}: a wait found by matching its class — ask \`isLoading_(html)\``);
     if (t.type.label !== 'string' && t.type.label !== 'template') return;
     strings++;
     const v = String(t.value || '');

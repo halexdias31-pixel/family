@@ -104,7 +104,7 @@ function versionSaid_() {
         const newest = names.map(k => f[k]).sort().pop();
         const stale = names.filter(k => f[k] !== newest);
         return stale.length
-          ? `<p class="build-said" style="color:#c8853c">Not deployed: ${stale
+          ? `<p class="build-said is-warn">Not deployed: ${stale
               .map(k => esc(k) + '.gs (' + esc(f[k]) + ')').join(', ')}. Paste ${stale.length === 1
               ? 'that file' : 'those files'} into Apps Script.</p>`
           : '';
@@ -576,12 +576,9 @@ function wardrobeBody_() {
          count towards, which is the difference between a shop window and a list of doors. */
       const why = it.unlocked ? '' : (it.cost ? it.cost + 'cr' : 'Lv' + it.level);
       const said = it.name + (why ? ' — ' + (it.cost ? it.cost + ' credits' : 'level ' + it.level) : '');
-      return `<button class="av-opt${on ? ' on' : ''}${it.unlocked ? '' : ' locked'}"
-        data-do="av-pick" data-slot="${esc(slot)}" data-id="${esc(it.id)}"
-        aria-label="${esc(said)}" aria-pressed="${on ? 'true' : 'false'}" title="${esc(said)}">
-        ${itemArt(slot, it.id, 24) || '<span class="av-none">—</span>'}
-        ${why ? `<span class="av-why">${esc(why)}</span>` : ''}
-      </button>`;
+      return tile_({ label: said, act: 'av-pick', data: { slot: slot, id: it.id }, on: on, pressed: on,
+        cls: 'av-opt' + (it.unlocked ? '' : ' locked'),
+        face: (itemArt(slot, it.id, 24) || '<span class="av-none">—</span>') + (why ? `<span class="av-why">${esc(why)}</span>` : '') });
     }).join('')}</div>`);
   };
 
@@ -721,7 +718,7 @@ function registerCard_() {
       ${tile_({ form: true, label: 'Make my account', act: 'reg-send' })}
       ${/* THREE LINES AT 320, MEASURED: § */
             ''}
-      <p class="faint" id="reg-note" style="margin:.6rem 0 0"></p>
+      <p class="said" id="reg-note"></p>
     </div></div></div>`;
 }
 /* THE SIGN-IN CARD'S TILE GOES TO THE FORM: on this column if it is drawn, else on the account column. */
