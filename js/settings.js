@@ -6,7 +6,7 @@ const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 's
                        'settings/facts',
                        'settings/campaigns', 'settings/copy', 'settings/columns',
                        'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields',
-                       'settings/permissions'];
+                       'settings/default-pictures', 'settings/permissions'];
 
 /* `norm` on the backend. § */
 const setNorm_ = v => libS(v).toLowerCase().trim();
@@ -173,6 +173,12 @@ function setCardFields_(d, extra) {
     { cls: libS(r.cls).trim(), pic: list(r.pic), title: list(r.title), tags: list(r.tags), lines: list(r.lines), tiles: list(r.tiles) }]));
 }
 
+function setDefaultPictures_(d, extra) {
+  /* ---------- THE OWNER'S DEFAULT PICTURES (9 Nov): rows {picture}; a card with no picture of its own takes one (`kcPicOr_`) ---------- */
+  const pics = extra['settings/default-pictures'] || [];
+  d.defaultPictures = Array.isArray(pics) ? pics.map(r => libS(r.picture).trim()).filter(Boolean) : [];
+}
+
 function setPermissions_(d, extra) {
   /* ---------- THE ONE PERMISSIONS TABLE (86a): rows {kind, role, action, allow}, the backend's permissions.gs from the same file ---------- */
   const perms = extra['settings/permissions'];
@@ -190,7 +196,7 @@ function settingsInto_(d, extra) {
   /* ---------- WHICH COLUMNS THE APP HAS, AND IN WHAT ORDER § */
   setBrand_(d, extra); setFacets_(d, extra); setKinds_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
   setCampaigns_(d, extra); setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
-  setPermissions_(d, extra);
+  setDefaultPictures_(d, extra); setPermissions_(d, extra);
   return d;
 }
 

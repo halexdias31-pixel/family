@@ -668,7 +668,7 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   if (!go) return ['a worded question with a scheme and a deployment that has aiMark drew no "Mark with AI"'];
   /* IN THE CHAT BAR, WHERE SEND IS on a box with a scheme: the same gold tile beside the field, with its
      verdict line and its sentence under the bar (`ansBox_`, `aiOpts_`). */
-  if (!go.matches('.qp-mark.qp-ai > .qt-row > .tile:not(.is-send)')) bad.push('"Mark with AI" is not an ordinary tile in the answer bar: ' + go.outerHTML.slice(0, 120));
+  if (!go.matches('.qp-mark.qp-ai > .qt-row > .kc-four > .tile:not(.is-send)')) bad.push('"Mark with AI" is not an ordinary tile in the answer bar: ' + go.outerHTML.slice(0, 120));
   if (!card.querySelector('.qp-mark.qp-ai > .qp-verdict') || !(card.querySelector('.qp-mark.qp-ai').nextElementSibling || { classList: { contains: () => false } }).classList.contains('qp-ai-why')) bad.push('the AI\'s verdict line and sentence are not under the bar where the handler looks for them');
   const ta = card.querySelector('textarea.qp-ans-in');
   const held = w.stuffItemsAll_;

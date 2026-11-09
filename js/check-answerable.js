@@ -253,12 +253,10 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
             const out = box && box.querySelector('.qp-verdict');
             try { A.ACTIONS['qp-noscheme'](go[0]); } catch (e) { bad('marker', x, 'its Check threw: ' + e.message); }
             if (!out || !NO_SCHEME_SAYS.test(S(out.textContent))) bad('marker', x, 'no mark scheme, and its Check says ' + JSON.stringify(out ? out.textContent : null));
-            if (!NO_SCHEME_SAYS.test(S((host.querySelector('.qt-how') || {}).textContent))) bad('marker', x, 'no mark scheme, and the line under the row does not say so');
             if (box && (box.classList.contains('qp-ai') || box.querySelector('[data-do="qp-ai"]'))) bad('marker', x, 'no mark scheme, and its box still offers the AI');
           }
         }
-        const how = host.querySelector('.qt-how');
-        if (!how || !S(how.textContent) || S(how.textContent) !== S(m.how)) bad('marker', x, 'the line under Check says ' + JSON.stringify(how ? how.textContent : null) + ', not how it is marked');
+        if (host.querySelector('.qt-how')) bad('marker', x, 'a grey line is still drawn under Check (owner, 9 Nov: no grey info text)');
       }
     }
     /* THE PHOTO TILE HAS ITS STRIP: thumbnails, removing one and Mark my working show there, on every kind of box (Review B) */

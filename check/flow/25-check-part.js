@@ -154,7 +154,7 @@ check('a drawn answer is never sent to a person: a made-up surface and a figure 
 });
 
 /* ---------- THE TOOL ROW, THE LAYER AND THE LINE (Review A of round 3; round 4: the owner's nine, no Calculator, Grid, Table or Formula sheet) ---------- */
-check('a part\'s tool row is the owner\'s one row with one padlock (8 Nov), the pen\'s tiles only where there is something to draw on (owner, 29 Oct); a named grid\'s first Pen tap lays it; the pad opens on the layer of the scheme\'s own answer; the line under Check says how it is marked', async () => {
+check('a part\'s tool row is the owner\'s one row with one padlock (8 Nov), the pen\'s tiles only where there is something to draw on (owner, 29 Oct); a named grid\'s first Pen tap lays it; the pad opens on the layer of the scheme\'s own answer; and no grey line under Check', async () => {
   const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS3', pages_checked: 'True', kind: 'question', name: 'Tools', paper_id: 'GR', marks: '1', answer_type: 'calculation' };
   const R_ = o => Object.assign({}, base, o);
   const rows = [
@@ -174,21 +174,21 @@ check('a part\'s tool row is the owner\'s one row with one padlock (8 Nov), the 
   const x1 = item('GR-1');
   if (!x1) { host.remove(); return ['GR-1 did not reach Find']; }
   host.innerHTML = w.questionCard_(x1, 0);
-  const how = (host.querySelector('.qt-how') || {}).textContent || '';
-  if (how !== 'Marked against the mark scheme first \u2014 then by AI, if you ask') bad.push('the line under Check says ' + JSON.stringify(how));
+  /* NO GREY LINE UNDER THE ROW (owner, 9 Nov). */
+  if (host.querySelector('.qt-how')) bad.push('a grey line under Check is still drawn');
   /* THE OWNER'S ROW, by the tiles' own names: "get rid of that calculator button … and grid button … table … formula sheet … still two lock buttons" */
   const row = host.querySelector('.qt-row');
   const names = row ? [...row.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
   /* NOTHING TO DRAW ON, NO PEN (owner, 29 Oct: "a button which opens the working paper … remove that") */
   /* THE SAME ROW ON EVERY PART (owner, 7 Nov, over 1040 r12): magnifier, Read aloud and padlock are each part's. */
-  /* RULER AND PROTRACTOR ON EVERY PART, figure or not (owner, 8 Nov) */
-  if (names.join(' | ') !== 'Photo of working | Magnifier | Read aloud | Lock | Ruler | Protractor | Check') bad.push('a part with no figure: the tool row reads ' + names.join(' | '));
+  /* RULER AND PROTRACTOR ON EVERY PART, figure or not (owner, 8 Nov); Check, Message, Save and ⋯ first, the tools behind ⋯ (owner, 9 Nov) */
+  if (names.join(' | ') !== 'Check | Message | Save | More | Photo of working | Magnifier | Read aloud | Lock | Ruler | Protractor | Share | Top | Help') bad.push('a part with no figure: the tool row reads ' + names.join(' | '));
   const x3 = item('GR-3');
   host.innerHTML = x3 ? w.questionCard_(x3, 0) : '';
   const row3 = host.querySelector('.qt-row');
   const names3 = row3 ? [...row3.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
   /* UNDO AND CLEAR ARE THE PAD'S, IN THIS ONE ROW FROM THE START (1020): a tap never adds or moves a control. */
-  if (names3.join(' | ') !== 'Photo of working | Magnifier | Read aloud | Lock | Ruler | Protractor | Pen | Straight line | Compass | Undo | Clear | Check') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
+  if (names3.join(' | ') !== 'Check | Message | Save | More | Photo of working | Magnifier | Read aloud | Lock | Ruler | Protractor | Pen | Straight line | Compass | Undo | Clear | Share | Top | Help') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
   if (d.querySelectorAll('[data-do="qt-grid"], [data-do="qt-panel"], .qcalc, .qt-table, .qt-formula').length) bad.push('a Grid, Table, Calculator or Formula sheet is still drawn on the part');
   const whole = d.createElement('div'); whole.innerHTML = x3 ? w.questionWhole_(x3, [x3], null, true) : '';
   const locks = whole.querySelectorAll('[data-do="q-lock"], [data-do="game-lock"]').length;

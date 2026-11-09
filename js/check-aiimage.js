@@ -118,9 +118,7 @@ const tick = ms => new Promise(r => setTimeout(r, ms));
     w.document.body.appendChild(host);
     host.innerHTML = w.questionCard_(x, 0);
     const go = host.querySelector('.qt-row [data-do="qp-ai"]');
-    const how = (host.querySelector('.qt-how') || {}).textContent || '';
     if (!go || go.disabled) { bad.push(want + ': ' + row.row_id + ' has no pressable AI Check'); w.close(); continue; }
-    if (!/AI/.test(how)) bad.push(want + ': the line under Check says ' + JSON.stringify(how) + ', not that the AI marks it');
     t.ACTIONS['qp-ai'](go);
     await tick(50);
     const out = (host.querySelector('.qp-ai .qp-verdict') || {}).textContent || '';

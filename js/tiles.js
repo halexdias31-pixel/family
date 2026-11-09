@@ -7,6 +7,8 @@ const TILE_CONE_  = '<path d="M2.5 6.5h3l4-3.5v11l-4-3.5h-3z"/>';
 const TILE_WAVES_ = '<path d="M12 6.2a3.2 3.2 0 0 1 0 4.6"/><path d="M14 4a6 6 0 0 1 0 9"/>';
 const TILE_ICONS = {
   play:  '<path d="M5 3.5v11l9-5.5z"/>',
+  /* THREE DOTS: the rest of a card's buttons, opened in place (owner, 9 Nov). */
+  more:  '<circle cx="4" cy="8.5" r=".9"/><circle cx="9" cy="8.5" r=".9"/><circle cx="14" cy="8.5" r=".9"/>',
   /* FOUR ARROWS, for a widget's admin layout tiles (463): up or down its column, to the previous or next widget column. */
   up:    '<path d="M9 14.5v-12"/><path d="m4.5 7 4.5-4.5 4.5 4.5"/>',
   down:  '<path d="M9 2.5v12"/><path d="m4.5 10 4.5 4.5 4.5-4.5"/>',
@@ -463,7 +465,8 @@ function cardExtras_(x) {
   const r = fn(x);
   return (x.lead || '') + (typeof r === 'string' ? r : tile_(r));
 }
-function cardTiles_(x) {
+/* `flat` HANDS THE TILES BACK UNWRAPPED, for a card that sorts them into its four and its ⋯ (`kcFour_`). */
+function cardTiles_(x, flat) {
   /* THEN WHAT ANY KIND MAY ADD: Read aloud, Hear it, speed, magnifier, Open, a column's `more`, the padlock. */
   /* ONE READ-ALOUD PER CARD (owner's look rule): a language card's Hear it stands in for Read aloud, never beside it. */
   const hear = typeof hearItOpts_ === 'function' ? hearItOpts_(x) : null;
@@ -474,6 +477,7 @@ function cardTiles_(x) {
     /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
     + (x.key && !isMeCard_(x) && !isQ_(x) && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : ''));
   const admin = adminTiles_(x, x.topic || null);
+  if (flat) return mine + admin;
   if (!mine && !admin) return '';
   /* YOUR OWN CARD IS ALL YOURS: nothing on it is split off as an admin's (the hub's gold means "terms to agree" there). */
   return tileRow_(mine + admin, '', isMeCard_(x));
