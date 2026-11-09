@@ -293,7 +293,7 @@ function questionCard_(x, was) {
           is an answer the finder offers. THE DAY YOU LAST DID IT is in the tile row, beside the star --
           see `qtRow_`. */''}
     ${tagRow_(x)}
-    <div class="qsheet">
+    <div class="qsheet qtext">
       ${/* NO STEM HERE: a whole question draws its openings once, above its parts (`questionWhole_`). § */''}
       ${qWordsOr_(x, cellsHere_(x, chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x), x)))}
     </div>
@@ -320,7 +320,7 @@ function qStemWhole_(x, p) {
     flush();
   });
   if (stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
-  return `<div class="qsheet-stem qb-stem${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
+  return `<div class="qsheet-stem qtext qb-stem${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
 }
 /* A PART'S WORDS AND ANSWER ROW, a `.qcard` of its own so every handler's `closest('.qcard')` finds this part and no other. */
 function qPartCard_(x, ans) {
@@ -333,7 +333,7 @@ function qPartCard_(x, ans) {
   const area = ansArea_(x);
   const left = QT_MORE.used ? '' : (more ? `<div class="tile-row">${more}</div>` : '');
   QT_MORE.html = ''; QT_MORE.used = false;
-  return `<div class="qcard qb-part" data-of="${esc((x.row && x.row.row_id) || x.key || '')}"><div class="qsheet">${qWordsOr_(x, cellsHere_(x, words))}</div>${area}${left}${a}</div>`;
+  return `<div class="qcard qb-part" data-of="${esc((x.row && x.row.row_id) || x.key || '')}"><div class="qsheet qtext">${qWordsOr_(x, cellsHere_(x, words))}</div>${area}${left}${a}</div>`;
 }
 /* THE CARD'S OWN TILES (share, star, message, top, help) as bare tiles, without the row `cardTiles_` wraps them in */
 function qPartFoot_(p) {
@@ -587,7 +587,7 @@ function chunkHtml_(chunk, circ, x) {
   flush();
   /* A CARRIED STEM'S WORDS (`sb`) ARE TYPESET A RUN AT A TIME in the stem's own wrapper, between its figures */
   let top = '', sbs = [];
-  const sbFlush = () => { if (sbs.length) top += `<div class="qsheet-stem is-over">${typeset_(sbs.join(''))}</div>`; sbs = []; };
+  const sbFlush = () => { if (sbs.length) top += `<div class="qsheet-stem qtext is-over">${typeset_(sbs.join(''))}</div>`; sbs = []; };
   head.forEach(b => { if (b.k === 'sb') sbs.push(b.h); else { sbFlush(); top += figHtml_(x, b); } });
   sbFlush();
   return `${top}${lead ? `<div class="qsheet-lead">${typeset_(lead)}</div>` : ''}

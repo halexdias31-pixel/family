@@ -199,6 +199,7 @@
     "check-rows.js": "core",
     "check-payload.js": "core",
     "check-reading.js": "secondary",
+    "check-tables.js": "core",
     "check-errors.js": "core",
     "check-malformed.js": "core",
     "check-catches.js": "core",

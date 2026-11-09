@@ -47,6 +47,8 @@ const SUITE = [
   /* ---------- THE FAULT CLAUDE.md CALLS THE WORST ONE HERE § */
   { file: 'check-payload.js', what: 'DATA keys read vs DATA keys sent' },
   { file: 'check-reading.js', what: 'every Library text drawn by readingCard_ (one reading layout)' },
+  /* A STEM'S TABLE DREW WITH NO BORDERS (`.qsheet table` only): a browser, about 10s, so it stays in --fast. */
+  { file: 'check-tables.js', what: 'every table in a question, at 390 wide in its card: bordered, no cell under 1.5em, columns in line, inside .qtext', par: true },
   /* THE RUNTIME SAFETY NET (R6): one sink, malformed rows, and empty catches only falling. */
   { file: 'check-errors.js',    what: 'a throw in a draw, an act, a timer and a promise: one report each, a fallback, the rest works', par: true },
   { file: 'check-malformed.js', what: 'a null and a string in every DATA list: every column still draws', par: true },

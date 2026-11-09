@@ -3615,8 +3615,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qans-body { font: 600 var(--fs-title)/1.35 var(--font); color: var(--ink); padding-bottom: .5rem;
              overflow-wrap: anywhere; }
 .qans-body p:first-child { margin-top: 0; }
-.qans-body table { border-collapse: collapse; margin: .9rem 0; font-size: var(--fs-small); font-weight: 400; }
-.qans-body td, .qans-body th { border: 1px solid var(--line); padding: .3rem .5rem; }
+.qans-body table { font-size: var(--fs-small); font-weight: 400; }
 
 /* QUESTIONS IN THE FUNNEL. § */
 /* ---------- ONE RHYTHM DOWN THE CARD, WHERE THERE WERE FOUR GAPS AND NO REASON BETWEEN THEM § */
@@ -3691,14 +3690,15 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qsheet ul { padding-left: 1.2rem; }
 .qsheet .stat { text-align: center; margin: .9rem 0; }
 /* ---------- A WIDE TABLE SCROLLS IN ITS OWN BOX, AND NOTHING ELSE DOES § */
-.qsheet table, .qsheet-stem table {
+/* ONE RULE FOR EVERY TABLE IN A QUESTION'S WORDS: `.qtext` is on each box question html is drawn into (js/check-tables.js). */
+.qtext table {
   border-collapse: collapse; margin: .9rem auto;
   display: block; width: max-content; max-width: 100%;
   overflow-x: auto; overscroll-behavior-x: contain;
   /* `pan-x`, BECAUSE A SCROLLER STARTS ITS OWN `touch-action`. § */
   touch-action: pan-x;
 }
-.qsheet th, .qsheet td, .qsheet-stem th, .qsheet-stem td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
+.qtext th, .qtext td { border: 1px solid var(--line); padding: .35rem .8rem; min-width: 1.5em; text-align: center; }
 /* THE BOX A PAPER LEAVES FOR AN ANSWER. § */
 .qsheet span.box {
   display: inline-block; min-width: 2.4em; height: 1.25em; vertical-align: middle;
