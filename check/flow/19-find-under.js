@@ -1,56 +1,3 @@
-check('Find 2 across a sign-in: signed out it is the members card, signed in it is the finder; kept for the child whose session ended, cleared when an admin signs out or another child signs in', async () => {
-  const bad = [];
-  /* ---- SIGNED OUT: ONE CARD, MEMBERS ONLY (400); SIGNED IN: THE FINDER ---- */
-  {
-    const b = await resBoot_({ member: false });
-    if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
-    const { w } = b, t = w.__t, d = w.document;
-    if (t.whoami()) return ['the app opened signed in — signed OUT was NOT checked'];
-    t.go('res', false, true); await wait(100);
-    if (!d.querySelector('#s-res .members-only') || d.getElementById('res-chips')) bad.push('signed out, Find 2 is not the members card alone');
-    w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
-    await wait(80);
-    t.go('res', false, true); w.paint('res'); await wait(100);
-    if ((t.whoami() || {}).personId !== 'P12') return ['the child did not sign in: ' + JSON.stringify(t.whoami())];
-    if (!d.getElementById('res-chips') || d.querySelector('#s-res .members-only')) bad.push('signed in, Find 2 is not the finder');
-  }
-  /* ---- AN ADMIN, ON THE BOOKS SHELF IN FIND 2 (both finders hold it), SIGNS OUT ---- */
-  {
-    const b = await resBoot_({ before: win => { win.localStorage.setItem('familyUser', JSON.stringify({ name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-a' })); } });
-    if (!b) return bad.concat(['the admin boot did not load — NOT checked']);
-    const { w } = b, t = w.__t, d = w.document;
-    t.go('res', false, true);
-    t.RES().filters = [{ field: 'shelf', value: 'Writings' }];
-    w.paintFinder_('res');
-    if (!/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin\'s Find 2 chips do not name the Writings shelf, so its going was NOT checked');
-    t.ACTIONS.signout(d.createElement('button'));
-    await wait(60);
-    if (t.whoami()) bad.push('Sign out left somebody signed in');
-    if (t.RES().filters.length) bad.push('an admin signed out from the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters));
-    t.go('res', false, true); await wait(60);
-    if (/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, Find 2\'s chips still name the Writings shelf');
-  }
-  /* ---- A CHILD'S SESSION ENDS ON FIND 2: kept for them, not for the next child ---- */
-  {
-    const b = await resBoot_({ before: signedInAs_(KEEP_SOL_) });
-    if (!b) return bad.concat(['the child boot did not load — NOT checked']);
-    const { w } = b, t = w.__t;
-    t.go('res', false, true);
-    t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
-    w.paintFinder_('res');
-    w.signedOut_({ ended: true, quiet: true });
-    if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'shelf', value: 'Boxing' }])) bad.push('a session ending under the child emptied Find 2: ' + JSON.stringify(t.RES().filters));
-    if (t.RES().whose !== 'P12') bad.push('the kept Find 2 does not say whose it is: ' + JSON.stringify(t.RES().whose));
-    w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
-    if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'shelf', value: 'Boxing' }])) bad.push('the same child signing in again lost Find 2\'s chips');
-    if (t.RES().whose) bad.push('signed in, RES.whose still names ' + JSON.stringify(t.RES().whose));
-    w.signedOut_({ ended: true, quiet: true });
-    w.signedIn_(Object.assign({ success: true }, KEEP_KIT_), 'kit');
-    if (t.RES().filters.length) bad.push('the next child signing in over a dead session is handed the last child\'s Find 2: ' + JSON.stringify(t.RES().filters));
-  }
-  return bad;
-});
-
 /* ---------- A KEPT CARD SAVED CANNOT DRAW WHOLE OPENS IN FIND § */
 check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a kept content card, boxer and project lands on its card in Find; a kept fight and question get none, and no card in a finder does', async () => {
   const b = await resBoot_({ before: signedInAs_(ANS_ADA) });
@@ -75,7 +22,7 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   const tileIn = html => { const el = d.createElement('div'); el.innerHTML = html; return el.querySelector('[data-do="find-open"]'); };
   [book, boxer, proj].forEach(x => {
     if (tileIn(w.stuffCard(x))) bad.push('a ' + x.kind + ' drawn in Find carries an Open tile to where it already is');
-    if (inRes_(w, () => tileIn(w.stuffCard(x)))) bad.push('a ' + x.kind + ' drawn in Find 2 carries an Open tile');
+    if (inFind_(w, () => tileIn(w.stuffCard(x)))) bad.push('a ' + x.kind + ' drawn in Find 2 carries an Open tile');
   });
   /* ---- ON SAVED: star each, and Find 2 holds a place of its own that opening must not touch ---- */
   [book, boxer, fight, proj].forEach(x => { const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); const fav = el.querySelector('[data-do="fav"]'); if (fav) A.fav(fav); });
@@ -468,11 +415,13 @@ check('the history database: a manuscript and a historical figure are each found
     const el = d.createElement('div'); el.innerHTML = w.stuffCard(x);
     if (x.kind === 'people') {
       const pc = el.querySelector('.card.person');
-      if (!pc || !pc.firstElementChild.matches('.qtags') || pc.querySelectorAll('svg.pp').length !== 1 || pc.querySelector('h3, dl, p')) bad.push(x.name + '\'s card is not its tags over one portrait');
+      /* ONE CARD SHAPE (owner, 9 Nov, 1a): the portrait and the tags, its name among them (499), and nothing else. */
+      if (!pc || pc.querySelectorAll('.kc-pic svg.pp').length !== 1 || !pc.querySelector('.kc-tags .qtags') || pc.querySelector('dl, p, .kc-head > *')
+          || pc.getAttribute('aria-label') !== x.name) bad.push(x.name + '\'s card is not its tags over one portrait');
       if (!el.querySelector('.qtag[data-f="histEra"]')) bad.push(x.name + '\'s card carries no era tag');
       continue;
     }
-    const h3 = el.querySelector('.hdb .fc-head h3');
+    const h3 = el.querySelector('.hdb .kc-head h3');
     /* A MANUSCRIPT (owner, 7 Nov) is its picture and tags, named by its aria-label instead. */
     const drawn = el.querySelector('.hdb-msc');
     if (drawn ? drawn.getAttribute('aria-label') !== x.name || !drawn.querySelector('.qtags')
@@ -557,7 +506,7 @@ check('the history timeline: events are found under Learning, Content, History, 
   const ev = get('EV-0003'), hit = get('FIG-0004');
   if (!ev || !hit) return bad.concat(['EV-0003 or FIG-0004 is not in the list — the links were NOT checked']);
   const el = d.createElement('div'); el.innerHTML = w.stuffCard(ev);
-  if ((el.querySelector('.hdb .fc-head h3') || {}).textContent !== ev.name) bad.push('the event card is not headed with its name');
+  if ((el.querySelector('.hdb .kc-head h3') || {}).textContent !== ev.name) bad.push('the event card is not headed with its name');
   if (!el.querySelector('.qtag[data-f="histTheatre"]')) bad.push('the event card carries no theatre tag');
   const onCard = (x, when) => {
     const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
@@ -588,14 +537,15 @@ check('the history timeline: events are found under Learning, Content, History, 
 /* THE REVIEW OF THE SECOND FINDER (docs/history/329, "the review"). § */
 
 /* AN EMPTY ANSWER SAYS WHAT TO DO HERE, AND OFFERS NO OTHER COLUMN (chips only since 8 Nov). */
-check('an empty list on either finder says "Nothing matches all of those together." under chips that hide everything, and offers no other column', async () => {
+check('an empty list on Find says "Nothing matches all of those together." under chips that hide everything, and offers no other column', async () => {
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, bad = [];
-  for (const id of ['stuff', 'res']) {
-    const name = id === 'stuff' ? 'Find' : 'Find 2';
-    const st = () => (id === 'stuff' ? t.STUFF() : t.RES());
-    const list = () => (id === 'stuff' ? w.stuffFiltered() : inRes_(w, () => w.stuffFiltered()));
+  /* ONE FIND (owner, 8 Nov, 10a): Find 2 is gone. */
+  for (const id of ['stuff']) {
+    const name = 'Find';
+    const st = () => t.STUFF();
+    const list = () => w.stuffFiltered();
     const said = () => ((d.getElementById(id + '-groups') || {}).textContent || '').replace(/\s+/g, ' ').trim();
     t.go(id, false, true); await wait(80); await woken_();
     st().filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' }, { field: 'boxKind', value: 'Fighters' }];
@@ -655,7 +605,7 @@ check('a Find place kept inside the Bible comes back inside Genesis 1 for an adm
   /* NEITHER FINDER DROPS AN ADMIN'S BIBLE CHIP. */
   const g = { field: 'wBook', value: 'Genesis' }, books = { field: 'shelf', value: 'Writings' };
   if (w.placeChipDead_(g) || w.placeChipDead_(books)) bad.push('Find would drop an admin\'s own Bible chip from a kept place');
-  if (inRes_(w, () => w.placeChipDead_(g) || w.placeChipDead_(books))) bad.push('Find 2 would drop an admin\'s own Bible chip from a kept place');
+  if (inFind_(w, () => w.placeChipDead_(g) || w.placeChipDead_(books))) bad.push('Find 2 would drop an admin\'s own Bible chip from a kept place');
   /* ---- THE SAME PLACE, KEPT BY SOMEBODY THE BIBLE IS NOT FOR: its chips go, the rest stay ---- */
   const theirs = {};
   Object.keys(kept).forEach(k => { theirs[k.replace(/^draft:u:P001:/, 'draft:u:P7:')] = kept[k]; });
@@ -672,44 +622,44 @@ check('a Find place kept inside the Bible comes back inside Genesis 1 for an adm
 });
 
 /* ---------- WORK THAT RUNS LATER, BOUND TO ITS FINDER § */
-check('a landing repaint on a Find 2 result leaves the page in front drawn (the draw\'s microtask fills in Find 2\'s binding)', async () => {
+check('a landing repaint on a Find result leaves the page in front drawn (the draw\'s microtask fills in Find\'s binding)', async () => {
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, bad = [];
-  t.go('res', false, true); await wait(80);
-  t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
-  w.paintFinder_('res');
-  const first = inRes_(w, () => w.stuffFirstResult_());
-  t.goPage('res', first + 7, true); await wait(200); await woken_();
-  if (!inRes_(w, () => w.stuffHeld_())) return ['the setup: the page in front of Find 2 was not filled before the repaint — NOT checked'];
+  t.go('stuff', false, true); await wait(80);
+  t.STUFF().filters = [{ field: 'shelf', value: 'Boxing' }];
+  w.paintFinder_('stuff');
+  const first = inFind_(w, () => w.stuffFirstResult_());
+  t.goPage('stuff', first + 7, true); await wait(200); await woken_();
+  if (!inFind_(w, () => w.stuffHeld_())) return ['the setup: the page in front of Find was not filled before the repaint — NOT checked'];
   w.landRepaint_();
   await wait(300); await woken_();
-  if (!inRes_(w, () => w.stuffHeld_())) bad.push('after a landing repaint the page in front of Find 2 is empty (PAGE.res ' + pg_(t).res + ')');
-  if (!w.document.querySelectorAll('#s-res > .page.is-res[data-filled="1"]').length) bad.push('no result page of Find 2 is filled after a landing repaint');
+  if (!inFind_(w, () => w.stuffHeld_())) bad.push('after a landing repaint the page in front of Find is empty (PAGE.stuff ' + pg_(t).stuff + ')');
+  if (!w.document.querySelectorAll('#s-stuff > .page.is-res[data-filled="1"]').length) bad.push('no result page of Find is filled after a landing repaint');
   return bad;
 });
 
-check('a page turn on Find 2 from outside any binding (a swipe) has the page in front drawn at once, near and far', async () => {
+check('a page turn on Find from outside any binding (a swipe) has the page in front drawn at once, near and far', async () => {
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, bad = [];
-  t.go('res', false, true); await wait(80);
-  t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
-  w.paintFinder_('res');
+  t.go('stuff', false, true); await wait(80);
+  t.STUFF().filters = [{ field: 'shelf', value: 'Boxing' }];
+  w.paintFinder_('stuff');
   await wait(200); await woken_();
-  const first = inRes_(w, () => w.stuffFirstResult_());
-  if (inRes_(w, () => w.stuffPages_().length) < 45) return ['the setup: Shelf · Boxing has too few pages to jump 40 — NOT checked'];
+  const first = inFind_(w, () => w.stuffFirstResult_());
+  if (inFind_(w, () => w.stuffPages_().length) < 45) return ['the setup: Shelf · Boxing has too few pages to jump 40 — NOT checked'];
   /* EACH READ SYNCHRONOUSLY, BEFORE ANY TIMER — the after-slide fill would hide a page drawn late. */
-  t.goPage('res', first + 40, true);
-  if (!inRes_(w, () => w.stuffHeld_())) bad.push('jumped to result 40: the page in front is not drawn synchronously');
-  t.goPage('res', first + 41);
-  if (!inRes_(w, () => w.stuffHeld_())) bad.push('turned one page: the page in front is not drawn synchronously');
+  t.goPage('stuff', first + 40, true);
+  if (!inFind_(w, () => w.stuffHeld_())) bad.push('jumped to result 40: the page in front is not drawn synchronously');
+  t.goPage('stuff', first + 41);
+  if (!inFind_(w, () => w.stuffHeld_())) bad.push('turned one page: the page in front is not drawn synchronously');
   return bad;
 });
 
 /* ---------- A CHAPTER PLAYS ITS ANIMATION § */
 /* ON FIND 2 (docs/history/329), a page after the Pythagoras content card (347, part 2). */
-check('a content card plays its animation on Find 2: Pythagoras after the Pythagoras and trigonometry card, drawn from its row', async () => {
+check('a content card plays its animation on Find: Pythagoras after the Pythagoras and trigonometry card, drawn from its row', async () => {
   const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
@@ -718,28 +668,29 @@ check('a content card plays its animation on Find 2: Pythagoras after the Pythag
   const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { textbooks: rows })));
   const p = payload();
   Object.assign(p, { textbooks: made.textbooks || [] });
-  const { w } = boot({ payload: p });
+  /* FIND IS FOR MEMBERS (400): signed in as a client, as anybody who reads it. */
+  const { w } = boot({ payload: p, member: true });
   await wait(300);
   const t = w.__t;
   const bad = [];
   const row = rows.find(r => r.anim === 'pyth');
   if (!row) return ['data/textbooks.json has no pyth row — NOT checked'];
-  const R = resView_(w);
-  t.go('res');
-  const S = t.RES();
+  const R = findView_(w);
+  t.go('stuff');
+  const S = t.STUFF();
   S.filters.length = 0;
   S.filters.push({ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Maths' });
-  w.paintFinder_('res');
+  w.paintFinder_('stuff');
   const pages = R.stuffPages_();
   const at = pages.findIndex(pg => pg.part === 'an17-pyth');
   if (at < 0) return ['Content · Maths has no an17-pyth page: ' + pages.map(pg => pg.part || 'card').slice(0, 30).join(' ')];
   if (!pages[at - 1] || pages[at - 1].part || !pages[at - 1].x || pages[at - 1].x.key !== 'ct:TB-GCSE-MATHS-17') bad.push('Pythagoras is not the page straight after the Pythagoras and trigonometry card (it follows ' + (pages[at - 1] && ((pages[at - 1].x || {}).name + ':' + (pages[at - 1].part || 'card'))) + ')');
   const first = R.stuffFirstResult_();
-  t.goPage('res', first + at);
+  t.goPage('stuff', first + at);
   await wait(450); await woken_();
   /* THE WINDOW FILLED AS THE BUILDER WOULD FILL IT IN THE QUIET — the builder is held here (it is the arrival this asks about), and since docs/history/341 a turn § */
   R.fillStuffPages(true);
-  const host = w.document.getElementById('s-res');
+  const host = w.document.getElementById('s-stuff');
   /* THE PAGE IN FRONT, AS THE FINDER MARKS IT — `.on` on the page the column is placed at. */
   const cardEl = host.querySelector('.card.is-an17-pyth');
   const here = cardEl && cardEl.closest('.page');
@@ -796,14 +747,14 @@ check('a content card plays its animation on Find 2: Pythagoras after the Pythag
     if (stage.innerHTML !== box.innerHTML) bad.push('Play again changed the drawing');
   }
   /* AND IT STOPS WHEN THE PAGE TURNS. */
-  t.goPage('res', first + at + 1);
+  t.goPage('stuff', first + at + 1);
   await wait(450); await woken_();
   if (stage.isConnected && stage.classList.contains('is-on')) bad.push('turned to the next page, and Pythagoras is still `.is-on` — playing out of sight');
   return bad;
 });
 
-/* ---------- THE OWNER'S TEST: A TOPIC FINDS THE CONTENT CARD BESIDE THE QUESTIONS, ON EITHER FINDER § */
-check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pythagoras\' Theorem, Standard Form, Simultaneous Equations, Histograms holds the content card, and Maths · GCSE opens on a question', async () => {
+/* ---------- THE OWNER'S TEST: A TOPIC FINDS THE CONTENT CARD BESIDE THE QUESTIONS, ON FIND § */
+check('the owner\'s test, on Find: Maths · GCSE · Topic Surds, Pythagoras\' Theorem, Standard Form, Simultaneous Equations, Histograms holds the content card, and Maths · GCSE opens on a question', async () => {
   const p = await resPayload_();
   if (!p) return ['libraryExtras_ is not reachable — the owner\'s test was NOT run'];
   const TOPICS = ['Surds', 'Pythagoras\' Theorem', 'Standard Form', 'Simultaneous Equations', 'Histograms'];
@@ -813,11 +764,11 @@ check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pyth
   const rows = lib.filter(r => r.subject === 'Maths' && /^gcse$/i.test(String(r.level || '')) && TOPICS.some(T => tops(r).indexOf(key(T)) !== -1));
   const missing = TOPICS.filter(T => !rows.some(r => tops(r).indexOf(key(T)) !== -1));
   if (missing.length) return ['data/questions.json has no GCSE maths question on ' + missing.join(', ') + ' — the test has nothing to put the card beside'];
-  const { w } = boot({ payload: p, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  const { w } = boot({ payload: p, member: true, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   for (let i = 0; i < 120 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.kind === 'question')); i++) await wait(50);
-  const t = w.__t, R = resView_(w), bad = [];
+  const t = w.__t, R = findView_(w), bad = [];
   if (!w.stuffItemsAll_().some(x => x.kind === 'question')) return ['the served questions never reached Find — the test was NOT run'];
-  const finders = [['Find', w, () => t.STUFF()], ['Find 2', R, () => t.RES()]];
+  const finders = [['Find', R, () => t.STUFF()]];
   TOPICS.forEach(T => {
     /* GCSE's OWN: a KS3 or A-level maths card on the same topic is rightly outside Maths · GCSE (438). */
     const cards = w.stuffItemsAll_().filter(x => x.kind === 'content' && x.subject === 'Maths' && w.levelOf_(x) === 'GCSE' && w.topicOf_(x).indexOf(T) !== -1);
@@ -889,7 +840,7 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
     const b = boot({ payload: base(), serve, before: u ? seed(u) : undefined });
     await wait(300);
     const w = b.w, t = w.__t;
-    const R = resView_(w);
+    const R = findView_(w);
     if (!t || !t.STUFF) { bad.push(what + ': the app did not load, so it was NOT checked'); continue; }
     if (u && !(t.whoami() && t.whoami().role === u.role)) { bad.push(what + ' was not signed in at boot, so it was NOT checked'); continue; }
     t.go('res');
@@ -931,7 +882,7 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
   const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] };
   const a = boot({ payload: base(), serve, before: seed(admin) });
   const w = a.w, t = w.__t, d = w.document;
-  const R = resView_(w);
+  const R = findView_(w);
   for (let i = 0; i < 80 && !(t && t.BIBLE && t.BIBLE() && t.BIBLE().index); i++) await wait(25);
   if (!t || !t.BIBLE || !t.BIBLE() || !t.BIBLE().index) return bad.concat(['an admin\'s Find never received data/bible/index.json — NOT checked']);
   if (ofBible(a.gets).some(u => !/index\.json/.test(u))) bad.push('an admin\'s boot fetched a book of the Bible before any verse was drawn: ' + ofBible(a.gets).join(', '));
@@ -1001,7 +952,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Bible apart �
   for (const [what, u] of who) {
     const b = boot({ serve: serveAll, before: seed(u) });
     const w = b.w, t = w.__t;
-    const R = resView_(w);
+    const R = findView_(w);
     /* AND THE TALMUD'S INDEX (473), which both are given once a finder paints — or the two would differ by its timing. */
     try { t.go('stuff'); w.paintStuff(); } catch (e) {}
     for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && w.talmudItems_().length && w.textsItems_().length && (u.role !== 'admin' || (t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);

@@ -713,7 +713,8 @@ function libSay_(x) {
   /* A CARD NEWER THAN ITS WORDS (`lib_pending`, docs/library.md): the Ledger has not had them imported yet. */
   if (libIdsFor_(x).some(t => LIB.gone.has(t))) return empty_(x && x.row && (x.row.pending === true || libTrue(x.row.lib_pending)) ? 'Coming soon.' : 'Not in the library yet.');
   if (LIB.failed) {
-    return `${empty_('Couldn’t load this.')}
+    /* THE REASON IS SAID (432): a deploy to do, or a Ledger still filling, is not the same wait as a dropped line. */
+    return `${empty_('Couldn’t load this. ' + LIB.failed)}
       ${tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'lib-retry' }))}`;
   }
   return loading_();

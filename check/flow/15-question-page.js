@@ -795,7 +795,7 @@ check('Find and Find 2 draw the same question family, practical, project and con
   /* THE PRACTICAL AND THE PROJECT FROM FIND, THE CONTENT CARD FROM FIND 2 — either finder carries all
      three (docs/history/347); taking one from each keeps both lists asked. A card WITH an animation, so
      its page is compared too. */
-  const R = resView_(w);
+  const R = findView_(w);
   const real = [['practical', w], ['project', w], ['content', R]].map(([k, V]) => V.stuffItems()
     .find(x => x.kind === k && (k !== 'content' || ((x.row && x.row.animations) || []).length)));
   real.forEach((x, i) => { if (!x) bad.push('no ' + ['practical', 'project', 'content card with an animation'][i] + ' reached ' + (i === 2 ? 'Find 2' : 'Find') + ', so it was NOT compared'); });

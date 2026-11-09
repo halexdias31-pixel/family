@@ -702,7 +702,8 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   /* THE PEN HAS PEN, RULER, COMPASS AND PROTRACTOR whatever its words say (the Protractor since 458) */
   host.innerHTML = whole(pick.drawn);
   const tools = [...host.querySelectorAll('.qt-row .qt-t:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(e => e.getAttribute('data-tool'));
-  if (tools.join() !== 'pen,line,ruler,protractor,compass') bad.push('the drawn part ' + pick.drawn.row.row_id + ' has the tools ' + JSON.stringify(tools) + ', not pen, straight line, ruler, protractor, compass');
+  /* THE ONE TOOL ROW'S ORDER (owner, 8 Nov, 7a): Ruler and Protractor in QT_ROW, then the pen's tiles a figure adds. */
+  if (tools.join() !== 'ruler,protractor,pen,line,compass') bad.push('the drawn part ' + pick.drawn.row.row_id + ' has the tools ' + JSON.stringify(tools) + ', not ruler, protractor, pen, straight line, compass');
   /* A TYPED PART WITH A FIGURE MEASURES IT: Protractor and Ruler, without the word "measure" */
   host.innerHTML = whole(pick.typed);
   const meas = [...host.querySelectorAll('.q-meast')].map(e => e.getAttribute('data-tool'));
@@ -760,18 +761,19 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
 });
 
 /* ---------- BACK TO TOP, AND YOUR RESULT (docs/history/463) ---------- */
-check('back to top: every result page of either finder ends in a Back to top tile, and it turns that finder, and only that one, to its first page', async () => {
+check('back to top: every result page of Find ends in a Back to top tile, and it turns Find to its first page', async () => {
   const Q = LIB_FULL.rows('questions').slice(0, 60);
   const { w } = boot({ member: true, before: signedInAs_(MEMBER_), serve: url => (/data\/questions\.json/.test(url) ? JSON.parse(JSON.stringify(Q)) : undefined) });
   await wait(300); await woken_();
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['find-top'] || typeof w.finderOf_ !== 'function') return ['find-top has no handler, or finderOf_ is not reachable — NOT checked'];
   let tried = 0;
-  for (const id of ['stuff', 'res']) {
-    const F = w.finderOf_(id), other = id === 'stuff' ? 'res' : 'stuff';
+  /* ONE FIND (owner, 8 Nov, 10a): Find 2 is gone, so Find is the one finder to turn. */
+  for (const id of ['stuff']) {
+    const F = w.finderOf_(id);
     t.go(id, false, true); await wait(120); await woken_();
     /* EVERY QUESTION, as a child narrowing to Questions would have them */
-    (id === 'stuff' ? t.STUFF() : t.RES()).filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
+    t.STUFF().filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
     w.finderForgetFound_();
     w.paintFinder_(id); await wait(150); await woken_();
     const n = w.inFinder_(F, () => w.stuffPageCount());
@@ -781,14 +783,12 @@ check('back to top: every result page of either finder ends in a Back to top til
     }
     const last = w.inFinder_(F, () => 1 + w.frontPages_().length) + n - 1;
     t.goPage(id, last, true); await wait(80);
-    const was = pg_(t)[other] || 0;
     if (!(pg_(t)[id] > 0)) { bad.push(id + ': could not turn to its last page — NOT checked'); continue; }
     const tile = d.querySelector('#s-' + id + ' [data-do="find-top"]');
     if (!tile) { bad.push(id + ': no Back to top drawn in the column'); continue; }
     A['find-top'](tile); await wait(80);
     tried++;
     if (pg_(t)[id] !== 0) bad.push(id + ': Back to top left it on page ' + pg_(t)[id]);
-    if ((pg_(t)[other] || 0) !== was) bad.push(id + ': Back to top moved the other finder too');
   }
   if (!tried && !bad.length) bad.push('no finder was tried');
   return bad;
