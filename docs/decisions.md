@@ -238,4 +238,3 @@ become an owner question showing both; never pick one.
 - No title line on open cards: the name is a tag, as questions do now.
 - The same four buttons on every card: main action (Send/Book/Pay/Buy), Message, Star, ⋯ (everything else).
 - Names: first name + initial everywhere (replaces "admins see full names").
-- Practice papers open with every question open (3a).
