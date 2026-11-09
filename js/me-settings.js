@@ -432,7 +432,7 @@ function fieldsHtml(groups, o) {
   o = o || {};
   const head = o.head === false ? '' : o.head || 'h2';
   const value = o.value || (() => '');
-  const plain = (f, extra) => fieldHtml(f, value(f), Object.assign({
+  const plain = (f, extra) => formField_(f, value(f), Object.assign({
     attr: o.attr,
     label: ROW_LABEL[f],
     options: o.options ? o.options(f) : null,

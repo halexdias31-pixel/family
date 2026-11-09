@@ -1,0 +1,119 @@
+{
+ "notes": "84a: the one form maker's specs; js/form.js FORM_SPECS copies kinds, rules and cards (check-forms.js). leftovers: raw input/select/textarea a Settings file may still draw outside the maker; budgets only go down.",
+ "kinds": [
+  "text",
+  "number",
+  "money",
+  "choice",
+  "toggle",
+  "date",
+  "time",
+  "picture",
+  "list",
+  "pin"
+ ],
+ "rules": [
+  {
+   "kind": "list",
+   "match": "^(qual_\\d+|job_\\d+|lib\\d+_|photo_\\d+)|^video$|^venues_ok$"
+  },
+  {
+   "kind": "picture",
+   "match": "^photo$"
+  },
+  {
+   "kind": "toggle",
+   "match": "^(dbs|active|listed|is_|has_|allow|paid|trackable|stealable)"
+  },
+  {
+   "kind": "date",
+   "match": "_date$|^date_of_birth$|^dob_[dmy]$"
+  },
+  {
+   "kind": "time",
+   "match": "^(m|tu|w|th|f|sa|su)\\d\\d$"
+  },
+  {
+   "kind": "money",
+   "match": "rate|price|cost|fee"
+  },
+  {
+   "kind": "number",
+   "match": "hours|km|fraction|pages|year|students|days|weeks|count|level_required|age_|_cut$"
+  },
+  {
+   "kind": "choice",
+   "match": "^(borough|city|town|focus|favourite_colour)$"
+  },
+  {
+   "kind": "text",
+   "match": ""
+  }
+ ],
+ "cards": {
+  "signing-in": {
+   "title": "Signing in",
+   "boxes": [
+    {
+     "id": "pin-now",
+     "kind": "pin",
+     "label": "current PIN",
+     "ph": "current PIN"
+    },
+    {
+     "id": "pin-new",
+     "kind": "pin",
+     "label": "new PIN, 4 to 8 numbers, not 1234",
+     "ph": "new PIN, 4–8 numbers"
+    },
+    {
+     "id": "pin-again",
+     "kind": "pin",
+     "label": "new PIN again",
+     "ph": "new PIN again"
+    }
+   ],
+   "save": {
+    "icon": "save",
+    "label": "Save",
+    "note": "your new PIN",
+    "act": "pin-save"
+   },
+   "said": "pin-said"
+  }
+ },
+ "leftovers": {
+  "me-shelves.js": {
+   "n": 12,
+   "why": "fieldHtml, the line-drawer formField_ calls; the qualification shelf"
+  },
+  "me-settings.js": {
+   "n": 5,
+   "why": "phone code and number row, photo and video file pickers"
+  },
+  "me-card.js": {
+   "n": 4,
+   "why": "card editor: where-you-teach ticks, extra-seat hidden boxes"
+  },
+  "staff.js": {
+   "n": 5,
+   "why": "rate sliders, room picker, statement month, agreement tick"
+  },
+  "me-roles.js": {
+   "n": 2,
+   "why": "roles: a single-answer menu (84a skips those); the availability week grid"
+  },
+  "me-account.js": {
+   "n": 13,
+   "why": "sign-in, register and Apply to teach forms"
+  },
+  "me-people.js": {
+   "n": 5,
+   "why": "an admin's add-a-person form"
+  },
+  "records.js": {
+   "n": 7,
+   "why": "business settings and the weekly email's words"
+  }
+ }
+}
