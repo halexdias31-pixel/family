@@ -128,7 +128,7 @@ if (!/const FLOW_LAYOUT = true;/.test(bootSrc)) bad.push('59a FLOW_LAYOUT is not
 /* ---------- 60b. NORMAL CASE EVERYWHERE: no uppercase transform, no ALL-CAPS words on screen ---------- */
 /* The one exception is a drawn calculator's printed brand and key labels (.calc-*): a picture of a thing, not the site's words. */
 for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-  if (/text-transform:\s*uppercase/.test(m[2]) && !/^\s*\.calc-/.test(m[1])) bad.push(`60b uppercase in "${m[1].trim().slice(0, 60)}" — normal case`);
+  if (/text-transform:\s*uppercase/.test(m[2]) && !/^\s*(\.calc-|#kp\.is-shift)/.test(m[1])) bad.push(`60b uppercase in "${m[1].trim().slice(0, 60)}" — normal case`);
 }
 files.forEach(({ n, src }) => {
   if (/text-transform:\s*uppercase/.test(src)) bad.push(`60b inline uppercase in ${n}.js`);

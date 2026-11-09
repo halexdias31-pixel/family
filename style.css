@@ -5011,7 +5011,7 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 /* THE SYMBOLS FACE (round 4, `KP_SYM`): Greek letters and the signs no other key types, ten a row like the letters */
 .kp-key.kp-sy { font-size: var(--fs-title); font-weight: 500; }
 .kp-key.kp-ch { position: relative; font-weight: 500; font-size: var(--fs-title); }
-#kp.is-shift .kp-ch { }
+#kp.is-shift .kp-ch { text-transform: uppercase; }
 /* ⇧ LIT WHILE IT IS ON, AND A BAR UNDER IT WHILE IT IS LOCKED -- the phone's own two signs for it. */
 .kp-key.kp-shift.is-on { background: var(--kp-face); color: var(--kp-ink); }
 .kp-key.kp-shift.is-lock { box-shadow: inset 0 -4px 0 var(--kp-ink); }
