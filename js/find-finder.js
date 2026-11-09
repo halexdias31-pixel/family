@@ -192,15 +192,15 @@ const KINDS = {
   /* SETTINGS (owner, 4 Nov): their own answer in Find; each card Coming soon until it is turned back on. */
   setting: { group: 'Settings', label: 'Settings', card: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)) },
   /* MESSAGES (owner, 4 Nov): its own answer; Coming soon while the DM column is off. */
-  msg: { group: 'Messages', label: 'Messages', card: x => (x.soon ? soonCard_(x) : msgDoorCard_(x)) },
+  msg: { group: 'Messages', label: 'Messages', card: x => (x.soon ? soonCard_(x) : findCard(x)) },
   /* THE SWITCHED-OFF AREAS' ONE CARD EACH (OFF_KINDS). */
   offPosts: { group: 'Posts', label: 'Posts', card: x => soonCard_(x) },
   offShop: { group: 'Shop', label: 'Shop', card: x => soonCard_(x) },
   offBooking: { group: 'Booking', label: 'Booking', card: x => soonCard_(x) },
   /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
   health: { group: 'Settings', label: 'Settings', card: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : '') },
-  /* POSTS (owner, 4 Nov): the feed's posts as Find cards, drawn by the feed's own postCard_. */
-  post: { group: 'Posts', label: 'Posts', card: x => `<div class="card post-door">${typeof postCard_ === 'function' ? postCard_(x.row, 0) : `<p>${esc(x.name)}</p>`}</div>` },
+  /* POSTS (owner, 8 Nov, 36a): the standard Find card shape (card-fields.json `post`, around it `postFindCard_`), not the feed's look. */
+  post: { group: 'Posts', label: 'Posts', card: x => findCard(x) },
 
   /* ---------- `link` WAS A KIND HERE, AND THE LINKS ARE OFF FIND § */
 

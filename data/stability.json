@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 75.6,
+ "score": 75.5,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -95,12 +95,12 @@
   {
    "id": "duplicates",
    "label": "Repeated long lines",
-   "count": 52,
+   "count": 54,
    "weight": 0.02,
    "cap": 10,
-   "off": 1,
+   "off": 1.1,
    "where": {
-    "lines": 19
+    "lines": 20
    }
   },
   {

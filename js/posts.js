@@ -227,6 +227,32 @@ function postCard_(p, i) {
     </article>`;
 }
 
+/* ---------- A POST AS A FIND CARD (owner, 8 Nov, 36a): cards.js's `findCard` over card-fields.json's `post` row. */
+const postWho_ = p => (profileOf_(p.authorId) || {}).handle || p.handle || p.author || brand('name', '@family.');
+function postFindCard_(x, draw) {
+  const p = (x && x.row) || {};
+  return draw({ row: p, cardCls: p.waiting ? 'is-pending' : '', cardData: { post: p.id || '' } });
+}
+window.KC_AROUND = Object.assign(window.KC_AROUND || {}, { post: postFindCard_ });
+window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
+  postPic: x => { const p = x.row, media = postMedia_(p), who = postWho_(p);
+    return `<figure class="msg-fc-pic post-fc-pic">${media.length ? postItem_(media[0], 'post-fc-img')
+      : typeof pixSvg_ === 'function' && typeof LIB_PIX !== 'undefined' ? pixSvg_(LIB_PIX.content, who) : postFace_(p, who)}</figure>`; },
+  postTitle: x => `<h3>${esc(x.row.title || postWho_(x.row))}</h3>`,
+  postTags: x => { const p = x.row, media = postMedia_(p);
+    const at = p.at || p.when, d = at && typeof parseWhen === 'function' ? parseWhen(at) : null;
+    const kind = p.poll ? 'Poll' : media.some(postIsVideo_) ? 'Clip' : media.length ? 'Photo' : 'Post';
+    const extra = [d && !isNaN(d) ? date_(d) : '', kind, media.length > 1 ? media.length + ' pictures' : '', p.pinned ? 'pinned' : '']
+      .filter(Boolean).map(t => `<span class="qtag msg-tag">${esc(t)}</span>`).join('');
+    const row = typeof tagRow_ === 'function' ? String(tagRow_(x) || '') : '';
+    return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, extra + '</div>') : `<div class="qtags qcard-tags">${extra}</div>`; },
+  postBody: x => { const body = String(x.row.caption || x.row.body || x.row.text || '').trim(); return body ? `<p class="msg-fc-body">${mark(body)}</p>` : ''; },
+  postTiles: x => /* the post's own Suggest goes: every Find card's row already carries one */ { const p = x.row, r = p.reactions, first = r && Array.isArray(r.emoji) && r.emoji[0];
+    const react = first ? tile_({ icon: 'star', label: 'React', note: first + (r.total ? ' · ' + r.total : ''), on: r.yours === first,
+      act: 'react', data: { id: p.id, emoji: first } }) : '';
+    return tileRow_(react + String(postTiles_(p)).replace(/^<div class="tile-row[^"]*">|<\/div>$/g, '').replace(/<button[^>]*\brep-tile\b[^>]*>[\s\S]*?<\/button>/g, '')); },
+});
+
 /* WHAT PEOPLE SAID UNDER IT. § */
 function commentsHtml_(p) {
   const c = p && p.comments;
