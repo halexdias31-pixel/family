@@ -1,0 +1,53 @@
+{
+  "why": "counts may only go down; lower them when you fix one",
+  "allow": {
+    "cssColours": 0,
+    "important": 33
+  },
+  "jsColours": {
+    "find-parts.js": 1,
+    "links.js": 144,
+    "mat.js": 15,
+    "posts.js": 6,
+    "qtools.js": 1,
+    "receipt.js": 1,
+    "records.js": 3,
+    "submit.js": 3,
+    "working.js": 1
+  },
+  "important": [
+    ":where([data-do], .tab, button, summary, a[href], label, [role=\"button\"]):not(:where([class^=\"kp-\"], [class*=\" kp-\"])):is(:active, .is-pressed), :where([data-do], .tab, button, summary, a[href], label, [role=\"button\"]):not(:where([class^=\"kp-\"], [class*=\" kp-\"])):is(:active, .is-pressed) * { transition-duration }",
+    ".hidden { display }",
+    ".pane > :has(.vid-watch.is-fs) { zoom }",
+    "html.padlocked, html.padlocked * { touch-action }",
+    "html.padlocked, html.padlocked * { overscroll-behavior }",
+    "body.printing-fly { max-width }",
+    "body.printing-fly { margin }",
+    "body.printing-fly { padding }",
+    "body.printing-fly { overflow }",
+    "body.printing-fly * { visibility }",
+    "body.printing-mat { max-width }",
+    "body.printing-mat { margin }",
+    "body.printing-mat { padding }",
+    "body.printing-mat { overflow }",
+    "body.printing-mat * { visibility }",
+    "body.printing-mat .mat-paper, body.printing-mat .mat-paper * { visibility }",
+    "body.printing-mat .mat-paper { height }",
+    "body.printing-mat .mat-paper { overflow }",
+    "body.printing-mat .mat-paper .mat-sheet { transform }",
+    ".tb-an-stage:not(.is-on) *, .tb-an-stage:not(.is-on) *::before, .tb-an-stage:not(.is-on) *::after { animation-play-state }",
+    "[hidden] { display }",
+    "body.printing-stmt { max-width }",
+    "body.printing-stmt { margin }",
+    "body.printing-stmt { padding }",
+    "body.printing-stmt { overflow }",
+    "body.printing-stmt * { visibility }",
+    "body.printing-stmt .stmt-paper, body.printing-stmt .stmt-paper * { visibility }",
+    "body.printing-insh { max-width }",
+    "body.printing-insh { margin }",
+    "body.printing-insh { padding }",
+    "body.printing-insh { overflow }",
+    "body.printing-insh * { visibility }",
+    "body.printing-insh .insh-paper, body.printing-insh .insh-paper * { visibility }"
+  ]
+}

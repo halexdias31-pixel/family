@@ -206,7 +206,7 @@ function profHeat_(names) {
   /* A SOFT, WIDE GLOW PER VENUE, TRANSLUCENT, so the streets read through it and venues close
      together add up into a brighter patch rather than each being a hard white ball. */
   const G = 80;
-  px.forEach(p => layers.push({ img: 'radial-gradient(circle closest-side, rgba(255,255,255,.55) 0, rgba(255,255,255,.25) 45%, rgba(255,255,255,0) 100%)',
+  px.forEach(p => layers.push({ img: 'radial-gradient(circle closest-side, color-mix(in srgb, var(--white) 55%, transparent) 0, color-mix(in srgb, var(--white) 25%, transparent) 45%, transparent 100%)',
     pos: pos(p[0] - G / 2, p[1] - G / 2, G, G), size: G + 'px ' + G + 'px' }));
   const t0x = Math.floor((cx - 220) / 256), t1x = Math.floor((cx + 220) / 256);
   const t0y = Math.floor((cy - 130) / 256), t1y = Math.floor((cy + 130) / 256);
