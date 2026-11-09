@@ -267,7 +267,8 @@ function ansBox_(x) {
   const later = scheme && ai ? `<span class="qp-ai-later" hidden>${ai}</span>` : '';
   const val = ansRead_(k);
   const ws = workStrip_(x);
-  const row = qtRow_(x);
+  /* THE AI'S CHECK, HELD BACK, waits in the part's one row too, so unhiding it never makes a second row */
+  const row = qtRow_(x, later);
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
   const drawAt = geo ? ` data-k="${esc(k)}" data-pad="${esc(padKey_(x))}" data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '';
   const isAi = (isAiMark_(m) && m.ready) || (scheme && ai);
@@ -283,7 +284,7 @@ function ansBox_(x) {
     return `<div class="${cls} qp-essay${vcls ? ' ' + vcls : ''}"${dataAt}>
     <label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, val, 'essay', 3)}</label>
     <p class="qp-words">${esc(kpWordsSay_(val))}</p>
-    ${row}${later}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
+    ${row}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(vsay)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${isAi ? `<p class="qp-ai-why">${own ? esc(own.why) : ''}</p>` : ''}`;
@@ -297,7 +298,7 @@ function ansBox_(x) {
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
   return `<div class="${cls}${said.cls ? ' ' + said.cls : ''}"${dataAt}>
-    ${bar}${row}${later}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
+    ${bar}${row}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(geo ? padSaid_(said.text) : said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${isAi ? '<p class="qp-ai-why"></p>' : ''}`;

@@ -89,7 +89,7 @@ const twiceOn = root => {
   });
   return Object.keys(seen).filter(k => seen[k] > 1).map(k => k + ' x' + seen[k]);
 };
-const toolsOf = row => [...row.querySelectorAll('.tile')].filter(t => !t.classList.contains('qt-fold')).map(t => {
+const toolsOf = row => [...row.querySelectorAll('.tile')].filter(t => !t.classList.contains('qt-fold') && !t.closest('[hidden]')).map(t => {
   if (t.classList.contains('is-submit')) return 'check';
   const act = t.getAttribute('data-do') || '';
   return act === 'qt-pen' ? (t.getAttribute('data-tool') || 'pen') : TOOL_OF[act] || (act === 'qt-inst' ? t.getAttribute('data-tool') : act || '?');
@@ -208,8 +208,9 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     const pen = has('.qpad .qpad-ink');
     const control = {
       typed: has('.qp-ans-in') || pen,
-      choose1: n('[data-do="qp-choose"]') >= 2, chooseN: n('[data-do="qp-choose"]') >= 2,
-      order: n('.qp-item') >= 2,
+      /* OPTIONS ARE READ, THE ANSWER TYPED (owner, 9 Nov): a choose or order part has the one typed box and its options listed A, B, C */
+      choose1: has('.qp-ans-in') && n('.qp-optline') >= 2, chooseN: has('.qp-ans-in') && n('.qp-optline') >= 2,
+      order: n('.qp-item') >= 2 || (has('.qp-ans-in') && n('.qp-optline') >= 2),
       table: has('input.qp-cell') || pen, match: has('input.qp-cell') || pen, label: has('input.qp-cell') || pen || has('.qp-ans-in'),
       essay: has('.qp-sheet') || has('.qp-ans-in'),
       drawn: pen,
@@ -240,7 +241,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
         const keyless = (own === 'choice' || own === 'order') && !S(r.choice_right);
         const want = (own === 'ai' && !SCHEME_IN(r)) || keyless ? 'qp-noscheme' : CHECK_OF[own];
         if (own === 'ai' && m.ready !== SCHEME_IN(r)) bad('marker', x, 'its row ' + (SCHEME_IN(r) ? 'has' : 'has no') + ' mark scheme, and the app says it is ' + (m.ready ? '' : 'not ') + 'ready');
-        const go = [...rows[0].querySelectorAll('.is-submit')];
+        const go = [...rows[0].querySelectorAll('.is-submit')].filter(g => !g.closest('[hidden]'));   // the AI's Check held back is not yet shown
         if (!CHECK_OF[m.kind]) bad('marker', x, 'it is marked by ' + JSON.stringify(m.kind) + ' — only a rule or the AI marks');
         else {
           byMarker[m.kind] = (byMarker[m.kind] || 0) + 1;
