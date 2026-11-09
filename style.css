@@ -3691,14 +3691,14 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qsheet ul { padding-left: 1.2rem; }
 .qsheet .stat { text-align: center; margin: .9rem 0; }
 /* ---------- A WIDE TABLE SCROLLS IN ITS OWN BOX, AND NOTHING ELSE DOES § */
-.qsheet table {
+.qsheet table, .qsheet-stem table {
   border-collapse: collapse; margin: .9rem auto;
   display: block; width: max-content; max-width: 100%;
   overflow-x: auto; overscroll-behavior-x: contain;
   /* `pan-x`, BECAUSE A SCROLLER STARTS ITS OWN `touch-action`. § */
   touch-action: pan-x;
 }
-.qsheet th, .qsheet td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
+.qsheet th, .qsheet td, .qsheet-stem th, .qsheet-stem td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
 /* THE BOX A PAPER LEAVES FOR AN ANSWER. § */
 .qsheet span.box {
   display: inline-block; min-width: 2.4em; height: 1.25em; vertical-align: middle;
