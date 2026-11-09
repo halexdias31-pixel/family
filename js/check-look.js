@@ -195,5 +195,14 @@ files.forEach(({ n, src }) => {
   if (k) bad.push(`65a ${k} hand-typed "—" in ${n}.js — dash_(value)`);
 });
 
+/* ---------- 66a. ONE ICON STYLE: thin outline marks in ink, never filled, never a colour of their own ---------- */
+if (!/fill="none" stroke="currentColor" stroke-width="1\.4"/.test(tilesSrc)) bad.push('66a tileIcon_ no longer draws a thin outline (fill="none", stroke 1.4)');
+const iconsSrc = (tilesSrc.match(/const TILE_ICONS = \{[\s\S]*?\n\};/) || [''])[0];
+if (/fill="(?!none)/.test(iconsSrc)) bad.push('66a a filled mark in TILE_ICONS — outline only');
+for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  if (/tile-i/.test(m[1]) && /(^|;)\s*fill:\s*(?!none)/.test(m[2])) bad.push(`66a a filled icon: "${m[1].trim().slice(0, 60)}"`);
+  if (/^\s*\.tile(\.[\w-]+)*\s*$/.test(m[1]) && !/is-sure/.test(m[1]) && /var\(--(bad|alert|warn|coral|green|purple|pink|admin|hue-\d+)\)/.test(m[2])) bad.push(`66a a coloured tile: "${m[1].trim()}" — ink, black and white`);
+}
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');

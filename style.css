@@ -4208,13 +4208,10 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    "done, and no longer asking" the label used to say in words. */
 .tile.is-buy.on { color: var(--ink); }
 .tile.on[disabled] { opacity: 1; }
-/* ---------- AND THE MARK ITSELF FILLS, WHICH IS WHAT THE PARAGRAPH ABOVE PROMISED § */
-.tile.on .tile-i-star,
-.tile.on .tile-i-wear,
-.tile.on .tile-i-spot { fill: currentColor; }
+/* ONE ICON STYLE (owner 66a, 9 Nov): a thin outline, never filled; "on" is the plate going bright, not the mark filling. */
 
-/* A DANGER TILE (a delete) had no tone of its own and drew as a bare grey square among plated ones (467). */
-.tile.is-danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 35%, transparent); }
+/* A DANGER TILE (a delete) is plated like the rest, in ink (66a: black and white); tapping it twice (`sure_`) is its warning. */
+.tile.is-danger { color: var(--ink); border-color: var(--line); }
 
 /* `.card .ticks .tick*` WERE HERE — an outline rather than a fill, so a pass read as a record of
    something done rather than as an offer, and the gold stayed on the one row that spends money.
