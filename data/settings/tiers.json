@@ -127,6 +127,7 @@
     "find-levels": "core",
     "find-bundles": "core",
     "find-pages": "core",
+    "find-quick": "core",
     "find-measure": "core",
     "keypad-keys": "core",
     "keypad-pad": "core",
@@ -399,6 +400,7 @@
     "find-levels",
     "find-bundles",
     "find-pages",
+    "find-quick",
     "find-measure"
   ],
   "lazy": ["mat", "records", "biz-check", "one-place", "inbox"],
