@@ -6053,3 +6053,13 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .file-view-f, .file-view-v, .file-view-i { display: block; width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
 .file-view-f { height: 70vh; }
 .file-view-youtube .file-view-f, .file-view-v { height: auto; aspect-ratio: 16 / 9; }
+
+/* OLDER iPAD SAFARI (before 15.4/16) drops dvh and overflow: clip, which leaves #screen with no height; vh and hidden stand in there. */
+@supports not (height: 100dvh) {
+  body { min-height: 100vh; }
+  #banner { max-height: 40vh; }
+  #screen { height: calc(100vh - var(--top) - var(--safe-top) - var(--bar) - var(--safe-bottom)); }
+}
+@supports not (overflow: clip) {
+  #screen { overflow: hidden; }
+}
