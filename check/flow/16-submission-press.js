@@ -352,7 +352,7 @@ check('submission: right, edited, wrong — two events on the account, a draft s
     if (w.subsLine_('P5') !== '') bad.push('a person who sent nothing reads "' + w.subsLine_('P5') + '"');
     const host = w.document.createElement('div');
     host.innerHTML = w.findCard({ kind: 'tutor', row: { title: 'Ada Pupil', handle: 'ada', role: 'Student', personId: 'P7', activity: w.subsLine_('P7') } });
-    const act = host.querySelector('.prof-who .prof-act');
+    const act = host.querySelector('.prof-who-tags .prof-act');
     if (!act || act.textContent !== '12 questions · last 04/10/01') bad.push('the person card does not draw the line under the name');
     w.__t.USER(Object.assign({}, ANS_BEN));
     if (w.subsLine_('P7') !== '') bad.push('a summary built for the admin is drawn for Ben on the same phone');

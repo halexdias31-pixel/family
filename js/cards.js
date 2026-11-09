@@ -125,7 +125,7 @@ function profQuals_(t) {
   }
   chips = PROF_MORE_(chips, 2, parts.length ? parts.map(p => profQualV_(p.subject)) : profList_(t.quals));
   return chips.length
-    ? `<div class="prof-cap">Qualifications</div><div class="qtags prof-tags prof-teach prof-quals">${chips.join('')}</div>` : '';
+    ? `<div class="qtags prof-tags prof-teach prof-quals">${chips.join('')}</div>` : '';
 }
 
 /* ---------- JOBS, CURRENT AND PAST (8 Nov): one pill a job — "Role · Where · 2019–now" — in the jobs colour. */
@@ -133,7 +133,7 @@ const profJobSay_ = j => [j.role, j.where, [j.from, j.to].filter(Boolean).join('
 function profJobs_(t) {
   const says = (Array.isArray(t.jobs) ? t.jobs : []).map(profJobSay_).filter(Boolean);
   const chips = PROF_MORE_(says.map(v => `<span class="prof-tag">${esc(v)}</span>`), 1, says);
-  return chips.length ? `<div class="prof-cap">Jobs</div><div class="qtags prof-tags prof-teach prof-jobs">${chips.join('')}</div>` : '';
+  return chips.length ? `<div class="qtags prof-tags prof-teach prof-jobs">${chips.join('')}</div>` : '';
 }
 
 /* ---------- "1 to 4 students", NOT `minStudents` AND `maxStudents` § */
@@ -189,7 +189,7 @@ function profHeat_(names) {
     .filter(v => v && Number(v.lat) && Number(v.lng)).map(v => [Number(v.lat), Number(v.lng), v.borough || '']);
   /* EVERY PLACE BY NAME TOO, so the card still says where when the map cannot load. */
   const tail = `<div class="qtags prof-tags prof-teach prof-places">${PROF_MORE_(names.map(n => `<span class="prof-tag">${esc(n)}</span>`), 3, names).join('')}</div>`;
-  if (!pts.length) return `<div class="prof-cap">Tutors at</div>${tail}`;
+  if (!pts.length) return tail;
   let z = 12;
   for (; z > 9; z--) {
     const px = pts.map(p => heatPx_(p[0], p[1], z));
@@ -219,7 +219,7 @@ function profHeat_(names) {
     + `background-position:${list.map(l => l.pos).join(',')};`
     + `background-size:${list.map(l => l.size).join(',')};background-repeat:no-repeat`;
   const areas = [...new Set(pts.map(p => p[2]).filter(Boolean))];
-  return `<div class="prof-cap">Tutors at</div>
+  return `
     <div class="prof-heat" role="img" data-dots="${px.length}"
       aria-label="${esc('A map of where they tutor' + (areas.length ? ': around ' + areas.join(', ') : ''))}">
       <span class="heat-tiles" style="${esc(bg(tiles))}"></span>
@@ -237,8 +237,7 @@ function profAvail_(t) {
   const ticked = Object.keys(on);
   /* ---------- NO HOURS IS SAID, NOT LEFT BLANK § */
   if (!ticked.length) {
-    return `<div class="prof-cap">Available</div>
-      <p class="prof-say prof-nohours">Hasn\u2019t set usual hours yet \u2014 ask for any hour;
+    return `<p class="prof-say prof-nohours">Hasn\u2019t set usual hours yet \u2014 ask for any hour;
         they accept or decline.${typeof isAdmin === 'function' && isAdmin()
           ? ' They tick them in Settings, under their week.' : ''}</p>`;
   }
@@ -260,8 +259,7 @@ function profAvail_(t) {
   }).filter(d => d.hours.some(c => c.lit || c.busy));
   /* ---------- TICKED, BUT NOT AT AN HOUR THAT CAN BE BOOKED § */
   if (!days.length) {
-    return `<div class="prof-cap">Available</div>
-      <p class="prof-say prof-hid prof-nofree">No free hours this week.${typeof isAdmin === 'function' && isAdmin()
+    return `<p class="prof-say prof-hid prof-nofree">No free hours this week.${typeof isAdmin === 'function' && isAdmin()
           ? ' Every hour they have ticked is outside ' + hours_(hours[0], hours[hours.length - 1])
             + ', the hours a session can be booked at.' : ''}</p>`;
   }
@@ -283,8 +281,7 @@ function profAvail_(t) {
     return spans.length ? `<span class="prof-day">${esc(day_(d.label))} ${esc(say)}</span>` : '';
   }).filter(Boolean).join('<span class="prof-sep"> </span>');
   const free = line(c => c.lit), busyLine = line(c => c.busy);
-  return `<div class="prof-cap">Available</div>
-    <div class="prof-week prof-hours" data-avail="${ticked.length}"
+  return `<div class="prof-week prof-hours" data-avail="${ticked.length}"
       aria-label="${esc((said ? 'Available ' + said : 'No free hours this week')
         + (taught ? '. Already teaching ' + taught : ''))}">${free ? `<p class="prof-hour-line">${free}</p>` : ''}${busyLine
         ? `<p class="prof-key prof-busy">Already teaching ${busyLine}</p>` : ''}</div>`;
@@ -310,7 +307,7 @@ function rateRange_(t) {
 
 /* ONE CARD FOR EVERY KIND (owner, 8 Nov): picture, title, tags, lines, then its tile row (`cardTiles_`).
    card-fields.json picks each part's fields; check-card-shape holds the shape. */
-const KC_PARTS = ['pic', 'head', 'tags', 'lines'];
+const KC_PARTS = ['pic', 'head', 'tags', 'lines', 'act'];
 /* WHO A CARD IS DRAWN FOR: undefined is whoever is signed in; a share sets 'public' while it draws (tutorPng_). */
 let CARD_VIEWER;
 /* BEFORE THE SETTINGS FILE ARRIVES, OR FOR A KIND IT DOES NOT NAME: its kind's picture, its name, its facet tags. */
@@ -322,15 +319,16 @@ const KC_FIELDS = {
   kindPic: x => libPic_(x.kind, x.name),
   name: x => `<h3>${esc(x.name || '')}</h3>`,
   /* THE TUTOR'S COMPACT ONE-SCREEN CARD (547) as fields: face, role, the name line with the rate, then pills and lines. */
-  face: x => { const t = kcRow_(x); return personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title, personId: t.personId },
-    { cls: 'prof-pic', none: 'prof-none', size: 44 }); },
-  role: x => { const t = kcRow_(x); return `<h3>${esc([t.role || 'Tutor'].concat(profList_(t.titles)).join(' · '))}${
-    t.listed === false ? ` <span class="prof-off">· ${t.pending ? 'asked to tutor' : 'not listed'}</span>` : ''}</h3>`; },
-  nameRate: x => { const t = kcRow_(x); return `<div class="prof-who">
-    <span class="prof-line"><span class="prof-name">${esc(displayName_(t, CARD_VIEWER))}</span>${t.rate && !childView_()
-      ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/h$/, ''))}<small>/h</small></span></span>` : ''}</span>
-    ${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
-    ${t.activity ? `<span class="prof-act">${esc(t.activity)}</span>` : ''}</div>`; },
+  /* A PHOTO, ELSE A DEFAULT PICTURE (owner, 9 Nov): never an avatar figure on a card. */
+  face: x => { const t = kcRow_(x), k = typeof picKind_ === 'function' ? picKind_(t.image) : (t.image ? 'photo' : '');
+    if (k === 'photo') return `<img class="prof-pic" src="${esc(pic(t.image))}" alt="" loading="lazy" decoding="async">`;
+    return k === 'basic' && typeof pfpArt_ === 'function' ? pfpArt_(pfpChoice_(t.image), 96) : ''; },
+  /* THE NAME IS A TAG (owner, 9 Nov): first name and an initial for everyone; the role and rate are tags beside it. */
+  nameTag: x => { const t = kcRow_(x), tag = (v, n, c) => `<span class="prof-tag${c ? ' ' + c : ''}" data-tag="${n}">${esc(v)}</span>`;
+    return `<div class="qtags prof-tags prof-who-tags">${tag(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')}${
+      [t.role || 'Tutor'].concat(profList_(t.titles)).map(v => tag(v, 1)).join('')}${
+      t.rate && !childView_() ? tag(rateRange_(t), 4, 'prof-tag-rate') : ''}${t.activity ? tag(t.activity, 3, 'prof-act') : ''}${
+      t.listed === false ? tag(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off') : ''}</div>`; },
   /* A TICKED TUTOR BOX IS A QUESTION TO THE ADMIN, answered by the eye tile; the line says what pressing it means. */
   listedNote: x => { const t = kcRow_(x); if (!(t.listed === false && isAdmin())) return '';
     return t.pending ? `<p class="prof-say prof-hid">They ticked Tutor in their settings. Until you list them they are not on the site,
@@ -338,9 +336,9 @@ const KC_FIELDS = {
       : '<p class="prof-say prof-hid">Clients cannot see them. The crossed-out eye below puts them back on the site.</p>'; },
   /* SUBJECT PILLS: one chip a subject, its levels raised (`teachGroups_`). */
   teaches: x => { const t = kcRow_(x), main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
-    return (main.length ? `<div class="prof-cap">Teaches</div><div class="qtags prof-tags prof-teach">${
+    return (main.length ? `<div class="qtags prof-tags prof-teach">${
       PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 3).join('')}</div>` : '')
-      + (also.length ? `<div class="prof-cap">Can also teach</div><div class="qtags prof-tags prof-teach">${
+      + (also.length ? `<div class="qtags prof-tags prof-teach">${
       PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 2).join('')}</div>` : ''); },
   facts: x => { const f = profFacts_(kcRow_(x));
     return f.length ? `<div class="qtags prof-tags prof-teach prof-facts">${f.map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''; },
@@ -382,7 +380,7 @@ const KC_FIELDS = {
 const kcField_ = k => KC_FIELDS[k] || (window.KC_FIELDS_MORE || {})[k];
 /* THE FILE'S ROWS BEFORE IT ARRIVES (or if it never does): the same rows, held equal to the file by check-card-shape. */
 const KC_DEFAULT = {
-  tutor: { cls: 'is-widget is-prof tcard', pic: ['face'], title: ['role', 'nameRate'], tags: ['teaches', 'facts'], lines: ['listedNote', 'say', 'photos', 'words', 'quals', 'jobs', 'places', 'avail'], tiles: ['book-with:book:Book', 'msg-open:msg:Message'] },
+  tutor: { cls: 'is-widget is-prof tcard', pic: ['face'], title: [], tags: ['nameTag', 'teaches', 'facts'], lines: ['listedNote', 'say', 'photos', 'words', 'quals', 'jobs', 'places', 'avail'], tiles: ['book-with:book:Book', 'msg-open:chat:Message'] },
   venue: { cls: 'venue-door', pic: ['venuePic'], title: ['name'], tags: ['facets'], lines: ['venueSub', 'rooms'], tiles: [] },
   level: { cls: 'is-level', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['surcharge', 'levelSubjects', 'tutorCount', 'bookingForm', 'tutorNames'], tiles: ['book-with:book:Book'] },
   subject: { cls: 'is-subject', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['surcharge', 'levels', 'tutorNames'], tiles: ['book-with:book:Book'] },
@@ -473,6 +471,53 @@ function kcSplit_(html) {
   walk(kcKids_(card.inner));
   return parts;
 }
+/* ---------- EVERY CARD'S FOUR BUTTONS (owner, 9 Nov): main action, Message, Star, ⋯ -- the rest waits behind ⋯, opened in place. ---------- */
+const KC_TILE_RE = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;
+const kcAct_ = t => (/\bdata-do="([^"]*)"/.exec(t) || [])[1] || '';
+/* WHAT COUNTS AS A CARD'S MAIN ACTION when its kind names none first: a Send/Check, a buy-toned tile, Open. */
+/* DRAWN OPEN: a question (tags on top) and the forms and doors phase 2 has still to turn into closed cards. */
+const KC_OPEN_KINDS = ['question', 'answer', 'receipt', 'bookform', 'setting', 'health', 'person', 'soon', 'offPosts', 'offShop', 'offBooking', 'msg', 'post', 'shop', 'friend'];
+const KC_MAIN_ACTS = ['find-open', 'book-with'];
+function kcFour_(x, rest, main) {
+  const all = String(rest || '').match(KC_TILE_RE) || [];
+  const spec = x && x.kind ? kcSpec_(x.kind) : KC_BARE;
+  const first = String((spec.tiles || [])[0] || '').split(':')[0];
+  const pick = test => { const t = all.find(test); if (t) all.splice(all.indexOf(t), 1); return t || ''; };
+  main = main || pick(t => first && kcAct_(t) === first) || pick(t => /\bis-(submit|buy)\b/.test(t))
+    || pick(t => KC_MAIN_ACTS.indexOf(kcAct_(t)) >= 0) || pick(t => !/^(fav|msg-open|card-share|find-top)$/.test(kcAct_(t)) && !/\bis-(admin|danger)\b/.test(t));
+  const r = kcRow_(x), who = r.title || r.name || '';
+  const msg = pick(t => kcAct_(t) === 'msg-open')
+    || (x && x.key && typeof personTiles_ === 'function' && /^(tutor|person|people)$/.test(x.kind) ? personTiles_(x) : '')
+    || tile_({ icon: 'chat', label: 'Message', act: 'msg-open', off: true, data: { to: who } });
+  const star = pick(t => kcAct_(t) === 'fav')
+    || tile_({ icon: 'star', label: 'Save', act: 'fav', off: true, data: { key: (x && x.key) || '', kind: (x && x.kind) || 'item' } });
+  const lead = main || tile_({ icon: 'open', label: 'Open', act: 'kc-open', off: true });
+  /* WHAT IS NOT A TILE (a verdict, a slot) stays beside the rest, behind ⋯. */
+  const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
+  return `<span class="kc-four">${lead}${msg}${star}${tile_({ icon: 'more', label: 'More', act: 'kc-more' })}</span><span class="kc-more" hidden>${all.join('')}${left}</span>`;
+}
+/* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
+function kcActRow_(x, html) {
+  if (/class="[^"]*\bkc-four\b/.test(html)) return '';
+  let rest = '';
+  try { rest = x && x.key && typeof cardTiles_ === 'function' ? cardTiles_(x, true) : ''; } catch (e) { oops_(e, 'card:tiles'); }
+  return `<div class="tile-row kc-row">${kcFour_(x, kcTilesFill_(x, rest))}</div>`;
+}
+/* EVERY CARD HAS A PICTURE (owner, 9 Nov): its own, else one of the ten profile pictures (default-pictures.json), the same one for the same person every time. */
+function kcPicOr_(x, html) {
+  if (String(html || '').trim()) return html;
+  const art = typeof PFP_ART === 'object' && PFP_ART ? PFP_ART : {};
+  const named = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.defaultPictures) ? DATA.defaultPictures : []).filter(n => art[n]);
+  const list = named.length ? named : Object.keys(art);
+  if (!list.length || typeof pfpArt_ !== 'function') return '<span class="kc-blank" aria-hidden="true"></span>';
+  const r = kcRow_(x), k = String(r.personId || (x && (x.key || x.name)) || ''); let h = 0;
+  for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) >>> 0;
+  return pfpArt_(list[h % list.length], 96);
+}
+/* A CARD OPENS IN PLACE (owner, 9 Nov): closed is picture, tags and two lines; open puts the tags on top and shows everything. */
+on('kc-more', el => { const c = el.closest('.kc-row, .tile-row'), m = c && c.querySelector('.kc-more'); if (!m) return;
+  m.hidden = !m.hidden; el.setAttribute('aria-expanded', m.hidden ? 'false' : 'true'); });
+on('kc-open', el => { const c = el.closest('.card.kc'); if (c) c.classList.toggle('is-open'); });
 /* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
 function findCard(x, credits) {
   const around = x && !x.kcIn && (window.KC_AROUND || {})[x.kind];
@@ -493,15 +538,20 @@ function findCard(x, credits) {
   const one = it.name ? it : Object.assign({}, it, { name });
   const s = it.kcOwn && kcSpec_(it.kind) === KC_BARE ? KC_OWN_SPEC : kcSpec_(it.kind);
   const run = list => (list || []).map(k => { try { const f = kcField_(k); return f ? f(one) || '' : ''; } catch (e) { oops_(e, 'card:' + k); return ''; } }).join('');
-  const parts = { pic: run(s.pic), head: run(s.title), tags: run(s.tags), lines: run(s.lines) };
-  const off = (it.kind === 'tutor' && t.listed === false ? ' is-off' : '') + (it.cardCls ? ' ' + esc(it.cardCls) : '');
+  const parts = { pic: run(s.pic), head: run(s.title), tags: run(s.tags), lines: run(s.lines), act: '' };
+  parts.pic = kcPicOr_(one, parts.pic);
+  /* A CARD WITH NO TAGS OF ITS OWN STILL HAS ONE: its name (owner, 9 Nov: the name is a tag). */
+  if (!parts.tags.trim() && name) parts.tags = `<div class="qtags"><span class="qtag" data-tag="0">${esc(name)}</span></div>`;
+  parts.act = kcActRow_(one, parts.lines);
+  /* A QUESTION IS ALWAYS OPEN (tags on top), as a form is until phase 2 converts it; any other card opens by a tap on its picture. */
+  const off = (KC_OPEN_KINDS.indexOf(it.kind) >= 0 || it.open ? ' is-open' : '') + (it.kind === 'tutor' && t.listed === false ? ' is-off' : '') + (it.cardCls ? ' ' + esc(it.cardCls) : '');
   /* `cardData` BECOMES data-* ATTRIBUTES, so a card can be found again where it stands (a post's sheet, a conversation's redraw). */
   const data = Object.keys(it.cardData || {}).map(k => ` data-${k}="${esc(it.cardData[k])}"`).join('');
   /* ITS OWN MAKER'S CLASSES AND ATTRIBUTES STAY ON IT, so every handler's `closest('.qcard')` or `[data-key]` still finds it. */
   const mine = it.kcOwn || {}, ownCls = String(mine.cls || '').split(/\s+/).filter(c => c && !/^(card|fc|kc)$/.test(c)).join(' ');
   const label = /\saria-label=/.test(mine.attrs || '') ? '' : ` aria-label="${esc(name)}"`;
   return `<div class="card fc kc kc-${esc(it.kind || 'thing')}${s.cls ? ' ' + esc(s.cls) : ''}${ownCls ? ' ' + ownCls : ''}${off}"${data}${mine.attrs || ''}${label}>${
-    KC_PARTS.map(p => `<div class="kc-${p}">${parts[p]}</div>`).join('')}</div>`;
+    KC_PARTS.map(p => (p === 'pic' && !/ is-open/.test(off) ? `<div class="kc-pic" data-do="kc-open" role="button" tabindex="0" aria-label="Open">${parts[p]}</div>` : `<div class="kc-${p}">${parts[p]}</div>`)).join('')}</div>`;
 }
 
 /* Tapping one opens a sheet rather than expanding the card. § */

@@ -447,7 +447,8 @@ function stuffCard(x, credits) {
   const html = tagsAreTitle_(x, tagsOnTop_(x, tierCore_('kind', x.kind) ? card(x, credits) : tierRun_('card:' + x.kind, card, null, [x, credits], oopsHtml_)));
   const shown = withPic_(x, html);
   if (!x.key) return shown;
-  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${shown}</div>${cardTiles_(x)}`;
+  /* A ONE-MAKER CARD CARRIES ITS OWN FOUR BUTTONS (`kcFour_`); only a widget kind still gets the row under it. */
+  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${shown}</div>${/\bkc-four\b/.test(shown) ? '' : cardTiles_(x)}`;
 }
 
 /* EVERY FIND CARD HAS A PICTURE (owner 8 Nov, 25a): one with no photo or drawing gets its kind's 8-bit sign, one helper for every kind. */

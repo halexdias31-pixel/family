@@ -252,11 +252,10 @@ function photoPicker_(value, said, o) {
   const v = String(value('photo') || '').trim();
   const kind = picKind_(v);
   const chosen = (kind === 'basic' || kind === 'avatar') ? pfpChoice_(v) : '';
-  const me = USER || {};
   const opt = n => {
-    const label = n === 'avatar' ? 'Your figure' : PFP_ART[n].name;
+    const label = PFP_ART[n].name;
     return tile_({ label: label, act: 'pfp-choose', data: { pic: n }, on: chosen === n, pressed: chosen === n, cls: 'pfp-opt',
-      face: n === 'avatar' ? avatarFor(me.handle || me.name, 40, me.avatar || '', { bust: true }) : pfpArt_(n, 40) });
+      face: pfpArt_(n, 40) });
   };
   const face = `<span class="pfp-face">${pfpFace_(v)}</span>`;
   const fold = !!(o && o.fold);
@@ -269,7 +268,7 @@ function photoPicker_(value, said, o) {
         ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
       </div>
     </div>
-    <div class="pfp-grid" role="group" aria-label="Or choose a picture">${['avatar'].concat(Object.keys(PFP_ART)).map(opt).join('')}</div>
+    <div class="pfp-grid" role="group" aria-label="Or choose a picture">${Object.keys(PFP_ART).map(opt).join('')}</div>
     <p class="faint pfp-said">${esc(said || pfpSaid_(v))}</p>
     ${uiMay_('upload-photo') ? '<input type="file" class="pfp-in" accept="image/*" hidden>' : ''}
   ${fold ? '</details>' : '</div>'}`;

@@ -426,7 +426,7 @@ check('New PIN is on a parent\'s "Manage your child" and not on the child\'s car
   t.USER({ name: 'Kit Parent', personId: 'P-K', role: 'student', roles: ['student'], token: 'tk3' });
   D.family = [{ personId: 'P-P', title: 'Pat Parent', relation: 'parent', handle: 'pat_kind40', image: '' }];
   D.familyFor = 'P-K';
-  if (/data-do="kid-pin"/.test(pageOf('Pat Parent'))) bad.push('a student\'s parent card carries a New PIN tile');
+  if (/data-do="kid-pin"/.test(pageOf('Pat P.'))) bad.push('a student\'s parent card carries a New PIN tile');
   delete D.family; delete D.familyFor;
 
   /* AN ADMIN: everybody who is not staff, "no handle yet" where there is none, and no tile without an id. */
@@ -436,7 +436,8 @@ check('New PIN is on a parent\'s "Manage your child" and not on the child\'s car
     { personId: 'P-E2', title: 'Carl Handled', handle: 'carl_kind32', role: 'Client', image: '' },
     { personId: '', title: 'Noa Noid', handle: 'noa_kind64', role: 'Student', image: '' },
   ];
-  const evie = pageOf('Evie Nohandle'), carl = pageOf('Carl Handled'), noa = pageOf('Noa Noid');
+  // an admin sees first name + initial too (owner, 9 Nov)
+  const evie = pageOf('Evie N.'), carl = pageOf('Carl H.'), noa = pageOf('Noa N.');
   if (!/no handle yet/.test(evie)) bad.push('the admin is not told a child has no handle yet');
   if (/no handle yet/.test(carl)) bad.push('a person with a handle is said to have none');
   if (!/data-do="kid-pin"/.test(evie) || !/data-do="kid-pin"/.test(carl)) bad.push('an admin\'s people card has no New PIN tile');
