@@ -345,7 +345,7 @@ const KC_FIELDS = {
   facts: x => { const f = profFacts_(kcRow_(x));
     return f.length ? `<div class="qtags prof-tags prof-teach prof-facts">${f.map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''; },
   /* WHAT THEY WROTE: `doget.gs` already quotes it, so it is printed as said. */
-  say: x => (kcRow_(x).description ? `<p class="prof-say">${esc(kcRow_(x).description)}</p>` : ''),
+  say: x => (kcRow_(x).description ? `<p class="prof-say cut2" data-do="cut-open">${esc(kcRow_(x).description)}</p>` : ''),
   photos: x => { const p = kcRow_(x).photos; return Array.isArray(p) && p.length ? `<div class="prof-photos">${PROF_MORE_(p.map(u =>
     `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy" decoding="async"></span>`), 4).join('')}</div>` : ''; },
   words: x => { const w = profList_(kcRow_(x).tags).slice(0, 3);

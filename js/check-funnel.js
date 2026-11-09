@@ -1156,6 +1156,8 @@ function pathsAsked_(f, items) {
       for (const w of path) if (!press(w)) return bad.push('paper path: "' + w + '" was never offered after ' + trail.join(' > '));
       const list = f.stuffFiltered();
       const fac = f.nextFacet(list) || f.overFacet_(list);
+      /* ONE ANSWER IS NEVER A QUESTION (owner 8 Nov, 22a): it is skipped and the next real question asked. */
+      if (fac && f.facetValues(list, fac).length < 2) bad.push('paper path ' + trail.join(' > ') + ': offers `' + fac.field + '` with ' + f.facetValues(list, fac).length + ' answer(s)');
       const subj = f.facetList().find(x => x.field === 'subject');
       const nSubj = subj ? f.facetValues(list, subj).length : 0;
       console.log('\nPAPER PATH ' + trail.join(' > ') + ': ' + list.length + ' left, next ' + (fac ? fac.field + ' (' + f.facetValues(list, fac).length + ' answers)' : 'NOTHING') + ', subjects ' + nSubj);
@@ -1215,6 +1217,7 @@ function walkFunnels_(f, items) {
           if (S.filters.some(c => c.field === fac.field)) fail('twice', '`' + fac.field + '` asked again after ' + at());
           /* c. THE COUNT ON EACH ANSWER IS WHAT PRESSING IT GIVES. */
           const vals = f.facetValues(list, fac);
+          if (vals.length < 2) fail('one', '`' + fac.field + '` offered with ' + vals.length + ' answer(s) after ' + at());
           /* f. NO PATH'S CHIPS REPEAT A LABEL (680): an answer already chosen is never offered again under another question. */
           const chosen = new Set(S.filters.filter(c => !c.any).map(c => String(c.value).toLowerCase()));
           vals.forEach(v => { if (chosen.has(String(v.show || v.value).toLowerCase())) fail('repeat', '`' + fac.field + '` offers "' + (v.show || v.value) + '", already a chip, after ' + at()); });
@@ -1244,7 +1247,7 @@ function walkFunnels_(f, items) {
         }
       }
     } finally { S.filters = was.filters; }
-    const SAY = { memo: 'the memo is not the list filtered afresh', order: 'the memo holds the list filtered afresh in another order', twice: 'a question is asked twice', count: 'an answer\'s count is not what pressing it gives', any: 'Doesn\'t matter changed the list', repeat: 'a chip\'s label is offered again' };
+    const SAY = { memo: 'the memo is not the list filtered afresh', order: 'the memo holds the list filtered afresh in another order', twice: 'a question is asked twice', count: 'an answer\'s count is not what pressing it gives', any: 'Doesn\'t matter changed the list', repeat: 'a chip\'s label is offered again', one: 'a question with fewer than 2 answers is offered' };
     Object.keys(fails).forEach(k => bad.push(fails[k].length + ' step(s) where ' + SAY[k] + ' — first: ' + fails[k].slice(0, 3).join('; ')));
     WALKED = runs + ' walks, ' + steps + ' steps (' + answered + ' answers, ' + anys + ' Doesn\'t matter), ' + Object.keys(fails).length + ' invariant(s) broken';
     console.log('\nRANDOM FUNNELS: ' + WALKED);
