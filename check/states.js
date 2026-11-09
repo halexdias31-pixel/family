@@ -1314,24 +1314,13 @@ const STATES = {
           if (!inp || moving || !inp.closest('#screen .page.on')) { if (++tries < 60) setTimeout(up, 50); return; }
           inp.focus();
           if (KP_AT !== inp) kpOpen_(inp);
-          /* A FINGER ON THE STRIP, once the pad has made its room */
-          setTimeout(() => { const q = document.querySelector('#kp > .kp-q'); if (q) { q.click(); window.__kqTapped = true; } }, 120);
         };
         up();
       },
-      /* THE STRIP, A FINGERTIP TALL, ABOVE EVERY KEY, SAYING THE QUESTION'S OWN FIRST WORDS; TAPPED, THE QUESTION'S FIRST LINE IS ON SCREEN ABOVE THE PAD. A wide screen draws none. */
+      /* NO STRIP ON THE PAD (owner, 9 Nov): the pad is up on the box and never repeats the question. */
       expect: () => {
         const pad = document.getElementById('kp');
-        const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__kqKey);
-        const q = pad && pad.querySelector(':scope > .kp-q');
-        const sheet = inp && inp.closest('.qcard') && inp.closest('.qcard').querySelector('.qsheet');
-        if (!pad || pad.hidden || !inp || !q || !sheet || !window.__kqTapped) return false;
-        if (innerWidth >= 640) return getComputedStyle(q).display === 'none';
-        const r = q.getBoundingClientRect(), keys = [...pad.querySelectorAll('.kp-key')].map(k => k.getBoundingClientRect().top);
-        const first = kpWordsOf_(inp.closest('.qcard').querySelector('.qsheet-part') || sheet).slice(0, 20);
-        const s = sheet.getBoundingClientRect();
-        return r.height >= 44 && keys.every(t => t >= r.bottom - 1) && q.textContent.trim().indexOf(first) === 0
-               && s.top >= 0 && s.top + 16 <= r.top;
+        return !!pad && !pad.hidden && !pad.querySelector('.kp-q');
       },
       wants: '1F Q23b’s keypad up with the question’s first lines on a 44px strip above the keys, and after a tap on it the question’s first line on screen above the pad (none on a wide screen)',
       leave: () => {

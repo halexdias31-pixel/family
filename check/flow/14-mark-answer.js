@@ -439,14 +439,14 @@ check('the power key is on the maths face and the letters, types x^(n+1) with it
   return bad;
 });
 
-/* THE QUESTION RIDES ON THE PAD (round 4, `kpStrip_`): the eight rows never hide what is asked -- its first lines above the keys, on every face, a tap to see it whole */
-check('the pad carries the question\'s first lines above its keys on every face, and a tap on them leaves the pad up on the same box', async () => {
+/* NO QUESTION STRIP ON THE PAD (owner, 9 Nov, B): the question stays where it is and the pad never repeats it. */
+check('the pad never repeats the question above its keys, on any face', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
-  if (!A['kp-key'] || !A['kp-q']) return ['the keypad or its question strip has no handler — nothing was checked'];
+  if (!A['kp-key']) return ['the keypad has no handler — nothing was checked'];
   const h = d.createElement('div');
-  const x = { kind: 'question', key: 'q-strip-1', name: 'Q4', marks: 1, html: '<p>Work out the area of the triangle.</p><p>Give your answer in square centimetres.</p>',
+  const x = { kind: 'question', key: 'q-strip-1', name: 'Q4', marks: 1, html: '<p>Work out the area of the triangle.</p>',
     answer: '<b>24</b>', answerType: 'calculation', accept: '24', row: { row_id: 'Q-STRIP-1', paper_id: 'P-STRIP', subject: 'Maths', name: 'Strip' } };
   h.innerHTML = w.questionCard_(x, 0);
   d.body.appendChild(h);
@@ -455,17 +455,10 @@ check('the pad carries the question\'s first lines above its keys on every face,
   inp.focus();
   const pad = d.getElementById('kp');
   if (!pad || pad.hidden) return ['focusing the box did not open the pad'];
-  const strip = () => pad.querySelector(':scope > .kp-q');
-  const says = () => (strip() ? strip().textContent.trim() : '');
   ['maths', '!abc', '!sym', '!123'].forEach(v => {
     if (v !== 'maths') { const b = pad.querySelector('.kp-key[data-v="' + v + '"]'); if (b) A['kp-key'](b); else bad.push('no ' + v + ' key'); }
-    if (!strip() || pad.firstElementChild !== strip()) bad.push('the ' + pad.getAttribute('data-layer') + ' face has no question strip above its keys');
-    else if (!/^Work out the area of the triangle\. Give your answer/.test(says())) bad.push('the strip on the ' + pad.getAttribute('data-layer') + ' face says ' + JSON.stringify(says().slice(0, 60)));
+    if (pad.querySelector('.kp-q')) bad.push('the ' + pad.getAttribute('data-layer') + ' face repeats the question');
   });
-  if (strip() && !/^Show the question: Work out/.test(strip().getAttribute('aria-label') || '')) bad.push('the strip does not say it shows the question: ' + strip().getAttribute('aria-label'));
-  if (strip() && strip().tagName !== 'BUTTON') bad.push('the strip is not a button');
-  if (strip()) A['kp-q'](strip());
-  if (pad.hidden || w.document.activeElement !== inp) bad.push('a tap on the strip put the pad away or took the box\'s focus');
   h.remove();
   return bad;
 });

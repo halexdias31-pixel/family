@@ -5001,11 +5001,6 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .kp-pw i { display: block; width: 8px; height: 9px; margin: -2px 0 0 1px; border: 1.5px solid currentColor; border-radius: var(--r-ui); }
 
 /* ---------- THE LETTERS: THE SAME PAD, TURNED OVER (`abc`) § */
-/* THE QUESTION ABOVE THE KEYS (round 4, `kpStrip_`): two lines of what is asked, a tap to see it whole; a phone's alone, a wider screen has room for both */
-.kp-q { grid-column: 1 / -1; min-height: 44px; padding: 4px 12px; box-sizing: border-box; text-align: left; cursor: pointer;
-        background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-ui); font: 400 var(--fs-body)/1.3 var(--font); }
-.kp-q-t { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
-@media (min-width: 40rem) { .kp-q { display: none; } }
 #kp.is-abc, #kp.is-sym { grid-template-columns: repeat(60, minmax(0, 1fr)); column-gap: 0; max-width: 640px; }
 #kp.is-abc .kp-key, #kp.is-sym .kp-key { border-inline: 2px solid transparent; background-clip: padding-box; }
 /* THE SYMBOLS FACE (round 4, `KP_SYM`): Greek letters and the signs no other key types, ten a row like the letters */
