@@ -1040,13 +1040,13 @@ check('review 339: "Manage your child" waits with the loader while the payload c
   try { c.t.go('students', false, true); c.w.paint('students'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
   await wait(200);
   if (!(typeof c.w.awaiting_ === 'function' && c.w.awaiting_())) bad.push('the payload is not being waited for — the first half was NOT checked');
-  else if (!card() || /No child is linked/.test(card().textContent) || !card().querySelector('.kid-list [aria-busy="true"], .kid-list .loading')) {
+  else if (!card() || /No child linked/.test(card().textContent) || !card().querySelector('.kid-list [aria-busy="true"], .kid-list .loading')) {
     bad.push('with the payload still coming "Manage your child" says ' + JSON.stringify(card() ? (card().querySelector('.kid-list') || {}).textContent : null) + ', not the loader');
   }
   W.holding = false;
   W.release();
-  for (let k = 0; k < 30 && card() && !/No child is linked/.test(card().textContent); k++) { await wait(100); try { c.w.paint('students'); } catch (e) {} }
-  if (!card() || !/No child is linked/.test(card().textContent)) bad.push('the payload landed and "Manage your child" does not say no child is linked');
+  for (let k = 0; k < 30 && card() && !/No child linked/.test(card().textContent); k++) { await wait(100); try { c.w.paint('students'); } catch (e) {} }
+  if (!card() || !/No child linked/.test(card().textContent)) bad.push('the payload landed and "Manage your child" does not say no child is linked');
   /* A ROLE MAP WITH NOTHING LEFT FOR SETTINGS. */
   const { w } = boot({ payload: Object.assign(payload(), { clientFields: { 'About you': ['first_name', 'last_name', 'photo'], 'Library cards': LIB_FIELDS_ } }) });
   await wait(300);

@@ -152,7 +152,7 @@ function qtRow_(x) {
   const wk = typeof ansKey_ === 'function' && isQ_(x) ? ansKey_(x) : '';
   const work = wk && typeof workGoTile_ === 'function' ? `<span class="qp-work-slot" data-k="${esc(wk)}">${workGoTile_(wk)}</span>` : '';
   return `<div class="tile-row qt-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}"><span class="qt-tools">${tools}</span>${qtCheck_(x, m)}${work}${more}</div>
-    <p class="qt-how">${esc(m.how)}</p>`;
+    <div class="qtags qt-tags"><span class="qtag qt-how" data-tag="8">${esc(m.how)}</span></div>`;
 }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
 const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';

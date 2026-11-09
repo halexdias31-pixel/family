@@ -183,10 +183,7 @@ function postCard_(p, i) {
     const faceHtml = postFace_(p, who);
 
     /* ---------- THE FACES' SLOT, BUILT ONCE BECAUSE IT GOES IN ONE OF TWO PLACES § */
-    const acts = reacts(p) || (isAdmin()
-      ? '<span class="faint">No reactions — this payload predates them. '
-        + 'Check the build stamp on Web settings.</span>'
-      : '');
+    const acts = reacts(p) || '';
     const actsHtml = acts ? `<div class="post-acts">${acts}</div>` : '';
 
     /* The order is Instagram's, and it is right: § */
@@ -298,7 +295,7 @@ on('cmt-add', el => {
 
 /* TAKING ONE DOWN. `canRemove` came from the server per comment, so this button only exists where the server has already said yes — and the server checks again § */
 on('cmt-del', el => {
-  if (!USER) return;
+  if (!USER || !sure_(el, 'Delete?')) return;
   el.disabled = true;
   send({ action: 'deleteComment', name: USER.name, personId: USER.personId,
          commentId: el.dataset.id })
@@ -336,8 +333,7 @@ function postsBlocks() {
   /* THE FEED IS NEVER EMPTY WHEN SOMEBODY IS SIGNED OUT — the sign-in card is always there — so the
      nothing-here message is only right when there is genuinely nothing and somebody to see it. */
   if (!posts.length && USER) {
-    return [nothingHere('Nothing posted yet.<br><span class="faint">Add a row to the posts tab '
-      + 'with an image link and a caption.</span>')];
+    return [nothingHere('No posts yet.')];
   }
 
   /* ONE POST PER SCREEN, and the same pager the tools use. § */
@@ -1460,7 +1456,7 @@ function postComposeHtml_() {
     ${tile_({ form: true, label: 'Back', act: 'post-cancel', kind: 'quiet' })}
     ${tile_({ form: true, label: 'Post it', act: 'post-send' })}
   </div>
-  <p class="faint" id="post-said" style="margin:.6rem 0 0">${isAdmin() ? '' : 'An admin approves it before anybody else sees it.'}</p>
+  <p class="said" id="post-said">${isAdmin() ? '' : 'An admin approves it before anybody else sees it.'}</p>
 </div>`;
 }
 /* REDRAWS THE CARD ITSELF, so the camera's markup and the composer's are never on screen together. */
@@ -1547,7 +1543,7 @@ on('post-edit', el => {
   sheetHere_(el, true);    // the post card becomes its editor (453)
   openSheet(words ? 'Edit post' : 'Pin or date', `
     ${p.image ? `<img src="${esc(pic(p.image))}" decoding="async" alt=""
-         style="width:100%;margin-bottom:.7rem">` : ''}
+         class="post-ed-img">` : ''}
     ${/* EACH BOX A DRAFT OF THE EDIT (data.js; 317), drawn from the saved post when there is none and
           dropped on Save — so a reload mid-edit reopens the sheet holding the edit, not the post. */''}
     ${words ? `<label class="field"><span>caption</span>
@@ -1572,10 +1568,10 @@ on('post-edit', el => {
     </label>`}
 
     ${tile_({ form: true, label: 'Save', act: 'post-save', data: { id: p.id } })}
-    <div class="btn-row" style="margin-top:.5rem">
+    <div class="btn-row gap-t">
       ${tile_({ form: true, label: 'Delete', act: 'post-delete', data: { id: p.id, on: '' }, kind: 'danger' })}
     </div>
-    <p class="faint" id="pe-said" style="margin:.6rem 0 0">${words
+    <p class="said" id="pe-said">${words
       ? 'You can change it until it is approved. After that it stays as it is — you can still delete it.'
       : 'Once a post is up its words and pictures stay as they are. To change them, delete it and post again.'}</p>`);
 });
@@ -2300,10 +2296,9 @@ function dmPages_() {
   /* ---------- AND AN EMPTY INBOX SAYS WHICH EMPTY IT IS § */
   if (!threads.length) return daivePages_().concat([{ name: '', html: suggestRowIn_(`<div class="card"><h3>Messages</h3>
     ${MSG_FAILED
-      ? `<p class="empty">Your messages did not come.<br><span class="faint">The line to the
-           office is down, or this phone has no signal.</span></p>
+      ? `${empty_('Messages did not load.')}
          ${tile_({ form: true, label: 'Try again', act: 'dm-refresh', kind: 'quiet' })}`
-      : emptyMessages_}</div>`, 'widget', 'messages', 'Messages') }]);
+      : emptyMessages_()}</div>`, 'widget', 'messages', 'Messages') }]);
 
   /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
      doing it again here is a second copy of the ordering rule to get wrong later. */

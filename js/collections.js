@@ -353,7 +353,7 @@ function shopHits_() {
   const q = SHOP_FIND.q.trim().toLowerCase();
   if (!q) return '';
   const hits = SHOP_FIND.at.filter(h => h.say.indexOf(q) !== -1).slice(0, 8);
-  if (!hits.length) return '<p class="faint">Nothing in the shop matches.</p>';
+  if (!hits.length) return empty_('Nothing in the shop matches.');
   return hits.map(h => `<button type="button" class="shop-hit" data-do="shop-go" data-page="${h.page}">${shopIcon_(h.name, h.group)}<span>${esc(h.name)}</span></button>`).join('');
 }
 document.addEventListener('input', e => {

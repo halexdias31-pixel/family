@@ -139,8 +139,7 @@ const KINDS = {
         </div>
         ${/* A BUTTON, NOT A SPAN — the fourth one of these. § */
               ''}
-        <button class="text-drop" data-do="friend-drop" title="Remove"
-          data-handle="${esc(f.handle)}">✕</button>
+        ${tileRow_(tile_({ icon: 'close', label: 'Remove', act: 'friend-drop', data: { handle: f.handle }, cls: 'text-drop' }))}
       </div>
     </div>`;
 

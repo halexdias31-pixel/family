@@ -68,6 +68,7 @@ const SUITE = [
   { file: 'check-keyboard.js', what: 'every box a person types into types on the @family keypad, never the phone\'s keyboard', par: true },
   { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
+  { file: 'check-look.js',    what: 'the owner\'s look (8 Nov): tiles, no grey sentences, tokens, one empty state, no inline spacing' },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
   /* THE STABILITY SCORE (730): data/stability.json as tools/stability.js computes it now. */
   { file: 'check-stability.js', what: 'the Stability card\'s figures are current' },

@@ -191,7 +191,7 @@ const WIDGETS = [
     into: 'timer-display', what: 'The timer',
     html: `<div class="card">
     <h3>Timer</h3>
-    <p class="mono" id="timer-display" style="font-size:2.1rem;text-align:center;margin:.4rem 0">25:00</p>
+    <p class="mono timer-big" id="timer-display">25:00</p>
     <div class="btn-row">
       ${/* A `data-do`, not an id. The delegated click handler only ever looks for `data-do`, so a
             button carrying an id alone is a button nothing is listening to — which is why this
@@ -201,7 +201,7 @@ const WIDGETS = [
     </div>
     ${/* The lengths people actually use. A number field for a duration is a keyboard and four taps
           for a question whose answer is almost always one of four. */''}
-    <div class="btn-row" style="margin-top:.4rem">
+    <div class="btn-row gap-t">
       ${[5, 15, 25, 45].map(m =>
         `${tile_({ form: true, label: m, act: 'timer-set', data: { min: m }, kind: 'quiet', cls: 'tiny' })}`).join('')}
     </div>
@@ -216,7 +216,7 @@ const WIDGETS = [
       <input id="dock-add" placeholder="Add a line…" autocomplete="off">
       ${tile_({ form: true, label: '＋', act: 'dock-add', kind: 'quiet', cls: 'tiny' })}
     </div>
-    <p class="faint" id="dock-said" style="margin:.35rem 0 0"></p>
+    <p class="said said-s" id="dock-said"></p>
     <div id="docket-gtasks"></div>
   </div>` },
   { id: 'notepad', kind: 'tool', name: 'Notepad', solid: true, pure: true, start: () => initPad?.(),
@@ -224,7 +224,7 @@ const WIDGETS = [
     html: `<div class="card">
     <h3>Notepad</h3>
     <textarea id="notepad" placeholder="Jot something down…"></textarea>
-    <p class="faint" id="pad-said" style="margin:.35rem 0 0">Saves as you type.</p>
+    <p class="said said-s" id="pad-said">Saves as you type.</p>
   </div>` },
   /* ---------- SPOTIFY (510): your own account, connected in this browser alone — spotify.js ---------- */
   { id: 'spotify', kind: 'tool', name: 'Spotify', solid: true, start: () => window.initSpotify?.(),
@@ -277,7 +277,7 @@ const WIDGETS = [
     html: `<div class="card">
     <div class="cal-head">
       <button type="button" class="cal-arrow" data-do="cal-back">‹</button>
-      <h3 id="cal-label" style="margin:0">Calendar</h3>
+      <h3 id="cal-label" class="flush">Calendar</h3>
       <button type="button" class="cal-arrow" data-do="cal-fwd">›</button>
     </div>
     <div id="cal-body" class="cal"></div>

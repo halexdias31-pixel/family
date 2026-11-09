@@ -64,10 +64,8 @@ const LOADER_CLASS = 'loading';
 
 /* ---------- 3. THE STYLESHEET § */
 const WAIT_KEYFRAME = /(^|-)(sk|skeleton|shimmer|spin\w*|load\w*|wait\w*|pulse\w*|busy\w*)($|-)/;
-const ACCEPTED_KEYFRAMES = {
-  'btn-spin': 'the busy ring on a pressed button or tile (`.btn.is-busy`, `.tile.is-busy`) — an action in flight, '
-            + 'not content on its way: docs/history/094. The loader is dots so the two can never be mistaken.',
-};
+/* NONE ACCEPTED (owner, 8 Nov, 30a): a pressed button or tile waits with the same three dots as a page, so no spinner keyframe may exist. */
+const ACCEPTED_KEYFRAMES = {};
 const BLOCK_START = '---------- WAITING: ONE LOADER';
 
 const bad = [];

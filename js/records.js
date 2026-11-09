@@ -143,7 +143,7 @@ function postsWaitCard_() {
     <h3>Posts waiting</h3>
     ${bizNeed_('posts', n, n + (n === 1 ? ' post to approve' : ' posts to approve'))}
     <div class="biz-body"${wait ? ' aria-busy="true"' : ''}>
-      ${!wait && !list.length ? '<p class="faint">None waiting.</p>' : ''}
+      ${!wait && !list.length ? empty_('None waiting.') : ''}
       ${list.map(item).join('')}
       ${wait ? loading_() : ''}</div>
   </div>`;
@@ -177,7 +177,7 @@ function appsInner_(wait) {
   return `<h3>Applications to teach</h3>
     ${bizNeed_('apps', APPS.list ? n : 0, n + ' to approve')}
     <div class="biz-body app-body"${wait ? ' aria-busy="true"' : ''}>
-      ${APPS.list && !list.length ? '<p class="faint">None waiting.</p>' : ''}
+      ${APPS.list && !list.length ? empty_('None waiting.') : ''}
       ${list.map(item).join('')}
     ${wait ? loading_() : ''}</div>
     <p class="faint me-said app-said">${esc(APPS.error)}</p>`;
@@ -198,6 +198,7 @@ function appsStart_() {
 on('app-decide', el => {
   if (!isAdmin()) return;
   const id = el.dataset.id, status = el.dataset.status;
+  if (status === 'declined' && !sure_(el, 'Turn it down?')) return;
   send_({ action: 'decideApplication', id, status }, { button: el, where: el.closest('.card').querySelector('.app-said'), busy: 'Saving…' })
     .then(d => {
       const a = (APPS.list || []).find(x => x.id === id);
@@ -994,7 +995,7 @@ document.addEventListener('change', e => {
   profitRedraw_();
 });
 on('profit-reset', el => {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  if (!(typeof isAdmin === 'function' && isAdmin()) || !sure_(el, 'Reset?')) return;
   PROFIT.vals = {};
   profitKeep_();
   profitRedraw_();

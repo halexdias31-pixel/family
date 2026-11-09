@@ -620,16 +620,16 @@ function bootFailed(err, when) {
   try {
     const box = document.getElementById('screen') || document.body;
     box.innerHTML = ''
-      + '<div style="padding:1rem;font:13px/1.5 ui-monospace,Menlo,monospace;color:#ffd7a8">'
-      + '<p style="color:#ff8f6b;font-weight:700;margin:0 0 .6rem">'
+      + '<div class="boot-fail">'
+      + '<p class="boot-fail-head">'
       + 'The app stopped while ' + String(when) + '.</p>'
-      + '<p style="margin:0 0 .6rem;white-space:pre-wrap">'
+      + '<p class="boot-fail-why">'
       + why_(err) + '</p>'
       + (err && err.stack
-          ? '<p style="margin:0 0 .6rem;color:#9a8f82;white-space:pre-wrap;font-size:11px">'
+          ? '<p class="boot-fail-why boot-fail-stack">'
             + String(err.stack).split('\n').slice(0, 4).join('\n') + '</p>'
           : '')
-      + '<p style="margin:0;color:#9a8f82">site ' + SITE_VERSION + ' · css ' + cssVersion() + '</p>'
+      + '<p class="boot-fail-ver">site ' + SITE_VERSION + ' · css ' + cssVersion() + '</p>'
       + '</div>';
   } catch (e2) {
     /* Even that failed — the document is not there to write to. Nothing left but the console. */
