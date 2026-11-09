@@ -184,6 +184,7 @@
     "check.js": "core",
     "check-strings.js": "core",
     "check-css.js": "core",
+    "check-style-sources.js": "core",
     "check/motion.js": "core",
     "check-loading.js": "core",
     "check-splash-loops.js": "secondary",

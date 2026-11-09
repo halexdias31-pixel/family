@@ -17,6 +17,8 @@ const SUITE = [
   { file: 'check.js',         what: 'names and load order' },
   { file: 'check-strings.js', what: 'templates that do not interpolate' },
   { file: 'check-css.js',     what: 'the stylesheet', par: true },
+  /* FEWER PLACES A STYLE CAN LIVE: colours only as :root tokens, !important only from a named list; read, so it stays in --fast. */
+  { file: 'check-style-sources.js', what: 'colour literals only in :root tokens, !important only from its allow-list, js colours only go down' },
   /* MOTION IS ONE SYSTEM (531): read, not run, so it stays in --fast; a ratchet on literal durations, curves and moved properties. */
   { file: 'check/motion.js', what: 'durations, curves and moved properties: no count grows past check/motion-baseline.json' },
   /* ---------- ONE LOADER, AND NOTHING ELSE DRAWS A WAIT § */
