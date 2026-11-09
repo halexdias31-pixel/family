@@ -82,7 +82,7 @@ if (require.main === module) (async () => {
       stuffForget_();
       const key = (isAdmin() ? 'admin+' : '') + (bibleFor_() ? 'bible' : '');
       const at = filters => inFinder_(FINDERS.stuff, () => {
-        STUFF.filters = filters; STUFF.q = ''; STUFF.admit = null;
+        STUFF.filters = filters; STUFF.admit = null;
         const items = stuffFiltered();
         if (!items.length) return null;
         const f = nextFacet(items) || overFacet_(items);
@@ -97,7 +97,7 @@ if (require.main === module) (async () => {
       };
       walk([], 0);
       ${JSON.stringify(NAMED)}.forEach(st => walk(st, ${DEPTH}));
-      inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.q = ''; STUFF.admit = null; });
+      inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.admit = null; });
       return JSON.stringify({ key, out });
     })()`));
     /* TWO VIEWERS ON ONE KEY MUST SEE ONE LIBRARY, or the key is missing what tells them apart. */

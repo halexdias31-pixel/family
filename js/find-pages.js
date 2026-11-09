@@ -537,9 +537,8 @@ function finderTagsView_() {
   const v = T.views[(adm ? 'admin+' : '') + (typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '')];
   return v ? Object.assign({}, T.same || {}, v) : null;
 }
-/* WHERE THE FINDER STANDS, as the build writes it: each chip in the order pressed, `field=value` or `field=*` for Doesn't matter; words have no key. */
-const finderStateKey_ = () => (String(STUFF.q || '').trim() ? null
-  : (STUFF.filters || []).map(f => f.field + '=' + (f.any ? '*' : f.value)).join('&'));
+/* WHERE THE FINDER STANDS, as the build writes it: each chip in the order pressed, `field=value` or `field=*` for Doesn't matter. */
+const finderStateKey_ = () => (STUFF.filters || []).map(f => f.field + '=' + (f.any ? '*' : f.value)).join('&');
 /* A FRESH START ONLY (no answer pressed, R4): once pressed, the funnel answers over what had come, as it always did. */
 function finderTagsAt_() {
   if (STUFF.admit != null || finderSettled_()) return null;
@@ -563,7 +562,7 @@ function stuffQuestion() {
 
   /* ---------- THE ORDINARY QUESTION FIRST, AND THE LAST RESORT BEHIND IT § */
   /* THE FRONT MENU IS ALWAYS ASKED (C+): one front answer (Settings, signed out) is still a menu, so every first screen is the same shape. */
-  const facet = nextFacet(items) || overFacet_(items) || (!STUFF.filters.length && !String(STUFF.q || '').trim() ? facetBy('kindLabel') : null);
+  const facet = nextFacet(items) || overFacet_(items) || (!STUFF.filters.length ? facetBy('kindLabel') : null);
   const adding = STUFF.filters.some(f => f.value === 'Friends')
     ? `<p class="find-end"><button type="button" class="text-action" data-do="friend-add-open"
         >Add someone by their handle</button></p>` : '';
@@ -652,10 +651,9 @@ function finderScreen_() {
   /* THE CREDITS STAY ON THE QUESTION and the way in and out does not — see `accountPages_`. A number
      is a fact about you and belongs beside the thing it is spent on; a button is a control and has
      earned a page of its own. */
-  /* THE BOX AND THE BIN ARE ONE ROW — see `filterClear_`. `#stuff-clear` is the slot `paintStuff`
-     rewrites; the input is never rewritten, which is what keeps its focus across a press. */
+  /* FIND IS CHIPS ONLY (owner, 8 Nov): no search box. `#stuff-clear` is the slot `paintStuff` rewrites with Clear-all. */
   const controls = `<div id="${F.id}-controls">`
-    + `<div class="find-search"><input class="search" id="${F.id}-q" placeholder="Search…" value="${esc(STUFF.q)}"><span id="${F.id}-clear">${filterClear_()}</span></div>
+    + `<div id="${F.id}-clear">${filterClear_()}</div>
     ${/* THE SORT WAS HERE — a dropdown offering A–Z and, when anything had a price, cheapest first. § */
           ''}
     <div id="${F.id}-chips">${filterChips()}</div>
@@ -713,21 +711,6 @@ screen('res', () => inFinder_(FINDERS.res, finderScreen_));
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one
    — one swipe, and the pager names it — so a control that jumps there is a shortcut to somewhere
    already visible. */
-
-/* Typed into rather than pressed, so it cannot go through the click handler. § */
-/* EACH FINDER'S BOX TYPES INTO ITS OWN WORDS, with its own debounce (`stuffTimer` is parked per
-   finder), and the repaint the timer books is bound again — it fires after this binding has ended. */
-let stuffTimer = null;
-document.addEventListener('input', e => {
-  const m = /^([a-z]+)-q$/.exec(String((e.target && e.target.id) || ''));
-  const F = m && finderOf_(m[1]);
-  if (!F) return;
-  inFinder_(F, () => {
-    STUFF.q = e.target.value;
-    clearTimeout(stuffTimer);
-    stuffTimer = setTimeout(() => inFinder_(F, paintStuff), 180);
-  });
-});
 
 /* ---------- THE DOCKET § */
 /* ---------- `x ` AS THE DONE MARKER CORRUPTED ANY LINE STARTING WITH AN X § */

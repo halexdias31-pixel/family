@@ -43,7 +43,7 @@ async function openTool(page, row, tool) {
     go('stuff', false, true);
     const hit = stuffItemsAll_().find(x => x.row && x.row.row_id === r);
     if (!hit) return 'not in the library';
-    STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: hit.row.paper_id }];
+    STUFF.filters = [{ field: 'paperId', value: hit.row.paper_id }];
     paintStuff(true);
     await new Promise(z => setTimeout(z, 600));
     const h2 = stuffFiltered().find(x => x.row && x.row.row_id === r) || hit;
@@ -201,7 +201,7 @@ const adiff = (a, b) => Math.abs(((a - b) % 360 + 540) % 360 - 180);
         const hit = stuffItemsAll_().find(x => x.kind === 'question' && x.row && /construct/i.test(String(x.html || '') + (x.row.lead || '')) && padSource_(x) && padSource_(x).from === 'part');
         if (!hit) return null;
         go('stuff', false, true);
-        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: hit.row.paper_id }];
+        STUFF.filters = [{ field: 'paperId', value: hit.row.paper_id }];
         paintStuff(true);
         await new Promise(z => setTimeout(z, 600));
         const h2 = stuffFiltered().find(x => x.key === hit.key) || hit;

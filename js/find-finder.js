@@ -2,21 +2,20 @@
 
 /* ---------- SHOP & RESOURCES § */
 /* FILTERS YOU ADD, not a mode you pick. § */
-/* `sort` was here and is gone with the control that set it — see `stuffFiltered`. What is left is
-   the two things this screen actually holds: what you typed, and what you have narrowed to. */
+/* WHAT YOU HAVE NARROWED TO, and nothing typed: Find is chips only (owner, 8 Nov). */
 /* `whose` IS ONLY EVER SET WHILE NOBODY IS SIGNED IN: § */
 /* A `let` SINCE THE SECOND FINDER (below): § */
-let STUFF = { q: '', filters: [], whose: '' };
+let STUFF = { filters: [], whose: '' };
 
 /* ---------- ONE FINDER, TWICE § */
-const RES_ST = { q: '', filters: [], whose: '' };
+const RES_ST = { filters: [], whose: '' };
 /* A FINDER'S RECORD: who it is and — while it is not the bound one — its parked state. § */
 const finder_ = o => Object.assign({
   items: { key: null, from: null, items: null },
   found: { key: null, from: null, items: null, total: 0 },
   pages: { from: null, pages: [] },
   chips: { key: null, from: null, out: {} },
-  late: 0, typing: null, tried: false,
+  late: 0, tried: false,
   /* THE PAGES ABOVE THE QUESTION (526) and how many: none, but Find's for an admin (What's missing, missing.js). */
   lead: () => [], leadN: () => 0, leadOn: 0,
 }, o);
@@ -35,11 +34,11 @@ const FINDERS = {
 let FINDER = FINDERS.stuff;
 function finderPark_(F) {
   F.st = STUFF; F.items = ITEM_MEMO; F.found = FIND_MEMO; F.pages = STUFF_PAGES;
-  F.late = STUFF_LATE; F.typing = stuffTimer; F.tried = FIND_PLACE_TRIED;
+  F.late = STUFF_LATE; F.tried = FIND_PLACE_TRIED;
 }
 function finderUnpark_(F) {
   STUFF = F.st; ITEM_MEMO = F.items; FIND_MEMO = F.found; STUFF_PAGES = F.pages;
-  STUFF_LATE = F.late; stuffTimer = F.typing; FIND_PLACE_TRIED = F.tried;
+  STUFF_LATE = F.late; FIND_PLACE_TRIED = F.tried;
 }
 function inFinder_(F, fn) {
   if (!F || F === FINDER) return fn();
@@ -48,17 +47,12 @@ function inFinder_(F, fn) {
   try { return fn(); }
   finally { finderPark_(F); finderUnpark_(was); FINDER = was; }
 }
-/* THE ONE WRITER of a finder's question (R1): chips, words and box set together, so a door opened from a card never keeps old words under its new chips. `paint: false` only to count first. */
+/* THE ONE WRITER of a finder's question (R1): its chips, set whole. A `q` from an old caller is ignored (no box since 8 Nov). `paint: false` only to count first. */
 function finderSet_(F, o) {
   F = F || FINDERS.stuff;
   o = o || {};
   return inFinder_(F, () => {
-    clearTimeout(stuffTimer);
-    stuffTimer = null;
     STUFF.filters = Array.isArray(o.filters) ? o.filters.map(c => Object.assign({}, c)) : [];
-    STUFF.q = typeof o.q === 'string' ? o.q : '';
-    const box = $(F.id + '-q');
-    if (box) box.value = STUFF.q;
     /* WITHOUT `keepPage`, paintStuff puts the column back on its question page. */
     if (o.paint !== false) paintStuff();
   });

@@ -247,8 +247,8 @@ const shopRow_ = (n, name, kindRaw, audience, inStock, extra) => Object.assign({
   id: n, rowIndex: n, kind: 'thing', kindRaw: kindRaw, name: name, price: '', unit: '£',
   acquire: 'buy', audience: audience, level: 0, slot: '', artId: '', description: name + ', for sale.',
   image: '', inStock: inStock, fields: {} }, extra || {});
-/* ---------- A CHOSEN ANSWER IS ONLY ITS VALUE, AND CLEAR IS A TILE BESIDE THE BOX § */
-check('a chosen answer is only its value, and Clear is a tile beside the search box that keeps its focus', async () => {
+/* A CHOSEN ANSWER IS ONLY ITS VALUE, and Clear-all is a tile of its own above the chips; Find has no search box (8 Nov). */
+check('a chosen answer is only its value, Clear is a tile of its own, and Find draws no search box', async () => {
   const { w } = boot({ member: true, payload: payload() });
   await wait(300);
   const t = w.__t, d = w.document;
@@ -256,24 +256,16 @@ check('a chosen answer is only its value, and Clear is a tile beside the search 
   const bad = [];
   t.go('stuff');
   await wait(60);
-  t.STUFF().q = '';
   t.STUFF().filters.length = 0;
   w.paintStuff();
   await wait(30);
-  const box = d.getElementById('stuff-q');
-  if (!box) return ['the Find screen has no search box to keep'];
+  if (d.querySelector('#s-stuff input.search, #stuff-q, #s-res input.search, #res-q')) bad.push('a finder still draws a search box — Find is chips only');
   const slot = () => d.getElementById('stuff-clear');
-  if (!slot()) return ['there is no #stuff-clear beside the search box — Clear has nowhere of its own to be'];
+  if (!slot()) return bad.concat(['there is no #stuff-clear — Clear has nowhere of its own to be']);
   if (slot().innerHTML.trim()) bad.push('with nothing chosen, the Clear slot holds ' + slot().innerHTML.trim().slice(0, 80) + ' — it is shown from the first answer');
-  if (slot().parentElement !== box.parentElement) bad.push('Clear is not beside the search box — its slot and the box have different parents');
 
-  /* THE FIRST ANSWER, PRESSED WITH THE BOX FOCUSED. */
-  box.focus();
-  if (d.activeElement !== box) return bad.concat(['the search box would not take the focus, so keeping it was NOT checked']);
   t.ACTIONS['facet-pick']({ dataset: { field: 'forLabel', value: 'Learning' } });
   await wait(80);
-  if (d.getElementById('stuff-q') !== box) bad.push('pressing an answer replaced the search box — a new element, so the focus and the caret are gone');
-  else if (d.activeElement !== box) bad.push('pressing an answer took the focus off the search box (it is on ' + (d.activeElement ? d.activeElement.tagName + '#' + d.activeElement.id : 'nothing') + ')');
   const tiles = () => [...slot().querySelectorAll('.tile[data-do="filter-clear"]')];
   if (tiles().length !== 1) bad.push('one answer in, the Clear slot holds ' + tiles().length + ' Clear tile(s) — one, from the first answer');
 
@@ -310,7 +302,7 @@ check('a chosen answer is only its value, and Clear is a tile beside the search 
     t.ACTIONS['filter-clear'](tile);
     await wait(30);
     if (t.STUFF().filters.length) bad.push('pressing Clear left ' + t.STUFF().filters.length + ' answer(s) chosen');
-    if (slot().innerHTML.trim()) bad.push('with everything cleared, the Clear tile is still beside the box');
+    if (slot().innerHTML.trim()) bad.push('with everything cleared, the Clear tile is still drawn');
   }
   return bad;
 });
@@ -448,7 +440,7 @@ check('Projects is a kind in Find beside Practicals: card, materials, steps, and
 });
 
 /* ---------- COURSEWORK, A TYPE OF PROJECT § */
-check('Coursework is a type of project: Projects asks Project or coursework, which narrows to it; tagged, its board, Stages, found by name', async () => {
+check('Coursework is a type of project: Projects asks Project or coursework, which narrows to it; tagged, its board, Stages', async () => {
   const rows = LIB_FULL.rows('projects');
   const sheet = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'facets.json'), 'utf8'));
   const one = boot();
@@ -475,7 +467,7 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
   /* THE ROUTE. A rung the fixture answers one way is skipped by the one-answer rule — `What for` is
      only Learning here — and a grouped rung draws its bucket first, which is pressed on the way. */
   t.go('stuff');
-  t.STUFF().filters.length = 0; t.STUFF().q = '';
+  t.STUFF().filters.length = 0;
   w.paintStuff();
   const btns = () => [...w.document.querySelectorAll('#s-stuff [data-do="facet-pick"]')];
   const pressed = [];
@@ -591,24 +583,13 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
   if (!/your own work/.test(ownNote) || !/teacher/.test(ownNote)) bad.push('the coursework\'s share page does not say the work handed in must be the pupil\'s own, and to tell their teacher about outside help');
   if (proj && box(w.stuffPart_(proj, 'share')).querySelector('.fc-note')) bad.push('a project\'s share page carries the coursework\'s own-work note');
 
-  /* FOUND BY WHAT IT IS CALLED, with nothing chosen. § */
-  const said = w.stuffHay_(Object.assign({}, x, { _hay: undefined, text: Object.values(raw).join(' ') }));
-  const ADDED = ['non-exam', 'dt', 'd&t', 'cutout'];
-  ADDED.forEach(q => {
-    if (said.indexOf(q) >= 0) bad.push('the row itself says "' + q + '", so searching for it cannot prove `projectText_` adds it — pick a word the row does not say');
-  });
-  ['coursework', 'graphics', 'movie', 'cut-out', 'cut out', 'nea coursework'].concat(ADDED).forEach(q => {
-    t.STUFF().filters.length = 0; t.STUFF().q = q;
-    if (!w.stuffFiltered().some(i => i.key === x.key)) bad.push('typing "' + q + '" does not find ' + x.name);
-  });
-  t.STUFF().q = '';
   return bad;
 });
 
 /* ---------- A CONTENT CARD, REACHED THE WAY A QUESTION IS § */
 /* ON FIND 2, WHICH CARRIES WHAT FIND CARRIES (docs/history/347): the route is Find's own, run in the
    second column. */
-check('a content card, on Find 2 and on Find: What kind · Content, Statistics — the card whole, its animations, its tags, search, star, and a book\'s old star dropped', async () => {
+check('a content card, on Find 2 and on Find: What kind · Content, Statistics — the card whole, its animations, its tags, star, and a book\'s old star dropped', async () => {
   const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
@@ -630,7 +611,7 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   if (!stats) return ['data/textbooks.json has no TB-GCSE-STATS — ids: ' + books.map(b => b.id).join(', ')];
 
   t.go('res');
-  t.RES().filters.length = 0; t.RES().q = '';
+  t.RES().filters.length = 0;
   w.paintFinder_('res');
   /* AND FIND HOLDS THEM TOO — the same list in both columns, one card a chapter. */
   const chapters = books.reduce((n, b) => n + b.chapters.length, 0);
@@ -734,14 +715,6 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   }));
   if (said.length) bad.push(said.length + ' content page(s) say textbook or chapter: ' + said.slice(0, 4).join(', '));
 
-  /* SEARCHABLE BY ITS WORDS — one that is only inside a card, never in its title — ON BOTH FINDERS. */
-  t.RES().filters.length = 0; t.RES().q = 'frequency density';
-  if (!R.stuffFiltered().some(i => i.kind === 'content')) bad.push('typing "frequency density" on Find 2 does not find a content card — the words are not in its haystack');
-  t.RES().q = '';
-  t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
-  if (!w.stuffFiltered().some(i => i.kind === 'content')) bad.push('typing "frequency density" on Find does not find a content card — both finders carry them');
-  t.STUFF().q = '';
-
   /* STARRABLE, by the card's own Save tile, and kept on Saved. */
   t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const fav = box(w.stuffCard(x)).querySelector('[data-do="fav"]');
@@ -792,13 +765,6 @@ const pg_ = t => (typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE) || {};
 /* THE ANSWERS A COLUMN'S QUESTION PAGE DRAWS, as `field:value`, in the order drawn. */
 const resAnswers_ = (w, id) => [...w.document.querySelectorAll('#s-' + id + ' #' + id + '-groups [data-do="facet-pick"]')]
   .map(el => el.dataset.field + ':' + el.dataset.value);
-const resType_ = (w, id, v) => {
-  const el = w.document.getElementById(id + '-q');
-  if (!el) return false;
-  el.value = v;
-  el.dispatchEvent(new w.Event('input', { bubbles: true }));
-  return true;
-};
 
 /* ---------- ONE WIDGET PER THING (408) ----------
    "If a thing needs more than one widget (page), each must have a title that distinguishes it, so it earns its place." */
@@ -876,7 +842,7 @@ check('one widget per thing: every page of every content card, practical and pro
   return bad;
 });
 
-check('Find 2: a column immediately right of Find, called Find 2 with Find\'s icon — the tab row, data/settings/columns.json, one swipe from Find, its own search box, and Find\'s first question', async () => {
+check('Find 2: a column immediately right of Find, called Find 2 with Find\'s icon — the tab row, data/settings/columns.json, one swipe from Find, its own chips, no search box, and Find\'s first question', async () => {
   const file = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
   /* THE REAL FILE, SERVED, so the order a phone is given is the one checked — `applyColumns_` keeps only
      the columns it names, in its order. */
@@ -911,7 +877,7 @@ check('Find 2: a column immediately right of Find, called Find 2 with Find\'s ic
     const r0 = T0.find(x => x.id === 'res') || {}, f0 = T0.find(x => x.id === 'stuff') || {};
     if (r0.label !== 'Find 2' || r0.icon !== f0.icon) bad.push('without the file the column is ' + JSON.stringify(r0.label) + ' ' + JSON.stringify(r0.icon) + ' — wanted Find 2 with Find\'s icon ' + JSON.stringify(f0.icon));
   } else bad.push('the second boot did not load, so TAB_ORDER was NOT checked');
-  /* ONE SWIPE FROM FIND, AND ITS OWN PAGE: a search box, chips and the question, under its own ids. */
+  /* ONE SWIPE FROM FIND, AND ITS OWN PAGE: chips and the question, under its own ids, and no search box (8 Nov). */
   t.go('stuff', false, true);
   await wait(60);
   const next = t.TABS[t.TABS.findIndex(x => x.id === t.AT()) + 1];
@@ -920,9 +886,8 @@ check('Find 2: a column immediately right of Find, called Find 2 with Find\'s ic
   await wait(120); await woken_();
   const host = d.getElementById('s-res');
   if (!host) return bad.concat(['index.html has no <section id="s-res">']);
-  if (!host.querySelector('#res-q.search')) bad.push('Find 2 has no search box of its own (#res-q)');
+  if (host.querySelector('#res-q, input.search')) bad.push('Find 2 still draws a search box — Find is chips only');
   if (!host.querySelector('#res-chips') || !host.querySelector('#res-groups')) bad.push('Find 2 has no chips row or question (#res-chips, #res-groups)');
-  if (host.querySelector('#stuff-q') || d.getElementById('s-stuff').querySelector('#res-q')) bad.push('a finder drew the other finder\'s search box');
   /* ITS FIRST QUESTION IS FIND'S, BY THE FUNNEL'S OWN RULES — the same list asks the same question.
      It was Shelf while the column held the resources alone (329). */
   t.go('stuff', false, true);
@@ -971,16 +936,6 @@ check('both finders carry the same items — the same keys, the same count, ever
   if (fSaid !== rSaid) bad.push('What kind on Find offers ' + fSaid + ' and on Find 2 ' + rSaid);
   if (!/\bLibrary\b/.test(fSaid) || !/\bPractice\b/.test(fSaid)) bad.push('What kind does not offer both Practice and Library: ' + fSaid);
   if (/\bResources\b/.test(fSaid)) bad.push('What kind still offers Resources — it went into Content (445): ' + fSaid);
-  /* SEARCH: a word that is only inside a content card's words finds the card on both. */
-  t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
-  const fHits = w.stuffFiltered();
-  t.STUFF().q = '';
-  t.RES().filters.length = 0; t.RES().q = 'frequency density';
-  const rHits = inRes_(w, () => w.stuffFiltered());
-  t.RES().q = '';
-  if (!fHits.some(x => x.kind === 'content')) bad.push('typing "frequency density" on Find does not find the content card');
-  if (!rHits.some(x => x.kind === 'content')) bad.push('typing "frequency density" on Find 2 does not find the content card');
-  if (keys(fHits).join('|') !== keys(rHits).join('|')) bad.push('"frequency density" finds ' + fHits.length + ' on Find and ' + rHits.length + ' on Find 2');
   /* ONE LIST, COUNTED ONCE: § */
   const fBare = w.stuffFiltered(), rBare = inRes_(w, () => w.stuffFiltered());
   if (fBare !== rBare) bad.push('Find and Find 2 ask their first question of two copies of the same list — every tally of it is counted twice');
@@ -998,12 +953,12 @@ check('both finders carry the same items — the same keys, the same count, ever
   return bad;
 });
 
-check('two finders, no shared state: a chip, a search word or a page turned in one never reaches the other — whichever column a press comes from', async () => {
+check('two finders, no shared state: a chip or a page turned in one never reaches the other — whichever column a press comes from', async () => {
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  const F = () => JSON.stringify([t.STUFF().filters, t.STUFF().q]);
-  const R = () => JSON.stringify([t.RES().filters, t.RES().q]);
+  const F = () => JSON.stringify(t.STUFF().filters);
+  const R = () => JSON.stringify(t.RES().filters);
   t.go('stuff', false, true); await wait(60);
   t.go('res', false, true); await wait(120); await woken_();
   /* A CHIP PRESSED ON FIND 2 IS FIND 2'S ALONE — the answer its question draws for the resources,
@@ -1019,16 +974,11 @@ check('two finders, no shared state: a chip, a search word or a page turned in o
   if (F() !== f0) bad.push('a chip pressed on Find 2 reached Find: ' + F());
   if (d.getElementById('res-chips').textContent.indexOf(rPick.value) < 0) bad.push('Find 2\'s chips row does not show ' + rPick.value);
   if (((d.getElementById('stuff-chips') || {}).textContent || '').indexOf(rPick.value) >= 0) bad.push('Find\'s chips row shows ' + rPick.value);
-  /* A WORD TYPED IN FIND 2'S BOX IS FIND 2'S ALONE. */
-  resType_(w, 'res', 'ali');
-  await wait(260);
-  if (t.RES().q !== 'ali') bad.push('typing in #res-q left Find 2\'s words ' + JSON.stringify(t.RES().q));
-  if (t.STUFF().q) bad.push('typing in #res-q put ' + JSON.stringify(t.STUFF().q) + ' into Find\'s words');
   /* A PAGE TURNED IN FIND 2 IS FIND 2'S ALONE. */
   const p0 = pg_(t).stuff;
   const first = inRes_(w, () => w.stuffFirstResult_());
   const n = inRes_(w, () => w.stuffPages_().length);
-  if (!n) bad.push(rPick.value + ' and "ali" left nothing to turn to on Find 2 — the page rule was NOT checked');
+  if (!n) bad.push(rPick.value + ' left nothing to turn to on Find 2 — the page rule was NOT checked');
   else {
     t.goPage('res', first + Math.min(1, n - 1), true);
     await wait(80);
@@ -1045,10 +995,6 @@ check('two finders, no shared state: a chip, a search word or a page turned in o
     if (!t.STUFF().filters.length) bad.push('pressing an answer on Find left no chip on Find');
     if (R() !== r0) bad.push('a chip pressed on Find changed Find 2: ' + R());
   }
-  resType_(w, 'stuff', 'fractions');
-  await wait(260);
-  if (t.STUFF().q !== 'fractions') bad.push('typing in #stuff-q left Find\'s words ' + JSON.stringify(t.STUFF().q));
-  if (t.RES().q !== 'ali') bad.push('typing in #stuff-q changed Find 2\'s words to ' + JSON.stringify(t.RES().q));
   t.goPage('stuff', 0, true);
   if (pg_(t).res !== pr) bad.push('turning a page on Find moved Find 2 from ' + pr + ' to ' + pg_(t).res);
   /* A PRESS FROM NOWHERE — a detached button, as the checks press — acts on the column in front. */
@@ -1058,7 +1004,7 @@ check('two finders, no shared state: a chip, a search word or a page turned in o
   /* AND FIND 2'S OWN CLEAR TILE CLEARS FIND 2 ONLY. */
   t.go('res', false, true); await wait(120);
   const clear = d.querySelector('#res-clear [data-do="filter-clear"]');
-  if (!clear) bad.push('Find 2 has no Clear tile beside its box while it holds a chip');
+  if (!clear) bad.push('Find 2 has no Clear tile while it holds a chip');
   else {
     t.STUFF().filters.push({ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' });
     A['filter-clear'](clear);

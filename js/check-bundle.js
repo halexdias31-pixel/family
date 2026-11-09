@@ -116,8 +116,7 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
     return done();
   }
   b.go('stuff');
-  const narrow = (filters, q) => {
-    b.STUFF.q = q || '';
+  const narrow = filters => {
     b.STUFF.filters = filters.map(f => Object.assign({}, f));
     b.paintStuff();
   };
@@ -218,13 +217,12 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
 
   /* ---------- 3. A LIST THAT IS NOT WHOLE PAPERS IS NOT A BUNDLE § */
   /* TWICE, AND THE SECOND IS THE ONE THAT CAN FAIL. § */
-  /* `GCSE · Algebra` WAS A `Topic area` CHIP, and that question is retired (find.js). The same
-     shape — every GCSE paper, none of them whole — is reached by typing it. */
-  [{ name: 'GCSE · "algebra"', filters: DOORS.slice(0, 3).concat([{ field: 'level', value: 'GCSE' }]), q: 'algebra' },
-   /* BY THE SEARCH BOX, NOT BY QUESTION NUMBER AND NOT BY TOPIC. § */
-   { name: 'June 2017 · Higher · "work out"', filters: cases[0].filters, q: 'work out' },
+  /* BY CHIPS ALONE (Find has no search box since 8 Nov): one question number across many papers is
+     every paper, none of them whole. */
+  [{ name: 'GCSE · Question 1', filters: DOORS.concat([{ field: 'qNumber', value: 'Q1' }]) },
+   { name: 'GCSE · Question 2', filters: DOORS.concat([{ field: 'qNumber', value: 'Q2' }]) },
   ].forEach(t => {
-    narrow(t.filters, t.q);
+    narrow(t.filters);
     if (b.stuffFiltered().length < 10) {
       bad.push(t.name + ' returned ' + b.stuffFiltered().length + ' items, so this wholeness case '
                + 'measures nothing — NOT a pass');

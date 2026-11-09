@@ -413,7 +413,7 @@ check('signed out, Find is the one front door: the search bar and the menu, whos
   if (t.whoami()) return ['the app opened signed in — signed OUT was NOT checked'];
   t.go('stuff', false, true); w.paint('stuff'); await wait(100);
   if (d.querySelector('#s-stuff .members-only')) bad.push('signed out, Find still draws the old Members only card');
-  if (!d.getElementById('stuff-q')) bad.push('signed out, Find draws no search bar (one front door: the same shape for everyone)');
+  if (!d.getElementById('stuff-chips')) bad.push('signed out, Find draws no chips row (one front door: the same shape for everyone)');
   const items = w.stuffItemsBuild_();
   const own = (items || []).filter(Boolean);
   if (own.some(x => x.kind !== 'setting')) bad.push('signed out, Find holds more than Settings: ' + JSON.stringify([...new Set(own.map(x => x.kind))]));
@@ -430,7 +430,7 @@ check('signed out, Find is the one front door: the search bar and the menu, whos
   await wait(80);
   t.go('stuff', false, true); w.paint('stuff'); await wait(150);
   const after = w.stuffItemsBuild_();
-  if (!d.getElementById('stuff-q') || d.querySelector('#s-stuff .members-only')) bad.push('signed in, Find is not the finder');
+  if (!d.getElementById('stuff-chips') || d.querySelector('#s-stuff .members-only')) bad.push('signed in, Find is not the finder');
   if (after.some(x => x && x.signIn)) bad.push('signed in, Settings still offers Sign in');
   if (!after.some(x => x && x.kind !== 'setting')) bad.push('signed in, Find still answers only Settings');
   return bad;
@@ -448,23 +448,21 @@ check('both finders are started again when an admin signs out from the admin-onl
        admin's own beside it, and both go. */
     t.go('res', false, true);
     t.RES().filters = [{ field: 'shelf', value: 'Writings' }];
-    t.RES().q = 'genesis';
     w.paintFinder_('res');
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
-    t.STUFF().q = 'fractions';
     if (!/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin’s Find 2 chips do not name the Writings shelf, so its going was NOT checked');
     t.ACTIONS.signout(d.createElement('button'));
     await wait(50);
     t.go('res', false, true);
     await wait(30);
     if (t.whoami()) bad.push('Sign out left somebody signed in');
-    if (t.RES().filters.length || t.RES().q) bad.push('an admin signed out from the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
-    if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin signed out left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
+    if (t.RES().filters.length) bad.push('an admin signed out from the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters));
+    if (t.STUFF().filters.length) bad.push('an admin signed out left Find holding ' + JSON.stringify(t.STUFF().filters));
     if (/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, Find 2’s chips still name the Writings shelf');
     /* AND THE NEXT CHILD SIGNING IN FROM THERE IS SIGNED IN FROM NOBODY — kept, and holding nothing of the admin's. */
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
-    if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in after the admin signed out is handed the admin’s Find: ' + JSON.stringify(t.STUFF().filters));
-    if (t.RES().filters.length || t.RES().q) bad.push('a child signing in after the admin signed out is handed the admin’s Find 2: ' + JSON.stringify(t.RES().filters));
+    if (t.STUFF().filters.length) bad.push('a child signing in after the admin signed out is handed the admin’s Find: ' + JSON.stringify(t.STUFF().filters));
+    if (t.RES().filters.length) bad.push('a child signing in after the admin signed out is handed the admin’s Find 2: ' + JSON.stringify(t.RES().filters));
   }
   /* ---- ONE CHILD SIGNED IN, ANOTHER SIGNS IN OVER THEM ---- */
   {
@@ -473,15 +471,13 @@ check('both finders are started again when an admin signs out from the admin-onl
     const t = w.__t;
     t.go('stuff', false, true);
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
-    t.STUFF().q = 'fractions';
     w.paintStuff();
     t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
-    t.RES().q = 'ali';
     if (typeof w.signedIn_ !== 'function') return bad.concat(['signedIn_ is not reachable — the switch was NOT checked']);
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
     if ((t.whoami() || {}).personId !== 'P12') return bad.concat(['the second child did not sign in: ' + JSON.stringify(t.whoami())]);
-    if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in over Ada is handed Ada’s Find: ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
-    if (t.RES().filters.length || t.RES().q) bad.push('a child signing in over Ada is handed Ada’s Find 2: ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    if (t.STUFF().filters.length) bad.push('a child signing in over Ada is handed Ada’s Find: ' + JSON.stringify(t.STUFF().filters));
+    if (t.RES().filters.length) bad.push('a child signing in over Ada is handed Ada’s Find 2: ' + JSON.stringify(t.RES().filters));
     /* THE SAME CHILD SIGNING IN AGAIN IS NOT A SWITCH: their Find stays. */
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }];
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
@@ -579,7 +575,7 @@ check('a session that ends while a child types keeps Find for them to sign in ag
     if (t.whoami()) return bad.concat(['the refused save did not sign the phone out — the next child was NOT checked']);
     w.signedIn_(Object.assign({ success: true }, KEEP_KIT_), 'kit');
     if ((t.whoami() || {}).personId !== 'P13') return bad.concat(['the next child did not sign in: ' + JSON.stringify(t.whoami())]);
-    if (t.STUFF().filters.length || t.STUFF().q) bad.push('the next child signing in over a dead session is handed the last child’s Find: ' + JSON.stringify(t.STUFF().filters));
+    if (t.STUFF().filters.length) bad.push('the next child signing in over a dead session is handed the last child’s Find: ' + JSON.stringify(t.STUFF().filters));
     if (t.STUFF().whose) bad.push('the next child signed in, STUFF.whose still names ' + JSON.stringify(t.STUFF().whose));
   }
   /* ---- AN ADMIN'S SESSION ENDS ON THE BOOKS SHELF: cleared, as Sign out clears it ---- */
@@ -592,12 +588,11 @@ check('a session that ends while a child types keeps Find for them to sign in ag
     /* ON THE RESOURCES COLUMN, where the Books shelf is now (docs/history/329). */
     t.go('res', false, true);
     t.RES().filters = [{ field: 'shelf', value: 'Writings' }];
-    t.RES().q = 'genesis';
     w.paintFinder_('res');
     await w.api({ action: 'sessionProbe', personId: 'P001' });
     await wait(30);
     if (t.whoami()) return bad.concat(['the admin’s refused request did not sign the phone out — the admin case was NOT checked']);
-    if (t.RES().filters.length || t.RES().q) bad.push('an admin’s session ending on the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    if (t.RES().filters.length) bad.push('an admin’s session ending on the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters));
     if (t.RES().whose || t.STUFF().whose) bad.push('an admin’s dead session left whose = ' + JSON.stringify([t.STUFF().whose, t.RES().whose]));
   }
   return bad;

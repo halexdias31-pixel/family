@@ -421,7 +421,7 @@ function findPlaceKeep_(F) {
       const pg = at >= 0 ? (stuffPages_()[at] || null) : null;
       const key = pg && pg.x ? String(pg.x.key || pg.x.name || '') : '';
       /* QUIET (`keepPut_`): a place is a convenience, so it never asks the browser to hold the page. */
-      draftKeep_(F.place, 'place', JSON.stringify({ f: STUFF.filters || [], q: STUFF.q || '',
+      draftKeep_(F.place, 'place', JSON.stringify({ f: STUFF.filters || [],
         key: key, part: key ? (pg.part || null) : null, at: Date.now() }), true);
     });
   } catch (e) { /* storage blocked: the place is not kept for next time */ }
@@ -451,11 +451,11 @@ function findPlaceBack_(F) {
       if (raw === null) return;
       const p = JSON.parse(raw);
       if (!p || typeof p !== 'object' || !(Date.now() - (Number(p.at) || 0) < AWAY_AGAIN)) return;
-      if (AT !== F.id || (STUFF.filters || []).length || STUFF.q) return;
+      if (AT !== F.id || (STUFF.filters || []).length) return;
       finderSet_(F, { filters: (Array.isArray(p.f) ? p.f : [])
         .filter(f => f && typeof f === 'object' && typeof f.field === 'string')
         .map(placeChipMoved_)
-        .filter(f => !placeChipDead_(f)), q: typeof p.q === 'string' ? p.q : '' });
+        .filter(f => !placeChipDead_(f)) });
       if (!p.key) return;
       const pages = stuffPages_();
       const mine = pg => pg && pg.x && String(pg.x.key || pg.x.name || '') === p.key;

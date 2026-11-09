@@ -30,7 +30,7 @@ module.exports = {
       /* THE LANDING, AGAIN: the library held back as "the library still coming" holds it (check/states.js), then given back. */
       const held = { rows: LIBRARY_ROWS, data: {} };
       Object.keys(DATA).forEach(k => { if (Array.isArray(DATA[k])) { held.data[k] = DATA[k]; DATA[k] = []; } });
-      LIBRARY_ROWS = null; stuffForget_(); STUFF.filters = []; STUFF.q = ''; paintStuff();
+      LIBRARY_ROWS = null; stuffForget_(); STUFF.filters = []; paintStuff();
       for (let i = 0; i < 15; i++) { await frame(); sample(); }
       Object.keys(held.data).forEach(k => { DATA[k] = held.data[k]; });
       LIBRARY_ROWS = held.rows; stuffForget_(); paintStuff();

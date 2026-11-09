@@ -6,8 +6,7 @@ check('Find: Doesn\'t matter at What kind keeps the whole list and asks what the
     if (!b) return bad.concat([who.role + ': the app did not load — NOT checked']);
     const { w } = b, t = w.__t, S = t.STUFF(), d = w.document;
     t.go('stuff', false, true);
-    S.filters.length = 0; S.q = '';
-    const all = w.stuffFiltered();
+    S.filters.length = 0;     const all = w.stuffFiltered();
     const first = w.nextFacet(all);
     if (!first || first.field !== 'kindLabel') { bad.push(who.role + ': the first question is ' + (first && first.field) + ', not What kind — NOT checked'); continue; }
     S.filters.push({ field: 'kindLabel', any: true });

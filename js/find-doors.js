@@ -221,7 +221,6 @@ function findSettings_(type) {
   try {
     inFinder_(FINDER, () => {
       STUFF.filters = [{ field: 'kindLabel', value: 'Settings' }].concat(USER && type ? [{ field: 'settingFor', value: type }] : []);
-      STUFF.q = '';
     });
     go(FINDER.id);
     inFinder_(FINDER, () => paintStuff());

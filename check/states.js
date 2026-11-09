@@ -9,7 +9,7 @@ const STATES = {
       enter: () => inFinder_(finderOf_('stuff'), () => {
         window.__LIB_FAIL = { rows: LIBRARY_ROWS, f: LIBRARY_FAILED };
         LIBRARY_ROWS = []; LIBRARY_FAILED = 'the question file answered 500';
-        stuffForget_(); STUFF.filters = []; STUFF.q = '';
+        stuffForget_(); STUFF.filters = [];
         paintStuff();
       }),
       leave: () => inFinder_(finderOf_('stuff'), () => {
@@ -31,7 +31,7 @@ const STATES = {
         LIBRARY_ROWS = null;
         /* EVERY MEMO, AND `DATA` IS WHAT THEY ARE KEYED ON. § */
         stuffForget_();
-        STUFF.filters = []; STUFF.q = '';
+        STUFF.filters = [];
         paintStuff();
       },
       leave: () => {
@@ -47,7 +47,7 @@ const STATES = {
       wants: 'the Find screen showing the one loader while the questions are on their way, not saying there are none' },
     { name: 'the results',
       enter: () => {
-        STUFF.q = 'work out';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
         paintStuff();
         goPage('stuff', stuffFirstResult_(), true);
       },
@@ -57,7 +57,6 @@ const STATES = {
     /* ---------- AND THE FUNNEL SEVERAL ANSWERS DEEP § */
     { name: 'six answers in',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
@@ -85,7 +84,6 @@ const STATES = {
     /* ---------- THE SITTING, ASKED AS THE YEAR AND THEN THE MONTH § */
     { name: 'the year folder',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
@@ -106,7 +104,6 @@ const STATES = {
       wants: 'the Year question, bare years only, drawn as chips sharing a line' },
     { name: 'the month folder inside the year',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
@@ -129,7 +126,6 @@ const STATES = {
     /* ---------- THE PAPER FOLDER WITH THE YEAR SKIPPED § */
     { name: 'the paper folder with the year skipped',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
@@ -153,7 +149,6 @@ const STATES = {
     /* ---------- A PAPER CHOSEN, AND THE ONE RULE ASKS ITS QUESTION NEXT (396) § */
     { name: 'a paper chosen',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
@@ -180,7 +175,6 @@ const STATES = {
     /* ---------- A LONG LIST, DRAWN WHOLE § */
     { name: 'a long list, drawn whole',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
@@ -199,7 +193,6 @@ const STATES = {
     /* ---------- A BUNDLE OF PAPERS, WHICH ONLY A NARROWED LIST OFFERS § */
     { name: 'a bundle of papers',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
@@ -826,7 +819,6 @@ const STATES = {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
         if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         const first = typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1;
@@ -857,7 +849,6 @@ const STATES = {
         const q1 = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-subtraction-1');
         if (!q1) throw new Error('Q-CBM-subtraction-1 is not in the library');
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(q1) }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(q1), true);
@@ -875,7 +866,6 @@ const STATES = {
     /* ---------- WHAT KIND: QUESTIONS FIRST § */
     { name: 'What kind, Questions first',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' }];
         paintStuff();
         goPage('stuff', stuffQuestionPage_(), true);
@@ -1326,7 +1316,6 @@ const STATES = {
         if (!it) throw new Error('1F Q23b is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
@@ -1365,7 +1354,6 @@ const STATES = {
         if (!it) throw new Error('1F Q23b is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
@@ -1413,7 +1401,6 @@ const STATES = {
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         kpClose_();
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         window.__restK = ansKey_(it);
@@ -1447,7 +1434,6 @@ const STATES = {
         if (!it) throw new Error('Q0664 is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
@@ -1488,7 +1474,6 @@ const STATES = {
         if (!it) throw new Error('Q0664 is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
@@ -1592,7 +1577,6 @@ const STATES = {
         if (!it) throw new Error(id + ' is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         window.__abcKey = ansKey_(it);
@@ -1643,7 +1627,6 @@ const STATES = {
         if (!it) throw new Error(id + ' is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         window.__essayKey = ansKey_(it);
@@ -1774,7 +1757,6 @@ const STATES = {
     { name: 'no films in Find, an admin’s',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [];
         paintStuff();
         goPage('stuff', stuffQuestionPage_(), true);
@@ -1784,36 +1766,22 @@ const STATES = {
         const isFilm = x => x && (x.kind === 'film' || films.some(f => f.title === x.name));
         const kl = facetList().find(f => f.field === 'kindLabel');
         const kinds = kl ? facetValues(stuffItems(), kl).map(v => String(v.value)) : [];
-        const was = STUFF.q;
-        let found = 0;
-        try { films.forEach(f => { STUFF.q = f.title; found += stuffFiltered().filter(isFilm).length; }); }
-        finally { STUFF.q = was; }
-        return films.length >= 2 && kinds.length >= 1 && kinds.indexOf('Films') === -1 && !found
+        return films.length >= 2 && kinds.length >= 1 && kinds.indexOf('Films') === -1
                && !!document.querySelector('#stuff-groups [data-do="facet-pick"]')
                && !stuffItemsAll_().some(isFilm)
                && !document.querySelector('#s-stuff .card.film');
       },
-      wants: 'the admin’s first question in Find drawn with the films in the payload, no Films answer What kind could give, no film found by its title, and no film anywhere in Find' },
+      wants: 'the admin’s first question in Find drawn with the films in the payload, no Films answer What kind could give, and no film anywhere in Find' },
     /* ---------- THE TWO WAYS THE FUNNEL ENDS WITHOUT A QUESTION § */
-    { name: 'a search that matches nothing',
-      enter: () => { STUFF.filters = []; STUFF.q = 'zqxjv nothing is called this'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
+    { name: 'chips that match nothing',
+      enter: () => { STUFF.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }, { field: 'boxKind', value: 'Fighters' }]; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
       expect: () => /Nothing matches/.test((document.querySelector('#stuff-groups .empty') || {}).textContent || ''),
       wants: 'the funnel saying Nothing matches',
-      leave: () => { STUFF.q = ''; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
-    /* AND A SEARCH A CHIP HIDES. § */
-    { name: 'a search a chip hides',
-      enter: () => { STUFF.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }]; STUFF.q = 'Olivares'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
-      expect: () => {
-        const g = document.querySelector('#stuff-groups');
-        return !!g && /take a filter off/.test(g.textContent) && !g.querySelector('[data-do="finder-words"]');
-      },
-      wants: 'Find\'s empty search under a chip saying "Try fewer words, or take a filter off." and offering no other column',
-      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     { name: 'nothing left to narrow',
       /* ANSWERED BY THE FUNNEL'S OWN ROWS until it stops asking, over the projects — eight things,
          so it runs out of questions in two or three answers whatever the data says next week. */
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }];
         paintStuff();
         for (let i = 0; i < 8; i++) {
@@ -1833,9 +1801,8 @@ const STATES = {
       wants: 'the funnel ending on "Nothing left to narrow" in its own class, with a rule under the chosen chips',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- "STABLE": AN ANSWER PRESSED MOVES NOTHING ABOVE IT § */
-    { name: 'an answer pressed, the search box and the chips still',
+    { name: 'an answer pressed, the controls and the chips still',
       enter: () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' }];
         paintStuff();
         goPage('stuff', stuffQuestionPage_(), true);
@@ -1844,10 +1811,10 @@ const STATES = {
            timer is what left this state unreached (the answer states above say more). */
         const run = () => {
           const pane = document.getElementById('stuff-controls');
-          if (!pane || !document.getElementById('stuff-q')) return false;
+          if (!pane || !document.getElementById('stuff-chips')) return false;
           const at = () => {
             const top = pane.getBoundingClientRect().top;
-            const q = document.getElementById('stuff-q').getBoundingClientRect().top - top;
+            const q = document.getElementById('stuff-chips').getBoundingClientRect().top - top;
             const chip = document.querySelector('#stuff-chips .chip');
             return [q, chip ? chip.getBoundingClientRect().top - top : -1,
                     chip ? chip.getBoundingClientRect().left : -1];
@@ -1865,14 +1832,13 @@ const STATES = {
         const s = window.__findStill;
         return !!s && s.n === 2 && s.a[1] >= 0 && s.a.every((v, i) => Math.abs(v - s.b[i]) < .5);
       },
-      wants: 'a second chip added with the search box and the first chip exactly where they were',
+      wants: 'a second chip added with the chips row and the first chip exactly where they were',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- AND A CARD'S OWN PAGES FILLING MOVE NOTHING ON IT § */
     { name: "a practical's pages filled, its card still",
       enter: () => {
         const x = stuffItemsAll_().find(it => it.kind === 'practical' && !it.row.excluded && it.row.diagram);
         if (!x) throw new Error('no practical with a diagram');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }];
         paintStuff();
         const first = stuffFirstResult_();
@@ -1915,7 +1881,7 @@ const STATES = {
       enter: () => inFinder_(finderOf_('res'), () => {
         window.__LIB_FAIL = { rows: LIBRARY_ROWS, f: LIBRARY_FAILED };
         LIBRARY_ROWS = []; LIBRARY_FAILED = 'the question file answered 500';
-        stuffForget_(); STUFF.filters = []; STUFF.q = '';
+        stuffForget_(); STUFF.filters = [];
         paintStuff();
       }),
       leave: () => inFinder_(finderOf_('res'), () => {
@@ -1932,7 +1898,6 @@ const STATES = {
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-STATS-9', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && !pg.part);
@@ -1960,7 +1925,6 @@ const STATES = {
       enter: new Function(`inFinder_(finderOf_('res'), () => {
         const K = 'ct:TB-GCSE-STATS-9', P = '${P}', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
@@ -1978,7 +1942,6 @@ const STATES = {
       enter: new Function(`inFinder_(finderOf_('res'), () => {
         const K = 'pr:PR-FN05', P = ${JSON.stringify(P)}, x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' practical in the list — data/practicals.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && (pg.part || null) === P);
@@ -1997,7 +1960,6 @@ const STATES = {
       enter: new Function(`inFinder_(finderOf_('res'), () => {
         const K = 'ct:TB-KS2-MATHS-1', P = ${JSON.stringify(P)}, x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && (pg.part || null) === P);
@@ -2019,7 +1981,6 @@ const STATES = {
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-MATHS-17', P = 'an17-pyth', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
@@ -2042,7 +2003,6 @@ const STATES = {
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-STATS-15', P = 'an15-bayes', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
@@ -2065,7 +2025,6 @@ const STATES = {
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-MATHS-2', P = 'an2-sf', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
@@ -2086,7 +2045,6 @@ const STATES = {
     { name: 'the Bible, the KJV question',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }];
         paintStuff();
         goPage('res', stuffQuestionPage_(), true);
@@ -2103,7 +2061,6 @@ const STATES = {
     { name: 'the Bible, Psalms\'s chapters',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
                          { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Poetry & Wisdom' },
                          { field: 'wBook', value: 'Psalms' }];
@@ -2115,7 +2072,6 @@ const STATES = {
     { name: 'the Bible, Psalm 119\'s verses',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
                          { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Poetry & Wisdom' },
                          { field: 'wBook', value: 'Psalms' }, { field: 'wChapter', value: '119' }];
@@ -2127,7 +2083,6 @@ const STATES = {
     { name: 'the Bible, Genesis 1:3',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
                          { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Torah' },
                          { field: 'wBook', value: 'Genesis' }, { field: 'wChapter', value: '1' },
@@ -2145,7 +2100,6 @@ const STATES = {
     { name: 'the Bible, Esther 8:9',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
                          { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'History' },
                          { field: 'wBook', value: 'Esther' }, { field: 'wChapter', value: '8' },
@@ -2159,11 +2113,10 @@ const STATES = {
         return !!v && !v.closest('.bb-verse').querySelector('.loading') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
       },
       wants: 'Esther 8:9, the longest verse, drawn whole with no bracket',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
     /* THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM § */
     { name: 'the boxers, on the shared head',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Boxers' }];
         paintStuff();
@@ -2194,9 +2147,8 @@ const STATES = {
     /* ---------- THE PHOTO'S CREDIT, AS A LINK A FINGER CAN HIT § */
     { name: 'a boxer photo\'s credit, a link a finger can hit',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = 'Muhammad Ali';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
+                         { field: 'boxKind', value: 'Boxers' }, { field: 'fighter', value: 'Muhammad Ali' }];
         paintStuff();
         goPage('res', stuffFirstResult_(), true);
       }),
@@ -2226,10 +2178,9 @@ const STATES = {
                && parseFloat(getComputedStyle(a).fontSize) >= .62 * rem - .05;
       },
       wants: 'Ali\'s photo credit as a link to its Commons file page, a 44px block at its own size, under the picture and across the card, its words at least .62rem',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
     { name: 'the fights, on the shared head',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Fights' }];
         paintStuff();
@@ -2254,9 +2205,8 @@ const STATES = {
     /* ---------- THE FIGHTER IN THE RING LOOKS LIKE HIM, IN THE COLOURS A BROWSER ACTUALLY PAINTS § */
     { name: 'a boxer who looks like himself',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = 'Lennox Lewis';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
+                         { field: 'boxKind', value: 'Boxers' }, { field: 'fighter', value: 'Lennox Lewis' }];
         paintStuff();
         goPage('res', stuffFirstResult_(), true);
       }),
@@ -2292,10 +2242,9 @@ const STATES = {
                && c.scrollWidth <= c.clientWidth + 1;
       },
       wants: 'Lennox Lewis drawn as himself — dreads behind the head and inside the frame, goatee, his skin and his white trunks in the figure\'s own colours, never the gold stand-in\'s',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
     { name: 'a fight in that night\'s trunks',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Fights' }];
         paintStuff();
@@ -2346,7 +2295,6 @@ const STATES = {
     /* ---------- A FIGHTER WITH NO ROW IS A SILHOUETTE, NOT A PALE BLOND MAN § */
     { name: 'a fighter with no row is a silhouette',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = '';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
                          { field: 'boxKind', value: 'Fights' }];
         paintStuff();
@@ -2379,9 +2327,8 @@ const STATES = {
     /* ---------- EVERY COLOUR OF THE FIGURE SHOWS AGAINST THE DARK HE STANDS IN § */
     { name: 'every colour of the eight-bit fighter shows against the stage',
       enter: () => inFinder_(finderOf_('res'), () => {
-        STUFF.q = 'Mike Tyson';
         STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
+                         { field: 'boxKind', value: 'Boxers' }, { field: 'fighter', value: 'Mike Tyson' }];
         paintStuff();
         goPage('res', stuffFirstResult_(), true);
       }),
@@ -2444,7 +2391,7 @@ const STATES = {
         return bad.length === 0 && Object.keys(fills).length === cases.length;
       },
       wants: 'every skin, hair colour, trunks colour, the silhouette and the unrecorded trunks at 2:1 or more against the stage, a black beard 2:1 on every skin, Tyson\'s own hair and trunks too, and the unrecorded trunks 50 or more from every trunks word',
-      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
     /* ---------- THE LONGEST TAG ROW, EVERY TAG INSIDE THE CARD § */
     { name: "a content card's tag row, every tag inside the card",
       enter: () => inFinder_(finderOf_('res'), () => {
@@ -2452,7 +2399,6 @@ const STATES = {
            a state's `enter` runs in the page as its own text, where a helper here does not exist. */
         const K = 'ct:TB-GCSE-MATHS-20', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
-        STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && !pg.part);
