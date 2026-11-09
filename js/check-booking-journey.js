@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* node js/check-booking-journey.js — A BOOKING WALKED END TO END as client, tutor and admin over the real backend:
-   seat caps, the tutor's answer, accept/decline/withdraw, Set the room, paying through Stripe, the receipt. -v for detail. */
+   seat caps, the tutor's answer, accept/decline/withdraw, the room, paying through Stripe, the receipt. -v for detail. */
 'use strict';
 require('../check/quiet');
 const { backend } = require('./check-gas-load.js');
