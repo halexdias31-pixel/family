@@ -706,7 +706,7 @@ function uploadsHtml_(d) {
       : 'Not yet. In this order:'}</p>
     ${steps ? `<ol class="up-steps">${steps}</ol>` : ''}
     ${go ? `<div class="tile-row">${go}</div>` : ''}
-    <p class="faint up-ver">backend ${esc(d.version || '—')}</p>`;
+    <p class="faint up-ver">backend ${esc(dash_(d.version))}</p>`;
 }
 
 /* EVERY `.up-box` ON THE PAGE — a class rather than the id alone, for the reason `cart-box` gives:

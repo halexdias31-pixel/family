@@ -96,7 +96,7 @@ function meRest_() {
 function versionSaid_() {
   return `<p class="build-said" style="text-align:center">@family. · Merton &amp; Wandsworth<br>
       site ${esc(SITE_VERSION)} · css ${esc(cssVersion())}<br>
-      backend ${esc(DATA.version || '—')}</p>
+      backend ${esc(dash_(DATA.version))}</p>
       ${(() => {
         const f = DATA.fileVersions || {};
         const names = Object.keys(f);
@@ -144,7 +144,7 @@ function setupCard_() {
   const wrong = failed.length + (odd.length ? 1 : 0);
   return `<div class="card setup-card" data-need="setup"><h3>Setup</h3>
     ${need(wrong, wrong + (wrong === 1 ? ' thing to fix' : ' things to fix'))}
-    <p class="sub">Backend live: <b>${esc(S_.backend || '—')}</b> · site ${esc(typeof SITE_VERSION !== 'undefined' ? SITE_VERSION : '—')}${odd.length
+    <p class="sub">Backend live: <b>${esc(dash_(S_.backend))}</b> · site ${esc(typeof SITE_VERSION !== 'undefined' ? SITE_VERSION : dash_())}${odd.length
       ? ` · <span class="setup-bad">not deployed: ${odd.map(k => esc(k) + '.gs (' + esc(files[k]) + ')').join(', ')}</span>` : ' · all 4 files agree'}</p>
     ${failed.map(j => `<p class="setup-bad">${esc(j.id)} failed: ${esc(j.error)} — it tries again on the next page load.</p>`).join('')}
     <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} <span class="faint">${j.ran

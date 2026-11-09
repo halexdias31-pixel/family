@@ -316,7 +316,7 @@ let CARD_VIEWER;
 /* BEFORE THE SETTINGS FILE ARRIVES, OR FOR A KIND IT DOES NOT NAME: its kind's picture, its name, its facet tags. */
 const KC_BARE = { cls: '', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] };
 const kcRow_ = x => (x && x.row) || {};
-const kcPct_ = m => (m === 1 ? '—' : (m > 1 ? '+' : '−') + Math.abs(Math.round((m - 1) * 100)) + '%');
+const kcPct_ = m => (m === 1 ? dash_() : (m > 1 ? '+' : '−') + Math.abs(Math.round((m - 1) * 100)) + '%');
 /* EACH FIELD A CARD CAN SHOW, BY NAME: the settings file picks, and a field with nothing to say says ''. */
 const KC_FIELDS = {
   kindPic: x => libPic_(x.kind, x.name),

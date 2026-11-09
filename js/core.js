@@ -118,6 +118,8 @@ const time_ = t => {
   else { const d = new Date(s); if (isNaN(d)) return s; h = d.getHours(); min = d.getMinutes(); }
   return String(h).padStart(2, '0') + ':' + String(min).padStart(2, '0');
 };
+/* A VALUE THAT IS MISSING READS "—" (owner 65a, 9 Nov), the one way; 0 is a value and shows. */
+const dash_ = v => (v === undefined || v === null || String(v).trim() === '' ? '—' : v);
 /* A whole-hour span, 24-hour: 09:00–10:00. */
 const hours_ = (a, b) => time_(a + ':00') + '–' + time_(b + ':00');
 /* Money always with pence: £12.00, and a minus sign before the pound. */

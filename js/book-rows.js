@@ -346,7 +346,7 @@ function breakdownRows(L) {
       /* THE SAME DROPDOWN THE UNPRICED CARD USES. § */
       const st = asked ? bookStep_(asked) : null;
       const sel = st ? stepControl_(st) : '';
-      push(r.row || r.label, plain || (asked ? '—' : ''), c.mul, c.rate, c.total,
+      push(r.row || r.label, plain || (asked ? dash_() : ''), c.mul, c.rate, c.total,
         /* ---------- `step` IS ALWAYS THE STEP, EVEN WHEN THE ROW HAS A CONTROL § */
         /* ---------- NO WEEK HANGS OFF A PRICED ROW ANY MORE § */
         { end: gi === inGroup.length - 1, step: asked, key: r.key, sel: sel });
@@ -362,7 +362,7 @@ function breakdownRows(L) {
   /* ---------- AND HOW MANY OF THEM THERE ARE GOES IN THE COLUMN THAT COUNTS § */
   const dates = (L.sessionDates || []).map(d => date_(d));
   /* NO "× sessions" HERE (owner, 7 Nov): Term's weeks × the week's hours is the one period multiplier the sum uses. */
-  push('Dates', dates.length ? dates.join(', ') : '—', '', '', '', { free: true, dates: true });
+  push('Dates', dates.length ? dates.join(', ') : dash_(), '', '', '', { free: true, dates: true });
 
   /* ---------- WHERE THIS ONE IS, TOO § */
   stageRows_(null).forEach(r => rows.push(r));
@@ -389,7 +389,7 @@ function stepSelect_(st) {
       /* ---------- AND A LOCKED MULTI HAD NO FALLBACK EITHER § */
       : st.multi ? (chosen.join(', ') || fb)
       : (st.label_ && v ? st.label_(v) : v);   /* `v` already carries the fallback — see above */
-    return `<span class="bk-set">${esc(String(said || '—'))}</span>`;
+    return `<span class="bk-set">${esc(String(dash_(said)))}</span>`;
   }
   const isOn = o => norm(o) === norm(v);
   /* ---------- THE BLANK OPTION DOES NOT REPEAT AN ANSWER ON THE LIST § */
@@ -403,7 +403,7 @@ function stepSelect_(st) {
      the tutor step. The one already chosen is left pressable, so the row can show it. */
   const noOf = o => st.off ? String(st.off(o) || '') : '';
   const words = o => said(o) + (noOf(o) ? ' · ' + noOf(o) : '');
-  const blank = dup ? '\u2014' : (fb || '\u2014');
+  const blank = dup ? dash_() : dash_(fb);
   const sel = `<select class="bk-sel" id="${bkCtl_(st.id)}" data-do="book-set" data-step="${esc(st.id)}"
       ${off ? 'disabled' : ''} aria-label="${esc(st.label)}">
     <option value=""${!v || !opts.some(isOn) ? ' selected' : ''}>${esc(blank)}</option>
@@ -444,7 +444,7 @@ function stepPick_(st) {
   const chosen = BOOKING[st.id] || [], on = o => chosen.some(c => norm(c) === norm(o));
   const said = o => String(st.label_ ? st.label_(o) : o);
   const fb = st.fallback ? String(st.fallback() || '') : '';
-  const face = chosen.map(said).join(', ') || fb || '—';
+  const face = chosen.map(said).join(', ') || fb || dash_();
   return `<span class="bk-face${chosen.length ? ' is-set' : ''}"><span class="bk-said" aria-hidden="true">${esc(face)}</span><select class="bk-sel"
     id="${bkCtl_(st.id)}" data-do="book-set" data-step="${esc(st.id)}" aria-label="${esc(st.label)}">
     <option value="" selected>${esc(face)}</option>
@@ -671,7 +671,7 @@ function stepRows_() {
                k: st.short || st.id,
                /* AN EM DASH, NOT AN EMPTY CELL. A blank looks like a row that failed to draw; a
                   dash looks like a blank somebody is expected to fill, which is what it is. */
-               v: String(text || '—'),
+               v: String(dash_(text)),
                mul: '', rate: '', total: '',
                /* THE STEP THIS ROW STANDS FOR. § */
                id: st.id,

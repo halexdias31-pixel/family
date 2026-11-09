@@ -185,5 +185,15 @@ files.forEach(({ n, src }) => {
   }
 });
 
+/* ---------- 65a. A MISSING VALUE IS dash_() (core.js), never a hand-typed '—' ---------- */
+/* mat.js's trig table holds "—" as content (tan 90° is undefined), not as a missing value. */
+const coreSrc = (files.find(f => f.n === 'core') || {}).src || '';
+if (!/const dash_ = /.test(coreSrc)) bad.push('65a dash_ is missing from core.js');
+files.forEach(({ n, src }) => {
+  if (n === 'core' || n === 'mat') return;
+  const k = (stripC(src).replace(/placeholder="—"/g, '').match(/'—'|"—"|'\\u2014'|'&mdash;'/g) || []).length;
+  if (k) bad.push(`65a ${k} hand-typed "—" in ${n}.js — dash_(value)`);
+});
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');
