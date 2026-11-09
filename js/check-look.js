@@ -135,5 +135,21 @@ files.forEach(({ n, src }) => {
   for (const m of stripC(src).matchAll(/>\s*([A-Z]{2,}(?: [A-Z]{2,})+)\s*</g)) bad.push(`60b ALL-CAPS words on screen in ${n}.js: "${m[1]}"`);
 });
 
+/* ---------- 61a. THREE TEXT SIZES: --fs-body, --fs-title, --fs-small ---------- */
+/* Not a text size: the root lever (html), a printed sheet at paper size (mm), a drawing scaled to its box (cq*), the Talmud page's viewer-set size. */
+const FS_OK = /^(var\(--fs-(body|title|small)\)|inherit)$|mm\b|cq[whi]\b|^var\(--tal-fs\)$/;
+for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  if (/(^|[\s,}])html\s*$/.test(m[1]) || /^\s*:root\s*$/.test(m[1])) continue;
+  for (const d of m[2].matchAll(/(?:^|;)\s*font-size:\s*([^;]+?)\s*(?=;|$)/g)) {
+    if (!FS_OK.test(d[1])) bad.push(`61a a fourth text size in "${m[1].trim().slice(0, 50)}": ${d[1]} — var(--fs-body|title|small)`);
+  }
+  for (const d of m[2].matchAll(/(?:^|;)\s*font:\s*([^;]+?)\s*(?=;|$)/g)) {
+    if (d[1] === 'inherit') continue;
+    const size = d[1].split(/\s+(?![^(]*\))/).find(t => !/^(italic|normal|bold|oblique|small-caps|\d00)$/.test(t)) || '';
+    if (!FS_OK.test(size.split(/\/(?![^(]*\))/)[0])) bad.push(`61a a fourth text size in "${m[1].trim().slice(0, 50)}": font: ${d[1]}`);
+  }
+}
+if (/--fs-(xs|sm|md|lg|xl|2xl)\b/.test(css)) bad.push('61a an old size token (--fs-xs/sm/md/lg/xl/2xl) is back');
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');
