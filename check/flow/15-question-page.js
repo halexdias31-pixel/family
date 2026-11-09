@@ -1049,7 +1049,7 @@ check('every fact about a page of a question is a tag in one row at the top: wha
   if (itemFacts !== null) {
     /* A PAPER'S TAG IS ITS OWN NUMBER (1040 r12, `paperTag_`), never its whole title; with no number or first words it has none. */
     const chipPaper = (w.facetList().find(f => f.field === 'paperId') || { tagSay: () => '' }).tagSay('P-TAGS-1H');
-    ['level:GCSE', 'keystage:KS4', 'examBoard:Edexcel', 'subject:Maths', 'tier:Higher', 'examYear:2018', 'examMonth:November', 'qNumber:Q4', 'qPart:a', 'marks:2 marks', 'needs:Protractor', 'forLabel:Learning']
+    ['level:GCSE', 'keystage:KS4', 'examBoard:Edexcel', 'subject:Maths', 'tier:Higher', 'examYear:2018', 'examMonth:November', 'qNumber:Q4', 'qPart:a', 'marks:[2]' /* said as the paper prints it (28b) */, 'needs:Protractor', 'forLabel:Learning']
       .forEach(f => { if (itemFacts.split(' | ').indexOf(f) < 0) bad.push('the item\'s tags lack ' + f + ': ' + itemFacts); });
     const paperTags = itemFacts.split(' | ').filter(f => /^paperId:/.test(f));
     if (paperTags.join() !== (chipPaper ? 'paperId:' + chipPaper : '')) bad.push('the paper tag is not its own number (' + (chipPaper || 'none') + '): ' + itemFacts);
