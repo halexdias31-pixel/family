@@ -5851,6 +5851,15 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .wt-refs ol { margin: 0; padding-left: 1.5rem; font-size: .7rem; line-height: 1.4; color: var(--ink); }
 .tx-text p { margin: 0 0 .7rem; font-size: .95rem; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
 
+/* ONE READING LAYOUT (owner, 8 Nov, `readingCard_`): title, its reference, then the text in one type for every tradition. */
+.rd-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .6rem; margin: 0 0 .5rem; }
+.rd-title { margin: 0; font-size: var(--fs-lg); font-weight: 600; line-height: 1.3; overflow-wrap: break-word; }
+.rd-ref { font: 600 .8rem/1.3 var(--mono); color: var(--gold); }
+.rd-body { margin: 0 0 .6rem; }
+.rd-body :is(.bb-v, .wt-text, .qr-en, .tx-text p):not([dir="rtl"]) { margin: 0 0 .6rem; font-size: 1.05rem; line-height: 1.6; color: var(--ink); }
+.rd-body :is(.bb-credit, .wt-credit, .qr-credit) { margin: .4rem 0 0; font: 400 .6rem/1.4 var(--mono); color: var(--faint); }
+.rd-body .bb-tr { margin: 0 0 .3rem; }
+
 /* A MANUSCRIPT AS IT LOOKS (490): paper tokens for the leaf; papyrus and parchment are this component's own tints of them. */
 .hdb-ms { margin: .6rem 0 .3rem; }
 .hdb-ms-sides { display: flex; gap: .6rem; align-items: flex-start; }

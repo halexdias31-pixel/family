@@ -46,6 +46,7 @@ const SUITE = [
   { file: 'check-rows.js',    what: 'each column read, against the tab the row came from' },
   /* ---------- THE FAULT CLAUDE.md CALLS THE WORST ONE HERE § */
   { file: 'check-payload.js', what: 'DATA keys read vs DATA keys sent' },
+  { file: 'check-reading.js', what: 'every Library text drawn by readingCard_ (one reading layout)' },
   /* THE RUNTIME SAFETY NET (R6): one sink, malformed rows, and empty catches only falling. */
   { file: 'check-errors.js',    what: 'a throw in a draw, an act, a timer and a promise: one report each, a fallback, the rest works', par: true },
   { file: 'check-malformed.js', what: 'a null and a string in every DATA list: every column still draws', par: true },

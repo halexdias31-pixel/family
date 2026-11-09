@@ -81,10 +81,7 @@ function worksBody_(x) {
   return loading_();
 }
 function worksCard_(x) {
-  return `<div class="card fc wt" data-key="${esc(x.key)}">
-    ${tagRow_(x)}
-    <div class="wt-body" data-wt="${esc(x.wt ? x.wt.id : '')}" data-k="${esc(x.key)}">${x.wt ? worksBody_(x) : ''}</div>
-  </div>`;
+  return readingCard_(x, { cls: 'wt', bodyCls: 'wt-body', body: x.wt ? worksBody_(x) : '', data: { wt: x.wt ? x.wt.id : '', k: x.key } });
 }
 /* ITS TEXT CAME: every card of that work on screen is filled where it stands. */
 function worksRedraw_(id) {
