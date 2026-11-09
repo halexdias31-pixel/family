@@ -151,65 +151,6 @@ function postSetRoom_(body, action, began) {
   return jsonOut({ success: true });
 }
 
-function postMarkPaid_(body, action, began) {
-  const t = read(TAB.jobs);
-  const j = t.rows.find(x => S(x.job_id) === S(body.jobId)
-                          || String(x._row) === S(body.jobId));
-  if (!j) return jsonOut({ error: 'No session with that id.' });
-  const jobId = S(j.job_id) || String(j._row);
-  const by = S(body.adminName) || S(body.name);
-
-  const before = participantsOf(jobId);
-  const clients = before.filter(p2 => p2.role === 'client');
-  if (!clients.length) return jsonOut({ error: 'Nobody is in that session.' });
-
-  /* ONLY WHAT HAS BEEN AGREED. § */
-  const notReady = clients.filter(c => !/^(agreed|paying|booked)$/i.test(S(c.status)));
-  if (notReady.length) {
-    return jsonOut({ error: 'That has not been accepted yet — '
-      + notReady.map(c => c.name + ' is ' + (S(c.status) || 'not in it')).join(', ')
-      + '. Accept it first, then mark it paid.' });
-  }
-
-  /* ALREADY DONE. Said plainly rather than writing a second Confirm: two of them is two
-     payments in the log for one payment in the world. */
-  const already = clients.filter(c => /^booked$/i.test(S(c.status)));
-  if (already.length === clients.length) {
-    return jsonOut({ success: true, alreadyPaid: true });
-  }
-
-  /* HOW. Free text from the admin — "cash", "bank transfer", "paid for three at once". It is
-     the only record of how the money actually arrived, and a blank one says so rather than
-     pretending. */
-  const how = S(body.how) || 'not said';
-
-  const done = [];
-  clients.forEach(c => {
-    if (/^booked$/i.test(S(c.status))) return;         // already paid; leave their record alone
-    logEvent({
-      jobId, actor: c.name, role: 'client', action: 'Confirm',
-      message: 'marked paid by ' + by + ' — ' + how,
-      requestId: S(body.requestId) ? S(body.requestId) + '-' + key(c.name) : '',
-    });
-    done.push(c.name);
-  });
-  clearCache();
-
-  setCell(t, j, 'status', jobStatusOf(jobId));
-  clearCache();
-
-  /* TELL THEM. A booking that becomes confirmed without a word is one somebody has to check by
-     asking — and this is the moment their place is actually theirs. */
-  done.forEach(n => notify(n, 'You are booked in: ' + S(j.subject),
-    'Your payment has been recorded and your place is confirmed.\n\n'
-    + S(j.subject) + (S(j.weekday) ? ' on ' + S(j.weekday) : '')
-    + (fmtTime(j.start_time) ? ' at ' + fmtTime(j.start_time) : '')
-    + (S(j.venue) ? '\n' + S(j.venue) : '')
-    + '\n\nIf that is a surprise, reply to this message.\n\n— @family.', 'booked'));
-
-  return jsonOut({ success: true, paid: done, how: how });
-}
-
 /* --- THE booking move ------------------------------------------------------------------- */
 /* WHO A MOVE IS ABOUT: `them` named, `target` named or the one candidate. */
 function moveTarget_(body, act, asAdmin, before, others) {

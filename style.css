@@ -5301,7 +5301,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
    card. */
 .rc-shot { display: block; width: 100%; height: auto; margin: 0 0 .6rem;
            border: 1px solid var(--line); border-radius: var(--r); }
-/* THE FORMS ON A RECEIPT'S FOOT (Set the room, Mark paid) and the picture under it: no sheet, owner 7 Nov. */
+/* THE FORMS ON A RECEIPT'S FOOT (Set the room) and the picture under it: no sheet, owner 7 Nov. */
 .rc-form, .rc-shot-box { margin-top: .8rem; }
 
 /* ---------- THE TUTOR AGREEMENT (DRAFT) § */

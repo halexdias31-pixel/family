@@ -242,9 +242,9 @@ function payloadFeatures_() {
                'deleteJob', 'linkChild',
                /* The site checks this before it offers the waitlist at all, so a phone running against an older deployment says so rather than posting an action that comes back § */
                'joinWaitlist',
-               /* The site checks this before offering the button, so an older deployment says so
-                  rather than answering "that action is not recognised" on a payment. */
-               'markPaid', 'setRoom',
+               /* The site checks this before offering the room form, so an older deployment says so
+                  rather than answering "that action is not recognised". */
+               'setRoom',
                /* The site checks this before it draws "Mark with AI", so a phone ahead of the
                   deployment shows no button rather than one answering "not recognised". */
                'aiMark',

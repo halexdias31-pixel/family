@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* node js/check-booking-journey.js — A BOOKING WALKED END TO END as client, tutor and admin over the real backend:
-   seat caps, the tutor's answer, accept/decline/withdraw, Set the room, Mark paid, the receipt. -v for detail. */
+   seat caps, the tutor's answer, accept/decline/withdraw, Set the room, paying through Stripe, the receipt. -v for detail. */
 'use strict';
 require('../check/quiet');
 const { backend } = require('./check-gas-load.js');
@@ -91,13 +91,19 @@ rule(r && r.success && jobCell(J, 'room') === 'Room 1', 'the tutor could not set
 r = as('W-PA2', { action: 'move', jobId: J, move: 'Request', role: 'client', requestId: 'wj-1' });
 rule(r && !r.success && /full/i.test(r.error || ''), 'a second family joined a tutor who holds 1 seat — ' + show(r));
 
-/* ---------- 6. MARK PAID: the family may not, the admin may, once. */
-r = as('W-PAR', { action: 'markPaid', jobId: J, how: 'cash' });
-rule(r && !r.success && status(J, 'W-PAR') === 'Agreed', 'a family marked its own booking paid');
+/* ---------- 6. PAID ONLY THROUGH STRIPE (96): no hand-marking; checkout then the return leg, with Stripe faked. */
 r = as('W-ADM', { action: 'markPaid', jobId: J, how: 'cash', adminName: nameOf('W-ADM') });
-rule(r && r.success && status(J, 'W-PAR') === 'Booked', 'the admin could not mark it paid — ' + show(r));
-r = as('W-ADM', { action: 'markPaid', jobId: J, how: 'cash', adminName: nameOf('W-ADM') });
-rule(r && r.success && r.alreadyPaid, 'marking paid twice was not "already paid"');
+rule(r && !r.success && status(J, 'W-PAR') === 'Agreed', 'an admin could still mark a booking paid by hand — ' + show(r));
+b.props.STRIPE_TEST_KEY = 'sk_test_walktest';
+b.ev('UrlFetchApp.fetch = (u, o) => ({ getContentText: () => JSON.stringify((o && o.method) === "get"'
+  + ' ? { payment_status: "paid" } : { id: "cs_walktest", url: "https://checkout.example/x" }) })');
+r = as('W-PAR', { action: 'createCheckout', jobId: J, requestId: 'wpay-1' });
+rule(r && r.success && r.url, 'the family could not start a Stripe checkout — ' + show(r));
+const payRef = Object.keys(b.props).find(k => /^PAY-/.test(k) && !/_session$/.test(k)) || '';
+r = as('W-PAR', { action: 'finalizePayment', ref: payRef });
+rule(r && r.success && status(J, 'W-PAR') === 'Booked', 'Stripe saying paid did not book the family — ' + show(r));
+r = as('W-PAR', { action: 'finalizePayment', ref: payRef });
+rule(r && r.success && r.alreadyDone, 'the Stripe return twice was not "already done" — ' + show(r));
 
 /* ---------- 7. NO PREFERENCE: a tutor applies, the admin accepts, the family withdraws; another the admin declines. */
 r = ask('W-PA2', {});
