@@ -283,7 +283,7 @@ function waitBreakdownRows_(rows, push) {
   if (!w) return rows;
   /* WHAT KIND OF THING THIS IS, FIRST. § */
   push('Kind', 'Waiting list class', '', '', '', { free: true });
-  push('A seat', esc(BOOKING.loc || 'no venue'), '', money_(w.chargePerHour) + '/h',
+  push('A seat', esc(BOOKING.loc || 'no venue'), '', perHour_(w.chargePerHour),
     money_(w.perSeatSession), { end: true, step: 'loc' });
   push('Shared by', familiesSay_(w.seats), '', '', '', { free: true });
   push('Per session', esc(w.hours) + ' hours', '', '', '', { free: true });

@@ -124,6 +124,8 @@ const dash_ = v => (v === undefined || v === null || String(v).trim() === '' ? '
 const hours_ = (a, b) => time_(a + ':00') + '–' + time_(b + ':00');
 /* Money always with pence: £12.00, and a minus sign before the pound. */
 const money_ = n => { const v = Number(n) || 0; return (v < 0 ? '−' : '') + '£' + Math.abs(v).toFixed(2); };
+/* A RATE IS PER HOUR, £12.00/h (owner 70a, 9 Nov); a total stays a plain money_. */
+const perHour_ = n => money_(n) + '/h';
 /* Days of the week, short, Monday first: Mon Tue Wed Thu Fri Sat Sun. */
 const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const day_ = v => {

@@ -225,5 +225,13 @@ files.forEach(({ n, src }) => {
 });
 if (!/const hours_ = \(a, b\) => time_\(a \+ ':00'\) \+ '–' \+ time_\(b \+ ':00'\)/.test(coreSrc)) bad.push('69a hours_ no longer writes start–end');
 
+/* ---------- 70a. A RATE IS £12.00/h, written by perHour_ (core.js); a total stays a total ---------- */
+if (!/const perHour_ = n => money_\(n\) \+ '\/h';/.test(coreSrc)) bad.push('70a perHour_ is missing from core.js');
+files.forEach(({ n, src }) => {
+  if (n === 'core') return;
+  const code = stripC(src);
+  if (/'\/hour'|' per hour'|money_\([^()]*(\([^()]*\))?[^()]*\) \+ '(\/h|\/hr| an hour| per hour| a hour)'/.test(code)) bad.push(`70a a rate written by hand in ${n}.js — perHour_(n): £12.00/h`);
+});
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');

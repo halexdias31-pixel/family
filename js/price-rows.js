@@ -179,7 +179,7 @@ function priceCells(row, L, fmt) {
     if (row.key === 'level' && (!L.tutor || /^no preference$/i.test(L.tutor)) && L.level) {
       const at = row.of(L) * (m || 1);
       out.mul = m && m !== 1 ? '× ' + Number(m).toFixed(m % 1 ? (m * 100 % 1 ? 3 : 2) : 0) : '';
-      out.rate = money_(at) + '/h';
+      out.rate = perHour_(at);
       Object.assign(out, running());
       return out;
     }
@@ -207,7 +207,7 @@ function priceCells(row, L, fmt) {
      multiplied. */
   /* NO "× 30" BESIDE "£30.00/h" (owner, 7 Nov): the same figure twice read as a multiplier nobody could explain. */
   out.mul   = '';
-  out.rate  = row.isBase ? money_(perHour) + '/h' : signed(perHour, '/h');
+  out.rate  = row.isBase ? perHour_(perHour) : signed(perHour, '/h');
   Object.assign(out, running());
   return out;
 }

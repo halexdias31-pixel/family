@@ -412,7 +412,7 @@ function cardCutSay_(rate, cut) {
   if (!(rate > 0)) return "@family.'s part is priced from the rate — set it first.";
   if (cardSeatOff_('extra_seat_cut', cut)) return esc(cardSeatOffSay_(rate, 'extra_seat_cut'));
   const p = cardSeatParts_(rate, '', cut);
-  return `<span class="prof-seat">+${esc(money_(p.gx))}/h</span> a seat${p.gOwn ? '' : ', usual'}`;
+  return `<span class="prof-seat">+${esc(perHour_(p.gx))}</span> a seat${p.gOwn ? '' : ', usual'}`;
 }
 /* THE CLASS SIZE CARD'S LINE: one student and a full class, by the formula. */
 function cardSizeSay_(rate, seat, cut, lo, hi) {
