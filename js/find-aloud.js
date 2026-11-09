@@ -403,8 +403,8 @@ function stuffItemsAll_() {
 function stuffForget_() {
   ALL_MEMO = { key: null, from: null, items: null };
   FUNNEL_MEMO = { key: null, from: null, items: null };
-  /* EVERY FINDER'S, not the bound one's: a sign-out that forgot Find's list and left Find 2's would
-     hand the next child the last one's Books shelf — which is on both finders' lists (347). */
+  /* EVERY FINDER'S, not the bound one's: a sign-out that forgot one finder's list would
+     hand the next child the last one's Books shelf (347). */
   finderEach_(() => {
     ITEM_MEMO = { key: null, from: null, items: null };
     FIND_MEMO = { key: null, from: null, items: null, total: 0 };

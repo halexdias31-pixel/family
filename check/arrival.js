@@ -16,7 +16,7 @@ const SIZES = [{ name: 'phone', w: 390, h: 844 }, { name: 'desk1440', w: 1440, h
 const COLD = [0.5, 1, 2, 3, 5, 8, 11], WARM = [0.5, 1, 2, 5];
 const CLS_MAX = 0.1;
 /* 700: how late a column may come in after the first without a reserved box; Find's two wait for the library by promise (546), and say so with one loader. */
-const POP_LATE = 1.5, LIB_COLS = ['s-stuff', 's-res'];
+const POP_LATE = 1.5, LIB_COLS = ['s-stuff'];
 /* 670: the cold first paint, and how far ahead of the library the feed must be. */
 const PAINT_MAX = Number(process.env.ARRIVAL_PAINT_MAX || 5), FEED_LEAD = 1;
 /* THE FEED IS OFF (owner, 4 Nov: everything off but Find, columns.json active FALSE): its two checks wait until it is back on. */

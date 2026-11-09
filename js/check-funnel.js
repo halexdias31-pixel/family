@@ -73,8 +73,8 @@ function boot(cb) {
       ' levelOf: levelOf_, levelsOf: levelsOf_, DATA: () => DATA,' +
       ' facetsLive: () => (DATA && DATA.facets) || [], FACETS,' +
       ' FACET_TALLY,' +
-      /* THE SECOND FINDER (docs/history/329, 347): its binding, its record and its state, so the pass at
-         the end asks Find 2's questions the way the app asks them. */
+      /* THE FINDER'S BINDING (docs/history/329, 347): its record and its state, so the pass at the end can ask
+         that Find is the only finder (10a). */
       ' inFinder_, finderOf_, kindOf_, stuffItemsAll_ };');
   } catch (e) {
     bad.push('the app did not load: ' + e.message);

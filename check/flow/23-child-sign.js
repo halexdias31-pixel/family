@@ -406,7 +406,7 @@ const keepWalk_ = async (w, id) => {
   }
   return said;
 };
-/* ---------- THE FINDER IS FOR MEMBERS (400) — the owner, 24 Oct: signed out, Find and Find 2 are one card, Sign in or Join ---------- */
+/* ---------- THE FINDER IS FOR MEMBERS (400) — the owner, 24 Oct: signed out, Find is one card, Sign in or Join ---------- */
 check('signed out, Find is the one front door: the search bar and the menu, whose only answer is Settings, holding Sign in and Make an account; Make an account asks Student or Client; signed in, Find answers more (C+, 1040)', async () => {
   const { w } = boot({ payload: payload() });
   for (let i = 0; i < 80 && !w.__t; i++) await wait(25);

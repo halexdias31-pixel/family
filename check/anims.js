@@ -64,21 +64,21 @@ async function boot(ctx) {
 async function turnTo(page, r) {
   const part = 'an' + r.chapter + '-' + r.anim;
   return page.evaluate(async ([key, part]) => {
-    if (AT !== 'res') go('res');
+    if (AT !== 'stuff') go('stuff');
     const x = stuffItemsAll_().find(it => it.kind === 'content' && it.key === key);
     if (!x) return 'no content card ' + key;
-    const miss = inFinder_(finderOf_('res'), () => {
+    const miss = inFinder_(finderOf_('stuff'), () => {
       STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
       paintStuff();
       const at = stuffPages_().findIndex(pg => pg.part === part);
       if (at < 0) return 'no ' + part + ' page';
-      goPage('res', stuffFirstResult_() + at, true);
+      goPage('stuff', stuffFirstResult_() + at, true);
       return '';
     });
     if (miss) return miss;
     for (let i = 0; i < 60; i++) {
       await new Promise(d => setTimeout(d, 100));
-      const st = document.querySelector('#s-res .card.is-' + part + ' .tb-an-stage');
+      const st = document.querySelector('#s-stuff .card.is-' + part + ' .tb-an-stage');
       if (st && st.classList.contains('is-on')) {
         /* AND THE BUILDER DONE (`aheadBusy_`, docs/history/341), as press.js and ui.js wait for it. § */
         for (let k = 0; k < 300 && typeof aheadBusy_ === 'function' && aheadBusy_(); k++) await new Promise(d => setTimeout(d, 100));
@@ -107,7 +107,7 @@ let PORT = 0;
       const why = await turnTo(page, r);
       if (why) { bad.push(r.anim + ' at ' + W + ': ' + why); continue; }
       const got = await page.evaluate(async ([part, id, moments]) => {
-        const card = document.querySelector('#s-res .card.is-' + part);
+        const card = document.querySelector('#s-stuff .card.is-' + part);
         const root = card && card.querySelector('.tb-an-stage > .an-' + id);
         if (!root) return { missing: true };
         /* WHERE THE SLIDE STOPS. The columns slide sideways into place, so a card measured while
@@ -193,7 +193,7 @@ let PORT = 0;
     for (const r of want) {
       const why = await turnTo(page, r);
       if (why) { bad.push(r.anim + ' with less movement: ' + why); continue; }
-      const card = '#s-res .card.is-an' + r.chapter + '-' + r.anim;
+      const card = '#s-stuff .card.is-an' + r.chapter + '-' + r.anim;
       const n = await still(page, card + ' .tb-an-stage');
       if (n) bad.push(r.anim + ' with less movement, in its chapter: ' + (n < 0 ? 'no stage' : n + ' of 7 frames changed'));
       looping(r, 'in its chapter', await running(page, card + ' .tb-an-stage > .an-' + r.anim));

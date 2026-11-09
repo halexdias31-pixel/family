@@ -13,7 +13,7 @@ const JS = path.join(ROOT, 'js');
 const bad = [];
 const VERBOSE = process.argv.includes('-v') || process.env.VERBOSE === '1';
 
-/* WHAT A VALUE IS: FMAP `FINDERS` · F a finder · FSA a list of states · FS a state (STUFF, RES_ST, F.st) ·
+/* WHAT A VALUE IS: FMAP `FINDERS` · F a finder · FSA a list of states · FS a state (STUFF, F.st) ·
    CA the live chips (FS.filters) · CC a copy holding the live chips · C one chip. */
 const ITER = new Set(['forEach', 'map', 'filter', 'find', 'findLast', 'some', 'every', 'flatMap', 'findIndex', 'findLastIndex']);
 const MUTATE = new Set(['push', 'pop', 'splice', 'shift', 'unshift', 'sort', 'reverse', 'fill', 'copyWithin']);
@@ -72,7 +72,7 @@ function scanFile(name, src) {
       case 'Identifier': {
         const b = lookup(e.name, scopeOf(e));
         if (b) return b.cls;
-        if (e.name === 'STUFF' || e.name === 'RES_ST') return 'FS';
+        if (e.name === 'STUFF') return 'FS';
         if (e.name === 'FINDER') return 'F';
         if (e.name === 'FINDERS') return 'FMAP';
         return null;
@@ -137,13 +137,13 @@ function scanFile(name, src) {
     });
   }
 
-  /* THE WRITES. A target is a finder's question when it is FS.q/FS.filters (or FS[anything]), the chips array, one chip, F.st, or STUFF/RES_ST themselves. */
+  /* THE WRITES. A target is a finder's question when it is FS.q/FS.filters (or FS[anything]), the chips array, one chip, F.st, or STUFF itself. */
   const at = n => 'js/' + name + ':' + n.loc.start.line;
   const said = n => src.slice(n.start, Math.min(n.end, n.start + 120)).replace(/\s+/g, ' ');
   function writes(t) {
     if (!t) return null;
     if (t.type === 'Identifier') {
-      if ((t.name === 'STUFF' || t.name === 'RES_ST') && !lookup(t.name, scopeOf(t))) return 'replaces ' + t.name;
+      if (t.name === 'STUFF' && !lookup(t.name, scopeOf(t))) return 'replaces ' + t.name;
       return null;
     }
     if (t.type === 'MemberExpression') {

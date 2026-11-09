@@ -177,7 +177,7 @@ function boot(opts) {
       '  finderSet_(FINDERS.stuff, { filters: [{ field: "forLabel", value: g }] }); go("stuff", false, true);' +
       '  const at = id ? inFinder_(FINDERS.stuff, () => stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id))) : 0;' +
       '  goPage("stuff", inFinder_(FINDERS.stuff, () => stuffFirstResult_()) + Math.max(0, at), true); },' +
-      /* A FINDER SET TO A GROUP WITHOUT GOING THERE — Find 2 showing Tools beside Find is what Tools beside Find was. */
+      /* A FINDER SET TO A GROUP WITHOUT GOING THERE, so a journey can ask about Tools or Games while another column is in front. */
       /* EVERY CARD OF A FINDER FILLED, as Tools' column drew every slot: for journeys that ask the builder about cards far down the list (790). */
       'findFillAll: fid => inFinder_(FINDERS[fid], () => { const f = stuffFirstResult_(); for (let i = 0; i < stuffPages_().length; i++) stuffFillOne_(f + i); }),' +
       'findGroupOn: (fid, g, id) => { if (!USER) USER = ' + JSON.stringify(MEMBER_) + ';' +
