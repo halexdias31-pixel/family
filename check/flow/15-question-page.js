@@ -132,11 +132,9 @@ check('an answer is its own page after its question, hidden from everybody alike
   try { w.localStorage.removeItem(ansKey(mcLive)); } catch (e) {}
   const tapCard = el(w.questionCard_(mcLive));
   d.body.appendChild(tapCard);
-  const heldT = w.stuffItemsAll_;
-  w.stuffItemsAll_ = () => [mcLive];
-  try { A['qp-choose'](tapCard.querySelector('.qp-opt[data-n="2"]')); } finally { w.stuffItemsAll_ = heldT; }
-  if (!tapCard.querySelector('.qp-mark.is-right')) bad.push('the right option was not marked Correct, so the tap was NOT checked');
-  if (!shutNow(mcLive)) bad.push('tapping the right option opened the answer page');
+  typeChoice_(w, tapCard, mcLive, 'B');
+  if (!tapCard.querySelector('.qp-mark.is-right')) bad.push('the right letter was not marked Correct, so the Check was NOT checked');
+  if (!shutNow(mcLive)) bad.push('typing the right option opened the answer page');
   try { w.localStorage.removeItem(ansKey(mcLive)); } catch (e) {}
   /* AND NOT BY A TYPED ANSWER MARKED RIGHT. */
   const typedX = Object.assign({}, base, { key: 'q-ansp-typed', row: row('Q-ANSP-12'), accept: '17.5' });
@@ -575,7 +573,7 @@ check('the hexagon shows its surface and its box, a question with options or cel
   const H = card(hex), G = card(gps), T = card(tri);
   if (!H.querySelector('.qp-area .qpad') || !H.querySelector('.qp-ans-in')) bad.push('the hexagon does not show both its surface and its box');
   /* ROUND 3: options and no pen until the Pen is tapped; the triangle a pen over its figure AND the one box every part has */
-  if (!G.querySelector('.qp-choices') || G.querySelector('.qpad')) bad.push('GPS1-2 does not show its options alone before its Pen is tapped');
+  if (!G.querySelector('.qp-optlist') || !G.querySelector('.qp-ans-in') || G.querySelector('.qpad')) bad.push('GPS1-2 does not show its options and its one box alone before its Pen is tapped');
   /* A DRAWN TYPE ANSWERED BY CELLS (a times-table grid to annotate): its cells, and its pen only once the Pen is tapped */
   const Lb = card(lab);
   if (!Lb.querySelector('.qp-cell') || Lb.querySelector('.qpad')) bad.push('5AD-F-0708-4 does not show its cells alone before its Pen is tapped');
@@ -951,7 +949,6 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
   /* AND EVERY ANSWER PAGE, SHOWN, then put back. */
   fam.forEach(x => { w.ansShow_(x); pages.push({ at: x.row.row_id + '#ans-shown', html: w.questionAnsCard_(x) }); w.ansHide_(x); });
   const EXEMPT = [
-    ['button.qp-opt[data-do="qp-choose"]', 'a multiple-choice option'],
     ['button.kp-key[data-do="kp-key"]', 'a key on the maths keypad'],
     ['span.qw[data-do="qw-tap"]', 'a word in a passage to ring'],
     ['textarea.qp-ans-in[data-do="qp-ans"], input.qp-ans-in[data-do="qp-ans"]', 'the answer box'],
@@ -982,7 +979,7 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
   });
   /* AND THE ONE 368 TOOK AWAY: the pen's lock -- the first touch on the figure draws. */
   if (seen['pad-draw']) bad.push('the family still draws ' + seen['pad-draw'] + ' lock tile(s) (pad-draw)');
-  ['a multiple-choice option', 'a word in a passage to ring', 'the answer box'].forEach(what => {
+  ['a word in a passage to ring', 'the answer box'].forEach(what => {
     if (!exempted[what]) bad.push('the family drew no ' + what + ', so its exception was NOT exercised');
   });
   /* AND THE ONE THE OWNER TOOK AWAY: *"there doesnt need to be a scroll down tile on questions"* (8 Oct). */

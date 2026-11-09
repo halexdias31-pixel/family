@@ -40,7 +40,7 @@ function kpDone_(inp) {
   const nx = typeof multiNext_ === 'function' ? multiNext_(inp) : null;
   if (nx) return kpTake_(nx);
   const box = inp.hasAttribute('data-kp-essay') ? null : inp.closest('.qp-mark');
-  /* ONE SUBMIT PATH (508): ✓ presses the box's own send tile, whatever it is called — a rule-marked box's `qp-rule` was missed before. */
+  /* ONE SUBMIT PATH (508): ✓ presses the box's own send tile, whatever it is called. */
   const go = box && (box.querySelector('.tile.is-submit[data-do]:not([disabled])')
     || box.querySelector('.qp-ai-go[data-do="qp-ai"]:not([disabled])'));
   const run = go && ACTIONS[go.getAttribute('data-do')];
@@ -567,7 +567,8 @@ function aiUndecided_() {
 /* an AI part with no mark scheme is not offered it (round 4): its Check says "No mark scheme yet" instead (`qtCheck_`) */
 function aiWanted_(x) {
   const m = x && typeof markerOf_ === 'function' ? markerOf_(x) : null;
-  return !!m && ((isAiMark_(m) && m.ready) || isWordsMark_(m));
+  /* and after any scheme that falls short (owner, 9 Nov): the scheme first, then the AI if the student asks */
+  return !!m && m.ready && (isAiMark_(m) || !!QT_SCHEME_KINDS[m.kind]);
 }
 
 /* THE TILE ALONE, GOLD AND ROUND IN THE ANSWER BAR WHERE SEND STANDS ON A BOX WITH A SCHEME -- the bar, its verdict line and the sentence under it are § */

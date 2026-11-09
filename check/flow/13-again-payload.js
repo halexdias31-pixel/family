@@ -1,3 +1,13 @@
+/* TYPE AN ANSWER INTO A CARD'S ONE BOX AND PRESS ITS CHECK (owner, 9 Nov: options and orders are typed too); the card's item is the library for the press. */
+function typeChoice_(w, card, x, typed) {
+  const A = w.__t.ACTIONS, inp = card.querySelector('.qp-ans-in'), go = card.querySelector('.qp-mark [data-do="qp-check"]');
+  if (!inp || !go) return { said: '(no box or no Check)' };
+  inp.value = typed;
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [x].concat(held() || []);
+  try { A['qp-check'](go); } finally { w.stuffItemsAll_ = held; }
+  return { said: String((card.querySelector('.qp-verdict') || {}).textContent || '').trim(), mark: go.closest('.qp-mark') };
+}
 check('a payload that timed out is asked for again at once, under a quiet line, and the screen fills in', async () => {
   let open;
   const gate = new Promise(r => { open = r; });
@@ -836,8 +846,8 @@ check('a fraction is drawn stacked in the stem, lead, part, answer and choices, 
     if (!el) bad.push(what + ' was not drawn at all');
     else if (!el.querySelector('.frac .frac-n') || !el.querySelector('.frac .frac-d')) bad.push(what + ' drew its fraction slanted: ' + el.innerHTML.slice(0, 120));
   });
-  const opts = [...tapped.querySelectorAll('.qp-opt')];
-  if (opts.length !== 2) bad.push('the two choices drew as ' + opts.length + ' buttons');
+  const opts = [...tapped.querySelectorAll('.qp-optline')];
+  if (opts.length !== 2) bad.push('the two choices drew as ' + opts.length + ' lines');
   else if (opts.some(b => !b.querySelector('.frac .frac-n'))) bad.push('a choice drew its fraction slanted');
   const part = tapped.querySelector('.qsheet-pb');
   if (part && !part.querySelector('.frac-mixed')) bad.push('3 4/5 is not kept together as a mixed number');
@@ -918,7 +928,7 @@ check('marking, revealing and tapping leave the question where it is, and typing
   const bad = [];
   if (typeof w.questionCard_ !== 'function') return ['questionCard_ is not reachable — renamed?'];
   const A = w.__t.ACTIONS;
-  ['qp-check', 'qa-show', 'qp-choose'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
+  ['qp-check', 'qa-show'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
   if (bad.length) return bad;
   const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
   /* THE TAG ROW AND THE QUESTION. There was a gold header line above the tags; everything it said is a
@@ -978,41 +988,21 @@ check('marking, revealing and tapping leave the question where it is, and typing
     try { A['qa-show'](rev); } finally { w.stuffItemsAll_ = heldR; w.ansHide_(shutX); }
     same(r0, shut, 'after "Show the answer"');
   }
-  /* TAPPED -- `qp-choose` redraws the box from the stored pick and finds its question by key in the library, which this harness does not load; so the library is § */
+  /* TYPED, LIKE EVERY PART (owner, 9 Nov): the options are listed A, B, C and the letter goes in the one box; Check marks it by `markPart_`. */
   const mc = Object.assign({}, base, { key: 'q-still-mc', row: Object.assign({}, base.row, { row_id: 'Q-STILL-9' }),
     choices: ['14', '15', '16'], choiceRight: [2] });
   try { w.localStorage.removeItem(w.__t.ansKey(mc)); } catch (e) {}
   const tapped = draw(mc);
   const m0 = still(tapped);
-  if (!tapped.querySelector('.qp-choices + .qp-mark .qp-verdict')) bad.push('a tapped card has no verdict slot until it is marked');
-  const held = w.stuffItemsAll_;
-  w.stuffItemsAll_ = () => [mc];
-  try { A['qp-choose'](tapped.querySelector('.qp-opt[data-n="1"]')); } finally { w.stuffItemsAll_ = held; }
-  const box = tapped.querySelector('.qp-choices');
-  if (!box || !box.classList.contains('is-miss') || box.classList.contains('is-done')) bad.push('a wrong tap settled the question (is-done) instead of leaving it open for another try (is-miss, 385)');
-  if (!tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick');
-  /* A MISS DOES NOT SHOW THE ANSWER. § */
-  const shownBy = tapped.querySelector('.qp-opt.is-ans');
-  if (shownBy) bad.push('a wrong tap ticked option ' + shownBy.getAttribute('data-n') + ' -- the answer shown on the question card without Show');
-  const said = (tapped.querySelector('.qp-verdict') || {}).textContent || '';
-  if (!/^Not yet/.test(said) || /marked|is 15|\b15\b/.test(said)) bad.push('a wrong tap\'s verdict reads "' + said + '" -- "Not yet", and nothing that gives the right one away');
-  /* AND IT POINTS AT THE ANSWERS CHIP, not at "the answer page": with Questions chosen there is no
-     answer page after the question to point at (`questionsView_`). */
-  if (said.trim() !== 'Not yet — have another go') bad.push('a wrong tap\'s verdict reads "' + said.trim() + '", wanted "Not yet — have another go"');
-  same(m0, tapped, 'after a wrong tap');
-  /* AND THE CHILD TAPS AGAIN: a miss is not final (385). */
-  w.stuffItemsAll_ = () => [mc];
-  try { A['qp-choose'](tapped.querySelector('.qp-opt[data-n="2"]')); } finally { w.stuffItemsAll_ = held; }
-  if (!tapped.querySelector('.qp-choices.is-done .qp-opt[data-n="2"].is-picked.is-ans')) bad.push('a second tap after "Not yet" did not take the new pick and mark it Correct');
+  if (!tapped.querySelector('.qp-optlist') || tapped.querySelector('.qp-opt')) bad.push('the options are not listed to type from, or are still buttons to tap');
+  const res = typeChoice_(w, tapped, mc, 'A');
+  if (!/^Not yet/.test(res.said) || /\b15\b|\bB\b/.test(res.said)) bad.push('a wrong letter\'s verdict reads "' + res.said + '" -- "Not yet", and nothing that gives the right one away');
+  same(m0, tapped, 'after a wrong letter');
+  const res2 = typeChoice_(w, tapped, mc, 'b');
+  if (res2.said !== 'Correct') bad.push('a second try with the right letter says "' + res2.said + '", wanted Correct');
+  const res3 = typeChoice_(w, tapped, mc, '15');
+  if (res3.said !== 'Correct') bad.push('the option\'s own words typed say "' + res3.said + '", wanted Correct');
   try { w.localStorage.removeItem(w.__t.ansKey(mc)); } catch (e) {}
-  /* AND A RIGHT ONE TICKS THE PICK -- the verdict on what you chose, which is not a reveal. */
-  const mcR = Object.assign({}, mc, { key: 'q-still-mc-r', row: Object.assign({}, base.row, { row_id: 'Q-STILL-10' }) });
-  try { w.localStorage.removeItem(w.__t.ansKey(mcR)); } catch (e) {}
-  const tappedR = draw(mcR);
-  w.stuffItemsAll_ = () => [mcR];
-  try { A['qp-choose'](tappedR.querySelector('.qp-opt[data-n="2"]')); } finally { w.stuffItemsAll_ = held; }
-  if (!tappedR.querySelector('.qp-opt[data-n="2"].is-picked.is-ans') || tappedR.querySelectorAll('.qp-opt.is-ans').length !== 1) bad.push('a right tap did not tick the pick, and only the pick');
-  try { w.localStorage.removeItem(w.__t.ansKey(mcR)); } catch (e) {}
   /* AND THE FIGURE IS ON THE CARD, WHERE THE PAPER PRINTS IT, AND NOTHING POINTS AT A PAGE (356): § */
   const fig = draw(Object.assign({}, base, { key: 'q-still-fig', diagram: '<svg viewBox="0 0 10 10" id="fig-end"></svg>',
     html: base.html + '<!--fig-->', row: Object.assign({}, base.row, { row_id: 'Q-STILL-10' }) }));

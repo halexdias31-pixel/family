@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 77.8,
+ "score": 77.5,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -51,10 +51,10 @@
   {
    "id": "special",
    "label": "Per-facet and per-kind special cases",
-   "count": 69,
+   "count": 76,
    "weight": 0.05,
    "cap": 10,
-   "off": 3.5,
+   "off": 3.8,
    "where": {
     "js/cards.js": 4,
     "js/data.js": 4,
@@ -62,7 +62,8 @@
     "js/find-cells.js": 2,
     "js/find-figures.js": 4,
     "js/find-finder.js": 2,
-    "js/find-history.js": 6,
+    "js/find-history.js": 9,
+    "js/find-marking.js": 5,
     "js/find-pad.js": 4,
     "js/keypad-keys.js": 3,
     "js/links.js": 3,
@@ -70,7 +71,7 @@
     "js/me-settings.js": 5,
     "js/predicates.js": 16,
     "js/price-rows.js": 2,
-    "js/qtools.js": 4,
+    "js/qtools.js": 3,
     "js/resource.js": 1,
     "js/submit.js": 6
    }
@@ -94,12 +95,12 @@
   {
    "id": "duplicates",
    "label": "Repeated long lines",
-   "count": 52,
+   "count": 49,
    "weight": 0.02,
    "cap": 10,
    "off": 1,
    "where": {
-    "lines": 19
+    "lines": 18
    }
   },
   {

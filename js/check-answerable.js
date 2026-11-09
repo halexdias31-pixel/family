@@ -109,8 +109,8 @@ const insText_ = () => {
 /* AN IMPORTER'S NOTE OR SUMMARY STANDING IN FOR THE PAPER'S OWN WORDS (owner, 8 Nov, 1160): "[FUNCTION NOT EXTRACTED — g(x) is a cubic …]" reached a student */
 const STAND_IN = /\[[^\]]*\b(NOT|PARTIALLY) (EXTRACTED|TRANSCRIBED)\b|\bgarbled in extraction\b|\bthe source PDF\b|\bOpen the paper to transcribe\b|\binvolving (terms in|a constant|a positive constant)\b|\bthe given (identity|equation)\b|\bthe corresponding equation involving\b/i;
 const WRONG = ['zzqq wvxk', '987654.321'];
-/* EACH MARKER'S CHECK, written here and not read from the app: a part's Check must be its marker's (Review A) */
-const CHECK_OF = { choice: 'qp-choice-check', order: 'qp-order-send', cells: 'qp-cells-check', draw: 'pad-check', accept: 'qp-check', words: 'qp-rule', ai: 'qp-ai' };
+/* EACH MARKER'S CHECK, written here and not read from the app: every typed scheme is one Check, `qp-check` (owner, 9 Nov) */
+const CHECK_OF = { choice: 'qp-check', order: 'qp-check', cells: 'qp-cells-check', draw: 'pad-check', accept: 'qp-check', words: 'qp-check', ai: 'qp-ai' };
 /* EACH PART'S MARKER FROM ITS OWN ROW, written here and not asked of the app (Review B: an app that handed every accept part to the AI passed) */
 const MARKER_OF = (x, r) => {
   if (Array.isArray(x.choices) && x.choices.length >= 2) return S(x.answerType || r.answer_type).toLowerCase() === 'order' ? 'order' : 'choice';
@@ -236,7 +236,8 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       if (m && m.kind !== own) bad('marker', x, 'its row says it is marked by ' + own + ', and the app marks it by ' + m.kind);
       if (m && (own === 'choice' || own === 'order') && m.ready !== !!S(r.choice_right)) bad('marker', x, 'its options ' + (S(r.choice_right) ? 'have' : 'have no') + ' key, and the app says it is ' + (m.ready ? '' : 'not ') + 'ready');
       if (m) {
-        const want = own === 'ai' && !SCHEME_IN(r) ? 'qp-noscheme' : CHECK_OF[own];
+        const keyless = (own === 'choice' || own === 'order') && !S(r.choice_right);
+        const want = (own === 'ai' && !SCHEME_IN(r)) || keyless ? 'qp-noscheme' : CHECK_OF[own];
         if (own === 'ai' && m.ready !== SCHEME_IN(r)) bad('marker', x, 'its row ' + (SCHEME_IN(r) ? 'has' : 'has no') + ' mark scheme, and the app says it is ' + (m.ready ? '' : 'not ') + 'ready');
         const go = [...rows[0].querySelectorAll('.is-submit')];
         if (!CHECK_OF[m.kind]) bad('marker', x, 'it is marked by ' + JSON.stringify(m.kind) + ' — only a rule or the AI marks');
@@ -263,7 +264,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       const k = t.getAttribute('data-k'), mark = t.closest('.qp-mark');
       if (!k || !mark || ![...mark.querySelectorAll('.qp-work')].some(s => s.getAttribute('data-k') === k)) bad('photo', x, 'its Photo of working tile has no strip with its key to show the photos in');
     });
-    const boxes = n('.qp-mark .qp-ans-in:not(.kp-in[data-do="qp-multi"])') + n('.qp-multi') + n('.qp-choices') + n('.qp-order') + n('.qp-cells-box');
+    const boxes = n('.qp-mark .qp-ans-in:not(.kp-in[data-do="qp-multi"])') + n('.qp-multi') + n('.qp-cells-box');
     if (boxes !== 1) bad('box', x, boxes + ' answer boxes, wanted one');
     if (pen) count.drawn++;
     else if (DRAWN.has(type) && type !== 'label') bad('pen', x, 'a ' + type + ' part with no pen');

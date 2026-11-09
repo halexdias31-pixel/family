@@ -638,7 +638,7 @@ check('edges: back on a device signed in as somebody else, what the owner typed,
   const ESSAY = 'Ada\'s essay, written signed in. '.repeat(12).trim();
   ansType_(w, c.ta(), ESSAY);
   ansStroke_(w, c, [[20, 300], [120, 300]]);
-  w.__t.ACTIONS['qp-choose'](c.box().querySelector('[data-n="2"]'));
+  ansType_(w, c.box(), 'B');
   await w.answersPush_(true);
   if (!b.of('P7')['ans:' + c.words.key]) return ['setup: the essay is not on Ada\'s account — NOT checked'];
   if (!(await b.end('tok-P7'))) return [EDGE_ENDED];
@@ -673,7 +673,7 @@ check('edges: back on a device signed in as somebody else, what the owner typed,
   if (!up || up.v !== JOINED) bad.push('her essay with her words after it is not on her account: ' + JSON.stringify(up && String(up.v).slice(-24)));
   if (Object.keys(b.of('P8')).length) bad.push('Ben\'s account holds ' + JSON.stringify(b.of('P8')).slice(0, 160));
   /* AND NOTHING SOMEBODY ELSE MADE SIGNED OUT: a switch is not the same seat (318). */
-  if (w.localStorage.getItem('ans:u:P7:' + c.pick.key) !== '2') bad.push('Ada signed in over Ben and her pick is ' + JSON.stringify(w.localStorage.getItem('ans:u:P7:' + c.pick.key)) + ' — the other tab\'s, claimed over hers on a switch');
+  if (w.localStorage.getItem('ans:u:P7:' + c.pick.key) !== 'B') bad.push('Ada signed in over Ben and her pick is ' + JSON.stringify(w.localStorage.getItem('ans:u:P7:' + c.pick.key)) + ' — the other tab\'s, claimed over hers on a switch');
   if (w.localStorage.getItem(bareC) !== '3') bad.push('the other tab\'s signed-out pick was taken off the device when Ada signed in over Ben: ' + JSON.stringify(w.localStorage.getItem(bareC)));
   /* AND THE NEXT SIGNED-OUT VISITOR SEES NOTHING OF HERS. */
   w.signedOut_();

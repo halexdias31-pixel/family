@@ -640,9 +640,6 @@ function subBoxPaint_(k) {
     document.querySelectorAll('.qp-ans-in[data-k], .qp-multi-val[data-k]').forEach(inp => {
       if (inp.getAttribute('data-k') === k) subVerdictPaint_(inp.closest('.qp-mark'), inp);
     });
-    document.querySelectorAll('.qp-order[data-k]').forEach(box => {
-      if (box.getAttribute('data-k') === k && typeof orderRedraw_ === 'function') orderRedraw_(box, '');
-    });
   } catch (e) { /* a box gone mid-paint is painted on its next draw */ }
 }
 
