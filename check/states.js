@@ -375,11 +375,9 @@ const STATES = {
       },
       wants: 'the four sine grids under the pen, its tiles at 44px, nothing drawn smaller whole, the figure no narrower than the floor and narrowed only once the words have given way',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
-    /* ---------- A MULTIPLE-CHOICE QUESTION, ANSWERED BY TAPPING § */
+    /* ---------- A MULTIPLE-CHOICE QUESTION, ANSWERED IN THE ONE TYPED BOX (41a): its options listed A, B, C over the box */
     { name: 'a multiple-choice question',
       enter: () => {
-        /* NOT AN ORDERING: it has `choices` and a `choiceRight` too, and draws a strip, not options
-           (`orderBox_`) -- it has states of its own below. */
         const mc = stuffItemsAll_().find(it => it.kind === 'question'
           && Array.isArray(it.choices) && it.choices.length >= 2 && (it.choiceRight || []).length
           && !orderIs_(it));
@@ -393,13 +391,12 @@ const STATES = {
           + stuffPageOf_(mc));
       },
       expect: () => {
-        const box = document.querySelector('#s-stuff .page.on .qp-choices')
-          || [...document.querySelectorAll('#s-stuff .qp-choices')].find(b => b.getAttribute('data-k') === window.__mcKey);
-        const card = box && box.closest('.qcard');
-        return !!box && box.querySelectorAll('button.qp-opt').length >= 2
-               && !card.querySelector('textarea.qp-ans-in');
+        const inp = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === window.__mcKey);
+        const card = inp && inp.closest('.qcard');
+        return !!card && card.querySelectorAll('.qp-optlist .qp-optline').length >= 2
+               && !card.querySelector('button.qp-opt, .qp-choices');
       },
-      wants: 'a question whose options are buttons, with no text box on its card',
+      wants: 'a question whose options are listed A, B, C over the one typed box, with no tap-to-pick buttons',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- AN OPTIONS PART WITH ITS TOOLS OPEN (Review B: the mark sat on one flex line; round 4: the owner's nine, one padlock) */
     { name: 'a multiple-choice question, its tools open',
@@ -1045,53 +1042,12 @@ const STATES = {
         ANS_SHOWN.clear();
         STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
-    /* ---------- AN ORDERING, HALF PLACED, AND THEN SENT RIGHT § */
-    { name: 'an ordering, half placed',
-      enter: () => {
-        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-4');
-        if (!it) throw new Error('Q-1MA1-2406-1F-4 is not in the library');
-        if (!orderIs_(it)) throw new Error('Q-1MA1-2406-1F-4 is not an ordering — its answer_type is ' + it.answerType);
-        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        /* AND ANY VERDICT IT WAS LAST SENT WITH, which the strip draws from (js/submit.js). */
-        ORDER_HOLE.clear();
-        try {
-          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
-          delete all[subKeyOf_(ansKey_(it))];
-          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
-        } catch (e) {}
-        subForget_();
-        const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
-        paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
-        window.__ordKey = ansKey_(it);
-        const box = () => [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
-        const run = () => {
-          if (!box()) return false;
-          [3, 4].forEach(n => { const b = box(); const el = b && b.querySelector('.qp-item[data-n="' + n + '"]'); if (el) el.click(); });
-          return true;
-        };
-        if (!run()) setTimeout(run, 150);
-      },
-      expect: () => {
-        const box = [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
-        const card = box && box.closest('.qcard');
-        const full = box ? [...box.querySelectorAll('.qp-slot')].map(s => (s.classList.contains('is-full') ? s.getAttribute('data-n') : '_')).join(' ') : '';
-        return !!box && full === '3 4 _ _ _' && box.querySelectorAll('.qp-item.is-placed').length === 2
-               && box.querySelectorAll('.qp-item').length === 5 && !card.querySelector('textarea, .qp-ans-in, .qp-opt');
-      },
-      wants: 'the real 1F Q4 as an ordering: 0.03 and 0.1 in the first two slots, their ghosts in the row under it, three slots empty, no text box',
-      leave: () => {
-        try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
-        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
-      } },
+    /* ---------- AN ORDERING, TYPED AS LETTERS IN THE ONE BOX (41a): wrong, then right, nothing moved */
     { name: 'an ordering, sent wrong then right, nothing moved',
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-4');
         if (!it) throw new Error('Q-1MA1-2406-1F-4 is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        /* AND ANY VERDICT IT WAS LAST SENT WITH, which the strip draws from (js/submit.js). */
-        ORDER_HOLE.clear();
         try {
           const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
           delete all[subKeyOf_(ansKey_(it))];
@@ -1103,55 +1059,41 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__ordKey = ansKey_(it);
-        window.__qStable = null;
-        const box = () => [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        window.__qStable = null; window.__qCard = null;
         const run = () => {
-          if (!box()) return false;
-          /* AND FILLING IT MOVES NOTHING EITHER: every slot, and the row of items where the finger is,
-             measured before the first tap and after the last -- the strip is one shape throughout. */
-          const shape = () => [...box().querySelectorAll('.qp-slot')].map(s => { const r = s.getBoundingClientRect(); return [r.left, r.top, r.width]; })
-            .concat([[0, box().querySelector('.qp-items').getBoundingClientRect().top, 0]]);
-          const shape0 = shape();
-          const tap = n => { const b = box(); const el = b && b.querySelector('.qp-item[data-n="' + n + '"]'); if (el) el.click(); };
-          const card = box().closest('.qcard');
+          const inp = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === window.__ordKey);
+          const card = window.__qCard = inp && inp.closest('.qcard');
+          const btn = card && card.querySelector('.qp-check');
+          if (!inp || !btn) return false;
+          const type = v => { inp.value = v; inp.dispatchEvent(new Event('input', { bubbles: true })); };
           const at = () => [card.querySelector('.qsheet').getBoundingClientRect().top,
-                            box().querySelector('.qp-slots').getBoundingClientRect().top,
-                            box().querySelector('.qp-verdict').getBoundingClientRect().top,
+                            card.querySelector('.qp-ans').getBoundingClientRect().top,
                             card.getBoundingClientRect().height];
-          const tiles = () => ['.qp-order-send', '.qp-order-clear'].map(q => { const r = box().querySelector(q).getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; });
-          /* WRONG FIRST: the row reversed, its long verdict beside the two tiles. § */
-          const row = () => { const r = box().querySelector('.qp-mark').getBoundingClientRect(); return [r.top, r.height]; };
-          const atRow = () => [card.querySelector('.qsheet').getBoundingClientRect().top,
-                               box().querySelector('.qp-slots').getBoundingClientRect().top,
-                               card.getBoundingClientRect().height].concat(row(), ...tiles());
-          [1, 2, 5, 4, 3].forEach(tap);
-          const w0 = atRow();
-          box().querySelector('.qp-order-send').click();
-          const wrong = { a: w0, b: atRow(), say: (box().querySelector('.qp-verdict') || {}).textContent };
-          box().querySelector('.qp-order-clear').click();
-          [3, 4, 5, 2, 1].forEach(tap);
+          const a0 = at();
+          type('A, B, E, D, C');
+          btn.click();
+          const wrong = { a: a0, b: at(), say: (card.querySelector('.qp-verdict') || {}).textContent };
+          type('C, D, E, B, A');
           const a = at();
-          box().querySelector('.qp-order-send').click();
-          window.__qStable = { a, b: at(), fill: [shape0, shape()], wrong };
+          btn.click();
+          window.__qStable = { a, b: at(), wrong };
           return true;
         };
         if (!run()) setTimeout(run, 150);
       },
       expect: () => {
-        const s = window.__qStable;
-        const box = [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
-        return !!s && !!box && box.classList.contains('is-right')
-               && (box.querySelector('.qp-verdict') || {}).textContent === 'Correct'
+        const s = window.__qStable, card = window.__qCard;
+        const mark = card && card.querySelector('.qp-mark');
+        return !!s && !!mark && mark.classList.contains('is-right')
+               && (mark.querySelector('.qp-verdict') || {}).textContent === 'Correct'
+               && /^Not yet/.test(s.wrong.say || '')
                && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5)
-               && s.wrong.say === 'Not yet — have another go'
-               && s.wrong.a.length === 13 && s.wrong.a.every((v, i) => Math.abs(v - s.wrong.b[i]) < 0.5)
-               && s.fill[0].length === s.fill[1].length
-               && s.fill[0].every((p, i) => p.every((v, j) => Math.abs(v - s.fill[1][i][j]) < 0.5));
+               && s.wrong.a.every((v, i) => Math.abs(v - s.wrong.b[i]) < 0.5)
+               && card.querySelectorAll('.qp-optlist .qp-optline').length === 5 && !card.querySelector('.qp-order, .qp-item, .qp-slot');
       },
-      wants: 'the reversed order sent and marked Not yet, then the right one marked Correct, with the question, the strip, the verdict\'s row, the card\'s height and the Send and Clear tiles (place and size) where they were each time, and every slot and the items where they were before the first tap',
+      wants: 'the real 1F Q4 typed as letters: the reversed order marked Not yet, then the right one marked Correct, the question, the box and the card\'s height where they were each time, its five options listed and no tap-to-place strip',
       leave: () => {
         try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
-        ORDER_HOLE.clear();
         try {
           const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
           delete all[subKeyOf_(window.__ordKey)];
@@ -1160,15 +1102,12 @@ const STATES = {
         subForget_();
         STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
-    /* ---------- AN ORDERING OF POWERS: A POWER IS RAISED IN THE ROW AS IT IS IN THE QUESTION § */
+    /* ---------- AN ORDERING OF POWERS: A POWER IS RAISED IN THE OPTIONS AS IT IS IN THE QUESTION § */
     { name: 'an ordering of powers, raised as printed',
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-5AD-F-0603-1');
         if (!it) throw new Error('Q-CBM-5AD-F-0603-1 is not in the library');
-        if (!orderIs_(it)) throw new Error('Q-CBM-5AD-F-0603-1 is not an ordering — its answer_type is ' + it.answerType);
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        /* AND ANY VERDICT IT WAS LAST SENT WITH, which the strip draws from (js/submit.js). */
-        ORDER_HOLE.clear();
         try {
           const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
           delete all[subKeyOf_(ansKey_(it))];
@@ -1180,18 +1119,20 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__ordKey = ansKey_(it);
-        const box = () => [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        window.__qStable = null; window.__qCard = null;
         const run = () => {
-          if (!box()) return false;
-          const el = box().querySelector('.qp-item[data-n="1"]');
-          if (el) el.click();
+          const inp = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === window.__ordKey);
+          const card = window.__qCard = inp && inp.closest('.qcard');
+          const btn = card && card.querySelector('.qp-check');
+          if (!inp || !btn) return false;
+
           return true;
         };
         if (!run()) setTimeout(run, 150);
       },
       expect: () => {
-        const box = [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
-        if (!box || !box.querySelector('.qp-slot.is-full[data-n="1"]')) return false;
+        const card = window.__qCard;
+        if (!card) return false;
         /* HOW FAR A <sup> SITS ABOVE THE BOTTOM OF THE TEXT JUST BEFORE IT, in px. */
         const raise = sup => {
           const t = sup.previousSibling;
@@ -1199,14 +1140,13 @@ const STATES = {
           const r = document.createRange(); r.selectNodeContents(t);
           return r.getBoundingClientRect().bottom - sup.getBoundingClientRect().bottom;
         };
-        const sups = [...box.querySelectorAll('.qp-slot sup, .qp-item sup')];
-        const q = box.closest('.qcard').querySelector('.qsheet sup');
-        return sups.length >= 3 && q && raise(q) > 2 && sups.every(x => raise(x) !== null && raise(x) >= 2);
+        const sups = [...card.querySelectorAll('.qp-optlist sup')];
+        const q = card.querySelector('.qsheet sup');
+        return sups.length >= 2 && q && raise(q) > 2 && sups.every(x => raise(x) !== null && raise(x) >= 2);
       },
-      wants: '2² placed in slot 1, and every power in the strip and the row (2² and 1³, the ghost included) raised at least 2px above its digit, as the question prints it',
+      wants: 'every power in the listed options (2² and 1³) raised at least 2px above its digit, as the question prints it',
       leave: () => {
         try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
-        ORDER_HOLE.clear();
         try {
           const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
           delete all[subKeyOf_(window.__ordKey)];
@@ -1215,51 +1155,59 @@ const STATES = {
         subForget_();
         STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
-    { name: 'a tapped answer, not yet, nothing moved',
+    /* ---------- A MULTIPLE-CHOICE ANSWER, TYPED WRONG: marked not yet, nothing moved, no answer given away */
+    { name: 'a typed choice, not yet, nothing moved',
       enter: () => {
-        const id = 'Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12';
-        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
-        if (!it) throw new Error(id + ' is not in the library');
-        if (!(it.choiceRight || []).length) throw new Error(id + ' has no credited choice to miss');
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12');
+        if (!it) throw new Error('Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12 is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(ansKey_(it))];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__ordKey = ansKey_(it);
         window.__qStable = null; window.__qCard = null;
-        /* AT ONCE, by key, where the page is already built; after a tick only if not -- a loaded run's 150ms
-           timer is what left this state unreached (the answer states above say more). */
         const run = () => {
-          const hit = [...document.querySelectorAll('#s-stuff .qp-choices')].find(b => b.getAttribute('data-k') === ansKey_(it));
-          const card = window.__qCard = hit && hit.closest('.qcard');
-          const opts = card ? [...card.querySelectorAll('.qp-opt')] : [];
-          if (opts.length < 2) return false;
-          const miss = it.choiceRight[0] === 1 ? 2 : 1;
+          const inp = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === window.__ordKey);
+          const card = window.__qCard = inp && inp.closest('.qcard');
+          const btn = card && card.querySelector('.qp-check');
+          if (!inp || !btn) return false;
+          const type = v => { inp.value = v; inp.dispatchEvent(new Event('input', { bubbles: true })); };
+          const it = stuffItemsAll_().find(x => ansKey_(x) === window.__ordKey);
+          const miss = (it.choiceRight || [])[0] === 1 ? 'B' : 'A';
           const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
-                            card.querySelector('.qp-opt[data-n="' + miss + '"]').getBoundingClientRect().top,
+                            card.querySelector('.qp-ans').getBoundingClientRect().top,
                             card.getBoundingClientRect().height];
           const a = at();
-          opts[miss - 1].click();
+          type(miss);
+          btn.click();
           window.__qStable = { a, b: at() };
           return true;
         };
         if (!run()) setTimeout(run, 150);
       },
       expect: () => {
-        const s = window.__qStable;
-        const box = window.__qCard && window.__qCard.querySelector('.qp-choices');
-        const mark = box && box.nextElementSibling;
-        return !!s && !!box && box.classList.contains('is-miss')
-               /* THE MISS, AND NO TICK ANYWHERE: the right option is the answer, and it waits behind
-                  Show on the answer page like every other one (`choiceBox_`). */
-               && !!box.querySelector('.qp-opt.is-picked:not(.is-ans)') && !box.querySelector('.qp-opt.is-ans')
-               && !!mark && mark.classList.contains('is-near')
+        const s = window.__qStable, card = window.__qCard;
+        const mark = card && card.querySelector('.qp-mark');
+        return !!s && !!mark && mark.classList.contains('is-near')
+               && !card.querySelector('.qp-optline.is-ans')
                && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5);
       },
-      wants: 'a wrong tap marked, no option ticked as the answer, and the question, the option and the card\'s height unmoved',
+      wants: 'a wrong letter marked not yet, no option ticked as the answer, and the question, the box and the card\'s height unmoved',
       leave: () => {
-        const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12');
-        try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(window.__ordKey)];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- THE MATHS KEYPAD, UP, WITH A FRACTION HALF BUILT § */
