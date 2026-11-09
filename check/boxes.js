@@ -44,7 +44,7 @@ const measure = (page, row, back) => page.evaluate(async ([r, back, FOOT]) => {
   go('stuff', false, true);
   const hit = stuffItemsAll_().find(x => x.row && x.row.row_id === r);
   if (!hit) return { err: r + ' is not in the library' };
-  STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: hit.row.paper_id }];
+  STUFF.filters = [{ field: 'paperId', value: hit.row.paper_id }];
   paintStuff(true);
   await new Promise(z => setTimeout(z, 500));
   const h2 = stuffFiltered().find(x => x.row && x.row.row_id === r) || hit;

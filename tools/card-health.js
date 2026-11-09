@@ -48,7 +48,7 @@ if (!repeats('Paper 1 (Non-calculator) – June 2019', 'June') || repeats('Paper
   const got = JSON.parse(ev(`(() => {
     USER = Object.assign({ name: 'T', personId: 'P-T' }, { role: 'Admin', roles: ['admin'] });
     stuffForget_();
-    return inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.q = ''; STUFF.admit = null;
+    return inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.admit = null;
       const all = stuffItems(), by = {};
       all.forEach(x => { const k = isQ_(x) ? 'q' : String(x.kind || '?'); (by[k] = by[k] || []).push(x); });
       const pick = (l, n) => l.length <= n ? l : l.filter((x, i) => i % Math.ceil(l.length / n) === 0);

@@ -18,7 +18,7 @@ const CHECK = process.argv.includes('--check');
   }
   const got = JSON.parse(ev(`(() => inFinder_(FINDERS.stuff, () => {
     USER = Object.assign({ name: 'T', personId: 'P-T' }, { role: 'Admin', roles: ['admin'] });
-    STUFF.filters = []; STUFF.q = ''; STUFF.admit = null;
+    STUFF.filters = []; STUFF.admit = null;
     const items = stuffItemsAll_(), out = [];
     const norm = t => String(t == null ? '' : t).replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\\s+/g, ' ').trim();
     const key = t => norm(t).toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '').replace(/s$/, '');

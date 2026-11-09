@@ -111,7 +111,7 @@ async function open(env, row) {
       try { delete all[subKeyOf_(padKey_(hit))]; } catch (e) {} localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all)); } catch (e) {}
     try { subForget_(); } catch (e) {}
     try { ORDER_HOLE.clear(); } catch (e) {}
-    STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: hit.row.paper_id }];
+    STUFF.filters = [{ field: 'paperId', value: hit.row.paper_id }];
     paintStuff(true);
     await new Promise(z => setTimeout(z, 600));
     const h2 = stuffFiltered().find(x => x.row && x.row.row_id === r) || hit;

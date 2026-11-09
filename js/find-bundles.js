@@ -54,10 +54,6 @@ function bundleTitle_(items) {
     const n = parts.length;
     try { titlePart_(field); } finally { if (parts.length > n) said[field] = true; }
   });
-  /* THE SEARCH, IN QUOTES, UNLESS THE TITLE ALREADY SAYS IT — `… · 2017 · “2017”` is the year
-     twice, and the search is only there to say what the chips cannot. */
-  const q = String(STUFF.q || '').trim();
-  if (q && !norm(parts.join(' ')).includes(norm(q))) parts.push('“' + q + '”');
   return parts.join(' · ');
 
   function titlePart_(field) {
@@ -479,9 +475,8 @@ function chipText_(f, i) {
   return /^\d{1,3}$/.test(show.trim()) ? key + ' ' + show.trim() : show;
 }
 
-/* THE CHIPS YOU HAVE CHOSEN. Drawn with the list rather than with the search box above it, because
-   this row grows and shrinks and a fixed control does not. Clear is not one of them — see
-   `filterClear_`. */
+/* THE CHIPS YOU HAVE CHOSEN, drawn with the list because this row grows and shrinks. Clear is not
+   one of them — see `filterClear_`. */
 /* 680: THE ROW NEVER SAYS THE SAME THING TWICE — a second chip with the same words is left out (its filter stays). */
 function filterChips() {
   const said = {};
@@ -502,7 +497,7 @@ function filterChips() {
   </div>`;
 }
 
-/* ---------- CLEAR IS A TILE BESIDE THE SEARCH BOX, NOT A CHIP AT THE END OF THE ROW § */
+/* CLEAR-ALL IS A TILE ABOVE THE CHIPS, not a chip at the end of the row: it empties every answer at once. */
 function filterClear_() {
   return STUFF.filters.length
     ? tile_({ icon: 'bin', label: 'Clear', note: 'every answer', act: 'filter-clear', cls: 'find-clear' })
@@ -648,7 +643,7 @@ function paintStuff(keepPage) {
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');
   if (chips) chips.innerHTML = filterChips();
-  /* THE BIN BESIDE THE BOX, in its own slot so the box itself is never rewritten — see `filterClear_`. */
+  /* THE BIN, in its own slot above the chips — see `filterClear_`. */
   const clear = $(FINDER.id + '-clear');
   if (clear) clear.innerHTML = filterClear_();
   const groups = $(FINDER.id + '-groups');

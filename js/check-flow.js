@@ -174,14 +174,14 @@ function boot(opts) {
       /* NOBODY SIGNED IN IS A MEMBER HERE: Find is for members (400), and a journey that opened Tools signed out asked about the widget, not the gate. */
       'findGroup: (g, id) => { window.__findKind = g === "Games" ? "game" : "tool";' +
       '  if (!USER) USER = ' + JSON.stringify(MEMBER_) + ';' +
-      '  finderSet_(FINDERS.stuff, { filters: [{ field: "forLabel", value: g }], q: "" }); go("stuff", false, true);' +
+      '  finderSet_(FINDERS.stuff, { filters: [{ field: "forLabel", value: g }] }); go("stuff", false, true);' +
       '  const at = id ? inFinder_(FINDERS.stuff, () => stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id))) : 0;' +
       '  goPage("stuff", inFinder_(FINDERS.stuff, () => stuffFirstResult_()) + Math.max(0, at), true); },' +
       /* A FINDER SET TO A GROUP WITHOUT GOING THERE — Find 2 showing Tools beside Find is what Tools beside Find was. */
       /* EVERY CARD OF A FINDER FILLED, as Tools' column drew every slot: for journeys that ask the builder about cards far down the list (790). */
       'findFillAll: fid => inFinder_(FINDERS[fid], () => { const f = stuffFirstResult_(); for (let i = 0; i < stuffPages_().length; i++) stuffFillOne_(f + i); }),' +
       'findGroupOn: (fid, g, id) => { if (!USER) USER = ' + JSON.stringify(MEMBER_) + ';' +
-      '  finderSet_(FINDERS[fid], { filters: [{ field: "forLabel", value: g }], q: "" }); inFinder_(FINDERS[fid], () => { const at = id ? stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id)) : 0; PAGE[fid] = stuffFirstResult_() + Math.max(0, at); paintStuff(true); }); },' +
+      '  finderSet_(FINDERS[fid], { filters: [{ field: "forLabel", value: g }] }); inFinder_(FINDERS[fid], () => { const at = id ? stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id)) : 0; PAGE[fid] = stuffFirstResult_() + Math.max(0, at); paintStuff(true); }); },' +
       /* `n` IS AN INDEX INTO `widgetsOf_` of the last group, as it was into the column: the page of that widget's card. */
       'findPage: (n, ...a) => inFinder_(FINDERS.stuff, () => { const w0 = widgetsOf_(window.__findKind || "tool")[n]; const at = w0 ? stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(w0.id)) : -1;' +
       '  return goPage("stuff", stuffFirstResult_() + (at < 0 ? n : at), ...a); }),' +
@@ -425,7 +425,7 @@ function boot(opts) {
       /* AND THE THREE MORE THE TAG JOURNEYS ASK (355): the live list, a tag's colour, and a facet's
          answers inside the list a set of chips leaves -- all `const`s. */
       'facetList: () => facetList(), tagOf: f => tagOf_(f), asList: v => asList_(v),' +
-      'narrow: (items, filters) => stuffNarrow_(items, filters, [], null),' +
+      'narrow: (items, filters) => stuffNarrow_(items, filters, null),' +
       /* THE MESSAGES COLUMN'S STATE, SEEDED AS AN ANSWER JUST ARRIVED — the same five lets `check/states.js` sets in a browser, and for the same reason they are set § */
       'dmSeed: (msgs, pending) => { MESSAGES = msgs; MSG_PENDING = pending || []; DM_ASKED = true;' +
       '  DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now(); } };');

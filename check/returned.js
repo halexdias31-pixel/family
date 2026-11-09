@@ -60,7 +60,7 @@ async function clutterIn(page, where) {
   });
   return got.map(t => ({ kind: 'clutter', where: where, say: 'grey text outside the tag row — ' + t }));
 }
-/* THE FRONT DOOR (C+): signed out, a student and an admin see one shape first — the search bar and a menu, no sign-in card. */
+/* THE FRONT DOOR (C+): signed out, a student and an admin see one shape first — Find's controls and a menu, no sign-in card. */
 async function frontShape(browser, port, as) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
   const page = await ctx.newPage();
@@ -70,7 +70,7 @@ async function frontShape(browser, port, as) {
   await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED, null, { timeout: 60000 }); await wait(2500);
   await page.evaluate(() => go('stuff')); await wait(2500);
-  const shape = await page.evaluate(() => ({ search: !!document.getElementById('stuff-q'), menu: document.querySelectorAll('#s-stuff [data-do="facet-pick"][data-field="kindLabel"]').length > 0,
+  const shape = await page.evaluate(() => ({ search: !!document.getElementById('stuff-controls'), menu: document.querySelectorAll('#s-stuff [data-do="facet-pick"][data-field="kindLabel"]').length > 0,
     signInCard: !!document.querySelector('#s-stuff .members-only') }));
   await ctx.close();
   return shape;
@@ -137,7 +137,7 @@ function judge(name, where, r, errs) {
   }
   for (const as of ['out', 'student', 'admin']) shapes[as] = await frontShape(browser, port, as);
   Object.keys(shapes).forEach(as => { const s = shapes[as];
-    if (!s.search || !s.menu || s.signInCard) door.push({ kind: 'front-door', where: 'Find, ' + as, say: 'first screen is not the search bar and the menu (' + JSON.stringify(s) + ')' }); });
+    if (!s.search || !s.menu || s.signInCard) door.push({ kind: 'front-door', where: 'Find, ' + as, say: 'first screen is not Find\'s controls and the menu (' + JSON.stringify(s) + ')' }); });
   await browser.close(); server.close();
   fs.writeFileSync(OUT, JSON.stringify({ front, each, work: work.concat(door), clutter, shapes }, null, 1) + '\n');
   console.log(`clutter: ${clutter.length} grey lines on cards; front door: ${JSON.stringify(shapes)}`);

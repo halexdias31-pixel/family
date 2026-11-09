@@ -53,7 +53,8 @@ check('Onboarding through Find: apply from Find › Settings, the admin approves
   const names = c.w.settingDoorItems_().filter(x => x.settingFor.indexOf('Staff') !== -1 && x.mine !== false).map(x => x.name);
   ['Picture', 'Headline', 'Qualifications', 'Rate and extra seat', 'Class size', 'Available', 'At a glance', 'Where you teach'].forEach(n => { if (names.indexOf(n) === -1) bad.push('Find › Settings › Staff has no ' + n + ' for the new tutor: ' + names.join(', ')); });
   /* EACH SECTION OPENED IN FIND BY ITS NAME, CHANGED AND SAVED, as the tutor goes down the list. */
-  const one = async name => { const S = c.t.STUFF(); S.q = name; c.w.paintStuff(); await wait(200); return c.d.querySelector('#s-stuff .card-ed'); };
+  /* OPENED BY ITS CARD, not typed: Find has no search box (8 Nov). */
+  const one = async name => { const i = c.w.stuffPages_().findIndex(pg => pg.x && pg.x.name === name && !pg.part); if (i < 0) return null; c.w.goPage('stuff', c.w.stuffFirstResult_() + i, true); await wait(300); return c.d.querySelector('#s-stuff .page.on .card-ed'); };
   const type = (el, v) => { el.value = v; el.dispatchEvent(new c.w.Event('input', { bubbles: true })); el.dispatchEvent(new c.w.Event('change', { bubbles: true })); };
   const tick = el => { el.checked = true; el.dispatchEvent(new c.w.Event('change', { bubbles: true })); };
   const save = async (k, name) => { const sv = k.querySelector('[data-do="card-save"]'); if (!sv) { bad.push(name + ' has no Save in Find'); return; } c.A('card-save', sv); await wait(500); };
@@ -85,7 +86,7 @@ check('Onboarding through Find: apply from Find › Settings, the admin approves
   const k = await cardOpen_(W, 'cara@example.org', { reply });
   if (k.err) return bad.concat([k.err]);
   k.t.go('stuff', false, true);
-  const KS = k.t.STUFF(); KS.filters.length = 0; KS.filters.push({ field: 'kindLabel', value: 'Profiles' }); KS.q = 'Pat'; k.w.paintStuff(); await wait(300);
+  const KS = k.t.STUFF(); KS.filters.length = 0; KS.filters.push({ field: 'kindLabel', value: 'Profiles' }); k.w.paintStuff(); await wait(300);
   const pat = [...k.d.querySelectorAll('#s-stuff .card')].find(x => /Pat Parent/.test(x.textContent));
   if (!pat) return bad.concat(['Find › Profiles does not list Pat: ' + k.w.stuffFiltered().map(x => x.kind + ':' + x.name).join(', ')]);
   onboardShot_(k, 'listed');
@@ -98,7 +99,7 @@ check('Onboarding through Find: apply from Find › Settings, the admin approves
   if (!step || !/Pat Parent/.test(step.value || '')) bad.push('the booking form does not show Pat as the tutor: ' + (step ? step.outerHTML.slice(0, 200) : 'no tutor step drawn'));
   onboardShot_(k, 'book');
   /* ONE TUTOR CARD (owner, 8 Nov): the same tutor item answers Booking too, with its Book tile. */
-  const KB = k.t.STUFF(); KB.filters.length = 0; KB.filters.push({ field: 'kindLabel', value: 'Booking' }); KB.q = 'Pat'; k.w.paintStuff(); await wait(300);
+  const KB = k.t.STUFF(); KB.filters.length = 0; KB.filters.push({ field: 'kindLabel', value: 'Booking' }); k.w.paintStuff(); await wait(300);
   const patB = k.w.stuffFiltered().find(x => x.kind === 'tutor' && /Pat Parent/.test(x.name));
   if (!patB || !/data-do="book-with"/.test(k.w.stuffCard(patB))) bad.push('Find › Booking does not list Pat with a Book tile: ' + k.w.stuffFiltered().map(x => x.kind + ':' + x.name).join(', '));
   return bad;
@@ -140,7 +141,7 @@ check('Find › Booking offers a Booking form tag that draws the form, and a Pre
     { id: 'J-NOW', client: 'Cara Client', tutor: 'Ada Tutor', subject: 'Physics', startDate: '01/01/2024', endDate: '01/01/2099' }]);
   k.w.stuffForget_();
   k.t.go('stuff', false, true);
-  const pick = async v => { const S = k.t.STUFF(); S.q = ''; S.filters.length = 0; S.filters.push({ field: 'kindLabel', value: 'Booking' }); if (v) S.filters.push({ field: 'kindOwn', value: v }); k.w.paintStuff(); await wait(300); };
+  const pick = async v => { const S = k.t.STUFF(); S.filters.length = 0; S.filters.push({ field: 'kindLabel', value: 'Booking' }); if (v) S.filters.push({ field: 'kindOwn', value: v }); k.w.paintStuff(); await wait(300); };
   await pick('Booking form');
   const list = k.w.stuffFiltered().map(x => x.kind + ':' + x.name);
   if (list.join() !== 'bookform:Booking form') bad.push('the Booking form tag lists ' + list.join(', '));

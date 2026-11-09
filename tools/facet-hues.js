@@ -49,7 +49,7 @@ function colour(fields, edges, n) {
     while (queue.length && nodes < ${MAX_NODES}) {
       const filters = queue.shift();
       const r = inFinder_(FINDERS.stuff, () => {
-        STUFF.filters = filters; STUFF.q = ''; STUFF.admit = null;
+        STUFF.filters = filters; STUFF.admit = null;
         const items = stuffFiltered();
         if (!items.length) return null;
         const f = nextFacet(items) || overFacet_(items);
@@ -64,7 +64,7 @@ function colour(fields, edges, n) {
       r.values.slice().sort((a, b) => (b.n || 0) - (a.n || 0)).slice(0, ${MAX_CHILDREN})
         .forEach(v => queue.push(filters.concat([v.any ? { field: r.field, value: v.value, any: true } : { field: r.field, value: v.value }])));
     }
-    inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.q = ''; STUFF.admit = null; });
+    inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.admit = null; });
     return JSON.stringify({ nodes, fields: facetList().map(G => G.field), asked: Object.keys(asked).sort(), edges: Object.keys(pair).sort().map(p => p.split(' ')) });
   })()`));
   const c = colour(got.fields, got.edges, N);

@@ -241,15 +241,6 @@ const cmpText = (a, b) =>
 
 /* NO HEADINGS AT ALL, and no grouping behind them. § */
 
-/* Every word must appear SOMEWHERE — so "maths 7" finds a Grade 7 Maths topic without the two words having to sit next to each other. § */
-/* ---------- THE HAYSTACK IS BUILT ONCE PER ITEM, NOT ONCE PER KEYSTROKE § */
-function stuffHay_(x) {
-  /* and the item's own tags (365): "june 2024 foundation paper 1" and "edexcel higher 2019" found nothing, the tier, board and level being on no word searched */
-  return x._hay || (x._hay = norm([x.name, x.sub, x.subject, x.slot,
-                                   x.grade && 'grade ' + x.grade, x.text, x.tier, x.examBoard || x.company, x.documentType,
-                                   x.row && x.row.level].filter(Boolean).join(' ')));
-}
-
 function stuffFind(items, credits) {
   /* ALREADY IN ORDER — see `stuffSorted_`. Filtering keeps it, so nothing below re-sorts. */
   let out = stuffSorted_(items);
@@ -258,23 +249,13 @@ function stuffFind(items, credits) {
      one from EVERY group — `some` within a field, `every` across them, which is exactly what
      "either / both" means written out. */
   /* ---------- A SKIPPED QUESTION IS ASKED AND ANSWERED "ANY" § */
-  out = stuffNarrow_(out, STUFF.filters, stuffWords_(STUFF.q), credits);
+  out = stuffNarrow_(out, STUFF.filters, credits);
 
   /* ONE KEY, then the name to settle ties. § */
   /* BY NAME, AND ONLY BY NAME. § */
   /* ---------- QUESTIONS SORT WITH THEIR PAPER, AND NUMERICALLY § */
   /* ---------- ONE STRING PER ITEM, BUILT ONCE, COMPARED WITH `<` § */
-  return stuffLead_(out, stuffWords_(STUFF.q));
-}
-/* THE CARDS A SEARCH NAMES, FIRST — see the note over `sortKey_`. Their own order kept, and the rest's. */
-function stuffLead_(out, words) {
-  if (!words.length) return out;
-  const named = x => isContent_(x) && (() => {
-    const hay = norm([x.name, (x.row && x.row.topics) || x.topics].filter(Boolean).join(" "));
-    return words.every(w => hay.indexOf(w) !== -1);
-  })();
-  const lead = out.filter(named);
-  return lead.length ? lead.concat(out.filter(x => !named(x))) : out;
+  return out;
 }
 /* The library's own order, by the key `stuffSorted_` cached on each item. */
 const stuffKeyCmp_ = (a, b) => {
@@ -282,9 +263,7 @@ const stuffKeyCmp_ = (a, b) => {
   return ka < kb ? -1 : ka > kb ? 1 : 0;
 };
 /* THE NARROWING ITSELF, split out of `stuffFind` so `stuffFiltered` can run it over the list it already has rather than over the whole library — see the note § */
-/* "paper 2" is one word to look for: as two, the 2 was found in every Q2 and every 2024 of every paper */
-const stuffWords_ = q => norm(q).replace(/\bpaper\s+(?=\d)/g, 'paper\u0000').split(/\s+/).filter(Boolean).map(w => w.replace('\u0000', ' '));
-function stuffNarrow_(out, filters, words, credits) {
+function stuffNarrow_(out, filters, credits) {
   const byField = {};
   filters.forEach(f => {
     if (f.any) return;
@@ -294,42 +273,18 @@ function stuffNarrow_(out, filters, words, credits) {
     const list = byField[field];
     out = out.filter(x => list.some(f => filterHit(x, f, credits)));
   });
-  /* ---------- "q8", "8ii", "1dii", "1d(ii)", "Q 8" IS A QUESTION, NOT FOUR LETTERS § */
-  const ref = words.length ? qRef_(words.join('')) : null;
-  if (ref) out = out.filter(x => qRefHit_(x, ref));
-  /* AN ITEM THAT STANDS FOR OTHERS IS ASKED ABOUT THEM. § */
-  else if (words.length) out = out.filter(x => x.holds ? x.holds(words) : words.every(w => stuffHay_(x).includes(w)));
   return out;
 }
 
-/* WHAT A REFERENCE LOOKS LIKE: § */
 const QREF_PART = /^([a-z]?)(i{1,3}|iv|vi{0,3}|ix|xi{0,3})?$/;
-function qRef_(s) {
-  const m = /^(q?)0*(\d+)(.*)$/.exec(String(s || '').toLowerCase().replace(/\s+/g, ''));
-  if (!m) return null;
-  const rest = partBare_(m[3]);
-  const bits = qRefBits_(rest);
-  if (!bits) return null;
-  if (!m[1] && !/i/.test(bits.roman)) return null;
-  return { q: m[2], letter: bits.letter, roman: bits.roman };
-}
-/* ONE READING OF A PART FOR BOTH SIDES, so "8i" typed and a part "i" stored are read the same way --
-   a lone numeral is a numeral, as `qPartBits_` already says of the sheet's spelling. */
+/* A PART'S LETTER AND NUMERAL, "d(ii)" and "dii" alike -- a lone numeral is a numeral, as
+   `qPartBits_` already says of the sheet's spelling. */
 function qRefBits_(s) {
   if (!s) return { letter: '', roman: '' };
   if (ROMAN_ONLY.test(s)) return { letter: '', roman: s };
   const m = QREF_PART.exec(s);
   return m ? { letter: m[1] || '', roman: m[2] || '' } : null;
 }
-function qRefHit_(x, ref) {
-  if (!isQ_(x)) return false;
-  if (String(x.qNumber == null ? '' : x.qNumber).replace(/^0+(?=\d)/, '') !== ref.q) return false;
-  const b = qRefBits_(partBare_(x.qPart)) || { letter: '', roman: '' };
-  if (ref.letter && b.letter !== ref.letter) return false;
-  if (ref.roman && b.roman !== ref.roman) return false;
-  return true;
-}
-
 /* ---------- SORTED ONCE, NOT ONCE PER FILTER § */
 const SORTED_ITEMS = new WeakMap();
 function stuffSorted_(items) {
@@ -360,7 +315,7 @@ let FIND_MEMO = { key: null, from: null, items: null, total: 0 };
 
 function stuffFiltered() {
   /* KEYED ON THE PAYLOAD'S IDENTITY, no role (`itemMemoKey_`). § */
-  const key = JSON.stringify([STUFF.q, STUFF.filters, USER ? USER.credits : -1]);
+  const key = JSON.stringify([STUFF.filters, USER ? USER.credits : -1]);
   /* ---------- AND WHICH LIST, BECAUSE THERE ARE TWO § */
   const all = stuffItems();
   if (FIND_MEMO.key === key && FIND_MEMO.from === DATA && FIND_MEMO.all === all) return FIND_MEMO.items;
@@ -370,27 +325,20 @@ function stuffFiltered() {
   const credits = USER ? (USER.credits || 0) : 0;
   /* ---------- A TAP ONLY EVER NARROWS, SO IT NARROWS WHAT IS ALREADY HERE § */
   const prev = FIND_MEMO;
-  const words = stuffWords_(STUFF.q);
   let items = null;
   if (prev.key !== null && prev.from === DATA && prev.all === all && prev.credits === credits
-      && prev.filters && prev.words
-      && prev.filters.length <= STUFF.filters.length
-      && prev.words.every(w => words.some(n => n.includes(w)))
-      /* "q8" IS NOT A NARROWING OF "q" (`qRef_`). */
-      && !qRef_(words.join('')) && !qRef_(prev.words.join(''))) {
+      && prev.filters
+      && prev.filters.length <= STUFF.filters.length) {
     const same = prev.filters.every((f, i) => JSON.stringify(f) === JSON.stringify(STUFF.filters[i]));
     const had = {};
     prev.filters.forEach(f => { if (!f.any) had[f.field] = true; });
     const added = STUFF.filters.slice(prev.filters.length);
     if (same && added.every(f => f.any || !had[f.field])) {
-      items = stuffNarrow_(prev.items, added, words, credits);
-      /* THE SAME ORDER AS AFRESH: the list was led by its old words, so back to the library's order and led by these (522). */
-      if (words.length || prev.words.length) items = stuffLead_(items.slice().sort(stuffKeyCmp_), words);
+      items = stuffNarrow_(prev.items, added, credits);
     }
   }
   if (!items) items = stuffFind(all, credits);
   FIND_MEMO = { key: key, from: DATA, items: items, total: all.length, all: all, credits: credits,
-                words: words,
                 filters: STUFF.filters.map(f => Object.assign({}, f)) };
   FIND_MEMO.recent = [Object.assign({}, FIND_MEMO)].concat(prev.key !== null && prev.from === DATA && prev.all === all ? (prev.recent || []).filter(m => m.key !== key) : []).slice(0, 6);
   return items;
@@ -545,7 +493,7 @@ function stuffPageOf_(x, part) {
 
 /* ---------- AND BACK ONTO THE CARD YOU WERE ON WHEN THE LIST UNDER IT CHANGES § */
 const stuffPageId_ = pg => (pg && pg.x ? String(pg.x.key || pg.x.name || '') + '\u0000' + (pg.part || '') : '');
-const stuffAsk_ = () => JSON.stringify([S_(STUFF.q), STUFF.filters || []]);
+const stuffAsk_ = () => JSON.stringify(STUFF.filters || []);
 function stuffHeld_() {
   try {
     const host = $('s-' + FINDER.id);
@@ -570,10 +518,9 @@ function stuffBackTo_(id, keep) {
 const stuffPerPage = () => 1;
 
 /* HOW MANY PAGES, WITHOUT BUILDING ANY OF THEM. § */
-/** HAS ANYBODY ASKED FOR ANYTHING YET? A search typed, or a filter pressed. Until one of those,
-    this screen is a question and not a list. */
+/** HAS ANYBODY ASKED FOR ANYTHING YET? A chip pressed. Until then this screen is a question, not a list. */
 function stuffAsked() {
-  return !!(S_(STUFF.q).trim() || STUFF.filters.length);
+  return !!STUFF.filters.length;
 }
 const S_ = v => String(v == null ? '' : v);
 

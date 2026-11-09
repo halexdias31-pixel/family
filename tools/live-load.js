@@ -69,7 +69,7 @@ function stamps(sel) {
   const S = window.__stamps = {};
   const at = (k, ok) => { try { if (S[k] == null && ok()) S[k] = Math.round(performance.now()); } catch (e) { /* not yet declared */ } };
   /* FIND'S FRONT PAGE: the search box and the menu, and no loader on that page (a later page still waiting is not in the way). */
-  const findFront = () => { const q = document.querySelector('#stuff-q'), pane = q && q.closest('.pane'); return !!pane && !!pane.querySelector(sel) && !pane.querySelector('.loading'); };
+  const findFront = () => { const q = document.querySelector('#stuff-controls'), pane = q && q.closest('.pane'); return !!pane && !!pane.querySelector(sel) && !pane.querySelector('.loading'); };
   const tick = () => {
     at('code', () => typeof go === 'function');
     at('later', () => LATER_IN);
@@ -110,7 +110,7 @@ async function localVisit(ctx, url, label, keep) {
         return Math.round(performance.now());
       });
       if (at == null) break;
-      const done = await page.waitForFunction(() => (() => { const q = document.querySelector('#stuff-q'), pane = q && q.closest('.pane'); return pane && !pane.querySelector('.loading') && pane.querySelector('[data-do="facet-pick"], .q-card, .card'); })()
+      const done = await page.waitForFunction(() => (() => { const q = document.querySelector('#stuff-controls'), pane = q && q.closest('.pane'); return pane && !pane.querySelector('.loading') && pane.querySelector('[data-do="facet-pick"], .q-card, .card'); })()
         ? Math.round(performance.now()) : false, null, { timeout: 30000, polling: 20 }).then(h => h.jsonValue(), () => null);
       taps.push(done == null ? null : done - at);
       await page.waitForTimeout(150);

@@ -397,7 +397,7 @@ const BIBLE_TR_WORDS = { KJV: 'KJV King James Authorized Version', WEB: 'WEB Wor
 
 /* EVERYTHING IT KNOWS, IN ONE PLACE. § */
 const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {}, also: {},
-                item: null, verses: null, rank: null, hays: null };
+                item: null, verses: null, rank: null };
 
 /* ---------- WHO IS SHOWN IT § */
 /* A RULE (496, 504): `kjv-admin` — Universal by default, everyone like the Talmud and the Quran; Exception, an admin only. check-bible reads this line. */
@@ -454,7 +454,7 @@ function bibleIndex_() {
                                    && b.chapterVerses.every(c => Number.isInteger(c) && c > 0)
                                    && b.chapterVerses.reduce((s, c) => s + c, 0) === b.verses);
       BIBLE.asking = null;
-      if (ok) { BIBLE.index = d; BIBLE.rank = bibleRankOf_(d); BIBLE.hays = d.books.map(bibleHay_); WRITING_CAME.bible = true; }
+      if (ok) { BIBLE.index = d; BIBLE.rank = bibleRankOf_(d); WRITING_CAME.bible = true; }
       else BIBLE.failed = true;
       /* THE VERSES ARRIVE: every finder's list is built again with them (499). */
       bibleRedraw_();
@@ -499,8 +499,6 @@ const bibleTestament_ = t => (t === 'NT' ? 'New Testament' : 'Old Testament');
 const bibleCite_ = (b, ch) => (b.book === 'Psalms' ? 'Psalm' : b.book) + ' ' + ch;
 /* THE WORDS EVERY VERSE OF ONE BOOK CARRIES — its Bible, its testament, its group and its book — so a search that names any of them finds it. § */
 const bibleBookWords_ = b => [BIBLE_NAME, BIBLE_WORDS, bibleTestament_(b.testament), b.group, b.book].join(' ');
-/* WHAT EVERY VERSE OF ONE BOOK IS FOUND BY, BAR ITS OWN NUMBERS: § */
-const bibleHay_ = b => stuffHay_({ name: bibleCite_(b, ''), sub: b.book, text: bibleBookWords_(b) });
 
 /* ---------- THE ORDER THE ANSWERS ARE DRAWN IN, WHICH IS THE BIBLE'S § */
 function bibleRankOf_(ix) {

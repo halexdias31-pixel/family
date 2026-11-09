@@ -690,7 +690,7 @@ for (const who of VISITORS) {
         .sort((a, b) => (opts(b.row) - opts(a.row)) || (plain(b.row.html + b.row.choices) - plain(a.row.html + a.row.choices))).slice(0, 6);
       let best = null;
       for (const want of ranked) {
-        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
+        STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
         paintStuff(true);
         await new Promise(r => setTimeout(r, 400));
         const items = stuffFiltered();
@@ -753,7 +753,6 @@ for (const who of VISITORS) {
         if (!BIBLE.index) return { why: 'the Bible\'s index never arrived' };
         go('res', false, true);
         inFinder_(finderOf_('res'), () => {
-          STUFF.q = '';
           STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
                            { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Poetry & Wisdom' },
                            { field: 'wBook', value: 'Psalms' }];
@@ -799,7 +798,7 @@ for (const who of VISITORS) {
                            + (after.chips ? '' : ', the chips out of sight'),
                       want: 'wChapter 119, 176 verse cells, the pane at its top with the chips in sight' });
       }
-      await page.evaluate(() => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0, true); }));
+      await page.evaluate(() => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0, true); }));
       await page.waitForTimeout(300);
     }
     await page.setViewportSize({ width: 390, height: 844 });
@@ -813,7 +812,7 @@ for (const who of VISITORS) {
       const draw = await page.evaluate(async a => {
         if (typeof stuffFiltered !== 'function') return null;
         go('stuff', false, true);
-        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: a.paper }];
+        STUFF.filters = [{ field: 'paperId', value: a.paper }];
         paintStuff(true);
         await new Promise(r => setTimeout(r, 500));
         const hit = stuffFiltered().find(x => x.row && x.row.row_id === a.row);
@@ -1048,7 +1047,7 @@ for (const who of VISITORS) {
           const it = stuffItemsAll_().find(x => x.row && x.row.row_id === id);
           if (!it || !padSource_(it)) return { err: 'not in the library, or no pen' };
           go('stuff', false, true);
-          STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: FACETS.find(f => f.field === 'paperId').of(it) }];
+          STUFF.filters = [{ field: 'paperId', value: FACETS.find(f => f.field === 'paperId').of(it) }];
           paintStuff(true);
           goPage('stuff', stuffFirstResult_() + stuffPageOf_(it), true);
           let pad = null;
@@ -1130,7 +1129,7 @@ for (const who of VISITORS) {
       const ok = await page.evaluate(p => {
         if (typeof STUFF === 'undefined' || typeof paintStuff !== 'function') return null;
         go('stuff', false, true);
-        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: p }];
+        STUFF.filters = [{ field: 'paperId', value: p }];
         paintStuff();
         return stuffFiltered().length;
       }, paper);

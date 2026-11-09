@@ -13,8 +13,7 @@ check('no tag-door rows anywhere: a chosen paper goes on to ask Question by the 
   /* ORDINARY FACETS: a field, a label and the readers, nothing that says "never ask me". */
   OWN.forEach(f => { const facet = t.facetBy(f); const extra = facet ? Object.keys(facet).filter(k => ['field', 'label', 'of', 'tagOf', 'showOf', 'at'].indexOf(k) < 0) : ['(missing)']; if (extra.length) bad.push('`' + f + '` carries ' + extra.join(', ') + ' — it must be an ordinary facet'); });
   const S = t.STUFF();
-  S.filters = []; S.q = '';
-  const asked = [], papersAt = [];
+  S.filters = [];   const asked = [], papersAt = [];
   for (let i = 0; i < 30; i++) {
     const list = w.stuffFiltered();
     const f = w.nextFacet(list) || w.overFacet_(list);
@@ -71,8 +70,7 @@ check('Required is never on the first screen, and is the funnel\'s own question 
   if (!w.stuffItemsAll_().some(x => x.kind === 'practical')) return ['no practicals loaded — Required was NOT checked'];
   const f = t.facetBy('required');
   if (!f || f.tagOnly) bad.push('`required` is missing or tagOnly — it must be an ordinary funnel question');
-  S.filters = []; S.q = '';
-  const first = w.nextFacet(w.stuffFiltered());
+  S.filters = [];   const first = w.nextFacet(w.stuffFiltered());
   if (first && first.field === 'required') bad.push('the first screen asks Required');
   {
     S.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Practicals' }];

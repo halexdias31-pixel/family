@@ -217,7 +217,7 @@ const writingNow_ = () => Object.keys(WRITING_CAME).filter(k => WRITING_CAME[k])
 function writingFreeze_() { if (STUFF.admit == null) STUFF.admit = writingNow_(); }
 /* WHICH SOURCES THIS FINDER ANSWERS OVER: all that came, until a press; at the start again (no chip, no words) all that came. */
 function writingAdmit_() {
-  if (!(STUFF.filters || []).length && !String(STUFF.q || '').trim()) STUFF.admit = null;
+  if (!(STUFF.filters || []).length) STUFF.admit = null;
   return STUFF.admit == null ? writingNow_() : STUFF.admit;
 }
 const writingAdmitted_ = (x, admit) => !x.wSrc || (',' + admit + ',').indexOf(',' + x.wSrc + ',') >= 0;

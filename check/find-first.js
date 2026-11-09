@@ -6,11 +6,11 @@ require('./quiet');
 const glass = require('./glass.js');
 const { chromium } = require('playwright');
 
-/* WHAT STANDS JUST UNDER THE TOP BAR: the first shown section's first pane, and whether Find's search box is in it. */
+/* WHAT STANDS JUST UNDER THE TOP BAR: the first shown section's first pane, and whether Find's controls are in it. */
 function probe() {
   const top = document.getElementById('topbar'), y = (top && top.getBoundingClientRect().height > 0 ? top.getBoundingClientRect().bottom : 0) + 4;
   const first = [...document.querySelectorAll('#screen > section')].find(s => !s.classList.contains('hidden') && s.getBoundingClientRect().height > 0);
-  const q = document.getElementById('stuff-q');
+  const q = document.getElementById('stuff-controls');
   return { first: first ? first.id : null, search: !!(q && first && first.contains(q) && q.getBoundingClientRect().top < y + 200), y: Math.round(y) };
 }
 
@@ -23,9 +23,9 @@ function probe() {
     for (const v of glass.VIEWERS) {
       const o = await glass.open(browser, server.address().port, v, 390, 844, { settle: 500 });
       if (!o.ready) { bad.push(v.as + ': the app never finished loading'); await o.ctx.close(); continue; }
-      await o.page.waitForSelector('#stuff-q', { timeout: 20000 }).catch(() => {});
+      await o.page.waitForSelector('#stuff-controls', { timeout: 20000 }).catch(() => {});
       const p = await o.page.evaluate(probe);
-      if (p.first !== 's-stuff' || !p.search) bad.push(`${v.as}: the first thing under the top bar is ${p.first || 'nothing'}, ${p.search ? 'with' : 'without'} Find's search box`);
+      if (p.first !== 's-stuff' || !p.search) bad.push(`${v.as}: the first thing under the top bar is ${p.first || 'nothing'}, ${p.search ? 'with' : 'without'} Find's controls`);
       /* THE PROOF: Feed put above Find, as before 1070; the probe must now say no. */
       if (!proved) {
         const m = await o.page.evaluate(f => {
