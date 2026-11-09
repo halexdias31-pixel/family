@@ -15,6 +15,7 @@ const tbl = {};
 const see = {};
 rows.forEach(r => {
   if (r && r.kind === 'see' && P.SEE_ROLES.indexOf(r.role) !== -1 && typeof r.allow === 'boolean') { (see[r.action] = see[r.action] || {})[r.role] = r.allow; return; }
+  if (r && r.kind === 'ui' && P.ROLES.indexOf(r.role) !== -1 && typeof r.allow === 'boolean') return;
   if (!r || r.kind !== 'action' || P.ROLES.indexOf(r.role) < 0 || typeof r.allow !== 'boolean') { bad.push('a malformed row: ' + JSON.stringify(r)); return; }
   (tbl[r.action] = tbl[r.action] || {})[r.role] = r.allow;
 });
@@ -36,12 +37,22 @@ cards.forEach(c => {
   P.SEE_ROLES.forEach(r => { if (typeof (see[k] || {})[r] !== 'boolean') bad.push('setting ' + k + ' × ' + r + ': no `see` row in permissions.json'); });
   ['for', 'role', 'min_rank'].forEach(f => { if (f in c) bad.push('setting-for.json: ' + k + ' says `' + f + '` — who sees it is permissions.json\'s `see` rows'); });
 });
-Object.keys(see).filter(k => !cards.some(c => c && String(c.card).trim() === k)).forEach(k => bad.push('`see` row for ' + k + ': no such card in setting-for.json'));
+/* `find:` rows are Find's doors and tags, not settings cards. */
+Object.keys(see).filter(k => !/^find:/.test(k) && !cards.some(c => c && String(c.card).trim() === k)).forEach(k => bad.push('`see` row for ' + k + ': no such card in setting-for.json'));
 /* AND NO CODE ASKS A ROLE FOR A SETTINGS CARD: the settings doors ask `settingMay_`/`seeMay_` alone. */
+/* EACH ACCOUNT TYPE KEEPS WHAT ITS RANK GAVE IT: child, parent, apprentice, staff, admin against the old `rankAtLeast_` lines. */
+const ui = {};
+rows.forEach(r => { if (r && r.kind === 'ui') (ui[r.action] = ui[r.action] || {})[r.role] = r.allow; });
+[['child', 'student', 'child', 'family'], ['parent', 'client', 'member', 'family'], ['apprentice', 'staff', 'member', 'tutor'],
+ ['staff', 'staff', 'member', 'tutor'], ['admin', 'admin', 'admin', 'admin']].forEach(([who, rank, role, top]) => {
+  const at = w => ['student', 'client', 'staff', 'admin'].indexOf(rank) >= ['student', 'client', 'staff', 'admin'].indexOf(w);
+  const sees = k => P.SEE_ROLES.slice(0, P.SEE_ROLES.indexOf(top) + 1).some(r => (see[k] || {})[r] === true);
+  if (((ui['upload-photo'] || {})[role] === true) !== at('client')) bad.push(who + ': upload-photo differs from rank client');
+  ['find:all-people', 'find:all-posts', 'find:admin-tags'].forEach(k => { if (sees(k) !== at('admin')) bad.push(who + ': ' + k + ' differs from rank admin'); });
+});
 const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$/gm, '$1');
 const ROLE_ASK = /\brankAtLeast_\(|\bisAdmin\(\)|\bhasRole\(|\bmyRole_\(\)|\.rank\s*===|\.role\s*===/;
-/* THE PICTURE CARD'S PHOTO UPLOAD is a field inside a card, not who sees it; two lines, until it has its own row. */
-const ALLOW = { 'me-settings': 2 };
+const ALLOW = {};
 [['find-doors', /SETTINGS BY ACCOUNT TYPE[\s\S]*?\nfunction settingPart_/], ['find-aloud', /settingMay_\('door:checks'\)[^\n]*/], ['me-settings', /[\s\S]*/]].forEach(([n, re]) => {
   let src = '';
   try { src = fs.readFileSync(path.join(O, 'js', n + '.js'), 'utf8'); } catch (e) { bad.push('js/' + n + '.js not read'); return; }

@@ -265,13 +265,13 @@ function photoPicker_(value, said, o) {
     <div class="pfp-side">
       <div class="tile-row">
         ${/* A CHILD CHOOSES FROM THE GRID, NEVER A FILE (413) — `savePhoto` refuses one too. */
-          rankAtLeast_('client') ? tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' }) : ''}
+          uiMay_('upload-photo') ? tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' }) : ''}
         ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
       </div>
     </div>
     <div class="pfp-grid" role="group" aria-label="Or choose a picture">${['avatar'].concat(Object.keys(PFP_ART)).map(opt).join('')}</div>
     <p class="faint pfp-said">${esc(said || pfpSaid_(v))}</p>
-    ${rankAtLeast_('client') ? '<input type="file" class="pfp-in" accept="image/*" hidden>' : ''}
+    ${uiMay_('upload-photo') ? '<input type="file" class="pfp-in" accept="image/*" hidden>' : ''}
   ${fold ? '</details>' : '</div>'}`;
 }
 /* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */
