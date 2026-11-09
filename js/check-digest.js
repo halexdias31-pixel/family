@@ -325,14 +325,14 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (!bo) bad.push('Bo is not sent Ben’s week, so the words in Sunday’s email were NOT asked');
   else {
     if (bo.text.indexOf('\nMaths · Probability\nA bag holds 3 red and 5 blue counters.\nQ4a ✓: Work out the probability of red.\n') === -1
-        || said(bo.html).indexOf('Maths Probability Q4a A bag holds 3 red and 5 blue counters. Work out the probability of red. THEIR ANSWER an answer ✓ Right') === -1)
+        || said(bo.html).indexOf('Q4a Maths Probability Q4a A bag holds 3 red and 5 blue counters. Work out the probability of red. Their answer an answer ✓ Right') === -1)
       bad.push('Sunday’s email does not print a question’s words under its paper — the stem, then "Q4a ✓: <its ask>": ' + bo.text.split('\n').slice(4, 20).join(' / ') + ' — HTML: ' + said(bo.html).slice(0, 900));
     if (bo.text.indexOf('\nChemistry · Required practical · Rates of reaction\nWorksheet ✓: What is the dependent variable?\n') === -1)
       bad.push('a practical’s worksheet is not printed with the first box’s words: ' + bo.text.split('\n').slice(4, 20).join(' / '));
     /* REFUSED WORDS ARE NOT PRINTED, AND THE QUESTION STILL IS — by its number under its paper. */
     asked++;
     if (bo.text.indexOf('\nMaths · Equations\nQ2 ✓, Q3 ✓, Q4 ✓, Q6 ✓\n') === -1 || bo.text.indexOf('\nMaths · Pythagoras\nQ5 ✓\n') === -1
-        || said(bo.html).indexOf('Maths Equations Q2 THEIR ANSWER an answer ✓ Right Maths Equations Q3 THEIR ANSWER an answer ✓ Right') === -1)
+        || said(bo.html).indexOf('Q2 Maths Equations Q2 Their answer an answer ✓ Right Q3 Maths Equations Q3 Their answer an answer ✓ Right') === -1)
       bad.push('questions whose words were refused are not still listed by their numbers under their papers: ' + bo.text.split('\n').slice(4, 20).join(' / '));
     ['pay-family', 'office.family', 'family-answers', 'NOTICE', 'www.', 'For the answer', 'diagram shows'].forEach(x => {
       if (bo.text.indexOf(x) !== -1 || bo.html.indexOf(x) !== -1) bad.push('Sunday’s email prints refused words ("' + x + '") — phone text that is a message must not go out under the business’s name');
@@ -458,13 +458,13 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   asked++;
   const times = t => t.split(STEM).length - 1;
   if (times(m.text) !== 1 || times(m.html) !== 1
-      || said(m.html).indexOf('Q5a ' + STEM + ' Find P(red). THEIR ANSWER an answer ✗ Not right Maths Paper 7 Q5b Find P(blue). THEIR ANSWER an answer Not marked yet'
-        + ' Maths Paper 7 Q5c Two beads are taken. Find P(both red). THEIR ANSWER an answer 2 of 3 marks') === -1)
+      || said(m.html).indexOf('Q5a Maths Paper 7 Q5a ' + STEM + ' Find P(red). Their answer an answer ✗ Not right Q5b Maths Paper 7 Q5b Find P(blue). Their answer an answer Not marked yet'
+        + ' Q5c Maths Paper 7 Q5c Two beads are taken. Find P(both red). Their answer an answer 2 of 3 marks') === -1)
     bad.push('the stem Q5a, Q5b and Q5c share is printed ' + times(m.text) + ' time(s) in the text and ' + times(m.html) + ' in the HTML — wanted once each, above the first of them');
   asked++;
   /* A QUESTION FIRST SENT BEFORE THE WEEK IS STILL A QUESTION DONE THIS WEEK, in the one list, with this
      week's mark — and no "(again)", the site's word and not a parent's (12 Oct). */
-  if (m.text.indexOf('\nQ9 ✓: Expand (x + 2)(x - 3).\n') === -1 || said(m.html).indexOf('Q9 Expand (x + 2)(x - 3). THEIR ANSWER an answer ✓ Right') === -1 || /\(again\)/.test(m.text + m.html))
+  if (m.text.indexOf('\nQ9 ✓: Expand (x + 2)(x - 3).\n') === -1 || said(m.html).indexOf('Q9 Expand (x + 2)(x - 3). Their answer an answer ✓ Right') === -1 || /\(again\)/.test(m.text + m.html))
     bad.push('a question first sent before the week is not "Q9 ✓: <its words>" in the one list, with this week’s mark and not the fortnight-old ✗: ' + JSON.stringify(m.text.split('\n').find(x => /^Q9/.test(x))));
   asked++;
   if (m.html.indexOf('>Solve x &gt; 3 and x &lt; 7 &amp; &quot;y&quot; for whole numbers x.<') === -1 || /x < 7 &|"y"/.test(m.html))
@@ -1180,10 +1180,10 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
       if ((sent.subject + '\n' + sent.body).indexOf(x) === -1) bad.push('the email Pat is sent does not say "' + x + '": ' + sent.body.split('\n').slice(0, 12).join(' / '));
     });
     const H = said(sent.htmlBody);
-    /* EACH CARD'S TAGS FIRST (380, 20 Oct) — the fixture's paper has no document row, so its Paper tag is its id, as on the site. */
+    /* EACH CARD AS THE SITE'S (57a–62a): its heading with its marks as [n], then its tags — the fixture's paper has no document row, so its Paper tag is its id, as on the site. */
     /* EVERY FACET A TAG SINCE 396: What for and What kind first, and the Accuracy tag after the marks. */
-    ['Learning Practice Questions Accuracy unverified PX-1 Q7 1 mark Work out 4 × 4. THEIR ANSWER 16 ✓ Right ANSWER 16', 'Maths Paper X Q9 Kit buys 3 pens at 40p each. How much does he pay? THEIR ANSWER £1.10 ✗ Not right',
-     'Learning Practice Questions Accuracy unverified PX-1 Q11 3 marks Read the source about the river. Explain the trend. THEIR ANSWER It rises. 2 of 3 marks ANSWER It rises.', 'Learning Practice Questions Accuracy unverified PX-1 Q6 1 mark Read the source about the river. Say anything. THEIR ANSWER hello Not marked yet',
+    ['Q7 [1] Learning Practice Questions Accuracy unverified PX-1 Q7 1 mark Work out 4 × 4. Their answer 16 ✓ Right Answer 16', 'Q9 Maths Paper X Q9 Kit buys 3 pens at 40p each. How much does he pay? Their answer £1.10 ✗ Not right',
+     'Q11 [3] Learning Practice Questions Accuracy unverified PX-1 Q11 3 marks Read the source about the river. Explain the trend. Their answer It rises. 2 of 3 marks Answer It rises.', 'Q6 [1] Learning Practice Questions Accuracy unverified PX-1 Q6 1 mark Read the source about the river. Say anything. Their answer hello Not marked yet',
      'Summary of the week 1 right, 1 with part marks, 1 not right and 1 not marked yet. Topics: Maths and Biology'].forEach(x => {
       if (H.indexOf(x) === -1) bad.push('the HTML Pat is sent does not carry "' + x + '": ' + H.slice(0, 600));
     });
@@ -1341,7 +1341,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
       + ' (wanted only p, br, b, strong, i, em, sup, sub, ul, ol, li, table, thead, tbody, tr, th, td, span, div; no attribute but colspan/rowspan and its own styles)');
   /* A KEY THE LIBRARY DOES NOT HAVE — a question it dropped, a practical's box — goes as its words cell, as before. */
   asked++;
-  if (text.indexOf('\nQ4 ✓: Work out 12 × 3.\n') === -1 || !/Q4 Work out 12 × 3\.( THEIR ANSWER [^✓✗]*)? ✓ Right/.test(said(html))
+  if (text.indexOf('\nQ4 ✓: Work out 12 × 3.\n') === -1 || !/Q4 Work out 12 × 3\.( Their answer [^✓✗]*)? ✓ Right/.test(said(html))
       || text.indexOf('Worksheet not marked: What is the independent variable?') === -1)
     bad.push('a key missing from the library does not fall back to its words line ("Q4 ✓: <its words>"): ' + JSON.stringify(text.split('\n').filter(l => /Q4|Worksheet/.test(l))));
   /* AND STILL NO LINK A PARENT COULD PRESS: the only address in it is each picture's, on the site's own folder. */
@@ -1416,13 +1416,13 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     { key: 'q:Q-1MA1-2406-1F-7', label: 'Maths · Paper 1F (Non-calculator) — June 2024 · Q7', words: '', verdict: 'rule:3/4', answer: 'drawing · 4 marks · #x' },
     { key: 'q:Q-CBM-perimeter-1', label: 'Maths · Perimeter · Q1', words: '', verdict: 'right', answer: '16' }], again: [] };
   const r = JSON.parse(JSON.stringify(b.ev('digestRender_(__L, { first: "Pat" }, { start: "2026-10-12", end: "2026-10-18" }, { site: "https://halexdias31-pixel.github.io/family/", hour: 21, lib: __LIB })')));
-  const cards = r.html.split('bgcolor="#0b0b0b" style="border:10px solid #101010').length - 1;
+  const cards = r.html.split('class="kc" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid #171717;border-radius:0"').length - 1;
   asked++;
-  if (cards !== 2 || r.html.indexOf('<span class="gi" style="color:#ff7b72;border:1px solid;border-radius:9px;padding:0 6px">Q7</span>') === -1
-      || r.html.indexOf('>Non-calculator</span>') === -1 || r.html.indexOf('color:#c8a2ff') === -1 || r.html.indexOf('color:#ff7b72;border:1px solid;border-radius:9px;padding:0 6px">4 marks') === -1
-      || said(r.html).indexOf('Learning Practice Questions Maths Worksheet SATs KS2 Year 3 Accuracy unverified Perimeter Q1') === -1 || /Maths · Perimeter/.test(said(r.html))
+  if (cards !== 2 || r.html.indexOf('<span class="gi" style="color:#ff7b72;border:1px solid;border-radius:999px;padding:0 6px">Q7</span>') === -1
+      || r.html.indexOf('>Non-calculator</span>') === -1 || r.html.indexOf('color:#c8a2ff') === -1 || r.html.indexOf('color:#ff7b72;border:1px solid;border-radius:999px;padding:0 6px">4 marks') === -1
+      || said(r.html).indexOf('Q1 Learning Practice Questions Maths Worksheet SATs KS2 Year 3 Accuracy unverified Perimeter Q1') === -1 || said(r.html).indexOf('Q7 [4] Learning') === -1 || /Maths · Perimeter/.test(said(r.html))
       || /\b(Ready|Usable|Rough)\b/.test(said(r.html)))
-    bad.push('each question is not the site\'s card — two #0b0b0b cards in a #101010 pane, every tag a pill in its facet\'s colour (Q7 and its marks red, the sitting purple — every facet coloured since 396), no health band (383), and no paper heading over them: ' + cards + ' card(s); ' + said(r.html).slice(0, 300));
+    bad.push('each question is not the site\'s card — two cards in its shape (heading, tags, lines; a rule under, square), every tag a pill in its facet\'s colour (Q7 and its marks red, the sitting purple — every facet coloured since 396), no health band (383), and no paper heading over them: ' + cards + ' card(s); ' + said(r.html).slice(0, 300));
   asked++;
   /* THE BLACK SCREEN, SAID: the page, the summary's pane and every card fill their own cells, so a dark inbox has nothing to guess. */
   if (!/^<!DOCTYPE html><html lang="en" style="background:#000"><head><meta charset="utf-8"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><style>:root\{color-scheme:dark/.test(r.html)
