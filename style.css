@@ -6245,6 +6245,15 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .lib-pic { margin: .4rem auto .6rem; width: min(100%, 8rem); background: var(--raised); border-radius: 12px; padding: .5rem; }
 .lib-c .fc-say, .lib-c .fc-lede, .lib-c h4, .lib-c li, .hdb-more .hdb-lines dt, .lib-c .tl-tick i { color: var(--ink); }
 .lib-c > .person-pic { margin: .2rem auto .6rem; }
+/* MESSAGES AND POSTS AS FIND CARDS (36a): the picture, the title, two lines of what was said. */
+.msg-fc-pic { margin: .4rem auto .6rem; width: min(100%, 8rem); background: var(--raised); border-radius: 12px; padding: .5rem; overflow: hidden; }
+.msg-fc-pic .dm-av { width: 100%; height: auto; aspect-ratio: 1; font-size: 2.4rem; }
+.msg-fc-pic .person-pic { margin: 0; width: 100%; padding: 0; }
+.post-fc-pic { width: 100%; padding: 0; }
+.post-fc-img { display: block; width: 100%; max-height: 18rem; object-fit: cover; }
+.msg-fc-body { margin: .3rem 0 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.msg-fc.is-one .msg-fc-pic { width: 4rem; padding: .25rem; }
+.msg-tag.is-new { border-color: var(--gold); color: var(--gold); }
 .pane:has(> .favwrap > .lib-c) > .tile-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 /* ---------- THE TUTOR CARD FITS ONE PHONE SCREEN (8 Nov): small face, name and rate on one line, tight pills, short map, hours as day pills. */
 .tcard .prof-top { gap: .55rem; align-items: center; }

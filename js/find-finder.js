@@ -212,8 +212,8 @@ const KINDS = {
   offBooking: { group: 'Booking', label: 'Booking', card: x => soonCard_(x) },
   /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
   health: { group: 'Settings', label: 'Settings', card: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : '') },
-  /* POSTS (owner, 4 Nov): the feed's posts as Find cards, drawn by the feed's own postCard_. */
-  post: { group: 'Posts', label: 'Posts', card: x => `<div class="card post-door">${typeof postCard_ === 'function' ? postCard_(x.row, 0) : `<p>${esc(x.name)}</p>`}</div>` },
+  /* POSTS (owner, 8 Nov, 36a): the standard Find card shape, `postFindCard_`, not the feed's look. */
+  post: { group: 'Posts', label: 'Posts', card: x => (typeof postFindCard_ === 'function' ? postFindCard_(x) : `<div class="card"><h3>${esc(x.name)}</h3></div>`) },
 
   /* ---------- `link` WAS A KIND HERE, AND THE LINKS ARE OFF FIND § */
 

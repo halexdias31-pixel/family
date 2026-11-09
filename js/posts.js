@@ -230,6 +230,33 @@ function postCard_(p, i) {
     </article>`;
 }
 
+/* ---------- A POST AS A FIND CARD (owner, 8 Nov, 36a): picture, title, tags, two lines, tiles, as every Find card. */
+/* Built from tagRow_/tile_/tileRow_ until cards.js has its one card maker; this is the seam to plug into it. */
+function postFindCard_(x) {
+  const p = (x && x.row) || {};
+  const media = postMedia_(p);
+  const who = (profileOf_(p.authorId) || {}).handle || p.handle || p.author || brand('name', '@family.');
+  const picHtml = media.length ? postItem_(media[0], 'post-fc-img')
+    : typeof pixSvg_ === 'function' && typeof LIB_PIX !== 'undefined' ? pixSvg_(LIB_PIX.content, who) : postFace_(p, who);
+  const at = p.at || p.when, d = at && typeof parseWhen === 'function' ? parseWhen(at) : null;
+  const date = d && !isNaN(d) && typeof msgDate_ === 'function' ? msgDate_(d.getTime()) : '';
+  const kind = p.poll ? 'Poll' : media.some(postIsVideo_) ? 'Clip' : media.length ? 'Photo' : 'Post';
+  const extra = [date, kind, media.length > 1 ? media.length + ' pictures' : '', p.pinned ? 'pinned' : '']
+    .filter(Boolean).map(t => `<span class="qtag msg-tag">${esc(t)}</span>`).join('');
+  const row = typeof tagRow_ === 'function' ? String(tagRow_(x) || '') : '';
+  const tags = /<\/div>$/.test(row) ? row.replace(/<\/div>$/, extra + '</div>') : `<div class="qtags qcard-tags">${extra}</div>`;
+  const r = p.reactions, first = r && Array.isArray(r.emoji) && r.emoji[0];
+  const react = first ? tile_({ icon: 'star', label: 'React', note: first + (r.total ? ' · ' + r.total : ''), on: r.yours === first,
+    act: 'react', data: { id: p.id, emoji: first } }) : '';
+  const body = String(p.caption || p.body || p.text || '').trim();
+  /* The post's own Suggest goes: every Find card's row already carries one. */
+  return `<div class="card fc post-fc${p.waiting ? ' is-pending' : ''}" data-post="${esc(p.id || '')}">
+    ${tags}<figure class="msg-fc-pic post-fc-pic">${picHtml}</figure>
+    <h3>${esc(p.title || who)}</h3>
+    ${body ? `<p class="msg-fc-body">${mark(body)}</p>` : ''}
+    ${tileRow_(react + String(postTiles_(p)).replace(/^<div class="tile-row[^"]*">|<\/div>$/g, '').replace(/<button[^>]*\brep-tile\b[^>]*>[\s\S]*?<\/button>/g, ''))}</div>`;
+}
+
 /* WHAT PEOPLE SAID UNDER IT. § */
 function commentsHtml_(p) {
   const c = p && p.comments;

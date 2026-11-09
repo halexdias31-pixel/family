@@ -43,9 +43,7 @@ function msgDoorCard_(x) {
   if (!t && x.to) return `<div class="card dm-card"><div class="dm-head"><h3>${esc(x.name)}</h3></div>
     ${msgForm_(x.to.name, x.to.id)}</div>`;
   if (!t) return `<div class="card"><h3>${esc(x.name)}</h3></div>`;
-  try { markRead_(t.msgs); } catch (e) { oops_(e, 'doors:msg'); }
-  return `<div class="card dm-card"><div class="dm-head">${typeof dmFace_ === 'function' ? dmFace_(t) : ''}<h3>${esc(t.name)}</h3></div>
-    <div class="msg-body">${messagesHtml_(t.msgs)}</div>${msgForm_(t.name, t.id)}</div>`;
+  return msgFindCard_(x, t);
 }
 
 /* ---------- PROFILES: who they are is the menu; admin-only answers are asked by rank ---------- */
