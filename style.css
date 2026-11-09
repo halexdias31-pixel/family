@@ -145,6 +145,8 @@
   --r-ui: 0;
   /* ONE PICTURE HEIGHT (owner 58a, 9 Nov): every card's picture, cropped to fill (object-fit: cover). */
   --pic-h: 7.5rem;
+  /* ONE GAP BETWEEN CARDS (owner 62a, 9 Nov): a bare card's padding either side of its rule, a boxed card's margin. */
+  --card-gap: .85rem;
   --r-round: 999px;
 
   /* EDGE, ELEVATION AND THE INK ON THE ACCENT: one of each, so a surface or a pressed thing is never drawn two ways. */
@@ -390,7 +392,7 @@ html.wide body { max-width: none; box-shadow: none; }
   border: 0;
   border-bottom: 1px solid var(--line-soft);
   border-radius: 0;
-  padding: .85rem 0;
+  padding: var(--card-gap) 0;
   position: relative;
 }
 .card:last-child { border-bottom: 0; }
@@ -2664,7 +2666,7 @@ label.bk-k { cursor: pointer; }
   border: 1px solid var(--line-soft);
   border-radius: var(--r-ui);
   padding: .9rem;
-  margin: .5rem 0;
+  margin: 0 0 var(--card-gap);
 }
 .card:has(> .msg-body) .msg-body { max-height: 22rem; overflow-y: auto; scrollbar-width: none; }
 /* ---------- A CONVERSATION TAKES THE HEIGHT IT IS GIVEN § */
@@ -3627,7 +3629,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* QUESTIONS IN THE FUNNEL. § */
 /* ---------- ONE RHYTHM DOWN THE CARD, WHERE THERE WERE FOUR GAPS AND NO REASON BETWEEN THEM § */
 .qcard { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-ui);
-         padding: .75rem .7rem .8rem; margin-bottom: .4rem; }
+         padding: .75rem .7rem .8rem; margin-bottom: var(--card-gap); }
 /* THE BUNDLE CARD'S HEAD -- `Bundle` and its noun. It was every question page's head too, the gold
    `Q4a` with `2 marks` hard right; those pages say all of that as tags now (`.qcard-tags` below). */
 /* ---------- HOW YOUR LAST ANSWER WENT, BESIDE THE STAR § */
@@ -4518,7 +4520,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* ---------- AND IT IS A QUESTION CARD'S SHAPE NOW § */
 .card.qcard.bundle {
   background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-ui);
-  padding: .75rem .7rem .8rem; margin-bottom: .4rem;
+  padding: .75rem .7rem .8rem; margin-bottom: var(--card-gap);
 }
 /* THE TITLE IS WHAT IS BEING CHOSEN, so it is the one large line -- ink, not gold, because gold is
    the header's word on every card in this family. It wraps on its middots, which is where it reads. */
@@ -4534,7 +4536,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
      declared, so the number is written out rather than falling back silently to something else. */
   border-radius: var(--r-ui);
   padding: var(--wgt-pad);
-  margin-bottom: var(--gap);
+  margin-bottom: var(--card-gap);
 }
 /* ---------- THE LIBRARY CARDS' WIDGET GIVES ITS FACES THE FRAME'S SIDES (docs/history/339) § */
 .card.is-widget:has(.lib-shelf) { padding-left: .45rem; padding-right: .45rem; }
@@ -4592,7 +4594,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .pane :is(.card.is-widget, .qcard, .card:has(> .msg-body)) {
   background: none; border: 0; border-radius: 0; padding-inline: 0; margin-inline: 0; }
 .pane :is(.card.is-widget, .qcard) + :is(.card.is-widget, .qcard) {
-  border-top: 1px solid var(--line-soft); padding-top: var(--s4); margin-top: var(--s2); }
+  border-top: 1px solid var(--line-soft); padding-top: var(--card-gap); margin-top: 0; }
 
 /* THE CAMERA CARD. The 📷 column drew "＋ New post" — a card describing a photograph rather than a way to take one, and the identical card sat one swipe away at § */
 .cam-card .cam-stage {

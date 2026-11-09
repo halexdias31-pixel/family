@@ -151,5 +151,17 @@ for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
 }
 if (/--fs-(xs|sm|md|lg|xl|2xl)\b/.test(css)) bad.push('61a an old size token (--fs-xs/sm/md/lg/xl/2xl) is back');
 
+/* ---------- 62a. ONE GAP BETWEEN CARDS: a card's own margin above or below is 0 or var(--card-gap) ---------- */
+const CARD_SEL = /(^|[\s>+~])(\.card|\.qcard)(\.[\w-]+|:[\w-]+(\([^)]*\))?)*$/;
+for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  if (!m[1].split(',').some(s => CARD_SEL.test(s.trim()))) continue;
+  for (const d of m[2].matchAll(/(?:^|;)\s*(margin(?:-top|-bottom|-block)?)\s*:\s*([^;]+?)\s*(?=;|$)/g)) {
+    const parts = d[2].split(/\s+(?![^(]*\))/);
+    const vert = d[1] === 'margin' ? [parts[0], parts[2] !== undefined ? parts[2] : parts[0]] : d[1] === 'margin-block' ? parts : [parts[0]];
+    if (vert.some(v => !/^(0|var\(--card-gap\))$/.test(v))) bad.push(`62a a gap of its own between cards in "${m[1].trim().slice(0, 60)}": ${d[1]}: ${d[2]} — var(--card-gap)`);
+  }
+}
+if (!/\.card\s*\{[^}]*padding: var\(--card-gap\) 0/.test(noComments)) bad.push('62a a bare card is not padded var(--card-gap) either side of its rule');
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');
