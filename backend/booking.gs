@@ -1326,7 +1326,6 @@ const PERMISSIONS = {
   listStaff: ['admin'],
   listSuggestions: ['admin'],
   makeChild: ['member', 'child', 'admin'],
-  markPaid: ['admin'],
   markWorking: ['member', 'child', 'admin'],
   mediaDelete: ['admin'],
   mediaHide: ['admin'],
