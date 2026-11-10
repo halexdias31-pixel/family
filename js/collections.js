@@ -263,7 +263,7 @@ function initCart() { cartPaint_(); }
 const SHOP_PER = 3;
 
 /* THE GROUPS, IN THE ORDER A FAMILY LOOKS. § */
-const SHOP_GROUPS = [['bundle', 'Bundles'], ['game', 'Games'], ['kit', 'Kits'],
+const SHOP_GROUPS = [['bundle', 'Bundles'], ['book', 'Books'], ['game', 'Games'], ['kit', 'Kits'],
                      ['equipment', 'Equipment'], ['stationery', 'Stationery'],
                      ['consumable', 'Consumables'], ['service', 'Made to order']];
 
