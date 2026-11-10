@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* @family. — check/card-facts.js A CARD NEVER DRAWS ITS OWN INSIDES (owner, 10 Nov): every kind, four viewers.
+/* @family. — check/card-facts.js ONE STATIC CENTRED CARD (owner, 10 Nov): every kind, four viewers.
    Static, centred: fails on a blank card, cut text, kind HTML, a picture of another size or off-centre, a ⋯ action with no word. */
 'use strict';
 require('./quiet');
