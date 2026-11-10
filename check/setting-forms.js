@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/* @family. — check/setting-forms.js NO BOX IS CUT (owner, 10 Nov): every Settings card in Find, signed out and signed in, at 390 and 820px;
-   a box, menu, text area or tile inside a card that sits outside the card or has no height fails (the iPad sign-in, cut to two lines). */
+/* @family. — check/setting-forms.js NO BOX IS CUT (owner, 10 Nov): every Settings card, signed out and in, at 390 and 820px;
+   a box, menu or tile outside its card or with no height fails (the iPad sign-in). */
 'use strict';
 require('./quiet');
 const fs = require('fs');

@@ -3860,6 +3860,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* NO NEGATIVE MARGIN TO PULL THE ✕ FLUSH with the figure: tried, and `check/ui.js` named the line
    4px wider than its box at every width. The ✕'s own padding is the gap. */
 .bk-row.is-wide .cart-ctl .text-drop { margin-left: auto; }
+/* LAMINATE IS THE FORM'S ONE BUTTON (`tile_({ form })`), sized to its word so the pages and the ✕ share its line. */
+.bk-row.is-wide .cart-ctl > .btn { width: auto; flex: 0 1 auto; margin: 0; }
 /* THE BUNDLE'S CAPTION IS ITS OWN ROW, across both columns. */
 .bk-row.is-wide .cart-from { grid-column: 1 / -1; }
 /* THE BUNDLE A GROUP OF LINES CAME FROM — a caption over them rather than a line of its own to buy,
