@@ -248,7 +248,7 @@ window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
     return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, extra + '</div>') : `<div class="qtags qcard-tags">${extra}</div>`; },
   postBody: x => { const body = String(x.row.caption || x.row.body || x.row.text || '').trim(); return body ? `<p class="msg-fc-body">${mark(body)}</p>` : ''; },
   postTiles: x => /* the post's own Suggest goes: every Find card's row already carries one */ { const p = x.row, r = p.reactions, first = r && Array.isArray(r.emoji) && r.emoji[0];
-    const react = first ? tile_({ icon: 'star', label: 'React', note: first + (r.total ? ' · ' + r.total : ''), on: r.yours === first,
+    const react = first ? tile_({ icon: 'heart', label: 'Like', note: first + (r.total ? ' · ' + r.total : ''), on: r.yours === first,
       act: 'react', data: { id: p.id, emoji: first } }) : '';
     return tileRow_(react + String(postTiles_(p)).replace(/^<div class="tile-row[^"]*">|<\/div>$/g, '').replace(/<button[^>]*\brep-tile\b[^>]*>[\s\S]*?<\/button>/g, '')); },
 });

@@ -388,9 +388,9 @@ const KC_DEFAULT = {
   writing: { cls: 'hdb lib-c', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['refs'], tiles: [] },
   event: { cls: 'hdb lib-c', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['refs'], tiles: [] },
   people: { cls: 'person lib-c', pic: ['boxerPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] },
-  msg: { cls: 'msg-fc', pic: ['msgPic'], title: ['msgWho'], tags: ['msgTags'], lines: ['msgBody', 'msgTiles'], tiles: ['msg-reply:chat:Reply'] },
-  post: { cls: 'post-fc', pic: ['postPic'], title: ['postTitle'], tags: ['postTags'], lines: ['postBody', 'postTiles'], tiles: ['react:star:Like'] },
-  receipt: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: ['job-pay:cart:Pay'] },
+  msg: { cls: 'msg-fc', pic: ['msgPic'], title: ['msgWho'], tags: ['msgTags'], lines: ['msgBody', 'msgTiles'], tiles: ['msg-reply:send:Reply'] },
+  post: { cls: 'post-fc', pic: ['postPic'], title: [], tags: ['postTags'], lines: ['postBody', 'postTiles'], tiles: ['react:heart:Like'] },
+  receipt: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['receiptTags'], lines: ['receiptSum', 'ownLines'], tiles: ['job-pay:pound:Pay'] },
   friend: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   question: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   answer: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
@@ -517,6 +517,12 @@ function kcHoist_(html) {
   }).join('');
   return { lines, tiles };
 }
+/* WHETHER SOME TAGS ALREADY SAY A NAME, and the name put in front of them as a tag. */
+const kcSays_ = (tags, name) => norm(String(tags || '').replace(/<[^>]+>/g, ' ')).indexOf(norm(name)) >= 0;
+function kcTagFirst_(tags, name) {
+  const tag = `<span class="qtag" data-tag="0">${esc(name)}</span>`;
+  return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, '$1' + tag) : `<div class="qtags">${tag}</div>` + (tags || '');
+}
 /* A TAG SAYS ONLY WHAT THE MENUS ABOVE HAVE NOT (owner, 6 Nov), on every kind: a tag whose words a picked chip already says goes. */
 function kcUnpicked_(html) {
   const f0 = typeof STUFF !== 'undefined' && STUFF && STUFF.filters, f = Array.isArray(f0) ? f0 : [];
@@ -566,6 +572,9 @@ function findCard(x, credits) {
   parts.tags = kcUnpicked_(parts.tags);
   /* A CARD WITH NO TAGS OF ITS OWN STILL HAS ONE: its name (owner, 9 Nov: the name is a tag). */
   if (!parts.tags.trim() && name) parts.tags = `<div class="qtags"><span class="qtag" data-tag="0">${esc(name)}</span></div>`;
+  /* NO TITLE LINE ON ANY CARD (owner, 9 Nov): the name is a tag, put first when the tags do not already say it. */
+  if (name && parts.head && !kcSays_(parts.tags, name)) parts.tags = kcTagFirst_(parts.tags, name);
+  parts.head = '';
   /* A ROW OF TILES ITS OWN MAKER DREW AMONG THE LINES joins the card's one row: its main leads, the rest wait behind ⋯. */
   const hoist = kcHoist_(parts.lines);
   parts.lines = hoist.lines;
