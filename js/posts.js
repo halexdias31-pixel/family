@@ -235,9 +235,8 @@ function postFindCard_(x, draw) {
 }
 window.KC_AROUND = Object.assign(window.KC_AROUND || {}, { post: postFindCard_ });
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
-  postPic: x => { const p = x.row, media = postMedia_(p), who = postWho_(p);
-    return `<figure class="msg-fc-pic post-fc-pic">${media.length ? postItem_(media[0], 'post-fc-img')
-      : typeof pixSvg_ === 'function' && typeof LIB_PIX !== 'undefined' ? pixSvg_(LIB_PIX.content, who) : postFace_(p, who)}</figure>`; },
+  postPic: x => { const p = x.row, media = postMedia_(p);
+    return media.length ? `<figure class="msg-fc-pic post-fc-pic">${postItem_(media[0], 'post-fc-img')}</figure>` : ''; },
   postTitle: x => `<h3>${esc(x.row.title || postWho_(x.row))}</h3>`,
   postTags: x => { const p = x.row, media = postMedia_(p);
     const at = p.at || p.when, d = at && typeof parseWhen === 'function' ? parseWhen(at) : null;
