@@ -238,3 +238,16 @@ become an owner question showing both; never pick one.
 - No title line on open cards: the name is a tag, as questions do now.
 - The same four buttons on every card: main action (Send/Book/Pay/Buy), Message, Star, ⋯ (everything else).
 - Names: first name + initial everywhere (replaces "admins see full names").
+
+## 10 Nov — a card never draws its own insides
+- Every kind hands `findCard` only facts: its name, tags (short facts), plain text lines (two when closed), its buttons. Open shows every line; a form stays a form, drawn whole by its own form maker as the card's open content, never clamped.
+- `findCard` lays every card out one way: left-aligned, one text size, one gap. Text is never cut mid-line — a whole line, else an ellipsis, else not shown. An empty card says "Nothing here yet."
+- Pictures mean something: people → photo, chosen or steady default picture; questions → figure; everything else → one outline icon of its kind from the tile icon set (the `icon` column of data/settings/card-fields.json). Never a profile picture on a non-person card.
+- Which kinds hand over facts is the `facts` column of card-fields.json. Held by `check/card-facts.js` (core): every kind, admin/tutor/parent/child, 390 and 820px.
+
+## 10 Nov — business admin runs itself
+- Renewals (insurance, ICO fee, DBS Update Service, safeguarding refresher, tax dates) are reminded ON THE SITE only — the Business dot and the checklist item glow; no emails.
+- Tax pot: the site works out 25% of what comes in through Stripe, shows "put aside £X" monthly and the tax-year total, and flags 31 Jan and 31 Jul.
+- Tutors' DBS: each has a "last checked" date; 12 months on, a prompt with the certificate number and the DBS online-check link, one tap to log it done.
+- Recording a renewal: tap Renewed + new expiry date, and optionally attach the document (private Drive folder).
+- The owner already holds an enhanced DBS, a UTR and safeguarding training.

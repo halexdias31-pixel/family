@@ -1,5 +1,5 @@
 {
- "notes": "THE BUSINESS CHECKER (docs/history/1050): what a UK sole-trader tutoring business needs, in order. Guidance, not legal or financial advice. sense: an auto rule in js/biz-check.js (BC_RULES) or manual; renew: months or null; when: facts that must all hold (config biz_* keys). Links: gov.uk, ico.org.uk, nspcc.org.uk only (check-biz).",
+ "notes": "THE BUSINESS CHECKER (docs/history/1050): what a UK sole-trader tutoring business needs, in order. Guidance, not legal or financial advice. sense: an auto rule in js/biz-check.js (BC_RULES) or manual; renew: months or null; when: facts that must all hold (config biz_* keys). Links: gov.uk, ico.org.uk, nspcc.org.uk only (check-biz). doc: the policy in docs/policies that satisfies the row (optional).",
  "facts": {
   "under18": true,
   "under8": true,
@@ -153,7 +153,8 @@
    "link": "https://ico.org.uk/for-organisations/advice-for-small-organisations/",
    "sense": "records:privacy_notice",
    "renew": 12,
-   "when": {}
+   "when": {},
+   "doc": "docs/policies/privacy-notice.md"
   },
   {
    "id": "data_breach",
@@ -164,7 +165,8 @@
    "link": "https://ico.org.uk/for-organisations/report-a-breach/",
    "sense": "manual",
    "renew": 12,
-   "when": {}
+   "when": {},
+   "doc": "docs/policies/data-breach-plan.md"
   },
   {
    "id": "childrens_data",
@@ -177,7 +179,8 @@
    "renew": 12,
    "when": {
     "under18": true
-   }
+   },
+   "doc": "docs/policies/childrens-data.md"
   },
   {
    "id": "safeguarding_policy",
@@ -190,7 +193,8 @@
    "renew": 12,
    "when": {
     "under18": true
-   }
+   },
+   "doc": "docs/policies/safeguarding-policy.md"
   },
   {
    "id": "dsl",
@@ -203,7 +207,8 @@
    "renew": 12,
    "when": {
     "under18": true
-   }
+   },
+   "doc": "docs/policies/safeguarding-policy.md"
   },
   {
    "id": "dbs_owner",
@@ -229,7 +234,8 @@
    "renew": 36,
    "when": {
     "under18": true
-   }
+   },
+   "doc": "docs/policies/safer-recruitment.md"
   },
   {
    "id": "safeguarding_training",
@@ -256,7 +262,8 @@
    "when": {
     "under18": true,
     "online": true
-   }
+   },
+   "doc": "docs/policies/online-safety.md"
   },
   {
    "id": "home_visit_rules",
@@ -270,7 +277,8 @@
    "when": {
     "under18": true,
     "home_visits": true
-   }
+   },
+   "doc": "docs/policies/home-visits.md"
   },
   {
    "id": "under8_care",
@@ -283,7 +291,8 @@
    "renew": 12,
    "when": {
     "under8": true
-   }
+   },
+   "doc": "docs/policies/home-visits.md"
   },
   {
    "id": "employment_status",
@@ -318,7 +327,8 @@
    "renew": 12,
    "when": {
     "under18": true
-   }
+   },
+   "doc": "docs/policies/safer-recruitment.md"
   },
   {
    "id": "references",
@@ -331,7 +341,8 @@
    "renew": null,
    "when": {
     "under18": true
-   }
+   },
+   "doc": "docs/policies/safer-recruitment.md"
   },
   {
    "id": "tutor_onboarding",
@@ -342,7 +353,8 @@
    "link": "https://www.gov.uk/government/publications/keeping-children-safe-during-community-activities-after-school-clubs-and-tuition",
    "sense": "manual",
    "renew": 12,
-   "when": {}
+   "when": {},
+   "doc": "docs/policies/tutor-onboarding.md"
   },
   {
    "id": "staff_count",
@@ -364,7 +376,8 @@
    "link": "https://www.gov.uk/consumer-protection-rights",
    "sense": "records:family_terms",
    "renew": 12,
-   "when": {}
+   "when": {},
+   "doc": "docs/policies/family-terms.md"
   },
   {
    "id": "cancellation",
@@ -375,7 +388,8 @@
    "link": "https://www.gov.uk/online-and-distance-selling-for-businesses",
    "sense": "manual",
    "renew": 12,
-   "when": {}
+   "when": {},
+   "doc": "docs/policies/cancellation-refunds.md"
   },
   {
    "id": "complaints",
@@ -386,7 +400,8 @@
    "link": "https://www.gov.uk/consumer-protection-rights",
    "sense": "manual",
    "renew": 12,
-   "when": {}
+   "when": {},
+   "doc": "docs/policies/complaints.md"
   },
   {
    "id": "accessibility",
