@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* @family. — check/card-facts.js ONE STATIC CENTRED CARD (owner, 10 Nov): every kind, four viewers.
-   Static, centred: fails on a blank card, cut text, kind HTML, a stand-in picture, parts out of order or off-centre, a word on a round button. */
+   Fails on a blank card, cut text, kind HTML, a stand-in picture, parts off order or centre, a worded button. */
 'use strict';
 require('./quiet');
 const fs = require('fs');
