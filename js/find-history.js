@@ -660,10 +660,74 @@ function fileViewKind_(u) {
   if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(s)) return 'image';
   return 'page';
 }
+/* ---------- A POLICY (docs/policies/*.md) OPENS AS A PAGE, its placeholders filled from `DATA.policy`; a missing value reads "[to follow]". */
+const POLICY_FILL = { '[DSL name]': 'dsl', '[deputy DSL name]': 'deputy', '[email]': 'email', '[phone]': 'phone',
+  '[address]': 'address', '[ICO registration number]': 'ico', '[insurer]': 'insurer' };
+function policyName_(u) { const m = /docs\/policies\/([\w-]+)\.md(\?|#|$)/.exec(String(u || '')); return m ? m[1] : ''; }
+function policyFill_(md) {
+  const p = (typeof DATA !== 'undefined' && DATA && DATA.policy) || {};
+  return String(md || '').replace(/\[(DSL name|deputy DSL name|email|phone|address|ICO registration number|insurer)\](?!\()/g,
+    (all) => String(p[POLICY_FILL[all]] || '').trim() || '[to follow]');
+}
+/* Escape first, then mark up: headings, lists, tables, bold, italic and links (a sibling policy opens in place too). */
+function policyInline_(t) {
+  return esc(t).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\w)/g, '$1<em>$2</em>')
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (all, txt, href) => {
+      const h = href.replace(/&amp;/g, '&');
+      if (/^(https?:|mailto:|tel:)/i.test(h)) return `<a href="${esc(h)}" target="_blank" rel="noopener">${txt}</a>`;
+      if (/^[\w-]+\.md$/.test(h)) return `<a href="${esc(policyHref_(h))}" data-do="file-view">${txt}</a>`;
+      return txt;
+    });
+}
+function policyMd_(md) {
+  const lines = String(md || '').split(/\r?\n/), out = [];
+  let list = '', para = [];
+  const flush = () => { if (para.length) out.push('<p>' + policyInline_(para.join(' ')) + '</p>'); para = []; if (list) { out.push('</' + list + '>'); list = ''; } };
+  const cells = l => l.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i], h = /^(#{1,4})\s+(.*)$/.exec(l), li = /^\s*(?:[-*]|(\d+)\.)\s+(.*)$/.exec(l);
+    if (!l.trim()) { flush(); continue; }
+    if (h) { flush(); const n = Math.min(h[1].length + 1, 5); out.push(`<h${n}>${policyInline_(h[2])}</h${n}>`); continue; }
+    if (/^\s*\|/.test(l) && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1] || '')) {
+      flush();
+      const rows = [];
+      for (i += 2; i < lines.length && /^\s*\|/.test(lines[i]); i++) rows.push(cells(lines[i]));
+      i--;
+      out.push('<div class="policy-table"><table><thead><tr>' + cells(l).map(c => `<th>${policyInline_(c)}</th>`).join('') + '</tr></thead><tbody>'
+        + rows.map(r => '<tr>' + r.map(c => `<td>${policyInline_(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table></div>');
+      continue;
+    }
+    if (li) {
+      const kind = li[1] ? 'ol' : 'ul';
+      if (para.length) { out.push('<p>' + policyInline_(para.join(' ')) + '</p>'); para = []; }
+      if (list !== kind) { if (list) out.push('</' + list + '>'); out.push('<' + kind + '>'); list = kind; }
+      out.push('<li>' + policyInline_(li[2]) + '</li>');
+      continue;
+    }
+    if (list) { out.push('</' + list + '>'); list = ''; }
+    para.push(l.trim());
+  }
+  flush();
+  return out.join('');
+}
+function policyView_(u, host, name) {
+  const box = document.createElement('div');
+  box.className = 'file-view file-view-policy';
+  box.setAttribute('data-url', u);
+  box.innerHTML = `<div class="policy-page">${loading_()}</div><div class="tile-row">${tile_({ icon: 'close', label: 'Close', act: 'file-view-close' })}</div>`;
+  host.appendChild(box);
+  const page = box.querySelector('.policy-page'), show = md => { page.innerHTML = policyMd_(policyFill_(md)); };
+  const get = url => fetch(url, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error(r.status); return r.text(); });
+  /* The served copy beside the site first, the brand's address second. */
+  get('docs/policies/' + name + '.md').catch(() => get(u)).then(show)
+    .catch(() => { page.innerHTML = `<p class="note">This policy could not be loaded. <a href="${esc(u)}" target="_blank" rel="noopener">Open it</a>.</p>`; });
+  return true;
+}
 function fileView_(u, host, title) {
-  if (!host || !/^(https:\/\/|data\/)/.test(String(u || ''))) return false;
+  if (!host || !/^(https:\/\/|data\/|docs\/policies\/)/.test(String(u || ''))) return false;
   const had = host.querySelector(':scope > .file-view');
   if (had) { const same = had.getAttribute('data-url') === u; had.remove(); if (same) return true; }
+  if (policyName_(u)) return policyView_(u, host, policyName_(u));
   const kind = fileViewKind_(u), name = esc(title || 'File');
   const yt = kind === 'youtube' ? (/[?&]v=([\w-]{6,})/.exec(u) || /youtu\.be\/([\w-]{6,})/.exec(u) || [])[1] : '';
   const body = kind === 'video' ? `<video class="file-view-v" src="${esc(u)}" controls playsinline preload="metadata"></video>`
