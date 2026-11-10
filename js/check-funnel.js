@@ -102,7 +102,7 @@ boot(f => {
   /* `FUNNEL_ONLY=walk` walks the random funnels alone — about three minutes, and its OK line names only them. */
   if (process.env.FUNNEL_ONLY === 'under') { underTypes_(f, items); return done('the types under another and the timelines alone (545)'); }
   if (process.env.FUNNEL_ONLY === 'email') { emailTags_(f); return done('the Sunday email\'s tags against the card\'s alone (380)'); }
-  if (process.env.FUNNEL_ONLY === 'paths') { pathsAsked_(f, items); tagsAgree_(f); return done('the owner\'s paper paths and the build\'s looked-up answers alone (8 Nov, 1100)'); }
+  if (process.env.FUNNEL_ONLY === 'paths') { pathsAsked_(f, items); oneFunnel_(f); tagsAgree_(f); return done('the owner\'s paper paths and the build\'s looked-up answers alone (8 Nov, 1100)'); }
   if (process.env.FUNNEL_ONLY === 'walk') { walkFunnels_(f, items); return done('the random funnels alone (section 7)'); }
 
   /* ---------- 0. WHAT THE FIND SCREEN HOLDS IS WHAT THE OWNER SAID IT HOLDS § */
@@ -1014,6 +1014,7 @@ boot(f => {
 
   walkFunnels_(f, items);
   pathsAsked_(f, items);
+  oneFunnel_(f);
   tagsAgree_(f);
 
   /* ---------- A RANGE IS EVERY LEVEL IT COVERS (O1): one Level answer per level, and the item found under each ---------- */
@@ -1213,6 +1214,57 @@ function pathsAsked_(f, items) {
       else if (nSubj > 1 && fac.field !== 'subject') bad.push('paper path ' + trail.join(' > ') + ': asks `' + fac.field + '` before Subject (' + nSubj + ' subjects)');
     });
   } finally { S.filters = was.filters; }
+}
+
+/* ---------- EVERY QUALIFICATION'S PAST PAPERS, ONE FUNNEL (owner 10 Nov, 1180): each path under Past paper walked to Paper;
+   Level, Board and Year, wherever any path asks one, are asked wherever they still differ. */
+const ONE_FUNNEL = ['level', 'examBoard', 'examYear'];
+const SITTING_ = ONE_FUNNEL.concat(['keystage', 'examMonth', 'tier']);
+function oneFunnel_(f) {
+  const S = f.STUFF, was = S.filters, subj = f.facetList().find(x => x.field === 'subject');
+  const by = fl => f.facetList().find(x => x.field === fl);
+  const ends = [], asked = new Set(), seq = {};
+  let nodes = 0, settled = 0;
+  try {
+    const root = [['kindLabel', 'Practice'], ['kindOwn', 'Questions'], ['documentType', 'Past paper']].map(([field, value]) => ({ field, value }));
+    S.filters = root.slice();
+    const subjects = subj ? f.facetValues(f.stuffFiltered(), subj).map(v => v.value) : [];
+    const walk = (chips, depth, open) => {
+      if (++nodes > 6000) return;
+      S.filters = chips;
+      const list = f.stuffFiltered(), q = f.nextFacet(list), last = chips[chips.length - 1];
+      const now = ONE_FUNNEL.filter(k => !chips.some(c => c.field === k) && f.facetValues(list, by(k)).length > 1);
+      /* WHICH QUALIFICATION IS NEVER ANSWERED BY A SITTING (Month, Tier): May 2023 left one board and one level, so SATs met neither. */
+      if (open && SITTING_.indexOf(last.field) !== -1 && ONE_FUNNEL.indexOf(last.field) === -1) open.filter(k => k !== 'examYear' && now.indexOf(k) === -1).forEach(k => {
+        if (settled++ < 8) bad.push('one funnel: ' + by(k).label + ' is answered by ' + (by(last.field) || {}).label + ' at ' + chips.map(c => c.value).join(' > ') + ', never asked');
+      });
+      if (!q || q.field === 'paperId' || depth > 14) { ends.push({ chips, list, q }); return; }
+      /* EVERY ANSWER OF A SITTING QUESTION; a tag question (Function, What you need) its commonest, or the walk is thousands of lists. */
+      const vs = f.facetValues(list, q), sit = SITTING_.indexOf(q.field) !== -1;
+      (sit ? vs : vs.slice().sort((a, b) => b.n - a.n).slice(0, 1)).forEach(v => walk(chips.concat([{ field: q.field, value: v.value }]), depth + 1, now));
+    };
+    subjects.forEach(sv => walk(root.slice(0, 2).concat([{ field: 'subject', value: sv }, root[2]]), 0, null));
+  } finally { S.filters = was; }
+  ends.forEach(e => e.chips.forEach(c => { if (ONE_FUNNEL.indexOf(c.field) !== -1) asked.add(c.field); }));
+  let sats = 0, skipped = 0;
+  ends.forEach(e => {
+    const lv = [...new Set([].concat(...e.list.map(x => f.levelsOf(x))))].join('|') || '(none)';
+    if (/SATs/.test(lv)) sats++;
+    const path = e.chips.map(c => c.value).join(' > ');
+    const order = e.chips.map(c => c.field).filter(k => ONE_FUNNEL.indexOf(k) !== -1).join(' > ');
+    (seq[lv] = seq[lv] || new Set()).add(order);
+    asked.forEach(k => {
+      if (e.chips.some(c => c.field === k)) return;
+      const n = f.facetValues(e.list, by(k)).length;
+      if (n > 1 && skipped++ < 8) bad.push('one funnel: ' + lv + ' at ' + path + ' reaches ' + (e.q ? e.q.field : 'nothing') + ' with ' + by(k).label + ' never asked (' + n + ' answers)');
+    });
+    const np = f.facetValues(e.list, by('paperId')).length;
+    if (!e.q && np > 1 && skipped++ < 8) bad.push('one funnel: ' + lv + ' at ' + path + ' stops with ' + np + ' papers and no Paper question');
+  });
+  console.log('\nONE FUNNEL UNDER PAST PAPER: ' + ends.length + ' paths walked (' + nodes + ' lists), ' + skipped + ' skipping a question, ' + settled + ' settled by another; '
+    + Object.keys(seq).map(l => l + ': ' + [...seq[l]].slice(0, 3).join(' / ')).join('; '));
+  if (nodes > 6000) bad.push('one funnel: the walk under Past paper passed 6000 lists and stopped, so it proves nothing');
+  if (!sats || ends.length < 20) bad.push('one funnel: ' + ends.length + ' paths, ' + sats + ' of them SATs — too few to prove every qualification goes one way');
 }
 
 function walkFunnels_(f, items) {

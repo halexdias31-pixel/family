@@ -400,6 +400,8 @@ function facetLocal_(items, F) {
     if (G === F) break;
     const nG = asked.indexOf(G.field) !== -1 ? 0 : facetValues(items, G).length;
     if (nG < 2 || nG >= nF || !runsInside_(items, F, G) || runsInside_(items, G, F) === 2) continue;
+    /* A G NEVER ASKED HERE NEVER HOLDS F (1180): Paper waited on a lopsided Function, and A-Level papers had no Paper question. */
+    if (facetWhy_(items, G)) continue;
     say = G.label || G.field;
     break;
   }
@@ -430,8 +432,12 @@ function nextFacet(items) {
   const pick = list => list.reduce((b, c) => (!b || c.bits > b.bits ? c : b), null);
   let best = pick(ok);
   /* A finer question splits more, but its coarser one comes first (the subtype rule): Subject before Topic. */
+  /* THE COARSEST HOLDING IT, BY THE TAB (1180): Month jumped Level and Board where each board sat in one month, so SATs met neither. */
+  const at = new Map(facetList().map((f, i) => [f, i]));
   for (let hop = 0; best && hop < 4; hop++) {
-    const up = pick(ok.filter(c => c !== best && facetInside_(best.facet, c.facet, items) && !facetInside_(c.facet, best.facet, items)));
+    const up = ok.filter(c => c !== best && at.get(c.facet) < at.get(best.facet)
+      && facetInside_(best.facet, c.facet, items) && !facetInside_(c.facet, best.facet, items))
+      .reduce((b, c) => (!b || at.get(c.facet) < at.get(b.facet) ? c : b), null);
     if (!up) break;
     best = up;
   }

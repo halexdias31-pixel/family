@@ -609,15 +609,15 @@ function facetAnswersHtml_(facet, values, more) {
         <span class="k">Doesn't matter</span>
       </div>`;
   /* THE "and N more" LINE WENT WITH THE TRIM. § */
-  /* `data-value` IS THE FULL NAME AND THE TEXT IS `answerSay_`'s. The chip this
-     row creates has to find the rows it names, and `filterHit` matches on what is in `data-value`. */
+  /* `data-value` IS THE FULL NAME (`filterHit` matches it); THE TEXT IS `show`, what tells it apart from the answers beside it, as
+     its chip says it (1180: SATs said `Paper 1 · Maths · SATs · KS2`). */
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
   const grid = numberedRun_(values);
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap${facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? ' is-off' : ''}" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
         grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
-        <span class="k">${mark(v.say != null ? v.say : answerSay_(facet, v.value))}</span>
+        <span class="k">${mark(v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value))}</span>
       </div>`).join('') + skip + '</div>' + more;
 }
 
