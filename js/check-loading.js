@@ -120,8 +120,11 @@ for (const f of appFiles_()) {
       if (t.value === 'loading_') { calls++; callers.add(f); }
       if (t.value === 'loaded_') loadedCalls++;
     }
-    /* 0. A WAIT FOUND BY READING ITS HTML: `isLoading_(h)` asks, a regex for the class never does. */
-    if (t.type.label === 'regexp' && /class=.{0,2}"?loading/.test(String((t.value && t.value.pattern) || ''))) bad.push(`${f}:${lineOf(src, t.start)}: a wait found by matching its class — ask \`isLoading_(html)\``);
+    /* 0. A WAIT FOUND BY READING ITS HTML: ask the wait itself (awaiting_(), a list still null), never the text drawn for it. */
+    if (t.type.label === 'regexp' && /class=.{0,2}"?loading/.test(String((t.value && t.value.pattern) || ''))) bad.push(`${f}:${lineOf(src, t.start)}: a wait found by matching its class — ask what it waits on`);
+    if (t.type.label === 'name' && t.value === 'isLoading_') bad.push(`${f}:${lineOf(src, t.start)}: isLoading_ compares HTML text — ask what it waits on`);
+    if (t.type.label === 'name' && t.value === 'loading_' && toks[i + 1] && toks[i + 1].type.label === '(' && toks[i + 2] && toks[i + 2].type.label === ')'
+      && ((toks[i - 1] && /^[=!]==?$/.test(toks[i - 1].value)) || (toks[i + 3] && /^[=!]==?$/.test(toks[i + 3].value)))) bad.push(`${f}:${lineOf(src, t.start)}: a wait found by comparing to loading_()'s text`);
     if (t.type.label !== 'string' && t.type.label !== 'template') return;
     strings++;
     const v = String(t.value || '');

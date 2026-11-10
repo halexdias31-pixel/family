@@ -143,7 +143,7 @@ function missingRepaint_() {
   const el = document.getElementById('miss-body');
   if (!el) return;
   const html = missingBody_();
-  if (isLoading_(html)) return;
+  if (missingWaits_()) return;
   /* THE CARD'S OWN TILES JOINED INTO THE LIST'S ROW (tileRowsJoin_, 489) are kept, so The list never takes Delete away (660). */
   const kept = [...el.querySelectorAll('.tile-group')];
   el.innerHTML = html;
@@ -254,9 +254,11 @@ function missingQual_(g) {
       <div class="miss-gaps">${lines}${wait}</div>
     </details>`;
 }
+/* IS THE LIST STILL COMING: asked of the waits, never of the HTML drawn for them. */
+const missingWaits_ = () => MISSING.list === null || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null);
 function missingBody_() {
   missingAsk_();
-  if (MISSING.list === null || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null)) return loading_();
+  if (missingWaits_()) return loading_();
   const r = missingNow_();
   const unread = r.unread ? `<p class="note">${r.unread} ${r.unread === 1 ? 'line' : 'lines'} of expected-papers.json not understood.</p>` : '';
   if (!r.quals.length) return '<p class="note">Nothing listed to expect yet.</p>' + unread;
@@ -271,13 +273,13 @@ function missingBody_() {
 if (typeof on === 'function') on('miss-all', () => { MISSING.all = !MISSING.all; missingRepaint_(); });
 function healthWithMissing_(card) {
   if (!missingFor_()) return card;
-  const body = missingBody_(), waits = isLoading_(body);
+  const body = missingBody_(), waits = missingWaits_();
   const part = `<h3 class="miss-head">What’s missing</h3><div id="miss-body"${waits ? ' aria-busy="true"' : ''}>${body}</div>`;
   return /<\/div>\s*$/.test(card) ? card.replace(/^<div class="card logic-card"/, '<div class="card logic-card miss-card"').replace(/<\/div>\s*$/, part + '</div>') : card + `<div class="card miss-card">${part}</div>`;
 }
 function missingCard_() {
   const body = missingBody_();
-  const waits = isLoading_(body);
+  const waits = missingWaits_();
   return `<div class="card miss-card"><h3>What’s missing</h3>
     <div id="miss-body"${waits ? ' aria-busy="true"' : ''}>${body}</div></div>`;
 }

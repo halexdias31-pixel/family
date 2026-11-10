@@ -995,11 +995,11 @@ function progressCards_() {
   if (st.series.length) st.series.slice(0, 6).forEach(sr => cards.push(progressSeriesCard_(sr)));
   else cards.push(emptyCard_('Papers and worksheets'));
   cards.push(progressSessionsCard_(signed ? progressSessions_() : { ahead: [], past: [] }));
-  const coming = signed && ((typeof awaiting_ === 'function' && awaiting_())
-    || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null && !LIBRARY_FAILED));
-  if (coming) cards.push(loading_());
   return cards;
 }
+/* ARE PROGRESS'S NUMBERS STILL COMING: the payload or the library, asked of the waits themselves, never of a card's HTML. */
+const progressComing_ = () => typeof USER !== 'undefined' && !!USER && ((typeof awaiting_ === 'function' && awaiting_())
+  || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null && !LIBRARY_FAILED));
 /* PRACTISE A TOPIC: Find with that Topic chip. Questions do not answer Topic (`topicShown_`), so a chip that finds nothing opens the question last got wrong instead. */
 on('prog-practise', el => {
   const topic = String((el && el.dataset.topic) || ''), key = String((el && el.dataset.key) || '');
