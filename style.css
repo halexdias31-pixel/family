@@ -62,7 +62,9 @@
   /* ONE TILE SPEC (467, 487, 508): a 36px plate, a 16px mark, 6px apart -- 487 halved it to 22px and kids missed taps (508). */
   --tile: 44px; --tile-i: 16px; --tile-gap: 6px; --tile-send: 44px; --tile-r: 999px; --btn-r: 22px;
   /* ONE PILL SIZE (owner, 1040 r12): a chosen chip, a menu answer and a card tag are drawn alike; a tappable one keeps 44px in an invisible ::before. */
-  --tp-fs: .78rem; --tp-lh: 1.35; --tp-pad: .18rem .65rem; --tp-h: 1.55rem;
+  /* ONE DIAL FOR EVERY TAG'S SIZE (owner, 10 Nov): change this, not each tag. */
+  --tag-scale: 2;
+  --tp-fs: calc(.78rem * var(--tag-scale)); --tp-lh: 1.35; --tp-pad: calc(.18rem * var(--tag-scale)) calc(.65rem * var(--tag-scale)); --tp-h: calc(1.55rem * var(--tag-scale));
   --r-sm:   2px;
 
   /* ---------- THE SECOND PALETTE, WHICH HAD NO NAMES AT ALL § */
@@ -1751,7 +1753,7 @@ button.text-drop { color: var(--bad); }
 }
 .chip:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 /* THE FUNNEL'S OWN CHIPS: smaller type, but a 44px tap like every control (950); the radius is the one chip token. */
-.chip.sm { min-height: var(--tp-h); border-radius: var(--r-round); padding: var(--tp-pad); position: relative; font-size: var(--fs-small); line-height: var(--tp-lh); gap: .2rem; }
+.chip.sm { min-height: var(--tp-h); border-radius: var(--r-round); padding: var(--tp-pad); position: relative; font-size: var(--tp-fs); line-height: var(--tp-lh); gap: .2rem; }
 .chip.sm::before, .row.tap.counted::before { content: ""; position: absolute; inset: calc((var(--tp-h) - 44px) / 2) 0; }
 /* A CHIP OF A KIND IS DRAWN IN ITS COLOUR: § */
 .chip[data-tag] {
@@ -2781,8 +2783,8 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 }
 .prof-shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .prof-tag {
-  font-family: var(--mono); font-size: var(--fs-small); letter-spacing: .08em;
-  padding: .2rem .45rem; border-radius: var(--r-round);
+  font-family: var(--mono); font-size: var(--tp-fs); letter-spacing: .08em;
+  padding: var(--tp-pad); border-radius: calc(var(--tp-h) / 2);
   border: 1px solid var(--line); color: var(--ink);
 }
 /* THE ROWS NEED AIR ABOVE THEM, or the first one sits against the adjectives as though it were one
@@ -2800,7 +2802,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .is-prof .row { padding: .26rem 0; font-size: var(--fs-small); }
 .is-prof .prof-say { font-size: var(--fs-small); line-height: 1.35; }
 /* THE SUBJECTS, AS THE ADJECTIVES' CHIPS. § */
-.prof-teach .prof-tag { text-transform: none; letter-spacing: .02em; font-size: var(--fs-small); }
+.prof-teach .prof-tag { text-transform: none; letter-spacing: .02em; font-size: var(--tp-fs); }
 /* A COLOUR PER KIND OF PILL (look rules): facts, subjects green, qualifications, places; never the grey line. */
 .prof-tags .prof-tag { border-color: color-mix(in srgb, var(--tag, var(--ink)) 60%, transparent); color: var(--tag, var(--ink));
   background: color-mix(in srgb, var(--tag, var(--ink)) 10%, transparent); }
@@ -3601,9 +3603,9 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qcard-tags { margin: 0; }
 /* A RADIUS IN px, NOT 999px. § */
 .qtag {
-  display: inline-flex; align-items: center; max-width: 100%; min-height: var(--tp-h); padding: var(--tp-pad); border-radius: var(--r-round);
+  display: inline-flex; align-items: center; max-width: 100%; min-height: var(--tp-h); padding: var(--tp-pad); border-radius: calc(var(--tp-h) / 2);
   border: 1px solid var(--tag, var(--chip-line)); color: var(--tag, var(--dim)); background: color-mix(in srgb, var(--tag, var(--chip-line)) 10%, transparent);
-  font-size: var(--fs-small); line-height: var(--tp-lh);
+  font-size: var(--tp-fs); line-height: var(--tp-lh);
 }
 /* NO TAG IS DRAWN DIFFERENTLY FROM ANOTHER. § */
 
@@ -6013,6 +6015,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc:not(.is-open) > .kc-lines > * ~ * { display: none; }
 /* A LINE THAT IS A WHOLE TABLE (a receipt) is still two lines high when closed; open shows all of it. */
 .card.kc:not(.is-open) > .kc-lines { max-height: 3em; overflow: hidden; }
+/* A LINE THAT IS A ROW OF TAGS (a tutor's qualifications) is never cut mid-tag: tags wrap whole, whatever --tag-scale is. */
+.card.kc:not(.is-open) > .kc-lines:has(> :first-child .prof-tag, > :first-child .qtag) { max-height: none; }
+.card.kc:not(.is-open) > .kc-lines > :first-child:has(.prof-tag, .qtag) { display: flex; flex-wrap: wrap; -webkit-line-clamp: unset; line-clamp: none; overflow: visible; }
 .card.kc.is-open { display: flex; flex-direction: column; }
 .card.kc.is-open > .kc-tags { order: -1; }
 .card.kc.is-open > .kc-head { display: none; }
