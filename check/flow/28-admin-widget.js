@@ -562,11 +562,11 @@ check('Find › Questions › Maths › Past paper › A-Level › Edexcel › 2
   T.STUFF().filters = path.map(f => Object.assign({}, f));
   W.paintFinder_('stuff');
   if (R.stuffFiltered().length < 50) return ['the path holds ' + R.stuffFiltered().length + ' questions — the 2021 papers are not in the library, NOT checked'];
-  /* FUNCTION, ONCE A PAPER IS PICKED: Paper 2 holds one part that is not machine-marked, so Function splits it and is asked before Question. */
+  /* VERIFIED, ONCE A PAPER IS PICKED: Paper 2 holds one part that is not machine-marked, so Verified splits it and is asked before Question. */
   T.STUFF().filters.push({ field: 'paperId', value: 'RS1786302107764-506' });
   const next = R.nextFacet(R.stuffFiltered());
-  if (!next || next.field !== 'function') bad.push('after Paper 2 the funnel asks ' + (next ? next.field : 'nothing') + ', not Function — the verified tags are sorted after the questions that pick one question');
-  else if (R.facetValues(R.stuffFiltered(), next).map(v => v.value).sort().join() !== 'Function unverified,Function verified') bad.push('Function offers ' + R.facetValues(R.stuffFiltered(), next).map(v => v.value).join(', '));
+  if (!next || next.field !== 'verified') bad.push('after Paper 2 the funnel asks ' + (next ? next.field : 'nothing') + ', not Verified — the verified tag is are sorted after the questions that pick one question');
+  else if (R.facetValues(R.stuffFiltered(), next).map(v => v.value).sort().join() !== 'Not verified,Verified') bad.push('Verified offers ' + R.facetValues(R.stuffFiltered(), next).map(v => v.value).join(', '));
   W.paintFinder_('stuff');
   /* EVERY PAGE: a stem's page and a long part's first pages carried no Suggest a change (486). */
   const pages = R.stuffPages_(), first = R.stuffFirstResult_();

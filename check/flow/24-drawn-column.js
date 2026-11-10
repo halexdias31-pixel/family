@@ -933,28 +933,31 @@ check('every question has an Accuracy and a Function tag on its card and as funn
     const all = w.stuffItemsAll_();
   const h1 = all.find(x => x.row && x.row.row_id === 'HX-1'), h2 = all.find(x => x.row && x.row.row_id === 'HX-2');
   if (!h1 || !h2) return ['the fixture paper did not come through the loader into Find'];
-  const fnOf = x => (!w.qtIncomplete_(x.row).length && w.qtMachine_(x.row)) ? 'Function verified' : 'Function unverified';
-  [[h1, 'Accuracy verified'], [h2, 'Accuracy unverified']].forEach(([x, acc]) => {
+  const fnOf = x => !w.qtIncomplete_(x.row).length && w.qtMachine_(x.row);
+  [[h1, true], [h2, false]].forEach(([x, accOk]) => {
+    const acc = accOk && fnOf(x) ? 'Verified' : 'Not verified';
     host.innerHTML = w.questionCard_(x, 0);
     const said = (host.querySelector('.qcard-tags') || {}).textContent || '';
     if (said.indexOf(acc) === -1) bad.push(x.row.row_id + '\'s tag row lacks ' + acc + ': ' + JSON.stringify(said.replace(/\s+/g, ' ').trim()));
-    if (said.indexOf(fnOf(x)) === -1) bad.push(x.row.row_id + '\'s tag row lacks ' + fnOf(x));
+    if (acc === 'Verified' && /Not verified/.test(said)) bad.push(x.row.row_id + ' reads Not verified and Verified');
+    if (/Accuracy|Function (un)?verified/.test(said)) bad.push(x.row.row_id + ' still carries an Accuracy or Function tag');
     if (/\b(Ready|Usable|Rough)\b/.test(said)) bad.push('a health band is in ' + x.row.row_id + '\'s tag row');
   });
-  if (fnOf(h2) !== 'Function unverified') bad.push('HX-2 has no answer and still reads Function verified');
+  if (fnOf(h2)) bad.push('HX-2 has no answer and still passes its function check');
   const fields = w.facetList().map(f => f.field);
-  ['accuracy', 'function'].forEach(f => { if (fields.indexOf(f) === -1) bad.push('the funnel has no ' + f + ' question'); });
+  if (fields.indexOf('verified') === -1) bad.push('the funnel has no verified question');
+  ['accuracy', 'function'].forEach(f => { if (fields.indexOf(f) !== -1) bad.push('the funnel still asks ' + f); });
   if (fields.indexOf('health') !== -1 || fields.indexOf('answerable') !== -1) bad.push('health is a finder question again');
-  t.STUFF().filters = [{ field: 'accuracy', value: 'Accuracy verified' }];
+  t.STUFF().filters = [{ field: 'verified', value: 'Verified' }];
   const hit = w.stuffFiltered().filter(x => x.kind === 'question').map(x => x.row.row_id);
-  if (hit.join() !== 'HX-1') bad.push('picking Accuracy verified leaves ' + JSON.stringify(hit) + ', wanted HX-1');
+  if (hit.join() !== (fnOf(h1) ? 'HX-1' : '')) bad.push('picking Verified leaves ' + JSON.stringify(hit) + ', wanted ' + (fnOf(h1) ? 'HX-1' : 'none'));
   t.STUFF().filters = [{ field: 'paperId', value: 'HX' }];
   host.innerHTML = w.stuffQuestion();
   if (host.querySelector('[data-do="paper-health"]')) bad.push('a Health tile is under the chosen paper');
-  /* AND THE TWO TAGS ARE ORDINARY ANSWERS INSIDE THE PAPER TOO (396): asked there by the one rule when they split it. */
+  /* AND THE ONE TAG IS AN ORDINARY ANSWERS INSIDE THE PAPER TOO (396): asked there by the one rule when they split it. */
   const accAt = [...host.querySelectorAll('[data-do="facet-pick"]')].map(b => b.dataset.field);
-  const asks = w.facetList().filter(f => f.field === 'accuracy' && !w.facetWhy_(w.stuffFiltered(), f)).length;
-  if (asks && accAt.indexOf('accuracy') < 0 && accAt.length === 0) bad.push('Accuracy splits the paper and nothing is asked');
+  const asks = w.facetList().filter(f => f.field === 'verified' && !w.facetWhy_(w.stuffFiltered(), f)).length;
+  if (asks && accAt.indexOf('verified') < 0 && accAt.length === 0) bad.push('Verified splits the paper and nothing is asked');
   t.STUFF().filters = [];
   host.remove();
   return bad;

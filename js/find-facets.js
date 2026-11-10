@@ -375,7 +375,7 @@ function facetEcho_(items, facet) {
   for (const g of skipped) {
     const G = facetList().find(f => f.field === g.field);
     if (!G) continue;
-    /* FINER BY WHAT IT IS, NOT BY THIS LIST (8 Nov): read over everything, so Year under Any accuracy, inside it only by chance
+    /* FINER BY WHAT IT IS, NOT BY THIS LIST (8 Nov): read over everything, so Year under Any verified, inside it only by chance
        in one subject's list, is still asked; Shelf sits inside Subject everywhere and stays an echo. */
     const to = echoInside_(facet, G) && echoTo_(items, facet, G), ok = !!to && Object.keys(to).length > 1;
     /* A skipped question the list answers one way was never a choice, so nothing re-asks it (a list of projects alone, 660). */

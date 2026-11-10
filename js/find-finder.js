@@ -547,9 +547,8 @@ const FACETS = [
   /* THE YEAR, THEN THE MONTH, THEN THE PAPER — like the folders they came from. */
   { field: 'examYear',  label: 'Year',        of: x => sittingOf_(x).year },
   { field: 'examMonth', label: 'Month',       of: x => sittingMonth_(x) },
-  /* TWO TAGS ON EVERY QUESTION (388): the answer checked against the official scheme, and the type machine-marked -- asked before Paper (529). */
-  { field: 'accuracy',  label: 'Accuracy',    of: x => verifyTags_(x).accuracy },
-  { field: 'function',  label: 'Function',    of: x => verifyTags_(x).fn },
+  /* ONE TAG ON EVERY QUESTION (388; owner 10 Nov): answer checked against the scheme and type machine-marked, or not -- asked before Paper (529). */
+  { field: 'verified',  label: 'Verified',    of: x => verifyTags_(x).verified },
   /* THE ID DECIDES WHO ANSWERS; its cover code is what is said (owner 8 Nov) — year, month, tier, board are their own facets, and tellApart_ adds one where two collide. */
   { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
     showOf: id => paperTag_(id) || paperLabel_(id), tagSay: id => paperTag_(id),
