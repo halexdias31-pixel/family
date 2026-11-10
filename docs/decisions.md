@@ -264,3 +264,13 @@ become an owner question showing both; never pick one.
 - No width breakpoints: the 30rem root size, reacts under 320, widget padding under 22rem, camera discs under 359px, essay lines and keypad keys from 700px all became clamp()/min() rules; the keypad's return word is a container query on the pad. Kept: print, reduced motion/transparency, hover, and the two shape (aspect-ratio) rules.
 - Held by check-look 59b (core): no `@media` by width, `.card-grid` is that rule, every screen in index.html carries it.
 - 10 Nov (later) · ONE COLUMN on every screen, for consistency (owner) — replaces the multi-column flow above; the page still uses the full width.
+
+## 10 Nov (evening) — one card anatomy, centred (replaces left alignment)
+- Every card, every kind, the same anatomy top to bottom, all centred on one axis: picture (one fixed size, centred) → tags (centred, wrapping) → lines (centred, ≤2 closed) → the four buttons (centred row). Open adds content below; the top never changes.
+- Long content (question text, policies, forms, tables) sits in a centred block of reading width; its paragraphs read left-aligned inside that block.
+- ⋯ opens a list of actions WITH WORDS (icon + label), centred, not a second row of bare icons.
+- Unique content never breaks the anatomy: whatever a kind holds goes into the content block.
+
+## 10 Nov — cards are static: one view, no open/closed
+- Every card is drawn once, whole: picture (one fixed size, centred) → tags → lines and content (all of it) → the four buttons. No tap-to-open picture, no enlarging, no closed two-line clamp.
+- ⋯ is the only toggle a card has: its labelled list of the other actions. A kind with no main action of its own leads with Share.

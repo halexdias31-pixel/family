@@ -259,7 +259,8 @@ function creditsToTags_(root) {
   const at = root && root.querySelectorAll ? root : document;
   if (at && at.querySelectorAll) at.querySelectorAll('.card :is([class$="-credit"], .as-tag):not(.qtag)').forEach(el => {
     const card = el.closest('.card'), row = card && card.querySelector('.qcard-tags'), w = (el.textContent || '').trim();
-    if (!row || !w || el.closest('.qcard-tags')) return;
+    /* A ONE-SHAPE CARD'S LONG CREDIT IS A LINE (KC_TAG_MAX), and its hidden original (`.kc-src`) is never read for tags. */
+    if (!row || !w || el.closest('.qcard-tags, .kc-src') || (card.classList.contains('kc') && w.length > (typeof KC_TAG_MAX === 'number' ? KC_TAG_MAX : 30))) return;
     const t = document.createElement('span');
     t.className = 'qtag q-credit'; t.textContent = w;
     row.appendChild(t); el.remove();
