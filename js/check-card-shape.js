@@ -73,7 +73,7 @@ const shapeOf = html => {
 /* EVERY CARD (owner, 9 Nov): tags, and exactly four buttons -- main, Message, Star, ⋯ -- the rest behind ⋯; a picture only when real. */
 function fourOf(html) {
   const picH = (/<div class="kc-pic">([\s\S]*?)<\/div><div class="kc-head">/.exec(html) || [, ''])[1];
-  if (picH && !/<(img|video|picture)\b|mfrclip-|pfp-art|person-pic|prof-pic|dm-pic/.test(picH)) return 'a stand-in picture: ' + picH.slice(0, 60);
+  if (picH && !/<(img|video|picture)\b|mfrclip-|class="(mech|tl)-pic"|pfp-art|person-pic|prof-pic|dm-pic/.test(picH)) return 'a stand-in picture: ' + picH.slice(0, 60);
   if (/<div class="kc-tags"><\/div>/.test(html)) return 'no tags';
   const rows = html.split('<span class="kc-four">').slice(1);
   if (rows.length < 1) return 'no four-button row';

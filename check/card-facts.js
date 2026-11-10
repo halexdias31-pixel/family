@@ -62,7 +62,7 @@ function measure(per) {
       if (pic && PEOPLE.includes(kind) && pic.getClientRects().length) { const p = pic.getBoundingClientRect(); out.pics[Math.round(p.width) + 'x' + Math.round(p.height)] = kind; }
       /* IMAGE ON TOP ONLY WHEN REAL (owner, 10 Nov late): a thing's photo, figure or cover; never a kind's icon or pixel sign. */
       if (card.querySelector('.kc-icon, .kc-blank, .lib-pic')) say(x, 'a stand-in picture (kind icon or pixel sign)');
-      if (pic && !PEOPLE.includes(kind) && pic.innerHTML.trim() && !/<(img|video|picture)\b|mfrclip-/.test(pic.innerHTML)) say(x, 'a picture that is not a real image');
+      if (pic && !PEOPLE.includes(kind) && pic.innerHTML.trim() && !/<(img|video|picture)\b|mfrclip-|class="(mech|tl)-pic"/.test(pic.innerHTML)) say(x, 'a picture that is not a real image');
       if (pic && !pic.innerHTML.trim() && pic.getClientRects().length) say(x, 'an empty picture part still takes room');
       /* ONE ORDER, TOP TO BOTTOM: image, tags, content, buttons. */
       const tops = [pic, card.querySelector(':scope > .kc-tags'), card.querySelector(':scope > .kc-lines'), card.querySelector(':scope > .kc-form'), card.querySelector(':scope > .kc-act')]
