@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* @family. — check/card-facts.js A CARD NEVER DRAWS ITS OWN INSIDES (owner, 10 Nov): every kind in Find, four viewers, 390 and 820px, closed and open.
+/* @family. — check/card-facts.js A CARD NEVER DRAWS ITS OWN INSIDES (owner, 10 Nov): every kind, four viewers, two widths.
    Fails on cut text, a blank card, centred text, kind HTML in the lines, or a profile picture off a person. */
 'use strict';
 require('./quiet');
