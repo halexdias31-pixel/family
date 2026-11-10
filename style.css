@@ -5551,6 +5551,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc:not(.is-open) > .kc-lines:has(> :first-child .prof-tag, > :first-child .qtag) { max-height: none; }
 .card.kc:not(.is-open) > .kc-lines > :first-child:has(.prof-tag, .qtag) { display: flex; flex-wrap: wrap; -webkit-line-clamp: unset; line-clamp: none; overflow: visible; }
 /* A READING'S TEXT IN ITS BODY WRAPPER (`.rd-body`, redrawn by its source) clamps the same: its translation tag waits for open. */
+/* A CARD THAT HOLDS A FORM (sign in, join) is never cut: its boxes and buttons show whole, open or closed (owner, 10 Nov). */
+.card.kc:not(.is-open) > .kc-lines:has(input, select, textarea, button, .tile-row, [data-do]) { max-height: none; overflow: visible; }
+.card.kc:not(.is-open) > .kc-lines:has(input, select, textarea, button, .tile-row, [data-do]) > * { display: revert; -webkit-line-clamp: unset; line-clamp: none; overflow: visible; }
 .card.kc:not(.is-open) > .kc-lines:has(> .rd-body:first-child) { max-height: 3em; }
 .card.kc:not(.is-open) > .kc-lines > .rd-body:first-child { display: block; overflow: hidden; -webkit-line-clamp: unset; line-clamp: none; }
 .card.kc:not(.is-open) > .kc-lines > .rd-body > .qtags, .card.kc:not(.is-open) > .kc-lines > .rd-body > :not(.qtags) ~ :not(.qtags) { display: none; }
