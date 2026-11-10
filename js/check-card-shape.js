@@ -124,13 +124,12 @@ kindNames.forEach(k => { if (k === 'tutor') return;
   if (!m) bad.push('find-finder.js KINDS has no one-line ' + k + ' entry');
   else if (!/findCard\(x[,)]|findCard\(x\.soon/.test(m[2])) bad.push('find-finder.js draws ' + k + ' with ' + m[2].trim() + ', not findCard'); });
 rows.forEach(r => { if (kindNames.length && kindNames.indexOf(r.kind) < 0) bad.push('card-fields.json names a kind ' + r.kind + ' that KINDS has not'); });
-/* PHASE 2 (owner, 9 Nov): NO KIND IS DRAWN OPEN BUT A QUESTION, and none leads with a greyed Open -- a real main action, or Open/Read that opens it. */
-const openKinds = (/\nconst KC_OPEN_KINDS = (\[[^\]]*\]);/.exec(cards) || [, 'null'])[1];
-if (openKinds.replace(/\s/g, '') !== "['question','answer']") bad.push('KC_OPEN_KINDS is ' + openKinds + ', not a question and an answer alone');
+/* CARDS ARE STATIC (owner, 10 Nov): no kind is drawn open or closed, no picture is a button; ⋯ is the only toggle. */
+if (/\bKC_OPEN_KINDS\b|on\('kc-open'|data-do="kc-open"|is-open/.test(cards.slice(cards.indexOf('function kcFour_('), cards.indexOf('/* Tapping one opens')))) bad.push('js/cards.js still opens or closes a card (KC_OPEN_KINDS, kc-open or is-open): cards are static');
 const mainOf = html => { const r = html.split('<span class="kc-four">')[1] || ''; return (/<button[^>]*>/.exec(r) || [''])[0]; };
 rows.map(r => r.kind).concat(['some-new-kind']).forEach(kind => {
   const html = String(got.findCard({ kind, key: kind + ':1', name: 'One', row: ROW })), lead = mainOf(html), first = String((((d.cardFields || {})[kind] || {}).tiles || [])[0] || '');
-  if (/data-do="kc-open"[^>]*disabled/.test(lead)) bad.push(kind + ': leads with a greyed Open, not a main action');
+  if (/data-do="kc-open"/.test(html)) bad.push(kind + ': a kc-open button; a card is static');
   if (/^(receipt|post|msg|shop)$/.test(kind) && !first) bad.push(kind + ': card-fields.json names no main action (Pay, Like, Reply, Buy) first in its tiles');
   if (/\bkc-off\b/.test(lead) && lead.indexOf('data-do="' + String(first).split(':')[0] + '"') < 0) bad.push(kind + ': leads with a greyed tile that is not its own main');
 });
@@ -160,10 +159,11 @@ delete scope.brand;
 scope.window.KC_OWN = {};
 if (!/\n  tutor:[\s\S]{0,300}?: findCard\(x\) \}/.test(finder)) bad.push('find-finder.js does not draw a tutor with findCard');
 
-/* CLOSED IS TWO LINES: the closed card's lines are cut at two lines' height. */
+/* ONE CENTRED, STATIC ANATOMY: no closed-card rule, no clamp on a card's lines, centred, ⋯ items with words. */
 const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
-if (!/\.card\.kc:not\(\.is-open\) > \.kc-lines > \* \{[^}]*-webkit-line-clamp: 2;/.test(css) || !/\.card\.kc:not\(\.is-open\) > \.kc-lines > \* ~ \* \{ display: none; \}/.test(css)) bad.push('style.css no longer clamps a closed card to one block of two lines');
-
+if (/\.card\.kc[^{]*(:not\(\.is-open\)|\.is-open)/.test(css)) bad.push('style.css still draws a closed or open card: cards are static');
+if (!/\.card\.kc \{[^}]*align-items: center;[^}]*text-align: center;/.test(css)) bad.push('style.css does not centre the card anatomy (.card.kc align-items/text-align center)');
+if (!/\.kc-more > \.tile::after \{[^}]*content: attr\(aria-label\)/.test(css)) bad.push('style.css does not label the actions behind ⋯');
 /* A FACET'S SHOW FITS A TAG: the owner's short labels (labels.json facet-show:*) and every form showForms_ (find-facets.js) offers are ≤ KC_TAG_MAX. */
 const tagMax = Number((/const KC_TAG_MAX = (\d+);/.exec(cards) || [])[1]);
 const facetsSrc = fs.readFileSync(path.join(ROOT, 'js/find-facets.js'), 'utf8');

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/* @family. — check/card-facts.js A CARD NEVER DRAWS ITS OWN INSIDES (owner, 10 Nov): every kind, four viewers, two widths.
-   Fails on cut text, a blank card, centred text, kind HTML in the lines, or a profile picture off a person. */
+/* @family. — check/card-facts.js ONE STATIC CENTRED CARD (owner, 10 Nov): every kind, four viewers.
+   Static, centred: fails on a blank card, cut text, kind HTML, a picture of another size or off-centre, a ⋯ action with no word. */
 'use strict';
 require('./quiet');
 const fs = require('fs');
@@ -34,28 +34,41 @@ function serve() {
   });
 }
 
-/* IN THE PAGE: a few cards of every kind Find holds, drawn into Find's own screen, closed then open, each measured. */
+/* IN THE PAGE: a few cards of every kind Find holds, each drawn once and measured. */
 function measure(per) {
-  const host = document.getElementById('s-stuff') || document.body;
+  /* DRAWN WHERE IT CAN BE MEASURED: a hidden screen gives every box no size, so the geometry would pass unseen. */
+  const host = document.body;
   const box = document.createElement('div');
-  box.className = 'page on card-facts-check';
-  host.appendChild(box);
+  box.className = 'card-facts-check card-grid';
+  host.prepend(box);
   /* QUESTIONS AND ANSWERS ARE THEIR SHEET (owner, 9 Nov): their open content is the question itself, so only pictures and blanks are asked of them. */
   const WHOLE = ['question', 'answer'];
   const PEOPLE = typeof KC_PERSON_KINDS !== 'undefined' ? KC_PERSON_KINDS : [];
   const items = inFinder_(FINDERS.stuff, () => stuffItems()).concat(typeof settingDoorItems_ === 'function' ? settingDoorItems_() : []);
   const by = {};
   items.forEach(x => { const k = (x && x.kind) || 'thing'; (by[k] = by[k] || []).length < per && by[k].push(x); });
-  const out = { kinds: Object.keys(by).length, cards: 0, bad: [] };
+  const out = { kinds: Object.keys(by).length, cards: 0, bad: [], pics: {} };
   const say = (x, m) => out.bad.push(`${x.kind} "${String(x.name || x.key || '').slice(0, 40)}": ${m}`);
   Object.keys(by).forEach(kind => by[kind].forEach(x => {
     let html = '';
     try { html = inFinder_(FINDERS.stuff, () => stuffCard(x)); } catch (e) { say(x, 'drawing threw ' + e.message); return; }
     box.innerHTML = html;
-    box.querySelectorAll('.card.kc:not(.card.kc .card.kc)').forEach(card => [false, true].forEach(open => {
-      if (open) card.classList.add('is-open');
+    box.querySelectorAll('.card.kc:not(.card.kc .card.kc)').forEach(card => {
       out.cards++;
-      const state = open ? 'open' : 'closed';
+      const state = 'drawn';
+      if (card.classList.contains('is-open') || card.querySelector(':scope > [data-do="kc-open"]')) say(x, 'opens or closes: a card is static');
+      /* ONE PICTURE SIZE, ONE CENTRE LINE (±2px) for picture, tags, lines and buttons. */
+      const pic = card.querySelector(':scope > .kc-pic'), cr = card.getBoundingClientRect(), mid = cr.left + cr.width / 2;
+      if (pic) { const p = pic.getBoundingClientRect(); out.pics[Math.round(p.width) + 'x' + Math.round(p.height)] = kind; }
+      const centre = el => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
+      [pic, card.querySelector(':scope > .kc-tags'), card.querySelector(':scope > .kc-lines'), card.querySelector(':scope > .kc-act .kc-four') && card.querySelector(':scope > .kc-act > .tile-row')].forEach(el => {
+        if (el && el.getClientRects().length && Math.abs(centre(el) - mid) > 2) say(x, state + ': .' + el.className.split(' ')[0] + ' is ' + Math.round(centre(el) - mid) + 'px off the centre line'); });
+      const row = card.querySelector(':scope > .kc-act .kc-four');
+      if (row) { const tiles = [...card.querySelectorAll(':scope > .kc-act .kc-four > .tile')].map(t => t.getBoundingClientRect()).filter(r => r.width);
+        if (tiles.length) { const l = Math.min(...tiles.map(r => r.left)), rr = Math.max(...tiles.map(r => r.right)); if (Math.abs((l + rr) / 2 - mid) > 2) say(x, 'its four buttons are ' + Math.round((l + rr) / 2 - mid) + 'px off the centre line'); } }
+      const more = card.querySelector(':scope > .kc-act [data-do="kc-more"]'), list = card.querySelector(':scope > .kc-act .kc-more');
+      if (more && list) { list.hidden = false; [...list.querySelectorAll(':scope > .tile')].forEach(t => { const w = getComputedStyle(t, '::after').content;
+        if (!w || w === 'none' || w === '""' || t.getBoundingClientRect().width < 100) say(x, '⋯ action "' + (t.getAttribute('aria-label') || '') + '" shows no word'); }); list.hidden = true; }
       const text = [...card.querySelectorAll(':scope > .kc-tags, :scope > .kc-lines, :scope > .kc-form')].map(n => n.innerText.trim()).join('');
       if (!text && !card.querySelector(':scope > .kc-lines .loading, :scope > .kc-form :is(input, select, textarea)')) say(x, state + ': blank card');
       if (!PEOPLE.includes(kind) && card.querySelector(':scope > .kc-pic .pfp-art')) say(x, 'a profile picture on a card that is not a person');
@@ -68,16 +81,15 @@ function measure(per) {
           if (el.closest('[hidden]') || !el.getClientRects().length) return;
           const cs = getComputedStyle(el);
           if (/dashed/.test(cs.borderTopStyle + cs.borderBottomStyle)) say(x, state + ': a dashed rule in its lines');
-          const ownText = [...el.childNodes].some(n => n.nodeType === 3 && n.nodeValue.trim());
-          if (ownText && cs.textAlign === 'center' && !el.closest('.tile, button, .kc-pic')) say(x, state + ': centred text "' + el.textContent.trim().slice(0, 30) + '"');
           const cut = el.scrollHeight > el.clientHeight + 1 && /hidden|clip/.test(cs.overflowY) && el.clientHeight > 0;
           const ends = cs.textOverflow === 'ellipsis' || (cs.webkitLineClamp && cs.webkitLineClamp !== 'none');
           if (cut && !ends && el.innerText.trim()) say(x, state + ': text cut mid-line "' + el.innerText.trim().slice(0, 30) + '"');
         });
       }
-    }));
+    });
   }));
   box.remove();
+  if (Object.keys(out.pics).length > 1) out.bad.push('pictures of ' + Object.keys(out.pics).length + ' sizes: ' + JSON.stringify(out.pics) + ' — one size on every kind');
   return out;
 }
 
