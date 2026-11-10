@@ -512,7 +512,7 @@ screen('spotlight', () => pages('spotlight', typeof cardsOf_ === 'function' ? ca
 /* A STUDENT'S CARD, AND THE ADMIN'S TO SEE IT — by rank (400), never the role string. */
 function mayJourney_() {
   if (typeof rank_ !== 'function') return false;
-  return rank_() === 'student' || rankAtLeast_('admin');
+  return rank_() === 'student' || isAdmin();
 }
 /* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_` keeps for Settings, whose About you holds the same two § */
 function progressRedraw_() {

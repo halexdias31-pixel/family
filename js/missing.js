@@ -21,7 +21,7 @@ document.addEventListener('toggle', e => {
 
 /* AN ITEM (487, layout.js `itemMark_`): Delete and Note for an admin, no move and no door — Find's own code places it. */
 const MISSING_ID = 'item:stuff:missing-papers';
-const missingFor_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') && !(typeof itemGone_ === 'function' && itemGone_(MISSING_ID));
+const missingFor_ = () => isAdmin() && !(typeof itemGone_ === 'function' && itemGone_(MISSING_ID));
 /* THE PAGE ABOVE FIND'S QUESTION (`FINDERS.stuff.lead`, find.js): an admin's only. */
 /* AND SUGGEST A CHANGE (486), as on Daive's card: one row with the item's tiles (`suggestRowIn_`, submit.js). */
 /* IN FIND, NOT ABOVE IT (owner, 4 Nov): the two cards are Find cards under Site health (find.js `health`); the lead page is empty. */
@@ -94,7 +94,7 @@ on('health-all', () => { HEALTH.all = !HEALTH.all; try { markStale_(['stuff']); 
 /* ---------- LOGIC HEALTH (770), ABOVE WHAT'S MISSING: data/logic-health.json, measured by tools/logic-health.js — mechanical, never AI ---------- */
 const LOGIC_ID = 'item:stuff:logic-health';
 const LOGIC = { got: null, failed: false, asked: false, all: false };
-const logicFor_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') && !(typeof itemGone_ === 'function' && itemGone_(LOGIC_ID));
+const logicFor_ = () => isAdmin() && !(typeof itemGone_ === 'function' && itemGone_(LOGIC_ID));
 function logicLead_() {
   if (!LOGIC_SHOWN || !logicFor_()) return [];
   const h = typeof itemMark_ === 'function' ? itemMark_(LOGIC_ID, '', logicCard_()) : logicCard_();

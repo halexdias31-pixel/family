@@ -57,7 +57,7 @@ function wordsIn_(scope, html) {
 
 /* ---------- THE ADMIN'S TWO TILES on every widget, card and item, in the layout group: Edit words, Who sees this ---------- */
 function wordsTiles_(scope, id) {
-  if (!layoutIsAdmin_()) return '';
+  if (!isAdmin()) return '';
   const s = seenOf_(id);
   return tile_({ icon: 'edit', label: 'Edit words', note: 'type over this card\'s words, for everyone', act: 'words-edit', tone: 'admin', data: { ws: scope } })
     + tile_({ icon: 'show', label: 'Who sees this', note: s ? SEEN_SAY[s] : 'Everyone', act: 'seen-open', tone: 'admin', on: !!s, data: { lc: id } });
@@ -102,7 +102,7 @@ function wordsBarOn_(scope, tries) {
   else if (!root && tries > 0) setTimeout(() => wordsBarOn_(scope, tries - 1), 30);
 }
 on('words-edit', el => {
-  if (!layoutIsAdmin_()) return;
+  if (!isAdmin()) return;
   const scope = el.getAttribute('data-ws') || '';
   wordsEditSet_(WORDS_EDIT === scope ? '' : scope);
 });
@@ -120,7 +120,7 @@ function wordsSend_(set, reset) {
     .catch(err => { put(was); toast(why_(err)); return false; });
 }
 on('words-save', el => {
-  if (!layoutIsAdmin_()) return;
+  if (!isAdmin()) return;
   const root = el.closest('.wk-editing');
   if (!root) return;
   const W = wordsNow_(), set = {}, reset = [];
@@ -136,7 +136,7 @@ on('words-save', el => {
   wordsSend_(set, reset);
 });
 on('words-reset', el => {
-  if (!layoutIsAdmin_() || !sure_(el, 'Reset?')) return;
+  if (!isAdmin() || !sure_(el, 'Reset?')) return;
   const k = el.getAttribute('data-wk');
   if (WORDS_KEY_RE.test(k || '')) wordsSend_({}, [k]);
 });
@@ -156,7 +156,7 @@ function seenOf_(id) { const s = (((layoutNow_() || {}).seen) || {})[id]; return
 /* AN ADMIN STILL SEES EVERYTHING, or a thing narrowed away from them could never be widened again. */
 function seenOk_(id) {
   const s = seenOf_(id);
-  if (!s || layoutIsAdmin_()) return true;
+  if (!s || isAdmin()) return true;
   const signed = typeof USER !== 'undefined' && !!USER;
   if (s === 'out') return !signed;
   if (s === 'in') return signed;
@@ -183,7 +183,7 @@ function seenBox_(id) {
   </div>`;
 }
 on('seen-open', el => {
-  if (!layoutIsAdmin_()) return;
+  if (!isAdmin()) return;
   const id = el.getAttribute('data-lc'), row = el.closest('.tile-row');
   if (!row || !LAYOUT_ID.test(id || '')) return;
   const open = row.parentElement && [...row.parentElement.querySelectorAll(':scope > .seen-box')].find(b => b.getAttribute('data-seen-for') === id);
@@ -192,7 +192,7 @@ on('seen-open', el => {
 });
 on('seen-close', el => { el.closest('.seen-box')?.remove(); });
 on('seen-set', el => {
-  if (!layoutIsAdmin_()) return;
+  if (!isAdmin()) return;
   const id = el.getAttribute('data-lc'), v = String(el.value || '');
   if (!LAYOUT_ID.test(id || '') || (v && SEEN_ORDER.indexOf(v) === -1) || (seenWider_(v, seenGate_(id)) && v !== '')) return;
   const D = layoutDraftOf_(layoutNow_());

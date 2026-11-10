@@ -82,7 +82,7 @@ function pushCard_() {
   if (typeof USER === 'undefined' || !USER) return '';
   pushLoad_();
   const row = h => `<p class="sub">${h}</p>`;
-  const S0 = PUSH.state, admin = typeof rankAtLeast_ === 'function' && rankAtLeast_('admin');
+  const S0 = PUSH.state, admin = isAdmin();
   /* THE ONE LINE SAYING WHAT IT IS is the card's `say` below, drawn by the layout. */
   let body = '';
   if (!S0 && !PUSH.err) body += loading_();

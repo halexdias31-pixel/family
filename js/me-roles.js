@@ -509,7 +509,7 @@ const ROLE_PICKS = [
 /* WHAT THE LINE UNDER THE CARD SAYS WHEN NOTHING HAS JUST HAPPENED, by rank. */
 function rolesSaid_() {
   if (!USER) return '';
-  if (rankAtLeast_('admin')) return '';
+  if (isAdmin()) return '';
   if (USER.tutorPending && tutorHeld_())
     return 'Tutor is waiting for ' + brand('name', '@family.') + ' to approve you. Until then you are not on the site and '
          + 'cannot be booked — fill in your teaching pages meanwhile.';
@@ -530,7 +530,7 @@ function rolesCard_() {
   const said = rolesSaid_();
   return `<div class="card roles-card">
     <h3>Your roles</h3>
-    ${rankAtLeast_('admin') ? `<p class="faint role-admin">You are Admin. That is given by ${esc(name)} and is not changed here.</p>` : ''}
+    ${isAdmin() ? `<p class="faint role-admin">You are Admin. That is given by ${esc(name)} and is not changed here.</p>` : ''}
     ${picks}
     ${picks || said ? `<p class="faint roles-said" aria-live="polite">${esc(said)}</p>` : ''}
   </div>`;

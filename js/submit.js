@@ -697,7 +697,7 @@ function reportDevice_() {
 
 /* IN PLACE OF THE THING (489, `boxInPlace_`): one text area, a picture, Send and Cancel. No notes listed (498): Done is Claude's, by data/notes-done.json. */
 function reportBoxHtml_(kind, id, label, finder, path) {
-  const admin = typeof rankAtLeast_ === 'function' && rankAtLeast_('admin');
+  const admin = isAdmin();
   const dk = kind + '|' + id, people = suggestPeople_(kind), files = admin && !people;
   return `<div class="me-form rep-form rep-box" data-rk="${esc(kind)}" data-ri="${esc(id)}" data-rl="${esc(label)}" data-finder="${esc(finder || '')}" data-path="${esc(path || '')}">
     ${label ? `<p class="faint rep-what">${esc(label)}</p>` : ''}

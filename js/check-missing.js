@@ -15,7 +15,7 @@ function load(code) {
     libIsDoc_: r => !!r && String(r.kind || '').toLowerCase() === 'document',
     libTrue: v => /^(true|yes|1|y|on)$/i.test(String(v == null ? '' : v).trim()),
     esc: s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
-    loading_: () => '<div class="loading"></div>', rankAtLeast_: () => true, on: () => {},
+    loading_: () => '<div class="loading"></div>', rankAtLeast_: () => true, isAdmin: () => true, on: () => {},
   });
   vm.runInContext(code + '\n;this.__M = { entry: missingEntry_, gaps: missingGaps_, cover: missingCover_, owns: missingOwns_, is: missingIs_, MISSING, body: missingBody_ };', ctx);
   return ctx.__M;
