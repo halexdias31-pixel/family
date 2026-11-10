@@ -94,6 +94,7 @@ const EXEMPT = [
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf="dob"', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-role', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-parent', why: PEOPLE_FORM },
+  { file: 'me.js', fn: 'personEdHtml_', has: 'data-pe="dob"', why: 'saved to their row within a second of typing (edit-person): the server holds it, not a draft' },
   /* APPLY TO TEACH (400): one sheet filled and sent in a sitting; a reload starts the application again. */
   { file: 'me.js', fn: 'box', has: 'data-app="${k}"', why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
   { file: 'me.js', fn: 'area', has: 'data-app="${k}"', why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
