@@ -188,8 +188,8 @@ for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
 if ((noComments.match(/border: 1\.5px solid color-mix\(in srgb, var\(--white\) 14%/g) || []).length !== 1) bad.push('63a the tick\'s edge is written more than once — one :is(...) rule draws every tick');
 
 /* ---------- 64a. NUMBERS ARE DIGITS: "3 words", never "three words", in anything the site says ---------- */
-/* Content, not copy: facts (facts.js), revision notes (mat), help for the question types (qtypes), what is read aloud (shell-click, arcade), titles of works. */
-const WORDS_OK = new Set(['facts', 'mat', 'qtypes', 'shell-click', 'arcade', 'writings', 'hadith']);
+/* Content, not copy: facts (facts.js), revision notes (mat), help for the question types (qtypes), what is read aloud (shell-click, arcade), titles of works (finder-tags' short shows). */
+const WORDS_OK = new Set(['facts', 'mat', 'qtypes', 'shell-click', 'arcade', 'writings', 'hadith', 'finder-tags']);
 const NUM_WORD = /\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|hundred)\b(?! or two)/i;
 const IDIOM = /\bor two\b|\bthe two\b(?! new)|\bone or two\b/i;
 files.forEach(({ n, src }) => {
