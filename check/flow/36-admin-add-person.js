@@ -28,13 +28,13 @@ check('an admin adds parent Pat Example linked to Finley from Find › Profiles,
   if (!/Finley/.test(card().querySelector('.pa-picked').textContent)) bad.push('Finley is not shown as picked');
   a.A('pa-save', card().querySelector('[data-do="pa-save"]')); await wait(1200);
   const save = a.sent.find(b => b.action === 'personSave');
-  if (!save || JSON.stringify(save.roles) !== '["client"]' || !save.invite) bad.push('personSave posted ' + JSON.stringify(save));
+  if (!save || JSON.stringify(save.roles) !== '["client"]' || save.invite) bad.push('personSave posted ' + JSON.stringify(save));
   const pat = W.sheet("(read(TAB.people).rows.find(r => r.first_name === 'Pat' && r.last_name === 'Example') || {}).person_id");
   if (!pat) return bad.concat(['no Pat Example row was made']);
   if (!famRows().some(f => f.p === pat && f.s === 'accepted')) bad.push('Finley has no accepted link to Pat: ' + JSON.stringify(famRows()));
   const got = W.real.post({ action: 'personGet', token: a.u.token, personId: a.u.personId, targetId: 'P-S9' });
   if (!((got.person || {}).parentIds || []).includes(pat)) bad.push('personGet for Finley does not list Pat among the parents: ' + JSON.stringify(got.person));
-  if (!/pat@example\.org/.test(String((card() || {}).textContent))) bad.push('the card does not say the PIN went to Pat\'s email');
+  if (!/PIN/.test(String((card() || {}).textContent)) || /went to/.test(String((card() || {}).textContent))) bad.push('the card does not show Pat\'s PIN on screen (nothing is emailed)');
 
   /* THE EDIT FORM ON FINLEY: Pat listed with Remove; Remove takes the row off, the picker puts it back. */
   a.t.DATA().everyone = everyone().concat([{ personId: pat, title: 'Pat E.', handle: 'patexample', role: 'Client', image: '' }]);
