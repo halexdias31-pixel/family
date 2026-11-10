@@ -440,11 +440,11 @@ const can_ = (role, kind, action) => {
   return role === 'admin';
 };
 
-/* THREE ROLES FOR WHO SEES A SETTING (93): every old role word, sheet cell or account type becomes one here, and nowhere else. */
-const ROLE_THREE_ = { student: 'family', parent: 'family', client: 'family', child: 'family', member: 'family', family: 'family',
+/* THREE ROLES FOR WHO SEES A SETTING (93): keyed by the role a word means (`roleOf`), so teacher, parent, kid… are ROLE_ALIASES' alone. */
+const ROLE_THREE_ = { student: 'family', client: 'family', member: 'family', family: 'family',
   staff: 'tutor', tutor: 'tutor', apprentice: 'tutor', admin: 'admin', business: 'admin', site: 'admin' };
 const SEE_ROLES = ['family', 'tutor', 'admin'];
-const roleThree_ = w => ROLE_THREE_[String(w || '').trim().toLowerCase()] || '';
+const roleThree_ = w => ROLE_THREE_[roleOf(String(w || '').trim())] || '';
 /* THE VIEWER'S THREE ROLES: rank and held roles mapped, a higher role holding the lower ones as ranks always have; a pending tutor is not one yet. */
 function seeRoles_() {
   if (!USER) return [];
