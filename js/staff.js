@@ -94,6 +94,7 @@ function agreementCard_() {
     <p class="note agree-said">${now ? 'Agreed on ' + esc(at) + ' · version ' + esc(was) + '.'
       : at ? 'These terms have changed since you agreed to version ' + esc(was) + ' on ' + esc(at) + '. Please read them and agree again.'
       : 'Your agreement, the version and the time are recorded.'}</p>
+    ${typeof policyLinks_ === 'function' ? policyLinks_('tutor') : ''}
   </div>`;
 }
 on('agree-sign', el => {

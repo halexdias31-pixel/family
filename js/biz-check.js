@@ -122,7 +122,8 @@ function bcItem_(item, s) {
   const t = s.tick || {};
   return `<div class="bc-item is-open" data-bc="${esc(item.id)}">${line}
     <p class="bc-why">${esc(item.why)}</p>
-    <p class="bc-how">${esc(item.how)} <a href="${esc(item.link)}" data-do="file-view" target="_blank" rel="noopener">Official guidance</a></p>
+    <p class="bc-how">${esc(item.how)} <a href="${esc(item.link)}" data-do="file-view" target="_blank" rel="noopener">Official guidance</a>${item.doc && typeof policyHref_ === 'function' && policyHref_(item.doc)
+      ? ` <a href="${esc(policyHref_(item.doc))}" data-do="file-view" target="_blank" rel="noopener">Our policy</a>` : ''}</p>
     ${s.info ? '' : `<div class="me-form bc-form">
       <div class="lib-row q-row"><label class="field"><input type="date" data-bc-k="done_on" value="${esc(t.done_on || bcToday_())}" aria-label="${esc(item.title + ' — done on')}"></label>
       <label class="field"><input type="text" data-bc-k="note" value="${esc(t.note || '')}" placeholder="Proof or note, e.g. policy no." maxlength="200" aria-label="${esc(item.title + ' — note')}" autocomplete="off"></label></div>
