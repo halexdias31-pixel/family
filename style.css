@@ -1474,11 +1474,13 @@ html.flow #screen { height: auto; overflow: visible; touch-action: auto; backgro
 html.flow .screen { position: static; transform: none; visibility: visible; transition: none; will-change: auto; }
 html.flow #s-account { order: -1; }
 html.flow .page { width: 100%; min-width: 0; }
-/* ONE GRID FOR EVERY LIST OF CARDS (owner, 10 Nov): as many 20rem-or-wider columns as fit, on any screen — no breakpoints. */
-.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: var(--card-gap); align-items: start; justify-content: stretch; }
-/* WHAT IS NOT A CARD IN THE LIST — the menu, chips, answers, a form — and an open card take the whole row. */
-.card-grid > :not(.is-res), .card-grid > :has(.card.kc.is-open, form, .me-form) { grid-column: 1 / -1; }
-/* A READING MEASURE ON THE TEXT ITSELF, never by narrowing the page. */
+/* ONE FLOW FOR EVERY LIST OF CARDS (owner, 10 Nov): as many 20rem-or-wider columns as fit, packed top to bottom so a short card leaves no hole — no breakpoints. */
+.card-grid { display: block; columns: 20rem; column-gap: var(--card-gap); }
+.card-grid > * { break-inside: avoid; margin-bottom: var(--card-gap); }
+/* WHAT IS NOT A CARD IN THE LIST — the menu, chips, answers, a form — and an open card run across every column. */
+.card-grid > :not(.is-res), .card-grid > :has(.card.kc.is-open, .kc-form, .kc-bookform, .book-form-door, form, .me-form) { column-span: all; }
+/* A FACT'S NAME AND VALUE, cut to one line, still read as two words. */
+.card.kc:not(.is-open) > .kc-lines .row > .k:not(:empty)::after { content: ' · '; }
 .card-grid :is(p, li, .qtext, .doc, form, .me-form) { max-width: 70ch; }
 /* A LIST, NOT CARDS (owner, 4 Nov): no frame per result, a hairline between rows, the tags one small line. */
 html.flow .pane { max-height: none; touch-action: auto; background: none; border: 0; border-radius: 0; box-shadow: none; padding-inline: 0; }
