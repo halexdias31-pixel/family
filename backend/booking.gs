@@ -1386,7 +1386,6 @@ const PERMISSIONS = {
   suggest: ['member', 'child', 'admin'],
   suggestUpload: ['admin'],
   tidyOldRows: ['admin'],
-  tutorDbsChecked: ['admin'],
   updateProfile: ['member', 'child', 'admin'],
   verifyEmail: ['anyone', 'member', 'child', 'admin'],
   verifyLogin: ['anyone', 'member', 'child', 'admin'],
