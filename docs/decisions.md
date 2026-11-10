@@ -251,3 +251,8 @@ become an owner question showing both; never pick one.
 - Tutors' DBS: each has a "last checked" date; 12 months on, a prompt with the certificate number and the DBS online-check link, one tap to log it done.
 - Recording a renewal: tap Renewed + new expiry date, and optionally attach the document (private Drive folder).
 - The owner already holds an enhanced DBS, a UTR and safeguarding training.
+
+## 10 Nov — who sees whom (replaces 20 Oct)
+- A student sees only themselves and their tutors: no other student, no sibling, no parent. The "add a friend by handle" feature is removed.
+- A parent sees only their own children (unchanged).
+- A tutor sees only their own students (booked with them) and those students' parents. Admin sees everyone.
