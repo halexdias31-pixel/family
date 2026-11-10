@@ -348,6 +348,8 @@ function famHits_(q, want, skip) {
   return ((DATA && DATA.everyone) || []).filter(p => p && p.personId && famIs_(p, want) && (skip || []).indexOf(String(p.personId)) === -1
     && [p.title, p.name, p.handle].filter(Boolean).join(' ').toLowerCase().indexOf(q) !== -1).slice(0, 6);
 }
+/* THE TAP A HIT MAKES, by where the picker stands. */
+const FAM_ACT_ = { pa: { act: 'pa-pick' }, pe: { act: 'pe-link' } };
 const famPick_ = (scope, want, label) => `<div class="fam-pick">${formLine_(label, formInput_(`data-fam-q="${scope}" data-fam-want="${want}" type="search" autocomplete="off" placeholder="name or @handle"`))}
   <div class="tile-row fam-hits" data-fam-hits="${scope}"></div></div>`;
 document.addEventListener('input', e => {
@@ -358,7 +360,7 @@ document.addEventListener('input', e => {
   if (!out) return;
   const skip = scope === 'pa' ? ((PERSON_ADD_ && PERSON_ADD_.picked) || []).map(x => x.id) : peLinked_().concat([String((PERSON_ED_ || {}).id || '')]);
   out.innerHTML = famHits_(box.value, want, skip).map(p => tile_({ form: true, kind: 'quiet', label: displayName_(p) + (p.handle ? ' @' + p.handle : ''),
-    act: scope === 'pa' ? 'pa-pick' : 'pe-link', data: { id: p.personId, name: displayName_(p), want } })).join('');
+    act: (FAM_ACT_[scope] || FAM_ACT_.pe).act, data: { id: p.personId, name: displayName_(p), want } })).join('');
 });
 
 /* ---------- ADD A PERSON, A CARD IN FIND › PROFILES (add-person): the server's `personSave`, then `linkChild` for a parent's child ---------- */
@@ -384,11 +386,11 @@ function personAddCard_() {
   const kid = F.role === 'student', tutor = F.role === 'tutor';
   const box = (k, ph, type) => formLine_('', formInput_(`data-pa="${k}" placeholder="${esc(ph)}" autocomplete="off"${type ? ` type="${type}"` : ''} value="${v(k)}"`));
   return `<div class="card is-prof prof-door pa-card"><h3>Add a person</h3>
-    <div class="f-row" style="--n:2">${box('first', 'First name')}${box('last', 'Last name')}</div>
+    ${box('first', 'First name')}${box('last', 'Last name')}
     ${formLine_('Role', formSelect_('data-pa="role"', PA_ROLES_.map(([r, l]) => `<option value="${r}"${r === F.role ? ' selected' : ''}>${l}</option>`).join('')))}
     ${box('email', kid ? 'Email (optional)' : 'Email', 'email')}
     ${formLine_('Date of birth (optional)', formInput_(`type="date" data-pa="dob" value="${v('dob')}"`))}
-    ${tutor ? '' : paPickedHtml_(F) + famPick_('pa', kid ? 'client' : 'student', kid ? 'Their parent' : 'Their child')}
+    ${tutor ? '' : famPick_('pa', kid ? 'client' : 'student', kid ? 'Their parent' : 'Their child') + paPickedHtml_(F)}
     <p class="note pa-said" aria-live="polite"></p>
     <div class="pf-go">${tile_({ form: true, label: 'Add them', act: 'pa-save' })}</div></div>`;
 }
@@ -467,4 +469,4 @@ function peFamSend_(el, action, side, after) {
     .catch(() => {});
 }
 on('pe-link', el => peFamSend_(el, 'linkChild', el.getAttribute('data-want') === 'client' ? 'parentIds' : 'childIds', (l, id) => l.concat([id])));
-on('pe-unlink', el => peFamSend_(el, 'adminUnlinkFamily', el.getAttribute('data-side') || '', (l, id) => l.filter(x => String(x) !== id)));
+on('pe-unlink', el => sure_(el, 'Tap again to confirm') && peFamSend_(el, 'adminUnlinkFamily', el.getAttribute('data-side') || '', (l, id) => l.filter(x => String(x) !== id)));

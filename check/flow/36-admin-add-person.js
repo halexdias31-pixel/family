@@ -44,7 +44,11 @@ check('an admin adds parent Pat Example linked to Finley from Find › Profiles,
   a.A('person-edit', edit); await wait(600);
   const fam = () => a.d.querySelector('#s-stuff .pe-form .pe-fambox');
   if (!fam() || !/Pat/.test(fam().textContent)) return bad.concat(['the Edit form does not list Pat as a parent']);
-  a.A('pe-unlink', fam().querySelector('[data-do="pe-unlink"][data-id="' + pat + '"]')); await wait(600);
+  /* TAP AGAIN TO CONFIRM (sure_): the first press only asks. */
+  const rm = fam().querySelector('[data-do="pe-unlink"][data-id="' + pat + '"]');
+  a.A('pe-unlink', rm); await wait(700);
+  if (!famRows().some(f => f.p === pat)) bad.push('one tap on Remove took the link off without asking');
+  a.A('pe-unlink', rm); await wait(600);
   if (famRows().some(f => f.p === pat)) bad.push('Remove left the family row');
   if (/Pat E/.test(fam().textContent.split('Add a parent')[0])) bad.push('Pat is still listed after Remove');
   const q2 = fam().querySelector('[data-fam-q="pe"]');
