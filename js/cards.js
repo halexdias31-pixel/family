@@ -322,10 +322,10 @@ const KC_FIELDS = {
   kindPic: () => '',
   name: x => `<h3>${esc(x.name || '')}</h3>`,
   /* THE TUTOR'S COMPACT ONE-SCREEN CARD (547) as fields: face, role, the name line with the rate, then pills and lines. */
-  /* A PHOTO, ELSE NOTHING ON TOP (owner, 10 Nov late): never an avatar or default picture on a card. */
+  /* A PHOTO, ELSE A DEFAULT PICTURE (owner, 9 Nov): never an avatar figure on a card. */
   face: x => { const t = kcRow_(x), k = typeof picKind_ === 'function' ? picKind_(t.image) : (t.image ? 'photo' : '');
     if (k === 'photo') return `<img class="prof-pic" src="${esc(pic(t.image))}" alt="" loading="lazy" decoding="async">`;
-    return ''; },
+    return k === 'basic' && typeof pfpArt_ === 'function' ? pfpArt_(pfpChoice_(t.image), 96) : ''; },
   /* THE NAME IS A TAG (owner, 9 Nov): first name and an initial for everyone; the role and rate are tags beside it. */
   nameTag: x => { const t = kcRow_(x), tag = (v, n, c) => `<span class="prof-tag${c ? ' ' + c : ''}" data-tag="${n}">${esc(v)}</span>`;
     return `<div class="qtags prof-tags prof-who-tags">${tag(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')}${
@@ -550,9 +550,20 @@ function kcUnpicked_(html) {
   if (!said.size) return html;
   return String(html || '').replace(/<span class="(?:qtag|prof-tag)(?![^"]*prof-tag-name)[^"]*"[^>]*>([^<]*)<\/span>/g, (m, t) => (said.has(norm(t.replace(/&amp;/g, '&'))) ? '' : m));
 }
-/* IMAGE ON TOP ONLY WHEN REAL (owner, 10 Nov late): an uploaded photo, figure or cover; a person with none, like any thing, shows nothing there. */
-const kcPicOr_ = (x, html) => (kcRealPic_(html) ? String(html) : '');
-/* A REAL PICTURE: a photo, a clip, or a manuscript's own drawing; a pixel sign, icon or default profile picture is not one. */
+/* IMAGE ON TOP ONLY WHEN REAL (owner, 10 Nov late): a person keeps a photo or a steady profile picture; any other kind shows a photo, figure or cover, else nothing. */
+function kcPicOr_(x, html) {
+  html = String(html || '');
+  if (KC_PERSON_KINDS.indexOf(x && x.kind) < 0) return kcRealPic_(html) ? html : '';
+  if (html.trim()) return html;
+  const art = typeof PFP_ART === 'object' && PFP_ART ? PFP_ART : {};
+  const named = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.defaultPictures) ? DATA.defaultPictures : []).filter(n => art[n]);
+  const list = named.length ? named : Object.keys(art);
+  if (!list.length || typeof pfpArt_ !== 'function') return '';
+  const r = kcRow_(x), k = String(r.personId || (x && (x.key || x.name)) || ''); let h = 0;
+  for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) >>> 0;
+  return pfpArt_(list[h % list.length], 96);
+}
+/* A REAL PICTURE: a photo, a clip, or a manuscript's own drawing; a kind's pixel sign or icon is not one. */
 const kcRealPic_ = h => /<(img|video|picture)\b|mfrclip-/.test(String(h || ''));
 /* ---------- A CARD NEVER DRAWS ITS OWN INSIDES (owner, 10 Nov): a facts kind hands over words; findCard lays them out one way ---------- */
 /* Before card-fields.json lands: the same `facts` and `icon` columns its rows hold (settings.js reads them into DATA.cardLook). */

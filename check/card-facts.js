@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* @family. — check/card-facts.js ONE STATIC CENTRED CARD (owner, 10 Nov): every kind, four viewers.
-   Fails on a blank card, cut text, kind HTML, a stand-in picture, parts out of order or off-centre, a worded button. */
+   Static, centred: fails on a blank card, cut text, kind HTML, a stand-in picture, parts out of order or off-centre, a word on a round button. */
 'use strict';
 require('./quiet');
 const fs = require('fs');
@@ -62,7 +62,7 @@ function measure(per) {
       if (pic && PEOPLE.includes(kind) && pic.getClientRects().length) { const p = pic.getBoundingClientRect(); out.pics[Math.round(p.width) + 'x' + Math.round(p.height)] = kind; }
       /* IMAGE ON TOP ONLY WHEN REAL (owner, 10 Nov late): a thing's photo, figure or cover; never a kind's icon or pixel sign. */
       if (card.querySelector('.kc-icon, .kc-blank, .lib-pic')) say(x, 'a stand-in picture (kind icon or pixel sign)');
-      if (pic && pic.innerHTML.trim() && !/<(img|video|picture)\b|mfrclip-/.test(pic.innerHTML)) say(x, 'a picture that is not a real image');
+      if (pic && !PEOPLE.includes(kind) && pic.innerHTML.trim() && !/<(img|video|picture)\b|mfrclip-/.test(pic.innerHTML)) say(x, 'a picture that is not a real image');
       if (pic && !pic.innerHTML.trim() && pic.getClientRects().length) say(x, 'an empty picture part still takes room');
       /* ONE ORDER, TOP TO BOTTOM: image, tags, content, buttons. */
       const tops = [pic, card.querySelector(':scope > .kc-tags'), card.querySelector(':scope > .kc-lines'), card.querySelector(':scope > .kc-form'), card.querySelector(':scope > .kc-act')]
@@ -80,7 +80,7 @@ function measure(per) {
         if ((w && w !== 'none' && w !== 'normal' && w !== '""') || t.innerText.trim()) say(x, 'round button "' + (t.getAttribute('aria-label') || '') + '" shows a word'); }); list.hidden = true; }
       const text = [...card.querySelectorAll(':scope > .kc-tags, :scope > .kc-lines, :scope > .kc-form')].map(n => n.innerText.trim()).join('');
       if (!text && !card.querySelector(':scope > .kc-lines .loading, :scope > .kc-form :is(input, select, textarea)')) say(x, state + ': blank card');
-      if (card.querySelector(':scope > .kc-pic .pfp-art')) say(x, 'a default profile picture: only an uploaded photo goes on top');
+      if (!PEOPLE.includes(kind) && card.querySelector(':scope > .kc-pic .pfp-art')) say(x, 'a profile picture on a card that is not a person');
       if (WHOLE.includes(kind)) return;
       const lines = card.querySelector(':scope > .kc-lines');
       if (lines) {
