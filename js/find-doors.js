@@ -75,10 +75,6 @@ function profileDoorItems_() {
   /* Tutors are Booking's tutor items, tagged Profiles too (KIND_UNDER): never a second card here. */
   ((DATA && DATA.tutors) || []).forEach(t => { if (t) seen[String(t.personId || t.title || t.handle || '')] = 1; });
   if (seeMay_('find:all-people')) ((DATA && DATA.everyone) || []).filter(p => p && p.title).forEach(p => add(p, false));
-  if (typeof canTrack === 'function' && canTrack() && typeof friendHandles === 'function') friendHandles().forEach(h => {
-    const s2 = ((DATA && DATA.students) || []).find(x => norm(x.handle) === norm(h)) || {};
-    add(Object.assign({ handle: h, title: s2.name || h, role: 'Student' }, s2), false);
-  });
   return out;
 }
 /* PICTURE FIRST: the face fills the top of the card, the name under it; everything else is a tag. */

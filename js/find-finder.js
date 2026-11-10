@@ -59,7 +59,7 @@ function finderAt_(el) {
   return (s && finderOf_(String(s.id).replace(/^s-/, ''))) || finderOf_(typeof AT === 'string' ? AT : '') || FINDERS.stuff;
 }
 function finderEach_(fn) { Object.keys(FINDERS).forEach(id => inFinder_(FINDERS[id], () => fn(FINDERS[id]))); }
-/* FORGET WHAT EVERY FINDER FOUND, for a change to something both of them list — the friends (me.js),
+/* FORGET WHAT EVERY FINDER FOUND, for a change to something both of them list,
    whose memo `FIND_MEMO.key = null` from outside a binding cleared on Find alone. */
 function finderForgetFound_() { finderEach_(() => { FIND_MEMO.key = null; }); }
 /* A finder's state from outside, for the files that load before this one (me.js) and the checks. */
@@ -116,7 +116,6 @@ const KINDS = {
 
   /* ---------- POSTS ARE A THING YOU LOOK FOR § */
 
-  friend: { group: 'Friends', label: 'Friends', card: (x, c) => findCard(x, c) },
 
   /* THE KEY ORDER IS THE DEFAULT ORDER OF What kind's ANSWERS (`answerCmp_`), so the work comes first; the kinds tab can move any. */
   question: { group: 'Learning', label: 'Questions', card: (x, c) => findCard(x, c) },
@@ -198,23 +197,8 @@ const KINDS = {
 };
 
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
-function friendCard_(x) {
-    const f = x.row;
-    const xp = Number(f.xp) || 0;
-    return `<div class="card">
-      <div class="thing">
-        <span class="thing-pic art">${personFace_({ pic: f.image || f.photo, handle: f.handle, name: x.name, personId: f.personId }, { size: 44 })}</span>
-        <div class="thing-body">
-          <h3>${esc(x.name)}</h3>
-        </div>
-        ${/* A BUTTON, NOT A SPAN — the fourth one of these. § */
-              ''}
-        ${tileRow_(tile_({ icon: 'close', label: 'Remove', act: 'friend-drop', data: { handle: f.handle }, cls: 'text-drop' }))}
-      </div>
-    </div>`;
-}
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
-  receipt: x => jobPage_(x.row), friend: friendCard_, question: thingCard_, answer: thingCard_, shop: thingCard_,
+  receipt: x => jobPage_(x.row), question: thingCard_, answer: thingCard_, shop: thingCard_,
   practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x),
   timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
@@ -568,7 +552,9 @@ const FACETS = [
   { field: 'function',  label: 'Function',    of: x => verifyTags_(x).fn },
   /* THE ID DECIDES WHO ANSWERS; its cover code is what is said (owner 8 Nov) — year, month, tier, board are their own facets, and tellApart_ adds one where two collide. */
   { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
-    showOf: id => paperTag_(id) || paperLabel_(id), tagSay: id => paperTag_(id) },
+    showOf: id => paperTag_(id) || paperLabel_(id), tagSay: id => paperTag_(id),
+    /* TWO PAPERS ONE NUMBER APART BY NOTHING ELSE (Combined Science's Paper 1 Biology, Chemistry, Physics): their titles, sitting last. */
+    nameOf: id => { const t = paperLabel_(id); return [t.replace(/\s+—\s+[^—]+$/, ''), t]; } },
   /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
   { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : paperNameSection_(x); } },
   /* WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS: the words are the value, so the card and the button agree. */
@@ -805,9 +791,14 @@ const paperTag_ = id => {
 const paperNameSection_ = x => (/, (Section [A-F])\b/.exec(String((docById_(((x && x.row) || {}).paper_id) || {}).name || '')) || [])[1] || '';
 /* WHICH SECTION OF ITS PAPER A DOCUMENT IS (770): § */
 function paperSectionOf_(row) {
-  const m = /-(\d)(\d)$/.exec(String((row && (row.paper_id || row.paperId)) || ''));
-  if (!m || String(row.paper || '') !== m[1] || Number(m[2]) < 1 || Number(m[2]) > 6) return null;
-  return { paper: m[1], section: 'Section ' + 'ABCDEF'[Number(m[2]) - 1], topic: String(row.section || '').trim() };
+  const id = String((row && (row.paper_id || row.paperId)) || '');
+  /* OR ITS TITLE SAYS IT (owner, 10 Nov): imported ids ("RS…-514") end in a row number, so "Paper 31: Statistics" read Paper 3 twice. */
+  let doc = null;
+  try { doc = row && row.name ? row : (typeof docById_ === 'function' ? docById_(id) : null); } catch (e) { doc = null; }
+  const t = /^Paper (\d)(\d)\b(?::\s*([^—]+?))?\s*(?:—|$)/.exec(String((doc && doc.name) || ''));
+  const m = /-(\d)(\d)$/.exec(id) || t;
+  if (!m || String((row && row.paper) || '') !== m[1] || Number(m[2]) < 1 || Number(m[2]) > 6) return null;
+  return { paper: m[1], section: 'Section ' + 'ABCDEF'[Number(m[2]) - 1], topic: String(row.section || (t && t[3]) || '').trim() };
 }
 
 /* THE SHORTEST FORM OF A NAME THAT IS STILL UNIQUE AMONG THE NAMES BESIDE IT — for every facet, on the button, the chip

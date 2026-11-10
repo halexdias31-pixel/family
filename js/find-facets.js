@@ -36,6 +36,9 @@ function showForms_(s) {
   const num = /(?:^|[\s,;:.-])((?:part|canon|section|chapter|book|article|question|no\.?|act|scene)\s+[\w.]+|\d+[\w.]*)$/i.exec(s);
   const ends = tail => trim(s.slice(0, SHOW_MAX - tail.length - 2).replace(/\s+\S*$/, '')) + '… ' + tail;
   if (ref) out.push(ref[1]);
+  /* A TITLE AND ITS SUBTITLE ("Paper 3 · Section A: Statistics") says the title, never "Section A…". */
+  const head1 = trim(s.replace(/:\s.*$/, ''));
+  if (!ref && head1 !== s && head1.length >= 4 && head1.length <= SHOW_MAX) out.push(head1);
   if (num && !ref) out.push(ends(num[1]));
   if (cut.length >= 4 && cut.length <= SHOW_MAX) out.push(cut);
   const h = head(cut.length >= 4 ? cut : s);
@@ -162,6 +165,16 @@ function tellApart_(items, facet, values) {
   });
   /* THE SHORT NAME WITH WHAT TELLS IT APART, unless that collides with another answer — then the whole name with it. */
   if (told.length && new Set(values.map(v => spellKey_(v.show))).size !== values.length) told.forEach(t => { t.v.show = t.full; });
+  /* STILL TWIN, NO FACET SPLITS THEM: each says its own whole name (owner, 10 Nov: two "Paper 3" buttons), never two alike. */
+  const left = {};
+  values.forEach(v => { const k = spellKey_(v.show || v.text || v.value); (left[k] = left[k] || []).push(v); });
+  Object.keys(left).forEach(k => { const g = left[k];
+    if (g.length < 2) return;
+    /* ITS OWN NAME (`nameOf`, a paper's title) where the facet has one, else what it is called: the first that tells them apart. */
+    const names = v => { let n = []; try { n = facet.nameOf ? asList_(facet.nameOf(v.value)) : []; } catch (e) { n = []; } return n.concat([v.text || v.value]); };
+    const rungs = g.map(names), deep = Math.max(...rungs.map(r => r.length));
+    for (let i = 0; i < deep; i++) { const at = rungs.map(r => String(r[Math.min(i, r.length - 1)] || ''));
+      if (at.every(Boolean) && new Set(at.map(spellKey_)).size === g.length) { g.forEach((v, j) => { v.show = at[j]; }); return; } } });
   /* AND AN ANSWER NOTHING COLLIDED WITH IS SAID SHORT TOO, when no other answer's short name is the same. */
   if (!told.length) return;
   const isTold = new Set(told.map(t => t.v));
@@ -288,7 +301,7 @@ const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Pract
   /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
   /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): one card, tagged Booking and Profiles, like a setting's several types. */
   tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', bookform: 'Booking', shop: 'Shop',
-  friend: 'Profiles', person: 'Profiles', video: 'Videos', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
+  person: 'Profiles', video: 'Videos', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
   post: 'Posts', tool: 'Tools', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
 /* A RETURNED WIDGET THAT IS A BROWSABLE THING (batch B) is its own front answer: FIND_WIDGET_GROUPS (arcade.js). */
 /* ITS TAG SAYS ONE DOOR: a kind under two (a tutor: Booking and Profiles) is the door picked, else its own group in FIND_KINDS — never the other. */

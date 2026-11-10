@@ -713,7 +713,7 @@ function profileRefresh_(loud, onOld) {
       /* `pendingEmail` RIDES WITH THE ROLE, for the role's reason: § */
       /* ---------- AND THE NAMES, WHICH WENT STALE THE SAME WAY § */
       const roleWas = JSON.stringify([USER.rank, USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
-        String(USER.name || ''), USER.children, USER.kids, String(USER.handle || ''), String(USER.friends || '')]);
+        String(USER.name || ''), USER.children, USER.kids, String(USER.handle || '')]);
       if (d.role) USER.role = d.role;
       if (Array.isArray(d.roles) && d.roles.length) USER.roles = d.roles;
       if (d.tutorPending !== undefined) USER.tutorPending = !!d.tutorPending;
@@ -728,14 +728,8 @@ function profileRefresh_(loud, onOld) {
         try { toast('Your handle is @' + d.handle + ' now'); } catch (e) { oops_(e, 'me:profileRefresh_') }
       }
       if (d.handle) USER.handle = String(d.handle);
-      if (typeof d.friends === 'string' && d.friends !== String(USER.friends || '')) {
-        USER.friends = d.friends;
-        /* THE FRIENDS LIST ON BOTH FINDERS IS MEMOISED — told, as `friendsSave` tells it. Not drawn
-           here: the `landRepaint_` below draws the column in front. */
-        try { if (typeof finderForgetFound_ === 'function') finderForgetFound_(); else FIND_MEMO.key = null; } catch (e) { oops_(e, 'me:profileRefresh_') }
-      }
       const roleMoved = JSON.stringify([USER.rank, USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
-        String(USER.name || ''), USER.children, USER.kids, String(USER.handle || ''), String(USER.friends || '')]) !== roleWas;
+        String(USER.name || ''), USER.children, USER.kids, String(USER.handle || '')]) !== roleWas;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
       /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: § */
       const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());

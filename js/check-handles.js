@@ -55,7 +55,6 @@ const SRC = [
   grab(people, /function handleCandidates_\([\s\S]*?\n\}/, 'handleCandidates_'),
   grab(people, /function handleTemplate_\([\s\S]*?\n\}/, 'handleTemplate_'),
   grab(people, /function handleMake_\([\s\S]*?\n\}/, 'handleMake_'),
-  grab(people, /function handleFriendsMove_\([\s\S]*?\n\}/, 'handleFriendsMove_'),
   grab(fs.readFileSync(path.join(ROOT, 'backend', 'core.gs'), 'utf8'), /function sheetDate\([\s\S]*?\n\}/, 'sheetDate'),
   grab(people, /function handleWasWith_\([\s\S]*?\n\}/, 'handleWasWith_'),
   /* AND THE FACE A MOVED HANDLE KEEPS (342, round 2) — `renameHandles_` writes it before the handle.
@@ -372,7 +371,7 @@ function run() {
     bad.push({ handle: 'handleMake_', want: 'no Math.random', why: 'the owner: "no more randomisation"', said: 'it draws' });
   }
 
-  /* ---------- AND THE MOVE: EVERYBODY, EARLIEST JOINER FIRST, OLD HANDLE KEPT, FRIENDS MOVED, SAFE TO REPEAT */
+  /* ---------- AND THE MOVE: EVERYBODY, EARLIEST JOINER FIRST, OLD HANDLE KEPT, THE UNREAD FRIENDS CELL LEFT ALONE, SAFE TO REPEAT */
   box.setHeaders(['person_id', 'handle', 'email', 'first_name', 'last_name', 'handle_was', 'handle_changed_at', 'friends', 'joined_on', 'role']);
   /* Tom has the lower id but joined later, so Tam (earlier) wins tm2025; Oli's year comes from his first submission. */
   const mv = [
@@ -387,7 +386,7 @@ function run() {
   const mvGot = mv.map(r => r.handle).join(' ');
   if (mvGot !== 'tom2025 tm2025 oi2024 an2024') bad.push({ handle: 'renameHandles_', want: 'tom2025 tm2025 oi2024 an2024', why: 'every role moves; the earlier joiner wins a clash; no join date takes the first activity', said: mvGot });
   if (mv[1].handle_was !== 'tam_kind62, tamd') bad.push({ handle: 'renameHandles_', want: 'tam_kind62, tamd', why: 'the old handle goes to the front of handle_was and still signs in', said: mv[1].handle_was });
-  if (mv[2].friends !== 'tm2025, tom2025, nobody') bad.push({ handle: 'renameHandles_', want: 'friends moved', why: 'a list naming an old handle names nobody', said: mv[2].friends });
+  if (mv[2].friends !== 'tam_kind62, t04d, nobody') bad.push({ handle: 'renameHandles_', want: 'friends untouched', why: 'the feature is gone (10 Nov) and the column is kept as it was', said: mv[2].friends });
   if (ran.renamed !== 3 || ran.leftAlone !== 1 || ran.longer !== 1 || ran.yearFrom.activity !== 1 || ran.yearFrom.joined_on !== 2) bad.push({ handle: 'renameHandles_', want: '3 moved, 1 left, 1 longer, 1 year from activity', why: 'the counts the reply gives', said: JSON.stringify(ran) });
   box.setOther({});
   const twice = box.rename();
@@ -754,8 +753,7 @@ function run() {
   } else {
     console.log('OK — every handle is the template (first and last letter and the year joined; '
               + 'no birthday: initials and two digits of the id), nothing random, one surname letter at most, a clash '
-              + 'broken by first-name letters in id order; the move keeps each old handle as a sign-in and moves '
-              + 'friends lists; nobody can be handed a name that answers, or once answered, to somebody '
+              + 'broken by first-name letters in id order; the move keeps each old handle as a sign-in; nobody can be handed a name that answers, or once answered, to somebody '
               + 'else; an old handle signs in only its own person; and the pricing month holds.');
   }
 }

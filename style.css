@@ -3300,17 +3300,17 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* ---------- A DRAWING'S LABELS ARE SERIF, AND THAT IS MEASURED RATHER THAN PREFERRED § */
 /* `.qp-area` TOO: WHATEVER THE PEN IS ON INKS ITSELF ON THE CARD. § */
-.qsheet .lbl, .gd .lbl, .qp-area .lbl, .pad-loupe .lbl { font: italic 700 var(--fs-small) serif; fill: currentColor; text-anchor: middle; }
-.qsheet .num, .gd .num, .qp-area .num, .pad-loupe .num { font: var(--fs-small) serif; fill: currentColor; text-anchor: middle; }
-.qsheet .ax, .gd .ax, .qp-area .ax, .pad-loupe .ax { font: italic var(--fs-small) serif; fill: currentColor; }
-.qsheet .axis, .gd .axis, .qp-area .axis, .pad-loupe .axis { stroke: currentColor; stroke-width: 1.2; }
-.qsheet .grid, .gd .grid, .qp-area .grid, .pad-loupe .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
-.qsheet .pt, .gd .pt, .qp-area .pt, .pad-loupe .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
+.qsheet .lbl, .qb-stem .lbl, .gd .lbl, .qp-area .lbl, .pad-loupe .lbl { font: italic 700 var(--fs-small) serif; fill: currentColor; text-anchor: middle; }
+.qsheet .num, .qb-stem .num, .gd .num, .qp-area .num, .pad-loupe .num { font: var(--fs-small) serif; fill: currentColor; text-anchor: middle; }
+.qsheet .ax, .qb-stem .ax, .gd .ax, .qp-area .ax, .pad-loupe .ax { font: italic var(--fs-small) serif; fill: currentColor; }
+.qsheet .axis, .qb-stem .axis, .gd .axis, .qp-area .axis, .pad-loupe .axis { stroke: currentColor; stroke-width: 1.2; }
+.qsheet .grid, .qb-stem .grid, .gd .grid, .qp-area .grid, .pad-loupe .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
+.qsheet .pt, .qb-stem .pt, .gd .pt, .qp-area .pt, .pad-loupe .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
 
 /* ---------- COINS, PRICE TAGS, AND SAYING WHO DREW THEM § */
 .qsheet .coin, .qp-area .coin, .pad-loupe .coin { fill: none; stroke: currentColor; stroke-width: 1.3; }
 .qsheet .tag, .qp-area .tag, .pad-loupe .tag { fill: none; stroke: currentColor; stroke-width: 1.2; }
-.qsheet .cap, .gd .cap, .qp-area .cap, .pad-loupe .cap { font: var(--fs-small) serif; fill: currentColor; text-anchor: middle; opacity: .7; }
+.qsheet .cap, .qb-stem .cap, .gd .cap, .qp-area .cap, .pad-loupe .cap { font: var(--fs-small) serif; fill: currentColor; text-anchor: middle; opacity: .7; }
 
 /* BOXING — THE FIGHTER AND THE FIGHT `boxer-nick` AND `boxer-rec` WERE NEVER STYLED. § */
 /* ---------- A FRACTION WRITTEN THE WAY THE PAPER PRINTS ONE § */
@@ -5561,6 +5561,12 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc:not(.is-open) { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .55rem; align-items: start; }
 .card.kc:not(.is-open) > * { grid-column: 2; }
 .card.kc:not(.is-open) > .kc-pic { grid-column: 1; grid-row: 1 / span 5; width: 3.5rem; aspect-ratio: 1; border-radius: 50%; cursor: pointer; }
+/* A TUTOR'S FACE SITS BESIDE THEIR NAME ONLY (owner, 10 Nov: "Maths A-Level, GCSE" broke inside its pill): the pills under it take the card's width. */
+.card.kc.tcard:not(.is-open) > .kc-pic { grid-row: 1; align-self: center; --pic-h: 3.5rem; }
+.card.kc.tcard:not(.is-open) > .kc-tags { display: contents; }
+.card.kc.tcard:not(.is-open) > :not(.kc-pic), .card.kc.tcard:not(.is-open) > .kc-tags > * { grid-column: 1 / -1; }
+.card.kc.tcard:not(.is-open) > .kc-tags > .prof-who-tags { grid-column: 2; grid-row: 1; margin-top: 0; align-self: center; }
+.card.kc.tcard:not(.is-open) > .kc-tags > .prof-who-tags + * { margin-top: .4rem; }
 /* THE FIRST LINE OF TEXT, CLAMPED AT TWO; nothing after it shows while closed. */
 .card.kc:not(.is-open) > .kc-lines > * { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; margin: 0; }
 .card.kc:not(.is-open) > .kc-lines > * ~ * { display: none; }

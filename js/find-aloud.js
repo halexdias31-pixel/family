@@ -497,7 +497,7 @@ function placeChipDead_(f) {
 /* ---------- ONE LIST FOR BOTH FINDERS, COUNTED ONCE § */
 let FUNNEL_MEMO = { key: null, from: null, items: null };
 /* DOORS SWITCHED OFF FOR NOW (owner, 10 Nov): their things leave Find and one greyed Coming soon card waits under each, as Videos does. Empty the list to turn them back on. */
-const DOORS_OFF = ['Posts', 'Messages', 'Profiles'];
+const DOORS_OFF = [];
 function doorsOff_(items) {
   if (!DOORS_OFF.length) return items;
   const off = x => { let t = []; try { t = asList_(kindTop_(x)); } catch (e) { return false; } return t.length > 0 && t.every(d => DOORS_OFF.indexOf(d) >= 0); };

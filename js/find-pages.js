@@ -545,11 +545,6 @@ function stuffQuestion() {
   const pre = finderTagsAt_() || finderTagsLook_();
   if (pre) return facetAnswersHtml_(pre.facet, pre.values, '') + findPeek_();
   const items = stuffFiltered();
-  /* NOBODY YET, and a way to fix that. § */
-  if (STUFF.filters.some(f => f.value === 'Friends') && !items.length) {
-    return `${empty_('No friends yet.')}
-      ${tileRow_(tile_({ icon: 'plus', label: 'Add someone by their handle', word: 'Add', act: 'friend-add-open' }))}`;
-  }
   /* ---------- AN EMPTY FUNNEL SAID NOTHING AT ALL, WHICH IS THE WORST OF THE THREE ANSWERS § */
   /* AND WHEN THE WORDS ARE IN THE OTHER FINDER, SAYS SO — `stuffNoneHtml_`, one copy for both. */
   if (!items.length) return stuffNoneHtml_();
@@ -557,17 +552,15 @@ function stuffQuestion() {
   /* ---------- THE ORDINARY QUESTION FIRST, AND THE LAST RESORT BEHIND IT § */
   /* THE FRONT MENU IS ALWAYS ASKED (C+): one front answer (Settings, signed out) is still a menu, so every first screen is the same shape. */
   const facet = nextFacet(items) || overFacet_(items) || (!STUFF.filters.length ? facetBy('kindLabel') : null);
-  const adding = STUFF.filters.some(f => f.value === 'Friends')
-    ? tileRow_(tile_({ icon: 'plus', label: 'Add someone by their handle', word: 'Add', act: 'friend-add-open' }), 'find-end') : '';
   if (!facet) {
     /* ---------- "NOTHING LEFT TO NARROW" WAS NOT TRUE, AND IT WAS THE LAST THING ON THE SCREEN § */
     /* AND WHEN A PAPER ENDED IT, IT SAYS SO. § */
     /* ---------- ONE CLASS FOR THE LAST LINE, NOT AN INLINE MARGIN ON EACH § */
     /* AND OVER THE BIBLE, WHICH VERSES — or why there is no question over its cover yet. */
     const be = bibleEnd_(items);
-    if (be) return be + adding;
+    if (be) return be;
     /* NO END LINE (owner, 9 Nov: "remove that text"): the cards under the chips say it. */
-    return adding;
+    return '';
   }
 
   /* ---------- EVERY ANSWER, IN THE ORDER EVERY OTHER QUESTION USES § */

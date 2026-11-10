@@ -24,7 +24,7 @@
   },
   "widgets": {
     "reels": "off",
-    "videos": "off",
+    "videos": "secondary",
     "newspaper": "off",
     "homework": "off",
     "flyers": "off",

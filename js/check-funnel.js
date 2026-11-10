@@ -1246,7 +1246,7 @@ function oneFunnel_(f) {
     subjects.forEach(sv => walk(root.slice(0, 2).concat([{ field: 'subject', value: sv }, root[2]]), 0, null));
   } finally { S.filters = was; }
   ends.forEach(e => e.chips.forEach(c => { if (ONE_FUNNEL.indexOf(c.field) !== -1) asked.add(c.field); }));
-  let sats = 0, skipped = 0;
+  let sats = 0, skipped = 0, twins = 0;
   ends.forEach(e => {
     const lv = [...new Set([].concat(...e.list.map(x => f.levelsOf(x))))].join('|') || '(none)';
     if (/SATs/.test(lv)) sats++;
@@ -1258,6 +1258,12 @@ function oneFunnel_(f) {
       const n = f.facetValues(e.list, by(k)).length;
       if (n > 1 && skipped++ < 8) bad.push('one funnel: ' + lv + ' at ' + path + ' reaches ' + (e.q ? e.q.field : 'nothing') + ' with ' + by(k).label + ' never asked (' + n + ' answers)');
     });
+    /* NO TWO PAPER BUTTONS READ ALIKE (owner, 10 Nov: Edexcel A-Level November 2020 showed "Paper 3" twice, 31 and 32). */
+    if (e.q && e.q.field === 'paperId') {
+      const said = f.facetValues(e.list, e.q).map(v => String(v.show || v.text || v.value).toLowerCase());
+      const twin = said.find((s, i) => said.indexOf(s) !== i);
+      if (twin && twins++ < 8) bad.push('one funnel: ' + lv + ' at ' + path + ' shows two Paper buttons both reading "' + twin + '"');
+    }
     const np = f.facetValues(e.list, by('paperId')).length;
     if (!e.q && np > 1 && skipped++ < 8) bad.push('one funnel: ' + lv + ' at ' + path + ' stops with ' + np + ' papers and no Paper question');
   });
