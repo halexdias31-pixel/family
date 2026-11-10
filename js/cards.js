@@ -524,6 +524,22 @@ function kcTagFirst_(tags, name) {
   const tag = `<span class="qtag" data-tag="0">${esc(name)}</span>`;
   return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, '$1' + tag) : `<div class="qtags">${tag}</div>` + (tags || '');
 }
+/* TAGS ARE SHORT FACTS, LINES HAVE NO HEADINGS (owner, 9 Nov): a longer tag (a credit) becomes a later line, open-only; a heading in the lines a plain line. */
+const KC_TAG_MAX = 30;
+/* A QUESTION, AN ANSWER, A SETTING AND SITE HEALTH hold a whole screen whose own checks read its headings: kept as drawn. */
+const KC_WHOLE_KINDS = ['question', 'answer', 'setting', 'health'];
+function kcTidy_(tags, lines, name) {
+  const words = h => String(h || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&[a-z#0-9]+;/g, ' ').trim();
+  const moved = [];
+  tags = String(tags || '').replace(/<span class="qtag\b[^"]*"([^>]*)>((?:(?!<\/?span\b)[\s\S])*)<\/span>/g, (m, at, inner) =>
+    (/data-tag="0"/.test(at) || words(inner).length <= KC_TAG_MAX ? m : (moved.push(`<p class="kc-credit">${inner}</p>`), '')));
+  lines = String(lines || '').replace(/<h([1-4])\b([^>]*)>([\s\S]*?)<\/h\1>/g, (m, n, at, inner) => {
+    if (name && norm(words(inner)) === norm(name)) return '';
+    const a = /\sclass="/.test(at) ? at.replace(/\sclass="/, ' class="kc-h ') : ' class="kc-h"' + at;
+    return `<p${a} role="heading" aria-level="${n}">${inner}</p>`;
+  });
+  return { tags, lines: lines + moved.join('') };
+}
 /* A TAG SAYS ONLY WHAT THE MENUS ABOVE HAVE NOT (owner, 6 Nov), on every kind: a tag whose words a picked chip already says goes. */
 function kcUnpicked_(html) {
   const f0 = typeof STUFF !== 'undefined' && STUFF && STUFF.filters, f = Array.isArray(f0) ? f0 : [];
@@ -580,6 +596,7 @@ function findCard(x, credits) {
   const hoist = kcHoist_(parts.lines);
   parts.lines = hoist.lines;
   parts.act = kcActRow_(one, parts.lines, hoist.tiles);
+  if (KC_WHOLE_KINDS.indexOf(it.kind) < 0) { const tidy = kcTidy_(parts.tags, parts.lines, name); parts.tags = tidy.tags; parts.lines = tidy.lines; }
   /* A QUESTION IS ALWAYS OPEN (tags on top), as a form is until phase 2 converts it; any other card opens by a tap on its picture. */
   const off = (KC_OPEN_KINDS.indexOf(it.kind) >= 0 || it.open ? ' is-open' : '') + (it.kind === 'tutor' && t.listed === false ? ' is-off' : '') + (it.cardCls ? ' ' + esc(it.cardCls) : '');
   /* `cardData` BECOMES data-* ATTRIBUTES, so a card can be found again where it stands (a post's sheet, a conversation's redraw). */

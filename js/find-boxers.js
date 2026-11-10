@@ -6,11 +6,11 @@ function bibleVerseCard_(x) {
   let body;
   if (d) {
     const w = bibleText_(x), he = bb.lang === 'he';
-    body = '<div class="qtags bb-tr"><span class="qtag">' + esc(bb.translation) + '</span></div>'
-      + (!w ? '<p class="fc-note">This text has no verse with this number.</p>'
+    /* ITS TRANSLATION IS ITS CREDIT, a later line (open-only), not a tag among the verse's lines. */
+    body = (!w ? '<p class="fc-note">This text has no verse with this number.</p>'
         : he || bb.lang === 'grc' ? `<p class="bb-v bb-${he ? 'he' : 'grc'}"${he ? ' dir="rtl"' : ''} lang="${he ? 'he' : 'grc'}">${esc(w)}</p>`
         : bibleV_(w))
-      + '<p class="bb-credit">' + (also ? esc(also.name || also.translation) : 'King James Version (1611)') + ': public domain</p>'
+      + '<p class="bb-credit">' + (also ? esc(also.name || also.translation) : esc(bb.translation || 'King James Version (1611)')) + ': public domain</p>'
       + writingRefs_('bible:' + bb.dir);
   }
   else if (BIBLE.missed[k] && !BIBLE.loading[k]) body = `<p class="fc-note bb-miss">${esc(bb.book)} did not arrive.</p>`;

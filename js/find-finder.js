@@ -273,7 +273,8 @@ function soonItems_() {
   return cols.concat(ws, set).map(x => Object.assign(x, { text: [x.name, x.sub].join(' ') }));
 }
 function soonCard_(x) {
-  return `<div class="card soon-card"><h3>${esc(x.name)}</h3>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}<p><span class="qtag">${esc(brand('comingSoon', 'Coming soon'))}</span></p></div>`;
+  /* "COMING SOON" IS A TAG, beside its name, never a line. */
+  return `<div class="card soon-card"><h3>${esc(x.name)}</h3><div class="qtags"><span class="qtag" data-tag="0">${esc(x.name)}</span><span class="qtag">${esc(brand('comingSoon', 'Coming soon'))}</span></div>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}</div>`;
 }
 
 /* The card a resource and a shop row share. Named rather than written twice, because the two

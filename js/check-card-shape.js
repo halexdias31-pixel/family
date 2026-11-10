@@ -59,6 +59,13 @@ const shapeOf = html => {
   /* NO ORPHANS (owner, 9 Nov): every word a card shows lives inside one of its parts, never loose in the frame. */
   const loose = html.slice(head[0].length).replace(/<div class="kc-(pic|head|tags|lines|act)"[\s\S]*$/, '').replace(/<[^>]+>/g, '').trim();
   if (loose) return 'text outside its parts: ' + loose.slice(0, 60);
+  /* TAGS ARE SHORT FACTS (a credit is a later line); NO HEADING AMONG THE LINES (a widget's, a paper's): the name is a tag. */
+  const tagsHtml = (/<div class="kc-tags">([\s\S]*?)<\/div><div class="kc-lines">/.exec(html) || [, ''])[1];
+  const long = [];
+  tagsHtml.replace(/<span class="qtag\b[^"]*"([^>]*)>([\s\S]*?)<\/span>/g, (m, at, t) => { t = t.replace(/<[^>]+>/g, '').trim(); if (!/data-tag="0"/.test(at) && t.length > 30) long.push(t); return m; });
+  if (long.length) return 'a tag over 30 characters (a credit belongs in a later line): ' + long[0].slice(0, 60);
+  const lines = (/<div class="kc-lines">([\s\S]*?)<div class="kc-act">/.exec(html) || [, ''])[1];
+  if (!/^\s*<div class="card fc kc kc-(question|answer|setting|health)\b/.test(html) && /<h[1-4]\b/.test(lines)) return 'a heading (h1-h4) among its lines';
   /* NO TITLE LINE: the name is a tag. */
   if (!/<div class="kc-head"><\/div>/.test(html)) return 'a title line (the name belongs in the tags)';
   return fourOf(html);
@@ -134,6 +141,22 @@ try { const h = String(got.findCard({ kind: 'legacy', key: 'legacy:1', name: 'On
   if (w) bad.push('a KC_OWN card: ' + w);
   if (/<div class="kc-lines">[\s\S]*tile-row[\s\S]*<div class="kc-act">/.test(h)) bad.push('a KC_OWN card keeps its own tile row among its lines');
   if (!/<span class="kc-four"><button class="tile" data-do="own-go"/.test(h)) bad.push('a KC_OWN card\'s own tile does not lead its row'); } catch (e) { bad.push('a KC_OWN card: findCard threw ' + e.message); }
+/* A WIDGET'S OWN HEADING AND A PAPER'S SECTION HEADS LEAVE THE LINES; A LONG CREDIT TAG BECOMES A LINE (`kcTidy_`). */
+scope.window.KC_OWN = { legacy: () => '<div class="card x"><span class="qtags"><span class="qtag" data-f="src">IUPAC standard atomic weights (abridged), NIST</span></span><div class="widget-slot"><div class="card"><h3>One</h3><div class="insh-sec"><h4 class="x">Area</h4><p>a</p></div></div></div></div>' };
+try { const h = String(got.findCard({ kind: 'legacy', key: 'legacy:1', name: 'One' })), w = shapeOf(h);
+  if (w) bad.push('a KC_OWN card with a heading in its lines and a long tag: ' + w);
+  if (!/<div class="kc-lines">[\s\S]*class="kc-credit">IUPAC/.test(h)) bad.push('a long tag does not become a credit line');
+  if (/>One<\/(h3|p)>/.test(h.split('<div class="kc-lines">')[1] || '')) bad.push('a widget\'s own heading (its name) is still among its lines'); } catch (e) { bad.push('a KC_OWN card: findCard threw ' + e.message); }
+/* COMING SOON IS A TAG, lifted out of find-finder.js by name. */
+try { const soonSrc = (/\nfunction soonCard_\([\s\S]*?\n\}\n/.exec(finder) || [''])[0];
+  scope.brand = (k, f) => f;
+  /* eslint-disable-next-line no-new-func */
+  scope.window.KC_OWN = { soon: new Function('scope', 'with (scope) {\n' + soonSrc + '\nreturn soonCard_; }')(scope) };
+  const h = String(got.findCard({ kind: 'soon', key: 'soon:1', name: 'Timer', sub: 'Tools' })), w = shapeOf(h);
+  if (!soonSrc) bad.push('find-finder.js has no soonCard_');
+  else if (w) bad.push('a Coming soon card: ' + w);
+  else if (!/<div class="kc-tags">[\s\S]*Coming soon[\s\S]*<div class="kc-lines">/.test(h) || /Coming soon/.test(h.split('<div class="kc-lines">')[1])) bad.push('"Coming soon" is not a tag'); } catch (e) { bad.push('a Coming soon card: ' + e.message); }
+delete scope.brand;
 scope.window.KC_OWN = {};
 if (!/\n  tutor:[\s\S]{0,300}?: findCard\(x\) \}/.test(finder)) bad.push('find-finder.js does not draw a tutor with findCard');
 
