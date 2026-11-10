@@ -76,10 +76,14 @@ function profileDoorItems_() {
   /* Tutors are Booking's tutor items, tagged Profiles too (KIND_UNDER): never a second card here. */
   ((DATA && DATA.tutors) || []).forEach(t => { if (t) seen[String(t.personId || t.title || t.handle || '')] = 1; });
   if (seeMay_('find:all-people')) ((DATA && DATA.everyone) || []).filter(p => p && p.title).forEach(p => add(p, false));
+  /* ADD A PERSON (add-person): one card for an admin, first among the people, drawn by `personAddCard_` (me-people.js). */
+  if (typeof personAddMay_ === 'function' && personAddMay_()) out.unshift({ kind: 'person', add: true, name: 'Add a person', key: 'person:add', sub: '',
+    image: '', row: {}, profileType: ['Student', 'Parent', 'Tutor'], text: 'add a person new account student parent tutor' });
   return out;
 }
 /* PICTURE FIRST: the face fills the top of the card, the name under it; everything else is a tag. */
 function profileDoorCard_(x) {
+  if (x.add) return typeof personAddCard_ === 'function' ? personAddCard_() : '';
   const t = x.row || {};
   /* NO FACE, NO LETTER: the card draws its own default picture, so a lone initial would only stand beside the handle. */
   return `<div class="card is-prof prof-door">${!(t.image || t.avatar) ? '' : personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title || t.name, personId: t.personId },

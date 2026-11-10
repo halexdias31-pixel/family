@@ -211,6 +211,18 @@ function postLinkChild_(body, action, began) {
                    parent: nameFor_(parent), child: nameFor_(child) });
 }
 
+/* A FAMILY LINK TAKEN OFF BY AN ADMIN (the Edit form on a card): every row between the two, whatever its state; `linkChild` makes one. */
+function postAdminUnlinkFamily_(body, action, began) {
+  const t = read(TAB.family);
+  if (!t.sheet) return jsonOut({ error: 'The family tab could not be opened — nothing was changed.' });
+  const pid = S(body.parentId), cid = S(body.childId);
+  if (!pid || !cid) return jsonOut({ error: 'Which parent and which child?' });
+  const gone = t.rows.filter(f => S(f.parent_id) === pid && S(f.child_id) === cid).sort((a, b) => b._row - a._row);
+  gone.forEach(f => delRow(t, f));
+  clearCache();
+  return jsonOut({ success: true, removed: gone.length });
+}
+
 /* PEOPLE, BY AN ADMIN (373) ------------------------------------------------------------------- */
 /* THE FORM'S FILLING: the person by id (none for a new one) and the parents a child can go on. */
 function postPersonGet_(body, action, began) {
@@ -259,8 +271,20 @@ function postPersonSave_(body, action, began) {
     return jsonOut({ error: 'Saved, but the family tab could not be opened, so their parents were not changed.' });
   }
   clearCache();
+  const invited = !r && !!email && !!body.invite && adminInvite_(row, pin);
   return jsonOut({ success: true, made: !r, person: adminPersonCard_(row), first: first,
-                   handle: S(row.handle), pin: pin });
+                   handle: S(row.handle), pin: invited ? '' : pin, invited: invited });
+}
+
+/* THE NEW ACCOUNT'S HANDLE AND PIN MAILED TO THEIR OWN ADDRESS (`invite`): false when it could not go, so the admin is shown the PIN instead. */
+function adminInvite_(r, pin) {
+  try {
+    mailOut_({ to: S(r.email), name: BRAND_NAME, subject: 'Your ' + BRAND_NAME + ' account',
+      body: 'Hello ' + S(r.first_name) + ',\n\nAn account has been made for you on ' + BRAND_NAME + '.\n\n'
+          + 'Sign in at ' + SITE_URL + ' with your email (or your handle, @' + S(r.handle) + ') and the PIN ' + pin
+          + '\n\nChange the PIN under Settings → Signing in.\n\n— ' + BRAND_NAME });
+    return true;
+  } catch (err) { return false; }
 }
 
 /* REMOVED, with their family links. Never yourself, and never the last admin. */
