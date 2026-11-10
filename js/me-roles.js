@@ -435,7 +435,7 @@ screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('
 
 /* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
 function apprenticePages_() {
-  return [`<div class="card appr-set"><p class="muted">${
+  return [`<div class="card appr-set"><p class="note">${
     esc(brand('apprentice_blurb', 'Work experience with us. Coming soon.'))}</p></div>`];
 }
 screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? cardsOf_('apprentice') : apprenticePages_()));
@@ -454,9 +454,9 @@ screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web'
 /* ---------- APPRENTICE PROFILE (730): a card per apprentice an admin is sent (`everyone`, role Apprentice); none yet is a line from brand() ---------- */
 function apprenticeProfilePages_() {
   const all = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title && /apprentice/i.test(String(p.role || '')));
-  if (all.length) return all.map(p => `<div class="card appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="sub prof-handle">@${esc(p.handle)}</p>` : ''}</div>`);
-  return [`<div class="card appr-card people-none"><p class="muted">${
-    esc(brand('apprentices_none', 'No apprentices yet.'))}</p></div>`];
+  if (all.length) return all.map(p => `<div class="card appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="qtags"><span class="qtag prof-handle">@${esc(p.handle)}</span></p>` : ''}</div>`);
+  return [`<div class="card appr-card people-none">${
+    empty_(brand('apprentices_none', 'No apprentices yet.'))}</div>`];
 }
 screen('apprentices', () => pages('apprentices', typeof cardsOf_ === 'function' ? cardsOf_('apprentices') : apprenticeProfilePages_()));
 
@@ -490,9 +490,9 @@ function stabilityCard_() {
     } catch (e) { STAB.failed = true; }
   }
   const s = STAB.got, head = '<h3>Stability</h3>';
-  if (!s) return `<div class="card biz stability-card">${head}${STAB.failed ? '<p class="muted">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`;
+  if (!s) return `<div class="card biz stability-card">${head}${STAB.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`;
   const sig = (s.signals || []).filter(x => x.off > 0);
-  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} <span class="faint">(−${esc(String(x.off))})</span></li>`;
+  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} <span class="qtag">−${esc(String(x.off))}</span></li>`;
   return `<div class="card biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p><p class="sub">${esc(s.verdict || '')}${s.secondary && typeof s.secondary.score === 'number' ? ' Core only (860); the secondary tier is ' + esc(String(s.secondary.score)) + '%.' : ''}</p>
     <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
     ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`;

@@ -71,7 +71,7 @@ function wordsEditOn_(root) {
   root.querySelectorAll('[data-wkp]').forEach(inp => {
     if (inp.nextElementSibling && inp.nextElementSibling.classList.contains('wk-ph-row')) return;
     const k = inp.getAttribute('data-wkp'), set = Object.prototype.hasOwnProperty.call(wordsNow_(), k);
-    inp.insertAdjacentHTML('afterend', `<span class="wk-ph-row"><span class="faint">Placeholder</span> <span class="wk-ph" contenteditable="plaintext-only" data-wk="${esc(k)}" data-wko="${esc(inp.getAttribute('data-wko') || '')}"${
+    inp.insertAdjacentHTML('afterend', `<span class="wk-ph-row"><span class="qtag">Placeholder</span> <span class="wk-ph" contenteditable="plaintext-only" data-wk="${esc(k)}" data-wko="${esc(inp.getAttribute('data-wko') || '')}"${
       set ? ' data-wk-set=""' : ''}>${esc(inp.getAttribute('placeholder') || '')}</span></span>`);
   });
   const all = [...root.querySelectorAll('[data-wk]')];

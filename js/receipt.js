@@ -290,7 +290,7 @@ function drawBooker_() {
     ? `<p class="note note-gap">No children are on
          ${mine ? 'your account' : esc(forWhom) + '&rsquo;s account'}, so we cannot ask which of
          them this is for — the seats will just say <b>Child</b>.
-         <span class="faint">${mine ? 'Ask us to add them and the next booking will name them.'
+         <span>${mine ? 'Ask us to add them and the next booking will name them.'
            : 'Add them to that account and the next booking will name them.'}</span></p>`
     : '';
 

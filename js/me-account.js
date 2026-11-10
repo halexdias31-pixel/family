@@ -146,13 +146,13 @@ function setupCard_() {
     <p class="sub">Backend live: <b>${esc(dash_(S_.backend))}</b> · site ${esc(typeof SITE_VERSION !== 'undefined' ? SITE_VERSION : dash_())}${odd.length
       ? ` · <span class="setup-bad">not deployed: ${odd.map(k => esc(k) + '.gs (' + esc(files[k]) + ')').join(', ')}</span>` : ' · all 4 files agree'}</p>
     ${failed.map(j => `<p class="setup-bad">${esc(j.id)} failed: ${esc(j.error)} — it tries again on the next page load.</p>`).join('')}
-    <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} <span class="faint">${j.ran
+    <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} <span class="qtag">${j.ran
       ? esc(j.ran === 'yes' ? 'done' : setupWhen_(j.ran)) : j.error ? 'failed' : 'waiting'}</span>${
       /* WHAT THE JOB LEFT TO SAY — the tidy's backup copy and what it removed (379). */
-      j.said ? `<br><span class="faint">${esc(j.said)}</span>` : ''}${
+      j.said ? `<br><span class="qtag">${esc(j.said)}</span>` : ''}${
       setupJobLink_(j)}</li>`).join('')}</ul>
     <h4>Triggers</h4>
-    <ul class="setup-list">${(S_.triggers || []).map(t => `<li>${esc(t.fn)}${t.times > 1 ? ' ×' + esc(t.times) : ''} <span class="faint">${esc(t.when)}</span></li>`).join('')
+    <ul class="setup-list">${(S_.triggers || []).map(t => `<li>${esc(t.fn)}${t.times > 1 ? ' ×' + esc(t.times) : ''} <span class="qtag">${esc(t.when)}</span></li>`).join('')
       || `<li class="faint">${S_.triggersError ? 'could not be listed: ' + esc(S_.triggersError) : 'none yet — they install on the next page load'}</li>`}</ul>
     <p class="sub">Sunday email: ${esc(mode)}. ${sun.next ? 'Next send ' + esc(setupWhen_(sun.next)) + '.' : 'Not booked yet — it books itself on the next page load.'}</p>
   </div>`;

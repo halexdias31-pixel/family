@@ -61,13 +61,13 @@ function siteHealthCard_() {
       .then(() => { try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
   }
   const s = HEALTH.got, head = '<h3>Site health</h3>';
-  if (!s) return `<div class="card logic-card">${head}${HEALTH.failed ? '<p class="muted">The score could not be read. Run node tools/health.js and push.</p>' : loading_()}</div>`;
+  if (!s) return `<div class="card logic-card">${head}${HEALTH.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/health.js and push.</p>' : loading_()}</div>`;
   const p = s.parts || {}, list = (HEALTH.all ? s.all : s.top) || [];
   const said = { code: 'Code', logic: 'Find logic', ui: 'UI' };
   return `<div class="card logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <p class="sub">Code ${esc(String(p.code))}% · Find logic ${esc(String(p.logic))}%${s.logicStale ? ' (stale)' : ''} · UI ${esc(String(p.ui))}%</p>
     ${s.next ? `<p><b>${esc(String(s.next))}</b></p>` : ''}${healthTrend_(s.trend)}
-    <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} <span class="faint">(${esc(said[t.part] || t.part)}, −${esc(String(t.cost))})</span></li>`).join('')}</ol>
+    <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} <span class="qtag">${esc(said[t.part] || t.part)}, −${esc(String(t.cost))}</span></li>`).join('')}</ol>
     ${healthWork_(s.worklist)}
     ${(s.all || []).length > 5 ? tileRow_(tile_({ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top 5' : 'Show the full list', act: 'health-all' }), '', true) : ''}</div>`;
 }
@@ -87,7 +87,7 @@ const HEALTH_SAY = { 'one-off': 'A special case for one name', 'long-fn': 'A lon
 function healthWork_(w) {
   const top = (Array.isArray(w) ? w : []).slice(0, 5);
   if (!top.length) return '';
-  return `<p class="sub">Fix first</p><ol class="stab-top">${top.map(f => `<li><b>${esc(String(f.file))}:${esc(String(f.line))}</b> · ${esc(HEALTH_SAY[f.kind] || String(f.kind))}<br><span class="faint">${esc(String(f.text || ''))}</span></li>`).join('')}</ol>`;
+  return `<p class="sub">Fix first</p><ol class="stab-top">${top.map(f => `<li><b>${esc(String(f.file))}:${esc(String(f.line))}</b> · ${esc(HEALTH_SAY[f.kind] || String(f.kind))}<br><span class="qtag">${esc(String(f.text || ''))}</span></li>`).join('')}</ol>`;
 }
 on('health-all', () => { HEALTH.all = !HEALTH.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 
@@ -111,10 +111,10 @@ function logicCard_() {
       .then(() => { try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
   }
   const s = LOGIC.got, head = '<h3>Logic health</h3>';
-  if (!s) return `<div class="card logic-card">${head}${LOGIC.failed ? '<p class="muted">The score could not be read. Run node tools/logic-health.js and push.</p>' : loading_()}</div>`;
+  if (!s) return `<div class="card logic-card">${head}${LOGIC.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/logic-health.js and push.</p>' : loading_()}</div>`;
   const rules = (s.rules || []).filter(r => r.count > 0).sort((a, b) => b.count - a.count);
   const top = (s.top || []).slice(0, LOGIC.all ? 25 : 3);
-  const line = t => `<li><b>${esc(t.where)}</b> · ${esc(t.asks || '')}<br><span class="faint">${esc((t.why || []).join(' · '))}</span></li>`;
+  const line = t => `<li><b>${esc(t.where)}</b> · ${esc(t.asks || '')}<br><span class="qtag">${esc((t.why || []).join(' · '))}</span></li>`;
   return `<div class="card logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <p class="sub">${esc(String(s.healthy))} of ${esc(String(s.questions))} questions break no rule.</p>
     <p class="faint">${rules.map(r => esc(r.label) + ': ' + esc(String(r.count))).join(' · ') || 'Every rule holds.'}</p>

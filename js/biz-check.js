@@ -152,7 +152,7 @@ function bcInner_() {
       ${BC.list ? `<p class="bc-count"><b>${done} of ${counted.length} sorted</b></p>${money}
       ${next.length ? `<p class="faint">Next:</p>${next.map(i => bcItem_(i, st[i.id])).join('')}` : '<p>Everything that applies is sorted.</p>'}
       ${groups.map(g => { const gi = all.filter(i => i.group === g && next.indexOf(i) === -1);
-        return gi.length ? `<h4 class="bc-group">${esc(g)} <span class="faint">· ${gi.filter(i => st[i.id].sorted).length}/${gi.filter(i => !st[i.id].info).length}</span></h4>${gi.map(i => bcItem_(i, st[i.id])).join('')}` : ''; }).join('')}
+        return gi.length ? `<h4 class="bc-group">${esc(g)} <span class="qtag">${gi.filter(i => st[i.id].sorted).length}/${gi.filter(i => !st[i.id].info).length}</span></h4>${gi.map(i => bcItem_(i, st[i.id])).join('')}` : ''; }).join('')}
       ${later ? `<p class="faint">${later} more for later (a venue, employees) appear when config says so: biz_venue, biz_employees.</p>` : ''}
       <p class="faint">Guidance only, not legal or financial advice; links go to gov.uk, the ICO and the NSPCC.</p>` : ''}
     ${wait ? loading_() : ''}</div>

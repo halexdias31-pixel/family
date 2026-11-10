@@ -689,10 +689,10 @@ function loadFailBanner_(err, reached) {
           + 'them is the script itself — open it in a tab and see how long it takes.'
         : 'Something else went wrong on the way.';
       el.innerHTML = 'Could not reach the backend.' + (reached ? '' : ' Still trying by itself.') + '<br>'
-        + '<span class="faint">' + esc(why) + '</span><br>'
+        + '<span class="qtag">' + esc(why) + '</span><br>'
         + '<a class="link" href="' + esc(API) + '" target="_blank" rel="noopener">Open it in a '
         + 'tab</a> — the page itself will say which it is.<br>'
-        + '<span class="faint">' + esc(msg)
+        + '<span>' + esc(msg)
         + ' · site ' + esc(SITE_VERSION) + ' · css ' + esc(cssVersion()) + '</span>';
     }
 }

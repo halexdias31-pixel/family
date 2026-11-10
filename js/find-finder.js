@@ -317,8 +317,8 @@ function thingCard_(x, credits) {
               x.bandType === 'year' ? (x.bandValue && 'Year ' + x.bandValue)
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
             : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)])
-            .filter(Boolean).map(v => esc(String(v))).join(' <span class="faint">·</span> ')}</p>`}
-          <h3>${esc(x.name)}${x.off ? ' <span class="faint">— deleted</span>' : ''}</h3>
+            .filter(Boolean).map(v => esc(String(v))).join('  ')}</p>`}
+          <h3>${esc(x.name)}${x.off ? ' <span class="qtag">deleted</span>' : ''}</h3>
           ${/* Its own second line: § */
                 ''}
           ${/* THE YEAR, ON THE CARD. § */
@@ -326,13 +326,13 @@ function thingCard_(x, credits) {
           ${/* WHO IT IS FROM, FIRST. § */
                 ''}
           ${isShop_(x) ? '' : `<p class="sub">${x.company
-            ? `${mark(x.company)}${x.sub || x.subject ? ' <span class="faint">· </span>' : ''}` : ''}${
+            ? `${mark(x.company)}${x.sub || x.subject ? ' ' : ''}` : ''}${
             mark(x.sub || x.subject || '')}${yearOf(x)
             ? ` <span class="mono faint">· ${esc(yearOf(x))}</span>` : ''}${x.wearable && x.slot
             /* WHERE IT GOES. Until there are drawings, the slot is the only thing on the card that
                says what the object actually is — "Cape · shoulders" is a garment and "Cape" on its
                own is a word. */
-            ? ` <span class="faint">· ${esc(x.slot)}</span>` : ''}</p>`}
+            ? ` <span class="qtag">${esc(x.slot)}</span>` : ''}</p>`}
           ${price}
         </div>
       </div>

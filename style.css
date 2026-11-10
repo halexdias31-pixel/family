@@ -3234,6 +3234,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   font-size: var(--tp-fs); line-height: var(--tp-lh);
 }
 /* NO TAG IS DRAWN DIFFERENTLY FROM ANOTHER. § */
+/* A tag whose value is missing is no tag, not an empty pill. */
+.qtag:empty { display: none; }
 
 /* `.qcard-peek` AND `.qcard:active` WERE HERE — the clipped first line, and the press animation for
    a card that was a button. Neither has anything to do: the card is not tappable, because there is
@@ -5132,7 +5134,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* ---------- EVERY CARD VISIBLE, A PADLOCK ON THOSE NOT YOURS (467) ---------- */
 .is-locked { position: relative; }
 /* Its other children recede in colour beside `.card.is-off` (541): opacity took the field labels to 2.3:1. */
-.card-lock { position: absolute; top: .7rem; right: .8rem; color: color-mix(in srgb, var(--ink) 80%, var(--bg)); pointer-events: none; }
+.card-lock { position: absolute; top: .7rem; right: .8rem; color: var(--ink); pointer-events: none; }
 .card-lock svg { width: 18px; height: 18px; display: block; }
 .is-locked > h3 { padding-right: 1.6rem; }
 /* WHAT A CARD IS FOR, one faint line under its title. */

@@ -236,7 +236,7 @@ function bundleCard_(b) {
         });
         return groups.map(g => `<li><span class="bundle-when">${esc(g.group)}</span> ${
           g.papers.map(p => `<span class="bundle-name">${esc(p.label)}</span>${pp(p)}`)
-            .join('<span class="faint"> · </span>')}</li>`).join('');
+            .join('')}</li>`).join('');
       })()
     : b.printable.map(p => `<li><span class="bundle-name">${esc(p.label)}</span>${pp(p)}</li>`).join('');
   const stray = bundleStrayLine_(b);
