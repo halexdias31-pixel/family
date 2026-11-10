@@ -20,7 +20,7 @@ function facetSay_(facet, v) {
   if (facet && typeof facet.showOf === 'function') { try { s = facet.showOf(v) || v; } catch (e) { s = v; } }
   s = sayCase_(s);
   let own = '';
-  try { own = facet && typeof labelOf_ === 'function' ? labelOf_('facet-show:' + facet.field, s, '') : ''; } catch (e) { own = ''; }
+  try { own = facet ? labelOf_('facet-show:' + facet.field, s, '') : ''; } catch (e) { own = ''; }
   return own || s;
 }
 /* A SHOW FITS A TAG (kcTidy_'s KC_TAG_MAX, 30), or the card moves it to an open-only line: the owner's short label (labels.json, */

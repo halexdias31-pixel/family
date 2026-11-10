@@ -1401,7 +1401,7 @@ function initMat() {
     ${/* ---------- PRINT IT YOURSELF, OR HAVE IT PRINTED § */
           ''}
     <div class="mat-do">
-      ${formButton_({ act: 'mat-print', id: 'mat-go', label: 'Print the sheet' })}
+      ${tile_({ form: true, act: 'mat-print', id: 'mat-go', label: 'Print the sheet' })}
       ${tile_({ icon: 'cart', label: 'Have it printed', note: 'into your basket', act: 'mat-cart' })}
     </div>`;
 

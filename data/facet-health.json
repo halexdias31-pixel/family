@@ -3,7 +3,7 @@
  "items": 279949,
  "menus": 118,
  "counts": {
-  "words-all": 28
+  "words-all": 34
  },
  "findings": [
   {
@@ -17,6 +17,24 @@
    "menu": "Chapter (wChapter)",
    "value": "Chapter 1 · ארבעה ראשי שנים",
    "say": "menu \"Chapter 1 · ארבעה ראשי שנים\", chip \"Chapter 1 · ארבעה ראשי שנים\", tag \"Chapter 1 · מאימתי\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 2 · כל הזבחים שקבלו דמן",
+   "say": "menu \"Chapter 2 · כל הזבחים שקבלו…\", chip \"Chapter 2 · כל הזבחים שקבלו…\", tag \"Chapter 2 · היה קורא\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 3 · הקורא את המגילה עומד",
+   "say": "menu \"Chapter 3 · הקורא את המגילה…\", chip \"Chapter 3 · הקורא את המגילה…\", tag \"Chapter 3 · מי שמתו\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 4 · שור שנגח ארבע וחמשה",
+   "say": "menu \"Chapter 4 · שור שנגח ארבע…\", chip \"Chapter 4 · שור שנגח ארבע…\", tag \"Chapter 4 · תפלת השחר\""
   },
   {
    "kind": "words-all",
@@ -45,8 +63,20 @@
   {
    "kind": "words-all",
    "menu": "Chapter (wChapter)",
+   "value": "Chapter 9 · הכותים אין להם נזירות",
+   "say": "menu \"Chapter 9 · הכותים אין להם…\", chip \"Chapter 9 · הכותים אין להם…\", tag \"Chapter 9 · הרואה\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
    "value": "Chapter 10 · אלו הן הנחנקין",
    "say": "menu \"Chapter 10 · אלו הן הנחנקין\", chip \"Chapter 10 · אלו הן הנחנקין\", tag \"Chapter 10 · המצניע\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 11 · כל ישראל יש להם חלק",
+   "say": "menu \"Chapter 11 · כל ישראל יש להם…\", chip \"Chapter 11 · כל ישראל יש להם…\", tag \"Chapter 11 · הזורק\""
   },
   {
    "kind": "words-all",
@@ -83,6 +113,12 @@
    "menu": "Unit (wUnit)",
    "value": "434.2",
    "say": "menu \"434.2\", chip \"434.2\", tag \"4342\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "My God, accept my heart this day",
+   "say": "menu \"My God, accept my heart this…\", chip \"My God, accept my heart this…\", tag \"My God! accept my heart this…\""
   },
   {
    "kind": "words-all",

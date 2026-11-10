@@ -92,7 +92,7 @@ function hadithBody_(hd) {
       <p class="qr-credit">Arabic text, public domain · digital edition: fawazahmed0/hadith-api, The Unlicense</p>` : '';
   }
   if (HADITH.missed[f] && !HADITH.loading[f]) {
-    return `<p class="fc-note">This book did not arrive. ${formButton_({ act: 'hd-retry', data: { f: f }, label: 'Try again' })}</p>`;
+    return `<p class="fc-note">This book did not arrive. ${tile_({ form: true, act: 'hd-retry', data: { f: f }, label: 'Try again' })}</p>`;
   }
   if (!HADITH.loading[f]) hadithLoad_(f, hadithCountOf_(f)).then(() => hadithRedraw_(f));
   return loading_();

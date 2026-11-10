@@ -439,10 +439,10 @@ function cameraCard() {
       ${/* THE WORDS ARE IN `aria-label` AND `title` RATHER THAN IN THE DISC. A shutter with the
             word "Photo" written across it is not a shutter, and a control with no name at all is
             one a screen reader cannot offer. */''}
-      ${formButton_({ cls: 'cam-shot', act: 'cam-shoot', id: 'cam-shoot', aria: 'Take a photo', title: 'Take a photo', off: true, html: '' })}
-      ${formButton_({ cls: 'cam-rec', act: 'cam-video', id: 'cam-video', aria: 'Record a video', title: 'Record a video', off: true, html: '' })}
-      ${formButton_({ cls: 'cam-round cam-write', act: 'new-post', aria: 'Write a post', title: 'Write a post', html: '<span class="cam-disc" aria-hidden="true">✎</span><span class="cam-word">Write a post</span>' })}
-      ${formButton_({ cls: 'cam-side', act: 'cam-flip', id: 'cam-flip', aria: 'Switch camera', title: 'Switch camera', hidden: true, label: 'Switch' })}
+      ${tile_({ form: true, look: 'cam-shot', act: 'cam-shoot', id: 'cam-shoot', aria: 'Take a photo', title: 'Take a photo', off: true, html: '' })}
+      ${tile_({ form: true, look: 'cam-rec', act: 'cam-video', id: 'cam-video', aria: 'Record a video', title: 'Record a video', off: true, html: '' })}
+      ${tile_({ form: true, look: 'cam-round cam-write', act: 'new-post', aria: 'Write a post', title: 'Write a post', html: '<span class="cam-disc" aria-hidden="true">✎</span><span class="cam-word">Write a post</span>' })}
+      ${tile_({ form: true, look: 'cam-side', act: 'cam-flip', id: 'cam-flip', aria: 'Switch camera', title: 'Switch camera', hidden: true, label: 'Switch' })}
     </div>
     ${/* ---------- ONE LINE ABOUT IT, BECAUSE A POST WITH NOTHING SAID ABOUT IT IS A PHOTOGRAPH § */
           ''}
@@ -459,15 +459,15 @@ function cameraCard() {
       ${postAsButtons_('cam-as')}
     </span>` : ''}
     <div class="btn-row cam-row">
-      ${formButton_({ cls: 'btn quiet', act: 'cam-again', id: 'cam-again', hidden: true, label: 'Again' })}
+      ${tile_({ form: true, look: 'btn quiet', act: 'cam-again', id: 'cam-again', hidden: true, label: 'Again' })}
       ${/* KEEP THIS ONE AND TAKE ANOTHER. The picture goes into the tray and the viewfinder comes
             back, so a post of five is five presses of the shutter and one of `Post it`. */''}
-      ${formButton_({ cls: 'btn quiet', act: 'cam-more', id: 'cam-more', hidden: true, label: 'Add another' })}
-      ${formButton_({ act: 'cam-post', id: 'cam-post', hidden: true, label: 'Post it' })}
-      ${formButton_({ cls: 'btn quiet', act: 'cam-save', id: 'cam-save', hidden: true, label: 'Save a copy' })}
+      ${tile_({ form: true, look: 'btn quiet', act: 'cam-more', id: 'cam-more', hidden: true, label: 'Add another' })}
+      ${tile_({ form: true, act: 'cam-post', id: 'cam-post', hidden: true, label: 'Post it' })}
+      ${tile_({ form: true, look: 'btn quiet', act: 'cam-save', id: 'cam-save', hidden: true, label: 'Save a copy' })}
       ${/* HIDDEN UNTIL SOMETHING FAILS. See the note at the top: this is the way back from a refused
             prompt, not a step on the way in. */''}
-      ${formButton_({ act: 'cam-on', id: 'cam-on', hidden: true, label: 'Try the camera again' })}
+      ${tile_({ form: true, act: 'cam-on', id: 'cam-on', hidden: true, label: 'Try the camera again' })}
     </div>
     <p class="note" id="cam-said"></p>
   </div>`;
@@ -769,7 +769,7 @@ function camHold_() {
   if (!tray) return;
   tray.hidden = !CAM_ITEMS.length;
   tray.innerHTML = CAM_ITEMS.length ? `<div class="cam-thumbs">${CAM_ITEMS.map((x, k) =>
-    formButton_({ cls: 'cam-thumb', act: 'cam-drop', data: { i: k }, aria: 'Take this one out of the post', title: 'Take this one out', html: x.kind === 'video'
+    tile_({ form: true, look: 'cam-thumb', act: 'cam-drop', data: { i: k }, aria: 'Take this one out of the post', title: 'Take this one out', html: x.kind === 'video'
       ? '<span class="cam-thumb-vid">\u25b6</span>'
       : `<img src="${esc(x.data)}" alt="" decoding="async">` })).join('')}</div>` : '';
 }
@@ -1046,7 +1046,7 @@ function reacts(p) {
     const mine = r.yours === e;
     const cls = 'react' + (mine ? ' mine' : '') + (t.length > 2 ? ' is-long' : '')
               + (REACT_POP_ && REACT_POP_ === p.id + ' ' + e ? ' is-pop' : '');
-    return formButton_({ cls: cls, act: 'react', data: { id: p.id, emoji: e }, pressed: mine, html: `<span class="react-e">${esc(e)}</span>${
+    return tile_({ form: true, look: cls, act: 'react', data: { id: p.id, emoji: e }, pressed: mine, html: `<span class="react-e">${esc(e)}</span>${
       t ? `<span class="react-n">${t}</span>` : ''}` });
   }).join('')}</div>`;
 }
@@ -1056,7 +1056,7 @@ function reactWho_(p) {
   const r = p && p.reactions;
   const n = r ? Number(r.total) || 0 : 0;
   if (!n) return '';                          // a 0 that opens an empty sheet is a promise broken
-  return formButton_({ cls: 'text-action react-who', act: 'who-reacted', data: { id: p.id }, label: n + ' reaction' + (n === 1 ? '' : 's') });
+  return tile_({ form: true, look: 'text-action react-who', act: 'who-reacted', data: { id: p.id }, label: n + ' reaction' + (n === 1 ? '' : 's') });
 }
 /* WHEN, AND HOW MANY. Time first, so a total appearing never moves it; 44px tall either way, so the first reaction on a post moves nothing below it — the tile § */
 function postWhen_(p) {
@@ -1185,7 +1185,7 @@ function poll(p) {
       const n = q.counts[i];
       const share = q.total ? Math.round(n / q.total * 100) : 0;
       const mine = q.yours === opt;
-      return formButton_({ cls: 'poll-row' + (mine ? ' mine' : '') + (voted ? ' done' : ''), act: 'vote', data: { id: p.id, choice: opt }, html: `
+      return tile_({ form: true, look: 'poll-row' + (mine ? ' mine' : '') + (voted ? ' done' : ''), act: 'vote', data: { id: p.id, choice: opt }, html: `
         ${voted
           /* The bar is drawn against the BIGGEST answer, not against the total — with four options
              the winner might be 30%, and a bar 30% across reads as nobody choosing it. */
@@ -1441,8 +1441,8 @@ function postAsRow_(id) {
     </span></label>`;
 }
 /* THE TWO ANSWERS, the composer's and the camera's alike. */
-const postAsButtons_ = id => formButton_({ cls: 'btn quiet on', act: 'as', data: { for: id, as: 'brand' }, html: `${esc(brand('name', '@family.'))} <span class="qtag">business</span>` })
-  + formButton_({ cls: 'btn quiet', act: 'as', data: { for: id, as: 'me' }, html: 'me <span class="qtag">personal</span>' });
+const postAsButtons_ = id => tile_({ form: true, look: 'btn quiet on', act: 'as', data: { for: id, as: 'brand' }, html: `${esc(brand('name', '@family.'))} <span class="qtag">business</span>` })
+  + tile_({ form: true, look: 'btn quiet', act: 'as', data: { for: id, as: 'me' }, html: 'me <span class="qtag">personal</span>' });
 const postAsOf_ = id => (typeof isAdmin === 'function' && isAdmin()) ? ((($(id) || {}).dataset || {}).as || 'brand') : 'me';
 /* WRITING A POST CHANGES THE CAMERA CARD IN PLACE (448): "do not use pop-up menus on my site". Words only — no picture picker; Photos is beside the shutter. */
 let POST_COMPOSING = false;
@@ -1462,7 +1462,7 @@ function postComposeHtml_() {
   <label class="field"><span>more, if you want it</span>
     <textarea id="post-body" placeholder="Optional"${draftAttr_('post', 'body')}>${esc(draftVal_('post', 'body'))}</textarea></label>
   <div class="poll-opts" id="post-poll-opts" data-n="${n}">${Array.from({ length: n }, (_, k) => pollBox_(k)).join('')}</div>
-  ${formButton_({ cls: 'btn quiet', act: 'poll-more', id: 'poll-more', hidden: n >= POLL_MAX, label: 'Add option' })}
+  ${tile_({ form: true, look: 'btn quiet', act: 'poll-more', id: 'poll-more', hidden: n >= POLL_MAX, label: 'Add option' })}
   ${postAsRow_('post-as')}
   <div class="btn-row">
     ${tile_({ form: true, label: 'Back', act: 'post-cancel', kind: 'quiet' })}
@@ -2381,7 +2381,7 @@ function daiveHtml_() {
     <div class="msg-body">${messagesHtml_(asstMsgs_(s)) }${ASST_BUSY ? loading_() : ''}</div>
     <div class="msg-form" data-k="daive">
       <textarea class="msg-text" rows="1" maxlength="1000" placeholder="Message…" aria-label="Message ${DAIVE}"${shut ? ' disabled' : ''}${draftAttr_('asst', '')}>${ASST_BUSY ? '' : esc(draftVal_('asst', '', ''))}</textarea>
-      ${formButton_({ cls: 'btn msg-go', act: 'daive-send', off: shut, label: 'Send' })}
+      ${tile_({ form: true, look: 'btn msg-go', act: 'daive-send', off: shut, label: 'Send' })}
       <p class="note msg-said">${esc(ASST_SAID)}</p>
       <p class="note msg-said daive-left">${esc(said)}</p>
     </div>

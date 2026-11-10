@@ -71,15 +71,6 @@ const formSelect_ = (a, opts) => `<select ${a}>${opts}</select>`;
 const formArea_ = (a, text) => `<textarea ${a}>${esc(text == null ? '' : String(text))}</textarea>`;
 const formHidden_ = (a, v, more) => formInput_(`type="hidden" ${a} value="${esc(v == null ? '' : String(v))}"${more || ''}`);
 const formFile_ = (cls, accept) => formInput_(`type="file" class="${cls}" accept="${accept}" hidden`);
-/* EVERY <button> THAT IS NOT A TILE (rule 8): a form's control, its look by `cls` (default .btn); `html` is trusted inner markup, else `label`. */
-function formButton_(o) {
-  o = o || {};
-  const data = Object.keys(o.data || {}).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
-  const at = (o.act ? ` data-do="${esc(o.act)}"` : '') + data + (o.id ? ` id="${esc(o.id)}"` : '') + (o.title ? ` title="${esc(o.title)}"` : '')
-    + (o.aria ? ` aria-label="${esc(o.aria)}"` : '') + (o.pressed != null ? ` aria-pressed="${o.pressed ? 'true' : 'false'}"` : '')
-    + (o.off ? ' disabled' : '') + (o.hidden ? ' hidden' : '') + (o.attrs ? ' ' + o.attrs : '');
-  return `<button type="${o.submit ? 'submit' : 'button'}" class="${esc(o.cls || 'btn')}"${at}>${o.html != null ? o.html : esc(o.label == null ? '' : String(o.label))}</button>`;
-}
 /* A LABELLED LINE: a faint name over its box; `cls` adds to class="field". */
 const formLine_ = (label, box, cls) => `<label class="field${cls ? ' ' + cls : ''}">${label != null && label !== '' ? `<span>${esc(label)}</span>` : ''}${box}</label>`;
 /* A TICK: `a` is the checkbox's attributes, `say` the html beside the box. */

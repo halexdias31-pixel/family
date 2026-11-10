@@ -566,7 +566,7 @@ function blockWeekRows_() {
     (c) => {
       const phrase = blockPhrase_(c.day, c.block);
       /* THE PHRASE ITSELF, not a code. § */
-      return formButton_({ cls: 'hr blk' + (on.indexOf(phrase) !== -1 ? ' on' : ''), title: phrase, aria: phrase, act: 'book-block', data: { when: phrase }, html: '' });
+      return tile_({ form: true, look: 'hr blk' + (on.indexOf(phrase) !== -1 ? ' on' : ''), title: phrase, aria: phrase, act: 'book-block', data: { when: phrase }, html: '' });
     },
     { id: 'avail' });
 }
@@ -589,7 +589,7 @@ function stepWeekRows_(st) {
                        /* THE TICKS THEMSELVES, counted where they are read. */
                        mul: r.hours.filter(h => on.indexOf(h.code) !== -1).length })),
     /* THE REASON, not just "not available": an hour never worked and an hour already taught are the same grey box; only the second is worth another week. */
-    (h, d) => formButton_({ cls: 'hr' + (on.indexOf(h.code) !== -1 ? ' on' : '') + ((h.open && !off) ? '' : ' shut'), off: !(h.open && !off),
+    (h, d) => tile_({ form: true, look: 'hr' + (on.indexOf(h.code) !== -1 ? ' on' : '') + ((h.open && !off) ? '' : ' shut'), off: !(h.open && !off),
       title: h.h + ':00' + (h.why ? ' — ' + h.why : h.open ? '' : ' — not available'),
       aria: d.label + ' ' + h.h + ':00' + (h.open ? '' : ', ' + (h.why || 'not available')), act: 'book-slot', data: { code: h.code }, html: '' }),
     { id: st.id, off: off, ruler: true,

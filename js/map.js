@@ -119,7 +119,7 @@ const WIDGETS = [
       ${/* A `data-do`, not an id. The delegated click handler only ever looks for `data-do`, so a
             button carrying an id alone is a button nothing is listening to — which is why this
             has never started anything. */''}
-      ${formButton_({ cls: 'btn quiet', act: 'timer-toggle', id: 'timer-toggle', label: '▶' })}
+      ${tile_({ form: true, look: 'btn quiet', act: 'timer-toggle', id: 'timer-toggle', label: '▶' })}
       ${tile_({ form: true, label: 'Reset', act: 'timer-reset', kind: 'quiet' })}
     </div>
     ${/* The lengths people actually use. A number field for a duration is a keyboard and four taps
@@ -197,9 +197,9 @@ const WIDGETS = [
     into: 'cal-body', what: 'The calendar',
     html: `<div class="card">
     <div class="cal-head">
-      ${formButton_({ cls: 'cal-arrow', act: 'cal-back', aria: 'Earlier', label: '‹' })}
+      ${tile_({ form: true, look: 'cal-arrow', act: 'cal-back', aria: 'Earlier', label: '‹' })}
       <h3 id="cal-label" class="flush">Calendar</h3>
-      ${formButton_({ cls: 'cal-arrow', act: 'cal-fwd', aria: 'Later', label: '›' })}
+      ${tile_({ form: true, look: 'cal-arrow', act: 'cal-fwd', aria: 'Later', label: '›' })}
     </div>
     <div id="cal-body" class="cal"></div>
   </div>` },

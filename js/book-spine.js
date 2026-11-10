@@ -523,7 +523,7 @@ function jobWeekRows_(j) {
       }),
       (h, d) => {
         const on = d.lit.indexOf(h) !== -1;
-        return formButton_({ cls: 'hr' + (on ? ' on' : ' shut'), off: true, title: h + ':00', aria: d.label + ' ' + h + ':00', html: '' });
+        return tile_({ form: true, look: 'hr' + (on ? ' on' : ' shut'), off: true, title: h + ':00', aria: d.label + ' ' + h + ':00', html: '' });
       },
       { off: true, ruler: true });
   }
@@ -535,7 +535,7 @@ function jobWeekRows_(j) {
     }),
     (h, d) => {
       const lit = d.on && isFinite(start) && h >= start && h < start + hrs;
-      return formButton_({ cls: 'hr' + (lit ? ' on' : ' shut'), off: true, title: h + ':00', aria: d.label + ' ' + h + ':00', html: '' });
+      return tile_({ form: true, look: 'hr' + (lit ? ' on' : ' shut'), off: true, title: h + ':00', aria: d.label + ' ' + h + ':00', html: '' });
     },
     { off: true, ruler: true });
 }

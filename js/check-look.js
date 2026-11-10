@@ -11,13 +11,13 @@ const files = [...listed.matchAll(/'([\w-]+)'/g)].map(m => m[1])
 const bad = [];
 
 /* ---------- 1. EVERY ACTION IS A ROUND TILE ---------- */
-/* EVERY <button> HAS ONE MAKER: tile_ (tiles.js) for a thing, formButton_ (form.js) for a form's control. A comment or a regex naming one is not one. */
+/* EVERY <button> HAS ONE MAKER, tile_ (tiles.js): a thing's tile, or with `form: true` a form's control. A comment or a regex naming one is not one. */
 const MAKERS = ['tiles', 'form'];
 files.forEach(({ n, src }) => {
   if (MAKERS.indexOf(n) !== -1) return;
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   const raw = [...code.matchAll(/(^|\S)\s*<button\b/gm)].filter(m => !/[/*(|]/.test(m[1]));
-  if (raw.length) bad.push(`1 raw <button>: ${n}.js has ${raw.length} — draw it with tile_({…}) (a thing) or formButton_({…}) (a form)`);
+  if (raw.length) bad.push(`1 raw <button>: ${n}.js has ${raw.length} — draw it with tile_({…}) (a thing) or tile_({ form: true, … }) (a form)`);
 });
 
 /* ---------- 2. NO GREY SENTENCES ---------- */

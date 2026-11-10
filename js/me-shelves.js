@@ -454,8 +454,8 @@ function qualSlot_(i, value, o) {
   return `<div class="q-slot${qualIsCert_(q) ? ' is-cert' : ''}" data-slot="${esc(i)}"${q.first ? ' data-first="1"' : ''}>
     ${formHidden_(`data-me="${esc(f('_spec'))}"`, q.spec ? 'TRUE' : 'FALSE')}
     ${formHidden_(`data-me="${esc(f('_teach'))}"`, q.teach ? 'TRUE' : 'FALSE')}
-    ${formButton_({ cls: 'q-line', act: 'qual-open', data: { at: i }, attrs: 'data-unlocked aria-expanded="false"', aria: said, title: said, html: qualFace_(q) })}
-    ${formButton_({ cls: 'q-mark-b', act: 'qual-teach', data: { face: 1, at: i }, attrs: 'data-unlocked', aria: 'Teaching: ' + qualTeachWord_(q) + ', tap to change', html: qualTeachVal_(q) })}
+    ${tile_({ form: true, look: 'q-line', act: 'qual-open', data: { at: i }, attrs: 'data-unlocked aria-expanded="false"', aria: said, title: said, html: qualFace_(q) })}
+    ${tile_({ form: true, look: 'q-mark-b', act: 'qual-teach', data: { face: 1, at: i }, attrs: 'data-unlocked', aria: 'Teaching: ' + qualTeachWord_(q) + ', tap to change', html: qualTeachVal_(q) })}
     <div class="q-ed">
       <div class="q-row">
         ${qualPick_(`data-me="${esc(f(''))}" class="q-name"`, q.subject, QUAL_SUBJECTS, 'Subject', 'Choose', o.mine)}

@@ -92,7 +92,7 @@ function quranBody_(x) {
       <p class="qr-credit">Tanzil Quran Text (Simple 1.1), CC BY 3.0, tanzil.net</p>`;
   }
   if (QURAN.missed[n] && !QURAN.loading[n]) {
-    return `<p class="fc-note">This surah did not arrive. ${formButton_({ act: 'qr-retry', data: { s: n }, label: 'Try again' })}</p>`;
+    return `<p class="fc-note">This surah did not arrive. ${tile_({ form: true, act: 'qr-retry', data: { s: n }, label: 'Try again' })}</p>`;
   }
   if (!QURAN.loading[n]) quranLoad_(n).then(() => quranRedraw_(n));
   return loading_();

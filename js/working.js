@@ -19,7 +19,7 @@ function workStrip_(x) {
 function workStripInner_(k) {
   const pics = WORK_PICS[k] || [];
   const thumbs = pics.map((p, i) => `<span class="qp-work-pic"><img src="${esc(p.url)}" alt="Page ${i + 1} of your working">
-    ${formButton_({ cls: 'qp-work-x', act: 'qp-work-x', data: { k: k, i: i }, aria: 'Remove page ' + (i + 1), label: '×' })}</span>`).join('');
+    ${tile_({ form: true, look: 'qp-work-x', act: 'qp-work-x', data: { k: k, i: i }, aria: 'Remove page ' + (i + 1), label: '×' })}</span>`).join('');
   return `<div class="qp-work-pics">${thumbs}</div>
     <p class="qp-work-say" role="status" aria-live="polite"></p>`;
 }
