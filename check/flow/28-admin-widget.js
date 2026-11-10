@@ -565,7 +565,7 @@ check('Find › Questions › Maths › Past paper › A-Level › Edexcel › 2
   /* VERIFIED, ONCE A PAPER IS PICKED: Paper 2 holds one part that is not machine-marked, so Verified splits it and is asked before Question. */
   T.STUFF().filters.push({ field: 'paperId', value: 'RS1786302107764-506' });
   const next = R.nextFacet(R.stuffFiltered());
-  if (!next || next.field !== 'verified') bad.push('after Paper 2 the funnel asks ' + (next ? next.field : 'nothing') + ', not Verified — the verified tag is are sorted after the questions that pick one question');
+  if (!next || next.field !== 'verified') bad.push('after Paper 2 the funnel asks ' + (next ? next.field : 'nothing') + ', not Verified — the verified tag is sorted after the questions that pick one question');
   else if (R.facetValues(R.stuffFiltered(), next).map(v => v.value).sort().join() !== 'Not verified,Verified') bad.push('Verified offers ' + R.facetValues(R.stuffFiltered(), next).map(v => v.value).join(', '));
   W.paintFinder_('stuff');
   /* EVERY PAGE: a stem's page and a long part's first pages carried no Suggest a change (486). */
