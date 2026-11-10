@@ -131,13 +131,10 @@ function lamControl_(c) {
   if (typeof laminateOffered_ === 'function' && !laminateOffered_()) return '';
   const p = typeof laminatePrice === 'function' ? laminatePrice(c.pages) : null;
   const cost = p === null ? '' : ' ' + money_(p);
-  const at = ` data-key="${esc(c.key)}" data-kind="${esc(c.kind)}"`;
   /* ---------- ✓ LAMINATED, NOT "laminated · plain" § */
-  return c.laminate
-    ? ` <button class="text-action lam-on" data-do="cart-laminate" data-on=""${at}
-        title="Laminated — press again for plain paper">✓ laminated${esc(cost)}</button>`
-    : ` <button class="text-action" data-do="cart-laminate" data-on="1"${at}
-        title="Laminate this copy">+ laminate${esc(cost)}</button>`;
+  /* A FORM'S STEP (rule 8): the form maker's one button, a word, never a raw <button>. */
+  return ' ' + tile_({ form: true, kind: 'quiet', cls: 'text-action' + (c.laminate ? ' lam-on' : ''), act: 'cart-laminate',
+    label: (c.laminate ? '✓ laminated' : '+ laminate') + cost, data: { on: c.laminate ? '' : '1', key: c.key, kind: c.kind } });
 }
 
 /* ---------- ONE LINE OF THE BASKET § */
@@ -156,8 +153,7 @@ function cartRow_(c, i, under) {
       const lam = lamControl_(c);
       const pp = c.kind === 'print'
         ? `<span class="qtag cart-pp">${c.pages ? esc(c.pages) + 'pp' : '? pp'}</span>` : '';
-      const drop = `<button class="text-drop" data-do="cart-drop" title="Take this out"
-          data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</button>`;
+      const drop = tile_({ icon: 'close', label: 'Take this out', act: 'cart-drop', cls: 'text-drop', data: { key: c.key, kind: c.kind } });
       return `<span class="cart-ln"><span class="cart-nm">${esc(under && c.short ? c.short : c.name)}</span>${
         lam ? '' : pp}<i class="cart-lead" aria-hidden="true"></i>${lam ? '' : drop}</span>${
         lam ? `<span class="cart-ctl">${pp}${lam}${drop}</span>` : ''}`;
@@ -219,9 +215,8 @@ function cartCard_() {
   /* ---------- "SEND ORDER", NOT "PAY" — NOTHING IS PAID HERE § */
   const paper = cash || tbc;
   const foot = `
-    <button class="btn rc-do" ${short ? 'disabled' : ''} data-do="cart-send">${
-      short ? (due - credits) + ' more credits needed'
-            : 'Send order' + (cash ? ' · ' + money_(cash) + (tbc ? ' + tbc' : '') : '')}</button>
+    ${tile_({ form: true, cls: 'rc-do', act: 'cart-send', off: short, label: short ? (due - credits) + ' more credits needed'
+      : 'Send order' + (cash ? ' · ' + money_(cash) + (tbc ? ' + tbc' : '') : '') })}
     <p class="rc-terms">${paper
       ? 'Printing is at cost — paper only — posted or kept for you to collect. Anything marked tbc '
         + 'is priced before you are charged for it.'

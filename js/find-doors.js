@@ -133,7 +133,8 @@ const settingNone_ = h => /^\s*<div class="card (?:rank-off|set-none|own-lock)\b
 /* EVERY SETTING ONCE (owner, 7 Nov): its `see` rows tag it with each account type; one of the same name joins it. */
 /* A type you do not hold still shows its cards, shut (`lockedAs_`); Business and Site hold the business's own data, so stay an admin's. */
 function settingDoorItems_() {
-  if (!USER) return [{ kind: 'setting', name: 'Sign in or join', key: 'set:signin', sub: '', image: '', signIn: true, text: 'sign in join make an account pin' }];
+  /* SIGN IN AND JOIN ARE FORMS (owner, 10 Nov): drawn open, never a closed card cut to two lines. */
+  if (!USER) return [{ kind: 'setting', name: 'Sign in or join', key: 'set:signin', sub: '', image: '', signIn: true, open: true, text: 'sign in join make an account pin' }];
   const tags = (DATA && DATA.settingFor) || {}, out = [], byName = {}, seen = {};
   /* RECORDS ARE LAZY (the weekly email's cards): until that batch lands they are missing, so Find is drawn again once it does. */
   try { if (typeof lazyFiles_ === 'function' && !lazyFiles_.in) doorAsk_(lazyFiles_()); } catch (e) { /* drawn without them; the next paint has them */ }
