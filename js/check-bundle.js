@@ -74,7 +74,7 @@ function boot() {
   try {
     w.eval(src + '\n;window.__b = { STUFF, stuffFiltered, bundleOf_, paintStuff, stuffFirstResult_,' +
       ' stuffPageCount, frontPages_, pageCount, go, goPage, initCart, cartCard_, orderText_,' +
-      ' printPrice, laminatePrice, money, docById_, placeChipDead_, stuffPages_, facetBy, facetValues,' +
+      ' printPrice, laminatePrice, money: money_, findShow_, docById_, placeChipDead_, stuffPages_, facetBy, facetValues,' +
       ' CART: () => CART, setCart: v => { CART = v; }, USER: () => USER };');
   } catch (e) {
     return { err: 'the app did not load: ' + e.message };
@@ -118,6 +118,8 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
   b.go('stuff');
   const narrow = filters => {
     b.STUFF.filters = filters.map(f => Object.assign({}, f));
+    /* THE MENUS ANSWERED TO THEIR END: a bundle waits for findDone_ (10 Nov), so the case stands where the cards show. */
+    if (filters.length) b.findShow_();
     b.paintStuff();
   };
 

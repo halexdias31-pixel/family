@@ -83,7 +83,8 @@ function bundleNoun_(papers, n) {
 
 const BUNDLE_MEMO = new WeakMap();
 function bundleOf_() {
-  if (!stuffAsked() || !printOffered_()) return null;
+  /* CARDS ONLY ONCE THE MENUS FINISH (owner, 9 Nov): a bundle is a card, so it waits for `findDone_` as every card does. */
+  if (!stuffAsked() || !printOffered_() || !findDone_()) return null;
   const items = stuffFiltered();
   if (BUNDLE_MEMO.has(items)) return BUNDLE_MEMO.get(items);
   let out = null;
@@ -240,24 +241,17 @@ function bundleCard_(b) {
       })()
     : b.printable.map(p => `<li><span class="bundle-name">${esc(p.label)}</span>${pp(p)}</li>`).join('');
   const stray = bundleStrayLine_(b);
-  /* ---------- THE QUESTION CARD'S HEADER, BECAUSE IT IS THE SAME FAMILY § */
-  return `<div class="card bundle qcard">
-      ${bundleTags_(b)}
-      <h3 class="bundle-title">${esc(b.title || 'These papers')}</h3>
-      <p class="bundle-sub">Printed and sent &middot; ${esc(b.noun)} &middot; ${esc(bundlePriceLine_(b))}</p>
-      <ol class="bundle-list">${list}</ol>
-      ${/* NAMED, NOT DROPPED. A paper the library marks `printable: FALSE` is on the list above the card and missing from the bundle, and a card that said "these papers" § */
-            ''}
-      ${off.length ? `<p class="bundle-off">Not in the bundle, marked not printable: ${
-        off.map(p => esc(p.label)).join(', ')}</p>` : ''}
-      ${stray ? `<p class="bundle-off">${esc(stray)}</p>` : ''}
-    </div>
-    <div class="tile-row">${tile_({ icon: 'cart',
-        label: inCart ? 'In your basket' : 'Add bundle to basket', note: note,
-        act: 'cart-add', on: inCart, off: inCart,
-        data: { kind: 'bundle', ids: b.ids.join(','), key: b.title || '' } })}${
-      tile_({ icon: 'open', label: 'See your basket', act: 'cart-open' })}${
-      typeof suggestTile_ === 'function' ? suggestTile_('bundle', 'b:' + String(b.ids[0] || 'x').replace(/[^A-Za-z0-9_.:-]/g, '') + ':' + b.ids.length, b.title || 'Bundle') : ''}</div>`;
+  /* THE ONE CARD (owner, 9 Nov): picture, name as a tag, two lines closed, Add to basket / Message / Star / ⋯; the papers show open. */
+  const lines = `<p>Printed and sent &middot; ${esc(b.noun)} &middot; ${esc(bundlePriceLine_(b))}</p>`
+    + `<ol class="bundle-list">${list}</ol>`
+    + (off.length ? `<p class="bundle-off">Not in the bundle, marked not printable: ${off.map(p => esc(p.label)).join(', ')}</p>` : '')
+    + (stray ? `<p class="bundle-off">${esc(stray)}</p>` : '');
+  const tiles = tile_({ icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket', note: note, act: 'cart-add', on: inCart, off: inCart, tone: 'buy',
+      data: { kind: 'bundle', ids: b.ids.join(','), key: b.title || '' } })
+    + tile_({ icon: 'open', label: 'See your basket', act: 'cart-open' })
+    + (typeof suggestTile_ === 'function' ? suggestTile_('bundle', 'b:' + String(b.ids[0] || 'x').replace(/[^A-Za-z0-9_.:-]/g, '') + ':' + b.ids.length, b.title || 'Bundle') : '');
+  const name = b.title || 'These papers', x = { kind: 'bundle', name: name, key: 'bundle:' + b.ids.join(',') };
+  return findCard(Object.assign(x, { kcOwn: { cls: 'bundle', attrs: '', pic: picFor_(x), head: `<h3>${esc(name)}</h3>`, tags: bundleTags_(b), lines: lines + `<div class="tile-row">${tiles}</div>` } }));
 }
 
 /* THE ONE BUNDLE A LIST OF WHOLE PAPERS OFFERS, in front of its questions. `Bundles` is not a kind to ask for (396). */
