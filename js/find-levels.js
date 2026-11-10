@@ -573,6 +573,32 @@ function jobPage_(j) {
   return typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '';
 }
 
+/* A BOOKING CLOSED (owner, 9 Nov): tags say what, who, when, the rate and whether it is paid; one line says who and how much in all. */
+const rcpTag_ = (t, cls) => (t ? `<span class="qtag${cls ? ' ' + cls : ''}">${esc(t)}</span>` : '');
+function rcpWhen_(j) {
+  const days = typeof jobDays_ === 'function' ? jobDays_(j).map(i => (typeof DAY3_ !== 'undefined' ? DAY3_[i] : '')).filter(Boolean) : [];
+  const t = String(j.time || j.startTime || '').trim(), e = String(j.endTime || j.end || '').trim();
+  const day = days.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ');
+  return [day, t ? t + (e ? '–' + e : '') : ''].filter(Boolean).join(' ');
+}
+function rcpPaid_(j) {
+  const slots = j.slots || [];
+  if (!slots.length) return '';
+  return slots.some(sl => /^booked$/i.test(String(sl.status || ''))) ? 'Paid' : slots.some(sl => /^paying$/i.test(String(sl.status || ''))) ? 'Paying' : 'Unpaid';
+}
+window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
+  receiptTags: x => { const j = x.row || {}, paid = rcpPaid_(j);
+    const rate = Number(j.rate) || (/hour/i.test(String(j.unit || '')) ? Number(j.price) : 0) || 0;
+    return `<div class="qtags">${rcpTag_('Booking')}${rcpTag_(j.subject)}${rcpTag_(j.tutor ? displayName_(j.tutor) : '')}${rcpTag_(rcpWhen_(j))}${
+      rcpTag_(rate > 0 ? perHour_(rate) : '')}${rcpTag_(paid, paid === 'Unpaid' ? 'is-new' : '')}</div>`; },
+  receiptSum: x => { const j = x.row || {};
+    const who = (j.slots || []).map(sl => sl && sl.client).filter(Boolean).map(n => displayName_(n)).join(', ') || (j.client ? displayName_(j.client) : '');
+    const weeks = Number(j.weeks || (typeof jobDates_ === 'function' ? jobDates_(j).length : 0)) || 0;
+    const total = j.price !== '' && j.price != null && isFinite(Number(j.price)) ? money_(Number(j.price)) + ' in all' : '';
+    const said = [who, weeks ? weeks + (weeks === 1 ? ' week' : ' weeks') : '', total].filter(Boolean).join(' · ');
+    return said ? `<p class="rc-sum">${esc(said)}</p>` : ''; },
+});
+
 /* THE FRONT MENU'S ANSWER, read through `DOOR_FIELD` (find-finder.js) — the one name every writer and reader of it uses (1040 friction). */
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === DOOR_FIELD && norm(f.value) === want);

@@ -51,6 +51,11 @@ const shapeOf = html => {
     depth++;
   }
   if (kids.join(' ') !== SHAPE.join(' ')) return 'parts are [' + kids.join(', ') + '], not [' + SHAPE.join(', ') + ']';
+  /* NO ORPHANS (owner, 9 Nov): every word a card shows lives inside one of its parts, never loose in the frame. */
+  const loose = html.slice(head[0].length).replace(/<div class="kc-(pic|head|tags|lines|act)"[\s\S]*$/, '').replace(/<[^>]+>/g, '').trim();
+  if (loose) return 'text outside its parts: ' + loose.slice(0, 60);
+  /* NO TITLE LINE: the name is a tag. */
+  if (!/<div class="kc-head"><\/div>/.test(html)) return 'a title line (the name belongs in the tags)';
   return fourOf(html);
 };
 /* EVERY CARD (owner, 9 Nov): a picture, tags, and exactly four buttons -- main, Message, Star, ⋯ -- the rest behind ⋯. */
@@ -62,10 +67,13 @@ function fourOf(html) {
   for (const r of rows) {
     const acts = []; r.split('</span>')[0].replace(/data-do="([^"]*)"/g, (m, a) => acts.push(a));
     if (acts.length !== 4 || acts[1] !== 'msg-open' || acts[2] !== 'fav' || acts[3] !== 'kc-more') return 'its row is [' + acts.join(', ') + '], not main, msg-open, fav, kc-more';
+    /* FOUR BUTTONS, FOUR PICTURES: a Like that is a star beside Save reads as two Saves. */
+    const icons = []; r.split('</span>')[0].replace(/<button\b[^>]*>[\s\S]*?<\/button>/g, b => { icons.push((/tile-i-([\w-]+)/.exec(b) || [, b.replace(/[\s\S]*data-do="([^"]*)"[\s\S]*/, '$1')])[1]); return b; });
+    if (new Set(icons).size !== icons.length) return 'two buttons in its row share an icon: [' + icons.join(', ') + ']';
   }
   return '';
 }
-scope.tile_ = o => (o ? '<button class="tile" data-do="' + o.act + '"' + (o.off ? ' disabled' : '') + '></button>' : '');
+scope.tile_ = o => (o ? '<button class="tile" data-do="' + o.act + '"' + (o.off ? ' disabled' : '') + '><svg class="tile-i tile-i-' + o.icon + '"></svg></button>' : '');
 const ROW = { title: 'Ada Tutor', name: 'Ada Tutor', handle: 'ada', rate: 30, role: 'Tutor', listed: true, mult: 1, levels: ['GCSE'], tutors: [{ title: 'Ada Tutor' }] };
 rows.map(r => r.kind).concat(['some-new-kind']).forEach(kind => {
   let html = '';
