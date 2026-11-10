@@ -43,14 +43,8 @@ function postListClientErrors_(body, action, began) {
   return jsonOut({ success: true, errors: clientErrorsList_() });
 }
 
-/* ---------- APPLYING TO TEACH (400): Staff only by application and an admin's yes ---------- */
-function postApplyTeach_(body, action, began) {
-  const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
-  if (rankAtLeast_(me, 'staff')) return jsonOut({ error: 'You teach here already.' });
-  /* NO DATE OF BIRTH IS UNDERAGE (450): asked for, rather than refused as a child. */
-  if (personAge_(me) === null) return jsonOut({ error: 'Applications to teach are for adults: add your date of birth on You first.', why: 'dob' });
-  if (!adultOk_(me)) return jsonOut({ error: 'Applications to teach are for adults (18 and over).' });
+/* AN APPLICATION'S TEXT, CUT TO SIZE, one key per SCHEMA.applications column. */
+function applyFields_(body) {
   const cut = (v, n) => S(v).trim().slice(0, n || APPLICATION_FIELD_MAX);
   const f = {
     subjects: cut(body.subjects, APPLICATION_TEXT_MAX), qualifications: cut(body.qualifications, APPLICATION_TEXT_MAX),
@@ -69,8 +63,11 @@ function postApplyTeach_(body, action, began) {
   /* THE OLD ONE-BOX CONTACT COLUMNS stay filled, so a sheet read by eye still has each referee in one cell. */
   f.ref1_contact = [f.ref1_email, f.ref1_phone].filter(Boolean).join(' · ');
   f.ref2_contact = [f.ref2_email, f.ref2_phone].filter(Boolean).join(' · ');
+  return f;
+}
+/* WHAT AN APPLICATION STILL LACKS, in words the phone shows as they are (`applyMissing_` asks the same first). */
+function applyGaps_(f, body, pics) {
   const mail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-  const pics = [].concat(body.qualDocs || []).filter(x => /^data:image\//i.test(S(x))).slice(0, APPLY_QUAL_DOCS_MAX);
   const missing = [];
   if (!f.full_name) missing.push('your full name');
   if (!f.phone) missing.push('your phone number');
@@ -89,6 +86,19 @@ function postApplyTeach_(body, action, began) {
   if (!f.rate) missing.push('your hourly rate');
   if (!f.statement) missing.push('a short statement');
   if (f.consent !== 'TRUE') missing.push('the consent tick');
+  return missing;
+}
+/* ---------- APPLYING TO TEACH (400): Staff only by application and an admin's yes ---------- */
+function postApplyTeach_(body, action, began) {
+  const me = findPerson('', S(body.personId));
+  if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+  if (rankAtLeast_(me, 'staff')) return jsonOut({ error: 'You teach here already.' });
+  /* NO DATE OF BIRTH IS UNDERAGE (450): asked for, rather than refused as a child. */
+  if (personAge_(me) === null) return jsonOut({ error: 'Applications to teach are for adults: add your date of birth on You first.', why: 'dob' });
+  if (!adultOk_(me)) return jsonOut({ error: 'Applications to teach are for adults (18 and over).' });
+  const f = applyFields_(body);
+  const pics = [].concat(body.qualDocs || []).filter(x => /^data:image\//i.test(S(x))).slice(0, APPLY_QUAL_DOCS_MAX);
+  const missing = applyGaps_(f, body, pics);
   if (missing.length) return jsonOut({ error: 'Please add ' + missing.join(', ') + '. Nothing was sent.', why: 'missing' });
   if (f.cv_link && !/^https:\/\//i.test(f.cv_link)) return jsonOut({ error: 'The CV link must start with https://. Nothing was sent.' });
   /* THE DOCUMENTS GO TO THE PRIVATE FOLDER FIRST: no folder, or a photo too big, and nothing at all is written. */
