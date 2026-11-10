@@ -247,8 +247,12 @@ if (typeof document !== 'undefined' && document.addEventListener) {
 }
 
 /* ONE EMPTY STATE (owner, 8 Nov): a short, specific sentence in ordinary text ("No bookings yet."), the same everywhere. */
+/* "NOTHING HERE" HAS ONE WORDING, and empty_() with no words says it (check-loading). */
+const NOTHING_YET = 'Nothing here yet.';
+/* AND "NOBODY TEACHES THIS" HAS ONE: a level, a subject or the business with no tutor. */
+const NO_TUTOR = 'No tutor yet';
 function empty_(text) {
-  return `<p class="empty">${esc(String(text || 'Nothing here yet.'))}</p>`;
+  return `<p class="empty">${esc(String(text || NOTHING_YET))}</p>`;
 }
 
 /* ---------- "+" AT THE TOP OF A LIST THAT CAN GROW (373) ---------- */

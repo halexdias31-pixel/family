@@ -282,6 +282,10 @@ try {
   if (!gs || !js) roleOff.push('ROLE_ALIASES not found in ' + (!gs ? 'backend/constants.gs' : 'js/core.js'));
   else if (JSON.stringify(Object.entries(gs).sort()) !== JSON.stringify(Object.entries(js).sort())) roleOff.push('js/core.js ROLE_ALIASES is not backend/constants.gs ROLE_ALIASES');
   if (!sent.has('roleAliases')) roleOff.push('doGet does not send roleAliases');
+  /* AND data.js's ROLE_THREE_ names no word ROLE_ALIASES maps: an old word is translated once, by roleOf. */
+  const three = lit('js/data.js', /const ROLE_THREE_ = (\{[\s\S]*?\});/);
+  if (!three) roleOff.push('ROLE_THREE_ not found in js/data.js');
+  else if (gs) Object.keys(three).filter(k => k in gs).forEach(k => roleOff.push('js/data.js ROLE_THREE_ keeps the alias word ' + k + ' — ROLE_ALIASES maps it'));
 } catch (e) { roleOff.push('(role words could not be read: ' + e.message + ')'); }
 roleOff.forEach(x => console.log('ROLE WORDS: ' + x));
 if (roleOff.length) process.exitCode = 1;

@@ -6,13 +6,20 @@ const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 's
                        'settings/facts',
                        'settings/campaigns', 'settings/copy', 'settings/columns',
                        'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields',
-                       'settings/default-pictures', 'settings/permissions'];
+                       'settings/default-pictures', 'settings/permissions', 'settings/screens-moved'];
 
 /* `norm` on the backend. § */
 const setNorm_ = v => libS(v).toLowerCase().trim();
 
 /* A ROW NUMBER THE SHEET WOULD HAVE GIVEN. § */
 const setRow_ = i => i + 2;
+
+/* WHERE A SCREEN THAT MOVED LANDS (461): one row per old id, `to` a column or `find:<kind>[:<type>]`. */
+function setMoved_(d, extra) {
+  const moved = {};
+  (extra['settings/screens-moved'] || []).forEach(r => { const id = libS(r && r.screen), to = libS(r && r.to); if (id && to) moved[id] = to; });
+  if (Object.keys(moved).length) d.columnsMoved = moved;
+}
 
 function setBrand_(d, extra) {
   /* the branding, whole ------------------------------------------------------------------- EVERY ROW, whether or not the code knows the key — the backend's own § */
@@ -130,10 +137,6 @@ function setColumns_(d, extra) {
     /* AND NOT AN EMPTY LIST. § */
     if (live.length) d.columns = live;
     /* SWITCHED OFF (880): each is a Coming soon card in Find, its first plain line its notes; switched on again, its card goes. */
-    /* WHERE A SCREEN THAT MOVED LANDS (461, batch C): a row's `moved`, and `was` for a column dissolved into it (`SCREEN_MOVED`). */
-    const moved = {};
-    columns.forEach(r => { const id = libS(r.screen); if (!id) return; if (libS(r.moved)) moved[id] = libS(r.moved); if (libS(r.was)) moved[libS(r.was)] = id; });
-    if (Object.keys(moved).length) d.columnsMoved = moved;
     d.columnsOff = columns.filter(r => libS(r.screen) && !libOn(r.active))
       .map(r => ({ screen: libS(r.screen), label: libS(r.label) || libS(r.screen), what: libS(r.notes).split(/ — |\. |\(/)[0].trim() }));
   }
@@ -194,7 +197,7 @@ function settingsInto_(d, extra) {
   /* the link tiles WERE MAPPED HERE -------------------------------------------------------------- into `d.links` and `d.dropdowns.linkCategories`, the backend's § */
   /* the campaigns, and the words they say ---------------------------------------------------- ONE PASS OVER `copy`, INDEXED BY CAMPAIGN, so the phone never joins § */
   /* ---------- WHICH COLUMNS THE APP HAS, AND IN WHAT ORDER § */
-  setBrand_(d, extra); setFacets_(d, extra); setKinds_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
+  setBrand_(d, extra); setMoved_(d, extra); setFacets_(d, extra); setKinds_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
   setCampaigns_(d, extra); setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
   setDefaultPictures_(d, extra); setPermissions_(d, extra);
   return d;

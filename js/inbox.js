@@ -23,7 +23,7 @@ function inboxRowHtml_(r) {
 function inboxHtml_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return '';
   const list = INBOX_.rows.length ? INBOX_.rows.slice(0, INBOX_SHOWN).map(inboxRowHtml_).join('')
-    : (INBOX_.busy ? '' : `<p class="sub">${esc(INBOX_.said || 'Nothing here.')}</p>`);
+    : (INBOX_.busy ? '' : INBOX_.said ? `<p class="sub">${esc(INBOX_.said)}</p>` : empty_());
   return `${INBOX_.rows.length && INBOX_.said ? `<p class="sub">${esc(INBOX_.said)}</p>` : ''}
     <div class="ib-list"${INBOX_.busy ? ' aria-busy="true"' : ''}>${list}${INBOX_.busy ? loading_() : ''}</div>`;
 }

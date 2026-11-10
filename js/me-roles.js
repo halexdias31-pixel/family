@@ -335,9 +335,9 @@ function studentSetPages_() {
       typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''}</div>`;
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
   /* WHAT WAS THE PROGRESS COLUMN (461, the owner: "the progress column content can all be moved to student column account settings"). */
-  const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = isLoading_;
+  const all = typeof progressCards_ === 'function' ? progressCards_() : [];
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
-  const prog = all.filter(c => !isWait(c)).map(c => String(c).replace('<div class="card', '<div class="card prog-w')), wait = coming.length || !all.some(isWait) ? coming : [loading_()];
+  const prog = all.map(c => String(c).replace('<div class="card', '<div class="card prog-w')), wait = coming.length || !(typeof progressComing_ === 'function' && progressComing_()) ? coming : [loading_()];
   /* ONLY SIGN IN HERE (owner, 4 Nov, 880): every other setting is a Coming soon card in Find until it is wanted. */
   if (typeof SETTINGS_OFF !== 'undefined' && SETTINGS_OFF) return [top];
   return [top].concat(ownCardSetPage_('account'), youSettingsPages_(), soonCards_(),
@@ -409,7 +409,7 @@ function familyPages_() {
   if (!rankAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
   const out = ownCardSetPage_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family'));
   /* NOTHING A PARENT'S ALONE (469): your picture, name and contact are everybody's, so on Student settings. */
-  return out.length ? out : [rankOffCard_(title, 'Nothing here yet — your details are on ' + tabLabel_('account', 'Kids settings') + '.').replace('rank-off', 'set-none')];
+  return out.length ? out : [rankOffCard_(title, NOTHING_YET + ' Your details are on ' + tabLabel_('account', 'Kids settings') + '.').replace('rank-off', 'set-none')];
 }
 screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_('family') : familyPages_()));
 
@@ -429,7 +429,7 @@ function staffPages_() {
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [`<div class="card staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`] : [];
   const out = ownCardSetPage_('staff').concat(top, settingsCards_(settingsSplit_().staff, '', 'staff'));
-  return out.length ? out : [`<div class="card rank-off set-none">${empty_('Nothing here yet.')}</div>`];
+  return out.length ? out : [`<div class="card rank-off set-none">${empty_()}</div>`];
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
 
@@ -509,7 +509,7 @@ const ROLE_PICKS = [
 /* WHAT THE LINE UNDER THE CARD SAYS WHEN NOTHING HAS JUST HAPPENED, by rank. */
 function rolesSaid_() {
   if (!USER) return '';
-  if (rankAtLeast_('admin')) return '';
+  if (isAdmin()) return '';
   if (USER.tutorPending && tutorHeld_())
     return 'Tutor is waiting for ' + brand('name', '@family.') + ' to approve you. Until then you are not on the site and '
          + 'cannot be booked — fill in your teaching pages meanwhile.';
@@ -530,7 +530,7 @@ function rolesCard_() {
   const said = rolesSaid_();
   return `<div class="card roles-card">
     <h3>Your roles</h3>
-    ${rankAtLeast_('admin') ? `<p class="faint role-admin">You are Admin. That is given by ${esc(name)} and is not changed here.</p>` : ''}
+    ${isAdmin() ? `<p class="faint role-admin">You are Admin. That is given by ${esc(name)} and is not changed here.</p>` : ''}
     ${picks}
     ${picks || said ? `<p class="faint roles-said" aria-live="polite">${esc(said)}</p>` : ''}
   </div>`;

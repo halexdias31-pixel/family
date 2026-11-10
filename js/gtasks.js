@@ -134,7 +134,7 @@ function gtasksCard_() {
   let body;
   if (!gtClientId_()) {
     body = row('Not switched on yet — the site\'s admin turns it on.')
-      + (typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') ? row('Admin: put the OAuth Client ID in the brand tab as <b>google_client_id</b> (docs/google-tasks.md).') : '');
+      + (isAdmin() ? row('Admin: put the OAuth Client ID in the brand tab as <b>google_client_id</b> (docs/google-tasks.md).') : '');
   } else if (!gtToken_()) {
     body = tileRow_(tile_({ icon: 'in', label: 'Connect', note: 'your Google account', act: 'gtasks-connect' }), '', true);
   } else {

@@ -259,6 +259,13 @@ const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Pract
   friend: 'Profiles', person: 'Profiles', video: 'Videos', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
   post: 'Posts', tool: 'Tools', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
 /* A RETURNED WIDGET THAT IS A BROWSABLE THING (batch B) is its own front answer: FIND_WIDGET_GROUPS (arcade.js). */
+/* ITS TAG SAYS ONE DOOR: a kind under two (a tutor: Booking and Profiles) is the door picked, else its own group in FIND_KINDS — never the other. */
+function kindTopTag_(x) {
+  const l = asList_(kindTop_(x)); if (l.length < 2) return l[0] || '';
+  let g = '';
+  try { const f = (STUFF.filters || []).find(f => f && f.field === 'kindLabel' && l.indexOf(f.value) >= 0); g = f ? f.value : kindOf_(x).group; } catch (e) { g = ''; }
+  return l.indexOf(g) >= 0 ? g : l[0];
+}
 function kindTop_(x) { return (x && x.top) || (x && x.widget && typeof FIND_WIDGET_GROUPS !== 'undefined' && FIND_WIDGET_GROUPS[x.widget.id]) || (x && KIND_UNDER[x.kind]) || ''; }
 /* ONE RULE FOR A VALUE UNDER ANOTHER (660): the first question answers the one above, the second the value itself — only in a family that has one. */
 function underTop_(table, v) { return (v && table[v]) || v || ''; }

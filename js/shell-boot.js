@@ -296,11 +296,8 @@ function applyColumns_() {
 /* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED § */
 /* THE FIRST THING ANYBODY SEES IS FIND (1070): the core and the one front door; the other columns stand below it. */
 const TAB_HOME = 'stuff';
-/* WHERE A SCREEN THAT MOVED LIVES (461): a column, or `find:<kind>[:<type>]` — columns.json's `moved`/`was`; this copy until it lands (check-doors). */
-const SCREEN_MOVED = { progress: 'account', booking: 'find:Booking', staff: 'find:Settings:Staff', site: 'find:Settings:Site',
-  account: 'find:Settings:Student', family: 'find:Settings:Parent', apprentice: 'find:Settings:Apprentice', biz: 'find:Settings:Business',
-  res: 'stuff' };
-function screenMoved_() { try { return (DATA && DATA.columnsMoved) || SCREEN_MOVED; } catch (e) { return SCREEN_MOVED; } }
+/* WHERE A SCREEN THAT MOVED LIVES (461): a column, or `find:<kind>[:<type>]` — data/settings/screens-moved.json, the one table. */
+function screenMoved_() { try { return (DATA && DATA.columnsMoved) || {}; } catch (e) { return {}; } }
 const screenNow_ = id => { const to = screenMoved_()[id]; return to && to.indexOf(':') < 0 ? to : id; };
 
 /* ---------- HOW LONG AWAY COUNTS AS OPENING IT AGAIN § */
@@ -591,7 +588,7 @@ function paint(id, fresh, o) {
   const kept = pre ? null : placeKeep_(el);
   el.innerHTML = html !== null
     ? html
-    : empty_('Nothing here yet.');
+    : empty_();
   el.DRAWN = { html: html, epoch: ACT_EPOCH };
   PRE_PAYLOAD.delete(id);
   PAINT_N[id] = (PAINT_N[id] || 0) + 1;
@@ -644,8 +641,6 @@ function loading_() {
   return '<div class="loading" role="status" aria-label="Loading">'
     + '<span></span><span></span><span></span></div>';
 }
-/* IS THIS THE ONE LOADER? Asked of `loading_()`'s own output, never of a class name read out of some HTML (check-loading). */
-const isLoading_ = h => String(h == null ? '' : h).trim() === loading_();
 
 /* EACH COLUMN'S SHAPE, KEPT ON THE DEVICE (700): page heights in px, no data, so a column waiting next visit holds its final size. */
 const SHAPE_KEY = 'arrival:shape', SHAPE_PAGES = 6;

@@ -157,15 +157,14 @@ function finderOpen_(x, part, F) {
 const keptPart_ = p => !p || p === 'q' || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|pre\d+|facts\d+)$/.test(p);
 /* SET WHILE A KEPT LIST IS BEING DRAWN (`keptPages_`, for Saved and the Spotlight), in the way `SPOT_TILES` is: § */
 let KEPT_DRAW = false;
-/* THE TILE: under a kept card that is not whole on the column, `Open · in Find` — the column's name from `TABS`, so a renamed column says so. § */
+/* THE TILE: under a kept card that is not whole on the column, `Open · in Find` — one finder, so its name is fixed. */
 function finderOpenOpts_(x) {
   if (!KEPT_DRAW || !x || !x.key || isBible_(x)) return null;
   let parts;
   try { parts = pageParts_(x); } catch (e) { return null; }
   if (parts.every(keptPart_)) return null;
-  const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === 'stuff');
   /* A MAGNIFIER, NOT THE LEAVE-THE-SITE ARROW (489): it opens the card in Find, not "a new place". */
-  return { icon: 'search', label: 'Open', note: 'in ' + (t ? t.label : 'Find'), act: 'find-open', data: { key: x.key } };
+  return { icon: 'search', label: 'Open', note: 'in Find', act: 'find-open', data: { key: x.key } };
 }
 on('find-open', el => {
   const k = el && el.getAttribute('data-key');
