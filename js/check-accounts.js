@@ -17,8 +17,16 @@ const base = { pin: '0000', verified: 'TRUE', city: 'London' };
 const P = (id, role, first, email, more) => Object.assign({ person_id: id, role, first_name: first, last_name: 'Test',
   handle: first.toLowerCase() + '_kind' + id.length, email }, base, more || {});
 
+/* THE PRIVATE APPLICANTS' FOLDER: every file it is given, and whether anything tried to share one. */
+const DRIVE = { files: [], shared: 0, made: [] };
+const folder = { createFile(blob) { const id = 'F' + (DRIVE.files.length + 1); DRIVE.files.push({ id, blob });
+  return { getId: () => id, setSharing: () => { DRIVE.shared++; } }; } };
+const driveApp = { getFolderById: id => (id === 'apply-folder-test' || DRIVE.made.indexOf(id) !== -1 ? folder : null),
+  createFolder: name => { const id = 'made-' + (DRIVE.made.length + 1); DRIVE.made.push(id); DRIVE.madeName = name;
+    return Object.assign({ getId: () => id, setSharing: () => { DRIVE.shared++; } }, { createFile: folder.createFile }); }, getFileById: () => null, Access: {}, Permission: {} };
 function world(more) {
-  const b = backend({ MailApp: mailApp });
+  const b = backend({ MailApp: mailApp, DriveApp: driveApp });
+  if (!(more && more.noFolder)) b.ev("PropertiesService.getScriptProperties().setProperty('APPLY_FOLDER', 'apply-folder-test')");
   b.seed('people', [
     P('P-A1', 'admin', 'Hal', 'admin@example.org'),
     P('P-T1', 'tutor', 'Ada', 'tutor@example.org', { rate_per_hour: 25 }),
@@ -38,10 +46,13 @@ function world(more) {
   const as = (who, body) => b.post(Object.assign({ token: (tok[who] || {}).token || '' }, body));
   return { b, tok, as };
 }
+const PIC = 'data:image/jpeg;base64,QUJD';
 const FULL = { action: 'applyTeach', subjects: 'Maths (GCSE), Physics (A level)', qualifications: 'BSc Physics', dbsNumber: '001234567890',
-  dbsIssued: '2025-01-10', rightToWork: 'yes', experience: 'Two years', availability: 'm16,m17', area: 'Merton',
-  ref1Name: 'Ref One', ref1Contact: 'ref1@example.org', ref2Name: 'Ref Two', ref2Contact: '07000 000000',
-  statement: 'I like explaining things.', cvLink: '', consent: 'TRUE' };
+  dbsIssued: '2025-01-10', dbsUpdate: 'TRUE', rightToWork: 'yes', experience: 'Two years', availability: 'm16,m17', area: 'Merton',
+  fullName: 'Pat Test', phone: '07000 000001', email: 'pat@example.org', address: '1 Test Street, London', postcode: 'sw19 1aa', dob: '1980-05-01', rate: '30',
+  ref1Name: 'Ref One', ref1Relationship: 'Head of department', ref1Email: 'ref1@example.org', ref1Phone: '07000 000002',
+  ref2Name: 'Ref Two', ref2Relationship: 'Former employer', ref2Email: 'ref2@example.org', ref2Phone: '07000 000000',
+  idDoc: PIC, rtwDoc: PIC, qualDocs: [PIC, PIC], statement: 'I like explaining things.', cvLink: '', consent: 'TRUE' };
 
 /* ---------- 1. RANKS FROM THE CELLS THAT ARE ALREADY THERE ---------- */
 {
@@ -83,6 +94,14 @@ const FULL = { action: 'applyTeach', subjects: 'Maths (GCSE), Physics (A level)'
     'an application without the second reference and the consent tick was taken', half);
   const noDbs = as('pat@example.org', Object.assign({}, FULL, { dbsNumber: '', dbsNeeded: '' }));
   rule(!noDbs.success && /DBS/.test(noDbs.error), 'an application with neither a DBS nor "I need one" was taken', noDbs);
+  const noId = as('pat@example.org', Object.assign({}, FULL, { idDoc: '' }));
+  rule(!noId.success && /photo of your ID/.test(noId.error) && !DRIVE.files.length, 'an application without a photo ID was taken (or a file kept)', noId);
+  const noUpd = as('pat@example.org', Object.assign({}, FULL, { dbsUpdate: '' }));
+  rule(!noUpd.success && /Update Service/.test(noUpd.error), 'a DBS number without the Update Service tick was taken', noUpd);
+  const halfRef = as('pat@example.org', Object.assign({}, FULL, { ref2Relationship: '' }));
+  rule(!halfRef.success && /relationship/.test(halfRef.error), 'a referee with no relationship was taken', halfRef);
+  const noRate = as('pat@example.org', Object.assign({}, FULL, { rate: '' }));
+  rule(!noRate.success && /hourly rate/.test(noRate.error), 'an application with no hourly rate was taken', noRate);
   const badCv = as('pat@example.org', Object.assign({}, FULL, { cvLink: 'javascript:alert(1)' }));
   rule(!badCv.success, 'a CV link that is not https was taken', badCv);
   const young = as('yan@example.org', FULL);
@@ -92,6 +111,15 @@ const FULL = { action: 'applyTeach', subjects: 'Maths (GCSE), Physics (A level)'
   const staff = as('tutor@example.org', FULL);
   rule(!staff.success && /already/.test(staff.error), 'a tutor already teaching could apply', staff);
 
+  /* NO APPLY_FOLDER SCRIPT PROPERTY: a private folder is made, its id kept, and the application goes through. */
+  {
+    const w2 = world({ noFolder: true });
+    const r = w2.as('pat@example.org', FULL);
+    const kept = w2.b.ev("PropertiesService.getScriptProperties().getProperty('APPLY_FOLDER')");
+    rule(r.success && DRIVE.made.length === 1 && kept === DRIVE.made[0] && /private/.test(DRIVE.madeName) && !DRIVE.shared && DRIVE.files.length === 4,
+      'with no APPLY_FOLDER set, no private folder was made and kept (or the application failed)', { r, kept, DRIVE });
+    DRIVE.files.length = 0;
+  }
   const m0 = MAIL.length;
   const sent = as('pat@example.org', Object.assign({}, FULL, { personId: 'P-S1' }));
   const apps = b.tabs.applications;
@@ -99,6 +127,13 @@ const FULL = { action: 'applyTeach', subjects: 'Maths (GCSE), Physics (A level)'
   rule(apps && apps.length === 2 && apps[1][apps[0].indexOf('person_id')] === 'P-C1' && apps[1][apps[0].indexOf('status')] === 'new',
     'the application was not one row under the token\'s person (not the personId the phone sent)', apps && apps.slice(1));
   rule(mailTo('admin@example.org', m0).some(m => /application to teach/i.test(m.subject)), 'the owner was not emailed about the application');
+  const cell = k => apps && apps[1] && apps[1][apps[0].indexOf(k)];
+  rule(DRIVE.files.length === 4 && !DRIVE.shared, 'the four document photos were not kept, privately, in the folder', DRIVE);
+  rule(/^https:\/\/drive\.google\.com\/file\/d\/F1\/view$/.test(cell('id_doc')) && /F2/.test(cell('rtw_doc')) && String(cell('qual_docs')).split(' ').length === 2,
+    'the sheet does not hold the documents\' links', [cell('id_doc'), cell('rtw_doc'), cell('qual_docs')]);
+  rule(cell('postcode') === 'SW19 1AA' && cell('full_name') === 'Pat Test' && cell('ref1_relationship') === 'Head of department' && cell('ref2_phone') === '07000 000000'
+    && String(cell('dbs_update_consent')).toUpperCase() === 'TRUE' && String(cell('rate')) === '30' && !/base64/.test(JSON.stringify(apps[1])), 'the application\'s fields were not each in their column (or a photo was)', apps && [apps[0].slice(22), apps[1].slice(22)]);
+  rule(!mailTo('admin@example.org', m0).some(m => /SW19|07000|drive\.google/.test(m.body)), 'the owner\'s email carried the address, a phone or a document link');
   rule(!mailTo('admin@example.org', m0).some(m => /ref1@|001234567890/.test(m.body)), 'the owner\'s email carried a reference or the DBS number');
   const twice = as('pat@example.org', FULL);
   rule(!twice.success && twice.why === 'already', 'a second application while the first waits was taken', twice);
@@ -106,11 +141,16 @@ const FULL = { action: 'applyTeach', subjects: 'Maths (GCSE), Physics (A level)'
   /* ADMIN ONLY, AT THE GATE. */
   const peek = as('pat@example.org', { action: 'listApplications' });
   rule(!peek.success && !peek.applications, 'a client could list the applications', peek);
+  const tutorPeek = as('tutor@example.org', { action: 'listApplications' });
+  rule(!tutorPeek.success && !tutorPeek.applications, 'a tutor who is not an admin could list the applications', tutorPeek);
+  const asGet = who => JSON.stringify(b.get({ token: (tok[who] || {}).token || '' }));
+  rule(['', 'pat@example.org', 'tutor@example.org', 'admin@example.org'].every(w => !/SW19 1AA|Head of department|drive\.google\.com\/file\/d\/F1/.test(asGet(w))),
+    'doGet carried an application\'s details to a phone');
   const self = as('pat@example.org', { action: 'decideApplication', id: 'x', status: 'approved' });
   rule(!self.success, 'a client could decide an application', self);
   const list = as('admin@example.org', { action: 'listApplications' });
   const mine = (list.applications || [])[0] || {};
-  rule(list.success && list.open === 1 && mine.personId === 'P-C1' && mine.ref1_contact === 'ref1@example.org' && mine.name === 'Pat Test',
+  rule(list.success && list.open === 1 && mine.personId === 'P-C1' && mine.ref1_email === 'ref1@example.org' && /F1/.test(mine.id_doc) && mine.postcode === 'SW19 1AA' && mine.name === 'Pat Test',
     'the admin was not sent the application whole', list);
 
   /* INTERVIEW, THEN APPROVE: Staff, listed, on the public tutor list, told by email. */
