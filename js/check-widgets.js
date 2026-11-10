@@ -71,11 +71,11 @@ const ASKED_KINDS = new Set();
 fs.readdirSync(jsDir).filter(f => f.endsWith('.js') && !/^check/.test(f)).forEach(f => {
   const txt = fs.readFileSync(path.join(jsDir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ');
   for (const m of txt.matchAll(/\b(?:widgetsOf_|toolsStart_|widgetColumn_)\(\s*'([a-z]+)'\s*\)/g)) ASKED_KINDS.add(m[1]);
-  /* AND THE KINDS FIND ASKS FOR (790, `FIND_WIDGET_KINDS`, arcade.js): a tool or game is a Find card, not a column's. */
+  /* AND THE KINDS FIND ASKS FOR (790, `FIND_WIDGET_KINDS`, arcade.js): a tool is a Find card, not a column's. */
   const fk = /const FIND_WIDGET_KINDS = \[([^\]]*)\]/.exec(txt);
   if (fk) for (const m of fk[1].matchAll(/'([a-z]+)'/g)) ASKED_KINDS.add(m[1]);
 });
-if (!ASKED_KINDS.has('tool') || !ASKED_KINDS.has('game')) {
+if (!ASKED_KINDS.has('tool')) {
   console.log('FAILED — could not read which widget kinds the columns ask for (found: '
               + [...ASKED_KINDS].join(', ') + '), so the kind rule was NOT checked');
   process.exit(1);
@@ -125,13 +125,10 @@ widgets.forEach(w => {
 /* ---------- AN ENGINE WITH NO WIDGET, WHICH IS HOW THREE GAMES VANISHED § */
 /* KEPT ON PURPOSE, WITH A REASON EACH — the same arrangement check-payload.js and check-access.js use, and for the same reason: § */
 const ACCEPTED_ENGINE = {
-  initWhiteboard: 'The Whiteboard widget is the maths notebook in board.js since 377 (initBoard_). The pen on a '
-                + 'blank sheet stays in find.js as the sheet check/pen.js, check/press.js and the pen journeys '
-                + 'draw on; whether to delete it waits on the branch changing the pen.',
 };
 
 const starters = widgets.map(w => String(w.start || '')).join(' ');
-const engineFiles = ['calc.js', 'map.js', ...require('../tools/piece-src.js').pieceFiles('book').map(f => f.slice(3)), ...require('../tools/piece-src.js').pieceFiles('me').map(f => f.slice(3)), 'overworld.js', ...require('../tools/find-src.js').findFiles().map(f => f.slice(3)), 'receipt.js'];
+const engineFiles = ['map.js', ...require('../tools/piece-src.js').pieceFiles('book').map(f => f.slice(3)), ...require('../tools/piece-src.js').pieceFiles('me').map(f => f.slice(3)), 'overworld.js', ...require('../tools/find-src.js').findFiles().map(f => f.slice(3)), 'receipt.js'];
 const orphanEngine = [];
 engineFiles.forEach(f => {
   const fp = path.join(jsDir, f);
@@ -190,7 +187,6 @@ const ACCEPTED_IMPURE = {
   reels: 'reads the facts tab through `factsNow_`, which the fixture leaves empty, so both payloads deal the built-in facts',
   videos: 'a typed search lists the owner\'s list and an admin\'s films (`DATA.films`); the bar drawn ahead with nothing typed reads neither',
   favlinks: 'reads the viewer\'s own links (`DATA.favLinks`, 509), which the fixture leaves out, so every scenario draws the empty list',
-  console: 'first drawn here once Find filled every card (790); left unmarked until somebody reads what its games list depends on, since a wrong pure carries a stale drawing',
 };
 async function drawAheadRuntime_() {
   const out = { fails: [], pureWrong: [], drawn: 0, scenarios: 0, notes: [] };
@@ -253,8 +249,8 @@ async function drawAheadRuntime_() {
     out.scenarios++;
     const t = w.__wt;
     const seenHere = new Set();
-    /* THE TOOLS AND GAMES ARE FIND CARDS (790): each group's every card is filled, then drawn from its slot on Find. */
-    for (const [col, group] of [['stuff', 'Tools'], ['stuff', 'Games'], ['shop', '']]) {
+    /* THE TOOLS ARE FIND CARDS (790): the group's every card is filled, then drawn from its slot on Find. */
+    for (const [col, group] of [['stuff', 'Tools'], ['shop', '']]) {
       try {
         if (group) { t.findAll(group); await sleep(1500); }
         else if (t.STALE()[col] || !w.document.querySelector('#s-' + col + ' .widget-slot')) t.paint(col, true);
