@@ -453,7 +453,7 @@ const SCHEMA = {
   records: [
     "record_id", "category", "title", "provider", "reference", "due_on", "cost", "link", "notes",
     "active", "updated_at",
-  ], /* checker ticks (1050) */ biz_checks: ["check_id", "done_on", "note", "by", "updated_at", "expires_on", "doc_link"], /* the inbox (1060) */ owner_answers: ["question_id", "choice", "note", "by", "answered_at"],
+  ], /* checker ticks (1050) */ biz_checks: ["check_id", "done_on", "note", "by", "updated_at", "expires_on", "doc_link", "result"], /* the inbox (1060) */ owner_answers: ["question_id", "choice", "note", "by", "answered_at"],
 
   messages: [
     "message_id", "from_id", "to_id", "sent_at", "body",

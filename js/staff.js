@@ -423,7 +423,7 @@ on('stmt-for', el => {
 on('staff-dbs', el => {
   if (!(typeof isAdmin === 'function' && isAdmin())) return;
   const id = el.dataset.id;
-  send_({ action: 'tutorDbsChecked', personId: id }, { button: el, where: el.closest('.card') && el.closest('.card').querySelector('.staff-said'), busy: 'Saving…' })
+  send_({ action: 'tutorDbsChecked', tutorId: id }, { button: el, where: el.closest('.card') && el.closest('.card').querySelector('.staff-said'), busy: 'Saving…' })
     .then(d => {
       const s = (STAFF.list || []).find(x => x.personId === id);
       if (s) s.dbsCheckedOn = (d && d.dbsCheckedOn) || new Date().toISOString().slice(0, 10);

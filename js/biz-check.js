@@ -174,16 +174,19 @@ function bcItem_(item, s) {
   const t = s.tick || {}, cyc = s.cyc && !s.cyc.continuous;
   return `<div class="bc-item is-open${glow}" data-bc="${esc(item.id)}">${line}
     ${s.cyc ? `<p class="bc-cycle"><span class="qtag">${esc(bcCycleSay_(item))}</span>${s.due ? ` <span class="qtag">expires ${esc(bcSaid_(s.due))}</span>` : ''}${
-      t.doc_link ? ` <a href="${esc(t.doc_link)}" target="_blank" rel="noopener">Document</a>` : ''}</p>` : ''}
+      t.result ? ` <span class="qtag">${esc(t.result)}</span>` : ''}${t.doc_link ? ` <a href="${esc(t.doc_link)}" target="_blank" rel="noopener">Document</a>` : ''}</p>` : ''}
     <p class="bc-why">${esc(item.why)}</p>
+    ${item.run ? `<div class="tile-row">${tile_({ icon: 'ext', label: item.run, href: item.link, leave: true })}</div>` : ''}
     <p class="bc-how">${esc(item.how)} <a href="${esc(item.link)}" data-do="file-view" target="_blank" rel="noopener">Official guidance</a>${item.doc && typeof policyHref_ === 'function' && policyHref_(item.doc)
       ? ` <a href="${esc(policyHref_(item.doc))}" data-do="file-view" target="_blank" rel="noopener">Our policy</a>` : ''}</p>
     ${s.info ? '' : `<div class="me-form bc-form">
-      <div class="lib-row q-row"><label class="field"><input type="date" data-bc-k="done_on" value="${esc(t.done_on || bcToday_())}" aria-label="${esc(item.title + ' — done on')}"></label>
-      ${cyc ? `<label class="field">New expiry <input type="date" data-bc-k="expires_on" value="${esc(bcDueOf_(item, { done_on: bcToday_() }))}" aria-label="${esc(item.title + ' — new expiry')}"></label>
+      <div class="lib-row q-row"><label class="field"><input type="date" data-bc-k="done_on" value="${esc(cyc ? bcToday_() : t.done_on || bcToday_())}" aria-label="${esc(item.title + (cyc ? ' — renewed on' : ' — done on'))}"></label>
+      ${Array.isArray(item.results) ? `<label class="field">Result <select data-bc-k="result" aria-label="${esc(item.title + ' — result')}">${
+        item.results.map(r => `<option${r === t.result ? ' selected' : ''}>${esc(r)}</option>`).join('')}</select></label>` : ''}
+      ${cyc ? `<label class="field">${item.results ? 'Review by' : 'New expiry'} <input type="date" data-bc-k="expires_on" value="${esc(bcDueOf_(item, { done_on: bcToday_() }))}" aria-label="${esc(item.title + ' — new expiry')}"></label>
       <label class="field">Document (optional) <input type="file" data-bc-k="doc" accept="application/pdf,image/*" aria-label="${esc(item.title + ' — document')}"></label>` : ''}
       <label class="field"><input type="text" data-bc-k="note" value="${esc(t.note || '')}" placeholder="Proof or note, e.g. policy no." maxlength="200" aria-label="${esc(item.title + ' — note')}" autocomplete="off"></label></div>
-      <div class="tile-row">${tile_({ form: true, label: cyc ? 'Renewed' : t.done_on ? 'Save' : 'Mark done', act: 'bc-tick', data: { id: item.id } })}${
+      <div class="tile-row">${tile_({ form: true, label: item.results ? 'Done' : cyc ? 'Renewed' : t.done_on ? 'Save' : 'Mark done', act: 'bc-tick', data: { id: item.id } })}${
         t.done_on ? tile_({ form: true, kind: 'quiet', label: 'Untick', act: 'bc-untick', data: { id: item.id } }) : ''}</div>
     </div>`}
   </div>`;
@@ -220,7 +223,10 @@ function bcInner_() {
 function bizCheckCard_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return '';
   if (!BC.asking && !BC.fetched) setTimeout(bcStart_, 0);
-  return `<div class="card biz bc-card" data-bizcheck data-need="bizcheck">${bcInner_()}</div>`;
+  /* A REPAINTED COLUMN KEEPS THE GLOW: the inner is drawn first, so its counts are known for the card's own class. */
+  const inner = bcInner_(), need = typeof BIZ_NEEDS !== 'undefined' ? BIZ_NEEDS : {}, now = typeof BIZ_NEEDS_NOW !== 'undefined' ? BIZ_NEEDS_NOW : {};
+  const glow = (need.bizcheck ? ' needs-you' : '') + (now.bizcheck ? ' needs-now' : '');
+  return `<div class="card biz bc-card${glow}" data-bizcheck data-need="bizcheck">${inner}</div>`;
 }
 const bcDraw_ = () => { document.querySelectorAll('[data-bizcheck]').forEach(c => { c.innerHTML = bcInner_(); }); if (typeof bizNeedsPaint_ === 'function') bizNeedsPaint_(); };
 
@@ -257,7 +263,7 @@ function bcSave_(el, untick) {
   const v = k => { const b = box.querySelector(`[data-bc-k="${k}"]`); return b ? String(b.value || '').trim() : ''; };
   const done_on = untick ? '' : v('done_on') || bcToday_(), expires_on = untick ? '' : v('expires_on');
   if (expires_on && expires_on < done_on) { toast('The new expiry is before the renewal date.'); return; }
-  bcFile_(untick ? null : box).then(doc => send_({ action: 'saveBizCheck', name: USER && USER.name, id, done_on, expires_on, doc, note: untick ? '' : v('note') },
+  bcFile_(untick ? null : box).then(doc => send_({ action: 'saveBizCheck', name: USER && USER.name, id, done_on, expires_on, doc, result: untick ? '' : v('result'), note: untick ? '' : v('note') },
         { button: el, where: box.closest('.card').querySelector('.bc-said'), busy: 'Saving…' }))
     .then(d => {
       const c = (d && d.check) || { id, done_on, expires_on, note: v('note') };

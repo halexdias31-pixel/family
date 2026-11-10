@@ -146,7 +146,7 @@ function postListStaff_(body, action, began) {
 /* "CHECKED TODAY" ON A TUTOR'S DBS (10 Nov): the admin ran the online check; the date restarts the 12 months. */
 function postTutorDbsChecked_(body, action, began) {
   const t = read(TAB.people);
-  const r = t.rows.find(x => S(x.person_id) && S(x.person_id) === S(body.personId));
+  const r = t.rows.find(x => S(x.person_id) && S(x.person_id) === S(body.tutorId));
   if (!r) return jsonOut({ error: 'No tutor with that id.' });
   const on = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
   if (!setCell(t, r, 'dbs_checked_on', on)) return jsonOut({ error: 'The people tab has no dbs_checked_on column yet: open the /exec address with ?setup=1 once.' });

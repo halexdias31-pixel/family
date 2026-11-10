@@ -1,5 +1,5 @@
 {
- "notes": "THE BUSINESS CHECKER (docs/history/1050): what a UK sole-trader tutoring business needs, in order. Guidance, not legal or financial advice. sense: an auto rule in js/biz-check.js (BC_RULES) or manual; renew: months or null; when: facts that must all hold (config biz_* keys). Links: gov.uk, ico.org.uk, nspcc.org.uk only (check-biz). doc: the policy in docs/policies that satisfies the row (optional). cycle (renewals, 10 Nov): {months: n} renews n months after the last renewal, {dates: [MM-DD]} falls due on those days each year, {continuous: true} is watched all the time; Renewed sets the new expiry. money.tax_set_aside: share of income put aside for tax; a config row of that name overrides it.",
+ "notes": "THE BUSINESS CHECKER (docs/history/1050): what a UK sole-trader tutoring business needs, in order. Guidance, not legal or financial advice. sense: an auto rule in js/biz-check.js (BC_RULES) or manual; renew: months or null; when: facts that must all hold (config biz_* keys). Links: gov.uk, ico.org.uk, nspcc.org.uk only (check-biz). doc: the policy in docs/policies that satisfies the row (optional). cycle (renewals, 10 Nov): {months: n} renews n months after the last renewal, {dates: [MM-DD]} falls due on those days each year, {continuous: true} is watched all the time; Renewed sets the new expiry. money.tax_set_aside: share of income put aside for tax; a config row of that name overrides it. run: a label for the item's link shown as its own tile; results: answers the owner picks when ticking (kept in the result column).",
  "facts": {
   "under18": true,
   "under8": true,
@@ -331,11 +331,20 @@
    "group": "Your tutors",
    "title": "Check your tutors really are self-employed",
    "why": "If they work like employees, HMRC can ask you for tax and National Insurance.",
-   "how": "Run the HMRC employment status tool for a typical tutor and keep the result.",
+   "how": "Run the HMRC check (CEST) for a typical tutor, save the result as a PDF, then press Done with the result and the PDF attached. Reviewed yearly.",
    "link": "https://www.gov.uk/guidance/check-employment-status-for-tax",
    "sense": "manual",
    "renew": 12,
-   "when": {}
+   "when": {},
+   "cycle": {
+    "months": 12
+   },
+   "run": "Run the HMRC check",
+   "results": [
+    "Employed",
+    "Self-employed",
+    "Unable to say"
+   ]
   },
   {
    "id": "tutor_agreements",
