@@ -13,8 +13,8 @@ const RULES = [
   { re: /\.toTimeString\(\)\.slice/, say: 'a time by hand — use time_()' },
   { re: /\['Sunday',|'Sunday', 'Monday'|\['Sun', 'Mon'/, say: 'a weekday list — use day_() and DAYS_SHORT' },
 ];
-/* Where the helpers are written, and the e-ink clock's own Sunday-first index (records.js). */
-const ALLOW = [/^const (money_|date_|time_|day_|hours_) =/, /^const EINK_WEEKDAYS = /];
+/* Where the helpers are written. */
+const ALLOW = [/^const (money_|date_|time_|day_|hours_) =/];
 
 const files = ['index.html'].concat(fs.readdirSync(path.join(ROOT, 'js'))
   .filter(f => /\.js$/.test(f) && !/^check|^_/.test(f)).map(f => 'js/' + f));

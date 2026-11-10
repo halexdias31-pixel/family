@@ -1,22 +1,22 @@
 {
  "v": 2,
  "tier": "core",
- "score": 75.7,
+ "score": 76.6,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
    "id": "exceptions",
    "label": "Written exceptions in the checks",
-   "count": 77,
+   "count": 71,
    "weight": 0.1,
    "cap": 20,
-   "off": 7.7,
+   "off": 7.1,
    "where": {
     "js/check-answerable.js ACCEPTED": 6,
     "js/check-answers.js ACCEPTED": 1,
     "js/check-css.js DIM_OK": 8,
     "js/check-dropdowns.js PICKER_OK": 1,
-    "js/check-format.js ALLOW": 9,
+    "js/check-format.js ALLOW": 8,
     "js/check-library.js KNOWN_F": 1,
     "js/check-loading.js PHRASE_OK": 8,
     "js/check-loading.js ACCEPTED_KEYFRAMES": 14,
@@ -25,19 +25,19 @@
     "js/check-strings.js ROLE_OK": 1,
     "js/check-surfaces.js POPUP_OK": 1,
     "check/diagrams.js ACCEPTED": 4,
-    "check/motion.js ACCEPTED": 17,
+    "check/motion.js ACCEPTED": 12,
     "check/types.js ACCEPTED": 2
    }
   },
   {
    "id": "dead",
    "label": "Code nothing calls",
-   "count": 17,
+   "count": 16,
    "weight": 0.3,
    "cap": 10,
-   "off": 5.1,
+   "off": 4.8,
    "where": {
-    "check-dead": "dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), nextBookStep (book-steps.js), boxerPic_ (find-boxers.js), insertsFor_ (find-history.js), initWhiteboard (find-loupe.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), paintBoard_ (map.js), paintTimer (overworld.js), newGame (price-rows.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
+    "check-dead": "dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), nextBookStep (book-steps.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), paintBoard_ (map.js), paintTimer (overworld.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
    }
   },
   {
@@ -135,27 +135,26 @@
   }
  ],
  "secondary": {
-  "score": 88,
+  "score": 88.9,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
     "id": "exceptions",
     "label": "Written exceptions in the checks",
-    "count": 93,
+    "count": 84,
     "weight": 0.1,
     "cap": 20,
-    "off": 9.3,
+    "off": 8.4,
     "where": {
      "js/check-look.js LIT_OK": 1,
      "js/check-look.js WORDS_OK": 1,
      "js/check-permissions.js ALLOW": 1,
-     "js/check-widgets.js ACCEPTED_ENGINE": 1,
-     "js/check-widgets.js ACCEPTED_IMPURE": 5,
+     "js/check-widgets.js ACCEPTED_IMPURE": 4,
      "check/cascade.js ACCEPTED": 28,
      "check/press-twice.js ACCEPTED": 2,
-     "check/press.js ACCEPTED_QUIET": 21,
+     "check/press.js ACCEPTED_QUIET": 16,
      "check/ui.js ACCEPTED_NEST": 9,
-     "check/ui.js ACCEPTED_TAP": 24
+     "check/ui.js ACCEPTED_TAP": 22
     }
    },
    {

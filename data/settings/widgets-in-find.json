@@ -1,7 +1,7 @@
 [
-{"widget": "tool", "find": "TRUE", "notes": "every widget of kind tool is a Find card under Tools (docs/history/790): the Tools column went into Find. A row naming one widget's id wins over its kind's row."},
-{"widget": "game", "find": "TRUE", "notes": "every widget of kind game is a Find card under Games (docs/history/790): the Games column went into Find."},
-{"widget": "reel", "find": "TRUE", "notes": "Videos, Reels and Newspaper are Find cards, each its own first answer (FIND_WIDGET_GROUPS, docs/history/1040 batch B): one search bar, no column of their own."},
+{"widget": "tool", "find": "TRUE", "notes": "every widget of kind tool is a Find card under Tools (docs/history/790), drawn by findCard with the widget as its insides (KC_OWN.tool). A row naming one widget's id wins over its kind's row."},
+{"widget": "game", "find": "FALSE", "notes": "no game widget is left (88a: the games went to attic, to come back as ordinary cards); were one added, it would not be a Find card."},
+{"widget": "reel", "find": "FALSE", "notes": "Videos, Reels and Newspaper are off and wait as Coming soon cards; a live reel widget is not a Find card until it is rebuilt as an ordinary card (88a)."},
 {"widget": "shop", "find": "TRUE", "notes": "the Basket is a Find card under Shop (batch B)."},
 {"widget": "shopfind", "find": "FALSE", "notes": "a second search bar: the shop's things are Find cards and the main search finds them (batch B, one search bar)."},
 {"widget": "videos", "find": "FALSE", "notes": "each video is its own Find card (kind video, find-doors.js, batch C): the widget's own list and search would be a second search."}

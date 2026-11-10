@@ -194,12 +194,11 @@ function pageParts_(x, prev) {
     out.push('share');
     return out;
   }
-  /* A CONTENT CARD IS ITSELF, A PAGE PER ANIMATION in the file's order, then its Formulas and its Worked examples (408):
+  /* A CONTENT CARD IS ITSELF, then its Formulas and its Worked examples (408):
      one titled page per thing, and a page only where the row has the thing. */
   if (x && isContent_(x) && x.row) {
     const c = x.row;
-    return [null].concat((c.animations || []).map(a => 'an' + c.n + '-' + a.id),
-      (c.formulas || []).length ? ['formulas'] : [], (c.points || []).length ? ['worked'] : []);
+    return [null].concat((c.formulas || []).length ? ['formulas'] : [], (c.points || []).length ? ['worked'] : []);
   }
   /* THE BIBLE HAS NO BRANCH HERE ANY MORE. Its cover and each of its verses are one page, the
      default below; the cover's three lists of books and the open book's pages went with the reader
@@ -494,6 +493,6 @@ function vecHtml_(html) {
   return String(html == null ? '' : html).replace(/\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g,
     '<span class="vec"><span class="vec-a">$1</span><span class="vec-b">$2</span></span>');
 }
-window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, manuscript: histExtras_, writing: histExtras_, event: histExtras_, timeline: tlExtras_ });
+window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, manuscript: histExtras_, writing: histExtras_, event: histExtras_ });
 /* A BOXER'S OR FIGURE'S PIXEL PORTRAIT AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, { boxerPic: x => `<figure class="person-pic">${personPic_(x.pixId, x.name)}</figure>` });

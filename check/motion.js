@@ -27,12 +27,7 @@ const ACCEPTED = [
   { css: /^\.screen$/, why: 'the slide between columns (527) owns its own spring and timing' },
   { css: /^\.btn\.is-busy::before, \.tile:is\(\.is-busy, \[aria-busy="true"\]\)::before$/, why: 'a busy button or tile shows the loader\'s three dots, the same loop (30a)' },
   { css: /^\.loading > span/, why: 'the three dots are a loop; their rhythm is the loader (306), not a movement' },
-  { css: /^\.mc-caret$/, why: 'a caret blinks in steps(1); the keypad\'s and the calculator\'s are the system caret\'s rhythm' },
   { css: /^\.kp-caret$/, why: 'the keypad (528) owns its caret' },
-  { css: /^\.chess /, why: 'the chess ending is a cinematic of its own (429): a ring three times, the dark, the fall, the word' },
-  { css: /^\.chess\.is-fresh/, why: 'the chess ending is a cinematic of its own (429): a ring three times, the dark, the fall, the word' },
-  { css: /@keyframes chess-fall/, why: 'the beaten king\'s fall is physics: a lean, a drop, a bounce, each with its own curve' },
-  { css: /^\.c4-cell\.c4-new::after$|@keyframes c4-drop/, why: 'a counter falls a height that depends on its row: game physics, gravity then a bounce' },
   /* PACKAGE E (U9) REWRITES THESE PRESS RULES onto --dur-press / --dur-quick; until it lands they keep `var(--quick) ease`. */
   { css: /^\.card\.tap$/, why: 'press rule, package E (U9)' },
   { css: /^\.btn$|^\.btn, /, why: 'press rule, package E (U9)' },

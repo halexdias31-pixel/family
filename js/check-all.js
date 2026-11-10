@@ -25,7 +25,6 @@ const SUITE = [
   { file: 'check-loading.js', what: 'every wait is the one loader, and nothing else draws one' },
   /* THE REBUILT SPLASHES, AS KEYFRAMES. `npm run splash` asks whether the picture changes and a
      wipe, a snap and a cross-fade all change it — so it passed the three faults this reads for. */
-  { file: 'check-splash-loops.js', what: 'the rebuilt splashes: one seamless loop each, centred' },
   /* ---------- IT EXISTED AND NEVER RAN § */
   { file: 'check-scope.js',   what: 'names declared in a block, used outside it' },
   /* ---------- AND A CONSTANT BEING ASSIGNED TO, WHICH THROWS AND IS OFTEN SILENT § */
@@ -108,9 +107,7 @@ const SUITE = [
   { file: 'check-typeset.js', what: 'fractions stacked, powers raised, no plain-text maths' },
   /* ---------- AND WHETHER THE ANSWER YOU SEE IS SHORT, AND ALL THERE IS § */
   { file: 'check-answers.js', what: 'every answer drawn is a short result, and nothing but the result' },
-  { file: 'check-calc.js',  what: 'the calculator engine: exact fractions, roots, powers, degrees, DEL as a unit' },
   { file: 'check-typeable.js', what: 'every stored answer can be typed on the pad: its three faces reach each other and type every accept (round 4)' },
-  { file: 'check-chess.js',  what: 'the chess move generator, counted by perft' },
   /* ---------- AND EVERY TIMESTAMP ANYBODY SEES § */
   { file: 'check-dates.js', what: 'a written date read as the date it says' },
   /* ---------- THE PRACTICALS, AND WHETHER THEIR TOPICS NAME ANYTHING REAL § */
@@ -124,7 +121,6 @@ const SUITE = [
   { file: 'check-card-shape.js', what: 'one card shape for every kind in Find: picture, title, tags, lines (owner, 8 Nov)' },
   { file: 'check-email-card.js', what: 'the Sunday email card is the site card: parts, lines, labels, corner, gap, sizes, tag colours (57a–62a)' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
-  { file: 'check-anims.js', what: 'the books\' animations: one source, kept and drawn as their rows', par: true },
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
   { file: 'check-talmud.js', what: 'the Talmud (473): every tractate and daf in the index loads with Gemara; licences CC BY-SA or public domain' },
   { file: 'check-writings.js', what: 'one model for every written work (520): one shape, one shelf, one facet set, tradition topics, one age, nothing twice, facets.json = FACETS' },
@@ -169,10 +165,7 @@ const SUITE = [
   { file: 'check-library-ledger.js', what: 'the library in the Ledger: copied and checked a step at a time, served signed-in with a day\'s cap', par: true },
   /* THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER. § */
   { file: 'check-films.js', what: 'the films from the Notflix folder: the upsert, admin only, no id sent, the clock' },
-  /* THE COLLIERS WOOD RACER'S MAP (426), built over a fake Overpass, DEM and Drive. */
-  /* THE CONSOLE'S SAVES ON THE ACCOUNT (446), over a fake Drive. */
   { file: 'check-hands.js', what: 'a hand up from a question: signed in, own hand only, staff list oldest first and Done, 30-minute TTL' },
-  /* THE SHIPPED COLLIERS WOOD'S GEOMETRY (511): one road surface, nothing overlapping, no gaps, OSM's buildings. */
   /* AN ADMIN'S REELS AND VIDEOS (404), through the real doPost and doGet. */
   { file: 'check-media.js', what: 'an admin adds, edits, hides and deletes a reel or video; others and bad links refused; the payload carries it' },
   { file: 'check-media-age.js', what: 'a reel or video rated above a viewer\'s age (from their date of birth; no date of birth or signed out = underage, 450) is not sent; the admin gets all' },
@@ -227,7 +220,6 @@ const SUITE = [
   /* ---------- AND WHETHER A PUSH ACTUALLY ARRIVES § */
   { file: 'check/deploy.js',  what: 'a deploy reaching a browser that already has the site', slow: true },
   /* ---------- EVERY TEXTBOOK ANIMATION IN ITS CHAPTER, AND STILL WHEN ASKED § */
-  { file: 'check/anims.js',   what: 'every textbook animation inside its card, and still when asked', slow: true },
   /* ---------- AND WHETHER PRESSING ANYTHING DOES ANYTHING § */
   { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true, heavy: true },
   /* ONE PRESS, ONE ACTION (534): a double tap posts once, a yes under 400 ms is ignored, a request that never answers lets go after a minute. */
@@ -242,7 +234,6 @@ const SUITE = [
   { file: 'check/kp-centred.js', what: 'Find centred above the @family. keypad, the box still as you type, centred again when it goes (720)', slow: true },
   { file: 'check/later.js', what: 'every column gone to and started while the LATER files are away reads none of their names; they arrive in one task (720)', slow: true },
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
-  { file: 'check/calc-steady.js', what: 'pressing keys never changes the calculator\'s size or shape, nor any key\'s (472)', slow: true },
   { file: 'check/fluid.js',   what: 'any shape of screen: seven phone, tablet and desktop sizes scroll no wider than the window and leave no blank side', slow: true },
   { file: 'check/centred.js', what: 'Find floats back to the middle when words or chips are cleared (508)', slow: true },
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },

@@ -87,7 +87,7 @@ const SAFE_AT = (w, h) => (w < h ? { top: 47, bottom: 34 } : { left: 47, right: 
 /* A BOX INSIDE A BOX (690): the pane is the only surface; these draw a second one on purpose, each for a reason. */
 const ACCEPTED_NEST = [
   ['.feed, .feed-art, .cam-stage', 'a picture or the camera: the frame is the media, not a box'],
-  ['.calc, .c4, .art, .nb, .chess, .tmt-box, .kt-box', 'a drawn instrument or board: its body is the drawing'],
+  ['.tmt-box, .kt-box', 'a drawn instrument: its body is the drawing'],
   ['.prof-heat, .prof-shot, .lib-face', 'a heat map, a photo, a library card drawn as the card: drawn things'],
   ['.many-sum, .field, .bk-cell', 'a control standing in for an input: inputs keep their subtle fill'],
   ['.rc, .rc-stub, .paper, .cpn, .qsheet, .mat, .insh-sheet, .stmt', 'paper objects: a sheet of paper is a surface of its own'],
@@ -111,14 +111,6 @@ const ACCEPTED_TAP = [
   + 'between rows goes to the nearest key in that row (`kpNear_`), which makes the edge keys reach the edge of the '
   + 'glass -- `q` is 44.8px wide in effect at 320; and the pressed letter is shown above the finger. From 640px wide the '
   + 'letters pad widens and its keys are 60px, so a tablet is not on this list. A wrong letter costs one ⌫.' },
-  { cls: /^mc-btn\b/, run: 36, why:
-    'THE CALCULATOR IS DRAWN AT FULL SIZE AND ITS KEY ROWS GIVE WAY INSTEAD (533). The owner said yes to *"Make the '
-  + 'calculator fit its space at full size rather than being shrunk on every phone"* (D4). A ClassWiz has nine rows of '
-  + 'keys under its display, and nine 44px rows with the display are taller than the pane on a laptop and on a small '
-  + 'phone, where `paneReach_` used to draw the whole device at .7-.8: 31px keys at 320. Now `calcFit_` (games.js) gives '
-  + 'each row what the pane has left, between 36px (a tile\'s floor, `PANE_FLOOR_TILE`) and 56px: about 41px at 390x844 '
-  + 'and 36px at 1280x800 and 320x568, where the pane scrolls the rest. Each key is its whole cell, the column wide, so '
-  + 'it is 44px or more across; the run down its middle is held to 36 here.' },
   { cls: /^(counted\.row|chip\.sm)\b/, run: 36, why:
     'A FUNNEL ANSWER, AND THE CHIP IT BECOMES, IS 32px BY THE OWNER\'S CHOICE -- *"Make the tags smaller because this will '
   + 'help to make sure more fit in even when there\'s lots of names for the user to parse through."* '

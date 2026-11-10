@@ -94,7 +94,7 @@ function insertCard_(x) {
     ${insertSheet_(r)}
   </div>`;
 }
-/* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies; a timeline's animation (`tlExtras_`). */
+/* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies. */
 function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
   .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'file-view', data: { url: o.url, title: o.label } }))); }
 /* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */

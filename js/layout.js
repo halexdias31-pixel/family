@@ -21,8 +21,7 @@ const wholeBars_ = x => (x in WIDGET_WHOLE) && (typeof ruleOn_ !== 'function' ||
 /* A RULE (496), locked: `keep-basket`. */
 const basketKept_ = x => LAYOUT_KEEP.indexOf(x) !== -1 && (typeof ruleOn_ !== 'function' || ruleOn_('keep-basket'));
 const WIDGET_WHOLE = {
-  console: 'a console screen sized to the whole page', boardgames: 'a board drawn to the whole page', wordgames: 'a game board drawn to the whole page',
-  calculator: 'zoomed to fit the page and must keep its shape (472)', whiteboard: 'a drawing surface the size of the page', reels: 'a feed that scrolls the whole page',
+  reels: 'a feed that scrolls the whole page',
 };
 
 /* ---------- ONE SHAPE, WHATEVER ARRIVED (a string, an object, rubbish) — or null ---------- */

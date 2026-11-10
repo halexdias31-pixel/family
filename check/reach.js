@@ -46,8 +46,7 @@ function heavy_() {
   }
   P.posts = posts.concat(P.posts.slice(1));
   (P.shop || []).forEach((s, i) => { s.image = drive(500 + i); if (s.fields) s.fields.photo = drive(500 + i); });
-  P.favourites = ['w:calculator', 'w:timer', 'w:notepad', 'w:calendar', 'w:typing', 'w:boardgames', 'w:wordgames',
-    'w:wordsearch', 'Scientific calculator', 'Ruler (30cm)', 'Ada Tutor'];
+  P.favourites = ['w:timer', 'w:notepad', 'w:calendar', 'w:typing', 'Scientific calculator', 'Ruler (30cm)', 'Ada Tutor'];
   return JSON.stringify(P);
 }
 

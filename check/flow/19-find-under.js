@@ -496,8 +496,7 @@ check('the history timeline: events are found under Learning, Content, History, 
   const isos = stops.map(s => s.ev.date_iso);
   if (isos.some((v, k) => k && v.localeCompare(isos[k - 1]) < 0)) bad.push('the timeline\'s stops are not in date order: ' + isos.slice(0, 4).join(', ') + '…');
   const keys = [...box.querySelectorAll('[data-do="find-open"]')].map(e => e.getAttribute('data-key'));
-  const animKey = keys.find(k => /^ct:/.test(k));
-  if (!animKey || !/^ct:TB-GCSE-HIST-6$/.test(animKey)) bad.push('the timeline has no Animation tile to GCSE History chapter 6: ' + animKey);
+  if (keys.some(k => /^ct:/.test(k))) bad.push('the timeline still has an Animation tile: its engine is in attic (88a)');
   if (box.querySelector('[data-do="find-open"][href], a[target]')) bad.push('a timeline tile opens a page instead of a card in place');
   const ev = get('EV-0003'), hit = get('FIG-0004');
   if (!ev || !hit) return bad.concat(['EV-0003 or FIG-0004 is not in the list — the links were NOT checked']);
@@ -520,12 +519,6 @@ check('the history timeline: events are found under Learning, Content, History, 
   A['find-open'](opener); await wait(120);
   onCard(tl, 'the timeline opened');
   if (press(ev, hit.key)) { await wait(120); onCard(hit, 'the event\'s Figure tile'); }
-  if (animKey && press(tl, animKey)) {
-    await wait(150);
-    const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
-    if (!pg || !pg.x || pg.x.key !== animKey) bad.push('the Animation tile lands on ' + (pg && pg.x ? pg.x.key : 'nothing') + ', not ' + animKey);
-    else if (!(pg.x.row.animations || []).some(a => a.id === 'hww2')) bad.push('the chapter the Animation tile opens does not carry hww2');
-  }
   if (t.AT() !== 'stuff') bad.push('following the timeline left Find for ' + t.AT());
   return bad;
 });
@@ -653,103 +646,6 @@ check('a page turn on Find from outside any binding (a swipe) has the page in fr
   if (!inFind_(w, () => w.stuffHeld_())) bad.push('jumped to result 40: the page in front is not drawn synchronously');
   t.goPage('stuff', first + 41);
   if (!inFind_(w, () => w.stuffHeld_())) bad.push('turned one page: the page in front is not drawn synchronously');
-  return bad;
-});
-
-/* ---------- A CHAPTER PLAYS ITS ANIMATION § */
-/* ON FIND 2 (docs/history/329), a page after the Pythagoras content card (347, part 2). */
-check('a content card plays its animation on Find: Pythagoras after the Pythagoras and trigonometry card, drawn from its row', async () => {
-  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
-  const one = boot();
-  await wait(300);
-  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable — NOT checked'];
-  const rows = read('textbooks');
-  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { textbooks: rows })));
-  const p = payload();
-  Object.assign(p, { textbooks: made.textbooks || [] });
-  /* FIND IS FOR MEMBERS (400): signed in as a client, as anybody who reads it. */
-  const { w } = boot({ payload: p, member: true });
-  await wait(300);
-  const t = w.__t;
-  const bad = [];
-  const row = rows.find(r => r.anim === 'pyth');
-  if (!row) return ['data/textbooks.json has no pyth row — NOT checked'];
-  const R = findView_(w);
-  t.go('stuff');
-  const S = t.STUFF();
-  S.filters.length = 0;
-  S.filters.push({ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Maths' });
-  R.findShow_();
-  w.paintFinder_('stuff');
-  const pages = R.stuffPages_();
-  const at = pages.findIndex(pg => pg.part === 'an17-pyth');
-  if (at < 0) return ['Content · Maths has no an17-pyth page: ' + pages.map(pg => pg.part || 'card').slice(0, 30).join(' ')];
-  if (!pages[at - 1] || pages[at - 1].part || !pages[at - 1].x || pages[at - 1].x.key !== 'ct:TB-GCSE-MATHS-17') bad.push('Pythagoras is not the page straight after the Pythagoras and trigonometry card (it follows ' + (pages[at - 1] && ((pages[at - 1].x || {}).name + ':' + (pages[at - 1].part || 'card'))) + ')');
-  const first = R.stuffFirstResult_();
-  t.goPage('stuff', first + at);
-  await wait(450); await woken_();
-  /* THE WINDOW FILLED AS THE BUILDER WOULD FILL IT IN THE QUIET — the builder is held here (it is the arrival this asks about), and since docs/history/341 a turn § */
-  R.fillStuffPages(true);
-  const host = w.document.getElementById('s-stuff');
-  /* THE PAGE IN FRONT, AS THE FINDER MARKS IT — `.on` on the page the column is placed at. */
-  const cardEl = host.querySelector('.card.is-an17-pyth');
-  const here = cardEl && cardEl.closest('.page');
-  const stage = here && here.querySelector('.tb-an-stage[data-anim="pyth"]');
-  if (!stage) return bad.concat(['the page turned to has no Pythagoras stage']);
-  if (!stage.classList.contains('is-on')) bad.push('the stage on the page in front is not `.is-on` — it stands paused');
-  const others = [...host.querySelectorAll('.tb-an-stage.is-on')].filter(e => e !== stage);
-  if (others.length) bad.push(others.length + ' other stage(s) are playing off the page in front: ' + others.map(e => e.dataset.anim).join(' '));
-  /* ITS STYLESHEET: ONE, THE ROW'S. */
-  const st = w.document.head.querySelectorAll('style[data-anim="pyth"]');
-  if (st.length !== 1) bad.push(st.length + ' <style data-anim="pyth"> in the page — one, shared');
-  else if (st[0].textContent !== row.css) bad.push('the page\'s Pythagoras stylesheet is not the row\'s CSS');
-  /* ITS MARKUP: THE ROW'S, IDS ITS OWN. */
-  const n = (/-t(\d+)"/.exec(stage.innerHTML) || [])[1];
-  const box = w.document.createElement('div');
-  box.innerHTML = w.animIds_(row.html, n || 1);
-  if (stage.innerHTML !== box.innerHTML) bad.push('the stage is not the row\'s markup as `animIds_` gives it');
-  const ids = [...host.querySelectorAll('.tb-an-stage [id]')].map(e => e.id);
-  const dup = ids.filter((v, i) => ids.indexOf(v) !== i);
-  if (dup.length) bad.push('ids shared between drawings on the page: ' + [...new Set(dup)].join(' '));
-  const plain = ids.filter(v => !/-t\d+$/.test(v));
-  if (plain.length) bad.push('ids inside a drawing that were not made its own: ' + plain.join(' '));
-  if (!ids.length) bad.push('no drawing near the page has an id, so the id rule was NOT exercised (the Venn two pages on has four)');
-  /* WHAT IT IS ABOUT, IN THE CHAPTER'S WORDS AND TYPESET. */
-  const card = here.querySelector('.card.tb-an');
-  if (!card) bad.push('the page is not drawn as a content card\'s animation');
-  else {
-    if (!/Pythagoras/.test(card.querySelector('h3').textContent)) bad.push('the page is not headed Pythagoras');
-    /* THE KICKER NAMES THE SUBJECT AND THE CARD, AND NEVER A CHAPTER (347, part 2). */
-    const kick = card.querySelector('.fc-kick').textContent;
-    if (!/Maths · Pythagoras and trigonometry/.test(kick) || /chapter|book/i.test(kick)) bad.push('the kicker is "' + kick + '" — wanted the subject and the card, and no chapter');
-    const fm = card.querySelector('.tb-about .tb-math .tb-fm');
-    if (!fm || !fm.querySelector('sup')) bad.push('the Pythagoras formula under the drawing is not typeset (no raised power)');
-    if (card.querySelectorAll('.tb-about li').length > 4) bad.push('the page lists ' + card.querySelectorAll('.tb-about li').length + ' lines — only what it is about, not the whole chapter');
-    if (/@family\./.test(card.querySelector('.tb-an-stage').textContent)) bad.push('the drawing in the chapter signs itself');
-  }
-  /* THE CARD IS FOUND BY THE ANIMATION'S TITLE, AND ITS WORDS HOLD NO MARKUP. */
-  const ch = (id, n) => (((made.textbooks || []).find(b => b.id === id) || {}).chapters || []).find(c => c.n === n);
-  const words = w.contentText_(ch('TB-GCSE-MATHS', 17));
-  /* NOT `<` ITSELF: the chapters' own words have inequalities in them. The drawing's tags and rules. */
-  if (/class=|<svg|<div|@keyframes|py-cell|an-pyth/.test(words)) bad.push('the card\'s search words hold markup — the drawing\'s html or css went into the haystack');
-  /* AND NOT ITS WORDS EITHER: the haystack strips tags, so markup put into it arrives as the drawing's
-     own captions. Bayes's "people take a test" is on the drawing and nowhere in the chapter. */
-  if (w.contentText_(ch('TB-GCSE-STATS', 15)).indexOf('people take a test') !== -1) bad.push('the Probability card is found by "people take a test", which is Bayes\'s drawing, not its words — the drawing went into the haystack');
-  if (words.indexOf('Galton') !== -1) bad.push('the Pythagoras card\'s words hold Galton, which is a Statistics animation');
-  if (w.contentText_(ch('TB-GCSE-STATS', 16)).indexOf('Galton board') < 0) bad.push('"Galton board" does not find the Probability distributions card');
-  /* PLAY AGAIN PUTS THE MARKUP BACK, which starts it over. */
-  const tile = card && card.querySelector('[data-do="tb-an-again"]');
-  if (!tile || typeof t.ACTIONS['tb-an-again'] !== 'function') bad.push('no Play again tile, or no handler for it');
-  else {
-    const before = stage.firstElementChild;
-    t.ACTIONS['tb-an-again'](tile);
-    if (stage.firstElementChild === before) bad.push('Play again left the drawing\'s elements in place — nothing restarted');
-    if (stage.innerHTML !== box.innerHTML) bad.push('Play again changed the drawing');
-  }
-  /* AND IT STOPS WHEN THE PAGE TURNS. */
-  t.goPage('stuff', first + at + 1);
-  await wait(450); await woken_();
-  if (stage.isConnected && stage.classList.contains('is-on')) bad.push('turned to the next page, and Pythagoras is still `.is-on` — playing out of sight');
   return bad;
 });
 

@@ -77,7 +77,7 @@ function oopsTry_(where, fn, host) {
 /* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
 const TIER_CORE_WIDGETS = [];
 const TIER_LAZY_WIDGETS = [];
-const TIER_OFF_WIDGETS = ['console', 'boardgames', 'wordgames', 'reels', 'videos', 'newspaper', 'homework', 'flyers', 'mat', 'timer', 'docket', 'notepad', 'spotify', 'speedread', 'timetable', 'typing', 'cart', 'shopfind', 'calendar', 'termdates', 'countdowns', 'favlinks', 'rewrite', 'poster', 'pixel', 'verse', 'whiteboard'];
+const TIER_OFF_WIDGETS = ['reels', 'videos', 'newspaper', 'homework', 'flyers', 'mat', 'timer', 'docket', 'notepad', 'spotify', 'speedread', 'timetable', 'typing', 'cart', 'shopfind', 'calendar', 'termdates', 'countdowns', 'favlinks', 'rewrite', 'poster', 'pixel'];
 const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
 const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
 const TIER_RUN = { depth: 0 };
@@ -447,9 +447,6 @@ function startScreen_(id, arriving) {
   if (id === 'feed' && typeof feedCamWatch_ === 'function') feedCamWatch_();
   /* AND THE REEL COLUMN PLAYS THE ONE YOU ARE ON. § */
   if (id === 'reel' && typeof reelsWatch_ === 'function') reelsWatch_();
-  /* AND A TEXTBOOK'S ANIMATION PLAYS ONLY ON FIND, ONLY ON THE PAGE IN FRONT — for EVERY screen, because
-     arriving anywhere else is what pauses the one on Find. See `tbAnimWatch_` in find.js. */
-  if (typeof tbAnimWatch_ === 'function') tbAnimWatch_();
   /* AND AN ADMIN'S BUSINESS RECORDS ARE ASKED FOR — a POST, once, and never the payload (see js/records.js). § */
   if (id === 'biz' && typeof bizStart_ === 'function') bizStart_();
   /* AND A CONVERSATION OPENS AT ITS NEWEST MESSAGE. A scroller's natural state is the top, which on

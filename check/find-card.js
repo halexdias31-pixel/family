@@ -6,7 +6,7 @@ function openWidgetCard(arg) {
   const { id, finder } = typeof arg === 'object' && arg ? arg : { id: arg };
   const fid = finder || 'stuff';
   const w = (typeof allWidgets === 'function' ? allWidgets() : []).find(x => String(x.id) === String(id));
-  const group = w && w.kind === 'game' ? 'Games' : 'Tools';
+  const group = 'Tools';
   finderSet_(FINDERS[fid], { filters: [{ field: 'forLabel', value: group }], q: '' });
   if (AT !== fid) go(fid, false, true);
   const at = inFinder_(FINDERS[fid], () => stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id)));

@@ -662,20 +662,19 @@ check('a content card, on Find: What kind · Content, Statistics — the card wh
   if (R.stuffItems().some(i => w.kindOf_(i).label === 'Resources')) bad.push('an item is still labelled Resources — it went into Content (445)');
   if (cards.some(i => R.facetValues([i], shelfFacet).length)) bad.push('a content card is on a shelf — the textbooks\' shelf went');
 
-  /* THE CARD, THEN A PAGE PER ANIMATION, in the file's order. "Averages" has none since the mean went to KS2 (436); "Probability" has Bayes. */
+  /* THE CARD, THEN ITS FORMULAS AND WORKED LINES: no animation page since the engine went to attic (88a). */
   const x = left.find(i => i.name === 'Averages') || cards.find(i => i.key === 'ct:TB-GCSE-STATS-8');
   if (!x) return bad.concat(['no Averages card among the Statistics cards']);
   const parts = w.pageParts_(x);
   /* AND THEN ITS FORMULAS AND ITS WORKED LINES, A TITLED PAGE EACH (408). */
-  const want = [null].concat((x.row.animations || []).map(a => 'an' + x.row.n + '-' + a.id), ['formulas', 'worked']);
-  if (JSON.stringify(parts) !== JSON.stringify(want)) bad.push('the Averages card is pages ' + JSON.stringify(parts) + ', not the card, its animations, Formulas and Worked examples');
+  const want = [null, 'formulas', 'worked'];
+  if (JSON.stringify(parts) !== JSON.stringify(want)) bad.push('the Averages card is pages ' + JSON.stringify(parts) + ', not the card, Formulas and Worked examples');
   const xp = left.find(i => i.key === 'ct:TB-GCSE-STATS-15');
-  if (!xp || w.pageParts_(xp).indexOf('an15-bayes') < 0) bad.push('the Probability card has no page for Bayes\'s animation: ' + (xp ? JSON.stringify(w.pageParts_(xp)) : 'no card'));
+  if (xp && w.pageParts_(xp).some(k => /^an\d+-/.test(String(k)))) bad.push('the Probability card still has an animation page: ' + JSON.stringify(w.pageParts_(xp)));
   const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
   const card = box(w.stuffCard(x));
   if (!card.querySelector('.card.ct')) bad.push('the card is not drawn as a content card');
-  if (card.querySelector('.tb-an-stage')) bad.push('a drawing is on the card itself — each has a page of its own');
-  if (xp && !box(w.stuffPart_(xp, 'an15-bayes')).querySelector('.tb-an-stage')) bad.push('Bayes\'s animation has no stage on its page');
+  if (card.querySelector('.tb-an-stage')) bad.push('an animation is drawn on the card — its rows are hidden (88a)');
   /* WHAT IT IS, FIRST IN THE ONE ROW EVERY CARD WEARS: § */
   /* EVERY FACET A TAG SINCE 396, in the tab's order: What for, then What kind. */
   const lead = [...card.querySelectorAll('.qtags .qtag')].slice(0, 2).map(e => e.getAttribute('data-f') + ':' + e.textContent.trim());
@@ -796,7 +795,7 @@ check('one widget per thing: every page of every content card, practical and pro
     if (!h && !part && card.getAttribute('aria-label') && card.querySelector('.qtags')) return card.getAttribute('aria-label').trim();
     return h ? h.textContent.trim() : '';
   };
-  let pages = 0, anims = 0;
+  let pages = 0;
   items.forEach(x => {
     if (w.libSlim_(x)) { bad.push(x.key + ' is still waiting for its words with the whole library loaded'); return; }
     const seen = {};
@@ -809,9 +808,7 @@ check('one widget per thing: every page of every content card, practical and pro
       if (seen[t]) bad.push(x.name + ' (' + x.kind + '): pages ' + seen[t] + ' and ' + (part || 'card') + ' are both titled "' + t + '"');
       seen[t] = part || 'card';
       const stages = el.querySelectorAll('.tb-an-stage').length;
-      const isAn = /^an\d+-/.test(String(part || ''));
-      if (isAn) anims++;
-      if (stages !== (isAn ? 1 : 0)) bad.push(name + ' holds ' + stages + ' drawing(s) — one on its own page, none anywhere else');
+      if (stages) bad.push(name + ' holds ' + stages + ' drawing(s) — the animations are hidden (88a)');
       if (x.kind !== 'content') return;
       if (part && t !== w.contentPageTitle_(x, part)) bad.push(name + ' is titled "' + t + '", not "' + w.contentPageTitle_(x, part) + '"');
       if (isAn && !/^Watch: \S/.test(t)) bad.push(name + ' is titled "' + t + '" — a drawing\'s page says Watch and its name');
@@ -828,7 +825,6 @@ check('one widget per thing: every page of every content card, practical and pro
       if (!(c.formulas || []).length && parts.indexOf('formulas') >= 0) bad.push(x.name + ' has a Formulas page and no formulas');
     }
   });
-  if (!anims) bad.push('no drawing\'s page was met among ' + pages + ' pages — the one-drawing rule was NOT exercised');
   /* AND WAITING (397): before its words come a card is ONE page, its title over the loader's dots. */
   const ct = items.find(x => x.kind === 'content');
   if (ct) {

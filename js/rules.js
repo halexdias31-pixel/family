@@ -7,7 +7,7 @@ const RULES = [
     uni: 'They shrink to the 36px tile size.' },
   { id: 'search-icon', say: 'The search box\'s magnifier stays 18px while every other mark is 16px', where: 'Find (487)',
     uni: 'The magnifier is 16px like every tile\'s mark.' },
-  { id: 'whole-widgets', say: 'Console, Board games, Word & number games, Calculator, Whiteboard and Reels cannot be merged', where: 'Widget columns (480)',
+  { id: 'whole-widgets', say: 'Reels cannot be merged', where: 'Widget columns (480)',
     uni: 'They get Merge with the card above like every other widget.' },
   { id: 'library-one-card', say: 'Library cards holds one card, with no Add another', where: 'Settings (489)',
     uni: 'Several cards, with Add another, like every other list.' },

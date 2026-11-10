@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* @family. — tools/build-stamp.js THE DEPLOY'S STAMP IS WHAT THE FILES SAY (750). --check: write nothing, exit 1 when stale. */
-/* Hashes every file the site asks for with `?t=` (js/, style.css, fonts/, data/, tools/epaper-verse/) and writes the first 12 hex */
+/* Hashes every file the site asks for with `?t=` (js/, style.css, fonts/, data/) and writes the first 12 hex */
 /* into index.html's `BUILD_STAMP`, so `LOAD` moves when a deploy changes a file and at no other time. Run it last before a commit. */
 'use strict';
 const fs = require('fs'), path = require('path'), crypto = require('crypto'), { execFileSync } = require('child_process');
@@ -8,7 +8,7 @@ const ROOT = path.resolve(__dirname, '..');
 const HTML = path.join(ROOT, 'index.html');
 const CHECK = process.argv.includes('--check');
 /* WHAT `?t=` IS PUT ON: index.html's scripts and stylesheet, and every `deployStamp_()` fetch (check-cache holds those to data/, tools/, js/). */
-const SERVED = ['js/', 'style.css', 'fonts/', 'data/', 'tools/epaper-verse/'];
+const SERVED = ['js/', 'style.css', 'fonts/', 'data/'];
 /* THE CHECKS ARE NEVER SERVED TO A PHONE, so editing one must not make every phone download the app again. */
 const NOT = f => /^js\/check[-.]/.test(f);
 

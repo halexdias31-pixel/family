@@ -19,15 +19,6 @@ function histTimelines_() {
   TL_MEMO = { rows: rows, ev: DATA.timeline, items: items };
   return items;
 }
-/* THE CHAPTER WHOSE DRAWING IS THIS TIMELINE: an animation titled with the era ("World War 2, 1939–45"). check-history-db holds it. */
-function histTimelineChapter_(era) {
-  if (!era) return null;
-  for (const b of DATA.textbooks || []) for (const c of b.chapters || []) {
-    const a = (c.animations || []).find(n => String(n.title).indexOf(era) === 0);
-    if (a) return { key: 'ct:' + b.id + '-' + c.n, title: a.title };
-  }
-  return null;
-}
 /* A DAY AS A LINE OF THE TIMELINE SAYS IT: 1939-09-01 → 1 Sep 1939; anything else as written. */
 const histDay_ = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? +m[3] + ' ' + MONTH_NAMES[+m[2] - 1].slice(0, 3) + ' ' + m[1] : String(iso || ''); };
 /* AN EVENT AS A POINT ON THE AXIS, in years: its year plus how far through it its first day is (BC years are negative). */
@@ -87,7 +78,6 @@ function histTimelineCard_(x) {
     ${tagRow_(x)}
   </div>`;
 }
-function tlExtras_(x) { const ch = histTimelineChapter_(x.era); return ch ? [{ icon: 'play', label: 'Animation', note: ch.title, act: 'find-open', data: { key: ch.key } }] : null; }
 
 /* ONE PLAYER FOR EVERY TIMELINE: a step moves the track (a CSS transition pans it) and swaps the scene; the tiles never move. */
 const TL_AT = {}, TL_PLAY = { key: '', timer: null }, TL_STEP_MS = 2600;

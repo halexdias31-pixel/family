@@ -6,12 +6,6 @@ let LIBRARY_ROWS = null;
 
 /* ---------- THE HELPERS THE TWO BLOCKS NEED § */
 const libS = v => (v === undefined || v === null ? '' : String(v));
-/* ---------- A FINGERPRINT OF AN ANIMATION, SO A CHANGED ONE REPLACES THE COPY A DEVICE KEPT § */
-function animHash_(s) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
-  return ('0000000' + h.toString(16)).slice(-8);
-}
 const libN = v => { const n = Number(String(v).replace(/[^0-9.-]/g, '')); return isFinite(n) ? n : 0; };
 /* ---------- `libN` BUT ABSENT STAYS ABSENT § */
 const libNum = v => {
@@ -260,17 +254,16 @@ function libExtrasSheets_(d, extra) {
     d.projects = out;
   }
 }
-/* The textbooks and their chapters' animations: one block of libraryExtras_, reading only `d` and `extra`. */
+/* The textbooks: one block of libraryExtras_, reading only `d` and `extra`. */
 function libExtrasBooks_(d, extra) {
   /* the textbooks --------------------------------------------------------------------------- ONE ROW PER CHAPTER, GROUPED HERE INTO ONE OBJECT PER BOOK, because a § */
-  /* ---------- AND THE CHAPTER'S ANIMATIONS, WHICH ARE ROWS OF THEIR OWN § */
   if (extra.textbooks && extra.textbooks.length) {
-    const books = {}, order = [], anims = [];
+    const books = {}, order = [];
     extra.textbooks.forEach(r => {
       const id = libS(r.book_id).trim();
       if (!id || !libOn(r.active)) return;
-      /* AN ANIMATION IS SET ASIDE until every chapter is read, then hung on its own. */
-      if (libS(r.anim).trim()) { anims.push(r); return; }
+      /* AN ANIMATION ROW STAYS IN THE FILE, HIDDEN (88a): its engine is in attic until it returns as a card. */
+      if (libS(r.anim).trim()) return;
       if (!books[id]) { books[id] = { id: id, chapters: [] }; order.push(id); }
       const b = books[id], n = libN(r.chapter);
       /* ---------- THE COVER IS THE CHAPTERS' DEFAULTS, AND NOT A CARD ANY MORE § */
@@ -284,17 +277,7 @@ function libExtrasBooks_(d, extra) {
                                       topics: libS(r.topics), pending: /^true$/i.test(libS(r.lib_pending).trim()),
                                       /* THE SCHOOL YEARS A CHAPTER IS TAUGHT IN (770), `3, 4, 5, 6`: a key stage spans years, so the funnel can ask which. */
                                       years: libS(r.year_group).split(',').map(t => t.trim()).filter(t => /^\d{1,2}$/.test(t)) },
-                                    libChapterBody_(r), { animations: [] }));
-    });
-    /* IN FILE ORDER, which is page order: § */
-    anims.forEach(r => {
-      const b = books[libS(r.book_id).trim()];
-      const c = b && b.chapters.find(ch => ch.n === libN(r.chapter));
-      if (!c) return;
-      const html = libS(r.html), css = libS(r.css);
-      c.animations.push({ id: libS(r.anim).trim(), title: libS(r.title),
-                          about: libS(r.about).split('|').map(t => t.trim()).filter(Boolean),
-                          html: html, css: css, h: animHash_(html + '\u0000' + css) });
+                                    libChapterBody_(r)));
     });
     /* A BOOK WITH NO TITLE PAGE IS NOT A BOOK: it has no name to be found by, so it is left out
        rather than drawn as a blank card. The check refuses the file first. */

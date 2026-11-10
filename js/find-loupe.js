@@ -680,11 +680,9 @@ function padRepaint_(pad, all) {
   }
 }
 
-/* THE WHITEBOARD IS THIS PEN, ON NOTHING. § */
+/* THE WHITEBOARD WAS THIS PEN, ON NOTHING (in attic since 88a): a `board:` key a device still holds keeps its thinning and ceiling. */
 const WB_ITEM = { key: 'whiteboard', prefix: 'board' };
 const PAD_HERE_ONLY = 'Kept on this device only.';
-/* EMPTY, BECAUSE THE BOX IS THE BOARD. § */
-const WB_SURF = '<svg class="wb-surf" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true"></svg>';
 
 /* THE BOARD'S KEYS -- `board:` signed out, `board:u:<who>:` signed in -- which the pen asks about in
    two places: `padEnd_` thins the board's strokes and `padSave_` holds it to its ceiling. */
@@ -702,7 +700,7 @@ function padHold_(id) {
   } catch (e) { return false; }
 }
 
-/* ---------- A CHANGE OF PERSON PUTS THE PEN DOWN AND DRAWS EVERY BOARD AGAIN § */
+/* ---------- A CHANGE OF PERSON PUTS THE PEN DOWN § */
 function padWhoChanged_() {
   [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
   PAD_ON = '';
@@ -710,24 +708,8 @@ function padWhoChanged_() {
   padDrop_();
   PAD_CLEARED.clear();
   PAD_CLEARED_MARK.clear();
-  wbPaint_();
 }
 
-/* EVERY COPY, BY CLASS -- `tmtPaint_`'s reason: § */
-/* AND EACH SLOT IT DRAWS INTO IS SAID TO BE DRAWN FOR WHOEVER IS SIGNED IN NOW (`slot.WHO`). § */
-function wbPaint_() {
-  const html = `<div class="wb">${padWrap_(WB_ITEM, WB_SURF, true)}</div>`;
-  const who = typeof widgetWho_ === 'function' ? widgetWho_() : '';
-  document.querySelectorAll('.wb-box').forEach(el => {
-    if (PAD_ST && PAD_GO && el.contains(PAD_GO.ink)) return;
-    el.innerHTML = html;
-    const slot = el.closest('.widget-slot');
-    /* `OWN` AS WELL: the board is drawn from this person's strokes on this device and from no fact, so a
-       landing or a repaint for the same person leaves it drawn (`widgetsReveil_`). */
-    if (slot) { slot.WHO = who; slot.OWN = who; }
-  });
-}
-function initWhiteboard() { wbPaint_(); }
 
 /* "USE YOUR GRAPH" SHOWS YOUR GRAPH. § */
 const usesPart_ = p => String(p == null ? '' : p).toLowerCase().replace(/[^a-z0-9]/g, '');

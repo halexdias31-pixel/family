@@ -76,7 +76,7 @@ async function boot(browser, W, H, port, o) {
   await page.addInitScript(() => { window.confirm = () => true; window.alert = () => {}; window.open = () => null; });
   await page.route('**://script.google.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
   await page.goto(`http://localhost:${port}/index.html${QUERY ? '?' + QUERY : ''}`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED && typeof initWhiteboard === 'function', null, { timeout: 90000 });
+  await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED, null, { timeout: 90000 });
   await sleep(1200);
   const cdp = await ctx.newCDPSession(page);
   /* WHAT THE GRID TOOK DURING A GESTURE: a listener on the window registered after overworld.js's, so it

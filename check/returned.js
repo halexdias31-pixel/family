@@ -11,12 +11,10 @@ const SHOTS = process.env.RF_SHOTS || '';
 const wait = ms => new Promise(r => setTimeout(r, ms));
 /* WHERE EACH RETURNED WIDGET IS: its front answer in Find. */
 const WIDGETS = {
-  Tools: ['calculator', 'timer', 'notepad', 'whiteboard', 'typing', 'speedread', 'countdowns', 'calendar', 'termdates', 'timetable', 'docket', 'mat',
-    'favlinks', 'console', 'spotify', 'rewrite', 'pixel', 'libcards'],
-  Games: ['boardgames', 'wordgames', 'console'], Reels: ['reels'], Flyers: ['flyers'], Posters: ['poster'],
-  Verse: ['verse'], Shop: ['cart'],
+  Tools: ['timer', 'notepad', 'typing', 'speedread', 'countdowns', 'calendar', 'termdates', 'timetable', 'docket', 'mat',
+    'favlinks', 'spotify', 'rewrite', 'pixel', 'libcards'],
+  Reels: ['reels'], Flyers: ['flyers'], Posters: ['poster'], Shop: ['cart'],
 };
-WIDGETS.Tools = WIDGETS.Tools.filter(w => w !== 'console');
 const COLUMNS = ['spotlight', 'feed', 'dm', 'saved', 'booking', 'shop', 'web', 'tutors', 'students', 'parents', 'apprentices'];
 /* A SAFE PRESS (a picture picker opens the device chooser, which a page cannot see): not a card's own extras (star, lock, suggest, share, edit, hide, delete, move), which every card has and prove nothing. */
 const SKIP = /-pic\b|del|bin|lock|star|suggest|share|save|top|edit|hide|eye|lay-|help|sign|out|report|facet|chip/i;
