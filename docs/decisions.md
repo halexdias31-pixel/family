@@ -263,3 +263,4 @@ become an owner question showing both; never pick one.
 - A closed card's fact line (`row(label, value)`) reads "Surcharge · Not priced yet": the clamp that cuts it to one line drops the row's flex gap, so `.k::after` says the separator.
 - No width breakpoints: the 30rem root size, reacts under 320, widget padding under 22rem, camera discs under 359px, essay lines and keypad keys from 700px all became clamp()/min() rules; the keypad's return word is a container query on the pad. Kept: print, reduced motion/transparency, hover, and the two shape (aspect-ratio) rules.
 - Held by check-look 59b (core): no `@media` by width, `.card-grid` is that rule, every screen in index.html carries it.
+- 10 Nov (later) · ONE COLUMN on every screen, for consistency (owner) — replaces the multi-column flow above; the page still uses the full width.
