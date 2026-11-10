@@ -144,11 +144,16 @@ function postApplyTeach_(body, action, began) {
   return jsonOut({ success: true, application: applicationOf_(me) });
 }
 
-/* THE APPLICANTS' PRIVATE FOLDER (Script Property APPLY_FOLDER, never in the repo): null when unset or unreachable. */
+/* THE APPLICANTS' PRIVATE FOLDER (Script Property APPLY_FOLDER, never in the repo); unset, one is made unshared and its id kept. Null only when Drive refuses. */
+const APPLY_FOLDER_NAME = '@family. applications (private)';
 function applyFolder_() {
   try {
-    const id = S(PropertiesService.getScriptProperties().getProperty('APPLY_FOLDER')).trim().replace(/^.*\/folders\//, '').replace(/[?#].*$/, '');
-    return id ? DriveApp.getFolderById(id) : null;
+    const props = PropertiesService.getScriptProperties();
+    const id = S(props.getProperty('APPLY_FOLDER')).trim().replace(/^.*\/folders\//, '').replace(/[?#].*$/, '');
+    if (id) return DriveApp.getFolderById(id);
+    const made = DriveApp.createFolder(APPLY_FOLDER_NAME);
+    props.setProperty('APPLY_FOLDER', made.getId());
+    return made;
   } catch (err) { return null; }
 }
 /* ONE DOCUMENT PHOTO, KEPT PRIVATE: no sharing is set, so its link opens only for whoever the folder is shared with (the admins). */

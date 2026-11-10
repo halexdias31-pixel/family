@@ -18,10 +18,12 @@ const P = (id, role, first, email, more) => Object.assign({ person_id: id, role,
   handle: first.toLowerCase() + '_kind' + id.length, email }, base, more || {});
 
 /* THE PRIVATE APPLICANTS' FOLDER: every file it is given, and whether anything tried to share one. */
-const DRIVE = { files: [], shared: 0 };
+const DRIVE = { files: [], shared: 0, made: [] };
 const folder = { createFile(blob) { const id = 'F' + (DRIVE.files.length + 1); DRIVE.files.push({ id, blob });
   return { getId: () => id, setSharing: () => { DRIVE.shared++; } }; } };
-const driveApp = { getFolderById: id => (id === 'apply-folder-test' ? folder : null), getFileById: () => null, Access: {}, Permission: {} };
+const driveApp = { getFolderById: id => (id === 'apply-folder-test' || DRIVE.made.indexOf(id) !== -1 ? folder : null),
+  createFolder: name => { const id = 'made-' + (DRIVE.made.length + 1); DRIVE.made.push(id); DRIVE.madeName = name;
+    return Object.assign({ getId: () => id, setSharing: () => { DRIVE.shared++; } }, { createFile: folder.createFile }); }, getFileById: () => null, Access: {}, Permission: {} };
 function world(more) {
   const b = backend({ MailApp: mailApp, DriveApp: driveApp });
   if (!(more && more.noFolder)) b.ev("PropertiesService.getScriptProperties().setProperty('APPLY_FOLDER', 'apply-folder-test')");
@@ -109,11 +111,14 @@ const FULL = { action: 'applyTeach', subjects: 'Maths (GCSE), Physics (A level)'
   const staff = as('tutor@example.org', FULL);
   rule(!staff.success && /already/.test(staff.error), 'a tutor already teaching could apply', staff);
 
-  /* NO APPLY_FOLDER SCRIPT PROPERTY: refused, nothing written and nothing kept. */
+  /* NO APPLY_FOLDER SCRIPT PROPERTY: a private folder is made, its id kept, and the application goes through. */
   {
     const w2 = world({ noFolder: true });
     const r = w2.as('pat@example.org', FULL);
-    rule(!r.success && r.why === 'no-folder' && (w2.b.tabs.applications || [[]]).length <= 1 && !DRIVE.files.length, 'an application was taken with no private folder set', r);
+    const kept = w2.b.ev("PropertiesService.getScriptProperties().getProperty('APPLY_FOLDER')");
+    rule(r.success && DRIVE.made.length === 1 && kept === DRIVE.made[0] && /private/.test(DRIVE.madeName) && !DRIVE.shared && DRIVE.files.length === 4,
+      'with no APPLY_FOLDER set, no private folder was made and kept (or the application failed)', { r, kept, DRIVE });
+    DRIVE.files.length = 0;
   }
   const m0 = MAIL.length;
   const sent = as('pat@example.org', Object.assign({}, FULL, { personId: 'P-S1' }));
