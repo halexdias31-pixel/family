@@ -1201,10 +1201,10 @@ function digestLibrary_(site) {
 /* ---------- THE CARD'S TAGS, AS THE SITE DRAWS THEM (20 Oct, docs/history/380): `tagRow_` (js/find.js) for a question, ported § */
 /* THE TAG FACETS A QUESTION ANSWERS, with their `TAG_OF` colour kind. The ORDER is data/settings/facets.json's (`digestFacetOrder_`, 546). */
 /* This list's own order is only the fallback when that file cannot be fetched; check-digest holds it to the file. */
-/* `function` is not here: Function verified is read off the question type's protocol by qtypes.js, in the browser, and the email says no Function tag. */
+/* ONE `verified` TAG (owner 10 Nov): the email reads the ledger's `function_verified` (397), which qtypes.js worked out in the browser, beside `verified`. */
 const DIGEST_TAG_FACETS = [['forLabel', 'kind'], ['kindLabel', 'kind'], ['subject', 'subject'], ['documentType', 'type'], ['fiveLevel', 'level'],
   ['fiveMonth', 'sitting'], ['fiveDay', 'paper'], ['level', 'level'], ['keystage', 'level'], ['yearGroup', 'level'], ['bandValue', 'level'],
-  ['examBoard', 'board'], ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['accuracy', 'check'], ['paperId', 'paper'], ['paperSection', 'other'], ['qNumber', 'paper'],
+  ['examBoard', 'board'], ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['verified', 'check'], ['paperId', 'paper'], ['paperSection', 'other'], ['qNumber', 'paper'],
   ['qPart', 'paper'], ['qSub', 'paper'], ['marks', 'paper'], ['needs', 'needs'], ['source', 'board']];
 /* `DOC_TYPE_UNDER` (find.js, 545): a type that is a kind of another answers both, on the card and so in the email. */
 const DIGEST_DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' };
@@ -1524,7 +1524,7 @@ function digestCardTags_(q, T) {
     examYear: () => digestTagYear_(it, T), examMonth: () => digestTagMonth_(it, T),
     paperId: () => pid, paperSection: () => { const sec = digestPaperSection_(T.docs[pid]); return sec ? sec.section + (sec.topic ? ': ' + sec.topic : '') : ''; }, qNumber: () => (digestLibS_(q.question) ? 'Q' + digestLibS_(q.question) : ''), qPart: () => split.part, qSub: () => split.sub,
     marks: () => (marks > 0 ? marks + ' mark' + (marks === 1 ? '' : 's') : ''), needs: () => digestTagNeeds_(q, T),
-    accuracy: () => (digestLibTrue_(q.verified) ? 'Accuracy verified' : 'Accuracy unverified'), source: () => digestTagSource_(q),
+    verified: () => (digestLibTrue_(q.verified) && digestLibTrue_(q.function_verified) ? 'Verified' : 'Not verified'), source: () => digestTagSource_(q),
   };
   const say = { paperId: () => digestTagPaper_(it, T) };
   /* `tagRow_`'s dedupe: a word already said, an id already said, or a tag that is only earlier tags side by side (`tagMadeOf_`). */

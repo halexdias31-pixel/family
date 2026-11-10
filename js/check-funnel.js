@@ -1159,7 +1159,7 @@ function tagsAgree_(f) {
   console.log('\nFINDER-TAGS AGAINST LIVE: ' + same + ' of ' + sample.length + ' sampled paths (of ' + keys.length + ') agree; ' + looked + ' were looked up by the settled finder');
   if (same && !looked) bad.push('finder-tags: none of the ' + same + ' agreeing paths was looked up once settled, so a tap still counts the whole list (finderTagsSame_)');
 }
-const PAPER_PATHS = [['GCSE', 'Any tier', 'Any function', 'Past paper', 'Any accuracy'], ['GCSE', 'Past paper', 'Higher', 'Any accuracy', 'Any function']];
+const PAPER_PATHS = [['GCSE', 'Any tier', 'Past paper', 'Any verified'], ['GCSE', 'Past paper', 'Higher', 'Any verified']];
 function pathsAsked_(f, items) {
   const S = f.STUFF, was = { filters: S.filters };
   try {

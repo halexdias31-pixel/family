@@ -1181,9 +1181,9 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     });
     const H = said(sent.htmlBody);
     /* EACH CARD AS THE SITE'S (57a–62a): its heading with its marks as [n], then its tags — the fixture's paper has no document row, so its Paper tag is its id, as on the site. */
-    /* EVERY FACET A TAG SINCE 396: What for and What kind first, and the Accuracy tag after the marks. */
-    ['Q7 [1] Learning Practice Questions Accuracy unverified PX-1 Q7 1 mark Work out 4 × 4. Their answer 16 ✓ Right Answer 16', 'Q9 Maths Paper X Q9 Kit buys 3 pens at 40p each. How much does he pay? Their answer £1.10 ✗ Not right',
-     'Q11 [3] Learning Practice Questions Accuracy unverified PX-1 Q11 3 marks Read the source about the river. Explain the trend. Their answer It rises. 2 of 3 marks Answer It rises.', 'Q6 [1] Learning Practice Questions Accuracy unverified PX-1 Q6 1 mark Read the source about the river. Say anything. Their answer hello Not marked yet',
+    /* EVERY FACET A TAG SINCE 396: What for and What kind first, and the Verified tag after the marks. */
+    ['Q7 [1] Learning Practice Questions Not verified PX-1 Q7 1 mark Work out 4 × 4. Their answer 16 ✓ Right Answer 16', 'Q9 Maths Paper X Q9 Kit buys 3 pens at 40p each. How much does he pay? Their answer £1.10 ✗ Not right',
+     'Q11 [3] Learning Practice Questions Not verified PX-1 Q11 3 marks Read the source about the river. Explain the trend. Their answer It rises. 2 of 3 marks Answer It rises.', 'Q6 [1] Learning Practice Questions Not verified PX-1 Q6 1 mark Read the source about the river. Say anything. Their answer hello Not marked yet',
      'Summary of the week 1 right, 1 with part marks, 1 not right and 1 not marked yet. Topics: Maths and Biology'].forEach(x => {
       if (H.indexOf(x) === -1) bad.push('the HTML Pat is sent does not carry "' + x + '": ' + H.slice(0, 600));
     });
@@ -1408,8 +1408,8 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   asked++;
   /* THE SCREENSHOT'S ROWS (docs/history/355), less the page tags: the email draws a part whole. check-funnel holds every question to its card. */
   /* no "Printed sheet" since 385: Q7 is drawn and marked on screen */
-  if (said7 !== 'Learning Practice Questions Maths Past paper GCSE KS4 Edexcel Foundation 2024 June Accuracy verified Paper 1 Q7 4 marks Non-calculator'
-      || saidC !== 'Learning Practice Questions Maths Worksheet SATs KS2 Year 3 Accuracy unverified Perimeter Q1 Corbettmaths')
+  if (said7 !== 'Learning Practice Questions Maths Past paper GCSE KS4 Edexcel Foundation 2024 June Verified Paper 1 Q7 4 marks Non-calculator'
+      || saidC !== 'Learning Practice Questions Maths Worksheet SATs KS2 Year 3 Not verified Perimeter Q1 Corbettmaths')
     bad.push('the library\'s tags for two real questions are not the card\'s: ' + JSON.stringify([said7, saidC]));
   G.__LIB = lib;
   G.__L = { id: 'P-S1', first: 'Kit', fresh: [
@@ -1420,7 +1420,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   asked++;
   if (cards !== 2 || r.html.indexOf('<span class="gi" style="color:#ff7b72;border:1px solid;border-radius:999px;padding:0 6px">Q7</span>') === -1
       || r.html.indexOf('>Non-calculator</span>') === -1 || r.html.indexOf('color:#c8a2ff') === -1 || r.html.indexOf('color:#ff7b72;border:1px solid;border-radius:999px;padding:0 6px">4 marks') === -1
-      || said(r.html).indexOf('Q1 Learning Practice Questions Maths Worksheet SATs KS2 Year 3 Accuracy unverified Perimeter Q1') === -1 || said(r.html).indexOf('Q7 [4] Learning') === -1 || /Maths · Perimeter/.test(said(r.html))
+      || said(r.html).indexOf('Q1 Learning Practice Questions Maths Worksheet SATs KS2 Year 3 Not verified Perimeter Q1') === -1 || said(r.html).indexOf('Q7 [4] Learning') === -1 || /Maths · Perimeter/.test(said(r.html))
       || /\b(Ready|Usable|Rough)\b/.test(said(r.html)))
     bad.push('each question is not the site\'s card — two cards in its shape (heading, tags, lines; a rule under, square), every tag a pill in its facet\'s colour (Q7 and its marks red, the sitting purple — every facet coloured since 396), no health band (383), and no paper heading over them: ' + cards + ' card(s); ' + said(r.html).slice(0, 300));
   asked++;

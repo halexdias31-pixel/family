@@ -458,15 +458,15 @@ function myResultNew_(k) {
     });
   } catch (e) { /* the tag is right on the next draw */ }
 }
-/* A QUESTION'S TWO VERIFIED TAGS (388). Accuracy is a stored claim; Function is read off the row by qtypes.js. */
+/* A QUESTION'S ONE VERIFIED TAG (388; owner 10 Nov): Verified only when the stored accuracy claim AND the type's protocol (qtypes.js) both hold. */
 function verifyTags_(x) {
-  if (!isQ_(x) || !x.row) return { accuracy: '', fn: '' };
+  if (!isQ_(x) || !x.row) return { verified: '', acc: false, fn: false };
   let fn = false;
   /* WORDS STILL IN THE LEDGER (397): the file's `function_verified`, worked out from the whole row when it was split off. */
   if (libWaits_(x.row)) fn = libTrue(x.row.function_verified);
   else try { fn = !qtIncomplete_(x.row).length && qtMachine_(x.row); } catch (e) { fn = false; }
-  return { accuracy: libTrue(x.row.verified) ? 'Accuracy verified' : 'Accuracy unverified',
-           fn: fn ? 'Function verified' : 'Function unverified' };
+  const acc = !!libTrue(x.row.verified);
+  return { verified: acc && fn ? 'Verified' : 'Not verified', acc, fn };
 }
 
 /* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER § */

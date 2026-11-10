@@ -166,19 +166,19 @@ if (Q) {
   });
 }
 
-/* ---------- EVERY PART CARRIES BOTH VERIFIED TAGS (388): find.js's own `verifyTags_`, run on every row */
-const tags = { acc: 0, fn: 0, waiting: 0 };
+/* ---------- EVERY PART CARRIES THE ONE VERIFIED TAG (388): find.js's own `verifyTags_`, run on every row */
+const tags = { acc: 0, fn: 0, both: 0, waiting: 0 };
 if (Q) {
   const find = require('../tools/find-src.js').findSrc();
   const lib = fs.readFileSync(path.join(ROOT, 'js', 'library.js'), 'utf8');
   const src = (/^function verifyTags_\([\s\S]*?\n}\n/m.exec(find) || [])[0], tru = (/^const libTrue = [\s\S]*?\n};\n/m.exec(lib) || [])[0];
   /* AND WHAT IT READS WHILE A ROW'S WORDS ARE STILL IN THE LEDGER (397): `libWaits_` and the `libS` under it. */
   const waits = ['libS', 'libWaits_'].map(n => (new RegExp('^const ' + n + ' = .*\\n', 'm').exec(lib) || [''])[0]).join('');
-  ['accuracy', 'function'].forEach(f => { if (!new RegExp("\\{ field: '" + f + "',").test(find)) broken.push('find.js FACETS has no ordinary `' + f + '` tag'); });
+  ['verified'].forEach(f => { if (!new RegExp("\\{ field: '" + f + "',").test(find)) broken.push('find.js FACETS has no ordinary `' + f + '` tag'); });
   /* ASKED BEFORE THE QUESTIONS THAT PICK ONE QUESTION (owner, 29 Oct; 529): after Paper, Question and Part one question is left, so a tag sorted after them was never asked. */
   const so = {};
   JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'settings', 'facets.json'), 'utf8')).forEach(f => { if (f.active !== false) so[f.field] = Number(f.sort_order); });
-  ['accuracy', 'function'].forEach(f => ['paperId', 'qNumber', 'qPart', 'qSub', 'qPage', 'marks'].forEach(g => {
+  ['verified'].forEach(f => ['paperId', 'qNumber', 'qPart', 'qSub', 'qPage', 'marks'].forEach(g => {
     if (!(so[f] < so[g])) broken.push('the facets tab asks ' + g + ' (' + so[g] + ') before ' + f + ' (' + so[f] + ') — by then one question is left and ' + f + ' is never offered');
   }));
   if (!src || !tru) broken.push('find.js `verifyTags_` or library.js `libTrue` not found — no tag was checked');
@@ -194,9 +194,10 @@ if (Q) {
         const early = vt({ kind: 'question', row: Object.assign({}, r, { lib_has: 'html' }) }).fn;
         if (early !== t.fn) broken.push(r.row_id + ': function_verified says ' + early + ' but the whole row is ' + t.fn + ' — run node tools/lib-private.js split');
       }
-      if (!/^Accuracy (un)?verified$/.test(t.accuracy) || !/^Function (un)?verified$/.test(t.fn)) broken.push(r.row_id + ' lacks a verified tag: ' + JSON.stringify(t));
-      if (t.accuracy === 'Accuracy verified') tags.acc++;
-      if (t.fn === 'Function verified') tags.fn++;
+      if (!/^(Verified|Not verified)$/.test(t.verified) || (t.verified === 'Verified') !== (t.acc && t.fn)) broken.push(r.row_id + ' lacks a verified tag: ' + JSON.stringify(t));
+      if (t.acc) tags.acc++;
+      if (t.fn) tags.fn++;
+      if (t.verified === 'Verified') tags.both++;
     });
   }
 }
@@ -232,4 +233,4 @@ if (broken.length) {
 console.log('parts by marker: ' + MARKERS.map(k => k + ' ' + byMarker[k]).join(', ') + ' — none by a person');
 console.log('drawn parts by where their figure is: ' + Object.keys(figs).map(k => k + ' ' + figs[k]).join(', '));
 const all = Q.QTYPE_ORDER.reduce((s, t) => s + per[t].n, 0), done = Q.QTYPE_ORDER.reduce((s, t) => s + per[t].complete, 0);
-console.log(`OK — ${all} parts, each one of ${Q.QTYPE_ORDER.length} types and one marker, never a person (${MARKERS.map(k => k + ' ' + byMarker[k]).join(', ')}); ${pc(done, all)} meet their protocol (gaps reported, not failed); fixture ${FIX.length} typed right; tags: accuracy verified ${tags.acc}, function verified ${tags.fn} of ${rows.length}; ${tags.waiting} pending card flag(s) not held, their words here missing or older.`);
+console.log(`OK — ${all} parts, each one of ${Q.QTYPE_ORDER.length} types and one marker, never a person (${MARKERS.map(k => k + ' ' + byMarker[k]).join(', ')}); ${pc(done, all)} meet their protocol (gaps reported, not failed); fixture ${FIX.length} typed right; tags: Verified ${tags.both} (accuracy ${tags.acc}, function ${tags.fn}) of ${rows.length}; ${tags.waiting} pending card flag(s) not held, their words here missing or older.`);
