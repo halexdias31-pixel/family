@@ -1,16 +1,16 @@
 {
  "v": 2,
  "tier": "core",
- "score": 76.5,
+ "score": 76.3,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
    "id": "exceptions",
    "label": "Written exceptions in the checks",
-   "count": 71,
+   "count": 73,
    "weight": 0.1,
    "cap": 20,
-   "off": 7.1,
+   "off": 7.3,
    "where": {
     "js/check-answerable.js ACCEPTED": 6,
     "js/check-answers.js ACCEPTED": 1,
@@ -20,6 +20,8 @@
     "js/check-library.js KNOWN_F": 1,
     "js/check-loading.js PHRASE_OK": 8,
     "js/check-loading.js ACCEPTED_KEYFRAMES": 14,
+    "js/check-look.js LIT_OK": 1,
+    "js/check-look.js WORDS_OK": 1,
     "js/check-payload.js ACCEPTED": 1,
     "js/check-settings.js ACCEPTED_GONE": 3,
     "js/check-strings.js ROLE_OK": 1,
@@ -135,19 +137,17 @@
   }
  ],
  "secondary": {
-  "score": 88.9,
+  "score": 89.1,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
     "id": "exceptions",
     "label": "Written exceptions in the checks",
-    "count": 84,
+    "count": 82,
     "weight": 0.1,
     "cap": 20,
-    "off": 8.4,
+    "off": 8.2,
     "where": {
-     "js/check-look.js LIT_OK": 1,
-     "js/check-look.js WORDS_OK": 1,
      "js/check-permissions.js ALLOW": 1,
      "js/check-widgets.js ACCEPTED_IMPURE": 4,
      "check/cascade.js ACCEPTED": 28,
