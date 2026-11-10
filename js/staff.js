@@ -383,7 +383,7 @@ function staffInner_(wait) {
   const n = list.filter(s => !staffAgreed_(s)).length, dbs = list.filter(staffDbsDue_).length;
   const dbsLine = s => !staffDbsDue_(s) ? '' : `<p class="biz-cap staff-dbs"><b class="biz-flag">DBS check due</b> <span class="qtags"><span class="qtag">${
       esc(s.dbsCheckedOn ? 'last ' + date_(s.dbsCheckedOn) : 'never logged')}</span><span class="qtag">${esc(s.dbsNumber ? 'cert. ' + s.dbsNumber : 'no certificate no. on file')}</span></span></p>`;
-  const item = s => `<div class="biz-item staff-item" data-id="${esc(s.personId)}">
+  const item = s => `<div class="kc-item biz-item staff-item" data-id="${esc(s.personId)}">
       <p class="biz-cap"><b>${esc(s.name)}</b> <span class="qtags biz-when"><span class="qtag">${esc(s.rank === 'admin' ? 'admin' : 'staff')}</span></span>
         ${staffAgreed_(s) ? '' : `<b class="biz-flag">${s.termsVersion ? 'Old terms' : 'Not agreed'}</b>`}</p>
       ${dbsLine(s)}
@@ -392,7 +392,7 @@ function staffInner_(wait) {
     </div>`;
   return `<h3>Staff</h3>
     ${bizNeed_('staff', STAFF.list ? n + dbs : 0, [n ? n + ' not agreed to the terms' : '', dbs ? dbs + (dbs === 1 ? ' DBS check due' : ' DBS checks due') : ''].filter(Boolean).join(' · '))}
-    <div class="biz-body staff-body"${wait ? ' aria-busy="true"' : ''}>
+    <div class="kc-items biz-body staff-body"${wait ? ' aria-busy="true"' : ''}>
       ${STAFF.list && !list.length ? empty_(NO_TUTOR + '.') : ''}
       ${list.map(item).join('')}
     ${wait ? loading_() : ''}</div>

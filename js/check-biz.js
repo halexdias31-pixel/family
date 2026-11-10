@@ -76,7 +76,8 @@ function renewals(box, items, NEED, add) {
   const html = box.bcInner_();
   const nd = NEED.bizcheck || {};
   if (nd.n !== 2 || nd.now !== 1) add(at, 'the Business dot counts ' + JSON.stringify(nd) + ', wanted 2 to renew, 1 overdue');
-  if (!/is-over/.test(html) || !/is-soon/.test(html)) add(at, 'the items do not glow (is-soon / is-over)');
+  if (!/bc-tag is-over">Overdue/.test(html) || !/bc-tag is-soon">Renew by /.test(html)) add(at, 'the status tags are not "Overdue" (red) and "Renew by" (gold)');
+  if (!/class="kc-items/.test(html)) add(at, 'the checklist is not a .kc-items list, so the card maker would flatten it');
   /* THE TAX POT: a £400 booked job, two dates in this month (past), two next year → £200 in, £50 aside. */
   const now = new Date(), d1 = new Date(now.getFullYear(), now.getMonth(), 1, 9), far2 = new Date(now.getFullYear() + 2, 0, 1);
   box.DATA.clientClasses = [{ status: 'Booked', price: 400, dates: [d1, d1, far2, far2] }, { status: 'Waiting', price: 999, dates: [d1] }];

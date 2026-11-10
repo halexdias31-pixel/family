@@ -25,8 +25,9 @@ check('Business (10 Nov): renewals glow and count on the Business dot, Renewed k
   const card = () => a.d.querySelector('[data-bizcheck]');
   if (!card() || !card().querySelector('.bc-count')) return ['the Business checker did not draw its list: ' + String((card() || {}).textContent || 'no card').slice(0, 160)];
   const item = id => card().querySelector('.bc-item[data-bc="' + id + '"]');
-  if (!item('pub_liability') || !item('pub_liability').classList.contains('is-soon')) bad.push('public liability, 15 days off, does not glow');
-  if (!item('ico_fee') || !item('ico_fee').classList.contains('is-over')) bad.push('the ICO fee, 3 days past, is not overdue');
+  const tag = id => (item(id) && item(id).querySelector('.bc-tag')) || { classList: { contains: () => false }, textContent: '' };
+  if (!item('pub_liability') || !tag('pub_liability').classList.contains('is-soon') || !/Renew by/.test(tag('pub_liability').textContent)) bad.push('public liability, 15 days off, does not glow');
+  if (!item('ico_fee') || !tag('ico_fee').classList.contains('is-over') || tag('ico_fee').textContent !== 'Overdue') bad.push('the ICO fee, 3 days past, is not overdue');
   const need = String((card().querySelector('.biz-need') || {}).textContent || '');
   if (!/overdue/.test(need) || !(Number((need.match(/^(\d+)/) || [])[1]) >= 2)) bad.push('the dot line reads ' + JSON.stringify(need) + ', wanted 2 or more to renew and 1 overdue');
   if (!card().classList.contains('needs-now')) bad.push('the checker card does not glow harder with something overdue: ' + card().className);
@@ -44,7 +45,7 @@ check('Business (10 Nov): renewals glow and count on the Business dot, Renewed k
     const p = a.sent.filter(x => x.action === 'saveBizCheck').pop();
     if (!p || p.expires_on !== W.iso(362)) bad.push('Renewed posted ' + JSON.stringify(p));
     if (W.sheet("isoDate_(read(TAB.biz_checks).rows.find(r => r.check_id === 'ico_fee').expires_on)") !== W.iso(362)) bad.push('the sheet did not keep the new expiry');
-    if (item('ico_fee') && item('ico_fee').classList.contains('is-over')) bad.push('the ICO item still glows overdue after Renewed');
+    if (tag('ico_fee').classList.contains('is-over')) bad.push('the ICO item still glows overdue after Renewed');
   }
   /* HMRC'S EMPLOYMENT STATUS CHECK: its own link tile, a result picked, Done keeps it. */
   const es = item('employment_status');

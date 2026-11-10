@@ -5000,8 +5000,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* ---------- WHAT NEEDS YOU (400): a Business card with something to act on glows, says how many, and the dot carries the total ---------- */
 .card.needs-you { border-color: var(--alert); box-shadow: 0 0 0 1px var(--alert), 0 0 1.1rem -.2rem var(--alert); }
 /* RENEWALS (10 Nov): due within 30 days glows; overdue glows harder, on the item and on its card. */
-.bc-item.is-soon, .bc-tax.is-soon { box-shadow: inset .2rem 0 0 var(--warn); padding-left: .5rem; }
-.bc-item.is-over { box-shadow: inset .35rem 0 0 var(--alert); padding-left: .6rem; }
+.qtag.bc-tag.is-soon, .bc-tax.is-soon { color: var(--gold); border-color: var(--gold); }
+.qtag.bc-tag.is-over { color: var(--alert); border-color: var(--alert); }
+.kc-item { margin: 0 0 .6rem; }
 .card.needs-now { border-width: 2px; box-shadow: 0 0 0 2px var(--alert), 0 0 1.6rem 0 var(--alert); }
 .bc-cycle { margin: .3rem 0; }
 .biz-need { color: var(--alert); font-weight: 700; margin: .2rem 0 .4rem; }

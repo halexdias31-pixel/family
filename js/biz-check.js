@@ -154,6 +154,13 @@ function bcState_(item) {
   return { auto, tick: t, due, expired, sorted, soon, info: !!(auto && auto.info), cyc };
 }
 
+/* THE TAG: Done, Renew by dd/mm/yy, Overdue, else the status in words. */
+function bcTag_(s) {
+  if (s.expired) return 'Overdue';
+  if (s.soon) return 'Renew by ' + bcSaid_(s.due);
+  if (s.sorted && !s.info) return 'Done';
+  return bcStatus_(s);
+}
 function bcStatus_(s) {
   if (s.info) return s.auto.ok ? 'reached' : 'in progress';
   if (s.expired) return 'overdue since ' + bcSaid_(s.due);
@@ -166,13 +173,14 @@ function bcStatus_(s) {
 
 function bcItem_(item, s) {
   /* THE TICK ON THE LEFT, THE THING IN WORDS BESIDE IT — one line, as a checklist reads (`.kid-row` lays out a tile and its caption). */
-  const line = `<div class="kid-row bc-line"><div class="tile-row">${tile_({ icon: s.sorted ? 'tick' : s.expired || (s.auto && s.auto.ok === false) ? 'flag' : 'plus', label: item.title,
-    note: bcStatus_(s), tone: s.sorted ? 'buy' : (s.expired || s.soon) ? 'admin' : '', on: BC.open === item.id, act: 'bc-open', data: { id: item.id } })}</div>
-    <p class="biz-cap">${esc(item.title)} <span class="qtags biz-when"><span class="qtag">${esc(bcStatus_(s))}</span></span></p></div>`;
+  /* ONE CHILD LINE A THING (10 Nov): its words, its status as a tag coloured by urgency (gold soon, red overdue), its tile in the row. */
   const glow = s.expired ? ' is-over' : s.soon ? ' is-soon' : '';
-  if (BC.open !== item.id) return `<div class="bc-item${glow}" data-bc="${esc(item.id)}">${line}</div>`;
+  const line = `<p class="kc-line bc-line">${esc(item.title)} <span class="qtags"><span class="qtag bc-tag${glow}">${esc(bcTag_(s))}</span></span></p>
+    <div class="tile-row">${tile_({ icon: s.sorted ? 'tick' : s.expired || (s.auto && s.auto.ok === false) ? 'flag' : 'plus', label: item.title,
+    note: bcStatus_(s), tone: s.sorted ? 'buy' : '', on: BC.open === item.id, act: 'bc-open', data: { id: item.id } })}</div>`;
+  if (BC.open !== item.id) return `<div class="kc-item bc-item" data-bc="${esc(item.id)}">${line}</div>`;
   const t = s.tick || {}, cyc = s.cyc && !s.cyc.continuous;
-  return `<div class="bc-item is-open${glow}" data-bc="${esc(item.id)}">${line}
+  return `<div class="kc-item bc-item is-open" data-bc="${esc(item.id)}">${line}
     ${s.cyc ? `<p class="bc-cycle"><span class="qtag">${esc(bcCycleSay_(item))}</span>${s.due ? ` <span class="qtag">expires ${esc(bcSaid_(s.due))}</span>` : ''}${
       t.result ? ` <span class="qtag">${esc(t.result)}</span>` : ''}${t.doc_link ? ` <a href="${esc(t.doc_link)}" data-do="file-view">Document</a>` : ''}</p>` : ''}
     <p class="bc-why">${esc(item.why)}</p>
@@ -210,7 +218,7 @@ function bcInner_() {
   return `<div class="qtags"><span class="qtag">Business</span><span class="qtag">Admin only</span><span class="qtag">Guidance, not advice</span></div>
     <h3>Business checker</h3>
     ${bizNeed_('bizcheck', BC.list ? renew : 0, renew + (renew === 1 ? ' thing to renew' : ' things to renew') + (over ? ' · ' + over + ' overdue' : ''), BC.list ? over : 0)}
-    <div class="biz-body bc-body"${wait ? ' aria-busy="true"' : ''}>
+    <div class="kc-items biz-body bc-body"${wait ? ' aria-busy="true"' : ''}>
       ${BC.list ? `<p class="bc-count"><b>${done} of ${counted.length} sorted</b></p>${money}
       ${next.length ? next.map(i => bcItem_(i, st[i.id])).join('') : '<p>Everything that applies is sorted.</p>'}
       ${groups.map(g => { const gi = all.filter(i => i.group === g && next.indexOf(i) === -1);
