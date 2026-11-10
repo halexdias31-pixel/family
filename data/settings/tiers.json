@@ -300,6 +300,7 @@
     "check/deploy.js": "core",
     "check/press.js": "secondary",
     "check-api-deadline.js": "core",
+    "check-policy-fill.js": "secondary",
     "check-press-hold.js": "core",
     "check/press-twice.js": "secondary",
     "check/press-deadline.js": "secondary",

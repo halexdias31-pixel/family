@@ -223,6 +223,7 @@ const SUITE = [
   /* ---------- AND WHETHER PRESSING ANYTHING DOES ANYTHING § */
   { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true, heavy: true },
   /* ONE PRESS, ONE ACTION (534): a double tap posts once, a yes under 400 ms is ignored, a request that never answers lets go after a minute. */
+  { file: 'check-policy-fill.js', what: 'each policy opens with its placeholders filled from the payload, headings drawn, no made-up value committed' },
   { file: 'check-api-deadline.js', what: 'a POST the backend runs for minutes is not cut by api()\'s one-minute deadline' },
   { file: 'check-press-hold.js', what: 'a control waiting on its request holds itself, not its twin, and not for ever; steppers take two fast taps' },
   { file: 'check/press-twice.js', what: 'two taps 110 ms apart on every control post nothing twice; a control that asks first ignores a yes under 400 ms', slow: true, heavy: true },

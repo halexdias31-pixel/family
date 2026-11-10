@@ -575,6 +575,13 @@ function configPublic_(cfg) {
   return out;
 }
 
+/* ---------- THE SEVEN CONFIG ROWS docs/policies/*.md fill their placeholders from; '' when a row is absent. */
+function policyContacts_(cfg) {
+  const c = cfg || {}, v = k => S(c[k] == null ? '' : c[k]);
+  return { dsl: v('policy_dsl_name'), deputy: v('policy_deputy_dsl'), email: v('policy_email'), phone: v('policy_phone'),
+    address: v('policy_address'), ico: v('policy_ico'), insurer: v('policy_insurer') };
+}
+
 /* ---------- THE RULES (496): `{set: {id: 'universal'}, hist: [{id, was, to, at}]}`, known unlocked ids only; null when broken ---------- */
 function rulesClean_(v) {
   let o = v;
