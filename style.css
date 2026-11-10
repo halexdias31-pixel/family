@@ -5562,7 +5562,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc:not(.is-open) > * { grid-column: 2; }
 .card.kc:not(.is-open) > .kc-pic { grid-column: 1; grid-row: 1 / span 5; width: 3.5rem; aspect-ratio: 1; border-radius: 50%; cursor: pointer; }
 /* A TUTOR'S FACE SITS BESIDE THEIR NAME ONLY (owner, 10 Nov: "Maths A-Level, GCSE" broke inside its pill): the pills under it take the card's width. */
-.card.kc.tcard:not(.is-open) > .kc-pic { grid-row: 1; align-self: center; height: 3.5rem; }
+.card.kc.tcard:not(.is-open) > .kc-pic { grid-row: 1; align-self: center; --pic-h: 3.5rem; }
 .card.kc.tcard:not(.is-open) > .kc-tags { display: contents; }
 .card.kc.tcard:not(.is-open) > :not(.kc-pic), .card.kc.tcard:not(.is-open) > .kc-tags > * { grid-column: 1 / -1; }
 .card.kc.tcard:not(.is-open) > .kc-tags > .prof-who-tags { grid-column: 2; grid-row: 1; margin-top: 0; align-self: center; }

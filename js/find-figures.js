@@ -305,7 +305,7 @@ function questionCard_(x, was) {
 
 /* ---------- EVERY PART IS ITS OWN CARD, ALL AT ONE LEFT EDGE (owner, 8 Nov; history 1160) */
 /* A STEM WHOLE: its words and its figure, no page-cuts (a card scrolls). */
-function qStemWhole_(x, p) {
+function qStemWhole_(x, p, onScreen) {
   const html = [];
   stemChunks_(p).forEach(ch => {
     let run = [];
@@ -318,7 +318,7 @@ function qStemWhole_(x, p) {
     flush();
   });
   /* A FIGURE LEFT FOR THE PART THAT PENS ON IT, when that part is not on screen: drawn here, under the stem's words. */
-  if (stemHasFig_(p) && stemPenned_(p)) html.push((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
+  if (stemHasFig_(p) && stemPenned_(p) && !(onScreen || []).some(y => { const s = isQ_(y) ? padSource_(y) : null; return s && s.svg === p.diagram; })) html.push((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
   if (stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
   return `<div class="qsheet-stem qtext qb-stem${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
 }
@@ -350,7 +350,7 @@ function qPartFoot_(p) {
 /* ONE PART, THE SHAPE OF ANY CARD: its tags, a shared stem the first time a drawn part needs it, its words and box, its whole tile row. */
 function qOneCard_(p, ctx) {
   const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)])
-    .map(s => { ctx.drawn[stemId_(s)] = true; return qStemWhole_(p, s); }).join('');
+    .map(s => { ctx.drawn[stemId_(s)] = true; return qStemWhole_(p, s, ctx.shown); }).join('');
   return `<div class="qb favwrap${isFav(p.key) ? ' is-fav' : ''}" data-part="${esc(p.key || '')}">${tagRow_(p)}${stems}${qPartCard_(p, ctx.ans)}</div>`;
 }
 /* A QUESTION NUMBER: its parts the search kept, one card each, one after another; none indented under another. */
@@ -358,7 +358,7 @@ function questionWhole_(x, parts, open, ans) {
   const list = parts && parts.length ? parts : [x];
   const shown = list.filter(p => !open || !open.size || open.has(p));
   /* CARRIED ONLY BY A PART ON SCREEN (owner, 10 Nov): part (a) carried Q8's garden, so (b) found alone drew no stem and no 7.5 m. */
-  const ctx = { ans: ans !== false, drawn: {}, carried: new Set(shown.map(stemCarried_).filter(Boolean)) };
+  const ctx = { ans: ans !== false, drawn: {}, shown: shown, carried: new Set(shown.map(stemCarried_).filter(Boolean)) };
   return `<div class="qwhole${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}" data-q="${esc(qId_(x) || x.key || '')}">${shown.map(p => qOneCard_(p, ctx)).join('')}</div>`;
 }
 
