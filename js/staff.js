@@ -386,7 +386,7 @@ function staffInner_(wait) {
   return `<h3>Staff</h3>
     ${bizNeed_('terms', STAFF.list ? n : 0, n + ' not agreed to the terms')}
     <div class="biz-body staff-body"${wait ? ' aria-busy="true"' : ''}>
-      ${STAFF.list && !list.length ? empty_('No tutors yet.') : ''}
+      ${STAFF.list && !list.length ? empty_(NO_TUTOR + '.') : ''}
       ${list.map(item).join('')}
     ${wait ? loading_() : ''}</div>
     <p class="faint me-said staff-said">${esc(STAFF.error)}</p>`;

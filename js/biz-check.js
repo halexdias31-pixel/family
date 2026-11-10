@@ -58,13 +58,13 @@ const BC_RULES = {
   },
   'tutor-terms': () => {
     if (typeof STAFF === 'undefined' || !STAFF.list) return { ok: null, say: 'The staff list is not loaded yet.' };
-    if (!STAFF.list.length) return { ok: null, say: 'Nobody teaches yet.' };
+    if (!STAFF.list.length) return { ok: null, say: NO_TUTOR + '.' };
     const n = STAFF.list.filter(s => typeof staffAgreed_ === 'function' && !staffAgreed_(s)).length;
     return n ? { ok: false, say: n + ' not agreed to the current tutor terms — see Staff.' } : { ok: true, say: 'Every tutor has agreed to the current terms.' };
   },
   'dbs-tutors': () => {
     const ts = ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).filter(t => t && t.title);
-    if (!ts.length) return { ok: null, say: 'No tutors listed yet.' };
+    if (!ts.length) return { ok: null, say: NO_TUTOR + '.' };
     const no = ts.filter(t => !t.dbs).length;
     const dates = 'The site holds a DBS tick, not a date: add a DBS date to each tutor\'s record (dbs_checked in the people tab) and renew every 3 years.';
     return no ? { ok: false, say: no + ' of ' + ts.length + ' listed tutors have no DBS ticked. ' + dates } : { ok: true, say: 'Every listed tutor has DBS ticked. ' + dates };

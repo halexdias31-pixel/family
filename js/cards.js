@@ -365,7 +365,7 @@ const KC_FIELDS = {
   /* THE SUBJECTS THAT RUN AT A LEVEL, green as a subject is everywhere. */
   levelSubjects: x => { const s = kcRow_(x).subjects || [];
     return s.length ? rowHtml('Subjects', s.map(v => `<span class="subject">${esc(v)}</span>`).join(', ')) : row('Subjects', 'None yet', 'bad'); },
-  tutorCount: x => { const n = (kcRow_(x).tutors || []).length; return row('Tutors', n ? String(n) : 'None yet', n ? '' : 'bad'); },
+  tutorCount: x => { const n = (kcRow_(x).tutors || []).length; return row('Tutors', n ? String(n) : NO_TUTOR, n ? '' : 'bad'); },
   bookingForm: x => (kcRow_(x).listed ? '' : row('Booking form', 'Not offered', 'bad')),
   levels: x => { const l = (kcRow_(x).levels || []).filter(Boolean); return l.length ? row('Levels', l.join(', ')) : ''; },
   tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<div class="qtags">${t.map(y => `<span class="qtag" data-tag="3">${esc(y.title)}</span>`).join('')}</div>`

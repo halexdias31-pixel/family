@@ -129,6 +129,8 @@ for (const f of appFiles_()) {
     strings++;
     const v = String(t.value || '');
     const at = `${f}:${lineOf(src, t.start)}`;
+    /* ONE "NOBODY TEACHES THIS": tiles.js's NO_TUTOR. */
+    if (/\b(Nobody teaches|No one teaches|No tutors( listed)? yet)\b/.test(v)) bad.push(`${at}: "nobody teaches this" said its own way — NO_TUTOR`);
     /* ONE "NOTHING HERE": tiles.js's NOTHING_YET via empty_(); no other sentence says a list is empty. */
     if (/(^|>)\s*Nothing (here|to show|to see)\b/.test(v) && !(f === 'tiles.js' && v === 'Nothing here yet.')) bad.push(`${at}: an empty list said its own way — empty_() or NOTHING_YET`);
 
