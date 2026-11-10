@@ -65,7 +65,7 @@ const KEPT = [
     proof: [['mat.js', /function matRemember\(/]] },
   { file: 'me.js', fn: 'fieldHtml', has: 'data-many-of',
     why: 'a settings several-of-a-list tick (the venues you teach at) — its `change` writes the hidden answer and keeps it as the field\'s draft (315 met 317)',
-    proof: [['me.js', /matches\('input\[type="checkbox"\]\[data-many-of\]'\)[\s\S]{0,1500}?draftKeep_\(surface, id, box\.value/], ['me.js', /<input type="hidden" \$\{attr\}="\$\{esc\(name\)\}" value="\$\{esc\(said\)\}"\$\{da\}>/]] },
+    proof: [['me.js', /matches\('input\[type="checkbox"\]\[data-many-of\]'\)[\s\S]{0,1500}?draftKeep_\(surface, id, box\.value/], ['me.js', /formHidden_\(`\$\{attr\}="\$\{esc\(name\)\}"`, said, da\)/]] },
 ];
 const PIN = 'a PIN — never written to the device, by a draft or anything else';
 const PEOPLE_FORM = 'an admin making or changing somebody else\'s account — a decision made and saved there and then, not left half-made on a device';
@@ -125,6 +125,16 @@ function tagAt(src, p) {
 }
 const sites = [];
 const fnSrc = {};
+/* EACH MAKER CALL AS THE TAG(S) IT DRAWS: [tag, its text, a textarea's words]; `a(i)` is argument i's source. */
+const FORM_BOX_ = {
+  formInput_: a => [['input', '<input ' + a(0) + '>']],
+  formArea_: a => [['textarea', '<textarea ' + a(0) + '>', a(1)]],
+  formTick_: a => [['input', '<input type="checkbox" ' + a(0) + '>']],
+  formHidden_: a => [['input', '<input type="hidden" ' + a(0) + ' value="' + a(1) + '"' + a(2) + '>']],
+  formFile_: a => [['input', '<input type="file" class="' + a(0) + '">']],
+  formSlider_: a => [['input', '<input type="range" ' + a(0) + '>'], ['input', '<input type="number" class="pf-num" ' + a(0) + '>']],
+  formPhone_: a => [['input', '<input type="tel" data-me="' + a(1) + '" ' + a(3) + '>']],
+};
 for (const f of FILES) {
   const src = SRC[f];
   let ast;
@@ -142,7 +152,7 @@ for (const f of FILES) {
     const spans = [];
     if (n.type === 'Literal' && typeof n.value === 'string') spans.push([n.start, n.end]);
     if (n.type === 'TemplateElement') spans.push([n.start, n.end]);
-    for (const [a, b] of spans) {
+    for (const [a, b] of (f === 'form.js' && FORM_BOX_[name] ? [] : spans)) {
       const seg = src.slice(a, b);
       const re = /<([a-z][\w-]*)\b/gi;
       let t;
@@ -155,6 +165,12 @@ for (const f of FILES) {
         const body = close > from && close - from < 600 ? src.slice(from, close) : '';
         sites.push({ file: f, fn: name, line: src.slice(0, a + t.index).split('\n').length, tag, text: text.replace(/\s+/g, ' '), body });
       }
+    }
+    /* THE FORM MAKER'S BOXES (js/form.js): a call is the tag it draws, its attribute text in the tag, so a box drawn by the maker answers as if written out. */
+    if (n.type === 'CallExpression' && n.callee && n.callee.type === 'Identifier' && FORM_BOX_[n.callee.name] && !(f === 'form.js' && FORM_BOX_[name])) {
+      const arg = i => { const x = n.arguments[i]; return x ? src.slice(x.start, x.end).replace(/^[`'"]|[`'"]$/g, '') : ''; };
+      FORM_BOX_[n.callee.name](arg).forEach(([tag, text, body]) =>
+        sites.push({ file: f, fn: name, line: n.loc.start.line, tag, text: text.replace(/\s+/g, ' '), body: body || '' }));
     }
     if (n.type === 'CallExpression' && n.callee && n.callee.property && n.callee.property.name === 'createElement'
         && n.arguments[0] && /^(input|textarea)$/.test(n.arguments[0].value)) {
