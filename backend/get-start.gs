@@ -147,6 +147,8 @@ function getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, ve
     /* THE TAB LESS ITS SECRETS — `configPublic_` in core.gs. `films_folder` is the Notflix
        folder's id, and that id is the folder's only lock; this payload goes to everybody. */
     constants: { vars: configPublic_(cfg) },
+    /* THE POLICIES' CONTACTS (DSL, ICO, insurer): public business details, the same for every viewer. */
+    policy: policyContacts_(cfg),
     /* THE SITE'S LAYOUT (462): the admin's order of widgets over the code's, or null for the code's own. */
     layout: layoutClean_(cfg[LAYOUT_KEY]),
     /* THE RULES (496): which exceptions the admin made universal, and the last twenty changes for Undo. */
