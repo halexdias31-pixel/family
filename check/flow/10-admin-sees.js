@@ -310,7 +310,7 @@ check('Working photos is drawn for an admin and for a parent of the child, never
 
 /* "I MYSELF NEED TO BE ABLE TO ADD NEW PEOPLE … ADD OR DELETE OR EDIT PEOPLE FROM ADMIN ACCOUNT" (373): the "+" above everybody, its form, Edit and Delete. */
 check('an admin adds a person from the "+" on Students (453), edits one and deletes one (a parent, on Parents), each seen without a reload; nobody else is offered any of it', async () => {
-  const PIN = ['6', '1', '4', '8', '2', '7'].join('');
+  const PIN = ['6', '1', '4', '8'].join('');
   let hold = false, release = null;
   const { w, sent } = boot({
     /* THE PAYLOAD THAT `load()` ASKS FOR AFTER A SAVE IS HELD, so what the column shows is the reply's doing. */

@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-09-email-card-1";
+const BOOKING_VERSION = "2026-11-10-pin-four-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -973,7 +973,11 @@ function authPinLost_(r, given) {
 function authCheckPin_(t, r, pin) {
   const given = S(pin), have = S(r && r.pin);
   if (!given || !have) return false;
+  /* FOUR DIGITS (owner, 10 Nov): a longer PIN still on the row is cut to its first four when it signs in; */
+  if (/^\d{5,8}$/.test(have) && authSame_(have, given)) { try { authSetPin_(t, r, given.slice(0, 4)); } catch (err) {} return true; }
   if (authSame_(have, given)) return true;
+  /* and someone who still types the old, longer PIN gets in by its first four. */
+  if (/^\d{5,8}$/.test(given) && authSame_(have, given.slice(0, 4))) return true;
   if (!authPinLost_(r, given)) return false;
   /* THE MIGRATION, NOT A CHANGE: the secret is the same one, so nothing about the throttle or the
      sessions moves — see `PIN_OK` in check-backend.js. */

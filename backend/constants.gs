@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-09-email-card-1";
+const BACKEND_VERSION = "2026-11-10-pin-four-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1467,6 +1467,10 @@ const RUNNABLE = {
 /* ---------- THE SHEET CATCHES UP WITH THE CODE, BY ITSELF § */
 /* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
 const MIGRATIONS = [
+  /* EVERY PIN FOUR DIGITS (owner, 10 Nov): a longer one keeps its first four; signing in with the old one still works (authCheckPin_). */
+  { id: 'pins-four',
+    what: 'every PIN longer than four digits cut to its first four',
+    run: () => { const t = read(TAB.people); t.rows.forEach(r => { const p = S(r.pin); if (/^\d{5,8}$/.test(p)) authSetPin_(t, r, p.slice(0, 4)); }); } },
   /* `likes-to-reactions` WAS HERE, AND ITS ID STAYS SPENT: `tidy-old-tabs` turns any like still left into a 👍 before the tab goes. */
 
   { id: 'nightly-jobs',

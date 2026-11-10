@@ -19,7 +19,7 @@ const FORM_SPECS = {
       "title": "Signing in",
       "boxes": [
         { "id": "pin-now", "kind": "pin", "label": "current PIN", "ph": "current PIN" },
-        { "id": "pin-new", "kind": "pin", "label": "new PIN, 4 to 8 numbers, not 1234", "ph": "new PIN, 4–8 numbers" },
+        { "id": "pin-new", "kind": "pin", "label": "new PIN, 4 numbers, not 1234", "ph": "new PIN, 4 numbers" },
         { "id": "pin-again", "kind": "pin", "label": "new PIN again", "ph": "new PIN again" }
       ],
       "save": { "icon": "save", "label": "Save", "note": "your new PIN", "act": "pin-save" },

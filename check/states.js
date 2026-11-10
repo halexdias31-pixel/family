@@ -2493,7 +2493,7 @@ const STATES = {
     { col: 'biz', name: 'a new PIN, shown once',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        openSheet('A new PIN for Kit', pinSlip_('Kit', 'kit_upright42', ['4', '8', '2', '9', '1', '3'].join(''))
+        openSheet('A new PIN for Kit', pinSlip_('Kit', 'kit_upright42', ['4', '8', '2', '9'].join(''))
           + '<p class="faint">Write it down or read it to them — it is not shown again.</p>'
           + '<button class="btn quiet" data-do="sheet-done">Done</button>');
       },

@@ -268,7 +268,7 @@ function makeBrandAccount(pin) {
       fixed.push('role');
     }
     /* ---------- THROUGH `authSetPin_`, AND THIS LINE IS WHY THE OWNER COULD NOT SIGN IN § */
-    if (pin && /^\d{4,8}$/.test(String(pin))) {
+    if (pin && /^\d{4}$/.test(String(pin))) {
       authSetPin_(t, existing, String(pin));
       authClearThrottle_(t, existing);
       fixed.push('pin');
@@ -282,8 +282,8 @@ function makeBrandAccount(pin) {
     return out;
   }
 
-  if (!/^\d{4,8}$/.test(String(pin || ''))) {
-    throw new Error('Give it a PIN of 4 to 8 digits: makeBrandAccount(\'4821\')');
+  if (!/^\d{4}$/.test(String(pin || ''))) {
+    throw new Error('Give it a PIN of 4 digits: makeBrandAccount(\'4821\')');
   }
 
   /* ---------- NO E-MAIL ON THE BRAND ROW, WHICH IT USED TO BORROW FROM WHOEVER THE ADMIN WAS § */

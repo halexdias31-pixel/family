@@ -274,7 +274,7 @@ check('770: the search card has no Find button; no card is titled with a column\
 
 /* ---------- MANAGE YOUR CHILD: THE CHILDREN ON IT, NEW PIN BESIDE EACH, LINKING ONE, AND THE HELD STATE § */
 check('"Manage your child" lists the children linked to you with New PIN beside each, points a linking parent to People, says when there are none, and holds both forms while your address waits', async () => {
-  const FRESH = ['5', '1', '7', '3', '9', '2'].join('');
+  const FRESH = ['5', '1', '7', '3'].join('');
   const { w, sent } = boot({ reply: b => b.action === 'resetPin' ? { success: true, first: 'Wren', handle: 'wren_kind43', pin: FRESH }
     : b.action === 'claimChild' ? { success: true } : { success: true } });
   await wait(300);
@@ -386,7 +386,7 @@ check('Settings no longer draws the figure, the handle, the library cards or two
 
 /* A PARENT'S NEW PIN IS ON "MANAGE YOUR CHILD" AND NOWHERE ELSE (the review of docs/history/339): § */
 check('New PIN is on a parent\'s "Manage your child" and not on the child\'s card on the You column, and on an admin\'s people; it asks first and shows the slip once', async () => {
-  const FRESH = ['4', '8', '2', '9', '1', '3'].join('');
+  const FRESH = ['4', '8', '2', '9'].join('');
   const { w, sent } = boot({ reply: b => b.action === 'resetPin'
     ? { success: true, name: 'Kit Parent', first: 'Kit', handle: 'kit_kind41', pin: FRESH } : { success: true } });
   await wait(400);

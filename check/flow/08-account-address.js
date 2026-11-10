@@ -1054,7 +1054,7 @@ check('proof: a PIN sign-in that took an account back says the children were tak
   t.go('account', false, true);
   await wait(150);
   const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
-  if (!fill('in-name', 'jsmith1@example.org') || !fill('in-pin', ['2', '9', '1', '7', '4', '3'].join(''))) return ['there is no sign-in card'];
+  if (!fill('in-name', 'jsmith1@example.org') || !fill('in-pin', ['2', '9', '1', '7'].join(''))) return ['there is no sign-in card'];
   t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
   await wait(500);
   if (!sheetOpen_(d) || !/taken off/.test(String(d.getElementById('sheet-body').textContent))) bad.push('the children taken off the account were said nowhere that stays: ' + JSON.stringify(toastOf_(d)));
