@@ -11,16 +11,13 @@ const files = [...listed.matchAll(/'([\w-]+)'/g)].map(m => m[1])
 const bad = [];
 
 /* ---------- 1. EVERY ACTION IS A ROUND TILE ---------- */
-/* An answer choice or a week-grid cell is a form's input, not an action, so those classes may stay raw buttons. */
-const INPUT_CLS = /^(qp-slot|qp-item|qp-opt|hr|q-line|q-mark-b)\b/;
-/* Files not yet converted, with their raw-button count: a ratchet, so each number only goes down. */
-const LEFT = { tiles: 3, collections: 5, hadith: 1, layout: 3, map: 4, mat: 1, posts: 20, quran: 1,
-  receipt: 1, rules: 1, 'shell-api': 1, working: 1 };
+/* EVERY <button> HAS ONE MAKER, tile_ (tiles.js): a thing's tile, or with `form: true` a form's control. A comment or a regex naming one is not one. */
+const MAKERS = ['tiles', 'form'];
 files.forEach(({ n, src }) => {
-  const raw = [...src.matchAll(/<button\b[^>]*?class="([^"]*)"|<button\b(?![^>]*class=)/g)]
-    .filter(m => !INPUT_CLS.test(m[1] || ''));
-  const may = LEFT[n] || 0;
-  if (raw.length > may) bad.push(`1 raw <button>: ${n}.js has ${raw.length}, allowed ${may} — draw it with tile_({…}) (a form's Save: tile_({ form: true }))`);
+  if (MAKERS.indexOf(n) !== -1) return;
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const raw = [...code.matchAll(/(^|\S)\s*<button\b/gm)].filter(m => !/[/*(|]/.test(m[1]));
+  if (raw.length) bad.push(`1 raw <button>: ${n}.js has ${raw.length} — draw it with tile_({…}) (a thing) or tile_({ form: true, … }) (a form)`);
 });
 
 /* ---------- 2. NO GREY SENTENCES ---------- */
@@ -191,8 +188,8 @@ for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
 if ((noComments.match(/border: 1\.5px solid color-mix\(in srgb, var\(--white\) 14%/g) || []).length !== 1) bad.push('63a the tick\'s edge is written more than once — one :is(...) rule draws every tick');
 
 /* ---------- 64a. NUMBERS ARE DIGITS: "3 words", never "three words", in anything the site says ---------- */
-/* Content, not copy: facts (facts.js), revision notes (mat), help for the question types (qtypes), what is read aloud (shell-click, arcade), titles of works. */
-const WORDS_OK = new Set(['facts', 'mat', 'qtypes', 'shell-click', 'arcade', 'writings', 'hadith']);
+/* Content, not copy: facts (facts.js), revision notes (mat), help for the question types (qtypes), what is read aloud (shell-click, arcade), titles of works (finder-tags' short shows). */
+const WORDS_OK = new Set(['facts', 'mat', 'qtypes', 'shell-click', 'arcade', 'writings', 'hadith', 'finder-tags']);
 const NUM_WORD = /\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|hundred)\b(?! or two)/i;
 const IDIOM = /\bor two\b|\bthe two\b(?! new)|\bone or two\b/i;
 files.forEach(({ n, src }) => {

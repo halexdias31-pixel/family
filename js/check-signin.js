@@ -12,7 +12,7 @@ const no = (what, got) => bad.push(what + (got === undefined ? '' : ' — ' + JS
 
 /* A PIN THAT STARTS WITH 0, AND A SECOND ONE, built from their digits. Neither is weak. */
 const ZERO = ['0', '7', '3', '9'].join('');
-const ZERO2 = ['0', '5', '8', '2', '6'].join('');
+const ZERO2 = ['0', '5', '8', '2'].join('');
 const PLACE = '0000';
 
 /* ---------- THE MAIL SERVICE, CAUGHT -------------------------------------------------------------- */
@@ -385,7 +385,7 @@ let whoRules = 0;
     /* A TUTOR, who is not a parent but MAY tick Client — so is the one a refusal may send there. */
     person('P-TIA', 'tutor', 'Tia', 'Tutor', { email: 'tia@example.org', handle: 'tia_kind82' }),
   ]);
-  const P1 = ['5', '8', '2', '7', '1', '4'].join(''), P2 = ['4', '1', '9', '3'].join('');
+  const P1 = ['5', '8', '2', '7'].join(''), P2 = ['4', '1', '9', '3'].join('');
   const cellOf = (pid, c) => { const r = rowOf(b, x => x.person_id === pid); return r ? r[c] : undefined; };
   const setSheet = (pid, c, v) => {           // the owner typing into the sheet
     const h = b.tabs.people[0];
@@ -484,7 +484,7 @@ if (whoRules !== WHO_RULES && !bad.length) no('only ' + whoRules + ' of ' + WHO_
 let proofRules = 0;
 {
   const rule = (ok, said, got) => { if (ok) proofRules++; else no(said, got); };
-  const P1 = ['6', '2', '9', '4', '1'].join(''), P2 = ['3', '8', '1', '5'].join('');
+  const P1 = ['6', '2', '9', '4'].join(''), P2 = ['3', '8', '1', '5'].join('');
   const famRow = (b, parent, child) => {
     const fh = b.tabs.family[0];
     const r = b.tabs.family.slice(1).find(x => x[fh.indexOf('parent_id')] === parent && x[fh.indexOf('child_id')] === child);

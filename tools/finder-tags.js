@@ -110,9 +110,9 @@ if (require.main === module) (async () => {
     walk([], 0);
     NAMED.forEach(st => walk(st, DEPTH));
     ev('inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.admit = null; })');
-    /* EACH ANSWER'S WORDS WHERE THEY ARE NOT ITS PLAIN ONES (answerSay_: a paper's cover code), over the whole list, so a tag row never tallies the library. */
+    /* EACH ANSWER'S WORDS WHERE THEY ARE NOT ITS PLAIN SHORT ONES (answerSay_: a paper's cover code), over the whole list, so a tag row never tallies the library. */
     out['#says'] = JSON.parse(ev(`inFinder_(FINDERS.stuff, () => { const all = stuffItems(), o = {};
-      facetList().forEach(f => { const m = {}; facetTally_(all, f).values.forEach(v => { const s = v.show || v.text || v.value; if (s !== facetSay_(f, v.value)) m[v.value] = s; });
+      facetList().forEach(f => { const m = {}; facetTally_(all, f).values.forEach(v => { const s = v.show || v.text || v.value; if (s !== showShort_(facetSay_(f, v.value))) m[v.value] = s; });
         if (Object.keys(m).length) o[f.field] = m; });
       return JSON.stringify(o); })`));
     const got = { key: key, out: out };

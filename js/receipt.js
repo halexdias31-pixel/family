@@ -555,7 +555,7 @@ on('job-request-answer', el => {
   if (!row || (row.nextElementSibling && row.nextElementSibling.classList.contains('req-why'))) return;
   row.insertAdjacentHTML('afterend', `<form class="req-why" data-id="${esc(id)}">
     <label>Why not? <input name="why" maxlength="200" placeholder="optional, one line" autocomplete="off"></label>
-    <button class="btn" type="submit">Decline</button></form>`);
+    ${tile_({ form: true, submit: true, label: 'Decline' })}</form>`);
   const form = row.nextElementSibling;
   form.addEventListener('submit', e => { e.preventDefault(); form.querySelector('button').disabled = true; send(form.querySelector('input').value.trim()); });
   form.querySelector('input').focus();

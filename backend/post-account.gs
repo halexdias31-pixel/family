@@ -33,7 +33,7 @@ function postRegister_(body, action, began) {
     return jsonOut({ error: 'Please give your email address — or, with no email of your own, a grown-up\'s.' });
   }
   if ((email || grownUp).indexOf('@') < 0) return jsonOut({ error: 'Please give a real email address.' });
-  if (!/^\d{4,8}$/.test(pin)) return jsonOut({ error: 'Choose a PIN of 4 to 8 digits.' });
+  if (!/^\d{4}$/.test(pin)) return jsonOut({ error: 'Choose a PIN of 4 digits.' });
   /* THE SAME RULE `changePin` HAS — see `pinWeak_`. A form that let you choose 0000 and then
      refused it when you tried to change it was two rules for one PIN. */
   if (pinWeak_(pin)) return jsonOut({ error: 'Pick a PIN that is harder to guess than that.' });
@@ -925,8 +925,8 @@ function postChangePin_(body, action, began) {
   if (!authCheckPin_(tPin, r, now)) {
     return jsonOut({ error: 'That is not your current PIN.' });
   }
-  if (!/^[0-9]{4,8}$/.test(next)) {
-    return jsonOut({ error: 'A PIN is 4 to 8 numbers.' });
+  if (!/^[0-9]{4}$/.test(next)) {
+    return jsonOut({ error: 'A PIN is 4 numbers.' });
   }
   if (next === now) {
     return jsonOut({ error: 'That is the PIN you already have.' });

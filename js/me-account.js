@@ -28,7 +28,7 @@ function signInCard_() {
              ''}
         <label class="field"><span>PIN</span>
           ${formInput_(`id="in-pin" ${pinDotsOk_() ? 'type="text" class="pin-dots"' : 'type="password"'}
-                 inputmode="numeric" pattern="[0-9]*" maxlength="8" enterkeyhint="go"
+                 inputmode="numeric" pattern="[0-9]*" maxlength="4" enterkeyhint="go"
                  autocomplete="one-time-code" autocorrect="off" autocapitalize="off" spellcheck="false"
                  data-1p-ignore data-lpignore="true"`)}</label>
         ${/* ---------- THREE TILES, WHERE THERE WERE TWO BUTTONS AND A CARD § */
@@ -543,7 +543,8 @@ function pinDotsOk_() {
 }
 
 /* ---------- MAKING AN ACCOUNT § */
-const REG_PIN = /^\d{4,8}$/;
+/* A PIN IS FOUR DIGITS (owner, 10 Nov). */
+const REG_PIN = /^\d{4}$/;
 /* ---------- AND A CHILD WITH NO EMAIL OF THEIR OWN § */
 /* ---------- AND WHO THE ACCOUNT IS FOR, ASKED FIRST § */
 const REG_NOTE = {
@@ -577,7 +578,7 @@ function registerCard_() {
       ${formLine_('email', formInput_(`id="reg-email" type="email" inputmode="email" autocomplete="off" autocapitalize="off"
                spellcheck="false" placeholder="you@example.com"${draftAttr_('reg', 'email')} value="${esc(draftVal_('reg', 'email'))}"`))}
       ${formTick_('id="reg-noemail"', "<span>It's a grown-up's email</span>", 'reg-kid', 'hidden')}
-      ${formLine_('PIN — 4 to 8 digits', formInput_('id="reg-pin" type="password" inputmode="numeric" autocomplete="one-time-code"'))}
+      ${formLine_('PIN — 4 digits', formInput_('id="reg-pin" type="password" inputmode="numeric" autocomplete="one-time-code"'))}
       ${tile_({ form: true, label: 'Make my account', act: 'reg-send' })}
       ${/* THREE LINES AT 320, MEASURED: § */
             ''}
@@ -629,7 +630,7 @@ on('reg-send', el => {
               : 'An email address, please — the link goes to it.');
     return;
   }
-  if (!REG_PIN.test(pin)) { toast('A PIN is 4 to 8 digits, and nothing else.'); return; }
+  if (!REG_PIN.test(pin)) { toast('A PIN is 4 digits.'); return; }
   /* THROUGH `send_`, so the button spins, the four boxes lock while it is on the wire (`#sheet-body` is one of the boxes `send_` knows to lock) and a refusal § */
   const body = { action: 'register', who, first_name: first, last_name: last, pin };
   if (kid) body.parent_email = email; else body.email = email;

@@ -68,8 +68,8 @@
     {
      "id": "pin-new",
      "kind": "pin",
-     "label": "new PIN, 4 to 8 numbers, not 1234",
-     "ph": "new PIN, 4–8 numbers"
+     "label": "new PIN, 4 numbers, not 1234",
+     "ph": "new PIN, 4 numbers"
     },
     {
      "id": "pin-again",
