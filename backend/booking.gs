@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-10-one-verified-1";
+const BOOKING_VERSION = "2026-11-10-add-verified-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -1275,6 +1275,7 @@ function moveMail_(to, key) {
 const PERMISSIONS = {
   addComment: ['member', 'child', 'admin'],
   addPost: ['member', 'child', 'admin'],
+  adminUnlinkFamily: ['admin'],
   aiMark: ['member', 'child', 'admin'],
   answerClaim: ['member', 'child', 'admin'],
   answerRequest: ['member', 'child', 'admin'],
@@ -1386,6 +1387,7 @@ const PERMISSIONS = {
   suggest: ['member', 'child', 'admin'],
   suggestUpload: ['admin'],
   tidyOldRows: ['admin'],
+  tutorDbsChecked: ['admin'],
   updateProfile: ['member', 'child', 'admin'],
   verifyEmail: ['anyone', 'member', 'child', 'admin'],
   verifyLogin: ['anyone', 'member', 'child', 'admin'],

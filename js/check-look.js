@@ -90,8 +90,8 @@ if (!/function tileWordShow_/.test(tilesSrc) || !/'pointerdown'/.test(tilesSrc))
 
 /* ---------- 5a. A RISKY ACTION IS TAPPED TWICE (sure_), NEVER A confirm() ---------- */
 const stripC = t => t.replace(/(^|[\s;{}(),])\/\*[\s\S]*?\*\//g, '$1').replace(/(^|\s)\/\/[^\n]*/g, '$1');
-/* Not risky: a cancel closes an unsaved editor, and a filter chip or a photo not yet sent is only a choice on screen. */
-const SAFE = new Set(['card-cancel', 'person-cancel', 'post-cancel', 'rep-cancel', 'filter-drop', 'cam-drop', 'msg-unqueue']);
+/* Not risky: a cancel closes an unsaved editor, and a filter chip, a photo not yet sent or a picked child not yet saved is only a choice on screen. */
+const SAFE = new Set(['card-cancel', 'person-cancel', 'pa-unpick', 'post-cancel', 'rep-cancel', 'filter-drop', 'cam-drop', 'msg-unqueue']);
 const RISKY = /(delete|decline|cancel|remove|drop|leave|revoke|unlink|refuse|reject|wipe|reset|del)\b/;
 const body = {};
 files.forEach(({ n, src }) => {

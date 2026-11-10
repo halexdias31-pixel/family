@@ -94,6 +94,10 @@ const EXEMPT = [
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf="dob"', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-role', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-parent', why: PEOPLE_FORM },
+  /* ADD A PERSON IN FIND (add-person): like the people column's form, another person's account made there and then; the picker is a name looked up. */
+  { file: 'me.js', fn: 'box', has: 'data-pa="${k}"', why: PEOPLE_FORM },
+  { file: 'me.js', fn: 'personAddCard_', has: 'data-pa="dob"', why: PEOPLE_FORM },
+  { file: 'me.js', fn: 'famPick_', has: 'data-fam-q', why: 'a family picker: a name looked up, not work, retyped in a second' },
   { file: 'me.js', fn: 'personEdHtml_', has: 'data-pe="dob"', why: 'saved to their row within a second of typing (edit-person): the server holds it, not a draft' },
   /* APPLY TO TEACH (400): one sheet filled and sent in a sitting; a reload starts the application again. */
   { file: 'me.js', fn: 'box', has: 'data-app="${k}"', why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },

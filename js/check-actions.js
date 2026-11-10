@@ -30,8 +30,6 @@ const REASONS = {
   claudeNoteAdd: 'kept for a phone loaded before 494, whose admin tile was Note for Claude; Suggest a change replaced it (check-suggest).',
   claudeNoteDone: 'kept for a phone loaded before 498, whose suggest box listed notes with Done; Done is now data/notes-done.json, read on an admin open (check-suggest).',
   flagMessage: 'kept for a phone loaded before 486: a message routed into the one `suggest` action (check-posts proves it).',
-  linkChild: 'the one way an admin settles a HELD family link besides typing in the sheet (check-signin proves the '
-    + 'address rule on it). Posted by hand for now; no admin card yet (433).',
 };
 
 /* every backend file, so a handler moved out of dopost.gs is still seen */

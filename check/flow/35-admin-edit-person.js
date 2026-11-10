@@ -4,9 +4,9 @@ check('an admin edits a student\'s first name from their Find card and the row c
   const reply = b => (['updateProfile', 'personGet'].indexOf(b.action) !== -1 ? W.real.post(b) : { success: true, messages: [] });
   const bad = [];
   const profiles = async c => {
-    c.t.DATA().everyone = [{ personId: 'P-S1', title: 'Sam S.', handle: 'samstudent', role: 'Student', image: '' }];
+    c.t.DATA().everyone = [{ personId: 'P-S1', title: 'Sam S.', handle: 'samstudent', role: 'Student', image: '' }]; c.t.memoDrop();
     c.t.go('stuff', false, true);
-    const KS = c.t.STUFF(); KS.filters.length = 0; KS.filters.push({ field: 'kindLabel', value: 'Profiles' }); c.w.paintStuff(); await wait(300);
+    const KS = c.t.STUFF(); KS.filters.length = 0; KS.filters.push({ field: 'kindLabel', value: 'Profiles' }, { field: 'profileType', value: 'Student' }); c.w.paintStuff(); await wait(300);
   };
   const a = await cardOpen_(W, 'admin@example.org', { reply });
   if (a.err) return [a.err];
