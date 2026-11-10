@@ -317,6 +317,8 @@ function qStemWhole_(x, p) {
     });
     flush();
   });
+  /* A FIGURE LEFT FOR THE PART THAT PENS ON IT, when that part is not on screen: drawn here, under the stem's words. */
+  if (stemHasFig_(p) && stemPenned_(p)) html.push((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
   if (stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
   return `<div class="qsheet-stem qtext qb-stem${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
 }
@@ -355,7 +357,8 @@ function qOneCard_(p, ctx) {
 function questionWhole_(x, parts, open, ans) {
   const list = parts && parts.length ? parts : [x];
   const shown = list.filter(p => !open || !open.size || open.has(p));
-  const ctx = { ans: ans !== false, drawn: {}, carried: new Set(list.map(stemCarried_).filter(Boolean)) };
+  /* CARRIED ONLY BY A PART ON SCREEN (owner, 10 Nov): part (a) carried Q8's garden, so (b) found alone drew no stem and no 7.5 m. */
+  const ctx = { ans: ans !== false, drawn: {}, carried: new Set(shown.map(stemCarried_).filter(Boolean)) };
   return `<div class="qwhole${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}" data-q="${esc(qId_(x) || x.key || '')}">${shown.map(p => qOneCard_(p, ctx)).join('')}</div>`;
 }
 

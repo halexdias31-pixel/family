@@ -552,7 +552,9 @@ const FACETS = [
   { field: 'function',  label: 'Function',    of: x => verifyTags_(x).fn },
   /* THE ID DECIDES WHO ANSWERS; its cover code is what is said (owner 8 Nov) — year, month, tier, board are their own facets, and tellApart_ adds one where two collide. */
   { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
-    showOf: id => paperTag_(id) || paperLabel_(id), tagSay: id => paperTag_(id) },
+    showOf: id => paperTag_(id) || paperLabel_(id), tagSay: id => paperTag_(id),
+    /* TWO PAPERS ONE NUMBER APART BY NOTHING ELSE (Combined Science's Paper 1 Biology, Chemistry, Physics): their titles, sitting last. */
+    nameOf: id => { const t = paperLabel_(id); return [t.replace(/\s+—\s+[^—]+$/, ''), t]; } },
   /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
   { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : paperNameSection_(x); } },
   /* WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS: the words are the value, so the card and the button agree. */
@@ -789,9 +791,14 @@ const paperTag_ = id => {
 const paperNameSection_ = x => (/, (Section [A-F])\b/.exec(String((docById_(((x && x.row) || {}).paper_id) || {}).name || '')) || [])[1] || '';
 /* WHICH SECTION OF ITS PAPER A DOCUMENT IS (770): § */
 function paperSectionOf_(row) {
-  const m = /-(\d)(\d)$/.exec(String((row && (row.paper_id || row.paperId)) || ''));
-  if (!m || String(row.paper || '') !== m[1] || Number(m[2]) < 1 || Number(m[2]) > 6) return null;
-  return { paper: m[1], section: 'Section ' + 'ABCDEF'[Number(m[2]) - 1], topic: String(row.section || '').trim() };
+  const id = String((row && (row.paper_id || row.paperId)) || '');
+  /* OR ITS TITLE SAYS IT (owner, 10 Nov): imported ids ("RS…-514") end in a row number, so "Paper 31: Statistics" read Paper 3 twice. */
+  let doc = null;
+  try { doc = row && row.name ? row : (typeof docById_ === 'function' ? docById_(id) : null); } catch (e) { doc = null; }
+  const t = /^Paper (\d)(\d)\b(?::\s*([^—]+?))?\s*(?:—|$)/.exec(String((doc && doc.name) || ''));
+  const m = /-(\d)(\d)$/.exec(id) || t;
+  if (!m || String((row && row.paper) || '') !== m[1] || Number(m[2]) < 1 || Number(m[2]) > 6) return null;
+  return { paper: m[1], section: 'Section ' + 'ABCDEF'[Number(m[2]) - 1], topic: String(row.section || (t && t[3]) || '').trim() };
 }
 
 /* THE SHORTEST FORM OF A NAME THAT IS STILL UNIQUE AMONG THE NAMES BESIDE IT — for every facet, on the button, the chip

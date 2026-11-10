@@ -359,6 +359,14 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
         if (foot && foot.matches('.tile-row')) bad('own-card', x, 'part ' + id + ' has a tile row after it, outside its card');
       });
     } catch (e) { bad('parts', x, 'a page of it threw: ' + e.message); }
+    /* ---------- FOUND ALONE (a Part chip): its stems' figures still on its card (owner, 10 Nov: 8b drew no garden) ---------- */
+    try {
+      const sib = w.questionParts_()[A.qId(x)] || [x], figd = (x.stems || []).filter(s => s && s.diagram);
+      if (sib.length > 1 && figd.length) {
+        host.innerHTML = w.questionWhole_(x, sib, new Set([x]), true);
+        if (!host.querySelector('.qb-stem figure svg, .qpad-art svg, .qp-area svg')) bad('figures', x, 'drawn alone, its card shows none of its stem\'s figure');
+      }
+    } catch (e) { bad('parts', x, 'drawn alone it threw: ' + e.message); }
     const uses = S(x.uses || r.uses).toLowerCase().replace(/[^a-z0-9]/g, '');
     if (uses) {
       const sib = (w.questionParts_()[A.qId(x)] || []);

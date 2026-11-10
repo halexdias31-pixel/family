@@ -33,6 +33,15 @@ function scan() {
     const out = [...r.getClientRects()].filter(x => x.width > 0).some(x => x.left < b.left - 0.5 || x.right > b.right + 0.5 || x.top < b.top - 0.5 || x.bottom > b.bottom + 0.5);
     if (out || c.scrollWidth > c.clientWidth + 1) fails.push('"' + c.textContent.trim() + '": text outside its pill');
   });
+  /* A PILL THAT FITS THE CARD'S WIDTH ON ONE LINE IS DRAWN ON ONE (owner, 10 Nov: "Maths A-Level, GCSE" broke beside the face). */
+  host.querySelectorAll('.card').forEach(card => {
+    const cs = getComputedStyle(card), room = card.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    card.querySelectorAll('.prof-teach .prof-tag').forEach(c => {
+      const lines = new Set([...(() => { const r = document.createRange(); r.selectNodeContents(c); return r.getClientRects(); })()].filter(x => x.width > 0).map(x => Math.round(x.top))).size;
+      const was = c.style.whiteSpace; c.style.whiteSpace = 'nowrap'; const one = Math.max(c.getBoundingClientRect().width, c.scrollWidth); c.style.whiteSpace = was;
+      if (lines > 1 && one <= room) fails.push('"' + c.textContent.trim() + '": broken over ' + lines + ' lines though one line (' + Math.round(one) + 'px) fits the card (' + Math.round(room) + 'px)');
+    });
+  });
   const rates = [...host.querySelectorAll('.prof-tag-rate')].map(p => p.textContent.replace(/\s+/g, ''));
   if (rates.length !== 2) fails.push('expected two rates, found ' + rates.length);
   rates.forEach(t => { if ((t.match(/\/h/g) || []).length !== 1 || /hour/.test(t)) fails.push('rate "' + t + '" does not say /h once'); });
