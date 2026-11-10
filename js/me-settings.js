@@ -84,11 +84,8 @@ function phoneRow_(value) {
   if (codes.indexOf(cc) === -1) codes.unshift(cc);
   return `<div class="f-rowwrap"><span class="dob-cap">phone</span>
     <div class="f-row is-phone">
-      <label class="field"><select data-me="phone_cc" aria-label="Country code">
-        ${codes.map(x => `<option value="${esc(x)}"${x === cc ? ' selected' : ''}>${esc(x)}</option>`).join('')}
-      </select></label>
-      <label class="field"><input type="tel" data-me="phone_no" inputmode="tel" autocomplete="off"
-        placeholder="Number" value="${esc(draftVal_('set', 'phone_no', phoneNo))}"${draftAttr_('set', 'phone_no', phoneNo)}></label>
+      ${formPhone_('phone_cc', 'phone_no', codes.map(x => `<option value="${esc(x)}"${x === cc ? ' selected' : ''}>${esc(x)}</option>`).join(''),
+        `placeholder="Number" value="${esc(draftVal_('set', 'phone_no', phoneNo))}"${draftAttr_('set', 'phone_no', phoneNo)}`)}
     </div></div>`;
 }
 function qualYears_(current) {
@@ -190,7 +187,7 @@ function photoShelf_(list, value, o) {
         <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : ''}</span>
         ${fieldHtml('photos_' + i, v, { placeholder: 'Photo', draft: (o || {}).draft, extra: 'type="hidden"' })}
         <div class="tile-row">${tile_({ icon: 'plus', label: v ? 'Change photo' : 'Choose photo', act: 'ph-pick' })}${shelfDrop_('photo')}</div>
-        <p class="faint ph-said"></p><input type="file" class="ph-in" accept="image/*" hidden>
+        <p class="faint ph-said"></p>${formFile_('ph-in', 'image/*')}
       </div>`;
     }, 'photo')}</div>`;
 }
@@ -270,7 +267,7 @@ function photoPicker_(value, said, o) {
     </div>
     <div class="pfp-grid" role="group" aria-label="Or choose a picture">${Object.keys(PFP_ART).map(opt).join('')}</div>
     <p class="faint pfp-said">${esc(said || pfpSaid_(v))}</p>
-    ${uiMay_('upload-photo') ? '<input type="file" class="pfp-in" accept="image/*" hidden>' : ''}
+    ${uiMay_('upload-photo') ? formFile_('pfp-in', 'image/*') : ''}
   ${fold ? '</details>' : '</div>'}`;
 }
 /* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */
@@ -883,7 +880,7 @@ function videoPicker_(value, said) {
     <div class="tile-row">${tile_({ icon: 'plus', label: id ? 'Change video' : 'Upload video', note: 'about a minute', act: 'vid-pick' })}${
       tile_({ icon: 'bin', label: 'Remove', act: 'vid-remove', off: !id })}</div>
     <p class="faint vid-said">${esc(said || (id ? 'Parents can watch this on your card.' : 'A short clip saying hello: about a minute, 100 MB at most.'))}</p>
-    <input type="file" class="vid-in" accept="video/*" hidden>
+    ${formFile_('vid-in', 'video/*')}
   </div>`;
 }
 const vidSay_ = (box, msg) => { const p = box && box.querySelector('.vid-said'); if (p) p.textContent = msg; };

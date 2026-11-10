@@ -298,10 +298,9 @@ function ceAreas_() {
 function ceWhere_(L, val, box) {
   const got = profList_(val('venues_ok')), by = ceAreas_(), has = t => got.some(g => norm(g) === norm(t));
   const ro = (((typeof DATA !== 'undefined' && DATA && DATA.profileReadonly) || []).indexOf('venues_ok') !== -1);
-  const ticks = L.indexOf('venues_ok') === -1 ? '' : `<input type="hidden" data-me="venues_ok" value="${esc(got.join(', '))}">
-    <div class="many-list where-areas" role="group" aria-label="Areas you teach in">${Object.keys(by).sort().map(a => `<label class="check many-opt">
-      <input type="checkbox" data-where-area="${esc(a)}"${by[a].some(has) ? ' checked' : ''}${ro ? ' disabled' : ''}><span class="box"></span><span>${esc(a)}</span>
-      <span class="faint">${esc(ceCount_(by[a].length, 'venue', 'venues'))}</span></label>`).join('') || `<p class="faint">${esc(brand('where_none', 'No venues yet.'))}</p>`}</div>`;
+  const ticks = L.indexOf('venues_ok') === -1 ? '' : formHidden_('data-me="venues_ok"', got.join(', ')) + `
+    <div class="many-list where-areas" role="group" aria-label="Areas you teach in">${Object.keys(by).sort().map(a => formTick_(`data-where-area="${esc(a)}"${by[a].some(has) ? ' checked' : ''}${ro ? ' disabled' : ''}`, `<span>${esc(a)}</span>
+      <span class="faint">${esc(ceCount_(by[a].length, 'venue', 'venues'))}</span>`, 'many-opt')).join('') || `<p class="faint">${esc(brand('where_none', 'No venues yet.'))}</p>`}</div>`;
   return ceFold_('where', 'Areas', esc(ceCount_(got.length, 'venue', 'venues')), ticks)
     + fieldRows_(L.filter(f => f !== 'venues_ok'), box);
 }
@@ -431,7 +430,7 @@ function cardRateHtml_(L, val, box, e) {
     ? `<div class="share-bar" role="img" aria-label="Who gets what for a second student" aria-live="polite" data-cut="${esc(String(val('extra_seat_cut') || ''))}">${cardShareBar_(rate, val('extra_seat_rate'), val('extra_seat_cut'))}</div>` : '';
   return box('rate_per_hour', {}) + bar
     + ceFold_('seat', 'Extra seat', `<span class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'))}</span>`,
-      `${pound}<input type="hidden" data-me="extra_seat_rate" value="${esc(String(val('extra_seat_rate')))}">
+      `${pound}${formHidden_('data-me="extra_seat_rate"', val('extra_seat_rate'))}
        <p class="faint ce-note ce-seat-note">${esc('Blank or £0 is the usual' + (u ? ' ' + money_(u.extra_seat_rate) : '')
          + '; at most ' + (live ? money_(pounds2_(rate * STAFF_SEAT_MAX)) : 'the rate') + ' — a seat never costs more than the first student.')}</p>`)
     + fieldRows_(L.filter(f => f !== 'rate_per_hour' && f !== 'extra_seat_rate'), box);
@@ -446,7 +445,7 @@ function cardCutHtml_(L, val, box) {
   const body = mayCut
     ? fieldHtml('extra_seat_cut', cardSeatShown_('extra_seat_cut', rate, val('extra_seat_cut')), { attr: 'data-pound', label: "@family.'s, £/h",
         readonly: !live, draft: false, extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` })
-      + `<input type="hidden" data-me="extra_seat_cut" value="${esc(String(val('extra_seat_cut')))}">`
+      + formHidden_('data-me="extra_seat_cut"', val('extra_seat_cut'))
       + `<p class="faint ce-note ce-cut-note">${esc('Blank is the usual' + (u ? ' ' + money_(u.extra_seat_cut) : '') + ', £0 is no cut.')}</p>`
     : `<p class="faint ce-note ce-cut-note">${esc((live ? money_(p.gx) + '/h of each extra student is @family.\'s' + (p.gOwn ? '' : ', the usual') : "@family.'s part is set by @family.")
         + ' — only @family. sets that.')}</p>`;

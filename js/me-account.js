@@ -24,15 +24,14 @@ function signInCard_() {
         ${/* ---------- NAME, USERNAME OR E-MAIL, AND THE LABEL HAS TO SAY SO § */
              ''}
         <label class="field"><span>email or handle</span>
-          <input id="in-name" type="text" inputmode="email" autocomplete="off" autocapitalize="off"
-                 spellcheck="false"></label>
+          ${formInput_('id="in-name" type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false"')}</label>
         ${/* ---------- THE PIN, ON A SHARED iPAD § */
              ''}
         <label class="field"><span>PIN</span>
-          <input id="in-pin" ${pinDotsOk_() ? 'type="text" class="pin-dots"' : 'type="password"'}
+          ${formInput_(`id="in-pin" ${pinDotsOk_() ? 'type="text" class="pin-dots"' : 'type="password"'}
                  inputmode="numeric" pattern="[0-9]*" maxlength="8" enterkeyhint="go"
                  autocomplete="one-time-code" autocorrect="off" autocapitalize="off" spellcheck="false"
-                 data-1p-ignore data-lpignore="true"></label>
+                 data-1p-ignore data-lpignore="true"`)}</label>
         ${/* ---------- THREE TILES, WHERE THERE WERE TWO BUTTONS AND A CARD § */
              ''}
         <div class="tile-row">${tile_({ icon: 'in', label: 'Sign in', tone: 'buy', act: 'do-signin' })}${
@@ -201,15 +200,15 @@ function applyFormHtml_() {
       ${noOther(qualPick_(`data-app-level="${i}"`, '', QUAL_LEVELS, 'Level', 'Choose'))}</div>`).join('');
   const codes = typeof availCodes_ === 'function' ? availCodes_() : [];
   const week = codes.length ? availGrid_(codes, {}, [], false) : '';
-  const box = (k, label, o) => `<label class="field"><span>${esc(label)}</span><input data-app="${k}" autocomplete="off"${(o && o.type) ? ` type="${o.type}"` : ''}${(o && o.ph) ? ` placeholder="${esc(o.ph)}"` : ''}></label>`;
-  const area = (k, label) => `<label class="field"><span>${esc(label)}</span><textarea data-app="${k}" rows="3"></textarea></label>`;
+  const box = (k, label, o) => formLine_(label, formInput_(`data-app="${k}" autocomplete="off"${(o && o.type) ? ` type="${o.type}"` : ''}${(o && o.ph) ? ` placeholder="${esc(o.ph)}"` : ''}`));
+  const area = (k, label) => formLine_(label, formArea_(`data-app="${k}" rows="3"`));
   return `<div class="me-form app-form">
     <h4>What you teach</h4>${rows}
     ${area('qualifications', 'qualifications — degrees, teaching qualifications, anything relevant')}
     <h4>Checks</h4>
     <div class="f-row" style="--n:2">${box('dbsNumber', 'DBS certificate number')}${box('dbsIssued', 'issued on', { type: 'date' })}</div>
-    <label class="check"><input type="checkbox" data-app="dbsNeeded"><span class="box"></span><span>I need a DBS check</span></label>
-    <label class="field"><span>right to work in the UK</span><select data-app="rightToWork"><option value="">Choose</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+    ${formTick_('data-app="dbsNeeded"', '<span>I need a DBS check</span>')}
+    ${formLine_('right to work in the UK', formSelect_('data-app="rightToWork"', '<option value="">Choose</option><option value="yes">Yes</option><option value="no">No</option>'))}
     <h4>You</h4>
     ${area('experience', 'experience')}
     ${week ? `<div class="app-week">${week}</div>` : area('availability', 'when you can teach')}
@@ -219,7 +218,7 @@ function applyFormHtml_() {
     <div class="f-row" style="--n:2">${box('ref2Name', 'name')}${box('ref2Contact', 'email or phone')}</div>
     ${area('statement', 'a short statement — why you want to teach')}
     ${box('cvLink', 'CV link (optional)', { ph: 'https://…', type: 'url' })}
-    <label class="check"><input type="checkbox" data-app="consent"><span class="box"></span><span>I agree to @family. keeping these details to consider my application, contacting my referees and checking my DBS.</span></label>
+    ${formTick_('data-app="consent"', '<span>I agree to @family. keeping these details to consider my application, contacting my referees and checking my DBS.</span>')}
     <div class="btn-row">${tile_({ form: true, label: 'Send my application', act: 'apply-send' })}</div>
     <p class="faint me-said apply-said" aria-live="polite"></p>
   </div>`;
@@ -566,10 +565,10 @@ function registerCard_() {
     ${/* ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */''}
     <div class="reg-who" id="reg-who" data-who="">
       <p class="reg-cap" id="reg-who-cap">Both are free; teaching starts with "Apply to teach" once you are in.</p>
-      <label class="field"><span>who is the account for?</span><select id="reg-who-in" data-do="reg-who" aria-describedby="reg-who-cap">
+      ${formLine_('who is the account for?', formSelect_('id="reg-who-in" data-do="reg-who" aria-describedby="reg-who-cap"', `
         <option value="" selected disabled>Choose</option>
         <option value="parent" data-who="parent">Client — I book and pay</option>
-        <option value="student" data-who="student">Student — I'm learning</option></select></label>
+        <option value="student" data-who="student">Student — I'm learning</option>`))}
     </div>
     <div id="reg-rest" hidden>
       ${/* THE TWO NAMES SHARE A ROW, as on "Make your child's account" — measured: § */
@@ -577,18 +576,13 @@ function registerCard_() {
       ${/* THE NAMES AND THE ADDRESS ARE DRAFTS (data.js; docs/history/317) — the sheet closed by a tap outside, or the page reloaded, and they were gone. § */
             ''}
       <div class="f-row" style="--n:2">
-        <label class="field"><span>first name</span>
-          <input id="reg-first" autocomplete="off"${draftAttr_('reg', 'first')} value="${esc(draftVal_('reg', 'first'))}"></label>
-        <label class="field"><span>last name</span>
-          <input id="reg-last" autocomplete="off"${draftAttr_('reg', 'last')} value="${esc(draftVal_('reg', 'last'))}"></label>
+        ${formLine_('first name', formInput_(`id="reg-first" autocomplete="off"${draftAttr_('reg', 'first')} value="${esc(draftVal_('reg', 'first'))}"`))}
+        ${formLine_('last name', formInput_(`id="reg-last" autocomplete="off"${draftAttr_('reg', 'last')} value="${esc(draftVal_('reg', 'last'))}"`))}
       </div>
-      <label class="field"><span>email</span>
-        <input id="reg-email" type="email" inputmode="email" autocomplete="off" autocapitalize="off"
-               spellcheck="false" placeholder="you@example.com"${draftAttr_('reg', 'email')} value="${esc(draftVal_('reg', 'email'))}"></label>
-      <label class="check reg-kid" hidden><input type="checkbox" id="reg-noemail"><span class="box"></span>
-        <span>It's a grown-up's email</span></label>
-      <label class="field"><span>PIN — 4 to 8 digits</span>
-        <input id="reg-pin" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
+      ${formLine_('email', formInput_(`id="reg-email" type="email" inputmode="email" autocomplete="off" autocapitalize="off"
+               spellcheck="false" placeholder="you@example.com"${draftAttr_('reg', 'email')} value="${esc(draftVal_('reg', 'email'))}"`))}
+      ${formTick_('id="reg-noemail"', "<span>It's a grown-up's email</span>", 'reg-kid', 'hidden')}
+      ${formLine_('PIN — 4 to 8 digits', formInput_('id="reg-pin" type="password" inputmode="numeric" autocomplete="one-time-code"'))}
       ${tile_({ form: true, label: 'Make my account', act: 'reg-send' })}
       ${/* THREE LINES AT 320, MEASURED: § */
             ''}

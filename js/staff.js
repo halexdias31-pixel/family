@@ -91,8 +91,7 @@ function agreementCard_() {
     <p class="faint hub-ver">Version ${esc(termsVersion_())}</p>
     <div class="doc">${termsSections_(brand('tutor_terms', TERMS_DRAFT)).map(s =>
       `<div class="doc-part">${s.h ? `<h4>${esc(s.h)}</h4>` : ''}${prose(s.body)}</div>`).join('')}</div>
-    <label class="check"><input type="checkbox" data-do="agree-sign"${now ? ' checked disabled' : ''}>
-      <span class="box"></span><span>I have read these terms and I agree to them</span></label>
+    ${formTick_(`data-do="agree-sign"${now ? ' checked disabled' : ''}`, '<span>I have read these terms and I agree to them</span>')}
     <p class="faint agree-said">${now ? 'Agreed on ' + esc(at) + ' · version ' + esc(was) + '.'
       : at ? 'These terms have changed since you agreed to version ' + esc(was) + ' on ' + esc(at) + '. Please read them and agree again.'
       : 'Your agreement, the version and the time are recorded.'}</p>
@@ -205,8 +204,7 @@ function priceHtml_() {
   const fee = [Number(v.card_fee_pct) > 0 ? v.card_fee_pct + '%' : '', Number(v.card_fee_fixed) > 0 ? money_(v.card_fee_fixed) + ' a payment' : ''].filter(Boolean).join(' + ');
   const ctl = (k, label, min, max, step, val, note) => `<div class="pf-var hub-var" data-pv="${k}">
       <p class="pf-name">${esc(label)}<span class="pf-from">${esc(note)}</span></p>
-      <input type="range" data-pv="${k}" data-noswipe min="${min}" max="${max}" step="${step}" value="${val}" aria-label="${esc(label)}">
-      <input type="number" class="pf-num" data-pv="${k}" min="0" max="${k === 'rate' ? STAFF_RATE_MAX : max}" step="${step}" value="${val}" inputmode="decimal" aria-label="${esc(label + ', typed')}">
+      ${formSlider_(`data-pv="${k}"`, { min: min, max: max, numMax: k === 'rate' ? STAFF_RATE_MAX : max, step: step, value: val, label: label })}
     </div>`;
   const rooms = priceRooms_();
   const opt = (val, txt) => `<option value="${esc(val)}"${PRICE.loc === val ? ' selected' : ''}>${esc(txt)}</option>`;
@@ -217,8 +215,8 @@ function priceHtml_() {
       ${ctl('rate', 'Your rate, £ an hour', 5, Math.max(80, PRICE.rate), 0.5, PRICE.rate, PRICE.open ? 'none yet: the open rate' : 'the first student')}
       ${ctl('seat', 'Each extra seat adds, £ an hour', 0, Math.max(1, PRICE.rate * STAFF_SEAT_MAX), 0.25, PRICE.seat, '0 is the usual ' + money_(usual))}
     </div>
-    <label class="field hub-room"><span>room</span><select data-pv="loc" aria-label="Room">${opt('', 'No room hire (online or at home)')}${
-      rooms.map(r => opt(r.title, r.title + ' · ' + perHour_(parseFloat(r.bestRate)))).join('')}</select></label>
+    ${formLine_('room', formSelect_('data-pv="loc" aria-label="Room"', opt('', 'No room hire (online or at home)') +
+      rooms.map(r => opt(r.title, r.title + ' · ' + perHour_(parseFloat(r.bestRate)))).join('')), 'hub-room')}
     <div class="pb" aria-live="polite">${priceBarsHtml_()}</div>
     <p class="faint hub-note">@family.’s share of each extra seat is ${esc(money_((PRICE.rate || 0) * (s.bUsed || 0)))} an hour, set by @family.${
       fee ? ' Card fees are ' + esc(fee) + '.' : ''} What you charge can change once a month.</p>
@@ -312,7 +310,7 @@ function stmtHtml_() {
   const opt = ym => `<option value="${ym}"${ym === STMT.month ? ' selected' : ''}>${esc(ymSay_(ym))}</option>`;
   return `<div class="hub-stmt">
     <h3>Statement${STMT.tutorName ? ' · ' + esc(STMT.tutorName) : ''}</h3>
-    <label class="field"><span>month</span><select data-stmt="month" aria-label="Month">${stmtMonths_().map(opt).join('')}</select></label>
+    ${formLine_('month', formSelect_('data-stmt="month" aria-label="Month"', stmtMonths_().map(opt).join('')))}
     <div class="stmt-out"${STMT.asking ? ' aria-busy="true"' : ''}>${stmtOutHtml_()}</div>
     <div class="tile-row">${tile_({ icon: 'print', label: 'Download PDF', note: 'print or save', act: 'stmt-print', off: !STMT.data })}</div>
   </div>`;

@@ -10,7 +10,12 @@
   "time",
   "picture",
   "list",
-  "pin"
+  "pin",
+  "slider",
+  "phone",
+  "file",
+  "tick",
+  "hidden"
  ],
  "rules": [
   {
@@ -82,38 +87,5 @@
    "said": "pin-said"
   }
  },
- "leftovers": {
-  "me-shelves.js": {
-   "n": 12,
-   "why": "fieldHtml, the line-drawer formField_ calls; the qualification shelf"
-  },
-  "me-settings.js": {
-   "n": 5,
-   "why": "phone code and number row, photo and video file pickers"
-  },
-  "me-card.js": {
-   "n": 4,
-   "why": "card editor: where-you-teach ticks, extra-seat hidden boxes"
-  },
-  "staff.js": {
-   "n": 5,
-   "why": "rate sliders, room picker, statement month, agreement tick"
-  },
-  "me-roles.js": {
-   "n": 2,
-   "why": "roles: a single-answer menu (84a skips those); the availability week grid"
-  },
-  "me-account.js": {
-   "n": 13,
-   "why": "sign-in, register and Apply to teach forms"
-  },
-  "me-people.js": {
-   "n": 5,
-   "why": "an admin's add-a-person form"
-  },
-  "records.js": {
-   "n": 6,
-   "why": "business settings and the weekly email's words"
-  }
- }
+ "leftovers": {}
 }
