@@ -474,10 +474,6 @@ function kcSplit_(html) {
 const KC_TILE_RE = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;
 const kcAct_ = t => (/\bdata-do="([^"]*)"/.exec(t) || [])[1] || '';
 /* WHAT COUNTS AS A CARD'S MAIN ACTION when its kind names none first: a Send/Check, a buy-toned tile, Open. */
-/* DRAWN OPEN: a question alone (tags on top, its answer box live); every other kind is closed until its picture is tapped (phase 2, 9 Nov). */
-const KC_OPEN_KINDS = ['question', 'answer'];
-/* A KIND WITH NOTHING TO DO BUT READ leads with Read, which opens it in place; any other with no main of its own leads with Open. */
-const KC_READ_KINDS = ['bible', 'talmud', 'quran', 'worktext', 'hadith', 'writ', 'pdtext', 'orthotext', 'hymn', 'writing', 'manuscript', 'content', 'insert'];
 const KC_MAIN_ACTS = ['find-open', 'book-with'];
 function kcFour_(x, rest, main) {
   const all = String(rest || '').match(KC_TILE_RE) || [];
@@ -492,7 +488,8 @@ function kcFour_(x, rest, main) {
     || tile_({ icon: 'chat', label: 'Message', act: 'msg-open', off: true, data: { to: who } });
   const star = pick(t => kcAct_(t) === 'fav')
     || tile_({ icon: 'star', label: 'Save', act: 'fav', off: true, data: { key: (x && x.key) || '', kind: (x && x.kind) || 'item' } });
-  const lead = main || tile_({ icon: 'open', label: KC_READ_KINDS.indexOf(x && x.kind) >= 0 ? 'Read' : 'Open', act: 'kc-open' });
+  /* A CARD IS STATIC (owner, 10 Nov): with no main of its own, Share leads; the card already shows everything it holds. */
+  const lead = main || pick(t => kcAct_(t) === 'card-share') || tile_({ icon: 'share', label: 'Share', act: 'card-share', off: !(x && x.key), data: { key: (x && x.key) || '' } });
   /* WHAT IS NOT A TILE (a verdict, a slot) stays beside the rest, behind ⋯. */
   const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
   return `<span class="kc-four">${lead}${msg}${star}${tile_({ icon: 'more', label: 'More', act: 'kc-more' })}</span><span class="kc-more" hidden>${all.join('')}${left}</span>`;
@@ -621,7 +618,7 @@ function kcFactsWatch_() {
   const rewrap = (card, gone) => { const parts = gone.filter(n => n.nodeType === 1 && /^kc-(pic|head|tags|lines|form|act)$/.test(n.className)); if (!parts.length) return;
     const f = kcFacts_(card.innerHTML), lines = parts.find(n => n.className === 'kc-lines'), form = parts.find(n => n.className === 'kc-form');
     /* CONTROLS THAT ARRIVE LATE (a list loaded after the first draw) take a form part, open, in place of the lines. */
-    if (f.form && !form && lines) { lines.className = 'kc-form'; lines.innerHTML = f.form; card.classList.add('is-open'); }
+    if (f.form && !form && lines) { lines.className = 'kc-form'; lines.innerHTML = f.form; }
     else if (f.form && form) form.innerHTML = f.form;
     else if (lines) lines.innerHTML = (f.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`) + (f.src ? `<div class="kc-src" hidden>${f.src}</div>` : '');
     card.replaceChildren(...parts); if (f.tiles) sync(card, f.tiles); };
@@ -633,10 +630,9 @@ function kcFactsWatch_() {
       seen.forEach(redo);
     } catch (e) { oops_(e, 'card:facts'); } finally { busy = false; } }).observe(document.body, { subtree: true, childList: true, characterData: true });
 }
-/* A CARD OPENS IN PLACE (owner, 9 Nov): closed is picture, tags and two lines; open puts the tags on top and shows everything. */
+/* ⋯ IS A CARD'S ONLY TOGGLE (owner, 10 Nov): its labelled list of the other actions, under the row. */
 on('kc-more', el => { const c = el.closest('.kc-row, .tile-row'), m = c && c.querySelector('.kc-more'); if (!m) return;
   m.hidden = !m.hidden; el.setAttribute('aria-expanded', m.hidden ? 'false' : 'true'); });
-on('kc-open', el => { const c = el.closest('.card.kc'); if (c) c.classList.toggle('is-open'); });
 /* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
 function findCard(x, credits) {
   const around = x && !x.kcIn && (window.KC_AROUND || {})[x.kind];
@@ -680,15 +676,14 @@ function findCard(x, credits) {
     parts.tags = kcTidy_(parts.tags, '', name).tags;
   }
   if (!facts && KC_WHOLE_KINDS.indexOf(it.kind) < 0) { const tidy = kcTidy_(parts.tags, parts.lines, name); parts.tags = tidy.tags; parts.lines = tidy.lines; }
-  /* A QUESTION IS ALWAYS OPEN (tags on top), as a form is until phase 2 converts it; any other card opens by a tap on its picture. */
-  const off = (KC_OPEN_KINDS.indexOf(it.kind) >= 0 || it.open || parts.form ? ' is-open' : '') + (facts ? ' kc-facts' : '') + (it.kind === 'tutor' && t.listed === false ? ' is-off' : '') + (it.cardCls ? ' ' + esc(it.cardCls) : '');
+  const off = (facts ? ' kc-facts' : '') + (it.kind === 'tutor' && t.listed === false ? ' is-off' : '') + (it.cardCls ? ' ' + esc(it.cardCls) : '');
   /* `cardData` BECOMES data-* ATTRIBUTES, so a card can be found again where it stands (a post's sheet, a conversation's redraw). */
   const data = Object.keys(it.cardData || {}).map(k => ` data-${k}="${esc(it.cardData[k])}"`).join('');
   /* ITS OWN MAKER'S CLASSES AND ATTRIBUTES STAY ON IT, so every handler's `closest('.qcard')` or `[data-key]` still finds it. */
   const mine = it.kcOwn || {}, ownCls = String(mine.cls || '').split(/\s+/).filter(c => c && !/^(card|fc|kc)$/.test(c)).join(' ');
   const label = /\saria-label=/.test(mine.attrs || '') ? '' : ` aria-label="${esc(name)}"`;
   return `<div class="card fc kc kc-${esc(it.kind || 'thing')}${s.cls ? ' ' + esc(s.cls) : ''}${ownCls ? ' ' + ownCls : ''}${off}"${data}${mine.attrs || ''}${label}>${
-    (parts.form ? ['pic', 'head', 'tags', 'lines', 'form', 'act'] : KC_PARTS).map(p => (p === 'pic' && !/ is-open/.test(off) ? `<div class="kc-pic" data-do="kc-open" role="button" tabindex="0" aria-label="Open">${parts[p]}</div>` : `<div class="kc-${p}">${parts[p]}</div>`)).join('')}</div>`;
+    (parts.form ? ['pic', 'head', 'tags', 'lines', 'form', 'act'] : KC_PARTS).map(p => `<div class="kc-${p}">${parts[p]}</div>`).join('')}</div>`;
 }
 
 /* Tapping one opens a sheet rather than expanding the card. § */

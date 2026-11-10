@@ -270,3 +270,7 @@ become an owner question showing both; never pick one.
 - Long content (question text, policies, forms, tables) sits in a centred block of reading width; its paragraphs read left-aligned inside that block.
 - ⋯ opens a list of actions WITH WORDS (icon + label), centred, not a second row of bare icons.
 - Unique content never breaks the anatomy: whatever a kind holds goes into the content block.
+
+## 10 Nov — cards are static: one view, no open/closed
+- Every card is drawn once, whole: picture (one fixed size, centred) → tags → lines and content (all of it) → the four buttons. No tap-to-open picture, no enlarging, no closed two-line clamp.
+- ⋯ is the only toggle a card has: its labelled list of the other actions. A kind with no main action of its own leads with Share.
