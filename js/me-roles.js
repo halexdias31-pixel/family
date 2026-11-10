@@ -409,7 +409,7 @@ function familyPages_() {
   if (!rankAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
   const out = ownCardSetPage_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family'));
   /* NOTHING A PARENT'S ALONE (469): your picture, name and contact are everybody's, so on Student settings. */
-  return out.length ? out : [rankOffCard_(title, 'Nothing here yet — your details are on ' + tabLabel_('account', 'Kids settings') + '.').replace('rank-off', 'set-none')];
+  return out.length ? out : [rankOffCard_(title, NOTHING_YET + ' Your details are on ' + tabLabel_('account', 'Kids settings') + '.').replace('rank-off', 'set-none')];
 }
 screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_('family') : familyPages_()));
 
@@ -429,7 +429,7 @@ function staffPages_() {
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [`<div class="card staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`] : [];
   const out = ownCardSetPage_('staff').concat(top, settingsCards_(settingsSplit_().staff, '', 'staff'));
-  return out.length ? out : [`<div class="card rank-off set-none">${empty_('Nothing here yet.')}</div>`];
+  return out.length ? out : [`<div class="card rank-off set-none">${empty_()}</div>`];
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
 

@@ -588,7 +588,7 @@ function paint(id, fresh, o) {
   const kept = pre ? null : placeKeep_(el);
   el.innerHTML = html !== null
     ? html
-    : empty_('Nothing here yet.');
+    : empty_();
   el.DRAWN = { html: html, epoch: ACT_EPOCH };
   PRE_PAYLOAD.delete(id);
   PAINT_N[id] = (PAINT_N[id] || 0) + 1;

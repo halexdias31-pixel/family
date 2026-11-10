@@ -45,7 +45,7 @@ function healthCardOf_(which) {
   if (which === 'health') { try { return healthWithMissing_(siteHealthCard_()); } catch (e) { oops_(e, 'site health'); return ''; } }
   const all = (() => { try { return missingLeadCards_(); } catch (e) { oops_(e, 'health card'); return []; } })();
   const l = LOGIC_SHOWN && logicFor_() ? 1 : 0;
-  return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || '<div class="card">' + empty_('Nothing to show yet.') + '</div>';
+  return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || '<div class="card">' + empty_() + '</div>';
 }
 
 /* ---------- SITE HEALTH (890): data/health.json, written by tools/health.js — code 40%, Find logic 35%, UI 25%, mechanical ---------- */
