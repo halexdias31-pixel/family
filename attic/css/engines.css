@@ -1,0 +1,714 @@
+/* @family. — the engines' rules cut from style.css (attic, 88a): chess, calculator, console, e-ink, the notebook whiteboard, word search, scramble, imposter, Articulate and the textbook animations' stage. A rule that was inside an @media block is listed bare. */
+
+.scr, .scr-tile { --press-wash: var(--press-wash-paper); }
+
+.chess { container-type: inline-size;
+         display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
+         aspect-ratio: 1; width: min(100%, 70vh); margin: .35rem auto .6rem;
+         border: 2px solid var(--paper-ink); border-radius: var(--r-ui); overflow: hidden; }
+
+.chess .sq { display: flex; align-items: center; justify-content: center;
+             /* Sized against the BOARD, so a piece is the same share of its square on every phone. */
+             font-size: 10cqw; line-height: 1; cursor: pointer;
+             position: relative; min-width: 0; min-height: 0;
+             /* A SQUARE IS A `<button>` NOW — the board could not be played while it was spans with no action — so everything a browser gives a button is taken back off: § */
+             border: 0; padding: 0; margin: 0; border-radius: 0;
+             /* A SYMBOL FACE, never the site's monospace or an emoji, so each piece is one filled shape (448). */
+             font-family: 'DejaVu Sans', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Apple Symbols', serif; font-variant-emoji: text;
+             width: 100%; height: 100%; }
+
+.chess {
+  /* A MUTED CLASSIC PAIR, flat (448): warm enough to sit with the gold, far enough apart to read as a board. */
+  --chess-light: var(--hue-11);
+  --chess-dark:  var(--paper-dim);
+  --chess-white: var(--paper);
+  --chess-black: var(--line-soft);
+  --chess-frame: var(--line-soft);
+  --chess-last:  color-mix(in srgb, var(--admin) 38%, transparent);
+  --chess-check: color-mix(in srgb, var(--alert) 85%, transparent);
+  /* The shadow a piece casts, and the dark of the ending. */
+  --chess-drop:  color-mix(in srgb, var(--black) 50%, transparent);
+  --chess-dim:   color-mix(in srgb, var(--sunk) 74%, transparent);
+  --chess-turn:  .7s;
+  --press-wash: var(--press-wash-paper);
+  --chess-ease:  cubic-bezier(.65, 0, .35, 1);
+  position: relative;
+  transition: rotate var(--chess-turn) var(--chess-ease);
+}
+
+.chess .lt { background: var(--chess-light); }
+
+.chess .dk { background: var(--chess-dark); }
+
+.chess .wp { color: var(--chess-white); -webkit-text-stroke: .045em var(--chess-black); paint-order: stroke fill;
+             text-shadow: 0 .05em .08em var(--chess-drop); }
+
+.chess .bp { color: var(--chess-black); -webkit-text-stroke: .045em var(--chess-white); paint-order: stroke fill;
+             text-shadow: 0 .05em .08em var(--chess-drop); }
+
+.chess .pick { box-shadow: inset 0 0 0 3px var(--good); }
+
+.chess .can::after { content: ''; position: absolute; width: 26%; height: 26%;
+                     border-radius: 50%; background: var(--gold); opacity: .75; }
+
+.chess .take { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--alert) 80%, transparent); }
+
+.chess .last { background-image: linear-gradient(var(--chess-last), var(--chess-last)); }
+
+.chess .chk { background-image: radial-gradient(circle, var(--chess-check) 0 40%, transparent 72%); }
+
+.chess .sq:is(:active, .is-pressed) { background-image: linear-gradient(var(--press-wash), var(--press-wash)); }
+
+.chess .last-to { background-image: linear-gradient(var(--chess-last), var(--chess-last)),
+                                    linear-gradient(var(--chess-last), var(--chess-last)); }
+
+.chess .pc { display: block; position: relative; pointer-events: none;
+             transition: rotate var(--chess-turn) var(--chess-ease); }
+
+.chess .sq.mv { z-index: 3; }
+
+.chess .pc.ghost { position: absolute; }
+
+.chess.is-flipped { rotate: 180deg; }
+
+.chess.is-flipped .pc, .chess.is-flipped::before { rotate: -180deg; }
+
+.chess::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+                background: none; }
+
+.chess .chk { z-index: 2; }
+
+.chess .chk::before { content: ''; position: absolute; inset: 6%; border-radius: 50%; pointer-events: none;
+                      box-shadow: 0 0 0 .14em var(--chess-check); opacity: 0; }
+
+.chess .chk.is-new::before { animation: chess-ring .9s ease-out .25s 3; }
+
+@keyframes chess-ring { from { opacity: .95; transform: scale(.7); } to { opacity: 0; transform: scale(1.3); } }
+
+.chess.is-over::after { background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--black) 42%, transparent) 0, var(--chess-dim) 100%); }
+
+.chess.is-over::before { content: attr(data-end); position: absolute; inset: 0; z-index: 7; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  font: 700 10cqw/1 var(--font); letter-spacing: .06em;
+  color: var(--gold); text-shadow: 0 .04em .4em color-mix(in srgb, var(--black) 90%, transparent), 0 0 .12em color-mix(in srgb, var(--black) 80%, transparent); }
+
+.chess.is-over:not(.is-mate)::before { color: var(--ink); font-size: 8cqw; }
+
+.chess .sq.fell { z-index: 6; }
+
+.chess .pc.fallen { transform-origin: 50% 90%; transform: rotate(84deg); }
+
+.chess.is-fresh::after { animation: chess-dark .7s ease-out .3s both; }
+
+.chess.is-fresh .pc.fallen { animation: chess-fall 1s .55s both; }
+
+.chess.is-fresh::before { animation: chess-word .7s cubic-bezier(.2, .8, .2, 1) 1.15s both; }
+
+@keyframes chess-dark { from { opacity: .35; } to { opacity: 1; } }
+
+@keyframes chess-fall {
+  0%   { transform: none; animation-timing-function: ease-out; }
+  18%  { transform: rotate(-9deg); animation-timing-function: cubic-bezier(.55, 0, .9, .4); }
+  72%  { transform: rotate(90deg); animation-timing-function: ease-out; }
+  86%  { transform: rotate(78deg); animation-timing-function: ease-in; }
+  100% { transform: rotate(84deg); } }
+
+@keyframes chess-word { from { opacity: 0; transform: scale(1.35); } to { opacity: 1; transform: none; } }
+
+.chess, .chess .pc, .widget-full:has(.chess) .chess { transition: none; }
+
+.chess .chk.is-new::before { animation: none; }
+
+.mc-display { position: relative; min-height: 6.4rem;
+              display: flex; flex-direction: column; justify-content: space-between; cursor: default;
+              user-select: none; font-family: 'Cambria Math', 'STIX Two Math', Georgia, serif; }
+
+.mc-display:focus-visible { outline: 2px solid var(--calc-shift); outline-offset: 2px; }
+
+.mc-in { font-size: var(--fs-title); text-align: left; overflow-x: auto; white-space: nowrap; line-height: 2.1; }
+
+.mc-out { font-size: var(--fs-title); text-align: right; min-height: 1.9rem; white-space: nowrap; overflow-x: auto; }
+
+.mc-word { font-style: normal; }
+
+.mc-sup, .mc-idx { font-size: var(--fs-small); vertical-align: .75em; line-height: 0; }
+
+.mc-idx { margin-right: -.3em; }
+
+.mc-sqrt { display: inline-flex; align-items: stretch; vertical-align: middle; line-height: 1.25; }
+
+.mc-rad { transform: scaleY(1.15); }
+
+.mc-under { border-top: 1px solid currentColor; padding: 0 .12em; }
+
+.mc-frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle;
+           font-size: var(--fs-body); line-height: 1.15; margin: 0 .1em; }
+
+.mc-num { border-bottom: 1px solid currentColor; padding: 0 .15em; min-width: .8em; text-align: center; }
+
+.mc-den { padding: 0 .15em; min-width: .8em; text-align: center; }
+
+.mc-box { display: inline-block; min-width: .65em; height: .95em; border: 1px dashed currentColor;
+          vertical-align: middle; line-height: .95em; }
+
+.mc-box .mc-caret { height: .9em; }
+
+.calc { --calc-body: var(--paper-ink); --calc-edge: var(--line-soft); --calc-bezel: var(--line); --calc-lcd: var(--paper-strip); --calc-lcd-ink: var(--line-soft);
+        --calc-key: var(--paper-strip); --calc-key-ink: var(--line-soft); --calc-key-dark: var(--line); --calc-pad: var(--line-soft);
+        --calc-shift: var(--paper-faint); --calc-legend: var(--hue-1); --calc-print: var(--ink); --calc-gut: .45rem;
+        /* ONE KEY ROW'S HEIGHT, set from the pane by `calcFit_` (games.js) so the device fits at full size (533, D4); nine rows of it. */
+        --calc-row: 44px;
+        font-family: 'Arial Narrow', 'Roboto Condensed', Arial, Helvetica, sans-serif;
+        max-width: 24rem; margin-inline: auto; padding: .7rem clamp(2px, 1.6vw, .7rem) .9rem;
+        border-radius: 26px 26px 35px 35px;
+        background: linear-gradient(180deg, var(--paper-ink), var(--calc-body) 30%, var(--line)); color: var(--calc-print);
+        box-shadow: 0 0 0 2px var(--calc-edge), inset 0 0 0 2px var(--paper-ink), 0 14px 34px color-mix(in srgb, var(--black) 55%, transparent); }
+
+.calc-bezel { background: var(--calc-bezel); border-radius: var(--r-ui); padding: .55rem .6rem .3rem; margin-bottom: .5rem;
+              box-shadow: inset 0 1px 3px color-mix(in srgb, var(--black) 70%, transparent); }
+
+.calc .mc-display { background: var(--calc-lcd); color: var(--calc-lcd-ink); border-radius: var(--r-ui); border: 1px solid var(--raised);
+  box-shadow: inset 0 2px 6px color-mix(in srgb, var(--black) 25%, transparent); padding: .3rem .6rem .45rem;
+  /* the dot matrix, faint: the LCD's pixels show through as on the glass */
+  background-image: repeating-linear-gradient(0deg, color-mix(in srgb, var(--black) 4%, transparent) 0 1px, transparent 1px 3px),
+                    repeating-linear-gradient(90deg, color-mix(in srgb, var(--black) 4%, transparent) 0 1px, transparent 1px 3px);
+  text-shadow: .5px .5px 0 color-mix(in srgb, var(--line-soft) 18%, transparent); }
+
+.calc .mc-caret { background: var(--calc-lcd-ink); }
+
+.calc .mc-display { height: 6.6rem; min-height: 0; overflow: hidden; box-sizing: border-box; }
+
+.calc .mc-stat { flex: none; height: .7rem; overflow: hidden; }
+
+.calc .mc-in { flex: none; height: 2.6rem; line-height: 2.6rem; overflow: auto hidden; scrollbar-width: none; }
+
+.calc .mc-out { flex: none; height: 2.8rem; min-height: 0; line-height: 2.8rem; overflow: auto hidden; scrollbar-width: none; }
+
+.calc .mc-in::-webkit-scrollbar, .calc .mc-out::-webkit-scrollbar { display: none; }
+
+.calc .mc-out .mc-note { white-space: nowrap; line-height: 2.8rem; }
+
+.mc-stat { display: flex; gap: .7em; font: 700 var(--fs-small)/1 Arial, Helvetica, sans-serif; letter-spacing: .03em;
+           padding-bottom: .25rem; border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 12%, transparent); }
+
+.mc-stat b::before { content: attr(data-i); }
+
+.mc-stat b { opacity: .13; }
+
+.mc-stat b.on { opacity: .85; }
+
+.calc .mc-menu { font: 600 var(--fs-body) var(--font); white-space: nowrap; }
+
+.calc .mc-menu b { background: var(--calc-lcd-ink); color: var(--calc-lcd); padding: 0 .3em; }
+
+.mc-note { font: 600 var(--fs-small) var(--font); white-space: normal; display: block; text-align: left; }
+
+.calc-label { text-align: right; font-size: var(--fs-small); font-weight: 700; letter-spacing: .4em; text-transform: uppercase;
+              padding: .45rem .1rem 0; color: var(--calc-print); }
+
+.calc-top, .calc-fn { display: grid; grid-template-columns: repeat(6, minmax(43.5px, 1fr)); row-gap: var(--calc-gut); }
+
+.calc-num { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); row-gap: var(--calc-gut); }
+
+.calc-fn { margin-block: var(--calc-gut); }
+
+.calc-fn, .calc-num { grid-auto-rows: var(--calc-row); }
+
+.mc-btn { position: relative; min-height: 0; min-width: 0; padding: 0; background: none; border: 0; cursor: pointer;
+          display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px;
+          color: var(--calc-key-ink); font-size: var(--fs-body); font-weight: 700; -webkit-tap-highlight-color: transparent; }
+
+.mc-lab { display: flex; align-items: center; justify-content: center; gap: .05em; border-radius: var(--r-round); line-height: 1; box-sizing: border-box;
+          background: radial-gradient(120% 90% at 50% 25%, var(--paper), var(--calc-key) 55%, var(--tag-other));
+          box-shadow: 0 2px 0 var(--raised), 0 3px 4px color-mix(in srgb, var(--black) 50%, transparent); transition: filter var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out); }
+
+.mc-btn:is(:active, .is-pressed) { background-image: none; }
+
+.mc-btn:is(:active, .is-pressed) .mc-lab { box-shadow: 0 1px 0 var(--raised), inset 0 1px 3px color-mix(in srgb, var(--black) 35%, transparent), inset 0 0 0 99px var(--press-wash-paper); }
+
+.mc-btn:focus-visible { outline: none; }
+
+.mc-btn:focus-visible .mc-lab { outline: 2px solid var(--calc-legend); outline-offset: 2px; }
+
+.mc-alt { display: flex; align-items: flex-end; justify-content: center; width: 100%; height: .8rem; overflow: hidden;
+          font-size: var(--fs-small); font-weight: 700; line-height: 1; color: var(--calc-legend); white-space: nowrap; opacity: .9; }
+
+.mc-shifted .calc .mc-alt { opacity: 1; text-shadow: 0 0 6px color-mix(in srgb, var(--hue-1) 60%, transparent); }
+
+.mc-btn sup, .mc-alt sup { font-size: var(--fs-small); vertical-align: .5em; line-height: 0; }
+
+.mk { display: inline-block; vertical-align: middle; overflow: visible; }
+
+.mc-alt .mk { height: 1.45em; width: auto; }
+
+.mc-alt sup { vertical-align: baseline; position: relative; top: -.45em; line-height: 1; }
+
+.calc-fn .mc-lab, .calc-top .lt .mc-lab { width: 82%; height: 30px; font-size: var(--fs-body); }
+
+.calc-fn .mc-lab { height: min(30px, calc(var(--calc-row) - .8rem - 3px)); }
+
+.calc-num .mc-lab { width: 80%; aspect-ratio: 1.1; height: auto; max-height: min(54px, calc(var(--calc-row) - .8rem - 3px)); font-size: var(--fs-title); font-weight: 500; }
+
+.mc-k-C .mc-lab, .mc-k-sd .mc-lab, [data-mc="="] .mc-lab { font-size: var(--fs-title); font-weight: 700; }
+
+.calc-num .mk-fmt { font-size: var(--fs-small); font-weight: 800; font-style: normal; letter-spacing: -.02em; }
+
+.calc-fn .mk { height: 1.1em; width: auto; }
+
+.calc-top { grid-template-rows: repeat(6, calc(var(--calc-row) / 2)) auto; row-gap: 0; margin-bottom: 0; }
+
+.calc-top .mc-alt { color: var(--calc-print); font-size: var(--fs-small); letter-spacing: .02em; }
+
+.calc-top .mc-lab { width: 36px; height: 36px; color: var(--calc-print); font-size: var(--fs-body);
+                    background: radial-gradient(100% 100% at 50% 20%, var(--paper-ink), var(--calc-key-dark) 70%); border: 1px solid var(--raised); }
+
+.calc-top .lt .mc-lab { color: var(--calc-key-ink); background: radial-gradient(120% 90% at 50% 25%, var(--paper), var(--calc-key) 55%, var(--tag-other)); border: 0; }
+
+.calc-top .sh .mc-lab { background: radial-gradient(100% 100% at 50% 25%, var(--faint), var(--calc-shift) 70%); color: var(--ink); }
+
+.mc-shifted .calc-top .sh .mc-lab { box-shadow: 0 0 0 2px var(--calc-legend), 0 0 10px color-mix(in srgb, var(--hue-1) 70%, transparent); }
+
+.calc-pad { grid-area: 3 / 3 / 5 / 6; align-self: center; height: 40px; border-radius: var(--r-ui); background: var(--calc-pad);
+            box-shadow: inset 0 1px 2px color-mix(in srgb, var(--black) 80%, transparent); }
+
+.calc-pad-v { grid-area: 1 / 4 / 7 / 5; align-self: stretch; justify-self: center; width: 40px; height: auto; }
+
+.calc-top .pad { z-index: 1; justify-content: center; }
+
+.calc-top .pad .mc-lab { width: 34px; height: 34px; font-size: var(--fs-title); }
+
+.mc-k-on { grid-area: 1 / 1 / 4 / 2; }
+
+.mc-k-home { grid-area: 1 / 2 / 4 / 3; }
+
+.mc-k-set { grid-area: 4 / 1 / 7 / 2; }
+
+.mc-k-back { grid-area: 4 / 2 / 7 / 3; }
+
+.mc-k-up { grid-area: 1 / 4 / 3 / 5; }
+
+.mc-k-left { grid-area: 3 / 3 / 5 / 4; }
+
+.mc-k-ok { grid-area: 3 / 4 / 5 / 5; }
+
+.mc-k-right { grid-area: 3 / 5 / 5 / 6; }
+
+.mc-k-down { grid-area: 5 / 4 / 7 / 5; }
+
+.mc-k-pgup { grid-area: 1 / 6 / 4 / 7; justify-content: flex-end; }
+
+.mc-k-pgdn { grid-area: 4 / 6 / 7 / 7; justify-content: flex-start; }
+
+.mc-k-shift { grid-area: 7 / 1; }
+
+.mc-k-var { grid-area: 7 / 2; }
+
+.mc-k-func { grid-area: 7 / 3; }
+
+.mc-k-cat { grid-area: 7 / 5; }
+
+.mc-k-tools { grid-area: 7 / 6; }
+
+.calc-top .mc-k-on, .calc-top .mc-k-home, .calc-top .mc-k-set, .calc-top .mc-k-back { justify-content: center; }
+
+.calc-top .mc-k-shift, .calc-top .lt { margin-top: var(--calc-gut); }
+
+.mc-k-ok .mc-lab { font-size: var(--fs-small); font-weight: 800; }
+
+.calc-top .pg .mc-lab { width: 40px; height: 46px; font-size: var(--fs-small); }
+
+.mc-k-pgup .mc-lab { border-radius: 20px 20px 4px 4px; border-bottom: 0; }
+
+.mc-k-pgdn .mc-lab { border-radius: 4px 4px 20px 20px; border-top: 0; }
+
+.card.is-widget:has(.calc) { padding-inline: 0; margin-inline: 0; background: none; border: 0; box-shadow: none;
+                             position: relative; backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+.card:has(> .calc) { background: none; border: 0; box-shadow: none; padding: 0; }
+
+.calc-name { font: 700 var(--fs-small) Arial, Helvetica, sans-serif; letter-spacing: .14em; text-transform: uppercase;
+             color: var(--ink); margin: 0 0 .3rem; padding: 0 .3rem; min-height: 0; display: flex; align-items: center; }
+
+.pane:has(.calc) { padding-inline: 0; }
+
+.calc { padding-inline: 0; }
+
+.mk-ic { display: inline-block; width: 1em; height: 1em; vertical-align: middle; background: currentColor;
+         -webkit-mask: var(--ic) center / contain no-repeat; mask: var(--ic) center / contain no-repeat; }
+
+.mk-home { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linejoin='round'%3E%3Cpath d='M3 11 12 3l9 8v10H3z'/%3E%3C/svg%3E"); }
+
+.mk-set { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M3 6h18M3 12h18M3 18h18'/%3E%3Ccircle cx='8' cy='6' r='2' fill='%23000'/%3E%3Ccircle cx='16' cy='12' r='2' fill='%23000'/%3E%3Ccircle cx='10' cy='18' r='2' fill='%23000'/%3E%3C/svg%3E"); }
+
+.mk-book { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linejoin='round'%3E%3Cpath d='M12 6c-2-1.5-5-2-9-2v14c4 0 7 .5 9 2 2-1.5 5-2 9-2V4c-4 0-7 .5-9 2zM12 6v14'/%3E%3C/svg%3E"); }
+
+.mk-dots { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2'%3E%3Ccircle cx='4.5' cy='12' r='2.6'/%3E%3Ccircle cx='12' cy='12' r='2.6'/%3E%3Ccircle cx='19.5' cy='12' r='2.6'/%3E%3C/svg%3E"); width: 1.4em; }
+
+.mk-del { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 4h14v16H8l-7-8z' fill='%23000'/%3E%3Cpath d='M12 9l6 6m0-6-6 6' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E"); width: 1.2em; }
+
+.nes-wrap { position: relative; display: flex; flex-direction: column; align-items: center; isolation: isolate; overflow: clip;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; --nes-pad-h: 188px; --nes-room: 17rem; --nes-deco-h: 0px; --nes-flank: 0px;
+  --nes-body: transparent; --nes-px: 0px; --nes-pt: 0px; --nes-r: 0; --nes-hi: color-mix(in srgb, var(--white) 30%, transparent); --nes-lo: color-mix(in srgb, var(--black) 32%, transparent);
+  --nes-bezel: var(--line-soft); --nes-rim: transparent; --nes-rim-w: 0px; --nes-bz: 8px; --nes-bz-r: .35rem; --nes-ctl: transparent; --nes-well: transparent;
+  --nes-dp: var(--line-soft); --nes-dp-hi: var(--paper-ink); --nes-key: var(--paper-ink); --nes-ink: var(--paper); --nes-mid: var(--paper-ink); --nes-mid-ink: var(--ink);
+  --nes-sh: var(--nes-mid); --nes-sh-ink: var(--nes-mid-ink); --nes-a: var(--nes-key); --nes-b: var(--nes-key); --nes-x: var(--nes-key); --nes-y: var(--nes-key);
+  --nes-c: var(--nes-key); --nes-c-ink: var(--nes-ink); --nes-knob: var(--tag-other); --nes-knob-lo: var(--faint);
+  --k-dpad: 120px; --k-btn: 56px; --k-cell: 44px; --k-h: 44px; --k-gap: 8px; --k-font: 1rem; --k-small: .8rem;
+  background: var(--nes-body); border-radius: var(--r-ui); padding: var(--nes-pt) var(--nes-px) 0; box-sizing: border-box; }
+
+.nes-wrap[data-sys="snes"], .nes-wrap[data-sys="gba"], .nes-wrap[data-sys="nds"] { --nes-pad-h: 252px; }
+
+.nes-wrap[data-sys="n64"] { --nes-pad-h: 320px; }
+
+.nes-canvas { width: 100%; height: 100%; display: block; background: var(--black); image-rendering: pixelated; border-radius: var(--r-ui); }
+
+.nes-wrap { container: nes-body / inline-size; }
+
+.nes-wrap[data-sys="nes"] { --nes-rim: var(--tag-other); --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: var(--line-soft); --nes-ctl: var(--line-soft); --nes-ctl-edge: var(--tag-other);
+  --nes-dp: var(--raised); --nes-dp-hi: var(--line); --nes-mid: var(--line); --nes-mid-ink: var(--ink); --nes-a: var(--alert); --nes-b: var(--alert); --nes-plate: var(--paper-strip);
+  --nes-stripe: var(--faint); --nes-deco-h: 4.2rem; --k-dpad: 112px; --k-btn: 52px; }
+
+.nes-wrap[data-sys="snes"] { --nes-rim: var(--tag-other); --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: var(--line); --nes-ctl: var(--paper-strip); --nes-ctl-top: 24px; --nes-ctl-r: 999px / 50%;
+  --nes-dp: var(--paper-ink); --nes-dp-hi: var(--paper-dim); --nes-well: transparent; --nes-mid: var(--paper-faint); --nes-mid-ink: var(--paper); --nes-sh: var(--tag-other); --nes-sh-ink: var(--paper-ink);
+  --nes-a: var(--alert); --nes-b: var(--admin); --nes-x: var(--faint); --nes-y: var(--paper-faint); --k-dpad: 112px; --nes-deco-h: 4.6rem; }
+
+.nes-wrap[data-sys="n64"] { --nes-rim: var(--paper-ink); --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: var(--line-soft); --nes-ctl: var(--dim); --nes-ctl-top: 22px; --nes-ctl-r: 0;
+  --nes-dp: var(--faint); --nes-well: transparent; --nes-knob: var(--tag-other); --nes-knob-lo: var(--faint); --nes-mid: var(--alert); --nes-mid-ink: var(--white);
+  --nes-sh: var(--faint); --nes-sh-ink: var(--paper); --nes-a: var(--faint); --nes-b: var(--paper-faint); --nes-c: var(--admin); --nes-c-ink: var(--paper-ink); --k-dpad: 112px; --nes-deco-h: 4.8rem; }
+
+.nes-wrap[data-sys="gb"], .nes-wrap[data-sys="gbc"], .nes-wrap[data-sys="gba"], .nes-wrap[data-sys="nds"] { --nes-px: 12px; --nes-pt: 10px; padding-bottom: 6px;
+  box-shadow: inset 0 2px 0 var(--nes-hi), inset 0 -4px 0 var(--nes-lo); }
+
+.nes-wrap[data-sys="gb"] { --nes-body: var(--paper-rule); --nes-r: .7rem .7rem 3.2rem .7rem; --nes-bezel: var(--paper-faint); --nes-bz: 14px; --nes-bz-r: .45rem .45rem 2rem .45rem;
+  --nes-dp: var(--line-soft); --nes-dp-hi: var(--paper-ink); --nes-a: var(--paper-dim); --nes-b: var(--paper-dim); --nes-mid: var(--dim); --nes-mid-ink: var(--line); --nes-deco-h: 3.6rem; }
+
+.nes-wrap[data-sys="gbc"] { --nes-body: var(--paper-faint); --nes-r: 1rem 1rem 3.2rem 1rem; --nes-bezel: var(--line); --nes-bz: 14px; --nes-bz-r: .6rem .6rem 1.8rem .6rem;
+  --nes-dp: var(--line); --nes-dp-hi: var(--paper-ink); --nes-a: var(--paper-ink); --nes-b: var(--paper-ink); --nes-mid: var(--paper-ink); --nes-mid-ink: var(--ink); --nes-deco-h: 3.6rem; }
+
+.nes-wrap[data-sys="gba"] { --nes-body: var(--paper-faint); --nes-r: 3rem / 2.4rem; --nes-bezel: var(--line); --nes-bz: 12px; --nes-bz-r: .5rem;
+  --nes-dp: var(--line); --nes-dp-hi: var(--paper-dim); --nes-a: var(--tag-other); --nes-b: var(--tag-other); --nes-ink: var(--line); --nes-mid: var(--line); --nes-mid-ink: var(--ink);
+  --nes-sh: var(--faint); --nes-sh-ink: var(--white); --nes-pt: 18px; }
+
+.nes-wrap[data-sys="nds"] { --nes-pt: 18px; }
+
+.nes-wrap[data-sys="nds"] { --nes-body: var(--paper); --nes-edge: var(--tag-other); --nes-bezel: var(--raised); --nes-ink: var(--paper-dim); --nes-key: var(--white);
+  --nes-dp: var(--paper-dim); --nes-dp-hi: var(--paper-faint); --nes-well: radial-gradient(circle, var(--ink) 0 64%, transparent 65%);
+  --nes-mid: var(--paper-strip); --nes-mid-ink: var(--paper-faint); --nes-sh: var(--ink); --nes-sh-ink: var(--paper-faint);
+  --nes-hinge: var(--tag-other); --nes-hinge-hi: var(--white); --nes-hinge-lo: var(--dim); --ds-grille: var(--dim);
+  --ds-s: 52; --ds-t: 9; --ds-hh: 5.5; --ds-gap: 90; --ds-bz: 2.2;
+  --ds-sh: calc(var(--ds-s) * .75); --ds-gh: calc(var(--ds-s) * var(--ds-gap) / 256); --ds-mb: calc((var(--ds-gh) - var(--ds-hh)) / 2);
+  --ds-lid: calc(var(--ds-t) + var(--ds-sh) + var(--ds-mb)); --ds-h: calc(2 * var(--ds-lid) + var(--ds-hh));
+  --ds-mid: calc(var(--ds-lid) + var(--ds-hh) + var(--ds-mb) + var(--ds-sh) / 2);
+  display: block; position: relative; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; margin: 0 auto;
+  width: min(100%, (100svh - 12rem) * 100 / var(--ds-h)); }
+
+.nes-wrap[data-sys="nds"]::before { content: ''; display: block; padding-top: calc(var(--ds-h) * 1%); }
+
+.flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
+          background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-ui); }
+
+.pane:has(.flappy), .card:has(.flappy) {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+.mc-zero { color: var(--ink); }
+
+.mc-caret { display: inline-block; width: 2px; height: 1.2em; background: var(--gold); margin: 0 -1px;
+            vertical-align: middle; animation: caret 1.06s steps(1) infinite; }
+
+.widget-full .chess { flex: 0 0 auto; margin: auto; width: min(100%, 70vh); aspect-ratio: 1; }
+
+.widget-full .flappy { flex: 0 0 auto; margin: auto; width: 100%; min-height: 0; }
+
+#sheet-body .chess { width: 100%; aspect-ratio: 1; }
+
+#sheet-body .flappy { width: 100%; aspect-ratio: 4/5; }
+
+.mc-caret { animation: none; }
+
+.widget-full:has(.chess) .chess {
+  border: 6px solid var(--chess-frame);
+  border-radius: var(--r-ui);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--black) 55%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--white) 6%, transparent);
+  transition: rotate var(--chess-turn) var(--chess-ease), box-shadow var(--chess-turn) var(--chess-ease);
+}
+
+.widget-full:has(.chess) .chess.is-flipped {
+  box-shadow: 0 -14px 34px color-mix(in srgb, var(--black) 55%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--white) 6%, transparent);
+}
+
+.widget-full:has(.chess) > .card { background: none; border: 0; box-shadow: none; padding: 0; }
+
+.widget-full:has(.chess) h3, .widget-full:has(.chess) .sub { padding-inline: .2rem; }
+
+.widget-full.solid:has(.calc) > .card { background: none; border: 0; box-shadow: none; padding: .25rem 0; }
+
+.mat-circ .mk   { fill: none; stroke: var(--pa-ink); stroke-width: 1.4; }
+
+.tb-an-stage { display: grid; place-items: center; margin: .75rem 0; container-type: inline-size; }
+
+.tb-an-stage > * { max-width: min(100%, 28rem); }
+
+.tb-an-stage > * > svg, .tb-an-stage > svg { max-height: 28svh; }
+
+.tb-an-stage:not(.is-on) *, .tb-an-stage:not(.is-on) *::before,
+.tb-an-stage:not(.is-on) *::after { animation-play-state: paused !important; }
+
+.ws-top { margin: .5rem 0 0; }
+
+.ws {
+  display: grid; gap: 2px; margin: .55rem auto 0;
+  grid-template-columns: repeat(var(--ws-n, 10), 1fr);
+  width: 100%; max-width: 24rem;
+}
+
+.scr {
+  --scr-paper: var(--paper-strip);
+  --scr-line: var(--paper-rule);
+  --scr-ink: var(--paper-ink);
+  --scr-dl: var(--hue-8);
+  --scr-tl: var(--hue-5);
+  --scr-dw: var(--hue-11);
+  --scr-tw: var(--bad);
+  --scr-tile: var(--hue-11);
+  display: grid; gap: 1px; margin: .5rem auto 0;
+  grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr);
+  aspect-ratio: 1; width: 100%; max-width: 24rem;
+  background: var(--scr-line); border: 1px solid var(--scr-line);
+  border-radius: var(--r-ui); overflow: hidden;
+}
+
+.nb {
+  --nb-chrome: calc(88px + 12.6rem);
+  display: flex; flex-direction: column; gap: .45rem; margin-top: .25rem;
+  height: calc(100dvh - var(--bar) - var(--safe-bottom) - var(--nb-chrome)); min-height: 24rem;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+
+.nb canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.card.is-widget:has(.nb) {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto auto 1fr;
+    column-gap: 1rem; align-items: start;
+    --nb-half: calc((100dvh - var(--bar) - var(--safe-bottom) - 2.5rem - .45rem) / 2);
+  }
+
+.card.is-widget:has(.nb) .widget-slot, .card.is-widget:has(.nb) .nb-box, .card.is-widget:has(.nb) .nb { display: contents; }
+
+.card.is-widget:has(.nb) > .wgt-foot { grid-area: 1 / 2; margin-top: 0; }
+
+.card.is-widget:has(.nb) .widget-slot > h3 { grid-area: 2 / 2; margin: .45rem 0 0; }
+
+.art {
+  --art-face: color-mix(in srgb, var(--gold) 8%, transparent);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: .5rem; flex-wrap: wrap;
+  min-height: 9.5rem; padding: 1rem .75rem;
+  border: 1px solid var(--line); border-radius: var(--r-ui);
+  background: var(--art-face); text-align: center;
+}
+
+.imp-count { display: flex; align-items: center; gap: 1rem; }
+
+.tile.is-listen { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 45%, transparent); margin-top: 20px; }
+
+.eink {
+  --eink-white: var(--white); --eink-black: var(--black);
+  padding: .7rem; border-radius: var(--r-ui); background: var(--eink-black);
+  border: 1px solid var(--line); margin: .4rem auto .6rem; max-width: calc(400px + 1.4rem);
+}
+
+.eink-panel { position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: var(--eink-white); color: var(--eink-black); }
+
+.eink-px { display: block; margin: auto; max-width: 100%; max-height: 100%; image-rendering: pixelated; }
+
+.eink-panel { display: grid; place-items: center; }
+
+.eink-words { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.eink-words p { margin: 0; }
+
+.eink-none { margin: 0; padding: 1rem; font-size: var(--fs-body); }
+
+.eink-steps { margin: .3rem 0 0; padding-left: 1.4rem; font-size: var(--fs-body); }
+
+.eink-steps li { margin: .15rem 0; }
+
+.eink-say { margin: .4rem 0 0; }
+
+/* ---------- THE LIBRARY WALL'S `.tile` WAS STILL HERE, AND IT WAS WINNING § */
+
+/* The `.shape` rules lived here — a cart, a card, a circle, a square, each filled with a colour worked out from the link's name. § */
+
+/* ---------- CHESS § */
+
+/* BLACK AND WHITE SQUARES. § */
+
+/* ---------- A CHESS BOARD HAS ITS OWN PALETTE, AND IT HAD NO NAMES § */
+
+/* THE PIECES, told apart by fill and outline rather than by glyph. § */
+
+/* THE OUTLINE IS THE OTHER SIDE'S COLOUR, which is what makes a white piece readable on a light square and a black one on a dark square. § */
+
+/* A LEGAL MOVE, in the accent rather than in black — a dark dot vanished on a dark square, which
+   is the same fault the pieces had. */
+
+/* THE LAST MOVE, both ends of it. § */
+
+/* A KING IN CHECK is red under the piece, which is the one square the whole position is about. */
+
+/* THE LANDING SQUARE OF THE LAST MOVE a shade stronger than where it left, so the eye reads which way it went. */
+
+/* ---------- THE BOARD MOVES LIKE A BOARD (429) ---------- */
+
+/* THE PIECE IS ITS OWN BOX (games.js `drawChess`), so a glide moves it over the squares and leaves the square behind. */
+
+/* A PIECE IN FLIGHT is above every square it crosses; a taken piece fades under the one arriving. */
+
+/* TURNING THE BOARD: the board goes round and every piece turns back the other way, so none is ever upside down. */
+
+/* THE LIGHT: one layer over the whole board, centred so it reads the same whichever way the board faces. */
+
+/* FLAT AT REST (448): the glossy pool read as cheap; the layer stays for the ending. */
+
+/* CHECK: a ring goes out from the king three times as the threat lands, then the red under it stays. */
+
+/* ---------- THE ENDING: the board goes dark, the beaten king falls, and the word comes up out of the dark ---------- */
+
+/* AT REST, the ending as it stands — what a redraw, reduced motion or a second look shows. `is-fresh` plays it, once. */
+
+/* THE BEATEN KING lies above the dark, so the fall is the thing you see. */
+
+/* REDUCED MOTION: the board turns, pieces move and the ending lands at once (games.js does not glide or set `is-fresh`). */
+
+/* ---------- THE FINDING CONTROLS § */
+
+/* The search box had no rule of its own, so it sat flush against the row of selects and the four
+   read as one control. */
+
+/* `.search` IS SET IN FULL FURTHER DOWN — see "THE SEARCH BOX, AND A RESULT". The margin lived
+   here on its own and was overridden there, which `check-css` reported as a rule that never
+   applies. One rule, one place. */
+
+/* ---------- CALCULATOR § */
+
+/* THE fx-83GT CW, DRAWN: a device, so its colours are its own, defined here and nowhere else (docs/history/447, 453). */
+
+/* ONE SHAPE, WHATEVER IS ON THE GLASS (472): every line of the LCD has a fixed height and clips, so a fraction, a long sum or an error never grows the device and `paneReach_` never re-zooms it under a thumb. */
+
+/* The LCD's status line: every indicator has its place, lit or ghosted, as the segments are on the glass. */
+
+/* One rhythm for every block: equal columns, the same gutter between rows, a legend slot over every key. */
+
+/* The whole cell is the key, so the tap target is the column, never the drawn cap alone. */
+
+/* A REAL KEY DOES NOT CHANGE SHAPE (472): pressed, it darkens and loses its lift; no transform, so no box moves. */
+
+/* The legend slot: one height, centred on its key, small even type; an empty slot keeps the row's rhythm. */
+
+/* Oval function keys, round number keys — the device's two shapes. */
+
+/* A FACE NO TALLER THAN ITS ROW LESS ITS LEGEND: a short row draws a flatter key, never a taller device. */
+
+/* The top block on a grid of half-rows: the captioned keys take three, the D-pad's keys two, so the pad sits clear. */
+
+/* The scroll rocker is one long key, drawn as two halves meeting. */
+
+/* The device is the card: no case around the case, and the name and its star on one quiet line above it. */
+
+/* Six 44px keys need 268px: on the narrowest phones the pane's gutter goes too, and the device meets the edge. */
+
+/* ---------- CONSOLE (389): 256x240 scaled by whole look, pixels kept square and crisp § */
+
+/* THE ROOM LEFT FOR THE REST (419): the stage is never taller than the screen less this, so picture and pad fit one screen. `--nes-pad-h` is each system's pad. */
+
+/* EACH SYSTEM IS ITS OWN CONSOLE (437): a thing, so its colours are its own tokens here, never the screen's gold or the paper's. */
+
+/* TOO NARROW A CARD for buttons beside the screen (a 320px phone on keys): the screen keeps its width and the picture of them goes. */
+
+/* NES: a grey box round the picture, and the oblong grey-and-black controller — D-pad, Select and Start on grey stripes, B and A red on a pale plate. */
+
+/* SNES: the rounded grey controller, shoulders on its top edge, the D-pad dark, A red, B yellow, X blue and Y green in a diamond. */
+
+/* N64: the three-pronged grey pad, simplified — stick on the left prong, Start red in the middle, A blue, B green and yellow C buttons on the right; L, Z and R along the top. */
+
+/* HANDHELDS: the body is the console — the screen set in its glass, the buttons on the casing. */
+
+/* GAME BOY: off-white, portrait, the glass grey-blue with its one round corner bottom right; D-pad, then B and A on a slant in deep pink; Select and Start under. */
+
+/* GAME BOY COLOR: the same, in grape, the glass black and the buttons dark. */
+
+/* GAME BOY ADVANCE: landscape in indigo, wide round ends, the screen between the D-pad and A/B while keys play; L and R on its top corners. */
+
+/* DS: a clamshell — two screens in black glass, the hinge across the whole body between them, L and R on its top corners. */
+
+/* A DS LITE (481): two halves of one width, each a rounded slab, joined by a hinge barrel; speakers either side of the top screen, D-pad left and A/B/X/Y right of the touch screen. */
+
+/* EVERY SIZE IS A SHARE OF THE BODY'S WIDTH (`cqw` of the nes-body container), so a narrow card shows the same DS smaller instead of rearranging it. */
+
+/* THE BODY'S HEIGHT, as padding (a share of the width); the key list, when asked for, comes under it. */
+
+/* ---------- THE SCREEN § */
+
+/* ---------- A THUMB ON THE GAME IS A FLAP, NOT A SELECTION § */
+
+/* SQUARE, and centred in whatever is left — a board that stretched would be a board where a knight moves further sideways than forwards. § */
+
+/* A SIDE-SCROLLER NEEDS WIDTH, NOT HEIGHT. § */
+
+/* The shape is set once, in the handheld block at the foot of this file. Three rules said
+   3/2 — a landscape letterbox for a game that is entirely vertical. */
+
+/* WIDGETS THAT ARE OBJECTS, NOT CARDS The pane is frosted glass because most of what sits on it is CONTENT — a post, a receipt, a list — and glass says § */
+
+/* ---------- THE CHESSBOARD IS THE CARD ---------------------------------------------------------- */
+
+/* The board's own edge, which is the only edge there should be — a dark frame like the border of a
+   real set, and the shadow it casts on the app behind it. */
+
+/* TURNED, THE SHADOW IS WRITTEN UPSIDE DOWN so it still falls below the board; eased with the turn, it passes under the middle. */
+
+/* The board IS the object here, so the surface under it steps aside and the board carries the
+   edge and the shadow itself — see the rule above. */
+
+/* ---------- A CHAPTER'S ANIMATION: ITS STAGE, AND THE ONES NOT IN FRONT HELD STILL § */
+
+/* SMALLER, SO THE WORDS UNDER IT STAY ON THE GLASS (447): one cap for every drawing, never per row; a drawing keeps its shape (viewBox meets). */
+
+/* ---------- THE ONE CHOICE EACH OF THESE TWO GAMES ASKS, AT THE TOP OF ITS CARD § */
+
+/* ---------- WORD SEARCH § */
+
+/* SCRABBLE ITS FOUR PREMIUM COLOURS AND ITS CREAM BOARD ARE DECLARED ON THE COMPONENT, which is the rule the house style states with the chess board's cream and § */
+
+/* ---------- THE WHITEBOARD AS A MATHS NOTEBOOK (board.js, 377): the page above, the tiles, the pad to write big in below ---------- */
+
+/* THE HEIGHT IS THE SCREEN'S LESS THE CARD AROUND IT, the old board's sum: a long working needs all the room there is. */
+
+/* SIX TOOLS DO NOT FIT THE WHITEBOARD'S 272px AT A PHONE'S WIDTH; two even rows of three rather than five and an orphan (414, check/ui.js). */
+
+/* ON ITS SIDE: the page over the pad in the full height, the star, heading, tiles and note beside them (the old board's arrangement). */
+
+/* ---------- ARTICULATE § */
+
+/* ---------- IMPOSTER § */
+
+/* LISTEN IS THE BIGGEST THING A CHILD PRESSES HERE, and round, the speaker every phone puts on its volume. § */
+
+/* ---------- THE E-INK SCREEN WIDGET (470, 482): the real 1.54-inch panel, 200x200 1-bit, drawn by the screen's own rules, its pixels kept square. */
+
+/* SIZED BY einkDraw_ to whole device pixels per panel pixel (720), and centred in the panel; never resampled. */
+
+@keyframes c4-drop {
+  0%   { transform: translateY(calc((100% + 3px) * var(--c4-fall, 1) * -1));
+         animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
+  70%  { transform: translateY(0); animation-timing-function: cubic-bezier(0, .55, .45, 1); }
+  85%  { transform: translateY(-14%); animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
+  100% { transform: translateY(0); }
+}
+/* The sprint is short, so it centres rather than stretching — nothing here is better for being
+   taller. */
+.widget-full #tt-idle, .widget-full #tt-over { margin: auto 0; }
+.widget-full #tt-question { display: flex; flex-direction: column; justify-content: center;
+                            flex: 1 1 auto; min-height: 0; }
+

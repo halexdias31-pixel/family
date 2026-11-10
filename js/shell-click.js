@@ -300,7 +300,7 @@ try { matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', 
 /* A double tap deleted a post and starred twice: the same control again within PRESS_AGAIN_MS, or while the request it started is out, is dropped. */
 const PRESS_AGAIN_MS = 350;
 /* KEYS AND STEPS PRESSED FAST ON PURPOSE (a digit typed twice, a month flipped): `data-repeat` on the control, or its action named here. */
-const PRESS_REPEAT_ = new Set(['kp-key', 'cal-back', 'cal-fwd', 'tal-size', 'imp-count',
+const PRESS_REPEAT_ = new Set(['kp-key', 'cal-back', 'cal-fwd', 'tal-size',
                                'pad-undo', 'sp-ctl', 'feed-tap', 'rw-next', 'rw-back', 'speed-back']);
 const PRESS_LAST_ = new Map();   /* press key -> { t, el }: when it last acted, and which element */
 const PRESS_OUT_ = new Map();    /* press key -> Map(element -> requests it started that are still out) */

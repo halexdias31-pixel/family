@@ -213,11 +213,6 @@ const handTone = [];
 /* THE DRAWINGS' OWN PALETTES: a picture of a thing keeps that thing's colours, so these may write a literal
    (541, U18). Each with its reason. A press, hover or disabled rule's colour is package E's. */
 const ART_TONE = [
-  [/\.(nes|emu|ds)-|\.nes-canvas/, 'the game consoles are drawn in their own plastics and black glass'],
-  [/\.calc\b|\.mc-/, 'the calculator is drawn in its own case and keys'],
-  [/\.chess\b/, 'a chess board is wood and stone'],
-  [/\.scr\b|\.scr-/, 'a Scrabble board is its own tiles and squares'],
-  [/#tt-idle/, 'the times-table game is a neon arcade cabinet'],
   [/#timer-display/, 'the timer is an amber LED clock'],
   [/\.fm-|\.fly-/, 'the printed flyer wears the colours the owner picked for it'],
   [/\.wc-/, 'the word counter is its own small chart'],
