@@ -447,9 +447,6 @@ function startScreen_(id, arriving) {
   if (id === 'feed' && typeof feedCamWatch_ === 'function') feedCamWatch_();
   /* AND THE REEL COLUMN PLAYS THE ONE YOU ARE ON. § */
   if (id === 'reel' && typeof reelsWatch_ === 'function') reelsWatch_();
-  /* AND A TEXTBOOK'S ANIMATION PLAYS ONLY ON FIND, ONLY ON THE PAGE IN FRONT — for EVERY screen, because
-     arriving anywhere else is what pauses the one on Find. See `tbAnimWatch_` in find.js. */
-  if (typeof tbAnimWatch_ === 'function') tbAnimWatch_();
   /* AND AN ADMIN'S BUSINESS RECORDS ARE ASKED FOR — a POST, once, and never the payload (see js/records.js). § */
   if (id === 'biz' && typeof bizStart_ === 'function') bizStart_();
   /* AND A CONVERSATION OPENS AT ITS NEWEST MESSAGE. A scroller's natural state is the top, which on

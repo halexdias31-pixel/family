@@ -754,8 +754,6 @@ function goPageHere_(id, to, instant, F) {
   if (F && !bare) afterSlide_(() => finderSoon_(F, fillStuffPages), 'fill:' + id);
   /* ---------- THE REEL BEING WATCHED IS THE PAGE BEING SHOWN § */
   if (id === 'reel' && typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_);
-  /* AND THE TEXTBOOK'S ANIMATION ON THE PAGE TURNED TO, by name for the reason `reelsWatch_` is. */
-  if (F && typeof tbAnimWatch_ === 'function') afterSlide_(tbAnimWatch_);
   /* AND THE CAMERA, WHICH IS A PAGE OF THE FEED — started when its page arrives and let go when the page turns away, booked under its own name for the reason § */
   if (id === 'feed' && typeof feedCamWatch_ === 'function') afterSlide_(feedCamWatch_);
   /* AND A TURN OFF THE CAMERA'S PAGE PUTS ITS VIEWFINDER AT REST NOW, not after the slide: the slide is what

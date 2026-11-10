@@ -735,13 +735,10 @@ function contentCard_(x) {
 const CONTENT_PAGE = { formulas: 'Formulas', worked: 'Worked examples' };
 function contentPageTitle_(x, part) {
   if (!part) return String((x && x.name) || '');
-  if (CONTENT_PAGE[part]) return CONTENT_PAGE[part];
-  const m = /^an(\d+)-([a-z0-9]+)$/.exec(String(part));
-  const a = m && x && x.row && ((x.row.animations || []).find(y => y.id === m[2]));
-  return a ? 'Watch: ' + a.title : '';
+  return CONTENT_PAGE[part] || '';
 }
 function contentPart_(x, part) {
-  if (!CONTENT_PAGE[part]) return textbookAnimPart_(x, part);
+  if (!CONTENT_PAGE[part]) return '';
   const c = x.row;
   return `<div class="card fc prac prac-part tb tb-page is-${part}">
     <p class="fc-kick">${esc([c.subject, c.title].filter(Boolean).join(' · '))}${tbHigher_(c.higher)}</p>
@@ -774,75 +771,6 @@ function tbSections_(c, keep, opt) {
       points.map(p => line(p, tbMath_(p.text))).join('')}</ul></section>` : ''}`;
 }
 
-/* A CHAPTER'S ANIMATION, ON A PAGE OF ITS OWN STRAIGHT AFTER IT. § */
-let TB_AN_SEQ = 0;
-/* THE PART IS STILL `an17-pyth` — the chapter's number in the file, then the drawing's id — because the number is what tells two cards' drawings apart in a class § */
-function textbookAnimPart_(x, part) {
-  const m = /^an(\d+)-([a-z0-9]+)$/.exec(String(part || ''));
-  const c = x && x.row;
-  const a = m && c && c.n === Number(m[1]) && (c.animations || []).find(y => y.id === m[2]);
-  if (!a) return '';
-  animStyle_(a);
-  return `<div class="card fc prac prac-part tb tb-an is-${esc(part)}">
-    <p class="fc-kick">${esc([c.subject, c.title].filter(Boolean).join(' · '))}${tbHigher_(c.higher)}</p>
-    <h3>${esc(contentPageTitle_(x, part))}</h3>
-    <div class="tb-an-stage" data-anim="${esc(a.id)}">${animIds_(a.html, ++TB_AN_SEQ)}</div>
-    ${/* ITS CAPTION, NOT A SECOND WIDGET (408): the lines `about` names, under the drawing with no headings, then its tile. */''}
-    <section class="tb-about">${tbSections_(c, a.about, { bare: true })}</section>
-    <div class="tile-row">${tile_({ icon: 'undo', label: 'Play again', note: 'from the start', act: 'tb-an-again' })}</div>
-  </div>`;
-}
-
-/* ---------- AN ANIMATION'S STYLESHEET, ONCE, SHARED WITH THE SPLASH § */
-function animStyle_(a) {
-  if (!a || !a.id) return;
-  let st = document.head.querySelector('style[data-anim="' + a.id + '"]');
-  if (st && st.getAttribute('data-h') === a.h) return;
-  if (!st) {
-    st = document.createElement('style');
-    st.setAttribute('data-anim', a.id);
-    document.head.appendChild(st);
-  }
-  st.textContent = a.css;
-  st.setAttribute('data-h', a.h);
-}
-
-/* ---------- AN id IS ONE ELEMENT, AND A DRAWING CAN BE ON THE PAGE TWICE § */
-function animIds_(html, n) {
-  const ids = [...String(html).matchAll(/\sid="([^"]+)"/g)].map(m => m[1]);
-  if (!ids.length) return String(html);
-  const any = ids.map(i => i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-  return String(html).replace(new RegExp('(\\sid="|url\\(#|href="#)(' + any + ')(?=["\\)])', 'g'),
-    (all, at, id) => at + id + '-t' + n);
-}
-
-/* ---------- ONLY THE ONE ON THE PAGE IN FRONT PLAYS, AND IT PLAYS FROM THE START § */
-function tbAnimWatch_() {
-  Object.keys(FINDERS).forEach(id => {
-    const host = $('s-' + id);
-    if (!host) return;
-    const stages = host.querySelectorAll('.tb-an-stage');
-    if (!stages.length) return;
-    const here = AT === id ? host.querySelectorAll(':scope > .page')[domIndex_(id, PAGE[id] || 0)] : null;
-    tbAnimSet_(stages, here);
-  });
-}
-function tbAnimSet_(stages, here) {
-  stages.forEach(st => {
-    const on = !!here && here.contains(st);
-    if (on && !st.classList.contains('is-on')) {
-      st.innerHTML = st.innerHTML;
-      st.classList.add('is-on');
-    } else if (!on && st.classList.contains('is-on')) st.classList.remove('is-on');
-  });
-}
-/* PLAY AGAIN: the same restart, on the tile's own stage. */
-on('tb-an-again', el => {
-  const card = el && el.closest('.card');
-  const st = card && card.querySelector('.tb-an-stage');
-  if (st) st.innerHTML = st.innerHTML;
-});
-
 /* ---------- ONE CHAPTER, AS AN ITEM THE FUNNEL ASKS THE QUESTIONS' QUESTIONS OF § */
 function contentItem_(b, c) {
   return {
@@ -857,11 +785,8 @@ function contentItem_(b, c) {
 }
 
 /* `contentText_` — `projectText_`'s move for one content card: § */
-/* AN ANIMATION IS FOUND BY ITS TITLE — "Galton board" finds the card it is under — and never by its
-   markup or its CSS, which are not words anybody types. */
 function contentText_(c) {
   const parts = [c.title, c.subject, c.level, c.board, c.spec];
   c.words.concat(c.formulas, c.points).forEach(i => parts.push(i.name, i.text));
-  (c.animations || []).forEach(a => parts.push(a.title));
   return plainText_(parts.filter(Boolean).join(' '));
 }

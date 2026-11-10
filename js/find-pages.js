@@ -449,10 +449,6 @@ function fillStuffPages(all) {
       .map(el => el.querySelector(':scope > .pane')).filter(Boolean)), 0);
   }
 
-  /* A TEXTBOOK'S ANIMATION ON THE PAGE IN FRONT PLAYS, AND ONLY THAT ONE — see `tbAnimWatch_`. Here,
-     after the pages near you are filled, because a stage that was not on the page a moment ago is
-     on it now. */
-  tbAnimWatch_();
   /* AND THE WORDS OF THE CARD IN FRONT AND THE NEXT FEW, from the Ledger (397) — asked here, where a turn lands. */
   libAhead_();
 
