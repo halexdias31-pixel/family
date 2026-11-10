@@ -26,8 +26,8 @@ Write down what was said in the child's words, with date, time and who was there
 | Situation | Contact |
 |---|---|
 | A child is in immediate danger | **999** |
-| A concern about a child living in Merton | Merton MASH: [phone] · out of hours: [phone] |
-| A concern about a child living in Wandsworth | Wandsworth MASH: [phone] · out of hours: [phone] |
+| A concern about a child living in Merton | Merton Children and Families Hub (MASH): 020 8545 4226 / 4227, mash@merton.gov.uk · out of hours: 020 8770 5000 |
+| A concern about a child living in Wandsworth | Wandsworth MASH: 020 8871 6622, mash@wandsworth.gov.uk · out of hours: 020 8871 6000 |
 | A child living elsewhere | Children's services for the child's home area |
 | Advice | NSPCC helpline 0808 800 5000, help@nspcc.org.uk |
 | Online sexual abuse | CEOP: ceop.police.uk |
@@ -38,8 +38,8 @@ Parents are told unless that could put the child at greater risk; the MASH advis
 ## Allegations against the owner or a tutor
 Any sign that an adult has harmed a child, may have committed an offence against a child, or has behaved in a way that shows they
 may be unsuitable to work with children goes to the **LADO within one working day**, before we look into it ourselves:
-- Merton LADO: [phone], [email]
-- Wandsworth LADO: [phone], [email]
+- Merton LADO: 020 8545 3179 / 3187, lado@merton.gov.uk
+- Wandsworth LADO: through the MASH, 020 8871 6622, lado@wandsworth.gov.uk
 
 If it concerns the DSL, the deputy (or whoever hears it) goes straight to the LADO. The adult is not told details until the LADO agrees,
 and does not teach while it is looked into if the LADO advises. If someone is removed from work with children because they harmed or
@@ -57,3 +57,5 @@ Kept until the child is 25. Allegations against adults: until their normal retir
 
 ## Review
 The DSL reviews this policy every November, checks every contact number still works, and ticks the review on the business checklist.
+
+Council contacts checked 10 November 2026 on merton.gov.uk and wandsworth.gov.uk; check them again at each yearly review.
