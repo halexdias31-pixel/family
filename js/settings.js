@@ -174,6 +174,8 @@ function setCardFields_(d, extra) {
   const list = v => libS(v).split(',').map(t => t.trim()).filter(Boolean);
   if (rows && rows.length) d.cardFields = Object.fromEntries(rows.filter(r => libS(r.kind).trim()).map(r => [libS(r.kind).trim(),
     { cls: libS(r.cls).trim(), pic: list(r.pic), title: list(r.title), tags: list(r.tags), lines: list(r.lines), tiles: list(r.tiles) }]));
+  /* WHICH KINDS HAND OVER ONLY FACTS, and each kind's one outline icon (owner, 10 Nov; `kcLook_`, cards.js). */
+  if (rows && rows.length) d.cardLook = Object.fromEntries(rows.filter(r => libS(r.kind).trim()).map(r => [libS(r.kind).trim(), { facts: r.facts === true || libOn(r.facts), icon: libS(r.icon).trim() }]));
 }
 
 function setDefaultPictures_(d, extra) {

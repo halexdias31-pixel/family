@@ -236,6 +236,7 @@ const SUITE = [
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
   { file: 'check/fluid.js',   what: 'any shape of screen: seven phone, tablet and desktop sizes scroll no wider than the window and leave no blank side', slow: true },
   { file: 'check/setting-forms.js', what: 'every Settings card, signed out and in, at 390 and 820px: no box, menu or tile cut by its card (owner, 10 Nov)', slow: true },
+  { file: 'check/card-facts.js', what: 'every card kind in Find, four viewers, 390 and 820px, closed and open: no text cut, blank card, centred text, kind HTML or stray profile picture (owner, 10 Nov)', slow: true },
   { file: 'check/centred.js', what: 'Find floats back to the middle when words or chips are cleared (508)', slow: true },
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
   { file: 'check/slide.js',   what: 'the slide between columns as iOS does it: landings, a spring, the rubber band, a held row (527)', slow: true },

@@ -552,6 +552,7 @@ function kcUnpicked_(html) {
 /* EVERY CARD HAS A PICTURE (owner, 9 Nov): its own, else one of the ten profile pictures (default-pictures.json), the same one for the same person every time. */
 function kcPicOr_(x, html) {
   if (String(html || '').trim()) return html;
+  if (KC_PERSON_KINDS.indexOf(x && x.kind) < 0) return kcIcon_(x && x.kind);
   const art = typeof PFP_ART === 'object' && PFP_ART ? PFP_ART : {};
   const named = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.defaultPictures) ? DATA.defaultPictures : []).filter(n => art[n]);
   const list = named.length ? named : Object.keys(art);
@@ -559,6 +560,73 @@ function kcPicOr_(x, html) {
   const r = kcRow_(x), k = String(r.personId || (x && (x.key || x.name)) || ''); let h = 0;
   for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) >>> 0;
   return pfpArt_(list[h % list.length], 96);
+}
+/* ---------- A CARD NEVER DRAWS ITS OWN INSIDES (owner, 10 Nov): a facts kind hands over words; findCard lays them out one way ---------- */
+/* Before card-fields.json lands: the same `facts` and `icon` columns its rows hold (settings.js reads them into DATA.cardLook). */
+const KC_LOOK_DEFAULT = Object.fromEntries(Object.entries({ receipt: 'pound', friend: '', shop: 'cart', practical: 'tools', project: 'spark', content: 'doc', insert: 'doc', timeline: 'line', fight: 'hand', bible: 'doc', talmud: 'doc', quran: 'doc', worktext: 'doc', hadith: 'doc', writ: 'doc', pdtext: 'doc', orthotext: 'doc', hymn: 'sound', mech: 'compass', chem: 'spark', soon: 'spark', person: '', setting: 'tools', health: 'tick', offPosts: 'spark', offShop: 'cart', offBooking: 'book' }).map(([k, icon]) => [k, { facts: true, icon }]));
+/* WHO HAS A FACE: a person's card keeps its photo or chosen picture; nobody else's is ever a profile picture. */
+const KC_PERSON_KINDS = ['tutor', 'person', 'people', 'friend', 'msg', 'post', 'question', 'answer'];
+const kcLook_ = kind => ((typeof DATA !== 'undefined' && DATA && DATA.cardLook) || KC_LOOK_DEFAULT)[kind] || {};
+const kcIcon_ = kind => { const n = kcLook_(kind).icon || 'doc'; return `<span class="kc-icon">${typeof tileIcon_ === 'function' ? tileIcon_(n) || tileIcon_('doc') : ''}</span>`; };
+const KC_EMPTY = 'Nothing here yet.';
+/* A FORM STAYS A FORM: its own maker draws it, whole and unclamped, as the card's open content. */
+const KC_FORM_SEL = 'input:not([type="hidden"]), select, textarea, form';
+const KC_BLOCK = /^(P|LI|DIV|SECTION|ARTICLE|TR|DT|DD|H[1-6]|BLOCKQUOTE|PRE|UL|OL|DL|TABLE|FIGCAPTION|HEADER|FOOTER)$/;
+/* SOME KIND HTML AS FACTS: plain lines, its buttons lifted out, the original kept hidden so a late filler still finds its target. */
+function kcFacts_(html) {
+  const out = { lines: '', tiles: '', form: '', src: '' };
+  if (typeof document === 'undefined' || !String(html || '').trim()) return out;
+  const t = document.createElement('template');
+  t.innerHTML = html;
+  if (t.content.querySelector(KC_FORM_SEL)) { out.form = html; return out; }
+  /* A BUTTON OR LINK INSIDE IS NO LINE: it joins the card's row (behind ⋯ unless it is the main). */
+  t.content.querySelectorAll('[data-do], a[href], button').forEach(el => { if (el.parentNode && !el.closest('[data-kc-took]')) { el.setAttribute('data-kc-took', ''); out.tiles += el.outerHTML; el.remove(); } });
+  out.tiles = out.tiles.replace(/ data-kc-took=""/g, '');
+  const wait = t.content.querySelector('.loading');
+  const said = [];
+  const walk = node => {
+    let buf = '';
+    const flush = () => { const s = buf.replace(/\s+/g, ' ').trim(); if (s) said.push(s); buf = ''; };
+    node.childNodes.forEach(n => {
+      if (n.nodeType === 3) { buf += n.nodeValue; return; }
+      if (n.nodeType !== 1 || /^(SCRIPT|STYLE|SVG|IMG|CANVAS|VIDEO|TEMPLATE)$/i.test(n.nodeName) || n.hidden || n.classList.contains('loading')) return;
+      if (n.nodeName === 'BR' || n.nodeName === 'HR') { flush(); return; }
+      if (n.nodeName === 'TR') { flush(); const s = [...n.children].map(c => c.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean).join(': '); if (s) said.push(s); return; }
+      if (KC_BLOCK.test(n.nodeName)) { flush(); walk(n); return; }
+      buf += ' ' + n.textContent + ' ';
+    });
+    flush();
+  };
+  walk(t.content);
+  out.lines = said.length ? said.map(s => `<p class="kc-line">${esc(s)}</p>`).join('') : wait ? wait.outerHTML : '';
+  out.src = t.innerHTML;
+  return out;
+}
+/* A LATE FILLER (an apps list, a count) writes into the hidden original; its card's lines are read again from it. */
+function kcFactsWatch_() {
+  if (kcFactsWatch_.on || typeof MutationObserver === 'undefined' || typeof document === 'undefined' || !document.body) return;
+  kcFactsWatch_.on = true;
+  let busy = false;
+  /* A LIFTED BUTTON TAKES ITS NEW STATE (a count, disabled) from the redrawn original, matched by what it does. */
+  const sync = (card, tiles) => { const t = document.createElement('template'); t.innerHTML = tiles;
+    t.content.querySelectorAll('[data-do]').forEach(n => { const old = card.querySelector(`:scope > .kc-act [data-do="${n.getAttribute('data-do')}"]`); if (old) old.replaceWith(n); }); };
+  const redo = src => { const card = src.closest('.card.kc'), box = card && card.querySelector(':scope > .kc-lines'); if (!box) return;
+    const f = kcFacts_(src.innerHTML); box.firstChild && [...box.children].filter(k => k !== src).forEach(k => k.remove());
+    box.insertAdjacentHTML('afterbegin', f.lines || `<p class="kc-line kc-empty">${KC_EMPTY}</p>`);
+    if (f.tiles) { src.innerHTML = f.src; sync(card, f.tiles); } };
+  /* AN OLD MAKER THAT REDRAWS ITS WHOLE CARD (`[data-libimp]`) has its new insides read as facts into the parts it pushed out. */
+  const rewrap = (card, gone) => { const parts = gone.filter(n => n.nodeType === 1 && /^kc-(pic|head|tags|lines|form|act)$/.test(n.className)); if (!parts.length) return;
+    const f = kcFacts_(card.innerHTML), lines = parts.find(n => n.className === 'kc-lines'), form = parts.find(n => n.className === 'kc-form');
+    if (f.form && form) form.innerHTML = f.form;
+    else if (lines) lines.innerHTML = (f.lines || `<p class="kc-line kc-empty">${KC_EMPTY}</p>`) + (f.src ? `<div class="kc-src" hidden>${f.src}</div>` : '');
+    card.replaceChildren(...parts); if (f.tiles) sync(card, f.tiles); };
+  new MutationObserver(list => { if (busy) return; busy = true; const seen = new Set();
+    try {
+      list.forEach(m => { const el = m.target.nodeType === 1 ? m.target : m.target.parentElement;
+        if (el && el.matches && el.matches('.card.kc.kc-facts') && m.removedNodes.length && !el.querySelector(':scope > .kc-act')) { rewrap(el, [...m.removedNodes]); return; }
+        const src = el && el.closest && el.closest('.kc-src'); if (src) seen.add(src); });
+      seen.forEach(redo);
+    } catch (e) { oops_(e, 'card:facts'); } finally { busy = false; } }).observe(document.body, { subtree: true, childList: true, characterData: true });
 }
 /* A CARD OPENS IN PLACE (owner, 9 Nov): closed is picture, tags and two lines; open puts the tags on top and shows everything. */
 on('kc-more', el => { const c = el.closest('.kc-row, .tile-row'), m = c && c.querySelector('.kc-more'); if (!m) return;
@@ -596,16 +664,26 @@ function findCard(x, credits) {
   const hoist = kcHoist_(parts.lines);
   parts.lines = hoist.lines;
   parts.act = kcActRow_(one, parts.lines, hoist.tiles);
-  if (KC_WHOLE_KINDS.indexOf(it.kind) < 0) { const tidy = kcTidy_(parts.tags, parts.lines, name); parts.tags = tidy.tags; parts.lines = tidy.lines; }
+  /* A FACTS KIND: its lines become plain words, a form its open content, its picture its kind's icon unless it is a person. */
+  let facts = null;
+  if (kcLook_(it.kind).facts) {
+    facts = kcFacts_(parts.lines);
+    if (facts.form) { parts.lines = ''; parts.form = facts.form; kcFactsWatch_(); }
+    else { parts.lines = (facts.lines || `<p class="kc-line kc-empty">${KC_EMPTY}</p>`) + (facts.src ? `<div class="kc-src" hidden>${facts.src}</div>` : ''); kcFactsWatch_(); }
+    if (facts.tiles) parts.act = kcActRow_(one, '', hoist.tiles + facts.tiles);
+    if (KC_PERSON_KINDS.indexOf(it.kind) < 0) parts.pic = kcIcon_(it.kind);
+    parts.tags = kcTidy_(parts.tags, '', name).tags;
+  }
+  if (!facts && KC_WHOLE_KINDS.indexOf(it.kind) < 0) { const tidy = kcTidy_(parts.tags, parts.lines, name); parts.tags = tidy.tags; parts.lines = tidy.lines; }
   /* A QUESTION IS ALWAYS OPEN (tags on top), as a form is until phase 2 converts it; any other card opens by a tap on its picture. */
-  const off = (KC_OPEN_KINDS.indexOf(it.kind) >= 0 || it.open ? ' is-open' : '') + (it.kind === 'tutor' && t.listed === false ? ' is-off' : '') + (it.cardCls ? ' ' + esc(it.cardCls) : '');
+  const off = (KC_OPEN_KINDS.indexOf(it.kind) >= 0 || it.open || parts.form ? ' is-open' : '') + (facts ? ' kc-facts' : '') + (it.kind === 'tutor' && t.listed === false ? ' is-off' : '') + (it.cardCls ? ' ' + esc(it.cardCls) : '');
   /* `cardData` BECOMES data-* ATTRIBUTES, so a card can be found again where it stands (a post's sheet, a conversation's redraw). */
   const data = Object.keys(it.cardData || {}).map(k => ` data-${k}="${esc(it.cardData[k])}"`).join('');
   /* ITS OWN MAKER'S CLASSES AND ATTRIBUTES STAY ON IT, so every handler's `closest('.qcard')` or `[data-key]` still finds it. */
   const mine = it.kcOwn || {}, ownCls = String(mine.cls || '').split(/\s+/).filter(c => c && !/^(card|fc|kc)$/.test(c)).join(' ');
   const label = /\saria-label=/.test(mine.attrs || '') ? '' : ` aria-label="${esc(name)}"`;
   return `<div class="card fc kc kc-${esc(it.kind || 'thing')}${s.cls ? ' ' + esc(s.cls) : ''}${ownCls ? ' ' + ownCls : ''}${off}"${data}${mine.attrs || ''}${label}>${
-    KC_PARTS.map(p => (p === 'pic' && !/ is-open/.test(off) ? `<div class="kc-pic" data-do="kc-open" role="button" tabindex="0" aria-label="Open">${parts[p]}</div>` : `<div class="kc-${p}">${parts[p]}</div>`)).join('')}</div>`;
+    (parts.form ? ['pic', 'head', 'tags', 'lines', 'form', 'act'] : KC_PARTS).map(p => (p === 'pic' && !/ is-open/.test(off) ? `<div class="kc-pic" data-do="kc-open" role="button" tabindex="0" aria-label="Open">${parts[p]}</div>` : `<div class="kc-${p}">${parts[p]}</div>`)).join('')}</div>`;
 }
 
 /* Tapping one opens a sheet rather than expanding the card. § */
