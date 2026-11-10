@@ -63,7 +63,7 @@
   --tile: 44px; --tile-i: 16px; --tile-gap: 6px; --tile-send: 44px; --tile-r: 999px; --btn-r: 22px;
   /* ONE PILL SIZE (owner, 1040 r12): a chosen chip, a menu answer and a card tag are drawn alike; a tappable one keeps 44px in an invisible ::before. */
   /* ONE DIAL FOR EVERY TAG'S SIZE (owner, 10 Nov): change this, not each tag. */
-  --tag-scale: 1;
+  --tag-scale: 2;
   --tp-fs: calc(.78rem * var(--tag-scale)); --tp-lh: 1.35; --tp-pad: calc(.18rem * var(--tag-scale)) calc(.65rem * var(--tag-scale)); --tp-h: calc(1.55rem * var(--tag-scale));
   --r-sm:   2px;
 
@@ -2784,7 +2784,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .prof-shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .prof-tag {
   font-family: var(--mono); font-size: var(--tp-fs); letter-spacing: .08em;
-  padding: var(--tp-pad); border-radius: var(--r-round);
+  padding: var(--tp-pad); border-radius: calc(var(--tp-h) / 2);
   border: 1px solid var(--line); color: var(--ink);
 }
 /* THE ROWS NEED AIR ABOVE THEM, or the first one sits against the adjectives as though it were one
@@ -3603,7 +3603,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qcard-tags { margin: 0; }
 /* A RADIUS IN px, NOT 999px. § */
 .qtag {
-  display: inline-flex; align-items: center; max-width: 100%; min-height: var(--tp-h); padding: var(--tp-pad); border-radius: var(--r-round);
+  display: inline-flex; align-items: center; max-width: 100%; min-height: var(--tp-h); padding: var(--tp-pad); border-radius: calc(var(--tp-h) / 2);
   border: 1px solid var(--tag, var(--chip-line)); color: var(--tag, var(--dim)); background: color-mix(in srgb, var(--tag, var(--chip-line)) 10%, transparent);
   font-size: var(--tp-fs); line-height: var(--tp-lh);
 }
@@ -6015,6 +6015,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc:not(.is-open) > .kc-lines > * ~ * { display: none; }
 /* A LINE THAT IS A WHOLE TABLE (a receipt) is still two lines high when closed; open shows all of it. */
 .card.kc:not(.is-open) > .kc-lines { max-height: 3em; overflow: hidden; }
+/* A LINE THAT IS A ROW OF TAGS (a tutor's qualifications) is never cut mid-tag: tags wrap whole, whatever --tag-scale is. */
+.card.kc:not(.is-open) > .kc-lines:has(> :first-child .prof-tag, > :first-child .qtag) { max-height: none; }
+.card.kc:not(.is-open) > .kc-lines > :first-child:has(.prof-tag, .qtag) { display: flex; flex-wrap: wrap; -webkit-line-clamp: unset; line-clamp: none; overflow: visible; }
 .card.kc.is-open { display: flex; flex-direction: column; }
 .card.kc.is-open > .kc-tags { order: -1; }
 .card.kc.is-open > .kc-head { display: none; }
