@@ -496,10 +496,19 @@ function placeChipDead_(f) {
 
 /* ---------- ONE LIST FOR BOTH FINDERS, COUNTED ONCE § */
 let FUNNEL_MEMO = { key: null, from: null, items: null };
+/* DOORS SWITCHED OFF FOR NOW (owner, 10 Nov): their things leave Find and one greyed Coming soon card waits under each, as Videos does. Empty the list to turn them back on. */
+const DOORS_OFF = ['Posts', 'Messages', 'Profiles'];
+function doorsOff_(items) {
+  if (!DOORS_OFF.length) return items;
+  const off = x => { let t = []; try { t = asList_(kindTop_(x)); } catch (e) { return false; } return t.length > 0 && t.every(d => DOORS_OFF.indexOf(d) >= 0); };
+  /* A THING UNDER AN OFF DOOR AND ANOTHER (a tutor: Booking and Profiles) stays under the other only. */
+  const keep = x => { let t = []; try { t = asList_(kindTop_(x)); } catch (e) { return x; } const k = t.filter(d => DOORS_OFF.indexOf(d) < 0); return k.length === t.length ? x : Object.assign({}, x, { top: k.length === 1 ? k[0] : k }); };
+  return items.filter(x => !off(x)).map(keep).concat(DOORS_OFF.map(d => ({ kind: 'soon', name: d, sub: d, image: '', key: 'soon:door:' + d, soon: 'widget', soonId: d, top: d, text: d })));
+}
 function stuffItems() {
   const key = itemMemoKey_();
   if (!(FUNNEL_MEMO.from === DATA && FUNNEL_MEMO.key === key)) {
-    FUNNEL_MEMO = { key: key, from: DATA, items: stuffItemsBuild_() };
+    FUNNEL_MEMO = { key: key, from: DATA, items: doorsOff_(stuffItemsBuild_()) };
   }
   /* THE WRITINGS THIS FUNNEL STARTED WITH (520): an index that comes after an answer joins at the next fresh start. */
   const admit = writingAdmit_();
