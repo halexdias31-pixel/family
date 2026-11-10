@@ -55,22 +55,55 @@ function postApplyTeach_(body, action, began) {
   const f = {
     subjects: cut(body.subjects, APPLICATION_TEXT_MAX), qualifications: cut(body.qualifications, APPLICATION_TEXT_MAX),
     dbs_number: cut(body.dbsNumber, 40), dbs_issued: cut(body.dbsIssued, 20), dbs_needed: TRUE_(body.dbsNeeded) ? 'TRUE' : 'FALSE',
+    dbs_update_consent: TRUE_(body.dbsUpdate) ? 'TRUE' : 'FALSE',
     right_to_work: norm(body.rightToWork) === 'yes' ? 'yes' : norm(body.rightToWork) === 'no' ? 'no' : '',
     experience: cut(body.experience, APPLICATION_TEXT_MAX), availability: cut(body.availability, APPLICATION_TEXT_MAX),
-    area: cut(body.area), ref1_name: cut(body.ref1Name), ref1_contact: cut(body.ref1Contact),
-    ref2_name: cut(body.ref2Name), ref2_contact: cut(body.ref2Contact),
+    area: cut(body.area), full_name: cut(body.fullName), phone: cut(body.phone, 40), email: cut(body.email),
+    address: cut(body.address, 300), postcode: cut(body.postcode, 12).toUpperCase(), dob: cut(body.dob, 20),
+    ref1_name: cut(body.ref1Name), ref1_relationship: cut(body.ref1Relationship), ref1_email: cut(body.ref1Email), ref1_phone: cut(body.ref1Phone, 40),
+    ref2_name: cut(body.ref2Name), ref2_relationship: cut(body.ref2Relationship), ref2_email: cut(body.ref2Email), ref2_phone: cut(body.ref2Phone, 40),
+    rate: Number(body.rate) > 0 && Number(body.rate) < 1000 ? String(Math.round(Number(body.rate) * 100) / 100) : '',
     statement: cut(body.statement, APPLICATION_TEXT_MAX), cv_link: cut(body.cvLink, 300),
     consent: TRUE_(body.consent) ? 'TRUE' : 'FALSE',
   };
+  /* THE OLD ONE-BOX CONTACT COLUMNS stay filled, so a sheet read by eye still has each referee in one cell. */
+  f.ref1_contact = [f.ref1_email, f.ref1_phone].filter(Boolean).join(' · ');
+  f.ref2_contact = [f.ref2_email, f.ref2_phone].filter(Boolean).join(' · ');
+  const mail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  const pics = [].concat(body.qualDocs || []).filter(x => /^data:image\//i.test(S(x))).slice(0, APPLY_QUAL_DOCS_MAX);
   const missing = [];
+  if (!f.full_name) missing.push('your full name');
+  if (!f.phone) missing.push('your phone number');
+  if (!mail(f.email)) missing.push('your email address');
+  if (!f.address || !/^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/.test(f.postcode)) missing.push('your home address and postcode');
+  if (!/^\d{4}-\d\d-\d\d$/.test(f.dob)) missing.push('your date of birth');
+  if (!/^data:image\//i.test(S(body.idDoc))) missing.push('a photo of your ID');
+  if (!/^data:image\//i.test(S(body.rtwDoc))) missing.push('a photo of your right-to-work document');
   if (!f.subjects) missing.push('the subjects and levels you teach');
+  if (!f.qualifications || !pics.length) missing.push('your qualifications, listed and with at least one photo');
   if (!f.right_to_work) missing.push('whether you have the right to work in the UK');
-  if (f.dbs_needed !== 'TRUE' && !(f.dbs_number && f.dbs_issued)) missing.push('your DBS number and issue date, or "I need one"');
-  if (!(f.ref1_name && f.ref1_contact && f.ref2_name && f.ref2_contact)) missing.push('two references, each with a name and a contact');
+  if (f.dbs_needed !== 'TRUE' && !(f.dbs_number && f.dbs_update_consent === 'TRUE')) missing.push('your enhanced DBS number and the Update Service tick, or "I need one"');
+  if (!(f.ref1_name && f.ref1_relationship && mail(f.ref1_email) && f.ref1_phone && f.ref2_name && f.ref2_relationship && mail(f.ref2_email) && f.ref2_phone))
+    missing.push('two references, each with a name, relationship, email and phone');
+  if (!f.availability) missing.push('when you can teach');
+  if (!f.rate) missing.push('your hourly rate');
   if (!f.statement) missing.push('a short statement');
   if (f.consent !== 'TRUE') missing.push('the consent tick');
   if (missing.length) return jsonOut({ error: 'Please add ' + missing.join(', ') + '. Nothing was sent.', why: 'missing' });
   if (f.cv_link && !/^https:\/\//i.test(f.cv_link)) return jsonOut({ error: 'The CV link must start with https://. Nothing was sent.' });
+  /* THE DOCUMENTS GO TO THE PRIVATE FOLDER FIRST: no folder, or a photo too big, and nothing at all is written. */
+  const folder = applyFolder_();
+  if (!folder) return jsonOut({ error: 'Applications cannot take documents yet — please try again later. Nothing was sent.', why: 'no-folder' });
+  const docs = [S(body.idDoc), S(body.rtwDoc)].concat(pics);
+  if (docs.some(d => d.length > APPLY_DOC_MAX)) return jsonOut({ error: 'One of the photos is too big — try a smaller one. Nothing was sent.', why: 'big' });
+  try {
+    const tag = S(me.person_id) + '-' + Date.now();
+    f.id_doc = applyKeep_(folder, body.idDoc, tag + '-id');
+    f.rtw_doc = applyKeep_(folder, body.rtwDoc, tag + '-right-to-work');
+    f.qual_docs = pics.map((d, i) => applyKeep_(folder, d, tag + '-qualification-' + (i + 1))).join(' ');
+  } catch (err) {
+    return jsonOut({ error: 'The photos could not be kept — please try again. Nothing was sent.', why: 'drive' });
+  }
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
   let out = {};
@@ -99,6 +132,22 @@ function postApplyTeach_(body, action, began) {
     } catch (err) {}
   }
   return jsonOut({ success: true, application: applicationOf_(me) });
+}
+
+/* THE APPLICANTS' PRIVATE FOLDER (Script Property APPLY_FOLDER, never in the repo): null when unset or unreachable. */
+function applyFolder_() {
+  try {
+    const id = S(PropertiesService.getScriptProperties().getProperty('APPLY_FOLDER')).trim().replace(/^.*\/folders\//, '').replace(/[?#].*$/, '');
+    return id ? DriveApp.getFolderById(id) : null;
+  } catch (err) { return null; }
+}
+/* ONE DOCUMENT PHOTO, KEPT PRIVATE: no sharing is set, so its link opens only for whoever the folder is shared with (the admins). */
+function applyKeep_(folder, raw, name) {
+  const parts = S(raw).split(',');
+  const type = ((parts[0] || '').match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+  const ext = (type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/gi, '');
+  const blob = Utilities.newBlob(Utilities.base64Decode(parts[1] || ''), type, name + '.' + ext);
+  return 'https://drive.google.com/file/d/' + folder.createFile(blob).getId() + '/view';
 }
 
 function postListApplications_(body, action, began) {
