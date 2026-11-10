@@ -70,9 +70,10 @@ const shapeOf = html => {
   if (!/<div class="kc-head"><\/div>/.test(html)) return 'a title line (the name belongs in the tags)';
   return fourOf(html);
 };
-/* EVERY CARD (owner, 9 Nov): a picture, tags, and exactly four buttons -- main, Message, Star, ⋯ -- the rest behind ⋯. */
+/* EVERY CARD (owner, 9 Nov): tags, and exactly four buttons -- main, Message, Star, ⋯ -- the rest behind ⋯; a picture only when real. */
 function fourOf(html) {
-  if (/<div class="kc-pic"[^>]*><\/div>/.test(html)) return 'no picture';
+  const picH = (/<div class="kc-pic">([\s\S]*?)<\/div><div class="kc-head">/.exec(html) || [, ''])[1];
+  if (picH && !/<(img|video|picture)\b|mfrclip-|pfp-art|person-pic|prof-pic|dm-pic/.test(picH)) return 'a stand-in picture: ' + picH.slice(0, 60);
   if (/<div class="kc-tags"><\/div>/.test(html)) return 'no tags';
   const rows = html.split('<span class="kc-four">').slice(1);
   if (rows.length < 1) return 'no four-button row';
@@ -159,11 +160,13 @@ delete scope.brand;
 scope.window.KC_OWN = {};
 if (!/\n  tutor:[\s\S]{0,300}?: findCard\(x\) \}/.test(finder)) bad.push('find-finder.js does not draw a tutor with findCard');
 
-/* ONE CENTRED, STATIC ANATOMY: no closed-card rule, no clamp on a card's lines, centred, ⋯ items with words. */
+/* ONE CENTRED, STATIC ANATOMY: no closed-card rule, centred, round icons only, no stand-in picture. */
 const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
 if (/\.card\.kc[^{]*(:not\(\.is-open\)|\.is-open)/.test(css)) bad.push('style.css still draws a closed or open card: cards are static');
 if (!/\.card\.kc \{[^}]*align-items: center;[^}]*text-align: center;/.test(css)) bad.push('style.css does not centre the card anatomy (.card.kc align-items/text-align center)');
-if (!/\.kc-more > \.tile::after \{[^}]*content: attr\(data-word\)/.test(css)) bad.push('style.css does not label the actions behind ⋯');
+if (/\.kc-more > \.tile::after|attr\(data-word\)/.test(css)) bad.push('style.css writes a word under a round button: icons only, a long press says it');
+if (!/\.card\.kc > \.kc-pic:empty \{[^}]*display: none/.test(css)) bad.push('style.css keeps room for a card with no real picture');
+if (/kc-icon|lib-pic|kc-blank/.test(css + cards)) bad.push('a kind-icon or pixel-sign stand-in picture is still drawn');
 /* A FACET'S SHOW FITS A TAG: the owner's short labels (labels.json facet-show:*) and every form showForms_ (find-facets.js) offers are ≤ KC_TAG_MAX. */
 const tagMax = Number((/const KC_TAG_MAX = (\d+);/.exec(cards) || [])[1]);
 const facetsSrc = fs.readFileSync(path.join(ROOT, 'js/find-facets.js'), 'utf8');
