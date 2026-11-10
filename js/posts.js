@@ -265,14 +265,14 @@ function commentsHtml_(p) {
     ${list.length ? `<ul class="cmt-list">${list.map(x => `
       <li class="cmt${x.mine ? ' mine' : ''}">
         <p class="cmt-body"><b>${esc(displayName_(x.name))}</b> ${mark(x.body)}</p>
-        <p class="faint cmt-when">${esc(ago(x.at) || x.at || '')}${x.canRemove
-          ? ` · <button class="cmt-x" data-do="cmt-del" data-id="${esc(x.id)}">Remove</button>`
+        <p class="cmt-when"><span class="qtag">${esc(ago(x.at) || x.at || '')}</span>${x.canRemove
+          ? tile_({ icon: 'bin', label: 'Remove', act: 'cmt-del', cls: 'cmt-x', data: { id: x.id } })
           : ''}</p>
       </li>`).join('')}</ul>` : ''}
     ${/* THE ONES NOT SHOWN ARE A NUMBER RATHER THAN A SILENCE. `doGet` caps the list at sixty;
           a conversation that simply stops at sixty with nothing saying so is a conversation
           somebody thinks they have read. */''}
-    ${more ? `<p class="faint">${more} more, not shown.</p>` : ''}
+    ${more ? `<p class="qtags"><span class="qtag">${more} more</span></p>` : ''}
     ${/* ---------- POST IS A TILE § */
           ''}
     ${USER

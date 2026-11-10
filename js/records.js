@@ -815,7 +815,7 @@ function bizSettingsCard_() {
     <p class="sub">Every price rule in one place. Bookings read these; nothing else sets them.</p>
     ${BIZ_SETTINGS.map(line).join('')}
     <h4>Venues and rooms</h4><p class="faint">Home and Online are venues like any other. Edit them on the Venues and Rooms tabs of the sheet.</p>
-    <ul class="biz-venues">${places || '<li class="faint">No venues yet.</li>'}</ul>
+    <ul class="biz-venues">${places || `<li>${empty_('No venues yet.')}</li>`}</ul>
     <p class="faint fs-said" aria-live="polite"></p></div>`;
 }
 on('biz-setting-save', el => {
