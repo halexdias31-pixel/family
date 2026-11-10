@@ -5598,3 +5598,5 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .prof-tag-name { color: var(--ink); }
 /* ONE ALIGNMENT IN EVERY CARD (owner, 10 Nov): an old maker's centring never reaches a card's lines. */
 .card.kc > .kc-lines, .card.kc > .kc-lines * { text-align: left; }
+/* INSIDE A CARD, AN EMPTY LINE IS ONE MORE LINE: left, no padding, no centring. */
+.card.kc .empty { padding: 0; margin: 0; text-align: left; }
