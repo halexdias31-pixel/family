@@ -458,7 +458,7 @@ function deletedCard_() {
   const del = ((layoutNow_() || {}).deleted || []);
   const rows = del.map(id => `<div class="lay-deleted-row" data-deleted="${esc(id)}"><p><strong>${esc(layoutDeletedName_(id))}</strong> · ${anyWidgetOf_(id) ? 'widget' : 'card'}</p>
 <div class="tile-row">${tile_({ icon: 'undo', label: 'Put back', act: 'lay-putback', tone: 'admin', data: { del: id } })}</div></div>`).join('');
-  return '<!--card:biz:deleted--><div class="card biz deleted-card"><h3>Deleted</h3>' + (rows || '<p class="muted">Nothing deleted</p>') + '</div>';
+  return '<!--card:biz:deleted--><div class="card biz deleted-card"><h3>Deleted</h3>' + (rows || empty_('Nothing deleted.')) + '</div>';
 }
 /* CARDS THAT MOVE BUT ARE NEVER DELETED, each with its reason. */
 const CARD_KEEP = {

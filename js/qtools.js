@@ -286,7 +286,7 @@ function penPng_(pad, scale) {
       const { out, W, H, imgs } = made;
       const card = pad.closest('.qcard') || pad;
       const ground = getComputedStyle(card).backgroundColor;
-      const bg = ground && !/rgba\(0, 0, 0, 0\)|transparent/.test(ground) ? ground : '#0b0b0b';
+      const bg = ground && !/rgba\(0, 0, 0, 0\)|transparent/.test(ground) ? ground : token_('--raised', 'black');
       const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(out)], { type: 'image/svg+xml' }));
       const img = new Image();
       const timer = setTimeout(() => { URL.revokeObjectURL(url); end(''); }, PEN_PNG_MS);

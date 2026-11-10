@@ -119,6 +119,10 @@ const time_ = t => {
   return String(h).padStart(2, '0') + ':' + String(min).padStart(2, '0');
 };
 /* A VALUE THAT IS MISSING READS "—" (owner 65a, 9 Nov), the one way; 0 is a value and shows. */
+/* A CANVAS PAINTS IN THE THEME'S OWN TOKENS (owner, 10 Nov): `token_('--bg', 'black')`; the keyword is only for a page whose css never came. */
+function token_(name, or) {
+  try { return String(getComputedStyle(document.documentElement).getPropertyValue(name) || '').trim() || or; } catch (e) { return or; }
+}
 const dash_ = v => (v === undefined || v === null || String(v).trim() === '' ? '—' : v);
 /* A whole-hour span, 24-hour: 09:00–10:00. */
 const hours_ = (a, b) => time_(a + ':00') + '–' + time_(b + ':00');

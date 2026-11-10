@@ -388,7 +388,7 @@ function shopCards_() {
       g.items.slice(i, i + SHOP_PER).forEach(x => at.push({ name: x.title || x.name || x.key || '', group: g.kind, page: out.length,
         say: [x.title, x.name, x.key, x.sub, x.description, x.desc, g.label].filter(Boolean).join(' ').toLowerCase() }));
       /* AN `<h2>` BETWEEN CARDS, NOT INSIDE ONE — the rule `check-dead.js` states and `split_` cuts on. § */
-      out.push(`<h2><span>${esc(g.label)}</span><span class="faint">${g.items.length}</span></h2>`
+      out.push(`<h2><span>${esc(g.label)}</span><span class="qtag">${g.items.length}</span></h2>`
         + g.items.slice(i, i + SHOP_PER).map(x => shopWithIcon_(stuffCard(x, credits), x, g.kind)).join(''));
     }
   });

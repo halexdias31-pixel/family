@@ -36,6 +36,26 @@ files.forEach(({ n, src }) => {
   if (/(?<![-\w])color:\s*var\(--(dim|faint)\)/.test(src)) bad.push(`2 grey text: inline in ${n}.js`);
 });
 
+/* ---------- 2b. NO GREY LINE FROM JS: information is a tag (.qtag) or it is gone ---------- */
+/* The grey-line classes, per file: a ratchet, each number only goes down (a card hides them, so a new one is invisible). */
+const GREY_CLS = /class="(?:[^"]* )?(?:faint|sub|muted|dim|hint)(?: [^"]*)?"/g;
+const GREY_LEFT = { 'shell-boot': 3, rules: 3, cards: 2, form: 1, 'me-account': 9, 'me-messages': 13, 'me-roles': 13,
+  'me-shelves': 4, 'me-settings': 4, 'me-card': 11, 'me-people': 7, posts: 16, 'find-finder': 4, 'find-facets': 1,
+  'find-history': 1, 'find-parts': 1, 'find-levels': 2, 'find-bundles': 1, submit: 7, arcade: 7, map: 3, 'book-steps': 1,
+  records: 27, 'biz-check': 6, collections: 1, reader: 1, staff: 9, layout: 2, words: 3, gtasks: 2, push: 2, inbox: 3, missing: 6 };
+files.forEach(({ n, src }) => {
+  const k = (src.match(GREY_CLS) || []).length, may = GREY_LEFT[n] || 0;
+  if (k > may) bad.push(`2b grey line: ${n}.js has ${k} class="faint|sub|muted|dim|hint", allowed ${may} — a tag (<span class="qtag">) or nothing`);
+  if (k < may) bad.push(`2b ${n}.js is down to ${k} grey line(s): lower GREY_LEFT['${n}'] to ${k} so it cannot come back`);
+});
+/* A faded ink is grey by another name: only a mark that is not words (a tick, the tap chevron) may fade. */
+const FADE = /(?<![-\w])color:\s*color-mix\(in srgb, var\(--(ink|white)\) \d+%/;
+const FADE_OK = /::after|\.bk-tick|\.tap::after/;
+for (const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  const sel = m[1].replace(/\/\*[\s\S]*?\*\//g, '').trim();
+  if (FADE.test(m[2]) && !STILL.test(sel) && !FADE_OK.test(sel)) bad.push(`2b faded text: "${sel.slice(0, 80)}" — var(--ink), or a tag`);
+}
+
 /* ---------- 3. SAME LOOK EVERYWHERE: COLOUR IS A TOKEN ---------- */
 /* A literal lives only in a :root block; everything else names a token, so one palette changes the whole site. */
 const LIT = /(?<![\w&-])#[0-9a-fA-F]{3,8}\b(?![\w-])|\brgba?\(/;
@@ -137,7 +157,8 @@ files.forEach(({ n, src }) => {
 
 /* ---------- 61a. THREE TEXT SIZES: --fs-body, --fs-title, --fs-small ---------- */
 /* Not a text size: the root lever (html), a printed sheet at paper size (mm), a drawing scaled to its box (cq*), the Talmud page's viewer-set size. */
-const FS_OK = /^(var\(--fs-(body|title|small)\)|inherit)$|mm\b|cq[whi]\b|^var\(--tal-fs\)$/;
+/* A tag's size is the owner's one tag dial (--tp-fs, set by --tag-scale), not a fourth size of its own. */
+const FS_OK = /^(var\(--fs-(body|title|small)\)|inherit)$|mm\b|cq[whi]\b|^var\(--(tal|tp)-fs\)$/;
 for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
   if (/(^|[\s,}])html\s*$/.test(m[1]) || /^\s*:root\s*$/.test(m[1])) continue;
   for (const d of m[2].matchAll(/(?:^|;)\s*font-size:\s*([^;]+?)\s*(?=;|$)/g)) {

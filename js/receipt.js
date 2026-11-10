@@ -120,7 +120,7 @@ function rcBehind_(el) {
     const bg = getComputedStyle(p).backgroundColor;
     if (bg && !/^(transparent|rgba\(\s*0,\s*0,\s*0,\s*0\s*\))$/.test(bg)) return bg;
   }
-  return getComputedStyle(document.documentElement).backgroundColor || '#000';
+  return getComputedStyle(document.documentElement).backgroundColor || token_('--bg', 'black');
 }
 
 /** The `.rc` as a PNG at `RC_SNAP_K` device pixels per CSS pixel. Resolves `{ blob, w, h, svg }`. */
@@ -290,7 +290,7 @@ function drawBooker_() {
     ? `<p class="note note-gap">No children are on
          ${mine ? 'your account' : esc(forWhom) + '&rsquo;s account'}, so we cannot ask which of
          them this is for — the seats will just say <b>Child</b>.
-         <span class="faint">${mine ? 'Ask us to add them and the next booking will name them.'
+         <span>${mine ? 'Ask us to add them and the next booking will name them.'
            : 'Add them to that account and the next booking will name them.'}</span></p>`
     : '';
 

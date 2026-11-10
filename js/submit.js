@@ -928,15 +928,15 @@ async function repVideoFrames_(file) {
       const c = document.createElement('canvas');
       c.width = cw * Math.min(REP_SHEET_COLS, part.length); c.height = ch * rows;
       const g = c.getContext('2d');
-      g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height);
+      g.fillStyle = token_('--black', 'black'); g.fillRect(0, 0, c.width, c.height);
       for (let i = 0; i < part.length; i++) {
         await repSeek_(v, part[i]);
         const x0 = (i % REP_SHEET_COLS) * cw, y0 = Math.floor(i / REP_SHEET_COLS) * ch;
         g.drawImage(v, x0, y0, cw, ch);
         if (!small) { const sc = document.createElement('canvas'), k = Math.min(1, REP_SMALL_SIDE / Math.max(W, H)); sc.width = Math.round(W * k); sc.height = Math.round(H * k); sc.getContext('2d').drawImage(v, 0, 0, sc.width, sc.height); small = repJpeg_(sc, REP_SMALL_MAX); }
         const lab = repStamp_(part[i]);
-        g.font = 'bold 16px sans-serif'; g.fillStyle = 'rgba(0,0,0,.7)'; g.fillRect(x0 + 4, y0 + 4, g.measureText(lab).width + 10, 22);
-        g.fillStyle = '#fff'; g.fillText(lab, x0 + 9, y0 + 21);
+        g.font = 'bold 16px sans-serif'; g.fillStyle = token_('--black', 'black'); g.fillRect(x0 + 4, y0 + 4, g.measureText(lab).width + 10, 22);
+        g.fillStyle = token_('--white', 'white'); g.fillText(lab, x0 + 9, y0 + 21);
       }
       sheets.push(repJpeg_(c, REP_SHEET_BYTES));
     }

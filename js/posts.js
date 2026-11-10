@@ -196,7 +196,7 @@ function postCard_(p, i) {
           ${/* No "· deleted" any more: a deleted post is not drawn at all, so nothing reaching
                  here can be one. */''}
           <span class="post-who">${esc(who)}${p.pinned
-            ? ' <span class="faint">· pinned</span>' : ''}${p.refused
+            ? ' <span class="qtag">pinned</span>' : ''}${p.refused
             ? ' <span class="post-wait">· not put up</span>' : ''}</span>
           ${p.location ? `<span class="post-where">${esc(p.location)}</span>` : ''}
         </span>
@@ -265,14 +265,14 @@ function commentsHtml_(p) {
     ${list.length ? `<ul class="cmt-list">${list.map(x => `
       <li class="cmt${x.mine ? ' mine' : ''}">
         <p class="cmt-body"><b>${esc(displayName_(x.name))}</b> ${mark(x.body)}</p>
-        <p class="faint cmt-when">${esc(ago(x.at) || x.at || '')}${x.canRemove
-          ? ` · <button class="cmt-x" data-do="cmt-del" data-id="${esc(x.id)}">Remove</button>`
+        <p class="cmt-when"><span class="qtag">${esc(ago(x.at) || x.at || '')}</span>${x.canRemove
+          ? tile_({ icon: 'bin', label: 'Remove', act: 'cmt-del', cls: 'cmt-x', data: { id: x.id } })
           : ''}</p>
       </li>`).join('')}</ul>` : ''}
     ${/* THE ONES NOT SHOWN ARE A NUMBER RATHER THAN A SILENCE. `doGet` caps the list at sixty;
           a conversation that simply stops at sixty with nothing saying so is a conversation
           somebody thinks they have read. */''}
-    ${more ? `<p class="faint">${more} more, not shown.</p>` : ''}
+    ${more ? `<p class="qtags"><span class="qtag">${more} more</span></p>` : ''}
     ${/* ---------- POST IS A TILE § */
           ''}
     ${USER
@@ -460,9 +460,9 @@ function cameraCard() {
     ${/* AN ADMIN'S QUESTION ONLY (413): anybody else's post is their own. */
           typeof isAdmin === 'function' && isAdmin() ? `<span class="btn-row cam-as" id="cam-as" data-as="brand" hidden>
       <button class="btn quiet on" data-do="as" data-for="cam-as" data-as="brand"
-        >${esc(brand('name', '@family.'))} <span class="faint">business</span></button>
+        >${esc(brand('name', '@family.'))} <span class="qtag">business</span></button>
       <button class="btn quiet" data-do="as" data-for="cam-as" data-as="me"
-        >me <span class="faint">personal</span></button>
+        >me <span class="qtag">personal</span></button>
     </span>` : ''}
     <div class="btn-row cam-row">
       <button class="btn quiet" data-do="cam-again" id="cam-again" hidden>Again</button>
@@ -1452,8 +1452,8 @@ function postAsRow_(id) {
   if (!(typeof isAdmin === 'function' && isAdmin())) return '';
   return `<label class="field"><span>post as</span>
     <span class="btn-row post-as" id="${id}" data-as="brand">
-      <button class="btn quiet on" data-do="as" data-for="${id}" data-as="brand">${esc(brand('name', '@family.'))} <span class="faint">business</span></button>
-      <button class="btn quiet" data-do="as" data-for="${id}" data-as="me">me <span class="faint">personal</span></button>
+      <button class="btn quiet on" data-do="as" data-for="${id}" data-as="brand">${esc(brand('name', '@family.'))} <span class="qtag">business</span></button>
+      <button class="btn quiet" data-do="as" data-for="${id}" data-as="me">me <span class="qtag">personal</span></button>
     </span></label>`;
 }
 const postAsOf_ = id => (typeof isAdmin === 'function' && isAdmin()) ? ((($(id) || {}).dataset || {}).as || 'brand') : 'me';
@@ -1582,15 +1582,14 @@ on('post-edit', el => {
           ''}
     <label class="field"><span>poll</span>
       <input id="pe-poll" value="${esc(voted ? opts : draftVal_('post-edit', p.id + ':poll', opts))}" placeholder="Yes, No, Maybe" ${voted ? 'disabled' : draftAttr_('post-edit', p.id + ':poll', opts)}>
-      ${voted ? `<span class="faint">${p.poll.total} vote${p.poll.total === 1 ? '' : 's'} cast —
-        the options are fixed now.</span>` : ''}</label>` : `
+      ${voted ? `<span class="qtag">${p.poll.total} vote${p.poll.total === 1 ? '' : 's'}</span>` : ''}</label>` : `
     ${/* The date is editable because the feed is ORDERED by it — a post from the folder with the wrong timestamp sits in the wrong place for ever otherwise. */''}
     <label class="field"><span>posted on</span>
       <input id="pe-when" value="${esc(draftVal_('post-edit', p.id + ':when', p.when || ''))}" placeholder="DD/MM/YYYY HH:MM:SS"${draftAttr_('post-edit', p.id + ':when', p.when || '')}></label>
     <label class="check">
       <input type="checkbox" id="pe-pin" ${p.pinned ? 'checked' : ''}>
       <span class="box"></span>
-      <span>Pin to the top<br><span class="faint">Above everything, whatever its date.</span></span>
+      <span>Pin to the top</span>
     </label>`}
 
     ${tile_({ form: true, label: 'Save', act: 'post-save', data: { id: p.id } })}
@@ -2482,11 +2481,8 @@ on('dm-refresh', () => { loadMessages().then(() => { paint('dm'); setTimeout(dmF
    On a canvas in the stylesheet's own black and gold: face, name, picture, words, reactions, brand, link. */
 const PPNG_W = 1080, PPNG_M = 72;
 function ppngTokens_() {
-  let cs = null;
-  try { cs = getComputedStyle(document.documentElement); } catch (e) {}
-  const v = (k, or) => { const s = cs ? String(cs.getPropertyValue(k) || '').trim() : ''; return s || or; };
-  return { bg: v('--bg', '#000'), raised: v('--raised', '#0b0b0b'), line: v('--line', '#232323'), ink: v('--ink', '#e6e6e6'),
-           dim: v('--dim', '#9a9a9a'), gold: v('--gold', '#ffffff'), font: v('--font', 'ui-monospace, monospace') };
+  return { bg: token_('--bg', 'black'), raised: token_('--raised', 'black'), line: token_('--line', 'dimgray'), ink: token_('--ink', 'white'),
+           dim: token_('--dim', 'gray'), gold: token_('--gold', 'white'), font: token_('--font', 'ui-monospace, monospace') };
 }
 /* AN IMAGE THE CANVAS MAY EXPORT, OR NULL: straight, with CORS; else through `imageData` (the backend's proxy); else nothing. */
 function ppngImg_(src) {

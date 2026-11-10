@@ -197,7 +197,7 @@
 }
 :where(input, textarea, [contenteditable]:not([contenteditable="false"])) { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 /* ONE DISABLED LOOK for a control that says "not yet". It still takes the tap, so a tap on it never lands on what is under it; a taken board square is not this and keeps its own look. */
-:where(.btn, .tile, .chip, .kt-rung, .cmt-x, .cam-shot, .cam-rec):is([disabled], [aria-disabled="true"]) {
+:where(.btn, .tile, .chip, .kt-rung, .cam-shot, .cam-rec):is([disabled], [aria-disabled="true"]) {
   opacity: var(--disabled); cursor: default;
 }
 /* PAPER IS LIGHT: a white wash would not show on it, so the wash on paper is dark. */
@@ -1095,9 +1095,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* YOURS IS MARKED BY THE RULE DOWN THE LEFT that messages gave up when they became bubbles — which is the shape that rule was always right for: § */
 .cmt.mine { border-left: 2px solid var(--gold); padding-left: .5rem; }
 .cmt-when { margin: .1rem 0 0; font-size: var(--fs-small); }
-/* `Remove` LOOKS LIKE TEXT AND IS 44px, and the first version of it was 31x13. § */
-.cmt-x { background: none; border: 0; padding: 0 .5rem; min-width: 44px; min-height: 44px;
-         font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
 .cmt-when:has(.cmt-x) { display: flex; align-items: center; gap: .25rem; min-height: 44px; }
 @supports not selector(:has(*)) {
   .cmt-when { display: flex; align-items: center; gap: .25rem; min-height: 44px; }
@@ -1462,7 +1459,7 @@ button.text-drop { color: var(--bad); }
    a licence that expects the photographer to be named, and a credit that appears before the
    photograph does is a credit for nothing. */
 .feed-credit { position: absolute; top: .6rem; left: .9rem; right: .9rem; z-index: 1;
-               font-size: var(--fs-small); color: color-mix(in srgb, var(--white) 55%, transparent);
+               font-size: var(--fs-small); color: var(--white);
                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .feed .feed-art, .reel > .feed-art { transition: transform var(--dur-quick) var(--ease-out); }
 /* A REEL IS ALL PICTURE, so the wash under it cannot show: it sinks as a post's picture does. */
@@ -3237,6 +3234,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   font-size: var(--tp-fs); line-height: var(--tp-lh);
 }
 /* NO TAG IS DRAWN DIFFERENTLY FROM ANOTHER. § */
+/* A tag whose value is missing is no tag, not an empty pill. */
+.qtag:empty { display: none; }
 
 /* `.qcard-peek` AND `.qcard:active` WERE HERE — the clipped first line, and the press animation for
    a card that was a button. Neither has anything to do: the card is not tappable, because there is
@@ -3259,13 +3258,13 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qsheet ol.levels { margin: .2rem 0 .6rem; padding-left: 1.6rem; }
 .qsheet ol.levels li { margin: .15rem 0; }
 
-.qsheet-stem { color: color-mix(in srgb, var(--ink) 82%, var(--bg)); border-bottom: 1px dashed var(--line);
+.qsheet-stem { color: var(--ink); border-bottom: 1px dashed var(--line);
                padding-bottom: .7rem; margin-bottom: .9rem; }
 /* ---------- A STEM CARRIED ONTO THE CARD OF THE PART THAT DRAWS ON ITS FIGURE (381) reads as the paper prints it: its words, the figure, the part */
 .qsheet-stem.is-over { color: var(--ink); border-bottom: 0; padding-bottom: 0; margin-bottom: .9rem; }
 /* WHICH SPAN OF THE SOURCE A PART COVERS — "Lines 10–19". § */
 .qsheet-lines { margin: 0 0 .35rem; font-size: var(--fs-small); letter-spacing: .06em; color: color-mix(in srgb, var(--gold) 90%, var(--bg)); }
-.qsheet-lead { color: color-mix(in srgb, var(--ink) 90%, var(--bg)); margin-bottom: .6rem; }
+.qsheet-lead { color: var(--ink); margin-bottom: .6rem; }
 .qsheet-pn { font-weight: 700; color: var(--gold); }
 /* THE PART LETTER SITS OUTSIDE THE TEXT, in the margin, the way it is printed — indented body text under a hanging (a) is what makes a multi-part question § */
 .qsheet-part { display: flex; gap: .6rem; }
@@ -4683,7 +4682,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .qpad-prot .qprot-body { fill: color-mix(in srgb, var(--gold) 14%, transparent); stroke: var(--gold); stroke-width: 1.2; pointer-events: auto; cursor: move; }
 .qpad-prot .qprot-ticks { fill: none; stroke: var(--gold); stroke-width: .6; pointer-events: none; }
 .qpad-prot .qprot-nums text { fill: var(--gold); font-size: var(--fs-small); text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
-.qpad-prot .qprot-nums .qprot-in { font-size: var(--fs-small); opacity: .75; }
+.qpad-prot .qprot-nums .qprot-in { font-size: var(--fs-small); }
 .qpad-prot .qprot-pin { fill: var(--gold); pointer-events: none; }
 .qpad-prot .qprot-stem { stroke: var(--gold); stroke-width: 1; }
 .qpad-prot .qprot-hit { fill: transparent; pointer-events: auto; cursor: grab; }
@@ -4960,7 +4959,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .prof-heat .heat-tiles, .prof-heat .heat-glow { position: absolute; inset: 0; pointer-events: none; }
 .prof-heat .heat-tiles { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.4); }
 .prof-heat .heat-credit { position: absolute; right: 4px; bottom: 2px; font-size: var(--fs-small); line-height: 1.4;
-  color: color-mix(in srgb, var(--white) 72%, transparent); background: color-mix(in srgb, var(--black) 45%, transparent); padding: 0 3px; border-radius: var(--r-ui); }
+  color: var(--white); background: color-mix(in srgb, var(--black) 45%, transparent); padding: 0 3px; border-radius: var(--r-ui); }
 /* ---------- A TUTOR'S WEEK ON THEIR CARD — see `profAvail_` in cards.js § */
 .prof-week .slot-grid { gap: 2px; margin: .1rem 0 .3rem; }
 .prof-week .slot-day { flex-basis: 1.9rem; font-size: var(--fs-small); text-transform: none; letter-spacing: 0; color: var(--ink); }
@@ -5135,7 +5134,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* ---------- EVERY CARD VISIBLE, A PADLOCK ON THOSE NOT YOURS (467) ---------- */
 .is-locked { position: relative; }
 /* Its other children recede in colour beside `.card.is-off` (541): opacity took the field labels to 2.3:1. */
-.card-lock { position: absolute; top: .7rem; right: .8rem; color: color-mix(in srgb, var(--ink) 80%, var(--bg)); pointer-events: none; }
+.card-lock { position: absolute; top: .7rem; right: .8rem; color: var(--ink); pointer-events: none; }
 .card-lock svg { width: 18px; height: 18px; display: block; }
 .is-locked > h3 { padding-right: 1.6rem; }
 /* WHAT A CARD IS FOR, one faint line under its title. */
@@ -5237,7 +5236,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rd-ref { font: 600 var(--fs-small)/1.3 var(--mono); color: var(--gold); }
 .rd-body { margin: 0 0 .6rem; }
 .rd-body :is(.bb-v, .wt-text, .qr-en, .tx-text p):not([dir="rtl"]) { margin: 0 0 .6rem; font-size: var(--fs-body); line-height: 1.6; color: var(--ink); }
-.rd-body :is(.bb-credit, .wt-credit, .qr-credit) { margin: .4rem 0 0; font: 400 var(--fs-small)/1.4 var(--mono); color: var(--faint); }
+.rd-body :is(.bb-credit, .wt-credit, .qr-credit) { margin: .4rem 0 0; font: 400 var(--fs-small)/1.4 var(--mono); color: var(--ink); }
 .rd-body .bb-tr { margin: 0 0 .3rem; }
 
 /* A MANUSCRIPT AS IT LOOKS (490): paper tokens for the leaf; papyrus and parchment are this component's own tints of them. */
@@ -5393,7 +5392,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tl-pic { margin: .2rem 0 0; width: 5.5rem; height: 5.5rem; } .tl-big, .tl-mini { width: 100%; height: 100%; display: block; } .tl-year { margin: .3rem 0 0; font: 600 var(--fs-small)/1.2 var(--mono); color: var(--gold); }
 .tl-label { margin: .1rem 0 0; font-weight: 700; font-size: var(--fs-body); line-height: 1.2; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .tl-view { position: relative; height: 3.4rem; margin: .6rem 0 .2rem; overflow: hidden; border-bottom: 2px solid var(--line); } .tl-track { position: absolute; left: 0; top: 0; bottom: 0; transition: transform var(--dur-pan) var(--ease-out); will-change: transform; }
-.tl-tick { position: absolute; bottom: 0; height: .5rem; border-left: 1px solid var(--line); } .tl-tick i { position: absolute; bottom: .55rem; left: 0; transform: translateX(-50%); font: 400 var(--fs-small)/1 var(--mono); font-style: normal; color: color-mix(in srgb, var(--ink) 55%, transparent); white-space: nowrap; }
+.tl-tick { position: absolute; bottom: 0; height: .5rem; border-left: 1px solid var(--line); } .tl-tick i { position: absolute; bottom: .55rem; left: 0; transform: translateX(-50%); font: 400 var(--fs-small)/1 var(--mono); font-style: normal; color: var(--ink); white-space: nowrap; }
 .tl-ev { position: absolute; top: .2rem; width: 1.25rem; height: 1.25rem; margin-left: -.625rem; filter: opacity(.45); transition: filter var(--dur-enter), transform var(--dur-enter); } .tl-ev.past { filter: opacity(.8); } .tl-ev.on { filter: none; transform: translateY(-.1rem) scale(1.35); } .tl-pin { position: absolute; left: 50%; bottom: 0; width: 0; height: 1rem; border-left: 3px solid var(--gold); margin-left: -1.5px; }
 @keyframes tl-pop { from { opacity: 0; transform: translateY(.4rem) scale(.9); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .tl-scene > *, .tl-track, .tl-ev { animation: none; transition: none; } }
@@ -5542,7 +5541,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* ONE CARD, TWO VIEWS (owner, 9 Nov): closed is a picture beside its title, tags and two lines; open puts the tags on top, then the picture and everything. */
 .card.kc:not(.is-open) { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .55rem; align-items: start; }
 .card.kc:not(.is-open) > * { grid-column: 2; }
-.card.kc:not(.is-open) > .kc-pic { grid-column: 1; grid-row: 1 / span 5; width: 3.5rem; height: 3.5rem; border-radius: 50%; cursor: pointer; }
+.card.kc:not(.is-open) > .kc-pic { grid-column: 1; grid-row: 1 / span 5; width: 3.5rem; aspect-ratio: 1; border-radius: 50%; cursor: pointer; }
 /* THE FIRST LINE OF TEXT, CLAMPED AT TWO; nothing after it shows while closed. */
 .card.kc:not(.is-open) > .kc-lines > * { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; margin: 0; }
 .card.kc:not(.is-open) > .kc-lines > * ~ * { display: none; }
