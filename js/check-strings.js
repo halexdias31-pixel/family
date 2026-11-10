@@ -4,7 +4,7 @@ require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the who
 const fs = require('fs'), path = require('path');
 const acorn = require('acorn');
 const dir = __dirname;
-const ORDER = ['core','price-rows','chess','data','shell-boot','shell-layout','shell-pages','shell-click','shell-api','shell-hold','cards','me-account','me-messages','me-roles','me-shelves','me-settings','me-card','me-people','posts','links','find-finder','find-facets','find-history','find-boxers','find-parts','find-marking','find-cells','find-pen','find-pad','find-loupe','find-figures','find-aloud','find-levels','find-bundles','find-pages','find-measure',
+const ORDER = ['core','price-rows','facts','data','shell-boot','shell-layout','shell-pages','shell-click','shell-api','shell-hold','cards','me-account','me-messages','me-roles','me-shelves','me-settings','me-card','me-people','posts','links','find-finder','find-facets','find-history','find-boxers','find-parts','find-marking','find-cells','find-pen','find-pad','find-loupe','find-figures','find-aloud','find-levels','find-bundles','find-pages','find-measure',
                'resource','arcade','map','book-steps','book-rows','book-spine','receipt','mat','calc','overworld',
                /* `select`, `collections` AND `tiles` WERE MISSING. § */
                'select','collections','tiles','boot'];

@@ -270,33 +270,3 @@ function levelRows() {
     };
   });
 }
-
-
-
-
-/* `setOptions` was here — filling a <select> from a list, for a form built before the field
-   renderers existed. Every form uses those now. */
-
-
-
-const START = 'rnbqkbnrpppppppp________________________________PPPPPPPPRNBQKBNR'.split('');
-
-const CH_WHITE = 'w', CH_BLACK = 'b';
-const isWhite = p => p !== '_' && p === p.toUpperCase();
-const colourOf = p => p === '_' ? null : (isWhite(p) ? CH_WHITE : CH_BLACK);
-
-/* A position is the board plus the four things you cannot see on it: § */
-function newGame() {
-  return {
-    board: START.slice(),
-    turn: CH_WHITE,
-    castle: { K: true, Q: true, k: true, q: true },   // K/Q = white king/queen side
-    ep: -1,                                            // square a pawn may be captured on, or -1
-    halfmove: 0,                                       // for the fifty-move rule
-  };
-}
-
-const file = i => i % 8;
-const rank = i => Math.floor(i / 8);
-const onBoard = (f, r) => f >= 0 && f < 8 && r >= 0 && r < 8;
-const idx = (f, r) => r * 8 + f;

@@ -6,8 +6,8 @@ const PANE_ZOOM_MIN = PANE_ZOOM_STEPS[PANE_ZOOM_STEPS.length - 1];
 const PANE_ZOOM_SNUG = 0.95;
 /* THE FLOORS (533, D3): no step that draws body words under 11px, a 44px tile (950) under 36px or a Check under 44px; past them the pane scrolls. */
 const PANE_FLOOR_TEXT = 11, PANE_FLOOR_TILE = 36, PANE_FLOOR_SUBMIT = 44;
-/* WHAT IS ART AND NOT BODY TEXT, so its small print does not stop a card being drawn smaller (the calculator's legends, the console). */
-const PANE_ART = '.calc, .nes-wrap, svg, sup, sub, figure';
+/* WHAT IS ART AND NOT BODY TEXT, so its small print does not stop a card being drawn smaller. */
+const PANE_ART = 'svg, sup, sub, figure';
 /* ---------- AND AN ESSAY'S CARD, NO SMALLER THAN KEEPS ITS TILES AT 44px § */
 const PANE_ZOOM_ESSAY = 0.92;
 
@@ -61,8 +61,6 @@ function paneReach_(panes, o) {
     const snugWas = list.map(p => p.classList.contains('is-snug'));
     if (!hold) list.forEach(p => { if (p.classList.contains('is-snug')) p.classList.remove('is-snug'); });
     if (!hold) list.forEach(p => { p.PANE_DUE = false; });
-    /* THE CALCULATOR'S KEY ROWS ARE SIZED FROM THE PANE FIRST (533, D4) -- `calcFit_`, so it is drawn at full size. */
-    if (!hold) list.forEach(p => { if (p.querySelector('.calc')) calcFit_(p); });
     /* AN ESSAY'S SHEET GIVES WAY BEFORE ITS CARD IS DRAWN SMALLER -- `kpSheetFit_` in keypad.js. § */
     if (!hold && typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
     /* AND A LIBRARY CARD GIVES UP ITS BLANK BAND FIRST — `libFit_` in me.js, the sheet's rule for the one card whose height follows its width: § */

@@ -94,7 +94,7 @@ walk(ast, n => {
 const ACCEPTED_GONE = {
   'settings/facts': {
     clip: 'A REEL IS A FACT WITH A CLIP ON IT, and the exported tab has never had that column — the '
-        + 'clips live in `FEED_FACTS` in `chess.js`. `clipsNow_` asks the sheet for rows with a clip '
+        + 'clips live in `FEED_FACTS` in `facts.js`. `clipsNow_` asks the sheet for rows with a clip '
         + 'and falls through to the code\'s list when it finds none, which is the house rule stated '
         + 'per LIST rather than per tab: one ordinary fact typed into the sheet must not take the '
         + 'Reels column dark. The read is what makes the fall-through work, and it is also the door: '

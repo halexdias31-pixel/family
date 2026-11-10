@@ -23,14 +23,10 @@
     "biz": "secondary"
   },
   "widgets": {
-    "console": "off",
-    "boardgames": "off",
-    "wordgames": "off",
     "reels": "off",
     "videos": "off",
     "newspaper": "off",
     "homework": "off",
-    "calculator": "secondary",
     "flyers": "off",
     "mat": "off",
     "timer": "off",
@@ -49,8 +45,6 @@
     "rewrite": "off",
     "poster": "off",
     "pixel": "off",
-    "verse": "off",
-    "whiteboard": "off",
     "libcards": "secondary"
   },
   "kinds": {
@@ -88,7 +82,7 @@
     "predicates": "core",
     "finder-tags": "core",
     "price-rows": "core",
-    "chess": "secondary",
+    "facts": "secondary",
     "data": "core",
     "library": "core",
     "qtypes": "core",
@@ -148,7 +142,6 @@
     "biz-check": "secondary",
     "one-place": "secondary",
     "mat": "secondary",
-    "calc": "secondary",
     "overworld": "secondary",
     "select": "core",
     "collections": "secondary",
@@ -178,7 +171,7 @@
   "eagerSecondary": {
     "posts": "the Feed is TAB_HOME, the column drawn at first paint (670); its draw runs inside drawOne's guard",
     "overworld": "the Feed's picture and paint timer, drawn at first paint with posts (670)",
-    "arcade": "the widget runner: Find's Tools and Games cards (790) and the Saved column start widgets through it; every widget it runs is guarded by tierGuardWidgets_",
+    "arcade": "the widget runner: Find's Tools cards (790) and the Saved column start widgets through it; every widget it runs is guarded by tierGuardWidgets_",
     "missing": "an admin card on Find's front pages (526), counted by the eager pager (shell.js, me.js) before LATER lands"
   },
   "checks": {
@@ -237,9 +230,7 @@
     "check-marking-norm.js": "core",
     "check-typeset.js": "core",
     "check-answers.js": "core",
-    "check-calc.js": "core",
     "check-typeable.js": "core",
-    "check-chess.js": "secondary",
     "check-dates.js": "core",
     "check-practicals.js": "core",
     "check-projects.js": "core",
@@ -322,7 +313,6 @@
     "check/kp-centred.js": "core",
     "check/later.js": "core",
     "check/talpage.js": "secondary",
-    "check/calc-steady.js": "core",
     "check/centred.js": "core",
     "check/fluid.js": "secondary",
     "check/swipe.js": "core",
@@ -351,9 +341,8 @@
     "secondary": "\\b(basket|posts?|venue|rooms?|tutors?|staff|reels?|videos?|console|games?|chess|board ?games?|widgets?|feed|shop|receipt|digest|suggest|rewrite|bible|talmud|quran|hadith|hymns?|verse|e-ink|spotify|flyer|poster|pixel|docket|notepad|timer|timetable|typing|countdowns?|racer|layout|calendar|spotlight|messages?|DMs?|chat|seats?|pay(ment)?|stripe|invoice|profit|apprentices?|whiteboard|library cards?|mat|newspaper|term dates|favourite|tasks|push|inbox|email|notifications?|saved|cheat sheet|score board|scramble|word search|films?|starred|star|progress|profiles?|stability)\\b"
   },
   "later": [
-    "calc",
     "mat",
-    "chess",
+    "facts",
     "keypad-keys",
     "keypad-pad",
     "keypad-edit",
@@ -409,7 +398,13 @@
     "find-quick",
     "find-measure"
   ],
-  "lazy": ["mat", "records", "biz-check", "one-place", "inbox"],
+  "lazy": [
+    "mat",
+    "records",
+    "biz-check",
+    "one-place",
+    "inbox"
+  ],
   "widgetFiles": {},
   "frozen": {
     "notes": "FROZEN (owner, 7 Nov 2026; docs/history/1090): only Find, the library, questions, settings and bookings matter for now. tools/health.js leaves these js/ file stems out of its score and worklist, beside every non-core file above. Unfreeze: take a stem off this list.",
@@ -445,13 +440,9 @@
   "soonUnder": {
     "notes": "WHERE AN OFF WIDGET'S COMING SOON CARD WAITS (owner, 7 Nov P7/P8): under this front answer, greyed there; any other waits under Coming soon. Written into find-finder.js by node tools/tiers.js.",
     "videos": "Videos",
-    "console": "Games",
-    "boardgames": "Games",
-    "wordgames": "Games",
     "reels": "Tools",
     "flyers": "Tools",
     "poster": "Tools",
-    "verse": "Tools",
     "homework": "Tools"
   }
 }

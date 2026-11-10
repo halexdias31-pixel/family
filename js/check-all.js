@@ -108,9 +108,7 @@ const SUITE = [
   { file: 'check-typeset.js', what: 'fractions stacked, powers raised, no plain-text maths' },
   /* ---------- AND WHETHER THE ANSWER YOU SEE IS SHORT, AND ALL THERE IS § */
   { file: 'check-answers.js', what: 'every answer drawn is a short result, and nothing but the result' },
-  { file: 'check-calc.js',  what: 'the calculator engine: exact fractions, roots, powers, degrees, DEL as a unit' },
   { file: 'check-typeable.js', what: 'every stored answer can be typed on the pad: its three faces reach each other and type every accept (round 4)' },
-  { file: 'check-chess.js',  what: 'the chess move generator, counted by perft' },
   /* ---------- AND EVERY TIMESTAMP ANYBODY SEES § */
   { file: 'check-dates.js', what: 'a written date read as the date it says' },
   /* ---------- THE PRACTICALS, AND WHETHER THEIR TOPICS NAME ANYTHING REAL § */
@@ -242,7 +240,6 @@ const SUITE = [
   { file: 'check/kp-centred.js', what: 'Find centred above the @family. keypad, the box still as you type, centred again when it goes (720)', slow: true },
   { file: 'check/later.js', what: 'every column gone to and started while the LATER files are away reads none of their names; they arrive in one task (720)', slow: true },
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
-  { file: 'check/calc-steady.js', what: 'pressing keys never changes the calculator\'s size or shape, nor any key\'s (472)', slow: true },
   { file: 'check/fluid.js',   what: 'any shape of screen: seven phone, tablet and desktop sizes scroll no wider than the window and leave no blank side', slow: true },
   { file: 'check/centred.js', what: 'Find floats back to the middle when words or chips are cleared (508)', slow: true },
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },

@@ -238,13 +238,13 @@ function widgetCard_(x) {
 }
 
 /* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched; which are off is tiers.json's (TIER_OFF_WIDGETS). */
-const SOON_WIDGET_NAMES = { console: 'Console', boardgames: 'Board games', wordgames: 'Word & number games', reels: 'One more thing', videos: 'Videos',
-  newspaper: 'Newspaper', calculator: 'Calculator', flyers: 'Make a flyer', mat: 'Cheat sheet maker (maths mat)', timer: 'Timer', docket: 'Docket',
+const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos',
+  newspaper: 'Newspaper', flyers: 'Make a flyer', mat: 'Cheat sheet maker (maths mat)', timer: 'Timer', docket: 'Docket',
   notepad: 'Notepad', spotify: 'Spotify', speedread: 'Speed reader (one word at a time)', timetable: 'Timetable', typing: 'Touch typing (keyboard practice)',
   cart: 'Basket', shopfind: 'Search the shop', calendar: 'Calendar', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links',
-  rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', verse: 'E-ink screen', whiteboard: 'Whiteboard', libcards: 'Library cards', homework: 'Homework' };
+  rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', libcards: 'Library cards', homework: 'Homework' };
 /* AN OFF WIDGET THAT WAITS UNDER ANOTHER FRONT ANSWER (owner, 6 Nov: Homework under Tools); the rest wait under Coming soon. */
-const SOON_WIDGET_UNDER = { videos: 'Videos', console: 'Games', boardgames: 'Games', wordgames: 'Games', reels: 'Tools', flyers: 'Tools', poster: 'Tools', verse: 'Tools', homework: 'Tools' };
+const SOON_WIDGET_UNDER = { videos: 'Videos', reels: 'Tools', flyers: 'Tools', poster: 'Tools', homework: 'Tools' };
 /* A FRONT ANSWER HOLDING ONLY COMING SOON CARDS IS GREYED, never hidden (owner, 7 Nov P7/P8): Videos and Games until one is turned on. */
 /* One walk per list for every front answer (slow taps, 8 Nov): the front menu asked it a dozen times, a walk each. */
 const FRONT_SOON_MEMO = new WeakMap();
