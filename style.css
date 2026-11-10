@@ -1475,7 +1475,7 @@ html.flow .screen { position: static; transform: none; visibility: visible; tran
 html.flow #s-account { order: -1; }
 html.flow .page { width: 100%; min-width: 0; }
 /* ONE FLOW FOR EVERY LIST OF CARDS (owner, 10 Nov): as many 20rem-or-wider columns as fit, packed top to bottom so a short card leaves no hole — no breakpoints. */
-.card-grid { display: block; columns: 20rem; column-gap: var(--card-gap); }
+.card-grid { display: block; columns: 1; column-gap: var(--card-gap); }
 .card-grid > * { break-inside: avoid; margin-bottom: var(--card-gap); }
 /* WHAT IS NOT A CARD IN THE LIST — the menu, chips, answers, a form — and an open card run across every column. */
 .card-grid > :not(.is-res), .card-grid > :has(.card.kc.is-open, .kc-form, .kc-bookform, .book-form-door, form, .me-form) { column-span: all; }
