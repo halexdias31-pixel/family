@@ -5569,7 +5569,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* A FACTS CARD (owner, 10 Nov): left, one size, one gap; closed shows two whole lines, each ended by an ellipsis, never cut through. */
 .card.kc.kc-facts { text-align: left; }
 .card.kc.kc-facts > .kc-lines { display: flex; flex-direction: column; gap: .25rem; max-height: none; overflow: visible; }
-.card.kc.kc-facts > .kc-lines > .kc-line { margin: 0; font-size: 1rem; line-height: 1.5; text-align: left; overflow-wrap: anywhere; }
+.card.kc.kc-facts > .kc-lines > .kc-line { margin: 0; font-size: var(--fs-body); line-height: 1.5; text-align: left; overflow-wrap: anywhere; }
 .card.kc.kc-facts:not(.is-open) > .kc-lines > .kc-line { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-line-clamp: unset; line-clamp: none; }
 .card.kc.kc-facts:not(.is-open) > .kc-lines > .kc-line:nth-child(n+3) { display: none; }
 .card.kc.kc-facts > .kc-form { text-align: left; }

@@ -568,7 +568,7 @@ const KC_LOOK_DEFAULT = Object.fromEntries(Object.entries({ receipt: 'pound', fr
 const KC_PERSON_KINDS = ['tutor', 'person', 'people', 'friend', 'msg', 'post', 'question', 'answer'];
 const kcLook_ = kind => ((typeof DATA !== 'undefined' && DATA && DATA.cardLook) || KC_LOOK_DEFAULT)[kind] || {};
 const kcIcon_ = kind => { const n = kcLook_(kind).icon || 'doc'; return `<span class="kc-icon">${typeof tileIcon_ === 'function' ? tileIcon_(n) || tileIcon_('doc') : ''}</span>`; };
-const KC_EMPTY = 'Nothing here yet.';
+const kcEmpty_ = () => (typeof NOTHING_YET === 'string' ? NOTHING_YET : '');
 /* A FORM STAYS A FORM: its own maker draws it, whole and unclamped, as the card's open content. */
 const KC_FORM_SEL = 'input:not([type="hidden"]), select, textarea, form';
 const KC_BLOCK = /^(P|LI|DIV|SECTION|ARTICLE|TR|DT|DD|H[1-6]|BLOCKQUOTE|PRE|UL|OL|DL|TABLE|FIGCAPTION|HEADER|FOOTER)$/;
@@ -578,6 +578,7 @@ function kcFacts_(html) {
   if (typeof document === 'undefined' || !String(html || '').trim()) return out;
   const t = document.createElement('template');
   t.innerHTML = html;
+  if (!t.content || !t.content.querySelector) return out;
   if (t.content.querySelector(KC_FORM_SEL)) { out.form = html; return out; }
   /* A BUTTON OR LINK INSIDE IS NO LINE: it joins the card's row (behind ⋯ unless it is the main). */
   t.content.querySelectorAll('[data-do], a[href], button').forEach(el => { if (el.parentNode && !el.closest('[data-kc-took]')) { el.setAttribute('data-kc-took', ''); out.tiles += el.outerHTML; el.remove(); } });
@@ -612,13 +613,13 @@ function kcFactsWatch_() {
     t.content.querySelectorAll('[data-do]').forEach(n => { const old = card.querySelector(`:scope > .kc-act [data-do="${n.getAttribute('data-do')}"]`); if (old) old.replaceWith(n); }); };
   const redo = src => { const card = src.closest('.card.kc'), box = card && card.querySelector(':scope > .kc-lines'); if (!box) return;
     const f = kcFacts_(src.innerHTML); box.firstChild && [...box.children].filter(k => k !== src).forEach(k => k.remove());
-    box.insertAdjacentHTML('afterbegin', f.lines || `<p class="kc-line kc-empty">${KC_EMPTY}</p>`);
+    box.insertAdjacentHTML('afterbegin', f.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`);
     if (f.tiles) { src.innerHTML = f.src; sync(card, f.tiles); } };
   /* AN OLD MAKER THAT REDRAWS ITS WHOLE CARD (`[data-libimp]`) has its new insides read as facts into the parts it pushed out. */
   const rewrap = (card, gone) => { const parts = gone.filter(n => n.nodeType === 1 && /^kc-(pic|head|tags|lines|form|act)$/.test(n.className)); if (!parts.length) return;
     const f = kcFacts_(card.innerHTML), lines = parts.find(n => n.className === 'kc-lines'), form = parts.find(n => n.className === 'kc-form');
     if (f.form && form) form.innerHTML = f.form;
-    else if (lines) lines.innerHTML = (f.lines || `<p class="kc-line kc-empty">${KC_EMPTY}</p>`) + (f.src ? `<div class="kc-src" hidden>${f.src}</div>` : '');
+    else if (lines) lines.innerHTML = (f.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`) + (f.src ? `<div class="kc-src" hidden>${f.src}</div>` : '');
     card.replaceChildren(...parts); if (f.tiles) sync(card, f.tiles); };
   new MutationObserver(list => { if (busy) return; busy = true; const seen = new Set();
     try {
@@ -669,7 +670,7 @@ function findCard(x, credits) {
   if (kcLook_(it.kind).facts) {
     facts = kcFacts_(parts.lines);
     if (facts.form) { parts.lines = ''; parts.form = facts.form; kcFactsWatch_(); }
-    else { parts.lines = (facts.lines || `<p class="kc-line kc-empty">${KC_EMPTY}</p>`) + (facts.src ? `<div class="kc-src" hidden>${facts.src}</div>` : ''); kcFactsWatch_(); }
+    else { parts.lines = (facts.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`) + (facts.src ? `<div class="kc-src" hidden>${facts.src}</div>` : ''); kcFactsWatch_(); }
     if (facts.tiles) parts.act = kcActRow_(one, '', hoist.tiles + facts.tiles);
     if (KC_PERSON_KINDS.indexOf(it.kind) < 0) parts.pic = kcIcon_(it.kind);
     parts.tags = kcTidy_(parts.tags, '', name).tags;
