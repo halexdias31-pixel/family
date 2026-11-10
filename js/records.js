@@ -172,7 +172,7 @@ function appsInner_(wait) {
       <p class="biz-cap"><b>${esc(a.name || a.handle)}</b> <span class="qtags biz-when"><span class="qtag">${esc(APP_STATUS_SAID[a.status] || a.status)} · ${esc(when(a.at))}</span></span></p>
       ${line('Full name', a.full_name)}${line('Contact', [a.phone, a.email].filter(Boolean).join(' · '))}
       ${line('Address', [a.address, a.postcode].filter(Boolean).join(', '))}${line('Born', a.dob)}
-      ${line('Teaches', a.subjects)}${line('Rate', a.rate ? '£' + a.rate + ' an hour' : '')}${line('Qualifications', a.qualifications)}
+      ${line('Teaches', a.subjects)}${line('Rate', a.rate ? perHour_(a.rate) : '')}${line('Qualifications', a.qualifications)}
       ${line('DBS', a.dbs_needed === 'TRUE' ? 'needs one' : [a.dbs_number, a.dbs_issued].filter(Boolean).join(', issued ') + (a.dbs_update_consent === 'TRUE' ? ' · may check on the Update Service' : ''))}
       ${line('Right to work in the UK', a.right_to_work)}${line('Experience', a.experience)}${line('Available', a.availability)}
       ${line('Area', a.area)}${line('References', [1, 2].map(n => [a['ref' + n + '_name'], a['ref' + n + '_relationship'], a['ref' + n + '_email'] || a['ref' + n + '_contact'], a['ref' + n + '_phone']].filter(Boolean).join(', ')).join('; '))}

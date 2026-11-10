@@ -259,7 +259,7 @@ function applyMissing_(b) {
     [b.qualifications && b.qualDocs.length, 'your qualifications, listed and with at least one photo'],
     [b.rightToWork, 'whether you have the right to work in the UK'],
     [b.dbsNeeded || (b.dbsNumber && b.dbsUpdate), 'your enhanced DBS number and the Update Service tick, or "I need one"'],
-    [refOk(1) && refOk(2), 'two references, each with a name, relationship, email and phone'],
+    [refOk(1) && refOk(2), '2 references, each with a name, relationship, email and phone'],
     [b.availability, 'when you can teach'], [Number(b.rate) > 0, 'your hourly rate'], [b.statement, 'a short statement'],
     [b.consent, 'the consent tick'],
   ].filter(x => !x[0]).map(x => x[1]);

@@ -81,7 +81,7 @@ function applyGaps_(f, body, pics) {
   if (!f.right_to_work) missing.push('whether you have the right to work in the UK');
   if (f.dbs_needed !== 'TRUE' && !(f.dbs_number && f.dbs_update_consent === 'TRUE')) missing.push('your enhanced DBS number and the Update Service tick, or "I need one"');
   if (!(f.ref1_name && f.ref1_relationship && mail(f.ref1_email) && f.ref1_phone && f.ref2_name && f.ref2_relationship && mail(f.ref2_email) && f.ref2_phone))
-    missing.push('two references, each with a name, relationship, email and phone');
+    missing.push('2 references, each with a name, relationship, email and phone');
   if (!f.availability) missing.push('when you can teach');
   if (!f.rate) missing.push('your hourly rate');
   if (!f.statement) missing.push('a short statement');
