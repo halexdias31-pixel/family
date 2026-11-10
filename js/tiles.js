@@ -185,7 +185,8 @@ function tile_(o) {
   const name = o.label + (o.note ? ' · ' + o.note : '');
   /* ITS ONE WORD (owner, 8 Nov): `data-w` is what a long press shows (`tileWordShow_`); `word` overrides the label's first. */
   const word = String(o.word || o.label || '').split(' ')[0];
-  const attrs = ` title="${esc(name)}" aria-label="${esc(name)}" data-w="${esc(word)}"`;
+  /* `data-word` IS ONLY EVER THE WORD (⋯ writes it under the circle); `data-w` may be taken by a tile's own data. */
+  const attrs = ` title="${esc(name)}" aria-label="${esc(name)}" data-w="${esc(word)}" data-word="${esc(word)}"`;
   /* A MARK IS REQUIRED. A control with neither word nor mark is a blank square, so anything that
      has not been given one falls back to the word — visibly wrong, rather than invisible. */
   /* `face` IS A KEYPAD KEY'S OWN DRAWN FACE (a fraction, a power), trusted markup from keypad-keys.js, never data. */

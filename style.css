@@ -5579,10 +5579,12 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .kc-four { display: contents; }
 /* ⋯ OPENS A LIST WITH WORDS: each action its mark and its name, one under another, centred under the row. */
 .kc-more[hidden] { display: none; }
-.kc-more { display: flex; flex-direction: column; align-items: stretch; gap: .3rem; flex-basis: 100%; width: min(100%, 16rem); margin: .4rem auto 0; }
+.kc-more { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.6rem 1.1rem; flex-basis: 100%; margin: .5rem auto 1.4rem; }
 .kc-more > * { margin: 0; }
-.kc-more > .tile { width: 100%; justify-content: flex-start; gap: .6rem; padding: 0 1rem; border-radius: var(--r-ui); }
-.kc-more > .tile::after { content: attr(aria-label); font: var(--fs-small)/1.2 var(--font); color: var(--ink); text-align: left; }
+/* ⋯ KEEPS THE ONE ROUND BUTTON (owner, 10 Nov): each action a circle, its word written under it. */
+.kc-more > .tile { position: relative; }
+.kc-more > .tile::after { content: attr(data-word); position: absolute; top: calc(100% + .2rem); left: 50%; transform: translateX(-50%);
+  white-space: nowrap; font: var(--fs-small)/1.15 var(--font); color: var(--ink); text-align: center; pointer-events: none; }
 .prof-tag-name { color: var(--ink); }
 /* ONE FRAME FOR EVERY KIND: a widget's own surface, and a frame its maker drew inside, never box a one-shape card twice. */
 .card.kc.is-widget { background: none; border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0; padding: var(--card-gap) 0; }
