@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-10-one-verified-1";
+const BACKEND_VERSION = "2026-11-10-add-verified-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1763,7 +1763,7 @@ const ACTION_ACCESS = {
   /* ENDING A SESSION. Admin only, and deliberately: § */
   deleteJob: 'admin',
   /* LINKING A CHILD TO A PARENT WITHOUT ASKING THE CHILD. § */
-  linkChild: 'admin',
+  linkChild: 'admin', adminUnlinkFamily: 'admin',
   /* PEOPLE MADE, CHANGED AND REMOVED FROM THE PEOPLE COLUMN (373). */
   personGet: 'admin', personSave: 'admin', personDelete: 'admin',
 };

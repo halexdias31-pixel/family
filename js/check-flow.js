@@ -410,6 +410,8 @@ function boot(opts) {
       /* FIND'S OWN STATE — the search words and the chips. A `const`, so only a function built in
          this evaluation can hand it over; the textbook journey types into `q` the way the box does. */
       'STUFF: () => STUFF,' +
+      /* FIND'S ITEM MEMO FORGOTTEN, for a journey that changes `DATA.everyone` in place (the memo is keyed on DATA itself). */
+      'memoDrop: () => stuffForget_(),' +
       /* THE EIGHT-BIT FIGHTER'S WORDS AND SHAPES — `const`s, so a getter built here, like `STUFF`. The
          boxer journey asks the figure for exactly the pixels these say, rather than a copy of them. */
       'BOXER: () => (typeof BOXER_LOOK !== "undefined" ? { LOOK: BOXER_LOOK, HAIR: BOXER_HAIR, FACE: BOXER_FACE, BODY: BOXER_BODY, UNSAID: BOXER_HAIR_UNSAID } : null),' +
