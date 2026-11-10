@@ -5281,8 +5281,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .shop-ic { flex: none; width: 2.6rem; height: 2.6rem; color: var(--gold); }
 .shop-hits { display: flex; flex-direction: column; margin-top: .4rem; }
 .shop-hit { display: flex; align-items: center; gap: .6rem; min-height: 44px; padding: 0 .2rem; background: none; border: 0;
-  border-bottom: 1px solid var(--line); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+  border-bottom: 1px solid var(--line); color: var(--ink); font: inherit; text-align: left; }
 .shop-hit .shop-ic { width: 1.4rem; height: 1.4rem; }
+.shop-hit .tile-row { margin-left: auto; }
 /* THE WEEKLY EMAIL'S PREVIEW (491, 547): the backend's own email in a frame, phone-wide and tall enough to read; the email brings its own colours. */
 .dw-frame-box { position: relative; min-height: 6rem; }
 .dw-frame { display: block; width: 100%; height: min(70vh, 40rem); border: 1px solid var(--line); border-radius: var(--r-ui); background: var(--bg); }

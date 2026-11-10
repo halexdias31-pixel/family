@@ -349,7 +349,8 @@ function shopHits_() {
   if (!q) return '';
   const hits = SHOP_FIND.at.filter(h => h.say.indexOf(q) !== -1).slice(0, 8);
   if (!hits.length) return empty_('Nothing in the shop matches.');
-  return hits.map(h => `<button type="button" class="shop-hit" data-do="shop-go" data-page="${h.page}">${shopIcon_(h.name, h.group)}<span>${esc(h.name)}</span></button>`).join('');
+  /* A HIT IS A THING (rule 8): its name on the line, and the tile that opens it. */
+  return hits.map(h => `<div class="shop-hit">${shopIcon_(h.name, h.group)}<span>${esc(h.name)}</span><div class="tile-row">${tile_({ icon: 'open', label: 'Open ' + h.name, act: 'shop-go', data: { page: h.page } })}</div></div>`).join('');
 }
 document.addEventListener('input', e => {
   const el = e.target;

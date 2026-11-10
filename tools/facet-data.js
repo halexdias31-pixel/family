@@ -53,6 +53,9 @@ const CHECK = process.argv.includes('--check');
       /* EACH AS DRAWN: the menu's button, the chip, and the tag on one card that wears the answer. */
       const card = {}; items.forEach(x => { let o = []; try { o = facetOwn_(f, x); } catch (e) { o = []; } o.forEach(w => { const k = spellKey_(w); if (!(k in card)) card[k] = x; }); });
       const drawn = html => { const a = html.indexOf('<span class="k">'); return a < 0 ? null : norm(html.slice(a, html.indexOf('</div>', a))); };
+      /* A SHOW LONGER THAN A TAG (kcTidy_'s 30): the card would move it to an open-only line, so it gets a short label (labels.json, facet-show:<field>). */
+      values.forEach(v => { let say = ''; try { say = norm(f.tagSay ? f.tagSay(v.value) : answerSay_(f, v.value)); } catch (e) { say = ''; }
+        if (say.length > 30) out.push({ kind: 'long-show', menu: label, value: String(v.value), say: say.length + ' chars: "' + say + '"' }); });
       values.forEach(v => { let menu = '', chip = '', tag = '';
         try { menu = drawn(facetAnswersHtml_(f, [v], '')) || '?'; } catch (e) { menu = '?'; }
         STUFF.filters = [{ field: f.field, value: v.value }];
@@ -74,9 +77,11 @@ const CHECK = process.argv.includes('--check');
   const counts = {}; got.findings.forEach(f => { counts[f.kind] = (counts[f.kind] || 0) + 1; });
   const text = JSON.stringify({ v: 1, items: got.items, menus: got.menus, counts, findings: got.findings }, null, 1) + '\n';
   const say = `facet-data: ${got.items} cards, ${got.menus} menus — ` + (Object.keys(counts).map(k => k + ' ' + counts[k]).join(', ') || 'nothing found');
+  /* A LONG SHOW IS A FAILURE, not a finding to read: the tag stops being tappable. */
+  if (counts['long-show']) { got.findings.filter(f => f.kind === 'long-show').forEach(f => console.error(`long-show\t${f.menu}\t${f.value}\t${f.say}`)); console.error(say + ' — a facet show over 30 chars; give it a short label in data/settings/labels.json (group facet-show:<field>)'); if (CHECK) process.exit(1); }
   if (CHECK) { let had = ''; try { had = fs.readFileSync(OUT, 'utf8'); } catch (e) {} console.log(say + (had === text ? ' (current)' : ' (STALE)')); process.exit(had === text ? 0 : 1); }
   fs.writeFileSync(OUT, text);
   console.log(say + ' (' + Math.round((Date.now() - t0) / 1000) + 's)');
   if (process.argv.includes('-v')) got.findings.forEach(f => console.log(`${f.kind}\t${f.menu}\t${f.value}\t${f.say}`));
-  process.exit(0);
+  process.exit(counts['long-show'] ? 1 : 0);
 })().catch(e => { console.error('facet-data: ' + (e && e.stack || e)); process.exit(2); });

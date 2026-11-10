@@ -171,8 +171,12 @@ function tile_(o) {
   if (Array.isArray(o)) return o.map(tile_).join('');
   if (!o) return '';
   /* A FORM'S STEP (950) IS A WORD, NOT A MARK: `form: true` draws the one `.btn` (44px up); `kind` quiet, danger or ghost. */
-  if (o.form) return `<button type="button" class="btn${o.kind ? ' ' + o.kind : ''}${o.cls ? ' ' + o.cls : ''}" data-do="${esc(o.act)}"${
-    Object.keys(o.data || {}).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('')}${o.off ? ' disabled' : ''}>${esc(o.label)}</button>`;
+  /* EVERY OTHER FORM CONTROL IS THIS ONE TOO (rule 8): `look` replaces the .btn class (a poll row, a week cell), `html` is trusted inner markup. */
+  if (o.form) return `<button type="${o.submit ? 'submit' : 'button'}" class="${esc(o.look || 'btn' + (o.kind ? ' ' + o.kind : '') + (o.cls ? ' ' + o.cls : ''))}"${
+    o.act ? ` data-do="${esc(o.act)}"` : ''}${Object.keys(o.data || {}).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('')}${
+    o.id ? ` id="${esc(o.id)}"` : ''}${o.title ? ` title="${esc(o.title)}"` : ''}${o.aria ? ` aria-label="${esc(o.aria)}"` : ''}${
+    o.pressed != null ? ` aria-pressed="${o.pressed ? 'true' : 'false'}"` : ''}${o.off ? ' disabled' : ''}${o.hidden ? ' hidden' : ''}${o.attrs ? ' ' + o.attrs : ''}>${
+    o.html != null ? o.html : esc(o.label == null ? '' : String(o.label))}</button>`;
   /* ONE CHECK ON EVERY QUESTION (368, 374): `send: true` is the same mark, word and `is-submit` name whatever marks it. */
   if (o.send) o = Object.assign({ icon: 'send', label: 'Check' }, o, { cls: ((o.cls || '') + ' is-submit').trim() });
   /* `cls` IS A NAME A CHECK OR A NEIGHBOUR FINDS THE TILE BY (`.qp-check`), never a look: the tile's
