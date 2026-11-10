@@ -565,11 +565,8 @@ function blockWeekRows_() {
     })),
     (c) => {
       const phrase = blockPhrase_(c.day, c.block);
-      return `<button class="hr blk${on.indexOf(phrase) !== -1 ? ' on' : ''}"
-        title="${esc(phrase)}" aria-label="${esc(phrase)}"
-        ${/* THE PHRASE ITSELF, not a code. § */
-              ''}
-        data-do="book-block" data-when="${esc(phrase)}"></button>`;
+      /* THE PHRASE ITSELF, not a code. § */
+      return formButton_({ cls: 'hr blk' + (on.indexOf(phrase) !== -1 ? ' on' : ''), title: phrase, aria: phrase, act: 'book-block', data: { when: phrase }, html: '' });
     },
     { id: 'avail' });
 }
@@ -591,16 +588,10 @@ function stepWeekRows_(st) {
     g.days.map(r => ({ label: r.label, hours: r.hours, shut: !r.hours.some(h => h.open),
                        /* THE TICKS THEMSELVES, counted where they are read. */
                        mul: r.hours.filter(h => on.indexOf(h.code) !== -1).length })),
-    (h, d) => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
-      (h.open && !off) ? '' : ' shut'}" ${(h.open && !off) ? '' : 'disabled'}
-      ${/* THE REASON, not just "not available". An hour the tutor never works and an hour they are
-            already teaching are the same grey box, and only the second is worth trying a different
-            week for. */''}
-      title="${h.h}:00${h.why ? ' — ' + esc(h.why) : h.open ? '' : ' — not available'}"
-      ${/* THE NAME THE CELL USED TO CARRY AS TEXT. § */
-            ''}
-      aria-label="${esc(d.label)} ${h.h}:00${h.open ? '' : ', ' + esc(h.why || 'not available')}"
-      data-do="book-slot" data-code="${esc(h.code)}"></button>`,
+    /* THE REASON, not just "not available": an hour never worked and an hour already taught are the same grey box; only the second is worth another week. */
+    (h, d) => formButton_({ cls: 'hr' + (on.indexOf(h.code) !== -1 ? ' on' : '') + ((h.open && !off) ? '' : ' shut'), off: !(h.open && !off),
+      title: h.h + ':00' + (h.why ? ' — ' + h.why : h.open ? '' : ' — not available'),
+      aria: d.label + ' ' + h.h + ':00' + (h.open ? '' : ', ' + (h.why || 'not available')), act: 'book-slot', data: { code: h.code }, html: '' }),
     { id: st.id, off: off, ruler: true,
       /* ---------- A WEEK NOBODY IS FREE FOR IS STILL DRAWN § */
       /* NO SENTENCE WHILE ANY HOUR IS OPEN (owner, 8 Nov): the grey cells say it; only an empty grid needs words. */

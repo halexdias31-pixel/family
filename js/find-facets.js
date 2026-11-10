@@ -18,12 +18,40 @@ const sayCase_ = v => {
 function facetSay_(facet, v) {
   let s = v;
   if (facet && typeof facet.showOf === 'function') { try { s = facet.showOf(v) || v; } catch (e) { s = v; } }
-  return sayCase_(s);
+  s = sayCase_(s);
+  let own = '';
+  try { own = facet && typeof labelOf_ === 'function' ? labelOf_('facet-show:' + facet.field, s, '') : ''; } catch (e) { own = ''; }
+  return own || s;
+}
+/* A SHOW FITS A TAG (kcTidy_'s KC_TAG_MAX, 30), or the card moves it to an open-only line: the owner's short label (labels.json, */
+/* facet-show:<field>, in facetSay_), else the first of its reference ("II-II.122.3"), its name before a bracket, its first words, its ends. */
+const SHOW_MAX = 30;
+function showForms_(s) {
+  s = String(s == null ? '' : s).trim();
+  if (s.length <= SHOW_MAX) return [s];
+  const trim = t => t.replace(/[\s,;:.?!'’·/&…-]+$/, '');
+  const head = t => trim(t.slice(0, SHOW_MAX - 1).replace(/\s+\S*$/, ''));
+  const out = [], ref = /^((?:[IVX]+(?:-[IVX]+)*\.)?\d+(?:\.\d+)+)\s/.exec(s), cut = trim(s.replace(/\s*[([].*$/, ''));
+  if (ref) out.push(ref[1]);
+  if (cut.length >= 4 && cut.length <= SHOW_MAX) out.push(cut);
+  const h = head(cut.length >= 4 ? cut : s);
+  if (h.length >= 4) out.push(h + '…');
+  const tail = s.slice(-12).replace(/^\S*\s/, '');
+  out.push(trim(s.slice(0, SHOW_MAX - tail.length - 2).replace(/\s+\S*$/, '')) + '… ' + tail, s.slice(0, SHOW_MAX - 1).trim() + '…');
+  return out.filter(t => t.length <= SHOW_MAX);
+}
+const showShort_ = s => showForms_(s)[0] || String(s).slice(0, SHOW_MAX);
+/* EACH OVER-LONG SHOW TAKES ITS FIRST FORM NO OTHER ANSWER IN THE MENU ALREADY SAYS. */
+function showFit_(values) {
+  const taken = new Set(values.filter(v => String(v.show || '').length <= SHOW_MAX).map(v => spellKey_(v.show)));
+  values.forEach(v => { if (String(v.show || '').length <= SHOW_MAX) return;
+    const forms = showForms_(v.show), pick = forms.find(t => !taken.has(spellKey_(t))) || forms[forms.length - 1] || showShort_(v.show);
+    taken.add(spellKey_(pick)); v.show = pick; });
 }
 /* ONE RULE FOR AN ANSWER'S WORDS (940): § */
 const ANSWER_SAY = new WeakMap();
 function answerSay_(facet, v) {
-  const say = facetSay_(facet, v);
+  const say = showShort_(facetSay_(facet, v));
   if (!facet) return say;
   let items = [];
   try { items = stuffItems() || []; } catch (e) { return say; }
@@ -201,6 +229,7 @@ function facetTally_(items, facet) {
   values.sort((a, b) => cmp(a.text, b.text) || cmpText(a.value, b.value));
   shortLabels_(values);
   tellApart_(items, facet, values);
+  showFit_(values);
 
   /* THE SPLIT IS MEASURED IN THINGS, NOT CARDS (517): a writing (`libBook`) weighs one however many verses it is, so the
      Bible's 31,000 cards cannot make Subject look lopsided. Every facet, one rule. */

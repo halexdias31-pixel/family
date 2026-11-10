@@ -102,7 +102,7 @@ function rulesCard_() {
   const lastR = last && RULE_OF_(last.id);
   const row = r => {
     const uni = !ruleOn_(r.id);
-    const opt = (to, label) => `<button type="button" class="btn quiet rule-opt${(to === 'universal') === uni ? ' on' : ''}" data-do="rule-set" data-rule="${esc(r.id)}" data-to="${to}" aria-pressed="${(to === 'universal') === uni}">${label}</button>`;
+    const opt = (to, label) => formButton_({ cls: 'btn quiet rule-opt' + ((to === 'universal') === uni ? ' on' : ''), act: 'rule-set', data: { rule: r.id, to: to }, pressed: (to === 'universal') === uni, html: label });
     return `<div class="rule-row${r.lock ? ' is-locked' : ''}" data-rule="${esc(r.id)}">
       <p class="rule-say">${esc(r.say)} <span class="qtag">${esc(r.where)}</span></p>
       ${r.lock ? ''

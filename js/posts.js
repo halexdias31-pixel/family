@@ -439,13 +439,10 @@ function cameraCard() {
       ${/* THE WORDS ARE IN `aria-label` AND `title` RATHER THAN IN THE DISC. A shutter with the
             word "Photo" written across it is not a shutter, and a control with no name at all is
             one a screen reader cannot offer. */''}
-      <button class="cam-shot" data-do="cam-shoot" id="cam-shoot"
-              aria-label="Take a photo" title="Take a photo" disabled></button>
-      <button class="cam-rec" data-do="cam-video" id="cam-video"
-              aria-label="Record a video" title="Record a video" disabled></button>
-      <button class="cam-round cam-write" data-do="new-post" aria-label="Write a post" title="Write a post"><span class="cam-disc" aria-hidden="true">✎</span><span class="cam-word">Write a post</span></button>
-      <button class="cam-side" data-do="cam-flip" id="cam-flip"
-              aria-label="Switch camera" title="Switch camera" hidden>Switch</button>
+      ${formButton_({ cls: 'cam-shot', act: 'cam-shoot', id: 'cam-shoot', aria: 'Take a photo', title: 'Take a photo', off: true, html: '' })}
+      ${formButton_({ cls: 'cam-rec', act: 'cam-video', id: 'cam-video', aria: 'Record a video', title: 'Record a video', off: true, html: '' })}
+      ${formButton_({ cls: 'cam-round cam-write', act: 'new-post', aria: 'Write a post', title: 'Write a post', html: '<span class="cam-disc" aria-hidden="true">✎</span><span class="cam-word">Write a post</span>' })}
+      ${formButton_({ cls: 'cam-side', act: 'cam-flip', id: 'cam-flip', aria: 'Switch camera', title: 'Switch camera', hidden: true, label: 'Switch' })}
     </div>
     ${/* ---------- ONE LINE ABOUT IT, BECAUSE A POST WITH NOTHING SAID ABOUT IT IS A PHOTOGRAPH § */
           ''}
@@ -459,21 +456,18 @@ function cameraCard() {
           ''}
     ${/* AN ADMIN'S QUESTION ONLY (413): anybody else's post is their own. */
           typeof isAdmin === 'function' && isAdmin() ? `<span class="btn-row cam-as" id="cam-as" data-as="brand" hidden>
-      <button class="btn quiet on" data-do="as" data-for="cam-as" data-as="brand"
-        >${esc(brand('name', '@family.'))} <span class="qtag">business</span></button>
-      <button class="btn quiet" data-do="as" data-for="cam-as" data-as="me"
-        >me <span class="qtag">personal</span></button>
+      ${postAsButtons_('cam-as')}
     </span>` : ''}
     <div class="btn-row cam-row">
-      <button class="btn quiet" data-do="cam-again" id="cam-again" hidden>Again</button>
+      ${formButton_({ cls: 'btn quiet', act: 'cam-again', id: 'cam-again', hidden: true, label: 'Again' })}
       ${/* KEEP THIS ONE AND TAKE ANOTHER. The picture goes into the tray and the viewfinder comes
             back, so a post of five is five presses of the shutter and one of `Post it`. */''}
-      <button class="btn quiet" data-do="cam-more" id="cam-more" hidden>Add another</button>
-      <button class="btn" data-do="cam-post" id="cam-post" hidden>Post it</button>
-      <button class="btn quiet" data-do="cam-save" id="cam-save" hidden>Save a copy</button>
+      ${formButton_({ cls: 'btn quiet', act: 'cam-more', id: 'cam-more', hidden: true, label: 'Add another' })}
+      ${formButton_({ act: 'cam-post', id: 'cam-post', hidden: true, label: 'Post it' })}
+      ${formButton_({ cls: 'btn quiet', act: 'cam-save', id: 'cam-save', hidden: true, label: 'Save a copy' })}
       ${/* HIDDEN UNTIL SOMETHING FAILS. See the note at the top: this is the way back from a refused
             prompt, not a step on the way in. */''}
-      <button class="btn" data-do="cam-on" id="cam-on" hidden>Try the camera again</button>
+      ${formButton_({ act: 'cam-on', id: 'cam-on', hidden: true, label: 'Try the camera again' })}
     </div>
     <p class="note" id="cam-said"></p>
   </div>`;
@@ -775,10 +769,9 @@ function camHold_() {
   if (!tray) return;
   tray.hidden = !CAM_ITEMS.length;
   tray.innerHTML = CAM_ITEMS.length ? `<div class="cam-thumbs">${CAM_ITEMS.map((x, k) =>
-    `<button class="cam-thumb" data-do="cam-drop" data-i="${k}"
-       aria-label="Take this one out of the post" title="Take this one out">${x.kind === 'video'
+    formButton_({ cls: 'cam-thumb', act: 'cam-drop', data: { i: k }, aria: 'Take this one out of the post', title: 'Take this one out', html: x.kind === 'video'
       ? '<span class="cam-thumb-vid">\u25b6</span>'
-      : `<img src="${esc(x.data)}" alt="" decoding="async">`}</button>`).join('')}</div>` : '';
+      : `<img src="${esc(x.data)}" alt="" decoding="async">` })).join('')}</div>` : '';
 }
 on('cam-more', () => {
   camKeep_();
@@ -1053,9 +1046,8 @@ function reacts(p) {
     const mine = r.yours === e;
     const cls = 'react' + (mine ? ' mine' : '') + (t.length > 2 ? ' is-long' : '')
               + (REACT_POP_ && REACT_POP_ === p.id + ' ' + e ? ' is-pop' : '');
-    return `<button class="${cls}" data-do="react" data-id="${esc(p.id)}" data-emoji="${esc(e)}"
-               aria-pressed="${mine}"><span class="react-e">${esc(e)}</span>${
-      t ? `<span class="react-n">${t}</span>` : ''}</button>`;
+    return formButton_({ cls: cls, act: 'react', data: { id: p.id, emoji: e }, pressed: mine, html: `<span class="react-e">${esc(e)}</span>${
+      t ? `<span class="react-n">${t}</span>` : ''}` });
   }).join('')}</div>`;
 }
 
@@ -1064,8 +1056,7 @@ function reactWho_(p) {
   const r = p && p.reactions;
   const n = r ? Number(r.total) || 0 : 0;
   if (!n) return '';                          // a 0 that opens an empty sheet is a promise broken
-  return `<button class="text-action react-who" data-do="who-reacted" data-id="${esc(p.id)}"
-             >${n} reaction${n === 1 ? '' : 's'}</button>`;
+  return formButton_({ cls: 'text-action react-who', act: 'who-reacted', data: { id: p.id }, label: n + ' reaction' + (n === 1 ? '' : 's') });
 }
 /* WHEN, AND HOW MANY. Time first, so a total appearing never moves it; 44px tall either way, so the first reaction on a post moves nothing below it — the tile § */
 function postWhen_(p) {
@@ -1194,15 +1185,14 @@ function poll(p) {
       const n = q.counts[i];
       const share = q.total ? Math.round(n / q.total * 100) : 0;
       const mine = q.yours === opt;
-      return `<button class="poll-row${mine ? ' mine' : ''}${voted ? ' done' : ''}"
-                 data-do="vote" data-id="${esc(p.id)}" data-choice="${esc(opt)}">
+      return formButton_({ cls: 'poll-row' + (mine ? ' mine' : '') + (voted ? ' done' : ''), act: 'vote', data: { id: p.id, choice: opt }, html: `
         ${voted
           /* The bar is drawn against the BIGGEST answer, not against the total — with four options
              the winner might be 30%, and a bar 30% across reads as nobody choosing it. */
           ? `<span class="poll-bar" style="--f:${(n / most).toFixed(3)}"></span>` : ''}
         <span class="poll-text">${mine ? '✓ ' : ''}${esc(opt)}</span>
         ${voted ? `<span class="poll-n">${share}%</span>` : ''}
-      </button>`;
+      ` });
     }).join('')}
     <p class="note poll-tot">${
       !USER ? 'Sign in to vote'
@@ -1447,10 +1437,12 @@ function postAsRow_(id) {
   if (!(typeof isAdmin === 'function' && isAdmin())) return '';
   return `<label class="field"><span>post as</span>
     <span class="btn-row post-as" id="${id}" data-as="brand">
-      <button class="btn quiet on" data-do="as" data-for="${id}" data-as="brand">${esc(brand('name', '@family.'))} <span class="qtag">business</span></button>
-      <button class="btn quiet" data-do="as" data-for="${id}" data-as="me">me <span class="qtag">personal</span></button>
+      ${postAsButtons_(id)}
     </span></label>`;
 }
+/* THE TWO ANSWERS, the composer's and the camera's alike. */
+const postAsButtons_ = id => formButton_({ cls: 'btn quiet on', act: 'as', data: { for: id, as: 'brand' }, html: `${esc(brand('name', '@family.'))} <span class="qtag">business</span>` })
+  + formButton_({ cls: 'btn quiet', act: 'as', data: { for: id, as: 'me' }, html: 'me <span class="qtag">personal</span>' });
 const postAsOf_ = id => (typeof isAdmin === 'function' && isAdmin()) ? ((($(id) || {}).dataset || {}).as || 'brand') : 'me';
 /* WRITING A POST CHANGES THE CAMERA CARD IN PLACE (448): "do not use pop-up menus on my site". Words only — no picture picker; Photos is beside the shutter. */
 let POST_COMPOSING = false;
@@ -1470,7 +1462,7 @@ function postComposeHtml_() {
   <label class="field"><span>more, if you want it</span>
     <textarea id="post-body" placeholder="Optional"${draftAttr_('post', 'body')}>${esc(draftVal_('post', 'body'))}</textarea></label>
   <div class="poll-opts" id="post-poll-opts" data-n="${n}">${Array.from({ length: n }, (_, k) => pollBox_(k)).join('')}</div>
-  <button class="btn quiet" data-do="poll-more" id="poll-more"${n >= POLL_MAX ? ' hidden' : ''}>Add option</button>
+  ${formButton_({ cls: 'btn quiet', act: 'poll-more', id: 'poll-more', hidden: n >= POLL_MAX, label: 'Add option' })}
   ${postAsRow_('post-as')}
   <div class="btn-row">
     ${tile_({ form: true, label: 'Back', act: 'post-cancel', kind: 'quiet' })}
@@ -2389,7 +2381,7 @@ function daiveHtml_() {
     <div class="msg-body">${messagesHtml_(asstMsgs_(s)) }${ASST_BUSY ? loading_() : ''}</div>
     <div class="msg-form" data-k="daive">
       <textarea class="msg-text" rows="1" maxlength="1000" placeholder="Message…" aria-label="Message ${DAIVE}"${shut ? ' disabled' : ''}${draftAttr_('asst', '')}>${ASST_BUSY ? '' : esc(draftVal_('asst', '', ''))}</textarea>
-      <button class="btn msg-go" data-do="daive-send"${shut ? ' disabled' : ''}>Send</button>
+      ${formButton_({ cls: 'btn msg-go', act: 'daive-send', off: shut, label: 'Send' })}
       <p class="note msg-said">${esc(ASST_SAID)}</p>
       <p class="note msg-said daive-left">${esc(said)}</p>
     </div>

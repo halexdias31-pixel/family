@@ -16,5 +16,12 @@
 {"group": "hist-kind", "key": "manuscript", "label": "Manuscripts", "sort_order": 1, "active": true},
 {"group": "hist-kind", "key": "event", "label": "Events", "sort_order": 2, "active": true},
 {"group": "hist-kind", "key": "writing", "label": "Writings", "sort_order": 3, "active": true},
-{"group": "hist-kind", "key": "figure", "label": "People", "sort_order": 4, "active": true}
+{"group": "hist-kind", "key": "figure", "label": "People", "sort_order": 4, "active": true},
+{"group": "facet-show:wCollection", "key": "Deuterocanon / Apocrypha / Anagignoskomena", "label": "Deuterocanon", "sort_order": 1, "active": true},
+{"group": "facet-show:boutEvent", "key": "The Battle of the Little Giants", "label": "Battle of the Little Giants", "sort_order": 1, "active": true},
+{"group": "facet-show:boutEvent", "key": "The St Valentine's Day Massacre", "label": "St Valentine's Day Massacre", "sort_order": 2, "active": true},
+{"group": "facet-show:boutEvent", "key": "World Boxing Super Series Final", "label": "WBSS Final", "sort_order": 3, "active": true},
+{"group": "facet-show:histDated", "key": "C. 1147 BC, 20th Dynasty, reign of Ramesses V", "label": "c. 1147 BC, Ramesses V", "sort_order": 1, "active": true},
+{"group": "facet-show:mPart", "key": "Number plate and interior bulbs", "label": "Number plate & interior bulbs", "sort_order": 1, "active": true},
+{"group": "facet-show:wText", "key": "National Archives transcription", "label": "National Archives", "sort_order": 1, "active": true}
 ]
