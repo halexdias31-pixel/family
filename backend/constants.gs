@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-10-pin-four-1";
+const BACKEND_VERSION = "2026-11-10-biz-auto-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -247,6 +247,8 @@ const SCHEMA = {
     /* THE AGES THEY TEACH: a whole number or the word `Adults`, out of `AGE_OPTIONS` — see
        `ageRefusal_` in people.gs. Not on the pricing page: the age range does not decide a price. */
     "age_min", "age_max", "focus", "dbs_checked",
+    /* THE TUTOR'S DBS (10 Nov): when the admin last ran the online check, and the certificate it checks; admin-only (listStaff). */
+    "dbs_checked_on", "dbs_number",
     /* where they are */
     "address", "town", "city", "borough", "postcode", "travel_km",
     /* what they charge, and when they can teach */
@@ -451,7 +453,7 @@ const SCHEMA = {
   records: [
     "record_id", "category", "title", "provider", "reference", "due_on", "cost", "link", "notes",
     "active", "updated_at",
-  ], /* checker ticks (1050) */ biz_checks: ["check_id", "done_on", "note", "by", "updated_at"], /* the inbox (1060) */ owner_answers: ["question_id", "choice", "note", "by", "answered_at"],
+  ], /* checker ticks (1050) */ biz_checks: ["check_id", "done_on", "note", "by", "updated_at", "expires_on", "doc_link"], /* the inbox (1060) */ owner_answers: ["question_id", "choice", "note", "by", "answered_at"],
 
   messages: [
     "message_id", "from_id", "to_id", "sent_at", "body",
@@ -1648,7 +1650,7 @@ const ACTION_ACCESS = {
   raiseHand: 'self', hands: 'self',
   /* All `self`: each handler checks the message is the asker's own, and the POLICY table decides
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
-  listRecords: 'admin', saveRecordsPage: 'admin', listBizChecks: 'admin', saveBizCheck: 'admin', listOwnerAnswers: 'admin', saveOwnerAnswer: 'admin',
+  listRecords: 'admin', saveRecordsPage: 'admin', listBizChecks: 'admin', saveBizCheck: 'admin', tutorDbsChecked: 'admin', listOwnerAnswers: 'admin', saveOwnerAnswer: 'admin',
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
   /* WHETHER A PHOTOGRAPH IN A MESSAGE CAN BE KEPT — the column, the scope, the folder, a test file. § */
   checkUploads: 'admin',

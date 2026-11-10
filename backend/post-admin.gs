@@ -138,8 +138,21 @@ function postListStaff_(body, action, began) {
   clearCache();
   const staff = read(TAB.people).rows.filter(r => hasRole(r, 'tutor') && rankAtLeast_(r, 'staff') && personDisplayName(r))
     .map(r => ({ personId: S(r.person_id), name: personDisplayName(r), handle: S(r.handle), rank: rankOf(r),
-                 termsVersion: S(r.agreement_version), termsAt: r.agreement_signed_at instanceof Date ? fmtDateTime(r.agreement_signed_at) : S(r.agreement_signed_at) }));
+                 termsVersion: S(r.agreement_version), termsAt: r.agreement_signed_at instanceof Date ? fmtDateTime(r.agreement_signed_at) : S(r.agreement_signed_at),
+                 dbsCheckedOn: isoDate_(r.dbs_checked_on), dbsNumber: S(r.dbs_number) }));
   return jsonOut({ success: true, staff: staff });
+}
+
+/* "CHECKED TODAY" ON A TUTOR'S DBS (10 Nov): the admin ran the online check; the date restarts the 12 months. */
+function postTutorDbsChecked_(body, action, began) {
+  const t = read(TAB.people);
+  const r = t.rows.find(x => S(x.person_id) && S(x.person_id) === S(body.personId));
+  if (!r) return jsonOut({ error: 'No tutor with that id.' });
+  const on = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
+  if (!setCell(t, r, 'dbs_checked_on', on)) return jsonOut({ error: 'The people tab has no dbs_checked_on column yet: open the /exec address with ?setup=1 once.' });
+  setCell(t, r, 'dbs_checked', 'TRUE');
+  clearCache();
+  return jsonOut({ success: true, personId: S(r.person_id), dbsCheckedOn: on });
 }
 
 function postDecideApplication_(body, action, began) {

@@ -38,14 +38,16 @@ const BIZ = { list: null, asking: false, error: '' };
 
 /* ---------- WHAT NEEDS YOU (400): "maybe the business widgets glow red" — the owner, 24 Oct ----------
    Each Business card registers its count by key (`bizNeed_`) and carries `data-need`; `bizNeedsPaint_` glows it. */
-const BIZ_NEEDS = {};
-function bizNeed_(key, n, say) {
+const BIZ_NEEDS = {}, BIZ_NEEDS_NOW = {};
+/* `now`: how many of the n are overdue, which glows the card harder (`needs-now`). */
+function bizNeed_(key, n, say, now) {
   n = Math.max(0, Math.floor(Number(n) || 0));
   BIZ_NEEDS[key] = n;
+  BIZ_NEEDS_NOW[key] = Math.max(0, Math.floor(Number(now) || 0));
   return n ? `<p class="biz-need" role="status">${esc(say)}</p>` : '';
 }
 function bizNeedsPaint_() {
-  document.querySelectorAll('#s-biz [data-need], #s-site [data-need]').forEach(c => c.classList.toggle('needs-you', (BIZ_NEEDS[c.dataset.need] || 0) > 0));
+  document.querySelectorAll('#s-biz [data-need], #s-site [data-need]').forEach(c => { c.classList.toggle('needs-you', (BIZ_NEEDS[c.dataset.need] || 0) > 0); c.classList.toggle('needs-now', (BIZ_NEEDS_NOW[c.dataset.need] || 0) > 0); });
   /* NO DOT IN THE TOP BAR (owner, 6 Nov): what it counted is Find › Settings › Admin › Notifications (`notifyDoorCard_`). */
 }
 /* THE RECORDS DUE ON ONE CARD: soon or overdue, counted only once the sheet has answered. */
