@@ -120,7 +120,7 @@ function rcBehind_(el) {
     const bg = getComputedStyle(p).backgroundColor;
     if (bg && !/^(transparent|rgba\(\s*0,\s*0,\s*0,\s*0\s*\))$/.test(bg)) return bg;
   }
-  return getComputedStyle(document.documentElement).backgroundColor || '#000';
+  return getComputedStyle(document.documentElement).backgroundColor || token_('--bg', 'black');
 }
 
 /** The `.rc` as a PNG at `RC_SNAP_K` device pixels per CSS pixel. Resolves `{ blob, w, h, svg }`. */

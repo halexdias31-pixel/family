@@ -56,7 +56,7 @@ function workShrink_(file) {
         c.width = Math.max(1, Math.round(img.naturalWidth * s));
         c.height = Math.max(1, Math.round(img.naturalHeight * s));
         const g = c.getContext('2d');
-        g.fillStyle = '#fff';
+        g.fillStyle = token_('--white', 'white');
         g.fillRect(0, 0, c.width, c.height);
         g.drawImage(img, 0, 0, c.width, c.height);
         let q = 0.8, out = c.toDataURL('image/jpeg', q);

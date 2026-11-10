@@ -48,7 +48,7 @@ function jsFindings_() {
     if (!f.endsWith('.js') || f.startsWith('check')) continue;
     fs.readFileSync(path.join(dir, 'js', f), 'utf8').split('\n').forEach((ln, i) => {
       if (/^\s*(\/\/|\*|\/\*)/.test(ln)) return;
-      const hits = ln.replace(/&#\w+;?/g, '').match(/#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3}(?:[0-9a-fA-F]{2})?)?\b|\b(?:rgba?|hsla?)\(/g) || [];
+      const hits = ln.replace(/&#\w+;?|\|#\d+\b/g, '').match(/#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3}(?:[0-9a-fA-F]{2})?)?\b|\b(?:rgba?|hsla?)\(/g) || [];
       hits.forEach(h => out.push({ file: f, at: 'js/' + f + ':' + (i + 1) + '  ' + h }));
     });
   }

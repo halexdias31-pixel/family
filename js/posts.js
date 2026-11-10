@@ -2481,11 +2481,8 @@ on('dm-refresh', () => { loadMessages().then(() => { paint('dm'); setTimeout(dmF
    On a canvas in the stylesheet's own black and gold: face, name, picture, words, reactions, brand, link. */
 const PPNG_W = 1080, PPNG_M = 72;
 function ppngTokens_() {
-  let cs = null;
-  try { cs = getComputedStyle(document.documentElement); } catch (e) {}
-  const v = (k, or) => { const s = cs ? String(cs.getPropertyValue(k) || '').trim() : ''; return s || or; };
-  return { bg: v('--bg', '#000'), raised: v('--raised', '#0b0b0b'), line: v('--line', '#232323'), ink: v('--ink', '#e6e6e6'),
-           dim: v('--dim', '#9a9a9a'), gold: v('--gold', '#ffffff'), font: v('--font', 'ui-monospace, monospace') };
+  return { bg: token_('--bg', 'black'), raised: token_('--raised', 'black'), line: token_('--line', 'dimgray'), ink: token_('--ink', 'white'),
+           dim: token_('--dim', 'gray'), gold: token_('--gold', 'white'), font: token_('--font', 'ui-monospace, monospace') };
 }
 /* AN IMAGE THE CANVAS MAY EXPORT, OR NULL: straight, with CORS; else through `imageData` (the backend's proxy); else nothing. */
 function ppngImg_(src) {
