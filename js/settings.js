@@ -6,7 +6,7 @@ const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 's
                        'settings/facts',
                        'settings/campaigns', 'settings/copy', 'settings/columns',
                        'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields',
-                       'settings/default-pictures', 'settings/permissions', 'settings/screens-moved'];
+                       'settings/default-pictures', 'settings/permissions', 'settings/screens-moved', 'settings/labels'];
 
 /* `norm` on the backend. § */
 const setNorm_ = v => libS(v).toLowerCase().trim();
@@ -192,6 +192,20 @@ function setPermissions_(d, extra) {
   }, {});
 }
 
+/* THE WORDS THE SHOP AND HISTORY SAY, by group and key (data/settings/labels.json); `labelOf_` keeps the code's word when a row is missing */
+function setLabels_(d, extra) {
+  const labels = extra['settings/labels'];
+  if (!labels || !labels.length) return;
+  d.labels = {};
+  labels.forEach(r => {
+    const o = d.labels;
+    if (libOn(r.active) && libS(r.group) && libS(r.key) && libS(r.label)) (o[libS(r.group)] = o[libS(r.group)] || {})[libS(r.key)] = libS(r.label);
+  });
+}
+const labelOf_ = (group, key, fallback) => {
+  try { const g = DATA && DATA.labels && DATA.labels[group]; return (g && g[key]) || fallback; } catch (e) { return fallback; }
+};
+
 function settingsInto_(d, extra) {
   if (!d || !extra) return d;
   /* the link tiles WERE MAPPED HERE -------------------------------------------------------------- into `d.links` and `d.dropdowns.linkCategories`, the backend's § */
@@ -199,7 +213,7 @@ function settingsInto_(d, extra) {
   /* ---------- WHICH COLUMNS THE APP HAS, AND IN WHAT ORDER § */
   setBrand_(d, extra); setMoved_(d, extra); setFacets_(d, extra); setKinds_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
   setCampaigns_(d, extra); setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
-  setDefaultPictures_(d, extra); setPermissions_(d, extra);
+  setDefaultPictures_(d, extra); setPermissions_(d, extra); setLabels_(d, extra);
   return d;
 }
 

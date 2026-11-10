@@ -302,7 +302,7 @@ function shopGroups_() {
     .concat(Object.keys(groups).filter(k => named.indexOf(k) < 0).sort());
   return order.map(k => {
     const g = SHOP_GROUPS.find(p => p[0] === k);
-    return { kind: k, label: g ? g[1] : k.charAt(0).toUpperCase() + k.slice(1), items: groups[k] };
+    return { kind: k, label: labelOf_('shop-group', k, g ? g[1] : k.charAt(0).toUpperCase() + k.slice(1)), items: groups[k] };
   });
 }
 

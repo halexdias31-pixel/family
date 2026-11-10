@@ -166,19 +166,19 @@ function histLinks_(r) {
     seen.add(id); out.push({ id: id, label: label, row: to });
   };
   const K = { MS: 'Manuscript', FIG: /^EV-/.test(r.id) ? 'Figure' : 'Author', WR: 'Writing', EV: 'Event' };
-  const kindOfId = id => K[String(id).split('-')[0]] || '';
+  const kindOfId = id => { const p = String(id).split('-')[0]; return labelOf_('hist-link', p === 'FIG' && /^EV-/.test(r.id) ? 'FIG-EV' : p, K[p] || ''); };
   ['writings', 'manuscripts', 'author_id', 'figures', 'events'].forEach(c => histList_(r[c]).forEach(id => { if (HIST_ID.test(id)) add(id, kindOfId(id)); }));
   histList_(r.relations).forEach(p => {
     const m = /^([^:]+):\s*(.+)$/.exec(p);
     if (m && HIST_ID.test(m[2].trim())) add(m[2].trim(), histCap_(m[1]));
   });
   (DATA.writings || []).forEach(w => {
-    if (w.author_id === r.id || histList_(w.manuscripts).indexOf(r.id) >= 0) add(w.id, 'Writing');
+    if (w.author_id === r.id || histList_(w.manuscripts).indexOf(r.id) >= 0) add(w.id, labelOf_('hist-link', 'WR', 'Writing'));
   });
-  (DATA.manuscripts || []).forEach(m => { if (histList_(m.writings).indexOf(r.id) >= 0) add(m.id, 'Manuscript'); });
-  (DATA.figures || []).forEach(f => { if (histList_(f.writings).indexOf(r.id) >= 0) add(f.id, 'Author'); });
-  (DATA.timeline || []).forEach(e => { if (histList_(e.figures).concat(histList_(e.writings)).indexOf(r.id) >= 0) add(e.id, 'Event'); });
-  (DATA.figures || []).forEach(f => { if (histList_(f.events).indexOf(r.id) >= 0) add(f.id, 'Figure'); });
+  (DATA.manuscripts || []).forEach(m => { if (histList_(m.writings).indexOf(r.id) >= 0) add(m.id, labelOf_('hist-link', 'MS', 'Manuscript')); });
+  (DATA.figures || []).forEach(f => { if (histList_(f.writings).indexOf(r.id) >= 0) add(f.id, labelOf_('hist-link', 'FIG', 'Author')); });
+  (DATA.timeline || []).forEach(e => { if (histList_(e.figures).concat(histList_(e.writings)).indexOf(r.id) >= 0) add(e.id, labelOf_('hist-link', 'EV', 'Event')); });
+  (DATA.figures || []).forEach(f => { if (histList_(f.events).indexOf(r.id) >= 0) add(f.id, labelOf_('hist-link', 'FIG-EV', 'Figure')); });
   return out;
 }
 const histCap_ = s => { const t = String(s || '').trim(); return t ? t[0].toUpperCase() + t.slice(1) : ''; };
@@ -186,7 +186,7 @@ const histCap_ = s => { const t = String(s || '').trim(); return t ? t[0].toUppe
 /* THE ITEM: Library, on the History shelf, as boxers are on Boxing's. */
 function histItem_(kind, r) {
   const fig = kind === 'figure';
-  if (fig) return { kind: 'people', hdb: true, name: histName_(r), key: 'hdb:' + r.id, pixId: r.id, image: '', sub: '', histKind: 'People',
+  if (fig) return { kind: 'people', hdb: true, name: histName_(r), key: 'hdb:' + r.id, pixId: r.id, image: '', sub: '', histKind: labelOf_('hist-kind', 'figure', 'People'),
     born: personYear_(r.born_year), died: personYear_(r.died_year), from: r.born_place || '', roles: histList_(r.roles),
     shelf: 'History', subject: 'History', text: plainText_(Object.keys(r).map(k => r[k]).join(' ')), row: r };
   const life = fig ? [histYear_(r.born_year), histYear_(r.died_year)] : [];
@@ -195,7 +195,7 @@ function histItem_(kind, r) {
   return {
     kind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, image: '',
     sub: (ev ? [span, r.theatre] : [fig ? span : kind === 'writing' ? r.title_original : r.repository, fig ? histList_(r.roles)[0] : span]).filter(Boolean).join(' · '),
-    histKind: kind === 'manuscript' ? 'Manuscripts' : ev ? 'Events' : 'Writings',
+    histKind: labelOf_('hist-kind', kind === 'manuscript' || ev ? kind : 'writing', kind === 'manuscript' ? 'Manuscripts' : ev ? 'Events' : 'Writings'),
     /* A WRITING IS ON THE WRITINGS SHELF WHEREVER IT CAME FROM (600): History › Shelf no longer splits the written works in two. */
     shelf: kind === 'writing' ? WRITINGS_SHELF : 'History', subject: 'History',
     text: plainText_(Object.keys(r).map(k => r[k]).join(' ')),
@@ -208,7 +208,7 @@ function histItems_(kind, r) {
   const one = histItem_(kind, r), L = kind === 'manuscript' && MS_LOOK[r.id];
   if (!L || !L.sides) return [one];
   return L.sides.map((sd, i) => Object.assign({}, one, { key: i ? one.key + ':' + (sd.side || i) : one.key,
-    msSide: MS_SIDE_SAY[sd.side] || '', msSideIx: i, sub: [MS_SIDE_SAY[sd.side], one.sub].filter(Boolean).join(' · ') }));
+    msSide: labelOf_('hist-side', sd.side, MS_SIDE_SAY[sd.side] || ''), msSideIx: i, sub: [labelOf_('hist-side', sd.side, MS_SIDE_SAY[sd.side] || ''), one.sub].filter(Boolean).join(' · ') }));
 }
 
 /* THE LINES OF A CARD, one thing each (421): a label and the row's column, said as written. */

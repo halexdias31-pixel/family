@@ -1,0 +1,20 @@
+[
+{"group": "shop-group", "key": "bundle", "label": "Bundles", "sort_order": 1, "active": true},
+{"group": "shop-group", "key": "game", "label": "Games", "sort_order": 2, "active": true},
+{"group": "shop-group", "key": "kit", "label": "Kits", "sort_order": 3, "active": true},
+{"group": "shop-group", "key": "equipment", "label": "Equipment", "sort_order": 4, "active": true},
+{"group": "shop-group", "key": "stationery", "label": "Stationery", "sort_order": 5, "active": true},
+{"group": "shop-group", "key": "consumable", "label": "Consumables", "sort_order": 6, "active": true},
+{"group": "shop-group", "key": "service", "label": "Made to order", "sort_order": 7, "active": true},
+{"group": "hist-side", "key": "front", "label": "Front (recto)", "sort_order": 1, "active": true},
+{"group": "hist-side", "key": "back", "label": "Back (verso)", "sort_order": 2, "active": true},
+{"group": "hist-link", "key": "MS", "label": "Manuscript", "sort_order": 1, "active": true},
+{"group": "hist-link", "key": "FIG", "label": "Author", "sort_order": 2, "active": true},
+{"group": "hist-link", "key": "FIG-EV", "label": "Figure", "sort_order": 3, "active": true},
+{"group": "hist-link", "key": "WR", "label": "Writing", "sort_order": 4, "active": true},
+{"group": "hist-link", "key": "EV", "label": "Event", "sort_order": 5, "active": true},
+{"group": "hist-kind", "key": "manuscript", "label": "Manuscripts", "sort_order": 1, "active": true},
+{"group": "hist-kind", "key": "event", "label": "Events", "sort_order": 2, "active": true},
+{"group": "hist-kind", "key": "writing", "label": "Writings", "sort_order": 3, "active": true},
+{"group": "hist-kind", "key": "figure", "label": "People", "sort_order": 4, "active": true}
+]
