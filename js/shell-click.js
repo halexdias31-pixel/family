@@ -299,9 +299,9 @@ try { matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', 
 /* ---------- ONE PRESS, ONE ACTION (534) ---------- */
 /* A double tap deleted a post and starred twice: the same control again within PRESS_AGAIN_MS, or while the request it started is out, is dropped. */
 const PRESS_AGAIN_MS = 350;
-/* KEYS AND STEPS PRESSED FAST ON PURPOSE (a digit typed twice, a maze step, a month flipped): `data-repeat` on the control, or its action named here. */
-const PRESS_REPEAT_ = new Set(['kp-key', 'maze-go', 'cal-back', 'cal-fwd', 'eink-step', 'tal-size', 'imp-count', 'c4-drop',
-                               'pad-undo', 'chess-undo', 'sp-ctl', 'feed-tap', 'rw-next', 'rw-back', 'speed-back']);
+/* KEYS AND STEPS PRESSED FAST ON PURPOSE (a digit typed twice, a month flipped): `data-repeat` on the control, or its action named here. */
+const PRESS_REPEAT_ = new Set(['kp-key', 'cal-back', 'cal-fwd', 'tal-size', 'imp-count',
+                               'pad-undo', 'sp-ctl', 'feed-tap', 'rw-next', 'rw-back', 'speed-back']);
 const PRESS_LAST_ = new Map();   /* press key -> { t, el }: when it last acted, and which element */
 const PRESS_OUT_ = new Map();    /* press key -> Map(element -> requests it started that are still out) */
 let PRESS_ACTING_ = null;        /* { key, el } while a handler runs, so `api()` knows whose request it is */
