@@ -176,10 +176,8 @@ function fieldHtml(name, value, o) {
   const v = keep && !FIELD_IS_BOOL.test(name) ? dv : v0;
 
   if (FIELD_IS_BOOL.test(name)) {
-    return `<label class="check">
-      <input type="checkbox" ${attr}="${esc(name)}" ${(keep ? dv === '1' : TRUEish_(v)) ? 'checked' : ''}
-             ${ro ? 'disabled' : ''}${da}>
-      <span class="box"></span><span>${esc(label)}</span></label>`;
+    return formTick_(`${attr}="${esc(name)}" ${(keep ? dv === '1' : TRUEish_(v)) ? 'checked' : ''}
+             ${ro ? 'disabled' : ''}${da}`, `<span>${esc(label)}</span>`);
   }
 
   /* ---------- SEVERAL OF A LIST IS A LIST OF CHECKBOXES, OPENED UNDER ITS FIELD § */
@@ -191,12 +189,11 @@ function fieldHtml(name, value, o) {
     const said = got.join(', ');
     const key = attr + ':' + name;
     return `<div class="field many"><span class="many-cap">${esc(label)}</span>
-      <input type="hidden" ${attr}="${esc(name)}" value="${esc(said)}"${da}>
+      ${formHidden_(`${attr}="${esc(name)}"`, said, da)}
       <details class="many-d" data-many="${esc(key)}"${MANY_OPEN_ === key ? ' open' : ''}><summary class="many-sum${said ? '' : ' is-unset'}"
         aria-label="${esc(label + ': ' + (said || 'nothing chosen'))}">${esc(said || 'Tap to choose')}</summary>
-        <div class="many-list" role="group" aria-label="${esc(label)}">${opts.map(x => `<label class="check many-opt">
-          <input type="checkbox" data-many-of="${esc(name)}" value="${esc(x)}"${on(x) ? ' checked' : ''}${
-          ro ? ' disabled' : ''}><span class="box"></span><span>${esc(x)}</span></label>`).join('')}</div>
+        <div class="many-list" role="group" aria-label="${esc(label)}">${opts.map(x => formTick_(`data-many-of="${esc(name)}" value="${esc(x)}"${on(x) ? ' checked' : ''}${
+          ro ? ' disabled' : ''}`, `<span>${esc(x)}</span>`, 'many-opt')).join('')}</div>
       </details></div>`;
   }
 
@@ -205,20 +202,17 @@ function fieldHtml(name, value, o) {
   if (opts.length) {
     /* A PLACEHOLDER ON A SELECT IS ITS EMPTY OPTION, and the caption goes exactly as it does for a box below: § */
     const ph = o.placeholder || '';
-    return `<label class="field">${ph ? '' : `<span>${esc(label)}</span>`}
-      <select ${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}${da}>
+    return formLine_(ph ? '' : label, formSelect_(`${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}${da}`, `
         <option value="">${ph ? esc(ph) : NONE_LABEL}</option>
         ${(v !== '' && v != null && !opts.some(x => String(x) === String(v)) ? [String(v)] : [])
           .concat(opts).map(x => `<option value="${esc(x)}"${
-          String(v) === String(x) ? ' selected' : ''}>${esc(x)}</option>`).join('')}
-      </select></label>`;
+          String(v) === String(x) ? ' selected' : ''}>${esc(x)}</option>`).join('')}`));
   }
 
   /* ---------- A DAY ON A CALENDAR IS A DATE INPUT § */
   if (FIELD_IS_DATE.test(name)) {
-    return `<label class="field"><span>${esc(label)}</span>
-      <input type="date" ${attr}="${esc(name)}" value="${esc(String(v))}"
-             ${ro ? 'disabled' : ''} ${o.extra || ''}${da}></label>`;
+    return formLine_(label, formInput_(`type="date" ${attr}="${esc(name)}" value="${esc(String(v))}"
+             ${ro ? 'disabled' : ''} ${o.extra || ''}${da}`));
   }
 
   /* A WHOLE-NUMBER FIELD (years teaching, pages, students…) takes digits only (owner, 8 Nov): a number box, never letters. */
@@ -230,11 +224,9 @@ function fieldHtml(name, value, o) {
   const hint = o.placeholder || '';
 
   /* EXTRA ATTRIBUTES, FOR THE CALLERS THAT NEED ONE THE NAME CANNOT IMPLY. § */
-  return `<label class="field">${hint ? '' : `<span>${esc(label)}</span>`}
-    <input ${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
+  return formLine_(hint ? '' : label, formInput_(`${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
            ${hint ? `placeholder="${esc(hint)}"` : ''} ${o.extra || ''}
-           ${pad ? `inputmode="${pad}"` : ''}${pad === 'numeric' && !/\btype=/.test(o.extra || '') ? ' type="number" min="0" step="1"' : ''}${da}>
-    </label>`;
+           ${pad ? `inputmode="${pad}"` : ''}${pad === 'numeric' && !/\btype=/.test(o.extra || '') ? ' type="number" min="0" step="1"' : ''}${da}`));
 }
 
 /* ---------- WHICH SEVERAL-OF-A-LIST FIELD IS OPEN, KEPT AS STATE RATHER THAN IN THE DOM § */
@@ -453,15 +445,15 @@ function qualSlot_(i, value, o) {
   /* ONE CONTROL THAT CYCLES (440): each tap moves Not teaching → Can teach → Teaches → Not teaching. */
   /* TEACHING IS ONE ROW WITH THE PHONE'S OWN PICKER; the line's mark (`q-mark-b`) still cycles without opening it. */
   const tv = qualTeachKey_(q);
-  const cyc = `<label class="field q-f q-cyc"><span>Teaching</span><select class="q-teach" data-unlocked aria-label="Teaching">${
-      QUAL_TEACH_OPTS_.map(([k, say]) => `<option value="${k}"${k === tv ? ' selected' : ''}>${say}</option>`).join('')}</select></label>`;
+  const cyc = formLine_('Teaching', formSelect_('class="q-teach" data-unlocked aria-label="Teaching"',
+      QUAL_TEACH_OPTS_.map(([k, say]) => `<option value="${k}"${k === tv ? ' selected' : ''}>${say}</option>`).join('')), 'q-f q-cyc');
   const said = qualSay_(q);
   /* EACH CAPTION IN TWO WORDINGS, a subject's and a certificate's, and the slot's `is-cert` says which
      is shown — so a line that becomes a DBS by a pick changes its captions with no redraw. */
   const cap = (std, cert) => `<span class="q-cap-std">${esc(std)}</span><span class="q-cap-cert">${esc(cert)}</span>`;
   return `<div class="q-slot${qualIsCert_(q) ? ' is-cert' : ''}" data-slot="${esc(i)}"${q.first ? ' data-first="1"' : ''}>
-    <input type="hidden" data-me="${esc(f('_spec'))}" value="${q.spec ? 'TRUE' : 'FALSE'}">
-    <input type="hidden" data-me="${esc(f('_teach'))}" value="${q.teach ? 'TRUE' : 'FALSE'}">
+    ${formHidden_(`data-me="${esc(f('_spec'))}"`, q.spec ? 'TRUE' : 'FALSE')}
+    ${formHidden_(`data-me="${esc(f('_teach'))}"`, q.teach ? 'TRUE' : 'FALSE')}
     <button type="button" class="q-line" data-do="qual-open" data-at="${esc(i)}" data-unlocked aria-expanded="false"
       aria-label="${esc(said)}" title="${esc(said)}">${qualFace_(q)}</button>
     <button type="button" class="q-mark-b" data-do="qual-teach" data-face="1" data-at="${esc(i)}" data-unlocked
@@ -474,11 +466,11 @@ function qualSlot_(i, value, o) {
       <div class="q-row">
         ${qualPick_(`data-me="${esc(f('_grade'))}"`, q.grade, QUAL_GRADES, 'Grade', 'None yet').replace('class="field q-f"', 'class="field q-f q-grade"')}
         <label class="field q-f">${cap('Finished', 'Year')}
-          <select data-me="${esc(f('_received'))}">${qualYears_(q.received).map(y => `<option value="${esc(y)}"${
-            y === q.received ? ' selected' : ''}>${esc(y === 'Present' ? 'Still studying' : y)}</option>`).join('')}
-            <option value=""${q.received ? '' : ' selected'}>Not sure</option></select></label>
+          ${formSelect_(`data-me="${esc(f('_received'))}"`, qualYears_(q.received).map(y => `<option value="${esc(y)}"${
+            y === q.received ? ' selected' : ''}>${esc(y === 'Present' ? 'Still studying' : y)}</option>`).join('') + `
+            <option value=""${q.received ? '' : ' selected'}>Not sure</option>`)}</label>
         <label class="field q-f q-school">${cap('School, college or uni', 'Issued by')}
-          <input type="text" data-me="${esc(f('_board'))}" value="${esc(q.board)}" autocomplete="off"></label>
+          ${formInput_(`type="text" data-me="${esc(f('_board'))}" value="${esc(q.board)}" autocomplete="off"`)}</label>
       </div>
       ${cyc}
       <div class="tile-row q-tiles">${tile_({ icon: 'save', label: 'Done', act: 'qual-done', data: { unlocked: '', at: i } })}${
@@ -541,11 +533,10 @@ function qualPick_(attrs, v, list, cap, none, mine) {
   const body = yours.length
     ? `<optgroup label="Your subjects">${yours.map(opt).join('')}</optgroup><optgroup label="Every subject">${opts.map(opt).join('')}</optgroup>`
     : opts.map(opt).join('');
-  return `<label class="field q-f"><span>${esc(cap)}</span><select ${attrs}>
+  return formLine_(cap, formSelect_(attrs, `
       <option value="">${esc(none)}</option>
       ${body}
-      <option value="${QUAL_OTHER}">Something else…</option>
-    </select></label>`;
+      <option value="${QUAL_OTHER}">Something else…</option>`), 'q-f');
 }
 /* `Something else…` swaps the select for a box carrying the same attributes, so a save reads it exactly
    as it read the select — and it saves on the box's own `change`, when the typing is finished. */

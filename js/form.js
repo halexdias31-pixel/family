@@ -2,7 +2,7 @@
 
 /* THE SPECS ARE data/settings/forms.json; this is its copy, which check-forms.js holds equal to the file. */
 const FORM_SPECS = {
-  "kinds": ["text", "number", "money", "choice", "toggle", "date", "time", "picture", "list", "pin"],
+  "kinds": ["text", "number", "money", "choice", "toggle", "date", "time", "picture", "list", "pin", "slider", "phone", "file", "tick", "hidden"],
   "rules": [
     { "kind": "list", "match": "^(qual_\\d+|job_\\d+|lib\\d+_|photo_\\d+)|^video$|^venues_ok$" },
     { "kind": "picture", "match": "^photo$" },
@@ -63,4 +63,25 @@ function formCard_(spec) {
   const card = { title: s.title, cls: s.cls, attrs: s.attrs, lead: s.lead, save: save, after: after };
   if (s.groups) return setCard_(Object.assign(card, { form: fields, formAttrs: s.formAttrs, foot: s.foot }));
   return setCard_(Object.assign(card, { body: (s.body || '') + boxes + ticks + (s.tail || '') }));
+}
+
+/* THE RAW BOXES: every input, menu and text area on a Settings screen is written by these, so a box has one shape everywhere. `a` is its attribute text. */
+const formInput_ = a => `<input ${a}>`;
+const formSelect_ = (a, opts) => `<select ${a}>${opts}</select>`;
+const formArea_ = (a, text) => `<textarea ${a}>${esc(text == null ? '' : String(text))}</textarea>`;
+const formHidden_ = (a, v, more) => formInput_(`type="hidden" ${a} value="${esc(v == null ? '' : String(v))}"${more || ''}`);
+const formFile_ = (cls, accept) => formInput_(`type="file" class="${cls}" accept="${accept}" hidden`);
+/* A LABELLED LINE: a faint name over its box; `cls` adds to class="field". */
+const formLine_ = (label, box, cls) => `<label class="field${cls ? ' ' + cls : ''}">${label != null && label !== '' ? `<span>${esc(label)}</span>` : ''}${box}</label>`;
+/* A TICK: `a` is the checkbox's attributes, `say` the html beside the box. */
+const formTick_ = (a, say, cls, la) => `<label class="check${cls ? ' ' + cls : ''}"${la ? ' ' + la : ''}>${formInput_('type="checkbox" ' + a)}<span class="box"></span>${say}</label>`;
+/* A SLIDER WITH ITS TYPED TWIN: both carry `a` (their data- key), so dragging and typing write the same value. */
+function formSlider_(a, o) {
+  return formInput_(`type="range" ${a} data-noswipe min="${o.min}" max="${o.max}" step="${o.step}" value="${o.value}" aria-label="${esc(o.label)}"${o.id ? ` id="${o.id}"` : ''}`)
+    + formInput_(`type="number" class="pf-num" ${a} min="0"${o.numMax != null ? ` max="${o.numMax}"` : ''} step="${o.step}" value="${o.value}" inputmode="decimal" aria-label="${esc(o.label + ', typed')}"`);
+}
+/* A PHONE: the country-code menu and the number, side by side, saved as you type under `cc` and `no`. */
+function formPhone_(cc, no, ccOpts, noAttrs) {
+  return `<label class="field">${formSelect_(`data-me="${cc}" aria-label="Country code"`, ccOpts)}</label>
+      <label class="field">${formInput_(`type="tel" data-me="${no}" inputmode="tel" autocomplete="off" ${noAttrs || ''}`)}</label>`;
 }

@@ -75,9 +75,9 @@ function bizItem_(item) {
   const r = bizRow_(item.id);
   const st = bizState_(item, r.due_on);
   /* EACH BOX A DRAFT UNTIL ITS CARD IS SAVED (data.js; docs/history/317): § */
-  const box = (k, ph, v, extra) => `<label class="field"><input type="${k === 'due_on' ? 'date' : 'text'}"
+  const box = (k, ph, v, extra) => formLine_('', formInput_(`type="${k === 'due_on' ? 'date' : 'text'}"
       data-biz="${esc(item.id)}" data-k="${k}" value="${esc(draftVal_('rec', item.id + ':' + k, v || ''))}" placeholder="${esc(ph)}"
-      aria-label="${esc(item.title + ' — ' + ph)}" autocomplete="off" ${extra || ''}${draftAttr_('rec', item.id + ':' + k, v || '')}></label>`;
+      aria-label="${esc(item.title + ' — ' + ph)}" autocomplete="off" ${extra || ''}${draftAttr_('rec', item.id + ':' + k, v || '')}`));
   const date = box('due_on', item.due.toLowerCase(), r.due_on);
   const ref = box('reference', item.ref, r.reference);
   /* THE DATE'S MEANING IS IN THE CAPTION — `renews`, `due`, `review by` — because a date input draws
@@ -602,8 +602,7 @@ function profitControl_(p, x, from) {
   return `<div class="pf-var${moved ? ' is-moved' : ''}" data-pf-var="${p.k}">
     <p class="pf-name" id="${id}-name"><b class="pf-sym">${esc(p.sym)}</b> ${esc(p.label)}${p.cash ? ' (£)' : ''}
       <span class="pf-from">${esc(moved ? 'what-if' : from[p.k] || '')}</span></p>
-    <input type="range" id="${id}" data-pf="${p.k}" data-noswipe min="${min}" max="${max}" step="${p.step}" value="${v}" aria-label="${esc(p.label)}">
-    <input type="number" class="pf-num" data-pf="${p.k}" min="0" step="${p.step}" value="${v}" inputmode="decimal" aria-label="${esc(p.label + ', typed')}">
+    ${formSlider_(`data-pf="${p.k}"`, { id: id, min: min, max: max, step: p.step, value: v, label: p.label })}
   </div>`;
 }
 /* THE RESULT, ON THE TERMS' OWN PAGE, so a value moved there is seen to move it. */
@@ -625,12 +624,12 @@ function profitCards_() {
       <span>Revenue = N·h·(P·(1 + (c + B)(n − 1))·(1 − d%) + V)</span>
       <span>Tutor = N·h·P·(1 + c(n − 1)) · Room = N·h·V</span>
       <span>Fees = f%·Revenue + f₀·q·weeks · N = S × weeks</span></p>
-    <label class="field pf-period"><span>Period</span><select data-pf-period aria-label="Period">${
-      Object.keys(PROFIT_PERIODS).map(k => opt(k, 'Per ' + k, k === PROFIT.period)).join('')}</select></label>
+    ${formLine_('Period', formSelect_('data-pf-period aria-label="Period"',
+      Object.keys(PROFIT_PERIODS).map(k => opt(k, 'Per ' + k, k === PROFIT.period)).join('')), 'pf-period')}
     <div class="pf-rows">${profitRows_(r, PROFIT.period)}</div>
     <div class="pf-bars">${profitBars_(r)}</div>
-    <label class="field pf-against"><span>Profit against</span><select data-pf-x aria-label="Profit against">${
-      PROFIT_VARS.map(p => opt(p.k, p.sym + ' · ' + p.label, p.k === PROFIT.x)).join('')}</select></label>
+    ${formLine_('Profit against', formSelect_('data-pf-x aria-label="Profit against"',
+      PROFIT_VARS.map(p => opt(p.k, p.sym + ' · ' + p.label, p.k === PROFIT.x)).join('')), 'pf-against')}
     <div class="pf-lines">${profitLine_(x, PROFIT.period)}</div>
   </div>`;
   const said = `<p class="faint pf-said">${A
@@ -762,7 +761,7 @@ function digestShownAsk_(words) {
 function digestWordsCard_() {
   const v = digestVars_(), w = {};
   DIGEST_WORDS_.forEach(([k, , d]) => { w[k] = String(v[k] || '').trim() || d; });
-  const rows = DIGEST_WORDS_.map(([k, label, d]) => `<label class="field dw-row"><span>${esc(label)}</span><input data-dw="${k}" value="${esc(w[k])}" placeholder="${esc(d)}" maxlength="300" aria-label="${esc(label)}"></label>`).join('');
+  const rows = DIGEST_WORDS_.map(([k, label, d]) => formLine_(label, formInput_(`data-dw="${k}" value="${esc(w[k])}" placeholder="${esc(d)}" maxlength="300" aria-label="${esc(label)}"`), 'dw-row')).join('');
   /* TWO CARDS, the look and the words: together they are taller than a pane, and the look follows the typing either way. */
   return [`<div class="card biz digest-look"><h3>Weekly email</h3><div class="dw-preview">${digestShownHtml_()}</div></div>`,
     `<div class="card biz digest-words"><h3>Weekly email's words</h3>

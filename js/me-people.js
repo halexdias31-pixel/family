@@ -129,23 +129,20 @@ function personFormHtml_(F) {
   const nameOf = id => (choices.find(c => c.personId === id) || {}).name || id;
   const has = (p.parentIds || []).filter(Boolean);
   const kid = (p.roles || []).indexOf('student') !== -1;
-  const box = (k, ph, v, type) => `<label class="field"><input data-pf="${k}" placeholder="${esc(ph)}"
-    autocomplete="off"${type ? ` type="${type}"` : ''} value="${esc(v || '')}"></label>`;
+  const box = (k, ph, v, type) => formLine_('', formInput_(`data-pf="${k}" placeholder="${esc(ph)}"
+    autocomplete="off"${type ? ` type="${type}"` : ''} value="${esc(v || '')}"`));
   return `<div class="card person-form" data-pid="${esc(F.id)}">${head}
     <div class="f-row" style="--n:2">${box('first', 'First name', p.firstName)}${box('last', 'Last name', p.lastName)}</div>
     ${F.id && p.handle ? `<p class="faint pf-handle">Their handle stays @${esc(p.handle)}.</p>` : ''}
-    <div class="pf-roles" role="group" aria-label="Role">${peopleRolePicks_().map(([r, label]) => `<label class="check">
-      <input type="checkbox" data-pf-role="${r}"${(p.roles || []).indexOf(r) !== -1 ? ' checked' : ''}><span class="box"></span>
-      <span>${label}</span></label>`).join('')}</div>
+    <div class="pf-roles" role="group" aria-label="Role">${peopleRolePicks_().map(([r, label]) => formTick_(`data-pf-role="${r}"${(p.roles || []).indexOf(r) !== -1 ? ' checked' : ''}`, `<span>${label}</span>`)).join('')}</div>
     ${box('email', 'Email (optional)', p.email, 'email')}
-    <label class="field"><span>Date of birth (optional)</span><input type="date" data-pf="dob" value="${esc(p.dob || '')}"></label>
+    ${formLine_('Date of birth (optional)', formInput_(`type="date" data-pf="dob" value="${esc(p.dob || '')}"`))}
     <div class="pf-parents"${kid ? '' : ' hidden'}>
       ${has.length ? '<p class="faint pf-note">Their parents — untick one to unlink.</p>' : ''}
-      ${has.map(id => `<label class="check"><input type="checkbox" data-pf-parent="${esc(id)}" checked><span class="box"></span>
-        <span>${esc(nameOf(id))}</span></label>`).join('')}
-      <label class="field"><span>${has.length ? 'Another parent' : 'Their parent (optional)'}</span><select data-pf="parent">
+      ${has.map(id => formTick_(`data-pf-parent="${esc(id)}" checked`, `<span>${esc(nameOf(id))}</span>`)).join('')}
+      ${formLine_(has.length ? 'Another parent' : 'Their parent (optional)', formSelect_('data-pf="parent"', `
         <option value="">None</option>${choices.filter(c => has.indexOf(c.personId) === -1).map(c =>
-          `<option value="${esc(c.personId)}">${esc(c.name)}</option>`).join('')}</select></label>
+          `<option value="${esc(c.personId)}">${esc(c.name)}</option>`).join('')}`))}
     </div>
     <p class="faint pf-said" aria-live="polite"></p>
     <div class="pf-go">${tile_({ form: true, label: F.id ? 'Save' : 'Add them', act: 'person-save' })}

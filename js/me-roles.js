@@ -523,8 +523,8 @@ function rolesCard_() {
   const name = brand('name', '@family.');
   /* ONE ROW, THE PHONE'S OWN PICKER, and no notes under it (469: the owner, "so much filler space"). */
   const can = rolesPickable_() ? ROLE_PICKS.filter(([r]) => r !== 'tutor') : [];
-  const picks = can.length ? `<label class="field role-pick-row"><span>You are</span><select class="role-pick-in" aria-label="Your role">${
-      can.map(([r, label]) => `<option value="${r}" data-role-pick="${r}"${r === 'client' ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select></label>
+  const picks = can.length ? formLine_('You are', formSelect_('class="role-pick-in" aria-label="Your role"',
+      can.map(([r, label]) => `<option value="${r}" data-role-pick="${r}"${r === 'client' ? ' selected' : ''}>${esc(label)}</option>`).join('')), 'role-pick-row') + `
 `
     + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'roles-save' })}</div>` : '';
   const said = rolesSaid_();
@@ -701,7 +701,7 @@ function availGrid_(codes, p, readonly, mine) {
   return `<div class="me-week" style="--hours:${days[0].hours.length}">
     ${weekGrid_(days, (h, d) => `<label class="hr${on(h.code) ? ' on' : ''}${
       ro(h.code) ? ' shut' : ''}" aria-label="${esc(d.label)} ${h.h}:00">
-      <input type="checkbox" data-me="${esc(h.code)}" ${on(h.code) ? 'checked' : ''}
-             ${ro(h.code) ? 'disabled' : ''}${keep(h.code) ? draftAttr_('set', h.code, was(h.code)) : ''}>
+      ${formInput_(`type="checkbox" data-me="${esc(h.code)}" ${on(h.code) ? 'checked' : ''}
+             ${ro(h.code) ? 'disabled' : ''}${keep(h.code) ? draftAttr_('set', h.code, was(h.code)) : ''}`)}
     </label>`)}</div>`;
 }
