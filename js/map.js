@@ -219,7 +219,6 @@ const WIDGETS = [
     html: `<h3>Countdowns</h3>
     <div id="cd-box" class="cd-box"></div>` },
 
-  /* ---------- THE E-INK SCREEN (470): the widget is the screen; syncing a real one is a bonus. The owner: "Keep it in the widget." */
   /* ---------- FAVOURITE LINKS (509): ten a person keeps on their account; for everybody, so signing in moves no page (339) — favlinks.js ---------- */
   { id: 'favlinks', kind: 'tool', name: 'Favourite links', solid: true,
     start: () => window.initFavLinks_?.(),

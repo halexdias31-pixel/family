@@ -90,8 +90,6 @@ const TILE_ICONS = {
   in:    '<path d="M9.5 2.5h5v13h-5"/><path d="M2 9h8.5"/><path d="m7.5 6 3 3-3 3"/>',
   key:   '<circle cx="5.5" cy="9" r="3"/><path d="M8.5 9h7"/><path d="M13.5 9v2.5"/>'
        + '<path d="M11.2 9v1.8"/>',
-  /* A KEYBOARD: its outline, two rows of keys and the space bar — the Console's key list (419). */
-  keys:  '<path d="M1.5 4.5h15v9h-15z"/><path d="M4 7h1M7 7h1M10 7h1M13 7h1M4 9.5h1M7 9.5h1M10 9.5h1M13 9.5h1"/><path d="M5.5 11.5h7"/>',
   join:  '<circle cx="7" cy="5.5" r="2.6"/><path d="M2 15.5a5 5 0 0 1 10 0"/>'
        + '<path d="M14 6v5"/><path d="M11.5 8.5h5"/>',
   /* FULL SCREEN: four corners pushed outward, the mark every video player puts on the button that
@@ -108,9 +106,8 @@ const TILE_ICONS = {
   /* ---------- AND THREE THAT ARE NOT ON A TILE: THE VIDEOS CARD'S, AFTER YOUTUBE § */
   search: '<circle cx="7.6" cy="7.4" r="4.9"/><path d="m11.2 11 4.6 4.5"/>',
   /* A MAGNIFIER WITH A PLUS: ZOOM ON EVERY QUESTION (457) */
-  /* THE QUESTION'S TOOL ROW (qtools.js): a grid, a calculator, a table, and the folded row's own mark. */
+  /* THE QUESTION'S TOOL ROW (qtools.js): a grid, a table, and the folded row's own mark. */
   grid:  '<path d="M2.5 2.5h13v12h-13z"/><path d="M2.5 6.5h13M2.5 10.5h13M6.8 2.5v12M11.2 2.5v12"/>',
-  calc:  '<path d="M4 1.5h10v14h-10z"/><path d="M6 4h6v2.5h-6z"/><path d="M6.3 9h.1M9 9h.1M11.7 9h.1M6.3 12h.1M9 12h.1M11.7 12h.1"/>',
   table: '<path d="M2 3h14v11h-14z"/><path d="M2 6.7h14M2 10.3h14M7 3v11"/>',
   tools: '<path d="M3 14.5 9.5 8"/><path d="M11.5 2.5a3 3 0 0 0 3.6 3.9l-2.3 2.3-2.6-.8-.8-2.6z"/><path d="M10 11l4.5 4.5M12.5 9l2 2"/>',
   zoom: '<circle cx="7.6" cy="7.4" r="4.9"/><path d="m11.2 11 4.6 4.5M5.3 7.4h4.6M7.6 5.1v4.6"/>',
@@ -137,16 +134,16 @@ const TILE_ICONS = {
   /* ---------- THE REELS' SOUND, AND THE TWO DIFFER BY WHAT COMES OUT OF THE CONE § */
   sound: TILE_CONE_ + TILE_WAVES_,
   mute:  TILE_CONE_ + '<path d="M2.5 2.5 15.5 14.5"/>',
-  /* ---------- THE WHITEBOARD'S SHAPES (board.js, 377): each the sign and the empty box it brings to write in ---------- */
+  /* ---------- THE MATHS SHAPES (377): each the sign and the empty box it brings to write in ---------- */
   frac:  '<rect x="6" y="1.5" width="6" height="4.5" rx=".8"/><path d="M3 8.5h12"/><rect x="6" y="11" width="6" height="4.5" rx=".8"/>',
   power: '<rect x="2" y="6.5" width="8" height="8" rx="1"/><rect x="11.5" y="2" width="4.5" height="4.5" rx=".8"/>',
   root:  '<path d="M1.5 9.5 3.5 8.5 6 14.5 9 2.5h7.5"/><rect x="10" y="6" width="5.5" height="7" rx=".8"/>',
   integral: '<path d="M3.5 15c1.6.6 2.6-.2 3-2.2l1.6-8.6c.4-2 1.4-2.8 3-2.2"/><rect x="11" y="7" width="5" height="6" rx=".8"/>',
   /* THE RETURN KEY'S ARROW: down the right and back to the left, where the next line starts. */
   newline: '<path d="M15 2.5v7H3.5"/><path d="M7 6 3.5 9.5 7 13"/>',
-  /* TURN THE BOARD (chess, 429): one side going up and the other coming down, the mark for changing ends. */
+  /* TURN (429): one side going up and the other coming down, the mark for changing ends. */
   turn:  '<path d="M6 15V3"/><path d="M3 6l3-3 3 3"/><path d="M12 3v12"/><path d="M9 12l3 3 3-3"/>',
-  /* NEW GAME (chess, 429): one arrow coming round to where it began. */
+  /* AGAIN (429): one arrow coming round to where it began. */
   again: '<path d="M14.8 9.5A5.8 5.8 0 1 1 13 5"/><path d="M13.4 1.6v3.6H9.8"/>',
   /* SPEED READ (403): the reader's two guide ticks, and a line of words running through them. */
   /* DICTATE (562): a microphone on its stand, the keypad's mic key. */
