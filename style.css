@@ -5598,3 +5598,12 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .favwrap:has(.kc-four) + .tile-row { display: none; }
 /* AN EMPTY CARD SAYS SO, CENTRED: never a blank frame. */
 .card.kc .empty { padding: 0; margin: 0; text-align: center; }
+/* ONE TAG, ONE LINE, ON EVERY CARD: a tag wraps inside the card, never clips; every line is body size, upright. */
+.card.kc :is(.qtag, .prof-tag) { max-width: 100%; min-width: 0; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; text-align: center; }
+.card.kc > .kc-lines :is(.prof-say, .prof-words, .prof-busy, .prof-key, .prof-nohours, .kc-credit) { font-size: var(--fs-body); font-style: normal; line-height: 1.45; }
+.card.kc .prof-hours .prof-hour-line { display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem; font-size: var(--tp-fs); }
+.card.kc .prof-hours .prof-hour-line .prof-day { display: inline-flex; align-items: center; min-height: var(--tp-h); padding: var(--tp-pad); border: 1px solid var(--line); border-radius: calc(var(--tp-h) / 2); font-size: var(--tp-fs); letter-spacing: .02em; }
+.card.kc .prof-photos { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.card.kc .prof-photos > * { flex: 0 0 4rem; width: 4rem; aspect-ratio: 1; }
+.card.kc .prof-q-end { white-space: normal; }
+.card.kc .prof-hours .prof-busy { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .3rem; margin-top: .3rem; }
