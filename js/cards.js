@@ -510,7 +510,8 @@ function kcActRow_(x, html, own) {
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html) {
-  if (/class="[^"]*\bkc-four\b/.test(html)) return { lines: html, tiles: '' };
+  /* A `.kc-items` LIST KEEPS EACH THING'S TILES BESIDE IT; none is lifted into the card's row too. */
+  if (/class="[^"]*\b(kc-four|kc-items)\b/.test(html)) return { lines: html, tiles: '' };
   let tiles = '';
   const lines = kcKids_(String(html || '')).map(k => {
     if (k.tag === 'div' && / tile-row /.test(' ' + k.cls + ' ')) { tiles += k.inner; return ''; }
@@ -580,7 +581,8 @@ function kcFacts_(html) {
   const t = document.createElement('template');
   t.innerHTML = html;
   if (!t.content || !t.content.querySelector) return out;
-  if (t.content.querySelector(KC_FORM_SEL)) { out.form = html; return out; }
+  /* A FORM CARD'S OWN HEADING GOES: the name is already the card's first tag. */
+  if (t.content.querySelector(KC_FORM_SEL)) { const h = t.content.querySelector('h1, h2, h3, h4'); if (h) h.remove(); out.form = t.innerHTML; return out; }
   /* A BUTTON OR LINK INSIDE IS NO LINE: it joins the card's row (behind ⋯ unless it is the main). */
   t.content.querySelectorAll('[data-do], a[href], button').forEach(el => { if (el.parentNode && !el.closest('[data-kc-took]')) { el.setAttribute('data-kc-took', ''); out.tiles += el.outerHTML; el.remove(); } });
   out.tiles = out.tiles.replace(/ data-kc-took=""/g, '');
