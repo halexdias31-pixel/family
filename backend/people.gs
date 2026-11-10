@@ -1179,10 +1179,13 @@ function adminCount_(t) { return t.rows.filter(x => hasRole(x, 'admin')).length;
 /* A PERSON AS THE ADMIN'S FORM READS THEM. `lastName` is a box the child-name net leaves whole (`kidWholeOk_`). */
 function adminPersonOut_(r) {
   const pid = S(r.person_id);
+  const fam = read(TAB.family).rows.filter(f => norm(f.state) === 'accepted');
   return { personId: pid, firstName: S(r.first_name), lastName: S(r.last_name), roles: rolesOf(r),
            email: S(r.email), dob: isoDate_(r.date_of_birth), handle: S(r.handle),
-           parentIds: read(TAB.family).rows
-             .filter(f => S(f.child_id) === pid && norm(f.state) === 'accepted').map(f => S(f.parent_id)) };
+           /* AND WHAT AN ADMIN'S EDIT ON THEIR CARD SHOWS (edit-person): the contact cells and the other side of the family links. */
+           phone: S(r.phone), address: S(r.address), postcode: S(r.postcode), listed: S(r.listed),
+           parentIds: fam.filter(f => S(f.child_id) === pid).map(f => S(f.parent_id)),
+           childIds: fam.filter(f => S(f.parent_id) === pid).map(f => S(f.child_id)) };
 }
 /* THE GROWN-UPS A CHILD CAN BE PUT ON, for the form's parent list — the people tab's parents, by whole name. */
 function adminParentChoices_() {

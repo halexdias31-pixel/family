@@ -260,3 +260,82 @@ on('person-del', el => {
     })
     .catch(() => {});
 });
+
+/* ---------- AN ADMIN EDITS SOMEBODY'S DETAILS ON THEIR OWN CARD (edit-person): drawn by the form maker, saved as typed by `updateProfile` ---------- */
+/* THE ONE CARD OPEN FOR IT: `{ id, name, data, err }`, `data` once `personGet` answers; the server refuses anybody but an admin too (`profileWho_`). */
+let PERSON_ED_ = null;
+const personEdMay_ = () => peopleMay_() && typeof uiMay_ === 'function' && uiMay_('edit-person');
+const PE_BOXES_ = [['first_name', 'firstName'], ['last_name', 'lastName'], ['email', 'email'], ['phone', 'phone'], ['address', 'address'], ['postcode', 'postcode']];
+/* THE NAMES OF THE OTHER SIDE OF A FAMILY LINK: the payload's cards, else the parent list `personGet` sent, else the id. */
+const peNameOf_ = (id, d) => ((((DATA && DATA.everyone) || []).find(p => p && String(p.personId) === String(id)) || {}).title)
+  || ((((d && d.parents) || []).find(c => c.personId === id)) || {}).name || id;
+function personEdHtml_(p) {
+  const F = PERSON_ED_;
+  if (!F || !p || !p.personId || String(p.personId) !== F.id || !personEdMay_()) return '';
+  const done = tile_({ form: true, label: 'Done', act: 'person-edit-done', kind: 'quiet' });
+  if (!F.data) return `<div class="pe-form" data-pid="${esc(F.id)}">${F.err ? `<p class="note pe-said">${esc(F.err)}</p>` + done : loading_()}</div>`;
+  const q = F.data.person || {};
+  const box = (f, k) => formField_(f, q[k] || '', { attr: 'data-pe', draft: false,
+    extra: f === 'email' ? 'type="email" autocomplete="off"' : f === 'phone' ? 'type="tel"' : 'autocomplete="off"' });
+  const fam = (say, ids) => ((ids || []).length ? `<p class="note pe-fam">${esc(say)}: ${esc(ids.map(id => displayName_(peNameOf_(id, F.data))).join(', '))}</p>` : '');
+  const tutor = (q.roles || []).indexOf('tutor') !== -1;
+  return `<div class="pe-form" data-pid="${esc(F.id)}">
+    ${PE_BOXES_.slice(0, 2).map(([f, k]) => box(f, k)).join('')}
+    ${formField_('handle', q.handle ? '@' + q.handle : '', { attr: 'data-pe', draft: false, readonly: true, label: 'handle (theirs to change)' })}
+    ${formLine_('date of birth', formInput_(`type="date" data-pe="dob" value="${esc(q.dob || '')}"`))}
+    ${PE_BOXES_.slice(2).map(([f, k]) => box(f, k)).join('')}
+    ${fam('Parent', q.parentIds)}${fam('Child', q.childIds)}
+    ${tutor ? `<p class="note pe-fam">${q.listed === '' || TRUEish_(q.listed) ? 'Listed' : 'Not listed'}: the eye on their tutor card changes it</p>` : ''}
+    <p class="note pe-said" aria-live="polite"></p>${done}</div>`;
+}
+/* WHAT THE BOXES SAY NOW, in `updateProfile`'s names: the phone as code and number, the birthday as three boxes. */
+function peFields_(form) {
+  const v = f => { const b = form.querySelector('[data-pe="' + f + '"]'); return b && !b.disabled ? String(b.value || '').trim() : null; };
+  const out = {};
+  PE_BOXES_.forEach(([f]) => { if (f !== 'phone' && v(f) !== null) out[f] = v(f); });
+  const ph = v('phone');
+  if (ph !== null) { const m = /^(\+\d{1,4})\s+(.*)$/.exec(ph); out.phone_cc = m ? m[1] : '+44'; out.phone_no = m ? m[2] : ph; }
+  const dob = v('dob');
+  if (dob !== null) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob) || ['', '', '', '']; out.dob_y = m[1]; out.dob_m = m[2]; out.dob_d = m[3]; }
+  return out;
+}
+const PE_WAIT_ = new WeakMap();
+const peLater_ = form => { clearTimeout(PE_WAIT_.get(form)); PE_WAIT_.set(form, setTimeout(() => peSave_(form), 700)); };
+function peSave_(form) {
+  const F = PERSON_ED_;
+  if (!form.isConnected || !F || !F.data || form.dataset.pid !== F.id || !personEdMay_()) return;
+  if (form.classList.contains('is-sending')) { peLater_(form); return; }
+  const fields = peFields_(form), said = form.querySelector('.pe-said'), key = JSON.stringify(fields);
+  if (key === F.sent) return;
+  form.classList.add('is-sending');
+  send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
+    .then(d => { F.sent = key; F.moved = true; if (said) said.textContent = '✓ ' + ((d && d.said) || 'Saved'); })
+    .catch(() => {})
+    .then(() => form.classList.remove('is-sending'));
+}
+['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
+  const form = e.target && e.target.closest && e.target.closest('.pe-form');
+  if (form && e.target.hasAttribute('data-pe')) peLater_(form);
+}));
+/* THE CARD DRAWN AGAIN WHEREVER IT STANDS: Find (`inFinder_`, rule 14) and the people columns. */
+function peRedraw_() {
+  peopleRedraw_();
+  try { if (typeof paintStuff === 'function' && typeof FINDER !== 'undefined') inFinder_(FINDER, () => paintStuff(true)); } catch (e) { oops_(e, 'person-edit:redraw'); }
+}
+on('person-edit', el => {
+  if (!personEdMay_()) return;
+  const id = el.getAttribute('data-id') || '';
+  if (!id) return;
+  const F = PERSON_ED_ = { id, name: el.getAttribute('data-name') || '', data: null };
+  peRedraw_();
+  send_({ action: 'personGet', personId: USER.personId || '', targetId: id })
+    .then(d => { if (PERSON_ED_ !== F) return; F.data = { person: d.person || {}, parents: d.parents || [] }; peRedraw_(); })
+    .catch(e => { if (PERSON_ED_ !== F) return; F.err = (e && e.message) || 'Their details could not be opened.'; peRedraw_(); });
+});
+on('person-edit-done', () => {
+  const F = PERSON_ED_;
+  document.querySelectorAll('.pe-form').forEach(f => { clearTimeout(PE_WAIT_.get(f)); peSave_(f); });
+  PERSON_ED_ = null;
+  peRedraw_();
+  if (F && F.moved && typeof load === 'function') load();
+});

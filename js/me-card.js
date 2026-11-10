@@ -764,8 +764,10 @@ const peopleSelf_ = p => !!(USER && p && p.personId && String(p.personId) === St
 function peopleTiles_(p) {
   if (!peopleMay_() || !p || !p.personId || peopleSelf_(p)) return '';
   const first = String(nameBesideHandle_(p.title, p.handle) || p.title || '').trim().split(' ')[0] || 'them';
-  /* NO EDIT (467): somebody's details are theirs to change, on their own settings; Delete, PIN and the digest stay the admin's. */
-  return tile_({ icon: 'bin', label: 'Delete', note: 'their account', act: 'person-del', tone: 'danger',
+  /* EDIT THEIR DETAILS (edit-person): an admin's, by the permissions table; the card becomes the form (`personEdHtml_`). */
+  return (typeof personEdMay_ === 'function' && personEdMay_() ? tile_({ icon: 'edit', label: 'Edit', note: 'their details', act: 'person-edit', tone: 'admin',
+              data: { id: p.personId, name: p.title || '' } }) : '')
+    + tile_({ icon: 'bin', label: 'Delete', note: 'their account', act: 'person-del', tone: 'danger',
               data: { id: p.personId, name: first } })
     /* "SHOW PIN" (452): fetched on the tap by `pinShow`, admin only on the server too; never in the payload. */
     + tile_({ icon: 'key', label: 'Show PIN', note: 'tap again to hide', act: 'pin-show', tone: 'admin',
