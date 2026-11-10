@@ -236,7 +236,7 @@ check('the PIN box is not a password the iPad keeps, and nothing about who signe
   /* THE PAD'S DIGITS, NOT THE PHONE'S (528): the markup's `inputmode="numeric"` picks the pad's face (`data-kpb`), and the phone's keyboard is shut out */
   const flow = d.documentElement.classList.contains('flow');
   /* ONE SCROLLING PAGE (900): there the PIN keeps the phone's own digits — numeric, never bound to the pad. */
-  const want = { autocomplete: 'one-time-code', maxlength: '8', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: flow ? 'numeric' : 'none', 'data-kpb': flow ? null : 'num' };
+  const want = { autocomplete: 'one-time-code', maxlength: '4', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: flow ? 'numeric' : 'none', 'data-kpb': flow ? null : 'num' };
   Object.keys(want).forEach(a => { if (pin.getAttribute(a) !== want[a]) bad.push('the PIN box has ' + a + '=' + JSON.stringify(pin.getAttribute(a)) + ', wanted ' + JSON.stringify(want[a])); });
   /* AND WHERE IT CANNOT, A PASSWORD BOX STILL NOT OFFERED TO THE KEYCHAIN. */
   const b2 = boot({ reply, before: win => { win.CSS = { supports: () => false }; } });
