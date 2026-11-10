@@ -1,6 +1,14 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-answerable.js EVERY QUESTION PART IN THE LIBRARY CAN BE ANSWERED (457). § */
+/* ONE READINESS TEST: a "nothing yet" line typed outside `PART_READY` (find-marking.js) is a second rule -- run with or without the library */
+(() => {
+  const fs0 = require('fs'), p0 = require('path'), dir = p0.join(__dirname);
+  const said = /'(Write something first|Fill a cell first|Draw your answer first)'/;
+  const bad = fs0.readdirSync(dir).filter(f => /\.js$/.test(f) && !/^check/.test(f) && f !== 'find-marking.js')
+    .filter(f => said.test(fs0.readFileSync(p0.join(dir, f), 'utf8')));
+  if (bad.length) { console.log('FAILED — a readiness line typed outside PART_READY: ' + bad.join(', ')); process.exit(1); }
+})();
 require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 const fs = require('fs');
 const path = require('path');

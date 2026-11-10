@@ -111,31 +111,46 @@ function qtCheck_(x, m) {
 const PEN_OPEN = new Set();
 /* WHAT `qPartCard_` HANDS THE NEXT ROW DRAWN: its part's other tiles; `used` says a row took them */
 const QT_MORE = { html: '', used: false };      // parts whose pen was opened this visit (the surface is made on the first Pen tap)
-function qtToolTile_(t, x) {
-  const key = (x && x.key) || '';
-  if (t.id === 'mag') return typeof magOpts_ === 'function' ? tile_(magOpts_()) : '';
-  if (t.id === 'lock') return typeof qLockOpts_ === 'function' ? tile_(qLockOpts_()) : '';
-  if (t.id === 'read') {
+/* EACH TOOL'S OWN TILE, by its id in QT_TOOLS: a `tile(t, x, key)` of its own, else the one lit-by-`qtToolOn_` tile below */
+const QT_TILE = {
+  mag: () => typeof magOpts_ === 'function' ? magOpts_() : null,
+  lock: () => typeof qLockOpts_ === 'function' ? qLockOpts_() : null,
+  read: (t, x, key) => {
     const o = typeof readAloudOpts_ === 'function' ? readAloudOpts_(x) : null;
     if (o) o.data = Object.assign({}, o.data, { part: 1 });
-    const live = o ? tile_(o) : '';
-    return live || tile_({ icon: t.icon, label: t.label, note: 'not on this device', act: 'read-aloud', cls: 'read-aloud', off: true, data: { key } });
-  }
-  if (t.id === 'photo') {
-    return tile_({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } });
-  }
-  /* A CARD DRAWN AGAIN keeps the tool in hand lit, by the one rule `padArm_` uses too */
-  const pk = (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
-  const on = qtToolOn_(t.id, key, pk, PAD_ON === pk ? (PAD_TOOL.get(pk) || 'pen') : '');
+    return o || { icon: t.icon, label: t.label, note: 'not on this device', act: 'read-aloud', cls: 'read-aloud', off: true, data: { key } };
+  },
+  photo: (t, x) => ({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } }),
+};
+/* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
+const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
+const qtInHand_ = pk => pk && typeof PAD_ON !== 'undefined' && PAD_ON === pk ? (PAD_TOOL.get(pk) || 'pen') : '';
+function qtToolTile_(t, x) {
+  const key = (x && x.key) || '';
+  if (QT_TILE[t.id]) { const o = QT_TILE[t.id](t, x, key); return o ? tile_(o) : ''; }
+  /* A CARD DRAWN AGAIN keeps the tool in hand lit, by the one rule `qtLight_` uses too */
+  const pk = qtPadKey_(t, x);
+  const on = qtToolOn_(t.id, key, pk, qtInHand_(pk));
   const cls = 'qt-t' + ((t.id === 'ruler' || t.id === 'protractor') ? ' q-meast' : '');
   return tile_({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } });
 }
-/* IS THIS TOOL IN HAND: the Ruler measures (MEAS), the protractor lies on the pad, the rest are the pad's tool (`inHand`, '' when the pad is off) */
+/* IS THIS TOOL IN HAND, the one rule: Ruler or Protractor laid on a figure (MEAS), the protractor on the pad, the rest the pad's tool */
 function qtToolOn_(id, key, pk, inHand) {
-  if (id === 'ruler') return !!(typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === 'ruler');
+  if ((id === 'ruler' || id === 'protractor') && typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === id) return true;
+  if (id === 'ruler') return false;
+  if (id === 'protractor') return !!(pk && padProtOn_(pk));
   if (!pk || !inHand) return false;
-  if (id === 'protractor') return !!padProtOn_(pk);
   return inHand === QT_PAD_TOOL[id];
+}
+/* EVERY PEN/INSTRUMENT TILE UNDER `root` LIT AGAIN BY `qtToolOn_`, in place; `inHand` stands in for the tool of a pad being armed */
+function qtLight_(root, inHand) {
+  if (!root || !root.querySelectorAll) return;
+  root.querySelectorAll('.qt-row .qt-t[data-do="qt-inst"], .qt-row .qt-t[data-do="qt-pen"]').forEach(t => {
+    const card = t.closest('.qcard'), pad = card && card.querySelector('.qpad');
+    const pk = (pad && pad.getAttribute('data-k')) || '';
+    const lit = qtToolOn_(t.getAttribute('data-tool'), t.getAttribute('data-key') || '', pk, inHand !== undefined ? inHand : qtInHand_(pk));
+    tileSet_(t, { on: lit, pressed: lit });
+  });
 }
 function qtRow_(x, held) {
   if (!x || !x.key) return '';

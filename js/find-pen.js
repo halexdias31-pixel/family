@@ -704,7 +704,7 @@ function padCheck_(row, pad) {
   if (!row || !pad || !out) return null;
   const marks = padRead_(pad.getAttribute('data-k')), say = padSay_(marks);
   row.classList.remove('is-right', 'is-near');
-  if (!say) { out.textContent = 'Draw your answer first'; return null; }
+  if (partReady_('draw', say)) { out.textContent = partReady_('draw', say); return null; }
   const art = pad.querySelector('.qpad-art > svg:first-child');
   const r = DRAW_MARK.mark(marks, row.getAttribute('data-draw'), drawFig_(art ? (art.__src || art.outerHTML) : ''), row.getAttribute('data-marks'));
   if (!r) { out.textContent = 'Could not mark it \u2014 try again'; return null; }
@@ -724,13 +724,7 @@ function padArm_(pad, on) {
   /* AND THE TOOL IN HAND, lit whether or not this pad was the last touched -- the rule `padBar_` draws by. */
   const tool = padToolNow_(pad);
   /* the tool in hand lit in the card's tool row; the protractor is lit while it lies on the page (458) */
-  const card = pad.closest('.qcard'), k = pad.getAttribute('data-k');
-  if (card) card.querySelectorAll('.qt-row .qt-t[data-do="qt-inst"], .qt-row .qt-t[data-do="qt-pen"]').forEach(t => {
-    /* the Straight line tile is the pad's \`ruler\` mode; the Ruler tile is the measuring one, lit by \`measOpen_\` (553) */
-    const id = t.getAttribute('data-tool');
-    const lit = qtToolOn_(id, t.getAttribute('data-key'), k, on ? tool : '');
-    tileSet_(t, { on: lit, pressed: lit });
-  });
+  qtLight_(pad.closest('.qcard'), on ? tool : '');
 }
 
 /* ---------- THE PEN § */

@@ -112,7 +112,7 @@ on('qp-work-x', el => {
 on('qp-work-send', el => {
   const k = el.getAttribute('data-k');
   const pics = WORK_PICS[k] || [];
-  if (!pics.length || el.disabled) return;
+  if (partReady_('photo', pics) || el.disabled) return;
   if (typeof USER !== 'object' || !USER || !USER.token) { workSay_(k, 'Sign in to send your working'); return; }
   const x = typeof ansItem_ === 'function' ? ansItem_(k) : null;
   if (!x) { workSay_(k, 'Could not find this question'); return; }

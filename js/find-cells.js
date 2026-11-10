@@ -141,7 +141,8 @@ on('qp-cells-check', el => {
     c.classList.toggle('is-near', v === false);
   });
   box.classList.remove('is-right', 'is-near');
-  if (!m.each.some(v => v === true || v === false)) { out.textContent = 'Fill a cell first'; return; }
+  const notYet = partReady_('cells', m);
+  if (notYet) { out.textContent = notYet; return; }
   const all = m.right === m.of;
   box.classList.add(all ? 'is-right' : 'is-near');
   out.textContent = all ? 'Correct — every cell' : m.right + ' of ' + m.of + ' cells right';
@@ -329,8 +330,9 @@ on('qp-check', (el) => {
     ACTIONS['qp-work-send'](send);
     return;
   }
+  if (partReady_('typed', inp.value)) { out.textContent = partReady_('typed', inp.value); return; }
   const v = x ? markPart_(x, inp.value) : markAnswer_(inp.value, box.getAttribute('data-accept')) === null ? null : { got: markAnswer_(inp.value, box.getAttribute('data-accept')) ? 1 : 0, of: 1 };
-  if (!v) { out.textContent = 'Write something first'; return; }
+  if (!v) { out.textContent = partReady_('typed', ''); return; }
   if (v.ai) { if (ACTIONS['qp-ai']) ACTIONS['qp-ai'](el); return; }
   const full = v.got >= v.of;
   box.classList.add(full ? 'is-right' : 'is-near');
@@ -348,7 +350,7 @@ on('qp-send', (el) => {
   const out = box && box.querySelector('.qp-verdict');
   if (!inp || !out || el.disabled) return;
   box.classList.remove('is-right', 'is-near');
-  if (!String(inp.value || '').trim()) { out.textContent = 'Write something first'; return; }
+  if (partReady_('typed', inp.value)) { out.textContent = partReady_('typed', inp.value); return; }
   out.textContent = subRecord_(inp.getAttribute('data-k'), inp.value, 'sent') ? 'Sent' : 'Sign in to send it';
 });
 
