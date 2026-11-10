@@ -5474,9 +5474,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-pic { display: flex; justify-content: center; height: var(--pic-h); overflow: hidden; }
 .card.kc > .kc-pic :is(img, video, canvas, svg, figure) { height: 100%; width: 100%; margin: 0; object-fit: cover; }
 .card.kc-tutor > .kc-head h3 { margin: 0; }
-/* A HEADING ITS OWN MAKER DREW AMONG THE LINES is a bold line (`kcTidy_`); a long tag moved down is a quiet credit line. */
+/* A HEADING ITS OWN MAKER DREW AMONG THE LINES is a bold line (`kcTidy_`); a long tag moved down is a small credit line. */
 .card.kc > .kc-lines .kc-h { margin: .5rem 0 .25rem; font-weight: 600; }
-.card.kc > .kc-lines .kc-credit { margin: .4rem 0 0; color: var(--dim); font-size: var(--fs-small); }
+.card.kc > .kc-lines .kc-credit { margin: .4rem 0 0; font-size: var(--fs-small); }
 .card.kc .kc-who { margin: .3rem 0 0; }
 /* EXTREMES STAY ONE SCREEN (8 Nov): name and rate on one line (a long name cut), a long handle, words and a long pill one line each, cut with an ellipsis. */
 .tcard .prof-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
