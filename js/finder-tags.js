@@ -663,6 +663,7 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=Sociology": ["level",[["A-Level"],["GCSE"]],[15,9],24,["A-Level","GCSE"]],
   "kindLabel=Library&subject=Spanish": ["level",[["A-Level"],["GCSE"]],[12,29],41,["A-Level","GCSE"]],
   "kindLabel=Library&subject=Statistics": ["topic",[["Averages from a Table"],["Averages from Grouped Data"],["Bar Charts & Pictograms"],["Basic Probability"],["Box Plots & Quartiles"],["Comparing Distributions"],["Conditional Probability"],["Cumulative Frequency"],["Frequency Polygons"],["Histograms"],["Line Graphs & Time Series"],["Listing Outcomes & Sample Space","Listing Outcomes & Sample…"],["Mean"],["Median"],["Mode"],["Percentage Increase & Decrease"],["Pie Charts"],["Probability"],["Range"],["Relative Frequency & Expectation","Relative Frequency…"],["Sampling"],["Scatter Graphs & Correlation"],["Stem & Leaf Diagrams"],["Tree Diagrams"],["Venn Diagrams & Set Notation"]],[1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],16,["Averages from a Table","Averages from Grouped Data","Bar Charts & Pictograms","Basic Probability","Box Plots & Quartiles","Comparing Distributions","Conditional Probability","Cumulative Frequency","Frequency Polygons","Histograms","Line Graphs & Time Series","Listing Outcomes & Sample…","Mean","Median","Mode","Percentage Increase & Decrease","Pie Charts","Probability","Range","Relative Frequency…","Sampling","Scatter Graphs & Correlation","Stem & Leaf Diagrams","Tree Diagrams","Venn Diagrams & Set Notation"]],
+  "kindLabel=Posts": ["postState",[["Approved"],["Waiting for approval"]],[1,1],2,["Approved","Waiting for approval"]],
   "kindLabel=Booking": ["kindOwn",[["Tutors"],["Venues"],["Levels"],["Booking form"]],[1,1,2,1],5,["Tutors","Venues","Levels","Booking form"]],
   "kindLabel=Shop": ["shopKind",[["Bundle"],["Consumable"],["Equipment"],["Game"],["Made to order"],["Stationery"]],[1,3,3,1,1,1],10,["Bundle","Consumable","Equipment","Game","Made to order","Stationery"]],
   "kindLabel=Shop&shopKind=Consumable": ["shopHow",[["Buy"],["Earn with ticks"],["Given out"]],[1,1,1],3,["Buy","Earn with ticks","Given out"]],
@@ -672,11 +673,12 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Videos"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[28529,251324,1,24,1,1,1,5,10,46,5],279947,["Practice","Library","Videos","Coming soon","Posts","Messages","Profiles","Booking","Shop","Settings","Tools"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[28529,251324,24,2,3,5,10,46,5],279947,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
+  "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[1,1,1],3,["Parent","Student","Tutor"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[17,8,15,9,8,17,5],46,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Videos"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[28529,251324,1,24,1,1,1,5,10,28,5],279929,["Practice","Library","Videos","Coming soon","Posts","Messages","Profiles","Booking","Shop","Settings","Tools"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[28529,251324,24,2,1,5,10,28,5],279927,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[19,9,17,9,8],28,["Student","Parent","Staff","Apprentice","Admin"]]
 }
 }};

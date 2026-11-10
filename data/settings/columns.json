@@ -36,7 +36,7 @@
   "screen": "reel",
   "label": "Reels",
   "icon": "▶",
-  "active": "FALSE",
+  "active": "TRUE",
   "sort_order": 7,
   "notes": "one clip per page, opening on the first reel; before it, one swipe back, the Videos and One more thing widgets and an admin's \"+ Add a reel\" (docs/history/414)."
  },
@@ -44,7 +44,7 @@
   "screen": "dm",
   "label": "DMs",
   "icon": "✉",
-  "active": "FALSE",
+  "active": "TRUE",
   "sort_order": 8,
   "notes": "one conversation per page."
  },
