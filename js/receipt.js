@@ -308,6 +308,7 @@ function drawBooker_() {
       ${/* REPORT OR SUGGEST A CHANGE ON THE BOOKING FORM TOO (489): "I still don't see it on booking". */
         typeof suggestTile_ === 'function' ? suggestTile_('widget', 'booking', 'Booking') : ''}
     </div>
+    ${policyLinks_('family')}
     ${/* ---------- THE FOOTER LINE WENT § */
           ''}`;
   const money_ = bookBreakdown(L, foot);
@@ -689,3 +690,21 @@ let FEED_DECK = [];
 let FEED_SEEN = [];
 let FEED_PASS = 0;
 const FEED_BUILT = {};
+
+/* THE POLICIES A FAMILY OR TUTOR SIGNS UP TO (docs/policies), linked where they commit. Brand key `policies_url` is the switch: empty hides them. */
+const POLICIES_URL = 'https://halexdias31-pixel.github.io/family/docs/policies/';
+const POLICY_DOCS = {
+  family: [['family-terms', 'Terms'], ['cancellation-refunds', 'Cancellation and refunds'], ['privacy-notice', 'Privacy'], ['complaints', 'Complaints'], ['safeguarding-policy', 'Safeguarding']],
+  tutor: [['tutor-onboarding', 'Onboarding'], ['safer-recruitment', 'Safer recruitment'], ['safeguarding-policy', 'Safeguarding'], ['online-safety', 'Online safety'], ['home-visits', 'Home visits'], ['privacy-notice', 'Privacy']]
+};
+function policyHref_(doc) {
+  const base = String(brand('policies_url', POLICIES_URL) || '').trim();
+  const name = String(doc || '').split('/').pop().replace(/\.md$/, '');
+  return base && name ? base + name + '.md' : '';
+}
+function policyLinks_(who) {
+  const list = (POLICY_DOCS[who] || []).filter(d => policyHref_(d[0]));
+  if (!list.length) return '';
+  return `<p class="note policy-links">Policies: ${list.map(d =>
+    `<a href="${esc(policyHref_(d[0]))}" data-do="file-view" target="_blank" rel="noopener">${esc(d[1])}</a>`).join(' · ')}</p>`;
+}
