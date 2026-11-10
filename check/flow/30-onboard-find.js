@@ -31,7 +31,7 @@ check('Onboarding through Find: apply from Find › Settings, the admin approves
   p.A('apply-send', f.querySelector('[data-do="apply-send"]')); await wait(400);
   if ((W.real.tabs.applications || [[]]).length !== 2) return bad.concat(['the application was not written']);
   await findSet_(p, 'Parent');
-  if (!/Application sent/.test((inFind(p, '.apply-tiles [data-do="apply-open"][disabled]') || { getAttribute: () => '' }).getAttribute('aria-label'))) bad.push('Find › Settings does not say the application is sent: ' + ((inFind(p, '.apply-card') || {}).outerHTML || 'no card') + JSON.stringify(p.t.whoami().application));
+  if (!/Application sent/.test((inFind(p, '.apply-card [data-do="apply-open"][disabled]') || { getAttribute: () => '' }).getAttribute('aria-label'))) bad.push('Find › Settings does not say the application is sent: ' + ((inFind(p, '.apply-card') || {}).outerHTML || 'no card') + JSON.stringify(p.t.whoami().application));
   onboardShot_(p, 'apply-sent');
   /* 2. THE ADMIN SEES IT IN FIND › SETTINGS › BUSINESS AND APPROVES. */
   const a = await cardOpen_(W, 'admin@example.org', { reply });

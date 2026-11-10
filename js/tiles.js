@@ -396,33 +396,6 @@ function levelTiles_(x) {
 }
 
 
-/* ---------- A WEARABLE § */
-function wearTiles_(x) {
-  const level = levelFromXp(USER && USER.xp);
-  const mine = wardrobe().find(w => w.slot === x.slot && w.id === x.artId);
-  const owned = mine && mine.unlocked;
-  const tooLow = x.level && level < x.level;
-  const wearing = USER
-    && avatarConfig(USER.avatar, USER.handle || USER.name)[x.slot] === x.artId;
-
-  const label = !USER ? 'Sign in first'
-    : wearing ? 'Wearing it'
-    : tooLow ? (x.level * 10 - (Number(USER.xp) || 0)) + ' more ticks to go'
-    : owned ? 'Put it on' : 'Buy and wear it';
-
-  const note = !USER ? ''
-    : wearing ? ''
-    : tooLow ? 'level ' + x.level
-    : owned ? '' : (x.cost ? x.cost + ' credits' : 'free');
-
-  return `
-    ${tile_({ icon: 'wear', label, note, tone: tooLow ? '' : 'buy', on: !!wearing,
-              act: 'wear', off: !USER || tooLow || wearing,
-              data: { slot: x.slot, id: x.artId } })}
-  `;
-}
-
-
 /* ---------- WHO MAY WRITE TO WHOM, THE SERVER'S `MESSAGING` (constants.gs) read on the phone, so no Message tile is one it refuses ---------- */
 const MSG_MAY_ = { admin: ['admin', 'staff', 'client', 'student'], staff: ['admin', 'staff', 'client'], client: ['admin', 'staff'], student: ['admin'] };
 const msgRankOf_ = role => /admin/i.test(role) ? 'admin' : /tutor|teacher|staff/i.test(role) ? 'staff' : /student|child|kid/i.test(role) ? 'student' : 'client';
@@ -448,7 +421,7 @@ const personTiles_ = x => { const t = (x && x.row) || {}; const name = t.title |
 /* EVERY CARD'S ROW STARTS WITH THESE (950); health.js's "card tile rows" holds it. */
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
 /* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
-const CARD_EXTRAS_ = { shop: x => (x.wearable ? wearTiles_(x) : shopTiles_(x)), tutor: tutorTiles_, venue: venueTiles_, subject: subjectTiles_,
+const CARD_EXTRAS_ = { shop: shopTiles_, tutor: tutorTiles_, venue: venueTiles_, subject: subjectTiles_,
   level: levelTiles_, receipt: x => jobMsgTiles_(x) + jobTiles_(x), person: x => personTiles_(x), talmud: x => talmudTiles_(x) };
 function cardCore_(x) {
   const one = {

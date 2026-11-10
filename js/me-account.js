@@ -80,7 +80,7 @@ function meRest_() {
 
     ${/* ---------- AND THE OTHER END OF IT § */
           ''}
-    ${/* `Add your child` AND `Edit your details` ARE TILES ON YOUR CARD NOW — one mark each, in the row under your own face, beside the wardrobe. § */
+    ${/* `Add your child` AND `Edit your details` ARE TILES ON YOUR CARD NOW — one mark each, in the row under your own face. § */
           ''}
 
     ${/* ---------- `What needs fixing` AND `Tell someone` WERE HERE § */
@@ -548,137 +548,6 @@ function pinDotsOk_() {
   try { return !!(window.CSS && CSS.supports && CSS.supports('-webkit-text-security', 'disc')); }
   catch (e) { return false; }
 }
-
-/* ---------- THE WARDROBE § */
-
-/* ---------- THE WARDROBE IS ONE CARD § */
-const AV_FIG = 56;
-/* ---------- AND THE CARD IS A SECTION OF YOUR OWN CARD'S EDIT NOW (docs/history/339) § */
-function wardrobeBody_() {
-  if (!USER) return '';
-  const cfg = avatarConfig(USER.avatar, USER.handle || USER.name);
-  const items = wardrobe();
-
-  /* A CLASS, NOT AN ID — `avatarSave` redraws every `.av-figure` and there is only one now, but an
-     id here is how the four-pages version once moved the wrong picture, and nothing is saved by
-     going back to one. */
-  const figure = `<div class="av-wrap av-figure">${
-    avatarFor(USER.handle || USER.name, AV_FIG, USER.avatar)}</div>`;
-
-  const swatches = (field, colours) => `<div class="av-swatches">
-    ${colours.map((col, i) => `<span class="av-sw${cfg[field] === i ? ' on' : ''}"
-      style="background:${col}" data-do="av-colour" data-field="${field}" data-value="${i}"
-      role="button" tabindex="0" aria-label="${esc(field)} ${i + 1}" title="${esc(col)}"></span>`).join('')}
-  </div>`;
-  const line = (label, body) => `<div class="av-line">
-      <span class="av-slot-name">${esc(label)}</span>${body}</div>`;
-
-  const slotLine = ([slot, label]) => {
-    const mine = items.filter(x => x.slot === slot);
-    if (!mine.length) return '';
-    return line(label, `<div class="av-opts">${mine.map(it => {
-      const on = cfg[slot] === it.id;
-      /* WHY it is not yours, on the item itself. "Locked" is a state; "Lv 8" is a thing you can
-         count towards, which is the difference between a shop window and a list of doors. */
-      const why = it.unlocked ? '' : (it.cost ? it.cost + 'cr' : 'Lv' + it.level);
-      const said = it.name + (why ? ' — ' + (it.cost ? it.cost + ' credits' : 'level ' + it.level) : '');
-      return tile_({ label: said, act: 'av-pick', data: { slot: slot, id: it.id }, on: on, pressed: on,
-        cls: 'av-opt' + (it.unlocked ? '' : ' locked'),
-        face: (itemArt(slot, it.id, 24) || '<span class="av-none">—</span>') + (why ? `<span class="av-why">${esc(why)}</span>` : '') });
-    }).join('')}</div>`);
-  };
-
-  return `<div class="av-top">
-      ${figure}
-      <div class="av-stats">
-        <p><b>Level ${esc(String(levelFromXp(USER.xp)))}</b> · ${esc(String(USER.credits || 0))} credits</p>
-      </div>
-    </div>
-    ${line('Skin', swatches('skin', AV_SKIN))}
-    ${line('Hair', swatches('hairColour', AV_HAIR))}
-    ${line('Shirt', swatches('shirt', AV_SHIRT))}
-    ${AV_SLOTS.map(slotLine).join('')}`;
-}
-
-
-/* A LOOK AS THE CELL HOLDS IT, `skin:2|shirt:4|…` — what `saveAvatar` answers with and `USER.avatar` keeps. */
-const packLook_ = cfg => Object.keys(cfg).map(k => k + ':' + cfg[k]).join('|');
-/* ---------- THE FIGURE AS IT IS DRAWN, NOT AS THE CELL SAYS IT (the review of docs/history/339) § */
-const lookKey_ = (packed, handle) => {
-  const c = avatarConfig(packed, handle);
-  return Object.keys(c).sort().map(k => k + ':' + c[k]).join('|');
-};
-/* ---------- HOW MANY LOOKS ARE ON THE WIRE § */
-/* ---------- AND ONE AFTER ANOTHER, IN THE ORDER THEY WERE CHOSEN (round 1 of the fixes for docs/history/339) § */
-let AV_WIRE = 0;
-let AV_LINE = Promise.resolve();
-function avatarPost_(cfg) {
-  AV_WIRE++;
-  const done = () => { AV_WIRE = Math.max(0, AV_WIRE - 1); };
-  const body = { action: 'saveAvatar', name: USER.name, personId: USER.personId, avatar: cfg };
-  if (USER.token) body.token = USER.token;
-  const sent = AV_LINE.then(() => api(body));
-  AV_LINE = sent.catch(() => {});
-  return sent.then(d => { done(); return d; }, e => { done(); throw e; });
-}
-/* ---------- EVERY FIGURE ON THE COLUMN, NOT THE FIRST ONE `$()` FINDS § */
-/* ---------- THE WHOLE CARD FOLLOWS THE LOOK, NOT ONLY THE FIGURE § */
-/* ---------- AND THE PICTURE'S "YOUR FIGURE" WITH IT § */
-/* LIFTED OUT OF `avatarSave` (the review of docs/history/339) — a handle the server moved that keeps the face, and a refused
-   keep redraw with it too, and two copies of "every figure on the page" would be the fault this note is about. */
-function avatarDraw_() {
-  const cards = document.querySelectorAll('.av-card');
-  cards.forEach(card => { card.innerHTML = wardrobeBody_(); });
-  if (!cards.length) document.querySelectorAll('.av-figure').forEach(el => {
-    el.innerHTML = avatarFor(USER.handle || USER.name, AV_FIG, USER.avatar);
-  });
-  document.querySelectorAll('.pfp-opt[data-pic="avatar"]').forEach(b => {
-    b.innerHTML = avatarFor(USER.handle || USER.name, 40, USER.avatar || '', { bust: true });
-  });
-  document.querySelectorAll('.ce-figv').forEach(el => { el.innerHTML = ceFigSay_(); });
-  const pic = String((USER.profile && USER.profile.photo) || '').trim();
-  if (picKind_(pic) === 'avatar') document.querySelectorAll('.pfp .pfp-face').forEach(f => { f.innerHTML = pfpFace_(pic); });
-}
-
-/* A colour and an item go through the SAME request, because to the server they are the same
-   thing: a whole look, re-checked piece by piece. Nothing here decides what anybody may wear. */
-let AV_SEQ = 0;
-function avatarSave(change) {
-  const cfg = avatarConfig(USER.avatar, USER.handle || USER.name);
-  Object.assign(cfg, change);
-  /* ---------- AND ONLY THE LATEST TAP'S ANSWER COUNTS § */
-  const seq = ++AV_SEQ;
-
-  /* The figure redraws IMMEDIATELY, before the server answers — picking a colour and waiting a
-     second to see it is the difference between a wardrobe and a form. Put back if refused. */
-  const before = USER.avatar;
-  USER.avatar = packLook_(cfg);
-  avatarDraw_();
-
-  avatarPost_(cfg)
-    .then(d => {
-      if (seq !== AV_SEQ) return;
-      if (!d || d.error) throw new Error((d && d.error) || 'Could not save that');
-      USER.avatar = d.avatar;
-      if (typeof d.credits === 'number') USER.credits = d.credits;
-      if (d.owned) USER.avatarItems = d.owned;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
-      /* ---------- A TOAST, BECAUSE THE PAGE NO LONGER HAS A LINE TO WRITE TO § */
-      if ((d.bought || []).length) toast('Bought ' + d.bought.join(', '));
-      avatarDraw_();
-    })
-    .catch(err => {
-      if (seq !== AV_SEQ) return;
-      USER.avatar = before;
-      avatarDraw_();
-      /* A REFUSAL IS A TOAST. This app decided that once already — see the note on `why_` in
-         shell.js — and the line it used to be written to is gone. */
-      toast(why_(err));
-    });
-}
-
-on('av-colour', el => avatarSave({ [el.dataset.field]: Number(el.dataset.value) }));
-on('av-pick', el => avatarSave({ [el.dataset.slot]: el.dataset.id }));
 
 /* ---------- MAKING AN ACCOUNT § */
 const REG_PIN = /^\d{4,8}$/;

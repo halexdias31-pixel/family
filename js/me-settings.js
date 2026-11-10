@@ -251,7 +251,7 @@ document.addEventListener('change', e => {
 function photoPicker_(value, said, o) {
   const v = String(value('photo') || '').trim();
   const kind = picKind_(v);
-  const chosen = (kind === 'basic' || kind === 'avatar') ? pfpChoice_(v) : '';
+  const chosen = kind === 'basic' ? pfpChoice_(v) : '';
   const opt = n => {
     const label = PFP_ART[n].name;
     return tile_({ label: label, act: 'pfp-choose', data: { pic: n }, on: chosen === n, pressed: chosen === n, cls: 'pfp-opt',
@@ -277,14 +277,13 @@ function photoPicker_(value, said, o) {
 function pfpSaid_(v) {
   const kind = picKind_(v);
   if (kind === 'photo') return 'Your photo is your picture.';
-  if (kind === 'avatar') return 'Your figure is your picture, wearing whatever you dress it in.';
   if (kind === 'basic') return 'The ' + PFP_ART[pfpChoice_(v)].name.toLowerCase() + ' is your picture.';
   return 'No picture yet, so your card shows your initial. Choose one, or a photo.';
 }
-/* THE PREVIEW IS `personFace_` LIKE EVERY OTHER FACE, so what you see here is what everybody else's card draws — which is why the wardrobe figure is no longer § */
+/* THE PREVIEW IS `personFace_` LIKE EVERY OTHER FACE, so what you see here is what everybody else's card draws — so a picker and a card never disagree. § */
 function pfpFace_(v) {
   const me = USER || {};
-  return personFace_({ pic: v, personId: me.personId, avatar: me.avatar || '', handle: me.handle,
+  return personFace_({ pic: v, personId: me.personId, handle: me.handle,
                        name: (me.profile && me.profile.first_name) || me.name || '?' },
                      { cls: 'pfp-pic', none: 'pfp-none', size: 88, alt: 'Your profile picture', eager: true });
 }
@@ -336,12 +335,10 @@ function pfpTake_(box, url, said) {
   USER.profile = Object.assign({}, USER.profile || {}, { photo: url });
   USER.photo = url;
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
-  const fig = picKind_(url) === 'avatar';
   ['tutors', 'people', 'students', 'clients', 'family', 'everyone'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
     if (r && USER.personId && (r.personId === USER.personId || r.person_id === USER.personId || r.id === USER.personId)) {
       if ('image' in r) r.image = url;
       if ('photo' in r) r.photo = url;
-      if (k !== 'students') { if (fig) r.avatar = USER.avatar || ''; else delete r.avatar; }
     }
   }));
   const onCard = !!(box && box.closest && box.closest('.card-ed'));
@@ -732,9 +729,6 @@ function profileRefresh_(loud, onOld) {
       if (d.handle && USER.handle && String(d.handle) !== String(USER.handle)) {
         HANDLE_SAID = { pid: String(USER.personId || ''), text: 'You were @' + USER.handle + '.' };
         try { toast('Your handle is @' + d.handle + ' now'); } catch (e) { oops_(e, 'me:profileRefresh_') }
-        /* AND THE FACE THE OLD ONE DREW (round 2): the move wrote it into a blank look on the server
-           (`handleFaceKept_`), and this phone's blank copy would draw the new handle's colours instead. */
-        if (!String(USER.avatar || '').trim() && d.profile && d.profile.avatar) USER.avatar = String(d.profile.avatar);
       }
       if (d.handle) USER.handle = String(d.handle);
       if (typeof d.friends === 'string' && d.friends !== String(USER.friends || '')) {
@@ -808,7 +802,6 @@ on('pin-save', el => {
 /* ---------- AND TWO SECTIONS THAT ARE YOURS ALONE, AND TWO THAT EVERY CARD HAS (docs/history/339) § */
 const CARD_SECTIONS = [
   { id: 'picture', bare: true, fields: ['photo'] },
-  { id: 'figure', own: true, cap: 'Your figure' },
   { id: 'name', bare: true, fields: ['first_name', 'last_name'] },
   { id: 'handle', own: true, cap: 'Handle' },
   /* THREE CARDS, EACH ONE HOME (620): the rate and the tutor's seat k; @family.'s share g, an admin's; the class size. */
@@ -850,9 +843,9 @@ function ownCardSections_(col) {
   /* WHAT YOU TEACH ONLY ON A PUBLIC TUTOR CARD, as on 444's Tutor column. */
   return (isStudentsCol_(col) ? you : []).concat(isTutorsCol_(col) && cardMine_() ? staff : []);
 }
-const OWN_CARD_SECTIONS_ = ['picture', 'figure', 'name', 'handle'];
+const OWN_CARD_SECTIONS_ = ['picture', 'name', 'handle'];
 /* EACH SECTION'S CARD TITLE, and which a locked settings column shows (468). */
-const OWN_SEC_TITLE_ = { picture: 'Picture', figure: 'Your figure', name: 'Name', handle: 'Handle', seat: 'Rate and extra seat', cut: "@family.'s share", size: 'Class size', headline: 'Headline',
+const OWN_SEC_TITLE_ = { picture: 'Picture', name: 'Name', handle: 'Handle', seat: 'Rate and extra seat', cut: "@family.'s share", size: 'Class size', headline: 'Headline',
   photos: 'Photographs', words: '3 words', glance: 'At a glance', quals: 'Qualifications', jobs: 'Jobs', where: 'Where you teach', week: 'Available' };
 /* EACH SECTION ON ONE COLUMN FOR EVERYONE, the lowest rank it applies to (469): the owner, "the lowest common denominator". */
 const OWN_SEC_OF_SET_ = { account: OWN_CARD_SECTIONS_, family: [],

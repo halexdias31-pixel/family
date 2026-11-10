@@ -839,12 +839,10 @@ async function pfpRoleJourney(key) {
   const opts = () => [...box().querySelectorAll('.pfp-grid button.pfp-opt[data-do="pfp-choose"]')];
   const names = opts().map(b => b.dataset.pic);
   const ten = t.pfpNames();
-  if (JSON.stringify(names) !== JSON.stringify(['avatar'].concat(ten)) || ten.length !== 10) {
-    bad.push('the grid offers ' + JSON.stringify(names) + ' — wanted your figure, then the ten pictures');
+  if (JSON.stringify(names) !== JSON.stringify(ten) || ten.length !== 10) {
+    bad.push('the grid offers ' + JSON.stringify(names) + ' — wanted the ten pictures (the figure went, 9 Nov)');
   }
   if (opts().some(b => b.classList.contains('on'))) bad.push('a ring is on a picture before any is yours');
-  const fig0 = opts()[0] && opts()[0].querySelector('svg.avatar.is-bust');
-  if (!fig0 || fig0.outerHTML.indexOf(AV_SHIRT_T[Number(/shirt:(\d)/.exec(P.avatar)[1])]) === -1) bad.push('the first choice is not your own figure in your own shirt');
   /* A CHILD UPLOADS NO PHOTO (413): the grid and Remove, and no Choose photo or file input. */
   const kid = key === 'student';
   if ((!kid && !box().querySelector('[data-do="pfp-pick"]')) || !box().querySelector('[data-do="pfp-remove"]')) bad.push('Choose photo or Remove has gone from the card');

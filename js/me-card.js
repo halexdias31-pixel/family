@@ -265,9 +265,6 @@ document.addEventListener('click', e => {
 const ceFold_ = (key, label, val, body) => `<details class="ce-fold" data-fold="${esc(key)}" open>
   <summary class="ce-line"><span class="ce-k">${esc(label)}</span><span class="ce-v">${val}</span></summary>
   <div class="ce-body">${body}</div></details>`;
-/* THE FIGURE'S LINE: a small copy of it, its level and credits — redrawn by `avatarDraw_` after a pick. */
-const ceFigSay_ = () => !USER ? '' : `<span class="ce-fig" aria-hidden="true">${avatarFor(USER.handle || USER.name, 26, USER.avatar || '', { bust: true })}</span>`
-  + `Lv ${esc(String(levelFromXp(USER.xp)))} · ${esc(String(USER.credits || 0))} cr`;
 /* HOW MANY, for a fold's line — photographs filled, venues ticked, qualifications held. */
 const ceCount_ = (n, one, many) => n ? n + ' ' + (n === 1 ? one : many) : 'none';
 function ceSums_(form) {
@@ -323,8 +320,6 @@ const cePhotoSay_ = (n, video) => ceCount_(n, 'photo', 'photos') + (video ? ' ·
 /* ONE TABLE OF SECTIONS, id → body; an id not here is its fields' rows. `c` is the form's own: t, e, val, vals, ro, box, filled. */
 const CARD_SECTION = {
   picture: (L, c) => c.e.own ? photoPicker_(c.val, '', { fold: true }) : cardFaceOnly_(c.t),
-  /* THE WARDROBE, saved a pick at a time (`avatarSave`), redraws every `.av-card` from `wardrobeBody_`, so the fold's inside carries that class. */
-  figure: () => ceFold_('figure', 'Figure', `<span class="ce-figv">${ceFigSay_()}</span>`, `<div class="av-card">${wardrobeBody_()}</div>`),
   handle: () => cardHandleHtml_(),
   photos: (L, c) => ceFold_('photos', 'Photos', esc(cePhotoSay_(c.filled(/^photos_\d+$/), String(c.val('video_file')).trim())),
     (c.e.own ? videoPicker_(c.val) : '') + fieldRows_(L.filter(f => !isPhotoField_(f) && !(c.e.own && f === 'video')), c.box) + (isPhotos_(L) ? photoShelf_(L, c.val, { draft: false }) : '')),
@@ -597,7 +592,7 @@ function cardClose_(e, pane, sec) {
   try { draftDrop_('card', e.pid + (sec ? ':' + sec : '')); } catch (x) { oops_(x, 'me:cardClose_') }
   /* YOUR OWN STAYS OPEN (468) — the column is its editor — and what it would put back is what is there now. */
   if (CARD_EDIT === e && e.own && USER) {
-    Object.assign(e, { pic0: cardPicNow_(), fig0: String(USER.avatar || ''), cr0: Number(USER.credits || 0), h0: String(USER.handle || USER.name || '') });
+    Object.assign(e, { pic0: cardPicNow_(), h0: String(USER.handle || USER.name || '') });
     cardRemember_(e);
   } else { if (CARD_EDIT === e) CARD_EDIT = null; cardForget_(); }
   /* CLEAN FIRST, or `settingsKeep_` holds the column and the repaint that ends the edit never happens. */
@@ -636,12 +631,8 @@ on('card-edit', el => {
   /* THE PICTURE IT OPENED WITH, so Cancel can put it back — see `card-cancel`. Your own card only: on
      somebody else's the picture is shown and not offered (`cardFaceOnly_`). */
   if (CARD_EDIT.own) CARD_EDIT.pic0 = cardPicNow_(t);
-  /* AND THE LOOK IT OPENED WITH, for the same Cancel — the wardrobe is a section of your own card now. */
-  if (CARD_EDIT.own) {
-    CARD_EDIT.fig0 = String(USER.avatar || ''); CARD_EDIT.cr0 = Number(USER.credits || 0);
-    /* AND THE HANDLE IT IS DRAWN UNDER — see `cardRemember_`; the seed `avatarSave` reads. */
-    CARD_EDIT.h0 = String(USER.handle || USER.name || '');
-  }
+  /* AND THE HANDLE IT OPENED WITH, so a handle the server moved while it was open is said (`cardSelfSaved_`). */
+  if (CARD_EDIT.own) CARD_EDIT.h0 = String(USER.handle || USER.name || '');
   cardRemember_(CARD_EDIT);
   cardRepaint_();
 });
@@ -660,7 +651,6 @@ function cardSelfSaved_(e) {
   const h0 = typeof e.h0 === 'string' ? e.h0 : String(USER.handle || USER.name || '');
   const out = [];
   if (typeof e.pic0 === 'string' && cardPicNow_() !== e.pic0) out.push('picture');
-  if (typeof e.fig0 === 'string' && lookKey_(USER.avatar, USER.handle || USER.name) !== lookKey_(e.fig0, h0)) out.push('figure');
   if (typeof e.h0 === 'string' && String(USER.handle || USER.name || '') !== e.h0) out.push('handle');
   return out;
 }
@@ -726,65 +716,32 @@ function cardSave_(el, auto) {
 }
 
 /* ---------- CANCEL: WHAT WAS THERE COMES BACK — THE PICTURE TOO § */
-/* ---------- AND THE FIGURE, WHICH THE WARDROBE SAVES A PICK AT A TIME (docs/history/339) § */
-function figPutBack_(look, seed, el, pane, said) {
-  AV_SEQ++;
-  const cfg = avatarConfig(look, seed);
-  return send_({ action: 'saveAvatar', name: USER.name, personId: USER.personId, avatar: cfg },
-               { button: el, where: said || undefined, lock: pane || undefined })
-    .then(d => {
-      USER.avatar = d.avatar != null ? d.avatar : look;
-      if (typeof d.credits === 'number') USER.credits = d.credits;
-      if (d.owned) USER.avatarItems = d.owned;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) { /* storage can be blocked; the app runs without it */ }
-      return true;
-    }, () => false);
-}
 on('card-cancel', el => {
   const e = cardEditNow_();
   const pane = el.closest('.pane');
   const card = el.closest('.card-ed'), sec = (card && card.dataset.sec) || '';
   if (!e || (pane && pane.classList.contains('is-sending'))) return;
   if (pane && pane.querySelector('.card-ed .pfp.is-sending')) { toast('Your picture is still saving — Cancel once it has.'); return; }
-  /* AND A LOOK STILL ON ITS WAY, for the picture's reason — see `AV_WIRE`. */
-  if (AV_WIRE > 0) { toast('Your figure is still saving — Cancel once it has.'); return; }
   const was = typeof e.pic0 === 'string' ? e.pic0 : null;
   const picBack = !!((!sec || sec === 'picture') && e.own && was != null && USER && cardPicNow_() !== was);
-  /* THE FIGURE AS DRAWN, under the handle each was drawn with (`lookKey_`) — see `cardSelfSaved_`. */
-  const h0 = typeof e.h0 === 'string' ? e.h0 : String((USER && (USER.handle || USER.name)) || '');
-  const figBack = !!((!sec || sec === 'figure') && e.own && typeof e.fig0 === 'string' && USER
-    && lookKey_(USER.avatar, USER.handle || USER.name) !== lookKey_(e.fig0, h0));
-  if (!picBack && !figBack) { cardClose_(e, pane, sec); return; }
+  if (!picBack) { cardClose_(e, pane, sec); return; }
   const form = (card || pane) && (card || pane).querySelector((card ? '' : '.card-ed ') + '.me-form');
   const said = form && form.querySelector('.me-said');
-  const bought = typeof e.cr0 === 'number' && Number(USER.credits || 0) < e.cr0;
-  /* THE LOOK FIRST, THEN THE PICTURE — one request at a time on one locked page, so the picture's own
-     refusal path below is exactly what it was. */
-  (figBack ? figPutBack_(e.fig0, h0, el, pane, said) : Promise.resolve(true)).then(figOk => {
-    const fig = !figBack ? '' : figOk ? (bought ? ' Anything you bought is still yours.' : '') : '';
-    if (!picBack) {
+  send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '', target: USER.name,
+          targetId: e.pid, fields: { photo: was } },
+        { button: el, where: said, lock: pane })
+    .then(d => {
+      const got = (d && d.profile && d.profile.photo != null) ? String(d.profile.photo) : was;
+      if (d && d.profile) USER.profile = Object.assign({}, USER.profile || {}, d.profile);
+      pfpTake_(null, got);
       cardClose_(e, pane, sec);
-      toast(figOk ? 'Put back as it was — your figure too.' + fig : 'Everything else is put back, but not your figure.');
-      return;
-    }
-    send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '', target: USER.name,
-            targetId: e.pid, fields: { photo: was } },
-          { button: el, where: said, lock: pane })
-      .then(d => {
-        const got = (d && d.profile && d.profile.photo != null) ? String(d.profile.photo) : was;
-        if (d && d.profile) USER.profile = Object.assign({}, USER.profile || {}, d.profile);
-        pfpTake_(null, got);
-        cardClose_(e, pane, sec);
-        toast(!figBack ? 'Put back as it was — your picture too'
-          : figOk ? 'Put back as it was — your picture and your figure too.' + fig
-          : 'Put back as it was, your picture too — but not your figure.');
-      })
-      .catch(() => {
-        const why = String((said && said.textContent) || '').trim();
-        cardClose_(e, pane, sec);
-        toast('Everything else is put back, but not your picture' + (figBack && !figOk ? ' or your figure' : '') + (why ? ': ' + why : '.'));
-      });
-  });
+      toast('Put back as it was — your picture too');
+    })
+    .catch(() => {
+      const why = String((said && said.textContent) || '').trim();
+      cardClose_(e, pane, sec);
+      toast('Everything else is put back, but not your picture' + (why ? ': ' + why : '.'));
+    });
 });
 
 /* ---------- EVERY BOX ON THE CARD: HELD, KEPT, AND THE MAP FOLLOWS THE TICKS § */

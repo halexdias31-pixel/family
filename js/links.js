@@ -7,146 +7,7 @@
 /* `NAMED_COLOURS` lived here — a word in a link's `colour` column became a hex for the coloured square it filled. § */
 
 
-/* AVATARS. Carried over whole from the burned file, geometry untouched. § */
-const AV_SKIN  = ['#f3c9a0', '#e0a878', '#c58a5b', '#8d5a3b', '#5f3a25', '#ffd9b3'];
-const AV_HAIR  = ['#2b2118', '#5a3a1d', '#a8621f', '#d9b45a', '#8a8a8a', '#3a2a4a', '#7a2a2a'];
-/* Colours are FREE — a palette, not a catalogue. The same eight serve shirts and hair, so a
-   student can match them without either being something they had to buy. Selling colours would
-   have been eight cards for one object. */
-const AV_SHIRT = ['#f4f4f2', '#2f6b3f', '#1f5f8a', '#8a3a3a',
-                  '#6b4d8a', '#c07a1f', '#3d4b57', '#2f6b6b'];
-
-const AV_ART = {
-  /* Hairstyles. Each covers the crown and comes DOWN the sides — the head is a 20x20 box from
-     y=12, so hair starting lower than that reads as a headband, which is what the first attempt
-     looked like. */
-  hair: {
-    crop:    c => `<path d="M14 17a6 5 0 0 1 6-5h8a6 5 0 0 1 6 5v4H14z" fill="${c}"/>`,
-    fringe:  c => `<path d="M14 17a6 5 0 0 1 6-5h8a6 5 0 0 1 6 5v5h-2v-4H16v4h-2z" fill="${c}"/>`,
-    long:    c => `<path d="M14 17a6 5 0 0 1 6-5h8a6 5 0 0 1 6 5v15h-3V20H17v12h-3z" fill="${c}"/>`,
-    bunches: c => `<path d="M14 17a6 5 0 0 1 6-5h8a6 5 0 0 1 6 5v3H14z" fill="${c}"/><circle cx="13" cy="23" r="3.6" fill="${c}"/><circle cx="35" cy="23" r="3.6" fill="${c}"/>`,
-    curls:   c => `<g fill="${c}"><circle cx="18" cy="14" r="4"/><circle cx="24" cy="12.5" r="4.4"/><circle cx="30" cy="14" r="4"/><circle cx="15" cy="18" r="3.4"/><circle cx="33" cy="18" r="3.4"/></g>`,
-    mohawk:  c => `<path d="M22 12h4v-4h-4z" fill="${c}"/><path d="M21 8h6l-1-4h-4z" fill="${c}"/><path d="M14 17a6 5 0 0 1 6-5h8a6 5 0 0 1 6 5v2H14z" fill="${c}" opacity=".45"/>`,
-  },
-  headwear: {
-    none:     () => '',
-    cap:      c => `<path d="M13 18a11 11 0 0 1 22 0v2H13z" fill="${c}"/><path d="M33 19h9v3h-9z" fill="${c}"/>`,
-    beanie:   c => `<path d="M13 19a11 11 0 0 1 22 0v2H13z" fill="${c}"/><rect x="12" y="20" width="24" height="4" rx="1.5" fill="${c}" opacity=".75"/>`,
-    headband: c => `<rect x="12" y="19" width="24" height="4" rx="1.5" fill="${c}"/>`,
-    crown:    () => `<path d="M15 20l2-7 3.5 4L24 12l3.5 5L31 13l2 7z" fill="#e8c14a" stroke="#b8942c" stroke-width="1"/>`,
-  },
-  faceware: {
-    none:    () => '',
-    glasses: () => `<g fill="none" stroke="#2b2b2b" stroke-width="1.6"><circle cx="20" cy="25" r="3.4"/><circle cx="28" cy="25" r="3.4"/><path d="M23.4 25h1.2"/></g>`,
-    shades:  () => `<g fill="#1b1b1b"><rect x="16.4" y="22.4" width="7" height="5" rx="1.6"/><rect x="24.6" y="22.4" width="7" height="5" rx="1.6"/><rect x="23.4" y="24.2" width="1.2" height="1.4"/></g>`,
-    goggles: () => `<g><rect x="15" y="21.5" width="18" height="6.5" rx="3" fill="#3aa0d0" opacity=".85"/><rect x="13" y="23" width="22" height="2" fill="#2b2b2b"/></g>`,
-  },
-  shoulders: {
-    none:     () => '',
-    scarf:    c => `<path d="M18 33h12v4H18z" fill="${c}"/><path d="M27 36h4v9h-4z" fill="${c}" opacity=".9"/>`,
-    backpack: c => `<rect x="6" y="36" width="5" height="17" rx="2" fill="${c}"/><rect x="37" y="36" width="5" height="17" rx="2" fill="${c}"/>`,
-    cape:     c => `<path d="M12 35h24l4 21H8z" fill="${c}" opacity=".85"/>`,
-  },
-  handheld: {
-    none:   () => '',
-    book:   () => `<g><rect x="34" y="41" width="9" height="7" rx="1" fill="#b9452f"/><rect x="34" y="41" width="9" height="7" rx="1" fill="none" stroke="#7d2b1c"/><path d="M38.5 41v7" stroke="#f3e6d0"/></g>`,
-    racket: () => `<g stroke="#7a5a2a" stroke-width="2" fill="none"><path d="M38 48v-4"/><ellipse cx="38" cy="39.5" rx="4.5" ry="5.5" fill="#e8e2d0"/></g>`,
-    ball:   () => `<circle cx="39" cy="45" r="4.5" fill="#f2f2f2" stroke="#2b2b2b" stroke-width="1"/><path d="M39 41.5l1.8 1.6-.7 2.2h-2.2l-.7-2.2z" fill="#2b2b2b"/>`,
-    wand:   () => `<g><rect x="37" y="37" width="2" height="12" rx="1" transform="rotate(12 38 43)" fill="#4a3520"/><path d="M41 35l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z" fill="#ffd95e"/></g>`,
-  },
-  legs: {
-    plain:  c => `<rect x="14" y="54" width="8" height="4" fill="${c}"/><rect x="26" y="54" width="8" height="4" fill="${c}"/>`,
-    shorts: () => `<rect x="14" y="54" width="8" height="4" fill="#2f4f7a"/><rect x="26" y="54" width="8" height="4" fill="#2f4f7a"/>`,
-    jeans:  () => `<rect x="14" y="54" width="8" height="5" fill="#33507a"/><rect x="26" y="54" width="8" height="5" fill="#33507a"/>`,
-    skirt:  () => `<path d="M12 54h24l-2 4H14z" fill="#8a3a6b"/>`,
-  },
-};
-
-/* Where each slot's art sits on the figure, so an item can be shown ALONE at a sensible crop.
-   A shop card is selling one object, and a card-sized person wearing it makes the object the
-   smallest thing on the card. */
-const AV_CROP = {
-  hair:      '10 6 28 20',
-  headwear:  '11 10 26 14',
-  faceware:  '13 19 22 12',
-  shoulders: '4 31 40 26',
-  handheld:  '32 32 14 20',
-  legs:      '10 51 28 11',
-};
-
-/* The six slots, in the order they read on a wardrobe — top of the head downwards, which is how
-   anybody describes what somebody is wearing. */
-const AV_SLOTS = [['hair', 'Hairstyle'], ['headwear', 'Headwear'], ['faceware', 'Face'],
-                  ['shoulders', 'Shoulders'], ['handheld', 'Holding'], ['legs', 'Legs']];
-
-/** Just the item, cropped to itself. What a shop card shows. */
-function itemArt(slot, id, size) {
-  const fn = (AV_ART[slot] || {})[id];
-  if (!fn) return '';
-  // A neutral colour: shown off the figure, there is no shirt or hair to inherit from.
-  const art = fn('#5b6470');
-  return `<svg class="av-item" viewBox="${AV_CROP[slot] || '0 0 48 56'}"
-    width="${size || 64}" height="${size || 64}" aria-hidden="true">${art}</svg>`;
-}
-
-/** Read a stored avatar string — "skin:2|headwear:cap" — into an object. */
-function avatarConfig(packed, handle) {
-  /* No choices made yet: the HASH picks a starting look, so a new student has a face rather than
-     a blank. Seeded by their handle, so it is theirs and never changes on its own. */
-  const h = hashOf(String(handle || '?'));
-  const cfg = {
-    skin: (h >>> 0) % AV_SKIN.length,
-    hairColour: (h >>> 5) % AV_HAIR.length,
-    shirt: 0,
-    hair: 'crop', headwear: 'none', faceware: 'none',
-    shoulders: 'none', handheld: 'none', legs: 'plain',
-  };
-  String(packed || '').split('|').forEach(pair => {
-    const [k, v] = pair.split(':');
-    if (!k || v === undefined) return;
-    cfg[k] = /^\d+$/.test(v) ? Number(v) : v;
-  });
-  return cfg;
-}
-
-/** An <svg> figure for a person. Layer order is the drawing order, and it is the whole trick:
-    shoulders behind the head, hair over the head, headwear over the hair, held things in front. */
-/* ---------- AND THE SAME FIGURE AS A PICTURE: HEAD AND SHOULDERS IN A CIRCLE § */
-const AV_BUST_GROUND = '#a9cfe9';
-function avatarFor(handle, size, packed, o) {
-  const c = avatarConfig(packed, handle);
-  const skin  = AV_SKIN[c.skin % AV_SKIN.length];
-  const hair  = AV_HAIR[c.hairColour % AV_HAIR.length];
-  const shirt = AV_SHIRT[c.shirt % AV_SHIRT.length];
-  const s = size || 46;
-  const hairShape = ((AV_ART.hair || {})[c.hair] || AV_ART.hair.crop)(hair);
-  const art = (slot, colour) => {
-    const fn = (AV_ART[slot] || {})[c[slot]];
-    return fn ? fn(colour) : '';
-  };
-  const bust = !!(o && o.bust);
-
-  return `<svg class="avatar${bust ? ' is-bust' : ''}" viewBox="${bust ? '4 4 40 40' : '0 0 48 60'}"
-      width="${s}" height="${bust ? s : Math.round(s * 60 / 48)}" aria-hidden="true">
-    ${bust ? `<g clip-path="url(#av-clip)"><circle cx="24" cy="24" r="20" fill="${AV_BUST_GROUND}"/>` : ''}
-    ${art('shoulders', shirt)}
-    <rect x="14" y="12" width="20" height="20" rx="6" fill="${skin}"/>
-    ${hairShape}
-    ${art('headwear', hair)}
-    <circle cx="20" cy="25" r="1.5" fill="#2b2b2b"/><circle cx="28" cy="25" r="1.5" fill="#2b2b2b"/>
-    <path d="M21 29q3 2 6 0" stroke="#2b2b2b" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-    ${art('faceware')}
-    <rect x="20" y="32" width="8" height="4" fill="${skin}"/>
-    <rect x="12" y="35" width="24" height="19" rx="3" fill="${shirt}"/>
-    <rect x="8"  y="36" width="5" height="17" rx="2.2" fill="${shirt}"/>
-    <rect x="35" y="36" width="5" height="17" rx="2.2" fill="${shirt}"/>
-    ${art('legs', shirt)}
-    ${art('handheld')}
-    ${bust ? '</g>' : ''}
-  </svg>`;
-}
-
-/* A PERSON'S PICTURE — TEN OF OURS, THEIR OWN FIGURE, A PHOTOGRAPH, OR THEIR INITIAL. § */
+/* A PERSON'S PICTURE — TEN OF OURS, A PHOTOGRAPH, OR THEIR INITIAL (the figure went, 9 Nov: a stored `pfp:avatar` is no choice). */
 const PFP_PREFIX = 'pfp:';
 const PFP_ART = {
   fox: { name: 'Fox', ground: '#3c6fd1', art:
@@ -229,7 +90,7 @@ const PFP_ART = {
 function pfpChoice_(v) {
   const m = /^pfp:([a-z]+)$/.exec(String(v == null ? '' : v).trim().toLowerCase());
   if (!m) return '';
-  return m[1] === 'avatar' || Object.prototype.hasOwnProperty.call(PFP_ART, m[1]) ? m[1] : '';
+  return Object.prototype.hasOwnProperty.call(PFP_ART, m[1]) ? m[1] : '';
 }
 
 /* ---------- WHAT KIND OF PICTURE A STORED VALUE IS § */
@@ -237,7 +98,7 @@ function picKind_(v) {
   const s = String(v == null ? '' : v).trim();
   if (!s) return '';
   const c = pfpChoice_(s);
-  if (c) return c === 'avatar' ? 'avatar' : 'basic';
+  if (c) return 'basic';
   if (/^(https?:)?\/\//i.test(s) || /^data:image\//i.test(s)) return 'photo';
   if (!/^[a-z][\w+.-]*:/i.test(s) && !/[|\s]/.test(s)) return 'photo';
   return '';
@@ -266,42 +127,9 @@ function personFace_(who, o) {
     return `<img class="${cls}" src="${esc(pic(v))}" alt="${esc(o.alt || '')}"${o.eager ? '' : ' loading="lazy"'} decoding="async">`;
   }
   if (kind === 'basic') return `<span class="${cls} face-pic">${pfpArt_(pfpChoice_(v), size)}</span>`;
-  if (kind === 'avatar' && (mine || typeof who.avatar === 'string')) {
-    const seed = mine ? (USER.handle || USER.name) : (who.handle || name);
-    return `<span class="${cls} face-pic">${avatarFor(seed, size, mine ? (USER.avatar || '') : who.avatar, { bust: true })}</span>`;
-  }
   return `<span class="${cls}${o.none ? ' ' + o.none : ''}">${esc(initial(name))}</span>`;
 }
 
 /** Ten ticked topics is one level. Whole levels only — a fraction of a level is not a thing you
     can have, and "level 3.5" beside an item unlocking at 4 reads as nearly there when it is not. */
 const levelFromXp = xp => Math.floor((Number(xp) || 0) / 10);
-
-/* EVERY WEARABLE, AND WHETHER IT IS YOURS. § */
-function wardrobe() {
-  /* `|| DATA.avatarItems` was here, and the payload has never had that key — so the fallback was to
-     `undefined` dressed as a second source. The login reply sends `avatarItems` and that is the only
-     place they have ever come from. */
-  const sent = USER && USER.avatarItems;
-  if (sent && sent.length) return sent;
-
-  const level = levelFromXp(USER && USER.xp);
-  const shop = {};
-  (DATA.shop || []).forEach(x => {
-    if (isWearable(x) && x.slot && x.artId) shop[x.slot + ':' + x.artId] = x;
-  });
-  const out = [];
-  AV_SLOTS.forEach(([slot]) => {
-    Object.keys(AV_ART[slot] || {}).forEach(id => {
-      const row = shop[slot + ':' + id];
-      const cost = row ? Number(row.price) || 0 : 0;
-      const need = row ? Number(row.level) || 0 : 0;
-      /* Nothing, a crop and plain legs are what everybody starts with — they are the absence of an
-         item rather than an item, so they can never be locked. */
-      const free = !row || (!cost && !need) || id === 'none' || id === 'crop' || id === 'plain';
-      out.push({ slot, id, name: row ? row.name : id, cost, level: need,
-                 unlocked: free || (need && level >= need) });
-    });
-  });
-  return out;
-}

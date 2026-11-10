@@ -85,18 +85,35 @@ rows.forEach(r => String(r.tiles || '').split(',').map(s => s.trim()).filter(Boo
 /* EVERY FIND KIND IS DRAWN BY `findCard` (owner 1a, 8 Nov), never a card maker of its own; its own file may still write the insides (`KC_OWN`). */
 /* A TOOL, GAME OR REEL IS THE LIVE WIDGET ITSELF (790: its slot, star and padlock, started by arcade.js), so it alone keeps its column's card. */
 const WIDGET_KINDS = ['tool', 'game', 'reel'];
+/* A BOOKING FORM IS A FORM, NOT A CARD (owner, 9 Nov): its fields and Send, drawn by its own file. */
+const FORM_KINDS = ['bookform'];
 const kindsSrc = (/\nconst KINDS = \{([\s\S]*?)\n\};/.exec(finder) || [, ''])[1];
 const kindNames = [];
 kindsSrc.replace(/\n  ([A-Za-z]\w*):\s+\{/g, (m, k) => { kindNames.push(k); return m; });
 if (kindNames.length < 20) bad.push('find-finder.js KINDS was not found (' + kindNames.length + ' kinds read)');
 kindNames.forEach(k => { if (k === 'tutor' || WIDGET_KINDS.indexOf(k) >= 0) return;
+  if (FORM_KINDS.indexOf(k) >= 0) { if (!new RegExp('\\n  ' + k + ':[^\\n]*card: \\(\\) => bookFormCard_\\(\\)').test(kindsSrc)) bad.push(k + ' is a form: KINDS draws it with bookFormCard_()'); return; }
   const m = new RegExp('\\n  ' + k + ':\\s+\\{[^\\n]*?card: (\\([^)]*\\)|x) => ([^\\n]*?) \\},?\\n').exec(kindsSrc + '\n');
   if (!m) bad.push('find-finder.js KINDS has no one-line ' + k + ' entry');
   else if (!/findCard\(x[,)]|findCard\(x\.soon/.test(m[2])) bad.push('find-finder.js draws ' + k + ' with ' + m[2].trim() + ', not findCard'); });
 rows.forEach(r => { if (kindNames.length && kindNames.indexOf(r.kind) < 0) bad.push('card-fields.json names a kind ' + r.kind + ' that KINDS has not'); });
+/* PHASE 2 (owner, 9 Nov): NO KIND IS DRAWN OPEN BUT A QUESTION, and none leads with a greyed Open -- a real main action, or Open/Read that opens it. */
+const openKinds = (/\nconst KC_OPEN_KINDS = (\[[^\]]*\]);/.exec(cards) || [, 'null'])[1];
+if (openKinds.replace(/\s/g, '') !== "['question','answer']") bad.push('KC_OPEN_KINDS is ' + openKinds + ', not a question and an answer alone');
+const mainOf = html => { const r = html.split('<span class="kc-four">')[1] || ''; return (/<button[^>]*>/.exec(r) || [''])[0]; };
+rows.map(r => r.kind).concat(['some-new-kind']).forEach(kind => {
+  const html = String(got.findCard({ kind, key: kind + ':1', name: 'One', row: ROW })), lead = mainOf(html), first = String((((d.cardFields || {})[kind] || {}).tiles || [])[0] || '');
+  if (/data-do="kc-open"[^>]*disabled/.test(lead)) bad.push(kind + ': leads with a greyed Open, not a main action');
+  if (/^(receipt|post|msg|shop)$/.test(kind) && !first) bad.push(kind + ': card-fields.json names no main action (Pay, Like, Reply, Buy) first in its tiles');
+  if (/\bkc-off\b/.test(lead) && lead.indexOf('data-do="' + String(first).split(':')[0] + '"') < 0) bad.push(kind + ': leads with a greyed tile that is not its own main');
+});
 /* A KIND'S OWN MAKER, CUT INTO THE PARTS, STILL MAKES THE ONE SHAPE: a card that was its own `.thing`, a heading, tags and lines. */
-scope.window.KC_OWN = { legacy: () => '<div class="card x" data-k="1"><div class="thing"><img src="a"><div class="thing-body"><h3>One</h3><p class="sub">s</p></div></div><span class="qtags"><b>t</b></span></div>' };
-try { const w = shapeOf(String(got.findCard({ kind: 'legacy', key: 'legacy:1', name: 'One' }))); if (w) bad.push('a KC_OWN card: ' + w); } catch (e) { bad.push('a KC_OWN card: findCard threw ' + e.message); }
+/* AND ITS OWN TILE ROW AMONG THE LINES JOINS THE ONE ROW: no old insides' buttons left inside the frame. */
+scope.window.KC_OWN = { legacy: () => '<div class="card x" data-k="1"><div class="thing"><img src="a"><div class="thing-body"><h3>One</h3><p class="sub">s</p></div><div class="tile-row"><button class="tile" data-do="own-go">Go</button></div></div><span class="qtags"><b>t</b></span></div>' };
+try { const h = String(got.findCard({ kind: 'legacy', key: 'legacy:1', name: 'One' })), w = shapeOf(h);
+  if (w) bad.push('a KC_OWN card: ' + w);
+  if (/<div class="kc-lines">[\s\S]*tile-row[\s\S]*<div class="kc-act">/.test(h)) bad.push('a KC_OWN card keeps its own tile row among its lines');
+  if (!/<span class="kc-four"><button class="tile" data-do="own-go"/.test(h)) bad.push('a KC_OWN card\'s own tile does not lead its row'); } catch (e) { bad.push('a KC_OWN card: findCard threw ' + e.message); }
 scope.window.KC_OWN = {};
 if (!/\n  tutor:[\s\S]{0,300}?: findCard\(x\) \}/.test(finder)) bad.push('find-finder.js does not draw a tutor with findCard');
 
