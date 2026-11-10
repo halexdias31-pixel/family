@@ -19,9 +19,14 @@ const scope = new Proxy({
   libS: v => (v == null ? '' : String(v)), oops_: () => {}, on: () => {}, window: {}, console, Object, Array, String, Number, JSON, Math, Set, Map, Symbol, Boolean, RegExp, Date,
   DATA: {},
 }, { has: (o, k) => !OWN.has(k), get: (o, k) => (k in o ? o[k] : k === Symbol.unscopables ? undefined : stub), set: (o, k, v) => { o[k] = v; return true; } });
+/* A BUNDLE IS A CARD TOO (owner, 10 Nov): its maker and the lines it reads, lifted out of find-bundles.js by name. */
+const bundles = fs.readFileSync(path.join(ROOT, 'js/find-bundles.js'), 'utf8');
+const fnOf = n => (new RegExp('\\nfunction ' + n + '\\([\\s\\S]*?\\n\\}\\n').exec(bundles) || [''])[0];
+const BUNDLE_SRC = ['bundleCard_', 'bundlePriceLine_', 'bundleStrayLine_'].map(n => fnOf(n) || (bad.push('find-bundles.js has no ' + n), '')).join('\n');
+if (!/function bundleOf_\(\) \{\n(?:\s*\/\*[^\n]*\n)*\s*if \([^\n]*!findDone_\(\)\) return null;/.test(bundles)) bad.push('bundleOf_ does not wait for findDone_: a bundle is a card, shown only once the menus finish');
 /* eslint-disable-next-line no-new-func */
 const run = new Function('scope', 'with (scope) {\n' + cards.replace(/^(const|let) /gm, 'var ') + '\n'
-  + settings.replace(/^(const|let) /gm, 'var ') + '\n}\nreturn { findCard, setCardFields_, KC_FIELDS, KC_DEFAULT, kcTilesFill_ };');
+  + settings.replace(/^(const|let) /gm, 'var ') + '\n' + BUNDLE_SRC + '\n}\nreturn { findCard, setCardFields_, KC_FIELDS, KC_DEFAULT, kcTilesFill_, bundleCard_ };');
 let got = {};
 try { got = run(scope); } catch (e) { bad.push('js/cards.js or js/settings.js would not load in the shape check: ' + e.message); }
 
@@ -81,6 +86,15 @@ rows.map(r => r.kind).concat(['some-new-kind']).forEach(kind => {
   const why = shapeOf(html);
   if (why) bad.push(kind + ' card: ' + why);
 });
+try {
+  const b = { title: 'STA · Maths · SATs', noun: '3 papers', ids: ['P1', 'P2', 'P3'], grouped: false, firsts: [], stray: {},
+    papers: [{ ok: true, label: 'Paper 1' }, { ok: false, label: 'Paper 4' }], printable: [{ label: 'Paper 1', pages: 0 }, { label: 'Paper 2', pages: 0 }, { label: 'Paper 3', pages: 0 }] };
+  const h = String(got.bundleCard_(b)), w = shapeOf(h);
+  if (w) bad.push('bundle card: ' + w);
+  if (!/class="card fc kc kc-bundle\b/.test(h)) bad.push('the bundle card is not drawn by findCard');
+  if (!/<span class="kc-four"><button[^>]*data-do="cart-add"/.test(h)) bad.push('the bundle card does not lead with Add to basket');
+  if (!/<div class="kc-tags">[\s\S]*STA · Maths · SATs/.test(h)) bad.push('the bundle card\'s name is not a tag');
+} catch (e) { bad.push('bundle card: bundleCard_ threw ' + e.message); }
 /* THE SAME TILES ON EVERY CARD OF A KIND (35a): a card without one of its kind's tiles shows it greyed, never twice; each has a handler. */
 const allJs = fs.readdirSync(path.join(ROOT, 'js')).filter(f => /\.js$/.test(f)).map(f => fs.readFileSync(path.join(ROOT, 'js', f), 'utf8')).join('\n');
 scope.tile_ = o => '<button class="tile" data-do="' + o.act + '"' + (o.off ? ' disabled' : '') + '></button>';
@@ -128,4 +142,4 @@ const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
 if (!/\.card\.kc:not\(\.is-open\) > \.kc-lines > \* \{[^}]*-webkit-line-clamp: 2;/.test(css) || !/\.card\.kc:not\(\.is-open\) > \.kc-lines > \* ~ \* \{ display: none; \}/.test(css)) bad.push('style.css no longer clamps a closed card to one block of two lines');
 
 if (bad.length) { console.log('✗ card shape:\n  ' + bad.join('\n  ')); process.exit(1); }
-console.log('card shape: ' + rows.length + ' kinds, a kind the file does not name and a KC_OWN card, one shape (' + SHAPE.join(', ') + '); every Find kind drawn by findCard');
+console.log('card shape: ' + rows.length + ' kinds, a kind the file does not name and a KC_OWN card, one shape (' + SHAPE.join(', ') + '), bundles too; every Find kind drawn by findCard');

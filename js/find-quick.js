@@ -138,7 +138,9 @@ function bundleTags_(b) {
       try { b.tagsHtml = bundleTagsOf_(b); } catch (e) { b.tagsHtml = ''; return; }
       let now = null;
       try { now = inFinder_(FINDERS.stuff, () => BUNDLE_MEMO.get(FIND_MEMO.items)); } catch (e) { now = null; }
-      if (now === b) document.querySelectorAll('#s-stuff .card.bundle > .qtags').forEach(el => { el.outerHTML = b.tagsHtml; });
+      /* INTO THE ONE CARD'S TAG PART, its name still the first tag (`findCard`). */
+      const name = b.title || 'These papers', t = kcUnpicked_(b.tagsHtml), html = kcSays_(t, name) ? t : kcTagFirst_(t, name);
+      if (now === b) document.querySelectorAll('#s-stuff .card.bundle > .kc-tags').forEach(el => { el.innerHTML = html; });
     });
   }
   return String(tagRow_(BUNDLE_ITEM) || '<div class="qtags qcard-tags"></div>');

@@ -460,10 +460,12 @@ function kcSplit_(html) {
   const parts = { cls: card.cls, attrs: String(card.attrs || '').replace(/\s+class\s*=\s*"[^"]*"/, ''), pic: '', head: '', tags: '', lines: '' };
   const walk = list => list.forEach(k => {
     const c = ' ' + k.cls + ' ';
-    if (/ thing(-body)? /.test(c)) return walk(kcKids_(k.inner));
+    /* A BODY WRAPPER (`.tx-body`, `.rd-body`) IS OPENED TOO, so its heading is the name and its first line clamps to two. */
+    if (/ (thing|[\w]+-body) /.test(c) && k.tag === 'div') return walk(kcKids_(k.inner));
     if (!parts.pic && (/^(img|svg|figure|canvas)$/.test(k.tag) || /[ -](pic|art) /.test(c))) parts.pic = k.html;
     else if (!parts.head && (/^h[1-4]$/.test(k.tag) || / ([\w-]+-)?(head|title) /.test(c))) parts.head = k.html;
-    else if (!parts.tags && / [\w-]*tags /.test(c)) parts.tags = k.html;
+    /* A SECOND TAG LINE (a verse's translation) joins the first: one tag part, never a tag line among the lines. */
+    else if (/ [\w-]*tags /.test(c)) parts.tags = !parts.tags ? k.html : /<\/div>\s*$/.test(parts.tags) ? parts.tags.replace(/<\/div>\s*$/, k.inner + '</div>') : parts.tags + k.html;
     else parts.lines += k.html;
   });
   walk(kcKids_(card.inner));
