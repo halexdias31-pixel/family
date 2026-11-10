@@ -460,8 +460,8 @@ function kcSplit_(html) {
   const parts = { cls: card.cls, attrs: String(card.attrs || '').replace(/\s+class\s*=\s*"[^"]*"/, ''), pic: '', head: '', tags: '', lines: '' };
   const walk = list => list.forEach(k => {
     const c = ' ' + k.cls + ' ';
-    /* A BODY WRAPPER (`.tx-body`, `.rd-body`) IS OPENED TOO, so its heading is the name and its first line clamps to two. */
-    if (/ (thing|[\w]+-body) /.test(c) && k.tag === 'div') return walk(kcKids_(k.inner));
+    /* A BODY WRAPPER (`.tx-body`, `.rd-body`) IS OPENED TOO, so its heading is the name and its first line clamps to two. A `.kc-items` list stays whole: it holds controls. */
+    if (/ (thing|[\w]+-body) /.test(c) && !/ kc-items /.test(c) && k.tag === 'div') return walk(kcKids_(k.inner));
     if (!parts.pic && (/^(img|svg|figure|canvas)$/.test(k.tag) || /[ -](pic|art) /.test(c))) parts.pic = k.html;
     else if (!parts.head && (/^h[1-4]$/.test(k.tag) || / ([\w-]+-)?(head|title) /.test(c))) parts.head = k.html;
     /* A SECOND TAG LINE (a verse's translation) joins the first: one tag part, never a tag line among the lines. */
@@ -570,7 +570,8 @@ const kcLook_ = kind => ((typeof DATA !== 'undefined' && DATA && DATA.cardLook) 
 const kcIcon_ = kind => { const n = kcLook_(kind).icon || 'doc'; return `<span class="kc-icon">${typeof tileIcon_ === 'function' ? tileIcon_(n) || tileIcon_('doc') : ''}</span>`; };
 const kcEmpty_ = () => (typeof NOTHING_YET === 'string' ? NOTHING_YET : '');
 /* A FORM STAYS A FORM: its own maker draws it, whole and unclamped, as the card's open content. */
-const KC_FORM_SEL = 'input:not([type="hidden"]), select, textarea, form';
+/* A LIST OF THINGS EACH WITH ITS OWN TILES (`.kc-items` of `.kc-item`s, the checklist's) holds controls too, so it is drawn open and whole. */
+const KC_FORM_SEL = 'input:not([type="hidden"]), select, textarea, form, .kc-items';
 const KC_BLOCK = /^(P|LI|DIV|SECTION|ARTICLE|TR|DT|DD|H[1-6]|BLOCKQUOTE|PRE|UL|OL|DL|TABLE|FIGCAPTION|HEADER|FOOTER)$/;
 /* SOME KIND HTML AS FACTS: plain lines, its buttons lifted out, the original kept hidden so a late filler still finds its target. */
 function kcFacts_(html) {
@@ -618,7 +619,9 @@ function kcFactsWatch_() {
   /* AN OLD MAKER THAT REDRAWS ITS WHOLE CARD (`[data-libimp]`) has its new insides read as facts into the parts it pushed out. */
   const rewrap = (card, gone) => { const parts = gone.filter(n => n.nodeType === 1 && /^kc-(pic|head|tags|lines|form|act)$/.test(n.className)); if (!parts.length) return;
     const f = kcFacts_(card.innerHTML), lines = parts.find(n => n.className === 'kc-lines'), form = parts.find(n => n.className === 'kc-form');
-    if (f.form && form) form.innerHTML = f.form;
+    /* CONTROLS THAT ARRIVE LATE (a list loaded after the first draw) take a form part, open, in place of the lines. */
+    if (f.form && !form && lines) { lines.className = 'kc-form'; lines.innerHTML = f.form; card.classList.add('is-open'); }
+    else if (f.form && form) form.innerHTML = f.form;
     else if (lines) lines.innerHTML = (f.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`) + (f.src ? `<div class="kc-src" hidden>${f.src}</div>` : '');
     card.replaceChildren(...parts); if (f.tiles) sync(card, f.tiles); };
   new MutationObserver(list => { if (busy) return; busy = true; const seen = new Set();

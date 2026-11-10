@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-10-policy-apply-1";
+const DOPOST_VERSION = "2026-11-10-biz-policy-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -241,6 +241,7 @@ function postActions_() {
     listApplications: postListApplications_,
     payStatement: postPayStatement_,
     listStaff: postListStaff_,
+    tutorDbsChecked: postTutorDbsChecked_,
     decideApplication: postDecideApplication_,
     digestPreview: postDigestPreview_,
     digestSendNow: postDigestSendNow_,

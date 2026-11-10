@@ -1,5 +1,5 @@
 {
- "notes": "THE BUSINESS CHECKER (docs/history/1050): what a UK sole-trader tutoring business needs, in order. Guidance, not legal or financial advice. sense: an auto rule in js/biz-check.js (BC_RULES) or manual; renew: months or null; when: facts that must all hold (config biz_* keys). Links: gov.uk, ico.org.uk, nspcc.org.uk only (check-biz). doc: the policy in docs/policies that satisfies the row (optional).",
+ "notes": "THE BUSINESS CHECKER (docs/history/1050): what a UK sole-trader tutoring business needs, in order. Guidance, not legal or financial advice. sense: an auto rule in js/biz-check.js (BC_RULES) or manual; renew: months or null; when: facts that must all hold (config biz_* keys). Links: gov.uk, ico.org.uk, nspcc.org.uk only (check-biz). doc: the policy in docs/policies that satisfies the row (optional). cycle (renewals, 10 Nov): {months: n} renews n months after the last renewal, {dates: [MM-DD]} falls due on those days each year, {continuous: true} is watched all the time; Renewed sets the new expiry. money.tax_set_aside: share of income put aside for tax; a config row of that name overrides it. run: a label for the item's link shown as its own tile; results: answers the owner picks when ticking (kept in the result column).",
  "facts": {
   "under18": true,
   "under8": true,
@@ -63,7 +63,12 @@
    "link": "https://www.gov.uk/self-assessment-tax-returns",
    "sense": "records:tax_return",
    "renew": 12,
-   "when": {}
+   "when": {},
+   "cycle": {
+    "dates": [
+     "01-31"
+    ]
+   }
   },
   {
    "id": "payments_on_account",
@@ -74,7 +79,13 @@
    "link": "https://www.gov.uk/understand-self-assessment-bill/payments-on-account",
    "sense": "records:payments_on_account",
    "renew": 6,
-   "when": {}
+   "when": {},
+   "cycle": {
+    "dates": [
+     "01-31",
+     "07-31"
+    ]
+   }
   },
   {
    "id": "vat_watch",
@@ -85,7 +96,10 @@
    "link": "https://www.gov.uk/vat-registration",
    "sense": "vat-watch",
    "renew": null,
-   "when": {}
+   "when": {},
+   "cycle": {
+    "continuous": true
+   }
   },
   {
    "id": "income_goal",
@@ -107,7 +121,10 @@
    "link": "https://www.gov.uk/set-up-sole-trader",
    "sense": "records:pub_liability",
    "renew": 12,
-   "when": {}
+   "when": {},
+   "cycle": {
+    "months": 12
+   }
   },
   {
    "id": "prof_indemnity",
@@ -118,7 +135,10 @@
    "link": "https://www.gov.uk/set-up-sole-trader",
    "sense": "records:prof_indemnity",
    "renew": 12,
-   "when": {}
+   "when": {},
+   "cycle": {
+    "months": 12
+   }
   },
   {
    "id": "home_visit_cover",
@@ -131,6 +151,9 @@
    "renew": 12,
    "when": {
     "home_visits": true
+   },
+   "cycle": {
+    "months": 12
    }
   },
   {
@@ -142,7 +165,10 @@
    "link": "https://ico.org.uk/for-organisations/data-protection-fee/",
    "sense": "records:ico_fee",
    "renew": 12,
-   "when": {}
+   "when": {},
+   "cycle": {
+    "months": 12
+   }
   },
   {
    "id": "privacy_notice",
@@ -218,9 +244,12 @@
    "how": "Apply through an umbrella body, then join the DBS Update Service to keep it current.",
    "link": "https://www.gov.uk/government/organisations/disclosure-and-barring-service",
    "sense": "manual",
-   "renew": 36,
+   "renew": 12,
    "when": {
     "under18": true
+   },
+   "cycle": {
+    "months": 12
    }
   },
   {
@@ -245,9 +274,12 @@
    "how": "Take a recognised course and refresh it every 2 to 3 years.",
    "link": "https://learning.nspcc.org.uk/training",
    "sense": "records:safeguarding_training",
-   "renew": 24,
+   "renew": 36,
    "when": {
     "under18": true
+   },
+   "cycle": {
+    "months": 36
    }
   },
   {
@@ -299,11 +331,20 @@
    "group": "Your tutors",
    "title": "Check your tutors really are self-employed",
    "why": "If they work like employees, HMRC can ask you for tax and National Insurance.",
-   "how": "Run the HMRC employment status tool for a typical tutor and keep the result.",
+   "how": "Run the HMRC check (CEST) for a typical tutor, save the result as a PDF, then press Done with the result and the PDF attached. Reviewed yearly.",
    "link": "https://www.gov.uk/guidance/check-employment-status-for-tax",
    "sense": "manual",
    "renew": 12,
-   "when": {}
+   "when": {},
+   "cycle": {
+    "months": 12
+   },
+   "run": "Run the HMRC check",
+   "results": [
+    "Employed",
+    "Self-employed",
+    "Unable to say"
+   ]
   },
   {
    "id": "tutor_agreements",
@@ -569,5 +610,8 @@
    "renew": null,
    "when": {}
   }
- ]
+ ],
+ "money": {
+  "tax_set_aside": 0.25
+ }
 }

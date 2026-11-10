@@ -72,6 +72,7 @@ const PEOPLE_FORM = 'an admin making or changing somebody else\'s account — a 
 const EXEMPT = [
   { file: 'book-spine.js', fn: 'discountSaid_', has: 'disabled aria-label="Discount', why: 'a saved booking\'s Discount box (owner, 8 Nov) is the form\'s box drawn disabled: nothing can be typed, it shows the saved figure' },
   { file: 'me.js', fn: 'ceWhere_', has: 'data-where-area', why: 'an area tick on Where you teach (owner, 8 Nov) only rewrites the hidden venues_ok box, saved by the card\'s Save; a reload draws the saved areas' },
+  { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="expires_on"', why: 'a renewal\'s new expiry (10 Nov), picked and saved with Renewed in one press; a reload draws the saved expiry' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="done_on"', why: 'the Business checker\'s done-on date (1050) — picked and Marked done in one press; a reload draws the saved tick\'s date' },
   { file: 'one-place.js', fn: 'oqItem_', has: 'data-oq-note', why: 'the owner\'s "Something else" (1060) — typed and sent at once; a reload draws the saved note from owner_answers' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="note"', why: 'the Business checker\'s one-line proof (1050) — a policy number typed and Marked done at once; a reload draws the saved note' },
