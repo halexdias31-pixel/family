@@ -674,7 +674,8 @@ function policyInline_(t) {
   return esc(t).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\w)/g, '$1<em>$2</em>')
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (all, txt, href) => {
       const h = href.replace(/&amp;/g, '&');
-      if (/^(https?:|mailto:|tel:)/i.test(h)) return `<a href="${esc(h)}" target="_blank" rel="noopener">${txt}</a>`;
+      if (/^https:/i.test(h)) return `<a href="${esc(h)}" data-do="file-view">${txt}</a>`;
+      if (/^(mailto:|tel:)/i.test(h)) return `<a href="${esc(h)}">${txt}</a>`;
       if (/^[\w-]+\.md$/.test(h)) return `<a href="${esc(policyHref_(h))}" data-do="file-view">${txt}</a>`;
       return txt;
     });
@@ -720,7 +721,7 @@ function policyView_(u, host, name) {
   const get = url => fetch(url, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error(r.status); return r.text(); });
   /* The served copy beside the site first, the brand's address second. */
   get('docs/policies/' + name + '.md').catch(() => get(u)).then(show)
-    .catch(() => { page.innerHTML = `<p class="note">This policy could not be loaded. <a href="${esc(u)}" target="_blank" rel="noopener">Open it</a>.</p>`; });
+    .catch(() => { page.innerHTML = `<p class="note">This policy could not be loaded. <a href="${esc(u)}">Open it</a>.</p>`; });
   return true;
 }
 function fileView_(u, host, title) {
