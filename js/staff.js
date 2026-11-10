@@ -366,21 +366,33 @@ on('stmt-print', () => {
 /* ---------- IN BUSINESS: WHO TEACHES, WHO HAS AGREED TO THE CURRENT TERMS, AND ANY TUTOR'S STATEMENT ---------- */
 const STAFF = { list: null, error: '', asking: false };
 const staffAgreed_ = s => String(s.termsVersion || '') === termsVersion_();
+/* A TUTOR'S DBS IS DUE 12 MONTHS AFTER THE LAST ONLINE CHECK (10 Nov), or now if never logged. */
+const STAFF_DBS_LINK = 'https://secure.crbonline.gov.uk/crsc/check';
+function staffDbsDue_(s) {
+  const m = String((s && s.dbsCheckedOn) || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return true;
+  const next = new Date(+m[1] + 1, +m[2] - 1, +m[3]), now = new Date(); now.setHours(0, 0, 0, 0);
+  return next <= now;
+}
 function staffCard_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return '';
-  return `<div class="card biz staff-card" data-staff data-need="terms">${staffInner_(!STAFF.list && !STAFF.error)}</div>`;
+  return `<div class="card biz staff-card" data-staff data-need="staff">${staffInner_(!STAFF.list && !STAFF.error)}</div>`;
 }
 function staffInner_(wait) {
   const list = STAFF.list || [];
-  const n = list.filter(s => !staffAgreed_(s)).length;
-  const item = s => `<div class="biz-item staff-item" data-id="${esc(s.personId)}">
+  const n = list.filter(s => !staffAgreed_(s)).length, dbs = list.filter(staffDbsDue_).length;
+  const dbsLine = s => !staffDbsDue_(s) ? '' : `<p class="biz-cap staff-dbs"><b class="biz-flag">DBS check due</b> <span class="qtags"><span class="qtag">${
+      esc(s.dbsCheckedOn ? 'last ' + date_(s.dbsCheckedOn) : 'never logged')}</span><span class="qtag">${esc(s.dbsNumber ? 'cert. ' + s.dbsNumber : 'no certificate no. on file')}</span></span></p>`;
+  const item = s => `<div class="kc-item biz-item staff-item" data-id="${esc(s.personId)}">
       <p class="biz-cap"><b>${esc(s.name)}</b> <span class="qtags biz-when"><span class="qtag">${esc(s.rank === 'admin' ? 'admin' : 'staff')}</span></span>
         ${staffAgreed_(s) ? '' : `<b class="biz-flag">${s.termsVersion ? 'Old terms' : 'Not agreed'}</b>`}</p>
-      <div class="tile-row">${tile_({ icon: 'print', label: 'Statement', note: 'any month', act: 'stmt-for', data: { id: s.personId, name: s.name } })}</div>
+      ${dbsLine(s)}
+      <div class="tile-row">${tile_({ icon: 'print', label: 'Statement', note: 'any month', act: 'stmt-for', data: { id: s.personId, name: s.name } })}${staffDbsDue_(s)
+        ? tile_({ icon: 'ext', label: 'DBS online check', href: STAFF_DBS_LINK, leave: true }) + tile_({ icon: 'tick', label: 'Checked today', act: 'staff-dbs', data: { id: s.personId } }) : ''}</div>
     </div>`;
   return `<h3>Staff</h3>
-    ${bizNeed_('terms', STAFF.list ? n : 0, n + ' not agreed to the terms')}
-    <div class="biz-body staff-body"${wait ? ' aria-busy="true"' : ''}>
+    ${bizNeed_('staff', STAFF.list ? n + dbs : 0, [n ? n + ' not agreed to the terms' : '', dbs ? dbs + (dbs === 1 ? ' DBS check due' : ' DBS checks due') : ''].filter(Boolean).join(' · '))}
+    <div class="kc-items biz-body staff-body"${wait ? ' aria-busy="true"' : ''}>
       ${STAFF.list && !list.length ? empty_(NO_TUTOR + '.') : ''}
       ${list.map(item).join('')}
     ${wait ? loading_() : ''}</div>
@@ -406,4 +418,17 @@ on('stmt-for', el => {
   document.querySelectorAll('.hub-for').forEach(h => h.remove());
   const c = el.closest('.card'); if (c) c.insertAdjacentHTML('beforeend', `<div class="hub hub-for">${stmtHtml_()}</div>`);
   stmtAsk_();
+});
+/* "CHECKED TODAY": the admin ran the DBS online check; the date restarts the 12 months. */
+on('staff-dbs', el => {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  const id = el.dataset.id;
+  send_({ action: 'tutorDbsChecked', tutorId: id }, { button: el, where: el.closest('.card') && el.closest('.card').querySelector('.staff-said'), busy: 'Saving…' })
+    .then(d => {
+      const s = (STAFF.list || []).find(x => x.personId === id);
+      if (s) s.dbsCheckedOn = (d && d.dbsCheckedOn) || new Date().toISOString().slice(0, 10);
+      staffDraw_(); if (typeof bcDraw_ === 'function') bcDraw_();
+      toast('DBS check logged');
+    })
+    .catch(() => {});
 });
