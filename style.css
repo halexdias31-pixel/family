@@ -5565,6 +5565,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) { --pic-h: 12rem; }
 .card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) > .kc-pic { width: 100%; border-radius: var(--r-ui); }
 .card.kc > .kc-pic > figure { background: none; padding: 0; }
+.card.kc > .kc-pic .hdb-ms-sides, .card.kc > .kc-pic .hdb-ms-side { height: 100%; justify-content: center; }  /* A DRAWING SHOWN WHOLE, not cut at the picture's height */
+.card.kc > .kc-pic .hdb-ms svg { height: var(--pic-h); width: auto; max-width: 100%; margin: 0 auto; }
 .card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) > .kc-pic :is(img, video, svg, figure) { border-radius: var(--r-ui); object-fit: contain; }
 .card.kc > .kc-tags { margin-top: .5rem; }
 .card.kc > .kc-tags :is(.qtags, .prof-tags, .prof-who-tags, .prof-who, .prof-line) { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .3rem; }
