@@ -98,7 +98,7 @@
   {
    "id": "duplicates",
    "label": "Repeated long lines",
-   "count": 43,
+   "count": 44,
    "weight": 0.02,
    "cap": 10,
    "off": 0.9,

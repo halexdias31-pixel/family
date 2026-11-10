@@ -69,7 +69,8 @@ function profileDoorItems_() {
     const id = String(p.personId || p.title || p.handle || '');
     if (!id || seen[id]) return;
     seen[id] = 1;
-    out.push({ kind: 'person', name: p.title || p.name || p.handle, key: 'person:' + id, sub: '', image: p.image || '', row: p,
+    /* FIRST NAME AND AN INITIAL, WITH ITS CAPITAL (`displayName_`): "fin" is shown "Fin". */
+    out.push({ kind: 'person', name: displayName_(p) || p.handle, key: 'person:' + id, sub: '', image: p.image || '', row: p,
       profileType: profileTypes_(p, tutor), text: [p.title, p.name, p.handle, p.role].filter(Boolean).join(' ') });
   };
   /* Tutors are Booking's tutor items, tagged Profiles too (KIND_UNDER): never a second card here. */
@@ -80,9 +81,10 @@ function profileDoorItems_() {
 /* PICTURE FIRST: the face fills the top of the card, the name under it; everything else is a tag. */
 function profileDoorCard_(x) {
   const t = x.row || {};
-  return `<div class="card is-prof prof-door">${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title || t.name, personId: t.personId },
+  /* NO FACE, NO LETTER: the card draws its own default picture, so a lone initial would only stand beside the handle. */
+  return `<div class="card is-prof prof-door">${!(t.image || t.avatar) ? '' : personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title || t.name, personId: t.personId },
     { cls: 'prof-big', none: 'prof-none', size: 160 })}<h3>${esc(x.name)}</h3>${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
-    ${tileRow_((typeof peopleTiles_ === 'function' ? peopleTiles_(t) : ''), 'person-tiles')}</div>`;
+    ${tileRow_((typeof peopleTiles_ === 'function' ? peopleTiles_(t) : ''), 'person-tiles')}${typeof personEdHtml_ === 'function' ? personEdHtml_(t) : ''}</div>`;
 }
 
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */

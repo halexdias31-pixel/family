@@ -122,15 +122,17 @@ function nameBesideHandle_(name, handle) {
 
 /* NAMES (owner, 8 Nov): an admin sees the whole name; families, tutors and anything public see first name + surname initial ("Halex D.").
    `viewer` is a user, 'public' for a share, or left out for whoever is signed in. */
+/* A NAME TYPED IN LOWER CASE ("fin") IS STILL SHOWN WITH ITS CAPITAL; a handle keeps its own case. */
+const capFirst_ = s => (/^@/.test(String(s || '')) ? String(s) : String(s || '').charAt(0).toUpperCase() + String(s || '').slice(1));
 function displayName_(person, viewer) {
   const p = person && typeof person === 'object' ? person : { name: person };
   const first = String(p.first_name || p.firstName || '').trim(), last = String(p.last_name || p.lastName || '').trim();
   const full = nameBesideHandle_(String(p.name || p.title || (first + ' ' + last)).trim(), p.handle);
   /* FIRST NAME AND AN INITIAL FOR EVERY VIEWER, admins too (owner, 9 Nov): `viewer` is kept for callers that pass one. */
-  if (first && last) return first + ' ' + last.charAt(0).toUpperCase() + '.';
+  if (first && last) return capFirst_(first) + ' ' + last.charAt(0).toUpperCase() + '.';
   const w = full.split(/\s+/).filter(Boolean);
-  if (w.length < 2 || /[@(]/.test(full)) return full;
-  return w[0] + ' ' + w[w.length - 1].charAt(0).toUpperCase() + '.';
+  if (w.length < 2 || /[@(]/.test(full)) return capFirst_(full);
+  return capFirst_(w[0]) + ' ' + w[w.length - 1].charAt(0).toUpperCase() + '.';
 }
 
 /* ---------- A CHILD SIGNED IN BEFORE 10 OCT IS CALLED BY HER FIRST NAME FROM THE FIRST FRAME § */
