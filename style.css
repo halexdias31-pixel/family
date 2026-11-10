@@ -5579,10 +5579,22 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .kc-four { display: contents; }
 /* ⋯ OPENS A LIST WITH WORDS: each action its mark and its name, one under another, centred under the row. */
 .kc-more[hidden] { display: none; }
-.kc-more { display: flex; flex-direction: column; align-items: stretch; gap: .3rem; flex-basis: 100%; width: min(100%, 18rem); margin: .4rem auto 0; }
+.kc-more { display: flex; flex-direction: column; align-items: stretch; gap: .3rem; flex-basis: 100%; width: min(100%, 16rem); margin: .4rem auto 0; }
 .kc-more > * { margin: 0; }
 .kc-more > .tile { width: 100%; justify-content: flex-start; gap: .6rem; padding: 0 1rem; border-radius: var(--r-ui); }
 .kc-more > .tile::after { content: attr(aria-label); font: var(--fs-small)/1.2 var(--font); color: var(--ink); text-align: left; }
 .prof-tag-name { color: var(--ink); }
+/* ONE FRAME FOR EVERY KIND: a widget's own surface, and a frame its maker drew inside, never box a one-shape card twice. */
+.card.kc.is-widget { background: none; border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0; padding: var(--card-gap) 0; }
+.card.kc > .kc-lines .card { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; box-shadow: none; }
+/* A TUTOR'S PHOTOS, WORDS, HOURS AND MAP sit on the same centre line as everything else. */
+.card.kc > .kc-lines :is(.prof-photos, .prof-hour-line, .prof-busy, .prof-week) { justify-content: center; }
+.card.kc > .kc-lines .prof-heat { margin-left: auto; margin-right: auto; }
+.card.kc > .kc-lines .prof-say { border: 0; padding: 0; }
+/* THE BOOKING FORM'S DOOR, centred like a card. */
+.card.book-form-door { text-align: center; }
+.card.book-form-door > :is(.qtags, .tile-row), .favwrap:has(> .book-form-door) + .tile-row { justify-content: center; }
+/* A CARD REDRAWN INTO THE ONE SHAPE AFTER ITS FIRST DRAW carries its four buttons: the row Find put under the first draw goes. */
+.favwrap:has(.kc-four) + .tile-row { display: none; }
 /* AN EMPTY CARD SAYS SO, CENTRED: never a blank frame. */
 .card.kc .empty { padding: 0; margin: 0; text-align: center; }

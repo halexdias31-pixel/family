@@ -34,12 +34,13 @@ function serve() {
   });
 }
 
-/* IN THE PAGE: a few cards of every kind Find holds, drawn into Find's own screen, closed then open, each measured. */
+/* IN THE PAGE: a few cards of every kind Find holds, each drawn once and measured. */
 function measure(per) {
-  const host = document.getElementById('s-stuff') || document.body;
+  /* DRAWN WHERE IT CAN BE MEASURED: a hidden screen gives every box no size, so the geometry would pass unseen. */
+  const host = document.body;
   const box = document.createElement('div');
-  box.className = 'page on card-facts-check';
-  host.appendChild(box);
+  box.className = 'card-facts-check card-grid';
+  host.prepend(box);
   /* QUESTIONS AND ANSWERS ARE THEIR SHEET (owner, 9 Nov): their open content is the question itself, so only pictures and blanks are asked of them. */
   const WHOLE = ['question', 'answer'];
   const PEOPLE = typeof KC_PERSON_KINDS !== 'undefined' ? KC_PERSON_KINDS : [];
@@ -66,8 +67,8 @@ function measure(per) {
       if (row) { const tiles = [...card.querySelectorAll(':scope > .kc-act .kc-four > .tile')].map(t => t.getBoundingClientRect()).filter(r => r.width);
         if (tiles.length) { const l = Math.min(...tiles.map(r => r.left)), rr = Math.max(...tiles.map(r => r.right)); if (Math.abs((l + rr) / 2 - mid) > 2) say(x, 'its four buttons are ' + Math.round((l + rr) / 2 - mid) + 'px off the centre line'); } }
       const more = card.querySelector(':scope > .kc-act [data-do="kc-more"]'), list = card.querySelector(':scope > .kc-act .kc-more');
-      if (more && list) { more.click(); [...list.querySelectorAll(':scope > .tile')].forEach(t => { const w = getComputedStyle(t, '::after').content;
-        if (!w || w === 'none' || w === '""' || t.getBoundingClientRect().width < 100) say(x, '⋯ action "' + (t.getAttribute('aria-label') || '') + '" shows no word'); }); more.click(); }
+      if (more && list) { list.hidden = false; [...list.querySelectorAll(':scope > .tile')].forEach(t => { const w = getComputedStyle(t, '::after').content;
+        if (!w || w === 'none' || w === '""' || t.getBoundingClientRect().width < 100) say(x, '⋯ action "' + (t.getAttribute('aria-label') || '') + '" shows no word'); }); list.hidden = true; }
       const text = [...card.querySelectorAll(':scope > .kc-tags, :scope > .kc-lines, :scope > .kc-form')].map(n => n.innerText.trim()).join('');
       if (!text && !card.querySelector(':scope > .kc-lines .loading, :scope > .kc-form :is(input, select, textarea)')) say(x, state + ': blank card');
       if (!PEOPLE.includes(kind) && card.querySelector(':scope > .kc-pic .pfp-art')) say(x, 'a profile picture on a card that is not a person');
