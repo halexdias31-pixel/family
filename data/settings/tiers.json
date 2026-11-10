@@ -310,6 +310,7 @@
     "check/later.js": "core",
     "check/talpage.js": "secondary",
     "check/centred.js": "core",
+    "check/setting-forms.js": "core",
     "check/fluid.js": "secondary",
     "check/swipe.js": "core",
     "check/slide.js": "core",
