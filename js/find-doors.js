@@ -233,7 +233,7 @@ function findSettings_(type) {
     inFinder_(FINDER, () => paintStuff());
   } catch (e) { oops_(e, 'doors:settings'); }
 }
-/* A SWITCHED-OFF COLUMN THAT MOVED INTO FIND (`SCREEN_MOVED`): Settings for its account type, or its kind's door. */
+/* A SWITCHED-OFF COLUMN THAT MOVED INTO FIND (screens-moved.json): Settings for its account type, or its kind's door. */
 function screenGone_(id) {
   const to = String(screenMoved_()[id] || '').split(':');
   if (to[0] !== 'find' || !to[1] || TABS.some(t => t.id === id)) return false;

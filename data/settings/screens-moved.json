@@ -1,0 +1,38 @@
+[
+ {
+  "screen": "account",
+  "to": "find:Settings:Student"
+ },
+ {
+  "screen": "apprentice",
+  "to": "find:Settings:Apprentice"
+ },
+ {
+  "screen": "biz",
+  "to": "find:Settings:Business"
+ },
+ {
+  "screen": "booking",
+  "to": "find:Booking"
+ },
+ {
+  "screen": "family",
+  "to": "find:Settings:Parent"
+ },
+ {
+  "screen": "progress",
+  "to": "account"
+ },
+ {
+  "screen": "res",
+  "to": "stuff"
+ },
+ {
+  "screen": "site",
+  "to": "find:Settings:Site"
+ },
+ {
+  "screen": "staff",
+  "to": "find:Settings:Staff"
+ }
+]

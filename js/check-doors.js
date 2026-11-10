@@ -164,17 +164,14 @@ let gsStale = [];
 try { const g = require(path.join(dir, '..', 'tools', 'columns_gs.js')), src = fs.readFileSync(path.join(dir, '..', 'backend', 'constants.gs'), 'utf8');
   if (g.columnsInto(src) !== src) gsStale = ['backend/constants.gs\'s COLUMNS block is stale: node tools/columns_gs.js']; } catch (e) { gsStale = ['(tools/columns_gs.js could not run: ' + e.message + ')']; }
 
-/* ONE "SCREEN MOVED" MAP (batch C): shell-boot's `SCREEN_MOVED` is columns.json's `moved`/`was`, and no other table says where a screen went. */
+/* ONE "SCREEN MOVED" TABLE: data/settings/screens-moved.json, and no code or columns.json field says where a screen went. */
 let movedDiffer = [];
 try {
-  const fileMoved = {};
-  (colRows || []).forEach(r => { if (r && r.moved) fileMoved[r.screen] = r.moved; if (r && r.was) fileMoved[r.was] = r.screen; });
-  const m = /const SCREEN_MOVED = (\{[^}]*\})/.exec(fs.readFileSync(path.join(dir, 'shell-boot.js'), 'utf8'));
-  const code = m ? Function('return ' + m[1])() : null;
-  if (!code) movedDiffer = ['(no SCREEN_MOVED in shell-boot.js)'];
-  else [...new Set([...Object.keys(code), ...Object.keys(fileMoved)])].sort().forEach(k => { if (code[k] !== fileMoved[k]) movedDiffer.push(k + ': code ' + (code[k] || '-') + ', columns.json ' + (fileMoved[k] || '-')); });
-  files.forEach(({ n, src }) => { if (/\b(TAB_GONE|SETTINGS_HOME|settingsGone_|bookingGone_)\b/.test(strip(src))) movedDiffer.push(n + '.js keeps its own moved-screen table'); });
-} catch (e) { movedDiffer = ['(SCREEN_MOVED could not be read: ' + e.message + ')']; }
+  const mv = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'screens-moved.json'), 'utf8'));
+  if (!Array.isArray(mv) || !mv.length) movedDiffer.push('data/settings/screens-moved.json is empty');
+  (colRows || []).forEach(r => { if (r && (r.moved || r.was)) movedDiffer.push('columns.json row ' + r.screen + ' says where a screen went — put it in screens-moved.json'); });
+  files.forEach(({ n, src }) => { if (/\b(SCREEN_MOVED|TAB_GONE|SETTINGS_HOME|settingsGone_|bookingGone_)\b/.test(strip(src))) movedDiffer.push(n + '.js keeps its own moved-screen table'); });
+} catch (e) { movedDiffer = ['(screens-moved.json could not be read: ' + e.message + ')']; }
 
 /* ONE ADMIN CHECK: every file asks `isAdmin()`, and who sees an admin's setting is permissions.json's `see` rows (86a). */
 const rankOff = [];
@@ -249,7 +246,7 @@ say('A CARD COLUMN IN TABS AND NOT IN columns.json, OR THE OTHER WAY — `cards:
 say('THE BACKEND\'S COPY OF THE COLUMNS IS NOT columns.json\'s', gsStale, t => '');
 say('AN ADMIN TEST THAT IS NOT isAdmin() OR permissions.json\'s see rows', rankOff, t => '');
 say('A CARD\'S SECTIONS CHOSEN BY A CHAIN OF s.id === BRANCHES — put them in CARD_SECTION', sectionChain, t => '');
-say('WHERE A SCREEN MOVED IS SAID TWICE — SCREEN_MOVED (shell-boot.js) and columns.json\'s moved/was part', movedDiffer, t => '');
+say('WHERE A SCREEN MOVED IS SAID OUTSIDE data/settings/screens-moved.json', movedDiffer, t => '');
 
 say('A COLUMN NOTHING CAN MOVE ONTO OR OFF, WITH NO REASON IN LAYOUT_FIXED (layout.js)', unhosted, t => '');
 
