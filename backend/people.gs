@@ -311,19 +311,6 @@ function handleWasEntry_(r, typed) {
     .find(w => w && handleAnswers_(w, r && r.first_name, want)) || '';
 }
 
-/* ---------- AND EVERY `friends` LIST THAT NAMED AN OLD HANDLE, MOVED TO THE NEW ONE (342) § */
-function handleFriendsMove_(t, moves) {
-  if (!t || !t.headers || t.headers.indexOf('friends') === -1 || !Object.keys(moves || {}).length) return 0;
-  let n = 0;
-  t.rows.forEach(r => {
-    const list = S(r.friends).split(',').map(x => x.trim()).filter(Boolean);
-    let moved = false;
-    const now = list.map(h => { const to = moves[key(h)]; if (to) { moved = true; return to; } return h; });
-    if (moved && setCell(t, r, 'friends', now.join(', '))) n++;   // the phone's own separator (me.js)
-  });
-  return n;
-}
-
 /* ---------- THE ROWS A TYPED HANDLE IS, FOR SIGNING IN AND FOR A FORGOTTEN PIN § */
 function handleRows_(rows, typed) {
   const want = key(typed);
@@ -629,35 +616,59 @@ function siblingsOf(personId) {
   return ids.map(id => findPerson(id)).filter(Boolean);
 }
 
-/* ---------- WHO A SIGNED-IN PERSON MAY SEE (386) — the owner, 20 Oct: a child sees siblings and friends, never parents; a parent sees their children, never a co-parent. */
-/* null is "no rule": nobody signed in (public lists only), an admin, a tutor. Otherwise a set of ids. */
+/* ---------- WHO A SIGNED-IN PERSON MAY SEE (386; the owner, 10 Nov) — a student themself and their tutors; a parent their children; a tutor their booked students and their parents. */
+/* null is "no rule": nobody signed in (public lists only) or an admin. Otherwise a set of ids. */
 function seesWhom_(me) {
   if (!me || !S(me.person_id)) return null;
-  /* STAFF AND ADMIN SEE EVERYBODY (400); a client sees their linked children, a student their siblings and friends. */
-  if (rankAtLeast_(me, 'staff')) return null;
+  if (rankOf(me) === 'admin') return null;
   const meId = S(me.person_id), ids = {};
   ids[meId] = true;
-  const put = rows => rows.forEach(r => { if (S(r.person_id)) ids[S(r.person_id)] = true; });
-  if (rankOf(me) === 'client') put(childrenOf(meId));
-  if (hasRole(me, 'student') || rankOf(me) === 'student') {
-    put(siblingsOf(meId));
-    /* WHO THEY FRIENDED, by handle — and only a child: a parent's handle on the list is not a door to the parent. */
-    const want = {};
-    S(me.friends).split(',').map(x => norm(x.trim().replace(/^@/, ''))).filter(Boolean).forEach(h => { want[h] = true; });
-    if (Object.keys(want).length) {
-      let rows = [];
-      try { rows = read(TAB.people).rows; } catch (err) { rows = []; }
-      put(rows.filter(r => want[norm(r.handle)] && isChild_(r)));
-    }
+  const put = rows => rows.forEach(r => { if (r && S(r.person_id)) ids[S(r.person_id)] = true; });
+  const rings = bookedCircles_();
+  if (rankOf(me) === 'client' || hasRole(me, 'client')) {
+    put(childrenOf(meId));
+    /* AND WHO TEACHES THEM, so a parent can still write to their child's tutor. */
+    rings.filter(ring => ring.kin.some(r => S(r.person_id) === meId)).forEach(ring => put(ring.teach));
+  }
+  if (rankOf(me) === 'student') {
+    rings.filter(ring => ring.learn.some(r => S(r.person_id) === meId)).forEach(ring => put(ring.teach));
+  }
+  if (rankOf(me) === 'staff') {
+    rings.filter(ring => ring.teach.some(r => S(r.person_id) === meId)).forEach(ring => { put(ring.learn); put(ring.kin); });
   }
   return ids;
 }
-/* MAY THIS VIEWER SEE THIS PERSON — in their set, or staff (a tutor or admin is the business, not a family). */
+/* EVERY LIVE BOOKING AS PEOPLE: its tutors, the students it is for, and those students' parents. A parent's booking is for the children it names, or all of them. */
+function bookedCircles_() {
+  let jobs = [];
+  try { jobs = read(TAB.jobs).rows; } catch (err) { return []; }
+  const out = [];
+  jobs.forEach(j => {
+    const jobId = S(j.job_id) || String(j._row);
+    let ps = [];
+    try { ps = participantsOf(jobId).filter(p => p.status !== 'Withdrawn'); } catch (err) { ps = []; }
+    const tutors = ps.filter(p => p.role === 'tutor').map(p => findPerson(p.name)).filter(Boolean);
+    if (!tutors.length) return;
+    const named = S(j.for_children).split(/[,\n]/).map(x => key(x.trim())).filter(Boolean);
+    const students = [], families = [];
+    ps.filter(p => p.role === 'client').map(p => findPerson(p.name)).filter(Boolean).forEach(c => {
+      if (rankOf(c) === 'student') { students.push(c); return; }
+      families.push(c);
+      const kids = childrenOf(S(c.person_id));
+      const mine = kids.filter(k => named.some(n => n === key(kidFirst_(k)) || n === key(personDisplayName(k)) || n === key(k.handle)));
+      (named.length ? mine : kids).forEach(k => students.push(k));
+    });
+    students.forEach(st => acceptedParents(S(st.person_id)).forEach(pr => { if (families.indexOf(pr) === -1) families.push(pr); }));
+    out.push({ jobId, teach: tutors, learn: students, kin: families });
+  });
+  return out;
+}
+/* MAY THIS VIEWER SEE THIS PERSON — in their set, or an admin (whoever they talk to is the person responsible for the site). */
 function seesPerson_(vis, row) {
   if (!vis) return true;
   if (!row) return false;
   if (vis[S(row.person_id)]) return true;
-  return rankAtLeast_(row, 'staff');
+  return rankOf(row) === 'admin';
 }
 
 /* THE CHILDREN ON SOMEBODY'S ACCOUNT. § */

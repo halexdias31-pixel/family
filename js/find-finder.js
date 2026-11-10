@@ -59,7 +59,7 @@ function finderAt_(el) {
   return (s && finderOf_(String(s.id).replace(/^s-/, ''))) || finderOf_(typeof AT === 'string' ? AT : '') || FINDERS.stuff;
 }
 function finderEach_(fn) { Object.keys(FINDERS).forEach(id => inFinder_(FINDERS[id], () => fn(FINDERS[id]))); }
-/* FORGET WHAT EVERY FINDER FOUND, for a change to something both of them list — the friends (me.js),
+/* FORGET WHAT EVERY FINDER FOUND, for a change to something both of them list,
    whose memo `FIND_MEMO.key = null` from outside a binding cleared on Find alone. */
 function finderForgetFound_() { finderEach_(() => { FIND_MEMO.key = null; }); }
 /* A finder's state from outside, for the files that load before this one (me.js) and the checks. */
@@ -116,7 +116,6 @@ const KINDS = {
 
   /* ---------- POSTS ARE A THING YOU LOOK FOR § */
 
-  friend: { group: 'Friends', label: 'Friends', card: (x, c) => findCard(x, c) },
 
   /* THE KEY ORDER IS THE DEFAULT ORDER OF What kind's ANSWERS (`answerCmp_`), so the work comes first; the kinds tab can move any. */
   question: { group: 'Learning', label: 'Questions', card: (x, c) => findCard(x, c) },
@@ -198,23 +197,8 @@ const KINDS = {
 };
 
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
-function friendCard_(x) {
-    const f = x.row;
-    const xp = Number(f.xp) || 0;
-    return `<div class="card">
-      <div class="thing">
-        <span class="thing-pic art">${personFace_({ pic: f.image || f.photo, handle: f.handle, name: x.name, personId: f.personId }, { size: 44 })}</span>
-        <div class="thing-body">
-          <h3>${esc(x.name)}</h3>
-        </div>
-        ${/* A BUTTON, NOT A SPAN — the fourth one of these. § */
-              ''}
-        ${tileRow_(tile_({ icon: 'close', label: 'Remove', act: 'friend-drop', data: { handle: f.handle }, cls: 'text-drop' }))}
-      </div>
-    </div>`;
-}
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
-  receipt: x => jobPage_(x.row), friend: friendCard_, question: thingCard_, answer: thingCard_, shop: thingCard_,
+  receipt: x => jobPage_(x.row), question: thingCard_, answer: thingCard_, shop: thingCard_,
   practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x),
   timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),

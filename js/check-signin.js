@@ -1155,7 +1155,7 @@ const faceOf = (packed, handle) => {
   kidRule(JSON.stringify(got) === JSON.stringify(want), 'the move did not give everybody the template, clashes broken by join order', got);
   kidRule(S(byId(b, 'P-02').handle_was).split(',')[0].trim() === 'td2345', 'Tom\'s old handle is not at the front of his handle_was', byId(b, 'P-02').handle_was);
   kidRule(S(byId(b, 'P-05').handle_changed_at) === '' && S(byId(b, 'P-08').handle_changed_at) === '', 'somebody already on the template was moved', [byId(b, 'P-05'), byId(b, 'P-08')]);
-  kidRule(S(byId(b, 'P-03').friends) === 'tm2025, tom2025', 'a friends list naming old handles was not moved to the new ones', byId(b, 'P-03').friends);
+  kidRule(S(byId(b, 'P-03').friends) === 'tam_kind62, td2345', 'the move wrote to the friends cell, which is kept and never read (10 Nov)', byId(b, 'P-03').friends);
   kidRule(faceOf(S(byId(b, 'P-01').avatar), 'tm2025') === tamFace, 'the move changed the face Tam\'s blank look drew', byId(b, 'P-01').avatar);
   kidRule(S(byId(b, 'P-02').avatar) === CHOSEN, 'the move wrote over a look somebody chose', byId(b, 'P-02').avatar);
   kidRule(!Object.keys(want).some(id => /dove|dunn|sand|grown|lake|cole|cox|admin|ashdown|penn/i.test(got[id])), 'a handle carries a surname', got);

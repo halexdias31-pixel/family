@@ -4,7 +4,7 @@ check('a phone signed in before her handle moved takes the new one from myProfil
   try { b = movedWorld_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
   const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
   if (!signed.success) return ['she could not sign in on the real backend, so NOTHING was asked — ' + JSON.stringify(signed).slice(0, 200)];
-  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42', friends: 'ab_kind11' });
+  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42' });
   const bad = [];
   const toastsIn = win => { const said = []; const obs = new win.MutationObserver(() => {
     const el = win.document.getElementById('toast'); if (el && el.textContent) said.push(el.textContent); });
@@ -18,7 +18,6 @@ check('a phone signed in before her handle moved takes the new one from myProfil
   for (let k = 0; k < 40 && (t.whoami() || {}).handle !== 'ej2345'; k++) await wait(100);
   const u = t.whoami() || {};
   if (u.handle !== 'ej2345') bad.push('the phone still calls her @' + u.handle + ' after myProfile — a moved handle stays stale for thirty days');
-  if (u.friends !== 'ab3456') bad.push('the phone kept the old friends list ' + JSON.stringify(u.friends) + ' — its next save would post names nobody has');
   let said = {};
   try { said = t.handleSaid(); } catch (e) {}
   if (!said || said.text !== 'You were @ella_kind42.' || said.pid !== 'P-EJ') bad.push('the line under her handle does not say who she was — ' + JSON.stringify(said));
@@ -34,50 +33,6 @@ check('a phone signed in before her handle moved takes the new one from myProfil
   if (said2.some(m => /Your handle is/.test(m))) bad.push('the next open said the new handle again — it is said once');
   if (first.errs.length || second.errs.length) bad.push('errors: ' + first.errs.concat(second.errs).slice(0, 3).join(' | '));
   return bad;
-});
-
-/* ---------- AFTER REVIEW, ROUND 1 (docs/history/342): the device's chips, and the two races § */
-function movedWorld3_() {
-  const b = movedWorld_();
-  b.seed('people', [{ person_id: 'P-CD', role: 'student', first_name: 'Cy', last_name: 'Dunn', handle: 'cd4567',
-    pin: '0000', verified: 'TRUE', listed: true, city: 'London', xp: 0, credits: 0, email: '' }]);
-  return b;
-}
-/* SIGNED IN AS ELLA, THE APP OPEN, AND THE `myProfile` IT ASKED AT OPEN HELD until `release()`. */
-async function heldProfileOpen_(b) {
-  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
-  if (!signed.success) throw new Error('she could not sign in on the real backend');
-  let release, held = null;
-  const gate = new Promise(r => { release = r; });
-  const reply = body => {
-    if (body.action === 'myProfile' && !held) { held = b.post(body); return gate.then(() => held); }
-    return b.post(body);
-  };
-  const { w, errs } = boot({ payload: b.get({ token: signed.token }), reply,
-    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(signed)); } });
-  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
-  if (!w.__t) throw new Error('the app did not finish loading');
-  for (let k = 0; k < 60 && !held; k++) await wait(100);
-  if (!held) throw new Error('myProfile was never asked at open, so the race was NOT set up');
-  return { w, t: w.__t, d: w.document, errs, release: () => release() };
-}
-const serverCell_ = (b, pid, col) => JSON.parse(b.ev('JSON.stringify(String(read(TAB.people).rows.find(r => r.person_id === '
-  + JSON.stringify(pid) + ').' + col + ' || ""))'));
-check('a myProfile asked at open and answered after a friend is added keeps the new friend', async () => {
-  let b, o;
-  try { b = movedWorld3_(); o = await heldProfileOpen_(b); } catch (e) { return [e.message]; }
-  o.t.ACTIONS['friend-add-open']();
-  await wait(100);
-  const box = o.d.getElementById('fr-add');
-  if (!box) return ['there is no Add a friend box, so the race was NOT set up'];
-  box.value = 'cd4567';
-  o.t.ACTIONS['friend-add']();
-  for (let k = 0; k < 30 && serverCell_(b, 'P-EJ', 'friends').indexOf('cd4567') === -1; k++) await wait(100);
-  const server = serverCell_(b, 'P-EJ', 'friends');
-  if (server.indexOf('cd4567') === -1) return ['the friend was never saved on the server, so the race was NOT set up: ' + server];
-  o.release(); await wait(1500);
-  const u = o.t.whoami() || {};
-  return String(u.friends) !== server ? ['the server has friends ' + JSON.stringify(server) + ' but after the reply asked at open landed the phone has ' + JSON.stringify(u.friends)] : [];
 });
 
 /* ---------- AFTER REVIEW, ROUND 2 (docs/history/342): A FIGURE NOBODY DRESSED KEEPS ITS FACE § */

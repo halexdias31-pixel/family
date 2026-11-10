@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-10-biz-policy-1";
+const BACKEND_VERSION = "2026-11-10-who-sees-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1131,11 +1131,10 @@ const BRAND_NAME = '@family.';
 /* ---------- WHO MAY MESSAGE WHOM § */
 const MESSAGING = {
   admin:   { admin: true,  tutor: true,  client: true,  student: true  },
-  tutor:   { admin: true,  tutor: true,  client: true,  student: false },
+  /* WHICH ROLES, and `seesPerson_` says which people (10 Nov): a tutor only their own students and parents, a student only their own tutors. */
+  tutor:   { admin: true,  tutor: false, client: true,  student: true  },
   client:  { admin: true,  tutor: true,  client: false, student: false },
-  /* A student may reach an admin and nobody else. Not a restriction on the child so much as a
-     guarantee: whoever they talk to on this site is the person responsible for it. */
-  student: { admin: true,  tutor: false, client: false, student: false },
+  student: { admin: true,  tutor: true,  client: false, student: false },
 };
 
 /* How often anybody may send. § */
@@ -1634,7 +1633,7 @@ const ACTION_ACCESS = {
   photoFile: 'self',
   updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self',
   saveTimetable: 'self',
-  saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
+  saveAvatar: 'self', saveScore: 'self', saveTtHighscore: 'self',
   /* YOUR OWN PICTURE. The handler writes `photo` on the row the token resolved to and nowhere else. */
   savePhoto: 'self',
   /* YOUR OWN CONSOLE PROGRESS (446): one Drive file per person and game, named from the token's row, never another's. */

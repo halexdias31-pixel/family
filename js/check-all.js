@@ -141,8 +141,8 @@ const SUITE = [
   { file: 'check-signin.js', what: 'a child with no email: made, registered, signed in by handle, a new PIN' },
   /* "also side note dont show children's last name."* — the owner, 10 Oct. § */
   { file: 'check-surnames.js', what: 'a child is her first name: no surname in any payload, reply or email, for anybody' },
-  /* WHO SEES WHOM (386): a child siblings and friends, a parent her children — nobody else in the payload. */
-  { file: 'check-visibility.js', what: 'a child sees siblings and friends, never a parent; a parent her children, never a co-parent' },
+  /* WHO SEES WHOM (10 Nov): a student themself and their tutors, a parent their children, a tutor their booked students and parents. */
+  { file: 'check-visibility.js', what: 'a student sees themself and their tutors; a parent her children; a tutor their booked students and their parents; the admin everyone' },
   { file: 'check-kid-prices.js', what: 'a child is sent no rate, price or £, and her money actions ask a parent (398)' },
   { file: 'check-booking-journey.js', what: 'a booking walks from the ask to paid as client, tutor and admin: seat caps, the room, paid through Stripe, the receipt' },
   { file: 'check-pay-return.js', what: 'a card payment coming back from Stripe books once, and a refresh, a typed ref or a child does not (430)' },

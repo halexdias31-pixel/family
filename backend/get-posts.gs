@@ -17,6 +17,8 @@ function getPosts_(meAsked, meAskedId, viewerIsAdmin, vis, opts, payload) {
        fifteen people and ten posts is nothing, but a hundred posts against a growing people
        list is a hundred scans of it for no reason. */
     const faces = {};
+    /* A TUTOR IS PUBLIC (their profile is listed); anybody else is named only to whom may see them (10 Nov). */
+    const open_ = pp => rankAtLeast_(pp, 'staff') || seesPerson_(meAsked ? vis : {}, pp);
     /* And the same people keyed by ID, for the likes — which know a person_id and not a name. § */
     const byId = {};
     read(TAB.people).rows.forEach(pp => {
@@ -35,7 +37,8 @@ function getPosts_(meAsked, meAskedId, viewerIsAdmin, vis, opts, payload) {
         personId: S(pp.person_id),
       };
       /* ONLY WHOM THEY MAY SEE (386): a hidden reactor is not named, a hidden commenter is "Someone"; signed out, only staff are named. */
-      if (S(pp.person_id) && seesPerson_(meAsked ? vis : {}, pp)) byId[S(pp.person_id)] = nameFor_(pp);
+      if (S(pp.person_id) && open_(pp)) byId[S(pp.person_id)] = nameFor_(pp);
+      else faces[key(nm)] = { handle: '', avatar: '', figure: '', personId: '', hidden: true };
     });
     read(TAB.posts).rows.forEach(r => {
       if (!S(r.post_id)) return;
@@ -64,7 +67,8 @@ function getPosts_(meAsked, meAskedId, viewerIsAdmin, vis, opts, payload) {
         author: (function () {
           const a = S(r.author);
           const pp = a ? findPerson(a) : null;
-          return pp && key(personDisplayName(pp)) === key(a) ? nameFor_(pp) : a;
+          if (pp && key(personDisplayName(pp)) === key(a)) return (faces[key(a)] || {}).hidden ? 'Someone' : nameFor_(pp);
+          return a;
         })(),
         handle: who.handle,
         avatar: who.avatar,

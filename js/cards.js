@@ -390,7 +390,6 @@ const KC_DEFAULT = {
   msg: { cls: 'msg-fc', pic: ['msgPic'], title: ['msgWho'], tags: ['msgTags'], lines: ['msgBody', 'msgTiles'], tiles: ['msg-reply:send:Reply'] },
   post: { cls: 'post-fc', pic: ['postPic'], title: [], tags: ['postTags'], lines: ['postBody', 'postTiles'], tiles: ['react:heart:Like'] },
   receipt: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['receiptTags'], lines: ['receiptSum', 'ownLines'], tiles: ['job-pay:pound:Pay'] },
-  friend: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   question: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   answer: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   shop: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: ['cart-add:cart:Buy'] },
@@ -564,9 +563,9 @@ function kcPicOr_(x, html) {
 }
 /* ---------- A CARD NEVER DRAWS ITS OWN INSIDES (owner, 10 Nov): a facts kind hands over words; findCard lays them out one way ---------- */
 /* Before card-fields.json lands: the same `facts` and `icon` columns its rows hold (settings.js reads them into DATA.cardLook). */
-const KC_LOOK_DEFAULT = Object.fromEntries(Object.entries({ receipt: 'pound', friend: '', shop: 'cart', practical: 'tools', project: 'spark', content: 'doc', insert: 'doc', timeline: 'line', fight: 'hand', bible: 'doc', talmud: 'doc', quran: 'doc', worktext: 'doc', hadith: 'doc', writ: 'doc', pdtext: 'doc', orthotext: 'doc', hymn: 'sound', chem: 'spark', soon: 'spark', person: '', setting: 'tools', health: 'tick', offPosts: 'spark', offShop: 'cart', offBooking: 'book' }).map(([k, icon]) => [k, { facts: true, icon }]));
+const KC_LOOK_DEFAULT = Object.fromEntries(Object.entries({ receipt: 'pound', shop: 'cart', practical: 'tools', project: 'spark', content: 'doc', insert: 'doc', timeline: 'line', fight: 'hand', bible: 'doc', talmud: 'doc', quran: 'doc', worktext: 'doc', hadith: 'doc', writ: 'doc', pdtext: 'doc', orthotext: 'doc', hymn: 'sound', chem: 'spark', soon: 'spark', person: '', setting: 'tools', health: 'tick', offPosts: 'spark', offShop: 'cart', offBooking: 'book' }).map(([k, icon]) => [k, { facts: true, icon }]));
 /* WHO HAS A FACE: a person's card keeps its photo or chosen picture; nobody else's is ever a profile picture. */
-const KC_PERSON_KINDS = ['tutor', 'person', 'people', 'friend', 'msg', 'post', 'question', 'answer'];
+const KC_PERSON_KINDS = ['tutor', 'person', 'people', 'msg', 'post', 'question', 'answer'];
 const kcLook_ = kind => ((typeof DATA !== 'undefined' && DATA && DATA.cardLook) || KC_LOOK_DEFAULT)[kind] || {};
 const kcIcon_ = kind => { const n = kcLook_(kind).icon || 'doc'; return `<span class="kc-icon">${typeof tileIcon_ === 'function' ? tileIcon_(n) || tileIcon_('doc') : ''}</span>`; };
 const kcEmpty_ = () => (typeof NOTHING_YET === 'string' ? NOTHING_YET : '');

@@ -203,11 +203,13 @@ rule(JSON.stringify(names) === JSON.stringify(['Wren (@wren_bold44)', 'Wren (@wr
   'two children called Wren are not two threads told apart by their handles in the admin\'s inbox — ' + JSON.stringify(names));
 const ola = get('P-OTH');
 const post = (ola.posts || []).find(p => p.id === 'PO-1') || {};
-rule(post.author === 'Wren (@wren_kind43)', 'her post is not signed with her first name and handle for another parent — ' + JSON.stringify(post.author));
+/* ANOTHER PARENT MAY NOT SEE HER (10 Nov): her post is signed "Someone"; her own tutor and the admin see her first name. */
+rule(post.author === 'Someone', 'her post is signed with her name for a parent who is not hers — ' + JSON.stringify(post.author));
+const admSees = (get('P-ADM').posts || []).find(p => p.id === 'PO-1') || {};
+rule(admSees.author === 'Wren (@wren_kind43)', 'her post is not signed with her first name and handle for the admin — ' + JSON.stringify(admSees.author));
 rule(post.caption === 'Wren (@wren_kind43) and the volcano', 'her whole name typed into a caption was not taken out — ' + JSON.stringify(post.caption));
 /* WHO REACTED, AND THE BOARD, ASKED OF THE TUTOR AND THE ADMIN — another parent is sent no child who is not hers (386). */
-const tutPost = (tut.posts || []).find(p => p.id === 'PO-1') || {};
-const by = ((tutPost.reactions || {}).by || []).map(x => x.name).sort();
+const by = ((admSees.reactions || {}).by || []).map(x => x.name).sort();
 rule(JSON.stringify(by) === JSON.stringify(['Wren (@wren_bold44)', 'Wren (@wren_kind43)']), '"who reacted" does not tell the two Wrens apart — ' + JSON.stringify(by));
 const admB = get('P-ADM');
 const board = (admB.students || []).filter(s => /^Wren/.test(S(s.name))).map(s => s.name + ' ' + s.handle).sort();
@@ -230,7 +232,7 @@ const boardOf = (pay, h) => ((pay.students || []).find(s => s.handle === h) || {
 rule(boardOf(admB, 'juno_kind49') === 'Juno', 'the score board does not call the child who ticked Tutor "Juno" — ' + JSON.stringify(boardOf(admB, 'juno_kind49')));
 rule(boardOf(admB, 'gus_kind51') === 'Gus', 'the score board calls a grown-up who is learning ' + JSON.stringify(boardOf(admB, 'gus_kind51'))
   + ' — it has always said the first name, for everybody on it');
-const juno = tutPost.comments || [];
+const juno = (((tut.posts || []).find(p => p.id === 'PO-1') || {}).comments || {}).list || [];
 rule(JSON.stringify(juno).indexOf('Juno') !== -1, 'her comment is not under the post by her first name for her tutor — ' + JSON.stringify(juno).slice(0, 200));
 const tutorSeats = [].concat(...(tut.clientClasses || []).map(j => (j.slots || []).map(x => S(x.client))));
 ['Juno', 'Kit', 'Ivo'].forEach(n => rule(tutorSeats.indexOf(n) !== -1, 'the tutor\'s roster does not name ' + n + ' by first name — ' + JSON.stringify(tutorSeats)));
