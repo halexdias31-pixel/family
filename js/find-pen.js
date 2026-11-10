@@ -704,7 +704,7 @@ function padCheck_(row, pad) {
   if (!row || !pad || !out) return null;
   const marks = padRead_(pad.getAttribute('data-k')), say = padSay_(marks);
   row.classList.remove('is-right', 'is-near');
-  if (!say) { out.textContent = 'Draw your answer first'; return null; }
+  if (partReady_('draw', say)) { out.textContent = partReady_('draw', say); return null; }
   const art = pad.querySelector('.qpad-art > svg:first-child');
   const r = DRAW_MARK.mark(marks, row.getAttribute('data-draw'), drawFig_(art ? (art.__src || art.outerHTML) : ''), row.getAttribute('data-marks'));
   if (!r) { out.textContent = 'Could not mark it \u2014 try again'; return null; }

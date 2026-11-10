@@ -17,11 +17,9 @@ on('qp-ai', (el) => {
   const seen = (rec.strokes || []).length > 0 || rec.photos > 0;
   let reads = false;
   try { reads = (DATA.features || []).indexOf('aiMarkImages') !== -1; } catch (e) { reads = false; }
-  if (!inp.value.trim() && !(seen && reads)) {
-    /* a backend not yet pulled reads only the box: the drawing and photos are working beside it */
-    out.textContent = seen ? 'Write your answer in the box too \u2014 the drawing and photos are your working' : 'Write something first';
-    return;
-  }
+  /* a backend not yet pulled reads only the box: the drawing and photos are working beside it */
+  const notYet = partReady_('ai', { typed: inp.value, seen, reads });
+  if (notYet) { out.textContent = notYet; return; }
   if (typeof USER !== 'object' || !USER || !USER.token) { out.textContent = 'Sign in to have it marked'; return; }
   const x = x0;
   if (!x) { out.textContent = 'Could not find this question'; return; }

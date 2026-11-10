@@ -726,6 +726,27 @@ function markPart_(x, typed) {
   return String(typed == null ? '' : typed).trim() ? { ai: true } : null;
 }
 
+/* ---------- IS THIS ANSWER READY TO SEND: one table, a row per answer surface -- what it holds counts as an answer, and what is said when it does not. */
+const qTrim_ = v => String(v == null ? '' : v).trim();
+const PART_READY = {
+  /* typed boxes: options, order, values, fractions, words -- `markPart_` reads them all */
+  typed: { has: a => !!qTrim_(a), say: () => 'Write something first' },
+  /* a table's or a sort's cells: one cell the marker can read */
+  cells: { has: m => !!m && (m.each || []).some(v => v === true || v === false), say: () => 'Fill a cell first' },
+  /* the pen: some ink the drawing marker can read (`padSay_`) */
+  draw: { has: said => !!said, say: () => 'Draw your answer first' },
+  /* the AI: the box, or a drawing or photos where the backend reads images */
+  ai: { has: a => !!qTrim_(a.typed) || (a.seen && a.reads),
+        say: a => a.seen ? 'Write your answer in the box too \u2014 the drawing and photos are your working' : 'Write something first' },
+  /* photos of working: at least one page */
+  photo: { has: pics => (pics || []).length > 0, say: () => 'Take a photo of your working first' },
+};
+/* '' WHEN READY, else what to say: the one test every Check and Send asks before it marks or sends */
+function partReady_(kind, a) {
+  const r = PART_READY[kind] || PART_READY.typed;
+  return r.has(a) ? '' : r.say(a);
+}
+
 /* AN ORDERING: its options are typed in order, as letters (`choicePicks_`). */
 
 function orderIs_(x) {
