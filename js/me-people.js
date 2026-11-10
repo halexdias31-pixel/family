@@ -6,7 +6,7 @@ function peopleAddPage_(col) {
   if (F && !F.id && F.made) {
     return `<div class="card person-made"><h3>${esc(F.made.first)} is on the people tab</h3>
       ${pinSlip_(F.made.first, F.made.handle, F.made.pin)}
-      <p class="faint">Write it down or read it to them — the PIN is not shown again.</p>
+      <p class="note">Write it down or read it to them — the PIN is not shown again.</p>
       ${tile_({ form: true, label: 'Done', act: 'person-cancel', kind: 'quiet' })}</div>`;
   }
   if (F && !F.id) return personFormHtml_(F);
@@ -32,7 +32,7 @@ function psCard_(who, tiles) {
   return `<div class="ps-hit">
     ${personFace_({ pic: who.image, avatar: who.avatar, handle: who.handle, name: first, personId: who.personId },
                   { cls: 'kid-face', none: 'prof-none', size: 36 })}
-    <p class="kid-who"><b>${esc(first)}</b><span class="prof-handle">@${esc(who.handle)}</span>${who.role ? `<span class="faint ps-role">${esc(who.role)}</span>` : ''}</p>
+    <p class="kid-who"><b>${esc(first)}</b><span class="prof-handle">@${esc(who.handle)}</span>${who.role ? `<span class="qtag ps-role">${esc(who.role)}</span>` : ''}</p>
     ${tiles ? `<div class="tile-row">${tiles}</div>` : ''}
   </div>`;
 }
@@ -53,7 +53,7 @@ function psResults_(col) {
       linked ? '' : tile_({ icon: 'join', label: 'Add as my child', note: 'they say yes first', act: 'ps-add-child',
                             data: { handle: c.handle } })));
   }
-  if (!out.length) out.push(`<p class="faint ps-none">${exact ? 'Nobody has that handle.' : 'Nobody’s handle starts with that.'}</p>`);
+  if (!out.length) out.push(`<p class="note ps-none">${exact ? 'Nobody has that handle.' : 'Nobody’s handle starts with that.'}</p>`);
   return out.join('');
 }
 /* ONE SEARCH BAR AND NOTHING ELSE (469, 770): the owner, "remove find button" — Return asks, on Students, for a child's exact handle. */
@@ -122,7 +122,7 @@ function personFormHtml_(F) {
   if (!F.data) {
     if (!F.asked && !F.err) { F.asked = true; setTimeout(() => personFetch_(F), 0); }
     return `<div class="card person-form" data-pid="${esc(F.id)}">${head}${F.err
-      ? `<p class="faint">${esc(F.err)}</p>${tile_({ form: true, label: 'Close', act: 'person-cancel', kind: 'quiet' })}` : loading_()}</div>`;
+      ? `<p class="note">${esc(F.err)}</p>${tile_({ form: true, label: 'Close', act: 'person-cancel', kind: 'quiet' })}` : loading_()}</div>`;
   }
   const p = F.data.person || { firstName: '', lastName: '', roles: [F.role || 'student'], email: '', dob: '', parentIds: [] };
   const choices = Array.isArray(F.data.parents) ? F.data.parents : [];
@@ -133,18 +133,18 @@ function personFormHtml_(F) {
     autocomplete="off"${type ? ` type="${type}"` : ''} value="${esc(v || '')}"`));
   return `<div class="card person-form" data-pid="${esc(F.id)}">${head}
     <div class="f-row" style="--n:2">${box('first', 'First name', p.firstName)}${box('last', 'Last name', p.lastName)}</div>
-    ${F.id && p.handle ? `<p class="faint pf-handle">Their handle stays @${esc(p.handle)}.</p>` : ''}
+    ${F.id && p.handle ? `<p class="note pf-handle">Their handle stays @${esc(p.handle)}.</p>` : ''}
     <div class="pf-roles" role="group" aria-label="Role">${peopleRolePicks_().map(([r, label]) => formTick_(`data-pf-role="${r}"${(p.roles || []).indexOf(r) !== -1 ? ' checked' : ''}`, `<span>${label}</span>`)).join('')}</div>
     ${box('email', 'Email (optional)', p.email, 'email')}
     ${formLine_('Date of birth (optional)', formInput_(`type="date" data-pf="dob" value="${esc(p.dob || '')}"`))}
     <div class="pf-parents"${kid ? '' : ' hidden'}>
-      ${has.length ? '<p class="faint pf-note">Their parents — untick one to unlink.</p>' : ''}
+      ${has.length ? '<p class="note pf-note">Their parents — untick one to unlink.</p>' : ''}
       ${has.map(id => formTick_(`data-pf-parent="${esc(id)}" checked`, `<span>${esc(nameOf(id))}</span>`)).join('')}
       ${formLine_(has.length ? 'Another parent' : 'Their parent (optional)', formSelect_('data-pf="parent"', `
         <option value="">None</option>${choices.filter(c => has.indexOf(c.personId) === -1).map(c =>
           `<option value="${esc(c.personId)}">${esc(c.name)}</option>`).join('')}`))}
     </div>
-    <p class="faint pf-said" aria-live="polite"></p>
+    <p class="note pf-said" aria-live="polite"></p>
     <div class="pf-go">${tile_({ form: true, label: F.id ? 'Save' : 'Add them', act: 'person-save' })}
       ${tile_({ form: true, label: 'Cancel', act: 'person-cancel', kind: 'quiet' })}</div>
   </div>`;
@@ -238,7 +238,7 @@ on('pin-show', el => {
       if (!d || !row.isConnected) return;
       pinHideAll_();
       const line = document.createElement('p');
-      line.className = 'faint person-pin';
+      line.className = 'note person-pin';
       line.setAttribute('data-id', id);
       line.innerHTML = d.pin ? 'PIN <b>' + esc(d.pin) + '</b>' : esc(d.said || 'No PIN');
       row.after(line);

@@ -556,7 +556,7 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
   const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
   const card = box(w.stuffCard(x));
   if (tagF(card, 'projectType') !== 'Coursework') bad.push('the coursework card is tagged "' + tagF(card, 'projectType') + '", not [Coursework]');
-  const sub = (card.querySelector('.sub') || {}).textContent || '';
+  const sub = (card.querySelector('.note') || {}).textContent || '';
   const wantBoard = typeof raw.exam_board === 'string' ? raw.exam_board.trim() : '';
   const wantSpec = typeof raw.spec_ref === 'string' ? raw.spec_ref.trim() : '';
   if (!wantBoard) bad.push(x.row.id + ' names no exam_board in data/projects.json, so the strip was NOT checked — check-projects requires one on a coursework');

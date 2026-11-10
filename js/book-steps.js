@@ -11,7 +11,7 @@
 function bookBlocks() {
   if (!USER) {
     return [`<div class="card"><h3>Booking</h3>
-      <p class="sub">Sign in to book — your account is a few screens to the right.</p></div>`];
+      <p class="note">Sign in to book — your account is a few screens to the right.</p></div>`];
   }
   /* ---------- THE FORM, THEN WHAT IS ALREADY BOOKED, THEN WHAT IS FINISHED § */
   /* ---------- THE FORM, AND ONLY THE FORM, AGAIN § */

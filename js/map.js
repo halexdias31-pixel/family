@@ -66,7 +66,6 @@ const WIDGETS = [
     into: 'feed-screen', what: 'This',
     html: `<div class="card">
     <h3>One more thing</h3>
-    <p class="sub">Something worth knowing. Tap for another.</p>
     <div id="feed-screen" class="feed" data-do="feed-tap"></div>
   </div>` },
 
@@ -134,7 +133,6 @@ const WIDGETS = [
     into: 'docket-body', what: 'The docket',
     html: `<div class="card">
     <h3>Docket</h3>
-    <p class="sub">What there is to do. Tick it off as you go.</p>
     <div id="docket-body"></div>
     <div class="dock-new">
       <input id="dock-add" placeholder="Add a line…" autocomplete="off">
@@ -164,7 +162,6 @@ const WIDGETS = [
     into: 'sr-text', what: 'The speed reader',
     get html() { return `<div class="card">
     <h3>Speed reader</h3>
-    <p class="sub">Paste anything; it is shown a word at a time, the eye kept still on the gold letter.</p>
     <textarea id="sr-text" placeholder="Paste text to read…"></textarea>
     ${/* A TILE, NOT A BUTTON (720): Read is the thing's action, so it is a tile in a row under it (house style). */''}<div class="tile-row">${tile_({ icon: 'play', label: 'Read it', act: 'sr-read' })}</div>
   </div>`; } },

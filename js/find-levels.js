@@ -622,7 +622,7 @@ let BOOK_OPEN = false;
 /* THE BOOKING FORM TAG: the form itself once that tag is chosen; under plain Booking the Book tile above opens it, so this card only points there. */
 function bookFormCard_() {
   const alone = (STUFF.filters || []).some(f => f.field !== DOOR_FIELD);
-  if (!alone) return `<div class="card book-form-door"><h3>Booking form</h3><p class="sub">${esc(brand('book_form_say', 'Book a session: who, where, what and when.'))}</p>${
+  if (!alone) return `<div class="card book-form-door"><h3>Booking form</h3>${
     tileRow_(tile_({ icon: 'book', label: 'Book', act: 'book-open', cls: 'primary' }), 'book-top')}</div>`;
   if (typeof awaiting_ === 'function' && awaiting_()) return loading_();
   return (typeof bookBlocks === 'function' ? bookBlocks() : [])[0] || '';
@@ -632,7 +632,7 @@ const jobRoomForm_ = j => `<div class="rc-form room-form">
     <label class="field"><span>the room in the venue — the family sees it</span>
       <input class="room-name" value="${esc(j.room || '')}" autocomplete="off"></label>
     <div class="btn-row">${tile_({ form: true, label: 'Save the room', act: 'job-room', data: { id: String(j.id) } })}</div>
-    <p class="faint room-said" aria-live="polite"></p></div>`;
+    <p class="note room-said" aria-live="polite"></p></div>`;
 on('job-room', el => {
   const f = el.closest('.room-form');
   const room = ((f && (f.querySelector('.room-name') || {}).value) || '').trim();

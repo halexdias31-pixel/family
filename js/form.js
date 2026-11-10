@@ -59,7 +59,7 @@ function formCard_(spec) {
   const boxes = (s.boxes || []).map(formBox_).join('');
   const ticks = (s.toggles || []).map(formToggle_).join('');
   const save = s.save && s.save.act ? tile_(s.save) : s.save;
-  const after = (s.said ? `<p class="faint" id="${esc(s.said)}"></p>` : '') + (s.after || '');
+  const after = (s.said ? `<p class="note" id="${esc(s.said)}"></p>` : '') + (s.after || '');
   const card = { title: s.title, cls: s.cls, attrs: s.attrs, lead: s.lead, save: save, after: after };
   if (s.groups) return setCard_(Object.assign(card, { form: fields, formAttrs: s.formAttrs, foot: s.foot }));
   return setCard_(Object.assign(card, { body: (s.body || '') + boxes + ticks + (s.tail || '') }));

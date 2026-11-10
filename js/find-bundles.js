@@ -222,7 +222,7 @@ function bundleCard_(b) {
   const inCart = bundleInCart_(b);
   const off = b.papers.filter(p => !p.ok);
   const note = b.noun + ' · ' + bundlePriceLine_(b);
-  const pp = p => p.pages ? ` <span class="mono faint">${p.pages}pp</span>` : '';
+  const pp = p => p.pages ? ` <span class="mono qtag">${p.pages}pp</span>` : '';
   /* ONE LINE PER GROUP WHEN IT IS GROUPED — a sitting, a tier, or both — one per paper when it is
      not. Numbered either way: the count down the edge is how many LINES, and the title already says
      how many papers. */

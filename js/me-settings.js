@@ -187,7 +187,7 @@ function photoShelf_(list, value, o) {
         <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : ''}</span>
         ${fieldHtml('photos_' + i, v, { placeholder: 'Photo', draft: (o || {}).draft, extra: 'type="hidden"' })}
         <div class="tile-row">${tile_({ icon: 'plus', label: v ? 'Change photo' : 'Choose photo', act: 'ph-pick' })}${shelfDrop_('photo')}</div>
-        <p class="faint ph-said"></p>${formFile_('ph-in', 'image/*')}
+        <p class="note ph-said"></p>${formFile_('ph-in', 'image/*')}
       </div>`;
     }, 'photo')}</div>`;
 }
@@ -266,7 +266,7 @@ function photoPicker_(value, said, o) {
       </div>
     </div>
     <div class="pfp-grid" role="group" aria-label="Or choose a picture">${Object.keys(PFP_ART).map(opt).join('')}</div>
-    <p class="faint pfp-said">${esc(said || pfpSaid_(v))}</p>
+    <p class="note pfp-said">${esc(said || pfpSaid_(v))}</p>
     ${uiMay_('upload-photo') ? formFile_('pfp-in', 'image/*') : ''}
   ${fold ? '</details>' : '</div>'}`;
 }
@@ -485,7 +485,7 @@ function libCardsDraw_(into) {
   }
   const p = USER.profile || {};
   into.innerHTML = `<div class="me-form">${libraryShelf_(list, f => p[f] ?? '')}
-    <p class="faint me-said"></p></div>`;
+    <p class="note me-said"></p></div>`;
 }
 function initLibCards_() { libCardsDraw_($('lib-box')); }
 /* EVERY COPY ON THE PAGE — Tools' and, starred, Saved's — for `myProfile` landing (`profileRefresh_`): § */
@@ -879,7 +879,7 @@ function videoPicker_(value, said) {
     ${id ? `<div class="vid-frame"><iframe src="${esc(introSrc_(id))}" title="Your intro video" loading="lazy" allow="autoplay; fullscreen" allowfullscreen></iframe></div>` : ''}
     <div class="tile-row">${tile_({ icon: 'plus', label: id ? 'Change video' : 'Upload video', note: 'about a minute', act: 'vid-pick' })}${
       tile_({ icon: 'bin', label: 'Remove', act: 'vid-remove', off: !id })}</div>
-    <p class="faint vid-said">${esc(said || (id ? 'Parents can watch this on your card.' : 'A short clip saying hello: about a minute, 100 MB at most.'))}</p>
+    <p class="note vid-said">${esc(said || (id ? 'Parents can watch this on your card.' : 'A short clip saying hello: about a minute, 100 MB at most.'))}</p>
     ${formFile_('vid-in', 'video/*')}
   </div>`;
 }

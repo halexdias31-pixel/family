@@ -11,7 +11,7 @@ function oopsDevice_() {
   } catch (e) { return 'nostore'; }
 }
 function oopsHtml_() {
-  return '<div class="card oops"><h3>This part did not load</h3><p class="sub">The rest of the app is fine.</p></div>';
+  return '<div class="card oops"><h3>This part did not load</h3><p class="note">The rest of the app is fine.</p></div>';
 }
 function oops_(err, where, host, o) {
   o = o || {};
@@ -110,7 +110,7 @@ function tierOff_(w) {
   Object.defineProperty(w, 'html', { configurable: true, enumerable: true, get() {
     const say = typeof brand === 'function' ? brand('widgetOff', 'Coming soon') : 'Coming soon';
     const sug = typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), name) : '';
-    return `<div class="card widget-off"><h3>${esc(name)}</h3><p class="sub">${esc(say)}</p>${sug ? `<div class="tile-row">${sug}</div>` : ''}</div>`;
+    return `<div class="card widget-off"><h3>${esc(name)}</h3><p class="note">${esc(say)}</p>${sug ? `<div class="tile-row">${sug}</div>` : ''}</div>`;
   } });
   try { Object.defineProperty(w, '__tier', { value: 'off' }); } catch (e) { /* a frozen widget is still off */ }
 }
@@ -569,7 +569,7 @@ function paint(id, fresh, o) {
     oops_(err, 'draw:' + id);
     el.innerHTML = `<div class="pane"><div class="card">
         <h3>This screen did not draw</h3>
-        <p class="faint">The rest of the app is fine — swipe across. If a file did not load, the
+        <p class="note">The rest of the app is fine — swipe across. If a file did not load, the
           banner at the top says which.</p>
       </div></div>`;
     return;

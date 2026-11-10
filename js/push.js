@@ -81,7 +81,7 @@ async function pushOff_() {
 function pushCard_() {
   if (typeof USER === 'undefined' || !USER) return '';
   pushLoad_();
-  const row = h => `<p class="sub">${h}</p>`;
+  const row = h => `<p class="note">${h}</p>`;
   const S0 = PUSH.state, admin = isAdmin();
   /* THE ONE LINE SAYING WHAT IT IS is the card's `say` below, drawn by the layout. */
   let body = '';
@@ -109,7 +109,7 @@ function pushCard_() {
       + tileRow_(tile_({ icon: 'mute', label: 'Turn off', note: 'on this device', act: 'push-off' }), '', true);
   }
   if (PUSH.busy) body += loading_();
-  return `<div class="card push-card"><h3>Notifications</h3>${body}${PUSH.err ? `<p class="faint push-err">${esc(PUSH.err)}</p>` : ''}</div>`;
+  return `<div class="card push-card"><h3>Notifications</h3>${body}${PUSH.err ? `<p class="note push-err">${esc(PUSH.err)}</p>` : ''}</div>`;
 }
 on('push-on', () => pushOn_());
 on('push-off', () => pushOff_());

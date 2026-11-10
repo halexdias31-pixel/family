@@ -708,7 +708,7 @@ function libItemByKey_(k) {
 /* WHAT A WAITING CARD SAYS UNDER ITS TAGS: sign in, the dots, or why it did not come and Try again. */
 function libSay_(x) {
   if (typeof USER === 'undefined' || !USER || !USER.token) {
-    return '<p class="sub lib-sign">Sign in to see this — your account is a few screens to the right.</p>';
+    return '<p class="note lib-sign">Sign in to see this — your account is a few screens to the right.</p>';
   }
   /* A CARD NEWER THAN ITS WORDS (`lib_pending`, docs/library.md): the Ledger has not had them imported yet. */
   if (libIdsFor_(x).some(t => LIB.gone.has(t))) return empty_(x && x.row && (x.row.pending === true || libTrue(x.row.lib_pending)) ? 'Coming soon.' : 'Not in the library yet.');

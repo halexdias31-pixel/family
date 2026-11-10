@@ -206,7 +206,7 @@ function friendCard_(x) {
         <span class="thing-pic art">${personFace_({ pic: f.image || f.photo, handle: f.handle, name: x.name, personId: f.personId }, { size: 44 })}</span>
         <div class="thing-body">
           <h3>${esc(x.name)}</h3>
-          <p class="sub">${esc(f.handle)}${f.name ? ' · level ' + levelFromXp(xp) : ''}</p>
+          <p class="note">${esc(f.handle)}${f.name ? ' · level ' + levelFromXp(xp) : ''}</p>
         </div>
         ${/* A BUTTON, NOT A SPAN — the fourth one of these. § */
               ''}
@@ -274,7 +274,7 @@ function soonItems_() {
   return cols.concat(ws, set).map(x => Object.assign(x, { text: [x.name, x.sub].join(' ') }));
 }
 function soonCard_(x) {
-  return `<div class="card soon-card"><h3>${esc(x.name)}</h3>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}<p class="sub">${esc(brand('comingSoon', 'Coming soon'))}</p></div>`;
+  return `<div class="card soon-card"><h3>${esc(x.name)}</h3>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}<p><span class="qtag">${esc(brand('comingSoon', 'Coming soon'))}</span></p></div>`;
 }
 
 /* The card a resource and a shop row share. Named rather than written twice, because the two
@@ -325,10 +325,10 @@ function thingCard_(x, credits) {
                 ''}
           ${/* WHO IT IS FROM, FIRST. § */
                 ''}
-          ${isShop_(x) ? '' : `<p class="sub">${x.company
+          ${isShop_(x) ? '' : `<p class="note">${x.company
             ? `${mark(x.company)}${x.sub || x.subject ? ' ' : ''}` : ''}${
             mark(x.sub || x.subject || '')}${yearOf(x)
-            ? ` <span class="mono faint">· ${esc(yearOf(x))}</span>` : ''}${x.wearable && x.slot
+            ? ` <span class="mono qtag">· ${esc(yearOf(x))}</span>` : ''}${x.wearable && x.slot
             /* WHERE IT GOES. Until there are drawings, the slot is the only thing on the card that
                says what the object actually is — "Cape · shoulders" is a garment and "Cape" on its
                own is a word. */
