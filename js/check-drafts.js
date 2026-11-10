@@ -99,6 +99,7 @@ const EXEMPT = [
   { file: 'me.js', fn: 'area', has: 'data-app="${k}"', why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
   { file: 'me.js', fn: 'applyFormHtml_', has: 'data-app="dbsNeeded"', why: 'the application to teach (400) — a tick in the sheet sent with it' },
   { file: 'me.js', fn: 'applyFormHtml_', has: 'data-app="consent"', why: 'the application to teach (400) — a tick in the sheet sent with it' },
+  { file: 'me.js', fn: 'applyFormHtml_', has: 'data-app="dbsUpdate"', why: 'the application to teach (400) — the DBS Update Service tick, sent with it' },
   { file: 'staff.js', fn: 'agreementCard_', has: 'agree-sign', why: 'acts the moment it is ticked (`agree-sign`) — nothing waits between the tick and the server' },
   { file: 'push.js', fn: 'pushCard_', has: 'data-push-kind', why: 'a phone-notification tick is a `pushSet` the moment it is ticked and the card is redrawn from the server\'s answer — no Save to wait for, nothing half-made on the device (492)' },
   { file: 'form.js', fn: 'formToggle_', has: 'data-do="${esc(t.act)}"', why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },

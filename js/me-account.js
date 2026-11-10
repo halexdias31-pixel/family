@@ -188,6 +188,16 @@ function applyTile_() {
     return tileRow_(tile_({ icon: 'join', label: 'Application sent', note: st === 'interview' ? 'we will arrange a talk' : 'we will be in touch', act: 'apply-open', off: true }), 'apply-tiles');
   return tileRow_(tile_({ icon: 'join', label: st === 'declined' ? 'Apply again' : 'Apply to teach', note: st === 'approved' ? 'approved' : '', act: 'apply-open' }), 'apply-tiles');
 }
+/* THE DOCUMENT PHOTOS PICKED SO FAR, as 1200px JPEG data URLs by slot (idDoc, rtwDoc, qual0…): sent with the form, kept nowhere else. */
+const APPLY_DOCS = {};
+const APPLY_QUAL_SLOTS = 3;
+/* WHAT THE FORM HAS ALREADY: name, email, phone and date of birth from the account, so an applicant types them once. */
+function applyKnown_() {
+  const q = (USER && USER.profile) || {};
+  const pad = n => String(n).padStart(2, '0');
+  const dob = Number(q.dob_y) > 1900 ? q.dob_y + '-' + pad(Number(q.dob_m) || 1) + '-' + pad(Number(q.dob_d) || 1) : '';
+  return { fullName: [q.first_name, q.last_name].filter(Boolean).join(' '), email: q.email || '', phone: q.phone || '', dob };
+}
 function applyFormHtml_() {
   const noOther = h => h.replace(`<option value="${QUAL_OTHER}">Something else…</option>`, '');
   const rows = Array.from({ length: APP_SUBJECT_ROWS }, (_, i) => `<div class="q-row">
@@ -195,28 +205,64 @@ function applyFormHtml_() {
       ${noOther(qualPick_(`data-app-level="${i}"`, '', QUAL_LEVELS, 'Level', 'Choose'))}</div>`).join('');
   const codes = typeof availCodes_ === 'function' ? availCodes_() : [];
   const week = codes.length ? availGrid_(codes, {}, [], false) : '';
-  const box = (k, label, o) => formLine_(label, formInput_(`data-app="${k}" autocomplete="off"${(o && o.type) ? ` type="${o.type}"` : ''}${(o && o.ph) ? ` placeholder="${esc(o.ph)}"` : ''}`));
+  const known = applyKnown_();
+  const box = (k, label, o) => formLine_(label, formInput_(`data-app="${k}" autocomplete="off"${(o && o.type) ? ` type="${o.type}"` : ''}${
+    (o && o.ph) ? ` placeholder="${esc(o.ph)}"` : ''}${known[k] ? ` value="${esc(known[k])}"` : ''}${(o && o.more) ? ' ' + o.more : ''}`));
   const area = (k, label) => formLine_(label, formArea_(`data-app="${k}" rows="3"`));
+  /* ONE LINE PER DOCUMENT: its name, a Choose photo button, and what was picked. */
+  const doc = (k, label) => `<div class="field apply-doc" data-doc="${k}"><span>${esc(label)}</span>
+      <div class="btn-row">${tile_({ form: true, kind: 'quiet', label: APPLY_DOCS[k] ? 'Change photo' : 'Choose photo', act: 'apply-pick' })}</div>
+      <p class="note apply-doc-said">${APPLY_DOCS[k] ? 'Photo ready.' : ''}</p>${formFile_('apply-in', 'image/*')}</div>`;
+  const ref = n => `<div class="f-row" style="--n:2">${box(`ref${n}Name`, 'name')}${box(`ref${n}Relationship`, 'relationship to you')}</div>
+    <div class="f-row" style="--n:2">${box(`ref${n}Email`, 'email', { type: 'email' })}${box(`ref${n}Phone`, 'phone', { type: 'tel' })}</div>`;
   return `<div class="me-form app-form">
+    <h4>You</h4>
+    ${box('fullName', 'full name')}
+    <div class="f-row" style="--n:2">${box('phone', 'phone', { type: 'tel' })}${box('email', 'email', { type: 'email' })}</div>
+    ${area('address', 'home address')}
+    <div class="f-row" style="--n:2">${box('postcode', 'postcode', { more: 'autocapitalize="characters"' })}${box('dob', 'date of birth', { type: 'date' })}</div>
+    <h4>Documents</h4>
+    ${doc('idDoc', 'photo ID — passport or driving licence')}
+    ${formLine_('right to work in the UK', formSelect_('data-app="rightToWork"', '<option value="">Choose</option><option value="yes">Yes</option><option value="no">No</option>'))}
+    ${doc('rtwDoc', 'right-to-work document — passport, share code or visa')}
     <h4>What you teach</h4>${rows}
     ${area('qualifications', 'qualifications — degrees, teaching qualifications, anything relevant')}
+    ${Array.from({ length: APPLY_QUAL_SLOTS }, (_, i) => doc('qual' + i, i ? 'another qualification certificate (optional)' : 'a qualification certificate')).join('')}
+    ${box('rate', 'hourly rate (£)', { type: 'number', more: 'min="1" step="0.5" inputmode="decimal"' })}
     <h4>Checks</h4>
-    <div class="f-row" style="--n:2">${box('dbsNumber', 'DBS certificate number')}${box('dbsIssued', 'issued on', { type: 'date' })}</div>
+    <div class="f-row" style="--n:2">${box('dbsNumber', 'enhanced DBS certificate number')}${box('dbsIssued', 'issued on', { type: 'date' })}</div>
+    ${formTick_('data-app="dbsUpdate"', '<span>I consent to you checking it on the DBS Update Service</span>')}
     ${formTick_('data-app="dbsNeeded"', '<span>I need a DBS check</span>')}
-    ${formLine_('right to work in the UK', formSelect_('data-app="rightToWork"', '<option value="">Choose</option><option value="yes">Yes</option><option value="no">No</option>'))}
-    <h4>You</h4>
-    ${area('experience', 'experience')}
+    <h4>When and where</h4>
     ${week ? `<div class="app-week">${week}</div>` : area('availability', 'when you can teach')}
     ${box('area', 'area and venues you can reach')}
+    ${area('experience', 'experience')}
     <h4>2 references</h4>
-    <div class="f-row" style="--n:2">${box('ref1Name', 'name')}${box('ref1Contact', 'email or phone')}</div>
-    <div class="f-row" style="--n:2">${box('ref2Name', 'name')}${box('ref2Contact', 'email or phone')}</div>
+    ${ref(1)}
+    ${ref(2)}
     ${area('statement', 'a short statement — why you want to teach')}
     ${box('cvLink', 'CV link (optional)', { ph: 'https://…', type: 'url' })}
-    ${formTick_('data-app="consent"', '<span>I agree to @family. keeping these details to consider my application, contacting my referees and checking my DBS.</span>')}
+    ${formTick_('data-app="consent"', '<span>I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS.</span>')}
     <div class="btn-row">${tile_({ form: true, label: 'Send my application', act: 'apply-send' })}</div>
     <p class="note me-said apply-said" aria-live="polite"></p>
   </div>`;
+}
+/* WHAT IS STILL MISSING, in the backend's words (`postApplyTeach_` asks the same), so the phone says it before anything is sent. */
+function applyMissing_(b) {
+  const mail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || '');
+  const refOk = n => b['ref' + n + 'Name'] && b['ref' + n + 'Relationship'] && mail(b['ref' + n + 'Email']) && b['ref' + n + 'Phone'];
+  return [
+    [b.fullName, 'your full name'], [b.phone, 'your phone number'], [mail(b.email), 'your email address'],
+    [b.address && /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i.test(b.postcode || ''), 'your home address and postcode'],
+    [/^\d{4}-\d\d-\d\d$/.test(b.dob || ''), 'your date of birth'], [b.idDoc, 'a photo of your ID'],
+    [b.rtwDoc, 'a photo of your right-to-work document'], [b.subjects, 'the subjects and levels you teach'],
+    [b.qualifications && b.qualDocs.length, 'your qualifications, listed and with at least one photo'],
+    [b.rightToWork, 'whether you have the right to work in the UK'],
+    [b.dbsNeeded || (b.dbsNumber && b.dbsUpdate), 'your enhanced DBS number and the Update Service tick, or "I need one"'],
+    [refOk(1) && refOk(2), '2 references, each with a name, relationship, email and phone'],
+    [b.availability, 'when you can teach'], [Number(b.rate) > 0, 'your hourly rate'], [b.statement, 'a short statement'],
+    [b.consent, 'the consent tick'],
+  ].filter(x => !x[0]).map(x => x[1]);
 }
 /* MAY THIS ACCOUNT FILL THE FORM NOW: an adult with no application waiting. The form is in its card from the start (no sheet, owner 8 Nov). */
 function applyFormOpen_() {
@@ -225,6 +271,24 @@ function applyFormOpen_() {
   return st !== 'new' && st !== 'interview';
 }
 on('apply-open', () => { const f = document.querySelector('.apply-card .app-form'); if (f) f.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
+on('apply-pick', el => { const d = el.closest('.apply-doc'), inp = d && d.querySelector('.apply-in'); if (inp) inp.click(); });
+document.addEventListener('change', e => {
+  const inp = e.target;
+  if (!inp || !inp.matches || !inp.matches('.apply-in')) return;
+  const file = (inp.files || [])[0], slot = inp.closest('.apply-doc');
+  inp.value = '';
+  if (!file || !slot) return;
+  const said = slot.querySelector('.apply-doc-said'), say = m => { if (said) said.textContent = m; };
+  if (!/^image\//.test(file.type || '')) { say('That is not a picture. Take a photo of the document.'); return; }
+  say('Getting the photo ready…');
+  photoShrink_(file).then(data => {
+    if (!data || !/^data:image\//.test(data)) { say('The phone could not read that photo. Try another.'); return; }
+    APPLY_DOCS[slot.dataset.doc] = data;
+    const b = slot.querySelector('[data-do="apply-pick"]');
+    if (b) b.textContent = 'Change photo';
+    say('Photo ready.');
+  }).catch(() => say('The phone could not read that photo. Try another.'));
+});
 on('apply-send', el => {
   const f = el.closest('.app-form');
   if (!f || !USER) return;
@@ -235,12 +299,19 @@ on('apply-send', el => {
   }).filter(Boolean).join(', ');
   const hours = [].filter.call(f.querySelectorAll('.app-week input[type="checkbox"]'), b => b.checked).map(b => b.dataset.me).join(',');
   const body = { action: 'applyTeach', personId: (USER && USER.personId) || '', subjects, qualifications: v('qualifications'), dbsNumber: v('dbsNumber'), dbsIssued: v('dbsIssued'),
-    dbsNeeded: v('dbsNeeded'), rightToWork: v('rightToWork'), experience: v('experience'), availability: hours || v('availability'),
-    area: v('area'), ref1Name: v('ref1Name'), ref1Contact: v('ref1Contact'), ref2Name: v('ref2Name'), ref2Contact: v('ref2Contact'),
+    dbsNeeded: v('dbsNeeded'), dbsUpdate: v('dbsUpdate'), rightToWork: v('rightToWork'), experience: v('experience'), availability: hours || v('availability'),
+    area: v('area'), fullName: v('fullName'), phone: v('phone'), email: v('email'), address: v('address'), postcode: v('postcode'), dob: v('dob'), rate: v('rate'),
+    ref1Name: v('ref1Name'), ref1Relationship: v('ref1Relationship'), ref1Email: v('ref1Email'), ref1Phone: v('ref1Phone'),
+    ref2Name: v('ref2Name'), ref2Relationship: v('ref2Relationship'), ref2Email: v('ref2Email'), ref2Phone: v('ref2Phone'),
+    idDoc: APPLY_DOCS.idDoc || '', rtwDoc: APPLY_DOCS.rtwDoc || '',
+    qualDocs: Array.from({ length: APPLY_QUAL_SLOTS }, (_, i) => APPLY_DOCS['qual' + i]).filter(Boolean),
     statement: v('statement'), cvLink: v('cvLink'), consent: v('consent') };
+  const gap = applyMissing_(body);
+  if (gap.length) { const said = f.querySelector('.apply-said'); if (said) said.textContent = 'Please add ' + gap.join(', ') + '. Nothing was sent.'; return; }
   send_(body, { button: el, where: f.querySelector('.apply-said'), saying: 'Sending…' })
     .then(d => {
       USER.application = d.application || { status: 'new', at: Date.now() };
+      Object.keys(APPLY_DOCS).forEach(k => { delete APPLY_DOCS[k]; });
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
       toast('Application sent');
       try { paint('staff'); } catch (e) { oops_(e, 'me:applyFormHtml_') }

@@ -400,8 +400,17 @@ const CARD_ADA_ = { headline: 'Maths, mostly', rate_per_hour: 20, extra_seat_rat
   photo: 'https://example.org/ada.jpg' };
 /* `more.people`: extra rows on the people tab, made by the same `P` — the review of 339 seats a parent who shares
    a listed tutor's name beside her. */
+/* THE APPLICANTS' PRIVATE FOLDER (`more.drive`): what it was given, and whether anything shared a file. */
+const applyDrive_ = () => {
+  const D = { files: [], shared: 0 };
+  D.folder = { createFile(blob) { const id = 'AF' + (D.files.length + 1); D.files.push(id); return { getId: () => id, setSharing: () => { D.shared++; } }; } };
+  D.app = { getFolderById: id => (id === 'apply-folder-flow' ? D.folder : null), getFileById: () => null, Access: {}, Permission: {} };
+  return D;
+};
 const cardWorld_ = (more) => {
-  const real = require('./check-gas-load.js').backend();
+  const drive = more && more.drive ? applyDrive_() : null;
+  const real = require('./check-gas-load.js').backend(drive ? { DriveApp: drive.app } : undefined);
+  if (drive) { real.drive = drive; real.ev("PropertiesService.getScriptProperties().setProperty('APPLY_FOLDER', 'apply-folder-flow')"); }
   const base = { pin: '0000', verified: 'TRUE', listed: true, city: 'London' };
   const P = (id, first, last, role, email, more) => Object.assign({ person_id: id, first_name: first, last_name: last,
     handle: (first + last).toLowerCase(), email: email, role: role }, base, more || {});
@@ -854,6 +863,29 @@ check('no Setup card anywhere (owner, 10 Nov: the health checker covers it); the
   return bad;
 });
 
+/* ONE BOX OF THE APPLY FORM SET, or a line in `bad` when the form has no such box. */
+const set_ = (f, sel, v, bad) => { const el = f.querySelector(sel); if (!el) { if (bad) bad.push('the form has no ' + sel); return; }
+  if (el.type === 'checkbox') el.checked = !!v; else el.value = v; };
+/* A WHOLE APPLICATION, typed and photographed the way a phone does it (the photo shrinker stands in: jsdom has no canvas). */
+const applyFill_ = async (p, f, bad) => {
+  p.w.eval('photoShrink_ = () => Promise.resolve("data:image/jpeg;base64,QUJD")');
+  [['[data-app-subj="0"]', 'Maths'], ['[data-app-level="0"]', 'GCSE'], ['[data-app="qualifications"]', 'BSc Maths'],
+   ['[data-app="fullName"]', 'Pat Parent'], ['[data-app="phone"]', '07000 000001'], ['[data-app="email"]', 'parent@example.org'],
+   ['[data-app="address"]', '1 Test Street, London'], ['[data-app="postcode"]', 'sw19 1aa'], ['[data-app="dob"]', '1980-05-01'],
+   ['[data-app="rate"]', '28'], ['[data-app="dbsNumber"]', '001234567890'], ['[data-app="dbsUpdate"]', true], ['[data-app="rightToWork"]', 'yes'],
+   ['[data-app="ref1Name"]', 'Ref One'], ['[data-app="ref1Relationship"]', 'Head of department'], ['[data-app="ref1Email"]', 'ref1@example.org'], ['[data-app="ref1Phone"]', '07000 000002'],
+   ['[data-app="ref2Name"]', 'Ref Two'], ['[data-app="ref2Relationship"]', 'Former employer'], ['[data-app="ref2Email"]', 'ref2@example.org'], ['[data-app="ref2Phone"]', '07000 000003'],
+   ['[data-app="statement"]', 'I like explaining things.'], ['[data-app="consent"]', true]].forEach(([sel, v]) => set_(f, sel, v, bad));
+  const hour = f.querySelector('.app-week input[type="checkbox"]'); if (hour) hour.checked = true; else set_(f, '[data-app="availability"]', 'Saturdays', bad);
+  for (const k of ['idDoc', 'rtwDoc', 'qual0']) {
+    const inp = f.querySelector('.apply-doc[data-doc="' + k + '"] .apply-in');
+    if (!inp) { bad.push('the form has no photo line for ' + k); continue; }
+    Object.defineProperty(inp, 'files', { value: [new p.w.File(['x'], k + '.jpg', { type: 'image/jpeg' })], configurable: true });
+    inp.dispatchEvent(new p.w.Event('change', { bubbles: true }));
+  }
+  await wait(100);
+};
+
 /* ---------- APPLY TO TEACH → THE ADMIN SAYS YES → LISTED (400) ---------- */
 check('a client applies to teach from You, the admin\'s Business column glows "1 to approve" with the application, Approve makes them Staff on the tutor list, and the glow goes', async () => {
   const W = cardWorld_();
@@ -869,20 +901,27 @@ check('a client applies to teach from You, the admin\'s Business column glows "1
   /* NO SHEET (owner, 8 Nov): the form is in the card from the start. */
   const f = card && card.querySelector('.app-form');
   if (!f) return ['a client\x27s Apply to teach card has no form in it'];
-  const set = (sel, v) => { const el = f.querySelector(sel); if (!el) { bad.push('the form has no ' + sel); return; }
-    if (el.type === 'checkbox') el.checked = !!v; else el.value = v; };
-  set('[data-app-subj="0"]', 'Maths'); set('[data-app-level="0"]', 'GCSE');
-  set('[data-app="dbsNeeded"]', true); set('[data-app="rightToWork"]', 'yes');
-  set('[data-app="ref1Name"]', 'Ref One'); set('[data-app="ref1Contact"]', 'ref1@example.org');
-  set('[data-app="ref2Name"]', 'Ref Two'); set('[data-app="ref2Contact"]', 'ref2@example.org');
-  set('[data-app="statement"]', 'I like explaining things.');
+  await applyFill_(p, f, bad);
+  set_(f, '[data-app="consent"]', false);
   /* WITHOUT THE CONSENT TICK: refused, nothing written. */
   p.A('apply-send', f.querySelector('[data-do="apply-send"]')); await wait(300);
   const rows = () => (W.real.tabs.applications || [[]]).length - 1;
   if (rows()) bad.push('an application without the consent tick was written');
-  set('[data-app="consent"]', true);
+  set_(f, '[data-app="consent"]', true);
   p.A('apply-send', f.querySelector('[data-do="apply-send"]')); await wait(400);
-  if (rows() !== 1) return bad.concat(['the application was not written: ' + rows() + ' rows']);
+  if (rows() !== 1) return bad.concat(['the application was not written: ' + rows() + ' rows: ' + (f.querySelector('.apply-said') || {}).textContent]);
+  /* STORED: every field in its column, the four photos in the private folder (none shared), only their links in the sheet. */
+  { const h = W.real.tabs.applications[0], r = W.real.tabs.applications[1], c = k => String(r[h.indexOf(k)]);
+    if (W.real.drive.files.length !== 4 || W.real.drive.shared) bad.push('the document photos were not kept privately: ' + JSON.stringify(W.real.drive));
+    if (!/drive\.google\.com\/file\/d\/AF1\//.test(c('id_doc')) || !/AF2/.test(c('rtw_doc')) || !/AF3/.test(c('qual_docs')) || /base64/.test(JSON.stringify(r)))
+      bad.push('the sheet does not hold just the documents\' links: ' + [c('id_doc'), c('rtw_doc'), c('qual_docs')].join(' | '));
+    if (c('full_name') !== 'Pat Parent' || c('postcode') !== 'SW19 1AA' || c('ref2_relationship') !== 'Former employer' || c('rate') !== '28' || !/TRUE/i.test(c('dbs_update_consent')))
+      bad.push('the application\'s fields are not in their columns: ' + JSON.stringify(r.slice(22))); }
+  /* ADMIN ONLY: a tutor who is not an admin is refused the list, and no phone's payload carries a detail. */
+  { const t = W.real.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' });
+    const peek = W.real.post({ token: t.token, action: 'listApplications' });
+    if (peek.success || peek.applications) bad.push('a tutor who is not an admin could list the applications');
+    if (/SW19 1AA|Former employer|AF1/.test(JSON.stringify(W.real.get({ token: t.token })) + JSON.stringify(W.real.get({})))) bad.push('doGet carried an application\'s details'); }
   const st = p.d.querySelector('#s-staff .apply-card .apply-tiles');
   if (!st || !/Application sent/.test(st.innerHTML) || p.d.querySelector('#s-staff .apply-card [data-do="apply-open"]:not([disabled])')) bad.push('Tutor settings does not say the application is sent: ' + (st ? st.innerHTML : 'no tile row'));
   /* THE ADMIN: the card glows, the dot says 1, Approve. */
@@ -896,6 +935,8 @@ check('a client applies to teach from You, the admin\'s Business column glows "1
   const apps = () => a.d.querySelector('#s-biz .apps');
   if (!apps() || !/Pat Parent/.test(apps().textContent) || !/Maths \(GCSE\)/.test(apps().textContent)) return bad.concat(['the Business column does not show Pat\'s application: ' + (apps() ? apps().textContent.slice(0, 200) : 'no card')]);
   if (!apps().classList.contains('needs-you') || !/1 to approve/.test(apps().textContent)) bad.push('the applications card does not glow "1 to approve"');
+  if (!/SW19 1AA/.test(apps().textContent) || !/Former employer/.test(apps().textContent) || apps().querySelectorAll('.app-docs a').length !== 3)
+    bad.push('the admin does not see the details and the three document links: ' + apps().textContent.slice(0, 400));
   const dot = () => a.d.getElementById('biz-dot');
   if (!dot() || dot().textContent !== '1') bad.push('the Business dot does not say 1: ' + (dot() ? dot().textContent : 'no dot'));
   const yes = apps().querySelector('[data-do="app-decide"][data-status="approved"]');

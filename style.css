@@ -530,7 +530,7 @@ input[aria-invalid="true"], input[aria-invalid="true"]:focus { box-shadow: 0 0 0
 /* ---------- THE PIN, AS DOTS, WITHOUT BEING A PASSWORD § */
 .pin-dots { -webkit-text-security: disc; text-security: disc; letter-spacing: .2em; }
 /* `.dob-cap` IS IN THIS GROUP RATHER THAN BESIDE IT. § */
-label.field > span, .dob-cap, .reg-cap, .many-cap, .notify-cap {
+label.field > span, .apply-doc > span, .dob-cap, .reg-cap, .many-cap, .notify-cap {
   display: block; margin-bottom: .3rem;
   font-size: var(--fs-small); letter-spacing: .05em; color: var(--ink);
 }

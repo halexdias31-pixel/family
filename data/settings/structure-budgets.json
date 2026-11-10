@@ -964,15 +964,15 @@
   }
  },
  "aiCost": {
-  "searchBytes": 5279907,
-  "commentRatio": 0.262,
+  "searchBytes": 5035459,
+  "commentRatio": 0.251,
   "tombstones": 0,
   "claudeLines": 100,
-  "testBiggest": 414941,
+  "testBiggest": 372943,
   "bigNotes": 10,
-  "spread": 17,
-  "effortLines": 209,
-  "effortFiles": 9
+  "spread": 8,
+  "effortLines": 20,
+  "effortFiles": 4
  },
  "qcard": {
   "card-split": 0,

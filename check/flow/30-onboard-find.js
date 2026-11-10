@@ -1,7 +1,7 @@
 /* ---------- A NEW TEACHER, END TO END THROUGH FIND (owner, 7 Nov; docs/history/1150) */
 /* The settings columns are off since the core freeze (1090), so every step here is reached through Find alone. */
 check('Onboarding through Find: apply from Find › Settings, the admin approves in Find › Settings, the new card saves, Find lists them and Book opens booking', async () => {
-  const W = cardWorld_({ people: [['P-C2', 'Cara', 'Client', 'client', 'cara@example.org']] });
+  const W = cardWorld_({ people: [['P-C2', 'Cara', 'Client', 'client', 'cara@example.org']], drive: true });
   const bad = [];
   const real = ['applyTeach', 'listApplications', 'decideApplication'];
   const reply = b => (real.indexOf(b.action) !== -1 ? W.real.post(b) : W.reply(b));
@@ -20,13 +20,7 @@ check('Onboarding through Find: apply from Find › Settings, the admin approves
   /* NO SHEET (owner, 8 Nov): the form is in the card from the start. */
   const f = inFind(p, '.apply-card .app-form');
   if (!f) return ['Find › Settings › Parent has no Apply to teach: ' + JSON.stringify(p.w.settingDoorItems_().filter(x => /Apply/.test(x.name))) + ' F=' + JSON.stringify(p.t.STUFF().filters) + ' list=' + p.w.stuffFiltered().map(x => x.name).join(',') + ' drawn=' + [...p.d.querySelectorAll('#s-stuff h3')].map(x => x.textContent).join(',')];
-  const set = (sel, v) => { const el = f.querySelector(sel); if (!el) { bad.push('the form has no ' + sel); return; }
-    if (el.type === 'checkbox') el.checked = !!v; else el.value = v; };
-  set('[data-app-subj="0"]', 'Maths'); set('[data-app-level="0"]', 'GCSE');
-  set('[data-app="dbsNeeded"]', true); set('[data-app="rightToWork"]', 'yes');
-  set('[data-app="ref1Name"]', 'Ref One'); set('[data-app="ref1Contact"]', 'ref1@example.org');
-  set('[data-app="ref2Name"]', 'Ref Two'); set('[data-app="ref2Contact"]', 'ref2@example.org');
-  set('[data-app="statement"]', 'I like explaining things.'); set('[data-app="consent"]', true);
+  await applyFill_(p, f, bad);
   onboardShot_(p, 'apply-form');
   p.A('apply-send', f.querySelector('[data-do="apply-send"]')); await wait(400);
   if ((W.real.tabs.applications || [[]]).length !== 2) return bad.concat(['the application was not written']);

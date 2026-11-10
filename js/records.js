@@ -157,18 +157,27 @@ function appsCard_() {
   const wait = !APPS.list && !APPS.error && typeof loading_ === 'function';
   return `<div class="card biz apps" data-apps data-need="apps">${appsInner_(wait)}</div>`;
 }
+/* THE APPLICANT'S DOCUMENTS AND CV, each an https link: the documents sit in the private folder, so only an admin it is shared with can open them. */
+function appDocs_(a) {
+  const ok = u => /^https:\/\//.test(u || '');
+  const docs = [['ID', a.id_doc], ['Right to work', a.rtw_doc]].concat(String(a.qual_docs || '').split(/\s+/).filter(ok).map((u, i) => ['Qualification ' + (i + 1), u]))
+    .concat([['CV', a.cv_link]]).filter(d => ok(d[1]));
+  return docs.length ? `<p class="app-line app-docs"><b>Documents</b> ${docs.map(d => `<a href="${esc(d[1])}" data-do="file-view" target="_blank" rel="noopener">${esc(d[0])}</a>`).join(' · ')}</p>` : '';
+}
 function appsInner_(wait) {
   const list = (APPS.list || []).filter(a => a.status === 'new' || a.status === 'interview');
   const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const line = (k, v) => v ? `<p class="app-line"><b>${esc(k)}</b> ${esc(v)}</p>` : '';
   const item = a => `<div class="biz-item app-item" data-id="${esc(a.id)}">
       <p class="biz-cap"><b>${esc(a.name || a.handle)}</b> <span class="qtags biz-when"><span class="qtag">${esc(APP_STATUS_SAID[a.status] || a.status)} · ${esc(when(a.at))}</span></span></p>
-      ${line('Teaches', a.subjects)}${line('Qualifications', a.qualifications)}
-      ${line('DBS', a.dbs_needed === 'TRUE' ? 'needs one' : [a.dbs_number, a.dbs_issued].filter(Boolean).join(', issued '))}
+      ${line('Full name', a.full_name)}${line('Contact', [a.phone, a.email].filter(Boolean).join(' · '))}
+      ${line('Address', [a.address, a.postcode].filter(Boolean).join(', '))}${line('Born', a.dob)}
+      ${line('Teaches', a.subjects)}${line('Rate', a.rate ? perHour_(a.rate) : '')}${line('Qualifications', a.qualifications)}
+      ${line('DBS', a.dbs_needed === 'TRUE' ? 'needs one' : [a.dbs_number, a.dbs_issued].filter(Boolean).join(', issued ') + (a.dbs_update_consent === 'TRUE' ? ' · may check on the Update Service' : ''))}
       ${line('Right to work in the UK', a.right_to_work)}${line('Experience', a.experience)}${line('Available', a.availability)}
-      ${line('Area', a.area)}${line('References', [a.ref1_name + ' (' + a.ref1_contact + ')', a.ref2_name + ' (' + a.ref2_contact + ')'].join('; '))}
+      ${line('Area', a.area)}${line('References', [1, 2].map(n => [a['ref' + n + '_name'], a['ref' + n + '_relationship'], a['ref' + n + '_email'] || a['ref' + n + '_contact'], a['ref' + n + '_phone']].filter(Boolean).join(', ')).join('; '))}
       ${line('Statement', a.statement)}
-      ${/^https:\/\//.test(a.cv_link || '') ? `<p class="app-line"><a href="${esc(a.cv_link)}" data-do="file-view" target="_blank" rel="noopener">Open the CV</a></p>` : ''}
+      ${appDocs_(a)}
       <div class="tile-row">${tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'lists them as staff', act: 'app-decide', data: { id: a.id, status: 'approved' } })}${
         a.status === 'new' ? tile_({ icon: 'chat', label: 'Interview', note: 'emails them', act: 'app-decide', data: { id: a.id, status: 'interview' } }) : ''}${
         tile_({ icon: 'close', label: 'Decline', act: 'app-decide', data: { id: a.id, status: 'declined' } })}</div>
