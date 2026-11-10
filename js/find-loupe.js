@@ -562,8 +562,7 @@ function padProtSync_(k) {
     if (was) was.remove();
     const on = padProtOn_(k);
     if (on) art.insertAdjacentHTML('beforeend', padProtHtml_(k));
-    const card = pad.closest('.qcard'), tile = card && card.querySelector('.qt-row .qt-t[data-tool="protractor"]');
-    if (tile) tileSet_(tile, { on: on, pressed: on });
+    qtLight_(pad.closest('.qcard'));
   });
 }
 /* ITS OWN DRAG, AHEAD OF THE PEN'S (capture), so a finger on the protractor moves it and never draws or swipes */

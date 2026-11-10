@@ -293,7 +293,7 @@ function measOpen_(el) {
   const was = MEAS && measFig_(MEAS.k);
   MEAS = null;
   if (was) measDraw_(was);
-  document.querySelectorAll('.q-meast').forEach(t => tileSet_(t, { on: false, pressed: false }));
+  qtLight_(document);
   if (again) return;
   const fig = measFig_(k), svg = fig && fig.querySelector('svg');
   if (!svg) return;
@@ -314,7 +314,7 @@ function measOpen_(el) {
   }
   MEAS = { k, tool, rot: 0, R: Math.min(vb[2], vb[3] * 2) * 0.36, cm, L: Math.min(vb[2] * 0.9, cm * Math.max(5, Math.floor(vb[2] * 0.9 / cm))),
            c: tool === 'protractor' ? [vb[0] + vb[2] / 2, vb[1] + vb[3] * 0.7] : [vb[0] + vb[2] * 0.05, vb[1] + vb[3] * 0.75], geom: G, vb };
-  el.closest('.tile-row, .qp-bar') && el.parentNode.querySelectorAll(`.q-meast[data-tool="${tool}"]`).forEach(t => tileSet_(t, { on: true, pressed: true }));
+  qtLight_(document);
   measDraw_(fig);
 }
 /* THE SNAP: the centre (or zero) onto a corner when near it; then the baseline (or edge) along an arm from that corner when near its direction */
