@@ -32,13 +32,16 @@ function showForms_(s) {
   const trim = t => t.replace(/[\s,;:.?!'’·/&…-]+$/, '');
   const head = t => trim(t.slice(0, SHOW_MAX - 1).replace(/\s+\S*$/, ''));
   const out = [], ref = /^((?:[IVX]+(?:-[IVX]+)*\.)?\d+(?:\.\d+)+)\s/.exec(s), cut = trim(s.replace(/\s*[([].*$/, ''));
+  /* A NUMBERED PART ("…, part 55", "…, Canon 8") KEEPS ITS NUMBER: the end is what tells it from its neighbours. */
+  const num = /(?:^|[\s,;:.-])((?:part|canon|section|chapter|book|article|question|no\.?|act|scene)\s+[\w.]+|\d+[\w.]*)$/i.exec(s);
+  const ends = tail => trim(s.slice(0, SHOW_MAX - tail.length - 2).replace(/\s+\S*$/, '')) + '… ' + tail;
   if (ref) out.push(ref[1]);
+  if (num && !ref) out.push(ends(num[1]));
   if (cut.length >= 4 && cut.length <= SHOW_MAX) out.push(cut);
   const h = head(cut.length >= 4 ? cut : s);
   if (h.length >= 4) out.push(h + '…');
-  const tail = s.slice(-12).replace(/^\S*\s/, '');
-  out.push(trim(s.slice(0, SHOW_MAX - tail.length - 2).replace(/\s+\S*$/, '')) + '… ' + tail, s.slice(0, SHOW_MAX - 1).trim() + '…');
-  return out.filter(t => t.length <= SHOW_MAX);
+  out.push(ends(s.slice(-12).replace(/^\S*\s/, '').replace(/^[\s,;:.-]+/, '')), s.slice(0, SHOW_MAX - 1).trim() + '…');
+  return out.filter(t => t.length <= SHOW_MAX && t.length > 2);
 }
 const showShort_ = s => showForms_(s)[0] || String(s).slice(0, SHOW_MAX);
 /* EACH OVER-LONG SHOW TAKES ITS FIRST FORM NO OTHER ANSWER IN THE MENU ALREADY SAYS. */

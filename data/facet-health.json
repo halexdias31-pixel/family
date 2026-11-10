@@ -1,34 +1,22 @@
 {
  "v": 1,
- "items": 279958,
+ "items": 279949,
  "menus": 118,
  "counts": {
-  "words-all": 58
+  "words-all": 28
  },
  "findings": [
+  {
+   "kind": "words-all",
+   "menu": "What kind (kindLabel)",
+   "value": "Profiles",
+   "say": "menu \"Profiles\", chip \"Profiles\", tag \"Booking\""
+  },
   {
    "kind": "words-all",
    "menu": "Chapter (wChapter)",
    "value": "Chapter 1 · ארבעה ראשי שנים",
    "say": "menu \"Chapter 1 · ארבעה ראשי שנים\", chip \"Chapter 1 · ארבעה ראשי שנים\", tag \"Chapter 1 · מאימתי\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Chapter (wChapter)",
-   "value": "Chapter 2 · כל הזבחים שקבלו דמן",
-   "say": "menu \"Chapter 2 · כל הזבחים שקבלו דמן\", chip \"Chapter 2 · כל הזבחים שקבלו דמן\", tag \"Chapter 2 · היה קורא\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Chapter (wChapter)",
-   "value": "Chapter 3 · הקורא את המגילה עומד",
-   "say": "menu \"Chapter 3 · הקורא את המגילה עומד\", chip \"Chapter 3 · הקורא את המגילה עומד\", tag \"Chapter 3 · מי שמתו\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Chapter (wChapter)",
-   "value": "Chapter 4 · שור שנגח ארבע וחמשה",
-   "say": "menu \"Chapter 4 · שור שנגח ארבע וחמשה\", chip \"Chapter 4 · שור שנגח ארבע וחמשה\", tag \"Chapter 4 · תפלת השחר\""
   },
   {
    "kind": "words-all",
@@ -57,20 +45,8 @@
   {
    "kind": "words-all",
    "menu": "Chapter (wChapter)",
-   "value": "Chapter 9 · הכותים אין להם נזירות",
-   "say": "menu \"Chapter 9 · הכותים אין להם נזירות\", chip \"Chapter 9 · הכותים אין להם נזירות\", tag \"Chapter 9 · הרואה\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Chapter (wChapter)",
    "value": "Chapter 10 · אלו הן הנחנקין",
    "say": "menu \"Chapter 10 · אלו הן הנחנקין\", chip \"Chapter 10 · אלו הן הנחנקין\", tag \"Chapter 10 · המצניע\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Chapter (wChapter)",
-   "value": "Chapter 11 · כל ישראל יש להם חלק",
-   "say": "menu \"Chapter 11 · כל ישראל יש להם חלק\", chip \"Chapter 11 · כל ישראל יש להם חלק\", tag \"Chapter 11 · הזורק\""
   },
   {
    "kind": "words-all",
@@ -107,12 +83,6 @@
    "menu": "Unit (wUnit)",
    "value": "434.2",
    "say": "menu \"434.2\", chip \"434.2\", tag \"4342\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Unit (wUnit)",
-   "value": "My God, accept my heart this day",
-   "say": "menu \"My God, accept my heart this day\", chip \"My God, accept my heart this day\", tag \"My God! accept my heart this day\""
   },
   {
    "kind": "words-all",
@@ -203,156 +173,6 @@
    "menu": "Author (wAuthor)",
    "value": "P. P. Bliss",
    "say": "menu \"P. P. Bliss\", chip \"P. P. Bliss\", tag \"P.P. Bliss\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-SAM-1F",
-   "say": "menu \"1MA1/1F · Accuracy verified · Function unverified\", chip \"1MA1/1F · Accuracy verified\", tag \"1MA1/1F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-SP2-1F",
-   "say": "menu \"1MA1/1F · Accuracy verified · Function unverified\", chip \"1MA1/1F · Accuracy verified\", tag \"1MA1/1F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "RS1786302107764-415",
-   "say": "menu \"1MA1/1F · Accuracy verified · Function verified\", chip \"1MA1/1F · Accuracy verified\", tag \"1MA1/1F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "RS1786302107764-469",
-   "say": "menu \"1MA1/1F · Accuracy verified · Function unverified\", chip \"1MA1/1F · Accuracy verified\", tag \"1MA1/1F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "RS1786302107764-475",
-   "say": "menu \"1MA1/1F · Accuracy verified · Function unverified\", chip \"1MA1/1F · Accuracy verified\", tag \"1MA1/1F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-2005-1H",
-   "say": "menu \"1MA1/1H · Accuracy verified · Function verified\", chip \"1MA1/1H · Accuracy verified\", tag \"1MA1/1H\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-SAM-1H",
-   "say": "menu \"1MA1/1H · Accuracy verified · Function unverified\", chip \"1MA1/1H · Accuracy verified\", tag \"1MA1/1H\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-SP2-1H",
-   "say": "menu \"1MA1/1H · Accuracy verified · Function unverified\", chip \"1MA1/1H · Accuracy verified\", tag \"1MA1/1H\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-SAM-2F",
-   "say": "menu \"1MA1/2F · Function unverified\", chip \"1MA1/2F · Function verified\", tag \"1MA1/2F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-SP2-2F",
-   "say": "menu \"1MA1/2F · Function unverified\", chip \"1MA1/2F · Function verified\", tag \"1MA1/2F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "RS1786302107764-471",
-   "say": "menu \"1MA1/2F · Function unverified\", chip \"1MA1/2F · Function verified\", tag \"1MA1/2F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "RS1786302107764-477",
-   "say": "menu \"1MA1/2F · Function unverified\", chip \"1MA1/2F · Function verified\", tag \"1MA1/2F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "RS1786302107764-483",
-   "say": "menu \"1MA1/2F · Function unverified\", chip \"1MA1/2F · Function verified\", tag \"1MA1/2F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-2006-2H",
-   "say": "menu \"1MA1/2H · Accuracy verified · Function verified\", chip \"1MA1/2H · Accuracy verified\", tag \"1MA1/2H\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-SAM-2H",
-   "say": "menu \"1MA1/2H · Accuracy verified · Function unverified\", chip \"1MA1/2H · Accuracy verified\", tag \"1MA1/2H\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-SP2-2H",
-   "say": "menu \"1MA1/2H · Accuracy verified · Function unverified\", chip \"1MA1/2H · Accuracy verified\", tag \"1MA1/2H\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-SAM-3F",
-   "say": "menu \"1MA1/3F · Accuracy verified · Function unverified\", chip \"1MA1/3F · Accuracy verified\", tag \"1MA1/3F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-SP2-3F",
-   "say": "menu \"1MA1/3F · Accuracy verified · Function unverified\", chip \"1MA1/3F · Accuracy verified\", tag \"1MA1/3F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "RS1786302107764-419",
-   "say": "menu \"1MA1/3F · Accuracy verified · Function verified\", chip \"1MA1/3F · Accuracy verified\", tag \"1MA1/3F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "RS1786302107764-473",
-   "say": "menu \"1MA1/3F · Accuracy verified · Function unverified\", chip \"1MA1/3F · Accuracy verified\", tag \"1MA1/3F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "RS1786302107764-479",
-   "say": "menu \"1MA1/3F · Accuracy verified · Function unverified\", chip \"1MA1/3F · Accuracy verified\", tag \"1MA1/3F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "RS1786302107764-485",
-   "say": "menu \"1MA1/3F · Accuracy verified · Function unverified\", chip \"1MA1/3F · Accuracy verified\", tag \"1MA1/3F\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-2006-3H",
-   "say": "menu \"1MA1/3H · Accuracy verified · Function verified\", chip \"1MA1/3H · Accuracy verified\", tag \"1MA1/3H\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-SAM-3H",
-   "say": "menu \"1MA1/3H · Accuracy verified · Function unverified\", chip \"1MA1/3H · Accuracy verified\", tag \"1MA1/3H\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Paper (paperId)",
-   "value": "P-1MA1-SP2-3H",
-   "say": "menu \"1MA1/3H · Accuracy verified · Function unverified\", chip \"1MA1/3H · Accuracy verified\", tag \"1MA1/3H\""
   }
  ]
 }

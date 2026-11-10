@@ -164,5 +164,20 @@ if (!/\n  tutor:[\s\S]{0,300}?: findCard\(x\) \}/.test(finder)) bad.push('find-f
 const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
 if (!/\.card\.kc:not\(\.is-open\) > \.kc-lines > \* \{[^}]*-webkit-line-clamp: 2;/.test(css) || !/\.card\.kc:not\(\.is-open\) > \.kc-lines > \* ~ \* \{ display: none; \}/.test(css)) bad.push('style.css no longer clamps a closed card to one block of two lines');
 
+/* A FACET'S SHOW FITS A TAG: the owner's short labels (labels.json facet-show:*) and every form showForms_ (find-facets.js) offers are ≤ KC_TAG_MAX. */
+const tagMax = Number((/const KC_TAG_MAX = (\d+);/.exec(cards) || [])[1]);
+const facetsSrc = fs.readFileSync(path.join(ROOT, 'js/find-facets.js'), 'utf8');
+const showMax = Number((/const SHOW_MAX = (\d+);/.exec(facetsSrc) || [])[1]);
+if (!tagMax || showMax !== tagMax) bad.push(`find-facets.js SHOW_MAX (${showMax}) is not cards.js KC_TAG_MAX (${tagMax}): a show could outgrow its tag`);
+JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/labels.json'), 'utf8')).filter(r => /^facet-show:/.test(r.group || '')).forEach(r => {
+  if (String(r.label || '').length > tagMax) bad.push(`labels.json ${r.group} "${r.key}": its label "${r.label}" is over ${tagMax} chars`); });
+try { const fsrc = (/\nfunction showForms_\([\s\S]*?\n\}\n/.exec(facetsSrc) || [''])[0];
+  /* eslint-disable-next-line no-new-func */
+  const forms = new Function('SHOW_MAX', fsrc + '\nreturn showForms_;')(showMax);
+  ['II-II.132.5 Whether the daughters of vainglory are suitably reckoned to be disobedience?', 'Funerals and Memorials, part 115', 'x'.repeat(80),
+    '64 · Military Expeditions led by the Prophet (pbuh) (Al-Maghaazi)', 'Supercalifragilisticexpialidociousandmore words here'].forEach(s => {
+    const f = forms(s); if (!f.length || f.some(t => t.length > showMax)) bad.push(`showForms_ gives no form ≤ ${showMax} for "${s.slice(0, 40)}…": ${JSON.stringify(f)}`); });
+} catch (e) { bad.push('find-facets.js showForms_ could not be run: ' + e.message); }
+
 if (bad.length) { console.log('✗ card shape:\n  ' + bad.join('\n  ')); process.exit(1); }
 console.log('card shape: ' + rows.length + ' kinds, a kind the file does not name and a KC_OWN card, one shape (' + SHAPE.join(', ') + '), bundles too; every Find kind drawn by findCard');
