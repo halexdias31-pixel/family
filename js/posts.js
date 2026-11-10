@@ -248,7 +248,7 @@ window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
     return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, extra + '</div>') : `<div class="qtags qcard-tags">${extra}</div>`; },
   postBody: x => { const body = String(x.row.caption || x.row.body || x.row.text || '').trim(); return body ? `<p class="msg-fc-body">${mark(body)}</p>` : ''; },
   postTiles: x => /* the post's own Suggest goes: every Find card's row already carries one */ { const p = x.row, r = p.reactions, first = r && Array.isArray(r.emoji) && r.emoji[0];
-    const react = first ? tile_({ icon: 'star', label: 'React', note: first + (r.total ? ' · ' + r.total : ''), on: r.yours === first,
+    const react = first ? tile_({ icon: 'heart', label: 'Like', note: first + (r.total ? ' · ' + r.total : ''), on: r.yours === first,
       act: 'react', data: { id: p.id, emoji: first } }) : '';
     return tileRow_(react + String(postTiles_(p)).replace(/^<div class="tile-row[^"]*">|<\/div>$/g, '').replace(/<button[^>]*\brep-tile\b[^>]*>[\s\S]*?<\/button>/g, '')); },
 });
@@ -1396,7 +1396,6 @@ function tpngWidth_(t) {
 }
 /* A PICTURE INSIDE AN SVG IMAGE LOADS NOTHING FROM OUTSIDE, so each photo and map tile goes in as data, decoded before the shot; what will not come is left out whole, never blurred. */
 function tpngInline_(card) {
-  card.querySelectorAll('[clip-path="url(#av-clip)"]').forEach(el => el.removeAttribute('clip-path'));
   const asData = src => fetch(src, { mode: 'cors' }).then(r => (r.ok ? r.blob() : Promise.reject(new Error(r.status))))
     .then(b => new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = () => no(fr.error); fr.readAsDataURL(b); }));
   const safe = src => { try { return asData(src); } catch (e) { return Promise.reject(e); } };
@@ -2512,7 +2511,7 @@ function ppngImg_(src) {
     : null));
 }
 const ppngSvg_ = s => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(String(s)
-  .replace(/<svg(?![^>]*xmlns=)/, '<svg xmlns="http://www.w3.org/2000/svg"').replace(/\sclip-path="url\(#av-clip\)"/g, ''));
+  .replace(/<svg(?![^>]*xmlns=)/, '<svg xmlns="http://www.w3.org/2000/svg"'));
 /* THE AUTHOR'S FACE BY THE CARD'S OWN ORDER (`postCard_`): their photo or picture or figure, else the brand's mark, else the initial. */
 function ppngFace_(p) {
   const own = p.authorId ? String((profileOf_(p.authorId) || {}).pic || p.avatar || '') : '', v = picKind_(own) ? own : brandLogo_();
@@ -2520,7 +2519,6 @@ function ppngFace_(p) {
   try {
     if (kind === 'photo') return ppngImg_(pic(v));
     if (kind === 'basic') return ppngImg_(ppngSvg_(pfpArt_(pfpChoice_(v), 240)));
-    if (kind === 'avatar' && typeof p.figure === 'string') return ppngImg_(ppngSvg_(avatarFor(p.handle || p.author, 240, p.figure, { bust: true })));
   } catch (e) {}
   return Promise.resolve(null);
 }

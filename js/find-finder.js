@@ -106,7 +106,7 @@ const KINDS = {
   /* ---------- ONE ANSWER, NOT THREE § */
   receipt:  { group: 'Booking', label: 'Receipts',  card: (x, c) => findCard(x, c) },
   /* THE FORM AS A TAG OF ITS OWN (owner, 8 Nov): "the booking form should be a section which can be found in the menu tags". */
-  bookform: { group: 'Booking', label: 'Booking form', card: (x, c) => findCard(x, c) },
+  bookform: { group: 'Booking', label: 'Booking form', card: () => bookFormCard_() },   /* a FORM, never a card (9 Nov): its fields and Send */
 
   /* `coupon` WAS A KIND HERE — the classes with seats going. § */
 
@@ -205,7 +205,7 @@ function friendCard_(x) {
     const xp = Number(f.xp) || 0;
     return `<div class="card">
       <div class="thing">
-        <span class="thing-pic art">${avatarFor(f.handle, 44, f.avatar)}</span>
+        <span class="thing-pic art">${personFace_({ pic: f.image || f.photo, handle: f.handle, name: x.name, personId: f.personId }, { size: 44 })}</span>
         <div class="thing-body">
           <h3>${esc(x.name)}</h3>
           <p class="sub">${esc(f.handle)}${f.name ? ' · level ' + levelFromXp(xp) : ''}</p>
@@ -217,7 +217,7 @@ function friendCard_(x) {
     </div>`;
 }
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
-  receipt: x => jobPage_(x.row), bookform: () => bookFormCard_(), friend: friendCard_, question: thingCard_, answer: thingCard_, shop: thingCard_,
+  receipt: x => jobPage_(x.row), friend: friendCard_, question: thingCard_, answer: thingCard_, shop: thingCard_,
   practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x),
   timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
@@ -309,9 +309,7 @@ function thingCard_(x, credits) {
       <div class="thing">
         ${/* A WEARABLE DRAWS ITSELF. § */
               ''}
-        ${x.wearable && x.artId && itemArt(x.slot, x.artId)
-          ? `<span class="thing-pic art">${itemArt(x.slot, x.artId, 44)}</span>`
-          : x.image ? `<img class="thing-pic" src="${esc(pic(x.image))}" alt="" loading="lazy" decoding="async">` : ''}
+        ${x.image ? `<img class="thing-pic" src="${esc(pic(x.image))}" alt="" loading="lazy" decoding="async">` : ''}
         <div class="thing-body">
           ${/* ---------- A RESULT IS READ LIKE A SEARCH RESULT § */
                 ''}

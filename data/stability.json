@@ -1,20 +1,20 @@
 {
  "v": 2,
  "tier": "core",
- "score": 75.2,
+ "score": 75.7,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
    "id": "exceptions",
    "label": "Written exceptions in the checks",
-   "count": 79,
+   "count": 77,
    "weight": 0.1,
    "cap": 20,
-   "off": 7.9,
+   "off": 7.7,
    "where": {
     "js/check-answerable.js ACCEPTED": 6,
     "js/check-answers.js ACCEPTED": 1,
-    "js/check-css.js DIM_OK": 9,
+    "js/check-css.js DIM_OK": 8,
     "js/check-dropdowns.js PICKER_OK": 1,
     "js/check-format.js ALLOW": 9,
     "js/check-library.js KNOWN_F": 1,
@@ -25,7 +25,7 @@
     "js/check-strings.js ROLE_OK": 1,
     "js/check-surfaces.js POPUP_OK": 1,
     "check/diagrams.js ACCEPTED": 4,
-    "check/motion.js ACCEPTED": 18,
+    "check/motion.js ACCEPTED": 17,
     "check/types.js ACCEPTED": 2
    }
   },
@@ -52,10 +52,10 @@
   {
    "id": "special",
    "label": "Per-facet and per-kind special cases",
-   "count": 77,
+   "count": 74,
    "weight": 0.05,
    "cap": 10,
-   "off": 3.9,
+   "off": 3.7,
    "where": {
     "js/cards.js": 4,
     "js/data.js": 4,
@@ -67,9 +67,9 @@
     "js/find-marking.js": 5,
     "js/find-pad.js": 4,
     "js/keypad-keys.js": 3,
-    "js/links.js": 3,
+    "js/links.js": 2,
     "js/me-messages.js": 2,
-    "js/me-settings.js": 5,
+    "js/me-settings.js": 3,
     "js/predicates.js": 16,
     "js/price-rows.js": 2,
     "js/qtools.js": 4,
@@ -96,12 +96,12 @@
   {
    "id": "duplicates",
    "label": "Repeated long lines",
-   "count": 51,
+   "count": 44,
    "weight": 0.02,
    "cap": 10,
-   "off": 1,
+   "off": 0.9,
    "where": {
-    "lines": 19
+    "lines": 16
    }
   },
   {
@@ -135,7 +135,7 @@
   }
  ],
  "secondary": {
-  "score": 87.9,
+  "score": 88,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
@@ -161,10 +161,10 @@
    {
     "id": "special",
     "label": "Per-facet and per-kind special cases",
-    "count": 43,
+    "count": 42,
     "weight": 0.05,
     "cap": 10,
-    "off": 2.2,
+    "off": 2.1,
     "where": {
      "js/arcade.js": 7,
      "js/collections.js": 7,
@@ -172,7 +172,7 @@
      "js/mat.js": 3,
      "js/mechanics.js": 1,
      "js/orthodox.js": 2,
-     "js/posts.js": 7,
+     "js/posts.js": 6,
      "js/reader.js": 11,
      "js/records.js": 1,
      "js/writings.js": 3

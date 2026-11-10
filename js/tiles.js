@@ -32,6 +32,8 @@ const TILE_ICONS = {
   book:  '<path d="M2.5 3.5h5a2 2 0 0 1 2 2v9a2 2 0 0 0-2-2h-5z"/>'
        + '<path d="M15.5 3.5h-5a2 2 0 0 0-2 2v9a2 2 0 0 1 2-2h5z"/>',
   wear:  '<path d="M6 2.5 3 4v4h2v6h6V8h2V4l-3-1.5a2.2 2.2 0 0 1-4 0z"/>',
+  heart: '<path d="M9 15S2 10.6 2 6.2A3.6 3.6 0 0 1 9 4.6a3.6 3.6 0 0 1 7 1.6C16 10.6 9 15 9 15z"/>',
+  pound: '<path d="M12.5 4.2A3 3 0 0 0 7 5.5V13c0 1-.6 1.8-1.5 2h9"/><path d="M4.5 9h6"/>',
   star:  '<path d="m9 2.5 2 4.3 4.5.6-3.3 3.2.8 4.6L9 13l-4 2.2.8-4.6L2.5 7.4 7 6.8z"/>',
   /* START HERE (466): a house — where the column opens. */
   home:  '<path d="M2.5 8.5 9 3l6.5 5.5"/><path d="M4.5 7v7.5h9V7"/><path d="M7.5 14.5v-4h3v4"/>',
@@ -396,33 +398,6 @@ function levelTiles_(x) {
 }
 
 
-/* ---------- A WEARABLE § */
-function wearTiles_(x) {
-  const level = levelFromXp(USER && USER.xp);
-  const mine = wardrobe().find(w => w.slot === x.slot && w.id === x.artId);
-  const owned = mine && mine.unlocked;
-  const tooLow = x.level && level < x.level;
-  const wearing = USER
-    && avatarConfig(USER.avatar, USER.handle || USER.name)[x.slot] === x.artId;
-
-  const label = !USER ? 'Sign in first'
-    : wearing ? 'Wearing it'
-    : tooLow ? (x.level * 10 - (Number(USER.xp) || 0)) + ' more ticks to go'
-    : owned ? 'Put it on' : 'Buy and wear it';
-
-  const note = !USER ? ''
-    : wearing ? ''
-    : tooLow ? 'level ' + x.level
-    : owned ? '' : (x.cost ? x.cost + ' credits' : 'free');
-
-  return `
-    ${tile_({ icon: 'wear', label, note, tone: tooLow ? '' : 'buy', on: !!wearing,
-              act: 'wear', off: !USER || tooLow || wearing,
-              data: { slot: x.slot, id: x.artId } })}
-  `;
-}
-
-
 /* ---------- WHO MAY WRITE TO WHOM, THE SERVER'S `MESSAGING` (constants.gs) read on the phone, so no Message tile is one it refuses ---------- */
 const MSG_MAY_ = { admin: ['admin', 'staff', 'client', 'student'], staff: ['admin', 'staff', 'client'], client: ['admin', 'staff'], student: ['admin'] };
 const msgRankOf_ = role => /admin/i.test(role) ? 'admin' : /tutor|teacher|staff/i.test(role) ? 'staff' : /student|child|kid/i.test(role) ? 'student' : 'client';
@@ -448,7 +423,7 @@ const personTiles_ = x => { const t = (x && x.row) || {}; const name = t.title |
 /* EVERY CARD'S ROW STARTS WITH THESE (950); health.js's "card tile rows" holds it. */
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
 /* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
-const CARD_EXTRAS_ = { shop: x => (x.wearable ? wearTiles_(x) : shopTiles_(x)), tutor: tutorTiles_, venue: venueTiles_, subject: subjectTiles_,
+const CARD_EXTRAS_ = { shop: shopTiles_, tutor: tutorTiles_, venue: venueTiles_, subject: subjectTiles_,
   level: levelTiles_, receipt: x => jobMsgTiles_(x) + jobTiles_(x), person: x => personTiles_(x), talmud: x => talmudTiles_(x) };
 function cardCore_(x) {
   const one = {
@@ -531,7 +506,7 @@ function jobTiles_(x) {
     norm(sl.client) === norm(USER.name) && /^(paying|booked)$/i.test(String(sl.status || '')));
   const owed = typeof jobAccepted_ === 'function' && jobAccepted_(j) && !paid;
   return jobChooseTiles_(j, id) + `
-    ${owed && !childView_() ? tile_({ icon: 'cart', label: 'Pay and confirm', tone: 'buy',
+    ${owed && !childView_() ? tile_({ icon: 'pound', label: 'Pay and confirm', tone: 'buy',
                      note: typeof money_ === 'function' ? money_(j.price || 0) : '',
                      act: 'job-pay', data: { id: id } }) : ''}
     ${tile_({ icon: 'undo', label: 'Withdraw from this',

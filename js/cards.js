@@ -388,14 +388,13 @@ const KC_DEFAULT = {
   writing: { cls: 'hdb lib-c', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['refs'], tiles: [] },
   event: { cls: 'hdb lib-c', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['refs'], tiles: [] },
   people: { cls: 'person lib-c', pic: ['boxerPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] },
-  msg: { cls: 'msg-fc', pic: ['msgPic'], title: ['msgWho'], tags: ['msgTags'], lines: ['msgBody', 'msgTiles'], tiles: [] },
-  post: { cls: 'post-fc', pic: ['postPic'], title: ['postTitle'], tags: ['postTags'], lines: ['postBody', 'postTiles'], tiles: [] },
-  receipt: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
-  bookform: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  msg: { cls: 'msg-fc', pic: ['msgPic'], title: ['msgWho'], tags: ['msgTags'], lines: ['msgBody', 'msgTiles'], tiles: ['msg-reply:send:Reply'] },
+  post: { cls: 'post-fc', pic: ['postPic'], title: [], tags: ['postTags'], lines: ['postBody', 'postTiles'], tiles: ['react:heart:Like'] },
+  receipt: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['receiptTags'], lines: ['receiptSum', 'ownLines'], tiles: ['job-pay:pound:Pay'] },
   friend: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   question: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   answer: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
-  shop: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  shop: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: ['cart-add:cart:Buy'] },
   practical: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   project: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   content: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
@@ -475,8 +474,10 @@ function kcSplit_(html) {
 const KC_TILE_RE = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;
 const kcAct_ = t => (/\bdata-do="([^"]*)"/.exec(t) || [])[1] || '';
 /* WHAT COUNTS AS A CARD'S MAIN ACTION when its kind names none first: a Send/Check, a buy-toned tile, Open. */
-/* DRAWN OPEN: a question (tags on top) and the forms and doors phase 2 has still to turn into closed cards. */
-const KC_OPEN_KINDS = ['question', 'answer', 'receipt', 'bookform', 'setting', 'health', 'person', 'soon', 'offPosts', 'offShop', 'offBooking', 'msg', 'post', 'shop', 'friend'];
+/* DRAWN OPEN: a question alone (tags on top, its answer box live); every other kind is closed until its picture is tapped (phase 2, 9 Nov). */
+const KC_OPEN_KINDS = ['question', 'answer'];
+/* A KIND WITH NOTHING TO DO BUT READ leads with Read, which opens it in place; any other with no main of its own leads with Open. */
+const KC_READ_KINDS = ['bible', 'talmud', 'quran', 'worktext', 'hadith', 'writ', 'pdtext', 'orthotext', 'hymn', 'writing', 'manuscript', 'content', 'insert'];
 const KC_MAIN_ACTS = ['find-open', 'book-with'];
 function kcFour_(x, rest, main) {
   const all = String(rest || '').match(KC_TILE_RE) || [];
@@ -484,24 +485,43 @@ function kcFour_(x, rest, main) {
   const first = String((spec.tiles || [])[0] || '').split(':')[0];
   const pick = test => { const t = all.find(test); if (t) all.splice(all.indexOf(t), 1); return t || ''; };
   main = main || pick(t => first && kcAct_(t) === first) || pick(t => /\bis-(submit|buy)\b/.test(t))
-    || pick(t => KC_MAIN_ACTS.indexOf(kcAct_(t)) >= 0) || pick(t => !/^(fav|msg-open|card-share|find-top)$/.test(kcAct_(t)) && !/\bis-(admin|danger)\b/.test(t));
+    || pick(t => KC_MAIN_ACTS.indexOf(kcAct_(t)) >= 0) || pick(t => !/^(fav|msg-open|card-share|find-top|rep-box|game-lock)$/.test(kcAct_(t)) && !/\bis-(admin|danger)\b/.test(t));
   const r = kcRow_(x), who = r.title || r.name || '';
   const msg = pick(t => kcAct_(t) === 'msg-open')
     || (x && x.key && typeof personTiles_ === 'function' && /^(tutor|person|people)$/.test(x.kind) ? personTiles_(x) : '')
     || tile_({ icon: 'chat', label: 'Message', act: 'msg-open', off: true, data: { to: who } });
   const star = pick(t => kcAct_(t) === 'fav')
     || tile_({ icon: 'star', label: 'Save', act: 'fav', off: true, data: { key: (x && x.key) || '', kind: (x && x.kind) || 'item' } });
-  const lead = main || tile_({ icon: 'open', label: 'Open', act: 'kc-open', off: true });
+  const lead = main || tile_({ icon: 'open', label: KC_READ_KINDS.indexOf(x && x.kind) >= 0 ? 'Read' : 'Open', act: 'kc-open' });
   /* WHAT IS NOT A TILE (a verdict, a slot) stays beside the rest, behind ⋯. */
   const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
   return `<span class="kc-four">${lead}${msg}${star}${tile_({ icon: 'more', label: 'More', act: 'kc-more' })}</span><span class="kc-more" hidden>${all.join('')}${left}</span>`;
 }
 /* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
-function kcActRow_(x, html) {
+function kcActRow_(x, html, own) {
   if (/class="[^"]*\bkc-four\b/.test(html)) return '';
-  let rest = '';
-  try { rest = x && x.key && typeof cardTiles_ === 'function' ? cardTiles_(x, true) : ''; } catch (e) { oops_(e, 'card:tiles'); }
+  let rest = own || '';
+  try { rest += x && x.key && typeof cardTiles_ === 'function' ? cardTiles_(x, true) : ''; } catch (e) { oops_(e, 'card:tiles'); }
+  /* A KIND'S TILE GREYED FOR WANT OF ONE goes when its own maker's row brought the real one. */
+  const real = (String(own || '').match(KC_TILE_RE) || []).map(kcAct_);
+  rest = rest.replace(KC_TILE_RE, t => (/\bkc-off\b/.test(t) && real.indexOf(kcAct_(t)) >= 0 ? '' : t));
   return `<div class="tile-row kc-row">${kcFour_(x, kcTilesFill_(x, rest))}</div>`;
+}
+/* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
+function kcHoist_(html) {
+  if (/class="[^"]*\bkc-four\b/.test(html)) return { lines: html, tiles: '' };
+  let tiles = '';
+  const lines = kcKids_(String(html || '')).map(k => {
+    if (k.tag === 'div' && / tile-row /.test(' ' + k.cls + ' ')) { tiles += k.inner; return ''; }
+    return k.html;
+  }).join('');
+  return { lines, tiles };
+}
+/* WHETHER SOME TAGS ALREADY SAY A NAME, and the name put in front of them as a tag. */
+const kcSays_ = (tags, name) => norm(String(tags || '').replace(/<[^>]+>/g, ' ')).indexOf(norm(name)) >= 0;
+function kcTagFirst_(tags, name) {
+  const tag = `<span class="qtag" data-tag="0">${esc(name)}</span>`;
+  return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, '$1' + tag) : `<div class="qtags">${tag}</div>` + (tags || '');
 }
 /* A TAG SAYS ONLY WHAT THE MENUS ABOVE HAVE NOT (owner, 6 Nov), on every kind: a tag whose words a picked chip already says goes. */
 function kcUnpicked_(html) {
@@ -552,7 +572,13 @@ function findCard(x, credits) {
   parts.tags = kcUnpicked_(parts.tags);
   /* A CARD WITH NO TAGS OF ITS OWN STILL HAS ONE: its name (owner, 9 Nov: the name is a tag). */
   if (!parts.tags.trim() && name) parts.tags = `<div class="qtags"><span class="qtag" data-tag="0">${esc(name)}</span></div>`;
-  parts.act = kcActRow_(one, parts.lines);
+  /* NO TITLE LINE ON ANY CARD (owner, 9 Nov): the name is a tag, put first when the tags do not already say it. */
+  if (name && parts.head && !kcSays_(parts.tags, name)) parts.tags = kcTagFirst_(parts.tags, name);
+  parts.head = '';
+  /* A ROW OF TILES ITS OWN MAKER DREW AMONG THE LINES joins the card's one row: its main leads, the rest wait behind ⋯. */
+  const hoist = kcHoist_(parts.lines);
+  parts.lines = hoist.lines;
+  parts.act = kcActRow_(one, parts.lines, hoist.tiles);
   /* A QUESTION IS ALWAYS OPEN (tags on top), as a form is until phase 2 converts it; any other card opens by a tap on its picture. */
   const off = (KC_OPEN_KINDS.indexOf(it.kind) >= 0 || it.open ? ' is-open' : '') + (it.kind === 'tutor' && t.listed === false ? ' is-off' : '') + (it.cardCls ? ' ' + esc(it.cardCls) : '');
   /* `cardData` BECOMES data-* ATTRIBUTES, so a card can be found again where it stands (a post's sheet, a conversation's redraw). */

@@ -81,33 +81,6 @@ check('a myProfile asked at open and answered after a friend is added keeps the 
 });
 
 /* ---------- AFTER REVIEW, ROUND 2 (docs/history/342): A FIGURE NOBODY DRESSED KEEPS ITS FACE § */
-check('a figure nobody dressed keeps its face when her handle moves: a phone that learns the move from myProfile', async () => {
-  const bad = [];
-  const faceIn = (w, packed, handle) => { const c = w.avatarConfig(packed, handle); return [c.skin, c.hairColour, c.hair, c.legs].join('/'); };
-  /* THE MOVE, AS `renameHandles_` LEAVES IT: the old handle's look written into her blank cell. */
-  let b;
-  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
-  const kept = JSON.parse(b.ev('JSON.stringify(handleFaceKept_(read(TAB.people), { avatar: "" }, "ella_kind42").avatar || "")'));
-  if (!kept) return ['the server keeps no look for a blank cell, so the phone\'s half was NOT asked'];
-  b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-EJ"); setCell(t, r, "avatar", '
-    + JSON.stringify(kept) + '); clearCache(); })()');
-  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
-  if (!signed.success) return ['she could not sign in on the real backend — ' + JSON.stringify(signed).slice(0, 160)];
-  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42', avatar: '' });
-  const one = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
-    before: win => win.localStorage.setItem('familyUser', JSON.stringify(stale)) });
-  for (let k = 0; k < 80 && !one.w.__t; k++) await wait(100);
-  if (!one.w.__t) return ['the app did not finish loading'];
-  for (let k = 0; k < 40 && (one.w.__t.whoami() || {}).handle !== 'ej2345'; k++) await wait(100);
-  const u1 = one.w.__t.whoami() || {};
-  if (u1.handle !== 'ej2345') bad.push('the phone never took the moved handle from myProfile, so the face was NOT asked');
-  else if (faceIn(one.w, u1.avatar, u1.handle) !== faceIn(one.w, '', 'ella_kind42')) {
-    bad.push('after myProfile moved her handle the phone draws her with ' + JSON.stringify(u1.avatar || '(a blank look)') + ' on @' + u1.handle
-      + ' — a different figure from the one @ella_kind42 drew; the server kept ' + JSON.stringify(kept));
-  }
-  if (one.errs.length) bad.push('errors: ' + one.errs.slice(0, 3).join(' | '));
-  return bad;
-});
 
 /* WHAT A FLICK CAN REACH IS DRAWN BEFORE IT GETS THERE — THE BUILDER'S OWN JOURNEYS (docs/history/341) § */
 /* AT REST: the builder's list empty and everything booked for after a slide run — or the cap, and then the journey says it never came. § */

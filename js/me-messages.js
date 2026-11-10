@@ -813,7 +813,7 @@ window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
   msgBody: x => { const last = x.row.last || {}; return `<p class="msg-fc-body">${esc((last.mine ? 'You: ' : '') + (String(last.body || '').trim() || msgKindWord_(last)))}</p>`; },
   msgTiles: x => { const t = x.row, open = !!MSG_OPEN[t.id]; return tileRow_(tile_([
     { icon: open ? 'close' : 'open', label: open ? 'Close' : 'Open', note: 'the conversation', act: 'msg-open', data: { k: t.id } },
-    { icon: 'chat', label: 'Reply', note: t.name, act: 'msg-reply', data: { k: t.id } }])); },
+    { icon: 'send', label: 'Reply', note: t.name, act: 'msg-reply', data: { k: t.id } }])); },
 });
 /* ONE MESSAGE, one card: who, when, what; a failed one carries its Retry and Remove as tiles. */
 function msgFindOne_(t, m) {

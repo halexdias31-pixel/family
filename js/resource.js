@@ -22,36 +22,6 @@ const FIELD_LABEL = {
 const fieldLabel = f => FIELD_LABEL[f] || String(f).replace(/_/g, ' ');
 
 
-/* PUTTING SOMETHING ON. § */
-on('wear', el => {
-  if (!USER) { toast('Sign in first'); go('account'); return; }
-  const cfg = avatarConfig(USER.avatar, USER.handle || USER.name);
-  cfg[el.dataset.slot] = el.dataset.id;
-  /* SAID BEFORE IT IS TRUE, because it almost always becomes true and the wait is the only part anybody would notice. § */
-  const was = { label: el.getAttribute('title') || 'Wear' };
-  tileSet_(el, { label: 'Putting it on…', off: true });
-
-  api({ action: 'saveAvatar',
-    name: USER.name, personId: USER.personId, avatar: cfg })
-    .then(d => {
-      if (!d || d.error) throw new Error((d && d.error) || 'Could not save that');
-      USER.avatar = d.avatar;
-      if (typeof d.credits === 'number') USER.credits = d.credits;
-      if (d.owned) USER.avatarItems = d.owned;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
-      /* NO SHEET TO CLOSE — this now runs from a row on the card itself. */
-      tileSet_(el, { label: 'Wearing it', on: true, off: true });
-      toast((d.bought || []).length ? 'Bought ' + d.bought.join(', ') : 'Wearing it');
-      /* ---------- THE ONE PLACE A REDRAW IS STILL RIGHT § */
-      repaint();
-    })
-    .catch(err => {
-      /* PUT BACK EXACTLY WHAT WAS THERE. § */
-      tileSet_(el, { label: was.label, off: false });
-      toast(why_(err));
-    });
-});
-
 /* ---------- THE BASKET § */
 let CART = [];
 try { CART = JSON.parse(localStorage.getItem('familyCart') || '[]'); } catch { /* a bad stored basket reads as empty */ }

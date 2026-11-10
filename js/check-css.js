@@ -282,7 +282,6 @@ const DIM_OK = [
   [/^\.page\.soft/, 'a parked pane behind the one in front — the slide\'s, never read while dimmed (ui.js stops there too)'],
   [/^\.loading\b/, 'the three waiting dots are dots, not words'],
   [/\.pfp-opt$/, 'a face picture to choose; pictures only'],
-  [/\.av-opt\.locked/, 'a wardrobe picture not yet earned; its words (`.av-why`) are left out of the fade'],
   [/\.text-drop$/, 'the one-glyph ✕ that removes a row, half strength until a touch screen shows it'],
   [/\.msg-flag$/, 'a flag icon beside a message; full strength on hover and focus'],
   [/\.qsheet span\.box$/, 'the empty box a paper leaves for an answer — an outline, no words'],
@@ -350,10 +349,9 @@ const pfpTone = [];
   const linksSrc = (() => { try { return fs.readFileSync(path.join(dir, 'js', 'links.js'), 'utf8'); } catch (e) { return ''; } })();
   const start = linksSrc.indexOf('const PFP_ART = {');
   const end = start < 0 ? -1 : linksSrc.indexOf('\n};', start);
-  const ground = (/const AV_BUST_GROUND = '(#[0-9a-f]{6})'/i.exec(linksSrc) || [])[1];
   if (start < 0 || end < 0) pfpTone.push('js/links.js has no `const PFP_ART = {…};` — the ten pictures were NOT checked');
   else {
-    const art = linksSrc.slice(start, end) + (ground ? ' ' + ground : '');
+    const art = linksSrc.slice(start, end);
     const root = rules.find(r => r.sel === ':root' && !r.cond);
     const tok = {};
     (root ? root.decls : []).forEach(d => {

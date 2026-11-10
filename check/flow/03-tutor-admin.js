@@ -577,46 +577,6 @@ check('every role\'s own card is edited, a card per section, with picture, figur
 
 
 /* ---------- YOUR FIGURE, DRESSED ON YOUR OWN CARD, IS THE FIGURE YOUR PICTURE DRAWS § */
-check('your figure dressed on your own card\'s Edit is the figure your picture draws, saved as picked — and Cancel puts the look back', async () => {
-  const W = cardWorld_();
-  const reply = b => (b.action === 'saveAvatar' ? W.real.post(b) : W.reply(b));
-  const c = await cardOpen_(W, 'student@example.org', { reply });
-  if (c.err) return [c.err];
-  const bad = [];
-  const shirtOf = s => Number((/shirt:(\d)/.exec(String(s || '')) || [])[1]);
-  const open = async () => { for (let k = 0; k < 30 && !c.form(); k++) await wait(100); return !!c.form(); };
-  if (!(await open())) return ['Sam\'s Student settings draws no editing cards'];
-  const pick = async n => {
-    const sw = c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="' + n + '"]');
-    if (!sw) { bad.push('the figure section has no shirt ' + n); return; }
-    c.A('av-colour', sw);
-    await wait(300);
-  };
-  c.sent.length = 0;
-  await pick(2);
-  const av = c.sent.filter(x => x.action === 'saveAvatar');
-  if (av.length !== 1 || Number(av[0].avatar && av[0].avatar.shirt) !== 2) bad.push('picking shirt 2 posted ' + JSON.stringify(av.map(x => x.avatar)) + ', wanted one saveAvatar in shirt 2');
-  if (shirtOf(W.real.row('P-S1').avatar) !== 2 || shirtOf(c.t.whoami().avatar) !== 2) bad.push('after shirt 2 the row holds ' + JSON.stringify(W.real.row('P-S1').avatar) + ' and the phone ' + JSON.stringify(c.t.whoami().avatar));
-  /* THE FIGURE IS NO LONGER A PICTURE (owner, 9 Nov): the picker offers the ten, and no card draws the figure. */
-  if (c.form().querySelector('.pfp-opt[data-pic="avatar"]')) bad.push('the picture picker still offers the figure');
-  const ringed = c.form().querySelector('.ce-sec[data-sec="figure"] .av-sw.on[data-field="shirt"]');
-  if (!ringed || ringed.dataset.value !== '2') bad.push('the ring in the figure section is not on shirt 2');
-  /* SAVE ON THE FIGURE'S CARD: what it would put back is now this look. */
-  c.A('card-save', c.tileOn('figure', 'card-save'));
-  await wait(400);
-  /* CANCEL PUTS THE LOOK BACK. */
-  if (!(await open())) return bad.concat(['the editing cards are gone after Save']);
-  await pick(4);
-  if (shirtOf(c.t.whoami().avatar) !== 4) bad.push('shirt 4 was not picked');
-  c.sent.length = 0;
-  c.A('card-cancel', c.tileOn('figure', 'card-cancel'));
-  await wait(500);
-  const back = c.sent.filter(x => x.action === 'saveAvatar');
-  if (back.length !== 1 || Number(back[0].avatar && back[0].avatar.shirt) !== 2) bad.push('Cancel posted ' + JSON.stringify(back.map(x => x.avatar)) + ', wanted one saveAvatar putting shirt 2 back');
-  if (shirtOf(W.real.row('P-S1').avatar) !== 2 || shirtOf(c.t.whoami().avatar) !== 2) bad.push('after Cancel the row holds ' + JSON.stringify(W.real.row('P-S1').avatar) + ' and the phone ' + JSON.stringify(c.t.whoami().avatar));
-  if (!/figure too/.test(c.toast())) bad.push('Cancel said ' + JSON.stringify(c.toast()) + ', not that the figure was put back');
-  return bad;
-});
 
 /* ---------- THE REVIEW OF docs/history/339: WHAT ONE FORM FOR THE HANDLE, THE FIGURE AND THE BOXES COST § */
 
@@ -624,42 +584,6 @@ check('your figure dressed on your own card\'s Edit is the figure your picture d
 
 
 /* CANCEL WHILE A PICK IS OUT. § */
-check('review 339: Cancel pressed while a wardrobe pick is on the wire waits for it in words, and then puts the look back', async () => {
-  const W = cardWorld_();
-  let release = null, n = 0;
-  const reply = b => (b.action === 'saveAvatar' ? (n++ === 0 ? new Promise(ok => { release = () => ok(W.real.post(b)); }) : W.real.post(b)) : W.reply(b));
-  const c = await cardOpen_(W, 'student@example.org', { reply });
-  if (c.err) return [c.err];
-  const bad = [];
-  const drawn = (cell, handle) => JSON.stringify(c.w.avatarConfig(cell, handle));
-  const open = drawn(c.t.whoami().avatar, c.t.whoami().handle);
-  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
-  const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="4"]');
-  if (!sw) return ['Sam\'s figure section has no shirt 4 — NOT checked'];
-  c.A('av-colour', sw);
-  await wait(100);
-  if (!release) return ['the pick sent no saveAvatar — NOT checked'];
-  c.sent.length = 0;
-  c.A('card-cancel', c.tileOn('figure', 'card-cancel'));
-  await wait(300);
-  if (c.sent.some(x => x.action === 'saveAvatar')) bad.push('Cancel sent its put-back beside the pick still on the wire: ' + JSON.stringify(c.sent.filter(x => x.action === 'saveAvatar').map(x => x.avatar && x.avatar.shirt)));
-  if (!c.card()) bad.push('Cancel shut the card with a pick still on the wire');
-  if (!/figure is still saving/.test(c.toast())) bad.push('Cancel said ' + JSON.stringify(c.toast()) + ', not that the figure is still saving');
-  /* THE PICK FINISHES LAST, as it did in the review — and then Cancel, if the card is still open to press it on. */
-  release();
-  await wait(400);
-  if (c.tileOn('figure', 'card-cancel')) {
-    c.sent.length = 0;
-    c.A('card-cancel', c.tileOn('figure', 'card-cancel'));
-    await wait(500);
-    const back = c.sent.filter(x => x.action === 'saveAvatar');
-    if (back.length !== 1 || Number(back[0].avatar && back[0].avatar.shirt) !== 0) bad.push('Cancel after the pick landed sent ' + JSON.stringify(back.map(x => x.avatar)) + ', wanted one put-back in shirt 0');
-  }
-  const sheet = drawn(W.real.row('P-S1').avatar, W.real.row('P-S1').handle);
-  if (sheet !== open) bad.push('after Cancel the sheet draws ' + sheet + ', opened with ' + open);
-  if (drawn(c.t.whoami().avatar, c.t.whoami().handle) !== open) bad.push('after Cancel the phone draws ' + drawn(c.t.whoami().avatar, c.t.whoami().handle));
-  return bad;
-});
 
 
 /* SAVE WITH NOTHING TYPED, AFTER A SECTION SAVED ITSELF. "Nothing had changed" after a pick or a picture
@@ -689,42 +613,6 @@ check('review 339: Save with nothing typed after a pick or a picture says what w
 });
 
 /* THE LOOK AND THE CREDITS THE CARD OPENED WITH SURVIVE A RELOAD. § */
-check('review 339: after a reload mid-edit, Cancel still puts the opening look back, and still says that anything bought is yours', async () => {
-  const W = cardWorld_();
-  const reply = b => (b.action === 'saveAvatar' ? W.real.post(b) : W.reply(b));
-  const c = await cardOpen_(W, 'student@example.org', { reply });
-  if (c.err) return [c.err];
-  const bad = [];
-  const drawn = (cell, handle) => JSON.stringify(c.w.avatarConfig(cell, handle));
-  c.t.whoami().credits = 50;
-  const open = drawn(c.t.whoami().avatar, c.t.whoami().handle);
-  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
-  /* THE CARDS OPENED BEFORE THE CREDITS WERE SET (468: always open), so a Save with nothing typed takes them as the starting point. */
-  if (c.tileOn('name', 'card-save')) { c.A('card-save', c.tileOn('name', 'card-save')); await wait(300); }
-  const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="4"]');
-  if (!sw) return ['Sam\'s figure section has no shirt 4 — NOT checked'];
-  c.A('av-colour', sw);
-  /* THE PICK ANSWERED AND KEPT ON THE PHONE — what a reload starts from — not merely written on the sheet. */
-  const keptLook = () => { try { return String(JSON.parse(c.w.localStorage.getItem('familyUser')).avatar || ''); } catch (e) { return ''; } };
-  for (let k = 0; k < 50 && !(/shirt:4/.test(String(W.real.row('P-S1').avatar)) && /shirt:4/.test(keptLook())); k++) await wait(100);
-  if (!/shirt:4/.test(keptLook())) return ['the pick did not reach the sheet and the phone\'s kept copy — NOT checked'];
-  c.w.dispatchEvent(new c.w.Event('pagehide'));
-  const kept = keptStore_(c.w);
-  /* WHAT A PURCHASE LEAVES ON THE PHONE: fewer credits than the card was opened with. */
-  try { const u = JSON.parse(kept.familyUser); u.credits = 30; kept.familyUser = JSON.stringify(u); } catch (e) { return ['the kept sign-in could not be read — NOT checked']; }
-  const two = await cardOpen_(W, null, { before: fromStore_(kept), reply });
-  if (two.err) return bad.concat(['after the reload: ' + two.err]);
-  for (let k = 0; k < 30 && !two.form(); k++) await wait(100);
-  if (!two.form() || !two.tileOn('figure', 'card-cancel')) return ['after the reload Sam\'s figure card is not drawn — NOT checked'];
-  two.sent.length = 0;
-  two.A('card-cancel', two.tileOn('figure', 'card-cancel'));
-  await wait(600);
-  const back = two.sent.filter(x => x.action === 'saveAvatar');
-  if (back.length !== 1) bad.push('Cancel after a reload sent ' + back.length + ' saveAvatar, wanted one putting the look back');
-  if (drawn(W.real.row('P-S1').avatar, W.real.row('P-S1').handle) !== open) bad.push('after Cancel the sheet draws ' + drawn(W.real.row('P-S1').avatar, W.real.row('P-S1').handle) + ', opened with ' + open);
-  if (!/figure too/.test(two.toast()) || !/Anything you bought is still yours/.test(two.toast())) bad.push('Cancel after a reload said ' + JSON.stringify(two.toast()) + ' — wanted the figure put back and the bought line');
-  return bad;
-});
 
 /* A PARENT WHO SHARES A LISTED TUTOR'S NAME. § */
 check('review 339: a parent who shares a listed tutor\'s name edits her own card, her own sections, and the tutor\'s card is still the tutor\'s', async () => {

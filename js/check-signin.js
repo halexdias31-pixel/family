@@ -1093,12 +1093,16 @@ const byId = (b, id) => rowOf(b, x => x.person_id === id) || {};
 const PHONE_ = (() => {
   const ROOT = path.join(__dirname, '..');
   const core = fs.readFileSync(path.join(ROOT, 'js', 'core.js'), 'utf8');
-  const links = fs.readFileSync(path.join(ROOT, 'js', 'links.js'), 'utf8');
   const cut = (src, re, what) => { const m = src.match(re); if (!m) { console.log('FAILED — could not find ' + what + ' in js/ to draw a face with.'); process.exit(1); } return m[0]; };
-  const src = [cut(core, /const hashOf = str => \{[\s\S]*?\n\};/, 'hashOf'),
-               cut(links, /const AV_SKIN\s*=\s*\[[^\]]*\];/, 'AV_SKIN'),
-               cut(links, /const AV_HAIR\s*=\s*\[[^\]]*\];/, 'AV_HAIR'),
-               cut(links, /function avatarConfig\([\s\S]*?\n\}\n/, 'avatarConfig')].join('\n');
+  /* THE SHEET'S `avatar` CELL IS STILL KEPT BY THE SERVER (the figure left the phone, 9 Nov): its old reading, held here to judge what a handle move keeps. */
+  const src = [cut(core, /const hashOf = str => \{[\s\S]*?\n\};/, 'hashOf'), `const AV_SKIN = ['#f3c9a0', '#e0a878', '#c58a5b', '#8d5a3b', '#5f3a25', '#ffd9b3'];
+const AV_HAIR = ['#2b2118', '#5a3a1d', '#a8621f', '#d9b45a', '#8a8a8a', '#3a2a4a', '#7a2a2a'];
+function avatarConfig(packed, handle) {
+  const h = hashOf(String(handle || '?'));
+  const cfg = { skin: (h >>> 0) % AV_SKIN.length, hairColour: (h >>> 5) % AV_HAIR.length, shirt: 0, hair: 'crop', headwear: 'none', faceware: 'none', shoulders: 'none', handheld: 'none', legs: 'plain' };
+  String(packed || '').split('|').forEach(pair => { const [k, v] = pair.split(':'); if (!k || v === undefined) return; cfg[k] = /^\\d+$/.test(v) ? Number(v) : v; });
+  return cfg;
+}`].join('\n');
   return new Function(src + '\nreturn { avatarConfig, AV_SKIN, AV_HAIR };')();
 })();
 /* WHAT SOMEBODY SEES: the two colours a look resolves to, through the phone's own palette. */

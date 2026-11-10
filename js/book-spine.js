@@ -286,7 +286,7 @@ function rosterHtml(o) {
   return `<div class="rost">
     ${slots.map(sl => `<div class="rost-slot${sl.filled ? ' on' : ''}${sl.tutor ? ' tut' : ''}">
       <span class="rost-pic">${sl.filled
-        ? avatarFor(sl.name || sl.role, 34, '')
+        ? personFace_({ name: sl.name || sl.role }, { size: 34 })
         : '<span class="rost-plus">+</span>'}</span>
       ${/* ---------- AN EMPTY SEAT SAID "OPEN" TWICE § */
             ''}
