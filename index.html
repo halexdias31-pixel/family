@@ -59,7 +59,7 @@
 
   /* ---------- AND THEN THE 230KB WAS A MEGABYTE § */
   /* THE FILES' OWN HASH (750), written by tools/build-stamp.js and held to them by its --check: it moves when a served file changes and never by the clock. */
-  var BUILD_STAMP = 'e8ab526bc441';
+  var BUILD_STAMP = 'fff47b9446b0';
   LOAD = /(?:^|[?&])dev(?:[=&]|$)/.test(location.search)
     ? String(Date.now())                        /* the publisher: nothing may be held */
     : BUILD_STAMP || String(Math.floor(LOAD_AT / 300000));     /* everybody else: the hash; the old rounded build time only if the line was emptied */
@@ -180,23 +180,23 @@
 
   <!-- ONE SECTION, BECAUSE THERE IS ONE SCREEN. § -->
   <!-- ONE SECTION PER TAB. § -->
-  <section class="screen hidden" id="s-spotlight"></section>
-  <section class="screen hidden" id="s-feed"></section>
-  <section class="screen hidden" id="s-booking"></section>
-  <section class="screen hidden" id="s-shop"></section>
-  <section class="screen hidden" id="s-reel"></section>
-  <section class="screen hidden" id="s-dm"></section>
-  <section class="screen" id="s-stuff"></section>
-  <section class="screen hidden" id="s-account"></section>
-  <section class="screen hidden" id="s-saved"></section>
-  <section class="screen hidden" id="s-tutors"></section>
-  <section class="screen hidden" id="s-students"></section>
-  <section class="screen hidden" id="s-parents"></section>
-  <section class="screen hidden" id="s-family"></section>
-  <section class="screen hidden" id="s-staff"></section>
-  <section class="screen hidden" id="s-apprentice"></section>
-  <section class="screen hidden" id="s-web"></section>
-  <section class="screen hidden" id="s-apprentices"></section>
+  <section class="screen card-grid hidden" id="s-spotlight"></section>
+  <section class="screen card-grid hidden" id="s-feed"></section>
+  <section class="screen card-grid hidden" id="s-booking"></section>
+  <section class="screen card-grid hidden" id="s-shop"></section>
+  <section class="screen card-grid hidden" id="s-reel"></section>
+  <section class="screen card-grid hidden" id="s-dm"></section>
+  <section class="screen card-grid" id="s-stuff"></section>
+  <section class="screen card-grid hidden" id="s-account"></section>
+  <section class="screen card-grid hidden" id="s-saved"></section>
+  <section class="screen card-grid hidden" id="s-tutors"></section>
+  <section class="screen card-grid hidden" id="s-students"></section>
+  <section class="screen card-grid hidden" id="s-parents"></section>
+  <section class="screen card-grid hidden" id="s-family"></section>
+  <section class="screen card-grid hidden" id="s-staff"></section>
+  <section class="screen card-grid hidden" id="s-apprentice"></section>
+  <section class="screen card-grid hidden" id="s-web"></section>
+  <section class="screen card-grid hidden" id="s-apprentices"></section>
 </main>
 
 <!-- The sheet. One element, reused: a booking, a profile, a form. Not a pop-up (453): `openSheet` moves it

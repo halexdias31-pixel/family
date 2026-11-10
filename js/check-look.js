@@ -136,6 +136,12 @@ for (const m of noComments.matchAll(/([^{}]*kc-pic[^{}]*)\{([^{}]*)\}/g)) {
 for (const m of noComments.matchAll(/@media[^{]*min-width[^{]*\{([^{}]*\{[^{}]*\}\s*)+\}/g)) {
   if (/grid-template-columns|column-count|(?<![-\w])columns:/.test(m[0])) bad.push(`59a a second column on a wide window: ${m[0].slice(0, 80)}`);
 }
+/* ---------- 59b. ONE FLUID GRID (owner, 10 Nov): no @media rule by width (print, motion, hover, shape allowed); every screen is a `.card-grid`, the one column flow ---------- */
+for (const m of noComments.matchAll(/@media([^{]*)\{/g)) {
+  if (/(?<![-\w])(min-|max-)?width/.test(m[1])) bad.push(`59b a width breakpoint: @media${m[1].trim()} — say it once for every width (clamp, min(), the grid)`);
+}
+if (!/\.card-grid \{[^}]*columns: 20rem; column-gap: var\(--card-gap\)/.test(noComments)) bad.push('59b .card-grid is not the one 20rem column flow with var(--card-gap)');
+for (const m of html.matchAll(/<section class="([^"]*\bscreen\b[^"]*)" id="([^"]+)"/g)) if (!/\bcard-grid\b/.test(m[1])) bad.push(`59b #${m[2]} is a screen but not a .card-grid`);
 const bootSrc = (files.find(f => f.n === 'shell-boot') || {}).src || '';
 if (!/const FLOW_LAYOUT = true;/.test(bootSrc)) bad.push('59a FLOW_LAYOUT is not true (shell-boot.js) — the wide multi-column grid would come back');
 
