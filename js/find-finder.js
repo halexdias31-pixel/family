@@ -167,9 +167,7 @@ const KINDS = {
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
-  tool: { group: 'Tools', label: 'Tools', card: x => widgetCard_(x) },
-  game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
-  reel: { group: 'Videos', label: 'Videos', card: x => widgetCard_(x) },
+  tool: { group: 'Tools', label: 'Tools', card: x => findCard(x) },
   /* COMING SOON (880): a switched-off column or widget, its name, one line, Coming soon and Suggest; nothing on it works. */
   soon: { group: 'Coming soon', label: 'Coming soon', card: (x, c) => findCard(x, c) },
   /* PEOPLE (owner, 4 Nov): everybody an admin may see, one card each, drawn like the people columns drew them. */
@@ -221,7 +219,7 @@ window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x),
   timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
-  hymn: x => hymnsCard_(x), mech: x => mechCard_(x), chem: x => chemCard_(x), soon: x => soonCard_(x), person: x => profileDoorCard_(x),
+  hymn: x => hymnsCard_(x), mech: x => mechCard_(x), chem: x => chemCard_(x), soon: x => soonCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x),
   offPosts: x => soonCard_(x), offShop: x => soonCard_(x), offBooking: x => soonCard_(x),
   setting: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)), health: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : ''),
 });

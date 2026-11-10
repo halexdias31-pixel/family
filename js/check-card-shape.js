@@ -91,15 +91,13 @@ rows.forEach(r => String(r.tiles || '').split(',').map(s => s.trim()).filter(Boo
   if (!new RegExp("on\\('" + act + "'").test(allJs)) bad.push(r.kind + ': tile ' + act + ' has no on() handler');
 }));
 /* EVERY FIND KIND IS DRAWN BY `findCard` (owner 1a, 8 Nov), never a card maker of its own; its own file may still write the insides (`KC_OWN`). */
-/* A TOOL, GAME OR REEL IS THE LIVE WIDGET ITSELF (790: its slot, star and padlock, started by arcade.js), so it alone keeps its column's card. */
-const WIDGET_KINDS = ['tool', 'game', 'reel'];
 /* A BOOKING FORM IS A FORM, NOT A CARD (owner, 9 Nov): its fields and Send, drawn by its own file. */
 const FORM_KINDS = ['bookform'];
 const kindsSrc = (/\nconst KINDS = \{([\s\S]*?)\n\};/.exec(finder) || [, ''])[1];
 const kindNames = [];
 kindsSrc.replace(/\n  ([A-Za-z]\w*):\s+\{/g, (m, k) => { kindNames.push(k); return m; });
 if (kindNames.length < 20) bad.push('find-finder.js KINDS was not found (' + kindNames.length + ' kinds read)');
-kindNames.forEach(k => { if (k === 'tutor' || WIDGET_KINDS.indexOf(k) >= 0) return;
+kindNames.forEach(k => { if (k === 'tutor') return;
   if (FORM_KINDS.indexOf(k) >= 0) { if (!new RegExp('\\n  ' + k + ':[^\\n]*card: \\(\\) => bookFormCard_\\(\\)').test(kindsSrc)) bad.push(k + ' is a form: KINDS draws it with bookFormCard_()'); return; }
   const m = new RegExp('\\n  ' + k + ':\\s+\\{[^\\n]*?card: (\\([^)]*\\)|x) => ([^\\n]*?) \\},?\\n').exec(kindsSrc + '\n');
   if (!m) bad.push('find-finder.js KINDS has no one-line ' + k + ' entry');
@@ -130,4 +128,4 @@ const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
 if (!/\.card\.kc:not\(\.is-open\) > \.kc-lines > \* \{[^}]*-webkit-line-clamp: 2;/.test(css) || !/\.card\.kc:not\(\.is-open\) > \.kc-lines > \* ~ \* \{ display: none; \}/.test(css)) bad.push('style.css no longer clamps a closed card to one block of two lines');
 
 if (bad.length) { console.log('✗ card shape:\n  ' + bad.join('\n  ')); process.exit(1); }
-console.log('card shape: ' + rows.length + ' kinds, a kind the file does not name and a KC_OWN card, one shape (' + SHAPE.join(', ') + '); every Find kind but ' + WIDGET_KINDS.join(', ') + ' drawn by findCard');
+console.log('card shape: ' + rows.length + ' kinds, a kind the file does not name and a KC_OWN card, one shape (' + SHAPE.join(', ') + '); every Find kind drawn by findCard');
