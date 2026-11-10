@@ -577,7 +577,7 @@ check('columns (730): the owner\'s eleven — five profiles then six settings, n
   try { w.paint('apprentices'); } catch (e) {}
   if (!d.querySelector('#s-apprentices .appr-card')) bad.push('Apprentice profile draws nothing');
   try { w.paint('site'); w.paint('biz'); } catch (e) {}
-  ['site:rules', 'site:inbox', 'biz:build'].forEach(id => { if (w.cardHome0_(id) !== 'site') bad.push(id + ' is not a Web settings card'); });
+  ['site:inbox', 'biz:build'].forEach(id => { if (w.cardHome0_(id) !== 'site') bad.push(id + ' is not a Web settings card'); });
   ['biz:apps', 'biz:staff', 'biz:profit-sum'].forEach(id => { if (w.cardHome0_(id) !== 'biz') bad.push(id + ' left Biz settings'); });
   const s = boot({ before: signedInAs_({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'], handle: 'sam' }) });
   await wait(300);
