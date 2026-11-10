@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-10-biz-policy-1";
+const DOPOST_VERSION = "2026-11-10-who-sees-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -206,7 +206,6 @@ function postActions_() {
     savePhoto: postSavePhoto_,
     setMyRoles: postSetMyRoles_,
     saveAvatar: postSaveAvatar_,
-    saveFriends: postSaveFriends_,
     saveScore: postSaveScore_,
     saveTtHighscore: postSaveScore_,
     aiMark: postAiMark_,
@@ -707,8 +706,8 @@ function familyNamesOf_(r) {
   const vis = seesWhom_(r);
   const out = {
     parents:  acceptedParents(meId).filter(x => !vis || vis[S(x.person_id)]).map(x => nameFor_(x)),
-    children: acceptedChildren(meId).map(x => nameFor_(x)),
-    siblings: siblingsOf(meId).map(x => nameFor_(x)),
+    children: acceptedChildren(meId).filter(x => !vis || vis[S(x.person_id)]).map(x => nameFor_(x)),
+    siblings: siblingsOf(meId).filter(x => !vis || vis[S(x.person_id)]).map(x => nameFor_(x)),
     claims: read(TAB.family).rows
       .filter(x => S(x.child_id) === meId && norm(x.state) === 'asked')
       .map(x => {
@@ -765,8 +764,7 @@ function loginReplyFor_(r, token, extra) {
                 /* THE TUTOR AGREEMENT — so the box draws ticked and locked on every phone the
                    person signs in on, not only the one they ticked it on. */
                 agreementSignedAt: S(r.agreement_signed_at), agreementVersion: S(r.agreement_version),
-                highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables),
-                friends: S(r.friends) };
+                highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables) };
   /* Their family, as agreed by both sides, and anything still waiting on them. § */
   Object.assign(out, familyNamesOf_(r));
   const meId = S(r.person_id);
@@ -1161,7 +1159,7 @@ function clientErrorsList_() {
 /* ONE PERSON'S MESSAGES — asked by `messages`, and sent in the payload so the DMs column draws with the others (700). */
 function messagesOf_(me) {
   const mine = S(me.person_id);
-  /* A THREAD WITH SOMEBODY THEY MAY NO LONGER SEE IS NOT SENT (386) — staff threads always are (`seesPerson_`). */
+  /* A THREAD WITH SOMEBODY THEY MAY NO LONGER SEE IS NOT SENT (386) — an admin's always are (`seesPerson_`). */
   const vis = seesWhom_(me);
 
   return read(TAB.messages).rows

@@ -113,7 +113,9 @@ function postRaiseHand_(body, action, began) {
     }
     const mine = all[S(me.person_id)] || null;
     const out = { success: true, mine: mine };
-    if (staff) out.hands = Object.keys(all).map(k => all[k]).sort((a, b) => a.at - b.at);
+    /* A TUTOR SEES ONLY THEIR OWN STUDENTS' HANDS (10 Nov, `seesWhom_`); an admin every one. */
+    const vis = staff ? seesWhom_(me) : null;
+    if (staff) out.hands = Object.keys(all).map(k => all[k]).filter(h => !vis || vis[S(h.personId)]).sort((a, b) => a.at - b.at);
     return jsonOut(out);
   } finally { try { lock.releaseLock(); } catch (e) {} }
 }

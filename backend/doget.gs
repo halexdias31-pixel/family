@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-10-biz-policy-1";
+const DOGET_VERSION = "2026-11-10-who-sees-1";
 
 
 function doGet(e) {
@@ -62,7 +62,7 @@ function doGet(e) {
     const viewerIsAdmin = !!meAsked && hasRole(meAsked, 'admin');
     /* AND THE NET IS TOLD (342): § */
     netViewerSet_(meAsked);
-    /* WHO THEY MAY SEE (386, `seesWhom_`): null for nobody, a tutor or an admin; else the ids a child or parent is shown. */
+    /* WHO THEY MAY SEE (386, `seesWhom_`): null for nobody or an admin; else the ids a child, parent or tutor is shown. */
     const vis = seesWhom_(meAsked);
 
     const cfg = config(), opts = allOptions(), sur = surcharges();

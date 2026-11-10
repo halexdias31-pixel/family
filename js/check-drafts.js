@@ -89,7 +89,6 @@ const EXEMPT = [
   { file: 'me.js', fn: 'registerCard_', has: 'id="reg-pin"', why: PIN },
   { file: 'form.js', fn: 'formBox_', has: 'id="${esc(b.id)}"', why: PIN + ': the Signing in boxes, forms.json\'s `signing-in`' },
   { file: 'me.js', fn: 'registerCard_', has: 'id="reg-noemail"', why: 'reset by the who-is-it question above it, which is asked again on purpose (`REG_NOTE`)' },
-  { file: 'me.js', fn: 'friendsSheet', has: 'id="fr-add"', why: 'one handle, typed in seconds and sent by the button beside it' },
   /* THE PEOPLE COLUMN'S PERSON FORM (373): another person's account, decided and saved there and then. */
   { file: 'me.js', fn: 'box', has: 'data-pf="${k}"', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf="dob"', why: PEOPLE_FORM },

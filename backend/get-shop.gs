@@ -254,7 +254,7 @@ function getJobs_(meAskedName, viewerIsAdmin, vis, cfg, venuesTab, jobsTab, payl
                                         ? 'Confirmed' : 'Applied', chats: {} })),
       offerTurn: '',
       /* ---------- THE LOG, TO THE PEOPLE ON IT (342, the review) § */
-      events: iAmIn ? eventsForJob(jobId) : [],
+      events: iAmIn ? eventsForJob(jobId).filter(e => !vis || iTeach || seesPerson_(vis, findPerson(e.actor)) || rankAtLeast_(findPerson(e.actor), 'staff')) : [],
       // Looked up now rather than copied onto the job when it was booked: a tutor who changes
       // their photo should change it on every class they teach, not just future ones.
       image: (venuesTab.find(v => key(v.name) === key(j.venue)) || {}).photo || '',

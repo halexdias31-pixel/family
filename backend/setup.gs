@@ -146,13 +146,12 @@ function renameHandles_() {
       if (has) moves[key(has)] = made;
       out.renamed++;
     });
-    out.friendsMoved = handleFriendsMove_(t, moves);
   } finally {
     clearCache();
   }
   out.means = out.renamed + ' handle(s) moved to the template (first and last letter of the first name and the year joined; a clash '
             + 'adds first-name letters before the last, then a counter). Each old handle is at the front of handle_was and '
-            + 'still signs in; ' + out.friendsMoved + ' friends list(s) moved.';
+            + 'still signs in.';
   return out;
 }
 

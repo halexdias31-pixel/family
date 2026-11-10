@@ -384,9 +384,9 @@ function postMyProfile_(body, action, began) {
   const me = findPerson('', S(body.personId));
   if (!me) return jsonOut({ error: 'We could not find your account.' });
   /* AND THE NAMES, said as the sign-in reply says them — `nameFor_` and `familyNamesOf_`. § */
-  /* AND THE HANDLE, AND THE FRIENDS LIST THAT NAMES OTHERS BY THEIRS (342). § */
+  /* AND THE HANDLE, which the business may have moved (342). */
   return jsonOut(Object.assign({ success: true, personId: S(me.person_id), name: nameFor_(me),
-                   handle: S(me.handle), friends: S(me.friends),
+                   handle: S(me.handle),
                    profile: profileOf_(me),
                    agreementSignedAt: S(me.agreement_signed_at),
                    agreementVersion: S(me.agreement_version),
@@ -1265,21 +1265,6 @@ function postSaveAvatar_(body, action, began) {
   const after = findPerson(S(body.name), S(body.personId));
   return jsonOut({ success: true, avatar: packed, credits, bought,
                    owned: after ? avatarUnlocks(after) : [] });
-}
-
-/* A NEW FRIEND MUST BE A CHILD'S HANDLE (386) — the phone no longer holds every child to look it up in. */
-function postSaveFriends_(body, action, began) {
-  const list = S(body.friends).split(',').map(x => x.trim()).filter(Boolean);
-  let rows = [];
-  try { rows = read(TAB.people).rows; } catch (err) { rows = []; }
-  const meF = findPerson(S(body.name), S(body.personId));
-  const had = S(meF && meF.friends).split(',').map(x => norm(x.trim()));
-  const wrong = list.filter(h => had.indexOf(norm(h)) === -1
-    && !rows.some(r => norm(r.handle) === norm(h.replace(/^@/, '')) && isChild_(r)));
-  if (wrong.length) return jsonOut({ error: 'Nobody has the handle "' + wrong[0] + '".' });
-  const saved = postSavePerson_(body, 'friends', list.join(', '));
-  clearCache();
-  return saved;
 }
 
 function postSaveScore_(body, action, began) {
