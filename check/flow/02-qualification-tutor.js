@@ -841,45 +841,16 @@ check('Sign out is on Student settings (453), not under a tutor\'s card while th
 
 /* ---------- SETTINGS HOLDS WHAT IS NOT ON YOUR CARD, FOR EVERYBODY (docs/history/330, 339) § */
 /* THE SETUP CARD (361): the owner's "open the site once" ends here — an admin sees what ran; nobody else sees it, or is sent it. */
-check('the Setup card is in the Business column, an admin\'s alone (moved from You, 400): the admin\'s payload carries the run-once jobs and triggers, the card lists them with no button, glows while a job failed and not once it ran, and a tutor gets neither', async () => {
+check('no Setup card anywhere (owner, 10 Nov: the health checker covers it); the setup report still reaches only an admin', async () => {
   const W = cardWorld_();
   const bad = [];
   const a = await cardOpen_(W, 'admin@example.org');
   if (a.err) return [a.err];
-  /* THE REAL doGet, asked with each token — the world's GET is the anonymous copy, so the admin's report is laid on from here. */
   const asAdmin = W.real.get({ token: a.u && a.u.token });
-  if (!asAdmin.setup || !Array.isArray(asAdmin.setup.jobs)) bad.push('doGet with the admin\'s token sent no setup report: ' + JSON.stringify(asAdmin.setup));
+  if (!asAdmin.setup || !Array.isArray(asAdmin.setup.jobs)) bad.push('doGet with the admin\'s token sent no setup report');
   if (W.real.get({}).setup) bad.push('doGet with no token sent the setup report');
-  if (a.d.querySelector('#s-account .setup-card')) bad.push('the Setup card is still on You');
-  const lay = setup => { a.t.DATA().setup = setup; a.t.go('site', false, true); a.w.paint('site'); };
-  /* A JOB THAT FAILED: the card glows, says so, and the dot carries it. */
-  const failed = JSON.parse(JSON.stringify(asAdmin.setup || {}));
-  (failed.jobs || []).unshift({ id: 'tidy', error: 'the backup could not be written' });
-  try { lay(failed); } catch (e) { return bad.concat(['drawing Business threw: ' + e.message]); }
-  await wait(300);
-  const card = () => a.d.querySelector('#s-site .setup-card');
-  const text = String(card() ? card().textContent : '');
-  if (!card()) return bad.concat(['the admin\'s Site column has no Setup card (491)']);
-  if (!/sunday-email/.test(text) || !/schema/.test(text)) bad.push('the Setup card does not list the run-once jobs (schema, sunday-email): ' + text.slice(0, 200));
-  if (!/Backend live: \S+/.test(text) || !/Sunday email:/.test(text) || !/Triggers/.test(text)) bad.push('the Setup card does not say the live backend, the triggers and the Sunday email: ' + text.slice(0, 200));
-  if ([...card().querySelectorAll('button, [data-do]')].some(x => !x.closest('.wgt-admin'))) bad.push('the Setup card has something to press — every job runs by itself, so nothing may be pressed twice');
-  if (!card().classList.contains('needs-you') || !/to fix/.test(text)) bad.push('a failed job did not make the Setup card glow and say what to fix');
-  const dot = () => a.d.getElementById('biz-dot');
-  const fix = (/(\d+) things? to fix/.exec(text) || [])[1];
-  if (!dot() || !fix || dot().textContent !== fix) bad.push('the Business dot does not carry what the Setup card says needs fixing (' + fix + '): ' + (dot() ? dot().textContent : 'no dot'));
-  /* ALL RAN: no glow, no dot. */
-  const fine = JSON.parse(JSON.stringify(asAdmin.setup || {}));
-  (fine.jobs || []).forEach(j => { delete j.error; });
-  fine.files = {};
-  try { lay(fine); } catch (e) { return bad.concat(['drawing Business again threw: ' + e.message]); }
-  await wait(300);
-  if (!card() || card().classList.contains('needs-you')) bad.push('the Setup card still glows with nothing wrong');
-  if (dot()) bad.push('the Business dot is still drawn with nothing to do: ' + dot().textContent);
-  const t = await cardOpen_(W, 'tutor@example.org');
-  if (t.err) return bad.concat([t.err]);
-  await wait(400);
-  if (t.d.querySelector('.setup-card')) bad.push('a tutor is drawn the Setup card');
-  if (W.real.get({ token: t.u && t.u.token }).setup) bad.push('doGet with a tutor\'s token sent the setup report');
+  a.t.go('site', false, true); a.w.paint('site'); await wait(300);
+  if (a.d.querySelector('.setup-card')) bad.push('the Setup card is still drawn');
   return bad;
 });
 

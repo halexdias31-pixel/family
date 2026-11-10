@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 76.3,
+ "score": 75.7,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -34,12 +34,12 @@
   {
    "id": "dead",
    "label": "Code nothing calls",
-   "count": 16,
+   "count": 18,
    "weight": 0.3,
    "cap": 10,
-   "off": 4.8,
+   "off": 5.4,
    "where": {
-    "check-dead": "dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), nextBookStep (book-steps.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), paintBoard_ (map.js), paintTimer (overworld.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
+    "check-dead": "dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), nextBookStep (book-steps.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), paintBoard_ (map.js), setupCard_ (me-account.js), paintTimer (overworld.js), qtFigureOf_ (qtypes.js), rulesCard_ (rules.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
    }
   },
   {

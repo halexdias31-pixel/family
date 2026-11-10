@@ -122,8 +122,8 @@ function bizPages_() {
 /* THE SITE COLUMN'S CARDS (491): Setup (400), posts and reports to moderate, the library import, the weekly email. */
 function siteBizPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
-  return setup.concat(postsWaitCard_(), reportsCard_(), libImpCard_(), digestWordsCard_(), typeof rulesCard_ === 'function' ? [rulesCard_()].filter(Boolean) : []);
+  /* NO SETUP OR RULES CARD (owner, 10 Nov: "delete this"): the health checker covers setup. */
+  return [].concat(postsWaitCard_(), reportsCard_(), libImpCard_(), digestWordsCard_());
 }
 
 /* ---------- POSTS WAITING FOR APPROVAL (413) ----------
