@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-10-pin-four-1";
+const BACKEND_VERSION = "2026-11-10-apply-details-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -543,6 +543,10 @@ const SCHEMA = {
     "subjects", "qualifications", "dbs_number", "dbs_issued", "dbs_needed", "right_to_work",
     "experience", "availability", "area", "ref1_name", "ref1_contact", "ref2_name", "ref2_contact",
     "statement", "cv_link", "consent",
+    /* WHO THEY ARE, THEIR REFEREES IN FULL, THE DBS UPDATE SERVICE TICK AND THE RATE; `*_doc(s)` are links into the private APPLY_FOLDER. */
+    "full_name", "phone", "email", "address", "postcode", "dob", "id_doc", "rtw_doc", "qual_docs",
+    "ref1_relationship", "ref1_email", "ref1_phone", "ref2_relationship", "ref2_email", "ref2_phone",
+    "dbs_update_consent", "rate",
   ],
 
   /* ---------- THE LIBRARY'S PRIVATE HALF (397): one row per item, its private fields as JSON § */
@@ -1054,6 +1058,9 @@ const APPLICATION_STATUSES = ['new', 'interview', 'approved', 'declined'];
 const APPLICATION_OPEN = ['new', 'interview'];
 const APPLICATION_FIELD_MAX = 120;
 const APPLICATION_TEXT_MAX = 1500;
+/* AN APPLICATION'S DOCUMENT PHOTOS, each a data URL (8MB is far over a 1200px JPEG); at most three of qualifications. */
+const APPLY_DOC_MAX = 8 * 1048576;
+const APPLY_QUAL_DOCS_MAX = 3;
 
 /* ---------- HOW MUCH OF AN ANSWER THE SHEET KEEPS — SCHEMA.answers AND SCHEMA.submissions § */
 const ANSWER_TEXT_MAX = 20000;
