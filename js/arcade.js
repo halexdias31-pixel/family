@@ -696,7 +696,6 @@ function paintTermDates_() {
   document.querySelectorAll('.td-box').forEach(box => {
     box.removeAttribute('aria-busy');
     box.innerHTML = rows.map(tdLine_).join('')
-      + '<p class="note td-say">The usual England dates. Schools vary by a few days, so set yours below (school days, kept on this phone).</p>'
       + adj('s', sh.s, 'My school starts') + adj('e', sh.e, 'My school ends');
   });
 }
@@ -834,13 +833,12 @@ function progressAnsweredCard_(st) {
       <div class="row"><span class="k">${esc(o.topic)}</span><span class="v">${o.marked ? o.right + ' of ' + o.marked + ' right' : o.n + ' tried'}</span></div>
       <div class="prog-bar" aria-hidden="true"><span style="width:${o.marked ? progressPct_(o.right, o.marked) : 0}%"></span></div>
     </div>`).join('');
-  const more = st.topics.length > 12 ? `<p class="note">and ${st.topics.length - 12} more topics</p>` : '';
   return `<div class="card prog-answered">
     <h3>Questions</h3>
     <div class="row prog-tot"><span class="k">Answered</span><span class="v">${st.n}</span></div>
     <div class="row prog-tot"><span class="k">Right</span><span class="v">${st.right}</span></div>
     <div class="row prog-tot"><span class="k">Marks</span><span class="v">${st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet'}</span></div>
-    ${rows}${more}
+    ${rows}
   </div>`;
 }
 function progressActivityCard_(st) {
@@ -895,13 +893,12 @@ function progressSeriesCard_(sr) {
       <div class="prog-qs">${qs}</div>
     </details>`;
   }).join('');
-  const more = sr.papers.length > 15 ? `<p class="note">and ${sr.papers.length - 15} more started</p>` : '';
   const untouched = sr.untouched ? `<div class="row"><span class="k">Not started</span><span class="v">${sr.untouched}</span></div>` : '';
   /* ITS OWN CARD ID (466), so one series — past papers, Religious Studies — moves or goes alone. */
   const lid = 'prog:series:' + String(sr.name || 'x').toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
   return `<div class="card prog-series" data-lay-card="${esc(lid)}">
     <h3>${esc(sr.name.charAt(0).toUpperCase() + sr.name.slice(1))}</h3>
-    ${lines}${more}${untouched}
+    ${lines}${untouched}
   </div>`;
 }
 
@@ -945,14 +942,12 @@ function progressGradeCard_(st) {
       : o.lv === 'sats' ? progressGrade_(PROG_SATS_STEPS, pct, 'working towards')
       : 'working at grade ' + o.best;
     const label = o.subj + (o.lv === 'gcse' ? ' GCSE' : o.lv === 'alevel' ? ' A-level' : o.lv === 'sats' ? ' SATs' : ' worksheets');
-    return `<div class="row"><span class="k">${esc(label)}</span><span class="v">${esc(g)}</span></div>
-      <p class="note prog-from">from ${o.n} ${o.n === 1 ? 'paper' : 'papers'}, ${pct}% of marks</p>`;
+    return `<div class="row"><span class="k">${esc(label)}</span><span class="v">${esc(g)}</span></div>`;
   }).join('');
   if (!rows) return emptyCard_('Grade estimate');
   return `<div class="card prog-grade">
     <h3>Grade estimate</h3>
     ${rows}
-    <p class="note">An estimate from your marks, not a prediction from your school.</p>
   </div>`;
 }
 
@@ -980,8 +975,8 @@ function progressSessionsCard_(ss) {
   const row = s => `<div class="row"><span class="k">${esc(when(s))}</span><span class="v">${esc(s.j.title || s.j.subject || 'Session')}</span></div>`;
   return `<div class="card prog-sessions">
     <h3>Sessions</h3>
-    ${ss.ahead.length ? '<p class="note">Coming up</p>' + ss.ahead.map(row).join('') : ''}
-    ${ss.past.length ? '<p class="note">Done</p>' + ss.past.map(row).join('') : ''}
+    ${ss.ahead.map(row).join('')}
+    ${ss.past.map(row).join('')}
     <div class="tile-row">${tile_({ icon: 'book', label: 'Sessions', note: 'on Book', act: 'prog-sessions' })}</div>
   </div>`;
 }

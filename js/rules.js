@@ -105,9 +105,9 @@ function rulesCard_() {
     const opt = (to, label) => `<button type="button" class="btn quiet rule-opt${(to === 'universal') === uni ? ' on' : ''}" data-do="rule-set" data-rule="${esc(r.id)}" data-to="${to}" aria-pressed="${(to === 'universal') === uni}">${label}</button>`;
     return `<div class="rule-row${r.lock ? ' is-locked' : ''}" data-rule="${esc(r.id)}">
       <p class="rule-say">${esc(r.say)} <span class="qtag">${esc(r.where)}</span></p>
-      ${r.lock ? `<p class="note rule-lock">Locked: ${esc(r.lock)}</p>`
+      ${r.lock ? ''
         : `<div class="rule-sw" role="group" aria-label="${esc(r.say)}">${opt('exception', 'Exception')}${opt('universal', 'Universal')}</div>
-      <p class="note rule-uni">Universal: ${esc(r.uni)}</p>`}</div>`;
+      `}</div>`;
   };
   return `<div class="card biz rules-card"><h3>Rules</h3>
     ${RULES.map(row).join('')}

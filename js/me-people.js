@@ -122,7 +122,7 @@ function personFormHtml_(F) {
   if (!F.data) {
     if (!F.asked && !F.err) { F.asked = true; setTimeout(() => personFetch_(F), 0); }
     return `<div class="card person-form" data-pid="${esc(F.id)}">${head}${F.err
-      ? `<p class="note">${esc(F.err)}</p>${tile_({ form: true, label: 'Close', act: 'person-cancel', kind: 'quiet' })}` : loading_()}</div>`;
+      ? `${tile_({ form: true, label: 'Close', act: 'person-cancel', kind: 'quiet' })}` : loading_()}</div>`;
   }
   const p = F.data.person || { firstName: '', lastName: '', roles: [F.role || 'student'], email: '', dob: '', parentIds: [] };
   const choices = Array.isArray(F.data.parents) ? F.data.parents : [];
@@ -133,12 +133,10 @@ function personFormHtml_(F) {
     autocomplete="off"${type ? ` type="${type}"` : ''} value="${esc(v || '')}"`));
   return `<div class="card person-form" data-pid="${esc(F.id)}">${head}
     <div class="f-row" style="--n:2">${box('first', 'First name', p.firstName)}${box('last', 'Last name', p.lastName)}</div>
-    ${F.id && p.handle ? `<p class="note pf-handle">Their handle stays @${esc(p.handle)}.</p>` : ''}
     <div class="pf-roles" role="group" aria-label="Role">${peopleRolePicks_().map(([r, label]) => formTick_(`data-pf-role="${r}"${(p.roles || []).indexOf(r) !== -1 ? ' checked' : ''}`, `<span>${label}</span>`)).join('')}</div>
     ${box('email', 'Email (optional)', p.email, 'email')}
     ${formLine_('Date of birth (optional)', formInput_(`type="date" data-pf="dob" value="${esc(p.dob || '')}"`))}
     <div class="pf-parents"${kid ? '' : ' hidden'}>
-      ${has.length ? '<p class="note pf-note">Their parents — untick one to unlink.</p>' : ''}
       ${has.map(id => formTick_(`data-pf-parent="${esc(id)}" checked`, `<span>${esc(nameOf(id))}</span>`)).join('')}
       ${formLine_(has.length ? 'Another parent' : 'Their parent (optional)', formSelect_('data-pf="parent"', `
         <option value="">None</option>${choices.filter(c => has.indexOf(c.personId) === -1).map(c =>

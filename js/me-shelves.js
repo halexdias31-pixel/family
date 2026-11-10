@@ -430,7 +430,7 @@ function qualShelf_(list, value) {
     <div class="q-pool" hidden>${pool.map(i => qualSlot_(i, value, { mine })).join('')}</div>
     ${shelfAdd_('qualification', 'qual-add', { off: !pool.length, data: { unlocked: '' },
       note: pool.length ? pool.length + ' more fit' : '10 is the most' }, 'q-adds')}
-    ${pool.length ? '' : `<p class="note q-full">10 is the most this card holds — remove one to add another.</p>`}
+    
   </div>`;
 }
 /* ---------- ONE QUALIFICATION: ITS LINE, AND ITS EDITOR UNDER IT § */

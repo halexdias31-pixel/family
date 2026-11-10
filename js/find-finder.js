@@ -206,7 +206,6 @@ function friendCard_(x) {
         <span class="thing-pic art">${personFace_({ pic: f.image || f.photo, handle: f.handle, name: x.name, personId: f.personId }, { size: 44 })}</span>
         <div class="thing-body">
           <h3>${esc(x.name)}</h3>
-          <p class="note">${esc(f.handle)}${f.name ? ' · level ' + levelFromXp(xp) : ''}</p>
         </div>
         ${/* A BUTTON, NOT A SPAN — the fourth one of these. § */
               ''}
@@ -325,14 +324,7 @@ function thingCard_(x, credits) {
                 ''}
           ${/* WHO IT IS FROM, FIRST. § */
                 ''}
-          ${isShop_(x) ? '' : `<p class="note">${x.company
-            ? `${mark(x.company)}${x.sub || x.subject ? ' ' : ''}` : ''}${
-            mark(x.sub || x.subject || '')}${yearOf(x)
-            ? ` <span class="mono qtag">· ${esc(yearOf(x))}</span>` : ''}${x.wearable && x.slot
-            /* WHERE IT GOES. Until there are drawings, the slot is the only thing on the card that
-               says what the object actually is — "Cape · shoulders" is a garment and "Cape" on its
-               own is a word. */
-            ? ` <span class="qtag">${esc(x.slot)}</span>` : ''}</p>`}
+          
           ${price}
         </div>
       </div>

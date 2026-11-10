@@ -79,9 +79,7 @@ function wordsEditOn_(root) {
     if (p.hasAttribute('data-wk-set')) p.insertAdjacentHTML('afterend', `<span class="tile-row wk-reset">${
       tile_({ icon: 'undo', label: 'Reset this text', note: 'back to the code\'s wording', act: 'words-reset', tone: 'admin', data: { wk: p.getAttribute('data-wk') } })}</span>`);
   });
-  root.insertAdjacentHTML('beforeend', `<div class="wk-bar"><p class="note wk-say">${all.length
-    ? 'Type over any outlined words. Save changes them for everyone; Reset returns a piece to the code\'s wording.'
-    : 'This card has no words that can be changed here.'}</p><div class="tile-row">${
+  root.insertAdjacentHTML('beforeend', `<div class="wk-bar"><div class="tile-row">${
     all.length ? tile_({ icon: 'save', label: 'Save words', act: 'words-save', tone: 'admin' }) : ''}${
     tile_({ icon: 'close', label: 'Done', note: 'stop editing words', act: 'words-done', tone: 'admin' })}</div></div>`);
   if (all[0]) try { all[0].focus(); } catch (e) {}
@@ -177,8 +175,6 @@ function seenBox_(id) {
   return `<div class="seen-box" data-seen-for="${esc(id)}">
     <label class="seen-row"><span class="seen-l">Who sees this</span><select data-do="seen-set" data-lc="${esc(id)}" aria-label="Who sees this">${
       opt('', 'Everyone')}${SEEN_ORDER.map(v => opt(v, SEEN_SAY[v])).join('')}</select></label>
-    <p class="note seen-say">${gate ? 'The code already shows this to ' + esc(SEEN_SAY[gate]) + ' and above; that gate always wins, so it can only be narrowed.'
-      : 'This can only narrow who sees it: the code\'s own gates (sign-in, roles, admin) always win.'} You still see it, as admin.</p>
     <div class="tile-row">${tile_({ icon: 'close', label: 'Close', act: 'seen-close', tone: 'admin' })}</div>
   </div>`;
 }

@@ -300,7 +300,7 @@ function ceWhere_(L, val, box) {
   const ro = (((typeof DATA !== 'undefined' && DATA && DATA.profileReadonly) || []).indexOf('venues_ok') !== -1);
   const ticks = L.indexOf('venues_ok') === -1 ? '' : formHidden_('data-me="venues_ok"', got.join(', ')) + `
     <div class="many-list where-areas" role="group" aria-label="Areas you teach in">${Object.keys(by).sort().map(a => formTick_(`data-where-area="${esc(a)}"${by[a].some(has) ? ' checked' : ''}${ro ? ' disabled' : ''}`, `<span>${esc(a)}</span>
-      <span class="qtag">${esc(ceCount_(by[a].length, 'venue', 'venues'))}</span>`, 'many-opt')).join('') || empty_(brand('where_none', 'No venues yet.'))}</div>`;
+      <span class="qtag">${esc(ceCount_(by[a].length, 'venue', 'venues'))}</span>`, 'many-opt')).join('')}</div>`;
   return ceFold_('where', 'Areas', esc(ceCount_(got.length, 'venue', 'venues')), ticks)
     + fieldRows_(L.filter(f => f !== 'venues_ok'), box);
 }
@@ -431,8 +431,7 @@ function cardRateHtml_(L, val, box, e) {
   return box('rate_per_hour', {}) + bar
     + ceFold_('seat', 'Extra seat', `<span class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'))}</span>`,
       `${pound}${formHidden_('data-me="extra_seat_rate"', val('extra_seat_rate'))}
-       <p class="note ce-note ce-seat-note">${esc('Blank or £0 is the usual' + (u ? ' ' + money_(u.extra_seat_rate) : '')
-         + '; at most ' + (live ? money_(pounds2_(rate * STAFF_SEAT_MAX)) : 'the rate') + ' — a seat never costs more than the first student.')}</p>`)
+       `)
     + fieldRows_(L.filter(f => f !== 'rate_per_hour' && f !== 'extra_seat_rate'), box);
 }
 /* ---------- @FAMILY.'S SHARE OF AN EXTRA SEAT, ITS OWN CARD (620): a box for an admin (`seatCutRefusal_`'s rule), words for anybody else ---------- */
@@ -446,9 +445,7 @@ function cardCutHtml_(L, val, box) {
     ? fieldHtml('extra_seat_cut', cardSeatShown_('extra_seat_cut', rate, val('extra_seat_cut')), { attr: 'data-pound', label: "@family.'s, £/h",
         readonly: !live, draft: false, extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` })
       + formHidden_('data-me="extra_seat_cut"', val('extra_seat_cut'))
-      + `<p class="note ce-note ce-cut-note">${esc('Blank is the usual' + (u ? ' ' + money_(u.extra_seat_cut) : '') + ', £0 is no cut.')}</p>`
-    : `<p class="note ce-note ce-cut-note">${esc((live ? money_(p.gx) + '/h of each extra student is @family.\'s' + (p.gOwn ? '' : ', the usual') : "@family.'s part is set by @family.")
-        + ' — only @family. sets that.')}</p>`;
+    : '';
   return `<span class="ce-rate" hidden data-rate="${esc(String(rate || 0))}"></span>`
     + ceFold_('cut', "@family.'s share", `<span class="ce-cut" aria-live="polite">${cardCutSay_(rate, val('extra_seat_cut'))}</span>`, body)
     + fieldRows_(L.filter(f => f !== 'extra_seat_cut'), box);
@@ -458,7 +455,7 @@ function cardSizeHtml_(L, val, box) {
   const rate = num(val('rate_per_hour'));
   return `<span class="ce-rate" hidden data-rate="${esc(String(rate || 0))}" data-seat="${esc(String(val('extra_seat_rate')))}" data-cut="${esc(String(val('extra_seat_cut')))}"></span>`
     + ceFold_('size', 'Class size', `<span class="ce-size" aria-live="polite">${cardSizeSay_(rate, val('extra_seat_rate'), val('extra_seat_cut'), val('min_students'), val('max_students'))}</span>`,
-      fieldRows_(L, box) + '<p class="note ce-note">What the fewest and the most students pay an hour together: the rate, and each extra seat on top.</p>');
+      fieldRows_(L, box));
 }
 /* ---------- AND AS IT IS TYPED: POUNDS INTO THE HIDDEN SHARE, EACH CARD'S LINE REDRAWN § */
 function cardSeatSync_(form, t, ev) {
@@ -530,7 +527,7 @@ function cardFaceOnly_(t) {
   const first = String(t.title || '').trim().split(/\s+/)[0] || 'They';
   return `<div class="ce-pic">${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title,
     personId: t.personId }, { cls: 'prof-pic', none: 'prof-none', size: 52, eager: true })}
-    <p class="note ce-note">Only ${esc(first)} can change this picture, from their own card.</p></div>`;
+    </div>`;
 }
 /* ---------- WHAT IS ON THE CARD THE MOMENT IT IS SAVED § */
 function cardPatchRow_(pid, all, sent) {

@@ -123,13 +123,11 @@ function bcItem_(item, s) {
   return `<div class="bc-item is-open" data-bc="${esc(item.id)}">${line}
     <p class="bc-why">${esc(item.why)}</p>
     <p class="bc-how">${esc(item.how)} <a href="${esc(item.link)}" data-do="file-view" target="_blank" rel="noopener">Official guidance</a></p>
-    ${s.auto && s.auto.say ? `<p class="note bc-sense">${esc(s.auto.say)}</p>` : ''}
     ${s.info ? '' : `<div class="me-form bc-form">
       <div class="lib-row q-row"><label class="field"><input type="date" data-bc-k="done_on" value="${esc(t.done_on || bcToday_())}" aria-label="${esc(item.title + ' — done on')}"></label>
       <label class="field"><input type="text" data-bc-k="note" value="${esc(t.note || '')}" placeholder="Proof or note, e.g. policy no." maxlength="200" aria-label="${esc(item.title + ' — note')}" autocomplete="off"></label></div>
       <div class="tile-row">${tile_({ form: true, label: t.done_on ? 'Save' : 'Mark done', act: 'bc-tick', data: { id: item.id } })}${
         t.done_on ? tile_({ form: true, kind: 'quiet', label: 'Untick', act: 'bc-untick', data: { id: item.id } }) : ''}</div>
-      ${item.renew ? `<p class="note">Renews every ${item.renew} months — it comes back here when due.</p>` : ''}
     </div>`}
   </div>`;
 }
@@ -150,11 +148,10 @@ function bcInner_() {
     ${bizNeed_('bizcheck', BC.list ? renew : 0, renew + (renew === 1 ? ' thing to renew' : ' things to renew'))}
     <div class="biz-body bc-body"${wait ? ' aria-busy="true"' : ''}>
       ${BC.list ? `<p class="bc-count"><b>${done} of ${counted.length} sorted</b></p>${money}
-      ${next.length ? `<p class="note">Next:</p>${next.map(i => bcItem_(i, st[i.id])).join('')}` : '<p>Everything that applies is sorted.</p>'}
+      ${next.length ? next.map(i => bcItem_(i, st[i.id])).join('') : '<p>Everything that applies is sorted.</p>'}
       ${groups.map(g => { const gi = all.filter(i => i.group === g && next.indexOf(i) === -1);
         return gi.length ? `<h4 class="bc-group">${esc(g)} <span class="qtag">${gi.filter(i => st[i.id].sorted).length}/${gi.filter(i => !st[i.id].info).length}</span></h4>${gi.map(i => bcItem_(i, st[i.id])).join('')}` : ''; }).join('')}
-      ${later ? `<p class="note">${later} more for later (a venue, employees) appear when config says so: biz_venue, biz_employees.</p>` : ''}
-      <p class="note">Guidance only, not legal or financial advice; links go to gov.uk, the ICO and the NSPCC.</p>` : ''}
+      ` : ''}
     ${wait ? loading_() : ''}</div>
     <p class="note me-said bc-said">${esc(BC.error)}</p>`;
 }

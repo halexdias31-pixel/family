@@ -532,7 +532,7 @@ async function camStart_(asked) {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     /* A FACT, SO THE VIEWFINDER SAYS IT — and the loader comes out of it. § */
     const off = $('cam-off');
-    if (off) { off.hidden = false; off.innerHTML = '<p class="note">This browser has no camera support.</p>'; }
+    if (off) { off.hidden = false; off.innerHTML = ''; }
     if (said) said.textContent = '';
     if (retry) retry.hidden = true;          // nothing a retry could change
     camSettle_();
@@ -603,7 +603,7 @@ function camFailed_(err) {
   if (retry) { retry.hidden = false; retry.disabled = false; }
   /* THE PANEL'S WHOLE CONTENT, NOT A LINE INSIDE IT: while it waits it holds the loader and no
      sentence, so there is no line to find and rewrite. */
-  if (off) { off.hidden = false; off.innerHTML = '<p class="note">The camera did not start.</p>'; }
+  if (off) { off.hidden = false; off.innerHTML = ''; }
   /* A 44px BUTTON THAT WAS NOT THERE A MOMENT AGO IS A CHANGE OF HEIGHT LIKE ANY OTHER. */
   camSettle_();
 }
@@ -774,8 +774,7 @@ function camHold_() {
   const tray = $('cam-tray');
   if (!tray) return;
   tray.hidden = !CAM_ITEMS.length;
-  tray.innerHTML = CAM_ITEMS.length ? `<p class="note cam-tray-say">${CAM_ITEMS.length} kept for
-      this post \u2014 tap one to take it out</p><div class="cam-thumbs">${CAM_ITEMS.map((x, k) =>
+  tray.innerHTML = CAM_ITEMS.length ? `<div class="cam-thumbs">${CAM_ITEMS.map((x, k) =>
     `<button class="cam-thumb" data-do="cam-drop" data-i="${k}"
        aria-label="Take this one out of the post" title="Take this one out">${x.kind === 'video'
       ? '<span class="cam-thumb-vid">\u25b6</span>'
@@ -1101,10 +1100,6 @@ on('who-reacted', el => {
       <h3 class="rx-head"><span class="rx-pill${g.mine ? ' mine' : ''}"><span class="react-e">${
         esc(g.emoji)}</span><span class="react-n">${g.n}</span></span></h3>
       ${g.names.map(n => rowValue(mark(n) + (isMe(n) ? '<span class="rx-you">you</span>' : ''))).join('')}
-      ${g.n > g.names.length
-        /* Reacted by people whose names the site cannot resolve — somebody removed from the sheet,
-           or a reaction from before they were added. The count is still true. */
-        ? `<p class="note">…and ${g.n - g.names.length} more</p>` : ''}
     </section>`).join(''));
 });
 
@@ -1474,7 +1469,6 @@ function postComposeHtml_() {
     <input id="post-loc" placeholder="Colliers Wood Library"${draftAttr_('post', 'loc')} value="${esc(draftVal_('post', 'loc'))}"></label>
   <label class="field"><span>more, if you want it</span>
     <textarea id="post-body" placeholder="Optional"${draftAttr_('post', 'body')}>${esc(draftVal_('post', 'body'))}</textarea></label>
-  <p class="note poll-head">A poll, if you want one</p>
   <div class="poll-opts" id="post-poll-opts" data-n="${n}">${Array.from({ length: n }, (_, k) => pollBox_(k)).join('')}</div>
   <button class="btn quiet" data-do="poll-more" id="poll-more"${n >= POLL_MAX ? ' hidden' : ''}>Add option</button>
   ${postAsRow_('post-as')}
@@ -1691,12 +1685,12 @@ function feedCamCard0_() {
   /* A CHILD HAS NO CAMERA HERE AND NO PICKER (413): nothing on this card could upload, and the server would refuse it. */
   if (USER && !mayUpload_()) {
     return suggestRowIn_(`<div class="card cam-kid"><h3>Camera</h3>
-      <p class="note">Pictures go up from a grown-up's account — ask your parent or tutor to post one.</p></div>`, 'widget', 'camera', 'Camera');
+      </div>`, 'widget', 'camera', 'Camera');
   }
   return USER
     ? suggestRowIn_(cameraCard(), 'widget', 'camera', 'Camera')
     : `<div class="card"><h3>Camera</h3>
-      <p class="note">Sign in to post — your account is a few screens to the right.</p></div>`;
+      </div>`;
 }
 
 /* ---------- READING THEM § */
@@ -2311,7 +2305,7 @@ function dmFace_(t) {
 
 function dmPages_() {
   if (!USER) return [{ name: '', html: `<div class="card"><h3>Messages</h3>
-    <p class="note">Sign in to see your messages.</p></div>` }];
+    </div>` }];
   /* THE PAYLOAD AND THE FIRST ANSWER FOR MESSAGES — `loading_()` until both, as every column waits. */
   if (!LOADED || !DM_DONE) return [{ name: '', html: loading_() }];
 
@@ -2392,7 +2386,7 @@ function daiveHtml_() {
   const said = out ? 'No questions left today — they come back tomorrow.' : s.left + ' of ' + cap + ' questions left today';
   return `<div class="card daive" data-daive="1">
     <div class="dm-head"><span class="dm-av daive-av" aria-hidden="true">D</span><h3>${DAIVE}</h3></div>
-    <div class="msg-body">${messagesHtml_(asstMsgs_(s)) || `<p class="note">Ask about lessons, prices and booking, or for help with something you are studying.</p>`}${ASST_BUSY ? loading_() : ''}</div>
+    <div class="msg-body">${messagesHtml_(asstMsgs_(s)) }${ASST_BUSY ? loading_() : ''}</div>
     <div class="msg-form" data-k="daive">
       <textarea class="msg-text" rows="1" maxlength="1000" placeholder="Message…" aria-label="Message ${DAIVE}"${shut ? ' disabled' : ''}${draftAttr_('asst', '')}>${ASST_BUSY ? '' : esc(draftVal_('asst', '', ''))}</textarea>
       <button class="btn msg-go" data-do="daive-send"${shut ? ' disabled' : ''}>Send</button>

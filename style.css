@@ -402,7 +402,7 @@ html.wide body { max-width: none; box-shadow: none; }
 /* A SETTINGS CARD'S TITLE IS ONE LEVEL DOWN, inside its `.me-form`, so `.card > h3` never reached it and it took the browser's own h3 margin — 17px above the § */
 .card > h3, .card > .me-form > h3:first-child {
   margin: 0 0 .5rem; font-size: var(--fs-body); font-weight: var(--fw-title, 600); line-height: var(--lh-tight); letter-spacing: -.01em; }
-.card .note { color: var(--ink); font-size: var(--fs-body); margin: -.25rem 0 .5rem; }
+.card .note { color: var(--ink); font-size: var(--fs-body); margin: 0 0 .5rem; }
 
 /* A card that is a button. The whole thing is the target — the only sane size on a touchscreen —
    and it must SAY something happened the instant it is touched. */
@@ -5136,7 +5136,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .is-locked > h3 { padding-right: 1.6rem; }
 /* WHAT A CARD IS FOR, one faint line under its title. */
 .card-say { margin: .1rem 0 .6rem; font-size: var(--fs-body); line-height: 1.35; }
-.add-card .card-say { display: block; margin: .2rem 0 0; }
+.add-card .card-say { margin: .2rem 0 0; }
+/* A CARD'S SAY IS KEPT FOR THE WORDS EDITOR AND THE JOURNEYS, NOT SHOWN: the owner never saw it, and a card's tiles say what it does. */
+.card .card-say { display: none; }
 /* A TUTOR'S HOURS AS LINES (467). */
 .prof-hours .prof-hour-line { margin: 0; line-height: 1.45; font-size: var(--fs-body); }
 .prof-hours .prof-hour-line .prof-day { display: block; }

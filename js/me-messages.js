@@ -640,8 +640,7 @@ const messagesHtml_ = ms => {
              m.why === 'files' && words && (m.queue || []).length
                ? { icon: 'doc', label: 'Words only', act: 'msg-words', data: { k: m.tmp }, cls: 'msg-act' } : null,
              { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp }, cls: 'msg-act' }]), 'msg-acts')}`
-      : m.state === 'sending' ? `<p class="note msg-when">sending…</p>`
-      : m.tmp ? `<p class="note msg-when">sent</p>` : '';
+      : '';
     return `${newDay ? `<p class="msg-day"><span>${esc(dayWord)}</span></p>` : ''}
       <div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
         runEnd ? ' run-end' : ''}${!mine && (!m.read || m.fresh) ? ' unread' : ''}${
@@ -650,8 +649,7 @@ const messagesHtml_ = ms => {
       ${!mine && m.id && !m.tmp ? '<div class="msg-line">' : ''}<div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
         words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>${!mine && m.id && !m.tmp
         ? suggestTile_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag') + '</div>' : ''}
-      ${state || (runEnd ? `<p class="note msg-when">${esc(mine ? 'you' : (m.fromName || 'them'))} · ${
-        esc(msgClock_(t, m.at))}</p>` : '')}
+      ${state}
     </div>`;
   }).join('');
 };
@@ -706,7 +704,7 @@ function uploadsHtml_(d) {
       : 'Not yet. In this order:'}</p>
     ${steps ? `<ol class="up-steps">${steps}</ol>` : ''}
     ${go ? `<div class="tile-row">${go}</div>` : ''}
-    <p class="note up-ver">backend ${esc(dash_(d.version))}</p>`;
+    `;
 }
 
 /* EVERY `.up-box` ON THE PAGE — a class rather than the id alone, for the reason `cart-box` gives:
@@ -744,8 +742,6 @@ on('uploads-check', el => {
 function claimCard_(c) {
   return `<div class="card">
     <h3>${esc(c.from)} says they are your parent</h3>
-    <p class="note">Say yes and they will be able to book sessions for you and see how you are
-      getting on. Say no and nothing happens.</p>
     <div class="btn-row">
       ${tile_({ form: true, label: 'Yes', act: 'claim-yes', data: { row: c.rowIndex } })}
       ${tile_({ form: true, label: 'No', act: 'claim-no', data: { row: c.rowIndex }, kind: 'quiet' })}

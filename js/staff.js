@@ -88,7 +88,6 @@ function agreementCard_() {
   const prose = termsProse_;
   return `<div class="hub-terms agree">
     <h3>Tutor Terms &amp; Conditions${termsDraft_() ? ' <span class="agree-draft">Draft</span>' : ''}</h3>
-    <p class="note hub-ver">Version ${esc(termsVersion_())}</p>
     <div class="doc">${termsSections_(brand('tutor_terms', TERMS_DRAFT)).map(s =>
       `<div class="doc-part">${s.h ? `<h4>${esc(s.h)}</h4>` : ''}${prose(s.body)}</div>`).join('')}</div>
     ${formTick_(`data-do="agree-sign"${now ? ' checked disabled' : ''}`, '<span>I have read these terms and I agree to them</span>')}
@@ -194,7 +193,7 @@ function priceBarsHtml_() {
         PRICE_SEGS.map(([k], i) => `<span class="pb-seg is-${k}" style="--x:${x(r, i)}"></span>`).join('')}</div>
       <p class="pb-say">${PRICE_SEGS.map(([k, l]) => `<span class="pb-k is-${k}">${esc(l)} <b>${esc((r[k] < 0 ? '−' : '') + money_(Math.abs(r[k])))}</b></span>`).join('')}</p>
     </div>`).join('') + (rows[0].business < 0
-      ? `<p class="note pb-note">With one student @family. keeps no share and pays the card fee itself.</p>` : '');
+      ? '' : '');
 }
 function priceHtml_() {
   const t = priceMine_();
@@ -210,7 +209,6 @@ function priceHtml_() {
   const opt = (val, txt) => `<option value="${esc(val)}"${PRICE.loc === val ? ' selected' : ''}>${esc(txt)}</option>`;
   return `<div class="hub-price me-form">
     <h3>Pricing</h3>
-    <p class="note hub-lead">Try a rate and an extra seat and watch where an hour’s booking goes — worked out by the booking form’s own sum. Nothing here is saved: your rate lives on your card.</p>
     <div class="pf-vars">
       ${ctl('rate', 'Your rate, £ an hour', 5, Math.max(80, PRICE.rate), 0.5, PRICE.rate, PRICE.open ? 'none yet: the open rate' : 'the first student')}
       ${ctl('seat', 'Each extra seat adds, £ an hour', 0, Math.max(1, PRICE.rate * STAFF_SEAT_MAX), 0.25, PRICE.seat, '0 is the usual ' + money_(usual))}
@@ -218,8 +216,6 @@ function priceHtml_() {
     ${formLine_('room', formSelect_('data-pv="loc" aria-label="Room"', opt('', 'No room hire (online or at home)') +
       rooms.map(r => opt(r.title, r.title + ' · ' + perHour_(parseFloat(r.bestRate)))).join('')), 'hub-room')}
     <div class="pb" aria-live="polite">${priceBarsHtml_()}</div>
-    <p class="note hub-note">@family.’s share of each extra seat is ${esc(money_((PRICE.rate || 0) * (s.bUsed || 0)))} an hour, set by @family.${
-      fee ? ' Card fees are ' + esc(fee) + '.' : ''} What you charge can change once a month.</p>
     <div class="tile-row">${tile_({ icon: 'edit', label: 'Set it', note: 'on your Rate and class size card', act: 'price-card' })}</div>
     <p class="note me-said hub-said" aria-live="polite">${esc(priceWrong_())}</p>
   </div>`;
@@ -379,8 +375,6 @@ function staffInner_(wait) {
   const item = s => `<div class="biz-item staff-item" data-id="${esc(s.personId)}">
       <p class="biz-cap"><b>${esc(s.name)}</b> <span class="qtags biz-when"><span class="qtag">${esc(s.rank === 'admin' ? 'admin' : 'staff')}</span></span>
         ${staffAgreed_(s) ? '' : `<b class="biz-flag">${s.termsVersion ? 'Old terms' : 'Not agreed'}</b>`}</p>
-      <p class="note staff-terms">${staffAgreed_(s) ? 'Agreed to the terms on ' + esc(s.termsAt) : s.termsVersion
-        ? 'Agreed to version ' + esc(s.termsVersion) + ', not the current ' + esc(termsVersion_()) : 'Has not agreed to the tutor terms'}</p>
       <div class="tile-row">${tile_({ icon: 'print', label: 'Statement', note: 'any month', act: 'stmt-for', data: { id: s.personId, name: s.name } })}</div>
     </div>`;
   return `<h3>Staff</h3>
