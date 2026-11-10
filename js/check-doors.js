@@ -186,6 +186,11 @@ try {
     if (/rankAtLeast_\(\s*['"]admin['"]\s*\)|\blayoutIsAdmin_\b/.test(l) && !/^const isAdmin = /.test(l)) rankOff.push(n + '.js:' + (i + 1) + ' asks admin another way — use isAdmin()'); }));
 } catch (e) { rankOff.push('(permissions.json could not be read: ' + e.message + ')'); }
 
+/* ONE FIND (Find 2 is gone): no find-*.js label or list asks TABS for Find's screen id. */
+const findById = [];
+files.filter(f => /^find-/.test(f.n)).forEach(({ n, src }) => strip(src).split('\n').forEach((l, i) => {
+  if (/TABS\b[^;]*\.id === 'stuff'/.test(l)) findById.push(n + '.js:' + (i + 1) + ' asks TABS for Find\'s id'); }));
+
 /* A CARD'S SECTIONS ARE ONE TABLE (`CARD_SECTION`, me-card.js), never a chain of `s.id === '…'` branches. */
 const sectionChain = files.filter(({ src }) => (strip(src).match(/\bs\.id === '/g) || []).length >= 3).map(({ n }) => n + '.js');
 
@@ -245,6 +250,7 @@ say('A CARD COLUMN IN TABS AND NOT IN columns.json, OR THE OTHER WAY — `cards:
     t => cardTabs.has(t) ? 'TABS marks it cards: true, the row does not' : 'the row says cards TRUE, TABS does not');
 say('THE BACKEND\'S COPY OF THE COLUMNS IS NOT columns.json\'s', gsStale, t => '');
 say('AN ADMIN TEST THAT IS NOT isAdmin() OR permissions.json\'s see rows', rankOff, t => '');
+say('A FIND LABEL OR LIST THAT HANGS ON ONE SCREEN\'S ID', findById, t => '');
 say('A CARD\'S SECTIONS CHOSEN BY A CHAIN OF s.id === BRANCHES — put them in CARD_SECTION', sectionChain, t => '');
 say('WHERE A SCREEN MOVED IS SAID OUTSIDE data/settings/screens-moved.json', movedDiffer, t => '');
 

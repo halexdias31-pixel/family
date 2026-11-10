@@ -552,7 +552,7 @@ function bibleAhead_() {
   bibleLoad_(n, dir).then(() => bibleRedraw_(k));
 }
 function bibleJobs_() {
-  const n = TABS.some(t => t.id === 'stuff') ? bibleChosen_() : 0, k = bibleSlot_(n, bibleChosenDir_());
+  const n = bibleChosen_(), k = bibleSlot_(n, bibleChosenDir_());
   if (!n || !bibleFor_() || BIBLE.books[k] || BIBLE.loading[k] || BIBLE.missed[k]) return [];
   return [{ key: 'bible:' + n, kind: 'bible', d: aheadDist_('stuff', null), run: bibleAhead_ }];
 }
