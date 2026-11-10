@@ -5562,8 +5562,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-pic > * { max-width: none; width: 100%; height: 100%; border-radius: 50%; }
 /* NO REAL PICTURE, NO PICTURE PART (owner, 10 Nov late): the tags lead. A thing's own photo or figure is its shape, not a circle. */
 .card.kc > .kc-pic:empty { display: none; }
-.card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) > .kc-pic { width: 100%; height: auto; max-height: 20rem; border-radius: var(--r-ui); }
-.card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) > .kc-pic :is(img, video, svg, figure) { height: auto; max-height: 20rem; border-radius: var(--r-ui); object-fit: contain; }
+.card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) > .kc-pic { width: 100%; border-radius: var(--r-ui); }
+.card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) > .kc-pic :is(img, video, svg, figure) { border-radius: var(--r-ui); object-fit: contain; }
 .card.kc > .kc-tags { margin-top: .5rem; }
 .card.kc > .kc-tags :is(.qtags, .prof-tags, .prof-who-tags, .prof-who, .prof-line) { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .3rem; }
 .card.kc > .kc-lines { margin-top: .4rem; }
