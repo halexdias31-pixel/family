@@ -3907,7 +3907,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   min-width: 44px;
   justify-content: center;
   border: 1px solid var(--chip-line);
-  border-radius: var(--r-round);
+  border-radius: calc(var(--tp-h) / 2);
   background: none;
   padding: var(--tp-pad);
   margin: 0;
@@ -3927,13 +3927,13 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    on the screen somebody is here to choose. */
 /* ---------- AND IT IS THE ONLY THING ON THE ROW NOW, SO IT MAY USE THE ROW § */
 /* A CHIP'S WORDS ARE ITS WHOLE WIDTH now, so they take what they need and give way only when the chip is already the width of the card — `0 1 auto` rather than § */
-.row.tap.counted .k { color: var(--ink); font-weight: 500; font-size: var(--fs-small); line-height: var(--tp-lh);
+.row.tap.counted .k { color: var(--ink); font-weight: 500; font-size: var(--tp-fs); line-height: var(--tp-lh);
   flex: 0 1 auto; min-width: 0; }
 
 /* THE COUNT RECEDES. It was the same weight as the label, so a row read as two things of equal
    importance — and the answer is what you are choosing; the number only tells you how much is
    behind it. */
-.row.tap.counted .v { color: var(--ink); font-size: var(--fs-small); line-height: var(--tp-lh); }
+.row.tap.counted .v { color: var(--ink); font-size: var(--tp-fs); line-height: var(--tp-lh); }
 
 /* PRESSED, AND IT MOVES. `:active` alone is invisible on a phone — the finger is over the row.
    A shift of one pixel is felt rather than seen, which is the point. */
@@ -3960,7 +3960,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .row.tap.counted.is-skip { background: none; border-style: dashed; }
 /* THE OTHER HALF OF A YES-OR-NO AT 0 (770, `facetNoneHtml_`): greyed words, never a chip a finger presses. */
 .facet-none { display: flex; flex-wrap: wrap; gap: .4rem .6rem; margin: .5rem 0 0; }
-.facet-none .none-chip { color: var(--ink); font-size: var(--fs-small); }
+.facet-none .none-chip { color: var(--ink); font-size: var(--tp-fs); }
 .row.tap.counted.is-skip .k { color: var(--ink); font-weight: 400; }
 @media (hover: hover) {
   .row.tap.counted.is-skip:hover { background: color-mix(in srgb, var(--white) 4%, transparent); }
