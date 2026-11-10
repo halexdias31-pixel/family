@@ -163,7 +163,7 @@ if (!/\n  tutor:[\s\S]{0,300}?: findCard\(x\) \}/.test(finder)) bad.push('find-f
 const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
 if (/\.card\.kc[^{]*(:not\(\.is-open\)|\.is-open)/.test(css)) bad.push('style.css still draws a closed or open card: cards are static');
 if (!/\.card\.kc \{[^}]*align-items: center;[^}]*text-align: center;/.test(css)) bad.push('style.css does not centre the card anatomy (.card.kc align-items/text-align center)');
-if (!/\.kc-more > \.tile::after \{[^}]*content: attr\(aria-label\)/.test(css)) bad.push('style.css does not label the actions behind ⋯');
+if (!/\.kc-more > \.tile::after \{[^}]*content: attr\(data-word\)/.test(css)) bad.push('style.css does not label the actions behind ⋯');
 /* A FACET'S SHOW FITS A TAG: the owner's short labels (labels.json facet-show:*) and every form showForms_ (find-facets.js) offers are ≤ KC_TAG_MAX. */
 const tagMax = Number((/const KC_TAG_MAX = (\d+);/.exec(cards) || [])[1]);
 const facetsSrc = fs.readFileSync(path.join(ROOT, 'js/find-facets.js'), 'utf8');
