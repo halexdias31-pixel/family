@@ -179,6 +179,11 @@ const heatPx_ = (lat, lng, z) => {
   const n = 256 * Math.pow(2, z), r = lat * Math.PI / 180;
   return [(lng + 180) / 360 * n, (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n];
 };
+/* EVERY PLACE BY NAME, as tags: the card's whole answer to where, since maps went with the engines (88a). */
+function profPlaces_(names) {
+  return names && names.length ? `<div class="qtags prof-tags prof-teach prof-places">${PROF_MORE_(names.map(n => `<span class="prof-tag">${esc(n)}</span>`), 3, names).join('')}</div>` : '';
+}
+
 function profHeat_(names) {
   if (!names || !names.length) return '';
   const byName = {};
@@ -186,8 +191,7 @@ function profHeat_(names) {
     if (v && v.title) byName[norm(v.title)] = v; });
   const pts = names.map(n => byName[norm(n)])
     .filter(v => v && Number(v.lat) && Number(v.lng)).map(v => [Number(v.lat), Number(v.lng), v.borough || '']);
-  /* EVERY PLACE BY NAME TOO, so the card still says where when the map cannot load. */
-  const tail = `<div class="qtags prof-tags prof-teach prof-places">${PROF_MORE_(names.map(n => `<span class="prof-tag">${esc(n)}</span>`), 3, names).join('')}</div>`;
+  const tail = profPlaces_(names);
   if (!pts.length) return tail;
   let z = 12;
   for (; z > 9; z--) {
@@ -277,7 +281,7 @@ function profAvail_(t) {
     hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
     /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; the aria-label above says every hour. */
     const say = !spans.length ? '' : profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '');
-    return spans.length ? `<span class="prof-day">${esc(day_(d.label))} ${esc(say)}</span>` : '';
+    return spans.length ? `<span class="prof-tag prof-day">${esc(day_(d.label))} ${esc(say)}</span>` : '';
   }).filter(Boolean).join('<span class="prof-sep"> </span>');
   const free = line(c => c.lit), busyLine = line(c => c.busy);
   return `<div class="prof-week prof-hours" data-avail="${ticked.length}"
@@ -344,13 +348,13 @@ const KC_FIELDS = {
   /* WHAT THEY WROTE: `doget.gs` already quotes it, so it is printed as said. */
   say: x => (kcRow_(x).description ? `<p class="prof-say cut2" data-do="cut-open">${esc(kcRow_(x).description)}</p>` : ''),
   photos: x => { const p = kcRow_(x).photos; return Array.isArray(p) && p.length ? `<div class="prof-photos">${PROF_MORE_(p.map(u =>
-    `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy" decoding="async"></span>`), 4).join('')}</div>` : ''; },
+    `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></span>`), 4).join('')}</div>` : ''; },
   words: x => { const w = profList_(kcRow_(x).tags).slice(0, 3);
     return w.length ? `<p class="prof-words">${w.map(v => `<b>${esc(v)}</b>`).join('<i aria-hidden="true">·</i>')}</p>` : ''; },
   quals: x => profQuals_(kcRow_(x)),
   jobs: x => profJobs_(kcRow_(x)),
   /* THE MAP: the venues tab's `tutors_happy_here`; an older backend sends no key and nothing is drawn. */
-  places: x => profHeat_(profList_(kcRow_(x).venues)),
+  places: x => profPlaces_(profList_(kcRow_(x).venues)),
   /* DAY PILLS. */
   avail: x => profAvail_(kcRow_(x)),
   venueSub: () => '',
