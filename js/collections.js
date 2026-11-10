@@ -155,7 +155,7 @@ function cartRow_(c, i, under) {
     sel: (() => {
       const lam = lamControl_(c);
       const pp = c.kind === 'print'
-        ? `<span class="faint cart-pp">${c.pages ? esc(c.pages) + 'pp' : '? pp'}</span>` : '';
+        ? `<span class="qtag cart-pp">${c.pages ? esc(c.pages) + 'pp' : '? pp'}</span>` : '';
       const drop = `<button class="text-drop" data-do="cart-drop" title="Take this out"
           data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</button>`;
       return `<span class="cart-ln"><span class="cart-nm">${esc(under && c.short ? c.short : c.name)}</span>${

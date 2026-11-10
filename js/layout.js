@@ -608,8 +608,8 @@ function cardSayIn0_(h, id) {
   /* NOR ON A SEARCH BAR, whose placeholder is its label (469, 770). */
   if (/\bdata-psearch\b/.test(h)) return h;
   const head = (/^\s*(?:<!--[^>]*-->)*/.exec(h) || [''])[0], body = h.slice(head.length);
-  if (/^\s*<button\b/.test(body)) return head + body.replace(/<\/button>(\s*(?:<div class="tile-row rep-row">[\s\S]*<\/div>)?\s*)$/, `<span class="faint card-say">${esc(say)}</span></button>$1`);
-  const p = `<p class="faint card-say">${esc(say)}</p>`;
+  if (/^\s*<button\b/.test(body)) return head + body.replace(/<\/button>(\s*(?:<div class="tile-row rep-row">[\s\S]*<\/div>)?\s*)$/, `<span class="note card-say">${esc(say)}</span></button>$1`);
+  const p = `<p class="note card-say">${esc(say)}</p>`;
   if (/<\/h3>/.test(body)) return head + body.replace(/<\/h3>/, '</h3>' + p);
   return head + body.replace(/^(\s*<div\b[^>]*>)/, '$1' + p);
 }

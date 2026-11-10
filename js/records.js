@@ -105,7 +105,7 @@ function bizCard_(pg) {
       ${items.map(bizItem_).join('')}
       <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'biz-save' })}</div>
     ${wait ? loading_() : ''}</div>
-    <p class="faint me-said biz-said">${esc(bizSaid_())}</p>
+    <p class="note me-said biz-said">${esc(bizSaid_())}</p>
   </div>${tiles(items.length)}</div>`;
   if (id && typeof splitOn_ === 'function' && splitOn_(id)) return pg.items.map((it, i) => one(it.title, [it], i === 0, typeof pieceId_ === 'function' ? pieceId_(id, it.title) : ''));
   return [one(pg.title, pg.items, true)];
@@ -180,7 +180,7 @@ function appsInner_(wait) {
       ${APPS.list && !list.length ? empty_('None waiting.') : ''}
       ${list.map(item).join('')}
     ${wait ? loading_() : ''}</div>
-    <p class="faint me-said app-said">${esc(APPS.error)}</p>`;
+    <p class="note me-said app-said">${esc(APPS.error)}</p>`;
 }
 const appsDraw_ = () => { document.querySelectorAll('[data-apps]').forEach(c => { c.innerHTML = appsInner_(false); }); bizNeedsPaint_(); };
 function appsStart_() {
@@ -222,20 +222,17 @@ function errsInner_(wait) {
   const list = ERRS.list || [];
   const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const item = r => `<div class="biz-item err-item" data-id="${esc(r.id)}">
-      <p class="biz-cap"><b>${esc(r.message)}</b></p>
-      <p class="faint">${esc([r.where, r.screen ? 'on ' + r.screen : '', r.version].filter(Boolean).join(' · '))}</p>
-      <p class="faint">${esc(r.count + '× · ' + r.devices + (r.devices === 1 ? ' device' : ' devices') + ' · last ' + when(r.last))}</p>
+      <p class="biz-cap"><b>${esc(r.message)}</b> <span class="qtags biz-when"><span class="qtag">${esc(r.count + '× · last ' + when(r.last))}</span></span></p>
     </div>`;
   return `<h3>Error log</h3>
     <div class="biz-body err-body"${wait ? ' aria-busy="true"' : ''}>
       ${ERRS.list ? `<p class="err-count">${list.length ? list.length + ' distinct' : 'Nothing has broken'}</p>` : ''}
       ${list.slice(0, ERRS_DRAWN).map(item).join('')}
-      ${list.length > ERRS_DRAWN ? `<p class="faint">And ${list.length - ERRS_DRAWN} more in the client_errors tab.</p>` : ''}
     ${wait ? loading_() : ''}</div>
     <div class="tile-row">${tile_({ icon: 'sync', label: 'Refresh', act: 'errs-refresh' })}${
       /* OLD SHEET ROWS INTO TODAY'S SHAPE (owner, 8 Nov): `migrateOldRows_`, safe to press twice. */
       tile_({ icon: 'merge', label: 'Tidy old rows', act: 'tidy-old-rows' })}</div>
-    <p class="faint me-said errs-said">${esc(ERRS.error)}</p>`;
+    <p class="note me-said errs-said">${esc(ERRS.error)}</p>`;
 }
 const errsDraw_ = () => { document.querySelectorAll('[data-errs]').forEach(c => { c.innerHTML = errsInner_(false); }); };
 function errsStart_() {
@@ -276,8 +273,6 @@ function reportsInner_(wait) {
   const item = r => `<div class="biz-item rep-item" data-id="${esc(r.id)}">
       <p class="biz-cap"><b>${esc(r.label || r.itemId)}</b> <span class="qtags biz-when"><span class="qtag">${esc(r.kind)}</span></span></p>
       ${r.note ? `<p class="rep-note-said">“${esc(r.note)}”</p>` : ''}
-      ${r.body ? `<p class="faint rep-who">${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}: “${esc(r.body)}”</p>` : ''}
-      <p class="faint rep-who">${esc([r.handle ? '@' + r.handle : '', r.rank, when(r.at)].filter(Boolean).join(' · '))}</p>
       <div class="tile-row">${REP_FINDS_.indexOf(r.kind) !== -1 ? tile_({ icon: 'open', label: 'Open', note: 'the card', act: 'rep-open', data: { k: r.itemId } }) : ''}${
         st(r, 'confirm', 'tick', 'Confirm', 'to Notes for Claude') + st(r, 'dismiss', 'close', 'Dismiss')}</div>
     </div>`;
@@ -286,7 +281,6 @@ function reportsInner_(wait) {
   const mItem = r => `<div class="biz-item rep-item rep-msg" data-id="${esc(r.id)}">
       <p class="biz-cap"><b>Message from ${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}</b> <span class="qtags biz-when"><span class="qtag">${esc(when(r.at))}</span></span></p>
       <p class="rep-note-said">${esc(r.reason || 'No reason given')}</p>
-      ${r.body ? `<p class="faint rep-who">“${esc(r.body)}”</p>` : ''}${r.files ? `<p class="faint rep-who">${r.files} attachment${r.files === 1 ? '' : 's'} — in the messages tab</p>` : ''}
       <div class="tile-row">${tile_({ icon: 'tick', label: 'Dealt with', act: 'rep-status', data: { id: r.id, decision: 'dismiss', kind: 'message' } })}</div>
     </div>`;
   const n = REPS.list ? REPS.open + msgs.length : 0;
@@ -296,9 +290,8 @@ function reportsInner_(wait) {
       ${REPS.list ? `<p class="rep-count">${n ? REPS.open + ' waiting' : 'None waiting'}${msgs.length ? ' · ' + msgs.length + (msgs.length === 1 ? ' message' : ' messages') : ''}</p>` : ''}
       ${msgs.map(mItem).join('')}
       ${list.slice(0, REPS_DRAWN).map(item).join('')}
-      ${more ? `<p class="faint">And ${more} more in the claude_notes tab.</p>` : ''}
     ${wait ? loading_() : ''}</div>
-    <p class="faint me-said rep-said">${esc(REPS.error)}</p>`;
+    <p class="note me-said rep-said">${esc(REPS.error)}</p>`;
 }
 const reportsDraw_ = () => { document.querySelectorAll('[data-reports]').forEach(c => { c.innerHTML = reportsInner_(false); }); bizNeedsPaint_(); };
 
@@ -354,33 +347,31 @@ function libImpCard_() {
 /* WHAT THE LAST PRESS DID, a line a file: its counts per library file, or why nothing of it was written. */
 function libImpSaid_(r) {
   /* A ZIP A LINE: how many files it gave, or why it was refused. */
-  const zips = r && Array.isArray(r.zips) ? r.zips.map(z => `<p class="faint libimp-file"><b>${esc(z.name)}</b> — ${esc(z.error ? 'zip refused: ' + z.error
-    : 'unzipped ' + (Number(z.unzipped) || 0) + (z.skipped ? ', ' + z.skipped + ' already there' : ''))}</p>`).join('') : '';
+  const zips = r && Array.isArray(r.zips) ? '' : '';
   if (!r || !Array.isArray(r.files) || !r.files.length) return zips;
   const counts = c => Object.keys(c || {}).map(k => `${k} ${c[k].added} new, ${c[k].replaced} changed${c[k].same ? ', ' + c[k].same + ' unchanged' : ''}`).join('; ');
   /* AND WHAT IMPORTED BUT CANNOT BE MARKED YET (457, `libSelfTest_`): options with no right one, say -- named, one paragraph */
   const flagged = f => (Array.isArray(f.flagged) && f.flagged.length ? ' Waiting for a scheme: ' + f.flagged.join('; ') + '.' : '');
-  return zips + r.files.map(f => `<p class="faint libimp-file"><b>${esc(f.name)}</b> — ${esc(f.error ? 'not imported: ' + f.error : (counts(f.counts) || 'nothing to change') + flagged(f))}</p>`).join('');
+  return zips;
 }
 /* THE HOURLY RUN (443): when it last found files, and what it imported. */
 function libImpAuto_(a) {
-  if (!a || !a.at) return '<p class="faint libimp-auto">Imports itself every hour; it has not found a file yet.</p>';
+  if (!a || !a.at) return '';
   const when = new Date(a.at), said = isNaN(when) ? String(a.at) : date_(when) + ' ' + time_(when);
   const n = Number(a.imported) || 0, f = Number(a.failed) || 0;
-  return `<p class="faint libimp-auto">Last automatic import ${esc(said)}: ${n} ${n === 1 ? 'file' : 'files'} imported${f ? ', ' + f + ' not' : ''}.</p>${libImpSaid_(a)}`;
+  return `<p class="note libimp-auto">Last automatic import ${esc(said)}: ${n} ${n === 1 ? 'file' : 'files'} imported${f ? ', ' + f + ' not' : ''}.</p>${libImpSaid_(a)}`;
 }
 function libImpInner_(wait) {
   const n = (LIBIMP.list || []).length;
   return `<h3>Library updates</h3>
     ${bizNeed_('libimp', LIBIMP.list ? n : 0, n + (n === 1 ? ' file waits' : ' files wait') + ' in Drive')}
     <div class="biz-body libimp-body"${wait ? ' aria-busy="true"' : ''}>
-      ${LIBIMP.list ? `<p class="faint">${n ? n + ' in' : 'Nothing waiting in'} the Drive folder family-library-imports — lib-import-*.json files, or one lib-import-*.zip of them.</p>` : ''}
-      ${(LIBIMP.list || []).filter(f => f.zip).map(f => `<p class="faint libimp-zip"><b>${esc(f.name)}</b> — ${esc(f.said || '')}</p>`).join('')}
+      ${(LIBIMP.list || []).filter(f => f.zip).map(f => `<p class="note libimp-zip"><b>${esc(f.name)}</b> — ${esc(f.said || '')}</p>`).join('')}
       ${LIBIMP.list ? libImpAuto_(LIBIMP.auto) : ''}
       ${LIBIMP.last && !LIBIMP.last.auto ? libImpSaid_(LIBIMP.last) : ''}
       <div class="tile-row">${tile_({ icon: 'in', label: 'Import library updates (' + n + ')', note: 'into the Ledger', act: 'lib-import', off: !n })}</div>
     ${wait ? loading_() : ''}</div>
-    <p class="faint me-said libimp-said">${esc(LIBIMP.error)}</p>`;
+    <p class="note me-said libimp-said">${esc(LIBIMP.error)}</p>`;
 }
 const libImpDraw_ = () => { document.querySelectorAll('[data-libimp]').forEach(c => { c.innerHTML = libImpInner_(false); }); bizNeedsPaint_(); };
 function libImpStart_() {
@@ -632,7 +623,7 @@ function profitCards_() {
       PROFIT_VARS.map(p => opt(p.k, p.sym + ' · ' + p.label, p.k === PROFIT.x)).join('')), 'pf-against')}
     <div class="pf-lines">${profitLine_(x, PROFIT.period)}</div>
   </div>`;
-  const said = `<p class="faint pf-said">${A
+  const said = `<p class="note pf-said">${A
       ? esc('This month’s bookings so far: ' + A.sessions + ' sessions, ' + profitMoney_(A.charged) + ' charged, '
         + profitMoney_(A.tutor) + ' to tutors, ' + profitMoney_(A.kept) + ' kept. ')
       : esc(waiting ? '' : 'No bookings this month, so the starting values are config and placeholders. ')}${
@@ -730,9 +721,8 @@ const DIGEST_SHOWN_ = { got: null, busy: false, seq: 0, timer: 0 };
 function digestShownHtml_() {
   const g = DIGEST_SHOWN_.got;
   if (!g) return `<div class="dw-frame-box" aria-busy="true">${loading_()}</div>`;
-  if (!g.html) return `<p class="sub">${esc(g.said || 'The email could not be shown.')}</p>`;
+  if (!g.html) return `<p class="note">${esc(g.said || 'The email could not be shown.')}</p>`;
   return `<p class="dp-subj"><span>Subject</span> ${esc(g.subject || '')}</p>
-    <p class="faint dp-who">${g.sample ? 'No family has an email this week, so this is the same email for a made-up child.' : 'This week’s email to ' + esc(g.parent || 'a parent') + ' about ' + esc(g.learner || 'their child') + ', exactly as it will go.'}</p>
     <div class="dw-frame-box"${DIGEST_SHOWN_.busy ? ' aria-busy="true"' : ''}><iframe class="dw-frame" title="The weekly email" sandbox="" referrerpolicy="no-referrer" srcdoc="${esc(g.html)}"></iframe>${DIGEST_SHOWN_.busy ? loading_() : ''}</div>`;
 }
 function digestShownPaint_() { document.querySelectorAll('.digest-look .dw-preview').forEach(box => { box.innerHTML = digestShownHtml_(); }); }
@@ -765,9 +755,9 @@ function digestWordsCard_() {
   /* TWO CARDS, the look and the words: together they are taller than a pane, and the look follows the typing either way. */
   return [`<div class="card biz digest-look"><h3>Weekly email</h3><div class="dw-preview">${digestShownHtml_()}</div></div>`,
     `<div class="card biz digest-words"><h3>Weekly email's words</h3>
-    ${rows}<p class="faint">{child}, {parent}, {count} and {span} are filled in for each family.</p>
+    ${rows}
     <div class="tile-row">${tile_({ icon: 'save', label: 'Save', note: 'the email\'s words', act: 'digest-words-save', tone: 'admin' })}</div>
-    <p class="faint dw-said" aria-live="polite"></p></div>`];
+    <p class="note dw-said" aria-live="polite"></p></div>`];
 }
 /* THE FIRST LOOK, when Site is opened by an admin; after that a typed word or a Save asks again. */
 function digestShownStart_() { if (!DIGEST_SHOWN_.got && !DIGEST_SHOWN_.busy) digestShownAsk_(null); }
@@ -812,11 +802,10 @@ function bizSettingsCard_() {
     <div class="tile-row set-save">${tile_({ icon: 'save', label: 'Save', act: 'biz-setting-save', off: !admin, data: { key: k } })}</div></div>`;
   const places = ((DATA && DATA.venues) || []).map(v => `<li>${esc(v.title || '')} · ${esc(money_(Number(v.bestRate) || 0))}/h · ${esc(String(v.maxCapacity || ''))} seats${v.takesAllSeats ? ' · takes all the tutor’s seats' : ''}${(v.rooms || []).length ? ' · ' + v.rooms.length + ' rooms' : ''}</li>`).join('');
   return `<div class="card biz biz-settings set-shape${admin ? '' : ' is-locked'}"><h3 class="set-title">Business settings</h3>
-    <p class="sub">Every price rule in one place. Bookings read these; nothing else sets them.</p>
     ${BIZ_SETTINGS.map(line).join('')}
-    <h4>Venues and rooms</h4><p class="faint">Home and Online are venues like any other. Edit them on the Venues and Rooms tabs of the sheet.</p>
+    <h4>Venues and rooms</h4>
     <ul class="biz-venues">${places || `<li>${empty_('No venues yet.')}</li>`}</ul>
-    <p class="faint fs-said" aria-live="polite"></p></div>`;
+    <p class="note fs-said" aria-live="polite"></p></div>`;
 }
 on('biz-setting-save', el => {
   const item = el.closest('.biz-setting'), card = el.closest('.biz-settings'), box = item && item.querySelector('input');

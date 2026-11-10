@@ -37,7 +37,6 @@ function meCard(given) {
                     { cls: 'thing-pic', none: 'none', size: 52 })}
       <div class="thing-body">
         <h3>${esc(nameBesideHandle_(USER.name, USER.handle))}</h3>
-        <p class="sub">${esc(roleOf(USER.role || 'student'))}</p>
         ${USER.handle ? `<p class="prof-handle">@${esc(USER.handle)}</p>` : ''}
       </div>
     </div>
@@ -354,7 +353,7 @@ const KC_FIELDS = {
   places: x => profHeat_(profList_(kcRow_(x).venues)),
   /* DAY PILLS. */
   avail: x => profAvail_(kcRow_(x)),
-  venueSub: x => (kcRow_(x).subtitle ? `<p class="sub">${mark(kcRow_(x).subtitle)}</p>` : ''),
+  venueSub: () => '',
   /* A CHILD IS TOLD THE SEATS AND NOT THE PRICE (398), and a room with neither says nothing. */
   rooms: x => { const t = kcRow_(x), kid = childView_();
     const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? perHour_(rate) : 'free'].filter(Boolean).join(' · ');

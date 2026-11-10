@@ -20,7 +20,6 @@ function meBlocks() {
 function signInCard_() {
   return `<div class="card">
         <h3>Sign in</h3>
-        <p class="sub">You need an account to book, to keep a checklist, or to spend credits.</p>
         ${/* ---------- NAME, USERNAME OR E-MAIL, AND THE LABEL HAS TO SAY SO § */
              ''}
         <label class="field"><span>email or handle</span>
@@ -39,7 +38,6 @@ function signInCard_() {
           tile_({ icon: 'join', label: 'Make an account', act: 'register' })}</div>
         ${/* A TILE SHOWS A MARK AND NO WORD — its name is in `title` and `aria-label`, which a finger never reads. § */
              ''}
-        <p class="faint">Sign in · a new PIN by email · make an account.</p>
         ${/* ---------- AND THE OTHER DOOR § */
              ''}
         ${(DATA.googleClientId || '') ? `<div class="in-or"><span>or</span></div>
@@ -131,9 +129,9 @@ function setupCard_() {
   if (!S_) {
     return typeof awaiting_ === 'function' && awaiting_()
       ? `<div class="card setup-card" data-need="setup">${need(0)}<h3>Setup</h3>${loading_()}</div>`
-      : `<div class="card setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Not deployed')}<p class="sub">The live backend sends no setup report, so it is older than this site. Pull, then Deploy → New version.</p></div>`;
+      : `<div class="card setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Not deployed')}</div>`;
   }
-  if (S_.error) return `<div class="card setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Setup failed')}<p class="sub">The setup report failed: ${esc(S_.error)}</p></div>`;
+  if (S_.error) return `<div class="card setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Setup failed')}</div>`;
   const files = S_.files || {};
   const odd = Object.keys(files).filter(k => files[k] !== S_.backend);
   const jobs = Array.isArray(S_.jobs) ? S_.jobs : [];
@@ -143,8 +141,6 @@ function setupCard_() {
   const wrong = failed.length + (odd.length ? 1 : 0);
   return `<div class="card setup-card" data-need="setup"><h3>Setup</h3>
     ${need(wrong, wrong + (wrong === 1 ? ' thing to fix' : ' things to fix'))}
-    <p class="sub">Backend live: <b>${esc(dash_(S_.backend))}</b> · site ${esc(typeof SITE_VERSION !== 'undefined' ? SITE_VERSION : dash_())}${odd.length
-      ? ` · <span class="setup-bad">not deployed: ${odd.map(k => esc(k) + '.gs (' + esc(files[k]) + ')').join(', ')}</span>` : ' · all 4 files agree'}</p>
     ${failed.map(j => `<p class="setup-bad">${esc(j.id)} failed: ${esc(j.error)} — it tries again on the next page load.</p>`).join('')}
     <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} <span class="qtag">${j.ran
       ? esc(j.ran === 'yes' ? 'done' : setupWhen_(j.ran)) : j.error ? 'failed' : 'waiting'}</span>${
@@ -153,8 +149,7 @@ function setupCard_() {
       setupJobLink_(j)}</li>`).join('')}</ul>
     <h4>Triggers</h4>
     <ul class="setup-list">${(S_.triggers || []).map(t => `<li>${esc(t.fn)}${t.times > 1 ? ' ×' + esc(t.times) : ''} <span class="qtag">${esc(t.when)}</span></li>`).join('')
-      || `<li class="faint">${S_.triggersError ? 'could not be listed: ' + esc(S_.triggersError) : 'none yet — they install on the next page load'}</li>`}</ul>
-    <p class="sub">Sunday email: ${esc(mode)}. ${sun.next ? 'Next send ' + esc(setupWhen_(sun.next)) + '.' : 'Not booked yet — it books itself on the next page load.'}</p>
+      || ''}</ul>
   </div>`;
 }
 
@@ -220,7 +215,7 @@ function applyFormHtml_() {
     ${box('cvLink', 'CV link (optional)', { ph: 'https://…', type: 'url' })}
     ${formTick_('data-app="consent"', '<span>I agree to @family. keeping these details to consider my application, contacting my referees and checking my DBS.</span>')}
     <div class="btn-row">${tile_({ form: true, label: 'Send my application', act: 'apply-send' })}</div>
-    <p class="faint me-said apply-said" aria-live="polite"></p>
+    <p class="note me-said apply-said" aria-live="polite"></p>
   </div>`;
 }
 /* MAY THIS ACCOUNT FILL THE FORM NOW: an adult with no application waiting. The form is in its card from the start (no sheet, owner 8 Nov). */
@@ -303,7 +298,7 @@ function googleMount() {
   s.onload = draw;
   /* NO SCRIPT, NO BUTTON, AND A SENTENCE. A blocked or offline third party otherwise leaves an
      empty gap under the word "or", which reads as the app having lost something. */
-  s.onerror = () => { host.innerHTML = '<p class="faint">Google sign-in could not load.</p>'; };
+  s.onerror = () => { host.innerHTML = ''; };
   document.head.appendChild(s);
 }
 

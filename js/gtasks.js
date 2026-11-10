@@ -130,7 +130,7 @@ function gtDisconnect_() {
 /* THE CARD: one line per thing, tiles under it. */
 function gtasksCard_() {
   if (typeof USER === 'undefined' || !USER) return '';
-  const row = h => `<p class="sub">${h}</p>`;
+  const row = h => ``;
   let body;
   if (!gtClientId_()) {
     body = row('Not switched on yet — the site\'s admin turns it on.')
@@ -142,7 +142,7 @@ function gtasksCard_() {
       + row('One way: changes here reach Google; a tick in Google stays in Google.')
       + tileRow_(tile_({ icon: 'sync', label: 'Sync now', act: 'gtasks-sync' }) + tile_({ icon: 'out', label: 'Disconnect', act: 'gtasks-off' }), '', true);
   }
-  return `<div class="gtasks-card"><p class="k">Google Tasks</p>${body}${GT.err ? `<p class="faint gtasks-err">${esc(GT.err)}</p>` : ''}</div>`;
+  return `<div class="gtasks-card"><p class="k">Google Tasks</p>${body}</div>`;
 }
 /* The block sits under the Docket widget's list (491), so a change redraws the docket. */
 function gtPaint_() { try { if (typeof paintDocket === 'function') paintDocket(); } catch (e) {} }

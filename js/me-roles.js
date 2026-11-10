@@ -43,7 +43,7 @@ function movingNote_(p) {
 function kidHeldSec_() {
   return `<div class="kid-sec kid-held">
     <h4 class="kid-h">Add your child</h4>
-    <p class="sub">Open the link we emailed to <b style="overflow-wrap:anywhere">${esc(pendingAddr_())}</b>
+    <p class="note">Open the link we emailed to <b style="overflow-wrap:anywhere">${esc(pendingAddr_())}</b>
       first, then you can add your child.</p>
     <div class="tile-row">${tile_(RESEND_LINK)}</div>
   </div>`;
@@ -243,7 +243,7 @@ function settingsCards_(shown, moved, col) {
       options: fieldOptions_,
     },
     save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
-    foot: (mail(list) ? movingNote_(p) : '') + '<p class="faint me-said"></p>',
+    foot: (mail(list) ? movingNote_(p) : '') + '<p class="note me-said"></p>',
     after: id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '' }));
   const out = [];
   Object.keys(shown).forEach((g, k) => {
@@ -328,7 +328,7 @@ function studentSetPages_() {
   }
   const who = nameBesideHandle_(USER.name, USER.handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
-  const top = `<div class="card signed-in"><h3>Signed in</h3><p class="sub">As ${esc(who)}${USER.handle ? ` <span class="prof-handle">@${esc(USER.handle)}</span>` : ''}</p>
+  const top = `<div class="card signed-in"><h3>Signed in</h3>
     ${tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
       + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)}
     ${/* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
@@ -365,10 +365,10 @@ on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
 
 /* A COLUMN ABOVE YOUR RANK, OR EMPTY: one line and the next step. Never the column's name (710, 770: "columns don't need names or a widget for the name"). */
 const rankOffCard_ = (title, say, more) => `<div class="card rank-off">
-    <p class="sub rank-off-say">${esc(say)}</p>${more || ''}</div>`;
+    ${more || ''}</div>`;
 /* A SETTINGS COLUMN FOR A ROLE YOU DO NOT HOLD (464): a padlock and one short line, and nothing else — the owner, "it will just show a padlock". */
 const padlockCard_ = (say, more) => `<div class="card rank-off col-lock"><span class="col-lock-i" aria-hidden="true">${tileIcon_('lock')}</span>
-    <p class="sub rank-off-say">${esc(say)}</p>${more || ''}</div>`;
+    ${more || ''}</div>`;
 const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', 'Kids settings') + ' first.');
 
 /* ---------- EVERYBODY SEES EVERY CARD (467) — the owner: "Everybody can see everything; different things are just locked behind a padlock." § */
@@ -447,7 +447,7 @@ function webProfilePages_() {
   const lines = [brand('web_tagline', 'Tutoring for every age, at home and online.'), b.area ? 'Where: ' + b.area : '',
     b.phone ? 'Phone: ' + b.phone : '', b.site ? 'Online: ' + b.site : ''].filter(Boolean);
   return [`<div class="card web-card"><h3>${esc(name)}</h3>${logo ? `<img class="web-logo" alt="" src="${esc(logo)}">` : ''}${
-    lines.map(l => `<p class="sub">${esc(l)}</p>`).join('')}</div>`];
+    ''}</div>`];
 }
 screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web') : webProfilePages_()));
 
@@ -493,7 +493,7 @@ function stabilityCard_() {
   if (!s) return `<div class="card biz stability-card">${head}${STAB.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`;
   const sig = (s.signals || []).filter(x => x.off > 0);
   const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} <span class="qtag">−${esc(String(x.off))}</span></li>`;
-  return `<div class="card biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p><p class="sub">${esc(s.verdict || '')}${s.secondary && typeof s.secondary.score === 'number' ? ' Core only (860); the secondary tier is ' + esc(String(s.secondary.score)) + '%.' : ''}</p>
+  return `<div class="card biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
     ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`;
 }
@@ -530,9 +530,8 @@ function rolesCard_() {
   const said = rolesSaid_();
   return `<div class="card roles-card">
     <h3>Your roles</h3>
-    ${isAdmin() ? `<p class="faint role-admin">You are Admin. That is given by ${esc(name)} and is not changed here.</p>` : ''}
     ${picks}
-    ${picks || said ? `<p class="faint roles-said" aria-live="polite">${esc(said)}</p>` : ''}
+    ${picks || said ? `<p class="note roles-said" aria-live="polite">${esc(said)}</p>` : ''}
   </div>`;
 }
 /* WHAT A SAVE POSTS: the one choice, and a waiting Tutor's `tutor`, which is kept, not added (the server refuses adding it). */
@@ -580,9 +579,6 @@ on('roles-save', el => {
 });
 
 /* ---------- NOTIFICATIONS: WHAT @family. EMAILS YOU, AND WHAT YOU CAN TURN OFF § */
-/* WHAT A BACKEND OLDER THAN THIS SITE MEANS FOR THE PERSON READING IT: § */
-const NOTIFY_OLD_SAY_ = 'The live backend does not have notification choices yet, so every email is sent as before.';
-const NOTIFY_OLD_ADMIN_ = ' Sync backend/ and deploy a new version to switch them on.';
 /* WHAT THE LINE UNDER THE TICKS SAYS AFTER ONE IS SAVED, kept as state for `HANDLE_SAID`'s reason: § */
 let NOTIFY_SAID = { pid: '', text: '' };
 const notifyList_ = () => {
@@ -592,11 +588,11 @@ const notifyList_ = () => {
 function notifyCard_() {
   const f = (DATA && Array.isArray(DATA.features)) ? DATA.features : [];
   const n = notifyList_();
-  const said = t => `<p class="faint notify-said" aria-live="polite">${esc(t)}</p>`;
+  const said = t => `<p class="note notify-said" aria-live="polite">${esc(t)}</p>`;
   let inner, toggles = [], tail = '';
   /* AN EMPTY LIST BEFORE THE PAYLOAD HAS LANDED IS "NOT KNOWN YET", NOT "OLD" — `LOADED` says which. */
   if (f.indexOf('setNotify') === -1 && (f.length || LOADED)) {
-    inner = `<p class="sub notify-old">${esc(NOTIFY_OLD_SAY_ + (isAdmin() ? NOTIFY_OLD_ADMIN_ : ''))}</p>`;
+    inner = '';
   }
   else if (!n) inner = said('Your choices are on their way from the sheet.');
   else if (!n.to) {
@@ -612,9 +608,7 @@ function notifyCard_() {
     const opt = n.kinds.filter(k => !k.essential), must = n.kinds.filter(k => k.essential);
     const mine = NOTIFY_SAID.pid && NOTIFY_SAID.pid === String(USER.personId || '') ? NOTIFY_SAID.text : '';
     /* ---------- SHORT, BECAUSE IT HAS TO FIT A 320 PHONE WITHOUT SCROLLING § */
-    inner = `<p class="sub">To <b style="overflow-wrap:anywhere">${esc(n.to)}</b> · saved as you tick.</p>
-      ${n.held ? `<p class="faint notify-held">Until you open the link we sent there, that link is the only
-        thing we send to it.</p>` : ''}`;
+    inner = '';
     toggles = opt.map(k => ({ act: 'notify-pick', cls: 'notify-pick', data: { kind: k.kind }, on: k.on, label: k.label,
       note: (k.note || '') + (k.idle ? ' — ' + String(k.idle).toLowerCase() : '') }));
     tail = `${must.length ? `<p class="notify-cap">Always sent</p>

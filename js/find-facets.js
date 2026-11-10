@@ -562,7 +562,6 @@ function practicalCard_(x) {
     ${/* WHAT KIND OF AFTERNOON THIS IS AND WHETHER A BOARD DEMANDS IT -- `Build · Extra` -- were two pills of the head's own § */
           ''}
     ${tagRow_(x)}
-    <p class="sub">${esc([p.subject, p.specRef || p.level].filter(Boolean).join(' · '))}</p>
     ${off ? `<p class="prac-no"><b>Why not</b> ${esc(p.excluded)}${p.reconsiderAt
       ? ' <span class="prac-again">Worth another look at ' + p.reconsiderAt + ', in a lab.</span>'
       : ''}</p>` : ''}

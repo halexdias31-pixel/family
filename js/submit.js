@@ -700,8 +700,6 @@ function reportBoxHtml_(kind, id, label, finder, path) {
   const admin = isAdmin();
   const dk = kind + '|' + id, people = suggestPeople_(kind), files = admin && !people;
   return `<div class="me-form rep-form rep-box" data-rk="${esc(kind)}" data-ri="${esc(id)}" data-rl="${esc(label)}" data-finder="${esc(finder || '')}" data-path="${esc(path || '')}">
-    ${label ? `<p class="faint rep-what">${esc(label)}</p>` : ''}
-    ${path ? `<p class="faint rep-path">Path: ${esc(path)}</p>` : ''}
     <textarea class="rep-note-in" rows="3" maxlength="${SUGGEST_NOTE_MAX}" autocomplete="off"
       placeholder="${people ? 'What is wrong? (you can leave this empty)' : 'What should change here?'}" aria-label="${suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change'}"${draftAttr_('rep', dk)}>${esc(draftVal_('rep', dk))}</textarea>
     <input type="file" accept="${files ? 'image/*,video/*' : 'image/*'}" class="rep-pic-in" hidden aria-hidden="true" tabindex="-1">
@@ -709,14 +707,14 @@ function reportBoxHtml_(kind, id, label, finder, path) {
     <div class="rep-vids" hidden></div>
     <input type="file" multiple class="rep-files-in" hidden aria-hidden="true" tabindex="-1">
     <input type="file" multiple webkitdirectory directory class="rep-dir-in" hidden aria-hidden="true" tabindex="-1">
-    <ol class="faint rep-file-list" hidden></ol><p class="faint rep-file-total" aria-live="polite" hidden></p>
-    ${repNoDir_() ? '<p class="faint rep-no-dir">On iPhone, Safari cannot choose a folder: use Add files and pick several at once.</p>' : ''}` : ''}
+    <ol class="note rep-file-list" hidden></ol><p class="note rep-file-total" aria-live="polite" hidden></p>
+    ` : ''}
     <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: admin ? 'to Claude' : 'to the admin', act: 'rep-send', cls: 'rep-send is-submit' })}${
       people ? '' : tile_({ icon: 'photo', label: files ? 'Add a picture or video' : 'Add a picture', note: 'camera or library', act: 'rep-pic', cls: 'rep-pic' })}${
       files ? tile_({ icon: 'doc', label: 'Add files', note: 'PDFs, pictures, docx, zip', act: 'rep-files', cls: 'rep-files-t' }) : ''}${
       files && !repNoDir_() ? tile_({ icon: 'plus', label: 'Add a folder', note: 'keeps its subfolders', act: 'rep-dir', cls: 'rep-dir-t' }) : ''}${
       tile_({ icon: 'close', label: 'Cancel', act: 'rep-cancel' })}</div>
-    <p class="faint me-said rep-said" aria-live="polite">${admin
+    <p class="note me-said rep-said" aria-live="polite">${admin
       ? 'Yours goes straight to Notes for Claude.'
       : people ? 'Only the admin sees this, and they are told at once.' : 'The admin reads it first; nothing changes until they do.'}</p>
   </div>`;
@@ -886,7 +884,7 @@ function repVidsDraw_(form, list) {
       : 'video attached · no frames: ' + (x.framesError || 'this browser could not read it') + '. The video still goes.';
     return `<div class="tile-row rep-vid${x.frames === 'making' ? ' is-making' : ''}"${x.frames === 'making' ? ' aria-busy="true"' : ''}>${
       tile_({ icon: 'play', label: x.rel.split('/').pop(), note, act: 'rep-pic', cls: 'rep-vid-t' })}${x.frames === 'making' ? loading_() : ''}</div>`
-      + `<p class="faint rep-vid-said">${esc(x.rel.split('/').pop())} · ${esc(note)}</p>`;
+      + `<p class="note rep-vid-said">${esc(x.rel.split('/').pop())} · ${esc(note)}</p>`;
   }).join('');
 }
 const repSeek_ = (v, t) => new Promise((ok, no) => {

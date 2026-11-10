@@ -65,7 +65,6 @@ function siteHealthCard_() {
   const p = s.parts || {}, list = (HEALTH.all ? s.all : s.top) || [];
   const said = { code: 'Code', logic: 'Find logic', ui: 'UI' };
   return `<div class="card logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
-    <p class="sub">Code ${esc(String(p.code))}% · Find logic ${esc(String(p.logic))}%${s.logicStale ? ' (stale)' : ''} · UI ${esc(String(p.ui))}%</p>
     ${s.next ? `<p><b>${esc(String(s.next))}</b></p>` : ''}${healthTrend_(s.trend)}
     <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} <span class="qtag">${esc(said[t.part] || t.part)}, −${esc(String(t.cost))}</span></li>`).join('')}</ol>
     ${healthWork_(s.worklist)}
@@ -78,8 +77,7 @@ function healthTrend_(t) {
   const lo = Math.min(...v), hi = Math.max(...v), span = hi - lo || 1;
   const pts = v.map((n, i) => (i * 100 / (v.length - 1)).toFixed(1) + ',' + (22 - (n - lo) / span * 20).toFixed(1)).join(' ');
   const d = t.worstDrop;
-  return `<svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none" role="img" aria-label="Score over the last ${v.length} runs"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`
-    + (d ? `<p class="faint">Worst drop ${esc(String(d.by))} at ${esc(String(d.commit))} (${esc(String(d.date))}${d.topKind ? ', ' + esc(String(d.topKind)) : ''})</p>` : '');
+  return `<svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none" role="img" aria-label="Score over the last ${v.length} runs"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`;
 }
 /* THE FIXER'S FIRST FIVE (920): the dearest findings of tools/health.js's worklist, each where it is and what it is, in plain words. */
 const HEALTH_SAY = { 'one-off': 'A special case for one name', 'long-fn': 'A long function', 'big-file': 'A very big file',
@@ -87,7 +85,7 @@ const HEALTH_SAY = { 'one-off': 'A special case for one name', 'long-fn': 'A lon
 function healthWork_(w) {
   const top = (Array.isArray(w) ? w : []).slice(0, 5);
   if (!top.length) return '';
-  return `<p class="sub">Fix first</p><ol class="stab-top">${top.map(f => `<li><b>${esc(String(f.file))}:${esc(String(f.line))}</b> · ${esc(HEALTH_SAY[f.kind] || String(f.kind))}<br><span class="qtag">${esc(String(f.text || ''))}</span></li>`).join('')}</ol>`;
+  return `<ol class="stab-top">${top.map(f => `<li><b>${esc(String(f.file))}:${esc(String(f.line))}</b> · ${esc(HEALTH_SAY[f.kind] || String(f.kind))}<br><span class="qtag">${esc(String(f.text || ''))}</span></li>`).join('')}</ol>`;
 }
 on('health-all', () => { HEALTH.all = !HEALTH.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 
@@ -116,10 +114,7 @@ function logicCard_() {
   const top = (s.top || []).slice(0, LOGIC.all ? 25 : 3);
   const line = t => `<li><b>${esc(t.where)}</b> · ${esc(t.asks || '')}<br><span class="qtag">${esc((t.why || []).join(' · '))}</span></li>`;
   return `<div class="card logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
-    <p class="sub">${esc(String(s.healthy))} of ${esc(String(s.questions))} questions break no rule.</p>
-    <p class="faint">${rules.map(r => esc(r.label) + ': ' + esc(String(r.count))).join(' · ') || 'Every rule holds.'}</p>
     <ol class="stab-top">${top.map(line).join('')}</ol>
-    <p class="faint">${esc(s.cannot || '')}</p>
     ${(s.top || []).length > 3 ? tileRow_(tile_({ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top 3' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }), '', true) : ''}</div>`;
 }
 on('logic-all', () => { LOGIC.all = !LOGIC.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });

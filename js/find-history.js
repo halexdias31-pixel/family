@@ -33,7 +33,7 @@ function insSource_(r) {
 }
 /* WHAT A READING INSERT SAYS UNTIL ITS WORDS COME: sign in, the dots, coming soon, or why not */
 function insSay_(r) {
-  if (typeof USER === 'undefined' || !USER || !USER.token) return '<p class="sub lib-sign">Sign in to read the source — your account is a few screens to the right.</p>';
+  if (typeof USER === 'undefined' || !USER || !USER.token) return '<p class="note lib-sign">Sign in to read the source — your account is a few screens to the right.</p>';
   const t = 'in:' + r.id;
   if (LIB.gone.has(t)) return empty_(r.pending ? 'Coming soon.' : 'Not in the library yet.');
   if (LIB.failed) return `${empty_('Couldn’t load this.')}${tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'lib-retry' }))}`;

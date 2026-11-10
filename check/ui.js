@@ -1281,7 +1281,7 @@ function inspect(opts) {
           if (!el) return '';
           const h = [...el.querySelectorAll('h3')]
             .find(x => x.textContent.trim() === 'This screen did not draw');
-          return h ? ((h.parentElement.querySelector('.sub') || {}).textContent || '').trim() : '';
+          return h ? ((h.parentElement.querySelector('.note') || {}).textContent || '').trim() : '';
         }, id);
         if (threw) {
           /* REPORTED THROUGH `rows` LIKE EVERY OTHER FINDING, not counted here. § */

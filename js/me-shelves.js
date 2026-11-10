@@ -149,7 +149,7 @@ const setDraftOk_ = name => typeof draftAttr_ === 'function'
 const SET_HELD_SAY = 'Not saved yet — what you typed here before is still in its box. Save keeps it.';
 function setHeldSay_(html) {
   return /\sdata-draft-held\b/.test(html)
-    ? html.replace('<p class="faint me-said"></p>', '<p class="faint me-said">' + esc(SET_HELD_SAY) + '</p>') : html;
+    ? html.replace('<p class="note me-said"></p>', '<p class="note me-said">' + esc(SET_HELD_SAY) + '</p>') : html;
 }
 function fieldHtml(name, value, o) {
   o = o || {};
@@ -368,7 +368,7 @@ const shelfDrop_ = (noun, act) => tile_({ icon: 'bin', label: 'Remove ' + noun, 
 function setCard_(o) {
   const save = o.save ? `<div class="tile-row set-save">${o.save}</div>` : '';
   const body = o.form == null ? (o.body || '') + save
-    : `<div class="me-form"${o.formAttrs || ''}>${o.form}${save}${o.foot == null ? '<p class="faint me-said"></p>' : o.foot}</div>`;
+    : `<div class="me-form"${o.formAttrs || ''}>${o.form}${save}${o.foot == null ? '<p class="note me-said"></p>' : o.foot}</div>`;
   return `<div class="card${o.cls ? ' ' + o.cls : ''} set-shape"${o.attrs || ''}><h3 class="set-title">${esc(o.title || '')}</h3>${o.lead || ''}${body}${o.after || ''}</div>`;
 }
 const shelfFilled_ = (value, names) => names.some(f => String(value(f) ?? '').trim() !== '');
@@ -430,7 +430,7 @@ function qualShelf_(list, value) {
     <div class="q-pool" hidden>${pool.map(i => qualSlot_(i, value, { mine })).join('')}</div>
     ${shelfAdd_('qualification', 'qual-add', { off: !pool.length, data: { unlocked: '' },
       note: pool.length ? pool.length + ' more fit' : '10 is the most' }, 'q-adds')}
-    ${pool.length ? '' : `<p class="faint q-full">10 is the most this card holds — remove one to add another.</p>`}
+    
   </div>`;
 }
 /* ---------- ONE QUALIFICATION: ITS LINE, AND ITS EDITOR UNDER IT § */

@@ -31,14 +31,14 @@ function verifyFromLink_(again) {
         /* ---------- `parentPending`: A SHEET THEY CLOSE, NOT A TOAST THAT CLOSES ITSELF § */
         const who = first || 'They';
         openSheet('Confirmed — one more step', `
-          <p class="sub">${esc(who)} can sign in now${d.handle ? ` as <b>@${esc(d.handle)}</b>` : ''} with
+          <p class="note">${esc(who)} can sign in now${d.handle ? ` as <b>@${esc(d.handle)}</b>` : ''} with
             their PIN.</p>
-          <p class="sub"><b>They are not on your account yet.</b> The @family. account on your email has not
+          <p class="note"><b>They are not on your account yet.</b> The @family. account on your email has not
             been confirmed, so we did not put ${esc(first || 'them')} on it.</p>
-          <p class="sub">Open the "Confirm your @family. account" email we sent you — or sign in and press
+          <p class="note">Open the "Confirm your @family. account" email we sent you — or sign in and press
             "Send the link again" — then add ${esc(first || 'them')} with "Add your child" on Students.
             They say yes, and they are on your account.</p>
-          <p class="faint">Did you never make an account here? Then somebody else did, with your email. Use
+          <p class="note">Did you never make an account here? Then somebody else did, with your email. Use
             "Forgotten your PIN?" with your email to take it back — it signs them out.</p>
           ${tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' })}`);
         try { if (USER) load(); } catch (e) { oops_(e, 'me:verifyFromLink_') }
@@ -83,7 +83,7 @@ function afterSignIn_(d) {
   if (d && (d.childrenHeld || d.pinCleared || d.pinLink || d.moveDropped || d.handleMoved) && d.message) {
     openSheet(d.pinCleared ? 'Your PIN has changed' : d.childrenHeld ? 'Signed in — one thing to know'
               : d.handleMoved ? 'Your handle has changed' : 'Signed in',
-      `<p class="sub">${esc(d.message)}</p>
+      `<p class="note">${esc(d.message)}</p>
        ${tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' })}`);
   }
   let waiting = '';
@@ -640,8 +640,7 @@ const messagesHtml_ = ms => {
              m.why === 'files' && words && (m.queue || []).length
                ? { icon: 'doc', label: 'Words only', act: 'msg-words', data: { k: m.tmp }, cls: 'msg-act' } : null,
              { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp }, cls: 'msg-act' }]), 'msg-acts')}`
-      : m.state === 'sending' ? `<p class="faint msg-when">sending…</p>`
-      : m.tmp ? `<p class="faint msg-when">sent</p>` : '';
+      : '';
     return `${newDay ? `<p class="msg-day"><span>${esc(dayWord)}</span></p>` : ''}
       <div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
         runEnd ? ' run-end' : ''}${!mine && (!m.read || m.fresh) ? ' unread' : ''}${
@@ -650,8 +649,7 @@ const messagesHtml_ = ms => {
       ${!mine && m.id && !m.tmp ? '<div class="msg-line">' : ''}<div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
         words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>${!mine && m.id && !m.tmp
         ? suggestTile_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag') + '</div>' : ''}
-      ${state || (runEnd ? `<p class="faint msg-when">${esc(mine ? 'you' : (m.fromName || 'them'))} · ${
-        esc(msgClock_(t, m.at))}</p>` : '')}
+      ${state}
     </div>`;
   }).join('');
 };
@@ -673,7 +671,7 @@ function msgForm_(to, toId, note, rows) {
     <textarea class="msg-text" rows="${rows || 1}" maxlength="2000"
       placeholder="Message…" aria-label="Message ${esc(to)}"${draftAttr_('msg', k)}>${esc(msgDraft_(k))}</textarea>
     ${tile_({ form: true, label: 'Send', act: 'msg-send', data: { to: to, id: toId || '' }, cls: 'msg-go' })}
-    <p class="faint msg-said">${esc(note || '')}</p>
+    <p class="note msg-said">${esc(note || '')}</p>
   </div>`;
 }
 
@@ -684,7 +682,7 @@ function uploadsHtml_(d) {
   const tile = `<div class="tile-row">${tile_({ icon: 'tick', label: 'Check uploads', note: 'nothing kept',
     act: 'uploads-check', tone: 'admin' })}</div>`;
   if (!d) {
-    return tile + `<p class="faint up-said">Whether a photo or a clip sent in a message can be kept:
+    return tile + `<p class="note up-said">Whether a photo or a clip sent in a message can be kept:
       the Ledger's column, the Drive folder and what this deployment may do. One test file is made,
       shared and binned.</p>`;
   }
@@ -706,7 +704,7 @@ function uploadsHtml_(d) {
       : 'Not yet. In this order:'}</p>
     ${steps ? `<ol class="up-steps">${steps}</ol>` : ''}
     ${go ? `<div class="tile-row">${go}</div>` : ''}
-    <p class="faint up-ver">backend ${esc(dash_(d.version))}</p>`;
+    `;
 }
 
 /* EVERY `.up-box` ON THE PAGE — a class rather than the id alone, for the reason `cart-box` gives:
@@ -744,8 +742,6 @@ on('uploads-check', el => {
 function claimCard_(c) {
   return `<div class="card">
     <h3>${esc(c.from)} says they are your parent</h3>
-    <p class="sub">Say yes and they will be able to book sessions for you and see how you are
-      getting on. Say no and nothing happens.</p>
     <div class="btn-row">
       ${tile_({ form: true, label: 'Yes', act: 'claim-yes', data: { row: c.rowIndex } })}
       ${tile_({ form: true, label: 'No', act: 'claim-no', data: { row: c.rowIndex }, kind: 'quiet' })}
@@ -765,7 +761,7 @@ function mayAddChild_() {
 function kidAddSec_() {
   return `<div class="kid-sec kid-add">
     <h4 class="kid-h">Add your child</h4>
-    <p class="sub">Your child makes their own account (Make an account). Then search their handle at the top of
+    <p class="note">Your child makes their own account (Make an account). Then search their handle at the top of
       ${esc(tabLabel_('students', 'Student profile'))} and tap Add as my child on their card. They say yes before anything is linked.</p>
   </div>`;
 }

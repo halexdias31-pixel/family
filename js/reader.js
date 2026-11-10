@@ -74,7 +74,7 @@ function speedSheet_() {
       <div class="rsvp-word" id="rsvp-word">${loading_()}</div>
       <span class="rsvp-tick rsvp-tick-b" aria-hidden="true"></span>
     </div>
-    <p class="faint rsvp-at" id="rsvp-at"></p>
+    <p class="note rsvp-at" id="rsvp-at"></p>
     <div class="tile-row rsvp-tiles">
       ${tile_({ icon: 'undo', label: 'Back', note: 'a sentence', act: 'speed-back' })}
       ${tile_({ icon: 'play', label: 'Play', act: 'speed-play', cls: 'rsvp-play' })}

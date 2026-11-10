@@ -402,7 +402,7 @@ html.wide body { max-width: none; box-shadow: none; }
 /* A SETTINGS CARD'S TITLE IS ONE LEVEL DOWN, inside its `.me-form`, so `.card > h3` never reached it and it took the browser's own h3 margin — 17px above the § */
 .card > h3, .card > .me-form > h3:first-child {
   margin: 0 0 .5rem; font-size: var(--fs-body); font-weight: var(--fw-title, 600); line-height: var(--lh-tight); letter-spacing: -.01em; }
-.card .sub { color: var(--ink); font-size: var(--fs-body); margin: -.25rem 0 .5rem; }
+.card .note { color: var(--ink); font-size: var(--fs-body); margin: 0 0 .5rem; }
 
 /* A card that is a button. The whole thing is the target — the only sane size on a touchscreen —
    and it must SAY something happened the instant it is touched. */
@@ -536,7 +536,7 @@ label.field > span, .dob-cap, .reg-cap, .many-cap, .notify-cap {
 }
 /* A note UNDER a field — why an input is disabled, what will happen when it is saved. It is not
    the label, so it does not get the label's uppercase treatment. */
-label.field > .faint { display: block; margin-top: .3rem; text-transform: none; letter-spacing: 0; }
+label.field > .note { display: block; margin-top: .3rem; text-transform: none; letter-spacing: 0; }
 /* ---------- YOUR HANDLE, SHOWN RATHER THAN TYPED § */
 .handle-now {
   display: flex; align-items: baseline; gap: .15rem; margin: 0 0 .6rem;
@@ -820,7 +820,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .notify-card .role-pick { align-items: flex-start; }
 .notify-card .role-pick .box { margin-top: .1rem; }
 .role-pick-say { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
-.role-pick-say .faint { font-size: var(--fs-body); line-height: 1.35; }
+.role-pick-say .note { font-size: var(--fs-body); line-height: 1.35; }
 .roles-card .role-admin, .roles-card .roles-said { margin: .6rem 0 0; }
 /* ONE OF TWO (432): one row with the phone's own picker, each choice's meaning in a faint line under it. */
 .role-pick-notes { margin: 0 0 .5rem; font-size: var(--fs-small); line-height: 1.4; }
@@ -838,10 +838,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 
 /* ---------- SMALL THINGS ------------------------------------------------------------------------ */
 .note  { color: var(--ink); font-size: var(--fs-body); }
-.faint { color: var(--ink); font-size: var(--fs-small); }
 .person-pin { margin: .6rem 0 0; }
-/* NO GREY CLUTTER (owner, 6 Nov, A+): a card's small grey line says nothing a tag would not; a live status slot (an id, a role) stays. */
-.card :is(.sub, .faint, .muted):not([id]):not([role]):not([aria-live]):not([class*="said"]):not(:has([id])) { display: none; }
 .gold  { color: var(--gold); }
 /* Two that were used in the markup and never defined here — a value that has gone wrong, and a price that is nothing. § */
 .bad   { color: var(--bad); }
@@ -975,7 +972,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 }
 .thing-body { min-width: 0; flex: 1; }
 .thing-body h3 { margin: 0 0 .15rem; font-size: var(--fs-body); }
-.thing-body .sub { margin: 0 0 .3rem; }
+.thing-body .note { margin: 0 0 .3rem; }
 
 /* The price. Always shown, even when it is nothing — "0 credits" tells somebody it is free, and a
    blank space tells them the app forgot. */
@@ -2118,7 +2115,7 @@ label.bk-k { cursor: pointer; }
 .widget-full > .card { flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0;
                        padding-top: .5rem; }
 /* The heading and its line never grow — they say what the widget is and then get out of the way. */
-.widget-full > .card > h3, .widget-full > .card > .sub,
+.widget-full > .card > h3, .widget-full > .card > .note,
 .widget-full > .card > .cal-head, .widget-full > .card > .btn-row { flex: none; }
 
 /* The clock takes the middle of the screen, which is where you look while waiting for a number to
@@ -3347,7 +3344,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .fc .fc-head h3, .fc.prac-part > h3 { font-size: var(--fs-title); font-weight: 600; line-height: 1.3;
                                       letter-spacing: -.01em; }
 /* THE LINE UNDER THE TITLE SITS UNDER IT. § */
-.fc .fc-head + .sub { margin: var(--fc-in) 0 0; }
+.fc .fc-head + .note { margin: var(--fc-in) 0 0; }
 .fc-lede { margin: var(--fc-line) 0 0; font-size: var(--fs-body); line-height: 1.5; }
 /* HOW LONG, HOW MANY, WHERE, AND WHETHER IT CAN HAPPEN AT ALL — the four facts that decide whether
    you run this today, on one line, in the mono face the rest of the app uses for measurements. */
@@ -4044,7 +4041,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* AN UNREAD MESSAGE IS IN THE FOREGROUND COLOUR, not behind a badge. A count you have to notice is
    a count you can miss. */
 .card.unread h3 { color: var(--ink); }
-.card.unread .sub { color: var(--ink); }
+.card.unread .note { color: var(--ink); }
 
 /* THE SEARCH BOX, AND A RESULT A SEARCH ENGINE'S RESULT IS THREE LINES AND NO SURFACE: § */
 
@@ -4196,7 +4193,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   display: flex; align-items: center; justify-content: center;
   text-align: center; padding: 1rem;
 }
-.cam-card .cam-off .sub { margin: 0; }
+.cam-card .cam-off .note { margin: 0; }
 
 /* THE BUTTONS WRAP. `Again`, `Save it` and `Try the camera again` all live on this row now, and at most two are ever shown at once — but "Try the camera again" § */
 .cam-card .cam-row { flex-wrap: wrap; gap: .5rem; }
@@ -5038,7 +5035,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .prog-v.is-bad { color: var(--bad); }
 .prog-weak + .prog-weak { margin-top: .5rem; }
 .prog-weak .row { border-bottom: 0; }
-.prog-sessions .sub { margin: .5rem 0 0; }
+.prog-sessions .note { margin: .5rem 0 0; }
 .prog-from { margin: -.2rem 0 .4rem; font-size: var(--fs-small); }
 .prog-paper > summary, .miss-q > summary { min-height: 44px; cursor: pointer; list-style: none; align-items: center; }
 .prog-paper > summary::-webkit-details-marker, .miss-q > summary::-webkit-details-marker { display: none; }
@@ -5139,7 +5136,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .is-locked > h3 { padding-right: 1.6rem; }
 /* WHAT A CARD IS FOR, one faint line under its title. */
 .card-say { margin: .1rem 0 .6rem; font-size: var(--fs-body); line-height: 1.35; }
-.add-card .card-say { display: block; margin: .2rem 0 0; }
+.add-card .card-say { margin: .2rem 0 0; }
+/* A CARD'S SAY IS KEPT FOR THE WORDS EDITOR AND THE JOURNEYS, NOT SHOWN: the owner never saw it, and a card's tiles say what it does. */
+.card .card-say { display: none; }
 /* A TUTOR'S HOURS AS LINES (467). */
 .prof-hours .prof-hour-line { margin: 0; line-height: 1.45; font-size: var(--fs-body); }
 .prof-hours .prof-hour-line .prof-day { display: block; }
@@ -5338,7 +5337,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .sp-now { display: flex; gap: .75rem; align-items: center; margin: .25rem 0 .5rem; }
 .sp-art { width: 64px; height: 64px; object-fit: cover; border: 1px solid var(--line); }
 .sp-title { margin: 0; font-weight: 600; }
-.sp-now .faint { margin: 0; }
+.sp-now .note { margin: 0; }
 .sp-line { display: flex; align-items: center; gap: .5rem; padding: .3rem 0; border-top: 1px solid var(--line); }
 .spot-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-search { display: flex; gap: .5rem; align-items: center; margin: .6rem 0; }
