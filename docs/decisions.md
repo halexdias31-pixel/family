@@ -274,3 +274,9 @@ become an owner question showing both; never pick one.
 ## 10 Nov — cards are static: one view, no open/closed
 - Every card is drawn once, whole: picture (one fixed size, centred) → tags → lines and content (all of it) → the four buttons. No tap-to-open picture, no enlarging, no closed two-line clamp.
 - ⋯ is the only toggle a card has: its labelled list of the other actions. A kind with no main action of its own leads with Share.
+
+## 10 Nov (late) — image on top only when real; round icons only (replaces "every card has a picture" and the ⋯ labels)
+- Every card and section (question, tutor, person, message, post, setting, health, booking, shop, library kinds, bundles, forms-in-cards) is one centred, static column: image → tags → content → the round button row.
+- The image is there only when the thing has a real one: a person's photo or chosen profile picture (people ALWAYS have a picture: one with none keeps the steady default from the owner's own set, default-pictures.json, as new accounts get), a question/paper figure, a post's photo, a shop item's photo, a book cover, a manuscript's own drawing. Otherwise nothing: no kind icon, no 8-bit sign, no profile picture on a non-person. An empty picture part takes no room.
+- Buttons are round icons only; no word under the ⋯ buttons. ⋯ opens a wrapping, centred row of the same round buttons. On a computer, hovering a round button shows its word (its `title`); on touch, a long press (`tileWordShow_`). Uneven card heights are fine; tags stay their 2× size.
+- Guarded by check-card-shape and check/card-facts.js.
