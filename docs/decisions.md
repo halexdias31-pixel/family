@@ -256,3 +256,9 @@ become an owner question showing both; never pick one.
 - A student sees only themselves and their tutors: no other student, no sibling, no parent. The "add a friend by handle" feature is removed.
 - A parent sees only their own children (unchanged).
 - A tutor sees only their own students (booked with them) and those students' parents. Admin sees everyone.
+
+## 10 Nov — the whole window, one fluid grid (replaces 9 Nov 59a "one column")
+- The page has no column cap (`html.flow body` max-width none). Every screen section is a `.card-grid`: `repeat(auto-fill, minmax(min(100%, 20rem), 1fr))`, gap `var(--card-gap)` — one column on a phone, two on an iPad, four or more on a PC, from the same rule.
+- What is not a result card (Find's menu, chips, answers, the booking row), an open card and anything holding a form span the row (`grid-column: 1 / -1`). Text keeps a reading measure with `max-width: 70ch` on the text, not by narrowing the page.
+- No width breakpoints: the 30rem root size, reacts under 320, widget padding under 22rem, camera discs under 359px, essay lines and keypad keys from 700px all became clamp()/min() rules; the keypad's return word is a container query on the pad. Kept: print, reduced motion/transparency, hover, and the two shape (aspect-ratio) rules.
+- Held by check-look 59b (core): no `@media` by width, `.card-grid` is that rule, every screen in index.html carries it.
