@@ -709,9 +709,9 @@ function markPart_(x, typed) {
   if (m.kind === 'choice' || m.kind === 'order') {
     const p = choicePicks_(x, typed);
     if (p === null) return null;
-    if (m.kind === 'order') return { got: markOrder_(p, orderWays_(x)) ? 1 : 0, of: 1 };
-    const r = (x.choiceRight || []).slice().sort((a, b) => a - b).join(',');
-    return { got: p.slice().sort((a, b) => a - b).join(',') === r ? 1 : 0, of: 1 };
+    /* ONE CHOICE MARKER (1200): an order is its picks in sequence, a choose is them as a set -- the same comparison, sorted */
+    const ord = m.kind === 'order', set = w => (ord ? w : w.slice().sort((a, b) => a - b));
+    return { got: markOrder_(set(p), ord ? orderWays_(x) : [set(x.choiceRight || [])]) ? 1 : 0, of: 1 };
   }
   if (m.kind === 'accept') {
     const v = markAnswer_(typed, x.accept);
