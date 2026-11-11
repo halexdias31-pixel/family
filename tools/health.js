@@ -377,7 +377,7 @@ const REPLACED = new Set(['special', 'longfiles', 'longfns', 'duplicates']);
 const W_ = '(?:kind|facet|field|col|screen|tab|id|type|which|mode|key)';
 /* NOT A ONE-OFF: a DOM event's key or type ("Enter", "pointerup") and a `typeof` test are the language's words, not kinds of ours;
    js/predicates.js is where each named test is written once, for the rest to call. */
-const DOM_EVENT = /\b(?:e|ev|evt|event)\.(?:key|type)\s*[!=]==?\s*'[^']+'|\btypeof\s+[\w$.]+\s*[!=]==?\s*'[^']+'/g, SHARED_TESTS = 'js/predicates.js';
+const DOM_EVENT = /\b(?:e|ev|evt|event)\.(?:key|type)\s*[!=]==?\s*'[^']+'|\btypeof\s+[\w$.]+\s*[!=]==?\s*'[^']+'/g, SHARED_TESTS = PS_.pieceFiles('predicates');
 const ONE_OFF = new RegExp(`(?:\\b(?:[\\w$]+\\.)*${W_}\\s*[!=]==?\\s*'[^']+'|'[^']+'\\s*[!=]==?\\s*(?:[\\w$]+\\.)*${W_}\\b|^\\s*case\\s+'[^']+'\\s*:)`);
 /* FROZEN (1090): tiers.json `frozen.files` are left out of the score and the worklist, so the list names only what the owner uses now. */
 function frozenFiles() { try { return new Set(((JSON.parse(read('data/settings/tiers.json')).frozen || {}).files || []).map(f => 'js/' + f + '.js')); } catch (e) { return new Set(); } }
@@ -433,7 +433,7 @@ function structure() {
     L.forEach((raw, i) => {
       const code = C[i] || '', depth = depthAt[i] || 0, before = i ? depthAt[i - 1] : 0;
       if (code.trim().length >= 8) N.push({ t: code.trim(), i });
-      if (ONE_OFF.test(code.replace(DOM_EVENT, '')) && file !== SHARED_TESTS) push(file, i + 1, 'one-off', raw, 1);
+      if (ONE_OFF.test(code.replace(DOM_EVENT, '')) && !SHARED_TESTS.includes(file)) push(file, i + 1, 'one-off', raw, 1);
       if (/catch\s*(?:\(\s*\w*\s*\))?\s*\{\s*\}/.test(code)) push(file, i + 1, /catch\s*(?:\([^)]*\))?\s*\{\s*\}/.test(raw) ? 'catch' : 'deliberate', raw, 1);
       const m = before === 0 && /^(?:async\s+)?function\s+([\w$]+)|^(?:const|let|var)\s+([\w$]+)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>\s*\{|[\w$]+\s*=>\s*\{)/.exec(raw);
       if (m) fn = { name: m[1] || m[2], at: i };
@@ -589,7 +589,7 @@ function varietyWork(Q, waits) {
   add('listrow', 'List-row styles', 1, 'ui', rv.map(c => ({ where: rows.get(c), say: '.' + c })));
   /* SETTINGS ROW SHAPES: the row builders the settings screens use. */
   const sv = [];
-  ['js/settings.js', 'js/staff.js', ...ME_FILES].forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*[Rr]ow\w*)\s*\(/g)) sv.push({ where: f + ':' + lineOf(src, m.index), say: m[1] }); });
+  [...PS_.pieceFiles('settings'), 'js/staff.js', ...ME_FILES].forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*[Rr]ow\w*)\s*\(/g)) sv.push({ where: f + ':' + lineOf(src, m.index), say: m[1] }); });
   add('setrow', 'Settings row shapes', 1, 'ui', sv);
   /* WAIT INDICATORS: loading_ is the one; each file that makes its own wait is another. */
   const wv = [{ where: fnAt('loading_', SHELL_FILES) || 'js/shell-*.js', say: 'loading_' }];

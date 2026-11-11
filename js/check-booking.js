@@ -466,7 +466,7 @@ RULES.push({
 });
 
 /* WHAT A BOOKING EARNS, RUN WITH THE OWNER'S OWN NUMBERS (docs/history/353) § */
-const coreJs = (() => { try { return fs.readFileSync(path.join(dir, 'core.js'), 'utf8'); } catch (e) { return null; } })();
+const coreJs = (() => { try { return require('../tools/piece-src.js').pieceSrc('core', path.join(dir, '..')); } catch (e) { return null; } })();
 let money_ = null;
 try {
   if (!coreJs) throw new Error('js/core.js could not be read');

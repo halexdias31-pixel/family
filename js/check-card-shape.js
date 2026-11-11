@@ -6,8 +6,8 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const bad = [];
 const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/card-fields.json'), 'utf8'));
-const cards = fs.readFileSync(path.join(ROOT, 'js/cards.js'), 'utf8');
-const settings = fs.readFileSync(path.join(ROOT, 'js/settings.js'), 'utf8');
+const cards = require('../tools/piece-src.js').pieceSrc('cards', ROOT);
+const settings = require('../tools/piece-src.js').pieceSrc('settings', ROOT);
 const finder = fs.readFileSync(path.join(ROOT, 'js/find-finder.js'), 'utf8');
 
 /* EVERY NAME THE PAGE WOULD LOOK UP IS A HARMLESS STUB: the shape must hold even when a field's helpers are absent. */

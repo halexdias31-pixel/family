@@ -8,7 +8,7 @@ const { backend } = require('./check-gas-load.js');
 const ROOT = path.join(__dirname, '..');
 const bad = [];
 const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
-const cards = fs.readFileSync(path.join(ROOT, 'js/cards.js'), 'utf8');
+const cards = require('../tools/piece-src.js').pieceSrc('cards', ROOT);
 const tok = n => { const m = new RegExp('--' + n + ':\\s*([^;]+);').exec(css); return m ? m[1].trim() : null; };
 const px = v => { const s = String(v || ''), m = /max\(\s*([\d.]+)px\s*,\s*([\d.]+)rem\s*\)/.exec(s);
   return m ? Math.max(+m[1], +m[2] * 16) : /rem$/.test(s) ? Math.round(parseFloat(s) * 16) : parseFloat(s); };
