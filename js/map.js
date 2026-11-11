@@ -252,10 +252,8 @@ const WIDGETS = [
   { id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
     start: () => initLibCards_?.(),
     into: 'lib-box', what: 'Your library cards',
-    get html() { return card_(`<div class="">
-    <h3>Library cards</h3>
-    <div id="lib-box"></div>
-  </div>`); } },
+    /* THE BOX ONLY: its host draws the card round it, and a card here showed twice (card-facts). */
+    get html() { return '<div id="lib-box"></div>'; } },
 ];
 /* SECONDARY (860): every widget here not named core in data/settings/tiers.json throws into oops_, never into its caller. */
 tierGuardWidgets_(WIDGETS);

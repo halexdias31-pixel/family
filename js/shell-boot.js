@@ -105,12 +105,11 @@ function tierRun_(where, fn, self, args, fallback, host) {
 }
 /* OFF (860): nothing of its own runs; its card is its name, "Coming soon" and Suggest, so a person can still ask for it back. */
 function tierOff_(w) {
-  const name = String(w.name || w.title || w.id);
   ['start', 'draw', 'stop'].forEach(k => { if (typeof w[k] === 'function') w[k] = () => (k === 'draw' ? false : undefined); });
   Object.defineProperty(w, 'html', { configurable: true, enumerable: true, get() {
     const say = typeof brand === 'function' ? brand('widgetOff', 'Coming soon') : 'Coming soon';
-    const sug = typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), name) : '';
-    return card_(`<div class="widget-off"><h3>${esc(name)}</h3>${sug ? `<div class="tile-row">${sug}</div>` : ''}</div>`);
+    /* ITS WORDS ONLY: every host wraps a widget in its card, name and Suggest already, so a card here was a card in a card. */
+    return `<p class="note widget-off">${esc(say)}</p>`;
   } });
   try { Object.defineProperty(w, '__tier', { value: 'off' }); } catch (e) { /* a frozen widget is still off */ }
 }
