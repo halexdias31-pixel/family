@@ -375,6 +375,9 @@ function ui() {
 const STRUCT = { 'one-off': [0.05, 20], 'long-fn': [0.01, 10], 'big-file': [0.001, 10], dup: [0.02, 10], nest: [0.05, 10], catch: [0.02, 0], deliberate: [0, 0] };
 const REPLACED = new Set(['special', 'longfiles', 'longfns', 'duplicates']);
 const W_ = '(?:kind|facet|field|col|screen|tab|id|type|which|mode|key)';
+/* NOT A ONE-OFF: a DOM event's key or type ("Enter", "pointerup") and a `typeof` test are the language's words, not kinds of ours;
+   js/predicates.js is where each named test is written once, for the rest to call. */
+const DOM_EVENT = /\b(?:e|ev|evt|event)\.(?:key|type)\s*[!=]==?\s*'[^']+'|\btypeof\s+[\w$.]+\s*[!=]==?\s*'[^']+'/g, SHARED_TESTS = 'js/predicates.js';
 const ONE_OFF = new RegExp(`(?:\\b(?:[\\w$]+\\.)*${W_}\\s*[!=]==?\\s*'[^']+'|'[^']+'\\s*[!=]==?\\s*(?:[\\w$]+\\.)*${W_}\\b|^\\s*case\\s+'[^']+'\\s*:)`);
 /* FROZEN (1090): tiers.json `frozen.files` are left out of the score and the worklist, so the list names only what the owner uses now. */
 function frozenFiles() { try { return new Set(((JSON.parse(read('data/settings/tiers.json')).frozen || {}).files || []).map(f => 'js/' + f + '.js')); } catch (e) { return new Set(); } }
@@ -383,7 +386,7 @@ function coreFiles() {
   const T = (() => { try { return JSON.parse(read('data/settings/tiers.json')).files || {}; } catch (e) { return {}; } })();
   const Z = frozenFiles();
   const ls = d => { try { return fs.readdirSync(path.join(ROOT, d)).sort(); } catch (e) { return []; } };
-  return ls('js').filter(f => f.endsWith('.js') && !f.startsWith('check') && (T[f.slice(0, -3)] || 'core') === 'core' && !Z.has('js/' + f)).map(f => 'js/' + f)
+  return ls('js').filter(f => f.endsWith('.js') && !f.startsWith('check') && f !== '_scope.js' && (T[f.slice(0, -3)] || 'core') === 'core' && !Z.has('js/' + f)).map(f => 'js/' + f)
     .concat(ls('backend').filter(f => f.endsWith('.gs')).map(f => 'backend/' + f));
 }
 /* A FILE SCANNED ONCE: per line, the code with comments removed (strings kept, for the literal tests), and the brace depth at its end —
@@ -430,7 +433,7 @@ function structure() {
     L.forEach((raw, i) => {
       const code = C[i] || '', depth = depthAt[i] || 0, before = i ? depthAt[i - 1] : 0;
       if (code.trim().length >= 8) N.push({ t: code.trim(), i });
-      if (ONE_OFF.test(code)) push(file, i + 1, 'one-off', raw, 1);
+      if (ONE_OFF.test(code.replace(DOM_EVENT, '')) && file !== SHARED_TESTS) push(file, i + 1, 'one-off', raw, 1);
       if (/catch\s*(?:\(\s*\w*\s*\))?\s*\{\s*\}/.test(code)) push(file, i + 1, /catch\s*(?:\([^)]*\))?\s*\{\s*\}/.test(raw) ? 'catch' : 'deliberate', raw, 1);
       const m = before === 0 && /^(?:async\s+)?function\s+([\w$]+)|^(?:const|let|var)\s+([\w$]+)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>\s*\{|[\w$]+\s*=>\s*\{)/.exec(raw);
       if (m) fn = { name: m[1] || m[2], at: i };

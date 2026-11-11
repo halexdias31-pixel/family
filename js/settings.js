@@ -138,7 +138,8 @@ function setColumns_(d, extra) {
     if (live.length) d.columns = live;
     /* SWITCHED OFF (880): each is a Coming soon card in Find, its first plain line its notes; switched on again, its card goes. */
     d.columnsOff = columns.filter(r => libS(r.screen) && !libOn(r.active))
-      .map(r => ({ screen: libS(r.screen), label: libS(r.label) || libS(r.screen), what: libS(r.notes).split(/ — |\. |\(/)[0].trim() }));
+      .map(r => ({ screen: libS(r.screen), label: libS(r.label) || libS(r.screen), what: libS(r.notes).split(/ — |\. |\(/)[0].trim(),
+        inFind: libS(r.in_find) !== '' && libOn(r.in_find), soonKind: libS(r.soon_kind) || 'soon' }));
   }
 }
 

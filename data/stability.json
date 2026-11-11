@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 74.8,
+ "score": 76.8,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -52,34 +52,6 @@
    "where": {}
   },
   {
-   "id": "special",
-   "label": "Per-facet and per-kind special cases",
-   "count": 75,
-   "weight": 0.05,
-   "cap": 10,
-   "off": 3.8,
-   "where": {
-    "js/cards.js": 4,
-    "js/data.js": 4,
-    "js/find-aloud.js": 1,
-    "js/find-cells.js": 2,
-    "js/find-figures.js": 4,
-    "js/find-finder.js": 2,
-    "js/find-history.js": 10,
-    "js/find-marking.js": 5,
-    "js/find-pad.js": 4,
-    "js/keypad-keys.js": 3,
-    "js/links.js": 2,
-    "js/me-messages.js": 2,
-    "js/me-settings.js": 3,
-    "js/predicates.js": 16,
-    "js/price-rows.js": 2,
-    "js/qtools.js": 4,
-    "js/resource.js": 1,
-    "js/submit.js": 6
-   }
-  },
-  {
    "id": "ceilings",
    "label": "Raised ratchet ceilings (*_MAX)",
    "count": 1098,
@@ -93,6 +65,26 @@
     "js/check-projects.js QTY_MAX": 12,
     "js/check-tiers.js EAGER_SECONDARY_MAX": 4,
     "check/pen.js FRAME_WRITES_MAX": 2
+   }
+  },
+  {
+   "id": "special",
+   "label": "Per-facet and per-kind special cases",
+   "count": 36,
+   "weight": 0.05,
+   "cap": 10,
+   "off": 1.8,
+   "where": {
+    "js/cards.js": 4,
+    "js/find-cells.js": 2,
+    "js/find-finder.js": 2,
+    "js/find-history.js": 2,
+    "js/find-pad.js": 4,
+    "js/keypad-keys.js": 1,
+    "js/me-messages.js": 2,
+    "js/predicates.js": 16,
+    "js/price-rows.js": 2,
+    "js/submit.js": 1
    }
   },
   {

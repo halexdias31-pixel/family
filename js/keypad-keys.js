@@ -167,9 +167,11 @@ function kpPadHtml_(layer, words, signs, essay, vec, site) {
 const KP_HOLE = '\u03d9', KP_CARET = '\u03db';
 /* `kind` 'essay' IS A WORDED BOX THAT IS A SHEET (`ansEssay_`): § */
 /* `multi` IS ONE OF SEVERAL BOXES FOR ONE ANSWER (find.js `multiBoxes_`, 362): `{ n, k }`, the box's place and the answer's key. */
+const KP_BOX_KINDS = { essay: { essay: true, words: true }, words: { words: true } };
 function kpField_(k, val, kind, signs, name, multi) {
-  const essay = kind === 'essay';
-  const words = kind === 'words' || essay;
+  const box = Object.prototype.hasOwnProperty.call(KP_BOX_KINDS, kind) ? KP_BOX_KINDS[kind] : {};
+  const essay = !!box.essay;
+  const words = !!box.words;
   const v = val == null ? '' : String(val);
   const lock = `class="qp-ans-in kp-in" ${multi ? `data-do="qp-multi" data-n="${multi.n}" data-mk="${esc(multi.k)}"` : 'data-do="qp-ans"'} data-k="${esc(k)}" data-kp="${words ? 'words' : 'maths'}"${
     signs & 1 ? ' data-kp-signs="1"' : ''}${signs & 2 ? ' data-kp-vec="1"' : ''}${essay ? ' data-kp-essay="1"' : ''} aria-label="${esc(name || 'Your answer')}"
@@ -496,7 +498,7 @@ function kpFinderCentre_(inp) {
   try {
     if (typeof finderOf_ !== 'function' || !finderOf_(AT)) return false;
     const pg = inp.closest('#screen .page.on'), host = pg && pg.parentElement;
-    if (!host || host.id !== 's-' + AT) return false;
+    if (!isAtHost_(host)) return false;
     holdHere_(inp);
     const h = HOLD_AT;
     if (!h || h.id !== AT) return false;
@@ -556,7 +558,7 @@ function kpLift_(inp, pad) {
   try {
     const pg = inp.closest('#screen .page.on');
     const host = pg && pg.parentElement;
-    if (!host || host.id !== 's-' + AT) return;
+    if (!isAtHost_(host)) return;
     if (!HOLD_AT || HOLD_AT.id !== AT || HOLD_AT.p !== (PAGE[AT] || 0)) holdHere_(inp);
     const h = HOLD_AT;
     if (!h || h.id !== AT) return;

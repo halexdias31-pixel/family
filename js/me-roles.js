@@ -264,13 +264,14 @@ const tabLabel_ = (id, or) => ((typeof TABS_BUILT !== 'undefined' && TABS_BUILT.
 /* THE PEOPLE COLUMN OF YOUR RANK, where your own card is shown first (453); what you edit is on Student settings for every rank (469). */
 const homeCol_ = () => rankAtLeast_('staff') ? 'tutors' : rankAtLeast_('client') ? 'parents' : 'students';
 /* DO YOU BELONG IN THIS PEOPLE COLUMN — by rank, or by a family link (a parent is a parent whatever their rank). */
+/* THE FAMILY LINK THAT PUTS YOU IN A PEOPLE COLUMN: a parent has a child; anyone else in a column has a parent. */
+const PEOPLE_COL_LINK = { parents: 'child' };
 function peopleBelong_(col, family) {
   if (!USER) return false;
   const rel = r => (family || []).some(f => f && f.relation === r);
   if (col === homeCol_()) return true;
   if (isTutorsCol_(col)) return !!(typeof cardMine_ === 'function' && cardMine_());
-  if (col === 'parents') return rel('child');
-  return rel('parent');
+  return rel(Object.prototype.hasOwnProperty.call(PEOPLE_COL_LINK, col) ? PEOPLE_COL_LINK[col] : 'parent');
 }
 /* A PEOPLE COLUMN: signed out it says where to sign in; with nobody in it, its title and one line. */
 function peoplePages_(col) {
