@@ -376,7 +376,7 @@ function staffDbsDue_(s) {
 }
 function staffCard_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return '';
-  return `<div class="card biz staff-card" data-staff data-need="staff">${staffInner_(!STAFF.list && !STAFF.error)}</div>`;
+  return card_(`<div class="biz staff-card" data-staff data-need="staff">${staffInner_(!STAFF.list && !STAFF.error)}</div>`);
 }
 function staffInner_(wait) {
   const list = STAFF.list || [];
@@ -398,7 +398,7 @@ function staffInner_(wait) {
     ${wait ? loading_() : ''}</div>
     <p class="note me-said staff-said">${esc(STAFF.error)}</p>`;
 }
-const staffDraw_ = () => { document.querySelectorAll('[data-staff]').forEach(c => { c.innerHTML = staffInner_(false); }); if (typeof bizNeedsPaint_ === 'function') bizNeedsPaint_(); };
+const staffDraw_ = () => { document.querySelectorAll('[data-staff]').forEach(c => { cardFill_(c, staffInner_(false)); }); if (typeof bizNeedsPaint_ === 'function') bizNeedsPaint_(); };
 function staffStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || STAFF.asking) return;
   STAFF.asking = true;
@@ -416,7 +416,7 @@ on('stmt-for', el => {
   STMT.tutorId = el.dataset.id || ''; STMT.tutorName = el.dataset.name || '';
   /* IN THE CARD PRESSED, under its row: one statement at a time, no sheet. */
   document.querySelectorAll('.hub-for').forEach(h => h.remove());
-  const c = el.closest('.card'); if (c) c.insertAdjacentHTML('beforeend', `<div class="hub hub-for">${stmtHtml_()}</div>`);
+  const c = el.closest('.card'); if (c) (c.querySelector(':scope > .kc-form, :scope > .kc-lines') || c).insertAdjacentHTML('beforeend', `<div class="hub hub-for">${stmtHtml_()}</div>`);
   stmtAsk_();
 });
 /* "CHECKED TODAY": the admin ran the DBS online check; the date restarts the 12 months. */

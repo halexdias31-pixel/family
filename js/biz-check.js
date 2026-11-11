@@ -234,9 +234,9 @@ function bizCheckCard_() {
   /* A REPAINTED COLUMN KEEPS THE GLOW: the inner is drawn first, so its counts are known for the card's own class. */
   const inner = bcInner_(), need = typeof BIZ_NEEDS !== 'undefined' ? BIZ_NEEDS : {}, now = typeof BIZ_NEEDS_NOW !== 'undefined' ? BIZ_NEEDS_NOW : {};
   const glow = (need.bizcheck ? ' needs-you' : '') + (now.bizcheck ? ' needs-now' : '');
-  return `<div class="card biz bc-card${glow}" data-bizcheck data-need="bizcheck">${inner}</div>`;
+  return card_(`<div class="biz bc-card${glow}" data-bizcheck data-need="bizcheck">${inner}</div>`);
 }
-const bcDraw_ = () => { document.querySelectorAll('[data-bizcheck]').forEach(c => { c.innerHTML = bcInner_(); }); if (typeof bizNeedsPaint_ === 'function') bizNeedsPaint_(); };
+const bcDraw_ = () => { document.querySelectorAll('[data-bizcheck]').forEach(c => { cardFill_(c, bcInner_()); }); if (typeof bizNeedsPaint_ === 'function') bizNeedsPaint_(); };
 
 /* WAITS FOR ANOTHER CARD'S LIST (records, staff) so its rule can sense, giving up after a while. */
 const bcWaitFor_ = (ready, ms) => new Promise(res => { const t0 = Date.now(); (function tick() { if (ready() || Date.now() - t0 > ms) res(); else setTimeout(tick, 300); })(); });

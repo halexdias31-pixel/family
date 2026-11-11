@@ -82,9 +82,9 @@ function checksCard_() {
   let more = '';
   try { more = (typeof healthWithMissing_ === 'function' ? healthWithMissing_(siteHealthCard_()) : '') + (typeof bizCheckCard_ === 'function' ? bizCheckCard_() : ''); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'checks detail'); }
   if (!checksBizLive_()) setTimeout(checksWatchBiz_, 0);
-  return `<div class="card checks-card" data-checks>${checksInner_()}</div>${more}`;
+  return card_(`<div class="checks-card" data-checks>${checksInner_()}</div>${more}`);
 }
-const checksDraw_ = () => { document.querySelectorAll('[data-checks]').forEach(c => { c.innerHTML = checksInner_(); }); };
+const checksDraw_ = () => { document.querySelectorAll('[data-checks]').forEach(c => { cardFill_(c, checksInner_()); }); };
 /* THE LIVE BUSINESS SCORE: redraw once the checker's ticks have come (or a minute passes), without the checker knowing about this card. */
 function checksWatchBiz_() {
   if (OQ.watching) return;

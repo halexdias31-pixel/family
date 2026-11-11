@@ -100,7 +100,7 @@ function bizCard_(pg) {
   const id = typeof splitId_ === 'function' ? splitId_('biz', 'rec', pg.title) : '';
   const tiles = n => (id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '');
   /* A PIECE IS A CARD OF ITS OWN (466): `data-lay-card` names it, so it moves, goes or starts alone. */
-  const one = (title, items, first, piece) => `<div class="card biz"${first ? ` data-need="rec:${esc(pg.title)}"` : ''}${id ? ` data-split="${esc(id)}"` : ''}${piece ? ` data-lay-card="${esc(piece)}"` : ''}><div class="me-form" data-biz-page="${esc(pg.title)}">
+  const one = (title, items, first, piece) => card_(`<div class="biz"${first ? ` data-need="rec:${esc(pg.title)}"` : ''}${id ? ` data-split="${esc(id)}"` : ''}${piece ? ` data-lay-card="${esc(piece)}"` : ''}><div class="me-form" data-biz-page="${esc(pg.title)}">
     <h3>${esc(title)}</h3>
     ${first ? `<div class="biz-need-slot">${bizNeed_('rec:' + pg.title, due, due + (due === 1 ? ' record due' : ' records due'))}</div>` : ''}
     <div class="biz-body"${wait ? ' aria-busy="true"' : ''}>
@@ -108,7 +108,7 @@ function bizCard_(pg) {
       <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'biz-save' })}</div>
     ${wait ? loading_() : ''}</div>
     <p class="note me-said biz-said">${esc(bizSaid_())}</p>
-  </div>${tiles(items.length)}</div>`;
+  </div>${tiles(items.length)}</div>`);
   if (id && typeof splitOn_ === 'function' && splitOn_(id)) return pg.items.map((it, i) => one(it.title, [it], i === 0, typeof pieceId_ === 'function' ? pieceId_(id, it.title) : ''));
   return [one(pg.title, pg.items, true)];
 }
@@ -141,14 +141,14 @@ function postsWaitCard_() {
         tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it', act: 'post-approve', data: { id: p.id, on: '1' } })}${
         tile_({ icon: 'close', label: 'Decline', note: 'stays hidden', act: 'post-approve', data: { id: p.id, on: '' } })}</div>
     </div>`;
-  return `<div class="card biz posts-wait" data-need="posts">
+  return card_(`<div class="biz posts-wait" data-need="posts">
     <h3>Posts waiting</h3>
     ${bizNeed_('posts', n, n + (n === 1 ? ' post to approve' : ' posts to approve'))}
     <div class="biz-body"${wait ? ' aria-busy="true"' : ''}>
       ${!wait && !list.length ? empty_('None waiting.') : ''}
       ${list.map(item).join('')}
       ${wait ? loading_() : ''}</div>
-  </div>`;
+  </div>`);
 }
 
 /* ---------- APPLICATIONS TO TEACH (400) ----------
@@ -157,7 +157,7 @@ const APPS = { list: null, open: 0, asking: false, error: '' };
 const APP_STATUS_SAID = { new: 'New', interview: 'Interview', approved: 'Approved', declined: 'Declined' };
 function appsCard_() {
   const wait = !APPS.list && !APPS.error && typeof loading_ === 'function';
-  return `<div class="card biz apps" data-apps data-need="apps">${appsInner_(wait)}</div>`;
+  return card_(`<div class="biz apps" data-apps data-need="apps">${appsInner_(wait)}</div>`);
 }
 /* THE APPLICANT'S DOCUMENTS AND CV, each an https link: the documents sit in the private folder, so only an admin it is shared with can open them. */
 function appDocs_(a) {
@@ -193,7 +193,7 @@ function appsInner_(wait) {
     ${wait ? loading_() : ''}</div>
     <p class="note me-said app-said">${esc(APPS.error)}</p>`;
 }
-const appsDraw_ = () => { document.querySelectorAll('[data-apps]').forEach(c => { c.innerHTML = appsInner_(false); }); bizNeedsPaint_(); };
+const appsDraw_ = () => { document.querySelectorAll('[data-apps]').forEach(c => { cardFill_(c, appsInner_(false)); }); bizNeedsPaint_(); };
 function appsStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || APPS.asking) return;
   APPS.asking = true;
@@ -227,7 +227,7 @@ const ERRS = { list: null, asking: false, error: '' };
 const ERRS_DRAWN = 15;
 function errsCard_() {
   const wait = !ERRS.list && !ERRS.error && typeof loading_ === 'function';
-  return `<div class="card biz errs" data-errs>${errsInner_(wait)}</div>`;
+  return card_(`<div class="biz errs" data-errs>${errsInner_(wait)}</div>`);
 }
 function errsInner_(wait) {
   const list = ERRS.list || [];
@@ -245,7 +245,7 @@ function errsInner_(wait) {
       tile_({ icon: 'merge', label: 'Tidy old rows', act: 'tidy-old-rows' })}</div>
     <p class="note me-said errs-said">${esc(ERRS.error)}</p>`;
 }
-const errsDraw_ = () => { document.querySelectorAll('[data-errs]').forEach(c => { c.innerHTML = errsInner_(false); }); };
+const errsDraw_ = () => { document.querySelectorAll('[data-errs]').forEach(c => { cardFill_(c, errsInner_(false)); }); };
 function errsStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || ERRS.asking) return;
   ERRS.asking = true;
@@ -274,7 +274,7 @@ const REPS_DRAWN = 20;
 
 function reportsCard_() {
   const wait = !REPS.list && !REPS.error && typeof loading_ === 'function';
-  return `<div class="card biz reports" data-reports data-need="reports">${reportsInner_(wait)}</div>`;
+  return card_(`<div class="biz reports" data-reports data-need="reports">${reportsInner_(wait)}</div>`);
 }
 const REP_FINDS_ = ['question', 'content', 'practical', 'project', 'talmud', 'quran', 'bible'];
 function reportsInner_(wait) {
@@ -304,7 +304,7 @@ function reportsInner_(wait) {
     ${wait ? loading_() : ''}</div>
     <p class="note me-said rep-said">${esc(REPS.error)}</p>`;
 }
-const reportsDraw_ = () => { document.querySelectorAll('[data-reports]').forEach(c => { c.innerHTML = reportsInner_(false); }); bizNeedsPaint_(); };
+const reportsDraw_ = () => { document.querySelectorAll('[data-reports]').forEach(c => { cardFill_(c, reportsInner_(false)); }); bizNeedsPaint_(); };
 
 function reportsStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || REPS.asking) return;
@@ -353,7 +353,7 @@ on('rep-open', el => {
 const LIBIMP = { list: null, last: null, auto: null, asking: false, error: '' };
 function libImpCard_() {
   const wait = !LIBIMP.list && !LIBIMP.error && typeof loading_ === 'function';
-  return `<div class="card biz libimp" data-libimp data-need="libimp">${libImpInner_(wait)}</div>`;
+  return card_(`<div class="biz libimp" data-libimp data-need="libimp">${libImpInner_(wait)}</div>`);
 }
 /* WHAT THE LAST PRESS DID, a line a file: its counts per library file, or why nothing of it was written. */
 function libImpSaid_(r) {
@@ -384,7 +384,7 @@ function libImpInner_(wait) {
     ${wait ? loading_() : ''}</div>
     <p class="note me-said libimp-said">${esc(LIBIMP.error)}</p>`;
 }
-const libImpDraw_ = () => { document.querySelectorAll('[data-libimp]').forEach(c => { c.innerHTML = libImpInner_(false); }); bizNeedsPaint_(); };
+const libImpDraw_ = () => { document.querySelectorAll('[data-libimp]').forEach(c => { cardFill_(c, libImpInner_(false)); }); bizNeedsPaint_(); };
 function libImpStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || LIBIMP.asking) return;
   LIBIMP.asking = true;
@@ -619,7 +619,7 @@ function profitCards_() {
   const A = D.actual;
   const opt = (v, t, on) => `<option value="${esc(v)}"${on ? ' selected' : ''}>${esc(t)}</option>`;
   const waiting = typeof awaiting_ === 'function' && awaiting_();
-  const sum = `<div class="card biz profit" data-profit="sum">
+  const sum = card_(`<div class="biz profit" data-profit="sum">
     <h3>Profit</h3>
     <p class="pf-formula">
       <span>Profit = Revenue − Tutor − Room − Fees − Other</span>
@@ -633,7 +633,7 @@ function profitCards_() {
     ${formLine_('Profit against', formSelect_('data-pf-x aria-label="Profit against"',
       PROFIT_VARS.map(p => opt(p.k, p.sym + ' · ' + p.label, p.k === PROFIT.x)).join('')), 'pf-against')}
     <div class="pf-lines">${profitLine_(x, PROFIT.period)}</div>
-  </div>`;
+  </div>`);
   const said = `<p class="note pf-said">${A
       ? esc('This month’s bookings so far: ' + A.sessions + ' sessions, ' + profitMoney_(A.charged) + ' charged, '
         + profitMoney_(A.tutor) + ' to tutors, ' + profitMoney_(A.kept) + ' kept. ')
@@ -644,19 +644,19 @@ function profitCards_() {
   const split = id && typeof splitOn_ === 'function' && splitOn_(id);
   const tiles = n => (id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '');
   const pc = k => (typeof pieceId_ === 'function' ? ` data-lay-card="${esc(pieceId_(id, k))}"` : '');
-  if (split) return [sum, `<div class="card biz profit" data-profit="terms" data-split="${esc(id)}"${pc('head')}>
+  if (split) return [sum, card_(`<div class="biz profit" data-profit="terms" data-split="${esc(id)}"${pc('head')}>
     <h3>Profit · the terms</h3>
     <p class="pf-head">${profitHead_(r)}</p>
-    <div class="tile-row">${tile_({ icon: 'undo', label: 'Reset to actual', act: 'profit-reset' })}</div>${said}${tiles(1)}</div>`]
-    .concat(PROFIT_VARS.map(p => `<div class="card biz profit" data-profit="term" data-split="${esc(id)}"${pc(p.label)}>
-    <div class="pf-vars">${profitControl_(p, x, D.from)}</div>${tiles(1)}</div>`));
-  const terms = `<div class="card biz profit" data-profit="terms"${id ? ` data-split="${esc(id)}"` : ''}>
+    <div class="tile-row">${tile_({ icon: 'undo', label: 'Reset to actual', act: 'profit-reset' })}</div>${said}${tiles(1)}</div>`)]
+    .concat(PROFIT_VARS.map(p => card_(`<div class="biz profit" data-profit="term" data-split="${esc(id)}"${pc(p.label)}>
+    <div class="pf-vars">${profitControl_(p, x, D.from)}</div>${tiles(1)}</div>`)));
+  const terms = card_(`<div class="biz profit" data-profit="terms"${id ? ` data-split="${esc(id)}"` : ''}>
     <h3>Profit · the terms</h3>
     <p class="pf-head">${profitHead_(r)}</p>
     <div class="pf-vars">${PROFIT_VARS.map(p => profitControl_(p, x, D.from)).join('')}</div>
     <div class="tile-row">${tile_({ icon: 'undo', label: 'Reset to actual', act: 'profit-reset' })}</div>
     ${said}${tiles(PROFIT_VARS.length)}
-  </div>`;
+  </div>`);
   return [sum, terms];
 }
 
@@ -764,11 +764,11 @@ function digestWordsCard_() {
   DIGEST_WORDS_.forEach(([k, , d]) => { w[k] = String(v[k] || '').trim() || d; });
   const rows = DIGEST_WORDS_.map(([k, label, d]) => formLine_(label, formInput_(`data-dw="${k}" value="${esc(w[k])}" placeholder="${esc(d)}" maxlength="300" aria-label="${esc(label)}"`), 'dw-row')).join('');
   /* TWO CARDS, the look and the words: together they are taller than a pane, and the look follows the typing either way. */
-  return [`<div class="card biz digest-look"><h3>Weekly email</h3><div class="dw-preview">${digestShownHtml_()}</div></div>`,
-    `<div class="card biz digest-words"><h3>Weekly email's words</h3>
+  return [card_(`<div class="biz digest-look"><h3>Weekly email</h3><div class="dw-preview">${digestShownHtml_()}</div></div>`),
+    card_(`<div class="biz digest-words"><h3>Weekly email's words</h3>
     ${rows}
     <div class="tile-row">${tile_({ icon: 'save', label: 'Save', note: 'the email\'s words', act: 'digest-words-save', tone: 'admin' })}</div>
-    <p class="note dw-said" aria-live="polite"></p></div>`];
+    <p class="note dw-said" aria-live="polite"></p></div>`)];
 }
 /* THE FIRST LOOK, when Site is opened by an admin; after that a typed word or a Save asks again. */
 function digestShownStart_() { if (!DIGEST_SHOWN_.got && !DIGEST_SHOWN_.busy) digestShownAsk_(null); }
@@ -812,11 +812,11 @@ function bizSettingsCard_() {
       extra: `type="number" min="0" step="any" inputmode="decimal"${admin ? '' : ' disabled'}` })}
     <div class="tile-row set-save">${tile_({ icon: 'save', label: 'Save', act: 'biz-setting-save', off: !admin, data: { key: k } })}</div></div>`;
   const places = ((DATA && DATA.venues) || []).map(v => `<li>${esc(v.title || '')} · ${esc(money_(Number(v.bestRate) || 0))}/h · ${esc(String(v.maxCapacity || ''))} seats${v.takesAllSeats ? ' · takes all the tutor’s seats' : ''}${(v.rooms || []).length ? ' · ' + v.rooms.length + ' rooms' : ''}</li>`).join('');
-  return `<div class="card biz biz-settings set-shape${admin ? '' : ' is-locked'}"><h3 class="set-title">Business settings</h3>
+  return card_(`<div class="biz biz-settings set-shape${admin ? '' : ' is-locked'}"><h3 class="set-title">Business settings</h3>
     ${BIZ_SETTINGS.map(line).join('')}
     <h4>Venues and rooms</h4>
     <ul class="biz-venues">${places || `<li>${empty_('No venues yet.')}</li>`}</ul>
-    <p class="note fs-said" aria-live="polite"></p></div>`;
+    <p class="note fs-said" aria-live="polite"></p></div>`);
 }
 on('biz-setting-save', el => {
   const item = el.closest('.biz-setting'), card = el.closest('.biz-settings'), box = item && item.querySelector('input');
