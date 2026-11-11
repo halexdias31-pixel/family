@@ -1,6 +1,6 @@
 # The philosophy — the owner's principles
 
-One system, three parts: this file (what we want), `tools/health.js` (the one checker that measures it), and
+One system, three parts: this file (what we want), `tools/health.js` (the Optimiser, the one checker that measures it), and
 Find › Settings › Business › **Checks** (the score and the owner's questions). Ranked: a higher rule wins a clash.
 Each rule names the health checks that enforce it (`node tools/health.js --list --kind <id>`); `tools/health.js`
 reads the `Checks:` text, a rule naming no existing check is a finding (`philosophy`). Specific decisions, each
@@ -10,6 +10,7 @@ traced to a rule here, live in `docs/decisions.md`. Edit a rule here, never in c
 
 0. **The law always wins.** Where a rule or decision clashes with the law, the law is followed, silently. Checks: `business`, `biz-checker`
 0. **Contradictory owner answers → ask.** When two owner answers clash, show both to the owner as a question; never pick. Checks: `owner-questions`
+0. **The Optimiser kills arbitrariness.** `tools/health.js` is the Optimiser: it goes through everything — code, layout, menus and content (library cards, topic cards, lessons) — finds whatever is arbitrary and replaces it with the objectively optimal way, one rule for all. When nothing else is asked, the aim is 90% or a better Optimiser. Checks: `variety`
 0. **When nothing decides it, choose the simplest.** Fewest parts, fewest options, least code. Checks: `variety`, `ai-cost`
 0. **Money disputes follow the written terms, leaning to the business.** Within the law; the owner may make goodwill exceptions by hand. Checks: `business`
 0. **Build it in the site.** Every job is built and run inside the site; an outside service is used only where the law or the job truly needs one (e.g. card processing via Stripe), driven from inside the site. Checks: `one-place`
