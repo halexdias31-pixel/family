@@ -733,7 +733,8 @@ const DIGEST_SHOWN_ = { got: null, busy: false, seq: 0, timer: 0 };
 /* AS IS (owner, 1 Nov: "show how the emails will look AS IS. PERFECTLY SYNCED"): the HTML the backend sends, in a sandboxed frame -- never a copy drawn here (547). */
 function digestShownHtml_() {
   const g = DIGEST_SHOWN_.got;
-  if (!g) return `<div class="dw-frame-box" aria-busy="true">${loading_()}</div>`;
+  /* THE CARD ASKS FOR ITSELF WHEN DRAWN, wherever it is drawn (Find › Settings, not only its old column). */
+  if (!g) { setTimeout(() => { try { digestShownStart_(); } catch (e) {} }, 0); return `<div class="dw-frame-box" aria-busy="true">${loading_()}</div>`; }
   if (!g.html) return `<p class="note">${esc(g.said || 'The email could not be shown.')}</p>`;
   return `<p class="dp-subj"><span>Subject</span> ${esc(g.subject || '')}</p>
     <div class="dw-frame-box"${DIGEST_SHOWN_.busy ? ' aria-busy="true"' : ''}><iframe class="dw-frame" title="The weekly email" sandbox="" referrerpolicy="no-referrer" srcdoc="${esc(g.html)}"></iframe>${DIGEST_SHOWN_.busy ? loading_() : ''}</div>`;
