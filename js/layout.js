@@ -657,9 +657,10 @@ function cardIdOf_(html) {
   const tag = (/^\s*<div[^>]*>/.exec(h) || [''])[0];
   m = /\sdata-lay-card="([^"]+)"/.exec(tag) || /\sdata-split="([^"]+)"/.exec(tag);
   if (m && cardIs_(m[1])) return m[1];
-  const t = h.trim();
+  /* A CARD BUILT BY THE ONE TEMPLATE (card_) IS READ BY ITS OWN MAKER'S CLASSES, in the order the registry names them. */
+  const t = h.trim().replace(/^<div class="([^"]*)"/, (x, c) => '<div class="' + ['card'].concat(c.split(/\s+/).filter(k => k && !/^(card|fc|kc|kc-[\w-]+)$/.test(k))).join(' ') + '"');
   /* AN EMPTY PROGRESS WIDGET IS ITS TITLE ALONE (414), so its title says which it is. */
-  m = /^<div class="card prog-w is-empty"><h3>([^<]*)<\/h3>/.exec(t);
+  m = /^<div class="card prog-w is-empty"[^>]*aria-label="([^"]*)"/.exec(t) || /^<div class="card prog-w is-empty"><h3>([^<]*)<\/h3>/.exec(t);
   if (m && PROG_EMPTY_[m[1]]) return PROG_EMPTY_[m[1]];
   const r = CARD_REG.find(x => x.re && x.re.test(t));
   return r ? r.id : '';

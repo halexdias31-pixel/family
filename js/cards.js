@@ -697,8 +697,11 @@ function card_(html, kind) {
   const cut = kcSplit_(String(html || '').trim());
   if (!cut) return String(html || '');
   /* A DRAWING THAT IS NO PICTURE (a picker, an icon) stays among the lines, never dropped from the top. */
+  /* A FACE BESIDE THE HEADING (a conversation's) is the card's picture when it is a real one. */
+  const face = !cut.pic && /<img\b[^>]*>/.exec(cut.head || '');
+  if (face) cut.pic = face[0];
   if (cut.pic && !kcRealPic_(cut.pic)) { cut.lines = cut.pic + cut.lines; cut.pic = ''; }
-  const name = String(cut.head || '').replace(/<[^>]+>/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+  const name = String((/<h[1-4]\b[^>]*>([\s\S]*?)<\/h[1-4]>/.exec(cut.head || '') || [])[1] || cut.head || '').replace(/<[^>]+>/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
   return findCard({ kind: kind || 'panel', kcOwn: cut, kcPanel: true, name });
 }
 
