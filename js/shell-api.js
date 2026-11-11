@@ -356,7 +356,7 @@ function typingBox_() {
   const s = a.closest ? a.closest('.screen') : null;
   const id = s ? String(s.id).replace(/^s-/, '') : '';
   /* A FINDER HOLDS ITS OWN TYPING (`findKeep_`) — but not a widget's box on a Find card (790), which is held here as a column's was. */
-  const finder = typeof finderOf_ === 'function' ? finderOf_(id) : id === 'stuff';
+  const finder = findIs_(id);
   return finder && !(a.closest && a.closest('.widget-slot')) ? null : a;
 }
 /* `draw` IS ANY OTHER REPAINT THAT A LANDING REPLY MAKES — `profileRefresh_` (me.js) drawing your own settings once per app open is the other one, and it rebuilt § */
@@ -395,7 +395,7 @@ document.addEventListener('focusout', () => {
     if (host && a && a !== box && host.contains(a) && a.matches && a.matches(TYPING_)) { RECONNECT.kept = a; return; }
     RECONNECT.kept = null;
     /* REDRAWN SINCE — a press, or arriving — and there is nothing left to do. */
-    try { if (host && host.id === 's-' + AT && STALE[AT]) repaint(); } catch (e) { oops_(e, 'shell:reconnectKeep_') }
+    try { if (isAtHost_(host) && STALE[AT]) repaint(); } catch (e) { oops_(e, 'shell:reconnectKeep_') }
   }, 400);
 });
 

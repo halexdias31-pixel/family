@@ -39,22 +39,22 @@
   "value": {
    "checker": "number",
    "moved": true,
-   "questions": 27021,
-   "withAnswer": 3022,
+   "questions": 27200,
+   "withAnswer": 3038,
    "withAreas": 0
   },
   "unit": {
    "checker": "number",
    "moved": true,
-   "questions": 1582,
-   "withAnswer": 1582,
+   "questions": 1626,
+   "withAnswer": 1626,
    "withAreas": 0
   },
   "multi": {
    "checker": "number",
    "moved": true,
-   "questions": 346,
-   "withAnswer": 346,
+   "questions": 347,
+   "withAnswer": 347,
    "withAreas": 0
   },
   "fraction": {
@@ -67,22 +67,22 @@
   "coords": {
    "checker": "number",
    "moved": true,
-   "questions": 113,
-   "withAnswer": 0,
+   "questions": 114,
+   "withAnswer": 114,
    "withAreas": 0
   },
   "expr": {
    "checker": "expression",
    "moved": true,
-   "questions": 773,
-   "withAnswer": 773,
+   "questions": 774,
+   "withAnswer": 774,
    "withAreas": 0
   },
   "choose1": {
    "checker": "choice",
    "moved": true,
-   "questions": 751,
-   "withAnswer": 751,
+   "questions": 774,
+   "withAnswer": 774,
    "withAreas": 0
   },
   "chooseN": {
@@ -123,7 +123,7 @@
   "words": {
    "checker": "words",
    "moved": true,
-   "questions": 151,
+   "questions": 154,
    "withAnswer": 0,
    "withAreas": 0
   },
@@ -137,7 +137,7 @@
   "essay": {
    "checker": "none",
    "moved": false,
-   "questions": 3578,
+   "questions": 3582,
    "withAnswer": 0,
    "withAreas": 0
   },
@@ -173,7 +173,7 @@
    "checker": "points",
    "moved": true,
    "questions": 6,
-   "withAnswer": 0,
+   "withAnswer": 6,
    "withAreas": 0
   },
   "graph": {
@@ -205,5 +205,5 @@
    "withAreas": 0
   }
  },
- "ms": 12215
+ "ms": 1656
 }

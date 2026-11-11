@@ -113,6 +113,15 @@ function pfpArt_(name, size) {
     <circle cx="24" cy="24" r="24" fill="${p.ground}"/>${p.art}</svg>`;
 }
 
+/* EACH KIND OF STORED PICTURE: how it is drawn, the sentence that names it, and the art chosen (a basic picture's only). */
+const PIC_KINDS = {
+  photo: { face: (v, cls, size, o) => `<img class="${cls}" src="${esc(pic(v))}" alt="${esc(o.alt || '')}"${o.eager ? '' : ' loading="lazy"'} decoding="async">`,
+    said: () => 'Your photo is your picture.', chosen: () => '' },
+  basic: { face: (v, cls, size) => `<span class="${cls} face-pic">${pfpArt_(pfpChoice_(v), size)}</span>`,
+    said: v => 'The ' + PFP_ART[pfpChoice_(v)].name.toLowerCase() + ' is your picture.', chosen: v => pfpChoice_(v) },
+};
+const picKindRow_ = v => (Object.prototype.hasOwnProperty.call(PIC_KINDS, picKind_(v)) ? PIC_KINDS[picKind_(v)] : null);
+
 /* THE ONE FUNCTION THAT TURNS A PERSON'S STORED PICTURE INTO WHAT IS DRAWN. § */
 function personFace_(who, o) {
   who = who || {}; o = o || {};
@@ -123,10 +132,7 @@ function personFace_(who, o) {
   const name = String(who.name || who.handle || '').trim();
   const mine = typeof USER !== 'undefined' && USER && USER.personId && who.personId
     && String(who.personId) === String(USER.personId);
-  if (kind === 'photo') {
-    return `<img class="${cls}" src="${esc(pic(v))}" alt="${esc(o.alt || '')}"${o.eager ? '' : ' loading="lazy"'} decoding="async">`;
-  }
-  if (kind === 'basic') return `<span class="${cls} face-pic">${pfpArt_(pfpChoice_(v), size)}</span>`;
+  if (Object.prototype.hasOwnProperty.call(PIC_KINDS, kind)) return PIC_KINDS[kind].face(v, cls, size, o);
   return `<span class="${cls}${o.none ? ' ' + o.none : ''}">${esc(initial(name))}</span>`;
 }
 

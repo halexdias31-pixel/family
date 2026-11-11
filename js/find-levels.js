@@ -412,7 +412,7 @@ function stuffPages_() {
 
 /* THE ANSWERS WERE ASKED FOR — a chip on the answer pages' own tag — so they are drawn open (`ansOpen_`). */
 function answersAsked_() {
-  return (STUFF.filters || []).some(f => f && (f.field === 'kindLabel' || f.field === 'kindOwn') && !f.any && spellKey_(f.value) === spellKey_(ansKind_()));
+  return chipsOn_(STUFF.filters, 'kindLabel').concat(chipsOn_(STUFF.filters, 'kindOwn')).some(f => !f.any && spellKey_(f.value) === spellKey_(ansKind_()));
 }
 
 /* ---------- THE LAST LINE UNDER A CHOSEN PAPER COUNTS WHAT THE STRIP HOLDS § */

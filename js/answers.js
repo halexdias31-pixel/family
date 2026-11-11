@@ -702,7 +702,6 @@ window.addEventListener('storage', e => {
 });
 
 /* AND THE FIND COLUMN IS NOT REBUILT UNDER A CHILD WHO IS WRITING. § */
-const findIs_ = id => (typeof finderOf_ === 'function' ? !!finderOf_(id) : id === 'stuff');
 function findKeep_(id) {
   if (!findIs_(id)) return false;
   try {

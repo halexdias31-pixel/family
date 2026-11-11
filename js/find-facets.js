@@ -308,7 +308,7 @@ const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Pract
 function kindTopTag_(x) {
   const l = asList_(kindTop_(x)); if (l.length < 2) return l[0] || '';
   let g = '';
-  try { const f = (STUFF.filters || []).find(f => f && f.field === 'kindLabel' && l.indexOf(f.value) >= 0); g = f ? f.value : kindOf_(x).group; } catch (e) { g = ''; }
+  try { const f = chipsOn_(STUFF.filters, 'kindLabel').find(f => l.indexOf(f.value) >= 0); g = f ? f.value : kindOf_(x).group; } catch (e) { g = ''; }
   return l.indexOf(g) >= 0 ? g : l[0];
 }
 function kindTop_(x) { return (x && x.top) || (x && x.widget && typeof FIND_WIDGET_GROUPS !== 'undefined' && FIND_WIDGET_GROUPS[x.widget.id]) || (x && KIND_UNDER[x.kind]) || ''; }

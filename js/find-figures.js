@@ -39,17 +39,16 @@ function padSurface_(x) {
 /* WHAT EACH IS CALLED, where a paper figure is called "Figure": § */
 const SURFACE_NAME = { grid: 'Squared grid', coord: 'Axes', blank: 'Space to draw' };
 
-/* ---------- THE SURFACE ITSELF § */
-function surfaceSvg_(kind) {
-  const S = 20, A = 10, B = 330;
-  const out = [];
-  if (kind === 'grid' || kind === 'coord') {
+/* EACH SURFACE IS LAYERS: squares, axes with their numbers, or a dashed frame. */
+const SURFACE_LAYERS = { grid: ['squares'], coord: ['squares', 'axes'], blank: ['frame'] };
+const SURFACE_DRAW = {
+  squares: (out, S, A, B) => {
     for (let v = A; v <= B; v += S) {
       out.push(`<line class="grid" x1="${v}" y1="${A}" x2="${v}" y2="${B}"/>`,
                `<line class="grid" x1="${A}" y1="${v}" x2="${B}" y2="${v}"/>`);
     }
-  }
-  if (kind === 'coord') {
+  },
+  axes: (out, S, A, B) => {
     out.push(`<line class="axis" x1="${A}" y1="170" x2="${B}" y2="170"/>`,
              `<line class="axis" x1="170" y1="${A}" x2="170" y2="${B}"/>`,
              `<text class="ax" x="${B - 2}" y="164" text-anchor="end">x</text>`,
@@ -61,10 +60,16 @@ function surfaceSvg_(kind) {
                `<text class="ax" x="164" y="${340 - at + 3}" text-anchor="end">${n < 0 ? '&minus;' + (-n) : n}</text>`);
     }
     out.push('<text class="ax" x="164" y="182" text-anchor="end">0</text>');
-  }
-  if (kind === 'blank') {
-    out.push(`<rect class="axis" x="${A}" y="${A}" width="${B - A}" height="${B - A}" rx="8" fill="none" stroke-dasharray="6 6"/>`);
-  }
+  },
+  frame: (out, S, A, B) => out.push(`<rect class="axis" x="${A}" y="${A}" width="${B - A}" height="${B - A}" rx="8" fill="none" stroke-dasharray="6 6"/>`),
+};
+
+/* ---------- THE SURFACE ITSELF § */
+function surfaceSvg_(kind) {
+  const S = 20, A = 10, B = 330;
+  const out = [];
+  const layers = Object.prototype.hasOwnProperty.call(SURFACE_LAYERS, kind) ? SURFACE_LAYERS[kind] : [];
+  layers.forEach(l => SURFACE_DRAW[l](out, S, A, B));
   return `<svg class="qsurf is-${kind}" viewBox="0 0 340 340" role="img" aria-label="${SURFACE_NAME[kind] || 'Space to draw'}">${out.join('')}</svg>`;
 }
 

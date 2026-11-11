@@ -40,6 +40,14 @@ const typePlural_ = t => /(s|day)$/i.test(String(t)) ? String(t) : String(t) + '
 const BUNDLE_TITLE_FIELDS = ['examBoard', 'source', 'subject', 'level', 'keystage', 'yearGroup',
                              'bandValue', 'tier', 'documentType', 'sitting', 'examYear',
                              'examMonth'];
+/* A TITLE FIELD'S OWN WAYS: read by another reader, said in the plural, or left out when an earlier field said it (`after`). */
+const BUNDLE_TITLE_HOW = {
+  sitting: { reader: () => SITTING_READER_ },
+  documentType: { say: w => typePlural_(w) },
+  examYear: { after: 'sitting' },
+  examMonth: { after: 'sitting' },
+};
+const bundleHow_ = field => (Object.prototype.hasOwnProperty.call(BUNDLE_TITLE_HOW, field) ? BUNDLE_TITLE_HOW[field] : {});
 /* `sitting` IS NOT A FUNNEL QUESTION ANY MORE — the funnel asks the year and then the month — and it is still the right TITLE word: § */
 const SITTING_READER_ = { field: 'sitting', label: 'Sitting', of: x => {
   const m = sittingMonth_(x), y = sittingOf_(x).year;
@@ -50,21 +58,22 @@ function bundleTitle_(items) {
   const said = {};
   BUNDLE_TITLE_FIELDS.forEach(field => {
     /* THE YEAR ONLY WHERE THE SITTING DID NOT SAY IT. § */
-    if ((field === 'examMonth' || field === 'examYear') && said.sitting) return;
+    if (bundleHow_(field).after && said[bundleHow_(field).after]) return;
     const n = parts.length;
     try { titlePart_(field); } finally { if (parts.length > n) said[field] = true; }
   });
   return parts.join(' · ');
 
   function titlePart_(field) {
-    const facet = field === 'sitting' ? SITTING_READER_ : facetBy(field);
+    const how = bundleHow_(field);
+    const facet = how.reader ? how.reader() : facetBy(field);
     if (!facet) return;
     let t = null;
     try { t = facetTally_(items, facet); } catch (e) { t = null; }
     const vals = (t && t.values) || [];
     if (vals.length === 1 && t.coverage >= 1) {
       const w = String(vals[0].show || vals[0].value || '');
-      if (w) parts.push(field === 'documentType' ? typePlural_(w) : w);
+      if (w) parts.push(how.say ? how.say(w) : w);
       return;
     }
     /* THE LAST CHIP ON THE FIELD, because a bucket refined by a later answer is that answer. */
