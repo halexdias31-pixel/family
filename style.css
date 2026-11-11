@@ -3221,6 +3221,19 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qwhole > .qb:not(:last-child) { padding-bottom: .85rem; margin-bottom: .85rem; border-bottom: 1px solid var(--line-soft); }
 .qp-work-slot { display: contents; }
 .qwhole .qb-part .qsheet { margin-top: .4rem; }
+/* ---------- A QUESTION IS A CARD LIKE ANY OTHER (owner, 10-11 Nov): picture, tags, words, answer, round buttons, all on one centre line. */
+:is(.qwhole > .qb, .qcard) { text-align: center; }
+:is(.qwhole > .qb, .qcard) :is(.qtags, .tile-row, .qp-choices, .qp-multi, .qsheet-part) { justify-content: center; }
+:is(.qwhole > .qb, .qcard) :is(.qsheet, .qb-stem) { margin-left: auto; margin-right: auto; }
+.qwhole > .qb > .qb-pic { margin: 0 0 .6rem; }
+.qb-pic figure { margin: 0 auto; text-align: center; }
+.qb-pic figure svg { width: min(100%, 20rem); height: auto; }
+.qb-pic img { max-width: 100%; height: auto; }
+.qwhole .qb-stem:empty { display: none; }
+:is(.qwhole > .qb, .qcard) .qtext :is(table, figure, p) { margin-left: auto; margin-right: auto; }
+/* TYPING READS FROM THE LEFT: the box is centred, the words inside it are not. */
+:is(.qwhole > .qb, .qcard) :is(.qp-ans, .qp-sheet, .gd-box, input, textarea, ul, ol, .qans-body) { text-align: left; }
+:is(.qwhole > .qb, .qcard) .qtext :is(ul, ol) { display: inline-block; max-width: 100%; margin-left: auto; margin-right: auto; }
 /* ---------- THE CARD'S TAGS § */
 .qtags { display: flex; flex-wrap: wrap; gap: .3rem .25rem; }
 .qcard-tags { margin: 0; }

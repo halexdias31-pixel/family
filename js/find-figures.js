@@ -306,20 +306,21 @@ function questionCard_(x, was) {
 
 /* ---------- EVERY PART IS ITS OWN CARD, ALL AT ONE LEFT EDGE (owner, 8 Nov; history 1160) */
 /* A STEM WHOLE: its words and its figure, no page-cuts (a card scrolls). */
-function qStemWhole_(x, p, onScreen) {
-  const html = [];
+function qStemWhole_(x, p, onScreen, pics) {
+  /* THE PICTURE ON TOP (owner, 10 Nov): given `pics`, a stem's figure goes there, drawn above the card's tags. */
+  const html = [], fig = h => (Array.isArray(pics) ? pics : html).push(h);
   stemChunks_(p).forEach(ch => {
     let run = [];
     const flush = () => { if (run.length) html.push(typeset_(run.join(''))); run = []; };
     ch.forEach(b => {
       if (b.k === 'pb') { run.push(b.h); return; }
       flush();
-      html.push((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
+      fig((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
     });
     flush();
   });
   /* A FIGURE LEFT FOR THE PART THAT PENS ON IT, when that part is not on screen: drawn here, under the stem's words. */
-  if (stemHasFig_(p) && stemPenned_(p) && !(onScreen || []).some(y => { const s = isQ_(y) ? padSource_(y) : null; return s && s.svg === p.diagram; })) html.push((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
+  if (stemHasFig_(p) && stemPenned_(p) && !(onScreen || []).some(y => { const s = isQ_(y) ? padSource_(y) : null; return s && s.svg === p.diagram; })) fig((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
   if (stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
   return `<div class="qsheet-stem qtext qb-stem${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
 }
@@ -350,9 +351,11 @@ function qPartFoot_(p) {
 }
 /* ONE PART, THE SHAPE OF ANY CARD: its tags, a shared stem the first time a drawn part needs it, its words and box, its whole tile row. */
 function qOneCard_(p, ctx) {
+  const pics = [];
   const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)])
-    .map(s => { ctx.drawn[stemId_(s)] = true; return qStemWhole_(p, s, ctx.shown); }).join('');
-  return `<div class="qb favwrap${isFav(p.key) ? ' is-fav' : ''}" data-part="${esc(p.key || '')}">${tagRow_(p)}${stems}${qPartCard_(p, ctx.ans)}</div>`;
+    .map(s => { ctx.drawn[stemId_(s)] = true; return qStemWhole_(p, s, ctx.shown, pics); }).join('');
+  const pic = pics.join('').trim() ? `<div class="qb-stem qb-pic">${pics.join('')}</div>` : '';
+  return `<div class="qb favwrap${isFav(p.key) ? ' is-fav' : ''}" data-part="${esc(p.key || '')}">${pic}${tagRow_(p)}${stems}${qPartCard_(p, ctx.ans)}</div>`;
 }
 /* A QUESTION NUMBER: its parts the search kept, one card each, one after another; none indented under another. */
 function questionWhole_(x, parts, open, ans) {
