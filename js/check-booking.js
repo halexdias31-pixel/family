@@ -614,6 +614,52 @@ if (money_) {
   });
 }
 
+/* REST OF THIS TERM (owner, 11 Nov): offered mid-term, counted and priced by the term's own rule; never in a holiday. */
+if (money_) RULES.push({
+  what: 'mid-term, "Rest of this half term" runs from today to the term\'s end, counting only the sessions left and pricing them as a term; a holiday offers none',
+  check: () => {
+    const bad = [];
+    const bookJs = require('../tools/piece-src.js').pieceSrc('book');
+    let rest;
+    try {
+      rest = new Function('let DATA = {}; const $ = () => null;'
+        + coreJs + fn(bookJs, 'runningTerm_') + fn(bookJs, 'restInterval_') + ';return restInterval_;')();
+    } catch (err) { return ['restInterval_ could not be run: ' + err.message]; }
+    const day = n => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d; };
+    const dmy = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+    const term = { term: 'Autumn 2', kind: 'half-term', opensOn: dmy(day(-21)), closesOn: dmy(day(27)),
+                   startDate: dmy(day(-21)), endDate: dmy(day(27)), weeks: 7 };
+    const r = rest([term]);
+    if (!r) return ['mid-term, no "Rest of this" option was made'];
+    if (r.label !== 'Rest of this half term') bad.push('it is called "' + r.label + '"');
+    if (r.startDate !== dmy(day(0)) || r.endDate !== term.endDate) bad.push('it runs ' + r.startDate + '–' + r.endDate + ', wanted today to ' + term.endDate);
+    /* The Mondays left, by hand, less a closure on the next one. */
+    const mondays = []; for (let i = 0; i <= 27; i++) if (day(i).getDay() === 1) mondays.push(day(i));
+    const closures = [{ date: dmy(mondays[0]) }];
+    const data = MONEY_DATA(); data.closures = closures;
+    money_.setData(data);
+    const price = w => money_.priceFrom({ subjects: [], tutor: 'Tutor', n: 1, hours: 2, hoursPerWeek: 2, slots: 0,
+      runs: [{ dayName: 'Monday', hours: 2 }], windows: [w], interval: 'x', startDate: w.startDate, endDate: w.endDate });
+    const L = price({ startDate: r.startDate, lastSun: r.endDate });
+    const want = mondays.length - 1;
+    if (L.slots !== want) bad.push('the rest counts ' + L.slots + ' sessions, wanted ' + want + ' (Mondays left, one closed)');
+    if (r2(L.total) !== r2(60 * want)) bad.push('the rest prices at ' + r2(L.total) + ', wanted £60 × ' + want);
+    const whole = price({ startDate: term.startDate, lastSun: term.endDate });
+    if (r2(whole.total) !== r2(L.total)) bad.push('the rest (' + r2(L.total) + ') is not the term counted from today (' + r2(whole.total) + ')');
+    const hol = { term: 'Half-term', kind: 'holiday', opensOn: dmy(day(-2)), closesOn: dmy(day(5)) };
+    const before = Object.assign({}, term, { opensOn: dmy(day(-40)), closesOn: dmy(day(-3)) });
+    const after = Object.assign({}, term, { term: 'Spring 1', opensOn: dmy(day(6)), closesOn: dmy(day(50)) });
+    if (rest([before, hol, after])) bad.push('in a holiday a "Rest of this" option was still offered');
+    if (rest([Object.assign({}, term, { opensOn: dmy(day(0)) })])) bad.push('on a term\'s first day the rest was offered beside the whole term');
+    /* "Surcharge −NaN%" (11 Nov): a percentage of nothing is nothing. */
+    const cards = fs.readFileSync(path.join(dir, 'cards.js'), 'utf8');
+    const pct = new Function('const dash_ = () => "—";' + block(cards, 'const kcPct_ = ', ';\n') + 'return kcPct_;')();
+    [undefined, NaN, null, ''].forEach(v => { if (/NaN/.test(pct(v)) || pct(v)) bad.push('kcPct_(' + v + ') reads "' + pct(v) + '"'); });
+    if (pct(1.1) !== '+10%') bad.push('kcPct_(1.1) reads "' + pct(1.1) + '"');
+    return bad;
+  },
+});
+
 /* NO REFUND INSIDE A PAID BLOCK; 24h FOR A SINGLE LESSON (owner, 7 Nov). */
 RULES.push({
   what: 'leaving a paid block owes nothing; a single lesson is refunded only with 24h notice',

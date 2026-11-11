@@ -691,12 +691,13 @@ function nextBookStep() {
 /* ---------- ONE TERM PER NAME, AND THE NEAREST ONE § */
 function intervals_() {
   const seen = {};
-  return (DATA.intervals || []).filter(x => {
+  const list = (DATA.intervals || []).filter(x => {
     const k = norm(x.label || x.term);
     if (!k || seen[k]) return false;
     seen[k] = 1;
     return true;
   });
+  return (rest => rest ? list.concat([rest]) : list)(restInterval_(list));
 }
 
 /** What the pricing chain wants, out of what has been answered so far. */
@@ -730,7 +731,8 @@ function bookSpec() {
     /* The runs themselves, so the chain can work out the real session dates across every day. */
     runs: runs.map(r => ({ dayName: r.dayName, day: r.day, hours: r.hours })),
     /* ---------- THE SPAN, AND THE WINDOWS INSIDE IT § */
-    interval: ivs.map(x => x.label || x.term).join(', '),
+    /* THE REST NAMES ITS TERM on the record, so a booking saved mid-term still says which once the term is over. */
+    interval: ivs.map(x => x.rest ? 'Rest of ' + x.rest : (x.label || x.term)).join(', '),
     weeks: ivs.reduce((n, x) => n + (Number(x.weeks) || 0), 0),
     startDate: first.startDate || '', endDate: last.endDate || '',
     lastSun: last.lastSun || last.endDate || '',

@@ -257,13 +257,34 @@ document.addEventListener('change', e => {
 
 /* THE CARD. Photographs, then every priced row, then the dates, then where it stands. § */
 /* THE ROWS OF THE RECEIPT, AS DATA. § */
+/* THE TERM RUNNING TODAY, holidays aside — one rule for the waiting list and for "Rest of this term". */
+function runningTerm_(list, now) {
+  const dt = v => parseDMY(v);
+  return (list || []).filter(t => norm(t.kind) !== 'holiday')
+    .find(t => dt(t.opensOn) && dt(t.closesOn) && now >= dt(t.opensOn) && now <= dt(t.closesOn)) || null;
+}
+
+/* REST OF THIS TERM (owner, 11 Nov): the running term from today; `computeSessionDates` counts its sessions as for any term. */
+function restInterval_(list, today) {
+  const now = today ? new Date(today) : new Date();
+  now.setHours(0, 0, 0, 0);
+  const t = runningTerm_(list, now);
+  if (!t || !(now > parseDMY(t.opensOn))) return null;
+  const end = parseDMY(t.closesOn);
+  const dmy = String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
+  return Object.assign({}, t, {
+    label: 'Rest of this ' + (norm(t.kind) === 'half-term' ? 'half term' : 'term'),
+    rest: t.label || t.term, opensOn: dmy, startDate: dmy,
+    weeks: Math.max(1, Math.ceil((end - now + 864e5) / (7 * 864e5))),
+  });
+}
+
 /* ---------- WHICH TERM A WAITING LIST IS FOR § */
 function waitTerm_() {
   const now = new Date(); now.setHours(0, 0, 0, 0);
   const terms = intervals_().filter(t => norm(t.kind) !== 'holiday');
   const dt = v => parseDMY(v);
-  const running = terms.find(t => dt(t.opensOn) && dt(t.closesOn)
-    && now >= dt(t.opensOn) && now <= dt(t.closesOn));
+  const running = runningTerm_(terms.filter(t => !t.rest), now);
   const next = terms.filter(t => dt(t.opensOn) && dt(t.opensOn) > now)
     .sort((a, b) => dt(a.opensOn) - dt(b.opensOn))[0];
   return running || next || null;
