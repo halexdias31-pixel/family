@@ -414,7 +414,8 @@ const initial = s => (String(s ?? '').match(/[A-Za-z0-9]/) || ['?'])[0].toUpperC
 
 /* Anything from the branding tab, by name, with a fallback. Never throws on a key that has not
    been filled in — the whole point of that tab is that most of it is empty most of the time. */
-const brand = (k, or) => ((DATA.brand || {})[k] || or || '');
+/* A CONTACT DETAIL NEVER LIVES IN THE PUBLIC REPO: a blank brand key falls back to the private policy values the backend sends (phone, email). */
+const brand = (k, or) => ((DATA.brand || {})[k] || (DATA.policy || {})[k] || or || '');
 /* THE BUSINESS'S ONE PICTURE (1040 r10): tab icon, home-screen icon, Web profile and the business's posts all read it here. */
 /* A Drive share link is a page, so its picture's own address (as `pic`, posts.js). */
 function brandLogo_() {
