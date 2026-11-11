@@ -80,6 +80,7 @@ const SUITE = [
   { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-look.js',    what: 'the owner\'s look (8 Nov): tiles, no grey sentences, tokens, one empty state, no inline spacing' },
+  { file: 'check-scale.js',   what: 'the fixed scale (11 Nov): every text size, corner, space, tap target and colour in style.css is a :root token' },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
   /* THE STABILITY SCORE (730): data/stability.json as tools/stability.js computes it now. */
   { file: 'check-stability.js', what: 'the Stability card\'s figures are current' },
