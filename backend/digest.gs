@@ -159,7 +159,7 @@ function digestReach_(pid, parentsOf) {
     if (!who.email) { skipped.push(Object.assign(who, { why: 'no email address' })); return; }
     /* NEVER AN ADDRESS NOBODY CONFIRMED. § */
     if (addressPending_(p)) { skipped.push(Object.assign(who, { why: 'email not confirmed' })); return; }
-    /* THEIR OWN CHOICE, through the one reader every sender asks (`wants_` in people.gs) — still the `weekly_email` cell, blank is yes, and now also the Weekly § */
+    /* THEIR OWN CHOICE, through the one reader every sender asks (`wants_` in people.gs) — still the `weekly_email` cell (a parent's blank is no), and now also the Weekly § */
     if (!wants_(p, 'weekly')) { skipped.push(Object.assign(who, { why: 'asked not to get it' })); return; }
     /* ONE MAILBOX ONCE PER CHILD, if two parent rows share an address. */
     const m = norm(who.email);

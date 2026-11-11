@@ -431,7 +431,7 @@ function staffPages_() {
   const hub = typeof hubBlock_ === 'function' ? hubBlock_() : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [card_(`<div class="staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`)] : [];
-  const out = ownCardSetPage_('staff').concat(top, settingsCards_(settingsSplit_().staff, '', 'staff'));
+  const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [card_(`<div class="rank-off set-none">${empty_()}</div>`)];
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));

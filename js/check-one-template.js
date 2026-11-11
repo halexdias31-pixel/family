@@ -21,7 +21,7 @@ files.forEach(f => {
   const builder = [];
   const walk = (n, inBuilder) => {
     if (!n || typeof n.type !== 'string') return;
-    if (n.type === 'FunctionDeclaration' && n.id && n.id.name === 'findCard' && f === 'js/cards.js') inBuilder = true;
+    if (n.type === 'FunctionDeclaration' && n.id && n.id.name === 'findCard' && f === 'js/cards-make.js') inBuilder = true;
     const say = (what) => { if (!inBuilder) bad.push(f + ':' + (src.slice(0, n.start).split('\n').length) + ': ' + what); else builder.push(n); };
     if (n.type === 'TemplateLiteral') n.quasis.forEach(q => { if (WRITES.test(q.value.raw)) say('writes class="card… itself; hand card_() a plain div'); });
     if (n.type === 'Literal' && typeof n.value === 'string' && WRITES.test(n.value)) say('writes class="card… itself; hand card_() a plain div');
@@ -33,7 +33,7 @@ files.forEach(f => {
   };
   walk(ast, false);
   seen++;
-  if (f === 'js/cards.js' && !builder.length) bad.push('js/cards.js: findCard no longer writes the card class; this check names the wrong builder');
+  if (f === 'js/cards-make.js' && !builder.length) bad.push('js/cards-make.js: findCard no longer writes the card class; this check names the wrong builder');
 });
 if (!seen) bad.push('no served file was read: index.html lists none');
 if (bad.length) {

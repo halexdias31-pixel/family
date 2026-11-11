@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 77.1,
+ "score": 77.4,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -34,12 +34,12 @@
   {
    "id": "dead",
    "label": "Code nothing calls",
-   "count": 20,
+   "count": 19,
    "weight": 0.3,
    "cap": 10,
-   "off": 6,
+   "off": 5.7,
    "where": {
-    "check-dead": "bcTaxPot_ (biz-check.js), bcItem_ (biz-check.js), dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), nextBookStep (book-steps.js), profHeat_ (cards.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), paintBoard_ (map.js), setupCard_ (me-account.js), paintTimer (overworld.js), qtFigureOf_ (qtypes.js), rulesCard_ (rules.js), workPics_ (working.js), writingOf_ (writings.js), none"
+    "check-dead": "bcTaxPot_ (biz-check.js), bcItem_ (biz-check.js), dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), nextBookStep (book-steps.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), paintBoard_ (map.js), setupCard_ (me-account.js), paintTimer (overworld.js), qtFigureOf_ (qtypes.js), rulesCard_ (rules.js), workPics_ (working.js), writingOf_ (writings.js), none"
    }
   },
   {
@@ -75,14 +75,17 @@
    "cap": 10,
    "off": 1.8,
    "where": {
-    "js/cards.js": 4,
+    "js/cards-make.js": 1,
+    "js/cards-parts.js": 2,
+    "js/cards-people.js": 1,
     "js/find-cells.js": 2,
     "js/find-finder.js": 2,
     "js/find-history.js": 2,
     "js/find-pad.js": 4,
     "js/keypad-keys.js": 1,
     "js/me-messages.js": 2,
-    "js/predicates.js": 16,
+    "js/predicates-marks.js": 3,
+    "js/predicates.js": 13,
     "js/price-rows.js": 2,
     "js/submit.js": 1
    }
@@ -129,7 +132,7 @@
   }
  ],
  "secondary": {
-  "score": 89.1,
+  "score": 89,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
@@ -152,13 +155,14 @@
    {
     "id": "special",
     "label": "Per-facet and per-kind special cases",
-    "count": 42,
+    "count": 43,
     "weight": 0.05,
     "cap": 10,
-    "off": 2.1,
+    "off": 2.2,
     "where": {
      "js/arcade.js": 7,
      "js/collections.js": 7,
+     "js/flyer.js": 1,
      "js/layout.js": 1,
      "js/mat.js": 3,
      "js/mechanics.js": 1,

@@ -78,7 +78,8 @@ function postRegister_(body, action, began) {
     /* THE HANDLE IS THE TEMPLATE (364) — see `handleMake_`. */
     handle: regHandle || '',
     email, pin, credits: 0, xp: 0,
-    came_from: arrivedWith,
+    /* A FLYER'S TAG WHEN NO FRIEND'S CODE CAME: `flyer-<layout>-<id>` from the QR (flyer.js), kept to its own letters. */
+    came_from: arrivedWith || S(body.from).toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 60),
     invited_by: inviter,
     joined_on: new Date(),
     verified: 'PENDING', verify_token: token
@@ -1019,8 +1020,8 @@ function postSetNotify_(body, action, began) {
   const on = TRUE_(body.on);
   /* WRITTEN ONLY WHEN IT CHANGES WHAT THE CELL MEANS: a `yes` typed by hand is already on, and turning
      it on again is not a reason to rewrite somebody's cell or throw the payload cache away. */
-  const changed = ON_(r[K.col]) !== on;
-  if (changed && !setCell(t, r, K.col, on ? '' : 'no')) {
+  const changed = notifyCellOn_(r, K) !== on;
+  if (changed && !setCell(t, r, K.col, on ? 'yes' : 'no')) {
     return jsonOut({ error: 'That could not be written to the sheet — nothing was saved.' });
   }
   if (changed) clearCache();
