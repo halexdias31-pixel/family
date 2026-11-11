@@ -5583,7 +5583,17 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-lines :is(.qtags, .prof-tags, .tile-row, .btn-row) { justify-content: center; }
 /* LONG CONTENT READS LEFT INSIDE ITS CENTRED BLOCK: a passage, a policy, a table, a list, a form. */
 .card.kc > .kc-lines :is(.rd-body, .policy-page, .policy-table, table, ul, ol, pre, blockquote, .insh-sec, .q-text, .qt-body),
-.card.kc > .kc-form, .card.kc > .kc-lines :is(form, .kc-items) { text-align: left; }
+.card.kc > .kc-lines :is(form, .kc-items) { text-align: left; }
+/* THE CONTENT PART IS CENTRED (owner, 11 Nov), with the same side space as the card's other parts: a form, a panel's lines, every label, line and table. */
+.card.kc > .kc-form, .card.kc-panel > .kc-lines { box-sizing: border-box; width: 100%; padding-inline: var(--kc-side, 1rem); text-align: center; }
+.card.kc > .kc-form :is(label, .field, p, .note, .dob-cap, li, dt, dd), .card.kc-panel > .kc-lines :is(label, .field, p, .note, li, dt, dd) { text-align: center; }
+.card.kc > .kc-form :is(.f-row, .dob-boxes, .btn-row, .tile-row, .check), .card.kc-panel > .kc-lines :is(.f-row, .btn-row, .tile-row) { justify-content: center; }
+.card.kc > .kc-form :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select, textarea):not(.msg-text, .dob-boxes *),
+.card.kc-panel > .kc-lines :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select, textarea):not(.msg-text) { box-sizing: border-box; width: 100%; max-width: 26rem; margin-inline: auto; text-align: left; }
+.card.kc > .kc-form :is(ul, ol), .card.kc-panel > .kc-lines :is(ul, ol) { list-style-position: inside; padding-left: 0; }
+/* A WIDE TABLE OR FORMULA LINE IS CENTRED AND SCROLLS INSIDE ITSELF, never past the card's edge. */
+.card.kc > .kc-form :is(table, pre), .card.kc-panel > .kc-lines :is(table, pre) { display: block; width: max-content; max-width: 100%; overflow-x: auto; margin-inline: auto; }
+.card.kc > .kc-form :is(td, th), .card.kc-panel > .kc-lines :is(td, th) { text-align: center; }
 .card.kc > .kc-form { margin-top: .5rem; align-self: stretch; }
 /* A PANEL (card_) KEEPS ITS LINES FULL WIDTH, so a list, a thread or a table is not shrunk to its words. */
 .card.kc-panel > .kc-lines { align-self: stretch; }

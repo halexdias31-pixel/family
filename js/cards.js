@@ -520,7 +520,7 @@ function kcHoist_(html, panel) {
   return { lines, tiles };
 }
 /* WHETHER SOME TAGS ALREADY SAY A NAME, and the name put in front of them as a tag. */
-const kcSays_ = (tags, name) => norm(String(tags || '').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&')).indexOf(norm(name)) >= 0;
+const kcSays_ = (tags, name) => norm(String(tags || '').replace(/<[^>]+>/g, ' ').replace(/&#0*39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&')).indexOf(norm(name)) >= 0;
 function kcTagFirst_(tags, name) {
   const tag = `<span class="qtag" data-tag="0">${esc(name)}</span>`;
   return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, '$1' + tag) : `<div class="qtags">${tag}</div>` + (tags || '');

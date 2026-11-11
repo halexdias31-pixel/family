@@ -91,6 +91,18 @@ function measure(per) {
       const text = [...card.querySelectorAll(':scope > .kc-tags, :scope > .kc-lines, :scope > .kc-form')].map(n => n.innerText.trim()).join('');
       if (!text && !card.querySelector(':scope > .kc-lines .loading, :scope > .kc-form :is(input, select, textarea)')) say(x, state + ': blank card');
       if (!PEOPLE.includes(kind) && card.querySelector(':scope > .kc-pic .pfp-art')) say(x, 'a profile picture on a card that is not a person');
+      /* THE CONTENT PART IS CENTRED WITH SIDE SPACE (owner, 11 Nov): nothing in a form or a panel's lines touches the card's edge, and no label or line reads left. */
+      card.querySelectorAll(':scope > .kc-form, :scope.kc-panel > .kc-lines').forEach(part => {
+        const edge = part.getBoundingClientRect();
+        if (!edge.width) return;
+        [...part.querySelectorAll('label, p, .note, li, td, th, span, input, select, textarea, table, pre')].some(el => {
+          if (el.closest('[hidden], .card.kc .card.kc, .msg-body, .kc-items, svg') || !el.getClientRects().length) return false;
+          const r = el.getBoundingClientRect();
+          if (r.width && el.innerText !== undefined && (r.left < cr.left + 4 || r.right > cr.right - 4) && !/^(TABLE|PRE)$/.test(el.tagName)) { say(x, state + ': content touches the card edge "' + (el.innerText || el.tagName).trim().slice(0, 30) + '"'); return true; }
+          if (/^(LABEL|P)$/.test(el.tagName) || el.classList.contains('note')) { const ta = getComputedStyle(el).textAlign; if ((ta === 'left' || ta === 'start') && el.innerText.trim() && r.width < edge.width - 2) { say(x, state + ': a left-aligned line "' + el.innerText.trim().slice(0, 30) + '"'); return true; } }
+          return false;
+        });
+      });
       if (WHOLE.includes(kind)) return;
       const lines = card.querySelector(':scope > .kc-lines');
       if (lines) {

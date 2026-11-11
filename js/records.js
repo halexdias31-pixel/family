@@ -541,7 +541,8 @@ function profitBars_(r) {
   const bars = steps.map(([k, v, cls]) => { const from = run; run += v; return { k, v, cls, a: from, b: run }; });
   bars.push({ k: 'Profit', v: r.profit, cls: r.profit < 0 ? 'loss' : 'gain', a: 0, b: r.profit });
   const hi = Math.max(0, ...bars.map(b => Math.max(b.a, b.b))), lo = Math.min(0, ...bars.map(b => Math.min(b.a, b.b)));
-  const span = (hi - lo) || 1, Y = y => top + (hi - y) / span * (base - top);
+  /* NOTHING YET (every figure £0): the bars sit on the base line over their names, not at the top over an empty gap. */
+  const span = (hi - lo) || 1, Y = y => (hi === lo ? base : top + (hi - y) / span * (base - top));
   const slot = (W - L - R) / bars.length, bw = Math.min(34, slot * .56);
   const g = bars.map((b, i) => {
     const x = L + slot * i + (slot - bw) / 2, y1 = Y(Math.max(b.a, b.b)), y2 = Y(Math.min(b.a, b.b));
@@ -551,7 +552,8 @@ function profitBars_(r) {
       <text class="pf-val" x="${(x + bw / 2).toFixed(1)}" y="${(y1 - 4).toFixed(1)}">${esc(profitShort_(b.v))}</text>
       <text class="pf-lab" x="${(x + bw / 2).toFixed(1)}" y="${H - 18}">${esc(b.k)}</text></g>`;
   }).join('');
-  return `<svg class="pf-chart" viewBox="0 0 ${W} ${H - 10}" role="img" aria-label="${esc('Revenue ' + profitMoney_(r.revenue)
+  const v0 = hi === lo ? base - 22 : 0;
+  return `<svg class="pf-chart" viewBox="0 ${v0} ${W} ${H - 10 - v0}" role="img" aria-label="${esc('Revenue ' + profitMoney_(r.revenue)
     + ', less tutor, room, fees and other costs, leaves ' + profitMoney_(r.profit))}">
     <line class="pf-zero" x1="${L}" x2="${W - R}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}"/>${g}</svg>`;
 }
