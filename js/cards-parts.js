@@ -7,7 +7,7 @@ let CARD_VIEWER;
 /* BEFORE THE SETTINGS FILE ARRIVES, OR FOR A KIND IT DOES NOT NAME: its kind's picture, its name, its facet tags. */
 const KC_BARE = { cls: '', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] };
 const kcRow_ = x => (x && x.row) || {};
-const kcPct_ = m => (m === 1 ? dash_() : (m > 1 ? '+' : '−') + Math.abs(Math.round((m - 1) * 100)) + '%');
+const kcPct_ = m => (typeof m !== 'number' || !isFinite(m) ? '' : m === 1 ? dash_() : (m > 1 ? '+' : '−') + Math.abs(Math.round((m - 1) * 100)) + '%');
 /* EACH FIELD A CARD CAN SHOW, BY NAME: the settings file picks, and a field with nothing to say says ''. */
 const KC_FIELDS = {
   kindPic: () => '',
@@ -55,7 +55,7 @@ const KC_FIELDS = {
     const one = (label, max, rate) => (say(max, rate) ? row(label, say(max, rate)) : '');
     return (t.rooms || []).length ? t.rooms.slice(0, 4).map(r => one(r.name || 'Room', r.max, r.rate)).join('') : one('The room', t.maxCapacity, t.bestRate); },
   surcharge: x => { const t = kcRow_(x); if (x.kind === 'level' && !t.priced) return row('Surcharge', 'Not priced yet', 'bad');
-    return row(t.mult === 1 ? 'No surcharge' : 'Surcharge', kcPct_(t.mult)); },
+    return kcPct_(t.mult) || t.mult === 1 ? row(t.mult === 1 ? 'No surcharge' : 'Surcharge', kcPct_(t.mult)) : ''; },
   /* THE SUBJECTS THAT RUN AT A LEVEL, green as a subject is everywhere. */
   levelSubjects: x => { const s = kcRow_(x).subjects || [];
     return s.length ? rowHtml('Subjects', s.map(v => `<span class="subject">${esc(v)}</span>`).join(', ')) : row('Subjects', 'None yet', 'bad'); },

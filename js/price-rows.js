@@ -48,13 +48,13 @@ const PRICE_ROWS = [
     mult:  L => L.L,
     of:    L => rateBase(L, 'level') },
 
-  /* THE DEAREST DAY AND TIME TICKED (owner, 8 Nov): it was in the price and on no line, so the column did not multiply out. */
+  /* THE DEAREST DAY AND TIME TICKED: still in the price (`runningAfter`), on no line — the owner asked it off the form (11 Nov). */
   { key: 'daytime', label: 'Day & time', kind: 'rate-mult', group: 'rate',
     control: null,
     value: L => '',
     mult:  L => (Number(L.D) || 1) * (Number(L.T) || 1),
     of:    L => rateBase(L, 'daytime'),
-    show:  L => (Number(L.D) || 1) * (Number(L.T) || 1) !== 1 },
+    show:  () => false },
 
   { key: 'students', label: 'Extra seats', kind: 'rate-mult', group: 'rate',
     control: 'l-qty',
