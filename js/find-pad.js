@@ -511,7 +511,7 @@ function padStraighten_(g) {
 /* ---------- A FINGER'S NEXT FEW MS, PREDICTED (374; 338 section 9's revisit): preview only, at most `PAD_PRED_PX` ahead, a finger's freehand line only */
 const PAD_PRED_PX = 12;
 function padPredict_(g, e, r) {
-  if (g.tool !== 'pen' || g.dot || g.frozen || g.qz || !g.c || g.c.type !== 'touch' || !PAD_ST || PAD_ST.length < 4) return null;
+  if (g.tool !== 'pen' || g.dot || g.frozen || g.qz || !isTouchPointer_(g.c) || !PAD_ST || PAD_ST.length < 4) return null;
   const pr = typeof e.getPredictedEvents === 'function' ? e.getPredictedEvents() : null;
   const q = pr && pr.length ? pr[pr.length - 1] : null;
   const u = q ? padMap_(r, q.clientX, q.clientY) : null, n = PAD_ST.length;

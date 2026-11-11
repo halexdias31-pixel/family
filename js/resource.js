@@ -47,10 +47,12 @@ function cartUnits_() {
   if (moved) cartSave();
 }
 
+/* A KIND THAT GOES IN THE BASKET ITS OWN WAY: a bundle is papers, so it goes in as papers. */
+const CART_ADD_OWN = { bundle: el => cartAddBundle_(el) };
 on('cart-add', el => {
   if (!USER) { toast('Sign in first'); go('account'); return; }
   /* A BUNDLE IS PAPERS, SO IT GOES IN AS PAPERS — see `cartAddBundle_` below. */
-  if (el.dataset.kind === 'bundle') { cartAddBundle_(el); return; }
+  if (Object.prototype.hasOwnProperty.call(CART_ADD_OWN, el.dataset.kind)) { CART_ADD_OWN[el.dataset.kind](el); return; }
   const key = el.dataset.key;
   const kind = ['topic', 'print', 'shop'].includes(el.dataset.kind) ? el.dataset.kind : 'shop';
   /* Keyed on BOTH, because a printed copy and a shop item can share a name and they are not the

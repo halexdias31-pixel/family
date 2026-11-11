@@ -510,7 +510,7 @@ function autosaveLater_(form) {
 }
 function autosaveHear_(e) {
   const box = e.target;
-  if (!box || !box.closest || !box.matches('input, select, textarea') || box.type === 'file') return;
+  if (!box || !box.closest || !box.matches('input, select, textarea') || isFileBox_(box)) return;
   const form = box.closest(AUTOSAVE_FORMS_);
   if (!form || !USER) return;
   form.dataset.dirty = '1';
@@ -623,7 +623,7 @@ function qualNameless_(box) {
   return [...box.querySelectorAll('.q-shelf .q-slot')].some(slot => {
     const n = slot.querySelector('[data-me="qual_' + slot.dataset.slot + '"]');
     return !(n && String(n.value || '').trim())
-      && [...slot.querySelectorAll('[data-me]')].some(b => b.type !== 'hidden' && String(b.value || '').trim());
+      && [...slot.querySelectorAll('[data-me]')].some(b => !isHiddenBox_(b) && String(b.value || '').trim());
   });
 }
 

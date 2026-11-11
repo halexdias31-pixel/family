@@ -475,8 +475,10 @@ const RETIRED_SHELVES = ['@family. textbooks', 'Icons'];
 const RETIRED_ANSWERS = { shelf: RETIRED_SHELVES, kindLabel: ['Bundles', 'Icons', 'Inserts', 'Content'], documentType: ['Insert'] };
 /* AN ANSWER THAT WAS RENAMED (504): the `Books` shelf is `Writings`, so a kept place on it stands on Writings. */
 const MOVED_ANSWERS = { shelf: { Books: BIBLE_SHELF } };
+/* A FACET WHOSE KEPT ANSWERS ARE READ AGAIN by a rule rather than a list: a translation (546). */
+const MOVED_BY_FACET = { wText: f => placeTextMoved_(f) };
 const placeChipMoved_ = f => (f && MOVED_ANSWERS[f.field] && MOVED_ANSWERS[f.field][f.value]
-  ? Object.assign({}, f, { value: MOVED_ANSWERS[f.field][f.value] }) : f && f.field === 'wText' && !f.any ? placeTextMoved_(f) : f);
+  ? Object.assign({}, f, { value: MOVED_ANSWERS[f.field][f.value] }) : f && !f.any && Object.prototype.hasOwnProperty.call(MOVED_BY_FACET, f.field) ? MOVED_BY_FACET[f.field](f) : f);
 /* A TRANSLATION KEPT AS "English, King James Version (1611)" (before 546) is its translation now, or its language for an original. */
 function placeTextMoved_(f) {
   const lang = writingLanguageOf_(f.value), v = writingVersionOf_(f.value);
