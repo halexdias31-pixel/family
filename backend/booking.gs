@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-10-add-verified-1";
+const BOOKING_VERSION = "2026-11-11-work-on-file-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -1394,6 +1394,10 @@ const PERMISSIONS = {
   videoPart: ['member', 'child', 'admin'],
   votePoll: ['member', 'child', 'admin'],
   wordsSave: ['admin'],
+  workFileDelete: ['member', 'child', 'admin'],
+  workFileOpen: ['member', 'child', 'admin'],
+  workFileSave: ['member', 'child', 'admin'],
+  workFilesOf: ['member', 'child', 'admin'],
   workingOf: ['member', 'child', 'admin'],
 };
 
