@@ -11,7 +11,7 @@ function oopsDevice_() {
   } catch (e) { return 'nostore'; }
 }
 function oopsHtml_() {
-  return '<div class="card oops"><h3>This part did not load</h3></div>';
+  return card_('<div class="oops"><h3>This part did not load</h3></div>');
 }
 function oops_(err, where, host, o) {
   o = o || {};
@@ -110,7 +110,7 @@ function tierOff_(w) {
   Object.defineProperty(w, 'html', { configurable: true, enumerable: true, get() {
     const say = typeof brand === 'function' ? brand('widgetOff', 'Coming soon') : 'Coming soon';
     const sug = typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), name) : '';
-    return `<div class="card widget-off"><h3>${esc(name)}</h3>${sug ? `<div class="tile-row">${sug}</div>` : ''}</div>`;
+    return card_(`<div class="widget-off"><h3>${esc(name)}</h3>${sug ? `<div class="tile-row">${sug}</div>` : ''}</div>`);
   } });
   try { Object.defineProperty(w, '__tier', { value: 'off' }); } catch (e) { /* a frozen widget is still off */ }
 }
@@ -567,9 +567,7 @@ function paint(id, fresh, o) {
     /* ITS CODE NOT IN YET (670, `LATER`): the column waits, and is drawn again when the payload lands. */
     if (!filesIn_() && err instanceof ReferenceError) { el.innerHTML = waitShape_(id); STALE[id] = 1; return; }
     oops_(err, 'draw:' + id);
-    el.innerHTML = `<div class="pane"><div class="card">
-        <h3>This screen did not draw</h3>
-      </div></div>`;
+    el.innerHTML = `<div class="pane">${card_('<div class="draw-oops"><h3>This screen did not draw</h3></div>')}</div>`;
     return;
   }
   /* ---------- AND A WIDGET RUNNING ON THIS COLUMN KEEPS THE SLOT IT IS RUNNING IN § */

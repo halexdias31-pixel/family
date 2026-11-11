@@ -213,7 +213,7 @@ const ansKind_ = () => (kindMap_().answer || {}).label || 'Answers';
 /* A WIDGET'S FIND CARD (790) IS THE CARD ITS COLUMN DREW — slot, star, padlock, Suggest — started and stopped by arcade.js as a column's are (`finderWidgets_`). */
 function widgetCard_(x) {
   if (x.widget && typeof widgetOnColumn_ === 'function') return widgetOnColumn_(x.widget, true);   /* `true`: with the admin's group, which a Find card keeps short (`layoutTiles_`) */
-  return `<div class="card">
+  return `<div class="tool-name">
     <h3>${esc(x.name)}</h3>
   </div>`;
 }
@@ -258,7 +258,7 @@ function soonItems_() {
 }
 function soonCard_(x) {
   /* "COMING SOON" IS A TAG, beside its name, never a line. */
-  return `<div class="card soon-card"><h3>${esc(x.name)}</h3><div class="qtags"><span class="qtag" data-tag="0">${esc(x.name)}</span><span class="qtag">${esc(brand('comingSoon', 'Coming soon'))}</span></div>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}</div>`;
+  return `<div class="soon-card"><h3>${esc(x.name)}</h3><div class="qtags"><span class="qtag" data-tag="0">${esc(x.name)}</span><span class="qtag">${esc(brand('comingSoon', 'Coming soon'))}</span></div>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}</div>`;
 }
 
 /* The card a resource and a shop row share. Named rather than written twice, because the two
@@ -286,7 +286,7 @@ function thingCard_(x, credits) {
 
     /* THE CARD IS NO LONGER A BUTTON. § */
     /* NOTHING ON THIS LIST IS A TAP TARGET ANY MORE. § */
-    return `<div class="card${x.wearable ? ' is-wear'
+    return `<div class="fc${x.wearable ? ' is-wear'
              : x.kind === 'topic' ? ' is-subject' : ''}${x.off ? ' is-off' : ''}">
       <div class="thing">
         ${/* A WEARABLE DRAWS ITSELF. § */

@@ -87,7 +87,7 @@ function helpListCard_() {
         <p class="help-line"><b>${esc(h.name || h.handle || 'Someone')}</b> · ${esc(h.label || h.q || 'a question')} · ${esc(helpAgo_(h.at))}</p>
         <div class="tile-row">${tile_({ icon: 'tick', label: 'Done', note: 'helped ' + (h.name || ''), act: 'help-done', data: { id: h.personId } })}</div>
       </div>`).join('');
-  return `<div class="card help-list"${list === null ? ' aria-busy="true"' : ''}><h3>Needs help</h3>${rows}</div>`;
+  return card_(`<div class="help-list"${list === null ? ' aria-busy="true"' : ''}><h3>Needs help</h3>${rows}</div>`);
 }
 function helpListPaint_() {
   const el = document.querySelector('.help-list');

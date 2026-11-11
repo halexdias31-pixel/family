@@ -89,7 +89,7 @@ function insertTable_(r) {
 function insertCard_(x) {
   const r = x.row;
   insWant_(r);
-  return `<div class="card insh">
+  return `<div class="insh">
     ${tagRow_(x)}
     ${insertSheet_(r)}
   </div>`;
@@ -368,7 +368,7 @@ const histDl_ = rows => `<section class="fc-sec hdb-lines"><dl>${rows.map(l => `
 function histFactsPart_(x, part) {
   const i = Number(part.slice(5)) || 0, at = i * HIST_PAGE_ROWS;
   const rows = histRows_(x).slice(at, at + HIST_PAGE_ROWS);
-  return rows.length ? `<div class="card fc hdb hdb-more"><div class="fc-head"><h3>${esc(x.name)}</h3></div>${histDl_(rows)}</div>` : '';
+  return rows.length ? card_(`<div class="fc hdb hdb-more"><div class="fc-head"><h3>${esc(x.name)}</h3></div>${histDl_(rows)}</div>`, 'timeline') : '';
 }
 /* THE ESSENTIALS (498): "don't need so many" -- three links and one source, on the card's one row (`CARD_EXTRAS_`). */
 function histExtras_(x) {

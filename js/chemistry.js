@@ -56,7 +56,7 @@ function chemCard_(x) {
     row('Pattern', r.pattern), row('Conditions', r.conditions), row('Observations', r.observations),
     r.examples ? '<ol>' + r.examples.map(e => '<li>' + esc(e.equation) + '</li>').join('') + '</ol>' : '',
   ].join('');
-  return `<div class="card fc tx" data-key="${esc(x.key)}">
+  return `<div class="fc tx" data-key="${esc(x.key)}">
     ${tagRow_(x)}
     <div class="tx-body"><h3>${esc(x.name)}</h3><div class="tx-text">${rows}</div><p class="wt-credit">${esc(r.source || '')}</p></div>
   </div>`;

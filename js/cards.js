@@ -29,7 +29,7 @@ function meCard(given) {
     return findCard({ kind: 'tutor', row: mine });
   }
 
-  return `<div class="card is-widget">
+  return card_(`<div class="is-widget">
     <div class="thing">
       ${/* THROUGH `personFace_` LIKE EVERY FACE. § */
             ''}
@@ -42,7 +42,7 @@ function meCard(given) {
     </div>
     ${/* THE `Sign out` BUTTON WAS HERE, briefly. § */
           ''}
-  </div>`;
+  </div>`);
 }
 
 /* ---------- A FIELD THAT MIGHT BE A LIST, AND MIGHT BE A STRING, AND MIGHT BE NEITHER § */
@@ -509,9 +509,9 @@ function kcActRow_(x, html, own) {
   return `<div class="tile-row kc-row">${kcFour_(x, kcTilesFill_(x, rest))}</div>`;
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
-function kcHoist_(html) {
-  /* A `.kc-items` LIST KEEPS EACH THING'S TILES BESIDE IT; none is lifted into the card's row too. */
-  if (/class="[^"]*\b(kc-four|kc-items)\b/.test(html)) return { lines: html, tiles: '' };
+function kcHoist_(html, panel) {
+  /* A `.kc-items` LIST KEEPS EACH THING'S TILES BESIDE IT; none is lifted into the card's row too. A panel's own lines may hold a whole card (a widget's), whose row is its own. */
+  if (new RegExp('class="[^"]*\\b(' + (panel ? '' : 'kc-four|') + 'kc-items)\\b').test(html)) return { lines: html, tiles: '' };
   let tiles = '';
   const lines = kcKids_(String(html || '')).map(k => {
     if (k.tag === 'div' && / tile-row /.test(' ' + k.cls + ' ')) { tiles += k.inner; return ''; }
@@ -668,9 +668,9 @@ function findCard(x, credits) {
   if (name && parts.head && !kcSays_(parts.tags, name)) parts.tags = kcTagFirst_(parts.tags, name);
   parts.head = '';
   /* A ROW OF TILES ITS OWN MAKER DREW AMONG THE LINES joins the card's one row: its main leads, the rest wait behind ⋯. */
-  const hoist = kcHoist_(parts.lines);
+  const hoist = kcHoist_(parts.lines, it.kcPanel);
   parts.lines = hoist.lines;
-  parts.act = kcActRow_(one, parts.lines, hoist.tiles);
+  parts.act = kcActRow_(one, it.kcPanel ? '' : parts.lines, hoist.tiles);
   /* A FACTS KIND: its lines become plain words, a form its open content. */
   let facts = null;
   if (kcLook_(it.kind).facts || (it.kcPanel && KC_FORMY.test(parts.lines))) {
@@ -693,7 +693,7 @@ function findCard(x, credits) {
 
 /* EVERY OTHER CARD COMES HERE TOO (owner, 11 Nov: one template): its maker writes a plain `<div class="x">…</div>`; a form inside stays whole. Only bookform draws its own. */
 const KC_FORMY = /<(input(?![^>]*type="hidden")|select|textarea|form)\b|\bkc-items\b/;
-function card_(html, kind) {
+function card_(html, kind, called) {
   const cut = kcSplit_(String(html || '').trim());
   if (!cut) return String(html || '');
   /* A DRAWING THAT IS NO PICTURE (a picker, an icon) stays among the lines, never dropped from the top. */
@@ -702,7 +702,7 @@ function card_(html, kind) {
   if (face) cut.pic = face[0];
   if (cut.pic && !kcRealPic_(cut.pic)) { cut.lines = cut.pic + cut.lines; cut.pic = ''; }
   const name = String((/<h[1-4]\b[^>]*>([\s\S]*?)<\/h[1-4]>/.exec(cut.head || '') || [])[1] || cut.head || '').replace(/<[^>]+>/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
-  return findCard({ kind: kind || 'panel', kcOwn: cut, kcPanel: true, name });
+  return findCard({ kind: kind || 'panel', kcOwn: cut, kcPanel: true, name: name || String(called || '') });
 }
 
 /* A CARD WHOSE INSIDES ARRIVE LATER (a list fetched after the screen drew) is built again round them, kept as the same element so its attributes stay. */

@@ -627,8 +627,8 @@ let BOOK_OPEN = false;
 /* THE BOOKING FORM TAG: the form itself once that tag is chosen; under plain Booking the Book tile above opens it, so this card only points there. */
 function bookFormCard_() {
   const alone = (STUFF.filters || []).some(f => f.field !== DOOR_FIELD);
-  if (!alone) return `<div class="card book-form-door"><h3>Booking form</h3>${
-    tileRow_(tile_({ icon: 'book', label: 'Book', act: 'book-open', cls: 'primary' }), 'book-top')}</div>`;
+  if (!alone) return card_(`<div class="book-form-door"><h3>Booking form</h3>${
+    tileRow_(tile_({ icon: 'book', label: 'Book', act: 'book-open', cls: 'primary' }), 'book-top')}</div>`);
   if (typeof awaiting_ === 'function' && awaiting_()) return loading_();
   return (typeof bookBlocks === 'function' ? bookBlocks() : [])[0] || '';
 }
@@ -709,7 +709,7 @@ function accountPages_(col) {
   const editing_ = t => typeof cardEditing_ === 'function' && cardEditing_(t, col);
   /* AN ADMIN'S PERSON FORM (373, me.js) TAKES THE CARD'S PLACE the same way, in the column it was opened on. */
   const personForm_ = t => typeof personFormFor_ === 'function' ? personFormFor_(t, col) : '';
-  const card_ = t => typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '';
+  const tcard_ = t => typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '';
   const withTiles_ = t => personForm_(t) || (editing_(t) ? cardEditHtml_(t)
     : card_(t) + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : ''));
 
@@ -762,7 +762,7 @@ function accountPages_(col) {
   if (typeof peopleBelong_ === 'function' && peopleBelong_(col, family)) {
     const row = isTutorsCol_(col) ? (cardMine_() || myRow) : myRow;
     /* NEVER AN EDITOR HERE (464): your own card is edited on your role's settings column (`ownCardSetPage_`, me.js). */
-    const face = row !== myRow ? card_(row) : (typeof meCard === 'function' ? meCard(row) : card_(row));
+    const face = row !== myRow ? tcard_(row) : (typeof meCard === 'function' ? meCard(row) : tcard_(row));
     /* SHARE MY PROFILE (400): their own `?tutor=` link, to send a family — on the tutor face. */
     const share = isTutorsCol_(col) && rankAtLeast_('staff') && USER.handle
       ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
