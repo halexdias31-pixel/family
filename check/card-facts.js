@@ -54,7 +54,10 @@ function measure(per) {
   const panel = (name, f) => { try { const h = f(); (Array.isArray(h) ? h : [h]).filter(Boolean).slice(0, per * 3).forEach(html => PANEL.push({ kind: 'panel', name, html })); } catch (e) { out.bad.push('panel "' + name + '": drawing threw ' + e.message); } };
   if (typeof CARD_BUILD === 'object' && CARD_BUILD) Object.keys(CARD_BUILD).forEach(col => panel('column ' + col, () => CARD_BUILD[col]()));
   [['add', () => addCard_({ act: 'noop', label: 'Add a thing' })], ['empty', () => emptyCard_('Nothing')], ['oops', () => oopsHtml_()], ['notify', () => notifyDoorCard_()],
-    ['help list', () => helpListCard_()], ['deleted', () => deletedCard_()], ['roles', () => rolesCard_()]]
+    ['help list', () => helpListCard_()], ['deleted', () => deletedCard_()], ['roles', () => rolesCard_()],
+    /* MESSAGES AND EVERY WIDGET'S OWN CARD (owner, 11 Nov: the DM screen left-aligned, an off widget a card in a card). */
+    ['messages', () => (typeof daivePages_ === 'function' ? daivePages_().map(p => p.html) : [])],
+    ['widgets', () => (typeof WIDGETS !== 'undefined' && typeof widgetOnColumn_ === 'function' ? WIDGETS.filter(w => w && !w.parts).map(w => widgetOnColumn_(w)) : [])]]
     .forEach(([n, f]) => panel(n, () => (typeof f === 'function' ? f() : '')));
   if (PANEL.length) by.panel = PANEL;
   Object.keys(by).forEach(kind0 => by[kind0].forEach(x => {
@@ -88,6 +91,15 @@ function measure(per) {
       /* ROUND ICONS ONLY (owner, 10 Nov late): no word under or in any tile, ⋯'s too; a long press says it. */
       if (more && list) { list.hidden = false; [...card.querySelectorAll(':scope > .kc-act .tile')].forEach(t => { const w = getComputedStyle(t, '::after').content;
         if ((w && w !== 'none' && w !== 'normal' && w !== '""') || t.innerText.trim()) say(x, 'round button "' + (t.getAttribute('aria-label') || '') + '" shows a word'); }); list.hidden = true; }
+      /* A CARD IN A CARD UNDER THE SAME NAME is one card drawn twice: two name tags, two button rows. */
+      const tag0 = c => ((c.querySelector(':scope > .kc-tags .qtag') || {}).textContent || '').trim();
+      if (tag0(card) && [...card.querySelectorAll('.card.kc')].some(n => tag0(n) === tag0(card))) say(x, 'a card inside a card with the same name "' + tag0(card).slice(0, 30) + '"');
+      /* A BOX WITH ITS OWN PARTS (composer + Send, search pill + glass) is one centred block no wider than 26rem. */
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      card.querySelectorAll(':scope > :is(.kc-form, .kc-lines) :is(.msg-form, .search-pill)').forEach(b => { if (!b.getClientRects().length || b.closest('.card.kc .card.kc')) return;
+        const r = b.getBoundingClientRect();
+        if (r.width > 26 * rem + 1) say(x, '.' + b.className.split(' ')[0] + ' is ' + Math.round(r.width) + 'px wide, past the 26rem measure');
+        if (Math.abs(r.left + r.width / 2 - mid) > 2) say(x, '.' + b.className.split(' ')[0] + ' is ' + Math.round(r.left + r.width / 2 - mid) + 'px off the centre line'); });
       const text = [...card.querySelectorAll(':scope > .kc-tags, :scope > .kc-lines, :scope > .kc-form')].map(n => n.innerText.trim()).join('');
       if (!text && !card.querySelector(':scope > .kc-lines .loading, :scope > .kc-form :is(input, select, textarea)')) say(x, state + ': blank card');
       if (!PEOPLE.includes(kind) && card.querySelector(':scope > .kc-pic .pfp-art')) say(x, 'a profile picture on a card that is not a person');
@@ -151,6 +163,8 @@ function measure(per) {
     if (!t || !l || t.getBoundingClientRect().top > l.getBoundingClientRect().top) say(x, 'waiting card: tags are not above its words');
   }));
   box.remove();
+  /* FIND'S CHIPS AND ITS SUGGEST ROW SIT ON THE CENTRE LINE TOO (owner, 11 Nov: everything centred). */
+  document.querySelectorAll('.answers, .tag-answers, .tile-row.find-sg').forEach(el => { if (el.getClientRects().length && getComputedStyle(el).justifyContent !== 'center') out.bad.push('Find: .' + el.className.split(' ')[0] + ' is not centred'); });
   if (Object.keys(out.pics).length > 1) out.bad.push('pictures of ' + Object.keys(out.pics).length + ' sizes: ' + JSON.stringify(out.pics) + ' — one size on every person');
   return out;
 }

@@ -3963,7 +3963,9 @@ a.boxer-src { display: flex; align-items: center; min-height: var(--tap); text-d
 .answers, .tag-answers, .chips, .qtags, .reacts, .rx-head { --chip-line: var(--paper-ink); }
 /* `.tag-answers` IS `.answers` UNDER ANOTHER NAME ON PURPOSE: thirty checks read `.answers` as "the
    question being asked", and an optional row is not that question (docs/history/354, 355). */
-.answers, .tag-answers { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s1); align-items: center; }
+.answers, .tag-answers { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s1); align-items: center; justify-content: center; }
+/* FIND'S OWN ROW UNDER THE CHIPS (Suggest) sits on the same centre line as the chips (owner, 11 Nov: everything centred). */
+.tile-row.find-sg { justify-content: center; }
 /* THE ANSWER IS THE HEADLINE. It was .88rem — the size of a fact on a receipt — for the one word
    on the screen somebody is here to choose. */
 /* ---------- AND IT IS THE ONLY THING ON THE ROW NOW, SO IT MAY USE THE ROW § */
@@ -5621,6 +5623,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-form :is(.f-row, .dob-boxes, .btn-row, .tile-row, .check), .card.kc-panel > .kc-lines :is(.f-row, .btn-row, .tile-row) { justify-content: center; }
 .card.kc > .kc-form :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select, textarea):not(.msg-text, .dob-boxes *),
 .card.kc-panel > .kc-lines :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select, textarea):not(.msg-text) { box-sizing: border-box; width: 100%; max-width: 26rem; margin-inline: auto; text-align: left; }
+/* A BOX WITH ITS OWN PARTS (a composer and its Send, a search pill and its glass) takes the 26rem measure whole, so the parts stay together on the centre line. */
+.card.kc > :is(.kc-form, .kc-lines) :is(.msg-form, .search-pill) { box-sizing: border-box; width: 100%; max-width: 26rem; margin-inline: auto; }
+.card.kc > :is(.kc-form, .kc-lines) .search-pill > input { max-width: none; }
 .card.kc > .kc-form :is(ul, ol), .card.kc-panel > .kc-lines :is(ul, ol) { list-style-position: inside; padding-left: 0; }
 /* A WIDE TABLE OR FORMULA LINE IS CENTRED AND SCROLLS INSIDE ITSELF, never past the card's edge. */
 .card.kc > .kc-form :is(table, pre), .card.kc-panel > .kc-lines :is(table, pre) { display: block; width: max-content; max-width: 100%; overflow-x: auto; margin-inline: auto; }
