@@ -290,3 +290,8 @@ become an owner question showing both; never pick one.
 ## 11 Nov — the Optimiser (owner)
 - 11 Nov — the health checker is the Optimiser; when nothing else is asked, the aim is to raise it to 90% or improve it with more checks for optimisation (owner).
 - 11 Nov — the Optimiser's job is to kill arbitrariness: find the objectively optimal way everywhere, content too (library and topic cards), not only code (owner).
+## 11 Nov — marketing, work on file, history (owner)
+- Marketing: only the Flyer maker for now (every word from the Web/tutor profile, QR tagged with its source); no share-link or landing-card work.
+- Work on file stays in Settings.
+- The content is the source; tools and equipment follow from it (no kit-to-topic links).
+- History: primary sources first — each GCSE History lesson opens with real public-domain sources (document, speech, image, statistic) inside the lesson itself, each with Nature–Origin–Purpose questions, then the story. Chosen as least arbitrary (owner: "you pick").
