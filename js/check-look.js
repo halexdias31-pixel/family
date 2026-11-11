@@ -254,5 +254,17 @@ files.forEach(({ n, src }) => {
   if (/'\/hour'|' per hour'|money_\([^()]*(\([^()]*\))?[^()]*\) \+ '(\/h|\/hr| an hour| per hour| a hour)'/.test(code)) bad.push(`70a a rate written by hand in ${n}.js — perHour_(n): £12.00/h`);
 });
 
+/* ---------- 71a. A DIAGRAM'S LINES STAY BOLD: screen-px tiers in style.css, never below the sunlight minimum ---------- */
+{
+  const MIN = { grid: .75, thin: 1.25, mid: 1.75, line: 2, bold: 3 };
+  Object.keys(MIN).forEach(k => {
+    const m = css.match(new RegExp('--fig-' + k + ':\\s*([\\d.]+)px'));
+    if (!m) bad.push(`71a --fig-${k} is gone from style.css — a diagram line tier, in screen px`);
+    else if (+m[1] < MIN[k]) bad.push(`71a --fig-${k} is ${m[1]}px, under the ${MIN[k]}px a diagram needs in sunlight`);
+  });
+  const rule = css.match(/svg:not\(\.qpad-ink\) :is\(line, path[^{]*\{([^}]*)\}/);
+  if (!rule || !/vector-effect:\s*non-scaling-stroke/.test(rule[1])) bad.push('71a the figure line rule lost vector-effect: non-scaling-stroke, so a wide viewBox thins every line again');
+}
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');
