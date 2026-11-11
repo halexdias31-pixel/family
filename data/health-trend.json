@@ -639,5 +639,31 @@
    "bigNotes": 10,
    "spread": 6
   }
+ },
+ {
+  "date": "2026-11-11",
+  "commit": "42a85fa",
+  "score": 57.5,
+  "parts": {
+   "code": 49.6,
+   "logic": 64.9,
+   "ui": 27.2,
+   "cost": 83.2,
+   "business": 69.2
+  },
+  "topKind": "business",
+  "effort": {
+   "commits": 30,
+   "medianLines": 41,
+   "worstLines": 3137,
+   "medianFiles": 7,
+   "worstFiles": 33,
+   "testBytes": 5607439,
+   "testBiggest": 372943,
+   "historyBytes": 4563114,
+   "historyBiggest": 166839,
+   "bigNotes": 10,
+   "spread": 8
+  }
  }
 ]

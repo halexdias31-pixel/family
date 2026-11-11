@@ -229,7 +229,10 @@ function postPersonGet_(body, action, began) {
   const want = S(body.targetId);
   const r = want ? read(TAB.people).rows.find(x => S(x.person_id) === want) : null;
   if (want && !r) return jsonOut({ error: 'We could not find that person.' });
-  return jsonOut({ success: true, person: r ? adminPersonOut_(r) : null, parents: adminParentChoices_() });
+  /* THEIR NOTIFICATIONS, AS THEIR OWN CARD DRAWS THEM: an admin ticks them on the Edit form through `setNotify` with targetId. */
+  let notify = null;
+  try { notify = r && !hasRole(r, 'admin') ? notifyOf_(r) : null; } catch (err) { notify = null; }
+  return jsonOut({ success: true, person: r ? adminPersonOut_(r) : null, parents: adminParentChoices_(), notify: notify });
 }
 
 /* MADE OR CHANGED. No `targetId` is a new person: a fresh PIN shown once, a handle by the template, joined today. */

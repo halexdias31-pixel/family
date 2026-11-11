@@ -295,3 +295,9 @@ become an owner question showing both; never pick one.
 - Work on file stays in Settings.
 - The content is the source; tools and equipment follow from it (no kit-to-topic links).
 - History: primary sources first — each GCSE History lesson opens with real public-domain sources (document, speech, image, statistic) inside the lesson itself, each with Nature–Origin–Purpose questions, then the story. Chosen as least arbitrary (owner: "you pick").
+
+## 11 Nov — parents receive nothing from the site until they tick it (owner)
+- "Parents don't receive ANYTHING from the site by default. Their notifications have to be ticked on manually."
+- A blank notification cell is OFF where the kind reaches the person as a parent (`notifyCellOn_`); a tutor's, student's or admin's own blank cell stays on. A tick writes `yes`, an untick `no`.
+- Push stays device opt-in: only the person's own "Turn on" subscribes a device. An admin can tick anyone's (non-admin) boxes from their Edit form.
+- Still always sent (essential): sign-in links, PINs, security warnings, family-link requests, booking received/accepted/cancelled receipts, an admin-made account's PIN.
