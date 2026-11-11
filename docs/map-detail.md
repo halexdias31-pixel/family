@@ -455,6 +455,8 @@ node js/check.js                  # names used but never declared. Run after eve
 npm run check                     # the core checks (js/check-all.js); --all adds secondary; -v per check. Before pushing.
 FLOW_PART=1/4 node js/check-flow.js   # the journeys through the real app, in four parts
 node check/ui.js --screen=tools   # one screen of the layout check; --shots writes PNGs
+node tools/gallery.js             # one of every card and screen (pupil/parent/tutor/admin, 390 and 820) vs the approved set; report.md + side-by-sides
+node tools/gallery.js --approve   # the shots just taken become the approved set (default dir: $GALLERY_DIR or <tmp>/family-gallery, never the repo)
 node check/live.js --sheets s.json --out /tmp/p.json && node check/ui.js --payload=/tmp/p.json
 node check/digest-dry.js --sheets s.json --week 2026-10-18 --out /tmp/sunday   # Sunday's emails, nothing sent
 ```
