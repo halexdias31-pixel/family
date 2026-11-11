@@ -495,7 +495,7 @@ function toastLeave_(t) {
     const i = TOASTS_.indexOf(t);
     if (i > -1) TOASTS_.splice(i, 1);
     /* THE NAME PASSES TO THE NEWEST STILL SHOWN, so `#toast` is what the screen says now. */
-    if (t.el.id === 'toast') { t.el.removeAttribute('id'); const n = TOASTS_.filter(x => !x.leaving).pop(); if (n) n.el.id = 'toast'; }
+    if (isToast_(t.el)) { t.el.removeAttribute('id'); const n = TOASTS_.filter(x => !x.leaving).pop(); if (n) n.el.id = 'toast'; }
     toastStack_();
   };
   if (t.anim) { try { t.anim.cancel(); } catch (e) { /* already gone */ } t.anim = null; }
@@ -512,7 +512,7 @@ function toast(msg) {
   /* THE SAME WORDS AGAIN come in again, on the same line, with their time started over. */
   let t = last && !last.leaving && last.text === text ? last : null;
   if (!t) {
-    TOASTS_.forEach(x => { if (x.el.id === 'toast') x.el.removeAttribute('id'); });
+    TOASTS_.forEach(x => { if (isToast_(x.el)) x.el.removeAttribute('id'); });
     const el = document.createElement('div');
     el.id = 'toast';
     el.className = 'toast';

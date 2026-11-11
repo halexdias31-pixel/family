@@ -539,22 +539,22 @@
  {
   "date": "2026-11-11",
   "commit": "7cbb238",
-  "score": 53.7,
+  "score": 56.3,
   "parts": {
-   "code": 36.4,
-   "logic": 64.4,
+   "code": 45.1,
+   "logic": 64.9,
    "ui": 27.7,
-   "cost": 83.2,
+   "cost": 83.1,
    "business": 69.2
   },
-  "topKind": "one-off",
+  "topKind": "business",
   "effort": {
    "commits": 30,
    "medianLines": 46,
    "worstLines": 3575,
    "medianFiles": 5,
    "worstFiles": 35,
-   "testBytes": 5581295,
+   "testBytes": 5581358,
    "testBiggest": 372943,
    "historyBytes": 4563114,
    "historyBiggest": 166839,
@@ -564,23 +564,75 @@
  },
  {
   "date": "2026-11-11",
-  "commit": "7cbb238",
-  "score": 55.2,
+  "commit": "36f9cc6",
+  "score": 56.2,
   "parts": {
-   "code": 40.7,
-   "logic": 64.4,
-   "ui": 27.8,
-   "cost": 84.5,
+   "code": 45.1,
+   "logic": 64.9,
+   "ui": 27.7,
+   "cost": 82.6,
    "business": 69.2
   },
-  "topKind": "one-off",
+  "topKind": "business",
+  "effort": {
+   "commits": 30,
+   "medianLines": 50,
+   "worstLines": 3575,
+   "medianFiles": 6,
+   "worstFiles": 35,
+   "testBytes": 5581358,
+   "testBiggest": 372943,
+   "historyBytes": 4563114,
+   "historyBiggest": 166839,
+   "bigNotes": 10,
+   "spread": 7
+  }
+ },
+ {
+  "date": "2026-11-11",
+  "commit": "deda02b",
+  "score": 56.2,
+  "parts": {
+   "code": 45.3,
+   "logic": 64.9,
+   "ui": 27.6,
+   "cost": 82.7,
+   "business": 69.2
+  },
+  "topKind": "business",
   "effort": {
    "commits": 30,
    "medianLines": 46,
    "worstLines": 3575,
-   "medianFiles": 5,
+   "medianFiles": 6,
    "worstFiles": 35,
-   "testBytes": 5581514,
+   "testBytes": 5587771,
+   "testBiggest": 372943,
+   "historyBytes": 4563114,
+   "historyBiggest": 166839,
+   "bigNotes": 10,
+   "spread": 7
+  }
+ },
+ {
+  "date": "2026-11-11",
+  "commit": "b33d32a",
+  "score": 57.4,
+  "parts": {
+   "code": 49.6,
+   "logic": 64.9,
+   "ui": 27.5,
+   "cost": 82.8,
+   "business": 69.2
+  },
+  "topKind": "business",
+  "effort": {
+   "commits": 30,
+   "medianLines": 46,
+   "worstLines": 3575,
+   "medianFiles": 6,
+   "worstFiles": 35,
+   "testBytes": 5596145,
    "testBiggest": 372943,
    "historyBytes": 4563114,
    "historyBiggest": 166839,

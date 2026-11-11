@@ -124,8 +124,8 @@ function bizPages_() {
 /* THE SITE COLUMN'S CARDS (491): Setup (400), posts and reports to moderate, the library import, the weekly email. */
 function siteBizPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  /* NO SETUP OR RULES CARD (owner, 10 Nov: "delete this"): the health checker covers setup. */
-  return [].concat(postsWaitCard_(), reportsCard_(), libImpCard_(), digestWordsCard_());
+  /* NO SETUP OR RULES CARD (owner, 10 Nov: "delete this"): the Optimiser covers setup. */
+  return [].concat(postsWaitCard_(), reportsCard_(), libImpCard_(), digestWordsCard_(), tplCard_());
 }
 
 /* ---------- POSTS WAITING FOR APPROVAL (413) ----------
@@ -733,7 +733,8 @@ const DIGEST_SHOWN_ = { got: null, busy: false, seq: 0, timer: 0 };
 /* AS IS (owner, 1 Nov: "show how the emails will look AS IS. PERFECTLY SYNCED"): the HTML the backend sends, in a sandboxed frame -- never a copy drawn here (547). */
 function digestShownHtml_() {
   const g = DIGEST_SHOWN_.got;
-  if (!g) return `<div class="dw-frame-box" aria-busy="true">${loading_()}</div>`;
+  /* THE CARD ASKS FOR ITSELF WHEN DRAWN, wherever it is drawn (Find › Settings, not only its old column). */
+  if (!g) { setTimeout(() => { try { digestShownStart_(); } catch (e) {} }, 0); return `<div class="dw-frame-box" aria-busy="true">${loading_()}</div>`; }
   if (!g.html) return `<p class="note">${esc(g.said || 'The email could not be shown.')}</p>`;
   return `<p class="dp-subj"><span>Subject</span> ${esc(g.subject || '')}</p>
     <div class="dw-frame-box"${DIGEST_SHOWN_.busy ? ' aria-busy="true"' : ''}><iframe class="dw-frame" title="The weekly email" sandbox="" referrerpolicy="no-referrer" srcdoc="${esc(g.html)}"></iframe>${DIGEST_SHOWN_.busy ? loading_() : ''}</div>`;
@@ -771,6 +772,31 @@ function digestWordsCard_() {
     ${rows}
     <div class="tile-row">${tile_({ icon: 'save', label: 'Save', note: 'the email\'s words', act: 'digest-words-save', tone: 'admin' })}</div>
     <p class="note dw-said" aria-live="polite"></p></div>`)];
+}
+/* ---------- THE ONE CARD TEMPLATE, SHOWN (owner, 11 Nov): a sample drawn BY findCard with each part outlined and named, and the fixed scale read live from :root. ---------- */
+const TPL_PARTS_ = [['pic', 'Picture — only if real'], ['tags', 'Tags — the name first'], ['lines', 'Content'], ['act', 'Buttons — round; hold or hover for the word']];
+const TPL_SCALE_ = [
+  ['Text', 'fs', ['--fs-small', '--fs-title', '--fs-body']], ['Spacing', 'sp', ['--s0', '--s1', '--s2', '--s3', '--s4', '--s5', '--s6']],
+  ['Button', 'bt', ['--tile', '--tile-i', '--tap']], ['Picture', 'pc', ['--pic-s', '--pic-l', '--pic-h']],
+  ['Corners', 'cr', ['--r-ui', '--r-round']],
+  ['Colours', 'co', ['--bg', '--raised', '--line', '--ink', '--dim', '--faint', '--gold', '--good', '--warn', '--bad', '--paper', '--paper-ink']]];
+/* EACH VALUE AS THE BROWSER HAS IT NOW, so the card can never disagree with style.css; the swatch wears the token itself. */
+const TPL_WEAR_ = { fs: 'font-size', sp: 'width', bt: 'width: VAR; height', pc: 'width: VAR; height', cr: 'border-radius', co: 'background' };
+const tplTok_ = k => { try { return getComputedStyle(document.documentElement).getPropertyValue(k).trim(); } catch (e) { return ''; } };
+function tplSample_() {
+  const h = card_(`<div class="tpl-sample"><img src="icon.png" alt="A sample picture"><h3>A sample card</h3>
+    <div class="qtags"><span class="qtag">A sample card</span><span class="qtag">A tag</span></div>
+    <p>What the thing holds, in plain words, centred.</p></div>`, 'panel', 'A sample card');
+  return TPL_PARTS_.reduce((x, [p, say]) => x.replace(`<div class="kc-${p}">`, `<div class="kc-${p}" data-tpl="${esc(say)}">`), h);
+}
+function tplCard_() {
+  const scale = TPL_SCALE_.map(([name, k, list]) => `<p class="tpl-group">${esc(name)}</p><div class="tpl-row tpl-${k}">${list.map(t =>
+    `<span class="tpl-sw"><i aria-hidden="true" style="${TPL_WEAR_[k].replace('VAR', 'var(' + t + ')')}: var(${t})"></i><code>${esc(t)}</code><small>${esc(dash_(tplTok_(t)))}</small></span>`).join('')}</div>`).join('');
+  const outer = card_(`<div class="biz tpl-card"><h3>Card template</h3>
+    <p class="note">Every card on the site is drawn by this one template: picture, tags, content, buttons, top to bottom on one centre line.</p>
+    <div class="tpl-spec"></div>
+    <p class="note">The fixed scale, as the page has it now:</p>${scale}</div>`);
+  return outer.replace('<div class="tpl-spec"></div>', `<div class="tpl-spec">${tplSample_()}</div>`);
 }
 /* THE FIRST LOOK, when Site is opened by an admin; after that a typed word or a Save asks again. */
 function digestShownStart_() { if (!DIGEST_SHOWN_.got && !DIGEST_SHOWN_.busy) digestShownAsk_(null); }

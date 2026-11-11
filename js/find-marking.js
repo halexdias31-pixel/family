@@ -315,28 +315,28 @@ function markRuleVal_(s) {
   const n = markRuleNums_(s);
   return n.length ? n[0].v : NaN;
 }
+/* A MARK RULE'S TESTS by name, each given the value, the rule's number and whether the value is whole. */
+const markNear_ = (a, b) => Math.abs(a - b) < 1e-9;
+const markPrime_ = (n, whole) => n > 1 && whole && [...Array(Math.floor(Math.sqrt(n)) + 1).keys()].slice(2).every(k => n % k);
+const MARK_RULE_TESTS = {
+  mult: (v, a, w) => w && markNear_(v % a, 0),
+  notmult: (v, a, w) => w && !markNear_(v % a, 0),
+  factor: (v, a, w) => w && v > 0 && markNear_(a % v, 0),
+  notfactor: (v, a, w) => w && v > 0 && !markNear_(a % v, 0),
+  prime: (v, a, w) => markPrime_(v, w),
+  notprime: (v, a, w) => w && v >= 0 && !markPrime_(v, w),
+  square: (v, a, w) => w && v >= 0 && markNear_(Math.round(Math.sqrt(v)) ** 2, v),
+  cube: (v, a, w) => w && markNear_(Math.round(Math.cbrt(v)) ** 3, v),
+  odd: (v, a, w) => w && Math.abs(v % 2) === 1,
+  even: (v, a, w) => w && v % 2 === 0,
+  over: (v, a) => v > a,
+  under: (v, a) => v < a,
+  eq: (v, a) => markNear_(v, a),
+  ne: (v, a) => !markNear_(v, a),
+};
 function markRuleIs_(v, test, arg) {
-  const near = (a, b) => Math.abs(a - b) < 1e-9;
-  const whole = near(v, Math.round(v));
-  const a = markRuleVal_(arg);
-  const prime = n => n > 1 && whole && [...Array(Math.floor(Math.sqrt(n)) + 1).keys()].slice(2).every(k => n % k);
-  switch (test) {
-    case 'mult': return whole && near(v % a, 0);
-    case 'notmult': return whole && !near(v % a, 0);
-    case 'factor': return whole && v > 0 && near(a % v, 0);
-    case 'notfactor': return whole && v > 0 && !near(a % v, 0);
-    case 'prime': return prime(v);
-    case 'notprime': return whole && v >= 0 && !prime(v);
-    case 'square': return whole && v >= 0 && near(Math.round(Math.sqrt(v)) ** 2, v);
-    case 'cube': return whole && near(Math.round(Math.cbrt(v)) ** 3, v);
-    case 'odd': return whole && Math.abs(v % 2) === 1;
-    case 'even': return whole && v % 2 === 0;
-    case 'over': return v > a;
-    case 'under': return v < a;
-    case 'eq': return near(v, a);
-    case 'ne': return !near(v, a);
-    default: return false;
-  }
+  const t = Object.prototype.hasOwnProperty.call(MARK_RULE_TESTS, test) ? MARK_RULE_TESTS[test] : null;
+  return t ? !!t(v, markRuleVal_(arg), markNear_(v, Math.round(v))) : false;
 }
 function markRuleSet_(typed, spec, spell) {
   const words = s => String(s).toLowerCase().match(/[a-z]+|\d+/g) || [];
@@ -416,6 +416,8 @@ function markExprParse_(t, fns) {
   const n = sum();
   return n && i === t.length ? n : null;
 }
+/* AN EXPRESSION TREE'S OPERATORS; anything else is a power. */
+const MARK_EXPR_OPS = { neg: x => -x, '√': Math.sqrt, '∛': Math.cbrt, '+': (x, y) => x + y, '-': (x, y) => x - y, '*': (x, y) => x * y, '/': (x, y) => x / y };
 function markExprVal_(n, at) {
   const [k, a, b] = n;
   if (k === 'n') return a;
@@ -423,16 +425,8 @@ function markExprVal_(n, at) {
   /* a named function: one fixed curve per letter, neither odd nor even, so g(-x), -g(x) and g(x) all differ */
   if (k === 'f') { const v = markExprVal_(b, at), s = a.charCodeAt(0) % 7 + 1; return Math.exp(0.3 * v) * s + v * v * v / s + s; }
   const x = markExprVal_(a, at), y = b && markExprVal_(b, at);
-  switch (k) {
-    case 'neg': return -x;
-    case '√': return Math.sqrt(x);
-    case '∛': return Math.cbrt(x);
-    case '+': return x + y;
-    case '-': return x - y;
-    case '*': return x * y;
-    case '/': return x / y;
-    default: return Math.pow(x, y);
-  }
+  const op = Object.prototype.hasOwnProperty.call(MARK_EXPR_OPS, k) ? MARK_EXPR_OPS[k] : Math.pow;
+  return op(x, y);
 }
 /* `{ sides: [tree, tree?], vars }`, or null for anything that is not an expression. */
 function markExprRead_(s, fns) {
@@ -703,26 +697,30 @@ function choicePicks_(x, typed) {
   return out.some(n => !n) ? [] : out;
 }
 
-/* ---------- ONE MARKER FOR EVERY TYPED PART (owner, 9 Nov): the mark scheme first — options, order, accepted answers, key words. `{got, of}`; null for nothing typed; `{ai:true}` where only the AI can mark. */
-function markPart_(x, typed) {
-  const m = markerOf_(x || {});
-  if (m.kind === 'choice' || m.kind === 'order') {
-    const p = choicePicks_(x, typed);
-    if (p === null) return null;
-    /* ONE CHOICE MARKER (1200): an order is its picks in sequence, a choose is them as a set -- the same comparison, sorted */
-    const ord = m.kind === 'order', set = w => (ord ? w : w.slice().sort((a, b) => a - b));
-    return { got: markOrder_(set(p), ord ? orderWays_(x) : [set(x.choiceRight || [])]) ? 1 : 0, of: 1 };
-  }
-  if (m.kind === 'accept') {
-    const v = markAnswer_(typed, x.accept);
-    return v === null ? null : { got: v ? 1 : 0, of: 1 };
-  }
-  if (m.kind === 'words') {
+/* EACH MARKER BY ITS KIND: `{got, of}`, or null for nothing typed. */
+const markChoice_ = (x, typed, ord) => {
+  const p = choicePicks_(x, typed);
+  if (p === null) return null;
+  /* ONE CHOICE MARKER (1200): an order is its picks in sequence, a choose is them as a set -- the same comparison, sorted */
+  const set = w => (ord ? w : w.slice().sort((a, b) => a - b));
+  return { got: markOrder_(set(p), ord ? orderWays_(x) : [set(x.choiceRight || [])]) ? 1 : 0, of: 1 };
+};
+const PART_MARKERS = {
+  choice: (x, typed) => markChoice_(x, typed, false),
+  order: (x, typed) => markChoice_(x, typed, true),
+  accept: (x, typed) => { const v = markAnswer_(typed, x.accept); return v === null ? null : { got: v ? 1 : 0, of: 1 }; },
+  words: (x, typed) => {
     const w = markWords_(typed, x.markWords);
     if (!w) return null;
     const of = Math.max(1, Math.min(w.of, Number(x.marks) || w.of));
     return { got: Math.min(w.got, of), of, words: true };
-  }
+  },
+};
+/* ---------- ONE MARKER FOR EVERY TYPED PART (owner, 9 Nov): the mark scheme first — options, order, accepted answers, key words. `{got, of}`; null for nothing typed; `{ai:true}` where only the AI can mark. */
+function markPart_(x, typed) {
+  const m = markerOf_(x || {});
+  const mark = Object.prototype.hasOwnProperty.call(PART_MARKERS, m.kind) ? PART_MARKERS[m.kind] : null;
+  if (mark) return mark(x, typed);
   return String(typed == null ? '' : typed).trim() ? { ai: true } : null;
 }
 

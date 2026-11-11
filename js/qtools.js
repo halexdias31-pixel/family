@@ -77,21 +77,22 @@ function partRec_(x) {
 /* ---------- THE MARKER: the one thing that varies between parts -- qtypes.js `qtMarker_`, which the Function tag reads too. */
 /* WHAT THE LINE UNDER CHECK SAYS, by marker: how this part will be marked, before it is. Never a person. */
 /* ONE LINE UNDER EVERY ROW (owner, 9 Nov): marking is one path for every type, so it says the same words everywhere. */
-const QT_HOW_ALL = 'Marked against the mark scheme first \u2014 then by AI, if you ask';
+const QT_HOW_ALL = 'Marked by its mark scheme where a rule can, otherwise by AI';
 /* the markers `markPart_` (find-marking.js) reads off the typed box: one Check, `qp-check`, for all of them */
 const QT_SCHEME_KINDS = { choice: 1, order: 1, accept: 1, words: 1 };
 /* `ready` is false where the marker has nothing to mark against yet (no key, no scheme): Check says so instead of asking */
 const QT_NO_SCHEME = 'No mark scheme yet \u2014 flag it and we will add one';
 const qtSchemeIn_ = x => !!x && !!String(x.answer || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;|\s+/g, ' ').trim();
+/* IS A MARKER'S SCHEME THERE: options with a key, or an AI part with an answer to mark against; the rest are ready as written. */
+const choiceKeyed_ = x => (Array.isArray(x.choiceRight) ? x.choiceRight.length > 0 : !!x.choiceRight);
+const MARKER_READY = { choice: choiceKeyed_, order: choiceKeyed_, ai: x => qtSchemeIn_(x) };
 function markerOf_(x) {
   let kind = 'ai';
   try { kind = qtMarker_(workRow_(x || {})); } catch (e) { kind = 'ai'; }
   /* options with no key are still options to tap: their Check says the key is missing (never a person) */
-  if (kind !== 'choice' && kind !== 'order' && x && Array.isArray(x.choices) && x.choices.length >= 2) kind = orderIs_(x) ? 'order' : 'choice';
-  let ready = true;
-  if (kind === 'choice' || kind === 'order') ready = Array.isArray(x.choiceRight) ? x.choiceRight.length > 0 : !!x.choiceRight;
+  if (!isChoiceMarker_(kind) && x && Array.isArray(x.choices) && x.choices.length >= 2) kind = orderIs_(x) ? 'order' : 'choice';
   /* NO MARK SCHEME is no accept, key words, cells, options or answer (round 4): an importer's note alone is not a scheme to mark against */
-  if (kind === 'ai') ready = qtSchemeIn_(x);
+  const ready = Object.prototype.hasOwnProperty.call(MARKER_READY, kind) ? MARKER_READY[kind](x) : true;
   const how = ready ? QT_HOW_ALL : QT_NO_SCHEME;
   return { kind, ready, how };
 }
@@ -131,14 +132,15 @@ function qtToolTile_(t, x) {
   /* A CARD DRAWN AGAIN keeps the tool in hand lit, by the one rule `qtLight_` uses too */
   const pk = qtPadKey_(t, x);
   const on = qtToolOn_(t.id, key, pk, qtInHand_(pk));
-  const cls = 'qt-t' + ((t.id === 'ruler' || t.id === 'protractor') ? ' q-meast' : '');
+  const cls = 'qt-t' + (isMeasureTool_(t.id) ? ' q-meast' : '');
   return tile_({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } });
 }
 /* IS THIS TOOL IN HAND, the one rule: Ruler or Protractor laid on a figure (MEAS), the protractor on the pad, the rest the pad's tool */
+/* A MEASURING TOOL NOT LAID ON A FIGURE: the ruler is then out of hand; the protractor may still be on the pad. */
+const MEASURE_ON_PAD = { ruler: () => false, protractor: pk => !!(pk && padProtOn_(pk)) };
 function qtToolOn_(id, key, pk, inHand) {
-  if ((id === 'ruler' || id === 'protractor') && typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === id) return true;
-  if (id === 'ruler') return false;
-  if (id === 'protractor') return !!(pk && padProtOn_(pk));
+  if (isMeasureTool_(id) && typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === id) return true;
+  if (Object.prototype.hasOwnProperty.call(MEASURE_ON_PAD, id)) return MEASURE_ON_PAD[id](pk);
   if (!pk || !inHand) return false;
   return inHand === QT_PAD_TOOL[id];
 }
@@ -188,7 +190,7 @@ function qtRedraw_(card, x) {
   qtPenSet_(x, PEN_OPEN.has(x.key));
   const t = document.createElement('div');
   /* A FIND CARD STAYS IN THE ONE CARD SHAPE when drawn again (owner 1a, 8 Nov). */
-  t.innerHTML = card.classList.contains('kc') && x.kind === 'question' ? findCard(x) : questionCard_(x, card);
+  t.innerHTML = card.classList.contains('kc') && isQ_(x) ? findCard(x) : questionCard_(x, card);
   const next = t.firstElementChild;
   if (!next) return null;
   card.replaceWith(next);

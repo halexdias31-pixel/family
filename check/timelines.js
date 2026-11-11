@@ -13,17 +13,21 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 const work = [], add = (where, say) => work.push({ kind: 'timeline-anim', where, say });
 
 const tls = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'timelines.json'), 'utf8')); } catch (e) { return null; } })();
-const evIds = new Set((JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'timeline.json'), 'utf8')) || []).map(e => e.id));
+const evById = {}; (JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'timeline.json'), 'utf8')) || []).forEach(e => { evById[e.id] = e; });
 if (!tls || !tls.length) add('data/timelines.json', 'missing or empty — run python3 tools/timelines.py');
 (tls || []).forEach(t => {
   if ((t.events || []).length < 5) add(t.id, (t.events || []).length + ' events — five at least');
-  (t.events || []).forEach(e => { if (!evIds.has(e.id)) add(t.id, e.id + ' is no event in data/timeline.json'); if (!Array.isArray(e.px) || e.px.length !== 16) add(t.id, e.id + ' has no 16x16 scene'); });
+  /* EVENTS BY ID ONLY (owner, 11 Nov): the caption and the scene are the event row's, never a copy on the timeline. */
+  (t.events || []).forEach(e => { const ev = evById[e.id];
+    if (!ev) add(t.id, e.id + ' is no event in data/timeline.json');
+    else { if (!Array.isArray(ev.px) || ev.px.length !== 16) add(t.id, e.id + ' has no 16x16 scene on its event row'); if (!String(ev.label || '').trim()) add(t.id, e.id + ' has no caption (label) on its event row'); }
+    const own = Object.keys(e).filter(k => k !== 'id'); if (own.length) add(t.id, e.id + ' keeps its own ' + own.join(', ') + ' — read from the event row'); });
 });
 
 const pick = (page, t) => page.evaluate(t => { const e = [...document.querySelectorAll('#s-stuff [data-do="facet-pick"]')].find(e => (e.querySelector('.k') || e).textContent.trim() === t); if (e) e.click(); return !!e; }, t);
 const asked = page => page.evaluate(() => [...document.querySelectorAll('#s-stuff [data-do="facet-pick"]')].map(e => (e.querySelector('.k') || e).textContent.trim()));
 const rects = (page, key) => page.evaluate(k => { const s = [...document.querySelectorAll('.tl-anim')].find(e => e.getAttribute('data-tl') === k);
-  return s ? [...s.querySelectorAll('.tl-ctl button')].map(b => { const r = b.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top - s.getBoundingClientRect().top), Math.round(r.width)].join(','); }).join(' ') : ''; }, key);
+  return s ? [...(s.closest('.card') || s).querySelectorAll('[data-do^="tl-"]')].filter(b => b.getClientRects().length).map(b => { const r = b.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top - s.getBoundingClientRect().top), Math.round(r.width)].join(','); }).join(' ') : ''; }, key);
 const shown = (page, key) => page.evaluate(k => { const s = [...document.querySelectorAll('.tl-anim')].find(e => e.getAttribute('data-tl') === k); return s ? (s.querySelector('.tl-label') || {}).textContent || '' : ''; }, key);
 
 (async () => {
@@ -57,25 +61,33 @@ const shown = (page, key) => page.evaluate(k => { const s = [...document.querySe
       const ms = await page.evaluate(k => { const x = histTimelines_().find(y => y.key === k), d = document.createElement('div'), t0 = performance.now();
         d.innerHTML = stuffCard(x); document.body.appendChild(d); d.getBoundingClientRect(); const ok = !!d.querySelector('.tl-track .tl-ev'); d.remove();
         return ok ? performance.now() - t0 : -1; }, key);
+      /* THE ANIMATION STANDS WHERE A PICTURE WOULD (owner, 11 Nov): in the card's kc-pic, like an image card's. */
+      const inPic = await page.evaluate(k => { const x = histTimelines_().find(y => y.key === k), d = document.createElement('div'); d.innerHTML = stuffCard(x); return !!d.querySelector('.card.kc > .kc-pic > .tl-anim .tl-track'); }, key);
+      if (!inPic) add(key, 'its animation is not the card\'s picture (.kc-pic)');
       if (ms < 0) add(key, 'its card has no animation stage');
       else if (ms > DRAW_MS) add(key, 'took ' + Math.round(ms) + ' ms to draw (budget ' + DRAW_MS + ')');
     }
     /* TWO WALKED: scrolled to, stepped, played; the tiles must not move. */
     for (const key of keys.slice(0, 2)) {
       const there = await page.evaluate(k => { const s = [...document.querySelectorAll('.tl-anim')].find(e => e.getAttribute('data-tl') === k); if (s) s.scrollIntoView({ block: 'center' }); return !!s; }, key);
-      if (!there) { add(key, 'not drawn in Find under Timelines'); continue; }
+      if (!there) {
+        add(key, 'not drawn in Find under Timelines');
+        /* STILL WALKED, in a host of its own, so the steps and the tiles are proved even while Find does not reach it. */
+        await page.evaluate(k => { const h = document.createElement('div'); h.className = 'card-grid tl-walk'; h.style.cssText = 'position:fixed;inset:0;z-index:99999;overflow:auto;background:var(--bg)';
+          h.innerHTML = stuffCard(histTimelines_().find(y => y.key === k)); document.querySelectorAll('.tl-walk').forEach(o => o.remove()); document.body.appendChild(h); }, key);
+      }
       walked++;
       await wait(400);
       await page.evaluate(() => { if (typeof tlStop_ === 'function') tlStop_(); });
       const r0 = await rects(page, key), s0 = await shown(page, key);
       if (SHOTS && walked === 1) await page.screenshot({ path: path.join(SHOTS, 'tl-1-start.png') });
-      await page.evaluate(k => { const s = [...document.querySelectorAll('.tl-anim')].find(e => e.getAttribute('data-tl') === k); s.querySelector('[data-do="tl-step"][data-by="1"]').click(); }, key);
+      await page.evaluate(k => { const s = [...document.querySelectorAll('.tl-anim')].find(e => e.getAttribute('data-tl') === k); (s.closest('.card') || s).querySelector('[data-do="tl-step"][data-by="1"]').click(); }, key);
       await wait(1100);
       const r1 = await rects(page, key), s1 = await shown(page, key);
       if (s1 === s0) add(key, 'Next did not change the event shown');
       if (r1 !== r0) add(key, 'the controls moved on Next (' + r0 + ' → ' + r1 + ')');
       if (SHOTS && walked === 1) await page.screenshot({ path: path.join(SHOTS, 'tl-2-next.png') });
-      await page.evaluate(k => { const s = [...document.querySelectorAll('.tl-anim')].find(e => e.getAttribute('data-tl') === k); s.querySelector('[data-do="tl-play"]').click(); }, key);
+      await page.evaluate(k => { const s = [...document.querySelectorAll('.tl-anim')].find(e => e.getAttribute('data-tl') === k); (s.closest('.card') || s).querySelector('[data-do="tl-play"]').click(); }, key);
       await wait(5800);
       const r2 = await rects(page, key), s2 = await shown(page, key);
       if (s2 === s1) add(key, 'Play did not move on in 5.8 s');

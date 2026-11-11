@@ -412,7 +412,7 @@ function stuffPages_() {
 
 /* THE ANSWERS WERE ASKED FOR — a chip on the answer pages' own tag — so they are drawn open (`ansOpen_`). */
 function answersAsked_() {
-  return (STUFF.filters || []).some(f => f && (f.field === 'kindLabel' || f.field === 'kindOwn') && !f.any && spellKey_(f.value) === spellKey_(ansKind_()));
+  return chipsOn_(STUFF.filters, 'kindLabel').concat(chipsOn_(STUFF.filters, 'kindOwn')).some(f => !f.any && spellKey_(f.value) === spellKey_(ansKind_()));
 }
 
 /* ---------- THE LAST LINE UNDER A CHOSEN PAPER COUNTS WHAT THE STRIP HOLDS § */
@@ -731,6 +731,7 @@ function accountPages_(col) {
     });
     /* A CHILD'S PHOTOGRAPHED WORKING (501), to the parent they accepted; staff see it on the admin's list below. */
     const more = (f.relation === 'child' && typeof workSeeTile_ === 'function' ? workSeeTile_(f.personId, true) : '')
+      + (f.relation === 'child' && typeof workFileTile_ === 'function' ? workFileTile_(f.personId) : '')
       + (typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '');
     return personMark_(f.personId, personForm_(row) || tcard_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
   };
@@ -755,6 +756,7 @@ function accountPages_(col) {
           label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
           data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
           + (isStudentsCol_(col) && typeof workSeeTile_ === 'function' ? workSeeTile_(p.personId) : '')
+          + (isStudentsCol_(col) && typeof workFileTile_ === 'function' ? workFileTile_(p.personId) : '')
           + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : ''), 'person-tiles') : '')));
 
   /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */

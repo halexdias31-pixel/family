@@ -24,7 +24,7 @@ const MISSING_ID = 'item:stuff:missing-papers';
 const missingFor_ = () => isAdmin() && !(typeof itemGone_ === 'function' && itemGone_(MISSING_ID));
 /* THE PAGE ABOVE FIND'S QUESTION (`FINDERS.stuff.lead`, find.js): an admin's only. */
 /* AND SUGGEST A CHANGE (486), as on Daive's card: one row with the item's tiles (`suggestRowIn_`, submit.js). */
-/* IN FIND, NOT ABOVE IT (owner, 4 Nov): the two cards are Find cards under Site health (find.js `health`); the lead page is empty. */
+/* IN FIND, NOT ABOVE IT (owner, 4 Nov): the two cards are Find cards under the Optimiser (find.js `health`); the lead page is empty. */
 const HEALTH_IN_FIND = true;
 function missingLead_() { return HEALTH_IN_FIND ? [] : missingLeadCards_(); }
 function missingLeadCards_() {
@@ -35,13 +35,13 @@ function missingLeadCards_() {
 }
 const missingLeadN_ = () => HEALTH_IN_FIND ? 0 : (LOGIC_SHOWN && logicFor_() ? 1 : 0) + (missingFor_() ? 1 : 0);
 /* ONE CARD EACH, for Find: `logic` or `missing`, the same markup the lead page drew. */
-/* ONE SCORE (890): `health` is Site health; the Logic health card stays written but is off behind LOGIC_SHOWN. */
+/* ONE SCORE (890): `health` is the Optimiser; the Logic health card stays written but is off behind LOGIC_SHOWN. */
 const LOGIC_SHOWN = false;
 /* SETTINGS CARDS IN FIND BESIDE THE HEALTH ONES, drawn by their own files: the business checker (1050). */
 const HEALTH_MORE_ = { bizcheck: () => (typeof bizCheckCard_ === 'function' ? bizCheckCard_() : '') };
 function healthCardOf_(which) {
   if (HEALTH_MORE_[which]) return HEALTH_MORE_[which]();
-  /* ONE CARD (owner, 6 Nov): Site health holds What's missing too, how complete Find's resources are, under its score. */
+  /* ONE CARD (owner, 6 Nov): the Optimiser holds What's missing too, how complete Find's resources are, under its score. */
   if (which === 'health') { try { return healthWithMissing_(siteHealthCard_(true)); } catch (e) { oops_(e, 'site health'); return ''; } }
   const all = (() => { try { return missingLeadCards_(); } catch (e) { oops_(e, 'health card'); return []; } })();
   const l = LOGIC_SHOWN && logicFor_() ? 1 : 0;
@@ -62,7 +62,7 @@ function siteHealthCard_(raw) {
       .catch(() => { HEALTH.failed = true; })
       .then(() => { try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
   }
-  const s = HEALTH.got, head = '<h3>Site health</h3>';
+  const s = HEALTH.got, head = '<h3>Optimiser worklist</h3>';
   if (!s) return out(`<div class="logic-card">${head}${HEALTH.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/health.js and push.</p>' : loading_()}</div>`);
   const p = s.parts || {}, list = (HEALTH.all ? s.all : s.top) || [];
   const said = { code: 'Code', logic: 'Find logic', ui: 'UI' };

@@ -19,10 +19,8 @@ const isDocument_ = r => !!r && r.kind === 'document';
 /* A form field that is a checkbox; a pointer that holds still (mouse or stylus) (1040). */
 const isCheckbox_ = el => !!el && el.type === 'checkbox';
 const isSteadyPointer_ = c => !!c && (c.type === 'mouse' || c.type === 'pen');
-/* A basket line printed on paper, and a question's marking by AI or by its own words list (1040). */
-const isPrint_ = c => !!c && c.kind === 'print';
-const isAiMark_ = m => !!m && m.kind === 'ai';
-const isWordsMark_ = m => !!m && m.kind === 'words';
-/* A people column by name: the tutors' cards and the students' (1040). */
-const isTutorsCol_ = col => col === 'tutors';
-const isStudentsCol_ = col => col === 'students';
+const isPenPointer_ = c => !!c && c.type === 'pen';
+const isTouchPointer_ = c => !!c && c.type === 'touch';
+/* A file picker, and a hidden field, which holds no typing. */
+const isFileBox_ = el => !!el && el.type === 'file';
+const isHiddenBox_ = el => !!el && el.type === 'hidden';

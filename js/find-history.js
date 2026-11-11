@@ -184,21 +184,25 @@ function histLinks_(r) {
 const histCap_ = s => { const t = String(s || '').trim(); return t ? t[0].toUpperCase() + t.slice(1) : ''; };
 
 /* THE ITEM: Library, on the History shelf, as boxers are on Boxing's. */
+/* EACH HISTORY KIND'S CHIP, LINE AND SHELF; a kind not named reads as a writing kept in a repository.
+   A writing is on the Writings shelf wherever it came from (600). */
+const HIST_KIND_ROW = {
+  event: { chip: 'event', say: 'Events', sub: r => [r.date_text, r.theatre] },
+  manuscript: { chip: 'manuscript', say: 'Manuscripts', sub: r => [r.repository, r.date_text] },
+  writing: { chip: 'writing', say: 'Writings', sub: r => [r.title_original, r.date_text], shelf: () => WRITINGS_SHELF },
+};
+const HIST_KIND_ELSE = { chip: 'writing', say: 'Writings', sub: r => [r.repository, r.date_text] };
 function histItem_(kind, r) {
-  const fig = kind === 'figure';
-  if (fig) return { kind: 'people', hdb: true, name: histName_(r), key: 'hdb:' + r.id, pixId: r.id, image: '', sub: '', histKind: labelOf_('hist-kind', 'figure', 'People'),
+  if (kind === 'figure') return { kind: 'people', hdb: true, name: histName_(r), key: 'hdb:' + r.id, pixId: r.id, image: '', sub: '', histKind: labelOf_('hist-kind', 'figure', 'People'),
     born: personYear_(r.born_year), died: personYear_(r.died_year), from: r.born_place || '', roles: histList_(r.roles),
     shelf: 'History', subject: 'History', text: plainText_(Object.keys(r).map(k => r[k]).join(' ')), row: r };
-  const life = fig ? [histYear_(r.born_year), histYear_(r.died_year)] : [];
-  const span = fig ? (life[0] || life[1] ? (life[0] || '?') + '–' + (life[1] || '?') : '') : r.date_text;
-  const ev = kind === 'event';
+  const K = Object.prototype.hasOwnProperty.call(HIST_KIND_ROW, kind) ? HIST_KIND_ROW[kind] : HIST_KIND_ELSE;
   return {
     kind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, image: '',
-    sub: (ev ? [span, r.theatre] : [fig ? span : kind === 'writing' ? r.title_original : r.repository, fig ? histList_(r.roles)[0] : span]).filter(Boolean).join(' · '),
-    histKind: labelOf_('hist-kind', kind === 'manuscript' || ev ? kind : 'writing', kind === 'manuscript' ? 'Manuscripts' : ev ? 'Events' : 'Writings'),
-    /* A WRITING IS ON THE WRITINGS SHELF WHEREVER IT CAME FROM (600): History › Shelf no longer splits the written works in two. */
-    shelf: kind === 'writing' ? WRITINGS_SHELF : 'History', subject: 'History',
-    text: plainText_(Object.keys(r).map(k => r[k]).join(' ')),
+    sub: K.sub(r).filter(Boolean).join(' · '),
+    histKind: labelOf_('hist-kind', K.chip, K.say),
+    shelf: K.shelf ? K.shelf() : 'History', subject: 'History',
+    text: plainText_(Object.keys(r).filter(k => k !== 'px').map(k => r[k]).join(' ')),
     row: r,
   };
 }
@@ -531,7 +535,7 @@ function bibleLoad_(n, dir) {
 /* ---------- THE CHOSEN BOOK, ASKED FOR BEFORE ITS VERSES ARE DRAWN (docs/history/341) § */
 function bibleChosen_() {
   const st = FINDERS.stuff === FINDER ? STUFF : FINDERS.stuff.st;
-  const f = (st.filters || []).find(x => x.field === 'wBook' && x.value != null);
+  const f = chipsOn_(st.filters, 'wBook').find(x => x.value != null);
   if (!f || !BIBLE.rank || !BIBLE.rank.b) return 0;
   return BIBLE.rank.b[spellKey_(f.value)] || 0;
 }
@@ -539,7 +543,7 @@ function bibleChosen_() {
 function bibleChosenDir_() {
   const st = FINDERS.stuff === FINDER ? STUFF : FINDERS.stuff.st;
   /* BY THE LANGUAGE AND THE TRANSLATION CHOSEN (546), either or both: an original text (the Septuagint) is its language alone. */
-  const f = (st.filters || []).find(x => x.field === 'wText' && x.value != null), l = (st.filters || []).find(x => x.field === 'wLanguage' && x.value != null);
+  const f = chipsOn_(st.filters, 'wText').find(x => x.value != null), l = chipsOn_(st.filters, 'wLanguage').find(x => x.value != null);
   const t = (f || l) && BIBLE.index ? bibleTrs_(BIBLE.index).find(t => {
     const said = writingText_(writingTextOf_(t.tr));
     return (!f || writingVersionOf_(said) === f.value) && (!l || writingLanguageOf_(said) === l.value);
@@ -724,16 +728,23 @@ function policyView_(u, host, name) {
     .catch(() => { page.innerHTML = `<p class="note">This policy could not be loaded. <a href="${esc(u)}">Open it</a>.</p>`; });
   return true;
 }
+/* HOW EACH KIND OF FILE IS SHOWN in place; anything else is framed. A YouTube link is framed by its no-cookie embed. */
+const fileFrame_ = (u, name) => `<iframe class="file-view-f" src="${esc(u)}" title="${name}" loading="lazy" allow="encrypted-media; picture-in-picture"></iframe>`;
+const FILE_VIEW_BODY = {
+  video: u => `<video class="file-view-v" src="${esc(u)}" controls playsinline preload="metadata"></video>`,
+  image: (u, name) => `<img class="file-view-i" src="${esc(u)}" alt="${name}">`,
+  youtube: (u, name) => {
+    const yt = (/[?&]v=([\w-]{6,})/.exec(u) || /youtu\.be\/([\w-]{6,})/.exec(u) || [])[1];
+    return fileFrame_(yt ? 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(yt) + '?playsinline=1' : u, name);
+  },
+};
 function fileView_(u, host, title) {
   if (!host || !/^(https:\/\/|data\/|docs\/policies\/)/.test(String(u || ''))) return false;
   const had = host.querySelector(':scope > .file-view');
   if (had) { const same = had.getAttribute('data-url') === u; had.remove(); if (same) return true; }
   if (policyName_(u)) return policyView_(u, host, policyName_(u));
   const kind = fileViewKind_(u), name = esc(title || 'File');
-  const yt = kind === 'youtube' ? (/[?&]v=([\w-]{6,})/.exec(u) || /youtu\.be\/([\w-]{6,})/.exec(u) || [])[1] : '';
-  const body = kind === 'video' ? `<video class="file-view-v" src="${esc(u)}" controls playsinline preload="metadata"></video>`
-    : kind === 'image' ? `<img class="file-view-i" src="${esc(u)}" alt="${name}">`
-    : `<iframe class="file-view-f" src="${esc(yt ? 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(yt) + '?playsinline=1' : u)}" title="${name}" loading="lazy" allow="encrypted-media; picture-in-picture"></iframe>`;
+  const body = (Object.prototype.hasOwnProperty.call(FILE_VIEW_BODY, kind) ? FILE_VIEW_BODY[kind] : fileFrame_)(u, name);
   const box = document.createElement('div');
   box.className = 'file-view file-view-' + kind;
   box.setAttribute('data-url', u);

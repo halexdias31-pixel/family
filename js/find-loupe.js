@@ -263,7 +263,7 @@ function padLand_(e, ink, k) {
   if (isSteadyPointer_(c)) {
     PAD_GO.est = true;
     /* A STYLUS: every touch already down, and every one to come, is the hand holding it. */
-    if (c.type === 'pen') { PAD_GO.pen = true; PAD_TOUCH.forEach(x => { if (x !== c) x.role = 'rest'; }); }
+    if (isPenPointer_(c)) { PAD_GO.pen = true; PAD_TOUCH.forEach(x => { if (x !== c) x.role = 'rest'; }); }
     return;
   }
   const young = [];

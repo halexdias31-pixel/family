@@ -12,24 +12,34 @@ const LAW_CLASS = {
 };
 
 /** The lists a `kind: list` law can name. Each is read fresh, so adding a subject colours it. */
+const LAW_LISTS = {
+  subjects: () => [],
+  tutors: d => (d.tutors || []).map(t => t.title),
+  venues: d => (d.venues || []).map(v => v.title),
+  /* THE FAMILIES IN THE SESSIONS THIS PHONE CAN SEE. § */
+  clients: d => [...new Set((d.liveJobs || d.jobs || []).flatMap(j => (j.slots || []).map(s => s && s.client)).filter(Boolean))],
+  /* Everything in the shop that is worn rather than posted. § */
+  wearables: d => (d.shop || []).filter(isWearable).map(x => x.name),
+};
+LAW_LISTS.wearable = LAW_LISTS.wearables;
 function lawList(name) {
-  const d = DATA || {};
-  switch (norm(name)) {
-    case 'subjects': return [];
-    case 'tutors':   return (d.tutors || []).map(t => t.title);
-    case 'venues':   return (d.venues || []).map(v => v.title);
-    /* THE FAMILIES IN THE SESSIONS THIS PHONE CAN SEE. § */
-    case 'clients':  return [...new Set((d.liveJobs || d.jobs || [])
-                       .flatMap(j => (j.slots || []).map(s => s && s.client))
-                       .filter(Boolean))];
-    /* Everything in the shop that is worn rather than posted. § */
-    case 'wearables':
-    case 'wearable': return (d.shop || []).filter(isWearable).map(x => x.name);
-    default:         return [];
-  }
+  const f = Object.prototype.hasOwnProperty.call(LAW_LISTS, norm(name)) ? LAW_LISTS[norm(name)] : null;
+  return f ? f(DATA || {}) : [];
 }
 
 const rxSafe = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/* HOW EACH KIND OF LAW FINDS ITS WORDS in escaped text; `wrap` parks a match as coloured. */
+const LAW_KINDS = {
+  /* The symbol and the word after it, and only when the symbol starts a word — so an email address is not read as four @names. */
+  prefix: (out, law, wrap) => out.replace(new RegExp('(^|[\\s(])(' + rxSafe(law.match) + '[\\w-]+)', 'g'), (all, before, hit) => before + wrap(hit)),
+  /* Longest first, so "Further Maths" wins over "Maths" — otherwise the longer name is coloured in two halves with a gap in the middle. */
+  list: (out, law, wrap) => lawList(law.match).filter(Boolean).map(String).sort((a, b) => b.length - a.length)
+    .reduce((o, word) => o.replace(new RegExp('\\b' + rxSafe(esc(word)) + '\\b', 'gi'), wrap), out),
+  word: (out, law, wrap) => out.replace(new RegExp('\\b' + rxSafe(esc(law.match)) + '\\b', 'gi'), wrap),
+  /* A bad pattern in a spreadsheet cell must not take the screen down with it. */
+  regex: (out, law, wrap) => { try { return out.replace(new RegExp(law.match, 'g'), wrap); } catch (e) { return out; } },
+};
 
 /**
  * ESCAPE, then colour. The only function that should ever put user text on screen.
@@ -52,30 +62,8 @@ function mark(text) {
     if (cls === undefined) return;                 // a colour nobody has defined: left alone
     const wrap = m => park(`<span class="${cls}">${m}</span>`);
 
-    if (law.kind === 'prefix') {
-      const p = rxSafe(law.match);
-      /* The symbol and the word after it, and only when the symbol starts a word — so an email
-         address is not read as four @names. */
-      out = out.replace(new RegExp('(^|[\\s(])(' + p + '[\\w-]+)', 'g'),
-                        (all, before, hit) => before + wrap(hit));
-
-    } else if (law.kind === 'list') {
-      /* Longest first, so "Further Maths" wins over "Maths" — otherwise the longer name is
-         coloured in two halves with a gap in the middle. */
-      lawList(law.match)
-        .filter(Boolean).map(String)
-        .sort((a, b) => b.length - a.length)
-        .forEach(word => {
-          out = out.replace(new RegExp('\\b' + rxSafe(esc(word)) + '\\b', 'gi'), wrap);
-        });
-
-    } else if (law.kind === 'word') {
-      out = out.replace(new RegExp('\\b' + rxSafe(esc(law.match)) + '\\b', 'gi'), wrap);
-
-    } else if (law.kind === 'regex') {
-      /* A bad pattern in a spreadsheet cell must not take the screen down with it. */
-      try { out = out.replace(new RegExp(law.match, 'g'), wrap); } catch (e) { /* ignore */ }
-    }
+    const how = Object.prototype.hasOwnProperty.call(LAW_KINDS, law.kind) ? LAW_KINDS[law.kind] : null;
+    if (how) out = how(out, law, wrap);
   });
 
   return out.replace(/\u0000(\d+)\u0000/g, (all, i) => parked[i]);

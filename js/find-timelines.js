@@ -1,8 +1,9 @@
 /* @family. — js/find-timelines.js THE TIMELINES (1040 batch F): each one an animation panning from event to event; after find-history.js. */
 /* THE TIMELINES (batch F): one item per row of data/timelines.json (tools/timelines.py), its events by id from data/timeline.json. */
 const histTimelineKey_ = id => 'hdb:tl:' + String(id).toLowerCase().replace(/^tl-/, '').replace(/[^a-z0-9]+/g, '-');
-/* A ROW'S EVENTS, in its own order: the event row (the one source of the facts), its caption and its scene. */
-const tlStops_ = t => (t.events || []).map(s => ({ ev: histRow_(s.id), label: String(s.label || ''), px: s.px })).filter(s => s.ev);
+/* A ROW'S EVENTS BY ID ONLY (owner, 11 Nov: a compilation of the event items): caption and scene are the event row's own. */
+const tlStops_ = t => (t.events || []).map(s => histRow_(typeof s === 'string' ? s : (s || {}).id)).filter(Boolean)
+  .map(ev => ({ ev: ev, label: String(ev.label || ev.name || ''), px: Array.isArray(ev.px) ? ev.px : [] }));
 let TL_MEMO = { rows: null, items: [] };
 function histTimelines_() {
   const rows = (typeof DATA !== 'undefined' && DATA && DATA.timelines) || [];
@@ -51,34 +52,32 @@ function tlGeom_(x) {
   return { at: at, lo: lo, hi: hi, wide: wide, pct: v => (v - lo) / (hi - lo) * 100, unit: t.unit || 'year', win: win };
 }
 const tlShift_ = (g, i) => (50 / g.wide - g.pct(g.at[i])).toFixed(3);
-/* ONE CONTROL ROW, the same three tiles in the same places whatever is shown; step mode when motion is not wanted. */
+/* THE CARD'S OWN BUTTONS (one template): Play leads its row, Back and Next wait behind ⋯; the same tiles whatever is shown. */
 function tlTiles_(key, i, n) {
   const playing = TL_PLAY.key === key && !!TL_PLAY.timer;
-  return tile_({ icon: 'left', label: 'Back', act: 'tl-step', data: { key, by: -1 }, off: i === 0 })
-    + tile_({ icon: playing ? 'pause' : 'play', label: playing ? 'Pause' : 'Play', act: 'tl-play', data: { key }, pressed: playing })
+  return tile_({ icon: playing ? 'pause' : 'play', label: playing ? 'Pause' : 'Play', act: 'tl-play', data: { key }, pressed: playing })
+    + tile_({ icon: 'left', label: 'Back', act: 'tl-step', data: { key, by: -1 }, off: i === 0 })
     + tile_({ icon: 'right', label: 'Next', act: 'tl-step', data: { key, by: 1 }, off: i === n - 1 });
 }
-/* THE STAGE, drawn when the card is: the scene, the controls fixed under it, and the panning axis of small scenes. */
+/* THE STAGE, drawn when the card is: the scene over the panning axis of small scenes, the card's picture (kc-pic) like an image card's. */
 function tlStage_(x) {
   const stops = x.row.stops, n = stops.length;
   if (!n) return '';
   const key = x.key, i = Math.min(TL_AT[key] || 0, n - 1), g = tlGeom_(x);
   const ticks = tlTicks_(g.lo, g.hi, g.win, g.unit).map(k => `<span class="tl-tick" style="left:${g.pct(k.v).toFixed(3)}%"><i>${esc(k.say)}</i></span>`).join('');
   const dots = stops.map((s, k) => `<span class="tl-ev${k === i ? ' on' : k < i ? ' past' : ''}" style="left:${g.pct(g.at[k]).toFixed(3)}%">${pixSvg_(s.px, '', false, ' tl-mini')}</span>`).join('');
-  /* THE AXIS IS LAST so the card's own row (share, star…) does not join the controls' (489): three tiles, one line, never wrapping. */
   return `<div class="tl-scene" aria-live="polite">${tlScene_(stops[i])}</div>
-    <div class="tile-row tl-ctl">${tlTiles_(key, i, n)}</div>
     <div class="tl-view"><div class="tl-track" style="width:${(g.wide * 100).toFixed(2)}%;transform:translateX(${tlShift_(g, i)}%)">${ticks}${dots}</div><span class="tl-pin"></span></div>`;
 }
 function histTimelineCard_(x) {
   setTimeout(() => tlAuto_(x.key), 700);
-  /* PICTURE FIRST (owner's look rule): the stage, then the tags. */
-  /* THE ONE CARD (owner, 9 Nov): its name a tag (the heading), a line closed; the stage shows open. */
-  const n = ((x.row && x.row.stops) || []).length;
-  return `<div class="fc hdb hdb-tl lib-c" aria-label="${esc(x.name)}"><h3>${esc(x.name)}</h3>
-    <p class="tl-say">${n} event${n === 1 ? '' : 's'}, one at a time</p>
-    <section class="fc-sec tl-anim" data-tl="${esc(x.key)}">${tlStage_(x)}</section>
+  /* THE ANIMATION IS THE PICTURE (owner, 11 Nov): `tl-art` makes it the card's kc-pic; its controls join the card's one row. */
+  const stops = (x.row && x.row.stops) || [], n = stops.length;
+  return `<div class="fc hdb hdb-tl lib-c" aria-label="${esc(x.name)}">
+    <section class="fc-sec tl-anim tl-art" data-tl="${esc(x.key)}">${tlStage_(x)}</section><h3>${esc(x.name)}</h3>
     ${tagRow_(x)}
+    <p class="tl-say">${n} event${n === 1 ? '' : 's'}, one at a time</p>
+    <div class="tile-row">${n ? tlTiles_(x.key, Math.min(TL_AT[x.key] || 0, n - 1), n) : ''}</div>
   </div>`;
 }
 
@@ -91,15 +90,15 @@ function tlPaint_(key) {
   const stops = x.row.stops, n = stops.length, i = Math.min(TL_AT[key] || 0, n - 1), g = tlGeom_(x);
   document.querySelectorAll('.tl-anim').forEach(s => {
     if (s.getAttribute('data-tl') !== key) return;
-    const tr = s.querySelector('.tl-track'), sc = s.querySelector('.tl-scene'), ctl = s.querySelector('.tl-ctl');
-    if (!tr || !sc || !ctl) { s.innerHTML = tlStage_(x); return; }
+    const tr = s.querySelector('.tl-track'), sc = s.querySelector('.tl-scene'), ctl = s.closest('.card') || s;
+    if (!tr || !sc) { s.innerHTML = tlStage_(x); return; }
     tr.style.transform = 'translateX(' + tlShift_(g, i) + '%)';
     tr.querySelectorAll('.tl-ev').forEach((d, k) => { d.classList.toggle('on', k === i); d.classList.toggle('past', k < i); });
     if (sc.getAttribute('data-i') !== String(i)) { sc.setAttribute('data-i', i); sc.innerHTML = tlScene_(stops[i]); }
-    /* IN PLACE, NOT REDRAWN: the card's own extras share this row, and a tile that is not swapped cannot move. */
+    /* IN PLACE, NOT REDRAWN: the card's own row holds these tiles, and a tile that is not swapped cannot move. */
     const tmp = document.createElement('div'); tmp.innerHTML = tlTiles_(key, i, n);
     [...tmp.querySelectorAll('button')].forEach(b => {
-      const same = [...ctl.querySelectorAll('[data-do="' + b.getAttribute('data-do') + '"]')].find(o => o.getAttribute('data-by') === b.getAttribute('data-by'));
+      const same = [...ctl.querySelectorAll('[data-do="' + b.getAttribute('data-do') + '"][data-key="' + key + '"]')].find(o => o.getAttribute('data-by') === b.getAttribute('data-by'));
       if (same && same.outerHTML !== b.outerHTML) same.replaceWith(b);
     });
   });

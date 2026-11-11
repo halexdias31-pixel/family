@@ -34,6 +34,7 @@
  },
  {
   "screen": "reel",
+  "in_find": "TRUE",
   "label": "Reels",
   "icon": "▶",
   "active": "TRUE",
@@ -42,6 +43,7 @@
  },
  {
   "screen": "dm",
+  "soon_kind": "msg",
   "label": "DMs",
   "icon": "✉",
   "active": "TRUE",
