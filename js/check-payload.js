@@ -110,7 +110,7 @@ scanLiteral(gs).forEach(([k, mark]) => {
 for (const m of gs.matchAll(/\bpayload\s*\.\s*([A-Za-z_][\w]*)/g)) sent.add(m[1]);
 
 /* AND WHAT A COMMITTED SETTINGS FILE SENDS (830): `settingsInto_` writes `d.key` from `extra['settings/<name>']`, sent when data/settings/<name>.json is in the repo. */
-const SETTINGS_SRC = decomment(fs.readFileSync(path.join(__dirname, 'settings.js'), 'utf8'));
+const SETTINGS_SRC = decomment(require('../tools/piece-src.js').pieceSrc('settings', path.join(__dirname, '..')));
 const SENT_BY_FILE = [];
 SETTINGS_SRC.split(/(?=extra\['settings\/)/).forEach(seg => {
   const f = /^extra\['settings\/([\w-]+)'\]/.exec(seg);

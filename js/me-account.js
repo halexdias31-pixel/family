@@ -707,6 +707,8 @@ on('reg-send', el => {
   /* THROUGH `send_`, so the button spins, the four boxes lock while it is on the wire (`#sheet-body` is one of the boxes `send_` knows to lock) and a refusal § */
   const body = { action: 'register', who, first_name: first, last_name: last, pin };
   if (kid) body.parent_email = email; else body.email = email;
+  /* A FLYER'S SOURCE TAG (`?from=flyer-…`, flyer.js) goes with it, so `came_from` says which flyer brought them. */
+  const from = typeof cameFrom_ === 'function' ? cameFrom_() : ''; if (from) body.from = from;
   send_(body, { button: el, busy: 'Making it…' })
     .then(d => {
       ['first', 'last', 'email'].forEach(f => { try { draftDrop_('reg', f); } catch (e) { oops_(e, 'me:registerCard_') } });

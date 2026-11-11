@@ -29,6 +29,8 @@ function inboxHtml_() {
 
 /* THE CARD ON SITE (500): the owner asked for it there, beside the weekly email, not in Tools. Drawn with what is already known; initInbox asks. */
 function inboxCard_() {
+  /* THE CARD ASKS FOR ITSELF WHEN DRAWN, wherever it is drawn (Find › Settings, not only its old column). */
+  if (!INBOX_.rows.length && !INBOX_.busy) setTimeout(() => { try { initInbox(); } catch (e) {} }, 0);
   return card_(`<div class="biz inbox-card">
     <h3>Email</h3>
     <div class="ib-box" id="ib-box">${inboxHtml_()}</div>

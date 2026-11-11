@@ -36,12 +36,12 @@ function seeded(opts) {
     P('P-S3', 'Cal', 'Alone', 'student', 's3@example.org'),
     P('P-S4', 'Dee', 'Nomail', 'student', 's4@example.org'),
     P('P-S5', 'Eve', 'Quiet', 'student', 's5@example.org'),
-    P('P-C1', 'Pat', 'Parent', 'client', 'pat@example.org'),
+    P('P-C1', 'Pat', 'Parent', 'client', 'pat@example.org', { weekly_email: 'yes' }),
     P('P-C2', 'Pam', 'Parent', 'client', 'pam@example.org', { weekly_email: 'no' }),
-    P('P-C3', 'Peg', 'Pending', 'client', 'peg@example.org'),
-    P('P-C4', 'Rex', 'Refused', 'client', 'rex@example.org'),
-    P('P-C5', 'Bo', 'Other', 'client', 'bo@example.org'),
-    P('P-C6', 'Nan', 'Noaddress', 'client', ''),
+    P('P-C3', 'Peg', 'Pending', 'client', 'peg@example.org', { weekly_email: 'yes' }),
+    P('P-C4', 'Rex', 'Refused', 'client', 'rex@example.org', { weekly_email: 'yes' }),
+    P('P-C5', 'Bo', 'Other', 'client', 'bo@example.org', { weekly_email: 'yes' }),
+    P('P-C6', 'Nan', 'Noaddress', 'client', '', { weekly_email: 'yes' }),
     P('P-C7', 'Yes', 'Please', 'client', 'yes@example.org', { weekly_email: 'yes' }),
   ]);
   const L = (n, parent, child, state) => ({ link_id: 'L' + n, parent_id: parent, child_id: child, child_typed: '', state: state });
@@ -1088,7 +1088,7 @@ function markWorld(opts) {
     throw new Error('no network: ' + url);
   } };
   const base = { pin: '0000', verified: 'TRUE', city: 'London' };
-  const P = (id, first, last, role, email, handle) => Object.assign({ person_id: id, first_name: first, last_name: last, handle: handle,
+  const P = (id, first, last, role, email, handle) => Object.assign({ person_id: id, first_name: first, last_name: last, handle: handle, weekly_email: role === 'client' ? 'yes' : '',
     email: email, role: role }, base);
   b.seed('people', [
     P('P-K1', 'Kit', 'Example', 'student', 'kit.e@example.org', 'ke_bright_42'),
@@ -1441,7 +1441,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     const w = markWorld();
     const SC = w.b.ev('SCHEMA');
     const grid = (name, rows) => [SC[name].slice()].concat(rows.map(o => SC[name].map(c => (o[c] === undefined ? '' : o[c]))));
-    const P = (id, first, last, role, email) => ({ person_id: id, first_name: first, last_name: last, role: role, email: email, handle: (first + '_x_1').toLowerCase(), pin: '0000', verified: 'TRUE' });
+    const P = (id, first, last, role, email) => ({ person_id: id, first_name: first, last_name: last, role: role, email: email, handle: (first + '_x_1').toLowerCase(), pin: '0000', verified: 'TRUE', weekly_email: role === 'client' ? 'yes' : '' });
     const dump = { ledger: {
       people: grid('people', [P('P-K1', 'Kit', 'Example', 'student', 'kit.e@example.test'), P('P-P1', 'Pat', 'Example', 'client', 'pat@example.test')]),
       family: grid('family', [{ link_id: 'F1', parent_id: 'P-P1', child_id: 'P-K1', state: 'accepted' }]),
