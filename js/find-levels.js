@@ -731,6 +731,7 @@ function accountPages_(col) {
     });
     /* A CHILD'S PHOTOGRAPHED WORKING (501), to the parent they accepted; staff see it on the admin's list below. */
     const more = (f.relation === 'child' && typeof workSeeTile_ === 'function' ? workSeeTile_(f.personId, true) : '')
+      + (f.relation === 'child' && typeof workFileTile_ === 'function' ? workFileTile_(f.personId) : '')
       + (typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '');
     return personMark_(f.personId, personForm_(row) || tcard_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
   };
@@ -755,6 +756,7 @@ function accountPages_(col) {
           label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
           data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
           + (isStudentsCol_(col) && typeof workSeeTile_ === 'function' ? workSeeTile_(p.personId) : '')
+          + (isStudentsCol_(col) && typeof workFileTile_ === 'function' ? workFileTile_(p.personId) : '')
           + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : ''), 'person-tiles') : '')));
 
   /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */

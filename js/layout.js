@@ -520,6 +520,7 @@ const adminKeep_ = (c, id) => !adminCol_(c) || adminCol_(cardHome0_(id)) || !(ty
 const CARD_REG = [
   { id: 'acct:signed-in', col: 'account', label: 'Signed in', re: /^<div class="card signed-in"/, say: 'Sign in, or who is signed in on this phone and Sign out.' },
   { id: 'acct:brownie', col: 'account', label: 'Brownie points', re: /^<div class="card soon-card soon-brownie/, say: 'A placeholder: points for good work.' },
+  { id: 'acct:workfile', col: 'account', label: 'Work on file', re: /^<div class="card [^"]*\bworkfile-card\b/, say: 'Pages you scanned or photographed, kept on your account.' },
   { id: 'acct:roadmap', col: 'account', label: 'Roadmap', re: /^<div class="card soon-card soon-roadmap/, say: 'A placeholder: how much of the syllabus is left.' },
   { id: 'acct:conduct', col: 'account', label: 'Code of conduct', re: /^<div class="card soon-card soon-conduct/, say: 'A placeholder: the code of conduct.' },
   { id: 'acct:pin', col: 'account', label: 'Signing in', re: /data-do="pin-save"/, only: 'your PIN', say: 'Change the PIN you sign in with.' },

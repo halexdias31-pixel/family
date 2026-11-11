@@ -4641,6 +4641,18 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .work-seen { margin: var(--s2) var(--s3); font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); }
 .work-seen-row + .work-seen-row { margin-top: var(--s2); }
 .work-seen-say { margin: 0 0 var(--s1); }
+/* WORK ON FILE: the scanned pages on a student's account, newest first, centred like every card. */
+.wf-seen { margin: var(--s2) var(--s3); text-align: center; font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); }
+.workfile-card .qp-work-pics, .wf-seen .qp-work-pics, .wf-seen .tile-row { justify-content: center; }
+.wf-line { display: block; margin: var(--s2) auto 0; max-width: 20rem; }
+.wf-line input { display: block; width: 100%; margin-top: var(--s1); }
+.wf-say:empty { display: none; }
+.wf-rows { list-style: none; margin: var(--s2) 0 0; padding: 0; }
+.wf-row { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) 0; border-top: 1px solid var(--line); text-align: left; }
+.wf-thumb { flex: none; width: 3rem; height: 4rem; object-fit: cover; border: 1px solid var(--line); border-radius: var(--r-ui); }
+.wf-what { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.wf-name { overflow-wrap: anywhere; }
+.wf-page { display: block; max-width: 100%; margin: 0 auto var(--s2); border: 1px solid var(--line); }
 
 /* THE ANSWER, WAITING -- FOR EVERYBODY. § */
 .qans-tiles { margin-top: var(--s4); }

@@ -684,7 +684,7 @@ const FINDER_TAGS = {
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[17,8,15,9,8,12,5],41,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[28732,251333,24,2,1,5,10,28,5],280139,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
-  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[19,9,17,9,8],28,["Student","Parent","Staff","Apprentice","Admin"]]
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[28732,251333,24,2,1,5,10,29,5],280140,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
+  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[20,9,18,9,8],29,["Student","Parent","Staff","Apprentice","Admin"]]
 }
 }};
