@@ -1,6 +1,7 @@
 /* @family. — a phone app. § */
 
 :root {
+  --measure: 70ch;   /* the reading measure: ~70 characters a line, the one width text and cards are held to */
   /* WHICH STYLESHEET THIS IS. § */
   --css-version: "2026-11-04-900";
 
@@ -1494,7 +1495,9 @@ html.flow .page { width: 100%; min-width: 0; }
 .card-grid > * { break-inside: avoid; margin-bottom: var(--card-gap); }
 /* WHAT IS NOT A CARD IN THE LIST — the menu, chips, answers, a form — runs across every column. */
 .card-grid > :not(.is-res), .card-grid > :has(.kc-form, .kc-bookform, .book-form-door, form, .me-form) { column-span: all; }
-.card-grid :is(p, li, .qtext, .doc, form, .me-form) { max-width: 70ch; }
+.card-grid :is(p, li, .qtext, .doc, form, .me-form) { max-width: var(--measure); }
+/* A CARD IS NO WIDER THAN ITS READING MEASURE (owner, 11 Nov: a card stretched edge to edge is hard on the eyes): ~70 characters a line, the typographic norm. */
+.card-grid > * { max-width: calc(var(--measure) + 2 * var(--s4)); margin-inline: auto; }
 /* A LIST, NOT CARDS (owner, 4 Nov): no frame per result, a hairline between rows, the tags one small line. */
 html.flow .pane { max-height: none; touch-action: auto; background: none; border: 0; border-radius: 0; box-shadow: none; padding-inline: 0; }
 html.flow #screen .page + .page { border-top: 1px solid var(--line); }
