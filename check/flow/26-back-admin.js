@@ -708,6 +708,32 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   const tools = [...host.querySelectorAll('.qt-row .qt-t:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(e => e.getAttribute('data-tool'));
   /* THE ONE TOOL ROW'S ORDER (owner, 8 Nov, 7a): Ruler and Protractor in QT_ROW, then the pen's tiles a figure adds. */
   if (tools.join() !== 'ruler,protractor,pen,line,compass') bad.push('the drawn part ' + pick.drawn.row.row_id + ' has the tools ' + JSON.stringify(tools) + ', not ruler, protractor, pen, straight line, compass');
+  /* THE CALCULATOR (owner, 11 Nov): on a part its paper allows one, never on a Non-calculator part, and its sums come out right */
+  const needOf = v => all.find(x => (x.needs || []).indexOf(v) >= 0);
+  const calcYes = needOf('Calculator allowed'), calcNo = needOf('Non-calculator');
+  if (!calcYes || !calcNo) bad.push('no Calculator-allowed or no Non-calculator part in the library to hold the Calculator against');
+  else {
+    host.innerHTML = whole(calcYes);
+    const ct = host.querySelector('.qt-row [data-do="qt-calc"]');
+    if (!ct) bad.push('the calculator-allowed part ' + calcYes.row.row_id + ' has no Calculator tile');
+    else {
+      A['qt-calc'](ct);
+      const pad = host.querySelector('.qcalc');
+      if (!pad) bad.push('the Calculator tile opened no calculator');
+      else {
+        const press = seq => { seq.forEach(v => { const b = [...pad.querySelectorAll('[data-do="qcalc-key"]')].find(e => e.getAttribute('data-v') === v); if (b) A['qcalc-key'](b); else bad.push('the calculator has no ' + v + ' key'); }); return (pad.querySelector('.qcalc-res') || {}).textContent; };
+        [[['!ac', '2', '+', '3', '\u00d7', '4', '!eq'], '14'], [['!ac', '\u221a(', '1', '6', '!eq'], '4'], [['!ac', '3', '\u00b2', '!eq'], '9'],
+          [['!ac', 'sin(', '3', '0', ')', '!eq'], '0.5'], [['!ac', '(', '1', '+', '2', ')', '\u00f7', '4', '!eq'], '0.75']].forEach(([seq, want]) => {
+          const got = press(seq);
+          if (got !== want) bad.push('the calculator made ' + JSON.stringify(got) + ' of ' + seq.slice(1, -1).join(' ') + ', wanted ' + want);
+        });
+      }
+      A['qt-calc'](ct);
+      if (host.querySelector('.qcalc')) bad.push('the Calculator tile pressed again left the calculator open');
+    }
+    host.innerHTML = whole(calcNo);
+    if (host.querySelector('[data-do="qt-calc"]')) bad.push('the Non-calculator part ' + calcNo.row.row_id + ' shows a Calculator tile');
+  }
   /* A TYPED PART WITH A FIGURE MEASURES IT: Protractor and Ruler, without the word "measure" */
   host.innerHTML = whole(pick.typed);
   const meas = [...host.querySelectorAll('.q-meast')].map(e => e.getAttribute('data-tool'));

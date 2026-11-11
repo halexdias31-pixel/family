@@ -4662,6 +4662,16 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 /* THE ONE TOOL ROW (round 3, qtools.js): every tool on every part, in one order, all drawn from the start on a phone too (1020). */
 .qt-row { margin-top: var(--s2); }
 .qt-tools { display: contents; }
+/* THE CALCULATOR (qtools.js): a centred panel under the part's row; its keys are a form's buttons, a fingertip each */
+.qcalc { box-sizing: border-box; width: 100%; max-width: 22rem; margin: var(--s3) auto 0; padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r-ui); background: var(--raised); }
+.qcalc-out { display: flex; flex-direction: column; align-items: flex-end; min-height: var(--tap); padding: var(--s2) var(--s3); border: 1px solid var(--line); border-radius: var(--r-ui); overflow-x: auto; color: var(--ink); }
+.qcalc-in { white-space: nowrap; font-size: var(--fs-small); }
+.qcalc-res { font-size: var(--fs-title); font-weight: 600; }
+.qcalc-keys { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--s1); margin-top: var(--s2); }
+.qcalc-k { min-height: var(--tap); padding: 0; font-family: inherit; border: 1px solid var(--line); border-radius: var(--r-ui); background: var(--bg); color: var(--ink); font-size: var(--fs-body); }
+.qcalc-k.is-op { color: var(--gold); }
+.qcalc-k.is-eq { background: var(--gold); color: var(--on-gold); }
+.qcalc-k.is-w2 { grid-column: span 2; }
 /* HOW THIS PART WILL BE MARKED, one short line under its Check: never a person (markerOf_, qtools.js) */
 /* HOW A PART IS MARKED IS A TAG (owner, 8 Nov: no grey sentences), on its own line under the tool row. */
 .qt-tags { margin: var(--s1) 0 0; }

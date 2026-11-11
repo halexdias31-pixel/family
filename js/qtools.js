@@ -3,7 +3,7 @@
 
 /* ---------- THE REGISTRY: what each tool is called, the act its tile carries, and how it opens, closes, saves and restores. */
 /* `open`/`close` take the card and the part; `save`/`restore` read and write the part's one record (`partRec_`). */
-/* THE OWNER'S ROW (round 4): no Calculator, Grid, Table or Formula sheet -- a question brings its own grid, table or insert -- and the one padlock */
+/* THE OWNER'S ROW (round 4): no Grid, Table or Formula sheet -- a question brings its own -- one padlock; Calculator back (owner, 11 Nov) */
 const QT_TOOLS = [
   { id: 'pen',        icon: 'pen',        label: 'Pen',             note: 'draw on the figure',       act: 'qt-pen' },
   /* TWO TILES WHERE ONE DID TWO THINGS (owner, 1 Nov): "sometimes the ruler ... displays a ruler and sometimes ... draw straight lines" -- Straight line is the pen's, Ruler always measures. */
@@ -15,10 +15,11 @@ const QT_TOOLS = [
   { id: 'mag',        icon: 'zoom',       label: 'Magnifier',       note: 'hold it over the page',    act: 'q-mag' },
   { id: 'read',       icon: 'speak',      label: 'Read aloud',      note: 'reads the question out',   act: 'read-aloud' },
   { id: 'lock',       icon: 'unlock',     label: 'Lock',            note: 'hold this page still',     act: 'q-lock' },
+  { id: 'calc',       icon: 'calc',       label: 'Calculator',      note: 'scientific',               act: 'qt-calc' },
   { id: 'check',      icon: 'send',       label: 'Check',           note: '',                         act: '' },
 ];
 /* THE ONE ROW EVERY PART SHOWS, identically (owner, 8 Nov); data/settings/qengine.json `row` repeats it (check-answerable) */
-const QT_ROW = ['photo', 'mag', 'read', 'lock', 'ruler', 'protractor'];
+const QT_ROW = ['photo', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc'];
 /* THE PEN'S TILES, added only where the part has a figure to draw on (a drawing answer needs its pen) */
 const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
 const QT_ORDER = QT_ROW.concat(Object.keys(QT_DRAWING), ['check']);
@@ -121,6 +122,8 @@ const QT_TILE = {
     if (o) o.data = Object.assign({}, o.data, { part: 1 });
     return o || { icon: t.icon, label: t.label, note: 'not on this device', act: 'read-aloud', cls: 'read-aloud', off: true, data: { key } };
   },
+  /* ONLY WHERE A CALCULATOR IS ALLOWED: a Non-calculator paper never shows it; unknown shows it (owner, 11 Nov) */
+  calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
   photo: (t, x) => ({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } }),
 };
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
@@ -171,7 +174,7 @@ function qtRow_(x, held) {
   /* THE FOUR (owner, 9 Nov): Send/Check, Message, Star, ⋯; the tools, help, share and suggest wait behind ⋯ (`kcFour_`). */
   const four = kcFour_(x, `<span class="qt-tools">${tools}</span>${held || ''}${work}${more}`, qtCheck_(x, m));
   /* NO GREY LINE UNDER IT (owner, 9 Nov): how a part is marked is said when Check is pressed, on its verdict line. */
-  return `<div class="tile-row qt-row kc-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${four}</div>`;
+  return `<div class="tile-row qt-row kc-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${four}</div>` + (QCALC_OPEN.has(key) ? qcalcHtml_(key) : '');
 }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
 const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';
@@ -228,6 +231,87 @@ on('qt-inst', el => {
   }
   if (!pad && tool === 'protractor' && card && card.querySelector('figure svg')) return measOpen_(el);
   qtPenOpen_(el, tool);
+});
+/* ---------- THE CALCULATOR (owner, 11 Nov): a simple scientific one, a centred panel under the part's row; degrees, no network. */
+const calcAllowed_ = x => ![].concat((x && x.needs) || []).some(v => /^non-calculator$|^no calculator$/i.test(String(v).trim()));
+const QCALC_OPEN = new Set();
+const QCALC = new Map();          // a part's sum and its last answer, by key, for the visit
+const qcalcOf_ = key => { if (!QCALC.has(key)) QCALC.set(key, { e: '', out: '', ans: 0 }); return QCALC.get(key); };
+/* THE KEYS, a form's buttons: [what it types, its face, how many columns it takes] */
+const QCALC_KEYS = [['sin(', 'sin'], ['cos(', 'cos'], ['tan(', 'tan'], ['(', '('], [')', ')'], ['!ac', 'AC'],
+  ['7'], ['8'], ['9'], ['\u00f7'], ['\u221a(', '\u221a'], ['!back', '\u232b'],
+  ['4'], ['5'], ['6'], ['\u00d7'], ['\u00b2', 'x\u00b2'], ['^', 'x\u02b8'],
+  ['1'], ['2'], ['3'], ['\u2212'], ['\u03c0'], ['Ans'],
+  ['0', '0', 2], ['.'], ['+'], ['!eq', '=', 2]];
+const QCALC_SAY = { 'sin(': 'sine', 'cos(': 'cosine', 'tan(': 'tangent', '!ac': 'clear', '\u221a(': 'square root', '!back': 'delete', '\u00b2': 'squared', '^': 'to the power of', '!eq': 'equals', '\u00f7': 'divide', '\u00d7': 'times', '\u2212': 'minus', '\u03c0': 'pi' };
+/* THE SUM WORKED OUT: + − × ÷ ^ ² √ sin cos tan π Ans and brackets, open brackets closed at the end; NaN when it is not a sum */
+function calcEval_(src, ans) {
+  const s = String(src || '').replace(/\s+/g, '');
+  let i = 0;
+  const peek = w => s.startsWith(w, i), eat = w => (peek(w) ? (i += w.length, true) : false);
+  const FN = { 'sin(': v => Math.sin(v * Math.PI / 180), 'cos(': v => Math.cos(v * Math.PI / 180), 'tan(': v => Math.tan(v * Math.PI / 180), '\u221a(': Math.sqrt, '(': v => v };
+  const startsPrim = () => i < s.length && (/[\d.]/.test(s[i]) || peek('\u03c0') || peek('Ans') || Object.keys(FN).some(peek));
+  function prim() {
+    const m = /^\d*\.?\d+|^\d+\./.exec(s.slice(i));
+    if (m) { i += m[0].length; return parseFloat(m[0]); }
+    if (eat('\u03c0')) return Math.PI;
+    if (eat('Ans')) return Number(ans) || 0;
+    const f = Object.keys(FN).find(peek);
+    if (f) { i += f.length; const v = expr(); eat(')'); return FN[f](v); }
+    return NaN;
+  }
+  function post() { let v = prim(); while (eat('\u00b2')) v = v * v; return v; }
+  function pow() { const b = post(); return eat('^') ? Math.pow(b, unary()) : b; }
+  function unary() { return eat('\u2212') || eat('-') ? -unary() : pow(); }
+  function term() {
+    let v = unary();
+    for (;;) {
+      if (eat('\u00d7') || eat('*')) v *= unary();
+      else if (eat('\u00f7') || eat('/')) v /= unary();
+      else if (startsPrim()) v *= unary();
+      else return v;
+    }
+  }
+  function expr() {
+    let v = term();
+    for (;;) { if (eat('+')) v += term(); else if (eat('\u2212') || eat('-')) v -= term(); else return v; }
+  }
+  if (!s) return NaN;
+  const v = expr();
+  return i === s.length ? v : NaN;
+}
+/* AN ANSWER AS A PERSON WRITES IT: ten figures, no float dust (0.1+0.2 is 0.3) */
+const calcText_ = v => (isFinite(v) ? String(+(+v).toPrecision(10)) : 'Math ERROR');
+const qcalcShow_ = st => `<span class="qcalc-in">${esc(st.e || '\u00a0')}</span><span class="qcalc-res">${esc(st.out || (st.e ? '\u00a0' : '0'))}</span>`;
+function qcalcHtml_(key) {
+  const st = qcalcOf_(key);
+  const keys = QCALC_KEYS.map(k => tile_({ form: true, look: 'qcalc-k' + (/^[\d.]$/.test(k[0]) ? '' : ' is-op') + (k[0] === '!eq' ? ' is-eq' : '') + (k[2] ? ' is-w2' : ''),
+    act: 'qcalc-key', data: { v: k[0] }, aria: QCALC_SAY[k[0]] || k[1] || k[0], label: k[1] || k[0] })).join('');
+  return `<div class="qcalc" data-key="${esc(key)}" role="group" aria-label="Calculator"><output class="qcalc-out" aria-live="polite">${qcalcShow_(st)}</output><div class="qcalc-keys">${keys}</div></div>`;
+}
+/* ONE KEY PRESSED: a fresh sum after = starts again, except an operator, which carries Ans on */
+function qcalcPress_(st, v) {
+  if (v === '!ac') { st.e = ''; st.out = ''; return st; }
+  if (v === '!back') { st.out = ''; st.e = st.e.replace(/(sin\(|cos\(|tan\(|\u221a\(|Ans|.)$/, ''); return st; }
+  if (v === '!eq') { const r = calcEval_(st.e, st.ans); st.out = calcText_(r); if (isFinite(r)) st.ans = +(+r).toPrecision(10); st.done = true; return st; }
+  if (st.done) { st.e = /^[+\u2212\u00d7\u00f7^\u00b2]$/.test(v) && st.out !== 'Math ERROR' ? 'Ans' : ''; st.out = ''; st.done = false; }
+  st.e += v;
+  return st;
+}
+on('qt-calc', el => {
+  const key = qtKeyOf_(el), row = el.closest('.qt-row');
+  if (!key || !row) return;
+  const open = !QCALC_OPEN.has(key);
+  if (open) QCALC_OPEN.add(key); else QCALC_OPEN.delete(key);
+  const was = row.nextElementSibling && row.nextElementSibling.matches('.qcalc') ? row.nextElementSibling : null;
+  if (was) was.remove();
+  if (open) row.insertAdjacentHTML('afterend', qcalcHtml_(key));
+  tileSet_(el, { on: open, pressed: open });
+});
+on('qcalc-key', el => {
+  const box = el.closest('.qcalc'), out = box && box.querySelector('.qcalc-out');
+  if (!box || !out) return;
+  out.innerHTML = qcalcShow_(qcalcPress_(qcalcOf_(box.getAttribute('data-key') || ''), el.getAttribute('data-v') || ''));
 });
 /* ---------- CHECK WITH NO MARK SCHEME: nothing is sent; the verdict line says what is missing, for a missing key too. */
 on('qp-noscheme', el => {
