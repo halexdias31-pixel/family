@@ -533,6 +533,7 @@ const CARD_REG = [
   { id: 'acct:prog-grade', col: 'account', label: 'Progress: grade', re: /^<div class="card prog-w prog-grade/, say: 'A rough grade from the questions you have answered.' },
   { id: 'acct:prog-sessions', col: 'account', label: 'Progress: sessions', re: /^<div class="card prog-w prog-sessions/, say: 'Your booked and past sessions.' },
   { id: 'staff:apply', col: 'staff', label: 'Apply to teach', re: /^<div class="card apply-card/, say: 'Ask to teach with us; the admin says yes or no.' },
+  { id: 'staff:flyer', col: 'staff', label: 'Flyer maker', say: 'Print a poster, flyer or QR slips from the Web profile or your tutor card.' },
   { id: 'staff:hub', col: 'staff', label: 'Staff hub', re: /^<div class="card staff-top/, only: 'your rate and hours', say: 'Your terms, weekly hours, prices and statement as a tutor.' },
   { id: 'ppl:tutors:add', col: 'tutors', label: 'Add a tutor', say: 'Make an account for a new tutor.' },
   { id: 'ppl:tutors:dir', col: 'tutors', label: 'Tutor directory', say: 'Every tutor, with what they teach, where and when.' },

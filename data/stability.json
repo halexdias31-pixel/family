@@ -129,7 +129,7 @@
   }
  ],
  "secondary": {
-  "score": 89.1,
+  "score": 89,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
@@ -152,13 +152,14 @@
    {
     "id": "special",
     "label": "Per-facet and per-kind special cases",
-    "count": 42,
+    "count": 43,
     "weight": 0.05,
     "cap": 10,
-    "off": 2.1,
+    "off": 2.2,
     "where": {
      "js/arcade.js": 7,
      "js/collections.js": 7,
+     "js/flyer.js": 1,
      "js/layout.js": 1,
      "js/mat.js": 3,
      "js/mechanics.js": 1,
