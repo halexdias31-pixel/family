@@ -487,7 +487,7 @@ check('every part that draws on its stem\'s figure has exactly that one figure o
 });
 
 /* ---------- ROOM TO WRITE: AN EXPAND TILE OPENS THE ANSWER ON A WHOLE-SCREEN SHEET, AND DONE BRINGS IT BACK (docs/history/359) ---------- */
-check('marked by rule first: a 2-mark worded answer with mark_words gets Check, marks per point, says "by key words", and the AI tile stays hidden on full marks', async () => {
+check('marked by rule first: a 2-mark worded answer with mark_words gets Check, marks per point, says "by key words", and no AI button rides on it', async () => {
   const base = { active: 'True', subject: 'Biology', document_type: 'Past paper', key_stage: 'KS4', pages_checked: 'True' };
   const rows = [
     Object.assign({}, base, { row_id: 'D-MW', paper_id: 'MW', kind: 'document', name: 'Cells' }),
@@ -505,8 +505,7 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
   host.innerHTML = w.questionCard_(x, 0);
   const go = host.querySelector('.qp-mark[data-rule] [data-do="qp-check"]');
   if (!go) return ['a row with mark_words has no Check by its key words'];
-  const later = host.querySelector('.qp-ai-later');
-  if (later && !later.hidden) bad.push('the AI tile shows before the rule has marked');
+  if (host.querySelector('[data-do="qp-ai"]')) bad.push('a part a rule marks still carries an AI button: one mark button per part (owner, 11 Nov)');
   const inp = host.querySelector('.qp-ans-in'), out = host.querySelector('.qp-verdict');
   inp.value = 'just carbon';
   A['qp-check'](go);
@@ -514,10 +513,95 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
   inp.value = 'Hydrogen and carbon';
   A['qp-check'](go);
   if (out.textContent !== '2 of 2 marks · by key words') bad.push('both points say ' + JSON.stringify(out.textContent));
-  if (later && !later.hidden) bad.push('full marks by rule still offers the AI');
   const latest = typeof w.subLatest_ === 'function' ? w.subLatest_(inp.getAttribute('data-k')) : null;
   if (latest && latest.v !== 'rule:2/2') bad.push('the mark was recorded as ' + JSON.stringify(latest.v) + ', wanted rule:2/2 — which way it was made is lost');
   host.remove();
+  return bad;
+});
+
+/* ---------- ONE MARK BUTTON PER PART (owner, 11 Nov): the part's protocol picks the marker; the student never picks between two ---------- */
+check('one mark button: every sampled library part has exactly one, first in its row, and no AI button rides on a part a rule marks', async () => {
+  const LIB = LIB_FULL.rows('questions');
+  const adult = Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(new Date().getFullYear() - 30) } });
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined), before: signedInAs_(adult),
+    payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }) });
+  await wait(300);
+  const bad = [], seen = {};
+  if (typeof w.questionCard_ !== 'function' || typeof w.qtMachine_ !== 'function') return ['questionCard_ or qtMachine_ not reachable — NOT checked'];
+  w.__t.STUFF().filters = [];
+  const host = w.document.createElement('div');
+  w.document.body.appendChild(host);
+  const qs = w.stuffItemsAll_().filter(x => x && x.kind === 'question');
+  /* EVERY 15TH PART, and each marker kind at least once: the whole library is too heavy for one window */
+  qs.forEach((x, i) => {
+    const kind = w.markerOf_(x).kind;
+    if (i % 15 && seen[kind]) return;
+    seen[kind] = (seen[kind] || 0) + 1;
+    host.innerHTML = w.questionCard_(x, 0);
+    const id = (x.row && x.row.row_id) || x.key;
+    host.querySelectorAll('.qt-row').forEach(row => {
+      const go = [...row.querySelectorAll('.is-submit')];
+      if (go.length !== 1) bad.push(id + ': ' + go.length + ' mark buttons in one row');
+      else if (go[0] !== row.querySelector('.kc-four > *')) bad.push(id + ': its mark button is not first in its row');
+    });
+    if (w.qtMachine_(w.workRow_(x)) && host.querySelector('[data-do="qp-ai"]')) bad.push(id + ': marked by its ' + kind + ' rule and still offers the AI');
+  });
+  host.remove();
+  if (Object.keys(seen).length < 5) bad.push('only marker kinds ' + Object.keys(seen).join(', ') + ' were seen');
+  try { w.close(); } catch (e) {}
+  return bad.slice(0, 20).concat(bad.length > 20 ? ['… and ' + (bad.length - 20) + ' more'] : []);
+});
+
+check('one mark per press: a rule part pressed twice is one submission and never reaches the AI; a part with no rule goes to the AI from the same button, busy until it answers', async () => {
+  const base = { active: 'True', subject: 'Chemistry', document_type: 'Past paper', key_stage: 'KS4', pages_checked: 'True' };
+  const rows = [
+    Object.assign({}, base, { row_id: 'D-OM', paper_id: 'OM', kind: 'document', name: 'Rates' }),
+    Object.assign({}, base, { row_id: 'OM-1', paper_id: 'OM', kind: 'question', name: 'Rates', question: '1', marks: '1', answer_type: 'short',
+                              html: '<p>Name the gas made.</p>', answer: 'Hydrogen', accept: 'hydrogen|H2' }),
+    Object.assign({}, base, { row_id: 'OM-2', paper_id: 'OM', kind: 'question', name: 'Rates', question: '2', marks: '3', answer_type: 'explain',
+                              html: '<p>Explain why the rate increases with temperature.</p>', answer: 'Faster particles; more frequent collisions; more over the activation energy' }),
+  ];
+  let release = null;
+  const { w, sent } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined), before: signedInAs_(ANS_ADA),
+    payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }),
+    reply: b => (b.action === 'aiMark' ? new Promise(r => { release = () => r({ success: true, awarded: 2, available: 3, feedback: 'Two points made' }); }) : undefined) });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  const item = id => w.stuffItemsAll_().find(i => i.row && i.row.row_id === id);
+  const rule = item('OM-1'), open = item('OM-2');
+  if (!rule || !open) return ['the fixture rows did not reach Find — NOT checked'];
+  if (!w.qtMachine_(w.workRow_(rule)) || w.qtMachine_(w.workRow_(open))) bad.push('the fixture parts are not one machine-marked and one not');
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h; };
+  const press = go => A[go.getAttribute('data-do')](go);
+  /* EVERY SUBMISSION MADE, by its id: a double tap hands back the first */
+  const made = new Set(), real = w.subRecord_;
+  w.subRecord_ = function () { const e = real.apply(this, arguments); if (e && e.id) made.add(e.id); return e; };
+  const h1 = draw(rule);
+  const go1 = h1.querySelector('.qt-row .kc-four > .is-submit');
+  if (!go1) { w.subRecord_ = real; return ['the rule part has no mark button first in its row']; }
+  h1.querySelector('.qp-ans-in').value = 'oxygen';
+  press(go1); press(go1);
+  await wait(50);
+  if (sent.some(b => b.action === 'aiMark')) bad.push('a part its rule marks reached the AI');
+  if (made.size !== 1) bad.push('two presses made ' + made.size + ' submissions, wanted one');
+  const v1 = h1.querySelectorAll('.qp-verdict');
+  if (v1.length !== 1 || !/Not yet/.test(v1[0].textContent)) bad.push('the rule part shows ' + v1.length + ' verdict line(s): ' + [...v1].map(v => v.textContent).join(' | '));
+  const h2 = draw(open);
+  const go2 = h2.querySelector('.qt-row .kc-four > .is-submit');
+  if (!go2 || go2.getAttribute('data-do') !== 'qp-ai') { w.subRecord_ = real; return bad.concat(['the open part\'s first button is ' + (go2 ? go2.getAttribute('data-do') : 'missing') + ', wanted the AI marker']); }
+  h2.querySelector('.qp-ans-in').value = 'The particles move faster and collide more often.';
+  press(go2); press(go2);
+  await wait(30);
+  const asks = sent.filter(b => b.action === 'aiMark').length;
+  if (asks !== 1) bad.push('two presses on the AI part sent ' + asks + ' requests, wanted one');
+  if (!go2.disabled || !go2.classList.contains('is-busy')) bad.push('the button is not busy while the AI marks');
+  if (release) release();
+  await wait(80);
+  if (!/2 of 3 marks/.test(h2.querySelector('.qp-verdict').textContent)) bad.push('the AI verdict reads ' + JSON.stringify(h2.querySelector('.qp-verdict').textContent));
+  if (go2.classList.contains('is-busy')) bad.push('the button is still busy after the AI answered');
+  if (h2.querySelectorAll('.qp-verdict').length !== 1) bad.push('the AI part shows more than one verdict line');
+  w.subRecord_ = real;
+  h1.remove(); h2.remove();
   return bad;
 });
 

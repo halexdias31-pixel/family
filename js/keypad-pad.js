@@ -563,12 +563,11 @@ function aiUndecided_() {
   catch (e) { return false; }
 }
 
-/* THE AI MARKS EVERY PART NO RULE CAN (`markerOf_`, qtools.js), and is offered after key words that fall short. */
+/* THE AI MARKS EVERY PART NO RULE CAN (`markerOf_`, qtools.js), and only those: one mark button per part (owner, 11 Nov). */
 /* an AI part with no mark scheme is not offered it (round 4): its Check says "No mark scheme yet" instead (`qtCheck_`) */
 function aiWanted_(x) {
   const m = x && typeof markerOf_ === 'function' ? markerOf_(x) : null;
-  /* and after any scheme that falls short (owner, 9 Nov): the scheme first, then the AI if the student asks */
-  return !!m && m.ready && (isAiMark_(m) || !!QT_SCHEME_KINDS[m.kind]);
+  return !!m && m.ready && isAiMark_(m);
 }
 
 /* THE TILE ALONE, GOLD AND ROUND IN THE ANSWER BAR WHERE SEND STANDS ON A BOX WITH A SCHEME -- the bar, its verdict line and the sentence under it are § */
