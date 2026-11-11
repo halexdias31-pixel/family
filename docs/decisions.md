@@ -289,3 +289,4 @@ become an owner question showing both; never pick one.
 - Content (pictures, answers, tables) follows one rule per kind. Every visual bug the owner reports becomes a rule the checks hold for all cards.
 ## 11 Nov — the Optimiser (owner)
 - 11 Nov — the health checker is the Optimiser; when nothing else is asked, the aim is to raise it to 90% or improve it with more checks for optimisation (owner).
+- 11 Nov — the Optimiser's job is to kill arbitrariness: find the objectively optimal way everywhere, content too (library and topic cards), not only code (owner).

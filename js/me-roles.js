@@ -341,7 +341,9 @@ function studentSetPages_() {
   const prog = all.map(c => String(c).replace(/^(\s*<div class=")/, '$1prog-w ')), wait = coming.length || !(typeof progressComing_ === 'function' && progressComing_()) ? coming : [loading_()];
   /* ONLY SIGN IN HERE (owner, 4 Nov, 880): every other setting is a Coming soon card in Find until it is wanted. */
   if (typeof SETTINGS_OFF !== 'undefined' && SETTINGS_OFF) return [top];
-  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(), soonCards_(),
+  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(),
+    /* WORK ON FILE (owner, 11 Nov): a student's own scanned pages; a tutor's opens each booked student's. */
+    /^(student|staff)$/.test(rank_()) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [], soonCards_(),
     /* PHONE NOTIFICATIONS (492), push.js — here because every account has this column. Google Tasks lives in the Docket (491). */
     typeof pushCard_ === 'function' ? [pushCard_()].filter(Boolean) : [], prog, wait);
 }

@@ -24,6 +24,8 @@ const WHERE = {
   receipts:       { file: 'ledger' },
   invites:        { file: 'ledger' },
   messages:       { file: 'ledger' },
+  /* A STUDENT'S SCANNED PAGES (work on file): the Ledger, because the app writes it; the pages themselves are in Drive. */
+  work_files:     { file: 'ledger' },
   records:        { file: 'ledger' }, biz_checks: { file: 'ledger' }, owner_answers: { file: 'ledger' },
   exams:          { file: 'ledger' },
   posts:          { file: 'ledger' },
@@ -128,7 +130,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-10-add-verified-1";
+const BACKEND_VERSION = "2026-11-11-work-on-file-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -140,6 +142,8 @@ const TAB = {
   config: 'config', options: 'options', trips: 'trips', rooms: 'rooms', invites: 'invites',
   promo_codes: 'promo_codes',
   exams: 'exams', messages: 'messages',
+  /* A student's scanned pages — see SCHEMA.work_files. */
+  work_files: 'work_files',
   records: 'records', biz_checks: 'biz_checks', owner_answers: 'owner_answers',
   herd: 'herd',
   /* Every receipt ever issued, kept as it was issued. See the schema below. */
@@ -499,6 +503,9 @@ const SCHEMA = {
   ],
 
   /* ---------- SUBMISSIONS: EVERY ANSWER SENT, AND WHAT IT WAS MARKED § */
+  /* ---------- WORK ON FILE: one row per scan; `pages` are private Drive file ids, read back only through `workFileOpen`. */
+  work_files: ["work_id", "person_id", "uploaded_by", "uploaded_at", "title", "subject", "pages", "deleted_at"],
+
   submissions: [
     "person_id", "key", "label", "words",
     "answer", "verdict", "submitted_at",
@@ -1684,6 +1691,8 @@ const ACTION_ACCESS = {
   aiMark: 'self',
   /* A PHOTO OF THE WORKING (501): sent as yourself; read back by yourself, a linked parent, staff or admin (the handler checks). */
   markWorking: 'self', workingOf: 'self',
+  /* WORK ON FILE: as yourself; the handler decides whose file (the student, a parent, a booked tutor, the admin). */
+  workFileSave: 'self', workFilesOf: 'self', workFileOpen: 'self', workFileDelete: 'self',
   /* THE ASSISTANT IN MESSAGES (449): `self`, so the day's count is the token's person's. */
   askAssistant: 'self',
   /* WHAT A CHILD WROTE, KEPT ON THEIR ACCOUNT AND READ BACK ON ANOTHER DEVICE. § */

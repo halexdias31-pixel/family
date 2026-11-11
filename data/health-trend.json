@@ -587,5 +587,31 @@
    "bigNotes": 10,
    "spread": 7
   }
+ },
+ {
+  "date": "2026-11-11",
+  "commit": "deda02b",
+  "score": 56.2,
+  "parts": {
+   "code": 45.3,
+   "logic": 64.9,
+   "ui": 27.6,
+   "cost": 82.7,
+   "business": 69.2
+  },
+  "topKind": "business",
+  "effort": {
+   "commits": 30,
+   "medianLines": 46,
+   "worstLines": 3575,
+   "medianFiles": 6,
+   "worstFiles": 35,
+   "testBytes": 5587771,
+   "testBiggest": 372943,
+   "historyBytes": 4563114,
+   "historyBiggest": 166839,
+   "bigNotes": 10,
+   "spread": 7
+  }
  }
 ]
