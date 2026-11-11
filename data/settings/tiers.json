@@ -224,6 +224,7 @@
     "check-library.js": "core",
     "check-schema.js": "core",
     "check-qtypes.js": "core",
+    "check-qmerge.js": "core",
     "check-marking.js": "core",
     "check-marking-norm.js": "core",
     "check-typeset.js": "core",

@@ -711,7 +711,6 @@ function projectCard_(x) {
   /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE -- `AQA 8552` is which qualification the work counts towards, and a project has neither, so its line is unchanged. § */
   const qual = [p.board, p.specRef].filter(Boolean).join('\u00a0');
   return `<div class="card fc prac proj lib-c">
-    ${libPic_('project', x.name)}
     ${tagRow_(x)}
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
@@ -781,7 +780,6 @@ const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</spa
 function contentCard_(x) {
   const c = x.row;
   return `<div class="card fc prac tb ct lib-c">
-    ${libPic_('content', x.name)}
     ${tagRow_(x)}
     <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tbSections_(c, null, { only: 'words' })}

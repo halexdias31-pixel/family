@@ -102,6 +102,7 @@ const SUITE = [
   { file: 'check-qtypes.js', what: 'every question part one interaction type, every type a protocol — gaps a report' },
   /* ---------- THE ONE PIECE OF THIS APP THAT TELLS A CHILD THEY ARE WRONG § */
   { file: 'check-marking.js', what: 'a right answer marked right, a wrong one wrong', par: true },
+  { file: 'check-qmerge.js', what: 'one marker per checker: every part of every type marked as the per-type markers did (1200)', par: true },
   { file: 'check-marking-norm.js', what: 'every spelling of one value marked alike, its near misses wrong', par: true },
   /* ---------- AND WHETHER THE MATHS ON A CARD LOOKS LIKE MATHS § */
   { file: 'check-typeset.js', what: 'fractions stacked, powers raised, no plain-text maths' },

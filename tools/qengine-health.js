@@ -14,23 +14,27 @@ const noop = new Proxy(function () { return noop; }, { get: (t, k) => k === Symb
 const box = { console, Math, JSON, String, Number, Array, Object, RegExp, Date, Set, Map, Symbol, Promise, parseFloat, parseInt, isFinite, isNaN, Infinity, NaN, Error, __OUT: {} };
 const P = new Proxy(box, { has: () => true, get: (t, k) => (k in t ? t[k] : k === Symbol.unscopables ? undefined : noop), set: (t, k, v) => { t[k] = v; return true; } });
 const src = [fs.readFileSync(path.join(ROOT, 'js', 'qtypes.js'), 'utf8'), require('./find-src.js').findSrc()].join('\n;\n');
-vm.runInNewContext('with (__P) {' + src + '\n;Object.assign(__OUT, { markAnswer_, markExpr_, markOrder_, markWords_, qType_, QTYPE_PROTOCOL }); }', { __P: P }, { timeout: 20000 });
+vm.runInNewContext('with (__P) {' + src + '\n;Object.assign(__OUT, { DRAW_MARK, markAnswer_, markExpr_, markOrder_, markWords_, qType_, QTYPE_PROTOCOL }); }', { __P: P }, { timeout: 20000 });
 const M = box.__OUT;
 
 /* THE PROOFS: [typed, want, expected]. A checker with no marker yet proves nothing and says so. */
+const PT_FIG = { grid: null, vb: [0, 0, 340, 340] };
 const PROOF = {
   number: { run: (t, w) => M.markAnswer_(t, w), cases: [['15', '15', true], ['16', '15', false], ['15.0', '15', true], ['fifteen', '15', true],
     ['0.5', '1/2', true], ['x = 9', '9', true], ['3 cm', '3 cm', true], ['', '15', null]] },
   expression: { run: (t, w) => M.markExpr_(t, w), cases: [['2x+1', '2x+1', true], ['1+2x', '2x+1', true], ['2(x+1)', '2x+2', true], ['2x-1', '2x+1', false], ['two x plus one', '2x+1', true]] },
   choice: { run: (t, w) => M.markOrder_(t, w), cases: [['2,1,3', '2,1,3', true], ['1,2,3', '2,1,3', false], ['2, 1, 3', '2,1,3', true]] },
   words: { run: (t, w) => { const r = M.markWords_(t, w); return r ? r.got === r.of : r; }, cases: [['the force is balanced', 'balanced', true], ['it speeds up', 'balanced', false], ['', 'balanced', null]] },
-  points: { run: null, cases: [] },
+  /* the pen's one marker on a made-up 10 by 10 frame: the scheme's own example right, a cross far off wrong, no ink not marked */
+  points: { run: (t, w) => { const r = M.DRAW_MARK.mark(t === 'example' ? M.DRAW_MARK.example(w, PT_FIG) : t, w, PT_FIG, 1); return !r || r.empty ? null : r.got === r.of; },
+    cases: [['example', { frame: { o: [20, 320], u: [30, -30] }, items: [{ k: 'pts', at: [[2, 3]] }] }, true], ['example', { frame: { o: [20, 320], u: [30, -30] }, items: [{ k: 'segs', at: [[1, 1, 8, 1]] }] }, true],
+      [[[290, 40, 300, 50]], { frame: { o: [20, 320], u: [30, -30] }, items: [{ k: 'pts', at: [[2, 3]] }] }, false], [[], { frame: { o: [20, 320], u: [30, -30] }, items: [{ k: 'pts', at: [[2, 3]] }] }, null]] },
 };
 const proofs = {};
 Object.keys(PROOF).forEach(k => { const p = PROOF[k], fails = [];
   if (!p.run) { proofs[k] = { cases: 0, pass: 0, fails: ['no shared points checker yet'] }; return; }
   p.cases.forEach(([t, w, want]) => { let got; try { got = p.run(t, w); } catch (e) { got = 'threw ' + e.message; }
-    if (got !== want) fails.push(`"${t}" against "${w}" gave ${got}, wanted ${want}`); });
+    if (got !== want) fails.push(`"${JSON.stringify(t)}" against "${JSON.stringify(w)}" gave ${got}, wanted ${want}`); });
   proofs[k] = { cases: p.cases.length, pass: p.cases.length - fails.length, fails }; });
 
 /* ANSWER FIELDS IN DATA: what each checker reads today; `answer_areas`, the page's own column, counted apart (none yet). */

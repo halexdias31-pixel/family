@@ -5443,7 +5443,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rc .bk-v > .bk-in { text-align: left; }
 
 /* ---------- LIBRARY CARDS, ONE LOOK (owner's look rule): picture first, facts as tags, no grey text, the tiles on one line ---------- */
-.lib-pic { margin: .4rem auto .6rem; width: min(100%, 8rem); background: var(--raised); border-radius: var(--r-ui); padding: .5rem; }
 .lib-c .fc-say, .lib-c .fc-lede, .lib-c h4, .lib-c li, .hdb-more .hdb-lines dt, .lib-c .tl-tick i { color: var(--ink); }
 .lib-c > .person-pic { margin: .2rem auto .6rem; }
 /* MESSAGES AND POSTS AS FIND CARDS (36a): the picture, the title, two lines of what was said. */
@@ -5561,6 +5560,14 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-head { display: none; }
 .card.kc > .kc-pic { flex: none; width: var(--pic-h); border-radius: 50%; }
 .card.kc > .kc-pic > * { max-width: none; width: 100%; height: 100%; border-radius: 50%; }
+/* NO REAL PICTURE, NO PICTURE PART (owner, 10 Nov late): the tags lead. A thing's own photo or figure is its shape, not a circle. */
+.card.kc > .kc-pic:empty { display: none; }
+.card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) { --pic-h: 12rem; }
+.card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) > .kc-pic { width: 100%; border-radius: var(--r-ui); }
+.card.kc > .kc-pic > figure { background: none; padding: 0; }
+.card.kc > .kc-pic .hdb-ms-sides, .card.kc > .kc-pic .hdb-ms-side { height: 100%; justify-content: center; }  /* A DRAWING SHOWN WHOLE, not cut at the picture's height */
+.card.kc > .kc-pic .hdb-ms svg { height: var(--pic-h); width: auto; max-width: 100%; margin: 0 auto; }
+.card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) > .kc-pic :is(img, video, svg, figure) { border-radius: var(--r-ui); object-fit: contain; }
 .card.kc > .kc-tags { margin-top: .5rem; }
 .card.kc > .kc-tags :is(.qtags, .prof-tags, .prof-who-tags, .prof-who, .prof-line) { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .3rem; }
 .card.kc > .kc-lines { margin-top: .4rem; }
@@ -5572,19 +5579,12 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-form { margin-top: .5rem; }
 .card.kc > .kc-act { margin-top: .5rem; }
 .card.kc > .kc-act > .tile-row { justify-content: center; flex-wrap: wrap; margin-top: 0; }
-.card.kc .kc-blank { display: block; width: 100%; height: 100%; aspect-ratio: 1; border-radius: 50%; background: var(--line); }
-.card.kc .kc-icon { display: grid; place-items: center; width: 100%; height: 100%; aspect-ratio: 1; border-radius: 50%; border: 1px solid var(--line); color: var(--gold); box-sizing: border-box; }
-.card.kc .kc-icon > svg { width: 55%; height: 55%; }
 .card.kc.kc-facts > .kc-lines > .kc-line { margin: .15rem 0 0; font-size: var(--fs-body); line-height: 1.5; overflow-wrap: anywhere; }
 .kc-four { display: contents; }
-/* ⋯ OPENS A LIST WITH WORDS: each action its mark and its name, one under another, centred under the row. */
+/* ⋯ OPENS A ROW OF THE SAME ROUND BUTTONS, wrapping and centred; a long press says a button's word (`tileWordShow_`). */
 .kc-more[hidden] { display: none; }
-.kc-more { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.6rem 1.1rem; flex-basis: 100%; margin: .5rem auto 1.4rem; }
+.kc-more { display: flex; flex-wrap: wrap; justify-content: center; gap: .8rem 1.1rem; flex-basis: 100%; margin: .5rem auto .4rem; }
 .kc-more > * { margin: 0; }
-/* ⋯ KEEPS THE ONE ROUND BUTTON (owner, 10 Nov): each action a circle, its word written under it. */
-.kc-more > .tile { position: relative; }
-.kc-more > .tile::after { content: attr(data-word); position: absolute; top: calc(100% + .2rem); left: 50%; transform: translateX(-50%);
-  white-space: nowrap; font: var(--fs-small)/1.15 var(--font); color: var(--ink); text-align: center; pointer-events: none; }
 .prof-tag-name { color: var(--ink); }
 /* ONE FRAME FOR EVERY KIND: a widget's own surface, and a frame its maker drew inside, never box a one-shape card twice. */
 .card.kc.is-widget { background: none; border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0; padding: var(--card-gap) 0; }

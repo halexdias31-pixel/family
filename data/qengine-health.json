@@ -1,23 +1,22 @@
 {
- "moved": 0,
+ "moved": 20,
  "of": 24,
  "unmapped": [
-  "essay",
-  "hand"
+  "essay"
  ],
  "proofs": {
   "number": {
    "cases": 8,
    "pass": 7,
    "fails": [
-    "\"fifteen\" against \"15\" gave false, wanted true"
+    "\"\"fifteen\"\" against \"\"15\"\" gave false, wanted true"
    ]
   },
   "expression": {
    "cases": 5,
    "pass": 4,
    "fails": [
-    "\"two x plus one\" against \"2x+1\" gave false, wanted true"
+    "\"\"two x plus one\"\" against \"\"2x+1\"\" gave false, wanted true"
    ]
   },
   "choice": {
@@ -31,73 +30,71 @@
    "fails": []
   },
   "points": {
-   "cases": 0,
-   "pass": 0,
-   "fails": [
-    "no shared points checker yet"
-   ]
+   "cases": 4,
+   "pass": 4,
+   "fails": []
   }
  },
  "types": {
   "value": {
    "checker": "number",
-   "moved": false,
+   "moved": true,
    "questions": 27021,
    "withAnswer": 3022,
    "withAreas": 0
   },
   "unit": {
    "checker": "number",
-   "moved": false,
+   "moved": true,
    "questions": 1582,
    "withAnswer": 1582,
    "withAreas": 0
   },
   "multi": {
    "checker": "number",
-   "moved": false,
+   "moved": true,
    "questions": 346,
    "withAnswer": 346,
    "withAreas": 0
   },
   "fraction": {
    "checker": "number",
-   "moved": false,
+   "moved": true,
    "questions": 436,
    "withAnswer": 436,
    "withAreas": 0
   },
   "coords": {
-   "checker": "points",
-   "moved": false,
+   "checker": "number",
+   "moved": true,
    "questions": 113,
    "withAnswer": 0,
    "withAreas": 0
   },
   "expr": {
    "checker": "expression",
-   "moved": false,
+   "moved": true,
    "questions": 773,
    "withAnswer": 773,
    "withAreas": 0
   },
   "choose1": {
    "checker": "choice",
-   "moved": false,
+   "moved": true,
    "questions": 751,
    "withAnswer": 751,
    "withAreas": 0
   },
   "chooseN": {
    "checker": "choice",
-   "moved": false,
+   "moved": true,
    "questions": 75,
    "withAnswer": 75,
    "withAreas": 0
   },
   "order": {
    "checker": "choice",
-   "moved": false,
+   "moved": true,
    "questions": 74,
    "withAnswer": 74,
    "withAreas": 0
@@ -125,14 +122,14 @@
   },
   "words": {
    "checker": "words",
-   "moved": false,
+   "moved": true,
    "questions": 151,
    "withAnswer": 0,
    "withAreas": 0
   },
   "reason": {
    "checker": "words",
-   "moved": false,
+   "moved": true,
    "questions": 0,
    "withAnswer": 0,
    "withAreas": 0
@@ -146,63 +143,63 @@
   },
   "points": {
    "checker": "points",
-   "moved": false,
+   "moved": true,
    "questions": 5,
    "withAnswer": 5,
    "withAreas": 0
   },
   "line": {
    "checker": "points",
-   "moved": false,
+   "moved": true,
    "questions": 34,
    "withAnswer": 34,
    "withAreas": 0
   },
   "shape": {
    "checker": "points",
-   "moved": false,
+   "moved": true,
    "questions": 51,
    "withAnswer": 51,
    "withAreas": 0
   },
   "shade": {
    "checker": "points",
-   "moved": false,
+   "moved": true,
    "questions": 13,
    "withAnswer": 13,
    "withAreas": 0
   },
   "hand": {
-   "checker": "none",
-   "moved": false,
+   "checker": "points",
+   "moved": true,
    "questions": 6,
    "withAnswer": 0,
    "withAreas": 0
   },
   "graph": {
    "checker": "points",
-   "moved": false,
+   "moved": true,
    "questions": 59,
    "withAnswer": 59,
    "withAreas": 0
   },
   "construct": {
    "checker": "points",
-   "moved": false,
+   "moved": true,
    "questions": 1,
    "withAnswer": 1,
    "withAreas": 0
   },
   "numline": {
    "checker": "points",
-   "moved": false,
+   "moved": true,
    "questions": 2,
    "withAnswer": 2,
    "withAreas": 0
   },
   "measure": {
    "checker": "number",
-   "moved": false,
+   "moved": true,
    "questions": 21,
    "withAnswer": 9,
    "withAreas": 0

@@ -17,22 +17,22 @@ const QT_PEN_TILES = ['Figure', 'Pen', 'Ruler / Compass / Protractor (as asked)'
 const QT_PEN_PHONE = 'Finger draws, two fingers pan; the loupe follows the finger';
 const QT_PEN_PC = 'Mouse or stylus on a lazy brush (368); the ruler snaps to the grid';
 const QTYPE_PROTOCOL = {
-  value:    { label: 'Single value', surface: QT_TYPED + ', maths keys', tiles: ['Figure', 'Check'],
+  value:    { label: 'Single value', padLayer: 'maths', surface: QT_TYPED + ', maths keys', tiles: ['Figure', 'Check'],
               marked: 'accept: the number by value, a band `a to b`, a name in front (`x = 9`) allowed', tolerance: 'as the scheme writes it; a band where it prints one',
               wrong: 'Not yet, box stays editable', right: 'Correct + marks', phone: 'Keypad, not the phone keyboard', pc: 'Typed; Enter is Check', need: ['accept'] },
-  unit:     { label: 'Value with a unit', surface: QT_TYPED + ', maths keys with the unit row', tiles: ['Figure', 'Check'],
+  unit:     { label: 'Value with a unit', padLayer: 'maths', surface: QT_TYPED + ', maths keys with the unit row', tiles: ['Figure', 'Check'],
               marked: 'accept: the number, its unit optional unless the scheme needs it (√, π, a rate)', tolerance: 'cm2 = cm² = cm^2; a wrong unit is wrong',
               wrong: 'Not yet', right: 'Correct + marks', phone: 'Unit keys on the pad', pc: 'Typed', need: ['accept'] },
-  multi:    { label: 'Several values', surface: 'One box per value (362), side by side, wrapping', tiles: ['Figure', 'Check'],
+  multi:    { label: 'Several values', padLayer: 'maths', surface: 'One box per value (362), side by side, wrapping', tiles: ['Figure', 'Check'],
               marked: 'accept list as a set, or `rule:` clauses (count, each, sum, set …)', tolerance: 'order-free unless the scheme orders',
               wrong: 'Not yet', right: 'Correct + marks', phone: '✓ reads next and moves box to box', pc: 'Tab or comma moves on', need: ['accept'] },
-  fraction: { label: 'Fraction or mixed number', surface: QT_TYPED + ', stacked as typed', tiles: ['Figure', 'Check'],
+  fraction: { label: 'Fraction or mixed number', padLayer: 'maths', surface: QT_TYPED + ', stacked as typed', tiles: ['Figure', 'Check'],
               marked: 'accept by value (2/5 = 6/15 = 0.4); `rule: mixed` when the form is asked', tolerance: 'equal value unless simplest/mixed form is asked',
               wrong: 'Not yet', right: 'Correct + marks', phone: 'Fraction key on the pad', pc: 'Typed 1 3/4', need: ['accept', 'formRule'] },
-  coords:   { label: 'Coordinates', surface: 'Two boxes in brackets (362)', tiles: ['Figure', 'Check'],
+  coords:   { label: 'Coordinates', padLayer: 'maths', surface: 'Two boxes in brackets (362)', tiles: ['Figure', 'Check'],
               marked: 'accept as an ordered pair', tolerance: 'exact; a graph reading as a band', wrong: 'Not yet', right: 'Correct + marks',
               phone: 'Minus key on the pad', pc: 'Typed', need: ['accept'] },
-  expr:     { label: 'Expression or equation', surface: QT_TYPED + ', maths keys with letters and powers', tiles: ['Figure', 'Check'],
+  expr:     { label: 'Expression or equation', padLayer: 'maths', surface: QT_TYPED + ', maths keys with letters and powers', tiles: ['Figure', 'Check'],
               marked: '`rule: expr`/`eqn` by value at six points; a form question (simplify, factorise) matched as written', tolerance: 'any equivalent form unless the form is the question',
               wrong: 'Not yet', right: 'Correct + marks', phone: 'x², √, π keys', pc: 'Typed x^2', need: ['accept', 'exprRule'] },
   choose1:  { label: 'Choose one', surface: 'The options as tiles', tiles: ['the options'],
@@ -59,7 +59,7 @@ const QTYPE_PROTOCOL = {
   reason:   { label: 'Explanation or reasoning', surface: QT_TYPED + ', letter keys, wrapping', tiles: ['Figure', 'Check', 'AI (only when the rule cannot give every mark)'],
               marked: 'mark_words: the verdict and the figure that decides it, a point a mark; AI last', tolerance: 'a No stopped by its own punctuation is the verdict',
               wrong: 'n of m marks, the missing point not shown', right: 'Full marks', phone: 'Letter keys', pc: 'Typed', need: ['mark_words|accept'] },
-  essay:    { label: 'Essay', surface: 'A sheet, word count under it', tiles: ['Figure', 'Check (AI)'],
+  essay:    { label: 'Essay', padLayer: 'sheet', surface: 'A sheet, word count under it', tiles: ['Figure', 'Check (AI)'],
               marked: 'AI against the scheme (answer), clamped to the marks', tolerance: 'the scheme\'s levels',
               wrong: 'Marks and one sentence why', right: 'Marks and one sentence why', phone: 'The phone keyboard', pc: 'Typed', need: ['answer', 'marks'] },
   points:   { label: 'Draw point(s)', surface: QT_PEN, tiles: QT_PEN_TILES,
@@ -86,7 +86,7 @@ const QTYPE_PROTOCOL = {
   numline:  { label: 'Number line', surface: QT_PEN + ' (the line)', tiles: QT_PEN_TILES,
               marked: 'draw_answer `interval` (circles filled or open) or `pts`', tolerance: 'a quarter of a step',
               wrong: 'Not yet', right: 'Correct · by the drawing', phone: QT_PEN_PHONE, pc: QT_PEN_PC, need: ['draw_answer'] },
-  measure:  { label: 'Measure from a figure', surface: QT_TYPED + ' beside the figure; a protractor or ruler laid on the figure (385)', tiles: ['Figure', 'Protractor / Ruler (as asked)', 'Check'],
+  measure:  { label: 'Measure from a figure', padLayer: 'maths', surface: QT_TYPED + ' beside the figure; a protractor or ruler laid on the figure (385)', tiles: ['Figure', 'Protractor / Ruler (as asked)', 'Check'],
               marked: 'accept as a band (`a to b`); an angle survives the screen, a length needs a stated scale', tolerance: 'the scheme\'s ± (often 2 mm / 2°)',
               wrong: 'Not yet', right: 'Correct + marks', phone: 'One finger drags the tool, two turn it, or its round handle; it snaps onto a corner and along an arm', pc: 'Drag; the handle or the wheel turns it; typed', need: ['accept', 'band'] },
 };
@@ -278,5 +278,5 @@ function qtMarker_(x) {
 }
 /* MACHINE-MARKED: a way to mark it with no person and no AI (359); with a complete protocol it is the Function verified tag (388). */
 function qtMachine_(x) { return qtMarker_(x) !== 'ai'; }
-/* THE TYPES WHOSE BOX OPENS ON THE MATHS LAYER of the one pad; every other opens on the letters (keypad.js) */
-const QT_MATHS = { value: 1, unit: 1, multi: 1, fraction: 1, coords: 1, expr: 1, measure: 1 };
+/* THE LAYER THE ONE PAD OPENS ON is the type row's `keys` (1200): maths, the essay's sheet, else the letters (keypad.js) */
+const qtKeys_ = t => (QTYPE_PROTOCOL[t] && QTYPE_PROTOCOL[t].padLayer) || 'letters';

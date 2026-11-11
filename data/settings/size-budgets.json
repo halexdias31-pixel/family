@@ -24,6 +24,17 @@
   "js/select.js": 3845,
   "js/tiles.js": 39829,
   "js/missing.js": 20009,
-  "js/boot.js": 2368
+  "js/boot.js": 2368,
+  "js/predicates.js": 1938,
+  "js/shell-boot.js": 47153,
+  "js/shell-layout.js": 43539,
+  "js/shell-pages.js": 44417,
+  "js/shell-click.js": 46547,
+  "js/shell-api.js": 42383,
+  "js/shell-hold.js": 2036,
+  "js/form.js": 6570,
+  "js/me-account.js": 48533,
+  "js/me-roles.js": 46547,
+  "js/me-settings.js": 58959
  }
 }

@@ -425,7 +425,7 @@ on('pa-save', el => {
   if (F.role !== 'student' && !val('email')) { if (said) said.textContent = 'An email, please — the PIN goes there.'; return; }
   const ids = F.picked.map(x => x.id);
   send_({ action: 'personSave', personId: USER.personId || '', targetId: '', firstName: val('first'), lastName: val('last'),
-          roles: [F.role], email: val('email'), dob: val('dob'), parentIds: F.role === 'student' ? ids : [], invite: true },
+          roles: [F.role], email: val('email'), dob: val('dob'), parentIds: F.role === 'student' ? ids : [], invite: false },
         { button: el, where: said, lock: card })
     .then(d => {
       const pid = String((d.person && d.person.personId) || '');

@@ -319,7 +319,7 @@ const kcRow_ = x => (x && x.row) || {};
 const kcPct_ = m => (m === 1 ? dash_() : (m > 1 ? '+' : '−') + Math.abs(Math.round((m - 1) * 100)) + '%');
 /* EACH FIELD A CARD CAN SHOW, BY NAME: the settings file picks, and a field with nothing to say says ''. */
 const KC_FIELDS = {
-  kindPic: x => libPic_(x.kind, x.name),
+  kindPic: () => '',
   name: x => `<h3>${esc(x.name || '')}</h3>`,
   /* THE TUTOR'S COMPACT ONE-SCREEN CARD (547) as fields: face, role, the name line with the rate, then pills and lines. */
   /* A PHOTO, ELSE A DEFAULT PICTURE (owner, 9 Nov): never an avatar figure on a card. */
@@ -550,25 +550,27 @@ function kcUnpicked_(html) {
   if (!said.size) return html;
   return String(html || '').replace(/<span class="(?:qtag|prof-tag)(?![^"]*prof-tag-name)[^"]*"[^>]*>([^<]*)<\/span>/g, (m, t) => (said.has(norm(t.replace(/&amp;/g, '&'))) ? '' : m));
 }
-/* EVERY CARD HAS A PICTURE (owner, 9 Nov): its own, else one of the ten profile pictures (default-pictures.json), the same one for the same person every time. */
+/* IMAGE ON TOP ONLY WHEN REAL (owner, 10 Nov late): a person keeps a photo or a steady profile picture; any other kind shows a photo, figure or cover, else nothing. */
 function kcPicOr_(x, html) {
-  if (String(html || '').trim()) return html;
-  if (KC_PERSON_KINDS.indexOf(x && x.kind) < 0) return kcIcon_(x && x.kind);
+  html = String(html || '');
+  if (KC_PERSON_KINDS.indexOf(x && x.kind) < 0) return kcRealPic_(html) ? html : '';
+  if (html.trim()) return html;
   const art = typeof PFP_ART === 'object' && PFP_ART ? PFP_ART : {};
   const named = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.defaultPictures) ? DATA.defaultPictures : []).filter(n => art[n]);
   const list = named.length ? named : Object.keys(art);
-  if (!list.length || typeof pfpArt_ !== 'function') return '<span class="kc-blank" aria-hidden="true"></span>';
+  if (!list.length || typeof pfpArt_ !== 'function') return '';
   const r = kcRow_(x), k = String(r.personId || (x && (x.key || x.name)) || ''); let h = 0;
   for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) >>> 0;
   return pfpArt_(list[h % list.length], 96);
 }
+/* A REAL PICTURE: a photo, a clip, or a drawing of this very thing (a manuscript, a car part, a timeline stop); a kind sign or icon is not one. */
+const kcRealPic_ = h => /<(img|video|picture)\b|mfrclip-|class="(mech|tl)-pic"/.test(String(h || ''));
 /* ---------- A CARD NEVER DRAWS ITS OWN INSIDES (owner, 10 Nov): a facts kind hands over words; findCard lays them out one way ---------- */
 /* Before card-fields.json lands: the same `facts` and `icon` columns its rows hold (settings.js reads them into DATA.cardLook). */
 const KC_LOOK_DEFAULT = Object.fromEntries(Object.entries({ receipt: 'pound', shop: 'cart', practical: 'tools', project: 'spark', content: 'doc', insert: 'doc', timeline: 'line', fight: 'hand', bible: 'doc', talmud: 'doc', quran: 'doc', worktext: 'doc', hadith: 'doc', writ: 'doc', pdtext: 'doc', orthotext: 'doc', hymn: 'sound', chem: 'spark', soon: 'spark', person: '', setting: 'tools', health: 'tick', offPosts: 'spark', offShop: 'cart', offBooking: 'book' }).map(([k, icon]) => [k, { facts: true, icon }]));
 /* WHO HAS A FACE: a person's card keeps its photo or chosen picture; nobody else's is ever a profile picture. */
-const KC_PERSON_KINDS = ['tutor', 'person', 'people', 'msg', 'post', 'question', 'answer'];
+const KC_PERSON_KINDS = ['tutor', 'person', 'people', 'msg'];
 const kcLook_ = kind => ((typeof DATA !== 'undefined' && DATA && DATA.cardLook) || KC_LOOK_DEFAULT)[kind] || {};
-const kcIcon_ = kind => { const n = kcLook_(kind).icon || 'doc'; return `<span class="kc-icon">${typeof tileIcon_ === 'function' ? tileIcon_(n) || tileIcon_('doc') : ''}</span>`; };
 const kcEmpty_ = () => (typeof NOTHING_YET === 'string' ? NOTHING_YET : '');
 /* A FORM STAYS A FORM: its own maker draws it, whole and unclamped, as the card's open content. */
 /* A LIST OF THINGS EACH WITH ITS OWN TILES (`.kc-items` of `.kc-item`s, the checklist's) holds controls too, so it is drawn open and whole. */
@@ -634,7 +636,7 @@ function kcFactsWatch_() {
       seen.forEach(redo);
     } catch (e) { oops_(e, 'card:facts'); } finally { busy = false; } }).observe(document.body, { subtree: true, childList: true, characterData: true });
 }
-/* ⋯ IS A CARD'S ONLY TOGGLE (owner, 10 Nov): its labelled list of the other actions, under the row. */
+/* ⋯ IS A CARD'S ONLY TOGGLE (owner, 10 Nov): a wrapping row of the other round buttons, under the row. */
 on('kc-more', el => { const c = el.closest('.kc-row, .tile-row'), m = c && c.querySelector('.kc-more'); if (!m) return;
   m.hidden = !m.hidden; el.setAttribute('aria-expanded', m.hidden ? 'false' : 'true'); });
 /* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
@@ -669,14 +671,13 @@ function findCard(x, credits) {
   const hoist = kcHoist_(parts.lines);
   parts.lines = hoist.lines;
   parts.act = kcActRow_(one, parts.lines, hoist.tiles);
-  /* A FACTS KIND: its lines become plain words, a form its open content, its picture its kind's icon unless it is a person. */
+  /* A FACTS KIND: its lines become plain words, a form its open content. */
   let facts = null;
   if (kcLook_(it.kind).facts) {
     facts = kcFacts_(parts.lines);
     if (facts.form) { parts.lines = ''; parts.form = facts.form; kcFactsWatch_(); }
     else { parts.lines = (facts.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`) + (facts.src ? `<div class="kc-src" hidden>${facts.src}</div>` : ''); kcFactsWatch_(); }
     if (facts.tiles) parts.act = kcActRow_(one, '', hoist.tiles + facts.tiles);
-    if (KC_PERSON_KINDS.indexOf(it.kind) < 0) parts.pic = kcIcon_(it.kind);
     parts.tags = kcTidy_(parts.tags, '', name).tags;
   }
   if (!facts && KC_WHOLE_KINDS.indexOf(it.kind) < 0) { const tidy = kcTidy_(parts.tags, parts.lines, name); parts.tags = tidy.tags; parts.lines = tidy.lines; }
@@ -787,20 +788,6 @@ on('book-with', el => {
   go('stuff');
 });
 
-/* ---------- A LIBRARY CARD'S PICTURE (owner's look rule: picture first): a kind with no drawing of its own gets one 8-bit sign of its kind ---------- */
-const LIB_PIX = {
-  writing: ['', '...eeeeeeeeee', '..etttttttttte', '...eeeeeeeeee', '...ewwwwwwwwe', '...ewkkkkkkwe', '...ewwwwwwwwe', '...ewkkkkkwwe',
-    '...ewwwwwwwwe', '...ewkkkkkkwe', '...ewwwwwwwwe', '...ewkkkwwwwe', '...eeeeeeeeee', '..etttttttttte', '...eeeeeeeeee', ''],
-  event: ['', '..k', '..krrrrrrrr', '..krrrrrrrrrr', '..krrrrrrrrrrr', '..krrrrrrrrrr', '..krrrrrrrr', '..k', '..k', '..k', '..k', '..k',
-    '..k', '.kkk', 'kkkkk', ''],
-  content: ['', '', '..tttttttttttt', '..tywwwwwwwwwt', '..tywkkkkkkwwt', '..tywwwwwwwwwt', '..tywkkkkkwwwt', '..tywwwwwwwwwt',
-    '..tywkkkkkkwwt', '..tywwwwwwwwwt', '..tywkkkkwwwwt', '..tywwwwwwwwwt', '..tttttttttttt', '..twwwwwwwwwwt', '...ttttttttttt', ''],
-  project: ['', '......yyyy', '....yyyyyyyy', '...yyywwyyyyy', '...yywwyyyyyy', '...yyyyyyyyyy', '...yyyyyyyyyy', '....yyyyyyyy',
-    '.....yyyyyy', '......yyyy', '......ssss', '......kkkk', '......ssss', '.......kk', '', ''],
-  manuscript: ['', '..eeeeeeeeeee', '..eeeeeeeeeeee', '..ettttttttee', '..eeeeeeeeeee', '..etttttttttee', '..eeeeeeeeeeee', '..ettttttteee',
-    '..eeeeeeeeeeee', '..etttttttttee', '..eeeeeeeeeee', '..ettttteeeee', '..eeeeeeeeeeee', '...eeeeeeeeeee', '', ''],
-};
-const libPic_ = (kind, name) => (LIB_PIX[kind] ? `<figure class="lib-pic">${pixSvg_(LIB_PIX[kind], name || '')}</figure>` : '');
 
 /* `on('prof-shot')` WAS HERE — a tutor's extra photograph opened across its row on a tap. Taken out
    on request (10 Oct, `findCard`): the squares are pictures, not controls. */
