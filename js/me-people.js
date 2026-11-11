@@ -284,9 +284,30 @@ function personEdHtml_(p) {
     ${formLine_('date of birth', formInput_(`type="date" data-pe="dob" value="${esc(q.dob || '')}"`))}
     ${PE_BOXES_.slice(2).map(([f, k]) => box(f, k)).join('')}
     ${peFamHtml_(F)}
+    ${peNotifyHtml_(F)}
     ${tutor ? `<p class="note pe-fam">${q.listed === '' || TRUEish_(q.listed) ? 'Listed' : 'Not listed'}: the eye on their tutor card changes it</p>` : ''}
     <p class="note pe-said" aria-live="polite"></p>${done}</div>`;
 }
+/* THEIR NOTIFICATIONS: the kinds their own card shows, ticked as the sheet says; each tick is `setNotify` with targetId (admin-checked there). */
+function peNotifyHtml_(F) {
+  const n = F.data && F.data.notify, opt = ((n && n.kinds) || []).filter(k => k && !k.essential);
+  if (!opt.length) return '';
+  return `<div class="pe-notify"><p class="note pe-fam">Notifications they get</p>${opt.map(k => formToggle_({ act: 'pe-notify', data: { kind: k.kind },
+    on: !!k.on, label: k.label, note: k.note || '' })).join('')}</div>`;
+}
+on('pe-notify', el => {
+  const F = PERSON_ED_, kind = String((el && el.dataset.kind) || ''), want = !!(el && el.checked);
+  if (!F || !F.data || !kind || !personEdMay_()) return;
+  const said = el.closest('.pe-form') && el.closest('.pe-form').querySelector('.pe-said');
+  send_({ action: 'setNotify', personId: (USER && USER.personId) || '', targetId: F.id, kind, on: want }, { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
+    .then(d => {
+      const on = d && typeof d.on === 'boolean' ? d.on : want;
+      if (PERSON_ED_ === F && F.data.notify) F.data.notify = Object.assign({}, F.data.notify, { kinds: (F.data.notify.kinds || []).map(k => k.kind === kind ? Object.assign({}, k, { on }) : k) });
+      el.checked = on;
+      if (said) said.textContent = 'Saved.';
+    })
+    .catch(e => { el.checked = !want; if (said) said.textContent = why_(e); });
+});
 /* WHAT THE BOXES SAY NOW, in `updateProfile`'s names: the phone as code and number, the birthday as three boxes. */
 function peFields_(form) {
   const v = f => { const b = form.querySelector('[data-pe="' + f + '"]'); return b && !b.disabled ? String(b.value || '').trim() : null; };
@@ -328,7 +349,7 @@ on('person-edit', el => {
   const F = PERSON_ED_ = { id, name: el.getAttribute('data-name') || '', data: null };
   peRedraw_();
   send_({ action: 'personGet', personId: USER.personId || '', targetId: id })
-    .then(d => { if (PERSON_ED_ !== F) return; F.data = { person: d.person || {}, parents: d.parents || [] }; peRedraw_(); })
+    .then(d => { if (PERSON_ED_ !== F) return; F.data = { person: d.person || {}, parents: d.parents || [], notify: d.notify || null }; peRedraw_(); })
     .catch(e => { if (PERSON_ED_ !== F) return; F.err = (e && e.message) || 'Their details could not be opened.'; peRedraw_(); });
 });
 on('person-edit-done', () => {

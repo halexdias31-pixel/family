@@ -1053,7 +1053,13 @@ function confirmFirst_(r, then) {
 function wants_(r, kind) {
   const K = NOTIFY_KINDS[S(kind)];
   if (!K || K.essential || !K.col) return true;
-  return ON_(r && r[K.col]);
+  return notifyCellOn_(r, K);
+}
+/* A PARENT GETS NOTHING UNTIL THEY TICK IT (owner, 11 Nov): blank is off where the kind reaches them as a parent; a tutor's own kinds stay on. */
+function notifyCellOn_(r, K) {
+  const v = S(r && r[K.col]);
+  if (v !== '') return TRUE_(v);
+  return notifyHow_(r, K).indexOf('client') === -1;
 }
 
 /* ---------- AND WHEN IT SAYS NO, IT IS WRITTEN DOWN, NOT DROPPED § */

@@ -89,6 +89,8 @@ const DIRECT = {
   'doPost:forgotPin':  { essential: 'access', why: 'a new PIN, or a child\'s, to the proved grown-ups' },
   /* APPLYING TO TEACH (400): the owner hears of an application, and the applicant hears the answer to it. */
   'doPost:applyTeach': { essential: 'access', why: 'the owner told an application to teach is waiting — the business, not a preference' },
+  /* AN ADMIN-MADE ACCOUNT: the welcome carries the new PIN, which is how the person signs in at all. */
+  adminInvite_:        { essential: 'access', why: 'the PIN of an account an admin made — without it nobody can sign in' },
   'doPost:decideApplication': { essential: 'access', why: 'the answer to the applicant\'s own application: approved, interview or declined' },
   digestMail_:         { asks: 'weekly', in: 'digestReach_', why: 'the Sunday email: `digestReach_`, which `digestPlan_` asks for every learner (and `checkSundayEmail` too, since 12 Oct), drops a parent who said no before anything is rendered' },
 };
@@ -106,13 +108,13 @@ const CALLS = {
   'doPost:changePin · Your PIN was changed':                      ['security'],
   'doPost:finalizePayment · Payment received — you are booked in': ['booked'],
   'doPost:finalizePayment · Paid: a place is confirmed':          ['bookings'],
-  'doPost:move · Not taken forward: ':                            ['booked'],
-  "doPost:move · You're teaching ":                               ['booked'],
-  'doPost:move · Cancelled: ':                                    ['booked'],
-  'doPost:move · Update on ':                                     { kinds: ['booked', 'bookings'],
+  'moveTutorChosen_ · Not taken forward: ':                       ['booked'],
+  "moveTutorChosen_ · You're teaching ":                          ['booked'],
+  'moveStatus_ · Cancelled: ':                                    ['booked'],
+  'moveTell_ · Update on ':                                     { kinds: ['booked', 'bookings'],
     when: 'act === ACT.ACCEPT || act === ACT.DECLINE || act === ACT.WITHDRAW' },
-  'doPost:createJob · Booking received 🎉':                       ['booked'],
-  'doPost:createJob · New request: ':                             ['booked'],
+  'createJobNotify_ · Booking received 🎉':                       ['booked'],
+  'createJobNotify_ · New request: ':                             ['booked'],
   /* 488: a tutor's answer to a request is the booking decision itself, as Accept/Decline in `move` are. */
   'doPost:answerRequest · Accepted: ':                           ['booked'],
   'doPost:deleteJob · Cancelled: ':                               ['booked'],
@@ -284,7 +286,9 @@ Object.keys(WANT).forEach(pid => {
   const opt = n.kinds.filter(k => !k.essential).map(k => k.kind), must = n.kinds.filter(k => k.essential).map(k => k.kind);
   rule(JSON.stringify(opt) === JSON.stringify(WANT[pid].opt), pid + ' is offered switches for ' + JSON.stringify(opt) + ', wanted ' + JSON.stringify(WANT[pid].opt));
   rule(JSON.stringify(must) === JSON.stringify(WANT[pid].must), pid + ' is told ' + JSON.stringify(must) + ' are always sent, wanted ' + JSON.stringify(WANT[pid].must));
-  rule(n.kinds.every(k => k.essential ? !('on' in k) : k.on === true), pid + ': an untouched row is not on for every switch — ' + JSON.stringify(n.kinds));
+  /* A PARENT'S UNTOUCHED ROW IS ALL OFF (owner, 11 Nov); everybody else's is all on. */
+  const wantOn = pid !== 'P-C1';
+  rule(n.kinds.every(k => k.essential ? !('on' in k) : k.on === wantOn), pid + ': an untouched row is not ' + (wantOn ? 'on' : 'off') + ' for every switch — ' + JSON.stringify(n.kinds));
   rule(n.to === PEOPLE.find(p => p.person_id === pid).email && n.held === false, pid + ': notify.to/held is ' + JSON.stringify([n.to, n.held]));
 });
 /* THE ONE LINE THAT TURNS THE CARD ON. § */
@@ -305,15 +309,19 @@ rule((W.b.get({}).features || []).includes('setNotify'),
   const set = (pid, kind, on, extra) => as(pid, Object.assign({ action: 'setNotify', kind: kind, on: on }, extra || {}));
   const no = (d, w, said) => rule(d && !d.success && d.error && !d.writes && !d.notify, said + ' — ' + JSON.stringify(d) + (d && d.writes ? ' (' + d.writes + ' cell(s) written)' : ''));
 
-  let d = set('P-C1', 'messages', false);
+  let d = set('P-C1', 'messages', true);
+  rule(d.success && d.on === true && cell('P-C1', 'messages_email') === 'yes', 'a parent ticking Messages did not write `yes` on their row — ' + JSON.stringify(d) + ' / ' + cell('P-C1', 'messages_email'));
+  rule(d.notify && d.notify.kinds.filter(k => !k.essential && k.on).map(k => k.kind).join() === 'messages', 'ticking Messages turned on more than Messages — ' + JSON.stringify(d.notify));
+  d = set('P-C1', 'messages', false);
   rule(d.success && d.on === false && cell('P-C1', 'messages_email') === 'no', 'a parent turning Messages off did not write `no` on their row — ' + JSON.stringify(d) + ' / ' + cell('P-C1', 'messages_email'));
   rule(d.notify && d.notify.kinds.find(k => k.kind === 'messages').on === false, 'the reply\'s list does not show Messages off — ' + JSON.stringify(d.notify));
   d = set('P-C1', 'messages', false);
   rule(d.success && d.changed === 0 && !d.writes, 'turning off what is already off wrote ' + d.writes + ' cell(s)');
   /* A REQUEST THAT LIES ABOUT WHO IT IS: the gate overwrites the id, so it is still Pat's row. */
-  d = W.b.post({ action: 'setNotify', token: W.tk['P-C1'].token, name: 'Ada Tutor', personId: 'P-T1', kind: 'posts', on: false });
-  rule(d.success && cell('P-C1', 'posts_email') === 'no' && cell('P-T1', 'posts_email') === '',
+  d = W.b.post({ action: 'setNotify', token: W.tk['P-C1'].token, name: 'Ada Tutor', personId: 'P-T1', kind: 'posts', on: true });
+  rule(d.success && cell('P-C1', 'posts_email') === 'yes' && cell('P-T1', 'posts_email') === '',
     'a request naming the tutor wrote ' + JSON.stringify({ parent: cell('P-C1', 'posts_email'), tutor: cell('P-T1', 'posts_email') }) + ' — the token decides whose row');
+  set('P-C1', 'posts', false);
   no(W.b.post({ action: 'setNotify', personId: 'P-C1', name: 'Pat Parent', kind: 'bookings', on: false }), 0, 'setNotify with no token was not refused');
   no(W.b.post({ action: 'setNotify', token: 'not-a-token', personId: 'P-C1', kind: 'bookings', on: false }), 0, 'setNotify with a made-up token was not refused');
   /* AN ESSENTIAL KIND IS REFUSED AS ESSENTIAL — with its reason, not by luck of having no column. */
@@ -339,12 +347,12 @@ rule((W.b.get({}).features || []).includes('setNotify'),
   no(set('P-C1', 'messages', false, { targetId: 'P-A1' }), 0, 'a parent chose for the admin');
   no(set('P-A1', 'messages', false, { targetId: 'P-A2' }), 0, 'an admin chose for another admin');
   d = set('P-A1', 'messages', true, { targetId: 'P-S1' });
-  rule(d.success && cell('P-S1', 'messages_email') === '', 'an admin could not put a child\'s messages back on, or on did not write a blank — ' + JSON.stringify(d) + ' / "' + cell('P-S1', 'messages_email') + '"');
+  rule(d.success && cell('P-S1', 'messages_email') === 'yes', 'an admin could not put a child\'s messages back on, or on did not write `yes` — ' + JSON.stringify(d) + ' / "' + cell('P-S1', 'messages_email') + '"');
   /* READING: your own, whoever you claim to be; nobody else's. */
   let r = W.b.post({ action: 'myProfile', personId: 'P-C1', name: 'Pat Parent' });
   rule(!r.success && !r.profile, 'myProfile with no token answered with a profile');
   r = W.b.post({ action: 'myProfile', token: W.tk['P-C2'].token, personId: 'P-C1', name: 'Pat Parent' });
-  rule(r.success && r.personId === 'P-C2' && r.profile.notify.kinds.find(k => k.kind === 'messages').on === true,
+  rule(r.success && r.personId === 'P-C2' && r.profile.notify.kinds.find(k => k.kind === 'messages').on === false,
     'a stranger asking for the parent\'s profile was given ' + (r.personId || 'nothing') + '\'s, with messages ' + JSON.stringify(r.profile && r.profile.notify.kinds.find(k => k.kind === 'messages')));
   r = W.b.post({ action: 'getProfile', token: W.tk['P-C2'].token, personId: 'P-C2', target: 'P-C1' });
   rule(!r.success && !r.profile, 'a non-admin read somebody else\'s profile through getProfile');
@@ -377,7 +385,7 @@ const both = (kind, pid, addr, send, re) => {
 };
 const clearMessages = () => { W.b.tabs.messages.length = 1; W.b.ev('clearCache()'); };
 /* MESSAGES: the tutor writes to the parent. */
-both('messages', 'P-C1', 'parent@example.org', () => { clearMessages(); return W.as('P-T1', { action: 'sendMessage', to: 'Pat Parent', toId: 'P-C1', body: 'See you Monday.' }); }, /^A message from/);
+both('messages', 'P-C1', 'parent@example.org', () => { clearMessages(); return W.as('P-A1', { action: 'sendMessage', to: 'Pat Parent', toId: 'P-C1', body: 'See you Monday.' }); }, /^A message from/);
 /* POSTS: the admin puts up the student's post. */
 let postN = 0;
 both('posts', 'P-S1', 'student@example.org', () => {
@@ -407,7 +415,7 @@ if (rule(book && book.success && jobId, 'the parent could not book the tutor, so
    stub is the one that knows about the digest_log receipt. */
 {
   const SUN = '2026-10-04T17:00:00Z';
-  const runWith = off => {
+  const runWith = choice => {
     const w = world();
     const b = w.b;
     b.seed('people', PEOPLE);
@@ -417,14 +425,15 @@ if (rule(book && book.success && jobId, 'the parent could not book the tutor, so
       answer: 'an answer', verdict: 'right', submitted_at: new Date('2026-10-01T12:00:00Z'), event_id: '1759320000000-pf0001' }]);
     cfgSet(b, 'weekly_digest', 'send');
     const tk = b.post({ action: 'verifyLogin', email: 'parent@example.org', pin: '0000' });
-    if (off) {
-      const d = b.post({ action: 'setNotify', token: tk.token, personId: 'P-C1', kind: 'weekly', on: false });
-      rule(d.success, 'weekly: the parent could not turn the weekly email off — ' + JSON.stringify(d));
+    if (choice !== undefined) {
+      const d = b.post({ action: 'setNotify', token: tk.token, personId: 'P-C1', kind: 'weekly', on: choice });
+      rule(d.success, 'weekly: the parent could not turn the weekly email ' + (choice ? 'on' : 'off') + ' — ' + JSON.stringify(d));
     }
     const out = JSON.parse(JSON.stringify(b.ev('clearCache(); digestRun_(new Date(' + at(SUN) + '))')));
     return { sentTo: w.mail.sent.map(m => m.to), log: rowsOf(b, 'digest_log'), out };
   };
-  const off = runWith(true), on = runWith(false);
+  const off = runWith(false), on = runWith(true), blank = runWith(undefined);
+  rule(blank.sentTo.indexOf('parent@example.org') === -1, 'weekly UNTICKED: the Sunday run emailed a parent who never ticked it — ' + JSON.stringify(blank.out));
   rule(off.sentTo.indexOf('parent@example.org') === -1, 'weekly OFF: the Sunday run still emailed the parent — ' + JSON.stringify(off.out));
   rule(off.log.some(r => r.parent_id === 'P-C1' && r.status === 'opted out'), 'weekly OFF: the digest_log has no "opted out" row for the parent — ' + JSON.stringify(off.log));
   if (rule(on.sentTo.indexOf('parent@example.org') !== -1, 'weekly ON: the Sunday run did not email the parent — ' + JSON.stringify(on.out))) proved.weekly = 1;
@@ -462,15 +471,25 @@ OPTIONAL.forEach(k => rule(proved[k], 'no real sender proved `' + k + '` on and 
 {
   const m0 = W.mark();
   W.b.tabs.messages.length = 1; W.b.ev('clearCache()');
-  W.as('P-T1', { action: 'sendMessage', to: 'Old Row', toId: 'P-O1', body: 'Hello.' });
-  rule(W.to('old@example.org', m0, /A message from/).length === 1, 'a row with every choice cell blank was not sent a message');
+  W.as('P-A1', { action: 'sendMessage', to: 'Old Row', toId: 'P-O1', body: 'Hello.' });
+  rule(W.to('old@example.org', m0, /A message from/).length === 0, 'a parent row with every choice cell blank was sent a message');
+  const m2 = W.mark();
+  W.b.tabs.messages.length = 1; W.b.ev('clearCache()');
+  W.as('P-A1', { action: 'sendMessage', to: 'Ada Tutor', toId: 'P-T1', body: 'Hello.' });
+  rule(W.to('tutor@example.org', m2, /A message from/).length === 1, 'a tutor row with a blank messages cell was not sent a message');
   const O = make({ oldSheet: true });
   rule(O.b.tabs.people[0].indexOf('messages_email') === -1, 'the old sheet still has the new columns, so this asked nothing');
   const n = (O.tk['P-C1'].profile || {}).notify;
-  rule(n && n.kinds.filter(k => !k.essential).every(k => k.on), 'on a sheet without the columns the parent\'s card is not all on — ' + JSON.stringify(n));
+  rule(n && n.kinds.filter(k => !k.essential).every(k => !k.on), 'on a sheet without the columns the parent\'s card is not all off — ' + JSON.stringify(n));
+  const nt = (O.tk['P-T1'].profile || {}).notify;
+  rule(nt && nt.kinds.filter(k => !k.essential).every(k => k.on), 'on a sheet without the columns the tutor\'s card is not all on — ' + JSON.stringify(nt));
   const m1 = O.mark();
-  O.as('P-T1', { action: 'sendMessage', to: 'Pat Parent', toId: 'P-C1', body: 'Hello.' });
-  rule(O.to('parent@example.org', m1, /A message from/).length === 1, 'on a sheet without the columns a message was not sent');
+  O.as('P-A1', { action: 'sendMessage', to: 'Pat Parent', toId: 'P-C1', body: 'Hello.' });
+  rule(O.to('parent@example.org', m1, /A message from/).length === 0, 'on a sheet without the columns a parent was sent a message they never ticked');
+  O.b.tabs.messages.length = 1; O.b.ev('clearCache()');
+  const m3 = O.mark();
+  O.as('P-A1', { action: 'sendMessage', to: 'Ada Tutor', toId: 'P-T1', body: 'Hello.' });
+  rule(O.to('tutor@example.org', m3, /A message from/).length === 1, 'on a sheet without the columns a tutor was not sent a message');
   const d = O.as('P-C1', { action: 'setNotify', kind: 'messages', on: false });
   rule(!d.success && /Open the site once as an admin/.test(String(d.error)) && !d.writes, 'on a sheet without the column, setNotify did not refuse with the ensureSchema_ sentence, or wrote — ' + JSON.stringify(d));
 }
@@ -502,20 +521,24 @@ OPTIONAL.forEach(k => rule(proved[k], 'no real sender proved `' + k + '` on and 
     return w;
   };
   const kindsIn = n => ({ opt: (n && n.kinds || []).filter(k => !k.essential).map(k => k.kind),
-                          must: (n && n.kinds || []).filter(k => k.essential).map(k => k.kind) });
+                          must: (n && n.kinds || []).filter(k => k.essential).map(k => k.kind),
+                          on: (n && n.kinds || []).filter(k => !k.essential).reduce((o, k) => (o[k.kind] = k.on, o), {}) });
   [['P-T8', 'tess@example.org', 'a tutor-only row'], ['P-A8', 'ari@example.org', 'an admin-only row']].forEach(([pid, addr, who]) => {
-    const runWith = off => {
+    const runWith = choice => {
       const w = famWorld(), b = w.b;
       const tk = b.post({ action: 'verifyLogin', email: addr, pin: '0000' });
       if (!rule(tk && tk.success, who + ' with an accepted child could not sign in — ' + JSON.stringify(tk))) return null;
       const n = kindsIn(tk.profile && tk.profile.notify);
       let d = null;
-      if (off) d = b.post({ action: 'setNotify', token: tk.token, personId: pid, kind: 'weekly', on: false });
+      if (choice !== undefined) d = b.post({ action: 'setNotify', token: tk.token, personId: pid, kind: 'weekly', on: choice });
       const out = JSON.parse(JSON.stringify(b.ev('clearCache(); digestRun_(new Date(' + at(SUN) + '))')));
       return { n, d, out, sentTo: w.mail.sent.map(m => m.to), log: rowsOf(b, 'digest_log') };
     };
-    const off = runWith(true), on = runWith(false);
-    if (!off || !on) return;
+    const off = runWith(false), on = runWith(true), blank = runWith(undefined);
+    if (!off || !on || !blank) return;
+    /* AS A PARENT THEY TICK IT; AS A TUTOR OR ADMIN THEIR OWN KINDS STAY ON. */
+    rule(blank.sentTo.indexOf(addr) === -1, 'weekly UNTICKED: the Sunday run emailed ' + who + ' with an accepted child who never ticked it');
+    rule(blank.n.on.weekly === false && blank.n.on.messages === true, who + ' with an accepted child: weekly should start off and messages on — ' + JSON.stringify(blank.n.on));
     rule(off.n.opt.indexOf('weekly') !== -1, who + ' with an accepted child is sent the weekly email and offered no switch for it — ' + JSON.stringify(off.n.opt));
     rule(off.n.must.indexOf('family') !== -1, who + ' with an accepted child is not told family links are always sent — ' + JSON.stringify(off.n.must));
     rule(off.d && off.d.success && off.d.on === false, who + ' with an accepted child could not turn the weekly email off — ' + JSON.stringify(off.d));
@@ -540,15 +563,52 @@ OPTIONAL.forEach(k => rule(proved[k], 'no real sender proved `' + k + '` on and 
       return { tk, d: body ? b.post(Object.assign({ token: tk.token, personId: pid }, body)) : null }; };
     const g = as('gus@example.org', 'P-G1', { action: 'setNotify', kind: 'weekly', on: false });
     const gn = kindsIn(g.tk.profile && g.tk.profile.notify);
-    rule(JSON.stringify(gn) === JSON.stringify(WANT['P-C1']), 'a row whose role cell says `parent` is drawn ' + JSON.stringify(gn) + ', wanted a client\'s ' + JSON.stringify(WANT['P-C1']));
+    rule(JSON.stringify({ opt: gn.opt, must: gn.must }) === JSON.stringify(WANT['P-C1']), 'a row whose role cell says `parent` is drawn ' + JSON.stringify(gn) + ', wanted a client\'s ' + JSON.stringify(WANT['P-C1']));
     rule(g.d && g.d.success, 'a row whose role cell says `parent` could not turn the weekly email off — ' + JSON.stringify(g.d));
     const k = as('kim@example.org', 'P-K1', { action: 'setNotify', kind: 'posts', on: false });
     const kn = kindsIn(k.tk.profile && k.tk.profile.notify);
-    rule(JSON.stringify(kn) === JSON.stringify(WANT['P-S1']), 'a row whose role cell says `kid` is drawn ' + JSON.stringify(kn) + ', wanted a student\'s ' + JSON.stringify(WANT['P-S1']));
+    rule(JSON.stringify({ opt: kn.opt, must: kn.must }) === JSON.stringify(WANT['P-S1']), 'a row whose role cell says `kid` is drawn ' + JSON.stringify(kn) + ', wanted a student\'s ' + JSON.stringify(WANT['P-S1']));
     rule(k.d && k.d.success, 'a row whose role cell says `kid` could not turn their posts email off — ' + JSON.stringify(k.d));
     const kw = b.post({ action: 'setNotify', token: k.tk.token, personId: 'P-K1', kind: 'weekly', on: false });
     rule(!kw.success, 'a row whose role cell says `kid` turned off the weekly email about themselves — ' + JSON.stringify(kw));
   }
+}
+
+/* 3g. A PARENT GETS NOTHING UNTIL THEY TICK IT (owner, 11 Nov): blank is off, one tick is one kind, the essentials still go. */
+{
+  const G = make();
+  const wants = (pid, k) => G.b.ev('wants_(read(TAB.people).rows.find(r => r.person_id === ' + JSON.stringify(pid) + '), ' + JSON.stringify(k) + ')');
+  ['weekly', 'messages', 'bookings', 'posts'].forEach(k => rule(wants('P-C1', k) === false, 'a parent with a blank `' + k + '` cell would be sent it'));
+  ['messages', 'bookings', 'posts'].forEach(k => rule(wants('P-T1', k) === true, 'a tutor with a blank `' + k + '` cell would not be sent it'));
+  ['messages', 'posts'].forEach(k => rule(wants('P-S1', k) === true, 'a student with a blank `' + k + '` cell would not be sent it'));
+  const m0 = G.mark();
+  G.as('P-A1', { action: 'sendMessage', to: 'Pat Parent', toId: 'P-C1', body: 'Hello.' });
+  rule(!G.to('parent@example.org', m0, /A message from/).length, 'a parent who ticked nothing was sent a message');
+  G.as('P-C1', { action: 'setNotify', kind: 'bookings', on: true });
+  rule(wants('P-C1', 'bookings') === true && ['weekly', 'messages', 'posts'].every(k => wants('P-C1', k) === false),
+    'ticking Bookings did not turn on Bookings alone');
+  const m1 = G.mark();
+  G.b.post({ action: 'forgotPin', who: 'parent@example.org' });
+  rule(G.to('parent@example.org', m1, /PIN/i).length >= 1, 'ESSENTIAL access: a parent who ticked nothing was not sent their new PIN');
+}
+
+/* 3h. AN ADMIN TICKS SOMEBODY'S NOTIFICATIONS ON THEIR EDIT FORM: personGet carries their card's kinds; setNotify with targetId writes yes/no; nobody else may. */
+{
+  const H = make();
+  const g = H.as('P-A1', { action: 'personGet', targetId: 'P-C1' });
+  const opt = ((g.notify && g.notify.kinds) || []).filter(k => !k.essential);
+  rule(g.success && opt.map(k => k.kind).join() === WANT['P-C1'].opt.join() && opt.every(k => k.on === false),
+    'personGet does not give the admin the parent\'s kinds, all unticked — ' + JSON.stringify(g.notify));
+  const d = H.as('P-A1', { action: 'setNotify', targetId: 'P-C1', kind: 'weekly', on: true });
+  rule(d.success && H.cell('P-C1', 'weekly_email') === 'yes', 'an admin ticking a parent\'s weekly email did not write yes — ' + JSON.stringify(d));
+  const d2 = H.as('P-A1', { action: 'setNotify', targetId: 'P-T1', kind: 'messages', on: false });
+  rule(d2.success && H.cell('P-T1', 'messages_email') === 'no', 'an admin unticking a tutor\'s messages did not write no — ' + JSON.stringify(d2));
+  const g2 = H.as('P-A1', { action: 'personGet', targetId: 'P-C1' });
+  rule(((g2.notify || {}).kinds || []).find(k => k.kind === 'weekly').on === true, 'personGet after the tick does not show weekly on');
+  const tg = H.as('P-T1', { action: 'personGet', targetId: 'P-C1' });
+  rule(!tg.success && !tg.notify, 'a tutor read somebody\'s notifications through personGet — ' + JSON.stringify(tg));
+  const ts = H.as('P-T1', { action: 'setNotify', targetId: 'P-C1', kind: 'messages', on: true });
+  rule(!ts.success && H.cell('P-C1', 'messages_email') === '', 'a tutor ticked a parent\'s notifications — ' + JSON.stringify(ts));
 }
 
 /* ---------- THE VERDICT ------------------------------------------------------------------------------------ */

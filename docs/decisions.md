@@ -287,3 +287,9 @@ become an owner question showing both; never pick one.
 - One card template everywhere (picture if real, tags, content, round buttons, centred); the booking form is the one agreed exception.
 - A small fixed set of sizes (text, pictures, buttons, corners) and colours; nothing makes its own.
 - Content (pictures, answers, tables) follows one rule per kind. Every visual bug the owner reports becomes a rule the checks hold for all cards.
+
+## 11 Nov — parents receive nothing from the site until they tick it (owner)
+- "Parents don't receive ANYTHING from the site by default. Their notifications have to be ticked on manually."
+- A blank notification cell is OFF where the kind reaches the person as a parent (`notifyCellOn_`); a tutor's, student's or admin's own blank cell stays on. A tick writes `yes`, an untick `no`.
+- Push stays device opt-in: only the person's own "Turn on" subscribes a device. An admin can tick anyone's (non-admin) boxes from their Edit form.
+- Still always sent (essential): sign-in links, PINs, security warnings, family-link requests, booking received/accepted/cancelled receipts, an admin-made account's PIN.
