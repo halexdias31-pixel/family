@@ -31,9 +31,9 @@ check('every Find kind that is not a question is made of the shared parts: head,
       const host = box(w.stuffCard(x));
       const card = host.querySelector('.favwrap > .card') || host.firstElementChild;
       if (!card || !card.classList.contains('fc')) { bad.push(name + ' is not a `.card.fc`'); return; }
-      /* ONE CARD SHAPE (owner, 9 Nov, 1a): every kind is findCard's four parts in order — picture, head, tag line, lines. */
+      /* ONE CARD ANATOMY (decisions 10 Nov evening): findCard's five parts in order — picture, head, tags, lines, the button row. */
       const kids = [...card.children].map(e => e.className).join(' ');
-      if (kids !== 'kc-pic kc-head kc-tags kc-lines') bad.push(name + ' is not the four parts of one card: ' + kids);
+      if (kids !== 'kc-pic kc-head kc-tags kc-lines kc-act') bad.push(name + ' is not the five parts of one card: ' + kids);
       const tr = card.querySelector(':scope > .kc-tags .qtags');
       if (!tr) bad.push(name + ' has no tag row in its tag line');
       /* THE TAGS ARE THE TITLE (499): a name the tag row already says leaves the head empty, the name its aria-label; a fight (490) has none. */
@@ -41,7 +41,8 @@ check('every Find kind that is not a question is made of the shared parts: head,
       if (kind === 'fight' ? !card.getAttribute('aria-label') : card.getAttribute('aria-label') !== x.name) bad.push(name + ' is not named by its aria-label');
       if (said && (head.querySelectorAll('h3').length !== 1 || head.querySelector('h3').textContent.trim() !== said || said !== x.name)) bad.push(name + '\'s head is not its title alone');
       if (kind !== 'fight' && kind !== 'people' && !(tr && tr.querySelector('.qtag[data-f="kindLabel"]'))) bad.push(name + '\'s tag row does not carry its What kind');
-      const stray = ['.thing', '[style]', 'p.note', '.tile-row'].filter(sel => [...card.querySelectorAll(sel)].some(onCard));
+      /* The buttons' row is `.kc-act`'s own; a tile row anywhere else is a card drawing its own insides. */
+      const stray = ['.thing', '[style]', 'p.note', '.tile-row'].filter(sel => [...card.querySelectorAll(sel)].some(el => onCard(el) && !el.closest('.kc-act')));
       if (stray.length) bad.push(name + ' carries ' + stray.join(', ') + ' inside the card');
       const pages = w.pageParts_(x).filter(Boolean).map(part => ({ part, el: box(w.stuffPart_(x, part)).firstElementChild }));
       pages.forEach(({ part, el }) => {
