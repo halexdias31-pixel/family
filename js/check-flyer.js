@@ -21,7 +21,8 @@ box.brand = (k, or) => (k in BRAND ? BRAND[k] : or || '');
 box.isAdmin = () => box.admin;
 box.passFor_ = () => (fx.tutors || [])[0] || null;
 vm.createContext(box);
-vm.runInContext(read('js/qr.js') + '\n' + src + '\nthis.T = { FLY_LAYOUTS, FLY_DRAW, flyerSource_, flyerSheet_, flyerUrl_, flyWhoList_, qrMatrix_ };', box);
+box.DATA.campaigns = [{ id: 'C001', name: 'Camp', style: 'loud', blocks: 'head say facts foot', copy: { head: [{ text: 'Line one|line two' }], say: [{ text: 'A paragraph.' }] } }];
+vm.runInContext(read('js/qr.js') + '\n' + src + '\nthis.T = { flyerWith_, FLY_LAYOUTS, FLY_DRAW, flyerSource_, flyerSheet_, flyerUrl_, flyWhoList_, qrMatrix_ };', box);
 const T = box.T;
 const unesc = s => s.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 
@@ -30,7 +31,8 @@ const who = T.flyWhoList_();
 if (who.length < 2 || who[0].id !== 'web') bad.push('an admin is not offered the business and every listed tutor');
 let sheets = 0;
 who.forEach(w => {
-  const s = T.flyerSource_(w.id);
+  [null, 'C001'].forEach(camp => {
+  const s = T.flyerWith_(T.flyerSource_(w.id), camp);
   if (!s) { bad.push(w.id + ': no source'); return; }
   /* THE SOURCE'S OWN VALUES: every text on the sheet must be one of them. */
   const vals = new Set();
@@ -43,10 +45,12 @@ who.forEach(w => {
     (h.match(/\ssrc="([^"]*)"/g) || []).forEach(m => { const v = unesc(m.slice(6, -1)); if (!vals.has(v)) bad.push(`${w.id}/${L.id}: picture ${v} is not from the profile`); });
     if (L.fields.indexOf('qr') !== -1) {
       const u = unesc((/data-url="([^"]*)"/.exec(h) || [])[1] || '');
-      if (!new RegExp('[?&]from=flyer-' + L.id + '-' + s.id + '$').test(u)) bad.push(`${w.id}/${L.id}: QR address ${u || '(none)'} has no from=flyer-${L.id}-${s.id}`);
+      if (!new RegExp('[?&]from=flyer-' + L.id + '-' + s.id + (s.camp ? '-' + s.camp : '') + '$').test(u)) bad.push(`${w.id}/${L.id}: QR address ${u || '(none)'} has no from=flyer-${L.id}-${s.id}`);
       if (!/<svg[^>]*class="fl-qrsvg"/.test(h)) bad.push(`${w.id}/${L.id}: no QR drawn`);
       if (!T.qrMatrix_(u)) bad.push(`${w.id}/${L.id}: the QR address is too long for version 10`);
     }
+    if (camp && /fl-price/.test(h)) bad.push(`${w.id}/${L.id}: the campaign leaves out price, and it printed`);
+  });
   });
 });
 box.admin = false;

@@ -75,6 +75,13 @@
   --paper-strip: #e7e2d5;   /* the punched binding strip at the top of the calendar */
   --paper-rule:  #cfc7b5;   /* a hairline drawn on paper */
   --paper-red:   #9b2d22;   /* the one red printed on paper: a protractor's inner scale, an angle's arc */
+  /* THE FLYER'S THREE OTHER PAPERS (flyer.js styles): elegant is cool, detailed is green-ruled, loud is yellow. */
+  --paper-cool:      #f4f6f8;
+  --paper-cool-ink:  #16233a;
+  --paper-cool-mark: #2f5f80;
+  --paper-green:     #2f6f4f;
+  --paper-loud:      #ffd227;
+  --paper-loud-ink:  #141208;
   /* THE CREAM ANSWER PILL (1030): every typing box on the site is drawn as the question's answer box. */
   --pill-r: 26px; --pill-h: 52px;
   --pad:    1rem;
@@ -4990,7 +4997,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .fl-prev .fl-sheet { transform-origin: 0 0; position: absolute; left: 0; top: 0; transform: scale(.35); }
 .fl-sheet { background: var(--paper); color: var(--paper-ink); box-sizing: border-box; overflow: hidden;
             display: flex; flex-direction: column; align-items: center; text-align: center; }
-.fl-sheet.fl-a4 { width: 210mm; height: 297mm; padding: 16mm 14mm; gap: 6mm; }
+.fl-sheet.fl-a4 { width: 210mm; height: 297mm; padding: 12mm 14mm; gap: 4mm; }
 .fl-sheet.fl-a5 { width: 148mm; height: 210mm; padding: 10mm; gap: 4mm; }
 .fl-sheet.fl-slip { width: 210mm; height: 297mm; padding: 11mm 20mm; display: grid; grid-template-columns: 85mm 85mm; grid-auto-rows: 55mm; gap: 0; }
 .fl-slip { border: 1px dashed var(--paper-rule); box-sizing: border-box; padding: 4mm; display: grid; grid-template-columns: 1fr 30mm;
@@ -5022,6 +5029,34 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .fl-slip .fl-phone { grid-area: p; font-size: 3.2mm; }
 .fl-slip .fl-site { grid-area: w; font-size: 3.2mm; color: var(--paper-dim); overflow-wrap: anywhere; }
 .fl-slip .fl-qr { grid-area: q; width: 30mm; height: 30mm; align-self: center; }
+/* A CAMPAIGN'S HEADLINE AND PARAGRAPH (data/settings/copy.json), and its style as one of four fixed papers. */
+.fl-head { font-size: 13mm; line-height: 1.1; font-weight: 700; color: var(--paper-red); }
+.fl-head span { display: block; }
+/* A HEADLINE TAKES ROOM, so the photo and QR give some back and the QR is never cut off the page. */
+.fl-a4 .fl-head ~ .fl-photo { width: 32mm; height: 32mm; }
+.fl-a4 .fl-head ~ .fl-qr { width: 44mm; height: 44mm; }
+.fl-sheet.fl-a4:has(.fl-head) { gap: 3mm; }
+.fl-a4:has(.fl-head) .fl-logo { width: 22mm; height: 22mm; }
+.fl-a4:has(.fl-head) .fl-name { font-size: 11mm; }
+.fl-a5 .fl-head { font-size: 9mm; }
+.fl-slip .fl-head { grid-area: s; font-size: 3.6mm; }
+.fl-slip .fl-head ~ .fl-subj { display: none; }
+.fl-say { font-size: 5.2mm; line-height: 1.35; max-width: 160mm; }
+.fl-a5 .fl-say { font-size: 4mm; }
+.fl-slogan { font-size: 5.6mm; font-style: italic; color: var(--paper-dim); }
+.fl-st-elegant { background: var(--paper-cool); color: var(--paper-cool-ink); }
+.fl-st-elegant .fl-name, .fl-st-elegant .fl-subj li { color: var(--paper-cool-ink); border-color: var(--paper-cool-ink); }
+.fl-st-elegant .fl-head, .fl-st-elegant .fl-price { color: var(--paper-cool-mark); font-weight: 400; }
+.fl-st-detailed { border-top: 6mm solid var(--paper-green); }
+.fl-st-detailed .fl-head, .fl-st-detailed .fl-price { color: var(--paper-green); }
+.fl-st-detailed .fl-subj li { border-color: var(--paper-green); }
+.fl-st-loud { background: var(--paper-loud); color: var(--paper-loud-ink); }
+.fl-st-loud .fl-head { color: var(--paper-loud-ink); font-size: 16mm; }
+.fl-st-loud.fl-a5 .fl-head { font-size: 12mm; }
+.fl-st-loud.fl-slip .fl-head { font-size: 3.6mm; }
+.fl-st-loud .fl-tag, .fl-st-loud .fl-cta, .fl-st-loud .fl-slogan { color: var(--paper-loud-ink); }
+.fl-st-loud .fl-qrsvg .qr-bg { fill: var(--paper-loud); }
+.fl-st-elegant .fl-qrsvg .qr-bg { fill: var(--paper-cool); }
 .fl-paper { display: none; }
 @page fl-a5 { size: A5 portrait; margin: 0; }
 @media print {
