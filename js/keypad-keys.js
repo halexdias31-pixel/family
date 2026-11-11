@@ -17,14 +17,14 @@ function ansMaths_(x) {
   const ways = String(x.accept || '').split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w));
   /* "x < 4 or x > 5" is two inequalities joined by a word: the joining word is not what is typed most */
   if (ways.length) return kpMathsy_(ways[0].replace(/\s+(or|and)\s+/gi, ' '));
-  try { return !!QT_MATHS[qType_(workRow_(x))]; } catch (e) { return false; }
+  try { return qtKeys_(qType_(workRow_(x))) === 'maths'; } catch (e) { return false; }
 }
 
 /* ---------- WHICH ANSWERS ARE ESSAYS § */
 /* THE SAME ONE BOX, BIGGER: a part qType_ calls an essay is written on the sheet. */
 function ansEssay_(x) {
   if (!x) return false;
-  try { return qType_(workRow_(x)) === 'essay'; } catch (e) { return false; }
+  try { return qtKeys_(qType_(workRow_(x))) === 'sheet'; } catch (e) { return false; }
 }
 /* AND HOW LONG IT IS, in words -- the one thing a pupil checks about an essay while writing it, so the sheet says it under itself rather than leaving it to be § */
 const KP_NOT_WORD = /^[.,;:!?'"()\[\]\-‐-―‘-‟…·*\/]+$/;
