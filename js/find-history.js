@@ -202,7 +202,7 @@ function histItem_(kind, r) {
     sub: K.sub(r).filter(Boolean).join(' · '),
     histKind: labelOf_('hist-kind', K.chip, K.say),
     shelf: K.shelf ? K.shelf() : 'History', subject: 'History',
-    text: plainText_(Object.keys(r).map(k => r[k]).join(' ')),
+    text: plainText_(Object.keys(r).filter(k => k !== 'px').map(k => r[k]).join(' ')),
     row: r,
   };
 }

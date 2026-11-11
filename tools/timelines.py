@@ -6,9 +6,10 @@ day, or timelines which already finished like World War II, World War I, Old Tes
 some covering a long span." This script is the source of two things; re-run it, never hand-edit what it writes (rule 13):
   data/timeline.json   the events of the eras it owns (World War 1, Old Testament, Roman Empire, Space Race), ids fixed here;
                        the Church History era is tools/church-history.py's, the World War 2 rows the sheet's.
-  data/timelines.json  one row per timeline: its window (years on screen at once), unit (how the axis counts), and its
-                       events by id with a 2-5 word caption and a 16x16 scene (tools/tl_icons.py). Dates and facts are read
-                       from the event rows by the app, so a fact lives once.
+  data/timelines.json  one row per timeline: its name, era, window (years on screen at once), unit (how the axis counts) and
+                       its events by id only (owner, 11 Nov: a timeline is a compilation of the event items). Each event row
+                       carries its own 2-5 word caption (`label`) and 16x16 scene (`px`, tools/tl_icons.py), so a fact lives once;
+                       an event on two timelines takes the first one's caption and scene.
     python3 tools/timelines.py
 """
 import json, os, sys
@@ -209,15 +210,20 @@ def main():
             r.update(era=era, figures='', writings='')
             rows.append({c: r[c] for c in ('id', 'name', 'date_from', 'date_to', 'date_iso', 'date_iso_to', 'date_text', 'date_basis',
                                            'places', 'theatre', 'era', 'summary', 'figures', 'writings', 'sources')})
+    for r in rows:
+        r['label'], r['px'] = '', ''
     rows.sort(key=order)
     ids = {e['id'] for e in rows}
+    by = {e['id']: e for e in rows}
     out = []
     for tid, name, era, window, unit, evs in TL:
         miss = [e for e, _, _ in evs if e not in ids]
         if miss:
             sys.exit('timelines.py: ' + tid + ' names events that are no row: ' + ', '.join(miss))
-        out.append({'id': 'TL-' + tid, 'name': name, 'era': era, 'window': window, 'unit': unit,
-                    'events': [{'id': e, 'label': lab, 'px': ICON[ic]} for e, ic, lab in evs]})
+        for e, ic, lab in evs:
+            if not by[e]['px']:
+                by[e]['label'], by[e]['px'] = lab, ICON[ic]
+        out.append({'id': 'TL-' + tid, 'name': name, 'era': era, 'window': window, 'unit': unit, 'events': [{'id': e} for e, _, _ in evs]})
     with open(tl_p, 'w', encoding='utf-8') as fh:
         fh.write('[\n' + ',\n'.join(json.dumps(r, ensure_ascii=False, separators=(',', ':')) for r in rows) + '\n]\n')
     with open(out_p, 'w', encoding='utf-8') as fh:

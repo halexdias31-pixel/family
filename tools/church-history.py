@@ -369,7 +369,10 @@ EV = [
 def main():
     figs_p, tl_p, wr_p = (os.path.join(ROOT, 'data', f) for f in ('figures.json', 'timeline.json', 'writings.json'))
     figs = [f for f in json.load(open(figs_p, encoding='utf-8')) if int(f['id'][4:]) < FIRST_FIG]
-    tl = [e for e in json.load(open(tl_p, encoding='utf-8')) if e['era'] != ERA]
+    was = json.load(open(tl_p, encoding='utf-8'))
+    tl = [e for e in was if e['era'] != ERA]
+    # A ROW'S CAPTION AND SCENE are tools/timelines.py's (run after this one); kept here so a re-run alone loses neither.
+    keep = {e['id']: (e.get('label', ''), e.get('px', '')) for e in was}
     wr = json.load(open(wr_p, encoding='utf-8'))
     key = {}
     for i, f in enumerate(FIG):
@@ -381,7 +384,8 @@ def main():
         ids = [key.get(w.strip(), w.strip()) for w in who.split('|') if w.strip()]
         ev_rows.append({'id': 'EV-%04d' % (start + i), 'name': name, 'date_from': a, 'date_to': b, 'date_iso': iso, 'date_iso_to': iso_to,
                         'date_text': said, 'date_basis': basis, 'places': places, 'theatre': theatre, 'era': ERA, 'summary': summary,
-                        'figures': ' | '.join(ids), 'writings': writ, 'sources': src})
+                        'figures': ' | '.join(ids), 'writings': writ, 'sources': src,
+                        'label': keep.get('EV-%04d' % (start + i), ('', ''))[0], 'px': keep.get('EV-%04d' % (start + i), ('', ''))[1]})
     for i, f in enumerate(FIG):
         (k, name, aliases, born, died, bt, dt, bp, dp, places, eras, roles, ach, notes) = f
         fid = key[k]
