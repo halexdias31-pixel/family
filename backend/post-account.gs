@@ -78,7 +78,8 @@ function postRegister_(body, action, began) {
     /* THE HANDLE IS THE TEMPLATE (364) — see `handleMake_`. */
     handle: regHandle || '',
     email, pin, credits: 0, xp: 0,
-    came_from: arrivedWith,
+    /* A FLYER'S TAG WHEN NO FRIEND'S CODE CAME: `flyer-<layout>-<id>` from the QR (flyer.js), kept to its own letters. */
+    came_from: arrivedWith || S(body.from).toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 60),
     invited_by: inviter,
     joined_on: new Date(),
     verified: 'PENDING', verify_token: token

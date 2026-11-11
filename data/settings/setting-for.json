@@ -36,6 +36,7 @@
 {"card":"set:staff:qualifications","under":"Staff","name":"","notes":""},
 {"card":"set:staff:where-you-teach","under":"Staff","name":"","notes":""},
 {"card":"set:staff:when-i-can-teach","under":"Staff","name":"","notes":""},
+{"card":"staff:flyer","under":"Staff, Admin","name":"Flyer maker","notes":"print-ready flyers from the Web profile or the tutor's own card; a tutor makes only their own (flyer.js)."},
 {"card":"staff:hub","under":"Staff","name":"","notes":"the staff hub after the card parts."},
 {"card":"appr:blurb","under":"Apprentice","name":"Work experience","notes":"the apprentice placeholder; its card has no title of its own."},
 {"card":"site:digest","under":"Business","name":"Weekly email","notes":"the Sunday email to parents as the backend sends it (digestPreview); found under Business, an admin's only (owner, 8 Nov)."},
