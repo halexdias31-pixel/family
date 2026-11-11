@@ -688,7 +688,8 @@ function aheadPaint_(id) {
 }
 /* THE HALF OF `startScreen_` THAT RUNS NOTHING — a conversation opened at its newest message. */
 function drawnScreen_(id) {
-  if (id === 'dm' && typeof dmFoot_ === 'function') { try { dmFoot_(); } catch (e) { oops_(e, 'shell:drawnScreen_') } }
+  const H = SCREEN_HOOKS[id] || {};
+  if (H.drawn) H.drawn();
 }
 
 function paintPager(id, instant) {
@@ -748,17 +749,13 @@ function goPageHere_(id, to, instant, F) {
   /* A WIDGET STILL WAITING ITS TURN to start is started now if this is its page — see `widgetsNear_` in arcade.js. § */
   if (typeof widgetsNear_ === 'function') widgetsNear_(id);
   /* AND THE REELS KEPT SIX AHEAD, one slide appended now if fewer are left — markup only (`reelAhead_`). */
-  if (id === 'reel' && typeof reelAhead_ === 'function') { try { reelAhead_(n); } catch (e) { oops_(e, 'shell:goPage') } }
+  const H = SCREEN_HOOKS[id] || {};
+  if (H.paged) H.paged(n);
   if (id === AT) placeCells('y', instant);
   /* AFTER THE SLIDE, THE LANDING'S OWN WORK — the page in front and one either side if a jump left them empty, its textbook animation and its running widget. § */
   if (F && !bare) afterSlide_(() => finderSoon_(F, fillStuffPages), 'fill:' + id);
-  /* ---------- THE REEL BEING WATCHED IS THE PAGE BEING SHOWN § */
-  if (id === 'reel' && typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_);
-  /* AND THE CAMERA, WHICH IS A PAGE OF THE FEED — started when its page arrives and let go when the page turns away, booked under its own name for the reason § */
-  if (id === 'feed' && typeof feedCamWatch_ === 'function') afterSlide_(feedCamWatch_);
-  /* AND A TURN OFF THE CAMERA'S PAGE PUTS ITS VIEWFINDER AT REST NOW, not after the slide: the slide is what
-     carries the page across the glass, loader and all (`camRest_`, posts.js; docs/history/341). */
-  if (id === 'feed' && n !== 0 && typeof camRest_ === 'function') camRest_();
+  /* ---------- AFTER THE SLIDE, THE SCREEN'S OWN WORK: the reel being watched, the feed's camera started or put at rest (SCREEN_HOOKS). */
+  if (H.slid) H.slid(n);
   paintPager(id);
   if (FLOW_LAYOUT) flowShow_(id, n);
 }

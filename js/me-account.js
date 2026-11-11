@@ -435,14 +435,13 @@ on('do-signin', el => {
    complaining about what is no longer there. */
 document.addEventListener('input', e => {
   const t = e.target;
-  if (t && (t.id === 'in-pin' || t.id === 'in-name') && t.hasAttribute('aria-invalid')) t.removeAttribute('aria-invalid');
+  if (isSignInBox_(t) && t.hasAttribute('aria-invalid')) t.removeAttribute('aria-invalid');
 });
 
 /* ---------- ENTER SUBMITS, BECAUSE THE KEYBOARD SAYS IT WILL § */
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
-  const id = e.target && e.target.id;
-  if (id !== 'in-name' && id !== 'in-pin') return;
+  if (!isSignInBox_(e.target)) return;
   e.preventDefault();
   const btn = document.querySelector('[data-do="do-signin"]');
   if (btn && !btn.disabled) btn.click();

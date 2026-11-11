@@ -557,7 +557,7 @@ function findPeopleItems_() {
       kind: w.kind, name: w.name || w.title || w.label || String(w.id), sub: w.what || '', image: '',
       groups: w.groups, widget: w, text: [w.name, w.what, w.label].filter(Boolean).join(' '),
       /* A SHOP WIDGET (the Basket) IS ITS OWN ANSWER UNDER SHOP (batch C), beside the things' categories. */
-      shopKind: w.kind === 'shop' ? (w.name || '') : '',
+      shopKind: isShop_(w) ? (w.name || '') : '',
     })).filter(x => typeof TIER_OFF_WIDGETS === 'undefined' || TIER_OFF_WIDGETS.indexOf(String(x.widget.id)) === -1),
     ...soonItems_(),
     /* POSTS, MESSAGES, PROFILES, SETTINGS AND VIDEOS (batch C): their items and menus are find-doors.js's. */

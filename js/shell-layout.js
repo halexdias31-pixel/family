@@ -157,7 +157,7 @@ function holdHere_(t) {
   try {
     const pg = t && t.closest && t.closest('#screen .page.on');
     const host = pg && pg.parentElement;
-    if (!host || host.id !== 's-' + AT) return;
+    if (!isAtHost_(host)) return;
     /* ONCE PER CARD. The first touch says where it is; asking again on every keystroke would force a
        layout per letter typed, for the answer the first one already gave. */
     if (HOLD_AT && HOLD_AT.id === AT && HOLD_AT.p === (PAGE[AT] || 0)) return;

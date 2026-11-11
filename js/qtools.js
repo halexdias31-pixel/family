@@ -131,12 +131,12 @@ function qtToolTile_(t, x) {
   /* A CARD DRAWN AGAIN keeps the tool in hand lit, by the one rule `qtLight_` uses too */
   const pk = qtPadKey_(t, x);
   const on = qtToolOn_(t.id, key, pk, qtInHand_(pk));
-  const cls = 'qt-t' + ((t.id === 'ruler' || t.id === 'protractor') ? ' q-meast' : '');
+  const cls = 'qt-t' + (isMeasureTool_(t.id) ? ' q-meast' : '');
   return tile_({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } });
 }
 /* IS THIS TOOL IN HAND, the one rule: Ruler or Protractor laid on a figure (MEAS), the protractor on the pad, the rest the pad's tool */
 function qtToolOn_(id, key, pk, inHand) {
-  if ((id === 'ruler' || id === 'protractor') && typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === id) return true;
+  if (isMeasureTool_(id) && typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === id) return true;
   if (id === 'ruler') return false;
   if (id === 'protractor') return !!(pk && padProtOn_(pk));
   if (!pk || !inHand) return false;
@@ -188,7 +188,7 @@ function qtRedraw_(card, x) {
   qtPenSet_(x, PEN_OPEN.has(x.key));
   const t = document.createElement('div');
   /* A FIND CARD STAYS IN THE ONE CARD SHAPE when drawn again (owner 1a, 8 Nov). */
-  t.innerHTML = card.classList.contains('kc') && x.kind === 'question' ? findCard(x) : questionCard_(x, card);
+  t.innerHTML = card.classList.contains('kc') && isQ_(x) ? findCard(x) : questionCard_(x, card);
   const next = t.firstElementChild;
   if (!next) return null;
   card.replaceWith(next);

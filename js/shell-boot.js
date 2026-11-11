@@ -413,6 +413,25 @@ function go(id, remember, instant) {
 
 /* DRAW THE SCREEN EITHER SIDE, so a sideways drag reveals one rather than an empty rectangle. § */
 /* ---------- WHAT EACH SCREEN NEEDS RUNNING ONCE ITS MARKUP EXISTS § */
+/* SCREEN HOOKS: what one screen runs on starting, on being drawn and after a page turn; the shell keeps one rule.
+   Saved, Shop and Reels hold widgets (414) whose cards grow (regrow); a start returns true when it ran. */
+const SCREEN_HOOKS = {
+  saved: { regrow: true, start: a => typeof savedStart_ === 'function' && (savedStart_(a), true) },
+  shop: { regrow: true, start: a => typeof toolsStart_ === 'function' && (toolsStart_('shop', a), true) },
+  reel: { regrow: true, start: a => typeof toolsStart_ === 'function' && (toolsStart_('reel', a), true),
+    started: [() => typeof reelsWatch_ === 'function' && reelsWatch_()],
+    paged: n => { if (typeof reelAhead_ === 'function') { try { reelAhead_(n); } catch (e) { oops_(e, 'shell:goPage') } } },
+    slid: () => { if (typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_); } },
+  /* the camera is a page of the feed: started when its page arrives, put at rest at once when the page turns away (docs/history/341) */
+  feed: { started: [() => typeof feedCamWatch_ === 'function' && feedCamWatch_()],
+    slid: n => { if (typeof feedCamWatch_ === 'function') afterSlide_(feedCamWatch_); if (n !== 0 && typeof camRest_ === 'function') camRest_(); } },
+  /* an admin's business records are asked for, a POST, once (js/records.js) */
+  biz: { started: [() => typeof bizStart_ === 'function' && bizStart_()] },
+  /* a conversation opens at its newest message, and keeps itself up to date while it is the screen you are on (`dmPoll_`) */
+  dm: { started: [() => typeof dmFoot_ === 'function' && dmFoot_(), () => typeof dmPoll_ === 'function' && dmPoll_()],
+    drawn: () => { if (typeof dmFoot_ === 'function') { try { dmFoot_(); } catch (e) { oops_(e, 'shell:drawnScreen_') } } } },
+};
+
 function startScreen_(id, arriving) {
   /* NOT A COLUMN A LANDING PAYLOAD LEFT ALONE — its markup was not replaced, so what runs in it is still
      running, and restarting it is what moves the caret: the notepad's `start` writes its value back.
@@ -422,36 +441,17 @@ function startScreen_(id, arriving) {
   if (typeof padHold_ === 'function' && padHold_(id)) return;
   /* NOR A WIDGET COLUMN `paint` HELD FOR A FORM WITH TYPING IN IT (`settingsKeep_`, me.js) — the library cards on Tools, and their starred copy on Saved § */
   if (!arriving && ['saved', 'stuff'].indexOf(id) !== -1 && typeof settingsKeep_ === 'function' && settingsKeep_(id)) return;
-  /* THE SAVED COLUMN HOLDS WIDGETS TOO, so it starts them — from its own list rather than from a
-     kind, because what is on it is whatever was starred. */
-  if (id === 'saved' && typeof savedStart_ === 'function') { savedStart_(arriving); }
-  /* AND THE SHOP, whose first page is the basket — a widget, with a `start` that draws its lines.
-     Without this the basket arrived as a heading over an empty box. */
-  else if (id === 'shop' && typeof toolsStart_ === 'function') { toolsStart_('shop', arriving); }
-  /* AND THE WIDGETS LEADING THE REELS (414) — Videos and One more thing, the pages before the first reel. */
-  else if (id === 'reel' && typeof toolsStart_ === 'function') { toolsStart_('reel', arriving); }
+  /* A SCREEN'S OWN WORK on starting is its row of SCREEN_HOOKS: the widgets it holds, its camera, reels, records or thread. */
+  const H = SCREEN_HOOKS[id] || {};
+  if (H.start && H.start(arriving)) { /* its own widgets, started from its own list */ }
   /* AND A WIDGET MOVED ONTO ANY OTHER COLUMN (710, layout.js). */
   else if (typeof WIDGET_COLS !== 'undefined' && WIDGET_COLS.indexOf(id) !== -1 && typeof widgetsWake_ === 'function') {
     const ws = widgetsOn_(id);
     if (ws.length) { widgetsWake_(ws, id, arriving); if (id === AT) placeCells('y', true, 0, id); }
   }
   /* ---------- AND A COLUMN WHOSE CARDS JUST GREW IS PLACED AGAIN § */
-  if ((id === 'saved' || id === 'shop' || id === 'reel') && id === AT) {
-    placeCells('y', true, 0, id);
-  }
-  /* THE CAMERA STARTS ON ARRIVAL rather than on a tap. § */
-  /* ONLY ON ITS OWN PAGE. § */
-  if (id === 'feed' && typeof feedCamWatch_ === 'function') feedCamWatch_();
-  /* AND THE REEL COLUMN PLAYS THE ONE YOU ARE ON. § */
-  if (id === 'reel' && typeof reelsWatch_ === 'function') reelsWatch_();
-  /* AND AN ADMIN'S BUSINESS RECORDS ARE ASKED FOR — a POST, once, and never the payload (see js/records.js). § */
-  if (id === 'biz' && typeof bizStart_ === 'function') bizStart_();
-  /* AND A CONVERSATION OPENS AT ITS NEWEST MESSAGE. A scroller's natural state is the top, which on
-     a thread is last month — so something has to say otherwise, once the markup exists. */
-  if (id === 'dm' && typeof dmFoot_ === 'function') dmFoot_();
-  /* AND IT KEEPS ITSELF UP TO DATE WHILE IT IS THE SCREEN YOU ARE ON — see `dmPoll_` in posts.js,
-     which is where the interval and what it costs are written down. */
-  if (id === 'dm' && typeof dmPoll_ === 'function') dmPoll_();
+  if (H.regrow && id === AT) placeCells('y', true, 0, id);
+  (H.started || []).forEach(f => f());
 }
 
 /* ---------- A COLUMN THE LANDING WILL SHOW, STILL ON THE BOOT'S LOADER, IS DRAWN BEFORE THE SLIDE § */

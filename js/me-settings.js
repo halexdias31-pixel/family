@@ -247,8 +247,8 @@ document.addEventListener('change', e => {
 /* `o.fold`: ON YOUR CARD'S EDIT THE PICKER IS ONE LINE, the face beside "Picture", opening in place (docs/history/425). */
 function photoPicker_(value, said, o) {
   const v = String(value('photo') || '').trim();
-  const kind = picKind_(v);
-  const chosen = kind === 'basic' ? pfpChoice_(v) : '';
+  const K = picKindRow_(v);
+  const chosen = K ? K.chosen(v) : '';
   const opt = n => {
     const label = PFP_ART[n].name;
     return tile_({ label: label, act: 'pfp-choose', data: { pic: n }, on: chosen === n, pressed: chosen === n, cls: 'pfp-opt',
@@ -272,9 +272,8 @@ function photoPicker_(value, said, o) {
 }
 /* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */
 function pfpSaid_(v) {
-  const kind = picKind_(v);
-  if (kind === 'photo') return 'Your photo is your picture.';
-  if (kind === 'basic') return 'The ' + PFP_ART[pfpChoice_(v)].name.toLowerCase() + ' is your picture.';
+  const K = picKindRow_(v);
+  if (K) return K.said(v);
   return 'No picture yet, so your card shows your initial. Choose one, or a photo.';
 }
 /* THE PREVIEW IS `personFace_` LIKE EVERY OTHER FACE, so what you see here is what everybody else's card draws — so a picker and a card never disagree. § */

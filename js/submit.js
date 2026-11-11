@@ -452,10 +452,13 @@ const MARK_CHIME_PEAK = 0.03, MARK_BUZZ_PEAK = 0.06, MARK_BUZZ_LEN = 0.4;
 const MARK_BUZZ = [['sawtooth', 164.81], ['square', 174.61]], MARK_BUZZ_LP = 1600;
 /* A HAND UP (455) RINGS A BELL: two short notes, a fourth apart, at the chime's level -- "clicking help ... should make a noise" (owner, 1 Nov). */
 const HELP_BELL = [{ f: 659.25, at: 0, len: 0.14 }, { f: 880, at: 0.12, len: 0.26 }];
+/* WHICH NOTES A KIND OF SOUND PLAYS; any other kind is the buzz. */
+const MARK_TONES = { right: MARK_CHIME, help: HELP_BELL };
 function markTone_(ac, t0, kind, out) {
-  if (kind === 'right' || kind === 'help') {
+  const notes = Object.prototype.hasOwnProperty.call(MARK_TONES, kind) ? MARK_TONES[kind] : null;
+  if (notes) {
     let end = t0;
-    (kind === 'help' ? HELP_BELL : MARK_CHIME).forEach(n => {
+    notes.forEach(n => {
       const a = t0 + n.at, z = a + n.len;
       const g = ac.createGain();
       g.gain.setValueAtTime(0, a);
@@ -662,7 +665,6 @@ function subForget_() {
    An admin's goes to Notes for Claude; anybody else's waits for Confirm. A message's says "Tell the admin" (413). */
 /* VIRTUALLY UNLIMITED (562, owner note 119), the backend's CLAUDE_NOTE_MAX: a sheet cell's 50,000 less room for the rest of the row. */
 const SUGGEST_NOTE_MAX = 40000;
-const suggestPeople_ = kind => kind === 'message' || kind === 'post';
 /* A RULE (496): `tell-admin` — the words only; the quiet safeguarding path stays either way. */
 const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'function' || ruleOn_('tell-admin'));
 /* WHAT HAS AN OPEN NOTE FOR CLAUDE, by `kind|id` — sent to everybody as `reportedItems`, no names in it. */
