@@ -40,9 +40,7 @@ function wfList_(of) {
     ${tile_({ icon: 'open', label: 'Open', note: 'see the pages', act: 'wf-open', data: { id: r.id, title: r.title || 'Scanned work' } })}
     ${s.mayDelete ? tile_({ icon: 'bin', label: 'Delete', note: 'from your file', act: 'wf-del', data: { id: r.id, of } }) : ''}</li>`).join('')}</ul>`;
 }
-function wfDate_(ms) {
-  try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; } catch (e) { return ''; }
-}
+const wfDate_ = ms => { try { return ms ? date_(Number(ms)) : ''; } catch (e) { return ''; } };
 /* THE CARD IS DRAWN AGAIN WHOLE (cardFill_): the template cuts its insides into its own parts, so there is no inner box to refill. */
 function wfPaint_(of) {
   document.querySelectorAll('.workfile-card[data-of], .wf-seen[data-of]').forEach(el => {
@@ -72,7 +70,7 @@ on('wf-pick', el => {
   if (s.pending.length >= WF_MAX) { s.say = WF_MAX + ' pages at most — save these first'; wfPaint_(of); return; }
   const inp = document.createElement('input');
   inp.type = 'file';
-  inp.accept = 'image/*';
+  inp.accept = 'image/*'; /* any picture the phone can take or holds */
   inp.multiple = true;
   if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')) inp.setAttribute('capture', 'environment');
   inp.hidden = true;
