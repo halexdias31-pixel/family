@@ -129,6 +129,10 @@
   --fs-body:  1rem;
   --fs-title: 1.125rem;
   --fs-small: max(11px, .75rem);
+  /* A DIAGRAM'S LINES, IN SCREEN PIXELS (bold figures, style.css): grid, thin, mid, normal, bold. */
+  --fig-grid: .75px; --fig-thin: 1.25px; --fig-mid: 1.75px; --fig-line: 2.25px; --fig-bold: 3px;
+  /* A SCANNED CROP IS LIGHT INK ON BLACK: LIFT ITS GREYS (faint grids, thin rules) WITHOUT SPREADING ITS TEXT. */
+  --fig-scan: brightness(1.35) contrast(1.08);
   --lh-tight: 1.2;
   --lh-body:  1.45;
   --fw-title: 600;
@@ -3295,22 +3299,32 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* A PHOTOGRAPH OR A SCAN, WHERE `figure svg` IS A DRAWING. § */
 .qsheet .qpic { margin: 1rem 0; }
 .qsheet .qpic img { display: block; width: 100%; max-width: 100%; height: auto;
-  border-radius: var(--r-ui); background: var(--sunk); }
+  border-radius: var(--r-ui); background: var(--sunk); filter: var(--fig-scan); }
 .qsheet figure svg, .gd figure svg { width: min(100%, 20rem); height: auto; }
 
 /* ---------- A DRAWING'S LABELS ARE SERIF, AND THAT IS MEASURED RATHER THAN PREFERRED § */
 /* `.qp-area` TOO: WHATEVER THE PEN IS ON INKS ITSELF ON THE CARD. § */
 .qsheet .lbl, .qb-stem .lbl, .gd .lbl, .qp-area .lbl, .pad-loupe .lbl { font: italic 700 var(--fs-small) serif; fill: currentColor; text-anchor: middle; }
-.qsheet .num, .qb-stem .num, .gd .num, .qp-area .num, .pad-loupe .num { font: var(--fs-small) serif; fill: currentColor; text-anchor: middle; }
-.qsheet .ax, .qb-stem .ax, .gd .ax, .qp-area .ax, .pad-loupe .ax { font: italic var(--fs-small) serif; fill: currentColor; }
-.qsheet .axis, .qb-stem .axis, .gd .axis, .qp-area .axis, .pad-loupe .axis { stroke: currentColor; stroke-width: 1.2; }
-.qsheet .grid, .qb-stem .grid, .gd .grid, .qp-area .grid, .pad-loupe .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
-.qsheet .pt, .qb-stem .pt, .gd .pt, .qp-area .pt, .pad-loupe .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
+.qsheet .num, .qb-stem .num, .gd .num, .qp-area .num, .pad-loupe .num { font: 600 var(--fs-small) serif; fill: currentColor; text-anchor: middle; }
+.qsheet .ax, .qb-stem .ax, .gd .ax, .qp-area .ax, .pad-loupe .ax { font: italic 600 var(--fs-small) serif; fill: currentColor; }
+.qsheet .axis, .qb-stem .axis, .gd .axis, .qp-area .axis, .pad-loupe .axis { stroke: currentColor; }
+.qsheet .grid, .qb-stem .grid, .gd .grid, .qp-area .grid, .pad-loupe .grid { stroke: currentColor; opacity: .33; }
+.qsheet .pt, .qb-stem .pt, .gd .pt, .qp-area .pt, .pad-loupe .pt { stroke: currentColor; fill: none; }
+
+/* ---------- BOLD FIGURES: EVERY LINE IN A DIAGRAM IS SO MANY SCREEN PIXELS, WHATEVER ITS viewBox */
+/* Thin lines vanished on an iPad in sunlight. Display only: a drawing's own width picks a tier, the tier is screen px. */
+:is(.qsheet figure, .qb-stem figure, .gd figure, .qp-area .qpad-art, .pad-loupe .qpad-art) > svg:not(.qpad-ink) :is(line, path, polyline, polygon, rect, circle, ellipse):not([stroke-width="0"], [stroke-width="0.01"], [stroke-width^="3"], [stroke-width^="4"], [stroke-width^="6"]) {
+  vector-effect: non-scaling-stroke; stroke-width: var(--fig-line); }
+:is(.qsheet figure, .qb-stem figure, .gd figure, .qp-area .qpad-art, .pad-loupe .qpad-art) > svg:not(.qpad-ink) :is([stroke-width^="0."], [stroke-width^="."]) :is(line, path, polyline, polygon, rect, circle, ellipse):not([stroke-width]),
+:is(.qsheet figure, .qb-stem figure, .gd figure, .qp-area .qpad-art, .pad-loupe .qpad-art) > svg:not(.qpad-ink) :is(line, path, polyline, polygon, rect, circle, ellipse):is([stroke-width^="0."], [stroke-width^="."]):not([stroke-width="0.01"]) { stroke-width: var(--fig-thin); }
+:is(.qsheet figure, .qb-stem figure, .gd figure, .qp-area .qpad-art, .pad-loupe .qpad-art) > svg:not(.qpad-ink) :is(line, path, polyline, polygon, rect, circle, ellipse):is([stroke-width^="0.7"], [stroke-width^="0.8"], [stroke-width^="0.9"], [stroke-width^=".7"], [stroke-width^=".8"], [stroke-width^=".9"], [stroke-width="1"], [stroke-width^="1.0"], [stroke-width^="1.1"]):not([stroke-width="0.01"]) { stroke-width: var(--fig-mid); }
+:is(.qsheet figure, .qb-stem figure, .gd figure, .qp-area .qpad-art, .pad-loupe .qpad-art) > svg:not(.qpad-ink) :is(line, path, polyline, polygon, rect, circle, ellipse)[stroke-width^="2"]:not([stroke-width="0.01"]) { stroke-width: var(--fig-bold); }
+:is(.qsheet figure, .qb-stem figure, .gd figure, .qp-area .qpad-art, .pad-loupe .qpad-art) > svg:not(.qpad-ink) :is(line, path, polyline, polygon, rect, circle, ellipse).grid:not([stroke-width="0.01"]) { stroke-width: var(--fig-grid); }
 
 /* ---------- COINS, PRICE TAGS, AND SAYING WHO DREW THEM § */
-.qsheet .coin, .qp-area .coin, .pad-loupe .coin { fill: none; stroke: currentColor; stroke-width: 1.3; }
-.qsheet .tag, .qp-area .tag, .pad-loupe .tag { fill: none; stroke: currentColor; stroke-width: 1.2; }
-.qsheet .cap, .qb-stem .cap, .gd .cap, .qp-area .cap, .pad-loupe .cap { font: var(--fs-small) serif; fill: currentColor; text-anchor: middle; opacity: .7; }
+.qsheet .coin, .qp-area .coin, .pad-loupe .coin { fill: none; stroke: currentColor; }
+.qsheet .tag, .qp-area .tag, .pad-loupe .tag { fill: none; stroke: currentColor; }
+.qsheet .cap, .qb-stem .cap, .gd .cap, .qp-area .cap, .pad-loupe .cap { font: 600 var(--fs-small) serif; fill: currentColor; text-anchor: middle; opacity: .85; }
 
 /* BOXING — THE FIGHTER AND THE FIGHT `boxer-nick` AND `boxer-rec` WERE NEVER STYLED. § */
 /* ---------- A FRACTION WRITTEN THE WAY THE PAPER PRINTS ONE § */
