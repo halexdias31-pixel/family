@@ -180,6 +180,7 @@ const SUITE = [
   /* THE WEEKLY PARENT EMAIL, BUILT AND SWITCHED OFF. § */
   { file: 'check-digest.js', what: 'the weekly parent email: a London week, accepted parents only, off/preview/send, sent once' },
   /* AND THE PICTURES IN IT (18 Oct): § */
+  { file: 'check-figures.js', what: 'a part whose words name a grid, diagram, table or graph carries one (itself or its stem); the backlog only shrinks' },
   { file: 'check-diagram-png.js', what: 'every drawing in the library has its PNG twin for the email, named as the backend names it, none orphaned' },
   /* WHAT EVERYBODY HAS CHOSEN TO BE EMAILED. § */
   { file: 'check-voice.js', what: 'read aloud: the device’s own voices only, the calmest natural British one first (no choice kept), maths as words, a sentence at a time' },

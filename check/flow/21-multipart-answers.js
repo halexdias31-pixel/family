@@ -1039,3 +1039,40 @@ check('the booking form is the person\'s on a shared iPad: a sign-out takes it o
   return bad;
 });
 
+
+/* ONE PART ANSWERED IS ONE PART DONE (owner, 11 Nov): a right press on part a once tagged every part of its question Correct. */
+check('multipart: a right press on part a alone leaves parts b and c Unattempted -- facet, their own tag lines, their paint -- and the parts done number one', async () => {
+  const { w } = boot({ member: true, before: signedInAs_(ANS_ADA) });
+  await wait(300); await woken_();
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.subRecord_ !== 'function' || typeof t.ansKey !== 'function' || typeof w.questionWhole_ !== 'function' || typeof w.progressStats_ !== 'function') return ['subRecord_, ansKey_, questionWhole_ or progressStats_ not reachable — NOT checked'];
+  const lib = mpLibrary_(w, ['a', 'b', 'c'].map(p => mpRow_('P-MP-P', 'Parts', 5, p, { html: '<p>Part ' + p + '.</p>', answer: '<b>4' + p.charCodeAt(0) + '</b>' })));
+  try {
+    const parts = lib.items.filter(x => x.kind === 'question');
+    if (parts.length !== 3) return ['the fixture made ' + parts.length + ' parts, not 3 — NOT checked'];
+    const say = x => [].concat(w.myResultOf_(x) || []).join(',');
+    const host = d.createElement('section');
+    host.className = 'page';
+    host.innerHTML = w.questionWhole_(parts[0], parts);
+    d.body.appendChild(host);
+    const cards = [...host.querySelectorAll('.qb')];
+    if (cards.length !== 3) bad.push('the question drew ' + cards.length + ' part cards, not 3');
+    const tagOf = b => [...b.querySelectorAll(':scope > .qcard-tags .qtag[data-f="myResult"]')].map(e => e.textContent).join(',');
+    if (cards.some(b => tagOf(b) !== 'Unattempted')) bad.push('before a press the tags say ' + cards.map(tagOf).join(' | '));
+    if (!host.querySelector('[data-k="' + t.ansKey(parts[0]) + '"]')) bad.push('part a drew no answer box keyed to it — the live tag was NOT checked');
+    w.subRecord_(t.ansKey(parts[0]), '497', 'right', 'none');
+    await wait(50);
+    parts.forEach((x, i) => {
+      const want = i ? 'Unattempted' : 'Attempted,Correct';
+      if (say(x) !== want) bad.push('part ' + x.qPart + ' says ' + JSON.stringify(say(x)) + ', not ' + want);
+      const b = cards[i];
+      if (b && tagOf(b) !== want) bad.push('part ' + x.qPart + '\'s own tag line says ' + JSON.stringify(tagOf(b)) + ', not ' + want);
+      if (i && b && b.querySelector('.is-right, .is-wrong, .is-near')) bad.push('part ' + x.qPart + ' is painted marked');
+    });
+    const st = w.progressStats_();
+    if (st.n !== 1) bad.push('Progress counts ' + st.n + ' presses, not 1');
+    const pp = st.papers && st.papers['P-MP-P'];
+    if (!pp || Object.keys(pp.done).length !== 1) bad.push('Progress counts ' + (pp ? Object.keys(pp.done).length : 0) + ' parts of the paper done, not 1');
+  } finally { lib.put(); }
+  return bad;
+});
