@@ -311,14 +311,14 @@ function libExtrasData_(d, extra) {
     }));
   }
 
-  /* the history database ------------------------------------------------------------------- (459) every cell a string, the years numbers or null; a row needs its id. */
+  /* the history database ------------------------------------------------------------------- (459) every cell a string, the years numbers or null, an event's scene (`px`) its list of lines; a row needs its id. */
   /* EVERY PERSON'S PIXEL PORTRAIT (batch D, tools/people_pix.py) and the TIMELINES (batch F, tools/timelines.py: events by id). */
   if (extra.portraits && extra.portraits.length) d.portraits = extra.portraits.filter(r => r && r.id && Array.isArray(r.px)); if (extra.timelines && extra.timelines.length) d.timelines = extra.timelines.filter(r => r && r.id && Array.isArray(r.events));
   HIST_DB.forEach(t => {
     if (!extra[t.file] || !extra[t.file].length) return;
     d[t.file] = extra[t.file].filter(r => r && libS(r.id).trim()).map(r => {
       const o = {};
-      Object.keys(r).forEach(k => { o[k] = t.years.indexOf(k) >= 0 ? libNum(r[k]) : libS(r[k]).trim(); });
+      Object.keys(r).forEach(k => { o[k] = t.years.indexOf(k) >= 0 ? libNum(r[k]) : Array.isArray(r[k]) ? r[k].map(libS) : libS(r[k]).trim(); });
       return o;
     });
   });

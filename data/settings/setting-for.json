@@ -39,6 +39,7 @@
 {"card":"appr:blurb","under":"Apprentice","name":"Work experience","notes":"the apprentice placeholder; its card has no title of its own."},
 {"card":"site:digest","under":"Business","name":"Weekly email","notes":"the Sunday email to parents as the backend sends it (digestPreview); found under Business, an admin's only (owner, 8 Nov)."},
 {"card":"site:digest-words","under":"Business","name":"Weekly email's words","notes":"the subject, greeting, first and last lines of that email, beside its look (owner, 8 Nov)."},
+{"card":"site:template","under":"Business","name":"Card template","notes":"the one template every card is drawn by, shown as a live sample with its parts named, and the fixed scale read from style.css (owner, 11 Nov)."},
 {"card":"door:notify","under":"Business","name":"","notes":"who sees the Notifications door under Business (its card is set:notify, which keeps its own place)."},
 {"card":"door:checks","under":"Business","name":"","notes":"the Optimiser card (code score, business checker, owner questions, what's missing): an admin's only."},
 {"card":"biz:settings","under":"Business","name":"Business settings","notes":"every business setting in one list (owner, 9 Nov): share B, fees, discounts, rates, then venues and rooms; bookings only read them."}

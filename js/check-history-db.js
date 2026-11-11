@@ -18,7 +18,7 @@ const SCHEMA = {
     'author_text', 'date_from', 'date_to', 'date_text', 'date_basis', 'language', 'genre', 'context', 'themes', 'manuscripts',
     'events', 'pd_translation', 'sources'] },
   timeline: { prefix: 'EV-', years: ['date_from', 'date_to'], cols: ['id', 'name', 'date_from', 'date_to', 'date_iso', 'date_iso_to',
-    'date_text', 'date_basis', 'places', 'theatre', 'era', 'summary', 'figures', 'writings', 'sources'] },
+    'date_text', 'date_basis', 'places', 'theatre', 'era', 'summary', 'figures', 'writings', 'sources', 'label', 'px'] },
 };
 const ID = /^(MS|FIG|WR|EV)-\d{4,}$/;
 const LOOKS = /\b(MS|FIG|WR|EV)-\d+\b/;
@@ -127,7 +127,8 @@ const onTl = new Set(TLS.flatMap(t => (t.events || []).map(e => e.id)));
 });
 TLS.forEach(t => {
   if ((t.events || []).length < 5) bad.push(t.id + ' has ' + (t.events || []).length + ' events — a timeline needs five at least');
-  (t.events || []).forEach(e => { if (!byId.has(e.id) || e.id.indexOf('EV-') !== 0) bad.push(t.id + ' names ' + e.id + ', which is no event row'); });
+  (t.events || []).forEach(e => { if (!byId.has(e.id) || e.id.indexOf('EV-') !== 0) bad.push(t.id + ' names ' + e.id + ', which is no event row');
+    if (Object.keys(e).some(k => k !== 'id')) bad.push(t.id + ': ' + e.id + ' carries more than its id — caption and scene are the event row\'s'); });
   if (t.era && books.filter(a => String(a.title || '').indexOf(t.era) === 0).length !== 1) bad.push(t.id + ' names era ' + t.era + ' but not exactly one animation row is titled with it');
 });
 
@@ -142,7 +143,8 @@ Object.keys(SCHEMA).forEach(f => {
 ['manuscript', 'writing', 'event'].forEach(k => { if (!new RegExp('\\n  ' + k + ": \\{ group: 'Learning', label: 'Library', card: x => findCard\\(x\\) \\}").test(find)) bad.push('find.js KINDS has no ' + k + ' drawn by findCard'); });
 
 if (!/\n  people: \{ group: 'Learning', label: 'Library', card: x => findCard\(x\) \}/.test(find)) bad.push('find.js KINDS has no people (boxers and figures alike) drawn by findCard');
-if (!/\n  timeline: \{ group: 'Learning', label: 'Timeline', card: x => histTimelineCard_\(x\) \}/.test(find)) bad.push('find.js KINDS has no timeline drawn by histTimelineCard_');
+/* ONE TEMPLATE (owner, 11 Nov): KINDS draws a timeline by findCard, which cuts histTimelineCard_'s html (KC_OWN) into the parts. */
+if (!/\n  timeline: \{ group: 'Learning', label: 'Timeline', card: \(x, c\) => findCard\(x, c\) \}/.test(find) || !/\btimeline: x => histTimelineCard_\(x\)/.test(find)) bad.push('find.js KINDS has no timeline drawn by findCard from histTimelineCard_ (KC_OWN)');
 const n = Object.keys(T).map(f => T[f].length + ' ' + f).join(', ');
 if (bad.length) { bad.forEach(b => console.log('FAIL ' + b)); console.log(bad.length + ' problem(s) in the history database (' + n + ')'); process.exit(1); }
 console.log('history database: ' + n + ' — schema, ids, links both ways, years and sources all sound');
