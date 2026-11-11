@@ -50,7 +50,7 @@ function VOCAB() {
                     'English Literature', 'Food Preparation and Nutrition', 'Further Maths', 'Geography', 'History',
                     'Media Studies', 'Physical Education', 'Politics', 'Psychology', 'Sociology'],
     /* `5-a-day` IS A DIFFERENT KIND OF THING FROM A WORKSHEET, in the owner's own words. */
-    document_type: ['5-a-day', 'Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
+    document_type: ['5-a-day', 'End of topic test', 'Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
     key_stage:     KEY_STAGES,
     band_type:     ['grade', 'stage', 'tier', 'year'],
     /* THE TIERS ARE LEVEL_TABLE'S (`Foundation Plus`, `Higher Plus` are Corbettmaths' 5-a-day levels). */
