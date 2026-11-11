@@ -80,7 +80,7 @@ function checksInner_() {
 function checksCard_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return '';
   let more = '';
-  try { more = (typeof healthWithMissing_ === 'function' ? healthWithMissing_(siteHealthCard_()) : '') + (typeof bizCheckCard_ === 'function' ? bizCheckCard_() : ''); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'checks detail'); }
+  try { more = (typeof healthWithMissing_ === 'function' ? healthWithMissing_(siteHealthCard_(true)) : '') + (typeof bizCheckCard_ === 'function' ? bizCheckCard_() : ''); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'checks detail'); }
   if (!checksBizLive_()) setTimeout(checksWatchBiz_, 0);
   return card_(`<div class="checks-card" data-checks>${checksInner_()}</div>${more}`);
 }
