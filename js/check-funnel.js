@@ -1087,7 +1087,7 @@ let WALKED = 'not walked';
 function underTypes_(f, items) {
   const byField = fl => f.facetList().find(x => x.field === fl);
   const typeF = byField('documentType'), kindF = byField('kindLabel'), typeOwnF = byField('typeOwn');
-  const under = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' }, seenUnder = {};
+  const under = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet', 'End of topic test': 'Worksheet' }, seenUnder = {};
   /* 660: Type offers the one above ALONE ("spec paper should be in past papers"), and Which type, after it, the type itself. */
   items.forEach(x => {
     const t = x.kind === 'question' && String(x.documentType || '');

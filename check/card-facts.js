@@ -97,6 +97,37 @@ function measure(per) {
       }
     });
   }));
+  /* A QUESTION PAGE IS THE SAME CARD (owner, 11 Nov): its picture, tags, words, answer and round buttons, top to bottom, on one centre line. */
+  const qs = (by.question || []).slice(), cx = el => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
+  const seen = el => el && el.getClientRects().length && el.getBoundingClientRect().height > 0;
+  qs.forEach(x => {
+    let html = '';
+    try { html = inFinder_(FINDERS.stuff, () => questionWhole_(x, questionParts_()[qId_(x)] || [x], new Set([x]), true)); } catch (e) { say(x, 'question page threw ' + e.message); return; }
+    box.innerHTML = `<div class="pane" style="position:static;overflow:visible">${html}</div>`;
+    box.querySelectorAll('.qwhole > .qb').forEach(qb => {
+      out.cards++;
+      const mid = cx(qb), part = qb.querySelector(':scope > .qb-part');
+      const order = [qb.querySelector(':scope > .qb-pic'), qb.querySelector(':scope > .qcard-tags'), part && part.querySelector(':scope > .qsheet'),
+        part && part.querySelector(':scope > :is(.qp-area, .qp-compose, .qp-mark, .qpad)'), part && part.querySelector(':scope .tile-row')].filter(seen);
+      for (let i = 1; i < order.length; i++) if (order[i].getBoundingClientRect().top + 1 < order[i - 1].getBoundingClientRect().top) say(x, 'question page: .' + order[i].className.split(' ')[0] + ' sits above .' + order[i - 1].className.split(' ')[0]);
+      [qb.querySelector(':scope > .qcard-tags .qtag'), part && part.querySelector(':scope > .qsheet p')].filter(seen).forEach(el => {
+        if (getComputedStyle(el.parentElement).textAlign !== 'center' && getComputedStyle(el.parentElement).justifyContent !== 'center' && getComputedStyle(el).textAlign !== 'center') say(x, 'question page: .' + (el.className || el.tagName.toLowerCase()) + ' is not centred'); });
+      [qb.querySelector(':scope > .qcard-tags'), part && part.querySelector(':scope > .qsheet')].filter(seen).forEach(el => {
+        if (Math.abs(cx(el) - mid) > 2) say(x, 'question page: .' + el.className.split(' ')[0] + ' is ' + Math.round(cx(el) - mid) + 'px off the centre line'); });
+      const tiles = part ? [...part.querySelectorAll(':scope .tile-row > .tile')].map(t => t.getBoundingClientRect()).filter(r => r.width && r.top === part.querySelector('.tile-row > .tile').getBoundingClientRect().top) : [];
+      if (tiles.length) { const l = Math.min(...tiles.map(r => r.left)), rr = Math.max(...tiles.map(r => r.right)); if (Math.abs((l + rr) / 2 - mid) > 2) say(x, 'question page: its round buttons are ' + Math.round((l + rr) / 2 - mid) + 'px off the centre line'); }
+    });
+  });
+  /* A CARD WAITING FOR ITS WORDS IS THE SAME CARD: no heading, tags then what it waits for, centred. */
+  Object.keys(by).forEach(kind => by[kind].slice(0, 1).forEach(x => {
+    if (typeof libWaitHtml_ !== 'function') return;
+    box.innerHTML = libWaitHtml_(x);
+    const c = box.firstElementChild;
+    if (!c || !c.matches('.card.kc')) return say(x, 'waiting card is not a .card.kc');
+    if (c.querySelector('h1, h2, h3, h4')) say(x, 'waiting card has a heading');
+    const t = c.querySelector(':scope > .kc-tags'), l = c.querySelector(':scope > .kc-lines');
+    if (!t || !l || t.getBoundingClientRect().top > l.getBoundingClientRect().top) say(x, 'waiting card: tags are not above its words');
+  }));
   box.remove();
   if (Object.keys(out.pics).length > 1) out.bad.push('pictures of ' + Object.keys(out.pics).length + ' sizes: ' + JSON.stringify(out.pics) + ' — one size on every person');
   return out;

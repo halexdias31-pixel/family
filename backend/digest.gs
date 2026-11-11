@@ -1207,7 +1207,7 @@ const DIGEST_TAG_FACETS = [['forLabel', 'kind'], ['kindLabel', 'kind'], ['subjec
   ['examBoard', 'board'], ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['verified', 'check'], ['paperId', 'paper'], ['paperSection', 'other'], ['qNumber', 'paper'],
   ['qPart', 'paper'], ['qSub', 'paper'], ['marks', 'paper'], ['needs', 'needs'], ['source', 'board']];
 /* `DOC_TYPE_UNDER` (find.js, 545): a type that is a kind of another answers both, on the card and so in the email. */
-const DIGEST_DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' };
+const DIGEST_DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet', 'End of topic test': 'Worksheet' };
 const DIGEST_FACETS_PATH = 'data/settings/facets.json';
 /* THE FACETS FILE THE PHONE ORDERS ITS TAGS BY (546): the site's copy first, then raw.githubusercontent.com; null when neither answers. */
 function digestFacetOrder_(site) {

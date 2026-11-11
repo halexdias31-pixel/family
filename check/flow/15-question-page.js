@@ -867,7 +867,8 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     /* EVERY PART ITS OWN CARD (owner, 8 Nov): a whole question's tag row heads each part's .qb; a lone part's its .qcard. */
     const card = el(html).querySelector('.qwhole .qb, .qcard');
     const r = card && card.querySelector('.qcard-tags');
-    return { card, first: card && card.firstElementChild,
+    /* A REAL PICTURE MAY SIT ABOVE THE TAG ROW (owner, 10 Nov: picture, tags, words, buttons). */
+    return { card, first: card && card.firstElementChild && card.firstElementChild.classList.contains('qb-pic') ? card.firstElementChild.nextElementSibling : card && card.firstElementChild,
              tags: r ? [...r.querySelectorAll('.qtag')].map(s => ({ tag: s.getAttribute('data-tag') || '', f: s.getAttribute('data-f') || '', text: s.textContent.trim() })) : [] };
   };
   /* A TAG IS NAMED BY ITS FACET (data-f); ITS COLOUR IS ITS MENU'S (1030), h<N> from TAG_OF — the same for every answer of one facet. */
