@@ -274,3 +274,6 @@ become an owner question showing both; never pick one.
 ## 10 Nov — cards are static: one view, no open/closed
 - Every card is drawn once, whole: picture (one fixed size, centred) → tags → lines and content (all of it) → the four buttons. No tap-to-open picture, no enlarging, no closed two-line clamp.
 - ⋯ is the only toggle a card has: its labelled list of the other actions. A kind with no main action of its own leads with Share.
+
+## 11 Nov — a question whose picture is not drawn is not verified
+- Verified needs accuracy, function and every visual its words name (grid, diagram, table, graph…) drawn on it, its stem or what it `uses`: `figUndrawn_` in js/predicates.js, read by `verifyTags_` and by js/check-figures.js, one rule. The parts still waiting are data/settings/figure-backlog.json, which only shrinks.

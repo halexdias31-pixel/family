@@ -274,6 +274,7 @@
     "check-saved-answers.js": "core",
     "check-digest.js": "secondary",
     "check-diagram-png.js": "secondary",
+    "check-figures.js": "core",
     "check-voice.js": "secondary",
     "check-prefs.js": "secondary",
     "check-uploads.js": "secondary",

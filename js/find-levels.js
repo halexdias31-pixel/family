@@ -466,7 +466,11 @@ function verifyTags_(x) {
   if (libWaits_(x.row)) fn = libTrue(x.row.function_verified);
   else try { fn = !qtIncomplete_(x.row).length && qtMachine_(x.row); } catch (e) { fn = false; }
   const acc = !!libTrue(x.row.verified);
-  return { verified: acc && fn ? 'Verified' : 'Not verified', acc, fn };
+  /* AND NOTHING IT POINTS AT IS UNDRAWN (owner, 11 Nov): predicates.js's `figUndrawn_`, the rule js/check-figures.js holds. */
+  let used = null;
+  try { used = typeof usesOf_ === 'function' ? usesOf_(x) : null; } catch (e) { used = null; }
+  const fig = !figUndrawn_(x.row, (x.stems || []).concat(used ? [used] : []));
+  return { verified: acc && fn && fig ? 'Verified' : 'Not verified', acc, fn, fig };
 }
 
 /* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER § */
