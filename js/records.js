@@ -124,7 +124,7 @@ function bizPages_() {
 /* THE SITE COLUMN'S CARDS (491): Setup (400), posts and reports to moderate, the library import, the weekly email. */
 function siteBizPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  /* NO SETUP OR RULES CARD (owner, 10 Nov: "delete this"): the health checker covers setup. */
+  /* NO SETUP OR RULES CARD (owner, 10 Nov: "delete this"): the Optimiser covers setup. */
   return [].concat(postsWaitCard_(), reportsCard_(), libImpCard_(), digestWordsCard_());
 }
 
