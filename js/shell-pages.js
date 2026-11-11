@@ -133,7 +133,7 @@ function pageWrite_(el, st) {
 
 /* ---------- THE ONE SCROLLING PAGE (900) ---------- */
 /* Find is always shown; another section only while it is the one asked for (the sign-in card, above Find). */
-const flowHome_ = () => (TABS.some(t => t.id === 'stuff') ? 'stuff' : AT);
+const flowHome_ = () => (TABS.some(t => t.id === FIND_HOME_) ? FIND_HOME_ : AT);
 /* No transform and no glass: each section's inline placement cleared, every page in flow and touchable; `.on` is the page being read. */
 function flowPlace_() {
   topbarPaint_();

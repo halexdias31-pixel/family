@@ -423,14 +423,17 @@ on('do-signin', el => {
     /* NO `.catch` THAT SPEAKS. § */
     .catch(err => {
       const why = err && err.reply && err.reply.why;
-      const id = why === 'wrong-pin' ? 'in-pin' : (why === 'not-an-email' || why === 'no-such-email') ? 'in-name' : '';
-      const box = id && $(id);
+      const B = Object.prototype.hasOwnProperty.call(SIGN_IN_REFUSED, why) ? SIGN_IN_REFUSED[why] : null;
+      const box = B && $(B.id);
       if (!box) return;
-      if (id === 'in-pin') box.value = '';
+      if (B.clear) box.value = '';
       box.setAttribute('aria-invalid', 'true');
-      try { box.focus(); if (id === 'in-name') box.select(); } catch (e) { /* focus and scrolling are niceties */ }
+      try { box.focus(); if (B.select) box.select(); } catch (e) { /* focus and scrolling are niceties */ }
     });
 });
+/* A SIGN-IN REFUSAL MARKS ITS BOX: a wrong PIN is cleared to type again, a bad address is selected to correct. */
+const SIGN_IN_PIN = { id: 'in-pin', clear: true }, SIGN_IN_ADDRESS = { id: 'in-name', select: true };
+const SIGN_IN_REFUSED = { 'wrong-pin': SIGN_IN_PIN, 'not-an-email': SIGN_IN_ADDRESS, 'no-such-email': SIGN_IN_ADDRESS };
 /* THE MARK COMES OFF AT THE NEXT KEYSTROKE — a red edge round a box being corrected is the app still
    complaining about what is no longer there. */
 document.addEventListener('input', e => {

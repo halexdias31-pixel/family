@@ -45,9 +45,9 @@ function bibleOpts_(x) {
 function bibleHere_(x) {
   const leaf = f => f && !f.any;
   const fs = STUFF.filters || [];
-  if (fs.some(f => leaf(f) && f.field === 'wUnit')) return false;
-  return fs.some(f => leaf(f) && f.field === 'wBook' && spellKey_(f.value) === spellKey_(x.bb.book))
-      && fs.some(f => leaf(f) && f.field === 'wChapter' && String(f.value) === String(x.ch));
+  if (chipsOn_(fs, 'wUnit').some(leaf)) return false;
+  return chipsOn_(fs, 'wBook').some(f => leaf(f) && spellKey_(f.value) === spellKey_(x.bb.book))
+      && chipsOn_(fs, 'wChapter').some(f => leaf(f) && String(f.value) === String(x.ch));
 }
 
 /* ---------- KEPT ON SAVED § */

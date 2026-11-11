@@ -83,15 +83,16 @@ const QT_SCHEME_KINDS = { choice: 1, order: 1, accept: 1, words: 1 };
 /* `ready` is false where the marker has nothing to mark against yet (no key, no scheme): Check says so instead of asking */
 const QT_NO_SCHEME = 'No mark scheme yet \u2014 flag it and we will add one';
 const qtSchemeIn_ = x => !!x && !!String(x.answer || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;|\s+/g, ' ').trim();
+/* IS A MARKER'S SCHEME THERE: options with a key, or an AI part with an answer to mark against; the rest are ready as written. */
+const choiceKeyed_ = x => (Array.isArray(x.choiceRight) ? x.choiceRight.length > 0 : !!x.choiceRight);
+const MARKER_READY = { choice: choiceKeyed_, order: choiceKeyed_, ai: x => qtSchemeIn_(x) };
 function markerOf_(x) {
   let kind = 'ai';
   try { kind = qtMarker_(workRow_(x || {})); } catch (e) { kind = 'ai'; }
   /* options with no key are still options to tap: their Check says the key is missing (never a person) */
-  if (kind !== 'choice' && kind !== 'order' && x && Array.isArray(x.choices) && x.choices.length >= 2) kind = orderIs_(x) ? 'order' : 'choice';
-  let ready = true;
-  if (kind === 'choice' || kind === 'order') ready = Array.isArray(x.choiceRight) ? x.choiceRight.length > 0 : !!x.choiceRight;
+  if (!isChoiceMarker_(kind) && x && Array.isArray(x.choices) && x.choices.length >= 2) kind = orderIs_(x) ? 'order' : 'choice';
   /* NO MARK SCHEME is no accept, key words, cells, options or answer (round 4): an importer's note alone is not a scheme to mark against */
-  if (kind === 'ai') ready = qtSchemeIn_(x);
+  const ready = Object.prototype.hasOwnProperty.call(MARKER_READY, kind) ? MARKER_READY[kind](x) : true;
   const how = ready ? QT_HOW_ALL : QT_NO_SCHEME;
   return { kind, ready, how };
 }
@@ -135,10 +136,11 @@ function qtToolTile_(t, x) {
   return tile_({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } });
 }
 /* IS THIS TOOL IN HAND, the one rule: Ruler or Protractor laid on a figure (MEAS), the protractor on the pad, the rest the pad's tool */
+/* A MEASURING TOOL NOT LAID ON A FIGURE: the ruler is then out of hand; the protractor may still be on the pad. */
+const MEASURE_ON_PAD = { ruler: () => false, protractor: pk => !!(pk && padProtOn_(pk)) };
 function qtToolOn_(id, key, pk, inHand) {
   if (isMeasureTool_(id) && typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === id) return true;
-  if (id === 'ruler') return false;
-  if (id === 'protractor') return !!(pk && padProtOn_(pk));
+  if (Object.prototype.hasOwnProperty.call(MEASURE_ON_PAD, id)) return MEASURE_ON_PAD[id](pk);
   if (!pk || !inHand) return false;
   return inHand === QT_PAD_TOOL[id];
 }

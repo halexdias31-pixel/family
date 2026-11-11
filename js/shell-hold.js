@@ -5,7 +5,7 @@ function quietField_(el) {
   if (!el || !el.setAttribute || !/^(INPUT|TEXTAREA)$/.test(el.tagName)) return;
   Object.keys(QUIET_FIELD).forEach(k => { if (el.getAttribute(k) !== QUIET_FIELD[k]) el.setAttribute(k, QUIET_FIELD[k]); });
   /* A PIN BOX: browsers ignore "off" on a password, so it is a one-time code to them. */
-  if (String(el.type).toLowerCase() === 'password' || el.id === 'in-pin' || /pin/i.test(el.id || '')) el.setAttribute('autocomplete', 'one-time-code');
+  if (String(el.type).toLowerCase() === 'password' || /pin/i.test(el.id || '')) el.setAttribute('autocomplete', 'one-time-code');
   if (el.tagName === 'INPUT' && el.getAttribute('spellcheck') !== 'false') el.setAttribute('spellcheck', 'false');
   if (el.hasAttribute('list')) el.removeAttribute('list');
 }

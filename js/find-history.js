@@ -535,7 +535,7 @@ function bibleLoad_(n, dir) {
 /* ---------- THE CHOSEN BOOK, ASKED FOR BEFORE ITS VERSES ARE DRAWN (docs/history/341) § */
 function bibleChosen_() {
   const st = FINDERS.stuff === FINDER ? STUFF : FINDERS.stuff.st;
-  const f = (st.filters || []).find(x => x.field === 'wBook' && x.value != null);
+  const f = chipsOn_(st.filters, 'wBook').find(x => x.value != null);
   if (!f || !BIBLE.rank || !BIBLE.rank.b) return 0;
   return BIBLE.rank.b[spellKey_(f.value)] || 0;
 }
@@ -543,7 +543,7 @@ function bibleChosen_() {
 function bibleChosenDir_() {
   const st = FINDERS.stuff === FINDER ? STUFF : FINDERS.stuff.st;
   /* BY THE LANGUAGE AND THE TRANSLATION CHOSEN (546), either or both: an original text (the Septuagint) is its language alone. */
-  const f = (st.filters || []).find(x => x.field === 'wText' && x.value != null), l = (st.filters || []).find(x => x.field === 'wLanguage' && x.value != null);
+  const f = chipsOn_(st.filters, 'wText').find(x => x.value != null), l = chipsOn_(st.filters, 'wLanguage').find(x => x.value != null);
   const t = (f || l) && BIBLE.index ? bibleTrs_(BIBLE.index).find(t => {
     const said = writingText_(writingTextOf_(t.tr));
     return (!f || writingVersionOf_(said) === f.value) && (!l || writingLanguageOf_(said) === l.value);

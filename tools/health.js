@@ -375,9 +375,9 @@ function ui() {
 const STRUCT = { 'one-off': [0.05, 20], 'long-fn': [0.01, 10], 'big-file': [0.001, 10], dup: [0.02, 10], nest: [0.05, 10], catch: [0.02, 0], deliberate: [0, 0] };
 const REPLACED = new Set(['special', 'longfiles', 'longfns', 'duplicates']);
 const W_ = '(?:kind|facet|field|col|screen|tab|id|type|which|mode|key)';
-/* NOT A ONE-OFF: a DOM event's own key or type ("Enter", "pointerup") is the browser's vocabulary, not a kind of ours; and js/predicates.js
-   is where each named test is written once, so the rest of the code can call it. */
-const DOM_EVENT = /\b(?:e|ev|evt|event)\.(?:key|type)\s*[!=]==?\s*'[^']+'/g, SHARED_TESTS = 'js/predicates.js';
+/* NOT A ONE-OFF: a DOM event's key or type ("Enter", "pointerup") and a `typeof` test are the language's words, not kinds of ours;
+   js/predicates.js is where each named test is written once, for the rest to call. */
+const DOM_EVENT = /\b(?:e|ev|evt|event)\.(?:key|type)\s*[!=]==?\s*'[^']+'|\btypeof\s+[\w$.]+\s*[!=]==?\s*'[^']+'/g, SHARED_TESTS = 'js/predicates.js';
 const ONE_OFF = new RegExp(`(?:\\b(?:[\\w$]+\\.)*${W_}\\s*[!=]==?\\s*'[^']+'|'[^']+'\\s*[!=]==?\\s*(?:[\\w$]+\\.)*${W_}\\b|^\\s*case\\s+'[^']+'\\s*:)`);
 /* FROZEN (1090): tiers.json `frozen.files` are left out of the score and the worklist, so the list names only what the owner uses now. */
 function frozenFiles() { try { return new Set(((JSON.parse(read('data/settings/tiers.json')).frozen || {}).files || []).map(f => 'js/' + f + '.js')); } catch (e) { return new Set(); } }

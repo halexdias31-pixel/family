@@ -34,9 +34,14 @@ const isSignInBox_ = el => !!el && SIGN_IN_BOXES.indexOf(el.id) !== -1;
 /* A tool laid on a figure (MEAS) rather than held on the pad: the ruler and the protractor. */
 const MEASURE_TOOLS = ['ruler', 'protractor'];
 const isMeasureTool_ = id => MEASURE_TOOLS.indexOf(id) !== -1;
+/* A marker whose answer is tapped options: chosen as a set, or put in order. */
+const CHOICE_MARKERS = ['choice', 'order'];
+const isChoiceMarker_ = kind => CHOICE_MARKERS.indexOf(kind) !== -1;
 /* A suggestion about a person — a message or a post — rather than a file (`suggestPeople_`, submit.js). */
 const PEOPLE_SUGGESTS = ['message', 'post'];
 const suggestPeople_ = kind => PEOPLE_SUGGESTS.indexOf(kind) !== -1;
+/* THE CHIPS ANSWERING ONE FACET, in the order they were picked. */
+const chipsOn_ = (fs, field) => (fs || []).filter(f => f && f.field === field);
 /* A FIND SCREEN: a finder's column; before Find's files load, the library (stuff) is the one. */
 const findIs_ = id => (typeof finderOf_ === 'function' ? !!finderOf_(id) : id === FIND_HOME_);
 const FIND_HOME_ = 'stuff';
