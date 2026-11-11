@@ -184,7 +184,7 @@ if (Q) {
   if (!src || !tru) broken.push('find.js `verifyTags_` or library.js `libTrue` not found — no tag was checked');
   else {
     const ctx = vm.createContext({ qtIncomplete_: Q.qtIncomplete_, qtMachine_: Q.qtMachine_ });
-    const vt = vm.runInContext(waits + tru + ((/^const isQ_ = .*\n/m.exec(find + fs.readFileSync(path.join(ROOT, 'js', 'predicates.js'), 'utf8')) || [''])[0]) + src + '\n;verifyTags_', ctx);
+    const vt = vm.runInContext(waits + tru + fs.readFileSync(path.join(ROOT, 'js', 'predicates.js'), 'utf8') + src + '\n;verifyTags_', ctx);
     rows.forEach(r => {
       const t = vt({ kind: 'question', row: r });
       /* THE FILE'S `function_verified` (397), what the card says before its words arrive, is what the whole row says. */
@@ -194,7 +194,7 @@ if (Q) {
         const early = vt({ kind: 'question', row: Object.assign({}, r, { lib_has: 'html' }) }).fn;
         if (early !== t.fn) broken.push(r.row_id + ': function_verified says ' + early + ' but the whole row is ' + t.fn + ' — run node tools/lib-private.js split');
       }
-      if (!/^(Verified|Not verified)$/.test(t.verified) || (t.verified === 'Verified') !== (t.acc && t.fn)) broken.push(r.row_id + ' lacks a verified tag: ' + JSON.stringify(t));
+      if (!/^(Verified|Not verified)$/.test(t.verified) || (t.verified === 'Verified') !== (t.acc && t.fn && t.fig)) broken.push(r.row_id + ' lacks a verified tag: ' + JSON.stringify(t));
       if (t.acc) tags.acc++;
       if (t.fn) tags.fn++;
       if (t.verified === 'Verified') tags.both++;
