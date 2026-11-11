@@ -475,7 +475,7 @@ function sitePages_() {
 }
 
 /* ---------- STABILITY (730): data/stability.json, written by tools/stability.js, read the first time the card is drawn ---------- */
-/* ONE SCORE (890): Site health in Find replaces this card; its code stays, switched off. */
+/* ONE SCORE (890): the Optimiser in Find replaces this card; its code stays, switched off. */
 const STABILITY_SHOWN = false;
 const STAB = { got: null, failed: false, asked: false, all: false };
 function stabilityCard_() {
