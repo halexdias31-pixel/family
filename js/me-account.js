@@ -18,7 +18,7 @@ function meBlocks() {
 
 /* ---------- SIGNING IN AND OUT BELONGS AT THE TOP OF THE FEED § */
 function signInCard_() {
-  return `<div class="card">
+  return card_(`<div class="">
         <h3>Sign in</h3>
         ${/* ---------- NAME, USERNAME OR E-MAIL, AND THE LABEL HAS TO SAY SO § */
              ''}
@@ -44,7 +44,7 @@ function signInCard_() {
         <div id="g-btn"></div>` : ''}
         ${/* `#in-said` STOOD HERE — a faint grey line carrying a validation, a "Checking…" the button already says with a spinner on it, and a refusal that is now a toast. § */
               ''}
-      </div>`;
+      </div>`);
   /* THE `No account yet?` CARD THAT STOOD HERE is the third tile in the row above now. */
 }
 
@@ -128,10 +128,10 @@ function setupCard_() {
   const need = (n, say) => typeof bizNeed_ === 'function' ? bizNeed_('setup', n, say) : '';
   if (!S_) {
     return typeof awaiting_ === 'function' && awaiting_()
-      ? `<div class="card setup-card" data-need="setup">${need(0)}<h3>Setup</h3>${loading_()}</div>`
-      : `<div class="card setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Not deployed')}</div>`;
+      ? card_(`<div class="setup-card" data-need="setup">${need(0)}<h3>Setup</h3>${loading_()}</div>`)
+      : card_(`<div class="setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Not deployed')}</div>`);
   }
-  if (S_.error) return `<div class="card setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Setup failed')}</div>`;
+  if (S_.error) return card_(`<div class="setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Setup failed')}</div>`);
   const files = S_.files || {};
   const odd = Object.keys(files).filter(k => files[k] !== S_.backend);
   const jobs = Array.isArray(S_.jobs) ? S_.jobs : [];
@@ -139,7 +139,7 @@ function setupCard_() {
   const sun = S_.sunday || {};
   const mode = { send: 'on — it emails parents', preview: 'preview — it writes the log and emails nobody' }[sun.mode] || 'off — nothing is sent';
   const wrong = failed.length + (odd.length ? 1 : 0);
-  return `<div class="card setup-card" data-need="setup"><h3>Setup</h3>
+  return card_(`<div class="setup-card" data-need="setup"><h3>Setup</h3>
     ${need(wrong, wrong + (wrong === 1 ? ' thing to fix' : ' things to fix'))}
     ${failed.map(j => `<p class="setup-bad">${esc(j.id)} failed: ${esc(j.error)} — it tries again on the next page load.</p>`).join('')}
     <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} <span class="qtag">${j.ran
@@ -150,7 +150,7 @@ function setupCard_() {
     <h4>Triggers</h4>
     <ul class="setup-list">${(S_.triggers || []).map(t => `<li>${esc(t.fn)}${t.times > 1 ? ' ×' + esc(t.times) : ''} <span class="qtag">${esc(t.when)}</span></li>`).join('')
       || ''}</ul>
-  </div>`;
+  </div>`);
 }
 
 /* ---------- APPLY TO TEACH (400): Staff only by application and an admin's yes ----------
@@ -628,7 +628,7 @@ const REG_NOTE = {
 };
 /* MAKE AN ACCOUNT IS A CARD OF ITS OWN beside Sign in, its form there from the start (no sheet, owner 7 Nov). */
 function registerCard_() {
-  return `<div class="card reg-card"><h3>Make an account</h3><div class="reg-form">
+  return card_(`<div class="reg-card"><h3>Make an account</h3><div class="reg-form">
     ${/* ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */''}
     <div class="reg-who" id="reg-who" data-who="">
       <p class="reg-cap" id="reg-who-cap">Both are free; teaching starts with "Apply to teach" once you are in.</p>
@@ -654,7 +654,7 @@ function registerCard_() {
       ${/* THREE LINES AT 320, MEASURED: § */
             ''}
       <p class="said" id="reg-note"></p>
-    </div></div></div>`;
+    </div></div></div>`);
 }
 /* THE SIGN-IN CARD'S TILE GOES TO THE FORM: on this column if it is drawn, else on the account column. */
 on('register', el => {

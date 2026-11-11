@@ -109,7 +109,7 @@ function pushCard_() {
       + tileRow_(tile_({ icon: 'mute', label: 'Turn off', note: 'on this device', act: 'push-off' }), '', true);
   }
   if (PUSH.busy) body += loading_();
-  return `<div class="card push-card"><h3>Notifications</h3>${body}</div>`;
+  return card_(`<div class="push-card"><h3>Notifications</h3>${body}</div>`);
 }
 on('push-on', () => pushOn_());
 on('push-off', () => pushOff_());

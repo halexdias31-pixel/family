@@ -536,7 +536,7 @@ function overFacet_(items) {
 /* ---------- ONE BOUT (batch D): the two fighters' portraits facing each other under the tags, and nothing else ---------- */
 function fightCard_(x) {
   const f = x.row || {};
-  return `<div class="card fc fight" aria-label="${esc(f.a + ' and ' + f.b)}">${tagRow_(x)}
+  return `<div class="fc fight" aria-label="${esc(f.a + ' and ' + f.b)}">${tagRow_(x)}
     <div class="fight-faces">${personPic_(f.aId, f.a)}${personPic_(f.bId, f.b, true)}</div></div>`;
 }
 
@@ -606,7 +606,7 @@ function practicalCard_(x) {
 
   /* ---------- A REFUSED EXPERIMENT SAYS SO BEFORE IT SAYS ANYTHING ELSE § */
   const off = p.excluded;
-  return `<div class="card fc prac${off ? ' is-off' : ''}">
+  return `<div class="fc prac${off ? ' is-off' : ''}">
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
     </div>
@@ -693,7 +693,7 @@ function practicalPart_(x, part) {
         'Usually the longest of the three. Everything you are NOT changing.')}
     </section></div>`;
   }
-  return inner ? `<div class="card fc prac prac-part is-${part}">${inner}</div>` : '';
+  return inner ? `<div class="fc prac prac-part is-${part}">${inner}</div>` : '';
 }
 
 /* A PROJECT — THREE OR FOUR SESSIONS THAT END IN SOMETHING A CHILD MADE. § */
@@ -710,7 +710,7 @@ function projectCard_(x) {
                  ages].filter(Boolean).join(' · ');
   /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE -- `AQA 8552` is which qualification the work counts towards, and a project has neither, so its line is unchanged. § */
   const qual = [p.board, p.specRef].filter(Boolean).join('\u00a0');
-  return `<div class="card fc prac proj lib-c">
+  return `<div class="fc prac proj lib-c">
     ${tagRow_(x)}
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
@@ -756,7 +756,7 @@ function projectPart_(x, part) {
       <div class="tile-row">${tile_({ icon: 'chat', label: 'Messages', note: 'send it',
         act: 'proj-share' })}</div>${own}`;
   }
-  return inner ? `<div class="card fc prac prac-part proj is-${part}">${inner}</div>` : '';
+  return inner ? `<div class="fc prac prac-part proj is-${part}">${inner}</div>` : '';
 }
 
 /* TO MESSAGES, AND NOTHING ELSE. Who to write to is the Messages screen's question — it already
@@ -779,7 +779,7 @@ const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</spa
    pages of their own, each titled (`contentPart_`). */
 function contentCard_(x) {
   const c = x.row;
-  return `<div class="card fc prac tb ct lib-c">
+  return `<div class="fc prac tb ct lib-c">
     ${tagRow_(x)}
     <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tbSections_(c, null, { only: 'words' })}
@@ -795,7 +795,7 @@ function contentPageTitle_(x, part) {
 function contentPart_(x, part) {
   if (!CONTENT_PAGE[part]) return '';
   const c = x.row;
-  return `<div class="card fc prac prac-part tb tb-page is-${part}">
+  return `<div class="fc prac prac-part tb tb-page is-${part}">
     <p class="fc-kick">${esc([c.subject, c.title].filter(Boolean).join(' · '))}${tbHigher_(c.higher)}</p>
     <h3>${esc(CONTENT_PAGE[part])}</h3>
     ${tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })}

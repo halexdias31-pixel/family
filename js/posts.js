@@ -413,8 +413,8 @@ function camOn_() {
 }
 
 function cameraCard() {
-  if (POST_COMPOSING) return `<div class="card cam-card is-composing">${postComposeHtml_()}</div>`;
-  return `<div class="card cam-card">
+  if (POST_COMPOSING) return card_(`<div class="cam-card is-composing">${postComposeHtml_()}</div>`);
+  return card_(`<div class="cam-card">
     <h3>Camera</h3>
     <div class="cam-stage" id="cam-stage">
       <video id="cam-view" playsinline muted autoplay></video>
@@ -469,7 +469,7 @@ function cameraCard() {
       ${tile_({ form: true, act: 'cam-on', id: 'cam-on', hidden: true, label: 'Try the camera again' })}
     </div>
     <p class="note" id="cam-said"></p>
-  </div>`;
+  </div>`);
 }
 
 /* WHY IT MIGHT NOT WORK, IN WORDS. Three refusals look identical from the outside — no camera, a
@@ -1675,13 +1675,13 @@ function feedCamCard_() { return camItem_(feedCamCard0_()); }
 function feedCamCard0_() {
   /* A CHILD HAS NO CAMERA HERE AND NO PICKER (413): nothing on this card could upload, and the server would refuse it. */
   if (USER && !mayUpload_()) {
-    return suggestRowIn_(`<div class="card cam-kid"><h3>Camera</h3>
-      </div>`, 'widget', 'camera', 'Camera');
+    return suggestRowIn_(card_(`<div class="cam-kid"><h3>Camera</h3>
+      </div>`), 'widget', 'camera', 'Camera');
   }
   return USER
     ? suggestRowIn_(cameraCard(), 'widget', 'camera', 'Camera')
-    : `<div class="card"><h3>Camera</h3>
-      </div>`;
+    : card_(`<div class=""><h3>Camera</h3>
+      </div>`);
 }
 
 /* ---------- READING THEM § */
@@ -1806,9 +1806,9 @@ function reelCards_(count) {
     const it = reelItem_(REEL_SHOWN);
     if (!it) break;
     /* THE WHOLE SLIDE IS THE PAUSE, which is what a video is everywhere else. § */
-    out.push(`<div class="card is-widget"><div class="widget-slot">
+    out.push(card_(`<div class="is-widget"><div class="widget-slot">
       <div class="reel${REEL_SHOWN + REEL_LEAD === REEL_HELD ? ' is-held' : ''}"
-           data-reel="${REEL_SHOWN + REEL_LEAD}" role="button" tabindex="0" data-do="reel-tap">${(window.feedSlide || (() => ''))(it)}` +
+           data-reel="${REEL_SHOWN + REEL_LEAD}" role="button" tabindex="0" data-do="reel-tap">${(window.feedSlide || (() => ''))(it)}`) +
       /* HOW OLD YOU HAVE TO BE (406), when it is not everyone. */
       `${window.mediaAgeSay_ && window.mediaAgeSay_(it.age) ? `<span class="media-age-badge is-reel" aria-label="for ages ${esc(window.mediaAgeSay_(it.age))}">${esc(window.mediaAgeSay_(it.age))}</span>` : ''}` +
       `${reelSoundTile_(false)}</div>
@@ -2295,8 +2295,8 @@ function dmFace_(t) {
 }
 
 function dmPages_() {
-  if (!USER) return [{ name: '', html: `<div class="card"><h3>Messages</h3>
-    </div>` }];
+  if (!USER) return [{ name: '', html: card_(`<div class=""><h3>Messages</h3>
+    </div>`) }];
   /* THE PAYLOAD AND THE FIRST ANSWER FOR MESSAGES — `loading_()` until both, as every column waits. */
   if (!LOADED || !DM_DONE) return [{ name: '', html: loading_() }];
 
@@ -2304,11 +2304,11 @@ function dmPages_() {
   /* ---------- THE HEAD CARD WAS A PAGE WITH NO MESSAGE ON IT § */
 
   /* ---------- AND AN EMPTY INBOX SAYS WHICH EMPTY IT IS § */
-  if (!threads.length) return daivePages_().concat([{ name: '', html: suggestRowIn_(`<div class="card"><h3>Messages</h3>
+  if (!threads.length) return daivePages_().concat([{ name: '', html: suggestRowIn_(card_(`<div class=""><h3>Messages</h3>
     ${MSG_FAILED
       ? `${empty_('Messages did not load.')}
          ${tile_({ form: true, label: 'Try again', act: 'dm-refresh', kind: 'quiet' })}`
-      : emptyMessages_()}</div>`, 'widget', 'messages', 'Messages') }]);
+      : emptyMessages_()}</div>`), 'widget', 'messages', 'Messages') }]);
 
   /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
      doing it again here is a second copy of the ordering rule to get wrong later. */
@@ -2318,12 +2318,12 @@ function dmPages_() {
   /* THE NAME IS THE PERSON, and the unread count rides on it — so the header says who you are reading rather than "3 of 7", which is the same judgement § */
   return daivePages_().concat(threads.map(t => ({
     name: displayName_(t.name) + (t.unread ? ' (' + t.unread + ')' : ''),
-    html: `<div class="card${t.unread ? ' unread' : ''}">
+    html: card_(`<div class="dm-page${t.unread ? ' unread' : ''}">
       <div class="dm-head">${dmFace_(t)}
         <h3>${esc(displayName_(t.name))}${t.unread ? ` <span class="dm-new">${t.unread} new</span>` : ''}</h3></div>
       <div class="msg-body">${messagesHtml_(t.msgs)}</div>
       ${msgForm_(t.name, t.id)}
-    </div>`,
+    </div>`, 'msg'),
   })));
 }
 
@@ -2375,7 +2375,7 @@ function asstMsgs_(s) {
 function daiveHtml_() {
   const s = asstGet_(), cap = asstCap_(), out = s.left <= 0, shut = out || ASST_BUSY;
   const said = out ? 'No questions left today — they come back tomorrow.' : s.left + ' of ' + cap + ' questions left today';
-  return `<div class="card daive" data-daive="1">
+  return card_(`<div class="daive" data-daive="1">
     <div class="dm-head"><span class="dm-av daive-av" aria-hidden="true">D</span><h3>${DAIVE}</h3></div>
     <div class="msg-body">${messagesHtml_(asstMsgs_(s)) }${ASST_BUSY ? loading_() : ''}</div>
     <div class="msg-form" data-k="daive">
@@ -2384,7 +2384,7 @@ function daiveHtml_() {
       <p class="note msg-said">${esc(ASST_SAID)}</p>
       <p class="note msg-said daive-left">${esc(said)}</p>
     </div>
-  </div>`;
+  </div>`);
 }
 /* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. */
 const daiveItem_ = () => {

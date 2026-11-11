@@ -216,14 +216,14 @@ function cardEditHtml_(t) {
   const base = cardBaseNow_(e);
   if (!base) {
     if (!e.err) setTimeout(() => cardFetch_(e), 0);
-    return `<div class="card is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}${
-      e.err ? `<p class="note me-said">${esc(e.err)}</p>` : loading_()}</div>${cardEditTiles_(pid, true)}`;
+    return card_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}${
+      e.err ? `<p class="note me-said">${esc(e.err)}</p>` : loading_()}</div>${cardEditTiles_(pid, true)}`);
   }
   const { vals, held } = cardValues_(e, base);
-  return `<div class="card is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}
+  return card_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}
     <div class="me-form" data-draw="${cardDrawn_(base)}">${cardEditForm_(t, e, vals)}
       <p class="note me-said">${held ? esc(SET_HELD_SAY) : ''}</p></div>
-  </div>${cardEditTiles_(pid, false)}`;
+  </div>${cardEditTiles_(pid, false)}`);
 }
 /* YOUR OWN CARD'S EDIT, ONE CARD PER SECTION (468): each its own form, draft, Save and layout id — the owner, "settings is purely editing". */
 function cardEditCards_(t, e, secs, setCol) {

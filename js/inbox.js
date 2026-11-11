@@ -29,10 +29,10 @@ function inboxHtml_() {
 
 /* THE CARD ON SITE (500): the owner asked for it there, beside the weekly email, not in Tools. Drawn with what is already known; initInbox asks. */
 function inboxCard_() {
-  return `<div class="card biz inbox-card">
+  return card_(`<div class="biz inbox-card">
     <h3>Email</h3>
     <div class="ib-box" id="ib-box">${inboxHtml_()}</div>
-  </div>`;
+  </div>`);
 }
 
 function inboxPaint_() {

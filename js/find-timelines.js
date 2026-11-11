@@ -75,7 +75,7 @@ function histTimelineCard_(x) {
   /* PICTURE FIRST (owner's look rule): the stage, then the tags. */
   /* THE ONE CARD (owner, 9 Nov): its name a tag (the heading), a line closed; the stage shows open. */
   const n = ((x.row && x.row.stops) || []).length;
-  return `<div class="card fc hdb hdb-tl lib-c" aria-label="${esc(x.name)}"><h3>${esc(x.name)}</h3>
+  return `<div class="fc hdb hdb-tl lib-c" aria-label="${esc(x.name)}"><h3>${esc(x.name)}</h3>
     <p class="tl-say">${n} event${n === 1 ? '' : 's'}, one at a time</p>
     <section class="fc-sec tl-anim" data-tl="${esc(x.key)}">${tlStage_(x)}</section>
     ${tagRow_(x)}

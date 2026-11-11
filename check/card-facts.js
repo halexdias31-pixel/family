@@ -42,18 +42,28 @@ function measure(per) {
   box.className = 'card-facts-check card-grid';
   host.prepend(box);
   /* QUESTIONS AND ANSWERS ARE THEIR SHEET (owner, 9 Nov): their open content is the question itself, so only pictures and blanks are asked of them. */
-  const WHOLE = ['question', 'answer'];
+  const WHOLE = ['question', 'answer', 'panel'];
   const PEOPLE = typeof KC_PERSON_KINDS !== 'undefined' ? KC_PERSON_KINDS : [];
   const items = inFinder_(FINDERS.stuff, () => stuffItems()).concat(typeof settingDoorItems_ === 'function' ? settingDoorItems_() : []);
   const by = {};
   items.forEach(x => { const k = (x && x.kind) || 'thing'; (by[k] = by[k] || []).length < per && by[k].push(x); });
   const out = { kinds: Object.keys(by).length, cards: 0, bad: [], pics: {} };
   const say = (x, m) => out.bad.push(`${x.kind} "${String(x.name || x.key || '').slice(0, 40)}": ${m}`);
-  Object.keys(by).forEach(kind => by[kind].forEach(x => {
+  /* EVERY OTHER CARD ON THE SITE (owner, 11 Nov: one template): each column's own cards and the one-offs, drawn by their makers through card_. */
+  const PANEL = [];
+  const panel = (name, f) => { try { const h = f(); (Array.isArray(h) ? h : [h]).filter(Boolean).slice(0, per * 3).forEach(html => PANEL.push({ kind: 'panel', name, html })); } catch (e) { out.bad.push('panel "' + name + '": drawing threw ' + e.message); } };
+  if (typeof CARD_BUILD === 'object' && CARD_BUILD) Object.keys(CARD_BUILD).forEach(col => panel('column ' + col, () => CARD_BUILD[col]()));
+  [['add', () => addCard_({ act: 'noop', label: 'Add a thing' })], ['empty', () => emptyCard_('Nothing')], ['oops', () => oopsHtml_()], ['notify', () => notifyDoorCard_()],
+    ['help list', () => helpListCard_()], ['deleted', () => deletedCard_()], ['roles', () => rolesCard_()]]
+    .forEach(([n, f]) => panel(n, () => (typeof f === 'function' ? f() : '')));
+  if (PANEL.length) by.panel = PANEL;
+  Object.keys(by).forEach(kind0 => by[kind0].forEach(x => {
     let html = '';
-    try { html = inFinder_(FINDERS.stuff, () => stuffCard(x)); } catch (e) { say(x, 'drawing threw ' + e.message); return; }
+    try { html = x.html != null ? x.html : inFinder_(FINDERS.stuff, () => stuffCard(x)); } catch (e) { say(x, 'drawing threw ' + e.message); return; }
     box.innerHTML = html;
     box.querySelectorAll('.card.kc:not(.card.kc .card.kc)').forEach(card => {
+      /* A COLUMN'S PANEL SAMPLE MAY HOLD FIND CARDS (a person's): each is asked as its own kind. */
+      const kind = x.html != null ? ((/^card fc kc kc-([\w]+)/.exec(card.className) || [])[1] || kind0) : kind0;
       out.cards++;
       const state = 'drawn';
       if (card.classList.contains('is-open') || card.querySelector(':scope > [data-do="kc-open"]')) say(x, 'opens or closes: a card is static');
@@ -81,6 +91,18 @@ function measure(per) {
       const text = [...card.querySelectorAll(':scope > .kc-tags, :scope > .kc-lines, :scope > .kc-form')].map(n => n.innerText.trim()).join('');
       if (!text && !card.querySelector(':scope > .kc-lines .loading, :scope > .kc-form :is(input, select, textarea)')) say(x, state + ': blank card');
       if (!PEOPLE.includes(kind) && card.querySelector(':scope > .kc-pic .pfp-art')) say(x, 'a profile picture on a card that is not a person');
+      /* THE CONTENT PART IS CENTRED WITH SIDE SPACE (owner, 11 Nov): nothing in a form or a panel's lines touches the card's edge, and no label or line reads left. */
+      card.querySelectorAll(':scope > .kc-form, :scope.kc-panel > .kc-lines').forEach(part => {
+        const edge = part.getBoundingClientRect();
+        if (!edge.width) return;
+        [...part.querySelectorAll('label, p, .note, li, td, th, span, input, select, textarea, table, pre')].some(el => {
+          if (el.closest('[hidden], .card.kc .card.kc, .msg-body, .kc-items, svg') || !el.getClientRects().length) return false;
+          const r = el.getBoundingClientRect();
+          if (r.width && el.innerText !== undefined && (r.left < cr.left + 4 || r.right > cr.right - 4) && !/^(TABLE|PRE)$/.test(el.tagName)) { say(x, state + ': content touches the card edge "' + (el.innerText || el.tagName).trim().slice(0, 30) + '"'); return true; }
+          if (/^(LABEL|P)$/.test(el.tagName) || el.classList.contains('note')) { const ta = getComputedStyle(el).textAlign; if ((ta === 'left' || ta === 'start') && el.innerText.trim() && r.width < edge.width - 2) { say(x, state + ': a left-aligned line "' + el.innerText.trim().slice(0, 30) + '"'); return true; } }
+          return false;
+        });
+      });
       if (WHOLE.includes(kind)) return;
       const lines = card.querySelector(':scope > .kc-lines');
       if (lines) {

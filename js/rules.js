@@ -109,10 +109,10 @@ function rulesCard_() {
         : `<div class="rule-sw" role="group" aria-label="${esc(r.say)}">${opt('exception', 'Exception')}${opt('universal', 'Universal')}</div>
       `}</div>`;
   };
-  return `<div class="card biz rules-card"><h3>Rules</h3>
+  return card_(`<div class="biz rules-card"><h3>Rules</h3>
     ${RULES.map(row).join('')}
     <div class="tile-row">${tile_({ icon: 'undo', label: 'Undo', note: lastR ? 'back to ' + ruleStored_(lastR, last.was) + ': ' + lastR.say.slice(0, 60) : 'nothing to undo', act: 'rules-undo', tone: 'admin', off: !last })}</div>
-    <p class="note rules-said" aria-live="polite"></p></div>`;
+    <p class="note rules-said" aria-live="polite"></p></div>`);
 }
 function rulesSend_(body, el) {
   if (!USER || !(typeof isAdmin === 'function' && isAdmin())) return;

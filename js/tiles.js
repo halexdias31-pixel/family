@@ -263,8 +263,7 @@ function empty_(text) {
 /* ONE CARD, THE WHOLE OF IT THE TARGET: a plus and what it adds. `{ act, label, data }`; a list adopts it by putting it first. */
 function addCard_(o) {
   const data = Object.keys(o.data || {}).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
-  return `<button type="button" class="card tap add-card" data-do="${esc(o.act)}"${data} aria-label="${esc(o.label)}">
-    <span class="add-plus">${tileIcon_('plus')}</span><span class="add-say">${esc(o.label)}</span></button>${
+  return card_(`<div class="add-card"><h3>${esc(o.label)}</h3><div class="tile-row">${tile_({ icon: 'plus', label: o.label, act: o.act, data: o.data })}</div></div>`) + `${
     /* A "+" IS A THING ON THE COLUMN TOO (720, 486): its Suggest in the row right after it, as a person's card has. */
     typeof suggestTile_ === 'function' && suggestTile_('card', 'add:' + o.act, o.label) ? `<div class="tile-row rep-row">${suggestTile_('card', 'add:' + o.act, o.label)}</div>` : ''}`;
 }

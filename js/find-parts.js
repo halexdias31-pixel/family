@@ -722,10 +722,8 @@ function libSay_(x) {
 function libWaitHtml_(x) {
   const q = isQ_(x);
   /* THE ONE ANATOMY (owner, 10 Nov): no picture yet, its tags, its name as a line (not a heading), then what it waits for. */
-  return `<div class="card fc kc${q ? ' qcard' : ''} lib-wait" data-lib="${esc((x && x.key) || '')}">
-    <div class="kc-tags">${tagRow_(x)}</div>
-    <div class="kc-lines">${q ? '' : `<p class="kc-line">${esc((x && x.name) || '')}</p>`}<div class="lib-say">${libSay_(x)}</div></div>
-  </div>`;
+  return findCard({ kind: 'libwait', name: (x && x.name) || '', kcOwn: { cls: 'lib-wait' + (q ? ' qcard' : ''), attrs: ` data-lib="${esc((x && x.key) || '')}"`,
+    tags: tagRow_(x), lines: `${q ? '' : `<p class="kc-line">${esc((x && x.name) || '')}</p>`}<div class="lib-say">${libSay_(x)}</div>` } });
 }
 /* THE PAGES ARE COUNTED AGAIN ONLY WHERE THEY ARE DRAWN AGAIN — counting them anywhere else would move every page under a column already drawn. */
 function libPagesFresh_() {
