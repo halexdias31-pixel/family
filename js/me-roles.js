@@ -364,10 +364,10 @@ const VOICE_SAMPLE = 'Hello. This is how your questions will be read. For exampl
 on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
 
 /* A COLUMN ABOVE YOUR RANK, OR EMPTY: one line and the next step. Never the column's name (710, 770: "columns don't need names or a widget for the name"). */
-const rankOffCard_ = (title, say, more) => card_(`<div class="rank-off">
+const rankOffCard_ = (title, say, more) => card_(`<div class="rank-off">${say ? `<p class="note">${esc(say)}</p>` : ''}
     ${more || ''}</div>`);
 /* A SETTINGS COLUMN FOR A ROLE YOU DO NOT HOLD (464): a padlock and one short line, and nothing else — the owner, "it will just show a padlock". */
-const padlockCard_ = (say, more) => card_(`<div class="rank-off col-lock"><span class="col-lock-i" aria-hidden="true">${tileIcon_('lock')}</span>
+const padlockCard_ = (say, more) => card_(`<div class="rank-off col-lock"><span class="col-lock-i" aria-hidden="true">${tileIcon_('lock')}</span>${say ? `<p class="note">${esc(say)}</p>` : ''}
     ${more || ''}</div>`);
 const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', 'Kids settings') + ' first.');
 

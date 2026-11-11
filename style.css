@@ -3306,6 +3306,10 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* `.qp-area` TOO: WHATEVER THE PEN IS ON INKS ITSELF ON THE CARD. § */
 .qsheet .lbl, .qb-stem .lbl, .gd .lbl, .qp-area .lbl, .pad-loupe .lbl { font: italic 700 var(--fs-small) serif; fill: currentColor; text-anchor: middle; }
 .qsheet .num, .qb-stem .num, .gd .num, .qp-area .num, .pad-loupe .num { font: var(--fs-small) serif; fill: currentColor; text-anchor: middle; }
+/* A SUM WRITTEN AS A LINE OF TEXT (`<p class="num">30 ÷ 3 + 2 − 4 = 2</p>`) reads at the text's own size; the small serif is a drawing's label. */
+:is(.qsheet, .qb-stem, .gd, .qp-area, .card) :not(text, tspan).num { font: inherit; font-size: var(--fs-body); }
+/* THE OPTIONS' LETTER IS DRAWN ONCE, in bold beside each: the list's own A. B. markers would say it twice. */
+.qp-optlist { list-style: none; padding-left: 0; }
 .qsheet .ax, .qb-stem .ax, .gd .ax, .qp-area .ax, .pad-loupe .ax { font: italic var(--fs-small) serif; fill: currentColor; }
 .qsheet .axis, .qb-stem .axis, .gd .axis, .qp-area .axis, .pad-loupe .axis { stroke: currentColor; stroke-width: 1.2; }
 .qsheet .grid, .qb-stem .grid, .gd .grid, .qp-area .grid, .pad-loupe .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
