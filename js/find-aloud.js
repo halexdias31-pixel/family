@@ -564,8 +564,8 @@ function findPeopleItems_() {
     ...soonItems_(),
     /* POSTS, MESSAGES, PROFILES, SETTINGS AND VIDEOS (batch C): their items and menus are find-doors.js's. */
     ...(typeof doorItems_ === 'function' ? doorItems_() : []),
-    ...(typeof settingMay_ === 'function' && settingMay_('door:checks') ? [{ kind: 'health', name: 'Checks', key: 'health:checks', sub: 'Settings', image: '', which: 'checks', settingFor: 'Business',
-      text: 'checks site health business checker owner questions what’s missing' }] : []),
+    ...(typeof settingMay_ === 'function' && settingMay_('door:checks') ? [{ kind: 'health', name: 'Optimiser', key: 'health:checks', sub: 'Settings', image: '', which: 'checks', settingFor: 'Business',
+      text: 'optimiser checks site health score business checker owner questions what’s missing' }] : []),
     ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
       subject: x.name, row: x,

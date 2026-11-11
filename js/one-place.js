@@ -68,15 +68,15 @@ function checksInner_() {
   const s = typeof HEALTH !== 'undefined' ? HEALTH.got : null;
   if (typeof siteHealthCard_ === 'function' && typeof HEALTH !== 'undefined' && !HEALTH.asked) siteHealthCard_();
   if (typeof bizCheckCard_ === 'function' && typeof BC !== 'undefined' && !BC.asking && !BC.fetched && typeof bcStart_ === 'function') setTimeout(bcStart_, 0);
-  const head = '<div class="qtags"><span class="qtag">Business</span><span class="qtag">Admin only</span></div><h3>Checks</h3>';
+  const head = '<div class="qtags"><span class="qtag">Business</span><span class="qtag">Admin only</span></div><h3>Optimiser</h3>';
   if (!s) return head + (HEALTH && HEALTH.failed ? '<p class="me-said">The score could not be read. Run node tools/health.js and push.</p>' : (typeof loading_ === 'function' ? loading_() : '')) + oqInbox_();
   const A = checksAreas_(s);
-  return `${head}<p class="stab-score">${esc(String(checksTotal_(s, A)))}%</p>
+  return `${head}<p class="stab-score">Optimiser: ${esc(String(checksTotal_(s, A)))}%</p>
     ${CHECK_AREAS.filter(([k]) => A[k]).map(([k, n]) => `<h4>${esc(n)} ${esc(String(A[k].score))}%${(s.weights || {})[k] ? '' : ' <span class="qtag">inside the others</span>'}</h4>
       <ol class="stab-top">${(A[k].next || []).slice(0, 3).map(t => `<li>${esc(String(t))}</li>`).join('') || '<li>Nothing to do.</li>'}</ol>`).join('')}
     ${oqInbox_()}`;
 }
-/* THE ONE CARD, then the detail it sums (the old Site health with What's missing, and the business checker's ticks), nothing lost. */
+/* THE ONE CARD, then the detail it sums (the Optimiser's code worklist with What's missing, and the business checker's ticks), nothing lost. */
 function checksCard_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return '';
   let more = '';

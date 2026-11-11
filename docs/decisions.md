@@ -287,3 +287,5 @@ become an owner question showing both; never pick one.
 - One card template everywhere (picture if real, tags, content, round buttons, centred); the booking form is the one agreed exception.
 - A small fixed set of sizes (text, pictures, buttons, corners) and colours; nothing makes its own.
 - Content (pictures, answers, tables) follows one rule per kind. Every visual bug the owner reports becomes a rule the checks hold for all cards.
+## 11 Nov — the Optimiser (owner)
+- 11 Nov — the health checker is the Optimiser; when nothing else is asked, the aim is to raise it to 90% or improve it with more checks for optimisation (owner).

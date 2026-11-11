@@ -40,7 +40,7 @@ don't read it whole). Past bugs and decisions: `grep -ril <keyword> docs/history
 13. Teaching animations are script-written rows (`tools/anim_row.py`): change the script, re-run, never hand-edit.
 14. **Two finders, one list:** outside `inFinder_(F, fn)`, `STUFF` is Find's; async jobs must re-bind.
 
-## Health tools (cheap, use these)
+## Optimiser tools (cheap, use these; `tools/health.js` is the Optimiser)
 
 ```bash
 node tools/health.js --changed     # the ratchet: only what your change touches; budgets only go down
