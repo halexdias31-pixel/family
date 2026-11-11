@@ -42,15 +42,17 @@ const HEALTH_MORE_ = { bizcheck: () => (typeof bizCheckCard_ === 'function' ? bi
 function healthCardOf_(which) {
   if (HEALTH_MORE_[which]) return HEALTH_MORE_[which]();
   /* ONE CARD (owner, 6 Nov): Site health holds What's missing too, how complete Find's resources are, under its score. */
-  if (which === 'health') { try { return healthWithMissing_(siteHealthCard_()); } catch (e) { oops_(e, 'site health'); return ''; } }
+  if (which === 'health') { try { return healthWithMissing_(siteHealthCard_(true)); } catch (e) { oops_(e, 'site health'); return ''; } }
   const all = (() => { try { return missingLeadCards_(); } catch (e) { oops_(e, 'health card'); return []; } })();
   const l = LOGIC_SHOWN && logicFor_() ? 1 : 0;
-  return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || '<div class="card">' + empty_() + '</div>';
+  return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || card_('<div>' + empty_() + '</div>');
 }
 
 /* ---------- SITE HEALTH (890): data/health.json, written by tools/health.js — code 40%, Find logic 35%, UI 25%, mechanical ---------- */
 const HEALTH = { got: null, failed: false, asked: false, all: false };
-function siteHealthCard_() {
+function siteHealthCard_(raw) {
+  /* `raw`: its plain html, for What’s missing to join before it is built. */
+  const out = h => (raw ? h : card_(h));
   if (!HEALTH.asked && typeof fetch === 'function') {
     HEALTH.asked = true;
     Promise.resolve()
@@ -61,14 +63,14 @@ function siteHealthCard_() {
       .then(() => { try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
   }
   const s = HEALTH.got, head = '<h3>Site health</h3>';
-  if (!s) return `<div class="card logic-card">${head}${HEALTH.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/health.js and push.</p>' : loading_()}</div>`;
+  if (!s) return out(`<div class="logic-card">${head}${HEALTH.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/health.js and push.</p>' : loading_()}</div>`);
   const p = s.parts || {}, list = (HEALTH.all ? s.all : s.top) || [];
   const said = { code: 'Code', logic: 'Find logic', ui: 'UI' };
-  return `<div class="card logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
+  return out(`<div class="logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     ${s.next ? `<p><b>${esc(String(s.next))}</b></p>` : ''}${healthTrend_(s.trend)}
     <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} <span class="qtag">${esc(said[t.part] || t.part)}, −${esc(String(t.cost))}</span></li>`).join('')}</ol>
     ${healthWork_(s.worklist)}
-    ${(s.all || []).length > 5 ? tileRow_(tile_({ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top 5' : 'Show the full list', act: 'health-all' }), '', true) : ''}</div>`;
+    ${(s.all || []).length > 5 ? tileRow_(tile_({ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top 5' : 'Show the full list', act: 'health-all' }), '', true) : ''}</div>`);
 }
 /* THE TREND (920): the last thirty full runs as one thin line in the text colour, and the commit of the worst drop. */
 function healthTrend_(t) {
@@ -109,13 +111,13 @@ function logicCard_() {
       .then(() => { try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
   }
   const s = LOGIC.got, head = '<h3>Logic health</h3>';
-  if (!s) return `<div class="card logic-card">${head}${LOGIC.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/logic-health.js and push.</p>' : loading_()}</div>`;
+  if (!s) return card_(`<div class="logic-card">${head}${LOGIC.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/logic-health.js and push.</p>' : loading_()}</div>`);
   const rules = (s.rules || []).filter(r => r.count > 0).sort((a, b) => b.count - a.count);
   const top = (s.top || []).slice(0, LOGIC.all ? 25 : 3);
   const line = t => `<li><b>${esc(t.where)}</b> · ${esc(t.asks || '')}<br><span class="qtag">${esc((t.why || []).join(' · '))}</span></li>`;
-  return `<div class="card logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
+  return card_(`<div class="logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <ol class="stab-top">${top.map(line).join('')}</ol>
-    ${(s.top || []).length > 3 ? tileRow_(tile_({ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top 3' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }), '', true) : ''}</div>`;
+    ${(s.top || []).length > 3 ? tileRow_(tile_({ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top 3' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }), '', true) : ''}</div>`);
 }
 on('logic-all', () => { LOGIC.all = !LOGIC.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 
@@ -267,14 +269,14 @@ function missingBody_() {
 }
 if (typeof on === 'function') on('miss-all', () => { MISSING.all = !MISSING.all; missingRepaint_(); });
 function healthWithMissing_(card) {
-  if (!missingFor_()) return card;
+  if (!missingFor_()) return card_(card);
   const body = missingBody_(), waits = missingWaits_();
   const part = `<h3 class="miss-head">What’s missing</h3><div id="miss-body"${waits ? ' aria-busy="true"' : ''}>${body}</div>`;
-  return /<\/div>\s*$/.test(card) ? card.replace(/^<div class="card logic-card"/, '<div class="card logic-card miss-card"').replace(/<\/div>\s*$/, part + '</div>') : card + `<div class="card miss-card">${part}</div>`;
+  return /<\/div>\s*$/.test(card) ? card_(card.replace(/^<div class="logic-card"/, '<div class="logic-card miss-card"').replace(/<\/div>\s*$/, part + '</div>')) : card_(card) + card_(`<div class="miss-card">${part}</div>`);
 }
 function missingCard_() {
   const body = missingBody_();
   const waits = missingWaits_();
-  return `<div class="card miss-card"><h3>What’s missing</h3>
-    <div id="miss-body"${waits ? ' aria-busy="true"' : ''}>${body}</div></div>`;
+  return card_(`<div class="miss-card"><h3>What’s missing</h3>
+    <div id="miss-body"${waits ? ' aria-busy="true"' : ''}>${body}</div></div>`);
 }

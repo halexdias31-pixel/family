@@ -64,10 +64,10 @@ const WIDGETS = [
     draw: () => feedPaint_?.(),
     stop: () => clipsStop_($('feed-screen')),
     into: 'feed-screen', what: 'This',
-    html: `<div class="card">
+    get html() { return card_(`<div class="">
     <h3>One more thing</h3>
     <div id="feed-screen" class="feed" data-do="feed-tap"></div>
-  </div>` },
+  </div>`); } },
 
   /* ---------- VIDEOS — TYPE, TAP, WATCH § */
   { id: 'videos', kind: 'reel', name: 'Videos', start: () => window.initVideos?.(),
@@ -95,24 +95,24 @@ const WIDGETS = [
   { id: 'flyers', kind: 'tool', name: 'Make a flyer', solid: true, admin: true,
     start: () => window.initFlyer?.(),
     into: 'fm-wrap', what: 'The flyer',
-    html: `<div class="card">
+    get html() { return card_(`<div class="">
     <h3>Make a flyer</h3>
     <div id="fm-wrap"></div>
-  </div>` },
+  </div>`); } },
 
 
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker (maths mat)', solid: true,
     start: () => initMat?.(),
     into: 'mat-box', what: 'The cheat sheet',
     /* NO BLURB. It said "one sheet of A4, tick what goes on it" over a list of tickboxes on a page showing a sheet of A4 — three sentences describing what is already § */
-    html: `<div class="card">
+    get html() { return card_(`<div class="">
     <h3>Cheat sheet maker</h3>
     <div id="mat-box"></div>
-  </div>` },
+  </div>`); } },
   { id: 'timer', kind: 'tool', name: 'Timer', solid: true, start: () => window.initTimer?.(),
     pure: true,
     into: 'timer-display', what: 'The timer',
-    html: `<div class="card">
+    get html() { return card_(`<div class="">
     <h3>Timer</h3>
     <p class="mono timer-big" id="timer-display">25:00</p>
     <div class="btn-row">
@@ -128,10 +128,10 @@ const WIDGETS = [
       ${[5, 15, 25, 45].map(m =>
         `${tile_({ form: true, label: m, act: 'timer-set', data: { min: m }, kind: 'quiet', cls: 'tiny' })}`).join('')}
     </div>
-  </div>` },
+  </div>`); } },
   { id: 'docket', kind: 'tool', name: 'Docket', solid: true, start: () => paintDocket?.(),
     into: 'docket-body', what: 'The docket',
-    html: `<div class="card">
+    get html() { return card_(`<div class="">
     <h3>Docket</h3>
     <div id="docket-body"></div>
     <div class="dock-new">
@@ -140,31 +140,31 @@ const WIDGETS = [
     </div>
     <p class="said said-s" id="dock-said"></p>
     <div id="docket-gtasks"></div>
-  </div>` },
+  </div>`); } },
   { id: 'notepad', kind: 'tool', name: 'Notepad', solid: true, pure: true, start: () => initPad?.(),
     into: 'notepad', what: 'The notepad',
-    html: `<div class="card">
+    get html() { return card_(`<div class="">
     <h3>Notepad</h3>
     <textarea id="notepad" placeholder="Jot something down…"></textarea>
     <p class="said said-s" id="pad-said">Saves as you type.</p>
-  </div>` },
+  </div>`); } },
   /* ---------- SPOTIFY (510): your own account, connected in this browser alone — spotify.js ---------- */
   { id: 'spotify', kind: 'tool', name: 'Spotify', solid: true, start: () => window.initSpotify?.(),
     into: 'sp-box', what: 'Spotify',
     get html() {
-      return `<div class="card">
+      return card_(`<div class="">
     <h3>Spotify</h3>
     <div id="sp-box">${typeof window.spCard_ === 'function' ? window.spCard_() : ''}</div>
-  </div>`;
+  </div>`);
     } },
   /* ---------- SPEED READ (403): paste, then one word at a time — reader.js ---------- */
   { id: 'speedread', kind: 'tool', name: 'Speed reader (one word at a time)', solid: true, pure: true, start: () => initSpeedRead?.(),
     into: 'sr-text', what: 'The speed reader',
-    get html() { return `<div class="card">
+    get html() { return card_(`<div class="">
     <h3>Speed reader</h3>
     <textarea id="sr-text" placeholder="Paste text to read…"></textarea>
     ${/* A TILE, NOT A BUTTON (720): Read is the thing's action, so it is a tile in a row under it (house style). */''}<div class="tile-row">${tile_({ icon: 'play', label: 'Read it', act: 'sr-read' })}</div>
-  </div>`; } },
+  </div>`); } },
 
   /* ---------- THE TIMETABLE, THE ONE WEEK VIEW § */
   /* NOT `pure`, though it was until the review of 12 Oct: § */
@@ -195,14 +195,14 @@ const WIDGETS = [
 
   { id: 'calendar', kind: 'tool', name: 'Calendar', pure: true, start: () => window.initCalendar?.(),
     into: 'cal-body', what: 'The calendar',
-    html: `<div class="card">
+    get html() { return card_(`<div class="">
     <div class="cal-head">
       ${tile_({ form: true, look: 'cal-arrow', act: 'cal-back', aria: 'Earlier', label: '‹' })}
       <h3 id="cal-label" class="flush">Calendar</h3>
       ${tile_({ form: true, look: 'cal-arrow', act: 'cal-fwd', aria: 'Later', label: '›' })}
     </div>
     <div id="cal-body" class="cal"></div>
-  </div>` },
+  </div>`); } },
 
   /* ---------- TERM DATES AND COUNTDOWNS (466): the owner — "a widget in the Tools column telling the user the end dates of the next 3 academic intervals"; countdowns "available for everyone under Tools". */
   { id: 'termdates', kind: 'tool', name: 'Term dates', pure: true, start: () => paintTermDates_?.(),
@@ -220,42 +220,42 @@ const WIDGETS = [
   { id: 'favlinks', kind: 'tool', name: 'Favourite links', solid: true,
     start: () => window.initFavLinks_?.(),
     into: 'fav-box', what: 'Your favourite links',
-    html: `<div class="card">
+    get html() { return card_(`<div class="">
     <h3>Favourite links</h3>
     <div id="fav-box"></div>
-  </div>` },
+  </div>`); } },
   /* ---------- THE REWRITE COACH (509, 519): admin only for now; a fact checklist and questions, never a rewrite — rewrite.js ---------- */
   { id: 'rewrite', kind: 'tool', name: 'Rewrite coach', solid: true, admin: true,
     start: () => window.initRewrite_?.(),
     into: 'rw-box', what: 'The rewrite coach',
-    html: `<div class="card">
+    get html() { return card_(`<div class="">
     <h3>Rewrite coach</h3>
     <div id="rw-box"></div>
-  </div>` },
+  </div>`); } },
   /* ---------- THE POSTER PLANNER (547): bare bones -- a page, boxes, JSON and PNG out for Claude; this device only -- poster.js ---------- */
   { id: 'poster', kind: 'tool', name: 'Poster planner', solid: true, pure: true,
     start: () => window.initPoster_?.(),
     into: 'pst-box', what: 'The poster planner',
-    html: `<div class="card">
+    get html() { return card_(`<div class="">
     <h3>Poster planner</h3>
     <div id="pst-box"></div>
-  </div>` },
+  </div>`); } },
   /* ---------- THE PIXEL EDITOR (547): bare bones -- a grid, a colour, pen or eraser, Clear, a PNG; this device only -- pixel.js ---------- */
   { id: 'pixel', kind: 'tool', name: 'Pixel editor', solid: true, pure: true,
     start: () => window.initPixel_?.(),
     into: 'pxe-box', what: 'The pixel editor',
-    html: `<div class="card">
+    get html() { return card_(`<div class="">
     <h3>Pixel editor</h3>
     <div id="pxe-box"></div>
-  </div>` },
+  </div>`); } },
   /* ---------- YOUR LIBRARY CARDS (docs/history/339) § */
   { id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
     start: () => initLibCards_?.(),
     into: 'lib-box', what: 'Your library cards',
-    html: `<div class="card">
+    get html() { return card_(`<div class="">
     <h3>Library cards</h3>
     <div id="lib-box"></div>
-  </div>` },
+  </div>`); } },
 ];
 /* SECONDARY (860): every widget here not named core in data/settings/tiers.json throws into oops_, never into its caller. */
 tierGuardWidgets_(WIDGETS);

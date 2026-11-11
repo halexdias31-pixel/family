@@ -668,13 +668,13 @@ on('uploads-check', el => {
 /* ---------- ADDING A CHILD, AND ANSWERING WHEN SOMEBODY ADDS YOU § */
 /* ---------- THE ANSWER HALF HAD NO DOOR EITHER, UNTIL THE ACCOUNT COLUMN DREW IT § */
 function claimCard_(c) {
-  return `<div class="card">
+  return card_(`<div class="">
     <h3>${esc(c.from)} says they are your parent</h3>
     <div class="btn-row">
       ${tile_({ form: true, label: 'Yes', act: 'claim-yes', data: { row: c.rowIndex } })}
       ${tile_({ form: true, label: 'No', act: 'claim-no', data: { row: c.rowIndex }, kind: 'quiet' })}
     </div>
-  </div>`;
+  </div>`);
 }
 
 /* WHO MAY ASK — the same test the tile carried, kept in one place so the card and its handler
@@ -727,7 +727,7 @@ function msgFindCard_(x, t, draw) {
   if (!open) return head;
   try { markRead_(t.msgs); } catch (e) { oops_(e, 'msg:find-read'); }
   return head + t.msgs.map(m => msgFindOne_(t, m)).join('')
-    + `<div class="card fc msg-fc msg-fc-form" data-thread="${esc(t.id)}">${msgForm_(t.name, t.id)}</div>`;
+    + card_(`<div class="fc msg-fc msg-fc-form" data-thread="${esc(t.id)}">${msgForm_(t.name, t.id)}</div>`);
 }
 /* THE CLOSED CONVERSATION'S FIELDS for the one card maker; `x.row` is the thread. */
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
@@ -748,12 +748,12 @@ function msgFindOne_(t, m) {
     { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp } }]) + msgFixLinks_(m.err)
     : !mine && m.id && !m.tmp && typeof suggestTile_ === 'function' ? suggestTile_('message', m.id, 'Message from ' + (m.fromName || t.name)) : '';
   const words = String(m.body || '').trim();
-  return `<div class="card fc msg-fc is-one${mine ? ' mine' : ''}${fresh ? ' unread' : ''}" data-thread="${esc(t.id)}">
+  return card_(`<div class="fc msg-fc is-one${mine ? ' mine' : ''}${fresh ? ' unread' : ''}" data-thread="${esc(t.id)}">
     ${msgTags_(null, [{ text: msgDate_(ms) + ' ' + msgClock_(ms, m.at) }, fresh ? { text: 'unread', cls: 'is-new' } : null,
       { text: msgKindWord_(m) }, m.state === 'sending' ? { text: 'sending…' } : m.tmp && m.state !== 'failed' ? { text: 'sent' } : null])}
     ${msgFacePic_(t, mine)}<h3>${esc(mine ? 'You' : (m.fromName || t.name))}</h3>
     ${words ? `<p class="msg-fc-body">${mark(words)}</p>` : ''}${msgAttachHtml_(m.attachments)}
-    ${tiles ? tileRow_(tiles) : ''}</div>`;
+    ${tiles ? tileRow_(tiles) : ''}</div>`);
 }
 /* REDRAWN WHERE IT STANDS in Find: that conversation's cards go, its new set takes the first one's place. */
 function msgFindRedraw_(key) {

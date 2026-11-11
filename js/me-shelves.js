@@ -369,7 +369,7 @@ function setCard_(o) {
   const save = o.save ? `<div class="tile-row set-save">${o.save}</div>` : '';
   const body = o.form == null ? (o.body || '') + save
     : `<div class="me-form"${o.formAttrs || ''}>${o.form}${save}${o.foot == null ? '<p class="note me-said"></p>' : o.foot}</div>`;
-  return `<div class="card${o.cls ? ' ' + o.cls : ''} set-shape"${o.attrs || ''}><h3 class="set-title">${esc(o.title || '')}</h3>${o.lead || ''}${body}${o.after || ''}</div>`;
+  return card_(`<div class="set-shape${o.cls ? ' ' + o.cls : ''}"${o.attrs || ''}><h3 class="set-title">${esc(o.title || '')}</h3>${o.lead || ''}${body}${o.after || ''}</div>`);
 }
 const shelfFilled_ = (value, names) => names.some(f => String(value(f) ?? '').trim() !== '');
 

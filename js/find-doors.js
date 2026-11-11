@@ -41,9 +41,9 @@ function msgDoorItems_() {
 /* A CONVERSATION'S CARD, around the one card maker: somebody not yet written to gets the form, a thread gets `msgFindCard_`. */
 function msgDoorCard_(x, draw) {
   const t = (typeof messageThreads_ === 'function' ? messageThreads_() : []).find(t2 => t2.id === x.thread);
-  if (!t && x.to) return `<div class="card dm-card"><div class="dm-head"><h3>${esc(x.name)}</h3></div>
-    ${msgForm_(x.to.name, x.to.id)}</div>`;
-  if (!t) return `<div class="card"><h3>${esc(x.name)}</h3></div>`;
+  if (!t && x.to) return card_(`<div class="dm-card"><div class="dm-head"><h3>${esc(x.name)}</h3></div>
+    ${msgForm_(x.to.name, x.to.id)}</div>`);
+  if (!t) return card_(`<div class=""><h3>${esc(x.name)}</h3></div>`);
   return msgFindCard_(x, t, draw);
 }
 window.KC_AROUND = Object.assign(window.KC_AROUND || {}, { msg: msgDoorCard_ });
@@ -86,7 +86,7 @@ function profileDoorCard_(x) {
   if (x.add) return typeof personAddCard_ === 'function' ? personAddCard_() : '';
   const t = x.row || {};
   /* NO FACE, NO LETTER: the card draws its own default picture, so a lone initial would only stand beside the handle. */
-  return `<div class="card is-prof prof-door">${!(t.image || t.avatar) ? '' : personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title || t.name, personId: t.personId },
+  return `<div class="is-prof prof-door">${!(t.image || t.avatar) ? '' : personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title || t.name, personId: t.personId },
     { cls: 'prof-big', none: 'prof-none', size: 160 })}<h3>${esc(x.name)}</h3>${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
     ${tileRow_((typeof peopleTiles_ === 'function' ? peopleTiles_(t) : ''), 'person-tiles')}${typeof personEdHtml_ === 'function' ? personEdHtml_(t) : ''}</div>`;
 }
@@ -131,7 +131,7 @@ function settingName_(html, id, row) {
     || (reg && reg.label) || '';
 }
 /* A COLUMN'S PADLOCK, "NOTHING HERE" LINE OR A TITLE-ONLY PLACEHOLDER IS NOT A SETTING. */
-const settingNone_ = h => /^\s*<div class="card (?:rank-off|set-none|own-lock)\b/.test(h);
+const settingNone_ = h => /^\s*<div class="card [^"]*\b(?:rank-off|set-none|own-lock)\b/.test(h);
 /* EVERY SETTING ONCE (owner, 7 Nov): its `see` rows tag it with each account type; one of the same name joins it. */
 /* A type you do not hold still shows its cards, shut (`lockedAs_`); Business and Site hold the business's own data, so stay an admin's. */
 function settingDoorItems_() {
@@ -184,7 +184,7 @@ function notifyDoorCard_() {
   const waiting = ((DATA && DATA.posts) || []).filter(p => p && p.active !== false && p.waiting).length;
   const rows = needs.map(k => `<li><span class="qtag">${esc(String(BIZ_NEEDS[k]))}</span> ${esc(k.replace(/[-_]/g, ' '))}</li>`)
     .concat(waiting ? [`<li><span class="qtag">${waiting}</span> posts waiting for approval</li>`] : []);
-  return `<div class="card notify-door"><h3>Notifications</h3>${rows.length ? `<ul class="notify-list">${rows.join('')}</ul>` : '<p>Nothing needs you.</p>'}</div>`;
+  return card_(`<div class="notify-door"><h3>Notifications</h3>${rows.length ? `<ul class="notify-list">${rows.join('')}</ul>` : '<p>Nothing needs you.</p>'}</div>`);
 }
 
 /* A LIST THAT COMES LATER (messages) joins Find when it lands: the memo is dropped and Find repainted once. */

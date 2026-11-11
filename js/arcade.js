@@ -61,11 +61,11 @@ function widgetOnColumn_(w, own) {
       typeof gameLockTile_ === 'function' ? gameLockTile_(w.id) : ''}${
       typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), w.name || w.title || w.label || '') : ''}</span>` : '';
   const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(w) : '';
-  return `<div class="card is-widget${held ? ' is-locked' : ''}">
+  return card_(`<div class="is-widget${held ? ' is-locked' : ''}">
       <div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${
         typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div>
       ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}
-    </div>`;
+    </div>`, '', w.name || w.title || w.label || '');
 }
 
 /* A MERGED CARD (480): one frame, each part's own slot (started by its own widget), the lower titles as subheadings, one tile row — the top part's. */
@@ -78,9 +78,9 @@ function widgetMergedOn_(m, own) {
     const waits = typeof w.start === 'function' && typeof loading_ === 'function';
     return `<div class="merged-part"><div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div></div>`;
   }).join('');
-  return `<div class="card is-widget is-merged" data-merged="${esc(m.parts.map(w => String(w.id)).join(' '))}">${parts}
+  return card_(`<div class="is-widget is-merged" data-merged="${esc(m.parts.map(w => String(w.id)).join(' '))}">${parts}
       ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}
-    </div>`;
+    </div>`, '', top.name || top.title || top.label || '');
 }
 
 /* ---------- THE SAVED COLUMN, WHICH THIS APP HAS HAD BEFORE § */
@@ -833,25 +833,25 @@ function progressAnsweredCard_(st) {
       <div class="row"><span class="k">${esc(o.topic)}</span><span class="v">${o.marked ? o.right + ' of ' + o.marked + ' right' : o.n + ' tried'}</span></div>
       <div class="prog-bar" aria-hidden="true"><span style="width:${o.marked ? progressPct_(o.right, o.marked) : 0}%"></span></div>
     </div>`).join('');
-  return `<div class="card prog-answered">
+  return card_(`<div class="prog-answered">
     <h3>Questions</h3>
     <div class="row prog-tot"><span class="k">Answered</span><span class="v">${st.n}</span></div>
     <div class="row prog-tot"><span class="k">Right</span><span class="v">${st.right}</span></div>
     <div class="row prog-tot"><span class="k">Marks</span><span class="v">${st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet'}</span></div>
     ${rows}
-  </div>`;
+  </div>`);
 }
 function progressActivityCard_(st) {
   if (!st.n) return emptyCard_('Recent activity');
   const said = p => !p.sc ? 'sent' : p.ok ? 'right' : p.sc.of > 1 ? p.sc.got + '/' + p.sc.of : 'wrong';
   const last = st.recent.map(r => `<div class="row"><span class="k">${esc((r.x && (r.x.sub ? r.x.sub + ' · ' : '') + (r.x.name || '')) || 'A question')}</span>
       <span class="v prog-v${r.ok ? ' is-good' : r.sc ? ' is-bad' : ''}">${esc(said(r))}</span></div>`).join('');
-  return `<div class="card prog-activity">
+  return card_(`<div class="prog-activity">
     <h3>Recent activity</h3>
     <div class="row"><span class="k">Streak</span><span class="v">${st.streak ? progressDaysSaid_(st.streak) : 'none yet'}</span></div>
     <div class="row"><span class="k">Last 7 days</span><span class="v">${st.week} on ${progressDaysSaid_(st.weekDays)}</span></div>
     ${last}
-  </div>`;
+  </div>`);
 }
 function progressWeakCard_(st) {
   if (!st.weak.length) return emptyCard_('Work on next');
@@ -860,10 +860,10 @@ function progressWeakCard_(st) {
       <div class="tile-row">${tile_({ icon: 'search', label: 'Practise', note: o.topic + ' in Find', act: 'prog-practise',
         data: { topic: o.topic, key: (o.miss && o.miss.key) || '' } })}</div>
     </div>`).join('');
-  return `<div class="card prog-weakest">
+  return card_(`<div class="prog-weakest">
     <h3>Work on next</h3>
     ${items}
-  </div>`;
+  </div>`);
 }
 
 /* ---------- PROGRESS IN A FIELD: ONE CARD PER SERIES, ONE LINE PER PAPER, OPENED IN PLACE ---------- */
@@ -896,10 +896,10 @@ function progressSeriesCard_(sr) {
   const untouched = sr.untouched ? `<div class="row"><span class="k">Not started</span><span class="v">${sr.untouched}</span></div>` : '';
   /* ITS OWN CARD ID (466), so one series — past papers, Religious Studies — moves or goes alone. */
   const lid = 'prog:series:' + String(sr.name || 'x').toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
-  return `<div class="card prog-series" data-lay-card="${esc(lid)}">
+  return card_(`<div class="prog-series" data-lay-card="${esc(lid)}">
     <h3>${esc(sr.name.charAt(0).toUpperCase() + sr.name.slice(1))}</h3>
     ${lines}${untouched}
-  </div>`;
+  </div>`);
 }
 
 /* ---------- GRADE ESTIMATE ---------- */
@@ -945,10 +945,10 @@ function progressGradeCard_(st) {
     return `<div class="row"><span class="k">${esc(label)}</span><span class="v">${esc(g)}</span></div>`;
   }).join('');
   if (!rows) return emptyCard_('Grade estimate');
-  return `<div class="card prog-grade">
+  return card_(`<div class="prog-grade">
     <h3>Grade estimate</h3>
     ${rows}
-  </div>`;
+  </div>`);
 }
 
 /* ---------- SESSIONS ---------- */
@@ -973,12 +973,12 @@ function progressSessionsCard_(ss) {
   if (!ss.ahead.length && !ss.past.length) return emptyCard_('Sessions');
   const when = s => day_(s.d) + ' ' + date_(s.d) + (s.j.time ? ' · ' + time_(s.j.time) : '');
   const row = s => `<div class="row"><span class="k">${esc(when(s))}</span><span class="v">${esc(s.j.title || s.j.subject || 'Session')}</span></div>`;
-  return `<div class="card prog-sessions">
+  return card_(`<div class="prog-sessions">
     <h3>Sessions</h3>
     ${ss.ahead.map(row).join('')}
     ${ss.past.map(row).join('')}
     <div class="tile-row">${tile_({ icon: 'book', label: 'Sessions', note: 'on Book', act: 'prog-sessions' })}</div>
-  </div>`;
+  </div>`);
 }
 
 /* ---------- THE COLUMN: every widget, always, so each is where it was; one with nothing to say is its title alone (414). ---------- */

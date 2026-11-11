@@ -64,7 +64,7 @@ check('461: "Manage your child" lists the children and says how to add one — n
   await wait(300);
   const manage = d.querySelectorAll('#s-students .kid-manage');
   if (manage.length !== 1) return ['a parent\'s Student profiles draws ' + manage.length + ' "Manage your child" cards, wanted one'];
-  if (!/^Manage your child$/.test(String((manage[0].querySelector(':scope > h3') || {}).textContent || '').trim())) bad.push('the card is not titled "Manage your child"');
+  if (!/^Manage your child$/.test(String(manage[0].getAttribute('aria-label') || (manage[0].querySelector(':scope > h3') || {}).textContent || '').trim())) bad.push('the card is not titled "Manage your child"');
   const secs = [...manage[0].querySelectorAll('.kid-sec')].map(x => x.classList.contains('kid-add') ? 'add' : x.classList.contains('kid-list') ? 'list' : '?');
   if (JSON.stringify(secs) !== '["list","add"]') bad.push('"Manage your child" holds ' + JSON.stringify(secs) + ', wanted the children, then how to add one');
   if (d.querySelector('[data-kid-new], [data-do="kid-make"], .kid-make')) bad.push('a form to make a child\'s account is still drawn');

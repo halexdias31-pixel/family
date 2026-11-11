@@ -85,7 +85,7 @@ const mechOwn_ = (x, file, k) => (x && x.kind === 'mech' && x.mFile === file && 
 function mechPic_(x) { return `<figure class="mech-pic">${pixSvg_(x.mech.px, x.name, false, ' mech-px')}</figure>`; }
 function mechCard_(x) {
   const r = x.mech || {};
-  return `<div class="card fc mech" data-key="${esc(x.key)}" aria-label="${esc(x.name)}">${tagRow_(x)}${mechPic_(x)}${
+  return `<div class="fc mech" data-key="${esc(x.key)}" aria-label="${esc(x.name)}">${tagRow_(x)}${mechPic_(x)}${
     r.does ? `<p class="mech-does">${esc(r.does)}</p>` : ''}</div>`;
 }
 /* A CAR'S PARTS ARE A FIND (650): its every part, Car part chosen and the car's make, model and engine (`CARD_EXTRAS_`). */

@@ -627,8 +627,8 @@ let BOOK_OPEN = false;
 /* THE BOOKING FORM TAG: the form itself once that tag is chosen; under plain Booking the Book tile above opens it, so this card only points there. */
 function bookFormCard_() {
   const alone = (STUFF.filters || []).some(f => f.field !== DOOR_FIELD);
-  if (!alone) return `<div class="card book-form-door"><h3>Booking form</h3>${
-    tileRow_(tile_({ icon: 'book', label: 'Book', act: 'book-open', cls: 'primary' }), 'book-top')}</div>`;
+  if (!alone) return card_(`<div class="book-form-door"><h3>Booking form</h3>${
+    tileRow_(tile_({ icon: 'book', label: 'Book', act: 'book-open', cls: 'primary' }), 'book-top')}</div>`);
   if (typeof awaiting_ === 'function' && awaiting_()) return loading_();
   return (typeof bookBlocks === 'function' ? bookBlocks() : [])[0] || '';
 }
@@ -709,9 +709,9 @@ function accountPages_(col) {
   const editing_ = t => typeof cardEditing_ === 'function' && cardEditing_(t, col);
   /* AN ADMIN'S PERSON FORM (373, me.js) TAKES THE CARD'S PLACE the same way, in the column it was opened on. */
   const personForm_ = t => typeof personFormFor_ === 'function' ? personFormFor_(t, col) : '';
-  const card_ = t => typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '';
+  const tcard_ = t => typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '';
   const withTiles_ = t => personForm_(t) || (editing_(t) ? cardEditHtml_(t)
-    : card_(t) + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : ''));
+    : tcard_(t) + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : ''));
 
   /* ---------- YOUR FAMILY ---------- */
   /* `sibling` ON *"students should be able to see their parents and siblings likewise"*. § */
@@ -732,7 +732,7 @@ function accountPages_(col) {
     /* A CHILD'S PHOTOGRAPHED WORKING (501), to the parent they accepted; staff see it on the admin's list below. */
     const more = (f.relation === 'child' && typeof workSeeTile_ === 'function' ? workSeeTile_(f.personId, true) : '')
       + (typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '');
-    return personMark_(f.personId, personForm_(row) || card_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
+    return personMark_(f.personId, personForm_(row) || tcard_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
   };
   /* A CHILD OR A BROTHER OR SISTER IS A STUDENT; A PARENT IS A PARENT. A family member who teaches is on Tutors as well. */
   const famIn = c => family.filter(f => (f.relation === 'parent' ? 'parents' : 'students') === c);
@@ -748,7 +748,7 @@ function accountPages_(col) {
     /* AND "NEW PIN" BESIDE "MESSAGE" — the admin is who a child with no email and no linked parent goes to. § */
     /* THROUGH `tileRow_`, which puts six tiles on even lines rather than leaving one alone (453: Parents is narrower company). */
     /* A PERSON'S ROW STANDS ALONE (498): the list's layout row was joined onto the last person's, so one client "has loads of tile options". */
-    .map(p => personMark_(p.personId, personForm_(p) || card_(p)
+    .map(p => personMark_(p.personId, personForm_(p) || tcard_(p)
       + (typeof tile_ === 'function' ? tileRow_(tile_({ icon: 'chat',
           label: 'Message', note: 'a note to them', act: 'msg-open',
           data: { to: p.title, id: p.personId || '' } }) + (p.personId ? tile_({ icon: 'key',
@@ -762,7 +762,7 @@ function accountPages_(col) {
   if (typeof peopleBelong_ === 'function' && peopleBelong_(col, family)) {
     const row = isTutorsCol_(col) ? (cardMine_() || myRow) : myRow;
     /* NEVER AN EDITOR HERE (464): your own card is edited on your role's settings column (`ownCardSetPage_`, me.js). */
-    const face = row !== myRow ? card_(row) : (typeof meCard === 'function' ? meCard(row) : card_(row));
+    const face = row !== myRow ? tcard_(row) : (typeof meCard === 'function' ? meCard(row) : tcard_(row));
     /* SHARE MY PROFILE (400): their own `?tutor=` link, to send a family — on the tutor face. */
     const share = isTutorsCol_(col) && rankAtLeast_('staff') && USER.handle
       ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';

@@ -458,7 +458,7 @@ function deletedCard_() {
   const del = ((layoutNow_() || {}).deleted || []);
   const rows = del.map(id => `<div class="lay-deleted-row" data-deleted="${esc(id)}"><p><strong>${esc(layoutDeletedName_(id))}</strong> · ${anyWidgetOf_(id) ? 'widget' : 'card'}</p>
 <div class="tile-row">${tile_({ icon: 'undo', label: 'Put back', act: 'lay-putback', tone: 'admin', data: { del: id } })}</div></div>`).join('');
-  return '<!--card:biz:deleted--><div class="card biz deleted-card"><h3>Deleted</h3>' + (rows || empty_('Nothing deleted.')) + '</div>';
+  return '<!--card:biz:deleted-->' + card_('<div class="biz deleted-card"><h3>Deleted</h3>' + (rows || empty_('Nothing deleted.')) + '</div>');
 }
 /* CARDS THAT MOVE BUT ARE NEVER DELETED, each with its reason. */
 const CARD_KEEP = {
@@ -649,6 +649,8 @@ const cardMark_ = (id, list) => (list || []).filter(Boolean).map(h => '<!--card:
 const personMark_ = (pid, h) => h && pid ? '<!--person:' + String(pid).replace(/[^A-Za-z0-9_.-]/g, '') + '-->' + h : h;
 
 /* WHICH CARD A PAGE IS — its mark, its `data-lay-card` or `data-split`, then the registry; '' for a column's own line (a padlock, a wait). */
+/* A COLUMN'S BARE TITLE CARD (card_): its name, at most one plain line, and the template's row. */
+const LAY_BARE_ = /^\s*<div class="card fc kc kc-panel(?: people-none)?(?: kc-facts)?"[^>]*>(?:<div class="kc-(?:pic|head)"><\/div>)*<div class="kc-tags">(?:(?!<\/div><div class="kc-)[\s\S])*<\/div><div class="kc-lines">(?:\s*<p[^>]*>[^<]*<\/p>)?\s*<\/div><div class="kc-act">/;
 function cardIdOf_(html) {
   const h = String(html || '');
   let m = /^\s*<!--card:([A-Za-z0-9_:.-]{1,64})-->/.exec(h);
@@ -657,9 +659,10 @@ function cardIdOf_(html) {
   const tag = (/^\s*<div[^>]*>/.exec(h) || [''])[0];
   m = /\sdata-lay-card="([^"]+)"/.exec(tag) || /\sdata-split="([^"]+)"/.exec(tag);
   if (m && cardIs_(m[1])) return m[1];
-  const t = h.trim();
+  /* A CARD BUILT BY THE ONE TEMPLATE (card_) IS READ BY ITS OWN MAKER'S CLASSES, in the order the registry names them. */
+  const t = h.trim().replace(/^<div class="([^"]*)"/, (x, c) => '<div class="' + ['card'].concat(c.split(/\s+/).filter(k => k && !/^(card|fc|kc|kc-[\w-]+)$/.test(k))).join(' ') + '"');
   /* AN EMPTY PROGRESS WIDGET IS ITS TITLE ALONE (414), so its title says which it is. */
-  m = /^<div class="card prog-w is-empty"><h3>([^<]*)<\/h3>/.exec(t);
+  m = /^<div class="card prog-w is-empty"[^>]*aria-label="([^"]*)"/.exec(t) || /^<div class="card prog-w is-empty"><h3>([^<]*)<\/h3>/.exec(t);
   if (m && PROG_EMPTY_[m[1]]) return PROG_EMPTY_[m[1]];
   const r = CARD_REG.find(x => x.re && x.re.test(t));
   return r ? r.id : '';
@@ -713,8 +716,8 @@ function cardArrange_(col, raw) {
   const at = g => { const x = g.id ? list.indexOf(g.id) : -1; return x === -1 ? list.length + g.i : x; };
   let out = mine.sort((a, b) => at(a) - at(b) || a.i - b.i);
   /* A COLUMN'S BARE TITLE CARD IS FOR WHEN IT HOLDS NOTHING — not above a card moved into it. */
-  if (out.some(g => g.id)) out = out.filter(g => g.id || !/^\s*<div class="card(?: people-none)?">\s*<h3>[^<]*<\/h3>(?:\s*<p[^>]*>[^<]*<\/p>)?\s*<\/div>\s*$/.test(g.pages.join('')));
-  out.forEach(g => { if (g.id && !cardReg_(g.id)) { const m = /<h3[^>]*>([^<]{1,80})<\/h3>/.exec(g.pages[0]); if (m) CARD_TITLE[g.id] = m[1].trim(); } });
+  if (out.some(g => g.id)) out = out.filter(g => g.id || !LAY_BARE_.test(g.pages.join('')));
+  out.forEach(g => { if (g.id && !cardReg_(g.id)) { const m = /<h3[^>]*>([^<]{1,80})<\/h3>/.exec(g.pages[0]) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^>]*\saria-label="([^"]{1,80})"/.exec(g.pages[0]); if (m) CARD_TITLE[g.id] = m[1].trim(); } });
   CARD_SEEN[col] = out.filter(g => g.id).map(g => g.id);
   return cardMergeGroups_(out, L);
 }
@@ -769,7 +772,7 @@ function cardsOf_(col) {
     if (g.parts) {
       if (start && g.merged.indexOf(start) !== -1) CARD_START_AT[col] = out.length;
       const body = g.parts.map(p => `<div class="merged-part" data-part="${esc(p.id)}">${p.pages.map((h, i) => strip(i === 0 ? cardSayIn_(h, p.id) : h)).join('')}</div>`).join('');
-      out.push(`<div class="card is-merged" data-lay-card="${esc(g.id)}">${body}${row}</div>`);
+      out.push(card_(`<div class="is-merged" data-lay-card="${esc(g.id)}">${body}${row}</div>`));
       return;
     }
     const each = g.pages.length > 1 && /^(set|biz):/.test(g.id);
@@ -788,7 +791,7 @@ function cardsOf_(col) {
   });
   if (start === 'first-person' && firstP !== -1) CARD_START_AT[col] = firstP;
   /* NOTHING LEFT ON IT: one line, never the column's name as a card (770). */
-  if (!out.length && !kind) return [`<div class="card rank-off set-none">${empty_()}</div>`];
+  if (!out.length && !kind) return [card_(`<div class="rank-off set-none">${empty_()}</div>`)];
   return out;
 }
 /* A HOUSE, NOT A FLAG (466): the owner, "I had no idea what it was" — the column's home is here. */
@@ -829,7 +832,7 @@ function cardAdminRow_(id, col, mergeable) {
 function cardReportRow_(id, page) {
   /* NOT ON A LOCKED CARD (467: nothing pressable) NOR ONE CARRYING ITS OWN (an empty card's, `emptyCard_`). */
   if (/^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-locked\b/.test(page) || /data-do="rep-box"/.test(page)) return '';
-  const t = typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || [])[1] || id).trim()) : '';
+  const t = typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^>]*\saria-label="([^"]{1,80})"/.exec(page) || [])[1] || id).trim()) : '';
   return t ? `<div class="tile-row card-rep">${typeof gameLockTile_ === 'function' ? gameLockTile_('k:' + id) : ''}${t}</div>` : '';
 }
 

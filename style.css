@@ -2242,22 +2242,26 @@ label.bk-k { cursor: pointer; }
 .page > .pane:has(.widget-full) { overflow: hidden; }
 
 /* ---------- MESSAGES IS A CARD, ON A SCREEN OF ROWS § */
-.card:has(> .msg-body) {
+.card:has(> .msg-body, > .kc-lines > .msg-body) {
   background: var(--raised);
   border: 1px solid var(--line-soft);
   border-radius: var(--r-ui);
   padding: .9rem;
   margin: 0 0 var(--card-gap);
 }
-.card:has(> .msg-body) .msg-body { max-height: 22rem; overflow-y: auto; scrollbar-width: none; }
+.card:has(> .msg-body, > .kc-lines > .msg-body) .msg-body { max-height: 22rem; overflow-y: auto; scrollbar-width: none; }
 /* ---------- A CONVERSATION TAKES THE HEIGHT IT IS GIVEN § */
-#s-dm .card:has(> .msg-body) {
+#s-dm .card:has(> .msg-body, > .kc-lines > .msg-body) {
   display: flex; flex-direction: column;
   max-height: calc(100dvh - var(--bar) - var(--safe-bottom) - 2.5rem
                    - var(--pane-pad) - 1rem - 2px - 1rem);
 }
-#s-dm .card:has(> .msg-body) > * { flex: 0 0 auto; }
-#s-dm .card:has(> .msg-body) > .msg-body { flex: 0 1 auto; min-height: 4rem; max-height: none; }
+#s-dm .card:has(> .msg-body, > .kc-lines > .msg-body) > * { flex: 0 0 auto; }
+#s-dm .card:has(> .msg-body, > .kc-lines > .msg-body) > .msg-body { flex: 0 1 auto; min-height: 4rem; max-height: none; }
+/* BUILT BY THE ONE TEMPLATE, the thread sits in the card's lines: they take the height the bubbles would. */
+#s-dm .card.kc:has(> .kc-lines > .msg-body) > .kc-lines { flex: 0 1 auto; min-height: 4rem; display: flex; flex-direction: column; text-align: left; }
+#s-dm .card.kc > .kc-lines > .msg-body { flex: 0 1 auto; min-height: 0; max-height: none; }
+.msg-form .msg-said { flex: 1 0 100%; }
 
 .widget-full #timer-display {
   /* THE SIZE COMES FROM THE FIRST RULE for this selector, further up: § */
@@ -3333,6 +3337,10 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 :is(.qsheet figure, .qb-stem figure, .gd figure, .qp-area .qpad-art, .pad-loupe .qpad-art) > svg:not(.qpad-ink) :is(line, path, polyline, polygon, rect, circle, ellipse):is([stroke-width^="0.7"], [stroke-width^="0.8"], [stroke-width^="0.9"], [stroke-width^=".7"], [stroke-width^=".8"], [stroke-width^=".9"], [stroke-width="1"], [stroke-width^="1.0"], [stroke-width^="1.1"]):not([stroke-width="0.01"]) { stroke-width: var(--fig-mid); }
 :is(.qsheet figure, .qb-stem figure, .gd figure, .qp-area .qpad-art, .pad-loupe .qpad-art) > svg:not(.qpad-ink) :is(line, path, polyline, polygon, rect, circle, ellipse)[stroke-width^="2"]:not([stroke-width="0.01"]) { stroke-width: var(--fig-bold); }
 :is(.qsheet figure, .qb-stem figure, .gd figure, .qp-area .qpad-art, .pad-loupe .qpad-art) > svg:not(.qpad-ink) :is(line, path, polyline, polygon, rect, circle, ellipse).grid:not([stroke-width="0.01"]) { stroke-width: var(--fig-grid); }
+/* A SUM WRITTEN AS A LINE OF TEXT (`<p class="num">30 ÷ 3 + 2 − 4 = 2</p>`) reads at the text's own size; the small serif is a drawing's label. */
+:is(.qsheet, .qb-stem, .gd, .qp-area, .card) :not(text, tspan).num { font: inherit; font-size: var(--fs-body); }
+/* THE OPTIONS' LETTER IS DRAWN ONCE, in bold beside each: the list's own A. B. markers would say it twice. */
+.qp-optlist { list-style: none; padding-left: 0; }
 
 /* ---------- COINS, PRICE TAGS, AND SAYING WHO DREW THEM § */
 .qsheet .coin, .qp-area .coin, .pad-loupe .coin { fill: none; stroke: currentColor; }
@@ -4187,7 +4195,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .card.is-widget .widget-slot > .card:only-child { padding-block: 0; border-bottom: 0; }
 
 /* ---------- ONE SURFACE, AND IT IS THE PANE (690): what sits in it is flat, set apart by space and a hairline, as an iOS grouped list. */
-.pane :is(.card.is-widget, .qcard, .card:has(> .msg-body)) {
+.pane :is(.card.is-widget, .qcard, .card:has(> .msg-body, > .kc-lines > .msg-body)) {
   background: none; border: 0; border-radius: 0; padding-inline: 0; margin-inline: 0; }
 .pane :is(.card.is-widget, .qcard) + :is(.card.is-widget, .qcard) {
   border-top: 1px solid var(--line-soft); padding-top: var(--card-gap); margin-top: 0; }
@@ -5602,8 +5610,20 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-lines :is(.qtags, .prof-tags, .tile-row, .btn-row) { justify-content: center; }
 /* LONG CONTENT READS LEFT INSIDE ITS CENTRED BLOCK: a passage, a policy, a table, a list, a form. */
 .card.kc > .kc-lines :is(.rd-body, .policy-page, .policy-table, table, ul, ol, pre, blockquote, .insh-sec, .q-text, .qt-body),
-.card.kc > .kc-form, .card.kc > .kc-lines :is(form, .kc-items) { text-align: left; }
-.card.kc > .kc-form { margin-top: .5rem; }
+.card.kc > .kc-lines :is(form, .kc-items) { text-align: left; }
+/* THE CONTENT PART IS CENTRED (owner, 11 Nov), with the same side space as the card's other parts: a form, a panel's lines, every label, line and table. */
+.card.kc > .kc-form, .card.kc-panel > .kc-lines { box-sizing: border-box; width: 100%; padding-inline: var(--kc-side, 1rem); text-align: center; }
+.card.kc > .kc-form :is(label, .field, p, .note, .dob-cap, li, dt, dd), .card.kc-panel > .kc-lines :is(label, .field, p, .note, li, dt, dd) { text-align: center; }
+.card.kc > .kc-form :is(.f-row, .dob-boxes, .btn-row, .tile-row, .check), .card.kc-panel > .kc-lines :is(.f-row, .btn-row, .tile-row) { justify-content: center; }
+.card.kc > .kc-form :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select, textarea):not(.msg-text, .dob-boxes *),
+.card.kc-panel > .kc-lines :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select, textarea):not(.msg-text) { box-sizing: border-box; width: 100%; max-width: 26rem; margin-inline: auto; text-align: left; }
+.card.kc > .kc-form :is(ul, ol), .card.kc-panel > .kc-lines :is(ul, ol) { list-style-position: inside; padding-left: 0; }
+/* A WIDE TABLE OR FORMULA LINE IS CENTRED AND SCROLLS INSIDE ITSELF, never past the card's edge. */
+.card.kc > .kc-form :is(table, pre), .card.kc-panel > .kc-lines :is(table, pre) { display: block; width: max-content; max-width: 100%; overflow-x: auto; margin-inline: auto; }
+.card.kc > .kc-form :is(td, th), .card.kc-panel > .kc-lines :is(td, th) { text-align: center; }
+.card.kc > .kc-form { margin-top: .5rem; align-self: stretch; }
+/* A PANEL (card_) KEEPS ITS LINES FULL WIDTH, so a list, a thread or a table is not shrunk to its words. */
+.card.kc-panel > .kc-lines { align-self: stretch; }
 .card.kc > .kc-act { margin-top: .5rem; }
 .card.kc > .kc-act > .tile-row { justify-content: center; flex-wrap: wrap; margin-top: 0; }
 .card.kc.kc-facts > .kc-lines > .kc-line { margin: .15rem 0 0; font-size: var(--fs-body); line-height: 1.5; overflow-wrap: anywhere; }
