@@ -5451,6 +5451,13 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tl-view { position: relative; height: 3.4rem; margin: var(--s2) 0 var(--s1); overflow: hidden; border-bottom: 2px solid var(--line); } .tl-track { position: absolute; left: 0; top: 0; bottom: 0; transition: transform var(--dur-pan) var(--ease-out); will-change: transform; }
 .tl-tick { position: absolute; bottom: 0; height: .5rem; border-left: 1px solid var(--line); } .tl-tick i { position: absolute; bottom: .55rem; left: 0; transform: translateX(-50%); font: 400 var(--fs-small)/1 var(--mono); font-style: normal; color: var(--ink); white-space: nowrap; }
 .tl-ev { position: absolute; top: .2rem; width: 1.25rem; height: 1.25rem; margin-left: -.625rem; filter: opacity(.45); transition: filter var(--dur-enter), transform var(--dur-enter); } .tl-ev.past { filter: opacity(.8); } .tl-ev.on { filter: none; transform: translateY(-.1rem) scale(1.35); } .tl-pin { position: absolute; left: 50%; bottom: 0; width: 0; height: 1rem; border-left: 3px solid var(--gold); margin-left: -1.5px; }
+/* A TIMELINE'S PICTURE IS ITS ANIMATION (owner, 11 Nov): scene over axis, fitted to the one picture height. */
+.card.kc > .kc-pic > .tl-anim { display: flex; flex-direction: column; width: 100%; height: 100%; }
+.card.kc-timeline .tl-anim .tl-scene { flex: 1 1 auto; height: auto; min-height: 0; justify-content: center; }
+.card.kc-timeline .tl-anim figure.tl-pic { flex: none; width: 4.5rem; height: 4.5rem; margin: 0; }
+.card.kc-timeline .tl-anim .tl-label { font-size: var(--fs-small); }
+.card.kc-timeline .tl-anim .tl-view { flex: none; height: 2.2rem; margin: var(--s0) 0 0; }
+.card.kc-timeline .tl-anim .tl-ev { width: 1rem; height: 1rem; margin-left: -.5rem; top: 0; }
 @keyframes tl-pop { from { opacity: 0; transform: translateY(.4rem) scale(.9); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .tl-scene > *, .tl-track, .tl-ev { animation: none; transition: none; } }
 .rep-vids { margin: var(--s2) 0; }
@@ -5677,3 +5684,20 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc .prof-photos > * { flex: 0 0 4rem; width: 4rem; aspect-ratio: 1; }
 .card.kc .prof-q-end { white-space: normal; }
 .card.kc .prof-hours .prof-busy { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--s1); margin-top: var(--s1); }
+
+/* THE CARD TEMPLATE CARD (owner, 11 Nov): its sample's parts outlined and named; each swatch wears its token inline (records.js tplCard_). */
+.tpl-spec { margin: var(--s3) auto; max-width: 22rem; }
+.tpl-spec .card.kc > [data-tpl] { position: relative; outline: 1px dotted var(--dim); outline-offset: -1px; }
+.tpl-spec .card.kc > [data-tpl]::before { content: attr(data-tpl); position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 1; padding: 0 var(--s1); font-size: var(--fs-small); color: var(--ink); background: var(--bg); white-space: nowrap; pointer-events: none; }
+.tpl-spec .card.kc > .kc-tags[data-tpl], .tpl-spec .card.kc > .kc-lines[data-tpl], .tpl-spec .card.kc > .kc-act[data-tpl] { padding-top: calc(var(--fs-small) * 1.6); }
+.tpl-group { margin: var(--s3) 0 var(--s1); font-size: var(--fs-small); }
+.tpl-row { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s2); }
+.tpl-sw { display: inline-flex; flex-direction: column; align-items: center; gap: var(--s1); min-width: 4.5rem; font-size: var(--fs-small); }
+.tpl-sw code { font-size: var(--fs-small); }
+.tpl-sw i { display: block; min-width: 1px; height: .5rem; background: var(--ink); font-style: normal; }
+.tpl-fs .tpl-sw i { height: auto; background: none; line-height: 1; }
+.tpl-fs .tpl-sw i::before { content: 'Aa'; }
+.tpl-bt .tpl-sw i { border-radius: var(--r-round); border: 1px solid var(--line); background: var(--raised); }
+.tpl-pc .tpl-sw i { border: 1px solid var(--line); background: var(--raised); }
+.tpl-cr .tpl-sw i { width: 2.5rem; height: 2.5rem; border: 1px solid var(--ink); background: none; }
+.tpl-co .tpl-sw i { width: 2.5rem; height: 2.5rem; border: 1px solid var(--line); }

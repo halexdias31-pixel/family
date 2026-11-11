@@ -77,7 +77,7 @@ function partRec_(x) {
 /* ---------- THE MARKER: the one thing that varies between parts -- qtypes.js `qtMarker_`, which the Function tag reads too. */
 /* WHAT THE LINE UNDER CHECK SAYS, by marker: how this part will be marked, before it is. Never a person. */
 /* ONE LINE UNDER EVERY ROW (owner, 9 Nov): marking is one path for every type, so it says the same words everywhere. */
-const QT_HOW_ALL = 'Marked against the mark scheme first \u2014 then by AI, if you ask';
+const QT_HOW_ALL = 'Marked by its mark scheme where a rule can, otherwise by AI';
 /* the markers `markPart_` (find-marking.js) reads off the typed box: one Check, `qp-check`, for all of them */
 const QT_SCHEME_KINDS = { choice: 1, order: 1, accept: 1, words: 1 };
 /* `ready` is false where the marker has nothing to mark against yet (no key, no scheme): Check says so instead of asking */

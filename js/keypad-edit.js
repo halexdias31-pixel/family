@@ -5,7 +5,7 @@ on('qp-ai', (el) => {
   const out = box && box.querySelector('.qp-verdict');
   const why = box && box.nextElementSibling && box.nextElementSibling.classList.contains('qp-ai-why')
     ? box.nextElementSibling : null;
-  if (!inp || !out || el.disabled) return;
+  if (!inp || !out || el.disabled || (box && box.classList.contains('is-busy'))) return;
   /* AN ESSAY'S KEPT POINTS STAY UNDER IT UNTIL NEW ONES ARRIVE (`aiKeep_`): a request that fails must not
      take away the only feedback the pupil has. A short answer's sentence goes, as it always did. */
   const essayBox = box.classList.contains('qp-essay');

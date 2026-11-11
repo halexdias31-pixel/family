@@ -259,20 +259,17 @@ function ansBox_(x) {
   const m = markerOf_(x);
   const can = m.kind === 'accept' ? String(x.accept || '').trim() : '';
   const rule = isWordsMark_(m) ? String(x.markWords || '').trim() : '';
-  const scheme = QT_SCHEME_KINDS[m.kind] && m.ready;
   const geo = m.kind === 'draw' ? String(x.drawAnswer || '').trim() : '';
   /* ONE KEYPAD THAT TYPES ANYTHING (keypad.js): the answer's shape only picks the layer it opens on */
   const maths = ansMaths_(x);
-  /* THE AI MARKS WHAT NO RULE CAN: it is the Check for an `ai` part, and offered after a key-word rule that falls short */
-  const ai = isAiMark_(m) || scheme ? tile_(aiOpts_(x)) : '';
-  const later = scheme && ai ? `<span class="qp-ai-later" hidden>${ai}</span>` : '';
+  /* ONE MARK BUTTON (owner, 11 Nov): the part's protocol picks the marker -- a rule where there is one, else the AI */
+  const ai = isAiMark_(m) ? tile_(aiOpts_(x)) : '';
   const val = ansRead_(k);
   const ws = workStrip_(x);
-  /* THE AI'S CHECK, HELD BACK, waits in the part's one row too, so unhiding it never makes a second row */
-  const row = qtRow_(x, later);
+  const row = qtRow_(x);
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
   const drawAt = geo ? ` data-k="${esc(k)}" data-pad="${esc(padKey_(x))}" data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '';
-  const isAi = (isAiMark_(m) && m.ready) || (scheme && ai);
+  const isAi = isAiMark_(m) && m.ready;
   const cls = 'qp-mark qp-compose' + (isAi ? ' qp-ai' : '') + (geo ? ' qpad-send' : '');
   const dataAt = (can ? ` data-accept="${esc(can)}"` : '') + (rule ? ` data-rule="${esc(rule)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '') + drawAt;
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET: the same one box, bigger § */
@@ -311,7 +308,7 @@ function subBoxSay_(k, val) {
     ? subSay_(latest.v) : { text: '', cls: '' };
 }
 
-/* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `markPart_` against the scheme; short of full marks the AI is offered, if it is on. */
+/* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `markPart_` against the scheme; a part with no rule goes to the AI from the same button. */
 on('qp-check', (el) => {
   const box = el.closest('.qp-mark');
   const card = el.closest('.qcard');
@@ -324,6 +321,8 @@ on('qp-check', (el) => {
   /* A PHOTO IS READ BY THE AI MARKER (owner, 29 Oct): the scheme reads only the typed box, so a part with photos goes to `markWorking` with them */
   const send = typeof WORK_PICS !== 'undefined' && (WORK_PICS[k] || []).length
     ? [].find.call(document.querySelectorAll('.qp-work-send'), b => b.getAttribute('data-k') === k) : null;
+  /* ONE PRESS, ONE VERDICT: a mark still being made is not made again */
+  if (box.classList.contains('is-busy') || el.disabled) return;
   box.classList.remove('is-right', 'is-near');
   if (send && ACTIONS['qp-work-send']) {
     out.textContent = 'Your photos go to the AI marker';
@@ -336,9 +335,7 @@ on('qp-check', (el) => {
   if (v.ai) { if (ACTIONS['qp-ai']) ACTIONS['qp-ai'](el); return; }
   const full = v.got >= v.of;
   box.classList.add(full ? 'is-right' : 'is-near');
-  const later = box.querySelector('.qp-ai-later');
-  if (later) later.hidden = full;
-  out.textContent = (v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? 'Correct' : 'Not yet — have another go') + (!full && later ? ' — or mark it with AI' : '');
+  out.textContent = v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? 'Correct' : 'Not yet — have another go';
   /* MARKED IS A SUBMISSION, right or not yet (js/submit.js); signed out it is this visit's alone. */
   subRecord_(k, inp.value, v.words ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
 });
