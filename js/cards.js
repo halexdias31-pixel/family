@@ -661,7 +661,8 @@ function findCard(x, credits) {
   const run = list => (list || []).map(k => { try { const f = kcField_(k); return f ? f(one) || '' : ''; } catch (e) { oops_(e, 'card:' + k); return ''; } }).join('');
   const parts = { pic: run(s.pic), head: run(s.title), tags: run(s.tags), lines: run(s.lines), act: '' };
   parts.pic = kcPicOr_(one, parts.pic);
-  parts.tags = kcUnpicked_(parts.tags);
+  /* A PANEL (card_) IS DRAWN WHILE FIND'S OWN LIST IS BEING MADE, so it never reads Find's chips back (that would build the list inside itself). */
+  parts.tags = it.kcPanel ? parts.tags : kcUnpicked_(parts.tags);
   /* A CARD WITH NO TAGS OF ITS OWN STILL HAS ONE: its name (owner, 9 Nov: the name is a tag). */
   if (!parts.tags.trim() && name) parts.tags = `<div class="qtags"><span class="qtag" data-tag="0">${esc(name)}</span></div>`;
   /* NO TITLE LINE ON ANY CARD (owner, 9 Nov): the name is a tag, put first when the tags do not already say it. */

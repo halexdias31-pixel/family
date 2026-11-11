@@ -693,7 +693,7 @@ function practicalPart_(x, part) {
         'Usually the longest of the three. Everything you are NOT changing.')}
     </section></div>`;
   }
-  return inner ? card_(`<div class="fc prac prac-part is-${part}">${inner}</div>`, 'practical') : '';
+  return inner ? `<div class="fc prac prac-part is-${part}">${inner}</div>` : '';
 }
 
 /* A PROJECT — THREE OR FOUR SESSIONS THAT END IN SOMETHING A CHILD MADE. § */
@@ -756,7 +756,7 @@ function projectPart_(x, part) {
       <div class="tile-row">${tile_({ icon: 'chat', label: 'Messages', note: 'send it',
         act: 'proj-share' })}</div>${own}`;
   }
-  return inner ? card_(`<div class="fc prac prac-part proj is-${part}">${inner}</div>`, 'project') : '';
+  return inner ? `<div class="fc prac prac-part proj is-${part}">${inner}</div>` : '';
 }
 
 /* TO MESSAGES, AND NOTHING ELSE. Who to write to is the Messages screen's question — it already
@@ -795,11 +795,11 @@ function contentPageTitle_(x, part) {
 function contentPart_(x, part) {
   if (!CONTENT_PAGE[part]) return '';
   const c = x.row;
-  return card_(`<div class="fc prac prac-part tb tb-page is-${part}">
+  return `<div class="fc prac prac-part tb tb-page is-${part}">
     <p class="fc-kick">${esc([c.subject, c.title].filter(Boolean).join(' · '))}${tbHigher_(c.higher)}</p>
     <h3>${esc(CONTENT_PAGE[part])}</h3>
     ${tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })}
-  </div>`, 'content');
+  </div>`;
 }
 
 /* ---------- A CHAPTER'S KEY WORDS, FORMULAS AND WORKED LINES — ALL OF THEM, OR THE ONES ASKED FOR § */
