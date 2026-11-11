@@ -85,3 +85,34 @@ check('a saved booking draws the booking form\'s lines, in its order, with its h
   ['Started', 'Completed'].forEach(k => { if (s.keys.includes(k) || f.keys.includes(k)) bad.push('a "' + k + '" status line is still drawn'); });
   return bad;
 });
+
+/* REST OF THIS TERM (owner, 11 Nov): mid-term the form offers it, priced on the sessions left; a holiday offers none; nothing reads NaN */
+check('booking form: mid-term it offers "Rest of this half term", priced on the Mondays left; in a holiday it does not; no NaN and no Day & time line on it', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, bad = [];
+  if (!t.paper || !t.STEPS) return ['the form is not exported — NOT checked'];
+  const day = n => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d; };
+  const dmy = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+  const D = t.DATA();
+  D.intervals = [{ rel: 'Current', term: 'Autumn 2', kind: 'half-term', weeks: 7, opensOn: dmy(day(-21)), closesOn: dmy(day(27)),
+                   startDate: dmy(day(-21)), endDate: dmy(day(27)) }];
+  const opts = () => (t.STEPS.find(s => s.id === 'interval').options() || []);
+  if (!opts().includes('Rest of this half term')) bad.push('mid-term the choices are ' + JSON.stringify(opts()));
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
+  Object.assign(t.BOOKING, { how: 'Instant class', loc: 'Colliers Wood Library', level: 'GCSE', n: '1', subjects: ['Maths'],
+    interval: ['Rest of this half term'], slots: ['m16', 'm17'] });
+  const spec = t.spec();
+  const left = [...Array(28).keys()].filter(i => day(i).getDay() === 1).length;
+  if (spec.startDate !== dmy(day(0)) || spec.endDate !== dmy(day(27))) bad.push('the rest runs ' + spec.startDate + '–' + spec.endDate);
+  const L = t.price();
+  if (!L || L.slots !== left || !(L.total > 0)) bad.push('the rest counts ' + (L && L.slots) + ' Mondays at ' + (L && L.total) + ', wanted ' + left + ' and a price');
+  const html = t.paper();
+  /* NO DAY & TIME LINE (owner, 11 Nov): the week's grid chooses them; the line that repeated them is gone. */
+  if (/Day (&amp;|&) time/.test(html)) bad.push('the form still draws a Day & time line');
+  if (/NaN/.test(html)) bad.push('the form reads NaN: ' + (html.match(/.{60}NaN.{20}/) || [''])[0]);
+  D.intervals = [{ term: 'Half-term', kind: 'holiday', opensOn: dmy(day(-2)), closesOn: dmy(day(5)), startDate: dmy(day(-2)), endDate: dmy(day(5)) },
+                 { term: 'Spring 1', kind: 'term', opensOn: dmy(day(6)), closesOn: dmy(day(50)), startDate: dmy(day(6)), endDate: dmy(day(50)) }];
+  if (opts().some(o => /^Rest of/.test(o))) bad.push('in a holiday the choices still offer ' + JSON.stringify(opts()));
+  return bad;
+});
