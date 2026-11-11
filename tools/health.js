@@ -586,7 +586,7 @@ function varietyWork(Q, waits) {
   add('listrow', 'List-row styles', 1, 'ui', rv.map(c => ({ where: rows.get(c), say: '.' + c })));
   /* SETTINGS ROW SHAPES: the row builders the settings screens use. */
   const sv = [];
-  ['js/settings.js', 'js/staff.js', ...ME_FILES].forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*[Rr]ow\w*)\s*\(/g)) sv.push({ where: f + ':' + lineOf(src, m.index), say: m[1] }); });
+  [...PS_.pieceFiles('settings'), 'js/staff.js', ...ME_FILES].forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*[Rr]ow\w*)\s*\(/g)) sv.push({ where: f + ':' + lineOf(src, m.index), say: m[1] }); });
   add('setrow', 'Settings row shapes', 1, 'ui', sv);
   /* WAIT INDICATORS: loading_ is the one; each file that makes its own wait is another. */
   const wv = [{ where: fnAt('loading_', SHELL_FILES) || 'js/shell-*.js', say: 'loading_' }];

@@ -535,5 +535,57 @@
    "bigNotes": 10,
    "spread": 6
   }
+ },
+ {
+  "date": "2026-11-11",
+  "commit": "7cbb238",
+  "score": 53.7,
+  "parts": {
+   "code": 36.4,
+   "logic": 64.4,
+   "ui": 27.7,
+   "cost": 83.2,
+   "business": 69.2
+  },
+  "topKind": "one-off",
+  "effort": {
+   "commits": 30,
+   "medianLines": 46,
+   "worstLines": 3575,
+   "medianFiles": 5,
+   "worstFiles": 35,
+   "testBytes": 5581295,
+   "testBiggest": 372943,
+   "historyBytes": 4563114,
+   "historyBiggest": 166839,
+   "bigNotes": 10,
+   "spread": 6
+  }
+ },
+ {
+  "date": "2026-11-11",
+  "commit": "7cbb238",
+  "score": 55.2,
+  "parts": {
+   "code": 40.7,
+   "logic": 64.4,
+   "ui": 27.8,
+   "cost": 84.5,
+   "business": 69.2
+  },
+  "topKind": "one-off",
+  "effort": {
+   "commits": 30,
+   "medianLines": 46,
+   "worstLines": 3575,
+   "medianFiles": 5,
+   "worstFiles": 35,
+   "testBytes": 5581514,
+   "testBiggest": 372943,
+   "historyBytes": 4563114,
+   "historyBiggest": 166839,
+   "bigNotes": 10,
+   "spread": 6
+  }
  }
 ]

@@ -7,7 +7,7 @@ const path = require('path');
 const dir = path.join(__dirname, '..');
 const srcPath = path.join(dir, 'js', 'settings.js');
 if (!fs.existsSync(srcPath)) { console.log('no js/settings.js — nothing to check'); process.exit(1); }
-const raw = fs.readFileSync(srcPath, 'utf8');
+const raw = require('../tools/piece-src.js').pieceSrc('settings', dir);
 
 /* ---------- PARSED, BECAUSE A SLICE MIS-ATTRIBUTED ON ITS FIRST RUN § */
 const acorn = require('acorn');

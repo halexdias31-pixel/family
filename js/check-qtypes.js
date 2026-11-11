@@ -184,7 +184,7 @@ if (Q) {
   if (!src || !tru) broken.push('find.js `verifyTags_` or library.js `libTrue` not found — no tag was checked');
   else {
     const ctx = vm.createContext({ qtIncomplete_: Q.qtIncomplete_, qtMachine_: Q.qtMachine_ });
-    const vt = vm.runInContext(waits + tru + fs.readFileSync(path.join(ROOT, 'js', 'predicates.js'), 'utf8') + src + '\n;verifyTags_', ctx);
+    const vt = vm.runInContext(waits + tru + require('../tools/piece-src.js').pieceSrc('predicates', ROOT) + src + '\n;verifyTags_', ctx);
     rows.forEach(r => {
       const t = vt({ kind: 'question', row: r });
       /* THE FILE'S `function_verified` (397), what the card says before its words arrive, is what the whole row says. */

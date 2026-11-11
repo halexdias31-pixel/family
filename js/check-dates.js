@@ -34,7 +34,7 @@ function show(d) {
 
 function run() {
   let src;
-  try { src = fs.readFileSync(path.join(__dirname, 'data.js'), 'utf8'); }
+  try { src = require('../tools/piece-src.js').pieceSrc('data', path.join(__dirname, '..')); }
   catch (err) { console.log('COULD NOT RUN — no data.js beside this checker'); process.exitCode = 1; return; }
 
   const from = src.indexOf('function parseWhen');

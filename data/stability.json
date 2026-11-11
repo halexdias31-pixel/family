@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 74.8,
+ "score": 75.1,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -34,12 +34,12 @@
   {
    "id": "dead",
    "label": "Code nothing calls",
-   "count": 21,
+   "count": 20,
    "weight": 0.3,
    "cap": 10,
-   "off": 6.3,
+   "off": 6,
    "where": {
-    "check-dead": "bcTaxPot_ (biz-check.js), bcItem_ (biz-check.js), dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), nextBookStep (book-steps.js), profHeat_ (cards.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), paintBoard_ (map.js), setupCard_ (me-account.js), paintTimer (overworld.js), qtFigureOf_ (qtypes.js), rulesCard_ (rules.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
+    "check-dead": "bcTaxPot_ (biz-check.js), bcItem_ (biz-check.js), dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), nextBookStep (book-steps.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), paintBoard_ (map.js), setupCard_ (me-account.js), paintTimer (overworld.js), qtFigureOf_ (qtypes.js), rulesCard_ (rules.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
    }
   },
   {
@@ -59,8 +59,10 @@
    "cap": 10,
    "off": 3.8,
    "where": {
-    "js/cards.js": 4,
-    "js/data.js": 4,
+    "js/cards-make.js": 1,
+    "js/cards-parts.js": 2,
+    "js/cards-people.js": 1,
+    "js/data-text.js": 4,
     "js/find-aloud.js": 1,
     "js/find-cells.js": 2,
     "js/find-figures.js": 4,

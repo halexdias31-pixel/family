@@ -12,7 +12,7 @@ catch (e) { console.log('data/questions.json could not be read (' + e.message + 
 
 /* THE RULE IS js/predicates.js's, the one the Verified tag reads (`verifyTags_`), so the two can never disagree. */
 const P = {};
-require('vm').runInNewContext(fs.readFileSync(path.join(__dirname, 'predicates.js'), 'utf8') + ';this.figUndrawn_ = figUndrawn_;', P);
+require('vm').runInNewContext(require('../tools/piece-src.js').pieceSrc('predicates', path.join(__dirname, '..')) + ';this.figUndrawn_ = figUndrawn_;', P);
 
 const byId = {}, stems = {};
 rows.forEach(r => {
