@@ -881,7 +881,8 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
     return bad.concat(['the essay\'s box is not the pad\'s locked textarea on a sheet: ' + (inp ? inp.outerHTML.slice(0, 200) : '(none)')]);
   }
   if (card.querySelector('.qp-bar')) bad.push('the essay card still draws a chat bar');
-  const go = card.querySelector('.qp-essay > .qt-row > .tile.qp-ai-go[data-do="qp-ai"]');
+  /* The row's first four tiles sit in its `.kc-four` (decisions 10 Nov evening: four buttons, then ⋯), Check first among them. */
+  const go = card.querySelector('.qp-essay > .qt-row > .kc-four > .tile.qp-ai-go[data-do="qp-ai"]:first-child');
   if (!go) bad.push('Mark with AI is not a tile in the row under the sheet');
   /* ONE CHECK (368): the AI's tile is the same Check as every other question's, with no caption of its own */
   if (card.querySelector('.qp-ai-say')) bad.push('the essay still captions its Check "Mark with AI"');

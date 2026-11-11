@@ -501,7 +501,9 @@ check('the history timeline: events are found under Learning, Content, History, 
   const ev = get('EV-0003'), hit = get('FIG-0004');
   if (!ev || !hit) return bad.concat(['EV-0003 or FIG-0004 is not in the list — the links were NOT checked']);
   const el = d.createElement('div'); el.innerHTML = w.stuffCard(ev);
-  if ((el.querySelector('.hdb .kc-head h3') || {}).textContent !== ev.name) bad.push('the event card is not headed with its name');
+  /* THE NAME IS A TAG (decisions 10 Nov evening, check-card-shape): an empty head, the name the first tag and the card's aria-label. */
+  const evc = el.querySelector('.card.hdb'), first = el.querySelector('.hdb > .kc-tags .qtag');
+  if (!evc || evc.getAttribute('aria-label') !== ev.name || !first || first.textContent.trim() !== ev.name || evc.querySelector(':scope > .kc-head > *')) bad.push('the event card is not named by its first tag and aria-label');
   if (!el.querySelector('.qtag[data-f="histTheatre"]')) bad.push('the event card carries no theatre tag');
   const onCard = (x, when) => {
     const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
