@@ -357,6 +357,12 @@ function oneTemplate() {
   const made = files.reduce((a, f) => a + (blank(read(f)).match(/(?<!function )\b(?:card_|findCard)\(/g) || []).length, 0);
   return { ok: made, of: made + bad.length, work: bad };
 }
+/* THE ONE TEMPLATE AS RENDERED (owner, 12 Nov): tools/template-health.js drives every role at 390 and 820 and reads each card's computed shape; read here, never re-run. */
+function templateRendered() {
+  const j = jread('data/template-health.json');
+  if (!j) return { rules: [], work: [{ kind: 'tpl-built', where: 'data/template-health.json', say: 'missing — run node tools/template-health.js; the rendered cards were NOT checked' }] };
+  return { rules: (j.rules || []).map(r => Object.assign(rule(r.id, 'ui', r.label, r.ok, r.of), { unit: r.unit, variety: r.variety })), work: j.work || [] };
+}
 function ui() {
   const raw = read('style.css'), css = raw.replace(/\/\*[\s\S]*?\*\//g, '');
   const rules = [];
@@ -380,8 +386,8 @@ function ui() {
   const space = decls.filter(d => /^(?:margin|padding)(?:-(?:top|right|bottom|left|inline|block)(?:-start|-end)?)?$|^(?:row-|column-)?gap$/.test(d.k));
   const radius = decls.filter(d => /^border(?:-[a-z]+)*-radius$/.test(d.k));
   const fontOff = d => d.k === 'font' ? offScale((/^(?:(?:italic|normal|bold|\d00)\s+)*(\S+)/.exec(d.v) || [])[1] || '') : offScale(d.v);
-  const AW = answerWidths(raw), OT = oneTemplate();
-  const work = uniformWork().concat(uxWork().work, ownerWork(), AW.bad, OT.work), k = {};
+  const AW = answerWidths(raw), OT = oneTemplate(), TH = templateRendered();
+  const work = uniformWork().concat(uxWork().work, ownerWork(), AW.bad, OT.work, TH.work), k = {};
   work.forEach(w => { k[w.kind] = (k[w.kind] || 0) + 1; });
   const P = UNIFORM_POP || {}, n = id => k[id] || 0;
   const R = [
@@ -393,6 +399,7 @@ function ui() {
     rule('radius-scale', 'ui', 'CSS rule-blocks with a corner radius, all from the radius tokens', ...blocks(d => radius.includes(d), d => offScale(d.v.replace(/\b50%/g, '')))),
     rule('answer-width', 'ui', 'Answer-box width rules on the one width', AW.of - AW.bad.length, AW.of),
     rule('one-template', 'ui', 'Cards made on the one template (findCard/card_)', OT.ok, OT.of),
+    ...TH.rules,
     rule('makers', 'ui', 'Tiles made by tile_() rather than by hand', P.tiles, P.tiles + n('raw-button') + n('hand-tile'), ['raw-button', 'hand-tile']),
     rule('inline-style', 'ui', 'Elements in markup with no inline style', P.tags - n('inline-style'), P.tags),
     rule('once-class', 'ui', 'Styled classes used in more than one place', P.classes - n('once-class'), P.classes),
@@ -555,7 +562,9 @@ function extraWork(st) {
   return { work: W, skipped, sizes };
 }
 /* THE CHECK IDS health.js prices, for the philosophy's coverage. */
-const knownChecks = st => [FIND_KINDS, UX_KINDS, UNIFORM_KINDS, STRUCT, EXTRA_KINDS, VARIETY_KINDS].flat()
+/* THE RENDERED TEMPLATE'S RULES (tools/template-health.js). */
+const TPL_KINDS = ['tpl-built', 'tpl-order', 'tpl-picture', 'tpl-tags', 'tpl-tag-look', 'tpl-title', 'tpl-tiles', 'tpl-tile-size', 'tpl-stray', 'tpl-width', 'tpl-centre', 'tpl-font', 'tpl-colour', 'tpl-radius', 'tpl-inline', 'tpl-spacing', 'tpl-same', 'tpl-variety-kind', 'tpl-variety'];
+const knownChecks = st => [FIND_KINDS, UX_KINDS, UNIFORM_KINDS, STRUCT, EXTRA_KINDS, VARIETY_KINDS, TPL_KINDS].flat()
   .concat((st.signals || []).map(x => x.id), ['important', 'pxlit', 'colourlit', 'order', 'selectors', 'zindex', 'position'],
     ['font-scale', 'space-scale', 'radius-scale', 'answer-width', 'one-template', 'makers', 'one-place', 'biz-checker', 'exceptions', 'ceilings', 'markers', 'truth-facts', 'truth-lists', 'truth-labels'], ['read-bytes', 'search-bytes', 'comment-ratio', 'big-notes', 'spread', 'test-biggest', 'tombstones', 'claude-lines', 'effort']);
 /* THE BUSINESS AREA (1060): how much of the business the site runs (one-place.json), and the checker's own faults; the card goes live. */
