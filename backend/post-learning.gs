@@ -148,12 +148,7 @@ function postAskAssistant_(body, action, began) {
   if (!question) return jsonOut({ success: false, message: 'Write a question first.' });
   if (question.length > ASSIST_QUESTION_MAX) return jsonOut({ success: false,
     message: 'That is too long — ' + ASSIST_QUESTION_MAX + ' characters at most.' });
-  const took = cap > 0 ? aiMarkTally_(tally => {
-    const used = (Number(tally.n[who]) || 0) + 1;
-    if (used > cap) return null;
-    tally.n[who] = used;
-    return { used: used, day: tally.day };
-  }, { busy: true }, 'AI_ASSIST') : null;
+  const took = aiCapTake_(who, cap, 'AI_ASSIST');
   if (took && took.busy) return jsonOut({ success: false, why: 'busy', message: 'Daive is busy — try again in a minute.' });
   if (!took) return jsonOut({ success: false, why: 'ai-cap', left: 0, cap: cap,
     message: cap ? 'That is today’s ' + cap + ' questions used — they come back tomorrow.' : 'Daive is paused.' });
@@ -162,15 +157,30 @@ function postAskAssistant_(body, action, began) {
     got = assistAsk_(key, aiModels_(cfg), question, body.history, body.facts, netViewerIsChild_());
   } finally {
     /* A QUESTION THAT GOT NO ANSWER GIVES ITS COUNT BACK, into the day it was taken from. */
-    if (!got || got.error) aiMarkTally_(tally => {
-      const n = Number(tally.n[who]) || 0;
-      if (tally.day !== took.day || n < 1) return null;
-      if (n === 1) delete tally.n[who]; else tally.n[who] = n - 1;
-      return true;
-    }, 'busy', 'AI_ASSIST');
+    if (!got || got.error) aiCapGiveBack_(who, took, 'AI_ASSIST');
   }
   if (got.error) return jsonOut({ success: false, message: got.error, left: Math.max(0, cap - took.used + 1), cap: cap });
   return jsonOut({ success: true, answer: got.answer, left: Math.max(0, cap - took.used), cap: cap });
+}
+
+/* ONE OF TODAY'S AI QUESTIONS TAKEN for `who` under the cap: null once it is used up, `{ busy }` when the tally is locked. */
+function aiCapTake_(who, cap, prop) {
+  return cap > 0 ? aiMarkTally_(tally => {
+    const used = (Number(tally.n[who]) || 0) + 1;
+    if (used > cap) return null;
+    tally.n[who] = used;
+    return { used: used, day: tally.day };
+  }, { busy: true }, prop) : null;
+}
+
+/* AND GIVEN BACK when no answer came, into the day it was taken from. */
+function aiCapGiveBack_(who, took, prop) {
+  aiMarkTally_(tally => {
+    const n = Number(tally.n[who]) || 0;
+    if (tally.day !== took.day || n < 1) return null;
+    if (n === 1) delete tally.n[who]; else tally.n[who] = n - 1;
+    return true;
+  }, 'busy', prop);
 }
 
 /* ---------- FAVOURITE LINKS (509): the whole list, written in place; your own rows only, from the token's person ---------- */
@@ -211,12 +221,7 @@ function postRewriteIdeas_(body, action, began) {
   const cfg = config(), who = S(me.person_id);
   const capCell = S(cfg.rewrite_coach_per_day);
   const cap = capCell === '' ? REWRITE_PER_DAY : Math.max(0, Math.floor(N(capCell)));
-  const took = cap > 0 ? aiMarkTally_(tally => {
-    const used = (Number(tally.n[who]) || 0) + 1;
-    if (used > cap) return null;
-    tally.n[who] = used;
-    return { used: used, day: tally.day };
-  }, { busy: true }, 'AI_REWRITE') : null;
+  const took = aiCapTake_(who, cap, 'AI_REWRITE');
   if (took && took.busy) return jsonOut({ success: false, why: 'busy', message: 'Busy — try again in a minute.' });
   if (!took) return jsonOut({ success: false, why: 'ai-cap', left: 0, cap: cap,
     message: cap ? 'That is today’s ' + cap + ' used — they come back tomorrow.' : 'The Rewrite coach is paused.' });
@@ -224,12 +229,7 @@ function postRewriteIdeas_(body, action, began) {
   try {
     got = action === 'rewriteIdeas' ? rewriteIdeasAsk_(key, aiModels_(cfg), text, facts) : rewriteCheckAsk_(key, aiModels_(cfg), text, items);
   } finally {
-    if (!got || got.error) aiMarkTally_(tally => {
-      const n = Number(tally.n[who]) || 0;
-      if (tally.day !== took.day || n < 1) return null;
-      if (n === 1) delete tally.n[who]; else tally.n[who] = n - 1;
-      return true;
-    }, 'busy', 'AI_REWRITE');
+    if (!got || got.error) aiCapGiveBack_(who, took, 'AI_REWRITE');
   }
   if (got.error) return jsonOut({ success: false, message: got.error });
   return jsonOut(Object.assign({ success: true, left: Math.max(0, cap - took.used), cap: cap }, got));

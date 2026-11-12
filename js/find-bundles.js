@@ -622,8 +622,8 @@ function stuffKeepPlace_(host, d) {
   try { colShiftNow_(host, d); } catch (e) { /* the column left as it was is the jump this exists to stop, and nothing worse */ }
 }
 
-function paintStuff(keepPage) {
-  /* EVERY LIBRARY INDEX IS ASKED FOR WHEN A FINDER IS PAINTED (473, 490), never by a widget drawing ahead; signed out none, as Find answers only Settings (C+, 503). */
+/* EVERY LIBRARY INDEX `paintStuff` asks for, one call each. */
+function stuffIndexesAsk_() {
   if (USER || !ruleOn_('finder-members')) {
   if (typeof talmudIndex_ === 'function') talmudIndex_();
   if (typeof quranIndex_ === 'function') quranIndex_();
@@ -635,6 +635,11 @@ function paintStuff(keepPage) {
   if (typeof hymnsIndex_ === 'function') hymnsIndex_();
   if (typeof mechIndex_ === 'function') mechIndex_();
   if (typeof chemIndex_ === 'function') chemIndex_(); }
+}
+
+function paintStuff(keepPage) {
+  /* EVERY LIBRARY INDEX IS ASKED FOR WHEN A FINDER IS PAINTED (473, 490), never by a widget drawing ahead; signed out none, as Find answers only Settings (C+, 503). */
+  stuffIndexesAsk_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');

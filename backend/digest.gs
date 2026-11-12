@@ -60,30 +60,7 @@ function digestPlan_(week, subRows, peopleRows, parentsOf, look) {
   const tidy = v => attemptLabel_(v).split(' · ').filter(x => !/^\d+ min$/.test(x)).join(' · ');
   /* ---------- EVERY PRESS, FOLDED INTO ONE LINE PER QUESTION § */
   const joined = {};
-  (subRows || []).forEach(r => {
-    const pid = S(r && r.person_id), q = S(r && r.key).split('#')[0], slot = S(r && r.key).split('#')[1] || '';
-    if (!pid || !q) return;
-    const came = answerAtMs_(r.submitted_at);
-    if (!came) return;
-    const ms = answerAtMs_(r.pressed_at) || came;
-    const day = digestDay_(new Date(came));
-    if (day > week.end) return;
-    const id = pid + '\u0001' + q;
-    const J = joined[id] || (joined[id] = { pid: pid, key: q, before: false, inWeek: false, at: -1, last: '',
-                                            verdict: '', label: '', labelAt: -1, words: '', wordsAt: -1, ans: {}, days: {} });
-    const l = tidy(r.label), w = attemptWords_(r.words);
-    if (l && ms >= J.labelAt) { J.label = l; J.labelAt = ms; }
-    if (w && ms >= J.wordsAt) { J.words = w; J.wordsAt = ms; }
-    /* WORK CARRIED OVER FROM BEFORE THE SWITCH IS HISTORY, WHENEVER IT ARRIVED (`SUBMISSION_CARRIED`): § */
-    if (SUBMISSION_CARRIED.test(S(r.event_id))) { J.before = true; return; }
-    if (day < week.start) { J.before = true; return; }
-    J.inWeek = true;
-    J.days[day] = 1;
-    if (ms >= J.at) { J.at = ms; J.last = day; J.verdict = S(r.verdict); }
-    /* WHAT THE CHILD LAST SENT, box by box — a worksheet's three boxes are one question (380). */
-    const had = J.ans[slot];
-    if (!had || ms >= had.ms) J.ans[slot] = { ms: ms, a: S(r.answer).replace(/^'/, '') };
-  });
+  (subRows || []).forEach(r => digestFold_(joined, r, week, tidy));
 
   const per = {};
   Object.keys(joined).forEach(id => {
@@ -141,6 +118,31 @@ function digestPlan_(week, subRows, peopleRows, parentsOf, look) {
   return { week: week, learners: learners, emails: emails, unreachable: unreachable, look: look || {} };
 }
 
+/* ONE PRESS INTO ITS QUESTION'S LINE — `digestPlan_`'s fold, one row at a time. */
+function digestFold_(joined, r, week, tidy) {
+  const pid = S(r && r.person_id), q = S(r && r.key).split('#')[0], slot = S(r && r.key).split('#')[1] || '';
+  if (!pid || !q) return;
+  const came = answerAtMs_(r.submitted_at);
+  if (!came) return;
+  const ms = answerAtMs_(r.pressed_at) || came;
+  const day = digestDay_(new Date(came));
+  if (day > week.end) return;
+  const id = pid + '\u0001' + q;
+  const J = joined[id] || (joined[id] = { pid: pid, key: q, before: false, inWeek: false, at: -1, last: '',
+                                          verdict: '', label: '', labelAt: -1, words: '', wordsAt: -1, ans: {}, days: {} });
+  const l = tidy(r.label), w = attemptWords_(r.words);
+  if (l && ms >= J.labelAt) { J.label = l; J.labelAt = ms; }
+  if (w && ms >= J.wordsAt) { J.words = w; J.wordsAt = ms; }
+  /* WORK CARRIED OVER FROM BEFORE THE SWITCH IS HISTORY, WHENEVER IT ARRIVED (`SUBMISSION_CARRIED`): § */
+  if (SUBMISSION_CARRIED.test(S(r.event_id))) { J.before = true; return; }
+  if (day < week.start) { J.before = true; return; }
+  J.inWeek = true;
+  J.days[day] = 1;
+  if (ms >= J.at) { J.at = ms; J.last = day; J.verdict = S(r.verdict); }
+  /* WHAT THE CHILD LAST SENT, box by box — a worksheet's three boxes are one question (380). */
+  const had = J.ans[slot];
+  if (!had || ms >= had.ms) J.ans[slot] = { ms: ms, a: S(r.answer).replace(/^'/, '') };
+}
 
 /* ---------- WHICH OF A LEARNER'S PARENTS IS TOLD, AND WHY NOT THE REST § */
 function digestReach_(pid, parentsOf) {
@@ -1258,31 +1260,33 @@ function checkSundayEmail() {
     let plan = null;
     try { plan = digestPlanNow_(week); }
     catch (err) { say('THIS WEEK: could not be planned (' + S(err && err.message || err) + ').'); }
-    if (plan) {
-      const reached = plan.learners.filter(L => !L.why);
-      say('THIS WEEK (' + digestSpan_(week) + ', so far): ' + plural(plan.learners.length, 'learner') + ' sent answers; '
-        + reached.length + ' of them will have a parent emailed (' + plural(plan.emails.length, 'email') + ').');
-      plan.learners.filter(L => L.why).forEach(L => {
-        say('  NOT REACHED — ' + (S(L.first) || 'a learner with no first name') + ': ' + digestWhyNot_(L) + '.');
-      });
-      /* AND WHO GETS NOTHING BECAUSE THERE IS NOTHING YET (the review of 12 Oct). § */
-      const did = {};
-      plan.learners.forEach(L => { did[L.id] = 1; });
-      let people = [];
-      try { people = read(TAB.people).rows; } catch (err) { people = []; }
-      const idle = [];
-      people.forEach(p => {
-        const id = S(p && p.person_id);
-        if (!id || did[id]) return;
-        if (digestReach_(id, acceptedParents).to.length) idle.push(S(p.first_name) || 'a learner with no first name');
-      });
-      if (idle.length) say('  NO ANSWERS YET — ' + idle.join(', ') + ': a parent can be emailed, but no email goes unless '
-        + (idle.length === 1 ? 'they answer' : 'each answers') + ' a question by about ' + hour + ':00 on Sunday.');
-    }
+    if (plan) checkSundayWeek_(plan, week, hour, say, plural);
   }
   say('Nothing was changed: no row written, no email sent, no trigger booked.');
   Logger.log(lines.join('\n'));
   return { lines: lines };
+}
+/* THIS WEEK'S LINES OF `checkSundayEmail`: who is reached, who is not, who has sent nothing yet. */
+function checkSundayWeek_(plan, week, hour, say, plural) {
+  const reached = plan.learners.filter(L => !L.why);
+  say('THIS WEEK (' + digestSpan_(week) + ', so far): ' + plural(plan.learners.length, 'learner') + ' sent answers; '
+    + reached.length + ' of them will have a parent emailed (' + plural(plan.emails.length, 'email') + ').');
+  plan.learners.filter(L => L.why).forEach(L => {
+    say('  NOT REACHED — ' + (S(L.first) || 'a learner with no first name') + ': ' + digestWhyNot_(L) + '.');
+  });
+  /* AND WHO GETS NOTHING BECAUSE THERE IS NOTHING YET (the review of 12 Oct). § */
+  const did = {};
+  plan.learners.forEach(L => { did[L.id] = 1; });
+  let people = [];
+  try { people = read(TAB.people).rows; } catch (err) { people = []; }
+  const idle = [];
+  people.forEach(p => {
+    const id = S(p && p.person_id);
+    if (!id || did[id]) return;
+    if (digestReach_(id, acceptedParents).to.length) idle.push(S(p.first_name) || 'a learner with no first name');
+  });
+  if (idle.length) say('  NO ANSWERS YET — ' + idle.join(', ') + ': a parent can be emailed, but no email goes unless '
+    + (idle.length === 1 ? 'they answer' : 'each answers') + ' a question by about ' + hour + ':00 on Sunday.');
 }
 /* WHY A LEARNER WILL NOT BE REACHED, IN THE OWNER'S WORDS — from `digestPlan_`'s reasons, naming each
    parent by first name. */

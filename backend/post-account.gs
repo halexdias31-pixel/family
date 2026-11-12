@@ -745,6 +745,30 @@ function postSaveNotepad_(body, action, began) {
   return postSavePerson_(body, 'notepad', S(body.notepad));
 }
 
+/* THE EMAIL `postForgotPin_` sends: to the account's own address with a sign-in link, or to the owner to pass on. */
+function forgotPinMail_(own, tos, r, byHandle, handleSaid, fresh, linkKey) {
+  return own
+    ? { to: own, name: BRAND_NAME,
+        subject: 'Your new ' + BRAND_NAME + ' PIN',
+        body: 'Somebody asked for a new PIN on your ' + BRAND_NAME + ' account'
+            + (byHandle && handleSaid ? ', by your handle (' + handleSaid + ')' : '') + '.\n\n'
+            + 'Your new PIN is ' + fresh + '\n\n'
+            + 'Sign in with ' + (handleSaid ? 'your handle, ' + handleSaid + ', or your email' : 'your email')
+            + ' and this PIN. It works for a day; your old PIN keeps working too until you use '
+            + 'this one. Change it under Settings → Signing in.\n\n'
+            + 'Or open this link to sign in with it straight away — it works even if wrong PINs have '
+            + 'locked the account:\n\n' + SITE_URL + '?signin=' + linkKey + '\n\n'
+            + 'If this was not you, do nothing — your PIN has not changed, and whoever asked '
+            + 'cannot read this email.' }
+    : { to: tos.join(','), name: BRAND_NAME,
+        subject: 'A forgotten PIN: ' + (handleSaid || S(r.first_name) || 'a learner'),
+        body: (S(r.first_name) || 'A learner') + (handleSaid ? ' (' + handleSaid + ')' : '')
+            + ' has no email of their own and asked for a new PIN.\n\nThe new PIN is ' + fresh + '\n\n'
+            + 'Pass it on to them. They sign in with their handle and this PIN; it works for a day, and their '
+            + 'old PIN keeps working until they use this one. "New PIN" on their card in the people column '
+            + 'gives a fresh one at once.\n\nIf they did not ask, do nothing — nothing has changed.' };
+}
+
 /* a forgotten PIN -------------------------------------------------------------------------- ASKED FOR AS § */
 function postForgotPin_(body, action, began) {
   const asked = norm(body.who).replace(/^@+/, '');   // `@halex_kind42` as cards print it — see verifyLogin
@@ -807,26 +831,7 @@ function postForgotPin_(body, action, began) {
   /* NOT `notify`, which looks the person up again by name — the row is already in hand, and a
      second lookup on a name is a second chance to send somebody's PIN to somebody else. */
   try {
-    mailOut_(own
-      ? { to: own, name: BRAND_NAME,
-          subject: 'Your new ' + BRAND_NAME + ' PIN',
-          body: 'Somebody asked for a new PIN on your ' + BRAND_NAME + ' account'
-              + (byHandle && handleSaid ? ', by your handle (' + handleSaid + ')' : '') + '.\n\n'
-              + 'Your new PIN is ' + fresh + '\n\n'
-              + 'Sign in with ' + (handleSaid ? 'your handle, ' + handleSaid + ', or your email' : 'your email')
-              + ' and this PIN. It works for a day; your old PIN keeps working too until you use '
-              + 'this one. Change it under Settings → Signing in.\n\n'
-              + 'Or open this link to sign in with it straight away — it works even if wrong PINs have '
-              + 'locked the account:\n\n' + SITE_URL + '?signin=' + linkKey + '\n\n'
-              + 'If this was not you, do nothing — your PIN has not changed, and whoever asked '
-              + 'cannot read this email.' }
-      : { to: tos.join(','), name: BRAND_NAME,
-          subject: 'A forgotten PIN: ' + (handleSaid || S(r.first_name) || 'a learner'),
-          body: (S(r.first_name) || 'A learner') + (handleSaid ? ' (' + handleSaid + ')' : '')
-              + ' has no email of their own and asked for a new PIN.\n\nThe new PIN is ' + fresh + '\n\n'
-              + 'Pass it on to them. They sign in with their handle and this PIN; it works for a day, and their '
-              + 'old PIN keeps working until they use this one. "New PIN" on their card in the people column '
-              + 'gives a fresh one at once.\n\nIf they did not ask, do nothing — nothing has changed.' });
+    mailOut_(forgotPinMail_(own, tos, r, byHandle, handleSaid, fresh, linkKey));
   } catch (err) { return jsonOut(cannot); }
 
   /* `to` IS THE ACCOUNT'S OWN ADDRESS WHEN THAT IS WHERE IT WENT — typing this PIN back is then proof of that inbox, and a PENDING row is confirmed by it § */

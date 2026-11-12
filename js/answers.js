@@ -171,6 +171,32 @@ let ANS_TIMER = 0;
 let ANS_BUSY = null;          // the request in flight, so a second flush joins it rather than racing it
 let ANS_AGAIN = false;
 let ANS_RETRY = 0, ANS_BACKOFF = 0;
+/* THE SERVER'S REPLY TO ONE SEND, key by key: settled, refused, typed over, or beaten by a later edit. */
+function ansSavedTake_(d, sent, dirty, who) {
+  if (!d || !d.success || !d.saved || typeof d.saved !== 'object') throw new Error((d && d.error) || 'not saved');
+  const won = [];
+  sent.forEach(s => {
+    const got = d.saved[ansServerKey_(s.k)];
+    /* REFUSED — a key or a size the server will not take. Not due any more; it stays on the device,
+       and its stamp says so. */
+    if (!got) { dirty.delete(s.k); ansAtSet_(s.k, ANS_HERE_ONLY); return; }
+    /* TYPED OVER WHILE IT WAS ON THE WIRE: still due, and the send that is already booked takes it. */
+    if (ansValue_(s.k) !== s.raw) return;
+    dirty.delete(s.k);
+    const at = Number(got.at) || s.at;
+    /* THE SERVER HAD A LATER EDIT (another device, since) — and the later edit wins, here as there. */
+    if (at > s.at && ansIncoming_(ansServerKey_(s.k), got.v) !== null && !ansHeld_(s.k)) {
+      ansLocalPut_(s.k, ansIncoming_(ansServerKey_(s.k), got.v) || (/^pad:/.test(s.k) ? null : ''));
+      won.push(s.k);
+    }
+    ansAtSet_(s.k, at);
+  });
+  ansDirtyKeep_(who);
+  ANS_RETRY = 0; ANS_BACKOFF = 0;
+  if (won.length) ansRefresh_(won);
+  return true;
+}
+
 function answersPush_(now, keepalive) {
   /* THE DEVICE'S OWN QUEUE, not the press that woke it: the card has already changed, so this request holds no control (534). */
   if (typeof pressFree_ === 'function') pressFree_();
@@ -210,30 +236,7 @@ function answersPush_(now, keepalive) {
      asks that every handler reading one is sent one. */
   const req = api({ action: 'saveAnswers', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
   ANS_BUSY = Promise.resolve(req)
-    .then(d => {
-      if (!d || !d.success || !d.saved || typeof d.saved !== 'object') throw new Error((d && d.error) || 'not saved');
-      const won = [];
-      sent.forEach(s => {
-        const got = d.saved[ansServerKey_(s.k)];
-        /* REFUSED — a key or a size the server will not take. Not due any more; it stays on the device,
-           and its stamp says so. */
-        if (!got) { dirty.delete(s.k); ansAtSet_(s.k, ANS_HERE_ONLY); return; }
-        /* TYPED OVER WHILE IT WAS ON THE WIRE: still due, and the send that is already booked takes it. */
-        if (ansValue_(s.k) !== s.raw) return;
-        dirty.delete(s.k);
-        const at = Number(got.at) || s.at;
-        /* THE SERVER HAD A LATER EDIT (another device, since) — and the later edit wins, here as there. */
-        if (at > s.at && ansIncoming_(ansServerKey_(s.k), got.v) !== null && !ansHeld_(s.k)) {
-          ansLocalPut_(s.k, ansIncoming_(ansServerKey_(s.k), got.v) || (/^pad:/.test(s.k) ? null : ''));
-          won.push(s.k);
-        }
-        ansAtSet_(s.k, at);
-      });
-      ansDirtyKeep_(who);
-      ANS_RETRY = 0; ANS_BACKOFF = 0;
-      if (won.length) ansRefresh_(won);
-      return true;
-    })
+    .then(d => ansSavedTake_(d, sent, dirty, who))
     .catch(() => {
       /* REFUSED OR UNREACHED: every key stays due, and it is tried again — sooner at first, then less
          often, so a phone with no signal is not a request a second. */
