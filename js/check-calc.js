@@ -1,9 +1,9 @@
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* node js/check-calc.js — THE CALCULATOR ENGINE, RUN: exact fractions, roots, powers, trig in degrees, DEL as a unit. */
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const src = fs.readFileSync(path.join(__dirname, 'arcade.js'), 'utf8');
+const src = fs.readFileSync(path.join(__dirname, 'calc-engine.js'), 'utf8');
 const a = src.indexOf('/* ---------- THE CALCULATOR: KEYS AND ENGINE'), b = src.indexOf('/* ---------- END OF THE CALCULATOR ENGINE');
-if (a < 0 || b < 0) { console.log('FAILED: could not find the calculator engine in arcade.js — nothing was checked, not a pass'); process.exit(1); }
+if (a < 0 || b < 0) { console.log('FAILED: could not find the calculator engine in js/calc-engine.js — nothing was checked, not a pass'); process.exit(1); }
 const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(src.slice(a, b) + '\nthis.api = { calcNew, calcKey, calcHtml, calcText, CALC_KEYS, CALC_SHIFT };', ctx);

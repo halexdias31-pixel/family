@@ -4672,16 +4672,135 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 /* THE ONE TOOL ROW (round 3, qtools.js): every tool on every part, in one order, all drawn from the start on a phone too (1020). */
 .qt-row { margin-top: var(--s2); }
 .qt-tools { display: contents; }
-/* THE CALCULATOR (qtools.js): a centred panel under the part's row; its keys are a form's buttons, a fingertip each */
-.qcalc { box-sizing: border-box; width: 100%; max-width: 22rem; margin: var(--s3) auto 0; padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r-ui); background: var(--raised); }
-.qcalc-out { display: flex; flex-direction: column; align-items: flex-end; min-height: var(--tap); padding: var(--s2) var(--s3); border: 1px solid var(--line); border-radius: var(--r-ui); overflow-x: auto; color: var(--ink); }
-.qcalc-in { white-space: nowrap; font-size: var(--fs-small); }
-.qcalc-res { font-size: var(--fs-title); font-weight: 600; }
-.qcalc-keys { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--s1); margin-top: var(--s2); }
-.qcalc-k { min-height: var(--tap); padding: 0; font-family: inherit; border: 1px solid var(--line); border-radius: var(--r-ui); background: var(--bg); color: var(--ink); font-size: var(--fs-body); }
-.qcalc-k.is-op { color: var(--gold); }
-.qcalc-k.is-eq { background: var(--gold); color: var(--on-gold); }
-.qcalc-k.is-w2 { grid-column: span 2; }
+/* THE CALCULATOR (calc.js, owner 11 Nov): the old fx-83GT CW face as the Calculator widget drew it, centred under the part's row */
+.mc-display { position: relative; min-height: 6.4rem;
+              display: flex; flex-direction: column; justify-content: space-between; cursor: default;
+              user-select: none; font-family: 'Cambria Math', 'STIX Two Math', Georgia, serif; }
+.mc-display:focus-visible { outline: 2px solid var(--calc-shift); outline-offset: 2px; }
+.mc-in { font-size: var(--fs-title); text-align: left; overflow-x: auto; white-space: nowrap; line-height: 2.1; }
+.mc-out { font-size: var(--fs-title); text-align: right; min-height: 1.9rem; white-space: nowrap; overflow-x: auto; }
+.mc-word { font-style: normal; }
+.mc-sup, .mc-idx { font-size: var(--fs-small); vertical-align: .75em; line-height: 0; }
+.mc-idx { margin-right: -.3em; }
+.mc-sqrt { display: inline-flex; align-items: stretch; vertical-align: middle; line-height: 1.25; }
+.mc-rad { transform: scaleY(1.15); }
+.mc-under { border-top: 1px solid currentColor; padding: 0 var(--s0); }
+.mc-frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle;
+           font-size: var(--fs-body); line-height: 1.15; margin: 0 var(--s0); }
+.mc-num { border-bottom: 1px solid currentColor; padding: 0 var(--s0); min-width: .8em; text-align: center; }
+.mc-den { padding: 0 var(--s0); min-width: .8em; text-align: center; }
+.mc-box { display: inline-block; min-width: .65em; height: .95em; border: 1px dashed currentColor;
+          vertical-align: middle; line-height: .95em; }
+.mc-box .mc-caret { height: .9em; }
+.calc { --calc-body: var(--paper-ink); --calc-edge: var(--line-soft); --calc-bezel: var(--line); --calc-lcd: var(--paper-strip); --calc-lcd-ink: var(--line-soft);
+        --calc-key: var(--paper-strip); --calc-key-ink: var(--line-soft); --calc-key-dark: var(--line); --calc-pad: var(--line-soft);
+        --calc-shift: var(--paper-faint); --calc-legend: var(--hue-1); --calc-print: var(--ink); --calc-gut: .45rem;
+        /* ONE KEY ROW'S HEIGHT, set from the pane by `calcFit_` (games.js) so the device fits at full size (533, D4); nine rows of it. */
+        --calc-row: 44px;
+        font-family: 'Arial Narrow', 'Roboto Condensed', Arial, Helvetica, sans-serif;
+        max-width: 24rem; margin-inline: auto; padding: var(--s3) var(--s1) var(--s4);
+        border-radius: var(--r-ui);
+        background: linear-gradient(180deg, var(--paper-ink), var(--calc-body) 30%, var(--line)); color: var(--calc-print);
+        box-shadow: 0 0 0 2px var(--calc-edge), inset 0 0 0 2px var(--paper-ink), 0 14px 34px color-mix(in srgb, var(--black) 55%, transparent); }
+.calc-bezel { background: var(--calc-bezel); border-radius: var(--r-ui); padding: var(--s2) var(--s3) var(--s1); margin-bottom: var(--s2);
+              box-shadow: inset 0 1px 3px color-mix(in srgb, var(--black) 70%, transparent); }
+.calc .mc-display { background: var(--calc-lcd); color: var(--calc-lcd-ink); border-radius: var(--r-ui); border: 1px solid var(--raised);
+  box-shadow: inset 0 2px 6px color-mix(in srgb, var(--black) 25%, transparent); padding: var(--s1) var(--s3) var(--s2);
+  /* the dot matrix, faint: the LCD's pixels show through as on the glass */
+  background-image: repeating-linear-gradient(0deg, color-mix(in srgb, var(--black) 4%, transparent) 0 1px, transparent 1px 3px),
+                    repeating-linear-gradient(90deg, color-mix(in srgb, var(--black) 4%, transparent) 0 1px, transparent 1px 3px);
+  text-shadow: .5px .5px 0 color-mix(in srgb, var(--line-soft) 18%, transparent); }
+.calc .mc-caret { background: var(--calc-lcd-ink); }
+.calc .mc-display { height: 6.6rem; min-height: 0; overflow: hidden; box-sizing: border-box; }
+.calc .mc-stat { flex: none; height: .7rem; overflow: hidden; }
+.calc .mc-in { flex: none; height: 2.6rem; line-height: 2.6rem; overflow: auto hidden; scrollbar-width: none; }
+.calc .mc-out { flex: none; height: 2.8rem; min-height: 0; line-height: 2.8rem; overflow: auto hidden; scrollbar-width: none; }
+.calc .mc-in::-webkit-scrollbar, .calc .mc-out::-webkit-scrollbar { display: none; }
+.calc .mc-out .mc-note { white-space: nowrap; line-height: 2.8rem; }
+.mc-stat { display: flex; gap: var(--s3); font: 700 var(--fs-small)/1 Arial, Helvetica, sans-serif; letter-spacing: .03em;
+           padding-bottom: var(--s1); border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 12%, transparent); }
+.mc-stat b::before { content: attr(data-i); }
+.mc-stat b { color: color-mix(in srgb, currentColor 13%, transparent); }
+.mc-stat b.on { color: color-mix(in srgb, currentColor 85%, transparent); }
+.calc .mc-menu { font: 600 var(--fs-body) var(--font); white-space: nowrap; }
+.calc .mc-menu b { background: var(--calc-lcd-ink); color: var(--calc-lcd); padding: 0 var(--s1); }
+.mc-note { font: 600 var(--fs-small) var(--font); white-space: normal; display: block; text-align: left; }
+.calc-label { text-align: right; font-size: var(--fs-small); font-weight: 700; letter-spacing: .4em; text-transform: uppercase;
+              padding: var(--s2) var(--s0) 0; color: var(--calc-print); }
+.calc-top, .calc-fn { display: grid; grid-template-columns: repeat(6, minmax(43.5px, 1fr)); row-gap: var(--calc-gut); }
+.calc-num { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); row-gap: var(--calc-gut); }
+.calc-fn { margin-block: var(--calc-gut); }
+.calc-fn, .calc-num { grid-auto-rows: var(--calc-row); }
+.mc-btn { position: relative; min-height: 0; min-width: 0; padding: 0; background: none; border: 0; cursor: pointer;
+          display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: var(--s0);
+          color: var(--calc-key-ink); font-size: var(--fs-body); font-weight: 700; -webkit-tap-highlight-color: transparent; }
+.mc-lab { display: flex; align-items: center; justify-content: center; gap: 0; border-radius: var(--r-round); line-height: 1; box-sizing: border-box;
+          background: radial-gradient(120% 90% at 50% 25%, var(--paper), var(--calc-key) 55%, var(--tag-other));
+          box-shadow: 0 2px 0 var(--raised), 0 3px 4px color-mix(in srgb, var(--black) 50%, transparent); transition: filter var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out); }
+.mc-btn:is(:active, .is-pressed) { background-image: none; }
+.mc-btn:is(:active, .is-pressed) .mc-lab { box-shadow: 0 1px 0 var(--raised), inset 0 1px 3px color-mix(in srgb, var(--black) 35%, transparent), inset 0 0 0 99px var(--press-wash-paper); }
+.mc-btn:focus-visible { outline: none; }
+.mc-btn:focus-visible .mc-lab { outline: 2px solid var(--calc-legend); outline-offset: 2px; }
+.mc-alt { display: flex; align-items: flex-end; justify-content: center; width: 100%; height: .8rem; overflow: hidden;
+          font-size: var(--fs-small); font-weight: 700; line-height: 1; color: var(--calc-legend); white-space: nowrap; }
+.calc.mc-shifted .mc-alt { opacity: 1; text-shadow: 0 0 6px color-mix(in srgb, var(--hue-1) 60%, transparent); }
+.mc-btn sup, .mc-alt sup { font-size: var(--fs-small); vertical-align: .5em; line-height: 0; }
+.mk { display: inline-block; vertical-align: middle; overflow: visible; }
+.mc-alt .mk { height: 1.45em; width: auto; }
+.mc-alt sup { vertical-align: baseline; position: relative; top: -.45em; line-height: 1; }
+.calc-fn .mc-lab, .calc-top .lt .mc-lab { width: 82%; height: 30px; font-size: var(--fs-body); }
+.calc-fn .mc-lab { height: min(30px, calc(var(--calc-row) - .8rem - 3px)); }
+.calc-num .mc-lab { width: 80%; aspect-ratio: 1.1; height: auto; max-height: min(54px, calc(var(--calc-row) - .8rem - 3px)); font-size: var(--fs-title); font-weight: 500; }
+.mc-k-C .mc-lab, .mc-k-sd .mc-lab, [data-mc="="] .mc-lab { font-size: var(--fs-title); font-weight: 700; }
+.calc-num .mk-fmt { font-size: var(--fs-small); font-weight: 800; font-style: normal; letter-spacing: -.02em; }
+.calc-fn .mk { height: 1.1em; width: auto; }
+.calc-top { grid-template-rows: repeat(6, calc(var(--calc-row) / 2)) auto; row-gap: 0; margin-bottom: 0; }
+.calc-top .mc-alt { color: var(--calc-print); font-size: var(--fs-small); letter-spacing: .02em; }
+.calc-top .mc-lab { width: 36px; height: 36px; color: var(--calc-print); font-size: var(--fs-body);
+                    background: radial-gradient(100% 100% at 50% 20%, var(--paper-ink), var(--calc-key-dark) 70%); border: 1px solid var(--raised); }
+.calc-top .lt .mc-lab { color: var(--calc-key-ink); background: radial-gradient(120% 90% at 50% 25%, var(--paper), var(--calc-key) 55%, var(--tag-other)); border: 0; }
+.calc-top .sh .mc-lab { background: radial-gradient(100% 100% at 50% 25%, var(--faint), var(--calc-shift) 70%); color: var(--ink); }
+.calc.mc-shifted .calc-top .sh .mc-lab { box-shadow: 0 0 0 2px var(--calc-legend), 0 0 10px color-mix(in srgb, var(--hue-1) 70%, transparent); }
+.calc-pad { grid-area: 3 / 3 / 5 / 6; align-self: center; height: 40px; border-radius: var(--r-ui); background: var(--calc-pad);
+            box-shadow: inset 0 1px 2px color-mix(in srgb, var(--black) 80%, transparent); }
+.calc-pad-v { grid-area: 1 / 4 / 7 / 5; align-self: stretch; justify-self: center; width: 40px; height: auto; }
+.calc-top .pad { z-index: 1; justify-content: center; }
+.calc-top .pad .mc-lab { width: 34px; height: 34px; font-size: var(--fs-title); }
+.mc-k-on { grid-area: 1 / 1 / 4 / 2; }
+.mc-k-home { grid-area: 1 / 2 / 4 / 3; }
+.mc-k-set { grid-area: 4 / 1 / 7 / 2; }
+.mc-k-back { grid-area: 4 / 2 / 7 / 3; }
+.mc-k-up { grid-area: 1 / 4 / 3 / 5; }
+.mc-k-left { grid-area: 3 / 3 / 5 / 4; }
+.mc-k-ok { grid-area: 3 / 4 / 5 / 5; }
+.mc-k-right { grid-area: 3 / 5 / 5 / 6; }
+.mc-k-down { grid-area: 5 / 4 / 7 / 5; }
+.mc-k-pgup { grid-area: 1 / 6 / 4 / 7; justify-content: flex-end; }
+.mc-k-pgdn { grid-area: 4 / 6 / 7 / 7; justify-content: flex-start; }
+.mc-k-shift { grid-area: 7 / 1; }
+.mc-k-var { grid-area: 7 / 2; }
+.mc-k-func { grid-area: 7 / 3; }
+.mc-k-cat { grid-area: 7 / 5; }
+.mc-k-tools { grid-area: 7 / 6; }
+.calc-top .mc-k-on, .calc-top .mc-k-home, .calc-top .mc-k-set, .calc-top .mc-k-back { justify-content: center; }
+.calc-top .mc-k-shift, .calc-top .lt { margin-top: var(--calc-gut); }
+.mc-k-ok .mc-lab { font-size: var(--fs-small); font-weight: 800; }
+.calc-top .pg .mc-lab { width: 40px; height: 46px; font-size: var(--fs-small); }
+.mc-k-pgup .mc-lab { border-radius: var(--r-round); border-bottom: 0; }
+.mc-k-pgdn .mc-lab { border-radius: var(--r-round); border-top: 0; }
+.pane:has(.calc) { padding-inline: 0; }
+.calc { padding-inline: 0; }
+.mk-ic { display: inline-block; width: 1em; height: 1em; vertical-align: middle; background: currentColor;
+         -webkit-mask: var(--ic) center / contain no-repeat; mask: var(--ic) center / contain no-repeat; }
+.mk-home { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linejoin='round'%3E%3Cpath d='M3 11 12 3l9 8v10H3z'/%3E%3C/svg%3E"); }
+.mk-set { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M3 6h18M3 12h18M3 18h18'/%3E%3Ccircle cx='8' cy='6' r='2' fill='%23000'/%3E%3Ccircle cx='16' cy='12' r='2' fill='%23000'/%3E%3Ccircle cx='10' cy='18' r='2' fill='%23000'/%3E%3C/svg%3E"); }
+.mk-book { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linejoin='round'%3E%3Cpath d='M12 6c-2-1.5-5-2-9-2v14c4 0 7 .5 9 2 2-1.5 5-2 9-2V4c-4 0-7 .5-9 2zM12 6v14'/%3E%3C/svg%3E"); }
+.mk-dots { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2'%3E%3Ccircle cx='4.5' cy='12' r='2.6'/%3E%3Ccircle cx='12' cy='12' r='2.6'/%3E%3Ccircle cx='19.5' cy='12' r='2.6'/%3E%3C/svg%3E"); width: 1.4em; }
+.mk-del { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 4h14v16H8l-7-8z' fill='%23000'/%3E%3Cpath d='M12 9l6 6m0-6-6 6' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E"); width: 1.2em; }
+.mc-zero { color: var(--ink); }
+.mc-caret { display: inline-block; width: 2px; height: 1.2em; background: var(--gold); margin: 0 -1px;
+            vertical-align: middle; animation: caret 1.06s steps(1) infinite; }
+.qt-row + .calc { margin-top: var(--s3); }
 /* HOW THIS PART WILL BE MARKED, one short line under its Check: never a person (markerOf_, qtools.js) */
 /* HOW A PART IS MARKED IS A TAG (owner, 8 Nov: no grey sentences), on its own line under the tool row. */
 .qt-tags { margin: var(--s1) 0 0; }

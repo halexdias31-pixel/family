@@ -718,18 +718,18 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
     if (!ct) bad.push('the calculator-allowed part ' + calcYes.row.row_id + ' has no Calculator tile');
     else {
       A['qt-calc'](ct);
-      const pad = host.querySelector('.qcalc');
-      if (!pad) bad.push('the Calculator tile opened no calculator');
+      const pad = host.querySelector('.qt-row + .calc');
+      if (!pad || !pad.querySelector('.calc-bezel .mc-display .mc-stat') || !pad.querySelector('.calc-fn [data-mc="frac"] .mk')) bad.push('the Calculator tile opened no fx-83GT face (bezel, LCD status row, drawn keys)');
       else {
-        const press = seq => { seq.forEach(v => { const b = [...pad.querySelectorAll('[data-do="qcalc-key"]')].find(e => e.getAttribute('data-v') === v); if (b) A['qcalc-key'](b); else bad.push('the calculator has no ' + v + ' key'); }); return (pad.querySelector('.qcalc-res') || {}).textContent; };
-        [[['!ac', '2', '+', '3', '\u00d7', '4', '!eq'], '14'], [['!ac', '\u221a(', '1', '6', '!eq'], '4'], [['!ac', '3', '\u00b2', '!eq'], '9'],
-          [['!ac', 'sin(', '3', '0', ')', '!eq'], '0.5'], [['!ac', '(', '1', '+', '2', ')', '\u00f7', '4', '!eq'], '0.75']].forEach(([seq, want]) => {
+        const press = seq => { seq.forEach(v => { const b = [...pad.querySelectorAll('[data-do="qcalc-key"]')].find(e => e.getAttribute('data-mc') === v); if (b) A['qcalc-key'](b); else bad.push('the calculator has no ' + v + ' key'); }); const o = (pad.querySelector('.mc-out') || d.createElement('i')).cloneNode(true); o.querySelectorAll('.mc-den').forEach(e => { e.textContent = '/' + e.textContent; }); return o.textContent.trim(); };
+        [[['C', '2', '+', '3', '\u00d7', '4', '='], '14'], [['C', 'sqrt', '1', '6', '='], '4'], [['C', '3', 'sq', '='], '9'],
+          [['C', 'sin', '3', '0', ')', '='], '1/2'], [['C', 'frac', '1', 'down', '2', 'right', '+', 'frac', '1', 'down', '3', '='], '5/6']].forEach(([seq, want]) => {
           const got = press(seq);
           if (got !== want) bad.push('the calculator made ' + JSON.stringify(got) + ' of ' + seq.slice(1, -1).join(' ') + ', wanted ' + want);
         });
       }
       A['qt-calc'](ct);
-      if (host.querySelector('.qcalc')) bad.push('the Calculator tile pressed again left the calculator open');
+      if (host.querySelector('.qt-row + .calc')) bad.push('the Calculator tile pressed again left the calculator open');
     }
     host.innerHTML = whole(calcNo);
     if (host.querySelector('[data-do="qt-calc"]')) bad.push('the Non-calculator part ' + calcNo.row.row_id + ' shows a Calculator tile');

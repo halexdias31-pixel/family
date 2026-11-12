@@ -1,16 +1,16 @@
 {
  "v": 2,
  "tier": "core",
- "score": 77.4,
+ "score": 77.3,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
    "id": "exceptions",
    "label": "Written exceptions in the checks",
-   "count": 73,
+   "count": 74,
    "weight": 0.1,
    "cap": 20,
-   "off": 7.3,
+   "off": 7.4,
    "where": {
     "js/check-answerable.js ACCEPTED": 6,
     "js/check-answers.js ACCEPTED": 1,
@@ -27,7 +27,7 @@
     "js/check-strings.js ROLE_OK": 1,
     "js/check-surfaces.js POPUP_OK": 1,
     "check/diagrams.js ACCEPTED": 4,
-    "check/motion.js ACCEPTED": 12,
+    "check/motion.js ACCEPTED": 13,
     "check/types.js ACCEPTED": 2
    }
   },
