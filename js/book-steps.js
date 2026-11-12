@@ -238,9 +238,9 @@ let ASKED_JOB = '';
 const SLOT_DAYS = [['m', 'Monday'], ['tu', 'Tuesday'], ['w', 'Wednesday'], ['th', 'Thursday'],
                    ['f', 'Friday'], ['sa', 'Saturday'], ['su', 'Sunday']];
 
-/* ---------- NINE TILL SIX, WRITTEN ONCE § */
+/* ---------- NINE TILL NINE, WRITTEN ONCE (owner, 11 Nov: every grid, one span; the last cell is 20:00–21:00) § */
 const SLOT_HOURS = [];
-for (let h = 9; h <= 18; h++) SLOT_HOURS.push(h);
+for (let h = 9; h <= 20; h++) SLOT_HOURS.push(h);
 
 /* ---------- MORNING, AFTERNOON, EVENING — THE WAITING LIST'S OWN COLUMNS § */
 /* ---------- `head` IS THE COLUMN LABEL AND `name` IS THE WORD THAT GETS STORED § */
@@ -311,7 +311,8 @@ function slotGrid() {
   /* AND WHAT THE ROOM ALREADY HOLDS (434): the server refuses a clash, so the grid says so first. */
   const sBusy = (sp && sp.busy) || {};
   /* A TUTOR'S WEEK IS A GUIDE, NEVER A LOCK (488): any hour may be asked and the tutor accepts or declines. Only the room shuts a cell. */
-  const open = code => (!haveV || vAvail[code]) && !sBusy[code];
+  /* A VENUE'S HOURS ARE A GUIDE TOO (owner, 11 Nov): a client's house missing `takes_all_seats` left one stray cell open and the whole week untappable. */
+  const open = code => !sBusy[code];
   /* WHY it is not free, so the grid can say. A tutor who does not work Tuesdays and a tutor who is
      already teaching that Tuesday look identical greyed out, and only one of them is worth asking
      about a different week. */
@@ -319,7 +320,7 @@ function slotGrid() {
      has set any hours yet"), and this is per cell. Two different questions and they were one word
      apart from being the same variable. */
   const whyShut = code => sBusy[code] ? 'room booked'
-    : (haveV && !vAvail[code]) ? 'venue closed'
+    : (haveV && !vAvail[code]) ? 'venue usually closed — we check'
     : tBusy[code] ? 'tutor usually teaching then — they decide'
     : (haveT && !tAvail[code]) ? 'outside their usual hours — they decide' : '';
 
@@ -341,7 +342,7 @@ function slotGrid() {
   /* ---------- THE DAYS THE WEEK DRAWS § */
   const days = rows;
 
-  const why = anyOpen ? '' : 'That venue has no free hours.';
+  const why = anyOpen ? '' : 'That room is booked every hour.';
   return { rows, days, why, anyOpen };
 }
 

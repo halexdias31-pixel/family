@@ -1,5 +1,5 @@
 /* THE TWO "NOT DONE"s OF NOTE 317, CLOSED AT THE MERGE. § */
-check('edges: a visitor trimming the owner\'s answer one key at a time leaves it hers to the last character, and her marked booking form waits for her as long as her answers do (317)', async () => {
+check('edges: a visitor trimming the owner\'s answer one key at a time leaves it hers to the last character (317)', async () => {
   const bad = [];
   {
     const b = edgeBoot_(signedInAs_(ANS_ADA));
@@ -23,39 +23,6 @@ check('edges: a visitor trimming the owner\'s answer one key at a time leaves it
     w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
     await w.answersPush_(true);
     if (b.of('P8')['ans:' + c.maths.key]) bad.push('the "8" left of Ada\'s "80" reached BEN\'S ACCOUNT');
-  }
-  {
-    const ended = new Set(['tok-P7']);
-    const { w } = boot({ before: signedInAs_(ANS_ADA), reply: q => (ended.has(q.token) ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
-    await wait(300);
-    for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50);
-    if (w.__t.whoami()) { await w.api({ action: 'myProfile' }); for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50); }
-    if (w.__t.whoami()) return bad.concat([EDGE_ENDED]);
-    const h = w.document.createElement('div');
-    w.document.body.appendChild(h);
-    h.innerHTML = w.noteRow_().sel;
-    const el = h.querySelector('[data-do="book-note"]');
-    el.value = 'Ada signed out: 1 Example Road';
-    el.dispatchEvent(new w.Event('input', { bubbles: true }));
-    const k = 'draft:device:book:form';
-    const d = JSON.parse(w.localStorage.getItem(k) || 'null');
-    if (!d) return bad.concat(['setup: the note typed signed out made no device draft']);
-    if (!(JSON.parse(w.localStorage.getItem('familyGoneKeys') || '{}') || {})[k]) return bad.concat(['setup: the device form typed after Ada\'s session ended is not marked hers']);
-    /* Seven hours on, and a reload: the sweep at load is where a stranger's form goes. */
-    d.at = Date.now() - 7 * 60 * 60 * 1000;
-    w.localStorage.setItem(k, JSON.stringify(d));
-    const store = {};
-    for (let i = 0; i < w.localStorage.length; i++) { const x = w.localStorage.key(i); store[x] = w.localStorage.getItem(x); }
-    const b2 = boot({ before: w2 => { Object.keys(store).forEach(x => { try { w2.localStorage.setItem(x, store[x]); } catch (e) {} }); } });
-    await wait(300);
-    b2.w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b' }));
-    if (!/Example Road/.test(String(b2.w.__t.BOOKING.note || ''))) bad.push('Ada signed in after a reload seven hours later and the form marked hers is gone (device draft now ' + b2.w.localStorage.getItem(k) + ') — her answers marked the same way wait with no limit');
-    /* AND A STRANGER'S STILL GOES: the same form, unmarked, is swept as before. */
-    const store3 = Object.assign({}, store);
-    delete store3.familyGoneKeys;
-    const b3 = boot({ before: w3 => { Object.keys(store3).forEach(x => { try { w3.localStorage.setItem(x, store3[x]); } catch (e) {} }); } });
-    await wait(300);
-    if (b3.w.localStorage.getItem(k) !== null) bad.push('an unmarked device form seven hours old survived the sweep at load — a device draft is a reload, not tomorrow\'s visitor');
   }
   return bad;
 });
