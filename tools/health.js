@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* @family. — tools/health.js THE SITE'S ONE HEALTH SCORE (890), measured, never judged by AI. --check: write nothing, exit 1 when stale. */
 /* Every measure is a RULE over a countable population: followed ÷ applies to (owner, 12 Nov; docs/history/1210). The score is the plain average of the rules. */
-/* Rules come from: tools/stability.js (code), tools/ai-cost.js (AI cost), data/logic-health.json (Find logic; stale when an input is newer), style.css, the walks' files, one-place.json. */
+/* Rules come from: tools/stability.js (code), tools/ai-cost.js (AI cost), data/logic-health.json (Find logic; stale when an input is newer), style.css, the walks' files, one-place.json, tools/one-truth.js. */
 /* Pass/fail checks with no population count 1/1 or 0/1. Dropped, no population: selectors, z-index and position counts (none is wrong in itself), px literals (the scale rules hold sizes). */
 /* --list orders every finding by the points of the total its fix gains. */
 'use strict';
@@ -555,7 +555,7 @@ function extraWork(st) {
 /* THE CHECK IDS health.js prices, for the philosophy's coverage. */
 const knownChecks = st => [FIND_KINDS, UX_KINDS, UNIFORM_KINDS, STRUCT, EXTRA_KINDS, VARIETY_KINDS].flat()
   .concat((st.signals || []).map(x => x.id), ['important', 'pxlit', 'colourlit', 'order', 'selectors', 'zindex', 'position'],
-    ['font-scale', 'space-scale', 'radius-scale', 'answer-width', 'one-template', 'makers', 'one-place', 'biz-checker', 'exceptions', 'ceilings', 'markers'], ['read-bytes', 'search-bytes', 'comment-ratio', 'big-notes', 'spread', 'test-biggest', 'tombstones', 'claude-lines', 'effort']);
+    ['font-scale', 'space-scale', 'radius-scale', 'answer-width', 'one-template', 'makers', 'one-place', 'biz-checker', 'exceptions', 'ceilings', 'markers', 'truth-facts', 'truth-lists', 'truth-labels'], ['read-bytes', 'search-bytes', 'comment-ratio', 'big-notes', 'spread', 'test-biggest', 'tombstones', 'claude-lines', 'effort']);
 /* THE BUSINESS AREA (1060): how much of the business the site runs (one-place.json), and the checker's own faults; the card goes live. */
 function business() {
   let bad = []; try { bad = require('../js/check-biz.js').work(); } catch (e) { bad = [{ kind: 'biz-checker', where: 'js/check-biz.js', say: 'would not run: ' + e.message }]; }
@@ -726,6 +726,8 @@ const UNIT = { 'one-off': FN_UNIT, 'long-fn': 'functions', 'big-file': 'files', 
 function health() {
   const st = require('./stability.js').stability();
   const L = logic(), U = ui(), S = structure(), work = findWork(L), X = extraWork(st), C = require('./ai-cost.js').aiCost(), B = business();
+  /* ONE TRUTH, ONE PLACE (owner, 12 Nov): facts, file lists and id labels written once — tools/one-truth.js. */
+  const OT = require('./one-truth.js').oneTruth(); X.work.push(...OT.work); B.rules = B.rules.concat(OT.rules);
   const R = healthRules(st, L, U, S, work, X, C, B), avg = rs => rs.length ? r1(rs.reduce((a, r) => a + r.ok / r.of, 0) / rs.length * 100) : 100;
   const overall = avg(R), pts = r => r1((r.of - r.ok) / r.of / R.length * 100);
   /* WHAT ONE FIX GAINS, in points of the total: a share of its rule's one point. */

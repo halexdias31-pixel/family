@@ -4,10 +4,8 @@ require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the who
 const fs = require('fs'), path = require('path');
 const acorn = require('acorn');
 const dir = __dirname;
-const ORDER = ['core','core-price','price-rows','facts','data','data-text','shell-boot','shell-layout','shell-pages','shell-click','shell-api','shell-hold','cards-people','cards-parts','cards-make','me-account','me-messages','me-roles','me-shelves','me-settings','me-card','me-people','posts','links','find-finder','find-facets','find-history','find-boxers','find-parts','find-marking','find-cells','find-pen','find-pad','find-loupe','find-figures','find-aloud','find-levels','find-bundles','find-pages','find-measure',
-               'resource','arcade','map','book-steps','book-rows','book-spine','receipt','mat','overworld',
-               /* `select`, `collections` AND `tiles` WERE MISSING. § */
-               'select','collections','tiles','tiles-jobs','boot'];
+/* EVERY APP FILE, from index.html's FILES (tools/file-lists.js): a hand list here missed fifty of them. */
+const ORDER = require('../tools/file-lists.js').appFiles();
 
 const hits = [];
 
@@ -45,7 +43,7 @@ const ROLE_OK = { 'feed-tap': 'a delegated surface: the cards inside it are the 
 const roleBad = [];
 ORDER.forEach(n => {
   const src = fs.readFileSync(path.join(__dirname, n + '.js'), 'utf8');
-  for (const m of src.matchAll(/<(div|span|li|canvas|img|video|section|article)\b([^>]*?)data-do="([\w-]+)"([^>]*)>/g)) {
+  for (const m of src.matchAll(/<(div|span|li|canvas|img|video|section|article)\b([^>\n]*?)data-do="([\w-]+)"([^>\n]*)>/g)) {
     const at = m[2] + m[4];
     if (ROLE_OK[m[3]] || (/role=/.test(at) && /tabindex=/.test(at))) continue;
     roleBad.push(n + '.js:' + src.slice(0, m.index).split('\n').length + '  <' + m[1] + ' data-do="' + m[3] + '">');

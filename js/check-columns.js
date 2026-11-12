@@ -6,24 +6,12 @@ const path = require('path');
 
 const dir = path.join(__dirname, '..');
 const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
-/* THE BACKEND FILES, IN LOAD ORDER, UNDER WHATEVER THEY ARE CALLED. § */
-/* `digest` LAST — the weekly parent email (backend/digest.gs) reads `submissions`, `people` and writes `digest_log`, and a column it named wrong would be an § */
-const ORDER_ = ['constants', 'access', 'core', 'people', 'booking', 'content', 'race', 'films', 'library', 'library-drive', 'media', 'setup', 'doGet', 'doPost', 'digest', 'digest-tags'];
-const NUMBERED = ['00_constants', '05_access', '10_core', '20_people', '30_booking', '40_content', '41_race', '42_films', '43_library', '44_library-drive', '45_media',
-                  '50_setup', '60_doGet', '70_doPost', '80_digest', '81_digest-tags'];
-/* Each name tried in turn: numbered, plain, and plain lower-cased — `doget.gs` and `doGet.gs` are
-   the same file to a person and different to a filesystem. */
-/* AND IN `backend/`, WHICH IS WHERE THEY ARE. § */
-const WHERE = [path.join(dir, '..', 'backend'), path.join(dir, 'backend'), dir, path.join(dir, '..')];
-const findGs = (i) => WHERE
-  .flatMap(w => [NUMBERED[i], ORDER_[i], ORDER_[i].toLowerCase()].map(n => path.join(w, n + '.gs')))
-  .find(p2 => fs.existsSync(p2));
-const GS_PATHS = ORDER_.map((unused, i) => findGs(i));
-
-const missing = ORDER_.filter((unused, i) => !GS_PATHS[i]);
-if (missing.length) {
-  console.log('missing backend files: ' + missing.join(', '));
-  console.log('looked for each as 00_name.gs, name.gs and name.gs lower-cased, in ' + dir);
+/* THE BACKEND FILES: backend/files.json's list (tools/file-lists.js), constants.gs first because SCHEMA lives there. */
+const GS_ALL = (() => { try { return require('../tools/file-lists.js').gsFiles(); } catch (e) { console.log('backend/files.json could not be read, so NOTHING was checked — not a pass: ' + e.message); process.exit(1); } })();
+const GS_PATHS = GS_ALL.filter(p2 => /constants\.gs$/.test(p2)).concat(GS_ALL.filter(p2 => !/constants\.gs$/.test(p2)));
+const missing = GS_PATHS.filter(p2 => !fs.existsSync(p2));
+if (missing.length || !/constants\.gs$/.test(GS_PATHS[0] || '')) {
+  console.log('missing backend files: ' + (missing.join(', ') || 'constants.gs'));
   process.exit(1);
 }
 
@@ -32,8 +20,7 @@ const sch = con.slice(con.indexOf('const SCHEMA = {'), con.indexOf('\n};', con.i
 const cols = new Set([...sch.matchAll(/"([a-z_0-9]+)"/g)].map(m => m[1]));
 const cfg  = new Set([...con.matchAll(/\['([a-z_0-9]+)',/g)].map(m => m[1]));
 
-/* AND doGet's sections in get-*.gs (1140), which used to be inside doget.gs. */
-const gs = strip(GS_PATHS.concat(require('../tools/get-src.js').getFiles(path.join(path.dirname(GS_PATHS[0]), '..')).slice(1)).map(p2 => fs.readFileSync(p2, 'utf8')).join('\n'));
+const gs = strip(GS_PATHS.map(p2 => fs.readFileSync(p2, 'utf8')).join('\n'));
 
 /* WRITES. `setCell(t, row, 'field', v)` and the keys of an `addRow` object — both go through the
    headers, and both are dropped in silence when the header is not there. */
@@ -66,11 +53,11 @@ const reads = new Set([...gs.matchAll(/\b(r|x|j|row|owner|child|parent|me|who|po
 /* Names that are plainly not columns: methods, and the fields of things that are not rows. */
 const NOT = new Set(('sheet rows headers length push find filter map forEach indexOf slice join split '
   + 'trim error message result value sort some every concat reduce replace test match keys toString '
-  + 'getTime includes tab field').split(' '));
+  + 'getTime includes tab field learn fail').split(' '));
 
 const badWrite = [...writes].filter(c => !cols.has(c));
-/* OLD COLUMNS, READ ONLY AS AN OLD ROW'S FALLBACK (owner, 12 Nov: names in one place): out of the schema, never written, still in old sheets. */
-const OLD_READS = new Set(['person_name']);
+/* OLD COLUMNS, READ ONLY AS AN OLD ROW'S FALLBACK: tools/file-lists.js holds the list. */
+const OLD_READS = new Set(Object.values(require('../tools/file-lists.js').OLD_READS).flat());
 const badRead  = [...reads].filter(c => !cols.has(c) && !cfg.has(c) && !NOT.has(c) && !OLD_READS.has(c));
 
 const say = (title, list, why) => {
