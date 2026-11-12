@@ -10,7 +10,7 @@
 //   siblings   the branches under one question ask their next question in different orders, although each could ask the other's
 //   echo       an answer that repeats the answer above it ("Old Testament" › "Old Testament books")
 //   twins      two answers of one question that keep exactly the same cards under two names (Old Testament and Tanakh)
-//   twinpaths  one list reached by two paths that neither holds, or one answer word asked by two questions over the same cards
+//   twinpaths  an umbrella answer (the union of other answers in its menu, or above two of its sisters), a parent beside its child, one label twice
 // What it cannot judge: whether a card is filed under the right answer, or whether an answer's name is the best word — that is
 // content and categorisation, and needs a person. It reads the shape of the funnel, not the meaning of the library.
 'use strict';
@@ -28,7 +28,7 @@ const RULES = {
   siblings: 'sibling branches ask their next question in different orders',
   echo: 'an answer that repeats the answer above it',
   twins: 'two answers that keep exactly the same cards',
-  twinpaths: 'two answer paths to the same cards (owner, 12 Nov: "two ways to get to the right path")',
+  twinpaths: 'an umbrella answer, a parent beside its child, or one label twice in a menu (overlap across subjects is fine)',
 };
 
 /* MANGLED (1040 r11): a drawn text is mangled when its letters neither hold nor sit inside any source value's letters (a dropped or changed letter). */
@@ -100,10 +100,21 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
         const tw = [];
         sig.forEach((h, i) => sig.forEach((g, j) => { if (j > i && g === h && values[i].n > 1) tw.push((values[i].show || values[i].value) + ' = ' + (values[j].show || values[j].value)); }));
         if (tw.length) bad.twins = tw.slice(0, 3);
-        /* A FEW CARDS PER ANSWER, so one word asked by two questions over the same cards (Subject Biology, Topic Biology) is seen. */
-        const ak = {};
-        for (const x of items) for (const t of new Set(facetOwn_(f, x).map(spellKey_))) { const l = ak[t] = ak[t] || []; if (l.length < 60) l.push(String(x.key || x.name || '')); }
-        const akOf = v => ak[spellKey_(v)] || [];
+        /* UMBRELLAS IN ONE MENU (rule 5.5, owner 12 Nov): an answer whose cards are the union of two or more others, a parent beside its own child, or one label twice. */
+        const cs = {};
+        for (const x of items) { const s = String(x.key || x.name || ''); for (const t of new Set(facetOwn_(f, x).map(spellKey_))) (cs[t] = cs[t] || new Set()).add(s); }
+        /* FEW: a child of under five cards inside another answer is chance (a fighter's two bouts), not a parent shown as a sister. */
+        const FEW = 5;
+        const real5 = values.filter(v => !v.any && !/^(?:doesn.?t matter|any)$/i.test(String(v.show || v.value).trim()));
+        const setOf = v => cs[spellKey_(v.value)] || new Set(), nm = v => String(v.show || v.value);
+        const inside = (a, b) => a.size >= FEW && a.size < b.size && [...a].every(k => b.has(k));
+        const um = [], seenW = {};
+        real5.forEach(v => { const w = nm(v).toLowerCase().replace(/[^a-z0-9]/g, ''); if (seenW[w]) um.push('"' + nm(v) + '" twice'); seenW[w] = 1; });
+        real5.forEach(p => { const P = setOf(p), kids = real5.filter(c => c !== p && inside(setOf(c), P)); if (!kids.length) return;
+          const cover = new Set(); kids.forEach(c => setOf(c).forEach(k => cover.add(k)));
+          um.push(kids.length > 1 && cover.size === P.size ? 'umbrella "' + nm(p) + '" (' + P.size + ') = ' + kids.slice(0, 4).map(c => nm(c) + ' (' + setOf(c).size + ')').join(' + ')
+            : 'parent "' + nm(p) + '" (' + P.size + ') beside its child "' + nm(kids[0]) + '" (' + setOf(kids[0]).size + ')'); });
+        if (um.length) bad.twinpaths = um.slice(0, 3);
         const askable = facetList().filter(G => asked.indexOf(G.field) === -1 && !facetWhy_(S, G)).map(G => G.field);
         /* MENU RULE (920): how well each askable question splits the sample, in bits up to enough (facetBits_); the asked one is judged on the same sample. */
         const split = {}; askable.concat([f.field]).forEach(k => { const G = facetBy(k); if (G) split[k] = facetBits_(S, G); });
@@ -142,7 +153,7 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
           const twice = low.some((b, j) => j !== i && b.length > 3 && at(a, b).length > 1);
           if (inner.length >= 2 || twice) { const rows = items.filter(x => facetOwn_(f, x).some(t => String(t).toLowerCase() === a)).slice(0, 3).map(x => (x.kind || '?') + ':' + (x.id || x.key || x.name));
             merged.push('"' + values[i].value + '" holds ' + (inner.slice(0, 2).map(b => '"' + b + '"').join(' + ') || 'one answer twice') + ' — rows ' + rows.join(', ')); } });
-        return { n: items.length, fp, ak: Object.fromEntries(values.map(v => [String(v.value), akOf(v.value)])), field: f.field, label: f.label, answers: values.map(v => [v.value, v.show || v.value, v.n]), bad, askable, split, kind: kindNamed_(values), dup: dup.slice(0, 3), dead: dead.slice(0, 3), thin, zero: zero.slice(0, 3), words: words.slice(0, 3), mangled: mangled.slice(0, 3), merged: merged.slice(0, 3) };
+        return { n: items.length, fp, field: f.field, label: f.label, answers: values.map(v => [v.value, v.show || v.value, v.n]), bad, askable, split, kind: kindNamed_(values), dup: dup.slice(0, 3), dead: dead.slice(0, 3), thin, zero: zero.slice(0, 3), words: words.slice(0, 3), mangled: mangled.slice(0, 3), merged: merged.slice(0, 3) };
       });
       if (!r) continue;
       nodes.push(Object.assign({ path: filters.map(g => [g.field, g.value]), ms: Date.now() - t1 }, r));
@@ -179,31 +190,15 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
     if (off.length) nd.bad.siblings = off.slice(0, 2);
   });
 
-  /* TWIN PATHS (12 Nov): one list with one fingerprint reached by two paths whose answers neither holds the other's (Any not counted). */
-  const said = nd => nd.path.filter(p => !/^(?:any|doesn.?t matter)$/i.test(String(p[1]))).map(p => p[0] + '=' + p[1]);
-  const twin = (nd, say) => { if (nd.bad.twinpaths && nd.bad.twinpaths.indexOf(say) === -1) nd.bad.twinpaths.push(say); else nd.bad.twinpaths = nd.bad.twinpaths || [say]; };
-  const byFp = {};
-  got.forEach(nd => { if (nd.n > 1 && nd.path.length) (byFp[nd.n + ':' + nd.fp] = byFp[nd.n + ':' + nd.fp] || []).push(nd); });
-  Object.values(byFp).forEach(g => g.forEach((a, i) => g.forEach((b, j) => { if (j <= i || (!a.field && !b.field)) return;
-    const A2 = said(a), B2 = said(b);
-    if (A2.every(x => B2.indexOf(x) !== -1) || B2.every(x => A2.indexOf(x) !== -1)) return;
-    const nd = a.field ? a : b, other = nd === a ? b : a;
-    twin(nd, 'Find › ' + other.path.map(p => p[1]).join(' › ') + ' (' + nd.n + ' cards)'); })));
-  /* ONE WORD, TWO QUESTIONS, SAME CARDS: Subject "Biology" and Topic "Biology" both keeping one chapter is two roads to it. */
-  const byWord = {};
-  got.forEach(nd => nd.field && nd.answers.forEach(a => { const w = String(a[1]).toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (w.length > 2 && !/^(?:any|doesntmatter)$/.test(w)) (byWord[w] = byWord[w] || []).push({ nd, a, keys: nd.ak[String(a[0])] || [] }); }));
-  Object.values(byWord).forEach(g => g.forEach((p, i) => g.forEach((q, j) => { if (j <= i || p.nd.label === q.nd.label) return;
-    const ks = new Set(q.keys); if (!p.keys.some(k => ks.has(k))) return;
-    twin(p.nd, p.nd.label + ' "' + p.a[1] + '" = ' + q.nd.label + ' "' + q.a[1] + '" at Find › ' + q.nd.path.map(x => x[1]).join(' › ')); })));
-  /* AN ANSWER NAMED AS A SISTER ABOVE: Science › Topic "Biology" while Subject also offers Biology is two roads to Biology's cards. */
+  /* AN UMBRELLA ABOVE (rule 5.5): an answer whose next menu offers two or more of its own sisters ("Science" › Biology, Physics) duplicates them; one shared answer is overlap, fine. */
+  const twin = (nd, say) => { (nd.bad.twinpaths = nd.bad.twinpaths || []).indexOf(say) === -1 && nd.bad.twinpaths.push(say); };
   const nodeAt = {}; got.forEach(nd => { nodeAt[JSON.stringify(nd.path)] = nd; });
   const wordOf = v => String(v).toLowerCase().replace(/[^a-z0-9]/g, '');
-  got.forEach(nd => { if (!nd.field) return; nd.path.forEach((p, d) => { const up = nodeAt[JSON.stringify(nd.path.slice(0, d))];
-    if (!up || !up.answers || up.label === nd.label) return;
+  got.forEach(nd => { if (!nd.field || !nd.path.length) return; const p = nd.path[nd.path.length - 1], up = nodeAt[JSON.stringify(nd.path.slice(0, -1))];
+    if (!up || !up.answers) return;
     const sis = new Map(up.answers.filter(a => wordOf(a[0]) !== wordOf(p[1]) && a[2] > 0).map(a => [wordOf(a[1]), a[1]]));
-    nd.answers.forEach(a => { const w = wordOf(a[1]); if (w.length > 2 && sis.has(w) && a[2] > 0)
-      twin(nd, up.label + ' "' + p[1] + '" › ' + nd.label + ' "' + a[1] + '", while ' + up.label + ' offers "' + sis.get(w) + '" too'); }); }); });
+    const hit = nd.answers.filter(a => a[2] > 0 && wordOf(a[1]).length > 2 && sis.has(wordOf(a[1])));
+    if (hit.length > 1) twin(nd, 'umbrella ' + up.label + ' "' + p[1] + '" › ' + nd.label + ' ' + hit.slice(0, 4).map(a => '"' + a[1] + '"').join(', ') + ', all offered beside it'); });
   got.forEach(nd => { delete nd.fp; delete nd.ak; });
 
   const where = nd => ['Find'].concat(nd.path.map(p => p[1])).join(' › ');

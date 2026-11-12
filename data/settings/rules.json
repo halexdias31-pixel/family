@@ -1,0 +1,945 @@
+{
+ "generates": "docs/rules.md, by node tools/rules.js --write; edit this file, never that one",
+ "core": "One source for every truth, one template for every thing, one rule for every case. Measure everything against these rules, keep only what is needed, and where they don't decide, ask the owner.",
+ "about": "Everything below derives from that core: 12 principles, each with its specific rules. Each rule is stated once, in its current form, with the checks that enforce it after `Checks:`; a check id is a `tools/health.js` rule, `js/check-<id>.js` or `check/<id>.js`, and `flow/*` is every journey in `check/flow/`. A higher principle wins a clash. The rulebook is code: `data/settings/rules.json` is the one source, `node tools/rules.js --write` writes this page from it, and `node tools/rules.js` fails when a rule names no check, a check serves no rule, a named check does not exist, or this page is stale. Superseded decisions and their dates: `docs/history/1213-one-rulebook.md`.",
+ "principles": [
+  {
+   "n": 1,
+   "name": "The law, then the owner"
+  },
+  {
+   "n": 2,
+   "name": "One source for every truth"
+  },
+  {
+   "n": 3,
+   "name": "One template for every thing"
+  },
+  {
+   "n": 4,
+   "name": "One rule for every case"
+  },
+  {
+   "n": 5,
+   "name": "Find is the one front door"
+  },
+  {
+   "n": 6,
+   "name": "Fewest words, picture first"
+  },
+  {
+   "n": 7,
+   "name": "Controls stay put"
+  },
+  {
+   "n": 8,
+   "name": "Fast and light"
+  },
+  {
+   "n": 9,
+   "name": "Safe and private"
+  },
+  {
+   "n": 10,
+   "name": "The site is the business"
+  },
+  {
+   "n": 11,
+   "name": "Keep only what is needed"
+  },
+  {
+   "n": 12,
+   "name": "Measure everything"
+  }
+ ],
+ "rules": [
+  {
+   "id": "1.1",
+   "principle": 1,
+   "text": "The law always wins, silently; a deletion request for personal data beats keeping things.",
+   "checks": [
+    "biz",
+    "one-place",
+    "biz-checker"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "1.2",
+   "principle": 1,
+   "text": "The owner decides; sweeps decide by these rules when they point one way, log it here, and ask only on a clash, an irreversible step or a costly wrong guess (money, law, deletion, students).",
+   "checks": [
+    "owner-questions"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "1.3",
+   "principle": 1,
+   "text": "Two owner answers that clash become one question showing both; never pick. Questions carry a slug id, words, ≥2 options and open/answered.",
+   "checks": [
+    "owner-questions"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "1.4",
+   "principle": 1,
+   "text": "Money disputes follow the written terms, leaning to the business; policies (terms, privacy, safeguarding, refunds) are drafted by the site, approved by the owner, reviewed yearly.",
+   "checks": [
+    "policy-fill",
+    "biz",
+    "money-terms"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "1.5",
+   "principle": 1,
+   "text": "Only irreversible actions need a human tap (deleting data, approving tutors, publishing policies); every delete, decline, remove or reset arms on the first press (`sure_()`), never `confirm()`.",
+   "checks": [
+    "look",
+    "press-twice"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "1.6",
+   "principle": 1,
+   "text": "Report only results and \"safe to merge\"; never idle on CI; bugs before anything new; quality first, done once.",
+   "checks": [
+    "stability",
+    "spread",
+    "how-we-work"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "2.1",
+   "principle": 2,
+   "text": "Anything that might change (wording, prices, lists, menus, switches) is data, not code; every fact has one home and everything reads from it; a copy a tool writes from the source counts once.",
+   "checks": [
+    "truth-facts",
+    "truth-lists",
+    "truth-labels",
+    "settings",
+    "tabs",
+    "columns",
+    "rows",
+    "schema",
+    "library-schema"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "2.2",
+   "principle": 2,
+   "text": "Every key the site reads, `doGet` sends; one payload, one data source, in sync.",
+   "checks": [
+    "payload",
+    "in-sync",
+    "gas-load",
+    "later"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "2.3",
+   "principle": 2,
+   "text": "Switches are data: `tiers.json` marks core/secondary, `columns.json` the screens; a secondary part cannot break Find.",
+   "checks": [
+    "tiers",
+    "isolation",
+    "widgets"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "2.4",
+   "principle": 2,
+   "text": "Private things (learners, money, staff records, library private fields) live only in the owner's Sheets; the public repo holds no real names, emails, PINs, learner data, secrets or model ids.",
+   "checks": [
+    "secrets",
+    "surnames",
+    "library",
+    "library-ledger",
+    "claude-lines"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "2.5",
+   "principle": 2,
+   "text": "A new sheet tab is named in `TAB`, `SCHEMA` and `WHERE`; backend files are listed once (`files.json`); the backend is one scope; version stamps bump together.",
+   "checks": [
+    "manifest",
+    "backend",
+    "const",
+    "scope",
+    "strings",
+    "mail-load",
+    "marks-load",
+    "lib-full",
+    "jsdom-app",
+    "flow-shared"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "2.6",
+   "principle": 2,
+   "text": "Old rows are migrated to the new rule, never left behind; names are read from the people row by id.",
+   "checks": [
+    "migrate",
+    "people",
+    "post",
+    "handles"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "2.7",
+   "principle": 2,
+   "text": "One permissions table (`permissions.json`) for every action × role; every handler is classified and has a caller.",
+   "checks": [
+    "permissions",
+    "access",
+    "actions",
+    "replies"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "2.8",
+   "principle": 2,
+   "text": "Generated content (teaching animations, finder tags, bundles) is written by its script and re-run, never hand-edited; the build stamp is last after any served change.",
+   "checks": [
+    "bundle",
+    "cache",
+    "stability",
+    "deploy"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "3.1",
+   "principle": 3,
+   "text": "Every card, every kind, is one static centred column drawn by `findCard`: real picture if any → tags (the name is a tag) → content → one round button row; no title line, no open/closed, no 8-bit or kind icon.",
+   "checks": [
+    "one-template",
+    "card-shape",
+    "card-render",
+    "find-card",
+    "shape",
+    "email-card",
+    "share-profile",
+    "share",
+    "tutor-card",
+    "template-measure",
+    "tpl-built",
+    "tpl-centre",
+    "tpl-colour",
+    "tpl-font",
+    "tpl-inline",
+    "tpl-order",
+    "tpl-picture",
+    "tpl-radius",
+    "tpl-same",
+    "tpl-spacing",
+    "tpl-stray",
+    "tpl-tag-look",
+    "tpl-tags",
+    "tpl-tile-size",
+    "tpl-tiles",
+    "tpl-title",
+    "tpl-variety",
+    "tpl-variety-kind",
+    "tpl-width"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "3.2",
+   "principle": 3,
+   "text": "People always have a picture (their own or the steady default); a question or paper its figure; a part that names a picture has it drawn.",
+   "checks": [
+    "figures",
+    "diagram-png",
+    "diagrams",
+    "picture-first"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "3.3",
+   "principle": 3,
+   "text": "A thing has tiles, a form has buttons: every action is `tile_` in one `.tile-row`, round icons only, its word on hover or long press; one icon style.",
+   "checks": [
+    "makers",
+    "tiles",
+    "doors",
+    "variety-maker",
+    "variety-cardrow",
+    "press-hold"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "3.4",
+   "principle": 3,
+   "text": "One text box (the cream answer pill), one form maker from a field list, one wait (`loading_()`'s spinning ring), one empty state, one viewer (`fileView_`) that opens in place.",
+   "checks": [
+    "variety-textbox",
+    "forms",
+    "loading",
+    "variety-wait",
+    "bootslow",
+    "answer-width",
+    "keyboard",
+    "dropdowns",
+    "surfaces",
+    "surface-nesting"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "3.5",
+   "principle": 3,
+   "text": "A small fixed set of sizes and colours: three text sizes, the space and radius scales, screen and paper palettes as tokens, black and white with colour only on tags and chips, no grey sentences, normal case.",
+   "checks": [
+    "scale",
+    "font-scale",
+    "space-scale",
+    "radius-scale",
+    "colourlit",
+    "style-sources",
+    "control-look",
+    "chip-size",
+    "motion"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "3.6",
+   "principle": 3,
+   "text": "One formatter each: `money_` £12.00, `date_` DD/MM/YY, `time_` 16:00, `hours_` spans, `perHour_` /h, `dash_` for blanks, digits not words, `displayName_` first name + initial.",
+   "checks": [
+    "format",
+    "dates",
+    "strings"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "3.7",
+   "principle": 3,
+   "text": "One layout: one fluid column at every screen shape, full width, no width breakpoints, no sideways scroll, nothing opens over the app.",
+   "checks": [
+    "fluid",
+    "centred",
+    "kp-centred",
+    "layout",
+    "glass",
+    "element-box"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "3.8",
+   "principle": 3,
+   "text": "One reading layout for every library text (`readingCard_`), one model for every written work.",
+   "checks": [
+    "reading",
+    "writings",
+    "texts",
+    "pdtexts",
+    "bible",
+    "hymns",
+    "talmud",
+    "talpage",
+    "textbooks"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "3.9",
+   "principle": 3,
+   "text": "CSS stays one cascade: no `!important`, no property re-set by the same selector, no inline styles, classes used more than once.",
+   "checks": [
+    "important",
+    "order",
+    "inline-style",
+    "once-class",
+    "css",
+    "cascade"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "3.10",
+   "principle": 3,
+   "text": "The variety families each hold the ideal one (question page, card drawer, list row, settings row).",
+   "checks": [
+    "variety-qpage",
+    "variety-drawer",
+    "variety-listrow",
+    "variety-setrow",
+    "widgets"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "3.11",
+   "principle": 3,
+   "text": "One way only (owner, 12 Nov): each element has ONE maker and nothing else writes its markup — cards `card_`/`findCard` (`card qcard kc`), tiles and buttons `tile_` (`tile btn <button>`), tags `qtag_` (`qtag chip prof-tag`), spinners `loading_` (`loading is-busy`), list rows `row`/`rowHtml` (`row`); no inline `style=` and no colour literal in served js. What is still hand-built is listed in `check/one-way-ratchet.json` and only goes down; the gate fails on anything new.",
+   "checks": [
+    "one-way"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "4.1",
+   "principle": 4,
+   "text": "No one-offs: no function tests a single kind, facet or id by name; front end and backend alike.",
+   "checks": [
+    "one-off",
+    "find-one-off",
+    "rules"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "4.2",
+   "principle": 4,
+   "text": "Questions show the paper's own words, one card per question number, every part its own card with one tool row (`QT_ROW`).",
+   "checks": [
+    "question",
+    "qcard",
+    "answerable",
+    "boxes",
+    "cards",
+    "typeset",
+    "tables"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "4.3",
+   "principle": 4,
+   "text": "Marking is mechanical and fair: one typed box, one marker per checker, every accept marked right against itself and typeable on the pad.",
+   "checks": [
+    "answer",
+    "answers",
+    "marking",
+    "marking-norm",
+    "qmerge",
+    "qtypes",
+    "typeable",
+    "types",
+    "qengine",
+    "qengine-mapped",
+    "saved-answers",
+    "submissions"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "4.4",
+   "principle": 4,
+   "text": "AI only where a rule can't mark: open writing and photographed working, clearly labelled; nowhere else.",
+   "checks": [
+    "aimark",
+    "aiimage",
+    "working",
+    "assistant"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "4.5",
+   "principle": 4,
+   "text": "Prices and tutor pay come from one formula each, never by hand; the @family share is one setting; a discount comes off teaching only and is shared by tutor and margin alike.",
+   "checks": [
+    "booking",
+    "spine",
+    "kid-prices"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "4.6",
+   "principle": 4,
+   "text": "The booking form is one card in a fixed dependency order of fixed rows (\"—\" where a row doesn't apply), fresh each time; the saved booking is the same document.",
+   "checks": [
+    "spine",
+    "booking-journey",
+    "lifecycle",
+    "rooms"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "4.7",
+   "principle": 4,
+   "text": "Card payments through Stripe are the only way a booking becomes Paid.",
+   "checks": [
+    "pay-return",
+    "booking-journey"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "4.8",
+   "principle": 4,
+   "text": "Menus follow one rule: the next menu is the best split, a menu needs ≥2 answers, each category one colour, the same words in menu, chip and tag.",
+   "checks": [
+    "funnel",
+    "finder",
+    "menu-rule",
+    "menu-thin",
+    "menu-sense",
+    "menu-order",
+    "tag-asked",
+    "tag-colour",
+    "answer-words",
+    "words-all",
+    "mangled-text",
+    "walk-*"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "4.9",
+   "principle": 4,
+   "text": "One value per meaning: no merged or near-duplicate facet values, one tag per attribute, no tag made of other tags or holding another facet's value (`Paper 1 · 2017`): two answers drawn the same are one answer, and what tells them apart is its own question, Doesn't matter included, none every card in the list shares.",
+   "checks": [
+    "tags",
+    "merged-value",
+    "merged-all",
+    "near-dup",
+    "odd-tags",
+    "card-tags",
+    "attr-outside-tags",
+    "car-tags-split"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "4.10",
+   "principle": 4,
+   "text": "Booking terms: blocks of sessions (a term) paid up front; single lessons free to cancel until 24h before; no refund for a lesson inside a paid block or for leaving midway, within consumer law (14-day cooling-off online); a tutor's cancellation refunds and tells the family automatically; seats = the smaller of tutor and place capacity (online and at home hold 4; at home takes every seat the tutor holds).",
+   "checks": [
+    "booking",
+    "booking-journey",
+    "lifecycle"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "4.11",
+   "principle": 4,
+   "text": "The school year is worked out, never typed: `schoolYear` (booking.gs) for any year, its browser copy agreeing, contiguous, Mon–Thu starts, 38–40 weeks, fitted to published London dates (history 1215); the terms tab may override.",
+   "checks": [
+    "terms"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "5.1",
+   "principle": 5,
+   "text": "One Find, chips only; everything browsable is a card in it (Settings, Booking, Messages, Tools, Games); signed out sees only Settings.",
+   "checks": [
+    "front-door",
+    "find-first",
+    "people-one-kind",
+    "manuscripts-reach"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "5.2",
+   "principle": 5,
+   "text": "Find shows cards only when the funnel is done (or asked); taps are looked up, not counted.",
+   "checks": [
+    "find-settle",
+    "chip-feel",
+    "firstpaint"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "5.3",
+   "principle": 5,
+   "text": "All learning content is free behind a free sign-in, with no age gates; the content is the source and tools follow from it.",
+   "checks": [
+    "no-age-gates",
+    "media-age",
+    "chemistry",
+    "mechanics",
+    "history-db",
+    "practicals",
+    "projects",
+    "timeline-anim",
+    "timelines",
+    "missing",
+    "spec-lesson",
+    "spec-practice",
+    "spec-figure"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "5.4",
+   "principle": 5,
+   "text": "Content in is our own, public domain or licensed; copyrighted papers stay private.",
+   "checks": [
+    "library",
+    "talmud",
+    "hymns"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "5.5",
+   "principle": 5,
+   "text": "No umbrella answers: a menu never offers an answer that is the union of other answers beside it (no Science or Combined Science beside Biology, Physics and Chemistry), a parent next to its own child, or one label twice. Overlap across subjects is fine: a card may sit under several subjects (History and Religious Studies share cards).",
+   "checks": [
+    "twin-path"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "6.1",
+   "principle": 6,
+   "text": "Icons and one-word labels, no grey clutter, information as a tag; a failure is said in words through `why_()`.",
+   "checks": [
+    "clutter",
+    "said",
+    "answers"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "6.2",
+   "principle": 6,
+   "text": "No leaderboards, points or streaks; no public stars (feedback is private to the owner).",
+   "checks": [
+    "no-games"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "7.1",
+   "principle": 7,
+   "text": "Same controls in the same places for every account; ones you can't use are greyed, never hidden, moved or appearing on tap.",
+   "checks": [
+    "dup-controls",
+    "settings-work",
+    "setting-forms",
+    "chips-settings",
+    "steady",
+    "reach"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "7.2",
+   "principle": 7,
+   "text": "Every box a person types into survives a reload or says why; settings save as typed.",
+   "checks": [
+    "drafts",
+    "profile",
+    "prefs"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "7.3",
+   "principle": 7,
+   "text": "One press, one action; a pressed control holds itself, not its twins, and not for ever.",
+   "checks": [
+    "press",
+    "press-deadline",
+    "api-deadline",
+    "touch",
+    "touch-walk",
+    "swipe",
+    "slide",
+    "pen",
+    "ruler"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "8.1",
+   "principle": 8,
+   "text": "Instant on a phone: any tap answers within 1 s, the first paint is the last, no long task while someone waits, files within their size budget.",
+   "checks": [
+    "ux",
+    "wait",
+    "size",
+    "jank",
+    "load",
+    "arrival",
+    "update-continuity"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "8.2",
+   "principle": 8,
+   "text": "Always load fresh: the build stamp is the only cache-buster, no service worker fetch handler, a new build never reloads a page on screen.",
+   "checks": [
+    "cache",
+    "deploy",
+    "offline"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "8.3",
+   "principle": 8,
+   "text": "Cheap to read: small notes, few bytes per search, comments say why in ≤240 chars, no tombstones.",
+   "checks": [
+    "read-bytes",
+    "search-bytes",
+    "comment-ratio",
+    "big-notes",
+    "tombstones",
+    "comments",
+    "test-biggest"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "9.1",
+   "principle": 9,
+   "text": "Private by default: a student sees only themselves and their tutors, a parent their own children, a tutor their own students and their parents, admin everyone.",
+   "checks": [
+    "visibility",
+    "film-shares",
+    "work-file",
+    "inbox"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "9.2",
+   "principle": 9,
+   "text": "Check, then trust: actions gated until approval, ID and DBS; staff only by application; one rank per account; three roles (admin, tutor, family).",
+   "checks": [
+    "accounts",
+    "staff",
+    "signin",
+    "pin-show"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "9.3",
+   "principle": 9,
+   "text": "Parents receive nothing from the site until they tick it; push is device opt-in.",
+   "checks": [
+    "prefs",
+    "push",
+    "digest",
+    "digest-dry"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "9.4",
+   "principle": 9,
+   "text": "No price reaches a child; no child's surname leaves the server.",
+   "checks": [
+    "kid-prices",
+    "surnames"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "9.5",
+   "principle": 9,
+   "text": "Posts and photos wait for approval and are kept as files.",
+   "checks": [
+    "posts",
+    "uploads",
+    "choice",
+    "hands",
+    "media",
+    "films",
+    "suggest"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "9.6",
+   "principle": 9,
+   "text": "Names on screen are first name + initial for everyone; parents' essential emails go to the admin for now, saying who they were for.",
+   "checks": [
+    "format",
+    "prefs",
+    "handles"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "10.1",
+   "principle": 10,
+   "text": "Everything the business does runs from here, autonomously (booking, matching, payment, reminders, receipts, tax pot, renewals), built in the site; outside services only where needed (Stripe).",
+   "checks": [
+    "one-place",
+    "biz",
+    "biz-checker",
+    "flow/*"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "10.2",
+   "principle": 10,
+   "text": "Free: no subscriptions or fixed costs; only pay-when-paid fees and near-free AI marking.",
+   "checks": [
+    "free"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "10.3",
+   "principle": 10,
+   "text": "Built for the 100-tutor future; roles and ranks are rows, not code.",
+   "checks": [
+    "permissions",
+    "accounts"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "10.4",
+   "principle": 10,
+   "text": "The core journeys finish for every role with the fewest taps and no dead ends.",
+   "checks": [
+    "friction",
+    "flow/*",
+    "a11y",
+    "console",
+    "ui",
+    "look",
+    "states",
+    "live",
+    "live-smoke",
+    "quiet",
+    "sounds",
+    "voice",
+    "calc",
+    "lego",
+    "flyer"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "10.5",
+   "principle": 10,
+   "text": "When something fails, one short plain message says what; the rest keeps working; an empty sheet still renders.",
+   "checks": [
+    "errors",
+    "errlog",
+    "resilience",
+    "malformed",
+    "catch",
+    "field"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "10.6",
+   "principle": 10,
+   "text": "Business admin runs itself on the site, never by email: renewals (insurance, ICO fee, DBS 12-monthly, safeguarding, tax dates) glow on the Business card; the tax pot puts aside 25% of Stripe income; each tutor gets a yearly statement.",
+   "checks": [
+    "biz",
+    "biz-checker",
+    "flow/34"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "11.1",
+   "principle": 11,
+   "text": "When nothing decides it, choose the simplest: fewest parts, options and code; new features are asked for and built from existing parts (a card, a tool or a setting), never a new kind of screen.",
+   "checks": [
+    "dup",
+    "long-fn",
+    "big-file",
+    "nest",
+    "no-new-screen"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "11.2",
+   "principle": 11,
+   "text": "Unused code is removed: switched-off features wait in `attic/` and return as cards; dead functions go; git history is the archive.",
+   "checks": [
+    "dead",
+    "returned-features",
+    "returned",
+    "markers"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "11.3",
+   "principle": 11,
+   "text": "Checks are honest: no written exception lists, ratchet ceilings at zero, budgets only go down.",
+   "checks": [
+    "exceptions",
+    "ceilings",
+    "catches",
+    "stability"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "12.1",
+   "principle": 12,
+   "text": "The Optimiser (`tools/health.js`) measures every rule as followed ÷ applies to, in the unit a person would fix, and the score is their plain average, no weights; when nothing else is asked, raise it.",
+   "checks": [
+    "ux",
+    "effort-report"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "12.2",
+   "principle": 12,
+   "text": "Every change runs the checks it affects (`node js/check.js`, `check-all`, the journeys) and CI stays green; a merge to main happens only when `node tools/gate.js` and the required `gate` status on the pull request are green (the merge-always rule means merge when green, never red), and a changed screenshot is signed in `gallery-approved.json` after someone looked.",
+   "checks": [
+    "check",
+    "all",
+    "changed",
+    "conflicts",
+    "flow",
+    "flow/*"
+   ],
+   "since": "2026-11-12"
+  },
+  {
+   "id": "12.3",
+   "principle": 12,
+   "text": "This rulebook is the one foundation and it is code: `data/settings/rules.json` holds every rule, every rule names a check, every check serves a rule, each rule is stated once, and `docs/rules.md` is written from it.",
+   "checks": [
+    "rule-checked",
+    "check-tied",
+    "rule-once"
+   ],
+   "since": "2026-11-12"
+  }
+ ],
+ "sweep": [
+  "Read this file; read `docs/history` only for the area in hand (`grep -ril <keyword> docs/history`).",
+  "Read the `owner_answers` tab (the ledger spreadsheet). A specific answer becomes its change, an edit of the rule it touches here and a history note; its question in `data/settings/owner-questions.json` gets `status: \"answered\"`. A general answer (\"always do X\") becomes a rule here with the checks that enforce it. A clash becomes a question (1.3).",
+  "Work the one worklist, dearest first, budgets only going down: `node tools/health.js --list`, `--changed`.",
+  "Anything the rules don't decide becomes an open question (id, words, options a/b/c), never a guess. Write the guess first; where guesses match the owner's answers ~9 in 10, stop asking there.",
+  "Stable = the core (Find, Library, Questions, Settings, Bookings) works on a phone with no errors and CI is green 3 runs running; frozen features return one at a time after that, most-used first. The Apps Script deploy stays the owner's."
+ ]
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* @family. — tools/rules.js (1213): the rulebook's coverage, the owner's inbox file and the one-place report, read by tools/health.js. */
-/* node tools/rules.js prints them. Mechanical: it reads docs/rules.md, the check files, owner-questions.json and one-place.json. */
+/* node tools/rules.js prints them; --write writes docs/rules.md from data/settings/rules.json, the one source of the rulebook. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
@@ -8,10 +8,18 @@ const read = f => { try { return fs.readFileSync(path.join(ROOT, f), 'utf8'); } 
 const jread = f => { try { return JSON.parse(read(f)); } catch (e) { return null; } };
 const ls = d => { try { return fs.readdirSync(path.join(ROOT, d)).filter(f => /\.js$/.test(f)).sort(); } catch (e) { return []; } };
 
-/* THE RULES: each `- **N.M**` line of docs/rules.md, its words and the check ids on its `Checks:` part. */
-function rules() {
-  return read('docs/rules.md').split('\n').map(l => /^- \*\*(\d+\.\d+)\*\* (.*?)(?: Checks: (.*))?$/.exec(l)).filter(Boolean)
-    .map(m => ({ n: m[1], text: m[2], checks: [...String(m[3] || '').matchAll(/`([\w/*-]+)`/g)].map(x => x[1]) }));
+/* THE RULEBOOK AS DATA (owner, 12 Nov: "words drift; codify the philosophy"): core, principles and rules in data/settings/rules.json. */
+const SRC = 'data/settings/rules.json', PAGE = 'docs/rules.md';
+const book = () => jread(SRC) || { principles: [], rules: [], sweep: [] };
+function rules() { return (book().rules || []).map(r => ({ n: r.id, text: r.text || '', checks: r.checks || [] })); }
+/* THE PAGE: docs/rules.md is written from the JSON, never edited; the gate fails when it drifts. */
+function render() {
+  const b = book(), out = ['# The rulebook — the one foundation', '', '<!-- generated — edit data/settings/rules.json, then run: node tools/rules.js --write -->', '',
+    '**' + b.core + '**', '', b.about];
+  (b.principles || []).forEach(p => { out.push('', '## ' + p.n + '. ' + p.name);
+    (b.rules || []).filter(r => r.principle === p.n).forEach(r => out.push('- **' + r.id + '** ' + r.text + ' Checks: ' + (r.checks || []).map(c => '`' + c + '`').join(', '))); });
+  out.push('', '## How a sweep works'); (b.sweep || []).forEach((t, i) => out.push((i + 1) + '. ' + t));
+  return out.join('\n') + '\n';
 }
 /* THE CHECK FILES, by id: js/check-<id>.js (check.js is `check`), check/<id>.js, and each journey as flow/NN. */
 function checkFiles() {
@@ -29,17 +37,19 @@ function coverage(ids, known) {
   const K = new Set(pop.concat(known || [], ['owner-questions', 'rule-checked', 'check-tied', 'rule-once']));
   const hits = tok => (/\*$/.test(tok) ? pop.filter(c => c.startsWith(tok.slice(0, -1))) : K.has(tok) ? [tok] : []);
   const R = rules(), work = [], tied = new Set();
-  if (!R.length) work.push({ kind: 'rule-checked', part: 'code', where: 'docs/rules.md', say: 'no numbered rules could be read' });
+  if (!R.length) work.push({ kind: 'rule-checked', part: 'code', where: SRC, say: 'no rules could be read' });
+  if (R.length && read(PAGE) !== render()) work.push({ kind: 'rule-checked', part: 'code', where: PAGE, say: PAGE + ' is stale against ' + SRC + ' — run: node tools/rules.js --write' });
+  const seen = new Set(); R.forEach(r => { if (seen.has(r.n)) work.push({ kind: 'rule-once', part: 'code', where: SRC + ' ' + r.n, say: `rule ${r.n} is listed twice` }); seen.add(r.n); });
   let checked = 0;
   R.forEach(r => { const ok = r.checks.filter(t => hits(t).length), bad = r.checks.filter(t => !hits(t).length);
     ok.forEach(t => hits(t).forEach(c => tied.add(c)));
-    if (ok.length) checked++; else work.push({ kind: 'rule-checked', part: 'code', where: 'docs/rules.md ' + r.n, say: `rule ${r.n} names no existing check` });
-    bad.forEach(t => work.push({ kind: 'rule-checked', part: 'code', where: 'docs/rules.md ' + r.n, say: `rule ${r.n} names \`${t}\`, which no check measures` })); });
+    if (ok.length) checked++; else work.push({ kind: 'rule-checked', part: 'code', where: SRC + ' ' + r.n, say: `rule ${r.n} names no existing check` });
+    bad.forEach(t => work.push({ kind: 'rule-checked', part: 'code', where: SRC + ' ' + r.n, say: `rule ${r.n} names \`${t}\`, which no check measures` })); });
   const untied = pop.filter(c => !tied.has(c));
-  untied.forEach(c => work.push({ kind: 'check-tied', part: 'code', where: c, say: `check ${c} serves no rule in docs/rules.md` }));
+  untied.forEach(c => work.push({ kind: 'check-tied', part: 'code', where: c, say: 'check ' + c + ' serves no rule in ' + SRC }));
   const W = R.map(r => words(r.text)), twin = new Set();
   R.forEach((r, i) => R.forEach((s, j) => { if (j > i && overlap(W[i], W[j]) > SAME) { twin.add(i); twin.add(j);
-    work.push({ kind: 'rule-once', part: 'code', where: 'docs/rules.md ' + r.n, say: `rules ${r.n} and ${s.n} say much the same` }); } }));
+    work.push({ kind: 'rule-once', part: 'code', where: SRC + ' ' + r.n, say: `rules ${r.n} and ${s.n} say much the same` }); } }));
   return { rules: R.length, checked, checks: pop.length, tied: pop.length - untied.length, once: R.length - twin.size, work, untied };
 }
 /* THE INBOX FILE: every question has a slug id, words, at least two options and a known status. */
@@ -61,8 +71,9 @@ function onePlace() {
   return ((j && j.functions) || []).map(f => { const ev = f.evidence || [], got = ev.filter(([file, has]) => read(file).indexOf(has) >= 0).length;
     return { id: f.id, name: f.name, status: !ev.length || !got ? 'no' : got === ev.length ? 'yes' : 'partly', found: got, of: ev.length }; });
 }
-module.exports = { rules, checkFiles, coverage, ownerQuestions, onePlace };
+module.exports = { rules, render, checkFiles, coverage, ownerQuestions, onePlace };
 if (require.main === module) {
+  if (process.argv.includes('--write')) { fs.writeFileSync(path.join(ROOT, PAGE), render()); console.log('rules: wrote ' + PAGE + ' from ' + SRC); }
   let ids = [];
   try { ids = (JSON.parse(read('data/health.json')).rules || []).map(r => r.id); } catch (e) { ids = []; /* no full run yet: files alone */ }
   /* EVERY ID health.js PRICES, read from its source, so a rule it measures but the last full run did not write still counts. */

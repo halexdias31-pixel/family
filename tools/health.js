@@ -701,10 +701,10 @@ function healthRules(st, L, U, S, work, X, C, B) {
   const partOf = { backend: 'code', resilience: 'code', field: 'ui' }; X.work.forEach(w => { partOf[w.kind] = w.part; }); work.forEach(w => { partOf[w.kind] = 'logic'; });
   [...new Set(FIND_KINDS.concat(UX_KINDS, UNIFORM_KINDS, EXTRA_KINDS.filter(k => k !== 'variety'), Object.keys(n)))].filter(k => !has.has(k)).sort()
     .forEach(k => R.push(passFail(k, partOf[k] || 'ui', `${k}: passes with no findings`, cnt(k))));
-  /* THE RULEBOOK (owner, 12 Nov): docs/rules.md against every scored check and check file — tools/rules.js. */
+  /* THE RULEBOOK (owner, 12 Nov): data/settings/rules.json (the rulebook as data) against every scored check and check file — tools/rules.js. */
   const RB = require('./rules.js').coverage(R.map(r => r.id).concat(['rule-checked', 'check-tied', 'rule-once']), knownChecks(st));
   X.work.push(...RB.work); RULEBOOK_LAST = RB;
-  R.push(rule('rule-checked', 'code', 'Rules in docs/rules.md that name a check that exists', RB.checked, RB.rules),
+  R.push(rule('rule-checked', 'code', 'Rules in data/settings/rules.json that name a check that exists', RB.checked, RB.rules),
     rule('check-tied', 'code', 'Checks (scored rules, check files, journeys) tied to a rule', RB.tied, RB.checks),
     rule('rule-once', 'code', 'Rules stated once (no near-duplicate rule text)', RB.once, RB.rules));
   R.forEach(r => { r.unit = r.unit || UNIT[r.id] || (r.variety ? 'variants' : r.pf != null ? 'one check (pass/fail)' : ''); });
