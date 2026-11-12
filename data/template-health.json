@@ -1,8 +1,8 @@
 {
  "generated": "tools/template-health.js",
- "cards": 1180,
- "kinds": 49,
- "shapes": 16,
+ "cards": 1236,
+ "kinds": 51,
+ "shapes": 18,
  "modes": {
   "390": {
    "tagFs": "23.1192",
@@ -19,134 +19,141 @@
   {
    "id": "tpl-built",
    "label": "Rendered cards: drawn by the template (findCard/card_)",
-   "ok": 1156,
-   "of": 1180,
+   "ok": 1212,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-order",
    "label": "Rendered cards: parts in order: picture, tags, content, tile row last",
-   "ok": 1155,
-   "of": 1180,
+   "ok": 1211,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-picture",
    "label": "Rendered cards: a picture only when real",
-   "ok": 1180,
-   "of": 1180,
+   "ok": 1236,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-tags",
    "label": "Rendered cards: a tag row of pills, the name a tag",
-   "ok": 1124,
-   "of": 1180,
+   "ok": 1180,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-tag-look",
    "label": "Rendered cards: every tag the one pill (size, ends, border)",
-   "ok": 1145,
-   "of": 1180,
+   "ok": 1201,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-title",
    "label": "Rendered cards: no title line outside the tags",
-   "ok": 1152,
-   "of": 1180,
+   "ok": 1207,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-tiles",
    "label": "Rendered cards: one row of tiles at the bottom",
-   "ok": 1156,
-   "of": 1180,
+   "ok": 1212,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-tile-size",
    "label": "Rendered cards: every tile the one round icon size",
-   "ok": 1180,
-   "of": 1180,
+   "ok": 1236,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-stray",
    "label": "Rendered cards: no button or link outside the tile row or a form",
-   "ok": 1146,
-   "of": 1180,
+   "ok": 1200,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-width",
    "label": "Rendered cards: no wider than the measure",
-   "ok": 1180,
-   "of": 1180,
+   "ok": 1236,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-centre",
    "label": "Rendered cards: centred: card, text and tile row",
-   "ok": 1156,
-   "of": 1180,
+   "ok": 1212,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-font",
    "label": "Rendered cards: font sizes from --fs",
-   "ok": 1175,
-   "of": 1180,
+   "ok": 1230,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-colour",
    "label": "Rendered cards: text colours from the palette",
-   "ok": 1180,
-   "of": 1180,
+   "ok": 1236,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-radius",
    "label": "Rendered cards: corners from the radius tokens",
-   "ok": 1180,
-   "of": 1180,
+   "ok": 1236,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-inline",
    "label": "Rendered cards: no inline style",
-   "ok": 1179,
-   "of": 1180,
+   "ok": 1235,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-spacing",
    "label": "Rendered cards: padding and gaps from the --s scale",
-   "ok": 1180,
-   "of": 1180,
+   "ok": 1236,
+   "of": 1236,
    "unit": "cards seen"
   },
   {
    "id": "tpl-same",
    "label": "Rendered cards with the same tag, tile and padding sizes as the rest",
-   "ok": 1145,
-   "of": 1180,
+   "ok": 1212,
+   "of": 1236,
    "unit": "cards seen"
+  },
+  {
+   "id": "tpl-pic-size",
+   "label": "Rendered cards: every picture the one --pic-h height",
+   "ok": 0,
+   "of": 0,
+   "unit": "pictures seen"
   },
   {
    "id": "tpl-variety-kind",
    "label": "Card kinds drawn in one shape everywhere",
-   "ok": 40,
-   "of": 49,
+   "ok": 41,
+   "of": 51,
    "unit": "card kinds"
   },
   {
    "id": "tpl-variety",
    "label": "Card shapes across all kinds (ideal: 1 + owner exceptions)",
    "ok": 2,
-   "of": 16,
+   "of": 18,
    "unit": "distinct shapes",
    "variety": true
   }
@@ -181,7 +188,7 @@
    "clean": 8,
    "props": {}
   },
-  "add-card": {
+  "add": {
    "cards": 11,
    "clean": 11,
    "props": {}
@@ -208,11 +215,6 @@
    "clean": 16,
    "props": {}
   },
-  "venue": {
-   "cards": 7,
-   "clean": 7,
-   "props": {}
-  },
   "hadith": {
    "cards": 36,
    "clean": 36,
@@ -229,16 +231,21 @@
    "props": {}
   },
   "part": {
-   "cards": 249,
-   "clean": 219,
+   "cards": 258,
+   "clean": 227,
    "props": {
-    "title": 26,
+    "title": 27,
     "font": 4
    }
   },
   "chem": {
    "cards": 24,
    "clean": 24,
+   "props": {}
+  },
+  "spec": {
+   "cards": 23,
+   "clean": 23,
    "props": {}
   },
   "question": {
@@ -259,13 +266,13 @@
    "props": {}
   },
   "orthotext": {
-   "cards": 25,
-   "clean": 25,
+   "cards": 24,
+   "clean": 24,
    "props": {}
   },
   "hymn": {
-   "cards": 23,
-   "clean": 23,
+   "cards": 25,
+   "clean": 25,
    "props": {}
   },
   "quran": {
@@ -274,13 +281,13 @@
    "props": {}
   },
   "people": {
-   "cards": 20,
-   "clean": 20,
+   "cards": 24,
+   "clean": 24,
    "props": {}
   },
   "mech": {
-   "cards": 24,
-   "clean": 24,
+   "cards": 20,
+   "clean": 20,
    "props": {}
   },
   "writ": {
@@ -329,13 +336,13 @@
    "props": {}
   },
   "content": {
-   "cards": 23,
-   "clean": 23,
+   "cards": 36,
+   "clean": 36,
    "props": {}
   },
   "widget": {
-   "cards": 35,
-   "clean": 35,
+   "cards": 36,
+   "clean": 36,
    "props": {}
   },
   "soon": {
@@ -349,20 +356,48 @@
    "props": {}
   },
   "person": {
-   "cards": 1,
-   "clean": 1,
+   "cards": 2,
+   "clean": 2,
    "props": {}
   },
   "set-shape": {
-   "cards": 11,
-   "clean": 10,
+   "cards": 15,
+   "clean": 14,
    "props": {
     "order": 1
    }
   },
   "setting": {
-   "cards": 5,
-   "clean": 5,
+   "cards": 7,
+   "clean": 7,
+   "props": {}
+  },
+  "fl-maker": {
+   "cards": 1,
+   "clean": 0,
+   "props": {
+    "stray": 1,
+    "font": 1
+   }
+  },
+  "lego-check": {
+   "cards": 1,
+   "clean": 1,
+   "props": {}
+  },
+  "biz": {
+   "cards": 6,
+   "clean": 2,
+   "props": {
+    "stray": 1,
+    "title": 2,
+    "font": 1,
+    "inline": 1
+   }
+  },
+  "notify-door": {
+   "cards": 1,
+   "clean": 1,
    "props": {}
   },
   "logic-card": {
@@ -372,31 +407,27 @@
     "stray": 2
    }
   },
-  "biz": {
-   "cards": 3,
-   "clean": 0,
-   "props": {
-    "title": 2,
-    "font": 1,
-    "inline": 1
-   }
-  },
   "post": {
-   "cards": 16,
-   "clean": 16,
+   "cards": 15,
+   "clean": 15,
    "props": {}
   },
   "shop": {
-   "cards": 24,
-   "clean": 24,
+   "cards": 23,
+   "clean": 23,
    "props": {}
   },
-  "people-none": {
-   "cards": 4,
+  "rank": {
+   "cards": 16,
    "clean": 0,
    "props": {
-    "tags": 4
+    "tags": 16
    }
+  },
+  "venue": {
+   "cards": 7,
+   "clean": 7,
+   "props": {}
   },
   "apply-card": {
    "cards": 2,
@@ -408,19 +439,7 @@
    "clean": 2,
    "props": {}
   },
-  "rank-off": {
-   "cards": 12,
-   "clean": 0,
-   "props": {
-    "tags": 12
-   }
-  },
   "reg-card": {
-   "cards": 2,
-   "clean": 2,
-   "props": {}
-  },
-  "soon-card": {
    "cards": 2,
    "clean": 2,
    "props": {}
@@ -475,7 +494,7 @@
   {
    "kind": "tpl-order",
    "where": "check/shots/template/admin-390-question-order.png",
-   "say": "question on find:Learning:question/q as admin at 390: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb → div.qb → div.qb"
+   "say": "question on find:Learning:question/q as admin at 390: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb"
   },
   {
    "kind": "tpl-order",
@@ -485,7 +504,7 @@
   {
    "kind": "tpl-order",
    "where": "check/shots/template/tutor-390-question-order.png",
-   "say": "question on find:Learning:question/q as tutor at 390: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb → div.qb → div.qb"
+   "say": "question on find:Learning:question/q as tutor at 390: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb"
   },
   {
    "kind": "tpl-order",
@@ -495,7 +514,7 @@
   {
    "kind": "tpl-order",
    "where": "check/shots/template/parent-390-question-order.png",
-   "say": "question on find:Learning:question/q as parent at 390: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb → div.qb → div.qb"
+   "say": "question on find:Learning:question/q as parent at 390: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb"
   },
   {
    "kind": "tpl-order",
@@ -505,7 +524,7 @@
   {
    "kind": "tpl-order",
    "where": "check/shots/template/pupil-390-question-order.png",
-   "say": "question on find:Learning:question/q as pupil at 390: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb → div.qb → div.qb"
+   "say": "question on find:Learning:question/q as pupil at 390: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb"
   },
   {
    "kind": "tpl-order",
@@ -515,7 +534,7 @@
   {
    "kind": "tpl-order",
    "where": "check/shots/template/admin-820-question-order.png",
-   "say": "question on find:Learning:question/q as admin at 820: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb → div.qb → div.qb"
+   "say": "question on find:Learning:question/q as admin at 820: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb"
   },
   {
    "kind": "tpl-order",
@@ -525,7 +544,7 @@
   {
    "kind": "tpl-order",
    "where": "check/shots/template/tutor-820-question-order.png",
-   "say": "question on find:Learning:question/q as tutor at 820: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb → div.qb → div.qb"
+   "say": "question on find:Learning:question/q as tutor at 820: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb"
   },
   {
    "kind": "tpl-order",
@@ -535,11 +554,11 @@
   {
    "kind": "tpl-order",
    "where": "check/shots/template/parent-820-question-order.png",
-   "say": "question on find:Learning:question/q as parent at 820: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb → div.qb → div.qb"
+   "say": "question on find:Learning:question/q as parent at 820: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb"
   },
   {
    "kind": "tpl-order",
-   "where": "find:Settings:setting",
+   "where": "check/shots/template/parent-820-set-shape-order.png",
    "say": "set-shape on find:Settings:setting as parent at 820: order — expected pic → tags → lines/form → act, got span.card-lock → tags → form → act"
   },
   {
@@ -550,7 +569,7 @@
   {
    "kind": "tpl-order",
    "where": "check/shots/template/pupil-820-question-order.png",
-   "say": "question on find:Learning:question/q as pupil at 820: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb → div.qb → div.qb"
+   "say": "question on find:Learning:question/q as pupil at 820: order — expected pic → tags → lines/form → act, got div.qb → div.qb → div.qb → div.qb"
   },
   {
    "kind": "tpl-tags",
@@ -569,8 +588,8 @@
   },
   {
    "kind": "tpl-tags",
-   "where": "check/shots/template/tutor-390-people-none-tags.png",
-   "say": "people-none on screen:parents as tutor at 390: tags — expected a tag row (the name is a tag), got no tags"
+   "where": "check/shots/template/tutor-390-rank-tags.png",
+   "say": "rank on screen:parents as tutor at 390: tags — expected a tag row (the name is a tag), got no tags"
   },
   {
    "kind": "tpl-tags",
@@ -594,8 +613,8 @@
   },
   {
    "kind": "tpl-tags",
-   "where": "check/shots/template/pupil-390-people-none-tags.png",
-   "say": "people-none on screen:parents as pupil at 390: tags — expected a tag row (the name is a tag), got no tags"
+   "where": "check/shots/template/pupil-390-rank-tags.png",
+   "say": "rank on screen:parents as pupil at 390: tags — expected a tag row (the name is a tag), got no tags"
   },
   {
    "kind": "tpl-tags",
@@ -604,8 +623,8 @@
   },
   {
    "kind": "tpl-tags",
-   "where": "check/shots/template/out-390-rank-off-tags.png",
-   "say": "rank-off on screen:tutors as out at 390: tags — expected a tag row (the name is a tag), got no tags"
+   "where": "check/shots/template/out-390-rank-tags.png",
+   "say": "rank on screen:tutors as out at 390: tags — expected a tag row (the name is a tag), got no tags"
   },
   {
    "kind": "tpl-tags",
@@ -624,8 +643,8 @@
   },
   {
    "kind": "tpl-tags",
-   "where": "check/shots/template/tutor-820-people-none-tags.png",
-   "say": "people-none on screen:parents as tutor at 820: tags — expected a tag row (the name is a tag), got no tags"
+   "where": "check/shots/template/tutor-820-rank-tags.png",
+   "say": "rank on screen:parents as tutor at 820: tags — expected a tag row (the name is a tag), got no tags"
   },
   {
    "kind": "tpl-tags",
@@ -649,8 +668,8 @@
   },
   {
    "kind": "tpl-tags",
-   "where": "check/shots/template/pupil-820-people-none-tags.png",
-   "say": "people-none on screen:parents as pupil at 820: tags — expected a tag row (the name is a tag), got no tags"
+   "where": "check/shots/template/pupil-820-rank-tags.png",
+   "say": "rank on screen:parents as pupil at 820: tags — expected a tag row (the name is a tag), got no tags"
   },
   {
    "kind": "tpl-tags",
@@ -659,8 +678,8 @@
   },
   {
    "kind": "tpl-tags",
-   "where": "check/shots/template/out-820-rank-off-tags.png",
-   "say": "rank-off on screen:tutors as out at 820: tags — expected a tag row (the name is a tag), got no tags"
+   "where": "check/shots/template/out-820-rank-tags.png",
+   "say": "rank on screen:tutors as out at 820: tags — expected a tag row (the name is a tag), got no tags"
   },
   {
    "kind": "tpl-tag-look",
@@ -735,7 +754,7 @@
   {
    "kind": "tpl-title",
    "where": "check/shots/template/admin-820-part-title.png",
-   "say": "part on find:Learning:practical/steps as admin at 820: title — expected no title line (the name is a tag), got h4 \"Things you could measure\" (h4)"
+   "say": "part on find:Learning:practical/work as admin at 820: title — expected no title line (the name is a tag), got h4 \"Things you could measure\" (h4)"
   },
   {
    "kind": "tpl-title",
@@ -750,12 +769,12 @@
   {
    "kind": "tpl-title",
    "where": "check/shots/template/parent-820-part-title.png",
-   "say": "part on find:Learning:practical/work as parent at 820: title — expected no title line (the name is a tag), got h4 \"Things you could measure\" (h4)"
+   "say": "part on find:Learning:practical/steps as parent at 820: title — expected no title line (the name is a tag), got h4 \"Things you could measure\" (h4)"
   },
   {
    "kind": "tpl-title",
    "where": "check/shots/template/pupil-820-part-title.png",
-   "say": "part on find:Learning:practical/work as pupil at 820: title — expected no title line (the name is a tag), got h4 \"Things you could measure\" (h4)"
+   "say": "part on find:Learning:practical/steps as pupil at 820: title — expected no title line (the name is a tag), got h4 \"Things you could measure\" (h4)"
   },
   {
    "kind": "tpl-tiles",
@@ -806,6 +825,16 @@
    "kind": "tpl-stray",
    "where": "check/shots/template/admin-390-question-stray.png",
    "say": "question on find:Learning:question/q as admin at 390: stray — expected controls only in the tile row (or a form), got tile qp-ai-go qp-check is-submit \"Check\" (button.tile.qp-ai-go)"
+  },
+  {
+   "kind": "tpl-stray",
+   "where": "check/shots/template/admin-390-fl-maker-stray.png",
+   "say": "fl-maker on find:Settings:setting as admin at 390: stray — expected controls only in the tile row (or a form), got btn \"@family.\" (button.btn)"
+  },
+  {
+   "kind": "tpl-stray",
+   "where": "check/shots/template/admin-390-biz-stray.png",
+   "say": "biz on find:Settings:setting as admin at 390: stray — expected controls only in the tile row (or a form), got tile \"Open · on the feed\" (button.tile)"
   },
   {
    "kind": "tpl-stray",
@@ -969,28 +998,33 @@
   },
   {
    "kind": "tpl-font",
-   "where": "check/shots/template/admin-390-part-font.png",
-   "say": "part on find:Learning:content/formulas as admin at 390: font — expected a --fs token (14.8/16.7/11.1/23.1px), got 12.3px (sup)"
+   "where": "check/shots/template/admin-390-fl-maker-font.png",
+   "say": "fl-maker on find:Settings:setting as admin at 390: font — expected a --fs token (14.8/16.7/11.1/23.1px), got 56.7px (p.kc-h.fl-name)"
   },
   {
    "kind": "tpl-font",
-   "where": "check/shots/template/tutor-390-part-font.png",
-   "say": "part on find:Learning:content/formulas as tutor at 390: font — expected a --fs token (14.8/16.7/11.1/23.1px), got 12.3px (sup)"
-  },
-  {
-   "kind": "tpl-font",
-   "where": "check/shots/template/parent-390-part-font.png",
-   "say": "part on find:Learning:content/formulas as parent at 390: font — expected a --fs token (14.8/16.7/11.1/23.1px), got 12.3px (sup)"
-  },
-  {
-   "kind": "tpl-font",
-   "where": "check/shots/template/pupil-390-part-font.png",
-   "say": "part on find:Learning:content/formulas as pupil at 390: font — expected a --fs token (14.8/16.7/11.1/23.1px), got 12.3px (sup)"
+   "where": "check/shots/template/admin-820-part-font.png",
+   "say": "part on find:Learning:content as admin at 820: font — expected a --fs token (15.5/17.4/11.6/24.2px), got 9.7px (sub)"
   },
   {
    "kind": "tpl-font",
    "where": "check/shots/template/admin-820-biz-font.png",
    "say": "biz on find:Settings:setting as admin at 820: font — expected a --fs token (15.5/17.4/11.6/24.2px), got 9.7px (small)"
+  },
+  {
+   "kind": "tpl-font",
+   "where": "check/shots/template/tutor-820-part-font.png",
+   "say": "part on find:Learning:content as tutor at 820: font — expected a --fs token (15.5/17.4/11.6/24.2px), got 9.7px (sub)"
+  },
+  {
+   "kind": "tpl-font",
+   "where": "check/shots/template/parent-820-part-font.png",
+   "say": "part on find:Learning:content as parent at 820: font — expected a --fs token (15.5/17.4/11.6/24.2px), got 9.7px (sub)"
+  },
+  {
+   "kind": "tpl-font",
+   "where": "check/shots/template/pupil-820-part-font.png",
+   "say": "part on find:Learning:content as pupil at 820: font — expected a --fs token (15.5/17.4/11.6/24.2px), got 9.7px (sub)"
   },
   {
    "kind": "tpl-inline",
@@ -999,18 +1033,8 @@
   },
   {
    "kind": "tpl-same",
-   "where": "screen:students",
-   "say": "add-card as admin at 390: pad 11.115/11.115 (the rest: 12.597/12.597)"
-  },
-  {
-   "kind": "tpl-same",
    "where": "find:Learning:question/q",
    "say": "question as admin at 390: pad 11.115/11.115 (the rest: 12.597/12.597)"
-  },
-  {
-   "kind": "tpl-same",
-   "where": "screen:tutors",
-   "say": "add-card as admin at 820: pad 11.625/11.625 (the rest: 13.175/13.175)"
   },
   {
    "kind": "tpl-same",
@@ -1040,7 +1064,7 @@
   {
    "kind": "tpl-variety-kind",
    "where": "data/template-health.json",
-   "say": "question: 2 shapes — div.qb>div.qb>div.qb|built,centre,order,stray,tags,tiles ; div.qb>div.qb>div.qb>div.qb>div.qb>div.qb|built,centre,order,stray,tags,tiles"
+   "say": "question: 3 shapes — div.qb>div.qb>div.qb|built,centre,order,stray,tags,tiles ; div.qb>div.qb>div.qb>div.qb|built,centre,order,stray,tags,tiles ; div.qb>div.qb>div.qb>div.qb>div.qb>div.qb>div.qb>div.qb|built,centre,order,stray,tags,tiles"
   },
   {
    "kind": "tpl-variety-kind",
@@ -1050,12 +1074,17 @@
   {
    "kind": "tpl-variety-kind",
    "where": "data/template-health.json",
+   "say": "soon: 2 shapes — tags>lines>act| ; tags>act|"
+  },
+  {
+   "kind": "tpl-variety-kind",
+   "where": "data/template-health.json",
    "say": "set-shape: 3 shapes — tags>form>act| ; tags>lines>act| ; span.card-lock>tags>form>act|order"
   },
   {
    "kind": "tpl-variety-kind",
    "where": "data/template-health.json",
-   "say": "biz: 2 shapes — tags>form>act|title ; tags>lines>act|font,inline"
+   "say": "biz: 5 shapes — tags>lines>act| ; tags>lines>act|stray ; tags>form>act| ; tags>form>act|title"
   },
   {
    "kind": "tpl-variety-kind",
