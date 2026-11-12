@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* node js/check-visibility.js — WHO SEES WHOM, THROUGH THE REAL doGet AND doPost (docs/decisions.md, 10 Nov). § */
+/* node js/check-visibility.js — WHO SEES WHOM, THROUGH THE REAL doGet AND doPost (docs/rules.md 9.1). § */
 'use strict';
 require('../check/quiet');
 const { backend } = require('./check-gas-load.js');

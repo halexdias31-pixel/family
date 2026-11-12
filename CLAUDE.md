@@ -5,6 +5,10 @@ spreadsheets as the database. No build, no framework, no modules. **Everything e
 the data tabs, the library, the animations list, deploying, CI — is in `docs/map-detail.md`** (grep it,
 don't read it whole). Past bugs and decisions: `grep -ril <keyword> docs/history`, read around the hits.
 
+**The foundation is `docs/rules.md`** — one rulebook: the core ("one source for every truth, one template for every
+thing, one rule for every case"), 12 principles, each rule once with the checks that enforce it. It wins over this
+file; the rules below are its most-hit ones. New owner answers edit it (`docs/philosophy.md`, `docs/decisions.md` point there).
+
 ## Reading cheaply
 
 - Grep first, then Read a line range. Never Read a big file whole (`style.css`, `check/states.js`); journeys are `check/flow/NN-*.js`, run by `js/check-flow.js`; Find is `js/find-*.js` (read as one by `tools/find-src.js`); `me-*`, `shell-*`, `keypad-*`, `book-*` are cut files too, read as one by `tools/piece-src.js`.
