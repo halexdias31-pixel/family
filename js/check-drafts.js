@@ -66,6 +66,12 @@ const KEPT = [
   { file: 'me.js', fn: 'fieldHtml', has: 'data-many-of',
     why: 'a settings several-of-a-list tick (the venues you teach at) — its `change` writes the hidden answer and keeps it as the field\'s draft (315 met 317)',
     proof: [['me.js', /matches\('input\[type="checkbox"\]\[data-many-of\]'\)[\s\S]{0,1500}?draftKeep_\(surface, id, box\.value/], ['me.js', /formHidden_\(`\$\{attr\}="\$\{esc\(name\)\}"`, said, da\)/]] },
+  { file: 'lego.js', fn: 'legoPick_', has: 'class="lego-num"',
+    why: 'the LEGO piece check\'s set number (owner, 12 Nov) — kept in the kept store as it is typed (`legoWrite_`)',
+    proof: [['lego.js', /legoNow_\(\)\.typed\[k\] = String\(t\.value \|\| ''\); legoWrite_\(\);/]] },
+  { file: 'lego.js', fn: 'legoPick_', has: 'class="lego-parts"',
+    why: 'the LEGO piece check\'s pasted parts list — kept in the kept store as it is typed (`legoWrite_`)',
+    proof: [['lego.js', /legoNow_\(\)\.typed\[k\] = String\(t\.value \|\| ''\); legoWrite_\(\);/]] },
 ];
 const PIN = 'a PIN — never written to the device, by a draft or anything else';
 const PEOPLE_FORM = 'an admin making or changing somebody else\'s account — a decision made and saved there and then, not left half-made on a device';
@@ -79,6 +85,7 @@ const EXEMPT = [
   { file: 'work-file.js', fn: '(top)', has: 'createElement(input)', why: 'the Work on file picker (owner, 11 Nov) — pages chosen, never typed; they live in WF until Saved' },
   { file: 'work-file.js', fn: 'wfBody_', has: 'class="wf-title"', why: 'a scan\'s optional title, typed and Saved with the pages in one sitting; the pages themselves would not survive a reload either' },
   { file: 'work-file.js', fn: 'wfBody_', has: 'class="wf-subject"', why: 'a scan\'s optional subject, typed and Saved with the pages in one sitting; the pages themselves would not survive a reload either' },
+  { file: 'lego.js', fn: '(top)', has: 'createElement(input)', why: 'the LEGO piece check\'s camera (owner, 12 Nov) — a photo taken, never typed; a half-shot batch is retaken after a reload' },
   { file: 'working.js', fn: '(top)', has: 'createElement(input)', why: 'the photo picker of 501 — a file chosen, never typed; the photos it adds live in WORK_PICS until Marked' },
   { file: 'records.js', fn: 'digestWordsCard_', has: 'data-dw=', why: 'the weekly email\'s four lines (491) — a few words edited and Saved in one sitting, with the preview beside them; a reload draws the saved words' },
   { file: 'receipt.js', fn: '(top)', has: 'name="why" maxlength="200"', why: 'a tutor\'s optional one-line reason for declining a request (488) — typed and sent in one press; nothing is lost but a few words' },

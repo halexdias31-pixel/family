@@ -37,6 +37,7 @@
 {"card":"set:staff:where-you-teach","under":"Staff","name":"","notes":""},
 {"card":"set:staff:when-i-can-teach","under":"Staff","name":"","notes":""},
 {"card":"staff:flyer","under":"Staff, Admin","name":"Flyer maker","notes":"print-ready flyers from the Web profile or the tutor's own card; a tutor makes only their own (flyer.js)."},
+{"card":"staff:lego","under":"Staff, Admin","name":"LEGO piece check","notes":"a trade-in set's pieces counted from photos, a batch at a time, against its parts list (lego.js, owner 12 Nov)."},
 {"card":"staff:hub","under":"Staff","name":"","notes":"the staff hub after the card parts."},
 {"card":"appr:blurb","under":"Apprentice","name":"Work experience","notes":"the apprentice placeholder; its card has no title of its own."},
 {"card":"site:digest","under":"Business","name":"Weekly email","notes":"the Sunday email to parents as the backend sends it (digestPreview); found under Business, an admin's only (owner, 8 Nov)."},

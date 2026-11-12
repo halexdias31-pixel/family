@@ -307,3 +307,5 @@ become an owner question showing both; never pick one.
 - It becomes a card on the one template, fresh every time (no carry-over, no hours greyed by other bookings; any hour 9am–9pm; only a booked room blocks).
 - Keep: the four class variations (create a class, join a class, start a waitlist class, join a waitlist class), extra seats, space/room/venue, the Requested/Applied for/Accepted/Paid ticks ON the form, discount as one % box, the academic intervals (+ Rest of this half term), and the full price breakdown (multiplier, + per hour, running total).
 - Remove: Split.
+## 12 Nov — the LEGO piece check (owner)
+- "Add a tool in settings for the Lego trading thing — make sure all the pieces of a set are there. Don't make it perfect." A staff/admin settings card (docs/history/1202): pick a set, paste its parts list, three photos a batch counted by the marking model, tally kept on the device, Finished lists what is missing.
