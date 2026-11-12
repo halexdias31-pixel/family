@@ -4475,6 +4475,13 @@ function shapeSave_() {
   } catch (e) { /* storage blocked: the column shapes are measured again next visit */ }
 }
 
+/* A BOX PUT TO WAIT: busy, with the one loader first in it -- what loaded_() below undoes. */
+function waiting_(el) {
+  if (!el || !el.setAttribute) return;
+  el.setAttribute('aria-busy', 'true');
+  el.insertAdjacentHTML('afterbegin', loading_());
+}
+
 /* AND TAKEN OFF AGAIN — the one way a box drawn `aria-busy="true"` with a loader over it shows what
    is under it. Silent on a box that was never waiting, so a caller need not know whether it was. */
 function loaded_(el) {
@@ -17125,8 +17132,8 @@ function widgetsReveil_(col, who) {
     if (!slot || slot.getAttribute('aria-busy')) return;
     if (TOOLS_ON.some(e => e.slot === slot)) return;
     if (who ? slot.WHO === me : (w.pure || (slot.OWN !== undefined && slot.OWN === me))) return;
-    slot.innerHTML = w.html + loading_();
-    slot.setAttribute('aria-busy', 'true');
+    slot.innerHTML = w.html;
+    waiting_(slot);
     delete slot.AHEAD;
     delete slot.WHO;
     delete slot.LENT;

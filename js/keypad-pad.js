@@ -695,8 +695,8 @@ function aiStageStart_(box, out) {
     if (out && out.parentNode === box) out.after(line); else box.appendChild(line);
   }
   line.className = 'qp-ai-stage';
-  line.setAttribute('aria-busy', 'true');
-  line.innerHTML = loading_() + '<span class="qp-ai-stage-say"></span>';
+  line.innerHTML = '<span class="qp-ai-stage-say"></span>';
+  waiting_(line);
   const say = line.querySelector('.qp-ai-stage-say');
   const began = Date.now();
   const paint = () => { const t = aiStageSay_(Date.now() - began); if (say.textContent !== t) say.textContent = t; };

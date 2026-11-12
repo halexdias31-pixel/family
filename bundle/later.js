@@ -14216,8 +14216,8 @@ function aiStageStart_(box, out) {
     if (out && out.parentNode === box) out.after(line); else box.appendChild(line);
   }
   line.className = 'qp-ai-stage';
-  line.setAttribute('aria-busy', 'true');
-  line.innerHTML = loading_() + '<span class="qp-ai-stage-say"></span>';
+  line.innerHTML = '<span class="qp-ai-stage-say"></span>';
+  waiting_(line);
   const say = line.querySelector('.qp-ai-stage-say');
   const began = Date.now();
   const paint = () => { const t = aiStageSay_(Date.now() - began); if (say.textContent !== t) say.textContent = t; };
@@ -23122,8 +23122,7 @@ function stmtHtml_() {
 function stmtDraw_() {
   const out = document.querySelector('.hub .stmt-out');
   if (!out) return;
-  out.innerHTML = stmtOutHtml_();
-  if (STMT.asking) out.setAttribute('aria-busy', 'true'); else out.removeAttribute('aria-busy');
+  if (STMT.asking) { out.innerHTML = ''; waiting_(out); } else { out.removeAttribute('aria-busy'); out.innerHTML = stmtOutHtml_(); }
   const p = document.querySelector('.hub [data-do="stmt-print"]');
   if (p) p.disabled = !STMT.data;
 }
