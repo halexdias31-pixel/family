@@ -53,6 +53,7 @@
     "question": "core",
     "content": "core",
     "insert": "core",
+    "spec": "secondary",
     "practical": "core",
     "project": "core",
     "level": "core",

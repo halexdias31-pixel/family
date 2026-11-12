@@ -1,0 +1,397 @@
+{
+ "id": "aqa-8382",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Statistics",
+ "code": "8382",
+ "url": "https://filestore.aqa.org.uk/resources/mathematics/specifications/AQA-8382-SP-2017.PDF",
+ "sections": [
+  {
+   "id": "3.2",
+   "title": "Section B"
+  },
+  {
+   "id": "3.3",
+   "title": "Section C"
+  },
+  {
+   "id": "3.4",
+   "title": "Section D"
+  },
+  {
+   "id": "3.5",
+   "title": "Section E"
+  },
+  {
+   "id": "3.6",
+   "title": "Statistical Enquiry Cycle (SEC)"
+  },
+  {
+   "id": "3.1",
+   "title": "Section A"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.2.1",
+   "text": "B1a",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2",
+   "text": "B1b",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.3",
+   "text": "B1c",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.4",
+   "text": "B2a",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.5",
+   "text": "B2b",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.6",
+   "text": "B2c",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.7",
+   "text": "B2d",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.8",
+   "text": "B3a",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.9",
+   "text": "B3b",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.10",
+   "text": "B3c",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.11",
+   "text": "B3d",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.13",
+   "text": "B3f",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.15",
+   "text": "B5a",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.16",
+   "text": "B5b",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.17",
+   "text": "B5c",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.3.2",
+   "text": "C1b",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.4",
+   "text": "C3a",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.5",
+   "text": "C3b",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.6",
+   "text": "C4a",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.7",
+   "text": "C4b",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.4.1",
+   "text": "D1a",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.2",
+   "text": "D1b",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.4",
+   "text": "D3a",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.5",
+   "text": "D3b",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.5.1",
+   "text": "E1a",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.2",
+   "text": "E1b",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.3",
+   "text": "E1c",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.4",
+   "text": "E2a",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.5",
+   "text": "E2b",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.6",
+   "text": "E2c",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.8",
+   "text": "E3b",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.9",
+   "text": "E3c",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.10",
+   "text": "E3d",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.11",
+   "text": "E4a",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.12",
+   "text": "E4b",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.13",
+   "text": "E5a",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.14",
+   "text": "E5b",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.17",
+   "text": "E7b",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.18",
+   "text": "E7c",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.19",
+   "text": "E8a",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.20",
+   "text": "E8b",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.21",
+   "text": "E8c",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.22",
+   "text": "E9a",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.23",
+   "text": "E9b",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.25",
+   "text": "E10a",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.26",
+   "text": "E10b",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.27",
+   "text": "E11a",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.28",
+   "text": "E11b",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.29",
+   "text": "E11c",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.30",
+   "text": "E11d",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.31",
+   "text": "E12a",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.33",
+   "text": "E12c",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.34",
+   "text": "E12d",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.35",
+   "text": "E13a",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.36",
+   "text": "E13b",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.6.1",
+   "text": "Initial planning",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.2",
+   "text": "Data collection",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.3",
+   "text": "Data processing and presentation",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.4",
+   "text": "Interpretation of results",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.5",
+   "text": "Evaluation and review",
+   "parent": "3.6",
+   "links": []
+  }
+ ]
+}

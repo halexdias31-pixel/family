@@ -1,0 +1,175 @@
+{
+ "id": "aqa-8132",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Business",
+ "code": "8132",
+ "url": "https://filestore.aqa.org.uk/resources/business/specifications/AQA-8132-SP-2017.PDF",
+ "sections": [
+  {
+   "id": "3.1",
+   "title": "Business in the real world"
+  },
+  {
+   "id": "3.2",
+   "title": "Influences on business"
+  },
+  {
+   "id": "3.3",
+   "title": "Business operations"
+  },
+  {
+   "id": "3.4",
+   "title": "Human resources"
+  },
+  {
+   "id": "3.5",
+   "title": "Marketing"
+  },
+  {
+   "id": "3.6",
+   "title": "Finance"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.1.2",
+   "text": "Business ownership",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.3",
+   "text": "Setting business aims and objectives",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.5",
+   "text": "Business location",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.6",
+   "text": "Business planning",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.7",
+   "text": "Expanding a business",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Technology",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.3",
+   "text": "The economic climate on businesses",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.4",
+   "text": "Globalisation",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.5",
+   "text": "Legislation",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.3.1",
+   "text": "Production processes",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.2",
+   "text": "The role of procurement",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.3",
+   "text": "The concept of quality",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.4",
+   "text": "Good customer services",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.4.1",
+   "text": "Organisational structures",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.2",
+   "text": "Recruitment and selection of employees",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.4",
+   "text": "Training",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.5.1",
+   "text": "Identifying and understanding customers",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.2",
+   "text": "Segmentation",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.3",
+   "text": "The purpose and methods of market research",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.4",
+   "text": "The elements of the marketing mix: price, product, promotion",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.6.1",
+   "text": "Sources of finance",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.3",
+   "text": "Financial terms and calculations",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.4",
+   "text": "Analysing the financial performance of a business",
+   "parent": "3.6",
+   "links": []
+  }
+ ]
+}

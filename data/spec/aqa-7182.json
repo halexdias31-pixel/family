@@ -1,0 +1,133 @@
+{
+ "id": "aqa-7182",
+ "board": "AQA",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Psychology",
+ "code": "7182",
+ "url": "https://filestore.aqa.org.uk/resources/psychology/specifications/AQA-7181-7182-SP-2015.PDF",
+ "sections": [
+  {
+   "id": "4.1",
+   "title": "Introductory topics in Psychology"
+  },
+  {
+   "id": "4.2",
+   "title": "Psychology in context"
+  },
+  {
+   "id": "4.3",
+   "title": "Issues and options in Psychology"
+  }
+ ],
+ "points": [
+  {
+   "id": "4.1.1",
+   "text": "Social influence",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.2",
+   "text": "Memory",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.3",
+   "text": "Attachment",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.4",
+   "text": "Psychopathology",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.2.1",
+   "text": "Approaches in Psychology",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2",
+   "text": "Biopsychology",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.3.1",
+   "text": "Scientific processes",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.3.2",
+   "text": "Data handling and analysis",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.3.3",
+   "text": "Inferential testing",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.3.2",
+   "text": "Relationships",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.3",
+   "text": "Gender",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.4",
+   "text": "Cognition and development",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.5",
+   "text": "Schizophrenia",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.6",
+   "text": "Eating behaviour",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.7",
+   "text": "Stress",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.8",
+   "text": "Aggression",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.9",
+   "text": "Forensic Psychology",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.10",
+   "text": "Addiction",
+   "parent": "4.3",
+   "links": []
+  }
+ ]
+}
