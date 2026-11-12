@@ -207,3 +207,55 @@ check('Booking form: discount, Rest of this half term, extra places and a space 
   bad.push(...bsScan_(f.draw(), 'priced'));
   return bad;
 });
+
+/* "EVERYTHING I CLICK, IT JUMPS ME BACK UP TO THE TOP" (owner, 12 Nov): on the real Find page each kind of answer leaves the form, the pages
+   round it and the focused control the very nodes they were, and moves no scroller (jsdom has no layout, so any write is the jump). */
+check('Booking form: a select, an hour ticked and a discount typed each redraw in place — no page rebuilt, nothing scrolled, the focus kept', async () => {
+  const f = await bsForm_();
+  const { w, t, d } = f, bad = [];
+  f.host.remove();
+  try { t.go('booking', false, true); w.eval('BOOK_OPEN = true'); t.repaint(true); } catch (e) { return ['opening booking threw: ' + e.message]; }
+  await wait(200);
+  if (!d.getElementById('bookr')) return ['no booking form on Find › Booking — the scroll was NOT checked'];
+  const moves = [];
+  const was = Object.getOwnPropertyDescriptor(w.Element.prototype, 'scrollTop');
+  Object.defineProperty(w.Element.prototype, 'scrollTop', { configurable: true, get() { return 400; },
+    set(v) { if (Math.abs(v - 400) > 2) moves.push((this.id || this.className) + '.scrollTop = ' + v); } });
+  const sTo = w.scrollTo, sIv = w.HTMLElement.prototype.scrollIntoView, sY = Object.getOwnPropertyDescriptor(w, 'scrollY');
+  Object.defineProperty(w, 'scrollY', { configurable: true, get: () => 400 });
+  w.scrollTo = (x, y) => { const to = x && typeof x === 'object' ? x.top : y; if (Math.abs((to || 0) - 400) > 2) moves.push('window.scrollTo ' + to); };
+  w.HTMLElement.prototype.scrollIntoView = function () { moves.push(this.id + '.scrollIntoView'); };
+  const answer = async (what, el, act) => {
+    const card = d.getElementById('bookr');
+    const pages = [...d.querySelectorAll('#s-stuff > .page')];
+    moves.length = 0;
+    if (!el) { bad.push(what + ': no control to answer on the form'); return; }
+    el.focus();
+    act(el);
+    await wait(60);
+    if (d.getElementById('bookr') !== card) bad.push(what + ': the form card was rebuilt, not patched');
+    const now = [...d.querySelectorAll('#s-stuff > .page')];
+    if (now.length !== pages.length || now.some((p, i) => p !== pages[i])) bad.push(what + ': the pages round the form were rebuilt');
+    if (!el.isConnected) bad.push(what + ': the control answered was thrown away');
+    else if (d.activeElement !== el) bad.push(what + ': the focus left the control (on ' + (d.activeElement && (d.activeElement.id || d.activeElement.tagName)) + ')');
+    if (moves.length) bad.push(what + ': the page was scrolled — ' + moves.join(', '));
+  };
+  const change = v => el => { el.value = v; el.dispatchEvent(new w.Event('change', { bubbles: true })); };
+  const ctl = id => d.getElementById('bk-ctl-' + id);
+  const opt = (id, re) => { const el = ctl(id); return el ? [...el.options].map(o => o.value).filter(v => v && re.test(v)).pop() || el.value : ''; };
+  try {
+    await answer('Kind', ctl('how'), change(opt('how', /new|instant/i)));
+    await answer('Venue', ctl('loc'), change(opt('loc', / — /)));
+    await answer('Extra seats', ctl('n'), change('2'));
+    await answer('Term', ctl('interval'), change(opt('interval', /./)));
+    const hour = d.querySelector('#bookr [data-do="book-slot"]:not(:disabled), #bookr [data-do="book-block"]:not(:disabled)');
+    await answer('an hour ticked', hour, el => el.click());
+    await answer('Discount', ctl('discValue'), el => { el.value = '10'; el.dispatchEvent(new w.Event('input', { bubbles: true })); el.dispatchEvent(new w.Event('change', { bubbles: true })); });
+    if (String(t.BOOKING.discValue) !== '10') bad.push('the discount typed did not reach BOOKING: ' + JSON.stringify(t.BOOKING.discValue));
+    if (String(t.BOOKING.n) !== '2') bad.push('Extra seats did not reach BOOKING: ' + JSON.stringify(t.BOOKING.n));
+  } finally {
+    Object.defineProperty(w.Element.prototype, 'scrollTop', was); w.scrollTo = sTo; w.HTMLElement.prototype.scrollIntoView = sIv;
+    if (sY) Object.defineProperty(w, 'scrollY', sY); else delete w.scrollY;
+  }
+  return bad;
+});
