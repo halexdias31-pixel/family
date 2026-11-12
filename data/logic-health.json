@@ -1,7 +1,7 @@
 {
- "score": 79.1,
- "questions": 201,
- "healthy": 159,
+ "score": 76.8,
+ "questions": 194,
+ "healthy": 149,
  "walked": {
   "nodes": 300,
   "maxNodes": 300,
@@ -28,7 +28,7 @@
   {
    "id": "subtype",
    "label": "a finer question asked before its coarser one",
-   "count": 26
+   "count": 27
   },
   {
    "id": "siblings",
@@ -38,12 +38,12 @@
   {
    "id": "echo",
    "label": "an answer that repeats the answer above it",
-   "count": 6
+   "count": 7
   },
   {
    "id": "twins",
    "label": "two answers that keep exactly the same cards",
-   "count": 6
+   "count": 7
   }
  ],
  "cannot": "Whether a card is filed under the right answer, or an answer has the best name: content and categorisation need a person.",
@@ -76,6 +76,14 @@
    ]
   },
   {
+   "where": "Find",
+   "asks": "What kind",
+   "cards": 283383,
+   "why": [
+    "a finer question asked before its coarser one: What kind before What for"
+   ]
+  },
+  {
    "where": "Find › Library › Religious Studies",
    "asks": "Religion",
    "cards": 240854,
@@ -94,17 +102,17 @@
   {
    "where": "Find › Practice › Questions",
    "asks": "Subject",
-   "cards": 31049,
+   "cards": 31531,
    "why": [
-    "sibling branches ask their next question in different orders: Biology asks Type, Chemistry asks Level; Biology asks Type, Physics asks Level"
+    "sibling branches ask their next question in different orders: English Literature asks Exam board, Geography asks Level; English Literature asks Exam board, Psychology asks Level"
    ]
   },
   {
    "where": "Find › Practice › Answers",
    "asks": "Subject",
-   "cards": 29861,
+   "cards": 30343,
    "why": [
-    "sibling branches ask their next question in different orders: Biology asks Type, Chemistry asks Level; Biology asks Type, Maths asks Level"
+    "sibling branches ask their next question in different orders: Biology asks Type, Maths asks Level; Chemistry asks Type, Maths asks Level"
    ]
   },
   {
@@ -137,6 +145,14 @@
    "cards": 942,
    "why": [
     "a finer question asked before its coarser one: Work before Kind of writing"
+   ]
+  },
+  {
+   "where": "Find › Library › Physics",
+   "asks": "Topic",
+   "cards": 122,
+   "why": [
+    "an answer that repeats the answer above it: Physics › Astrophysics; Physics › Nuclear Physics; Physics › Space Physics"
    ]
   },
   {
@@ -188,6 +204,14 @@
    ]
   },
   {
+   "where": "Find › Library › Maths › GCSE",
+   "asks": "Topic",
+   "cards": 32,
+   "why": [
+    "two answers that keep exactly the same cards: Manipulating Expressions = Simplifying & Collecting Terms"
+   ]
+  },
+  {
    "where": "Find › Practice › Practicals › Chemistry",
    "asks": "Topic",
    "cards": 31,
@@ -226,40 +250,16 @@
    "why": [
     "a finer question asked before its coarser one: Fighter before Division"
    ]
-  },
-  {
-   "where": "Find › Library › Physical Education › Fighters › 1960s",
-   "asks": "Fighter",
-   "cards": 20,
-   "why": [
-    "a finer question asked before its coarser one: Fighter before Division"
-   ]
-  },
-  {
-   "where": "Find › Library › Physical Education › Fighters › 1950s",
-   "asks": "Fighter",
-   "cards": 16,
-   "why": [
-    "a finer question asked before its coarser one: Fighter before Division"
-   ]
-  },
-  {
-   "where": "Find › Library › Physical Education › Fighters › 2020s",
-   "asks": "Fighter",
-   "cards": 15,
-   "why": [
-    "a finer question asked before its coarser one: Fighter before Division"
-   ]
   }
  ],
  "menuRule": [
   {
    "where": "Find › Library",
    "asks": "subject",
-   "bits": 0.34,
+   "bits": 0.35,
    "best": "wLanguage",
    "bestBits": 1.95,
-   "cards": 251353
+   "cards": 251675
   },
   {
    "where": "Find › Library › Religious Studies › Christianity",
@@ -342,6 +342,14 @@
    "cards": 9646
   },
   {
+   "where": "Find › Practice › Answers › Physics",
+   "asks": "documentType",
+   "bits": 0.76,
+   "best": "level",
+   "bestBits": 0.91,
+   "cards": 3752
+  },
+  {
    "where": "Find › Practice › Questions › Religious Studies",
    "asks": "examBoard",
    "bits": 0.57,
@@ -356,6 +364,14 @@
    "best": "level",
    "bestBits": 1.12,
    "cards": 1004
+  },
+  {
+   "where": "Find › Practice › Questions › Physics",
+   "asks": "documentType",
+   "bits": 0.78,
+   "best": "level",
+   "bestBits": 0.91,
+   "cards": 3788
   },
   {
    "where": "Find › Library › Physical Education",
@@ -418,25 +434,25 @@
   {
    "field": "forLabel",
    "label": "What for",
-   "cards": 282579,
+   "cards": 283383,
    "why": "lopsided — pressing its commonest answer would leave 0% of the list, needs 2%"
   },
   {
    "field": "qNumber",
    "label": "Question",
-   "cards": 31049,
+   "cards": 31531,
    "why": "counts within each Type — asked once one Type is left"
   },
   {
    "field": "myResult",
    "label": "Your result",
-   "cards": 31049,
+   "cards": 31531,
    "why": "one answer — nothing to decide"
   },
   {
    "field": "qSub",
    "label": "Sub-part",
-   "cards": 3176,
+   "cards": 3333,
    "why": "counts within each Type — asked once one Type is left"
   },
   {

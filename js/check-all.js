@@ -218,6 +218,8 @@ const SUITE = [
   { file: 'check/arrival.js', what: 'a phone\'s first eleven seconds: no layout shift, nothing empty or waiting in view once the payload lands, cold and warm (630)', slow: true },
   /* SLOW, LIKE THE BROWSERS, AND FOR THE SAME REASON. § */
   { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something', slow: true },
+  /* EVERY FACT ITS OWN TAG (owner, 12 Nov): no answer, chip or card tag spells another facet's value, after every answer and Doesn't matter. */
+  { file: 'check-tags.js', what: 'every answer, chip and card tag says its own fact, never another facet\'s glued on', slow: true },
   /* ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS § */
   { file: 'check-bundle.js', what: 'a bundle names its papers, and an order reaches the owner' },
   { file: 'check-flow.js',    what: 'the app, actually running', slow: true },

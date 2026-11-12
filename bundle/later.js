@@ -1126,7 +1126,7 @@ function answerSay_(facet, v) {
   let m = per[facet.field];
   if (!m || m.facet !== facet) {
     m = { facet: facet, by: new Map() };
-    try { facetTally_(items, facet).values.forEach(w => m.by.set(spellKey_(w.value), w.show || w.text || w.value)); } catch (e) { /* said in full, below */ }
+    try { facetTally_(items, facet).values.forEach(w => [w.value].concat(w.also || []).forEach(u => m.by.set(spellKey_(u), w.show || w.text || w.value))); } catch (e) { /* said in full, below */ }
     per[facet.field] = m;
   }
   return m.by.get(spellKey_(v)) || say;
@@ -1179,9 +1179,9 @@ function answerCmp_(texts) {
   return cmpText;
 }
 
-/* TWO ANSWERS THAT WOULD BE DRAWN THE SAME SAY WHAT TELLS THEM APART (396): § */
+/* TWO ANSWERS DRAWN THE SAME ARE ONE ANSWER (owner, 12 Nov): what another facet tells apart is that facet's own question, never glued on as ` · 2017`. § */
 function tellApart_(items, facet, values) {
-  const by = {}, told = [];
+  const by = {};
   values.forEach(v => { const k = spellKey_(v.show || v.text || v.value); (by[k] = by[k] || []).push(v); });
   const groups = Object.keys(by).map(k => by[k]).filter(g => g.length > 1);
   if (!groups.length) return;
@@ -1195,32 +1195,16 @@ function tellApart_(items, facet, values) {
     return seen.size === 1 ? [...seen][0] : '';
   };
   const facets = facetList().filter(g => g.field !== facet.field);
-  /* A FACET THAT SPLITS WHAT STILL COLLIDES IS SAID, and each part goes on to the facets after it. */
-  const part = (sub, from, tails) => {
-    for (let i = from; i < facets.length && sub.length > 1; i++) {
-      const said = sub.map(k => one(facets[i], k.list));
-      if (!said.every(Boolean) || new Set(said.map(spellKey_)).size < 2) continue;
-      sub.forEach((k, j) => tails.get(k).push(facetSay_(facets[i], said[j])));
-      const by2 = {};
-      sub.forEach((k, j) => { (by2[spellKey_(said[j])] = by2[spellKey_(said[j])] || []).push(k); });
-      Object.keys(by2).forEach(w => part(by2[w], i + 1, tails));
-      return;
-    }
-  };
+  /* SPLIT BY ANOTHER FACET: one answer, its values `also` (a press chips them all), and that facet is asked on its own. */
   groups.forEach(same => {
-    const sub = same.map(v => ({ v: v, list: of.get(spellKey_(v.value)) || [] }));
-    const tails = new Map(sub.map(k => [k, []]));
-    part(sub, 0, tails);
-    sub.forEach(k => {
-      const t = tails.get(k);
-      if (!t.length) return;
-      const tail = t.map(w => ' \u00b7 ' + w).join('');
-      told.push({ v: k.v, full: (k.v.text || k.v.value) + tail });
-      k.v.show = nameForms_(k.v.text || k.v.value)[0] + tail;
-    });
+    const lists = same.map(v => of.get(spellKey_(v.value)) || []);
+    const splits = facets.some(g => { const said = lists.map(l => one(g, l)); return new Set(said.filter(Boolean).map(spellKey_)).size > 1; });
+    if (!splits) return;
+    const head = same[0];
+    head.also = (head.also || []).concat(...same.slice(1).map(v => [v.value].concat(v.also || [])));
+    head.n = same.reduce((a, v) => a + (v.n || 0), 0);
+    same.slice(1).forEach(v => values.splice(values.indexOf(v), 1));
   });
-  /* THE SHORT NAME WITH WHAT TELLS IT APART, unless that collides with another answer — then the whole name with it. */
-  if (told.length && new Set(values.map(v => spellKey_(v.show))).size !== values.length) told.forEach(t => { t.v.show = t.full; });
   /* STILL TWIN, NO FACET SPLITS THEM: § */
   const left = {};
   values.forEach(v => { const k = spellKey_(v.show || v.text || v.value); (left[k] = left[k] || []).push(v); });
@@ -1231,17 +1215,6 @@ function tellApart_(items, facet, values) {
     const rungs = g.map(names), deep = Math.max(...rungs.map(r => r.length));
     for (let i = 0; i < deep; i++) { const at = rungs.map(r => String(r[Math.min(i, r.length - 1)] || ''));
       if (at.every(Boolean) && new Set(at.map(spellKey_)).size === g.length) { g.forEach((v, j) => { v.show = at[j]; }); return; } } });
-  /* AND AN ANSWER NOTHING COLLIDED WITH IS SAID SHORT TOO, when no other answer's short name is the same. */
-  if (!told.length) return;
-  const isTold = new Set(told.map(t => t.v));
-  const shortOf = v => nameForms_(v.text || v.value)[0];
-  const taken = new Map();
-  values.forEach(v => { [spellKey_(v.show), spellKey_(shortOf(v))].forEach(k => taken.set(k, (taken.get(k) || 0) + 1)); });
-  values.forEach(v => {
-    if (isTold.has(v) || v.show !== (v.text || v.value)) return;
-    const k = spellKey_(shortOf(v));
-    if (k !== spellKey_(v.show) && (taken.get(k) || 0) === 1) v.show = shortOf(v);
-  });
 }
 
 /* `facetTally_` — ONE WALK OF THE LIST PER QUESTION, NOT THREE. § */
@@ -11030,10 +11003,12 @@ on('cut-open', el => { if (el && el.classList) el.classList.toggle('is-open'); }
 function chipShow_(f, i) {
   const facet = facetBy(f.field), was = STUFF.filters;
   if (!facet) return f.value;
+  /* ONE PRESS, SEVERAL FILTERS (an answer's `also`): each is said as the answer was, counted before the first of them. */
+  if (i != null && Array.isArray(was)) while (i > 0 && was[i - 1] && was[i - 1].field === f.field && !was[i - 1].any) i--;
   const built = i != null && Array.isArray(was) ? chipShowBuilt_(was.slice(0, i), f) : null;
   if (built != null) return built;
   if (i != null && Array.isArray(was)) try { STUFF.filters = was.slice(0, i);
-    const w = (facetTally_(stuffFiltered(), facet).values || []).find(v => spellKey_(v.value) === spellKey_(f.value));
+    const w = (facetTally_(stuffFiltered(), facet).values || []).find(v => [v.value].concat(v.also || []).some(u => spellKey_(u) === spellKey_(f.value)));
     if (w) return w.show || w.text || w.value; } catch (e) { oops_(e, 'find:chipShow_') } finally { STUFF.filters = was; }
   return answerSay_(facet, f.value);
 }
@@ -11092,7 +11067,10 @@ function filterClear_() {
    and never one on Find. */
 on('facet-pick', el => inFinder_(finderAt_(el), () => {
   writingFreeze_();
-  STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value });
+  /* ONE ANSWER, SEVERAL VALUES (`tellApart_`'s `also`): each is a filter, so the field reads "either", and the row says it once. */
+  let also = [];
+  try { also = el.dataset.also ? JSON.parse(el.dataset.also) : []; } catch (e) { also = []; }
+  [el.dataset.value].concat(also).forEach(v => STUFF.filters.push({ field: el.dataset.field, value: v }));
   paintStuffSoon_();
   /* A BOOK OF THE BIBLE CHOSEN WAS FETCHED HERE TOO (docs/history/341), and the review of 12 Oct found nothing could tell: § */
 }));
@@ -11104,7 +11082,13 @@ on('facet-skip', el => inFinder_(finderAt_(el), () => {
   STUFF.filters.push({ field: el.dataset.field, any: true });
   paintStuffSoon_();
 }));
-on('filter-drop', el => inFinder_(finderAt_(el), () => { STUFF.filters.splice(Number(el.dataset.i), 1); paintStuffSoon_(); }));
+/* A CHIP SAID ONCE FOR SEVERAL FILTERS (`filterChips`) takes all of them off. */
+on('filter-drop', el => inFinder_(finderAt_(el), () => {
+  const i = Number(el.dataset.i), f = STUFF.filters[i];
+  const say = f && !f.any ? spellKey_(chipText_(f, i)) : null;
+  STUFF.filters = STUFF.filters.filter((g, j) => j !== i && !(say && g.field === f.field && !g.any && spellKey_(chipText_(g, j)) === say));
+  paintStuffSoon_();
+}));
 on('filter-clear', el => inFinder_(finderAt_(el), () => { STUFF.filters = []; paintStuff(); }));
 
 /* REDRAW THE RESULTS AND NOTHING ELSE. § */
@@ -11993,7 +11977,7 @@ function facetAnswersHtml_(facet, values, more) {
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
   const grid = numberedRun_(values);
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap${facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? ' is-off' : ''}" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
-        data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
+        data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.also && v.also.length ? ` data-also="${esc(JSON.stringify(v.also))}"` : ''}${
         grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
         <span class="k">${mark(v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value))}</span>
       </div>`).join('') + skip + '</div>' + more;
@@ -12146,7 +12130,7 @@ function finderTagsAt_() {
   if (STUFF.admit != null || finderSettled_()) return null;
   const key = finderStateKey_(), view = key === null ? null : finderTagsView_();
   const at = view && view[key], facet = at && facetBy(at[0]);
-  return facet ? { facet: facet, values: at[1].map(v => ({ value: v[0], show: v.length > 1 ? v[1] : v[0] })) } : null;
+  return facet ? { facet: facet, values: at[1].map(v => ({ value: v[0], show: v.length > 1 ? v[1] : v[0], also: v[2] })) } : null;
 }
 
 ;
@@ -12160,7 +12144,7 @@ function finderTagsLook_() {
   const view = finderTagsView_(), at = view && view[finderStateKey_()];
   if (!at || !(at[3] > 1) || !finderTagsSame_(view, fs[0])) return null;
   const facet = facetBy(at[0]);
-  return facet ? { facet: facet, values: at[1].map((v, i) => ({ value: v[0], show: v.length > 1 ? v[1] : v[0], n: (at[2] || [])[i], say: (at[4] || [])[i] })) } : null;
+  return facet ? { facet: facet, values: at[1].map((v, i) => ({ value: v[0], show: v.length > 1 ? v[1] : v[0], also: v[2], n: (at[2] || [])[i], say: (at[4] || [])[i] })) } : null;
 }
 /* THE BUILD'S LIBRARY IS THIS ONE when the facets are its facets, nothing failed to come, no press makes Your result a § */
 /* chip's cards are as many as it counted (one tally of the whole list, held). Anything else is counted live, as before. */
@@ -12285,7 +12269,7 @@ function chipShowBuilt_(before, f) {
     if (before.some(c => !c || c.any) || STUFF.admit != null || !finderSettled_()) return null;
     const view = finderTagsView_(), at = view && view[before.map(c => c.field + '=' + c.value).join('&')];
     if (!at || at[0] !== f.field || !finderTagsSame_(view, before[0] || f)) return null;
-    const v = at[1].find(a => spellKey_(a[0]) === spellKey_(f.value));
+    const v = at[1].find(a => [a[0]].concat(a[2] || []).some(u => spellKey_(u) === spellKey_(f.value)));
     return v ? (v.length > 1 ? v[1] : v[0]) : null;
   } catch (e) { return null; }
 }

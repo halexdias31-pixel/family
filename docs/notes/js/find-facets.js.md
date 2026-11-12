@@ -45,13 +45,17 @@ top level, before `FRONT_ORDER`
 /* LISTS WHOSE OWN ORDER IS THE ORDER (473): a file pushes one, and answers all in it sort by it — the Talmud's orders and tractates. */
 ```
 
-### TWO ANSWERS THAT WOULD BE DRAWN THE SAME SAY WHAT TELLS THEM APART (396):
+### TWO ANSWERS DRAWN THE SAME ARE ONE ANSWER (owner, 12 Nov):
 
 top level, before `tellApart_`
 
 ```
-/* TWO ANSWERS THAT WOULD BE DRAWN THE SAME SAY WHAT TELLS THEM APART (396): the other facets, in the tab's order, added
-   until each reads differently — `Paper 1 · Higher` beside `Paper 1 · Foundation`. */
+/* TWO ANSWERS DRAWN THE SAME ARE ONE ANSWER (owner, 12 Nov: "if I click Doesn't matter on Year, the tag doesn't just say
+   Paper 1 — it says Paper 1 with a year next to it"). Until then (396) the other facets were glued on, `Paper 1 · 2017`,
+   two facts in one tag. Now answers another facet splits fold into one: the first keeps its value, the rest go in `also`,
+   a press chips every one of them (one field, so "either"), the chip row says it once and its ✕ takes them all off, and the
+   facet that told them apart is asked as its own question, or was answered Doesn't matter. `js/check-tags.js` fails on any
+   answer, chip or card tag that spells another facet's value. */
 ```
 
 ### STILL TWIN, NO FACET SPLITS THEM:

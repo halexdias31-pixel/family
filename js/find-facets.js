@@ -67,7 +67,7 @@ function answerSay_(facet, v) {
   let m = per[facet.field];
   if (!m || m.facet !== facet) {
     m = { facet: facet, by: new Map() };
-    try { facetTally_(items, facet).values.forEach(w => m.by.set(spellKey_(w.value), w.show || w.text || w.value)); } catch (e) { /* said in full, below */ }
+    try { facetTally_(items, facet).values.forEach(w => [w.value].concat(w.also || []).forEach(u => m.by.set(spellKey_(u), w.show || w.text || w.value))); } catch (e) { /* said in full, below */ }
     per[facet.field] = m;
   }
   return m.by.get(spellKey_(v)) || say;
@@ -120,9 +120,9 @@ function answerCmp_(texts) {
   return cmpText;
 }
 
-/* TWO ANSWERS THAT WOULD BE DRAWN THE SAME SAY WHAT TELLS THEM APART (396): § */
+/* TWO ANSWERS DRAWN THE SAME ARE ONE ANSWER (owner, 12 Nov): what another facet tells apart is that facet's own question, never glued on as ` · 2017`. § */
 function tellApart_(items, facet, values) {
-  const by = {}, told = [];
+  const by = {};
   values.forEach(v => { const k = spellKey_(v.show || v.text || v.value); (by[k] = by[k] || []).push(v); });
   const groups = Object.keys(by).map(k => by[k]).filter(g => g.length > 1);
   if (!groups.length) return;
@@ -136,32 +136,16 @@ function tellApart_(items, facet, values) {
     return seen.size === 1 ? [...seen][0] : '';
   };
   const facets = facetList().filter(g => g.field !== facet.field);
-  /* A FACET THAT SPLITS WHAT STILL COLLIDES IS SAID, and each part goes on to the facets after it. */
-  const part = (sub, from, tails) => {
-    for (let i = from; i < facets.length && sub.length > 1; i++) {
-      const said = sub.map(k => one(facets[i], k.list));
-      if (!said.every(Boolean) || new Set(said.map(spellKey_)).size < 2) continue;
-      sub.forEach((k, j) => tails.get(k).push(facetSay_(facets[i], said[j])));
-      const by2 = {};
-      sub.forEach((k, j) => { (by2[spellKey_(said[j])] = by2[spellKey_(said[j])] || []).push(k); });
-      Object.keys(by2).forEach(w => part(by2[w], i + 1, tails));
-      return;
-    }
-  };
+  /* SPLIT BY ANOTHER FACET: one answer, its values `also` (a press chips them all), and that facet is asked on its own. */
   groups.forEach(same => {
-    const sub = same.map(v => ({ v: v, list: of.get(spellKey_(v.value)) || [] }));
-    const tails = new Map(sub.map(k => [k, []]));
-    part(sub, 0, tails);
-    sub.forEach(k => {
-      const t = tails.get(k);
-      if (!t.length) return;
-      const tail = t.map(w => ' \u00b7 ' + w).join('');
-      told.push({ v: k.v, full: (k.v.text || k.v.value) + tail });
-      k.v.show = nameForms_(k.v.text || k.v.value)[0] + tail;
-    });
+    const lists = same.map(v => of.get(spellKey_(v.value)) || []);
+    const splits = facets.some(g => { const said = lists.map(l => one(g, l)); return new Set(said.filter(Boolean).map(spellKey_)).size > 1; });
+    if (!splits) return;
+    const head = same[0];
+    head.also = (head.also || []).concat(...same.slice(1).map(v => [v.value].concat(v.also || [])));
+    head.n = same.reduce((a, v) => a + (v.n || 0), 0);
+    same.slice(1).forEach(v => values.splice(values.indexOf(v), 1));
   });
-  /* THE SHORT NAME WITH WHAT TELLS IT APART, unless that collides with another answer — then the whole name with it. */
-  if (told.length && new Set(values.map(v => spellKey_(v.show))).size !== values.length) told.forEach(t => { t.v.show = t.full; });
   /* STILL TWIN, NO FACET SPLITS THEM: § */
   const left = {};
   values.forEach(v => { const k = spellKey_(v.show || v.text || v.value); (left[k] = left[k] || []).push(v); });
@@ -172,17 +156,6 @@ function tellApart_(items, facet, values) {
     const rungs = g.map(names), deep = Math.max(...rungs.map(r => r.length));
     for (let i = 0; i < deep; i++) { const at = rungs.map(r => String(r[Math.min(i, r.length - 1)] || ''));
       if (at.every(Boolean) && new Set(at.map(spellKey_)).size === g.length) { g.forEach((v, j) => { v.show = at[j]; }); return; } } });
-  /* AND AN ANSWER NOTHING COLLIDED WITH IS SAID SHORT TOO, when no other answer's short name is the same. */
-  if (!told.length) return;
-  const isTold = new Set(told.map(t => t.v));
-  const shortOf = v => nameForms_(v.text || v.value)[0];
-  const taken = new Map();
-  values.forEach(v => { [spellKey_(v.show), spellKey_(shortOf(v))].forEach(k => taken.set(k, (taken.get(k) || 0) + 1)); });
-  values.forEach(v => {
-    if (isTold.has(v) || v.show !== (v.text || v.value)) return;
-    const k = spellKey_(shortOf(v));
-    if (k !== spellKey_(v.show) && (taken.get(k) || 0) === 1) v.show = shortOf(v);
-  });
 }
 
 /* `facetTally_` — ONE WALK OF THE LIST PER QUESTION, NOT THREE. § */
