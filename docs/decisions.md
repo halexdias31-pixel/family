@@ -309,3 +309,8 @@ become an owner question showing both; never pick one.
 - Remove: Split.
 ## 12 Nov — the LEGO piece check (owner)
 - "Add a tool in settings for the Lego trading thing — make sure all the pieces of a set are there. Don't make it perfect." A staff/admin settings card (docs/history/1202): pick a set, paste its parts list, three photos a batch counted by the marking model, tally kept on the device, Finished lists what is missing.
+## 12 Nov — owner batch
+- 12 Nov — Notepad, Term dates and the maths mat (now called "Cheat sheet maker" wherever the user sees it) are back on (secondary), Tools cards in Find, each with a safe press (Notepad: Copy; Term dates: Later/Fewer).
+- 12 Nov — one Notifications item in Find › Settings: the email ticks and the phone's (push) on one card; an admin ticks for someone from their Edit form (parents opt in, 11 Nov).
+- 12 Nov — names in one place: receipts, reports, applications and lib_log stop storing a name or handle; it is read from the people row by person id, an old row's stored cell kept as the fallback. Version stamps bumped (redeploy the backend).
+- 12 Nov — Homework stays off for now; Spotify, Newspaper, Basket and the rest are undecided and left as they are.

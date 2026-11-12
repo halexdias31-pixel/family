@@ -47,7 +47,8 @@ function getReceipts_(p, askedBy_) {
   if (netViewerIsChild_()) return jsonOut({ version: BACKEND_VERSION, receipts: [] });
   const mine = read(TAB.receipts).rows.filter(r =>
     (S(r.person_id) && S(r.person_id) === S(who.person_id))
-    || key(S(r.person_name)) === key(personDisplayName(who)));
+    /* AN OLD ROW WITH NO person_id: its stored name, the one fallback left (owner, 12 Nov). */
+    || (!S(r.person_id) && key(S(r.person_name)) === key(personDisplayName(who))));
   return jsonOut({ version: BACKEND_VERSION, receipts: mine.map(r => ({
     id: S(r.receipt_id), kind: S(r.kind), jobId: S(r.job_id),
     issuedOn: S(r.issued_on), total: N(r.total_pence) / 100, currency: S(r.currency) || 'GBP',

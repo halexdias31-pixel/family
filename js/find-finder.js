@@ -220,7 +220,7 @@ function widgetCard_(x) {
 
 /* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched; which are off is tiers.json's (TIER_OFF_WIDGETS). */
 const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos',
-  newspaper: 'Newspaper', flyers: 'Make a flyer', mat: 'Cheat sheet maker (maths mat)', timer: 'Timer', docket: 'Docket',
+  newspaper: 'Newspaper', flyers: 'Make a flyer', mat: 'Cheat sheet maker', timer: 'Timer', docket: 'Docket',
   notepad: 'Notepad', spotify: 'Spotify', speedread: 'Speed reader (one word at a time)', timetable: 'Timetable', typing: 'Touch typing (keyboard practice)',
   cart: 'Basket', shopfind: 'Search the shop', calendar: 'Calendar', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links',
   rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', libcards: 'Library cards', homework: 'Homework' };
