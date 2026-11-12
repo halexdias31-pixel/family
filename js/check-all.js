@@ -234,6 +234,13 @@ const SUITE = [
   { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true, heavy: true },
   /* ONE PRESS, ONE ACTION (534): a double tap posts once, a yes under 400 ms is ignored, a request that never answers lets go after a minute. */
   { file: 'check-policy-fill.js', what: 'each policy opens with its placeholders filled from the payload, headings drawn, no made-up value committed' },
+  /* RULES THAT HAD NO CHECK: read, not run, each well under a second. */
+  { file: 'check-money-terms.js', what: 'rule 1.4: terms, refunds and complaints written, linked, and every policy reviewed within the year' },
+  { file: 'check-how-we-work.js', what: 'rule 1.6: every CI job has a timeout, pull requests run check-all, a session starts with it' },
+  { file: 'check-no-games.js', what: 'rule 6.2: no new leaderboard, points, streak or high score; the ones left only go down' },
+  { file: 'check-free.js', what: 'rule 10.2: every host called and package shipped is on the owner\'s list in rule-guards.json' },
+  { file: 'check-no-new-screen.js', what: 'rule 11.1: TAB_ORDER and columns.json never grow past the screen budget' },
+  { file: 'check-effort-report.js', what: 'rule 12.1: effort is report-only, recorded by the full health run alone' },
   { file: 'check-api-deadline.js', what: 'a POST the backend runs for minutes is not cut by api()\'s one-minute deadline' },
   { file: 'check-press-hold.js', what: 'a control waiting on its request holds itself, not its twin, and not for ever; steppers take two fast taps' },
   { file: 'check/offline.js', what: 'a paper made available offline: opened with no connection, rule parts marked, an AI part held; back online every press arrives once', slow: true },
