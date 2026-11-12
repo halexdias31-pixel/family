@@ -6,30 +6,37 @@
  "subject": "Maths",
  "code": "1MA1",
  "url": "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/specification-and-sample-assesment/gcse-maths-2015-specification.pdf",
+ "measured": true,
  "sections": [
   {
    "id": "N",
-   "title": "Number"
+   "title": "Number",
+   "topic": "Number"
   },
   {
    "id": "A",
-   "title": "Algebra"
+   "title": "Algebra",
+   "topic": "Algebra"
   },
   {
    "id": "R",
-   "title": "Ratio, proportion and rates of change"
+   "title": "Ratio, proportion and rates of change",
+   "topic": "Ratio, Proportion & Rates of Change"
   },
   {
    "id": "G",
-   "title": "Geometry and measures"
+   "title": "Geometry and measures",
+   "topic": "Geometry & Measures"
   },
   {
    "id": "P",
-   "title": "Probability"
+   "title": "Probability",
+   "topic": "Probability"
   },
   {
    "id": "S",
-   "title": "Statistics"
+   "title": "Statistics",
+   "topic": "Statistics"
   }
  ],
  "points": [
@@ -37,583 +44,1753 @@
    "id": "N1",
    "text": "order positive and negative integers, decimals and fractions; use the symbols =, ≠, <, >, ≤, ≥",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-1",
+    "q:Q-1MA1-2406-1F-4",
+    "q:Q-1MA1-2406-1F-11a",
+    "q:Q-1MA1-2406-2F-1",
+    "q:Q-1MA1-2406-2F-13b"
+   ],
+   "topics": [
+    "Ordering Numbers & Decimals",
+    "Ordering Fractions",
+    "Inequalities on a Number Line",
+    "Negative Numbers"
+   ],
+   "asked": 82
   },
   {
    "id": "N2",
    "text": "apply the four operations, including formal written methods, to integers, decimals and simple fractions (proper and improper), and mixed…",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-1",
+    "ct:TB-GCSE-MATHS-3",
+    "q:Q-1MA1-2406-1H-2a",
+    "q:Q-1MA1-2406-1H-2b",
+    "q:Q-1MA1-2406-1F-6",
+    "q:Q-1MA1-2406-1F-11a"
+   ],
+   "topics": [
+    "The Four Operations",
+    "Addition",
+    "Subtraction",
+    "Multiplication",
+    "Division",
+    "Long Multiplication",
+    "Long Division",
+    "Calculating with Decimals",
+    "Adding & Subtracting Fractions",
+    "Multiplying & Dividing Fractions",
+    "Mixed Numbers",
+    "Negative Numbers"
+   ],
+   "asked": 136
   },
   {
    "id": "N3",
    "text": "recognise and use relationships between operations, including inverse operations (e.g. cancellation to simplify calculations and…",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-1",
+    "q:Q-1MA1-2406-1F-11c",
+    "q:Q-1MA1-2406-2F-19a",
+    "q:Q-1MA1-2411-1F-12",
+    "q:Q-1MA1-2211-1F-3"
+   ],
+   "topics": [
+    "Order of Operations"
+   ],
+   "asked": 18
   },
   {
    "id": "N4",
    "text": "use the concepts and vocabulary of prime numbers, factors (divisors), multiples, common factors, common multiples, highest common factor…",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-1",
+    "q:Q-1MA1-2406-2H-2a",
+    "q:Q-1MA1-2406-2H-2b",
+    "q:Q-1MA1-2406-2F-4",
+    "q:Q-1MA1-2406-2F-21a"
+   ],
+   "topics": [
+    "Primes & Prime Factorisation",
+    "HCF & LCM",
+    "Factors & Multiples"
+   ],
+   "asked": 92
   },
   {
    "id": "N5",
    "text": "apply systematic listing strategies, including use of the product rule for counting (i.e. if there are m ways of doing one task and for…",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-1",
+    "ct:TB-GCSE-MATHS-19",
+    "q:Q-1MA1-2406-2F-10",
+    "q:Q-1MA1-2406-3H-13",
+    "q:Q-1MA1-2306-1H-19",
+    "q:Q-1MA1-2211-3H-15"
+   ],
+   "topics": [
+    "Listing Outcomes & Sample Space"
+   ],
+   "asked": 33
   },
   {
    "id": "N6",
    "text": "use positive integer powers and associated real roots (square, cube and higher), recognise powers of 2, 3, 4, 5; estimate powers and roots…",
    "parent": "N",
-   "links": []
+   "links": [
+    "q:Q-1MA1-2406-1F-5",
+    "q:Q-1MA1-2411-2F-8a",
+    "q:Q-1MA1-2411-3F-5",
+    "q:Q-1MA1-2411-3F-6c"
+   ],
+   "topics": [
+    "Squares & Square Roots",
+    "Cubes & Cube Roots"
+   ],
+   "asked": 26
   },
   {
    "id": "N7",
    "text": "calculate with roots, and with integer and fractional indices",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-2",
+    "q:Q-1MA1-2406-1H-20",
+    "q:Q-1MA1-2406-1F-11b",
+    "q:Q-1MA1-2406-1F-18",
+    "q:Q-1MA1-2406-2F-19a"
+   ],
+   "topics": [
+    "Laws of Indices",
+    "Fractional & Negative Indices",
+    "Indices"
+   ],
+   "asked": 129
   },
   {
    "id": "N8",
    "text": "calculate exactly with fractions, surds and multiples of π; simplify surd expressions involving squares (e.g. √12 = √(4 × 3) = √4 × √3 =…",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-2",
+    "q:Q-1MA1-2406-1H-17a",
+    "q:Q-1MA1-2406-1H-17b",
+    "q:Q-1MA1-2406-2H-15",
+    "q:Q-1CM-calculating-with-surds-1"
+   ],
+   "topics": [
+    "Surds",
+    "Simplifying Surds",
+    "Rationalising the Denominator"
+   ],
+   "asked": 64
   },
   {
    "id": "N9",
    "text": "calculate with and interpret standard form A × 10 , where 1 ≤ A < 10 and n is an integer",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-2",
+    "q:Q-1MA1-2406-3F-23ai",
+    "q:Q-1MA1-2406-3F-23aii",
+    "q:Q-1MA1-2406-3F-23b",
+    "q:Q-1MA1-2406-3H-2ai"
+   ],
+   "topics": [
+    "Standard Form"
+   ],
+   "asked": 121
   },
   {
    "id": "N10",
    "text": "work interchangeably with terminating decimals and their corresponding fractions (such as 3.5 and 7 or 0.375 or 3 ); change recurring…",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-3",
+    "q:Q-1MA1-2406-1H-18",
+    "q:Q-1MA1-2406-1F-2",
+    "q:Q-1MA1-2406-2F-3",
+    "q:Q-1MA1-2406-3F-1"
+   ],
+   "topics": [
+    "Fraction Decimal Percentage Conversion",
+    "Recurring Decimals"
+   ],
+   "asked": 63
   },
   {
    "id": "N11",
    "text": "identify and work with fractions in ratio problems",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-11",
+    "q:Q-1MA1-2406-3H-10",
+    "q:Q-1CM-working-with-ratio-1",
+    "q:Q-1CM-working-with-ratio-2",
+    "q:Q-1CM-working-with-ratio-3"
+   ],
+   "topics": [
+    "Ratio Problems"
+   ],
+   "asked": 78
   },
   {
    "id": "N12",
    "text": "interpret fractions and percentages as operators",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-3",
+    "ct:TB-GCSE-MATHS-1MA1-1",
+    "q:Q-1MA1-2406-1H-7",
+    "q:Q-1MA1-2406-1H-9",
+    "q:Q-1MA1-2406-1F-26",
+    "q:Q-1MA1-2406-1F-27"
+   ],
+   "topics": [
+    "Fractions of an Amount",
+    "Percentage of an Amount",
+    "Percentage Increase & Decrease",
+    "Reverse Percentages"
+   ],
+   "asked": 205
   },
   {
    "id": "N13",
    "text": "use standard units of mass, length, time, money and other measures (including standard compound measures) using decimal quantities where…",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-12",
+    "ct:TB-GCSE-MATHS-16",
+    "q:Q-1MA1-2406-2F-2",
+    "q:Q-1MA1-2406-2F-7a",
+    "q:Q-1MA1-2406-2F-9",
+    "q:Q-1MA1-2406-2F-14b"
+   ],
+   "topics": [
+    "Units & Measures"
+   ],
+   "asked": 80
   },
   {
    "id": "N14",
    "text": "estimate answers; check calculations using approximation and estimation, including answers obtained using technology",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-4",
+    "q:Q-1MA1-2406-1H-5a",
+    "q:Q-1MA1-2406-1H-5b",
+    "q:Q-1MA1-2406-1F-24",
+    "q:Q-1MA1-2406-1F-24a"
+   ],
+   "topics": [
+    "Estimation"
+   ],
+   "asked": 38
   },
   {
    "id": "N15",
    "text": "round numbers and measures to an appropriate degree of accuracy (e.g. to a specified number of decimal places or significant figures); use…",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-4",
+    "q:Q-1MA1-2406-1F-1",
+    "q:Q-1MA1-2406-2H-1",
+    "q:Q-1MA1-2406-2H-9a",
+    "q:Q-1MA1-2406-2F-19b"
+   ],
+   "topics": [
+    "Rounding",
+    "Significant Figures"
+   ],
+   "asked": 32
   },
   {
    "id": "N16",
    "text": "apply and interpret limits of accuracy, including upper and lower bounds",
    "parent": "N",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-4",
+    "q:Q-1MA1-2406-2H-9a",
+    "q:Q-1MA1-2406-2H-9b",
+    "q:Q-1MA1-2406-3H-19",
+    "q:Q-1CM-error-intervals-1"
+   ],
+   "topics": [
+    "Bounds & Error Intervals"
+   ],
+   "asked": 98
   },
   {
    "id": "A1",
    "text": "use and interpret algebraic manipulation, including: • • •",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-5",
+    "ct:TB-GCSE-MATHS-1MA1-2",
+    "q:Q-1MA1-2406-2F-5",
+    "q:Q-1MA1-2406-2F-13a",
+    "q:Q-1MA1-2406-3F-4",
+    "q:Q-1MA1-2406-3F-16b"
+   ],
+   "topics": [
+    "Manipulating Expressions",
+    "Simplifying & Collecting Terms"
+   ],
+   "asked": 41
   },
   {
    "id": "A2",
    "text": "substitute numerical values into formulae and expressions, including scientific formulae",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-1MA1-3",
+    "q:Q-1MA1-2406-2H-3",
+    "q:Q-1MA1-2406-2H-5a",
+    "q:Q-1MA1-2406-2F-13b",
+    "q:Q-1MA1-2406-2F-22"
+   ],
+   "topics": [
+    "Substitution"
+   ],
+   "asked": 29
   },
   {
    "id": "A3",
    "text": "understand and use the concepts and vocabulary of expressions, equations, formulae, identities, inequalities, terms and factors",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-5",
+    "q:Q-1MA1-2411-3F-12",
+    "q:Q-1MA1-2211-2F-14c",
+    "q:Q-1MA1-1906-1F-13",
+    "q:Q-1MA1-1906-3F-15-0"
+   ],
+   "topics": [
+    "Formulae"
+   ],
+   "asked": 12
   },
   {
    "id": "A4",
    "text": "simplify and manipulate algebraic expressions (including those involving surds and algebraic fractions) by: ● ● ● ●",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-5",
+    "q:Q0166",
+    "q:Q0167",
+    "q:Q0168",
+    "q:Q0169"
+   ],
+   "topics": [
+    "Expanding Brackets",
+    "Factorising",
+    "Algebraic Fractions"
+   ],
+   "asked": 154
   },
   {
    "id": "A5",
    "text": "understand and use standard mathematical formulae; rearrange formulae to change the subject",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-5",
+    "q:Q-1MA1-2406-3F-29b",
+    "q:Q-1MA1-2406-3H-9",
+    "q:Q-1MA1-2306-1H-17",
+    "q:Q-1MA1-2411-1F-25"
+   ],
+   "topics": [
+    "Rearranging Formulae"
+   ],
+   "asked": 27
   },
   {
    "id": "A6",
    "text": "know the difference between an equation and an identity; argue mathematically to show algebraic expressions are equivalent, and use algebra…",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-5",
+    "q:Q-1MA1-2406-1H-16",
+    "q:Q-1MA1-2406-3H-10",
+    "q:Q-1CM-algebraic-proof-1",
+    "q:Q-1CM-algebraic-proof-2"
+   ],
+   "topics": [
+    "Algebraic Proof"
+   ],
+   "asked": 39
   },
   {
    "id": "A7",
    "text": "where appropriate, interpret simple expressions as functions with inputs and outputs; interpret the reverse process as the ‘inverse…",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-5",
+    "q:Q-1MA1-2406-1F-9",
+    "q:Q-1MA1-2406-1F-9a",
+    "q:Q-1MA1-2406-1F-9b",
+    "q:Q-1MA1-2406-1F-9c"
+   ],
+   "topics": [
+    "Function Notation",
+    "Function Machines",
+    "Composite Functions",
+    "Inverse Functions",
+    "Functions"
+   ],
+   "asked": 137
   },
   {
    "id": "A8",
    "text": "work with coordinates in all four quadrants",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-6",
+    "q:Q-1MA1-2406-1H-23",
+    "q:Q-1MA1-2406-2F-8",
+    "q:Q-1MA1-2406-2F-8a",
+    "q:Q-1MA1-2406-2F-8b"
+   ],
+   "topics": [
+    "Coordinates"
+   ],
+   "asked": 34
   },
   {
    "id": "A9",
    "text": "plot graphs of equations that correspond to straight-line graphs in the coordinate plane; use the form y = mx + c to identify parallel and…",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-6",
+    "q:Q-1MA1-2406-1H-6a",
+    "q:Q-1MA1-2406-1H-6b",
+    "q:Q-1MA1-2406-1H-23",
+    "q:Q-1MA1-2406-1F-25a"
+   ],
+   "figure": [
+    "graph",
+    "plot"
+   ],
+   "topics": [
+    "Straight Line Graphs",
+    "Equation of a Line",
+    "Parallel & Perpendicular Lines"
+   ],
+   "asked": 132
   },
   {
    "id": "A10",
    "text": "identify and interpret gradients and intercepts of linear functions graphically and algebraically",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-6",
+    "q:Q-1MA1-2406-1H-6a",
+    "q:Q-1MA1-2406-1H-23",
+    "q:Q-1MA1-2406-1F-25a",
+    "q:S-Q-1CM-equation-of-a-line-1"
+   ],
+   "topics": [
+    "Equation of a Line"
+   ],
+   "asked": 49
   },
   {
    "id": "A11",
    "text": "identify and interpret roots, intercepts, turning points of quadratic functions graphically; deduce roots algebraically and turning points…",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-7",
+    "ct:TB-GCSE-MATHS-9",
+    "q:Q-1MA1-2406-2H-5a",
+    "q:Q-1MA1-2406-2H-5b",
+    "q:Q-1MA1-2406-2H-5c",
+    "q:Q-1MA1-2406-2H-20"
+   ],
+   "topics": [
+    "Turning Points",
+    "Quadratic Graphs",
+    "Completing the Square"
+   ],
+   "asked": 101
   },
   {
    "id": "A12",
    "text": "recognise, sketch and interpret graphs of linear functions, quadratic",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-7",
+    "q:Q-1MA1-2406-1H-12i",
+    "q:Q-1MA1-2406-1H-12ii",
+    "q:Q-1MA1-2406-1H-12iii",
+    "q:Q-1MA1-2406-1H-22a"
+   ],
+   "figure": [
+    "graph",
+    "sketch"
+   ],
+   "topics": [
+    "Recognising Graph Shapes",
+    "Quadratic Graphs",
+    "Trigonometric Graphs & Equations"
+   ],
+   "asked": 119
   },
   {
    "id": "A14",
    "text": "plot and interpret graphs (including reciprocal graphs and exponential graphs) and graphs of non-standard functions in real contexts to…",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-12",
+    "q:Q-1MA1-2406-2H-14a",
+    "q:Q-1MA1-2406-2H-14b",
+    "q:Q-1MA1-2406-2F-16",
+    "q:Q-1MA1-2406-2F-16a"
+   ],
+   "figure": [
+    "graph",
+    "plot"
+   ],
+   "topics": [
+    "Real-Life Graphs"
+   ],
+   "asked": 108
   },
   {
    "id": "A17",
    "text": "solve linear equations in one unknown algebraically (including those with the unknown on both sides of the equation); find approximate…",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-8",
+    "q:Q0001",
+    "q:Q0002",
+    "q:Q0003",
+    "q:Q0004"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "topics": [
+    "Linear Equations",
+    "Unknowns on Both Sides"
+   ],
+   "asked": 125
   },
   {
    "id": "A18",
    "text": "solve quadratic equations (including those that require rearrangement) algebraically by factorising, by completing the square and by using…",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-7",
+    "ct:TB-GCSE-MATHS-9",
+    "q:Q-1MA1-2406-1H-21",
+    "q:Q-1MA1-2406-2H-5c",
+    "q:Q-1MA1-2406-2H-20",
+    "q:Q-1MA1-2406-2F-24c"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "topics": [
+    "Solving Quadratics",
+    "Completing the Square"
+   ],
+   "asked": 96
   },
   {
    "id": "A19",
    "text": "solve two simultaneous equations in two variables (linear/linear or linear/quadratic) algebraically; find approximate solutions using a…",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-8",
+    "ct:TB-GCSE-MATHS-9",
+    "q:Q-1MA1-2406-1H-10",
+    "q:Q-1CM-non-linear-simultaneous-equations-1",
+    "q:Q-1CM-non-linear-simultaneous-equations-2",
+    "q:Q-1CM-non-linear-simultaneous-equations-3"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "topics": [
+    "Simultaneous Equations"
+   ],
+   "asked": 82
   },
   {
    "id": "A21",
    "text": "translate simple situations or procedures into algebraic expressions or formulae; derive an equation (or two simultaneous equations), solve…",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-5",
+    "q:Q-1MA1-2411-3F-12",
+    "q:Q-1MA1-2211-2F-14c",
+    "q:Q-1MA1-1906-1F-13",
+    "q:Q-1MA1-1906-3F-15-0"
+   ],
+   "topics": [
+    "Formulae",
+    "Equations"
+   ],
+   "asked": 13
   },
   {
    "id": "A22",
    "text": "solve linear inequalities in one or two variable(s), and quadratic inequalities in one variable; represent the solution set on a number…",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-8",
+    "ct:TB-GCSE-MATHS-9",
+    "q:Q-1MA1-2406-1F-28",
+    "q:Q-1MA1-2406-2H-13",
+    "q:Q-1MA1-2406-2H-16",
+    "q:Q-1CM-inequality-diagrams-1"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "topics": [
+    "Solving Inequalities",
+    "Quadratic Inequalities",
+    "Inequalities & Regions",
+    "Inequalities on a Number Line"
+   ],
+   "asked": 101
   },
   {
    "id": "A23",
    "text": "generate terms of a sequence from either a term-to-term or a position-to- term rule",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-10",
+    "q:Q-1MA1-2406-3F-8",
+    "q:Q-1MA1-2406-3H-17",
+    "q:S-Q-1CM-generating-sequences-1",
+    "q:Q-1CM-generating-sequences-1"
+   ],
+   "topics": [
+    "Term-to-Term Rules"
+   ],
+   "asked": 77
   },
   {
    "id": "A24",
    "text": "recognise and use sequences of triangular, square and cube numbers, simple arithmetic progressions, Fibonacci type sequences, quadratic…",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-10",
+    "q:Q-1MA1-2406-3H-20a",
+    "q:Q-1MA1-2406-3H-20b",
+    "q:S-Q-1CM-diagram-sequences-1",
+    "q:Q-1CM-diagram-sequences-1"
+   ],
+   "topics": [
+    "Types of Sequence"
+   ],
+   "asked": 81
   },
   {
    "id": "A25",
    "text": "deduce expressions to calculate the nth term of linear and quadratic sequences",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-10",
+    "q:Q0245",
+    "q:Q0246",
+    "q:Q0247",
+    "q:Q0248"
+   ],
+   "topics": [
+    "nth Term of a Linear Sequence",
+    "Quadratic nth Term"
+   ],
+   "asked": 51
   },
   {
    "id": "R1",
    "text": "change freely between related standard units (e.g. time, length, area, volume/capacity, mass) and compound units (e.g. speed, rates of pay…",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-12",
+    "ct:TB-GCSE-MATHS-16",
+    "q:Q-1MA1-2406-2F-2",
+    "q:Q-1MA1-2406-2F-7a",
+    "q:Q-1MA1-2406-2F-9",
+    "q:Q-1MA1-2406-2F-14a"
+   ],
+   "topics": [
+    "Units & Measures",
+    "Compound Measures"
+   ],
+   "asked": 113
   },
   {
    "id": "R2",
    "text": "use scale factors, scale diagrams and maps",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-11",
+    "q:Q-1MA1-2406-2H-8",
+    "q:Q-1MA1-2406-3F-6",
+    "q:Q-1MA1-2406-3F-6a",
+    "q:Q-1MA1-2406-3F-6b"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "topics": [
+    "Scale Drawings & Maps"
+   ],
+   "asked": 22
   },
   {
    "id": "R3",
    "text": "express one quantity as a fraction of another, where the fraction is less than 1 or greater than 1",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-1MA1-1",
+    "q:Q-1MA1-2406-1H-7",
+    "q:Q-1MA1-2406-1F-26",
+    "q:Q-1MA1-2406-2H-6",
+    "q:Q-1MA1-2406-2F-12"
+   ],
+   "topics": [
+    "Fractions of an Amount",
+    "Percentage of an Amount"
+   ],
+   "asked": 96
   },
   {
    "id": "R4",
    "text": "use ratio notation, including reduction to simplest form",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-11",
+    "q:Q-1MA1-2406-1F-10",
+    "q:Q-1MA1-2406-3F-20",
+    "q:Q-1CM-writing-and-simplifying-ratio-1",
+    "q:Q-1CM-writing-and-simplifying-ratio-2"
+   ],
+   "topics": [
+    "Writing & Simplifying Ratio"
+   ],
+   "asked": 54
   },
   {
    "id": "R5",
    "text": "divide a given quantity into two parts in a given part:part or part:whole ratio; express the division of a quantity into two parts as a…",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-11",
+    "q:Q-1MA1-2406-1H-7",
+    "q:Q-1MA1-2406-1F-26",
+    "q:Q-1MA1-2406-2H-4",
+    "q:Q-1MA1-2406-2H-6"
+   ],
+   "topics": [
+    "Sharing in a Ratio"
+   ],
+   "asked": 20
   },
   {
    "id": "R6",
    "text": "express a multiplicative relationship between two quantities as a ratio or a fraction",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-11",
+    "q:Q-1MA1-2406-3H-10",
+    "q:Q-1CM-working-with-ratio-1",
+    "q:Q-1CM-working-with-ratio-2",
+    "q:Q-1CM-working-with-ratio-3"
+   ],
+   "topics": [
+    "Ratio Problems"
+   ],
+   "asked": 78
   },
   {
    "id": "R7",
    "text": "understand and use proportion as equality of ratios",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-11",
+    "q:Q-1MA1-2406-1F-16",
+    "q:S-Q-1MA1-2406-3F-17",
+    "q:Q-1MA1-2406-3F-17",
+    "q:Q-1MA1-2406-3F-17b"
+   ],
+   "topics": [
+    "Direct Proportion",
+    "Best Value & Unitary Method"
+   ],
+   "asked": 86
   },
   {
    "id": "R8",
    "text": "relate ratios to fractions and to linear functions",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-11",
+    "q:Q-1MA1-2406-3H-10",
+    "q:Q-1CM-working-with-ratio-1",
+    "q:Q-1CM-working-with-ratio-2",
+    "q:Q-1CM-working-with-ratio-3"
+   ],
+   "topics": [
+    "Ratio Problems"
+   ],
+   "asked": 78
   },
   {
    "id": "R9",
    "text": "define percentage as ‘number of parts per hundred’; interpret percentages and percentage changes as a fraction or a decimal, and interpret…",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-3",
+    "ct:TB-GCSE-MATHS-1MA1-1",
+    "q:Q-1MA1-2406-1H-7",
+    "q:Q-1MA1-2406-1H-9",
+    "q:Q-1MA1-2406-1F-26",
+    "q:Q-1MA1-2406-1F-27"
+   ],
+   "topics": [
+    "Percentages",
+    "Percentage of an Amount",
+    "Percentage Increase & Decrease",
+    "Reverse Percentages"
+   ],
+   "asked": 201
   },
   {
    "id": "R10",
    "text": "solve problems involving direct and inverse proportion, including graphical and algebraic representations",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-11",
+    "q:Q-1MA1-2406-2H-12a",
+    "q:Q-1MA1-2406-2H-12b",
+    "q:S-Q-1MA1-2406-3F-17",
+    "q:Q-1MA1-2406-3F-17"
+   ],
+   "topics": [
+    "Direct Proportion",
+    "Inverse Proportion"
+   ],
+   "asked": 83
   },
   {
    "id": "R11",
    "text": "use compound units such as speed, rates of pay, unit pricing, density and pressure",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-11",
+    "ct:TB-GCSE-MATHS-12",
+    "q:Q-1MA1-2406-1F-16",
+    "q:Q-1MA1-2406-2F-14a",
+    "q:Q-1MA1-2406-2F-14b",
+    "q:S-Q-1MA1-2406-3F-17"
+   ],
+   "topics": [
+    "Compound Measures",
+    "Best Value & Unitary Method"
+   ],
+   "asked": 64
   },
   {
    "id": "R12",
    "text": "compare lengths, areas and volumes using ratio notation; make links to similarity (including trigonometric ratios) and scale factors",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-14",
+    "q:Q-1MA1-2406-2H-17",
+    "q:Q-1CM-similar-areas-and-volumes-1",
+    "q:Q-1CM-similar-areas-and-volumes-2",
+    "q:Q-1CM-similar-areas-and-volumes-3"
+   ],
+   "topics": [
+    "Similar Areas & Volumes"
+   ],
+   "asked": 27
   },
   {
    "id": "R13",
    "text": "understand that Xis inversely proportional to Yis equivalent to Xis",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-11",
+    "q:Q-1MA1-2406-2H-12a",
+    "q:Q-1MA1-2406-2H-12b",
+    "q:S-Q-1CM-direct-and-inverse-proportion-1",
+    "q:Q-1CM-direct-and-inverse-proportion-1"
+   ],
+   "topics": [
+    "Inverse Proportion"
+   ],
+   "asked": 47
   },
   {
    "id": "R14",
    "text": "interpret the gradient of a straight line graph as a rate of change; recognise and interpret graphs that illustrate direct and inverse…",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-12",
+    "q:Q-1MA1-2406-2H-14a",
+    "q:Q-1MA1-2406-2H-14b",
+    "q:Q-1MA1-2406-2F-16",
+    "q:Q-1MA1-2406-2F-16a"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "topics": [
+    "Real-Life Graphs"
+   ],
+   "asked": 108
   },
   {
    "id": "R16",
    "text": "set up, solve and interpret the answers in growth and decay problems, including compound interest and work with general iterative processes",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-3",
+    "q:Q-1MA1-2406-2F-15",
+    "q:Q-1MA1-2406-3F-25",
+    "q:Q-1MA1-2406-3H-4",
+    "q:Q-1MA1-2406-3H-14"
+   ],
+   "topics": [
+    "Growth & Decay",
+    "Simple & Compound Interest"
+   ],
+   "asked": 71
   },
   {
    "id": "G1",
    "text": "use conventional terms and notations: points, lines, vertices, edges, planes, parallel lines, perpendicular lines, right angles, polygons…",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-13",
+    "ct:TB-GCSE-MATHS-1MA1-5",
+    "q:Q-1MA1-2406-1F-3",
+    "q:Q-1MA1-2406-2F-7b",
+    "q:Q-1MA1-2406-2F-7c",
+    "q:Q-1MA1-2411-1F-7b"
+   ],
+   "figure": [
+    "diagram",
+    "draw"
+   ],
+   "topics": [
+    "Types of Angle",
+    "2-D Shapes"
+   ],
+   "asked": 20
   },
   {
    "id": "G2",
    "text": "use the standard ruler and compass constructions (perpendicular bisector of a line segment, constructing a perpendicular to a given line…",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-13",
+    "ct:TB-GCSE-MATHS-1MA1-4",
+    "q:Q-1MA1-2406-2F-17",
+    "q:Q-1CM-loci-1",
+    "q:Q-1CM-loci-2",
+    "q:Q-1CM-loci-3"
+   ],
+   "figure": [
+    "construction"
+   ],
+   "topics": [
+    "Constructions & Loci"
+   ],
+   "asked": 20
   },
   {
    "id": "G3",
    "text": "apply the properties of angles at a point, angles at a point on a straight line, vertically opposite angles; understand and use alternate…",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-13",
+    "q:Q-1MA1-2406-1F-8i",
+    "q:Q-1MA1-2406-1F-8ii",
+    "q:Q-1MA1-2406-2H-7",
+    "q:Q-1MA1-2406-2F-26"
+   ],
+   "topics": [
+    "Angles at a Point & on a Line",
+    "Angles in Parallel Lines",
+    "Angles in Triangles & Quadrilaterals",
+    "Angles in Polygons"
+   ],
+   "asked": 124
   },
   {
    "id": "G4",
    "text": "derive and apply the properties and definitions of: special types of quadrilaterals, including square, rectangle, parallelogram, trapezium…",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-1MA1-5",
+    "q:Q-1MA1-2406-2F-7c",
+    "q:Q-1MA1-2411-2F-4",
+    "q:Q-1MA1-2411-3F-7a",
+    "q:Q-1MA1-2411-3F-7b"
+   ],
+   "topics": [
+    "2-D Shapes"
+   ],
+   "asked": 17
   },
   {
    "id": "G5",
    "text": "use the basic congruence criteria for triangles (SSS, SAS, ASA, RHS)",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-14",
+    "q:Q-1MA1-2406-2H-22",
+    "q:Q-1MA1-2211-3H-20",
+    "q:Q-1MA1-1811-3F-9b",
+    "q:Q-1MA1-2005-1H-4"
+   ],
+   "topics": [
+    "Congruent Triangles"
+   ],
+   "asked": 10
   },
   {
    "id": "G6",
    "text": "apply angle facts, triangle congruence, similarity and properties of quadrilaterals to conjecture and derive results about angles and…",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-14",
+    "q:Q-1MA1-2406-2H-7",
+    "q:Q-1MA1-2406-2H-22",
+    "q:Q-1MA1-2406-2F-26",
+    "q:Q-1MA1-2406-3F-20"
+   ],
+   "topics": [
+    "Angles in Triangles & Quadrilaterals",
+    "Congruent Triangles"
+   ],
+   "asked": 36
   },
   {
    "id": "G7",
    "text": "identify, describe and construct congruent and similar shapes, including on coordinate axes, by considering rotation, reflection…",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-14",
+    "q:Q-1MA1-2406-1H-11",
+    "q:Q-1MA1-2406-1F-19",
+    "q:Q-1MA1-2406-3F-18a",
+    "q:Q-1MA1-2406-3F-18b"
+   ],
+   "topics": [
+    "Transformations",
+    "Reflections",
+    "Rotations",
+    "Translations",
+    "Enlargements",
+    "Describing a Single Transformation",
+    "Similar Shapes"
+   ],
+   "asked": 164
   },
   {
    "id": "G9",
    "text": "identify and apply circle definitions and properties, including: centre, radius, chord, diameter, circumference, tangent, arc, sector and…",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-15",
+    "ct:TB-GCSE-MATHS-1MA1-6",
+    "q:Q-1MA1-2406-3F-10a",
+    "q:Q-1MA1-2406-3F-10b",
+    "q:Q-1MA1-2406-3H-21",
+    "q:Q-1MA1-1805-1F-9a"
+   ],
+   "topics": [
+    "Parts of a Circle"
+   ],
+   "asked": 5
   },
   {
    "id": "G11",
    "text": "solve geometrical problems on coordinate axes",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-6",
+    "q:Q-1MA1-2406-1H-23",
+    "q:Q-1MA1-2406-2F-8",
+    "q:Q-1MA1-2406-2F-8a",
+    "q:Q-1MA1-2406-2F-8b"
+   ],
+   "topics": [
+    "Coordinates"
+   ],
+   "asked": 34
   },
   {
    "id": "G12",
    "text": "identify properties of the faces, surfaces, edges and vertices of: cubes, cuboids, prisms, cylinders, pyramids, cones and spheres",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-16",
+    "ct:TB-GCSE-MATHS-1MA1-7",
+    "q:Q-1MA1-2406-3F-24",
+    "q:Q-1MA1-2406-3F-24a",
+    "q:Q-1MA1-2406-3F-24b",
+    "q:Q-1MA1-2406-3H-3a"
+   ],
+   "topics": [
+    "3-D Shapes"
+   ],
+   "asked": 31
   },
   {
    "id": "G13",
    "text": "construct and interpret plans and elevations of 3D shapes",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-16",
+    "ct:TB-GCSE-MATHS-1MA1-7",
+    "q:Q-1MA1-2406-3F-24",
+    "q:Q-1MA1-2406-3F-24a",
+    "q:Q-1MA1-2406-3F-24b",
+    "q:Q-1MA1-2406-3H-3a"
+   ],
+   "figure": [
+    "elevation",
+    "plan"
+   ],
+   "topics": [
+    "3-D Shapes"
+   ],
+   "asked": 31
   },
   {
    "id": "G14",
    "text": "use standard units of measure and related concepts (length, area, volume/capacity, mass, time, money, etc.)",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-12",
+    "ct:TB-GCSE-MATHS-16",
+    "q:Q-1MA1-2406-2F-2",
+    "q:Q-1MA1-2406-2F-7a",
+    "q:Q-1MA1-2406-2F-9",
+    "q:Q-1MA1-2406-2F-14b"
+   ],
+   "topics": [
+    "Units & Measures"
+   ],
+   "asked": 80
   },
   {
    "id": "G15",
    "text": "measure line segments and angles in geometric figures, including interpreting maps and scale drawings and use of bearings",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-11",
+    "ct:TB-GCSE-MATHS-13",
+    "q:Q-1MA1-2406-2H-8",
+    "q:Q-1MA1-2406-3F-6",
+    "q:Q-1MA1-2406-3F-6a",
+    "q:Q-1MA1-2406-3F-6b"
+   ],
+   "topics": [
+    "Bearings",
+    "Scale Drawings & Maps"
+   ],
+   "asked": 69
   },
   {
    "id": "G16",
    "text": "know and apply formulae to calculate: area of triangles, parallelograms, trapezia; volume of cuboids and other right prisms (including…",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-16",
+    "q:Q-1MA1-2406-1H-3",
+    "q:Q-1MA1-2406-1H-3a",
+    "q:Q-1MA1-2406-1H-3b",
+    "q:Q-1MA1-2406-1F-12"
+   ],
+   "topics": [
+    "Area of 2-D Shapes",
+    "Perimeter",
+    "Compound Shapes"
+   ],
+   "asked": 123
   },
   {
    "id": "G17",
    "text": "know the formulae: circumference of a circle = 2πr = πd , area of a",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-16",
+    "q:Q-1MA1-2406-1H-21",
+    "q:Q-1MA1-2406-3F-28",
+    "q:Q-1MA1-2406-3H-7",
+    "q:Q-1MA1-2406-3H-9"
+   ],
+   "topics": [
+    "Area & Circumference of Circles",
+    "Volume & Surface Area"
+   ],
+   "asked": 236
   },
   {
    "id": "G18",
    "text": "calculate arc lengths, angles and areas of sectors of circles",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-16",
+    "q:Q-1MA1-2406-1H-15",
+    "q:S-Q-1CM-sectors-1",
+    "q:Q-1CM-sectors-1",
+    "q:Q-1CM-sectors-1b"
+   ],
+   "topics": [
+    "Arcs & Sectors"
+   ],
+   "asked": 40
   },
   {
    "id": "G19",
    "text": "apply the concepts of congruence and similarity, including the relationships between lengths, areas and volumes in similar figures",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-14",
+    "q:Q-1MA1-2406-1H-19",
+    "q:Q-1MA1-2406-2H-17",
+    "q:Q-1MA1-2406-2H-22",
+    "q:Q-1MA1-2406-2F-27"
+   ],
+   "topics": [
+    "Similar Shapes",
+    "Similar Triangles",
+    "Similar Areas & Volumes",
+    "Congruent Triangles"
+   ],
+   "asked": 98
   },
   {
    "id": "G20",
    "text": "know the formulae for: Pythagoras’ theorem a + b = c , and the",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-17",
+    "q:Q-1MA1-2406-2H-1",
+    "q:Q-1MA1-2406-2H-10",
+    "q:Q-1MA1-2406-2F-20",
+    "q:S-Q-1CM-3d-trig-and-pythagoras-1"
+   ],
+   "topics": [
+    "Pythagoras' Theorem",
+    "Right-Angled Trigonometry",
+    "3-D Pythagoras & Trigonometry"
+   ],
+   "asked": 87
   },
   {
    "id": "G21",
    "text": "know the exact values of sin θ and cos θ for θ = 0°, 30°, 45°, 60° and 90°; know the exact value of tan θ for θ = 0°, 30°, 45° and 60°",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-17",
+    "ct:TB-GCSE-MATHS-1MA1-8",
+    "q:Q-1CM-exact-trig-values-2",
+    "q:Q-1CM-exact-trig-values-3",
+    "q:Q-1CM-exact-trig-values-1",
+    "q:Q-1CM-exact-trig-values-4"
+   ],
+   "topics": [
+    "Exact Trig Values"
+   ],
+   "asked": 24
   },
   {
    "id": "G24",
    "text": "describe translations as 2D vectors",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-14",
+    "ct:TB-GCSE-MATHS-18",
+    "q:Q-1MA1-2406-1H-11",
+    "q:Q-1MA1-2406-2H-19a",
+    "q:Q-1MA1-2406-2H-19b",
+    "q:Q-1MA1-2406-3H-8"
+   ],
+   "topics": [
+    "Translations",
+    "Vectors"
+   ],
+   "asked": 33
   },
   {
    "id": "G25",
    "text": "apply addition and subtraction of vectors, multiplication of vectors by a scalar, and diagrammatic and column representations of vectors…",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-18",
+    "q:Q-1MA1-2406-2H-19a",
+    "q:Q-1MA1-2406-2H-19b",
+    "q:Q-1MA1-2406-3H-8",
+    "q:Q-1MA1-2411-1H-15"
+   ],
+   "topics": [
+    "Vectors"
+   ],
+   "asked": 28
   },
   {
    "id": "P1",
    "text": "record, describe and analyse the frequency of outcomes of probability experiments using tables and frequency trees",
    "parent": "P",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-19",
+    "q:Q-1MA1-2411-1F-19-0",
+    "q:Q-1MA1-2411-1F-19a",
+    "q:Q-1MA1-2411-1F-19b",
+    "q:Q-1MA1-2411-1H-2-0"
+   ],
+   "topics": [
+    "Relative Frequency & Expectation"
+   ],
+   "asked": 25
   },
   {
    "id": "P2",
    "text": "apply ideas of randomness, fairness and equally likely events to calculate expected outcomes of multiple future experiments",
    "parent": "P",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-19",
+    "q:Q-1MA1-2406-1H-4b",
+    "q:Q-1MA1-2406-1F-13a",
+    "q:Q-1MA1-2406-1F-13b",
+    "q:Q-1MA1-2406-1F-23b"
+   ],
+   "topics": [
+    "Relative Frequency & Expectation",
+    "Basic Probability"
+   ],
+   "asked": 103
   },
   {
    "id": "P3",
    "text": "relate relative expected frequencies to theoretical probability, using appropriate language and the 0-1 probability scale",
    "parent": "P",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-19",
+    "q:Q-1MA1-2411-1F-19-0",
+    "q:Q-1MA1-2411-1F-19a",
+    "q:Q-1MA1-2411-1F-19b",
+    "q:Q-1MA1-2411-1H-2-0"
+   ],
+   "topics": [
+    "Relative Frequency & Expectation"
+   ],
+   "asked": 25
   },
   {
    "id": "P4",
    "text": "apply the property that the probabilities of an exhaustive set of outcomes sum to one; apply the property that the probabilities of an…",
    "parent": "P",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-19",
+    "q:Q-1MA1-2406-1H-4b",
+    "q:Q-1MA1-2406-1F-13a",
+    "q:Q-1MA1-2406-1F-13b",
+    "q:Q-1MA1-2406-1F-23b"
+   ],
+   "topics": [
+    "Basic Probability"
+   ],
+   "asked": 78
   },
   {
    "id": "P5",
    "text": "understand that empirical unbiased samples tend towards theoretical probability distributions, with increasing sample size",
    "parent": "P",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-19",
+    "q:Q-1MA1-2411-1F-19-0",
+    "q:Q-1MA1-2411-1F-19a",
+    "q:Q-1MA1-2411-1F-19b",
+    "q:Q-1MA1-2411-1H-2-0"
+   ],
+   "topics": [
+    "Relative Frequency & Expectation"
+   ],
+   "asked": 25
   },
   {
    "id": "P6",
    "text": "enumerate sets and combinations of sets systematically, using tables, grids, Venn diagrams and tree diagrams",
    "parent": "P",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-1",
+    "ct:TB-GCSE-MATHS-19",
+    "q:Q-1MA1-2406-1H-4",
+    "q:Q-1MA1-2406-1H-4a",
+    "q:Q-1MA1-2406-1H-4b",
+    "q:Q-1MA1-2406-1F-23"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "topics": [
+    "Venn Diagrams & Set Notation",
+    "Tree Diagrams",
+    "Listing Outcomes & Sample Space"
+   ],
+   "asked": 214
   },
   {
    "id": "P7",
    "text": "construct theoretical possibility spaces for single and combined experiments with equally likely outcomes and use these to calculate…",
    "parent": "P",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-1",
+    "ct:TB-GCSE-MATHS-19",
+    "q:Q-1MA1-2406-2F-10",
+    "q:Q-1MA1-2406-3H-13",
+    "q:Q-1MA1-2306-1H-19",
+    "q:Q-1MA1-2211-3H-15"
+   ],
+   "topics": [
+    "Listing Outcomes & Sample Space"
+   ],
+   "asked": 33
   },
   {
    "id": "P8",
    "text": "calculate the probability of independent and dependent combined events, including using tree diagrams and other representations, and know…",
    "parent": "P",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-19",
+    "q:Q-1MA1-2406-3F-27",
+    "q:Q-1MA1-2406-3F-27a",
+    "q:Q-1MA1-2406-3F-27b",
+    "q:Q-1MA1-2406-3H-6a"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "topics": [
+    "Tree Diagrams"
+   ],
+   "asked": 76
   },
   {
    "id": "S1",
    "text": "infer properties of populations or distributions from a sample, while knowing the limitations of sampling",
    "parent": "S",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-20",
+    "q:S-Q-1CM-capture-recapture-1",
+    "q:Q-1CM-capture-recapture-1",
+    "q:Q-1CM-capture-recapture-1b",
+    "q:Q-1CM-capture-recapture-2"
+   ],
+   "topics": [
+    "Sampling"
+   ],
+   "asked": 31
   },
   {
    "id": "S2",
    "text": "interpret and construct tables, charts and diagrams, including frequency tables, bar charts, pie charts and pictograms for categorical…",
    "parent": "S",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-20",
+    "q:Q-1MA1-2406-1F-7",
+    "q:Q-1MA1-2406-1F-15a",
+    "q:Q-1MA1-2406-1F-15b",
+    "q:Q-1MA1-2406-2F-6"
+   ],
+   "figure": [
+    "chart",
+    "diagram",
+    "graph"
+   ],
+   "topics": [
+    "Bar Charts & Pictograms",
+    "Pie Charts",
+    "Stem & Leaf Diagrams",
+    "Line Graphs & Time Series",
+    "Frequency Polygons"
+   ],
+   "asked": 142
   },
   {
    "id": "S4",
    "text": "interpret, analyse and compare the distributions of data sets from univariate empirical distributions through: ●",
    "parent": "S",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-20",
+    "q:S-Q0075",
+    "q:Q0075",
+    "q:Q0076",
+    "q:Q0077"
+   ],
+   "topics": [
+    "Averages & Range",
+    "Mean",
+    "Median",
+    "Mode",
+    "Range",
+    "Averages from a Table",
+    "Averages from Grouped Data",
+    "Comparing Distributions",
+    "Reverse Mean"
+   ],
+   "asked": 229
   },
   {
    "id": "S5",
    "text": "apply statistics to describe a population",
    "parent": "S",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-20",
+    "q:S-Q-1CM-capture-recapture-1",
+    "q:Q-1CM-capture-recapture-1",
+    "q:Q-1CM-capture-recapture-1b",
+    "q:Q-1CM-capture-recapture-2"
+   ],
+   "topics": [
+    "Sampling"
+   ],
+   "asked": 31
   },
   {
    "id": "S6",
    "text": "use and interpret scatter graphs of bivariate data; recognise correlation and know that it does not indicate causation; draw estimated…",
    "parent": "S",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-20",
+    "q:Q-1MA1-2306-1H-6a",
+    "q:Q-1MA1-2306-1H-6b",
+    "q:Q-1MA1-2411-2F-21-0",
+    "q:Q-1MA1-2411-2F-21a"
+   ],
+   "figure": [
+    "draw",
+    "graph"
+   ],
+   "topics": [
+    "Scatter Graphs & Correlation"
+   ],
+   "asked": 51
   },
   {
    "id": "A13",
    "text": "sketch translations and reflections of a given function",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-7",
+    "q:Q-1MA1-2406-2H-21",
+    "q:S-Q-1CM-transformations-of-graphs-1",
+    "q:Q-1CM-transformations-of-graphs-1",
+    "q:Q-1CM-transformations-of-graphs-1b"
+   ],
+   "figure": [
+    "sketch"
+   ],
+   "topics": [
+    "Transformations of Graphs"
+   ],
+   "ht": true,
+   "asked": 53
   },
   {
    "id": "A15",
    "text": "calculate or estimate gradients of graphs and areas under graphs (including quadratic and other non-linear graphs), and interpret results…",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-12",
+    "q:Q-1MA1-2406-2H-14a",
+    "q:Q-1MA1-2406-2H-14b",
+    "q:Q-1MA1-2411-3H-22",
+    "q:Q-1MA1-2111-3H-21-0"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "topics": [
+    "Gradient of a Curve",
+    "Area Under a Curve"
+   ],
+   "ht": true,
+   "asked": 23
   },
   {
    "id": "A16",
    "text": "recognise and use the equation of a circle with centre at the origin; find the equation of a tangent to a circle at a given point",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-7",
+    "q:Q-1MA1-2406-1H-23",
+    "q:Q-1CM-equation-of-a-circle-1",
+    "q:Q-1CM-equation-of-a-circle-2",
+    "q:Q-1CM-equation-of-a-circle-3"
+   ],
+   "topics": [
+    "Equation of a Circle",
+    "Equation of a Tangent"
+   ],
+   "ht": true,
+   "asked": 61
   },
   {
    "id": "A20",
    "text": "find approximate solutions to equations numerically using iteration",
    "parent": "A",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-9",
+    "q:Q-1CM-iteration-1",
+    "q:Q-1CM-iteration-1aii",
+    "q:Q-1CM-iteration-1aiii",
+    "q:Q-1CM-iteration-1b"
+   ],
+   "topics": [
+    "Iteration"
+   ],
+   "ht": true,
+   "asked": 54
   },
   {
    "id": "R15",
    "text": "interpret the gradient at a point on a curve as the instantaneous rate of change; apply the concepts of average and instantaneous rate of…",
    "parent": "R",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-12",
+    "q:Q-1MA1-2406-2H-14a",
+    "q:Q-1MA1-SP2-2H-15",
+    "q:Q-1MA1-SP2-2H-15a",
+    "q:Q-1MA1-SP2-2H-15b"
+   ],
+   "topics": [
+    "Gradient of a Curve"
+   ],
+   "ht": true,
+   "asked": 7
   },
   {
    "id": "G8",
    "text": "describe the changes and invariance achieved by combinations of rotations, reflections and translations",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-14",
+    "q:Q-1MA1-2406-1H-11",
+    "q:Q-1MA1-2406-1F-19",
+    "q:Q-1MA1-2411-2F-18",
+    "q:Q-1MA1-2411-2H-11"
+   ],
+   "topics": [
+    "Describing a Single Transformation"
+   ],
+   "ht": true,
+   "asked": 18
   },
   {
    "id": "G10",
    "text": "apply and prove the standard circle theorems concerning angles, radii, tangents and chords, and use them to prove related results",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-15",
+    "q:Q-1MA1-2406-2H-22",
+    "q:Q-1CM-circle-theorem-proofs-1",
+    "q:Q-1CM-circle-theorem-proofs-2",
+    "q:Q-1CM-circle-theorem-proofs-3"
+   ],
+   "topics": [
+    "Circle Theorems"
+   ],
+   "ht": true,
+   "asked": 61
   },
   {
    "id": "G22",
    "text": "know and apply the sine rule",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-17",
+    "q:Q-1MA1-2406-3H-18",
+    "q:Q-1CM-the-cosine-rule-1",
+    "q:Q-1CM-the-cosine-rule-2",
+    "q:Q-1CM-the-cosine-rule-3"
+   ],
+   "topics": [
+    "The Sine Rule",
+    "The Cosine Rule"
+   ],
+   "ht": true,
+   "asked": 37
   },
   {
    "id": "G23",
    "text": "know and apply Area =",
    "parent": "G",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-17",
+    "q:Q-1MA1-2406-3H-18",
+    "q:Q-1CM-the-cosine-rule-1",
+    "q:Q-1CM-the-cosine-rule-2",
+    "q:Q-1CM-the-cosine-rule-3"
+   ],
+   "topics": [
+    "The Sine Rule",
+    "The Cosine Rule"
+   ],
+   "ht": true,
+   "asked": 37
   },
   {
    "id": "P9",
    "text": "calculate and interpret conditional probabilities through representation using expected frequencies with two-way tables, tree diagrams and…",
    "parent": "P",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-19",
+    "q:Q-1MA1-2406-1H-16",
+    "q:Q-1MA1-2406-2H-18",
+    "q:Q-1CM-conditional-probability-1",
+    "q:S-Q-1CM-conditional-probability-2"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "topics": [
+    "Conditional Probability"
+   ],
+   "ht": true,
+   "asked": 41
   },
   {
    "id": "S3",
    "text": "construct and interpret diagrams for grouped discrete data and continuous data, i.e. histograms with equal and unequal class intervals and…",
    "parent": "S",
-   "links": []
+   "links": [
+    "ct:TB-GCSE-MATHS-20",
+    "q:Q-1MA1-2406-1H-13",
+    "q:Q-1MA1-2406-1H-13a",
+    "q:Q-1MA1-2406-1H-13b",
+    "q:Q-1MA1-2406-2H-11a"
+   ],
+   "figure": [
+    "diagram",
+    "graph"
+   ],
+   "topics": [
+    "Histograms",
+    "Cumulative Frequency",
+    "Box Plots & Quartiles"
+   ],
+   "ht": true,
+   "asked": 132
   }
- ]
+ ],
+ "note": "Each reference (N1–S6) is the DfE subject content the specification prints; `title` is its opening clause. `ht` marks a point the Foundation list does not hold. `figure` as in the science files."
 }

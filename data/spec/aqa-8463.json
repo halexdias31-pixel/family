@@ -6,38 +6,47 @@
  "subject": "Physics",
  "code": "8463",
  "url": "https://filestore.aqa.org.uk/resources/physics/specifications/AQA-8463-SP-2016.PDF",
+ "measured": true,
  "sections": [
   {
    "id": "4.1",
-   "title": "Energy"
+   "title": "Energy",
+   "topic": "Energy"
   },
   {
    "id": "4.2",
-   "title": "Electricity"
+   "title": "Electricity",
+   "topic": "Electricity"
   },
   {
    "id": "4.3",
-   "title": "Particle model of matter"
+   "title": "Particle model of matter",
+   "topic": "Particle Model of Matter"
   },
   {
    "id": "4.4",
-   "title": "Atomic structure"
+   "title": "Atomic structure",
+   "topic": "Atomic Structure"
   },
   {
    "id": "4.5",
-   "title": "Forces"
+   "title": "Forces",
+   "topic": "Forces"
   },
   {
    "id": "4.6",
-   "title": "Waves"
+   "title": "Waves",
+   "topic": "Waves"
   },
   {
    "id": "4.7",
-   "title": "Magnetism and electromagnetism"
+   "title": "Magnetism and electromagnetism",
+   "topic": "Magnetism & Electromagnetism"
   },
   {
    "id": "4.8",
-   "title": "Space physics (physics only)"
+   "title": "Space physics (physics only)",
+   "topic": "Space Physics"
   }
  ],
  "points": [
@@ -45,25 +54,55 @@
    "id": "4.1.1.1",
    "text": "Energy stores and systems",
    "parent": "4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-1",
+    "q:S-Q-AQA-8463-2111-1F-06",
+    "q:S-Q-AQA-8464P-2406-1H-06"
+   ],
+   "asked": 2
   },
   {
    "id": "4.1.1.2",
    "text": "Changes in energy",
    "parent": "4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-2",
+    "q:Q-AQA-8463-2011-1F-077",
+    "q:Q-AQA-8463-2506-1H-082",
+    "q:S-Q-AQA-8464C-1906-1F-01",
+    "q:Q-AQA-8464P-2206-1H-031"
+   ],
+   "asked": 9
   },
   {
    "id": "4.1.1.3",
    "text": "Energy changes in systems",
    "parent": "4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-3",
+    "q:Q-AQA-8463-2406-1H-083",
+    "q:Q-W-AT-P-energy-2c",
+    "q:Q-W-AT-P-energy-conservation-4a",
+    "q:Q-W-AT-P-energy-resources-6bi"
+   ],
+   "keys": [
+    "specific heat capacity",
+    "temperature rise energy"
+   ],
+   "asked": 47
   },
   {
    "id": "4.1.1.4",
    "text": "Power",
    "parent": "4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-4",
+    "q:Q-AQA-8463-2406-1H-022",
+    "q:Q-AQA-8463-2406-1H-023",
+    "q:Q-AQA-8463-2406-1F-102",
+    "q:Q-AQA-8463-2406-1F-103"
+   ],
+   "asked": 275
   },
   {
    "id": "4.1.2",
@@ -75,19 +114,35 @@
    "id": "4.1.2.1",
    "text": "Energy transfers in a system",
    "parent": "4.1.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-5",
+    "q:Q-AQA-8464P-2111-1H-065",
+    "q:S-Q-AQA-8464P-2506-1H-06"
+   ],
+   "asked": 2
   },
   {
    "id": "4.1.2.2",
    "text": "Efficiency",
    "parent": "4.1.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-6",
+    "q:Q-W-AT-P-energy-4aiii",
+    "q:Q-W-AT-P-energy-4biii",
+    "q:Q-W-AT-P-energy-conservation-5b",
+    "q:Q-W-AT-P-energy-conservation-6aiii"
+   ],
+   "asked": 54
   },
   {
    "id": "4.1.3",
    "text": "National and global energy resources",
    "parent": "4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-7",
+    "q:S-Q-AQA-8464P-2306-1F-05"
+   ],
+   "asked": 1
   },
   {
    "id": "4.2.1",
@@ -99,25 +154,75 @@
    "id": "4.2.1.1",
    "text": "Standard circuit diagram symbols",
    "parent": "4.2.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-8",
+    "q:S-Q-AQA-8463-2206-1F-06",
+    "q:Q-OCR-J249-2011-03-19bii",
+    "q:Q-T-AT-P-electricity-2-1",
+    "q:Q-W-AT-P-electricity-1a"
+   ],
+   "figure": [
+    "diagram",
+    "draw"
+   ],
+   "asked": 4
   },
   {
    "id": "4.2.1.2",
    "text": "Electrical charge and current",
    "parent": "4.2.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-9",
+    "q:Q-W-AT-P-static-2b"
+   ],
+   "asked": 1
   },
   {
    "id": "4.2.1.3",
    "text": "Current, resistance and potential difference",
    "parent": "4.2.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-10",
+    "q:Q-AQA-8463-2406-1H-055",
+    "q:Q-AQA-8463-2406-1F-023",
+    "q:Q-AQA-8463-2406-1F-026",
+    "q:S-Q-AQA-8463-2406-1F-081"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "asked": 109
+  },
+  {
+   "id": "4.2.1.4",
+   "text": "Resistors",
+   "parent": "4.2.1",
+   "links": [
+    "ct:TB-AQA-8463-11",
+    "q:S-Q-AQA-8463-2406-1H-031",
+    "q:Q-AQA-8463-2406-1F-025",
+    "q:S-Q-AQA-8463-2406-1F-081",
+    "q:S-Q-AQA-8463-2011-1F-04"
+   ],
+   "figure": [
+    "diagram",
+    "draw",
+    "graph"
+   ],
+   "asked": 60
   },
   {
    "id": "4.2.2",
    "text": "Series and parallel circuits",
    "parent": "4.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-12",
+    "q:Q-OCR-J249-2011-01-20"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "asked": 1
   },
   {
    "id": "4.2.3",
@@ -129,13 +234,27 @@
    "id": "4.2.3.1",
    "text": "Direct and alternating potential difference",
    "parent": "4.2.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-13",
+    "q:Q-AQA-8463-1806-2H-037",
+    "q:Q-AQA-8463-2011-1F-032",
+    "q:Q-AQA-8463-2111-1F-091",
+    "q:Q-AQA-8463-2111-1H-011"
+   ],
+   "asked": 8
   },
   {
    "id": "4.2.3.2",
    "text": "Mains electricity",
    "parent": "4.2.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-14",
+    "q:Q-AQA-8463-2406-1H-051",
+    "q:Q-AQA-8463-2406-1H-051ii",
+    "q:S-Q-AQA-8463-2406-1F-021",
+    "q:Q-AQA-8463-2406-1F-021"
+   ],
+   "asked": 28
   },
   {
    "id": "4.2.4",
@@ -147,13 +266,45 @@
    "id": "4.2.4.1",
    "text": "Power",
    "parent": "4.2.4",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-15",
+    "q:Q-AQA-8463-2406-1H-052",
+    "q:Q-AQA-8463-2406-1F-082",
+    "q:Q-AQA-8463-1906-1F-051",
+    "q:S-Q-AQA-8463-1906-1F-06"
+   ],
+   "asked": 245
+  },
+  {
+   "id": "4.2.4.2",
+   "text": "Energy transfers in everyday appliances",
+   "parent": "4.2.4",
+   "links": [
+    "ct:TB-AQA-8463-16",
+    "q:Q-AQA-8463-2406-1H-044",
+    "q:Q-AQA-8463-2406-1F-017",
+    "q:Q-AQA-8463-1906-1F-074",
+    "q:Q-AQA-8463-1906-1F-092"
+   ],
+   "keys": [
+    "energy transferred appliance",
+    "energy transferred charge",
+    "kilowatt hour"
+   ],
+   "asked": 18
   },
   {
    "id": "4.2.4.3",
    "text": "The National Grid",
    "parent": "4.2.4",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-17",
+    "q:S-Q-AQA-8463-2011-1F-01",
+    "q:Q-AQA-8463-2011-1F-011",
+    "q:S-Q-AQA-8463-2111-1F-02",
+    "q:Q-AQA-8463-2111-1F-026"
+   ],
+   "asked": 21
   },
   {
    "id": "4.2.5",
@@ -165,7 +316,30 @@
    "id": "4.2.5.1",
    "text": "Static charge",
    "parent": "4.2.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-18",
+    "q:S-Q-AQA-8463-2406-1F-011",
+    "q:S-Q-AQA-8463-2406-1H-041",
+    "q:Q-OCR-J249-1806-01-16di",
+    "q:Q-W-AT-P-static-1a"
+   ],
+   "asked": 5
+  },
+  {
+   "id": "4.2.5.2",
+   "text": "Electric fields",
+   "parent": "4.2.5",
+   "links": [
+    "ct:TB-AQA-8463-19",
+    "q:Q-AQA-8463-2406-1H-042",
+    "q:Q-AQA-8463-2406-1H-043",
+    "q:Q-AQA-8463-2406-1F-013",
+    "q:Q-AQA-8463-2206-1F-034"
+   ],
+   "figure": [
+    "draw"
+   ],
+   "asked": 10
   },
   {
    "id": "4.3.1",
@@ -177,13 +351,32 @@
    "id": "4.3.1.1",
    "text": "Density of materials",
    "parent": "4.3.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-20",
+    "q:Q-AQA-8464P-1806-1H-023",
+    "q:Q-AQA-8464P-2206-1F-046",
+    "q:Q-AQA-8464P-2206-1F-048",
+    "q:Q-AQA-8464P-2506-1H-062"
+   ],
+   "figure": [
+    "apparatus",
+    "diagram",
+    "draw"
+   ],
+   "asked": 4
   },
   {
    "id": "4.3.1.2",
    "text": "Changes of state",
    "parent": "4.3.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-21",
+    "q:S-W-AT-P-change-of-state-q1",
+    "q:Q-W-AT-P-change-of-state-1e",
+    "q:Q-W-AT-P-change-of-state-3ci",
+    "q:Q-AQA-8464P-2506-1F-045"
+   ],
+   "asked": 5
   },
   {
    "id": "4.3.2",
@@ -195,13 +388,43 @@
    "id": "4.3.2.1",
    "text": "Internal energy",
    "parent": "4.3.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-22",
+    "q:Q-W-AT-P-gas-pressure-1e",
+    "q:Q-AQA-8463-2506-1H-082",
+    "q:Q-AQA-8464P-1906-1F-072",
+    "q:Q-AQA-8464P-1906-1H-022"
+   ],
+   "asked": 7
+  },
+  {
+   "id": "4.3.2.2",
+   "text": "Temperature changes in a system and specific heat capacity",
+   "parent": "4.3.2",
+   "links": [
+    "ct:TB-AQA-8463-23",
+    "q:Q-AQA-8463-2406-1H-083",
+    "q:Q-AQA-8463-2406-1F-056",
+    "q:S-T-AT-P-particle-model-q4",
+    "q:Q-T-AT-P-particle-model-4-2"
+   ],
+   "asked": 26
   },
   {
    "id": "4.3.2.3",
    "text": "Changes of state and specific latent heat",
    "parent": "4.3.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-24",
+    "q:Q-AQA-8463-2406-1H-104",
+    "q:Q-AQA-8463-2406-1F-075",
+    "q:Q-W-AT-P-change-of-state-1e",
+    "q:Q-W-AT-P-change-of-state-3bi"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "asked": 32
   },
   {
    "id": "4.3.3",
@@ -213,13 +436,42 @@
    "id": "4.3.3.1",
    "text": "Particle motion in gases",
    "parent": "4.3.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-25",
+    "q:Q-W-AT-P-gas-pressure-1c",
+    "q:Q-W-AT-P-gas-pressure-1d",
+    "q:S-W-AT-P-gas-pressure-q2",
+    "q:S-Q-AQA-8463-2306-1F-07"
+   ],
+   "keys": [
+    "gas particles pressure",
+    "gas temperature pressure"
+   ],
+   "asked": 17
+  },
+  {
+   "id": "4.3.3.2",
+   "text": "Pressure in gases",
+   "parent": "4.3.3",
+   "links": [
+    "ct:TB-AQA-8463-26",
+    "q:S-Q-OCR-J249-1906-03-22"
+   ],
+   "asked": 1
   },
   {
    "id": "4.3.3.3",
    "text": "Increasing the pressure of a gas (physics only) (HT only)",
    "parent": "4.3.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-27",
+    "q:S-W-AT-P-gas-pressure-q1",
+    "q:Q-W-AT-P-gas-pressure-1c",
+    "q:Q-AQA-8463-2111-1H-094",
+    "q:Q-AQA-8463-2306-1F-075"
+   ],
+   "ht": true,
+   "asked": 10
   },
   {
    "id": "4.4.1",
@@ -231,13 +483,48 @@
    "id": "4.4.1.1",
    "text": "The structure of an atom",
    "parent": "4.4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-28",
+    "q:S-AQA-8464C-2406-1H-08",
+    "q:Q-AQA-8463-2506-1H-071",
+    "q:Q-AQA-8464C-1906-1F-036",
+    "q:Q-AQA-8464C-2011-1F-074"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 8
   },
   {
    "id": "4.4.1.2",
    "text": "Mass number, atomic number and isotopes",
    "parent": "4.4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-29",
+    "q:S-Q-AQA-8463-2111-1H-06",
+    "q:Q-AQA-8464B-2011-1F-037",
+    "q:Q-AQA-8464B-2206-2H-063",
+    "q:S-Q-AQA-8464B-2506-1H-04"
+   ],
+   "asked": 28
+  },
+  {
+   "id": "4.4.1.3",
+   "text": "The development of the model of the atom (common content with chemistry)",
+   "parent": "4.4.1",
+   "links": [
+    "ct:TB-AQA-8463-30",
+    "q:S-Q-AQA-8463-1906-1F-04",
+    "q:Q-AQA-8463-1906-1F-044",
+    "q:S-Q-AQA-8463-2306-1F-02",
+    "q:Q-AQA-8463-2306-1F-026"
+   ],
+   "keys": [
+    "plum pudding",
+    "alpha scattering",
+    "model atom"
+   ],
+   "asked": 22
   },
   {
    "id": "4.4.2",
@@ -249,19 +536,51 @@
    "id": "4.4.2.1",
    "text": "Radioactive decay and nuclear radiation",
    "parent": "4.4.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-31",
+    "q:S-Q-AQA-8463-2011-1F-05",
+    "q:Q-AQA-8463-2011-1F-053",
+    "q:S-Q-AQA-8463-2011-1H-05",
+    "q:S-Q-AQA-8463-2206-1F-04"
+   ],
+   "asked": 13
+  },
+  {
+   "id": "4.4.2.2",
+   "text": "Nuclear equations",
+   "parent": "4.4.2",
+   "links": [
+    "ct:TB-AQA-8463-32",
+    "q:Q-AQA-8463-2011-1F-053",
+    "q:Q-AQA-8463-2111-1F-102",
+    "q:Q-AQA-8463-2111-1H-022",
+    "q:Q-AQA-8463-2206-1H-072"
+   ],
+   "asked": 15
   },
   {
    "id": "4.4.2.3",
    "text": "Half-lives and the random nature of radioactive decay",
    "parent": "4.4.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-33",
+    "q:Q-AQA-8463-2111-1H-064",
+    "q:Q-OCR-J249-2406-04-17cii",
+    "q:Q-W-AT-P-half-life-4a"
+   ],
+   "asked": 3
   },
   {
    "id": "4.4.2.4",
    "text": "Radioactive contamination",
    "parent": "4.4.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-34",
+    "q:Q-AQA-8463-2206-1H-073",
+    "q:Q-AQA-8463-2306-1F-034",
+    "q:Q-AQA-8463-2506-1H-072"
+   ],
+   "asked": 3
   },
   {
    "id": "4.4.3",
@@ -270,16 +589,43 @@
    "links": []
   },
   {
+   "id": "4.4.3.1",
+   "text": "Background radiation",
+   "parent": "4.4.3",
+   "links": [
+    "ct:TB-AQA-8463-35",
+    "q:S-Q-AQA-8463-2406-1F-061",
+    "q:Q-AQA-8463-2406-1F-061",
+    "q:Q-AQA-8463-2406-1F-061ii",
+    "q:Q-AQA-8463-2406-1F-061iii"
+   ],
+   "asked": 14
+  },
+  {
    "id": "4.4.3.2",
    "text": "Different half-lives of radioactive isotopes",
    "parent": "4.4.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-36",
+    "q:Q-AQA-8463-2306-1F-032",
+    "q:Q-AQA-8464P-1806-1H-044",
+    "q:Q-AQA-8464P-2011-1H-064",
+    "q:Q-OCR-J249-1906-04-05"
+   ],
+   "asked": 5
   },
   {
    "id": "4.4.3.3",
    "text": "Uses of nuclear radiation",
    "parent": "4.4.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-37",
+    "q:S-Q-AQA-8463-2406-1H-021",
+    "q:Q-AQA-8463-2406-1H-021iii",
+    "q:Q-AQA-8463-2406-1F-061iii",
+    "q:S-Q-AQA-8463-2406-1F-101"
+   ],
+   "asked": 30
   },
   {
    "id": "4.4.4",
@@ -291,43 +637,134 @@
    "id": "4.4.4.1",
    "text": "Nuclear fission",
    "parent": "4.4.4",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-38",
+    "q:S-Q-AQA-8463-2406-1H-021",
+    "q:Q-AQA-8463-2406-1H-021iii",
+    "q:S-Q-AQA-8463-2406-1F-101",
+    "q:Q-AQA-8463-2406-1F-101iii"
+   ],
+   "figure": [
+    "diagram",
+    "draw"
+   ],
+   "asked": 28
   },
   {
    "id": "4.4.4.2",
    "text": "Nuclear fusion",
    "parent": "4.4.4",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-39",
+    "q:Q-AQA-8463-2011-1H-054",
+    "q:Q-AQA-8463-2011-1H-055",
+    "q:S-Q-AQA-8463-2111-1F-10",
+    "q:Q-AQA-8463-2111-1F-102"
+   ],
+   "asked": 33
   },
   {
    "id": "4.5.1.1",
    "text": "Scalar and vector quantities",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-40",
+    "q:Q-AQA-8463-2406-2F-051",
+    "q:Q-AQA-8464P-2011-2H-041"
+   ],
+   "asked": 2
   },
   {
    "id": "4.5.1.2",
    "text": "Contact and non-contact forces",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-41",
+    "q:Q-AQA-8463-2011-2F-018",
+    "q:Q-AQA-8463-2111-2F-062",
+    "q:Q-AQA-8463-2306-2F-104",
+    "q:Q-AQA-8464P-2011-2F-042"
+   ],
+   "asked": 8
   },
   {
    "id": "4.5.1.3",
    "text": "Gravity",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-42",
+    "q:Q-AQA-8463-2406-2F-078",
+    "q:Q-AQA-8463-1906-2H-056",
+    "q:Q-AQA-8463-2111-1H-082",
+    "q:Q-AQA-8463-2111-2F-062"
+   ],
+   "asked": 16
   },
   {
    "id": "4.5.1.4",
    "text": "Resultant forces",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-43",
+    "q:Q-W-AT-P-forces-3biv",
+    "q:S-W-AT-P-forces-q7",
+    "q:Q-AQA-8464P-2011-2F-013",
+    "q:Q-OCR-J249-1906-03-11"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "4.5.2",
+   "text": "Work done and energy transfer",
+   "parent": "4.5",
+   "links": [
+    "ct:TB-AQA-8463-44",
+    "q:Q-AQA-8464P-2111-2H-054",
+    "q:Q-AQA-8464P-2406-1H-062",
+    "q:Q-OCR-J249-2011-03-02"
+   ],
+   "asked": 3
   },
   {
    "id": "4.5.3",
    "text": "Forces and elasticity",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-45",
+    "q:Q-AQA-8463-2406-1H-062",
+    "q:Q-AQA-8463-2406-1F-032",
+    "q:Q-AQA-8463-2406-2F-076",
+    "q:Q-AQA-8463-2406-2F-077"
+   ],
+   "keys": [
+    "spring extension",
+    "spring constant",
+    "elastic potential",
+    "limit proportionality"
+   ],
+   "asked": 82
+  },
+  {
+   "id": "4.5.4",
+   "text": "Moments, levers and gears",
+   "parent": "4.5",
+   "links": [
+    "ct:TB-AQA-8463-46",
+    "q:Q-AQA-8463-2406-2H-025",
+    "q:Q-AQA-8463-2406-2H-026",
+    "q:Q-AQA-8463-2406-2H-027",
+    "q:Q-AQA-8463-2406-2F-095"
+   ],
+   "keys": [
+    "moment",
+    "pivot",
+    "lever",
+    "gear"
+   ],
+   "asked": 55
   },
   {
    "id": "4.5.5",
@@ -342,6 +779,44 @@
    "links": []
   },
   {
+   "id": "4.5.5.1.1",
+   "text": "Pressure in a fluid 1",
+   "parent": "4.5.5.1",
+   "links": [
+    "ct:TB-AQA-8463-47",
+    "q:Q-AQA-8463-2111-2F-086",
+    "q:Q-AQA-8463-2111-2H-016",
+    "q:Q-OCR-J249-1806-01-21bi"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "4.5.5.1.2",
+   "text": "Pressure in a fluid 2",
+   "parent": "4.5.5.1",
+   "links": [
+    "ct:TB-AQA-8463-48",
+    "q:Q-AQA-8463-2111-2F-086",
+    "q:Q-AQA-8463-2111-2H-016",
+    "q:Q-OCR-J249-1806-01-21bi"
+   ],
+   "ht": true,
+   "asked": 3
+  },
+  {
+   "id": "4.5.5.2",
+   "text": "Atmospheric pressure",
+   "parent": "4.5.5",
+   "links": [
+    "ct:TB-AQA-8463-49",
+    "q:S-W-AT-P-pressure-fluids-q7",
+    "q:Q-W-AT-P-pressure-fluids-7a",
+    "q:Q-AQA-8463-2206-2F-065",
+    "q:Q-AQA-8463-2506-2H-054"
+   ],
+   "asked": 6
+  },
+  {
    "id": "4.5.6",
    "text": "Forces and motion",
    "parent": "4.5",
@@ -354,10 +829,128 @@
    "links": []
   },
   {
+   "id": "4.5.6.1.1",
+   "text": "Distance and displacement",
+   "parent": "4.5.6.1",
+   "links": [
+    "ct:TB-AQA-8463-50",
+    "q:Q-AQA-8464P-2506-2F-036",
+    "q:Q-OCR-J249-2111-01-04",
+    "q:Q-OCR-J249-2111-02-18c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "4.5.6.1.2",
+   "text": "Speed",
+   "parent": "4.5.6.1",
+   "links": [
+    "ct:TB-AQA-8463-51",
+    "q:Q-AQA-8463-2406-2H-024",
+    "q:Q-AQA-8463-2406-2H-046",
+    "q:Q-AQA-8463-2406-2H-074",
+    "q:Q-AQA-8463-2406-2F-053"
+   ],
+   "asked": 229
+  },
+  {
+   "id": "4.5.6.1.3",
+   "text": "Velocity",
+   "parent": "4.5.6.1",
+   "links": [
+    "ct:TB-AQA-8463-52",
+    "q:S-Q-AQA-8463-2406-2H-071",
+    "q:Q-AQA-8463-2406-2F-074",
+    "q:Q-AQA-8463-2406-2F-078",
+    "q:S-W-AT-P-forces-motion-q1"
+   ],
+   "asked": 105
+  },
+  {
+   "id": "4.5.6.1.4",
+   "text": "The distance–time relationship",
+   "parent": "4.5.6.1",
+   "links": [
+    "ct:TB-AQA-8463-53",
+    "q:Q-AQA-8463-2406-2H-046"
+   ],
+   "figure": [
+    "draw",
+    "graph"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "4.5.6.1.5",
+   "text": "Acceleration",
+   "parent": "4.5.6.1",
+   "links": [
+    "ct:TB-AQA-8463-54",
+    "q:S-Q-AQA-8463-2406-2H-051",
+    "q:Q-AQA-8463-2406-2H-053",
+    "q:Q-AQA-8463-2406-2H-054",
+    "q:Q-AQA-8463-2406-2H-055"
+   ],
+   "figure": [
+    "draw",
+    "graph"
+   ],
+   "asked": 113
+  },
+  {
    "id": "4.5.6.2",
    "text": "Forces, accelerations and Newton's Laws of motion",
    "parent": "4.5.6",
    "links": []
+  },
+  {
+   "id": "4.5.6.2.1",
+   "text": "Newton's First Law",
+   "parent": "4.5.6.2",
+   "links": [
+    "ct:TB-AQA-8463-55",
+    "q:S-W-AT-P-forces-q7",
+    "q:Q-W-AT-P-forces-7aii",
+    "q:Q-AQA-8463-1906-2F-061",
+    "q:Q-AQA-8463-1906-2H-061"
+   ],
+   "keys": [
+    "resultant force zero",
+    "constant speed balanced",
+    "inertia"
+   ],
+   "asked": 7
+  },
+  {
+   "id": "4.5.6.2.2",
+   "text": "Newton's Second Law",
+   "parent": "4.5.6.2",
+   "links": [
+    "ct:TB-AQA-8463-56",
+    "q:S-Q-AQA-8463-2406-2H-051",
+    "q:Q-AQA-8463-2406-2F-032",
+    "q:Q-AQA-8463-2406-2F-035",
+    "q:Q-W-AT-P-forces-motion-3d"
+   ],
+   "keys": [
+    "resultant force acceleration",
+    "force mass acceleration",
+    "inertial mass"
+   ],
+   "asked": 43
+  },
+  {
+   "id": "4.5.6.2.3",
+   "text": "Newton's Third Law",
+   "parent": "4.5.6.2",
+   "links": [
+    "ct:TB-AQA-8463-57",
+    "q:Q-AQA-8464P-2506-2F-066",
+    "q:Q-AQA-8464P-2506-2H-016",
+    "q:Q-OCR-J249-1906-01-09",
+    "q:Q-OCR-J249-2011-03-07"
+   ],
+   "asked": 5
   },
   {
    "id": "4.5.6.3",
@@ -366,22 +959,102 @@
    "links": []
   },
   {
+   "id": "4.5.6.3.1",
+   "text": "Stopping distance",
+   "parent": "4.5.6.3",
+   "links": [
+    "ct:TB-AQA-8463-58",
+    "q:Q-AQA-8463-2406-2H-075",
+    "q:Q-W-AT-P-forces-motion-1d",
+    "q:Q-W-AT-P-forces-motion-4c",
+    "q:Q-W-AT-P-forces-motion-6bii"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "asked": 19
+  },
+  {
+   "id": "4.5.6.3.2",
+   "text": "Reaction time",
+   "parent": "4.5.6.3",
+   "links": [
+    "ct:TB-AQA-8463-59",
+    "q:Q-W-AT-P-forces-motion-4biii",
+    "q:Q-AQA-8463-2206-2H-032",
+    "q:Q-AQA-8463-2306-2F-028",
+    "q:S-Q-AQA-8464B-1906-2H-01"
+   ],
+   "asked": 41
+  },
+  {
+   "id": "4.5.6.3.3",
+   "text": "Factors affecting braking distance 1",
+   "parent": "4.5.6.3",
+   "links": [
+    "ct:TB-AQA-8463-60",
+    "q:Q-W-AT-P-forces-motion-4c",
+    "q:Q-W-AT-P-momentum-7aii",
+    "q:Q-T-AT-P-forces-1-1",
+    "q:Q-AQA-8463-1906-2F-101"
+   ],
+   "asked": 24
+  },
+  {
+   "id": "4.5.6.3.4",
+   "text": "Factors affecting braking distance 2",
+   "parent": "4.5.6.3",
+   "links": [
+    "ct:TB-AQA-8463-61",
+    "q:Q-W-AT-P-forces-motion-4c",
+    "q:Q-W-AT-P-momentum-7aii",
+    "q:Q-T-AT-P-forces-1-1",
+    "q:Q-AQA-8463-1906-2F-101"
+   ],
+   "asked": 24
+  },
+  {
    "id": "4.5.7.1",
    "text": "Momentum is a property of moving objects",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-62",
+    "q:Q-W-AT-P-forces-motion-5b",
+    "q:Q-W-AT-P-momentum-5a",
+    "q:Q-OCR-J249-1906-03-01"
+   ],
+   "asked": 3
   },
   {
    "id": "4.5.7.2",
    "text": "Conservation of momentum",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-63",
+    "q:Q-W-AT-P-momentum-4bii",
+    "q:Q-AQA-8464P-1806-2H-033"
+   ],
+   "asked": 2
   },
   {
    "id": "4.5.7.3",
    "text": "Changes in momentum (physics only)",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-64",
+    "q:Q-W-AT-P-momentum-4bi",
+    "q:Q-W-AT-P-momentum-7d",
+    "q:Q-W-AT-P-forces-4bi",
+    "q:Q-AQA-8463-2506-2H-062"
+   ],
+   "keys": [
+    "change momentum",
+    "momentum force time",
+    "crumple",
+    "air bag",
+    "seat belt"
+   ],
+   "asked": 4
   },
   {
    "id": "4.6.1",
@@ -393,19 +1066,80 @@
    "id": "4.6.1.1",
    "text": "Transverse and longitudinal waves",
    "parent": "4.6.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-65",
+    "q:Q-AQA-8463-2111-2H-055",
+    "q:S-Q-AQA-8464P-1806-2H-05",
+    "q:Q-AQA-8464P-1806-2H-051",
+    "q:Q-AQA-8464P-2306-2H-034"
+   ],
+   "asked": 6
+  },
+  {
+   "id": "4.6.1.2",
+   "text": "Properties of waves",
+   "parent": "4.6.1",
+   "links": [
+    "ct:TB-AQA-8463-66",
+    "q:Q-AQA-8464P-2306-2F-062",
+    "q:Q-AQA-8464P-2306-2H-012",
+    "q:Q-AQA-8464P-2506-2F-055",
+    "q:Q-OCR-J249-2206-02-16a"
+   ],
+   "figure": [
+    "apparatus",
+    "diagram"
+   ],
+   "asked": 5
   },
   {
    "id": "4.6.1.3",
    "text": "Reflection of waves (physics only)",
    "parent": "4.6.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-67",
+    "q:S-Q-AQA-8463-2506-2F-01"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "4.6.1.4",
+   "text": "Sound waves",
+   "parent": "4.6.1",
+   "links": [
+    "ct:TB-AQA-8463-68",
+    "q:Q-AQA-8463-2011-2H-063",
+    "q:Q-AQA-8463-2111-2H-081",
+    "q:S-Q-AQA-8463-2206-2F-07",
+    "q:S-Q-AQA-8463-2506-2F-08"
+   ],
+   "ht": true,
+   "asked": 16
   },
   {
    "id": "4.6.1.5",
    "text": "Waves for detection and exploration (physics only) (HT only)",
    "parent": "4.6.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-69",
+    "q:S-Q-AQA-8463-1806-2F-12",
+    "q:Q-AQA-8463-1806-2F-125",
+    "q:S-Q-AQA-8463-1806-2H-03",
+    "q:Q-AQA-8463-1806-2H-035"
+   ],
+   "keys": [
+    "ultrasound",
+    "seismic",
+    "echo sounding"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "ht": true,
+   "asked": 15
   },
   {
    "id": "4.6.2",
@@ -417,31 +1151,90 @@
    "id": "4.6.2.1",
    "text": "Types of electromagnetic waves",
    "parent": "4.6.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-70",
+    "q:Q-AQA-8463-2111-2H-055",
+    "q:S-Q-AQA-8464P-2011-2F-03",
+    "q:S-Q-AQA-8464P-2206-2F-01",
+    "q:Q-AQA-8464P-2206-2F-014"
+   ],
+   "asked": 5
   },
   {
    "id": "4.6.2.2",
    "text": "Properties of electromagnetic waves 1",
    "parent": "4.6.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-71",
+    "q:Q-AQA-8464P-2506-2F-055",
+    "q:Q-OCR-J249-2206-02-16a",
+    "q:Q-W-AT-P-em-radiation-7c"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "asked": 3
   },
   {
    "id": "4.6.2.3",
    "text": "Properties of electromagnetic waves 2",
    "parent": "4.6.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-72",
+    "q:Q-AQA-8464P-2506-2F-055",
+    "q:Q-OCR-J249-2206-02-16a",
+    "q:Q-W-AT-P-em-radiation-7c"
+   ],
+   "asked": 3
   },
   {
    "id": "4.6.2.4",
    "text": "Uses and applications of electromagnetic waves",
    "parent": "4.6.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-73",
+    "q:Q-AQA-8463-1806-2F-083",
+    "q:Q-AQA-8463-1806-2F-084",
+    "q:Q-AQA-8463-1906-2F-042",
+    "q:Q-AQA-8463-1906-2F-044"
+   ],
+   "keys": [
+    "microwave",
+    "radio wave",
+    "x-ray",
+    "infrared",
+    "ultraviolet"
+   ],
+   "asked": 97
   },
   {
    "id": "4.6.2.5",
    "text": "Lenses (physics only)",
    "parent": "4.6.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-74",
+    "q:S-Q-AQA-8463-2111-2H-04",
+    "q:S-Q-AQA-8463-2306-2F-08",
+    "q:Q-AQA-8463-2506-2F-057",
+    "q:S-Q-AQA-8463-2506-2H-04"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "asked": 6
+  },
+  {
+   "id": "4.6.2.6",
+   "text": "Visible light",
+   "parent": "4.6.2",
+   "links": [
+    "ct:TB-AQA-8463-75",
+    "q:Q-AQA-8463-1806-2F-081",
+    "q:Q-AQA-8463-1906-1F-096",
+    "q:Q-AQA-8463-2011-2F-028",
+    "q:Q-AQA-8463-2011-2F-041"
+   ],
+   "asked": 31
   },
   {
    "id": "4.6.3",
@@ -453,13 +1246,29 @@
    "id": "4.6.3.1",
    "text": "Emission and absorption of infrared radiation",
    "parent": "4.6.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-76",
+    "q:Q-AQA-8463-2306-2F-094",
+    "q:Q-AQA-8464P-2506-2H-055"
+   ],
+   "asked": 2
   },
   {
    "id": "4.6.3.2",
    "text": "Perfect black bodies and radiation",
    "parent": "4.6.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-77",
+    "q:Q-AQA-8463-1906-2H-077",
+    "q:Q-AQA-8463-2306-2F-046",
+    "q:Q-W-AT-P-black-body-1b",
+    "q:Q-W-AT-P-em-radiation-3c"
+   ],
+   "figure": [
+    "diagram",
+    "draw"
+   ],
+   "asked": 4
   },
   {
    "id": "4.7.1",
@@ -468,10 +1277,33 @@
    "links": []
   },
   {
+   "id": "4.7.1.1",
+   "text": "Poles of a magnet",
+   "parent": "4.7.1",
+   "links": [
+    "ct:TB-AQA-8463-78",
+    "q:S-Q-AQA-8463-2406-2H-081",
+    "q:S-Q-AQA-8464P-2011-2H-07",
+    "q:S-Q-AQA-8464P-2406-2F-04",
+    "q:Q-OCR-J249-1906-01-20a"
+   ],
+   "asked": 12
+  },
+  {
    "id": "4.7.1.2",
    "text": "Magnetic fields",
    "parent": "4.7.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-79",
+    "q:Q-AQA-8463-2406-2H-083",
+    "q:Q-AQA-8463-2406-2F-022",
+    "q:Q-AQA-8463-2406-2F-023",
+    "q:Q-AQA-8463-2406-2F-024"
+   ],
+   "figure": [
+    "draw"
+   ],
+   "asked": 70
   },
   {
    "id": "4.7.2",
@@ -483,25 +1315,62 @@
    "id": "4.7.2.1",
    "text": "Electromagnetism",
    "parent": "4.7.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-80",
+    "q:Q-AQA-8463-1806-2F-044",
+    "q:Q-AQA-8463-1806-2F-045",
+    "q:Q-AQA-8463-1806-2F-046",
+    "q:Q-AQA-8463-1906-2F-038"
+   ],
+   "keys": [
+    "solenoid",
+    "electromagnet"
+   ],
+   "figure": [
+    "diagram",
+    "draw"
+   ],
+   "asked": 34
   },
   {
    "id": "4.7.2.2",
    "text": "Fleming's left-hand rule (HT only)",
    "parent": "4.7.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-81",
+    "q:Q-AQA-8463-2111-2H-091",
+    "q:S-T-AT-P-magnetism-q3"
+   ],
+   "ht": true,
+   "asked": 2
   },
   {
    "id": "4.7.2.3",
    "text": "Electric motors (HT only)",
    "parent": "4.7.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-82",
+    "q:S-Q-AQA-8463-1906-1F-06",
+    "q:Q-AQA-8463-2111-1F-095",
+    "q:Q-AQA-8463-2111-1H-015",
+    "q:S-Q-AQA-8463-2506-1H-09"
+   ],
+   "ht": true,
+   "asked": 15
   },
   {
    "id": "4.7.2.4",
    "text": "Loudspeakers (physics only) (HT only)",
    "parent": "4.7.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-83",
+    "q:S-Q-AQA-8463-2111-2H-08",
+    "q:Q-AQA-8463-2111-2H-081",
+    "q:Q-AQA-8463-2111-2H-082",
+    "q:Q-AQA-8463-2111-2H-083"
+   ],
+   "ht": true,
+   "asked": 5
   },
   {
    "id": "4.7.3",
@@ -513,19 +1382,58 @@
    "id": "4.7.3.1",
    "text": "Induced potential (HT only)",
    "parent": "4.7.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-84",
+    "q:Q-AQA-8463-1806-2H-037",
+    "q:Q-AQA-8463-2206-1F-112",
+    "q:Q-AQA-8463-2206-1H-032",
+    "q:Q-OCR-J249-2011-03-08"
+   ],
+   "ht": true,
+   "asked": 4
   },
   {
    "id": "4.7.3.2",
    "text": "Uses of the generator effect (HT only)",
    "parent": "4.7.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-85",
+    "q:Q-W-AT-P-motor-effect-5a"
+   ],
+   "figure": [
+    "draw",
+    "graph"
+   ],
+   "ht": true,
+   "asked": 1
   },
   {
    "id": "4.7.3.3",
    "text": "Microphones (HT only)",
    "parent": "4.7.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-86",
+    "q:S-Q-OCR-J249-1906-03-20b",
+    "q:Q-OCR-J249-2111-02-21b",
+    "q:S-Q-OCR-J249-2111-02-21c",
+    "q:Q-OCR-J249-2111-02-21cii"
+   ],
+   "ht": true,
+   "asked": 4
+  },
+  {
+   "id": "4.7.3.4",
+   "text": "Transformers",
+   "parent": "4.7.3",
+   "links": [
+    "ct:TB-AQA-8463-87",
+    "q:Q-AQA-8463-2011-2H-071",
+    "q:Q-AQA-8463-2011-2H-072",
+    "q:Q-AQA-8463-2011-2H-075",
+    "q:Q-AQA-8463-2206-1F-072"
+   ],
+   "ht": true,
+   "asked": 48
   },
   {
    "id": "4.8.1",
@@ -537,19 +1445,58 @@
    "id": "4.8.1.1",
    "text": "Our solar system",
    "parent": "4.8.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-88",
+    "q:Q-AQA-8463-2406-2H-031",
+    "q:S-W-AT-P-solar-system-q1",
+    "q:Q-W-AT-P-solar-system-1c",
+    "q:Q-AQA-8463-1806-2F-013"
+   ],
+   "asked": 8
+  },
+  {
+   "id": "4.8.1.2",
+   "text": "The life cycle of a star",
+   "parent": "4.8.1",
+   "links": [
+    "ct:TB-AQA-8463-89",
+    "q:S-T-AT-P-space-q1",
+    "q:Q-T-AT-P-space-1-1",
+    "q:Q-T-AT-P-space-1-4",
+    "q:Q-AQA-8463-2011-2F-094"
+   ],
+   "asked": 9
   },
   {
    "id": "4.8.1.3",
    "text": "Orbital motion, natural and artificial satellites",
    "parent": "4.8.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-90",
+    "q:S-T-AT-P-space-q4",
+    "q:Q-T-AT-P-space-4-1",
+    "q:Q-T-AT-P-space-4-2",
+    "q:Q-T-AT-P-space-4-3"
+   ],
+   "keys": [
+    "orbit",
+    "satellite"
+   ],
+   "asked": 37
   },
   {
    "id": "4.8.2",
    "text": "Red-shift (physics only)",
    "parent": "4.8",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8463-91",
+    "q:Q-T-AT-P-space-2-2",
+    "q:Q-T-AT-P-space-2-3",
+    "q:Q-W-AT-P-red-shift-4ci",
+    "q:Q-W-AT-P-red-shift-4cii"
+   ],
+   "asked": 11
   }
- ]
+ ],
+ "note": "Spec point ids and headings as printed in the published specification; `figure` lists the words in that point's own text (diagram, graph, draw, sketch, apparatus, label, structure) that make a picture part of learning it."
 }

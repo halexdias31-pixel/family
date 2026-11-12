@@ -6243,3 +6243,7 @@ body.nes-on .page.soft > .pane { filter: none; }
 .spec-sec > summary { cursor: pointer; }
 .spec-sec ul ul { margin-left: var(--s3); }
 .spec-say { display: block; font-size: var(--fs-small); line-height: 1.4; }
+.spec-pt > .tile-row { margin: var(--s1) 0; justify-content: flex-start; }
+/* ON PAPER the round tiles take the paper's ink and rule, as the sheet's words do. */
+.spec-pt .tile { color: var(--paper-ink); border-color: var(--paper-rule); background: transparent; }
+.spec-more { font-size: var(--fs-small); color: var(--paper-dim); margin: 0; }

@@ -6,34 +6,42 @@
  "subject": "Biology",
  "code": "8461",
  "url": "https://filestore.aqa.org.uk/resources/biology/specifications/AQA-8461-SP-2016.PDF",
+ "measured": true,
  "sections": [
   {
    "id": "4.1",
-   "title": "Cell biology"
+   "title": "Cell biology",
+   "topic": "Cell Biology"
   },
   {
    "id": "4.2",
-   "title": "Organisation"
+   "title": "Organisation",
+   "topic": "Organisation"
   },
   {
    "id": "4.3",
-   "title": "Infection and response"
+   "title": "Infection and response",
+   "topic": "Infection & Response"
   },
   {
    "id": "4.4",
-   "title": "Bioenergetics"
+   "title": "Bioenergetics",
+   "topic": "Bioenergetics"
   },
   {
    "id": "4.5",
-   "title": "Homeostasis and response"
+   "title": "Homeostasis and response",
+   "topic": "Homeostasis & Response"
   },
   {
    "id": "4.6",
-   "title": "Inheritance, variation and evolution"
+   "title": "Inheritance, variation and evolution",
+   "topic": "Inheritance & Evolution"
   },
   {
    "id": "4.7",
-   "title": "Ecology"
+   "title": "Ecology",
+   "topic": "Ecology"
   }
  ],
  "points": [
@@ -47,73 +55,213 @@
    "id": "4.1.1.1",
    "text": "Eukaryotes and prokaryotes",
    "parent": "4.1.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-1",
+    "q:Q-AQA-8464B-2406-1H-052",
+    "q:Q-AQA-8464B-1806-1H-011",
+    "q:Q-AQA-8464B-1906-1H-043",
+    "q:Q-AQA-8464B-1906-2H-032"
+   ],
+   "keys": [
+    "prokaryotic",
+    "eukaryotic",
+    "prokaryote",
+    "eukaryote",
+    "bacterial cell",
+    "plasmid"
+   ],
+   "asked": 27
   },
   {
    "id": "4.1.1.2",
    "text": "Animal and plant cells",
    "parent": "4.1.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-2",
+    "q:Q-OCR-J247-2111-01-18bii",
+    "q:Q-W-AT-B-cell-structure-2a",
+    "q:Q-W-AT-B-cell-structure-2b",
+    "q:Q-W-AT-B-cell-transport-5d"
+   ],
+   "figure": [
+    "draw",
+    "structure"
+   ],
+   "asked": 4
   },
   {
    "id": "4.1.1.3",
    "text": "Cell specialisation",
    "parent": "4.1.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-3",
+    "q:Q-W-AT-B-cell-division-4d"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 1
   },
   {
    "id": "4.1.1.4",
    "text": "Cell differentiation",
    "parent": "4.1.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-4",
+    "q:Q-OCR-J247-2011-01-01",
+    "q:Q-OCR-J247-2111-01-18bi",
+    "q:Q-W-AT-B-cell-division-4d",
+    "q:Q-W-AT-B-stem-cells-5c"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "4.1.1.5",
+   "text": "Microscopy",
+   "parent": "4.1.1",
+   "links": [
+    "ct:TB-AQA-8461-5",
+    "q:S-AQA-8464B-2406-1H-05",
+    "q:Q-OCR-J247-1906-01-16e",
+    "q:Q-OCR-J247-2111-03-06"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 3
   },
   {
    "id": "4.1.1.6",
    "text": "Culturing microorganisms (biology only)",
    "parent": "4.1.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-6",
+    "q:Q-OCR-J247-1906-01-18aiii",
+    "q:S-Q-OCR-J247-1906-01-18b",
+    "q:Q-OCR-J247-1906-01-18biii",
+    "q:Q-OCR-J247-1906-02-14"
+   ],
+   "keys": [
+    "agar",
+    "culture bacteria",
+    "binary fission",
+    "zone inhibition",
+    "aseptic"
+   ],
+   "asked": 15
   },
   {
    "id": "4.1.2.1",
    "text": "Chromosomes",
    "parent": "4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-7",
+    "q:Q-AQA-8461-2406-1H-084",
+    "q:S-Q-AQA-8464B-1806-2H-07",
+    "q:Q-AQA-8464B-1806-2H-071",
+    "q:S-Q-AQA-8464B-2011-2H-05"
+   ],
+   "asked": 32
   },
   {
    "id": "4.1.2.2",
    "text": "Mitosis and the cell cycle",
    "parent": "4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-8",
+    "q:Q-AQA-8464B-1806-1H-064",
+    "q:Q-OCR-J247-1906-01-08",
+    "q:Q-OCR-J247-2011-01-10",
+    "q:Q-OCR-J247-2111-01-18ai"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 6
   },
   {
    "id": "4.1.2.3",
    "text": "Stem cells",
    "parent": "4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-9",
+    "q:Q-AQA-8464B-2406-1H-046",
+    "q:S-Q-AQA-8464B-1806-1H-06",
+    "q:Q-AQA-8464B-1806-1H-061",
+    "q:Q-AQA-8464B-1806-1H-062"
+   ],
+   "asked": 64
   },
   {
    "id": "4.1.3.1",
    "text": "Diffusion",
    "parent": "4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-10",
+    "q:Q-OCR-J247-1806-02-14",
+    "q:S-Q-OCR-J247-2011-01-21",
+    "q:Q-OCR-J247-2011-01-21aii",
+    "q:Q-OCR-J247-2111-01-22ai"
+   ],
+   "figure": [
+    "diagram",
+    "draw"
+   ],
+   "asked": 12
   },
   {
    "id": "4.1.3.2",
    "text": "Osmosis",
    "parent": "4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-11",
+    "q:S-AQA-8464B-2406-1H-02",
+    "q:S-Q-AQA-8464B-2406-1F-07",
+    "q:Q-OCR-J247-1906-01-13",
+    "q:Q-OCR-J247-2011-01-06"
+   ],
+   "figure": [
+    "diagram",
+    "draw",
+    "graph"
+   ],
+   "asked": 11
   },
   {
    "id": "4.1.3.3",
    "text": "Active transport",
    "parent": "4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-12",
+    "q:Q-OCR-J247-1806-01-12",
+    "q:Q-OCR-J247-1806-02-12",
+    "q:Q-OCR-J247-1806-03-14",
+    "q:Q-OCR-J247-2306-03-05"
+   ],
+   "asked": 7
   },
   {
    "id": "4.2.1",
    "text": "Principles of organisation",
    "parent": "4.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-13",
+    "q:S-Q-AQA-8464B-2206-1F-01",
+    "q:Q-AQA-8464B-2206-1H-031",
+    "q:Q-AQA-8464B-2306-1F-011",
+    "q:Q-AQA-8464B-2306-2F-057"
+   ],
+   "keys": [
+    "tissue organ",
+    "organ system"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 11
   },
   {
    "id": "4.2.2",
@@ -125,31 +273,110 @@
    "id": "4.2.2.1",
    "text": "The human digestive system",
    "parent": "4.2.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-14",
+    "q:Q-AQA-8464B-2406-1H-014",
+    "q:Q-AQA-8464B-1906-1H-021",
+    "q:S-Q-AQA-8464B-2206-1F-01",
+    "q:Q-AQA-8464B-2206-1H-031"
+   ],
+   "asked": 11
+  },
+  {
+   "id": "4.2.2.2",
+   "text": "The heart and blood vessels",
+   "parent": "4.2.2",
+   "links": [
+    "ct:TB-AQA-8461-15",
+    "q:Q-AQA-8461-2406-1F-071",
+    "q:Q-AQA-8461-2406-1H-011",
+    "q:Q-AQA-8464B-1906-1H-011",
+    "q:Q-AQA-8464B-2111-1H-051"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 17
   },
   {
    "id": "4.2.2.3",
    "text": "Blood",
    "parent": "4.2.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-16",
+    "q:Q-AQA-8461-2406-1F-071",
+    "q:Q-AQA-8461-2406-1F-074",
+    "q:Q-AQA-8461-2406-1H-011",
+    "q:Q-AQA-8461-2406-1H-014"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "asked": 202
   },
   {
    "id": "4.2.2.4",
    "text": "Coronary heart disease: a non-communicable disease",
    "parent": "4.2.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-17",
+    "q:S-Q-AQA-8461-2406-1F-071",
+    "q:Q-AQA-8461-2406-1F-071",
+    "q:Q-AQA-8461-2406-1F-075",
+    "q:S-Q-AQA-8461-2406-1H-011"
+   ],
+   "asked": 27
   },
   {
    "id": "4.2.2.5",
    "text": "Health issues",
    "parent": "4.2.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-18",
+    "q:Q-AQA-8461-2406-1F-078",
+    "q:Q-AQA-8461-2406-1H-018",
+    "q:S-Q-AQA-8464B-1806-1H-02",
+    "q:Q-AQA-8464B-1806-1H-021"
+   ],
+   "keys": [
+    "non-communicable",
+    "risk factor",
+    "lifestyle disease"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "asked": 24
+  },
+  {
+   "id": "4.2.2.6",
+   "text": "The effect of lifestyle on some non-communicable diseases",
+   "parent": "4.2.2",
+   "links": [
+    "ct:TB-AQA-8461-19",
+    "q:S-Q-AQA-8464B-2306-1F-06",
+    "q:Q-AQA-8464B-2306-1F-062",
+    "q:S-Q-AQA-8464B-2306-1H-01",
+    "q:Q-AQA-8464B-2306-1H-012"
+   ],
+   "figure": [
+    "diagram",
+    "graph"
+   ],
+   "asked": 5
   },
   {
    "id": "4.2.2.7",
    "text": "Cancer",
    "parent": "4.2.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-20",
+    "q:S-Q-AQA-8461-2406-1F-051",
+    "q:Q-AQA-8461-2406-1F-051",
+    "q:S-AQA-8464B-2406-1H-06",
+    "q:Q-AQA-8464B-2406-1H-062"
+   ],
+   "asked": 34
   },
   {
    "id": "4.2.3",
@@ -161,7 +388,43 @@
    "id": "4.2.3.1",
    "text": "Plant tissues",
    "parent": "4.2.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-21",
+    "q:S-Q-AQA-8461-2406-1F-011",
+    "q:S-Q-AQA-8461-2406-1H-041",
+    "q:S-Q-AQA-8464B-2306-1H-04",
+    "q:Q-AQA-8464B-2506-1H-054"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 8
+  },
+  {
+   "id": "4.2.3.2",
+   "text": "Plant organ system",
+   "parent": "4.2.3",
+   "links": [
+    "ct:TB-AQA-8461-22",
+    "q:Q-AQA-8461-2406-1F-013",
+    "q:Q-AQA-8461-2406-1F-014",
+    "q:Q-AQA-8461-2406-1H-042",
+    "q:Q-AQA-8461-2406-1H-043"
+   ],
+   "keys": [
+    "xylem",
+    "phloem",
+    "transpiration",
+    "stomata",
+    "guard cell",
+    "translocation"
+   ],
+   "figure": [
+    "draw",
+    "graph",
+    "structure"
+   ],
+   "asked": 64
   },
   {
    "id": "4.3.1",
@@ -173,43 +436,161 @@
    "id": "4.3.1.1",
    "text": "Communicable (infectious) diseases",
    "parent": "4.3.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-23",
+    "q:S-Q-AQA-8461-2406-1F-021",
+    "q:Q-AQA-8461-2406-1F-021",
+    "q:Q-AQA-8461-2406-1F-022",
+    "q:S-Q-AQA-8461-2406-1H-061"
+   ],
+   "keys": [
+    "pathogen",
+    "communicable"
+   ],
+   "asked": 61
+  },
+  {
+   "id": "4.3.1.2",
+   "text": "Viral diseases",
+   "parent": "4.3.1",
+   "links": [
+    "ct:TB-AQA-8461-24",
+    "q:S-Q-AQA-8461-2406-1F-031",
+    "q:Q-AQA-8461-2406-1F-031",
+    "q:Q-AQA-8461-2406-1F-032",
+    "q:Q-AQA-8461-2406-1F-033"
+   ],
+   "keys": [
+    "virus",
+    "measles",
+    "hiv",
+    "tobacco mosaic"
+   ],
+   "asked": 71
   },
   {
    "id": "4.3.1.3",
    "text": "Bacterial diseases",
    "parent": "4.3.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-25",
+    "q:Q-AQA-8464B-2011-1F-041",
+    "q:Q-AQA-8464B-2011-1H-042",
+    "q:Q-AQA-8464B-2011-1H-043",
+    "q:Q-AQA-8464B-2011-1H-044"
+   ],
+   "keys": [
+    "salmonella",
+    "gonorrhoea",
+    "bacteria disease"
+   ],
+   "asked": 41
   },
   {
    "id": "4.3.1.4",
    "text": "Fungal diseases",
    "parent": "4.3.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-26",
+    "q:Q-AQA-8464B-2011-1F-041",
+    "q:Q-AQA-8464B-2111-1F-028",
+    "q:Q-AQA-8464B-2111-1F-029",
+    "q:Q-AQA-8464B-2111-1H-041"
+   ],
+   "keys": [
+    "rose black spot",
+    "fungal",
+    "fungus"
+   ],
+   "asked": 39
   },
   {
    "id": "4.3.1.5",
    "text": "Protist diseases",
    "parent": "4.3.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-27",
+    "q:Q-AQA-8464B-1906-1H-041",
+    "q:Q-AQA-8464B-1906-1H-042",
+    "q:Q-AQA-8464B-2011-1F-041",
+    "q:S-Q-AQA-8464B-2111-1H-04"
+   ],
+   "keys": [
+    "malaria",
+    "protist"
+   ],
+   "asked": 12
   },
   {
    "id": "4.3.1.6",
    "text": "Human defence systems",
    "parent": "4.3.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-28",
+    "q:Q-AQA-8461-2406-1F-031",
+    "q:Q-AQA-8461-2406-1H-066",
+    "q:Q-AQA-8464B-2306-1F-048",
+    "q:Q-AQA-8464B-2406-1F-031"
+   ],
+   "keys": [
+    "white blood cell",
+    "antibod",
+    "phagocyt",
+    "antitoxin"
+   ],
+   "asked": 25
   },
   {
    "id": "4.3.1.7",
    "text": "Vaccination",
    "parent": "4.3.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-29",
+    "q:Q-AQA-8464B-2406-1H-032",
+    "q:Q-AQA-8464B-2011-1H-044",
+    "q:Q-AQA-8464B-2506-1F-065",
+    "q:Q-AQA-8464B-2506-1H-025"
+   ],
+   "asked": 7
+  },
+  {
+   "id": "4.3.1.8",
+   "text": "Antibiotics and painkillers",
+   "parent": "4.3.1",
+   "links": [
+    "ct:TB-AQA-8461-30",
+    "q:S-Q-AQA-8461-2406-1H-061",
+    "q:Q-AQA-8461-2406-1H-061",
+    "q:Q-AQA-8461-2406-1H-062",
+    "q:Q-AQA-8461-2406-1H-063"
+   ],
+   "keys": [
+    "antibiotic",
+    "painkiller"
+   ],
+   "asked": 73
   },
   {
    "id": "4.3.1.9",
    "text": "Discovery and development of drugs",
    "parent": "4.3.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-31",
+    "q:Q-AQA-8461-2406-1F-058",
+    "q:Q-AQA-8461-2406-1F-059",
+    "q:Q-AQA-8461-2406-1H-086",
+    "q:Q-AQA-8464B-2406-1H-035"
+   ],
+   "keys": [
+    "drug trial",
+    "placebo",
+    "double blind",
+    "preclinical",
+    "digitalis",
+    "aspirin",
+    "penicillin"
+   ],
+   "asked": 28
   },
   {
    "id": "4.3.2",
@@ -221,25 +602,60 @@
    "id": "4.3.2.1",
    "text": "Producing monoclonal antibodies",
    "parent": "4.3.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-32",
+    "q:Q-OCR-J247-1806-04-22b",
+    "q:Q-OCR-J247-2011-04-11",
+    "q:S-Q-OCR-J247-2011-04-20b",
+    "q:Q-OCR-J247-2011-04-20bi"
+   ],
+   "keys": [
+    "monoclonal"
+   ],
+   "asked": 14
   },
   {
    "id": "4.3.2.2",
    "text": "Uses of monoclonal antibodies",
    "parent": "4.3.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-33",
+    "q:Q-OCR-J247-1806-04-22b",
+    "q:Q-OCR-J247-2011-04-11",
+    "q:S-Q-OCR-J247-2011-04-20b",
+    "q:Q-OCR-J247-2011-04-20bi"
+   ],
+   "asked": 14
   },
   {
    "id": "4.3.3.1",
    "text": "Detection and identification of plant diseases",
    "parent": "4.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-34",
+    "q:S-Q-AQA-8464B-2206-1F-03",
+    "q:Q-AQA-8464B-2206-1F-032",
+    "q:Q-OCR-J247-2011-02-08",
+    "q:Q-OCR-J247-2011-04-18a"
+   ],
+   "keys": [
+    "plant disease",
+    "aphid",
+    "nitrate deficiency",
+    "magnesium deficiency",
+    "chlorosis"
+   ],
+   "asked": 24
   },
   {
    "id": "4.3.3.2",
    "text": "Plant defence responses",
    "parent": "4.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-35",
+    "q:Q-OCR-J247-2206-02-03"
+   ],
+   "asked": 1
   },
   {
    "id": "4.4.1",
@@ -251,13 +667,48 @@
    "id": "4.4.1.1",
    "text": "Photosynthetic reaction",
    "parent": "4.4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-36",
+    "q:S-Q-AQA-8461-2406-1H-071",
+    "q:Q-AQA-8461-2406-1H-076",
+    "q:Q-AQA-8461-2406-1H-077",
+    "q:Q-AQA-8461-2406-1H-078"
+   ],
+   "keys": [
+    "photosynthesis",
+    "chlorophyll"
+   ],
+   "asked": 96
+  },
+  {
+   "id": "4.4.1.2",
+   "text": "Rate of photosynthesis",
+   "parent": "4.4.1",
+   "links": [
+    "ct:TB-AQA-8461-37",
+    "q:Q-AQA-8461-2406-1H-076",
+    "q:Q-AQA-8461-2406-1H-077",
+    "q:Q-AQA-8461-2406-1H-078",
+    "q:Q-AQA-8464B-2406-1H-042"
+   ],
+   "figure": [
+    "draw",
+    "graph"
+   ],
+   "asked": 30
   },
   {
    "id": "4.4.1.3",
    "text": "Uses of glucose from photosynthesis",
    "parent": "4.4.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-38",
+    "q:Q-AQA-8464B-2406-1F-053",
+    "q:Q-OCR-J247-2206-01-18b",
+    "q:Q-T-AT-B-bioenergetics-4-1",
+    "q:Q-W-AT-B-photosynthesis-1i"
+   ],
+   "asked": 7
   },
   {
    "id": "4.4.2",
@@ -269,43 +720,117 @@
    "id": "4.4.2.1",
    "text": "Aerobic and anaerobic respiration",
    "parent": "4.4.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-39",
+    "q:Q-OCR-J247-2011-02-20div",
+    "q:Q-OCR-J247-2111-03-08",
+    "q:Q-OCR-J247-2206-01-02"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "4.4.2.2",
+   "text": "Response to exercise",
+   "parent": "4.4.2",
+   "links": [
+    "ct:TB-AQA-8461-40",
+    "q:Q-AQA-8464B-2406-1H-063",
+    "q:Q-AQA-8464B-1906-1H-015",
+    "q:Q-AQA-8464B-2011-1F-012",
+    "q:Q-AQA-8464B-2011-1F-015"
+   ],
+   "keys": [
+    "exercise",
+    "oxygen debt",
+    "lactic acid",
+    "breathing rate"
+   ],
+   "asked": 45
   },
   {
    "id": "4.4.2.3",
    "text": "Metabolism",
    "parent": "4.4.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-41",
+    "q:Q-OCR-J247-2111-03-19a"
+   ],
+   "asked": 1
   },
   {
    "id": "4.5.1",
    "text": "Homeostasis",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-42",
+    "q:S-Q-AQA-8461-2406-2H-081",
+    "q:Q-AQA-8461-2406-2H-081",
+    "q:Q-AQA-8461-2406-2H-082",
+    "q:Q-AQA-8464B-2406-2H-067"
+   ],
+   "asked": 17
   },
   {
    "id": "4.5.2.1",
    "text": "Structure and function",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-43",
+    "q:Q-AQA-8464B-2111-1F-012",
+    "q:Q-OCR-J247-2306-03-16a",
+    "q:Q-OCR-J247-2406-04-14"
+   ],
+   "figure": [
+    "graph",
+    "structure"
+   ],
+   "asked": 3
   },
   {
    "id": "4.5.2.2",
    "text": "The brain (biology only)",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-44",
+    "q:Q-AQA-8461-2406-2F-015",
+    "q:Q-AQA-8461-2406-2F-045",
+    "q:Q-AQA-8464B-2306-2F-051",
+    "q:Q-OCR-J247-1806-03-19ciii"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "asked": 23
   },
   {
    "id": "4.5.2.3",
    "text": "The eye (biology only)",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-45",
+    "q:S-Q-AQA-8461-2406-2F-041",
+    "q:Q-AQA-8461-2406-2F-041",
+    "q:Q-AQA-8461-2406-2F-042",
+    "q:Q-AQA-8461-2406-2F-044"
+   ],
+   "figure": [
+    "diagram",
+    "structure"
+   ],
+   "asked": 38
   },
   {
    "id": "4.5.2.4",
    "text": "Control of body temperature (biology only)",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-46",
+    "q:Q-AQA-8464B-2011-1F-026",
+    "q:S-Q-AQA-8464B-2306-2F-05",
+    "q:Q-AQA-8464B-2306-2F-051",
+    "q:S-Q-AQA-8464B-2306-2H-06"
+   ],
+   "asked": 6
   },
   {
    "id": "4.5.3",
@@ -317,43 +842,137 @@
    "id": "4.5.3.1",
    "text": "Human endocrine system",
    "parent": "4.5.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-47",
+    "q:S-Q-AQA-8461-2406-2H-051",
+    "q:S-Q-AQA-8464B-2206-2F-04",
+    "q:Q-OCR-J247-2506-01-02"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "4.5.3.2",
+   "text": "Control of blood glucose concentration",
+   "parent": "4.5.3",
+   "links": [
+    "ct:TB-AQA-8461-48",
+    "q:S-Q-AQA-8461-2406-2F-051",
+    "q:Q-AQA-8461-2406-2F-052",
+    "q:Q-AQA-8461-2406-2F-053",
+    "q:Q-AQA-8461-2406-2F-055"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "asked": 36
   },
   {
    "id": "4.5.3.3",
    "text": "Maintaining water and nitrogen balance in the body (biology only)",
    "parent": "4.5.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-49",
+    "q:S-Q-OCR-J247-1806-01-19b",
+    "q:Q-OCR-J247-2506-01-14",
+    "q:Q-OCR-J247-2506-03-01"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "4.5.3.4",
+   "text": "Hormones in human reproduction",
+   "parent": "4.5.3",
+   "links": [
+    "ct:TB-AQA-8461-50",
+    "q:Q-AQA-8461-2406-2H-056",
+    "q:S-Q-OCR-J247-2506-01-19"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "asked": 2
   },
   {
    "id": "4.5.3.5",
    "text": "Contraception",
    "parent": "4.5.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-51",
+    "q:Q-AQA-8461-2406-2H-056",
+    "q:Q-AQA-8464B-2011-2F-015",
+    "q:Q-AQA-8464B-2506-2F-063",
+    "q:Q-AQA-8464B-2506-2F-064"
+   ],
+   "asked": 16
   },
   {
    "id": "4.5.3.6",
    "text": "The use of hormones to treat infertility (HT only)",
    "parent": "4.5.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-52",
+    "q:Q-AQA-8464B-2206-2H-054",
+    "q:Q-OCR-J247-1806-03-20diii"
+   ],
+   "ht": true,
+   "asked": 2
   },
   {
    "id": "4.5.3.7",
    "text": "Negative feedback (HT only)",
    "parent": "4.5.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-53",
+    "q:Q-AQA-8464B-2306-2H-067",
+    "q:Q-W-AT-B-hormonal-coordination-4c"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "ht": true,
+   "asked": 2
   },
   {
    "id": "4.5.4.1",
    "text": "Control and coordination",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-54",
+    "q:Q-AQA-8461-2406-2H-046",
+    "q:Q-AQA-8461-2406-2H-047",
+    "q:Q-OCR-J247-1806-01-14",
+    "q:S-Q-OCR-J247-1906-01-19b"
+   ],
+   "keys": [
+    "auxin",
+    "phototropism",
+    "gravitropism",
+    "geotropism"
+   ],
+   "figure": [
+    "label"
+   ],
+   "asked": 13
   },
   {
    "id": "4.5.4.2",
    "text": "Use of plant hormones (HT only)",
    "parent": "4.5",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-55",
+    "q:Q-AQA-8461-2406-2H-047",
+    "q:S-Q-OCR-J247-1906-01-19",
+    "q:Q-OCR-J247-1906-01-19a",
+    "q:Q-OCR-J247-2111-01-18d"
+   ],
+   "ht": true,
+   "asked": 7
   },
   {
    "id": "4.6.1",
@@ -365,37 +984,110 @@
    "id": "4.6.1.1",
    "text": "Sexual and asexual reproduction",
    "parent": "4.6.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-56",
+    "q:Q-AQA-8464B-2011-2H-045",
+    "q:Q-OCR-J247-1806-02-03",
+    "q:Q-OCR-J247-2206-02-18a",
+    "q:Q-T-AT-B-inheritance-variation-and-evolution-6-1"
+   ],
+   "asked": 8
+  },
+  {
+   "id": "4.6.1.2",
+   "text": "Meiosis",
+   "parent": "4.6.1",
+   "links": [
+    "ct:TB-AQA-8461-57",
+    "q:Q-AQA-8464B-2011-2H-041",
+    "q:Q-OCR-J247-1806-02-14",
+    "q:Q-OCR-J247-1806-04-10",
+    "q:Q-OCR-J247-2011-02-03"
+   ],
+   "asked": 9
   },
   {
    "id": "4.6.1.3",
    "text": "Advantages and disadvantages of sexual and asexual reproduction (biology only)",
    "parent": "4.6.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-58",
+    "q:Q-AQA-8464B-2011-2H-045",
+    "q:Q-OCR-J247-1806-02-03",
+    "q:Q-OCR-J247-2206-02-18a",
+    "q:Q-T-AT-B-inheritance-variation-and-evolution-6-1"
+   ],
+   "asked": 9
   },
   {
    "id": "4.6.1.4",
    "text": "DNA and the genome",
    "parent": "4.6.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-59",
+    "q:Q-AQA-8464B-1906-2H-043",
+    "q:Q-AQA-8464B-2111-2F-012",
+    "q:S-Q-OCR-J247-2011-04-21"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 3
   },
   {
    "id": "4.6.1.5",
    "text": "DNA structure (biology only)",
    "parent": "4.6.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-60",
+    "q:Q-AQA-8464B-2011-2F-062",
+    "q:Q-AQA-8464B-2011-2H-012",
+    "q:Q-AQA-8464B-2111-2F-012",
+    "q:Q-OCR-J247-1806-03-20div"
+   ],
+   "figure": [
+    "diagram",
+    "structure"
+   ],
+   "asked": 7
   },
   {
    "id": "4.6.1.6",
    "text": "Genetic inheritance",
    "parent": "4.6.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-61",
+    "q:S-AQA-8464B-2406-2H-03",
+    "q:Q-OCR-J247-2506-04-07",
+    "q:S-W-AT-B-variation-and-evolution-q1"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "4.6.1.7",
+   "text": "Inherited disorders",
+   "parent": "4.6.1",
+   "links": [
+    "ct:TB-AQA-8461-62",
+    "q:S-Q-AQA-8461-2406-2H-061",
+    "q:Q-AQA-8461-2406-2H-064",
+    "q:Q-AQA-8464B-2406-2H-036",
+    "q:Q-AQA-8464B-2011-2H-053"
+   ],
+   "asked": 15
   },
   {
    "id": "4.6.1.8",
    "text": "Sex determination",
    "parent": "4.6.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-63",
+    "q:Q-OCR-J247-1906-04-03"
+   ],
+   "asked": 1
   },
   {
    "id": "4.6.2",
@@ -407,19 +1099,66 @@
    "id": "4.6.2.1",
    "text": "Variation",
    "parent": "4.6.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-64",
+    "q:Q-AQA-8464B-2306-2F-062",
+    "q:Q-AQA-8464B-2306-2H-012",
+    "q:Q-AQA-8464B-2406-2F-018",
+    "q:Q-OCR-J247-1806-02-03"
+   ],
+   "asked": 12
   },
   {
    "id": "4.6.2.2",
    "text": "Evolution",
    "parent": "4.6.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-65",
+    "q:S-Q-AQA-8461-2406-2F-091",
+    "q:Q-AQA-8461-2406-2F-093",
+    "q:S-Q-AQA-8461-2406-2H-011",
+    "q:Q-AQA-8461-2406-2H-013"
+   ],
+   "asked": 27
+  },
+  {
+   "id": "4.6.2.3",
+   "text": "Selective breeding",
+   "parent": "4.6.2",
+   "links": [
+    "ct:TB-AQA-8461-66",
+    "q:Q-AQA-8461-2406-2F-027",
+    "q:S-Q-AQA-8464B-1806-2H-05",
+    "q:Q-AQA-8464B-1806-2H-051",
+    "q:Q-AQA-8464B-2306-2F-045"
+   ],
+   "asked": 14
   },
   {
    "id": "4.6.2.4",
    "text": "Genetic engineering",
    "parent": "4.6.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-67",
+    "q:S-Q-AQA-8461-2406-2F-031",
+    "q:Q-AQA-8461-2406-2F-031",
+    "q:Q-AQA-8464B-1906-2H-031",
+    "q:Q-AQA-8464B-1906-2H-033"
+   ],
+   "asked": 13
+  },
+  {
+   "id": "4.6.2.5",
+   "text": "Cloning",
+   "parent": "4.6.2",
+   "links": [
+    "ct:TB-AQA-8461-68",
+    "q:S-Q-OCR-J247-1906-01-18a",
+    "q:Q-OCR-J247-1906-01-18aiii",
+    "q:Q-OCR-J247-1906-01-18bi",
+    "q:S-T-AT-B-inheritance-variation-and-evolution-q7"
+   ],
+   "asked": 6
   },
   {
    "id": "4.6.3",
@@ -431,37 +1170,124 @@
    "id": "4.6.3.1",
    "text": "Theory of evolution (biology only)",
    "parent": "4.6.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-69",
+    "q:Q-AQA-8461-2406-2F-093",
+    "q:Q-AQA-8461-2406-2H-013",
+    "q:Q-AQA-8464B-2011-2F-026",
+    "q:S-Q-AQA-8464B-2206-2F-03"
+   ],
+   "asked": 10
+  },
+  {
+   "id": "4.6.3.2",
+   "text": "Speciation",
+   "parent": "4.6.3",
+   "links": [
+    "ct:TB-AQA-8461-70",
+    "q:S-Q-AQA-8461-2406-2F-091",
+    "q:S-Q-AQA-8461-2406-2H-011",
+    "q:Q-AQA-8464B-2406-2H-024",
+    "q:Q-AQA-8464B-2406-2F-064"
+   ],
+   "keys": [
+    "speciation",
+    "new species",
+    "wallace"
+   ],
+   "asked": 9
   },
   {
    "id": "4.6.3.3",
    "text": "The understanding of genetics (biology only)",
    "parent": "4.6.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-71",
+    "q:Q-OCR-J247-2506-04-07",
+    "q:S-W-AT-B-variation-and-evolution-q1"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 2
   },
   {
    "id": "4.6.3.4",
    "text": "Evidence for evolution",
    "parent": "4.6.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-72",
+    "q:Q-AQA-8464B-2011-2F-026",
+    "q:Q-AQA-8464B-2111-2F-038",
+    "q:S-Q-AQA-8464B-2206-2F-03",
+    "q:Q-AQA-8464B-2206-2F-031"
+   ],
+   "asked": 8
   },
   {
    "id": "4.6.3.5",
    "text": "Fossils",
    "parent": "4.6.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-73",
+    "q:S-Q-AQA-8464B-2011-2F-02",
+    "q:Q-AQA-8464B-2011-2F-026",
+    "q:S-Q-AQA-8464B-2011-2F-03",
+    "q:S-Q-AQA-8464B-2111-2F-04"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "asked": 32
   },
   {
    "id": "4.6.3.6",
    "text": "Extinction",
    "parent": "4.6.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-74",
+    "q:Q-AQA-8461-2406-2F-025",
+    "q:Q-AQA-8464B-2011-2H-064",
+    "q:Q-AQA-8464B-2111-2F-047",
+    "q:Q-AQA-8464B-2306-2F-072"
+   ],
+   "asked": 9
+  },
+  {
+   "id": "4.6.3.7",
+   "text": "Resistant bacteria",
+   "parent": "4.6.3",
+   "links": [
+    "ct:TB-AQA-8461-75",
+    "q:S-Q-AQA-8464B-2111-2F-04",
+    "q:Q-AQA-8464B-2206-1F-056",
+    "q:Q-AQA-8464B-2206-1H-016",
+    "q:S-Q-AQA-8464B-2306-1H-07"
+   ],
+   "asked": 18
   },
   {
    "id": "4.6.4",
    "text": "Classification of living organisms",
    "parent": "4.6",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-76",
+    "q:S-Q-AQA-8461-2406-2F-021",
+    "q:Q-AQA-8461-2406-2F-021",
+    "q:Q-AQA-8461-2406-2F-022",
+    "q:Q-AQA-8464B-2406-2H-021"
+   ],
+   "keys": [
+    "classification",
+    "linnaeus",
+    "three domain",
+    "binomial",
+    "kingdom"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 29
   },
   {
    "id": "4.7.1",
@@ -473,19 +1299,62 @@
    "id": "4.7.1.1",
    "text": "Communities",
    "parent": "4.7.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-77",
+    "q:Q-AQA-8461-2406-2F-102",
+    "q:Q-AQA-8461-2406-2H-022",
+    "q:Q-AQA-8464B-2406-2H-052",
+    "q:Q-OCR-J247-2011-02-02"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "asked": 10
   },
   {
    "id": "4.7.1.2",
    "text": "Abiotic factors",
    "parent": "4.7.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-78",
+    "q:S-Q-AQA-8464B-1806-2H-01",
+    "q:Q-AQA-8464B-1806-2H-011",
+    "q:Q-AQA-8464B-2206-2H-031",
+    "q:Q-AQA-8464B-2306-2F-036"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "asked": 11
   },
   {
    "id": "4.7.1.3",
    "text": "Biotic factors",
    "parent": "4.7.1",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-79",
+    "q:S-Q-AQA-8464B-1806-2H-01",
+    "q:Q-AQA-8464B-1806-2H-011",
+    "q:Q-AQA-8464B-2111-2F-033",
+    "q:Q-AQA-8464B-2206-2H-031"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "asked": 11
+  },
+  {
+   "id": "4.7.1.4",
+   "text": "Adaptations",
+   "parent": "4.7.1",
+   "links": [
+    "ct:TB-AQA-8461-80",
+    "q:S-Q-AQA-8464B-1906-2H-04",
+    "q:Q-AQA-8464B-1906-2H-041",
+    "q:Q-AQA-8464B-1906-2H-042",
+    "q:Q-AQA-8464B-2111-2F-035"
+   ],
+   "asked": 10
   },
   {
    "id": "4.7.2",
@@ -497,19 +1366,66 @@
    "id": "4.7.2.1",
    "text": "Levels of organisation",
    "parent": "4.7.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-81",
+    "q:Q-OCR-J247-2206-02-12"
+   ],
+   "figure": [
+    "draw",
+    "graph"
+   ],
+   "asked": 1
   },
   {
    "id": "4.7.2.2",
    "text": "How materials are cycled",
    "parent": "4.7.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-82",
+    "q:Q-AQA-8464B-2506-2F-028",
+    "q:Q-AQA-8464B-2506-2F-029",
+    "q:Q-AQA-8464C-2011-2F-023",
+    "q:Q-AQA-8464C-2111-2H-056"
+   ],
+   "keys": [
+    "carbon cycle",
+    "water cycle",
+    "decomposer"
+   ],
+   "figure": [
+    "diagram"
+   ],
+   "asked": 9
   },
   {
    "id": "4.7.2.3",
    "text": "Decomposition (biology only)",
    "parent": "4.7.2",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-83",
+    "q:S-Q-AQA-8464B-2111-2F-04",
+    "q:Q-AQA-8464C-1906-1H-034",
+    "q:Q-AQA-8464C-2011-1F-08",
+    "q:Q-AQA-8464C-2011-1H-03"
+   ],
+   "figure": [
+    "draw",
+    "graph"
+   ],
+   "asked": 18
+  },
+  {
+   "id": "4.7.2.4",
+   "text": "Impact of environmental change",
+   "parent": "4.7.2",
+   "links": [
+    "ct:TB-AQA-8461-84"
+   ],
+   "keys": [
+    "environmental change",
+    "distribution species"
+   ],
+   "ht": true
   },
   {
    "id": "4.7.3",
@@ -521,31 +1437,84 @@
    "id": "4.7.3.1",
    "text": "Biodiversity",
    "parent": "4.7.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-85",
+    "q:S-Q-AQA-8464B-2011-2F-05",
+    "q:Q-AQA-8464B-2011-2F-051",
+    "q:S-Q-AQA-8464B-2011-2H-03",
+    "q:Q-AQA-8464B-2011-2H-031"
+   ],
+   "asked": 24
   },
   {
    "id": "4.7.3.2",
    "text": "Waste management",
    "parent": "4.7.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-86",
+    "q:Q-AQA-8464B-2406-2H-017",
+    "q:Q-AQA-8464B-2406-2H-053",
+    "q:Q-AQA-8464B-2406-2H-054",
+    "q:Q-AQA-8464B-2011-2H-034"
+   ],
+   "keys": [
+    "pollution",
+    "waste",
+    "sewage"
+   ],
+   "asked": 40
   },
   {
    "id": "4.7.3.3",
    "text": "Land use",
    "parent": "4.7.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-87",
+    "q:S-Q-AQA-8461-2406-2H-071",
+    "q:Q-AQA-8461-2406-2H-071",
+    "q:Q-AQA-8464B-2406-2H-055",
+    "q:Q-AQA-8464B-2011-2H-034"
+   ],
+   "asked": 23
   },
   {
    "id": "4.7.3.4",
    "text": "Deforestation",
    "parent": "4.7.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-88",
+    "q:Q-AQA-8464B-2011-2H-071",
+    "q:Q-AQA-8464B-2111-2F-051",
+    "q:Q-AQA-8464B-2506-2F-029",
+    "q:Q-W-AT-B-biodiversity-1d"
+   ],
+   "asked": 8
   },
   {
    "id": "4.7.3.5",
    "text": "Global warming",
    "parent": "4.7.3",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-89",
+    "q:Q-AQA-8464B-1906-2H-021",
+    "q:Q-AQA-8464B-1906-2H-022",
+    "q:Q-AQA-8464B-2206-2F-013",
+    "q:Q-AQA-8464B-2306-2F-037"
+   ],
+   "asked": 8
+  },
+  {
+   "id": "4.7.3.6",
+   "text": "Maintaining biodiversity",
+   "parent": "4.7.3",
+   "links": [
+    "ct:TB-AQA-8461-90",
+    "q:Q-AQA-8464B-2111-2F-073",
+    "q:Q-AQA-8464B-2111-2H-023",
+    "q:S-T-AT-B-ecology-q4",
+    "q:Q-T-AT-B-ecology-4-2"
+   ],
+   "asked": 4
   },
   {
    "id": "4.7.4",
@@ -557,43 +1526,104 @@
    "id": "4.7.4.1",
    "text": "Trophic levels",
    "parent": "4.7.4",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-91",
+    "q:Q-OCR-J247-1906-02-06",
+    "q:Q-OCR-J247-1906-02-22aiii",
+    "q:Q-OCR-J247-1906-04-08",
+    "q:Q-OCR-J247-1906-04-16aiii"
+   ],
+   "asked": 10
   },
   {
    "id": "4.7.4.2",
    "text": "Pyramids of biomass",
    "parent": "4.7.4",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-92",
+    "q:Q-AQA-8461-2406-2H-072",
+    "q:Q-OCR-J247-2011-02-04",
+    "q:Q-W-AT-B-organisation-in-an-ecosystem-1a",
+    "q:Q-W-AT-B-organisation-in-an-ecosystem-2e"
+   ],
+   "asked": 5
   },
   {
    "id": "4.7.4.3",
    "text": "Transfer of biomass",
    "parent": "4.7.4",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-93",
+    "q:Q-OCR-J247-1806-04-23ai"
+   ],
+   "asked": 1
   },
   {
    "id": "4.7.5.1",
    "text": "Factors affecting food security",
    "parent": "4.7",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-94",
+    "q:Q-OCR-J247-1906-02-01",
+    "q:Q-W-AT-B-organisation-in-an-ecosystem-2h"
+   ],
+   "asked": 2
   },
   {
    "id": "4.7.5.2",
    "text": "Farming techniques",
    "parent": "4.7",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-95",
+    "q:S-Q-AQA-8461-2406-2H-071",
+    "q:Q-AQA-8464B-2011-2F-051",
+    "q:Q-AQA-8464B-2011-2H-034",
+    "q:Q-AQA-8464B-2011-2H-035"
+   ],
+   "keys": [
+    "farming",
+    "factory farm",
+    "intensive"
+   ],
+   "asked": 17
   },
   {
    "id": "4.7.5.3",
    "text": "Sustainable fisheries",
    "parent": "4.7",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-96",
+    "q:Q-AQA-8464B-2406-2H-055",
+    "q:Q-AQA-8464B-2206-2H-063",
+    "q:S-Q-AQA-8464B-2306-2F-04",
+    "q:Q-AQA-8464B-2306-2F-048"
+   ],
+   "keys": [
+    "fish stock",
+    "fishing",
+    "fisheries"
+   ],
+   "asked": 21
   },
   {
    "id": "4.7.5.4",
    "text": "Role of biotechnology",
    "parent": "4.7",
-   "links": []
+   "links": [
+    "ct:TB-AQA-8461-97",
+    "q:Q-AQA-8461-2406-2F-035",
+    "q:Q-AQA-8464B-2406-2H-025",
+    "q:Q-AQA-8464B-2206-2F-011",
+    "q:Q-AQA-8464B-2406-2F-065"
+   ],
+   "keys": [
+    "mycoprotein",
+    "fusarium",
+    "golden rice",
+    "genetically modified crop"
+   ],
+   "asked": 9
   }
- ]
+ ],
+ "note": "Spec point ids and headings as printed in the published specification; `figure` lists the words in that point's own text (diagram, graph, draw, sketch, apparatus, label, structure) that make a picture part of learning it."
 }

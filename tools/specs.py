@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Writes data/spec/<board>-<code>.json, one file per exam specification, from the boards' public PDFs.
 
-Usage: python3 -I tools/specs.py <dir of PDFs named <id>.pdf>   (fetch them from each SPECS url first)
+Usage: python3 -I tools/specs.py <dir of PDFs named <id>.pdf (<id>.html for a web page)>   (fetch each SPECS url first)
 Each file: board, qualification, level, subject, code, url (the official PDF), sections and points
 (id, short official wording, parent). Wording is cut short; the PDF linked is the full text.
-Then writes data/specs.json, the index Find reads (one row per spec, the points inline).
-Points link to lessons/questions only through a coverage mapping (data/spec-map/*.json) when one exists.
+A re-read keeps what tools/coverage.js and the coverage work wrote (links, matching hints, `measured`, added points);
+then run node tools/coverage.js, which fills each point's links and writes data/specs.json, the index Find reads.
 """
 import json, os, re, subprocess, sys
 
@@ -96,6 +96,11 @@ SPECS = [
       'sections': {'N': 'Number and place value', 'C': 'Calculations', 'F': 'Fractions, decimals and percentages',
                    'R': 'Ratio and proportion', 'A': 'Algebra', 'M': 'Measurement', 'G': 'Geometry', 'P': 'Geometry: position and direction',
                    'S': 'Statistics'}}),
+    ('sta-ks1-maths', 'Standards & Testing Agency', 'KS1 SATs', 'KS1', 'Maths', 'KS1 maths',
+     'https://www.gov.uk/government/publications/key-stage-1-mathematics-test-framework/key-stage-1-mathematics-test-framework', 'html',
+     {'cell': r'[12](?:N|C|F|M|G|P|S)\d{1,2}[a-z]?',
+      'sections': {'N': 'Number and place value', 'C': 'Calculations', 'F': 'Fractions', 'M': 'Measurement',
+                   'G': 'Geometry: properties of shape', 'P': 'Geometry: position and direction', 'S': 'Statistics'}}),
     ('sta-ks2-reading', 'Standards & Testing Agency', 'KS2 SATs', 'KS2', 'English Language', 'KS2 reading',
      GOV + '5a82454eed915d74e3402a2a/2016_KS2_Englishreading_framework_PDFA_V3.pdf', 'cell',
      {'cell': r'(2[a-h])', 'lead': r'^\s{0,6}', 'cell_parent': 'one', 'one': 'Content domain'}),
@@ -173,6 +178,22 @@ def cells(lines, o, sections, points):
             par = 'D'
             sections.setdefault('D', o.get('one', 'Content'))
         points.append({'id': pid, 'text': short(words), 'parent': par})
+
+
+def html_cells(path, o, sections, points):
+    """A framework published as a GOV.UK web page, not a PDF: each cell that opens with a reference, then its words."""
+    import html as H
+    t = open(path, encoding='utf-8').read()
+    t = re.sub(r'\\u([0-9a-f]{4})', lambda m: chr(int(m.group(1), 16)), t).replace('\\n', ' ')
+    cells_ = [H.unescape(re.sub(r'<[^>]+>|\s+', ' ', c)).strip() for c in re.findall(r'<t[dh][^>]*>(.*?)</t[dh]>', t, re.S)]
+    seen = set()
+    for c in cells_:
+        m = re.match('(' + o['cell'] + r') (.{6,})$', c)
+        if m and m.group(1) not in seen:
+            seen.add(m.group(1))
+            letter = re.sub(r'^\d', '', m.group(1))[0]
+            sections.setdefault(letter, o['sections'][letter])
+            points.append({'id': m.group(1), 'text': short(m.group(2)), 'parent': letter})
 
 
 def num(lines, o, sections, points):
@@ -267,27 +288,26 @@ def raw(lines, o, sections, points):
             points.append({'id': pid, 'text': short(m.group(2)), 'parent': par})
 
 
-def coverage(sid):
-    """The site's lessons/questions per spec point, if a coverage branch has written a mapping for this spec."""
-    for name in (sid + '.json',):
-        p = os.path.join(ROOT, 'data', 'spec-map', name)
-        if os.path.exists(p):
-            try:
-                return json.load(open(p))
-            except ValueError:
-                return {}
-    return {}
+KEEP = ('links', 'asked', 'keys', 'figure', 'topics', 'ht', 'retired')
+
+
+def kept(sid):
+    """The file as it stands: its coverage fields (tools/coverage.js) and hand-added points survive a re-read of the PDF."""
+    p = os.path.join(OUT, sid + '.json')
+    try:
+        return json.load(open(p))
+    except (OSError, ValueError):
+        return {}
 
 
 def build(pdfdir):
     os.makedirs(OUT, exist_ok=True)
-    index = []
     for sid, board, qual, level, subject, code, url, mode, o in SPECS:
-        pdf = os.path.join(pdfdir, sid + '.pdf')
+        pdf = os.path.join(pdfdir, sid + ('.html' if mode == 'html' else '.pdf'))
         if not os.path.exists(pdf):
             print('  skip ' + sid + ' (no PDF)')
             continue
-        lines = text(pdf, mode != 'raw')
+        lines = text(pdf, mode != 'raw') if mode != 'html' else []
         lines = [re.sub(r'\b([B-HJ-Z]) ([a-z]{2,})', r'\1\2', l) for l in lines]
         sections, points = {}, []
         if mode == 'num':
@@ -296,6 +316,8 @@ def build(pdfdir):
                 cells(lines, o, sections, points)
         elif mode == 'cell':
             cells(lines, o, sections, points)
+        elif mode == 'html':
+            html_cells(pdf, o, sections, points)
         elif mode == 'table':
             table(lines, o, sections, points)
         elif mode == 'contents':
@@ -304,9 +326,14 @@ def build(pdfdir):
                     sections['C%d' % (len(sections) + 1)] = short(m.group(1))
         else:
             raw(lines, o, sections, points)
-        cover = coverage(sid)
+        old = kept(sid)
+        was = {p['id']: p for p in old.get('points', [])}
         for p in points:
-            p['links'] = cover.get(p['id'], [])
+            p['links'] = []
+            p.update({k: v for k, v in was.get(p['id'], {}).items() if k in KEEP})
+        got = {p['id'] for p in points}
+        points += [p for p in old.get('points', []) if p['id'] not in got]
+        topic = {x['id']: x.get('topic') for x in old.get('sections', []) if x.get('topic')}
         first = {}
         for n, p in enumerate(points):
             top = p['parent']
@@ -316,17 +343,17 @@ def build(pdfdir):
         keys = list(sections)
         pos = {k: i for i, k in enumerate(keys)}
         keys.sort(key=lambda k: first.get(k, len(points) + pos[k]))
-        sec_list = [{'id': k, 'title': sections[k]} for k in keys]
+        sec_list = [dict({'id': k, 'title': sections[k]}, **({'topic': topic[k]} if k in topic else {})) for k in keys]
         row = {'id': sid, 'board': board, 'qualification': qual, 'level': level, 'subject': subject, 'code': code,
                'url': url, 'sections': sec_list, 'points': points}
+        for k in ('measured', 'note'):
+            if k in old:
+                row[k] = old[k]
         with open(os.path.join(OUT, sid + '.json'), 'w') as f:
             json.dump(row, f, indent=1, ensure_ascii=False)
             f.write('\n')
-        index.append(row)
         print('  %-16s %3d sections %4d points' % (sid, len(sec_list), len(points)))
-    with open(os.path.join(ROOT, 'data', 'specs.json'), 'w') as f:
-        json.dump(index, f, separators=(',', ':'), ensure_ascii=False)
-        f.write('\n')
+    print('then: node tools/coverage.js (links, and data/specs.json for Find)')
 
 
 if __name__ == '__main__':

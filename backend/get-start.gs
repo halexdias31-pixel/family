@@ -204,7 +204,7 @@ function getPayloadRest_(meAsked, filmsOut) {
     inserts: [],
     /* AND THE HISTORY DATABASE'S FOUR (459, 461): `data/manuscripts|figures|writings|timeline.json`, filled in on the phone, declared for the same reason; the portraits (batch D) too. */
     manuscripts: [], figures: [], writings: [], timeline: [], portraits: [], timelines: [],
-    /* AND THE SPECIFICATIONS (owner, 12 Nov): `data/specs.json`, written by tools/specs.py, filled in on the phone. */
+    /* AND THE SPECIFICATIONS (owner, 12 Nov): `data/specs.json`, written by tools/coverage.js from data/spec/, filled in on the phone. */
     specs: [],
     /* An object rather than an array — branding is looked up by name, never iterated. */
     brand: {},
