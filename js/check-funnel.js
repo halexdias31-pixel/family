@@ -612,18 +612,20 @@ boot(f => {
     const qs = items.filter(x => x && x.row && x.row.paper_id);
     const vals = f.facetValues(qs, paperFacet);
     const ids = new Set(qs.map(x => x.row.paper_id));
+    /* AN ANSWER DRAWN FOR SEVERAL PAPERS NAMES EACH IN `also` (check-tags): every paper is in exactly one answer. */
+    let covered = 0;
     vals.forEach(v => {
-      const held = new Set(qs.filter(x => f.filterHit(x, { field: 'paperId', value: v.value }))
-                             .map(x => x.row.paper_id));
-      if (held.size > 1) {
+      const mine = [v.value].concat(v.also || []);
+      const held = new Set(qs.filter(x => mine.some(u => f.filterHit(x, { field: 'paperId', value: u }))).map(x => x.row.paper_id));
+      if (held.size !== mine.length) {
         bad.push('the Paper answer "' + (v.show || v.value) + '" holds ' + held.size
-                 + ' different papers: ' + [...held].join(', '));
+                 + ' papers but names ' + mine.length + ': ' + [...held].join(', '));
       }
+      covered += mine.length;
     });
-    console.log('\nTHE PAPER QUESTION: ' + vals.length + ' answer(s) over ' + ids.size + ' papers'
-                + (vals.length === ids.size ? ' — one each' : ''));
-    if (vals.length !== ids.size) {
-      bad.push('the Paper question offers ' + vals.length + ' answers for ' + ids.size + ' papers');
+    console.log('\nTHE PAPER QUESTION: ' + vals.length + ' answer(s) over ' + ids.size + ' papers');
+    if (covered !== ids.size) {
+      bad.push('the Paper question\'s answers name ' + covered + ' papers of ' + ids.size);
     }
   }
 

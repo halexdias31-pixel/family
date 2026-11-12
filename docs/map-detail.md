@@ -195,6 +195,7 @@ node js/check-practicals.js      # the 41 practicals, and whether their topics j
 node js/check-anims.js           # the content cards' animations: rows, anchoring, and the splash's copy
 node js/check-diagram-png.js     # every library drawing has its PNG twin for the Sunday email, none orphaned
 node js/check-textbooks.js       # data/textbooks.json: the bones, and every content topic spelled as the library spells it
+node js/check-tags.js            # every fact its own tag: no answer, chip or card tag spells another facet's value, after every answer and Doesn't matter
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow? Random funnels: counts, order, Doesn't matter, nothing asked twice (522); FUNNEL_ONLY=walk for those alone
 node js/check-finder.js          # a finder's chips and words set only through finderSet_ (R1, 522): acorn, aliases followed
 node tools/finder-tags.js --check # js/finder-tags.js (the finder's first questions, counted at build time) is current; without --check it rewrites it (546)

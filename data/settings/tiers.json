@@ -338,6 +338,7 @@
     "check/firstpaint.js": "core",
     "check/arrival.js": "core",
     "check-funnel.js": "core",
+    "check-tags.js": "core",
     "check-bundle.js": "secondary",
     "check-flow.js": "core",
     "check/cards.js": "core",
