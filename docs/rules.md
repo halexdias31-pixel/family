@@ -15,9 +15,9 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 - **1.1** The law always wins, silently; a deletion request for personal data beats keeping things. Checks: `biz`, `one-place`, `biz-checker`
 - **1.2** The owner decides; sweeps decide by these rules when they point one way, log it here, and ask only on a clash, an irreversible step or a costly wrong guess (money, law, deletion, students). Checks: `owner-questions`
 - **1.3** Two owner answers that clash become one question showing both; never pick. Questions carry a slug id, words, ≥2 options and open/answered. Checks: `owner-questions`
-- **1.4** Money disputes follow the written terms, leaning to the business; policies (terms, privacy, safeguarding, refunds) are drafted by the site, approved by the owner, reviewed yearly. Checks: `policy-fill`, `biz`
+- **1.4** Money disputes follow the written terms, leaning to the business; policies (terms, privacy, safeguarding, refunds) are drafted by the site, approved by the owner, reviewed yearly. Checks: `policy-fill`, `biz`, `money-terms`
 - **1.5** Only irreversible actions need a human tap (deleting data, approving tutors, publishing policies); every delete, decline, remove or reset arms on the first press (`sure_()`), never `confirm()`. Checks: `look`, `press-twice`
-- **1.6** Report only results and "safe to merge"; never idle on CI; bugs before anything new; quality first, done once. Checks: `stability-guard`, `spread`
+- **1.6** Report only results and "safe to merge"; never idle on CI; bugs before anything new; quality first, done once. Checks: `stability-guard`, `spread`, `how-we-work`
 
 ## 2. One source for every truth
 - **2.1** Anything that might change (wording, prices, lists, menus, switches) is data, not code; every fact has one home and everything reads from it; a copy a tool writes from the source counts once. Checks: `truth-facts`, `truth-lists`, `truth-labels`, `settings`, `tabs`, `columns`, `rows`, `schema`
@@ -61,7 +61,7 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 
 ## 6. Fewest words, picture first
 - **6.1** Icons and one-word labels, no grey clutter, information as a tag; a failure is said in words through `why_()`. Checks: `clutter`, `said`, `answers`
-- **6.2** No leaderboards, points or streaks; no public stars (feedback is private to the owner).
+- **6.2** No leaderboards, points or streaks; no public stars (feedback is private to the owner). Checks: `no-games`
 
 ## 7. Controls stay put
 - **7.1** Same controls in the same places for every account; ones you can't use are greyed, never hidden, moved or appearing on tap. Checks: `dup-controls`, `settings-work`, `setting-forms`, `chips-settings`, `steady`, `reach`
@@ -83,19 +83,19 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 
 ## 10. The site is the business
 - **10.1** Everything the business does runs from here, autonomously (booking, matching, payment, reminders, receipts, tax pot, renewals), built in the site; outside services only where needed (Stripe). Checks: `one-place`, `biz`, `biz-checker`, `flow/*`
-- **10.2** Free: no subscriptions or fixed costs; only pay-when-paid fees and near-free AI marking.
+- **10.2** Free: no subscriptions or fixed costs; only pay-when-paid fees and near-free AI marking. Checks: `free`
 - **10.3** Built for the 100-tutor future; roles and ranks are rows, not code. Checks: `permissions`, `accounts`
 - **10.4** The core journeys finish for every role with the fewest taps and no dead ends. Checks: `friction`, `flow/*`, `a11y`, `console`, `ui`, `look`, `states`, `live`, `live-smoke`, `quiet`, `sounds`, `voice`, `calc`, `lego`, `flyer`
 - **10.5** When something fails, one short plain message says what; the rest keeps working; an empty sheet still renders. Checks: `errors`, `errlog`, `resilience`, `malformed`, `catch`, `field`
 - **10.6** Business admin runs itself on the site, never by email: renewals (insurance, ICO fee, DBS 12-monthly, safeguarding, tax dates) glow on the Business card; the tax pot puts aside 25% of Stripe income; each tutor gets a yearly statement. Checks: `biz`, `biz-checker`, `flow/34`
 
 ## 11. Keep only what is needed
-- **11.1** When nothing decides it, choose the simplest: fewest parts, options and code; new features are asked for and built from existing parts (a card, a tool or a setting), never a new kind of screen. Checks: `dup`, `long-fn`, `big-file`, `nest`
+- **11.1** When nothing decides it, choose the simplest: fewest parts, options and code; new features are asked for and built from existing parts (a card, a tool or a setting), never a new kind of screen. Checks: `dup`, `long-fn`, `big-file`, `nest`, `no-new-screen`
 - **11.2** Unused code is removed: switched-off features wait in `attic/` and return as cards; dead functions go; git history is the archive. Checks: `dead`, `returned-features`, `returned`, `markers`
 - **11.3** Checks are honest: no written exception lists, ratchet ceilings at zero, budgets only go down. Checks: `exceptions`, `ceilings`, `catches`, `stability-guard`
 
 ## 12. Measure everything
-- **12.1** The Optimiser (`tools/health.js`) measures every rule as followed ÷ applies to, in the unit a person would fix, and the score is their plain average, no weights; when nothing else is asked, raise it. Checks: `ux`, `effort`
+- **12.1** The Optimiser (`tools/health.js`) measures every rule as followed ÷ applies to, in the unit a person would fix, and the score is their plain average, no weights; when nothing else is asked, raise it. Checks: `ux`, `effort`, `effort-report`
 - **12.2** Every change runs the checks it affects (`node js/check.js`, `check-all`, the journeys) and CI stays green. Checks: `check`, `all`, `changed`, `flow`, `flow/*`
 - **12.3** This rulebook is the one foundation: every rule names a check, every check serves a rule, each rule is stated once. Checks: `rule-checked`, `check-tied`, `rule-once`
 
