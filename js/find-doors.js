@@ -182,9 +182,10 @@ function settingDoorCard_(x) {
 function notifyDoorCard_() {
   const needs = typeof BIZ_NEEDS !== 'undefined' ? Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0) : [];
   const waiting = ((DATA && DATA.posts) || []).filter(p => p && p.active !== false && p.waiting).length;
-  const rows = needs.map(k => `<li>${qtag_(`${esc(String(BIZ_NEEDS[k]))}`)} ${esc(k.replace(/[-_]/g, ' '))}</li>`)
-    .concat(waiting ? [`<li>${qtag_(`${waiting}`)} posts waiting for approval</li>`] : []);
-  return card_(`<div class="notify-door"><h3>Notifications</h3>${rows.length ? `<ul class="notify-list">${rows.join('')}</ul>` : '<p>Nothing needs you.</p>'}</div>`);
+  const rows = needs.map(k => ({ label: k.replace(/[-_]/g, ' '), value: String(BIZ_NEEDS[k]) }))
+    .concat(waiting ? [{ label: 'posts waiting for approval', value: String(waiting) }] : []);
+  return renderCard({ kind: 'panel', look: 'notify-door', tags: [{ text: 'Notifications', colour: 0 }],
+    body: [rows.length ? { type: 'list', items: rows } : { type: 'text', text: 'Nothing needs you.' }] });
 }
 
 /* A LIST THAT COMES LATER (messages) joins Find when it lands: the memo is dropped and Find repainted once. */

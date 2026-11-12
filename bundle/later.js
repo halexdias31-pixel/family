@@ -440,8 +440,7 @@ window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x), spec: x => specCard_(x),
   timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
-  hymn: x => hymnsCard_(x), mech: x => mechCard_(x), chem: x => chemCard_(x), soon: x => soonCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x), game: x => widgetCard_(x),
-  offPosts: x => soonCard_(x), offShop: x => soonCard_(x), offBooking: x => soonCard_(x),
+  hymn: x => hymnsCard_(x), mech: x => mechCard_(x), chem: x => chemCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x), game: x => widgetCard_(x),
   setting: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)), health: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : ''),
 });
 
@@ -490,10 +489,11 @@ function soonItems_() {
     .map(([id, n]) => ({ kind: 'setting', name: n, sub: 'Settings', image: '', key: 'soon:set:' + id, soon: 'setting', soonId: id }));
   return cols.concat(ws, set).map(x => Object.assign(x, { text: [x.name, x.sub].join(' ') }));
 }
-function soonCard_(x) {
-  /* "COMING SOON" IS A TAG, beside its name, never a line. */
-  return `<div class="soon-card"><h3>${esc(x.name)}</h3><div class="qtags">${qtag_(`${esc(x.name)}`, ` data-tag="0"`)}${qtag_(`${esc(brand('comingSoon', 'Coming soon'))}`)}</div>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}</div>`;
-}
+/* A SWITCHED-OFF THING'S SPEC: "Coming soon" is a tag beside its name, never a line; what it is, below. */
+const soonSpec_ = x => ({ look: 'soon-card', tags: [{ text: x.name, colour: 0 }, { text: brand('comingSoon', 'Coming soon') }],
+  body: x.sub && x.sub !== x.name ? [{ type: 'text', text: x.sub }] : [] });
+['soon', 'offPosts', 'offShop', 'offBooking'].forEach(k => cardKind_(k, soonSpec_));
+const soonCard_ = x => renderCard(Object.assign({ kind: x.kind || 'soon', key: x.key }, soonSpec_(x)));
 
 /* The card a resource and a shop row share. Named rather than written twice, because the two
    entries above genuinely want the same thing and a copy each is a copy to keep in step. */
@@ -9695,9 +9695,10 @@ function settingDoorCard_(x) {
 function notifyDoorCard_() {
   const needs = typeof BIZ_NEEDS !== 'undefined' ? Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0) : [];
   const waiting = ((DATA && DATA.posts) || []).filter(p => p && p.active !== false && p.waiting).length;
-  const rows = needs.map(k => `<li>${qtag_(`${esc(String(BIZ_NEEDS[k]))}`)} ${esc(k.replace(/[-_]/g, ' '))}</li>`)
-    .concat(waiting ? [`<li>${qtag_(`${waiting}`)} posts waiting for approval</li>`] : []);
-  return card_(`<div class="notify-door"><h3>Notifications</h3>${rows.length ? `<ul class="notify-list">${rows.join('')}</ul>` : '<p>Nothing needs you.</p>'}</div>`);
+  const rows = needs.map(k => ({ label: k.replace(/[-_]/g, ' '), value: String(BIZ_NEEDS[k]) }))
+    .concat(waiting ? [{ label: 'posts waiting for approval', value: String(waiting) }] : []);
+  return renderCard({ kind: 'panel', look: 'notify-door', tags: [{ text: 'Notifications', colour: 0 }],
+    body: [rows.length ? { type: 'list', items: rows } : { type: 'text', text: 'Nothing needs you.' }] });
 }
 
 /* A LIST THAT COMES LATER (messages) joins Find when it lands: the memo is dropped and Find repainted once. */

@@ -31,11 +31,11 @@
 {"kind": "hymn", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: a hymn (readingCard_)", "facts": true, "icon": "sound"},
 {"kind": "mech", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts", "facts": false, "icon": "compass"},
 {"kind": "chem", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts", "facts": true, "icon": "spark"},
-{"kind": "soon", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: Coming soon", "facts": true, "icon": "spark"},
+{"kind": "soon", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": true, "icon": "spark"},
 {"kind": "person", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: an admin's profile door", "facts": true, "icon": ""},
 {"kind": "setting", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: a settings door", "facts": true, "icon": "tools"},
 {"kind": "health", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: an Optimiser card", "facts": true, "icon": "tick"},
-{"kind": "offPosts", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: Coming soon", "facts": true, "icon": "spark"},
-{"kind": "offShop", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: Coming soon", "facts": true, "icon": "cart"},
-{"kind": "offBooking", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: Coming soon", "facts": true, "icon": "book"}
+{"kind": "offPosts", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": true, "icon": "spark"},
+{"kind": "offShop", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": true, "icon": "cart"},
+{"kind": "offBooking", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": true, "icon": "book"}
 ]
