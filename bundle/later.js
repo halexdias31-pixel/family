@@ -12269,8 +12269,9 @@ function paintStuffSoon_() {
   const chips = $(F.id + '-chips'), groups = $(F.id + '-groups');
   if (chips) chips.innerHTML = filterChips();
   if (groups) groups.innerHTML = loading_();
-  const want = JSON.stringify(STUFF.filters);
-  requestAnimationFrame(() => setTimeout(() => inFinder_(F, () => { if (JSON.stringify(STUFF.filters) === want) paintStuff(); }), 0));
+  const want = JSON.stringify(STUFF.filters), at = PAGE[F.id] || 0;
+  /* A PAGE TURNED BEFORE THE LATE PAINT LANDS is kept: painting "fresh" threw the child back to the question. */
+  requestAnimationFrame(() => setTimeout(() => inFinder_(F, () => { if (JSON.stringify(STUFF.filters) === want) paintStuff((PAGE[F.id] || 0) !== at); }), 0));
 }
 
 /* THE MENU A CHIP WAS PICKED FROM, AS THE BUILD WROTE IT (1100): its words without narrowing the list again, while the build's library is this one. */
