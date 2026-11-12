@@ -1,0 +1,263 @@
+{
+ "id": "aqa-7132",
+ "board": "AQA",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Business",
+ "code": "7132",
+ "url": "https://filestore.aqa.org.uk/resources/business/specifications/AQA-7131-7132-SP-2015.PDF",
+ "sections": [
+  {
+   "id": "3.1",
+   "title": "What is business?"
+  },
+  {
+   "id": "3.2",
+   "title": "Managers, leadership and decision making"
+  },
+  {
+   "id": "3.3",
+   "title": "Decision making to improve marketing performance"
+  },
+  {
+   "id": "3.4",
+   "title": "Decision making to improve operational performance"
+  },
+  {
+   "id": "3.5",
+   "title": "Decision making to improve financial performance"
+  },
+  {
+   "id": "3.6",
+   "title": "Decision making to improve human resource"
+  },
+  {
+   "id": "3.7",
+   "title": "Analysing the strategic position of a business (A-level only)"
+  },
+  {
+   "id": "3.8",
+   "title": "Choosing strategic direction (A-level only)"
+  },
+  {
+   "id": "3.9",
+   "title": "Strategic methods: how to pursue strategies (A-level only)"
+  },
+  {
+   "id": "3.10",
+   "title": "Managing strategic change (A-level only)"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.1.1",
+   "text": "Understanding the nature and purpose of business",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2",
+   "text": "Understanding different business forms",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Understanding management, leadership and decision making",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2",
+   "text": "Understanding management decision making",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.3",
+   "text": "Understanding the role and importance of stakeholders",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.3.1",
+   "text": "Setting marketing objectives",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.2",
+   "text": "Understanding markets and customers",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.3",
+   "text": "Making marketing decisions: segmentation, targeting, positioning",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.4.1",
+   "text": "Setting operational objectives",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.2",
+   "text": "Analysing operational performance",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.4",
+   "text": "Making operational decisions to improve performance",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.5",
+   "text": "Making operational decisions to improve performance",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.5.1",
+   "text": "Setting financial objectives",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.2",
+   "text": "Analysing financial performance",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.3",
+   "text": "Making financial decisions: sources of finance",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.6.1",
+   "text": "Setting human resource objectives",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.2",
+   "text": "Analysing human resource performance",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.3",
+   "text": "Making human resource decisions: improving organisational design",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.5",
+   "text": "Making human resource decisions: improving employer-employee",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.7.1",
+   "text": "Mission, corporate objectives and strategy",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.7.2",
+   "text": "Analysing the existing internal position of a business to assess",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.7.4",
+   "text": "Analysing the external environment to assess opportunities and",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.7.5",
+   "text": "Analysing the external environment to assess opportunities and",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.7.6",
+   "text": "Analysing the external environment to assess opportunities and",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.7.8",
+   "text": "Analysing strategic options: investment appraisal",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.8.1",
+   "text": "Strategic direction: choosing which markets to compete in and what",
+   "parent": "3.8",
+   "links": []
+  },
+  {
+   "id": "3.8.2",
+   "text": "Strategic positioning: choosing how to compete",
+   "parent": "3.8",
+   "links": []
+  },
+  {
+   "id": "3.9.1",
+   "text": "Assessing a change in scale",
+   "parent": "3.9",
+   "links": []
+  },
+  {
+   "id": "3.9.2",
+   "text": "Assessing innovation",
+   "parent": "3.9",
+   "links": []
+  },
+  {
+   "id": "3.9.3",
+   "text": "Assessing internationalisation",
+   "parent": "3.9",
+   "links": []
+  },
+  {
+   "id": "3.9.4",
+   "text": "Assessing greater use of digital technology",
+   "parent": "3.9",
+   "links": []
+  },
+  {
+   "id": "3.10.1",
+   "text": "Managing change",
+   "parent": "3.10",
+   "links": []
+  },
+  {
+   "id": "3.10.2",
+   "text": "Managing organisational culture",
+   "parent": "3.10",
+   "links": []
+  },
+  {
+   "id": "3.10.3",
+   "text": "Managing strategic implementation",
+   "parent": "3.10",
+   "links": []
+  },
+  {
+   "id": "3.10.4",
+   "text": "Problems with strategy and why strategies fail",
+   "parent": "3.10",
+   "links": []
+  }
+ ]
+}

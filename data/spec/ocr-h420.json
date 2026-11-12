@@ -1,0 +1,223 @@
+{
+ "id": "ocr-h420",
+ "board": "OCR",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Biology",
+ "code": "H420",
+ "url": "https://www.ocr.org.uk/Images/687834-download-a-level-specification.pdf",
+ "sections": [
+  {
+   "id": "2",
+   "title": "Foundations in"
+  },
+  {
+   "id": "3",
+   "title": "Exchange and"
+  },
+  {
+   "id": "4",
+   "title": "Biodiversity"
+  },
+  {
+   "id": "5",
+   "title": "Communication"
+  },
+  {
+   "id": "6",
+   "title": "Genetics"
+  },
+  {
+   "id": "1",
+   "title": "Development of"
+  }
+ ],
+ "points": [
+  {
+   "id": "2.1.4",
+   "text": "Enzymes",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "3.1.1",
+   "text": "Exchange surfaces",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "2.1.5",
+   "text": "Biological membranes",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.1.6",
+   "text": "Cell division, cell diversity and cellular",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "3.1.2",
+   "text": "Transport in animals",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.1.3",
+   "text": "Transport in plants",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "4.1.1",
+   "text": "Communicable diseases, disease prevention and",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.2.1",
+   "text": "Biodiversity",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.2.2",
+   "text": "Classification and evolution",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "5.1.1",
+   "text": "Communication and homeostasis",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.1.2",
+   "text": "Excretion as an example of homeostatic control",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.1.3",
+   "text": "Neuronal communication",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.1.4",
+   "text": "Hormonal communication",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.1.5",
+   "text": "Plant and animal responses",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.2.1",
+   "text": "Photosynthesis",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.2.2",
+   "text": "Respiration",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "6.1.1",
+   "text": "Cellular control",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.1.2",
+   "text": "Patterns of inheritance",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.1.3",
+   "text": "Manipulating genomes",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "2.1.1",
+   "text": "Cell structure",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "6.2.1",
+   "text": "Cloning and biotechnology",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "2.1.2",
+   "text": "Biological molecules",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "6.3.1",
+   "text": "Ecosystems",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "2.1.3",
+   "text": "Nucleotides and nucleic acids",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "6.3.2",
+   "text": "Populations and sustainability.",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "1.1.1",
+   "text": "Planning",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.1.2",
+   "text": "Implementing",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.1.3",
+   "text": "Analysis",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.1.4",
+   "text": "Evaluation",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.2.1",
+   "text": "Practical skills",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.2.2",
+   "text": "Use of apparatus and techniques",
+   "parent": "1",
+   "links": []
+  }
+ ]
+}

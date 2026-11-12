@@ -445,7 +445,7 @@ function myResultNew_(k) {
   try {
     const x = stuffItemsAll_().find(i => isQ_(i) && ansKey_(i) === k);
     if (!x) return;
-    const tags = asList_(myResultOf_(x)).map(v => `<span class="qtag"${tagAttr_('myResult')} data-f="myResult">${esc(v)}</span>`).join('');
+    const tags = asList_(myResultOf_(x)).map(v => qtag_(esc(v), tagAttr_('myResult') + ' data-f="myResult"')).join('');
     /* ONLY THE PRESSED PART'S OWN TAG LINE: a whole question's page holds every part's card (`.qb`), and each says its own result. */
     document.querySelectorAll('[data-k]').forEach(b => {
       if (b.getAttribute('data-k') !== k) return;

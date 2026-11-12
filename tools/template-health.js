@@ -164,6 +164,13 @@ function rules(rows) {
   const so = new Set();
   odd.forEach(r => { const k = diff(r); const id = r.kind + r.width + k.join(); if (so.has(id)) return; so.add(id);
     work.push({ kind: 'tpl-same', where: r.where, say: `${r.kind} as ${r.role} at ${r.width}: ` + k.map(x => `${x} ${r[x]} (the rest: ${MW[r.width][x]})`).join(', ') }); });
+  /* ONE PICTURE SIZE (owner, 12 Nov): every card's picture box is one height at a given width (`--pic-h`); an exception needs `prop: 'pic-size'`. */
+  const withPic = rows.filter(r => r.picH), picM = {}; WIDTHS.forEach(w => { picM[w] = mode('picH', w); });
+  const picOdd = withPic.filter(r => String(r.picH) !== String(picM[r.width]) && !allowed(r.kind, 'pic-size'));
+  R.push({ id: 'tpl-pic-size', label: 'Rendered cards: every picture the one --pic-h height', ok: withPic.length - picOdd.length, of: withPic.length, unit: 'pictures seen' });
+  const sp = new Set();
+  picOdd.forEach(r => { const id = r.kind + r.width + r.picH; if (sp.has(id)) return; sp.add(id);
+    work.push({ kind: 'tpl-pic-size', where: r.where, say: `${r.kind} as ${r.role} at ${r.width}: picture ${r.picH}px tall (the rest: ${picM[r.width]}px)` }); });
   /* SHAPE VARIETY: a signature is the parts drawn and the properties broken; one per kind, one across kinds (plus declared exceptions). */
   const sig = r => r.regions.replace(/(^|>)(pic>)/, '$1') + '|' + [...new Set(r.fails.map(f => f.prop))].sort().join(',');
   const byKind = {}; rows.forEach(r => { (byKind[r.kind] = byKind[r.kind] || new Set()).add(sig(r)); });

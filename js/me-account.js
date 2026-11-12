@@ -91,7 +91,7 @@ function meRest_() {
 /* ---------- THE BUILD STAMPS, FOR WHEN SOMETHING HAS CHANGED AND HAS NOT § */
 /* THE BUILD CARD IS ITS LINES, so they are no grey clutter (A+): `build-said` keeps them past the rule that hides a card's grey lines. */
 function versionSaid_() {
-  return `<p class="build-said" style="text-align:center">@family. · Merton &amp; Wandsworth<br>
+  return `<p class="build-said">@family. · Merton &amp; Wandsworth<br>
       site ${esc(SITE_VERSION)} · css ${esc(cssVersion())}<br>
       backend ${esc(dash_(DATA.version))}</p>
       ${(() => {
@@ -168,14 +168,14 @@ function applyFormHtml_() {
   const doc = (k, label) => `<div class="field apply-doc" data-doc="${k}"><span>${esc(label)}</span>
       <div class="btn-row">${tile_({ form: true, kind: 'quiet', label: APPLY_DOCS[k] ? 'Change photo' : 'Choose photo', act: 'apply-pick' })}</div>
       <p class="note apply-doc-said">${APPLY_DOCS[k] ? 'Photo ready.' : ''}</p>${formFile_('apply-in', 'image/*')}</div>`;
-  const ref = n => `<div class="f-row" style="--n:2">${box(`ref${n}Name`, 'name')}${box(`ref${n}Relationship`, 'relationship to you')}</div>
-    <div class="f-row" style="--n:2">${box(`ref${n}Email`, 'email', { type: 'email' })}${box(`ref${n}Phone`, 'phone', { type: 'tel' })}</div>`;
+  const ref = n => `<div class="f-row">${box(`ref${n}Name`, 'name')}${box(`ref${n}Relationship`, 'relationship to you')}</div>
+    <div class="f-row">${box(`ref${n}Email`, 'email', { type: 'email' })}${box(`ref${n}Phone`, 'phone', { type: 'tel' })}</div>`;
   return `<div class="me-form app-form">
     <h4>You</h4>
     ${box('fullName', 'full name')}
-    <div class="f-row" style="--n:2">${box('phone', 'phone', { type: 'tel' })}${box('email', 'email', { type: 'email' })}</div>
+    <div class="f-row">${box('phone', 'phone', { type: 'tel' })}${box('email', 'email', { type: 'email' })}</div>
     ${area('address', 'home address')}
-    <div class="f-row" style="--n:2">${box('postcode', 'postcode', { more: 'autocapitalize="characters"' })}${box('dob', 'date of birth', { type: 'date' })}</div>
+    <div class="f-row">${box('postcode', 'postcode', { more: 'autocapitalize="characters"' })}${box('dob', 'date of birth', { type: 'date' })}</div>
     <h4>Documents</h4>
     ${doc('idDoc', 'photo ID — passport or driving licence')}
     ${formLine_('right to work in the UK', formSelect_('data-app="rightToWork"', '<option value="">Choose</option><option value="yes">Yes</option><option value="no">No</option>'))}
@@ -185,7 +185,7 @@ function applyFormHtml_() {
     ${Array.from({ length: APPLY_QUAL_SLOTS }, (_, i) => doc('qual' + i, i ? 'another qualification certificate (optional)' : 'a qualification certificate')).join('')}
     ${box('rate', 'hourly rate (£)', { type: 'number', more: 'min="1" step="0.5" inputmode="decimal"' })}
     <h4>Checks</h4>
-    <div class="f-row" style="--n:2">${box('dbsNumber', 'enhanced DBS certificate number')}${box('dbsIssued', 'issued on', { type: 'date' })}</div>
+    <div class="f-row">${box('dbsNumber', 'enhanced DBS certificate number')}${box('dbsIssued', 'issued on', { type: 'date' })}</div>
     ${formTick_('data-app="dbsUpdate"', '<span>I consent to you checking it on the DBS Update Service</span>')}
     ${formTick_('data-app="dbsNeeded"', '<span>I need a DBS check</span>')}
     <h4>When and where</h4>
@@ -600,7 +600,7 @@ function registerCard_() {
             ''}
       ${/* THE NAMES AND THE ADDRESS ARE DRAFTS (data.js; docs/history/317) — the sheet closed by a tap outside, or the page reloaded, and they were gone. § */
             ''}
-      <div class="f-row" style="--n:2">
+      <div class="f-row">
         ${formLine_('first name', formInput_(`id="reg-first" autocomplete="off"${draftAttr_('reg', 'first')} value="${esc(draftVal_('reg', 'first'))}"`))}
         ${formLine_('last name', formInput_(`id="reg-last" autocomplete="off"${draftAttr_('reg', 'last')} value="${esc(draftVal_('reg', 'last'))}"`))}
       </div>

@@ -1,0 +1,285 @@
+{
+ "id": "aqa-7402",
+ "board": "AQA",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Biology",
+ "code": "7402",
+ "url": "https://filestore.aqa.org.uk/resources/biology/specifications/AQA-7401-7402-SP-2015.PDF",
+ "sections": [
+  {
+   "id": "3.1",
+   "title": "Biological molecules"
+  },
+  {
+   "id": "3.2",
+   "title": "Cells"
+  },
+  {
+   "id": "3.3",
+   "title": "Organisms exchange substances with their"
+  },
+  {
+   "id": "3.4",
+   "title": "Genetic information, variation and relationships"
+  },
+  {
+   "id": "3.5",
+   "title": "Energy transfers in and between organisms (A-level"
+  },
+  {
+   "id": "3.6",
+   "title": "Organisms respond to changes in their internal and"
+  },
+  {
+   "id": "3.7",
+   "title": "Genetics, populations, evolution and ecosystems (A-"
+  },
+  {
+   "id": "3.8",
+   "title": "The control of gene expression (A-level only)"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.1.2",
+   "text": "Carbohydrates",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.4",
+   "text": "Proteins",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.4.1",
+   "text": "General properties of proteins",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.1.5.1",
+   "text": "Structure of DNA and RNA",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.5.2",
+   "text": "DNA replication",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.6",
+   "text": "ATP",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.8",
+   "text": "Inorganic ions",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Cell structure",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.1.1",
+   "text": "Structure of eukaryotic cells",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.3",
+   "text": "Methods of studying cells",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.2",
+   "text": "All cells arise from other cells",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.4",
+   "text": "Cell recognition and the immune system",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.3.1",
+   "text": "Surface area to volume ratio",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.3",
+   "text": "Digestion and absorption",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.4",
+   "text": "Mass transport",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.4.2",
+   "text": "Mass transport in plants",
+   "parent": "3.3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.2",
+   "text": "DNA and protein synthesis",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.4",
+   "text": "Genetic diversity and adaptation",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.6",
+   "text": "Biodiversity within a community",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.7",
+   "text": "Investigating diversity",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.5.1",
+   "text": "Photosynthesis (A-level only)",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.3",
+   "text": "Energy and ecosystems (A-level only)",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.6.1",
+   "text": "Stimuli, both internal and external, are detected and lead to a",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.1.1",
+   "text": "Survival and response (A-level only)",
+   "parent": "3.6.1",
+   "links": []
+  },
+  {
+   "id": "3.6.1.2",
+   "text": "Receptors (A-level only)",
+   "parent": "3.6.1",
+   "links": []
+  },
+  {
+   "id": "3.6.2",
+   "text": "Nervous coordination (A-level only)",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.2.1",
+   "text": "Nerve impulses (A-level only)",
+   "parent": "3.6.2",
+   "links": []
+  },
+  {
+   "id": "3.6.2.2",
+   "text": "Synaptic transmission (A-level only)",
+   "parent": "3.6.2",
+   "links": []
+  },
+  {
+   "id": "3.6.3",
+   "text": "Skeletal muscles are stimulated to contract by nerves and act as",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.4.1",
+   "text": "Principles of homeostasis and negative feedback (A-level only)",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.4.2",
+   "text": "Control of blood glucose concentration (A-level only)",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.7.1",
+   "text": "Inheritance (A-level only)",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.7.3",
+   "text": "Evolution may lead to speciation (A-level only)",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.8.1",
+   "text": "Alteration of the sequence of bases in DNA can alter the",
+   "parent": "3.8",
+   "links": []
+  },
+  {
+   "id": "3.8.2.1",
+   "text": "Most of a cell’s DNA is not translated (A-level only)",
+   "parent": "3.8",
+   "links": []
+  },
+  {
+   "id": "3.8.2.2",
+   "text": "Regulation of transcription and translation (A-level only)",
+   "parent": "3.8",
+   "links": []
+  },
+  {
+   "id": "3.8.2.3",
+   "text": "Gene expression and cancer (A-level only)",
+   "parent": "3.8",
+   "links": []
+  },
+  {
+   "id": "3.8.4",
+   "text": "Gene technologies allow the study and alteration of gene",
+   "parent": "3.8",
+   "links": []
+  },
+  {
+   "id": "3.8.4.1",
+   "text": "Recombinant DNA technology (A-level only)",
+   "parent": "3.8.4",
+   "links": []
+  },
+  {
+   "id": "3.8.4.3",
+   "text": "Genetic fingerprinting (A-level only)",
+   "parent": "3.8.4",
+   "links": []
+  }
+ ]
+}

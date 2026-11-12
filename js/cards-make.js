@@ -97,7 +97,7 @@ function findCard(x, credits) {
   /* A PANEL (card_) IS DRAWN WHILE FIND'S OWN LIST IS BEING MADE, so it never reads Find's chips back (that would build the list inside itself). */
   parts.tags = it.kcPanel ? parts.tags : kcUnpicked_(parts.tags);
   /* A CARD WITH NO TAGS OF ITS OWN STILL HAS ONE: its name (owner, 9 Nov: the name is a tag). */
-  if (!parts.tags.trim() && name) parts.tags = `<div class="qtags"><span class="qtag" data-tag="0">${esc(name)}</span></div>`;
+  if (!parts.tags.trim() && name) parts.tags = `<div class="qtags">${qtag_(`${esc(name)}`, ` data-tag="0"`)}</div>`;
   /* NO TITLE LINE ON ANY CARD (owner, 9 Nov): the name is a tag, put first when the tags do not already say it. */
   if (name && parts.head && !kcSays_(parts.tags, name)) parts.tags = kcTagFirst_(parts.tags, name);
   parts.head = '';
@@ -125,6 +125,8 @@ function findCard(x, credits) {
     (parts.form ? ['pic', 'head', 'tags', 'lines', 'form', 'act'] : KC_PARTS).map(p => `<div class="kc-${p}">${parts[p]}</div>`).join('')}</div>`;
 }
 
+/* THE ONE TAG MAKER (one way only): `inner` is HTML the caller escaped, `attrs` its attributes, `cls` extra classes; `base` a tutor pill or a filter chip. */
+function qtag_(inner, attrs, cls, base) { return `<span class="${base || 'qtag'}${cls ? ' ' + cls : ''}"${attrs || ''}>${inner}</span>`; }
 /* EVERY OTHER CARD COMES HERE TOO (owner, 11 Nov: one template): its maker writes a plain `<div class="x">…</div>`; a form inside stays whole, the booking form's too. */
 const KC_FORMY = /<(input(?![^>]*type="hidden")|select|textarea|form)\b|\bkc-items\b/;
 function card_(html, kind, called) {

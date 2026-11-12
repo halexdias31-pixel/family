@@ -1,0 +1,481 @@
+{
+ "id": "ocr-h556",
+ "board": "OCR",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Physics",
+ "code": "H556",
+ "url": "https://www.ocr.org.uk/Images/171726-specification-accredited-a-level-gce-physics-a-h556.pdf",
+ "sections": [
+  {
+   "id": "1",
+   "title": "Development of"
+  },
+  {
+   "id": "2",
+   "title": "Foundations of"
+  },
+  {
+   "id": "3",
+   "title": "Forces and motion"
+  },
+  {
+   "id": "4",
+   "title": "Electrons, waves"
+  },
+  {
+   "id": "5",
+   "title": "Newtonian world"
+  },
+  {
+   "id": "6",
+   "title": "Particles and"
+  }
+ ],
+ "points": [
+  {
+   "id": "1.1.1",
+   "text": "Planning",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.1.2",
+   "text": "Implementing",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.1.3",
+   "text": "Analysis",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.1.4",
+   "text": "Evaluation",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.2.1",
+   "text": "Practical skills",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.2.2",
+   "text": "Use of apparatus and techniques",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "2.1.1",
+   "text": "Physical quantities",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.1.2",
+   "text": "S.I. units",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.2.1",
+   "text": "Measurements and uncertainties",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.3.1",
+   "text": "Scalars and vectors",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "3.1.1",
+   "text": "Kinematics",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.1.2",
+   "text": "Linear motion",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.1.3",
+   "text": "Projectile motion",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Dynamics",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.2.2",
+   "text": "Motion with non-uniform acceleration",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.2.3",
+   "text": "Equilibrium",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.2.4",
+   "text": "Density and pressure",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.3.1",
+   "text": "Work and conservation of energy",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.3.2",
+   "text": "Kinetic and potential energies",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.3.3",
+   "text": "Power",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.4.1",
+   "text": "Springs",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.4.2",
+   "text": "Mechanical properties of matter",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.5.1",
+   "text": "Newton’s laws of motion",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.5.2",
+   "text": "Collisions",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "4.1.1",
+   "text": "Charge",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.1.2",
+   "text": "Mean drift velocity",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.2.1",
+   "text": "Circuit symbols",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.2.2",
+   "text": "E.m.f. and p.d",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.2.3",
+   "text": "Resistance",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.2.4",
+   "text": "Resistivity",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.2.5",
+   "text": "Power",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.3.1",
+   "text": "Series and parallel circuits",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.3.2",
+   "text": "Internal resistance",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.3.3",
+   "text": "Potential dividers",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.4.1",
+   "text": "Wave motion",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.4.2",
+   "text": "Electromagnetic waves",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.4.3",
+   "text": "Superposition",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.4.4",
+   "text": "Stationary waves",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.5.1",
+   "text": "Photons",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.5.2",
+   "text": "The photoelectric effect",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.5.3",
+   "text": "Wave–particle duality",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "5.1.1",
+   "text": "Temperature",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.1.2",
+   "text": "Solid, liquid and gas",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.1.3",
+   "text": "Thermal properties of materials",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.1.4",
+   "text": "Ideal gases",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.2.1",
+   "text": "Kinematics of circular motion",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.2.2",
+   "text": "Centripetal force",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.3.1",
+   "text": "Simple harmonic oscillations",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.3.2",
+   "text": "Energy of a simple harmonic oscillator",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.3.3",
+   "text": "Damping",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.4.1",
+   "text": "Point and spherical masses",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.4.2",
+   "text": "Newton’s law of gravitation",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.4.3",
+   "text": "Planetary motion",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.4.4",
+   "text": "Gravitational potential and energy",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.5.1",
+   "text": "Stars",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.5.2",
+   "text": "Electromagnetic radiation from stars",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.5.3",
+   "text": "Cosmology",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "6.1.1",
+   "text": "Capacitors",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.1.2",
+   "text": "Energy",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.1.3",
+   "text": "Charging and discharging capacitors",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.2.1",
+   "text": "Point and spherical charges",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.2.2",
+   "text": "Coulomb’s law",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.2.3",
+   "text": "Uniform electric field",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.2.4",
+   "text": "Electric potential and energy",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.3.1",
+   "text": "Magnetic fields",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.3.2",
+   "text": "Motion of charged particles",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.3.3",
+   "text": "Electromagnetism",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.4.1",
+   "text": "The nuclear atom",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.4.2",
+   "text": "Fundamental particles",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.4.3",
+   "text": "Radioactivity",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.4.4",
+   "text": "Nuclear fission and fusion",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.5.1",
+   "text": "Using X-rays",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.5.2",
+   "text": "Diagnostic methods in medicine",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.5.3",
+   "text": "Using ultrasound",
+   "parent": "6",
+   "links": []
+  }
+ ]
+}

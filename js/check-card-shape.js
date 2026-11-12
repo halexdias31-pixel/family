@@ -26,7 +26,7 @@ const BUNDLE_SRC = ['bundleCard_', 'bundlePriceLine_', 'bundleStrayLine_'].map(n
 if (!/function bundleOf_\(\) \{\n(?:\s*\/\*[^\n]*\n)*\s*if \([^\n]*!findDone_\(\)\) return null;/.test(bundles)) bad.push('bundleOf_ does not wait for findDone_: a bundle is a card, shown only once the menus finish');
 /* eslint-disable-next-line no-new-func */
 const run = new Function('scope', 'with (scope) {\n' + cards.replace(/^(const|let) /gm, 'var ') + '\n'
-  + settings.replace(/^(const|let) /gm, 'var ') + '\n' + BUNDLE_SRC + '\n}\nreturn { findCard, setCardFields_, KC_FIELDS, KC_DEFAULT, kcOffOpts_, bundleCard_ };');
+  + settings.replace(/^(const|let) /gm, 'var ') + '\n' + BUNDLE_SRC + '\n}\nreturn { findCard, setCardFields_, KC_FIELDS, KC_DEFAULT, kcOffOpts_, bundleCard_, qtag_ };');
 let got = {};
 try { got = run(scope); } catch (e) { bad.push('js/cards.js or js/settings.js would not load in the shape check: ' + e.message); }
 
@@ -152,7 +152,8 @@ try { const h = String(got.findCard({ kind: 'legacy', key: 'legacy:1', name: 'On
 try { const soonSrc = (/\nfunction soonCard_\([\s\S]*?\n\}\n/.exec(finder) || [''])[0];
   scope.brand = (k, f) => f;
   /* eslint-disable-next-line no-new-func */
-  scope.window.KC_OWN = { soon: new Function('scope', 'with (scope) {\n' + soonSrc + '\nreturn soonCard_; }')(scope) };
+  /* THE TAG MAKER is cards-make.js's own name, so the lifted maker is handed it. */
+  scope.window.KC_OWN = { soon: new Function('scope', 'qtag_', 'with (scope) {\n' + soonSrc + '\nreturn soonCard_; }')(scope, got.qtag_) };
   const h = String(got.findCard({ kind: 'soon', key: 'soon:1', name: 'Timer', sub: 'Tools' })), w = shapeOf(h);
   if (!soonSrc) bad.push('find-finder.js has no soonCard_');
   else if (w) bad.push('a Coming soon card: ' + w);

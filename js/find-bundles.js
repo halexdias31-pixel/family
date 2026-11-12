@@ -232,7 +232,7 @@ function bundleCard_(b) {
   const inCart = bundleInCart_(b);
   const off = b.papers.filter(p => !p.ok);
   const note = b.noun + ' · ' + bundlePriceLine_(b);
-  const pp = p => p.pages ? ` <span class="mono qtag">${p.pages}pp</span>` : '';
+  const pp = p => p.pages ? ' ' + qtag_(p.pages + 'pp', '', 'mono') : '';
   /* ONE LINE PER GROUP WHEN IT IS GROUPED — a sitting, a tier, or both — one per paper when it is
      not. Numbered either way: the count down the edge is how many LINES, and the title already says
      how many papers. */
@@ -447,10 +447,12 @@ on('cut-open', el => { if (el && el.classList) el.classList.toggle('is-open'); }
 function chipShow_(f, i) {
   const facet = facetBy(f.field), was = STUFF.filters;
   if (!facet) return f.value;
+  /* ONE PRESS, SEVERAL FILTERS (an answer's `also`): each is said as the answer was, counted before the first of them. */
+  if (i != null && Array.isArray(was)) while (i > 0 && was[i - 1] && was[i - 1].field === f.field && !was[i - 1].any) i--;
   const built = i != null && Array.isArray(was) ? chipShowBuilt_(was.slice(0, i), f) : null;
   if (built != null) return built;
   if (i != null && Array.isArray(was)) try { STUFF.filters = was.slice(0, i);
-    const w = (facetTally_(stuffFiltered(), facet).values || []).find(v => spellKey_(v.value) === spellKey_(f.value));
+    const w = (facetTally_(stuffFiltered(), facet).values || []).find(v => [v.value].concat(v.also || []).some(u => spellKey_(u) === spellKey_(f.value)));
     if (w) return w.show || w.text || w.value; } catch (e) { oops_(e, 'find:chipShow_') } finally { STUFF.filters = was; }
   return answerSay_(facet, f.value);
 }
@@ -480,15 +482,9 @@ function filterChips() {
       const show = chipText_(f, i), key = spellKey_(show);
       if (said[key]) return '';
       said[key] = 1;
-      return `
-      <span class="chip sm" data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}>
-        ${/* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it. */ ''}
-        ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody made and has to be able to unmake. § */
-             ''}
-        ${/* ---------- THE CHIP SHOWS WHAT THE BUTTON SHOWED, NOT WHAT IT MATCHES ON § */
-             ''}
-        ${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}
-      </span>`;
+      /* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it; a skip is a chip like any other. */
+      return qtag_(`${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}`,
+        ` data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}`, 'sm', 'chip');
     }).join('')}
   </div>`;
 }
@@ -509,7 +505,10 @@ function filterClear_() {
    and never one on Find. */
 on('facet-pick', el => inFinder_(finderAt_(el), () => {
   writingFreeze_();
-  STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value });
+  /* ONE ANSWER, SEVERAL VALUES (`tellApart_`'s `also`): each is a filter, so the field reads "either", and the row says it once. */
+  let also = [];
+  try { also = el.dataset.also ? JSON.parse(el.dataset.also) : []; } catch (e) { also = []; }
+  [el.dataset.value].concat(also).forEach(v => STUFF.filters.push({ field: el.dataset.field, value: v }));
   paintStuffSoon_();
   /* A BOOK OF THE BIBLE CHOSEN WAS FETCHED HERE TOO (docs/history/341), and the review of 12 Oct found nothing could tell: § */
 }));
@@ -521,7 +520,13 @@ on('facet-skip', el => inFinder_(finderAt_(el), () => {
   STUFF.filters.push({ field: el.dataset.field, any: true });
   paintStuffSoon_();
 }));
-on('filter-drop', el => inFinder_(finderAt_(el), () => { STUFF.filters.splice(Number(el.dataset.i), 1); paintStuffSoon_(); }));
+/* A CHIP SAID ONCE FOR SEVERAL FILTERS (`filterChips`) takes all of them off. */
+on('filter-drop', el => inFinder_(finderAt_(el), () => {
+  const i = Number(el.dataset.i), f = STUFF.filters[i];
+  const say = f && !f.any ? spellKey_(chipText_(f, i)) : null;
+  STUFF.filters = STUFF.filters.filter((g, j) => j !== i && !(say && g.field === f.field && !g.any && spellKey_(chipText_(g, j)) === say));
+  paintStuffSoon_();
+}));
 on('filter-clear', el => inFinder_(finderAt_(el), () => { STUFF.filters = []; paintStuff(); }));
 
 /* REDRAW THE RESULTS AND NOTHING ELSE. § */

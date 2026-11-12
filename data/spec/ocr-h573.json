@@ -1,0 +1,44 @@
+{
+ "id": "ocr-h573",
+ "board": "OCR",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Religious Studies",
+ "code": "H573",
+ "url": "https://www.ocr.org.uk/Images/242913-specification-accredited-a-level-gce-religious-studies-h573.pdf",
+ "sections": [
+  {
+   "id": "C1",
+   "title": "Philosophy of religion (H573/01) \b"
+  },
+  {
+   "id": "C2",
+   "title": "Religion and ethics (H573/02)\b"
+  },
+  {
+   "id": "C3",
+   "title": "Developments in religious thought (H573/03–07)\b"
+  },
+  {
+   "id": "C4",
+   "title": "Developments in Christian thought (H573/03)\b"
+  },
+  {
+   "id": "C5",
+   "title": "Developments in Islamic thought (H573/04)\b"
+  },
+  {
+   "id": "C6",
+   "title": "Developments in Jewish thought (H573/05)\b"
+  },
+  {
+   "id": "C7",
+   "title": "Developments in Buddhist thought (H573/06)\b"
+  },
+  {
+   "id": "C8",
+   "title": "Developments in Hindu thought (H573/07)\b"
+  }
+ ],
+ "points": []
+}

@@ -48,7 +48,7 @@ function formToggle_(t) {
   return `<label class="check role-pick${t.cls ? ' ' + t.cls : ''}">
         <input type="checkbox" data-do="${esc(t.act)}"${data}${t.on ? ' checked' : ''}>
         <span class="box"></span><span class="role-pick-say"><b>${esc(t.label)}</b>
-          <span class="qtag">${esc(t.note || '')}</span></span></label>`;
+          ${qtag_(`${esc(t.note || '')}`)}</span></label>`;
 }
 
 /* THE CARD: a title, then `groups` (backend field lists via `fieldsHtml`), `boxes` or `toggles`; `spec.id` fills it from FORM_SPECS.cards. */

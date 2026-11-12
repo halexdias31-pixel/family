@@ -1,0 +1,20 @@
+{
+ "id": "ocr-h472",
+ "board": "OCR",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "English Literature",
+ "code": "H472",
+ "url": "https://www.ocr.org.uk/Images/171200-specification-accredited-a-level-gce-english-literature-h472.pdf",
+ "sections": [
+  {
+   "id": "C1",
+   "title": "Drama and poetry pre-1900 (Component 01)"
+  },
+  {
+   "id": "C2",
+   "title": "Comparative and contextual study (Component 02)"
+  }
+ ],
+ "points": []
+}

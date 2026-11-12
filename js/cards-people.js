@@ -66,8 +66,8 @@ function teachGroups_(list) {
   return out;
 }
 /* ONE CHIP. The levels are a `<sup>`, and each level is its own no-wrap span, so at 320px a long list breaks BETWEEN levels § */
-const teachChip_ = (g, main) => `<span class="prof-tag${main ? ' is-main' : ''}">${mark(g.subject)}${
-  g.levels.length ? `<sup class="prof-lv">&nbsp;${g.levels.map(l => `<span>${mark(l)}</span>`).join(', ')}</sup>` : ''}</span>`;
+const teachChip_ = (g, main) => qtag_(`${mark(g.subject)}${
+  g.levels.length ? `<sup class="prof-lv">&nbsp;${g.levels.map(l => `<span>${mark(l)}</span>`).join(', ')}</sup>` : ''}`, '', main ? 'is-main' : '', 'prof-tag');
 
 /* ---------- A QUALIFICATION, WRITTEN LIKE AN ISOTOPE § */
 const profQualV_ = v => String(v == null ? '' : v).trim();
@@ -83,14 +83,12 @@ function profQualChip_(p) {
   const say = esc(profQualSay_(p));
   const low = grade ? mark(grade) : profQualNow_(p) ? '<i>studying</i>' : '';
   if (p.kind === 'cert' || !(level || low)) {
-    return `<span class="prof-tag" role="img" aria-label="${say}" title="${say}">${
-      mark([subject, level, grade].filter(Boolean).join(' '))}</span>`;
+    return qtag_(mark([subject, level, grade].filter(Boolean).join(' ')), ` role="img" aria-label="${say}" title="${say}"`, '', 'prof-tag');
   }
   /* THE LAST WORD OF THE SUBJECT IS HELD TO ITS NOTATION, so at 320px a long subject breaks between its own words and never § */
   const said = mark(subject), cut = profLastGap_(said);
-  return `<span class="prof-tag prof-q" role="img" aria-label="${say}" title="${say}">${
-    cut > 0 ? said.slice(0, cut) + ' ' : ''}<span class="prof-q-end">${said.slice(cut + 1)}<span class="prof-iso">${
-    level ? `<sup>${mark(level)}</sup>` : ''}${low ? `<sub>${low}</sub>` : ''}</span></span></span>`;
+  return qtag_(`${cut > 0 ? said.slice(0, cut) + ' ' : ''}<span class="prof-q-end">${said.slice(cut + 1)}<span class="prof-iso">${
+    level ? `<sup>${mark(level)}</sup>` : ''}${low ? `<sub>${low}</sub>` : ''}</span></span>`, ` role="img" aria-label="${say}" title="${say}"`, 'prof-q', 'prof-tag');
 }
 /* THE LAST SPACE IN `mark`'s HTML THAT IS NEITHER INSIDE A TAG NOR INSIDE A COLOURED SPAN, or -1. § */
 function profLastGap_(html) {
@@ -107,7 +105,7 @@ function profLastGap_(html) {
 }
 /* A LONG LIST SHORTENED TO "+N" (8 Nov): the whole tutor card fits one phone screen; the rest are named in the pill's title. */
 const PROF_MORE_ = (chips, n, names) => chips.length > n
-  ? chips.slice(0, n).concat(`<span class="prof-tag prof-more" title="${esc((names || []).slice(n).join(', '))}">+${chips.length - n}</span>`) : chips;
+  ? chips.slice(0, n).concat(qtag_(`+${chips.length - n}`, ` title="${esc((names || []).slice(n).join(', '))}"`, 'prof-more', 'prof-tag')) : chips;
 function profQuals_(t) {
   const parts = Array.isArray(t.qualsParts) ? t.qualsParts.filter(p => p && profQualV_(p.subject)) : [];
   let chips;
@@ -120,7 +118,7 @@ function profQuals_(t) {
     });
     chips = [].concat(...groups).map(profQualChip_);
   } else {
-    chips = profList_(t.quals).map(v => `<span class="prof-tag">${esc(v)}</span>`);
+    chips = profList_(t.quals).map(v => qtag_(esc(v), '', '', 'prof-tag'));
   }
   chips = PROF_MORE_(chips, 2, parts.length ? parts.map(p => profQualV_(p.subject)) : profList_(t.quals));
   return chips.length
@@ -131,7 +129,7 @@ function profQuals_(t) {
 const profJobSay_ = j => [j.role, j.where, [j.from, j.to].filter(Boolean).join('–')].map(v => String(v || '').trim()).filter(Boolean).join(' · ');
 function profJobs_(t) {
   const says = (Array.isArray(t.jobs) ? t.jobs : []).map(profJobSay_).filter(Boolean);
-  const chips = PROF_MORE_(says.map(v => `<span class="prof-tag">${esc(v)}</span>`), 1, says);
+  const chips = PROF_MORE_(says.map(v => qtag_(esc(v), '', '', 'prof-tag')), 1, says);
   return chips.length ? `<div class="qtags prof-tags prof-teach prof-jobs">${chips.join('')}</div>` : '';
 }
 
@@ -226,7 +224,7 @@ function profAvail_(t) {
     hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
     /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; the aria-label above says every hour. */
     const say = !spans.length ? '' : profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '');
-    return spans.length ? `<span class="prof-tag prof-day">${esc(day_(d.label))} ${esc(say)}</span>` : '';
+    return spans.length ? qtag_(`${esc(day_(d.label))} ${esc(say)}`, '', 'prof-day', 'prof-tag') : '';
   }).filter(Boolean).join('<span class="prof-sep"> </span>');
   const free = line(c => c.lit), busyLine = line(c => c.busy);
   return `<div class="prof-week prof-hours" data-avail="${ticked.length}"

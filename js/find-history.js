@@ -97,6 +97,48 @@ function insertCard_(x) {
 /* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies. */
 function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
   .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'file-view', data: { url: o.url, title: o.label } }))); }
+/* ---------- A SPECIFICATION (owner, 12 Nov): one card per board's spec, data/spec/<id>.json via data/specs.json (tools/coverage.js). ---------- */
+function specItem_(r) {
+  return {
+    kind: 'spec', name: r.code, key: 'spec:' + r.id, sub: '', image: '',
+    subject: r.subject, level: r.level, examBoard: r.board,
+    text: plainText_([r.board, r.qualification, r.subject, r.code, 'specification spec syllabus']
+      .concat((r.sections || []).map(s => s.title), (r.points || []).map(p => p.id + ' ' + p.text)).join(' ')),
+    row: r,
+  };
+}
+/* A POINT'S LESSONS AND QUESTIONS (tools/coverage.js wrote their Find keys); each tile names its card, a key Find lacks is left out. */
+function specLinks_(p, named) {
+  const tiles = (p.links || []).filter(k => named[k]).map(k => tile_({ icon: /^q:/.test(k) ? 'edit' : 'book', label: /^q:/.test(k) ? 'Question' : 'Lesson',
+    note: named[k], act: 'find-open', data: { key: String(k) } })).join('');
+  const shown = (p.links || []).filter(k => /^q:/.test(k)).length, more = (p.asked || 0) - shown;
+  return (tiles ? `<div class="tile-row">${tiles}</div>` : '') + (more > 0 ? `<p class="spec-more">and ${more} more question${more === 1 ? '' : 's'} on this point</p>` : '');
+}
+function specPoints_(r, parent, named) {
+  const kids = (r.points || []).filter(p => p.parent === parent);
+  return kids.length ? `<ul>${kids.map(p => `<li class="spec-pt"><span class="insh-fn">${esc(p.id)}</span>
+    <span class="spec-say">${esc(p.text)}</span>${specLinks_(p, named)}${specPoints_(r, p.id, named)}</li>`).join('')}</ul>` : '';
+}
+/* WHAT EACH LINKED KEY IS CALLED in Find now, looked up once per card. */
+function specNamed_(r) {
+  const want = new Set([].concat(...(r.points || []).map(p => p.links || []))), out = {};
+  if (!want.size) return out;
+  try { (stuffItemsAll_() || []).forEach(i => { if (i && want.has(i.key)) out[i.key] = /^q:/.test(i.key) && i.sub ? i.sub + ' · ' + i.name : i.name || i.key; }); } catch (e) { /* Find not ready: the card shows its tree alone */ }
+  return out;
+}
+/* THE SECTION TREE, each section folded (a <details> grows where it is); the official PDF holds the full wording. */
+function specCard_(x) {
+  const r = x.row, named = specNamed_(r);
+  return `<div class="insh">
+    ${tagRow_(x)}
+    <div class="insh-sheet spec-sheet">
+      <p class="insh-kick">${esc([r.board, r.qualification, r.subject, r.code].join(' · '))}</p>
+      ${(r.sections || []).map(s => `<details class="insh-sec spec-sec"><summary class="kc-h">${esc(s.title)}</summary>${specPoints_(r, s.id, named)}</details>`).join('')}
+      <p class="insh-check">Short headings; the official specification has the full wording.</p>
+    </div>
+  </div>`;
+}
+const specExtras_ = x => [{ icon: 'open', label: 'Official', note: /\.pdf$/i.test(x.row.url) ? 'specification PDF' : 'the framework page', act: 'file-view', data: { url: x.row.url, title: x.row.board + ' ' + x.row.code } }];
 /* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
 on('ins-print', el => {
   const r = insertRow_(el.getAttribute('data-id'));

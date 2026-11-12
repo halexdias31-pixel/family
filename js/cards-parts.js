@@ -18,7 +18,7 @@ const KC_FIELDS = {
     if (k === 'photo') return `<img class="prof-pic" src="${esc(pic(t.image))}" alt="" loading="lazy" decoding="async">`;
     return k === 'basic' && typeof pfpArt_ === 'function' ? pfpArt_(pfpChoice_(t.image), 96) : ''; },
   /* THE NAME IS A TAG (owner, 9 Nov): first name and an initial for everyone; the role and rate are tags beside it. */
-  nameTag: x => { const t = kcRow_(x), tag = (v, n, c) => `<span class="prof-tag${c ? ' ' + c : ''}" data-tag="${n}">${esc(v)}</span>`;
+  nameTag: x => { const t = kcRow_(x), tag = (v, n, c) => qtag_(esc(v), ` data-tag="${n}"`, c, 'prof-tag');
     return `<div class="qtags prof-tags prof-who-tags">${tag(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')}${
       [t.role || 'Tutor'].concat(profList_(t.titles)).map(v => tag(v, 1)).join('')}${
       t.rate && !childView_() ? tag(rateRange_(t), 4, 'prof-tag-rate') : ''}${t.activity ? tag(t.activity, 3, 'prof-act') : ''}${
@@ -62,7 +62,7 @@ const KC_FIELDS = {
   tutorCount: x => { const n = (kcRow_(x).tutors || []).length; return row('Tutors', n ? String(n) : NO_TUTOR, n ? '' : 'bad'); },
   bookingForm: x => (kcRow_(x).listed ? '' : row('Booking form', 'Not offered', 'bad')),
   levels: x => { const l = (kcRow_(x).levels || []).filter(Boolean); return l.length ? row('Levels', l.join(', ')) : ''; },
-  tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<div class="qtags">${t.map(y => `<span class="qtag" data-tag="3">${esc(y.title)}</span>`).join('')}</div>`
+  tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<div class="qtags">${t.map(y => qtag_(esc(y.title), ' data-tag="3"')).join('')}</div>`
     : x.kind === 'subject' ? row('Tutors', 'None yet', 'bad') : ''; },
   /* A KIND WHOSE OWN FILE WRITES ITS INSIDES (`KC_OWN`) hands them over cut into the four parts (`kcSplit_`); no tag line of its own gets its facets. */
   ownPic: x => (x.kcOwn || {}).pic || '',
@@ -92,6 +92,7 @@ const KC_DEFAULT = {
   project: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   content: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   insert: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  spec: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   timeline: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   fight: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   bible: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
@@ -213,7 +214,7 @@ function kcHoist_(html, panel) {
 /* WHETHER SOME TAGS ALREADY SAY A NAME, and the name put in front of them as a tag. */
 const kcSays_ = (tags, name) => norm(String(tags || '').replace(/<[^>]+>/g, ' ').replace(/&#0*39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&')).indexOf(norm(name)) >= 0;
 function kcTagFirst_(tags, name) {
-  const tag = `<span class="qtag" data-tag="0">${esc(name)}</span>`;
+  const tag = `${qtag_(`${esc(name)}`, ` data-tag="0"`)}`;
   return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, '$1' + tag) : `<div class="qtags">${tag}</div>` + (tags || '');
 }
 /* TAGS ARE SHORT FACTS, LINES HAVE NO HEADINGS (owner, 9 Nov): a longer tag (a credit) becomes a later line, open-only; a heading in the lines a plain line. */

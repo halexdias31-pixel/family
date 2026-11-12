@@ -9,6 +9,23 @@ const arg = n => (process.argv.find(a => a.startsWith('--' + n + '=')) || '').sp
 const DIR = path.resolve(arg('dir') || process.env.GALLERY_DIR || path.join(os.tmpdir(), 'family-gallery'));
 const NOW = path.join(DIR, 'now'), OK = path.join(DIR, 'approved'), DIFF = path.join(DIR, 'diff');
 const APPROVE = process.argv.includes('--approve');
+/* THE SCREENSHOT GATE (owner, 12 Nov): --gate fails unless each changed or new shot is in gallery-approved.json with its hash. */
+const GATE = process.argv.includes('--gate');
+const SIGNED = path.join(ROOT, 'data', 'settings', 'gallery-approved.json');
+const hash = f => require('crypto').createHash('sha256').update(fs.readFileSync(f)).digest('hex').slice(0, 16);
+const readSigned = () => { try { return JSON.parse(fs.readFileSync(SIGNED, 'utf8')); } catch (e) { return { why: '', shots: {} }; } };
+/* --sign: after a person or agent LOOKED at the side-by-sides in <dir>/diff, the last run's changed shots are written as approved. */
+if (process.argv.includes('--sign')) {
+  let last = [];
+  try { last = JSON.parse(fs.readFileSync(path.join(DIR, 'changed.json'), 'utf8')); } catch (e) { console.log('gallery --sign: no changed.json in ' + DIR + ' — run --gate first'); process.exit(1); }
+  const j = readSigned(), who = arg('by') || process.env.USER || 'someone';
+  j.why = 'visual changes a person or agent looked at and approved (node tools/gallery.js --sign --by=<who>); the gate reads it';
+  j.shots = j.shots || {};
+  last.forEach(c => { j.shots[c.f] = { hash: c.hash, by: who, at: new Date().toISOString().slice(0, 10) }; });
+  fs.writeFileSync(SIGNED, JSON.stringify(j, null, 1) + '\n');
+  console.log(`gallery --sign: ${last.length} shot(s) approved by ${who} in data/settings/gallery-approved.json`);
+  process.exit(0);
+}
 const PORT = Number(process.env.GALLERY_PORT || 8761);
 const WIDTHS = (arg('width') || '390,820').split(',').map(Number);
 const ONLY = arg('only') ? arg('only').split(',') : null;
@@ -212,6 +229,13 @@ async function shoot(browser, who, width, shots) {
       `## Approved and not taken this time (${gone.length})`, '', ...gone.map(f => '- ' + f), ''];
     fs.writeFileSync(path.join(DIR, 'report.md'), lines.join('\n'));
     console.log(`gallery: ${shots.length} shots, ${changed.length} changed, ${added.length} new, ${gone.length} missing — ${path.join(DIR, 'report.md')}`);
+    /* THE GATE: every changed or new shot must be signed with the hash of what was photographed now. */
+    const moved = changed.map(c => c.f).concat(added).map(f => ({ f, hash: hash(path.join(NOW, f)) }));
+    fs.writeFileSync(path.join(DIR, 'changed.json'), JSON.stringify(moved, null, 1) + '\n');
+    if (GATE) { const signed = readSigned().shots || {}, unsigned = moved.filter(m => !signed[m.f] || signed[m.f].hash !== m.hash);
+      unsigned.forEach(m => console.log(`  not approved: ${m.f} — look at ${path.join(fs.existsSync(path.join(DIFF, m.f)) ? DIFF : NOW, m.f)}`));
+      if (unsigned.length) { console.log(`FAILED — ${unsigned.length} changed shot(s) nobody approved; look, then node tools/gallery.js --sign --dir=${DIR} --by=<who>`); process.exitCode = 1; }
+      else console.log(`OK — ${moved.length} changed shot(s), each looked at and approved.`); }
     if (APPROVE) { shots.forEach(f => fs.copyFileSync(path.join(NOW, f), path.join(OK, f))); console.log(`approved ${shots.length} shots into ${OK}`); }
   } finally { await browser.close(); server.close(); }
 })().catch(e => { console.error(e); process.exit(1); });

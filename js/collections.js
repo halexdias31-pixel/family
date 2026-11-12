@@ -152,7 +152,7 @@ function cartRow_(c, i, under) {
     sel: (() => {
       const lam = lamControl_(c);
       const pp = c.kind === 'print'
-        ? `<span class="qtag cart-pp">${c.pages ? esc(c.pages) + 'pp' : '? pp'}</span>` : '';
+        ? `${qtag_(`${c.pages ? esc(c.pages) + 'pp' : '? pp'}`, '', `cart-pp`)}` : '';
       const drop = tile_({ icon: 'close', label: 'Take this out', act: 'cart-drop', cls: 'text-drop', data: { key: c.key, kind: c.kind } });
       return `<span class="cart-ln"><span class="cart-nm">${esc(under && c.short ? c.short : c.name)}</span>${
         lam ? '' : pp}<i class="cart-lead" aria-hidden="true"></i>${lam ? '' : drop}</span>${
@@ -389,7 +389,7 @@ function shopCards_() {
       g.items.slice(i, i + SHOP_PER).forEach(x => at.push({ name: x.title || x.name || x.key || '', group: g.kind, page: out.length,
         say: [x.title, x.name, x.key, x.sub, x.description, x.desc, g.label].filter(Boolean).join(' ').toLowerCase() }));
       /* AN `<h2>` BETWEEN CARDS, NOT INSIDE ONE — the rule `check-dead.js` states and `split_` cuts on. § */
-      out.push(`<h2><span>${esc(g.label)}</span><span class="qtag">${g.items.length}</span></h2>`
+      out.push(`<h2><span>${esc(g.label)}</span>${qtag_(`${g.items.length}`)}</h2>`
         + g.items.slice(i, i + SHOP_PER).map(x => shopWithIcon_(stuffCard(x, credits), x, g.kind)).join(''));
     }
   });

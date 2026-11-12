@@ -182,8 +182,8 @@ function settingDoorCard_(x) {
 function notifyDoorCard_() {
   const needs = typeof BIZ_NEEDS !== 'undefined' ? Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0) : [];
   const waiting = ((DATA && DATA.posts) || []).filter(p => p && p.active !== false && p.waiting).length;
-  const rows = needs.map(k => `<li><span class="qtag">${esc(String(BIZ_NEEDS[k]))}</span> ${esc(k.replace(/[-_]/g, ' '))}</li>`)
-    .concat(waiting ? [`<li><span class="qtag">${waiting}</span> posts waiting for approval</li>`] : []);
+  const rows = needs.map(k => `<li>${qtag_(`${esc(String(BIZ_NEEDS[k]))}`)} ${esc(k.replace(/[-_]/g, ' '))}</li>`)
+    .concat(waiting ? [`<li>${qtag_(`${waiting}`)} posts waiting for approval</li>`] : []);
   return card_(`<div class="notify-door"><h3>Notifications</h3>${rows.length ? `<ul class="notify-list">${rows.join('')}</ul>` : '<p>Nothing needs you.</p>'}</div>`);
 }
 
