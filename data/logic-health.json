@@ -1,7 +1,7 @@
 {
- "score": 79.1,
- "questions": 201,
- "healthy": 159,
+ "score": 74.3,
+ "questions": 202,
+ "healthy": 150,
  "walked": {
   "nodes": 300,
   "maxNodes": 300,
@@ -28,7 +28,7 @@
   {
    "id": "subtype",
    "label": "a finer question asked before its coarser one",
-   "count": 26
+   "count": 29
   },
   {
    "id": "siblings",
@@ -38,12 +38,17 @@
   {
    "id": "echo",
    "label": "an answer that repeats the answer above it",
-   "count": 6
+   "count": 7
   },
   {
    "id": "twins",
    "label": "two answers that keep exactly the same cards",
    "count": 6
+  },
+  {
+   "id": "twinpaths",
+   "label": "two answer paths to the same cards (owner, 12 Nov: \"two ways to get to the right path\")",
+   "count": 8
   }
  ],
  "cannot": "Whether a card is filed under the right answer, or an answer has the best name: content and categorisation need a person.",
@@ -67,12 +72,38 @@
    ]
   },
   {
+   "where": "Find › Library › Maths › A-Level",
+   "asks": "Topic",
+   "cards": 33,
+   "why": [
+    "two answers that keep exactly the same cards: Tree Diagrams = Venn Diagrams & Set Notation",
+    "two answer paths to the same cards (owner, 12 Nov: \"two ways to get to the right path\"): Subject \"Maths\" › Topic \"Statistics\", while Subject offers \"Statistics\" too"
+   ]
+  },
+  {
    "where": "Find › Library › Physical Education › Fights › February",
    "asks": "Fighter",
    "cards": 10,
    "why": [
     "a finer question asked before its coarser one: Fighter before Division",
     "two answers that keep exactly the same cards: Jake LaMotta = Sugar Ray Robinson"
+   ]
+  },
+  {
+   "where": "Find › Library › History › Timelines › Ancient",
+   "asks": "Theatre",
+   "cards": 3,
+   "why": [
+    "two answers that keep exactly the same cards: Empire = Ottoman era; Empire = Persecution; Ottoman era = Persecution",
+    "two answer paths to the same cards (owner, 12 Nov: \"two ways to get to the right path\"): Manuscripts, people, writings, events or timelines \"Timelines\" › Theatre \"Writings\", while Manuscripts, people, writings, events or timelines offers \"Writings\" too"
+   ]
+  },
+  {
+   "where": "Find",
+   "asks": "What kind",
+   "cards": 283061,
+   "why": [
+    "a finer question asked before its coarser one: What kind before What for"
    ]
   },
   {
@@ -94,17 +125,25 @@
   {
    "where": "Find › Practice › Questions",
    "asks": "Subject",
-   "cards": 31049,
+   "cards": 31531,
    "why": [
-    "sibling branches ask their next question in different orders: Biology asks Type, Chemistry asks Level; Biology asks Type, Physics asks Level"
+    "sibling branches ask their next question in different orders: English Literature asks Level, History asks Month; English Literature asks Level, Religious Studies asks Exam board"
    ]
   },
   {
    "where": "Find › Practice › Answers",
    "asks": "Subject",
-   "cards": 29861,
+   "cards": 30343,
    "why": [
-    "sibling branches ask their next question in different orders: Biology asks Type, Chemistry asks Level; Biology asks Type, Maths asks Level"
+    "sibling branches ask their next question in different orders: Biology asks Type, Maths asks Level; Chemistry asks Type, Maths asks Level"
+   ]
+  },
+  {
+   "where": "Find › Library › Religious Studies › Judaism › Tanakh",
+   "asks": "Section",
+   "cards": 23213,
+   "why": [
+    "two answer paths to the same cards (owner, 12 Nov: \"two ways to get to the right path\"): Subject \"Religious Studies\" › Section \"History\", while Subject offers \"History\" too"
    ]
   },
   {
@@ -140,6 +179,46 @@
    ]
   },
   {
+   "where": "Find › Practice › Answers › Statistics",
+   "asks": "Year",
+   "cards": 517,
+   "why": [
+    "a finer question asked before its coarser one: Year before Month"
+   ]
+  },
+  {
+   "where": "Find › Practice › Questions › Statistics",
+   "asks": "Year",
+   "cards": 517,
+   "why": [
+    "a finer question asked before its coarser one: Year before Month"
+   ]
+  },
+  {
+   "where": "Find › Library › History › Events",
+   "asks": "Theatre",
+   "cards": 163,
+   "why": [
+    "two answer paths to the same cards (owner, 12 Nov: \"two ways to get to the right path\"): Manuscripts, people, writings, events or timelines \"Events\" › Theatre \"Writings\", while Manuscripts, people, writings, events or timelines offers \"Writings\" too"
+   ]
+  },
+  {
+   "where": "Find › Library › Chemistry › Solid › Substance",
+   "asks": "Chemical type",
+   "cards": 130,
+   "why": [
+    "two answer paths to the same cards (owner, 12 Nov: \"two ways to get to the right path\"): Card type \"Substance\" › Chemical type \"Element\", while Card type offers \"Element\" too"
+   ]
+  },
+  {
+   "where": "Find › Library › History › Writings › Magna Carta",
+   "asks": "Language",
+   "cards": 128,
+   "why": [
+    "two answer paths to the same cards (owner, 12 Nov: \"two ways to get to the right path\"): Subject \"History\" › Language \"Latin\", while Subject offers \"Latin\" too"
+   ]
+  },
+  {
    "where": "Find › Practice › Practicals",
    "asks": "Subject",
    "cards": 82,
@@ -156,6 +235,14 @@
    ]
   },
   {
+   "where": "Find › Library › Physics",
+   "asks": "Topic",
+   "cards": 56,
+   "why": [
+    "an answer that repeats the answer above it: Physics › Astrophysics; Physics › Nuclear Physics; Physics › Space Physics"
+   ]
+  },
+  {
    "where": "Find › Library › English Language › SATs",
    "asks": "Topic",
    "cards": 47,
@@ -167,86 +254,6 @@
    "where": "Find › Library › Physical Education › Fighters › 1980s",
    "asks": "Fighter",
    "cards": 35,
-   "why": [
-    "a finer question asked before its coarser one: Fighter before Division"
-   ]
-  },
-  {
-   "where": "Find › Library › Physical Education › Fighters › 2010s",
-   "asks": "Fighter",
-   "cards": 34,
-   "why": [
-    "a finer question asked before its coarser one: Fighter before Division"
-   ]
-  },
-  {
-   "where": "Find › Library › Maths › A-Level",
-   "asks": "Topic",
-   "cards": 33,
-   "why": [
-    "two answers that keep exactly the same cards: Tree Diagrams = Venn Diagrams & Set Notation"
-   ]
-  },
-  {
-   "where": "Find › Practice › Practicals › Chemistry",
-   "asks": "Topic",
-   "cards": 31,
-   "why": [
-    "an answer that repeats the answer above it: Chemistry › Organic Chemistry; Chemistry › Quantitative Chemistry"
-   ]
-  },
-  {
-   "where": "Find › Library › English Literature › Anthology › Unseen poetry",
-   "asks": "Chapter",
-   "cards": 30,
-   "why": [
-    "a finer question asked before its coarser one: Chapter before Unit"
-   ]
-  },
-  {
-   "where": "Find › Library › Physical Education › Fights › June",
-   "asks": "Year",
-   "cards": 30,
-   "why": [
-    "a finer question asked before its coarser one: Year before Decade"
-   ]
-  },
-  {
-   "where": "Find › Library › Maths › KS3",
-   "asks": "Topic",
-   "cards": 26,
-   "why": [
-    "two answers that keep exactly the same cards: Basic Probability = Listing Outcomes & Sample…; Bearings = Scale Drawings & Maps; Best Value & Unitary Method = Direct Proportion"
-   ]
-  },
-  {
-   "where": "Find › Library › Physical Education › Fighters › 1970s",
-   "asks": "Fighter",
-   "cards": 24,
-   "why": [
-    "a finer question asked before its coarser one: Fighter before Division"
-   ]
-  },
-  {
-   "where": "Find › Library › Physical Education › Fighters › 1960s",
-   "asks": "Fighter",
-   "cards": 20,
-   "why": [
-    "a finer question asked before its coarser one: Fighter before Division"
-   ]
-  },
-  {
-   "where": "Find › Library › Physical Education › Fighters › 1950s",
-   "asks": "Fighter",
-   "cards": 16,
-   "why": [
-    "a finer question asked before its coarser one: Fighter before Division"
-   ]
-  },
-  {
-   "where": "Find › Library › Physical Education › Fighters › 2020s",
-   "asks": "Fighter",
-   "cards": 15,
    "why": [
     "a finer question asked before its coarser one: Fighter before Division"
    ]
@@ -302,6 +309,22 @@
    "cards": 10106
   },
   {
+   "where": "Find › Practice › Questions › Biology",
+   "asks": "documentType",
+   "bits": 0.64,
+   "best": "qPart",
+   "bestBits": 2,
+   "cards": 4656
+  },
+  {
+   "where": "Find › Practice › Answers › Biology",
+   "asks": "documentType",
+   "bits": 0.64,
+   "best": "qPart",
+   "bestBits": 2,
+   "cards": 4656
+  },
+  {
    "where": "Find › Library › History",
    "asks": "histKind",
    "bits": 0.42,
@@ -310,28 +333,28 @@
    "cards": 3617
   },
   {
-   "where": "Find › Practice › Questions › Biology",
-   "asks": "documentType",
-   "bits": 0.72,
-   "best": "qPart",
-   "bestBits": 2,
-   "cards": 3875
-  },
-  {
-   "where": "Find › Practice › Answers › Biology",
-   "asks": "documentType",
-   "bits": 0.72,
-   "best": "qPart",
-   "bestBits": 2,
-   "cards": 3875
-  },
-  {
    "where": "Find › Library › Religious Studies › Judaism › Second Temple",
    "asks": "wWork",
    "bits": 1.75,
    "best": "wUnit",
    "bestBits": 2,
    "cards": 5455
+  },
+  {
+   "where": "Find › Practice › Answers › Physics",
+   "asks": "documentType",
+   "bits": 0.69,
+   "best": "tier",
+   "bestBits": 0.99,
+   "cards": 4503
+  },
+  {
+   "where": "Find › Practice › Questions › Physics",
+   "asks": "documentType",
+   "bits": 0.7,
+   "best": "tier",
+   "bestBits": 0.99,
+   "cards": 4539
   },
   {
    "where": "Find › Practice › Answers › Maths",
@@ -418,25 +441,25 @@
   {
    "field": "forLabel",
    "label": "What for",
-   "cards": 282579,
+   "cards": 283061,
    "why": "lopsided — pressing its commonest answer would leave 0% of the list, needs 2%"
   },
   {
    "field": "qNumber",
    "label": "Question",
-   "cards": 31049,
+   "cards": 31531,
    "why": "counts within each Type — asked once one Type is left"
   },
   {
    "field": "myResult",
    "label": "Your result",
-   "cards": 31049,
+   "cards": 31531,
    "why": "one answer — nothing to decide"
   },
   {
    "field": "qSub",
    "label": "Sub-part",
-   "cards": 3176,
+   "cards": 3333,
    "why": "counts within each Type — asked once one Type is left"
   },
   {
@@ -884,6 +907,40 @@
    "where": "Find › Library › History › Manuscripts › Hebrew",
    "kind": "answer-words",
    "say": "Material: menu \"Parchment\", chip \"Parchment\", tag \"Parchment (leather)\""
+  }
+ ],
+ "twinPaths": [
+  {
+   "where": "Find › Library › History › Events",
+   "say": "Manuscripts, people, writings, events or timelines \"Events\" › Theatre \"Writings\", while Manuscripts, people, writings, events or timelines offers \"Writings\" too"
+  },
+  {
+   "where": "Find › Library › Maths › A-Level",
+   "say": "Subject \"Maths\" › Topic \"Statistics\", while Subject offers \"Statistics\" too"
+  },
+  {
+   "where": "Find › Library › Maths › GCSE",
+   "say": "Subject \"Maths\" › Topic \"Statistics\", while Subject offers \"Statistics\" too"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Judaism › Tanakh",
+   "say": "Subject \"Religious Studies\" › Section \"History\", while Subject offers \"History\" too"
+  },
+  {
+   "where": "Find › Library › History › Writings › Magna Carta",
+   "say": "Subject \"History\" › Language \"Latin\", while Subject offers \"Latin\" too"
+  },
+  {
+   "where": "Find › Library › History › Timelines › Modern",
+   "say": "Manuscripts, people, writings, events or timelines \"Timelines\" › Theatre \"Writings\", while Manuscripts, people, writings, events or timelines offers \"Writings\" too"
+  },
+  {
+   "where": "Find › Library › History › Timelines › Ancient",
+   "say": "Manuscripts, people, writings, events or timelines \"Timelines\" › Theatre \"Writings\", while Manuscripts, people, writings, events or timelines offers \"Writings\" too"
+  },
+  {
+   "where": "Find › Library › Chemistry › Solid › Substance",
+   "say": "Card type \"Substance\" › Chemical type \"Element\", while Card type offers \"Element\" too"
   }
  ]
 }

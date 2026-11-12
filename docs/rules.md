@@ -57,6 +57,7 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 - **5.1** One Find, chips only; everything browsable is a card in it (Settings, Booking, Messages, Tools, Games); signed out sees only Settings. Checks: `front-door`, `find-first`, `people-one-kind`, `manuscripts-reach`
 - **5.2** Find shows cards only when the funnel is done (or asked); taps are looked up, not counted. Checks: `find-settle`, `chip-feel`, `firstpaint`
 - **5.3** All learning content is free behind a free sign-in, with no age gates; the content is the source and tools follow from it. Checks: `no-age-gates`, `media-age`, `chemistry`, `mechanics`, `history-db`, `practicals`, `projects`, `timeline-anim`, `timelines`, `missing`
+- **5.5** One path to every card set: no two answer paths reach the same cards (science is Subject Physics, Biology or Chemistry; no Combined Science or Science subject). Checks: `twinpaths` (1213)
 - **5.4** Content in is our own, public domain or licensed; copyrighted papers stay private. Checks: `library`, `talmud`, `hymns`
 
 ## 6. Fewest words, picture first

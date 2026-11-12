@@ -837,7 +837,8 @@ function contentItem_(b, c) {
     kind: 'content', name: c.title, key: 'ct:' + b.id + '-' + c.n,
     sub: [c.subject, c.level].filter(Boolean).join(' · '),
     image: '',
-    subject: c.subject, level: c.level, keystage: c.keystage, topics: c.topics, years: c.years || [],
+    /* A CHAPTER CAN SIT IN SEVERAL SUBJECTS ("Biology, Chemistry, Physics"): one answer each, never an umbrella "Science" (12 Nov). */
+    subject: String(c.subject || '').split(/\s*,\s*/).filter(Boolean), level: c.level, keystage: c.keystage, topics: c.topics, years: c.years || [],
     examBoard: c.board || '', tier: c.higher ? 'Higher' : '',
     text: contentText_(c) + ' ' + topicAtoms_(c.topics).join(' '),
     row: c,

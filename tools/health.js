@@ -535,6 +535,8 @@ function extraWork(st) {
   /* TWO ANSWERS THAT DIFFER ONLY IN A DIGIT are two things (1813 and 1843, Part 1 and Part 2), not one misspelt. */
   const digitsOnly = m => { const p = /: (.*) ~ (.*)$/.exec(m.say); const z = t => t.replace(/\d+|\b[IVXLC]+\b/g, '#'); return p && z(p[1]) === z(p[2]); };
   ((L && L.menuSense) || []).filter(m => !['thin', 'zero-count', 'answer-words', 'mangled-text', 'merged-value'].includes(m.kind) && !(m.kind === 'spelling' && digitsOnly(m))).forEach(m => W.push({ kind: 'menu-sense', part: 'logic', where: m.where, say: m.kind + ': ' + m.say }));
+  /* TWIN PATHS (12 Nov): two answer paths to the same cards, from the funnel walk. */
+  ((L && L.twinPaths) || []).forEach(t => W.push({ kind: 'twin-path', part: 'logic', where: t.where, say: t.say }));
   /* DEAD CODE, from stability's own check-dead run: one item per function nothing calls. */
   const dead = ((st.signals || []).find(x => x.id === 'dead') || {}).where || {};
   String(dead['check-dead'] || '').split(', ').filter(Boolean).forEach(d => { const m = /^(\w+) \(([\w.-]+)\)$/.exec(d);
