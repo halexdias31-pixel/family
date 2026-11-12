@@ -21,7 +21,7 @@ const offName_ = (pid, items) => { const r = ((items || offPaperItems_(pid))[0] 
 /* EVERY ID A DOWNLOADED PAPER HOLDS: the library's copy never lets these go to make room (`libDiskPut_`). */
 function offPinned_() {
   const s = new Set();
-  try { Object.values(offRead_('papers')).forEach(p => (p.ids || []).forEach(t => s.add(t))); } catch (e) { /* nothing pinned */ }
+  try { Object.values(offRead_('papers')).forEach(p => (p.ids || []).forEach(t => s.add(t))); } catch (e) { s.clear(); }
   return s;
 }
 const offHas_ = pid => !!(offRead_('papers')[pid] || {}).at;
@@ -71,14 +71,14 @@ async function offGet_(pid) {
     toast('Available offline: ' + papers[pid].name);
   } catch (e) {
     const p = offRead_('papers'); delete p[pid]; offWrite_('papers', p);
-    toast('Not downloaded — ' + ((e && e.message) || 'try again online'));
+    toast('Not downloaded — ' + why_(e));
   }
   OFF_BUSY.delete(pid); offTilePaint_(pid);
   return ok;
 }
 /* SIGN-OUT: the worker's store goes too (me-account.js), so nothing is kept for the next person. */
 function offForget_() {
-  try { if (typeof caches !== 'undefined') caches.delete(OFF_CACHE).catch(() => {}); } catch (e) { /* no store: nothing kept */ }
+  if (typeof caches !== 'undefined') caches.delete(OFF_CACHE).catch(() => false);
 }
 function offDrop_(pid) {
   const p = offRead_('papers'); delete p[pid]; offWrite_('papers', p);
@@ -95,11 +95,11 @@ async function offShell_(items) {
   await swReg_().catch(() => null);
   const t = deployStamp_(), urls = new Set(['index.html', 'style.css' + t, 'fonts/family-code.woff2', 'icon.png', 'favicon.png', 'manifest.webmanifest']);
   (window.FILES || []).filter(f => (window.OFF || []).indexOf(f) === -1).forEach(f => urls.add('js/' + f + '.js' + t));
-  try { performance.getEntriesByType('resource').forEach(e => { const u = new URL(e.name); if (u.origin === location.origin && u.pathname.indexOf('/sw.js') === -1) urls.add(u.pathname.replace(/^\//, '') + u.search); }); } catch (e) { /* no timings: the code files alone */ }
+  try { performance.getEntriesByType('resource').forEach(e => { const u = new URL(e.name); if (u.origin === location.origin && u.pathname.indexOf('/sw.js') === -1) urls.add(u.pathname.replace(/^\//, '') + u.search); }); } catch (e) { oops_(e, 'offline:timings'); }
   (items || []).forEach(x => [x.row].concat(x.stems || [], (questionParts_()[qId_(x)] || [])).forEach(r => { const h = libS(r && (r.row || r).diagram_twin).trim(); if (/^[0-9a-f]{12}$/.test(h)) urls.add('data/diagrams/' + h + '.png'); }));
   const c = await caches.open(OFF_CACHE);
   await Promise.all([...urls].map(u => fetch(u, { cache: 'no-cache' }).then(r => (r.ok ? c.put(u, r) : null)).catch(() => null)));
-  try { await navigator.serviceWorker.ready; } catch (e) { /* no worker: the page still works online */ }
+  if ('serviceWorker' in navigator) await navigator.serviceWorker.ready;
 }
 
 /* ---------- AN AI PART PRESSED WITH NO CONNECTION: the press is queued now, the mark is asked once online. */
@@ -110,6 +110,7 @@ function offAiHold_(k, answer, out) {
   offWrite_('ai', w);
   try { subRecord_(k, answer, 'sent'); } catch (e) { oops_(e, 'offline:aiHold'); }
   if (out) out.textContent = 'Will mark when online';
+  offAiWatch_();
   offFrontPaint_();
   return true;
 }
@@ -145,7 +146,7 @@ function offSyncLine_() {
 function offFrontPaint_() {
   const line = offSyncLine_();
   document.querySelectorAll('.off-sync').forEach(el => { el.textContent = line; });
-  try { if (typeof STALE !== 'undefined' && typeof FINDER !== 'undefined') STALE[FINDER.id] = 1; } catch (e) { /* drawn next time Find is */ }
+  if (typeof STALE !== 'undefined' && typeof FINDER !== 'undefined' && FINDER) STALE[FINDER.id] = 1;
 }
 
 /* ---------- FIND'S FRONT CARD: the papers on this device, each one tap from its questions, and the sync line. */
@@ -173,7 +174,15 @@ function offOnline_() {
 }
 addEventListener('online', offOnline_);
 addEventListener('offline', offFrontPaint_);
-setInterval(() => { if (Object.keys(offRead_('ai')).length) offAiFlush_(); }, OFF_AI_EVERY_MS);
+/* A TIMER ONLY WHILE AN AI PART WAITS: it looks for the part's card every few seconds and stops when none is left. */
+let OFF_AI_TIMER = 0;
+function offAiWatch_() {
+  if (OFF_AI_TIMER) return;
+  OFF_AI_TIMER = setInterval(() => {
+    if (!Object.keys(offRead_('ai')).length) { clearInterval(OFF_AI_TIMER); OFF_AI_TIMER = 0; return; }
+    offAiFlush_();
+  }, OFF_AI_EVERY_MS);
+}
 
 /* ---------- EACH VISIT ONLINE, a downloaded paper is made whole again: words a new Ledger dropped, and this build's files. */
 function offTopUp_(tries) {
