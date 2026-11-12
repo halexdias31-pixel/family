@@ -86,8 +86,18 @@ function cellsOf_(x) {
     return { label: m ? m[1].trim() : String(i + 1), ways: ways === '-' ? '' : ways };
   });
 }
+/* EVERY BLANK TYPED IN THE FIRST BOX ("chemical, kinetic"): split on commas, `;` or "and", in order, when that gives one a blank. */
+function cellsOneBox_(vals, cells) {
+  const v = vals || [], asked = cells.filter(c => c.ways).length;
+  if (asked < 2 || v.slice(1).some(s => String(s || '').trim())) return v;
+  const bits = String(v[0] || '').split(/\s*(?:[,;]|\band\b)\s*/i).map(s => s.trim()).filter(Boolean);
+  if (bits.length !== asked) return v;
+  let n = 0;
+  return cells.map(c => (c.ways ? bits[n++] : ''));
+}
 /* EACH CELL MARKED ON ITS OWN by `markAnswer_`: `{ right, of, each }`, `each[i]` true, false, or null for nothing typed. */
 function markCells_(vals, cells) {
+  vals = cellsOneBox_(vals, cells);
   const each = cells.map((c, i) => c.ways ? markAnswer_(vals[i] || '', c.ways) : undefined);
   const asked = each.filter(v => v !== undefined);
   return { right: asked.filter(v => v === true).length, of: asked.length, each: each };

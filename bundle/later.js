@@ -5001,8 +5001,18 @@ function cellsOf_(x) {
     return { label: m ? m[1].trim() : String(i + 1), ways: ways === '-' ? '' : ways };
   });
 }
+/* EVERY BLANK TYPED IN THE FIRST BOX ("chemical, kinetic"): split on commas, `;` or "and", in order, when that gives one a blank. */
+function cellsOneBox_(vals, cells) {
+  const v = vals || [], asked = cells.filter(c => c.ways).length;
+  if (asked < 2 || v.slice(1).some(s => String(s || '').trim())) return v;
+  const bits = String(v[0] || '').split(/\s*(?:[,;]|\band\b)\s*/i).map(s => s.trim()).filter(Boolean);
+  if (bits.length !== asked) return v;
+  let n = 0;
+  return cells.map(c => (c.ways ? bits[n++] : ''));
+}
 /* EACH CELL MARKED ON ITS OWN by `markAnswer_`: `{ right, of, each }`, `each[i]` true, false, or null for nothing typed. */
 function markCells_(vals, cells) {
+  vals = cellsOneBox_(vals, cells);
   const each = cells.map((c, i) => c.ways ? markAnswer_(vals[i] || '', c.ways) : undefined);
   const asked = each.filter(v => v !== undefined);
   return { right: asked.filter(v => v === true).length, of: asked.length, each: each };
@@ -14214,8 +14224,9 @@ function aiStageStart_(box, out) {
     if (out && out.parentNode === box) out.after(line); else box.appendChild(line);
   }
   line.className = 'qp-ai-stage';
+  /* WORDS ONLY: the pressed tile's ring is the press's one wait (owner, 12 Nov: two rings at once). */
   line.innerHTML = '<span class="qp-ai-stage-say"></span>';
-  waiting_(line);
+  line.setAttribute('role', 'status');
   const say = line.querySelector('.qp-ai-stage-say');
   const began = Date.now();
   const paint = () => { const t = aiStageSay_(Date.now() - began); if (say.textContent !== t) say.textContent = t; };
@@ -14227,7 +14238,7 @@ function aiStageStart_(box, out) {
 function aiStageEnd_(st, failed) {
   st.stop();
   if (!failed) { st.line.remove(); return; }
-  st.line.removeAttribute('aria-busy');
+  st.line.removeAttribute('role');
   st.line.className = 'qp-ai-stage tile-row';
   st.line.innerHTML = tile_({ icon: 'again', label: 'Try again', act: 'qp-ai-again' });
 }
