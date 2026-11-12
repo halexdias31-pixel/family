@@ -172,7 +172,7 @@ function bcStatus_(s) {
 }
 
 function bcItem_(item, s) {
-  /* THE TICK ON THE LEFT, THE THING IN WORDS BESIDE IT — one line, as a checklist reads (`.kid-row` lays out a tile and its caption). */
+  /* THE TICK ON THE LEFT, THE THING IN WORDS BESIDE IT — one line, as a checklist reads (`.row.kid-item` lays out a tile and its caption). */
   /* ONE CHILD LINE A THING (10 Nov): its words, its status as a tag coloured by urgency (gold soon, red overdue), its tile in the row. */
   const glow = s.expired ? ' is-over' : s.soon ? ' is-soon' : '';
   const line = `<p class="kc-line bc-line">${esc(item.title)} <span class="qtags"><span class="qtag bc-tag${glow}">${esc(bcTag_(s))}</span></span></p>

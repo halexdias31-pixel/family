@@ -465,13 +465,13 @@ check('an admin sees every tile on a tutor card — Message, Share, Save on one 
   const { w } = boot();
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
-  if (typeof w.cardTiles_ !== 'function' || typeof w.tileRow_ !== 'function') return ['the tile row is not reachable — NOT checked'];
+  if (typeof w.cardRow_ !== 'function' || typeof w.tileRow_ !== 'function') return ['the tile row is not reachable — NOT checked'];
   t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
   const row = { personId: 'P-G', title: 'George Tutor', handle: 'george', listed: true, role: 'Tutor', tags: 'patient, driven, driven' };
   const item = { kind: 'tutor', name: row.title, key: row.title, row, account: true,
-                 more: typeof w.peopleTiles_ === 'function' ? w.peopleTiles_(row) : '' };
+                 more: typeof w.peopleOpts_ === 'function' ? w.tile_(w.peopleOpts_(row)) : '' };
   const box = d.createElement('div');
-  box.innerHTML = w.cardTiles_(item);
+  box.innerHTML = w.cardRow_(item);
   d.body.appendChild(box);
   const r = box.querySelector('.tile-row');
   if (!r) return ['the tutor card drew no tile row'];
@@ -887,7 +887,7 @@ check('an admin still has every action on a session after the move to tiles', as
     bad.push('the admin actions are not tiles — they should look like every other thing\'s actions');
   }
   if (asking.indexOf('tile-row') !== -1) {
-    bad.push('`jobAdminTiles_` wraps its own `.tile-row` again — the row is the receipt\'s foot');
+    bad.push('`jobAdminOpts_` wraps its own `.tile-row` again — the row is the receipt\'s foot');
   }
   if (/<button class="btn/.test(asking)) {
     bad.push('a plain `.btn` came back in among the tiles');

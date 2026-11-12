@@ -33,7 +33,7 @@ function wfList_(of) {
   const s = wfOf_(of);
   if (s.rows === null) return loading_();
   if (!s.rows.length) return '<p class="note">Nothing on file yet. Scan a page to keep it here.</p>';
-  return `<ul class="wf-rows">${s.rows.map(r => `<li class="wf-row">
+  return `<ul class="wf-rows">${s.rows.map(r => `<li class="row wf-item">
     ${r.thumb ? `<img class="wf-thumb" src="${esc(r.thumb)}" alt="">` : '<span class="wf-thumb" aria-hidden="true"></span>'}
     <span class="wf-what"><span class="wf-name">${esc(r.title || r.subject || 'Scanned work')}</span>
       <span class="wf-when note">${esc(wfDate_(r.at))}${r.subject && r.title ? ' · ' + esc(r.subject) : ''} · ${esc(String(r.pages || 1))} page${r.pages === 1 ? '' : 's'}${r.by && r.by !== 'you' ? ' · by ' + esc(r.by) : ''}</span></span>

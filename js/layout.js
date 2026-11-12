@@ -223,33 +223,29 @@ function layoutSeen_(col, D) {
   return (D.widgets[col] || []).filter(id => { const w = layoutWidgetOf_(id); return w && widgetFor_(w); });
 }
 
-/* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete — drawn by `widgetOnColumn_` (arcade.js) ---------- */
-function layoutTiles_(w) {
-  if (!w || !isAdmin()) return '';
+/* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete, as tile_'s options grouped by `widgetOnColumn_` (arcade.js) ---------- */
+function layoutOpts_(w) {
+  if (!w || !isAdmin()) return null;
   /* A FIND CARD (790) IS PLACED BY THE FUNNEL, so it has no ▲ ▼ ◀ ▶: its words, who sees it and Delete, which are the widget's own. */
   if (typeof widgetInFind_ === 'function' && widgetInFind_(w)) {
     const id = String(w.id);
-    return `<span class="tile-group is-admin wgt-admin">${tile_(wordsOpts_('w:' + id, id))}${
-      tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' })}</span>`;
+    return [wordsOpts_('w:' + id, id), { icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }];
   }
-  if (!LAYOUT_EDIT || !LAYOUT_COL[w.kind]) return '';
+  if (!LAYOUT_EDIT || !LAYOUT_COL[w.kind]) return null;
   const id = String(w.id), L = layoutNow_(), col = layoutHome_(w, L);
-  if (!col) return '';
+  if (!col) return null;
   /* THE COLUMN'S UNITS AS DRAWN (710), widgets and cards together, so ▲ ▼ step over a card as over a widget. */
   const units = mergeUnits_(CARD_SEEN[col] || layoutSeen_(col, layoutDraftOf_(L)), L), ui = units.findIndex(u => u.indexOf(id) !== -1);
   const grp = mergedOf_(id, L), above = ui > 0 ? units[ui - 1] : null;
   /* A MERGE IS OF ONE KIND: a widget with the widget above, never with a card. */
   const up = above && above.every(isWidgetId_) && mergeOk_(mergeAll_(above[0], L).concat(grp || [id]));
-  return `<span class="tile-group is-admin wgt-admin">${
-    tile_({ icon: 'up', label: 'Move up', act: 'lay-w-move', tone: 'admin', data: { w: id, d: -1 }, off: ui <= 0 })}${
-    tile_({ icon: 'down', label: 'Move down', act: 'lay-w-move', tone: 'admin', data: { w: id, d: 1 }, off: ui === -1 || ui >= units.length - 1 })}${
-    tile_(acrossOpts_(id, col, true, { w: id }))}${colTiles_(col, id)}${
-    up ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } }) : ''}${
-    grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
-    tile_(startOpts_(col, id, ((L || {}).start || {})[col] || ''))}${
-    tile_(frontOpts_(col, id))}${tile_(wordsOpts_('w:' + id, id))}${
-    notePair_(!(grp || [id]).some(basketKept_) ? tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }) : '',
-      '')}</span>`;
+  return [{ icon: 'up', label: 'Move up', act: 'lay-w-move', tone: 'admin', data: { w: id, d: -1 }, off: ui <= 0 },
+    { icon: 'down', label: 'Move down', act: 'lay-w-move', tone: 'admin', data: { w: id, d: 1 }, off: ui === -1 || ui >= units.length - 1 },
+    acrossOpts_(id, col, true, { w: id }), ...colOpts_(col, id),
+    up ? { icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } } : null,
+    grp ? { icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } } : null,
+    startOpts_(col, id, ((L || {}).start || {})[col] || ''), frontOpts_(col, id), wordsOpts_('w:' + id, id),
+    !(grp || [id]).some(basketKept_) ? { icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' } : null];
 }
 /* ◀ ▶ FOR EVERY UNIT (710): the neighbouring column whatever it holds; past an edge, a new column. */
 function acrossOpts_(id, col, isW, data) {
@@ -477,13 +473,15 @@ const splitId_ = (kind, a, b) => kind + ':' + [a, b].filter(Boolean).map(x => St
   .replace(/^-|-$/g, '').slice(0, 28) || 'x').join(':');
 function splitOn_(id) { const L = layoutNow_(); return !!(L && L.split && L.split.indexOf(id) !== -1); }
 /* THE ADMIN'S TILE UNDER A SPLITTABLE CARD (Split) or under each of its pieces (Join); '' for anybody else. */
-function splitTiles_(id, n) {
-  if (!isAdmin() || !LAYOUT_SPLIT_ID.test(id)) return '';
-  if (!splitOn_(id) && !(n > 1)) return '';
-  return `<div class="tile-row wgt-admin split-tiles">${splitOn_(id)
-    ? tile_({ icon: 'merge', label: 'Join', note: 'gathers every piece back into one card', act: 'lay-join', tone: 'admin', data: { card: id } })
-    : tile_({ icon: 'split', label: 'Split', note: 'a card a field', act: 'lay-split', tone: 'admin', data: { card: id } })}</div>`;
+function splitOpts_(id, n) {
+  if (!isAdmin() || !LAYOUT_SPLIT_ID.test(id)) return null;
+  if (!splitOn_(id) && !(n > 1)) return null;
+  return splitOn_(id)
+    ? { icon: 'merge', label: 'Join', note: 'gathers every piece back into one card', act: 'lay-join', tone: 'admin', data: { card: id } }
+    : { icon: 'split', label: 'Split', note: 'a card a field', act: 'lay-split', tone: 'admin', data: { card: id } };
 }
+/* ITS ROW UNDER THE CARD, or '' for anybody but an admin. */
+function splitRow_(id, n) { const h = tile_(splitOpts_(id, n)); return h ? `<div class="tile-row wgt-admin split-tiles">${h}</div>` : ''; }
 function splitSet_(id, on) {
   if (!isAdmin() || !LAYOUT_SPLIT_ID.test(id)) return;
   const D = layoutDraftOf_(layoutNow_());
@@ -823,7 +821,7 @@ function cardAdminRow_(id, col, mergeable) {
   return `<div class="tile-row wgt-admin card-admin" data-lay-for="${esc(id)}">${
     tile_({ icon: 'up', label: 'Move up', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: i <= 0 })}${
     tile_({ icon: 'down', label: 'Move down', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: 1 }, off: i === -1 || i >= seen.length - 1 })}${
-    tile_(acrossOpts_(id, col, false, { lc: id }))}${colTiles_(col, id)}${
+    tile_([acrossOpts_(id, col, false, { lc: id }), ...colOpts_(col, id)])}${
     tile_(startOpts_(col, id, start))}${
     tile_(frontOpts_(col, id))}${tile_(wordsOpts_(id, id))}${
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
@@ -1059,15 +1057,14 @@ function colOrderApply_(L) {
   slots.forEach((at, k) => { COLUMNS[at] = tabs[k]; });
 }
 /* ◀ ▶ ON A COLUMN: on its first unit's admin row, beside that unit's own; `lay-col` swaps it with the neighbouring column this admin sees. */
-function colTiles_(col, id) {
-  if (!isAdmin() || (CARD_SEEN[col] || [])[0] !== id) return '';
+function colOpts_(col, id) {
+  if (!isAdmin() || (CARD_SEEN[col] || [])[0] !== id) return [];
   let seq = [];
   try { seq = TABS.map(t => t.id); } catch (e) { seq = []; }
   const i = seq.indexOf(col);
-  if (i === -1) return '';
-  return `<span class="tile-group is-admin col-move">${
-    tile_({ icon: 'col-left', label: 'Move this column left', act: 'lay-col', tone: 'admin', data: { col: col, d: -1 }, off: i <= 0 })}${
-    tile_({ icon: 'col-right', label: 'Move this column right', act: 'lay-col', tone: 'admin', data: { col: col, d: 1 }, off: i >= seq.length - 1 })}</span>`;
+  if (i === -1) return [];
+  return [{ icon: 'col-left', label: 'Move this column left', act: 'lay-col', tone: 'admin', data: { col: col, d: -1 }, off: i <= 0 },
+    { icon: 'col-right', label: 'Move this column right', act: 'lay-col', tone: 'admin', data: { col: col, d: 1 }, off: i >= seq.length - 1 }];
 }
 on('lay-col', el => {
   const col = el.getAttribute('data-col') || '', d = Number(el.getAttribute('data-d')) || 0;

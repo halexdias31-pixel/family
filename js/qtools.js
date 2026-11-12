@@ -132,14 +132,14 @@ const QT_TILE = {
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
 const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
 const qtInHand_ = pk => pk && typeof PAD_ON !== 'undefined' && PAD_ON === pk ? (PAD_TOOL.get(pk) || 'pen') : '';
-function qtToolTile_(t, x) {
+function qtToolOpts_(t, x) {
   const key = (x && x.key) || '';
-  if (QT_TILE[t.id]) { const o = QT_TILE[t.id](t, x, key); return o ? tile_(o) : ''; }
+  if (QT_TILE[t.id]) return QT_TILE[t.id](t, x, key);
   /* A CARD DRAWN AGAIN keeps the tool in hand lit, by the one rule `qtLight_` uses too */
   const pk = qtPadKey_(t, x);
   const on = qtToolOn_(t.id, key, pk, qtInHand_(pk));
   const cls = 'qt-t' + (isMeasureTool_(t.id) ? ' q-meast' : '');
-  return tile_({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } });
+  return { icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } };
 }
 /* IS THIS TOOL IN HAND, the one rule: Ruler or Protractor laid on a figure (MEAS), the protractor on the pad, the rest the pad's tool */
 /* A MEASURING TOOL NOT LAID ON A FIGURE: the ruler is then out of hand; the protractor may still be on the pad. */
@@ -168,7 +168,7 @@ function qtRow_(x, held) {
   /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
   const art = typeof padReady_ !== 'function' || padReady_(x);
   const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
-  const tools = ids.map(qtTool_).filter(Boolean).map(t => qtToolTile_(t, x)).join('') + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
+  const tools = tile_(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x))) + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
   const m = markerOf_(x);
   /* A PART OF A WHOLE QUESTION (owner, 8 Nov): its Show-the-answer and card tiles join this row, so the part has one row, not three */
   const more = QT_MORE.html; QT_MORE.html = ''; QT_MORE.used = true;

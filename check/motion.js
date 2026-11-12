@@ -33,7 +33,7 @@ const ACCEPTED = [
   { css: /^\.card\.tap$/, why: 'press rule, package E (U9)' },
   { css: /^\.btn$|^\.btn, /, why: 'press rule, package E (U9)' },
   { css: /^\.chip\b/, why: 'press rule, package E (U9)' },
-  { css: /^\.dock-row \.text-drop$/, why: 'press rule, package E (U9)' },
+  { css: /^\.row\.dock-item \.text-drop$/, why: 'press rule, package E (U9)' },
   { css: /^\.tile$|^\.tile, /, why: 'press rule, package E (U9)' },
   { css: /^\.cam-round \.cam-disc$/, why: 'press rule, package E (U9)' },
   { css: /^\.hr$/, why: 'press rule, package E (U9)' },

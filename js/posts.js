@@ -222,7 +222,7 @@ function postCard_(p, i) {
       ${postWhen_(p)}
       ${/* WHAT YOU CAN DO ABOUT IT, IN ONE ROW. § */
             ''}
-      ${postTiles_(p)}
+      ${postRow_(p)}
       ${commentsHtml_(p)}
     </article>`;
 }
@@ -249,7 +249,7 @@ window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
   postTiles: x => /* the post's own Suggest goes: every Find card's row already carries one */ { const p = x.row, r = p.reactions, first = r && Array.isArray(r.emoji) && r.emoji[0];
     const react = first ? tile_({ icon: 'heart', label: 'Like', note: first + (r.total ? ' · ' + r.total : ''), on: r.yours === first,
       act: 'react', data: { id: p.id, emoji: first } }) : '';
-    return tileRow_(react + String(postTiles_(p)).replace(/^<div class="tile-row[^"]*">|<\/div>$/g, '').replace(/<button[^>]*\brep-tile\b[^>]*>[\s\S]*?<\/button>/g, '')); },
+    return tileRow_(react + tile_(postOpts_(p))); },
 });
 
 /* WHAT PEOPLE SAID UNDER IT. § */
@@ -1420,7 +1420,7 @@ function openSharedTutor() {
   TUTOR_LINK_DONE = true;
   const item = { kind: 'tutor', name: t.title, key: t.title, row: t };
   openSheet(t.title, `<div class="tutor-link">${typeof findCard === 'function' ? findCard(item) : ''}
-    ${tileRow_(tutorTiles_(item))}</div>`);
+    ${tileRow_(tile_(tutorOpts_(item)))}</div>`);
 }
 
 /* ---------- POSTING § */

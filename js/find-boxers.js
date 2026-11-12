@@ -80,7 +80,7 @@ function bibleRedraw_(n) {
     const wrap = card.parentElement && card.parentElement.classList.contains('favwrap') ? card.parentElement : null;
     const row = wrap && wrap.nextElementSibling && wrap.nextElementSibling.classList.contains('tile-row')
       ? wrap.nextElementSibling : null;
-    const tiles = wrap ? cardTiles_(x) : '';
+    const tiles = wrap ? cardRow_(x) : '';
     if (row) { if (tiles) row.outerHTML = tiles; else row.remove(); }
     else if (wrap && tiles) wrap.insertAdjacentHTML('afterend', tiles);
     if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) { oops_(e, 'find:bibleRedraw_') } }

@@ -737,7 +737,7 @@ function projectPart_(x, part) {
     inner = `${head('Materials')}<div class="gd"><section class="prac-kit">
       ${kitList_(p.materials)}</section></div>`;
   } else if (part === 'steps') {
-    /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminTiles_`'s rule. On a
+    /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminOpts_`'s rule. On a
        project it is mostly about who is in the shot and what stays offline, which is a thing to
        read before filming rather than after. */
     /* A COURSEWORK'S STEPS ARE ITS STAGES -- brief, research, specification, ideas, development, models, making, evaluation -- and that is the word a GCSE pupil and § */

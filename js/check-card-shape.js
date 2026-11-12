@@ -26,7 +26,7 @@ const BUNDLE_SRC = ['bundleCard_', 'bundlePriceLine_', 'bundleStrayLine_'].map(n
 if (!/function bundleOf_\(\) \{\n(?:\s*\/\*[^\n]*\n)*\s*if \([^\n]*!findDone_\(\)\) return null;/.test(bundles)) bad.push('bundleOf_ does not wait for findDone_: a bundle is a card, shown only once the menus finish');
 /* eslint-disable-next-line no-new-func */
 const run = new Function('scope', 'with (scope) {\n' + cards.replace(/^(const|let) /gm, 'var ') + '\n'
-  + settings.replace(/^(const|let) /gm, 'var ') + '\n' + BUNDLE_SRC + '\n}\nreturn { findCard, setCardFields_, KC_FIELDS, KC_DEFAULT, kcTilesFill_, bundleCard_ };');
+  + settings.replace(/^(const|let) /gm, 'var ') + '\n' + BUNDLE_SRC + '\n}\nreturn { findCard, setCardFields_, KC_FIELDS, KC_DEFAULT, kcOffOpts_, bundleCard_ };');
 let got = {};
 try { got = run(scope); } catch (e) { bad.push('js/cards.js or js/settings.js would not load in the shape check: ' + e.message); }
 
@@ -106,10 +106,11 @@ try {
 /* THE SAME TILES ON EVERY CARD OF A KIND (35a): a card without one of its kind's tiles shows it greyed, never twice; each has a handler. */
 const allJs = fs.readdirSync(path.join(ROOT, 'js')).filter(f => /\.js$/.test(f)).map(f => fs.readFileSync(path.join(ROOT, 'js', f), 'utf8')).join('\n');
 scope.tile_ = o => '<button class="tile" data-do="' + o.act + '"' + (o.off ? ' disabled' : '') + '></button>';
+const kcFill = (x, h) => h + (got.kcOffOpts_(x, h) || []).map(scope.tile_).join('');
 rows.forEach(r => String(r.tiles || '').split(',').map(s => s.trim()).filter(Boolean).forEach(t => {
-  const act = t.split(':')[0], out = String(got.kcTilesFill_({ kind: r.kind, key: r.kind + ':1', row: {} }, ''));
+  const act = t.split(':')[0], out = String(kcFill({ kind: r.kind, key: r.kind + ':1', row: {} }, ''));
   if (!new RegExp('data-do="' + act + '" disabled').test(out)) bad.push(r.kind + ': a card without its ' + act + ' tile does not show it greyed');
-  if (String(got.kcTilesFill_({ kind: r.kind, key: 'k' }, '<button data-do="' + act + '"></button>')).split('data-do="' + act + '"').length !== 2) bad.push(r.kind + ': a card with its ' + act + ' tile gets a second, greyed one');
+  if (String(kcFill({ kind: r.kind, key: 'k' }, '<button data-do="' + act + '"></button>')).split('data-do="' + act + '"').length !== 2) bad.push(r.kind + ': a card with its ' + act + ' tile gets a second, greyed one');
   if (!new RegExp("on\\('" + act + "'").test(allJs)) bad.push(r.kind + ': tile ' + act + ' has no on() handler');
 }));
 /* EVERY FIND KIND IS DRAWN BY `findCard` (owner 1a, 8 Nov), never a card maker of its own; its own file may still write the insides (`KC_OWN`). */

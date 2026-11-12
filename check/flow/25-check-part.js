@@ -815,21 +815,21 @@ check('Suggest a change is one tile on a question and a content card for a stude
   const x = lib.items.find(i => i && i.kind === 'question' && i.key);
   if (!x || !ct) { lib.put(); return ['no question or no content card was made, so the Suggest tile was NOT checked']; }
   t.USER(null);
-  if (/data-do="rep-box"/.test(w.cardTiles_(x) + w.cardTiles_(ct))) bad.push('signed out, a card row offers Suggest a change');
+  if (/data-do="rep-box"/.test(w.cardRow_(x) + w.cardRow_(ct))) bad.push('signed out, a card row offers Suggest a change');
   const KID = { name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7', handle: 'aa2026' };
   const HAL = { name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'hl2026' };
   for (const who of [KID, HAL]) {
     t.USER(who);
     [x, ct].forEach(c => {
-      const n = (w.cardTiles_(c).match(/data-do="rep-box"/g) || []).length;
+      const n = (w.cardRow_(c).match(/data-do="rep-box"/g) || []).length;
       if (n !== 1) bad.push(who.role + ': the ' + c.kind + ' row has ' + n + ' Suggest tiles — wanted one');
-      if (/data-do="ncl-open"|aria-label="Report/.test(w.cardTiles_(c))) bad.push(who.role + ': the ' + c.kind + ' row still has a Report or Note tile');
+      if (/data-do="ncl-open"|aria-label="Report/.test(w.cardRow_(c))) bad.push(who.role + ': the ' + c.kind + ' row still has a Report or Note tile');
     });
   }
   t.USER(KID);
   const host = d.createElement('div');
   host.className = 'card';
-  host.innerHTML = w.cardTiles_(ct);
+  host.innerHTML = w.cardRow_(ct);
   d.body.appendChild(host);
   const tile = host.querySelector('.tile-row [data-do="rep-box"]');
   if (!tile.classList.contains('tile') || !tile.querySelector('.tile-i-suggest')) bad.push('Suggest a change is not a tile with the suggest mark');
@@ -852,10 +852,10 @@ check('Suggest a change is one tile on a question and a content card for a stude
   const went = sent.filter(b => b.action === 'suggest');
   if (went.length !== 1 || went[0].kind !== 'content' || went[0].itemId !== ct.key || went[0].note !== 'the tree is wrong' || went[0].token !== 'tok-P7') bad.push('the request carried ' + JSON.stringify(went));
   if (toastOf_(d) !== 'Thanks — sent to the admin') bad.push('a child’s toast says ' + JSON.stringify(toastOf_(d)));
-  if (/to change/.test(w.cardTiles_(ct))) bad.push('a child’s suggestion marked the card');
+  if (/to change/.test(w.cardRow_(ct))) bad.push('a child’s suggestion marked the card');
   if (host.querySelector('.rep-box')) bad.push('the box stayed after it went');
   t.USER(HAL);
-  host.innerHTML = w.cardTiles_(x);
+  host.innerHTML = w.cardRow_(x);
   t.ACTIONS['rep-box'](host.querySelector('[data-do="rep-box"]'));
   await wait(20);
   const f2 = host.querySelector('.rep-box');
@@ -863,7 +863,7 @@ check('Suggest a change is one tile on a question and a content card for a stude
   f2.querySelector('textarea').value = 'answer is 15';
   t.ACTIONS['rep-send'](f2.querySelector('[data-do="rep-send"]'));
   await wait(300);
-  if (!/to change/.test(w.cardTiles_(x))) bad.push('a marked question’s tile does not say "to change"');
+  if (!/to change/.test(w.cardRow_(x))) bad.push('a marked question’s tile does not say "to change"');
   host.remove();
   t.USER(KID);
   if (/data-reports/.test((w.bizPages_() || []).join(''))) bad.push('a child’s Business column draws the Suggestions card');

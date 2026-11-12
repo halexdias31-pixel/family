@@ -98,7 +98,7 @@ function bizCard_(pg) {
   const due = bizDueCount_(pg);
   /* SPLIT (464): an admin's Split draws each record its own card with its own Save, in the same place; Join puts them back. */
   const id = typeof splitId_ === 'function' ? splitId_('biz', 'rec', pg.title) : '';
-  const tiles = n => (id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '');
+  const tiles = n => (id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '');
   /* A PIECE IS A CARD OF ITS OWN (466): `data-lay-card` names it, so it moves, goes or starts alone. */
   const one = (title, items, first, piece) => card_(`<div class="biz"${first ? ` data-need="rec:${esc(pg.title)}"` : ''}${id ? ` data-split="${esc(id)}"` : ''}${piece ? ` data-lay-card="${esc(piece)}"` : ''}><div class="me-form" data-biz-page="${esc(pg.title)}">
     <h3>${esc(title)}</h3>
@@ -636,7 +636,7 @@ function profitCards_() {
   /* SPLIT (464): each term its own card after the head, in the same place; Join puts them back. */
   const id = typeof splitId_ === 'function' ? splitId_('biz', 'profit-terms') : '';
   const split = id && typeof splitOn_ === 'function' && splitOn_(id);
-  const tiles = n => (id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '');
+  const tiles = n => (id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '');
   const pc = k => (typeof pieceId_ === 'function' ? ` data-lay-card="${esc(pieceId_(id, k))}"` : '');
   if (split) return [sum, card_(`<div class="biz profit" data-profit="terms" data-split="${esc(id)}"${pc('head')}>
     <h3>Profit · the terms</h3>

@@ -177,16 +177,16 @@ function applyAdult_() {
   const age = profileAge_(USER && USER.profile);
   return age !== null && age >= 18;
 }
-/* THE PADLOCK'S ONE TILE (464): Apply to teach, or where the application stands, on the tile itself; '' for a child. */
-function applyTile_() {
-  if (!USER || rankAtLeast_('staff')) return '';
+/* THE PADLOCK'S ONE TILE (464): Apply to teach, or where the application stands, on the tile itself; null for a child. */
+function applyOpts_() {
+  if (!USER || rankAtLeast_('staff')) return null;
   if (profileAge_(USER.profile) === null)
-    return tileRow_(tile_({ icon: 'join', label: 'Apply to teach', note: 'add your date of birth first', act: 'apply-open', off: true }), 'apply-tiles');
-  if (!applyAdult_()) return '';
+    return { icon: 'join', label: 'Apply to teach', note: 'add your date of birth first', act: 'apply-open', off: true };
+  if (!applyAdult_()) return null;
   const st = USER.application && USER.application.status;
   if (st === 'new' || st === 'interview')
-    return tileRow_(tile_({ icon: 'join', label: 'Application sent', note: st === 'interview' ? 'we will arrange a talk' : 'we will be in touch', act: 'apply-open', off: true }), 'apply-tiles');
-  return tileRow_(tile_({ icon: 'join', label: st === 'declined' ? 'Apply again' : 'Apply to teach', note: st === 'approved' ? 'approved' : '', act: 'apply-open' }), 'apply-tiles');
+    return { icon: 'join', label: 'Application sent', note: st === 'interview' ? 'we will arrange a talk' : 'we will be in touch', act: 'apply-open', off: true };
+  return { icon: 'join', label: st === 'declined' ? 'Apply again' : 'Apply to teach', note: st === 'approved' ? 'approved' : '', act: 'apply-open' };
 }
 /* THE DOCUMENT PHOTOS PICKED SO FAR, as 1200px JPEG data URLs by slot (idDoc, rtwDoc, qual0…): sent with the form, kept nowhere else. */
 const APPLY_DOCS = {};

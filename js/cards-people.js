@@ -8,7 +8,7 @@
 /* ---------- WHAT A PERSON, A PLACE AND A SUBJECT LOOK LIKE § */
 /** One card. The three shapes, each carrying the class that colours its name. */
 /* ---------- YOU, AS A CARD § */
-/* NO `cardTiles_` CALL HERE. § */
+/* NO `cardRow_` CALL HERE. § */
 /* ---------- ONE PERSON, ONE CARD § */
 function passFor_(name) {
   const n = norm(name);

@@ -501,7 +501,7 @@ top level, before `isMe_`
 
 ```
 /* ---------- A TUTOR'S OWN ACTIONS, AND NOT THE ONES EVERY CARD HAS ---------------------------------
-   THIS DREW ITS OWN ADMIN ROW, and `cardTiles_` adds one to every card — so a tutor came out with
+   THIS DREW ITS OWN ADMIN ROW, and `cardRow_` adds one to every card — so a tutor came out with
    Spotlight twice: once in the silver row this built, once in the silver row underneath it. The
    second row held a single mark and looked like a rendering fault, because that is what it was.
 
@@ -509,7 +509,7 @@ top level, before `isMe_`
    and a subject, drawn by `adminTiles_` for all of them — and a card that also draws it is a card
    claiming a control the system already gives it.
 
-   THE ROW WRAPPER GOES TOO. Every other `*Tiles_` returns bare tiles and lets `cardTiles_` do the
+   THE ROW WRAPPER GOES TOO. Every other `*Tiles_` returns bare tiles and lets `cardRow_` do the
    wrapping; this one built its own `<div class="tile-row is-admin">`, which is how it ended up
    beside a second one rather than inside it. */
 ```
@@ -576,7 +576,7 @@ top level, before `venueTiles_`
    are arranging, and booking starts on the form rather than on whichever fact you happened to be
    reading when you decided.
 
-   NOTHING RETURNED, RATHER THAN AN EMPTY ROW. `cardTiles_` adds the star and the admin marks to
+   NOTHING RETURNED, RATHER THAN AN EMPTY ROW. `cardRow_` adds the star and the admin marks to
    every kind whether or not it has actions of its own, so a venue keeps everything that is not
    specific to being a venue — which, now, is all of it. */
 ```
@@ -715,7 +715,7 @@ top level, before `boxerTiles_`
 
 ### `filmTiles_` WAS HERE — a film's Watch tile, a link out to Drive in the row under its Find card.
 
-top level, before `cardTiles_`
+top level, before `cardRow_`
 
 ```
 /* `filmTiles_` WAS HERE — a film's Watch tile, a link out to Drive in the row under its Find card. It
@@ -725,7 +725,7 @@ top level, before `cardTiles_`
 
 ### ---------- ONE ROW OF MARKS, UNDER THE CARD
 
-in `cardTiles_`
+in `cardRow_`
 
 ```
 /* ---------- ONE ROW OF MARKS, UNDER THE CARD ----------------------------------------------------
@@ -747,7 +747,7 @@ in `cardTiles_`
 
 ### AND `Open`, to Find, under a kept card that Saved or the Spotlight cannot draw whole — a practical's method, a project's steps, a textbook's chapters, a
 
-in `cardTiles_`
+in `cardRow_`
 
 ```
 /* AND `Open`, to Find, under a kept card that Saved or the Spotlight cannot draw whole — a practical's

@@ -84,7 +84,7 @@ check('Intro video: the Photos card uploads a file in parts (videoPart), refuses
   if (!pick() || pick().dataset.file !== 'FILE-ID-1') bad.push('the picker did not take the saved file id');
   else if (!pick().querySelector('iframe[src*="FILE-ID-1/preview"]')) bad.push('the Photos card does not play the uploaded video');
   /* THE PUBLIC CARD: Watch intro opens the Drive player in place. */
-  const tiles = w.eval('tutorTiles_')({ name: 'Bo', row: { personId: 'P-x', listed: true, videoFile: 'FILE-ID-2' } });
+  const tiles = w.eval('tile_')(w.eval('tutorOpts_')({ name: 'Bo', row: { personId: 'P-x', listed: true, videoFile: 'FILE-ID-2' } }));
   const host = d.createElement('div');
   host.className = 'card';
   host.innerHTML = '<div class="tile-row">' + tiles + '</div>';

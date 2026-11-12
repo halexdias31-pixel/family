@@ -173,7 +173,7 @@ function seenBox_(id) {
   const now = seenOf_(id), gate = seenGate_(id);
   const opt = (v, say) => `<option value="${v}"${v === now ? ' selected' : ''}${seenWider_(v, gate) && v !== now ? ' disabled' : ''}>${esc(say)}</option>`;
   return `<div class="seen-box" data-seen-for="${esc(id)}">
-    <label class="seen-row"><span class="seen-l">Who sees this</span><select data-do="seen-set" data-lc="${esc(id)}" aria-label="Who sees this">${
+    <label class="row seen-item"><span class="seen-l">Who sees this</span><select data-do="seen-set" data-lc="${esc(id)}" aria-label="Who sees this">${
       opt('', 'Everyone')}${SEEN_ORDER.map(v => opt(v, SEEN_SAY[v])).join('')}</select></label>
     <div class="tile-row">${tile_({ icon: 'close', label: 'Close', act: 'seen-close', tone: 'admin' })}</div>
   </div>`;
