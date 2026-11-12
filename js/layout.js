@@ -433,7 +433,7 @@ const personMark_ = (pid, h) => h && pid ? '<!--person:' + String(pid).replace(/
 
 /* WHICH CARD A PAGE IS — its mark, its `data-lay-card` or `data-split`, then the registry; '' for a column's own line (a padlock, a wait). */
 /* A COLUMN'S BARE TITLE CARD (card_): its name, at most one plain line, and the template's row. */
-const LAY_BARE_ = /^\s*<div class="card fc kc kc-panel(?: people-none)?(?: kc-facts)?"[^>]*>(?:<div class="kc-(?:pic|head)"><\/div>)*<div class="kc-tags">(?:(?!<\/div><div class="kc-)[\s\S])*<\/div><div class="kc-lines">(?:\s*<p[^>]*>[^<]*<\/p>)?\s*<\/div><div class="kc-act">/;
+const LAY_BARE_ = /^\s*<div class="card fc kc kc-(?:panel|rank)[\w -]*"[^>]*>(?:<div class="kc-(?:pic|head)"><\/div>)*<div class="kc-tags">(?:(?!<\/div><div class="kc-)[\s\S])*<\/div><div class="kc-lines">(?:\s*<p[^>]*>[^<]*<\/p>)?\s*<\/div><div class="kc-act">/;
 function cardIdOf_(html) {
   const h = String(html || '');
   let m = /^\s*<!--card:([A-Za-z0-9_:.-]{1,64})-->/.exec(h);
@@ -574,7 +574,7 @@ function cardsOf_(col) {
   });
   if (start === 'first-person' && firstP !== -1) CARD_START_AT[col] = firstP;
   /* NOTHING LEFT ON IT: one line, never the column's name as a card (770). */
-  if (!out.length && !kind) return [card_(`<div class="rank-off set-none">${empty_()}</div>`)];
+  if (!out.length && !kind) return [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
   return out;
 }
 /* A HOUSE, NOT A FLAG (466): the owner, "I had no idea what it was" — the column's home is here. */

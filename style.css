@@ -2593,20 +2593,10 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .card-ed .me-week .hr { aspect-ratio: auto; min-height: 0; height: 20px; }
 .card-ed .ce-tiles { margin-top: var(--s2); }
 
-/* ---------- "+" AT THE TOP OF A LIST THAT CAN GROW — `addCard_` in tiles.js (373) ---------- */
-.add-card { display: flex; width: 100%; align-items: center; gap: var(--s3); min-height: var(--tap); margin: 0;
-  padding: var(--s3) var(--s3); border: 1px dashed var(--line); border-radius: var(--r-ui); background: none;
-  color: var(--ink); font: inherit; font-size: var(--fs-body); text-align: left; }
-.add-card:focus-visible { border-color: var(--gold); color: var(--ink); }
-@media (hover: hover) { .add-card:hover { border-color: var(--gold); color: var(--ink); } }
-.add-card .add-plus { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
-  border: 1px solid var(--gold); color: var(--gold); flex: none; }
-
 .media-age-badge { position: absolute; z-index: 3; left: .3rem; top: .3rem; padding: var(--s0) var(--s1); border-radius: var(--r-ui);
   background: var(--over-wash); color: var(--over-ink); font-size: var(--fs-small); font-weight: 700; line-height: 1.35;
   pointer-events: none; }
 .media-age-badge.is-reel { left: .6rem; top: .6rem; font-size: var(--fs-small); }
-.add-card .add-plus .tile-i { width: 16px; height: 16px; }
 /* ITS FORM, AND THE PEOPLE COLUMN'S EDIT — `personFormHtml_` in me.js. */
 .person-form .pf-roles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--s2); }
 .person-form .pf-roles .check { padding: var(--s2) 0; }
@@ -5409,8 +5399,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* ---------- A SETTINGS COLUMN FOR A ROLE YOU DO NOT HOLD (464): a padlock and one short line ---------- */
 .col-lock { text-align: center; }
-.col-lock-i { display: block; color: var(--gold); margin: var(--s2) auto var(--s1); }
-.col-lock-i svg { width: var(--tap); height: var(--tap); }
 
 /* ---------- EVERY CARD VISIBLE, A PADLOCK ON THOSE NOT YOURS (467) ---------- */
 .is-locked { position: relative; }
@@ -5420,7 +5408,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .is-locked > h3 { padding-right: var(--s5); }
 /* WHAT A CARD IS FOR, one faint line under its title. */
 .card-say { margin: var(--s0) 0 var(--s2); font-size: var(--fs-body); line-height: 1.35; }
-.add-card .card-say { margin: var(--s1) 0 0; }
 /* A CARD'S SAY IS KEPT FOR THE WORDS EDITOR AND THE JOURNEYS, NOT SHOWN: the owner never saw it, and a card's tiles say what it does. */
 .card .card-say { display: none; }
 /* A TUTOR'S HOURS AS LINES (467). */
@@ -5697,7 +5684,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 #s-stuff .vid-search, #s-stuff .sp-search { display: none; }
 /* PICTURE FIRST (batch C): a profile card and a video card lead with the picture, the name under it; the facts are the tags above. */
 .prof-door .prof-big { display: block; width: 100%; max-width: 20rem; height: auto; aspect-ratio: 1; margin: 0 auto var(--s2); border-radius: var(--r-ui); object-fit: cover; }
-.notify-door .notify-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
 /* A POST IN FIND (batch C): its state is the tag above it, so the line saying so is not drawn twice. */
 .post-door .post-pending { display: none; } .post-door > .post { border: 0; padding: 0; }
 
