@@ -60,7 +60,7 @@ race map and e-ink sets are not fetched by anything).
 | Attic file | Was | Came from |
 |---|---|---|
 | `js/widgets-engines.js` | the WIDGETS entries console, boardgames, wordgames, calculator, verse, whiteboard, and the calculator's `[data-mc]` click handler | `js/map.js` |
-| `js/calc.js`, `js/calc-engine.js` | the calculator's screen and its keys/engine | `js/calc.js` (FILES after `mat`), `js/arcade.js` lines 5–488 |
+| `js/calc.js`, `js/calc-engine.js` (back in `js/` on 11 Nov 2026 as the question's Calculator tool, with `js/check-calc.js`; their rules are in style.css) | the calculator's screen and its keys/engine | `js/calc.js` (FILES after `mat`), `js/arcade.js` lines 5–488 |
 | `js/chess-engine.js` | the board helpers and the move generator | `js/price-rows.js` (its tail) and `js/chess.js` (its head); the rest of chess.js is now `js/facts.js` |
 | `js/eink.js` | the e-ink screen widget | `js/records.js` |
 | `js/whiteboard-surface.js` | `wbPaint_`, `initWhiteboard`, `WB_SURF` | `js/find-loupe.js` (the pen's `board:` key handling stays) |

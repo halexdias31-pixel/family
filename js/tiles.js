@@ -110,6 +110,8 @@ const TILE_ICONS = {
   grid:  '<path d="M2.5 2.5h13v12h-13z"/><path d="M2.5 6.5h13M2.5 10.5h13M6.8 2.5v12M11.2 2.5v12"/>',
   table: '<path d="M2 3h14v11h-14z"/><path d="M2 6.7h14M2 10.3h14M7 3v11"/>',
   tools: '<path d="M3 14.5 9.5 8"/><path d="M11.5 2.5a3 3 0 0 0 3.6 3.9l-2.3 2.3-2.6-.8-.8-2.6z"/><path d="M10 11l4.5 4.5M12.5 9l2 2"/>',
+  /* THE QUESTION'S CALCULATOR (qtools.js), the shop's calculator mark */
+  calc: '<rect x="4" y="1.5" width="10" height="14" rx="1.2"/><rect x="6" y="3.5" width="6" height="3"/><path d="M6.5 9h.1M9 9h.1M11.5 9h.1M6.5 11.5h.1M9 11.5h.1M11.5 11.5h.1M6.5 14h.1M9 14h.1M11.5 14h.1"/>',
   zoom: '<circle cx="7.6" cy="7.4" r="4.9"/><path d="m11.2 11 4.6 4.5M5.3 7.4h4.6M7.6 5.1v4.6"/>',
   film:  '<rect x="2.5" y="2.5" width="13" height="12" rx="1.5"/>'
        + '<path d="M5.5 2.5v12M12.5 2.5v12M2.5 6.5h3M2.5 10.5h3M12.5 6.5h3M12.5 10.5h3"/>',

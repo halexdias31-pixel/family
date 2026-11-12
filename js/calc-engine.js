@@ -34,7 +34,7 @@ const CALC_KEYS = [
   ['C', 'AC', 'num', 'OFF', 'all clear'],
   ['4', '4', 'num', 'A'], ['5', '5', 'num', 'B'], ['6', '6', 'num', 'C'], ['×', '×', 'num', '', 'times'], ['÷', '÷', 'num', '', 'divide'],
   ['1', '1', 'num', 'D'], ['2', '2', 'num', 'E'], ['3', '3', 'num', 'F'], ['+', '+', 'num', '°′″', 'plus'], ['−', '−', 'num', '(−)', 'minus'],
-  ['0', '0', 'num', '<i>x</i>'], ['.', '•', 'num', '<i>y</i>', 'point'], ['e10', MK_E10, 'num', '<i>z</i>', 'times ten to the'],
+  ['0', '0', 'num', '<i>x</i>'], ['.', '•', 'num', '<i>y</i>', 'point'], ['e10', MK_E10, 'num', '<i>z</i>', 'times 10 to the power'],
   ['sd', '<i class="mk-fmt">FORMAT</i>', 'num', '', 'format'], ['=', 'EXE', 'num', '≈', 'execute'],
 ];
 /* What a key does after SHIFT where that is another key. A shifted legend with no meaning here says so rather than typing. */

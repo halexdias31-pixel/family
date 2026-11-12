@@ -28,6 +28,7 @@ const ACCEPTED = [
   { css: /^\.btn\.is-busy::before, \.tile:is\(\.is-busy, \[aria-busy="true"\]\)::before$/, why: 'a busy button or tile shows the loader\'s three dots, the same loop (30a)' },
   { css: /^\.loading > span/, why: 'the loading bar fills over its own long, slowing curve (owner, 11 Nov), not a movement' },
   { css: /^\.kp-caret$/, why: 'the keypad (528) owns its caret' },
+  { css: /^\.mc-caret$/, why: 'the calculator (calc.js, 11 Nov) blinks its caret as the Casio does, like the keypad\'s' },
   /* PACKAGE E (U9) REWRITES THESE PRESS RULES onto --dur-press / --dur-quick; until it lands they keep `var(--quick) ease`. */
   { css: /^\.card\.tap$/, why: 'press rule, package E (U9)' },
   { css: /^\.btn$|^\.btn, /, why: 'press rule, package E (U9)' },
