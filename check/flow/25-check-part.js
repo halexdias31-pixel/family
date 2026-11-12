@@ -31,7 +31,7 @@ check('the fill-in standard: every library part that asks to fill something in s
     if (host.querySelector('table[data-cells]')) inTable++; else boxes++;
     /* A TABLE OF ITS OWN WITH BLANKS IS WHERE ITS CELLS GO: one more or one fewer, and they fall out under it as boxes. */
     const own = (String(r.html || '').match(/<table[\s\S]*?<\/table>/) || [''])[0];
-    const blanks = (own.match(/<(td|th)([^>]*)>(?:\s|&nbsp;| )*<\/\1>/g) || []).length;
+    const blanks = (own.match(/<(td|th)([^>]*)>(?:\s|&nbsp;| )*<\/\1>/g) || []).length - (w.cellCorner_ && w.cellCorner_(own) ? 1 : 0);
     if (blanks && !host.querySelector('table[data-cells]')) bad.push(r.row_id + '\'s own table has ' + blanks + ' blank(s) and its cells are ' + w.cellsOf_(x).length + ' — they stand under it, not in it');
     if (host.querySelector('.qpad')) bad.push(r.row_id + ' is answered in cells and still draws a pen surface — the diagram is never the answer box');
     want.forEach(([c, i]) => {

@@ -4989,6 +4989,7 @@ function markWords_(typed, rule) {
 /* ---------- A GRID OR TABLE WITH BLANKS IS FILLED IN WHERE IT STANDS, A CELL AT A TIME (359) */
 /* a blank is empty however many spaces the transcriber left in it (`&nbsp;&nbsp;&nbsp;&nbsp;` is one blank) */
 const CELL_BLANK = /<(td|th)([^>]*)>(?:\s|&nbsp;|\u00a0)*<\/\1>/g;
+const cellCorner_ = t => /^<table[^>]*>\s*(?:<thead[^>]*>\s*)?(?:<tbody[^>]*>\s*)?<tr[^>]*>\s*<(td|th)[^>]*>(?:\s|&nbsp;|\u00a0)*<\/\1>/.test(t);
 /* `cells` READ: one entry a blank, in reading order -- `{ label, ways }`, and `ways` empty for a blank not asked. */
 function cellsOf_(x) {
   const raw = String((x && x.cells) || '').trim();
@@ -5021,8 +5022,12 @@ function cellsTable_(x, html) {
   let n = 0;
   const out = String(html || '').replace(/<table[\s\S]*?<\/table>/, t => {
     const blanks = (t.match(CELL_BLANK) || []).length;
-    if (blanks !== cells.length) return t;
+    /* AN EMPTY TOP-LEFT CORNER heads both the rows and the columns: it is never a blank to fill. */
+    const corner = blanks === cells.length + 1 && cellCorner_(t);
+    if (blanks !== cells.length && !corner) return t;
+    let skip = corner;
     return t.replace(CELL_BLANK, (m, tag, at) => {
+      if (skip) { skip = false; return m; }
       const i = n++;
       return `<${tag}${at} class="qp-cell-at">${cellInput_(k, cells[i], i, vals[i])}</${tag}>`;
     }).replace(/^<table/, '<table data-cells="1"');
