@@ -1,6 +1,5 @@
 /* @family. — data.js ONE FILE, SPLIT. § */
 
-
 /* @family. — the shell. § */
 
 /* ---------- WHERE THE DATA COMES FROM § */
@@ -20,10 +19,8 @@ function cssVersion() {
   } catch { return '(unknown)'; }
 }
 
-let DATA = {};
-
 /* ---------- A ROW THAT IS NOT A ROW IS DROPPED AT THE DOOR (R6) ---------- */
-/* null is never a row; in a list of objects a string or number is not one either. Returns {key: dropped}, so load() can report the count. */
+/* null is never a row; in a list of objects a string or number is not one either. § */
 function dataRowsClean_(d) {
   const out = {};
   if (!d || typeof d !== 'object') return out;
@@ -45,25 +42,24 @@ function jsonp(url) {
     const tag = document.createElement('script');
     const done = () => { delete window[name]; tag.remove(); };
     window[name] = d => { done(); ok({ __jsonp: d }); };
-    /* A script that 404s fires `onerror`, which is the one thing this route can report: it cannot
-       see a status code, so "the address did not load" is all there is to say. */
+    /* A script that 404s fires `onerror`, which is the one thing this route can report: § */
     tag.onerror = () => { done(); no(new Error('the backend did not load as a script')); };
     tag.src = url + (url.indexOf('?') === -1 ? '?' : '&') + 'callback=' + name;
     document.head.appendChild(tag);
   });
 }
 
-/* THE FILES THE FIRST SCREEN DOES NOT NEED (670): index.html's `LATER`, asked for once the first column is drawn. Never rejects: a file that fails is named by `__missing`. */
+/* THE FILES THE FIRST SCREEN DOES NOT NEED (670): § */
 let LATER_ASK = null, LATER_IN = false;
 function laterFiles_() {
   if (LATER_ASK) return LATER_ASK;
   const lazy = (typeof window !== 'undefined' && Array.isArray(window.LAZY)) ? window.LAZY : [];
   const later = (typeof window !== 'undefined' && Array.isArray(window.LATER)) ? window.LATER.filter(f => lazy.indexOf(f) === -1) : [];
-  /* ALL AT ONCE (720): fetched side by side, then run in one task, so no screen ever sees one LATER file without the rest (`WIDGETS` was read between find.js and map.js). */
+  /* ALL AT ONCE (720): fetched side by side, then run in one task, so no screen ever sees one LATER file § */
   LATER_ASK = batchFiles_(later, 'later').then(() => { LATER_IN = true; });
   return LATER_ASK;
 }
-/* THE SECOND BATCH (1080): index.html's `LAZY`, files Find never needs, asked for behind the library (boot.js) or when a widget of theirs starts — one task, same rule. */
+/* THE SECOND BATCH (1080): § */
 let LAZY_ASK = null;
 function lazyFiles_() {
   if (LAZY_ASK) return LAZY_ASK;
@@ -82,7 +78,7 @@ function batchFiles_(want, bundle) {
   const off = Array.isArray(window.OFF) ? window.OFF : [];
   const list = (Array.isArray(window.FILES) ? window.FILES : want).filter(f => want.indexOf(f) !== -1 && off.indexOf(f) === -1);
   if (!list.length || typeof document === 'undefined' || typeof fetch !== 'function') return Promise.resolve();
-  /* ONE URL FOR THE BATCH (1211): tools/bundle.js joined these files in this order; a bundle that fails falls back to the files one by one. */
+  /* ONE URL FOR THE BATCH (1211): § */
   if (bundle && window.BUNDLE) {
     return fetch('bundle/' + bundle + '.js' + deployStamp_()).then(r => (r.ok ? r.text() : null)).catch(() => null).then(src => {
       if (src === null) return batchFiles_(want);
@@ -108,7 +104,6 @@ function missingKeys() {
   console.table(MISSING_KEYS);
   return MISSING_KEYS;
 }
-let USER = null;
 
 /* HAS THE FIRST LOAD COME BACK? § */
 let LOADED = false;
@@ -120,7 +115,6 @@ let LIBRARY_FAILED = '';
 
 /* WHETHER THE 30-SECOND WATCHDOG IN index.html HAS SPOKEN. § */
 let LOAD_SLOW = false;
-try { USER = JSON.parse(localStorage.getItem('familyUser') || 'null'); } catch { /* a bad stored user reads as signed out */ }
 /* ---------- A NAME PRINTED ABOVE ITS OWN HANDLE DOES NOT SAY THE HANDLE TOO § */
 function nameBesideHandle_(name, handle) {
   const n = String(name || ''), h = String(handle || '').replace(/^@/, '');
@@ -129,8 +123,7 @@ function nameBesideHandle_(name, handle) {
   return n.slice(-tail.length).toLowerCase() === tail.toLowerCase() ? n.slice(0, -tail.length) : n;
 }
 
-/* NAMES (owner, 8 Nov): an admin sees the whole name; families, tutors and anything public see first name + surname initial ("Halex D.").
-   `viewer` is a user, 'public' for a share, or left out for whoever is signed in. */
+/* NAMES (owner, 8 Nov): § */
 /* A NAME TYPED IN LOWER CASE ("fin") IS STILL SHOWN WITH ITS CAPITAL; a handle keeps its own case. */
 const capFirst_ = s => (/^@/.test(String(s || '')) ? String(s) : String(s || '').charAt(0).toUpperCase() + String(s || '').slice(1));
 function displayName_(person, viewer) {
@@ -154,7 +147,7 @@ try {
       && String(USER.name).indexOf('(@') === -1) USER.name = first;
 } catch (e) { /* a short name is a nicety; the full one stays */ }
 
-/* WHAT A PERSON HAS WRITTEN IS KEPT ON THE DEVICE AS THEY WRITE IT — AND A WRITE THE DEVICE REFUSED IS SAID, NEVER KEPT QUIETLY IN MEMORY. § */
+/* WHAT A PERSON HAS WRITTEN IS KEPT ON THE DEVICE AS THEY WRITE IT — AND A WRITE THE DEVICE REFUSED IS § */
 const KEEP_MEM = new Map();
 const KEEP_UNKEPT = new Set();
 let KEEP_SAID = false;
@@ -165,8 +158,7 @@ function keepPut_(k, v, quiet) {
   if (quiet === true) { try { put(); return true; } catch (e) { return false; } }
   KEEP_MEM.set(k, v);
   if (quiet === 'record') KEEP_RECORD.add(k);
-  /* NOT WRITTEN BEFORE WHAT IT WAITS ON — an answer whose owner's mark the store has not taken yet
-     (`keepWaits_`, answers.js): held for the visit and said, as a refused write is. */
+  /* NOT WRITTEN BEFORE WHAT IT WAITS ON — an answer whose owner's mark the store has not taken yet § */
   const waits = v !== null && typeof keepWaits_ === 'function' && keepWaits_(k);
   if (!waits) {
     try { put(); KEEP_UNKEPT.delete(k); return true; } catch (e) { /* storage refused: tried again below, then held for the visit */ }
@@ -189,8 +181,7 @@ function keepRetry_() {
     try { if (v === null || v === undefined) localStorage.removeItem(k); else localStorage.setItem(k, v); KEEP_UNKEPT.delete(k); } catch (e) { /* storage can be blocked; the app runs without it */ }
   });
 }
-/* WHAT ONLY THIS VISIT HOLDS — non-empty, and not on the account either (`ansOnAccount_`, answers.js).
-   NOT A RECORD (`'record'` above): it is nobody's writing, and the answer it guards counts for itself. */
+/* WHAT ONLY THIS VISIT HOLDS — non-empty, and not on the account either (`ansOnAccount_`, answers.js). § */
 function keepAtRisk_() {
   keepRetry_();
   return [...KEEP_UNKEPT].filter(k => {
@@ -225,8 +216,7 @@ const DRAFT_DEVICE_MS = 6 * 60 * 60 * 1000;
 /* WHOSE A SIGNED-OUT ANSWER OR DEVICE DRAFT IS (`ansGoneMark_`, answers.js; docs/history/317). § */
 const ANS_GONE_KEYS = 'familyGoneKeys';
 const DRAFT_KEEP_MS = 30 * 24 * 60 * 60 * 1000;
-/* LONGER THAN ANY ANSWER APPS SCRIPT GIVES (six minutes is its ceiling), so a send still out in another
-   tab is never swept from under it. */
+/* LONGER THAN ANY ANSWER APPS SCRIPT GIVES (six minutes is its ceiling), so a send still out in another tab § */
 const DRAFT_SENT_MS = 10 * 60 * 1000;
 const DRAFT_MAX = 200;
 /* WHAT IS NEVER WRITTEN DOWN, by name: § */
@@ -236,8 +226,7 @@ function draftWho_() {
   try { if (USER && (USER.personId || USER.name)) return 'u:' + (USER.personId || USER.name); } catch (e) { /* no user yet: drafts are the guest's */ }
   return 'device';
 }
-/* `who` only to name somebody else's draft — the device's, carried into the person who signed in
-   (`bookFollow_`, book.js). Every other caller is the person in front of the screen. */
+/* `who` only to name somebody else's draft — the device's, carried into the person who signed in § */
 const draftKey_ = (surface, id, who) => 'draft:' + (who || draftWho_()) + ':' + surface + ':' + (id == null ? '' : id);
 /* THE SAME WORDS, whichever line endings carried them — a textarea's value is `\n` and a cell may be `\r\n`. */
 const draftSame_ = (a, b) => String(a == null ? '' : a).replace(/\r\n?/g, '\n') === String(b == null ? '' : b).replace(/\r\n?/g, '\n');
@@ -302,8 +291,7 @@ function draftDrop_(surface, id, who) {
   if (!had) { try { had = localStorage.getItem(k) !== null; } catch (e) { /* storage can be blocked; the app runs without it */ } }
   return had ? keepPut_(k, null) : true;
 }
-/* ---------- SENT, ANSWERED, REFUSED — see "SENT IS NOT A DRAFT" above. `v` is the words that went, so a
-   box written in again since Send keeps its new draft; a surface that sends a whole form passes none. */
+/* ---------- SENT, ANSWERED, REFUSED — see "SENT IS NOT A DRAFT" above. `v` is the words that went, so a § */
 const draftIs_ = (d, v) => v === undefined || String(d.v).trim() === String(v).trim();
 function draftSent_(surface, id, v) {
   const k = draftKey_(surface, id), d = draftRaw_(k);
@@ -395,69 +383,23 @@ window.addEventListener('storage', e => {
     if (spec === 'book:form' && typeof bookElsewhere_ === 'function') bookElsewhere_(v, old ? old.v : null);
   } catch (err) { /* a form mid-change keeps what it shows */ }
 });
-
-/* ---------- THE SMALLEST HELPERS ---------------------------------------------------------------- */
-/* ---------- AND WHEN ONE ID IS ON THE PAGE TWICE, THE COPY ON THE SCREEN IN FRONT § */
-/* ---------- AND WHEN THE SCREEN IN FRONT HAS NO COPY, THE COPY ITS WIDGET WAS STARTED ON § */
-const WIDGET_HOME = {};
-const $ = id => {
-  const el = document.getElementById(id);
-  if (!el || typeof AT === 'undefined' || !AT) return el;
-  const scr = document.getElementById('s-' + AT);
-  if (!scr || scr.contains(el)) return el;
-  try {
-    const mine = scr.querySelector('#' + CSS.escape(id));
-    if (mine) return mine;
-    const slot = el.closest && el.closest('.widget-slot');
-    const home = slot && WIDGET_HOME[slot.id];
-    const host = home && home !== AT && document.getElementById('s-' + home);
-    if (!host || host.contains(el)) return el;
-    return host.querySelector('#' + CSS.escape(id)) || el;
-  } catch { return el; }
-};
-
-/* The letter to put in a circle when there is no picture. The first LETTER, not the first
-   character — punctuation is not an initial, and "@family." was giving "@", which sat next to the
-   name and read as @@family. */
-const initial = s => (String(s ?? '').match(/[A-Za-z0-9]/) || ['?'])[0].toUpperCase();
-
-/* Anything from the branding tab, by name, with a fallback. Never throws on a key that has not
-   been filled in — the whole point of that tab is that most of it is empty most of the time. */
-/* A CONTACT DETAIL NEVER LIVES IN THE PUBLIC REPO: a blank brand key falls back to the private policy values the backend sends (phone, email). */
-const brand = (k, or) => ((DATA.brand || {})[k] || (DATA.policy || {})[k] || or || '');
-/* THE BUSINESS'S ONE PICTURE (1040 r10): tab icon, home-screen icon, Web profile and the business's posts all read it here. */
-/* A Drive share link is a page, so its picture's own address (as `pic`, posts.js). */
-function brandLogo_() {
-  const u = String(brand('logo_square', '') || brand('logo_circle', '') || 'icon.png').trim();
-  const id = (u.match(/\/file\/d\/([\w-]{20,})/) || u.match(/[?&]id=([\w-]{20,})/) || [])[1];
-  return id ? 'https://lh3.googleusercontent.com/d/' + id + '=w1200' : u;
-}
-
-/* IS THIS SOMETHING YOU WEAR? § */
-const isWearable = x => {
-  const k = norm(x && (x.kind || x.kindRaw));
-  return k === 'wearable' || k === 'avatar';
-};
-
-/* Whether the person signed in is an admin. § */
-const isAdmin = () => !!USER && rankAtLeast_('admin');
 /* THE VIEWER'S ROLE IN THE PERMISSIONS TABLE (86a): anyone, member, child or admin. */
 const myRole_ = () => (!USER ? 'anyone' : isAdmin() ? 'admin' : (typeof childView_ === 'function' && childView_()) ? 'child' : 'member');
-/* MAY THIS ROLE DO IT: DATA.permissions (data/settings/permissions.json), else admin only — the table the backend's gate reads too. */
+/* MAY THIS ROLE DO IT: § */
 const can_ = (role, kind, action) => {
   try {
     const row = ((((typeof DATA !== 'undefined' && DATA && DATA.permissions) || {})[kind] || {})[action]);
     if (row && typeof row[role] === 'boolean') return row[role];
-  } catch (e) {}
+  } catch (e) { /* a malformed permissions table falls back to admin only */ }
   return role === 'admin';
 };
 
-/* THREE ROLES FOR WHO SEES A SETTING (93): keyed by the role a word means (`roleOf`), so teacher, parent, kid… are ROLE_ALIASES' alone. */
+/* THREE ROLES FOR WHO SEES A SETTING (93): § */
 const ROLE_THREE_ = { student: 'family', client: 'family', member: 'family', family: 'family',
   staff: 'tutor', tutor: 'tutor', apprentice: 'tutor', admin: 'admin', business: 'admin', site: 'admin' };
 const SEE_ROLES = ['family', 'tutor', 'admin'];
 const roleThree_ = w => ROLE_THREE_[roleOf(String(w || '').trim())] || '';
-/* THE VIEWER'S THREE ROLES: rank and held roles mapped, a higher role holding the lower ones as ranks always have; a pending tutor is not one yet. */
+/* THE VIEWER'S THREE ROLES: § */
 function seeRoles_() {
   if (!USER) return [];
   let words = [];
@@ -465,9 +407,9 @@ function seeRoles_() {
   const top = Math.max(0, ...words.map(w => SEE_ROLES.indexOf(roleThree_(w))));
   return SEE_ROLES.slice(0, top + 1);
 }
-/* MAY THE VIEWER SEE THIS SETTINGS CARD OR ACCOUNT TYPE: permissions.json's `see` rows; no row, an admin's only (`can_`). */
+/* MAY THE VIEWER SEE THIS SETTINGS CARD OR ACCOUNT TYPE: § */
 const seeMay_ = key => seeRoles_().some(r => can_(r, 'see', key));
-/* MAY THE VIEWER HAVE THIS BUTTON: permissions.json's `ui` rows, by the action roles, so a child differs from a parent; no row, an admin's only. */
+/* MAY THE VIEWER HAVE THIS BUTTON: § */
 /* NO TABLE LOADED: a signed-in grown-up keeps the button, as before the table (rule 6). */
 const uiMay_ = key => { try { if (!((DATA && DATA.permissions) || {}).ui) return rankAtLeast_('client'); } catch (e) { return false; } return can_(myRole_(), 'ui', key); };
 

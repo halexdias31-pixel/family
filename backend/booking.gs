@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-12-discount-shared-1";
+const BOOKING_VERSION = "2026-11-12-link-diagram-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -974,14 +974,14 @@ function authCheckPin_(t, r, pin) {
   const given = S(pin), have = S(r && r.pin);
   if (!given || !have) return false;
   /* FOUR DIGITS (owner, 10 Nov): a longer PIN still on the row is cut to its first four when it signs in; */
-  if (/^\d{5,8}$/.test(have) && authSame_(have, given)) { try { authSetPin_(t, r, given.slice(0, 4)); } catch (err) {} return true; }
+  if (/^\d{5,8}$/.test(have) && authSame_(have, given)) { try { authSetPin_(t, r, given.slice(0, 4)); } catch (err) { /* the new PIN form is a nicety; the old one still signs in */ } return true; }
   if (authSame_(have, given)) return true;
   /* and someone who still types the old, longer PIN gets in by its first four. */
   if (/^\d{5,8}$/.test(given) && authSame_(have, given.slice(0, 4))) return true;
   if (!authPinLost_(r, given)) return false;
   /* THE MIGRATION, NOT A CHANGE: the secret is the same one, so nothing about the throttle or the
      sessions moves — see `PIN_OK` in check-backend.js. */
-  try { authSetPin_(t, r, given); } catch (err) {}
+  try { authSetPin_(t, r, given); } catch (err) { /* the new PIN form is a nicety; the old one still signs in */ }
   return true;
 }
 
@@ -1029,14 +1029,14 @@ function authWrong_(t, r) {
   }
   try {
     authProps_().setProperty(authThrottleKey_(r), JSON.stringify({ n: n, until: until, at: Date.now() }));
-  } catch (err) {}
+  } catch (err) { /* script properties are best-effort here; the next run tries again */ }
   /* Told on the FIRST rung only — an email per guess is a mailbox nobody reads. */
   if (step !== 0) return;
   const said = 'Somebody has tried the @family. PIN for '
     + (S(r.handle) ? '@' + S(r.handle) : personDisplayName(r)) + ' ' + n + ' times and got it wrong.\n\n'
     + 'Signing in is held up for a minute, and for longer on each wrong answer after that.\n';
   try { notify(personDisplayName(r), 'Too many sign-in attempts', said + 'If that was not you, reply here.', 'security'); }
-  catch (err) {}
+  catch (err) { /* a failed warning must not block the sign-in throttle */ }
   /* ---------- AND A CHILD WITH NO ADDRESS HAS A GROWN-UP WHO IS TOLD § */
   if (S(r.email)) return;
   /* CONFIRMED GROWN-UPS ONLY — the rule `notify` keeps (`addressPending_`), read in `authGrownUps_`. § */
@@ -1046,7 +1046,7 @@ function authWrong_(t, r) {
     mailOut_({ to: tos.join(','), name: BRAND_NAME, subject: 'Too many sign-in attempts',
       body: said + 'If that was ' + (S(r.first_name) || 'them') + ', "New PIN" on their card on your '
           + 'account gives them a new one at once. If it was not, tell us.' });
-  } catch (err) {}
+  } catch (err) { /* a failed courtesy note must not undo the work already done */ }
 }
 
 /* ---------- WHO IS WRITTEN TO FOR A CHILD WITH NO ADDRESS OF THEIR OWN § */
@@ -1060,7 +1060,7 @@ function authGrownUps_(r) {
 
 /* A successful sign-in, a PIN reset by e-mail and a PIN change all clear it: § */
 function authClearThrottle_(t, r) {
-  try { authProps_().deleteProperty(authThrottleKey_(r)); } catch (err) {}
+  try { authProps_().deleteProperty(authThrottleKey_(r)); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
 }
 
 /* A FORGOTTEN PIN IS SENT BESIDE THE OLD ONE, AND REPLACES IT ONLY WHEN IT IS USED "FORGOTTEN YOUR PIN?" § */
@@ -1068,7 +1068,7 @@ function authResetKey_(r) { return 'AUTH_RESET_' + S(r.person_id || personDispla
 
 function authResetGet_(r) {
   let held = null;
-  try { held = JSON.parse(authProps_().getProperty(authResetKey_(r)) || 'null'); } catch (err) {}
+  try { held = JSON.parse(authProps_().getProperty(authResetKey_(r)) || 'null'); } catch (err) { /* a malformed stored value counts as absent */ }
   if (!held || !S(held.pin) || N(held.until) < Date.now()) return null;
   return held;
 }
@@ -1079,7 +1079,7 @@ function authResetPut_(r, held) {
 }
 
 function authResetDrop_(r) {
-  try { authProps_().deleteProperty(authResetKey_(r)); } catch (err) {}
+  try { authProps_().deleteProperty(authResetKey_(r)); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
 }
 
 /* THE ROW A SIGN-IN LINK BELONGS TO, by its key and nothing else: § */
@@ -1090,7 +1090,7 @@ function authResetFind_(key) {
     const all = authProps_().getProperties();
     const hit = Object.keys(all).filter(k => k.indexOf('AUTH_RESET_') === 0).map(k => {
       let held = null;
-      try { held = JSON.parse(all[k]); } catch (err) {}
+      try { held = JSON.parse(all[k]); } catch (err) { /* a malformed stored value counts as absent */ }
       return { owner: k.slice('AUTH_RESET_'.length), held: held };
     /* `e`, NOT `x`: `check-columns` reads `x.<word>` as a sheet row's column, and `held` is not one. */
     }).find(e => e.held && S(e.held.key) && authSame_(S(e.held.key), want));
@@ -1150,7 +1150,7 @@ function authNewSession_(t, r) {
       if (k.indexOf('AUTH_S_') !== 0) return;
       try { if (N(JSON.parse(all[k]).until) < now) props.deleteProperty(k); } catch (err) { props.deleteProperty(k); }
     });
-  } catch (err) {}
+  } catch (err) { /* script properties are best-effort here; the next run tries again */ }
   props.setProperty(authSessionKey_(token),
     JSON.stringify({ id: S(r.person_id), until: Date.now() + AUTH.SESSION_DAYS * 864e5 }));
   authClearThrottle_(t, r);
@@ -1162,7 +1162,7 @@ function authWhoIs_(token) {
   const given = S(token);
   if (!given) return null;
   let s = null;
-  try { s = JSON.parse(authProps_().getProperty(authSessionKey_(given)) || 'null'); } catch (err) {}
+  try { s = JSON.parse(authProps_().getProperty(authSessionKey_(given)) || 'null'); } catch (err) { /* a malformed stored value counts as absent */ }
   if (!s || !s.id || N(s.until) < Date.now()) return null;
   return read(TAB.people).rows.find(x => S(x.person_id) === S(s.id)) || null;
 }
@@ -1213,9 +1213,9 @@ function authEndSession_(t, r) {
     const props = authProps_(), all = props.getProperties();
     Object.keys(all).forEach(k => {
       if (k.indexOf('AUTH_S_') !== 0) return;
-      try { if (S(JSON.parse(all[k]).id) === id) props.deleteProperty(k); } catch (err) {}
+      try { if (S(JSON.parse(all[k]).id) === id) props.deleteProperty(k); } catch (err) { /* a malformed stored value counts as absent */ }
     });
-  } catch (err) {}
+  } catch (err) { /* script properties are best-effort here; the next run tries again */ }
 }
 
 /* A NEW EMAIL ADDRESS WAITS BESIDE THE OLD ONE UNTIL IT IS PROVED — BY THE ACCOUNT, SIGNED IN FOUND BY ROUND THREE OF THE PR #130 REVIEW, AND OLDER THAN IT: § */
@@ -1223,7 +1223,7 @@ function authMoveKey_(r) { return 'AUTH_MOVE_' + S(r && (r.person_id || personDi
 
 function authMoveGet_(r) {
   let m = null;
-  try { m = JSON.parse(authProps_().getProperty(authMoveKey_(r)) || 'null'); } catch (err) {}
+  try { m = JSON.parse(authProps_().getProperty(authMoveKey_(r)) || 'null'); } catch (err) { /* a malformed stored value counts as absent */ }
   if (!m || !S(m.to) || !S(m.key) || N(m.until) < Date.now()) return null;
   return m;
 }
@@ -1234,7 +1234,7 @@ function authMovePut_(r, m) {
 }
 
 function authMoveDrop_(r) {
-  try { authProps_().deleteProperty(authMoveKey_(r)); } catch (err) {}
+  try { authProps_().deleteProperty(authMoveKey_(r)); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
 }
 
 /* THE MOVE A LINK BELONGS TO, by its key: `{ owner, move }` — `authResetFind_`'s shape and reason. */
@@ -1245,7 +1245,7 @@ function authMoveFind_(key) {
     const all = authProps_().getProperties();
     const hit = Object.keys(all).filter(k => k.indexOf('AUTH_MOVE_') === 0).map(k => {
       let move = null;
-      try { move = JSON.parse(all[k]); } catch (err) {}
+      try { move = JSON.parse(all[k]); } catch (err) { /* a malformed stored value counts as absent */ }
       return { owner: k.slice('AUTH_MOVE_'.length), move: move };
     /* `e`, not `x` — the reason is over `authResetFind_`'s. */
     }).find(e => e.move && S(e.move.key) && authSame_(S(e.move.key), want));

@@ -482,3 +482,73 @@ top level
    popup, and the sheet, the old new-tab version and the inline one all built from it. */
 ```
 
+### A column name as a person would say it.
+
+top level, before `FIELD_LABEL`
+
+```
+/* A column name as a person would say it. Everything not named here is the column with its
+   underscores taken out, which is right far more often than it is wrong — `exam_board` reads
+   perfectly well as "exam board". */
+```
+
+### Inside a group already called "Library card", "library card" and "library pin" say the word twice and read as two different
+
+in `FIELD_LABEL`
+
+```
+/* Inside a group already called "Library card", "library card" and "library pin" say the word
+     twice and read as two different cards. The group names the thing; these name the parts. */
+```
+
+### Keyed on BOTH, because a printed copy and a shop item can share a name and they are not the same line.
+
+top level, before `src`
+
+```
+/* Keyed on BOTH, because a printed copy and a shop item can share a name and they are not the
+     same line. The old test dropped the second one silently. */
+```
+
+### THE SHOP NOW, NOT TOOLS.
+
+top level, before `n`
+
+```
+/* THE SHOP NOW, NOT TOOLS. The basket moved to the Shop column's first page; asked for by the same
+   lookup, so the day another widget goes on top of it this still lands on the basket. */
+```
+
+### WHO IT GOES TO. An admin off the payload — `doGet` sends admins among the tutors, with their `personId` — and a PERSON rather
+
+top level, before `orderTo_`
+
+```
+/* WHO IT GOES TO. An admin off the payload — `doGet` sends admins among the tutors, with their `personId` — and a PERSON rather than the brand account where § */
+```
+
+### WHERE IT GOES. The login reply carries `address` and `postcode` for exactly this — the note in `loginReplyFor_` says the
+
+top level, before `orderWhere_`
+
+```
+/* WHERE IT GOES. The login reply carries `address` and `postcode` for exactly this — the note in `loginReplyFor_` says the basket has to know whether it can § */
+```
+
+### SO THE CONVERSATION IS THERE WHEN THEY LOOK, which is the first thing anybody does after sending something — the `msg-send`
+
+top level
+
+```
+/* SO THE CONVERSATION IS THERE WHEN THEY LOOK, which is the first thing anybody does after sending something — the `msg-send` handler's own reason. § */
+```
+
+### `send_` HAS ALREADY SAID THE SERVER'S SENTENCE, and rethrows so a caller could react.
+
+top level
+
+```
+/* `send_` HAS ALREADY SAID THE SERVER'S SENTENCE, and rethrows so a caller could react. This
+       one's reaction is to keep the basket, which is doing nothing. */
+```
+

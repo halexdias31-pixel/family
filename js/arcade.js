@@ -4,7 +4,7 @@
 /* ---------- ARCADE § */
 
 /* THE WIDGETS — nine things you USE rather than things you find. § */
-/* TOOLS AND GAMES, AS COLUMNS THEY WERE ALREADY REACHABLE — `What for · Tools` and `What for · Games` are answers in the funnel and always have been. § */
+/* TOOLS AND GAMES, AS COLUMNS — `What for · Tools` and `· Games` were always funnel answers. § */
 
 /* ---------- WHAT THIS PERSON MAY OPEN § */
 /* ---------- ONE LIST, ASKED BY BOTH THE RENDER AND THE COUNT § */

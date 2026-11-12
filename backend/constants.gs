@@ -130,7 +130,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-12-discount-shared-1";
+const BACKEND_VERSION = "2026-11-12-link-diagram-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -207,7 +207,7 @@ const LIB_FILES = {
                 private: ['html', 'lead', 'diagram', 'answer', 'accept', 'choices', 'choice_right', 'order_ends', 'cells',
                           'mark_words', 'draw_answer', 'examiner_note', 'examiner_report', 'guide'] },
   textbooks:  { tab: 'lib_content', file: 'data/textbooks.json', prefix: 'ct', id: ['book_id', 'chapter'], skip: 'anim',
-                private: ['words', 'points', 'formulas'] },
+                private: ['words', 'points', 'formulas', 'diagram'] },
   practicals: { tab: 'lib_practicals', file: 'data/practicals.json', prefix: 'pr', id: ['practical_id'],
                 private: ['aim', 'outcome', 'safety', 'maths_link', 'equipment', 'steps', 'notes', 'science', 'log',
                           'variables', 'diagram', 'risks'] },

@@ -10,8 +10,8 @@ const path = require('path');
 const FILE = process.argv[2] || path.join(__dirname, '..', 'data', 'questions.json');
 
 /* ---------- THE CLOSED VOCABULARY § */
-/* ONE SCHEMA (R4): the lists live in check/schema.js with every card file's columns; their stories stay in docs/notes/js/check-library.js.md. */
-const SCHEMA = require('../check/schema.js');
+/* ONE SCHEMA (R4): the lists live in check/library-schema.js with every card file's columns; their stories stay in docs/notes/js/check-library.js.md. */
+const SCHEMA = require('../check/library-schema.js');
 const VOCAB = SCHEMA.VOCAB();
 
 /* Columns that must never come back. See the header. */
@@ -1227,7 +1227,7 @@ console.log(`parts that show an earlier part's drawing (\`uses\`): ${usesN}`
 usesBad.concat(usesMissing).forEach(m => console.log('   ' + m));
 
 /* ---------- THE FIGURES THE PAPER PRINTS AND NOBODY HAS DRAWN, COUNTED SO THE COUNT CANNOT GROW § */
-const NOT_DRAWN_MAX = 410;
+const NOT_DRAWN_MAX = 270;
 const nfSrc_ = ['FIG_NAMED', 'figWanted_'].map(n => cutFrom(findSrc_, n));
 if (nfSrc_.some(c => !c)) {
   const why = 'FIG_NAMED or figWanted_ is not in find.js — renamed? The figures not drawn yet were NOT counted.';

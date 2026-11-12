@@ -273,7 +273,7 @@ function postResendLink_(body, action, began) {
       return jsonOut({ error: 'We sent a new link but could not save it, so it will not work. The first link we '
                             + 'sent still does — ask us if you cannot find it.' });
     }
-    try { authProps_().setProperty(key, String(Date.now())); } catch (err) {}
+    try { authProps_().setProperty(key, String(Date.now())); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
     return jsonOut({ success: true, movingEmail: S(move.to), pendingEmail: pendingEmailOf_(me),
       message: 'A new link is on its way to ' + S(move.to) + '. Open it where you are signed in and your email '
              + 'changes — any link we sent before this one no longer works.' });
@@ -284,7 +284,7 @@ function postResendLink_(body, action, began) {
     return jsonOut({ error: 'We sent a new link but could not save it, so it will not work. The first link we sent '
                           + 'still does — ask us if you cannot find it.' });
   }
-  try { authProps_().setProperty(key, String(Date.now())); } catch (err) {}
+  try { authProps_().setProperty(key, String(Date.now())); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
   clearCache();
   return jsonOut({ success: true, pendingEmail: own,
     message: 'A new link is on its way to ' + own + '. Open it and your email is confirmed — any link we sent '
@@ -362,7 +362,7 @@ function postGoogleLogin_(body, action, began) {
 
 function postSignOut_(body, action, began) {
   /* ---------- THIS SESSION, NOT EVERY ONE THE PERSON HOLDS (docs/history/317) § */
-  try { if (S(body.token)) authProps_().deleteProperty(authSessionKey_(body.token)); } catch (err) {}
+  try { if (S(body.token)) authProps_().deleteProperty(authSessionKey_(body.token)); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
   /* SUCCESS EITHER WAY. An expired token reaching here means the session is already over, and
      an error would say otherwise. */
   return jsonOut({ success: true });
@@ -716,7 +716,7 @@ function profileMailAfter_(r, mail) {
   }
   /* A LINK HAS JUST GONE, so "Send the link again" counts its quarter hour from now (`resendLink`). */
   if (mailPlan === 'correct' || mailPlan === 'move') {
-    try { authProps_().setProperty('AUTH_LINK_' + S(r.person_id), String(Date.now())); } catch (err) {}
+    try { authProps_().setProperty('AUTH_LINK_' + S(r.person_id), String(Date.now())); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
   }
 }
 
@@ -766,7 +766,9 @@ function forgotPinMail_(own, tos, r, byHandle, handleSaid, fresh, linkKey) {
             + ' has no email of their own and asked for a new PIN.\n\nThe new PIN is ' + fresh + '\n\n'
             + 'Pass it on to them. They sign in with their handle and this PIN; it works for a day, and their '
             + 'old PIN keeps working until they use this one. "New PIN" on their card in the people column '
-            + 'gives a fresh one at once.\n\nIf they did not ask, do nothing — nothing has changed.' };
+            + 'gives a fresh one at once.\n\nOr open this link on their device to sign them in as '
+            + (handleSaid || S(r.first_name) || 'them') + ' straight away:\n\n' + SITE_URL + '?signin=' + linkKey + '\n\n'
+            + 'If they did not ask, do nothing — nothing has changed.' };
 }
 
 /* a forgotten PIN -------------------------------------------------------------------------- ASKED FOR AS § */
@@ -825,7 +827,8 @@ function postForgotPin_(body, action, began) {
   /* THE SAME PIN AGAIN if one is still waiting, so a grown-up holding two emails holds two copies of one PIN rather than a dead one and a live one — unless wrong § */
   const fresh = (was && !was.dead) ? S(was.pin) : authFreshPin_();
   /* ---------- AND TO THE ACCOUNT'S OWN ADDRESS, A LINK BESIDE IT THAT NO WRONG GUESS CAN USE UP § */
-  const linkKey = !own ? '' : (was && S(was.key)) ? S(was.key)
+  /* A CHILD'S LINK TOO (owner, 12 Nov): it goes only to the business, which holds the PIN already. */
+  const linkKey = (was && S(was.key)) ? S(was.key)
     : 'R' + Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
   const handleSaid = S(r.handle) ? '@' + S(r.handle) : '';
   /* NOT `notify`, which looks the person up again by name — the row is already in hand, and a
@@ -837,7 +840,7 @@ function postForgotPin_(body, action, began) {
   /* `to` IS THE ACCOUNT'S OWN ADDRESS WHEN THAT IS WHERE IT WENT — typing this PIN back is then proof of that inbox, and a PENDING row is confirmed by it § */
   if (!authResetPut_(r, { pin: fresh, at: Date.now(), until: Date.now() + AUTH.RESET_HOURS * 36e5,
                           misses: (was && !was.dead) ? N(was.misses) : 0, to: own ? norm(own) : '',
-                          key: linkKey })) {
+                          key: linkKey, via: own ? '' : norm(ownerTo) })) {
     return jsonOut(cannot);
   }
   return jsonOut({ success: true,
@@ -853,7 +856,10 @@ function postPinLink_(body, action, began) {
   if (!hit) return jsonOut(gone);
   const t = read(TAB.people);
   const r = t.rows.find(x => S(x.person_id || personDisplayName(x)) === hit.owner);
-  if (!r || !S(hit.held.to) || norm(hit.held.to) !== norm(r.email)) return jsonOut(gone);
+  /* OWN ADDRESS STILL THE ROW'S, OR (NO EMAIL) THE BUSINESS ADDRESS IT WENT TO STILL THE BUSINESS'S. */
+  const ownOk = !!r && S(hit.held.to) && norm(hit.held.to) === norm(r.email);
+  const viaOk = !!r && !S(r.email) && S(hit.held.via) && norm(hit.held.via) === norm(ownerEmail_());
+  if (!ownOk && !viaOk) return jsonOut(gone);
   /* TAKEN BEFORE A ROW WITH NO ID IS GIVEN ONE — `signInRow_`'s rule for a session — because the record it drops is keyed by what the row is called NOW, and after § */
   const took = authResetTake_(t, r, hit.held);
   if (!S(r.person_id)) {
