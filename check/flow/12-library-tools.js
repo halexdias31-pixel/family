@@ -958,7 +958,7 @@ check('a backend that never answers does not hang the app for ever', async () =>
   let html = fs.readFileSync(path.join(dir, '..', 'index.html'), 'utf8');
   const hasDeadline = /AbortController|Promise\.race|setTimeout\([^)]*abort/i.test(
     require('../tools/piece-src.js').pieceSrc('shell', path.join(dir, '..')));
-  const hasWatchdog = /Still loading after/i.test(html);
+  const hasWatchdog = /getElementById\('boot-slow'\)[\s\S]*?\}, 30000\)/.test(html);
   const bad = [];
   if (!hasDeadline) {
     bad.push('the payload fetch has no deadline — a slow backend leaves every wait on screen for ever, '

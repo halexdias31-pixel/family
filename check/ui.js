@@ -271,9 +271,7 @@ function loadersOn(sid) {
     box.innerHTML = loading_();
     document.body.appendChild(box);
     const d = box.querySelectorAll('.loading > span');
-    const c0 = d[0].getBoundingClientRect(), c1 = d[1].getBoundingClientRect();
-    ref = { dot: d[0].offsetWidth + 'x' + d[0].offsetHeight,
-            gap: +((c1.left + c1.width / 2) - (c0.left + c0.width / 2)).toFixed(2) };
+    ref = { dot: d[0].offsetWidth + 'x' + d[0].offsetHeight, gap: 0 };
     box.remove();
   } catch (e) { ref = null; }
   roots.forEach(root => root.querySelectorAll('.loading').forEach(l => {
@@ -1491,8 +1489,8 @@ function inspect(opts) {
         const loaders = await page.evaluate(loadersOn, id);
         const lFound = [];
         loaders.forEach(l => {
-          if (l.role !== 'status' || l.label !== 'Loading' || l.n !== 3) {
-            lFound.push(`the loader on ${l.where} is not the one loader — role ${l.role}, label ${l.label}, ${l.n} dots`);
+          if (l.role !== 'status' || l.label !== 'Loading' || l.n !== 1) {
+            lFound.push(`the loader on ${l.where} is not the one loader — role ${l.role}, label ${l.label}, ${l.n} bars`);
           }
           if (new Set(l.dot).size > 1) lFound.push(`the loader on ${l.where} has dots of ${[...new Set(l.dot)].join(' and ')}`);
           if (!l.ref) lFound.push('`loading_()` could not be drawn on the page to measure the loader against');

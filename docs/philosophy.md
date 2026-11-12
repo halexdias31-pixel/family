@@ -42,7 +42,7 @@ traced to a rule here, live in `docs/decisions.md`. Edit a rule here, never in c
 7. **Menus follow one rule.** The next menu is always the best split; same words in menu, chip and tag. Checks: `tag-colour`, `tag-asked`, `menu-rule`, `menu-thin`, `menu-order`, `menu-sense`, `answer-words`, `words-all`, `near-dup`, `merged-value`, `merged-all`
 8. **Controls stay put.** Same buttons, same places, every rank; greyed, never hidden or moved. Checks: `dup-controls`, `control-look`, `ux`, `settings-work`, `update-continuity`
 9. **Fair, mechanical marking.** One card per question number, marked the same every time. Checks: `question`, `answer`, `qengine`
-10. **Fast and light.** Instant on a phone, one data source, seamless updates, cheap to edit. Checks: `size`, `in-sync`, `read-bytes`, `search-bytes`, `big-notes`, `spread`, `comment-ratio`, `update-continuity`
+10. **Fast and light.** Instant on a phone, one data source, seamless updates, cheap to edit. Checks: `size`, `wait`, `in-sync`, `read-bytes`, `search-bytes`, `big-notes`, `spread`, `comment-ratio`, `update-continuity`
 11. **Frictionless.** Booking, messaging, paying and homework in the fewest taps, no dead ends. Checks: `friction`, `a11y`, `console`
 12. **The owner decides, the system does the rest.** Sweeps decide when the rules point one way, ask only when they don't. Checks: `philosophy`, `owner-questions`
 

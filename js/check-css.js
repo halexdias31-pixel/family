@@ -274,7 +274,6 @@ const artOf_ = sel => (ART_TONE.find(a => a[0].test(sel)) || [])[1];
 /* ---------- 7d's ALLOWED FADES: no words under them, or a state the slide owns. One reason each; a line nothing matches fails. */
 const DIM_OK = [
   [/^\.page\.soft/, 'a parked pane behind the one in front — the slide\'s, never read while dimmed (ui.js stops there too)'],
-  [/^\.loading\b/, 'the three waiting dots are dots, not words'],
   [/\.pfp-opt$/, 'a face picture to choose; pictures only'],
   [/\.text-drop$/, 'the one-glyph ✕ that removes a row, half strength until a touch screen shows it'],
   [/\.msg-flag$/, 'a flag icon beside a message; full strength on hover and focus'],

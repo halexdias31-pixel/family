@@ -619,7 +619,26 @@ function payloadKept_() {
 /* GONE ON SIGN-OUT, and first to give way when the store is full (`keepPut_`). True when there was one. */
 function payloadForget_() {
   PAYLOAD_OWED = null; PAYLOAD_TEXT = null;
-  try { const had = localStorage.getItem(PAYLOAD_KEY) !== null; localStorage.removeItem(PAYLOAD_KEY); return had; } catch (e) { return false; }
+  const kept = keptForget_();
+  try { const had = localStorage.getItem(PAYLOAD_KEY) !== null; localStorage.removeItem(PAYLOAD_KEY); return had || kept; } catch (e) { return kept; }
+}
+
+/* KEPT READS (`apiKept_`): each fetched card's last reply, per account and build like the payload, so it draws at once next time. */
+/* KEYED BY THE REQUEST, never the token, and readable with no connection: an offline mode would read this same store. */
+const KEPT_PREFIX = 'kept:', KEPT_MAX = 200000;
+const keptKey_ = body => { const b = Object.assign({}, body); delete b.token; return KEPT_PREFIX + payloadFor_().who + ':' + JSON.stringify(b); };
+function keptGet_(k) {
+  try { const o = JSON.parse(localStorage.getItem(k) || 'null'); return o && o.build === payloadFor_().build && o.d && typeof o.d === 'object' ? o.d : null; } catch (e) { return null; }
+}
+function keptPut_(k, text) {
+  if (!text || text.length > KEPT_MAX) return;
+  try { keepPut_(k, JSON.stringify({ build: payloadFor_().build, at: Date.now(), d: JSON.parse(text, (n, v) => (PAYLOAD_SECRET.test(n) ? undefined : v)) }), true); } catch (e) { /* storage refused: the next open waits once */ }
+}
+/* GONE WITH THE PAYLOAD'S COPY: on sign-out and when the store is full. True when there was any. */
+function keptForget_() {
+  const ks = [];
+  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(KEPT_PREFIX) === 0) ks.push(k); } ks.forEach(k => localStorage.removeItem(k)); } catch (e) { return false; }
+  return ks.length > 0;
 }
 
 /* NOT MERGED UNDER A FINGER (1070): while the build answers Find's menu and a tap came in the last 1.5 s, the library waits (10 s at most). */

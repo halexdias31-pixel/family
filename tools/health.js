@@ -203,9 +203,15 @@ function uxWork() {
   /* TEXT BOXES (980): every visible box on Find, a question and Settings drawn alike; each differing measure a finding. */
   ((j.boxLooks || {}).off || []).forEach(o => W.push({ kind: 'ux', where: 'text boxes', say: o }));
   if (j.boxLooks && (j.boxLooks.faces || []).length < 3) W.push({ kind: 'ux', where: 'text boxes', say: 'the walk measured ' + (j.boxLooks.faces || []).length + ' of 3 boxes (Find, a question, Settings)' });
+  /* WAITS AND JUMPS (owner, 11 Nov): data/wait-health.json from tools/wait.js under a slow backend; a warm visit never waits, nothing jumps. */
+  const wt = jread('data/wait-health.json');
+  ((wt && wt.rows) || []).forEach(r => {
+    if (r.shift > 0.05) W.push({ kind: 'wait', where: r.who + ' ' + r.screen, say: `layout shift ${r.shift} under a ${wt.latency} ms backend (budget 0.05)` });
+    if (r.warm && r.dots > 0) W.push({ kind: 'wait', where: r.who + ' ' + r.screen, say: `a return visit still showed a loader under a ${wt.latency} ms backend — no kept copy` });
+  });
   return { j, work: W };
 }
-const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10],
+const UX_PENALTY = { wait: [0.5, 10], 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10],
   'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10], 'in-sync': [0.5, 10], 'odd-tags': [0.02, 10], 'dup-controls': [0.5, 10], 'chip-size': [0.5, 10], 'settings-work': [1, 10], 'returned-features': [0.5, 10], clutter: [0.02, 10], 'front-door': [2, 10], 'picture-first': [1, 10], 'car-tags-split': [1, 10], 'people-one-kind': [2, 10], 'manuscripts-reach': [2, 10], 'no-age-gates': [5, 10], 'timeline-anim': [2, 10], friction: [3, 15], 'menu-order': [2, 10] };
 /* THE OWNER'S FOUR (1030), each its own named check, ideal 0, budget `owner` in structure-budgets.json; the drawn halves come from check/qcard.js. */
 const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1, 'in-sync': 1, 'odd-tags': 1, 'dup-controls': 1, 'chip-size': 1, 'settings-work': 1, 'returned-features': 1, clutter: 1, 'front-door': 1, 'picture-first': 1, 'car-tags-split': 1, 'people-one-kind': 1, 'manuscripts-reach': 1, 'no-age-gates': 1, 'timeline-anim': 1, friction: 1, 'menu-order': 1 };
