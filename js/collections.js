@@ -335,7 +335,7 @@ const shopIcon_ = (name, group) => `<svg class="shop-ic shop-ic-${shopIconName_(
 const shopWithIcon_ = (html, x, group) => String(html).replace('<div class="thing">', '<div class="thing shop-thing">' + shopIcon_(x.title || x.name || x.key, group));
 
 /* ---------- SEARCH THE SHOP (491): the shared pill at the top; a list of what matches under it, a tap going to the item's page ---------- */
-let SHOP_FIND = { q: '', at: [] };
+let SHOP_FIND = { q: '', at: [], all: false };
 /* THE WIDGET'S `start`: the pill drawn once per box, so a repaint around somebody typing never takes their word away. */
 function paintShopFind_() {
   if (!SHOP_FIND.at.length) try { shopCards_(); } catch (e) {}
@@ -344,14 +344,19 @@ function paintShopFind_() {
     const h = box.querySelector('.shop-hits'); if (h) h.innerHTML = shopHits_();
   });
 }
+/* AN EMPTY BOX OFFERS EVERYTHING: one tile lists the whole shop, the other puts it away (a safe press, owner 12 Nov). */
 function shopHits_() {
   const q = SHOP_FIND.q.trim().toLowerCase();
-  if (!q) return '';
-  const hits = SHOP_FIND.at.filter(h => h.say.indexOf(q) !== -1).slice(0, 8);
+  const all = tile_({ icon: SHOP_FIND.all ? 'up' : 'grid', label: SHOP_FIND.all ? 'Fewer' : 'Everything', note: SHOP_FIND.all ? 'put the list away' : 'in the shop', act: 'shop-all', pressed: !!SHOP_FIND.all });
+  if (!q && !SHOP_FIND.all) return `<div class="tile-row">${all}</div>`;
+  const hits = SHOP_FIND.at.filter(h => !q || h.say.indexOf(q) !== -1).slice(0, q ? 8 : 40);
+  if (!q) return (hits.length ? shopHitRows_(hits) : empty_('The shop is empty.')) + `<div class="tile-row">${all}</div>`;
   if (!hits.length) return empty_('Nothing in the shop matches.');
   /* A HIT IS A THING (rule 8): its name on the line, and the tile that opens it. */
-  return hits.map(h => `<div class="shop-hit">${shopIcon_(h.name, h.group)}<span>${esc(h.name)}</span><div class="tile-row">${tile_({ icon: 'open', label: 'Open ' + h.name, act: 'shop-go', data: { page: h.page } })}</div></div>`).join('');
+  return shopHitRows_(hits);
 }
+const shopHitRows_ = hits => hits.map(h => `<div class="shop-hit">${shopIcon_(h.name, h.group)}<span>${esc(h.name)}</span><div class="tile-row">${tile_({ icon: 'open', label: 'Open ' + h.name, act: 'shop-go', data: { page: h.page } })}</div></div>`).join('');
+on('shop-all', () => { SHOP_FIND.all = !SHOP_FIND.all; document.querySelectorAll('.shop-find .shop-hits').forEach(b => { b.innerHTML = shopHits_(); }); });
 document.addEventListener('input', e => {
   const el = e.target;
   if (!el || !el.classList || !el.classList.contains('shop-q')) return;

@@ -12,8 +12,8 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 /* WHERE EACH RETURNED WIDGET IS: its front answer in Find. */
 const WIDGETS = {
   Tools: ['timer', 'notepad', 'typing', 'speedread', 'countdowns', 'calendar', 'termdates', 'timetable', 'docket', 'mat',
-    'favlinks', 'spotify', 'rewrite', 'pixel', 'libcards'],
-  Reels: ['reels'], Flyers: ['flyers'], Posters: ['poster'], Shop: ['cart'],
+    'favlinks', 'spotify', 'pixel', 'libcards', 'reels', 'newspaper', 'shopfind'],
+  Games: ['console', 'wordgames'],
 };
 const COLUMNS = ['spotlight', 'feed', 'dm', 'saved', 'booking', 'shop', 'web', 'tutors', 'students', 'parents', 'apprentices'];
 /* A SAFE PRESS (a picture picker opens the device chooser, which a page cannot see): not a card's own extras (star, lock, suggest, share, edit, hide, delete, move), which every card has and prove nothing. */

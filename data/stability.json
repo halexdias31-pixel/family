@@ -39,7 +39,7 @@
    "cap": 10,
    "off": 5.4,
    "where": {
-    "check-dead": "bcTaxPot_ (biz-check.js), bcItem_ (biz-check.js), dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), paintBoard_ (map.js), setupCard_ (me-account.js), paintTimer (overworld.js), qtFigureOf_ (qtypes.js), rulesCard_ (rules.js), workPics_ (working.js), writingOf_ (writings.js), none"
+    "check-dead": "bcTaxPot_ (biz-check.js), bcItem_ (biz-check.js), dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), startTimesTables (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), setupCard_ (me-account.js), qtFigureOf_ (qtypes.js), rulesCard_ (rules.js), ktLessonCount_ (tools.js), workPics_ (working.js), writingOf_ (writings.js), none"
    }
   },
   {
@@ -130,19 +130,19 @@
   }
  ],
  "secondary": {
-  "score": 89.1,
+  "score": 88.5,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
     "id": "exceptions",
     "label": "Written exceptions in the checks",
-    "count": 81,
+    "count": 82,
     "weight": 0.1,
     "cap": 20,
-    "off": 8.1,
+    "off": 8.2,
     "where": {
      "js/check-permissions.js ALLOW": 1,
-     "js/check-widgets.js ACCEPTED_IMPURE": 4,
+     "js/check-widgets.js ACCEPTED_IMPURE": 5,
      "check/cascade.js ACCEPTED": 28,
      "check/press-twice.js ACCEPTED": 2,
      "check/press.js ACCEPTED_QUIET": 15,
@@ -183,6 +183,17 @@
     }
    },
    {
+    "id": "longfiles",
+    "label": "Files over 3000 lines",
+    "count": 1,
+    "weight": 0.5,
+    "cap": 10,
+    "off": 0.5,
+    "where": {
+     "js/games.js": 3579
+    }
+   },
+   {
     "id": "longfns",
     "label": "Functions over 150 lines",
     "count": 1,
@@ -216,15 +227,6 @@
     "label": "Code nothing calls",
     "count": 0,
     "weight": 0.3,
-    "cap": 10,
-    "off": 0,
-    "where": {}
-   },
-   {
-    "id": "longfiles",
-    "label": "Files over 3000 lines",
-    "count": 0,
-    "weight": 0.5,
     "cap": 10,
     "off": 0,
     "where": {}
