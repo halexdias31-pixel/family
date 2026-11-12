@@ -1160,27 +1160,23 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
   width: 100%; min-height: 3rem; margin: 0; padding: 0;
 }
 .loading > span {
-  flex: none; width: .55rem; height: .55rem; border-radius: 50%;
-  background: var(--gold); opacity: .3;
-  animation: loading 1.2s ease-in-out infinite;
+  flex: none; display: block; width: 100%; max-width: 12rem; height: .25rem; overflow: hidden;
+  border-radius: var(--r-round); background: var(--line);
 }
-.loading > span:nth-child(2) { animation-delay: .2s; }
-.loading > span:nth-child(3) { animation-delay: .4s; }
-/* SMALL, IN MARK WITH AI'S STAGE LINE (456): the same dots beside the words the owner asked for. */
-.qp-ai-stage > .loading { width: auto; min-height: 1.3em; flex: none; gap: var(--s1); }
-.qp-ai-stage > .loading > span { width: .4rem; height: .4rem; }
-/* Opacity and a little scale only — the two a browser can run without laying anything out, so a column of these costs nothing while the app is busiest, which is § */
-@keyframes loading {
-  0%, 80%, 100% { opacity: .3; transform: scale(.75); }
-  35%           { opacity: 1;  transform: scale(1); }
+/* THE FILL: fast at first, ever slower, never reaching the end on its own — the content landing is what ends it. */
+.loading > span::before {
+  content: ''; display: block; height: 100%; background: var(--gold);
+  transform-origin: left; transform: scaleX(.92);
+  animation: loading 12s cubic-bezier(.1, .7, .2, 1) both;
 }
-/* STILL, NOT GONE, for somebody who asked for less movement: three dots at one strength are still a
-   thing on its way, and taking them away would take the state with them — the busy ring's argument. */
+.qp-ai-stage > .loading { width: 4rem; min-height: 1.3em; flex: none; }
+@keyframes loading { from { transform: scaleX(.04); } to { transform: scaleX(.92); } }
+/* STILL, NOT GONE, for somebody who asked for less movement: a half-filled bar is still a thing on its way. */
 @media (prefers-reduced-motion: reduce) {
-  .loading, .loading > span { animation: none; opacity: .7; transform: none; }
+  .loading > span::before { animation: none; transform: scaleX(.5); }
 }
 /* ONLY THE CARD IN FRONT MOVES. § */
-.page:not(.on) .loading, .page:not(.on) .loading > span { animation: none; }
+.page:not(.on) .loading > span::before { animation-play-state: paused; }
 /* A WHOLE PAGE WAITING: § */
 .pane:not([data-keep]):has(> .loading:only-child) {
   min-height: 6rem;
@@ -2320,11 +2316,10 @@ textarea { touch-action: none; }
 
 /* NO SPLASH (466): nothing covers the app while the payload comes; only a load still waiting after 30 s says so, here. */
 #boot-slow { position: fixed; left: 50%; bottom: calc(var(--bar) + var(--safe-bottom) + 1rem); transform: translateX(-50%); z-index: 30;
-             width: min(32rem, 88vw); margin: 0; padding: var(--s2) var(--s3); text-align: center;
-             background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-ui);
-             font: 400 var(--fs-small)/1.55 var(--mono); color: var(--ink); }
-#boot-slow b { color: var(--warn); }
-#boot-slow code { color: var(--hue-1); word-break: break-all; }
+             width: min(32rem, 88vw); margin: 0; text-align: center; }
+#boot-slow .boot-why { font-size: var(--fs-small); word-break: break-all; }
+#boot-slow .tile-row { justify-content: center; }
+#boot-slow .boot-why > summary { list-style: none; cursor: pointer; }
 
 /* IF IT CAN BE TAPPED, IT LOOKS LIKE IT THE PROBLEM. § */
 

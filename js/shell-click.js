@@ -434,6 +434,22 @@ function api(body, opts) {
   return p;
 }
 
+/* A READ DRAWN FROM ITS LAST KNOWN REPLY (owner, 11 Nov): `use` (then `after`) runs at once with the kept copy, then again with the server's, marked fresh. */
+/* ONE RULE FOR EVERY FETCHED CARD, so Apps Script's seconds are spent behind content, not a loader; a failure with a copy on hand stays quiet. */
+function apiKept_(body, use, after) {
+  const run = (d, old) => { use(d, old); if (typeof after === 'function') after(); };
+  const k = keptKey_(body), kept = keptGet_(k);
+  const shown = kept ? JSON.stringify(kept) : null;
+  if (kept) { Promise.resolve().then(() => run(kept, true)).catch(e => oops_(e, 'shell:kept')); }
+  return api(body).then(d => {
+    if (!d || d.error) { if (!kept) run(d || {}, false); return d; }
+    const t = JSON.stringify(d);
+    if (t !== shown) keptPut_(k, t);
+    run(d, false);
+    return d;
+  }, err => { if (kept) return kept; throw err; });
+}
+
 /** The same request, refusing to resolve on a refusal — for callers that would rather catch. */
 function send(body) {
   return api(body).then(d => {

@@ -59,7 +59,7 @@
 
   /* ---------- AND THEN THE 230KB WAS A MEGABYTE § */
   /* THE FILES' OWN HASH (750), written by tools/build-stamp.js and held to them by its --check: it moves when a served file changes and never by the clock. */
-  var BUILD_STAMP = '5f5b8f6f06bb';
+  var BUILD_STAMP = 'f20ce1794d19';
   LOAD = /(?:^|[?&])dev(?:[=&]|$)/.test(location.search)
     ? String(Date.now())                        /* the publisher: nothing may be held */
     : BUILD_STAMP || String(Math.floor(LOAD_AT / 300000));     /* everybody else: the hash; the old rounded build time only if the line was emptied */
@@ -142,7 +142,7 @@
 <!-- THE HEADER WAS HERE. § -->
 
 <!-- NO SPLASH (466): the first screen paints at once from the markup and the device's copy; what still waits shows loading_() in place. -->
-<p id="boot-slow" class="hidden"></p>
+<div id="boot-slow" class="hidden"></div>
 <script>
   /* AND IF THE CODE ARRIVED AND THE DATA NEVER DOES. § */
   /* ONLY WHILE THE CODE OR THE BACKEND'S REPLY IS MISSING, and it says which in plain words (503). "Files" was the deploy stamp, not a count. */
@@ -155,14 +155,18 @@
     var b = document.getElementById('boot-slow');
     if (!b) return;
     b.className = '';
-    b.innerHTML = '<b>Still loading after 30 seconds.</b><br>'
-      + (codeHere
-        ? 'The app is here; it is waiting for the server to answer. A cold server can take a minute, and it will finish by itself.'
-        : 'The app\u2019s own code has not finished arriving' + (window.__gone && window.__gone.length
-          ? ' (' + window.__gone.join(', ') + ' failed)' : '') + '. Reload the page to ask again.')
-      + (url ? '<br>It is calling:<br><code>' + url + '</code><br>'
-        + 'Open that address in a tab. JSON means the backend is fine; a sign-in page means the deployment is not shared; '
-        + 'a 404 means the address is wrong.' : '');
+    /* ONE CALM CARD (owner, 11 Nov): the bar keeps going, the plain words, one round Try again; the address only for an admin, behind its ⋯. */
+    var admin = false;
+    try { admin = typeof isAdmin === 'function' && isAdmin(); } catch (e) {}
+    var again = '';
+    try { again = codeHere && typeof tile_ === 'function' ? tile_({ icon: 'again', label: 'Try again', act: 'retry' }) : ''; } catch (e) {}
+    var inner = '<p>Taking longer than usual. It will finish by itself.</p>'
+      + (typeof loading_ === 'function' ? loading_() : '')
+      + '<div class="tile-row">' + (again || '<a class="tile" href="">Try again</a>') + '</div>'
+      + (admin ? '<details class="boot-why"><summary aria-label="Details">\u22ef</summary>'
+        + (codeHere ? 'Waiting for ' : 'Code missing' + (window.__gone && window.__gone.length ? ': ' + window.__gone.join(', ') : '') + '. ')
+        + (url ? url.replace(/[<>&"]/g, '') : '') + '</details>' : '');
+    try { b.innerHTML = typeof card_ === 'function' ? card_(inner) : '<div class="card">' + inner + '</div>'; } catch (e) { b.innerHTML = '<div class="card">' + inner + '</div>'; }
   }, 30000);
 
 </script>

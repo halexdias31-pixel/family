@@ -197,14 +197,12 @@ const appsDraw_ = () => { document.querySelectorAll('[data-apps]').forEach(c => 
 function appsStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || APPS.asking) return;
   APPS.asking = true;
-  api({ action: 'listApplications' })
-    .then(d => {
+  apiKept_({ action: 'listApplications' }, d => {
       APPS.asking = false;
       if (!d || d.error) { APPS.error = String((d && d.error) || 'The applications did not come.'); return; }
       APPS.error = ''; APPS.list = Array.isArray(d.applications) ? d.applications : []; APPS.open = Number(d.open) || 0;
-    })
-    .catch(() => { APPS.asking = false; APPS.error = 'The applications could not be fetched — check the connection.'; })
-    .then(appsDraw_);
+    }, appsDraw_)
+    .catch(() => { APPS.asking = false; APPS.error = 'The applications could not be fetched — check the connection.'; appsDraw_(); });
 }
 on('app-decide', el => {
   if (!isAdmin()) return;
@@ -249,14 +247,12 @@ const errsDraw_ = () => { document.querySelectorAll('[data-errs]').forEach(c => 
 function errsStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || ERRS.asking) return;
   ERRS.asking = true;
-  api({ action: 'listClientErrors' })
-    .then(d => {
+  apiKept_({ action: 'listClientErrors' }, d => {
       ERRS.asking = false;
       if (!d || d.error) { ERRS.error = String((d && d.error) || 'The error log did not come.'); return; }
       ERRS.error = ''; ERRS.list = Array.isArray(d.errors) ? d.errors.filter(r => r && typeof r === 'object') : [];
-    })
-    .catch(() => { ERRS.asking = false; ERRS.error = 'The error log could not be fetched — check the connection.'; })
-    .then(errsDraw_);
+    }, errsDraw_)
+    .catch(() => { ERRS.asking = false; ERRS.error = 'The error log could not be fetched — check the connection.'; errsDraw_(); });
 }
 on('errs-refresh', () => { ERRS.list = null; ERRS.error = ''; errsDraw_(); document.querySelectorAll('[data-errs] .err-body').forEach(b => { b.setAttribute('aria-busy', 'true'); b.insertAdjacentHTML('beforeend', loading_()); }); errsStart_(); });
 
@@ -309,15 +305,13 @@ const reportsDraw_ = () => { document.querySelectorAll('[data-reports]').forEach
 function reportsStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || REPS.asking) return;
   REPS.asking = true;
-  api({ action: 'listSuggestions' })
-    .then(d => {
+  apiKept_({ action: 'listSuggestions' }, d => {
       REPS.asking = false;
       if (!d || d.error) { REPS.error = String((d && d.error) || 'The suggestions did not come.'); return; }
       REPS.error = ''; REPS.list = Array.isArray(d.suggestions) ? d.suggestions : []; REPS.open = Number(d.open) || 0;
       REPS.msgs = Array.isArray(d.messages) ? d.messages : [];
-    })
-    .catch(() => { REPS.asking = false; REPS.error = 'The suggestions could not be fetched — check the connection.'; })
-    .then(reportsDraw_);
+    }, reportsDraw_)
+    .catch(() => { REPS.asking = false; REPS.error = 'The suggestions could not be fetched — check the connection.'; reportsDraw_(); });
 }
 
 on('rep-status', el => {
@@ -388,14 +382,12 @@ const libImpDraw_ = () => { document.querySelectorAll('[data-libimp]').forEach(c
 function libImpStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || LIBIMP.asking) return;
   LIBIMP.asking = true;
-  api({ action: 'libImportList' })
-    .then(d => {
+  apiKept_({ action: 'libImportList' }, d => {
       LIBIMP.asking = false;
       if (!d || d.error) { LIBIMP.error = String((d && d.error) || 'The Drive folder did not answer.'); return; }
       LIBIMP.error = ''; LIBIMP.list = Array.isArray(d.pending) ? d.pending : []; LIBIMP.last = d.last || null; LIBIMP.auto = d.auto || null;
-    })
-    .catch(() => { LIBIMP.asking = false; LIBIMP.error = 'Drive could not be asked — check the connection.'; })
-    .then(libImpDraw_);
+    }, libImpDraw_)
+    .catch(() => { LIBIMP.asking = false; LIBIMP.error = 'Drive could not be asked — check the connection.'; libImpDraw_(); });
 }
 on('lib-import', el => {
   if (!(typeof isAdmin === 'function' && isAdmin())) return;
@@ -897,20 +889,18 @@ const bizFillEach_ = () => document.querySelectorAll('.me-form[data-biz-page]')
 function bizStart_() {
   if (!can_(myRole_(), 'action', 'listRecords') || BIZ.list || BIZ.asking) return;
   BIZ.asking = true; BIZ.error = '';
-  api({ action: 'listRecords', name: USER && USER.name })
-    .then(d => {
+  apiKept_({ action: 'listRecords', name: USER && USER.name }, (d, old) => {
       BIZ.asking = false;
       if (d && d.error) BIZ.error = String(d.error);
-      else BIZ.list = (d && Array.isArray(d.records)) ? d.records : [];
-    })
-    .catch(() => { BIZ.asking = false; BIZ.error = 'The records could not be fetched — check the connection.'; })
-    .then(bizFillAll_);
+      else { BIZ.list = (d && Array.isArray(d.records)) ? d.records : []; BIZ.stale = !!old; }
+    }, bizFillAll_)
+    .catch(() => { BIZ.asking = false; BIZ.error = 'The records could not be fetched — check the connection.'; bizFillAll_(); });
 }
 
 on('biz-save', el => {
   const form = el.closest('.me-form');
   if (!form || !can_(myRole_(), 'action', 'saveRecordsPage')) return;
-  if (!BIZ.list) {
+  if (!BIZ.list || BIZ.stale) {
     toast(BIZ.error ? 'The records have not loaded, so nothing was saved — trying again.'
                     : 'The records are still on their way — a moment.');
     if (BIZ.error) { BIZ.error = ''; bizStart_(); }
