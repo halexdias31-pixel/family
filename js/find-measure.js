@@ -105,10 +105,12 @@ on('dock-drop', (el, e) => {
 
 on('dock-clear', () => docketSave(docketLines().filter(l => !l.done)));
 
-on('dock-add', () => {
-  const box = $('dock-add');
+/* THE BOX IN THE COPY PRESSED (Find may hold two), and an empty press says what to do (owner, 12 Nov: every press answers). */
+on('dock-add', el => {
+  const host = el && el.closest && el.closest('[id^="wgt-"]');
+  const box = (host && host.querySelector('#dock-add')) || $('dock-add');
   const text = (box && box.value || '').trim();
-  if (!text) { box?.focus(); return; }
+  if (!text) { document.querySelectorAll('[id="dock-said"]').forEach(n => { n.textContent = 'Type a line first.'; }); box?.focus(); return; }
   const list = docketLines();
   /* NEW LINES GO AT THE BOTTOM. A list that grows from the top moves everything you were reading
      every time you add to it, which on a phone means losing your place to your own typing. */
