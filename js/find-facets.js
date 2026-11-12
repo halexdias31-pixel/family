@@ -300,7 +300,7 @@ function facetSplit_(items, facet) {
 const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet', 'End of topic test': 'Worksheet' };
 /* KINDS UNDER KINDS (546, 610): questions, answers and practicals under Practice; timelines, and projects (owner, 7 Nov), under Library. */
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
-const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library',
+const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library', spec: 'Library',
   /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
   /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): one card, tagged Booking and Profiles, like a setting's several types. */
   tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', bookform: 'Booking', shop: 'Shop',

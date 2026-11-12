@@ -1,0 +1,189 @@
+{
+ "id": "aqa-8582",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Physical Education",
+ "code": "8582",
+ "url": "https://filestore.aqa.org.uk/resources/pe/specifications/AQA-8582-SP-2016.PDF",
+ "sections": [
+  {
+   "id": "3.1",
+   "title": "The human body and movement in physical activity and"
+  },
+  {
+   "id": "3.2",
+   "title": "Socio-cultural influences and wellbeing in physical"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.1.1",
+   "text": "Applied anatomy and physiology",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.1",
+   "text": "The structure and functions of the musculoskeletal system",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.2",
+   "text": "The structure and functions of the cardio-respiratory system",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.3",
+   "text": "Anaerobic and aerobic exercise",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.4",
+   "text": "The short and long term effects of exercise",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2",
+   "text": "Movement analysis",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2.1",
+   "text": "Lever systems, examples of their use in activity and the mechanical advantage",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.2.2",
+   "text": "Planes and axes of movement",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.3",
+   "text": "Physical training",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.3.2",
+   "text": "The components of fitness, benefits for sport and how fitness is measured and",
+   "parent": "3.1.3",
+   "links": []
+  },
+  {
+   "id": "3.1.3.3",
+   "text": "The principles of training and their application to personal exercise/training",
+   "parent": "3.1.3",
+   "links": []
+  },
+  {
+   "id": "3.1.3.4",
+   "text": "How to optimise training and prevent injury",
+   "parent": "3.1.3",
+   "links": []
+  },
+  {
+   "id": "3.1.4",
+   "text": "Use of data",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.4.1",
+   "text": "Demonstrate an understanding of how data are collected – both qualitative",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.1.4.2",
+   "text": "Present data (including tables and graphs)",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.1.4.3",
+   "text": "Analyse and evaluate data",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Sports psychology",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.1.2",
+   "text": "The use of goal setting and SMART targets to improve and/or optimise",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.3",
+   "text": "Basic information processing",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.4",
+   "text": "Guidance and feedback on performance",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.5",
+   "text": "Mental preparation for performance",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.2",
+   "text": "Socio-cultural influences",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.1",
+   "text": "Engagement patterns of different social groups in physical activity and sport",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.2",
+   "text": "Commercialisation of physical activity and sport",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.3",
+   "text": "Ethical and socio-cultural issues in physical activity and sport",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.2.3",
+   "text": "Health, fitness and wellbeing",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.3.2",
+   "text": "The consequences of a sedentary lifestyle",
+   "parent": "3.2.3",
+   "links": []
+  },
+  {
+   "id": "3.2.3.3",
+   "text": "Energy use, diet, nutrition and hydration",
+   "parent": "3.2.3",
+   "links": []
+  }
+ ]
+}

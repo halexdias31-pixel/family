@@ -1,0 +1,2029 @@
+{
+ "id": "edexcel-1sc0",
+ "board": "Edexcel",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Combined Science",
+ "code": "1SC0",
+ "url": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Science/2016/Specification/gcse-combinedscience-spec.pdf",
+ "sections": [
+  {
+   "id": "T1",
+   "title": "Key concepts in biology"
+  },
+  {
+   "id": "T2",
+   "title": "Cells and control"
+  },
+  {
+   "id": "T3",
+   "title": "Genetics"
+  },
+  {
+   "id": "T4",
+   "title": "Natural selection and genetic modification"
+  },
+  {
+   "id": "T5",
+   "title": "Health, disease and the development of medicines"
+  },
+  {
+   "id": "T6",
+   "title": "Plant structures and their functions"
+  },
+  {
+   "id": "T7",
+   "title": "Animal coordination, control and homeostasis"
+  },
+  {
+   "id": "T8",
+   "title": "Exchange and transport in animals"
+  },
+  {
+   "id": "T9",
+   "title": "Ecosystems and material cycles"
+  },
+  {
+   "id": "T10",
+   "title": "Electricity and circuits"
+  },
+  {
+   "id": "T12",
+   "title": "Magnetism and the motor effect"
+  },
+  {
+   "id": "T13",
+   "title": "Electromagnetic induction"
+  },
+  {
+   "id": "T14",
+   "title": "Particle model"
+  },
+  {
+   "id": "T15",
+   "title": "Forces and matter"
+  },
+  {
+   "id": "T11",
+   "title": "Static electricity."
+  }
+ ],
+ "points": [
+  {
+   "id": "1.1",
+   "text": "Explain how the sub-cellular structures of eukaryotic and prokaryotic cells are related to their functions, including",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.2",
+   "text": "Describe how specialised cells are adapted to their function, including",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.3",
+   "text": "Explain how changes in microscope technology, including electron microscopy, have enabled us to see cell structures and organelles with…",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.4",
+   "text": "Demonstrate an understanding of number, size and scale, including the use of estimations and explain when they should be used",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.5",
+   "text": "Demonstrate an understanding of the relationship between quantitative units in relation to cells, including",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.6",
+   "text": "Core Practical: Investigate biological specimens using microscopes, including magnification calculations and labelled scientific drawings…",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.7",
+   "text": "Explain the mechanism of enzyme action including the active site and enzyme specificity",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.8",
+   "text": "Explain how enzymes can be denatured due to changes in the shape of the active site",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.9",
+   "text": "Explain the effects of temperature, substrate concentration and pH on enzyme activity",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.10",
+   "text": "Core Practical: Investigate the effect of pH on enzyme activity",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.11",
+   "text": "Demonstrate an understanding of rate calculations for enzyme activity",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.12",
+   "text": "Explain the importance of enzymes as biological catalysts in the synthesis of carbohydrates, proteins and lipids and their breakdown into…",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.15",
+   "text": "Explain how substances are transported into and out of cells, including by diffusion, osmosis and active transport",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.16",
+   "text": "Core Practical: Investigate osmosis in potatoes",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.17",
+   "text": "Calculate percentage gain and loss of mass in osmosis",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "2.1",
+   "text": "Describe mitosis as part of the cell cycle, including the stages interphase, prophase, metaphase, anaphase and telophase and cytokinesis",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.2",
+   "text": "Describe the importance of mitosis in growth, repair and asexual reproduction",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.3",
+   "text": "Describe the division of a cell by mitosis as the production of two daughter cells, each with identical sets of chromosomes in the nucleus…",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.4",
+   "text": "Describe cancer as the result of changes in cells that lead to uncontrolled cell division",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.5",
+   "text": "Describe growth in organisms, including",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.6",
+   "text": "Explain the importance of cell differentiation in the development of specialised cells",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.7",
+   "text": "Demonstrate an understanding of the use of percentiles charts to monitor growth",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.8",
+   "text": "Describe the function of embryonic stem cells, stem cells in animals and meristems in plants",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.9",
+   "text": "Discuss the potential benefits and risks associated with the use of stem cells in medicine",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.13",
+   "text": "Explain the structure and function of sensory receptors, sensory neurones, relay neurones in the CNS, motor neurones and",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.14",
+   "text": "Explain the structure and function of a reflex arc including sensory, relay and motor neurones",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "3.3",
+   "text": "Explain the role of meiotic cell division, including the production of four daughter cells, each with half the number of chromosomes, and…",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.4",
+   "text": "Describe DNA as a polymer made up of",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.5",
+   "text": "Describe the genome as the entire DNA of an organism and a gene as a section of a DNA molecule that codes for a specific protein",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.6",
+   "text": "Explain how DNA can be extracted from fruit",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.12",
+   "text": "Explain why there are differences in the inherited characteristics as a result of alleles",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.13",
+   "text": "Explain the terms: chromosome, gene, allele, dominant, recessive, homozygous, heterozygous, genotype, phenotype, gamete and zygote",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.14",
+   "text": "Explain monohybrid inheritance using genetic diagrams, Punnett squares and family pedigrees",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.15",
+   "text": "Describe how the sex of offspring is determined at fertilisation, using genetic diagrams",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.16",
+   "text": "Calculate and analyse outcomes (using probabilities, ratios and percentages) from monohybrid crosses and pedigree analysis",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.19",
+   "text": "State that most phenotypic features are the result of multiple genes rather than single gene inheritance",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.20",
+   "text": "Describe the causes of variation that influence phenotype, including",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.21",
+   "text": "Discuss the outcomes of the Human Genome Project and its potential applications within medicine",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.22",
+   "text": "State that there is usually extensive genetic variation within a population of a species and that these arise through mutations",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.23",
+   "text": "State that most genetic mutations have no effect on the phenotype, some mutations have a small effect on the phenotype and, rarely, a…",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "4.2",
+   "text": "Explain Charles Darwin’s theory of evolution by natural selection",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.3",
+   "text": "Explain how the emergence of resistant organisms supports Charles Darwin’s theory of evolution including antibiotic",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.4",
+   "text": "Describe the evidence for human evolution, based on fossils, including",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.5",
+   "text": "Describe the evidence for human evolution based on stone tools, including",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.7",
+   "text": "Describe how genetic analysis has led to the suggestion of the three domains rather than the five kingdoms classification method",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.8",
+   "text": "Explain selective breeding and its impact on food plants and domesticated animals",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.10",
+   "text": "Describe genetic engineering as a process which involves modifying the genome of an organism to introduce desirable characteristics",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.11",
+   "text": "Describe the main stages of genetic engineering including the use of",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.14",
+   "text": "Evaluate the benefits and risks of genetic engineering and selective breeding in modern agriculture and medicine, including",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "5.1",
+   "text": "Describe health as a state of complete physical, mental and social well-being and not merely the absence of disease or infirmity, as…",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.2",
+   "text": "Describe the difference between communicable and non-communicable diseases",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.3",
+   "text": "Explain why the presence of one disease can lead to a higher susceptibility to other diseases",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.4",
+   "text": "Describe a pathogen as a disease-causing organism, including viruses, bacteria, fungi and protists",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.5",
+   "text": "Describe some common infections, including",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.6",
+   "text": "Explain how pathogens are spread and how this spread can be reduced or prevented, including",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.8",
+   "text": "Explain how sexually transmitted infections (STIs) are spread and how this spread can be reduced or prevented, including",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.12",
+   "text": "Describe how the physical barriers and chemical defences of the human body provide protection from pathogens, including",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.13",
+   "text": "Explain the role of the specific immune system of the human body in defence against disease, including",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.14",
+   "text": "Explain the body’s response to immunisation using an inactive form of a pathogen",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.16",
+   "text": "Explain that antibiotics can only be used to treat bacterial infections because they inhibit cell processes in the bacterium but not the…",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.20",
+   "text": "Describe that the process of developing new medicines, including antibiotics, has many stages, including discovery, development…",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.23",
+   "text": "Describe that many non-communicable human diseases are caused by the interaction of a number of factors, including cardiovascular diseases…",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.24",
+   "text": "Explain the effect of lifestyle factors on non-communicable diseases at local, national and global levels, including",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.25",
+   "text": "Evaluate some different treatments for cardiovascular disease, including",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "6.1",
+   "text": "Describe photosynthetic organisms as the main producers of food and therefore biomass",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.2",
+   "text": "Describe photosynthesis in plants and algae as an endothermic reaction that uses light energy to react carbon dioxide and water to produce…",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.3",
+   "text": "Explain the effect of temperature, light intensity and carbon dioxide concentration as limiting factors on the rate of",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.4",
+   "text": "Explain the interactions of temperature, light intensity and carbon dioxide concentration in limiting the rate of photosynthesis",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.5",
+   "text": "Core Practical: Investigate the effect of light intensity on the rate of photosynthesis",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.6",
+   "text": "Explain how the rate of photosynthesis is directly proportional to light intensity and inversely proportional",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.7",
+   "text": "Explain how the structure of the root hair cells is adapted to absorb water and mineral ions",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.8",
+   "text": "Explain how the structures of the xylem and phloem are adapted to their function in the plant, including",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.9",
+   "text": "Explain how water and mineral ions are transported through the plant by transpiration, including the structure and function of the stomata",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.10",
+   "text": "Describe how sucrose is transported around the plant by translocation",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.12",
+   "text": "Explain the effect of environmental factors on the rate of water uptake by a plant, to include light intensity, air movement and",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.13",
+   "text": "Demonstrate an understanding of rate calculations for transpiration",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "7.1",
+   "text": "Describe where hormones are produced and how they are transported from endocrine glands to their target organs, including the pituitary…",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.2",
+   "text": "Explain that adrenalin is produced by the adrenal glands to prepare the body for fight or flight, including",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.3",
+   "text": "Explain how thyroxine controls metabolic rate as an example of negative feedback, including",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.4",
+   "text": "Describe the stages of the menstrual cycle, including the roles of the hormones oestrogen and progesterone, in the control of the menstrual…",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.5",
+   "text": "Explain the interactions of oestrogen, progesterone, FSH and LH in the control of the menstrual cycle, including the repair and maintenance…",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.6",
+   "text": "Explain how hormonal contraception influences the menstrual cycle and prevents pregnancy",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.7",
+   "text": "Evaluate hormonal and barrier methods of contraception",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.8",
+   "text": "Explain the use of hormones in Assisted Reproductive Technology (ART) including IVF and clomifene therapy",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.9",
+   "text": "Explain the importance of maintaining a constant internal environment in response to internal and external change",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.13",
+   "text": "Explain how the hormone insulin controls blood glucose concentration",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.14",
+   "text": "Explain how blood glucose concentration is regulated by glucagon",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.15",
+   "text": "Explain the cause of type 1 diabetes and how it is controlled",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.16",
+   "text": "Explain the cause of type 2 diabetes and how it is controlled",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.17",
+   "text": "Evaluate the correlation between body mass and type 2 diabetes including waist:hip calculations and BMI, using the BMI",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "8.1",
+   "text": "Describe the need to transport substances into and out of a range of organisms, including oxygen, carbon dioxide, water, dissolved food…",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.2",
+   "text": "Explain the need for exchange surfaces and a transport system in multicellular organisms including the calculation of surface",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.3",
+   "text": "Explain how alveoli are adapted for gas exchange by diffusion between air in the lungs and blood in capillaries",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.6",
+   "text": "Explain how the structure of the blood is related to its function",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.7",
+   "text": "Explain how the structure of the blood vessels is related to their function",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.8",
+   "text": "Explain how the structure of the heart and circulatory system is related to its function, including the role of the major blood vessels…",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.9",
+   "text": "Describe cellular respiration as an exothermic reaction which occurs continuously in living cells to release energy for metabolic…",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.10",
+   "text": "Compare the process of aerobic respiration with the process of anaerobic respiration",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.11",
+   "text": "Core Practical: Investigate the rate of respiration in living organisms",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.12",
+   "text": "Calculate heart rate, stroke volume and cardiac output, using the equation cardiac output = stroke volume × heart rate",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "9.1",
+   "text": "Describe the different levels of organisation from individual organisms, populations, communities, to the whole ecosystem",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "9.2",
+   "text": "Explain how communities can be affected by abiotic and biotic factors, including",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "9.3",
+   "text": "Describe the importance of interdependence in a community",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "9.4",
+   "text": "Describe how the survival of some organisms is dependent on other species, including parasitism and mutualism",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "9.5",
+   "text": "Core Practical: Investigate the relationship between organisms and their environment using field-work techniques, including",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "9.6",
+   "text": "Explain how to determine the number of organisms in a given area using raw data from field-work techniques, including",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "9.9",
+   "text": "Explain the positive and negative human interactions within ecosystems and their impacts on biodiversity, including",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "9.10",
+   "text": "Explain the benefits of maintaining local and global biodiversity, including the conservation of animal species and the impact of…",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "9.12",
+   "text": "Describe how different materials cycle through the abiotic and biotic components of an ecosystem",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "9.13",
+   "text": "Explain the importance of the carbon cycle, including the processes involved and the role of microorganisms as decomposers",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "9.14",
+   "text": "Explain the importance of the water cycle, including the processes involved and the production of potable water in areas of drought…",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "9.15",
+   "text": "Explain how nitrates are made available for plant uptake, including the use of fertilisers, crop rotation and the role of bacteria in the…",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "0.1",
+   "text": "Recall the formulae of elements, simple compounds and ions",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "0.2",
+   "text": "Write word equations",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "0.3",
+   "text": "Write balanced chemical equations, including the use of the state symbols (s), (l), (g) and (aq)",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "0.4",
+   "text": "Write balanced ionic equations",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "0.5",
+   "text": "Describe the use of hazard symbols on containers",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "0.6",
+   "text": "Evaluate the risks in a practical procedure and suggest suitable precautions for a range of practicals including those mentioned in the…",
+   "parent": "T9",
+   "links": []
+  },
+  {
+   "id": "1.13",
+   "text": "Describe how Dmitri Mendeleev arranged the elements, known at that time, in a periodic table by using properties of these elements and…",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.14",
+   "text": "Describe how Dmitri Mendeleev used his table to predict the existence and properties of some elements not then discovered",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.18",
+   "text": "Identify elements as metals or non-metals according to their position in the periodic table, explaining this division in terms of the…",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.19",
+   "text": "Predict the electronic configurations of the first 20 elements in the periodic table as diagrams and in the form, for example",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.20",
+   "text": "Explain how the electronic configuration of an element is related to its position in the periodic table",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.21",
+   "text": "Explain how ionic bonds are formed by the transfer of electrons between atoms to produce cations and anions, including the use of dot and…",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.22",
+   "text": "Recall that an ion is an atom or group of atoms with a positive or negative charge",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.23",
+   "text": "Calculate the numbers of protons, neutrons and electrons in simple ions given the atomic number and mass number",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.24",
+   "text": "Explain the formation of ions in ionic compounds from their atoms, limited to compounds of elements in groups 1, 2, 6",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.25",
+   "text": "Explain the use of the endings –ide and –ate in the names of compounds",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.26",
+   "text": "Deduce the formulae of ionic compounds (including oxides, hydroxides, halides, nitrates, carbonates and sulfates) given the formulae of the…",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.27",
+   "text": "Explain the structure of an ionic compound as a lattice structure",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.28",
+   "text": "Explain how a covalent bond is formed when a pair of electrons is shared between two atoms",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.29",
+   "text": "Recall that covalent bonding results in the formation of molecules",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.30",
+   "text": "Recall the typical size (order of magnitude) of atoms and small molecules",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.31",
+   "text": "Explain the formation of simple molecular, covalent substances, using dot and cross diagrams, including",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.32",
+   "text": "Explain why elements and compounds can be classified as",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.33",
+   "text": "Explain the properties of ionic compounds limited to",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.34",
+   "text": "Explain the properties of typical covalent, simple molecular compounds limited to",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.35",
+   "text": "Recall that graphite and diamond are different forms of carbon and that they are examples of giant covalent substances",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.36",
+   "text": "Describe the structures of graphite and diamond",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.37",
+   "text": "Explain, in terms of structure and bonding, why graphite is used to make electrodes and as a lubricant, whereas diamond is used in cutting…",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.38",
+   "text": "Explain the properties of fullerenes including C60 and graphene in terms of their structures and bonding",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.39",
+   "text": "Describe, using poly(ethene) as the example, that simple polymers consist of large molecules containing chains of carbon atoms",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.40",
+   "text": "Explain the properties of metals, including malleability and the ability to conduct electricity",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.41",
+   "text": "Describe the limitations of particular representations and models to, include dot and cross, ball and stick models and two- and…",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.42",
+   "text": "Describe most metals as shiny solids which have high melting points, high density and are good conductors of electricity whereas most…",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.43",
+   "text": "Calculate",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.44",
+   "text": "Calculate the formulae of simple compounds from reacting masses or percentage composition and understand that these",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.45",
+   "text": "Deduce",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.46",
+   "text": "Describe an experiment to determine the empirical formula of a simple compound such as magnesium oxide",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.47",
+   "text": "Explain the law of conservation of mass applied to",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.48",
+   "text": "Calculate masses of reactants and products from balanced equations, given the mass of one substance",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.49",
+   "text": "Calculate the concentration of solutions in g dm–3",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.50",
+   "text": "Recall that one mole of particles of a substance is defined as",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.51",
+   "text": "Calculate the number of",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.52",
+   "text": "Explain why, in a reaction, the mass of product formed is controlled by the mass of the reactant which is not in excess",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "1.53",
+   "text": "Deduce the stoichiometry of a reaction from the masses of the reactants and products",
+   "parent": "T1",
+   "links": []
+  },
+  {
+   "id": "2.10",
+   "text": "Interpret a paper chromatogram",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.11",
+   "text": "Core Practical: Investigate the composition of inks using simple distillation and paper chromatography",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.12",
+   "text": "Describe how",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "3.1",
+   "text": "Recall that acids in solution are sources of hydrogen ions and alkalis in solution are sources of hydroxide ions",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.2",
+   "text": "Recall that a neutral solution has a pH of 7 and that acidic solutions have lower pH values and alkaline solutions higher pH values",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.7",
+   "text": "Explain the terms dilute and concentrated, with respect to amount of substances in solution",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.8",
+   "text": "Explain the terms weak and strong acids, with respect to the degree of dissociation into ions",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.9",
+   "text": "Recall that a base is any substance that reacts with an acid to form a salt and water only",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.10",
+   "text": "Recall that alkalis are soluble bases",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.11",
+   "text": "Explain the general reactions of aqueous solutions of acids with",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.17",
+   "text": "Core Practical: Investigate the preparation of pure, dry hydrated copper sulfate crystals starting from copper oxide including the use of a…",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.18",
+   "text": "Describe how to carry out an acid-alkali titration, using burette, pipette and a suitable indicator, to prepare a pure, dry salt",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.24",
+   "text": "Explain the movement of ions during electrolysis, in which",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.25",
+   "text": "Explain the formation of the products in the electrolysis, using inert electrodes, of some electrolytes, including",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.26",
+   "text": "Predict the products of electrolysis of other binary, ionic compounds in the molten state",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.27",
+   "text": "Write half equations for reactions occurring at the anode and cathode in electrolysis",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.28",
+   "text": "Explain oxidation and reduction in terms of loss or gain of electrons",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.29",
+   "text": "Recall that reduction occurs at the cathode and that oxidation occurs at the anode in electrolysis reactions",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.30",
+   "text": "Explain the formation of the products in the electrolysis of copper sulfate solution, using copper electrodes, and how this electrolysis…",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "3.31",
+   "text": "Core Practical: Investigate the electrolysis of copper sulfate solution with inert electrodes and copper electrodes",
+   "parent": "T3",
+   "links": []
+  },
+  {
+   "id": "4.1",
+   "text": "Deduce the relative reactivity of some metals, by their reactions with water, acids and salt solutions",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.6",
+   "text": "Recall that the extraction of metals involves reduction of ores",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.9",
+   "text": "Explain how a metal’s relative resistance to oxidation is related to its position in the reactivity series",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.12",
+   "text": "Evaluate data from a life cycle assessment of a product",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.13",
+   "text": "Recall that chemical reactions are reversible, the use of the symbol ⇌ in equations and that the direction of some reversible reactions can…",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.15",
+   "text": "Describe the formation of ammonia as a reversible reaction between nitrogen (extracted from the air) and hydrogen (obtained from natural…",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.16",
+   "text": "Recall the conditions for the Haber process as",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "4.17",
+   "text": "Predict how the position of a dynamic equilibrium is affected by changes in",
+   "parent": "T4",
+   "links": []
+  },
+  {
+   "id": "6.11",
+   "text": "Describe the relative reactivity of the halogens chlorine, bromine and iodine, as shown by their displacement reactions with halide ions in…",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.14",
+   "text": "Explain why the noble gases are chemically inert, compared with the other elements, in terms of their electronic configurations",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.15",
+   "text": "Explain how the uses of noble gases depend on their inertness, low density and/or non-flammability",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.16",
+   "text": "Describe the pattern in the physical properties of some noble gases and use this pattern to predict the physical properties of",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "7.10",
+   "text": "Describe an exothermic change or reaction as one in which heat energy is given out",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.11",
+   "text": "Describe an endothermic change or reaction as one in which heat energy is taken in",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "7.12",
+   "text": "Recall that the breaking of bonds is endothermic and the making of bonds is exothermic",
+   "parent": "T7",
+   "links": []
+  },
+  {
+   "id": "8.4",
+   "text": "Recall the names and uses of the following fractions",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.5",
+   "text": "Explain how hydrocarbons in different fractions differ from each other in",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.13",
+   "text": "Explain why, when fuels are burned in engines, oxygen and nitrogen can react together at high temperatures to produce oxides of nitrogen…",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.14",
+   "text": "Evaluate the advantages and disadvantages of using hydrogen, rather than petrol, as a fuel in cars",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.15",
+   "text": "Recall that petrol, kerosene and diesel oil are non-renewable fossil fuels obtained from crude oil and methane is a non- renewable fossil…",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.16",
+   "text": "Explain why cracking involves the breaking down of larger, saturated hydrocarbon molecules (alkanes) into smaller, more useful ones, some…",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.17",
+   "text": "Explain why cracking is necessary",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.18",
+   "text": "Recall that the gases produced by volcanic activity formed the Earth’s early atmosphere",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.19",
+   "text": "Describe that the Earth’s early atmosphere was thought to contain",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.20",
+   "text": "Explain how condensation of water vapour formed oceans",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.21",
+   "text": "Explain how the amount of carbon dioxide in the atmosphere was decreased when carbon dioxide dissolved as the oceans formed",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.22",
+   "text": "Explain how the growth of primitive plants used carbon dioxide and released oxygen by photosynthesis and consequently the amount of oxygen…",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.23",
+   "text": "Describe the chemical test for oxygen",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.24",
+   "text": "Describe how various gases in the atmosphere, including carbon dioxide, methane and water vapour, absorb heat radiated from the Earth…",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.25",
+   "text": "Evaluate the evidence for human activity causing climate change, considering",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "8.26",
+   "text": "Describe",
+   "parent": "T8",
+   "links": []
+  },
+  {
+   "id": "2.15",
+   "text": "Recall and use Newton’s second law as",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.16",
+   "text": "Define weight, recall and use the equation",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.17",
+   "text": "Describe how weight is measured",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.18",
+   "text": "Describe the relationship between the weight of a body and the gravitational field strength",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.19",
+   "text": "Core Practical: Investigate the relationship between force, mass and acceleration by varying the masses added to trolleys",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.20",
+   "text": "Explain that an object moving in a circular orbit at constant speed has a changing velocity (qualitative only)",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.21",
+   "text": "Explain that for motion in a circle there must be a resultant force known as a centripetal force that acts towards the centre of the circle",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.22",
+   "text": "Explain that inertial mass is a measure of how difficult it is to change the velocity of an object (including from rest) and know that it…",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.23",
+   "text": "Recall and apply Newton’s third law both to equilibrium situations and to collision interactions and relate it to the",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.24",
+   "text": "Define momentum, recall and use the equation",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.25",
+   "text": "Describe examples of momentum in collisions",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.26",
+   "text": "Use Newton’s second law as",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.27",
+   "text": "Explain methods of measuring human reaction times and recall typical results",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.28",
+   "text": "Recall that the stopping distance of a vehicle is made up of the sum of the thinking distance and the braking distance",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.29",
+   "text": "Explain that the stopping distance of a vehicle is affected by a range of factors including",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.30",
+   "text": "Describe the factors affecting a driver’s reaction time including drugs and distractions",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "2.31",
+   "text": "Explain the dangers caused by large decelerations and estimate the forces involved in typical situations on a",
+   "parent": "T2",
+   "links": []
+  },
+  {
+   "id": "5.7",
+   "text": "Recall that all electromagnetic waves are transverse, that they travel at the same speed in a vacuum",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.9",
+   "text": "Core Practical: Investigate refraction in rectangular glass blocks in terms of the interaction of electromagnetic waves with matter",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.10",
+   "text": "Recall the main groupings of the continuous electromagnetic spectrum including (in order) radio waves, microwaves, infrared, visible…",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.11",
+   "text": "Describe the electromagnetic spectrum as continuous from radio waves to gamma rays and that the radiations within it can be",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.21",
+   "text": "Describe the harmful effects on people of excessive exposure to electromagnetic radiation, including",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "5.22",
+   "text": "Describe some uses of electromagnetic radiation",
+   "parent": "T5",
+   "links": []
+  },
+  {
+   "id": "6.17",
+   "text": "Describe how and why the atomic model has changed over time including reference to the plum pudding model and Rutherford alpha particle…",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.18",
+   "text": "Describe the process of β– decay (a neutron becomes a proton plus an electron)",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.19",
+   "text": "Describe the process of β+ decay (a proton becomes a neutron plus a positron)",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.20",
+   "text": "Explain the effects on the atomic (proton) number and mass (nucleon) number of radioactive decays (α, β, γ and neutron",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.21",
+   "text": "Recall that nuclei that have undergone radioactive decay often undergo nuclear rearrangement with a loss of energy as gamma radiation",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.22",
+   "text": "Use given data to balance nuclear equations in terms of mass and charge",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.23",
+   "text": "Describe how the activity of a radioactive source decreases over a period of time",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.24",
+   "text": "Recall that the unit of activity of a radioactive isotope is the Becquerel, Bq",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.25",
+   "text": "Explain that the half-life of a radioactive isotope is the time taken for half the undecayed nuclei to decay or the activity of a",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.26",
+   "text": "Explain that it cannot be predicted when a particular nucleus will decay but half-life enables the activity of a very large number of",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.27",
+   "text": "Use the concept of half-life to carry out simple calculations on the decay of a radioactive isotope, including graphical",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.29",
+   "text": "Describe the dangers of ionising radiation in terms of tissue damage and possible mutations and relate this to the precautions needed",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.31",
+   "text": "Explain the precautions taken to ensure the safety of people exposed to radiation, including limiting the dose for patients and the risks…",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "6.32",
+   "text": "Describe the differences between contamination and irradiation effects and compare the hazards associated with these two",
+   "parent": "T6",
+   "links": []
+  },
+  {
+   "id": "10.1",
+   "text": "Describe the structure of the atom, limited to the position, mass and charge of protons, neutrons and electrons",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.2",
+   "text": "Draw and use electric circuit diagrams representing them with the conventions of positive and negative terminals, and the symbols that…",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.3",
+   "text": "Describe the differences between series and parallel circuits",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.4",
+   "text": "Recall that a voltmeter is connected in parallel with a component to measure the potential difference (voltage), in volt, across it",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.5",
+   "text": "Explain that potential difference (voltage) is the energy transferred per unit charge passed and hence that the volt is a",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.6",
+   "text": "Recall and use the equation",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.7",
+   "text": "Recall that an ammeter is connected in series with a component to measure the current, in amp, in the component",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.8",
+   "text": "Explain that an electric current as the rate of flow of charge and the current in metals is a flow of electrons",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.9",
+   "text": "Recall and use the equation",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.10",
+   "text": "Describe that when a closed circuit includes a source of potential difference there will be a current in the circuit",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.11",
+   "text": "Recall that current is conserved at a junction in a circuit",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.12",
+   "text": "Explain how changing the resistance in a circuit changes the current and how this can be achieved using a variable resistor",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.13",
+   "text": "Recall and use the equation",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.14",
+   "text": "Explain why, if two resistors are in series, the net resistance is increased, whereas with two in parallel the net resistance is decreased",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.15",
+   "text": "Calculate the currents, potential differences and resistances in series circuits",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.16",
+   "text": "Explain the design and construction of series circuits for testing and measuring",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.17",
+   "text": "Core Practical: Construct electrical circuits to",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.18",
+   "text": "Explain how current varies with potential difference for the following devices and how this relates to resistance",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.19",
+   "text": "Describe how the resistance of a light-dependent resistor (LDR) varies with light intensity",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.20",
+   "text": "Describe how the resistance of a thermistor varies with change of temperature (negative temperature coefficient thermistors only)",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.21",
+   "text": "Explain how the design and use of circuits can be used to explore the variation of resistance in the following devices",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.22",
+   "text": "Recall that, when there is an electric current in a resistor, there is an energy transfer which heats the resistor",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.23",
+   "text": "Explain that electrical energy is dissipated as thermal energy in the surroundings when an electrical current does work against electrical…",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.24",
+   "text": "Explain the energy transfer (in 10.22 above) as the result of collisions between electrons and the ions in the lattice",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.25",
+   "text": "Explain ways of reducing unwanted energy transfer through low resistance wires",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.26",
+   "text": "Describe the advantages and disadvantages of the heating effect of an electric current",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.27",
+   "text": "Use the equation",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.28",
+   "text": "Describe power as the energy transferred per second and recall that it is measured in watt",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.29",
+   "text": "Recall and use the equation",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.30",
+   "text": "Explain how the power transfer in any circuit device is related to the potential difference across it and the current in it",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.31",
+   "text": "Recall and use the equations",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.32",
+   "text": "Describe how, in different domestic devices, energy is transferred from batteries and the a.c. mains to the energy of motors and heating…",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.33",
+   "text": "Explain the difference between direct and alternating voltage",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.34",
+   "text": "Describe direct current (d.c.) as movement of charge in one direction only and recall that cells and batteries supply direct current (d.c.)",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.35",
+   "text": "Describe that in alternating current (a.c.) the movement of charge changes direction",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.36",
+   "text": "Recall that in the UK the domestic supply is a.c., at a frequency of 50 Hz and a voltage of about 230 V",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.37",
+   "text": "Explain the difference in function between the live and the neutral mains input wires",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.38",
+   "text": "Explain the function of an earth wire and of fuses or circuit breakers in ensuring safety",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.39",
+   "text": "Explain why switches and fuses should be connected in the live wire of a domestic circuit",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.40",
+   "text": "Recall the potential differences between the live, neutral and earth mains wires",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.41",
+   "text": "Explain the dangers of providing any connection between the live wire and earth",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "10.42",
+   "text": "Describe, with examples, the relationship between the power ratings for domestic electrical appliances and the changes in",
+   "parent": "T10",
+   "links": []
+  },
+  {
+   "id": "12.1",
+   "text": "Recall that unlike magnetic poles attract and like magnetic poles repel",
+   "parent": "T12",
+   "links": []
+  },
+  {
+   "id": "12.2",
+   "text": "Describe the uses of permanent and temporary magnetic materials including cobalt, steel, iron and nickel",
+   "parent": "T12",
+   "links": []
+  },
+  {
+   "id": "12.3",
+   "text": "Explain the difference between permanent and induced magnets",
+   "parent": "T12",
+   "links": []
+  },
+  {
+   "id": "12.4",
+   "text": "Describe the shape and direction of the magnetic field around bar magnets and for a uniform field, and relate the strength of the field to…",
+   "parent": "T12",
+   "links": []
+  },
+  {
+   "id": "12.5",
+   "text": "Describe the use of plotting compasses to show the shape and direction of the field of a magnet and the Earth’s magnetic field",
+   "parent": "T12",
+   "links": []
+  },
+  {
+   "id": "12.6",
+   "text": "Explain how the behaviour of a magnetic compass is related to evidence that the core of the Earth must be magnetic",
+   "parent": "T12",
+   "links": []
+  },
+  {
+   "id": "12.7",
+   "text": "Describe how to show that a current can create a magnetic effect and relate the shape and direction of the magnetic field around a long…",
+   "parent": "T12",
+   "links": []
+  },
+  {
+   "id": "12.8",
+   "text": "Recall that the strength of the field depends on the size of the current and the distance from the long straight conductor",
+   "parent": "T12",
+   "links": []
+  },
+  {
+   "id": "12.9",
+   "text": "Explain how inside a solenoid (an example of an electromagnet) the fields from individual coils a add together to form a very strong almost…",
+   "parent": "T12",
+   "links": []
+  },
+  {
+   "id": "12.10",
+   "text": "Recall that a current carrying conductor placed near a magnet experiences a force and that an equal and opposite force acts on the magnet",
+   "parent": "T12",
+   "links": []
+  },
+  {
+   "id": "12.11",
+   "text": "Explain that magnetic forces are due to interactions between magnetic fields",
+   "parent": "T12",
+   "links": []
+  },
+  {
+   "id": "12.12",
+   "text": "Recall and use Fleming’s left-hand rule to represent the relative directions of the force, the current and the magnetic field for cases…",
+   "parent": "T12",
+   "links": []
+  },
+  {
+   "id": "12.13",
+   "text": "Use the equation",
+   "parent": "T12",
+   "links": []
+  },
+  {
+   "id": "13.2",
+   "text": "Recall the factors that affect the size and direction of an induced potential difference, and describe how the magnetic field produced…",
+   "parent": "T13",
+   "links": []
+  },
+  {
+   "id": "13.5",
+   "text": "Explain how an alternating current in one circuit can induce a current in another circuit in a transformer",
+   "parent": "T13",
+   "links": []
+  },
+  {
+   "id": "13.6",
+   "text": "Recall that a transformer can change the size of an alternating voltage",
+   "parent": "T13",
+   "links": []
+  },
+  {
+   "id": "13.8",
+   "text": "Explain why, in the national grid, electrical energy is transferred at high voltages from power stations, and then transferred at lower…",
+   "parent": "T13",
+   "links": []
+  },
+  {
+   "id": "13.9",
+   "text": "Explain where and why step-up and step-down transformers are used in the transmission of electricity in the national grid",
+   "parent": "T13",
+   "links": []
+  },
+  {
+   "id": "13.10",
+   "text": "Use the power equation (for transformers with100% efficiency)",
+   "parent": "T13",
+   "links": []
+  },
+  {
+   "id": "14.1",
+   "text": "Use a simple kinetic theory model to explain the different states of matter (solids, liquids and gases) in terms of the movement and…",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.2",
+   "text": "Recall and use the equation",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.3",
+   "text": "Core Practical: Investigate the densities of solid and liquids",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.4",
+   "text": "Explain the differences in density between the different states of matter in terms of the arrangements of the atoms or molecules",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.5",
+   "text": "Describe that when substances melt, freeze, evaporate, boil, condense or sublimate mass is conserved and that these physical changes differ…",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.6",
+   "text": "Explain how heating a system will change the energy stored within the system and raise its temperature or produce changes of state",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.7",
+   "text": "Define the terms specific heat capacity and specific latent heat and explain the differences between them",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.8",
+   "text": "Use the equation",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.9",
+   "text": "Use the equation",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.10",
+   "text": "Explain ways of reducing unwanted energy transfer through thermal insulation",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.11",
+   "text": "Core Practical: Investigate the properties of water by determining the specific heat capacity of water and obtaining a",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.12",
+   "text": "Explain the pressure of a gas in terms of the motion of its particles",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.13",
+   "text": "Explain the effect of changing the temperature of a gas on the velocity of its particles and hence on the pressure produced by a fixed mass…",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.14",
+   "text": "Describe the term absolute zero, −273 °C, in terms of the lack of movement of particles",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "14.15",
+   "text": "Convert between the kelvin and Celsius scales",
+   "parent": "T14",
+   "links": []
+  },
+  {
+   "id": "15.1",
+   "text": "Explain, using springs and other elastic objects, that stretching, bending or compressing an object requires more than one force",
+   "parent": "T15",
+   "links": []
+  },
+  {
+   "id": "15.2",
+   "text": "Describe the difference between elastic and inelastic distortion",
+   "parent": "T15",
+   "links": []
+  },
+  {
+   "id": "15.3",
+   "text": "Recall and use the equation for linear elastic distortion including calculating the spring constant",
+   "parent": "T15",
+   "links": []
+  },
+  {
+   "id": "15.4",
+   "text": "Use the equation to calculate the work done in stretching a spring",
+   "parent": "T15",
+   "links": []
+  },
+  {
+   "id": "15.5",
+   "text": "Describe the difference between linear and non-linear relationships between force and extension",
+   "parent": "T15",
+   "links": []
+  },
+  {
+   "id": "15.6",
+   "text": "Core Practical: Investigate the extension and work done when applying forces to a spring",
+   "parent": "T15",
+   "links": []
+  }
+ ]
+}

@@ -6239,3 +6239,7 @@ body.nes-on .page.soft > .pane { filter: none; }
 
 .tt-big { font-size: var(--fs-title); text-align: center; margin: var(--s2) 0; }
 .game-said { text-align: center; margin: var(--s2) 0 0; min-height: 1.2em; }
+/* A SPECIFICATION (owner, 12 Nov): the insert's sheet of paper, each section a fold, each point its code then its words. */
+.spec-sec > summary { cursor: pointer; }
+.spec-sec ul ul { margin-left: var(--s3); }
+.spec-say { display: block; font-size: var(--fs-small); line-height: 1.4; }

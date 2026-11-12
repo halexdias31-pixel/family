@@ -1,0 +1,139 @@
+{
+ "id": "ocr-h240",
+ "board": "OCR",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Maths",
+ "code": "H240",
+ "url": "https://www.ocr.org.uk/Images/308723-specification-accredited-a-level-gce-mathematics-a-h240.pdf",
+ "sections": [
+  {
+   "id": "1",
+   "title": "Pure mathematics"
+  },
+  {
+   "id": "2",
+   "title": "Statistics"
+  },
+  {
+   "id": "3",
+   "title": "Mechanics"
+  }
+ ],
+ "points": [
+  {
+   "id": "1.01",
+   "text": "Proof",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.02",
+   "text": "Algebra and Functions",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.03",
+   "text": "Coordinate Geometry in the x–y Plane",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.04",
+   "text": "Sequences and Series",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.05",
+   "text": "Trigonometry",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.06",
+   "text": "Exponentials and Logarithms",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.07",
+   "text": "Differentiation",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.08",
+   "text": "Integration",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.09",
+   "text": "Numerical Methods",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.10",
+   "text": "Vectors",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "2.01",
+   "text": "Statistical Sampling",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.02",
+   "text": "Data Presentation and Interpretation",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.03",
+   "text": "Probability",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.04",
+   "text": "Statistical Distributions",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.05",
+   "text": "Statistical Hypothesis Testing",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "3.01",
+   "text": "Quantities and Units in Mechanics",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.02",
+   "text": "Kinematics",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.03",
+   "text": "Forces and Newton’s Laws",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.04",
+   "text": "Moments",
+   "parent": "3",
+   "links": []
+  }
+ ]
+}

@@ -1,0 +1,599 @@
+{
+ "id": "aqa-8461",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Biology",
+ "code": "8461",
+ "url": "https://filestore.aqa.org.uk/resources/biology/specifications/AQA-8461-SP-2016.PDF",
+ "sections": [
+  {
+   "id": "4.1",
+   "title": "Cell biology"
+  },
+  {
+   "id": "4.2",
+   "title": "Organisation"
+  },
+  {
+   "id": "4.3",
+   "title": "Infection and response"
+  },
+  {
+   "id": "4.4",
+   "title": "Bioenergetics"
+  },
+  {
+   "id": "4.5",
+   "title": "Homeostasis and response"
+  },
+  {
+   "id": "4.6",
+   "title": "Inheritance, variation and evolution"
+  },
+  {
+   "id": "4.7",
+   "title": "Ecology"
+  }
+ ],
+ "points": [
+  {
+   "id": "4.1.1",
+   "text": "Cell structure",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.1",
+   "text": "Eukaryotes and prokaryotes",
+   "parent": "4.1.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.2",
+   "text": "Animal and plant cells",
+   "parent": "4.1.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.3",
+   "text": "Cell specialisation",
+   "parent": "4.1.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.4",
+   "text": "Cell differentiation",
+   "parent": "4.1.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.6",
+   "text": "Culturing microorganisms (biology only)",
+   "parent": "4.1.1",
+   "links": []
+  },
+  {
+   "id": "4.1.2.1",
+   "text": "Chromosomes",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.2.2",
+   "text": "Mitosis and the cell cycle",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.2.3",
+   "text": "Stem cells",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.3.1",
+   "text": "Diffusion",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.3.2",
+   "text": "Osmosis",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.3.3",
+   "text": "Active transport",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.2.1",
+   "text": "Principles of organisation",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2",
+   "text": "Animal tissues, organs and organ systems",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.1",
+   "text": "The human digestive system",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.3",
+   "text": "Blood",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.4",
+   "text": "Coronary heart disease: a non-communicable disease",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.5",
+   "text": "Health issues",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.7",
+   "text": "Cancer",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.3",
+   "text": "Plant tissues, organs and systems",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.3.1",
+   "text": "Plant tissues",
+   "parent": "4.2.3",
+   "links": []
+  },
+  {
+   "id": "4.3.1",
+   "text": "Communicable diseases",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.1.1",
+   "text": "Communicable (infectious) diseases",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.3",
+   "text": "Bacterial diseases",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.4",
+   "text": "Fungal diseases",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.5",
+   "text": "Protist diseases",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.6",
+   "text": "Human defence systems",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.7",
+   "text": "Vaccination",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.9",
+   "text": "Discovery and development of drugs",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.2",
+   "text": "Monoclonal antibodies (biology only) (HT only)",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.2.1",
+   "text": "Producing monoclonal antibodies",
+   "parent": "4.3.2",
+   "links": []
+  },
+  {
+   "id": "4.3.2.2",
+   "text": "Uses of monoclonal antibodies",
+   "parent": "4.3.2",
+   "links": []
+  },
+  {
+   "id": "4.3.3.1",
+   "text": "Detection and identification of plant diseases",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.3.2",
+   "text": "Plant defence responses",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.4.1",
+   "text": "Photosynthesis",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.1.1",
+   "text": "Photosynthetic reaction",
+   "parent": "4.4.1",
+   "links": []
+  },
+  {
+   "id": "4.4.1.3",
+   "text": "Uses of glucose from photosynthesis",
+   "parent": "4.4.1",
+   "links": []
+  },
+  {
+   "id": "4.4.2",
+   "text": "Respiration",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.2.1",
+   "text": "Aerobic and anaerobic respiration",
+   "parent": "4.4.2",
+   "links": []
+  },
+  {
+   "id": "4.4.2.3",
+   "text": "Metabolism",
+   "parent": "4.4.2",
+   "links": []
+  },
+  {
+   "id": "4.5.1",
+   "text": "Homeostasis",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.2.1",
+   "text": "Structure and function",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.2.2",
+   "text": "The brain (biology only)",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.2.3",
+   "text": "The eye (biology only)",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.2.4",
+   "text": "Control of body temperature (biology only)",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.3",
+   "text": "Hormonal coordination in humans",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.3.1",
+   "text": "Human endocrine system",
+   "parent": "4.5.3",
+   "links": []
+  },
+  {
+   "id": "4.5.3.3",
+   "text": "Maintaining water and nitrogen balance in the body (biology only)",
+   "parent": "4.5.3",
+   "links": []
+  },
+  {
+   "id": "4.5.3.5",
+   "text": "Contraception",
+   "parent": "4.5.3",
+   "links": []
+  },
+  {
+   "id": "4.5.3.6",
+   "text": "The use of hormones to treat infertility (HT only)",
+   "parent": "4.5.3",
+   "links": []
+  },
+  {
+   "id": "4.5.3.7",
+   "text": "Negative feedback (HT only)",
+   "parent": "4.5.3",
+   "links": []
+  },
+  {
+   "id": "4.5.4.1",
+   "text": "Control and coordination",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.4.2",
+   "text": "Use of plant hormones (HT only)",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.6.1",
+   "text": "Reproduction",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.1.1",
+   "text": "Sexual and asexual reproduction",
+   "parent": "4.6.1",
+   "links": []
+  },
+  {
+   "id": "4.6.1.3",
+   "text": "Advantages and disadvantages of sexual and asexual reproduction (biology only)",
+   "parent": "4.6.1",
+   "links": []
+  },
+  {
+   "id": "4.6.1.4",
+   "text": "DNA and the genome",
+   "parent": "4.6.1",
+   "links": []
+  },
+  {
+   "id": "4.6.1.5",
+   "text": "DNA structure (biology only)",
+   "parent": "4.6.1",
+   "links": []
+  },
+  {
+   "id": "4.6.1.6",
+   "text": "Genetic inheritance",
+   "parent": "4.6.1",
+   "links": []
+  },
+  {
+   "id": "4.6.1.8",
+   "text": "Sex determination",
+   "parent": "4.6.1",
+   "links": []
+  },
+  {
+   "id": "4.6.2",
+   "text": "Variation and evolution",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.2.1",
+   "text": "Variation",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.2",
+   "text": "Evolution",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.4",
+   "text": "Genetic engineering",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.3",
+   "text": "The development of understanding of genetics and evolution",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.3.1",
+   "text": "Theory of evolution (biology only)",
+   "parent": "4.6.3",
+   "links": []
+  },
+  {
+   "id": "4.6.3.3",
+   "text": "The understanding of genetics (biology only)",
+   "parent": "4.6.3",
+   "links": []
+  },
+  {
+   "id": "4.6.3.4",
+   "text": "Evidence for evolution",
+   "parent": "4.6.3",
+   "links": []
+  },
+  {
+   "id": "4.6.3.5",
+   "text": "Fossils",
+   "parent": "4.6.3",
+   "links": []
+  },
+  {
+   "id": "4.6.3.6",
+   "text": "Extinction",
+   "parent": "4.6.3",
+   "links": []
+  },
+  {
+   "id": "4.6.4",
+   "text": "Classification of living organisms",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.7.1",
+   "text": "Adaptations, interdependence and competition",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.1.1",
+   "text": "Communities",
+   "parent": "4.7.1",
+   "links": []
+  },
+  {
+   "id": "4.7.1.2",
+   "text": "Abiotic factors",
+   "parent": "4.7.1",
+   "links": []
+  },
+  {
+   "id": "4.7.1.3",
+   "text": "Biotic factors",
+   "parent": "4.7.1",
+   "links": []
+  },
+  {
+   "id": "4.7.2",
+   "text": "Organisation of an ecosystem",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.2.1",
+   "text": "Levels of organisation",
+   "parent": "4.7.2",
+   "links": []
+  },
+  {
+   "id": "4.7.2.2",
+   "text": "How materials are cycled",
+   "parent": "4.7.2",
+   "links": []
+  },
+  {
+   "id": "4.7.2.3",
+   "text": "Decomposition (biology only)",
+   "parent": "4.7.2",
+   "links": []
+  },
+  {
+   "id": "4.7.3",
+   "text": "Biodiversity and the effect of human interaction on ecosystems",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.3.1",
+   "text": "Biodiversity",
+   "parent": "4.7.3",
+   "links": []
+  },
+  {
+   "id": "4.7.3.2",
+   "text": "Waste management",
+   "parent": "4.7.3",
+   "links": []
+  },
+  {
+   "id": "4.7.3.3",
+   "text": "Land use",
+   "parent": "4.7.3",
+   "links": []
+  },
+  {
+   "id": "4.7.3.4",
+   "text": "Deforestation",
+   "parent": "4.7.3",
+   "links": []
+  },
+  {
+   "id": "4.7.3.5",
+   "text": "Global warming",
+   "parent": "4.7.3",
+   "links": []
+  },
+  {
+   "id": "4.7.4",
+   "text": "Trophic levels in an ecosystem (biology only)",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.4.1",
+   "text": "Trophic levels",
+   "parent": "4.7.4",
+   "links": []
+  },
+  {
+   "id": "4.7.4.2",
+   "text": "Pyramids of biomass",
+   "parent": "4.7.4",
+   "links": []
+  },
+  {
+   "id": "4.7.4.3",
+   "text": "Transfer of biomass",
+   "parent": "4.7.4",
+   "links": []
+  },
+  {
+   "id": "4.7.5.1",
+   "text": "Factors affecting food security",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.5.2",
+   "text": "Farming techniques",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.5.3",
+   "text": "Sustainable fisheries",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.5.4",
+   "text": "Role of biotechnology",
+   "parent": "4.7",
+   "links": []
+  }
+ ]
+}

@@ -1,0 +1,555 @@
+{
+ "id": "aqa-8463",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Physics",
+ "code": "8463",
+ "url": "https://filestore.aqa.org.uk/resources/physics/specifications/AQA-8463-SP-2016.PDF",
+ "sections": [
+  {
+   "id": "4.1",
+   "title": "Energy"
+  },
+  {
+   "id": "4.2",
+   "title": "Electricity"
+  },
+  {
+   "id": "4.3",
+   "title": "Particle model of matter"
+  },
+  {
+   "id": "4.4",
+   "title": "Atomic structure"
+  },
+  {
+   "id": "4.5",
+   "title": "Forces"
+  },
+  {
+   "id": "4.6",
+   "title": "Waves"
+  },
+  {
+   "id": "4.7",
+   "title": "Magnetism and electromagnetism"
+  },
+  {
+   "id": "4.8",
+   "title": "Space physics (physics only)"
+  }
+ ],
+ "points": [
+  {
+   "id": "4.1.1.1",
+   "text": "Energy stores and systems",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.2",
+   "text": "Changes in energy",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.3",
+   "text": "Energy changes in systems",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.4",
+   "text": "Power",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.2",
+   "text": "Conservation and dissipation of energy",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.2.1",
+   "text": "Energy transfers in a system",
+   "parent": "4.1.2",
+   "links": []
+  },
+  {
+   "id": "4.1.2.2",
+   "text": "Efficiency",
+   "parent": "4.1.2",
+   "links": []
+  },
+  {
+   "id": "4.1.3",
+   "text": "National and global energy resources",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.2.1",
+   "text": "Current, potential difference and resistance",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.1.1",
+   "text": "Standard circuit diagram symbols",
+   "parent": "4.2.1",
+   "links": []
+  },
+  {
+   "id": "4.2.1.2",
+   "text": "Electrical charge and current",
+   "parent": "4.2.1",
+   "links": []
+  },
+  {
+   "id": "4.2.1.3",
+   "text": "Current, resistance and potential difference",
+   "parent": "4.2.1",
+   "links": []
+  },
+  {
+   "id": "4.2.2",
+   "text": "Series and parallel circuits",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.3",
+   "text": "Domestic uses and safety",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.3.1",
+   "text": "Direct and alternating potential difference",
+   "parent": "4.2.3",
+   "links": []
+  },
+  {
+   "id": "4.2.3.2",
+   "text": "Mains electricity",
+   "parent": "4.2.3",
+   "links": []
+  },
+  {
+   "id": "4.2.4",
+   "text": "Energy transfers",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.4.1",
+   "text": "Power",
+   "parent": "4.2.4",
+   "links": []
+  },
+  {
+   "id": "4.2.4.3",
+   "text": "The National Grid",
+   "parent": "4.2.4",
+   "links": []
+  },
+  {
+   "id": "4.2.5",
+   "text": "Static electricity (physics only)",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.5.1",
+   "text": "Static charge",
+   "parent": "4.2.5",
+   "links": []
+  },
+  {
+   "id": "4.3.1",
+   "text": "Changes of state and the particle model",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.1.1",
+   "text": "Density of materials",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.2",
+   "text": "Changes of state",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.2",
+   "text": "Internal energy and energy transfers",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.2.1",
+   "text": "Internal energy",
+   "parent": "4.3.2",
+   "links": []
+  },
+  {
+   "id": "4.3.2.3",
+   "text": "Changes of state and specific latent heat",
+   "parent": "4.3.2",
+   "links": []
+  },
+  {
+   "id": "4.3.3",
+   "text": "Particle model and pressure",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.3.1",
+   "text": "Particle motion in gases",
+   "parent": "4.3.3",
+   "links": []
+  },
+  {
+   "id": "4.3.3.3",
+   "text": "Increasing the pressure of a gas (physics only) (HT only)",
+   "parent": "4.3.3",
+   "links": []
+  },
+  {
+   "id": "4.4.1",
+   "text": "Atoms and isotopes",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.1.1",
+   "text": "The structure of an atom",
+   "parent": "4.4.1",
+   "links": []
+  },
+  {
+   "id": "4.4.1.2",
+   "text": "Mass number, atomic number and isotopes",
+   "parent": "4.4.1",
+   "links": []
+  },
+  {
+   "id": "4.4.2",
+   "text": "Atoms and nuclear radiation",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.2.1",
+   "text": "Radioactive decay and nuclear radiation",
+   "parent": "4.4.2",
+   "links": []
+  },
+  {
+   "id": "4.4.2.3",
+   "text": "Half-lives and the random nature of radioactive decay",
+   "parent": "4.4.2",
+   "links": []
+  },
+  {
+   "id": "4.4.2.4",
+   "text": "Radioactive contamination",
+   "parent": "4.4.2",
+   "links": []
+  },
+  {
+   "id": "4.4.3",
+   "text": "Hazards and uses of radioactive emissions and of background",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.3.2",
+   "text": "Different half-lives of radioactive isotopes",
+   "parent": "4.4.3",
+   "links": []
+  },
+  {
+   "id": "4.4.3.3",
+   "text": "Uses of nuclear radiation",
+   "parent": "4.4.3",
+   "links": []
+  },
+  {
+   "id": "4.4.4",
+   "text": "Nuclear fission and fusion (physics only)",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.4.1",
+   "text": "Nuclear fission",
+   "parent": "4.4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.4.2",
+   "text": "Nuclear fusion",
+   "parent": "4.4.4",
+   "links": []
+  },
+  {
+   "id": "4.5.1.1",
+   "text": "Scalar and vector quantities",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.1.2",
+   "text": "Contact and non-contact forces",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.1.3",
+   "text": "Gravity",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.1.4",
+   "text": "Resultant forces",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.3",
+   "text": "Forces and elasticity",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.5",
+   "text": "Pressure and pressure differences in fluids (physics only)",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.5.1",
+   "text": "Pressure in a fluid",
+   "parent": "4.5.5",
+   "links": []
+  },
+  {
+   "id": "4.5.6",
+   "text": "Forces and motion",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.6.1",
+   "text": "Describing motion along a line",
+   "parent": "4.5.6",
+   "links": []
+  },
+  {
+   "id": "4.5.6.2",
+   "text": "Forces, accelerations and Newton's Laws of motion",
+   "parent": "4.5.6",
+   "links": []
+  },
+  {
+   "id": "4.5.6.3",
+   "text": "Forces and braking",
+   "parent": "4.5.6",
+   "links": []
+  },
+  {
+   "id": "4.5.7.1",
+   "text": "Momentum is a property of moving objects",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.7.2",
+   "text": "Conservation of momentum",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.7.3",
+   "text": "Changes in momentum (physics only)",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.6.1",
+   "text": "Waves in air, fluids and solids",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.1.1",
+   "text": "Transverse and longitudinal waves",
+   "parent": "4.6.1",
+   "links": []
+  },
+  {
+   "id": "4.6.1.3",
+   "text": "Reflection of waves (physics only)",
+   "parent": "4.6.1",
+   "links": []
+  },
+  {
+   "id": "4.6.1.5",
+   "text": "Waves for detection and exploration (physics only) (HT only)",
+   "parent": "4.6.1",
+   "links": []
+  },
+  {
+   "id": "4.6.2",
+   "text": "Electromagnetic waves",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.2.1",
+   "text": "Types of electromagnetic waves",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.2",
+   "text": "Properties of electromagnetic waves 1",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.3",
+   "text": "Properties of electromagnetic waves 2",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.4",
+   "text": "Uses and applications of electromagnetic waves",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.5",
+   "text": "Lenses (physics only)",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.3",
+   "text": "Black body radiation (physics only)",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.3.1",
+   "text": "Emission and absorption of infrared radiation",
+   "parent": "4.6.3",
+   "links": []
+  },
+  {
+   "id": "4.6.3.2",
+   "text": "Perfect black bodies and radiation",
+   "parent": "4.6.3",
+   "links": []
+  },
+  {
+   "id": "4.7.1",
+   "text": "Permanent and induced magnetism, magnetic forces and fields",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.1.2",
+   "text": "Magnetic fields",
+   "parent": "4.7.1",
+   "links": []
+  },
+  {
+   "id": "4.7.2",
+   "text": "The motor effect",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.2.1",
+   "text": "Electromagnetism",
+   "parent": "4.7.2",
+   "links": []
+  },
+  {
+   "id": "4.7.2.2",
+   "text": "Fleming's left-hand rule (HT only)",
+   "parent": "4.7.2",
+   "links": []
+  },
+  {
+   "id": "4.7.2.3",
+   "text": "Electric motors (HT only)",
+   "parent": "4.7.2",
+   "links": []
+  },
+  {
+   "id": "4.7.2.4",
+   "text": "Loudspeakers (physics only) (HT only)",
+   "parent": "4.7.2",
+   "links": []
+  },
+  {
+   "id": "4.7.3",
+   "text": "Induced potential, transformers and the National Grid (physics",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.3.1",
+   "text": "Induced potential (HT only)",
+   "parent": "4.7.3",
+   "links": []
+  },
+  {
+   "id": "4.7.3.2",
+   "text": "Uses of the generator effect (HT only)",
+   "parent": "4.7.3",
+   "links": []
+  },
+  {
+   "id": "4.7.3.3",
+   "text": "Microphones (HT only)",
+   "parent": "4.7.3",
+   "links": []
+  },
+  {
+   "id": "4.8.1",
+   "text": "Solar system; stability of orbital motions; satellites (physics only)",
+   "parent": "4.8",
+   "links": []
+  },
+  {
+   "id": "4.8.1.1",
+   "text": "Our solar system",
+   "parent": "4.8.1",
+   "links": []
+  },
+  {
+   "id": "4.8.1.3",
+   "text": "Orbital motion, natural and artificial satellites",
+   "parent": "4.8.1",
+   "links": []
+  },
+  {
+   "id": "4.8.2",
+   "text": "Red-shift (physics only)",
+   "parent": "4.8",
+   "links": []
+  }
+ ]
+}

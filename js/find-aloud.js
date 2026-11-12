@@ -702,6 +702,7 @@ function findStudyItems_() {
 
     /* ---------- THE EXAM INSERTS (455) */
     ...(DATA.inserts || []).map(insertItem_),
+    ...(DATA.specs || []).map(specItem_),
   ];
 }
 function stuffItemsRaw_() {

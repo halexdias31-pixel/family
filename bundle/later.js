@@ -364,6 +364,8 @@ const KINDS = {
   content: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
   /* AN INSERT IS WHAT THE EXAM HANDS YOU (455), and Content (463): the owner, "inserts count as content" -- no tag of its own. */
   insert: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* A SPECIFICATION IS ITS OWN KIND (owner, 12 Nov), under Library: Library › subject › Specification › board and level. */
+  spec: { group: 'Learning', label: 'Specification', card: (x, c) => findCard(x, c) },
   /* THE HISTORY DATABASE (459) and ONE PEOPLE KIND (batch D: boxers and figures alike, a pixel portrait under the tags); `histKind` says which. */
   manuscript: { group: 'Learning', label: 'Library', card: x => findCard(x) },
   people: { group: 'Learning', label: 'Library', card: x => findCard(x) },
@@ -435,7 +437,7 @@ const KINDS = {
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   receipt: x => jobPage_(x.row), question: thingCard_, answer: thingCard_, shop: thingCard_,
-  practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x),
+  practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x), spec: x => specCard_(x),
   timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
   hymn: x => hymnsCard_(x), mech: x => mechCard_(x), chem: x => chemCard_(x), soon: x => soonCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x), game: x => widgetCard_(x),
@@ -1359,7 +1361,7 @@ function facetSplit_(items, facet) {
 const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet', 'End of topic test': 'Worksheet' };
 /* KINDS UNDER KINDS (546, 610): questions, answers and practicals under Practice; timelines, and projects (owner, 7 Nov), under Library. */
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
-const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library',
+const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library', spec: 'Library',
   /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
   /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): one card, tagged Booking and Profiles, like a setting's several types. */
   tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', bookform: 'Booking', shop: 'Shop',
@@ -2011,6 +2013,36 @@ function insertCard_(x) {
 /* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies. */
 function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
   .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'file-view', data: { url: o.url, title: o.label } }))); }
+/* ---------- A SPECIFICATION (owner, 12 Nov): one card per board's spec, data/spec/<id>.json via data/specs.json (tools/specs.py). ---------- */
+function specItem_(r) {
+  return {
+    kind: 'spec', name: r.code, key: 'spec:' + r.id, sub: '', image: '',
+    subject: r.subject, level: r.level, examBoard: r.board,
+    text: plainText_([r.board, r.qualification, r.subject, r.code, 'specification spec syllabus']
+      .concat((r.sections || []).map(s => s.title), (r.points || []).map(p => p.id + ' ' + p.text)).join(' ')),
+    row: r,
+  };
+}
+/* A POINT'S LESSONS AND QUESTIONS, by card key, when a coverage mapping has given it any; none is invented. */
+const specLinks_ = p => (p.links || []).map(k => tile_({ icon: 'open', label: 'Open', note: String(k), act: 'find-open', data: { key: String(k) } })).join('');
+function specPoints_(r, parent) {
+  const kids = (r.points || []).filter(p => p.parent === parent);
+  return kids.length ? `<ul>${kids.map(p => `<li class="spec-pt"><span class="insh-fn">${esc(p.id)}</span>
+    <span class="spec-say">${esc(p.text)}</span>${(p.links || []).length ? `<div class="tile-row">${specLinks_(p)}</div>` : ''}${specPoints_(r, p.id)}</li>`).join('')}</ul>` : '';
+}
+/* THE SECTION TREE, each section folded (a <details> grows where it is); the official PDF holds the full wording. */
+function specCard_(x) {
+  const r = x.row;
+  return `<div class="insh">
+    ${tagRow_(x)}
+    <div class="insh-sheet spec-sheet">
+      <p class="insh-kick">${esc([r.board, r.qualification, r.subject, r.code].join(' · '))}</p>
+      ${(r.sections || []).map(s => `<details class="insh-sec spec-sec"><summary class="kc-h">${esc(s.title)}</summary>${specPoints_(r, s.id)}</details>`).join('')}
+      <p class="insh-check">Short headings; the official specification has the full wording.</p>
+    </div>
+  </div>`;
+}
+const specExtras_ = x => [{ icon: 'open', label: 'Official', note: 'specification PDF', act: 'file-view', data: { url: x.row.url, title: x.row.board + ' ' + x.row.code } }];
 /* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
 on('ins-print', el => {
   const r = insertRow_(el.getAttribute('data-id'));
@@ -3327,7 +3359,7 @@ function vecHtml_(html) {
   return String(html == null ? '' : html).replace(/\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g,
     '<span class="vec"><span class="vec-a">$1</span><span class="vec-b">$2</span></span>');
 }
-window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, manuscript: histExtras_, writing: histExtras_, event: histExtras_ });
+window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, spec: specExtras_, manuscript: histExtras_, writing: histExtras_, event: histExtras_ });
 /* A BOXER'S OR FIGURE'S PIXEL PORTRAIT AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, { boxerPic: x => `<figure class="person-pic">${personPic_(x.pixId, x.name)}</figure>` });
 
@@ -9417,6 +9449,7 @@ function findStudyItems_() {
 
     /* ---------- THE EXAM INSERTS (455) */
     ...(DATA.inserts || []).map(insertItem_),
+    ...(DATA.specs || []).map(specItem_),
   ];
 }
 function stuffItemsRaw_() {

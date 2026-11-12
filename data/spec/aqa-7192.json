@@ -1,0 +1,91 @@
+{
+ "id": "aqa-7192",
+ "board": "AQA",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Sociology",
+ "code": "7192",
+ "url": "https://filestore.aqa.org.uk/resources/sociology/specifications/AQA-7191-7192-SP-2015.PDF",
+ "sections": [
+  {
+   "id": "4.1",
+   "title": "Education with Theory and Methods"
+  },
+  {
+   "id": "4.2",
+   "title": "Topics in Sociology"
+  },
+  {
+   "id": "4.3",
+   "title": "Crime and Deviance with Theory and Methods"
+  }
+ ],
+ "points": [
+  {
+   "id": "4.1.2",
+   "text": "Methods in Context",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.3",
+   "text": "Theory and Methods",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.2.1",
+   "text": "Culture and Identity",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2",
+   "text": "Families and Households",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.3",
+   "text": "Health",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.5",
+   "text": "Beliefs in Society",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.6",
+   "text": "Global Development",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.7",
+   "text": "The Media",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.8",
+   "text": "Stratification and Differentiation",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.3.1",
+   "text": "Crime and Deviance",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.2",
+   "text": "Theory and Methods",
+   "parent": "4.3",
+   "links": []
+  }
+ ]
+}

@@ -1,0 +1,143 @@
+{
+ "id": "ocr-j248",
+ "board": "OCR",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Chemistry",
+ "code": "J248",
+ "url": "https://www.ocr.org.uk/Images/234598-specification-accredited-gcse-gateway-science-suite-chemistry-a-j248.pdf",
+ "sections": [
+  {
+   "id": "C1",
+   "title": "Particles"
+  },
+  {
+   "id": "C2",
+   "title": "Elements, compounds and mixtures"
+  },
+  {
+   "id": "C3",
+   "title": "Chemical reactions"
+  },
+  {
+   "id": "C4",
+   "title": "Predicting and identifying reactions"
+  },
+  {
+   "id": "C5",
+   "title": "Monitoring and controlling chemical"
+  },
+  {
+   "id": "C6",
+   "title": "Global challenges"
+  },
+  {
+   "id": "C7",
+   "title": "Practical skills"
+  }
+ ],
+ "points": [
+  {
+   "id": "C1.1",
+   "text": "The particle model",
+   "parent": "C1",
+   "links": []
+  },
+  {
+   "id": "C1.2",
+   "text": "Atomic structure",
+   "parent": "C1",
+   "links": []
+  },
+  {
+   "id": "C2.1",
+   "text": "Purity and separating mixtures",
+   "parent": "C2",
+   "links": []
+  },
+  {
+   "id": "C2.2",
+   "text": "Bonding",
+   "parent": "C2",
+   "links": []
+  },
+  {
+   "id": "C2.3",
+   "text": "Properties of materials",
+   "parent": "C2",
+   "links": []
+  },
+  {
+   "id": "C3.1",
+   "text": "I ntroducing chemical reactions",
+   "parent": "C3",
+   "links": []
+  },
+  {
+   "id": "C3.2",
+   "text": "E nergetics",
+   "parent": "C3",
+   "links": []
+  },
+  {
+   "id": "C3.3",
+   "text": "T ypes of chemical reactions",
+   "parent": "C3",
+   "links": []
+  },
+  {
+   "id": "C3.4",
+   "text": "E lectrolysis",
+   "parent": "C3",
+   "links": []
+  },
+  {
+   "id": "C4.1",
+   "text": "Predicting chemical reactions",
+   "parent": "C4",
+   "links": []
+  },
+  {
+   "id": "C4.2",
+   "text": "Identifying the products of chemical",
+   "parent": "C4",
+   "links": []
+  },
+  {
+   "id": "C5.1",
+   "text": "Monitoring chemical reactions",
+   "parent": "C5",
+   "links": []
+  },
+  {
+   "id": "C5.2",
+   "text": "Controlling reactions",
+   "parent": "C5",
+   "links": []
+  },
+  {
+   "id": "C5.3",
+   "text": "Equilibria",
+   "parent": "C5",
+   "links": []
+  },
+  {
+   "id": "C6.1",
+   "text": "I mproving processes and products",
+   "parent": "C6",
+   "links": []
+  },
+  {
+   "id": "C6.3",
+   "text": "I nterpreting and interacting with earth systems",
+   "parent": "C6",
+   "links": []
+  },
+  {
+   "id": "C6.2",
+   "text": "Organic chemistry",
+   "parent": "C6",
+   "links": []
+  }
+ ]
+}

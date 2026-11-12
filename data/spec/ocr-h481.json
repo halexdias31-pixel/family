@@ -1,0 +1,28 @@
+{
+ "id": "ocr-h481",
+ "board": "OCR",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Geography",
+ "code": "H481",
+ "url": "https://www.ocr.org.uk/Images/223012-specification-accredited-a-level-gce-geography-h481.pdf",
+ "sections": [
+  {
+   "id": "C1",
+   "title": "Physical systems (H481/01)\b"
+  },
+  {
+   "id": "C2",
+   "title": "Human interactions (H481/02)\b"
+  },
+  {
+   "id": "C3",
+   "title": "Geographical debates (H481/03)\b"
+  },
+  {
+   "id": "C4",
+   "title": "Investigative geography (H481/04, 05)\b"
+  }
+ ],
+ "points": []
+}

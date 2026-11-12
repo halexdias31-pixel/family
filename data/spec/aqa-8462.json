@@ -1,0 +1,795 @@
+{
+ "id": "aqa-8462",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Chemistry",
+ "code": "8462",
+ "url": "https://filestore.aqa.org.uk/resources/chemistry/specifications/AQA-8462-SP-2016.PDF",
+ "sections": [
+  {
+   "id": "4.1",
+   "title": "Atomic structure and the periodic table"
+  },
+  {
+   "id": "4.2",
+   "title": "Bonding, structure, and the properties of matter"
+  },
+  {
+   "id": "4.3",
+   "title": "Quantitative chemistry"
+  },
+  {
+   "id": "4.4",
+   "title": "Chemical changes"
+  },
+  {
+   "id": "4.5",
+   "title": "Energy changes"
+  },
+  {
+   "id": "4.6",
+   "title": "The rate and extent of chemical change"
+  },
+  {
+   "id": "4.7",
+   "title": "Organic chemistry"
+  },
+  {
+   "id": "4.8",
+   "title": "Chemical analysis"
+  },
+  {
+   "id": "4.9",
+   "title": "Chemistry of the atmosphere"
+  },
+  {
+   "id": "4.10",
+   "title": "Using resources"
+  },
+  {
+   "id": "4.11",
+   "title": "Key ideas"
+  }
+ ],
+ "points": [
+  {
+   "id": "4.1.1.1",
+   "text": "Atoms, elements and compounds",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.2",
+   "text": "Mixtures",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.3",
+   "text": "The development of the model of the atom (common content with physics)",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.4",
+   "text": "Relative electrical charges of subatomic particles",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.5",
+   "text": "Size and mass of atoms",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.6",
+   "text": "Relative atomic mass",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.2",
+   "text": "The periodic table",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.2.1",
+   "text": "The periodic table",
+   "parent": "4.1.2",
+   "links": []
+  },
+  {
+   "id": "4.1.2.2",
+   "text": "Development of the periodic table",
+   "parent": "4.1.2",
+   "links": []
+  },
+  {
+   "id": "4.1.2.3",
+   "text": "Metals and non-metals",
+   "parent": "4.1.2",
+   "links": []
+  },
+  {
+   "id": "4.1.2.5",
+   "text": "Group 1",
+   "parent": "4.1.2",
+   "links": []
+  },
+  {
+   "id": "4.1.2.6",
+   "text": "Group 7",
+   "parent": "4.1.2",
+   "links": []
+  },
+  {
+   "id": "4.1.3",
+   "text": "Properties of transition metals (chemistry only)",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.3.1",
+   "text": "Comparison with Group 1 elements",
+   "parent": "4.1.3",
+   "links": []
+  },
+  {
+   "id": "4.2.1",
+   "text": "Chemical bonds, ionic, covalent and metallic",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.1.1",
+   "text": "Chemical bonds",
+   "parent": "4.2.1",
+   "links": []
+  },
+  {
+   "id": "4.2.1.2",
+   "text": "Ionic bonding",
+   "parent": "4.2.1",
+   "links": []
+  },
+  {
+   "id": "4.2.1.3",
+   "text": "Ionic compounds",
+   "parent": "4.2.1",
+   "links": []
+  },
+  {
+   "id": "4.2.1.4",
+   "text": "Covalent bonding",
+   "parent": "4.2.1",
+   "links": []
+  },
+  {
+   "id": "4.2.1.5",
+   "text": "Metallic bonding",
+   "parent": "4.2.1",
+   "links": []
+  },
+  {
+   "id": "4.2.2",
+   "text": "How bonding and structure are related to the properties of",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.1",
+   "text": "The three states of matter",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.3",
+   "text": "Properties of ionic compounds",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.4",
+   "text": "Properties of small molecules",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.5",
+   "text": "Polymers",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.6",
+   "text": "Giant covalent structures",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.7",
+   "text": "Properties of metals and alloys",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.8",
+   "text": "Metals as conductors",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.3.1",
+   "text": "Diamond",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.3.2",
+   "text": "Graphite",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.3.3",
+   "text": "Graphene and fullerenes",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.4",
+   "text": "Bulk and surface properties of matter including nanoparticles",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.4.1",
+   "text": "Sizes of particles and their properties",
+   "parent": "4.2.4",
+   "links": []
+  },
+  {
+   "id": "4.2.4.2",
+   "text": "Uses of nanoparticles",
+   "parent": "4.2.4",
+   "links": []
+  },
+  {
+   "id": "4.3.1",
+   "text": "Chemical measurements, conservation of mass and the",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.1.1",
+   "text": "Conservation of mass and balanced chemical equations",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.2",
+   "text": "Relative formula mass",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.3",
+   "text": "Mass changes when a reactant or product is a gas",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.2",
+   "text": "Use of amount of substance in relation to masses of pure",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.2.1",
+   "text": "Moles (HT only)",
+   "parent": "4.3.2",
+   "links": []
+  },
+  {
+   "id": "4.3.2.2",
+   "text": "Amounts of substances in equations (HT only)",
+   "parent": "4.3.2",
+   "links": []
+  },
+  {
+   "id": "4.3.2.3",
+   "text": "Using moles to balance equations (HT only)",
+   "parent": "4.3.2",
+   "links": []
+  },
+  {
+   "id": "4.3.2.5",
+   "text": "Concentration of solutions",
+   "parent": "4.3.2",
+   "links": []
+  },
+  {
+   "id": "4.3.3",
+   "text": "Yield and atom economy of chemical reactions (chemistry only)",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.3.1",
+   "text": "Percentage yield",
+   "parent": "4.3.3",
+   "links": []
+  },
+  {
+   "id": "4.3.3.2",
+   "text": "Atom economy",
+   "parent": "4.3.3",
+   "links": []
+  },
+  {
+   "id": "4.3.5",
+   "text": "Use of amount of substance in relation to volumes of gases",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.4.1",
+   "text": "Reactivity of metals",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.1.1",
+   "text": "Metal oxides",
+   "parent": "4.4.1",
+   "links": []
+  },
+  {
+   "id": "4.4.1.3",
+   "text": "Extraction of metals and reduction",
+   "parent": "4.4.1",
+   "links": []
+  },
+  {
+   "id": "4.4.1.4",
+   "text": "Oxidation and reduction in terms of electrons (HT only)",
+   "parent": "4.4.1",
+   "links": []
+  },
+  {
+   "id": "4.4.2.1",
+   "text": "Reactions of acids with metals",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.2.2",
+   "text": "Neutralisation of acids and salt production",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.2.3",
+   "text": "Soluble salts",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.2.4",
+   "text": "The pH scale and neutralisation",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.2.6",
+   "text": "Strong and weak acids (HT only)",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.3",
+   "text": "Electrolysis",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.3.1",
+   "text": "The process of electrolysis",
+   "parent": "4.4.3",
+   "links": []
+  },
+  {
+   "id": "4.4.3.2",
+   "text": "Electrolysis of molten ionic compounds",
+   "parent": "4.4.3",
+   "links": []
+  },
+  {
+   "id": "4.4.3.4",
+   "text": "Electrolysis of aqueous solutions",
+   "parent": "4.4.3",
+   "links": []
+  },
+  {
+   "id": "4.4.3.5",
+   "text": "Representation of reactions at electrodes as half equations (HT only)",
+   "parent": "4.4.3",
+   "links": []
+  },
+  {
+   "id": "4.5.1.1",
+   "text": "Energy transfer during exothermic and endothermic reactions",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.1.2",
+   "text": "Reaction profiles",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.1.3",
+   "text": "The energy change of reactions (HT only)",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.2.1",
+   "text": "Cells and batteries",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.2.2",
+   "text": "Fuel cells",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.6.1.1",
+   "text": "Calculating rates of reactions",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.1.2",
+   "text": "Factors which affect the rates of chemical reactions",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.1.3",
+   "text": "Collision theory and activation energy",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.1.4",
+   "text": "Catalysts",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.2",
+   "text": "Reversible reactions and dynamic equilibrium",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.2.1",
+   "text": "Reversible reactions",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.2",
+   "text": "Energy changes and reversible reactions",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.3",
+   "text": "Equilibrium",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.5",
+   "text": "The effect of changing concentration (HT only)",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.6",
+   "text": "The effect of temperature changes on equilibrium (HT only)",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.7",
+   "text": "The effect of pressure changes on equilibrium (HT only)",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.7.1.1",
+   "text": "Crude oil, hydrocarbons and alkanes",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.1.2",
+   "text": "Fractional distillation and petrochemicals",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.1.3",
+   "text": "Properties of hydrocarbons",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.2",
+   "text": "Reactions of alkenes and alcohols (chemistry only)",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.2.1",
+   "text": "Structure and formulae of alkenes",
+   "parent": "4.7.2",
+   "links": []
+  },
+  {
+   "id": "4.7.2.2",
+   "text": "Reactions of alkenes",
+   "parent": "4.7.2",
+   "links": []
+  },
+  {
+   "id": "4.7.2.4",
+   "text": "Carboxylic acids",
+   "parent": "4.7.2",
+   "links": []
+  },
+  {
+   "id": "4.7.3.1",
+   "text": "Addition polymerisation",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.3.2",
+   "text": "Condensation polymerisation (HT only)",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.3.4",
+   "text": "DNA (deoxyribonucleic acid) and other naturally occurring polymers",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.8.1",
+   "text": "Purity, formulations and chromatography",
+   "parent": "4.8",
+   "links": []
+  },
+  {
+   "id": "4.8.1.1",
+   "text": "Pure substances",
+   "parent": "4.8.1",
+   "links": []
+  },
+  {
+   "id": "4.8.1.2",
+   "text": "Formulations",
+   "parent": "4.8.1",
+   "links": []
+  },
+  {
+   "id": "4.8.2",
+   "text": "Identification of common gases",
+   "parent": "4.8",
+   "links": []
+  },
+  {
+   "id": "4.8.2.1",
+   "text": "Test for hydrogen",
+   "parent": "4.8.2",
+   "links": []
+  },
+  {
+   "id": "4.8.2.2",
+   "text": "Test for oxygen",
+   "parent": "4.8.2",
+   "links": []
+  },
+  {
+   "id": "4.8.2.3",
+   "text": "Test for carbon dioxide",
+   "parent": "4.8.2",
+   "links": []
+  },
+  {
+   "id": "4.8.2.4",
+   "text": "Test for chlorine",
+   "parent": "4.8.2",
+   "links": []
+  },
+  {
+   "id": "4.8.3",
+   "text": "Identification of ions by chemical and spectroscopic means",
+   "parent": "4.8",
+   "links": []
+  },
+  {
+   "id": "4.8.3.1",
+   "text": "Flame tests",
+   "parent": "4.8.3",
+   "links": []
+  },
+  {
+   "id": "4.8.3.3",
+   "text": "Carbonates",
+   "parent": "4.8.3",
+   "links": []
+  },
+  {
+   "id": "4.8.3.4",
+   "text": "Halides",
+   "parent": "4.8.3",
+   "links": []
+  },
+  {
+   "id": "4.8.3.5",
+   "text": "Sulfates",
+   "parent": "4.8.3",
+   "links": []
+  },
+  {
+   "id": "4.8.3.6",
+   "text": "Instrumental methods",
+   "parent": "4.8.3",
+   "links": []
+  },
+  {
+   "id": "4.8.3.7",
+   "text": "Flame emission spectroscopy",
+   "parent": "4.8.3",
+   "links": []
+  },
+  {
+   "id": "4.9.1.1",
+   "text": "The proportions of different gases in the atmosphere",
+   "parent": "4.9",
+   "links": []
+  },
+  {
+   "id": "4.9.1.2",
+   "text": "The Earth's early atmosphere",
+   "parent": "4.9",
+   "links": []
+  },
+  {
+   "id": "4.9.1.3",
+   "text": "How oxygen increased",
+   "parent": "4.9",
+   "links": []
+  },
+  {
+   "id": "4.9.1.4",
+   "text": "How carbon dioxide decreased",
+   "parent": "4.9",
+   "links": []
+  },
+  {
+   "id": "4.9.2",
+   "text": "Carbon dioxide and methane as greenhouse gases",
+   "parent": "4.9",
+   "links": []
+  },
+  {
+   "id": "4.9.2.1",
+   "text": "Greenhouse gases",
+   "parent": "4.9.2",
+   "links": []
+  },
+  {
+   "id": "4.9.2.3",
+   "text": "Global climate change",
+   "parent": "4.9.2",
+   "links": []
+  },
+  {
+   "id": "4.9.2.4",
+   "text": "The carbon footprint and its reduction",
+   "parent": "4.9.2",
+   "links": []
+  },
+  {
+   "id": "4.9.3",
+   "text": "Common atmospheric pollutants and their sources",
+   "parent": "4.9",
+   "links": []
+  },
+  {
+   "id": "4.9.3.1",
+   "text": "Atmospheric pollutants from fuels",
+   "parent": "4.9.3",
+   "links": []
+  },
+  {
+   "id": "4.10.1",
+   "text": "Using the Earth's resources and obtaining potable water",
+   "parent": "4.10",
+   "links": []
+  },
+  {
+   "id": "4.10.1.1",
+   "text": "Using the Earth's resources and sustainable development",
+   "parent": "4.10.1",
+   "links": []
+  },
+  {
+   "id": "4.10.1.3",
+   "text": "Waste water treatment",
+   "parent": "4.10.1",
+   "links": []
+  },
+  {
+   "id": "4.10.1.4",
+   "text": "Alternative methods of extracting metals (HT only)",
+   "parent": "4.10.1",
+   "links": []
+  },
+  {
+   "id": "4.10.2.1",
+   "text": "Life cycle assessment",
+   "parent": "4.10",
+   "links": []
+  },
+  {
+   "id": "4.10.2.2",
+   "text": "Ways of reducing the use of resources",
+   "parent": "4.10",
+   "links": []
+  },
+  {
+   "id": "4.10.3",
+   "text": "Using materials (chemistry only)",
+   "parent": "4.10",
+   "links": []
+  },
+  {
+   "id": "4.10.3.1",
+   "text": "Corrosion and its prevention",
+   "parent": "4.10.3",
+   "links": []
+  },
+  {
+   "id": "4.10.3.3",
+   "text": "Ceramics, polymers and composites",
+   "parent": "4.10.3",
+   "links": []
+  },
+  {
+   "id": "4.10.4.1",
+   "text": "The Haber process",
+   "parent": "4.10",
+   "links": []
+  },
+  {
+   "id": "4.10.4.2",
+   "text": "Production and uses of NPK fertilisers",
+   "parent": "4.10",
+   "links": []
+  }
+ ]
+}

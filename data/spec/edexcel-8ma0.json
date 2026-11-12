@@ -1,0 +1,393 @@
+{
+ "id": "edexcel-8ma0",
+ "board": "Edexcel",
+ "qualification": "AS",
+ "level": "AS",
+ "subject": "Maths",
+ "code": "8MA0",
+ "url": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Mathematics/2017/specification-and-sample-assesment/as-l3-mathematics-specification.pdf",
+ "sections": [
+  {
+   "id": "1",
+   "title": "Proof"
+  },
+  {
+   "id": "2",
+   "title": "Algebra and functions"
+  },
+  {
+   "id": "3",
+   "title": "Coordinate geometry in the (x,y) plane"
+  },
+  {
+   "id": "4",
+   "title": "Sequences and series"
+  },
+  {
+   "id": "5",
+   "title": "Trigonometry"
+  },
+  {
+   "id": "6",
+   "title": "Exponentials and logarithms"
+  },
+  {
+   "id": "7",
+   "title": "Differentiation"
+  },
+  {
+   "id": "8",
+   "title": "Integration"
+  },
+  {
+   "id": "9",
+   "title": "Vectors"
+  },
+  {
+   "id": "S1",
+   "title": "Statistical sampling"
+  },
+  {
+   "id": "S2",
+   "title": "Data presentation and interpretation"
+  },
+  {
+   "id": "S3",
+   "title": "Probability"
+  },
+  {
+   "id": "S4",
+   "title": "Statistical distributions"
+  },
+  {
+   "id": "S5",
+   "title": "Statistical hypothesis testing"
+  },
+  {
+   "id": "M6",
+   "title": "Quantities and units in mechanics"
+  },
+  {
+   "id": "M7",
+   "title": "Kinematics"
+  },
+  {
+   "id": "M8",
+   "title": "Forces and Newton’s laws"
+  }
+ ],
+ "points": [
+  {
+   "id": "1.1",
+   "text": "Understand and use the structure of mathematical proof, proceeding from given assumptions through a series of logical steps to a…",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "2.1",
+   "text": "Understand and use the laws of indices for all rational",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.2",
+   "text": "Use and manipulate surds, including rationalising the denominator.",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.3",
+   "text": "Work with quadratic functions and their graphs. The discriminant of a quadratic function, including the conditions for real and",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.4",
+   "text": "Solve simultaneous equations in two variables by elimination and by",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.5",
+   "text": "Solve linear and quadratic inequalities in a single",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.6",
+   "text": "Manipulate polynomials algebraically, including expanding brackets and collecting like terms, factorisation and simple",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.7",
+   "text": "Understand and use graphs of functions; sketch curves defined by simple equations",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.8",
+   "text": "Understand the effect of simple transformations on the graph of y = f(x), including sketching",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "3.1",
+   "text": "Understand and use the equation of a straight line, including the forms",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.2",
+   "text": "Understand and use the coordinate geometry of the circle including using the equation of a circle in the form ( x – a)2 + (y – b)2 = r2",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "4.1",
+   "text": "Understand and use the binomial expansion of (a + bx) n for positive integer n; the notations n!",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "5.1",
+   "text": "Understand and use the definitions of sine, cosine and tangent for all arguments",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.2",
+   "text": "Understand and use the sine, cosine and tangent functions; their graphs, symmetries and periodicity.",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.3",
+   "text": "Understand and use",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.4",
+   "text": "Solve simple trigonometric equations in a given interval, including quadratic equations in sin, cos and tan and equations involving",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "6.1",
+   "text": "Know and use the function ax and its graph, where a is positive. Know and use the function e x and its graph",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.2",
+   "text": "Know that the gradient of ekx is equal to kekx and hence understand why the exponential model is suitable in many applications.",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.3",
+   "text": "Know and use the definition of log a x as the inverse of ax, where a is positive and x0 Know and use the function lnx and its graph",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.4",
+   "text": "Understand and use the laws of logarithms",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.5",
+   "text": "Solve equations of the form ax = b",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.6",
+   "text": "Use logarithmic graphs to estimate parameters in relationships of the form",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.7",
+   "text": "Understand and use exponential growth and decay; use in modelling",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "7.1",
+   "text": "Understand and use the",
+   "parent": "7",
+   "links": []
+  },
+  {
+   "id": "7.2",
+   "text": "Differentiate x , for rational values of n, and related constant multiples, sums and differences.",
+   "parent": "7",
+   "links": []
+  },
+  {
+   "id": "7.3",
+   "text": "Apply differentiation to find gradients, tangents and normals",
+   "parent": "7",
+   "links": []
+  },
+  {
+   "id": "8.1",
+   "text": "Know and use the Fundamental Theorem of Calculus.",
+   "parent": "8",
+   "links": []
+  },
+  {
+   "id": "8.2",
+   "text": "Integrate x (excluding n = −1) and related sums",
+   "parent": "8",
+   "links": []
+  },
+  {
+   "id": "8.3",
+   "text": "Evaluate definite integrals; use a definite integral to find the area under a curve.",
+   "parent": "8",
+   "links": []
+  },
+  {
+   "id": "9.1",
+   "text": "Use vectors in two dimensions.",
+   "parent": "9",
+   "links": []
+  },
+  {
+   "id": "9.2",
+   "text": "Calculate the magnitude and direction of a vector and convert between component form and magnitude/direction form.",
+   "parent": "9",
+   "links": []
+  },
+  {
+   "id": "9.3",
+   "text": "Add vectors diagrammatically and perform the algebraic",
+   "parent": "9",
+   "links": []
+  },
+  {
+   "id": "9.5",
+   "text": "Use vectors to solve problems in pure mathematics and in context",
+   "parent": "9",
+   "links": []
+  },
+  {
+   "id": "S1.1",
+   "text": "Understand and use the terms ‘population’ and ‘sample’. Use samples to make informal inferences about the population.",
+   "parent": "S1",
+   "links": []
+  },
+  {
+   "id": "S2.1",
+   "text": "Interpret diagrams for single-variable data, including understanding that area in a histogram represents frequency. Connect to probability…",
+   "parent": "S2",
+   "links": []
+  },
+  {
+   "id": "S2.2",
+   "text": "Interpret scatter diagrams and regression lines for bivariate data, including recognition of scatter diagrams that include distinct…",
+   "parent": "S2",
+   "links": []
+  },
+  {
+   "id": "S2.3",
+   "text": "Interpret measures of central tendency and variation, extending to standard deviation.",
+   "parent": "S2",
+   "links": []
+  },
+  {
+   "id": "S2.4",
+   "text": "Recognise and interpret possible outliers in data sets and statistical diagrams.",
+   "parent": "S2",
+   "links": []
+  },
+  {
+   "id": "S3.1",
+   "text": "Understand and use mutually exclusive and independent events when calculating probabilities.",
+   "parent": "S3",
+   "links": []
+  },
+  {
+   "id": "S4.1",
+   "text": "Understand and use simple, discrete probability distributions (calculation of mean and variance of discrete random variables is",
+   "parent": "S4",
+   "links": []
+  },
+  {
+   "id": "S5.1",
+   "text": "Understand and apply the language of statistical hypothesis testing, developed through a binomial model: null hypothesis, alternative…",
+   "parent": "S5",
+   "links": []
+  },
+  {
+   "id": "S5.2",
+   "text": "Conduct a statistical hypothesis test for the proportion in the binomial distribution and interpret the results in context. Understand that…",
+   "parent": "S5",
+   "links": []
+  },
+  {
+   "id": "M6.1",
+   "text": "Understand and use fundamental quantities and units in the S.I. system: length, time, mass. Understand and use derived quantities and…",
+   "parent": "M6",
+   "links": []
+  },
+  {
+   "id": "M7.1",
+   "text": "Understand and use the language of kinematics: position; displacement; distance travelled; velocity; speed; acceleration.",
+   "parent": "M7",
+   "links": []
+  },
+  {
+   "id": "M7.2",
+   "text": "Understand, use and interpret graphs in kinematics for motion in a straight line: displacement against time and interpretation of gradient…",
+   "parent": "M7",
+   "links": []
+  },
+  {
+   "id": "M7.3",
+   "text": "Understand, use and derive the formulae for constant acceleration for motion in a straight line.",
+   "parent": "M7",
+   "links": []
+  },
+  {
+   "id": "M7.4",
+   "text": "Use calculus in kinematics for motion in a straight line",
+   "parent": "M7",
+   "links": []
+  },
+  {
+   "id": "M8.1",
+   "text": "Understand the concept of a force; understand and use Newton’s first law.",
+   "parent": "M8",
+   "links": []
+  },
+  {
+   "id": "M8.2",
+   "text": "Understand and use Newton’s second law for motion in a straight line (restricted to forces in two perpendicular directions or simple cases…",
+   "parent": "M8",
+   "links": []
+  },
+  {
+   "id": "M8.3",
+   "text": "Understand and use weight and motion in a straight line under gravity; gravitational acceleration, g, and its value",
+   "parent": "M8",
+   "links": []
+  },
+  {
+   "id": "M8.4",
+   "text": "Understand and use Newton’s third law; equilibrium of forces on a particle and motion in a straight line; application to",
+   "parent": "M8",
+   "links": []
+  },
+  {
+   "id": "M8.7",
+   "text": "X , Y , R, etc.",
+   "parent": "M8",
+   "links": []
+  }
+ ]
+}

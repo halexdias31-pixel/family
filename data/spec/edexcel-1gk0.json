@@ -1,0 +1,32 @@
+{
+ "id": "edexcel-1gk0",
+ "board": "Edexcel",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Greek",
+ "code": "1GK0",
+ "url": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Greek/2017/specification-and-sample-assessments/specification-gcse2017-l12-greek-issue5.pdf",
+ "sections": [
+  {
+   "id": "1",
+   "title": "Identity and culture"
+  },
+  {
+   "id": "2",
+   "title": "Local area, holiday and travel"
+  },
+  {
+   "id": "3",
+   "title": "School"
+  },
+  {
+   "id": "4",
+   "title": "Future aspirations, study and work"
+  },
+  {
+   "id": "5",
+   "title": "International and global dimension"
+  }
+ ],
+ "points": []
+}

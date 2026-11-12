@@ -1,0 +1,1447 @@
+{
+ "id": "aqa-8464",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Combined Science",
+ "code": "8464",
+ "url": "https://filestore.aqa.org.uk/resources/science/specifications/AQA-8464-SP-2016.PDF",
+ "sections": [
+  {
+   "id": "4.1",
+   "title": "Cell biology"
+  },
+  {
+   "id": "4.2",
+   "title": "Organisation"
+  },
+  {
+   "id": "4.3",
+   "title": "Infection and response"
+  },
+  {
+   "id": "4.4",
+   "title": "Bioenergetics"
+  },
+  {
+   "id": "4.5",
+   "title": "Homeostasis and response"
+  },
+  {
+   "id": "4.6",
+   "title": "Inheritance, variation and evolution"
+  },
+  {
+   "id": "4.7",
+   "title": "Ecology"
+  },
+  {
+   "id": "5.1",
+   "title": "Atomic structure and the periodic table"
+  },
+  {
+   "id": "5.2",
+   "title": "Bonding, structure, and the properties of matter"
+  },
+  {
+   "id": "5.3",
+   "title": "Quantitative chemistry"
+  },
+  {
+   "id": "5.4",
+   "title": "Chemical changes"
+  },
+  {
+   "id": "5.5",
+   "title": "Energy changes"
+  },
+  {
+   "id": "5.6",
+   "title": "The rate and extent of chemical change"
+  },
+  {
+   "id": "5.7",
+   "title": "Organic chemistry"
+  },
+  {
+   "id": "5.8",
+   "title": "Chemical analysis"
+  },
+  {
+   "id": "5.9",
+   "title": "Chemistry of the atmosphere"
+  },
+  {
+   "id": "5.10",
+   "title": "Using resources"
+  },
+  {
+   "id": "6.1",
+   "title": "Energy"
+  },
+  {
+   "id": "6.2",
+   "title": "Electricity"
+  },
+  {
+   "id": "6.3",
+   "title": "Particle model of matter"
+  },
+  {
+   "id": "6.4",
+   "title": "Atomic structure"
+  },
+  {
+   "id": "6.5",
+   "title": "Forces"
+  },
+  {
+   "id": "6.6",
+   "title": "Waves"
+  },
+  {
+   "id": "6.7",
+   "title": "Magnetism and electromagnetism"
+  },
+  {
+   "id": "4.8",
+   "title": "Key ideas"
+  },
+  {
+   "id": "5.11",
+   "title": "Key ideas"
+  },
+  {
+   "id": "6.8",
+   "title": "Key ideas"
+  }
+ ],
+ "points": [
+  {
+   "id": "4.1.1",
+   "text": "Cell structure",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.1",
+   "text": "Eukaryotes and prokaryotes",
+   "parent": "4.1.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.2",
+   "text": "Animal and plant cells",
+   "parent": "4.1.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.4",
+   "text": "Cell differentiation",
+   "parent": "4.1.1",
+   "links": []
+  },
+  {
+   "id": "4.1.1.5",
+   "text": "Microscopy",
+   "parent": "4.1.1",
+   "links": []
+  },
+  {
+   "id": "4.1.2",
+   "text": "Cell division",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.2.1",
+   "text": "Chromosomes",
+   "parent": "4.1.2",
+   "links": []
+  },
+  {
+   "id": "4.1.2.2",
+   "text": "Mitosis and the cell cycle",
+   "parent": "4.1.2",
+   "links": []
+  },
+  {
+   "id": "4.1.3",
+   "text": "Transport in cells",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.3.1",
+   "text": "Diffusion",
+   "parent": "4.1.3",
+   "links": []
+  },
+  {
+   "id": "4.1.3.3",
+   "text": "Active transport",
+   "parent": "4.1.3",
+   "links": []
+  },
+  {
+   "id": "4.2.1",
+   "text": "Principles of organisation",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2",
+   "text": "Animal tissues, organs and organ systems",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.1",
+   "text": "The human digestive system",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.2",
+   "text": "The heart and blood vessels",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.3",
+   "text": "Blood",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.4",
+   "text": "Coronary heart disease: a non-communicable disease",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.5",
+   "text": "Health issues",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.6",
+   "text": "The effect of lifestyle on some non-communicable diseases",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.7",
+   "text": "Cancer",
+   "parent": "4.2.2",
+   "links": []
+  },
+  {
+   "id": "4.2.3",
+   "text": "Plant tissues, organs and systems",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.3.1",
+   "text": "Plant tissues",
+   "parent": "4.2.3",
+   "links": []
+  },
+  {
+   "id": "4.2.3.2",
+   "text": "Plant organ system",
+   "parent": "4.2.3",
+   "links": []
+  },
+  {
+   "id": "4.3.1",
+   "text": "Communicable diseases",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.1.1",
+   "text": "Communicable (infectious) diseases",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.2",
+   "text": "Viral diseases",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.4",
+   "text": "Fungal diseases",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.5",
+   "text": "Protist diseases",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.6",
+   "text": "Human defence systems",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.7",
+   "text": "Vaccination",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.8",
+   "text": "Antibiotics and painkillers",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.3.1.9",
+   "text": "Discovery and development of drugs",
+   "parent": "4.3.1",
+   "links": []
+  },
+  {
+   "id": "4.4.1",
+   "text": "Photosynthesis",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.1.1",
+   "text": "Photosynthetic reaction",
+   "parent": "4.4.1",
+   "links": []
+  },
+  {
+   "id": "4.4.1.2",
+   "text": "Rate of photosynthesis",
+   "parent": "4.4.1",
+   "links": []
+  },
+  {
+   "id": "4.4.1.3",
+   "text": "Uses of glucose from photosynthesis",
+   "parent": "4.4.1",
+   "links": []
+  },
+  {
+   "id": "4.4.2",
+   "text": "Respiration",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.2.1",
+   "text": "Aerobic and anaerobic respiration",
+   "parent": "4.4.2",
+   "links": []
+  },
+  {
+   "id": "4.4.2.3",
+   "text": "Metabolism",
+   "parent": "4.4.2",
+   "links": []
+  },
+  {
+   "id": "4.5.1",
+   "text": "Homeostasis",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.3",
+   "text": "Hormonal coordination in humans",
+   "parent": "4.5",
+   "links": []
+  },
+  {
+   "id": "4.5.3.1",
+   "text": "Human endocrine system",
+   "parent": "4.5.3",
+   "links": []
+  },
+  {
+   "id": "4.5.3.3",
+   "text": "Hormones in human reproduction",
+   "parent": "4.5.3",
+   "links": []
+  },
+  {
+   "id": "4.5.3.5",
+   "text": "The use of hormones to treat infertility (HT only)",
+   "parent": "4.5.3",
+   "links": []
+  },
+  {
+   "id": "4.5.3.6",
+   "text": "Feedback systems (HT only)",
+   "parent": "4.5.3",
+   "links": []
+  },
+  {
+   "id": "4.6.1.1",
+   "text": "Sexual and asexual reproduction",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.1.2",
+   "text": "Meiosis",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.1.3",
+   "text": "DNA and the genome",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.1.5",
+   "text": "Inherited disorders",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.1.6",
+   "text": "Sex determination",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.2",
+   "text": "Variation and evolution",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.2.1",
+   "text": "Variation",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.2",
+   "text": "Evolution",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.3",
+   "text": "Selective breeding",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.2.4",
+   "text": "Genetic engineering",
+   "parent": "4.6.2",
+   "links": []
+  },
+  {
+   "id": "4.6.3",
+   "text": "The development of understanding of genetics and evolution",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.3.1",
+   "text": "Evidence for evolution",
+   "parent": "4.6.3",
+   "links": []
+  },
+  {
+   "id": "4.6.3.2",
+   "text": "Fossils",
+   "parent": "4.6.3",
+   "links": []
+  },
+  {
+   "id": "4.6.3.3",
+   "text": "Extinction",
+   "parent": "4.6.3",
+   "links": []
+  },
+  {
+   "id": "4.6.4",
+   "text": "Classification of living organisms",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.7.1.1",
+   "text": "Communities",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.1.2",
+   "text": "Abiotic factors",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.1.3",
+   "text": "Biotic factors",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.2",
+   "text": "Organisation of an ecosystem",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.2.1",
+   "text": "Levels of organisation",
+   "parent": "4.7.2",
+   "links": []
+  },
+  {
+   "id": "4.7.2.2",
+   "text": "How materials are cycled",
+   "parent": "4.7.2",
+   "links": []
+  },
+  {
+   "id": "4.7.3",
+   "text": "Biodiversity and the effect of human interaction on ecosystems",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.3.1",
+   "text": "Biodiversity",
+   "parent": "4.7.3",
+   "links": []
+  },
+  {
+   "id": "4.7.3.3",
+   "text": "Land use",
+   "parent": "4.7.3",
+   "links": []
+  },
+  {
+   "id": "4.7.3.4",
+   "text": "Deforestation",
+   "parent": "4.7.3",
+   "links": []
+  },
+  {
+   "id": "4.7.3.5",
+   "text": "Global warming",
+   "parent": "4.7.3",
+   "links": []
+  },
+  {
+   "id": "4.7.3.6",
+   "text": "Maintaining biodiversity",
+   "parent": "4.7.3",
+   "links": []
+  },
+  {
+   "id": "5.1.1.1",
+   "text": "Atoms, elements and compounds",
+   "parent": "5.1",
+   "links": []
+  },
+  {
+   "id": "5.1.1.2",
+   "text": "Mixtures",
+   "parent": "5.1",
+   "links": []
+  },
+  {
+   "id": "5.1.1.3",
+   "text": "The development of the model of the atom (common content with physics)",
+   "parent": "5.1",
+   "links": []
+  },
+  {
+   "id": "5.1.1.4",
+   "text": "Relative electrical charges of subatomic particles",
+   "parent": "5.1",
+   "links": []
+  },
+  {
+   "id": "5.1.1.5",
+   "text": "Size and mass of atoms",
+   "parent": "5.1",
+   "links": []
+  },
+  {
+   "id": "5.1.1.6",
+   "text": "Relative atomic mass",
+   "parent": "5.1",
+   "links": []
+  },
+  {
+   "id": "5.1.2",
+   "text": "The periodic table",
+   "parent": "5.1",
+   "links": []
+  },
+  {
+   "id": "5.1.2.1",
+   "text": "The periodic table",
+   "parent": "5.1.2",
+   "links": []
+  },
+  {
+   "id": "5.1.2.2",
+   "text": "Development of the periodic table",
+   "parent": "5.1.2",
+   "links": []
+  },
+  {
+   "id": "5.1.2.3",
+   "text": "Metals and non-metals",
+   "parent": "5.1.2",
+   "links": []
+  },
+  {
+   "id": "5.1.2.5",
+   "text": "Group 1",
+   "parent": "5.1.2",
+   "links": []
+  },
+  {
+   "id": "5.1.2.6",
+   "text": "Group 7",
+   "parent": "5.1.2",
+   "links": []
+  },
+  {
+   "id": "5.2.1.1",
+   "text": "Chemical bonds",
+   "parent": "5.2",
+   "links": []
+  },
+  {
+   "id": "5.2.1.2",
+   "text": "Ionic bonding",
+   "parent": "5.2",
+   "links": []
+  },
+  {
+   "id": "5.2.1.3",
+   "text": "Ionic compounds",
+   "parent": "5.2",
+   "links": []
+  },
+  {
+   "id": "5.2.1.5",
+   "text": "Metallic bonding",
+   "parent": "5.2",
+   "links": []
+  },
+  {
+   "id": "5.2.2.1",
+   "text": "The three states of matter",
+   "parent": "5.2",
+   "links": []
+  },
+  {
+   "id": "5.2.2.2",
+   "text": "State symbols",
+   "parent": "5.2",
+   "links": []
+  },
+  {
+   "id": "5.2.2.3",
+   "text": "Properties of ionic compounds",
+   "parent": "5.2",
+   "links": []
+  },
+  {
+   "id": "5.2.2.4",
+   "text": "Properties of small molecules",
+   "parent": "5.2",
+   "links": []
+  },
+  {
+   "id": "5.2.2.6",
+   "text": "Giant covalent structures",
+   "parent": "5.2",
+   "links": []
+  },
+  {
+   "id": "5.2.2.7",
+   "text": "Properties of metals and alloys",
+   "parent": "5.2",
+   "links": []
+  },
+  {
+   "id": "5.2.2.8",
+   "text": "Metals as conductors",
+   "parent": "5.2",
+   "links": []
+  },
+  {
+   "id": "5.2.3",
+   "text": "Structure and bonding of carbon",
+   "parent": "5.2",
+   "links": []
+  },
+  {
+   "id": "5.2.3.1",
+   "text": "Diamond",
+   "parent": "5.2.3",
+   "links": []
+  },
+  {
+   "id": "5.2.3.2",
+   "text": "Graphite",
+   "parent": "5.2.3",
+   "links": []
+  },
+  {
+   "id": "5.3.1",
+   "text": "Chemical measurements, conservation of mass and the",
+   "parent": "5.3",
+   "links": []
+  },
+  {
+   "id": "5.3.1.1",
+   "text": "Conservation of mass and balanced chemical equations",
+   "parent": "5.3.1",
+   "links": []
+  },
+  {
+   "id": "5.3.1.2",
+   "text": "Relative formula mass",
+   "parent": "5.3.1",
+   "links": []
+  },
+  {
+   "id": "5.3.1.3",
+   "text": "Mass changes when a reactant or product is a gas",
+   "parent": "5.3.1",
+   "links": []
+  },
+  {
+   "id": "5.3.2",
+   "text": "Use of amount of substance in relation to masses of pure",
+   "parent": "5.3",
+   "links": []
+  },
+  {
+   "id": "5.3.2.1",
+   "text": "Moles (HT only)",
+   "parent": "5.3.2",
+   "links": []
+  },
+  {
+   "id": "5.3.2.2",
+   "text": "Amounts of substances in equations (HT only)",
+   "parent": "5.3.2",
+   "links": []
+  },
+  {
+   "id": "5.3.2.3",
+   "text": "Using moles to balance equations (HT only)",
+   "parent": "5.3.2",
+   "links": []
+  },
+  {
+   "id": "5.3.2.5",
+   "text": "Concentration of solutions",
+   "parent": "5.3.2",
+   "links": []
+  },
+  {
+   "id": "5.4.1",
+   "text": "Reactivity of metals",
+   "parent": "5.4",
+   "links": []
+  },
+  {
+   "id": "5.4.1.1",
+   "text": "Metal oxides",
+   "parent": "5.4.1",
+   "links": []
+  },
+  {
+   "id": "5.4.1.2",
+   "text": "The reactivity series",
+   "parent": "5.4.1",
+   "links": []
+  },
+  {
+   "id": "5.4.1.4",
+   "text": "Oxidation and reduction in terms of electrons (HT only)",
+   "parent": "5.4.1",
+   "links": []
+  },
+  {
+   "id": "5.4.2",
+   "text": "Reactions of acids",
+   "parent": "5.4",
+   "links": []
+  },
+  {
+   "id": "5.4.2.1",
+   "text": "Reactions of acids with metals",
+   "parent": "5.4.2",
+   "links": []
+  },
+  {
+   "id": "5.4.2.2",
+   "text": "Neutralisation of acids and salt production",
+   "parent": "5.4.2",
+   "links": []
+  },
+  {
+   "id": "5.4.2.4",
+   "text": "The pH scale and neutralisation",
+   "parent": "5.4.2",
+   "links": []
+  },
+  {
+   "id": "5.4.2.5",
+   "text": "Strong and weak acids (HT only)",
+   "parent": "5.4.2",
+   "links": []
+  },
+  {
+   "id": "5.4.3",
+   "text": "Electrolysis",
+   "parent": "5.4",
+   "links": []
+  },
+  {
+   "id": "5.4.3.1",
+   "text": "The process of electrolysis",
+   "parent": "5.4.3",
+   "links": []
+  },
+  {
+   "id": "5.4.3.3",
+   "text": "Using electrolysis to extract metals",
+   "parent": "5.4.3",
+   "links": []
+  },
+  {
+   "id": "5.4.3.4",
+   "text": "Electrolysis of aqueous solutions",
+   "parent": "5.4.3",
+   "links": []
+  },
+  {
+   "id": "5.4.3.5",
+   "text": "Representation of reactions at electrodes as half equations (HT only)",
+   "parent": "5.4.3",
+   "links": []
+  },
+  {
+   "id": "5.5.1.1",
+   "text": "Energy transfer during exothermic and endothermic reactions",
+   "parent": "5.5",
+   "links": []
+  },
+  {
+   "id": "5.5.1.2",
+   "text": "Reaction profiles",
+   "parent": "5.5",
+   "links": []
+  },
+  {
+   "id": "5.5.1.3",
+   "text": "The energy change of reactions (HT only)",
+   "parent": "5.5",
+   "links": []
+  },
+  {
+   "id": "5.6.1",
+   "text": "Rate of reaction",
+   "parent": "5.6",
+   "links": []
+  },
+  {
+   "id": "5.6.1.1",
+   "text": "Calculating rates of reactions",
+   "parent": "5.6.1",
+   "links": []
+  },
+  {
+   "id": "5.6.1.3",
+   "text": "Collision theory and activation energy",
+   "parent": "5.6.1",
+   "links": []
+  },
+  {
+   "id": "5.6.1.4",
+   "text": "Catalysts",
+   "parent": "5.6.1",
+   "links": []
+  },
+  {
+   "id": "5.6.2.1",
+   "text": "Reversible reactions",
+   "parent": "5.6",
+   "links": []
+  },
+  {
+   "id": "5.6.2.2",
+   "text": "Energy changes and reversible reactions",
+   "parent": "5.6",
+   "links": []
+  },
+  {
+   "id": "5.6.2.3",
+   "text": "Equilibrium",
+   "parent": "5.6",
+   "links": []
+  },
+  {
+   "id": "5.6.2.4",
+   "text": "The effect of changing conditions on equilibrium (HT only)",
+   "parent": "5.6",
+   "links": []
+  },
+  {
+   "id": "5.6.2.5",
+   "text": "The effect of changing concentration (HT only)",
+   "parent": "5.6",
+   "links": []
+  },
+  {
+   "id": "5.6.2.7",
+   "text": "The effect of pressure changes on equilibrium (HT only)",
+   "parent": "5.6",
+   "links": []
+  },
+  {
+   "id": "5.7.1",
+   "text": "Carbon compounds as fuels and feedstock",
+   "parent": "5.7",
+   "links": []
+  },
+  {
+   "id": "5.7.1.1",
+   "text": "Crude oil, hydrocarbons and alkanes",
+   "parent": "5.7.1",
+   "links": []
+  },
+  {
+   "id": "5.7.1.3",
+   "text": "Properties of hydrocarbons",
+   "parent": "5.7.1",
+   "links": []
+  },
+  {
+   "id": "5.7.1.4",
+   "text": "Cracking and alkenes",
+   "parent": "5.7.1",
+   "links": []
+  },
+  {
+   "id": "5.8.1.1",
+   "text": "Pure substances",
+   "parent": "5.8",
+   "links": []
+  },
+  {
+   "id": "5.8.1.2",
+   "text": "Formulations",
+   "parent": "5.8",
+   "links": []
+  },
+  {
+   "id": "5.8.1.3",
+   "text": "Chromatography",
+   "parent": "5.8",
+   "links": []
+  },
+  {
+   "id": "5.8.2",
+   "text": "Identification of common gases",
+   "parent": "5.8",
+   "links": []
+  },
+  {
+   "id": "5.8.2.1",
+   "text": "Test for hydrogen",
+   "parent": "5.8.2",
+   "links": []
+  },
+  {
+   "id": "5.8.2.3",
+   "text": "Test for carbon dioxide",
+   "parent": "5.8.2",
+   "links": []
+  },
+  {
+   "id": "5.8.2.4",
+   "text": "Test for chlorine",
+   "parent": "5.8.2",
+   "links": []
+  },
+  {
+   "id": "5.9.1",
+   "text": "The composition and evolution of the Earth's atmosphere",
+   "parent": "5.9",
+   "links": []
+  },
+  {
+   "id": "5.9.1.1",
+   "text": "The proportions of different gases in the atmosphere",
+   "parent": "5.9.1",
+   "links": []
+  },
+  {
+   "id": "5.9.1.2",
+   "text": "The Earth's early atmosphere",
+   "parent": "5.9.1",
+   "links": []
+  },
+  {
+   "id": "5.9.1.3",
+   "text": "How oxygen increased",
+   "parent": "5.9.1",
+   "links": []
+  },
+  {
+   "id": "5.9.2",
+   "text": "Carbon dioxide and methane as greenhouse gases",
+   "parent": "5.9",
+   "links": []
+  },
+  {
+   "id": "5.9.2.1",
+   "text": "Greenhouse gases",
+   "parent": "5.9.2",
+   "links": []
+  },
+  {
+   "id": "5.9.2.2",
+   "text": "Human activities which contribute to an increase in greenhouse gases in the",
+   "parent": "5.9.2",
+   "links": []
+  },
+  {
+   "id": "5.9.2.3",
+   "text": "Global climate change",
+   "parent": "5.9.2",
+   "links": []
+  },
+  {
+   "id": "5.9.3",
+   "text": "Common atmospheric pollutants and their sources",
+   "parent": "5.9",
+   "links": []
+  },
+  {
+   "id": "5.9.3.1",
+   "text": "Atmospheric pollutants from fuels",
+   "parent": "5.9.3",
+   "links": []
+  },
+  {
+   "id": "5.9.3.2",
+   "text": "Properties and effects of atmospheric pollutants",
+   "parent": "5.9.3",
+   "links": []
+  },
+  {
+   "id": "5.10.1.1",
+   "text": "Using the Earth's resources and sustainable development",
+   "parent": "5.10",
+   "links": []
+  },
+  {
+   "id": "5.10.1.2",
+   "text": "Potable water",
+   "parent": "5.10",
+   "links": []
+  },
+  {
+   "id": "5.10.1.4",
+   "text": "Alternative methods of extracting metals (HT only)",
+   "parent": "5.10",
+   "links": []
+  },
+  {
+   "id": "5.10.2",
+   "text": "Life cycle assessment and recycling",
+   "parent": "5.10",
+   "links": []
+  },
+  {
+   "id": "5.10.2.1",
+   "text": "Life cycle assessment",
+   "parent": "5.10.2",
+   "links": []
+  },
+  {
+   "id": "6.1.1.1",
+   "text": "Energy stores and systems",
+   "parent": "6.1",
+   "links": []
+  },
+  {
+   "id": "6.1.1.2",
+   "text": "Changes in energy",
+   "parent": "6.1",
+   "links": []
+  },
+  {
+   "id": "6.1.1.3",
+   "text": "Energy changes in systems",
+   "parent": "6.1",
+   "links": []
+  },
+  {
+   "id": "6.1.1.4",
+   "text": "Power",
+   "parent": "6.1",
+   "links": []
+  },
+  {
+   "id": "6.1.2",
+   "text": "Conservation and dissipation of energy",
+   "parent": "6.1",
+   "links": []
+  },
+  {
+   "id": "6.1.2.1",
+   "text": "Energy transfers in a system",
+   "parent": "6.1.2",
+   "links": []
+  },
+  {
+   "id": "6.1.2.2",
+   "text": "Efficiency",
+   "parent": "6.1.2",
+   "links": []
+  },
+  {
+   "id": "6.1.3",
+   "text": "National and global energy resources",
+   "parent": "6.1",
+   "links": []
+  },
+  {
+   "id": "6.2.1",
+   "text": "Current, potential difference and resistance",
+   "parent": "6.2",
+   "links": []
+  },
+  {
+   "id": "6.2.1.1",
+   "text": "Standard circuit diagram symbols",
+   "parent": "6.2.1",
+   "links": []
+  },
+  {
+   "id": "6.2.1.2",
+   "text": "Electrical charge and current",
+   "parent": "6.2.1",
+   "links": []
+  },
+  {
+   "id": "6.2.1.3",
+   "text": "Current, resistance and potential difference",
+   "parent": "6.2.1",
+   "links": []
+  },
+  {
+   "id": "6.2.2",
+   "text": "Series and parallel circuits",
+   "parent": "6.2",
+   "links": []
+  },
+  {
+   "id": "6.2.3",
+   "text": "Domestic uses and safety",
+   "parent": "6.2",
+   "links": []
+  },
+  {
+   "id": "6.2.3.1",
+   "text": "Direct and alternating potential difference",
+   "parent": "6.2.3",
+   "links": []
+  },
+  {
+   "id": "6.2.3.2",
+   "text": "Mains electricity",
+   "parent": "6.2.3",
+   "links": []
+  },
+  {
+   "id": "6.2.4",
+   "text": "Energy transfers",
+   "parent": "6.2",
+   "links": []
+  },
+  {
+   "id": "6.2.4.1",
+   "text": "Power",
+   "parent": "6.2.4",
+   "links": []
+  },
+  {
+   "id": "6.2.4.3",
+   "text": "The National Grid",
+   "parent": "6.2.4",
+   "links": []
+  },
+  {
+   "id": "6.3.1",
+   "text": "Changes of state and the particle model",
+   "parent": "6.3",
+   "links": []
+  },
+  {
+   "id": "6.3.1.1",
+   "text": "Density of materials",
+   "parent": "6.3.1",
+   "links": []
+  },
+  {
+   "id": "6.3.1.2",
+   "text": "Changes of state",
+   "parent": "6.3.1",
+   "links": []
+  },
+  {
+   "id": "6.3.2",
+   "text": "Internal energy and energy transfers",
+   "parent": "6.3",
+   "links": []
+  },
+  {
+   "id": "6.3.2.1",
+   "text": "Internal energy",
+   "parent": "6.3.2",
+   "links": []
+  },
+  {
+   "id": "6.3.2.2",
+   "text": "Temperature changes in a system and specific heat capacity",
+   "parent": "6.3.2",
+   "links": []
+  },
+  {
+   "id": "6.3.2.3",
+   "text": "Changes of state and specific latent heat",
+   "parent": "6.3.2",
+   "links": []
+  },
+  {
+   "id": "6.3.3",
+   "text": "Particle model and pressure",
+   "parent": "6.3",
+   "links": []
+  },
+  {
+   "id": "6.3.3.1",
+   "text": "Particle motion in gases",
+   "parent": "6.3.3",
+   "links": []
+  },
+  {
+   "id": "6.4.1",
+   "text": "Atoms and isotopes",
+   "parent": "6.4",
+   "links": []
+  },
+  {
+   "id": "6.4.1.1",
+   "text": "The structure of an atom",
+   "parent": "6.4.1",
+   "links": []
+  },
+  {
+   "id": "6.4.1.2",
+   "text": "Mass number, atomic number and isotopes",
+   "parent": "6.4.1",
+   "links": []
+  },
+  {
+   "id": "6.4.2",
+   "text": "Atoms and nuclear radiation",
+   "parent": "6.4",
+   "links": []
+  },
+  {
+   "id": "6.4.2.1",
+   "text": "Radioactive decay and nuclear radiation",
+   "parent": "6.4.2",
+   "links": []
+  },
+  {
+   "id": "6.4.2.3",
+   "text": "Half-lives and the random nature of radioactive decay",
+   "parent": "6.4.2",
+   "links": []
+  },
+  {
+   "id": "6.4.2.4",
+   "text": "Radioactive contamination",
+   "parent": "6.4.2",
+   "links": []
+  },
+  {
+   "id": "6.5.1.1",
+   "text": "Scalar and vector quantities",
+   "parent": "6.5",
+   "links": []
+  },
+  {
+   "id": "6.5.1.2",
+   "text": "Contact and non-contact forces",
+   "parent": "6.5",
+   "links": []
+  },
+  {
+   "id": "6.5.1.3",
+   "text": "Gravity",
+   "parent": "6.5",
+   "links": []
+  },
+  {
+   "id": "6.5.1.4",
+   "text": "Resultant forces",
+   "parent": "6.5",
+   "links": []
+  },
+  {
+   "id": "6.5.3",
+   "text": "Forces and elasticity",
+   "parent": "6.5",
+   "links": []
+  },
+  {
+   "id": "6.5.4",
+   "text": "Forces and motion",
+   "parent": "6.5",
+   "links": []
+  },
+  {
+   "id": "6.5.4.1",
+   "text": "Describing motion along a line",
+   "parent": "6.5.4",
+   "links": []
+  },
+  {
+   "id": "6.5.4.2",
+   "text": "Forces, accelerations and Newton's Laws of motion",
+   "parent": "6.5.4",
+   "links": []
+  },
+  {
+   "id": "6.5.4.3",
+   "text": "Forces and braking",
+   "parent": "6.5.4",
+   "links": []
+  },
+  {
+   "id": "6.5.5",
+   "text": "Momentum (HT only)",
+   "parent": "6.5",
+   "links": []
+  },
+  {
+   "id": "6.5.5.1",
+   "text": "Momentum is a property of moving objects",
+   "parent": "6.5.5",
+   "links": []
+  },
+  {
+   "id": "6.5.5.2",
+   "text": "Conservation of momentum",
+   "parent": "6.5.5",
+   "links": []
+  },
+  {
+   "id": "6.6.1",
+   "text": "Waves in air, fluids and solids",
+   "parent": "6.6",
+   "links": []
+  },
+  {
+   "id": "6.6.1.1",
+   "text": "Transverse and longitudinal waves",
+   "parent": "6.6.1",
+   "links": []
+  },
+  {
+   "id": "6.6.2",
+   "text": "Electromagnetic waves",
+   "parent": "6.6",
+   "links": []
+  },
+  {
+   "id": "6.6.2.1",
+   "text": "Types of electromagnetic waves",
+   "parent": "6.6.2",
+   "links": []
+  },
+  {
+   "id": "6.6.2.2",
+   "text": "Properties of electromagnetic waves 1",
+   "parent": "6.6.2",
+   "links": []
+  },
+  {
+   "id": "6.6.2.3",
+   "text": "Properties of electromagnetic waves 2",
+   "parent": "6.6.2",
+   "links": []
+  },
+  {
+   "id": "6.6.2.4",
+   "text": "Uses and applications of electromagnetic waves",
+   "parent": "6.6.2",
+   "links": []
+  },
+  {
+   "id": "6.7.1",
+   "text": "Permanent and induced magnetism, magnetic forces and fields",
+   "parent": "6.7",
+   "links": []
+  },
+  {
+   "id": "6.7.1.1",
+   "text": "Poles of a magnet",
+   "parent": "6.7.1",
+   "links": []
+  },
+  {
+   "id": "6.7.2",
+   "text": "The motor effect",
+   "parent": "6.7",
+   "links": []
+  },
+  {
+   "id": "6.7.2.1",
+   "text": "Electromagnetism",
+   "parent": "6.7.2",
+   "links": []
+  },
+  {
+   "id": "6.7.2.2",
+   "text": "Fleming's left-hand rule (HT only)",
+   "parent": "6.7.2",
+   "links": []
+  },
+  {
+   "id": "6.7.2.3",
+   "text": "Electric motors (HT only)",
+   "parent": "6.7.2",
+   "links": []
+  }
+ ]
+}
