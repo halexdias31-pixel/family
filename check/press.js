@@ -51,7 +51,6 @@ const ACCEPTED_QUIET = {
                     + 'empty list — the same refusal as an empty box, and the same right one.' },
 
   /* ---------- A CARET IS NOT A PRESS § */
-  'book-emails': { why: 'a text field. It answers `change` on what is typed; a click is a caret.' },
   'book-note':   { why: 'the same field one row down, and the note over its listener says outright '
                       + 'that it does NOT redraw — repainting would take the cursor out of the box '
                       + 'the moment somebody clicked away mid-sentence.' },
