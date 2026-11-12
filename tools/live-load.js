@@ -130,10 +130,10 @@ async function localVisit(ctx, url, label, keep) {
     const nav = performance.getEntriesByType('navigation')[0] || {};
     const end = re => Math.round(Math.max(0, ...r.filter(e => re.test(e.name)).map(e => e.responseEnd)));
     const S = window.__stamps || {};
-    return { html: Math.round(nav.responseEnd || 0), eagerJs: end(/\/js\/.*\.js/), library: end(/\/data\/.*\.json/), dcl: Math.round(nav.domContentLoadedEventEnd || 0),
+    return { html: Math.round(nav.responseEnd || 0), eagerJs: end(/\/(?:js|bundle)\/.*\.js/), library: end(/\/data\/.*\.json/), dcl: Math.round(nav.domContentLoadedEventEnd || 0),
       code: S.code, screen: S.screen, menu: S.menu, later: S.later, libraryIn: S.library, cached: S.cached == null ? null : S.cached, payload: S.payload, usable: S.usable, place: S.place == null ? null : S.place, loaded: S.loaded,
-      jsKB: Math.round(r.filter(e => /\/js\//.test(e.name)).reduce((a, e) => a + (e.encodedBodySize || 0), 0) / 1024),
-      jsFiles: r.filter(e => /\/js\//.test(e.name)).length };
+      jsKB: Math.round(r.filter(e => /\/(?:js|bundle)\//.test(e.name)).reduce((a, e) => a + (e.encodedBodySize || 0), 0) / 1024),
+      jsFiles: r.filter(e => /\/(?:js|bundle)\//.test(e.name)).length };
   });
   await page.close();
   return Object.assign({ label }, out, { tapsFrom: taps[0] == null ? null : taps[0], tapsMs: taps.slice(1), errors });
@@ -165,7 +165,7 @@ function gzipServe() {
 async function local() {
   const glass = require('../check/glass.js');
   const server = await gzipServe();
-  const url = `http://localhost:${server.address().port}/index.html`;
+  const url = `http://localhost:${server.address().port}/index.html` + (process.env.LIVE_QS || '');   /* ?nobundle: the js/ files one by one, to compare (1211) */
   const browser = await chromium.launch();
   const student = glass.VIEWERS.find(v => v.as === 'student').user;
   const out = { at: new Date().toISOString(), site: 'local, signed in, doGet held ' + DELAY + ' ms', net: '150ms 1.6Mbit/s, CPU x' + CPU };

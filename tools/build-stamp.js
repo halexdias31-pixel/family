@@ -7,8 +7,11 @@ const fs = require('fs'), path = require('path'), crypto = require('crypto'), { 
 const ROOT = path.resolve(__dirname, '..');
 const HTML = path.join(ROOT, 'index.html');
 const CHECK = process.argv.includes('--check');
+/* THE BUNDLES FIRST (1211), so they are never forgotten and the stamp hashes what is served; --check fails on a stale one. */
+const BUNDLE = require('./bundle.js').run(CHECK);
+if (BUNDLE.stale.length) { console.error('FAIL — build-stamp: ' + BUNDLE.stale.join(', ') + ' stale. Run: node tools/build-stamp.js'); process.exit(1); }
 /* WHAT `?t=` IS PUT ON: index.html's scripts and stylesheet, and every `deployStamp_()` fetch (check-cache holds those to data/, tools/, js/). */
-const SERVED = ['js/', 'style.css', 'fonts/', 'data/'];
+const SERVED = ['js/', 'bundle/', 'style.css', 'fonts/', 'data/'];
 /* THE CHECKS ARE NEVER SERVED TO A PHONE, so editing one must not make every phone download the app again. */
 const NOT = f => /^js\/check[-.]/.test(f);
 

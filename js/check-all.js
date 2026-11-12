@@ -207,6 +207,8 @@ const SUITE = [
   { file: 'check-finder.js', what: 'a finder\'s chips and words set only through finderSet_' },
   /* 546: the finder's first answers are counted at build time; a library change without a re-run of the tool is red here. */
   { file: 'tools/finder-tags.js --check', what: 'js/finder-tags.js is what the library asks first, not stale' },
+  /* 1211: index.html loads bundle/*.js; a js/ edit without build-stamp leaves them stale and the site runs old code. */
+  { file: 'tools/bundle.js --check', what: 'bundle/first, later and lazy are the js/ files they join, in FILES order' },
   { file: 'tools/build-stamp.js --check', what: 'index.html\'s BUILD_STAMP is the hash of the files it stamps, so a deploy changes every URL and nothing else does (750)' },
   /* LOGIC HEALTH (770): data/logic-health.json is what tools/logic-health.js measures over the funnel now. */
   { file: 'tools/logic-health.js --check', what: 'the Logic health card\'s figures are the funnel as it is now', slow: true },

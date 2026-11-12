@@ -1,67 +1,45 @@
 {
  "visits": {
   "first": {
-   "n": 251,
-   "netKB": 3657,
-   "cacheN": 151,
-   "cacheKB": 77163
+   "n": 192,
+   "netKB": 98410,
+   "cacheN": 12,
+   "cacheKB": 0
   },
   "repeat": {
-   "loadedMs": 15856,
-   "n": 128,
-   "netKB": 19,
-   "cacheN": 126,
-   "cacheKB": 59170
+   "loadedMs": 733,
+   "n": 26,
+   "netKB": 55375,
+   "cacheN": 0,
+   "cacheKB": 0
   }
  },
  "walked": {
   "viewport": "390x844 touch",
   "cpu": "4x (1x for the question sample)",
-  "ms": 82757,
+  "ms": 43978,
   "phase": {
-   "loaded": 5277,
-   "signin": 8563,
-   "findUsable": 12378,
-   "clicks": 38273,
-   "questions": 63255,
-   "boxLooks": 66804
+   "loaded": 5057,
+   "signin": 8961,
+   "findUsable": 12243,
+   "clicks": 20892,
+   "questions": 33884,
+   "boxLooks": 42497
   }
  },
- "firstScreenMs": 272,
- "findUsableMs": 3815,
- "signinMs": 2841,
- "heapMB": 712.4,
+ "firstScreenMs": 172,
+ "findUsableMs": 3282,
+ "signinMs": 1899,
+ "heapMB": 272.8,
  "boxLooks": {
   "faces": [
-   {
-    "where": "Find search",
-    "sig": {
-     "h": 52,
-     "radius": "26px",
-     "font": "16px \"Family Code\"",
-     "padR": "14px",
-     "bg": "rgb(244, 241, 232)",
-     "border": "1px solid rgb(244, 241, 232)"
-    }
-   },
    {
     "where": "question answer box",
     "sig": {
      "h": 52,
-     "radius": "26px",
-     "font": "16px \"Family Code\"",
-     "padR": "14px",
-     "bg": "rgb(244, 241, 232)",
-     "border": "1px solid rgb(244, 241, 232)"
-    }
-   },
-   {
-    "where": "Settings field (staff)",
-    "sig": {
-     "h": 52,
-     "radius": "26px",
-     "font": "16px \"Family Code\"",
-     "padR": "14px",
+     "radius": "999px",
+     "font": "14.82px \"Family Code\"",
+     "padR": "11.115px",
      "bg": "rgb(244, 241, 232)",
      "border": "1px solid rgb(244, 241, 232)"
     }
@@ -69,109 +47,101 @@
   ],
   "off": []
  },
- "heapLiveMB": 272.3,
- "garbageMB": 440.1,
+ "heapLiveMB": 193.4,
+ "garbageMB": 79.4,
  "clicks": [
   {
    "what": "front menu: first answer",
-   "churnMB": -4,
-   "ms": 48,
-   "shift": 0.001,
-   "longs": 3,
-   "by": "event-timing"
-  },
-  {
-   "what": "second menu: first answer",
-   "churnMB": 9.8,
+   "churnMB": -2.3,
    "ms": 32,
-   "shift": 0.01,
-   "longs": 1,
-   "by": "event-timing"
-  },
-  {
-   "what": "third menu: first answer",
-   "churnMB": 26.2,
-   "ms": 32,
-   "shift": 0.005,
-   "longs": 1,
-   "by": "event-timing"
-  },
-  {
-   "what": "back: drop the last chip",
-   "churnMB": 4,
-   "ms": 24,
-   "shift": 0,
-   "longs": 1,
-   "by": "event-timing"
-  },
-  {
-   "what": "menu answer again",
-   "churnMB": 7.8,
-   "ms": 200,
    "shift": 0,
    "longs": 2,
    "by": "event-timing"
   },
   {
+   "what": "second menu: first answer",
+   "missing": true
+  },
+  {
+   "what": "third menu: first answer",
+   "missing": true
+  },
+  {
+   "what": "back: drop the last chip",
+   "churnMB": -3.6,
+   "ms": 32,
+   "shift": 0,
+   "longs": 2,
+   "by": "event-timing"
+  },
+  {
+   "what": "menu answer again",
+   "missing": true
+  },
+  {
    "what": "open a question",
-   "churnMB": 6.7,
-   "ms": 2577,
-   "shift": 0.006,
-   "longs": 1,
+   "churnMB": -10.6,
+   "ms": 826,
+   "shift": 0,
+   "longs": 2,
    "by": "frames"
   },
   {
    "what": "Check",
-   "churnMB": 0,
-   "ms": 40,
+   "churnMB": -1.1,
+   "ms": 136,
    "shift": 0,
-   "longs": 0,
+   "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "Lock the page",
-   "churnMB": 0,
-   "ms": 32,
-   "shift": 0,
-   "longs": 0,
-   "by": "event-timing"
+   "missing": true
   },
   {
    "what": "Unlock the page",
-   "churnMB": 0,
+   "missing": true
+  },
+  {
+   "what": "Back to the top of Find",
+   "missing": true
+  },
+  {
+   "what": "Start again",
+   "churnMB": 17.5,
    "ms": 24,
+   "shift": 0,
+   "longs": 1,
+   "by": "event-timing"
+  },
+  {
+   "what": "front menu again",
+   "churnMB": 0.7,
+   "ms": 16,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
-   "what": "Back to the top of Find",
-   "churnMB": 0.1,
+   "what": "Next answer down",
+   "churnMB": 0.8,
    "ms": 40,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
-   "what": "front menu again",
-   "missing": true
-  },
-  {
-   "what": "Next answer down",
-   "missing": true
-  },
-  {
    "what": "Feed tab",
-   "churnMB": 0,
-   "ms": 38,
+   "churnMB": 1,
+   "ms": 76,
    "shift": 0,
    "longs": 0,
    "by": "frames"
   },
   {
    "what": "Find tab",
-   "churnMB": 0,
-   "ms": 42,
+   "churnMB": 0.4,
+   "ms": 40,
    "shift": 0,
    "longs": 0,
    "by": "frames"
@@ -183,144 +153,217 @@
  },
  "slow": [
   {
-   "what": "menu answer again",
-   "churnMB": 7.8,
-   "ms": 200,
+   "what": "open a question",
+   "churnMB": -10.6,
+   "ms": 826,
    "shift": 0,
    "longs": 2,
-   "by": "event-timing"
+   "by": "frames"
   },
   {
-   "what": "open a question",
-   "churnMB": 6.7,
-   "ms": 2577,
-   "shift": 0.006,
+   "what": "Check",
+   "churnMB": -1.1,
+   "ms": 136,
+   "shift": 0,
    "longs": 1,
-   "by": "frames"
+   "by": "event-timing"
   }
  ],
  "missing": [
-  "front menu again",
-  "Next answer down"
+  "second menu: first answer",
+  "third menu: first answer",
+  "menu answer again",
+  "Lock the page",
+  "Unlock the page",
+  "Back to the top of Find"
  ],
  "questions": {
   "sampled": 30,
   "types": 24,
-  "broken": []
+  "broken": [
+   {
+    "id": "Q-1MA1-2406-2H-20",
+    "type": "coords",
+    "why": [
+     "no answer box and no Check tile"
+    ]
+   },
+   {
+    "id": "Q0026",
+    "type": "fraction",
+    "why": [
+     "no answer box and no Check tile"
+    ]
+   },
+   {
+    "id": "Q-STA-KS2-2024-P2-18",
+    "type": "hand",
+    "why": [
+     "no answer box and no Check tile"
+    ]
+   },
+   {
+    "id": "Q-9MA031-2206-5c",
+    "type": "match",
+    "why": [
+     "no answer box and no Check tile"
+    ]
+   },
+   {
+    "id": "Q-1MA1-2406-2F-7a",
+    "type": "measure",
+    "why": [
+     "no answer box and no Check tile"
+    ]
+   },
+   {
+    "id": "Q-1MA1-2406-2H-5a",
+    "type": "table",
+    "why": [
+     "no answer box and no Check tile"
+    ]
+   },
+   {
+    "id": "Q-1MA1-2406-1H-17a",
+    "type": "words",
+    "why": [
+     "no answer box and no Check tile"
+    ]
+   },
+   {
+    "id": "Q-CBM-parallel-lines-perpendicular-lines-6",
+    "type": "chooseN",
+    "why": [
+     "no answer box and no Check tile"
+    ]
+   }
+  ]
  },
  "errors": [],
  "consoleErrors": [],
  "a11y": [
   {
    "screen": "stuff",
-   "what": "label",
-   "say": "input has no label"
-  },
-  {
-   "screen": "stuff",
    "what": "tap target",
-   "say": "filter-drop \"Practice✕\" is 71x16 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Questions✕\" is 76x16 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Maths✕\" is 54x16 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Past paper✕\" is 82x16 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"A-Level✕\" is 65x16 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Edexcel✕\" is 65x16 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"2022✕\" is 48x16 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Accuracy unverified✕\" is 132x16 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Function verified✕\" is 121x16 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Q1✕\" is 37x16 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"a✕\" is 32x16 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"i✕\" is 32x16 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "qp-ans is 315x30 px (under 44)"
+   "say": "filter-drop is 24x24 px (under 44)"
   }
  ],
+ "a11yChecked": 37,
  "cardTags": {
-  "soon": {
-   "cards": 40,
-   "sampled": 20,
-   "noTags": 0,
-   "missing": {},
+  "tutor": {
+   "cards": 1,
+   "sampled": 1,
+   "noTags": 1,
+   "missing": {
+    "forLabel": 1,
+    "profileType": 1
+   },
    "fn": "card"
   },
-  "msg": {
+  "venue": {
    "cards": 1,
    "sampled": 1,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 1
   },
-  "person": {
+  "tool": {
+   "cards": 4,
+   "sampled": 4,
+   "noTags": 0,
+   "missing": {
+    "forLabel": 4
+   },
+   "fn": "card",
+   "notPill": 4
+  },
+  "soon": {
+   "cards": 25,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "forLabel": 20
+   },
+   "fn": "card",
+   "notPill": 20
+  },
+  "post": {
    "cards": 2,
    "sampled": 2,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 2
   },
-  "health": {
-   "cards": 2,
-   "sampled": 2,
+  "person": {
+   "cards": 3,
+   "sampled": 3,
    "noTags": 0,
    "missing": {
     "forLabel": 1,
-    "kindLabel": 1
+    "profileType": 1
+   },
+   "fn": "card",
+   "notPill": 3
+  },
+  "setting": {
+   "cards": 44,
+   "sampled": 20,
+   "noTags": 1,
+   "missing": {
+    "forLabel": 20,
+    "settingFor": 20
+   },
+   "fn": "card",
+   "notPill": 19
+  },
+  "health": {
+   "cards": 1,
+   "sampled": 1,
+   "noTags": 0,
+   "missing": {
+    "forLabel": 1,
+    "settingFor": 1
    },
    "fn": "card",
    "notPill": 1
   },
-  "boxer": {
-   "cards": 103,
+  "bookform": {
+   "cards": 1,
+   "sampled": 1,
+   "noTags": 0,
+   "missing": {
+    "forLabel": 1
+   },
+   "fn": "card",
+   "notPill": 1
+  },
+  "level": {
+   "cards": 2,
+   "sampled": 2,
+   "noTags": 0,
+   "missing": {},
+   "fn": "card",
+   "notPill": 2
+  },
+  "shop": {
+   "cards": 10,
+   "sampled": 10,
+   "noTags": 0,
+   "missing": {
+    "shopTheme": 3
+   },
+   "fn": "card",
+   "notPill": 10
+  },
+  "people": {
+   "cards": 156,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 1
   },
   "fight": {
    "cards": 157,
@@ -334,21 +377,24 @@
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "project": {
    "cards": 9,
    "sampled": 9,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 9
   },
   "content": {
-   "cards": 956,
+   "cards": 985,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 17
   },
   "insert": {
    "cards": 22,
@@ -362,94 +408,99 @@
    "sampled": 12,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
-  },
-  "figure": {
-   "cards": 45,
-   "sampled": 20,
-   "noTags": 0,
-   "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 12
   },
   "event": {
-   "cards": 109,
+   "cards": 163,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "timeline": {
-   "cards": 2,
-   "sampled": 2,
+   "cards": 6,
+   "sampled": 6,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 6
   },
   "bible": {
    "cards": 151003,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "talmud": {
    "cards": 5350,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "quran": {
    "cards": 12472,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "hadith": {
    "cards": 34153,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "worktext": {
    "cards": 454,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "writ": {
-   "cards": 26046,
+   "cards": 26928,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "pdtext": {
    "cards": 8540,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "orthotext": {
    "cards": 9671,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "hymn": {
    "cards": 766,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 8
   },
   "mech": {
-   "cards": 72,
+   "cards": 89,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
@@ -460,41 +511,21 @@
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "question": {
-   "cards": 28445,
+   "cards": 28650,
    "sampled": 20,
-   "noTags": 0,
-   "missing": {
-    "paperId": 4
-   },
-   "fn": "card",
-   "outside": 20
-  },
-  "offPosts": {
-   "cards": 1,
-   "sampled": 1,
-   "noTags": 0,
-   "missing": {},
-   "fn": "card"
-  },
-  "offShop": {
-   "cards": 1,
-   "sampled": 1,
-   "noTags": 0,
-   "missing": {},
-   "fn": "card"
-  },
-  "offBooking": {
-   "cards": 1,
-   "sampled": 1,
    "noTags": 0,
    "missing": {},
    "fn": "card"
   }
  },
  "inSync": {
-  "off": []
+  "off": [
+   "tab icon http://localhost:43107/favicon.png?v=1106 is not favicon.png",
+   "home-screen icon http://localhost:43107/icon.png?v=1106 is not icon.png"
+  ]
  }
 }
