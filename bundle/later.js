@@ -4582,7 +4582,7 @@ function markExprGrad_(R) {
   return flat && Math.abs(b) > 1e-12 ? -a / b : null;
 }
 function markExpr_(typed, want, eqn, fns) {
-  const T = markExprRead_(typed, fns), W = markExprRead_(want, fns);
+  const said = typeof typed === 'string' && markSpoken_(typed), T = (said && markExprRead_(said, fns)) || markExprRead_(typed, fns), W = markExprRead_(want, fns);
   if (!T || !W) return false;
   let f, g;
   if (eqn) {
@@ -4732,6 +4732,8 @@ function markAnswer_(typed, accept, again) {
   if (Array.isArray(typed)) typed = typed.map(v => String(v == null ? '' : v).trim()).filter(Boolean).join(', ');
   const t = markNorm_(typed);
   if (!t) return null;                              /* nothing typed is not a wrong answer */
+  const said = !again && markSpoken_(t);   /* "fifteen" IS 15: the words read as digits are tried first */
+  if (said && said !== t && markAnswer_(said, accept)) return true;
   /* A `rule:` WAY IS TESTED, NOT MATCHED (markRule_); the other ways are matched as before. */
   const rules = String(accept || '').split('|').filter(w => /^\s*rule:/i.test(w));
   if (rules.length) {
@@ -4933,6 +4935,27 @@ function markOrder_(seq, ways) {
 
 ;
 /* ==== js/find-cells.js ==== */
+/* A NUMBER OR SUM SAID IN WORDS (920 qengine): "fifteen" is 15, "two x plus one" is 2 x + 1; null when no word was a number or an operation. */
+const MARK_NUM_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const MARK_TENS = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+const MARK_OP_WORDS = { plus: '+', add: '+', minus: '-', take: '-', times: '*', over: '/', squared: '^2', cubed: '^3', equals: '=' };
+function markSpoken_(s) {
+  const out = [];
+  let n = null, said = false;
+  const end = () => { if (n !== null) { out.push(String(n.total + n.part)); n = null; } };
+  String(s == null ? '' : s).toLowerCase().replace(/-/g, ' ').split(/\s+/).filter(Boolean).forEach(w => {
+    const u = MARK_NUM_WORDS.indexOf(w), t = MARK_TENS[w];
+    if (u >= 0 || t) { n = n || { total: 0, part: 0 }; n.part += u >= 0 ? u : t; said = true; return; }
+    if (n && w === 'hundred') { n.part *= 100; return; }
+    if (n && w === 'thousand') { n.total += n.part * 1000; n.part = 0; return; }
+    if (n && w === 'and') return;
+    end();
+    if (MARK_OP_WORDS[w]) { out.push(MARK_OP_WORDS[w]); said = true; } else out.push(w);
+  });
+  end();
+  return said ? out.join(' ') : null;
+}
+
 /* ---------- A WORDED ANSWER OF A MARK OR TWO, MARKED BY RULE BEFORE ANY AI (359) */
 /* `mark_words`: points split by `;`, a mark each; ways by `|`; words that must all be there joined by `+`; a number is
    compared as a number. Words are matched on their stems, and a word straight after "not" or "no" does not count. */
@@ -10299,7 +10322,7 @@ function jobPage_(j) {
     + own
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
-    + (typeof suggestTile_ === 'function' && j && j.id ? suggestTile_('session', String(j.id), 'Booking') : '')
+    + (typeof suggestOpts_ === 'function' && j && j.id ? tile_(suggestOpts_('session', String(j.id), 'Booking')) : '')
     + (admin && typeof jobAdminOpts_ === 'function' ? tile_(jobAdminOpts_(j, stage, yes && !pays)) : '');
   /* THE REQUEST'S STANDING, one paragraph under the row (488). */
   const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
@@ -10488,7 +10511,7 @@ function accountMine_(col, family, myRow, tcard_) {
       ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
     /* SHARE only: Edit is on your settings column (464); Sign out and Send the link again on Student settings (453). */
     /* AND REPORT (486): everything has one, your own card too. */
-    const tiles = share + (typeof suggestTile_ === 'function' ? suggestTile_('person', String(USER.personId), row.title || '') : '');
+    const tiles = share + (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('person', String(USER.personId), row.title || '')) : '');
     mine.push(personMark_(USER.personId, face + (tiles ? tileRow_(tiles, 'own-tiles', true) : '')));
   }
   return mine;
@@ -10849,7 +10872,7 @@ function bundleCard_(b) {
   const tiles = tile_({ icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket', note: note, act: 'cart-add', on: inCart, off: inCart, tone: 'buy',
       data: { kind: 'bundle', ids: b.ids.join(','), key: b.title || '' } })
     + tile_({ icon: 'open', label: 'See your basket', act: 'cart-open' })
-    + (typeof suggestTile_ === 'function' ? suggestTile_('bundle', 'b:' + String(b.ids[0] || 'x').replace(/[^A-Za-z0-9_.:-]/g, '') + ':' + b.ids.length, b.title || 'Bundle') : '');
+    + (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('bundle', 'b:' + String(b.ids[0] || 'x').replace(/[^A-Za-z0-9_.:-]/g, '') + ':' + b.ids.length, b.title || 'Bundle')) : '');
   const name = b.title || 'These papers', x = { kind: 'bundle', name: name, key: 'bundle:' + b.ids.join(',') };
   return findCard(Object.assign(x, { kcOwn: { cls: 'bundle', attrs: '', pic: '', head: `<h3>${esc(name)}</h3>`, tags: bundleTags_(b), lines: lines + `<div class="tile-row">${tiles}</div>` } }));
 }
@@ -12075,8 +12098,8 @@ function finderScreen_() {
     <div id="${F.id}-groups">${stuffQuestion()}</div>
     ${/* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */''}
     ${/* THE FINDER ITSELF TAKES A SUGGESTION TOO (494): "should be on finder widget too". */
-      typeof suggestTile_ === 'function' && suggestTile_('finder', F.id, 'Find')
-        ? `<div class="tile-row rep-row find-sg">${suggestTile_('finder', F.id, 'Find')}</div>` : ''}
+      typeof suggestOpts_ === 'function' && tile_(suggestOpts_('finder', F.id, 'Find'))
+        ? `<div class="tile-row rep-row find-sg">${tile_(suggestOpts_('finder', F.id, 'Find'))}</div>` : ''}
   </div>`;
 
   /* THE CONTROLS ARE A PAGE, and the results are the pages after it. § */
@@ -15960,21 +15983,21 @@ const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'functi
 /* WHAT HAS AN OPEN NOTE FOR CLAUDE, by `kind|id` — sent to everybody as `reportedItems`, no names in it. */
 const reportedNow_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA.reportedItems) || []).indexOf(kind + '|' + id) !== -1;
 
-/* THE ONE TILE, on every thing: Student rank and up; signed out it is not drawn. `check-suggest` holds every such tile to it. */
-function suggestTile_(kind, id, label, cls) {
-  if (!kind || !id || typeof rankAtLeast_ !== 'function' || !rankAtLeast_('student')) return '';
-  return tile_({ icon: 'suggest', label: suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change', note: reportedNow_(kind, id) ? 'to change' : '',
+/* THE ONE TILE'S OPTIONS, on every thing, drawn by `tile_`: Student rank and up; signed out, null (no tile). `check-suggest` holds every such tile to it. */
+function suggestOpts_(kind, id, label, cls) {
+  if (!kind || !id || typeof rankAtLeast_ !== 'function' || !rankAtLeast_('student')) return null;
+  return ({ icon: 'suggest', label: suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change', note: reportedNow_(kind, id) ? 'to change' : '',
                  act: 'rep-box', cls: 'rep-tile' + (cls ? ' ' + cls : ''), data: { rk: kind, ri: id, rl: String(label || '').slice(0, 120) } });
 }
 /* A CARD WITH NO TILE ROW OF ITS OWN takes the tile in one of its own, put inside the card by `cardRowIn_`. */
 function suggestRowIn_(html, kind, id, label) {
-  const t = suggestTile_(kind, id, label);
+  const t = tile_(suggestOpts_(kind, id, label));
   return t && typeof cardRowIn_ === 'function' ? cardRowIn_(html, `<div class="tile-row rep-row">${t}</div>`) : html;
 }
 /* A FIND CARD'S KIND AND ID: a question by its key (`q:…`); a coming-soon card by what is coming. */
-function suggestTileFor_(x) {
-  if (!x || !x.key) return '';
-  return suggestTile_(x.soon || x.kind, x.soon ? String(x.soonId) : x.key, [x.name, x.sub].filter(Boolean).join(' · '));
+function suggestOptsFor_(x) {
+  if (!x || !x.key) return null;
+  return suggestOpts_(x.soon || x.kind, x.soon ? String(x.soonId) : x.key, [x.name, x.sub].filter(Boolean).join(' · '));
 }
 
 /* WHAT KIND OF SCREEN IT WAS SEEN ON — enough for the owner to try it on the same, and nothing that names a device. */
@@ -20298,7 +20321,7 @@ function drawBooker_() {
       ${childView_() ? '' : tile_({ icon: 'send', label: 'Send', tone: 'buy', act: 'book-send' })}
       ${tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })}
       ${/* REPORT OR SUGGEST A CHANGE ON THE BOOKING FORM TOO (489). */
-        typeof suggestTile_ === 'function' ? suggestTile_('widget', 'booking', 'Booking') : ''}
+        typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', 'booking', 'Booking')) : ''}
     </div>`;
   return { html: head || '<p class="note">Not enough answered to price it yet.</p>', tiles };
 }
@@ -24705,15 +24728,15 @@ function cardAdminRow_(id, col, mergeable) {
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
     tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('k:' + id) : null)}${
-    CARD_KEEP[id] ? (typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || id) : '')
+    CARD_KEEP[id] ? (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('card', id, CARD_TITLE[id] || id)) : '')
       : notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
-      typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || id) : '')}</div>`;
+      typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('card', id, CARD_TITLE[id] || id)) : '')}</div>`;
 }
 /* A CARD'S REPORT ROW FOR SOMEBODY WHO DOES NOT ARRANGE CARDS (486); an admin's is in `cardAdminRow_`. */
 function cardReportRow_(id, page) {
   /* NOT ON A LOCKED CARD (467: nothing pressable) NOR ONE CARRYING ITS OWN (an empty card's, `emptyCard_`). */
   if (/^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-locked\b/.test(page) || /data-do="rep-box"/.test(page)) return '';
-  const t = typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^>]*\saria-label="([^"]{1,80})"/.exec(page) || [])[1] || id).trim()) : '';
+  const t = typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^>]*\saria-label="([^"]{1,80})"/.exec(page) || [])[1] || id).trim())) : '';
   return t ? `<div class="tile-row card-rep">${tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('k:' + id) : null)}${t}</div>` : '';
 }
 

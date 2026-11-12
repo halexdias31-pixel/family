@@ -1180,7 +1180,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 }
 .loading > span, .btn.is-busy::before, .tile:is(.is-busy, [aria-busy="true"])::before {
   flex: none; display: block; width: var(--s5); height: var(--s5); box-sizing: border-box;
-  border: var(--s0) solid var(--ink); border-top-color: transparent; border-radius: 50%;
+  border: var(--s0) solid var(--ink); border-top-color: transparent; border-radius: var(--r-round);
   animation: loading .9s linear infinite;
 }
 /* ON A CONTROL the ring takes the control's size and colour. */

@@ -314,7 +314,7 @@ function drawBooker_() {
       ${childView_() ? '' : tile_({ icon: 'send', label: 'Send', tone: 'buy', act: 'book-send' })}
       ${tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })}
       ${/* REPORT OR SUGGEST A CHANGE ON THE BOOKING FORM TOO (489). */
-        typeof suggestTile_ === 'function' ? suggestTile_('widget', 'booking', 'Booking') : ''}
+        typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', 'booking', 'Booking')) : ''}
     </div>`;
   return { html: head || '<p class="note">Not enough answered to price it yet.</p>', tiles };
 }

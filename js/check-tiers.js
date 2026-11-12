@@ -31,8 +31,9 @@ same('checks', true, SUITE);
 same('kinds', false, []);
 const secOf = what => Object.keys(T[what] || {}).filter(k => T[what][k] === 'secondary');
 const coreOf = what => Object.keys(T[what] || {}).filter(k => T[what][k] === 'core');
+if (!(T.findNeeds || {}).files) bad.push('tiers.json has no findNeeds.files — the whole files Find cannot run without');
 ['stuff'].forEach(s => { if ((T.screens || {})[s] !== 'core') bad.push('Find\'s screen ' + s + ' is not core'); });
-['find', 'shell', 'keypad'].flatMap(b => require('../tools/piece-src.js').pieceFiles(b)).map(f => f.slice(3, -3)).concat(['data', 'boot', 'library', 'answers']).forEach(f => { if ((T.files || {})[f] !== 'core') bad.push('js/' + f + '.js is not core, and Find cannot run without it'); });
+['find', 'shell', 'keypad'].flatMap(b => require('../tools/piece-src.js').pieceFiles(b)).map(f => f.slice(3, -3)).concat((T.findNeeds || {}).files || []).forEach(f => { if ((T.files || {})[f] !== 'core') bad.push('js/' + f + '.js is not core, and Find cannot run without it'); });
 
 /* THE BROWSER'S COPY: shell.js's core lists are this file's. */
 const shell = require('../tools/piece-src.js').pieceSrc('shell', ROOT);

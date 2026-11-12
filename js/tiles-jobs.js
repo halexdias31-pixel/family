@@ -102,7 +102,7 @@ function postRow_(p) {
   const id = String((p && p.id) || '');
   if (!id) return '';
   const del = typeof isAdmin === 'function' && isAdmin() || p.mine ? { icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } } : null;
-  return tileRow_(tile_(postOpts_(p)) + (typeof suggestTile_ === 'function' ? suggestTile_('post', id, String(p.title || p.body || '').slice(0, 80)) : '') + tile_(del));
+  return tileRow_(tile_(postOpts_(p)) + (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('post', id, String(p.title || p.body || '').slice(0, 80))) : '') + tile_(del));
 }
 
 on('noop', () => {});

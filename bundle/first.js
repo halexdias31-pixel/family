@@ -801,11 +801,9 @@ const FIND_HOME_ = 'stuff';
 
 ;
 /* ==== js/predicates-fig.js ==== */
-/* A PART THAT NAMES A PICTURE HAS ONE (2026-11-11): its words say grid, diagram, table…, and it, a stem or what it `uses`
-   carries a drawing, table or surface. One rule for the Verified tag (`verifyTags_`) and js/check-figures.js. */
+/* A PART THAT NAMES A PICTURE HAS ONE (11 Nov): it, its stem or what it `uses` carries one. For `verifyTags_` and check-figures. */
 const FIG_WORDS = /\b(grid|diagrams?|shapes?|tables?|graphs?|charts?|histogram|pictogram|figure|drawn|shown|below|number line|axes|axis|scatter|spinner|protractor|coordinate grid|scale drawing)\b/i;
-/* "in figures" and "significant figures" are digits, the National Grid a power network, "below the surface" a depth, the
-   periodic table the data sheet beside the paper: none is a picture on the page. */
+/* Words that name no picture on the page: digits ("in figures"), a power network, a depth, the data sheet. */
 const FIG_NOT_WORDS = /\b(in figures|national grid|periodic tables?|below (?:the )?(?:surface|water|sea|ground|zero|freezing)|[xy]\s*-?\s*axis|significant figures?|figures? (?:on|of) )/gi;
 const figWords_ = r => !!r && FIG_WORDS.test(String((r.html || '') + ' ' + (r.lead || '')).replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(FIG_NOT_WORDS, ' '));
 const figPictured_ = r => !!r && ((typeof r.diagram === 'string' && r.diagram.trim() !== '') ||
@@ -6266,7 +6264,7 @@ const pages = (id, cards) =>
 /* One empty state for every list with nothing in it — Spotlight, Saved, the shop, the reels: no sentence explaining the emptiness, the owner's ask. */
 /* AND ITS ONE TILE, Suggest a change (486): the owner, of an empty Saved, "why is there no buttons on 'saved' widget" (1 Nov). */
 const emptyCard_ = title => {
-  const t = String(title || ''), s = typeof suggestTile_ === 'function' ? suggestTile_('widget', 'empty:' + t.toLowerCase().replace(/[^a-z0-9]+/g, '-'), t) : '';
+  const t = String(title || ''), s = typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', 'empty:' + t.toLowerCase().replace(/[^a-z0-9]+/g, '-'), t)) : '';
   return card_(`<div class="is-empty"><h3>${esc(t)}</h3>${s ? `<div class="tile-row rep-row">${s}</div>` : ''}</div>`);
 };
 
@@ -8010,7 +8008,7 @@ function meCard(given) {
 }
 
 /* ---------- A FIELD THAT MIGHT BE A LIST, AND MIGHT BE A STRING, AND MIGHT BE NEITHER § */
-/* EACH WORD ONCE (414): a list typed twice over ("patient, driven, driven") said a trait twice on the card. The first spelling is kept; case is ignored. */
+/* EACH WORD ONCE (414): "patient, driven, driven" says a trait once; the first spelling is kept, case ignored. */
 function profList_(v) {
   const seen = new Set();
   return (Array.isArray(v) ? v : String(v == null ? '' : v).split(','))
@@ -8424,7 +8422,7 @@ function kcActRow_(x, html, own) {
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {
-  /* A `.kc-items` LIST KEEPS EACH THING'S TILES BESIDE IT; none is lifted into the card's row too. A panel's own lines may hold a whole card (a widget's), whose row is its own. */
+  /* A `.kc-items` LIST KEEPS EACH THING'S TILES BESIDE IT; a whole card in a panel's lines (a widget's) keeps its own row. */
   if (new RegExp('class="[^"]*\\b(' + (panel ? '' : 'kc-four|') + 'kc-items)\\b').test(html)) return { lines: html, tiles: '' };
   let tiles = '';
   const lines = kcKids_(String(html || '')).map(k => {
@@ -8464,7 +8462,7 @@ function kcUnpicked_(html) {
   if (!said.size) return html;
   return String(html || '').replace(/<span class="(?:qtag|prof-tag)(?![^"]*prof-tag-name)[^"]*"[^>]*>([^<]*)<\/span>/g, (m, t) => (said.has(norm(t.replace(/&amp;/g, '&'))) ? '' : m));
 }
-/* IMAGE ON TOP ONLY WHEN REAL (owner, 10 Nov late): a person keeps a photo or a steady profile picture; any other kind shows a photo, figure or cover, else nothing. */
+/* IMAGE ON TOP ONLY WHEN REAL (owner, 10 Nov): a person's photo or steady profile picture; else a photo, figure or cover, or nothing. */
 function kcPicOr_(x, html) {
   html = String(html || '');
   if (KC_PERSON_KINDS.indexOf(x && x.kind) < 0) return kcRealPic_(html) ? html : '';
@@ -9984,7 +9982,7 @@ on('msg-drop', el => {
   }, 0);
 });
 
-/* REPORTING A MESSAGE (413) is `suggestTile_` and its box in submit.js since 486; the email to the admin is the backend's. */
+/* REPORTING A MESSAGE (413) is `suggestOpts_` and its box in submit.js since 486; the email to the admin is the backend's. */
 
 /* ---------- AND MARKING THEM READ, WHICH NOTHING HAS EVER DONE § */
 function markRead_(msgs) {
@@ -10136,10 +10134,10 @@ const messagesHtml_ = ms => {
       <div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
         runEnd ? ' run-end' : ''}${!mine && (!m.read || m.fresh) ? ' unread' : ''}${
         m.state ? ' is-' + m.state : ''}">
-      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestTile_`, 486). */''}
+      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestOpts_`, 486). */''}
       ${!mine && m.id && !m.tmp ? '<div class="msg-line">' : ''}<div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
         words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>${!mine && m.id && !m.tmp
-        ? suggestTile_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag') + '</div>' : ''}
+        ? tile_(suggestOpts_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag')) + '</div>' : ''}
       ${state}
     </div>`;
   }).join('');
@@ -10309,7 +10307,7 @@ function msgFindOne_(t, m) {
     { icon: 'again', label: 'Retry', note: msgFailSaid_(m.err) || 'not sent', act: 'msg-retry', data: { k: m.tmp } },
     m.why === 'files' && m.body && (m.queue || []).length ? { icon: 'doc', label: 'Words only', act: 'msg-words', data: { k: m.tmp } } : null,
     { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp } }]) + msgFixLinks_(m.err)
-    : !mine && m.id && !m.tmp && typeof suggestTile_ === 'function' ? suggestTile_('message', m.id, 'Message from ' + (m.fromName || t.name)) : '';
+    : !mine && m.id && !m.tmp && typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('message', m.id, 'Message from ' + (m.fromName || t.name))) : '';
   const words = String(m.body || '').trim();
   return card_(`<div class="fc msg-fc is-one${mine ? ' mine' : ''}${fresh ? ' unread' : ''}" data-thread="${esc(t.id)}">
     ${msgTags_(null, [{ text: msgDate_(ms) + ' ' + msgClock_(ms, m.at) }, fresh ? { text: 'unread', cls: 'is-new' } : null,
@@ -13313,7 +13311,7 @@ function cardFaceOnly_(t) {
     </div>`;
 }
 /* ---------- WHAT IS ON THE CARD THE MOMENT IT IS SAVED § */
-function cardPatchRow_(pid, all, sent) {
+function cardPatchTutor_(pid, all, sent) {
   const row = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === String(pid));
   if (!row) return;
   const has = k => Object.prototype.hasOwnProperty.call(sent, k);
@@ -13478,7 +13476,7 @@ function cardSave_(el, auto) {
         /* YOUR OWN COPY CHANGED, and the Progress column's journey card is drawn from it — see `meSave_`. */
         if (typeof progressRedraw_ === 'function') progressRedraw_();
       }
-      cardPatchRow_(e.pid, Object.assign({}, base, fields), fields);
+      cardPatchTutor_(e.pid, Object.assign({}, base, fields), fields);
       /* A PART LEFT OUT, HERE OR BY THE SERVER, IS SAID BESIDE WHAT WAS SAVED (620). */
       const word = ((d && d.said) || 'Saved') + (seatNo ? (d && d.refused ? ' ' : ' — the rest. Not saved: ') + seatNo : '');
       toast(word);
@@ -15891,8 +15889,8 @@ function reelCards_(count) {
       /* HOW OLD YOU HAVE TO BE (406), when it is not everyone. */
       `${window.mediaAgeSay_ && window.mediaAgeSay_(it.age) ? `<span class="media-age-badge is-reel" aria-label="for ages ${esc(window.mediaAgeSay_(it.age))}">${esc(window.mediaAgeSay_(it.age))}</span>` : ''}` +
       `${tile_(reelSoundOpts_(false))}</div>
-    </div>${typeof suggestTile_ === 'function' && suggestTile_('reel', String(it.id || it.clip || ''), it.title || '')
-      ? `<div class="tile-row rep-row">${suggestTile_('reel', String(it.id || it.clip || ''), it.title || '')}</div>` : ''}</div>`);
+    </div>${typeof suggestOpts_ === 'function' && tile_(suggestOpts_('reel', String(it.id || it.clip || ''), it.title || ''))
+      ? `<div class="tile-row rep-row">${tile_(suggestOpts_('reel', String(it.id || it.clip || ''), it.title || ''))}</div>` : ''}</div>`);
     REEL_SHOWN++;
   }
   return out;
@@ -17144,7 +17142,7 @@ function widgetOnColumn_(w, own) {
   const keep = typeof favOpts_ === 'function'
     ? `<span class="tile-group wgt-keep">${tile_([favOpts_({ key: WIDGET_KEY(w), kind: 'widget' }),
       typeof gameLockOpts_ === 'function' ? gameLockOpts_(w.id) : null])}${
-      typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), w.name || w.title || w.label || '') : ''}</span>` : '';
+      typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', String(w.id), w.name || w.title || w.label || '')) : ''}</span>` : '';
   const lay = own === true && typeof layoutOpts_ === 'function' ? tileGroup_(layoutOpts_(w), 'is-admin wgt-admin') : '';
   return card_(`<div class="is-widget${held ? ' is-locked' : ''}">
       <div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${
@@ -17157,7 +17155,7 @@ function widgetOnColumn_(w, own) {
 function widgetMergedOn_(m, own) {
   const top = m.parts[0];
   const keep = typeof favOpts_ === 'function' ? `<span class="tile-group wgt-keep">${tile_([favOpts_({ key: WIDGET_KEY(top), kind: 'widget' }),
-    typeof gameLockOpts_ === 'function' ? gameLockOpts_(top.id) : null])}${typeof suggestTile_ === 'function' ? suggestTile_('widget', String(top.id), top.name || top.title || top.label || '') : ''}</span>` : '';
+    typeof gameLockOpts_ === 'function' ? gameLockOpts_(top.id) : null])}${typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', String(top.id), top.name || top.title || top.label || '')) : ''}</span>` : '';
   const lay = own === true && typeof layoutOpts_ === 'function' ? tileGroup_(layoutOpts_(top), 'is-admin wgt-admin') : '';
   const parts = m.parts.map(w => {
     const waits = typeof w.start === 'function' && typeof loading_ === 'function';
@@ -19182,7 +19180,7 @@ function addCard_(o) {
   const data = Object.keys(o.data || {}).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
   return card_(`<div class="add-card"><h3>${esc(o.label)}</h3><div class="tile-row">${tile_({ icon: 'plus', label: o.label, act: o.act, data: o.data })}</div></div>`) + `${
     /* A "+" IS A THING ON THE COLUMN TOO (720, 486): its Suggest in the row right after it, as a person's card has. */
-    typeof suggestTile_ === 'function' && suggestTile_('card', 'add:' + o.act, o.label) ? `<div class="tile-row rep-row">${suggestTile_('card', 'add:' + o.act, o.label)}</div>` : ''}`;
+    typeof suggestOpts_ === 'function' && tile_(suggestOpts_('card', 'add:' + o.act, o.label)) ? `<div class="tile-row rep-row">${tile_(suggestOpts_('card', 'add:' + o.act, o.label))}</div>` : ''}`;
 }
 
 /* ---------- FILLING THE SHAPE § */
@@ -19325,7 +19323,7 @@ function cardCore_(x) {
   const one = {
     share: () => tile_({ icon: 'share', label: 'Share', act: 'card-share', data: { key: x.key } }),
     fav: () => tile_(favOpts_(x)),
-    suggest: () => (typeof suggestTileFor_ === 'function' ? suggestTileFor_(x) : ''),
+    suggest: () => (typeof suggestOptsFor_ === 'function' ? tile_(suggestOptsFor_(x)) : ''),
     top: () => tile_({ icon: 'up', label: 'Top', act: 'find-top' }) };
   return x.key ? CARD_CORE_.map(k => one[k]()).join('') : '';
 }
@@ -19543,7 +19541,7 @@ function postRow_(p) {
   const id = String((p && p.id) || '');
   if (!id) return '';
   const del = typeof isAdmin === 'function' && isAdmin() || p.mine ? { icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } } : null;
-  return tileRow_(tile_(postOpts_(p)) + (typeof suggestTile_ === 'function' ? suggestTile_('post', id, String(p.title || p.body || '').slice(0, 80)) : '') + tile_(del));
+  return tileRow_(tile_(postOpts_(p)) + (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('post', id, String(p.title || p.body || '').slice(0, 80))) : '') + tile_(del));
 }
 
 on('noop', () => {});

@@ -827,15 +827,15 @@ function cardAdminRow_(id, col, mergeable) {
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
     tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('k:' + id) : null)}${
-    CARD_KEEP[id] ? (typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || id) : '')
+    CARD_KEEP[id] ? (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('card', id, CARD_TITLE[id] || id)) : '')
       : notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
-      typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || id) : '')}</div>`;
+      typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('card', id, CARD_TITLE[id] || id)) : '')}</div>`;
 }
 /* A CARD'S REPORT ROW FOR SOMEBODY WHO DOES NOT ARRANGE CARDS (486); an admin's is in `cardAdminRow_`. */
 function cardReportRow_(id, page) {
   /* NOT ON A LOCKED CARD (467: nothing pressable) NOR ONE CARRYING ITS OWN (an empty card's, `emptyCard_`). */
   if (/^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-locked\b/.test(page) || /data-do="rep-box"/.test(page)) return '';
-  const t = typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^>]*\saria-label="([^"]{1,80})"/.exec(page) || [])[1] || id).trim()) : '';
+  const t = typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^>]*\saria-label="([^"]{1,80})"/.exec(page) || [])[1] || id).trim())) : '';
   return t ? `<div class="tile-row card-rep">${tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('k:' + id) : null)}${t}</div>` : '';
 }
 

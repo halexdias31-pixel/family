@@ -137,24 +137,24 @@ const sg = more => Object.assign({ action: 'suggest', kind: 'question', itemId: 
   if (notes().length !== 2) bad.push('the migration run twice made ' + notes().length + ' notes');
 }
 
-/* ---------- 4. ONE TILE: every Suggest tile is `suggestTile_`; no Report, flag or Note for Claude tile left ---------- */
+/* ---------- 4. ONE TILE: every Suggest tile is `tile_(suggestOpts_(…))`; no Report, flag or Note for Claude tile left ---------- */
 {
   const dir = __dirname;
   asked++;
   const files = fs.readdirSync(dir).filter(f => /\.js$/.test(f) && !/^check/.test(f));
   files.forEach(f => {
     const src = fs.readFileSync(path.join(dir, f), 'utf8');
-    const own = f === 'submit.js' ? src.replace(/function suggestTile_\([\s\S]*?\n\}/, '') : src;
-    if (/act:\s*'rep-box'/.test(own)) bad.push('js/' + f + ' draws a Suggest tile of its own — use suggestTile_(kind, id, label)');
+    const own = f === 'submit.js' ? src.replace(/function suggestOpts_\([\s\S]*?\n\}/, '') : src;
+    if (/act:\s*'rep-box'/.test(own)) bad.push('js/' + f + ' draws a Suggest tile of its own — use tile_(suggestOpts_(kind, id, label))');
     if (/label:\s*'(Report[^']*|Note for Claude)'/.test(src)) bad.push('js/' + f + ' still has a Report or Note for Claude tile');
     if (/act:\s*'ncl-open'|reportTile_|noteTile_/.test(src)) bad.push('js/' + f + ' still calls the old report or note tile');
     if (/data-do="(q-report|msg-report)"|'(q-report|msg-report)'/.test(src)) bad.push('js/' + f + ' still has the old q-report/msg-report tile');
   });
-  const uses = files.filter(f => /suggest(Tile|TileFor|RowIn)_\(/.test(fs.readFileSync(path.join(dir, f), 'utf8')));
-  ['tiles.js', 'arcade.js', 'layout.js', 'me.js', 'find.js', 'posts.js'].forEach(f => { if (!uses.some(u => u === f || u.startsWith(f.slice(0, -3) + '-'))) bad.push(f + ' no longer calls suggestTile_ — cards, widgets, column cards, the finder and messages each need it'); });
+  const uses = files.filter(f => /suggest(Opts|OptsFor|RowIn)_\(/.test(fs.readFileSync(path.join(dir, f), 'utf8')));
+  ['tiles.js', 'arcade.js', 'layout.js', 'me.js', 'find.js', 'posts.js'].forEach(f => { if (!uses.some(u => u === f || u.startsWith(f.slice(0, -3) + '-'))) bad.push(f + ' no longer calls suggestOpts_ — cards, widgets, column cards, the finder and messages each need it'); });
   const icons = fs.readFileSync(path.join(dir, 'tiles.js'), 'utf8');
   if (!/^\s*suggest:\s*'/m.test(icons)) bad.push('TILE_ICONS has no `suggest` icon');
-  if (!/icon: 'suggest'/.test(fs.readFileSync(path.join(dir, 'submit.js'), 'utf8'))) bad.push('suggestTile_ does not use the suggest icon');
+  if (!/icon: 'suggest'/.test(fs.readFileSync(path.join(dir, 'submit.js'), 'utf8'))) bad.push('suggestOpts_ does not use the suggest icon');
 }
 
 /* ---------- 5. ROUND THREE (498): a shop item's id with spaces is taken; Find's path is a line of the note; data/notes-done.json marks done; one day's mistaken Done reopened ---------- */

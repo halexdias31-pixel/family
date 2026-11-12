@@ -530,7 +530,7 @@ function cardFaceOnly_(t) {
     </div>`;
 }
 /* ---------- WHAT IS ON THE CARD THE MOMENT IT IS SAVED § */
-function cardPatchRow_(pid, all, sent) {
+function cardPatchTutor_(pid, all, sent) {
   const row = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === String(pid));
   if (!row) return;
   const has = k => Object.prototype.hasOwnProperty.call(sent, k);
@@ -695,7 +695,7 @@ function cardSave_(el, auto) {
         /* YOUR OWN COPY CHANGED, and the Progress column's journey card is drawn from it — see `meSave_`. */
         if (typeof progressRedraw_ === 'function') progressRedraw_();
       }
-      cardPatchRow_(e.pid, Object.assign({}, base, fields), fields);
+      cardPatchTutor_(e.pid, Object.assign({}, base, fields), fields);
       /* A PART LEFT OUT, HERE OR BY THE SERVER, IS SAID BESIDE WHAT WAS SAVED (620). */
       const word = ((d && d.said) || 'Saved') + (seatNo ? (d && d.refused ? ' ' : ' — the rest. Not saved: ') + seatNo : '');
       toast(word);

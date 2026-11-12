@@ -421,7 +421,7 @@ on('msg-drop', el => {
   }, 0);
 });
 
-/* REPORTING A MESSAGE (413) is `suggestTile_` and its box in submit.js since 486; the email to the admin is the backend's. */
+/* REPORTING A MESSAGE (413) is `suggestOpts_` and its box in submit.js since 486; the email to the admin is the backend's. */
 
 /* ---------- AND MARKING THEM READ, WHICH NOTHING HAS EVER DONE § */
 function markRead_(msgs) {
@@ -573,10 +573,10 @@ const messagesHtml_ = ms => {
       <div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
         runEnd ? ' run-end' : ''}${!mine && (!m.read || m.fresh) ? ' unread' : ''}${
         m.state ? ' is-' + m.state : ''}">
-      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestTile_`, 486). */''}
+      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestOpts_`, 486). */''}
       ${!mine && m.id && !m.tmp ? '<div class="msg-line">' : ''}<div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
         words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>${!mine && m.id && !m.tmp
-        ? suggestTile_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag') + '</div>' : ''}
+        ? tile_(suggestOpts_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag')) + '</div>' : ''}
       ${state}
     </div>`;
   }).join('');
@@ -746,7 +746,7 @@ function msgFindOne_(t, m) {
     { icon: 'again', label: 'Retry', note: msgFailSaid_(m.err) || 'not sent', act: 'msg-retry', data: { k: m.tmp } },
     m.why === 'files' && m.body && (m.queue || []).length ? { icon: 'doc', label: 'Words only', act: 'msg-words', data: { k: m.tmp } } : null,
     { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp } }]) + msgFixLinks_(m.err)
-    : !mine && m.id && !m.tmp && typeof suggestTile_ === 'function' ? suggestTile_('message', m.id, 'Message from ' + (m.fromName || t.name)) : '';
+    : !mine && m.id && !m.tmp && typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('message', m.id, 'Message from ' + (m.fromName || t.name))) : '';
   const words = String(m.body || '').trim();
   return card_(`<div class="fc msg-fc is-one${mine ? ' mine' : ''}${fresh ? ' unread' : ''}" data-thread="${esc(t.id)}">
     ${msgTags_(null, [{ text: msgDate_(ms) + ' ' + msgClock_(ms, m.at) }, fresh ? { text: 'unread', cls: 'is-new' } : null,

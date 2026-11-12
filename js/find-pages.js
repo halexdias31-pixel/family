@@ -684,8 +684,8 @@ function finderScreen_() {
     <div id="${F.id}-groups">${stuffQuestion()}</div>
     ${/* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */''}
     ${/* THE FINDER ITSELF TAKES A SUGGESTION TOO (494): "should be on finder widget too". */
-      typeof suggestTile_ === 'function' && suggestTile_('finder', F.id, 'Find')
-        ? `<div class="tile-row rep-row find-sg">${suggestTile_('finder', F.id, 'Find')}</div>` : ''}
+      typeof suggestOpts_ === 'function' && tile_(suggestOpts_('finder', F.id, 'Find'))
+        ? `<div class="tile-row rep-row find-sg">${tile_(suggestOpts_('finder', F.id, 'Find'))}</div>` : ''}
   </div>`;
 
   /* THE CONTROLS ARE A PAGE, and the results are the pages after it. § */

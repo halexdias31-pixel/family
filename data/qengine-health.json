@@ -7,17 +7,13 @@
  "proofs": {
   "number": {
    "cases": 8,
-   "pass": 7,
-   "fails": [
-    "\"\"fifteen\"\" against \"\"15\"\" gave false, wanted true"
-   ]
+   "pass": 8,
+   "fails": []
   },
   "expression": {
    "cases": 5,
-   "pass": 4,
-   "fails": [
-    "\"\"two x plus one\"\" against \"\"2x+1\"\" gave false, wanted true"
-   ]
+   "pass": 5,
+   "fails": []
   },
   "choice": {
    "cases": 3,
@@ -39,29 +35,29 @@
   "value": {
    "checker": "number",
    "moved": true,
-   "questions": 27200,
-   "withAnswer": 3038,
+   "questions": 29171,
+   "withAnswer": 3292,
    "withAreas": 0
   },
   "unit": {
    "checker": "number",
    "moved": true,
-   "questions": 1626,
-   "withAnswer": 1626,
+   "questions": 1739,
+   "withAnswer": 1739,
    "withAreas": 0
   },
   "multi": {
    "checker": "number",
    "moved": true,
-   "questions": 347,
-   "withAnswer": 347,
+   "questions": 378,
+   "withAnswer": 378,
    "withAreas": 0
   },
   "fraction": {
    "checker": "number",
    "moved": true,
-   "questions": 436,
-   "withAnswer": 436,
+   "questions": 437,
+   "withAnswer": 437,
    "withAreas": 0
   },
   "coords": {
@@ -74,22 +70,22 @@
   "expr": {
    "checker": "expression",
    "moved": true,
-   "questions": 774,
-   "withAnswer": 774,
+   "questions": 792,
+   "withAnswer": 792,
    "withAreas": 0
   },
   "choose1": {
    "checker": "choice",
    "moved": true,
-   "questions": 774,
-   "withAnswer": 774,
+   "questions": 1192,
+   "withAnswer": 1192,
    "withAreas": 0
   },
   "chooseN": {
    "checker": "choice",
    "moved": true,
-   "questions": 75,
-   "withAnswer": 75,
+   "questions": 89,
+   "withAnswer": 89,
    "withAreas": 0
   },
   "order": {
@@ -102,28 +98,28 @@
   "match": {
    "checker": "choice",
    "moved": false,
-   "questions": 43,
+   "questions": 49,
    "withAnswer": 0,
    "withAreas": 0
   },
   "table": {
    "checker": "number",
    "moved": false,
-   "questions": 191,
-   "withAnswer": 191,
+   "questions": 259,
+   "withAnswer": 259,
    "withAreas": 0
   },
   "label": {
    "checker": "choice",
    "moved": false,
-   "questions": 13,
+   "questions": 16,
    "withAnswer": 0,
    "withAreas": 0
   },
   "words": {
    "checker": "words",
    "moved": true,
-   "questions": 154,
+   "questions": 385,
    "withAnswer": 0,
    "withAreas": 0
   },
@@ -137,7 +133,7 @@
   "essay": {
    "checker": "none",
    "moved": false,
-   "questions": 3582,
+   "questions": 3622,
    "withAnswer": 0,
    "withAreas": 0
   },
@@ -200,10 +196,10 @@
   "measure": {
    "checker": "number",
    "moved": true,
-   "questions": 21,
-   "withAnswer": 9,
+   "questions": 24,
+   "withAnswer": 10,
    "withAreas": 0
   }
  },
- "ms": 1656
+ "ms": 1745
 }

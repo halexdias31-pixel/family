@@ -25,7 +25,7 @@ const pages = (id, cards) =>
 /* One empty state for every list with nothing in it — Spotlight, Saved, the shop, the reels: no sentence explaining the emptiness, the owner's ask. */
 /* AND ITS ONE TILE, Suggest a change (486): the owner, of an empty Saved, "why is there no buttons on 'saved' widget" (1 Nov). */
 const emptyCard_ = title => {
-  const t = String(title || ''), s = typeof suggestTile_ === 'function' ? suggestTile_('widget', 'empty:' + t.toLowerCase().replace(/[^a-z0-9]+/g, '-'), t) : '';
+  const t = String(title || ''), s = typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', 'empty:' + t.toLowerCase().replace(/[^a-z0-9]+/g, '-'), t)) : '';
   return card_(`<div class="is-empty"><h3>${esc(t)}</h3>${s ? `<div class="tile-row rep-row">${s}</div>` : ''}</div>`);
 };
 

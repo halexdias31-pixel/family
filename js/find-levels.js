@@ -572,7 +572,7 @@ function jobPage_(j) {
     + own
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
-    + (typeof suggestTile_ === 'function' && j && j.id ? suggestTile_('session', String(j.id), 'Booking') : '')
+    + (typeof suggestOpts_ === 'function' && j && j.id ? tile_(suggestOpts_('session', String(j.id), 'Booking')) : '')
     + (admin && typeof jobAdminOpts_ === 'function' ? tile_(jobAdminOpts_(j, stage, yes && !pays)) : '');
   /* THE REQUEST'S STANDING, one paragraph under the row (488). */
   const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
@@ -761,7 +761,7 @@ function accountMine_(col, family, myRow, tcard_) {
       ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
     /* SHARE only: Edit is on your settings column (464); Sign out and Send the link again on Student settings (453). */
     /* AND REPORT (486): everything has one, your own card too. */
-    const tiles = share + (typeof suggestTile_ === 'function' ? suggestTile_('person', String(USER.personId), row.title || '') : '');
+    const tiles = share + (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('person', String(USER.personId), row.title || '')) : '');
     mine.push(personMark_(USER.personId, face + (tiles ? tileRow_(tiles, 'own-tiles', true) : '')));
   }
   return mine;

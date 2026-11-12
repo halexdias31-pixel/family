@@ -422,7 +422,7 @@ top level, before `seatCutOf_`
    the cell the phone previews, the cell the server lets through and the number `doGet` sends are one answer.
    Out of range is the default too, never "no cut": "10" typed by hand meaning ten per cent must not take the
    business's margin to nothing. The phone's own copy because the phone also reads the RAW cell — the card
-   editor's hidden box and `cardPatchRow_` — before any `doGet` has shaped it. */
+   editor's hidden box and `cardPatchTutor_` — before any `doGet` has shaped it. */
 ```
 
 ### ---------- WHAT KIND OF SESSION, AND WHAT IT BRINGS WITH IT (docs/history/353)

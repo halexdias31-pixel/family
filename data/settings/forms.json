@@ -1,5 +1,5 @@
 {
- "notes": "84a: the one form maker's specs; js/form.js FORM_SPECS copies kinds, rules and cards (check-forms.js). leftovers: raw input/select/textarea a Settings file may still draw outside the maker; budgets only go down.",
+ "notes": "84a: the one form maker's specs; js/form.js FORM_SPECS copies kinds, rules and cards (check-forms.js). leftovers: raw input/select/textarea an app file may still draw outside the maker; budgets only go down.",
  "kinds": [
   "text",
   "number",
@@ -87,5 +87,87 @@
    "said": "pin-said"
   }
  },
- "leftovers": {}
+ "leftovers": {
+  "me-messages.js": {
+   "n": 2
+  },
+  "posts.js": {
+   "n": 14
+  },
+  "find-cells.js": {
+   "n": 2
+  },
+  "find-levels.js": {
+   "n": 1
+  },
+  "find-measure.js": {
+   "n": 1
+  },
+  "keypad-keys.js": {
+   "n": 2
+  },
+  "keypad-pad.js": {
+   "n": 1
+  },
+  "submit.js": {
+   "n": 4
+  },
+  "work-file.js": {
+   "n": 2
+  },
+  "arcade.js": {
+   "n": 1
+  },
+  "map.js": {
+   "n": 5
+  },
+  "book-rows.js": {
+   "n": 4
+  },
+  "book-spine.js": {
+   "n": 2
+  },
+  "receipt.js": {
+   "n": 1
+  },
+  "biz-check.js": {
+   "n": 5
+  },
+  "one-place.js": {
+   "n": 1
+  },
+  "mat.js": {
+   "n": 7
+  },
+  "tiles.js": {
+   "n": 1
+  },
+  "reader.js": {
+   "n": 1
+  },
+  "lego.js": {
+   "n": 2
+  },
+  "words.js": {
+   "n": 1
+  },
+  "push.js": {
+   "n": 1
+  },
+  "tools.js": {
+   "n": 5
+  },
+  "games.js": {
+   "n": 4
+  },
+  "spotify.js": {
+   "n": 1
+  },
+  "favlinks.js": {
+   "n": 2
+  },
+  "pixel.js": {
+   "n": 2
+  }
+ }
 }
