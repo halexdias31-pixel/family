@@ -252,7 +252,7 @@ cardKind_('subject', x => { const t = kcRow_(x), lv = (t.levels || []).filter(Bo
       tut.length ? null : { label: 'Tutors', value: 'None yet', tone: 'bad' }].filter(Boolean) }] }; });
 cardKind_('level', x => { const t = kcRow_(x), s = t.subjects || [], n = (t.tutors || []).length;
   return { look: 'is-level', tags: [kcName_(x)].concat(typeof tagList_ === 'function' && x.key ? tagList_(x) : [], kcTutorTags_(x)),
-    body: [{ type: 'list', items: [kcSurcharge_(x), s.length ? { label: 'Subjects', value: s.join(', ') } : { label: 'Subjects', value: 'None yet', tone: 'bad' },
+    body: [{ type: 'list', items: [kcSurcharge_(x), s.length ? { label: 'Subjects', value: s.map((v, i) => [i ? ', ' : '', { word: 'subject', text: v }]) } : { label: 'Subjects', value: 'None yet', tone: 'bad' },
       { label: 'Tutors', value: n ? String(n) : (typeof NO_TUTOR === 'string' ? NO_TUTOR : 'None yet'), tone: n ? '' : 'bad' },
       t.listed ? null : { label: 'Booking form', value: 'Not offered', tone: 'bad' }].filter(Boolean) }] }; });
 /* A VENUE: its name and facets (its 8-bit building is no picture of it), its rooms as facts. A child is told the seats and not the price (398). */

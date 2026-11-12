@@ -15,6 +15,8 @@ function cardRuns_(v) {
   if (v.mono != null) return `<span class="mono">${cardRuns_(v.mono)}</span>`;
   /* TEXT WITH THE SITE'S LAWS COLOURED (`mark`, which escapes first): still only text in the spec. */
   if (v.marked != null) return typeof mark === 'function' ? mark(String(v.marked)) : esc(String(v.marked));
+  /* A NAMED WORD (a subject, green as a subject is everywhere): one of a fixed set, never a free class. */
+  if (v.word && /^(subject|venue|level)$/.test(v.word)) return `<span class="${v.word}">${cardRuns_(v.text)}</span>`;
   if (v.tone) return `<span class="${esc('is-' + v.tone)}">${cardRuns_(v.text)}</span>`;
   return cardRuns_(v.text);
 }
