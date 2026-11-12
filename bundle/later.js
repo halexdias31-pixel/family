@@ -401,6 +401,8 @@ const KINDS = {
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
   tool: { group: 'Tools', label: 'Tools', card: x => findCard(x) },
+  /* GAMES (owner, 12 Nov): the Console and the Word games, a widget card each, their own answer beside Tools. */
+  game: { group: 'Games', label: 'Games', card: x => findCard(x) },
   /* COMING SOON (880): a switched-off column or widget, its name, one line, Coming soon and Suggest; nothing on it works. */
   soon: { group: 'Coming soon', label: 'Coming soon', card: (x, c) => findCard(x, c) },
   /* PEOPLE (owner, 4 Nov): everybody an admin may see, one card each, drawn like the people columns drew them. */
@@ -436,7 +438,7 @@ window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x),
   timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
-  hymn: x => hymnsCard_(x), mech: x => mechCard_(x), chem: x => chemCard_(x), soon: x => soonCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x),
+  hymn: x => hymnsCard_(x), mech: x => mechCard_(x), chem: x => chemCard_(x), soon: x => soonCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x), game: x => widgetCard_(x),
   offPosts: x => soonCard_(x), offShop: x => soonCard_(x), offBooking: x => soonCard_(x),
   setting: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)), health: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : ''),
 });
@@ -453,7 +455,7 @@ function widgetCard_(x) {
 }
 
 /* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched: written by tools/tiers.js from map.js's WIDGETS, never by hand. */
-const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos', newspaper: 'Newspaper', homework: 'Homework', flyers: 'Make a flyer', mat: 'Cheat sheet maker', timer: 'Timer', docket: 'Docket', notepad: 'Notepad', spotify: 'Spotify', speedread: 'Speed reader (one word at a time)', timetable: 'Timetable', typing: 'Touch typing (keyboard practice)', cart: 'Basket', shopfind: 'Search the shop', calendar: 'Calendar', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links', rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', libcards: 'Library cards' };
+const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos', newspaper: 'Sunday Funday', homework: 'Homework', flyers: 'Make a flyer', mat: 'Cheat sheet maker', timer: 'Timer', docket: 'Docket', notepad: 'Notepad', spotify: 'Spotify', speedread: 'Speed reader', timetable: 'Timetable', typing: 'Touch typing', cart: 'Basket', shopfind: 'Search the shop', calendar: 'Calendar', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links', rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', libcards: 'Library cards', console: 'Console', wordgames: 'Word games' };
 /* AN OFF WIDGET THAT WAITS UNDER ANOTHER FRONT ANSWER (owner, 6 Nov: Homework under Tools); the rest wait under Coming soon. */
 const SOON_WIDGET_UNDER = { videos: 'Videos', reels: 'Tools', flyers: 'Tools', poster: 'Tools', homework: 'Tools' };
 /* A FRONT ANSWER HOLDING ONLY COMING SOON CARDS IS GREYED, never hidden (owner, 7 Nov P7/P8): Videos and Games until one is turned on. */
@@ -1155,7 +1157,7 @@ function kindRank_() {
 }
 /* LISTS WHOSE OWN ORDER IS THE ORDER (473): a file pushes one, and answers all in it sort by it — the Talmud's orders and tractates. */
 /* FIND'S FRONT MENU, in the owner's order (4 Nov): the first question's answers, whatever kinds stand under them. */
-const FRONT_ORDER = ['Practice', 'Library', 'Videos', 'Newspaper', 'Coming soon', 'Posts', 'Messages', 'Profiles', 'Booking', 'Venues', 'Shop', 'Settings', 'Tools', 'Reels', 'Flyers', 'Posters'];
+const FRONT_ORDER = ['Practice', 'Library', 'Videos', 'Newspaper', 'Coming soon', 'Posts', 'Messages', 'Profiles', 'Booking', 'Venues', 'Shop', 'Settings', 'Tools', 'Games', 'Reels', 'Flyers', 'Posters'];
 /* THE DOORS' OWN MENUS IN THE OWNER'S ORDER (batch C): account types, who, which posts, when. */
 const ANSWER_ORDERS = [FRONT_ORDER, ['Student', 'Parent', 'Staff', 'Apprentice', 'Admin', 'Business', 'Site'], ['Parent', 'Over 18', 'Under 18', 'Student', 'Tutor', 'Apprentice', 'Admin'],
   ['Approved', 'Waiting for approval', 'Deleted'], ['Today', 'This week', 'This month', 'This year', 'Older']];
@@ -1362,7 +1364,7 @@ const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Pract
   /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): one card, tagged Booking and Profiles, like a setting's several types. */
   tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', bookform: 'Booking', shop: 'Shop',
   person: 'Profiles', video: 'Videos', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
-  post: 'Posts', tool: 'Tools', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
+  post: 'Posts', tool: 'Tools', game: 'Games', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
 /* A RETURNED WIDGET THAT IS A BROWSABLE THING (batch B) is its own front answer: FIND_WIDGET_GROUPS (arcade.js). */
 /* ITS TAG SAYS ONE DOOR: a kind under two (a tutor: Booking and Profiles) is the door picked, else its own group in FIND_KINDS — never the other. */
 function kindTopTag_(x) {
@@ -4987,6 +4989,7 @@ function markWords_(typed, rule) {
 /* ---------- A GRID OR TABLE WITH BLANKS IS FILLED IN WHERE IT STANDS, A CELL AT A TIME (359) */
 /* a blank is empty however many spaces the transcriber left in it (`&nbsp;&nbsp;&nbsp;&nbsp;` is one blank) */
 const CELL_BLANK = /<(td|th)([^>]*)>(?:\s|&nbsp;|\u00a0)*<\/\1>/g;
+const cellCorner_ = t => /^<table[^>]*>\s*(?:<thead[^>]*>\s*)?(?:<tbody[^>]*>\s*)?<tr[^>]*>\s*<(td|th)[^>]*>(?:\s|&nbsp;|\u00a0)*<\/\1>/.test(t);
 /* `cells` READ: one entry a blank, in reading order -- `{ label, ways }`, and `ways` empty for a blank not asked. */
 function cellsOf_(x) {
   const raw = String((x && x.cells) || '').trim();
@@ -5019,8 +5022,12 @@ function cellsTable_(x, html) {
   let n = 0;
   const out = String(html || '').replace(/<table[\s\S]*?<\/table>/, t => {
     const blanks = (t.match(CELL_BLANK) || []).length;
-    if (blanks !== cells.length) return t;
+    /* AN EMPTY TOP-LEFT CORNER heads both the rows and the columns: it is never a blank to fill. */
+    const corner = blanks === cells.length + 1 && cellCorner_(t);
+    if (blanks !== cells.length && !corner) return t;
+    let skip = corner;
     return t.replace(CELL_BLANK, (m, tag, at) => {
+      if (skip) { skip = false; return m; }
       const i = n++;
       return `<${tag}${at} class="qp-cell-at">${cellInput_(k, cells[i], i, vals[i])}</${tag}>`;
     }).replace(/^<table/, '<table data-cells="1"');
@@ -12414,10 +12421,12 @@ on('dock-drop', (el, e) => {
 
 on('dock-clear', () => docketSave(docketLines().filter(l => !l.done)));
 
-on('dock-add', () => {
-  const box = $('dock-add');
+/* THE BOX IN THE COPY PRESSED (Find may hold two), and an empty press says what to do (owner, 12 Nov: every press answers). */
+on('dock-add', el => {
+  const host = el && el.closest && el.closest('[id^="wgt-"]');
+  const box = (host && host.querySelector('#dock-add')) || $('dock-add');
   const text = (box && box.value || '').trim();
-  if (!text) { box?.focus(); return; }
+  if (!text) { document.querySelectorAll('[id="dock-said"]').forEach(n => { n.textContent = 'Type a line first.'; }); box?.focus(); return; }
   const list = docketLines();
   /* NEW LINES GO AT THE BOTTOM. A list that grows from the top moves everything you were reading
      every time you add to it, which on a phone means losing your place to your own typing. */
@@ -17601,16 +17610,15 @@ function paintBoard_(id, field) {
 /* ---------- `draw` AND `pure`: WHAT THE BUILDER MAY DO WITH A WIDGET BEFORE ANYBODY ARRIVES § */
 const WIDGETS = [
   /* `stop` IS THE CLIP. This card deals a fact on a tap and some of those facts are videos, so leaving the column with one playing left it playing — the same fault § */
-  /* `reel` (414): with Videos it leads the Reels column — things to watch sit with the reels, not the games. */
-  { id: 'reels', kind: 'reel', name: 'One more thing', start: () => initFeed?.(),
+  /* A TOOL (owner, 12 Nov): a Find card under Tools, like every widget brought back. */
+  { id: 'reels', kind: 'tool', name: 'One more thing', start: () => initFeed?.(),
     /* DRAWN AHEAD AS THE FACT'S CARD AND NOTHING ELSE (`feedPaint_`, overworld.js): § */
     draw: () => feedPaint_?.(),
     stop: () => clipsStop_($('feed-screen')),
     into: 'feed-screen', what: 'This',
-    get html() { return card_(`<div class="">
+    get html() { return `
     <h3>One more thing</h3>
-    <div id="feed-screen" class="feed" data-do="feed-tap"></div>
-  </div>`); } },
+    <div id="feed-screen" class="feed" data-do="feed-tap"></div>`; } },
 
   /* ---------- VIDEOS — TYPE, TAP, WATCH § */
   { id: 'videos', kind: 'reel', name: 'Videos', start: () => window.initVideos?.(),
@@ -17621,9 +17629,12 @@ const WIDGETS = [
     into: 'vid-box', what: 'The videos',
     html: `<h3>Videos</h3>
     <div id="vid-box" class="vid-box"></div>` },
-  /* ---------- NEWSPAPER (466): a placeholder on Reels, its title alone until it has something to say. */
-  { id: 'newspaper', kind: 'reel', name: 'Newspaper',
-    html: `<h3>Newspaper</h3>` },
+  /* ---------- NEWSPAPER (owner, 12 Nov): a Sunday paper's fun section, one page on one card, never endless — newspaper.js reads data/settings/newspaper.json. */
+  { id: 'newspaper', kind: 'tool', name: 'Sunday Funday', pure: true, start: () => window.initNewspaper_?.(),
+    into: 'np-box', what: 'The newspaper',
+    get html() { return `
+    <h3>Sunday Funday</h3>
+    <div id="np-box" class="np-box"></div>`; } },
   /* HOMEWORK (owner, 6 Nov): a tutor sets a paper, the student sees it; off in tiers.json, so a Coming soon card under Tools. */
   { id: 'homework', kind: 'tool', name: 'Homework',
     html: `<h3>Homework</h3>` },
@@ -17638,10 +17649,9 @@ const WIDGETS = [
   { id: 'flyers', kind: 'tool', name: 'Make a flyer', solid: true, admin: true,
     start: () => window.initFlyer?.(),
     into: 'fm-wrap', what: 'The flyer',
-    get html() { return card_(`<div class="">
+    get html() { return `
     <h3>Make a flyer</h3>
-    <div id="fm-wrap"></div>
-  </div>`); } },
+    <div id="fm-wrap"></div>`; } },
 
 
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker', solid: true,
@@ -17655,7 +17665,7 @@ const WIDGETS = [
   { id: 'timer', kind: 'tool', name: 'Timer', solid: true, start: () => window.initTimer?.(),
     pure: true,
     into: 'timer-display', what: 'The timer',
-    get html() { return card_(`<div class="">
+    get html() { return `
     <h3>Timer</h3>
     <p class="mono timer-big" id="timer-display">25:00</p>
     <div class="btn-row">
@@ -17670,11 +17680,10 @@ const WIDGETS = [
     <div class="btn-row gap-t">
       ${[5, 15, 25, 45].map(m =>
         `${tile_({ form: true, label: m, act: 'timer-set', data: { min: m }, kind: 'quiet', cls: 'tiny' })}`).join('')}
-    </div>
-  </div>`); } },
-  { id: 'docket', kind: 'tool', name: 'Docket', solid: true, start: () => paintDocket?.(),
+    </div>`; } },
+  { id: 'docket', kind: 'tool', name: 'Docket', solid: true, pure: true, start: () => paintDocket?.(),
     into: 'docket-body', what: 'The docket',
-    get html() { return card_(`<div class="">
+    get html() { return `
     <h3>Docket</h3>
     <div id="docket-body"></div>
     <div class="dock-new">
@@ -17682,33 +17691,28 @@ const WIDGETS = [
       ${tile_({ form: true, label: '＋', act: 'dock-add', kind: 'quiet', cls: 'tiny' })}
     </div>
     <p class="said said-s" id="dock-said"></p>
-    <div id="docket-gtasks"></div>
-  </div>`); } },
+    <div id="docket-gtasks"></div>`; } },
   { id: 'notepad', kind: 'tool', name: 'Notepad', solid: true, pure: true, start: () => initPad?.(),
     into: 'notepad', what: 'The notepad',
-    get html() { return card_(`<div class="">
+    get html() { return `
     <h3>Notepad</h3>
     <textarea id="notepad" placeholder="Jot something down…"></textarea>
     <p class="said said-s" id="pad-said">Saves as you type.</p>
-    <div class="tile-row">${tile_({ icon: 'doc', label: 'Copy', note: 'the notes', act: 'pad-copy' })}</div>
-  </div>`); } },
+    <div class="tile-row">${tile_({ icon: 'doc', label: 'Copy', note: 'the notes', act: 'pad-copy' })}</div>`; } },
   /* ---------- SPOTIFY (510): your own account, connected in this browser alone — spotify.js ---------- */
   { id: 'spotify', kind: 'tool', name: 'Spotify', solid: true, start: () => window.initSpotify?.(),
     into: 'sp-box', what: 'Spotify',
-    get html() {
-      return card_(`<div class="">
+    get html() { return `
     <h3>Spotify</h3>
-    <div id="sp-box">${typeof window.spCard_ === 'function' ? window.spCard_() : ''}</div>
-  </div>`);
+    <div id="sp-box">${typeof window.spCard_ === 'function' ? window.spCard_() : ''}</div>`;
     } },
   /* ---------- SPEED READ (403): paste, then one word at a time — reader.js ---------- */
-  { id: 'speedread', kind: 'tool', name: 'Speed reader (one word at a time)', solid: true, pure: true, start: () => initSpeedRead?.(),
+  { id: 'speedread', kind: 'tool', name: 'Speed reader', solid: true, pure: true, start: () => initSpeedRead?.(),
     into: 'sr-text', what: 'The speed reader',
-    get html() { return card_(`<div class="">
+    get html() { return `
     <h3>Speed reader</h3>
     <textarea id="sr-text" placeholder="Paste text to read…"></textarea>
-    ${/* A TILE, NOT A BUTTON (720): Read is the thing's action, so it is a tile in a row under it (house style). */''}<div class="tile-row">${tile_({ icon: 'play', label: 'Read it', act: 'sr-read' })}</div>
-  </div>`); } },
+    ${/* A TILE, NOT A BUTTON (720): Read is the thing's action, so it is a tile in a row under it (house style). */''}<div class="tile-row">${tile_({ icon: 'play', label: 'Read it', act: 'sr-read' })}</div>`; } },
 
   /* ---------- THE TIMETABLE, THE ONE WEEK VIEW § */
   /* NOT `pure`, though it was until the review of 12 Oct: § */
@@ -17719,7 +17723,7 @@ const WIDGETS = [
     <div id="tmt-box" class="tmt-box"></div>` },
 
   /* ---------- TOUCH TYPING § */
-  { id: 'typing', kind: 'tool', name: 'Touch typing (keyboard practice)', solid: true,
+  { id: 'typing', kind: 'tool', name: 'Touch typing', solid: true,
     start: () => window.initTyping?.(), into: 'kt-box', what: 'The lesson',
     html: `<h3>Touch typing</h3>
     <div id="kt-box" class="kt-box"></div>` },
@@ -17732,21 +17736,18 @@ const WIDGETS = [
           ''}
     <div id="cart-box" class="cart-box"></div>` },
   /* SEARCH THE SHOP (491): the shared pill, and what matches listed under it; a tap goes to the item. */
-  { id: 'shopfind', kind: 'shop', name: 'Search the shop', pure: true, start: () => paintShopFind_?.(),
+  { id: 'shopfind', kind: 'tool', name: 'Search the shop', pure: true, start: () => paintShopFind_?.(),
     into: 'shop-find-box', what: 'The shop search',
     html: `<h3>Search the shop</h3>
     <div id="shop-find-box" class="shop-find"></div>` },
 
   { id: 'calendar', kind: 'tool', name: 'Calendar', pure: true, start: () => window.initCalendar?.(),
     into: 'cal-body', what: 'The calendar',
-    get html() { return card_(`<div class="">
-    <div class="cal-head">
-      ${tile_({ form: true, look: 'cal-arrow', act: 'cal-back', aria: 'Earlier', label: '‹' })}
-      <h3 id="cal-label" class="flush">Calendar</h3>
-      ${tile_({ form: true, look: 'cal-arrow', act: 'cal-fwd', aria: 'Later', label: '›' })}
-    </div>
+    get html() { return `
+    <h3>Calendar</h3>
+    <p id="cal-label" class="cal-month"></p>
     <div id="cal-body" class="cal"></div>
-  </div>`); } },
+    <div class="tile-row">${tile_({ icon: 'left', label: 'Earlier', note: 'the month before', act: 'cal-back' })}${tile_({ icon: 'right', label: 'Later', note: 'the month after', act: 'cal-fwd' })}</div>`; } },
 
   /* ---------- TERM DATES AND COUNTDOWNS (466): the owner — "a widget in the Tools column telling the user the end dates of the next 3 academic intervals"; countdowns "available for everyone under Tools". */
   { id: 'termdates', kind: 'tool', name: 'Term dates', pure: true, start: () => paintTermDates_?.(),
@@ -17764,34 +17765,52 @@ const WIDGETS = [
   { id: 'favlinks', kind: 'tool', name: 'Favourite links', solid: true,
     start: () => window.initFavLinks_?.(),
     into: 'fav-box', what: 'Your favourite links',
-    get html() { return card_(`<div class="">
+    get html() { return `
     <h3>Favourite links</h3>
-    <div id="fav-box"></div>
-  </div>`); } },
+    <div id="fav-box"></div>`; } },
   /* ---------- THE REWRITE COACH (509, 519): admin only for now; a fact checklist and questions, never a rewrite — rewrite.js ---------- */
   { id: 'rewrite', kind: 'tool', name: 'Rewrite coach', solid: true, admin: true,
     start: () => window.initRewrite_?.(),
     into: 'rw-box', what: 'The rewrite coach',
-    get html() { return card_(`<div class="">
+    get html() { return `
     <h3>Rewrite coach</h3>
-    <div id="rw-box"></div>
-  </div>`); } },
+    <div id="rw-box"></div>`; } },
   /* ---------- THE POSTER PLANNER (547): bare bones -- a page, boxes, JSON and PNG out for Claude; this device only -- poster.js ---------- */
   { id: 'poster', kind: 'tool', name: 'Poster planner', solid: true, pure: true,
     start: () => window.initPoster_?.(),
     into: 'pst-box', what: 'The poster planner',
-    get html() { return card_(`<div class="">
+    get html() { return `
     <h3>Poster planner</h3>
-    <div id="pst-box"></div>
-  </div>`); } },
+    <div id="pst-box"></div>`; } },
   /* ---------- THE PIXEL EDITOR (547): bare bones -- a grid, a colour, pen or eraser, Clear, a PNG; this device only -- pixel.js ---------- */
   { id: 'pixel', kind: 'tool', name: 'Pixel editor', solid: true, pure: true,
     start: () => window.initPixel_?.(),
     into: 'pxe-box', what: 'The pixel editor',
-    get html() { return card_(`<div class="">
+    get html() { return `
     <h3>Pixel editor</h3>
-    <div id="pxe-box"></div>
-  </div>`); } },
+    <div id="pxe-box"></div>`; } },
+  /* ---------- THE CONSOLE (389, 441; owner 12 Nov): game files you own, Linked pictures and the guesser behind one picker — games.js. */
+  { id: 'console', kind: 'game', name: 'Console', start: () => window.initConsole?.(),
+    draw: () => window.consoleStill_?.(),
+    stop: () => { window.consoleStop_?.(); },
+    into: 'cs-slot', what: 'The console',
+    get html() {
+      return `<h3>Console</h3>
+    <label class="mat-sel ws-top"><select id="cs-pick" data-do="cs-pick"
+      aria-label="Which game">${window.csOptions_ ? window.csOptions_() : ''}</select></label>
+    <div id="cs-slot">${window.csSlot_ ? window.csSlot_() : ''}</div>`;
+    } },
+  /* ---------- THE WORD GAMES (238, 441; owner 12 Nov): Articulate to Word Search behind one picker — games.js. */
+  { id: 'wordgames', kind: 'game', name: 'Word games', start: () => window.initWordGames?.(),
+    draw: () => window.wgPaint_?.(),
+    stop: () => { window.wordGamesStop_?.(); },
+    into: 'wg-slot', what: 'The game',
+    get html() {
+      return `<h3>Word games</h3>
+    <label class="mat-sel ws-top"><select id="wg-pick" data-do="wg-pick"
+      aria-label="Which game">${window.wgOptions_ ? window.wgOptions_() : ''}</select></label>
+    <div id="wg-slot">${window.wgSlot_ ? window.wgSlot_() : ''}</div>`;
+    } },
   /* ---------- YOUR LIBRARY CARDS (docs/history/339) § */
   { id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
     start: () => initLibCards_?.(),
@@ -20996,7 +21015,7 @@ const shopIcon_ = (name, group) => `<svg class="shop-ic shop-ic-${shopIconName_(
 const shopWithIcon_ = (html, x, group) => String(html).replace('<div class="thing">', '<div class="thing shop-thing">' + shopIcon_(x.title || x.name || x.key, group));
 
 /* ---------- SEARCH THE SHOP (491): the shared pill at the top; a list of what matches under it, a tap going to the item's page ---------- */
-let SHOP_FIND = { q: '', at: [] };
+let SHOP_FIND = { q: '', at: [], all: false };
 /* THE WIDGET'S `start`: the pill drawn once per box, so a repaint around somebody typing never takes their word away. */
 function paintShopFind_() {
   if (!SHOP_FIND.at.length) try { shopCards_(); } catch (e) {}
@@ -21005,14 +21024,19 @@ function paintShopFind_() {
     const h = box.querySelector('.shop-hits'); if (h) h.innerHTML = shopHits_();
   });
 }
+/* AN EMPTY BOX OFFERS EVERYTHING: one tile lists the whole shop, the other puts it away (a safe press, owner 12 Nov). */
 function shopHits_() {
   const q = SHOP_FIND.q.trim().toLowerCase();
-  if (!q) return '';
-  const hits = SHOP_FIND.at.filter(h => h.say.indexOf(q) !== -1).slice(0, 8);
+  const all = tile_({ icon: SHOP_FIND.all ? 'up' : 'grid', label: SHOP_FIND.all ? 'Fewer' : 'Everything', note: SHOP_FIND.all ? 'put the list away' : 'in the shop', act: 'shop-all', pressed: !!SHOP_FIND.all });
+  if (!q && !SHOP_FIND.all) return `<div class="tile-row">${all}</div>`;
+  const hits = SHOP_FIND.at.filter(h => !q || h.say.indexOf(q) !== -1).slice(0, q ? 8 : 40);
+  if (!q) return (hits.length ? shopHitRows_(hits) : empty_('The shop is empty.')) + `<div class="tile-row">${all}</div>`;
   if (!hits.length) return empty_('Nothing in the shop matches.');
   /* A HIT IS A THING (rule 8): its name on the line, and the tile that opens it. */
-  return hits.map(h => `<div class="shop-hit">${shopIcon_(h.name, h.group)}<span>${esc(h.name)}</span><div class="tile-row">${tile_({ icon: 'open', label: 'Open ' + h.name, act: 'shop-go', data: { page: h.page } })}</div></div>`).join('');
+  return shopHitRows_(hits);
 }
+const shopHitRows_ = hits => hits.map(h => `<div class="shop-hit">${shopIcon_(h.name, h.group)}<span>${esc(h.name)}</span><div class="tile-row">${tile_({ icon: 'open', label: 'Open ' + h.name, act: 'shop-go', data: { page: h.page } })}</div></div>`).join('');
+on('shop-all', () => { SHOP_FIND.all = !SHOP_FIND.all; document.querySelectorAll('.shop-find .shop-hits').forEach(b => { b.innerHTML = shopHits_(); }); });
 document.addEventListener('input', e => {
   const el = e.target;
   if (!el || !el.classList || !el.classList.contains('shop-q')) return;

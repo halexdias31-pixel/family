@@ -234,9 +234,9 @@ function instruments() {
       const bi = host.querySelector('img.post-face');
       if (!bi || abs(bi.getAttribute('src')) !== abs(brandLogo_())) off.push('business post face ' + (bi ? bi.getAttribute('src') : 'none') + ' is not brandLogo_ ' + brandLogo_());
       const want = abs(brandLogo_());
-      /* THE ICON FILES ARE THE SOURCE (6 Nov): the tab is favicon.png and the home screen icon.png, whatever the sheet's logo says. */
+      /* THE ICON FILES ARE THE SOURCE (6 Nov): the tab is favicon.png and the home screen icon.png, whatever the sheet's logo says; a ?v= only busts the cache. */
       [['favicon', 'tab icon', 'favicon.png'], ['favicon-ios', 'home-screen icon', 'icon.png']].forEach(([id, say, file]) => { const l = document.getElementById(id), h = l ? l.href : '';
-        if (h !== abs(file)) off.push(say + ' ' + h + ' is not ' + file); });
+        if (h.replace(/[?#].*$/, '') !== abs(file)) off.push(say + ' ' + h + ' is not ' + file); });
       host.innerHTML = webProfilePages_()[0]; const wl = host.querySelector('img.web-logo');
       if (!wl || abs(wl.getAttribute('src')) !== want) off.push('Web profile picture is not brandLogo_');
       const tb = document.querySelector('.topbar-brand'); if (tb && tb.textContent.trim() !== brand('name', '@family.')) off.push('top bar says ' + tb.textContent + ', brand name ' + brand('name', '@family.'));
