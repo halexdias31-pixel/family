@@ -273,7 +273,7 @@ function postResendLink_(body, action, began) {
       return jsonOut({ error: 'We sent a new link but could not save it, so it will not work. The first link we '
                             + 'sent still does — ask us if you cannot find it.' });
     }
-    try { authProps_().setProperty(key, String(Date.now())); } catch (err) {}
+    try { authProps_().setProperty(key, String(Date.now())); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
     return jsonOut({ success: true, movingEmail: S(move.to), pendingEmail: pendingEmailOf_(me),
       message: 'A new link is on its way to ' + S(move.to) + '. Open it where you are signed in and your email '
              + 'changes — any link we sent before this one no longer works.' });
@@ -284,7 +284,7 @@ function postResendLink_(body, action, began) {
     return jsonOut({ error: 'We sent a new link but could not save it, so it will not work. The first link we sent '
                           + 'still does — ask us if you cannot find it.' });
   }
-  try { authProps_().setProperty(key, String(Date.now())); } catch (err) {}
+  try { authProps_().setProperty(key, String(Date.now())); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
   clearCache();
   return jsonOut({ success: true, pendingEmail: own,
     message: 'A new link is on its way to ' + own + '. Open it and your email is confirmed — any link we sent '
@@ -362,7 +362,7 @@ function postGoogleLogin_(body, action, began) {
 
 function postSignOut_(body, action, began) {
   /* ---------- THIS SESSION, NOT EVERY ONE THE PERSON HOLDS (docs/history/317) § */
-  try { if (S(body.token)) authProps_().deleteProperty(authSessionKey_(body.token)); } catch (err) {}
+  try { if (S(body.token)) authProps_().deleteProperty(authSessionKey_(body.token)); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
   /* SUCCESS EITHER WAY. An expired token reaching here means the session is already over, and
      an error would say otherwise. */
   return jsonOut({ success: true });
@@ -716,7 +716,7 @@ function profileMailAfter_(r, mail) {
   }
   /* A LINK HAS JUST GONE, so "Send the link again" counts its quarter hour from now (`resendLink`). */
   if (mailPlan === 'correct' || mailPlan === 'move') {
-    try { authProps_().setProperty('AUTH_LINK_' + S(r.person_id), String(Date.now())); } catch (err) {}
+    try { authProps_().setProperty('AUTH_LINK_' + S(r.person_id), String(Date.now())); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
   }
 }
 

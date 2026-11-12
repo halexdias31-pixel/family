@@ -178,7 +178,7 @@ function delRow(t, row) {
 /** One entry per tab-and-field, however many rows tried to write it. */
 function missedWrite_(t, field) {
   let tab = '?';
-  try { tab = t.sheet.getName(); } catch (err) {}
+  try { tab = t.sheet.getName(); } catch (err) { /* a sheet with no name is just reported without one */ }
   if (!WRITE_MISSES.some(x => x.tab === tab && x.field === field)) {
     WRITE_MISSES.push({ tab: tab, field: field });
   }
@@ -205,9 +205,9 @@ function jsonOut(obj) {
     }
   }
   /* NO CHILD'S SURNAME LEAVES BY THIS DOOR — the owner, 10 Oct: § */
-  try { if (obj && typeof obj === 'object') kidNamesOff_(obj); } catch (err) {}
+  try { if (obj && typeof obj === 'object') kidNamesOff_(obj); } catch (err) { /* a strip that finds nothing to strip leaves the payload as it is */ }
   /* AND NO PRICE TO A CHILD (398, `kidPricesOff_`, people.gs). */
-  try { if (obj && typeof obj === 'object') kidPricesOff_(obj); } catch (err) {}
+  try { if (obj && typeof obj === 'object') kidPricesOff_(obj); } catch (err) { /* a strip that finds nothing to strip leaves the payload as it is */ }
   const body = JSON.stringify(obj);
   /* WRAPPED AND SERVED AS A SCRIPT, when a callback was asked for. § */
   if (JSONP_CB && /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(JSONP_CB)) {
@@ -356,7 +356,7 @@ function clearPayloadCache() {
     const props = PropertiesService.getScriptProperties();
     const n = Number(props.getProperty('PAYLOAD_GEN') || '0') + 1;
     props.setProperty('PAYLOAD_GEN', String(n));
-  } catch (err) {}
+  } catch (err) { /* script properties are best-effort here; the next run tries again */ }
 }
 
 /* ---------- `retirePayloadOf_` WAS HERE — RETIRING A FEW PEOPLE'S PAYLOADS, NOT EVERYBODY'S § */
@@ -375,7 +375,7 @@ function webAppUrl_() {
     const set = PropertiesService.getScriptProperties().getProperty('WEB_APP_URL');
     /* CHECKED, NOT TRUSTED. § */
     if (set && /^https:\/\//.test(set)) return set;
-  } catch (err) {}
+  } catch (err) { /* script properties are best-effort here; the next run tries again */ }
   /* THE SERVICE KNOWS ITS OWN ADDRESS. Only from a versioned deployment, which is the only place
      the warmer runs anyway — and the property above is the override for when it does not. */
   try { return ScriptApp.getService().getUrl() || ''; } catch (err) { return ''; }
@@ -411,10 +411,10 @@ const WARM_BOOKING_MS = EDIT_WARM_DELAY_MS + 4 * 60 * 1000;
 
 /* SOMEBODY CHANGED THE SPREADSHEET BY HAND. § */
 function onSheetChange(e) {
-  try { clearPayloadCache(); } catch (err) {}
+  try { clearPayloadCache(); } catch (err) { /* edit hooks are best-effort; the next edit or warm run catches up */ }
   /* AN EDIT BY HAND TO A LIBRARY TAB (397): the cached items are forgotten, so the next card opened is the edit. */
-  try { if (e && e.source && /^lib_/.test(e.source.getActiveSheet().getName())) libGenBump_(); } catch (err) {}
-  try { scheduleWarmAfterEdit_(); } catch (err) {}
+  try { if (e && e.source && /^lib_/.test(e.source.getActiveSheet().getName())) libGenBump_(); } catch (err) { /* edit hooks are best-effort; the next edit or warm run catches up */ }
+  try { scheduleWarmAfterEdit_(); } catch (err) { /* edit hooks are best-effort; the next edit or warm run catches up */ }
 }
 
 /** Book one rebuild for a minute from now, unless one is already booked. See the note above. */
@@ -431,7 +431,7 @@ function scheduleWarmAfterEdit_() {
     ScriptApp.newTrigger('warmAfterEdit').timeBased().after(EDIT_WARM_DELAY_MS).create();
     return 'rebuild booked';
   } catch (err) {
-    try { props.deleteProperty('WARM_BOOKED_UNTIL'); } catch (err2) {}
+    try { props.deleteProperty('WARM_BOOKED_UNTIL'); } catch (err2) { /* script properties are best-effort here; the next run tries again */ }
     return 'could not book a rebuild: ' + String(err && err.message || err);
   }
 }
@@ -442,8 +442,8 @@ function warmAfterEdit() {
     ScriptApp.getProjectTriggers().forEach(t => {
       if (t.getHandlerFunction() === 'warmAfterEdit') ScriptApp.deleteTrigger(t);
     });
-  } catch (err) {}
-  try { PropertiesService.getScriptProperties().deleteProperty('WARM_BOOKED_UNTIL'); } catch (err) {}
+  } catch (err) { /* a trigger left behind fires once more and does nothing */ }
+  try { PropertiesService.getScriptProperties().deleteProperty('WARM_BOOKED_UNTIL'); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
   try { return warmPayload(); } catch (err) { return 'warm failed: ' + String(err && err.message || err); }
 }
 
@@ -458,7 +458,7 @@ function installSheetWatch_() {
   } catch (err) { out.push('could not clear the old ones: ' + String(err && err.message || err)); }
 
   /* A booking left over from a trigger that has just been deleted would block the first rebuild. */
-  try { PropertiesService.getScriptProperties().deleteProperty('WARM_BOOKED_UNTIL'); } catch (err) {}
+  try { PropertiesService.getScriptProperties().deleteProperty('WARM_BOOKED_UNTIL'); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
 
   const seen = {};
   Object.keys(FILES).forEach(which => {

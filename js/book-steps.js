@@ -746,6 +746,6 @@ function resetBooking_(keepDraft) {
   BOOK_PREFILLED = false;
   /* AND THE DRAFT OF IT — sent, or started again, is not a booking to bring back (`bookKeep_`). § */
   if (keepDraft) return;
-  try { draftDrop_('book', 'form'); } catch (e) {}
+  try { draftDrop_('book', 'form'); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 

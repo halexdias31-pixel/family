@@ -882,7 +882,7 @@ Object.keys(TAB).forEach(k => {
   try {
     const ss2 = SpreadsheetApp.openById(at.id);
     for (let i = 0; i < at.names.length && !sheet; i++) sheet = ss2.getSheetByName(at.names[i]);
-  } catch (err) {}
+  } catch (err) { /* an unopenable spreadsheet is reported missing below */ }
   if (!sheet) { say('  ✗ ' + TAB[k] + '  MISSING — open the site once as an admin'); return; }
   const rows = Math.max(0, sheet.getLastRow() - 1);
   say('  ✓ ' + (TAB[k] + '                    ').slice(0, 16) + rows + ' row(s)');
@@ -1250,7 +1250,7 @@ function autoMigrate_() {
     Logger.log('auto-migrated: ' + JSON.stringify(out));
     return out;
   } finally {
-    try { lock.releaseLock(); } catch (err2) {}
+    try { lock.releaseLock(); } catch (err2) { /* the lock lapses on its own; going ahead unlocked is the old behaviour */ }
   }
 }
 
@@ -1304,7 +1304,7 @@ function setupStatus_() {
     } catch (err) { /* a note that will not parse is no note */ }
     /* A JOB THAT REPORTS ITS OWN PROGRESS (`progress`, the library's copy, 397): still working is waiting, not failed. */
     if (!job.ran && typeof m.progress === 'function') {
-      try { const p = m.progress() || {}; if (p.working) job.error = ''; if (S(p.said)) job.said = S(p.said); } catch (err) {}
+      try { const p = m.progress() || {}; if (p.working) job.error = ''; if (S(p.said)) job.said = S(p.said); } catch (err) { /* a progress probe that fails leaves the job as it was */ }
     }
     out.jobs.push(job);
   });

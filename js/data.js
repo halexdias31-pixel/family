@@ -448,7 +448,7 @@ const can_ = (role, kind, action) => {
   try {
     const row = ((((typeof DATA !== 'undefined' && DATA && DATA.permissions) || {})[kind] || {})[action]);
     if (row && typeof row[role] === 'boolean') return row[role];
-  } catch (e) {}
+  } catch (e) { /* a malformed permissions table falls back to admin only */ }
   return role === 'admin';
 };
 

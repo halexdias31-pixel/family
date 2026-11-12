@@ -16,7 +16,7 @@ function filmsState_() {
 }
 function filmsStateSave_(st) {
   try { PropertiesService.getScriptProperties().setProperty(FILMS_SYNC_PROP, JSON.stringify(st || {})); }
-  catch (err) {}
+  catch (err) { /* script properties are best-effort here; the next run tries again */ }
 }
 
 /* ---------- WHICH FOLDER § */
@@ -395,6 +395,6 @@ function filmsMessage_(root, list, todo, done, more, found, tally, warn) {
 function syncFilms() {
   const out = filmsSync_({ budgetMs: FILMS_SYNC_EDITOR_MS });
   const said = out.error ? 'NOT SYNCED — ' + out.error : out.message;
-  try { Logger.log(said); } catch (err) {}
+  try { Logger.log(said); } catch (err) { /* logging must never break the run */ }
   return said;
 }
