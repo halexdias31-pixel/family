@@ -78,7 +78,7 @@
     "js/predicates-marks.js": 3,
     "js/predicates.js": 13,
     "js/price-rows.js": 2,
-    "js/submit.js": 1
+    "js/submit-suggest.js": 1
    }
   },
   {
@@ -130,7 +130,7 @@
   }
  ],
  "secondary": {
-  "score": 85.2,
+  "score": 85.4,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
@@ -153,7 +153,7 @@
    {
     "id": "catches",
     "label": "Empty catches (tools/catches.js)",
-    "count": 167,
+    "count": 164,
     "weight": 0.02,
     "cap": 15,
     "off": 3.3,
@@ -162,22 +162,21 @@
    {
     "id": "special",
     "label": "Per-facet and per-kind special cases",
-    "count": 43,
+    "count": 40,
     "weight": 0.05,
     "cap": 10,
-    "off": 2.2,
+    "off": 2,
     "where": {
      "js/arcade.js": 7,
      "js/collections.js": 7,
      "js/flyer.js": 1,
-     "js/layout.js": 1,
+     "js/layout-moves.js": 1,
      "js/mat.js": 3,
      "js/mechanics.js": 1,
      "js/orthodox.js": 2,
      "js/posts.js": 6,
      "js/reader.js": 11,
-     "js/records.js": 1,
-     "js/writings.js": 3
+     "js/records.js": 1
     }
    },
    {
