@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
-/* @family. — check-schema.js THE WHOLE LIBRARY AGAINST ITS ONE SCHEMA (check/schema.js, R4), AND THE GATE EVERY ROW-WRITER
+/* @family. — check-schema.js THE WHOLE LIBRARY AGAINST ITS ONE SCHEMA (check/library-schema.js, R4), AND THE GATE EVERY ROW-WRITER
    PASSES (R5). `node js/check-schema.js [-v]`; no port. */
 require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 'use strict';
 const L = require('../check/lib-full.js');
-const SC = require('../check/schema.js');
+const SC = require('../check/library-schema.js');
 
 const fail = [];
 const note = [];
@@ -198,7 +198,7 @@ else {
   }
 }
 
-console.log('\n' + rowsSeen + ' library rows against check/schema.js, ' + Object.keys(counts).length + ' file:rule(s) with a problem; '
+console.log('\n' + rowsSeen + ' library rows against check/library-schema.js, ' + Object.keys(counts).length + ' file:rule(s) with a problem; '
   + unsure + ' problem(s) in the words of lib_pending rows not counted (their words here are older than their card: a fresh clone before pull).');
 if (note.length) { console.log('\nWORTH A LOOK — not failures:'); note.forEach(n => console.log('  ' + n)); }
 if (fail.length) {

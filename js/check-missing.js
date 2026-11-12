@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-/* node js/check-missing.js [-v] — WHAT'S MISSING (526): js/missing.js's gaps for a fixture list and covers, and data/settings/expected-papers.json spelled as check/schema.js spells the library. -v prints today's gaps. */
+/* node js/check-missing.js [-v] — WHAT'S MISSING (526): js/missing.js's gaps for a fixture list and covers, and data/settings/expected-papers.json spelled as check/library-schema.js spells the library. -v prints today's gaps. */
 'use strict';
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
-const SCHEMA = require('../check/schema.js');
+const SCHEMA = require('../check/library-schema.js');
 const bad = [];
 
 /* ---------- THE PHONE'S OWN CODE, run in a sandbox with the few helpers it borrows from the files before it ---------- */
@@ -98,7 +98,7 @@ rows.map(M.cover).filter(Boolean).forEach(c => {
 });
 if (!present) bad.push('no cover in data/questions.json belongs to any listed qualification — the "never listed" rule asked nothing');
 
-/* ---------- THE LIST IS SPELLED AS THE LIBRARY SPELLS IT (check/schema.js), or the widget compares against nothing ---------- */
+/* ---------- THE LIST IS SPELLED AS THE LIBRARY SPELLS IT (check/library-schema.js), or the widget compares against nothing ---------- */
 const V = SCHEMA.VOCAB(), TIER_LETTERS = SCHEMA.TIERS().map(t => t.charAt(0));
 const KEYS = ['board', 'level', 'subject', 'spec', 'label', 'papers', 'series', 'from', 'to', 'also', 'skip', 'papers_in'];
 const SITTING = /^(June|November) (\d{4})$/;

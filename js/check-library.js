@@ -10,8 +10,8 @@ const path = require('path');
 const FILE = process.argv[2] || path.join(__dirname, '..', 'data', 'questions.json');
 
 /* ---------- THE CLOSED VOCABULARY § */
-/* ONE SCHEMA (R4): the lists live in check/schema.js with every card file's columns; their stories stay in docs/notes/js/check-library.js.md. */
-const SCHEMA = require('../check/schema.js');
+/* ONE SCHEMA (R4): the lists live in check/library-schema.js with every card file's columns; their stories stay in docs/notes/js/check-library.js.md. */
+const SCHEMA = require('../check/library-schema.js');
 const VOCAB = SCHEMA.VOCAB();
 
 /* Columns that must never come back. See the header. */

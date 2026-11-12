@@ -1,4 +1,4 @@
-/* @family. — check/schema.js THE LIBRARY'S ONE SCHEMA (R4, R5): each card file's columns and closed vocabularies, and
+/* @family. — check/library-schema.js THE LIBRARY'S ONE SCHEMA (R4, R5): each card file's columns and closed vocabularies, and
    `validate(row, file)`. Read by js/check-schema.js, js/check-library.js and every tool that writes a row. */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm'), cp = require('child_process');
@@ -11,7 +11,7 @@ function app() {
   const src = require('../tools/find-src.js').findSrc();
   const grab = (re, what) => {
     const m = re.exec(src);
-    if (!m) throw new Error('js/find.js has no ' + what + ' — check/schema.js reads it from there');
+    if (!m) throw new Error('js/find.js has no ' + what + ' — check/library-schema.js reads it from there');
     return m[0];
   };
   const ctx = vm.createContext({});
@@ -220,7 +220,7 @@ function rowLevels(row, file) {
 /* ---------- validate(row, file): THIS ROW'S OWN PROBLEMS, each { rule, col, msg } ---------- */
 function validate(row, file) {
   const f = FILES[file];
-  if (!f) throw new Error('check/schema.js knows no card file `' + file + '` — one of ' + Object.keys(FILES).join(', '));
+  if (!f) throw new Error('check/library-schema.js knows no card file `' + file + '` — one of ' + Object.keys(FILES).join(', '));
   const out = [];
   const bad = (rule, col, msg) => out.push({ rule: rule, col: col, msg: msg });
   if (!row || typeof row !== 'object' || Array.isArray(row)) { bad('shape', '', 'is not an object'); return out; }
@@ -366,7 +366,7 @@ function newProblems(file, rows, before) {
 function refuse(file, rows, before, who) {
   const fresh = newProblems(file, rows, before);
   if (!fresh.length) return;
-  throw new Error((who || file) + ': refused, nothing written — ' + fresh.length + ' row problem(s) the schema (check/schema.js) does not allow:\n'
+  throw new Error((who || file) + ': refused, nothing written — ' + fresh.length + ' row problem(s) the schema (check/library-schema.js) does not allow:\n'
     + fresh.slice(0, 12).map(p => '  ' + p.id + ': ' + p.msg).join('\n') + (fresh.length > 12 ? '\n  …' : ''));
 }
 

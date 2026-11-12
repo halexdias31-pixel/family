@@ -1,4 +1,4 @@
-/* @family. — check-markers.js: no half-finished merge in any tracked file.
+/* @family. — check-conflicts.js: no half-finished merge in any tracked file.
    A conflict line (seven <, = or > at the start of a line) slipped into style.css once and every check stayed green (405). */
 const { execSync } = require('child_process');
 const path = require('path');

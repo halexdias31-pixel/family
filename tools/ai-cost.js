@@ -5,16 +5,8 @@ const fs = require('fs'), path = require('path');
 const H = require('./health.js');
 const ROOT = path.resolve(__dirname, '..');
 const size = f => { try { return fs.statSync(path.join(ROOT, f)).size; } catch (e) { return 0; } };
-/* A TOMBSTONE: a comment that only says what used to be there. Its story belongs in docs/history, not beside living code. */
-const TOMB = /\/\*[- ]*(?:`[^`]+`|THE [A-Z'` ]+|[A-Z`'_ ]+) (?:IS|ARE) GONE\b|\b(?:WAS|WERE) HERE\b|\bused to be (?:written|booked|measured|drawn|here)\b|\bremoved at the owner/i;
-const KEEP = /THAT IS GONE|BEFORE IT IS GONE|WHEN IT IS GONE|IF IT IS GONE|ONCE IT IS GONE|TYPED BOX IS GONE FROM|DELETED IS GONE EVERYWHERE|MARKING PASS IS GONE|DELETED POST IS GONE|TYPED PATH IS GONE|@family\./i;
-function tombstones(files) {
-  const out = [];
-  files.forEach(f => H.read(f).split('\n').forEach((l, i) => { const s = l.trim();
-    const one = (s.startsWith('/*') && s.endsWith('*/') && s.split('*/').length === 2) || (s.startsWith('//') && f.endsWith('.js'));
-    if (one && TOMB.test(s) && !KEEP.test(s)) out.push({ where: f + ':' + (i + 1), say: s.slice(0, 120) }); }));
-  return out;
-}
+/* TOMBSTONES are tools/comments.js's, the one comment reader js/check-comments.js gates on. */
+const { tombstones, tombFiles } = require('./comments.js');
 /* THE FOUR MEASURES OF HOW MUCH AN AI DOES (1040): effort a round, test-file and history-note size, and how far a typical change spreads. */
 const N_COMMITS = 30, NOTE_MAX = 40 * 1024, TEST_MAX = 400000, READ_MAX = 200000, COMMENT_MAX = 0.25;
 const median = a => { const b = a.slice().sort((x, y) => x - y); return b.length ? b[Math.floor((b.length - 1) / 2)] : 0; };
@@ -47,7 +39,7 @@ function aiCost() {
   let comment = 0, total = 0, wordy = 0;
   app.concat(['style.css']).forEach(f => { const src = H.read(f), code = H.blank(src), t = src.replace(/\s/g, '').length, c = t - code.replace(/\s/g, '').length;
     total += t; comment += c; if (t && c / t > COMMENT_MAX) wordy++; });
-  const tombs = tombstones(app.concat(all.filter(f => /^js\/check/.test(f)), ['style.css']));
+  const tombs = tombstones();
   const claudeLines = H.read('CLAUDE.md').split('\n').length;
   const searchBytes = all.reduce((a, f) => a + size(f), 0);
   const E = effort();
@@ -67,11 +59,11 @@ function aiCost() {
     { id: 'spread', count: E.spread, say: `a change to js/ touches ${E.spread} files (median)` },
   ];
   /* THE RULES (owner, 12 Nov): each measure as followed ÷ applies over a real population, or 1/1 and 0/1 where there is one thing; the score is their plain average. */
-  const scanned = app.length + all.filter(f => /^js\/check/.test(f)).length + 1, tombFiles = new Set(tombs.map(t => t.where.replace(/:\d+$/, ''))).size;
+  const scanned = tombFiles().length, tombHit = new Set(tombs.map(t => t.where.replace(/:\d+$/, ''))).size;
   const rules = [
     { id: 'read-bytes', label: `Elements that cost under ${READ_MAX / 1000} KB to read with the files that use them`, ok: elements.filter(e => e.read <= READ_MAX).length, of: elements.length },
     { id: 'comment-ratio', label: `Files whose comments are at most ${COMMENT_MAX * 100}% of them`, ok: app.length + 1 - wordy, of: app.length + 1 },
-    { id: 'tombstones', label: 'Files with no tombstone comment', ok: scanned - tombFiles, of: scanned },
+    { id: 'tombstones', label: 'Files with no tombstone comment', ok: scanned - tombHit, of: scanned },
     { id: 'claude-lines', label: 'CLAUDE.md within 100 lines', ok: claudeLines > 100 ? 0 : 1, of: 1 },
     { id: 'search-bytes', label: 'js/ within 4 MB to search', ok: searchBytes > 4e6 ? 0 : 1, of: 1 },
     { id: 'test-biggest', label: `Test files under ${TEST_MAX / 1000} KB`, ok: E.tests - E.bigTests, of: E.tests },

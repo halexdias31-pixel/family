@@ -9480,7 +9480,7 @@ function topicOf_(x) {
 /* ---------- THE TOPIC TREE WAS READ HERE § */
 
 /* THE LIBRARY'S LEVELS, ONE TABLE (R4): each level's key stages, tiers, other spellings, and rung on the ladder a range is
-   read along (0: never in a range). check/schema.js reads this very literal. */
+   read along (0: never in a range). check/library-schema.js reads this very literal. */
 const LEVEL_TABLE = [
   /* ---------- `KS2 SATs` IS TWO FACTS, AND THE LEVEL IS ONE OF THEM § */
   { level: 'SATs',        rung: 1, stages: ['KS1', 'KS2'], tiers: [], says: ['KS1', 'KS2', 'KS1 SATs', 'KS2 SATs'] },
@@ -9749,7 +9749,7 @@ window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
 ;
 /* ==== js/find-levels.js ==== */
 /* A LEVEL CELL AS REAL LEVELS (O1): a comma is a list and `KS3–GCSE` is every rung from one to the other, so the item is
-   under each. An unknown word passes through as itself. Self-contained: check/schema.js runs this very function. */
+   under each. An unknown word passes through as itself. Self-contained: check/library-schema.js runs it. */
 function levelsIn_(cell) {
   const key = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9+]/g, '');
   const find = v => LEVEL_TABLE.find(l => key(l.level) === key(v) || l.says.some(s => key(s) === key(v)));
@@ -9802,7 +9802,7 @@ function levelOf_(x) {
 }
 
 /* WHO MADE A WORKSHEET IS ITS SOURCE, NOT AN EXAM BOARD (O3): a maker's sheet has no board, a board's paper no Source.
-   check/schema.js reads this list; backend/digest.gs keeps a copy that check-funnel compares card by card. */
+   check/library-schema.js reads this list; backend/digest.gs keeps a copy that check-funnel compares card by card. */
 const LIB_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition'];
 const sourceOf_ = x => LIB_SOURCES.find(s => spellKey_(s) === spellKey_(x && x.company)) || '';
 const boardOf_ = x => (sourceOf_(x) ? '' : (x && x.examBoard) || '');
@@ -17842,7 +17842,7 @@ const WIDGETS = [
   { id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
     start: () => initLibCards_?.(),
     into: 'lib-box', what: 'Your library cards',
-    /* THE BOX ONLY: its host draws the card round it, and a card here showed twice (card-facts). */
+    /* THE BOX ONLY: its host draws the card round it, and a card here showed twice (card-render). */
     get html() { return '<div id="lib-box"></div>'; } },
 ];
 /* SECONDARY (860): every widget here not named core in data/settings/tiers.json throws into oops_, never into its caller. */
