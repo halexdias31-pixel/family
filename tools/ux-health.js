@@ -105,6 +105,8 @@ function instruments() {
   await tap('Lock the page', '#s-stuff [data-do="q-lock"]');
   await tap('Unlock the page', '#s-stuff [data-do="q-lock"]');
   await tap('Back to the top of Find', '#s-stuff [data-do="find-top"]');
+  /* A QUESTION OPENED IN FIND HAS EVERY CHIP ASKED, so its top holds no menu: the front menu is behind Start again. */
+  await tap('Start again', '#s-stuff [data-do="filter-clear"]');
   await tap('front menu again', PICK);
   await tap('Next answer down', PICK);
   await tap('Feed tab', null, () => go('feed'));

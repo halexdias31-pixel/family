@@ -394,14 +394,22 @@ const itemMemoKey_ = () => (USER ? (USER.personId || USER.name || 'u') : '-')
 function stuffItemsAll_() {
   const key = itemMemoKey_();
   if (ALL_MEMO.from === DATA && ALL_MEMO.key === key) return ALL_MEMO.items;
-  const built = stuffItemsRaw_();
+  /* ASKED FROM INSIDE ITS OWN BUILD (a settings card counting questions): the last list, never a second whole build inside the first. */
+  if (ALL_BUILDING) return ALL_MEMO.items || [];
+  let built;
+  ALL_BUILDING = true;
+  try { built = stuffItemsRaw_(); } finally { ALL_BUILDING = false; }
   ALL_MEMO = { key: key, from: DATA, items: built };
+  ALL_GEN++;
   return built;
 }
+let ALL_BUILDING = false, ALL_GEN = 0;
 
 /* ---------- FORGET EVERY LIST BUILT FROM `DATA`, FOR A WRITE THAT CHANGED `DATA` IN PLACE § */
-function stuffForget_() {
+/* `late`: a source that came later (lateCame_) adds items but changes no question, so the questions already made are kept. */
+function stuffForget_(late) {
   ALL_MEMO = { key: null, from: null, items: null };
+  if (!late && typeof Q_ITEMS !== 'undefined') Q_ITEMS = { from: null, rows: null, items: null };
   FUNNEL_MEMO = { key: null, from: null, items: null };
   /* EVERY FINDER'S, not the bound one's: a sign-out that forgot one finder's list would
      hand the next child the last one's Books shelf (347). */

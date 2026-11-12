@@ -20,8 +20,7 @@ function chemIndex_() {
     names.forEach((n, i) => { d[n] = all[i] && Array.isArray(all[i][n]) ? all[i][n].filter(ours) : []; });
     if (!names.some(n => d[n].length)) { CHEM.failed = true; return null; }
     CHEM.data = d;
-    if (typeof stuffForget_ === 'function') stuffForget_();
-    if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
+    if (typeof lateCame_ === 'function') lateCame_();
     return d;
   });
   return null;
