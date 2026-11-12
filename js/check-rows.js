@@ -9,9 +9,9 @@ const acorn = require('acorn');
 const dir = path.join(__dirname, '..');
 const PLACES = [path.join(dir, 'backend'), path.join(dir, '..', 'backend'), dir];
 /* `digest` too — the weekly parent email reads `submissions` and `people` rows and writes `digest_log`. */
-const NAMES = ['constants', 'core', 'people', 'booking', 'content', 'race', 'films', 'library', 'library-drive', 'media', 'setup', 'doGet', 'doPost', 'digest'];
+const NAMES = ['constants', 'core', 'people', 'booking', 'content', 'race', 'films', 'library', 'library-drive', 'media', 'setup', 'doGet', 'doPost', 'digest', 'digest-tags'];
 const NUMBERED = ['00_constants', '10_core', '20_people', '30_booking', '40_content', '41_race', '42_films', '43_library', '44_library-drive', '45_media',
-                  '50_setup', '60_doGet', '70_doPost', '80_digest'];
+                  '50_setup', '60_doGet', '70_doPost', '80_digest', '81_digest-tags'];
 
 const found = NAMES.map((n, i) => PLACES
   .flatMap(w => [NUMBERED[i], n, n.toLowerCase()].map(s => path.join(w, s + '.gs')))

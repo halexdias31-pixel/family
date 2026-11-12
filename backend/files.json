@@ -13,6 +13,7 @@
   "media.gs",
   "core.gs",
   "digest.gs",
+  "digest-tags.gs",
   "doget.gs",
   "get-start.gs",
   "get-people.gs",
