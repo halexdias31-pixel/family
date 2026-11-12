@@ -201,7 +201,11 @@ function writingOf_(x) {
 const WRITING_CAME = {};
 function writingCame_(src) {
   WRITING_CAME[src] = true;
-  if (typeof stuffForget_ === 'function') stuffForget_();
+  lateCame_();
+}
+/* ANY SOURCE THAT CAME LATE (writings, mechanics, chemistry): the lists forgotten, and one repaint however many land together. */
+function lateCame_() {
+  if (typeof stuffForget_ === 'function') stuffForget_(true);
   /* EIGHT SOURCES LANDING TOGETHER ARE ONE REPAINT, of the finder in front only (561, U4); the other is marked and the builder draws it ahead. */
   if (WRITING_PAINT) return;
   WRITING_PAINT = setTimeout(() => {

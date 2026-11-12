@@ -124,12 +124,15 @@ function finderWalk_(x) {
   const out = [];
   for (let guard = 0; guard < 16; guard++) {
     STUFF.filters = out.slice();
-    const items = stuffFiltered();
-    if (items.length <= 1) break;
-    const facet = nextFacet(items);
+    /* LOOKED UP, NOT COUNTED (1100): a chip path the build walked names its next question; only past it is the list tallied. */
+    const looked = finderTagsNext_(out);
+    if (looked && !(looked.n > 1)) break;
+    const facet = looked ? looked.facet : (() => { const items = stuffFiltered(); return items.length <= 1 ? null : nextFacet(items); })();
     if (!facet) break;
     const own = (() => { try { return facetOwn_(facet, x); } catch (e) { return []; } })();
     out.push(own.length ? { field: facet.field, value: String(own[0]) } : { field: facet.field, any: true });
+    /* A LOOKED-UP ANSWER IS ONE OF THE BUILD'S, so the item is still in the list; a counted one is checked against it. */
+    if (looked) { if (own.length && !looked.has(own[0])) { out.pop(); break; } continue; }
     STUFF.filters = out.slice();
     if (stuffFiltered().indexOf(x) < 0) { out.pop(); break; }
   }
@@ -228,7 +231,7 @@ function cardPages_(x, credits, prev) {
 /* ---------- SAVED AND SPOTLIGHT DRAW A QUESTION'S OPENING ONCE, AS FIND DOES § */
 function keptPages_(items, credits) {
   const by = {}, done = {}, seq = [];
-  const key = x => x._sk || (x._sk = sortKey_(x));
+  const key = sortKey_;
   (items || []).forEach(x => { const k = qId_(x); if (k) (by[k] = by[k] || []).push(x); });
   (items || []).forEach(x => {
     const k = qId_(x);

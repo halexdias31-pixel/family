@@ -60,7 +60,7 @@ function laterFiles_() {
   const lazy = (typeof window !== 'undefined' && Array.isArray(window.LAZY)) ? window.LAZY : [];
   const later = (typeof window !== 'undefined' && Array.isArray(window.LATER)) ? window.LATER.filter(f => lazy.indexOf(f) === -1) : [];
   /* ALL AT ONCE (720): fetched side by side, then run in one task, so no screen ever sees one LATER file without the rest (`WIDGETS` was read between find.js and map.js). */
-  LATER_ASK = batchFiles_(later).then(() => { LATER_IN = true; });
+  LATER_ASK = batchFiles_(later, 'later').then(() => { LATER_IN = true; });
   return LATER_ASK;
 }
 /* THE SECOND BATCH (1080): index.html's `LAZY`, files Find never needs, asked for behind the library (boot.js) or when a widget of theirs starts — one task, same rule. */
@@ -68,7 +68,7 @@ let LAZY_ASK = null;
 function lazyFiles_() {
   if (LAZY_ASK) return LAZY_ASK;
   const lazy = (typeof window !== 'undefined' && Array.isArray(window.LAZY)) ? window.LAZY : [];
-  LAZY_ASK = laterFiles_().then(() => batchFiles_(lazy)).then(() => {
+  LAZY_ASK = laterFiles_().then(() => batchFiles_(lazy, 'lazy')).then(() => {
     lazyFiles_.in = true;
     /* A column that waited for them (`paint`'s ReferenceError) is drawn now, if the payload is here to draw it. */
     try { if (typeof STALE !== 'undefined' && STALE[AT] && LOADED) repaint(); } catch (e) { oops_(e, 'data:lazyIn'); }
@@ -78,10 +78,19 @@ function lazyFiles_() {
 /* EVERY BATCH IN: until then a column whose code is missing waits instead of saying it did not draw. */
 function filesIn_() { return LATER_IN && (!(Array.isArray(window.LAZY) && window.LAZY.length) || !!lazyFiles_.in); }
 /* IN window.FILES' ORDER, whatever order the list is written in: that list is the load order. Never rejects. */
-function batchFiles_(want) {
+function batchFiles_(want, bundle) {
   const off = Array.isArray(window.OFF) ? window.OFF : [];
   const list = (Array.isArray(window.FILES) ? window.FILES : want).filter(f => want.indexOf(f) !== -1 && off.indexOf(f) === -1);
   if (!list.length || typeof document === 'undefined' || typeof fetch !== 'function') return Promise.resolve();
+  /* ONE URL FOR THE BATCH (1211): tools/bundle.js joined these files in this order; a bundle that fails falls back to the files one by one. */
+  if (bundle && window.BUNDLE) {
+    return fetch('bundle/' + bundle + '.js' + deployStamp_()).then(r => (r.ok ? r.text() : null)).catch(() => null).then(src => {
+      if (src === null) return batchFiles_(want);
+      const s = document.createElement('script');
+      s.text = src + '\n//# sourceURL=bundle/' + bundle + '.js';
+      document.head.appendChild(s);
+    });
+  }
   return Promise.all(list.map(f => fetch('js/' + f + '.js' + deployStamp_()).then(r => (r.ok ? r.text() : null)).catch(() => null)))
     .then(texts => texts.forEach((src, i) => {
       if (src === null) { try { window.__missing(list[i]); } catch (e) { /* no list to name it in */ } return; }

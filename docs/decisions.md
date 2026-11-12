@@ -314,3 +314,4 @@ become an owner question showing both; never pick one.
 - 12 Nov — one Notifications item in Find › Settings: the email ticks and the phone's (push) on one card; an admin ticks for someone from their Edit form (parents opt in, 11 Nov).
 - 12 Nov — names in one place: receipts, reports, applications and lib_log stop storing a name or handle; it is read from the people row by person id, an old row's stored cell kept as the fallback. Version stamps bumped (redeploy the backend).
 - 12 Nov — Homework stays off for now; Spotify, Newspaper, Basket and the rest are undecided and left as they are.
+- 12 Nov — the served JS is combined into bundles (bundle/first.js, later.js, lazy.js, written by tools/bundle.js inside build-stamp) so a return visit re-checks 3 URLs instead of ~100; js/ stays the source, ?dev or ?nobundle loads it file by file (1211).

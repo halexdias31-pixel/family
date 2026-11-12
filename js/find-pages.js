@@ -408,7 +408,7 @@ AHEAD_KINDS.push(stuffAheadJobs_);
 const STUFF_WARM = {};
 const STUFF_WARM_STEPS = [
   () => stuffItems(),
-  () => stuffItems().forEach(x => { if (!x._sk) x._sk = sortKey_(x); }),
+  () => stuffSorted_(stuffItems()),
   () => stuffFiltered(),
   () => stuffQuestion(),
 ];

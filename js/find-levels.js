@@ -257,11 +257,6 @@ function stuffFind(items, credits) {
   /* ---------- ONE STRING PER ITEM, BUILT ONCE, COMPARED WITH `<` § */
   return out;
 }
-/* The library's own order, by the key `stuffSorted_` cached on each item. */
-const stuffKeyCmp_ = (a, b) => {
-  const ka = a._sk || (a._sk = sortKey_(a)), kb = b._sk || (b._sk = sortKey_(b));
-  return ka < kb ? -1 : ka > kb ? 1 : 0;
-};
 /* THE NARROWING ITSELF, split out of `stuffFind` so `stuffFiltered` can run it over the list it already has rather than over the whole library — see the note § */
 function stuffNarrow_(out, filters, credits) {
   const byField = {};
@@ -290,7 +285,10 @@ const SORTED_ITEMS = new WeakMap();
 function stuffSorted_(items) {
   let out = SORTED_ITEMS.get(items);
   if (out) return out;
-  out = items.slice().sort(stuffKeyCmp_);
+  /* KEYS MADE FOR THE SORT AND LET GO AFTER IT: kept on 280,000 items they were a fifth of the page's memory. */
+  const keys = items.map(sortKey_), at = items.map((x, i) => i);
+  at.sort((a, b) => (keys[a] < keys[b] ? -1 : keys[a] > keys[b] ? 1 : 0));
+  out = at.map(i => items[i]);
   SORTED_ITEMS.set(items, out);
   return out;
 }
@@ -308,7 +306,7 @@ const sortKey_ = x => [
   padNums_(String(x.name || '').toLowerCase()),
 ].join('\u0000');
 
-const padNums_ = s => s.replace(/\d+/g, d => ('00000000' + d).slice(-8));
+const padNums_ = s => (/\d/.test(s) ? s.replace(/\d+/g, d => ('00000000' + d).slice(-8)) : s);
 
 /* THE FILTERED LIST, held. § */
 let FIND_MEMO = { key: null, from: null, items: null, total: 0 };
@@ -460,8 +458,12 @@ function myResultNew_(k) {
   } catch (e) { /* the tag is right on the next draw */ }
 }
 /* A QUESTION'S ONE VERIFIED TAG (388; owner 10 Nov): Verified only when the stored accuracy claim AND the type's protocol (qtypes.js) both hold. */
+/* ONCE PER QUESTION while its words and the list stand (a walk asks every item at every step); the list by number, so no old list is kept alive. */
 function verifyTags_(x) {
   if (!isQ_(x) || !x.row) return { verified: '', acc: false, fn: false };
+  const memo = verifyTags_.memo || (verifyTags_.memo = new WeakMap());
+  const seen = (typeof LIB !== 'undefined' && LIB ? LIB.gen : 0) + '|' + libWaits_(x.row) + '|' + (typeof ALL_GEN !== 'undefined' ? ALL_GEN : 0), had = memo.get(x);
+  if (had && had.seen === seen) return had.r;
   let fn = false;
   /* WORDS STILL IN THE LEDGER (397): the file's `function_verified`, worked out from the whole row when it was split off. */
   if (libWaits_(x.row)) fn = libTrue(x.row.function_verified);
@@ -471,7 +473,9 @@ function verifyTags_(x) {
   let used = null;
   try { used = typeof usesOf_ === 'function' ? usesOf_(x) : null; } catch (e) { used = null; }
   const fig = !figUndrawn_(x.row, (x.stems || []).concat(used ? [used] : []));
-  return { verified: acc && fn && fig ? 'Verified' : 'Not verified', acc, fn, fig };
+  const r = { verified: acc && fn && fig ? 'Verified' : 'Not verified', acc, fn, fig };
+  memo.set(x, { seen: seen, r: r });
+  return r;
 }
 
 /* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER § */
@@ -480,11 +484,12 @@ const qId_ = x => (isQ_(x) && x.qNumber != null && String(x.qNumber) !== ''
 const WHOLE_MEMO = new WeakMap();
 /* EVERY PART, NOT THE FUNNEL'S (`stuffItemsAll_`): signed out the funnel is Sign in alone, and a shared question drew one part */
 function questionParts_() {
-  const all = stuffSorted_(stuffItemsAll_());
+  const all = stuffItemsAll_();
   let by = WHOLE_MEMO.get(all);
   if (by) return by;
   by = {};
-  all.forEach(x => { const k = qId_(x); if (k) (by[k] = by[k] || []).push(x); });
+  /* THE PARTS ALONE ARE SORTED, not the whole library around them: the same order within each question, a tenth of the work. */
+  stuffSorted_(all.filter(x => qId_(x))).forEach(x => { const k = qId_(x); (by[k] = by[k] || []).push(x); });
   WHOLE_MEMO.set(all, by);
   return by;
 }
