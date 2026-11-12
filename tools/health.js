@@ -549,12 +549,11 @@ function extraWork(st) {
       else if (sizes.files[f] > b) W.push({ kind: 'size', part: 'code', where: f, say: `${Math.round(sizes.files[f] / 1024)} KB, over its ${Math.round(b / 1024)} KB budget` }); });
     if (sizes.total > budget.total) W.push({ kind: 'size', part: 'code', where: 'first download', say: `${Math.round(sizes.total / 1024)} KB, over its ${Math.round(budget.total / 1024)} KB budget` });
   }
-  /* ONE SYSTEM (1060): every principle in docs/philosophy.md names a check that exists; the inbox file is well formed. */
-  const P = require('./philosophy.js');
-  W.push(...P.coverage(knownChecks(st)).work, ...P.ownerQuestions().work);
+  /* ONE SYSTEM (1060): the inbox file is well formed; the rulebook's own coverage is counted in healthRules, over the scored checks. */
+  W.push(...require('./rules.js').ownerQuestions().work);
   return { work: W, skipped, sizes };
 }
-/* THE CHECK IDS health.js prices, for the philosophy's coverage. */
+/* THE CHECK IDS health.js prices, for the rulebook's coverage. */
 const knownChecks = st => [FIND_KINDS, UX_KINDS, UNIFORM_KINDS, STRUCT, EXTRA_KINDS, VARIETY_KINDS].flat()
   .concat((st.signals || []).map(x => x.id), ['important', 'pxlit', 'colourlit', 'order', 'selectors', 'zindex', 'position'],
     ['font-scale', 'space-scale', 'radius-scale', 'answer-width', 'one-template', 'makers', 'one-place', 'biz-checker', 'exceptions', 'ceilings', 'markers', 'truth-facts', 'truth-lists', 'truth-labels'], ['read-bytes', 'search-bytes', 'comment-ratio', 'big-notes', 'spread', 'test-biggest', 'tombstones', 'claude-lines', 'effort']);
@@ -563,7 +562,7 @@ function business() {
   let bad = []; try { bad = require('../js/check-biz.js').work(); } catch (e) { bad = [{ kind: 'biz-checker', where: 'js/check-biz.js', say: 'would not run: ' + e.message }]; }
   const items = ((jread('data/settings/biz-checklist.json') || {}).items || []);
   /* A JOB RUN "PARTLY" IS NOT YET RUN: a half would be a number chosen by hand. */
-  const op = require('./philosophy.js').onePlace(), yes = op.filter(f => f.status === 'yes').length;
+  const op = require('./rules.js').onePlace(), yes = op.filter(f => f.status === 'yes').length;
   const gaps = op.filter(f => f.status !== 'yes').map(f => `The site does not yet run ${f.name.toLowerCase()} (${f.status}).`);
   const rules = [rule('one-place', 'business', 'Business jobs the site runs in full (one-place.json)', yes, op.length),
     passFail('biz-checker', 'business', 'The business checker runs clean (js/check-biz.js)', bad.length)];
@@ -639,7 +638,8 @@ function firstDownload() {
   list.forEach(f => { try { const n = fs.statSync(path.join(ROOT, f)).size; files[f] = n; total += n; } catch (e) { /* a listed file that is missing is check-loading's to say */ } });
   return { files, total };
 }
-const EXTRA_KINDS = ['field', 'answer', 'menu-sense', 'backend', 'resilience', 'dead', 'size', 'a11y', 'console', 'qengine', 'variety', 'philosophy', 'owner-questions'];
+let RULEBOOK_LAST = null;
+const EXTRA_KINDS = ['field', 'answer', 'menu-sense', 'backend', 'resilience', 'dead', 'size', 'a11y', 'console', 'qengine', 'variety', 'owner-questions'];
 
 /* THE SCORE (owner, 12 Nov): every measure is a rule over a countable population; the total is the plain average of the rules, no weights, no caps. */
 const MEANS = "the share of the site's rules that are followed, each rule counted equally";
@@ -668,11 +668,8 @@ function healthRules(st, L, U, S, work, X, C, B) {
     rule('markers', 'code', 'App files with no TODO/FIXME/HACK marker', app.length - Math.min(app.length, sg('markers').count), app.length),
     rule('dead', 'code', 'App functions something calls', fns - sg('dead').count, fns),
     rule('size', 'code', 'First-download files (and their total) within budget', fdOf - cnt('size'), fdOf),
-    rule('philosophy', 'code', 'Principles that name a check that exists', 0, 0),
     rule('owner-questions', 'code', 'Owner questions well formed', 0, 0));
-  const Ph = require('./philosophy.js'), cov = Ph.coverage(knownChecks(st)), oq = Ph.ownerQuestions();
-  const badP = new Set(cov.work.map(w => w.where)).size, badQ = new Set(oq.work.map(w => w.where)).size;
-  Object.assign(R[R.length - 2], { ok: Math.max(0, cov.principles - badP), of: cov.principles });
+  const oq = require('./rules.js').ownerQuestions(), badQ = new Set(oq.work.map(w => w.where)).size;
   Object.assign(R[R.length - 1], { ok: Math.max(0, oq.of - badQ), of: oq.of });
   /* FIND LOGIC: the walk's own rules over its questions, then the static and data kinds over their menus, nodes and lines. */
   const q = (L.j && L.j.questions) || 0, nodes = ((L.j && L.j.walked) || {}).nodes || 0, FP = FIND_POP || {}, FH = jread('data/facet-health.json') || {};
@@ -700,6 +697,12 @@ function healthRules(st, L, U, S, work, X, C, B) {
   const partOf = { backend: 'code', resilience: 'code', field: 'ui' }; X.work.forEach(w => { partOf[w.kind] = w.part; }); work.forEach(w => { partOf[w.kind] = 'logic'; });
   [...new Set(FIND_KINDS.concat(UX_KINDS, UNIFORM_KINDS, EXTRA_KINDS.filter(k => k !== 'variety'), Object.keys(n)))].filter(k => !has.has(k)).sort()
     .forEach(k => R.push(passFail(k, partOf[k] || 'ui', `${k}: passes with no findings`, cnt(k))));
+  /* THE RULEBOOK (owner, 12 Nov): docs/rules.md against every scored check and check file — tools/rules.js. */
+  const RB = require('./rules.js').coverage(R.map(r => r.id).concat(['rule-checked', 'check-tied', 'rule-once']), knownChecks(st));
+  X.work.push(...RB.work); RULEBOOK_LAST = RB;
+  R.push(rule('rule-checked', 'code', 'Rules in docs/rules.md that name a check that exists', RB.checked, RB.rules),
+    rule('check-tied', 'code', 'Checks (scored rules, check files, journeys) tied to a rule', RB.tied, RB.checks),
+    rule('rule-once', 'code', 'Rules stated once (no near-duplicate rule text)', RB.once, RB.rules));
   R.forEach(r => { r.unit = r.unit || UNIT[r.id] || (r.variety ? 'variants' : r.pf != null ? 'one check (pass/fail)' : ''); });
   return R.filter(r => r.of > 0);
 }
@@ -727,7 +730,7 @@ function walkPops(U) {
 /* WHAT EACH RULE COUNTS, beside it in -v: the thing a person would fix. */
 const FN_UNIT = 'functions (and files\' top-level code)';
 const UNIT = { 'one-off': FN_UNIT, 'long-fn': 'functions', 'big-file': 'files', dup: FN_UNIT, nest: FN_UNIT, catch: 'catches', exceptions: 'check files',
-  ceilings: 'ratchet ceilings', markers: 'files', dead: 'functions', size: 'files (+ total)', philosophy: 'principles', 'owner-questions': 'questions',
+  ceilings: 'ratchet ceilings', markers: 'files', dead: 'functions', size: 'files (+ total)', 'rule-checked': 'rules', 'check-tied': 'checks', 'rule-once': 'rules', 'owner-questions': 'questions',
   'menu-thin': 'walked menus', 'answer-words': 'walked menus', 'mangled-text': 'walked menus', 'merged-value': 'walked menus', 'menu-rule': 'walked menus', 'menu-sense': 'walked menus',
   'tag-asked': 'menus', 'find-one-off': FN_UNIT, 'merged-all': 'menus', 'near-dup': 'menus', 'words-all': 'menus', answer: 'stored answers', qengine: 'proof cases', 'qengine-mapped': 'question types',
   important: 'CSS rule-blocks', order: 'CSS rule-blocks', colourlit: 'CSS rule-blocks', 'font-scale': 'CSS rule-blocks', 'space-scale': 'CSS rule-blocks', 'radius-scale': 'CSS rule-blocks',
@@ -750,7 +753,7 @@ function health() {
   const nextOf = g => off.filter(o => o.part === g).slice(0, 3).map(o => o.say), one = id => R.find(r => r.id === id);
   const areas = {}; Object.keys(GROUPS).forEach(g => { areas[g] = { score: parts[g], rules: R.filter(r => r.group === g).length, next: g === 'business' ? B.next : nextOf(g) }; });
   ['friction', 'size'].forEach(id => { const r = one(id); if (r) areas[id === 'size' ? 'speed' : id] = { score: avg([r]), next: U.work.concat(X.work).filter(w => w.kind === id).slice(0, 3).map(w => w.where + ': ' + w.say) }; });
-  const Ph = require('./philosophy.js'), cov = Ph.coverage(knownChecks(st)), oq = Ph.ownerQuestions();
+  const Ph = require('./rules.js'), cov = RULEBOOK_LAST || { rules: 0, checked: 0, checks: 0, tied: 0, once: 0, untied: [] }, oq = Ph.ownerQuestions();
   const best = off[0];
   const next = best ? `Do this next: ${best.say} — following it fully is worth ${best.cost} points (${best.part}).` : 'Do this next: nothing — every rule is followed.';
   const counts = {}; Object.keys(S.totals).forEach(k => { counts[k] = S.totals[k].count; });
@@ -758,7 +761,7 @@ function health() {
   const allWork = work.concat(U.work, X.work.map(w => ({ kind: w.kind, where: w.where, say: w.say }))).filter(notFrozen_).map(w => Object.assign({}, w, { cost: gain(w.kind) }));
   return {
     v: 3, score: overall, means: MEANS, weights, rules: R.map(({ id, group, label, unit, ok, of }) => ({ id, group, label, unit, ok, of })),
-    parts, areas, philosophy: { principles: cov.principles, findings: cov.work.length, untied: cov.untied }, ownerQuestions: { open: oq.open, of: oq.of }, onePlace: Ph.onePlace(),
+    parts, areas, rulebook: { rules: cov.rules, checked: cov.checked, checks: cov.checks, tied: cov.tied, once: cov.once, untied: cov.untied }, ownerQuestions: { open: oq.open, of: oq.of }, onePlace: Ph.onePlace(),
     aiCost: { avgRead: C.avgRead, commentRatio: C.commentRatio, tombstones: C.tombstones.length, claudeLines: C.claudeLines, searchBytes: C.searchBytes, effort: (({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes, spread }) => ({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes: bigNotes.length, spread }))(C.effort), top: C.top.slice(0, 5) },
     next, variety: VARIETY_LAST, qengine: (() => { const Q = jread('data/qengine-health.json'); return Q ? { moved: Q.moved, of: Q.of, proofs: Object.fromEntries(Object.keys(Q.proofs).map(k => [k, Q.proofs[k].pass + '/' + Q.proofs[k].cases])) } : null; })(), skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024), logicStale: L.stale, structure: S.totals, counts,
     top: off.slice(0, 5), all: off, worklist, work: allWork.sort((a, b) => b.cost - a.cost),
@@ -930,7 +933,7 @@ else if (require.main === module) {
   console.log(`wrote data/health.json: ${h.score}% — ${MEANS} (${h.rules.length} rules${L.stale ? '; Find logic STALE' : ''}) in ${Date.now() - t0} ms`);
   console.log('  by group: ' + Object.keys(GROUPS).map(g => `${GROUPS[g]} ${h.parts[g]}% (${h.areas[g].rules} rules)`).join(', '));
   if (process.argv.includes('-v')) h.rules.forEach(r => console.log(`  ${r.group.padEnd(8)} ${String(r.ok).padStart(6)}/${String(r.of).padEnd(6)} ${(r.unit || '').padEnd(36)} ${r.id}: ${r.label}`));
-  console.log(`  philosophy: ${h.philosophy.principles} principles, ${h.philosophy.findings} coverage findings; checks tied to no principle (report-only): ${h.philosophy.untied.join(' ') || 'none'}`);
+  const rb = h.rulebook; console.log(`  rulebook: ${rb.checked}/${rb.rules} rules with a check, ${rb.tied}/${rb.checks} checks tied to a rule, ${rb.once}/${rb.rules} stated once; untied: ${rb.untied.join(' ') || 'none'}`);
   console.log(`  owner questions: ${h.ownerQuestions.open} open of ${h.ownerQuestions.of}`);
   console.log('  one place: ' + h.onePlace.map(f => f.name + ' ' + f.status).join(' · '));
   console.log('  findings: ' + Object.keys(h.counts).map(k => k + ' ' + h.counts[k]).join(', '));

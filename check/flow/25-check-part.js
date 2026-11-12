@@ -1170,7 +1170,7 @@ check('a question whose words are in the Ledger: drawn waiting, asked for with i
 });
 
 check('signed out, a question whose words are in the Ledger is not on Find at all, and nothing is asked for', async () => {
-  /* SIGNED OUT, FIND OFFERS ONLY SETTINGS (owner, 7 Nov, decisions.md; `findSignedOut_`): no question card, waiting or whole */
+  /* SIGNED OUT, FIND OFFERS ONLY SETTINGS (owner, 7 Nov, docs/rules.md 5.1; `findSignedOut_`): no question card, waiting or whole */
   const full = LIB_FULL.rows('questions').filter(r => r.paper_id === LIB_PID);
   const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? libSlimRows_(full) : undefined) });
   const W = one.w, bad = [];
