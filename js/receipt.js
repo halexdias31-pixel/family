@@ -212,9 +212,17 @@ function rcOffer_(blob, name, rc) {
     <p class="note">${can ? 'Press Share to send it.' : 'Press and hold the picture to save it.'}</p>
     <div class="btn-row">
       ${can ? tile_({ form: true, label: 'Share', act: 'rc-shot-share', cls: 'primary' }) : ''}
-      <a class="btn quiet" href="${RC_SHOT.url}" download="${esc(name)}">Save</a>
+      ${tile_({ form: true, label: 'Save', act: 'rc-shot-save', kind: 'quiet', data: { name } })}
     </div></div>`);
 }
+
+/* SAVE IS A FORM BUTTON LIKE SHARE (one way only): the download link is made and clicked here, never written as markup. */
+on('rc-shot-save', el => {
+  if (!RC_SHOT) return;
+  const a = document.createElement('a');
+  a.href = RC_SHOT.url; a.download = (el && el.dataset && el.dataset.name) || 'booking.png';
+  document.body.appendChild(a); a.click(); a.remove();
+});
 
 on('rc-shot-share', () => {
   if (!RC_SHOT || !navigator.share) return;

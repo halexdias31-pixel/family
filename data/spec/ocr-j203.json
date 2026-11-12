@@ -1,0 +1,28 @@
+{
+ "id": "ocr-j203",
+ "board": "OCR",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Psychology",
+ "code": "J203",
+ "url": "https://www.ocr.org.uk/Images/309306-specification-accredited-gcse-psychology-j203.pdf",
+ "sections": [
+  {
+   "id": "C1",
+   "title": "GCSE (9–1) in Psychology (J203)"
+  },
+  {
+   "id": "C2",
+   "title": "Studies and applications in psychology 1"
+  },
+  {
+   "id": "C3",
+   "title": "Studies and applications in psychology 2"
+  },
+  {
+   "id": "C4",
+   "title": "Research Methods (Components 01 and 02)"
+  }
+ ],
+ "points": []
+}

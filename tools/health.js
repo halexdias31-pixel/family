@@ -537,6 +537,8 @@ function extraWork(st) {
   /* TWO ANSWERS THAT DIFFER ONLY IN A DIGIT are two things (1813 and 1843, Part 1 and Part 2), not one misspelt. */
   const digitsOnly = m => { const p = /: (.*) ~ (.*)$/.exec(m.say); const z = t => t.replace(/\d+|\b[IVXLC]+\b/g, '#'); return p && z(p[1]) === z(p[2]); };
   ((L && L.menuSense) || []).filter(m => !['thin', 'zero-count', 'answer-words', 'mangled-text', 'merged-value'].includes(m.kind) && !(m.kind === 'spelling' && digitsOnly(m))).forEach(m => W.push({ kind: 'menu-sense', part: 'logic', where: m.where, say: m.kind + ': ' + m.say }));
+  /* TWIN PATHS (12 Nov): two answer paths to the same cards, from the funnel walk. */
+  ((L && L.twinPaths) || []).forEach(t => W.push({ kind: 'twin-path', part: 'logic', where: t.where, say: t.say }));
   /* DEAD CODE: tools/dead.js, the list check-dead fails on and stability weighs: one item per function nothing calls. */
   require('./dead.js').deadFunctions().forEach(d => W.push({ kind: 'dead', part: 'code', where: (d.side === 'backend' ? 'backend/' : 'js/') + d.file, say: d.name + ' is never called' }));
   /* SIZE BUDGETS (920): each first-download file and their total, against data/settings/size-budgets.json (current + 5% when set). */
@@ -554,7 +556,7 @@ function extraWork(st) {
   return { work: W, skipped, sizes };
 }
 /* THE RENDERED TEMPLATE'S RULES (tools/template-health.js). */
-const TPL_KINDS = ['tpl-built', 'tpl-order', 'tpl-picture', 'tpl-tags', 'tpl-tag-look', 'tpl-title', 'tpl-tiles', 'tpl-tile-size', 'tpl-stray', 'tpl-width', 'tpl-centre', 'tpl-font', 'tpl-colour', 'tpl-radius', 'tpl-inline', 'tpl-spacing', 'tpl-same', 'tpl-variety-kind', 'tpl-variety'];
+const TPL_KINDS = ['tpl-built', 'tpl-order', 'tpl-picture', 'tpl-tags', 'tpl-tag-look', 'tpl-title', 'tpl-tiles', 'tpl-tile-size', 'tpl-pic-size', 'tpl-stray', 'tpl-width', 'tpl-centre', 'tpl-font', 'tpl-colour', 'tpl-radius', 'tpl-inline', 'tpl-spacing', 'tpl-same', 'tpl-variety-kind', 'tpl-variety'];
 /* THE CHECK IDS health.js prices, for the rulebook's coverage. */
 const knownChecks = st => [FIND_KINDS, UX_KINDS, UNIFORM_KINDS, STRUCT, EXTRA_KINDS, VARIETY_KINDS, TPL_KINDS].flat()
   .concat((st.signals || []).map(x => x.id), ['important', 'pxlit', 'colourlit', 'order', 'selectors', 'zindex', 'position'],

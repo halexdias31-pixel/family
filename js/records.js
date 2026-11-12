@@ -66,7 +66,7 @@ const bizState_ = (item, iso) => {
 };
 const bizRow_ = id => (BIZ.list || []).find(r => r.id === id) || {};
 
-const bizCap_ = (item, st) => `${esc(item.title)} <span class="qtags biz-when"><span class="qtag">${esc(item.due.toLowerCase())}</span></span>${
+const bizCap_ = (item, st) => `${esc(item.title)} <span class="qtags biz-when">${qtag_(`${esc(item.due.toLowerCase())}`)}</span>${
   st ? ` <b class="biz-flag">${st === 'overdue' ? 'Overdue' : 'Due soon'}</b>` : ''}`;
 /* THE CARD'S OWN LINE SAYS ONLY A REFUSAL NOW. § */
 const bizSaid_ = () => BIZ.error || '';
@@ -135,7 +135,7 @@ function postsWaitCard_() {
   const wait = typeof awaiting_ === 'function' && awaiting_();
   const n = wait ? 0 : list.length;
   const item = p => `<div class="biz-item post-wait-item" data-id="${esc(p.id)}">
-      <p class="biz-cap"><b>${esc(p.author || p.handle || '')}</b> <span class="qtags biz-when"><span class="qtag">${esc(p.when || '')}</span></span></p>
+      <p class="biz-cap"><b>${esc(p.author || p.handle || '')}</b> <span class="qtags biz-when">${qtag_(`${esc(p.when || '')}`)}</span></p>
       ${p.caption ? `<p class="app-line">${esc(p.caption)}</p>` : ''}
       <div class="tile-row">${tile_({ icon: 'open', label: 'Open', note: 'on the feed', act: 'post-open', data: { id: p.id } })}${
         tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it', act: 'post-approve', data: { id: p.id, on: '1' } })}${
@@ -171,7 +171,7 @@ function appsInner_(wait) {
   const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const line = (k, v) => v ? `<p class="app-line"><b>${esc(k)}</b> ${esc(v)}</p>` : '';
   const item = a => `<div class="biz-item app-item" data-id="${esc(a.id)}">
-      <p class="biz-cap"><b>${esc(a.name || a.handle)}</b> <span class="qtags biz-when"><span class="qtag">${esc(APP_STATUS_SAID[a.status] || a.status)} · ${esc(when(a.at))}</span></span></p>
+      <p class="biz-cap"><b>${esc(a.name || a.handle)}</b> <span class="qtags biz-when">${qtag_(`${esc(APP_STATUS_SAID[a.status] || a.status)} · ${esc(when(a.at))}`)}</span></p>
       ${line('Full name', a.full_name)}${line('Contact', [a.phone, a.email].filter(Boolean).join(' · '))}
       ${line('Address', [a.address, a.postcode].filter(Boolean).join(', '))}${line('Born', a.dob)}
       ${line('Teaches', a.subjects)}${line('Rate', a.rate ? perHour_(a.rate) : '')}${line('Qualifications', a.qualifications)}
@@ -231,7 +231,7 @@ function errsInner_(wait) {
   const list = ERRS.list || [];
   const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const item = r => `<div class="biz-item err-item" data-id="${esc(r.id)}">
-      <p class="biz-cap"><b>${esc(r.message)}</b> <span class="qtags biz-when"><span class="qtag">${esc(r.count + '× · last ' + when(r.last))}</span></span></p>
+      <p class="biz-cap"><b>${esc(r.message)}</b> <span class="qtags biz-when">${qtag_(`${esc(r.count + '× · last ' + when(r.last))}`)}</span></p>
     </div>`;
   return `<h3>Error log</h3>
     <div class="biz-body err-body"${wait ? ' aria-busy="true"' : ''}>
@@ -278,7 +278,7 @@ function reportsInner_(wait) {
   const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const st = (r, decision, icon, label, note) => tile_({ icon, label, note, act: 'rep-status', data: { id: r.id, decision } });
   const item = r => `<div class="biz-item rep-item" data-id="${esc(r.id)}">
-      <p class="biz-cap"><b>${esc(r.label || r.itemId)}</b> <span class="qtags biz-when"><span class="qtag">${esc(r.kind)}</span></span></p>
+      <p class="biz-cap"><b>${esc(r.label || r.itemId)}</b> <span class="qtags biz-when">${qtag_(`${esc(r.kind)}`)}</span></p>
       ${r.note ? `<p class="rep-note-said">“${esc(r.note)}”</p>` : ''}
       <div class="tile-row">${REP_FINDS_.indexOf(r.kind) !== -1 ? tile_({ icon: 'open', label: 'Open', note: 'the card', act: 'rep-open', data: { k: r.itemId } }) : ''}${
         st(r, 'confirm', 'tick', 'Confirm', 'to Notes for Claude') + st(r, 'dismiss', 'close', 'Dismiss')}</div>
@@ -286,7 +286,7 @@ function reportsInner_(wait) {
   const more = REPS.open > Math.min(list.length, REPS_DRAWN) ? REPS.open - Math.min(list.length, REPS_DRAWN) : 0;
   const msgs = REPS.msgs || [];
   const mItem = r => `<div class="biz-item rep-item rep-msg" data-id="${esc(r.id)}">
-      <p class="biz-cap"><b>Message from ${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}</b> <span class="qtags biz-when"><span class="qtag">${esc(when(r.at))}</span></span></p>
+      <p class="biz-cap"><b>Message from ${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}</b> <span class="qtags biz-when">${qtag_(`${esc(when(r.at))}`)}</span></p>
       <p class="rep-note-said">${esc(r.reason || 'No reason given')}</p>
       <div class="tile-row">${tile_({ icon: 'tick', label: 'Dealt with', act: 'rep-status', data: { id: r.id, decision: 'dismiss', kind: 'message' } })}</div>
     </div>`;
@@ -777,7 +777,7 @@ const TPL_WEAR_ = { fs: 'font-size', sp: 'width', bt: 'width: VAR; height', pc: 
 const tplTok_ = k => { try { return getComputedStyle(document.documentElement).getPropertyValue(k).trim(); } catch (e) { return ''; } };
 function tplSample_() {
   const h = card_(`<div class="tpl-sample"><img src="icon.png" alt="A sample picture"><h3>A sample card</h3>
-    <div class="qtags"><span class="qtag">A sample card</span><span class="qtag">A tag</span></div>
+    <div class="qtags">${qtag_(`A sample card`)}${qtag_(`A tag`)}</div>
     <p>What the thing holds, in plain words, centred.</p></div>`, 'panel', 'A sample card');
   return TPL_PARTS_.reduce((x, [p, say]) => x.replace(`<div class="kc-${p}">`, `<div class="kc-${p}" data-tpl="${esc(say)}">`), h);
 }

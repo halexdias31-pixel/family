@@ -1,0 +1,24 @@
+{
+ "id": "ocr-j352",
+ "board": "OCR",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "English Literature",
+ "code": "J352",
+ "url": "https://www.ocr.org.uk/Images/168995-specification-accredited-gcse-english-literature-j352.pdf",
+ "sections": [
+  {
+   "id": "C1",
+   "title": "GCSE (9–1) in English Literature (J352)"
+  },
+  {
+   "id": "C2",
+   "title": "Exploring modern and literary heritage texts (01)"
+  },
+  {
+   "id": "C3",
+   "title": "Exploring poetry and Shakespeare (02)"
+  }
+ ],
+ "points": []
+}

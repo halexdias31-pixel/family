@@ -1,0 +1,57 @@
+# THE GATE ON GITHUB (owner, 12 Nov): tools/gate.js --ci, split across runners; the `gate` job is the required status.
+# A merge to main happens only when it is green (docs/rules.md 12.2). The ratchet and the screenshot gate need the
+# full Optimiser and a base checkout, so they run locally in `node tools/gate.js` before the merge, not here.
+name: Gate
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LIB_PRIVATE: absent
+  FORCE_COLOR: '0'
+
+jobs:
+  part:
+    name: gate ${{ matrix.only }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        only: ['names,stamp,bundle,rules,template', 'fast-core', 'fast-secondary',
+               'flow-1', 'flow-2', 'flow-3', 'flow-4', 'flow-5', 'flow-6', 'flow-7', 'flow-8']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        if: startsWith(matrix.only, 'fast')
+        run: npx playwright install --with-deps chromium
+      - name: Gate part
+        env:
+          CHECK_LIMIT_S: '1800'
+        run: node tools/gate.js --ci --jobs=1 --only=${{ matrix.only }}
+
+  gate:
+    name: gate
+    if: always()
+    needs: part
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every part green
+        run: |
+          if [ "${{ needs.part.result }}" != "success" ]; then echo "GATE RED — a part failed: do not merge."; exit 1; fi
+          echo "GATE GREEN — safe to merge."

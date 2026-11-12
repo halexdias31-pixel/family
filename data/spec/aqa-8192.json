@@ -1,0 +1,137 @@
+{
+ "id": "aqa-8192",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Sociology",
+ "code": "8192",
+ "url": "https://filestore.aqa.org.uk/resources/sociology/specifications/AQA-8192-SP-2017.PDF",
+ "sections": [
+  {
+   "id": "3.3",
+   "title": "Families"
+  },
+  {
+   "id": "3.4",
+   "title": "Education"
+  },
+  {
+   "id": "3.5",
+   "title": "Crime and deviance"
+  },
+  {
+   "id": "3.6",
+   "title": "Social stratification"
+  },
+  {
+   "id": "3.1",
+   "title": "The sociological approach"
+  },
+  {
+   "id": "3.2",
+   "title": "Social structures, social processes and social issues"
+  },
+  {
+   "id": "3.7",
+   "title": "Sociological research methods"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.3.1",
+   "text": "Functions of families",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.2",
+   "text": "Family forms",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.3",
+   "text": "Conjugal role relationships",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.4",
+   "text": "Changing relationships within families",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.6",
+   "text": "Divorce",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.4.1",
+   "text": "Roles and functions of education",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.2",
+   "text": "The relationship between education and capitalism",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.4",
+   "text": "Processes within schools",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.5.1",
+   "text": "The social construction of crime and deviance",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.2",
+   "text": "Social control",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.4",
+   "text": "Data on crime",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.6.1",
+   "text": "Functionalist theory of stratification",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.2",
+   "text": "Socio-economic class",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.3",
+   "text": "Life chances",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.5",
+   "text": "Power and authority",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.6",
+   "text": "Power relationships",
+   "parent": "3.6",
+   "links": []
+  }
+ ]
+}

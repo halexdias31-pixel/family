@@ -4,7 +4,7 @@
  "subjects": {
   "Biology": {
    "spec": "AQA GCSE Biology (8461)",
-   "file": "data/specs/aqa-8461.json",
+   "file": "data/spec/aqa-8461.json",
    "points": 97,
    "lesson": 97,
    "practice": 96,
@@ -14,7 +14,7 @@
   },
   "Chemistry": {
    "spec": "AQA GCSE Chemistry (8462)",
-   "file": "data/specs/aqa-8462.json",
+   "file": "data/spec/aqa-8462.json",
    "points": 124,
    "lesson": 124,
    "practice": 123,
@@ -24,7 +24,7 @@
   },
   "Physics": {
    "spec": "AQA GCSE Physics (8463)",
-   "file": "data/specs/aqa-8463.json",
+   "file": "data/spec/aqa-8463.json",
    "points": 91,
    "lesson": 91,
    "practice": 91,
@@ -33,14 +33,14 @@
    "lessonPct": 100
   },
   "Maths": {
-   "spec": "Pearson Edexcel GCSE Mathematics (1MA1)",
-   "file": "data/specs/edexcel-1ma1.json",
+   "spec": "Edexcel GCSE Maths (1MA1)",
+   "file": "data/spec/edexcel-1ma1.json",
    "points": 97,
-   "lesson": 93,
+   "lesson": 96,
    "practice": 97,
    "figureNeed": 20,
    "figureHave": 17,
-   "lessonPct": 96
+   "lessonPct": 99
   }
  },
  "work": [
@@ -56,7 +56,7 @@
   },
   {
    "kind": "spec-figure",
-   "where": "Biology 4.5.3.3 Maintaining water and nitrogen balance in the body",
+   "where": "Biology 4.5.3.3 Maintaining water and nitrogen balance in the body (biology only)",
    "say": "lesson TB-AQA-8461#49 has no figure (the spec says structure)"
   },
   {
@@ -66,7 +66,7 @@
   },
   {
    "kind": "spec-figure",
-   "where": "Biology 4.6.3.3 The understanding of genetics",
+   "where": "Biology 4.6.3.3 The understanding of genetics (biology only)",
    "say": "lesson TB-AQA-8461#71 has no figure (the spec says structure)"
   },
   {
@@ -106,7 +106,7 @@
   },
   {
    "kind": "spec-practice",
-   "where": "Chemistry 4.3.2.3 Using moles to balance equations",
+   "where": "Chemistry 4.3.2.3 Using moles to balance equations (HT only)",
    "say": "no practice question"
   },
   {
@@ -136,38 +136,23 @@
   },
   {
    "kind": "spec-lesson",
-   "where": "Maths N6 Use positive integer powers and associated real roots (square, cube and higher), recognise powers of 2, 3,…",
-   "say": "no lesson"
-  },
-  {
-   "kind": "spec-lesson",
-   "where": "Maths A2 Substitute numerical values into formulae and expressions, including scientific formulae",
+   "where": "Maths N6 use positive integer powers and associated real roots (square, cube and higher), recognise powers of 2, 3, 4, 5; estimate powers and roots…",
    "say": "no lesson"
   },
   {
    "kind": "spec-figure",
-   "where": "Maths A14 Plot and interpret graphs (including reciprocal graphs and exponential graphs) and graphs of non-standard…",
+   "where": "Maths A14 plot and interpret graphs (including reciprocal graphs and exponential graphs) and graphs of non-standard functions in real contexts to…",
    "say": "lesson TB-GCSE-MATHS#12 has no figure (the spec says graph, plot)"
   },
   {
    "kind": "spec-figure",
-   "where": "Maths A15 Calculate or estimate gradients of graphs and areas under graphs (including quadratic and other non-linear…",
+   "where": "Maths R14 interpret the gradient of a straight line graph as a rate of change; recognise and interpret graphs that illustrate direct and inverse…",
    "say": "lesson TB-GCSE-MATHS#12 has no figure (the spec says graph)"
-  },
-  {
-   "kind": "spec-lesson",
-   "where": "Maths R3 Express one quantity as a fraction of another, where the fraction is less than 1 or greater than 1",
-   "say": "no lesson"
   },
   {
    "kind": "spec-figure",
-   "where": "Maths R14 Interpret the gradient of a straight line graph as a rate of change",
+   "where": "Maths A15 calculate or estimate gradients of graphs and areas under graphs (including quadratic and other non-linear graphs), and interpret results…",
    "say": "lesson TB-GCSE-MATHS#12 has no figure (the spec says graph)"
-  },
-  {
-   "kind": "spec-lesson",
-   "where": "Maths G4 Derive and apply the properties and definitions of: special types of quadrilaterals, including square,…",
-   "say": "no lesson"
   }
  ],
  "rules": [
@@ -175,7 +160,7 @@
    "id": "spec-lesson",
    "group": "content",
    "label": "Spec points with a lesson",
-   "ok": 405,
+   "ok": 408,
    "of": 409,
    "kinds": [
     "spec-lesson"

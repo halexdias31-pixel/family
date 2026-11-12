@@ -1,0 +1,581 @@
+{
+ "id": "aqa-7037",
+ "board": "AQA",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Geography",
+ "code": "7037",
+ "url": "https://filestore.aqa.org.uk/resources/geography/specifications/AQA-7037-SP-2016.PDF",
+ "sections": [
+  {
+   "id": "3.1",
+   "title": "Physical geography"
+  },
+  {
+   "id": "3.2",
+   "title": "Human geography"
+  },
+  {
+   "id": "3.3",
+   "title": "Geography fieldwork investigation"
+  },
+  {
+   "id": "3.4",
+   "title": "Geographical skills checklist"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.1.1",
+   "text": "Water and carbon cycles",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.1",
+   "text": "Water and carbon cycles as natural systems",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.2",
+   "text": "The water cycle",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.3",
+   "text": "The carbon cycle",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.4",
+   "text": "Water, carbon, climate and life on Earth",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.5",
+   "text": "Quantitative and qualitative skills",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.6",
+   "text": "Case studies",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2",
+   "text": "Hot desert systems and landscapes",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2.1",
+   "text": "Deserts as natural systems",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.2.2",
+   "text": "Systems and processes",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.2.3",
+   "text": "Arid landscape development in contrasting settings",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.2.4",
+   "text": "Desertification",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.2.5",
+   "text": "Quantitative and qualitative skills",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.2.6",
+   "text": "Case studies",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.3",
+   "text": "Coastal systems and landscapes",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.3.1",
+   "text": "Coasts as natural systems",
+   "parent": "3.1.3",
+   "links": []
+  },
+  {
+   "id": "3.1.3.2",
+   "text": "Systems and processes",
+   "parent": "3.1.3",
+   "links": []
+  },
+  {
+   "id": "3.1.3.3",
+   "text": "Coastal landscape development",
+   "parent": "3.1.3",
+   "links": []
+  },
+  {
+   "id": "3.1.3.4",
+   "text": "Coastal management",
+   "parent": "3.1.3",
+   "links": []
+  },
+  {
+   "id": "3.1.3.5",
+   "text": "Quantitative and qualitative skills",
+   "parent": "3.1.3",
+   "links": []
+  },
+  {
+   "id": "3.1.3.6",
+   "text": "Case studies",
+   "parent": "3.1.3",
+   "links": []
+  },
+  {
+   "id": "3.1.4",
+   "text": "Glacial systems and landscapes",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.4.1",
+   "text": "Glaciers as natural systems",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.1.4.2",
+   "text": "The nature and distribution of cold environments",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.1.4.3",
+   "text": "Systems and processes",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.1.4.4",
+   "text": "Glaciated landscape development",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.1.4.5",
+   "text": "Human impacts on cold environments",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.1.4.6",
+   "text": "Quantitative and qualitative skills",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.1.4.7",
+   "text": "Case studies",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.1.5",
+   "text": "Hazards",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.5.1",
+   "text": "The concept of hazard in a geographical context",
+   "parent": "3.1.5",
+   "links": []
+  },
+  {
+   "id": "3.1.5.2",
+   "text": "Plate tectonics",
+   "parent": "3.1.5",
+   "links": []
+  },
+  {
+   "id": "3.1.5.3",
+   "text": "Volcanic hazards",
+   "parent": "3.1.5",
+   "links": []
+  },
+  {
+   "id": "3.1.5.4",
+   "text": "Seismic hazards",
+   "parent": "3.1.5",
+   "links": []
+  },
+  {
+   "id": "3.1.5.5",
+   "text": "Storm hazards",
+   "parent": "3.1.5",
+   "links": []
+  },
+  {
+   "id": "3.1.5.7",
+   "text": "Case studies",
+   "parent": "3.1.5",
+   "links": []
+  },
+  {
+   "id": "3.1.6",
+   "text": "Ecosystems under stress",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.6.1",
+   "text": "Ecosystems and sustainability",
+   "parent": "3.1.6",
+   "links": []
+  },
+  {
+   "id": "3.1.6.2",
+   "text": "Ecosystems and processes",
+   "parent": "3.1.6",
+   "links": []
+  },
+  {
+   "id": "3.1.6.3",
+   "text": "Biomes",
+   "parent": "3.1.6",
+   "links": []
+  },
+  {
+   "id": "3.1.6.4",
+   "text": "Ecosystems in the British Isles over time",
+   "parent": "3.1.6",
+   "links": []
+  },
+  {
+   "id": "3.1.6.5",
+   "text": "Marine ecosystems",
+   "parent": "3.1.6",
+   "links": []
+  },
+  {
+   "id": "3.1.6.6",
+   "text": "Local ecosystems",
+   "parent": "3.1.6",
+   "links": []
+  },
+  {
+   "id": "3.1.6.7",
+   "text": "Case studies",
+   "parent": "3.1.6",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Global systems and global governance",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.1.1",
+   "text": "Globalisation",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.2",
+   "text": "Global systems",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.3",
+   "text": "International trade and access to markets",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.4",
+   "text": "Global governance",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.5",
+   "text": "The 'global commons'",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.6",
+   "text": "Globalisation critique",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.7",
+   "text": "Quantitative and qualitative skills",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.2.1",
+   "text": "The nature and importance of places",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.2",
+   "text": "Changing places – relationships, connections, meaning and representation",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.3",
+   "text": "Quantitative and qualitative skills",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.4",
+   "text": "Place studies",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.3",
+   "text": "Contemporary urban environments",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.3.1",
+   "text": "Urbanisation",
+   "parent": "3.2.3",
+   "links": []
+  },
+  {
+   "id": "3.2.3.2",
+   "text": "Urban forms",
+   "parent": "3.2.3",
+   "links": []
+  },
+  {
+   "id": "3.2.3.3",
+   "text": "Social and economic issues associated with urbanisation",
+   "parent": "3.2.3",
+   "links": []
+  },
+  {
+   "id": "3.2.3.4",
+   "text": "Urban climate",
+   "parent": "3.2.3",
+   "links": []
+  },
+  {
+   "id": "3.2.3.5",
+   "text": "Urban drainage",
+   "parent": "3.2.3",
+   "links": []
+  },
+  {
+   "id": "3.2.3.6",
+   "text": "Urban waste and its disposal",
+   "parent": "3.2.3",
+   "links": []
+  },
+  {
+   "id": "3.2.3.7",
+   "text": "Other contemporary urban environmental issues",
+   "parent": "3.2.3",
+   "links": []
+  },
+  {
+   "id": "3.2.3.8",
+   "text": "Sustainable urban development",
+   "parent": "3.2.3",
+   "links": []
+  },
+  {
+   "id": "3.2.3.9",
+   "text": "Case studies",
+   "parent": "3.2.3",
+   "links": []
+  },
+  {
+   "id": "3.2.4.1",
+   "text": "Introduction",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.4.2",
+   "text": "Environment and population",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.4.3",
+   "text": "Environment, health and well-being",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.4.4",
+   "text": "Population change",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.4.5",
+   "text": "Principles of population ecology and their application to human populations",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.4.6",
+   "text": "Global population futures",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.4.7",
+   "text": "Case studies",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.5",
+   "text": "Resource security",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.5.2",
+   "text": "Natural resource issues",
+   "parent": "3.2.5",
+   "links": []
+  },
+  {
+   "id": "3.2.5.3",
+   "text": "Water security",
+   "parent": "3.2.5",
+   "links": []
+  },
+  {
+   "id": "3.2.5.4",
+   "text": "Energy security",
+   "parent": "3.2.5",
+   "links": []
+  },
+  {
+   "id": "3.2.5.5",
+   "text": "Mineral security",
+   "parent": "3.2.5",
+   "links": []
+  },
+  {
+   "id": "3.2.5.6",
+   "text": "Resource futures",
+   "parent": "3.2.5",
+   "links": []
+  },
+  {
+   "id": "3.2.5.7",
+   "text": "Case studies",
+   "parent": "3.2.5",
+   "links": []
+  },
+  {
+   "id": "3.3.1",
+   "text": "Fieldwork requirements",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.2",
+   "text": "Investigation requirements",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.2.1",
+   "text": "Independence",
+   "parent": "3.3.2",
+   "links": []
+  },
+  {
+   "id": "3.3.2.2",
+   "text": "Teacher guidance for students",
+   "parent": "3.3.2",
+   "links": []
+  },
+  {
+   "id": "3.3.3",
+   "text": "Non-exam assessment mark scheme guidance",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.4.1",
+   "text": "Qualitative skills and quantitative skills",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.2",
+   "text": "Specific skills",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.2.1",
+   "text": "Core skills",
+   "parent": "3.4.2",
+   "links": []
+  },
+  {
+   "id": "3.4.2.2",
+   "text": "Cartographic skills",
+   "parent": "3.4.2",
+   "links": []
+  },
+  {
+   "id": "3.4.2.3",
+   "text": "Graphical skills",
+   "parent": "3.4.2",
+   "links": []
+  },
+  {
+   "id": "3.4.2.4",
+   "text": "Statistical skills",
+   "parent": "3.4.2",
+   "links": []
+  },
+  {
+   "id": "3.4.2.5",
+   "text": "ICT skills",
+   "parent": "3.4.2",
+   "links": []
+  }
+ ]
+}

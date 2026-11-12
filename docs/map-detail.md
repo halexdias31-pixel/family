@@ -107,8 +107,9 @@ almost never writes to it directly.
   constants.gs), copied once by `library-to-ledger` and fetched a card at a time by `libItems` (signed in,
   `library_items_per_day`). A card whose words have not come is one waiting page (`libWaitHtml_`). The teaching
   animation rows stay public whole. Tools: `tools/lib-private.js`; checks: `check/lib-full.js`.
-- **What must exist is the specification** (1213): `data/specs/*.json` lists every numbered spec point; `node tools/coverage.js -v`
-  maps lessons (`spec_ref`), questions and figures onto them and writes `data/coverage-health.json` for health.js's *Library content*.
+- **What must exist is the specification** (1213, 1214): `data/spec/<board>-<code>.json` is every spec (the `measured` ones count);
+  `node tools/coverage.js -v` maps lessons (`spec_ref`), questions and figures onto the points, writes each point's `links`
+  back, `data/specs.json` (Find's Library › subject › Specification card) and `data/coverage-health.json` for *Library content*.
 - **There are no textbooks on screen: each chapter row of `data/textbooks.json` is a CONTENT CARD**
   (kind `content`, `What kind · Content`; docs/history/347, part 2). *"Forget the whole concept of it
   being a text book. It's just a "content card""* — the owner, 12 Oct. A card wears the question
@@ -194,6 +195,7 @@ node js/check-practicals.js      # the 41 practicals, and whether their topics j
 node js/check-anims.js           # the content cards' animations: rows, anchoring, and the splash's copy
 node js/check-diagram-png.js     # every library drawing has its PNG twin for the Sunday email, none orphaned
 node js/check-textbooks.js       # data/textbooks.json: the bones, and every content topic spelled as the library spells it
+node js/check-tags.js            # every fact its own tag: no answer, chip or card tag spells another facet's value, after every answer and Doesn't matter
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow? Random funnels: counts, order, Doesn't matter, nothing asked twice (522); FUNNEL_ONLY=walk for those alone
 node js/check-finder.js          # a finder's chips and words set only through finderSet_ (R1, 522): acorn, aliases followed
 node tools/finder-tags.js --check # js/finder-tags.js (the finder's first questions, counted at build time) is current; without --check it rewrites it (546)

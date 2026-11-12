@@ -1,0 +1,253 @@
+{
+ "id": "aqa-7152",
+ "board": "AQA",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Politics",
+ "code": "7152",
+ "url": "https://filestore.aqa.org.uk/resources/politics/specifications/AQA-7152-SP-2017.PDF",
+ "sections": [
+  {
+   "id": "3.1",
+   "title": "Government and politics of the UK"
+  },
+  {
+   "id": "3.2",
+   "title": "Government and politics of the USA and comparative"
+  },
+  {
+   "id": "3.3",
+   "title": "Political ideas"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.1.1",
+   "text": "The government of the UK",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.1",
+   "text": "The nature and sources of the British Constitution",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.2",
+   "text": "The structure and role of Parliament",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.3",
+   "text": "The Prime Minister and cabinet",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.4",
+   "text": "The judiciary",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.5",
+   "text": "Devolution",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2",
+   "text": "The politics of the UK",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2.1",
+   "text": "Democracy and participation",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.2.2",
+   "text": "Elections and referendums",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.2.3",
+   "text": "Political parties",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.2.4",
+   "text": "Pressure groups",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.2.5",
+   "text": "The European Union",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Government and politics of the USA",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.1.1",
+   "text": "The constitutional framework of US government",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.2",
+   "text": "The legislative branch of government: Congress",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.3",
+   "text": "The executive branch of government: President",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.4",
+   "text": "The judicial branch of government",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.5",
+   "text": "The electoral process and direct democracy",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.6",
+   "text": "Political parties",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.7",
+   "text": "Pressure groups",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.8",
+   "text": "Civil rights",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.2",
+   "text": "Comparative politics",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.1",
+   "text": "Constitutional arrangements",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.2",
+   "text": "The executives",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.3",
+   "text": "The judiciaries",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.4",
+   "text": "Electoral and party systems",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.5",
+   "text": "Pressure groups",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.6",
+   "text": "Civil Rights",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.3.1",
+   "text": "Core ideologies",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.1.1",
+   "text": "Liberalism",
+   "parent": "3.3.1",
+   "links": []
+  },
+  {
+   "id": "3.3.1.2",
+   "text": "Conservatism",
+   "parent": "3.3.1",
+   "links": []
+  },
+  {
+   "id": "3.3.1.3",
+   "text": "Socialism",
+   "parent": "3.3.1",
+   "links": []
+  },
+  {
+   "id": "3.3.2",
+   "text": "Other ideologies",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.2.1",
+   "text": "Nationalism",
+   "parent": "3.3.2",
+   "links": []
+  },
+  {
+   "id": "3.3.2.2",
+   "text": "Feminism",
+   "parent": "3.3.2",
+   "links": []
+  },
+  {
+   "id": "3.3.2.3",
+   "text": "Multiculturalism",
+   "parent": "3.3.2",
+   "links": []
+  },
+  {
+   "id": "3.3.2.4",
+   "text": "Anarchism",
+   "parent": "3.3.2",
+   "links": []
+  },
+  {
+   "id": "3.3.2.5",
+   "text": "Ecologism",
+   "parent": "3.3.2",
+   "links": []
+  }
+ ]
+}

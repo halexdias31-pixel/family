@@ -256,8 +256,8 @@ function tagRow_(x, page) {
     });
   });
   tagFold_(out);
-  return `<div class="qtags qcard-tags">${out.map(t => `<span class="qtag"${tagAttr_(t.field)} data-f="${esc(t.field)}"${
-    t.also.length ? ` data-also="${esc(t.also.join(' '))}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
+  return `<div class="qtags qcard-tags">${out.map(t => qtag_(esc(t.text), `${tagAttr_(t.field)} data-f="${esc(t.field)}"${
+    t.also.length ? ` data-also="${esc(t.also.join(' '))}"` : ''}`)).join('')}</div>`;
 }
 /* TAGS AT THE TOP OF EVERY CARD (1030, 1040 r10): a card with no tag line gets one, and one drawn under its title moves above it. */
 function tagsOnTop_(x, html) {
@@ -278,8 +278,8 @@ function creditsToTags_(root) {
     const card = el.closest('.card'), row = card && card.querySelector('.qcard-tags'), w = (el.textContent || '').trim();
     /* A ONE-SHAPE CARD'S LONG CREDIT IS A LINE (KC_TAG_MAX), and its hidden original (`.kc-src`) is never read for tags. */
     if (!row || !w || el.closest('.qcard-tags, .kc-src') || (card.classList.contains('kc') && w.length > (typeof KC_TAG_MAX === 'number' ? KC_TAG_MAX : 30))) return;
-    const t = document.createElement('span');
-    t.className = 'qtag q-credit'; t.textContent = w;
+    const box = document.createElement('div'); box.innerHTML = qtag_(esc(w), '', 'q-credit');
+    const t = box.firstChild;
     row.appendChild(t); el.remove();
   });
 }

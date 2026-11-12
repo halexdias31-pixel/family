@@ -364,6 +364,8 @@ const KINDS = {
   content: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
   /* AN INSERT IS WHAT THE EXAM HANDS YOU (455), and Content (463): the owner, "inserts count as content" -- no tag of its own. */
   insert: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* A SPECIFICATION IS ITS OWN KIND (owner, 12 Nov), under Library: Library › subject › Specification › board and level. */
+  spec: { group: 'Learning', label: 'Specification', card: (x, c) => findCard(x, c) },
   /* THE HISTORY DATABASE (459) and ONE PEOPLE KIND (batch D: boxers and figures alike, a pixel portrait under the tags); `histKind` says which. */
   manuscript: { group: 'Learning', label: 'Library', card: x => findCard(x) },
   people: { group: 'Learning', label: 'Library', card: x => findCard(x) },
@@ -435,7 +437,7 @@ const KINDS = {
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   receipt: x => jobPage_(x.row), question: thingCard_, answer: thingCard_, shop: thingCard_,
-  practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x),
+  practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x), spec: x => specCard_(x),
   timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
   hymn: x => hymnsCard_(x), mech: x => mechCard_(x), chem: x => chemCard_(x), soon: x => soonCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x), game: x => widgetCard_(x),
@@ -490,7 +492,7 @@ function soonItems_() {
 }
 function soonCard_(x) {
   /* "COMING SOON" IS A TAG, beside its name, never a line. */
-  return `<div class="soon-card"><h3>${esc(x.name)}</h3><div class="qtags"><span class="qtag" data-tag="0">${esc(x.name)}</span><span class="qtag">${esc(brand('comingSoon', 'Coming soon'))}</span></div>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}</div>`;
+  return `<div class="soon-card"><h3>${esc(x.name)}</h3><div class="qtags">${qtag_(`${esc(x.name)}`, ` data-tag="0"`)}${qtag_(`${esc(brand('comingSoon', 'Coming soon'))}`)}</div>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}</div>`;
 }
 
 /* The card a resource and a shop row share. Named rather than written twice, because the two
@@ -505,12 +507,12 @@ function thingCard_(x, credits) {
     /* ---------- AND A FOURTH ANSWER: NOBODY HAS PRICED IT § */
     const price = !isShop_(x) ? ''
       : x.level > 0
-        ? `<span class="qtags"><span class="qtag price ${myLevel >= x.level ? 'can' : ''}">${
-            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span></span>`
+        ? `<span class="qtags">${qtag_(`${
+            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}`, '', `price ${myLevel >= x.level ? 'can' : ''}`)}</span>`
       : x.cost === undefined
         ? ''   /* "Not priced yet" is its Price tag now (499) */
-      : `<span class="qtags"><span class="qtag price ${free ? 'free' : afford ? 'can' : ''}">${
-          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}</span></span>`;
+      : `<span class="qtags">${qtag_(`${
+          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}`, '', `price ${free ? 'free' : afford ? 'can' : ''}`)}</span>`;
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
        so it is marked as one and coloured as one, the same way a subject and a venue are. */
     /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. § */
@@ -534,7 +536,7 @@ function thingCard_(x, credits) {
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
             : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)])
             .filter(Boolean).map(v => esc(String(v))).join('  ')}</p>`}
-          <h3>${esc(x.name)}${x.off ? ' <span class="qtag">deleted</span>' : ''}</h3>
+          <h3>${esc(x.name)}${x.off ? ' ' + qtag_('deleted') : ''}</h3>
           ${/* Its own second line: § */
                 ''}
           ${/* THE YEAR, ON THE CARD. § */
@@ -1126,7 +1128,7 @@ function answerSay_(facet, v) {
   let m = per[facet.field];
   if (!m || m.facet !== facet) {
     m = { facet: facet, by: new Map() };
-    try { facetTally_(items, facet).values.forEach(w => m.by.set(spellKey_(w.value), w.show || w.text || w.value)); } catch (e) { /* said in full, below */ }
+    try { facetTally_(items, facet).values.forEach(w => [w.value].concat(w.also || []).forEach(u => m.by.set(spellKey_(u), w.show || w.text || w.value))); } catch (e) { /* said in full, below */ }
     per[facet.field] = m;
   }
   return m.by.get(spellKey_(v)) || say;
@@ -1179,9 +1181,9 @@ function answerCmp_(texts) {
   return cmpText;
 }
 
-/* TWO ANSWERS THAT WOULD BE DRAWN THE SAME SAY WHAT TELLS THEM APART (396): § */
+/* TWO ANSWERS DRAWN THE SAME ARE ONE ANSWER (owner, 12 Nov): what another facet tells apart is that facet's own question, never glued on as ` · 2017`. § */
 function tellApart_(items, facet, values) {
-  const by = {}, told = [];
+  const by = {};
   values.forEach(v => { const k = spellKey_(v.show || v.text || v.value); (by[k] = by[k] || []).push(v); });
   const groups = Object.keys(by).map(k => by[k]).filter(g => g.length > 1);
   if (!groups.length) return;
@@ -1195,32 +1197,16 @@ function tellApart_(items, facet, values) {
     return seen.size === 1 ? [...seen][0] : '';
   };
   const facets = facetList().filter(g => g.field !== facet.field);
-  /* A FACET THAT SPLITS WHAT STILL COLLIDES IS SAID, and each part goes on to the facets after it. */
-  const part = (sub, from, tails) => {
-    for (let i = from; i < facets.length && sub.length > 1; i++) {
-      const said = sub.map(k => one(facets[i], k.list));
-      if (!said.every(Boolean) || new Set(said.map(spellKey_)).size < 2) continue;
-      sub.forEach((k, j) => tails.get(k).push(facetSay_(facets[i], said[j])));
-      const by2 = {};
-      sub.forEach((k, j) => { (by2[spellKey_(said[j])] = by2[spellKey_(said[j])] || []).push(k); });
-      Object.keys(by2).forEach(w => part(by2[w], i + 1, tails));
-      return;
-    }
-  };
+  /* SPLIT BY ANOTHER FACET: one answer, its values `also` (a press chips them all), and that facet is asked on its own. */
   groups.forEach(same => {
-    const sub = same.map(v => ({ v: v, list: of.get(spellKey_(v.value)) || [] }));
-    const tails = new Map(sub.map(k => [k, []]));
-    part(sub, 0, tails);
-    sub.forEach(k => {
-      const t = tails.get(k);
-      if (!t.length) return;
-      const tail = t.map(w => ' \u00b7 ' + w).join('');
-      told.push({ v: k.v, full: (k.v.text || k.v.value) + tail });
-      k.v.show = nameForms_(k.v.text || k.v.value)[0] + tail;
-    });
+    const lists = same.map(v => of.get(spellKey_(v.value)) || []);
+    const splits = facets.some(g => { const said = lists.map(l => one(g, l)); return new Set(said.filter(Boolean).map(spellKey_)).size > 1; });
+    if (!splits) return;
+    const head = same[0];
+    head.also = (head.also || []).concat(...same.slice(1).map(v => [v.value].concat(v.also || [])));
+    head.n = same.reduce((a, v) => a + (v.n || 0), 0);
+    same.slice(1).forEach(v => values.splice(values.indexOf(v), 1));
   });
-  /* THE SHORT NAME WITH WHAT TELLS IT APART, unless that collides with another answer — then the whole name with it. */
-  if (told.length && new Set(values.map(v => spellKey_(v.show))).size !== values.length) told.forEach(t => { t.v.show = t.full; });
   /* STILL TWIN, NO FACET SPLITS THEM: § */
   const left = {};
   values.forEach(v => { const k = spellKey_(v.show || v.text || v.value); (left[k] = left[k] || []).push(v); });
@@ -1231,17 +1217,6 @@ function tellApart_(items, facet, values) {
     const rungs = g.map(names), deep = Math.max(...rungs.map(r => r.length));
     for (let i = 0; i < deep; i++) { const at = rungs.map(r => String(r[Math.min(i, r.length - 1)] || ''));
       if (at.every(Boolean) && new Set(at.map(spellKey_)).size === g.length) { g.forEach((v, j) => { v.show = at[j]; }); return; } } });
-  /* AND AN ANSWER NOTHING COLLIDED WITH IS SAID SHORT TOO, when no other answer's short name is the same. */
-  if (!told.length) return;
-  const isTold = new Set(told.map(t => t.v));
-  const shortOf = v => nameForms_(v.text || v.value)[0];
-  const taken = new Map();
-  values.forEach(v => { [spellKey_(v.show), spellKey_(shortOf(v))].forEach(k => taken.set(k, (taken.get(k) || 0) + 1)); });
-  values.forEach(v => {
-    if (isTold.has(v) || v.show !== (v.text || v.value)) return;
-    const k = spellKey_(shortOf(v));
-    if (k !== spellKey_(v.show) && (taken.get(k) || 0) === 1) v.show = shortOf(v);
-  });
 }
 
 /* `facetTally_` — ONE WALK OF THE LIST PER QUESTION, NOT THREE. § */
@@ -1354,7 +1329,7 @@ function facetSplit_(items, facet) {
 const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet', 'End of topic test': 'Worksheet' };
 /* KINDS UNDER KINDS (546, 610): § */
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
-const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library',
+const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library', spec: 'Library',
   /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
   /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): § */
   tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', bookform: 'Booking', shop: 'Shop',
@@ -1866,12 +1841,15 @@ function tbSections_(c, keep, opt) {
 }
 
 /* ---------- ONE CHAPTER, AS AN ITEM THE FUNNEL ASKS THE QUESTIONS' QUESTIONS OF § */
+/* ONE SUBJECT STAYS A WORD; A COMMA LIST IS AN ARRAY, ONE ANSWER EACH (1213). */
+function subjectsOf_(s) { const a = String(s || '').split(/\s*,\s*/).filter(Boolean); return a.length > 1 ? a : (a[0] || ''); }
 function contentItem_(b, c) {
   return {
     kind: 'content', name: c.title, key: 'ct:' + b.id + '-' + c.n,
     sub: [c.subject, c.level].filter(Boolean).join(' · '),
     image: '',
-    subject: c.subject, level: c.level, keystage: c.keystage, topics: c.topics, years: c.years || [],
+    /* A CHAPTER CAN SIT IN SEVERAL SUBJECTS ("Biology, Chemistry, Physics"): one answer each, never an umbrella "Science" (12 Nov). */
+    subject: subjectsOf_(c.subject), level: c.level, keystage: c.keystage, topics: c.topics, years: c.years || [],
     examBoard: c.board || '', tier: c.higher ? 'Higher' : '',
     text: contentText_(c) + ' ' + topicAtoms_(c.topics).join(' '),
     row: c,
@@ -1986,6 +1964,48 @@ function insertCard_(x) {
 /* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies. */
 function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
   .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'file-view', data: { url: o.url, title: o.label } }))); }
+/* ---------- A SPECIFICATION (owner, 12 Nov): one card per board's spec, data/spec/<id>.json via data/specs.json (tools/coverage.js). ---------- */
+function specItem_(r) {
+  return {
+    kind: 'spec', name: r.code, key: 'spec:' + r.id, sub: '', image: '',
+    subject: r.subject, level: r.level, examBoard: r.board,
+    text: plainText_([r.board, r.qualification, r.subject, r.code, 'specification spec syllabus']
+      .concat((r.sections || []).map(s => s.title), (r.points || []).map(p => p.id + ' ' + p.text)).join(' ')),
+    row: r,
+  };
+}
+/* A POINT'S LESSONS AND QUESTIONS (tools/coverage.js wrote their Find keys); each tile names its card, a key Find lacks is left out. */
+function specLinks_(p, named) {
+  const tiles = (p.links || []).filter(k => named[k]).map(k => tile_({ icon: /^q:/.test(k) ? 'edit' : 'book', label: /^q:/.test(k) ? 'Question' : 'Lesson',
+    note: named[k], act: 'find-open', data: { key: String(k) } })).join('');
+  const shown = (p.links || []).filter(k => /^q:/.test(k)).length, more = (p.asked || 0) - shown;
+  return (tiles ? `<div class="tile-row">${tiles}</div>` : '') + (more > 0 ? `<p class="spec-more">and ${more} more question${more === 1 ? '' : 's'} on this point</p>` : '');
+}
+function specPoints_(r, parent, named) {
+  const kids = (r.points || []).filter(p => p.parent === parent);
+  return kids.length ? `<ul>${kids.map(p => `<li class="spec-pt"><span class="insh-fn">${esc(p.id)}</span>
+    <span class="spec-say">${esc(p.text)}</span>${specLinks_(p, named)}${specPoints_(r, p.id, named)}</li>`).join('')}</ul>` : '';
+}
+/* WHAT EACH LINKED KEY IS CALLED in Find now, looked up once per card. */
+function specNamed_(r) {
+  const want = new Set([].concat(...(r.points || []).map(p => p.links || []))), out = {};
+  if (!want.size) return out;
+  try { (stuffItemsAll_() || []).forEach(i => { if (i && want.has(i.key)) out[i.key] = /^q:/.test(i.key) && i.sub ? i.sub + ' · ' + i.name : i.name || i.key; }); } catch (e) { /* Find not ready: the card shows its tree alone */ }
+  return out;
+}
+/* THE SECTION TREE, each section folded (a <details> grows where it is); the official PDF holds the full wording. */
+function specCard_(x) {
+  const r = x.row, named = specNamed_(r);
+  return `<div class="insh">
+    ${tagRow_(x)}
+    <div class="insh-sheet spec-sheet">
+      <p class="insh-kick">${esc([r.board, r.qualification, r.subject, r.code].join(' · '))}</p>
+      ${(r.sections || []).map(s => `<details class="insh-sec spec-sec"><summary class="kc-h">${esc(s.title)}</summary>${specPoints_(r, s.id, named)}</details>`).join('')}
+      <p class="insh-check">Short headings; the official specification has the full wording.</p>
+    </div>
+  </div>`;
+}
+const specExtras_ = x => [{ icon: 'open', label: 'Official', note: /\.pdf$/i.test(x.row.url) ? 'specification PDF' : 'the framework page', act: 'file-view', data: { url: x.row.url, title: x.row.board + ' ' + x.row.code } }];
 /* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
 on('ins-print', el => {
   const r = insertRow_(el.getAttribute('data-id'));
@@ -3305,7 +3325,7 @@ function vecHtml_(html) {
   return String(html == null ? '' : html).replace(/\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g,
     '<span class="vec"><span class="vec-a">$1</span><span class="vec-b">$2</span></span>');
 }
-window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, manuscript: histExtras_, writing: histExtras_, event: histExtras_ });
+window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, spec: specExtras_, manuscript: histExtras_, writing: histExtras_, event: histExtras_ });
 /* A BOXER'S OR FIGURE'S PIXEL PORTRAIT AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, { boxerPic: x => `<figure class="person-pic">${personPic_(x.pixId, x.name)}</figure>` });
 
@@ -8152,8 +8172,8 @@ function tagRow_(x, page) {
     });
   });
   tagFold_(out);
-  return `<div class="qtags qcard-tags">${out.map(t => `<span class="qtag"${tagAttr_(t.field)} data-f="${esc(t.field)}"${
-    t.also.length ? ` data-also="${esc(t.also.join(' '))}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
+  return `<div class="qtags qcard-tags">${out.map(t => qtag_(esc(t.text), `${tagAttr_(t.field)} data-f="${esc(t.field)}"${
+    t.also.length ? ` data-also="${esc(t.also.join(' '))}"` : ''}`)).join('')}</div>`;
 }
 /* TAGS AT THE TOP OF EVERY CARD (1030, 1040 r10): a card with no tag line gets one, and one drawn under its title moves above it. */
 function tagsOnTop_(x, html) {
@@ -8174,8 +8194,8 @@ function creditsToTags_(root) {
     const card = el.closest('.card'), row = card && card.querySelector('.qcard-tags'), w = (el.textContent || '').trim();
     /* A ONE-SHAPE CARD'S LONG CREDIT IS A LINE (KC_TAG_MAX), and its hidden original (`.kc-src`) is never read for tags. */
     if (!row || !w || el.closest('.qcard-tags, .kc-src') || (card.classList.contains('kc') && w.length > (typeof KC_TAG_MAX === 'number' ? KC_TAG_MAX : 30))) return;
-    const t = document.createElement('span');
-    t.className = 'qtag q-credit'; t.textContent = w;
+    const box = document.createElement('div'); box.innerHTML = qtag_(esc(w), '', 'q-credit');
+    const t = box.firstChild;
     row.appendChild(t); el.remove();
   });
 }
@@ -9402,6 +9422,7 @@ function findStudyItems_() {
 
     /* ---------- THE EXAM INSERTS (455) */
     ...(DATA.inserts || []).map(insertItem_),
+    ...(DATA.specs || []).map(specItem_),
   ];
 }
 function stuffItemsRaw_() {
@@ -9665,8 +9686,8 @@ function settingDoorCard_(x) {
 function notifyDoorCard_() {
   const needs = typeof BIZ_NEEDS !== 'undefined' ? Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0) : [];
   const waiting = ((DATA && DATA.posts) || []).filter(p => p && p.active !== false && p.waiting).length;
-  const rows = needs.map(k => `<li><span class="qtag">${esc(String(BIZ_NEEDS[k]))}</span> ${esc(k.replace(/[-_]/g, ' '))}</li>`)
-    .concat(waiting ? [`<li><span class="qtag">${waiting}</span> posts waiting for approval</li>`] : []);
+  const rows = needs.map(k => `<li>${qtag_(`${esc(String(BIZ_NEEDS[k]))}`)} ${esc(k.replace(/[-_]/g, ' '))}</li>`)
+    .concat(waiting ? [`<li>${qtag_(`${waiting}`)} posts waiting for approval</li>`] : []);
   return card_(`<div class="notify-door"><h3>Notifications</h3>${rows.length ? `<ul class="notify-list">${rows.join('')}</ul>` : '<p>Nothing needs you.</p>'}</div>`);
 }
 
@@ -10180,7 +10201,7 @@ function myResultNew_(k) {
   try {
     const x = stuffItemsAll_().find(i => isQ_(i) && ansKey_(i) === k);
     if (!x) return;
-    const tags = asList_(myResultOf_(x)).map(v => `<span class="qtag"${tagAttr_('myResult')} data-f="myResult">${esc(v)}</span>`).join('');
+    const tags = asList_(myResultOf_(x)).map(v => qtag_(esc(v), tagAttr_('myResult') + ' data-f="myResult"')).join('');
     /* ONLY THE PRESSED PART'S OWN TAG LINE: a whole question's page holds every part's card (`.qb`), and each says its own result. */
     document.querySelectorAll('[data-k]').forEach(b => {
       if (b.getAttribute('data-k') !== k) return;
@@ -10825,7 +10846,7 @@ function bundleCard_(b) {
   const inCart = bundleInCart_(b);
   const off = b.papers.filter(p => !p.ok);
   const note = b.noun + ' · ' + bundlePriceLine_(b);
-  const pp = p => p.pages ? ` <span class="mono qtag">${p.pages}pp</span>` : '';
+  const pp = p => p.pages ? ' ' + qtag_(p.pages + 'pp', '', 'mono') : '';
   /* ONE LINE PER GROUP WHEN IT IS GROUPED — a sitting, a tier, or both — one per paper when it is
      not. Numbered either way: the count down the edge is how many LINES, and the title already says
      how many papers. */
@@ -11040,10 +11061,12 @@ on('cut-open', el => { if (el && el.classList) el.classList.toggle('is-open'); }
 function chipShow_(f, i) {
   const facet = facetBy(f.field), was = STUFF.filters;
   if (!facet) return f.value;
+  /* ONE PRESS, SEVERAL FILTERS (an answer's `also`): each is said as the answer was, counted before the first of them. */
+  if (i != null && Array.isArray(was)) while (i > 0 && was[i - 1] && was[i - 1].field === f.field && !was[i - 1].any) i--;
   const built = i != null && Array.isArray(was) ? chipShowBuilt_(was.slice(0, i), f) : null;
   if (built != null) return built;
   if (i != null && Array.isArray(was)) try { STUFF.filters = was.slice(0, i);
-    const w = (facetTally_(stuffFiltered(), facet).values || []).find(v => spellKey_(v.value) === spellKey_(f.value));
+    const w = (facetTally_(stuffFiltered(), facet).values || []).find(v => [v.value].concat(v.also || []).some(u => spellKey_(u) === spellKey_(f.value)));
     if (w) return w.show || w.text || w.value; } catch (e) { oops_(e, 'find:chipShow_') } finally { STUFF.filters = was; }
   return answerSay_(facet, f.value);
 }
@@ -11073,15 +11096,9 @@ function filterChips() {
       const show = chipText_(f, i), key = spellKey_(show);
       if (said[key]) return '';
       said[key] = 1;
-      return `
-      <span class="chip sm" data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}>
-        ${/* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it. */ ''}
-        ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody made and has to be able to unmake. § */
-             ''}
-        ${/* ---------- THE CHIP SHOWS WHAT THE BUTTON SHOWED, NOT WHAT IT MATCHES ON § */
-             ''}
-        ${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}
-      </span>`;
+      /* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it; a skip is a chip like any other. */
+      return qtag_(`${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}`,
+        ` data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}`, 'sm', 'chip');
     }).join('')}
   </div>`;
 }
@@ -11102,7 +11119,10 @@ function filterClear_() {
    and never one on Find. */
 on('facet-pick', el => inFinder_(finderAt_(el), () => {
   writingFreeze_();
-  STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value });
+  /* ONE ANSWER, SEVERAL VALUES (`tellApart_`'s `also`): each is a filter, so the field reads "either", and the row says it once. */
+  let also = [];
+  try { also = el.dataset.also ? JSON.parse(el.dataset.also) : []; } catch (e) { also = []; }
+  [el.dataset.value].concat(also).forEach(v => STUFF.filters.push({ field: el.dataset.field, value: v }));
   paintStuffSoon_();
   /* A BOOK OF THE BIBLE CHOSEN WAS FETCHED HERE TOO (docs/history/341), and the review of 12 Oct found nothing could tell: § */
 }));
@@ -11114,7 +11134,13 @@ on('facet-skip', el => inFinder_(finderAt_(el), () => {
   STUFF.filters.push({ field: el.dataset.field, any: true });
   paintStuffSoon_();
 }));
-on('filter-drop', el => inFinder_(finderAt_(el), () => { STUFF.filters.splice(Number(el.dataset.i), 1); paintStuffSoon_(); }));
+/* A CHIP SAID ONCE FOR SEVERAL FILTERS (`filterChips`) takes all of them off. */
+on('filter-drop', el => inFinder_(finderAt_(el), () => {
+  const i = Number(el.dataset.i), f = STUFF.filters[i];
+  const say = f && !f.any ? spellKey_(chipText_(f, i)) : null;
+  STUFF.filters = STUFF.filters.filter((g, j) => j !== i && !(say && g.field === f.field && !g.any && spellKey_(chipText_(g, j)) === say));
+  paintStuffSoon_();
+}));
 on('filter-clear', el => inFinder_(finderAt_(el), () => { STUFF.filters = []; paintStuff(); }));
 
 /* REDRAW THE RESULTS AND NOTHING ELSE. § */
@@ -12003,7 +12029,7 @@ function facetAnswersHtml_(facet, values, more) {
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
   const grid = numberedRun_(values);
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap${facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? ' is-off' : ''}" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
-        data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
+        data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.also && v.also.length ? ` data-also="${esc(JSON.stringify(v.also))}"` : ''}${
         grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
         <span class="k">${mark(v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value))}</span>
       </div>`).join('') + skip + '</div>' + more;
@@ -12156,7 +12182,7 @@ function finderTagsAt_() {
   if (STUFF.admit != null || finderSettled_()) return null;
   const key = finderStateKey_(), view = key === null ? null : finderTagsView_();
   const at = view && view[key], facet = at && facetBy(at[0]);
-  return facet ? { facet: facet, values: at[1].map(v => ({ value: v[0], show: v.length > 1 ? v[1] : v[0] })) } : null;
+  return facet ? { facet: facet, values: at[1].map(v => ({ value: v[0], show: v.length > 1 ? v[1] : v[0], also: v[2] })) } : null;
 }
 
 ;
@@ -12170,7 +12196,7 @@ function finderTagsLook_() {
   const view = finderTagsView_(), at = view && view[finderStateKey_()];
   if (!at || !(at[3] > 1) || !finderTagsSame_(view, fs[0])) return null;
   const facet = facetBy(at[0]);
-  return facet ? { facet: facet, values: at[1].map((v, i) => ({ value: v[0], show: v.length > 1 ? v[1] : v[0], n: (at[2] || [])[i], say: (at[4] || [])[i] })) } : null;
+  return facet ? { facet: facet, values: at[1].map((v, i) => ({ value: v[0], show: v.length > 1 ? v[1] : v[0], also: v[2], n: (at[2] || [])[i], say: (at[4] || [])[i] })) } : null;
 }
 /* THE BUILD'S LIBRARY IS THIS ONE when the facets are its facets, nothing failed to come, no press makes Your result a § */
 /* chip's cards are as many as it counted (one tally of the whole list, held). Anything else is counted live, as before. */
@@ -12295,7 +12321,7 @@ function chipShowBuilt_(before, f) {
     if (before.some(c => !c || c.any) || STUFF.admit != null || !finderSettled_()) return null;
     const view = finderTagsView_(), at = view && view[before.map(c => c.field + '=' + c.value).join('&')];
     if (!at || at[0] !== f.field || !finderTagsSame_(view, before[0] || f)) return null;
-    const v = at[1].find(a => spellKey_(a[0]) === spellKey_(f.value));
+    const v = at[1].find(a => [a[0]].concat(a[2] || []).some(u => spellKey_(u) === spellKey_(f.value)));
     return v ? (v.length > 1 ? v[1] : v[0]) : null;
   } catch (e) { return null; }
 }
@@ -19528,7 +19554,7 @@ function receiptHtml(r) {
       ${/* THE THREE LINES ON ONE LINE. § */
            ''}
       ${(r.lines || []).filter(Boolean).length
-        ? `<div class="qtags qcard-tags">${(r.lines || []).map((l, i) => l ? `<span class="qtag" data-tag="${[6, 9, 4][i] || 0}">${esc(l)}</span>` : '').join('')}</div>` : ''}
+        ? `<div class="qtags qcard-tags">${(r.lines || []).map((l, i) => l ? `${qtag_(`${esc(l)}`, ` data-tag="${[6, 9, 4][i] || 0}"`)}` : '').join('')}</div>` : ''}
     </div>
     ${/* `r.photos` WAS HERE. Nothing passes photos to a receipt any more — see `bookBreakdown`. */''}
     ${/* ---------- AND THE RULE ABOVE THE ROWS IS THE HEADER'S OWN § */
@@ -20202,9 +20228,17 @@ function rcOffer_(blob, name, rc) {
     <p class="note">${can ? 'Press Share to send it.' : 'Press and hold the picture to save it.'}</p>
     <div class="btn-row">
       ${can ? tile_({ form: true, label: 'Share', act: 'rc-shot-share', cls: 'primary' }) : ''}
-      <a class="btn quiet" href="${RC_SHOT.url}" download="${esc(name)}">Save</a>
+      ${tile_({ form: true, label: 'Save', act: 'rc-shot-save', kind: 'quiet', data: { name } })}
     </div></div>`);
 }
+
+/* SAVE IS A FORM BUTTON LIKE SHARE (one way only): the download link is made and clicked here, never written as markup. */
+on('rc-shot-save', el => {
+  if (!RC_SHOT) return;
+  const a = document.createElement('a');
+  a.href = RC_SHOT.url; a.download = (el && el.dataset && el.dataset.name) || 'booking.png';
+  document.body.appendChild(a); a.click(); a.remove();
+});
 
 on('rc-shot-share', () => {
   if (!RC_SHOT || !navigator.share) return;
@@ -20842,7 +20876,7 @@ function cartRow_(c, i, under) {
     sel: (() => {
       const lam = lamControl_(c);
       const pp = c.kind === 'print'
-        ? `<span class="qtag cart-pp">${c.pages ? esc(c.pages) + 'pp' : '? pp'}</span>` : '';
+        ? `${qtag_(`${c.pages ? esc(c.pages) + 'pp' : '? pp'}`, '', `cart-pp`)}` : '';
       const drop = tile_({ icon: 'close', label: 'Take this out', act: 'cart-drop', cls: 'text-drop', data: { key: c.key, kind: c.kind } });
       return `<span class="cart-ln"><span class="cart-nm">${esc(under && c.short ? c.short : c.name)}</span>${
         lam ? '' : pp}<i class="cart-lead" aria-hidden="true"></i>${lam ? '' : drop}</span>${
@@ -21079,7 +21113,7 @@ function shopCards_() {
       g.items.slice(i, i + SHOP_PER).forEach(x => at.push({ name: x.title || x.name || x.key || '', group: g.kind, page: out.length,
         say: [x.title, x.name, x.key, x.sub, x.description, x.desc, g.label].filter(Boolean).join(' ').toLowerCase() }));
       /* AN `<h2>` BETWEEN CARDS, NOT INSIDE ONE — the rule `check-dead.js` states and `split_` cuts on. § */
-      out.push(`<h2><span>${esc(g.label)}</span><span class="qtag">${g.items.length}</span></h2>`
+      out.push(`<h2><span>${esc(g.label)}</span>${qtag_(`${g.items.length}`)}</h2>`
         + g.items.slice(i, i + SHOP_PER).map(x => shopWithIcon_(stuffCard(x, credits), x, g.kind)).join(''));
     }
   });
@@ -23186,10 +23220,10 @@ function staffCard_() {
 function staffInner_(wait) {
   const list = STAFF.list || [];
   const n = list.filter(s => !staffAgreed_(s)).length, dbs = list.filter(staffDbsDue_).length;
-  const dbsLine = s => !staffDbsDue_(s) ? '' : `<p class="biz-cap staff-dbs"><b class="biz-flag">DBS check due</b> <span class="qtags"><span class="qtag">${
-      esc(s.dbsCheckedOn ? 'last ' + date_(s.dbsCheckedOn) : 'never logged')}</span><span class="qtag">${esc(s.dbsNumber ? 'cert. ' + s.dbsNumber : 'no certificate no. on file')}</span></span></p>`;
+  const dbsLine = s => !staffDbsDue_(s) ? '' : `<p class="biz-cap staff-dbs"><b class="biz-flag">DBS check due</b> <span class="qtags">${qtag_(`${
+      esc(s.dbsCheckedOn ? 'last ' + date_(s.dbsCheckedOn) : 'never logged')}`)}${qtag_(`${esc(s.dbsNumber ? 'cert. ' + s.dbsNumber : 'no certificate no. on file')}`)}</span></p>`;
   const item = s => `<div class="kc-item biz-item staff-item" data-id="${esc(s.personId)}">
-      <p class="biz-cap"><b>${esc(s.name)}</b> <span class="qtags biz-when"><span class="qtag">${esc(s.rank === 'admin' ? 'admin' : 'staff')}</span></span>
+      <p class="biz-cap"><b>${esc(s.name)}</b> <span class="qtags biz-when">${qtag_(`${esc(s.rank === 'admin' ? 'admin' : 'staff')}`)}</span>
         ${staffAgreed_(s) ? '' : `<b class="biz-flag">${s.termsVersion ? 'Old terms' : 'Not agreed'}</b>`}</p>
       ${dbsLine(s)}
       <div class="tile-row">${tile_({ icon: 'print', label: 'Statement', note: 'any month', act: 'stmt-for', data: { id: s.personId, name: s.name } })}${staffDbsDue_(s)
@@ -25145,7 +25179,7 @@ function wordsEditOn_(root) {
   root.querySelectorAll('[data-wkp]').forEach(inp => {
     if (inp.nextElementSibling && inp.nextElementSibling.classList.contains('wk-ph-row')) return;
     const k = inp.getAttribute('data-wkp'), set = Object.prototype.hasOwnProperty.call(wordsNow_(), k);
-    inp.insertAdjacentHTML('afterend', `<span class="wk-ph-row"><span class="qtag">Placeholder</span> <span class="wk-ph" contenteditable="plaintext-only" data-wk="${esc(k)}" data-wko="${esc(inp.getAttribute('data-wko') || '')}"${
+    inp.insertAdjacentHTML('afterend', `<span class="wk-ph-row">${qtag_(`Placeholder`)} <span class="wk-ph" contenteditable="plaintext-only" data-wk="${esc(k)}" data-wko="${esc(inp.getAttribute('data-wko') || '')}"${
       set ? ' data-wk-set=""' : ''}>${esc(inp.getAttribute('placeholder') || '')}</span></span>`);
   });
   const all = [...root.querySelectorAll('[data-wk]')];

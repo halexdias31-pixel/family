@@ -130,6 +130,8 @@ const KINDS = {
   content: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
   /* AN INSERT IS WHAT THE EXAM HANDS YOU (455), and Content (463): the owner, "inserts count as content" -- no tag of its own. */
   insert: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* A SPECIFICATION IS ITS OWN KIND (owner, 12 Nov), under Library: Library › subject › Specification › board and level. */
+  spec: { group: 'Learning', label: 'Specification', card: (x, c) => findCard(x, c) },
   /* THE HISTORY DATABASE (459) and ONE PEOPLE KIND (batch D: boxers and figures alike, a pixel portrait under the tags); `histKind` says which. */
   manuscript: { group: 'Learning', label: 'Library', card: x => findCard(x) },
   people: { group: 'Learning', label: 'Library', card: x => findCard(x) },
@@ -201,7 +203,7 @@ const KINDS = {
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   receipt: x => jobPage_(x.row), question: thingCard_, answer: thingCard_, shop: thingCard_,
-  practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x),
+  practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x), spec: x => specCard_(x),
   timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
   hymn: x => hymnsCard_(x), mech: x => mechCard_(x), chem: x => chemCard_(x), soon: x => soonCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x), game: x => widgetCard_(x),
@@ -256,7 +258,7 @@ function soonItems_() {
 }
 function soonCard_(x) {
   /* "COMING SOON" IS A TAG, beside its name, never a line. */
-  return `<div class="soon-card"><h3>${esc(x.name)}</h3><div class="qtags"><span class="qtag" data-tag="0">${esc(x.name)}</span><span class="qtag">${esc(brand('comingSoon', 'Coming soon'))}</span></div>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}</div>`;
+  return `<div class="soon-card"><h3>${esc(x.name)}</h3><div class="qtags">${qtag_(`${esc(x.name)}`, ` data-tag="0"`)}${qtag_(`${esc(brand('comingSoon', 'Coming soon'))}`)}</div>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}</div>`;
 }
 
 /* The card a resource and a shop row share. Named rather than written twice, because the two
@@ -271,12 +273,12 @@ function thingCard_(x, credits) {
     /* ---------- AND A FOURTH ANSWER: NOBODY HAS PRICED IT § */
     const price = !isShop_(x) ? ''
       : x.level > 0
-        ? `<span class="qtags"><span class="qtag price ${myLevel >= x.level ? 'can' : ''}">${
-            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span></span>`
+        ? `<span class="qtags">${qtag_(`${
+            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}`, '', `price ${myLevel >= x.level ? 'can' : ''}`)}</span>`
       : x.cost === undefined
         ? ''   /* "Not priced yet" is its Price tag now (499) */
-      : `<span class="qtags"><span class="qtag price ${free ? 'free' : afford ? 'can' : ''}">${
-          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}</span></span>`;
+      : `<span class="qtags">${qtag_(`${
+          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}`, '', `price ${free ? 'free' : afford ? 'can' : ''}`)}</span>`;
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
        so it is marked as one and coloured as one, the same way a subject and a venue are. */
     /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. § */
@@ -300,7 +302,7 @@ function thingCard_(x, credits) {
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
             : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)])
             .filter(Boolean).map(v => esc(String(v))).join('  ')}</p>`}
-          <h3>${esc(x.name)}${x.off ? ' <span class="qtag">deleted</span>' : ''}</h3>
+          <h3>${esc(x.name)}${x.off ? ' ' + qtag_('deleted') : ''}</h3>
           ${/* Its own second line: § */
                 ''}
           ${/* THE YEAR, ON THE CARD. § */
