@@ -691,6 +691,77 @@ function myCardRow_() {
   };
 }
 
+/* YOUR FAMILY AS `doGet` SENT IT, less you; `famMine` only when it was sent for you. */
+function accountFamily_() {
+  /* ---------- YOUR FAMILY ---------- */
+  /* `sibling` ON *"students should be able to see their parents and siblings likewise"*. § */
+  const famLabel_ = { parent: 'Your parent', child: 'Your child', sibling: 'Your brother or sister' };
+  const famMine = !!(USER.personId && DATA.familyFor && String(DATA.familyFor) === String(USER.personId));
+  const family = (famMine && Array.isArray(DATA.family) ? DATA.family : [])
+    .filter(f => f && f.personId && f.title && famLabel_[f.relation]
+      && !(USER.personId && String(f.personId) === String(USER.personId)));
+  return { famLabel_, famMine, family };
+}
+
+/* ONE FAMILY MEMBER'S CARD, their tutor row under it when they teach. */
+function accountFamCard_(f, famLabel_, personForm_, tcard_) {
+  const asTutor = (DATA.tutors || []).find(t => t && t.personId && String(t.personId) === String(f.personId));
+  const row = Object.assign({}, asTutor || {}, {
+    title: f.title, handle: f.handle || (asTutor || {}).handle, personId: f.personId,
+    image: f.image || (asTutor || {}).image || '',
+    /* AND THE FIGURE THAT CAME WITH THE FACE — `doGet` sends `avatar` on a family card only when the face is `pfp:avatar` (`faceFig_`). */
+    avatar: f.image ? f.avatar : (asTutor || {}).avatar,
+    role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
+  });
+  /* A CHILD'S PHOTOGRAPHED WORKING (501), to the parent they accepted; staff see it on the admin's list below. */
+  const more = (f.relation === 'child' && typeof workSeeTile_ === 'function' ? workSeeTile_(f.personId, true) : '')
+    + (f.relation === 'child' && typeof workFileTile_ === 'function' ? workFileTile_(f.personId) : '')
+    + (typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '');
+  return personMark_(f.personId, personForm_(row) || tcard_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
+}
+
+/* FOR AN ADMIN, EVERYBODY ELSE IN THIS COLUMN, each with Message and New PIN. */
+function accountEveryone_(col, famIds, personForm_, tcard_) {
+  /* ---------- AND FOR AN ADMIN, EVERYBODY ELSE AS WELL, by their main role (`doGet` sends no tutor or admin here) ---------- */
+  return (typeof isAdmin === 'function' && isAdmin() && Array.isArray(DATA.everyone) ? DATA.everyone : [])
+    .filter(p => p && p.title && !mineIs_(p) && !(p.personId && famIds.indexOf(String(p.personId)) !== -1))
+    .filter(p => (/student/i.test(String(p.role || '')) ? 'students' : 'parents') === col)
+    /* A BLANK HANDLE IS SAID, NOT FILLED WITH THE FIRST NAME. § */
+    .map(p => Object.assign({}, p, { activity: subsLine_(p.personId),
+                                     role: (p.role || 'Client') + (p.handle ? '' : ' · no handle yet') }))
+    /* AND "NEW PIN" BESIDE "MESSAGE" — the admin is who a child with no email and no linked parent goes to. § */
+    /* THROUGH `tileRow_`, which puts six tiles on even lines rather than leaving one alone (453: Parents is narrower company). */
+    /* A PERSON'S ROW STANDS ALONE (498): the list's layout row was joined onto the last person's, so one client "has loads of tile options". */
+    .map(p => personMark_(p.personId, personForm_(p) || tcard_(p)
+      + (typeof tile_ === 'function' ? tileRow_(tile_({ icon: 'chat',
+          label: 'Message', note: 'a note to them', act: 'msg-open',
+          data: { to: p.title, id: p.personId || '' } }) + (p.personId ? tile_({ icon: 'key',
+          label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
+          data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
+          + (isStudentsCol_(col) && typeof workSeeTile_ === 'function' ? workSeeTile_(p.personId) : '')
+          + (isStudentsCol_(col) && typeof workFileTile_ === 'function' ? workFileTile_(p.personId) : '')
+          + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : ''), 'person-tiles') : '')));
+}
+
+/* YOUR OWN CARD, IN A LIST OF ONE OR NONE. */
+function accountMine_(col, family, myRow, tcard_) {
+  /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */
+  const mine = [];
+  if (typeof peopleBelong_ === 'function' && peopleBelong_(col, family)) {
+    const row = isTutorsCol_(col) ? (cardMine_() || myRow) : myRow;
+    /* NEVER AN EDITOR HERE (464): your own card is edited on your role's settings column (`ownCardSetPage_`, me.js). */
+    const face = row !== myRow ? tcard_(row) : (typeof meCard === 'function' ? meCard(row) : tcard_(row));
+    /* SHARE MY PROFILE (400): their own `?tutor=` link, to send a family — on the tutor face. */
+    const share = isTutorsCol_(col) && rankAtLeast_('staff') && USER.handle
+      ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
+    /* SHARE only: Edit is on your settings column (464); Sign out and Send the link again on Student settings (453). */
+    /* AND REPORT (486): everything has one, your own card too. */
+    const tiles = share + (typeof suggestTile_ === 'function' ? suggestTile_('person', String(USER.personId), row.title || '') : '');
+    mine.push(personMark_(USER.personId, face + (tiles ? tileRow_(tiles, 'own-tiles', true) : '')));
+  }
+  return mine;
+}
+
 /* `col` IS THE PEOPLE COLUMN (453): 'tutors', 'students' or 'parents' — a card per person you may already see, by category. */
 function accountPages_(col) {
   if (!col) return ['tutors', 'students', 'parents'].reduce((a, c) => a.concat(accountPages_(c)), []);
@@ -713,66 +784,15 @@ function accountPages_(col) {
   const withTiles_ = t => personForm_(t) || (editing_(t) ? cardEditHtml_(t)
     : tcard_(t) + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : ''));
 
-  /* ---------- YOUR FAMILY ---------- */
-  /* `sibling` ON *"students should be able to see their parents and siblings likewise"*. § */
-  const famLabel_ = { parent: 'Your parent', child: 'Your child', sibling: 'Your brother or sister' };
-  const famMine = !!(USER.personId && DATA.familyFor && String(DATA.familyFor) === String(USER.personId));
-  const family = (famMine && Array.isArray(DATA.family) ? DATA.family : [])
-    .filter(f => f && f.personId && f.title && famLabel_[f.relation]
-      && !(USER.personId && String(f.personId) === String(USER.personId)));
-  const famCard_ = f => {
-    const asTutor = (DATA.tutors || []).find(t => t && t.personId && String(t.personId) === String(f.personId));
-    const row = Object.assign({}, asTutor || {}, {
-      title: f.title, handle: f.handle || (asTutor || {}).handle, personId: f.personId,
-      image: f.image || (asTutor || {}).image || '',
-      /* AND THE FIGURE THAT CAME WITH THE FACE — `doGet` sends `avatar` on a family card only when the face is `pfp:avatar` (`faceFig_`). */
-      avatar: f.image ? f.avatar : (asTutor || {}).avatar,
-      role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
-    });
-    /* A CHILD'S PHOTOGRAPHED WORKING (501), to the parent they accepted; staff see it on the admin's list below. */
-    const more = (f.relation === 'child' && typeof workSeeTile_ === 'function' ? workSeeTile_(f.personId, true) : '')
-      + (f.relation === 'child' && typeof workFileTile_ === 'function' ? workFileTile_(f.personId) : '')
-      + (typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '');
-    return personMark_(f.personId, personForm_(row) || tcard_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
-  };
+  const { famLabel_, famMine, family } = accountFamily_();
+  const famCard_ = f => accountFamCard_(f, famLabel_, personForm_, tcard_);
   /* A CHILD OR A BROTHER OR SISTER IS A STUDENT; A PARENT IS A PARENT. A family member who teaches is on Tutors as well. */
   const famIn = c => family.filter(f => (f.relation === 'parent' ? 'parents' : 'students') === c);
   const famIds = family.map(f => String(f.personId));
 
-  /* ---------- AND FOR AN ADMIN, EVERYBODY ELSE AS WELL, by their main role (`doGet` sends no tutor or admin here) ---------- */
-  const everyone = (typeof isAdmin === 'function' && isAdmin() && Array.isArray(DATA.everyone) ? DATA.everyone : [])
-    .filter(p => p && p.title && !mineIs_(p) && !(p.personId && famIds.indexOf(String(p.personId)) !== -1))
-    .filter(p => (/student/i.test(String(p.role || '')) ? 'students' : 'parents') === col)
-    /* A BLANK HANDLE IS SAID, NOT FILLED WITH THE FIRST NAME. § */
-    .map(p => Object.assign({}, p, { activity: subsLine_(p.personId),
-                                     role: (p.role || 'Client') + (p.handle ? '' : ' · no handle yet') }))
-    /* AND "NEW PIN" BESIDE "MESSAGE" — the admin is who a child with no email and no linked parent goes to. § */
-    /* THROUGH `tileRow_`, which puts six tiles on even lines rather than leaving one alone (453: Parents is narrower company). */
-    /* A PERSON'S ROW STANDS ALONE (498): the list's layout row was joined onto the last person's, so one client "has loads of tile options". */
-    .map(p => personMark_(p.personId, personForm_(p) || tcard_(p)
-      + (typeof tile_ === 'function' ? tileRow_(tile_({ icon: 'chat',
-          label: 'Message', note: 'a note to them', act: 'msg-open',
-          data: { to: p.title, id: p.personId || '' } }) + (p.personId ? tile_({ icon: 'key',
-          label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
-          data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
-          + (isStudentsCol_(col) && typeof workSeeTile_ === 'function' ? workSeeTile_(p.personId) : '')
-          + (isStudentsCol_(col) && typeof workFileTile_ === 'function' ? workFileTile_(p.personId) : '')
-          + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : ''), 'person-tiles') : '')));
+  const everyone = accountEveryone_(col, famIds, personForm_, tcard_);
 
-  /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */
-  const mine = [];
-  if (typeof peopleBelong_ === 'function' && peopleBelong_(col, family)) {
-    const row = isTutorsCol_(col) ? (cardMine_() || myRow) : myRow;
-    /* NEVER AN EDITOR HERE (464): your own card is edited on your role's settings column (`ownCardSetPage_`, me.js). */
-    const face = row !== myRow ? tcard_(row) : (typeof meCard === 'function' ? meCard(row) : tcard_(row));
-    /* SHARE MY PROFILE (400): their own `?tutor=` link, to send a family — on the tutor face. */
-    const share = isTutorsCol_(col) && rankAtLeast_('staff') && USER.handle
-      ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
-    /* SHARE only: Edit is on your settings column (464); Sign out and Send the link again on Student settings (453). */
-    /* AND REPORT (486): everything has one, your own card too. */
-    const tiles = share + (typeof suggestTile_ === 'function' ? suggestTile_('person', String(USER.personId), row.title || '') : '');
-    mine.push(personMark_(USER.personId, face + (tiles ? tileRow_(tiles, 'own-tiles', true) : '')));
-  }
+  const mine = accountMine_(col, family, myRow, tcard_);
 
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
   /* "+ ADD A …", the very first card for an admin (373, 440), the new person's role ticked for this column. */

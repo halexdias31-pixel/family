@@ -170,6 +170,13 @@ addEventListener('keydown', e => {
 /* THE EDGES OF THE SCREEN were tappable from here — a second `click` listener that turned to the next card when you pressed the sliver either side. § */
 
 /* ---------- LOADING ------------------------------------------------------------------------------ */
+/* THE THREE REPAIRS EVERY READER DOWNSTREAM EXPECTS: an absent `checklists` is a throw rather than an empty screen. */
+function loadRepairs_(d) {
+  d.questions = d.questions || [];
+  d.dropdowns = d.dropdowns || {};
+  d.dropdowns.checklists = d.dropdowns.checklists || {};
+}
+
 /* WHAT THE APP IS MADE OF WHEN THE BACKEND SAYS NOTHING. § */
 async function filesOnly_() {
   try {
@@ -184,9 +191,7 @@ async function filesOnly_() {
   } catch (e) { /* a file that did not come is drawn as empty */ }
   /* THE SAME THREE REPAIRS THE PAYLOAD PATH MAKES, because every reader downstream expects them
      and an absent `checklists` is a throw rather than an empty screen. */
-  d.questions = d.questions || [];
-  d.dropdowns = d.dropdowns || {};
-  d.dropdowns.checklists = d.dropdowns.checklists || {};
+  loadRepairs_(d);
   /* A PLAIN OBJECT, NOT THE PROXY. § */
   loadRowsClean_(d);
   DATA = d;
@@ -603,9 +608,7 @@ async function loadTakeData_(d, n, who) {
         /* AND THE SETTINGS TABS, ON THE SAME RULE; their own small fetch, so the columns and words never wait for the library. */
         settingsInto_(d, await settingsRows_());
       } catch (e) { /* the repairs below make an empty library a working one */ }
-      d.questions = d.questions || [];
-      d.dropdowns = d.dropdowns || {};
-      d.dropdowns.checklists = d.dropdowns.checklists || {};
+      loadRepairs_(d);
       /* AND ASKED AGAIN AT THE MOMENT IT BECOMES `DATA`. § */
       if (loadStale_(n, who)) return false;
       loadRowsClean_(d);
