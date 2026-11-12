@@ -12,26 +12,17 @@ function bookJson_() {
 function bookKeep_() {
   if (typeof draftKeep_ !== 'function') return;
   try {
+    /* EVERY NEW FORM IS A FRESH FORM (owner, 11 Nov): a kept draft came back on the next form, ticked hours and all, and read as already booked. */
     BOOK_WHO = draftWho_();
-    if (bookBlank_()) draftDrop_('book', 'form'); else draftKeep_('book', 'form', bookJson_());
+    draftDrop_('book', 'form');
   } catch (e) {}
 }
 /* `who` IS ONLY EVER `'device'`: the device's form, read in for the person it is marked as (`bookFollow_`). */
 function bookBack_(who) {
   if (typeof draftRead_ !== 'function') return;
   BOOK_WHO = who || draftWho_();
-  try {
-    const raw = draftRead_('book', 'form', undefined, who);
-    if (raw === null) return;
-    const o = JSON.parse(raw);
-    if (!o || typeof o !== 'object' || Array.isArray(o)) return;
-    const plain = v => typeof v === 'string' || typeof v === 'number';
-    Object.keys(o).forEach(k => {
-      if (k === 'picking') return;
-      const v = o[k];
-      if (plain(v) || (Array.isArray(v) && v.every(plain))) BOOKING[k] = Array.isArray(v) ? v.slice() : v;
-    });
-  } catch (e) {}
+  /* NOTHING IS BROUGHT BACK — see `bookKeep_`; an old synced draft is dropped, not read. */
+  try { draftDrop_('book', 'form', who); } catch (e) {}
 }
 bookBack_();
 /* ---------- SENT IS NOT A DRAFT (`draftSent_`, data.js) § */

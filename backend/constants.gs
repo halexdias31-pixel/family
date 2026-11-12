@@ -130,7 +130,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-11-parent-mail-admin-1";
+const BACKEND_VERSION = "2026-11-12-hours-9-21-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -964,8 +964,8 @@ const DOB_FIELD = /^dob_[dmy]$/;
 
 /* ---------- AND THE COLUMNS THAT ARE EDITED AS A DATE PICKER RATHER THAN AS TEXT § */
 const DATE_COLS = ['exam_small_date', 'exam_big_date'];
-/* ---------- NINE TILL SIX, THE SAME SPAN AS THE BOOKING GRID § */
-const AVAIL_HOURS = [9,10,11,12,13,14,15,16,17,18];
+/* ---------- NINE TILL NINE, THE SAME SPAN AS THE BOOKING GRID (owner, 11 Nov; codes extended, never renumbered) § */
+const AVAIL_HOURS = [9,10,11,12,13,14,15,16,17,18,19,20];
 
 /* ---------- PEOPLE --------------------------------------------------------------------------- */
 const ROLE_LABEL = { admin: 'Admin', tutor: 'Tutor', client: 'Client', student: 'Student' };

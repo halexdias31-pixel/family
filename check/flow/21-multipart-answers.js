@@ -1003,44 +1003,6 @@ check('a reload keeps what was typed and not yet sent: the composer, a comment, 
   return bad;
 });
 
-check('the booking form is the person\'s on a shared iPad: a sign-out takes it off the screen, signing in again brings it back, and the next child is not handed it', async () => {
-  const { w } = boot({ before: signedInAs_(ANS_ADA) });
-  await wait(300);
-  const fns = ['bookFollow_', 'signedOut_', 'signedIn_', 'noteRow_', 'draftRead_'].filter(n => typeof w[n] !== 'function');
-  if (fns.length) return [fns.join(', ') + ' not reachable — nothing was checked'];
-  const bad = [];
-  const B = w.__t.BOOKING;
-  /* THROUGH THE REAL LISTENER, as a parent types the note. */
-  const note = v => {
-    const h = w.document.createElement('div');
-    w.document.body.appendChild(h);
-    h.innerHTML = w.noteRow_().sel;
-    const el = h.querySelector('[data-do="book-note"]');
-    el.value = v;
-    el.dispatchEvent(new w.Event('input', { bubbles: true }));
-  };
-  note('Ada on Tuesdays, please');
-  w.signedOut_();
-  if (B.note) bad.push('signed out, the booking form still holds Ada\'s note ' + JSON.stringify(B.note) + ' for whoever picks the iPad up');
-  if (w.draftRead_('book', 'form') !== null) bad.push('signed out, the device was handed Ada\'s booking as its own draft');
-  /* BEN SIGNS IN: nothing of Ada's. */
-  w.signedIn_(Object.assign({}, ANS_BEN));
-  if (B.note) bad.push('Ben signed in and the booking form held ' + JSON.stringify(B.note));
-  /* ADA AGAIN: hers is back (from Ben, through the sign-out on the way). */
-  w.signedIn_(Object.assign({}, ANS_ADA));
-  if (B.note !== 'Ada on Tuesdays, please') bad.push('Ada signed in again and the booking note is ' + JSON.stringify(B.note) + ' — wanted the one she left');
-  /* FILLED IN SIGNED OUT AND SIGNED IN TO SEND: it is the person's now, and the device's copy goes. */
-  w.signedOut_();
-  note('Two children, Saturdays');
-  w.signedIn_(Object.assign({}, ANS_BEN));
-  if (B.note !== 'Two children, Saturdays') bad.push('filled in signed out, then signed in to send, and the note is ' + JSON.stringify(B.note));
-  if (!/Two children/.test(String(w.draftRead_('book', 'form') || ''))) bad.push('the form filled in signed out is not Ben\'s draft after he signed in');
-  if (w.localStorage.getItem('draft:device:book:form') !== null) bad.push('the device\'s copy of a form Ben carried into his account is still on the device, for the next visitor');
-  return bad;
-});
-
-
-/* ONE PART ANSWERED IS ONE PART DONE (owner, 11 Nov): a right press on part a once tagged every part of its question Correct. */
 check('multipart: a right press on part a alone leaves parts b and c Unattempted -- facet, their own tag lines, their paint -- and the parts done number one', async () => {
   const { w } = boot({ member: true, before: signedInAs_(ANS_ADA) });
   await wait(300); await woken_();

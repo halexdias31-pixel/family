@@ -198,7 +198,7 @@ function profAvail_(t) {
   if (Array.isArray(b)) b.forEach(c => { busy[norm(c)] = true; });
   else if (b && typeof b === 'object') Object.keys(b).forEach(c => { if (b[c]) busy[norm(c)] = b[c]; });
   /* THE BOOKING'S SPAN AND NOTHING WIDER. § */
-  const hours = (typeof SLOT_HOURS !== 'undefined' && SLOT_HOURS.length) ? SLOT_HOURS : [9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+  const hours = (typeof SLOT_HOURS !== 'undefined' && SLOT_HOURS.length) ? SLOT_HOURS : [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
   const SD = (typeof SLOT_DAYS !== 'undefined' && SLOT_DAYS) || [];
   const days = SD.map(([p, label]) => {
     const cells = hours.map(h => {
