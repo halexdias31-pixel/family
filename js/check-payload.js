@@ -75,9 +75,13 @@ const gs = decomment(require('../tools/get-src.js').getFiles(path.join(path.dirn
 const sent = new Set();
 
 /* THE LITERAL IS WALKED, NOT PATTERN-MATCHED, AND THE FIRST VERSION SHOWS WHY. § */
+/* EVERY `const payload = {`: getPayloadInit_ builds the payload from four parts, each its own literal. */
 const scanLiteral = src => {
-  const at = src.indexOf('const payload = {');
-  if (at === -1) return [];
+  const out = [];
+  for (let at = src.indexOf('const payload = {'); at !== -1; at = src.indexOf('const payload = {', at + 1)) out.push(...scanOne(src, at));
+  return out;
+};
+const scanOne = (src, at) => {
   const keys = [];
   let i = src.indexOf('{', at), depth = 0;
   for (; i < src.length; i++) {

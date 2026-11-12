@@ -140,6 +140,58 @@ function postDeletePost_(body, action, began) {
   return jsonOut({ success: true, active: on });
 }
 
+/* THE POST'S ROW, written and the cache cleared. */
+function postAddRow_(tp, body, me, iAmAdmin, url, more) {
+  /* WHO IT IS FROM, which is not the same as who pressed the button. § */
+  /* `me` and `iAmAdmin` were worked out here; they are at the top of the action now, so the
+     limits above could use them before anything was uploaded. */
+  /* POSTING AS THE BUSINESS IS AN ADMIN'S TO DO. § */
+  const asBrand = iAmAdmin && norm(body.postAs) !== 'me';
+  const t = tp;
+  addRow(t, {
+    post_id: 'PO' + new Date().getTime(),
+    author: asBrand ? brandName() : (personDisplayName(me) || S(body.name)),
+    posted_by: personDisplayName(me) || S(body.name),
+    image: url,
+    image_w: Math.max(0, Math.round(Number(body.imageW) || 0)) || '',
+    image_h: Math.max(0, Math.round(Number(body.imageH) || 0)) || '',
+    media: more.join(' | '),
+    caption: S(body.caption),
+    body: S(body.body),
+    location: S(body.location),
+    poll: S(body.poll),
+    /* The FILE's date, not the clock's. They are the same second for something uploaded now,
+       and different for anything ever moved or re-uploaded — so reading it from the file is
+       the version that stays true. */
+    /* WHEN THE PHOTOGRAPH WAS MADE, from the file itself — not the moment somebody pressed Post. § */
+    creation_date: (function () {
+      try {
+        const id = (url.match(/\/d\/([\w-]+)/) || [])[1];
+        return id ? DriveApp.getFileById(id).getDateCreated() : new Date();
+      } catch (err) { return new Date(); }
+    })(),
+    uploaded_date: new Date(),
+    active: 'TRUE',
+    /* YOURS GOES UP. EVERYBODY ELSE'S WAITS. § */
+    approved: iAmAdmin ? '' : 'PENDING',
+  });
+  clearCache();
+}
+
+/* AN ADMIN IS TOLD A POST IS WAITING, unless they posted it. */
+function postAddNotify_(body, me, iAmAdmin) {
+  /* SOMEBODY HAS TO KNOW IT IS WAITING, or it waits for ever. § */
+  /* `approvals` — the admin's to turn off (`approvals_email`), and the card says what that costs: the
+     post then waits until somebody opens Posts. */
+  if (!iAmAdmin) {
+    notify(adminName_(), 'A post is waiting for you',
+      personDisplayName(me) + ' has posted a photograph.\n\n'
+      + (S(body.caption) ? '"' + S(body.caption) + '"\n\n' : '')
+      + 'It is not visible to anybody until you let it through. Open @family. and press the '
+      + 'post to approve or turn it down.', 'approvals');
+  }
+}
+
 /* posting ------------------------------------------------------------------------------- An admin picks a photograph on their phone and it lands in the Drive § */
 function postAddPost_(body, action, began) {
   /* WHO IT IS, FIRST — BEFORE A BYTE GOES INTO DRIVE. § */
@@ -187,51 +239,9 @@ function postAddPost_(body, action, began) {
   /* WORDS ALONE ARE A POST (448): the composer has no picker; Photos is the camera's. */
   if (!url && !S(body.caption) && !S(body.body) && !S(body.poll)) return jsonOut({ error: 'A post needs a picture or some words.' });
 
-  /* WHO IT IS FROM, which is not the same as who pressed the button. § */
-  /* `me` and `iAmAdmin` were worked out here; they are at the top of the action now, so the
-     limits above could use them before anything was uploaded. */
-  /* POSTING AS THE BUSINESS IS AN ADMIN'S TO DO. § */
-  const asBrand = iAmAdmin && norm(body.postAs) !== 'me';
-  const t = tp;
-  addRow(t, {
-    post_id: 'PO' + new Date().getTime(),
-    author: asBrand ? brandName() : (personDisplayName(me) || S(body.name)),
-    posted_by: personDisplayName(me) || S(body.name),
-    image: url,
-    image_w: Math.max(0, Math.round(Number(body.imageW) || 0)) || '',
-    image_h: Math.max(0, Math.round(Number(body.imageH) || 0)) || '',
-    media: more.join(' | '),
-    caption: S(body.caption),
-    body: S(body.body),
-    location: S(body.location),
-    poll: S(body.poll),
-    /* The FILE's date, not the clock's. They are the same second for something uploaded now,
-       and different for anything ever moved or re-uploaded — so reading it from the file is
-       the version that stays true. */
-    /* WHEN THE PHOTOGRAPH WAS MADE, from the file itself — not the moment somebody pressed Post. § */
-    creation_date: (function () {
-      try {
-        const id = (url.match(/\/d\/([\w-]+)/) || [])[1];
-        return id ? DriveApp.getFileById(id).getDateCreated() : new Date();
-      } catch (err) { return new Date(); }
-    })(),
-    uploaded_date: new Date(),
-    active: 'TRUE',
-    /* YOURS GOES UP. EVERYBODY ELSE'S WAITS. § */
-    approved: iAmAdmin ? '' : 'PENDING',
-  });
-  clearCache();
+  postAddRow_(tp, body, me, iAmAdmin, url, more);
 
-  /* SOMEBODY HAS TO KNOW IT IS WAITING, or it waits for ever. § */
-  /* `approvals` — the admin's to turn off (`approvals_email`), and the card says what that costs: the
-     post then waits until somebody opens Posts. */
-  if (!iAmAdmin) {
-    notify(adminName_(), 'A post is waiting for you',
-      personDisplayName(me) + ' has posted a photograph.\n\n'
-      + (S(body.caption) ? '"' + S(body.caption) + '"\n\n' : '')
-      + 'It is not visible to anybody until you let it through. Open @family. and press the '
-      + 'post to approve or turn it down.', 'approvals');
-  }
+  postAddNotify_(body, me, iAmAdmin);
 
   return jsonOut({ success: true, image: url, media: [url].concat(more), pending: !iAmAdmin });
 }

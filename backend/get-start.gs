@@ -82,8 +82,8 @@ function getMissingTabs_(REQUIRED_TABS, missingTabs) {
     version: BACKEND_VERSION, sawTabs: sawTabs });
 }
 
-/* The payload as it starts: every key the site reads, with its empty value, and the small ones filled. */
-function getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, venuesTab) {
+/* Its stamps and what this deploy can do. */
+function getPayloadHead_(behind, migrated, cfg) {
   const payload = {
     version: BACKEND_VERSION,
     /* ---------- GOOGLE SIGN-IN WAS BUILT AT BOTH ENDS AND HAD NO MIDDLE § */
@@ -111,6 +111,13 @@ function getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, ve
       booking: typeof BOOKING_VERSION !== 'undefined' ? BOOKING_VERSION : 'not deployed',
     },
     features: payloadFeatures_(),
+  };
+  return payload;
+}
+
+/* The lists the site reads, empty until filled below, and the fixed field lists. */
+function getPayloadLists_() {
+  const payload = {
     tutors: [], students: [], venues: [], clientClasses: [], liveJobs: [],
     /* The signed-in person's own family, both directions — see "YOUR OWN FAMILY" below — and the
        id of the person it was built for, which the phone checks before drawing any of it. */
@@ -133,6 +140,13 @@ function getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, ve
     /* `resourceInUse` WAS HERE. § */
     profileReadonly: PROFILE_READONLY,
     roleAliases: ROLE_ALIASES,
+  };
+  return payload;
+}
+
+/* The dropdowns, surcharges and the admin's public settings. */
+function getPayloadSite_(cfg, opts, sur, venuesTab) {
+  const payload = {
     // field -> its option list, in the shape the edit forms already read. Built from the
     // `options` tab, so every form and every booking dropdown share one source. Editing a list
     // there takes effect on the next load: nothing to rebuild, nothing to go stale.
@@ -155,6 +169,13 @@ function getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, ve
     rules: rulesClean_(cfg[RULES_KEY]),
     /* THE SITE'S OWN WORDS (497): an admin's text over the code's, `{key: text}`; {} for the code's own. */
     words: wordsClean_(cfg[WORDS_KEY]),
+  };
+  return payload;
+}
+
+/* The rest, empty until filled, and the films and media. */
+function getPayloadRest_(meAsked, filmsOut) {
+  const payload = {
     /* Sent, but nothing displays them yet — the shape is settled and the presentation isn't. § */
     /* THE CLOSED DAYS INSIDE A TERM — filled below by `closures()`. */
     closures: [],
@@ -187,6 +208,13 @@ function getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, ve
     /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. § */
     health: { ok: true, missing: [], problems: [] }
   };
+  return payload;
+}
+
+/* The payload as it starts: every key the site reads, with its empty value, and the small ones filled. */
+function getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, venuesTab) {
+  const payload = Object.assign(getPayloadHead_(behind, migrated, cfg), getPayloadLists_(),
+    getPayloadSite_(cfg, opts, sur, venuesTab), getPayloadRest_(meAsked, filmsOut));
   return payload;
 }
 

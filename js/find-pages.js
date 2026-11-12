@@ -41,6 +41,132 @@ function paneOnGlass_(p) {
   return r.right > 0 && r.left < innerWidth && r.bottom > 0 && r.top < innerHeight;
 }
 
+/* THE WRITES THAT UNDO LAST TIME'S FIT, THEN EACH KIND OF CARD GIVES WAY ITS OWN WAY; returns what was there. */
+function paneReset_(list, kids, hold) {
+  const was = kids.map(ks => ks.map(k => k.style.zoom || ''));
+  if (!hold) kids.forEach(ks => ks.forEach(k => {
+    if (k.style.zoom) {
+      k.style.zoom = ''; k.style.width = '';
+      k.style.marginInline = ''; k.style.marginLeft = ''; k.style.marginRight = '';
+    }
+  }));
+  /* A SNUG PANE IS MEASURED AT ITS OWN SPACING, so it is snug again only if it still nearly fits. */
+  const snugWas = list.map(p => p.classList.contains('is-snug'));
+  if (!hold) list.forEach(p => { if (p.classList.contains('is-snug')) p.classList.remove('is-snug'); });
+  if (!hold) list.forEach(p => { p.PANE_DUE = false; });
+  /* AN ESSAY'S SHEET GIVES WAY BEFORE ITS CARD IS DRAWN SMALLER -- `kpSheetFit_` in keypad.js. § */
+  if (!hold && typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
+  /* AND A LIBRARY CARD GIVES UP ITS BLANK BAND FIRST — `libFit_` in me.js, the sheet's rule for the one card whose height follows its width: § */
+  if (!hold && typeof libFit_ === 'function') list.forEach(p => { if (p.querySelector('.lib-face')) libFit_(p); });
+  /* A TALMUD SIDE IS FETCHED AND LAID OUT AS ITS PANE IS REACHED (490) -- `talCardsFit_`, talmud.js. */
+  if (!hold && typeof talCardsFit_ === 'function') list.forEach(p => { if (p.querySelector('.tal-card-page')) talCardsFit_(p); });
+  /* AND A CARD WITH A FIGURE IN IT GIVES WAY THE SAME WAY -- `cardFigFit_`, the sheet's answer for a picture (356): § */
+  if (!hold) list.forEach(p => { if (cardFigs_(p.querySelector('.qcard')).length) cardFigFit_(p); });
+  return { was, snugWas };
+}
+
+/* WHAT KIND OF CARD EACH PANE HOLDS -- the ones never drawn smaller. */
+function paneFlags_(list) {
+  /* ---------- AND A CARD WITH A FIGURE IN IT IS NEVER DRAWN SMALLER WHOLE § */
+  const drawn = list.map(p => !!cardFigs_(p.querySelector('.qcard')).length);
+  const essay = list.map(p => !!p.querySelector('.qp-essay'));
+  /* ---------- AND A LIST OF TICKS THAT IS OPEN IS NEVER DRAWN SMALLER § */
+  const ticks = list.map(p => !!p.querySelector('details.many-d[open]'));
+  /* ---------- AND NEITHER IS A CARD BEING EDITED (`cardEditHtml_`, me.js; docs/history/330) § */
+  /* ---------- NOR "MANAGE YOUR CHILD" (`childManageCard_`, me.js; the review of docs/history/339) § */
+  const forms = list.map(p => !!p.querySelector('.card-ed .me-form, .kid-manage'));
+  /* ---------- NOR A CARD ANSWERED BY TAPPING ITS OPTIONS, ITS ORDER OR ITS CELLS (374): drawn smaller they fell to 39-41px at 320; it scrolls and they stay 44 */
+  /* AND THE CONSOLE (419) THE SAME WAY: drawn smaller its pad keys fell to 31px, and every line it showed or hid re-zoomed the whole console under a thumb. */
+  const picks = list.map(p => !!p.querySelector('.qcard .qp-opts, .qcard .qp-order, .qcard .qp-cells-box, .nes-wrap'));
+  return { drawn, essay, ticks, forms, picks };
+}
+
+/* THE ZOOM EACH PANE WANTS; marks `snug` and `held` as it goes. */
+function paneWant_(list, was, f, hold, snug, held) {
+  const { drawn, essay, ticks, forms, picks } = f;
+  const pad = p => {
+    const cs = getComputedStyle(p);
+    return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+  };
+  const t0 = performance.now();
+  const want = list.map((p, i) => {
+    if (hold) return parseFloat(was[i][0]) || 1;
+    const room = p.clientHeight - pad(p);
+    const used = p.scrollHeight - pad(p);
+    if (room <= 0 || used - room <= 2) return 1;
+    if (ticks[i] || forms[i] || drawn[i] || picks[i]) return 1;
+    /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
+       measured, a card zoomed to exactly room / used ended 4px past its pane. */
+    const raw = (room - 4) / used;
+    snug[i] = raw > PANE_ZOOM_SNUG;
+    /* ON THE LADDER AND ABOVE THE FLOORS (533); the floors are read only for a card that does not fit, which is the few. */
+    let z = paneStep_(raw, snug[i] ? 0 : paneFloor_(p));
+    /* AN ESSAY'S CARD: that zoom, or none and a scrolling pane -- `PANE_ZOOM_ESSAY`. */
+    if (essay[i] && z < PANE_ZOOM_ESSAY) z = 1;
+    /* NO FLIP (533): a change that reverses this pane's last one within three frames is not made -- a card growing and shrinking under its own zoom. */
+    const cur = parseFloat(was[i][0]) || 1, dir = Math.sign(z - cur), last = p.PANE_ZD;
+    if (dir && last && last.dir === -dir && t0 - last.t < 50) { held[i] = cur > raw; return cur; }
+    if (dir) p.PANE_ZD = { dir, t: t0 };
+    held[i] = z > raw;
+    return z;
+  });
+}
+
+/* THE WRITES: each card drawn at its zoom, at its own width and centred. */
+function paneZoomTo_(list, kids, want, snug, hold) {
+  /* AND THE CARD KEEPS ITS OWN WIDTH, so it is the same card drawn smaller rather than a wider card re-flowed. § */
+  /* ---------- AND IT STAYS CENTRED WHERE IT WAS, WHICH `margin-inline: auto` DID NOT DO § */
+  const box = list.map(p => {
+    const r = p.getBoundingClientRect(), cs = getComputedStyle(p);
+    return r.left + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0);
+  });
+  const rects = kids.map(ks => ks.map(k => k.getBoundingClientRect()));
+  if (!hold) list.forEach((p, i) => {
+    if (snug[i] && want[i] === 1) p.classList.add('is-snug');
+    if (want[i] < 1) kids[i].forEach((k, j) => {
+      const r = rects[i][j], z = want[i];
+      const left = (r.left - box[i]) + r.width / 2 - r.width * z / 2;
+      k.style.width = r.width + 'px';
+      k.style.marginLeft = (left / z) + 'px';
+      k.style.marginRight = 'auto';
+      k.style.zoom = String(z);
+    });
+  });
+}
+
+/* A PANE WHOSE ZOOM CHANGED HAS ITS SCREEN'S COLUMN PLACED AGAIN. */
+function panePlace_(list, was, snugWas, want, hold) {
+  /* ---------- A ZOOM THAT CHANGED MOVES THE PAGES UNDER IT, SO THE COLUMN IS PLACED AGAIN § */
+  const moved = new Set();
+  if (!hold) list.forEach((p, i) => {
+    const now = want[i] < 1 ? String(want[i]) : '';
+    if (was[i].some(z => z !== now) || snugWas[i] !== p.classList.contains('is-snug')) {
+      const scr = p.closest && p.closest('.screen');
+      if (scr && scr.id) moved.add(scr.id.replace(/^s-/, ''));
+    }
+  });
+  if (moved.size && typeof placeCells === 'function') {
+    moved.forEach(id => placeCells('y', true, 0, id));
+  }
+}
+
+/* THE PANE SCROLLS OR NOT, written only where it changes. */
+function paneScroll_(list, over, drawn) {
+  /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: § */
+  list.forEach((p, i) => {
+    const to = over[i] ? 'auto' : '';
+    if (p.style.overflowY !== to) {
+      p.style.overflowY = to;
+      /* A CARD WITH A PEN THAT HAS TO SCROLL OPENS SCROLLED TOWARDS ITS FOOT -- the picture to draw on and its bar on the glass -- AND NO FURTHER THAN PUTS THE § */
+      const art = to && drawn[i] ? p.querySelector('.qcard .qpad .qpad-art') : null;
+      if (art) {
+        const top = art.getBoundingClientRect().top - p.getBoundingClientRect().top - (p.clientTop || 0) + p.scrollTop - 8;
+        p.scrollTop = Math.max(0, Math.min(p.scrollHeight - p.clientHeight, Math.floor(top)));
+      }
+    }
+  });
+}
+
 /* EVERY READ, THEN EVERY WRITE, AND IT IS THE WHOLE COST OF THIS FUNCTION. § */
 /* `o.hold` (533): the zoom each card has stays, and only whether its pane scrolls is asked again -- a card on the glass that grew. */
 function paneReach_(panes, o) {
@@ -50,114 +176,21 @@ function paneReach_(panes, o) {
   try {
     /* ---------- SHRINK TO FIT FIRST, AND SCROLL ONLY PAST THE FLOOR § */
     const kids = list.map(p => [].slice.call(p.children));
-    const was = kids.map(ks => ks.map(k => k.style.zoom || ''));
-    if (!hold) kids.forEach(ks => ks.forEach(k => {
-      if (k.style.zoom) {
-        k.style.zoom = ''; k.style.width = '';
-        k.style.marginInline = ''; k.style.marginLeft = ''; k.style.marginRight = '';
-      }
-    }));
-    /* A SNUG PANE IS MEASURED AT ITS OWN SPACING, so it is snug again only if it still nearly fits. */
-    const snugWas = list.map(p => p.classList.contains('is-snug'));
-    if (!hold) list.forEach(p => { if (p.classList.contains('is-snug')) p.classList.remove('is-snug'); });
-    if (!hold) list.forEach(p => { p.PANE_DUE = false; });
-    /* AN ESSAY'S SHEET GIVES WAY BEFORE ITS CARD IS DRAWN SMALLER -- `kpSheetFit_` in keypad.js. § */
-    if (!hold && typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
-    /* AND A LIBRARY CARD GIVES UP ITS BLANK BAND FIRST — `libFit_` in me.js, the sheet's rule for the one card whose height follows its width: § */
-    if (!hold && typeof libFit_ === 'function') list.forEach(p => { if (p.querySelector('.lib-face')) libFit_(p); });
-    /* A TALMUD SIDE IS FETCHED AND LAID OUT AS ITS PANE IS REACHED (490) -- `talCardsFit_`, talmud.js. */
-    if (!hold && typeof talCardsFit_ === 'function') list.forEach(p => { if (p.querySelector('.tal-card-page')) talCardsFit_(p); });
-    /* AND A CARD WITH A FIGURE IN IT GIVES WAY THE SAME WAY -- `cardFigFit_`, the sheet's answer for a picture (356): § */
-    if (!hold) list.forEach(p => { if (cardFigs_(p.querySelector('.qcard')).length) cardFigFit_(p); });
-    /* ---------- AND A CARD WITH A FIGURE IN IT IS NEVER DRAWN SMALLER WHOLE § */
-    const drawn = list.map(p => !!cardFigs_(p.querySelector('.qcard')).length);
-    const pad = p => {
-      const cs = getComputedStyle(p);
-      return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
-    };
-    const essay = list.map(p => !!p.querySelector('.qp-essay'));
-    /* ---------- AND A LIST OF TICKS THAT IS OPEN IS NEVER DRAWN SMALLER § */
-    const ticks = list.map(p => !!p.querySelector('details.many-d[open]'));
-    /* ---------- AND NEITHER IS A CARD BEING EDITED (`cardEditHtml_`, me.js; docs/history/330) § */
-    /* ---------- NOR "MANAGE YOUR CHILD" (`childManageCard_`, me.js; the review of docs/history/339) § */
-    const forms = list.map(p => !!p.querySelector('.card-ed .me-form, .kid-manage'));
-    /* ---------- NOR A CARD ANSWERED BY TAPPING ITS OPTIONS, ITS ORDER OR ITS CELLS (374): drawn smaller they fell to 39-41px at 320; it scrolls and they stay 44 */
-    /* AND THE CONSOLE (419) THE SAME WAY: drawn smaller its pad keys fell to 31px, and every line it showed or hid re-zoomed the whole console under a thumb. */
-    const picks = list.map(p => !!p.querySelector('.qcard .qp-opts, .qcard .qp-order, .qcard .qp-cells-box, .nes-wrap'));
+    const { was, snugWas } = paneReset_(list, kids, hold);
+    const { drawn, essay, ticks, forms, picks } = paneFlags_(list);
     const snug = list.map(() => false);
     /* HELD AT A SIZE THAT DOES NOT FIT -- snug, a floor, an essay or `o.hold`: its pane scrolls from 2px over, since nothing else reaches its foot (533 review). */
     const held = list.map(() => hold);
-    const t0 = performance.now();
-    const want = list.map((p, i) => {
-      if (hold) return parseFloat(was[i][0]) || 1;
-      const room = p.clientHeight - pad(p);
-      const used = p.scrollHeight - pad(p);
-      if (room <= 0 || used - room <= 2) return 1;
-      if (ticks[i] || forms[i] || drawn[i] || picks[i]) return 1;
-      /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
-         measured, a card zoomed to exactly room / used ended 4px past its pane. */
-      const raw = (room - 4) / used;
-      snug[i] = raw > PANE_ZOOM_SNUG;
-      /* ON THE LADDER AND ABOVE THE FLOORS (533); the floors are read only for a card that does not fit, which is the few. */
-      let z = paneStep_(raw, snug[i] ? 0 : paneFloor_(p));
-      /* AN ESSAY'S CARD: that zoom, or none and a scrolling pane -- `PANE_ZOOM_ESSAY`. */
-      if (essay[i] && z < PANE_ZOOM_ESSAY) z = 1;
-      /* NO FLIP (533): a change that reverses this pane's last one within three frames is not made -- a card growing and shrinking under its own zoom. */
-      const cur = parseFloat(was[i][0]) || 1, dir = Math.sign(z - cur), last = p.PANE_ZD;
-      if (dir && last && last.dir === -dir && t0 - last.t < 50) { held[i] = cur > raw; return cur; }
-      if (dir) p.PANE_ZD = { dir, t: t0 };
-      held[i] = z > raw;
-      return z;
-    });
-    /* AND THE CARD KEEPS ITS OWN WIDTH, so it is the same card drawn smaller rather than a wider card re-flowed. § */
-    /* ---------- AND IT STAYS CENTRED WHERE IT WAS, WHICH `margin-inline: auto` DID NOT DO § */
-    const box = list.map(p => {
-      const r = p.getBoundingClientRect(), cs = getComputedStyle(p);
-      return r.left + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0);
-    });
-    const rects = kids.map(ks => ks.map(k => k.getBoundingClientRect()));
-    if (!hold) list.forEach((p, i) => {
-      if (snug[i] && want[i] === 1) p.classList.add('is-snug');
-      if (want[i] < 1) kids[i].forEach((k, j) => {
-        const r = rects[i][j], z = want[i];
-        const left = (r.left - box[i]) + r.width / 2 - r.width * z / 2;
-        k.style.width = r.width + 'px';
-        k.style.marginLeft = (left / z) + 'px';
-        k.style.marginRight = 'auto';
-        k.style.zoom = String(z);
-      });
-    });
-    /* ---------- A ZOOM THAT CHANGED MOVES THE PAGES UNDER IT, SO THE COLUMN IS PLACED AGAIN § */
-    const moved = new Set();
-    if (!hold) list.forEach((p, i) => {
-      const now = want[i] < 1 ? String(want[i]) : '';
-      if (was[i].some(z => z !== now) || snugWas[i] !== p.classList.contains('is-snug')) {
-        const scr = p.closest && p.closest('.screen');
-        if (scr && scr.id) moved.add(scr.id.replace(/^s-/, ''));
-      }
-    });
-    if (moved.size && typeof placeCells === 'function') {
-      moved.forEach(id => placeCells('y', true, 0, id));
-    }
+    const want = paneWant_(list, was, { drawn, essay, ticks, forms, picks }, hold, snug, held);
+    paneZoomTo_(list, kids, want, snug, hold);
+    panePlace_(list, was, snugWas, want, hold);
     /* `overflow-y` AND NOT `touch-action`, WHICH IS THE OPPOSITE OF WHAT `padReach_` DOES AND IS DELIBERATE. § */
     /* READ AFTER THE ZOOM. A step at or under the fit fits by construction; one held up by a floor, the snug rule or `o.hold` may not (533). */
     /* AN OPEN LIST SCROLLS FROM ITS FIRST PIXEL OVER, not from `PANE_REACH`'s 24: § */
     /* A CARD BEING EDITED THE SAME: its Save and Cancel are its foot, and the pane has to reach them — and
        "Manage your child", whose foot is Ask them. */
     const over = list.map((p, i) => p.scrollHeight - p.clientHeight > (ticks[i] || forms[i] || drawn[i] || picks[i] || held[i] ? 2 : PANE_REACH));
-    /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: § */
-    list.forEach((p, i) => {
-      const to = over[i] ? 'auto' : '';
-      if (p.style.overflowY !== to) {
-        p.style.overflowY = to;
-        /* A CARD WITH A PEN THAT HAS TO SCROLL OPENS SCROLLED TOWARDS ITS FOOT -- the picture to draw on and its bar on the glass -- AND NO FURTHER THAN PUTS THE § */
-        const art = to && drawn[i] ? p.querySelector('.qcard .qpad .qpad-art') : null;
-        if (art) {
-          const top = art.getBoundingClientRect().top - p.getBoundingClientRect().top - (p.clientTop || 0) + p.scrollTop - 8;
-          p.scrollTop = Math.max(0, Math.min(p.scrollHeight - p.clientHeight, Math.floor(top)));
-        }
-      }
-    });
+    paneScroll_(list, over, drawn);
   } catch (e) { /* a pane gone mid-measure keeps its scroll as it was */ }
 }
 
