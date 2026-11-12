@@ -43,3 +43,4 @@ The register is the ledger's `claude_notes` tab (`TAB.claude_notes`). One line p
 | N-1794046108103-76754 | 8 Nov 2026 | PE: no History (re-check) | already done: Boxing only |
 | N-1794045566287-50680 | 8 Nov 2026 | manuscript cards minimal (re-check) | captions off the card face, onto its facts page; picture then tags only |
 | N-1794045843240-64505 | 8 Nov 2026 | Writings, primary/secondary (re-check) | already done: Writings, Primary tag on every writing but the one flagged |
+| N-1794448896381-66343 | 12 Nov 2026 | error: findIs_ not defined (find:early, 10 Nov) | one-off during the 10 Nov file split deploy (old and new files mixed in one load); load order is correct now |
