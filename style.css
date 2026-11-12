@@ -5850,6 +5850,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-lines :is(form, .kc-items) { text-align: left; }
 /* THE CONTENT PART IS CENTRED (owner, 11 Nov), with the same side space as the card's other parts: a form, a panel's lines, every label, line and table. */
 .card.kc > .kc-form, .card.kc-panel > .kc-lines { box-sizing: border-box; width: 100%; padding-inline: var(--kc-side, 1rem); text-align: center; }
+/* THE BOOKING FORM IS A FIVE-COLUMN SHEET (owner, 12 Nov: a card like the rest): it takes the card's whole width, or the answers squeeze to a pill. */
+.card.kc-bookform { --kc-side: 0; }
 .card.kc > .kc-form :is(label, .field, p, .note, .dob-cap, li, dt, dd), .card.kc-panel > .kc-lines :is(label, .field, p, .note, li, dt, dd) { text-align: center; }
 .card.kc > .kc-form :is(.f-row, .dob-boxes, .btn-row, .tile-row, .check), .card.kc-panel > .kc-lines :is(.f-row, .btn-row, .tile-row) { justify-content: center; }
 .card.kc > .kc-form :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select, textarea):not(.msg-text, .dob-boxes *),

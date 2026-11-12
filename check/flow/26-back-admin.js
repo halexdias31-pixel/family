@@ -313,7 +313,7 @@ check('a child sees a tutor card, the booking form and her session without any �
   if (!/GeorgePovey/.test(k.card)) bad.push('the child is not drawn the tutor card at all');
   if (/class="bk-row rc-total"/.test(k.paper) || /class="bk-row rc-total"/.test(k.job)) bad.push('the child\'s form or session still draws a total row');
   if (/<span class="bk-r">\+\/h<\/span>/.test(k.paper)) bad.push('the child\'s form still draws the figure columns\' header');
-  if (/data-do="book-send"/.test(k.paper)) bad.push('the child\'s form still offers "Ask for it" — she has no price to send, so a parent books');
+  if (/data-do="book-send"/.test(k.paper)) bad.push('the child\'s form still offers "Send" — she has no price to send, so a parent books');
   if (!/ask yours to book/i.test(k.paper)) bad.push('the child\'s form does not say a parent books it');
   if (/job-pay|job-join|job-take-seat/.test(k.tiles)) bad.push('the child is offered Pay or Join on a session: ' + (k.tiles.match(/job-(pay|join|take-seat)/g) || []).join(', '));
   /* AND THE SCREEN ITSELF: the booking column, drawn whole, has no £. */

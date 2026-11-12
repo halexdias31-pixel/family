@@ -79,9 +79,9 @@ const JOURNEYS = {
       if (!(await W.has('#s-stuff [data-do="book-set"]'))) { W.J.missing.push('the booking form under Find › Booking'); return; }
       for (let n = 0; n < 14 && await pickNext_(W); n++);
       await W.tap('a time', '', 'book-slot');
-      if (!(await W.tap('Ask for it', 'Ask for it', 'book-send'))) return;
+      if (!(await W.tap('Send', 'Send', 'book-send'))) return;
       await wait(1500);
-      if (!W.posted(/"action":"(?:createJob|move)"/)) W.J.errors.push('Ask for it sent nothing (' + (await W.said()) + ')');
+      if (!W.posted(/"action":"(?:createJob|move)"/)) W.J.errors.push('Send sent nothing (' + (await W.said()) + ')');
     },
     'pay': async W => {
       await W.tap('Find › Booking', '^\\s*Booking\\s*$', 'facet-pick');
