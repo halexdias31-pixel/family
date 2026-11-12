@@ -43,7 +43,7 @@ function msgDoorCard_(x, draw) {
   const t = (typeof messageThreads_ === 'function' ? messageThreads_() : []).find(t2 => t2.id === x.thread);
   if (!t && x.to) return card_(`<div class="dm-card"><div class="dm-head"><h3>${esc(x.name)}</h3></div>
     ${msgForm_(x.to.name, x.to.id)}</div>`);
-  if (!t) return card_(`<div class=""><h3>${esc(x.name)}</h3></div>`);
+  if (!t) return renderCard({ kind: 'msg', tags: [{ text: x.name, colour: 0 }] });
   return msgFindCard_(x, t, draw);
 }
 window.KC_AROUND = Object.assign(window.KC_AROUND || {}, { msg: msgDoorCard_ });
@@ -182,9 +182,10 @@ function settingDoorCard_(x) {
 function notifyDoorCard_() {
   const needs = typeof BIZ_NEEDS !== 'undefined' ? Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0) : [];
   const waiting = ((DATA && DATA.posts) || []).filter(p => p && p.active !== false && p.waiting).length;
-  const rows = needs.map(k => `<li>${qtag_(`${esc(String(BIZ_NEEDS[k]))}`)} ${esc(k.replace(/[-_]/g, ' '))}</li>`)
-    .concat(waiting ? [`<li>${qtag_(`${waiting}`)} posts waiting for approval</li>`] : []);
-  return card_(`<div class="notify-door"><h3>Notifications</h3>${rows.length ? `<ul class="notify-list">${rows.join('')}</ul>` : '<p>Nothing needs you.</p>'}</div>`);
+  const rows = needs.map(k => ({ label: k.replace(/[-_]/g, ' '), value: String(BIZ_NEEDS[k]) }))
+    .concat(waiting ? [{ label: 'posts waiting for approval', value: String(waiting) }] : []);
+  return renderCard({ kind: 'panel', look: 'notify-door', tags: [{ text: 'Notifications', colour: 0 }],
+    body: [rows.length ? { type: 'list', items: rows } : { type: 'text', text: 'Nothing needs you.' }] });
 }
 
 /* A LIST THAT COMES LATER (messages) joins Find when it lands: the memo is dropped and Find repainted once. */
@@ -244,6 +245,3 @@ function screenGone_(id) {
   try { if (typeof OPEN_JOB !== 'undefined' && OPEN_JOB) BOOK_OPEN = false; } catch (e) { oops_(e, 'doors:gone'); }
   finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: to[1] }], show: true }); go('stuff'); return true;
 }
-/* A VENUE'S 8-BIT BUILDING AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
-window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
-  venuePic: x => `<figure class="person-pic">${pixSvg_(VENUE_PIX[venueShape_(x.row || {})], x.name)}</figure>` });

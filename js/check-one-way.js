@@ -11,6 +11,7 @@ const ELEMENT = {
   tag:     { maker: 'qtag_', file: 'js/cards-make.js', cls: ['qtag', 'chip', 'prof-tag'] },
   loading: { maker: 'loading_', file: 'js/shell-boot.js', cls: ['loading', 'is-busy'] },
   row:     { maker: 'row / rowHtml', file: 'js/core.js', cls: ['row'] },
+  markup:  { maker: 'renderCard(spec) (js/cards-render.js)', file: 'js/cards-render.js' },
   style:   { maker: 'a class in style.css', file: null },
   colour:  { maker: 'a token in style.css', file: null },
 };
@@ -23,7 +24,10 @@ const BUTTON = /<button\b/g, STYLE = /\sstyle=\\?["']/g, COLOUR = /(?:^|[^\w&-])
 /* index.html's boot fallback draws before any maker has loaded, so only js/ is read; the checks hold sample markup. */
 const files = fs.readdirSync(path.join(ROOT, 'js')).filter(f => /\.js$/.test(f) && !/^check/.test(f)).map(f => 'js/' + f);
 const found = [];
-const hit = (f, line, kind, what) => { if (ELEMENT[kind].file !== f) found.push({ f, line, kind, what }); };
+/* THE MASTER TEMPLATE (owner, 12 Nov, "go all the way"): markup of ANY tag is written only by the renderer files; everyone else hands over data. */
+const RENDERERS = ['js/cards-render.js', 'js/tiles.js'];
+const MARKUP = /<\/?[a-zA-Z][a-zA-Z0-9-]*(?=[\s>\/])/;
+const hit = (f, line, kind, what) => { if (ELEMENT[kind].file !== f && !(RENDERERS.includes(f) && kind !== 'style' && kind !== 'colour')) found.push({ f, line, kind, what }); };
 /* ONLY STRINGS AND TEMPLATES: a regex that reads a card (`/^<div class="card x/`) builds nothing. */
 const strings = src => { const out = []; try { for (const t of acorn.tokenizer(src, { ecmaVersion: 'latest', locations: true }))
   if (t.type === acorn.tokTypes.string || t.type === acorn.tokTypes.template) out.push([t.loc.start.line, String(t.value)]); } catch (e) { out.push([0, 'unreadable: ' + e.message]); } return out; };
@@ -31,6 +35,7 @@ files.forEach(f => { const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
   strings(src).forEach(([line, v]) => {
     /* A line inside a template is its first line plus the newlines before the match. */
     const at = i => line + (v.slice(0, i).match(/\n/g) || []).length;
+    if (MARKUP.test(v)) hit(f, line, 'markup', 'markup string ' + JSON.stringify(v.match(MARKUP)[0]));
     for (const m of v.matchAll(AS_TEXT)) hit(f, at(m.index), CLASS_OF[m[1]], `class ${m[1]}`);
     for (const m of v.matchAll(BUTTON)) hit(f, at(m.index), 'tile', '<button>');
     for (const m of v.matchAll(STYLE)) hit(f, at(m.index), 'style', 'inline style=');

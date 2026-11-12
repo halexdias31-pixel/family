@@ -26,7 +26,7 @@ const BUNDLE_SRC = ['bundleCard_', 'bundlePriceLine_', 'bundleStrayLine_'].map(n
 if (!/function bundleOf_\(\) \{\n(?:\s*\/\*[^\n]*\n)*\s*if \([^\n]*!findDone_\(\)\) return null;/.test(bundles)) bad.push('bundleOf_ does not wait for findDone_: a bundle is a card, shown only once the menus finish');
 /* eslint-disable-next-line no-new-func */
 const run = new Function('scope', 'with (scope) {\n' + cards.replace(/^(const|let) /gm, 'var ') + '\n'
-  + settings.replace(/^(const|let) /gm, 'var ') + '\n' + BUNDLE_SRC + '\n}\nreturn { findCard, setCardFields_, KC_FIELDS, KC_DEFAULT, kcOffOpts_, bundleCard_, qtag_ };');
+  + settings.replace(/^(const|let) /gm, 'var ') + '\n' + BUNDLE_SRC + '\n}\nreturn { findCard, setCardFields_, KC_FIELDS, KC_DEFAULT, kcOffOpts_, bundleCard_, qtag_, cardKind_ };');
 let got = {};
 try { got = run(scope); } catch (e) { bad.push('js/cards.js or js/settings.js would not load in the shape check: ' + e.message); }
 
@@ -148,14 +148,13 @@ try { const h = String(got.findCard({ kind: 'legacy', key: 'legacy:1', name: 'On
   if (w) bad.push('a KC_OWN card with a heading in its lines and a long tag: ' + w);
   if (!/<div class="kc-lines">[\s\S]*class="kc-credit">IUPAC/.test(h)) bad.push('a long tag does not become a credit line');
   if (/>One<\/(h3|p)>/.test(h.split('<div class="kc-lines">')[1] || '')) bad.push('a widget\'s own heading (its name) is still among its lines'); } catch (e) { bad.push('a KC_OWN card: findCard threw ' + e.message); }
-/* COMING SOON IS A TAG, lifted out of find-finder.js by name. */
-try { const soonSrc = (/\nfunction soonCard_\([\s\S]*?\n\}\n/.exec(finder) || [''])[0];
+/* COMING SOON IS A TAG: its spec (`soonSpec_`) lifted out of find-finder.js by name and drawn by the one renderer. */
+try { const soonSrc = (/\nconst soonSpec_ = [\s\S]*?\n\['soon'[^\n]*\n/.exec(finder) || [''])[0];
   scope.brand = (k, f) => f;
   /* eslint-disable-next-line no-new-func */
-  /* THE TAG MAKER is cards-make.js's own name, so the lifted maker is handed it. */
-  scope.window.KC_OWN = { soon: new Function('scope', 'qtag_', 'with (scope) {\n' + soonSrc + '\nreturn soonCard_; }')(scope, got.qtag_) };
+  new Function('scope', 'cardKind_', 'with (scope) {\n' + soonSrc.replace(/^const /gm, 'var ') + '\n}')(scope, got.cardKind_);
   const h = String(got.findCard({ kind: 'soon', key: 'soon:1', name: 'Timer', sub: 'Tools' })), w = shapeOf(h);
-  if (!soonSrc) bad.push('find-finder.js has no soonCard_');
+  if (!soonSrc) bad.push('find-finder.js has no soonSpec_ registered for soon');
   else if (w) bad.push('a Coming soon card: ' + w);
   else if (!/<div class="kc-tags">[\s\S]*Coming soon[\s\S]*<div class="kc-lines">/.test(h) || /Coming soon/.test(h.split('<div class="kc-lines">')[1])) bad.push('"Coming soon" is not a tag'); } catch (e) { bad.push('a Coming soon card: ' + e.message); }
 delete scope.brand;

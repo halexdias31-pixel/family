@@ -124,7 +124,8 @@ const SUITE = [
   { file: 'check-history-db.js', what: 'the history database: schema, ids, links both ways, years, sources' },
   { file: 'check-card-shape.js', what: 'one card shape for every kind in Find: picture, title, tags, lines (owner, 8 Nov)' },
   { file: 'check-one-template.js', what: 'every card on the site built by findCard (card_), the booking form too (owner, 12 Nov)' },
-  { file: 'check-one-way.js', what: 'card, tile, spinner and tag markup only from its one maker (owner, 12 Nov)' },
+  { file: 'check-one-way.js', what: 'any markup only from the renderer files (cards-render.js, tiles.js); the rest hand over data (owner, 12 Nov)' },
+  { file: 'check-card-spec.js', what: 'every card kind builder returns a spec object; renderCard escapes its text (owner, 12 Nov)' },
   { file: 'check-email-card.js', what: 'the Sunday email card is the site card: parts, lines, labels, corner, gap, sizes, tag colours (57a–62a)' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
@@ -260,7 +261,7 @@ const SUITE = [
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
   { file: 'check/fluid.js',   what: 'any shape of screen: seven phone, tablet and desktop sizes scroll no wider than the window and leave no blank side', slow: true },
   { file: 'check/setting-forms.js', what: 'every Settings card, signed out and in, at 390 and 820px: no box, menu or tile cut by its card (owner, 10 Nov)', slow: true },
-  { file: 'check/card-render.js', what: 'every card kind in Find, four viewers, 390 and 820px, closed and open: no text cut, blank card, centred text, kind HTML or stray profile picture (owner, 10 Nov)', slow: true },
+  { file: 'check/cards-render.js', what: 'every card kind in Find, four viewers, 390 and 820px, closed and open: no text cut, blank card, centred text, kind HTML or stray profile picture (owner, 10 Nov)', slow: true },
   { file: 'check/centred.js', what: 'Find floats back to the middle when words or chips are cleared (508)', slow: true },
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
   { file: 'check/slide.js',   what: 'the slide between columns as iOS does it: landings, a spring, the rubber band, a held row (527)', slow: true },
