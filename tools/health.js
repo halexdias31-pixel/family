@@ -63,11 +63,13 @@ function findWork(L) {
   if (!/tagAttr_\(f\.field\)/.test(chipFn)) work.push({ kind: 'tag-colour', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function filterChips'))), say: 'a picked chip does not take its menu\'s colour (tagAttr_(f.field))' });
   const css = read('style.css'), lum = h => { const c = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
   const bg = (/--bg:\s*#([0-9a-f]{6})/i.exec(css) || [])[1] || '000000', hues = [...css.matchAll(/--hue-(\d+):\s*#([0-9a-f]{6})/gi)];
+  /* THE CHIP'S RADIUS IS READ OFF ITS OWN RULE (.chip.sm), never named here, so a tag and check-look's one corner cannot disagree. */
+  const chipR = ((/\n\.chip\.sm\s*\{[^}]*?border-radius\s*:\s*([^;}]+)/.exec(css) || [])[1] || 'var(--r-round)').trim();
   /* EACH TAG A PILL LIKE ITS MENU CHIP (owner, 5 Nov): every .qtag rule keeps the chip's outline, radius token and padding; a rule that strips one fails. */
   [...css.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' ')).matchAll(/([^{}]*\.qtag\b(?![-\w\[])[^{}]*)\{([^}]*)\}/g)].filter(m => !/\.qtags?\s*\.\w|::?\w/.test(m[1].trim().split(/\s+/).pop())).forEach(m => {
     const b = m[2], why = [];
     if (/border(-color)?\s*:\s*[^;]*transparent|border\s*:\s*(0|none)/.test(b)) why.push('no outline');
-    if (/border-radius\s*:/.test(b) && !/border-radius\s*:\s*var\(--btn-r\)/.test(b)) why.push('a radius other than the chip\'s --btn-r');
+    if (/border-radius\s*:/.test(b) && (/border-radius\s*:\s*([^;]+)/.exec(b) || [])[1].trim() !== chipR) why.push('a radius other than the chip\'s ' + chipR);
     if (/padding\s*:\s*0\s*[;}]?/.test(b + ';') && !/padding\s*:\s*0\s*[\d.]/.test(b)) why.push('no padding');
     if (/background\s*:\s*none/.test(b)) why.push('no chip tint');
     if (why.length) work.push({ kind: 'tag-colour', where: 'style.css:' + lineOf(css, m.index + m[0].length - m[2].length), say: `${m[1].trim()} draws a tag that is not a pill like its menu chip: ${why.join(', ')}` }); });
@@ -260,7 +262,7 @@ function inSyncWork() {
   ['icon', 'apple-touch-icon'].forEach(r => { if (!new RegExp('<link rel="' + r + '" id="favicon').test(html)) add('index.html', `no <link rel="${r}" id="favicon…"> for applyBrandIcon_ to follow`); });
   /* THE TOP BAR IS @family., THE NAME AND SIGN OUT (owner, 6 Nov): no badge; what the dot counted is Find › Settings › Notifications. */
   if (/biz-dot|createElement\(/.test(fnOf('bizNeedsPaint_') + fnOf('topbarPaint_'))) add('js/records.js', 'a badge is drawn in the top bar — notifications live in Find › Settings');
-  if (!/name: 'Notifications'/.test(fnOf('settingDoorItems_'))) add('js/find-doors.js', 'no Notifications item in Find › Settings');
+  if (!/(?:name: |add\()'Notifications'/.test(fnOf('settingDoorItems_'))) add('js/find-doors.js', 'no Notifications item in Find › Settings');
   /* THE ICON FILES ARE THE SOURCE (6 Nov): the manifest names icon.png, and applyBrandIcon_ never swaps the tab for a sheet link. */
   if (/brandLogo_\(|brand\(\s*'logo/.test(fnOf('applyBrandIcon_'))) add('js/shell-pages.js', "the tab icon follows the sheet's logo, not favicon.png / icon.png");
   try { const man = JSON.parse(read('manifest.webmanifest'));

@@ -466,7 +466,7 @@ html.wide body { max-width: none; box-shadow: none; }
 
 /* ---------- A BUTTON THAT IS WAITING SHOWS THE THREE DOTS (owner, 8 Nov, 30a): loading_()'s look, never a spinner. */
 .btn.is-busy::before, .tile:is(.is-busy, [aria-busy="true"])::before {
-  content: ''; flex: 0 0 auto; width: .32rem; height: .32rem; margin: 0 var(--s2); border-radius: 50%;
+  content: ''; flex: 0 0 auto; width: .32rem; height: .32rem; margin: 0 var(--s2); border-radius: var(--r-round);
   background: currentColor; box-shadow: -.5rem 0 currentColor, .5rem 0 currentColor;
   animation: loading 1.2s ease-in-out infinite;
 }
@@ -819,7 +819,7 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
               box-shadow var(--dur-quick) var(--ease-out);
 }
 /* ---------- ONE TICK (owner 63a, 9 Nov): every tick, checkbox and stage box is this square with a ✓ in it, ghosted when off, gold when on. ---------- */
-:is(.check .box, .row.dock-item .box, .bk-tick, .mat-list input) {
+:is(.check .box, .row.dock-item .box, .bk-tick, .mat-list input[type="checkbox"]) {
   border-radius: var(--r-ui);
   border: 1.5px solid color-mix(in srgb, var(--white) 14%, transparent);
   background: color-mix(in srgb, var(--white) 4%, transparent);
@@ -827,11 +827,11 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
   display: inline-flex; align-items: center; justify-content: center; }
 .row.dock-item .box { flex: none; width: max(22px, 1.5rem); height: max(22px, 1.5rem); }
 /* The ghost of the mark, so an empty box says what would go in it. */
-:is(.check .box, .row.dock-item .box, .mat-list input)::after { content: '✓'; font-weight: 700; line-height: 1; color: color-mix(in srgb, var(--white) 16%, transparent); }
+:is(.check .box, .row.dock-item .box, .mat-list input[type="checkbox"])::after { content: '✓'; font-weight: 700; line-height: 1; color: color-mix(in srgb, var(--white) 16%, transparent); }
 .bk-tick { color: color-mix(in srgb, var(--white) 16%, transparent); }
 .check:is(:active, .is-pressed) .box { border-color: var(--gold); }
-:is(.check input:checked + .box, .row.dock-item input:checked + .box, .bk-tick.on, .mat-list input:checked) { background: var(--gold); border-color: var(--gold); box-shadow: none; color: var(--on-gold); }
-:is(.check input:checked + .box, .row.dock-item input:checked + .box, .mat-list input:checked)::after { color: var(--on-gold); }
+:is(.check input:checked + .box, .row.dock-item input:checked + .box, .bk-tick.on, .mat-list input[type="checkbox"]:checked) { background: var(--gold); border-color: var(--gold); box-shadow: none; color: var(--on-gold); }
+:is(.check input:checked + .box, .row.dock-item input:checked + .box, .mat-list input[type="checkbox"]:checked)::after { color: var(--on-gold); }
 
 /* ---------- YOUR ROLES: A TICK WITH ITS MEANING UNDER THE WORD § */
 .notify-card .role-pick { align-items: flex-start; }
@@ -2831,7 +2831,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
             white-space: normal; overflow-wrap: break-word; min-width: 0; }
 .mat-list label.off { display: none; }
 /* DRAWN, NOT STYLED — a background on a native checkbox stops the browser drawing its own control and there is nothing left to replace the tick. § */
-.mat-list input { appearance: none; -webkit-appearance: none; flex: none; position: relative;
+.mat-list input[type="checkbox"] { appearance: none; -webkit-appearance: none; flex: none; position: relative;
                   width: 1rem; height: 1rem; min-height: 0; padding: 0; margin: 0;
                   font-size: var(--fs-small); cursor: pointer; }
 /* THE GAUGE turns red at 100%, not at 90% — a warning that fires early is one people learn to
@@ -3248,7 +3248,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- THE CARD'S TAGS § */
 .qtags { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s1); }
 .qcard-tags { margin: 0; }
-/* A RADIUS IN px, NOT 999px. § */
+/* THE CHIP'S OWN CORNER (--r-round): a tag is a pill like its menu chip, and check-look allows no third radius. */
 .qtag {
   display: inline-flex; align-items: center; max-width: 100%; min-height: var(--tp-h); padding: var(--tp-pad); border-radius: var(--r-round);
   border: 1px solid var(--tag, var(--chip-line)); color: var(--tag, var(--dim)); background: color-mix(in srgb, var(--tag, var(--chip-line)) 10%, transparent);

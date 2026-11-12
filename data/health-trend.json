@@ -795,5 +795,83 @@
    "bigNotes": 10,
    "spread": 8
   }
+ },
+ {
+  "date": "2026-11-12",
+  "commit": "b7bc6c7",
+  "score": 81.9,
+  "parts": {
+   "code": 84.6,
+   "logic": 89.6,
+   "ui": 80.6,
+   "cost": 63.3,
+   "business": 73.1
+  },
+  "topKind": "chip-size",
+  "effort": {
+   "commits": 30,
+   "medianLines": 132,
+   "worstLines": 49317,
+   "medianFiles": 5,
+   "worstFiles": 54,
+   "testBytes": 5652078,
+   "testBiggest": 372953,
+   "historyBytes": 4582234,
+   "historyBiggest": 166839,
+   "bigNotes": 10,
+   "spread": 16
+  }
+ },
+ {
+  "date": "2026-11-12",
+  "commit": "b7bc6c7",
+  "score": 84.5,
+  "parts": {
+   "code": 90.1,
+   "logic": 93.2,
+   "ui": 82.5,
+   "cost": 63.3,
+   "business": 73.1
+  },
+  "topKind": "card-tags",
+  "effort": {
+   "commits": 30,
+   "medianLines": 132,
+   "worstLines": 49317,
+   "medianFiles": 5,
+   "worstFiles": 54,
+   "testBytes": 5653619,
+   "testBiggest": 372953,
+   "historyBytes": 4582234,
+   "historyBiggest": 166839,
+   "bigNotes": 10,
+   "spread": 16
+  }
+ },
+ {
+  "date": "2026-11-12",
+  "commit": "b7bc6c7",
+  "score": 85.6,
+  "parts": {
+   "code": 90.1,
+   "logic": 93.2,
+   "ui": 84.6,
+   "cost": 63.3,
+   "business": 73.1
+  },
+  "topKind": "card-tags",
+  "effort": {
+   "commits": 30,
+   "medianLines": 132,
+   "worstLines": 49317,
+   "medianFiles": 5,
+   "worstFiles": 54,
+   "testBytes": 5653619,
+   "testBiggest": 372953,
+   "historyBytes": 4582234,
+   "historyBiggest": 166839,
+   "bigNotes": 10,
+   "spread": 16
+  }
  }
 ]
