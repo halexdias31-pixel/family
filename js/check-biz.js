@@ -14,7 +14,7 @@ function work() {
   const box = { DATA: {}, USER: { name: 'x' }, esc: s => String(s == null ? '' : s).replace(/[<>&"]/g, c => '&#' + c.charCodeAt(0) + ';'), norm: s => String(s || '').trim().toLowerCase(),
     tile_: o => `<b data-do="${o.act}">${o.label}</b>`, loading_: () => '<i>loading</i>', bizNeed_: (k, n, say, now) => { NEED[k] = { n, now }; return ''; }, on: () => {}, isAdmin: () => ADMIN.on,
     money_: x => '£' + Number(x).toFixed(2), date_: iso => String(iso).slice(8, 10) + '/' + String(iso).slice(5, 7) + '/' + String(iso).slice(2, 4),
-    card_: html => String(html || ''), cardFill_: () => {},
+    card_: html => String(html || ''), cardFill_: () => {}, qtag_: (h, a, c) => `<span class="qtag${c ? ' ' + c : ''}"${a || ''}>${h}</span>`,
     setTimeout: () => 0, fetch: () => new Promise(() => {}), api: () => new Promise(() => {}), document: { querySelectorAll: () => [] } };
   try { vm.runInNewContext(src + '\n;this.BC = BC; this.BC_RULES = BC_RULES; this.BC_DOMAINS = BC_DOMAINS; this.bcInner_ = bcInner_; this.bcRuleOf_ = bcRuleOf_; this.bizCheckCard_ = bizCheckCard_; this.bcNextFixed_ = bcNextFixed_; this.bcDueOf_ = bcDueOf_; this.bcState_ = bcState_; this.bcTaxPot_ = bcTaxPot_; this.bcIso_ = bcIso_;', box); }
   catch (e) { add('js/biz-check.js', 'would not load: ' + e.message); return W; }

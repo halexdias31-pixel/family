@@ -1,0 +1,201 @@
+{
+ "id": "aqa-8062",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Religious Studies",
+ "code": "8062",
+ "url": "https://filestore.aqa.org.uk/resources/rs/specifications/AQA-8062-SP-2016.PDF",
+ "sections": [
+  {
+   "id": "3.1",
+   "title": "Component 1: The study of religions: beliefs, teachings"
+  },
+  {
+   "id": "3.2",
+   "title": "Component 2: Thematic studies"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.1.1",
+   "text": "Buddhism",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.1.2",
+   "text": "Practices",
+   "parent": "3.1.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2",
+   "text": "Christianity",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2.1",
+   "text": "Beliefs and teachings",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.2.2",
+   "text": "Practices",
+   "parent": "3.1.2",
+   "links": []
+  },
+  {
+   "id": "3.1.3",
+   "text": "Catholic Christianity",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.3.1",
+   "text": "Beliefs and teachings",
+   "parent": "3.1.3",
+   "links": []
+  },
+  {
+   "id": "3.1.3.2",
+   "text": "Practices",
+   "parent": "3.1.3",
+   "links": []
+  },
+  {
+   "id": "3.1.4",
+   "text": "Hinduism",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.4.1",
+   "text": "Beliefs and teachings",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.1.4.2",
+   "text": "Practices",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.1.5",
+   "text": "Islam",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.5.1",
+   "text": "Beliefs and teachings",
+   "parent": "3.1.5",
+   "links": []
+  },
+  {
+   "id": "3.1.5.2",
+   "text": "Practices",
+   "parent": "3.1.5",
+   "links": []
+  },
+  {
+   "id": "3.1.6",
+   "text": "Judaism",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.6.1",
+   "text": "Beliefs and teachings",
+   "parent": "3.1.6",
+   "links": []
+  },
+  {
+   "id": "3.1.6.2",
+   "text": "Practices",
+   "parent": "3.1.6",
+   "links": []
+  },
+  {
+   "id": "3.1.7",
+   "text": "Sikhism",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.7.1",
+   "text": "Beliefs and teachings",
+   "parent": "3.1.7",
+   "links": []
+  },
+  {
+   "id": "3.1.7.2",
+   "text": "Practices",
+   "parent": "3.1.7",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Religious, philosophical and ethical studies",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.1.1",
+   "text": "Theme A: Relationships and families",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.2",
+   "text": "Theme B: Religion and life",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.3",
+   "text": "Theme C: The existence of God and revelation",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.4",
+   "text": "Theme D: Religion, peace and conflict",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.5",
+   "text": "Theme E: Religion, crime and punishment",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.6",
+   "text": "Theme F: Religion, human rights and social justice",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.2",
+   "text": "Textual studies",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.1",
+   "text": "Theme G: St Mark’s gospel: the life of Jesus",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.2",
+   "text": "Theme H: St Mark’s Gospel as a source of religious, moral and spiritual truths",
+   "parent": "3.2.2",
+   "links": []
+  }
+ ]
+}

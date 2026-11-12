@@ -7,7 +7,7 @@ function finderTagsLook_() {
   const view = finderTagsView_(), at = view && view[finderStateKey_()];
   if (!at || !(at[3] > 1) || !finderTagsSame_(view, fs[0])) return null;
   const facet = facetBy(at[0]);
-  return facet ? { facet: facet, values: at[1].map((v, i) => ({ value: v[0], show: v.length > 1 ? v[1] : v[0], n: (at[2] || [])[i], say: (at[4] || [])[i] })) } : null;
+  return facet ? { facet: facet, values: at[1].map((v, i) => ({ value: v[0], show: v.length > 1 ? v[1] : v[0], also: v[2], n: (at[2] || [])[i], say: (at[4] || [])[i] })) } : null;
 }
 /* THE BUILD'S LIBRARY IS THIS ONE when the facets are its facets, nothing failed to come, no press makes Your result a § */
 /* chip's cards are as many as it counted (one tally of the whole list, held). Anything else is counted live, as before. */
@@ -132,7 +132,7 @@ function chipShowBuilt_(before, f) {
     if (before.some(c => !c || c.any) || STUFF.admit != null || !finderSettled_()) return null;
     const view = finderTagsView_(), at = view && view[before.map(c => c.field + '=' + c.value).join('&')];
     if (!at || at[0] !== f.field || !finderTagsSame_(view, before[0] || f)) return null;
-    const v = at[1].find(a => spellKey_(a[0]) === spellKey_(f.value));
+    const v = at[1].find(a => [a[0]].concat(a[2] || []).some(u => spellKey_(u) === spellKey_(f.value)));
     return v ? (v.length > 1 ? v[1] : v[0]) : null;
   } catch (e) { return null; }
 }

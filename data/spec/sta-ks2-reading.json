@@ -1,0 +1,65 @@
+{
+ "id": "sta-ks2-reading",
+ "board": "Standards & Testing Agency",
+ "qualification": "KS2 SATs",
+ "level": "KS2",
+ "subject": "English Language",
+ "code": "KS2 reading",
+ "url": "https://assets.publishing.service.gov.uk/media/5a82454eed915d74e3402a2a/2016_KS2_Englishreading_framework_PDFA_V3.pdf",
+ "sections": [
+  {
+   "id": "D",
+   "title": "Content domain"
+  }
+ ],
+ "points": [
+  {
+   "id": "2a",
+   "text": "give / explain the meaning of words in context",
+   "parent": "D",
+   "links": []
+  },
+  {
+   "id": "2b",
+   "text": "retrieve and record information / identify key details from fiction and non-fiction",
+   "parent": "D",
+   "links": []
+  },
+  {
+   "id": "2c",
+   "text": "summarise main ideas from more than one paragraph",
+   "parent": "D",
+   "links": []
+  },
+  {
+   "id": "2d",
+   "text": "make inferences from the text / explain and justify inferences with evidence from the text",
+   "parent": "D",
+   "links": []
+  },
+  {
+   "id": "2e",
+   "text": "predict what might happen from details stated and implied",
+   "parent": "D",
+   "links": []
+  },
+  {
+   "id": "2f",
+   "text": "identify / explain how information / narrative content is related and contributes to meaning as a whole",
+   "parent": "D",
+   "links": []
+  },
+  {
+   "id": "2g",
+   "text": "identify / explain how meaning is enhanced through choice of words and phrases",
+   "parent": "D",
+   "links": []
+  },
+  {
+   "id": "2h",
+   "text": "make comparisons within the text 2 English reading test framework",
+   "parent": "D",
+   "links": []
+  }
+ ]
+}

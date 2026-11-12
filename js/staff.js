@@ -380,10 +380,10 @@ function staffCard_() {
 function staffInner_(wait) {
   const list = STAFF.list || [];
   const n = list.filter(s => !staffAgreed_(s)).length, dbs = list.filter(staffDbsDue_).length;
-  const dbsLine = s => !staffDbsDue_(s) ? '' : `<p class="biz-cap staff-dbs"><b class="biz-flag">DBS check due</b> <span class="qtags"><span class="qtag">${
-      esc(s.dbsCheckedOn ? 'last ' + date_(s.dbsCheckedOn) : 'never logged')}</span><span class="qtag">${esc(s.dbsNumber ? 'cert. ' + s.dbsNumber : 'no certificate no. on file')}</span></span></p>`;
+  const dbsLine = s => !staffDbsDue_(s) ? '' : `<p class="biz-cap staff-dbs"><b class="biz-flag">DBS check due</b> <span class="qtags">${qtag_(`${
+      esc(s.dbsCheckedOn ? 'last ' + date_(s.dbsCheckedOn) : 'never logged')}`)}${qtag_(`${esc(s.dbsNumber ? 'cert. ' + s.dbsNumber : 'no certificate no. on file')}`)}</span></p>`;
   const item = s => `<div class="kc-item biz-item staff-item" data-id="${esc(s.personId)}">
-      <p class="biz-cap"><b>${esc(s.name)}</b> <span class="qtags biz-when"><span class="qtag">${esc(s.rank === 'admin' ? 'admin' : 'staff')}</span></span>
+      <p class="biz-cap"><b>${esc(s.name)}</b> <span class="qtags biz-when">${qtag_(`${esc(s.rank === 'admin' ? 'admin' : 'staff')}`)}</span>
         ${staffAgreed_(s) ? '' : `<b class="biz-flag">${s.termsVersion ? 'Old terms' : 'Not agreed'}</b>`}</p>
       ${dbsLine(s)}
       <div class="tile-row">${tile_({ icon: 'print', label: 'Statement', note: 'any month', act: 'stmt-for', data: { id: s.personId, name: s.name } })}${staffDbsDue_(s)

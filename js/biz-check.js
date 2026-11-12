@@ -175,14 +175,14 @@ function bcItem_(item, s) {
   /* THE TICK ON THE LEFT, THE THING IN WORDS BESIDE IT — one line, as a checklist reads (`.row.kid-item` lays out a tile and its caption). */
   /* ONE CHILD LINE A THING (10 Nov): its words, its status as a tag coloured by urgency (gold soon, red overdue), its tile in the row. */
   const glow = s.expired ? ' is-over' : s.soon ? ' is-soon' : '';
-  const line = `<p class="kc-line bc-line">${esc(item.title)} <span class="qtags"><span class="qtag bc-tag${glow}">${esc(bcTag_(s))}</span></span></p>
+  const line = `<p class="kc-line bc-line">${esc(item.title)} <span class="qtags">${qtag_(`${esc(bcTag_(s))}`, '', `bc-tag${glow}`)}</span></p>
     <div class="tile-row">${tile_({ icon: s.sorted ? 'tick' : s.expired || (s.auto && s.auto.ok === false) ? 'flag' : 'plus', label: item.title,
     note: bcStatus_(s), tone: s.sorted ? 'buy' : '', on: BC.open === item.id, act: 'bc-open', data: { id: item.id } })}</div>`;
   if (BC.open !== item.id) return `<div class="kc-item bc-item" data-bc="${esc(item.id)}">${line}</div>`;
   const t = s.tick || {}, cyc = s.cyc && !s.cyc.continuous;
   return `<div class="kc-item bc-item is-open" data-bc="${esc(item.id)}">${line}
-    ${s.cyc ? `<p class="bc-cycle"><span class="qtag">${esc(bcCycleSay_(item))}</span>${s.due ? ` <span class="qtag">expires ${esc(bcSaid_(s.due))}</span>` : ''}${
-      t.result ? ` <span class="qtag">${esc(t.result)}</span>` : ''}${t.doc_link ? ` <a href="${esc(t.doc_link)}" data-do="file-view">Document</a>` : ''}</p>` : ''}
+    ${s.cyc ? `<p class="bc-cycle">${qtag_(`${esc(bcCycleSay_(item))}`)}${s.due ? ` ${qtag_(`expires ${esc(bcSaid_(s.due))}`)}` : ''}${
+      t.result ? ` ${qtag_(`${esc(t.result)}`)}` : ''}${t.doc_link ? ` <a href="${esc(t.doc_link)}" data-do="file-view">Document</a>` : ''}</p>` : ''}
     <p class="bc-why">${esc(item.why)}</p>
     ${item.run ? `<div class="tile-row">${tile_({ icon: 'ext', label: item.run, href: item.link, leave: true })}</div>` : ''}
     <p class="bc-how">${esc(item.how)} <a href="${esc(item.link)}" data-do="file-view" target="_blank" rel="noopener">Official guidance</a>${item.doc && typeof policyHref_ === 'function' && policyHref_(item.doc)
@@ -215,14 +215,14 @@ function bcInner_() {
     + all.filter(i => st[i.id].info).map(i => `<p class="bc-money">${esc(st[i.id].auto.say)}</p>`).join('');
   const groups = [];
   all.forEach(i => { if (groups.indexOf(i.group) === -1) groups.push(i.group); });
-  return `<div class="qtags"><span class="qtag">Business</span><span class="qtag">Admin only</span><span class="qtag">Guidance, not advice</span></div>
+  return `<div class="qtags">${qtag_(`Business`)}${qtag_(`Admin only`)}${qtag_(`Guidance, not advice`)}</div>
     <h3>Business checker</h3>
     ${bizNeed_('bizcheck', BC.list ? renew : 0, renew + (renew === 1 ? ' thing to renew' : ' things to renew') + (over ? ' · ' + over + ' overdue' : ''), BC.list ? over : 0)}
     <div class="kc-items biz-body bc-body"${wait ? ' aria-busy="true"' : ''}>
       ${BC.list ? `<p class="bc-count"><b>${done} of ${counted.length} sorted</b></p>${money}
       ${next.length ? next.map(i => bcItem_(i, st[i.id])).join('') : '<p>Everything that applies is sorted.</p>'}
       ${groups.map(g => { const gi = all.filter(i => i.group === g && next.indexOf(i) === -1);
-        return gi.length ? `<h4 class="bc-group">${esc(g)} <span class="qtag">${gi.filter(i => st[i.id].sorted).length}/${gi.filter(i => !st[i.id].info).length}</span></h4>${gi.map(i => bcItem_(i, st[i.id])).join('')}` : ''; }).join('')}
+        return gi.length ? `<h4 class="bc-group">${esc(g)} ${qtag_(`${gi.filter(i => st[i.id].sorted).length}/${gi.filter(i => !st[i.id].info).length}`)}</h4>${gi.map(i => bcItem_(i, st[i.id])).join('')}` : ''; }).join('')}
       ` : ''}
     ${wait ? loading_() : ''}</div>
     <p class="note me-said bc-said">${esc(BC.error)}</p>`;

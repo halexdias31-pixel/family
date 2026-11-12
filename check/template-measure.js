@@ -115,7 +115,7 @@ function measureCards(arg) {
     [...c.children].filter(shown).forEach((e, i) => { if (!i) return; const m = parseFloat(getComputedStyle(e).marginTop); if (!inSet(m, SP)) fail('spacing', 'a part\'s gap from the --s scale', m + 'px', e); });
     const tagR = tags[0] && tags[0].getBoundingClientRect(), tileR = act && act.querySelector('.tile') && act.querySelector('.tile').getBoundingClientRect();
     out.push({ i: ci, kind, regions: regions.join('>'), fails, pad: pads.join('/'), tagH: tagR ? Math.round(tagR.height) : 0, tagFs: tags[0] ? parseFloat(getComputedStyle(tags[0]).fontSize) : 0,
-      tileW: tileR ? Math.round(tileR.width) : 0, rect: { x: cr.left + scrollX, y: cr.top + scrollY, w: cr.width, h: cr.height }, sel: cardSel(c) });
+      tileW: tileR ? Math.round(tileR.width) : 0, picH: (pic => (pic && pic.getBoundingClientRect().height) ? Math.round(pic.getBoundingClientRect().height) : 0)(c.querySelector(':scope > .kc-pic')), rect: { x: cr.left + scrollX, y: cr.top + scrollY, w: cr.width, h: cr.height }, sel: cardSel(c) });
   });
   function px2(n) { return parseFloat(getComputedStyle(R).getPropertyValue(n)) * (/rem/.test(getComputedStyle(R).getPropertyValue(n)) ? parseFloat(getComputedStyle(R).fontSize) : 1) || 0; }
   function sel(el) { return el.tagName.toLowerCase() + (el.classList.length ? '.' + [...el.classList].slice(0, 2).join('.') : ''); }

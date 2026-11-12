@@ -1,0 +1,201 @@
+{
+ "id": "aqa-7042",
+ "board": "AQA",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "History",
+ "code": "7042",
+ "url": "https://filestore.aqa.org.uk/resources/history/specifications/AQA-7041-7042-SP-2015.PDF",
+ "sections": [
+  {
+   "id": "1",
+   "title": "Component 1: Breadth study"
+  },
+  {
+   "id": "2",
+   "title": "Component 2: Depth study"
+  }
+ ],
+ "points": [
+  {
+   "id": "1A",
+   "text": "The Age of the Crusades, c1071–1204",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1B",
+   "text": "Spain in the Age of Discovery, 1469–1598 (A-level",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1C",
+   "text": "The Tudors: England, 1485–1603",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1D",
+   "text": "Stuart Britain and the Crisis of Monarchy, 1603–1702",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1E",
+   "text": "Russia in the Age of Absolutism and Enlightenment",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1F",
+   "text": "Industrialisation and the people: Britain, c1783–1885",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1G",
+   "text": "Challenge and transformation: Britain, c1851–1964",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1H",
+   "text": "Tsarist and Communist Russia, 1855–1964",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1J",
+   "text": "The British Empire, c1857–1967",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1K",
+   "text": "The making of a Superpower: USA, 1865–1975",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1L",
+   "text": "The quest for political stability: Germany, 1871–1991",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "2A",
+   "text": "Royal Authority and the Angevin Kings, 1154–1216",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2B",
+   "text": "The Wars of the Roses, 1450–1499",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2C",
+   "text": "The Reformation in Europe, c1500–1564 (A-level only)",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2D",
+   "text": "Religious conflict and the Church in England, c1529–",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2E",
+   "text": "The English Revolution, 1625–1660",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2F",
+   "text": "The Sun King: Louis XIV, France and Europe, 1643–",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2G",
+   "text": "The Birth of the USA, 1760–1801",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2H",
+   "text": "France in Revolution, 1774–1815 (A-level only)",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2J",
+   "text": "America: A Nation Divided, c1845–1877",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2K",
+   "text": "International Relations and Global Conflict, c1890–",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2L",
+   "text": "Italy and Fascism, c1900–1945",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2M",
+   "text": "Wars and Welfare: Britain in Transition, 1906–1957",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2N",
+   "text": "Revolution and dictatorship: Russia, 1917–1953",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2O",
+   "text": "Democracy and Nazism: Germany, 1918–1945",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2P",
+   "text": "The Transformation of China, 1936–1997",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2Q",
+   "text": "The American Dream: reality and illusion, 1945–1980",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2R",
+   "text": "The Cold War, c1945–1991",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2S",
+   "text": "The Making of Modern Britain, 1951–2007",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2T",
+   "text": "The Crisis of Communism: The USSR and the Soviet",
+   "parent": "2",
+   "links": []
+  }
+ ]
+}

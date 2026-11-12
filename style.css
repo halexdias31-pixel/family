@@ -163,8 +163,8 @@
   /* THE FIXED SCALE (owner, 11 Nov: a small set of sizes; nothing makes its own). js/check-scale.js holds every rule to it. */
   --tap: 44px;
   --pic-s: 48px; --pic-l: 88px;
-  /* ONE PICTURE HEIGHT (owner 58a, 9 Nov): every card's picture, cropped to fill (object-fit: cover). */
-  --pic-h: 7.5rem;
+  /* ONE PICTURE HEIGHT (owner 58a, 9 Nov; 12 Nov: the same for every kind, a face or an animation): every card's picture. */
+  --pic-h: 9rem;
   /* ONE GAP BETWEEN CARDS (owner 62a, 9 Nov): a bare card's padding either side of its rule, a boxed card's margin. */
   --card-gap: .85rem;
   --r-round: 999px;
@@ -426,6 +426,9 @@ html.wide body { max-width: none; box-shadow: none; }
 }
 /* AND A HEADING IN THE SHEET MAY HOLD AN ADDRESS, which has nothing to break at. § */
 #sheet-body h3 { overflow-wrap: anywhere; }
+/* AN EMAIL ADDRESS IN A SENTENCE breaks anywhere rather than pushing the card wider (one way: a class, never style=). */
+.wrap-any { overflow-wrap: anywhere; }
+.build-said { text-align: center; }
 
 /* ---------- CARDS § */
 /* NOT A BOX. A card is a block with a rule under it — the rectangle around everything was the single least minimal thing in the file, and eight of them stacked § */
@@ -5838,14 +5841,13 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
   #screen { overflow: hidden; }
 }
 /* ONE CARD ANATOMY, CENTRED, STATIC (owner, 10 Nov): picture, tags, lines and content, four buttons, on one axis; drawn once, whole. */
-.card.kc { --pic-h: 4.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.card.kc { display: flex; flex-direction: column; align-items: center; text-align: center; }
 .card.kc > * { width: 100%; max-width: 70ch; margin-left: auto; margin-right: auto; box-sizing: border-box; }
 .card.kc > .kc-head { display: none; }
 .card.kc > .kc-pic { flex: none; width: var(--pic-h); border-radius: 50%; }
 .card.kc > .kc-pic > * { max-width: none; width: 100%; height: 100%; border-radius: 50%; }
 /* NO REAL PICTURE, NO PICTURE PART (owner, 10 Nov late): the tags lead. A thing's own photo or figure is its shape, not a circle. */
 .card.kc > .kc-pic:empty { display: none; }
-.card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) { --pic-h: 12rem; }
 .card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) > .kc-pic { width: 100%; border-radius: var(--r-ui); }
 .card.kc > .kc-pic > figure { background: none; padding: 0; }
 .card.kc > .kc-pic .hdb-ms-sides, .card.kc > .kc-pic .hdb-ms-side { height: 100%; justify-content: center; }  /* A DRAWING SHOWN WHOLE, not cut at the picture's height */
@@ -6238,3 +6240,11 @@ body.nes-on .page.soft > .pane { filter: none; }
 
 .tt-big { font-size: var(--fs-title); text-align: center; margin: var(--s2) 0; }
 .game-said { text-align: center; margin: var(--s2) 0 0; min-height: 1.2em; }
+/* A SPECIFICATION (owner, 12 Nov): the insert's sheet of paper, each section a fold, each point its code then its words. */
+.spec-sec > summary { cursor: pointer; }
+.spec-sec ul ul { margin-left: var(--s3); }
+.spec-say { display: block; font-size: var(--fs-small); line-height: 1.4; }
+.spec-pt > .tile-row { margin: var(--s1) 0; justify-content: flex-start; }
+/* ON PAPER the round tiles take the paper's ink and rule, as the sheet's words do. */
+.spec-pt .tile { color: var(--paper-ink); border-color: var(--paper-rule); background: transparent; }
+.spec-more { font-size: var(--fs-small); color: var(--paper-dim); margin: 0; }

@@ -67,7 +67,7 @@ const bizState_ = (item, iso) => {
 };
 const bizRow_ = id => (BIZ.list || []).find(r => r.id === id) || {};
 
-const bizCap_ = (item, st) => `${esc(item.title)} <span class="qtags biz-when"><span class="qtag">${esc(item.due.toLowerCase())}</span></span>${
+const bizCap_ = (item, st) => `${esc(item.title)} <span class="qtags biz-when">${qtag_(`${esc(item.due.toLowerCase())}`)}</span>${
   st ? ` <b class="biz-flag">${st === 'overdue' ? 'Overdue' : 'Due soon'}</b>` : ''}`;
 /* THE CARD'S OWN LINE SAYS ONLY A REFUSAL NOW. § */
 const bizSaid_ = () => BIZ.error || '';
@@ -136,7 +136,7 @@ function postsWaitCard_() {
   const wait = typeof awaiting_ === 'function' && awaiting_();
   const n = wait ? 0 : list.length;
   const item = p => `<div class="biz-item post-wait-item" data-id="${esc(p.id)}">
-      <p class="biz-cap"><b>${esc(p.author || p.handle || '')}</b> <span class="qtags biz-when"><span class="qtag">${esc(p.when || '')}</span></span></p>
+      <p class="biz-cap"><b>${esc(p.author || p.handle || '')}</b> <span class="qtags biz-when">${qtag_(`${esc(p.when || '')}`)}</span></p>
       ${p.caption ? `<p class="app-line">${esc(p.caption)}</p>` : ''}
       <div class="tile-row">${tile_({ icon: 'open', label: 'Open', note: 'on the feed', act: 'post-open', data: { id: p.id } })}${
         tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it', act: 'post-approve', data: { id: p.id, on: '1' } })}${
@@ -172,7 +172,7 @@ function appsInner_(wait) {
   const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const line = (k, v) => v ? `<p class="app-line"><b>${esc(k)}</b> ${esc(v)}</p>` : '';
   const item = a => `<div class="biz-item app-item" data-id="${esc(a.id)}">
-      <p class="biz-cap"><b>${esc(a.name || a.handle)}</b> <span class="qtags biz-when"><span class="qtag">${esc(APP_STATUS_SAID[a.status] || a.status)} · ${esc(when(a.at))}</span></span></p>
+      <p class="biz-cap"><b>${esc(a.name || a.handle)}</b> <span class="qtags biz-when">${qtag_(`${esc(APP_STATUS_SAID[a.status] || a.status)} · ${esc(when(a.at))}`)}</span></p>
       ${line('Full name', a.full_name)}${line('Contact', [a.phone, a.email].filter(Boolean).join(' · '))}
       ${line('Address', [a.address, a.postcode].filter(Boolean).join(', '))}${line('Born', a.dob)}
       ${line('Teaches', a.subjects)}${line('Rate', a.rate ? perHour_(a.rate) : '')}${line('Qualifications', a.qualifications)}
@@ -232,7 +232,7 @@ function errsInner_(wait) {
   const list = ERRS.list || [];
   const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const item = r => `<div class="biz-item err-item" data-id="${esc(r.id)}">
-      <p class="biz-cap"><b>${esc(r.message)}</b> <span class="qtags biz-when"><span class="qtag">${esc(r.count + '× · last ' + when(r.last))}</span></span></p>
+      <p class="biz-cap"><b>${esc(r.message)}</b> <span class="qtags biz-when">${qtag_(`${esc(r.count + '× · last ' + when(r.last))}`)}</span></p>
     </div>`;
   return `<h3>Error log</h3>
     <div class="biz-body err-body"${wait ? ' aria-busy="true"' : ''}>
@@ -279,7 +279,7 @@ function reportsInner_(wait) {
   const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const st = (r, decision, icon, label, note) => tile_({ icon, label, note, act: 'rep-status', data: { id: r.id, decision } });
   const item = r => `<div class="biz-item rep-item" data-id="${esc(r.id)}">
-      <p class="biz-cap"><b>${esc(r.label || r.itemId)}</b> <span class="qtags biz-when"><span class="qtag">${esc(r.kind)}</span></span></p>
+      <p class="biz-cap"><b>${esc(r.label || r.itemId)}</b> <span class="qtags biz-when">${qtag_(`${esc(r.kind)}`)}</span></p>
       ${r.note ? `<p class="rep-note-said">“${esc(r.note)}”</p>` : ''}
       <div class="tile-row">${REP_FINDS_.indexOf(r.kind) !== -1 ? tile_({ icon: 'open', label: 'Open', note: 'the card', act: 'rep-open', data: { k: r.itemId } }) : ''}${
         st(r, 'confirm', 'tick', 'Confirm', 'to Notes for Claude') + st(r, 'dismiss', 'close', 'Dismiss')}</div>
@@ -287,7 +287,7 @@ function reportsInner_(wait) {
   const more = REPS.open > Math.min(list.length, REPS_DRAWN) ? REPS.open - Math.min(list.length, REPS_DRAWN) : 0;
   const msgs = REPS.msgs || [];
   const mItem = r => `<div class="biz-item rep-item rep-msg" data-id="${esc(r.id)}">
-      <p class="biz-cap"><b>Message from ${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}</b> <span class="qtags biz-when"><span class="qtag">${esc(when(r.at))}</span></span></p>
+      <p class="biz-cap"><b>Message from ${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}</b> <span class="qtags biz-when">${qtag_(`${esc(when(r.at))}`)}</span></p>
       <p class="rep-note-said">${esc(r.reason || 'No reason given')}</p>
       <div class="tile-row">${tile_({ icon: 'tick', label: 'Dealt with', act: 'rep-status', data: { id: r.id, decision: 'dismiss', kind: 'message' } })}</div>
     </div>`;
@@ -778,7 +778,7 @@ const TPL_WEAR_ = { fs: 'font-size', sp: 'width', bt: 'width: VAR; height', pc: 
 const tplTok_ = k => { try { return getComputedStyle(document.documentElement).getPropertyValue(k).trim(); } catch (e) { return ''; } };
 function tplSample_() {
   const h = card_(`<div class="tpl-sample"><img src="icon.png" alt="A sample picture"><h3>A sample card</h3>
-    <div class="qtags"><span class="qtag">A sample card</span><span class="qtag">A tag</span></div>
+    <div class="qtags">${qtag_(`A sample card`)}${qtag_(`A tag`)}</div>
     <p>What the thing holds, in plain words, centred.</p></div>`, 'panel', 'A sample card');
   return TPL_PARTS_.reduce((x, [p, say]) => x.replace(`<div class="kc-${p}">`, `<div class="kc-${p}" data-tpl="${esc(say)}">`), h);
 }
@@ -1111,14 +1111,14 @@ function bcItem_(item, s) {
   /* THE TICK ON THE LEFT, THE THING IN WORDS BESIDE IT — one line, as a checklist reads (`.row.kid-item` lays out a tile and its caption). */
   /* ONE CHILD LINE A THING (10 Nov): its words, its status as a tag coloured by urgency (gold soon, red overdue), its tile in the row. */
   const glow = s.expired ? ' is-over' : s.soon ? ' is-soon' : '';
-  const line = `<p class="kc-line bc-line">${esc(item.title)} <span class="qtags"><span class="qtag bc-tag${glow}">${esc(bcTag_(s))}</span></span></p>
+  const line = `<p class="kc-line bc-line">${esc(item.title)} <span class="qtags">${qtag_(`${esc(bcTag_(s))}`, '', `bc-tag${glow}`)}</span></p>
     <div class="tile-row">${tile_({ icon: s.sorted ? 'tick' : s.expired || (s.auto && s.auto.ok === false) ? 'flag' : 'plus', label: item.title,
     note: bcStatus_(s), tone: s.sorted ? 'buy' : '', on: BC.open === item.id, act: 'bc-open', data: { id: item.id } })}</div>`;
   if (BC.open !== item.id) return `<div class="kc-item bc-item" data-bc="${esc(item.id)}">${line}</div>`;
   const t = s.tick || {}, cyc = s.cyc && !s.cyc.continuous;
   return `<div class="kc-item bc-item is-open" data-bc="${esc(item.id)}">${line}
-    ${s.cyc ? `<p class="bc-cycle"><span class="qtag">${esc(bcCycleSay_(item))}</span>${s.due ? ` <span class="qtag">expires ${esc(bcSaid_(s.due))}</span>` : ''}${
-      t.result ? ` <span class="qtag">${esc(t.result)}</span>` : ''}${t.doc_link ? ` <a href="${esc(t.doc_link)}" data-do="file-view">Document</a>` : ''}</p>` : ''}
+    ${s.cyc ? `<p class="bc-cycle">${qtag_(`${esc(bcCycleSay_(item))}`)}${s.due ? ` ${qtag_(`expires ${esc(bcSaid_(s.due))}`)}` : ''}${
+      t.result ? ` ${qtag_(`${esc(t.result)}`)}` : ''}${t.doc_link ? ` <a href="${esc(t.doc_link)}" data-do="file-view">Document</a>` : ''}</p>` : ''}
     <p class="bc-why">${esc(item.why)}</p>
     ${item.run ? `<div class="tile-row">${tile_({ icon: 'ext', label: item.run, href: item.link, leave: true })}</div>` : ''}
     <p class="bc-how">${esc(item.how)} <a href="${esc(item.link)}" data-do="file-view" target="_blank" rel="noopener">Official guidance</a>${item.doc && typeof policyHref_ === 'function' && policyHref_(item.doc)
@@ -1151,14 +1151,14 @@ function bcInner_() {
     + all.filter(i => st[i.id].info).map(i => `<p class="bc-money">${esc(st[i.id].auto.say)}</p>`).join('');
   const groups = [];
   all.forEach(i => { if (groups.indexOf(i.group) === -1) groups.push(i.group); });
-  return `<div class="qtags"><span class="qtag">Business</span><span class="qtag">Admin only</span><span class="qtag">Guidance, not advice</span></div>
+  return `<div class="qtags">${qtag_(`Business`)}${qtag_(`Admin only`)}${qtag_(`Guidance, not advice`)}</div>
     <h3>Business checker</h3>
     ${bizNeed_('bizcheck', BC.list ? renew : 0, renew + (renew === 1 ? ' thing to renew' : ' things to renew') + (over ? ' · ' + over + ' overdue' : ''), BC.list ? over : 0)}
     <div class="kc-items biz-body bc-body"${wait ? ' aria-busy="true"' : ''}>
       ${BC.list ? `<p class="bc-count"><b>${done} of ${counted.length} sorted</b></p>${money}
       ${next.length ? next.map(i => bcItem_(i, st[i.id])).join('') : '<p>Everything that applies is sorted.</p>'}
       ${groups.map(g => { const gi = all.filter(i => i.group === g && next.indexOf(i) === -1);
-        return gi.length ? `<h4 class="bc-group">${esc(g)} <span class="qtag">${gi.filter(i => st[i.id].sorted).length}/${gi.filter(i => !st[i.id].info).length}</span></h4>${gi.map(i => bcItem_(i, st[i.id])).join('')}` : ''; }).join('')}
+        return gi.length ? `<h4 class="bc-group">${esc(g)} ${qtag_(`${gi.filter(i => st[i.id].sorted).length}/${gi.filter(i => !st[i.id].info).length}`)}</h4>${gi.map(i => bcItem_(i, st[i.id])).join('')}` : ''; }).join('')}
       ` : ''}
     ${wait ? loading_() : ''}</div>
     <p class="note me-said bc-said">${esc(BC.error)}</p>`;
@@ -1269,7 +1269,7 @@ function oqItem_(q) {
   const opts = Object.keys(q.options || {}).filter(k => q.options[k]);
   const said = a ? 'Answered: ' + (a.choice === 'note' ? '' : '(' + a.choice + ') ' + ((q.options || {})[a.choice] || '')) + (a.note ? ' “' + a.note + '”' : '') : '';
   return `<div class="oq-item" data-oq="${esc(q.id)}">
-    <p class="oq-q">${q.philosophy ? '<span class="qtag">Philosophy</span> ' : ''}${esc(q.question)}</p>
+    <p class="oq-q">${q.philosophy ? qtag_('Philosophy') + ' ' : ''}${esc(q.question)}</p>
     <div class="tile-row">${opts.map(k => tile_({ form: true, kind: a && a.choice === k ? '' : 'quiet', label: k + ') ' + q.options[k], act: 'oq-answer', data: { id: q.id, choice: k } })).join('')}</div>
     <label class="field"><input type="text" data-oq-note value="${esc((a && a.note) || '')}" placeholder="Something else…" maxlength="500" aria-label="${esc(q.question)} — something else" autocomplete="off"></label>
     <div class="tile-row">${tile_({ form: true, kind: 'quiet', label: 'Send note', act: 'oq-answer', data: { id: q.id, choice: 'note' } })}</div>
@@ -1292,11 +1292,11 @@ function checksInner_() {
   const s = typeof HEALTH !== 'undefined' ? HEALTH.got : null;
   if (typeof siteHealthCard_ === 'function' && typeof HEALTH !== 'undefined' && !HEALTH.asked) siteHealthCard_();
   if (typeof bizCheckCard_ === 'function' && typeof BC !== 'undefined' && !BC.asking && !BC.fetched && typeof bcStart_ === 'function') setTimeout(bcStart_, 0);
-  const head = '<div class="qtags"><span class="qtag">Business</span><span class="qtag">Admin only</span></div><h3>Optimiser</h3>';
+  const head = '<div class="qtags">' + qtag_('Business') + qtag_('Admin only') + '</div><h3>Optimiser</h3>';
   if (!s) return head + (HEALTH && HEALTH.failed ? '<p class="me-said">The score could not be read. Run node tools/health.js and push.</p>' : (typeof loading_ === 'function' ? loading_() : '')) + oqInbox_();
   const A = checksAreas_(s);
   return `${head}<p class="stab-score">Optimiser: ${esc(String(checksTotal_(s, A)))}%</p>
-    ${CHECK_AREAS.filter(([k]) => A[k]).map(([k, n]) => `<h4>${esc(n)} ${esc(String(A[k].score))}%${(s.weights || {})[k] ? '' : ' <span class="qtag">inside the others</span>'}</h4>
+    ${CHECK_AREAS.filter(([k]) => A[k]).map(([k, n]) => `<h4>${esc(n)} ${esc(String(A[k].score))}%${(s.weights || {})[k] ? '' : ' ' + qtag_('inside the others')}</h4>
       <ol class="stab-top">${(A[k].next || []).slice(0, 3).map(t => `<li>${esc(String(t))}</li>`).join('') || '<li>Nothing to do.</li>'}</ol>`).join('')}
     ${oqInbox_()}`;
 }

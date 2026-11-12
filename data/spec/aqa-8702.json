@@ -1,0 +1,55 @@
+{
+ "id": "aqa-8702",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "English Literature",
+ "code": "8702",
+ "url": "https://filestore.aqa.org.uk/resources/english/specifications/AQA-8702-SP-2015.PDF",
+ "sections": [
+  {
+   "id": "3.1",
+   "title": "Shakespeare and the 19th-century novel"
+  },
+  {
+   "id": "3.2",
+   "title": "Modern texts and poetry"
+  },
+  {
+   "id": "3.3",
+   "title": "Skills"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.1.1",
+   "text": "Shakespeare",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2",
+   "text": "The 19th-century novel",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Modern texts",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2",
+   "text": "Poetry",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.3",
+   "text": "Unseen poetry",
+   "parent": "3.2",
+   "links": []
+  }
+ ]
+}

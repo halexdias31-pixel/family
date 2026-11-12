@@ -1,0 +1,169 @@
+{
+ "id": "ocr-j249",
+ "board": "OCR",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Physics",
+ "code": "J249",
+ "url": "https://www.ocr.org.uk/Images/234600-specification-accredited-gcse-gateway-science-suite-physics-a-j249.pdf",
+ "sections": [
+  {
+   "id": "P1",
+   "title": "Topic title"
+  },
+  {
+   "id": "P2",
+   "title": "Forces"
+  },
+  {
+   "id": "P3",
+   "title": "Electricity"
+  },
+  {
+   "id": "P4",
+   "title": "Magnetism and magnetic fields"
+  },
+  {
+   "id": "P5",
+   "title": "Waves in matter"
+  },
+  {
+   "id": "P6",
+   "title": "Radioactivity"
+  },
+  {
+   "id": "P7",
+   "title": "Energy"
+  },
+  {
+   "id": "P8",
+   "title": "Global challenges"
+  },
+  {
+   "id": "P9",
+   "title": "Practical skills"
+  }
+ ],
+ "points": [
+  {
+   "id": "P1.1",
+   "text": "The particle model",
+   "parent": "P1",
+   "links": []
+  },
+  {
+   "id": "P1.2",
+   "text": "Changes of state",
+   "parent": "P1",
+   "links": []
+  },
+  {
+   "id": "P1.3",
+   "text": "Pressure",
+   "parent": "P1",
+   "links": []
+  },
+  {
+   "id": "P2.1",
+   "text": "Motion",
+   "parent": "P2",
+   "links": []
+  },
+  {
+   "id": "P2.2",
+   "text": "Newton’s laws",
+   "parent": "P2",
+   "links": []
+  },
+  {
+   "id": "P2.3",
+   "text": "Forces in action",
+   "parent": "P2",
+   "links": []
+  },
+  {
+   "id": "P3.1",
+   "text": "Static and charge",
+   "parent": "P3",
+   "links": []
+  },
+  {
+   "id": "P3.2",
+   "text": "Simple circuits",
+   "parent": "P3",
+   "links": []
+  },
+  {
+   "id": "P4.1",
+   "text": "Magnets and magnetic fields",
+   "parent": "P4",
+   "links": []
+  },
+  {
+   "id": "P4.2",
+   "text": "Uses of magnetism",
+   "parent": "P4",
+   "links": []
+  },
+  {
+   "id": "P5.1",
+   "text": "Wave behaviour",
+   "parent": "P5",
+   "links": []
+  },
+  {
+   "id": "P5.2",
+   "text": "The electromagnetic spectrum",
+   "parent": "P5",
+   "links": []
+  },
+  {
+   "id": "P5.3",
+   "text": "Wave interaction",
+   "parent": "P5",
+   "links": []
+  },
+  {
+   "id": "P6.1",
+   "text": "Radioactive emissions",
+   "parent": "P6",
+   "links": []
+  },
+  {
+   "id": "P6.2",
+   "text": "Uses and hazards",
+   "parent": "P6",
+   "links": []
+  },
+  {
+   "id": "P7.1",
+   "text": "Work done",
+   "parent": "P7",
+   "links": []
+  },
+  {
+   "id": "P7.2",
+   "text": "Power and efficiency",
+   "parent": "P7",
+   "links": []
+  },
+  {
+   "id": "P8.1",
+   "text": "Physics on the move",
+   "parent": "P8",
+   "links": []
+  },
+  {
+   "id": "P8.2",
+   "text": "Powering Earth",
+   "parent": "P8",
+   "links": []
+  },
+  {
+   "id": "P8.3",
+   "text": "Beyond Earth",
+   "parent": "P8",
+   "links": []
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "id": "aqa-7062",
+ "board": "AQA",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Religious Studies",
+ "code": "7062",
+ "url": "https://filestore.aqa.org.uk/resources/rs/specifications/AQA-7062-SP-2016.PDF",
+ "sections": [
+  {
+   "id": "3.1",
+   "title": "Component 1: Philosophy of religion and ethics"
+  },
+  {
+   "id": "3.2",
+   "title": "Component 2: Study of religion and dialogues"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.1.1",
+   "text": "Section A: Philosophy of religion",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2",
+   "text": "Section B: Ethics and religion",
+   "parent": "3.1",
+   "links": []
+  }
+ ]
+}

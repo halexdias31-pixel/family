@@ -1,0 +1,61 @@
+{
+ "id": "aqa-8145",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "History",
+ "code": "8145",
+ "url": "https://filestore.aqa.org.uk/resources/history/specifications/AQA-8145-SP-2016.PDF",
+ "sections": [
+  {
+   "id": "3.1",
+   "title": "Rationale"
+  },
+  {
+   "id": "3.2",
+   "title": "Understanding the modern world"
+  },
+  {
+   "id": "3.3",
+   "title": "Shaping the nation"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.1.1",
+   "text": "Paper 1: Understanding the modern world",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2",
+   "text": "Paper 2: Shaping the nation",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Section A: Period studies",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2",
+   "text": "Section B: Wider world depth studies",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.3.1",
+   "text": "Section A: Thematic studies",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.2",
+   "text": "Section B: British depth studies",
+   "parent": "3.3",
+   "links": []
+  }
+ ]
+}

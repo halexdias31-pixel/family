@@ -24,7 +24,7 @@ function mailHeldNote_() {
   /* `overflow-wrap:anywhere` ON THE ADDRESS: it is one word with no space in it, and a long one at 320
      took the card sideways — the fault the dotted answer line paid for (check/states.js). */
   return at ? `<p class="said mail-held">We will email you once you open the link
-    we sent to <b style="overflow-wrap:anywhere">${esc(at)}</b>.</p>` : '';
+    we sent to <b class="wrap-any">${esc(at)}</b>.</p>` : '';
 }
 
 /* ---------- A NEW ADDRESS WAITING TO BE PROVED, ON THE CARD IT WAS TYPED ON § */
@@ -33,8 +33,8 @@ function movingNote_(p) {
   if (!to) return '';
   const was = String((p && p.email) || '');
   return `<p class="said mail-moving">Your email changes to
-    <b style="overflow-wrap:anywhere">${esc(to)}</b> once you open the link we sent there, on a phone where you
-    are signed in.${was ? ` Until then it is still <b style="overflow-wrap:anywhere">${esc(was)}</b> — sign in
+    <b class="wrap-any">${esc(to)}</b> once you open the link we sent there, on a phone where you
+    are signed in.${was ? ` Until then it is still <b class="wrap-any">${esc(was)}</b> — sign in
     with that, or your handle. Type it back here to keep it.` : ''}</p>`;
 }
 
@@ -42,7 +42,7 @@ function movingNote_(p) {
 function kidHeldSec_() {
   return `<div class="kid-sec kid-held">
     <h4 class="kid-h">Add your child</h4>
-    <p class="note">Open the link we emailed to <b style="overflow-wrap:anywhere">${esc(pendingAddr_())}</b>
+    <p class="note">Open the link we emailed to <b class="wrap-any">${esc(pendingAddr_())}</b>
       first, then you can add your child.</p>
     <div class="tile-row">${tile_(RESEND_LINK)}</div>
   </div>`;
@@ -291,7 +291,7 @@ screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web'
 /* ---------- APPRENTICE PROFILE (730): a card per apprentice an admin is sent (`everyone`, role Apprentice); none yet is a line from brand() ---------- */
 function apprenticeProfilePages_() {
   const all = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title && /apprentice/i.test(String(p.role || '')));
-  if (all.length) return all.map(p => card_(`<div class="appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="qtags"><span class="qtag prof-handle">@${esc(p.handle)}</span></p>` : ''}</div>`));
+  if (all.length) return all.map(p => card_(`<div class="appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="qtags">${qtag_(`@${esc(p.handle)}`, '', `prof-handle`)}</p>` : ''}</div>`));
   return [card_(`<div class="appr-card people-none">${
     empty_(brand('apprentices_none', 'No apprentices yet.'))}</div>`)];
 }
@@ -329,7 +329,7 @@ function stabilityCard_() {
   const s = STAB.got, head = '<h3>Stability</h3>';
   if (!s) return card_(`<div class="biz stability-card">${head}${STAB.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`);
   const sig = (s.signals || []).filter(x => x.off > 0);
-  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} <span class="qtag">−${esc(String(x.off))}</span></li>`;
+  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} ${qtag_(`−${esc(String(x.off))}`)}</li>`;
   return card_(`<div class="biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
     ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`);

@@ -29,5 +29,5 @@ function finderTagsAt_() {
   if (STUFF.admit != null || finderSettled_()) return null;
   const key = finderStateKey_(), view = key === null ? null : finderTagsView_();
   const at = view && view[key], facet = at && facetBy(at[0]);
-  return facet ? { facet: facet, values: at[1].map(v => ({ value: v[0], show: v.length > 1 ? v[1] : v[0] })) } : null;
+  return facet ? { facet: facet, values: at[1].map(v => ({ value: v[0], show: v.length > 1 ? v[1] : v[0], also: v[2] })) } : null;
 }

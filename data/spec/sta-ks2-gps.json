@@ -1,0 +1,347 @@
+{
+ "id": "sta-ks2-gps",
+ "board": "Standards & Testing Agency",
+ "qualification": "KS2 SATs",
+ "level": "KS2",
+ "subject": "English Language",
+ "code": "KS2 grammar, punctuation and spelling",
+ "url": "https://assets.publishing.service.gov.uk/media/5a82cc1ded915d74e34039f1/2016_KS2_EnglishGPS_framework_PDFA_V9.pdf",
+ "sections": [
+  {
+   "id": "G1",
+   "title": "Grammatical terms / word classes"
+  },
+  {
+   "id": "G2",
+   "title": "Functions of sentences"
+  },
+  {
+   "id": "G3",
+   "title": "Combining words, phrases and clauses"
+  },
+  {
+   "id": "G4",
+   "title": "Verb forms, tense and consistency"
+  },
+  {
+   "id": "G5",
+   "title": "Punctuation"
+  },
+  {
+   "id": "G6",
+   "title": "Vocabulary"
+  },
+  {
+   "id": "G7",
+   "title": "Standard English and formality"
+  }
+ ],
+ "points": [
+  {
+   "id": "G1.1",
+   "text": "Nouns",
+   "parent": "G1",
+   "links": []
+  },
+  {
+   "id": "G1.2",
+   "text": "Verbs",
+   "parent": "G1",
+   "links": []
+  },
+  {
+   "id": "G1.3",
+   "text": "Adjectives",
+   "parent": "G1",
+   "links": []
+  },
+  {
+   "id": "G1.4",
+   "text": "Conjunctions",
+   "parent": "G1",
+   "links": []
+  },
+  {
+   "id": "G1.5",
+   "text": "Pronouns",
+   "parent": "G1",
+   "links": []
+  },
+  {
+   "id": "G1.5a",
+   "text": "Possessive",
+   "parent": "G1",
+   "links": []
+  },
+  {
+   "id": "G1.5b",
+   "text": "Relative",
+   "parent": "G1",
+   "links": []
+  },
+  {
+   "id": "G1.6",
+   "text": "Adverbs",
+   "parent": "G1",
+   "links": []
+  },
+  {
+   "id": "G1.6a",
+   "text": "Adverbials",
+   "parent": "G1",
+   "links": []
+  },
+  {
+   "id": "G1.7",
+   "text": "Prepositions",
+   "parent": "G1",
+   "links": []
+  },
+  {
+   "id": "G1.8",
+   "text": "Determiners",
+   "parent": "G1",
+   "links": []
+  },
+  {
+   "id": "G1.9",
+   "text": "Subject and object",
+   "parent": "G1",
+   "links": []
+  },
+  {
+   "id": "G2.1",
+   "text": "Statements",
+   "parent": "G2",
+   "links": []
+  },
+  {
+   "id": "G2.2",
+   "text": "Questions",
+   "parent": "G2",
+   "links": []
+  },
+  {
+   "id": "G2.3",
+   "text": "Commands",
+   "parent": "G2",
+   "links": []
+  },
+  {
+   "id": "G2.4",
+   "text": "Exclamations",
+   "parent": "G2",
+   "links": []
+  },
+  {
+   "id": "G3.1",
+   "text": "SentencesTS and",
+   "parent": "G3",
+   "links": []
+  },
+  {
+   "id": "G3.1a",
+   "text": "Relative clauses",
+   "parent": "G3",
+   "links": []
+  },
+  {
+   "id": "G3.2",
+   "text": "Noun phrases",
+   "parent": "G3",
+   "links": []
+  },
+  {
+   "id": "G3.3",
+   "text": "Co-ordinating",
+   "parent": "G3",
+   "links": []
+  },
+  {
+   "id": "G3.4",
+   "text": "Subordinating",
+   "parent": "G3",
+   "links": []
+  },
+  {
+   "id": "G4.1a",
+   "text": "Simple pastT and",
+   "parent": "G4",
+   "links": []
+  },
+  {
+   "id": "G4.1b",
+   "text": "Verbs in the",
+   "parent": "G4",
+   "links": []
+  },
+  {
+   "id": "G4.1c",
+   "text": "Modal verbs",
+   "parent": "G4",
+   "links": []
+  },
+  {
+   "id": "G4.1d",
+   "text": "Present and past",
+   "parent": "G4",
+   "links": []
+  },
+  {
+   "id": "G4.2",
+   "text": "Tense consistency",
+   "parent": "G4",
+   "links": []
+  },
+  {
+   "id": "G4.3",
+   "text": "Subjunctive verb",
+   "parent": "G4",
+   "links": []
+  },
+  {
+   "id": "G4.4",
+   "text": "PassiveT and active",
+   "parent": "G4",
+   "links": []
+  },
+  {
+   "id": "G5.1",
+   "text": "Capital letters",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.2",
+   "text": "Full stops",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.3",
+   "text": "Question marks",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.4",
+   "text": "Exclamation",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.5",
+   "text": "Commas in lists",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.6a",
+   "text": "CommasT to clarify",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.6b",
+   "text": "CommasT after",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.7",
+   "text": "Inverted commas",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.8",
+   "text": "Apostrophes",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.9",
+   "text": "Punctuation",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.10",
+   "text": "Colons",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.11",
+   "text": "Semi-colons",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.12",
+   "text": "Single dashes",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.13",
+   "text": "Hyphens",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G5.14",
+   "text": "Bullet points",
+   "parent": "G5",
+   "links": []
+  },
+  {
+   "id": "G6.1",
+   "text": "Synonyms and",
+   "parent": "G6",
+   "links": []
+  },
+  {
+   "id": "G6.2",
+   "text": "Prefixes",
+   "parent": "G6",
+   "links": []
+  },
+  {
+   "id": "G6.3",
+   "text": "Suffixes",
+   "parent": "G6",
+   "links": []
+  },
+  {
+   "id": "G6.4",
+   "text": "Word families",
+   "parent": "G6",
+   "links": []
+  },
+  {
+   "id": "G7.1",
+   "text": "Standard English",
+   "parent": "G7",
+   "links": []
+  },
+  {
+   "id": "G7.2",
+   "text": "Formal and",
+   "parent": "G7",
+   "links": []
+  },
+  {
+   "id": "G7.3",
+   "text": "Formal and",
+   "parent": "G7",
+   "links": []
+  },
+  {
+   "id": "G7.4",
+   "text": "The subjunctive",
+   "parent": "G7",
+   "links": []
+  }
+ ]
+}

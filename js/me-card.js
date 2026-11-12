@@ -300,7 +300,7 @@ function ceWhere_(L, val, box) {
   const ro = (((typeof DATA !== 'undefined' && DATA && DATA.profileReadonly) || []).indexOf('venues_ok') !== -1);
   const ticks = L.indexOf('venues_ok') === -1 ? '' : formHidden_('data-me="venues_ok"', got.join(', ')) + `
     <div class="many-list where-areas" role="group" aria-label="Areas you teach in">${Object.keys(by).sort().map(a => formTick_(`data-where-area="${esc(a)}"${by[a].some(has) ? ' checked' : ''}${ro ? ' disabled' : ''}`, `<span>${esc(a)}</span>
-      <span class="qtag">${esc(ceCount_(by[a].length, 'venue', 'venues'))}</span>`, 'many-opt')).join('')}</div>`;
+      ${qtag_(`${esc(ceCount_(by[a].length, 'venue', 'venues'))}`)}`, 'many-opt')).join('')}</div>`;
   return ceFold_('where', 'Areas', esc(ceCount_(got.length, 'venue', 'venues')), ticks)
     + fieldRows_(L.filter(f => f !== 'venues_ok'), box);
 }

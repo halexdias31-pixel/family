@@ -1,0 +1,1219 @@
+{
+ "id": "sta-ks2-maths",
+ "board": "Standards & Testing Agency",
+ "qualification": "KS2 SATs",
+ "level": "KS2",
+ "subject": "Maths",
+ "code": "KS2 maths",
+ "url": "https://assets.publishing.service.gov.uk/media/5a822bbded915d74e62362a2/2016_KS2_Mathematics_framework_PDFA_V5.pdf",
+ "sections": [
+  {
+   "id": "N",
+   "title": "Number and place value"
+  },
+  {
+   "id": "C",
+   "title": "Calculations"
+  },
+  {
+   "id": "F",
+   "title": "Fractions, decimals and percentages"
+  },
+  {
+   "id": "R",
+   "title": "Ratio and proportion"
+  },
+  {
+   "id": "A",
+   "title": "Algebra"
+  },
+  {
+   "id": "M",
+   "title": "Measurement"
+  },
+  {
+   "id": "G",
+   "title": "Geometry"
+  },
+  {
+   "id": "P",
+   "title": "Geometry: position and direction"
+  },
+  {
+   "id": "S",
+   "title": "Statistics"
+  }
+ ],
+ "points": [
+  {
+   "id": "3N1b",
+   "text": "count from 0 in multiples of 4, 8, 50 and 100",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "4N1",
+   "text": "count in multiples of 6, 7, 9, 25 and 1,000",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "5N1",
+   "text": "count forwards or backwards in steps of powers of 10 for any given number up to 1,000,000",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "3N2a",
+   "text": "compare and order numbers up to 1,000",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "4N2a",
+   "text": "order and compare numbers beyond 1,000",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "5N2",
+   "text": "read, write, order and compare numbers to at least 1,000,000",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "6N2",
+   "text": "read, write, order and compare numbers up to 10,000,000",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "3N2b",
+   "text": "find 10 or 100 more or less than a given number",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "4N2b",
+   "text": "find 1,000 more or less than a given number",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "3N3",
+   "text": "recognise the place value of each digit in a three-digit number (hundreds, tens, ones)",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "4N3a",
+   "text": "recognise the place value of each digit in a four- digit number (thousands, hundreds, tens and ones)",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "5N3a",
+   "text": "determine the value of each digit in numbers up to 1,000,000",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "6N3",
+   "text": "determine the value of each digit in numbers up to 10,000,000",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "4N3b",
+   "text": "read Roman numerals to 100 (I to C) and know that over time, the numeral system changed to include the concept of zero and place value",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "5N3b",
+   "text": "read Roman numerals to 1,000 (M) and recognise years written in Roman numerals",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "3N4",
+   "text": "identify, represent and estimate numbers using different representations",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "4N4a",
+   "text": "identify, represent and estimate numbers using different representations",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "4N4b",
+   "text": "round any number to the nearest 10, 100 or 1,000",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "5N4",
+   "text": "round any number up to 1,000,000 to the nearest 10, 100, 1,000, 10,000 and 100,000",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "6N4",
+   "text": "round any whole number to a required degree of accuracy",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "4N5",
+   "text": "count backwards through zero to include negative numbers",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "5N5",
+   "text": "interpret negative numbers in context, count forwards and backwards with positive and negative whole numbers, including through zero",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "6N5",
+   "text": "use negative numbers in context, and calculate intervals across zero",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "3N6",
+   "text": "solve number problems and practical problems involving 3N1–3N4",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "4N6",
+   "text": "solve number and practical problems that involve 4N1–4N5 and with increasingly large positive numbers",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "5N6",
+   "text": "solve number problems and practical problems that involve 5N1–5N5",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "6N6",
+   "text": "solve number problems and practical problems that involve 6N2–6N5",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "3C1",
+   "text": "add and subtract numbers mentally, including: • aandthree-digit number",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C1",
+   "text": "add and subtract numbers mentally with increasingly large numbers",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "3C2",
+   "text": "add and subtract numbers with up to three digits, using formal written methods of columnar addition and subtraction",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "4C2",
+   "text": "add and subtract numbers with up to 4 digits using the formal written methods of columnar addition and subtraction where appropriate",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C2",
+   "text": "add and subtract whole numbers with more than 4 digits, including using formal written methods (columnar addition and subtraction)",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "3C3",
+   "text": "estimate the answer to a calculation and use inverse operations to check answers",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "4C3",
+   "text": "estimate and use inverse operations to check answers to a calculation",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C3",
+   "text": "use rounding to check answers to calculations and determine, in the context of a problem, levels of accuracy",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "6C3",
+   "text": "use estimation to check answers to calculations and determine, in the context of a problem, an appropriate degree of accuracy",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "3C4",
+   "text": "solve problems, including missing number problems, using number facts, place value, and more complex addition and subtraction",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "4C4",
+   "text": "solve addition and subtraction two-step problems in contexts, deciding which operations and methods to use and why",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C4",
+   "text": "solve addition and subtraction multi-step problems in contexts, deciding which operations and methods to use and why",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "6C4",
+   "text": "solve addition and subtraction multi-step problems in contexts, deciding which operations and methods to use and why",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C5a",
+   "text": "identify multiples and factors, including finding all factor pairs of a number and common factors of two numbers",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "6C5",
+   "text": "identify common factors, common multiples and prime numbers",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C5b",
+   "text": "know and use the vocabulary of prime numbers, prime factors and composite (non- prime) numbers",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C5c",
+   "text": "establish whether a number up to 100 is prime and recall prime numbers up to 19",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C5d",
+   "text": "recognise and use square numbers and cube numbers, and the",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "3C6",
+   "text": "recall and use multiplication and division facts for the 3, 4 and 8 multiplication tables",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "4C6a",
+   "text": "recall multiplication and division facts for multiplication tables up to 12 × 12",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C6a",
+   "text": "multiply and divide numbers mentally drawing upon known facts",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "6C6",
+   "text": "perform mental calculations, including with mixed operations and large numbers",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "4C6b",
+   "text": "use place value, known and derived facts to multiply and divide mentally, including: multiplying by 0 and 1; dividing by 1; multiplying…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C6b",
+   "text": "multiply and divide whole numbers and those involving decimals by 10, 100 and 1,000",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "4C6c",
+   "text": "recognise and use factor pairs and commutativity in mental calculations",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "3C7",
+   "text": "write and calculate mathematical statements for multiplication and division using the multiplication tables that pupils know, including for…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "4C7",
+   "text": "multiply two-digit and three-digit numbers by a one-digit number using formal written layout",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C7a",
+   "text": "multiply numbers up to 4 digits by a one- or two-digit number using a formal written method, including long multiplication for two- digit…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "6C7a",
+   "text": "multiply multi-digit numbers up to 4 digits by a two-digit whole number using the formal written method of long multiplication",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C7b",
+   "text": "divide numbers up to 4 digits by a one-digit number using the formal written method of short division and interpret remainders…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "6C7b",
+   "text": "divide numbers up to 4 digits by a two- digit whole number using the formal written method of long division, and interpret remainders as…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "6C7c",
+   "text": "divide numbers up to 4 digits by a two- digit number using the formal written method of short division where appropriate, interpreting…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "3C8",
+   "text": "solve problems, including missing number problems, involving multiplication and division, including integer scaling problems and…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "4C8",
+   "text": "solve problems involving multiplying and adding, including using the distributive law to multiply two- digit numbers by one digit, integer…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C8a",
+   "text": "solve problems involving multiplication and division including using their knowledge of factors and multiples, squares and cubes",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "6C8",
+   "text": "solve problems involving addition, subtraction, multiplication and division",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C8b",
+   "text": "solve problems involving addition, subtraction, multiplication and division and a combination of these, including understanding the meaning…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "5C8c",
+   "text": "solve problems involving multiplication and division including scaling by simple fractions and problems involving simple rates",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "6C9",
+   "text": "use their knowledge of the order of operations to carry out",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "3F1a",
+   "text": "count up and down in tenths; recognise that tenths arise from dividing an object into 10 equal parts and in dividing one-digit numbers or…",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "4F1",
+   "text": "count up and down in hundredths; recognise that hundredths arise when dividing an object by a hundred and dividing tenths by ten",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "3F1b",
+   "text": "recognise, find and write fractions of a discrete set of objects: unit fractions and non-unit fractions with small denominators",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "3F1c",
+   "text": "recognise and use fractions as numbers: unit fractions and non- unit fractions with small denominators",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "3F2",
+   "text": "recognise and show, using diagrams, equivalent fractions with small denominators",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "4F2",
+   "text": "recognise and show, using diagrams, families of common equivalent fractions",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "5F2a",
+   "text": "recognise mixed numbers and improper fractions and convert from one form to the other; write mathematical statements >1 as a mixed number…",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "6F2",
+   "text": "use common factors to simplify fractions; use common multiples to express fractions in the same denomination",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "5F2b",
+   "text": "identify name and write equivalent fractions of a given fraction, represented visually, including tenths and hundredths",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "3F3",
+   "text": "compare and order unit fractions and fractions with the same denominators",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "5F3",
+   "text": "compare and order fractions whose denominators are all multiples of the same number",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "6F3",
+   "text": "compare and order fractions, including fractions >1",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "3F4",
+   "text": "add and subtract fractions with the same denominator within one whole [e.g. 57 + 17 = 67 ]",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "4F4",
+   "text": "add and subtract fractions with the same denominator",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "5F4",
+   "text": "add and subtract fractions with the same denominator and denominators that are multiples of the same",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "6F4",
+   "text": "add and subtract fractions with different denominators and mixed numbers, using the concept of",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "5F5",
+   "text": "multiply proper fractions and mixed numbers by whole numbers, supported by materials and diagrams",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "6F5a",
+   "text": "multiply simple pairs of proper fractions, writing the answer in its simplest form [e.g. 14 × 12 = 18 ]",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "6F5b",
+   "text": "divide proper fractions by whole numbers [e.g. 13 ÷ 2 = 16 ]",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "4F6a",
+   "text": "recognise and write decimal equivalents",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "5F6a",
+   "text": "read and write decimal numbers as fractions",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "6F6",
+   "text": "associate a fraction with division to calculate decimal fraction equivalents (e.g. 0.375) for a simple fraction [e.g. 38 ]",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "4F6b",
+   "text": "recognise and write decimal equivalents",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "5F6b",
+   "text": "recognise and use thousandths and",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "4F7",
+   "text": "round decimals with one decimal place to the nearest whole number",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "5F7",
+   "text": "round decimals with two decimal places to the nearest whole number and to one decimal place",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "4F8",
+   "text": "compare numbers with the same number of decimal places up to two decimal places",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "5F8",
+   "text": "read, write, order and compare numbers with up to three decimal places Content domain reference",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "4F9",
+   "text": "find the effect of dividing a one- or two-digit number by 10 and 100, identifying the value of the digits in the answer as ones, tenths and…",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "6F9a",
+   "text": "identify the value of each digit to three decimal places and multiply and divide numbers by 10, 100 and 1,000 giving answers up to three…",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "6F9b",
+   "text": "multiply one-digit numbers with up to two- decimal places by whole numbers",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "6F9c",
+   "text": "use written division methods in cases where the answer has up to two-decimal places",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "3F10",
+   "text": "solve problems that involve 3F1–3F4",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "4F10a",
+   "text": "solve problems involving increasingly harder fractions to calculate quantities and fractions to divide quantities, including non-unit…",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "5F10",
+   "text": "solve problems involving numbers up to three decimal places",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "6F10",
+   "text": "solve problems which require answers to be rounded to specified degrees of accuracy",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "4F10b",
+   "text": "solve simple measure and money problems involving fractions and decimals to two decimal places",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "5F11",
+   "text": "recognise the per cent symbol (%) and understand that per cent relates to ‘number of parts per hundred’; write percentages as a fraction…",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "6F11",
+   "text": "recall and use equivalences between simple fractions, decimals and percentages, including in different contexts",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "5F12",
+   "text": "solve problems that require knowing percentage and decimal equivalents of 1 1 1 2 4 2 , 4 , 5 , 5 , 5 and those fractions with a…",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "6R1",
+   "text": "solve problems involving the relative sizes of two quantities, where missing values can be found by using integer multiplication and…",
+   "parent": "R",
+   "links": []
+  },
+  {
+   "id": "6R2",
+   "text": "solve problems involving the calculation of percentages [e.g. of measures such as 15% of 360] and the use of percentages for comparison",
+   "parent": "R",
+   "links": []
+  },
+  {
+   "id": "6R3",
+   "text": "solve problem involving similar shapes where the scale factor is known or can be found reference",
+   "parent": "R",
+   "links": []
+  },
+  {
+   "id": "6R4",
+   "text": "solve problems involving unequal sharing and grouping using knowledge of fractions and multiples",
+   "parent": "R",
+   "links": []
+  },
+  {
+   "id": "6A1",
+   "text": "express missing number problems algebraically",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "6A2",
+   "text": "use simple formulae",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "6A3",
+   "text": "generate and describe linear number sequences",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "6A4",
+   "text": "find pairs of numbers that satisfy an equation with two unknowns",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "6A5",
+   "text": "enumerate possibilities of combinations of two variables",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "3M1a",
+   "text": "compare lengths (m / cm / mm)",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "4M1",
+   "text": "compare different measures, including money in pounds and pence",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M1b",
+   "text": "compare mass (kg / g)",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M1c",
+   "text": "compare volume / capacity (l / ml)",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M2a",
+   "text": "measure lengths (m / cm / mm)",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "4M2",
+   "text": "estimate different measures, including",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M2b",
+   "text": "measure mass (kg / g)",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M2c",
+   "text": "measure volume / capacity (l / ml)",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M4a",
+   "text": "tell and write the time from an analogue clock; 12-hour clocks",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "4M4a",
+   "text": "read, write and convert time between analogue and digital 12-hour clocks",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M4b",
+   "text": "tell and write the time from an analogue clock; 24-hour clocks",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "4M4b",
+   "text": "read, write and convert time between analogue and digital 24-hour clocks",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M4c",
+   "text": "tell and write the time from an analogue clock, including using Roman numerals from I to XII",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "4M4c",
+   "text": "solve problems involving converting from hours to minutes; minutes to seconds; years to",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "5M4",
+   "text": "solve problems involving converting between units of time",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M4d",
+   "text": "estimate and read time with increasing accuracy to the nearest minute; record and compare time in terms of seconds, minutes and hours; use…",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M4e",
+   "text": "know the number of seconds in a minute and the number of days in each month, year and leap year",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M4f",
+   "text": "compare durations of events, [e.g. to calculate the time taken by particular events or tasks]",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "4M5",
+   "text": "convert between different units of measurement [e.g. kilometre to metre; hour to minute]",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "5M5",
+   "text": "convert between different units of metric measure [e.g. kilometre and metre; centimetre and metre; centimetre and millimetre; gram and…",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "6M5",
+   "text": "use, read, write and convert between standard units, converting measurements of length, mass, volume and time from a smaller unit of…",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "5M6",
+   "text": "understand and use approximate equivalences between metric units and common imperial units such as inches, pounds and pints",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "6M6",
+   "text": "convert between miles and kilometres",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M7",
+   "text": "measure the perimeter of simple 2–Dshapes",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "4M7a",
+   "text": "measure and calculate the perimeter of a rectilinear figure (including squares) in centimetres and metres",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "5M7a",
+   "text": "measure and calculate the perimeter of composite rectilinear shapes in centimetres and metres",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "6M7a",
+   "text": "recognise that shapes with the same areas can have different perimeters and vice versa",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "4M7b",
+   "text": "find the area of rectilinear shapes by counting squares",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "5M7b",
+   "text": "calculate and compare the area of rectangles (including squares), and including using standard units, square centimetres (cm2) and square…",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "6M7b",
+   "text": "calculate the area of parallelograms and triangles",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "6M7c",
+   "text": "recognise when it is possible to use the formulae for the area of shapes",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "5M8",
+   "text": "estimate volume [e.g. using 1 cm3 blocks to build cuboids (including cubes)] and capacity [e.g. using",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "6M8a",
+   "text": "calculate, estimate and compare volume of cubes and cuboids using standard units, including centimetre cubed (cm3)",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "6M8b",
+   "text": "recognise when it is possible to use the formulae for the volume of shapes",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M9a",
+   "text": "add and subtract amounts of money to give change, using both pounds (£) and pence (p) in practical contexts",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "4M9",
+   "text": "calculate different measures, including money in pounds and pence",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "5M9a",
+   "text": "use all four operations to solve problems involving measures [money] using decimal notation, including scaling",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "6M9",
+   "text": "solve problems involving the calculation and conversion of units of measure, using decimal notation up to three decimal places where…",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M9b",
+   "text": "add and subtract lengths (m / cm / mm)",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "5M9b",
+   "text": "use all four operations to solve problems involving measure [e.g. length] using decimal notation, including scaling",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M9c",
+   "text": "add and subtract mass (kg / g)",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "5M9c",
+   "text": "use all four operations to solve problems involving measure [e.g. mass] using decimal notation, including scaling",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3M9d",
+   "text": "add and subtract volume / capacity (l / ml)",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "5M9d",
+   "text": "use all four operations to solve problems involving measure [e.g. volume] using decimal notation, including scaling",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "3G2",
+   "text": "identify horizontal, vertical lines and pairs of perpendicular and parallel lines",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "4G2a",
+   "text": "compare and classify geometric shapes, including quadrilaterals and triangles based on their properties and sizes",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "5G2a",
+   "text": "use the properties of rectangles to deduce related facts and find missing lengths and angles",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "6G2a",
+   "text": "compare and classify geometric shapes based on their properties and sizes",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "4G2b",
+   "text": "identify lines of symmetry in 2-Dshapes presented in different orientations",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "5G2b",
+   "text": "distinguish between regular and irregular polygons based on reasoning about equal sides and angles",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "6G2b",
+   "text": "describe simple 3-Dshapes",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "4G2c",
+   "text": "complete a simple",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "3G3a",
+   "text": "draw 2-Dshapes",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "6G3a",
+   "text": "draw 2-Dshapes using given dimensions and angles",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "3G3b",
+   "text": "make 3-Dshapes using modelling materials; recognise 3-Dshapes in different orientations and describe them",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "5G3b",
+   "text": "identify 3-Dshapes including cubes and other cuboids, from 2-D representations",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "6G3b",
+   "text": "recognise and build simple 3-Dshapes, including making nets",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "3G4a",
+   "text": "recognise that angles are a property of shape or a description of a turn",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "4G4",
+   "text": "identify acute and obtuse angles and compare and order angles up to two right angles by size",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "5G4a",
+   "text": "know angles are measured in degrees: estimate and compare acute, obtuse and reflex angles",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "6G4a",
+   "text": "find unknown angles in any triangles, quadrilaterals and regular polygons",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "3G4b",
+   "text": "identify right angles, recognise that two right",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "5G4b",
+   "text": "identify",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "6G4b",
+   "text": "recognise angles where they meet at a point, are",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "5G4c",
+   "text": "draw given angles and measure them in degrees (o)",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "6G5",
+   "text": "illustrate and name parts of circles, including radius, diameter and circumference and know that the diameter is twice the radius",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "4P2",
+   "text": "describe movements between positions as translations of a given unit to the left / right and up / down",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "5P2",
+   "text": "identify, describe and represent the position of a shape following a reflection or translation, using the appropriate language, and know…",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "6P2",
+   "text": "draw and translate simple shapes on the co-ordinate plane, and reflect them in the axes",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "4P3a",
+   "text": "describe positions on a 2-Dgrid as co-ordinates in the first quadrant",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "6P3",
+   "text": "describe positions on the full co-ordinate grid (all four quadrants)",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "4P3b",
+   "text": "plot specified points and draw sides to complete a given polygon",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "3S1",
+   "text": "interpret and present data using bar charts, pictograms and tables",
+   "parent": "S",
+   "links": []
+  },
+  {
+   "id": "4S1",
+   "text": "interpret and present discrete and continuous data using appropriate graphical methods, including bar charts and time graphs",
+   "parent": "S",
+   "links": []
+  },
+  {
+   "id": "5S1",
+   "text": "complete, read and interpret information in tables, including timetables",
+   "parent": "S",
+   "links": []
+  },
+  {
+   "id": "6S1",
+   "text": "interpret and construct pie charts and line graphs and use these to solve problems",
+   "parent": "S",
+   "links": []
+  },
+  {
+   "id": "3S2",
+   "text": "solve one-step and two- step questions [e.g. ‘How many more?’ and ‘How many fewer?’] using information presented in scaled bar charts…",
+   "parent": "S",
+   "links": []
+  },
+  {
+   "id": "4S2",
+   "text": "solve comparison, sum and difference problems using information presented in bar charts, pictograms, tables and other graphs",
+   "parent": "S",
+   "links": []
+  },
+  {
+   "id": "5S2",
+   "text": "solve comparison, sum and difference problems using information presented in a line graph",
+   "parent": "S",
+   "links": []
+  },
+  {
+   "id": "6S3",
+   "text": "calculate and interpret the mean as an average",
+   "parent": "S",
+   "links": []
+  }
+ ]
+}

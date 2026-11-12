@@ -85,6 +85,7 @@ const SUITE = [
   /* THE STABILITY SCORE (730): data/stability.json as tools/stability.js computes it now. */
   { file: 'check-stability.js', what: 'the Stability card\'s figures are current' },
   { file: 'check-booking.js', what: 'the booking machine, run not read' },
+  { file: 'check-terms.js', what: 'the school year worked out for 2020-2040: contiguous, sane, matching published London dates' },
   /* ---------- THREE CHECKS EXISTED AND NONE OF THEM RAN § */
   { file: 'check-lifecycle.js', what: 'every booking path ends where it should' },
   { file: 'check-spine.js',     what: 'one row order, both documents' },
@@ -123,6 +124,7 @@ const SUITE = [
   { file: 'check-history-db.js', what: 'the history database: schema, ids, links both ways, years, sources' },
   { file: 'check-card-shape.js', what: 'one card shape for every kind in Find: picture, title, tags, lines (owner, 8 Nov)' },
   { file: 'check-one-template.js', what: 'every card on the site built by findCard (card_), the booking form too (owner, 12 Nov)' },
+  { file: 'check-one-way.js', what: 'card, tile, spinner and tag markup only from its one maker (owner, 12 Nov)' },
   { file: 'check-email-card.js', what: 'the Sunday email card is the site card: parts, lines, labels, corner, gap, sizes, tag colours (57a–62a)' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
@@ -218,6 +220,8 @@ const SUITE = [
   { file: 'check/arrival.js', what: 'a phone\'s first eleven seconds: no layout shift, nothing empty or waiting in view once the payload lands, cold and warm (630)', slow: true },
   /* SLOW, LIKE THE BROWSERS, AND FOR THE SAME REASON. § */
   { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something', slow: true },
+  /* EVERY FACT ITS OWN TAG (owner, 12 Nov): no answer, chip or card tag spells another facet's value, after every answer and Doesn't matter. */
+  { file: 'check-tags.js', what: 'every answer, chip and card tag says its own fact, never another facet\'s glued on', slow: true },
   /* ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS § */
   { file: 'check-bundle.js', what: 'a bundle names its papers, and an order reaches the owner' },
   { file: 'check-flow.js',    what: 'the app, actually running', slow: true },
@@ -293,7 +297,9 @@ const SUITE = [
 const TIER_OF = (() => { try { return JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'tiers.json'), 'utf8')).checks || {}; } catch (e) { return {}; } })();
 const TIER_ARG = (/^--tier=(core|secondary|all)$/.exec(process.argv.find(a => a.startsWith('--tier=')) || '') || [])[1]
   || (process.argv.includes('--all') ? 'all' : 'core');
-SUITE.forEach(c => { c.tier = TIER_OF[c.file] || 'core'; if (c.tier === 'secondary') c.report = true; });
+/* --strict (the gate, owner 12 Nov): a secondary check blocks a merge too, so nothing that breaks a rule goes live. */
+const STRICT = process.argv.includes('--strict');
+SUITE.forEach(c => { c.tier = TIER_OF[c.file] || 'core'; if (c.tier === 'secondary' && !STRICT) c.report = true; });
 /* OFF (860): a deactivated widget's checks are skipped, and counted, never passed. */
 const OFF_SKIPPED = SUITE.filter(c => c.tier === 'off').map(c => c.file);
 for (let i = SUITE.length - 1; i >= 0; i--) if (SUITE[i].tier === 'off') SUITE.splice(i, 1);

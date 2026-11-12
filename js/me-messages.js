@@ -711,7 +711,7 @@ function msgFacePic_(t, mine) {
 /* THE SHARED TAG LINE, with what no facet says (when, unread, kind) added to its end. */
 function msgTags_(x, extra) {
   const row = typeof tagRow_ === 'function' && x ? String(tagRow_(x) || '') : '';
-  const more = extra.filter(Boolean).map(t => `<span class="qtag msg-tag${t.cls ? ' ' + t.cls : ''}">${esc(t.text)}</span>`).join('');
+  const more = extra.filter(Boolean).map(t => `${qtag_(`${esc(t.text)}`, '', `msg-tag${t.cls ? ' ' + t.cls : ''}`)}`).join('');
   return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, more + '</div>') : `<div class="qtags qcard-tags">${more}</div>`;
 }
 function msgKindWord_(m) {

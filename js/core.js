@@ -24,8 +24,8 @@ const row = (label, value, extra) => {
 };
 
 /* THE SAME ROW, WITH THE VALUE ALREADY MARKED UP — a link, a coloured word, a small drawing. § */
-const rowHtml = (label, html, extra) =>
-  `<div class="row"><span class="k">${esc(label)}</span>` +
+const rowHtml = (label, html, extra, rowCls) =>
+  `<div class="row${rowCls ? ' ' + rowCls : ''}"><span class="k">${esc(label)}</span>` +
   `<span class="${['v', extra || ''].filter(Boolean).join(' ')}">${html}</span></div>`;
 
 /* ---------- THE TWO SHAPES THE FIRST TWO COULD NOT MAKE § */

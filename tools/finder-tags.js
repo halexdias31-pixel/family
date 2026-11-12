@@ -93,7 +93,7 @@ if (require.main === module) (async () => {
         const f = nextFacet(items) || overFacet_(items);
         if (!f) return null;
         const vs = facetValues(items, f);
-        return JSON.stringify([f.field, vs.map(x => x.show && x.show !== x.value ? [x.value, x.show] : [x.value]), vs.map(x => x.n), items.length, vs.map(x => answerSay_(f, x.value))]);
+        return JSON.stringify([f.field, vs.map(x => x.also && x.also.length ? [x.value, x.show || x.value, x.also] : x.show && x.show !== x.value ? [x.value, x.show] : [x.value]), vs.map(x => x.n), items.length, vs.map(x => answerSay_(f, x.value))]);
       });
       return (isAdmin() ? 'admin+' : '') + (bibleFor_() ? 'bible' : '');
     })()`);
@@ -105,14 +105,14 @@ if (require.main === module) (async () => {
       const q = JSON.parse(r), k = filters.map(f => f.field + '=' + f.value).join('&');
       out[k] = q;
       if (process.env.PROGRESS) process.stderr.write(Object.keys(out).length + ' ' + ((Date.now() - t1) / 1000 | 0) + 's ' + q[3] + ' ' + k.slice(0, 120) + '\n');
-      if (depth < DEPTH || (q[3] > DEEP && depth < DEEPEST && DEEP_UNDER.test(k))) q[1].forEach(x => walk(filters.concat([{ field: q[0], value: x[0] }]), depth + 1));
+      if (depth < DEPTH || (q[3] > DEEP && depth < DEEPEST && DEEP_UNDER.test(k))) q[1].forEach(x => walk(filters.concat([x[0]].concat(x[2] || []).map(v => ({ field: q[0], value: v }))), depth + 1));
     };
     walk([], 0);
     NAMED.forEach(st => walk(st, DEPTH));
     ev('inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.admit = null; })');
     /* EACH ANSWER'S WORDS WHERE THEY ARE NOT ITS PLAIN SHORT ONES (answerSay_: a paper's cover code), over the whole list, so a tag row never tallies the library. */
     out['#says'] = JSON.parse(ev(`inFinder_(FINDERS.stuff, () => { const all = stuffItems(), o = {};
-      facetList().forEach(f => { const m = {}; facetTally_(all, f).values.forEach(v => { const s = v.show || v.text || v.value; if (s !== showShort_(facetSay_(f, v.value))) m[v.value] = s; });
+      facetList().forEach(f => { const m = {}; facetTally_(all, f).values.forEach(v => { const s = v.show || v.text || v.value; [v.value].concat(v.also || []).forEach(u => { if (s !== showShort_(facetSay_(f, u))) m[u] = s; }); });
         if (Object.keys(m).length) o[f.field] = m; });
       return JSON.stringify(o); })`));
     const got = { key: key, out: out };

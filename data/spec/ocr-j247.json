@@ -1,0 +1,101 @@
+{
+ "id": "ocr-j247",
+ "board": "OCR",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Biology",
+ "code": "J247",
+ "url": "https://www.ocr.org.uk/Images/234594-specification-accredited-gcse-gateway-science-suite-biology-a-j247.pdf",
+ "sections": [
+  {
+   "id": "B1",
+   "title": "Cell level systems"
+  },
+  {
+   "id": "B2",
+   "title": "Scaling up"
+  },
+  {
+   "id": "B4",
+   "title": "Community level systems"
+  },
+  {
+   "id": "B5",
+   "title": "Genes, inheritance and selection"
+  },
+  {
+   "id": "B6",
+   "title": "Global challenges"
+  },
+  {
+   "id": "B7",
+   "title": "Practical skills"
+  },
+  {
+   "id": "B3",
+   "title": "Organism level systems"
+  }
+ ],
+ "points": [
+  {
+   "id": "B1.1",
+   "text": "Cell structures",
+   "parent": "B1",
+   "links": []
+  },
+  {
+   "id": "B1.2",
+   "text": "What happens in cells (and what do cells need)?",
+   "parent": "B1",
+   "links": []
+  },
+  {
+   "id": "B1.3",
+   "text": "Respiration",
+   "parent": "B1",
+   "links": []
+  },
+  {
+   "id": "B1.4",
+   "text": "Photosynthesis",
+   "parent": "B1",
+   "links": []
+  },
+  {
+   "id": "B2.1",
+   "text": "Supplying the cell",
+   "parent": "B2",
+   "links": []
+  },
+  {
+   "id": "B2.2",
+   "text": "The challenges of size",
+   "parent": "B2",
+   "links": []
+  },
+  {
+   "id": "B4.1",
+   "text": "Ecosystems",
+   "parent": "B4",
+   "links": []
+  },
+  {
+   "id": "B5.1",
+   "text": "Inheritance",
+   "parent": "B5",
+   "links": []
+  },
+  {
+   "id": "B5.2",
+   "text": "Natural selection and evolution",
+   "parent": "B5",
+   "links": []
+  },
+  {
+   "id": "B6.2",
+   "text": "F eeding the human race",
+   "parent": "B6",
+   "links": []
+  }
+ ]
+}

@@ -1,0 +1,2000 @@
+{
+ "id": "aqa-8462",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Chemistry",
+ "code": "8462",
+ "url": "https://filestore.aqa.org.uk/resources/chemistry/specifications/AQA-8462-SP-2016.PDF",
+ "measured": true,
+ "sections": [
+  {
+   "id": "4.1",
+   "title": "Atomic structure and the periodic table",
+   "topic": "Atomic Structure & the Periodic Table"
+  },
+  {
+   "id": "4.2",
+   "title": "Bonding, structure, and the properties of matter",
+   "topic": "Bonding & Structure"
+  },
+  {
+   "id": "4.3",
+   "title": "Quantitative chemistry",
+   "topic": "Quantitative Chemistry"
+  },
+  {
+   "id": "4.4",
+   "title": "Chemical changes",
+   "topic": "Chemical Changes"
+  },
+  {
+   "id": "4.5",
+   "title": "Energy changes",
+   "topic": "Energy Changes"
+  },
+  {
+   "id": "4.6",
+   "title": "The rate and extent of chemical change",
+   "topic": "Rate of Reaction"
+  },
+  {
+   "id": "4.7",
+   "title": "Organic chemistry",
+   "topic": "Organic Chemistry"
+  },
+  {
+   "id": "4.8",
+   "title": "Chemical analysis",
+   "topic": "Chemical Analysis"
+  },
+  {
+   "id": "4.9",
+   "title": "Chemistry of the atmosphere",
+   "topic": "Chemistry of the Atmosphere"
+  },
+  {
+   "id": "4.10",
+   "title": "Using resources",
+   "topic": "Using Resources"
+  },
+  {
+   "id": "4.11",
+   "title": "Key ideas"
+  }
+ ],
+ "points": [
+  {
+   "id": "4.1.1.1",
+   "text": "Atoms, elements and compounds",
+   "parent": "4.1",
+   "links": [
+    "ct:TB-AQA-8462-1",
+    "q:Q-W-AT-C-group-1-elements-3d"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "4.1.1.2",
+   "text": "Mixtures",
+   "parent": "4.1",
+   "links": [
+    "ct:TB-AQA-8462-2",
+    "q:S-Q-AQA-8462-2406-1F-011",
+    "q:Q-AQA-8462-2406-1F-016",
+    "q:S-W-AT-C-separating-mixtures-q1",
+    "q:S-Q-AQA-8464C-2011-2F-05"
+   ],
+   "asked": 12
+  },
+  {
+   "id": "4.1.1.3",
+   "text": "The development of the model of the atom (common content with physics)",
+   "parent": "4.1",
+   "links": [
+    "ct:TB-AQA-8462-3",
+    "q:S-Q-AQA-8462-2406-1H-031",
+    "q:Q-AQA-8462-2406-1H-031",
+    "q:Q-AQA-8462-2406-1H-031ii",
+    "q:Q-AQA-8462-2406-1H-032"
+   ],
+   "keys": [
+    "plum pudding",
+    "alpha scattering",
+    "model atom",
+    "bohr",
+    "chadwick"
+   ],
+   "asked": 40
+  },
+  {
+   "id": "4.1.1.4",
+   "text": "Relative electrical charges of subatomic particles",
+   "parent": "4.1",
+   "links": [
+    "ct:TB-AQA-8462-4",
+    "q:Q-W-AT-C-atomic-structure-4aiii",
+    "q:Q-W-AT-C-electron-configuration-2aiii",
+    "q:Q-W-AT-C-history-of-the-atom-3a",
+    "q:Q-AQA-8464C-2506-1H-032"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "4.1.1.5",
+   "text": "Size and mass of atoms",
+   "parent": "4.1",
+   "links": [
+    "ct:TB-AQA-8462-5",
+    "q:Q-W-AT-C-atomic-structure-1g",
+    "q:Q-W-AT-C-history-of-the-atom-1f",
+    "q:Q-AQA-8464C-1806-1F-026",
+    "q:Q-AQA-8464C-1906-1F-046"
+   ],
+   "keys": [
+    "radius atom",
+    "size atom",
+    "nucleus radius"
+   ],
+   "asked": 11
+  },
+  {
+   "id": "4.1.1.6",
+   "text": "Relative atomic mass",
+   "parent": "4.1",
+   "links": [
+    "ct:TB-AQA-8462-6",
+    "q:Q-T-AT-C-atomic-structure-5-5",
+    "q:Q-W-AT-C-atomic-structure-1f",
+    "q:Q-W-AT-C-atomic-structure-2e",
+    "q:Q-W-AT-C-atomic-structure-6b"
+   ],
+   "asked": 42
+  },
+  {
+   "id": "4.1.1.7",
+   "text": "Electronic structure",
+   "parent": "4.1",
+   "links": [
+    "ct:TB-AQA-8462-7",
+    "q:Q-T-AT-C-atomic-structure-4-3",
+    "q:Q-W-AT-C-atomic-structure-4ai",
+    "q:Q-W-AT-C-atomic-structure-4b",
+    "q:Q-W-AT-C-atomic-structure-5ci"
+   ],
+   "figure": [
+    "diagram",
+    "structure"
+   ],
+   "asked": 20
+  },
+  {
+   "id": "4.1.2",
+   "text": "The periodic table",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.2.1",
+   "text": "The periodic table",
+   "parent": "4.1.2",
+   "links": [
+    "ct:TB-AQA-8462-8",
+    "q:S-Q-AQA-8462-2406-1H-021",
+    "q:Q-AQA-8462-2406-1H-024",
+    "q:Q-AQA-8462-2406-1F-013",
+    "q:Q-AQA-8462-2406-1F-042"
+   ],
+   "asked": 91
+  },
+  {
+   "id": "4.1.2.2",
+   "text": "Development of the periodic table",
+   "parent": "4.1.2",
+   "links": [
+    "ct:TB-AQA-8462-9",
+    "q:S-T-AT-C-atomic-structure-q6",
+    "q:Q-T-AT-C-atomic-structure-6-1",
+    "q:Q-T-AT-C-atomic-structure-6-2",
+    "q:Q-T-AT-C-atomic-structure-6-3"
+   ],
+   "keys": [
+    "mendeleev",
+    "newlands",
+    "early periodic table"
+   ],
+   "asked": 15
+  },
+  {
+   "id": "4.1.2.3",
+   "text": "Metals and non-metals",
+   "parent": "4.1.2",
+   "links": [
+    "ct:TB-AQA-8462-10",
+    "q:Q-AQA-8462-2406-1F-013",
+    "q:S-W-AT-C-electron-configuration-q6",
+    "q:Q-W-AT-C-electron-configuration-6f",
+    "q:Q-W-AT-C-electron-configuration-6g"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 7
+  },
+  {
+   "id": "4.1.2.4",
+   "text": "Group 0",
+   "parent": "4.1.2",
+   "links": [
+    "ct:TB-AQA-8462-11",
+    "q:S-Q-AQA-8462-2406-1H-021",
+    "q:Q-AQA-8462-2406-1H-024",
+    "q:Q-AQA-8462-2406-1H-026",
+    "q:Q-AQA-8462-2406-1H-027"
+   ],
+   "asked": 141
+  },
+  {
+   "id": "4.1.2.5",
+   "text": "Group 1",
+   "parent": "4.1.2",
+   "links": [
+    "ct:TB-AQA-8462-12",
+    "q:S-Q-AQA-8462-2406-1H-021",
+    "q:Q-AQA-8462-2406-1H-024",
+    "q:Q-AQA-8462-2406-1H-026",
+    "q:Q-AQA-8462-2406-1H-027"
+   ],
+   "asked": 141
+  },
+  {
+   "id": "4.1.2.6",
+   "text": "Group 7",
+   "parent": "4.1.2",
+   "links": [
+    "ct:TB-AQA-8462-13",
+    "q:S-Q-AQA-8462-2406-1H-021",
+    "q:Q-AQA-8462-2406-1H-024",
+    "q:Q-AQA-8462-2406-1H-026",
+    "q:Q-AQA-8462-2406-1H-027"
+   ],
+   "asked": 141
+  },
+  {
+   "id": "4.1.3",
+   "text": "Properties of transition metals (chemistry only)",
+   "parent": "4.1",
+   "links": []
+  },
+  {
+   "id": "4.1.3.1",
+   "text": "Comparison with Group 1 elements",
+   "parent": "4.1.3",
+   "links": [
+    "ct:TB-AQA-8462-14",
+    "q:Q-AQA-8462-2406-1F-014",
+    "q:Q-W-AT-C-periodic-table-4aii",
+    "q:Q-W-AT-C-periodic-table-5aii",
+    "q:Q-W-AT-C-periodic-table-6c"
+   ],
+   "keys": [
+    "transition metal"
+   ],
+   "asked": 7
+  },
+  {
+   "id": "4.1.3.2",
+   "text": "Typical properties",
+   "parent": "4.1.3",
+   "links": [
+    "ct:TB-AQA-8462-15",
+    "q:Q-AQA-8462-2406-1F-014"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "4.2.1",
+   "text": "Chemical bonds, ionic, covalent and metallic",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.1.1",
+   "text": "Chemical bonds",
+   "parent": "4.2.1",
+   "links": [
+    "ct:TB-AQA-8462-16",
+    "q:Q-AQA-8464C-2111-1F-034",
+    "q:Q-AQA-8464C-2506-1H-035",
+    "q:Q-OCR-J248-1806-01-21b",
+    "q:Q-OCR-J248-1806-01-24"
+   ],
+   "keys": [
+    "ionic covalent metallic",
+    "type bonding",
+    "chemical bond"
+   ],
+   "asked": 15
+  },
+  {
+   "id": "4.2.1.2",
+   "text": "Ionic bonding",
+   "parent": "4.2.1",
+   "links": [
+    "ct:TB-AQA-8462-17",
+    "q:Q-T-AT-C-bonding-structure-2-1",
+    "q:Q-W-AT-C-giant-covalent-4c",
+    "q:Q-W-AT-C-giant-covalent-8bi",
+    "q:Q-W-AT-C-giant-covalent-9a"
+   ],
+   "figure": [
+    "diagram",
+    "draw",
+    "structure"
+   ],
+   "asked": 6
+  },
+  {
+   "id": "4.2.1.3",
+   "text": "Ionic compounds",
+   "parent": "4.2.1",
+   "links": [
+    "ct:TB-AQA-8462-18",
+    "q:S-Q-AQA-8462-2406-1H-051",
+    "q:Q-AQA-8462-2406-1H-051",
+    "q:Q-AQA-8464C-1906-1F-044",
+    "q:Q-AQA-8464C-2306-1F-033"
+   ],
+   "figure": [
+    "diagram",
+    "structure"
+   ],
+   "asked": 16
+  },
+  {
+   "id": "4.2.1.4",
+   "text": "Covalent bonding",
+   "parent": "4.2.1",
+   "links": [
+    "ct:TB-AQA-8462-19",
+    "q:Q-AQA-8462-2406-1F-057",
+    "q:S-Q-AQA-8464C-2011-1F-07",
+    "q:Q-AQA-8464C-2011-1F-074",
+    "q:S-Q-AQA-8464C-2011-1H-02"
+   ],
+   "figure": [
+    "diagram",
+    "draw",
+    "structure"
+   ],
+   "asked": 18
+  },
+  {
+   "id": "4.2.1.5",
+   "text": "Metallic bonding",
+   "parent": "4.2.1",
+   "links": [
+    "ct:TB-AQA-8462-20",
+    "q:Q-AQA-8464C-2506-1F-022",
+    "q:Q-AQA-8464C-2506-1H-073",
+    "q:Q-T-AT-C-bonding-structure-2-1",
+    "q:Q-W-AT-C-giant-covalent-4c"
+   ],
+   "figure": [
+    "diagram",
+    "structure"
+   ],
+   "asked": 6
+  },
+  {
+   "id": "4.2.2",
+   "text": "How bonding and structure are related to the properties of",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.2.1",
+   "text": "The three states of matter",
+   "parent": "4.2.2",
+   "links": [
+    "ct:TB-AQA-8462-21",
+    "q:Q-AQA-8464C-1806-1H-041",
+    "q:Q-AQA-8464C-1906-1F-051",
+    "q:Q-AQA-8464C-1906-1F-071",
+    "q:Q-AQA-8464C-1906-1H-021"
+   ],
+   "keys": [
+    "solid liquid gas",
+    "state symbol",
+    "melting point boiling point"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 27
+  },
+  {
+   "id": "4.2.2.2",
+   "text": "State symbols",
+   "parent": "4.2.2",
+   "links": [
+    "ct:TB-AQA-8462-22",
+    "q:Q-AQA-8464C-1806-1H-041",
+    "q:Q-AQA-8464C-1906-1F-051",
+    "q:Q-AQA-8464C-1906-1F-071",
+    "q:Q-AQA-8464C-1906-1H-021"
+   ],
+   "asked": 11
+  },
+  {
+   "id": "4.2.2.3",
+   "text": "Properties of ionic compounds",
+   "parent": "4.2.2",
+   "links": [
+    "ct:TB-AQA-8462-23",
+    "q:Q-T-AT-C-bonding-structure-7",
+    "q:Q-W-AT-C-ionic-bonding-6f"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "4.2.2.4",
+   "text": "Properties of small molecules",
+   "parent": "4.2.2",
+   "links": [
+    "ct:TB-AQA-8462-24",
+    "q:Q-OCR-J248-2111-02-15",
+    "q:Q-OCR-J248-2111-04-01"
+   ],
+   "keys": [
+    "small molecule",
+    "simple molecular",
+    "intermolecular force"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "4.2.2.5",
+   "text": "Polymers",
+   "parent": "4.2.2",
+   "links": [
+    "ct:TB-AQA-8462-25",
+    "q:Q-AQA-8464C-2011-2F-017",
+    "q:Q-AQA-8464C-2011-2H-033",
+    "q:Q-AQA-8464C-2506-1H-074",
+    "q:Q-AQA-8464C-2506-2H-036"
+   ],
+   "figure": [
+    "diagram",
+    "structure"
+   ],
+   "asked": 27
+  },
+  {
+   "id": "4.2.2.6",
+   "text": "Giant covalent structures",
+   "parent": "4.2.2",
+   "links": [
+    "ct:TB-AQA-8462-26",
+    "q:Q-AQA-8464C-2011-1F-076",
+    "q:Q-AQA-8464C-2011-1H-026"
+   ],
+   "figure": [
+    "diagram",
+    "structure"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "4.2.2.7",
+   "text": "Properties of metals and alloys",
+   "parent": "4.2.2",
+   "links": [
+    "ct:TB-AQA-8462-27",
+    "q:Q-AQA-8462-2406-1H-072",
+    "q:Q-AQA-8464C-2406-1H-012",
+    "q:Q-AQA-8464C-2111-1H-043",
+    "q:Q-AQA-8464C-2111-1H-044"
+   ],
+   "keys": [
+    "alloy"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 20
+  },
+  {
+   "id": "4.2.2.8",
+   "text": "Metals as conductors",
+   "parent": "4.2.2",
+   "links": [
+    "ct:TB-AQA-8462-28",
+    "q:Q-OCR-J248-1806-01-02",
+    "q:Q-OCR-J248-1906-02-13",
+    "q:Q-W-AT-C-metallic-bonding-5b",
+    "q:Q-W-AT-C-nanoparticles-4aii"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "4.2.3.1",
+   "text": "Diamond",
+   "parent": "4.2",
+   "links": [
+    "ct:TB-AQA-8462-29",
+    "q:Q-AQA-8462-2406-1F-058",
+    "q:Q-AQA-8464C-2011-1F-074",
+    "q:Q-AQA-8464C-2011-1F-075",
+    "q:Q-AQA-8464C-2011-1H-024"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 37
+  },
+  {
+   "id": "4.2.3.2",
+   "text": "Graphite",
+   "parent": "4.2",
+   "links": [
+    "ct:TB-AQA-8462-30",
+    "q:Q-AQA-8462-2406-1F-057",
+    "q:Q-AQA-8464C-2011-1F-064",
+    "q:S-Q-AQA-8464C-2011-1F-07",
+    "q:Q-AQA-8464C-2011-1H-014"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 40
+  },
+  {
+   "id": "4.2.3.3",
+   "text": "Graphene and fullerenes",
+   "parent": "4.2",
+   "links": [
+    "ct:TB-AQA-8462-31",
+    "q:Q-AQA-8462-2406-1F-056",
+    "q:S-AQA-8464C-2406-1H-08",
+    "q:Q-AQA-8464C-2406-1H-081",
+    "q:Q-AQA-8464C-2111-1H-041"
+   ],
+   "keys": [
+    "graphene",
+    "fullerene",
+    "nanotube",
+    "buckminster"
+   ],
+   "figure": [
+    "diagram",
+    "structure"
+   ],
+   "asked": 9
+  },
+  {
+   "id": "4.2.4",
+   "text": "Bulk and surface properties of matter including nanoparticles",
+   "parent": "4.2",
+   "links": []
+  },
+  {
+   "id": "4.2.4.1",
+   "text": "Sizes of particles and their properties",
+   "parent": "4.2.4",
+   "links": [
+    "ct:TB-AQA-8462-32",
+    "q:Q-AQA-8462-2406-1F-041",
+    "q:Q-AQA-8462-2406-1F-044",
+    "q:Q-AQA-8462-2406-1F-044ii",
+    "q:Q-AQA-8462-2406-1F-044iii"
+   ],
+   "keys": [
+    "nanoparticle",
+    "surface area volume",
+    "nanoscience"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 12
+  },
+  {
+   "id": "4.2.4.2",
+   "text": "Uses of nanoparticles",
+   "parent": "4.2.4",
+   "links": [
+    "ct:TB-AQA-8462-33",
+    "q:Q-AQA-8462-2406-1F-043",
+    "q:Q-OCR-J248-1806-01-14",
+    "q:Q-OCR-J248-1806-03-03",
+    "q:S-Q-OCR-J248-1906-02-22c"
+   ],
+   "asked": 19
+  },
+  {
+   "id": "4.3.1",
+   "text": "Chemical measurements, conservation of mass and the",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.1.1",
+   "text": "Conservation of mass and balanced chemical equations",
+   "parent": "4.3.1",
+   "links": [
+    "ct:TB-AQA-8462-34",
+    "q:Q-AQA-8464C-1806-1H-044"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "4.3.1.2",
+   "text": "Relative formula mass",
+   "parent": "4.3.1",
+   "links": [
+    "ct:TB-AQA-8462-35",
+    "q:Q-AQA-8462-2406-1H-076",
+    "q:Q-AQA-8462-2406-1F-032",
+    "q:Q-AQA-8462-2406-1F-064",
+    "q:Q-AQA-8462-2406-2F-046"
+   ],
+   "asked": 38
+  },
+  {
+   "id": "4.3.1.3",
+   "text": "Mass changes when a reactant or product is a gas",
+   "parent": "4.3.1",
+   "links": [
+    "ct:TB-AQA-8462-36",
+    "q:Q-AQA-8462-2406-1H-076",
+    "q:Q-AQA-8464C-2406-1H-025",
+    "q:Q-AQA-8464B-2011-2H-064",
+    "q:S-Q-AQA-8464B-2506-1H-04"
+   ],
+   "keys": [
+    "mass increase",
+    "mass decrease",
+    "gas escape",
+    "gas produced mass"
+   ],
+   "figure": [
+    "apparatus"
+   ],
+   "asked": 18
+  },
+  {
+   "id": "4.3.1.4",
+   "text": "Chemical measurements",
+   "parent": "4.3.1",
+   "links": [
+    "ct:TB-AQA-8462-37",
+    "q:Q-AQA-8462-2406-1H-045",
+    "q:Q-AQA-8464C-2111-2H-053",
+    "q:Q-AQA-8464P-1806-1H-023",
+    "q:Q-AQA-8464P-2206-1H-042"
+   ],
+   "keys": [
+    "uncertainty",
+    "range mean"
+   ],
+   "asked": 5
+  },
+  {
+   "id": "4.3.2",
+   "text": "Use of amount of substance in relation to masses of pure",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.2.1",
+   "text": "Moles (HT only)",
+   "parent": "4.3.2",
+   "links": [
+    "ct:TB-AQA-8462-38",
+    "q:Q-AQA-8462-2406-1H-073",
+    "q:Q-AQA-8462-2406-1H-094",
+    "q:Q-AQA-8462-2406-2H-092",
+    "q:Q-AQA-8464C-2406-1H-045"
+   ],
+   "ht": true,
+   "asked": 51
+  },
+  {
+   "id": "4.3.2.2",
+   "text": "Amounts of substances in equations (HT only)",
+   "parent": "4.3.2",
+   "links": [
+    "ct:TB-AQA-8462-39",
+    "q:Q-AQA-8462-2406-1H-015",
+    "q:Q-AQA-8462-2406-1H-073",
+    "q:Q-AQA-8462-2406-1H-075",
+    "q:Q-AQA-8462-2406-1H-076"
+   ],
+   "keys": [
+    "moles reacting",
+    "mass product",
+    "calculate mass"
+   ],
+   "ht": true,
+   "asked": 183
+  },
+  {
+   "id": "4.3.2.3",
+   "text": "Using moles to balance equations (HT only)",
+   "parent": "4.3.2",
+   "links": [
+    "ct:TB-AQA-8462-40"
+   ],
+   "keys": [
+    "balance equation moles",
+    "balanced equation mass"
+   ],
+   "ht": true
+  },
+  {
+   "id": "4.3.2.4",
+   "text": "Limiting reactants",
+   "parent": "4.3.2",
+   "links": [
+    "ct:TB-AQA-8462-41",
+    "q:Q-AQA-8464C-2011-1H-043",
+    "q:Q-OCR-J248-1806-03-22"
+   ],
+   "ht": true,
+   "asked": 2
+  },
+  {
+   "id": "4.3.2.5",
+   "text": "Concentration of solutions",
+   "parent": "4.3.2",
+   "links": [
+    "ct:TB-AQA-8462-42",
+    "q:Q-AQA-8462-2406-2H-015",
+    "q:Q-AQA-8462-2406-1F-036",
+    "q:Q-AQA-8462-2406-2F-085",
+    "q:S-AQA-8464B-2406-1H-02"
+   ],
+   "asked": 37
+  },
+  {
+   "id": "4.3.3",
+   "text": "Yield and atom economy of chemical reactions (chemistry only)",
+   "parent": "4.3",
+   "links": []
+  },
+  {
+   "id": "4.3.3.1",
+   "text": "Percentage yield",
+   "parent": "4.3.3",
+   "links": [
+    "ct:TB-AQA-8462-43",
+    "q:Q-AQA-8462-2406-1H-015",
+    "q:Q-AQA-8462-2406-1F-085",
+    "q:Q-OCR-J248-1806-02-17c",
+    "q:Q-OCR-J248-1806-02-17d"
+   ],
+   "asked": 14
+  },
+  {
+   "id": "4.3.3.2",
+   "text": "Atom economy",
+   "parent": "4.3.3",
+   "links": [
+    "ct:TB-AQA-8462-44",
+    "q:Q-OCR-J248-1806-02-21c",
+    "q:Q-OCR-J248-1906-02-12",
+    "q:Q-OCR-J248-1906-04-04",
+    "q:Q-OCR-J248-2011-02-03"
+   ],
+   "asked": 14
+  },
+  {
+   "id": "4.3.4",
+   "text": "Using concentrations of solutions in mol/dm3",
+   "parent": "4.3",
+   "links": [
+    "ct:TB-AQA-8462-45",
+    "q:S-Q-AQA-8464B-1806-1H-04",
+    "q:Q-AQA-8464B-1806-1H-044",
+    "q:Q-AQA-8464B-2011-1F-052",
+    "q:Q-AQA-8464B-2011-1F-055"
+   ],
+   "asked": 31
+  },
+  {
+   "id": "4.3.5",
+   "text": "Use of amount of substance in relation to volumes of gases",
+   "parent": "4.3",
+   "links": [
+    "ct:TB-AQA-8462-46",
+    "q:Q-AQA-8462-2406-1H-076",
+    "q:Q-AQA-8462-2406-2H-054",
+    "q:Q-AQA-8462-2406-2H-092",
+    "q:Q-AQA-8464B-2111-1H-034"
+   ],
+   "keys": [
+    "volume gas",
+    "dm3 gas",
+    "24 dm"
+   ],
+   "asked": 32
+  },
+  {
+   "id": "4.4.1",
+   "text": "Reactivity of metals",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.1.1",
+   "text": "Metal oxides",
+   "parent": "4.4.1",
+   "links": [
+    "ct:TB-AQA-8462-47",
+    "q:Q-AQA-8464C-2111-1F-076",
+    "q:Q-AQA-8464C-2111-1H-026",
+    "q:S-Q-AQA-8464C-2111-1H-06",
+    "q:S-W-AT-C-reactions-with-acids-q1"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "4.4.1.2",
+   "text": "The reactivity series",
+   "parent": "4.4.1",
+   "links": [
+    "ct:TB-AQA-8462-48",
+    "q:Q-AQA-8462-2406-1F-065",
+    "q:Q-AQA-8464C-2406-1H-062",
+    "q:Q-OCR-J248-1806-02-05",
+    "q:S-Q-OCR-J248-1906-02-18b"
+   ],
+   "asked": 9
+  },
+  {
+   "id": "4.4.1.3",
+   "text": "Extraction of metals and reduction",
+   "parent": "4.4.1",
+   "links": [
+    "ct:TB-AQA-8462-49",
+    "q:S-W-AT-C-metal-extraction-q1"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "4.4.1.4",
+   "text": "Oxidation and reduction in terms of electrons (HT only)",
+   "parent": "4.4.1",
+   "links": [
+    "ct:TB-AQA-8462-50",
+    "q:Q-OCR-J248-1806-03-12"
+   ],
+   "ht": true,
+   "asked": 1
+  },
+  {
+   "id": "4.4.2.1",
+   "text": "Reactions of acids with metals",
+   "parent": "4.4",
+   "links": [
+    "ct:TB-AQA-8462-51",
+    "q:S-Q-AQA-8464C-1906-1F-06",
+    "q:S-Q-AQA-8464C-1906-1H-01",
+    "q:S-Q-AQA-8464C-2306-1H-06",
+    "q:S-Q-OCR-J248-2011-04-22"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "4.4.2.2",
+   "text": "Neutralisation of acids and salt production",
+   "parent": "4.4",
+   "links": [
+    "ct:TB-AQA-8462-52",
+    "q:S-Q-AQA-8462-2406-1H-011",
+    "q:Q-AQA-8462-2406-1H-016",
+    "q:Q-AQA-8462-2406-1H-093",
+    "q:S-Q-AQA-8462-2406-1F-021"
+   ],
+   "keys": [
+    "neutralisation",
+    "salt acid",
+    "acid alkali"
+   ],
+   "asked": 45
+  },
+  {
+   "id": "4.4.2.3",
+   "text": "Soluble salts",
+   "parent": "4.4",
+   "links": [
+    "ct:TB-AQA-8462-53",
+    "q:Q-AQA-8464C-2111-1F-076",
+    "q:Q-AQA-8464C-2111-1H-026",
+    "q:S-Q-AQA-8464C-2306-1H-06",
+    "q:S-Q-AQA-8464C-2406-1F-05"
+   ],
+   "asked": 7
+  },
+  {
+   "id": "4.4.2.4",
+   "text": "The pH scale and neutralisation",
+   "parent": "4.4",
+   "links": [
+    "ct:TB-AQA-8462-54",
+    "q:Q-AQA-8462-2406-1H-023",
+    "q:Q-AQA-8462-2406-1H-092",
+    "q:Q-AQA-8462-2406-1F-022",
+    "q:Q-AQA-8462-2406-1F-093"
+   ],
+   "keys": [
+    "ph scale",
+    "ph",
+    "indicator"
+   ],
+   "asked": 56
+  },
+  {
+   "id": "4.4.2.5",
+   "text": "Titrations",
+   "parent": "4.4",
+   "links": [
+    "ct:TB-AQA-8462-55",
+    "q:Q-AQA-8462-2406-1H-093",
+    "q:S-Q-AQA-8462-2406-1F-021",
+    "q:Q-AQA-8462-2406-1F-022",
+    "q:Q-AQA-8462-2406-1F-026"
+   ],
+   "asked": 27
+  },
+  {
+   "id": "4.4.2.6",
+   "text": "Strong and weak acids (HT only)",
+   "parent": "4.4",
+   "links": [
+    "ct:TB-AQA-8462-56",
+    "q:S-Q-AQA-8462-2406-1H-091",
+    "q:Q-AQA-8464C-2506-1H-054"
+   ],
+   "ht": true,
+   "asked": 2
+  },
+  {
+   "id": "4.4.3",
+   "text": "Electrolysis",
+   "parent": "4.4",
+   "links": []
+  },
+  {
+   "id": "4.4.3.1",
+   "text": "The process of electrolysis",
+   "parent": "4.4.3",
+   "links": [
+    "ct:TB-AQA-8462-57",
+    "q:Q-AQA-8462-2406-1H-055",
+    "q:S-Q-AQA-8462-2406-1F-061",
+    "q:Q-AQA-8462-2406-1F-062",
+    "q:Q-AQA-8462-2406-1F-065"
+   ],
+   "keys": [
+    "electrolysis",
+    "electrolyte"
+   ],
+   "asked": 49
+  },
+  {
+   "id": "4.4.3.2",
+   "text": "Electrolysis of molten ionic compounds",
+   "parent": "4.4.3",
+   "links": [
+    "ct:TB-AQA-8462-58",
+    "q:Q-AQA-8462-2406-1F-062",
+    "q:Q-AQA-8464C-1906-1H-051",
+    "q:Q-W-AT-C-metal-extraction-5ci"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "4.4.3.3",
+   "text": "Using electrolysis to extract metals",
+   "parent": "4.4.3",
+   "links": [
+    "ct:TB-AQA-8462-59",
+    "q:Q-AQA-8462-2406-1F-065",
+    "q:Q-AQA-8464C-2406-1H-063",
+    "q:Q-AQA-8464C-2406-1H-065",
+    "q:Q-AQA-8464C-1906-1H-051"
+   ],
+   "asked": 8
+  },
+  {
+   "id": "4.4.3.4",
+   "text": "Electrolysis of aqueous solutions",
+   "parent": "4.4.3",
+   "links": [
+    "ct:TB-AQA-8462-60",
+    "q:S-Q-AQA-8464C-2111-1H-05"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "4.4.3.5",
+   "text": "Representation of reactions at electrodes as half equations (HT only)",
+   "parent": "4.4.3",
+   "links": [
+    "ct:TB-AQA-8462-61",
+    "q:Q-AQA-8462-2406-1H-054",
+    "q:Q-AQA-8464C-2406-1H-065",
+    "q:Q-AQA-8464C-1806-1H-084",
+    "q:Q-AQA-8464C-1906-1H-053"
+   ],
+   "ht": true,
+   "asked": 6
+  },
+  {
+   "id": "4.5.1.1",
+   "text": "Energy transfer during exothermic and endothermic reactions",
+   "parent": "4.5",
+   "links": [
+    "ct:TB-AQA-8462-62",
+    "q:Q-AQA-8464C-2506-2H-042",
+    "q:S-Q-OCR-J248-1806-01-16"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "4.5.1.2",
+   "text": "Reaction profiles",
+   "parent": "4.5",
+   "links": [
+    "ct:TB-AQA-8462-63",
+    "q:Q-AQA-8462-2406-1H-082",
+    "q:Q-AQA-8464C-1906-2H-044"
+   ],
+   "figure": [
+    "diagram",
+    "draw"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "4.5.1.3",
+   "text": "The energy change of reactions (HT only)",
+   "parent": "4.5",
+   "links": [
+    "ct:TB-AQA-8462-64",
+    "q:S-Q-AQA-8462-2406-1H-041",
+    "q:Q-AQA-8462-2406-1H-083",
+    "q:Q-AQA-8462-2406-1F-033",
+    "q:Q-AQA-8462-2406-1F-037"
+   ],
+   "ht": true,
+   "asked": 26
+  },
+  {
+   "id": "4.5.2.1",
+   "text": "Cells and batteries",
+   "parent": "4.5",
+   "links": [
+    "ct:TB-AQA-8462-65",
+    "q:Q-AQA-8462-2406-1F-071",
+    "q:Q-W-AT-C-chemical-cells-and-fuel-cells-1d",
+    "q:Q-W-AT-C-chemical-cells-and-fuel-cells-1e",
+    "q:Q-W-AT-C-chemical-cells-and-fuel-cells-2b"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "4.5.2.2",
+   "text": "Fuel cells",
+   "parent": "4.5",
+   "links": [
+    "ct:TB-AQA-8462-66",
+    "q:Q-AQA-8462-2406-1H-063",
+    "q:Q-OCR-J248-1806-02-24d",
+    "q:Q-OCR-J248-1906-04-09",
+    "q:Q-W-AT-C-chemical-cells-and-fuel-cells-1d"
+   ],
+   "asked": 15
+  },
+  {
+   "id": "4.6.1.1",
+   "text": "Calculating rates of reactions",
+   "parent": "4.6",
+   "links": [
+    "ct:TB-AQA-8462-67",
+    "q:Q-AQA-8462-2406-2H-075",
+    "q:S-Q-AQA-8462-2406-2H-091",
+    "q:Q-AQA-8462-2406-2H-093",
+    "q:Q-AQA-8462-2406-2H-095"
+   ],
+   "keys": [
+    "rate reaction",
+    "mean rate",
+    "rate tangent"
+   ],
+   "figure": [
+    "draw",
+    "graph"
+   ],
+   "asked": 97
+  },
+  {
+   "id": "4.6.1.2",
+   "text": "Factors which affect the rates of chemical reactions",
+   "parent": "4.6",
+   "links": [
+    "ct:TB-AQA-8462-68",
+    "q:S-Q-AQA-8464C-2406-2H-021",
+    "q:S-Q-AQA-8464C-2406-2F-07"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "4.6.1.3",
+   "text": "Collision theory and activation energy",
+   "parent": "4.6",
+   "links": [
+    "ct:TB-AQA-8462-69",
+    "q:Q-AQA-8464C-2111-2F-065",
+    "q:Q-AQA-8464C-2111-2H-015"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "4.6.1.4",
+   "text": "Catalysts",
+   "parent": "4.6",
+   "links": [
+    "ct:TB-AQA-8462-70",
+    "q:Q-AQA-8462-2406-2H-022",
+    "q:Q-AQA-8462-2406-2H-025",
+    "q:Q-AQA-8462-2406-2H-075",
+    "q:Q-AQA-8462-2406-2F-092"
+   ],
+   "asked": 58
+  },
+  {
+   "id": "4.6.2",
+   "text": "Reversible reactions and dynamic equilibrium",
+   "parent": "4.6",
+   "links": []
+  },
+  {
+   "id": "4.6.2.1",
+   "text": "Reversible reactions",
+   "parent": "4.6.2",
+   "links": [
+    "ct:TB-AQA-8462-71",
+    "q:Q-AQA-8462-2406-2H-072",
+    "q:S-AQA-8464C-2406-2H-05",
+    "q:S-Q-AQA-8464C-2111-2F-01",
+    "q:Q-AQA-8464C-2111-2F-011"
+   ],
+   "asked": 20
+  },
+  {
+   "id": "4.6.2.2",
+   "text": "Energy changes and reversible reactions",
+   "parent": "4.6.2",
+   "links": [
+    "ct:TB-AQA-8462-72",
+    "q:S-AQA-8464C-2406-2H-05",
+    "q:S-Q-OCR-J248-1806-01-16"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "4.6.2.3",
+   "text": "Equilibrium",
+   "parent": "4.6.2",
+   "links": [
+    "ct:TB-AQA-8462-73",
+    "q:Q-AQA-8462-2406-2H-032",
+    "q:Q-AQA-8462-2406-2H-072",
+    "q:Q-AQA-8462-2406-2F-102",
+    "q:Q-AQA-8464C-2406-2H-052"
+   ],
+   "figure": [
+    "apparatus"
+   ],
+   "asked": 46
+  },
+  {
+   "id": "4.6.2.4",
+   "text": "The effect of changing conditions on equilibrium",
+   "parent": "4.6.2",
+   "links": [
+    "ct:TB-AQA-8462-74",
+    "q:Q-AQA-8464C-2506-2H-043"
+   ],
+   "ht": true,
+   "asked": 1
+  },
+  {
+   "id": "4.6.2.5",
+   "text": "The effect of changing concentration (HT only)",
+   "parent": "4.6.2",
+   "links": [
+    "ct:TB-AQA-8462-75",
+    "q:Q-AQA-8462-2406-2F-056",
+    "q:Q-AQA-8462-2406-2F-057",
+    "q:S-Q-AQA-8464C-2506-2H-05",
+    "q:Q-AQA-8464C-2506-2H-053"
+   ],
+   "ht": true,
+   "asked": 5
+  },
+  {
+   "id": "4.6.2.6",
+   "text": "The effect of temperature changes on equilibrium (HT only)",
+   "parent": "4.6.2",
+   "links": [
+    "ct:TB-AQA-8462-76",
+    "q:Q-AQA-8462-2406-2F-057",
+    "q:Q-AQA-8464C-2406-2H-054",
+    "q:Q-AQA-8464C-1806-2H-064",
+    "q:Q-AQA-8464C-2111-2H-066"
+   ],
+   "ht": true,
+   "asked": 10
+  },
+  {
+   "id": "4.6.2.7",
+   "text": "The effect of pressure changes on equilibrium (HT only)",
+   "parent": "4.6.2",
+   "links": [
+    "ct:TB-AQA-8462-77",
+    "q:Q-AQA-8464C-2406-2H-053",
+    "q:Q-AQA-8464C-1806-2H-065",
+    "q:Q-AQA-8464C-2011-2H-072",
+    "q:Q-AQA-8464C-2506-2H-043"
+   ],
+   "ht": true,
+   "asked": 7
+  },
+  {
+   "id": "4.7.1.1",
+   "text": "Crude oil, hydrocarbons and alkanes",
+   "parent": "4.7",
+   "links": [
+    "ct:TB-AQA-8462-78",
+    "q:Q-AQA-8462-2406-2H-055",
+    "q:Q-AQA-8464C-2406-2H-013",
+    "q:S-Q-AQA-8464C-1806-2H-01",
+    "q:S-Q-AQA-8464C-1906-2H-07"
+   ],
+   "asked": 32
+  },
+  {
+   "id": "4.7.1.2",
+   "text": "Fractional distillation and petrochemicals",
+   "parent": "4.7",
+   "links": [
+    "ct:TB-AQA-8462-79",
+    "q:Q-AQA-8462-2406-2H-055",
+    "q:Q-AQA-8464C-2406-2H-013",
+    "q:S-Q-AQA-8464C-2406-2H-031",
+    "q:Q-AQA-8464C-1806-2H-012"
+   ],
+   "keys": [
+    "fractional distillation",
+    "fraction",
+    "petrochemical"
+   ],
+   "asked": 59
+  },
+  {
+   "id": "4.7.1.3",
+   "text": "Properties of hydrocarbons",
+   "parent": "4.7",
+   "links": [
+    "ct:TB-AQA-8462-80",
+    "q:Q-AQA-8464C-2306-2F-052",
+    "q:Q-AQA-8464C-2306-2H-012",
+    "q:Q-W-AT-C-cracking-2b"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "4.7.1.4",
+   "text": "Cracking and alkenes",
+   "parent": "4.7",
+   "links": [
+    "ct:TB-AQA-8462-81",
+    "q:Q-AQA-8464C-2111-2F-074",
+    "q:Q-AQA-8464C-2111-2H-024",
+    "q:Q-AQA-8464C-2306-2H-035",
+    "q:Q-AQA-8464C-2506-2F-046"
+   ],
+   "asked": 6
+  },
+  {
+   "id": "4.7.2",
+   "text": "Reactions of alkenes and alcohols (chemistry only)",
+   "parent": "4.7",
+   "links": []
+  },
+  {
+   "id": "4.7.2.1",
+   "text": "Structure and formulae of alkenes",
+   "parent": "4.7.2",
+   "links": [
+    "ct:TB-AQA-8462-82",
+    "q:S-Q-AQA-8462-2406-2H-081",
+    "q:Q-AQA-8462-2406-2H-081",
+    "q:S-Q-AQA-8462-2406-2F-061",
+    "q:Q-AQA-8462-2406-2F-061"
+   ],
+   "keys": [
+    "alkene",
+    "ethene",
+    "propene"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 71
+  },
+  {
+   "id": "4.7.2.2",
+   "text": "Reactions of alkenes",
+   "parent": "4.7.2",
+   "links": [
+    "ct:TB-AQA-8462-83",
+    "q:Q-AQA-8464C-2111-2F-074",
+    "q:Q-AQA-8464C-2111-2H-024"
+   ],
+   "figure": [
+    "draw"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "4.7.2.3",
+   "text": "Alcohols",
+   "parent": "4.7.2",
+   "links": [
+    "ct:TB-AQA-8462-84",
+    "q:Q-AQA-8464P-2206-2F-052",
+    "q:S-Q-OCR-J248-1806-02-25",
+    "q:Q-OCR-J248-1806-02-25c",
+    "q:Q-OCR-J248-1906-04-13"
+   ],
+   "asked": 20
+  },
+  {
+   "id": "4.7.2.4",
+   "text": "Carboxylic acids",
+   "parent": "4.7.2",
+   "links": [
+    "ct:TB-AQA-8462-85",
+    "q:Q-OCR-J248-1906-04-13",
+    "q:Q-OCR-J248-2011-04-11",
+    "q:Q-OCR-J248-2111-04-08",
+    "q:Q-OCR-J248-2111-04-13"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 8
+  },
+  {
+   "id": "4.7.3.1",
+   "text": "Addition polymerisation",
+   "parent": "4.7",
+   "links": [
+    "ct:TB-AQA-8462-86",
+    "q:S-Q-OCR-J248-2011-04-20b",
+    "q:Q-OCR-J248-2011-04-20bii"
+   ],
+   "figure": [
+    "diagram",
+    "draw"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "4.7.3.2",
+   "text": "Condensation polymerisation (HT only)",
+   "parent": "4.7",
+   "links": [
+    "ct:TB-AQA-8462-87",
+    "q:Q-OCR-J248-2011-04-20bii"
+   ],
+   "ht": true,
+   "asked": 1
+  },
+  {
+   "id": "4.7.3.3",
+   "text": "Amino acids",
+   "parent": "4.7",
+   "links": [
+    "ct:TB-AQA-8462-88",
+    "q:Q-AQA-8464B-1906-2H-044",
+    "q:Q-OCR-J248-2011-02-08"
+   ],
+   "ht": true,
+   "asked": 2
+  },
+  {
+   "id": "4.7.3.4",
+   "text": "DNA (deoxyribonucleic acid) and other naturally occurring polymers",
+   "parent": "4.7",
+   "links": [
+    "ct:TB-AQA-8462-89",
+    "q:Q-AQA-8462-2406-2F-047",
+    "q:Q-AQA-8462-2406-2F-048",
+    "q:Q-AQA-8462-2406-2F-049",
+    "q:Q-AQA-8464B-1806-2H-072"
+   ],
+   "keys": [
+    "dna",
+    "amino acid",
+    "protein polymer",
+    "starch cellulose"
+   ],
+   "asked": 29
+  },
+  {
+   "id": "4.8.1",
+   "text": "Purity, formulations and chromatography",
+   "parent": "4.8",
+   "links": []
+  },
+  {
+   "id": "4.8.1.1",
+   "text": "Pure substances",
+   "parent": "4.8.1",
+   "links": [
+    "ct:TB-AQA-8462-90",
+    "q:Q-AQA-8464C-2406-2F-021",
+    "q:S-Q-OCR-J248-1806-01-18c",
+    "q:Q-OCR-J248-1806-03-07",
+    "q:Q-OCR-J248-1806-03-20a"
+   ],
+   "asked": 9
+  },
+  {
+   "id": "4.8.1.2",
+   "text": "Formulations",
+   "parent": "4.8.1",
+   "links": [
+    "ct:TB-AQA-8462-91",
+    "q:S-Q-AQA-8464C-1806-2H-04",
+    "q:Q-AQA-8464C-1806-2H-041",
+    "q:Q-AQA-8464C-1906-2H-031",
+    "q:Q-AQA-8464C-2306-2H-031"
+   ],
+   "asked": 6
+  },
+  {
+   "id": "4.8.1.3",
+   "text": "Chromatography",
+   "parent": "4.8.1",
+   "links": [
+    "ct:TB-AQA-8462-92",
+    "q:S-Q-AQA-8462-2406-2H-041",
+    "q:Q-AQA-8462-2406-2H-041",
+    "q:Q-AQA-8462-2406-2H-042",
+    "q:Q-AQA-8462-2406-2H-046"
+   ],
+   "asked": 34
+  },
+  {
+   "id": "4.8.2",
+   "text": "Identification of common gases",
+   "parent": "4.8",
+   "links": []
+  },
+  {
+   "id": "4.8.2.1",
+   "text": "Test for hydrogen",
+   "parent": "4.8.2",
+   "links": [
+    "ct:TB-AQA-8462-93",
+    "q:Q-AQA-8464C-2011-2F-064",
+    "q:Q-AQA-8464C-2011-2H-014",
+    "q:Q-AQA-8464C-2111-2H-061",
+    "q:Q-AQA-8464C-2306-2F-016"
+   ],
+   "asked": 6
+  },
+  {
+   "id": "4.8.2.2",
+   "text": "Test for oxygen",
+   "parent": "4.8.2",
+   "links": [
+    "ct:TB-AQA-8462-94",
+    "q:Q-AQA-8462-2406-2H-023",
+    "q:Q-AQA-8462-2406-2F-093",
+    "q:Q-AQA-8464C-1906-2H-061",
+    "q:Q-AQA-8464C-2111-2H-061"
+   ],
+   "asked": 7
+  },
+  {
+   "id": "4.8.2.3",
+   "text": "Test for carbon dioxide",
+   "parent": "4.8.2",
+   "links": [
+    "ct:TB-AQA-8462-95",
+    "q:Q-AQA-8464C-2011-1F-08",
+    "q:Q-AQA-8464C-2011-1H-03",
+    "q:Q-AQA-8464C-2011-2F-062",
+    "q:Q-AQA-8464C-2011-2H-012"
+   ],
+   "asked": 11
+  },
+  {
+   "id": "4.8.2.4",
+   "text": "Test for chlorine",
+   "parent": "4.8.2",
+   "links": [
+    "ct:TB-AQA-8462-96",
+    "q:Q-AQA-8464C-1806-2H-061",
+    "q:Q-AQA-8464C-2306-2F-036",
+    "q:Q-AQA-8464C-2406-2F-025",
+    "q:Q-OCR-J248-1806-02-02"
+   ],
+   "asked": 9
+  },
+  {
+   "id": "4.8.3",
+   "text": "Identification of ions by chemical and spectroscopic means",
+   "parent": "4.8",
+   "links": []
+  },
+  {
+   "id": "4.8.3.1",
+   "text": "Flame tests",
+   "parent": "4.8.3",
+   "links": [
+    "ct:TB-AQA-8462-97",
+    "q:S-Q-OCR-J248-1806-02-20",
+    "q:Q-OCR-J248-1806-02-20a",
+    "q:Q-OCR-J248-2011-02-09",
+    "q:S-Q-OCR-J248-2011-02-17"
+   ],
+   "asked": 21
+  },
+  {
+   "id": "4.8.3.2",
+   "text": "Metal hydroxides",
+   "parent": "4.8.3",
+   "links": [
+    "ct:TB-AQA-8462-98",
+    "q:S-Q-OCR-J248-1806-02-20",
+    "q:Q-OCR-J248-2011-02-02",
+    "q:Q-OCR-J248-2111-04-23bi",
+    "q:S-T-AT-C-chemical-analysis-q2"
+   ],
+   "keys": [
+    "sodium hydroxide solution precipitate",
+    "hydroxide precipitate"
+   ],
+   "asked": 15
+  },
+  {
+   "id": "4.8.3.3",
+   "text": "Carbonates",
+   "parent": "4.8.3",
+   "links": [
+    "ct:TB-AQA-8462-99",
+    "q:Q-AQA-8464C-1806-1F-042",
+    "q:S-Q-AQA-8464C-1806-1H-06",
+    "q:Q-AQA-8464C-2011-1F-08",
+    "q:Q-AQA-8464C-2011-1H-03"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "4.8.3.4",
+   "text": "Halides",
+   "parent": "4.8.3",
+   "links": [
+    "ct:TB-AQA-8462-100",
+    "q:S-Q-OCR-J248-1806-02-20",
+    "q:Q-OCR-J248-1906-04-06",
+    "q:Q-OCR-J248-2111-04-23bii",
+    "q:Q-T-AT-C-chemical-analysis-5-1"
+   ],
+   "keys": [
+    "halide",
+    "silver nitrate"
+   ],
+   "asked": 11
+  },
+  {
+   "id": "4.8.3.5",
+   "text": "Sulfates",
+   "parent": "4.8.3",
+   "links": [
+    "ct:TB-AQA-8462-101",
+    "q:Q-AQA-8462-2406-2H-071",
+    "q:Q-AQA-8462-2406-2F-073",
+    "q:Q-AQA-8464C-1806-1F-07",
+    "q:Q-AQA-8464C-1806-1H-03"
+   ],
+   "keys": [
+    "sulfate",
+    "barium chloride"
+   ],
+   "asked": 72
+  },
+  {
+   "id": "4.8.3.6",
+   "text": "Instrumental methods",
+   "parent": "4.8.3",
+   "links": [
+    "ct:TB-AQA-8462-102",
+    "q:Q-AQA-8462-2406-2H-046",
+    "q:Q-OCR-J248-1906-02-14",
+    "q:Q-OCR-J248-1906-04-01",
+    "q:Q-OCR-J248-2111-02-21b"
+   ],
+   "asked": 9
+  },
+  {
+   "id": "4.8.3.7",
+   "text": "Flame emission spectroscopy",
+   "parent": "4.8.3",
+   "links": [
+    "ct:TB-AQA-8462-103",
+    "q:Q-T-AT-C-chemical-analysis-3-3",
+    "q:Q-T-AT-C-chemical-analysis-3-4",
+    "q:Q-W-AT-C-identification-of-ions-1d"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "4.9.1.1",
+   "text": "The proportions of different gases in the atmosphere",
+   "parent": "4.9",
+   "links": [
+    "ct:TB-AQA-8462-104",
+    "q:S-Q-AQA-8464C-2506-2F-06",
+    "q:S-Q-AQA-8464C-2506-2H-02"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "4.9.1.2",
+   "text": "The Earth's early atmosphere",
+   "parent": "4.9",
+   "links": [
+    "ct:TB-AQA-8462-105",
+    "q:Q-AQA-8464C-1806-2H-025",
+    "q:Q-AQA-8464C-2011-2F-022",
+    "q:Q-AQA-8464C-2111-2F-041",
+    "q:Q-AQA-8464C-2111-2F-042"
+   ],
+   "asked": 17
+  },
+  {
+   "id": "4.9.1.3",
+   "text": "How oxygen increased",
+   "parent": "4.9",
+   "links": [
+    "ct:TB-AQA-8462-106",
+    "q:Q-AQA-8462-2406-2F-042",
+    "q:S-Q-AQA-8464B-2506-1H-03",
+    "q:Q-AQA-8464B-2506-2H-045",
+    "q:Q-OCR-J248-1806-03-11"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "4.9.1.4",
+   "text": "How carbon dioxide decreased",
+   "parent": "4.9",
+   "links": [
+    "ct:TB-AQA-8462-107",
+    "q:Q-AQA-8462-2406-2F-021",
+    "q:Q-AQA-8464C-2011-2F-022",
+    "q:Q-AQA-8464C-2206-2F-014",
+    "q:Q-AQA-8464C-2406-2F-012"
+   ],
+   "asked": 8
+  },
+  {
+   "id": "4.9.2",
+   "text": "Carbon dioxide and methane as greenhouse gases",
+   "parent": "4.9",
+   "links": []
+  },
+  {
+   "id": "4.9.2.1",
+   "text": "Greenhouse gases",
+   "parent": "4.9.2",
+   "links": [
+    "ct:TB-AQA-8462-108",
+    "q:Q-AQA-8464C-1806-2H-022",
+    "q:S-Q-AQA-8464C-2111-2F-03",
+    "q:Q-AQA-8464C-2206-2H-045",
+    "q:S-Q-AQA-8464C-2306-2H-05"
+   ],
+   "asked": 10
+  },
+  {
+   "id": "4.9.2.2",
+   "text": "Human activities which contribute to an increase in greenhouse gases in the atmosphere",
+   "parent": "4.9.2",
+   "links": [
+    "ct:TB-AQA-8462-109",
+    "q:Q-AQA-8464B-2011-2H-071",
+    "q:Q-AQA-8464B-2111-2F-051",
+    "q:Q-AQA-8464B-2506-2F-029",
+    "q:Q-OCR-J248-1806-02-13"
+   ],
+   "keys": [
+    "greenhouse gas human",
+    "deforestation",
+    "combustion fossil fuel",
+    "methane cattle"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "4.9.2.3",
+   "text": "Global climate change",
+   "parent": "4.9.2",
+   "links": [
+    "ct:TB-AQA-8462-110",
+    "q:Q-AQA-8462-2406-2F-021",
+    "q:Q-AQA-8464B-1906-2H-022",
+    "q:Q-AQA-8464C-1806-2H-022",
+    "q:Q-AQA-8464C-2111-2F-031"
+   ],
+   "asked": 7
+  },
+  {
+   "id": "4.9.2.4",
+   "text": "The carbon footprint and its reduction",
+   "parent": "4.9.2",
+   "links": [
+    "ct:TB-AQA-8462-111",
+    "q:Q-AQA-8464C-1806-2H-023",
+    "q:Q-AQA-8464C-1906-2H-022",
+    "q:Q-AQA-8464C-2111-2H-056"
+   ],
+   "keys": [
+    "carbon footprint"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "4.9.3",
+   "text": "Common atmospheric pollutants and their sources",
+   "parent": "4.9",
+   "links": []
+  },
+  {
+   "id": "4.9.3.1",
+   "text": "Atmospheric pollutants from fuels",
+   "parent": "4.9.3",
+   "links": [
+    "ct:TB-AQA-8462-112",
+    "q:S-Q-AQA-8464C-1906-2H-02",
+    "q:S-Q-AQA-8464C-2306-2F-05",
+    "q:S-Q-AQA-8464C-2306-2H-01"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "4.9.3.2",
+   "text": "Properties and effects of atmospheric pollutants",
+   "parent": "4.9.3",
+   "links": [
+    "ct:TB-AQA-8462-113",
+    "q:Q-AQA-8462-2406-2F-017",
+    "q:S-Q-AQA-8462-2406-2F-021",
+    "q:Q-AQA-8462-2406-2F-023",
+    "q:Q-AQA-8462-2406-2F-024"
+   ],
+   "keys": [
+    "sulfur dioxide",
+    "nitrogen oxide",
+    "carbon monoxide",
+    "particulate",
+    "acid rain"
+   ],
+   "asked": 38
+  },
+  {
+   "id": "4.10.1",
+   "text": "Using the Earth's resources and obtaining potable water",
+   "parent": "4.10",
+   "links": []
+  },
+  {
+   "id": "4.10.1.1",
+   "text": "Using the Earth's resources and sustainable development",
+   "parent": "4.10.1",
+   "links": [
+    "ct:TB-AQA-8462-114",
+    "q:Q-AQA-8464C-1906-2H-045",
+    "q:Q-AQA-8464C-2111-2H-055",
+    "q:Q-AQA-8464C-2306-2F-011",
+    "q:S-Q-AQA-8464C-2506-2H-03"
+   ],
+   "keys": [
+    "sustainable development",
+    "finite resource",
+    "renewable resource"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "asked": 12
+  },
+  {
+   "id": "4.10.1.2",
+   "text": "Potable water",
+   "parent": "4.10.1",
+   "links": [
+    "ct:TB-AQA-8462-115",
+    "q:Q-AQA-8462-2406-2H-033",
+    "q:Q-AQA-8462-2406-2F-103",
+    "q:S-Q-AQA-8464C-2406-2H-061",
+    "q:Q-AQA-8464C-2406-2H-061"
+   ],
+   "asked": 26
+  },
+  {
+   "id": "4.10.1.3",
+   "text": "Waste water treatment",
+   "parent": "4.10.1",
+   "links": [
+    "ct:TB-AQA-8462-116",
+    "q:Q-AQA-8464C-2111-2F-018",
+    "q:Q-AQA-8464C-2506-2F-042"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "4.10.1.4",
+   "text": "Alternative methods of extracting metals (HT only)",
+   "parent": "4.10.1",
+   "links": [
+    "ct:TB-AQA-8462-117",
+    "q:Q-AQA-8464C-2406-2H-065",
+    "q:Q-OCR-J248-2111-04-10"
+   ],
+   "ht": true,
+   "asked": 2
+  },
+  {
+   "id": "4.10.2.1",
+   "text": "Life cycle assessment",
+   "parent": "4.10",
+   "links": [
+    "ct:TB-AQA-8462-118",
+    "q:Q-AQA-8464C-1806-2H-017",
+    "q:Q-AQA-8464C-2111-2F-056",
+    "q:Q-AQA-8464C-2111-2H-056",
+    "q:Q-AQA-8464C-2206-2F-059"
+   ],
+   "asked": 18
+  },
+  {
+   "id": "4.10.2.2",
+   "text": "Ways of reducing the use of resources",
+   "parent": "4.10",
+   "links": [
+    "ct:TB-AQA-8462-119",
+    "q:Q-AQA-8462-2406-2H-061",
+    "q:Q-AQA-8464B-2011-2F-033",
+    "q:Q-AQA-8464C-2111-2F-052",
+    "q:Q-AQA-8464C-2111-2F-053"
+   ],
+   "keys": [
+    "recycl",
+    "reuse"
+   ],
+   "asked": 21
+  },
+  {
+   "id": "4.10.3",
+   "text": "Using materials (chemistry only)",
+   "parent": "4.10",
+   "links": []
+  },
+  {
+   "id": "4.10.3.1",
+   "text": "Corrosion and its prevention",
+   "parent": "4.10.3",
+   "links": [
+    "ct:TB-AQA-8462-120",
+    "q:Q-AQA-8462-2406-2H-062",
+    "q:Q-AQA-8462-2406-2H-063",
+    "q:Q-OCR-J248-1806-02-23c",
+    "q:Q-OCR-J248-1806-02-23dii"
+   ],
+   "keys": [
+    "rust",
+    "corrosion",
+    "sacrificial"
+   ],
+   "asked": 19
+  },
+  {
+   "id": "4.10.3.2",
+   "text": "Alloys as useful materials",
+   "parent": "4.10.3",
+   "links": [
+    "ct:TB-AQA-8462-121",
+    "q:Q-AQA-8462-2406-2H-061",
+    "q:Q-AQA-8462-2406-2H-062",
+    "q:Q-AQA-8462-2406-2H-063",
+    "q:S-Q-AQA-8462-2406-2F-071"
+   ],
+   "keys": [
+    "alloy",
+    "bronze",
+    "brass",
+    "steel"
+   ],
+   "asked": 43
+  },
+  {
+   "id": "4.10.3.3",
+   "text": "Ceramics, polymers and composites",
+   "parent": "4.10.3",
+   "links": [
+    "ct:TB-AQA-8462-122",
+    "q:Q-AQA-8462-2406-2H-064",
+    "q:S-Q-AQA-8462-2406-2F-071",
+    "q:Q-W-AT-C-materials-1c"
+   ],
+   "keys": [
+    "ceramic",
+    "composite",
+    "thermosetting",
+    "thermosoftening"
+   ],
+   "figure": [
+    "structure"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "4.10.4.1",
+   "text": "The Haber process",
+   "parent": "4.10",
+   "links": [
+    "ct:TB-AQA-8462-123",
+    "q:Q-AQA-8462-2406-2H-021",
+    "q:Q-AQA-8462-2406-2F-091",
+    "q:Q-OCR-J248-1906-02-10",
+    "q:S-Q-OCR-J248-1906-02-19"
+   ],
+   "figure": [
+    "graph"
+   ],
+   "asked": 23
+  },
+  {
+   "id": "4.10.4.2",
+   "text": "Production and uses of NPK fertilisers",
+   "parent": "4.10",
+   "links": [
+    "ct:TB-AQA-8462-124",
+    "q:Q-AQA-8464B-2011-2H-034",
+    "q:Q-AQA-8464B-2206-2H-044",
+    "q:S-Q-AQA-8464C-1806-2H-04",
+    "q:Q-AQA-8464C-1806-2H-042"
+   ],
+   "keys": [
+    "npk",
+    "fertiliser"
+   ],
+   "asked": 30
+  }
+ ],
+ "note": "Spec point ids and headings as printed in the published specification; `figure` lists the words in that point's own text (diagram, graph, draw, sketch, apparatus, label, structure) that make a picture part of learning it."
+}
