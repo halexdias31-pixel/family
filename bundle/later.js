@@ -8183,7 +8183,7 @@ function tagList_(x, page) {
   tagFold_(out);
   return out.map(t => ({ text: t.text, colour: tagOf_(t.field), data: Object.assign({ f: t.field }, t.also.length ? { also: t.also.join(' ') } : {}) }));
 }
-const tagRow_ = (x, page) => renderTags(tagList_(x, page), 'qcard-tags');
+function tagRow_(x, page) { return renderTags(tagList_(x, page), 'qcard-tags'); }
 /* TAGS AT THE TOP OF EVERY CARD (1030, 1040 r10): a card with no tag line gets one, and one drawn under its title moves above it. */
 function tagsOnTop_(x, html) {
   if (!x || typeof html !== 'string' || !html) return html;
