@@ -239,3 +239,28 @@ in `settingsInto_`
      row in here puts something in the window with no backend and no deploy. */
 ```
 
+### the branding, whole ------------------------------------------------------------------- EVERY ROW, whether or not the code
+
+in `setBrand_`
+
+```
+/* the branding, whole ------------------------------------------------------------------- EVERY ROW, whether or not the code knows the key — the backend's own § */
+```
+
+### what the funnel's first two questions answer -------------------------------------------- A KIND MAY BE IN MORE THAN ONE
+
+in `setKinds_`
+
+```
+/* what the funnel's first two questions answer -------------------------------------------- A KIND MAY BE IN MORE THAN ONE GROUP and the cell says so with commas § */
+```
+
+### the laws that paint words --------------------------------------------------------------- Heaviest first, so a specific law
+
+in `setLaws_`
+
+```
+/* --- the laws that paint words ---------------------------------------------------------------
+     Heaviest first, so a specific law beats a general one when both match the same word. */
+```
+

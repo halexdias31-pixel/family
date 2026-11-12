@@ -792,3 +792,249 @@ in `answersForget_`
      Through `ansRecPut_`, so the visit's copy goes with the stored one. */
 ```
 
+### THE SERVER'S CEILINGS, said again because the phone must not send what will be refused — and a value it
+
+top level, before `ANS_TEXT_MAX`
+
+```
+/* THE SERVER'S CEILINGS, said again because the phone must not send what will be refused — and a value it would refuse stays on the device rather than being § */
+```
+
+### 20,000 SINCE AN ESSAY BECAME AN ANSWER (9 Oct):
+
+top level, before `ANS_TEXT_MAX`
+
+```
+/* 20,000 SINCE AN ESSAY BECAME AN ANSWER (9 Oct): at 2,000 a forty-mark essay stopped going to the account
+   at its fourth paragraph. See `ANSWER_TEXT_MAX`. */
+```
+
+### AND WHAT A `keepalive` REQUEST MAY CARRY.
+
+top level, before `ANS_KEEPALIVE_MAX`
+
+```
+/* AND WHAT A `keepalive` REQUEST MAY CARRY. A browser refuses one over 64 KB, so the flush as the app
+   goes away sends what fits and leaves the rest dirty for next time. */
+```
+
+### THE STAMP OF AN ANSWER THE ACCOUNT WILL NOT TAKE — over its ceiling, or refused by the server — so it is
+
+top level, before `ANS_HERE_ONLY`
+
+```
+/* THE STAMP OF AN ANSWER THE ACCOUNT WILL NOT TAKE — over its ceiling, or refused by the server — so it is
+   neither due (it would be refused for ever) nor "saved". The next edit stamps it again and it is asked
+   once more. */
+```
+
+### A KEY THE STORE REFUSED IS READ FROM THE VISIT FIRST (`keepHeld_`, data.js) — the stored copy is older
+
+in `ansValue_`
+
+```
+/* A KEY THE STORE REFUSED IS READ FROM THE VISIT FIRST (`keepHeld_`, data.js) — the stored copy is
+     older, or nothing, and drawing it is how the next key saved it over the newer one (317). */
+```
+
+### `words` IS TRUE FOR A WORDED BOX (the essay's too), from the `input` listener in find.js — what
+
+top level, before `ansLocalPut_`
+
+```
+/* `words` IS TRUE FOR A WORDED BOX (the essay's too), from the `input` listener in find.js — what
+   `ansJoin_` asks before it puts two answers of one person's together. */
+```
+
+### WHAT WAS HERE BEFORE THIS WRITE, which the mark below asks about — read before `ANS_MEM` takes the new
+
+in `ansLocalPut_`
+
+```
+/* WHAT WAS HERE BEFORE THIS WRITE, which the mark below asks about — read before `ANS_MEM` takes the new
+     value, because a store that throws is read from `ANS_MEM`. */
+```
+
+### WHEN THE ANSWER IN THIS KEY WAS LAST EDITED, in ms — by this device's child, or by whichever device the
+
+top level, before `ANS_AT_MEM`
+
+```
+/* WHEN THE ANSWER IN THIS KEY WAS LAST EDITED, in ms — by this device's child, or by whichever device
+   the server's copy came from. 0 is "never stamped": a value from before this file existed. */
+```
+
+### WHICH KEYS STILL HAVE TO GO UP, per person.
+
+top level, before `ANS_DIRTY`
+
+```
+/* WHICH KEYS STILL HAVE TO GO UP, per person. A Set held for the visit and written through to storage,
+   so the list survives a reload, a crash and a sign-out — and goes up the next time that person signs
+   in, on this device. */
+```
+
+### STAMPED ALWAYS (above, signed out too — 318's claim reads it) — the time of the edit is also what tells a
+
+in `ansStore_`
+
+```
+/* STAMPED ALWAYS (above, signed out too — 318's claim reads it) — the time of the edit is also what tells a draft typed here after the last press from the press § */
+```
+
+### DOES THIS KEY STILL GO TO THE ACCOUNT AS A DRAFT?
+
+top level, before `ansSyncs_`
+
+```
+/* DOES THIS KEY STILL GO TO THE ACCOUNT AS A DRAFT? A drawing always; a typed, picked or ordered answer
+   only to a backend that cannot take the presses (`submitAnswer`), where the draft is all it can keep. */
+```
+
+### REFUSED — a key or a size the server will not take.
+
+in `ansSavedTake_`
+
+```
+/* REFUSED — a key or a size the server will not take. Not due any more; it stays on the device,
+       and its stamp says so. */
+```
+
+### THE DEVICE'S OWN QUEUE, not the press that woke it:
+
+in `answersPush_`
+
+```
+/* THE DEVICE'S OWN QUEUE, not the press that woke it: the card has already changed, so this request holds no control (534). */
+```
+
+### A TYPED ANSWER LEFT DUE FROM BEFORE — marked on an older visit, or before this payload said the backend
+
+in `answersPush_`
+
+```
+/* A TYPED ANSWER LEFT DUE FROM BEFORE — marked on an older visit, or before this payload said the
+     backend keeps submissions — is not a draft to send any more: what was SENT is its record. */
+```
+
+### OVER ITS CEILING IT STAYS HERE, and stops being due:
+
+in `answersPush_`
+
+```
+/* OVER ITS CEILING IT STAYS HERE, and stops being due: the server would refuse it every time. Its
+       stamp says so (`ANS_HERE_ONLY`), so the line under the box does not claim a save that never was. */
+```
+
+### `personId` AS WELL AS THE TOKEN — the gate overwrites it with the token's person, and `check-post.js`
+
+in `answersPush_`
+
+```
+/* `personId` AS WELL AS THE TOKEN — the gate overwrites it with the token's person, and `check-post.js`
+     asks that every handler reading one is sent one. */
+```
+
+### REFUSED OR UNREACHED:
+
+in `ANS_BUSY`
+
+```
+/* REFUSED OR UNREACHED: every key stays due, and it is tried again — sooner at first, then less
+         often, so a phone with no signal is not a request a second. */
+```
+
+### TYPED OVER WHILE IT WAS OUT:
+
+in `ANS_BUSY`
+
+```
+/* TYPED OVER WHILE IT WAS OUT: due again, on the ordinary second and a half — a child typing
+         through a slow reply is still one request per pause, not one per round trip. */
+```
+
+### IS THIS KEY UNDER A FINGER — the box with the focus, or the pad a stroke is on now (`padInUse_`).
+
+top level, before `ansHeld_`
+
+```
+/* IS THIS KEY UNDER A FINGER — the box with the focus, or the pad a stroke is on now (`padInUse_`). Never overwritten. */
+```
+
+### WHAT IS WRITTEN OVER IS THE ANSWER THE OLD CODE LEFT, until this person's one-time carry-over has run on
+
+in `answersClaim_`
+
+```
+/* WHAT IS WRITTEN OVER IS THE ANSWER THE OLD CODE LEFT, until this person's one-time carry-over has run on this device — and that pass reads the box, so it was § */
+```
+
+### EXCEPT AN ESSAY'S KEPT AI MARK, which is said again against the words now on the sheet -- fresh if they
+
+in `ansRefresh_`
+
+```
+/* EXCEPT AN ESSAY'S KEPT AI MARK, which is said again against the words now on the sheet -- fresh if they are the ones it read, "before your changes" if not § */
+```
+
+### ON THE ACCOUNT, AS THIS DEVICE LAST WROTE IT — so a store refusing the device's copy loses nothing that a
+
+top level, before `ansOnAccount_`
+
+```
+/* ON THE ACCOUNT, AS THIS DEVICE LAST WROTE IT — so a store refusing the device's copy loses nothing
+   that a reload cannot bring back down. Asked by `keepAtRisk_` (data.js) before the browser is told to
+   ask "Leave site?". */
+```
+
+### AND SAID FROM THE DEVICE'S OWN RECORD OF THE PRESS, before the payload has said which backend it is
+
+in `ansOnAccount_`
+
+```
+/* AND SAID FROM THE DEVICE'S OWN RECORD OF THE PRESS, before the payload has said which backend it is
+         (`ansSentHere_`, below) — a typed answer to a backend from before submissions is still a draft. */
+```
+
+### AND WHAT NO LONGER NAMES AN ANSWER, while it is open anyway — ASKED OF `ansValue_`, which answers with
+
+in `ansGoneMark_`
+
+```
+/* AND WHAT NO LONGER NAMES AN ANSWER, while it is open anyway — ASKED OF `ansValue_`, which answers with the visit's copy of a key the store refused. § */
+```
+
+### ONE MARK, READ — `{ who, words }`, or null.
+
+top level, before `ansGoneRead_`
+
+```
+/* ONE MARK, READ — `{ who, words }`, or null. A bare string is a mark from before marks said how the
+   answer was typed. */
+```
+
+### SAVING IS SILENT (368):
+
+top level, before `ANS_QUIET`
+
+```
+/* SAVING IS SILENT (368): the line speaks only when an answer is not, or cannot be, on the account -- "Saved to Ada's account" told a child what they knew */
+```
+
+### REFUSED BY THE STORE AND NOT ON THE ACCOUNT EITHER — the one line that must never say "on this device"
+
+in `ansSavedWords_`
+
+```
+/* REFUSED BY THE STORE AND NOT ON THE ACCOUNT EITHER — the one line that must never say "on this
+     device", because it is on no device. `keepPut_` in data.js. */
+```
+
+### THE REDRAW IT HELD BACK, once nothing is held — a moment after leaving the box, so a tap that moved the
+
+top level, before `FIND_KEPT_TIMER`
+
+```
+/* THE REDRAW IT HELD BACK, once nothing is held — a moment after leaving the box, so a tap that moved the focus from one box to the next (focusout, then focusin) § */
+```
+

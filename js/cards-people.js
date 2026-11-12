@@ -65,7 +65,7 @@ function teachGroups_(list) {
   });
   return out;
 }
-/* ONE CHIP. The levels are a `<sup>`, and each level is its own no-wrap span, so at 320px a long list breaks BETWEEN levels rather than inside `A-Level` at its § */
+/* ONE CHIP. The levels are a `<sup>`, and each level is its own no-wrap span, so at 320px a long list breaks BETWEEN levels § */
 const teachChip_ = (g, main) => `<span class="prof-tag${main ? ' is-main' : ''}">${mark(g.subject)}${
   g.levels.length ? `<sup class="prof-lv">&nbsp;${g.levels.map(l => `<span>${mark(l)}</span>`).join(', ')}</sup>` : ''}</span>`;
 
@@ -86,7 +86,7 @@ function profQualChip_(p) {
     return `<span class="prof-tag" role="img" aria-label="${say}" title="${say}">${
       mark([subject, level, grade].filter(Boolean).join(' '))}</span>`;
   }
-  /* THE LAST WORD OF THE SUBJECT IS HELD TO ITS NOTATION, so at 320px a long subject breaks between its own words and never leaves the stack alone at the start of § */
+  /* THE LAST WORD OF THE SUBJECT IS HELD TO ITS NOTATION, so at 320px a long subject breaks between its own words and never § */
   const said = mark(subject), cut = profLastGap_(said);
   return `<span class="prof-tag prof-q" role="img" aria-label="${say}" title="${say}">${
     cut > 0 ? said.slice(0, cut) + ' ' : ''}<span class="prof-q-end">${said.slice(cut + 1)}<span class="prof-iso">${
@@ -191,8 +191,7 @@ function profAvail_(t) {
         they accept or decline.${typeof isAdmin === 'function' && isAdmin()
           ? ' They tick them in Settings, under their week.' : ''}</p>`;
   }
-  /* `busy` IS `{ m16: 'Ada' }` OFF `busyHours`, but the fixture once said `[]` and an older backend
-     may say nothing; a list of codes is read as well, so no shape of it throws. */
+  /* `busy` IS `{ m16: 'Ada' }` OFF `busyHours`, but the fixture once said `[]` and an older backend may say nothing; a list of § */
   const busy = {};
   const b = t.busy;
   if (Array.isArray(b)) b.forEach(c => { busy[norm(c)] = true; });
@@ -219,8 +218,7 @@ function profAvail_(t) {
     return hs.length ? day_(d.label) + ' ' + hs.join(', ') : '';
   }).filter(Boolean).join('; ');
   const said = hoursOn(c => c.lit);
-  /* THE TAUGHT HOURS, SAID AFTER THE FREE ONES — see the note over this function. A day drawn only
-     for a taught hour was silent to a screen reader while it took a row on screen. */
+  /* THE TAUGHT HOURS, SAID AFTER THE FREE ONES — see the note over this function. § */
   const taught = hoursOn(c => c.busy);
   /* LINES, NOT A GRID (467) — the owner: "The tutor profile should fit on a normal phone even with lots of data." Hours in a row merge. */
   const line = which => days.map(d => {
@@ -239,7 +237,7 @@ function profAvail_(t) {
 /* AN HOUR SPAN, 24-hour (owner, 8 Nov): 16:00–19:00. */
 const profSpan_ = ([a, b]) => hours_(a, b);
 
-/* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS *"a smaller rate to the side so clients can know extra cost for the extra seat"*. § */
+/* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS § */
 function profSeat_(t) {
   if (!(Number(t.rate) > 0) || typeof seatShare_ !== 'function') return 0;
   const s = seatShare_(t);
