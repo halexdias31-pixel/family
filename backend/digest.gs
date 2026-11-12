@@ -395,72 +395,78 @@ function digestQuestions_(items, max, o) {
   const parts = [];
   /* WHAT THE CLIP MAY SAY AS "ON THE SITE" INSTEAD, with what its words weigh — `digestRender_` picks from it. */
   const sizes = [];
-  let fromLib = 0;
+  const q = { lines, parts, sizes, said, kid, site, pre, ink, cut, tag, card, titleOf, tagsFor, weigh, answerLines, fromLib: 0 };
   shown.forEach(h => {
-    let html = '';
-    if (!h.worded) {
-      /* A NAME OF ONE SEGMENT WITH NO WORDS IS ITS HEADING AND NOTHING ELSE, so its mark goes on the heading
-         ("Times tables: ✓") rather than alone on a line under it; numbered ones are the line of numbers. */
-      const bare = h.items.filter(it => !it.num), numbered = h.items.filter(it => it.num);
-      lines.push(h.head + (bare.length ? ': ' + bare.map(it => it.mark).join(', ') : ''));
-      if (numbered.length) lines.push(numbered.map(tag).join(', '));
-      lines.push('');
-      h.items.forEach(it => { weigh(it); html += card(it, '', tagsFor(it), titleOf(it, h.head)); });
-      parts.push(html);
-      return;
-    }
+    if (!h.worded) { digestBareHead_(q, h); return; }
     lines.push(h.head);
-    let stem = '';
-    const done = {};
-    h.items.forEach(it => {
-      weigh(it);
-      /* ---------- AS IT IS ON THE SITE (18 Oct): the row the card draws, from the library ---------- */
-      const P = it.row ? digestPartOut_(it, pre, done, said, site) : null;
-      if (P) {
-        fromLib++;
-        let inner = '';
-        P.stems.forEach(st => { lines.push.apply(lines, st.lines); inner += st.html; sizes.push({ id: st.id, kind: 'stem', bytes: st.bytes }); });
-        if (P.bytes) sizes.push({ id: 'part:' + it.key, kind: 'part', bytes: P.bytes });
-        const head = [it.num, P.marks].filter(Boolean).join(' · ');
-        if (head) lines.push(head);
-        lines.push.apply(lines, P.lines);
-        lines.push(kid + ': ' + it.mark);
-        lines.push.apply(lines, answerLines(it));
-        lines.push('');
-        html += card(it, inner + P.html, tagsFor(it), titleOf(it, h.head), P.pic);
-        stem = '';
-        return;
-      }
-      /* THE WORDS ITS SUBMISSION CARRIED, which the clip may say as on the site as it may a library row's (380: a card weighs more than a line did). */
-      const wid = 'words:' + it.key;
-      if (said[wid]) {
-        lines.push(tag(it) + ': (the question’s words are on the site)');
-        lines.push.apply(lines, answerLines(it));
-        html += card(it, '<p style="margin:0"><i>(the question’s words are on the site)</i></p>', tagsFor(it), titleOf(it, h.head));
-        stem = it.stem;
-        return;
-      }
-      let inner = '';
-      if (it.stem && it.stem !== stem) {
-        lines.push(cut(it.stem, DIGEST_STEM_SHOWN));
-        inner += '<p style="margin:0 0 10px;padding:0 0 8px;border-bottom:1px dashed ' + ink.chip + ';color:' + ink.dim + '"><i>' + digestEsc_(cut(it.stem, DIGEST_STEM_SHOWN)) + '</i></p>';
-      }
-      stem = it.stem;
-      const said1 = cut(it.ask, DIGEST_WORDS_SHOWN);
-      lines.push(said1 ? tag(it) + ': ' + said1 : tag(it));
-      lines.push.apply(lines, answerLines(it));
-      if (said1) inner += '<p style="margin:0">' + digestEsc_(said1) + '</p>';
-      if (inner) sizes.push({ id: wid, kind: 'part', bytes: digestBytes_(inner) });
-      html += card(it, inner, tagsFor(it), titleOf(it, h.head));
-    });
+    const at = { stem: '', done: {}, html: '' };
+    h.items.forEach(it => digestWordedItem_(q, h, it, at));
     if (lines[lines.length - 1] !== '') lines.push('');
-    parts.push(html);
+    parts.push(at.html);
   });
   if (printed && more > 0) lines.push('…and ' + more + ' more.', '');
   const marks = [];
   shown.forEach(h => h.items.forEach(it => marks.push(it.mark)));
   return { lines: lines, html: parts.join('') + (printed && more > 0 ? '<p style="margin:12px 0 0">…and ' + more + ' more.</p>' : ''),
-           printed: printed, marks: marks, more: more, fromLib: fromLib, sizes: sizes };
+           printed: printed, marks: marks, more: more, fromLib: q.fromLib, sizes: sizes };
+}
+
+/* A NAME OF ONE SEGMENT WITH NO WORDS: its heading, its marks, and a card per question with no words in it. */
+function digestBareHead_(q, h) {
+  const { lines, parts, tag, card, titleOf, tagsFor, weigh } = q;
+  let html = '';
+  /* A NAME OF ONE SEGMENT WITH NO WORDS IS ITS HEADING AND NOTHING ELSE, so its mark goes on the heading
+     ("Times tables: ✓") rather than alone on a line under it; numbered ones are the line of numbers. */
+  const bare = h.items.filter(it => !it.num), numbered = h.items.filter(it => it.num);
+  lines.push(h.head + (bare.length ? ': ' + bare.map(it => it.mark).join(', ') : ''));
+  if (numbered.length) lines.push(numbered.map(tag).join(', '));
+  lines.push('');
+  h.items.forEach(it => { weigh(it); html += card(it, '', tagsFor(it), titleOf(it, h.head)); });
+  parts.push(html);
+}
+
+/* ONE WORDED QUESTION, under its heading: the library's row, or the words on the site, or its own words; `at` carries the stem and card html along. */
+function digestWordedItem_(q, h, it, at) {
+  const { lines, sizes, said, kid, site, pre, ink, cut, tag, card, titleOf, tagsFor, weigh, answerLines } = q;
+  weigh(it);
+  /* ---------- AS IT IS ON THE SITE (18 Oct): the row the card draws, from the library ---------- */
+  const P = it.row ? digestPartOut_(it, pre, at.done, said, site) : null;
+  if (P) {
+    q.fromLib++;
+    let inner = '';
+    P.stems.forEach(st => { lines.push.apply(lines, st.lines); inner += st.html; sizes.push({ id: st.id, kind: 'stem', bytes: st.bytes }); });
+    if (P.bytes) sizes.push({ id: 'part:' + it.key, kind: 'part', bytes: P.bytes });
+    const head = [it.num, P.marks].filter(Boolean).join(' · ');
+    if (head) lines.push(head);
+    lines.push.apply(lines, P.lines);
+    lines.push(kid + ': ' + it.mark);
+    lines.push.apply(lines, answerLines(it));
+    lines.push('');
+    at.html += card(it, inner + P.html, tagsFor(it), titleOf(it, h.head), P.pic);
+    at.stem = '';
+    return;
+  }
+  /* THE WORDS ITS SUBMISSION CARRIED, which the clip may say as on the site as it may a library row's (380: a card weighs more than a line did). */
+  const wid = 'words:' + it.key;
+  if (said[wid]) {
+    lines.push(tag(it) + ': (the question’s words are on the site)');
+    lines.push.apply(lines, answerLines(it));
+    at.html += card(it, '<p style="margin:0"><i>(the question’s words are on the site)</i></p>', tagsFor(it), titleOf(it, h.head));
+    at.stem = it.stem;
+    return;
+  }
+  let inner = '';
+  if (it.stem && it.stem !== at.stem) {
+    lines.push(cut(it.stem, DIGEST_STEM_SHOWN));
+    inner += '<p style="margin:0 0 10px;padding:0 0 8px;border-bottom:1px dashed ' + ink.chip + ';color:' + ink.dim + '"><i>' + digestEsc_(cut(it.stem, DIGEST_STEM_SHOWN)) + '</i></p>';
+  }
+  at.stem = it.stem;
+  const said1 = cut(it.ask, DIGEST_WORDS_SHOWN);
+  lines.push(said1 ? tag(it) + ': ' + said1 : tag(it));
+  lines.push.apply(lines, answerLines(it));
+  if (said1) inner += '<p style="margin:0">' + digestEsc_(said1) + '</p>';
+  if (inner) sizes.push({ id: wid, kind: 'part', bytes: digestBytes_(inner) });
+  at.html += card(it, inner, tagsFor(it), titleOf(it, h.head));
 }
 
 /* The questions grouped under their heading, each with its stem, ask, answers and tags. */

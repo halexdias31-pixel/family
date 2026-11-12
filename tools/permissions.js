@@ -20,7 +20,7 @@ const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$
 
 /* ACTION_ACCESS as {action: level}, KID_MONEY_ACTIONS as a list — read off the source, as check-actions does. */
 function backendRules() {
-  const c = read('backend/constants.gs'), t = c.slice(c.indexOf('const ACTION_ACCESS = {'));
+  const c = read('backend/access.gs'), t = c.slice(c.indexOf('const ACTION_ACCESS = {'));
   const access = {};
   for (const m of strip(t.slice(0, t.indexOf('\n};'))).matchAll(/(\w+)\s*:\s*'(\w+)'/g)) access[m[1]] = m[2];
   const k = /const KID_MONEY_ACTIONS = \[([^\]]*)\]/.exec(read('backend/people.gs'));

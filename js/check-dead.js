@@ -22,7 +22,7 @@ const KEEP=new Set(['doGet','doPost','missingKeys','layout',
 const files=(dir,filter)=>fs.readdirSync(dir).filter(filter).map(f=>({f,p:dir+f}));
 const jsF=files(O+'js/',f=>f.endsWith('.js')&&!f.startsWith('check')&&f!=='_scope.js');
 /* THE BACKEND FILES, UNDER WHATEVER THEY ARE CALLED. § */
-const gsF=['constants','core','people','booking','content','race','films','library','library-drive','media','setup','doGet','doPost']
+const gsF=['constants','access','core','people','booking','content','race','films','library','library-drive','media','setup','doGet','doPost']
   .map((n,i)=>{
     const tries=[['00_','10_','20_','30_','40_','41_','42_','43_','44_','45_','50_','60_','70_'][i]+n, n, n.toLowerCase()];
     /* `backend/` FIRST. This looked only beside the project and the .gs files moved into backend/, so the second half of this check — dead functions in the BACKEND § */

@@ -36,7 +36,7 @@ const REASONS = {
 const gsDir = path.join(O, 'backend');
 const gs = fs.existsSync(gsDir) ? fs.readdirSync(gsDir).filter(f => f.endsWith('.gs')) : [];
 const backend = gs.map(f => read('backend/' + f)).join('\n');
-const consts = read('backend/constants.gs');
+const consts = read('backend/access.gs');
 /* A CHECK THAT CANNOT REACH ITS SUBJECT FAILS — no backend is not a clean backend. */
 if (!gs.length || !consts.includes('const ACTION_ACCESS = {')) {
   console.log('check-actions: backend/*.gs or ACTION_ACCESS not found — nothing was checked');

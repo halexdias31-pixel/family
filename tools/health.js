@@ -36,7 +36,8 @@ const FIND_FILES = require('./find-src.js').findFiles();
 const PS_ = require('./piece-src.js'), ME_FILES = PS_.pieceFiles('me'), SHELL_FILES = PS_.pieceFiles('shell'), KP_FILES = PS_.pieceFiles('keypad'), BOOK_FILES = PS_.pieceFiles('book');
 const SPLIT_GROUPS = [{ old: 'js/find.js', files: FIND_FILES }, { old: 'js/me.js', files: ME_FILES }, { old: 'js/shell.js', files: SHELL_FILES }, { old: 'js/keypad.js', files: KP_FILES }, { old: 'js/book.js', files: BOOK_FILES },
   { old: 'backend/content.gs', files: ['content', 'race', 'films', 'library', 'library-drive', 'media'].map(n => 'backend/' + n + '.gs') },
-  { old: 'backend/digest.gs', files: ['digest', 'digest-tags'].map(n => 'backend/' + n + '.gs') }];
+  { old: 'backend/digest.gs', files: ['digest', 'digest-tags'].map(n => 'backend/' + n + '.gs') },
+  { old: 'backend/constants.gs', files: ['constants', 'access'].map(n => 'backend/' + n + '.gs') }];
 const LOGIC_INPUTS = [...FIND_FILES, 'check/fixture.json', 'data/questions.json', 'data/textbooks.json', 'data/practicals.json',
   'data/projects.json', 'data/topics.json', 'tools/logic-health.js'];
 function logic() {

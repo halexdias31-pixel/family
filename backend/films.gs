@@ -265,16 +265,7 @@ function filmsSync_(opts) {
   const after = resuming ? S(st.after) : '';
   const todo = list.things.filter(x => x.id > after);
 
-  /* ---------- LOOKED AT, UNLOCKED — see the note at the top of this section ---------- */
-  const done = [];
-  let more = false;
-  for (let i = 0; i < todo.length; i++) {
-    const now = filmsClock_();
-    if (now - t0 > ceiling || (done.length && now - t0 > budget)) { more = true; break; }
-    const d = filmsDescribe_(todo[i], t0 + (done.length ? budget : ceiling));
-    if (!d) { more = true; break; }
-    done.push(d);
-  }
+  const looked = filmsLook_(todo, t0, budget, ceiling), done = looked.done, more = looked.more;
 
   const tally = { added: 0, refreshed: 0, adopted: 0, off: 0, empty: 0 };
   const wroteBefore = POST_WROTE;
@@ -286,67 +277,15 @@ function filmsSync_(opts) {
     clearCache();
     const t = read(TAB.films);
     if (!t.sheet) return { error: 'The Ledger has no films tab. Open the site once as an admin.', why: 'tab' };
-    const byId = {}, loose = [];
-    let top = 0;
-    t.rows.forEach(r => {
-      const id = S(r.drive_id);
-      if (id) byId[id] = r; else loose.push(r);
-      const m = S(r.film_id).match(/^FM(\d+)$/);
-      if (m) top = Math.max(top, Number(m[1]));
-    });
-    const ctx = { byId: byId, loose: loose, next: top + 1, tally: tally };
+    const ctx = filmsIndex_(t, tally);
     done.forEach(d => filmsUpsert_(t, d, ctx));
 
-    /* ---------- A WHOLE PASS, AND ONLY A WHOLE PASS, SWITCHES OFF § */
-    let warn = '';
-    if (!more) {
-      if (list.things.length) {
-        const listed = {};
-        list.things.forEach(x => { listed[x.id] = true; });
-        t.rows.forEach(r => {
-          const id = S(r.drive_id);
-          if (id && !listed[id] && ON_(r.active)) { setCells(t, r, { active: false }); tally.off++; }
-        });
-      } else {
-        warn = ' The folder held nothing a film could be made from, so nothing was switched off.';
-      }
-    }
+    const warn = filmsSwitchOff_(t, list, more, tally);
 
-    /* WHAT IS IN THE FOLDER, COUNTED FROM THE ROWS THE PASS LEFT ON — so an empty show, which is listed
-       and makes no row, is not counted as a series, and a pass done over three runs counts all three. */
-    const found = { films: 0, series: 0, documentaries: 0, placeholders: 0 };
-    const inFolder = {};
-    list.things.forEach(x => { inFolder[x.id] = true; });
-    t.rows.forEach(r => {
-      if (!inFolder[S(r.drive_id)] || !ON_(r.active)) return;
-      if (TRUE_(r.placeholder)) found.placeholders++;
-      else if (norm(r.kind) === 'series') found.series++;
-      else if (norm(r.kind) === 'documentary') found.documentaries++;
-      else found.films++;
-    });
-    const stamp = new Date(filmsClock_()).toISOString();
-    const next = Object.assign({}, st, { root: rootId, folder: root.name, how: root.how });
-    if (more) {
-      next.pass = resuming ? S(st.pass) : stamp;
-      next.after = done.length ? done[done.length - 1].id : after;
-    } else {
-      next.pass = '';
-      next.after = '';
-      next.at = stamp;
-      next.found = found;
-    }
-    filmsStateSave_(next);
+    const found = filmsFound_(t, list);
+    filmsNextState_(st, rootId, root, more, resuming, after, done, found);
 
-    const where = root.name + (root.how === 'config' ? ' (the films_folder in config)'
-                               : root.how === 'remembered' ? ' (the folder synced before)' : ' (found by its name)');
-    const at = list.things.length - todo.length + done.length;
-    const message = more
-      ? 'Part-way through ' + where + ': ' + at + ' of ' + list.things.length
-        + ' looked at. The rest follow on the next run.'
-      : 'Synced from ' + where + ': ' + found.films + ' film' + (found.films === 1 ? '' : 's') + ', '
-        + found.series + ' series, ' + found.documentaries + ' documentar' + (found.documentaries === 1 ? 'y' : 'ies')
-        + (found.placeholders ? ', ' + found.placeholders + ' not uploaded' : '') + '. '
-        + tally.added + ' new, ' + tally.refreshed + ' updated, ' + tally.off + ' switched off.' + warn;
+    const said = filmsMessage_(root, list, todo, done, more, found, tally, warn), at = said.at, message = said.message;
     return Object.assign({ done: !more, more: more, folder: root.name, how: root.how, found: found,
                            looked: at, of: list.things.length, skipped: list.skipped, unknown: list.unknown,
                            ms: filmsClock_() - t0, message: message }, tally);
@@ -354,6 +293,102 @@ function filmsSync_(opts) {
     lock.releaseLock();
     if (POST_WROTE && !wroteBefore) POST_WROTE = false;
   }
+}
+
+/* EACH THING DESCRIBED, OUTSIDE THE LOCK, until the time runs out; `more` says the pass is not finished. */
+function filmsLook_(todo, t0, budget, ceiling) {
+  /* ---------- LOOKED AT, UNLOCKED — see the note at the top of this section ---------- */
+  const done = [];
+  let more = false;
+  for (let i = 0; i < todo.length; i++) {
+    const now = filmsClock_();
+    if (now - t0 > ceiling || (done.length && now - t0 > budget)) { more = true; break; }
+    const d = filmsDescribe_(todo[i], t0 + (done.length ? budget : ceiling));
+    if (!d) { more = true; break; }
+    done.push(d);
+  }
+  return { done, more };
+}
+
+/* THE ROWS BY DRIVE ID, the ones with none, and the next FM number — what `filmsUpsert_` writes against. */
+function filmsIndex_(t, tally) {
+  const byId = {}, loose = [];
+  let top = 0;
+  t.rows.forEach(r => {
+    const id = S(r.drive_id);
+    if (id) byId[id] = r; else loose.push(r);
+    const m = S(r.film_id).match(/^FM(\d+)$/);
+    if (m) top = Math.max(top, Number(m[1]));
+  });
+  const ctx = { byId: byId, loose: loose, next: top + 1, tally: tally };
+  return ctx;
+}
+
+/* A WHOLE PASS SWITCHES OFF what the folder no longer lists; an empty folder switches off nothing and says so. */
+function filmsSwitchOff_(t, list, more, tally) {
+  /* ---------- A WHOLE PASS, AND ONLY A WHOLE PASS, SWITCHES OFF § */
+  let warn = '';
+  if (!more) {
+    if (list.things.length) {
+      const listed = {};
+      list.things.forEach(x => { listed[x.id] = true; });
+      t.rows.forEach(r => {
+        const id = S(r.drive_id);
+        if (id && !listed[id] && ON_(r.active)) { setCells(t, r, { active: false }); tally.off++; }
+      });
+    } else {
+      warn = ' The folder held nothing a film could be made from, so nothing was switched off.';
+    }
+  }
+  return warn;
+}
+
+/* THE FOLDER COUNTED, from the active rows of things it lists. */
+function filmsFound_(t, list) {
+  /* WHAT IS IN THE FOLDER, COUNTED FROM THE ROWS THE PASS LEFT ON — so an empty show, which is listed
+     and makes no row, is not counted as a series, and a pass done over three runs counts all three. */
+  const found = { films: 0, series: 0, documentaries: 0, placeholders: 0 };
+  const inFolder = {};
+  list.things.forEach(x => { inFolder[x.id] = true; });
+  t.rows.forEach(r => {
+    if (!inFolder[S(r.drive_id)] || !ON_(r.active)) return;
+    if (TRUE_(r.placeholder)) found.placeholders++;
+    else if (norm(r.kind) === 'series') found.series++;
+    else if (norm(r.kind) === 'documentary') found.documentaries++;
+    else found.films++;
+  });
+  return found;
+}
+
+/* WHERE THE NEXT RUN PICKS UP, or the finished pass stamped with what it found. */
+function filmsNextState_(st, rootId, root, more, resuming, after, done, found) {
+  const stamp = new Date(filmsClock_()).toISOString();
+  const next = Object.assign({}, st, { root: rootId, folder: root.name, how: root.how });
+  if (more) {
+    next.pass = resuming ? S(st.pass) : stamp;
+    next.after = done.length ? done[done.length - 1].id : after;
+  } else {
+    next.pass = '';
+    next.after = '';
+    next.at = stamp;
+    next.found = found;
+  }
+  filmsStateSave_(next);
+}
+
+/* WHAT THE ADMIN IS TOLD: how far a part-pass got, or what a whole pass found and changed. */
+function filmsMessage_(root, list, todo, done, more, found, tally, warn) {
+  const where = root.name + (root.how === 'config' ? ' (the films_folder in config)'
+                             : root.how === 'remembered' ? ' (the folder synced before)' : ' (found by its name)');
+  const at = list.things.length - todo.length + done.length;
+  const message = more
+    ? 'Part-way through ' + where + ': ' + at + ' of ' + list.things.length
+      + ' looked at. The rest follow on the next run.'
+    : 'Synced from ' + where + ': ' + found.films + ' film' + (found.films === 1 ? '' : 's') + ', '
+      + found.series + ' series, ' + found.documentaries + ' documentar' + (found.documentaries === 1 ? 'y' : 'ies')
+      + (found.placeholders ? ', ' + found.placeholders + ' not uploaded' : '') + '. '
+      + tally.added + ' new, ' + tally.refreshed + ' updated, ' + tally.off + ' switched off.' + warn;
+  return { at, message };
 }
 
 /** Run from the editor's function dropdown (or `?run=syncFilms`): the editor's budget, the same sync. */
