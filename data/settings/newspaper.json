@@ -1,0 +1,12 @@
+{
+"notes": "THE NEWSPAPER, SUNDAY FUNDAY (owner, 12 Nov): a Sunday paper's fun section, one card, one page, never endless. One edition; edit the rows here. `a` is the answer, hidden until Answers is pressed.",
+"rows": [
+{"head": "Joke", "q": "Why did the maths book look sad?", "a": "It had too many problems."},
+{"head": "Riddle", "q": "The more of me you take, the more you leave behind. What am I?", "a": "Footsteps."},
+{"head": "Scramble", "q": "Unscramble: R A N I B", "a": "BRAIN"},
+{"head": "What comes next?", "q": "1, 1, 2, 3, 5, 8, …", "a": "13: each number is the two before it added together."},
+{"head": "Word ladder", "q": "COLD to WARM, changing one letter at a time.", "a": "COLD, CORD, CARD, WARD, WARM."},
+{"head": "Did you know?", "q": "An octopus has three hearts and blue blood."},
+{"head": "Try this", "q": "Say \"red lorry, yellow lorry\" five times, fast."}
+]
+}

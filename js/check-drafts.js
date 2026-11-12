@@ -72,10 +72,24 @@ const KEPT = [
   { file: 'lego.js', fn: 'legoPick_', has: 'class="lego-parts"',
     why: 'the LEGO piece check\'s pasted parts list — kept in the kept store as it is typed (`legoWrite_`)',
     proof: [['lego.js', /legoNow_\(\)\.typed\[k\] = String\(t\.value \|\| ''\); legoWrite_\(\);/]] },
+  { file: 'tools.js', fn: 'tmtRow_', has: 'tmt-in', count: 3,
+    why: 'a timetable box — kept by `tmtKeep_` on every keystroke, on the account signed in and the device signed out',
+    proof: [['tools.js', /document\.addEventListener\('input', tmtKeep_\)/], ['tools.js', /keepDue_\('timetable', send\)/]] },
+  { file: 'tools.js', fn: 'tmtHtml_', has: 'tmt-weekend',
+    why: 'the timetable\'s weekend tick — kept as it changes, like the rest of the timetable',
+    proof: [['tools.js', /tmt-weekend/]] },
+  { file: 'pixel.js', fn: 'pxeHtml_', has: 'data-pxe-set="colour"',
+    why: 'the pixel editor\'s colour (547) -- kept in `pixelArt` on this device as it is picked (`pxeKeep_`), never sent',
+    proof: [['pixel.js', /pxeSet === 'colour'[\s\S]{0,80}?PXE\.colour = [\s\S]{0,60}?pxeKeep_\(\);/]] },
 ];
 const PIN = 'a PIN — never written to the device, by a draft or anything else';
 const PEOPLE_FORM = 'an admin making or changing somebody else\'s account — a decision made and saved there and then, not left half-made on a device';
 const EXEMPT = [
+  { file: 'spotify.js', fn: 'spCard_', has: 'id="sp-q"', why: 'a Spotify search (510) — a few words, run at once and shown as results; a reload starts a new search' },
+  { file: 'favlinks.js', fn: 'favDraw_', has: 'data-fav="title"', why: 'a favourite link\'s title (509) — a few words typed and Added in one press; a redraw keeps it, a reload draws the saved list' },
+  { file: 'favlinks.js', fn: 'favDraw_', has: 'data-fav="url"', why: 'a favourite link\'s address (509) — pasted and Added in one press; a redraw keeps it, a reload draws the saved list' },
+  { file: 'games.js', has: 'id="tt-answer"', why: 'a times-tables round — a reload is a new round, with a new question' },
+  { file: 'tools.js', fn: 'ktPaint_', has: 'kt-in', why: 'touch typing — the line being typed IS the drill; the progress is kept (`kt`)' },
   { file: 'book-spine.js', fn: 'discountSaid_', has: 'disabled aria-label="Discount', why: 'a saved booking\'s Discount box (owner, 8 Nov) is the form\'s box drawn disabled: nothing can be typed, it shows the saved figure' },
   { file: 'me.js', fn: 'ceWhere_', has: 'data-where-area', why: 'an area tick on Where you teach (owner, 8 Nov) only rewrites the hidden venues_ok box, saved by the card\'s Save; a reload draws the saved areas' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="expires_on"', why: 'a renewal\'s new expiry (10 Nov), picked and saved with Renewed in one press; a reload draws the saved expiry' },

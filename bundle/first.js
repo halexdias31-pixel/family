@@ -1495,12 +1495,12 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[28732,251353,21,2,4,5,10,44,8],280178,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[28732,251353,9,2,4,5,10,44,20,2],280180,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[2,2,2],4,["Parent","Student","Tutor"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[17,7,16,8,10,14,4],44,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[28732,251353,21,2,1,5,10,29,8],280160,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[28732,251353,9,2,1,5,10,29,20,2],280162,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[20,8,17,8,7],29,["Student","Parent","Staff","Apprentice","Admin"]]
 }
 }};
@@ -3804,8 +3804,8 @@ function oopsTry_(where, fn, host) {
 }
 /* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
 const TIER_CORE_WIDGETS = [];
-const TIER_LAZY_WIDGETS = [];
-const TIER_OFF_WIDGETS = ['reels', 'newspaper', 'homework', 'flyers', 'timer', 'docket', 'spotify', 'speedread', 'timetable', 'typing', 'cart', 'shopfind', 'calendar', 'countdowns', 'favlinks', 'rewrite', 'poster', 'pixel'];
+const TIER_LAZY_WIDGETS = ['timer', 'calendar', 'timetable', 'typing', 'console', 'wordgames', 'newspaper', 'spotify', 'favlinks', 'pixel'];
+const TIER_OFF_WIDGETS = ['homework', 'flyers', 'cart', 'rewrite', 'poster'];
 const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
 const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
 const TIER_RUN = { depth: 0 };
@@ -17089,9 +17089,9 @@ function toolsStart_(kind, arriving) {
 }
 
 /* ---------- A WIDGET THAT IS A FIND CARD (790): data/settings/widgets-in-find.json names a kind or an id, the id's row winning; before it comes, every tool and game ---------- */
-const FIND_WIDGET_KINDS = ['tool', 'shop'];
+const FIND_WIDGET_KINDS = ['tool', 'game', 'shop'];
 /* A WIDGET THAT IS ITS OWN FIRST ANSWER IN FIND (batch B): a browsable thing gets a menu pill, not a column or a mini-app. */
-const FIND_WIDGET_GROUPS = { videos: 'Videos', reels: 'Tools', newspaper: 'Newspaper', flyers: 'Tools', poster: 'Tools', cart: 'Shop' };
+const FIND_WIDGET_GROUPS = { videos: 'Videos', reels: 'Tools', newspaper: 'Tools', shopfind: 'Tools', flyers: 'Tools', poster: 'Tools', cart: 'Shop' };
 function widgetInFind_(w) {
   if (!w) return false;
   const rows = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.widgetsInFind)) ? DATA.widgetsInFind : null;
@@ -17526,12 +17526,18 @@ function progressCountdownRows_() {
   return rows;
 }
 /* ---------- THE COUNTDOWNS WIDGET ON TOOLS (466): every copy by class, as the Saved column draws it too ---------- */
+/* DAYS TO GO BY DEFAULT; one tile shows each one's date instead (a safe press, owner 12 Nov). */
+let CD_DATES = false;
 function paintCountdowns_() {
   const rows = progressCountdownRows_();
+  const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return esc(day_(d) + ' ' + date_(d)); };
   document.querySelectorAll('.cd-box').forEach(box => {
-    box.innerHTML = rows.map(([k, n]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${progressDaysSaid_(n)}</span></div>`).join('');
+    box.innerHTML = (rows.length ? rows.map(([k, n]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${CD_DATES ? when(n) : progressDaysSaid_(n)}</span></div>`).join('')
+      : '<p class="note">Nothing to count down to yet.</p>')
+      + (rows.length ? `<div class="tile-row">${tile_({ icon: CD_DATES ? 'speed' : 'table', label: CD_DATES ? 'Days' : 'Dates', note: CD_DATES ? 'how many to go' : 'the day itself', act: 'cd-dates', pressed: CD_DATES })}</div>` : '');
   });
 }
+on('cd-dates', () => { CD_DATES = !CD_DATES; paintCountdowns_(); });
 
 /* ---------- TERM DATES (491): THE YEAR AS INTERVALS — terms, half-terms and holidays, each with its real first and last day ---------- */
 /* The usual England pattern, the backend's `schoolYear` (booking.gs) in the browser: a term runs Monday to Friday, a holiday Saturday to Sunday. */
