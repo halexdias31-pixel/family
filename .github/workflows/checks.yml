@@ -116,4 +116,4 @@ jobs:
       - name: Score, head against base
         run: |
           set -o pipefail
-          node check/stability-guard.js .base | tee -a "$GITHUB_STEP_SUMMARY"
+          node js/check-stability.js --base .base | tee -a "$GITHUB_STEP_SUMMARY"

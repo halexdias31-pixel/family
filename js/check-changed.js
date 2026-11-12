@@ -9,7 +9,7 @@ const BASE = arg('base') || 'origin/main';
 const LIST = process.argv.includes('--list');
 
 /* ALWAYS: the name check and the cheap whole-repo readers. */
-const ALWAYS = ['js/check.js', 'js/check-comments.js', 'js/check-secrets.js', 'js/check-markers.js', 'js/check-stability.js'];
+const ALWAYS = ['js/check.js', 'js/check-comments.js', 'js/check-secrets.js', 'js/check-conflicts.js', 'js/check-stability.js'];
 /* GLOB → CHECKS. First match wins; `*` is one path segment, `**` any. */
 const MAP = [
   ['docs/**', []],

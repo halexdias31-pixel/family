@@ -1,5 +1,5 @@
 /* A LEVEL CELL AS REAL LEVELS (O1): a comma is a list and `KS3–GCSE` is every rung from one to the other, so the item is
-   under each. An unknown word passes through as itself. Self-contained: check/schema.js runs this very function. */
+   under each. An unknown word passes through as itself. Self-contained: check/library-schema.js runs it. */
 function levelsIn_(cell) {
   const key = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9+]/g, '');
   const find = v => LEVEL_TABLE.find(l => key(l.level) === key(v) || l.says.some(s => key(s) === key(v)));
@@ -52,7 +52,7 @@ function levelOf_(x) {
 }
 
 /* WHO MADE A WORKSHEET IS ITS SOURCE, NOT AN EXAM BOARD (O3): a maker's sheet has no board, a board's paper no Source.
-   check/schema.js reads this list; backend/digest.gs keeps a copy that check-funnel compares card by card. */
+   check/library-schema.js reads this list; backend/digest.gs keeps a copy that check-funnel compares card by card. */
 const LIB_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition'];
 const sourceOf_ = x => LIB_SOURCES.find(s => spellKey_(s) === spellKey_(x && x.company)) || '';
 const boardOf_ = x => (sourceOf_(x) ? '' : (x && x.examBoard) || '');

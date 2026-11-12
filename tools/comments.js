@@ -340,7 +340,21 @@ function plan(rel) {
   return { rel, src, all, long };
 }
 
-module.exports = { files, plan, commentsOf, kept, LIMIT, KEEP, shortText, headline };
+const readRel_ = f => { try { return fs.readFileSync(path.join(__dirname, '..', f), 'utf8'); } catch (e) { return ''; } };
+/* A TOMBSTONE: a comment that only says what used to be there. Its story belongs in docs/history, not beside living code. */
+const TOMB = /\/\*[- ]*(?:`[^`]+`|THE [A-Z'` ]+|[A-Z`'_ ]+) (?:IS|ARE) GONE\b|\b(?:WAS|WERE) HERE\b|\bused to be (?:written|booked|measured|drawn|here)\b|\bremoved at the owner/i;
+const TOMB_KEEP = /THAT IS GONE|BEFORE IT IS GONE|WHEN IT IS GONE|IF IT IS GONE|ONCE IT IS GONE|TYPED BOX IS GONE FROM|DELETED IS GONE EVERYWHERE|MARKING PASS IS GONE|DELETED POST IS GONE|TYPED PATH IS GONE|@family\./i;
+/* THE FILES HELD TO NO TOMBSTONE: js/ (less `_` files) and style.css; the backend and tools keep theirs until a sweep. */
+const tombFiles = () => fs.readdirSync(path.join(__dirname, '..', 'js')).filter(f => f.endsWith('.js') && !f.startsWith('_')).sort().map(f => 'js/' + f).concat(['style.css']);
+/* Every tombstone in the files given (paths from the repo root), each with where and what it says; read by tools/ai-cost.js too. */
+function tombstones(files = tombFiles()) {
+  const out = [];
+  files.forEach(f => readRel_(f).split('\n').forEach((l, i) => { const s = l.trim();
+    const one = (s.startsWith('/*') && s.endsWith('*/') && s.split('*/').length === 2) || (s.startsWith('//') && f.endsWith('.js'));
+    if (one && TOMB.test(s) && !TOMB_KEEP.test(s)) out.push({ where: f + ':' + (i + 1), say: s.slice(0, 120) }); }));
+  return out;
+}
+module.exports = { files, plan, commentsOf, kept, LIMIT, KEEP, shortText, headline, tombstones, tombFiles };
 
 if (require.main === module) {
   const dry = process.argv.includes('--dry');

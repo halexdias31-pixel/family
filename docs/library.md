@@ -119,7 +119,7 @@ after its cover row, splits them, and marks them pending. Their words reach the 
 
 ## The schema: a row a tool writes is checked first (523)
 
-`check/schema.js` is the library's one schema: each card file's columns, which column holds each idea (level, key stage,
+`check/library-schema.js` is the library's one schema: each card file's columns, which column holds each idea (level, key stage,
 tier, board, topics), and the closed vocabularies. Levels come from `LEVEL_TABLE` in js/find.js — store a list of real
 levels (`KS3, GCSE`), never a range. A worksheet maker goes in `company` and is a Source; its sheet carries no
 `exam_board`. `tools/add-past-paper.js` and `tools/lib-private.js split` call it and refuse, writing nothing, any problem
@@ -154,7 +154,7 @@ top counts the covers whose questions still carry `lib_pending` ("N papers waiti
  "also": ["November 2020", "November 2021"], "skip": ["June 2020", "June 2021"], "papers_in": {"June 2018": ["1", "2", "3"]}}
 ```
 
-- `board`, `level`, `subject` are spelled as the library spells them (`check/schema.js`: `A-Level`, not `A level`).
+- `board`, `level`, `subject` are spelled as the library spells them (`check/library-schema.js`: `A-Level`, not `A level`).
   `label` is what the card says. `spec` (optional) keeps two specifications filed under one subject apart (AQA's
   7062 Religious Studies and 7172 Philosophy); a cover with no `spec_code` counts for the first line naming its
   board, level and subject.

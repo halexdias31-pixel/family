@@ -123,8 +123,13 @@ function uniformWork() {
       if (/<button\b/.test(l) && !/\b(?:key|opt|choice|chip|pad|form|dlg|dialog|sheet|close|field)\b|type="submit"/.test(l)) W.push({ kind: 'raw-button', where: at, say: l.trim().slice(0, 120) });
       if (/class="tile(?:\s|")/.test(l)) W.push({ kind: 'hand-tile', where: at, say: 'a tile written by hand, not tile_(): ' + l.trim().slice(0, 100) });
       if (/style="[^"$]*[a-z-]+\s*:[^"$]*"/.test(l)) W.push({ kind: 'inline-style', where: at, say: (/style="[^"]*"/.exec(l) || [''])[0].slice(0, 100) });
-      if (/(?:Loading|Please wait|Working)(?:…|\.\.\.)|class="[^"]*\bspinner\b|setAttribute\('aria-busy', 'true'\)/.test(l)) W.push({ kind: 'own-wait', where: at, say: 'a wait not via loading_(): ' + l.trim().slice(0, 100) });
     }); });
+  /* OWN WAITS: js/check-loading.js's own findings, so the score and the check never disagree. */
+  let waits = [];
+  try { waits = JSON.parse(execFileSync(process.execPath, ['js/check-loading.js', '--json'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })); }
+  catch (e) { waits = ['js/check-loading.js: would not run — ' + e.message.slice(0, 80)]; }
+  waits.forEach(b => { const m = /^([\w./-]+\.(?:js|css|html):\d+): ([\s\S]*)$/.exec(b);
+    W.push({ kind: 'own-wait', where: m ? (/^(?:js|check|tools)\//.test(m[1]) || /^(?:style|index)\./.test(m[1]) ? m[1] : 'js/' + m[1]) : 'js/check-loading.js', say: (m ? m[2] : b).slice(0, 140) }); });
   /* A CLASS style.css styles that one app line uses and no other rule shares: one component's whole class, kept in mind for one place. */
   const used = {}; const blob = Object.values(jsAll).join('\n') + read('index.html') + read('js/tiles.js') + SHELL_FILES.map(read).join('');
   for (const m of blob.matchAll(/class="([^"$]+)"/g)) m[1].split(/\s+/).forEach(c => { used[c] = (used[c] || 0) + 1; });
@@ -348,13 +353,10 @@ function answerWidths(css) {
         say: `${sel} sizes an answer box its own way (${sz.map(d => d.join(': ')).join('; ')}); one width, --ans-w` }); }); }
   return out;
 }
-/* ONE TEMPLATE (owner, 11 Nov): of every card made, how many go through findCard/card_ rather than writing class="card" (js/check-one-template.js). */
+/* ONE TEMPLATE (owner, 11 Nov): of every card made, how many go through findCard/card_ rather than writing class="card" (tools/one-template.js, which js/check-one-template.js gates). */
 function oneTemplate() {
-  let bad = [];
-  try { execFileSync(process.execPath, ['js/check-one-template.js'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' }); }
-  catch (e) { bad = String(e.stderr || '').split('\n').filter(l => /^ {2}\S/.test(l)).map(l => { const t = l.trim(), at = /^([^:]+:\d+)/.exec(t); return { kind: 'one-template', where: at ? at[1] : 'js/check-one-template.js', say: t }; }); }
-  const html = read('index.html'), files = [...new Set([...html.matchAll(/'([a-z][\w-]*)'/g)].map(m => 'js/' + m[1] + '.js'))].filter(f => fs.existsSync(path.join(ROOT, f)));
-  const made = files.reduce((a, f) => a + (blank(read(f)).match(/(?<!function )\b(?:card_|findCard)\(/g) || []).length, 0);
+  const T = require('./one-template.js').oneTemplate();
+  const bad = T.bad.map(t => { const at = /^([^:]+:\d+)/.exec(t); return { kind: 'one-template', where: at ? at[1] : 'js/check-one-template.js', say: t }; }), made = T.made;
   return { ok: made, of: made + bad.length, work: bad };
 }
 function ui() {
@@ -369,17 +371,8 @@ function ui() {
   const seen = new Map(), reset = new Set();
   plain.forEach((r, b) => { const props = new Set(r.body.split(';').map(d => (/^\s*([\w-]+)\s*:/.exec(d) || [])[1]).filter(k => k && !k.startsWith('--')));
     const had = seen.get(r.sel); if (had) props.forEach(p => { if (had.has(p)) reset.add(b); had.add(p); }); else seen.set(r.sel, props); });
-  /* THE PALETTE: the :root tokens whose value is a colour; a colour is either one of them or a literal. */
-  const isCol = v => /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/.test(v), colTok = new Set();
-  for (const r of rules.filter(r => /^:root\b/.test(r.sel))) for (const d of r.body.matchAll(/(--[\w-]+)\s*:\s*([^;]+)/g)) if (isCol(d[2]) || /^var\(--[\w-]+\)$/.test(d[2].trim())) colTok.add(d[1]);
-  const usesCol = d => isCol(d.v) || [...d.v.matchAll(/var\((--[\w-]+)/g)].some(x => colTok.has(x[1]));
-  /* THE SCALE: a size is a token (var(--…)), a zero, auto or a keyword; a written length is off the scale. */
-  const LEN = /(?<![\w.-])-?(?:\d*\.)?\d+(?:px|rem|em|vh|vw|%|ch)\b/;
-  const offScale = v => LEN.test(v.replace(/var\([^()]*\)/g, '').replace(/(?<![\w.])0(?![\w.%])/g, ''));
-  const fonts = decls.filter(d => d.k === 'font-size' || (d.k === 'font' && !/^(?:inherit|initial|unset)$/.test(d.v)));
-  const space = decls.filter(d => /^(?:margin|padding)(?:-(?:top|right|bottom|left|inline|block)(?:-start|-end)?)?$|^(?:row-|column-)?gap$/.test(d.k));
-  const radius = decls.filter(d => /^border(?:-[a-z]+)*-radius$/.test(d.k));
-  const fontOff = d => d.k === 'font' ? offScale((/^(?:(?:italic|normal|bold|\d00)\s+)*(\S+)/.exec(d.v) || [])[1] || '') : offScale(d.v);
+  /* THE SCALE AND PALETTE: tools/css-scale.js, the same reading js/check-scale.js gates on. */
+  const SC = require('./css-scale.js').cssScale(raw).measure, sc = k => [SC[k].ok, SC[k].of];
   const AW = answerWidths(raw), OT = oneTemplate();
   const work = uniformWork().concat(uxWork().work, ownerWork(), AW.bad, OT.work), k = {};
   work.forEach(w => { k[w.kind] = (k[w.kind] || 0) + 1; });
@@ -387,10 +380,10 @@ function ui() {
   const R = [
     rule('important', 'ui', 'CSS rule-blocks that win without !important', ...blocks(() => true, d => /!important/.test(d.v))),
     rule('order', 'ui', 'CSS rule-blocks that set no property a block of the same selector set before', ...blocks(() => true, d => reset.has(d.b))),
-    rule('colourlit', 'ui', 'CSS rule-blocks with colours whose colours are all palette tokens', ...blocks(usesCol, d => isCol(d.v))),
-    rule('font-scale', 'ui', 'CSS rule-blocks with a font size, all from the --fs scale', ...blocks(d => fonts.includes(d), fontOff)),
-    rule('space-scale', 'ui', 'CSS rule-blocks with margins, paddings or gaps, all from the --s scale', ...blocks(d => space.includes(d), d => offScale(d.v))),
-    rule('radius-scale', 'ui', 'CSS rule-blocks with a corner radius, all from the radius tokens', ...blocks(d => radius.includes(d), d => offScale(d.v.replace(/\b50%/g, '')))),
+    rule('colourlit', 'ui', 'CSS rule-blocks with colours whose colours are all palette tokens', ...sc('colour')),
+    rule('font-scale', 'ui', 'CSS rule-blocks with a font size, all from the --fs scale', ...sc('font')),
+    rule('space-scale', 'ui', 'CSS rule-blocks with margins, paddings or gaps, all from the --s scale', ...sc('space')),
+    rule('radius-scale', 'ui', 'CSS rule-blocks with a corner radius, all from the radius tokens', ...sc('radius')),
     rule('answer-width', 'ui', 'Answer-box width rules on the one width', AW.of - AW.bad.length, AW.of),
     rule('one-template', 'ui', 'Cards made on the one template (findCard/card_)', OT.ok, OT.of),
     rule('makers', 'ui', 'Tiles made by tile_() rather than by hand', P.tiles, P.tiles + n('raw-button') + n('hand-tile'), ['raw-button', 'hand-tile']),
@@ -464,6 +457,8 @@ function fnUnits(file, src) {
 function structure() {
   const F = [], push = (file, line, kind, text, units) => F.push({ file, line, kind, text: String(text).trim().slice(0, 160), units });
   const seen = new Map(), pop = { files: 0, fns: 0, units: 0, catches: 0 }, bad = { 'one-off': new Set(), dup: new Set(), nest: new Set() };
+  /* EMPTY CATCHES: tools/catches.js, the count js/check-catches.js gates. */
+  require('./catches.js').emptyCatches(coreFiles()).forEach(c => push(c.file, c.line, 'catch', c.text, 1));
   coreFiles().forEach(file => {
     const L = read(file).split('\n'); pop.files++;
     if (L.length > 1500) push(file, 1501, 'big-file', `${L.length} lines, ${L.length - 1500} over the 1500 budget`, L.length - 1500);
@@ -476,7 +471,7 @@ function structure() {
       pop.catches += (code.match(/\bcatch\b/g) || []).length;
       if (depth > 5) bad.nest.add(U[i]);
       if (ONE_OFF.test(code.replace(DOM_EVENT, '')) && !SHARED_TESTS.includes(file)) { push(file, i + 1, 'one-off', raw, 1); bad['one-off'].add(U[i]); }
-      if (/catch\s*(?:\(\s*\w*\s*\))?\s*\{\s*\}/.test(code)) push(file, i + 1, /catch\s*(?:\([^)]*\))?\s*\{\s*\}/.test(raw) ? 'catch' : 'deliberate', raw, 1);
+      if (/catch\s*(?:\(\s*\w*\s*\))?\s*\{\s*\}/.test(code) && !/catch\s*(?:\([^)]*\))?\s*\{\s*\}/.test(raw)) push(file, i + 1, 'deliberate', raw, 1);
       const m = before === 0 && /^(?:async\s+)?function\s+([\w$]+)|^(?:const|let|var)\s+([\w$]+)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>\s*\{|[\w$]+\s*=>\s*\{)/.exec(raw);
       if (m) { fn = { name: m[1] || m[2], at: i }; pop.fns++; }
       if (depth === 0 && fn) {
@@ -535,10 +530,8 @@ function extraWork(st) {
   /* TWO ANSWERS THAT DIFFER ONLY IN A DIGIT are two things (1813 and 1843, Part 1 and Part 2), not one misspelt. */
   const digitsOnly = m => { const p = /: (.*) ~ (.*)$/.exec(m.say); const z = t => t.replace(/\d+|\b[IVXLC]+\b/g, '#'); return p && z(p[1]) === z(p[2]); };
   ((L && L.menuSense) || []).filter(m => !['thin', 'zero-count', 'answer-words', 'mangled-text', 'merged-value'].includes(m.kind) && !(m.kind === 'spelling' && digitsOnly(m))).forEach(m => W.push({ kind: 'menu-sense', part: 'logic', where: m.where, say: m.kind + ': ' + m.say }));
-  /* DEAD CODE, from stability's own check-dead run: one item per function nothing calls. */
-  const dead = ((st.signals || []).find(x => x.id === 'dead') || {}).where || {};
-  String(dead['check-dead'] || '').split(', ').filter(Boolean).forEach(d => { const m = /^(\w+) \(([\w.-]+)\)$/.exec(d);
-    W.push({ kind: 'dead', part: 'code', where: m ? 'js/' + m[2] : d, say: (m ? m[1] : d) + ' is never called' }); });
+  /* DEAD CODE: tools/dead.js, the list check-dead fails on and stability weighs: one item per function nothing calls. */
+  require('./dead.js').deadFunctions().forEach(d => W.push({ kind: 'dead', part: 'code', where: (d.side === 'backend' ? 'backend/' : 'js/') + d.file, say: d.name + ' is never called' }));
   /* SIZE BUDGETS (920): each first-download file and their total, against data/settings/size-budgets.json (current + 5% when set). */
   const budget = jread('data/settings/size-budgets.json');
   const sizes = firstDownload();
@@ -888,7 +881,7 @@ function fix() {
     : sel + '{' + body.replace(/(^|;)(\s*)(?!--)([\w-]+\s*:[^;]*)/g, (d, a, w, decl) => a + w + /var\(/.test(decl) ? decl : decl.replace(/#[0-9a-fA-F]{3,8}\b/g, h => tok[h.toLowerCase()] ? (n++, `var(${tok[h.toLowerCase()]})`) : h)) + '}');
   if (n) { fs.writeFileSync(path.join(ROOT, 'style.css'), css); done.push(`style.css: ${n} colour literal(s) → their single-definition token`); }
   const cc = read('js/check-catches.js'), m = /const CEILING = (\d+);/.exec(cc);
-  if (m) { const now = Number((/(\d+) empty catch blocks/.exec(execFileSync(process.execPath, ['js/check-catches.js'], { cwd: ROOT, encoding: 'utf8' })) || [])[1]);
+  if (m) { const now = require('./catches.js').emptyCatches().length;
     if (now && now < Number(m[1])) { fs.writeFileSync(path.join(ROOT, 'js/check-catches.js'), cc.replace(m[0], `const CEILING = ${now};`)); done.push(`check-catches ceiling ${m[1]} → ${now}`); } }
   const empty = structure().findings.filter(f => f.kind === 'catch').length;
   done.forEach(d => console.log('fixed: ' + d));
