@@ -354,7 +354,7 @@ function libTally_(me, ids, cap) {
     if (t.sheet && (count !== before || refused.length)) {
       const vals = { served: count, ids: list, refused: (row ? Number(row.refused) || 0 : 0) + refused.length, last_at: new Date() };
       if (row) setCells(t, row, vals);
-      else addRow(t, Object.assign({ day: day, person_id: pid, handle: S(me.handle) }, vals));
+      else addRow(t, Object.assign({ day: day, person_id: pid }, vals));
     }
     try { cache.put(ckey, JSON.stringify({ n: count, ids: list.split(',') }), LIB_CACHE_S); } catch (err) {}
     return { allowed: allowed, refused: refused, left: Math.max(0, cap - count) };

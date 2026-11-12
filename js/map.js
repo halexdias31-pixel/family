@@ -101,7 +101,7 @@ const WIDGETS = [
   </div>`); } },
 
 
-  { id: 'mat', kind: 'tool', name: 'Cheat sheet maker (maths mat)', solid: true,
+  { id: 'mat', kind: 'tool', name: 'Cheat sheet maker', solid: true,
     start: () => initMat?.(),
     into: 'mat-box', what: 'The cheat sheet',
     /* NO BLURB. It said "one sheet of A4, tick what goes on it" over a list of tickboxes on a page showing a sheet of A4 — three sentences describing what is already § */
@@ -147,6 +147,7 @@ const WIDGETS = [
     <h3>Notepad</h3>
     <textarea id="notepad" placeholder="Jot something down…"></textarea>
     <p class="said said-s" id="pad-said">Saves as you type.</p>
+    <div class="tile-row">${tile_({ icon: 'doc', label: 'Copy', note: 'the notes', act: 'pad-copy' })}</div>
   </div>`); } },
   /* ---------- SPOTIFY (510): your own account, connected in this browser alone — spotify.js ---------- */
   { id: 'spotify', kind: 'tool', name: 'Spotify', solid: true, start: () => window.initSpotify?.(),

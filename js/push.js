@@ -20,6 +20,8 @@ const pushKeep_ = t => { try { t ? localStorage.setItem('pushToken', t) : localS
 
 function pushPaint_() {
   try { markStale_('account'); if (typeof AT !== 'undefined' && AT === 'account') paint('account'); } catch (e) {}
+  /* THE CARD ALSO SITS IN FIND › SETTINGS › NOTIFICATIONS (owner, 12 Nov). */
+  try { if (typeof AT !== 'undefined' && AT === 'stuff') paint('stuff'); } catch (e) {}
 }
 function pushAsk_(body) {
   return send_(Object.assign({ name: USER.name, personId: USER.personId || '' }, body))
@@ -77,8 +79,8 @@ async function pushOff_() {
   PUSH.busy = false; pushPaint_();
 }
 
-/* THE CARD: one line saying what it is, then the tile, or the one thing to do first. */
-function pushCard_() {
+/* THE PHONE'S PART OF THE ONE NOTIFICATIONS CARD (owner, 12 Nov: one item, one template): the tile, or the one thing to do first. */
+function pushBody_() {
   if (typeof USER === 'undefined' || !USER) return '';
   pushLoad_();
   const row = h => ``;
@@ -109,7 +111,7 @@ function pushCard_() {
       + tileRow_(tile_({ icon: 'mute', label: 'Turn off', note: 'on this device', act: 'push-off' }), '', true);
   }
   if (PUSH.busy) body += loading_();
-  return card_(`<div class="push-card"><h3>Notifications</h3>${body}</div>`);
+  return `<div class="push-card">${body}</div>`;
 }
 on('push-on', () => pushOn_());
 on('push-off', () => pushOff_());
@@ -121,7 +123,6 @@ document.addEventListener('change', e => {
     .catch(err => { if (!err.handled) PUSH.err = err.message; })
     .then(() => { PUSH.busy = false; pushPaint_(); });
 });
-try { CARD_REG.push({ id: 'acct:push', col: 'account', label: 'Notifications', re: /^<div class="card push-card/, say: 'Lock-screen notes, like texts, for messages and bookings.' }); } catch (e) {}
 
 /* ---------- A TAPPED NOTIFICATION: `?push=dm:<id>|job:<id>|post:<id>` on arrival, or a word from sw.js to a window already open. */
 let PUSH_LANDED = false;

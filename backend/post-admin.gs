@@ -125,7 +125,7 @@ function postApplyTeach_(body, action, began) {
       out = { error: 'Your application is already with us — we will be in touch.', why: 'already' };
     } else {
       addRow(t, Object.assign({ application_id: 'A-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
-        at: new Date(), person_id: S(me.person_id), handle: S(me.handle), status: 'new', status_at: '' }, f));
+        at: new Date(), person_id: S(me.person_id), status: 'new', status_at: '' }, f));
       out = { success: true };
     }
   } finally {
@@ -173,8 +173,8 @@ function postListApplications_(body, action, began) {
   const list = t.rows.map(r => {
     const p = people.find(x => S(x.person_id) === S(r.person_id));
     const o = { id: S(r.application_id), at: appMs_(r.at), status: norm(r.status) || 'new', statusAt: appMs_(r.status_at),
-                personId: S(r.person_id), handle: S(r.handle), name: p ? personDisplayName(p) : S(r.handle) };
-    SCHEMA.applications.slice(6).forEach(k => { o[k] = S(r[k]); });
+                personId: S(r.person_id), handle: p ? S(p.handle) : S(r.handle), name: p ? personDisplayName(p) : S(r.handle) };
+    SCHEMA.applications.slice(5).forEach(k => { o[k] = S(r[k]); });
     return o;
   }).sort((a, b) => b.at - a.at);
   return jsonOut({ success: true, open: list.filter(a => APPLICATION_OPEN.indexOf(a.status) !== -1).length,

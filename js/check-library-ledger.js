@@ -229,7 +229,7 @@ let done = null;
   const h = log[0] || [];
   const rows = log.slice(1).map(r => { const o = {}; h.forEach((c, i) => { o[c] = r[i]; }); return o; });
   const ada = rows.find(r => r.person_id === 'P-S1');
-  if (!ada || Number(ada.served) !== 5 || ada.handle !== 'aa2026') bad.push('lib_log does not hold Ada\'s 5 under her handle: ' + JSON.stringify(ada));
+  if (!ada || Number(ada.served) !== 5 || ada.handle) bad.push('lib_log does not hold Ada\'s 5 under her person id alone (no handle copy, 12 Nov): ' + JSON.stringify(ada));
   if (rows.some(r => Object.values(r).some(v => /Pupil/.test(String(v))))) bad.push('lib_log carries a surname');
 
   /* THE CAP, ON A FRESH LEDGER AT 5 A DAY. */
@@ -368,7 +368,7 @@ function fakeDrive(me) {
   if (!after.success || after.items['q:' + qid].html !== '<p>New words</p>' || !after.items['pr:P-DRIVE-NEW']) bad.push('libItems after the import still served the cached words: ' + JSON.stringify(after).slice(0, 200));
   const lh = (w.b.tabs.lib_log || [])[0] || [];
   const logged = (w.b.tabs.lib_log || []).slice(1).map(r => { const o = {}; lh.forEach((c, i) => { o[c] = r[i]; }); return o; }).filter(r => r.person_id === 'library-import');
-  if (logged.length !== 1 || !/lib-import-2026-10-24T10-00-00Z\.json/.test(logged[0].ids) || logged[0].handle !== 'hl2026') bad.push('lib_log has no line for the imported file under the admin\'s handle: ' + JSON.stringify(logged));
+  if (logged.length !== 1 || !/lib-import-2026-10-24T10-00-00Z\.json/.test(logged[0].ids) || !/^by P-/.test(logged[0].ids) || logged[0].handle) bad.push('lib_log has no line for the imported file saying the admin\'s person id: ' + JSON.stringify(logged));
   const l2 = w.ask(HAL, { action: 'libImportList' });
   if ((l2.pending || []).length !== 0 || !l2.last || l2.last.imported !== 1) bad.push('after the import the list still waits, or has no last report: ' + JSON.stringify(l2).slice(0, 200));
 
@@ -444,7 +444,7 @@ function fakeDrive(me) {
       || [1, 2, 3].some(k => !pr['P-HR-' + k] || pr['P-HR-' + k].aim !== 'Part ' + k) || parts.some(x => x.parent !== done7)) bad.push('the hourly run did not import the three parts in order and move them: ' + JSON.stringify(h1).slice(0, 300));
   if (!tapped || tapped.why !== 'busy') bad.push('a tap during the hourly run was not turned away as busy: ' + JSON.stringify(tapped).slice(0, 200));
   const hl = (w.b.tabs.lib_log || []).slice(1).filter(r => /lib-import-hr-part/.test(r.join(' ')));
-  if (hl.length !== 3 || !hl.every(r => r.indexOf('hourly') !== -1)) bad.push('lib_log should have one line per part under the handle hourly, has ' + hl.length);
+  if (hl.length !== 3 || !hl.every(r => /by hourly/.test(r.join(' ')))) bad.push('lib_log should have one line per part saying by hourly, has ' + hl.length);
   /* THE TAP AFTERWARDS finds nothing to do twice; the card's list says when the automatic import ran and what it did. */
   const t2 = w.ask(HAL, { action: 'libImportDrive' });
   if (!t2.success || t2.imported !== 0) bad.push('a tap after the hourly run imported again: ' + JSON.stringify(t2).slice(0, 200));
