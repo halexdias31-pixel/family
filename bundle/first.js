@@ -11367,13 +11367,14 @@ function fieldRows_(list, one) {
     row.fields.forEach(x => done.add(x));
     const boxes = row.fields.map((x, i) => one(x, row.cap ? { placeholder: row.ph[i] } : {}))
       .join(row.dash ? '<span class="f-dash" aria-hidden="true">–</span>' : '');
-    out.push(row.cap
-      ? `<div class="f-rowwrap"><span class="dob-cap">${esc(row.cap)}</span>
-           <div class="f-row${row.dash ? ' is-range' : ''}" style="--n:${row.fields.length}">${boxes}</div></div>`
+    out.push(row.cap ? fieldCap_(row.cap, boxes, row.dash ? ' is-range' : '', row.fields.length)
       : `<div class="f-row" style="--n:${row.fields.length}">${boxes}</div>`);
   });
   return out.join('');
 }
+/* THE ONE CAPTIONED SETTINGS ROW: a small caption over its boxes, for a paired row and for the phone alike. */
+const fieldCap_ = (cap, boxes, cls, n) => `<div class="f-rowwrap"><span class="dob-cap">${esc(cap)}</span>
+           <div class="f-row${cls || ''}" style="--n:${n || 1}">${boxes}</div></div>`;
 
 /* A WHOLE FORM, from a group table. § */
 /* A GROUP OF HOUR CODES IS A TIMETABLE. § */
@@ -11909,17 +11910,14 @@ on('qual-drop', el => {
 });
 /* ---------- WHEN IT WAS RECEIVED, AND WHETHER YOU TEACH IT § */
 /* ---------- *"phone: have field for country code, then number."* § */
-function phoneRow_(value) {
+function phoneField_(value) {
   const cc = String(value('phone_cc') || '') || '+44';
   /* THE NUMBER IS A DRAFT UNTIL SAVED, as every box of your own row is (`fieldHtml`; 317). */
   const phoneNo = String(value('phone_no') || (value('phone_cc') ? '' : value('phone')) || '');
   const codes = (Array.isArray(DATA && DATA.phoneCodes) && DATA.phoneCodes.length) ? DATA.phoneCodes.slice() : ['+44'];
   if (codes.indexOf(cc) === -1) codes.unshift(cc);
-  return `<div class="f-rowwrap"><span class="dob-cap">phone</span>
-    <div class="f-row is-phone">
-      ${formPhone_('phone_cc', 'phone_no', codes.map(x => `<option value="${esc(x)}"${x === cc ? ' selected' : ''}>${esc(x)}</option>`).join(''),
-        `placeholder="Number" value="${esc(draftVal_('set', 'phone_no', phoneNo))}"${draftAttr_('set', 'phone_no', phoneNo)}`)}
-    </div></div>`;
+  return fieldCap_('phone', formPhone_('phone_cc', 'phone_no', codes.map(x => `<option value="${esc(x)}"${x === cc ? ' selected' : ''}>${esc(x)}</option>`).join(''),
+    `placeholder="Number" value="${esc(draftVal_('set', 'phone_no', phoneNo))}"${draftAttr_('set', 'phone_no', phoneNo)}`), ' is-phone', 2);
 }
 function qualYears_(current) {
   const now = new Date().getFullYear(), out = ['Present'];
@@ -12291,7 +12289,7 @@ function fieldsHtml(groups, o) {
       + (quals ? qualShelf_(list, value) : '')
       + (jobs ? jobShelf_(list, value) : '')
       + (wantsDob ? dobBoxes_(value) : '')
-      + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneRow_(value) : plain(f, extra))
+      + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneField_(value) : plain(f, extra))
       + (photos ? videoPicker_(value) + photoShelf_(list, value) : '');
     return (head ? `<${head}><span>${esc(g)}</span></${head}>` : '') + body;
   }).join('');

@@ -315,13 +315,14 @@ function fieldRows_(list, one) {
     row.fields.forEach(x => done.add(x));
     const boxes = row.fields.map((x, i) => one(x, row.cap ? { placeholder: row.ph[i] } : {}))
       .join(row.dash ? '<span class="f-dash" aria-hidden="true">–</span>' : '');
-    out.push(row.cap
-      ? `<div class="f-rowwrap"><span class="dob-cap">${esc(row.cap)}</span>
-           <div class="f-row${row.dash ? ' is-range' : ''}" style="--n:${row.fields.length}">${boxes}</div></div>`
+    out.push(row.cap ? fieldCap_(row.cap, boxes, row.dash ? ' is-range' : '', row.fields.length)
       : `<div class="f-row" style="--n:${row.fields.length}">${boxes}</div>`);
   });
   return out.join('');
 }
+/* THE ONE CAPTIONED SETTINGS ROW: a small caption over its boxes, for a paired row and for the phone alike. */
+const fieldCap_ = (cap, boxes, cls, n) => `<div class="f-rowwrap"><span class="dob-cap">${esc(cap)}</span>
+           <div class="f-row${cls || ''}" style="--n:${n || 1}">${boxes}</div></div>`;
 
 /* A WHOLE FORM, from a group table. § */
 /* A GROUP OF HOUR CODES IS A TIMETABLE. § */

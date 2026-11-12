@@ -2960,7 +2960,8 @@ function finderWalk_(x) {
     if (looked && !(looked.n > 1)) break;
     const facet = looked ? looked.facet : (() => { const items = stuffFiltered(); return items.length <= 1 ? null : nextFacet(items); })();
     if (!facet) break;
-    const own = (() => { try { return facetOwn_(facet, x); } catch (e) { return []; } })();
+    /* A FACET READ OFF PAGES (`tagOf`) TAKES THE CARD'S OWN TAG, the one `stuffPages_` keeps it by, not the first of its values. */
+    const own = (() => { try { const t = facet.tagOf ? asList_(facet.tagOf(x, null)) : []; return t.length ? t : facetOwn_(facet, x); } catch (e) { return []; } })();
     out.push(own.length ? { field: facet.field, value: String(own[0]) } : { field: facet.field, any: true });
     /* A LOOKED-UP ANSWER IS ONE OF THE BUILD'S, so the item is still in the list; a counted one is checked against it. */
     if (looked) { if (own.length && !looked.has(own[0])) { out.pop(); break; } continue; }
