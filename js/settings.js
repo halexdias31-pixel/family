@@ -22,7 +22,7 @@ function setMoved_(d, extra) {
 }
 
 function setBrand_(d, extra) {
-  /* the branding, whole ------------------------------------------------------------------- EVERY ROW, whether or not the code knows the key — the backend's own § */
+  /* the branding, whole ------------------------------------------------------------------- EVERY ROW, whether or not the code § */
   const brand = extra['settings/brand'];
   if (brand && brand.length) {
     d.brand = d.brand || {};
@@ -47,7 +47,7 @@ function setFacets_(d, extra) {
 }
 
 function setKinds_(d, extra) {
-  /* what the funnel's first two questions answer -------------------------------------------- A KIND MAY BE IN MORE THAN ONE GROUP and the cell says so with commas § */
+  /* what the funnel's first two questions answer -------------------------------------------- A KIND MAY BE IN MORE THAN ONE § */
   const kinds = extra['settings/kinds'];
   if (kinds && kinds.length) {
     d.kinds = kinds.filter(r => libS(r.kind).trim()).map(r => ({
@@ -61,8 +61,7 @@ function setKinds_(d, extra) {
 }
 
 function setLaws_(d, extra) {
-  /* --- the laws that paint words ---------------------------------------------------------------
-     Heaviest first, so a specific law beats a general one when both match the same word. */
+  /* the laws that paint words --------------------------------------------------------------- Heaviest first, so a specific law § */
   const laws = extra['settings/laws'];
   if (laws && laws.length) {
     d.laws = laws

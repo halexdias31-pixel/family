@@ -1,6 +1,6 @@
-/* @family. — js/find-quick.js A FIND TAP LOOKED UP, NOT COUNTED (1100): the build's answers (js/finder-tags.js), lists narrowed ahead, the loader first. */
+/* @family. — js/find-quick.js A FIND TAP LOOKED UP, NOT COUNTED (1100): § */
 
-/* AND ONCE SETTLED (1100): a chip path the build walked is looked up, not counted, while this library is the build's (`finderTagsSame_`). */
+/* AND ONCE SETTLED (1100): § */
 function finderTagsLook_() {
   const fs = STUFF.filters || [];
   if (!fs.length || fs.some(f => !f || f.any) || STUFF.admit != null || !finderSettled_()) return null;
@@ -9,7 +9,7 @@ function finderTagsLook_() {
   const facet = facetBy(at[0]);
   return facet ? { facet: facet, values: at[1].map((v, i) => ({ value: v[0], show: v.length > 1 ? v[1] : v[0], n: (at[2] || [])[i], say: (at[4] || [])[i] })) } : null;
 }
-/* THE BUILD'S LIBRARY IS THIS ONE when the facets are its facets, nothing failed to come, no press makes Your result a question, and the first */
+/* THE BUILD'S LIBRARY IS THIS ONE when the facets are its facets, nothing failed to come, no press makes Your result a § */
 /* chip's cards are as many as it counted (one tally of the whole list, held). Anything else is counted live, as before. */
 const TAGS_SAME = { all: null, gen: -1, by: {} };
 function finderTagsSame_(view, first) {
@@ -38,7 +38,7 @@ function finderTagsNext_(out) {
   } catch (e) { return null; }
 }
 
-/* THE BUILD'S WORDS (1100, js/finder-tags.js `#says`) while its library is this one (`finderTagsSame_` on Practice and Library): a tag row never tallies the library. */
+/* THE BUILD'S WORDS (1100, js/finder-tags.js `#says`) while its library is this one (`finderTagsSame_` on Practice and Library): § */
 const SAYS_BUILT = new WeakMap();
 function answerSaysBuilt_(items) {
   if (SAYS_BUILT.has(items)) return SAYS_BUILT.get(items);
@@ -55,7 +55,7 @@ function answerSaysBuilt_(items) {
   return out;
 }
 
-/* A BIG LIST'S CARDS BY ONE FACET'S ANSWER (1100), in the list's order, made once (or ahead, `frontWarm_`): a chip on Library is a lookup, not a walk. */
+/* A BIG LIST'S CARDS BY ONE FACET'S ANSWER (1100), in the list's order, made once (or ahead, `frontWarm_`): § */
 /* Not for a facet that reads the chips or your presses (`OWN_LIVE`), and only over NARROW_BIG cards, where a walk is felt. */
 const NARROW_INDEX = new WeakMap(), NARROW_BIG = 20000, OWN_LIVE = { myResult: 1, wCollection: 1 };
 function narrowIndex_(items, field, make) {
@@ -82,7 +82,7 @@ function narrowIndex_(items, field, make) {
   return by;
 }
 
-/* THE FRONT ANSWERS' LISTS, NARROWED WHILE NOTHING ELSE RUNS (1100), one an idle moment, so the first tap on Practice or Library narrows nothing. */
+/* THE FRONT ANSWERS' LISTS, NARROWED WHILE NOTHING ELSE RUNS (1100), one an idle moment, so the first tap on Practice or § */
 const FRONT_WARM = { list: [], for: null, at: ['Practice', 'Library'] };
 function frontWarm_() {
   if (typeof finderSettled_ !== 'function' || !finderSettled_()) return;
@@ -126,7 +126,7 @@ function paintStuffSoon_() {
   requestAnimationFrame(() => setTimeout(() => inFinder_(F, () => { if (JSON.stringify(STUFF.filters) === want) paintStuff((PAGE[F.id] || 0) !== at); }), 0));
 }
 
-/* THE MENU A CHIP WAS PICKED FROM, AS THE BUILD WROTE IT (1100): its words without narrowing the list again, while the build's library is this one. */
+/* THE MENU A CHIP WAS PICKED FROM, AS THE BUILD WROTE IT (1100): § */
 function chipShowBuilt_(before, f) {
   try {
     if (before.some(c => !c || c.any) || STUFF.admit != null || !finderSettled_()) return null;

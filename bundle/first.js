@@ -743,8 +743,8 @@ function priceMoney_(spec, knobs, p) {
 }
 ;
 /* ==== js/predicates.js ==== */
-/* @family. — predicates.js THE SHARED TESTS: pure one-line kind tests every file may call, loaded straight after core.js so none waits on Find. */
-/* An item's kind, one rule each (1040); a missing item is never any kind. */
+/* @family. — predicates.js PURE KIND TESTS, loaded right after core.js so none waits on Find. § */
+/* A missing item is never any kind. */
 const isQ_ = x => !!x && x.kind === 'question';
 const isContent_ = x => !!x && x.kind === 'content';
 const isFight_ = x => !!x && x.kind === 'fight';
@@ -752,21 +752,21 @@ const isProject_ = x => !!x && x.kind === 'project';
 const isShop_ = x => !!x && x.kind === 'shop';
 const isPractical_ = x => !!x && x.kind === 'practical';
 const isManuscript_ = x => !!x && x.kind === 'manuscript';
-/* ONE PEOPLE KIND (batch D): a boxer and a historical figure are both `people`; a boxer is the person Boxing's Fighters answer holds. */
+/* ONE PEOPLE KIND: boxers and historical figures are both `people`. § */
 const isPerson_ = x => !!x && x.kind === 'people';
 const isBoxer_ = x => isPerson_(x) && x.boxKind === 'Fighters';
 const isBible_ = x => !!x && x.kind === 'bible';
 const isWriting_ = x => !!x && x.kind === 'writing';
 const isMeCard_ = x => !!x && x.kind === 'me';
-/* A library row that is a preamble or a whole document, not a question part (1040). */
+/* Library rows that are not a question part. */
 const isPreamble_ = r => !!r && r.kind === 'preamble';
 const isDocument_ = r => !!r && r.kind === 'document';
-/* A form field that is a checkbox; a pointer that holds still (mouse or stylus) (1040). */
+/* A pointer that holds still: mouse or stylus. */
 const isCheckbox_ = el => !!el && el.type === 'checkbox';
 const isSteadyPointer_ = c => !!c && (c.type === 'mouse' || c.type === 'pen');
 const isPenPointer_ = c => !!c && c.type === 'pen';
 const isTouchPointer_ = c => !!c && c.type === 'touch';
-/* A file picker, and a hidden field, which holds no typing. */
+/* A hidden field holds no typing. */
 const isFileBox_ = el => !!el && el.type === 'file';
 const isHiddenBox_ = el => !!el && el.type === 'hidden';
 
@@ -1942,7 +1942,7 @@ function cssVersion() {
 let DATA = {};
 
 /* ---------- A ROW THAT IS NOT A ROW IS DROPPED AT THE DOOR (R6) ---------- */
-/* null is never a row; in a list of objects a string or number is not one either. Returns {key: dropped}, so load() can report the count. */
+/* null is never a row; in a list of objects a string or number is not one either. § */
 function dataRowsClean_(d) {
   const out = {};
   if (!d || typeof d !== 'object') return out;
@@ -1964,25 +1964,24 @@ function jsonp(url) {
     const tag = document.createElement('script');
     const done = () => { delete window[name]; tag.remove(); };
     window[name] = d => { done(); ok({ __jsonp: d }); };
-    /* A script that 404s fires `onerror`, which is the one thing this route can report: it cannot
-       see a status code, so "the address did not load" is all there is to say. */
+    /* A script that 404s fires `onerror`, which is the one thing this route can report: § */
     tag.onerror = () => { done(); no(new Error('the backend did not load as a script')); };
     tag.src = url + (url.indexOf('?') === -1 ? '?' : '&') + 'callback=' + name;
     document.head.appendChild(tag);
   });
 }
 
-/* THE FILES THE FIRST SCREEN DOES NOT NEED (670): index.html's `LATER`, asked for once the first column is drawn. Never rejects: a file that fails is named by `__missing`. */
+/* THE FILES THE FIRST SCREEN DOES NOT NEED (670): § */
 let LATER_ASK = null, LATER_IN = false;
 function laterFiles_() {
   if (LATER_ASK) return LATER_ASK;
   const lazy = (typeof window !== 'undefined' && Array.isArray(window.LAZY)) ? window.LAZY : [];
   const later = (typeof window !== 'undefined' && Array.isArray(window.LATER)) ? window.LATER.filter(f => lazy.indexOf(f) === -1) : [];
-  /* ALL AT ONCE (720): fetched side by side, then run in one task, so no screen ever sees one LATER file without the rest (`WIDGETS` was read between find.js and map.js). */
+  /* ALL AT ONCE (720): fetched side by side, then run in one task, so no screen ever sees one LATER file § */
   LATER_ASK = batchFiles_(later, 'later').then(() => { LATER_IN = true; });
   return LATER_ASK;
 }
-/* THE SECOND BATCH (1080): index.html's `LAZY`, files Find never needs, asked for behind the library (boot.js) or when a widget of theirs starts — one task, same rule. */
+/* THE SECOND BATCH (1080): § */
 let LAZY_ASK = null;
 function lazyFiles_() {
   if (LAZY_ASK) return LAZY_ASK;
@@ -2001,7 +2000,7 @@ function batchFiles_(want, bundle) {
   const off = Array.isArray(window.OFF) ? window.OFF : [];
   const list = (Array.isArray(window.FILES) ? window.FILES : want).filter(f => want.indexOf(f) !== -1 && off.indexOf(f) === -1);
   if (!list.length || typeof document === 'undefined' || typeof fetch !== 'function') return Promise.resolve();
-  /* ONE URL FOR THE BATCH (1211): tools/bundle.js joined these files in this order; a bundle that fails falls back to the files one by one. */
+  /* ONE URL FOR THE BATCH (1211): § */
   if (bundle && window.BUNDLE) {
     return fetch('bundle/' + bundle + '.js' + deployStamp_()).then(r => (r.ok ? r.text() : null)).catch(() => null).then(src => {
       if (src === null) return batchFiles_(want);
@@ -2048,8 +2047,7 @@ function nameBesideHandle_(name, handle) {
   return n.slice(-tail.length).toLowerCase() === tail.toLowerCase() ? n.slice(0, -tail.length) : n;
 }
 
-/* NAMES (owner, 8 Nov): an admin sees the whole name; families, tutors and anything public see first name + surname initial ("Halex D.").
-   `viewer` is a user, 'public' for a share, or left out for whoever is signed in. */
+/* NAMES (owner, 8 Nov): § */
 /* A NAME TYPED IN LOWER CASE ("fin") IS STILL SHOWN WITH ITS CAPITAL; a handle keeps its own case. */
 const capFirst_ = s => (/^@/.test(String(s || '')) ? String(s) : String(s || '').charAt(0).toUpperCase() + String(s || '').slice(1));
 function displayName_(person, viewer) {
@@ -2073,7 +2071,7 @@ try {
       && String(USER.name).indexOf('(@') === -1) USER.name = first;
 } catch (e) { /* a short name is a nicety; the full one stays */ }
 
-/* WHAT A PERSON HAS WRITTEN IS KEPT ON THE DEVICE AS THEY WRITE IT — AND A WRITE THE DEVICE REFUSED IS SAID, NEVER KEPT QUIETLY IN MEMORY. § */
+/* WHAT A PERSON HAS WRITTEN IS KEPT ON THE DEVICE AS THEY WRITE IT — AND A WRITE THE DEVICE REFUSED IS § */
 const KEEP_MEM = new Map();
 const KEEP_UNKEPT = new Set();
 let KEEP_SAID = false;
@@ -2084,8 +2082,7 @@ function keepPut_(k, v, quiet) {
   if (quiet === true) { try { put(); return true; } catch (e) { return false; } }
   KEEP_MEM.set(k, v);
   if (quiet === 'record') KEEP_RECORD.add(k);
-  /* NOT WRITTEN BEFORE WHAT IT WAITS ON — an answer whose owner's mark the store has not taken yet
-     (`keepWaits_`, answers.js): held for the visit and said, as a refused write is. */
+  /* NOT WRITTEN BEFORE WHAT IT WAITS ON — an answer whose owner's mark the store has not taken yet § */
   const waits = v !== null && typeof keepWaits_ === 'function' && keepWaits_(k);
   if (!waits) {
     try { put(); KEEP_UNKEPT.delete(k); return true; } catch (e) { /* storage refused: tried again below, then held for the visit */ }
@@ -2108,8 +2105,7 @@ function keepRetry_() {
     try { if (v === null || v === undefined) localStorage.removeItem(k); else localStorage.setItem(k, v); KEEP_UNKEPT.delete(k); } catch (e) { /* storage can be blocked; the app runs without it */ }
   });
 }
-/* WHAT ONLY THIS VISIT HOLDS — non-empty, and not on the account either (`ansOnAccount_`, answers.js).
-   NOT A RECORD (`'record'` above): it is nobody's writing, and the answer it guards counts for itself. */
+/* WHAT ONLY THIS VISIT HOLDS — non-empty, and not on the account either (`ansOnAccount_`, answers.js). § */
 function keepAtRisk_() {
   keepRetry_();
   return [...KEEP_UNKEPT].filter(k => {
@@ -2144,8 +2140,7 @@ const DRAFT_DEVICE_MS = 6 * 60 * 60 * 1000;
 /* WHOSE A SIGNED-OUT ANSWER OR DEVICE DRAFT IS (`ansGoneMark_`, answers.js; docs/history/317). § */
 const ANS_GONE_KEYS = 'familyGoneKeys';
 const DRAFT_KEEP_MS = 30 * 24 * 60 * 60 * 1000;
-/* LONGER THAN ANY ANSWER APPS SCRIPT GIVES (six minutes is its ceiling), so a send still out in another
-   tab is never swept from under it. */
+/* LONGER THAN ANY ANSWER APPS SCRIPT GIVES (six minutes is its ceiling), so a send still out in another tab § */
 const DRAFT_SENT_MS = 10 * 60 * 1000;
 const DRAFT_MAX = 200;
 /* WHAT IS NEVER WRITTEN DOWN, by name: § */
@@ -2155,8 +2150,7 @@ function draftWho_() {
   try { if (USER && (USER.personId || USER.name)) return 'u:' + (USER.personId || USER.name); } catch (e) { /* no user yet: drafts are the guest's */ }
   return 'device';
 }
-/* `who` only to name somebody else's draft — the device's, carried into the person who signed in
-   (`bookFollow_`, book.js). Every other caller is the person in front of the screen. */
+/* `who` only to name somebody else's draft — the device's, carried into the person who signed in § */
 const draftKey_ = (surface, id, who) => 'draft:' + (who || draftWho_()) + ':' + surface + ':' + (id == null ? '' : id);
 /* THE SAME WORDS, whichever line endings carried them — a textarea's value is `\n` and a cell may be `\r\n`. */
 const draftSame_ = (a, b) => String(a == null ? '' : a).replace(/\r\n?/g, '\n') === String(b == null ? '' : b).replace(/\r\n?/g, '\n');
@@ -2221,8 +2215,7 @@ function draftDrop_(surface, id, who) {
   if (!had) { try { had = localStorage.getItem(k) !== null; } catch (e) { /* storage can be blocked; the app runs without it */ } }
   return had ? keepPut_(k, null) : true;
 }
-/* ---------- SENT, ANSWERED, REFUSED — see "SENT IS NOT A DRAFT" above. `v` is the words that went, so a
-   box written in again since Send keeps its new draft; a surface that sends a whole form passes none. */
+/* ---------- SENT, ANSWERED, REFUSED — see "SENT IS NOT A DRAFT" above. `v` is the words that went, so a § */
 const draftIs_ = (d, v) => v === undefined || String(d.v).trim() === String(v).trim();
 function draftSent_(surface, id, v) {
   const k = draftKey_(surface, id), d = draftRaw_(k);
@@ -2335,16 +2328,13 @@ const $ = id => {
   } catch { return el; }
 };
 
-/* The letter to put in a circle when there is no picture. The first LETTER, not the first
-   character — punctuation is not an initial, and "@family." was giving "@", which sat next to the
-   name and read as @@family. */
+/* The letter to put in a circle when there is no picture. § */
 const initial = s => (String(s ?? '').match(/[A-Za-z0-9]/) || ['?'])[0].toUpperCase();
 
-/* Anything from the branding tab, by name, with a fallback. Never throws on a key that has not
-   been filled in — the whole point of that tab is that most of it is empty most of the time. */
-/* A CONTACT DETAIL NEVER LIVES IN THE PUBLIC REPO: a blank brand key falls back to the private policy values the backend sends (phone, email). */
+/* Anything from the branding tab, by name, with a fallback. § */
+/* A CONTACT DETAIL NEVER LIVES IN THE PUBLIC REPO: § */
 const brand = (k, or) => ((DATA.brand || {})[k] || (DATA.policy || {})[k] || or || '');
-/* THE BUSINESS'S ONE PICTURE (1040 r10): tab icon, home-screen icon, Web profile and the business's posts all read it here. */
+/* THE BUSINESS'S ONE PICTURE (1040 r10): § */
 /* A Drive share link is a page, so its picture's own address (as `pic`, posts.js). */
 function brandLogo_() {
   const u = String(brand('logo_square', '') || brand('logo_circle', '') || 'icon.png').trim();
@@ -2362,7 +2352,7 @@ const isWearable = x => {
 const isAdmin = () => !!USER && rankAtLeast_('admin');
 /* THE VIEWER'S ROLE IN THE PERMISSIONS TABLE (86a): anyone, member, child or admin. */
 const myRole_ = () => (!USER ? 'anyone' : isAdmin() ? 'admin' : (typeof childView_ === 'function' && childView_()) ? 'child' : 'member');
-/* MAY THIS ROLE DO IT: DATA.permissions (data/settings/permissions.json), else admin only — the table the backend's gate reads too. */
+/* MAY THIS ROLE DO IT: § */
 const can_ = (role, kind, action) => {
   try {
     const row = ((((typeof DATA !== 'undefined' && DATA && DATA.permissions) || {})[kind] || {})[action]);
@@ -2371,12 +2361,12 @@ const can_ = (role, kind, action) => {
   return role === 'admin';
 };
 
-/* THREE ROLES FOR WHO SEES A SETTING (93): keyed by the role a word means (`roleOf`), so teacher, parent, kid… are ROLE_ALIASES' alone. */
+/* THREE ROLES FOR WHO SEES A SETTING (93): § */
 const ROLE_THREE_ = { student: 'family', client: 'family', member: 'family', family: 'family',
   staff: 'tutor', tutor: 'tutor', apprentice: 'tutor', admin: 'admin', business: 'admin', site: 'admin' };
 const SEE_ROLES = ['family', 'tutor', 'admin'];
 const roleThree_ = w => ROLE_THREE_[roleOf(String(w || '').trim())] || '';
-/* THE VIEWER'S THREE ROLES: rank and held roles mapped, a higher role holding the lower ones as ranks always have; a pending tutor is not one yet. */
+/* THE VIEWER'S THREE ROLES: § */
 function seeRoles_() {
   if (!USER) return [];
   let words = [];
@@ -2384,9 +2374,9 @@ function seeRoles_() {
   const top = Math.max(0, ...words.map(w => SEE_ROLES.indexOf(roleThree_(w))));
   return SEE_ROLES.slice(0, top + 1);
 }
-/* MAY THE VIEWER SEE THIS SETTINGS CARD OR ACCOUNT TYPE: permissions.json's `see` rows; no row, an admin's only (`can_`). */
+/* MAY THE VIEWER SEE THIS SETTINGS CARD OR ACCOUNT TYPE: § */
 const seeMay_ = key => seeRoles_().some(r => can_(r, 'see', key));
-/* MAY THE VIEWER HAVE THIS BUTTON: permissions.json's `ui` rows, by the action roles, so a child differs from a parent; no row, an admin's only. */
+/* MAY THE VIEWER HAVE THIS BUTTON: § */
 /* NO TABLE LOADED: a signed-in grown-up keeps the button, as before the table (rule 6). */
 const uiMay_ = key => { try { if (!((DATA && DATA.permissions) || {}).ui) return rankAtLeast_('client'); } catch (e) { return false; } return can_(myRole_(), 'ui', key); };
 
@@ -3670,7 +3660,7 @@ function setMoved_(d, extra) {
 }
 
 function setBrand_(d, extra) {
-  /* the branding, whole ------------------------------------------------------------------- EVERY ROW, whether or not the code knows the key — the backend's own § */
+  /* the branding, whole ------------------------------------------------------------------- EVERY ROW, whether or not the code § */
   const brand = extra['settings/brand'];
   if (brand && brand.length) {
     d.brand = d.brand || {};
@@ -3695,7 +3685,7 @@ function setFacets_(d, extra) {
 }
 
 function setKinds_(d, extra) {
-  /* what the funnel's first two questions answer -------------------------------------------- A KIND MAY BE IN MORE THAN ONE GROUP and the cell says so with commas § */
+  /* what the funnel's first two questions answer -------------------------------------------- A KIND MAY BE IN MORE THAN ONE § */
   const kinds = extra['settings/kinds'];
   if (kinds && kinds.length) {
     d.kinds = kinds.filter(r => libS(r.kind).trim()).map(r => ({
@@ -3709,8 +3699,7 @@ function setKinds_(d, extra) {
 }
 
 function setLaws_(d, extra) {
-  /* --- the laws that paint words ---------------------------------------------------------------
-     Heaviest first, so a specific law beats a general one when both match the same word. */
+  /* the laws that paint words --------------------------------------------------------------- Heaviest first, so a specific law § */
   const laws = extra['settings/laws'];
   if (laws && laws.length) {
     d.laws = laws
@@ -7762,7 +7751,7 @@ function banner(msg) {
 
 ;
 /* ==== js/shell-hold.js ==== */
-/* ---------- NO FIELD REMEMBERS OR SUGGESTS (383): "every field is trying to fill in suggested memory details … i dont want that on any part". One rule for every box, drawn by any file. */
+/* ---------- NO FIELD REMEMBERS OR SUGGESTS (383): the owner wants no autofill on any box; one rule for every box. § */
 const QUIET_FIELD = { autocomplete: 'off', autocorrect: 'off', autocapitalize: 'off',
   'data-lpignore': 'true', 'data-1p-ignore': 'true', 'data-form-type': 'other', 'data-bwignore': 'true' };
 function quietField_(el) {
@@ -7786,7 +7775,7 @@ try {
     .observe(document.documentElement, { childList: true, subtree: true });
 } catch (e) { /* no MutationObserver: new fields keep the browser's own behaviour */ }
 
-/* A DOUBLE TAP ZOOMS NOTHING (466): iPad Safari zoomed whatever the viewport said. Its two clicks reach the dispatcher, which drops the second on the same control (534). */
+/* A DOUBLE TAP ZOOMS NOTHING (466): iPad Safari zoomed; the dispatcher drops the second click (534). § */
 document.addEventListener('dblclick', e => { try { e.preventDefault(); } catch (err) { oops_(err, 'shell:quietFields_') } }, { passive: false });
 
 ;
@@ -7977,7 +7966,7 @@ function teachGroups_(list) {
   });
   return out;
 }
-/* ONE CHIP. The levels are a `<sup>`, and each level is its own no-wrap span, so at 320px a long list breaks BETWEEN levels rather than inside `A-Level` at its § */
+/* ONE CHIP. The levels are a `<sup>`, and each level is its own no-wrap span, so at 320px a long list breaks BETWEEN levels § */
 const teachChip_ = (g, main) => `<span class="prof-tag${main ? ' is-main' : ''}">${mark(g.subject)}${
   g.levels.length ? `<sup class="prof-lv">&nbsp;${g.levels.map(l => `<span>${mark(l)}</span>`).join(', ')}</sup>` : ''}</span>`;
 
@@ -7998,7 +7987,7 @@ function profQualChip_(p) {
     return `<span class="prof-tag" role="img" aria-label="${say}" title="${say}">${
       mark([subject, level, grade].filter(Boolean).join(' '))}</span>`;
   }
-  /* THE LAST WORD OF THE SUBJECT IS HELD TO ITS NOTATION, so at 320px a long subject breaks between its own words and never leaves the stack alone at the start of § */
+  /* THE LAST WORD OF THE SUBJECT IS HELD TO ITS NOTATION, so at 320px a long subject breaks between its own words and never § */
   const said = mark(subject), cut = profLastGap_(said);
   return `<span class="prof-tag prof-q" role="img" aria-label="${say}" title="${say}">${
     cut > 0 ? said.slice(0, cut) + ' ' : ''}<span class="prof-q-end">${said.slice(cut + 1)}<span class="prof-iso">${
@@ -8103,8 +8092,7 @@ function profAvail_(t) {
         they accept or decline.${typeof isAdmin === 'function' && isAdmin()
           ? ' They tick them in Settings, under their week.' : ''}</p>`;
   }
-  /* `busy` IS `{ m16: 'Ada' }` OFF `busyHours`, but the fixture once said `[]` and an older backend
-     may say nothing; a list of codes is read as well, so no shape of it throws. */
+  /* `busy` IS `{ m16: 'Ada' }` OFF `busyHours`, but the fixture once said `[]` and an older backend may say nothing; a list of § */
   const busy = {};
   const b = t.busy;
   if (Array.isArray(b)) b.forEach(c => { busy[norm(c)] = true; });
@@ -8131,8 +8119,7 @@ function profAvail_(t) {
     return hs.length ? day_(d.label) + ' ' + hs.join(', ') : '';
   }).filter(Boolean).join('; ');
   const said = hoursOn(c => c.lit);
-  /* THE TAUGHT HOURS, SAID AFTER THE FREE ONES — see the note over this function. A day drawn only
-     for a taught hour was silent to a screen reader while it took a row on screen. */
+  /* THE TAUGHT HOURS, SAID AFTER THE FREE ONES — see the note over this function. § */
   const taught = hoursOn(c => c.busy);
   /* LINES, NOT A GRID (467) — the owner: "The tutor profile should fit on a normal phone even with lots of data." Hours in a row merge. */
   const line = which => days.map(d => {
@@ -8151,7 +8138,7 @@ function profAvail_(t) {
 /* AN HOUR SPAN, 24-hour (owner, 8 Nov): 16:00–19:00. */
 const profSpan_ = ([a, b]) => hours_(a, b);
 
-/* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS *"a smaller rate to the side so clients can know extra cost for the extra seat"*. § */
+/* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS § */
 function profSeat_(t) {
   if (!(Number(t.rate) > 0) || typeof seatShare_ !== 'function') return 0;
   const s = seatShare_(t);
@@ -10958,8 +10945,7 @@ function availGrid_(codes, p, readonly, mine) {
 function send_(body, o) {
   o = o || {};
   const btn = o.button;
-  /* AN ID OR THE ELEMENT ITSELF. A settings card's status line is a CLASS, one per card — there are
-     a dozen on one column, so it cannot be an id — and the caller already holds the element. */
+  /* AN ID OR THE ELEMENT ITSELF. § */
   const say = msg => {
     const el = o.where && (typeof o.where === 'string' ? $(o.where) : o.where);
     /* A REQUEST NOBODY PRESSED says nothing with no connection: the Reconnecting line already does, and offline nothing pressed is lost (offline.js). */
@@ -10994,9 +10980,7 @@ function send_(body, o) {
     locked.forEach(el => { el.disabled = false; });
     locked.length = 0;
     if (box) box.classList.remove('is-sending');
-    /* ONLY IF THE PAGE STILL HOLDS IT. A reply that repaints the card replaces the element that
-       had the caret, and focusing a detached node moves focus to the body -- which is worse than
-       leaving it where the repaint put it. */
+    /* ONLY IF THE PAGE STILL HOLDS IT. § */
     if (had && had.focus && document.contains(had)) { try { had.focus(); } catch (e) { /* focus and scrolling are niceties */ } }
     if (!btn) return;
     btn.disabled = false;
@@ -11034,8 +11018,7 @@ function send_(body, o) {
 
 /* ONE FIELD RENDERER. There were two, and they had different powers. § */
 
-/* Names that hold a yes or a no. Matched rather than listed, because the sheet grows columns and a
-   list has to be remembered — `dbs_checked` and `is_listed` are booleans by their names. */
+/* Names that hold a yes or a no. Matched rather than listed, because the sheet grows columns and a list has to be remembered — `dbs_checked` and `is_listed` are § */
 const FIELD_IS_BOOL = /^(dbs|active|listed|is_|has_|allow|paid|trackable|stealable)/;
 
 /* Names whose keyboard should be a number pad, and which kind. */
@@ -11077,8 +11060,7 @@ const QUAL_GRADES = [
   'First', '2:1', '2:2', 'Third',
 ];
 /* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell. */
-/* `venues_ok` IS NOT A COLUMN of `people` — it is the venues tab's own `tutors_happy_here`, read and
-   written through this one box. See `venuesWrites_` in core.gs for why there is no second copy. */
+/* `venues_ok` IS NOT A COLUMN of `people` — it is the venues tab's own `tutors_happy_here`, read and written through this one box. § */
 const FIELD_MULTI = { venues_ok: true };
 /* ---------- AND ONE SHELF SLOT'S LIST OFF THE FIRST SLOT'S § */
 function fieldOptions_(f) {
@@ -11097,8 +11079,7 @@ function fieldOptions_(f) {
 }
 
 /* ONE FIELD, drawn from what is known about it. § */
-/* WHICH OF YOUR OWN FIELDS KEEP A DRAFT — see the note in `fieldHtml`. A SEVERAL-OF-A-LIST DOES NOW
-   (`FIELD_MULTI` was refused here while its ticks lived in `#drop`; 315 put them in the card). */
+/* WHICH OF YOUR OWN FIELDS KEEP A DRAFT — see the note in `fieldHtml`. § */
 const setDraftOk_ = name => typeof draftAttr_ === 'function'
   && !/pin/i.test(String(name)) && !/^(lib\d+_|qual_)/.test(String(name));
 /* ---------- AND A CARD DRAWN HOLDING ONE SAYS SO § */
@@ -11210,8 +11191,7 @@ document.addEventListener('change', e => {
   const got = [...field.querySelectorAll('input[type="checkbox"][data-many-of]')]
     .filter(c => c.checked).map(c => c.value);
   box.value = got.join(', ');
-  /* AND KEPT AS A DRAFT, as every other box on your own card is -- `draftFrom_` (data.js) skips a hidden
-     input on purpose, so the ticks hand theirs over here. The saved list is the value that takes it away. */
+  /* AND KEPT AS A DRAFT, as every other box on your own card is -- `draftFrom_` (data.js) skips a hidden input on purpose, so the ticks hand theirs over here. § */
   const spec = box.getAttribute('data-draft');
   if (spec && typeof draftKeep_ === 'function') {
     try {
@@ -11263,8 +11243,7 @@ function fieldRows_(list, one) {
   const out = [], done = new Set();
   list.forEach(f => {
     if (done.has(f)) return;
-    /* ANY field of a row places it, not only its first: a row can now read in a different order
-       from the backend's list (the students range is min–max over a list that says max, min). */
+    /* ANY field of a row places it, not only its first: § */
     const row = FIELD_ROWS.find(r => r.fields.indexOf(f) !== -1 && r.fields.every(x => list.indexOf(x) !== -1));
     if (!row) { out.push(one(f, {})); return; }
     row.fields.forEach(x => done.add(x));
@@ -11354,8 +11333,7 @@ on('shelf-drop', el => {
   else shelf.insertAdjacentHTML('beforeend', shelfAdd_(shelf.dataset.noun || 'another'));
 });
 
-/* ---------- AND A GROUP OF `qual_N*` NAMES IS A SHELF OF QUALIFICATIONS -------------------------
-   RECOGNISED BY THE NAMES, NEVER BY THE GROUP'S TITLE, exactly as the library shelf is. */
+/* ---------- AND A GROUP OF `qual_N*` NAMES IS A SHELF OF QUALIFICATIONS § */
 const isQualField_ = f => /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/.test(String(f || ''));
 const isQuals_ = list => (list || []).some(isQualField_);
 /* THE SEVEN BOXES OF ONE SLOT, in the order they are read, compared and put back. */
@@ -11407,8 +11385,7 @@ function qualSlot_(i, value, o) {
   const cyc = formLine_('Teaching', formSelect_('class="q-teach" data-unlocked aria-label="Teaching"',
       QUAL_TEACH_OPTS_.map(([k, say]) => `<option value="${k}"${k === tv ? ' selected' : ''}>${say}</option>`).join('')), 'q-f q-cyc');
   const said = qualSay_(q);
-  /* EACH CAPTION IN TWO WORDINGS, a subject's and a certificate's, and the slot's `is-cert` says which
-     is shown — so a line that becomes a DBS by a pick changes its captions with no redraw. */
+  /* EACH CAPTION IN TWO WORDINGS, a subject's and a certificate's, and the slot's `is-cert` says which is shown — so a line that becomes a DBS by a pick changes § */
   const cap = (std, cert) => `<span class="q-cap-std">${esc(std)}</span><span class="q-cap-cert">${esc(cert)}</span>`;
   return `<div class="q-slot${qualIsCert_(q) ? ' is-cert' : ''}" data-slot="${esc(i)}"${q.first ? ' data-first="1"' : ''}>
     ${formHidden_(`data-me="${esc(f('_spec'))}"`, q.spec ? 'TRUE' : 'FALSE')}
@@ -11436,8 +11413,7 @@ function qualSlot_(i, value, o) {
     </div>
   </div>`;
 }
-/* THE FACE OF A LINE: the subject (on a subject's first line only), the notation, the teaching mark —
-   none on a certificate, which is held and not taught (see `qualIsCert_`). */
+/* THE FACE OF A LINE: the subject (on a subject's first line only), the notation, the teaching mark — none on a certificate, which is held and not taught § */
 function qualFace_(q) {
   const who = q.first || q.fresh ? (q.subject || (q.fresh ? 'New qualification' : '')) : '';
   const cert = qualIsCert_(q);
@@ -11495,8 +11471,7 @@ function qualPick_(attrs, v, list, cap, none, mine) {
       ${body}
       <option value="${QUAL_OTHER}">Something else…</option>`), 'q-f');
 }
-/* `Something else…` swaps the select for a box carrying the same attributes, so a save reads it exactly
-   as it read the select — and it saves on the box's own `change`, when the typing is finished. */
+/* `Something else…` swaps the select for a box carrying the same attributes, so a save reads it exactly as it read the select — and it saves on the box's own § */
 document.addEventListener('change', e => {
   const sel = e.target;
   if (!sel || sel.tagName !== 'SELECT' || sel.value !== QUAL_OTHER || !sel.closest('.q-shelf')) return;
@@ -11586,8 +11561,7 @@ function qualSet_(slot, vals) {
 /* ---------- REDRAWN FROM WHAT THE BOXES HOLD § */
 function qualRedraw_(shelf, over, open) {
   if (!shelf || !shelf.isConnected) return null;
-  /* A KEYBOARD STAYS WHERE IT WAS. The line that was pressed is replaced, and focus on a removed
-     element falls to the page — so a line opened from the keyboard hands focus to its new self. */
+  /* A KEYBOARD STAYS WHERE IT WAS. § */
   const had = shelf.contains(document.activeElement);
   const vals = {}, list = [];
   shelf.querySelectorAll('[data-me]').forEach(b => { list.push(b.dataset.me); vals[b.dataset.me] = b.value; });
@@ -11601,8 +11575,7 @@ function qualRedraw_(shelf, over, open) {
     qualOpen_(again);
     if (had) { try { again.querySelector('.q-line').focus({ preventScroll: true }); } catch (e) { /* an element that cannot take focus is left as it is */ } }
   } else if (typeof placeCells === 'function') { try { placeCells('y', true, 0, qualColumn_(next)); } catch (e) { oops_(e, 'me:qualRedraw_') } }
-  /* ON A CARD BEING EDITED THE SHELF IS PART OF THE CARD'S ONE DRAFT, and a redraw is a change no
-     `input` reports — a line put back to the pool, a removal — so the draft is written again here. */
+  /* ON A CARD BEING EDITED THE SHELF IS PART OF THE CARD'S ONE DRAFT, and a redraw is a change no `input` reports — a line put back to the pool, a removal — so the § */
   const ed = next.closest('.card-ed .me-form');
   if (ed && typeof cardKeep_ === 'function') cardKeep_(ed);
   return next;
@@ -11636,8 +11609,7 @@ on('qual-open', el => {
   if (slot.classList.contains('is-open')) return qualDone_(slot);
   qualReopen_(shelf, slot);
 });
-/* THE SLOT OPEN IN A FRESH SHELF — a saved line in its place, an empty one as a new line at the foot —
-   with whatever was open before shut as it was last saved. Answers the slot as it is in the new shelf. */
+/* THE SLOT OPEN IN A FRESH SHELF — a saved line in its place, an empty one as a new line at the foot — with whatever was open before shut as it was last saved. § */
 function qualReopen_(shelf, slot) {
   const i = slot.dataset.slot, pooled = !!slot.closest('.q-pool');
   const next = qualRedraw_(shelf, qualOver_(shelf), pooled ? null : i);
@@ -11755,9 +11727,7 @@ function qualTeachTo_(slot, el, face, v) {
   qualDirty_(el);
   qualCommit_(slot);
 }
-/* THE NEXT UNUSED SLOT. Moving the element keeps every `data-me` in the form, so a save posts it
-   wherever it sits. The `+` is off once the pool is empty (see `qualShelf_`), so this sentence is for a
-   press that raced a redraw. */
+/* THE NEXT UNUSED SLOT. § */
 function qualTake_(shelf) {
   const slot = shelf && shelf.querySelector('.q-pool > .q-slot');
   if (!slot) toast('That is the most this card holds — 10 qualifications in all.');
@@ -11772,8 +11742,7 @@ on('qual-add', el => {
   const slot = qualTake_(next);
   if (slot) qualStart_(next, slot);
 });
-/* AN EMPTY SLOT, MOVED OUT OF THE POOL AS A NEW LINE AT THE FOOT OF THE LIST, open, emptied and marked
-   new — so a Done or a bin before it has a subject and a level puts it back unsaved. */
+/* AN EMPTY SLOT, MOVED OUT OF THE POOL AS A NEW LINE AT THE FOOT OF THE LIST, open, emptied and marked new — so a Done or a bin before it has a § */
 function qualStart_(next, slot) {
   qualSet_(slot, qualBlank_(slot));
   slot.dataset.new = '1';
@@ -11834,8 +11803,7 @@ function libraryShelf_(list, value) {
     .map(f => String(f).match(/^lib(\d+)_/)[1]))];
   const quiet = 'spellcheck="false"';
   const has = i => shelfFilled_(value, ['lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin']);
-  /* ONE CARD ONLY (489, the owner on Library cards: "change this to be only 1 card allowed") — the one already
-     filled, else the first; no Add another, and a new card is written over it. */
+  /* ONE CARD ONLY (489, the owner on Library cards: "change this to be only 1 card allowed") — the one already filled, else the first; no Add § */
   /* A RULE (496): `library-one-card` — Universal, every slot with Add another, like any shelf. */
   const nums = !(typeof ruleOn_ !== 'function' || ruleOn_('library-one-card')) ? all : all.length ? [all.find(has) || all[0]] : [];
   return `<div class="lib-shelf" data-noun="library card">${shelfSlots_(nums,
@@ -11876,8 +11844,7 @@ function libBars_(no) {
   return `<svg class="lib-bars${blank ? ' is-blank' : ''}" viewBox="0 0 ${x} 1" preserveAspectRatio="none"
     shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path fill="currentColor" d="${d}"/></svg>`;
 }
-/* THE BARS FOLLOW THE NUMBER as it is typed, the photograph shelf's thumbnail one rule down: the card
-   is a preview of itself, so what is printed under the bars and the bars cannot disagree. */
+/* THE BARS FOLLOW THE NUMBER as it is typed, the photograph shelf's thumbnail one rule down: § */
 document.addEventListener('input', e => {
   const t = e.target;
   if (!t || !t.matches || !t.matches('.lib-no input')) return;
@@ -11925,8 +11892,7 @@ function photoShelf_(list, value, o) {
       </div>`;
     }, 'photo')}</div>`;
 }
-/* THE PREVIEW FOLLOWS THE BOX as it is typed into, so the check above does not wait for a Save. One
-   listener for the document, which is how every other input here is heard. */
+/* THE PREVIEW FOLLOWS THE BOX as it is typed into, so the check above does not wait for a Save. § */
 document.addEventListener('input', e => {
   const t = e.target;
   if (!t || !t.matches || !t.matches('.ph-slot input')) return;
@@ -11935,8 +11901,7 @@ document.addEventListener('input', e => {
   if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : '';
 });
 
-/* ---------- AN EXTRA PHOTO IS UPLOADED, NOT LINKED (owner, 8 Nov): redrawn here at 1200px JPEG, kept in Drive by
-   `photoFile`, and its link put in the slot's box so Save keeps it with the rest of the card. */
+/* ---------- AN EXTRA PHOTO IS UPLOADED, NOT LINKED (owner, 8 Nov): redrawn here at 1200px JPEG, kept in Drive by § */
 const PHOTO_EDGE_ = 1200;
 function photoShrink_(file) {
   return new Promise(done => {
@@ -12116,8 +12081,7 @@ on('pfp-choose', el => {
       if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_(true);
     });
 });
-/* `change`, NOT A `data-do` CLICK — a file input reports its choice by changing, the camera's
-   `cam-pick` argument. The value is cleared so choosing the same picture again still fires. */
+/* `change`, NOT A `data-do` CLICK — a file input reports its choice by changing, the camera's `cam-pick` argument. § */
 document.addEventListener('change', e => {
   const inp = e.target;
   if (!inp || !inp.matches || !inp.matches('.pfp-in')) return;
@@ -12173,12 +12137,11 @@ function fieldsHtml(groups, o) {
     const quals = !timetable && isQuals_(list);
     const jobs = !timetable && isJobs_(list);
     /* ---------- AND THE THREE DATE BOXES, WHICH REPLACE ONE FIELD RATHER THAN JOINING IT § */
-    /* EITHER SHAPE. The backend's group list names COLUMNS, so today it says `date_of_birth` — and `isDob_` is asked as well so a deployment that ever sends the § */
+    /* EITHER SHAPE. The backend's group list names COLUMNS, so today it says `date_of_birth` — and `isDob_` is asked as well so a deployment that ever § */
     const wantsDob = !timetable && (list.indexOf('date_of_birth') !== -1 || isDob_(list));
     /* THE PHONE, AS A CODE AND A NUMBER — the birthday's arrangement: § */
     const wantsPhone = !timetable && list.indexOf('phone') !== -1;
-    /* THE PHOTOGRAPH SHELF GOES UNDER THE REST, not over it as the library one does: the page
-       reads profile photo, video, then the others, which is the order somebody thinks of them in. */
+    /* THE PHOTOGRAPH SHELF GOES UNDER THE REST, not over it as the library one does: § */
     const photos = !timetable && isPhotos_(list);
     /* ---------- AND `photo` IS A PICTURE YOU CHOOSE, NOT A LINK YOU PASTE § */
     const picture = !timetable && o.attr === 'data-me' && list.indexOf('photo') !== -1;
@@ -12198,8 +12161,7 @@ function fieldsHtml(groups, o) {
   }).join('');
 }
 
-/* The sheet writes TRUE/FALSE as text and the payload sends real booleans; rows written by older
-   versions send neither consistently. One reader for all three. */
+/* The sheet writes TRUE/FALSE as text and the payload sends real booleans; rows written by older versions send neither consistently. § */
 const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').trim());
 
 
@@ -12223,8 +12185,7 @@ function libCardsDraw_(into) {
 function initLibCards_() { libCardsDraw_($('lib-box')); }
 /* EVERY COPY ON THE PAGE — Tools' and, starred, Saved's — for `myProfile` landing (`profileRefresh_`): § */
 function libCardsRedraw_() {
-  /* NOT A COPY SOMEBODY IS IN — a box focused and not yet typed into is not dirty, and redrawing it would
-     take the caret away (`landRepaint_`'s reason). It is drawn the next time it is started. */
+  /* NOT A COPY SOMEBODY IS IN — a box focused and not yet typed into is not dirty, and redrawing it would take the caret away § */
   document.querySelectorAll('[id="lib-box"]').forEach(into => {
     if (!into.contains(document.activeElement)) libCardsDraw_(into);
   });
@@ -12233,8 +12194,7 @@ function libCardsRedraw_() {
 /* ---------- ONE SAVE, TWO SURFACES, AND THE DOM SAYS WHICH § */
 on('me-save', el => { meSave_(el); });
 
-/* ---------- EVERY SETTINGS FIELD SAVES AS YOU TYPE (owner, 8 Nov) ----------
-   ~800ms after the last change a card sends itself: no Save button, a small tick when it lands, a toast when it fails. */
+/* ---------- EVERY SETTINGS FIELD SAVES AS YOU TYPE (owner, 8 Nov) § */
 const AUTOSAVE_MS = 800;
 const AUTOSAVE_T = new WeakMap();
 const AUTOSAVE_FORMS_ = '.set-shape .me-form, #lib-box .me-form';
@@ -12278,8 +12238,7 @@ function meSave_(el, auto) {
   const box = el.closest('.me-form') || el.closest('#sheet-body') || el.closest('.widget-slot')
            || document.body;
   const said = box.querySelector('.me-said');
-  /* GATHERED BEFORE `send_` LOCKS THE CARD. The lock disables every box, and this skips a disabled
-     one on purpose (a locked field is not an answer) — so gathering afterwards would post nothing. */
+  /* GATHERED BEFORE `send_` LOCKS THE CARD. § */
   const fields = {};
   box.querySelectorAll('[data-me]').forEach(box => {
     if (box.disabled) return;
@@ -12298,8 +12257,7 @@ function meSave_(el, auto) {
     if (PROFILE_SERVER_OLD) { if (packed) { blocked(); return resolve(false); } return saveNow(); }
     if (said) said.textContent = 'Your saved details are still loading from the sheet, so nothing was sent. Try again in a moment.';
     profileRefresh_(true, () => (packed ? (blocked(), resolve(false)) : saveNow()));
-    /* NOT SENT YET, AND THE CALLER IS TOLD SO — a refresh that ends in `saveNow` saves the card, but
-       an editor waiting on this would otherwise wait for ever on the path that never calls back. */
+    /* NOT SENT YET, AND THE CALLER IS TOLD SO — a refresh that ends in `saveNow` saves the card, but an editor waiting on this would otherwise wait for § */
     resolve(false);
     return;
   }
@@ -12312,7 +12270,7 @@ function meSave_(el, auto) {
     .then(d => {
       /* THE SERVER'S OWN READING OF THE ROW, NOT WHAT WAS TYPED. § */
       USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
-      /* AND THE PROGRESS COLUMN, whose journey card counts down to the two exam dates on About you (`progressRedraw_`, js/arcade.js) — not left to the payload this § */
+      /* AND THE PROGRESS COLUMN, whose journey card counts down to the two exam dates on About you (`progressRedraw_`, js/arcade.js) — not left to the § */
       if (typeof progressRedraw_ === 'function') progressRedraw_();
       /* ON THE SHEET NOW, SO EACH FIELD SENT IS NO LONGER A DRAFT (`fieldHtml`; 317). */
       Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) { oops_(e, 'me:meSave_') } });
@@ -12336,7 +12294,7 @@ function meSave_(el, auto) {
       const at = [...document.querySelectorAll('#s-' + col + ' .me-form')].indexOf(form);
       const lineAt = () => at < 0 ? null
         : (document.querySelectorAll('#s-' + col + ' .me-form')[at] || {}).querySelector?.('.me-said');
-      /* THE CARD IS REDRAWN WHEN AN ADDRESS WAS TYPED — the line under the box and the tile beside Save come and go with a waiting address, and nothing else repaints § */
+      /* THE CARD IS REDRAWN WHEN AN ADDRESS WAS TYPED — the line under the box and the tile beside Save come and go with a waiting address, and nothing § */
       if (d && d.said && !(auto && form && form.dataset.dirty)) {
         try { paint(col); placeCells('y', true, 0, col); } catch (e) { oops_(e, 'me:meSave_') }
         const el2 = lineAt(); if (el2) el2.textContent = word;
@@ -12350,8 +12308,7 @@ function meSave_(el, auto) {
   });
 }
 
-/* A QUALIFICATION WITH NO SUBJECT, ASKED OF A FORM — lifted out of `meSave_` so the card's own Save
-   (`card-save`) refuses exactly what a Settings card refuses, in the same words. */
+/* A QUALIFICATION WITH NO SUBJECT, ASKED OF A FORM — lifted out of `meSave_` so the card's own Save (`card-save`) refuses exactly what a Settings § */
 const QUAL_NAMELESS_SAY_ = 'Choose a subject for each qualification first — nothing was saved.';
 function qualNameless_(box) {
   return [...box.querySelectorAll('.q-shelf .q-slot')].some(slot => {
@@ -12368,16 +12325,14 @@ function sayAfterLoad_(find, text) {
   }, 0), () => {});
 }
 
-/* THE FIELD NAMES THAT ARE HALVES OF ONE CELL — see the old-server note in `me-save`. Hour codes are
-   a day prefix and an hour; the rest are the prefixes `fieldsHtml` expands a packed column into. */
+/* THE FIELD NAMES THAT ARE HALVES OF ONE CELL — see the old-server note in `me-save`. § */
 const PACKED_FIELD_ = /^(phone_(cc|no)|dob_[dmy]|qual_\d+(_|$)|lib\d+_|photos_\d+|(m|tu|w|th|f|sa|su)\d{1,2})$|^(qual_\d+_\w+|lib\d+_\w+)$/;
 let PROFILE_SERVER_OLD = false;
 const OLD_SERVER_SAY_ = 'The server in Apps Script is older than this site. Update the backend (pull from GitHub, then Deploy \u2192 Manage deployments \u2192 New version).';
 
 /* ---------- WHICH SETTINGS CARDS HAVE SOMETHING TYPED INTO THEM § */
 /* AND THE BUSINESS COLUMN BY THE SAME RULE. § */
-/* AND THE LIBRARY CARDS ON TOOLS (docs/history/339), and their starred copy on Saved — a `.me-form` in a
-   widget's slot, kept by the same two lines for the same reason: they were a Settings card until 11 Oct. */
+/* AND THE LIBRARY CARDS ON TOOLS (docs/history/339), and their starred copy on Saved — a `.me-form` in a widget's slot, kept by the same two lines § */
 const KEEP_FORMS_ = '#s-account .me-form, #s-staff .me-form, #s-family .me-form, #s-biz .me-form, #s-stuff .widget-slot .me-form, #s-saved .widget-slot .me-form';
 document.addEventListener('input', e => {
   const f = e.target && e.target.closest && e.target.closest(KEEP_FORMS_);
@@ -12394,8 +12349,7 @@ function settingsKeep_(id) {
     /* AND STUDENT SETTINGS' CARDS, and the card editors and person forms on the people columns (453). */
     return !!(acc && acc.querySelector('.card-ed .me-form[data-dirty], .is-sending .card-ed, .me-form[data-dirty], .me-form.is-sending'));
   }
-  /* AND SAVED, WHILE THE LIBRARY CARDS ON THEM HOLD TYPING (docs/history/339) — the one form a
-     widget slot holds. The rest of the column waits with it, as the rest of Settings waits with a card. */
+  /* AND SAVED, WHILE THE LIBRARY CARDS ON THEM HOLD TYPING (docs/history/339) — the one form a widget slot holds. § */
   if (['saved', 'stuff'].indexOf(id) !== -1 && USER) {   /* Find's too: the library cards are a Find card (790) */
     const col = $('s-' + id);
     return !!(col && col.querySelector('.widget-slot .me-form[data-dirty], .widget-slot .me-form.is-sending'));
@@ -12415,15 +12369,13 @@ function profileRefresh_(loud, onOld) {
   if (!USER || !USER.token || PROFILE_ASKING) return;
   PROFILE_ASKING = true;
   const askedAt = Date.now();
-  /* RETURNED, so a caller waiting on a copy it can trust (the card editor, `cardFetch_`) knows when the
-     question has been answered either way — every other caller ignores it, as before. */
+  /* RETURNED, so a caller waiting on a copy it can trust (the card editor, `cardFetch_`) knows when the question has been answered either way — every § */
   return api({ action: 'myProfile', name: USER.name, personId: USER.personId || '' })
     .then(d => {
       PROFILE_ASKING = false;
       /* ---------- AN ANSWER OLDER THAN WHAT THE PHONE NOW KNOWS IS NOT PAINTED § */
       if (askedAt < ACCOUNT_AT_) { if (d && d.success) profileRefresh_(loud, onOld); return; }
-      /* AN OLD SERVER, NOT A FAULT. "That action is not recognised" is the server saying it predates
-         this site — remembered, so the next save does not ask again, and never shown raw. */
+      /* AN OLD SERVER, NOT A FAULT. § */
       if (d && d.error && /unknown action|not recognis/i.test(String(d.error))) {
         PROFILE_SERVER_OLD = true;
         if (typeof onOld === 'function') return onOld();
@@ -12467,24 +12419,21 @@ function profileRefresh_(loud, onOld) {
       /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: § */
       const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());
       if (roleMoved) { try { land(); } catch (e) { oops_(e, 'me:profileRefresh_') } return; }
-      /* AND YOUR CARD, WHEN IT IS OPEN FOR EDITING — it is drawn from this copy (`cardEditHtml_`), and one still waiting for a copy it can trust (`profileShapeOk_`) is § */
+      /* AND YOUR CARD, WHEN IT IS OPEN FOR EDITING — it is drawn from this copy (`cardEditHtml_`), and one still waiting for a copy it can trust § */
       if (CARD_EDIT && CARD_EDIT.own) { try { land(() => paint(SET_OF_FACE_[CARD_EDIT.col] || 'account')); } catch (e) { oops_(e, 'me:profileRefresh_') } }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
       ['account', 'staff', 'family'].concat(PEOPLE_COLS_).forEach(c => {
         if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_(c))
           try { land(() => { paint(c); placeCells('y', true, 0, c); }); } catch (e) { /* a screen gone before it lands is painted on its next draw */ }
       });
-      /* AND THE PROGRESS COLUMN, the same rule: its journey card counts down to the exam dates in this
-         copy, which a Save on another phone may have moved (`progressRedraw_`, js/arcade.js). */
+      /* AND THE PROGRESS COLUMN, the same rule: § */
       if (typeof progressRedraw_ === 'function') { try { land(() => progressRedraw_()); } catch (e) { oops_(e, 'me:profileRefresh_') } }
-      /* AND THE LIBRARY CARDS ON TOOLS, which are drawn from this copy and are a widget now, not a page this
-         column repaints (docs/history/339). `libCardsDraw_` leaves a copy with typing in it alone. */
+      /* AND THE LIBRARY CARDS ON TOOLS, which are drawn from this copy and are a widget now, not a page this column repaints (docs/history/339). § */
       try { land(() => libCardsRedraw_()); } catch (e) { oops_(e, 'me:profileRefresh_') }
     })
     .catch(() => { PROFILE_ASKING = false; });
 }
-/* `change-pin` opened a sheet of its own. It is three fields at the bottom of `edit-me` now — the
-   sheet that already exists for changing your details, which a PIN is one of. */
+/* `change-pin` opened a sheet of its own. § */
 on('pin-save', el => {
   const v = id => ($(id) || {}).value || '';
   const said = $('pin-said');
@@ -12595,8 +12544,7 @@ function jobShelf_(list, value, o) {
 /* HOW MANY JOBS, for the fold's line. */
 const jobCount_ = val => [1, 2, 3, 4, 5, 6].filter(n => String(val('job_' + n + '_role') || val('job_' + n + '_where') || '').trim()).length;
 
-/* ---------- THE INTRO VIDEO, UPLOADED (8 Nov): a file, not a link — about a minute, 100 MB at most, checked here before
-   anything is sent, then sent in 4 MB parts (`videoPart`) to the owner's private Drive folder. */
+/* ---------- THE INTRO VIDEO, UPLOADED (8 Nov): a file, not a link — about a minute, 100 MB at most, checked here before § */
 const VIDEO_MAX_MB_ = 100, VIDEO_MAX_S_ = 75, VIDEO_PART_ = 4 * 1024 * 1024;
 const introSrc_ = id => 'https://drive.google.com/file/d/' + encodeURIComponent(String(id || '')) + '/preview';
 function videoPicker_(value, said) {
@@ -16740,16 +16688,13 @@ const levelFromXp = xp => Math.floor((Number(xp) || 0) / 10);
 /* ---------- ONE RESOURCE, AND NO SHEET FOR IT § */
 
 
-/* A column name as a person would say it. Everything not named here is the column with its
-   underscores taken out, which is right far more often than it is wrong — `exam_board` reads
-   perfectly well as "exam board". */
+/* A column name as a person would say it. § */
 const FIELD_LABEL = {
   band_type: 'grade or stage', band_value: 'which one', key_stage: 'key stage',
   exam_board: 'exam board', exam_wave: 'exam wave', document_type: 'type',
   print_required: 'needs printing', level_required: 'unlocks at level',
   pages_checked: 'page count checked', trackable: 'can be ticked off',
-  /* Inside a group already called "Library card", "library card" and "library pin" say the word
-     twice and read as two different cards. The group names the thing; these name the parts. */
+  /* Inside a group already called "Library card", "library card" and "library pin" say the word twice and read as two different § */
   library_card: 'card number', library_pin: 'PIN',
   /* ---------- AND THE TWO EXAMS, IN THE WORDS THEY WERE ASKED FOR IN § */
   exam_small_date: 'small exam', exam_big_date: 'big exam',
@@ -16790,8 +16735,7 @@ on('cart-add', el => {
   if (Object.prototype.hasOwnProperty.call(CART_ADD_OWN, el.dataset.kind)) { CART_ADD_OWN[el.dataset.kind](el); return; }
   const key = el.dataset.key;
   const kind = ['topic', 'print', 'shop'].includes(el.dataset.kind) ? el.dataset.kind : 'shop';
-  /* Keyed on BOTH, because a printed copy and a shop item can share a name and they are not the
-     same line. The old test dropped the second one silently. */
+  /* Keyed on BOTH, because a printed copy and a shop item can share a name and they are not the same line. § */
   if (CART.some(c => c.key === key && c.kind === kind)) { toast('Already in your basket'); return; }
 
   /* ---------- `print` AND `topic` WERE TWO OF THE THREE KINDS, AND BOTH LOOKED A DOCUMENT UP § */
@@ -16838,8 +16782,7 @@ function cartAddBundle_(el) {
 }
 
 /* ---------- AND THE WAY TO IT, FROM THE CARD THAT FILLED IT § */
-/* THE SHOP NOW, NOT TOOLS. The basket moved to the Shop column's first page; asked for by the same
-   lookup, so the day another widget goes on top of it this still lands on the basket. */
+/* THE SHOP NOW, NOT TOOLS. § */
 on('cart-open', () => {
   /* A MERGED BASKET IS A PART OF ITS PAGE (480). */
   const n = typeof widgetPagesOf_ === 'function'
@@ -16869,7 +16812,7 @@ on('cart-drop', el => {
 
 
 /* ---------- SENDING THE ORDER, AS A MESSAGE TO THE OWNER § */
-/* WHO IT GOES TO. An admin off the payload — `doGet` sends admins among the tutors, with their `personId` — and a PERSON rather than the brand account where § */
+/* WHO IT GOES TO. An admin off the payload — `doGet` sends admins among the tutors, with their `personId` — and a PERSON rather § */
 function orderTo_() {
   const me = String((USER && USER.personId) || '');
   const house = norm(brand('name', '@family.'));
@@ -16903,7 +16846,7 @@ function orderLine_(c, i, full, under) {
   return (i + 1) + '. ' + String(name) + (bits.length ? ' — ' + bits.join(', ') : '') + parts;
 }
 
-/* WHERE IT GOES. The login reply carries `address` and `postcode` for exactly this — the note in `loginReplyFor_` says the basket has to know whether it can § */
+/* WHERE IT GOES. The login reply carries `address` and `postcode` for exactly this — the note in `loginReplyFor_` says the § */
 function orderWhere_() {
   const u = USER || {};
   const p = u.profile || {};
@@ -16969,13 +16912,12 @@ on('cart-send', el => {
       cartSave();
       if (typeof cartPaint_ === 'function') cartPaint_();
       toast('Order sent to ' + to.title + ' — the reply will be in Messages');
-      /* SO THE CONVERSATION IS THERE WHEN THEY LOOK, which is the first thing anybody does after sending something — the `msg-send` handler's own reason. § */
+      /* SO THE CONVERSATION IS THERE WHEN THEY LOOK, which is the first thing anybody does after sending something — the `msg-send` § */
       if (typeof loadMessages === 'function') {
         try { Promise.resolve(loadMessages()).catch(() => {}); } catch (e) { /* messages load again on the next visit */ }
       }
     })
-    /* `send_` HAS ALREADY SAID THE SERVER'S SENTENCE, and rethrows so a caller could react. This
-       one's reaction is to keep the basket, which is doing nothing. */
+    /* `send_` HAS ALREADY SAID THE SERVER'S SENTENCE, and rethrows so a caller could react. § */
     .catch(() => {});
 });
 /* THE WHOLE PAPER, READ FROM THE ROWS THAT ALREADY DRAW ITS QUESTIONS. § */
@@ -16992,7 +16934,7 @@ on('cart-send', el => {
 /* ---------- ARCADE § */
 
 /* THE WIDGETS — nine things you USE rather than things you find. § */
-/* TOOLS AND GAMES, AS COLUMNS THEY WERE ALREADY REACHABLE — `What for · Tools` and `What for · Games` are answers in the funnel and always have been. § */
+/* TOOLS AND GAMES, AS COLUMNS — `What for · Tools` and `· Games` were always funnel answers. § */
 
 /* ---------- WHAT THIS PERSON MAY OPEN § */
 /* ---------- ONE LIST, ASKED BY BOTH THE RENDER AND THE COUNT § */

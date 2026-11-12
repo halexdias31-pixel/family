@@ -1984,3 +1984,113 @@ top level, before `paper`
      now a copy of `MAT_SHEET`, which is the same page without a second rendering of it. */
 ```
 
+### HOW MUCH COLUMN THERE IS, after the heading and the footer.
+
+top level, before `MAT_ROOM`
+
+```
+/* HOW MUCH COLUMN THERE IS, after the heading and the footer. Measured on the real sheet, not
+   derived from 297 minus some margins — the header and foot are content and their height is
+   whatever the font makes it. */
+```
+
+### INDEX LAWS AND GRAPH SHAPES START AT Y9.
+
+in `MAT_PARTS`
+
+```
+/* INDEX LAWS AND GRAPH SHAPES START AT Y9. Both are Y8/Y9 teaching, and both were tagged from
+     GCSE up while the straight line beside them started at Y9 — the same year, three rows apart,
+     disagreeing about when algebra begins. */
+```
+
+### SATs. Percentages of an amount is Y6, and fractions, rounding, area and averages all carry SATs on the rows around this one — four neighbours teaching the same
+
+in `MAT_PARTS`
+
+```
+/* SATs. Percentages of an amount is Y6, and fractions, rounding, area and averages all carry
+     SATs on the rows around this one — four neighbours teaching the same year, and this the only
+     one saying otherwise. */
+```
+
+### THE SHEET CAN ADD A TIER AND IT CAN TAKE ONE AWAY.
+
+in `out`
+
+```
+/* THE SHEET CAN ADD A TIER AND IT CAN TAKE ONE AWAY. `'-'` is how you say "both papers" about
+         a component the code calls Higher-only, since an empty cell already means "no opinion" and
+         one value cannot mean both. */
+```
+
+### SORTED BY THE SHEET'S NUMBER, ties broken by the order they are written in code — so a column of blank `sort_order` cells leaves the sheet exactly as it prints
+
+in `matParts`
+
+```
+/* SORTED BY THE SHEET'S NUMBER, ties broken by the order they are written in code — so a column
+     of blank `sort_order` cells leaves the sheet exactly as it prints today, and filling in one cell
+     moves one component. */
+```
+
+### REVERSE PERCENTAGE IS THE HIGHER LINE.
+
+in `MAT_HTML`
+
+```
+/* REVERSE PERCENTAGE IS THE HIGHER LINE. Finding the original amount is the one thing in this
+     block a Foundation paper does not ask for, and it is also the one people get wrong by doing the
+     obvious thing instead. */
+```
+
+### NO CLAMP. Returning 9 near zero was a way of forcing a skip under the old single-line drawing; now the skip is real, `1/x` can be handed over as itself and the
+
+in `kinds`
+
+```
+/* NO CLAMP. Returning 9 near zero was a way of forcing a skip under the old
+                    single-line drawing; now the skip is real, `1/x` can be handed over as itself
+                    and the |y| > 3 test does the cutting. */
+```
+
+### SQUARED: WHOLE SQUARES ONLY, centred in the drawing.
+
+in `matBlankSvg_`
+
+```
+/* SQUARED: WHOLE SQUARES ONLY, centred in the drawing. A part-square down one edge is a square a
+     child counts and gets wrong, and a grid hard against the left with 3mm spare on the right reads
+     as printed crooked. */
+```
+
+### `is-wide` / `is-narrow` BECAUSE A LABEL/VALUE BLOCK LAYS ITSELF OUT DIFFERENTLY at a third of the page (two columns) and across the whole of it (four) — the
+
+in `matPaint`
+
+```
+/* `is-wide` / `is-narrow` BECAUSE A LABEL/VALUE BLOCK LAYS ITSELF OUT DIFFERENTLY at a third of
+     the page (two columns) and across the whole of it (four) — the stylesheet reads the class
+     rather than working the width out again. */
+```
+
+### THE MARGIN BELONGS TO THE RULER, so it goes when the ruler does.
+
+in `matPaint`
+
+```
+/* THE MARGIN BELONGS TO THE RULER, so it goes when the ruler does. Left reserved, an untick
+     would take the scale away and leave a 20mm strip of nothing down the page — which reads as a
+     printing fault rather than as a choice. */
+```
+
+### WHAT GOES TO THE PRINTER is the sheet exactly as it was measured — slots grown, top row marked — kept as markup so `mat-print` prints the page the gauge was
+
+in `matPaint`
+
+```
+/* WHAT GOES TO THE PRINTER is the sheet exactly as it was measured — slots grown, top row marked —
+     kept as markup so `mat-print` prints the page the gauge was talking about rather than a second
+     rendering of it. */
+```
+

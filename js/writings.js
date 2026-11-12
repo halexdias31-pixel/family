@@ -1,6 +1,5 @@
 /* ================= ONE MODEL FOR EVERY WRITTEN WORK (520): ONE SHELF, ONE FACET SET, ONE AGE, ONE REGISTRY ================= */
-/* "texts and writings?? what's the difference?" — none now: every loader (the Bible, talmud, quran, hadith, works, texts,
-   pdtexts, orthodox, hymns) maps its index onto `writingUnit_`, one shape. */
+/* "texts and writings?? what's the difference?" § */
 
 /* ONE COLLECTION, THREE NAMES (520): the Protestant, Catholic and Orthodox words for the same books. */
 const WRITING_DEUTERO = 'Deuterocanon / Apocrypha / Anagignoskomena';
@@ -8,8 +7,7 @@ const WRITING_DEUTERO_BOOKS = ['Tobit', 'Judith', 'Additions to Esther', 'Esther
   'Baruch', 'Letter of Jeremiah', 'Epistle of Jeremiah', 'Prayer of Azariah', 'Song of the Three Children', 'Susanna', 'Bel and the Dragon',
   '1 Maccabees', '2 Maccabees', '3 Maccabees', '4 Maccabees', '1 Esdras', '2 Esdras', 'Prayer of Manasseh', 'Prayer of Manasses', 'Psalm 151', 'Odes'];
 
-/* THE WORKS REGISTRY (520): each source's work, its tradition (a topic) and its subject; a source not here is literature or
-   history and keeps its own subject. Keyed by loader, then by the index's own id. */
+/* THE WORKS REGISTRY (520): § */
 const WRITING_WORKS = {
   bible: { work: 'Bible', topic: 'Christianity' },
   /* QURAN OR HADITH FIRST (owner, 6 Nov): two collections, asked before the six books. */
@@ -41,8 +39,7 @@ const writingFor_ = () => true;
 
 /* TEXT IS BUILT, NEVER WRITTEN (520): "<language>, <translator> (<year>)" from structured fields, keyed by what each index calls it. */
 const WRITING_LANG = { en: 'English', he: 'Hebrew', hbo: 'Hebrew', grc: 'Greek', ar: 'Arabic', arc: 'Aramaic', la: 'Latin', akk: 'Akkadian' };
-/* THE SOURCE TEXT IS A TEXT'S BASE (529: "pick Bible, then original text like LXX or MT, then translation"): what it was made
-   from, by Collection where its testaments came from different originals; an original is its own base. */
+/* THE SOURCE TEXT IS A TEXT'S BASE (529: "pick Bible, then original text like LXX or MT, then translation"): § */
 const WRITING_MT = 'Hebrew Masoretic Text', WRITING_LXX = 'Greek Septuagint', WRITING_GNT = 'Greek New Testament';
 /* A SOURCE TEXT IS A TEXT, NEVER A BARE LANGUAGE (546): the Quran's original is the Arabic Quran, as the Bible's is the Masoretic Text. */
 const WRITING_QURAN = 'Arabic Quran';
@@ -166,8 +163,7 @@ function writingLinkOf_(x) {
 const writingAt1_ = (x, k) => (!x ? '' : k === 'religion' ? ((x.w || (x.kind === 'bible' && x.bb)) && x.topic) || ''
   : x.w ? x.w[k] || '' : x.kind === 'bible' && x.bb ? bibleW_(x, k) || ''
   : k === 'work' ? writingLinkOf_(x) : '');
-/* A SOURCE TEXT TWO TRADITIONS HOLD (660): "where's the bible here?" under Judaism — the Masoretic Text in its own Hebrew is the
-   Old Testament's original and Judaism's Tanakh, so those cards answer both. */
+/* A SOURCE TEXT TWO TRADITIONS HOLD (660): § */
 const WRITING_HELD = { [WRITING_MT]: { work: 'Bible', religion: 'Judaism', collection: 'Tanakh' } };
 function writingAt_(x, k) {
   const v = writingAt1_(x, k);
@@ -176,8 +172,7 @@ function writingAt_(x, k) {
   /* THE ORIGINAL ONLY: a text with a translator (KJV's Old Testament) is a translation of it, not it. */
   if (!also || !also[k] || writingAt1_(x, 'work') !== also.work || writingVersionOf_(writingAt1_(x, 'text'))) return v;
   const had = [].concat(v || []);
-  /* A COLLECTION IS NAMED BY THE RELIGION ASKED (770): under Judaism the Masoretic books are the Tanakh and never the Old Testament;
-     under Christianity the other way; with no religion chosen, both. */
+  /* A COLLECTION IS NAMED BY THE RELIGION ASKED (770): § */
   if (k === 'collection') {
     const rel = writingReligionAsked_();
     if (rel && spellKey_(rel) === spellKey_(also.religion)) return also[k];
@@ -196,8 +191,7 @@ function writingOf_(x) {
   return w;
 }
 
-/* ---------- R4: THE SET A FUNNEL ANSWERS OVER IS FIXED WHEN IT STARTS (520). A source whose index comes later joins at the next
-   fresh start (no chip, no words), never under an answered question. */
+/* ---------- R4: THE SET A FUNNEL ANSWERS OVER IS FIXED WHEN IT STARTS (520). A source whose index comes later joins at the next § */
 const WRITING_CAME = {};
 function writingCame_(src) {
   WRITING_CAME[src] = true;

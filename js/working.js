@@ -1,16 +1,16 @@
-/* ---------- A PHOTO OF THE WORKING (501): up to three pages photographed; `markWorking` has Gemini mark them and keeps them on the submission row. Only the AI marks. */
+/* ---------- A PHOTO OF THE WORKING (501): up to three pages; Gemini marks them (`markWorking`). Only the AI marks. § */
 const WORK_MAX = 3, WORK_EDGE = 1600, WORK_BYTES = 500 * 1024;
-/* WHAT EACH BOX HOLDS, by answer key: [{ url }] -- data URLs, in memory only; a photo is never kept in browser storage. */
+/* EACH BOX'S PHOTOS by answer key: data URLs, in memory only, never browser storage. § */
 const WORK_PICS = {};
 
-/* EVERY PART TAKES A PHOTO OF THE WORKING (round 3): its tile is in the part's one tool row (qtools.js), its strip under the box. */
+/* EVERY PART TAKES A PHOTO OF THE WORKING: its tile in the part's tool row (qtools.js), its strip under the box. § */
 function workRow_(x) {
   const r = (x && x.row) || {};
   return Object.assign({}, r, { lead: x.lead, html: x.html, answer: x.answer, answer_type: x.answerType || r.answer_type,
     accept: x.accept || '', mark_words: x.markWords || '', cells: x.cells || '', draw_answer: x.drawAnswer || '',
     choices: (x.choices || []).join('|'), choice_right: (x.choiceRight || []).join('|'), marks: x.marks, subject: x.subject || r.subject });
 }
-/* THE STRIP UNDER THE BOX: thumbnails, then Mark my working -- the AI's alone ("A human never marks"); a failed mark keeps the photos to try again. */
+/* THE STRIP UNDER THE BOX: thumbnails, then Mark my working; a failed mark keeps the photos. § */
 function workStrip_(x) {
   if (!x || !isQ_(x)) return '';
   const k = ansKey_(x);
@@ -23,7 +23,7 @@ function workStripInner_(k) {
   return `<div class="qp-work-pics">${thumbs}</div>
     <p class="qp-work-say" role="status" aria-live="polite"></p>`;
 }
-/* MARK MY WORKING STANDS IN THE PART'S ONE TOOL ROW (owner, 8 Nov), in its slot there, once there is a photo to mark */
+/* MARK MY WORKING STANDS IN THE PART'S TOOL ROW (owner, 8 Nov), once there is a photo. § */
 function workGoOpts_(k) {
   return (WORK_PICS[k] || []).length ? ({ icon: 'tick', label: 'Mark my working', note: 'AI reads the photos',
     act: 'qp-work-send', cls: 'qp-work-send is-submit', data: { k } }) : null;
@@ -71,7 +71,7 @@ function workShrink_(file) {
 }
 const workBytes_ = d => Math.floor((String(d).length - String(d).indexOf(',') - 1) * 3 / 4);
 
-/* THE PICKER: camera first on a phone (`capture`), the library one tap away; several at once where the phone allows. */
+/* THE PICKER: camera first on a phone (`capture`), the library a tap away. § */
 on('qp-work', el => {
   const k = el.getAttribute('data-k');
   if (!k) return;
@@ -142,8 +142,8 @@ on('qp-work-send', el => {
     });
 });
 
-/* ---------- AND SEEN BY THE PEOPLE WHO MAY (`workingOf`): the student, a parent they accepted, and the admin. Fetched on the tap, never in the payload. */
-/* `workingMaySee_`'s rule (dopost.gs): a parent of theirs, or rank Admin -- never a tutor (owner, 28 Oct), so the tile is not drawn for one */
+/* ---------- SEEN BY WHO MAY (`workingOf`): student, accepted parent, admin; fetched on the tap. § */
+/* `workingMaySee_` (dopost.gs): a parent or Admin, never a tutor (owner, 28 Oct). § */
 function workSeeOpts_(pid, asParent) {
   if (!pid || !(asParent === true || isAdmin())) return null;
   return ({ icon: 'photo', label: 'Working photos', note: 'with the AI’s mark', act: 'work-see', data: { id: pid } });

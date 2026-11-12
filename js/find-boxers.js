@@ -203,9 +203,7 @@ function pageParts_(x, prev) {
     const c = x.row;
     return [null].concat((c.formulas || []).length ? ['formulas'] : [], (c.points || []).length ? ['worked'] : []);
   }
-  /* THE BIBLE HAS NO BRANCH HERE ANY MORE. Its cover and each of its verses are one page, the
-     default below; the cover's three lists of books and the open book's pages went with the reader
-     (see the head of the Bible section). */
+  /* THE BIBLE HAS NO BRANCH HERE ANY MORE. § */
   if (x && x.hdb && x.row && HIST_LINES[x.kind]) return [null].concat(histPages_(x));
   if (!x || !isPractical_(x) || !x.row || x.row.excluded) return [null];
   const p = x.row, out = [null];
