@@ -41,7 +41,7 @@ function findWork(L) {
   const fsrc = require('./find-src.js').findSrc(), work = [];
   const at = {};
   for (const m of fsrc.matchAll(/\{ field: '(\w+)',\s*label: '([^']+)'/g)) if (!at[m[1]]) at[m[1]] = { line: lineOf(fsrc, m.index), label: m[2] };
-  FIND_POP = { menus: Object.keys(at).length, compare: [...FIND_FILES, ...SHELL_FILES].reduce((a, f) => a + blank(read(f)).split('\n').filter(l => /[!=]==?/.test(l)).length, 0) };
+  FIND_POP = { menus: Object.keys(at).length };
   /* tag-colour (1030): ONE colour per menu — (a) every answer of a menu, (b) its chip and card words take the facet's colour alone, */
   /* (c) two facets asked on one path (data/facet-graph.json, tools/facet-hues.js) never share one, (d) each hue reads 3:1 on --bg. */
   const tagLine = /^const TAG_OF = (\{.*\});$/m.exec(fsrc);
@@ -96,8 +96,10 @@ function findWork(L) {
     if (g < 0) work.push({ kind: 'menu-thin', where: 'js/find.js:' + lineOf(fsrc, fw.index), say: 'facetWhy_ has no "vals < 2" guard: a one-answer menu can be asked' });
     body.slice(0, g < 0 ? body.length : g).split('\n').forEach((l, i) => { if (/return\s*''/.test(l) && !/vals\s*(?:>\s*1|>=\s*2)/.test(l))
       work.push({ kind: 'menu-thin', where: 'js/find.js:' + (lineOf(fsrc, fw.index) + i), say: 'facetWhy_ lets a menu through before the < 2 answers guard: ' + l.trim().slice(0, 100) }); }); }
-  [...FIND_FILES, ...SHELL_FILES].forEach(f => { const src = blank(read(f));
-    for (const m of src.matchAll(ONE)) work.push({ kind: 'find-one-off', where: f + ':' + lineOf(src, m.index), say: m[0] }); });
+  const oneUnits = new Set(); FIND_POP.fns = 0;
+  [...FIND_FILES, ...SHELL_FILES].forEach(f => { const src = blank(read(f)), U = fnUnits(f, read(f)); FIND_POP.fns += new Set(U.filter((u, i) => src.split('\n')[i].trim())).size;
+    for (const m of src.matchAll(ONE)) { const ln = lineOf(src, m.index); oneUnits.add(U[ln - 1]); work.push({ kind: 'find-one-off', where: f + ':' + ln, say: m[0] }); } });
+  FIND_POP.oneOff = oneUnits.size;
   /* EVERY FACET VALUE (940): tools/facet-data.js reads all answers of every menu, not the walk's few; its findings are read here, never re-run. */
   ((jread('data/facet-health.json') || {}).findings || []).forEach(x => work.push({ kind: x.kind, where: 'menu ' + x.menu, say: '"' + x.value + '" ' + x.say }));
   return work;
@@ -359,15 +361,16 @@ function ui() {
   for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) rules.push({ sel: m[1].trim(), body: m[2] });
   const plain = rules.filter(r => !/^:root\b/.test(r.sel) && !r.sel.startsWith('@'));
   /* EVERY DECLARATION outside :root, custom properties left out (they are the tokens themselves). */
-  const decls = plain.flatMap(r => r.body.split(';').map(d => /^\s*([\w-]+)\s*:\s*([\s\S]+?)\s*$/.exec(d)).filter(d => d && !d[1].startsWith('--')).map(d => ({ sel: r.sel, k: d[1], v: d[2] })));
-  const seen = new Map(); let order = 0;
-  plain.forEach(r => { const props = new Set(r.body.split(';').map(d => (/^\s*([\w-]+)\s*:/.exec(d) || [])[1]).filter(k => k && !k.startsWith('--')));
-    const had = seen.get(r.sel); if (had) props.forEach(p => { if (had.has(p)) order++; had.add(p); }); else seen.set(r.sel, props); });
+  const decls = plain.flatMap((r, b) => r.body.split(';').map(d => /^\s*([\w-]+)\s*:\s*([\s\S]+?)\s*$/.exec(d)).filter(d => d && !d[1].startsWith('--')).map(d => ({ sel: r.sel, k: d[1], v: d[2], b })));
+  /* THE UNIT THE CSS RULES COUNT (owner, 12 Nov) is the rule-block, the thing a person edits: of the blocks a rule applies to, those that follow it. */
+  const blocks = (has, bad) => { const of = new Set(), off = new Set(); decls.filter(has).forEach(d => { of.add(d.b); if (bad(d)) off.add(d.b); }); return [of.size - off.size, of.size]; };
+  const seen = new Map(), reset = new Set();
+  plain.forEach((r, b) => { const props = new Set(r.body.split(';').map(d => (/^\s*([\w-]+)\s*:/.exec(d) || [])[1]).filter(k => k && !k.startsWith('--')));
+    const had = seen.get(r.sel); if (had) props.forEach(p => { if (had.has(p)) reset.add(b); had.add(p); }); else seen.set(r.sel, props); });
   /* THE PALETTE: the :root tokens whose value is a colour; a colour is either one of them or a literal. */
-  const COL = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/g, isCol = v => /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/.test(v), colTok = new Set();
+  const isCol = v => /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/.test(v), colTok = new Set();
   for (const r of rules.filter(r => /^:root\b/.test(r.sel))) for (const d of r.body.matchAll(/(--[\w-]+)\s*:\s*([^;]+)/g)) if (isCol(d[2]) || /^var\(--[\w-]+\)$/.test(d[2].trim())) colTok.add(d[1]);
-  let colLit = 0, colVar = 0;
-  decls.forEach(d => { colLit += (d.v.match(COL) || []).length; colVar += [...d.v.matchAll(/var\((--[\w-]+)/g)].filter(x => colTok.has(x[1])).length; });
+  const usesCol = d => isCol(d.v) || [...d.v.matchAll(/var\((--[\w-]+)/g)].some(x => colTok.has(x[1]));
   /* THE SCALE: a size is a token (var(--…)), a zero, auto or a keyword; a written length is off the scale. */
   const LEN = /(?<![\w.-])-?(?:\d*\.)?\d+(?:px|rem|em|vh|vw|%|ch)\b/;
   const offScale = v => LEN.test(v.replace(/var\([^()]*\)/g, '').replace(/(?<![\w.])0(?![\w.%])/g, ''));
@@ -380,12 +383,12 @@ function ui() {
   work.forEach(w => { k[w.kind] = (k[w.kind] || 0) + 1; });
   const P = UNIFORM_POP || {}, n = id => k[id] || 0;
   const R = [
-    rule('important', 'ui', 'CSS declarations that win without !important', decls.length - decls.filter(d => /!important/.test(d.v)).length, decls.length),
-    rule('order', 'ui', 'CSS declarations not set again by a repeated selector', decls.length - order, decls.length),
-    rule('colourlit', 'ui', 'Colours taken from the palette tokens', colVar, colVar + colLit),
-    rule('font-scale', 'ui', 'Font sizes from the --fs scale', fonts.filter(d => !fontOff(d)).length, fonts.length),
-    rule('space-scale', 'ui', 'Margins, paddings and gaps from the --s scale', space.filter(d => !offScale(d.v)).length, space.length),
-    rule('radius-scale', 'ui', 'Corner radii from the radius tokens', radius.filter(d => !offScale(d.v.replace(/\b50%/g, ''))).length, radius.length),
+    rule('important', 'ui', 'CSS rule-blocks that win without !important', ...blocks(() => true, d => /!important/.test(d.v))),
+    rule('order', 'ui', 'CSS rule-blocks that set no property a block of the same selector set before', ...blocks(() => true, d => reset.has(d.b))),
+    rule('colourlit', 'ui', 'CSS rule-blocks with colours whose colours are all palette tokens', ...blocks(usesCol, d => isCol(d.v))),
+    rule('font-scale', 'ui', 'CSS rule-blocks with a font size, all from the --fs scale', ...blocks(d => fonts.includes(d), fontOff)),
+    rule('space-scale', 'ui', 'CSS rule-blocks with margins, paddings or gaps, all from the --s scale', ...blocks(d => space.includes(d), d => offScale(d.v))),
+    rule('radius-scale', 'ui', 'CSS rule-blocks with a corner radius, all from the radius tokens', ...blocks(d => radius.includes(d), d => offScale(d.v.replace(/\b50%/g, '')))),
     rule('answer-width', 'ui', 'Answer-box width rules on the one width', AW.of - AW.bad.length, AW.of),
     rule('one-template', 'ui', 'Cards made on the one template (findCard/card_)', OT.ok, OT.of),
     rule('makers', 'ui', 'Tiles made by tile_() rather than by hand', P.tiles, P.tiles + n('raw-button') + n('hand-tile'), ['raw-button', 'hand-tile']),
@@ -446,22 +449,31 @@ function scan(src) {
   nl();
   return { code, depthAt };
 }
+/* THE UNIT A CODE RULE COUNTS (owner, 12 Nov): a top-level function, or a file's code outside any function; per line, the unit it is in. */
+function fnUnits(file, src) {
+  const { depthAt } = scan(src), L = src.split('\n'), out = []; let fn = null;
+  L.forEach((raw, i) => { const before = i ? depthAt[i - 1] : 0;
+    const m = before === 0 && /^(?:async\s+)?function\s+([\w$]+)|^(?:const|let|var)\s+([\w$]+)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>\s*\{|[\w$]+\s*=>\s*\{)/.exec(raw);
+    if (m) fn = file + ':' + (i + 1) + ' ' + (m[1] || m[2]);
+    out.push(fn || file + ' (top level)');
+    if ((depthAt[i] || 0) === 0) fn = null; });
+  return out;
+}
 function structure() {
   const F = [], push = (file, line, kind, text, units) => F.push({ file, line, kind, text: String(text).trim().slice(0, 160), units });
-  const seen = new Map(), pop = { files: 0, fns: 0, compare: 0, codeLines: 0, deep: 0, catches: 0 };
+  const seen = new Map(), pop = { files: 0, fns: 0, units: 0, catches: 0 }, bad = { 'one-off': new Set(), dup: new Set(), nest: new Set() };
   coreFiles().forEach(file => {
     const L = read(file).split('\n'); pop.files++;
     if (L.length > 1500) push(file, 1501, 'big-file', `${L.length} lines, ${L.length - 1500} over the 1500 budget`, L.length - 1500);
-    const { code: C, depthAt } = scan(L.join('\n'));
+    const { code: C, depthAt } = scan(L.join('\n')), U = fnUnits(file, L.join('\n'));
     let deepFrom = -1, fn = null;
     const N = [];
     L.forEach((raw, i) => {
       const code = C[i] || '', depth = depthAt[i] || 0, before = i ? depthAt[i - 1] : 0;
       if (code.trim().length >= 8) N.push({ t: code.trim(), i });
-      if (/[!=]==?|^\s*case\b/.test(code)) pop.compare++;
       pop.catches += (code.match(/\bcatch\b/g) || []).length;
-      if (depth > 5) pop.deep++;
-      if (ONE_OFF.test(code.replace(DOM_EVENT, '')) && !SHARED_TESTS.includes(file)) push(file, i + 1, 'one-off', raw, 1);
+      if (depth > 5) bad.nest.add(U[i]);
+      if (ONE_OFF.test(code.replace(DOM_EVENT, '')) && !SHARED_TESTS.includes(file)) { push(file, i + 1, 'one-off', raw, 1); bad['one-off'].add(U[i]); }
       if (/catch\s*(?:\(\s*\w*\s*\))?\s*\{\s*\}/.test(code)) push(file, i + 1, /catch\s*(?:\([^)]*\))?\s*\{\s*\}/.test(raw) ? 'catch' : 'deliberate', raw, 1);
       const m = before === 0 && /^(?:async\s+)?function\s+([\w$]+)|^(?:const|let|var)\s+([\w$]+)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>\s*\{|[\w$]+\s*=>\s*\{)/.exec(raw);
       if (m) { fn = { name: m[1] || m[2], at: i }; pop.fns++; }
@@ -474,7 +486,7 @@ function structure() {
     });
     /* DUPLICATES: windows of 6 normalised lines; consecutive repeating windows are one finding priced by their length. */
     let run = null;
-    const close = () => { if (run) push(file, run.at + 1, 'dup', `${run.n} lines also at ${run.prev.file}:${run.prev.line + 1} — ${run.first}`, run.n); run = null; };
+    const close = () => { if (run) { for (let j = run.k; j < run.k + run.n; j++) bad.dup.add(U[N[j].i]); push(file, run.at + 1, 'dup', `${run.n} lines also at ${run.prev.file}:${run.prev.line + 1} — ${run.first}`, run.n); } run = null; };
     for (let k = 0; k + 6 <= N.length; k++) {
       const key = N.slice(k, k + 6).map(x => x.t).join('\n'), prev = seen.get(key);
       if (prev && !(prev.file === file && N[k].i - prev.line < 6)) {
@@ -482,11 +494,12 @@ function structure() {
       } else { close(); if (!prev) seen.set(key, { file, line: N[k].i }); }
     }
     close();
-    pop.codeLines += N.length;
+    pop.units += new Set(N.map(x => U[x.i])).size;
   });
   const totals = {};
   STRUCT.forEach(k => { const mine = F.filter(f => f.kind === k); totals[k] = { count: mine.length, units: mine.reduce((a, f) => a + f.units, 0) }; });
   F.sort((a, b) => b.units - a.units || a.file.localeCompare(b.file) || a.line - b.line);
+  Object.keys(bad).forEach(k => { pop[k] = bad[k].size; });
   return { findings: F, totals, pop };
 }
 
@@ -633,11 +646,11 @@ function healthRules(st, L, U, S, work, X, C, B) {
   const app = git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/(check|_)/.test(f));
   const fns = app.reduce((a, f) => a + (read(f).match(/^(?:async\s+)?function\s+[\w$]+/gm) || []).length, 0);
   const fdOf = Object.keys((X.sizes || {}).files || {}).length + 1;
-  R.push(rule('one-off', 'code', 'Comparisons that test no single kind, facet or id by name', P.compare - T['one-off'].count, P.compare),
+  R.push(rule('one-off', 'code', 'Functions that test no single kind, facet or id by name', P.units - P['one-off'], P.units),
     rule('long-fn', 'code', 'Functions within 80 lines', P.fns - T['long-fn'].count, P.fns),
     rule('big-file', 'code', 'Core files within 1500 lines', P.files - T['big-file'].count, P.files),
-    rule('dup', 'code', 'Code lines not copied from another 6-line chunk', P.codeLines - T.dup.units, P.codeLines),
-    rule('nest', 'code', 'Code lines nested at most 4 blocks deep', P.codeLines - P.deep, P.codeLines),
+    rule('dup', 'code', 'Functions with no 6-line chunk copied from elsewhere', P.units - P.dup, P.units),
+    rule('nest', 'code', 'Functions nested at most 4 blocks deep', P.units - P.nest, P.units),
     rule('catch', 'code', 'Catches that handle the error or say why not', P.catches - T.catch.count, P.catches),
     rule('exceptions', 'code', 'Checks with no written exception list', checks.length - excFiles.size, checks.length),
     rule('ceilings', 'code', 'Ratchet ceilings in the checks at zero', maxes - Object.keys(sg('ceilings').where || {}).length, maxes),
@@ -652,10 +665,10 @@ function healthRules(st, L, U, S, work, X, C, B) {
   Object.assign(R[R.length - 1], { ok: Math.max(0, oq.of - badQ), of: oq.of });
   /* FIND LOGIC: the walk's own rules over its questions, then the static and data kinds over their menus, nodes and lines. */
   const q = (L.j && L.j.questions) || 0, nodes = ((L.j && L.j.walked) || {}).nodes || 0, FP = FIND_POP || {}, FH = jread('data/facet-health.json') || {};
-  ((L.j && L.j.rules) || []).forEach(r => R.push(rule('walk-' + r.id, 'logic', 'Questions with no ' + r.label.replace(/^an? /, ''), q - r.count, q)));
+  ((L.j && L.j.rules) || []).forEach(r => R.push(Object.assign(rule('walk-' + r.id, 'logic', 'Questions with no ' + r.label.replace(/^an? /, ''), q - r.count, q), { unit: 'questions' })));
   ['menu-thin', 'answer-words', 'mangled-text', 'merged-value', 'menu-rule', 'menu-sense'].forEach(k => R.push(rule(k, 'logic', `Walked menus with no ${k} finding`, nodes - cnt(k), nodes)));
   R.push(rule('tag-asked', 'logic', 'Menus whose tag some walked node asks', FP.menus - cnt('tag-asked'), FP.menus),
-    rule('find-one-off', 'logic', "Find's comparisons that test no single kind or facet by name", FP.compare - cnt('find-one-off'), FP.compare));
+    rule('find-one-off', 'logic', "Find's functions that test no single kind or facet by name", FP.fns - FP.oneOff, FP.fns));
   ['merged-all', 'near-dup', 'words-all'].forEach(k => { const bad = new Set((FH.findings || []).filter(f => f.kind === k).map(f => f.menu)).size;
     R.push(rule(k, 'logic', `Menus with no ${k} answer (every value read)`, (FH.menus || 0) - bad, FH.menus || 0)); });
   const A = jread('data/answer-health.json'), Q = jread('data/qengine-health.json');
@@ -667,13 +680,49 @@ function healthRules(st, L, U, S, work, X, C, B) {
   const V = VARIETY_LAST || {}, VK = { wait: ['variety-wait', 'own-wait'], textbox: ['variety-textbox', 'text-boxes'] };
   Object.keys(V).forEach(id => R.push(Object.assign(rule('variety-' + id, id === 'qpage' ? 'logic' : 'ui', V[id].label + ': the ideal ' + V[id].ideal + ' of the variants', V[id].ideal, Math.max(V[id].ideal, V[id].count), VK[id] || ['variety-' + id]), { variety: true })));
   R.push(...U.rules, ...C.rules.map(r => rule(r.id, 'cost', r.label, r.ok, r.of)), ...B.rules);
+  /* A WALK THAT INSPECTS A POPULATION is a rule over it (owner, 12 Nov): the things it walked with no finding ÷ the things it walked. */
+  const allW = work.concat(U.work, X.work);
+  walkPops(U).forEach(([k, label, unit, of, key]) => { if (!of) return; const bad = new Set(allW.filter(w => w.kind === k).map(key || (w => w.where))).size;
+    R.push(Object.assign(rule(k, 'ui', label, of - bad, of), { unit })); });
   /* EVERY OTHER CHECK, from a walk or a static pass with no countable population: one thing, passing or failing. */
   const has = new Set(R.flatMap(r => r.kinds).concat(['biz-checker', ...LISTED_ONLY]));
   const partOf = { backend: 'code', resilience: 'code', field: 'ui' }; X.work.forEach(w => { partOf[w.kind] = w.part; }); work.forEach(w => { partOf[w.kind] = 'logic'; });
   [...new Set(FIND_KINDS.concat(UX_KINDS, UNIFORM_KINDS, EXTRA_KINDS.filter(k => k !== 'variety'), Object.keys(n)))].filter(k => !has.has(k)).sort()
     .forEach(k => R.push(passFail(k, partOf[k] || 'ui', `${k}: passes with no findings`, cnt(k))));
+  R.forEach(r => { r.unit = r.unit || UNIT[r.id] || (r.variety ? 'variants' : r.pf != null ? 'one check (pass/fail)' : ''); });
   return R.filter(r => r.of > 0);
 }
+/* THE POPULATIONS THE WALKS INSPECT: [kind, label, unit, how many walked, what one finding is about]. A walk that records no count stays pass/fail. */
+function walkPops(U) {
+  const j = (U && U.j) || jread('data/ux-health.json') || {}, fr = jread('data/friction-health.json'), rf = jread('data/returned-health.json'), tl = jread('data/timeline-health.json');
+  const cs = jread('data/chips-settings-health.json'), wt = jread('data/wait-health.json'), ch = jread('data/card-health.json'), qc = jread('data/qcard-health.json');
+  const L = jread('data/live-health.json'), LH = jread('data/load-health.json'), kindOf = w => String(w.say).split(':')[0];
+  const qb = ((jread('data/settings/structure-budgets.json') || {}).qcard) || {};
+  const budgets = (j.clicks || []).length + (j.missing || []).length + 5 + (L ? 3 : 0) + (LH ? 4 : 0) + (j.boxLooks ? 1 : 0)
+    + Object.keys((qc && qc.checks) || {}).filter(k => !OWNER_KINDS[k]).length + (j.signinMs < 0 ? 1 : 0);
+  return [
+    ['friction', 'Journeys each role can finish without friction', 'journeys', fr ? Object.values(fr.roles || {}).reduce((a, r) => a + Object.keys(r).length, 0) : 0],
+    ['returned-features', 'Returned features that open and respond', 'features', rf ? (rf.each || []).length : 0],
+    ['timeline-anim', 'Timelines that walk clean', 'timelines', tl ? tl.walked || 0 : 0],
+    ['a11y', 'Controls and text on Find and Feed that pass the a11y basics', 'elements', j.a11yChecked || 0],
+    ['ux', 'Clicks and load measures within their budget', 'budgets', j.clicks ? budgets : 0],
+    ['settings-work', 'Settings boxes that save and say so', 'settings boxes', cs ? ((cs.settings || {}).tried || 0) : 0],
+    ['wait', 'Screens loaded under a slow backend with no shift or needless loader', 'screen loads', wt ? (wt.rows || []).length : 0],
+    ['card-tags', 'Card kinds whose sampled cards draw a full tag line', 'card kinds', Object.keys(j.cardTags || {}).length, kindOf],
+    ['attr-outside-tags', 'Card kinds showing no attribute outside the tag line', 'card kinds', Object.keys(j.cardTags || {}).length, kindOf],
+    ['odd-tags', 'Tagged cards with no tag made of its other tags', 'cards', ch ? ch.tagCards || 0 : 0],
+  ];
+}
+/* WHAT EACH RULE COUNTS, beside it in -v: the thing a person would fix. */
+const FN_UNIT = 'functions (and files\' top-level code)';
+const UNIT = { 'one-off': FN_UNIT, 'long-fn': 'functions', 'big-file': 'files', dup: FN_UNIT, nest: FN_UNIT, catch: 'catches', exceptions: 'check files',
+  ceilings: 'ratchet ceilings', markers: 'files', dead: 'functions', size: 'files (+ total)', philosophy: 'principles', 'owner-questions': 'questions',
+  'menu-thin': 'walked menus', 'answer-words': 'walked menus', 'mangled-text': 'walked menus', 'merged-value': 'walked menus', 'menu-rule': 'walked menus', 'menu-sense': 'walked menus',
+  'tag-asked': 'menus', 'find-one-off': FN_UNIT, 'merged-all': 'menus', 'near-dup': 'menus', 'words-all': 'menus', answer: 'stored answers', qengine: 'proof cases', 'qengine-mapped': 'question types',
+  important: 'CSS rule-blocks', order: 'CSS rule-blocks', colourlit: 'CSS rule-blocks', 'font-scale': 'CSS rule-blocks', 'space-scale': 'CSS rule-blocks', 'radius-scale': 'CSS rule-blocks',
+  'answer-width': 'CSS selectors', 'one-template': 'card builder calls', makers: 'tile builder calls', 'inline-style': 'markup elements', 'once-class': 'classes', 'control-look': 'distinct looks',
+  'read-bytes': 'elements', 'comment-ratio': 'files', tombstones: 'files', 'claude-lines': 'file (one)', 'search-bytes': 'directory (one)', 'test-biggest': 'test files', 'big-notes': 'history notes',
+  spread: 'commits', 'one-place': 'business jobs', 'biz-checker': 'one check (pass/fail)' };
 function health() {
   const st = require('./stability.js').stability();
   const L = logic(), U = ui(), S = structure(), work = findWork(L), X = extraWork(st), C = require('./ai-cost.js').aiCost(), B = business();
@@ -692,10 +741,10 @@ function health() {
   const best = off[0];
   const next = best ? `Do this next: ${best.say} — following it fully is worth ${best.cost} points (${best.part}).` : 'Do this next: nothing — every rule is followed.';
   const counts = {}; Object.keys(S.totals).forEach(k => { counts[k] = S.totals[k].count; });
-  const worklist = S.findings.map(({ units, ...f }) => Object.assign(f, { cost: gain(f.kind, f.kind === 'dup' ? units : 1) })).sort((a, b) => b.cost - a.cost || a.file.localeCompare(b.file) || a.line - b.line);
+  const worklist = S.findings.map(({ units, ...f }) => Object.assign(f, { cost: gain(f.kind) })).sort((a, b) => b.cost - a.cost || a.file.localeCompare(b.file) || a.line - b.line);
   const allWork = work.concat(U.work, X.work.map(w => ({ kind: w.kind, where: w.where, say: w.say }))).filter(notFrozen_).map(w => Object.assign({}, w, { cost: gain(w.kind) }));
   return {
-    v: 3, score: overall, means: MEANS, weights, rules: R.map(({ id, group, label, ok, of }) => ({ id, group, label, ok, of })),
+    v: 3, score: overall, means: MEANS, weights, rules: R.map(({ id, group, label, unit, ok, of }) => ({ id, group, label, unit, ok, of })),
     parts, areas, philosophy: { principles: cov.principles, findings: cov.work.length, untied: cov.untied }, ownerQuestions: { open: oq.open, of: oq.of }, onePlace: Ph.onePlace(),
     aiCost: { avgRead: C.avgRead, commentRatio: C.commentRatio, tombstones: C.tombstones.length, claudeLines: C.claudeLines, searchBytes: C.searchBytes, effort: (({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes, spread }) => ({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes: bigNotes.length, spread }))(C.effort), top: C.top.slice(0, 5) },
     next, variety: VARIETY_LAST, qengine: (() => { const Q = jread('data/qengine-health.json'); return Q ? { moved: Q.moved, of: Q.of, proofs: Object.fromEntries(Object.keys(Q.proofs).map(k => [k, Q.proofs[k].pass + '/' + Q.proofs[k].cases])) } : null; })(), skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024), logicStale: L.stale, structure: S.totals, counts,
@@ -867,7 +916,7 @@ else if (require.main === module) {
   console.log(h.next);
   console.log(`wrote data/health.json: ${h.score}% — ${MEANS} (${h.rules.length} rules${L.stale ? '; Find logic STALE' : ''}) in ${Date.now() - t0} ms`);
   console.log('  by group: ' + Object.keys(GROUPS).map(g => `${GROUPS[g]} ${h.parts[g]}% (${h.areas[g].rules} rules)`).join(', '));
-  if (process.argv.includes('-v')) h.rules.forEach(r => console.log(`  ${r.group.padEnd(8)} ${String(r.ok).padStart(6)}/${String(r.of).padEnd(6)} ${r.id}: ${r.label}`));
+  if (process.argv.includes('-v')) h.rules.forEach(r => console.log(`  ${r.group.padEnd(8)} ${String(r.ok).padStart(6)}/${String(r.of).padEnd(6)} ${(r.unit || '').padEnd(36)} ${r.id}: ${r.label}`));
   console.log(`  philosophy: ${h.philosophy.principles} principles, ${h.philosophy.findings} coverage findings; checks tied to no principle (report-only): ${h.philosophy.untied.join(' ') || 'none'}`);
   console.log(`  owner questions: ${h.ownerQuestions.open} open of ${h.ownerQuestions.of}`);
   console.log('  one place: ' + h.onePlace.map(f => f.name + ' ' + f.status).join(' · '));
