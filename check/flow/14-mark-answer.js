@@ -782,7 +782,7 @@ check('Photo of my working: shown only on working questions, sends its photos to
 });
 
 /* ---------- MARK WITH AI SAYS WHERE IT IS (456): "it just says marking ... we didn't feel blind" § */
-check('Mark with AI shows its stages and the seconds beside the dots, says when it is slow, and offers Try again on a failure', async () => {
+check('Mark with AI shows one ring (the tile\'s), its stages and the seconds beside it, says when it is slow, and offers Try again on a failure', async () => {
   const bad = [];
   let release = null, mode = 'slow';
   const { w, sent, errs } = boot({ payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }), reply: b => {
@@ -813,7 +813,11 @@ check('Mark with AI shows its stages and the seconds beside the dots, says when 
   try {
     A['qp-ai'](go);
     const line = card.querySelector('.qp-ai > .qp-ai-stage');
-    if (!line || !line.querySelector(':scope > .loading')) bad.push('the wait has no stage line with the gold dots in it');
+    if (!line || !line.querySelector('.qp-ai-stage-say')) bad.push('the wait has no stage line with its words in it');
+    /* ONE WAIT PER PRESS (owner, 12 Nov): the pressed tile's ring, and no second ring anywhere in the card. */
+    const rings = card.querySelectorAll('.loading, .tile.is-busy, .tile[aria-busy="true"], .btn.is-busy').length;
+    if (rings !== 1) bad.push('during the press the card shows ' + rings + ' rings — wanted the pressed tile\'s one');
+    if (!go.classList.contains('is-busy')) bad.push('the pressed Mark with AI tile is not the one waiting');
     if (!/^Sending your work…$/.test(say())) bad.push('the first stage said "' + say() + '" — wanted "Sending your work…"');
     off = 7000; await wait(650);
     if (!/^Marking against the scheme… · 7 s$/.test(say())) bad.push('after 7 s the line said "' + say() + '" — wanted "Marking against the scheme… · 7 s"');

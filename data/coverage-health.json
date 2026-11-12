@@ -1,0 +1,193 @@
+{
+ "v": 1,
+ "privateText": true,
+ "subjects": {
+  "Biology": {
+   "spec": "AQA GCSE Biology (8461)",
+   "file": "data/spec/aqa-8461.json",
+   "points": 97,
+   "lesson": 97,
+   "practice": 96,
+   "figureNeed": 36,
+   "figureHave": 27,
+   "lessonPct": 100
+  },
+  "Chemistry": {
+   "spec": "AQA GCSE Chemistry (8462)",
+   "file": "data/spec/aqa-8462.json",
+   "points": 124,
+   "lesson": 124,
+   "practice": 123,
+   "figureNeed": 26,
+   "figureHave": 19,
+   "lessonPct": 100
+  },
+  "Physics": {
+   "spec": "AQA GCSE Physics (8463)",
+   "file": "data/spec/aqa-8463.json",
+   "points": 91,
+   "lesson": 91,
+   "practice": 91,
+   "figureNeed": 22,
+   "figureHave": 22,
+   "lessonPct": 100
+  },
+  "Maths": {
+   "spec": "Edexcel GCSE Maths (1MA1)",
+   "file": "data/spec/edexcel-1ma1.json",
+   "points": 97,
+   "lesson": 96,
+   "practice": 97,
+   "figureNeed": 20,
+   "figureHave": 17,
+   "lessonPct": 99
+  }
+ },
+ "work": [
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.2.2.5 Health issues",
+   "say": "lesson TB-AQA-8461#18 has no figure (the spec says diagram)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.2.2.6 The effect of lifestyle on some non-communicable diseases",
+   "say": "lesson TB-AQA-8461#19 has no figure (the spec says diagram, graph)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.5.3.3 Maintaining water and nitrogen balance in the body (biology only)",
+   "say": "lesson TB-AQA-8461#49 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.6.1.4 DNA and the genome",
+   "say": "lesson TB-AQA-8461#59 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.6.3.3 The understanding of genetics (biology only)",
+   "say": "lesson TB-AQA-8461#71 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.6.3.5 Fossils",
+   "say": "lesson TB-AQA-8461#73 has no figure (the spec says graph)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.6.4 Classification of living organisms",
+   "say": "lesson TB-AQA-8461#76 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.7.1.1 Communities",
+   "say": "lesson TB-AQA-8461#77 has no figure (the spec says graph)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.7.1.2 Abiotic factors",
+   "say": "lesson TB-AQA-8461#78 has no figure (the spec says graph)"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Biology 4.7.2.4 Impact of environmental change",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.2.3.3 Graphene and fullerenes",
+   "say": "lesson TB-AQA-8462#31 has no figure (the spec says diagram, structure)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.2.4.1 Sizes of particles and their properties",
+   "say": "lesson TB-AQA-8462#32 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Chemistry 4.3.2.3 Using moles to balance equations (HT only)",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.6.2.3 Equilibrium",
+   "say": "lesson TB-AQA-8462#73 has no figure (the spec says apparatus)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.7.2.2 Reactions of alkenes",
+   "say": "lesson TB-AQA-8462#83 has no figure (the spec says draw)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.7.2.4 Carboxylic acids",
+   "say": "lesson TB-AQA-8462#85 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.10.1.1 Using the Earth's resources and sustainable development",
+   "say": "lesson TB-AQA-8462#114 has no figure (the spec says graph)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.10.3.3 Ceramics, polymers and composites",
+   "say": "lesson TB-AQA-8462#122 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-lesson",
+   "where": "Maths N6 use positive integer powers and associated real roots (square, cube and higher), recognise powers of 2, 3, 4, 5; estimate powers and roots…",
+   "say": "no lesson"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Maths A14 plot and interpret graphs (including reciprocal graphs and exponential graphs) and graphs of non-standard functions in real contexts to…",
+   "say": "lesson TB-GCSE-MATHS#12 has no figure (the spec says graph, plot)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Maths R14 interpret the gradient of a straight line graph as a rate of change; recognise and interpret graphs that illustrate direct and inverse…",
+   "say": "lesson TB-GCSE-MATHS#12 has no figure (the spec says graph)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Maths A15 calculate or estimate gradients of graphs and areas under graphs (including quadratic and other non-linear graphs), and interpret results…",
+   "say": "lesson TB-GCSE-MATHS#12 has no figure (the spec says graph)"
+  }
+ ],
+ "rules": [
+  {
+   "id": "spec-lesson",
+   "group": "content",
+   "label": "Spec points with a lesson",
+   "ok": 408,
+   "of": 409,
+   "kinds": [
+    "spec-lesson"
+   ],
+   "unit": "spec points"
+  },
+  {
+   "id": "spec-figure",
+   "group": "content",
+   "label": "Lessons with a figure where the spec point is a diagram, graph, apparatus or structure",
+   "ok": 85,
+   "of": 104,
+   "kinds": [
+    "spec-figure"
+   ],
+   "unit": "lessons"
+  },
+  {
+   "id": "spec-practice",
+   "group": "content",
+   "label": "Spec points with practice questions",
+   "ok": 407,
+   "of": 409,
+   "kinds": [
+    "spec-practice"
+   ],
+   "unit": "spec points"
+  }
+ ]
+}

@@ -1,0 +1,107 @@
+{
+ "id": "aqa-7172",
+ "board": "AQA",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Philosophy",
+ "code": "7172",
+ "url": "https://filestore.aqa.org.uk/resources/philosophy/specifications/AQA-7172-SP-2017.PDF",
+ "sections": [
+  {
+   "id": "3.1",
+   "title": "Epistemology"
+  },
+  {
+   "id": "3.2",
+   "title": "Moral philosophy"
+  },
+  {
+   "id": "3.3",
+   "title": "Metaphysics of God"
+  },
+  {
+   "id": "3.4",
+   "title": "Metaphysics of mind"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.1.1",
+   "text": "What is knowledge?",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2",
+   "text": "Perception as a source of knowledge",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.3",
+   "text": "Reason as a source of knowledge",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.4",
+   "text": "The limits of knowledge",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Normative ethical theories",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2",
+   "text": "Applied ethics",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.3",
+   "text": "Meta-ethics",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.3.1",
+   "text": "The concept and nature of 'God'",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.3",
+   "text": "Religious language",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.4.1",
+   "text": "What do we mean by ‘mind’?",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.2",
+   "text": "Dualist theories",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.3",
+   "text": "Physicalist theories",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.4",
+   "text": "Functionalism",
+   "parent": "3.4",
+   "links": []
+  }
+ ]
+}

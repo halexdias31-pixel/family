@@ -8,9 +8,9 @@
   "js/games.js": 108,
   "js/tiles.js": 86,
   "js/arcade.js": 98,
-  "js/layout.js": 76,
-  "js/data.js": 86,
-  "js/submit.js": 85,
+  "js/layout.js": 57,
+  "js/data.js": 46,
+  "js/submit.js": 45,
   "js/price-rows.js": 46,
   "js/book.js": 69,
   "js/core.js": 71,
@@ -23,13 +23,13 @@
   "js/records.js": 57,
   "js/rules.js": 27,
   "js/answers.js": 52,
-  "js/writings.js": 36,
+  "js/writings.js": 30,
   "js/library.js": 34,
   "js/staff.js": 35,
   "js/mat.js": 28,
   "js/hadith.js": 21,
   "js/push.js": 23,
-  "js/words.js": 23,
+  "js/words.js": 17,
   "js/hymns.js": 18,
   "js/links.js": 17,
   "js/missing.js": 22,
@@ -38,7 +38,7 @@
   "js/cards.js": 47,
   "js/gtasks.js": 16,
   "js/help.js": 13,
-  "js/qtools.js": 44,
+  "js/qtools.js": 22,
   "js/reader.js": 24,
   "js/working.js": 32,
   "js/talmud.js": 29,
@@ -63,23 +63,23 @@
   "js/find-figures.js": 87,
   "js/find-finder.js": 146,
   "js/find-history.js": 80,
-  "js/find-levels.js": 106,
+  "js/find-levels.js": 80,
   "js/find-loupe.js": 89,
   "js/find-marking.js": 54,
   "js/find-measure.js": 24,
   "js/find-pad.js": 30,
-  "js/find-pages.js": 117,
+  "js/find-pages.js": 108,
   "js/find-parts.js": 70,
   "js/find-pen.js": 25,
   "js/me-account.js": 101,
   "js/me-card.js": 80,
   "js/me-messages.js": 57,
   "js/me-people.js": 38,
-  "js/me-roles.js": 101,
-  "js/me-settings.js": 93,
-  "js/me-shelves.js": 45,
-  "js/shell-api.js": 102,
-  "js/shell-boot.js": 136,
+  "js/me-roles.js": 64,
+  "js/me-settings.js": 70,
+  "js/me-shelves.js": 39,
+  "js/shell-api.js": 45,
+  "js/shell-boot.js": 86,
   "js/shell-click.js": 108,
   "js/shell-hold.js": 13,
   "js/shell-layout.js": 61,
@@ -283,9 +283,9 @@
    "rawButton": 0
   },
   "js/data.js": {
-   "lines": 536,
-   "oneOff": 10,
-   "emptyCatch": 15,
+   "lines": 423,
+   "oneOff": 0,
+   "emptyCatch": 14,
    "inlineStyle": 0,
    "rawButton": 0
   },
@@ -360,9 +360,9 @@
    "rawButton": 0
   },
   "js/layout.js": {
-   "lines": 1184,
-   "oneOff": 3,
-   "emptyCatch": 15,
+   "lines": 975,
+   "oneOff": 2,
+   "emptyCatch": 12,
    "inlineStyle": 0,
    "rawButton": 3
   },
@@ -465,8 +465,8 @@
    "rawButton": 0
   },
   "js/qtools.js": {
-   "lines": 316,
-   "oneOff": 13,
+   "lines": 240,
+   "oneOff": 0,
    "emptyCatch": 2,
    "inlineStyle": 0,
    "rawButton": 0
@@ -563,9 +563,9 @@
    "rawButton": 0
   },
   "js/submit.js": {
-   "lines": 1041,
-   "oneOff": 5,
-   "emptyCatch": 19,
+   "lines": 665,
+   "oneOff": 0,
+   "emptyCatch": 14,
    "inlineStyle": 0,
    "rawButton": 0
   },
@@ -591,9 +591,9 @@
    "rawButton": 0
   },
   "js/words.js": {
-   "lines": 204,
+   "lines": 193,
    "oneOff": 1,
-   "emptyCatch": 7,
+   "emptyCatch": 6,
    "inlineStyle": 0,
    "rawButton": 0
   },
@@ -613,7 +613,7 @@
   },
   "js/writings.js": {
    "lines": 215,
-   "oneOff": 13,
+   "oneOff": 11,
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 0
@@ -682,8 +682,8 @@
    "rawButton": 1
   },
   "js/find-levels.js": {
-   "lines": 791,
-   "oneOff": 2,
+   "lines": 630,
+   "oneOff": 1,
    "emptyCatch": 1,
    "inlineStyle": 0,
    "rawButton": 0
@@ -717,11 +717,11 @@
    "rawButton": 0
   },
   "js/find-pages.js": {
-   "lines": 759,
-   "oneOff": 2,
+   "lines": 732,
+   "oneOff": 1,
    "emptyCatch": 4,
    "inlineStyle": 0,
-   "rawButton": 2
+   "rawButton": 0
   },
   "js/find-parts.js": {
    "lines": 761,
@@ -766,37 +766,37 @@
    "rawButton": 0
   },
   "js/me-roles.js": {
-   "lines": 717,
-   "oneOff": 1,
+   "lines": 537,
+   "oneOff": 0,
    "emptyCatch": 6,
-   "inlineStyle": 8,
+   "inlineStyle": 4,
    "rawButton": 0
   },
   "js/me-settings.js": {
-   "lines": 781,
-   "oneOff": 6,
-   "emptyCatch": 8,
+   "lines": 647,
+   "oneOff": 0,
+   "emptyCatch": 7,
    "inlineStyle": 0,
    "rawButton": 0
   },
   "js/me-shelves.js": {
-   "lines": 772,
+   "lines": 702,
    "oneOff": 0,
-   "emptyCatch": 8,
+   "emptyCatch": 7,
    "inlineStyle": 0,
-   "rawButton": 2
+   "rawButton": 0
   },
   "js/shell-api.js": {
-   "lines": 773,
-   "oneOff": 4,
-   "emptyCatch": 8,
+   "lines": 417,
+   "oneOff": 2,
+   "emptyCatch": 4,
    "inlineStyle": 0,
    "rawButton": 0
   },
   "js/shell-boot.js": {
-   "lines": 758,
-   "oneOff": 9,
-   "emptyCatch": 12,
+   "lines": 490,
+   "oneOff": 0,
+   "emptyCatch": 10,
    "inlineStyle": 0,
    "rawButton": 0
   },
@@ -883,6 +883,83 @@
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 0
+  },
+  "js/data-who.js": {
+   "lines": 46,
+   "oneOff": 0,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/find-account.js": {
+   "lines": 224,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/find-settled.js": {
+   "lines": 34,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/layout-moves.js": {
+   "lines": 219,
+   "oneOff": 1,
+   "emptyCatch": 4,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/me-columns.js": {
+   "lines": 163,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/me-fields.js": {
+   "lines": 288,
+   "oneOff": 1,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/me-send.js": {
+   "lines": 79,
+   "oneOff": 0,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/qtools-row.js": {
+   "lines": 113,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/shell-go.js": {
+   "lines": 272,
+   "oneOff": 0,
+   "emptyCatch": 2,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/shell-load.js": {
+   "lines": 346,
+   "oneOff": 0,
+   "emptyCatch": 4,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/submit-suggest.js": {
+   "lines": 370,
+   "oneOff": 1,
+   "emptyCatch": 5,
+   "inlineStyle": 0,
+   "rawButton": 0
   }
  },
  "functions": {
@@ -913,42 +990,37 @@
   "js/find-aloud.js stuffItemsRaw_": 162,
   "js/find-bundles.js bundleBuild_": 85,
   "js/find-bundles.js paintStuff": 87,
-  "js/find-levels.js accountPages_": 109,
   "js/find-marking.js markRule_": 83,
-  "js/find-pages.js paneReach_": 119,
-  "js/find-parts.js typeset_": 231,
-  "js/me-settings.js profileRefresh_": 81,
-  "js/me-shelves.js fieldHtml": 84,
-  "js/shell-api.js loadOnce_": 251
+  "js/find-parts.js typeset_": 231
  },
  "variety": {
   "qpage": {
-   "count": 25,
+   "count": 5,
    "ideal": 1,
    "label": "Question pages and markers"
   },
   "drawer": {
-   "count": 24,
+   "count": 1,
    "ideal": 1,
    "label": "Card drawers"
   },
   "maker": {
-   "count": 36,
+   "count": 1,
    "ideal": 1,
    "label": "Tile and button makers"
   },
   "listrow": {
-   "count": 21,
+   "count": 1,
    "ideal": 1,
    "label": "List-row styles"
   },
   "setrow": {
-   "count": 3,
+   "count": 1,
    "ideal": 1,
    "label": "Settings row shapes"
   },
   "wait": {
-   "count": 5,
+   "count": 1,
    "ideal": 1,
    "label": "Wait indicators"
   },

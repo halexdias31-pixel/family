@@ -94,7 +94,7 @@ async function libraryRowsAsk_() {
 /* `inserts` IS THE EIGHTH: the sheets a candidate is handed in the exam (455), public whole — facts, not library words. */
 /* THE HISTORY DATABASE IS FOUR MORE (459, 461): manuscripts, figures, writings, timeline events — public whole, linked by id; then the portraits (batch D). */
 const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'practicals', 'projects', 'textbooks', 'inserts',
-                   'manuscripts', 'figures', 'writings', 'timeline', 'portraits', 'timelines'];
+                   'manuscripts', 'figures', 'writings', 'timeline', 'portraits', 'timelines', 'specs'];
 let LIBRARY_EXTRA = null;
 /* THE TABLES (459, 461): their file, id prefix, Find kind and the columns that are years (negative is BC). */
 const HIST_DB = [
@@ -211,7 +211,7 @@ function libChapterBody_(r) {
   const list = v => libS(v).split('|').map(s => s.trim()).filter(Boolean).map(libTbItem_);
   return { words: list(r.words), formulas: list(r.formulas),
            points: list(r.points).map(p => ({ text: (p.name ? p.name + ' — ' : '') + p.text, higher: p.higher })),
-           libHas: libS(r.lib_has).trim() };
+           diagram: libS(r.diagram), libHas: libS(r.lib_has).trim() };
 }
 
 /* ---------- THE THREE BLOCKS, MOVED OUT OF `doget.gs` § */
@@ -327,6 +327,7 @@ function libExtrasData_(d, extra) {
 
   /* the history database ------------------------------------------------------------------- (459) every cell a string, the years numbers or null, an event's scene (`px`) its list of lines; a row needs its id. */
   /* EVERY PERSON'S PIXEL PORTRAIT (batch D, tools/people_pix.py) and the TIMELINES (batch F, tools/timelines.py: events by id). */
+  if (extra.specs && extra.specs.length) d.specs = extra.specs.filter(r => r && r.id && r.url && Array.isArray(r.sections));
   if (extra.portraits && extra.portraits.length) d.portraits = extra.portraits.filter(r => r && r.id && Array.isArray(r.px)); if (extra.timelines && extra.timelines.length) d.timelines = extra.timelines.filter(r => r && r.id && Array.isArray(r.events));
   HIST_DB.forEach(t => {
     if (!extra[t.file] || !extra[t.file].length) return;

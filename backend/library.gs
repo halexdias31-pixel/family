@@ -79,7 +79,7 @@ const LIB_BATCH = 200;
 const LIB_TRIES = 3;
 
 function libMigState_() {
-  try { const st = JSON.parse(PropertiesService.getScriptProperties().getProperty(LIB_MIG_KEY) || 'null'); if (st && st.files) return st; } catch (err) {}
+  try { const st = JSON.parse(PropertiesService.getScriptProperties().getProperty(LIB_MIG_KEY) || 'null'); if (st && st.files) return st; } catch (err) { /* a malformed stored value counts as absent */ }
   return { files: {} };
 }
 function libMigSave_(st) { PropertiesService.getScriptProperties().setProperty(LIB_MIG_KEY, JSON.stringify(st)); }
@@ -109,7 +109,7 @@ function libMigrate_() {
   throw new Error('copying in the background — ' + libProgress_(st));
 }
 function libStepUnbook_() {
-  try { ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === LIB_STEP_FN) ScriptApp.deleteTrigger(t); }); } catch (err) {}
+  try { ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === LIB_STEP_FN) ScriptApp.deleteTrigger(t); }); } catch (err) { /* a trigger left behind fires once more and does nothing */ }
 }
 function libStepBook_() {
   libStepUnbook_();
@@ -219,7 +219,7 @@ function libCopy_(o) {
       delete st.error;
       libGenBump_();
       /* WHAT THE SETUP CARD SAYS UNDER THE JOB once it is done (`SAID_<id>`, 379's note). */
-      try { PropertiesService.getScriptProperties().setProperty('SAID_library-to-ledger', JSON.stringify({ said: 'copied from ' + LIB_SOURCE_COMMIT.slice(0, 7) + ' and checked: ' + libProgress_(st) })); } catch (err) {}
+      try { PropertiesService.getScriptProperties().setProperty('SAID_library-to-ledger', JSON.stringify({ said: 'copied from ' + LIB_SOURCE_COMMIT.slice(0, 7) + ' and checked: ' + libProgress_(st) })); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
     }
     return st;
   } finally {
@@ -264,7 +264,7 @@ function libCacheGet_(cache, keys) {
 function libIndex_(def, sh, gen, cache) {
   const key = 'lbi' + gen + ':' + def.tab;
   const had = cache ? libCacheGet_(cache, [key])[key] : null;
-  if (had) { try { return JSON.parse(had); } catch (err) {} }
+  if (had) { try { return JSON.parse(had); } catch (err) { /* a malformed stored value counts as absent */ } }
   const last = sh.getLastRow();
   const at = {};
   if (last > 1) sh.getRange(2, 1, last - 1, 1).getValues().forEach((r, i) => { const id = libCellIn_(r[0]); if (id && !at[id]) at[id] = i + 2; });
@@ -281,7 +281,7 @@ function libContent_(ids) {
   const need = {};
   ids.forEach(t => {
     const text = hit[keyOf(t)];
-    if (text != null) { try { items[t] = JSON.parse(text); return; } catch (err) {} }
+    if (text != null) { try { items[t] = JSON.parse(text); return; } catch (err) { /* a malformed stored value counts as absent */ } }
     const d = libDefOf_(t);
     if (!d) { missing.push(t); return; }
     (need[d.key] = need[d.key] || []).push(d);
@@ -356,7 +356,7 @@ function libTally_(me, ids, cap) {
       if (row) setCells(t, row, vals);
       else addRow(t, Object.assign({ day: day, person_id: pid }, vals));
     }
-    try { cache.put(ckey, JSON.stringify({ n: count, ids: list.split(',') }), LIB_CACHE_S); } catch (err) {}
+    try { cache.put(ckey, JSON.stringify({ n: count, ids: list.split(',') }), LIB_CACHE_S); } catch (err) { /* the cache is an optimisation; a miss just rebuilds */ }
     return { allowed: allowed, refused: refused, left: Math.max(0, cap - count) };
   } finally {
     lock.releaseLock();

@@ -15,33 +15,26 @@ const ANS_MARKABLE = /^(?:(?:ans|pad|board):(?!u:)|draft:device:)/;
 const ansMarkable_ = k => ANS_MARKABLE.test(String(k || ''));
 const ansKeyWho_ = k => { const m = /^(?:ans|pad|board|draft):(u:[^:]+):/.exec(String(k || '')); return m ? m[1] : ''; };
 
-/* THE SERVER'S CEILINGS, said again because the phone must not send what will be refused — and a value it would refuse stays on the device rather than being § */
-/* 20,000 SINCE AN ESSAY BECAME AN ANSWER (9 Oct): at 2,000 a forty-mark essay stopped going to the account
-   at its fourth paragraph. See `ANSWER_TEXT_MAX`. */
+/* THE SERVER'S CEILINGS, said again because the phone must not send what will be refused — and a value it § */
+/* 20,000 SINCE AN ESSAY BECAME AN ANSWER (9 Oct): § */
 const ANS_TEXT_MAX = 20000, ANS_PAD_MAX = 40000, ANS_PER_POST = 25;
-/* AND WHAT A `keepalive` REQUEST MAY CARRY. A browser refuses one over 64 KB, so the flush as the app
-   goes away sends what fits and leaves the rest dirty for next time. */
+/* AND WHAT A `keepalive` REQUEST MAY CARRY. § */
 const ANS_KEEPALIVE_MAX = 60000;
-/* THE STAMP OF AN ANSWER THE ACCOUNT WILL NOT TAKE — over its ceiling, or refused by the server — so it is
-   neither due (it would be refused for ever) nor "saved". The next edit stamps it again and it is asked
-   once more. */
+/* THE STAMP OF AN ANSWER THE ACCOUNT WILL NOT TAKE — over its ceiling, or refused by the server — so it is § */
 const ANS_HERE_ONLY = -1;
 
 /* ---------- WHAT IS ON THIS DEVICE § */
 const ANS_MEM = new Map();
 function ansValue_(k) {
-  /* A KEY THE STORE REFUSED IS READ FROM THE VISIT FIRST (`keepHeld_`, data.js) — the stored copy is
-     older, or nothing, and drawing it is how the next key saved it over the newer one (317). */
+  /* A KEY THE STORE REFUSED IS READ FROM THE VISIT FIRST (`keepHeld_`, data.js) — the stored copy is older § */
   const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
   if (held !== undefined) return held;
   try { return localStorage.getItem(k); } catch (e) { /* storage can be blocked; the app runs without it */ }
   return ANS_MEM.has(k) ? ANS_MEM.get(k) : null;
 }
-/* `words` IS TRUE FOR A WORDED BOX (the essay's too), from the `input` listener in find.js — what
-   `ansJoin_` asks before it puts two answers of one person's together. */
+/* `words` IS TRUE FOR A WORDED BOX (the essay's too), from the `input` listener in find.js — what § */
 function ansLocalPut_(k, v, words) {
-  /* WHAT WAS HERE BEFORE THIS WRITE, which the mark below asks about — read before `ANS_MEM` takes the new
-     value, because a store that throws is read from `ANS_MEM`. */
+  /* THE BOX'S VALUE BEFORE THIS WRITE, which the mark below asks about — read before `ANS_MEM` takes the new § */
   const mark = ansMarkable_(k);
   const was = mark ? ansValue_(k) : null;
   ANS_MEM.set(k, v);
@@ -55,8 +48,7 @@ function ansLocalPut_(k, v, words) {
     try { if (v === null || v === '') CIRC_HELD.delete(k); else CIRC_HELD.set(k, JSON.parse(v)); } catch (e) { /* a bad stored value reads as none */ }
   }
 }
-/* WHEN THE ANSWER IN THIS KEY WAS LAST EDITED, in ms — by this device's child, or by whichever device
-   the server's copy came from. 0 is "never stamped": a value from before this file existed. */
+/* WHEN THE ANSWER IN THIS KEY WAS LAST EDITED, in ms — by this device's child, or by whichever device the § */
 const ANS_AT_MEM = new Map();
 function ansAt_(k) {
   try { return Number(localStorage.getItem('ansAt:' + k)) || 0; } catch (e) { /* storage can be blocked; the app runs without it */ }
@@ -66,9 +58,7 @@ function ansAtSet_(k, at) {
   ANS_AT_MEM.set(k, at);
   try { localStorage.setItem('ansAt:' + k, String(at)); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
-/* WHICH KEYS STILL HAVE TO GO UP, per person. A Set held for the visit and written through to storage,
-   so the list survives a reload, a crash and a sign-out — and goes up the next time that person signs
-   in, on this device. */
+/* WHICH KEYS STILL HAVE TO GO UP, per person. § */
 const ANS_DIRTY = new Map();
 function ansDirtySet_(who) {
   let s = ANS_DIRTY.get(who);
@@ -95,7 +85,7 @@ function ansStore_(k, v, words) {
   const who = ansWhoOf_(k);
   ansAtSet_(k, Date.now());
   if (who) {
-    /* STAMPED ALWAYS (above, signed out too — 318's claim reads it) — the time of the edit is also what tells a draft typed here after the last press from the press § */
+    /* STAMPED ALWAYS (above, signed out too — 318's claim reads it) — the time of the edit is also what tells a § */
     if (ansSyncs_(k)) {
       ansDirtySet_(who).add(k);
       ansDirtyKeep_(who);
@@ -104,8 +94,7 @@ function ansStore_(k, v, words) {
   }
   ansSavedPaint_();
 }
-/* DOES THIS KEY STILL GO TO THE ACCOUNT AS A DRAFT? A drawing always; a typed, picked or ordered answer
-   only to a backend that cannot take the presses (`submitAnswer`), where the draft is all it can keep. */
+/* DOES THIS KEY STILL GO TO THE ACCOUNT AS A DRAFT? § */
 function ansSyncs_(k) {
   return !/^ans:/.test(String(k || '')) || !answersCan_('submitAnswer');
 }
@@ -177,8 +166,7 @@ function ansSavedTake_(d, sent, dirty, who) {
   const won = [];
   sent.forEach(s => {
     const got = d.saved[ansServerKey_(s.k)];
-    /* REFUSED — a key or a size the server will not take. Not due any more; it stays on the device,
-       and its stamp says so. */
+    /* REFUSED — a key or a size the server will not take. § */
     if (!got) { dirty.delete(s.k); ansAtSet_(s.k, ANS_HERE_ONLY); return; }
     /* TYPED OVER WHILE IT WAS ON THE WIRE: still due, and the send that is already booked takes it. */
     if (ansValue_(s.k) !== s.raw) return;
@@ -198,7 +186,7 @@ function ansSavedTake_(d, sent, dirty, who) {
 }
 
 function answersPush_(now, keepalive) {
-  /* THE DEVICE'S OWN QUEUE, not the press that woke it: the card has already changed, so this request holds no control (534). */
+  /* THE DEVICE'S OWN QUEUE, not the press that woke it: § */
   if (typeof pressFree_ === 'function') pressFree_();
   clearTimeout(ANS_TIMER);
   ANS_TIMER = 0;
@@ -207,8 +195,7 @@ function answersPush_(now, keepalive) {
   if (ANS_BUSY) { ANS_AGAIN = true; return ANS_BUSY; }
   const pid = String(USER.personId), who = 'u:' + pid;
   const dirty = ansDirtySet_(who);
-  /* A TYPED ANSWER LEFT DUE FROM BEFORE — marked on an older visit, or before this payload said the
-     backend keeps submissions — is not a draft to send any more: what was SENT is its record. */
+  /* A TYPED ANSWER LEFT DUE FROM BEFORE — marked on an older visit, or before this payload said the backend § */
   let dropped = false;
   [...dirty].forEach(k => { if (!ansSyncs_(k)) { dirty.delete(k); dropped = true; } });
   if (dropped) ansDirtyKeep_(who);
@@ -219,8 +206,7 @@ function answersPush_(now, keepalive) {
     if (items.length >= ANS_PER_POST) break;
     const raw = ansValue_(k);
     const v = ansOutgoing_(k, raw);
-    /* OVER ITS CEILING IT STAYS HERE, and stops being due: the server would refuse it every time. Its
-       stamp says so (`ANS_HERE_ONLY`), so the line under the box does not claim a save that never was. */
+    /* OVER ITS CEILING IT STAYS HERE, and stops being due: § */
     if (v.length > (/^pad:/.test(k) ? ANS_PAD_MAX : ANS_TEXT_MAX)) { dirty.delete(k); ansAtSet_(k, ANS_HERE_ONLY); continue; }
     const item = { key: ansServerKey_(k), v: v, at: ansAt_(k) || Date.now() };
     const len = JSON.stringify(item).length;
@@ -232,14 +218,12 @@ function answersPush_(now, keepalive) {
   }
   ansDirtyKeep_(who);
   if (!items.length) { ansSavedPaint_(); return Promise.resolve(true); }
-  /* `personId` AS WELL AS THE TOKEN — the gate overwrites it with the token's person, and `check-post.js`
-     asks that every handler reading one is sent one. */
+  /* `personId` AS WELL AS THE TOKEN — the gate overwrites it with the token's person, and `check-post.js` § */
   const req = api({ action: 'saveAnswers', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
   ANS_BUSY = Promise.resolve(req)
     .then(d => ansSavedTake_(d, sent, dirty, who))
     .catch(() => {
-      /* REFUSED OR UNREACHED: every key stays due, and it is tried again — sooner at first, then less
-         often, so a phone with no signal is not a request a second. */
+      /* REFUSED OR UNREACHED: § */
       ANS_BACKOFF = Math.min(Math.max(5000, ANS_BACKOFF * 2), 300000);
       clearTimeout(ANS_RETRY);
       ANS_RETRY = setTimeout(() => answersPush_(true), ANS_BACKOFF);
@@ -253,8 +237,7 @@ function answersPush_(now, keepalive) {
       const same = !!USER && String(USER.personId) === pid;
       /* MORE THAN ONE REQUEST'S WORTH, or a flush asked for while this one was out: once more, now. */
       if (ok && same && (again || (dirty.size && items.length >= ANS_PER_POST))) return answersPush_(true);
-      /* TYPED OVER WHILE IT WAS OUT: due again, on the ordinary second and a half — a child typing
-         through a slow reply is still one request per pause, not one per round trip. */
+      /* TYPED OVER WHILE IT WAS OUT: § */
       if (ok && same && dirty.size && !keepalive) answersPush_();
       return ok;
     });
@@ -287,7 +270,7 @@ function answersPull_(force) {
   return p;
 }
 
-/* IS THIS KEY UNDER A FINGER — the box with the focus, or the pad a stroke is on now (`padInUse_`). Never overwritten. */
+/* IS THIS KEY UNDER A FINGER — the box with the focus, or the pad a stroke is on now (`padInUse_`). § */
 function ansHeld_(k) {
   try {
     const a = document.activeElement;
@@ -375,7 +358,7 @@ function answersClaim_(pid, ownOnly) {
     try { localStorage.removeItem('ansAt:' + bare); } catch (e) { /* storage can be blocked; the app runs without it */ }
     if (v === null || !String(v).trim() || v === '[]') return;
     const joined = mark && has ? ansJoin_(bare, mine, v, mark.words) : null;
-    /* WHAT IS WRITTEN OVER IS THE ANSWER THE OLD CODE LEFT, until this person's one-time carry-over has run on this device — and that pass reads the box, so it was § */
+    /* WHAT IS WRITTEN OVER IS THE ANSWER THE OLD CODE LEFT, until this person's one-time carry-over has run on § */
     const over = () => { if (has && typeof subClaimOver_ === 'function') subClaimOver_(k, mine, ansAt_(k)); };
     if (joined !== null) {
       if (joined === mine) return;
@@ -415,7 +398,7 @@ function ansRefresh_(keys) {
       const card = el.closest('.qcard');
       [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-ai')].forEach(m => {
         if (!m) return;
-        /* EXCEPT AN ESSAY'S KEPT AI MARK, which is said again against the words now on the sheet -- fresh if they are the ones it read, "before your changes" if not § */
+        /* EXCEPT AN ESSAY'S KEPT AI MARK, which is said again against the words now on the sheet -- fresh if they § */
         if (m.classList.contains('qp-essay') && m.classList.contains('qp-ai') && typeof aiKeptPaint_ === 'function' && aiKeptPaint_(m, el)) return;
         m.classList.remove('is-right', 'is-near');
         const out = m.querySelector('.qp-verdict');
@@ -445,17 +428,14 @@ function ansFirstName_() {
   try { return String((USER && (USER.name || USER.handle)) || '').trim().split(/\s+/)[0] || ''; }
   catch (e) { return ''; }
 }
-/* ON THE ACCOUNT, AS THIS DEVICE LAST WROTE IT — so a store refusing the device's copy loses nothing
-   that a reload cannot bring back down. Asked by `keepAtRisk_` (data.js) before the browser is told to
-   ask "Leave site?". */
+/* ON THE ACCOUNT, AS THIS DEVICE LAST WROTE IT — so a store refusing the device's copy loses nothing that a § */
 function ansOnAccount_(k) {
   try {
     const who = ansWhoOf_(k);
     if (!who || who !== 'u:' + String(USER.personId)) return false;
     /* A TYPED, PICKED OR ORDERED ANSWER IS ON THE ACCOUNT ONLY AS IT WAS SENT (note 308). § */
     if (/^ans:/.test(k)) {
-      /* AND SAID FROM THE DEVICE'S OWN RECORD OF THE PRESS, before the payload has said which backend it is
-         (`ansSentHere_`, below) — a typed answer to a backend from before submissions is still a draft. */
+      /* AND SAID FROM THE DEVICE'S OWN RECORD OF THE PRESS, before the payload has said which backend it is § */
       if (ansSentHere_(k)) return true;
       if (answersCan_('submitAnswer')) return false;
     }
@@ -518,7 +498,7 @@ function ansGoneMark_(k, v, words, was) {
         && ansKeeps_(k, was === undefined ? ansValue_(k) : was, v)) want = had;
     if (want ? !!had && had.who === want.who && had.words === want.words : !had) return;
     if (want) map[k] = want; else delete map[k];
-    /* AND WHAT NO LONGER NAMES AN ANSWER, while it is open anyway — ASKED OF `ansValue_`, which answers with the visit's copy of a key the store refused. § */
+    /* AND WHAT NO LONGER NAMES AN ANSWER, while it is open anyway — ASKED OF `ansValue_`, which answers with § */
     Object.keys(map).forEach(x => { if (x !== k && ansValue_(x) === null) delete map[x]; });
     ansRecPut_(ANS_GONE_KEYS, Object.keys(map).length ? JSON.stringify(map) : null);
   } catch (e) { /* storage can be blocked; the visit copy still holds */ }
@@ -542,8 +522,7 @@ function ansKeeps_(k, was, v) {
   while (s < a.length - p && s < b.length - p && a[a.length - 1 - s] === b[b.length - 1 - s]) s++;
   return 2 * (p + s) >= a.length;
 }
-/* ONE MARK, READ — `{ who, words }`, or null. A bare string is a mark from before marks said how the
-   answer was typed. */
+/* ONE MARK, READ — `{ who, words }`, or null. § */
 function ansGoneRead_(m) {
   if (!m) return null;
   if (typeof m === 'string') return { who: m, words: false };
@@ -605,7 +584,7 @@ function ansJoin_(bare, mine, v, words) {
   if (String(mine).indexOf(add) !== -1) return mine;
   return String(mine).replace(/\s+$/, '') + '\n\n' + add;
 }
-/* SAVING IS SILENT (368): the line speaks only when an answer is not, or cannot be, on the account -- "Saved to Ada's account" told a child what they knew */
+/* SAVING IS SILENT (368): § */
 const ANS_QUIET = /^(Saved to|Sent to|Saving|Sending|On this device until you send it)/;
 function ansSavedSay_(k) {
   const say = ansSavedWords_(k);
@@ -617,8 +596,7 @@ function ansSavedWords_(k) {
   const v = ansValue_(k);
   if (v === null || !String(v).trim() || v === '[]') return ansGoneSay_(k);
   const who = ansWhoOf_(k);
-  /* REFUSED BY THE STORE AND NOT ON THE ACCOUNT EITHER — the one line that must never say "on this
-     device", because it is on no device. `keepPut_` in data.js. */
+  /* REFUSED BY THE STORE AND NOT ON THE ACCOUNT EITHER — the one line that must never say "on this device" § */
   if (typeof KEEP_UNKEPT !== 'undefined' && KEEP_UNKEPT.has(k) && !ansOnAccount_(k)) return ANS_NOT_KEPT;
   if (!who) return 'On this device only — sign in to keep it';
   /* A CARD STILL ON THE SCREEN FROM BEFORE A SIGN-OUT names somebody, with nobody signed in: never theirs. */
@@ -724,7 +702,7 @@ function findVerdictShown_(id) {
       el => !!String(el.textContent || '').trim());
   } catch (e) { return false; }
 }
-/* THE REDRAW IT HELD BACK, once nothing is held — a moment after leaving the box, so a tap that moved the focus from one box to the next (focusout, then focusin) § */
+/* THE REDRAW IT HELD BACK, once nothing is held — a moment after leaving the box, so a tap that moved the § */
 let FIND_KEPT_TIMER = 0;
 document.addEventListener('focusout', () => {
   clearTimeout(FIND_KEPT_TIMER);

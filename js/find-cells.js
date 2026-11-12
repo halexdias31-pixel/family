@@ -20,8 +20,7 @@ function markSpoken_(s) {
 }
 
 /* ---------- A WORDED ANSWER OF A MARK OR TWO, MARKED BY RULE BEFORE ANY AI (359) */
-/* `mark_words`: points split by `;`, a mark each; ways by `|`; words that must all be there joined by `+`; a number is
-   compared as a number. Words are matched on their stems, and a word straight after "not" or "no" does not count. */
+/* `mark_words`: points split by `;`, a mark each; ways by `|`; words that must all be there joined by `+`; a number is compared as a number. § */
 const MW_STOP = /^(the|a|an|of|to|is|it|and|or|in|on|be|as|so|by|at|for)$/;
 function mwStem_(w) {
   /* a full stop ends the sentence, not the word: "No." is "no" and "the same." is "same" */
@@ -87,8 +86,18 @@ function cellsOf_(x) {
     return { label: m ? m[1].trim() : String(i + 1), ways: ways === '-' ? '' : ways };
   });
 }
+/* EVERY BLANK TYPED IN THE FIRST BOX ("chemical, kinetic"): split on commas, `;` or "and", in order, when that gives one a blank. */
+function cellsOneBox_(vals, cells) {
+  const v = vals || [], asked = cells.filter(c => c.ways).length;
+  if (asked < 2 || v.slice(1).some(s => String(s || '').trim())) return v;
+  const bits = String(v[0] || '').split(/\s*(?:[,;]|\band\b)\s*/i).map(s => s.trim()).filter(Boolean);
+  if (bits.length !== asked) return v;
+  let n = 0;
+  return cells.map(c => (c.ways ? bits[n++] : ''));
+}
 /* EACH CELL MARKED ON ITS OWN by `markAnswer_`: `{ right, of, each }`, `each[i]` true, false, or null for nothing typed. */
 function markCells_(vals, cells) {
+  vals = cellsOneBox_(vals, cells);
   const each = cells.map((c, i) => c.ways ? markAnswer_(vals[i] || '', c.ways) : undefined);
   const asked = each.filter(v => v !== undefined);
   return { right: asked.filter(v => v === true).length, of: asked.length, each: each };
@@ -419,8 +428,7 @@ function padAdopt_(k, bare) {
   } catch (e) { /* storage blocked: the answer stays on the page only */ }
 }
 
-/* THE PICTURE IT DRAWS ON: its figure, else its stem's, else its own surface (a drawn part's a grid) -- for a drawn part (qType_) at once, for any
-   other part from its first Pen tap (`PEN_OPEN`, qtools.js) or once it has marks saved. */
+/* THE PICTURE IT DRAWS ON: § */
 /* OPTIONS OR CELLS ARE THE ANSWER where a row has them (as before round 3): their pen waits for its first tap, so the card is not drawn smaller under a pen it may never use */
 const padPicked_ = x => !!x && ((Array.isArray(x.choices) && x.choices.length >= 2) || (typeof cellsOf_ === 'function' && cellsOf_(x).length > 0));
 /* KEPT ON THE CARD per library generation (930): `stuffPages_` asks it of every result, and each ask copied the whole row (`workRow_`) -- seconds on a phone. */

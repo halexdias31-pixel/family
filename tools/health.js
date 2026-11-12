@@ -123,8 +123,13 @@ function uniformWork() {
       if (/<button\b/.test(l) && !/\b(?:key|opt|choice|chip|pad|form|dlg|dialog|sheet|close|field)\b|type="submit"/.test(l)) W.push({ kind: 'raw-button', where: at, say: l.trim().slice(0, 120) });
       if (/class="tile(?:\s|")/.test(l)) W.push({ kind: 'hand-tile', where: at, say: 'a tile written by hand, not tile_(): ' + l.trim().slice(0, 100) });
       if (/style="[^"$]*[a-z-]+\s*:[^"$]*"/.test(l)) W.push({ kind: 'inline-style', where: at, say: (/style="[^"]*"/.exec(l) || [''])[0].slice(0, 100) });
-      if (/(?:Loading|Please wait|Working)(?:…|\.\.\.)|class="[^"]*\bspinner\b|setAttribute\('aria-busy', 'true'\)/.test(l)) W.push({ kind: 'own-wait', where: at, say: 'a wait not via loading_(): ' + l.trim().slice(0, 100) });
     }); });
+  /* OWN WAITS: js/check-loading.js's own findings, so the score and the check never disagree. */
+  let waits = [];
+  try { waits = JSON.parse(execFileSync(process.execPath, ['js/check-loading.js', '--json'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })); }
+  catch (e) { waits = ['js/check-loading.js: would not run — ' + e.message.slice(0, 80)]; }
+  waits.forEach(b => { const m = /^([\w./-]+\.(?:js|css|html):\d+): ([\s\S]*)$/.exec(b);
+    W.push({ kind: 'own-wait', where: m ? (/^(?:js|check|tools)\//.test(m[1]) || /^(?:style|index)\./.test(m[1]) ? m[1] : 'js/' + m[1]) : 'js/check-loading.js', say: (m ? m[2] : b).slice(0, 140) }); });
   /* A CLASS style.css styles that one app line uses and no other rule shares: one component's whole class, kept in mind for one place. */
   const used = {}; const blob = Object.values(jsAll).join('\n') + read('index.html') + read('js/tiles.js') + SHELL_FILES.map(read).join('');
   for (const m of blob.matchAll(/class="([^"$]+)"/g)) m[1].split(/\s+/).forEach(c => { used[c] = (used[c] || 0) + 1; });
@@ -348,14 +353,17 @@ function answerWidths(css) {
         say: `${sel} sizes an answer box its own way (${sz.map(d => d.join(': ')).join('; ')}); one width, --ans-w` }); }); }
   return out;
 }
-/* ONE TEMPLATE (owner, 11 Nov): of every card made, how many go through findCard/card_ rather than writing class="card" (js/check-one-template.js). */
+/* ONE TEMPLATE (owner, 11 Nov): of every card made, how many go through findCard/card_ rather than writing class="card" (tools/one-template.js, which js/check-one-template.js gates). */
 function oneTemplate() {
-  let bad = [];
-  try { execFileSync(process.execPath, ['js/check-one-template.js'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' }); }
-  catch (e) { bad = String(e.stderr || '').split('\n').filter(l => /^ {2}\S/.test(l)).map(l => { const t = l.trim(), at = /^([^:]+:\d+)/.exec(t); return { kind: 'one-template', where: at ? at[1] : 'js/check-one-template.js', say: t }; }); }
-  const html = read('index.html'), files = [...new Set([...html.matchAll(/'([a-z][\w-]*)'/g)].map(m => 'js/' + m[1] + '.js'))].filter(f => fs.existsSync(path.join(ROOT, f)));
-  const made = files.reduce((a, f) => a + (blank(read(f)).match(/(?<!function )\b(?:card_|findCard)\(/g) || []).length, 0);
+  const T = require('./one-template.js').oneTemplate();
+  const bad = T.bad.map(t => { const at = /^([^:]+:\d+)/.exec(t); return { kind: 'one-template', where: at ? at[1] : 'js/check-one-template.js', say: t }; }), made = T.made;
   return { ok: made, of: made + bad.length, work: bad };
+}
+/* THE ONE TEMPLATE AS RENDERED (owner, 12 Nov): tools/template-health.js drives every role at 390 and 820 and reads each card's computed shape; read here, never re-run. */
+function templateRendered() {
+  const j = jread('data/template-health.json');
+  if (!j) return { rules: [], work: [{ kind: 'tpl-built', where: 'data/template-health.json', say: 'missing — run node tools/template-health.js; the rendered cards were NOT checked' }] };
+  return { rules: (j.rules || []).map(r => Object.assign(rule(r.id, 'ui', r.label, r.ok, r.of), { unit: r.unit, variety: r.variety })), work: j.work || [] };
 }
 function ui() {
   const raw = read('style.css'), css = raw.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -369,30 +377,22 @@ function ui() {
   const seen = new Map(), reset = new Set();
   plain.forEach((r, b) => { const props = new Set(r.body.split(';').map(d => (/^\s*([\w-]+)\s*:/.exec(d) || [])[1]).filter(k => k && !k.startsWith('--')));
     const had = seen.get(r.sel); if (had) props.forEach(p => { if (had.has(p)) reset.add(b); had.add(p); }); else seen.set(r.sel, props); });
-  /* THE PALETTE: the :root tokens whose value is a colour; a colour is either one of them or a literal. */
-  const isCol = v => /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/.test(v), colTok = new Set();
-  for (const r of rules.filter(r => /^:root\b/.test(r.sel))) for (const d of r.body.matchAll(/(--[\w-]+)\s*:\s*([^;]+)/g)) if (isCol(d[2]) || /^var\(--[\w-]+\)$/.test(d[2].trim())) colTok.add(d[1]);
-  const usesCol = d => isCol(d.v) || [...d.v.matchAll(/var\((--[\w-]+)/g)].some(x => colTok.has(x[1]));
-  /* THE SCALE: a size is a token (var(--…)), a zero, auto or a keyword; a written length is off the scale. */
-  const LEN = /(?<![\w.-])-?(?:\d*\.)?\d+(?:px|rem|em|vh|vw|%|ch)\b/;
-  const offScale = v => LEN.test(v.replace(/var\([^()]*\)/g, '').replace(/(?<![\w.])0(?![\w.%])/g, ''));
-  const fonts = decls.filter(d => d.k === 'font-size' || (d.k === 'font' && !/^(?:inherit|initial|unset)$/.test(d.v)));
-  const space = decls.filter(d => /^(?:margin|padding)(?:-(?:top|right|bottom|left|inline|block)(?:-start|-end)?)?$|^(?:row-|column-)?gap$/.test(d.k));
-  const radius = decls.filter(d => /^border(?:-[a-z]+)*-radius$/.test(d.k));
-  const fontOff = d => d.k === 'font' ? offScale((/^(?:(?:italic|normal|bold|\d00)\s+)*(\S+)/.exec(d.v) || [])[1] || '') : offScale(d.v);
-  const AW = answerWidths(raw), OT = oneTemplate();
-  const work = uniformWork().concat(uxWork().work, ownerWork(), AW.bad, OT.work), k = {};
+  /* THE SCALE AND PALETTE: tools/css-scale.js, the same reading js/check-scale.js gates on. */
+  const SC = require('./css-scale.js').cssScale(raw).measure, sc = k => [SC[k].ok, SC[k].of];
+  const AW = answerWidths(raw), OT = oneTemplate(), TH = templateRendered();
+  const work = uniformWork().concat(uxWork().work, ownerWork(), AW.bad, OT.work, TH.work), k = {};
   work.forEach(w => { k[w.kind] = (k[w.kind] || 0) + 1; });
   const P = UNIFORM_POP || {}, n = id => k[id] || 0;
   const R = [
     rule('important', 'ui', 'CSS rule-blocks that win without !important', ...blocks(() => true, d => /!important/.test(d.v))),
     rule('order', 'ui', 'CSS rule-blocks that set no property a block of the same selector set before', ...blocks(() => true, d => reset.has(d.b))),
-    rule('colourlit', 'ui', 'CSS rule-blocks with colours whose colours are all palette tokens', ...blocks(usesCol, d => isCol(d.v))),
-    rule('font-scale', 'ui', 'CSS rule-blocks with a font size, all from the --fs scale', ...blocks(d => fonts.includes(d), fontOff)),
-    rule('space-scale', 'ui', 'CSS rule-blocks with margins, paddings or gaps, all from the --s scale', ...blocks(d => space.includes(d), d => offScale(d.v))),
-    rule('radius-scale', 'ui', 'CSS rule-blocks with a corner radius, all from the radius tokens', ...blocks(d => radius.includes(d), d => offScale(d.v.replace(/\b50%/g, '')))),
+    rule('colourlit', 'ui', 'CSS rule-blocks with colours whose colours are all palette tokens', ...sc('colour')),
+    rule('font-scale', 'ui', 'CSS rule-blocks with a font size, all from the --fs scale', ...sc('font')),
+    rule('space-scale', 'ui', 'CSS rule-blocks with margins, paddings or gaps, all from the --s scale', ...sc('space')),
+    rule('radius-scale', 'ui', 'CSS rule-blocks with a corner radius, all from the radius tokens', ...sc('radius')),
     rule('answer-width', 'ui', 'Answer-box width rules on the one width', AW.of - AW.bad.length, AW.of),
     rule('one-template', 'ui', 'Cards made on the one template (findCard/card_)', OT.ok, OT.of),
+    ...TH.rules,
     rule('makers', 'ui', 'Tiles made by tile_() rather than by hand', P.tiles, P.tiles + n('raw-button') + n('hand-tile'), ['raw-button', 'hand-tile']),
     rule('inline-style', 'ui', 'Elements in markup with no inline style', P.tags - n('inline-style'), P.tags),
     rule('once-class', 'ui', 'Styled classes used in more than one place', P.classes - n('once-class'), P.classes),
@@ -464,6 +464,8 @@ function fnUnits(file, src) {
 function structure() {
   const F = [], push = (file, line, kind, text, units) => F.push({ file, line, kind, text: String(text).trim().slice(0, 160), units });
   const seen = new Map(), pop = { files: 0, fns: 0, units: 0, catches: 0 }, bad = { 'one-off': new Set(), dup: new Set(), nest: new Set() };
+  /* EMPTY CATCHES: tools/catches.js, the count js/check-catches.js gates. */
+  require('./catches.js').emptyCatches(coreFiles()).forEach(c => push(c.file, c.line, 'catch', c.text, 1));
   coreFiles().forEach(file => {
     const L = read(file).split('\n'); pop.files++;
     if (L.length > 1500) push(file, 1501, 'big-file', `${L.length} lines, ${L.length - 1500} over the 1500 budget`, L.length - 1500);
@@ -476,7 +478,7 @@ function structure() {
       pop.catches += (code.match(/\bcatch\b/g) || []).length;
       if (depth > 5) bad.nest.add(U[i]);
       if (ONE_OFF.test(code.replace(DOM_EVENT, '')) && !SHARED_TESTS.includes(file)) { push(file, i + 1, 'one-off', raw, 1); bad['one-off'].add(U[i]); }
-      if (/catch\s*(?:\(\s*\w*\s*\))?\s*\{\s*\}/.test(code)) push(file, i + 1, /catch\s*(?:\([^)]*\))?\s*\{\s*\}/.test(raw) ? 'catch' : 'deliberate', raw, 1);
+      if (/catch\s*(?:\(\s*\w*\s*\))?\s*\{\s*\}/.test(code) && !/catch\s*(?:\([^)]*\))?\s*\{\s*\}/.test(raw)) push(file, i + 1, 'deliberate', raw, 1);
       const m = before === 0 && /^(?:async\s+)?function\s+([\w$]+)|^(?:const|let|var)\s+([\w$]+)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>\s*\{|[\w$]+\s*=>\s*\{)/.exec(raw);
       if (m) { fn = { name: m[1] || m[2], at: i }; pop.fns++; }
       if (depth === 0 && fn) {
@@ -535,10 +537,8 @@ function extraWork(st) {
   /* TWO ANSWERS THAT DIFFER ONLY IN A DIGIT are two things (1813 and 1843, Part 1 and Part 2), not one misspelt. */
   const digitsOnly = m => { const p = /: (.*) ~ (.*)$/.exec(m.say); const z = t => t.replace(/\d+|\b[IVXLC]+\b/g, '#'); return p && z(p[1]) === z(p[2]); };
   ((L && L.menuSense) || []).filter(m => !['thin', 'zero-count', 'answer-words', 'mangled-text', 'merged-value'].includes(m.kind) && !(m.kind === 'spelling' && digitsOnly(m))).forEach(m => W.push({ kind: 'menu-sense', part: 'logic', where: m.where, say: m.kind + ': ' + m.say }));
-  /* DEAD CODE, from stability's own check-dead run: one item per function nothing calls. */
-  const dead = ((st.signals || []).find(x => x.id === 'dead') || {}).where || {};
-  String(dead['check-dead'] || '').split(', ').filter(Boolean).forEach(d => { const m = /^(\w+) \(([\w.-]+)\)$/.exec(d);
-    W.push({ kind: 'dead', part: 'code', where: m ? 'js/' + m[2] : d, say: (m ? m[1] : d) + ' is never called' }); });
+  /* DEAD CODE: tools/dead.js, the list check-dead fails on and stability weighs: one item per function nothing calls. */
+  require('./dead.js').deadFunctions().forEach(d => W.push({ kind: 'dead', part: 'code', where: (d.side === 'backend' ? 'backend/' : 'js/') + d.file, say: d.name + ' is never called' }));
   /* SIZE BUDGETS (920): each first-download file and their total, against data/settings/size-budgets.json (current + 5% when set). */
   const budget = jread('data/settings/size-budgets.json');
   const sizes = firstDownload();
@@ -553,8 +553,10 @@ function extraWork(st) {
   W.push(...require('./rules.js').ownerQuestions().work);
   return { work: W, skipped, sizes };
 }
+/* THE RENDERED TEMPLATE'S RULES (tools/template-health.js). */
+const TPL_KINDS = ['tpl-built', 'tpl-order', 'tpl-picture', 'tpl-tags', 'tpl-tag-look', 'tpl-title', 'tpl-tiles', 'tpl-tile-size', 'tpl-pic-size', 'tpl-stray', 'tpl-width', 'tpl-centre', 'tpl-font', 'tpl-colour', 'tpl-radius', 'tpl-inline', 'tpl-spacing', 'tpl-same', 'tpl-variety-kind', 'tpl-variety'];
 /* THE CHECK IDS health.js prices, for the rulebook's coverage. */
-const knownChecks = st => [FIND_KINDS, UX_KINDS, UNIFORM_KINDS, STRUCT, EXTRA_KINDS, VARIETY_KINDS].flat()
+const knownChecks = st => [FIND_KINDS, UX_KINDS, UNIFORM_KINDS, STRUCT, EXTRA_KINDS, VARIETY_KINDS, TPL_KINDS].flat()
   .concat((st.signals || []).map(x => x.id), ['important', 'pxlit', 'colourlit', 'order', 'selectors', 'zindex', 'position'],
     ['font-scale', 'space-scale', 'radius-scale', 'answer-width', 'one-template', 'makers', 'one-place', 'biz-checker', 'exceptions', 'ceilings', 'markers', 'truth-facts', 'truth-lists', 'truth-labels'], ['read-bytes', 'search-bytes', 'comment-ratio', 'big-notes', 'spread', 'test-biggest', 'tombstones', 'claude-lines', 'effort']);
 /* THE BUSINESS AREA (1060): how much of the business the site runs (one-place.json), and the checker's own faults; the card goes live. */
@@ -643,7 +645,7 @@ const EXTRA_KINDS = ['field', 'answer', 'menu-sense', 'backend', 'resilience', '
 
 /* THE SCORE (owner, 12 Nov): every measure is a rule over a countable population; the total is the plain average of the rules, no weights, no caps. */
 const MEANS = "the share of the site's rules that are followed, each rule counted equally";
-const GROUPS = { code: 'Code', logic: 'Find logic', ui: 'Design and UI', cost: 'AI cost', business: 'Business' };
+const GROUPS = { code: 'Code', logic: 'Find logic', ui: 'Design and UI', cost: 'AI cost', business: 'Business', content: 'Library content' };
 /* KINDS SCORED INSIDE ANOTHER RULE, or listed only: own-wait is variety-wait's, text-boxes variety-textbox's, biz-checker business's, deliberate a chosen fallback. */
 const LISTED_ONLY = new Set(['deliberate']);
 function healthRules(st, L, U, S, work, X, C, B) {
@@ -742,6 +744,10 @@ function health() {
   const L = logic(), U = ui(), S = structure(), work = findWork(L), X = extraWork(st), C = require('./ai-cost.js').aiCost(), B = business();
   /* ONE TRUTH, ONE PLACE (owner, 12 Nov): facts, file lists and id labels written once — tools/one-truth.js. */
   const OT = require('./one-truth.js').oneTruth(); X.work.push(...OT.work); B.rules = B.rules.concat(OT.rules);
+  /* THE SPECIFICATION IS WHAT MUST EXIST (owner, 12 Nov): tools/coverage.js maps lessons, questions and figures onto every spec point. */
+  const CV = jread('data/coverage-health.json');
+  if (!CV) X.work.push({ kind: 'spec-lesson', part: 'content', where: 'data/coverage-health.json', say: 'missing — run node tools/coverage.js; the spec points were NOT counted' });
+  else { X.work.push(...(CV.work || []).map(w => Object.assign({ part: 'content' }, w))); B.rules = B.rules.concat(CV.rules || []); }
   const R = healthRules(st, L, U, S, work, X, C, B), avg = rs => rs.length ? r1(rs.reduce((a, r) => a + r.ok / r.of, 0) / rs.length * 100) : 100;
   const overall = avg(R), pts = r => r1((r.of - r.ok) / r.of / R.length * 100);
   /* WHAT ONE FIX GAINS, in points of the total: a share of its rule's one point. */
@@ -888,7 +894,7 @@ function fix() {
     : sel + '{' + body.replace(/(^|;)(\s*)(?!--)([\w-]+\s*:[^;]*)/g, (d, a, w, decl) => a + w + /var\(/.test(decl) ? decl : decl.replace(/#[0-9a-fA-F]{3,8}\b/g, h => tok[h.toLowerCase()] ? (n++, `var(${tok[h.toLowerCase()]})`) : h)) + '}');
   if (n) { fs.writeFileSync(path.join(ROOT, 'style.css'), css); done.push(`style.css: ${n} colour literal(s) → their single-definition token`); }
   const cc = read('js/check-catches.js'), m = /const CEILING = (\d+);/.exec(cc);
-  if (m) { const now = Number((/(\d+) empty catch blocks/.exec(execFileSync(process.execPath, ['js/check-catches.js'], { cwd: ROOT, encoding: 'utf8' })) || [])[1]);
+  if (m) { const now = require('./catches.js').emptyCatches().length;
     if (now && now < Number(m[1])) { fs.writeFileSync(path.join(ROOT, 'js/check-catches.js'), cc.replace(m[0], `const CEILING = ${now};`)); done.push(`check-catches ceiling ${m[1]} → ${now}`); } }
   const empty = structure().findings.filter(f => f.kind === 'catch').length;
   done.forEach(d => console.log('fixed: ' + d));

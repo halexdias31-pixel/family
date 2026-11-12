@@ -94,26 +94,6 @@ function rulesMark_() {
 }
 rulesMark_();
 
-/* ---------- THE RULES CARD (Site column, admin only): one line a rule, a two-state switch, and Undo for the last change ---------- */
-function rulesCard_() {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return '';
-  const s = rulesNow_() || { set: {}, hist: [] };
-  const last = s.hist[s.hist.length - 1];
-  const lastR = last && RULE_OF_(last.id);
-  const row = r => {
-    const uni = !ruleOn_(r.id);
-    const opt = (to, label) => tile_({ form: true, look: 'btn quiet rule-opt' + ((to === 'universal') === uni ? ' on' : ''), act: 'rule-set', data: { rule: r.id, to: to }, pressed: (to === 'universal') === uni, html: label });
-    return `<div class="row rule-item${r.lock ? ' is-locked' : ''}" data-rule="${esc(r.id)}">
-      <p class="rule-say">${esc(r.say)} ${qtag_(`${esc(r.where)}`)}</p>
-      ${r.lock ? ''
-        : `<div class="rule-sw" role="group" aria-label="${esc(r.say)}">${opt('exception', 'Exception')}${opt('universal', 'Universal')}</div>
-      `}</div>`;
-  };
-  return card_(`<div class="biz rules-card"><h3>Rules</h3>
-    ${RULES.map(row).join('')}
-    <div class="tile-row">${tile_({ icon: 'undo', label: 'Undo', note: lastR ? 'back to ' + ruleStored_(lastR, last.was) + ': ' + lastR.say.slice(0, 60) : 'nothing to undo', act: 'rules-undo', tone: 'admin', off: !last })}</div>
-    <p class="note rules-said" aria-live="polite"></p></div>`);
-}
 function rulesSend_(body, el) {
   if (!USER || !(typeof isAdmin === 'function' && isAdmin())) return;
   const card = el.closest('.rules-card');

@@ -6,8 +6,7 @@ on('qp-ai', (el) => {
   const why = box && box.nextElementSibling && box.nextElementSibling.classList.contains('qp-ai-why')
     ? box.nextElementSibling : null;
   if (!inp || !out || el.disabled || (box && box.classList.contains('is-busy'))) return;
-  /* AN ESSAY'S KEPT POINTS STAY UNDER IT UNTIL NEW ONES ARRIVE (`aiKeep_`): a request that fails must not
-     take away the only feedback the pupil has. A short answer's sentence goes, as it always did. */
+  /* AN ESSAY'S KEPT POINTS STAY UNDER IT UNTIL NEW ONES ARRIVE (`aiKeep_`): § */
   const essayBox = box.classList.contains('qp-essay');
   box.classList.remove('is-right', 'is-near');
   if (why && !essayBox) why.textContent = '';
@@ -40,8 +39,7 @@ on('qp-ai', (el) => {
   const letGo = typeof markWait_ === 'function' ? markWait_() : null;
   const here = typeof markWhere_ === 'function' && markWhere_(k);
   el.disabled = true;
-  /* THE TILE'S OWN RING WHILE IT WAITS (`.tile.is-busy`), on the tile as well as the row: a disabled
-     tile loses its plate, which says "nothing to press" -- the wrong sentence for "pressed, marking". */
+  /* THE TILE'S OWN RING WHILE IT WAITS (`.tile.is-busy`), on the tile as well as the row: § */
   box.classList.add('is-busy');
   el.classList.add('is-busy');
   out.textContent = '';
@@ -281,6 +279,5 @@ document.addEventListener('pointerdown', e => {
   const k = e.target && e.target.closest && e.target.closest('#kp .kp-key');
   if (k && k.getAttribute('data-v') === ' ') KP_SPACE = { id: e.pointerId, x0: e.clientX, on: false };
 }, true);
-/* A HELD FINGER MOVING THE CARET IS NOT A SCROLL: the box allows panning (`touch-action: manipulation`), so the
-   browser would take the drag and cancel the pointer; refused here only while the caret or a handle is held */
+/* A HELD FINGER MOVING THE CARET IS NOT A SCROLL: § */
 document.addEventListener('touchmove', e => { if ((kpBusy_() || (KP_SPACE && KP_SPACE.on)) && e.cancelable) e.preventDefault(); }, { capture: true, passive: false });

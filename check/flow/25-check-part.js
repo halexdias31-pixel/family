@@ -1,9 +1,9 @@
 /* ---------- THE FILL-IN STANDARD ON THE REAL LIBRARY (523): every part asking to fill in is answered in its cells ---------- */
 check('the fill-in standard: every library part that asks to fill something in shows its cells, in its own table where it has one, and its own answers mark every cell right', async () => {
-  const SC = require('../check/schema.js');
+  const SC = require('../check/library-schema.js');
   const LIB = LIB_FULL.rows('questions');
   const ask = LIB.filter(r => r.kind === 'question' && r.active !== 'False' && SC.fillIn(r.html) && !(SC.CELLS_EXEMPT[r.row_id] && !String(r.cells || '').trim())
-    /* A PART WHOSE SCHEME IS STILL OWED (584, questions only) has no answers to make cells from, as check/schema.js says. */
+    /* A PART WHOSE SCHEME IS STILL OWED (584, questions only) has no answers to make cells from, as check/library-schema.js says. */
     && !(SC.schemeOwed(r) && !String(r.cells || '').trim()));
   /* A PENDING PART WHOSE WORDS HERE ARE OLDER THAN ITS CARD (a fresh clone before `pull`, docs/library.md) is not asked. */
   const asks = ask.filter(r => !LIB_FULL.waits('questions', r)), waiting = ask.length - asks.length;
@@ -1213,3 +1213,19 @@ check('the Ledger not answering keeps the card\'s words — "Couldn’t load thi
   return bad;
 });
 
+
+/* ---------- A WORD BANK'S BLANKS MARK BY RULE (owner, 12 Nov: "Chemical, kinetic" went to the AI) ---------- */
+check('a word bank with blanks marks by rule, never the AI: the cyclist part is cells, and "Chemical, kinetic" in one box marks both', async () => {
+  const row = LIB_FULL.rows('questions').find(r => r.row_id === 'Q-W-AT-P-energy-2a');
+  if (!row) return ['Q-W-AT-P-energy-2a is not in the library — NOT checked'];
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.qtMarker_ !== 'function' || typeof w.markCells_ !== 'function') return ['qtMarker_ or markCells_ not reachable — NOT checked'];
+  if (w.qtMarker_(row) !== 'cells') bad.push('the cyclist part is marked by ' + w.qtMarker_(row) + ', not its cells');
+  const cs = w.cellsOf_(row);
+  const m = (v) => w.markCells_(v, cs);
+  [[['Chemical, kinetic'], 2], [['chemical and Kinetic', ''], 2], [['CHEMICAL', 'kinetic'], 2], [['kinetic, chemical'], 0], [['chemical'], 1]]
+    .forEach(([v, want]) => { const got = m(v).right; if (got !== want) bad.push(JSON.stringify(v) + ' marked ' + got + ' right, wanted ' + want); });
+  return bad;
+});

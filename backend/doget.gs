@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-12-discount-shared-1";
+const DOGET_VERSION = "2026-11-12-specs-dates-1";
 
 
 function doGet(e) {
@@ -143,7 +143,7 @@ function getCatchUp_(p, askedBy_) {
   const migrated = (p.run || p.setup) ? autoMigrate_() : null;
   /* AND ON AN ADMIN'S PAGE LOAD (361), so "open the site once" after a deploy is the whole of setup; a visitor never waits on it. */
   if (!p.run && !p.setup && p.token) {
-    try { const a = askedBy_(); if (a && hasRole(a, 'admin')) setupOnAdminLoad_(); } catch (err) {}
+    try { const a = askedBy_(); if (a && hasRole(a, 'admin')) setupOnAdminLoad_(); } catch (err) { /* admin setup is best-effort; the page loads without it */ }
   }
 
   /* ---------- AND THE SHEET SAYS SO ITSELF, ONCE § */
@@ -208,9 +208,9 @@ function getKeepAndSend_(payload, cacheKey) {
     /* THROUGH THE NET BEFORE IT IS KEPT, because the kept body goes out by `jsonRaw_` and never meets
        `jsonOut` (`kidNamesOff_`, people.gs — no child's surname leaves). The fresh half meets it in
        `freshFor_`. */
-    try { kidNamesOff_(payload); } catch (err) {}
+    try { kidNamesOff_(payload); } catch (err) { /* a strip that finds nothing to strip leaves the payload as it is */ }
     /* AND NO PRICE TO A CHILD (398) — kept per viewer, so a child's kept body is a child's. */
-    try { kidPricesOff_(payload); } catch (err) {}
+    try { kidPricesOff_(payload); } catch (err) { /* a strip that finds nothing to strip leaves the payload as it is */ }
     const fresh = {};
     ['submissions', 'films', 'favLinks', 'messages', 'filmsSync', 'setup', 'claudeNotes'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
     const body = JSON.stringify(payload);
@@ -278,7 +278,7 @@ function freshFor_(viewer) {
     try { out.claudeNotes = claudeNotesOpen_(); } catch (err) { out.claudeNotes = []; }
   }
   /* THE NET, for the half laid on a kept body — which goes out through `jsonRaw_`, not `jsonOut`. */
-  try { kidNamesOff_(out); } catch (err) {}
+  try { kidNamesOff_(out); } catch (err) { /* a strip that finds nothing to strip leaves the payload as it is */ }
   return out;
 }
 function payloadWithFresh_(body, fresh, cached) {
@@ -310,7 +310,7 @@ function mediaOut_(cap) {
         thumb: S(r.thumb), subject: S(r.subject), tags: S(r.tags), vkind: S(r.vkind),
         age: age ? String(age) : '', notes: S(r.notes) });
     });
-  } catch (err) {}
+  } catch (err) { /* a broken media tab gives an empty shelf, not a failed load */ }
   return out;
 }
 
@@ -351,7 +351,7 @@ function filmShares_(rows) {
   const put = {};
   rows.forEach(function (r) {
     const id = S(r.drive_id), k = FILMS_SHARE_PREFIX + id;
-    if (kept[k] != null) { try { const v = JSON.parse(kept[k]); if (v) out[id] = v; return; } catch (err) {} }
+    if (kept[k] != null) { try { const v = JSON.parse(kept[k]); if (v) out[id] = v; return; } catch (err) { /* a malformed stored value counts as absent */ } }
     try {
       const x = S(r.file_kind) === 'folder' ? DriveApp.getFolderById(id) : DriveApp.getFileById(id);
       if (!x) return;
@@ -364,7 +364,7 @@ function filmShares_(rows) {
       put[k] = JSON.stringify(out[id]);
     } catch (err) { put[k] = 'null'; /* NOT READABLE IS NOT SHARED, and kept so: hidden from all but the admin. */ }
   });
-  try { if (cache && Object.keys(put).length) cache.putAll(put, FILMS_SHARE_TTL_S); } catch (err) {}
+  try { if (cache && Object.keys(put).length) cache.putAll(put, FILMS_SHARE_TTL_S); } catch (err) { /* the cache is an optimisation; a miss just rebuilds */ }
   return out;
 }
 
@@ -389,7 +389,7 @@ function submissionsTouched_(pid) {
     const now = String(Date.now());
     props.setProperty('SUBS_AT:' + S(pid), now);
     props.setProperty('SUBS_AT:*people', now);
-  } catch (err) {}
+  } catch (err) { /* script properties are best-effort here; the next run tries again */ }
 }
 /* ONE READ OF THE TAB, SHAPED BOTH WAYS — this person's latest per key, and everybody's summary. § */
 function submissionsBuild_(pid, people) {
@@ -433,10 +433,10 @@ function submissionsFor_(me, isAdmin) {
   if (!mine || (isAdmin && !people)) {
     const built = submissionsBuild_(pid, isAdmin);
     mine = built.mine;
-    try { cachePut_(keyMine, JSON.stringify(mine)); } catch (err) {}
+    try { cachePut_(keyMine, JSON.stringify(mine)); } catch (err) { /* the cache is an optimisation; a miss just rebuilds */ }
     if (isAdmin) {
       people = built.people;
-      try { cachePut_(keyPeople, JSON.stringify(people)); } catch (err) {}
+      try { cachePut_(keyPeople, JSON.stringify(people)); } catch (err) { /* the cache is an optimisation; a miss just rebuilds */ }
     }
   }
   out.mine = mine || {};

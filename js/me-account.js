@@ -91,7 +91,7 @@ function meRest_() {
 /* ---------- THE BUILD STAMPS, FOR WHEN SOMETHING HAS CHANGED AND HAS NOT § */
 /* THE BUILD CARD IS ITS LINES, so they are no grey clutter (A+): `build-said` keeps them past the rule that hides a card's grey lines. */
 function versionSaid_() {
-  return `<p class="build-said" style="text-align:center">@family. · Merton &amp; Wandsworth<br>
+  return `<p class="build-said">@family. · Merton &amp; Wandsworth<br>
       site ${esc(SITE_VERSION)} · css ${esc(cssVersion())}<br>
       backend ${esc(dash_(DATA.version))}</p>
       ${(() => {
@@ -106,51 +106,6 @@ function versionSaid_() {
               ? 'that file' : 'those files'} into Apps Script.</p>`
           : '';
       })()}`;
-}
-
-/* ---------- THE SETUP CARD (361): what has set itself up since the last deploy, for an admin only ----------
-   No buttons: every job runs by itself on an admin's page load, so there is nothing to press twice. */
-function setupWhen_(iso) {
-  const d = new Date(String(iso || ''));
-  if (isNaN(d)) return String(iso || '');
-  return date_(d) + ' ' + time_(d);
-}
-/* A JOB'S LINK — the tidy's backup copy (379) — only when it is an https address, opened beside the app. */
-function setupJobLink_(j) {
-  const url = String((j && j.link) || '');
-  if (url.slice(0, 8) !== 'https://') return '';
-  return ` <a href="https://${esc(url.slice(8))}" target="_blank" rel="noopener">Open the backup</a>`;
-}
-function setupCard_() {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return '';
-  const S_ = DATA && DATA.setup;
-  /* IN THE BUSINESS COLUMN (400), and it glows while something is wrong — `bizNeed_` in records.js. */
-  const need = (n, say) => typeof bizNeed_ === 'function' ? bizNeed_('setup', n, say) : '';
-  if (!S_) {
-    return typeof awaiting_ === 'function' && awaiting_()
-      ? card_(`<div class="setup-card" data-need="setup">${need(0)}<h3>Setup</h3>${loading_()}</div>`)
-      : card_(`<div class="setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Not deployed')}</div>`);
-  }
-  if (S_.error) return card_(`<div class="setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Setup failed')}</div>`);
-  const files = S_.files || {};
-  const odd = Object.keys(files).filter(k => files[k] !== S_.backend);
-  const jobs = Array.isArray(S_.jobs) ? S_.jobs : [];
-  const failed = jobs.filter(j => j && j.error);
-  const sun = S_.sunday || {};
-  const mode = { send: 'on — it emails parents', preview: 'preview — it writes the log and emails nobody' }[sun.mode] || 'off — nothing is sent';
-  const wrong = failed.length + (odd.length ? 1 : 0);
-  return card_(`<div class="setup-card" data-need="setup"><h3>Setup</h3>
-    ${need(wrong, wrong + (wrong === 1 ? ' thing to fix' : ' things to fix'))}
-    ${failed.map(j => `<p class="setup-bad">${esc(j.id)} failed: ${esc(j.error)} — it tries again on the next page load.</p>`).join('')}
-    <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} ${qtag_(`${j.ran
-      ? esc(j.ran === 'yes' ? 'done' : setupWhen_(j.ran)) : j.error ? 'failed' : 'waiting'}`)}${
-      /* WHAT THE JOB LEFT TO SAY — the tidy's backup copy and what it removed (379). */
-      j.said ? `<br>${qtag_(`${esc(j.said)}`)}` : ''}${
-      setupJobLink_(j)}</li>`).join('')}</ul>
-    <h4>Triggers</h4>
-    <ul class="setup-list">${(S_.triggers || []).map(t => `<li>${esc(t.fn)}${t.times > 1 ? ' ×' + esc(t.times) : ''} ${qtag_(`${esc(t.when)}`)}</li>`).join('')
-      || ''}</ul>
-  </div>`);
 }
 
 /* ---------- APPLY TO TEACH (400): Staff only by application and an admin's yes ----------
@@ -213,14 +168,14 @@ function applyFormHtml_() {
   const doc = (k, label) => `<div class="field apply-doc" data-doc="${k}"><span>${esc(label)}</span>
       <div class="btn-row">${tile_({ form: true, kind: 'quiet', label: APPLY_DOCS[k] ? 'Change photo' : 'Choose photo', act: 'apply-pick' })}</div>
       <p class="note apply-doc-said">${APPLY_DOCS[k] ? 'Photo ready.' : ''}</p>${formFile_('apply-in', 'image/*')}</div>`;
-  const ref = n => `<div class="f-row" style="--n:2">${box(`ref${n}Name`, 'name')}${box(`ref${n}Relationship`, 'relationship to you')}</div>
-    <div class="f-row" style="--n:2">${box(`ref${n}Email`, 'email', { type: 'email' })}${box(`ref${n}Phone`, 'phone', { type: 'tel' })}</div>`;
+  const ref = n => `<div class="f-row">${box(`ref${n}Name`, 'name')}${box(`ref${n}Relationship`, 'relationship to you')}</div>
+    <div class="f-row">${box(`ref${n}Email`, 'email', { type: 'email' })}${box(`ref${n}Phone`, 'phone', { type: 'tel' })}</div>`;
   return `<div class="me-form app-form">
     <h4>You</h4>
     ${box('fullName', 'full name')}
-    <div class="f-row" style="--n:2">${box('phone', 'phone', { type: 'tel' })}${box('email', 'email', { type: 'email' })}</div>
+    <div class="f-row">${box('phone', 'phone', { type: 'tel' })}${box('email', 'email', { type: 'email' })}</div>
     ${area('address', 'home address')}
-    <div class="f-row" style="--n:2">${box('postcode', 'postcode', { more: 'autocapitalize="characters"' })}${box('dob', 'date of birth', { type: 'date' })}</div>
+    <div class="f-row">${box('postcode', 'postcode', { more: 'autocapitalize="characters"' })}${box('dob', 'date of birth', { type: 'date' })}</div>
     <h4>Documents</h4>
     ${doc('idDoc', 'photo ID — passport or driving licence')}
     ${formLine_('right to work in the UK', formSelect_('data-app="rightToWork"', '<option value="">Choose</option><option value="yes">Yes</option><option value="no">No</option>'))}
@@ -230,7 +185,7 @@ function applyFormHtml_() {
     ${Array.from({ length: APPLY_QUAL_SLOTS }, (_, i) => doc('qual' + i, i ? 'another qualification certificate (optional)' : 'a qualification certificate')).join('')}
     ${box('rate', 'hourly rate (£)', { type: 'number', more: 'min="1" step="0.5" inputmode="decimal"' })}
     <h4>Checks</h4>
-    <div class="f-row" style="--n:2">${box('dbsNumber', 'enhanced DBS certificate number')}${box('dbsIssued', 'issued on', { type: 'date' })}</div>
+    <div class="f-row">${box('dbsNumber', 'enhanced DBS certificate number')}${box('dbsIssued', 'issued on', { type: 'date' })}</div>
     ${formTick_('data-app="dbsUpdate"', '<span>I consent to you checking it on the DBS Update Service</span>')}
     ${formTick_('data-app="dbsNeeded"', '<span>I need a DBS check</span>')}
     <h4>When and where</h4>
@@ -645,7 +600,7 @@ function registerCard_() {
             ''}
       ${/* THE NAMES AND THE ADDRESS ARE DRAFTS (data.js; docs/history/317) — the sheet closed by a tap outside, or the page reloaded, and they were gone. § */
             ''}
-      <div class="f-row" style="--n:2">
+      <div class="f-row">
         ${formLine_('first name', formInput_(`id="reg-first" autocomplete="off"${draftAttr_('reg', 'first')} value="${esc(draftVal_('reg', 'first'))}"`))}
         ${formLine_('last name', formInput_(`id="reg-last" autocomplete="off"${draftAttr_('reg', 'last')} value="${esc(draftVal_('reg', 'last'))}"`))}
       </div>

@@ -165,7 +165,7 @@ function postMarkWorking_(body, action, began) {
           clearCache();
           const out = submissionsAppend_(pid, [{ id: id, key: k, answer: typed.trim() || WORKING_ANSWER, verdict: 'ai:' + got.awarded + '/' + avail,
             label: S(body.label), words: S(body.words), at: body.sent, photos: links.join(' ') }], body.sent);
-          if (out.wrote) { try { SpreadsheetApp.flush(); } catch (err) {} submissionsTouched_(pid); }
+          if (out.wrote) { try { SpreadsheetApp.flush(); } catch (err) { /* flush is an early write; Apps Script writes at the end anyway */ } submissionsTouched_(pid); }
           saved = !out.error;
         } finally { lock.releaseLock(); }
       }
@@ -302,7 +302,7 @@ function postSubmitAnswer_(body, action, began) {
     out = submissionsAppend_(S(me.person_id), items, body.sent);
     /* WRITTEN, THEN FLUSHED, THEN SAID — the stamp `submissionsFor_` keys this child's copy by moves only once the rows are on the sheet for another request to read § */
     if (out.wrote) {
-      try { SpreadsheetApp.flush(); } catch (err) {}
+      try { SpreadsheetApp.flush(); } catch (err) { /* flush is an early write; Apps Script writes at the end anyway */ }
       submissionsTouched_(S(me.person_id));
     }
   } finally {

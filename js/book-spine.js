@@ -777,7 +777,7 @@ function bookFocusBack_(k) {
   if (!card) return;
   const el = [...card.querySelectorAll('[data-do]')].find(x => x.tagName === k.tag && bookDataOf_(x) === k.data
     && (k.value === null || x.value === k.value));
-  if (el && !el.disabled && document.activeElement !== el) { try { el.focus({ preventScroll: true }); } catch (e) {} }
+  if (el && !el.disabled && document.activeElement !== el) { try { el.focus({ preventScroll: true }); } catch (e) { /* focus is a nicety; an old browser without the option still works */ } }
 }
 
 /* BOOKING, AS A COLUMN `bookingPages_` ALREADY BUILDS THIS and has done since the form was folded into the funnel — it answers `What for · Booking`, and it § */

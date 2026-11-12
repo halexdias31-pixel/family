@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-12-discount-shared-1";
+const DOPOST_VERSION = "2026-11-12-specs-dates-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -636,7 +636,7 @@ function aiQuotaDay_(text) {
 function aiSpend_(model, until) {
   const s = Math.min(AI_SPENT_MAX_S, Math.ceil((Number(until) - Date.now()) / 1000));
   if (!(s >= 1)) return;
-  try { CacheService.getScriptCache().put('AI_SPENT:' + S(model).slice(0, 200), String(until), s); } catch (e) {}
+  try { CacheService.getScriptCache().put('AI_SPENT:' + S(model).slice(0, 200), String(until), s); } catch (e) { /* the cache is an optimisation; a miss just rebuilds */ }
 }
 /* WHEN THAT MODEL IS BACK, in ms since 1970 -- 0 if nothing is remembered, or it is back already. */
 function aiSpentUntil_(model) {
@@ -665,7 +665,7 @@ function aiMarkTimed_(began, take, essay, got) {
       + (first ? (first.at - began) + ' ms before the first ask (the take ' + take + ' ms); ' : 'the take ' + take + ' ms; ')
       + (steps.length ? steps.join(', ') : 'Gemini not asked') + '; '
       + (got && !got.error && got.model ? 'marked by ' + got.model : 'no mark -- ' + (got ? S(got.error).slice(0, 120) : 'it threw')));
-  } catch (e) {}
+  } catch (e) { /* timing log only; the mark is already made */ }
 }
 /* THE MODEL THAT ANSWERED, from the response's `modelVersion`, else the name asked for. § */
 function aiServed_(text, model) {
@@ -799,10 +799,10 @@ function loginReplyFor_(r, token, extra) {
   const meId = S(r.person_id);
   /* ---------- `out.profile = {}` WAS HERE, AND IT THREW AWAY `profileOf_` TEN LINES AFTER USING IT § */
   /* ---------- AND WHAT THE PAYLOAD WOULD HAVE BROUGHT FIFTEEN SECONDS LATER § */
-  try { out.submissions = submissionsFor_(r, hasRole(r, 'admin')); } catch (err) {}
-  try { out.favourites = favouritesOf_(r); } catch (err) {}
-  try { const fam = familyOf_(r); out.family = fam.family; out.familyFor = fam.familyFor; } catch (err) {}
-  try { out.answers = answersFor_(meId); } catch (err) {}
+  try { out.submissions = submissionsFor_(r, hasRole(r, 'admin')); } catch (err) { /* one missing section must not lose the rest of the reply */ }
+  try { out.favourites = favouritesOf_(r); } catch (err) { /* one missing section must not lose the rest of the reply */ }
+  try { const fam = familyOf_(r); out.family = fam.family; out.familyFor = fam.familyFor; } catch (err) { /* one missing section must not lose the rest of the reply */ }
+  try { out.answers = answersFor_(meId); } catch (err) { /* one missing section must not lose the rest of the reply */ }
   if (extra) Object.assign(out, extra);
   return jsonOut(out);
 }
@@ -871,6 +871,13 @@ function submissionsAppend_(pid, items, sent) {
 function answerAtMs_(v) {
   if (v instanceof Date) return isNaN(v) ? 0 : v.getTime();
   if (typeof v === 'number') return isFinite(v) ? v : 0;
+  /* A SLASHED DAY IS READ BY WHICH HALF CAN BE A MONTH, UK when either could: Date.parse reads US and NaNs "20/10/2026" (owner, 12 Nov). */
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(S(v).trim());
+  if (m) {
+    const a = +m[1], b = +m[2], us = a <= 12 && b > 12;
+    const d = new Date(+m[3], (us ? a : b) - 1, us ? b : a, +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+    return isNaN(d) ? 0 : d.getTime();
+  }
   const t = Date.parse(S(v));
   return isNaN(t) ? 0 : t;
 }

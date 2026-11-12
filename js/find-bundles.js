@@ -314,7 +314,7 @@ function stuffPageHtml(n) {
   if (pg.slim) return rowsOne_(libWaitHtml_(pg.x) + findTopRow_());
   /* ONE TILE ROW PER THING (489, 495): a card's own row holds `Top` (950); a part page without one gets this one. */
   const html = pg.part === 'q' && pg.parts ? questionWhole_(pg.x, pg.parts, pg.open, pg.ans)
-    : pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits);
+    : pg.part ? partCard_(pg.x, pg.part) : stuffCard(pg.x, credits);
   return rowsOne_(html + (/data-do="find-top"/.test(html) ? '' : findTopRow_()));
 }
 /* BACK TO TOP (463): "a button to scroll back to the top of the finder"; on a kept card outside one, its column scrolls up. */
@@ -480,15 +480,9 @@ function filterChips() {
       const show = chipText_(f, i), key = spellKey_(show);
       if (said[key]) return '';
       said[key] = 1;
-      return `
-      <span class="chip sm" data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}>
-        ${/* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it. */ ''}
-        ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody made and has to be able to unmake. § */
-             ''}
-        ${/* ---------- THE CHIP SHOWS WHAT THE BUTTON SHOWED, NOT WHAT IT MATCHES ON § */
-             ''}
-        ${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}
-      </span>`;
+      /* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it; a skip is a chip like any other. */
+      return qtag_(`${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}`,
+        ` data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}`, 'sm', 'chip');
     }).join('')}
   </div>`;
 }

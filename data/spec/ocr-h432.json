@@ -1,0 +1,307 @@
+{
+ "id": "ocr-h432",
+ "board": "OCR",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Chemistry",
+ "code": "H432",
+ "url": "https://www.ocr.org.uk/Images/171720-specification-accredited-a-level-gce-chemistry-a-h432.pdf",
+ "sections": [
+  {
+   "id": "1",
+   "title": "Development of"
+  },
+  {
+   "id": "2",
+   "title": "Foundations in"
+  },
+  {
+   "id": "3",
+   "title": "Periodic table and"
+  },
+  {
+   "id": "4",
+   "title": "Core organic"
+  },
+  {
+   "id": "5",
+   "title": "Physical chemistry"
+  },
+  {
+   "id": "6",
+   "title": "Organic chemistry"
+  }
+ ],
+ "points": [
+  {
+   "id": "1.1.1",
+   "text": "Planning",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.1.2",
+   "text": "Implementing",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.1.3",
+   "text": "Analysis",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.1.4",
+   "text": "Evaluation",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.2.1",
+   "text": "Practical skills",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "1.2.2",
+   "text": "Use of apparatus and techniques",
+   "parent": "1",
+   "links": []
+  },
+  {
+   "id": "2.1.1",
+   "text": "Atomic structure and isotopes",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.1.2",
+   "text": "Compounds, formulae and equations",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.1.3",
+   "text": "Amount of substance",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.1.4",
+   "text": "Acids",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.1.5",
+   "text": "Redox",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.2.1",
+   "text": "Electron structure",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "2.2.2",
+   "text": "Bonding and structure",
+   "parent": "2",
+   "links": []
+  },
+  {
+   "id": "3.1.1",
+   "text": "Periodicity",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.1.2",
+   "text": "Group 2",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.1.3",
+   "text": "The halogens",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.1.4",
+   "text": "Qualitative analysis",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Enthalpy changes",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.2.2",
+   "text": "Reaction rates",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "3.2.3",
+   "text": "Chemical equilibrium",
+   "parent": "3",
+   "links": []
+  },
+  {
+   "id": "4.1.1",
+   "text": "Basic concepts of organic chemistry",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.1.2",
+   "text": "Alkanes",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.1.3",
+   "text": "Alkenes",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.2.1",
+   "text": "Alcohols",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.2.2",
+   "text": "Haloalkanes",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.2.3",
+   "text": "Organic synthesis",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "4.2.4",
+   "text": "Analytical techniques",
+   "parent": "4",
+   "links": []
+  },
+  {
+   "id": "5.1.1",
+   "text": "How fast?",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.1.2",
+   "text": "How far?",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.1.3",
+   "text": "Acids, bases and buffers",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.2.1",
+   "text": "Lattice enthalpy",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.2.2",
+   "text": "Enthalpy and entropy",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.2.3",
+   "text": "Redox and electrode potentials",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.3.1",
+   "text": "Transition elements",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "5.3.2",
+   "text": "Qualitative analysis",
+   "parent": "5",
+   "links": []
+  },
+  {
+   "id": "6.1.1",
+   "text": "Aromatic compounds",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.1.2",
+   "text": "Carbonyl compounds",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.1.3",
+   "text": "Carboxylic acids and esters",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.2.1",
+   "text": "Amines",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.2.2",
+   "text": "Amino acids, amides and chirality",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.2.3",
+   "text": "Polyesters and polyamides",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.2.4",
+   "text": "Carbon–carbon bond formation",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.2.5",
+   "text": "Organic synthesis",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.3.1",
+   "text": "Chromatography and qualitative analysis",
+   "parent": "6",
+   "links": []
+  },
+  {
+   "id": "6.3.2",
+   "text": "Spectroscopy",
+   "parent": "6",
+   "links": []
+  }
+ ]
+}

@@ -125,8 +125,8 @@ function findCard(x, credits) {
     (parts.form ? ['pic', 'head', 'tags', 'lines', 'form', 'act'] : KC_PARTS).map(p => `<div class="kc-${p}">${parts[p]}</div>`).join('')}</div>`;
 }
 
-/* THE ONE TAG MAKER (one way only): `inner` is HTML the caller escaped, `attrs` its data-* attributes, `cls` extra classes. */
-function qtag_(inner, attrs, cls) { return `<span class="qtag${cls ? ' ' + cls : ''}"${attrs || ''}>${inner}</span>`; }
+/* THE ONE TAG MAKER (one way only): `inner` is HTML the caller escaped, `attrs` its attributes, `cls` extra classes; `base` a tutor pill or a filter chip. */
+function qtag_(inner, attrs, cls, base) { return `<span class="${base || 'qtag'}${cls ? ' ' + cls : ''}"${attrs || ''}>${inner}</span>`; }
 /* EVERY OTHER CARD COMES HERE TOO (owner, 11 Nov: one template): its maker writes a plain `<div class="x">…</div>`; a form inside stays whole, the booking form's too. */
 const KC_FORMY = /<(input(?![^>]*type="hidden")|select|textarea|form)\b|\bkc-items\b/;
 function card_(html, kind, called) {

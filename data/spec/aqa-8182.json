@@ -1,0 +1,75 @@
+{
+ "id": "aqa-8182",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Psychology",
+ "code": "8182",
+ "url": "https://filestore.aqa.org.uk/resources/psychology/specifications/AQA-8182-SP-2017.PDF",
+ "sections": [
+  {
+   "id": "3.1",
+   "title": "Cognition and behaviour"
+  },
+  {
+   "id": "3.2",
+   "title": "Social context and behaviour"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.1.1",
+   "text": "Memory",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.2",
+   "text": "Perception",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.3",
+   "text": "Development",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.4",
+   "text": "Research methods",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.4.1",
+   "text": "Data handling",
+   "parent": "3.1.4",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Social influence",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2",
+   "text": "Language, thought and communication",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.3",
+   "text": "Brain and neuropsychology",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.4",
+   "text": "Psychological problems",
+   "parent": "3.2",
+   "links": []
+  }
+ ]
+}

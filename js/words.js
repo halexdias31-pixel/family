@@ -160,13 +160,6 @@ function seenOk_(id) {
   if (s === 'in') return signed;
   return typeof rankAtLeast_ === 'function' && rankAtLeast_(s);
 }
-/* THE CODE'S OWN GATE, where it is known: a widget's flags, a card on an admin column; '' when it is for everyone or decided inside its builder. */
-function seenGate_(id) {
-  const w = typeof anyWidgetOf_ === 'function' ? anyWidgetOf_(id) : null;
-  if (w) return w.admin ? 'admin' : w.tutor ? 'staff' : w.signedIn ? 'in' : '';
-  try { if (adminCol_(cardHome0_(id))) return 'admin'; } catch (e) {}
-  return '';
-}
 /* A LEVEL BELOW THE CODE'S GATE WOULD WIDEN IT, so it is not offered (and would not work: both are asked). */
 const seenWider_ = (lvl, gate) => !!gate && lvl !== '' && (lvl === 'out' || SEEN_ORDER.indexOf(lvl) < SEEN_ORDER.indexOf(gate));
 function seenBox_(id) {

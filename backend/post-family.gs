@@ -82,7 +82,7 @@ function postFindChild_(body, action, began) {
     const n = Number(c.get(ck) || 0);
     if (n >= 20) return jsonOut({ error: 'That is a lot of looking — try again in a few minutes.' });
     c.put(ck, String(n + 1), 600);
-  } catch (e) {}
+  } catch (e) { /* a broken counter lets the look through rather than block it */ }
   const want = S(body.handle).replace(/^@/, '').trim();
   if (!want) return jsonOut({ success: true, child: null });
   const r = read(TAB.people).rows.find(x => norm(mainRole(x)) === 'student' && S(x.handle) && key(x.handle) === key(want));
@@ -98,7 +98,7 @@ function postRaiseHand_(body, action, began) {
   if (!me) return jsonOut({ error: 'Not signed in.' });
   const staff = rankAtLeast_(me, 'staff');
   const lock = LockService.getScriptLock();
-  try { lock.waitLock(5000); } catch (e) {}
+  try { lock.waitLock(5000); } catch (e) { /* the lock lapses on its own; going ahead unlocked is the old behaviour */ }
   try {
     const all = handsRead_();
     if (action === 'raiseHand') {
@@ -117,7 +117,7 @@ function postRaiseHand_(body, action, began) {
     const vis = staff ? seesWhom_(me) : null;
     if (staff) out.hands = Object.keys(all).map(k => all[k]).filter(h => !vis || vis[S(h.personId)]).sort((a, b) => a.at - b.at);
     return jsonOut(out);
-  } finally { try { lock.releaseLock(); } catch (e) {} }
+  } finally { try { lock.releaseLock(); } catch (e) { /* the lock lapses on its own; going ahead unlocked is the old behaviour */ } }
 }
 
 /* The child answering. Only the child named in the row, and only once. */

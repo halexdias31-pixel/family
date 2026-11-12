@@ -1,0 +1,395 @@
+{
+ "id": "sta-ks1-maths",
+ "board": "Standards & Testing Agency",
+ "qualification": "KS1 SATs",
+ "level": "KS1",
+ "subject": "Maths",
+ "code": "KS1 maths",
+ "url": "https://www.gov.uk/government/publications/key-stage-1-mathematics-test-framework/key-stage-1-mathematics-test-framework",
+ "sections": [
+  {
+   "id": "N",
+   "title": "Number and place value"
+  },
+  {
+   "id": "C",
+   "title": "Calculations"
+  },
+  {
+   "id": "F",
+   "title": "Fractions"
+  },
+  {
+   "id": "M",
+   "title": "Measurement"
+  },
+  {
+   "id": "G",
+   "title": "Geometry: properties of shape"
+  },
+  {
+   "id": "P",
+   "title": "Geometry: position and direction"
+  },
+  {
+   "id": "S",
+   "title": "Statistics"
+  }
+ ],
+ "points": [
+  {
+   "id": "1N1a",
+   "text": "count to and across 100, forward and backwards, beginning with 0 or 1, or from any given number",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "2N1",
+   "text": "count in steps of 2, 3 and 5, from 0, and in tens from any number, forward or backward",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "1N1b",
+   "text": "count in multiples of twos, fives and tens",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "1N2a",
+   "text": "count, read and write numbers to 100 in numerals",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "2N2a",
+   "text": "read and write numbers to at least 100 in numerals and in words",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "1N2b",
+   "text": "given a number, identify one more and one less",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "2N2b",
+   "text": "compare and order numbers from 0 up to 100; use <, > and = signs",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "1N2c",
+   "text": "read and write numbers from 1 to 20 in numerals and words",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "2N3",
+   "text": "recognise the place value of each digit in a two-digit number (tens and ones)",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "1N4",
+   "text": "identify and represent numbers using objects and pictorial representations including the number line, and use the language of: equal to…",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "2N4",
+   "text": "identify, represent and estimate numbers using different representations, including the number line",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "2N6",
+   "text": "use place value and number facts to solve problems",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "1C1",
+   "text": "represent and use number bonds and related subtraction facts within 20",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "2C1",
+   "text": "recall and use addition and subtraction facts to 20 fluently, and derive and use related facts up to 100",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "1C2a",
+   "text": "add and subtract one-digit and two-digit numbers to 20, including zero",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "2C2a",
+   "text": "add and subtract numbers mentally, including: • a two-digit number and ones • a two-digit number and tens • two two-digit numbers • adding…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "2C2b",
+   "text": "add and subtract numbers using concrete objects and pictorial representations, including: • a two-digit number and ones • a two-digit…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "1C2b",
+   "text": "read, write and interpret mathematical statements involving addition (+), subtraction (–) and equals (=) signs",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "2C3",
+   "text": "recognise and use the inverse relationship between addition and subtraction and use this to check calculations and missing number problems",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "1C4",
+   "text": "solve one-step problems that involve addition and subtraction, using concrete objects and pictorial representations, and missing number…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "2C4",
+   "text": "solve problems with addition and subtraction: • using concrete objects and pictorial representations, including those involving numbers…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "2C6",
+   "text": "recall and use multiplication and division facts for the 2, 5 and 10 multiplication tables, including recognising odd and even numbers",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "2C7",
+   "text": "calculate mathematical statements for multiplication and division within the multiplication tables and write them using the multiplication…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "1C8",
+   "text": "solve one-step problems involving multiplication and division, by calculating the answer using concrete objects, pictorial representations…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "2C8",
+   "text": "solve problems involving multiplication and division, using materials, arrays, repeated addition, mental methods, and multiplication and…",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "2C9a",
+   "text": "show that addition of two numbers can be done in any order (commutative) and subtraction of one number from another cannot",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "2C9b",
+   "text": "show that multiplication of two numbers can be done in any order (commutative) and division of one number by another cannot",
+   "parent": "C",
+   "links": []
+  },
+  {
+   "id": "1F1a",
+   "text": "recognise, find and name a half as one of two equal parts of an object, shape or quantity",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "2F1a",
+   "text": "recognise, find, name and write fractions 1/3 (one-third), 1/4 (one-quarter), 2/4 (two-quarters) and 3/4 (three-quarters) of a length…",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "1F1b",
+   "text": "recognise, find and name a quarter as one of four equal parts of an object, shape or quantity",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "2F1b",
+   "text": "write simple fractions [for example, 1/2 (one-half) of 6 = 3]",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "2F2",
+   "text": "recognise the equivalence of 2/4 (two-quarters) and 1/2 (one-half)",
+   "parent": "F",
+   "links": []
+  },
+  {
+   "id": "1M1",
+   "text": "compare, describe and solve practical problems for: • lengths and heights [for example, long / short, longer / shorter, tall / short…",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "2M1",
+   "text": "compare and order lengths, mass, volume / capacity and record the results using >, < and =",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "1M2",
+   "text": "measure and begin to record the following: • lengths and heights • mass / weight • capacity and volume • time (hours, minutes, seconds)",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "2M2",
+   "text": "choose and use appropriate standard units to estimate and measure length / height in any direction (m / cm); mass (kg / g); temperature…",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "1M3",
+   "text": "recognise and know the value of different denominations of coins and notes",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "2M3a",
+   "text": "recognise and use symbols for pounds (£) and pence (p); combine amounts to make a particular value",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "2M3b",
+   "text": "find different combinations of coins that equal the same amounts of money",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "1M4a",
+   "text": "tell the time to the hour and half past the hour and draw the hands on a clock face to show these times",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "2M4a",
+   "text": "tell and write the time to five minutes, including quarter past / to the hour and draw the hands on a clock face to show these times",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "1M4b",
+   "text": "sequence events in chronological order using language [for example, before and after, next, first, today, yesterday, tomorrow, morning…",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "2M4b",
+   "text": "compare and sequence intervals of time",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "1M4c",
+   "text": "recognise and use language relating to dates, including days of the week, weeks, months and years",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "2M4c",
+   "text": "know the number of minutes in an hour and the number of hours in a day",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "2M9",
+   "text": "solve simple problems in a practical context involving addition and subtraction of money of the same unit, including giving change",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "1G1a",
+   "text": "recognise and name common 2-D shapes [for example, rectangles (including squares), circles and triangles]",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "2G1a",
+   "text": "compare and sort common 2-D shapes and everyday objects",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "1G1b",
+   "text": "recognise and name common 3-D shapes [for example, cuboids (including cubes), pyramids and spheres]",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "2G1b",
+   "text": "compare and sort common 3-D shapes and everyday objects",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "2G2a",
+   "text": "identify and describe the properties of 2-D shapes, including the number of sides and line symmetry in a vertical line",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "2G2b",
+   "text": "identify and describe the properties of 3-D shapes, including the number of edges, vertices and faces",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "2G3",
+   "text": "identify 2-D shapes on the surface of 3-D shapes [for example, a circle on a cylinder and a triangle on a pyramid]",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "2P1",
+   "text": "order and arrange combinations of mathematical objects in patterns and sequences",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "1P2",
+   "text": "describe position, directions and movement, including half, quarter and three-quarter turns",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "2P2",
+   "text": "use mathematical vocabulary to describe position, direction and movement, including movement in a straight line and distinguishing between…",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "2S1",
+   "text": "interpret and construct simple pictograms, tally charts, block diagrams and simple tables",
+   "parent": "S",
+   "links": []
+  },
+  {
+   "id": "2S2a",
+   "text": "ask and answer simple questions by counting the number of objects in each category and sorting the categories by quantity",
+   "parent": "S",
+   "links": []
+  },
+  {
+   "id": "2S2b",
+   "text": "ask and answer questions about totalling and comparing categorical data",
+   "parent": "S",
+   "links": []
+  }
+ ]
+}

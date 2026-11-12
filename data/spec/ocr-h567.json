@@ -1,0 +1,24 @@
+{
+ "id": "ocr-h567",
+ "board": "OCR",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Psychology",
+ "code": "H567",
+ "url": "https://www.ocr.org.uk/Images/171732-specification-accredited-a-level-gce-psychology-h567.pdf",
+ "sections": [
+  {
+   "id": "C1",
+   "title": "Research methods (Component 01)"
+  },
+  {
+   "id": "C2",
+   "title": "Psychological themes through core studies (Component 02)"
+  },
+  {
+   "id": "C3",
+   "title": "Applied psychology (Component 03)"
+  }
+ ],
+ "points": []
+}

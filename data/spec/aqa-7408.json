@@ -1,0 +1,971 @@
+{
+ "id": "aqa-7408",
+ "board": "AQA",
+ "qualification": "A-level",
+ "level": "A-Level",
+ "subject": "Physics",
+ "code": "7408",
+ "url": "https://filestore.aqa.org.uk/resources/physics/specifications/AQA-7407-7408-SP-2015.PDF",
+ "sections": [
+  {
+   "id": "3.1",
+   "title": "Measurements and their errors"
+  },
+  {
+   "id": "3.2",
+   "title": "Particles and radiation"
+  },
+  {
+   "id": "3.3",
+   "title": "Waves"
+  },
+  {
+   "id": "3.4",
+   "title": "Mechanics and materials"
+  },
+  {
+   "id": "3.5",
+   "title": "Electricity"
+  },
+  {
+   "id": "3.6",
+   "title": "Further mechanics and thermal physics (A-level only)"
+  },
+  {
+   "id": "3.7",
+   "title": "Fields and their consequences (A-level only)"
+  },
+  {
+   "id": "3.8",
+   "title": "Nuclear physics (A-level only)"
+  },
+  {
+   "id": "3.9",
+   "title": "Astrophysics (A-level only)"
+  },
+  {
+   "id": "3.10",
+   "title": "Medical physics (A-level only)"
+  },
+  {
+   "id": "3.11",
+   "title": "Engineering physics (A-level only)"
+  },
+  {
+   "id": "3.12",
+   "title": "Turning points in physics (A-level only)"
+  },
+  {
+   "id": "3.13",
+   "title": "Electronics (A-level only)"
+  }
+ ],
+ "points": [
+  {
+   "id": "3.1.1",
+   "text": "Use of SI units and their prefixes",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.1.3",
+   "text": "Estimation of physical quantities",
+   "parent": "3.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1",
+   "text": "Particles",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.1.1",
+   "text": "Constituents of the atom",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.2",
+   "text": "Stable and unstable nuclei",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.4",
+   "text": "Particle interactions",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.5",
+   "text": "Classification of particles",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.1.7",
+   "text": "Applications of conservation laws",
+   "parent": "3.2.1",
+   "links": []
+  },
+  {
+   "id": "3.2.2",
+   "text": "Electromagnetic radiation and quantum phenomena",
+   "parent": "3.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.1",
+   "text": "The photoelectric effect",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.2",
+   "text": "Collisions of electrons with atoms",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.3",
+   "text": "Energy levels and photon emission",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.2.2.4",
+   "text": "Wave-particle duality",
+   "parent": "3.2.2",
+   "links": []
+  },
+  {
+   "id": "3.3.1",
+   "text": "Progressive and stationary waves",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.1.1",
+   "text": "Progressive waves",
+   "parent": "3.3.1",
+   "links": []
+  },
+  {
+   "id": "3.3.1.2",
+   "text": "Longitudinal and transverse waves",
+   "parent": "3.3.1",
+   "links": []
+  },
+  {
+   "id": "3.3.1.3",
+   "text": "Principle of superposition of waves and formation of stationary waves",
+   "parent": "3.3.1",
+   "links": []
+  },
+  {
+   "id": "3.3.2.1",
+   "text": "Interference",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.2.2",
+   "text": "Diffraction",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.3.2.3",
+   "text": "Refraction at a plane surface",
+   "parent": "3.3",
+   "links": []
+  },
+  {
+   "id": "3.4.1.1",
+   "text": "Scalars and vectors",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.1.2",
+   "text": "Moments",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.1.3",
+   "text": "Motion along a straight line",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.1.5",
+   "text": "Newton’s laws of motion",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.1.6",
+   "text": "Momentum",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.1.7",
+   "text": "Work, energy and power",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.2",
+   "text": "Materials",
+   "parent": "3.4",
+   "links": []
+  },
+  {
+   "id": "3.4.2.1",
+   "text": "Bulk properties of solids",
+   "parent": "3.4.2",
+   "links": []
+  },
+  {
+   "id": "3.4.2.2",
+   "text": "The Young modulus",
+   "parent": "3.4.2",
+   "links": []
+  },
+  {
+   "id": "3.5.1",
+   "text": "Current electricity",
+   "parent": "3.5",
+   "links": []
+  },
+  {
+   "id": "3.5.1.1",
+   "text": "Basics of electricity",
+   "parent": "3.5.1",
+   "links": []
+  },
+  {
+   "id": "3.5.1.2",
+   "text": "Current–voltage characteristics",
+   "parent": "3.5.1",
+   "links": []
+  },
+  {
+   "id": "3.5.1.4",
+   "text": "Circuits",
+   "parent": "3.5.1",
+   "links": []
+  },
+  {
+   "id": "3.5.1.5",
+   "text": "Potential divider",
+   "parent": "3.5.1",
+   "links": []
+  },
+  {
+   "id": "3.5.1.6",
+   "text": "Electromotive force and internal resistance",
+   "parent": "3.5.1",
+   "links": []
+  },
+  {
+   "id": "3.6.1.1",
+   "text": "Circular motion (A-level only)",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.1.2",
+   "text": "Simple harmonic motion (SHM) (A-level only)",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.1.3",
+   "text": "Simple harmonic systems (A-level only)",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.1.4",
+   "text": "Forced vibrations and resonance (A-level only)",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.2.1",
+   "text": "Thermal energy transfer (A-level only)",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.2.2",
+   "text": "Ideal gases (A-level only)",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.6.2.3",
+   "text": "Molecular kinetic theory model (A-level only)",
+   "parent": "3.6",
+   "links": []
+  },
+  {
+   "id": "3.7.2",
+   "text": "Gravitational fields (A-level only)",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.7.2.1",
+   "text": "Newton's law (A-level only)",
+   "parent": "3.7.2",
+   "links": []
+  },
+  {
+   "id": "3.7.2.2",
+   "text": "Gravitational field strength (A-level only)",
+   "parent": "3.7.2",
+   "links": []
+  },
+  {
+   "id": "3.7.2.3",
+   "text": "Gravitational potential (A-level only)",
+   "parent": "3.7.2",
+   "links": []
+  },
+  {
+   "id": "3.7.2.4",
+   "text": "Orbits of planets and satellites (A-level only)",
+   "parent": "3.7.2",
+   "links": []
+  },
+  {
+   "id": "3.7.3.1",
+   "text": "Coulomb's law (A-level only)",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.7.3.2",
+   "text": "Electric field strength (A-level only)",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.7.3.3",
+   "text": "Electric potential (A-level only)",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.7.4",
+   "text": "Capacitance (A-level only)",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.7.4.1",
+   "text": "Capacitance (A-level only)",
+   "parent": "3.7.4",
+   "links": []
+  },
+  {
+   "id": "3.7.4.2",
+   "text": "Parallel plate capacitor (A-level only)",
+   "parent": "3.7.4",
+   "links": []
+  },
+  {
+   "id": "3.7.4.4",
+   "text": "Capacitor charge and discharge (A-level only)",
+   "parent": "3.7.4",
+   "links": []
+  },
+  {
+   "id": "3.7.5",
+   "text": "Magnetic fields (A-level only)",
+   "parent": "3.7",
+   "links": []
+  },
+  {
+   "id": "3.7.5.1",
+   "text": "Magnetic flux density (A-level only)",
+   "parent": "3.7.5",
+   "links": []
+  },
+  {
+   "id": "3.7.5.2",
+   "text": "Moving charges in a magnetic field (A-level only)",
+   "parent": "3.7.5",
+   "links": []
+  },
+  {
+   "id": "3.7.5.3",
+   "text": "Magnetic flux and flux linkage (A-level only)",
+   "parent": "3.7.5",
+   "links": []
+  },
+  {
+   "id": "3.7.5.5",
+   "text": "Alternating currents (A-level only)",
+   "parent": "3.7.5",
+   "links": []
+  },
+  {
+   "id": "3.7.5.6",
+   "text": "The operation of a transformer (A-level only)",
+   "parent": "3.7.5",
+   "links": []
+  },
+  {
+   "id": "3.8.1",
+   "text": "Radioactivity (A-level only)",
+   "parent": "3.8",
+   "links": []
+  },
+  {
+   "id": "3.8.1.1",
+   "text": "Rutherford scattering (A-level only)",
+   "parent": "3.8.1",
+   "links": []
+  },
+  {
+   "id": "3.8.1.3",
+   "text": "Radioactive decay (A-level only)",
+   "parent": "3.8.1",
+   "links": []
+  },
+  {
+   "id": "3.8.1.4",
+   "text": "Nuclear instability (A-level only)",
+   "parent": "3.8.1",
+   "links": []
+  },
+  {
+   "id": "3.8.1.5",
+   "text": "Nuclear radius (A-level only)",
+   "parent": "3.8.1",
+   "links": []
+  },
+  {
+   "id": "3.8.1.7",
+   "text": "Induced fission (A-level only)",
+   "parent": "3.8.1",
+   "links": []
+  },
+  {
+   "id": "3.8.1.8",
+   "text": "Safety aspects (A-level only)",
+   "parent": "3.8.1",
+   "links": []
+  },
+  {
+   "id": "3.9.1",
+   "text": "Telescopes (A-level only)",
+   "parent": "3.9",
+   "links": []
+  },
+  {
+   "id": "3.9.1.1",
+   "text": "Astronomical telescope consisting of two converging lenses (A-level only)",
+   "parent": "3.9.1",
+   "links": []
+  },
+  {
+   "id": "3.9.1.2",
+   "text": "Reflecting telescopes (A-level only)",
+   "parent": "3.9.1",
+   "links": []
+  },
+  {
+   "id": "3.9.1.4",
+   "text": "Advantages of large diameter telescopes (A-level only)",
+   "parent": "3.9.1",
+   "links": []
+  },
+  {
+   "id": "3.9.2",
+   "text": "Classification of stars (A-level only)",
+   "parent": "3.9",
+   "links": []
+  },
+  {
+   "id": "3.9.2.1",
+   "text": "Classification by luminosity (A-level only)",
+   "parent": "3.9.2",
+   "links": []
+  },
+  {
+   "id": "3.9.2.2",
+   "text": "Absolute magnitude, M (A-level only)",
+   "parent": "3.9.2",
+   "links": []
+  },
+  {
+   "id": "3.9.2.3",
+   "text": "Classification by temperature, black-body radiation (A-level only)",
+   "parent": "3.9.2",
+   "links": []
+  },
+  {
+   "id": "3.9.2.4",
+   "text": "Principles of the use of stellar spectral classes (A-level only)",
+   "parent": "3.9.2",
+   "links": []
+  },
+  {
+   "id": "3.9.2.6",
+   "text": "Supernovae, neutron stars and black holes (A-level only)",
+   "parent": "3.9.2",
+   "links": []
+  },
+  {
+   "id": "3.9.3",
+   "text": "Cosmology (A-level only)",
+   "parent": "3.9",
+   "links": []
+  },
+  {
+   "id": "3.9.3.1",
+   "text": "Doppler effect (A-level only)",
+   "parent": "3.9.3",
+   "links": []
+  },
+  {
+   "id": "3.9.3.2",
+   "text": "Hubble's law (A-level only)",
+   "parent": "3.9.3",
+   "links": []
+  },
+  {
+   "id": "3.9.3.3",
+   "text": "Quasars (A-level only)",
+   "parent": "3.9.3",
+   "links": []
+  },
+  {
+   "id": "3.9.3.4",
+   "text": "Detection of exoplanets (A-level only)",
+   "parent": "3.9.3",
+   "links": []
+  },
+  {
+   "id": "3.10.1",
+   "text": "Physics of the eye (A-level only)",
+   "parent": "3.10",
+   "links": []
+  },
+  {
+   "id": "3.10.1.1",
+   "text": "Physics of vision (A-level only)",
+   "parent": "3.10.1",
+   "links": []
+  },
+  {
+   "id": "3.10.2",
+   "text": "Physics of the ear (A-level only)",
+   "parent": "3.10",
+   "links": []
+  },
+  {
+   "id": "3.10.2.1",
+   "text": "Ear as a sound detection system (A-level only)",
+   "parent": "3.10.2",
+   "links": []
+  },
+  {
+   "id": "3.10.2.2",
+   "text": "Sensitivity and frequency response (A-level only)",
+   "parent": "3.10.2",
+   "links": []
+  },
+  {
+   "id": "3.10.2.3",
+   "text": "Defects of hearing (A-level only)",
+   "parent": "3.10.2",
+   "links": []
+  },
+  {
+   "id": "3.10.3",
+   "text": "Biological measurement (A-level only)",
+   "parent": "3.10",
+   "links": []
+  },
+  {
+   "id": "3.10.3.1",
+   "text": "Simple ECG machines and the normal ECG waveform (A-level only)",
+   "parent": "3.10.3",
+   "links": []
+  },
+  {
+   "id": "3.10.4",
+   "text": "Non-ionising imaging (A-level only)",
+   "parent": "3.10",
+   "links": []
+  },
+  {
+   "id": "3.10.4.1",
+   "text": "Ultrasound imaging (A-level only)",
+   "parent": "3.10.4",
+   "links": []
+  },
+  {
+   "id": "3.10.4.2",
+   "text": "Fibre optics and endoscopy (A-level only)",
+   "parent": "3.10.4",
+   "links": []
+  },
+  {
+   "id": "3.10.5",
+   "text": "X-ray imaging (A-level only)",
+   "parent": "3.10",
+   "links": []
+  },
+  {
+   "id": "3.10.5.1",
+   "text": "The physics of diagnostic X-rays(A-level only)",
+   "parent": "3.10.5",
+   "links": []
+  },
+  {
+   "id": "3.10.5.2",
+   "text": "Image detection and enhancement (A-level only)",
+   "parent": "3.10.5",
+   "links": []
+  },
+  {
+   "id": "3.10.5.3",
+   "text": "Absorption of X-rays (A-level only)",
+   "parent": "3.10.5",
+   "links": []
+  },
+  {
+   "id": "3.10.5.4",
+   "text": "CT scanner (A-level only)",
+   "parent": "3.10.5",
+   "links": []
+  },
+  {
+   "id": "3.10.6",
+   "text": "Radionuclide imaging and therapy (A-level only)",
+   "parent": "3.10",
+   "links": []
+  },
+  {
+   "id": "3.10.6.1",
+   "text": "Imaging techniques (A-level only)",
+   "parent": "3.10.6",
+   "links": []
+  },
+  {
+   "id": "3.10.6.2",
+   "text": "Half-life (A-level only)",
+   "parent": "3.10.6",
+   "links": []
+  },
+  {
+   "id": "3.10.6.4",
+   "text": "Use of high-energy X-rays (A-level only)",
+   "parent": "3.10.6",
+   "links": []
+  },
+  {
+   "id": "3.10.6.5",
+   "text": "Use of radioactive implants (A-level only)",
+   "parent": "3.10.6",
+   "links": []
+  },
+  {
+   "id": "3.10.6.6",
+   "text": "Imaging comparisons (A-level only)",
+   "parent": "3.10.6",
+   "links": []
+  },
+  {
+   "id": "3.11.1",
+   "text": "Rotational dynamics (A-level only)",
+   "parent": "3.11",
+   "links": []
+  },
+  {
+   "id": "3.11.1.1",
+   "text": "Concept of moment of inertia (A-level only)",
+   "parent": "3.11.1",
+   "links": []
+  },
+  {
+   "id": "3.11.1.2",
+   "text": "Rotational kinetic energy (A-level only)",
+   "parent": "3.11.1",
+   "links": []
+  },
+  {
+   "id": "3.11.1.3",
+   "text": "Rotational motion (A-level only)",
+   "parent": "3.11.1",
+   "links": []
+  },
+  {
+   "id": "3.11.1.4",
+   "text": "Torque and angular acceleration (A-level only)",
+   "parent": "3.11.1",
+   "links": []
+  },
+  {
+   "id": "3.11.1.5",
+   "text": "Angular momentum (A-level only)",
+   "parent": "3.11.1",
+   "links": []
+  },
+  {
+   "id": "3.11.2",
+   "text": "Thermodynamics and engines (A-level only)",
+   "parent": "3.11",
+   "links": []
+  },
+  {
+   "id": "3.11.2.1",
+   "text": "First law of thermodynamics (A-level only)",
+   "parent": "3.11.2",
+   "links": []
+  },
+  {
+   "id": "3.11.2.2",
+   "text": "Non-flow processes (A-level only)",
+   "parent": "3.11.2",
+   "links": []
+  },
+  {
+   "id": "3.11.2.3",
+   "text": "The p–Vdiagram (A-level only)",
+   "parent": "3.11.2",
+   "links": []
+  },
+  {
+   "id": "3.11.2.4",
+   "text": "Engine cycles (A-level only)",
+   "parent": "3.11.2",
+   "links": []
+  },
+  {
+   "id": "3.11.2.6",
+   "text": "Reversed heat engines (A-level only)",
+   "parent": "3.11.2",
+   "links": []
+  },
+  {
+   "id": "3.12.1",
+   "text": "The discovery of the electron (A-level only)",
+   "parent": "3.12",
+   "links": []
+  },
+  {
+   "id": "3.12.1.1",
+   "text": "Cathode rays (A-level only)",
+   "parent": "3.12.1",
+   "links": []
+  },
+  {
+   "id": "3.12.1.2",
+   "text": "Thermionic emission of electrons (A-level only)",
+   "parent": "3.12.1",
+   "links": []
+  },
+  {
+   "id": "3.12.1.4",
+   "text": "Principle of Millikan’s determination of the electronic charge, e (A-level only)",
+   "parent": "3.12.1",
+   "links": []
+  },
+  {
+   "id": "3.12.2",
+   "text": "Wave-particle duality (A-level only)",
+   "parent": "3.12",
+   "links": []
+  },
+  {
+   "id": "3.12.2.1",
+   "text": "Newton’s corpuscular theory of light (A-level only)",
+   "parent": "3.12.2",
+   "links": []
+  },
+  {
+   "id": "3.12.2.2",
+   "text": "Significance of Young’s double slits experiment (A-level only)",
+   "parent": "3.12.2",
+   "links": []
+  },
+  {
+   "id": "3.12.2.3",
+   "text": "Electromagnetic waves (A-level only)",
+   "parent": "3.12.2",
+   "links": []
+  },
+  {
+   "id": "3.12.2.4",
+   "text": "The discovery of photoelectricity (A-level only)",
+   "parent": "3.12.2",
+   "links": []
+  },
+  {
+   "id": "3.12.2.5",
+   "text": "Wave–particle duality (A-level only)",
+   "parent": "3.12.2",
+   "links": []
+  },
+  {
+   "id": "3.12.2.6",
+   "text": "Electron microscopes (A-level only)",
+   "parent": "3.12.2",
+   "links": []
+  },
+  {
+   "id": "3.12.3.1",
+   "text": "The Michelson-Morley experiment (A-level only)",
+   "parent": "3.12",
+   "links": []
+  },
+  {
+   "id": "3.12.3.2",
+   "text": "Einstein’s theory of special relativity (A-level only)",
+   "parent": "3.12",
+   "links": []
+  },
+  {
+   "id": "3.12.3.3",
+   "text": "Time dilation (A-level only)",
+   "parent": "3.12",
+   "links": []
+  },
+  {
+   "id": "3.12.3.4",
+   "text": "Length contraction (A-level only)",
+   "parent": "3.12",
+   "links": []
+  },
+  {
+   "id": "3.12.3.5",
+   "text": "Mass and energy (A-level only)",
+   "parent": "3.12",
+   "links": []
+  },
+  {
+   "id": "3.13.1",
+   "text": "Discrete semiconductor devices (A-level only)",
+   "parent": "3.13",
+   "links": []
+  },
+  {
+   "id": "3.13.1.1",
+   "text": "MOSFET (metal-oxide semiconducting field-effect transistor) (A-level only)",
+   "parent": "3.13.1",
+   "links": []
+  },
+  {
+   "id": "3.13.1.2",
+   "text": "Zener diode (A-level only)",
+   "parent": "3.13.1",
+   "links": []
+  },
+  {
+   "id": "3.13.1.4",
+   "text": "Hall effect sensor (A-level only)",
+   "parent": "3.13.1",
+   "links": []
+  },
+  {
+   "id": "3.13.2",
+   "text": "Analogue and digital signals (A-level only)",
+   "parent": "3.13",
+   "links": []
+  },
+  {
+   "id": "3.13.2.1",
+   "text": "Difference between analogue and digital signals (A-level only)",
+   "parent": "3.13.2",
+   "links": []
+  },
+  {
+   "id": "3.13.3",
+   "text": "Analogue signal processing (A-level only)",
+   "parent": "3.13",
+   "links": []
+  },
+  {
+   "id": "3.13.3.1",
+   "text": "LC resonance filters (A-level only)",
+   "parent": "3.13.3",
+   "links": []
+  },
+  {
+   "id": "3.13.3.2",
+   "text": "The ideal operational amplifier (A-level only)",
+   "parent": "3.13.3",
+   "links": []
+  },
+  {
+   "id": "3.13.4",
+   "text": "Operational amplifier in",
+   "parent": "3.13",
+   "links": []
+  },
+  {
+   "id": "3.13.4.4",
+   "text": "Real operational amplifiers (A-level only)",
+   "parent": "3.13.4",
+   "links": []
+  },
+  {
+   "id": "3.13.5",
+   "text": "Digital signal processing (A-level only)",
+   "parent": "3.13",
+   "links": []
+  },
+  {
+   "id": "3.13.5.1",
+   "text": "Combinational logic (A-level only)",
+   "parent": "3.13.5",
+   "links": []
+  },
+  {
+   "id": "3.13.5.2",
+   "text": "Sequential logic (A-level only)",
+   "parent": "3.13.5",
+   "links": []
+  },
+  {
+   "id": "3.13.5.3",
+   "text": "Astables (A-level only)",
+   "parent": "3.13.5",
+   "links": []
+  },
+  {
+   "id": "3.13.6",
+   "text": "Data communication systems (A-level only)",
+   "parent": "3.13",
+   "links": []
+  },
+  {
+   "id": "3.13.6.1",
+   "text": "Principles of communication systems (A-level only)",
+   "parent": "3.13.6",
+   "links": []
+  },
+  {
+   "id": "3.13.6.3",
+   "text": "Time-division multiplexing (A-level only)",
+   "parent": "3.13.6",
+   "links": []
+  },
+  {
+   "id": "3.13.6.4",
+   "text": "Amplitude (AM) and frequency modulation (FM) techniques (A-level only)",
+   "parent": "3.13.6",
+   "links": []
+  }
+ ]
+}

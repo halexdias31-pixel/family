@@ -243,8 +243,8 @@ function missingQual_(g) {
     return `<div class="row miss-done">${k}<span class="v">complete${g.waiting ? ' · ' + g.waiting + ' waiting' : ''}</span></div>`;
   }
   const say = g.missing === g.want ? 'none yet' : g.missing + ' missing';
-  const lines = g.gaps.map(x => `<div class="row"><span class="k">${esc(x.sitting)}</span><span class="v">${esc(missingPapers_(x.papers))}</span></div>`).join('');
-  const wait = g.waiting ? `<div class="row"><span class="k">Waiting for their words</span><span class="v">${g.waiting}</span></div>` : '';
+  const lines = g.gaps.map(x => rowHtml(x.sitting, esc(missingPapers_(x.papers)))).join('');
+  const wait = g.waiting ? rowHtml('Waiting for their words', g.waiting) : '';
   const id = g.q.label;
   return `<details class="miss-q" data-q="${esc(id)}"${MISSING_OPEN.has(id) ? ' open' : ''}>
       <summary class="row">${k}<span class="v">${esc(say)}</span></summary>

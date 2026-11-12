@@ -1336,9 +1336,7 @@ setTimeout(() => { if (typeof HEALTH_MORE_ !== 'undefined') HEALTH_MORE_.checks 
 /* ==== js/mat.js ==== */
 /* @family. — js/mat.js (19 of 20) THE CHEAT SHEET MAKER — one sheet of A4, built from components you tick, printed from the app. § */
 
-/* HOW MUCH COLUMN THERE IS, after the heading and the footer. Measured on the real sheet, not
-   derived from 297 minus some margins — the header and foot are content and their height is
-   whatever the font makes it. */
+/* HOW MUCH COLUMN THERE IS, after the heading and the footer. § */
 const MAT_ROOM = 262;
 
 /* ---------- HOW MANY NARROW BLOCKS GO ACROSS § */
@@ -1411,9 +1409,7 @@ const MAT_PARTS = [
   { id: 'M12H', name: 'Compound interest', face: 'P(1+r)ⁿ interest', lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 10, half: true, inExam: true },
   { id: 'M13', name: 'Exact trig values', face: 'sin30 exact',  lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H', inExam: false },
   { id: 'M14', name: 'The trig trick', face: '√n⁄2 trick',     lv: ['GCSE','AS','Alevel'],                       h: 33,  half: true, tier: 'H', inExam: false },
-  /* INDEX LAWS AND GRAPH SHAPES START AT Y9. Both are Y8/Y9 teaching, and both were tagged from
-     GCSE up while the straight line beside them started at Y9 — the same year, three rows apart,
-     disagreeing about when algebra begins. */
+  /* INDEX LAWS AND GRAPH SHAPES START AT Y9. § */
   { id: 'M15', name: 'Index laws', face: 'aᵐaⁿ index',         lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 24,  half: true, inExam: false },
   { id: 'M16', name: 'Graph shapes', face: 'y=x² graphs',       lv: ['Y9 Mocks','GCSE','AS','Alevel'],            h: 40,  half: false, inExam: false },
   /* AS BUT NOT ALEVEL was the clearest error in the table: § */
@@ -1423,9 +1419,7 @@ const MAT_PARTS = [
   { id: 'M19', name: 'Pythagoras & trig', face: 'a²+b²=c²',  lv: ['Y9 Mocks','GCSE','B-TEC'],                  h: 28,  half: true, inExam: true },
   { id: 'M20', name: 'Angle rules', face: '180° rules',        lv: ['SATs','11+','Y9 Mocks','GCSE'],             h: 35,  half: true, inExam: false },
   { id: 'M21', name: 'Area & perimeter', face: '½bh area',   lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 23,  half: true, inExam: false },
-  /* SATs. Percentages of an amount is Y6, and fractions, rounding, area and averages all carry
-     SATs on the rows around this one — four neighbours teaching the same year, and this the only
-     one saying otherwise. */
+  /* SATs. Percentages of an amount is Y6, and fractions, rounding, area and averages all carry SATs on the rows around this one — four neighbours teaching the same § */
   { id: 'M22', name: 'Percentages', face: '15% of 40',        lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 23,  half: true, inExam: false },
   { id: 'M23', name: 'Rounding & bounds', face: '≈ bounds',  lv: ['SATs','11+','Y9 Mocks','GCSE','B-TEC'],     h: 35,  half: true, inExam: false },
   { id: 'M24', name: 'Standard form', face: 'a × 10ⁿ',      lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 35,  half: true, inExam: false },
@@ -1550,9 +1544,7 @@ function matParts() {
       /* A SUBJECT THE SHEET CAN SET, and an empty cell leaves the code's — see `matSubjectOf`. */
       subject: r.subject || c.subject,
       lv:    levels.length ? levels : c.lv,
-      /* THE SHEET CAN ADD A TIER AND IT CAN TAKE ONE AWAY. `'-'` is how you say "both papers" about
-         a component the code calls Higher-only, since an empty cell already means "no opinion" and
-         one value cannot mean both. */
+      /* THE SHEET CAN ADD A TIER AND IT CAN TAKE ONE AWAY. § */
       tier:  r.tier === '-' ? '' : (matTierFlag(r.tier) || c.tier),
       /* ---------- AN EDGE PIECE'S HEIGHT IS NOT A SETTING § */
       /* ---------- AND THE SLOT IS NOT A SETTING EITHER § */
@@ -1567,9 +1559,7 @@ function matParts() {
     });
   });
 
-  /* SORTED BY THE SHEET'S NUMBER, ties broken by the order they are written in code — so a column
-     of blank `sort_order` cells leaves the sheet exactly as it prints today, and filling in one cell
-     moves one component. */
+  /* SORTED BY THE SHEET'S NUMBER, ties broken by the order they are written in code — so a column of blank `sort_order` cells leaves the sheet exactly as it prints § */
   /* ONE SUBJECT AFTER ANOTHER, THEN THE SHEET'S ORDER WITHIN IT. § */
   const order = matSubjectOrder(out);
   const rank = c => { const s = matSubjectOf(c); return s ? order.indexOf(s) + 1 : 0; };
@@ -1679,9 +1669,7 @@ const MAT_HTML = {
   M21: () => matPairs([['rectangle','bh'], ['triangle','½bh'], ['parallelogram','bh'],
                        ['trapezium','½(a + b)h'], ['circle','πr²'], ['compound','split it, add up']]),
 
-  /* REVERSE PERCENTAGE IS THE HIGHER LINE. Finding the original amount is the one thing in this
-     block a Foundation paper does not ask for, and it is also the one people get wrong by doing the
-     obvious thing instead. */
+  /* REVERSE PERCENTAGE IS THE HIGHER LINE. § */
   M22: () => matPairs([['15% of 40','0.15 × 40'], ['up 15%','× 1.15'], ['down 15%','× 0.85'],
                        ['reverse','÷ the multiplier','H'], ['change', fr('new − old','old')],
                        ['compound','P(1 + r)ⁿ']]),
@@ -2088,9 +2076,7 @@ function matGraphs() {
      the tier is the fourth entry rather than the third because the third is the function. */
   const kinds = [['linear','y = x', x => x], ['quadratic','y = x²', x => x * x],
                  ['cubic','y = x³', x => x ** 3, 'H'],
-                 /* NO CLAMP. Returning 9 near zero was a way of forcing a skip under the old
-                    single-line drawing; now the skip is real, `1/x` can be handed over as itself
-                    and the |y| > 3 test does the cutting. */
+                 /* NO CLAMP. Returning 9 near zero was a way of forcing a skip under the old single-line drawing; now the skip is real, `1/x` can be handed over as itself and the § */
                  ['reciprocal','y = 1/x', x => 1 / x, 'H'],
                  ['exponential','y = 2ˣ', x => Math.pow(2, x) - 1, 'H']];
   return `<div class="mat-graphs">${kinds.filter(k => matKeep(k[3])).map(([n, eq, f]) =>
@@ -2572,9 +2558,7 @@ function matBlankSvg_() {
     for (let y = s; y <= H + 0.01; y += s) d += `M0 ${matN(y)}H${W}`;
     return svg(path('mat-ln', d) + path('mat-ln-margin', `M25 0V${H}`));
   }
-  /* SQUARED: WHOLE SQUARES ONLY, centred in the drawing. A part-square down one edge is a square a
-     child counts and gets wrong, and a grid hard against the left with 3mm spare on the right reads
-     as printed crooked. */
+  /* SQUARED: WHOLE SQUARES ONLY, centred in the drawing. § */
   const s = +MAT_BLANK.grid;
   const nx = Math.floor(W / s), ny = Math.floor(H / s);
   const x0 = (W - nx * s) / 2, y0 = (H - ny * s) / 2;
@@ -2863,9 +2847,7 @@ function matPaint() {
   /* A PIECE THAT IS ALREADY A FINISHED THING GETS NO HEADING AND NO RULE. § */
   /* ---------- ONE GRID, AND EVERY BLOCK TAKES ITS OWN SLOT IN IT § */
   let cellN = 0;
-  /* `is-wide` / `is-narrow` BECAUSE A LABEL/VALUE BLOCK LAYS ITSELF OUT DIFFERENTLY at a third of
-     the page (two columns) and across the whole of it (four) — the stylesheet reads the class
-     rather than working the width out again. */
+  /* `is-wide` / `is-narrow` BECAUSE A LABEL/VALUE BLOCK LAYS ITSELF OUT DIFFERENTLY at a third of the page (two columns) and across the whole of it (four) — the § */
   const cell = c => `<div class="mat-box${c.bare ? ' bare' : ''}${
     matSpan(c) === MAT_TRACKS ? ' is-wide' : ' is-narrow'}" data-i="${cellN++}" data-id="${
     esc(c.id)}" style="grid-column:span ${matSpan(c)};grid-row:span ${Math.round(c.h / MAT_ROW)}">${
@@ -2881,9 +2863,7 @@ function matPaint() {
   /* PHONE ONLY IF THE TAB HAS ONE — a separator with nothing after it reads as something missing
      rather than something not offered. */
   const foot = [B.area, B.phone].filter(Boolean).join('  ·  ');
-  /* THE MARGIN BELONGS TO THE RULER, so it goes when the ruler does. Left reserved, an untick
-     would take the scale away and leave a 20mm strip of nothing down the page — which reads as a
-     printing fault rather than as a choice. */
+  /* THE MARGIN BELONGS TO THE RULER, so it goes when the ruler does. § */
   const ruled = MAT_ON.indexOf('M01') !== -1;
   /* THE GRID'S THREE NUMBERS ARE HANDED TO THE STYLESHEET FROM HERE, so the tracks the paper is laid out on and the widths the picker prices from are the same § */
   const grid = `--mat-tracks:${MAT_TRACKS};--mat-gut:${MAT_GUT}mm;--mat-row:${MAT_ROW}mm;`
@@ -2964,9 +2944,7 @@ function matPaint() {
                              : { label: 'Have it printed', note: 'into your basket', on: false,
                                  off: !MAT_ORDER.ok });
   }
-  /* WHAT GOES TO THE PRINTER is the sheet exactly as it was measured — slots grown, top row marked —
-     kept as markup so `mat-print` prints the page the gauge was talking about rather than a second
-     rendering of it. */
+  /* WHAT GOES TO THE PRINTER is the sheet exactly as it was measured — slots grown, top row marked — kept as markup so `mat-print` prints the page the gauge was § */
   MAT_SHEET = probe.innerHTML;
   probe.remove();
 }

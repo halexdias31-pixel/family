@@ -10,8 +10,8 @@ const path = require('path');
 const FILE = process.argv[2] || path.join(__dirname, '..', 'data', 'questions.json');
 
 /* ---------- THE CLOSED VOCABULARY § */
-/* ONE SCHEMA (R4): the lists live in check/schema.js with every card file's columns; their stories stay in docs/notes/js/check-library.js.md. */
-const SCHEMA = require('../check/schema.js');
+/* ONE SCHEMA (R4): the lists live in check/library-schema.js with every card file's columns; their stories stay in docs/notes/js/check-library.js.md. */
+const SCHEMA = require('../check/library-schema.js');
 const VOCAB = SCHEMA.VOCAB();
 
 /* Columns that must never come back. See the header. */
@@ -1227,7 +1227,7 @@ console.log(`parts that show an earlier part's drawing (\`uses\`): ${usesN}`
 usesBad.concat(usesMissing).forEach(m => console.log('   ' + m));
 
 /* ---------- THE FIGURES THE PAPER PRINTS AND NOBODY HAS DRAWN, COUNTED SO THE COUNT CANNOT GROW § */
-const NOT_DRAWN_MAX = 410;
+const NOT_DRAWN_MAX = 270;
 const nfSrc_ = ['FIG_NAMED', 'figWanted_'].map(n => cutFrom(findSrc_, n));
 if (nfSrc_.some(c => !c)) {
   const why = 'FIG_NAMED or figWanted_ is not in find.js — renamed? The figures not drawn yet were NOT counted.';
@@ -1352,6 +1352,14 @@ if (standingIn.length) {
   console.log(`\nSTANDING IN FOR SOMETHING NOT YET TYPED — a list, not a fault  (${standingIn.length})`);
   standingIn.forEach(r => console.log(`  ${r.row_id}  ${String(r.name || '').slice(0, 64)}`));
 }
+
+/* A WORD BANK AND BLANKS ARE MARKED BY RULE (owner, 12 Nov: "Chemical, kinetic" went to the AI): `cells`, one a blank, or the bank as `choices`. */
+const WORD_BANK = /choos(?:e|ing)\b[^.<]{0,30}\bfrom\b|\bfrom the (?:box|list)\b|selected from the list|choosing the correct words?:|\bcomplete\b[^<]{0,40}\busing:?\s+[^.<:]{1,40},\s*[^.<:]{1,40}(?:,|\bor\b)/i;
+const BLANKS = /_{3,}|\.{4,}|…{2,}/;
+const bankless = rows.filter(r => r && r.kind === 'question' && WORD_BANK.test(String(r.html || '')) && BLANKS.test(String(r.html || ''))
+  && !String(r.cells || '').trim() && !String(r.choices || '').trim());
+bankless.forEach(r => fail.push(`${r.row_id}: a word bank and blanks but no \`cells\` (one per blank) — it would go to the AI`));
+console.log(`parts with a word bank and blanks: ${bankless.length} without cells`);
 
 if (fail.length) {
   console.log('\nFAILED — ' + fail.length + ' thing(s) wrong with data/questions.json above.');

@@ -17,10 +17,10 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 - **1.3** Two owner answers that clash become one question showing both; never pick. Questions carry a slug id, words, ≥2 options and open/answered. Checks: `owner-questions`
 - **1.4** Money disputes follow the written terms, leaning to the business; policies (terms, privacy, safeguarding, refunds) are drafted by the site, approved by the owner, reviewed yearly. Checks: `policy-fill`, `biz`, `money-terms`
 - **1.5** Only irreversible actions need a human tap (deleting data, approving tutors, publishing policies); every delete, decline, remove or reset arms on the first press (`sure_()`), never `confirm()`. Checks: `look`, `press-twice`
-- **1.6** Report only results and "safe to merge"; never idle on CI; bugs before anything new; quality first, done once. Checks: `stability-guard`, `spread`, `how-we-work`
+- **1.6** Report only results and "safe to merge"; never idle on CI; bugs before anything new; quality first, done once. Checks: `stability`, `spread`, `how-we-work`
 
 ## 2. One source for every truth
-- **2.1** Anything that might change (wording, prices, lists, menus, switches) is data, not code; every fact has one home and everything reads from it; a copy a tool writes from the source counts once. Checks: `truth-facts`, `truth-lists`, `truth-labels`, `settings`, `tabs`, `columns`, `rows`, `schema`
+- **2.1** Anything that might change (wording, prices, lists, menus, switches) is data, not code; every fact has one home and everything reads from it; a copy a tool writes from the source counts once. Checks: `truth-facts`, `truth-lists`, `truth-labels`, `settings`, `tabs`, `columns`, `rows`, `schema`, `library-schema`
 - **2.2** Every key the site reads, `doGet` sends; one payload, one data source, in sync. Checks: `payload`, `in-sync`, `gas-load`, `later`
 - **2.3** Switches are data: `tiers.json` marks core/secondary, `columns.json` the screens; a secondary part cannot break Find. Checks: `tiers`, `isolation`, `widgets`
 - **2.4** Private things (learners, money, staff records, library private fields) live only in the owner's Sheets; the public repo holds no real names, emails, PINs, learner data, secrets or model ids. Checks: `secrets`, `surnames`, `library`, `library-ledger`, `claude-lines`
@@ -30,7 +30,7 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 - **2.8** Generated content (teaching animations, finder tags, bundles) is written by its script and re-run, never hand-edited; the build stamp is last after any served change. Checks: `bundle`, `cache`, `stability`, `deploy`
 
 ## 3. One template for every thing
-- **3.1** Every card, every kind, is one static centred column drawn by `findCard`: real picture if any → tags (the name is a tag) → content → one round button row; no title line, no open/closed, no 8-bit or kind icon. Checks: `one-template`, `one-way`, `card-shape`, `card-facts`, `find-card`, `shape`, `email-card`, `share-profile`, `share`, `tutor-card`
+- **3.1** Every card, every kind, is one static centred column drawn by `findCard`: real picture if any → tags (the name is a tag) → content → one round button row; no title line, no open/closed, no 8-bit or kind icon. Checks: `one-template`, `card-shape`, `card-render`, `find-card`, `shape`, `email-card`, `share-profile`, `share`, `tutor-card`, `template-measure`
 - **3.2** People always have a picture (their own or the steady default); a question or paper its figure; a part that names a picture has it drawn. Checks: `figures`, `diagram-png`, `diagrams`, `picture-first`
 - **3.3** A thing has tiles, a form has buttons: every action is `tile_` in one `.tile-row`, round icons only, its word on hover or long press; one icon style. Checks: `makers`, `tiles`, `doors`, `variety-maker`, `variety-cardrow`, `press-hold`
 - **3.4** One text box (the cream answer pill), one form maker from a field list, one wait (`loading_()`'s spinning ring), one empty state, one viewer (`fileView_`) that opens in place. Checks: `variety-textbox`, `forms`, `loading`, `variety-wait`, `bootslow`, `answer-width`, `keyboard`, `dropdowns`, `surfaces`, `surface-nesting`
@@ -40,6 +40,7 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 - **3.8** One reading layout for every library text (`readingCard_`), one model for every written work. Checks: `reading`, `writings`, `texts`, `pdtexts`, `bible`, `hymns`, `talmud`, `talpage`, `textbooks`
 - **3.9** CSS stays one cascade: no `!important`, no property re-set by the same selector, no inline styles, classes used more than once. Checks: `important`, `order`, `inline-style`, `once-class`, `css`, `cascade`
 - **3.10** The variety families each hold the ideal one (question page, card drawer, list row, settings row). Checks: `variety-qpage`, `variety-drawer`, `variety-listrow`, `variety-setrow`, `widgets`
+- **3.11** One way only (owner, 12 Nov): each element has ONE maker and nothing else writes its markup — cards `card_`/`findCard` (`card qcard kc`), tiles and buttons `tile_` (`tile btn <button>`), tags `qtag_` (`qtag chip prof-tag`), spinners `loading_` (`loading is-busy`), list rows `row`/`rowHtml` (`row`); no inline `style=` and no colour literal in served js. What is still hand-built is listed in `check/one-way-ratchet.json` and only goes down; the gate fails on anything new. Checks: `one-way`
 
 ## 4. One rule for every case
 - **4.1** No one-offs: no function tests a single kind, facet or id by name; front end and backend alike. Checks: `one-off`, `find-one-off`, `rules`
@@ -92,11 +93,11 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 ## 11. Keep only what is needed
 - **11.1** When nothing decides it, choose the simplest: fewest parts, options and code; new features are asked for and built from existing parts (a card, a tool or a setting), never a new kind of screen. Checks: `dup`, `long-fn`, `big-file`, `nest`, `no-new-screen`
 - **11.2** Unused code is removed: switched-off features wait in `attic/` and return as cards; dead functions go; git history is the archive. Checks: `dead`, `returned-features`, `returned`, `markers`
-- **11.3** Checks are honest: no written exception lists, ratchet ceilings at zero, budgets only go down. Checks: `exceptions`, `ceilings`, `catches`, `stability-guard`
+- **11.3** Checks are honest: no written exception lists, ratchet ceilings at zero, budgets only go down. Checks: `exceptions`, `ceilings`, `catches`, `stability`
 
 ## 12. Measure everything
-- **12.1** The Optimiser (`tools/health.js`) measures every rule as followed ÷ applies to, in the unit a person would fix, and the score is their plain average, no weights; when nothing else is asked, raise it. Checks: `ux`, `effort`, `effort-report`
-- **12.2** Every change runs the checks it affects (`node js/check.js`, `check-all`, the journeys) and CI stays green; a merge to main happens only when `node tools/gate.js` and the required `gate` status on the pull request are green (the merge-always rule means merge when green, never red), and a changed screenshot is signed in `gallery-approved.json` after someone looked. Checks: `check`, `all`, `changed`, `flow`, `flow/*`
+- **12.1** The Optimiser (`tools/health.js`) measures every rule as followed ÷ applies to, in the unit a person would fix, and the score is their plain average, no weights; when nothing else is asked, raise it. Checks: `ux`, `effort-report`, `effort-report`
+- **12.2** Every change runs the checks it affects (`node js/check.js`, `check-all`, the journeys) and CI stays green; a merge to main happens only when `node tools/gate.js` and the required `gate` status on the pull request are green (the merge-always rule means merge when green, never red), and a changed screenshot is signed in `gallery-approved.json` after someone looked. Checks: `check`, `all`, `changed`, `conflicts`, `flow`, `flow/*`
 - **12.3** This rulebook is the one foundation: every rule names a check, every check serves a rule, each rule is stated once. Checks: `rule-checked`, `check-tied`, `rule-once`
 
 ## How a sweep works

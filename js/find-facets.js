@@ -8,8 +8,7 @@ function spellBetter_(a, b) {
   return cmpText(a.value, b.value) <= 0 ? a : b;
 }
 
-/* ONE WAY TO SAY A VALUE, FOR EVERY FACET (396): its first letter capitalised, unless it is a single lower-case letter or a
-   roman numeral — a part `a` and a sub-part `ii` as the paper prints them. */
+/* ONE WAY TO SAY A VALUE, FOR EVERY FACET (396): § */
 const SAY_AS_IS = /^(?:[a-z]|[ivx]+)$/;
 const sayCase_ = v => {
   const s = String(v == null ? '' : v).trim();
@@ -23,8 +22,8 @@ function facetSay_(facet, v) {
   try { own = facet ? labelOf_('facet-show:' + facet.field, s, '') : ''; } catch (e) { own = ''; }
   return own || s;
 }
-/* A SHOW FITS A TAG (kcTidy_'s KC_TAG_MAX, 30), or the card moves it to an open-only line: the owner's short label (labels.json, */
-/* facet-show:<field>, in facetSay_), else the first of its reference ("II-II.122.3"), its name before a bracket, its first words, its ends. */
+/* A SHOW FITS A TAG (kcTidy_'s KC_TAG_MAX, 30), or the card moves it to an open-only line: § */
+/* facet-show:<field>, in facetSay_), else the first of its reference ("II-II.122.3"), its name before a § */
 const SHOW_MAX = 30;
 function showForms_(s) {
   s = String(s == null ? '' : s).trim();
@@ -74,8 +73,7 @@ function answerSay_(facet, v) {
   return m.by.get(spellKey_(v)) || say;
 }
 
-/* ONE ORDER FOR EVERY FACET'S ANSWERS, BY WHAT THEY ARE (396): years and dates newest first, numbers by size, months
-   by the calendar, roman numerals by value, kinds by the kinds tab, the rest A–Z with numbers as numbers. */
+/* ONE ORDER FOR EVERY FACET'S ANSWERS, BY WHAT THEY ARE (396): § */
 const ROMAN_SAY = /^(x{0,3})(ix|iv|v?i{0,3})$/i;
 const yearKey_ = v => (/^(?:19|20)\d{2}$/.test(v) ? Number(v) : null);
 const dateKey_ = v => {
@@ -96,7 +94,7 @@ function kindRank_() {
   const groups = new Map(groupOrder_().map((g, i) => [g, i]));
   return { labels, groups };
 }
-/* LISTS WHOSE OWN ORDER IS THE ORDER (473): a file pushes one, and answers all in it sort by it — the Talmud's orders and tractates. */
+/* LISTS WHOSE OWN ORDER IS THE ORDER (473): § */
 /* FIND'S FRONT MENU, in the owner's order (4 Nov): the first question's answers, whatever kinds stand under them. */
 const FRONT_ORDER = ['Practice', 'Library', 'Videos', 'Newspaper', 'Coming soon', 'Posts', 'Messages', 'Profiles', 'Booking', 'Venues', 'Shop', 'Settings', 'Tools', 'Games', 'Reels', 'Flyers', 'Posters'];
 /* THE DOORS' OWN MENUS IN THE OWNER'S ORDER (batch C): account types, who, which posts, when. */
@@ -122,8 +120,7 @@ function answerCmp_(texts) {
   return cmpText;
 }
 
-/* TWO ANSWERS THAT WOULD BE DRAWN THE SAME SAY WHAT TELLS THEM APART (396): the other facets, in the tab's order, added
-   until each reads differently — `Paper 1 · Higher` beside `Paper 1 · Foundation`. */
+/* TWO ANSWERS THAT WOULD BE DRAWN THE SAME SAY WHAT TELLS THEM APART (396): § */
 function tellApart_(items, facet, values) {
   const by = {}, told = [];
   values.forEach(v => { const k = spellKey_(v.show || v.text || v.value); (by[k] = by[k] || []).push(v); });
@@ -165,12 +162,12 @@ function tellApart_(items, facet, values) {
   });
   /* THE SHORT NAME WITH WHAT TELLS IT APART, unless that collides with another answer — then the whole name with it. */
   if (told.length && new Set(values.map(v => spellKey_(v.show))).size !== values.length) told.forEach(t => { t.v.show = t.full; });
-  /* STILL TWIN, NO FACET SPLITS THEM: each says its own whole name (owner, 10 Nov: two "Paper 3" buttons), never two alike. */
+  /* STILL TWIN, NO FACET SPLITS THEM: § */
   const left = {};
   values.forEach(v => { const k = spellKey_(v.show || v.text || v.value); (left[k] = left[k] || []).push(v); });
   Object.keys(left).forEach(k => { const g = left[k];
     if (g.length < 2) return;
-    /* ITS OWN NAME (`nameOf`, a paper's title) where the facet has one, else what it is called: the first that tells them apart. */
+    /* ITS OWN NAME (`nameOf`, a paper's title) where the facet has one, else what it is called: § */
     const names = v => { let n = []; try { n = facet.nameOf ? asList_(facet.nameOf(v.value)) : []; } catch (e) { n = []; } return n.concat([v.text || v.value]); };
     const rungs = g.map(names), deep = Math.max(...rungs.map(r => r.length));
     for (let i = 0; i < deep; i++) { const at = rungs.map(r => String(r[Math.min(i, r.length - 1)] || ''));
@@ -211,7 +208,7 @@ function facetTally_(items, facet) {
 
   const by = {};
   let answered = 0;
-  /* ONE READ PER ITEM (930): the weighed split below once read every item's values again, half of Find's wait on a phone. */
+  /* ONE READ PER ITEM (930): § */
   const wt = writingWeights_(items);
   let top = 0, whole = 0;
   const wBy = {};
@@ -237,8 +234,8 @@ function facetTally_(items, facet) {
     const best = spellBetter_(seen && seen.best, { value: v, n: by[v] });
     folded[k] = { best: best, n: (seen ? seen.n : 0) + by[v] };
   });
-  /* `value` IS WHAT IS MATCHED, `text` WHAT IT IS CALLED, `show` WHAT IS DRAWN — the shortest unique form (`shortLabels_`). */
-  /* NAMED AND SORTED ONLY WHEN READ: a question turned away for its count alone (`facetWhy_`) never pays for its words. */
+  /* `value` IS WHAT IS MATCHED, `text` WHAT IT IS CALLED, `show` WHAT IS DRAWN — the shortest unique form § */
+  /* NAMED AND SORTED ONLY WHEN READ: § */
   let values = null;
   const named = () => {
     if (values) return values;
@@ -249,8 +246,7 @@ function facetTally_(items, facet) {
     return values;
   };
 
-  /* THE SPLIT IS MEASURED IN THINGS, NOT CARDS (517): a writing (`libBook`) weighs one however many verses it is, so the
-     Bible's 31,000 cards cannot make Subject look lopsided. Every facet, one rule. */
+  /* THE SPLIT IS MEASURED IN THINGS, NOT CARDS (517): § */
   Object.keys(wBy).forEach(k => { if (wBy[k] > top) top = wBy[k]; });
 
   const out = {
@@ -266,7 +262,7 @@ function facetTally_(items, facet) {
 }
 
 /** The distinct values of one facet across a set, with how many each would leave. */
-/* AN ANSWER SPELT LIKE A CHOSEN CHIP IS NEVER OFFERED (830), under any question: the chip already says it (680 is the chips' side). */
+/* AN ANSWER SPELT LIKE A CHOSEN CHIP IS NEVER OFFERED (830), under any question: § */
 function facetValues(items, facet) {
   const all = facetTally_(items, facet).values;
   const chips = ((STUFF && STUFF.filters) || []).filter(c => c && !c.any && c.field !== facet.field).map(c => spellKey_(c.value));
@@ -275,8 +271,7 @@ function facetValues(items, facet) {
   return all.some(said) ? all.filter(v => !said(v)) : all;
 }
 
-/* HOW MANY OF THESE COULD EVEN ANSWER IT. Not how many distinct answers there are — how many
-   items have one at all. */
+/* HOW MANY OF THESE COULD EVEN ANSWER IT. § */
 function facetCoverage(items, facet) {
   return facetTally_(items, facet).coverage;
 }
@@ -298,16 +293,16 @@ function facetSplit_(items, facet) {
 }
 
 const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet', 'End of topic test': 'Worksheet' };
-/* KINDS UNDER KINDS (546, 610): questions, answers and practicals under Practice; timelines, and projects (owner, 7 Nov), under Library. */
+/* KINDS UNDER KINDS (546, 610): § */
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
-const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library',
+const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library', spec: 'Library',
   /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
-  /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): one card, tagged Booking and Profiles, like a setting's several types. */
+  /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): § */
   tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', bookform: 'Booking', shop: 'Shop',
   person: 'Profiles', video: 'Videos', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
   post: 'Posts', tool: 'Tools', game: 'Games', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
 /* A RETURNED WIDGET THAT IS A BROWSABLE THING (batch B) is its own front answer: FIND_WIDGET_GROUPS (arcade.js). */
-/* ITS TAG SAYS ONE DOOR: a kind under two (a tutor: Booking and Profiles) is the door picked, else its own group in FIND_KINDS — never the other. */
+/* ITS TAG SAYS ONE DOOR: § */
 function kindTopTag_(x) {
   const l = asList_(kindTop_(x)); if (l.length < 2) return l[0] || '';
   let g = '';
@@ -315,9 +310,9 @@ function kindTopTag_(x) {
   return l.indexOf(g) >= 0 ? g : l[0];
 }
 function kindTop_(x) { return (x && x.top) || (x && x.widget && typeof FIND_WIDGET_GROUPS !== 'undefined' && FIND_WIDGET_GROUPS[x.widget.id]) || (x && KIND_UNDER[x.kind]) || ''; }
-/* ONE RULE FOR A VALUE UNDER ANOTHER (660): the first question answers the one above, the second the value itself — only in a family that has one. */
+/* ONE RULE FOR A VALUE UNDER ANOTHER (660): § */
 function underTop_(table, v) { return (v && table[v]) || v || ''; }
-/* 680: the second offers only what is BELOW the one above, never the parent's own name again; Doesn't matter covers the rest. */
+/* 680: the second offers only what is BELOW the one above, never the parent's own name again; Doesn't § */
 function underOwn_(table, v) { return v && table[v] && table[v] !== v ? v : ''; }
 /* 680: a kind spelt like the kind above it is never offered twice (What kind, then Which). */
 function notTop_(x, v) { const top = asList_(kindTop_(x)).map(spellKey_); const l = [].concat(v || []).filter(k => k && top.indexOf(spellKey_(k)) === -1); return l.length > 1 ? l : (l[0] || ''); }
@@ -333,17 +328,16 @@ function fiveADay_(x) {
   return x && x.row && String(x.row.document_type || '') === '5-a-day' ? fiveADayOf_(x.row.paper_id) : null;
 }
 
-/* THE ONE RULE EVERY FACET IS ASKED BY (396), as a reason it is NOT asked, or '' when it may be: two answers at least,
-   half the list able to answer, a split worth making. `over` lets a question past FACET_MAX_ANSWERS through. */
-/* A NUMBERED RUN IS DRAWN AS A GRID (396): bare numbers, or one word and a number (`Chapter 7`, drawn as 7). Up to FACET_MAX_GRID it is a question, not a list (600). */
+/* THE ONE RULE EVERY FACET IS ASKED BY (396), as a reason it is NOT asked, or '' when it may be: § */
+/* A NUMBERED RUN IS DRAWN AS A GRID (396): § */
 const FACET_MAX_GRID = 200;
 const runNumber_ = v => (/^(?:([A-Za-z]+) )?(\d+)$/.exec(String(v.show || v.value)) || []);
 const numberedRun_ = values => values.length > 1 && values.every(v => runNumber_(v)[2]) && new Set(values.map(v => runNumber_(v)[1] || '')).size === 1;
 function facetWhy_(items, facet, over) {
-  /* COUNTED BEFORE NAMED: past every grid and every answer the chips or DOC_TYPE_UNDER could take away, it is a list whatever its words. */
+  /* COUNTED BEFORE NAMED: § */
   if (!over && facetTally_(items, facet).count - ((STUFF && STUFF.filters) || []).length > Math.max(FACET_MAX_GRID, Object.keys(DOC_TYPE_UNDER).length)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
   const all = facetValues(items, facet), vals = all.length;
-  /* 680: answers that are all BELOW an answer already chosen are asked even alone — Doesn't matter is the parent's own. */
+  /* 680: answers that are all BELOW an answer already chosen are asked even alone — Doesn't matter is the § */
   if (vals > 1 && underChosen_(all)) return ''; /* owner 5 Nov: one answer is never a question, even below a chosen one */
   if (vals < 2) return (vals ? 'one answer' : 'nobody can answer it') + ' — nothing to decide';
   if (!over && vals > (vals <= FACET_MAX_GRID && numberedRun_(all) ? FACET_MAX_GRID : FACET_MAX_ANSWERS)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
@@ -366,31 +360,28 @@ function underChosen_(values) {
   return values.every(v => DOC_TYPE_UNDER[v.value] && chosen.has(spellKey_(DOC_TYPE_UNDER[v.value])));
 }
 
-/* A QUESTION WHOSE EVERY ANSWER IS A KIND'S NAME (the kinds tab) chooses what a card IS, not how many (660): two answers make it
-   worth asking, however lopsided. Decided by the values, never by the field. */
+/* A QUESTION WHOSE EVERY ANSWER IS A KIND'S NAME (the kinds tab) chooses what a card IS, not how many (660): § */
 function kindNamed_(values) {
   const m = kindMap_(), names = new Set(Object.keys(m).map(k => spellKey_(m[k].label)).concat(spellKey_(ansKind_())));
   return values.length > 1 && values.every(v => names.has(spellKey_(v.value)));
 }
 
-/* A QUESTION THAT RE-ASKS ONE ANSWERED ANY (499, 660): every answer sits inside one answer of it — Shelf after Any subject is Subject
-   again; Which or Shelf after Any kind is What kind asked finer. Every facet, by its items. */
+/* A QUESTION THAT RE-ASKS ONE ANSWERED ANY (499, 660): § */
 function facetEcho_(items, facet) {
   const skipped = (STUFF.filters || []).filter(f => f.any && f.field !== facet.field);
   for (const g of skipped) {
     const G = facetList().find(f => f.field === g.field);
     if (!G) continue;
-    /* FINER BY WHAT IT IS, NOT BY THIS LIST (8 Nov): read over everything, so Year under Any verified, inside it only by chance
-       in one subject's list, is still asked; Shelf sits inside Subject everywhere and stays an echo. */
+    /* FINER BY WHAT IT IS, NOT BY THIS LIST (8 Nov): § */
     const to = echoInside_(facet, G) && echoTo_(items, facet, G), ok = !!to && Object.keys(to).length > 1;
-    /* A skipped question the list answers one way was never a choice, so nothing re-asks it (a list of projects alone, 660). */
+    /* A skipped question the list answers one way was never a choice, so nothing re-asks it § */
     const gAll = new Set();
     if (ok) for (const x of items) { facetOwn_(G, x).forEach(v => gAll.add(spellKey_(v))); if (gAll.size > 1) break; }
     if (ok && gAll.size > 1) return G.label || G.field;
   }
   return '';
 }
-/* Each F answer's one G answer over a list, or null when one F answer spans two G answers or a card holds no single G. */
+/* Each F answer's one G answer over a list, or null when one F answer spans two G answers or a card holds § */
 function echoTo_(items, F, G) {
   const to = {};
   for (const x of items) {
@@ -412,16 +403,15 @@ function echoInside_(F, G) {
   return ECHO_MEMO_.m[k];
 }
 
-/* A COUNT WITHIN EACH ANSWER OF ANOTHER QUESTION (Question within Paper): each G answer with two F answers holds a run of the
-   same names, one run inside the next, so Q1 under two papers is two things. Held until one G answer is left. */
-/* Not when G's answers also run, unevenly, inside F's: that is a grid (Question by Part), and neither is the other's count. */
+/* A COUNT WITHIN EACH ANSWER OF ANOTHER QUESTION (Question within Paper): § */
+/* Not when G's answers also run, unevenly, inside F's: § */
 function runsInside_(items, F, G) {
   const by = {};
   let cards = 0, cells = 0;
   for (const x of items) {
     const a = facetOwn_(F, x), b = facetOwn_(G, x);
     if (!a.length) continue;
-    /* A count lives only inside its parent: a card with F and no single G (a key stage with no Accuracy) makes F G's equal. */
+    /* A count lives only inside its parent: § */
     if (b.length !== 1) return 0;
     const s = by[spellKey_(b[0])] || (by[spellKey_(b[0])] = new Set());
     cards++;
@@ -431,7 +421,7 @@ function runsInside_(items, F, G) {
   /* A parent holds more cards than counts; one card a cell is the card's own address (Question by Part), a grid. */
   if (cards <= cells) return 0;
   const sets = Object.values(by).filter(s => s.size > 1).sort((p, q) => p.size - q.size);
-  /* A count runs longer than its parents are many: Required (two answers) under each practical type is a side, not a count. */
+  /* A count runs longer than its parents are many: § */
   if (sets.length < 2 || sets[sets.length - 1].size <= Object.keys(by).length) return 0;
   if (!sets.every((s, i) => !i || [...sets[i - 1]].every(v => s.has(v)))) return 0;
   return sets[0].size === sets[sets.length - 1].size ? 1 : 2;
@@ -440,17 +430,17 @@ const LOCAL_MEMO_ = new WeakMap();
 function facetLocal_(items, F) {
   let m = LOCAL_MEMO_.get(items);
   if (!m) LOCAL_MEMO_.set(items, m = {});
-  /* A G ALREADY ASKED NEVER HOLDS F (8 Nov): answered Any, "one G left" never comes, and the funnel ended with thousands left. */
+  /* A G ALREADY ASKED NEVER HOLDS F (8 Nov): § */
   const asked = (STUFF.filters || []).map(f => f.field), key = F.field + '|' + asked.join(',');
   if (key in m) return m[key];
   let say = '';
   const nF = facetValues(items, F).length;
-  /* ONLY A COARSER G, one the tab puts before F (8 Nov): Marks after Paper never holds Paper as its count, by chance or otherwise. */
+  /* ONLY A COARSER G, one the tab puts before F (8 Nov): § */
   for (const G of facetList()) {
     if (G === F) break;
     const nG = asked.indexOf(G.field) !== -1 ? 0 : facetValues(items, G).length;
     if (nG < 2 || nG >= nF || !runsInside_(items, F, G) || runsInside_(items, G, F) === 2) continue;
-    /* A G NEVER ASKED HERE NEVER HOLDS F (1180): Paper waited on a lopsided Function, and A-Level papers had no Paper question. */
+    /* A G NEVER ASKED HERE NEVER HOLDS F (1180): § */
     if (facetWhy_(items, G)) continue;
     say = G.label || G.field;
     break;
@@ -458,8 +448,7 @@ function facetLocal_(items, F) {
   return (m[key] = say);
 }
 
-/* HOW WELL A QUESTION SPLITS THE LIST, in bits, the score the menu-rule check measures (920). Past FACET_BITS_ENOUGH a split is
-   good enough and the tab's order decides, so Part (twenty-odd answers) never jumps in front of Subject. */
+/* HOW WELL A QUESTION SPLITS THE LIST, in bits, the score the menu-rule check measures (920). § */
 const FACET_BITS_ENOUGH = 2;
 function facetBits_(items, facet) {
   const vs = facetValues(items, facet), t = vs.reduce((a, v) => a + v.n, 0);
@@ -467,22 +456,21 @@ function facetBits_(items, facet) {
   return Math.min(FACET_BITS_ENOUGH, Math.round(bits * 100) / 100);
 }
 
-/* THE NEXT QUESTION WORTH ASKING, or nothing (rule 7, owner 6 Nov): of those the one rule lets through, the best split;
-   the tab's sort_order only breaks ties. A kind question still comes first (660, front 4 Nov). */
+/* THE NEXT QUESTION WORTH ASKING, or nothing (rule 7, owner 6 Nov): § */
 function nextFacet(items) {
   const asked = STUFF.filters.map(f => f.field);
   const ok = [];
   for (const facet of facetList()) {
     if (asked.indexOf(facet.field) !== -1 || facetWhy_(items, facet)) continue;
     const vals = facetValues(items, facet);
-    /* What a card IS is asked first (660), the front's answers are FRONT_ORDER's (4 Nov), and a choose question (mScope, owner 6 Nov) leads its list. */
+    /* What a card IS is asked first (660), the front's answers are FRONT_ORDER's (4 Nov), and a choose question § */
     if (kindNamed_(vals) || facet.choose || (!asked.length && vals.every(v => FRONT_ORDER.indexOf(v.value) !== -1))) return facet;
     ok.push({ facet, bits: facetBits_(items, facet) });
   }
   const pick = list => list.reduce((b, c) => (!b || c.bits > b.bits ? c : b), null);
   let best = pick(ok);
   /* A finer question splits more, but its coarser one comes first (the subtype rule): Subject before Topic. */
-  /* THE COARSEST HOLDING IT, BY THE TAB (1180): Month jumped Level and Board where each board sat in one month, so SATs met neither. */
+  /* THE COARSEST HOLDING IT, BY THE TAB (1180): § */
   const at = new Map(facetList().map((f, i) => [f, i]));
   for (let hop = 0; best && hop < 4; hop++) {
     const up = ok.filter(c => c !== best && at.get(c.facet) < at.get(best.facet)
@@ -502,7 +490,7 @@ function facetInside_(F, G, items) {
   if (!m) INSIDE_MEMO_.set(items, m = {});
   const key = F.field + '>' + G.field;
   if (key in m) return m[key];
-  /* A CARD MAY HOLD TWO OF G (the Masoretic Text is Christianity and Judaism, 660): each F answer keeps the G answers all its cards share. */
+  /* A CARD MAY HOLD TWO OF G (the Masoretic Text is Christianity and Judaism, 660): § */
   const to = {};
   let any = 0;
   for (const x of items) {
@@ -516,12 +504,11 @@ function facetInside_(F, G, items) {
       any++;
     }
   }
-  /* G's two answers are the list's, not only F's cards': Religion sits inside Subject though every religious card is Religious Studies. */
+  /* G's two answers are the list's, not only F's cards': § */
   return (m[key] = any > 0 && facetValues(items, G).length > 1);
 }
 
-/* AND WHEN NOTHING QUALIFIES, THE CLOSEST THING TO A QUESTION RATHER THAN A DEAD END: of those held back only for having
-   too many answers, the one with fewest. § */
+/* AND WHEN NOTHING QUALIFIES, THE CLOSEST THING TO A QUESTION RATHER THAN A DEAD END: § */
 function overFacet_(items) {
   const asked = STUFF.filters.map(f => f.field);
   let best = null;
@@ -534,11 +521,9 @@ function overFacet_(items) {
   return best ? best.facet : null;
 }
 
-/* THE CARD. Small — a reference, the marks, and the first line of the question, because a list of
-   ninety parts is scanned rather than read. The whole thing opens on a tap. */
-/* THE RECORD IS THE FACE OF IT. W-L-D first, KOs under it, and the date the count was taken —
-   because a record with no date is the one number on the card that can quietly go wrong. */
-/* ---------- ONE BOUT (batch D): the two fighters' portraits facing each other under the tags, and nothing else ---------- */
+/* THE CARD. Small — a reference, the marks, and the first line of the question, because a list of ninety § */
+/* THE RECORD IS THE FACE OF IT. § */
+/* ---------- ONE BOUT (batch D): the two fighters' portraits facing each other under the tags, and nothing else § */
 function fightCard_(x) {
   const f = x.row || {};
   return `<div class="fc fight" aria-label="${esc(f.a + ' and ' + f.b)}">${tagRow_(x)}
@@ -592,8 +577,7 @@ function decadesOf_(x) {
 /* ---------- A PRACTICAL § */
 /* ---------- THE TWO SHAPES A PRACTICAL COMES IN § */
 const PRAC_TYPE = { experiment: 'Experiment', build: 'Build' };
-/* THE `required` FACET'S THREE ANSWERS, IN THE ORDER A TUTOR READS THEM: what a board demands, what is
-   worth doing anyway, and what was turned down. The words the card's pill said, unchanged. */
+/* THE `required` FACET'S THREE ANSWERS, IN THE ORDER A TUTOR READS THEM: § */
 const PRAC_NEED = ['Required practical', 'Extra', 'Not for now'];
 
 function practicalCard_(x) {
@@ -615,7 +599,7 @@ function practicalCard_(x) {
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
     </div>
-    ${/* WHAT KIND OF AFTERNOON THIS IS AND WHETHER A BOARD DEMANDS IT -- `Build · Extra` -- were two pills of the head's own § */
+    ${/* WHAT KIND OF AFTERNOON THIS IS AND WHETHER A BOARD DEMANDS IT -- `Build · Extra` -- were two pills of the § */
           ''}
     ${tagRow_(x)}
     ${off ? `<p class="prac-no"><b>Why not</b> ${esc(p.excluded)}${p.reconsiderAt
@@ -713,7 +697,7 @@ function projectCard_(x) {
     : p.ageMin ? p.ageMin + '+' : '';
   const strip = [p.sessions ? p.sessions + (p.sessions === 1 ? ' session' : ' sessions') : '',
                  ages].filter(Boolean).join(' · ');
-  /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE -- `AQA 8552` is which qualification the work counts towards, and a project has neither, so its line is unchanged. § */
+  /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE -- `AQA 8552` is which qualification the work counts § */
   const qual = [p.board, p.specRef].filter(Boolean).join('\u00a0');
   return `<div class="fc prac proj lib-c">
     ${tagRow_(x)}
@@ -729,24 +713,20 @@ function projectCard_(x) {
 
 function projectPart_(x, part) {
   const p = x.row;
-  /* THE PRACTICAL'S PAGE HEADING, for its reason: a page you land on from a flick four results
-     away has to say whose page it is. */
+  /* THE PRACTICAL'S PAGE HEADING, for its reason: § */
   const head = what => `<p class="fc-kick">${esc(x.name)}</p><h3>${what}</h3>`;
   let inner = '';
   if (part === 'kit') {
     inner = `${head('Materials')}<div class="gd"><section class="prac-kit">
       ${kitList_(p.materials)}</section></div>`;
   } else if (part === 'steps') {
-    /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminOpts_`'s rule. On a
-       project it is mostly about who is in the shot and what stays offline, which is a thing to
-       read before filming rather than after. */
-    /* A COURSEWORK'S STEPS ARE ITS STAGES -- brief, research, specification, ideas, development, models, making, evaluation -- and that is the word a GCSE pupil and § */
+    /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminOpts_`'s rule. § */
+    /* A COURSEWORK'S STEPS ARE ITS STAGES -- brief, research, specification, ideas, development, models § */
     inner = `${head(p.projectType === 'coursework' ? 'Stages' : 'Steps')}<div class="gd"><section class="prac-steps">
       <ol class="fc-list">${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section></div>
       ${p.safety ? `<p class="fc-note"><b>Before you start</b> ${esc(p.safety)}</p>` : ''}`;
   } else if (part === 'share') {
-    /* A THING HAS TILES: the one action on this page is going to Messages, so it is a tile in a
-       `.tile-row`, not a button — `check-doors` pairs `proj-share` with its handler below. */
+    /* A THING HAS TILES: the one action on this page is going to Messages, so it is a tile in a `.tile-row` § */
     /* "SEND IT IN MESSAGES", NOT "TO YOUR TUTOR". § */
     /* ---------- AND ON A COURSEWORK, WHOSE WORK IT IS § */
     const own = p.projectType === 'coursework'
@@ -764,9 +744,7 @@ function projectPart_(x, part) {
   return inner ? `<div class="fc prac prac-part proj is-${part}">${inner}</div>` : '';
 }
 
-/* TO MESSAGES, AND NOTHING ELSE. Who to write to is the Messages screen's question — it already
-   knows who a student may reach (`MESSAGING` in constants.gs) — so this does not open a composer
-   of its own with a guessed recipient. */
+/* TO MESSAGES, AND NOTHING ELSE. § */
 on('proj-share', () => go('dm'));
 
 /* THE @family. TEXTBOOK — A CONTENTS CARD, THEN ONE PAGE PER CHAPTER. § */
@@ -775,13 +753,11 @@ const tbMath_ = s => tbSub_(typeset_(esc(s).replace(/\//g, '&frasl;')));
 const TB_SUB = '₀₁₂₃₄₅₆₇₈₉ₐₑₒₓₙₛₜ', TB_SUB_AS = '0123456789aeoxnst';
 const tbSub_ = html => String(html).replace(/[₀-₉ₐₑₒₓₙₛₜ]+/g,
   run => '<sub>' + [...run].map(c => TB_SUB_AS[TB_SUB.indexOf(c)]).join('') + '</sub>');
-/* THE MARK ITSELF. A letter rather than a colour, because the tier is a fact somebody has to read
-   in a photocopy too; `title` says it in full for anybody who does not know the convention. */
+/* THE MARK ITSELF. A letter rather than a colour, because the tier is a fact somebody has to read in a § */
 const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</span>' : '';
 
 /* ---------- A CONTENT CARD: ONE CHAPTER, WHOLE, WITH THE QUESTIONS' TAGS ON IT § */
-/* ONE WIDGET PER THING (408): the card is its title, its tags and its key words; formulas, worked lines and each drawing are
-   pages of their own, each titled (`contentPart_`). */
+/* ONE WIDGET PER THING (408): § */
 function contentCard_(x) {
   const c = x.row;
   return `<div class="fc prac tb ct lib-c">
@@ -791,8 +767,8 @@ function contentCard_(x) {
   </div>`;
 }
 
-/* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): `check-flow`'s one-widget journey reads the same table. */
-const CONTENT_PAGE = { formulas: 'Formulas', worked: 'Worked examples' };
+/* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): § */
+const CONTENT_PAGE = { fig: 'Diagram', formulas: 'Formulas', worked: 'Worked examples' };
 function contentPageTitle_(x, part) {
   if (!part) return String((x && x.name) || '');
   return CONTENT_PAGE[part] || '';
@@ -803,27 +779,26 @@ function contentPart_(x, part) {
   return `<div class="fc prac prac-part tb tb-page is-${part}">
     <p class="fc-kick">${esc([c.subject, c.title].filter(Boolean).join(' · '))}${tbHigher_(c.higher)}</p>
     <h3>${esc(CONTENT_PAGE[part])}</h3>
-    ${tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })}
+    ${part === 'fig' ? `<div class="gd"><figure>${c.diagram}</figure></div>` : tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })}
   </div>`;
 }
 
 /* ---------- A CHAPTER'S KEY WORDS, FORMULAS AND WORKED LINES — ALL OF THEM, OR THE ONES ASKED FOR § */
-/* `opt.only` draws one section ('words' | 'formulas' | 'points'); `opt.bare` drops its heading, as the page's own title says it (408). */
+/* `opt.only` draws one section ('words' | 'formulas' | 'points'); `opt.bare` drops its heading, as the § */
 function tbSections_(c, keep, opt) {
   opt = opt || {};
   const want = s => !opt.only || opt.only === s;
   const h4 = t => (opt.bare ? '' : `<h4>${t}</h4>`);
   const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
   const named = i => !keep || keep.indexOf(i.name) !== -1;
-  /* A WORKED LINE IS NAMED BY HOW IT OPENS — "Exact values: sin 30° …" is about Exact values — and the
-     next character must not carry the word on: "Mean" is not the opening of "Meanwhile". */
+  /* A WORKED LINE IS NAMED BY HOW IT OPENS — "Exact values: sin 30° …" is about Exact values — and the next § */
   const opens = p => !keep || keep.some(k => p.text.indexOf(k) === 0 && !/[A-Za-z0-9]/.test(p.text.charAt(k.length)));
   const words = want('words') ? c.words.filter(named) : [], formulas = want('formulas') ? c.formulas.filter(named) : [];
   const points = want('points') ? c.points.filter(opens) : [];
   return `${words.length ? `<section class="fc-sec tb-words">${h4('Key words')}<ul class="fc-list">${
       words.map(w => line(w, `<b>${esc(w.name)}</b> — ${tbSub_(esc(w.text))}`)).join('')}</ul></section>` : ''}
-    ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: a stacked fraction is two lines tall
-         and an `H` trailing it sat alone on a third, measured at 320px. */''}
+    ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: § */
+         ''}
     ${formulas.length ? `<section class="fc-sec tb-math">${h4('Formulas')}<ul>${
       formulas.map(f => `<li><span class="tb-fn">${esc(f.name)}${tbHigher_(f.higher)}</span><span class="tb-fm">${
         tbMath_(f.text)}</span></li>`).join('')}</ul></section>` : ''}

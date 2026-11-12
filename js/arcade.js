@@ -4,7 +4,7 @@
 /* ---------- ARCADE § */
 
 /* THE WIDGETS — nine things you USE rather than things you find. § */
-/* TOOLS AND GAMES, AS COLUMNS THEY WERE ALREADY REACHABLE — `What for · Tools` and `What for · Games` are answers in the funnel and always have been. § */
+/* TOOLS AND GAMES, AS COLUMNS — `What for · Tools` and `· Games` were always funnel answers. § */
 
 /* ---------- WHAT THIS PERSON MAY OPEN § */
 /* ---------- ONE LIST, ASKED BY BOTH THE RENDER AND THE COUNT § */
@@ -632,7 +632,7 @@ function paintCountdowns_() {
   const rows = progressCountdownRows_();
   const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return esc(day_(d) + ' ' + date_(d)); };
   document.querySelectorAll('.cd-box').forEach(box => {
-    box.innerHTML = (rows.length ? rows.map(([k, n]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${CD_DATES ? when(n) : progressDaysSaid_(n)}</span></div>`).join('')
+    box.innerHTML = (rows.length ? rows.map(([k, n]) => rowHtml(k, CD_DATES ? when(n) : progressDaysSaid_(n))).join('')
       : '<p class="note">Nothing to count down to yet.</p>')
       + (rows.length ? `<div class="tile-row">${tile_({ icon: CD_DATES ? 'speed' : 'table', label: CD_DATES ? 'Days' : 'Dates', note: CD_DATES ? 'how many to go' : 'the day itself', act: 'cd-dates', pressed: CD_DATES })}</div>` : '');
   });
@@ -693,14 +693,14 @@ function tdLine_(x) {
   const back = new Date(x.to.getFullYear(), x.to.getMonth(), x.to.getDate() + 1);
   while (back.getDay() % 6 === 0) back.setDate(back.getDate() + 1);
   const v = x.kind === 'term' ? `${tdDay_(x.from)} – last day of term ${tdDay_(x.to)}` : `from ${tdDay_(x.from)} · first day back ${tdDay_(back)}`;
-  return `<div class="row td-${x.kind}${x.now ? ' td-now' : ''}"><span class="k">${x.now ? 'Now: ' : ''}${esc(x.name)}</span><span class="v">${esc(v)}</span></div>`;
+  return rowHtml((x.now ? 'Now: ' : '') + x.name, esc(v), '', `td-${x.kind}${x.now ? ' td-now' : ''}`);
 }
 /* THE NEXT FOUR BY DEFAULT; one tile shows the rest of the year ahead too (owner, 12 Nov: a safe press on every tool). */
 let TD_MORE = false;
 function paintTermDates_() {
   const rows = termDatesRows_(), sh = tdShift_();
-  const adj = (id, v, label) => `<div class="row"><span class="k">${label}</span><span class="v"><select class="td-adj" data-td="${id}" aria-label="${label}">${
-    [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map(n => `<option value="${n}"${n === v ? ' selected' : ''}>${n ? (n > 0 ? n + ' later' : -n + ' earlier') : 'as usual'}</option>`).join('')}</select></span></div>`;
+  const adj = (id, v, label) => rowHtml(label, `<select class="td-adj" data-td="${id}" aria-label="${label}">${
+    [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map(n => `<option value="${n}"${n === v ? ' selected' : ''}>${n ? (n > 0 ? n + ' later' : -n + ' earlier') : 'as usual'}</option>`).join('')}</select>`);
   document.querySelectorAll('.td-box').forEach(box => {
     box.removeAttribute('aria-busy');
     box.innerHTML = rows.map(tdLine_).join('')
@@ -840,33 +840,33 @@ const progressPct_ = (a, b) => (b > 0 ? Math.round(100 * a / b) : 0);
 function progressAnsweredCard_(st) {
   if (!st.n) return emptyCard_('Questions');
   const rows = st.topics.slice(0, 12).map(o => `<div class="prog-topic">
-      <div class="row"><span class="k">${esc(o.topic)}</span><span class="v">${o.marked ? o.right + ' of ' + o.marked + ' right' : o.n + ' tried'}</span></div>
+      ${rowHtml(o.topic, o.marked ? o.right + ' of ' + o.marked + ' right' : o.n + ' tried')}
       <div class="prog-bar" aria-hidden="true"><span style="width:${o.marked ? progressPct_(o.right, o.marked) : 0}%"></span></div>
     </div>`).join('');
   return card_(`<div class="prog-answered">
     <h3>Questions</h3>
-    <div class="row prog-tot"><span class="k">Answered</span><span class="v">${st.n}</span></div>
-    <div class="row prog-tot"><span class="k">Right</span><span class="v">${st.right}</span></div>
-    <div class="row prog-tot"><span class="k">Marks</span><span class="v">${st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet'}</span></div>
+    ${rowHtml('Answered', st.n, '', 'prog-tot')}
+    ${rowHtml('Right', st.right, '', 'prog-tot')}
+    ${rowHtml('Marks', st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet', '', 'prog-tot')}
     ${rows}
   </div>`);
 }
 function progressActivityCard_(st) {
   if (!st.n) return emptyCard_('Recent activity');
   const said = p => !p.sc ? 'sent' : p.ok ? 'right' : p.sc.of > 1 ? p.sc.got + '/' + p.sc.of : 'wrong';
-  const last = st.recent.map(r => `<div class="row"><span class="k">${esc((r.x && (r.x.sub ? r.x.sub + ' · ' : '') + (r.x.name || '')) || 'A question')}</span>
-      <span class="v prog-v${r.ok ? ' is-good' : r.sc ? ' is-bad' : ''}">${esc(said(r))}</span></div>`).join('');
+  const last = st.recent.map(r => rowHtml((r.x && (r.x.sub ? r.x.sub + ' · ' : '') + (r.x.name || '')) || 'A question',
+      esc(said(r)), `prog-v${r.ok ? ' is-good' : r.sc ? ' is-bad' : ''}`)).join('');
   return card_(`<div class="prog-activity">
     <h3>Recent activity</h3>
-    <div class="row"><span class="k">Streak</span><span class="v">${st.streak ? progressDaysSaid_(st.streak) : 'none yet'}</span></div>
-    <div class="row"><span class="k">Last 7 days</span><span class="v">${st.week} on ${progressDaysSaid_(st.weekDays)}</span></div>
+    ${rowHtml('Streak', st.streak ? progressDaysSaid_(st.streak) : 'none yet')}
+    ${rowHtml('Last 7 days', `${st.week} on ${progressDaysSaid_(st.weekDays)}`)}
     ${last}
   </div>`);
 }
 function progressWeakCard_(st) {
   if (!st.weak.length) return emptyCard_('Work on next');
   const items = st.weak.map(o => `<div class="prog-weak">
-      <div class="row"><span class="k">${esc(o.topic)}</span><span class="v">${progressPct_(o.got, o.of)}% of marks</span></div>
+      ${rowHtml(o.topic, `${progressPct_(o.got, o.of)}% of marks`)}
       <div class="tile-row">${tile_({ icon: 'search', label: 'Practise', note: o.topic + ' in Find', act: 'prog-practise',
         data: { topic: o.topic, key: (o.miss && o.miss.key) || '' } })}</div>
     </div>`).join('');
@@ -896,14 +896,14 @@ function progressSeriesCard_(sr) {
       const k = String(q.key || q.name), sc = pp.done[k];
       const v = !sc ? 'not done' : sc.sent ? 'sent' : sc.of > 1 ? sc.got + '/' + sc.of : sc.got ? 'right' : 'wrong';
       const tone = !sc || sc.sent ? '' : sc.got === sc.of ? ' is-good' : ' is-bad';
-      return `<div class="row"><span class="k">${esc('Q' + (q.qNumber != null && q.qNumber !== '' ? q.qNumber + (q.qPart || '') : q.name))}</span><span class="v prog-v${tone}">${esc(v)}</span></div>`;
+      return rowHtml('Q' + (q.qNumber != null && q.qNumber !== '' ? q.qNumber + (q.qPart || '') : q.name), esc(v), `prog-v${tone}`);
     }).join('');
     return `<details class="prog-paper" data-paper="${esc(pp.id)}"${PROG_OPEN.has(pp.id) ? ' open' : ''}>
       <summary class="row"><span class="k">${esc(progressPaperName_(pp.x))}</span><span class="v">${esc(sums)}</span></summary>
       <div class="prog-qs">${qs}</div>
     </details>`;
   }).join('');
-  const untouched = sr.untouched ? `<div class="row"><span class="k">Not started</span><span class="v">${sr.untouched}</span></div>` : '';
+  const untouched = sr.untouched ? rowHtml('Not started', sr.untouched) : '';
   /* ITS OWN CARD ID (466), so one series — past papers, Religious Studies — moves or goes alone. */
   const lid = 'prog:series:' + String(sr.name || 'x').toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
   return card_(`<div class="prog-series" data-lay-card="${esc(lid)}">
@@ -952,7 +952,7 @@ function progressGradeCard_(st) {
       : o.lv === 'sats' ? progressGrade_(PROG_SATS_STEPS, pct, 'working towards')
       : 'working at grade ' + o.best;
     const label = o.subj + (o.lv === 'gcse' ? ' GCSE' : o.lv === 'alevel' ? ' A-level' : o.lv === 'sats' ? ' SATs' : ' worksheets');
-    return `<div class="row"><span class="k">${esc(label)}</span><span class="v">${esc(g)}</span></div>`;
+    return rowHtml(label, esc(g));
   }).join('');
   if (!rows) return emptyCard_('Grade estimate');
   return card_(`<div class="prog-grade">
@@ -982,7 +982,7 @@ function progressSessions_() {
 function progressSessionsCard_(ss) {
   if (!ss.ahead.length && !ss.past.length) return emptyCard_('Sessions');
   const when = s => day_(s.d) + ' ' + date_(s.d) + (s.j.time ? ' · ' + time_(s.j.time) : '');
-  const row = s => `<div class="row"><span class="k">${esc(when(s))}</span><span class="v">${esc(s.j.title || s.j.subject || 'Session')}</span></div>`;
+  const row = s => rowHtml(when(s), esc(s.j.title || s.j.subject || 'Session'));
   return card_(`<div class="prog-sessions">
     <h3>Sessions</h3>
     ${ss.ahead.map(row).join('')}

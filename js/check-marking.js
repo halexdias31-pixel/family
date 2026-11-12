@@ -568,7 +568,7 @@ const slow = took > 400;
 if (slow) console.log('  marking %j took %d ms — a unit is being read more than one way again', SLOW, took);
 
 /* ---------- BY RULE: KEY WORDS MARK A SHORT WORDED ANSWER, A MARK A POINT (docs/history/359) ---------- */
-const MW_NAMES = ['MW_STOP', 'mwStem_', 'mwToks_', 'mwNum_', 'mwShapes_', 'mwHas_', 'markWords_', 'cellsOf_', 'markCells_'];
+const MW_NAMES = ['MW_STOP', 'mwStem_', 'mwToks_', 'mwNum_', 'mwShapes_', 'mwHas_', 'markWords_', 'cellsOf_', 'cellsOneBox_', 'markCells_'];
 const mwSrc = MW_NAMES.map(n => cutFrom(src, n));
 let mwBad = 0;
 const MW = [

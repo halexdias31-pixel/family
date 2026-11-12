@@ -1,16 +1,13 @@
 
-/* WHAT A DRAG MAKES, BY TOOL. `move` answers the stroke to preview (null: nothing new); `end` answers
-   the stroke to keep (null: nothing -- a tap is a dot to the pen, and to a ruler or a compass a slip). */
+/* WHAT A DRAG MAKES, BY TOOL. § */
 const PAD_DRAW = {
   pen: {
-    /* ONE POINT PER PIXEL OF THE PICTURE, not one per event. A pointer fires far faster than a
-       finger moves anything visible, and every duplicated point is two more characters in storage
-       for a mark nobody can see. */
+    /* ONE POINT PER PIXEL OF THE PICTURE, not one per event. § */
     move: (g, at, st) => {
       /* AFTER A HOLD (374): a ring or an arc is done; a line's corner waits until the point leaves where it paused */
       if (g.frozen) return null;
       if (g.qz) { if (Math.hypot(at[0] * g.sx - g.qz[0], at[1] * g.sy - g.qz[1]) <= PAD_HOLD_PX) return null; g.qz = null; g.lz = null; }
-      /* A SHORT STROKE IS DRAWN EXACTLY AS MOVED: the string engages once the pointer is more than its length from where it went down -- a tick, a cross's arm (368) */
+      /* A SHORT STROKE IS DRAWN EXACTLY AS MOVED: § */
       if (padSteady_(g) && (g.slack || Math.hypot((at[0] - g.raw[0]) * g.sx, (at[1] - g.raw[1]) * g.sy) > PAD_STRING_PX)) { g.slack = true; at = padLazy_(g, at, st); }
       if (!at || (st[st.length - 2] === at[0] && st[st.length - 1] === at[1])) return null;
       st.push(at[0], at[1]);
@@ -18,7 +15,7 @@ const PAD_DRAW = {
     },
     /* A STEADIED STROKE ENDS WHERE THE POINTER LIFTED: the string's slack is paid out in two steps, so nothing lags */
     end: (g, st) => {
-      /* A CLICK THAT NEVER MOVED IS A PLOTTED POINT: onto the grid or the figure's point as a finger's is (357), never onto your own mark, where it would vanish */
+      /* A CLICK THAT NEVER MOVED IS A PLOTTED POINT: § */
       if (padSteady_(g) && !g.board && !g.slack && g.tg && st && st.length === 2) {
         const t = padSnap_(Object.assign({}, g, { hold: null, tg: { own: [], pts: g.tg.pts } }), st[0] * g.sx, st[1] * g.sy, '');
         return t ? [Math.round(t.u[0]), Math.round(t.u[1])] : st;
@@ -34,8 +31,7 @@ const PAD_DRAW = {
       return st;
     },
   },
-  /* A RULER IS ITS TWO ENDS. The live line follows the finger from where it went down; what is kept
-     is that line and nothing of the path the finger took to get there. */
+  /* A RULER IS ITS TWO ENDS. § */
   ruler: {
     move: (g, at) => [g.from[0], g.from[1], at[0], at[1]],
     end: (g, st) => (st.length === 4
@@ -52,12 +48,11 @@ function padAid_(g) {
   const aid = g.ink.querySelector('.qpad-aid');
   if (!aid) return;
   const c = g.from;
-  /* AND A HALO ROUND A SNAP THAT IS HOLDING (357): 30px on the screen, an ellipse in the stretched units so it
-     is round where it is seen. Shown, never stored -- the aid is emptied at the lift. */
+  /* AND A HALO ROUND A SNAP THAT IS HOLDING (357): § */
   const h = g.hold;
   const halo = h ? `<ellipse class="qpad-halo" vector-effect="non-scaling-stroke" cx="${h.u[0]}" cy="${h.u[1]}" rx="${30 / g.sx}" ry="${30 / g.sy}"/>` : '';
   if (g.tool === 'pen') {
-    /* AND WHERE THE FINGER IS ABOUT TO BE (374): the platform's prediction, one short segment, never stored -- the next frame replaces it */
+    /* AND WHERE THE FINGER IS ABOUT TO BE (374): § */
     const n = PAD_ST ? PAD_ST.length : 0, q = g.pred;
     const html = halo + (q && n >= 2 ? `<path class="qpad-pred" vector-effect="non-scaling-stroke" d="M${PAD_ST[n - 2]} ${PAD_ST[n - 1]}L${q[0]} ${q[1]}"/>` : '');
     if (aid.innerHTML !== html) aid.innerHTML = html;
@@ -83,7 +78,7 @@ const PAD_LAG_MS = 40;        // a finger that reported within this is still rep
 
 /* THE CONTACTS, by `pointerId` (jsdom's `undefined` is a key like any other). § */
 const PAD_TOUCH = new Map();
-/* HELD: the stroke is kept (`PAD_ST`, `PAD_GO`, so `padHold_` and `findKeep_` still hold its column) and its samples go on accumulating, but nothing of it is on § */
+/* HELD: the stroke is kept (`PAD_ST`, `PAD_GO`, so `padHold_` and `findKeep_` still hold its column) and § */
 let PAD_HUSH = null;
 /* TWO FINGERS: no stroke, and nothing drawn until every one of these has lifted. */
 const PAD_TWO = new Set();
@@ -92,23 +87,21 @@ let PAD_DUE = null;
 let PAD_FRAME = 0;
 /* UNDO AND CLEAR REFUSED UNTIL THIS TIME, by pad key -- a hand resting on the bar (`padRested_`). */
 const PAD_RESTED = new Map();
-/* `?pen=sizes` IN THE ADDRESS: the last eight contacts' widths, on the screen -- the reading increment 2
-   waits for. Nothing reads it but the line that shows it. */
+/* `?pen=sizes` IN THE ADDRESS: § */
 const PAD_SIZES = (() => { try { return /[?&]pen=sizes(&|$)/.test(location.search) ? [] : null; } catch (e) { return null; } })();
 
 const padDist_ = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
-/* A CONTACT'S SIZE: the larger of its two sides, and only when the platform reports one -- 1 (or 0) is
-   "not known", which is what a mouse, iOS before 18 and Android's `pointerup` say. */
+/* A CONTACT'S SIZE: the larger of its two sides, and only when the platform reports one -- 1 (or 0) is § */
 const padSizeOf_ = e => { const s = Math.max(Number(e && e.width) || 0, Number(e && e.height) || 0); return s > 1 ? s : 0; };
 
-/* WHETHER A FINGER IS ON THE ARMED DRAWING -- the swipe engine asks this before it takes a gesture (overworld.js, the axis decision), so a palm or a thumb that § */
+/* WHETHER A FINGER IS ON THE ARMED DRAWING -- the swipe engine asks this before it takes a gesture § */
 function padBusy_(k) {
   const on = k === undefined ? PAD_ON : k;
   if (!on || on !== PAD_ON || !PAD_TOUCH.size) return false;
   for (const c of PAD_TOUCH.values()) if (c.onInk && c.k === on) return true;
   return false;
 }
-/* A PEN IS IN USE WHILE A STROKE OR A CONTACT IS ON IT, not merely for being the last pad touched: with no lock (368) nothing else ever lets go of it. */
+/* A PEN IS IN USE WHILE A STROKE OR A CONTACT IS ON IT, not merely for being the last pad touched: § */
 const padInUse_ = k => !!k && k === PAD_ON && (!!PAD_GO || PAD_TOUCH.size > 0);
 /* ---------- UNDO AND CLEAR UNDER A RESTING HAND § */
 const padRested_ = k => padBusy_(k) || (PAD_RESTED.get(k) || 0) > performance.now();
@@ -153,8 +146,7 @@ function padContact_(e, ink, k) {
   padSizesSay_(c, e);
   return c;
 }
-/* AND WHERE IT HAS GOT TO: how far from where it went down, and when it last really moved. A "move" is
-   `PAD_ALSO_PX`, so a resting palm's tremble is not a contact on the move. */
+/* AND WHERE IT HAS GOT TO: § */
 function padTrack_(c, x, y, ts) {
   c.p = [x, y];
   const d = padDist_(c.p0, c.p);
@@ -180,7 +172,7 @@ function padMap_(r, cx, cy) {
   return [Math.round((cx - r.left) / r.width * 340), Math.round((cy - r.top) / r.height * 340)];
 }
 
-/* A STEADY HAND FOR A MOUSE OR A STYLUS (368): a lazy brush -- the ink follows the pointer on a string -- then a light low-pass. A finger keeps 357's ink under it, untouched */
+/* A STEADY HAND FOR A MOUSE OR A STYLUS (368): § */
 const PAD_STRING_PX = 6;      // the string: a pointer's jitter inside it moves no ink, and a straight pull draws a straight line
 const PAD_STEADY_K = 0.55;    // the low-pass: each point this much of the way from the last kept one to the string's end
 const padSteady_ = g => !!(g && g.c && isSteadyPointer_(g.c));
@@ -249,7 +241,7 @@ function padGrid_(svg) {
       const d = p.slice(1).map((v, i) => v - p[i]);
       const med = d.slice().sort((a, b) => a - b)[d.length >> 1];
       if (!(med > 0)) return null;
-      /* THE LONGEST RUN OF EVEN STEPS -- an axis drawn a little off the grid, or a frame round it, ends a run, not the grid. */
+      /* THE LONGEST RUN OF EVEN STEPS -- an axis drawn a little off the grid, or a frame round it, ends a run § */
       let best = [0, 0];
       for (let i = 0, j = 0; i < d.length; i = j) {
         j = i;
@@ -373,7 +365,7 @@ function padGain_(g, f, start) {
   if (d > PAD_GAIN_MAX_PX) { cx = f[0] + (cx - f[0]) * PAD_GAIN_MAX_PX / d; cy = f[1] + (cy - f[1]) * PAD_GAIN_MAX_PX / d; }
   return [cx, cy];
 }
-/* ONE PLACEMENT: the finger's point (units) through the slow mode and the snap, back to WHOLE units -- what is stored is always whole numbers § */
+/* ONE PLACEMENT: the finger's point (units) through the slow mode and the snap, back to WHOLE units -- what § */
 function padPlace_(g, at, start) {
   let f = [at[0] * g.sx, at[1] * g.sy];
   if (g.lat && g.lat.pitch < PAD_FINE_PX) f = padGain_(g, f, start);
@@ -393,7 +385,7 @@ function padPlace_(g, at, start) {
   if (start) g.fp = t ? [t.x, t.y] : f;
   return g.at.slice();
 }
-/* ---------- HOLD TO STRAIGHTEN (374): a pen line paused at its end becomes straight, a ring round, an arc an arc -- QuickShape's gesture. A quick stroke is kept as drawn */
+/* ---------- HOLD TO STRAIGHTEN (374): a pen line paused at its end becomes straight, a ring round, an arc an arc § */
 const PAD_HOLD_MS = 500;      // still this long at a stroke's end: iPad's QuickShape waits about as long, past a child's ordinary 100-300ms pause
 const PAD_HOLD_PX = 8;        // "still": within this of where the pause began -- a fingertip's +-4px wobble is inside it
 const PAD_SHAPE_MIN = 20;     // a run shorter than this is a tick, not a line
@@ -429,7 +421,7 @@ function padCircleFit_(P) {
   if (!(r2 > 0)) return null;
   return { c: [mx - D / 2, my - E / 2], r: Math.sqrt(r2) };
 }
-/* WHAT A RUN OF POINTS (px) WAS MEANT TO BE: a line, or -- the whole stroke only -- a ring or an arc; null leaves it as drawn */
+/* WHAT A RUN OF POINTS (px) WAS MEANT TO BE: § */
 function padShapeOf_(P, whole) {
   const n = P.length;
   if (n < 2) return null;
@@ -454,11 +446,11 @@ function padShapeOf_(P, whole) {
   const rms = Math.sqrt(sum / n), cover = Math.abs(turn) * 180 / Math.PI;
   const a0 = Math.atan2(a[1] - fit.c[1], a[0] - fit.c[0]);
   if (cover >= 300 && rms <= 0.1 * fit.r && worst <= 0.25 * fit.r) return { kind: 'ring', c: fit.c, r: fit.r, a0: a0 };
-  /* AN ARC IS HELD TO TIGHTER: a sketched curve (a parabola, a sine) paused at its end must not turn into a circle's piece */
+  /* AN ARC IS HELD TO TIGHTER: § */
   if (cover >= 40 && cover < 300 && dev > tol && rms <= 0.05 * fit.r && worst <= 0.12 * fit.r) return { kind: 'arc', c: fit.c, r: fit.r, a0: a0, span: turn };
   return null;
 }
-/* A STRAIGHTENED END (px): through the grid's snap, the ruler's level/upright lock against the other end, and back onto the stroke's own start to close a shape */
+/* A STRAIGHTENED END (px): § */
 function padEndAt_(g, p, from, home) {
   g.hold = null;
   let f = p, axis = '';
@@ -473,11 +465,11 @@ function padEndAt_(g, p, from, home) {
   return t ? [t.x, t.y, t.u] : f;
 }
 const padUnit_ = (g, p) => p[2] ? [Math.round(p[2][0]), Math.round(p[2][1])] : [Math.round(p[0] / g.sx), Math.round(p[1] / g.sy)];
-/* THE PAUSE, ACTED ON: the run since the last corner replaced by its shape, shown at once; a line's end is a corner the pen goes on from */
+/* THE PAUSE, ACTED ON: § */
 function padStraighten_(g) {
   const st = PAD_ST, q0 = g.q0 || 0, sx = g.sx, sy = g.sy, P = [];
   for (let i = 2 * q0; i + 1 < st.length; i += 2) P.push([st[i] * sx, st[i + 1] * sy]);
-  /* THE TREMBLE OF THE PAUSE ITSELF IS NOT THE SHAPE: the points still inside the pause's zone are left out, the finger's place put back */
+  /* THE TREMBLE OF THE PAUSE ITSELF IS NOT THE SHAPE: § */
   const tip = [g.at[0] * sx, g.at[1] * sy], hz = g.hz || tip;
   while (P.length > 1 && Math.hypot(P[P.length - 1][0] - hz[0], P[P.length - 1][1] - hz[1]) <= PAD_HOLD_PX) P.pop();
   P.push(tip);
@@ -508,7 +500,7 @@ function padStraighten_(g) {
   return true;
 }
 
-/* ---------- A FINGER'S NEXT FEW MS, PREDICTED (374; 338 section 9's revisit): preview only, at most `PAD_PRED_PX` ahead, a finger's freehand line only */
+/* ---------- A FINGER'S NEXT FEW MS, PREDICTED (374; 338 section 9's revisit): preview only, at most `PAD_PRED_PX` § */
 const PAD_PRED_PX = 12;
 function padPredict_(g, e, r) {
   if (g.tool !== 'pen' || g.dot || g.frozen || g.qz || !isTouchPointer_(g.c) || !PAD_ST || PAD_ST.length < 4) return null;
@@ -533,12 +525,11 @@ function padStart_(c, at, r) {
              box: r, board: !!pad && padIsBoard_(pad.getAttribute('data-k')), lat: null, tg: null, hold: null, gain: null,
              at: at.slice(), fp: null, raw: at.slice(), dot: false, far: 0, loupe: 0 };
   const g = PAD_GO;
-  /* A PLACEMENT, PUT DOWN (357): the pin and the ruler's first end where they snap, and the pen's touch a
-     DOT -- one point -- until it has gone `PAD_DOT_PX`. Not on the board: it never snaps, and its taps are as before. */
+  /* A PLACEMENT, PUT DOWN (357): § */
   if (!g.board) {
     g.lat = padLattice_(pad, r);
     g.tg = padTargets_(g, pad);
-    /* A MOUSE OR A STYLUS IS NOT PLACING A DOT: it lands where it is put, so an arrowhead's 8px stroke stays a stroke and is not snapped onto the shaft (368) */
+    /* A MOUSE OR A STYLUS IS NOT PLACING A DOT: § */
     g.dot = g.tool === 'pen' && !padSteady_(g);
     g.from = g.tool === 'pen' && !g.dot ? at.slice() : padPlace_(g, at, true);
   }
@@ -621,15 +612,13 @@ function padChunks_(g) {
   }
   open.setAttribute('d', g.start ? padChunk_(st, g.k, g.start, n - 1) : padPath_(st, g.k, true));
 }
-/* THE PREVIEW, DRAWN WHOLE FROM EVERY SAMPLE KEPT -- at the start, and when a hold resolves. Now, not at
-   the next frame: the dot is under the finger the moment it lands. */
+/* THE PREVIEW, DRAWN WHOLE FROM EVERY SAMPLE KEPT -- at the start, and when a hold resolves. § */
 function padLiveShow_() {
   const g = PAD_GO;
   if (!g) return;
   padLiveOff_(g);
   g.start = 0;
-  /* NOR WHAT CANNOT BE KEPT: a pin's or a palm's ruler line or ring while it is not known to be the one drawing (`padRace_`)
-     -- the third review watched a palm's line and ring follow it round the picture and vanish at the lift. */
+  /* NOR WHAT CANNOT BE KEPT: § */
   if (!padShown_(g)) { g.dirty = false; return; }
   g.live = [padLivePath_(g, '')];
   if (g.tool === 'pen') padChunks_(g);
@@ -729,8 +718,7 @@ function padJudge_(force) {
   });
   const far = ps.reduce((a, b) => (b.d > a.d ? b : a));
   if (far.d < PAD_STILL_PX) {
-    /* NOBODY HAS GONE 10px AT A MOMENT ALL HAVE REPORTED -- though one has by its own latest: the others' reports are
-       still coming. Asked again at the frame after their next event; a lift decides it. */
+    /* NOBODY HAS GONE 10px AT A MOMENT ALL HAVE REPORTED -- though one has by its own latest: § */
     if (ps.some(p => padDist_(p.ref, p.c.p) >= PAD_STILL_PX)) PAD_DUE = { at: tc };
     return;
   }
@@ -761,11 +749,11 @@ function padAlone_(x) {
   if (padTakes_(cand)) { padSwap_(cand, false); return; }
   const pinned = padPinned_(cand);
   cand.role = 'rest'; cand.pts = null;
-  /* REFUSED, SO THE STILL ONE IS THE STROKE AGAIN -- and a ruler's or a compass's still owner is a PIN or a PALM until it shows otherwise. § */
+  /* REFUSED, SO THE STILL ONE IS THE STROKE AGAIN -- and a ruler's or a compass's still owner is a PIN or a § */
   if (PAD_GO.tool !== 'pen') PAD_GO.min = Math.max(PAD_GO.min || 0, PAD_STILL_PX);
   if (pinned) {
     (PAD_GO.refused || (PAD_GO.refused = [])).push(cand);
-    /* THE RACE STARTS WHERE THE STILL ONE WAS WHEN THE FIRST REFUSED ONE LANDED (fourth review), by the samples' clock: § */
+    /* THE RACE STARTS WHERE THE STILL ONE WAS WHEN THE FIRST REFUSED ONE LANDED (fourth review), by the § */
     if (PAD_GO.raceAt === undefined) { PAD_GO.raceAt = cand.t0; PAD_GO.raceFrom = padPos_(PAD_GO.c, cand.t0).slice(1); }
   }
   padResume_();

@@ -695,8 +695,9 @@ function aiStageStart_(box, out) {
     if (out && out.parentNode === box) out.after(line); else box.appendChild(line);
   }
   line.className = 'qp-ai-stage';
+  /* WORDS ONLY: the pressed tile's ring is the press's one wait (owner, 12 Nov: two rings at once). */
   line.innerHTML = '<span class="qp-ai-stage-say"></span>';
-  waiting_(line);
+  line.setAttribute('role', 'status');
   const say = line.querySelector('.qp-ai-stage-say');
   const began = Date.now();
   const paint = () => { const t = aiStageSay_(Date.now() - began); if (say.textContent !== t) say.textContent = t; };
@@ -708,7 +709,7 @@ function aiStageStart_(box, out) {
 function aiStageEnd_(st, failed) {
   st.stop();
   if (!failed) { st.line.remove(); return; }
-  st.line.removeAttribute('aria-busy');
+  st.line.removeAttribute('role');
   st.line.className = 'qp-ai-stage tile-row';
   st.line.innerHTML = tile_({ icon: 'again', label: 'Try again', act: 'qp-ai-again' });
 }
