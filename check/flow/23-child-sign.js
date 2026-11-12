@@ -125,7 +125,7 @@ check('sign out, then the next child signs in: none of the last child’s messag
   await wait(300);
   w.paint('dm');
   if (/private note/.test(d.getElementById('s-dm').textContent)) bad.push('ADA’S PRIVATE MESSAGE IS ON BEN’S MESSAGES COLUMN, drawn in place of his own inbox that did not arrive');
-  if (/Saved/.test(w.favTile_({ key: 'q:Q-ADA-STAR', kind: 'question' }))) bad.push('Ada’s star is lit for Ben');
+  if (/Saved/.test(w.tile_(w.favOpts_({ key: 'q:Q-ADA-STAR', kind: 'question' })))) bad.push('Ada’s star is lit for Ben');
   const S = t.DATA().submissions || {};
   if (S.for === 'P7' || Object.keys(S.mine || {}).length) bad.push('Ada’s submissions are still in the payload Ben is drawn from: ' + JSON.stringify(S));
   if (slotFor(QADA) || slotFor(Object.assign({}, QADA, { key: 'q:Q-ADA-2' }))) bad.push('ADA’S VERDICT IS ON BEN’S CARD: ' + JSON.stringify([slotFor(QADA), slotFor(Object.assign({}, QADA, { key: 'q:Q-ADA-2' }))]));
@@ -285,7 +285,7 @@ check('signing in brings the submissions, stars, family and answers with the rep
   const late = typeof w.subLatest_ === 'function' ? w.subLatest_('ans:u:P7:q:Q-SIGN') : null;
   if (!late || late.a !== '3/4' || late.v !== 'wrong') bad.push('the submissions did not come with the reply: ' + JSON.stringify(late));
   if (w.localStorage.getItem('ans:u:P7:q:Q-SIGN') !== '3/4') bad.push('the box was not filled with the latest answer sent: ' + JSON.stringify(w.localStorage.getItem('ans:u:P7:q:Q-SIGN')));
-  if (!/Saved/.test(w.favTile_({ key: 'q:Q-SIGN-STAR', kind: 'question' }))) bad.push('the stars did not come with the reply');
+  if (!/Saved/.test(w.tile_(w.favOpts_({ key: 'q:Q-SIGN-STAR', kind: 'question' })))) bad.push('the stars did not come with the reply');
   const D = t.DATA();
   if (D.familyFor !== 'P7' || !(D.family || []).some(f => f.personId === 'P9')) bad.push('the family did not come with the reply: ' + JSON.stringify({ familyFor: D.familyFor, family: D.family }));
   if (w.localStorage.getItem('ans:u:P7:q:Q-ANS-W-J') !== 'from the account') bad.push('the answers did not come with the reply');

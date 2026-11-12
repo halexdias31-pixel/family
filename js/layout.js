@@ -229,7 +229,7 @@ function layoutTiles_(w) {
   /* A FIND CARD (790) IS PLACED BY THE FUNNEL, so it has no ▲ ▼ ◀ ▶: its words, who sees it and Delete, which are the widget's own. */
   if (typeof widgetInFind_ === 'function' && widgetInFind_(w)) {
     const id = String(w.id);
-    return `<span class="tile-group is-admin wgt-admin">${wordsTiles_('w:' + id, id)}${
+    return `<span class="tile-group is-admin wgt-admin">${tile_(wordsOpts_('w:' + id, id))}${
       tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' })}</span>`;
   }
   if (!LAYOUT_EDIT || !LAYOUT_COL[w.kind]) return '';
@@ -243,26 +243,26 @@ function layoutTiles_(w) {
   return `<span class="tile-group is-admin wgt-admin">${
     tile_({ icon: 'up', label: 'Move up', act: 'lay-w-move', tone: 'admin', data: { w: id, d: -1 }, off: ui <= 0 })}${
     tile_({ icon: 'down', label: 'Move down', act: 'lay-w-move', tone: 'admin', data: { w: id, d: 1 }, off: ui === -1 || ui >= units.length - 1 })}${
-    acrossTiles_(id, col, true, { w: id })}${colTiles_(col, id)}${
+    tile_(acrossOpts_(id, col, true, { w: id }))}${colTiles_(col, id)}${
     up ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
-    startTile_(col, id, ((L || {}).start || {})[col] || '')}${
-    frontTile_(col, id)}${wordsTiles_('w:' + id, id)}${
+    tile_(startOpts_(col, id, ((L || {}).start || {})[col] || ''))}${
+    tile_(frontOpts_(col, id))}${tile_(wordsOpts_('w:' + id, id))}${
     notePair_(!(grp || [id]).some(basketKept_) ? tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }) : '',
       '')}</span>`;
 }
 /* ◀ ▶ FOR EVERY UNIT (710): the neighbouring column whatever it holds; past an edge, a new column. */
-function acrossTiles_(id, col, isW, data) {
+function acrossOpts_(id, col, isW, data) {
   /* EACH ACT SPELT AS check-doors reads it, so both pair with their handlers. */
   const act = isW ? { act: 'lay-w-col' }.act : { act: 'lay-c-col' }.act;
   const cols = cardColsFor_(id), ci = cols.indexOf(col), last = ci !== -1 && ci >= cols.length - 1, adm = adminCol_(col), room = customRoom_();
-  return tile_({ icon: 'left', label: ci === 0 && !adm ? 'Move to a new column on the left' : 'Move to previous column', act: act, tone: 'admin',
-      data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || (ci === 0 && (adm || !room)) }) +
-    tile_({ icon: 'right', label: last ? (adm ? 'Move to a new admin-only column' : 'Move to a new column') : 'Move to next column', act: act, tone: 'admin',
-      data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || (last && !room) }) +
+  return [{ icon: 'left', label: ci === 0 && !adm ? 'Move to a new column on the left' : 'Move to previous column', act: act, tone: 'admin',
+      data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || (ci === 0 && (adm || !room)) },
+    { icon: 'right', label: last ? (adm ? 'Move to a new admin-only column' : 'Move to a new column') : 'Move to next column', act: act, tone: 'admin',
+      data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || (last && !room) },
     /* A NEW COLUMN BETWEEN TWO (730): the owner, "insert a column in between two columns" — made here, beside this one, holding this unit. */
-    tile_({ icon: 'plus', label: 'Move to a new column here, on the left', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || !room }) +
-    tile_({ icon: 'plus', label: 'Move to a new column here, on the right', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || !room });
+    { icon: 'plus', label: 'Move to a new column here, on the left', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || !room },
+    { icon: 'plus', label: 'Move to a new column here, on the right', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || !room }];
 }
 /* THE NEW COLUMN STANDS BESIDE `col` by the saved `order` (colOrderApply_); empty again, it goes like any custom column. */
 function layNewCol_(id, col, d, kind) {
@@ -789,7 +789,7 @@ function cardsOf_(col) {
       /* AN EMPTY CARD CARRIES ITS OWN Suggest a change (`emptyCard_`), so the admin's row does not add a second. */
       const row1 = /data-do="rep-box"/.test(page) ? row.replace(/<button[^>]*data-do="rep-box"[\s\S]*?<\/button>/, '') : row;
       if (row && (each || i === g.pages.length - 1)) page = cardRowIn_(page, pid ? row1.replace(/<button[^>]*data-do="lay-start"[\s\S]*?<\/button>/, '') : row1);
-      if (admin && pid) page = cardRowIn_(page, `<div class="tile-row wgt-admin start-tiles">${startTile_(col, 'person:' + pid, start)}</div>`);
+      if (admin && pid) page = cardRowIn_(page, `<div class="tile-row wgt-admin start-tiles">${tile_(startOpts_(col, 'person:' + pid, start))}</div>`);
       out.push(page);
     });
   });
@@ -799,8 +799,8 @@ function cardsOf_(col) {
   return out;
 }
 /* A HOUSE, NOT A FLAG (466): the owner, "I had no idea what it was" — the column's home is here. */
-function startTile_(col, id, start, note) {
-  return tile_({ icon: 'home', label: start === id ? 'Start here (on)' : 'Start here', note: note || '', act: 'lay-start', tone: 'admin',
+function startOpts_(col, id, start, note) {
+  return ({ icon: 'home', label: start === id ? 'Start here (on)' : 'Start here', note: note || '', act: 'lay-start', tone: 'admin',
     on: start === id, pressed: start === id, data: { lc: id, col: col } });
 }
 function cardRowIn_(h, row) {
@@ -822,12 +822,12 @@ function cardAdminRow_(id, col, mergeable) {
   return `<div class="tile-row wgt-admin card-admin" data-lay-for="${esc(id)}">${
     tile_({ icon: 'up', label: 'Move up', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: i <= 0 })}${
     tile_({ icon: 'down', label: 'Move down', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: 1 }, off: i === -1 || i >= seen.length - 1 })}${
-    acrossTiles_(id, col, false, { lc: id })}${colTiles_(col, id)}${
-    startTile_(col, id, start)}${
-    frontTile_(col, id)}${wordsTiles_(id, id)}${
+    tile_(acrossOpts_(id, col, false, { lc: id }))}${colTiles_(col, id)}${
+    tile_(startOpts_(col, id, start))}${
+    tile_(frontOpts_(col, id))}${tile_(wordsOpts_(id, id))}${
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
-    typeof gameLockTile_ === 'function' ? gameLockTile_('k:' + id) : ''}${
+    tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('k:' + id) : null)}${
     CARD_KEEP[id] ? (typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || id) : '')
       : notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
       typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || id) : '')}</div>`;
@@ -837,7 +837,7 @@ function cardReportRow_(id, page) {
   /* NOT ON A LOCKED CARD (467: nothing pressable) NOR ONE CARRYING ITS OWN (an empty card's, `emptyCard_`). */
   if (/^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-locked\b/.test(page) || /data-do="rep-box"/.test(page)) return '';
   const t = typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^>]*\saria-label="([^"]{1,80})"/.exec(page) || [])[1] || id).trim()) : '';
-  return t ? `<div class="tile-row card-rep">${typeof gameLockTile_ === 'function' ? gameLockTile_('k:' + id) : ''}${t}</div>` : '';
+  return t ? `<div class="tile-row card-rep">${tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('k:' + id) : null)}${t}</div>` : '';
 }
 
 /* A THING OFF THE CARD COLUMNS (487), `item:<col>:<name>`: Delete and Note for an admin, gone for everyone once deleted (477). No move: its column's code draws it. */
@@ -850,15 +850,15 @@ function itemMark_(id, col, html) {
   /* A RULE (496), locked: `items-no-move` — Delete and the door only, marked `no-move`. */
   const still = typeof ruleOn_ !== 'function' || ruleOn_('items-no-move');
   return cardRowIn_(h, `<div class="tile-row wgt-admin card-admin item-admin${still ? ' no-move' : ''}" data-lay-for="${esc(id)}">${
-    LAYOUT_EDIT ? frontTile_(col, id) : ''}${wordsTiles_(id, id)}${tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}</div>`);
+    LAYOUT_EDIT ? tile_(frontOpts_(col, id)) : ''}${tile_(wordsOpts_(id, id))}${tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}</div>`);
 }
 
 /* ---------- FRONT DOOR (489): `front: {col, id}`, one for the site; the door tile on every widget, card and item sets it, again clears it ---------- */
 const frontNow_ = () => { const f = (layoutNow_() || {}).front; return f && f.col && f.id ? f : null; };
-function frontTile_(col, id) {
-  if (!isAdmin() || !col || !id) return '';
+function frontOpts_(col, id) {
+  if (!isAdmin() || !col || !id) return null;
   const f = frontNow_(), on = !!(f && f.col === col && f.id === id);
-  return tile_({ icon: 'door', label: on ? 'Front door (on)' : 'Front door', note: on ? 'everybody lands here' : 'land everybody here', act: 'lay-front', tone: 'admin',
+  return ({ icon: 'door', label: on ? 'Front door (on)' : 'Front door', note: on ? 'everybody lands here' : 'land everybody here', act: 'lay-front', tone: 'admin',
     on: on, pressed: on, data: { lc: id, col: col } });
 }
 on('lay-front', el => {

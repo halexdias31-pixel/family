@@ -108,7 +108,7 @@ async function main() {
     const errors = [];
     page.on('pageerror', e => errors.push(String(e.message).slice(0, 200)));
     const ready = () => page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED && typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS
-      && typeof offTileOpts_ === 'function' && typeof findCard === 'function', null, { timeout: 40000 }).then(() => true, () => false);
+      && typeof offOpts_ === 'function' && typeof findCard === 'function', null, { timeout: 40000 }).then(() => true, () => false);
     await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'domcontentloaded' });
     if (!(await ready())) { bad.push('the app never loaded online — nothing was downloaded'); throw new Error('stop'); }
     await page.waitForTimeout(1500);

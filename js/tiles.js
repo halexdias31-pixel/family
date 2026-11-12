@@ -311,9 +311,9 @@ function adminTiles_(x, t) {
 
 
 /* ---------- THE STAR, WHICH IS AN ACTION LIKE ANY OTHER § */
-function favTile_(x) {
-  if (!x.key || !USER) return '';
-  return tile_({ icon: 'star', label: isFav(x.key) ? 'Saved' : 'Save', on: isFav(x.key),
+function favOpts_(x) {
+  if (!x.key || !USER) return null;
+  return ({ icon: 'star', label: isFav(x.key) ? 'Saved' : 'Save', on: isFav(x.key),
                  act: 'fav', data: { key: x.key, kind: x.kind || 'item' } });
 }
 
@@ -347,15 +347,15 @@ function isMe_(x) {
 }
 
 /* BOOK THIS TUTOR: never on your own card or a child's; the tutor card and Find › Profiles share it (1150). */
-function bookTile_(x) {
+function bookOpts_(x) {
   const t = (x && x.row) || {};
-  return !isMe_(x) && !childView_() && t.listed !== false ? tile_({ icon: 'book', label: 'Book', tone: 'buy',
-    act: 'book-with', data: { tutor: x.name || '' } }) : '';
+  return !isMe_(x) && !childView_() && t.listed !== false ? { icon: 'book', label: 'Book', tone: 'buy',
+    act: 'book-with', data: { tutor: x.name || '' } } : null;
 }
 function tutorTiles_(x) {
   const t = x.row || {};
   return `
-    ${/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered. */ bookTile_(x)}
+    ${/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered. */ tile_(bookOpts_(x))}
     ${/* THEIR INTRO VIDEO: the uploaded one plays on the card (`intro-play`); an older row's link still goes out. */
           String(t.videoFile || '').trim() ? tile_({ icon: 'play', label: 'Watch intro', act: 'intro-play', data: { file: t.videoFile } })
           : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? tile_({ icon: 'play', label: 'Watch intro', href: t.mediaUrl }) : ''}
@@ -381,26 +381,21 @@ function tutorTiles_(x) {
 
 
 /* ---------- A VENUE HAS NO ACTIONS OF ITS OWN § */
-function venueTiles_(x) { return ''; }
 
 
 /* ---------- A SUBJECT § */
-function subjectTiles_(x) {
-  return `
-    ${tile_({ icon: 'book', label: 'Book this', act: 'book-with', data: { name: '', subject: x.name || '' } })}
-  `;
+function subjectOpts_(x) {
+  return { icon: 'book', label: 'Book this', act: 'book-with', data: { name: '', subject: x.name || '' } };
 }
 
 
 /* ---------- A LEVEL § */
-function levelTiles_(x) {
+function levelOpts_(x) {
   const t = x.row || {};
-  return `
-    ${tile_({ icon: 'book', label: t.listed === false ? 'Not on the booking form' : 'Book this',
+  return { icon: 'book', label: t.listed === false ? 'Not on the booking form' : 'Book this',
               note: t.listed === false ? 'add it to the options tab' : '',
               off: t.listed === false,
-              act: 'book-with', data: { name: '', level: x.name || '' } })}
-  `;
+              act: 'book-with', data: { name: '', level: x.name || '' } };
 }
 
 
@@ -429,12 +424,12 @@ const personTiles_ = x => { const t = (x && x.row) || {}; const name = t.title |
 /* EVERY CARD'S ROW STARTS WITH THESE (950); health.js's "card tile rows" holds it. */
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
 /* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
-const CARD_EXTRAS_ = { shop: shopTiles_, tutor: tutorTiles_, venue: venueTiles_, subject: subjectTiles_,
-  level: levelTiles_, receipt: x => jobMsgTiles_(x) + jobTiles_(x), person: x => personTiles_(x), talmud: x => talmudTiles_(x) };
+const CARD_EXTRAS_ = { shop: shopTiles_, tutor: tutorTiles_, subject: x => tile_(subjectOpts_(x)),
+  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + jobTiles_(x), person: x => personTiles_(x), talmud: x => tile_(talmudOpts_(x)) };
 function cardCore_(x) {
   const one = {
     share: () => tile_({ icon: 'share', label: 'Share', act: 'card-share', data: { key: x.key } }),
-    fav: () => favTile_(x),
+    fav: () => tile_(favOpts_(x)),
     suggest: () => (typeof suggestTileFor_ === 'function' ? suggestTileFor_(x) : ''),
     top: () => tile_({ icon: 'up', label: 'Top', act: 'find-top' }) };
   return x.key ? CARD_CORE_.map(k => one[k]()).join('') : '';
@@ -456,7 +451,7 @@ function cardTiles_(x, flat) {
     + tile_(hear || (typeof readAloudOpts_ === 'function' && !isQ_(x) ? readAloudOpts_(x) : null))
     + tile_([typeof speedOpts_ === 'function' ? speedOpts_(x) : null, typeof magCardOpts_ === 'function' ? magCardOpts_(x) : null, finderOpenOpts_(x)]) + (x.more || '')
     /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
-    + (x.key && !isMeCard_(x) && !isQ_(x) && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : ''));
+    + (x.key && !isMeCard_(x) && !isQ_(x) && tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('c:' + x.key) : null)));
   const admin = adminTiles_(x, x.topic || null);
   if (flat) return mine + admin;
   if (!mine && !admin) return '';

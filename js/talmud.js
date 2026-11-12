@@ -107,11 +107,11 @@ function talmudCard_(x) {
 }
 
 /* THE TEXT-SIZE TILES, one each way; the page grows downward and the card with it. */
-function talmudTiles_(x) {
-  if (!x || !x.tal) return '';
+function talmudOpts_(x) {
+  if (!x || !x.tal) return null;
   const v = talScale_();
-  return tile_({ icon: 'down', label: 'Text −', note: 'smaller', act: 'tal-size', data: { by: -1 }, off: v <= TAL_SCALES[0] })
-    + tile_({ icon: 'up', label: 'Text +', note: 'larger', act: 'tal-size', data: { by: 1 }, off: v >= TAL_SCALES[TAL_SCALES.length - 1] });
+  return [{ icon: 'down', label: 'Text −', note: 'smaller', act: 'tal-size', data: { by: -1 }, off: v <= TAL_SCALES[0] },
+    { icon: 'up', label: 'Text +', note: 'larger', act: 'tal-size', data: { by: 1 }, off: v >= TAL_SCALES[TAL_SCALES.length - 1] }];
 }
 
 /* ---------- THE TEXT OF ONE SIDE, from its file of ten dafim. */

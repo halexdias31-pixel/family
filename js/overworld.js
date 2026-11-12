@@ -167,8 +167,8 @@ const padHere_ = () => String(typeof AT !== 'undefined' ? AT : '') + ':' + Strin
 const gameLocked_ = id => !!PADLOCK.game && PADLOCK.game.split('@')[0] === String(id);
 const gameLockLook_ = on => ({ icon: on ? 'lock' : 'unlock', label: on ? 'Locked' : 'Lock',
   note: on ? 'tap to let the page move' : 'hold it still to select text', on, pressed: on });
-function gameLockTile_(id) {
-  return tile_(Object.assign(gameLockLook_(gameLocked_(id)), { act: 'game-lock', cls: 'game-lock', data: { w: id } }));
+function gameLockOpts_(id) {
+  return (Object.assign(gameLockLook_(gameLocked_(id)), { act: 'game-lock', cls: 'game-lock', data: { w: id } }));
 }
 function gameLockSet_(v) {
   PADLOCK.game = v || '';

@@ -1811,7 +1811,7 @@ function reelCards_(count) {
            data-reel="${REEL_SHOWN + REEL_LEAD}" role="button" tabindex="0" data-do="reel-tap">${(window.feedSlide || (() => ''))(it)}`) +
       /* HOW OLD YOU HAVE TO BE (406), when it is not everyone. */
       `${window.mediaAgeSay_ && window.mediaAgeSay_(it.age) ? `<span class="media-age-badge is-reel" aria-label="for ages ${esc(window.mediaAgeSay_(it.age))}">${esc(window.mediaAgeSay_(it.age))}</span>` : ''}` +
-      `${reelSoundTile_(false)}</div>
+      `${tile_(reelSoundOpts_(false))}</div>
     </div>${typeof suggestTile_ === 'function' && suggestTile_('reel', String(it.id || it.clip || ''), it.title || '')
       ? `<div class="tile-row rep-row">${suggestTile_('reel', String(it.id || it.clip || ''), it.title || '')}</div>` : ''}</div>`);
     REEL_SHOWN++;
@@ -2154,13 +2154,12 @@ on('reel-tap', (el, e) => {
 });
 
 /* ---------- THE SOUND IS A TILE, LIKE EVERYTHING ELSE § */
-function reelSoundTile_(on) {
-  return tile_({ icon: on ? 'sound' : 'mute', label: on ? 'Sound on' : 'Sound off',
-                 tone: 'over', cls: 'reel-sound', act: 'reel-sound', pressed: !!on });
-}
+const reelSoundOpts_ = on => ({ icon: on ? 'sound' : 'mute', label: on ? 'Sound on' : 'Sound off',
+  tone: 'over', cls: 'reel-sound', act: 'reel-sound', pressed: !!on });
 function reelSoundSay_(el, on) {
   if (!el) return;
-  tileSet_(el, { icon: on ? 'sound' : 'mute', label: on ? 'Sound on' : 'Sound off', pressed: !!on });
+  const o = reelSoundOpts_(on);
+  tileSet_(el, { icon: o.icon, label: o.label, pressed: o.pressed });
 }
 
 on('reel-sound', (el) => {

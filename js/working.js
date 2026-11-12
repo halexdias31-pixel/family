@@ -24,9 +24,9 @@ function workStripInner_(k) {
     <p class="qp-work-say" role="status" aria-live="polite"></p>`;
 }
 /* MARK MY WORKING STANDS IN THE PART'S ONE TOOL ROW (owner, 8 Nov), in its slot there, once there is a photo to mark */
-function workGoTile_(k) {
-  return (WORK_PICS[k] || []).length ? tile_({ icon: 'tick', label: 'Mark my working', note: 'AI reads the photos',
-    act: 'qp-work-send', cls: 'qp-work-send is-submit', data: { k } }) : '';
+function workGoOpts_(k) {
+  return (WORK_PICS[k] || []).length ? ({ icon: 'tick', label: 'Mark my working', note: 'AI reads the photos',
+    act: 'qp-work-send', cls: 'qp-work-send is-submit', data: { k } }) : null;
 }
 function workPaint_(k) {
   document.querySelectorAll('.qp-work').forEach(el => {
@@ -34,7 +34,7 @@ function workPaint_(k) {
     el.innerHTML = workStripInner_(k);
     el.hidden = !(WORK_PICS[k] || []).length;
   });
-  document.querySelectorAll('.qp-work-slot').forEach(el => { if (el.getAttribute('data-k') === k) el.innerHTML = workGoTile_(k); });
+  document.querySelectorAll('.qp-work-slot').forEach(el => { if (el.getAttribute('data-k') === k) el.innerHTML = tile_(workGoOpts_(k)); });
 }
 function workSay_(k, text) {
   document.querySelectorAll('.qp-work').forEach(el => {
@@ -144,9 +144,9 @@ on('qp-work-send', el => {
 
 /* ---------- AND SEEN BY THE PEOPLE WHO MAY (`workingOf`): the student, a parent they accepted, and the admin. Fetched on the tap, never in the payload. */
 /* `workingMaySee_`'s rule (dopost.gs): a parent of theirs, or rank Admin -- never a tutor (owner, 28 Oct), so the tile is not drawn for one */
-function workSeeTile_(pid, asParent) {
-  if (!pid || !(asParent === true || isAdmin())) return '';
-  return tile_({ icon: 'photo', label: 'Working photos', note: 'with the AI’s mark', act: 'work-see', data: { id: pid } });
+function workSeeOpts_(pid, asParent) {
+  if (!pid || !(asParent === true || isAdmin())) return null;
+  return ({ icon: 'photo', label: 'Working photos', note: 'with the AI’s mark', act: 'work-see', data: { id: pid } });
 }
 on('work-see', el => {
   const pid = el.getAttribute('data-id');
