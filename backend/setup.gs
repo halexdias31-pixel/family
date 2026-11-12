@@ -871,6 +871,43 @@ function dpTerms_(add, deep) {
   }
 }
 
+/* `checkEverything`'s TABS section: each tab found, or MISSING. */
+function checkTabs_(say) {
+say('TABS');
+Object.keys(TAB).forEach(k => {
+  /* THROUGH `sheetFor_` LIKE THE REST — otherwise the four subjects tabs and anything renamed
+     are reported MISSING by the very function somebody runs to find out what is missing. */
+  const at = sheetFor_(k);
+  let sheet = null;
+  try {
+    const ss2 = SpreadsheetApp.openById(at.id);
+    for (let i = 0; i < at.names.length && !sheet; i++) sheet = ss2.getSheetByName(at.names[i]);
+  } catch (err) {}
+  if (!sheet) { say('  ✗ ' + TAB[k] + '  MISSING — open the site once as an admin'); return; }
+  const rows = Math.max(0, sheet.getLastRow() - 1);
+  say('  ✓ ' + (TAB[k] + '                    ').slice(0, 16) + rows + ' row(s)');
+});
+}
+
+/* `checkEverything`'s POSTS section: the first five rows and whether each picture resolves. */
+function checkPosts_(say) {
+say('POSTS');
+try {
+  const rows = read(TAB.posts).rows;
+  say('  ' + rows.length + ' row(s)');
+  rows.slice(0, 5).forEach(r => {
+    const id = (S(r.image).match(/\/d\/([\w-]+)/) || [])[1];
+    say('    ' + (S(r.post_id) + '        ').slice(0, 10)
+      + (id ? 'image ok' : 'IMAGE LINK NOT A DRIVE FILE')
+      + '  ' + (postWhen_(r) ? fmtDate(postWhen_(r)) : 'NO DATE')
+      + '  ' + (S(r.caption) || '(no caption)').slice(0, 30));
+  });
+  const undated = rows.filter(r => !postWhen_(r)).length;
+  if (undated) say('  → ' + undated + ' post(s) have no date. They sort to the bottom of the '
+    + 'feed. Press ⟳ on the site to read the dates off the files.');
+} catch (err) { say('  no posts tab — open the site once as an admin'); }
+}
+
 /* RUN THIS FROM THE EDITOR when anything is not appearing. § */
 function checkEverything() {
   const out = [];
@@ -887,79 +924,42 @@ function checkEverything() {
       say((which + ' name').padEnd(18) + ': ' + SpreadsheetApp.openById(id).getName());
     } catch (err) { say((which + ' name').padEnd(18) + ': CANNOT OPEN IT — ' + err); }
   });
-  say('');
-  say('If the site says the backend is older than it is, this number is not the question —');
+  say(''); say('If the site says the backend is older than it is, this number is not the question —');
   say('the DEPLOYMENT is. Deploy → Manage deployments → pencil → Version: New version.');
   say('A "New deployment" makes a NEW /exec URL, and the site still calls the old one.');
   say('');
 
   /* 1. WHICH TABS EXIST. A tab missing means ensureSchema_ has not run since it was added — the
      commonest cause of a feature that is built and invisible. */
-  say('TABS');
-  Object.keys(TAB).forEach(k => {
-    /* THROUGH `sheetFor_` LIKE THE REST — otherwise the four subjects tabs and anything renamed
-       are reported MISSING by the very function somebody runs to find out what is missing. */
-    const at = sheetFor_(k);
-    let sheet = null;
-    try {
-      const ss2 = SpreadsheetApp.openById(at.id);
-      for (let i = 0; i < at.names.length && !sheet; i++) sheet = ss2.getSheetByName(at.names[i]);
-    } catch (err) {}
-    if (!sheet) { say('  ✗ ' + TAB[k] + '  MISSING — open the site once as an admin'); return; }
-    const rows = Math.max(0, sheet.getLastRow() - 1);
-    say('  ✓ ' + (TAB[k] + '                    ').slice(0, 16) + rows + ' row(s)');
-  });
+  checkTabs_(say);
 
   /* 2. THE BRANDING. It listed every key of the `brand` tab and said which reactions were in use. § */
-  say('');
-  say('BRAND');
+  say(''); say('BRAND');
   say('  the brand tab is data/settings/brand.json now — open it there');
   say('  reactions in use: ' + reactionSet({}).join(' ') + '   (the six in the code)');
   say('  the name on an e-mail: ' + BRAND_NAME);
 
   /* 3. THE POSTS, and whether their pictures will resolve. */
-  say('');
-  say('POSTS');
-  try {
-    const rows = read(TAB.posts).rows;
-    say('  ' + rows.length + ' row(s)');
-    rows.slice(0, 5).forEach(r => {
-      const id = (S(r.image).match(/\/d\/([\w-]+)/) || [])[1];
-      say('    ' + (S(r.post_id) + '        ').slice(0, 10)
-        + (id ? 'image ok' : 'IMAGE LINK NOT A DRIVE FILE')
-        + '  ' + (postWhen_(r) ? fmtDate(postWhen_(r)) : 'NO DATE')
-        + '  ' + (S(r.caption) || '(no caption)').slice(0, 30));
-    });
-    const undated = rows.filter(r => !postWhen_(r)).length;
-    if (undated) say('  → ' + undated + ' post(s) have no date. They sort to the bottom of the '
-      + 'feed. Press ⟳ on the site to read the dates off the files.');
-  } catch (err) { say('  no posts tab — open the site once as an admin'); }
-
-  /* 4. RESOURCES WAS HERE — ids, page counts and what could be sold on paper. § */
+  say(''); checkPosts_(say);
 
   /* 5. THE THINGS PEOPLE DO TO POSTS. */
-  say('');
-  say('ACTIVITY');
-  [['post_reactions', 'reactions'], ['post_votes', 'votes']]
-    .forEach(([t, name]) => {
-      try { say('  ' + (name + '           ').slice(0, 12) + read(TAB[t]).rows.length); }
-      catch (err) { say('  ' + name + ': no tab — open the site once as an admin'); }
-    });
+  say(''); say('ACTIVITY');
+  [['post_reactions', 'reactions'], ['post_votes', 'votes']].forEach(([t, name]) => {
+    try { say('  ' + (name + '           ').slice(0, 12) + read(TAB[t]).rows.length); }
+    catch (err) { say('  ' + name + ': no tab — open the site once as an admin'); }
+  });
 
   /* WHAT IT MAY DO, before anything else is guessed at. A missing scope explains a whole class
      of failure that otherwise reads as a bug in the feature it broke. */
-  say('');
-  say('PERMISSIONS');
+  say(''); say('PERMISSIONS');
   try {
     const sc = checkScopes();
     (sc.granted || []).forEach(x => say('  ' + x));
     say('  → ' + (sc.verdict || sc.error));
   } catch (err) { say('  could not check: ' + err); }
 
-  say('');
-  say('If a tab says MISSING, open the site once as an admin.');
-  say('If the tabs are all there and the site still looks old, the DEPLOYMENT is old —');
-  say('Deploy → New deployment, not Save.');
+  say(''); say('If a tab says MISSING, open the site once as an admin.');
+  say('If the tabs are all there and the site still looks old, the DEPLOYMENT is old —'); say('Deploy → New deployment, not Save.');
   return out.join('\n');
 }
 
