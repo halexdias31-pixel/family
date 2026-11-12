@@ -285,7 +285,7 @@ check('an admin sees everyone on the people column, and nobody else sees more th
 check('Working photos is drawn for an admin and for a parent of the child, never for a tutor', async () => {
   const { w } = boot();
   await wait(400);
-  if (!w.__t.accountPages || typeof w.workSeeTile_ !== 'function') return ['accountPages_ or workSeeTile_ is not reachable — NOT checked'];
+  if (!w.__t.accountPages || typeof w.workSeeOpts_ !== 'function') return ['accountPages_ or workSeeOpts_ is not reachable — NOT checked'];
   const bad = [];
   const D = w.__t.DATA();
   const photos = () => w.__t.accountPages().filter(h => /data-do="work-see"/.test(h)).length;
@@ -295,7 +295,7 @@ check('Working photos is drawn for an admin and for a parent of the child, never
   /* A TUTOR, the same list still in the payload (a copy kept from before a rank changed): the tile is the tutor's own rule, not only the list's */
   w.__t.USER({ name: 'Tom Tutor', personId: 'P-TT', role: 'tutor', roles: ['tutor'], rank: 'staff', token: 'tt' });
   if (photos()) bad.push('a tutor is drawn Working photos ' + photos() + ' time(s)');
-  if (w.workSeeTile_('P-E1')) bad.push('workSeeTile_ draws the tile for a tutor: the backend refuses them, so the tile is a door onto nothing');
+  if (w.workSeeOpts_('P-E1')) bad.push('workSeeOpts_ draws the tile for a tutor: the backend refuses them, so the tile is a door onto nothing');
   /* A PARENT OF THE CHILD, a tutor or not, may: their family card carries it */
   D.familyFor = 'P-TT';
   D.family = [{ personId: 'P-KID', title: 'Kit', handle: 'kit_kind7', relation: 'child' }];

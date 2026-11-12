@@ -56,11 +56,11 @@ function wordsIn_(scope, html) {
 }
 
 /* ---------- THE ADMIN'S TWO TILES on every widget, card and item, in the layout group: Edit words, Who sees this ---------- */
-function wordsTiles_(scope, id) {
-  if (!isAdmin()) return '';
+function wordsOpts_(scope, id) {
+  if (!isAdmin()) return null;
   const s = seenOf_(id);
-  return tile_({ icon: 'edit', label: 'Edit words', note: 'type over this card\'s words, for everyone', act: 'words-edit', tone: 'admin', data: { ws: scope } })
-    + tile_({ icon: 'show', label: 'Who sees this', note: s ? SEEN_SAY[s] : 'Everyone', act: 'seen-open', tone: 'admin', on: !!s, data: { lc: id } });
+  return [{ icon: 'edit', label: 'Edit words', note: 'type over this card\'s words, for everyone', act: 'words-edit', tone: 'admin', data: { ws: scope } },
+    { icon: 'show', label: 'Who sees this', note: s ? SEEN_SAY[s] : 'Everyone', act: 'seen-open', tone: 'admin', on: !!s, data: { lc: id } }];
 }
 const wordsRoot_ = el => el.closest('.wk-editing') || el.closest('.card, .own-set, .post');
 const wordsText_ = s => String(s || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, WORDS_PIECE_MAX);

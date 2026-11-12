@@ -27,7 +27,7 @@ function offPinned_() {
 const offHas_ = pid => !!(offRead_('papers')[pid] || {}).at;
 
 /* ---------- THE ONE TILE, on every question part's row behind ⋯ (qtools.js QT_TILE.offline). */
-function offTileOpts_(x) {
+function offOpts_(x) {
   const pid = x && String(paperIdOf_(x.row || x) || '');
   if (!pid || typeof USER === 'undefined' || !USER || !USER.token) return null;
   const busy = OFF_BUSY.has(pid), has = offHas_(pid);
@@ -36,7 +36,7 @@ function offTileOpts_(x) {
 }
 function offTilePaint_(pid) {
   document.querySelectorAll('.off-get[data-pid="' + CSS.escape(pid) + '"]').forEach(el => {
-    const o = offTileOpts_({ row: { paper_id: pid } });
+    const o = offOpts_({ row: { paper_id: pid } });
     if (o) tileSet_(el, o);
   });
   offFrontPaint_();

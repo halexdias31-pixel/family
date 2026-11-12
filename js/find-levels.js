@@ -714,8 +714,8 @@ function accountFamCard_(f, famLabel_, personForm_, tcard_) {
     role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
   });
   /* A CHILD'S PHOTOGRAPHED WORKING (501), to the parent they accepted; staff see it on the admin's list below. */
-  const more = (f.relation === 'child' && typeof workSeeTile_ === 'function' ? workSeeTile_(f.personId, true) : '')
-    + (f.relation === 'child' && typeof workFileTile_ === 'function' ? workFileTile_(f.personId) : '')
+  const more = tile_(f.relation === 'child' ? [typeof workSeeOpts_ === 'function' ? workSeeOpts_(f.personId, true) : null,
+      typeof workFileOpts_ === 'function' ? workFileOpts_(f.personId) : null] : null)
     + (typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '');
   return personMark_(f.personId, personForm_(row) || tcard_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
 }
@@ -738,8 +738,8 @@ function accountEveryone_(col, famIds, personForm_, tcard_) {
           data: { to: p.title, id: p.personId || '' } }) + (p.personId ? tile_({ icon: 'key',
           label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
           data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
-          + (isStudentsCol_(col) && typeof workSeeTile_ === 'function' ? workSeeTile_(p.personId) : '')
-          + (isStudentsCol_(col) && typeof workFileTile_ === 'function' ? workFileTile_(p.personId) : '')
+          + tile_(isStudentsCol_(col) ? [typeof workSeeOpts_ === 'function' ? workSeeOpts_(p.personId) : null,
+            typeof workFileOpts_ === 'function' ? workFileOpts_(p.personId) : null] : null)
           + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : ''), 'person-tiles') : '')));
 }
 

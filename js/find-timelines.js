@@ -53,11 +53,11 @@ function tlGeom_(x) {
 }
 const tlShift_ = (g, i) => (50 / g.wide - g.pct(g.at[i])).toFixed(3);
 /* THE CARD'S OWN BUTTONS (one template): Play leads its row, Back and Next wait behind ⋯; the same tiles whatever is shown. */
-function tlTiles_(key, i, n) {
+function tlOpts_(key, i, n) {
   const playing = TL_PLAY.key === key && !!TL_PLAY.timer;
-  return tile_({ icon: playing ? 'pause' : 'play', label: playing ? 'Pause' : 'Play', act: 'tl-play', data: { key }, pressed: playing })
-    + tile_({ icon: 'left', label: 'Back', act: 'tl-step', data: { key, by: -1 }, off: i === 0 })
-    + tile_({ icon: 'right', label: 'Next', act: 'tl-step', data: { key, by: 1 }, off: i === n - 1 });
+  return [{ icon: playing ? 'pause' : 'play', label: playing ? 'Pause' : 'Play', act: 'tl-play', data: { key }, pressed: playing },
+    { icon: 'left', label: 'Back', act: 'tl-step', data: { key, by: -1 }, off: i === 0 },
+    { icon: 'right', label: 'Next', act: 'tl-step', data: { key, by: 1 }, off: i === n - 1 }];
 }
 /* THE STAGE, drawn when the card is: the scene over the panning axis of small scenes, the card's picture (kc-pic) like an image card's. */
 function tlStage_(x) {
@@ -77,7 +77,7 @@ function histTimelineCard_(x) {
     <section class="fc-sec tl-anim tl-art" data-tl="${esc(x.key)}">${tlStage_(x)}</section><h3>${esc(x.name)}</h3>
     ${tagRow_(x)}
     <p class="tl-say">${n} event${n === 1 ? '' : 's'}, one at a time</p>
-    <div class="tile-row">${n ? tlTiles_(x.key, Math.min(TL_AT[x.key] || 0, n - 1), n) : ''}</div>
+    <div class="tile-row">${n ? tile_(tlOpts_(x.key, Math.min(TL_AT[x.key] || 0, n - 1), n)) : ''}</div>
   </div>`;
 }
 
@@ -96,7 +96,7 @@ function tlPaint_(key) {
     tr.querySelectorAll('.tl-ev').forEach((d, k) => { d.classList.toggle('on', k === i); d.classList.toggle('past', k < i); });
     if (sc.getAttribute('data-i') !== String(i)) { sc.setAttribute('data-i', i); sc.innerHTML = tlScene_(stops[i]); }
     /* IN PLACE, NOT REDRAWN: the card's own row holds these tiles, and a tile that is not swapped cannot move. */
-    const tmp = document.createElement('div'); tmp.innerHTML = tlTiles_(key, i, n);
+    const tmp = document.createElement('div'); tmp.innerHTML = tile_(tlOpts_(key, i, n));
     [...tmp.querySelectorAll('button')].forEach(b => {
       const same = [...ctl.querySelectorAll('[data-do="' + b.getAttribute('data-do') + '"][data-key="' + key + '"]')].find(o => o.getAttribute('data-by') === b.getAttribute('data-by'));
       if (same && same.outerHTML !== b.outerHTML) same.replaceWith(b);

@@ -17,7 +17,7 @@ function wfBody_(of) {
   const s = wfOf_(of);
   if (!s.asked) setTimeout(() => wfLoad_(of), 0);
   if (wfTeach_(of)) return s.rows === null ? loading_() : (s.others || []).length
-    ? `<div class="tile-row">${s.others.map(o => workFileTile_(o.id, o.name)).join('')}</div>`
+    ? `<div class="tile-row">${tile_(s.others.map(o => workFileOpts_(o.id, o.name)))}</div>`
     : '<p class="note">Your booked students\' scanned work shows here.</p>';
   const pend = s.pending.length ? `<div class="wf-pend"><div class="qp-work-pics">${s.pending.map((p, i) => `<span class="qp-work-pic"><img src="${esc(p)}" alt="New page ${i + 1}">
       ${tile_({ form: true, look: 'qp-work-x', act: 'wf-x', data: { of, i }, aria: 'Remove page ' + (i + 1), label: '×' })}</span>`).join('')}</div>
@@ -133,8 +133,8 @@ on('wf-del', el => {
 });
 
 /* AND UNDER A STUDENT SOMEONE ELSE MAY SEE (a parent's child, the admin's list): the same card, opened in place. */
-function workFileTile_(pid, name) {
-  return pid ? tile_({ icon: 'doc', label: name ? String(name) : 'Work on file', note: name ? 'their work on file' : 'their scanned pages', act: 'wf-see', data: { id: pid } }) : '';
+function workFileOpts_(pid, name) {
+  return pid ? ({ icon: 'doc', label: name ? String(name) : 'Work on file', note: name ? 'their work on file' : 'their scanned pages', act: 'wf-see', data: { id: pid } }) : null;
 }
 on('wf-see', el => {
   const pid = el.getAttribute('data-id'), row = el.closest('.tile-row') || el;
