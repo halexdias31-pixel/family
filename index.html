@@ -59,7 +59,7 @@
 
   /* ---------- AND THEN THE 230KB WAS A MEGABYTE § */
   /* THE FILES' OWN HASH (750), written by tools/build-stamp.js and held to them by its --check: it moves when a served file changes and never by the clock. */
-  var BUILD_STAMP = 'f62910a8ecde';
+  var BUILD_STAMP = '776d43237ce8';
   LOAD = /(?:^|[?&])dev(?:[=&]|$)/.test(location.search)
     ? String(Date.now())                        /* the publisher: nothing may be held */
     : BUILD_STAMP || String(Math.floor(LOAD_AT / 300000));     /* everybody else: the hash; the old rounded build time only if the line was emptied */
@@ -155,7 +155,7 @@
     var b = document.getElementById('boot-slow');
     if (!b) return;
     b.className = '';
-    /* ONE CALM CARD (owner, 11 Nov): the bar keeps going, the plain words, one round Try again; the address only for an admin, behind its ⋯. */
+    /* ONE CALM CARD (owner, 11 Nov): the ring keeps turning, the plain words, one round Try again; the address only for an admin, behind its ⋯. */
     var admin = false;
     try { admin = typeof isAdmin === 'function' && isAdmin(); } catch (e) {}
     var again = '';

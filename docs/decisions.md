@@ -314,3 +314,4 @@ become an owner question showing both; never pick one.
 - 12 Nov — one Notifications item in Find › Settings: the email ticks and the phone's (push) on one card; an admin ticks for someone from their Edit form (parents opt in, 11 Nov).
 - 12 Nov — names in one place: receipts, reports, applications and lib_log stop storing a name or handle; it is read from the people row by person id, an old row's stored cell kept as the fallback. Version stamps bumped (redeploy the backend).
 - 12 Nov — Homework stays off for now; Spotify, Newspaper, Basket and the rest are undecided and left as they are.
+- 12 Nov · loading bar → spinning ring (owner: "just use a continuous spiral instead, universally"): loading_() (and the boot card's wait) is one ring with a gap in --ink, --s5 wide, turning forever; reduced motion slows it to 4s rather than stopping it. The 11 Nov bar is gone; the "Taking longer than usual" card stays.

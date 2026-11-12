@@ -212,9 +212,9 @@ if (bStart >= 0 && bEnd > 0) {
   if (lit) bad.push(`style.css:${cssLine(bStart + block.indexOf(lit[0]))}: a colour literal in the loader's block (${lit[0]}) — tokens only`);
   const px = block.match(/\b\d*\.?\d+px\b/);
   if (px) bad.push(`style.css:${cssLine(bStart + block.indexOf(px[0]))}: ${px[0]} in the loader's block — nothing in it is pressed, so it is sized in rem`);
-  if (!/var\(--gold\)/.test(block)) bad.push('style.css: the loader is not drawn in `var(--gold)`');
-  if (!/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[^}]*\.loading[^{]*\{[^}]*animation:\s*none/.test(block)) {
-    bad.push('style.css: the loader keeps moving under prefers-reduced-motion — it must be three still dots');
+  if (!/var\(--ink\)/.test(block)) bad.push('style.css: the loader ring is not drawn in `var(--ink)`');
+  if (!/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[^}]*\.loading[^{]*\{[^}]*animation-duration:/.test(block)) {
+    bad.push('style.css: the loader keeps moving under prefers-reduced-motion — it must turn slower, not stop (owner, 12 Nov)');
   }
 }
 
