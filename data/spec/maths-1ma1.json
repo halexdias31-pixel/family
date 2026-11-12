@@ -1,0 +1,866 @@
+{
+ "spec": "1MA1",
+ "board": "Edexcel",
+ "title": "Pearson Edexcel GCSE (9–1) Mathematics",
+ "subject": "Maths",
+ "level": "GCSE",
+ "source": "https://qualifications.pearson.com/en/qualifications/edexcel-gcses/mathematics-2015.html",
+ "note": "Spec points in short form; topics are the library labels (data/topics.json) a point is reached by.",
+ "points": [
+  {
+   "id": "N1",
+   "area": "Number",
+   "text": "Order positive and negative integers, decimals and fractions; use the symbols =, ≠, <, >, ≤, ≥",
+   "topics": [
+    "Ordering Numbers & Decimals",
+    "Ordering Fractions",
+    "Negative Numbers"
+   ]
+  },
+  {
+   "id": "N2",
+   "area": "Number",
+   "text": "Apply the four operations to integers, decimals and simple fractions, positive and negative",
+   "topics": [
+    "The Four Operations",
+    "Calculating with Decimals",
+    "Long Multiplication",
+    "Division",
+    "Adding & Subtracting Fractions",
+    "Multiplying & Dividing Fractions"
+   ]
+  },
+  {
+   "id": "N3",
+   "area": "Number",
+   "text": "Recognise and use relationships between operations, including inverse operations; use conventional notation for priority of operations",
+   "topics": [
+    "Order of Operations"
+   ]
+  },
+  {
+   "id": "N4",
+   "area": "Number",
+   "text": "Use the concepts of prime numbers, factors, multiples, HCF, LCM and prime factorisation",
+   "topics": [
+    "Factors & Multiples",
+    "Primes & Prime Factorisation",
+    "HCF & LCM"
+   ]
+  },
+  {
+   "id": "N5",
+   "area": "Number",
+   "text": "Apply systematic listing strategies, including the product rule for counting",
+   "topics": [
+    "Listing Outcomes & Sample Space"
+   ]
+  },
+  {
+   "id": "N6",
+   "area": "Number",
+   "text": "Use positive integer powers and roots; recognise powers of 2, 3, 4, 5",
+   "topics": [
+    "Indices",
+    "Squares & Square Roots",
+    "Cubes & Cube Roots"
+   ]
+  },
+  {
+   "id": "N7",
+   "area": "Number",
+   "text": "Calculate with roots and with integer and fractional indices",
+   "topics": [
+    "Laws of Indices",
+    "Fractional & Negative Indices"
+   ]
+  },
+  {
+   "id": "N8",
+   "area": "Number",
+   "text": "Calculate exactly with fractions, surds and multiples of π; simplify surds and rationalise denominators",
+   "topics": [
+    "Surds",
+    "Simplifying Surds",
+    "Rationalising the Denominator"
+   ]
+  },
+  {
+   "id": "N9",
+   "area": "Number",
+   "text": "Calculate with and interpret standard form A × 10ⁿ",
+   "topics": [
+    "Standard Form"
+   ]
+  },
+  {
+   "id": "N10",
+   "area": "Number",
+   "text": "Work interchangeably with terminating decimals and fractions; change recurring decimals into fractions",
+   "topics": [
+    "Fraction Decimal Percentage Conversion",
+    "Recurring Decimals"
+   ]
+  },
+  {
+   "id": "N11",
+   "area": "Number",
+   "text": "Identify and work with fractions in ratio problems",
+   "topics": [
+    "Ratio Problems"
+   ]
+  },
+  {
+   "id": "N12",
+   "area": "Number",
+   "text": "Interpret fractions and percentages as operators",
+   "topics": [
+    "Fractions of an Amount",
+    "Percentage of an Amount"
+   ]
+  },
+  {
+   "id": "N13",
+   "area": "Number",
+   "text": "Use standard units of mass, length, time, money and other measures, including with decimal quantities",
+   "topics": [
+    "Units & Measures"
+   ]
+  },
+  {
+   "id": "N14",
+   "area": "Number",
+   "text": "Estimate answers; check calculations using approximation and estimation",
+   "topics": [
+    "Estimation"
+   ]
+  },
+  {
+   "id": "N15",
+   "area": "Number",
+   "text": "Round to decimal places and significant figures; use inequality notation for error intervals",
+   "topics": [
+    "Rounding",
+    "Significant Figures"
+   ]
+  },
+  {
+   "id": "N16",
+   "area": "Number",
+   "text": "Apply and interpret limits of accuracy, including upper and lower bounds",
+   "topics": [
+    "Bounds & Error Intervals"
+   ]
+  },
+  {
+   "id": "A1",
+   "area": "Algebra",
+   "text": "Use and interpret algebraic notation",
+   "topics": [
+    "Manipulating Expressions"
+   ]
+  },
+  {
+   "id": "A2",
+   "area": "Algebra",
+   "text": "Substitute numerical values into formulae and expressions, including scientific formulae",
+   "topics": [
+    "Substitution"
+   ]
+  },
+  {
+   "id": "A3",
+   "area": "Algebra",
+   "text": "Understand and use the words expressions, equations, formulae, identities, inequalities, terms and factors",
+   "topics": [
+    "Formulae"
+   ]
+  },
+  {
+   "id": "A4",
+   "area": "Algebra",
+   "text": "Simplify and manipulate algebraic expressions, including expanding brackets, factorising and algebraic fractions",
+   "topics": [
+    "Simplifying & Collecting Terms",
+    "Expanding Brackets",
+    "Factorising",
+    "Algebraic Fractions"
+   ]
+  },
+  {
+   "id": "A5",
+   "area": "Algebra",
+   "text": "Understand and use standard mathematical formulae; rearrange formulae to change the subject",
+   "topics": [
+    "Rearranging Formulae"
+   ]
+  },
+  {
+   "id": "A6",
+   "area": "Algebra",
+   "text": "Know the difference between an equation and an identity; argue mathematically to show expressions are equivalent; construct algebraic proofs",
+   "topics": [
+    "Algebraic Proof"
+   ]
+  },
+  {
+   "id": "A7",
+   "area": "Algebra",
+   "text": "Interpret simple expressions as functions with inputs and outputs; interpret inverse and composite functions",
+   "topics": [
+    "Function Machines",
+    "Function Notation",
+    "Composite Functions",
+    "Inverse Functions"
+   ]
+  },
+  {
+   "id": "A8",
+   "area": "Algebra",
+   "text": "Work with coordinates in all four quadrants",
+   "topics": [
+    "Coordinates"
+   ]
+  },
+  {
+   "id": "A9",
+   "area": "Algebra",
+   "text": "Plot graphs of straight lines; use y = mx + c; find equations of parallel and perpendicular lines",
+   "topics": [
+    "Straight Line Graphs",
+    "Equation of a Line",
+    "Parallel & Perpendicular Lines"
+   ]
+  },
+  {
+   "id": "A10",
+   "area": "Algebra",
+   "text": "Identify and interpret gradients and intercepts of linear functions graphically and algebraically",
+   "topics": [
+    "Straight Line Graphs",
+    "Equation of a Line"
+   ]
+  },
+  {
+   "id": "A11",
+   "area": "Algebra",
+   "text": "Identify and interpret roots, intercepts and turning points of quadratic functions; deduce turning points by completing the square",
+   "topics": [
+    "Turning Points",
+    "Completing the Square"
+   ]
+  },
+  {
+   "id": "A12",
+   "area": "Algebra",
+   "text": "Recognise, sketch and interpret graphs of linear, quadratic, cubic, reciprocal, exponential and trigonometric functions",
+   "topics": [
+    "Quadratic Graphs",
+    "Recognising Graph Shapes",
+    "Trigonometric Graphs & Equations"
+   ]
+  },
+  {
+   "id": "A13",
+   "area": "Algebra",
+   "text": "Sketch translations and reflections of a given function",
+   "topics": [
+    "Transformations of Graphs"
+   ]
+  },
+  {
+   "id": "A14",
+   "area": "Algebra",
+   "text": "Plot and interpret graphs of non-standard functions in real contexts, including distance-time and velocity-time graphs",
+   "topics": [
+    "Real-Life Graphs"
+   ]
+  },
+  {
+   "id": "A15",
+   "area": "Algebra",
+   "text": "Calculate or estimate gradients of graphs and areas under graphs, and interpret them in context",
+   "tier": "Higher",
+   "topics": [
+    "Gradient of a Curve",
+    "Area Under a Curve"
+   ]
+  },
+  {
+   "id": "A16",
+   "area": "Algebra",
+   "text": "Recognise and use the equation of a circle centred at the origin; find the equation of a tangent to a circle at a given point",
+   "tier": "Higher",
+   "topics": [
+    "Equation of a Circle",
+    "Equation of a Tangent"
+   ]
+  },
+  {
+   "id": "A17",
+   "area": "Algebra",
+   "text": "Solve linear equations in one unknown algebraically, including with the unknown on both sides; find approximate solutions using a graph",
+   "topics": [
+    "Linear Equations",
+    "Unknowns on Both Sides"
+   ]
+  },
+  {
+   "id": "A18",
+   "area": "Algebra",
+   "text": "Solve quadratic equations by factorising, completing the square and the quadratic formula; find approximate solutions using a graph",
+   "topics": [
+    "Solving Quadratics"
+   ]
+  },
+  {
+   "id": "A19",
+   "area": "Algebra",
+   "text": "Solve two simultaneous equations in two variables (linear/linear or linear/quadratic) algebraically and graphically",
+   "topics": [
+    "Simultaneous Equations"
+   ]
+  },
+  {
+   "id": "A20",
+   "area": "Algebra",
+   "text": "Find approximate solutions to equations numerically using iteration",
+   "tier": "Higher",
+   "topics": [
+    "Iteration"
+   ]
+  },
+  {
+   "id": "A21",
+   "area": "Algebra",
+   "text": "Translate situations or procedures into algebraic expressions or formulae; derive and solve an equation",
+   "topics": [
+    "Linear Equations",
+    "Formulae"
+   ]
+  },
+  {
+   "id": "A22",
+   "area": "Algebra",
+   "text": "Solve linear and quadratic inequalities; represent the solution set on a number line or a graph",
+   "topics": [
+    "Inequalities",
+    "Solving Inequalities",
+    "Quadratic Inequalities",
+    "Inequalities on a Number Line",
+    "Inequalities & Regions"
+   ]
+  },
+  {
+   "id": "A23",
+   "area": "Algebra",
+   "text": "Generate terms of a sequence from a term-to-term or a position-to-term rule",
+   "topics": [
+    "Term-to-Term Rules"
+   ]
+  },
+  {
+   "id": "A24",
+   "area": "Algebra",
+   "text": "Recognise and use triangular, square and cube numbers, arithmetic, Fibonacci-type, quadratic and simple geometric sequences",
+   "topics": [
+    "Types of Sequence"
+   ]
+  },
+  {
+   "id": "A25",
+   "area": "Algebra",
+   "text": "Deduce expressions to calculate the nth term of linear and quadratic sequences",
+   "topics": [
+    "nth Term of a Linear Sequence",
+    "Quadratic nth Term"
+   ]
+  },
+  {
+   "id": "R1",
+   "area": "Ratio",
+   "text": "Change freely between related standard units and compound units",
+   "topics": [
+    "Units & Measures"
+   ]
+  },
+  {
+   "id": "R2",
+   "area": "Ratio",
+   "text": "Use scale factors, scale diagrams and maps",
+   "topics": [
+    "Scale Drawings & Maps"
+   ]
+  },
+  {
+   "id": "R3",
+   "area": "Ratio",
+   "text": "Express one quantity as a fraction of another",
+   "topics": [
+    "Fractions"
+   ]
+  },
+  {
+   "id": "R4",
+   "area": "Ratio",
+   "text": "Use ratio notation, including reduction to simplest form",
+   "topics": [
+    "Writing & Simplifying Ratio"
+   ]
+  },
+  {
+   "id": "R5",
+   "area": "Ratio",
+   "text": "Divide a given quantity into two parts in a given part:part or part:whole ratio",
+   "topics": [
+    "Sharing in a Ratio"
+   ]
+  },
+  {
+   "id": "R6",
+   "area": "Ratio",
+   "text": "Express a multiplicative relationship between two quantities as a ratio or a fraction",
+   "topics": [
+    "Ratio Problems"
+   ]
+  },
+  {
+   "id": "R7",
+   "area": "Ratio",
+   "text": "Understand and use proportion as equality of ratios",
+   "topics": [
+    "Ratio & Proportion"
+   ]
+  },
+  {
+   "id": "R8",
+   "area": "Ratio",
+   "text": "Relate ratios to fractions and to linear functions",
+   "topics": [
+    "Ratio Problems"
+   ]
+  },
+  {
+   "id": "R9",
+   "area": "Ratio",
+   "text": "Define percentage as 'number of parts per hundred'; solve percentage change problems, including original value problems and simple interest",
+   "topics": [
+    "Percentages",
+    "Percentage Increase & Decrease",
+    "Reverse Percentages",
+    "Simple & Compound Interest"
+   ]
+  },
+  {
+   "id": "R10",
+   "area": "Ratio",
+   "text": "Solve problems involving direct and inverse proportion, including graphical and algebraic representations",
+   "topics": [
+    "Direct Proportion",
+    "Inverse Proportion",
+    "Best Value & Unitary Method"
+   ]
+  },
+  {
+   "id": "R11",
+   "area": "Ratio",
+   "text": "Use compound units such as speed, rates of pay, unit pricing, density and pressure",
+   "topics": [
+    "Compound Measures"
+   ]
+  },
+  {
+   "id": "R12",
+   "area": "Ratio",
+   "text": "Compare lengths, areas and volumes using ratio notation; link to similarity and scale factors",
+   "topics": [
+    "Similar Areas & Volumes"
+   ]
+  },
+  {
+   "id": "R13",
+   "area": "Ratio",
+   "text": "Understand that X inversely proportional to Y is X proportional to 1/Y; construct and interpret equations of direct and inverse proportion",
+   "tier": "Higher",
+   "topics": [
+    "Direct Proportion",
+    "Inverse Proportion"
+   ]
+  },
+  {
+   "id": "R14",
+   "area": "Ratio",
+   "text": "Interpret the gradient of a straight-line graph as a rate of change; recognise graphs of direct and inverse proportion",
+   "topics": [
+    "Real-Life Graphs"
+   ]
+  },
+  {
+   "id": "R15",
+   "area": "Ratio",
+   "text": "Interpret the gradient at a point on a curve as the instantaneous rate of change",
+   "tier": "Higher",
+   "topics": [
+    "Gradient of a Curve"
+   ]
+  },
+  {
+   "id": "R16",
+   "area": "Ratio",
+   "text": "Set up, solve and interpret growth and decay problems, including compound interest; work with iterative processes",
+   "topics": [
+    "Growth & Decay",
+    "Simple & Compound Interest"
+   ]
+  },
+  {
+   "id": "G1",
+   "area": "Geometry",
+   "text": "Use conventional terms and notation: points, lines, vertices, edges, planes, parallel and perpendicular lines, polygons and symmetry",
+   "topics": [
+    "2-D Shapes",
+    "Types of Angle"
+   ]
+  },
+  {
+   "id": "G2",
+   "area": "Geometry",
+   "text": "Use the standard ruler and compass constructions (perpendicular bisector, angle bisector, perpendicular from a point); construct loci",
+   "topics": [
+    "Constructions & Loci"
+   ]
+  },
+  {
+   "id": "G3",
+   "area": "Geometry",
+   "text": "Apply angles at a point, on a straight line, vertically opposite, alternate and corresponding angles; derive angle sums in triangles and polygons",
+   "topics": [
+    "Angles at a Point & on a Line",
+    "Angles in Parallel Lines",
+    "Angles in Triangles & Quadrilaterals",
+    "Angles in Polygons"
+   ]
+  },
+  {
+   "id": "G4",
+   "area": "Geometry",
+   "text": "Derive and apply the properties and definitions of special types of quadrilaterals and triangles",
+   "topics": [
+    "Properties of Shapes"
+   ]
+  },
+  {
+   "id": "G5",
+   "area": "Geometry",
+   "text": "Use the basic congruence criteria for triangles (SSS, SAS, ASA, RHS)",
+   "topics": [
+    "Congruent Triangles"
+   ]
+  },
+  {
+   "id": "G6",
+   "area": "Geometry",
+   "text": "Apply angle facts, triangle congruence, similarity and properties of quadrilaterals to conjecture and derive results",
+   "topics": [
+    "Similar Triangles",
+    "Congruent Triangles"
+   ]
+  },
+  {
+   "id": "G7",
+   "area": "Geometry",
+   "text": "Identify, describe and construct congruent and similar shapes by rotation, reflection, translation and enlargement",
+   "topics": [
+    "Reflections",
+    "Rotations",
+    "Translations",
+    "Enlargements"
+   ]
+  },
+  {
+   "id": "G8",
+   "area": "Geometry",
+   "text": "Describe the changes and invariance achieved by combinations of rotations, reflections and translations",
+   "topics": [
+    "Describing a Single Transformation"
+   ]
+  },
+  {
+   "id": "G9",
+   "area": "Geometry",
+   "text": "Identify and apply circle definitions and properties: centre, radius, chord, diameter, circumference, tangent, arc, sector and segment",
+   "topics": [
+    "Parts of a Circle"
+   ]
+  },
+  {
+   "id": "G10",
+   "area": "Geometry",
+   "text": "Apply and prove the standard circle theorems",
+   "tier": "Higher",
+   "topics": [
+    "Circle Theorems"
+   ]
+  },
+  {
+   "id": "G11",
+   "area": "Geometry",
+   "text": "Solve geometrical problems on coordinate axes",
+   "topics": [
+    "Coordinates"
+   ]
+  },
+  {
+   "id": "G12",
+   "area": "Geometry",
+   "text": "Identify properties of the faces, surfaces, edges and vertices of cubes, cuboids, prisms, cylinders, pyramids, cones and spheres",
+   "topics": [
+    "3-D Shapes"
+   ]
+  },
+  {
+   "id": "G13",
+   "area": "Geometry",
+   "text": "Construct and interpret plans and elevations of 3D shapes",
+   "topics": [
+    "Plans & Elevations"
+   ]
+  },
+  {
+   "id": "G14",
+   "area": "Geometry",
+   "text": "Use standard units of measure and related concepts (length, area, volume, mass, time, money)",
+   "topics": [
+    "Units & Measures"
+   ]
+  },
+  {
+   "id": "G15",
+   "area": "Geometry",
+   "text": "Measure line segments and angles, including interpreting maps and scale drawings and the use of bearings",
+   "topics": [
+    "Bearings",
+    "Scale Drawings & Maps"
+   ]
+  },
+  {
+   "id": "G16",
+   "area": "Geometry",
+   "text": "Know and apply formulae for the area of triangles, parallelograms and trapezia, and the volume of cuboids and other right prisms",
+   "topics": [
+    "Area of 2-D Shapes",
+    "Volume & Surface Area"
+   ]
+  },
+  {
+   "id": "G17",
+   "area": "Geometry",
+   "text": "Know the formulae for the circumference and area of a circle; calculate surface area and volume of spheres, pyramids, cones and composite solids",
+   "topics": [
+    "Area & Circumference of Circles",
+    "Volume & Surface Area",
+    "Perimeter"
+   ]
+  },
+  {
+   "id": "G18",
+   "area": "Geometry",
+   "text": "Calculate arc lengths, angles and areas of sectors of circles",
+   "topics": [
+    "Arcs & Sectors"
+   ]
+  },
+  {
+   "id": "G19",
+   "area": "Geometry",
+   "text": "Apply congruence and similarity, including the relationships between lengths, areas and volumes in similar figures",
+   "topics": [
+    "Similar Shapes",
+    "Similar Areas & Volumes"
+   ]
+  },
+  {
+   "id": "G20",
+   "area": "Geometry",
+   "text": "Know the formulae for Pythagoras' theorem and the trigonometric ratios; apply them in two and three dimensional figures",
+   "topics": [
+    "Pythagoras' Theorem",
+    "Right-Angled Trigonometry",
+    "Trigonometry",
+    "3-D Pythagoras & Trigonometry"
+   ]
+  },
+  {
+   "id": "G21",
+   "area": "Geometry",
+   "text": "Know the exact values of sin θ and cos θ for θ = 0°, 30°, 45°, 60° and 90°, and of tan θ for θ = 0°, 30°, 45° and 60°",
+   "topics": [
+    "Exact Trig Values"
+   ]
+  },
+  {
+   "id": "G22",
+   "area": "Geometry",
+   "text": "Know and apply the sine rule and cosine rule to find unknown lengths and angles",
+   "tier": "Higher",
+   "topics": [
+    "The Sine Rule",
+    "The Cosine Rule"
+   ]
+  },
+  {
+   "id": "G23",
+   "area": "Geometry",
+   "text": "Know and apply Area = ½ab sin C to calculate the area, sides or angles of any triangle",
+   "tier": "Higher",
+   "topics": [
+    "Area of Any Triangle"
+   ]
+  },
+  {
+   "id": "G24",
+   "area": "Geometry",
+   "text": "Describe translations as 2D vectors",
+   "topics": [
+    "Translations"
+   ]
+  },
+  {
+   "id": "G25",
+   "area": "Geometry",
+   "text": "Apply addition and subtraction of vectors, multiplication by a scalar, and column representations; use vectors in geometric arguments and proofs",
+   "topics": [
+    "Vectors"
+   ]
+  },
+  {
+   "id": "P1",
+   "area": "Probability",
+   "text": "Record, describe and analyse the frequency of outcomes of probability experiments using tables and frequency trees",
+   "topics": [
+    "Frequency Trees"
+   ]
+  },
+  {
+   "id": "P2",
+   "area": "Probability",
+   "text": "Apply ideas of randomness, fairness and equally likely events to calculate expected outcomes of multiple future experiments",
+   "topics": [
+    "Relative Frequency & Expectation"
+   ]
+  },
+  {
+   "id": "P3",
+   "area": "Probability",
+   "text": "Relate relative expected frequencies to theoretical probability",
+   "topics": [
+    "Relative Frequency & Expectation"
+   ]
+  },
+  {
+   "id": "P4",
+   "area": "Probability",
+   "text": "Apply the property that the probabilities of an exhaustive set of outcomes sum to one",
+   "topics": [
+    "Basic Probability"
+   ]
+  },
+  {
+   "id": "P5",
+   "area": "Probability",
+   "text": "Understand that empirical unbiased samples tend towards theoretical probability distributions with increasing sample size",
+   "topics": [
+    "Relative Frequency & Expectation"
+   ]
+  },
+  {
+   "id": "P6",
+   "area": "Probability",
+   "text": "Enumerate sets and combinations of sets systematically, using tables, grids, Venn diagrams and tree diagrams",
+   "topics": [
+    "Venn Diagrams & Set Notation"
+   ]
+  },
+  {
+   "id": "P7",
+   "area": "Probability",
+   "text": "Construct theoretical possibility spaces for single and combined experiments with equally likely outcomes",
+   "topics": [
+    "Listing Outcomes & Sample Space"
+   ]
+  },
+  {
+   "id": "P8",
+   "area": "Probability",
+   "text": "Calculate the probability of independent and dependent combined events, including using tree diagrams",
+   "topics": [
+    "Tree Diagrams"
+   ]
+  },
+  {
+   "id": "P9",
+   "area": "Probability",
+   "text": "Calculate and interpret conditional probabilities using expected frequencies with two-way tables, tree diagrams and Venn diagrams",
+   "tier": "Higher",
+   "topics": [
+    "Conditional Probability"
+   ]
+  },
+  {
+   "id": "S1",
+   "area": "Statistics",
+   "text": "Infer properties of populations or distributions from a sample, knowing the limitations of sampling",
+   "topics": [
+    "Sampling"
+   ]
+  },
+  {
+   "id": "S2",
+   "area": "Statistics",
+   "text": "Interpret and construct tables, charts and diagrams: bar charts, pie charts, pictograms, vertical line charts and time series",
+   "topics": [
+    "Bar Charts & Pictograms",
+    "Pie Charts",
+    "Line Graphs & Time Series",
+    "Stem & Leaf Diagrams"
+   ]
+  },
+  {
+   "id": "S3",
+   "area": "Statistics",
+   "text": "Construct and interpret diagrams for grouped data: histograms with equal and unequal class intervals and cumulative frequency graphs",
+   "topics": [
+    "Histograms",
+    "Cumulative Frequency",
+    "Frequency Polygons"
+   ]
+  },
+  {
+   "id": "S4",
+   "area": "Statistics",
+   "text": "Interpret, analyse and compare distributions through averages (median, mean, mode, modal class) and spread (range, interquartile range)",
+   "topics": [
+    "Averages & Range",
+    "Averages from a Table",
+    "Averages from Grouped Data",
+    "Box Plots & Quartiles"
+   ]
+  },
+  {
+   "id": "S5",
+   "area": "Statistics",
+   "text": "Apply statistics to describe a population",
+   "topics": [
+    "Comparing Distributions"
+   ]
+  },
+  {
+   "id": "S6",
+   "area": "Statistics",
+   "text": "Use and interpret scatter graphs; recognise correlation and know it does not indicate causation; draw and use lines of best fit",
+   "topics": [
+    "Scatter Graphs & Correlation"
+   ]
+  }
+ ]
+}

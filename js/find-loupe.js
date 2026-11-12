@@ -31,8 +31,7 @@ function padPinned_(c) {
   const g = PAD_GO;
   return !!c && !!g && c.late && c.onInk && c.k === PAD_ON && !!c.pts && g.tool !== 'pen' && c.t0 - g.t0 > PAD_TOGETHER_MS;
 }
-/* EVERY MOVE OF ONE OF THEM, AFTER ITS SAMPLES: once one has gone 10px by its own latest, the question is asked at the
-   next frame (`padFrame_`). A frame is asked for only then, so a held stroke whose fingers are still costs nothing. */
+/* EVERY MOVE OF ONE OF THEM, AFTER ITS SAMPLES: § */
 function padRules_(c) {
   if (!PAD_GO || PAD_TWO.size) return;
   let watching = false;

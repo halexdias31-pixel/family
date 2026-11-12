@@ -1,9 +1,9 @@
 /* ---------- THE FILL-IN STANDARD ON THE REAL LIBRARY (523): every part asking to fill in is answered in its cells ---------- */
 check('the fill-in standard: every library part that asks to fill something in shows its cells, in its own table where it has one, and its own answers mark every cell right', async () => {
-  const SC = require('../check/schema.js');
+  const SC = require('../check/library-schema.js');
   const LIB = LIB_FULL.rows('questions');
   const ask = LIB.filter(r => r.kind === 'question' && r.active !== 'False' && SC.fillIn(r.html) && !(SC.CELLS_EXEMPT[r.row_id] && !String(r.cells || '').trim())
-    /* A PART WHOSE SCHEME IS STILL OWED (584, questions only) has no answers to make cells from, as check/schema.js says. */
+    /* A PART WHOSE SCHEME IS STILL OWED (584, questions only) has no answers to make cells from, as check/library-schema.js says. */
     && !(SC.schemeOwed(r) && !String(r.cells || '').trim()));
   /* A PENDING PART WHOSE WORDS HERE ARE OLDER THAN ITS CARD (a fresh clone before `pull`, docs/library.md) is not asked. */
   const asks = ask.filter(r => !LIB_FULL.waits('questions', r)), waiting = ask.length - asks.length;

@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 77.9,
+ "score": 83.7,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -34,32 +34,23 @@
   {
    "id": "dead",
    "label": "Code nothing calls",
-   "count": 18,
+   "count": 15,
    "weight": 0.3,
    "cap": 10,
-   "off": 5.4,
+   "off": 4.5,
    "where": {
-    "check-dead": "bcTaxPot_ (biz-check.js), bcItem_ (biz-check.js), dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), startTimesTables (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), setupCard_ (me-account.js), qtFigureOf_ (qtypes.js), rulesCard_ (rules.js), ktLessonCount_ (tools.js), workPics_ (working.js), writingOf_ (writings.js), none"
+    "check-dead": "bcTaxPot_ (biz-check.js), bcItem_ (biz-check.js), dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), startTimesTables (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), ktLessonCount_ (tools.js), workPics_ (working.js), writingOf_ (writings.js)"
    }
-  },
-  {
-   "id": "catches",
-   "label": "Empty catches allowed (check-catches ceiling)",
-   "count": 228,
-   "weight": 0.02,
-   "cap": 15,
-   "off": 4.6,
-   "where": {}
   },
   {
    "id": "ceilings",
    "label": "Raised ratchet ceilings (*_MAX)",
-   "count": 1098,
+   "count": 958,
    "weight": 0.002,
    "cap": 10,
-   "off": 2.2,
+   "off": 1.9,
    "where": {
-    "js/check-library.js NOT_DRAWN_MAX": 410,
+    "js/check-library.js NOT_DRAWN_MAX": 270,
     "js/check-library.js STEM_NOT_DRAWN_MAX": 658,
     "js/check-practicals.js QTY_MAX": 12,
     "js/check-projects.js QTY_MAX": 12,
@@ -87,7 +78,7 @@
     "js/predicates-marks.js": 3,
     "js/predicates.js": 13,
     "js/price-rows.js": 2,
-    "js/submit.js": 1
+    "js/submit-suggest.js": 1
    }
   },
   {
@@ -100,6 +91,15 @@
    "where": {
     "lines": 16
    }
+  },
+  {
+   "id": "catches",
+   "label": "Empty catches (tools/catches.js)",
+   "count": 1,
+   "weight": 0.02,
+   "cap": 15,
+   "off": 0,
+   "where": {}
   },
   {
    "id": "longfiles",
@@ -130,7 +130,7 @@
   }
  ],
  "secondary": {
-  "score": 88.5,
+  "score": 85.4,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
@@ -151,24 +151,32 @@
     }
    },
    {
+    "id": "catches",
+    "label": "Empty catches (tools/catches.js)",
+    "count": 164,
+    "weight": 0.02,
+    "cap": 15,
+    "off": 3.3,
+    "where": {}
+   },
+   {
     "id": "special",
     "label": "Per-facet and per-kind special cases",
-    "count": 43,
+    "count": 40,
     "weight": 0.05,
     "cap": 10,
-    "off": 2.2,
+    "off": 2,
     "where": {
      "js/arcade.js": 7,
      "js/collections.js": 7,
      "js/flyer.js": 1,
-     "js/layout.js": 1,
+     "js/layout-moves.js": 1,
      "js/mat.js": 3,
      "js/mechanics.js": 1,
      "js/orthodox.js": 2,
      "js/posts.js": 6,
      "js/reader.js": 11,
-     "js/records.js": 1,
-     "js/writings.js": 3
+     "js/records.js": 1
     }
    },
    {
@@ -201,17 +209,8 @@
     "cap": 10,
     "off": 0.1,
     "where": {
-     "js/mat.js matPaint": 158
+     "js/mat.js matPaint": 152
     }
-   },
-   {
-    "id": "catches",
-    "label": "Empty catches allowed (check-catches ceiling)",
-    "count": 0,
-    "weight": 0.02,
-    "cap": 15,
-    "off": 0,
-    "where": {}
    },
    {
     "id": "ceilings",

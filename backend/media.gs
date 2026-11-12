@@ -115,7 +115,7 @@ function mediaWrite_(action, body) {
         return { error: 'The media tab could not be opened — nothing was saved.' };
       }
     }
-    try { SpreadsheetApp.flush(); } catch (err) {}
+    try { SpreadsheetApp.flush(); } catch (err) { /* flush is an early write; Apps Script writes at the end anyway */ }
   } finally {
     lock.releaseLock();
   }
@@ -133,7 +133,7 @@ const CONSOLE_SAVE_TOO_BIG = 'This game\'s save is bigger than an account keeps 
 function consoleSaveFolder_(make) {
   const props = PropertiesService.getScriptProperties();
   const id = S(props.getProperty(CONSOLE_SAVE_PROP));
-  if (id) { try { const f = DriveApp.getFolderById(id); if (f && !(f.isTrashed && f.isTrashed())) return f; } catch (err) {} }
+  if (id) { try { const f = DriveApp.getFolderById(id); if (f && !(f.isTrashed && f.isTrashed())) return f; } catch (err) { /* a gone or unreachable folder means a new one is made */ } }
   if (!make) return null;
   const f = DriveApp.createFolder('family console saves');
   props.setProperty(CONSOLE_SAVE_PROP, f.getId());

@@ -1067,8 +1067,7 @@ function spellBetter_(a, b) {
   return cmpText(a.value, b.value) <= 0 ? a : b;
 }
 
-/* ONE WAY TO SAY A VALUE, FOR EVERY FACET (396): its first letter capitalised, unless it is a single lower-case letter or a
-   roman numeral — a part `a` and a sub-part `ii` as the paper prints them. */
+/* ONE WAY TO SAY A VALUE, FOR EVERY FACET (396): § */
 const SAY_AS_IS = /^(?:[a-z]|[ivx]+)$/;
 const sayCase_ = v => {
   const s = String(v == null ? '' : v).trim();
@@ -1082,8 +1081,8 @@ function facetSay_(facet, v) {
   try { own = facet ? labelOf_('facet-show:' + facet.field, s, '') : ''; } catch (e) { own = ''; }
   return own || s;
 }
-/* A SHOW FITS A TAG (kcTidy_'s KC_TAG_MAX, 30), or the card moves it to an open-only line: the owner's short label (labels.json, */
-/* facet-show:<field>, in facetSay_), else the first of its reference ("II-II.122.3"), its name before a bracket, its first words, its ends. */
+/* A SHOW FITS A TAG (kcTidy_'s KC_TAG_MAX, 30), or the card moves it to an open-only line: § */
+/* facet-show:<field>, in facetSay_), else the first of its reference ("II-II.122.3"), its name before a § */
 const SHOW_MAX = 30;
 function showForms_(s) {
   s = String(s == null ? '' : s).trim();
@@ -1133,8 +1132,7 @@ function answerSay_(facet, v) {
   return m.by.get(spellKey_(v)) || say;
 }
 
-/* ONE ORDER FOR EVERY FACET'S ANSWERS, BY WHAT THEY ARE (396): years and dates newest first, numbers by size, months
-   by the calendar, roman numerals by value, kinds by the kinds tab, the rest A–Z with numbers as numbers. */
+/* ONE ORDER FOR EVERY FACET'S ANSWERS, BY WHAT THEY ARE (396): § */
 const ROMAN_SAY = /^(x{0,3})(ix|iv|v?i{0,3})$/i;
 const yearKey_ = v => (/^(?:19|20)\d{2}$/.test(v) ? Number(v) : null);
 const dateKey_ = v => {
@@ -1155,7 +1153,7 @@ function kindRank_() {
   const groups = new Map(groupOrder_().map((g, i) => [g, i]));
   return { labels, groups };
 }
-/* LISTS WHOSE OWN ORDER IS THE ORDER (473): a file pushes one, and answers all in it sort by it — the Talmud's orders and tractates. */
+/* LISTS WHOSE OWN ORDER IS THE ORDER (473): § */
 /* FIND'S FRONT MENU, in the owner's order (4 Nov): the first question's answers, whatever kinds stand under them. */
 const FRONT_ORDER = ['Practice', 'Library', 'Videos', 'Newspaper', 'Coming soon', 'Posts', 'Messages', 'Profiles', 'Booking', 'Venues', 'Shop', 'Settings', 'Tools', 'Games', 'Reels', 'Flyers', 'Posters'];
 /* THE DOORS' OWN MENUS IN THE OWNER'S ORDER (batch C): account types, who, which posts, when. */
@@ -1181,8 +1179,7 @@ function answerCmp_(texts) {
   return cmpText;
 }
 
-/* TWO ANSWERS THAT WOULD BE DRAWN THE SAME SAY WHAT TELLS THEM APART (396): the other facets, in the tab's order, added
-   until each reads differently — `Paper 1 · Higher` beside `Paper 1 · Foundation`. */
+/* TWO ANSWERS THAT WOULD BE DRAWN THE SAME SAY WHAT TELLS THEM APART (396): § */
 function tellApart_(items, facet, values) {
   const by = {}, told = [];
   values.forEach(v => { const k = spellKey_(v.show || v.text || v.value); (by[k] = by[k] || []).push(v); });
@@ -1224,12 +1221,12 @@ function tellApart_(items, facet, values) {
   });
   /* THE SHORT NAME WITH WHAT TELLS IT APART, unless that collides with another answer — then the whole name with it. */
   if (told.length && new Set(values.map(v => spellKey_(v.show))).size !== values.length) told.forEach(t => { t.v.show = t.full; });
-  /* STILL TWIN, NO FACET SPLITS THEM: each says its own whole name (owner, 10 Nov: two "Paper 3" buttons), never two alike. */
+  /* STILL TWIN, NO FACET SPLITS THEM: § */
   const left = {};
   values.forEach(v => { const k = spellKey_(v.show || v.text || v.value); (left[k] = left[k] || []).push(v); });
   Object.keys(left).forEach(k => { const g = left[k];
     if (g.length < 2) return;
-    /* ITS OWN NAME (`nameOf`, a paper's title) where the facet has one, else what it is called: the first that tells them apart. */
+    /* ITS OWN NAME (`nameOf`, a paper's title) where the facet has one, else what it is called: § */
     const names = v => { let n = []; try { n = facet.nameOf ? asList_(facet.nameOf(v.value)) : []; } catch (e) { n = []; } return n.concat([v.text || v.value]); };
     const rungs = g.map(names), deep = Math.max(...rungs.map(r => r.length));
     for (let i = 0; i < deep; i++) { const at = rungs.map(r => String(r[Math.min(i, r.length - 1)] || ''));
@@ -1270,7 +1267,7 @@ function facetTally_(items, facet) {
 
   const by = {};
   let answered = 0;
-  /* ONE READ PER ITEM (930): the weighed split below once read every item's values again, half of Find's wait on a phone. */
+  /* ONE READ PER ITEM (930): § */
   const wt = writingWeights_(items);
   let top = 0, whole = 0;
   const wBy = {};
@@ -1296,8 +1293,8 @@ function facetTally_(items, facet) {
     const best = spellBetter_(seen && seen.best, { value: v, n: by[v] });
     folded[k] = { best: best, n: (seen ? seen.n : 0) + by[v] };
   });
-  /* `value` IS WHAT IS MATCHED, `text` WHAT IT IS CALLED, `show` WHAT IS DRAWN — the shortest unique form (`shortLabels_`). */
-  /* NAMED AND SORTED ONLY WHEN READ: a question turned away for its count alone (`facetWhy_`) never pays for its words. */
+  /* `value` IS WHAT IS MATCHED, `text` WHAT IT IS CALLED, `show` WHAT IS DRAWN — the shortest unique form § */
+  /* NAMED AND SORTED ONLY WHEN READ: § */
   let values = null;
   const named = () => {
     if (values) return values;
@@ -1308,8 +1305,7 @@ function facetTally_(items, facet) {
     return values;
   };
 
-  /* THE SPLIT IS MEASURED IN THINGS, NOT CARDS (517): a writing (`libBook`) weighs one however many verses it is, so the
-     Bible's 31,000 cards cannot make Subject look lopsided. Every facet, one rule. */
+  /* THE SPLIT IS MEASURED IN THINGS, NOT CARDS (517): § */
   Object.keys(wBy).forEach(k => { if (wBy[k] > top) top = wBy[k]; });
 
   const out = {
@@ -1325,7 +1321,7 @@ function facetTally_(items, facet) {
 }
 
 /** The distinct values of one facet across a set, with how many each would leave. */
-/* AN ANSWER SPELT LIKE A CHOSEN CHIP IS NEVER OFFERED (830), under any question: the chip already says it (680 is the chips' side). */
+/* AN ANSWER SPELT LIKE A CHOSEN CHIP IS NEVER OFFERED (830), under any question: § */
 function facetValues(items, facet) {
   const all = facetTally_(items, facet).values;
   const chips = ((STUFF && STUFF.filters) || []).filter(c => c && !c.any && c.field !== facet.field).map(c => spellKey_(c.value));
@@ -1334,8 +1330,7 @@ function facetValues(items, facet) {
   return all.some(said) ? all.filter(v => !said(v)) : all;
 }
 
-/* HOW MANY OF THESE COULD EVEN ANSWER IT. Not how many distinct answers there are — how many
-   items have one at all. */
+/* HOW MANY OF THESE COULD EVEN ANSWER IT. § */
 function facetCoverage(items, facet) {
   return facetTally_(items, facet).coverage;
 }
@@ -1357,16 +1352,16 @@ function facetSplit_(items, facet) {
 }
 
 const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet', 'End of topic test': 'Worksheet' };
-/* KINDS UNDER KINDS (546, 610): questions, answers and practicals under Practice; timelines, and projects (owner, 7 Nov), under Library. */
+/* KINDS UNDER KINDS (546, 610): § */
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
 const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library',
   /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
-  /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): one card, tagged Booking and Profiles, like a setting's several types. */
+  /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): § */
   tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', bookform: 'Booking', shop: 'Shop',
   person: 'Profiles', video: 'Videos', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
   post: 'Posts', tool: 'Tools', game: 'Games', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
 /* A RETURNED WIDGET THAT IS A BROWSABLE THING (batch B) is its own front answer: FIND_WIDGET_GROUPS (arcade.js). */
-/* ITS TAG SAYS ONE DOOR: a kind under two (a tutor: Booking and Profiles) is the door picked, else its own group in FIND_KINDS — never the other. */
+/* ITS TAG SAYS ONE DOOR: § */
 function kindTopTag_(x) {
   const l = asList_(kindTop_(x)); if (l.length < 2) return l[0] || '';
   let g = '';
@@ -1374,9 +1369,9 @@ function kindTopTag_(x) {
   return l.indexOf(g) >= 0 ? g : l[0];
 }
 function kindTop_(x) { return (x && x.top) || (x && x.widget && typeof FIND_WIDGET_GROUPS !== 'undefined' && FIND_WIDGET_GROUPS[x.widget.id]) || (x && KIND_UNDER[x.kind]) || ''; }
-/* ONE RULE FOR A VALUE UNDER ANOTHER (660): the first question answers the one above, the second the value itself — only in a family that has one. */
+/* ONE RULE FOR A VALUE UNDER ANOTHER (660): § */
 function underTop_(table, v) { return (v && table[v]) || v || ''; }
-/* 680: the second offers only what is BELOW the one above, never the parent's own name again; Doesn't matter covers the rest. */
+/* 680: the second offers only what is BELOW the one above, never the parent's own name again; Doesn't § */
 function underOwn_(table, v) { return v && table[v] && table[v] !== v ? v : ''; }
 /* 680: a kind spelt like the kind above it is never offered twice (What kind, then Which). */
 function notTop_(x, v) { const top = asList_(kindTop_(x)).map(spellKey_); const l = [].concat(v || []).filter(k => k && top.indexOf(spellKey_(k)) === -1); return l.length > 1 ? l : (l[0] || ''); }
@@ -1392,17 +1387,16 @@ function fiveADay_(x) {
   return x && x.row && String(x.row.document_type || '') === '5-a-day' ? fiveADayOf_(x.row.paper_id) : null;
 }
 
-/* THE ONE RULE EVERY FACET IS ASKED BY (396), as a reason it is NOT asked, or '' when it may be: two answers at least,
-   half the list able to answer, a split worth making. `over` lets a question past FACET_MAX_ANSWERS through. */
-/* A NUMBERED RUN IS DRAWN AS A GRID (396): bare numbers, or one word and a number (`Chapter 7`, drawn as 7). Up to FACET_MAX_GRID it is a question, not a list (600). */
+/* THE ONE RULE EVERY FACET IS ASKED BY (396), as a reason it is NOT asked, or '' when it may be: § */
+/* A NUMBERED RUN IS DRAWN AS A GRID (396): § */
 const FACET_MAX_GRID = 200;
 const runNumber_ = v => (/^(?:([A-Za-z]+) )?(\d+)$/.exec(String(v.show || v.value)) || []);
 const numberedRun_ = values => values.length > 1 && values.every(v => runNumber_(v)[2]) && new Set(values.map(v => runNumber_(v)[1] || '')).size === 1;
 function facetWhy_(items, facet, over) {
-  /* COUNTED BEFORE NAMED: past every grid and every answer the chips or DOC_TYPE_UNDER could take away, it is a list whatever its words. */
+  /* COUNTED BEFORE NAMED: § */
   if (!over && facetTally_(items, facet).count - ((STUFF && STUFF.filters) || []).length > Math.max(FACET_MAX_GRID, Object.keys(DOC_TYPE_UNDER).length)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
   const all = facetValues(items, facet), vals = all.length;
-  /* 680: answers that are all BELOW an answer already chosen are asked even alone — Doesn't matter is the parent's own. */
+  /* 680: answers that are all BELOW an answer already chosen are asked even alone — Doesn't matter is the § */
   if (vals > 1 && underChosen_(all)) return ''; /* owner 5 Nov: one answer is never a question, even below a chosen one */
   if (vals < 2) return (vals ? 'one answer' : 'nobody can answer it') + ' — nothing to decide';
   if (!over && vals > (vals <= FACET_MAX_GRID && numberedRun_(all) ? FACET_MAX_GRID : FACET_MAX_ANSWERS)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
@@ -1425,31 +1419,28 @@ function underChosen_(values) {
   return values.every(v => DOC_TYPE_UNDER[v.value] && chosen.has(spellKey_(DOC_TYPE_UNDER[v.value])));
 }
 
-/* A QUESTION WHOSE EVERY ANSWER IS A KIND'S NAME (the kinds tab) chooses what a card IS, not how many (660): two answers make it
-   worth asking, however lopsided. Decided by the values, never by the field. */
+/* A QUESTION WHOSE EVERY ANSWER IS A KIND'S NAME (the kinds tab) chooses what a card IS, not how many (660): § */
 function kindNamed_(values) {
   const m = kindMap_(), names = new Set(Object.keys(m).map(k => spellKey_(m[k].label)).concat(spellKey_(ansKind_())));
   return values.length > 1 && values.every(v => names.has(spellKey_(v.value)));
 }
 
-/* A QUESTION THAT RE-ASKS ONE ANSWERED ANY (499, 660): every answer sits inside one answer of it — Shelf after Any subject is Subject
-   again; Which or Shelf after Any kind is What kind asked finer. Every facet, by its items. */
+/* A QUESTION THAT RE-ASKS ONE ANSWERED ANY (499, 660): § */
 function facetEcho_(items, facet) {
   const skipped = (STUFF.filters || []).filter(f => f.any && f.field !== facet.field);
   for (const g of skipped) {
     const G = facetList().find(f => f.field === g.field);
     if (!G) continue;
-    /* FINER BY WHAT IT IS, NOT BY THIS LIST (8 Nov): read over everything, so Year under Any verified, inside it only by chance
-       in one subject's list, is still asked; Shelf sits inside Subject everywhere and stays an echo. */
+    /* FINER BY WHAT IT IS, NOT BY THIS LIST (8 Nov): § */
     const to = echoInside_(facet, G) && echoTo_(items, facet, G), ok = !!to && Object.keys(to).length > 1;
-    /* A skipped question the list answers one way was never a choice, so nothing re-asks it (a list of projects alone, 660). */
+    /* A skipped question the list answers one way was never a choice, so nothing re-asks it § */
     const gAll = new Set();
     if (ok) for (const x of items) { facetOwn_(G, x).forEach(v => gAll.add(spellKey_(v))); if (gAll.size > 1) break; }
     if (ok && gAll.size > 1) return G.label || G.field;
   }
   return '';
 }
-/* Each F answer's one G answer over a list, or null when one F answer spans two G answers or a card holds no single G. */
+/* Each F answer's one G answer over a list, or null when one F answer spans two G answers or a card holds § */
 function echoTo_(items, F, G) {
   const to = {};
   for (const x of items) {
@@ -1471,16 +1462,15 @@ function echoInside_(F, G) {
   return ECHO_MEMO_.m[k];
 }
 
-/* A COUNT WITHIN EACH ANSWER OF ANOTHER QUESTION (Question within Paper): each G answer with two F answers holds a run of the
-   same names, one run inside the next, so Q1 under two papers is two things. Held until one G answer is left. */
-/* Not when G's answers also run, unevenly, inside F's: that is a grid (Question by Part), and neither is the other's count. */
+/* A COUNT WITHIN EACH ANSWER OF ANOTHER QUESTION (Question within Paper): § */
+/* Not when G's answers also run, unevenly, inside F's: § */
 function runsInside_(items, F, G) {
   const by = {};
   let cards = 0, cells = 0;
   for (const x of items) {
     const a = facetOwn_(F, x), b = facetOwn_(G, x);
     if (!a.length) continue;
-    /* A count lives only inside its parent: a card with F and no single G (a key stage with no Accuracy) makes F G's equal. */
+    /* A count lives only inside its parent: § */
     if (b.length !== 1) return 0;
     const s = by[spellKey_(b[0])] || (by[spellKey_(b[0])] = new Set());
     cards++;
@@ -1490,7 +1480,7 @@ function runsInside_(items, F, G) {
   /* A parent holds more cards than counts; one card a cell is the card's own address (Question by Part), a grid. */
   if (cards <= cells) return 0;
   const sets = Object.values(by).filter(s => s.size > 1).sort((p, q) => p.size - q.size);
-  /* A count runs longer than its parents are many: Required (two answers) under each practical type is a side, not a count. */
+  /* A count runs longer than its parents are many: § */
   if (sets.length < 2 || sets[sets.length - 1].size <= Object.keys(by).length) return 0;
   if (!sets.every((s, i) => !i || [...sets[i - 1]].every(v => s.has(v)))) return 0;
   return sets[0].size === sets[sets.length - 1].size ? 1 : 2;
@@ -1499,17 +1489,17 @@ const LOCAL_MEMO_ = new WeakMap();
 function facetLocal_(items, F) {
   let m = LOCAL_MEMO_.get(items);
   if (!m) LOCAL_MEMO_.set(items, m = {});
-  /* A G ALREADY ASKED NEVER HOLDS F (8 Nov): answered Any, "one G left" never comes, and the funnel ended with thousands left. */
+  /* A G ALREADY ASKED NEVER HOLDS F (8 Nov): § */
   const asked = (STUFF.filters || []).map(f => f.field), key = F.field + '|' + asked.join(',');
   if (key in m) return m[key];
   let say = '';
   const nF = facetValues(items, F).length;
-  /* ONLY A COARSER G, one the tab puts before F (8 Nov): Marks after Paper never holds Paper as its count, by chance or otherwise. */
+  /* ONLY A COARSER G, one the tab puts before F (8 Nov): § */
   for (const G of facetList()) {
     if (G === F) break;
     const nG = asked.indexOf(G.field) !== -1 ? 0 : facetValues(items, G).length;
     if (nG < 2 || nG >= nF || !runsInside_(items, F, G) || runsInside_(items, G, F) === 2) continue;
-    /* A G NEVER ASKED HERE NEVER HOLDS F (1180): Paper waited on a lopsided Function, and A-Level papers had no Paper question. */
+    /* A G NEVER ASKED HERE NEVER HOLDS F (1180): § */
     if (facetWhy_(items, G)) continue;
     say = G.label || G.field;
     break;
@@ -1517,8 +1507,7 @@ function facetLocal_(items, F) {
   return (m[key] = say);
 }
 
-/* HOW WELL A QUESTION SPLITS THE LIST, in bits, the score the menu-rule check measures (920). Past FACET_BITS_ENOUGH a split is
-   good enough and the tab's order decides, so Part (twenty-odd answers) never jumps in front of Subject. */
+/* HOW WELL A QUESTION SPLITS THE LIST, in bits, the score the menu-rule check measures (920). § */
 const FACET_BITS_ENOUGH = 2;
 function facetBits_(items, facet) {
   const vs = facetValues(items, facet), t = vs.reduce((a, v) => a + v.n, 0);
@@ -1526,22 +1515,21 @@ function facetBits_(items, facet) {
   return Math.min(FACET_BITS_ENOUGH, Math.round(bits * 100) / 100);
 }
 
-/* THE NEXT QUESTION WORTH ASKING, or nothing (rule 7, owner 6 Nov): of those the one rule lets through, the best split;
-   the tab's sort_order only breaks ties. A kind question still comes first (660, front 4 Nov). */
+/* THE NEXT QUESTION WORTH ASKING, or nothing (rule 7, owner 6 Nov): § */
 function nextFacet(items) {
   const asked = STUFF.filters.map(f => f.field);
   const ok = [];
   for (const facet of facetList()) {
     if (asked.indexOf(facet.field) !== -1 || facetWhy_(items, facet)) continue;
     const vals = facetValues(items, facet);
-    /* What a card IS is asked first (660), the front's answers are FRONT_ORDER's (4 Nov), and a choose question (mScope, owner 6 Nov) leads its list. */
+    /* What a card IS is asked first (660), the front's answers are FRONT_ORDER's (4 Nov), and a choose question § */
     if (kindNamed_(vals) || facet.choose || (!asked.length && vals.every(v => FRONT_ORDER.indexOf(v.value) !== -1))) return facet;
     ok.push({ facet, bits: facetBits_(items, facet) });
   }
   const pick = list => list.reduce((b, c) => (!b || c.bits > b.bits ? c : b), null);
   let best = pick(ok);
   /* A finer question splits more, but its coarser one comes first (the subtype rule): Subject before Topic. */
-  /* THE COARSEST HOLDING IT, BY THE TAB (1180): Month jumped Level and Board where each board sat in one month, so SATs met neither. */
+  /* THE COARSEST HOLDING IT, BY THE TAB (1180): § */
   const at = new Map(facetList().map((f, i) => [f, i]));
   for (let hop = 0; best && hop < 4; hop++) {
     const up = ok.filter(c => c !== best && at.get(c.facet) < at.get(best.facet)
@@ -1561,7 +1549,7 @@ function facetInside_(F, G, items) {
   if (!m) INSIDE_MEMO_.set(items, m = {});
   const key = F.field + '>' + G.field;
   if (key in m) return m[key];
-  /* A CARD MAY HOLD TWO OF G (the Masoretic Text is Christianity and Judaism, 660): each F answer keeps the G answers all its cards share. */
+  /* A CARD MAY HOLD TWO OF G (the Masoretic Text is Christianity and Judaism, 660): § */
   const to = {};
   let any = 0;
   for (const x of items) {
@@ -1575,12 +1563,11 @@ function facetInside_(F, G, items) {
       any++;
     }
   }
-  /* G's two answers are the list's, not only F's cards': Religion sits inside Subject though every religious card is Religious Studies. */
+  /* G's two answers are the list's, not only F's cards': § */
   return (m[key] = any > 0 && facetValues(items, G).length > 1);
 }
 
-/* AND WHEN NOTHING QUALIFIES, THE CLOSEST THING TO A QUESTION RATHER THAN A DEAD END: of those held back only for having
-   too many answers, the one with fewest. § */
+/* AND WHEN NOTHING QUALIFIES, THE CLOSEST THING TO A QUESTION RATHER THAN A DEAD END: § */
 function overFacet_(items) {
   const asked = STUFF.filters.map(f => f.field);
   let best = null;
@@ -1593,11 +1580,9 @@ function overFacet_(items) {
   return best ? best.facet : null;
 }
 
-/* THE CARD. Small — a reference, the marks, and the first line of the question, because a list of
-   ninety parts is scanned rather than read. The whole thing opens on a tap. */
-/* THE RECORD IS THE FACE OF IT. W-L-D first, KOs under it, and the date the count was taken —
-   because a record with no date is the one number on the card that can quietly go wrong. */
-/* ---------- ONE BOUT (batch D): the two fighters' portraits facing each other under the tags, and nothing else ---------- */
+/* THE CARD. Small — a reference, the marks, and the first line of the question, because a list of ninety § */
+/* THE RECORD IS THE FACE OF IT. § */
+/* ---------- ONE BOUT (batch D): the two fighters' portraits facing each other under the tags, and nothing else § */
 function fightCard_(x) {
   const f = x.row || {};
   return `<div class="fc fight" aria-label="${esc(f.a + ' and ' + f.b)}">${tagRow_(x)}
@@ -1651,8 +1636,7 @@ function decadesOf_(x) {
 /* ---------- A PRACTICAL § */
 /* ---------- THE TWO SHAPES A PRACTICAL COMES IN § */
 const PRAC_TYPE = { experiment: 'Experiment', build: 'Build' };
-/* THE `required` FACET'S THREE ANSWERS, IN THE ORDER A TUTOR READS THEM: what a board demands, what is
-   worth doing anyway, and what was turned down. The words the card's pill said, unchanged. */
+/* THE `required` FACET'S THREE ANSWERS, IN THE ORDER A TUTOR READS THEM: § */
 const PRAC_NEED = ['Required practical', 'Extra', 'Not for now'];
 
 function practicalCard_(x) {
@@ -1674,7 +1658,7 @@ function practicalCard_(x) {
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
     </div>
-    ${/* WHAT KIND OF AFTERNOON THIS IS AND WHETHER A BOARD DEMANDS IT -- `Build · Extra` -- were two pills of the head's own § */
+    ${/* WHAT KIND OF AFTERNOON THIS IS AND WHETHER A BOARD DEMANDS IT -- `Build · Extra` -- were two pills of the § */
           ''}
     ${tagRow_(x)}
     ${off ? `<p class="prac-no"><b>Why not</b> ${esc(p.excluded)}${p.reconsiderAt
@@ -1772,7 +1756,7 @@ function projectCard_(x) {
     : p.ageMin ? p.ageMin + '+' : '';
   const strip = [p.sessions ? p.sessions + (p.sessions === 1 ? ' session' : ' sessions') : '',
                  ages].filter(Boolean).join(' · ');
-  /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE -- `AQA 8552` is which qualification the work counts towards, and a project has neither, so its line is unchanged. § */
+  /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE -- `AQA 8552` is which qualification the work counts § */
   const qual = [p.board, p.specRef].filter(Boolean).join('\u00a0');
   return `<div class="fc prac proj lib-c">
     ${tagRow_(x)}
@@ -1788,24 +1772,20 @@ function projectCard_(x) {
 
 function projectPart_(x, part) {
   const p = x.row;
-  /* THE PRACTICAL'S PAGE HEADING, for its reason: a page you land on from a flick four results
-     away has to say whose page it is. */
+  /* THE PRACTICAL'S PAGE HEADING, for its reason: § */
   const head = what => `<p class="fc-kick">${esc(x.name)}</p><h3>${what}</h3>`;
   let inner = '';
   if (part === 'kit') {
     inner = `${head('Materials')}<div class="gd"><section class="prac-kit">
       ${kitList_(p.materials)}</section></div>`;
   } else if (part === 'steps') {
-    /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminOpts_`'s rule. On a
-       project it is mostly about who is in the shot and what stays offline, which is a thing to
-       read before filming rather than after. */
-    /* A COURSEWORK'S STEPS ARE ITS STAGES -- brief, research, specification, ideas, development, models, making, evaluation -- and that is the word a GCSE pupil and § */
+    /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminOpts_`'s rule. § */
+    /* A COURSEWORK'S STEPS ARE ITS STAGES -- brief, research, specification, ideas, development, models § */
     inner = `${head(p.projectType === 'coursework' ? 'Stages' : 'Steps')}<div class="gd"><section class="prac-steps">
       <ol class="fc-list">${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section></div>
       ${p.safety ? `<p class="fc-note"><b>Before you start</b> ${esc(p.safety)}</p>` : ''}`;
   } else if (part === 'share') {
-    /* A THING HAS TILES: the one action on this page is going to Messages, so it is a tile in a
-       `.tile-row`, not a button — `check-doors` pairs `proj-share` with its handler below. */
+    /* A THING HAS TILES: the one action on this page is going to Messages, so it is a tile in a `.tile-row` § */
     /* "SEND IT IN MESSAGES", NOT "TO YOUR TUTOR". § */
     /* ---------- AND ON A COURSEWORK, WHOSE WORK IT IS § */
     const own = p.projectType === 'coursework'
@@ -1823,9 +1803,7 @@ function projectPart_(x, part) {
   return inner ? `<div class="fc prac prac-part proj is-${part}">${inner}</div>` : '';
 }
 
-/* TO MESSAGES, AND NOTHING ELSE. Who to write to is the Messages screen's question — it already
-   knows who a student may reach (`MESSAGING` in constants.gs) — so this does not open a composer
-   of its own with a guessed recipient. */
+/* TO MESSAGES, AND NOTHING ELSE. § */
 on('proj-share', () => go('dm'));
 
 /* THE @family. TEXTBOOK — A CONTENTS CARD, THEN ONE PAGE PER CHAPTER. § */
@@ -1834,13 +1812,11 @@ const tbMath_ = s => tbSub_(typeset_(esc(s).replace(/\//g, '&frasl;')));
 const TB_SUB = '₀₁₂₃₄₅₆₇₈₉ₐₑₒₓₙₛₜ', TB_SUB_AS = '0123456789aeoxnst';
 const tbSub_ = html => String(html).replace(/[₀-₉ₐₑₒₓₙₛₜ]+/g,
   run => '<sub>' + [...run].map(c => TB_SUB_AS[TB_SUB.indexOf(c)]).join('') + '</sub>');
-/* THE MARK ITSELF. A letter rather than a colour, because the tier is a fact somebody has to read
-   in a photocopy too; `title` says it in full for anybody who does not know the convention. */
+/* THE MARK ITSELF. A letter rather than a colour, because the tier is a fact somebody has to read in a § */
 const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</span>' : '';
 
 /* ---------- A CONTENT CARD: ONE CHAPTER, WHOLE, WITH THE QUESTIONS' TAGS ON IT § */
-/* ONE WIDGET PER THING (408): the card is its title, its tags and its key words; formulas, worked lines and each drawing are
-   pages of their own, each titled (`contentPart_`). */
+/* ONE WIDGET PER THING (408): § */
 function contentCard_(x) {
   const c = x.row;
   return `<div class="fc prac tb ct lib-c">
@@ -1850,8 +1826,8 @@ function contentCard_(x) {
   </div>`;
 }
 
-/* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): `check-flow`'s one-widget journey reads the same table. */
-const CONTENT_PAGE = { formulas: 'Formulas', worked: 'Worked examples' };
+/* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): § */
+const CONTENT_PAGE = { fig: 'Diagram', formulas: 'Formulas', worked: 'Worked examples' };
 function contentPageTitle_(x, part) {
   if (!part) return String((x && x.name) || '');
   return CONTENT_PAGE[part] || '';
@@ -1862,27 +1838,26 @@ function contentPart_(x, part) {
   return `<div class="fc prac prac-part tb tb-page is-${part}">
     <p class="fc-kick">${esc([c.subject, c.title].filter(Boolean).join(' · '))}${tbHigher_(c.higher)}</p>
     <h3>${esc(CONTENT_PAGE[part])}</h3>
-    ${tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })}
+    ${part === 'fig' ? `<div class="gd"><figure>${c.diagram}</figure></div>` : tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })}
   </div>`;
 }
 
 /* ---------- A CHAPTER'S KEY WORDS, FORMULAS AND WORKED LINES — ALL OF THEM, OR THE ONES ASKED FOR § */
-/* `opt.only` draws one section ('words' | 'formulas' | 'points'); `opt.bare` drops its heading, as the page's own title says it (408). */
+/* `opt.only` draws one section ('words' | 'formulas' | 'points'); `opt.bare` drops its heading, as the § */
 function tbSections_(c, keep, opt) {
   opt = opt || {};
   const want = s => !opt.only || opt.only === s;
   const h4 = t => (opt.bare ? '' : `<h4>${t}</h4>`);
   const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
   const named = i => !keep || keep.indexOf(i.name) !== -1;
-  /* A WORKED LINE IS NAMED BY HOW IT OPENS — "Exact values: sin 30° …" is about Exact values — and the
-     next character must not carry the word on: "Mean" is not the opening of "Meanwhile". */
+  /* A WORKED LINE IS NAMED BY HOW IT OPENS — "Exact values: sin 30° …" is about Exact values — and the next § */
   const opens = p => !keep || keep.some(k => p.text.indexOf(k) === 0 && !/[A-Za-z0-9]/.test(p.text.charAt(k.length)));
   const words = want('words') ? c.words.filter(named) : [], formulas = want('formulas') ? c.formulas.filter(named) : [];
   const points = want('points') ? c.points.filter(opens) : [];
   return `${words.length ? `<section class="fc-sec tb-words">${h4('Key words')}<ul class="fc-list">${
       words.map(w => line(w, `<b>${esc(w.name)}</b> — ${tbSub_(esc(w.text))}`)).join('')}</ul></section>` : ''}
-    ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: a stacked fraction is two lines tall
-         and an `H` trailing it sat alone on a third, measured at 320px. */''}
+    ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: § */
+         ''}
     ${formulas.length ? `<section class="fc-sec tb-math">${h4('Formulas')}<ul>${
       formulas.map(f => `<li><span class="tb-fn">${esc(f.name)}${tbHigher_(f.higher)}</span><span class="tb-fm">${
         tbMath_(f.text)}</span></li>`).join('')}</ul></section>` : ''}
@@ -3033,11 +3008,9 @@ function pageParts_(x, prev) {
      one titled page per thing, and a page only where the row has the thing. */
   if (x && isContent_(x) && x.row) {
     const c = x.row;
-    return [null].concat((c.formulas || []).length ? ['formulas'] : [], (c.points || []).length ? ['worked'] : []);
+    return [null].concat(c.diagram ? ['fig'] : [], (c.formulas || []).length ? ['formulas'] : [], (c.points || []).length ? ['worked'] : []);
   }
-  /* THE BIBLE HAS NO BRANCH HERE ANY MORE. Its cover and each of its verses are one page, the
-     default below; the cover's three lists of books and the open book's pages went with the reader
-     (see the head of the Bible section). */
+  /* THE BIBLE HAS NO BRANCH HERE ANY MORE. § */
   if (x && x.hdb && x.row && HIST_LINES[x.kind]) return [null].concat(histPages_(x));
   if (!x || !isPractical_(x) || !x.row || x.row.excluded) return [null];
   const p = x.row, out = [null];
@@ -3090,6 +3063,11 @@ function stuffPart_(x, part) {
   return practicalPart_(x, part);
 }
 
+/* A PART IS A CARD LIKE ANY OTHER (owner, 12 Nov: one template): a practical's, a lesson's or a history page's own markup, cut into the parts by card_. */
+function partCard_(x, part) {
+  const h = stuffPart_(x, part);
+  return isQ_(x) || /^\s*<div class=.card\b/.test(h) ? h : card_(h, 'part');
+}
 
 /* TWO LETTERS FOR THE PLACEHOLDER: § */
 const BOXER_PARTICLE = /^(de|la|del|della|van|von|da|di|du|le|der|den|dos|das)$/i;
@@ -4958,8 +4936,7 @@ function markSpoken_(s) {
 }
 
 /* ---------- A WORDED ANSWER OF A MARK OR TWO, MARKED BY RULE BEFORE ANY AI (359) */
-/* `mark_words`: points split by `;`, a mark each; ways by `|`; words that must all be there joined by `+`; a number is
-   compared as a number. Words are matched on their stems, and a word straight after "not" or "no" does not count. */
+/* `mark_words`: points split by `;`, a mark each; ways by `|`; words that must all be there joined by `+`; a number is compared as a number. § */
 const MW_STOP = /^(the|a|an|of|to|is|it|and|or|in|on|be|as|so|by|at|for)$/;
 function mwStem_(w) {
   /* a full stop ends the sentence, not the word: "No." is "no" and "the same." is "same" */
@@ -5357,8 +5334,7 @@ function padAdopt_(k, bare) {
   } catch (e) { /* storage blocked: the answer stays on the page only */ }
 }
 
-/* THE PICTURE IT DRAWS ON: its figure, else its stem's, else its own surface (a drawn part's a grid) -- for a drawn part (qType_) at once, for any
-   other part from its first Pen tap (`PEN_OPEN`, qtools.js) or once it has marks saved. */
+/* THE PICTURE IT DRAWS ON: § */
 /* OPTIONS OR CELLS ARE THE ANSWER where a row has them (as before round 3): their pen waits for its first tap, so the card is not drawn smaller under a pen it may never use */
 const padPicked_ = x => !!x && ((Array.isArray(x.choices) && x.choices.length >= 2) || (typeof cellsOf_ === 'function' && cellsOf_(x).length > 0));
 /* KEPT ON THE CARD per library generation (930): `stuffPages_` asks it of every result, and each ask copied the whole row (`workRow_`) -- seconds on a phone. */
@@ -6376,18 +6352,15 @@ function padSwing_(g, at) {
 ;
 /* ==== js/find-pad.js ==== */
 
-/* WHAT A DRAG MAKES, BY TOOL. `move` answers the stroke to preview (null: nothing new); `end` answers
-   the stroke to keep (null: nothing -- a tap is a dot to the pen, and to a ruler or a compass a slip). */
+/* WHAT A DRAG MAKES, BY TOOL. § */
 const PAD_DRAW = {
   pen: {
-    /* ONE POINT PER PIXEL OF THE PICTURE, not one per event. A pointer fires far faster than a
-       finger moves anything visible, and every duplicated point is two more characters in storage
-       for a mark nobody can see. */
+    /* ONE POINT PER PIXEL OF THE PICTURE, not one per event. § */
     move: (g, at, st) => {
       /* AFTER A HOLD (374): a ring or an arc is done; a line's corner waits until the point leaves where it paused */
       if (g.frozen) return null;
       if (g.qz) { if (Math.hypot(at[0] * g.sx - g.qz[0], at[1] * g.sy - g.qz[1]) <= PAD_HOLD_PX) return null; g.qz = null; g.lz = null; }
-      /* A SHORT STROKE IS DRAWN EXACTLY AS MOVED: the string engages once the pointer is more than its length from where it went down -- a tick, a cross's arm (368) */
+      /* A SHORT STROKE IS DRAWN EXACTLY AS MOVED: § */
       if (padSteady_(g) && (g.slack || Math.hypot((at[0] - g.raw[0]) * g.sx, (at[1] - g.raw[1]) * g.sy) > PAD_STRING_PX)) { g.slack = true; at = padLazy_(g, at, st); }
       if (!at || (st[st.length - 2] === at[0] && st[st.length - 1] === at[1])) return null;
       st.push(at[0], at[1]);
@@ -6395,7 +6368,7 @@ const PAD_DRAW = {
     },
     /* A STEADIED STROKE ENDS WHERE THE POINTER LIFTED: the string's slack is paid out in two steps, so nothing lags */
     end: (g, st) => {
-      /* A CLICK THAT NEVER MOVED IS A PLOTTED POINT: onto the grid or the figure's point as a finger's is (357), never onto your own mark, where it would vanish */
+      /* A CLICK THAT NEVER MOVED IS A PLOTTED POINT: § */
       if (padSteady_(g) && !g.board && !g.slack && g.tg && st && st.length === 2) {
         const t = padSnap_(Object.assign({}, g, { hold: null, tg: { own: [], pts: g.tg.pts } }), st[0] * g.sx, st[1] * g.sy, '');
         return t ? [Math.round(t.u[0]), Math.round(t.u[1])] : st;
@@ -6411,8 +6384,7 @@ const PAD_DRAW = {
       return st;
     },
   },
-  /* A RULER IS ITS TWO ENDS. The live line follows the finger from where it went down; what is kept
-     is that line and nothing of the path the finger took to get there. */
+  /* A RULER IS ITS TWO ENDS. § */
   ruler: {
     move: (g, at) => [g.from[0], g.from[1], at[0], at[1]],
     end: (g, st) => (st.length === 4
@@ -6429,12 +6401,11 @@ function padAid_(g) {
   const aid = g.ink.querySelector('.qpad-aid');
   if (!aid) return;
   const c = g.from;
-  /* AND A HALO ROUND A SNAP THAT IS HOLDING (357): 30px on the screen, an ellipse in the stretched units so it
-     is round where it is seen. Shown, never stored -- the aid is emptied at the lift. */
+  /* AND A HALO ROUND A SNAP THAT IS HOLDING (357): § */
   const h = g.hold;
   const halo = h ? `<ellipse class="qpad-halo" vector-effect="non-scaling-stroke" cx="${h.u[0]}" cy="${h.u[1]}" rx="${30 / g.sx}" ry="${30 / g.sy}"/>` : '';
   if (g.tool === 'pen') {
-    /* AND WHERE THE FINGER IS ABOUT TO BE (374): the platform's prediction, one short segment, never stored -- the next frame replaces it */
+    /* AND WHERE THE FINGER IS ABOUT TO BE (374): § */
     const n = PAD_ST ? PAD_ST.length : 0, q = g.pred;
     const html = halo + (q && n >= 2 ? `<path class="qpad-pred" vector-effect="non-scaling-stroke" d="M${PAD_ST[n - 2]} ${PAD_ST[n - 1]}L${q[0]} ${q[1]}"/>` : '');
     if (aid.innerHTML !== html) aid.innerHTML = html;
@@ -6460,7 +6431,7 @@ const PAD_LAG_MS = 40;        // a finger that reported within this is still rep
 
 /* THE CONTACTS, by `pointerId` (jsdom's `undefined` is a key like any other). § */
 const PAD_TOUCH = new Map();
-/* HELD: the stroke is kept (`PAD_ST`, `PAD_GO`, so `padHold_` and `findKeep_` still hold its column) and its samples go on accumulating, but nothing of it is on § */
+/* HELD: the stroke is kept (`PAD_ST`, `PAD_GO`, so `padHold_` and `findKeep_` still hold its column) and § */
 let PAD_HUSH = null;
 /* TWO FINGERS: no stroke, and nothing drawn until every one of these has lifted. */
 const PAD_TWO = new Set();
@@ -6469,23 +6440,21 @@ let PAD_DUE = null;
 let PAD_FRAME = 0;
 /* UNDO AND CLEAR REFUSED UNTIL THIS TIME, by pad key -- a hand resting on the bar (`padRested_`). */
 const PAD_RESTED = new Map();
-/* `?pen=sizes` IN THE ADDRESS: the last eight contacts' widths, on the screen -- the reading increment 2
-   waits for. Nothing reads it but the line that shows it. */
+/* `?pen=sizes` IN THE ADDRESS: § */
 const PAD_SIZES = (() => { try { return /[?&]pen=sizes(&|$)/.test(location.search) ? [] : null; } catch (e) { return null; } })();
 
 const padDist_ = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
-/* A CONTACT'S SIZE: the larger of its two sides, and only when the platform reports one -- 1 (or 0) is
-   "not known", which is what a mouse, iOS before 18 and Android's `pointerup` say. */
+/* A CONTACT'S SIZE: the larger of its two sides, and only when the platform reports one -- 1 (or 0) is § */
 const padSizeOf_ = e => { const s = Math.max(Number(e && e.width) || 0, Number(e && e.height) || 0); return s > 1 ? s : 0; };
 
-/* WHETHER A FINGER IS ON THE ARMED DRAWING -- the swipe engine asks this before it takes a gesture (overworld.js, the axis decision), so a palm or a thumb that § */
+/* WHETHER A FINGER IS ON THE ARMED DRAWING -- the swipe engine asks this before it takes a gesture § */
 function padBusy_(k) {
   const on = k === undefined ? PAD_ON : k;
   if (!on || on !== PAD_ON || !PAD_TOUCH.size) return false;
   for (const c of PAD_TOUCH.values()) if (c.onInk && c.k === on) return true;
   return false;
 }
-/* A PEN IS IN USE WHILE A STROKE OR A CONTACT IS ON IT, not merely for being the last pad touched: with no lock (368) nothing else ever lets go of it. */
+/* A PEN IS IN USE WHILE A STROKE OR A CONTACT IS ON IT, not merely for being the last pad touched: § */
 const padInUse_ = k => !!k && k === PAD_ON && (!!PAD_GO || PAD_TOUCH.size > 0);
 /* ---------- UNDO AND CLEAR UNDER A RESTING HAND § */
 const padRested_ = k => padBusy_(k) || (PAD_RESTED.get(k) || 0) > performance.now();
@@ -6530,8 +6499,7 @@ function padContact_(e, ink, k) {
   padSizesSay_(c, e);
   return c;
 }
-/* AND WHERE IT HAS GOT TO: how far from where it went down, and when it last really moved. A "move" is
-   `PAD_ALSO_PX`, so a resting palm's tremble is not a contact on the move. */
+/* AND WHERE IT HAS GOT TO: § */
 function padTrack_(c, x, y, ts) {
   c.p = [x, y];
   const d = padDist_(c.p0, c.p);
@@ -6557,7 +6525,7 @@ function padMap_(r, cx, cy) {
   return [Math.round((cx - r.left) / r.width * 340), Math.round((cy - r.top) / r.height * 340)];
 }
 
-/* A STEADY HAND FOR A MOUSE OR A STYLUS (368): a lazy brush -- the ink follows the pointer on a string -- then a light low-pass. A finger keeps 357's ink under it, untouched */
+/* A STEADY HAND FOR A MOUSE OR A STYLUS (368): § */
 const PAD_STRING_PX = 6;      // the string: a pointer's jitter inside it moves no ink, and a straight pull draws a straight line
 const PAD_STEADY_K = 0.55;    // the low-pass: each point this much of the way from the last kept one to the string's end
 const padSteady_ = g => !!(g && g.c && isSteadyPointer_(g.c));
@@ -6626,7 +6594,7 @@ function padGrid_(svg) {
       const d = p.slice(1).map((v, i) => v - p[i]);
       const med = d.slice().sort((a, b) => a - b)[d.length >> 1];
       if (!(med > 0)) return null;
-      /* THE LONGEST RUN OF EVEN STEPS -- an axis drawn a little off the grid, or a frame round it, ends a run, not the grid. */
+      /* THE LONGEST RUN OF EVEN STEPS -- an axis drawn a little off the grid, or a frame round it, ends a run § */
       let best = [0, 0];
       for (let i = 0, j = 0; i < d.length; i = j) {
         j = i;
@@ -6750,7 +6718,7 @@ function padGain_(g, f, start) {
   if (d > PAD_GAIN_MAX_PX) { cx = f[0] + (cx - f[0]) * PAD_GAIN_MAX_PX / d; cy = f[1] + (cy - f[1]) * PAD_GAIN_MAX_PX / d; }
   return [cx, cy];
 }
-/* ONE PLACEMENT: the finger's point (units) through the slow mode and the snap, back to WHOLE units -- what is stored is always whole numbers § */
+/* ONE PLACEMENT: the finger's point (units) through the slow mode and the snap, back to WHOLE units -- what § */
 function padPlace_(g, at, start) {
   let f = [at[0] * g.sx, at[1] * g.sy];
   if (g.lat && g.lat.pitch < PAD_FINE_PX) f = padGain_(g, f, start);
@@ -6770,7 +6738,7 @@ function padPlace_(g, at, start) {
   if (start) g.fp = t ? [t.x, t.y] : f;
   return g.at.slice();
 }
-/* ---------- HOLD TO STRAIGHTEN (374): a pen line paused at its end becomes straight, a ring round, an arc an arc -- QuickShape's gesture. A quick stroke is kept as drawn */
+/* ---------- HOLD TO STRAIGHTEN (374): a pen line paused at its end becomes straight, a ring round, an arc an arc § */
 const PAD_HOLD_MS = 500;      // still this long at a stroke's end: iPad's QuickShape waits about as long, past a child's ordinary 100-300ms pause
 const PAD_HOLD_PX = 8;        // "still": within this of where the pause began -- a fingertip's +-4px wobble is inside it
 const PAD_SHAPE_MIN = 20;     // a run shorter than this is a tick, not a line
@@ -6806,7 +6774,7 @@ function padCircleFit_(P) {
   if (!(r2 > 0)) return null;
   return { c: [mx - D / 2, my - E / 2], r: Math.sqrt(r2) };
 }
-/* WHAT A RUN OF POINTS (px) WAS MEANT TO BE: a line, or -- the whole stroke only -- a ring or an arc; null leaves it as drawn */
+/* WHAT A RUN OF POINTS (px) WAS MEANT TO BE: § */
 function padShapeOf_(P, whole) {
   const n = P.length;
   if (n < 2) return null;
@@ -6831,11 +6799,11 @@ function padShapeOf_(P, whole) {
   const rms = Math.sqrt(sum / n), cover = Math.abs(turn) * 180 / Math.PI;
   const a0 = Math.atan2(a[1] - fit.c[1], a[0] - fit.c[0]);
   if (cover >= 300 && rms <= 0.1 * fit.r && worst <= 0.25 * fit.r) return { kind: 'ring', c: fit.c, r: fit.r, a0: a0 };
-  /* AN ARC IS HELD TO TIGHTER: a sketched curve (a parabola, a sine) paused at its end must not turn into a circle's piece */
+  /* AN ARC IS HELD TO TIGHTER: § */
   if (cover >= 40 && cover < 300 && dev > tol && rms <= 0.05 * fit.r && worst <= 0.12 * fit.r) return { kind: 'arc', c: fit.c, r: fit.r, a0: a0, span: turn };
   return null;
 }
-/* A STRAIGHTENED END (px): through the grid's snap, the ruler's level/upright lock against the other end, and back onto the stroke's own start to close a shape */
+/* A STRAIGHTENED END (px): § */
 function padEndAt_(g, p, from, home) {
   g.hold = null;
   let f = p, axis = '';
@@ -6850,11 +6818,11 @@ function padEndAt_(g, p, from, home) {
   return t ? [t.x, t.y, t.u] : f;
 }
 const padUnit_ = (g, p) => p[2] ? [Math.round(p[2][0]), Math.round(p[2][1])] : [Math.round(p[0] / g.sx), Math.round(p[1] / g.sy)];
-/* THE PAUSE, ACTED ON: the run since the last corner replaced by its shape, shown at once; a line's end is a corner the pen goes on from */
+/* THE PAUSE, ACTED ON: § */
 function padStraighten_(g) {
   const st = PAD_ST, q0 = g.q0 || 0, sx = g.sx, sy = g.sy, P = [];
   for (let i = 2 * q0; i + 1 < st.length; i += 2) P.push([st[i] * sx, st[i + 1] * sy]);
-  /* THE TREMBLE OF THE PAUSE ITSELF IS NOT THE SHAPE: the points still inside the pause's zone are left out, the finger's place put back */
+  /* THE TREMBLE OF THE PAUSE ITSELF IS NOT THE SHAPE: § */
   const tip = [g.at[0] * sx, g.at[1] * sy], hz = g.hz || tip;
   while (P.length > 1 && Math.hypot(P[P.length - 1][0] - hz[0], P[P.length - 1][1] - hz[1]) <= PAD_HOLD_PX) P.pop();
   P.push(tip);
@@ -6885,7 +6853,7 @@ function padStraighten_(g) {
   return true;
 }
 
-/* ---------- A FINGER'S NEXT FEW MS, PREDICTED (374; 338 section 9's revisit): preview only, at most `PAD_PRED_PX` ahead, a finger's freehand line only */
+/* ---------- A FINGER'S NEXT FEW MS, PREDICTED (374; 338 section 9's revisit): preview only, at most `PAD_PRED_PX` § */
 const PAD_PRED_PX = 12;
 function padPredict_(g, e, r) {
   if (g.tool !== 'pen' || g.dot || g.frozen || g.qz || !isTouchPointer_(g.c) || !PAD_ST || PAD_ST.length < 4) return null;
@@ -6910,12 +6878,11 @@ function padStart_(c, at, r) {
              box: r, board: !!pad && padIsBoard_(pad.getAttribute('data-k')), lat: null, tg: null, hold: null, gain: null,
              at: at.slice(), fp: null, raw: at.slice(), dot: false, far: 0, loupe: 0 };
   const g = PAD_GO;
-  /* A PLACEMENT, PUT DOWN (357): the pin and the ruler's first end where they snap, and the pen's touch a
-     DOT -- one point -- until it has gone `PAD_DOT_PX`. Not on the board: it never snaps, and its taps are as before. */
+  /* A PLACEMENT, PUT DOWN (357): § */
   if (!g.board) {
     g.lat = padLattice_(pad, r);
     g.tg = padTargets_(g, pad);
-    /* A MOUSE OR A STYLUS IS NOT PLACING A DOT: it lands where it is put, so an arrowhead's 8px stroke stays a stroke and is not snapped onto the shaft (368) */
+    /* A MOUSE OR A STYLUS IS NOT PLACING A DOT: § */
     g.dot = g.tool === 'pen' && !padSteady_(g);
     g.from = g.tool === 'pen' && !g.dot ? at.slice() : padPlace_(g, at, true);
   }
@@ -6998,15 +6965,13 @@ function padChunks_(g) {
   }
   open.setAttribute('d', g.start ? padChunk_(st, g.k, g.start, n - 1) : padPath_(st, g.k, true));
 }
-/* THE PREVIEW, DRAWN WHOLE FROM EVERY SAMPLE KEPT -- at the start, and when a hold resolves. Now, not at
-   the next frame: the dot is under the finger the moment it lands. */
+/* THE PREVIEW, DRAWN WHOLE FROM EVERY SAMPLE KEPT -- at the start, and when a hold resolves. § */
 function padLiveShow_() {
   const g = PAD_GO;
   if (!g) return;
   padLiveOff_(g);
   g.start = 0;
-  /* NOR WHAT CANNOT BE KEPT: a pin's or a palm's ruler line or ring while it is not known to be the one drawing (`padRace_`)
-     -- the third review watched a palm's line and ring follow it round the picture and vanish at the lift. */
+  /* NOR WHAT CANNOT BE KEPT: § */
   if (!padShown_(g)) { g.dirty = false; return; }
   g.live = [padLivePath_(g, '')];
   if (g.tool === 'pen') padChunks_(g);
@@ -7106,8 +7071,7 @@ function padJudge_(force) {
   });
   const far = ps.reduce((a, b) => (b.d > a.d ? b : a));
   if (far.d < PAD_STILL_PX) {
-    /* NOBODY HAS GONE 10px AT A MOMENT ALL HAVE REPORTED -- though one has by its own latest: the others' reports are
-       still coming. Asked again at the frame after their next event; a lift decides it. */
+    /* NOBODY HAS GONE 10px AT A MOMENT ALL HAVE REPORTED -- though one has by its own latest: § */
     if (ps.some(p => padDist_(p.ref, p.c.p) >= PAD_STILL_PX)) PAD_DUE = { at: tc };
     return;
   }
@@ -7138,11 +7102,11 @@ function padAlone_(x) {
   if (padTakes_(cand)) { padSwap_(cand, false); return; }
   const pinned = padPinned_(cand);
   cand.role = 'rest'; cand.pts = null;
-  /* REFUSED, SO THE STILL ONE IS THE STROKE AGAIN -- and a ruler's or a compass's still owner is a PIN or a PALM until it shows otherwise. § */
+  /* REFUSED, SO THE STILL ONE IS THE STROKE AGAIN -- and a ruler's or a compass's still owner is a PIN or a § */
   if (PAD_GO.tool !== 'pen') PAD_GO.min = Math.max(PAD_GO.min || 0, PAD_STILL_PX);
   if (pinned) {
     (PAD_GO.refused || (PAD_GO.refused = [])).push(cand);
-    /* THE RACE STARTS WHERE THE STILL ONE WAS WHEN THE FIRST REFUSED ONE LANDED (fourth review), by the samples' clock: § */
+    /* THE RACE STARTS WHERE THE STILL ONE WAS WHEN THE FIRST REFUSED ONE LANDED (fourth review), by the § */
     if (PAD_GO.raceAt === undefined) { PAD_GO.raceAt = cand.t0; PAD_GO.raceFrom = padPos_(PAD_GO.c, cand.t0).slice(1); }
   }
   padResume_();
@@ -7184,8 +7148,7 @@ function padPinned_(c) {
   const g = PAD_GO;
   return !!c && !!g && c.late && c.onInk && c.k === PAD_ON && !!c.pts && g.tool !== 'pen' && c.t0 - g.t0 > PAD_TOGETHER_MS;
 }
-/* EVERY MOVE OF ONE OF THEM, AFTER ITS SAMPLES: once one has gone 10px by its own latest, the question is asked at the
-   next frame (`padFrame_`). A frame is asked for only then, so a held stroke whose fingers are still costs nothing. */
+/* EVERY MOVE OF ONE OF THEM, AFTER ITS SAMPLES: § */
 function padRules_(c) {
   if (!PAD_GO || PAD_TWO.size) return;
   let watching = false;
@@ -8127,6 +8090,17 @@ function tagMadeOf_(text, said) {
   const from = i => i === t.length || parts.some(p => t.startsWith(p, i) && (i + p.length === t.length || (t[i + p.length] === ' ' && from(i + p.length + 1))));
   return parts.length > 1 && t.indexOf(' ') > 0 && from(0);
 }
+/* A TITLE TAG HOLDING TWO+ OTHER TAGS AS WHOLE WORDS (`Arabic Quran` beside Arabic, Quran) says them: they fold into its `data-also`. */
+function tagFold_(out) {
+  const k = s => ' ' + String(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+  const inside = (a, b) => { const B = k(b); return B.trim().length >= 3 && k(a) !== B && k(a).indexOf(B) !== -1; };
+  out.slice().sort((a, b) => b.text.length - a.text.length).forEach(t => {
+    if (out.indexOf(t) < 0 || !TAG_NAME.test(t.text)) return;
+    const parts = out.filter(u => u !== t && inside(t.text, u.text));
+    if (parts.length < 2) return;
+    parts.forEach(u => { [u.field].concat(u.also).forEach(f => { if (f !== t.field && t.also.indexOf(f) < 0) t.also.push(f); }); out.splice(out.indexOf(u), 1); });
+  });
+}
 /* A TAG EVERY CARD IN VIEW SHARES SAYS NOTHING (owner, 8 Nov: `Edexcel` `June` `KS4` on every card of one paper): held per list. */
 const TAG_SHARED = new WeakMap();
 function tagShared_(x, facet, raw) {
@@ -8168,6 +8142,7 @@ function tagRow_(x, page) {
       words.set(w, t); ids.set(raw, t); said.push(text); out.push(t);
     });
   });
+  tagFold_(out);
   return `<div class="qtags qcard-tags">${out.map(t => `<span class="qtag"${tagAttr_(t.field)} data-f="${esc(t.field)}"${
     t.also.length ? ` data-also="${esc(t.also.join(' '))}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
 }
@@ -9481,7 +9456,7 @@ function topicOf_(x) {
 /* ---------- THE TOPIC TREE WAS READ HERE § */
 
 /* THE LIBRARY'S LEVELS, ONE TABLE (R4): each level's key stages, tiers, other spellings, and rung on the ladder a range is
-   read along (0: never in a range). check/schema.js reads this very literal. */
+   read along (0: never in a range). check/library-schema.js reads this very literal. */
 const LEVEL_TABLE = [
   /* ---------- `KS2 SATs` IS TWO FACTS, AND THE LEVEL IS ONE OF THEM § */
   { level: 'SATs',        rung: 1, stages: ['KS1', 'KS2'], tiers: [], says: ['KS1', 'KS2', 'KS1 SATs', 'KS2 SATs'] },
@@ -9750,7 +9725,7 @@ window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
 ;
 /* ==== js/find-levels.js ==== */
 /* A LEVEL CELL AS REAL LEVELS (O1): a comma is a list and `KS3–GCSE` is every rung from one to the other, so the item is
-   under each. An unknown word passes through as itself. Self-contained: check/schema.js runs this very function. */
+   under each. An unknown word passes through as itself. Self-contained: check/library-schema.js runs it. */
 function levelsIn_(cell) {
   const key = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9+]/g, '');
   const find = v => LEVEL_TABLE.find(l => key(l.level) === key(v) || l.says.some(s => key(s) === key(v)));
@@ -9803,7 +9778,7 @@ function levelOf_(x) {
 }
 
 /* WHO MADE A WORKSHEET IS ITS SOURCE, NOT AN EXAM BOARD (O3): a maker's sheet has no board, a board's paper no Source.
-   check/schema.js reads this list; backend/digest.gs keeps a copy that check-funnel compares card by card. */
+   check/library-schema.js reads this list; backend/digest.gs keeps a copy that check-funnel compares card by card. */
 const LIB_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition'];
 const sourceOf_ = x => LIB_SOURCES.find(s => spellKey_(s) === spellKey_(x && x.company)) || '';
 const boardOf_ = x => (sourceOf_(x) ? '' : (x && x.examBoard) || '');
@@ -10347,6 +10322,41 @@ function rcpPaid_(j) {
   if (!slots.length) return '';
   return slots.some(sl => /^booked$/i.test(String(sl.status || ''))) ? 'Paid' : slots.some(sl => /^paying$/i.test(String(sl.status || ''))) ? 'Paying' : 'Unpaid';
 }
+
+/* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */
+function subsLine_(pid) {
+  try {
+    const a = DATA && DATA.submissions;
+    if (!pid || !a || !a.people || !USER || String(a.for || '') !== String(USER.personId || '')) return '';
+    const p = a.people[String(pid)];
+    if (!p || !(Number(p.n) > 0)) return '';
+    const last = subDayText_(p.last);
+    return Number(p.n) + (Number(p.n) === 1 ? ' question' : ' questions') + (last ? ' · last ' + last : '');
+  } catch (e) { return ''; }
+}
+/* A submission's day, DD/MM/YY like every date (owner, 8 Nov). */
+function subDayText_(iso) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? date_(iso) : '';
+}
+
+/* THE PEOPLE COLUMNS (453); `peoplePages_` (me.js) adds the signed-out card and the empty one. Student settings is `studentSetPages_`. */
+screen('tutors', () => pages('tutors', typeof cardsOf_ === 'function' ? cardsOf_('tutors') : peoplePages_('tutors')));
+screen('students', () => pages('students', typeof cardsOf_ === 'function' ? cardsOf_('students') : peoplePages_('students')));
+screen('parents', () => pages('parents', typeof cardsOf_ === 'function' ? cardsOf_('parents') : peoplePages_('parents')));
+
+/** Everything spliced between the question and the results, whichever answer is showing. */
+/* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. § */
+/* THE BOUND FINDER'S, since there are two (`FINDERS`): § */
+function frontPages_() {
+  return FINDER.front();
+}
+
+/* A BUNDLE — THE PAPERS ON THE SCREEN, AS ONE THING YOU CAN ORDER. § */
+const BUNDLE_MIN = 2;
+
+;
+/* ==== js/find-account.js ==== */
+/* @family. — js/find-account.js BOOKINGS, THE FEED AND YOUR ACCOUNT AS PAGES (cut from find-levels.js; Find is read as one by tools/find-src.js). */
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
   receiptTags: x => { const j = x.row || {}, paid = rcpPaid_(j);
     const rate = Number(j.rate) || (/hour/i.test(String(j.unit || '')) ? Number(j.price) : 0) || 0;
@@ -10359,11 +10369,9 @@ window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
     const said = [who, weeks ? weeks + (weeks === 1 ? ' week' : ' weeks') : '', total].filter(Boolean).join(' · ');
     return said ? `<p class="rc-sum">${esc(said)}</p>` : ''; },
 });
-
 /* THE FRONT MENU'S ANSWER, read through `DOOR_FIELD` (find-finder.js) — the one name every writer and reader of it uses (1040 friction). */
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === DOOR_FIELD && norm(f.value) === want);
-
 function bookingPages_(o) {
   /* ---------- THE COLUMN ASKS FOR IT DIRECTLY § */
   if (!(o && o.column) && !forIs_('booking')) return [];
@@ -10409,14 +10417,12 @@ on('job-room', el => {
     .catch(() => { el.disabled = false; toast('Not saved'); });
 });
 on('book-open', () => { BOOK_OPEN = !BOOK_OPEN; repaint(); });
-
 /* ---------- THE FEED, BEHIND ITS OWN ANSWER § */
 function feedPages_() {
   /* POSTS ARE DOOR ITEMS (find-doors.js); the whole feed only stands in when those are switched off, or each post would show twice. */
   if (!forIs_('posts') || typeof postDoorItems_ === 'function') return [];
   return (typeof postsBlocks === 'function' ? postsBlocks() : []).filter(Boolean);
 }
-
 /* ---------- SIGNING IN AND OUT, ON A PAGE OF ITS OWN § */
 /* ---------- WHICH ROW IS YOU, ASKED IN ONE PLACE § */
 function mineIs_(t) {
@@ -10429,7 +10435,6 @@ function mineIs_(t) {
     (USER.name && t.title && norm(t.title) === norm(USER.name)) ||
     (USER.name && t.name && norm(t.name) === norm(USER.name)));
 }
-
 /* ---------- YOUR OWN ROW, WHEREVER IT COMES FROM § */
 function myCardRow_() {
   return (DATA.tutors || []).filter(mineIs_)[0] || {
@@ -10446,7 +10451,6 @@ function myCardRow_() {
     /* ---------- `dbs` IS DELIBERATELY ABSENT HERE, AND ABSENT IS NOT `false` § */
   };
 }
-
 /* YOUR FAMILY AS `doGet` SENT IT, less you; `famMine` only when it was sent for you. */
 function accountFamily_() {
   /* ---------- YOUR FAMILY ---------- */
@@ -10458,7 +10462,6 @@ function accountFamily_() {
       && !(USER.personId && String(f.personId) === String(USER.personId)));
   return { famLabel_, famMine, family };
 }
-
 /* ONE FAMILY MEMBER'S CARD, their tutor row under it when they teach. */
 function accountFamCard_(f, famLabel_, personForm_, tcard_) {
   const asTutor = (DATA.tutors || []).find(t => t && t.personId && String(t.personId) === String(f.personId));
@@ -10475,7 +10478,6 @@ function accountFamCard_(f, famLabel_, personForm_, tcard_) {
     + (typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(row)) : '');
   return personMark_(f.personId, personForm_(row) || tcard_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
 }
-
 /* FOR AN ADMIN, EVERYBODY ELSE IN THIS COLUMN, each with Message and New PIN. */
 function accountEveryone_(col, famIds, personForm_, tcard_) {
   /* ---------- AND FOR AN ADMIN, EVERYBODY ELSE AS WELL, by their main role (`doGet` sends no tutor or admin here) ---------- */
@@ -10498,7 +10500,6 @@ function accountEveryone_(col, famIds, personForm_, tcard_) {
             typeof workFileOpts_ === 'function' ? workFileOpts_(p.personId) : null] : null)
           + (typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(p)) : ''), 'person-tiles') : '')));
 }
-
 /* YOUR OWN CARD, IN A LIST OF ONE OR NONE. */
 function accountMine_(col, family, myRow, tcard_) {
   /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */
@@ -10517,7 +10518,6 @@ function accountMine_(col, family, myRow, tcard_) {
   }
   return mine;
 }
-
 /* `col` IS THE PEOPLE COLUMN (453): 'tutors', 'students' or 'parents' — a card per person you may already see, by category. */
 function accountPages_(col) {
   if (!col) return ['tutors', 'students', 'parents'].reduce((a, c) => a.concat(accountPages_(c)), []);
@@ -10579,37 +10579,6 @@ function accountPages_(col) {
   }
   return out.concat(coming);
 }
-
-/* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */
-function subsLine_(pid) {
-  try {
-    const a = DATA && DATA.submissions;
-    if (!pid || !a || !a.people || !USER || String(a.for || '') !== String(USER.personId || '')) return '';
-    const p = a.people[String(pid)];
-    if (!p || !(Number(p.n) > 0)) return '';
-    const last = subDayText_(p.last);
-    return Number(p.n) + (Number(p.n) === 1 ? ' question' : ' questions') + (last ? ' · last ' + last : '');
-  } catch (e) { return ''; }
-}
-/* A submission's day, DD/MM/YY like every date (owner, 8 Nov). */
-function subDayText_(iso) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? date_(iso) : '';
-}
-
-/* THE PEOPLE COLUMNS (453); `peoplePages_` (me.js) adds the signed-out card and the empty one. Student settings is `studentSetPages_`. */
-screen('tutors', () => pages('tutors', typeof cardsOf_ === 'function' ? cardsOf_('tutors') : peoplePages_('tutors')));
-screen('students', () => pages('students', typeof cardsOf_ === 'function' ? cardsOf_('students') : peoplePages_('students')));
-screen('parents', () => pages('parents', typeof cardsOf_ === 'function' ? cardsOf_('parents') : peoplePages_('parents')));
-
-/** Everything spliced between the question and the results, whichever answer is showing. */
-/* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. § */
-/* THE BOUND FINDER'S, since there are two (`FINDERS`): § */
-function frontPages_() {
-  return FINDER.front();
-}
-
-/* A BUNDLE — THE PAPERS ON THE SCREEN, AS ONE THING YOU CAN ORDER. § */
-const BUNDLE_MIN = 2;
 
 ;
 /* ==== js/find-bundles.js ==== */
@@ -10929,7 +10898,7 @@ function stuffPageHtml(n) {
   if (pg.slim) return rowsOne_(libWaitHtml_(pg.x) + findTopRow_());
   /* ONE TILE ROW PER THING (489, 495): a card's own row holds `Top` (950); a part page without one gets this one. */
   const html = pg.part === 'q' && pg.parts ? questionWhole_(pg.x, pg.parts, pg.open, pg.ans)
-    : pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits);
+    : pg.part ? partCard_(pg.x, pg.part) : stuffCard(pg.x, credits);
   return rowsOne_(html + (/data-do="find-top"/.test(html) ? '' : findTopRow_()));
 }
 /* BACK TO TOP (463): "a button to scroll back to the top of the finder"; on a kept card outside one, its column scrolls up. */
@@ -11958,37 +11927,6 @@ function finderWake_(id) {
 
 /* THE QUESTION, ON THE PAGE. § */
 /* NAMED FOR WHAT IT WAS, not what it is. § */
-
-/* ---------- THE FIRST PAINT IS THE LAST (546): a question the build already answered (FINDER_TAGS, tools/finder-tags.js) is painted whole while the finder's files still arrive, so no list of answers grows or changes in front of you. */
-const finderSettled_ = () => {
-  try {
-    if (typeof awaiting_ === 'function' && awaiting_()) return false;
-    /* A KEPT PAYLOAD DRAWS BEFORE THE LIBRARY (1070): the build's answers stand until the cards are in. */
-    if (typeof LIBRARY_LATE !== 'undefined' && LIBRARY_LATE) return false;
-    if (typeof LIBRARY_ASK !== 'undefined' && (LIBRARY_ASK || LIBRARY_EXTRA_ASK)) return false;
-    return !writingAsking_();
-  } catch (e) { return true; }
-};
-/* WHICH VIEW OF THE LIBRARY THIS VIEWER HAS: admin or not, the Bible or not — no age lines (1040). */
-function finderTagsView_() {
-  const T = typeof FINDER_TAGS !== 'undefined' ? FINDER_TAGS : null;
-  if (!T || !T.views) return null;
-  /* AN ADMIN SEES People and Settings: a view of its own. */
-  let adm = false;
-  try { adm = typeof isAdmin === 'function' && isAdmin(); } catch (e) { adm = false; }
-  const v = T.views[(adm ? 'admin+' : '') + (typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '')];
-  return v ? Object.assign({}, T.same || {}, v) : null;
-}
-/* WHERE THE FINDER STANDS, as the build writes it: each chip in the order pressed, `field=value` or `field=*` for Doesn't matter. */
-const finderStateKey_ = () => (STUFF.filters || []).map(f => f.field + '=' + (f.any ? '*' : f.value)).join('&');
-/* A FRESH START ONLY (no answer pressed, R4): once pressed, the funnel answers over what had come, as it always did. */
-function finderTagsAt_() {
-  if (STUFF.admit != null || finderSettled_()) return null;
-  const key = finderStateKey_(), view = key === null ? null : finderTagsView_();
-  const at = view && view[key], facet = at && facetBy(at[0]);
-  return facet ? { facet: facet, values: at[1].map(v => ({ value: v[0], show: v.length > 1 ? v[1] : v[0] })) } : null;
-}
-
 function stuffQuestion() {
   const pre = finderTagsAt_() || finderTagsLook_();
   if (pre) return facetAnswersHtml_(pre.facet, pre.values, '') + findPeek_();
@@ -12177,10 +12115,46 @@ const docketText = list =>
 let dockTimer = null;
 
 ;
-/* ==== js/find-quick.js ==== */
-/* @family. — js/find-quick.js A FIND TAP LOOKED UP, NOT COUNTED (1100): the build's answers (js/finder-tags.js), lists narrowed ahead, the loader first. */
+/* ==== js/find-settled.js ==== */
+/* @family. — js/find-settled.js THE FIRST PAINT IS THE LAST (546): whether every source has come, and the build's answer for where the finder stands (cut from find-pages.js). */
+/* WHETHER ANY SOURCE'S INDEX IS STILL ON ITS WAY (546) — every loader keeps `asking` on its own state, read here as one list. */
+const writingAsking_ = () => [BIBLE, TALMUD, QURAN, HADITH, WORKS, TEXTS, PDTEXTS, ORTHO, HYMNS].some(S => S && S.asking);
 
-/* AND ONCE SETTLED (1100): a chip path the build walked is looked up, not counted, while this library is the build's (`finderTagsSame_`). */
+/* ---------- THE FIRST PAINT IS THE LAST (546): a question the build already answered (FINDER_TAGS, tools/finder-tags.js) is painted whole while the finder's files still arrive, so no list of answers grows or changes in front of you. */
+const finderSettled_ = () => {
+  try {
+    if (typeof awaiting_ === 'function' && awaiting_()) return false;
+    /* A KEPT PAYLOAD DRAWS BEFORE THE LIBRARY (1070): the build's answers stand until the cards are in. */
+    if (typeof LIBRARY_LATE !== 'undefined' && LIBRARY_LATE) return false;
+    if (typeof LIBRARY_ASK !== 'undefined' && (LIBRARY_ASK || LIBRARY_EXTRA_ASK)) return false;
+    return !writingAsking_();
+  } catch (e) { return true; }
+};
+/* WHICH VIEW OF THE LIBRARY THIS VIEWER HAS: admin or not, the Bible or not — no age lines (1040). */
+function finderTagsView_() {
+  const T = typeof FINDER_TAGS !== 'undefined' ? FINDER_TAGS : null;
+  if (!T || !T.views) return null;
+  /* AN ADMIN SEES People and Settings: a view of its own. */
+  let adm = false;
+  try { adm = typeof isAdmin === 'function' && isAdmin(); } catch (e) { adm = false; }
+  const v = T.views[(adm ? 'admin+' : '') + (typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '')];
+  return v ? Object.assign({}, T.same || {}, v) : null;
+}
+/* WHERE THE FINDER STANDS, as the build writes it: each chip in the order pressed, `field=value` or `field=*` for Doesn't matter. */
+const finderStateKey_ = () => (STUFF.filters || []).map(f => f.field + '=' + (f.any ? '*' : f.value)).join('&');
+/* A FRESH START ONLY (no answer pressed, R4): once pressed, the funnel answers over what had come, as it always did. */
+function finderTagsAt_() {
+  if (STUFF.admit != null || finderSettled_()) return null;
+  const key = finderStateKey_(), view = key === null ? null : finderTagsView_();
+  const at = view && view[key], facet = at && facetBy(at[0]);
+  return facet ? { facet: facet, values: at[1].map(v => ({ value: v[0], show: v.length > 1 ? v[1] : v[0] })) } : null;
+}
+
+;
+/* ==== js/find-quick.js ==== */
+/* @family. — js/find-quick.js A FIND TAP LOOKED UP, NOT COUNTED (1100): § */
+
+/* AND ONCE SETTLED (1100): § */
 function finderTagsLook_() {
   const fs = STUFF.filters || [];
   if (!fs.length || fs.some(f => !f || f.any) || STUFF.admit != null || !finderSettled_()) return null;
@@ -12189,7 +12163,7 @@ function finderTagsLook_() {
   const facet = facetBy(at[0]);
   return facet ? { facet: facet, values: at[1].map((v, i) => ({ value: v[0], show: v.length > 1 ? v[1] : v[0], n: (at[2] || [])[i], say: (at[4] || [])[i] })) } : null;
 }
-/* THE BUILD'S LIBRARY IS THIS ONE when the facets are its facets, nothing failed to come, no press makes Your result a question, and the first */
+/* THE BUILD'S LIBRARY IS THIS ONE when the facets are its facets, nothing failed to come, no press makes Your result a § */
 /* chip's cards are as many as it counted (one tally of the whole list, held). Anything else is counted live, as before. */
 const TAGS_SAME = { all: null, gen: -1, by: {} };
 function finderTagsSame_(view, first) {
@@ -12218,7 +12192,7 @@ function finderTagsNext_(out) {
   } catch (e) { return null; }
 }
 
-/* THE BUILD'S WORDS (1100, js/finder-tags.js `#says`) while its library is this one (`finderTagsSame_` on Practice and Library): a tag row never tallies the library. */
+/* THE BUILD'S WORDS (1100, js/finder-tags.js `#says`) while its library is this one (`finderTagsSame_` on Practice and Library): § */
 const SAYS_BUILT = new WeakMap();
 function answerSaysBuilt_(items) {
   if (SAYS_BUILT.has(items)) return SAYS_BUILT.get(items);
@@ -12235,7 +12209,7 @@ function answerSaysBuilt_(items) {
   return out;
 }
 
-/* A BIG LIST'S CARDS BY ONE FACET'S ANSWER (1100), in the list's order, made once (or ahead, `frontWarm_`): a chip on Library is a lookup, not a walk. */
+/* A BIG LIST'S CARDS BY ONE FACET'S ANSWER (1100), in the list's order, made once (or ahead, `frontWarm_`): § */
 /* Not for a facet that reads the chips or your presses (`OWN_LIVE`), and only over NARROW_BIG cards, where a walk is felt. */
 const NARROW_INDEX = new WeakMap(), NARROW_BIG = 20000, OWN_LIVE = { myResult: 1, wCollection: 1 };
 function narrowIndex_(items, field, make) {
@@ -12262,7 +12236,7 @@ function narrowIndex_(items, field, make) {
   return by;
 }
 
-/* THE FRONT ANSWERS' LISTS, NARROWED WHILE NOTHING ELSE RUNS (1100), one an idle moment, so the first tap on Practice or Library narrows nothing. */
+/* THE FRONT ANSWERS' LISTS, NARROWED WHILE NOTHING ELSE RUNS (1100), one an idle moment, so the first tap on Practice or § */
 const FRONT_WARM = { list: [], for: null, at: ['Practice', 'Library'] };
 function frontWarm_() {
   if (typeof finderSettled_ !== 'function' || !finderSettled_()) return;
@@ -12306,7 +12280,7 @@ function paintStuffSoon_() {
   requestAnimationFrame(() => setTimeout(() => inFinder_(F, () => { if (JSON.stringify(STUFF.filters) === want) paintStuff((PAGE[F.id] || 0) !== at); }), 0));
 }
 
-/* THE MENU A CHIP WAS PICKED FROM, AS THE BUILD WROTE IT (1100): its words without narrowing the list again, while the build's library is this one. */
+/* THE MENU A CHIP WAS PICKED FROM, AS THE BUILD WROTE IT (1100): § */
 function chipShowBuilt_(before, f) {
   try {
     if (before.some(c => !c || c.any) || STUFF.admit != null || !finderSettled_()) return null;
@@ -14277,8 +14251,7 @@ on('qp-ai', (el) => {
   const why = box && box.nextElementSibling && box.nextElementSibling.classList.contains('qp-ai-why')
     ? box.nextElementSibling : null;
   if (!inp || !out || el.disabled || (box && box.classList.contains('is-busy'))) return;
-  /* AN ESSAY'S KEPT POINTS STAY UNDER IT UNTIL NEW ONES ARRIVE (`aiKeep_`): a request that fails must not
-     take away the only feedback the pupil has. A short answer's sentence goes, as it always did. */
+  /* AN ESSAY'S KEPT POINTS STAY UNDER IT UNTIL NEW ONES ARRIVE (`aiKeep_`): § */
   const essayBox = box.classList.contains('qp-essay');
   box.classList.remove('is-right', 'is-near');
   if (why && !essayBox) why.textContent = '';
@@ -14311,8 +14284,7 @@ on('qp-ai', (el) => {
   const letGo = typeof markWait_ === 'function' ? markWait_() : null;
   const here = typeof markWhere_ === 'function' && markWhere_(k);
   el.disabled = true;
-  /* THE TILE'S OWN RING WHILE IT WAITS (`.tile.is-busy`), on the tile as well as the row: a disabled
-     tile loses its plate, which says "nothing to press" -- the wrong sentence for "pressed, marking". */
+  /* THE TILE'S OWN RING WHILE IT WAITS (`.tile.is-busy`), on the tile as well as the row: § */
   box.classList.add('is-busy');
   el.classList.add('is-busy');
   out.textContent = '';
@@ -14552,8 +14524,7 @@ document.addEventListener('pointerdown', e => {
   const k = e.target && e.target.closest && e.target.closest('#kp .kp-key');
   if (k && k.getAttribute('data-v') === ' ') KP_SPACE = { id: e.pointerId, x0: e.clientX, on: false };
 }, true);
-/* A HELD FINGER MOVING THE CARET IS NOT A SCROLL: the box allows panning (`touch-action: manipulation`), so the
-   browser would take the drag and cancel the pointer; refused here only while the caret or a handle is held */
+/* A HELD FINGER MOVING THE CARET IS NOT A SCROLL: § */
 document.addEventListener('touchmove', e => { if ((kpBusy_() || (KP_SPACE && KP_SPACE.on)) && e.cancelable) e.preventDefault(); }, { capture: true, passive: false });
 
 ;
@@ -14575,33 +14546,26 @@ const ANS_MARKABLE = /^(?:(?:ans|pad|board):(?!u:)|draft:device:)/;
 const ansMarkable_ = k => ANS_MARKABLE.test(String(k || ''));
 const ansKeyWho_ = k => { const m = /^(?:ans|pad|board|draft):(u:[^:]+):/.exec(String(k || '')); return m ? m[1] : ''; };
 
-/* THE SERVER'S CEILINGS, said again because the phone must not send what will be refused — and a value it would refuse stays on the device rather than being § */
-/* 20,000 SINCE AN ESSAY BECAME AN ANSWER (9 Oct): at 2,000 a forty-mark essay stopped going to the account
-   at its fourth paragraph. See `ANSWER_TEXT_MAX`. */
+/* THE SERVER'S CEILINGS, said again because the phone must not send what will be refused — and a value it § */
+/* 20,000 SINCE AN ESSAY BECAME AN ANSWER (9 Oct): § */
 const ANS_TEXT_MAX = 20000, ANS_PAD_MAX = 40000, ANS_PER_POST = 25;
-/* AND WHAT A `keepalive` REQUEST MAY CARRY. A browser refuses one over 64 KB, so the flush as the app
-   goes away sends what fits and leaves the rest dirty for next time. */
+/* AND WHAT A `keepalive` REQUEST MAY CARRY. § */
 const ANS_KEEPALIVE_MAX = 60000;
-/* THE STAMP OF AN ANSWER THE ACCOUNT WILL NOT TAKE — over its ceiling, or refused by the server — so it is
-   neither due (it would be refused for ever) nor "saved". The next edit stamps it again and it is asked
-   once more. */
+/* THE STAMP OF AN ANSWER THE ACCOUNT WILL NOT TAKE — over its ceiling, or refused by the server — so it is § */
 const ANS_HERE_ONLY = -1;
 
 /* ---------- WHAT IS ON THIS DEVICE § */
 const ANS_MEM = new Map();
 function ansValue_(k) {
-  /* A KEY THE STORE REFUSED IS READ FROM THE VISIT FIRST (`keepHeld_`, data.js) — the stored copy is
-     older, or nothing, and drawing it is how the next key saved it over the newer one (317). */
+  /* A KEY THE STORE REFUSED IS READ FROM THE VISIT FIRST (`keepHeld_`, data.js) — the stored copy is older § */
   const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
   if (held !== undefined) return held;
   try { return localStorage.getItem(k); } catch (e) { /* storage can be blocked; the app runs without it */ }
   return ANS_MEM.has(k) ? ANS_MEM.get(k) : null;
 }
-/* `words` IS TRUE FOR A WORDED BOX (the essay's too), from the `input` listener in find.js — what
-   `ansJoin_` asks before it puts two answers of one person's together. */
+/* `words` IS TRUE FOR A WORDED BOX (the essay's too), from the `input` listener in find.js — what § */
 function ansLocalPut_(k, v, words) {
-  /* WHAT WAS HERE BEFORE THIS WRITE, which the mark below asks about — read before `ANS_MEM` takes the new
-     value, because a store that throws is read from `ANS_MEM`. */
+  /* THE BOX'S VALUE BEFORE THIS WRITE, which the mark below asks about — read before `ANS_MEM` takes the new § */
   const mark = ansMarkable_(k);
   const was = mark ? ansValue_(k) : null;
   ANS_MEM.set(k, v);
@@ -14615,8 +14579,7 @@ function ansLocalPut_(k, v, words) {
     try { if (v === null || v === '') CIRC_HELD.delete(k); else CIRC_HELD.set(k, JSON.parse(v)); } catch (e) { /* a bad stored value reads as none */ }
   }
 }
-/* WHEN THE ANSWER IN THIS KEY WAS LAST EDITED, in ms — by this device's child, or by whichever device
-   the server's copy came from. 0 is "never stamped": a value from before this file existed. */
+/* WHEN THE ANSWER IN THIS KEY WAS LAST EDITED, in ms — by this device's child, or by whichever device the § */
 const ANS_AT_MEM = new Map();
 function ansAt_(k) {
   try { return Number(localStorage.getItem('ansAt:' + k)) || 0; } catch (e) { /* storage can be blocked; the app runs without it */ }
@@ -14626,9 +14589,7 @@ function ansAtSet_(k, at) {
   ANS_AT_MEM.set(k, at);
   try { localStorage.setItem('ansAt:' + k, String(at)); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
-/* WHICH KEYS STILL HAVE TO GO UP, per person. A Set held for the visit and written through to storage,
-   so the list survives a reload, a crash and a sign-out — and goes up the next time that person signs
-   in, on this device. */
+/* WHICH KEYS STILL HAVE TO GO UP, per person. § */
 const ANS_DIRTY = new Map();
 function ansDirtySet_(who) {
   let s = ANS_DIRTY.get(who);
@@ -14655,7 +14616,7 @@ function ansStore_(k, v, words) {
   const who = ansWhoOf_(k);
   ansAtSet_(k, Date.now());
   if (who) {
-    /* STAMPED ALWAYS (above, signed out too — 318's claim reads it) — the time of the edit is also what tells a draft typed here after the last press from the press § */
+    /* STAMPED ALWAYS (above, signed out too — 318's claim reads it) — the time of the edit is also what tells a § */
     if (ansSyncs_(k)) {
       ansDirtySet_(who).add(k);
       ansDirtyKeep_(who);
@@ -14664,8 +14625,7 @@ function ansStore_(k, v, words) {
   }
   ansSavedPaint_();
 }
-/* DOES THIS KEY STILL GO TO THE ACCOUNT AS A DRAFT? A drawing always; a typed, picked or ordered answer
-   only to a backend that cannot take the presses (`submitAnswer`), where the draft is all it can keep. */
+/* DOES THIS KEY STILL GO TO THE ACCOUNT AS A DRAFT? § */
 function ansSyncs_(k) {
   return !/^ans:/.test(String(k || '')) || !answersCan_('submitAnswer');
 }
@@ -14737,8 +14697,7 @@ function ansSavedTake_(d, sent, dirty, who) {
   const won = [];
   sent.forEach(s => {
     const got = d.saved[ansServerKey_(s.k)];
-    /* REFUSED — a key or a size the server will not take. Not due any more; it stays on the device,
-       and its stamp says so. */
+    /* REFUSED — a key or a size the server will not take. § */
     if (!got) { dirty.delete(s.k); ansAtSet_(s.k, ANS_HERE_ONLY); return; }
     /* TYPED OVER WHILE IT WAS ON THE WIRE: still due, and the send that is already booked takes it. */
     if (ansValue_(s.k) !== s.raw) return;
@@ -14758,7 +14717,7 @@ function ansSavedTake_(d, sent, dirty, who) {
 }
 
 function answersPush_(now, keepalive) {
-  /* THE DEVICE'S OWN QUEUE, not the press that woke it: the card has already changed, so this request holds no control (534). */
+  /* THE DEVICE'S OWN QUEUE, not the press that woke it: § */
   if (typeof pressFree_ === 'function') pressFree_();
   clearTimeout(ANS_TIMER);
   ANS_TIMER = 0;
@@ -14767,8 +14726,7 @@ function answersPush_(now, keepalive) {
   if (ANS_BUSY) { ANS_AGAIN = true; return ANS_BUSY; }
   const pid = String(USER.personId), who = 'u:' + pid;
   const dirty = ansDirtySet_(who);
-  /* A TYPED ANSWER LEFT DUE FROM BEFORE — marked on an older visit, or before this payload said the
-     backend keeps submissions — is not a draft to send any more: what was SENT is its record. */
+  /* A TYPED ANSWER LEFT DUE FROM BEFORE — marked on an older visit, or before this payload said the backend § */
   let dropped = false;
   [...dirty].forEach(k => { if (!ansSyncs_(k)) { dirty.delete(k); dropped = true; } });
   if (dropped) ansDirtyKeep_(who);
@@ -14779,8 +14737,7 @@ function answersPush_(now, keepalive) {
     if (items.length >= ANS_PER_POST) break;
     const raw = ansValue_(k);
     const v = ansOutgoing_(k, raw);
-    /* OVER ITS CEILING IT STAYS HERE, and stops being due: the server would refuse it every time. Its
-       stamp says so (`ANS_HERE_ONLY`), so the line under the box does not claim a save that never was. */
+    /* OVER ITS CEILING IT STAYS HERE, and stops being due: § */
     if (v.length > (/^pad:/.test(k) ? ANS_PAD_MAX : ANS_TEXT_MAX)) { dirty.delete(k); ansAtSet_(k, ANS_HERE_ONLY); continue; }
     const item = { key: ansServerKey_(k), v: v, at: ansAt_(k) || Date.now() };
     const len = JSON.stringify(item).length;
@@ -14792,14 +14749,12 @@ function answersPush_(now, keepalive) {
   }
   ansDirtyKeep_(who);
   if (!items.length) { ansSavedPaint_(); return Promise.resolve(true); }
-  /* `personId` AS WELL AS THE TOKEN — the gate overwrites it with the token's person, and `check-post.js`
-     asks that every handler reading one is sent one. */
+  /* `personId` AS WELL AS THE TOKEN — the gate overwrites it with the token's person, and `check-post.js` § */
   const req = api({ action: 'saveAnswers', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
   ANS_BUSY = Promise.resolve(req)
     .then(d => ansSavedTake_(d, sent, dirty, who))
     .catch(() => {
-      /* REFUSED OR UNREACHED: every key stays due, and it is tried again — sooner at first, then less
-         often, so a phone with no signal is not a request a second. */
+      /* REFUSED OR UNREACHED: § */
       ANS_BACKOFF = Math.min(Math.max(5000, ANS_BACKOFF * 2), 300000);
       clearTimeout(ANS_RETRY);
       ANS_RETRY = setTimeout(() => answersPush_(true), ANS_BACKOFF);
@@ -14813,8 +14768,7 @@ function answersPush_(now, keepalive) {
       const same = !!USER && String(USER.personId) === pid;
       /* MORE THAN ONE REQUEST'S WORTH, or a flush asked for while this one was out: once more, now. */
       if (ok && same && (again || (dirty.size && items.length >= ANS_PER_POST))) return answersPush_(true);
-      /* TYPED OVER WHILE IT WAS OUT: due again, on the ordinary second and a half — a child typing
-         through a slow reply is still one request per pause, not one per round trip. */
+      /* TYPED OVER WHILE IT WAS OUT: § */
       if (ok && same && dirty.size && !keepalive) answersPush_();
       return ok;
     });
@@ -14847,7 +14801,7 @@ function answersPull_(force) {
   return p;
 }
 
-/* IS THIS KEY UNDER A FINGER — the box with the focus, or the pad a stroke is on now (`padInUse_`). Never overwritten. */
+/* IS THIS KEY UNDER A FINGER — the box with the focus, or the pad a stroke is on now (`padInUse_`). § */
 function ansHeld_(k) {
   try {
     const a = document.activeElement;
@@ -14935,7 +14889,7 @@ function answersClaim_(pid, ownOnly) {
     try { localStorage.removeItem('ansAt:' + bare); } catch (e) { /* storage can be blocked; the app runs without it */ }
     if (v === null || !String(v).trim() || v === '[]') return;
     const joined = mark && has ? ansJoin_(bare, mine, v, mark.words) : null;
-    /* WHAT IS WRITTEN OVER IS THE ANSWER THE OLD CODE LEFT, until this person's one-time carry-over has run on this device — and that pass reads the box, so it was § */
+    /* WHAT IS WRITTEN OVER IS THE ANSWER THE OLD CODE LEFT, until this person's one-time carry-over has run on § */
     const over = () => { if (has && typeof subClaimOver_ === 'function') subClaimOver_(k, mine, ansAt_(k)); };
     if (joined !== null) {
       if (joined === mine) return;
@@ -14975,7 +14929,7 @@ function ansRefresh_(keys) {
       const card = el.closest('.qcard');
       [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-ai')].forEach(m => {
         if (!m) return;
-        /* EXCEPT AN ESSAY'S KEPT AI MARK, which is said again against the words now on the sheet -- fresh if they are the ones it read, "before your changes" if not § */
+        /* EXCEPT AN ESSAY'S KEPT AI MARK, which is said again against the words now on the sheet -- fresh if they § */
         if (m.classList.contains('qp-essay') && m.classList.contains('qp-ai') && typeof aiKeptPaint_ === 'function' && aiKeptPaint_(m, el)) return;
         m.classList.remove('is-right', 'is-near');
         const out = m.querySelector('.qp-verdict');
@@ -15005,17 +14959,14 @@ function ansFirstName_() {
   try { return String((USER && (USER.name || USER.handle)) || '').trim().split(/\s+/)[0] || ''; }
   catch (e) { return ''; }
 }
-/* ON THE ACCOUNT, AS THIS DEVICE LAST WROTE IT — so a store refusing the device's copy loses nothing
-   that a reload cannot bring back down. Asked by `keepAtRisk_` (data.js) before the browser is told to
-   ask "Leave site?". */
+/* ON THE ACCOUNT, AS THIS DEVICE LAST WROTE IT — so a store refusing the device's copy loses nothing that a § */
 function ansOnAccount_(k) {
   try {
     const who = ansWhoOf_(k);
     if (!who || who !== 'u:' + String(USER.personId)) return false;
     /* A TYPED, PICKED OR ORDERED ANSWER IS ON THE ACCOUNT ONLY AS IT WAS SENT (note 308). § */
     if (/^ans:/.test(k)) {
-      /* AND SAID FROM THE DEVICE'S OWN RECORD OF THE PRESS, before the payload has said which backend it is
-         (`ansSentHere_`, below) — a typed answer to a backend from before submissions is still a draft. */
+      /* AND SAID FROM THE DEVICE'S OWN RECORD OF THE PRESS, before the payload has said which backend it is § */
       if (ansSentHere_(k)) return true;
       if (answersCan_('submitAnswer')) return false;
     }
@@ -15078,7 +15029,7 @@ function ansGoneMark_(k, v, words, was) {
         && ansKeeps_(k, was === undefined ? ansValue_(k) : was, v)) want = had;
     if (want ? !!had && had.who === want.who && had.words === want.words : !had) return;
     if (want) map[k] = want; else delete map[k];
-    /* AND WHAT NO LONGER NAMES AN ANSWER, while it is open anyway — ASKED OF `ansValue_`, which answers with the visit's copy of a key the store refused. § */
+    /* AND WHAT NO LONGER NAMES AN ANSWER, while it is open anyway — ASKED OF `ansValue_`, which answers with § */
     Object.keys(map).forEach(x => { if (x !== k && ansValue_(x) === null) delete map[x]; });
     ansRecPut_(ANS_GONE_KEYS, Object.keys(map).length ? JSON.stringify(map) : null);
   } catch (e) { /* storage can be blocked; the visit copy still holds */ }
@@ -15102,8 +15053,7 @@ function ansKeeps_(k, was, v) {
   while (s < a.length - p && s < b.length - p && a[a.length - 1 - s] === b[b.length - 1 - s]) s++;
   return 2 * (p + s) >= a.length;
 }
-/* ONE MARK, READ — `{ who, words }`, or null. A bare string is a mark from before marks said how the
-   answer was typed. */
+/* ONE MARK, READ — `{ who, words }`, or null. § */
 function ansGoneRead_(m) {
   if (!m) return null;
   if (typeof m === 'string') return { who: m, words: false };
@@ -15165,7 +15115,7 @@ function ansJoin_(bare, mine, v, words) {
   if (String(mine).indexOf(add) !== -1) return mine;
   return String(mine).replace(/\s+$/, '') + '\n\n' + add;
 }
-/* SAVING IS SILENT (368): the line speaks only when an answer is not, or cannot be, on the account -- "Saved to Ada's account" told a child what they knew */
+/* SAVING IS SILENT (368): § */
 const ANS_QUIET = /^(Saved to|Sent to|Saving|Sending|On this device until you send it)/;
 function ansSavedSay_(k) {
   const say = ansSavedWords_(k);
@@ -15177,8 +15127,7 @@ function ansSavedWords_(k) {
   const v = ansValue_(k);
   if (v === null || !String(v).trim() || v === '[]') return ansGoneSay_(k);
   const who = ansWhoOf_(k);
-  /* REFUSED BY THE STORE AND NOT ON THE ACCOUNT EITHER — the one line that must never say "on this
-     device", because it is on no device. `keepPut_` in data.js. */
+  /* REFUSED BY THE STORE AND NOT ON THE ACCOUNT EITHER — the one line that must never say "on this device" § */
   if (typeof KEEP_UNKEPT !== 'undefined' && KEEP_UNKEPT.has(k) && !ansOnAccount_(k)) return ANS_NOT_KEPT;
   if (!who) return 'On this device only — sign in to keep it';
   /* A CARD STILL ON THE SCREEN FROM BEFORE A SIGN-OUT names somebody, with nobody signed in: never theirs. */
@@ -15284,7 +15233,7 @@ function findVerdictShown_(id) {
       el => !!String(el.textContent || '').trim());
   } catch (e) { return false; }
 }
-/* THE REDRAW IT HELD BACK, once nothing is held — a moment after leaving the box, so a tap that moved the focus from one box to the next (focusout, then focusin) § */
+/* THE REDRAW IT HELD BACK, once nothing is held — a moment after leaving the box, so a tap that moved the § */
 let FIND_KEPT_TIMER = 0;
 document.addEventListener('focusout', () => {
   clearTimeout(FIND_KEPT_TIMER);
@@ -15975,6 +15924,9 @@ function subForget_() {
   SUB_AGAIN = false;
 }
 
+;
+/* ==== js/submit-suggest.js ==== */
+/* @family. — js/submit-suggest.js SUGGEST A CHANGE (494): the one tile, its box in place, pictures and files sent (cut from submit.js; read as one by tools/piece-src.js). */
 /* ---------- SUGGEST A CHANGE (494): one tile on every thing, one box in place ----------
    An admin's goes to Notes for Claude; anybody else's waits for Confirm. A message's says "Tell the admin" (413). */
 /* VIRTUALLY UNLIMITED (562, owner note 119), the backend's CLAUDE_NOTE_MAX: a sheet cell's 50,000 less room for the rest of the row. */
@@ -15983,7 +15935,6 @@ const SUGGEST_NOTE_MAX = 40000;
 const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'function' || ruleOn_('tell-admin'));
 /* WHAT HAS AN OPEN NOTE FOR CLAUDE, by `kind|id` — sent to everybody as `reportedItems`, no names in it. */
 const reportedNow_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA.reportedItems) || []).indexOf(kind + '|' + id) !== -1;
-
 /* THE ONE TILE'S OPTIONS, on every thing, drawn by `tile_`: Student rank and up; signed out, null (no tile). `check-suggest` holds every such tile to it. */
 function suggestOpts_(kind, id, label, cls) {
   if (!kind || !id || typeof rankAtLeast_ !== 'function' || !rankAtLeast_('student')) return null;
@@ -16000,7 +15951,6 @@ function suggestOptsFor_(x) {
   if (!x || !x.key) return null;
   return suggestOpts_(x.soon || x.kind, x.soon ? String(x.soonId) : x.key, [x.name, x.sub].filter(Boolean).join(' · '));
 }
-
 /* WHAT KIND OF SCREEN IT WAS SEEN ON — enough for the owner to try it on the same, and nothing that names a device. */
 function reportDevice_() {
   try {
@@ -16010,7 +15960,6 @@ function reportDevice_() {
     return !touch ? 'computer' : w < 600 ? 'phone' : 'tablet';
   } catch (e) { return ''; }
 }
-
 /* IN PLACE OF THE THING (489, `boxInPlace_`): one text area, a picture, Send and Cancel. No notes listed (498): Done is Claude's, by data/notes-done.json. */
 function reportBoxHtml_(kind, id, label, finder, path) {
   const admin = isAdmin();
@@ -16296,7 +16245,6 @@ async function repFilesSend_(form) {
   return { batch: b.batch, count: list.length, names: list.map(x => b.strip ? x.rel.split('/').slice(1).join('/') : x.rel) };
 }
 const reportBoxOf_ = (kind, id) => [...document.querySelectorAll('.rep-box')].find(b => b.dataset.rk === kind && b.dataset.ri === id) || null;
-
 on('rep-box', el => {
   if (!(typeof rankAtLeast_ === 'function' && rankAtLeast_('student'))) { toast('Sign in to suggest a change.'); return; }
   const kind = el.getAttribute('data-rk') || '', id = el.getAttribute('data-ri') || '';
@@ -16315,7 +16263,6 @@ on('rep-box', el => {
 });
 /* CANCEL CLOSES THE BOX AND KEEPS THE WORDS as the draft, for the next open. */
 on('rep-cancel', el => { boxOut_(el.closest('.rep-box')); });
-
 on('rep-send', el => {
   const form = el.closest('.rep-box');
   if (!form || form.classList.contains('is-sending') || !USER) return;
@@ -16351,19 +16298,19 @@ on('rep-send', el => {
 
 ;
 /* ==== js/working.js ==== */
-/* ---------- A PHOTO OF THE WORKING (501): up to three pages photographed; `markWorking` has Gemini mark them and keeps them on the submission row. Only the AI marks. */
+/* ---------- A PHOTO OF THE WORKING (501): up to three pages; Gemini marks them (`markWorking`). Only the AI marks. § */
 const WORK_MAX = 3, WORK_EDGE = 1600, WORK_BYTES = 500 * 1024;
-/* WHAT EACH BOX HOLDS, by answer key: [{ url }] -- data URLs, in memory only; a photo is never kept in browser storage. */
+/* EACH BOX'S PHOTOS by answer key: data URLs, in memory only, never browser storage. § */
 const WORK_PICS = {};
 
-/* EVERY PART TAKES A PHOTO OF THE WORKING (round 3): its tile is in the part's one tool row (qtools.js), its strip under the box. */
+/* EVERY PART TAKES A PHOTO OF THE WORKING: its tile in the part's tool row (qtools.js), its strip under the box. § */
 function workRow_(x) {
   const r = (x && x.row) || {};
   return Object.assign({}, r, { lead: x.lead, html: x.html, answer: x.answer, answer_type: x.answerType || r.answer_type,
     accept: x.accept || '', mark_words: x.markWords || '', cells: x.cells || '', draw_answer: x.drawAnswer || '',
     choices: (x.choices || []).join('|'), choice_right: (x.choiceRight || []).join('|'), marks: x.marks, subject: x.subject || r.subject });
 }
-/* THE STRIP UNDER THE BOX: thumbnails, then Mark my working -- the AI's alone ("A human never marks"); a failed mark keeps the photos to try again. */
+/* THE STRIP UNDER THE BOX: thumbnails, then Mark my working; a failed mark keeps the photos. § */
 function workStrip_(x) {
   if (!x || !isQ_(x)) return '';
   const k = ansKey_(x);
@@ -16376,7 +16323,7 @@ function workStripInner_(k) {
   return `<div class="qp-work-pics">${thumbs}</div>
     <p class="qp-work-say" role="status" aria-live="polite"></p>`;
 }
-/* MARK MY WORKING STANDS IN THE PART'S ONE TOOL ROW (owner, 8 Nov), in its slot there, once there is a photo to mark */
+/* MARK MY WORKING STANDS IN THE PART'S TOOL ROW (owner, 8 Nov), once there is a photo. § */
 function workGoOpts_(k) {
   return (WORK_PICS[k] || []).length ? ({ icon: 'tick', label: 'Mark my working', note: 'AI reads the photos',
     act: 'qp-work-send', cls: 'qp-work-send is-submit', data: { k } }) : null;
@@ -16424,7 +16371,7 @@ function workShrink_(file) {
 }
 const workBytes_ = d => Math.floor((String(d).length - String(d).indexOf(',') - 1) * 3 / 4);
 
-/* THE PICKER: camera first on a phone (`capture`), the library one tap away; several at once where the phone allows. */
+/* THE PICKER: camera first on a phone (`capture`), the library a tap away. § */
 on('qp-work', el => {
   const k = el.getAttribute('data-k');
   if (!k) return;
@@ -16495,8 +16442,8 @@ on('qp-work-send', el => {
     });
 });
 
-/* ---------- AND SEEN BY THE PEOPLE WHO MAY (`workingOf`): the student, a parent they accepted, and the admin. Fetched on the tap, never in the payload. */
-/* `workingMaySee_`'s rule (dopost.gs): a parent of theirs, or rank Admin -- never a tutor (owner, 28 Oct), so the tile is not drawn for one */
+/* ---------- SEEN BY WHO MAY (`workingOf`): student, accepted parent, admin; fetched on the tap. § */
+/* `workingMaySee_` (dopost.gs): a parent or Admin, never a tutor (owner, 28 Oct). § */
 function workSeeOpts_(pid, asParent) {
   if (!pid || !(asParent === true || isAdmin())) return null;
   return ({ icon: 'photo', label: 'Working photos', note: 'with the AI’s mark', act: 'work-see', data: { id: pid } });
@@ -17312,120 +17259,6 @@ const qtSchemeIn_ = x => !!x && !!String(x.answer || '').replace(/<[^>]*>/g, ' '
 /* IS A MARKER'S SCHEME THERE: options with a key, or an AI part with an answer to mark against; the rest are ready as written. */
 const choiceKeyed_ = x => (Array.isArray(x.choiceRight) ? x.choiceRight.length > 0 : !!x.choiceRight);
 const MARKER_READY = { choice: choiceKeyed_, order: choiceKeyed_, ai: x => qtSchemeIn_(x) };
-function markerOf_(x) {
-  let kind = 'ai';
-  try { kind = qtMarker_(workRow_(x || {})); } catch (e) { kind = 'ai'; }
-  /* options with no key are still options to tap: their Check says the key is missing (never a person) */
-  if (!isChoiceMarker_(kind) && x && Array.isArray(x.choices) && x.choices.length >= 2) kind = orderIs_(x) ? 'order' : 'choice';
-  /* NO MARK SCHEME is no accept, key words, cells, options or answer (round 4): an importer's note alone is not a scheme to mark against */
-  const ready = Object.prototype.hasOwnProperty.call(MARKER_READY, kind) ? MARKER_READY[kind](x) : true;
-  const how = ready ? QT_HOW_ALL : QT_NO_SCHEME;
-  return { kind, ready, how };
-}
-/* THE CHECK TILE FOR THAT MARKER, last in the row. An AI part whose marker is off says why under the row, not by vanishing. */
-function qtCheck_(x, m) {
-  const k = (m || markerOf_(x)).kind;
-  if (QT_SCHEME_KINDS[k] && (m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-check', cls: 'qp-check' });
-  if (k === 'cells') return tile_({ send: true, act: 'qp-cells-check', cls: 'qp-check' });
-  if (k === 'draw') return tile_({ send: true, act: 'pad-check', cls: 'qp-check' });
-  /* NO SCHEME, NO AI CHECK: a request could only fail, so its Check says so under the row, as options with no key do (round 4) */
-  if (!(m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-noscheme', cls: 'qp-check', data: { key: (x && x.key) || '' } });
-  const ai = typeof aiOpts_ === 'function' ? tile_(aiOpts_(x)) : '';
-  return ai || tile_({ send: true, act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true });
-}
-
-/* ---------- THE ROW. QT_ROW on every part, the pen's tiles where there is a figure, then Undo, Clear and Check (1020). */
-const PEN_OPEN = new Set();
-/* WHAT `qPartCard_` HANDS THE NEXT ROW DRAWN: its part's other tiles; `used` says a row took them */
-const QT_MORE = { html: '', used: false };      // parts whose pen was opened this visit (the surface is made on the first Pen tap)
-/* EACH TOOL'S OWN TILE, by its id in QT_TOOLS: a `tile(t, x, key)` of its own, else the one lit-by-`qtToolOn_` tile below */
-const QT_TILE = {
-  mag: () => typeof magOpts_ === 'function' ? magOpts_() : null,
-  lock: () => typeof qLockOpts_ === 'function' ? qLockOpts_() : null,
-  read: (t, x, key) => {
-    const o = typeof readAloudOpts_ === 'function' ? readAloudOpts_(x) : null;
-    if (o) o.data = Object.assign({}, o.data, { part: 1 });
-    return o || { icon: t.icon, label: t.label, note: 'not on this device', act: 'read-aloud', cls: 'read-aloud', off: true, data: { key } };
-  },
-  /* ONLY WHERE A CALCULATOR IS ALLOWED: a Non-calculator paper never shows it; unknown shows it (owner, 11 Nov) */
-  calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
-  /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
-  offline: (t, x) => (typeof offOpts_ === 'function' ? offOpts_(x) : null),
-  photo: (t, x) => ({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } }),
-};
-/* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
-const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
-const qtInHand_ = pk => pk && typeof PAD_ON !== 'undefined' && PAD_ON === pk ? (PAD_TOOL.get(pk) || 'pen') : '';
-function qtToolOpts_(t, x) {
-  const key = (x && x.key) || '';
-  if (QT_TILE[t.id]) return QT_TILE[t.id](t, x, key);
-  /* A CARD DRAWN AGAIN keeps the tool in hand lit, by the one rule `qtLight_` uses too */
-  const pk = qtPadKey_(t, x);
-  const on = qtToolOn_(t.id, key, pk, qtInHand_(pk));
-  const cls = 'qt-t' + (isMeasureTool_(t.id) ? ' q-meast' : '');
-  return { icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } };
-}
-/* IS THIS TOOL IN HAND, the one rule: Ruler or Protractor laid on a figure (MEAS), the protractor on the pad, the rest the pad's tool */
-/* A MEASURING TOOL NOT LAID ON A FIGURE: the ruler is then out of hand; the protractor may still be on the pad. */
-const MEASURE_ON_PAD = { ruler: () => false, protractor: pk => !!(pk && padProtOn_(pk)) };
-function qtToolOn_(id, key, pk, inHand) {
-  if (isMeasureTool_(id) && typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === id) return true;
-  if (Object.prototype.hasOwnProperty.call(MEASURE_ON_PAD, id)) return MEASURE_ON_PAD[id](pk);
-  if (!pk || !inHand) return false;
-  return inHand === QT_PAD_TOOL[id];
-}
-/* EVERY PEN/INSTRUMENT TILE UNDER `root` LIT AGAIN BY `qtToolOn_`, in place; `inHand` stands in for the tool of a pad being armed */
-function qtLight_(root, inHand) {
-  if (!root || !root.querySelectorAll) return;
-  root.querySelectorAll('.qt-row .qt-t[data-do="qt-inst"], .qt-row .qt-t[data-do="qt-pen"]').forEach(t => {
-    const card = t.closest('.qcard'), pad = card && card.querySelector('.qpad');
-    const pk = (pad && pad.getAttribute('data-k')) || '';
-    const lit = qtToolOn_(t.getAttribute('data-tool'), t.getAttribute('data-key') || '', pk, inHand !== undefined ? inHand : qtInHand_(pk));
-    tileSet_(t, { on: lit, pressed: lit });
-  });
-}
-function qtRow_(x, held) {
-  if (!x || !x.key) return '';
-  const key = x.key;
-  /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
-  if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
-  /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
-  const art = typeof padReady_ !== 'function' || padReady_(x);
-  const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
-  const tools = tile_(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x))) + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
-  const m = markerOf_(x);
-  /* A PART OF A WHOLE QUESTION (owner, 8 Nov): its Show-the-answer and card tiles join this row, so the part has one row, not three */
-  const more = QT_MORE.html; QT_MORE.html = ''; QT_MORE.used = true;
-  const wk = typeof ansKey_ === 'function' && isQ_(x) ? ansKey_(x) : '';
-  const work = wk && typeof workGoOpts_ === 'function' ? `<span class="qp-work-slot" data-k="${esc(wk)}">${tile_(workGoOpts_(wk))}</span>` : '';
-  /* THE FOUR (owner, 9 Nov): Send/Check, Message, Star, ⋯; the tools, help, share and suggest wait behind ⋯ (`kcFour_`). */
-  const four = kcFour_(x, `<span class="qt-tools">${tools}</span>${held || ''}${work}${more}`, qtCheck_(x, m));
-  /* NO GREY LINE UNDER IT (owner, 9 Nov): how a part is marked is said when Check is pressed, on its verdict line. */
-  return `<div class="tile-row qt-row kc-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${four}</div>` + (QCALC_OPEN.has(key) ? qcalcHtml_(key) : '');
-}
-const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
-const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';
-
-
-/* ---------- THE CARD DRAWN AGAIN, where it stands: what a pen opened needs, its plan forgotten first. */
-/* A PART'S PEN OPENED OR PUT AWAY, and the plans that read it forgotten: what the card is drawn from next. */
-function qtPenSet_(x, on) {
-  if (!x || !x.key) return;
-  if (on) PEN_OPEN.add(x.key); else PEN_OPEN.delete(x.key);
-  CHUNK_MEMO.delete(x);   // a WeakMap's delete never throws, whatever it is given
-  STEM_PEN = { from: null, svgs: null };
-}
-function qtRedraw_(card, x) {
-  if (!card || !x) return null;
-  qtPenSet_(x, PEN_OPEN.has(x.key));
-  const t = document.createElement('div');
-  /* A FIND CARD STAYS IN THE ONE CARD SHAPE when drawn again (owner 1a, 8 Nov). */
-  t.innerHTML = card.classList.contains('kc') && isQ_(x) ? findCard(x) : questionCard_(x, card);
-  const next = t.firstElementChild;
-  if (!next) return null;
-  card.replaceWith(next);
-  return next;
-}
 /* THE PEN: the card's pad, made on the first tap where the part has none -- its figure, else its stem's, else a grid. */
 function qtPenOpen_(el, tool) {
   const key = qtKeyOf_(el);
@@ -17574,6 +17407,121 @@ function aiImages_(x, card) {
   const pad = card && [].find.call(card.querySelectorAll('.qpad[data-k]'), p => p.getAttribute('data-k') === pk);
   const inked = padRead_(pk).length > 0;
   return (inked && pad ? penPng_(pad) : Promise.resolve('')).then(png => (png ? [png] : []).concat(pics)).catch(() => pics);
+}
+
+;
+/* ==== js/qtools-row.js ==== */
+/* @family. — js/qtools-row.js A PART'S TOOL ROW: its marker, the pen, ruler and Check tiles, redrawn in place (cut from qtools.js; read as one by tools/piece-src.js). */
+function markerOf_(x) {
+  let kind = 'ai';
+  try { kind = qtMarker_(workRow_(x || {})); } catch (e) { kind = 'ai'; }
+  /* options with no key are still options to tap: their Check says the key is missing (never a person) */
+  if (!isChoiceMarker_(kind) && x && Array.isArray(x.choices) && x.choices.length >= 2) kind = orderIs_(x) ? 'order' : 'choice';
+  /* NO MARK SCHEME is no accept, key words, cells, options or answer (round 4): an importer's note alone is not a scheme to mark against */
+  const ready = Object.prototype.hasOwnProperty.call(MARKER_READY, kind) ? MARKER_READY[kind](x) : true;
+  const how = ready ? QT_HOW_ALL : QT_NO_SCHEME;
+  return { kind, ready, how };
+}
+/* THE CHECK TILE FOR THAT MARKER, last in the row. An AI part whose marker is off says why under the row, not by vanishing. */
+function qtCheck_(x, m) {
+  const k = (m || markerOf_(x)).kind;
+  if (QT_SCHEME_KINDS[k] && (m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-check', cls: 'qp-check' });
+  if (k === 'cells') return tile_({ send: true, act: 'qp-cells-check', cls: 'qp-check' });
+  if (k === 'draw') return tile_({ send: true, act: 'pad-check', cls: 'qp-check' });
+  /* NO SCHEME, NO AI CHECK: a request could only fail, so its Check says so under the row, as options with no key do (round 4) */
+  if (!(m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-noscheme', cls: 'qp-check', data: { key: (x && x.key) || '' } });
+  const ai = typeof aiOpts_ === 'function' ? tile_(aiOpts_(x)) : '';
+  return ai || tile_({ send: true, act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true });
+}
+/* ---------- THE ROW. QT_ROW on every part, the pen's tiles where there is a figure, then Undo, Clear and Check (1020). */
+const PEN_OPEN = new Set();
+/* WHAT `qPartCard_` HANDS THE NEXT ROW DRAWN: its part's other tiles; `used` says a row took them */
+const QT_MORE = { html: '', used: false };      // parts whose pen was opened this visit (the surface is made on the first Pen tap)
+/* EACH TOOL'S OWN TILE, by its id in QT_TOOLS: a `tile(t, x, key)` of its own, else the one lit-by-`qtToolOn_` tile below */
+const QT_TILE = {
+  mag: () => typeof magOpts_ === 'function' ? magOpts_() : null,
+  lock: () => typeof qLockOpts_ === 'function' ? qLockOpts_() : null,
+  read: (t, x, key) => {
+    const o = typeof readAloudOpts_ === 'function' ? readAloudOpts_(x) : null;
+    if (o) o.data = Object.assign({}, o.data, { part: 1 });
+    return o || { icon: t.icon, label: t.label, note: 'not on this device', act: 'read-aloud', cls: 'read-aloud', off: true, data: { key } };
+  },
+  /* ONLY WHERE A CALCULATOR IS ALLOWED: a Non-calculator paper never shows it; unknown shows it (owner, 11 Nov) */
+  calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
+  /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
+  offline: (t, x) => (typeof offOpts_ === 'function' ? offOpts_(x) : null),
+  photo: (t, x) => ({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } }),
+};
+/* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
+const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
+const qtInHand_ = pk => pk && typeof PAD_ON !== 'undefined' && PAD_ON === pk ? (PAD_TOOL.get(pk) || 'pen') : '';
+function qtToolOpts_(t, x) {
+  const key = (x && x.key) || '';
+  if (QT_TILE[t.id]) return QT_TILE[t.id](t, x, key);
+  /* A CARD DRAWN AGAIN keeps the tool in hand lit, by the one rule `qtLight_` uses too */
+  const pk = qtPadKey_(t, x);
+  const on = qtToolOn_(t.id, key, pk, qtInHand_(pk));
+  const cls = 'qt-t' + (isMeasureTool_(t.id) ? ' q-meast' : '');
+  return { icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } };
+}
+/* IS THIS TOOL IN HAND, the one rule: Ruler or Protractor laid on a figure (MEAS), the protractor on the pad, the rest the pad's tool */
+/* A MEASURING TOOL NOT LAID ON A FIGURE: the ruler is then out of hand; the protractor may still be on the pad. */
+const MEASURE_ON_PAD = { ruler: () => false, protractor: pk => !!(pk && padProtOn_(pk)) };
+function qtToolOn_(id, key, pk, inHand) {
+  if (isMeasureTool_(id) && typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === id) return true;
+  if (Object.prototype.hasOwnProperty.call(MEASURE_ON_PAD, id)) return MEASURE_ON_PAD[id](pk);
+  if (!pk || !inHand) return false;
+  return inHand === QT_PAD_TOOL[id];
+}
+/* EVERY PEN/INSTRUMENT TILE UNDER `root` LIT AGAIN BY `qtToolOn_`, in place; `inHand` stands in for the tool of a pad being armed */
+function qtLight_(root, inHand) {
+  if (!root || !root.querySelectorAll) return;
+  root.querySelectorAll('.qt-row .qt-t[data-do="qt-inst"], .qt-row .qt-t[data-do="qt-pen"]').forEach(t => {
+    const card = t.closest('.qcard'), pad = card && card.querySelector('.qpad');
+    const pk = (pad && pad.getAttribute('data-k')) || '';
+    const lit = qtToolOn_(t.getAttribute('data-tool'), t.getAttribute('data-key') || '', pk, inHand !== undefined ? inHand : qtInHand_(pk));
+    tileSet_(t, { on: lit, pressed: lit });
+  });
+}
+function qtRow_(x, held) {
+  if (!x || !x.key) return '';
+  const key = x.key;
+  /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
+  if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
+  /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
+  const art = typeof padReady_ !== 'function' || padReady_(x);
+  const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
+  const tools = tile_(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x))) + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
+  const m = markerOf_(x);
+  /* A PART OF A WHOLE QUESTION (owner, 8 Nov): its Show-the-answer and card tiles join this row, so the part has one row, not three */
+  const more = QT_MORE.html; QT_MORE.html = ''; QT_MORE.used = true;
+  const wk = typeof ansKey_ === 'function' && isQ_(x) ? ansKey_(x) : '';
+  const work = wk && typeof workGoOpts_ === 'function' ? `<span class="qp-work-slot" data-k="${esc(wk)}">${tile_(workGoOpts_(wk))}</span>` : '';
+  /* THE FOUR (owner, 9 Nov): Send/Check, Message, Star, ⋯; the tools, help, share and suggest wait behind ⋯ (`kcFour_`). */
+  const four = kcFour_(x, `<span class="qt-tools">${tools}</span>${held || ''}${work}${more}`, qtCheck_(x, m));
+  /* NO GREY LINE UNDER IT (owner, 9 Nov): how a part is marked is said when Check is pressed, on its verdict line. */
+  return `<div class="tile-row qt-row kc-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${four}</div>` + (QCALC_OPEN.has(key) ? qcalcHtml_(key) : '');
+}
+const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
+const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';
+/* ---------- THE CARD DRAWN AGAIN, where it stands: what a pen opened needs, its plan forgotten first. */
+/* A PART'S PEN OPENED OR PUT AWAY, and the plans that read it forgotten: what the card is drawn from next. */
+function qtPenSet_(x, on) {
+  if (!x || !x.key) return;
+  if (on) PEN_OPEN.add(x.key); else PEN_OPEN.delete(x.key);
+  CHUNK_MEMO.delete(x);   // a WeakMap's delete never throws, whatever it is given
+  STEM_PEN = { from: null, svgs: null };
+}
+function qtRedraw_(card, x) {
+  if (!card || !x) return null;
+  qtPenSet_(x, PEN_OPEN.has(x.key));
+  const t = document.createElement('div');
+  /* A FIND CARD STAYS IN THE ONE CARD SHAPE when drawn again (owner 1a, 8 Nov). */
+  t.innerHTML = card.classList.contains('kc') && isQ_(x) ? findCard(x) : questionCard_(x, card);
+  const next = t.firstElementChild;
+  if (!next) return null;
+  card.replaceWith(next);
+  return next;
 }
 
 ;
@@ -17843,7 +17791,7 @@ const WIDGETS = [
   { id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
     start: () => initLibCards_?.(),
     into: 'lib-box', what: 'Your library cards',
-    /* THE BOX ONLY: its host draws the card round it, and a card here showed twice (card-facts). */
+    /* THE BOX ONLY: its host draws the card round it, and a card here showed twice (card-render). */
     get html() { return '<div id="lib-box"></div>'; } },
 ];
 /* SECONDARY (860): every widget here not named core in data/settings/tiers.json throws into oops_, never into its caller. */
@@ -18602,7 +18550,7 @@ function resetBooking_(keepDraft) {
   BOOK_PREFILLED = false;
   /* AND THE DRAFT OF IT — sent, or started again, is not a booking to bring back (`bookKeep_`). § */
   if (keepDraft) return;
-  try { draftDrop_('book', 'form'); } catch (e) {}
+  try { draftDrop_('book', 'form'); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 
 
@@ -18625,21 +18573,21 @@ function bookKeep_() {
     /* EVERY NEW FORM IS A FRESH FORM (owner, 11 Nov): a kept draft came back on the next form, ticked hours and all, and read as already booked. */
     BOOK_WHO = draftWho_();
     draftDrop_('book', 'form');
-  } catch (e) {}
+  } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 /* `who` IS ONLY EVER `'device'`: the device's form, read in for the person it is marked as (`bookFollow_`). */
 function bookBack_(who) {
   if (typeof draftRead_ !== 'function') return;
   BOOK_WHO = who || draftWho_();
   /* NOTHING IS BROUGHT BACK — see `bookKeep_`; an old synced draft is dropped, not read. */
-  try { draftDrop_('book', 'form', who); } catch (e) {}
+  try { draftDrop_('book', 'form', who); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 bookBack_();
 /* ---------- SENT IS NOT A DRAFT (`draftSent_`, data.js) § */
 function bookSending_(going) {
   try {
     if (going) draftSent_('book', 'form'); else draftSentBack_('book', 'form');
-  } catch (e) {}
+  } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 /* ---------- AND ANOTHER TAB'S FORM IS THIS TAB'S (the `storage` listener in data.js) § */
 function bookElsewhere_(v, old) {
@@ -18649,7 +18597,7 @@ function bookElsewhere_(v, old) {
     resetBooking_(true);
     bookBack_();
     if ($('bookr') && typeof redrawBooker_ === 'function' && typeof paintBook_ === 'function') redrawBooker_(paintBook_);
-  } catch (e) {}
+  } catch (e) { oops_(e, 'book:elsewhere'); }
 }
 /* ---------- AND THE FORM IS THE PERSON'S, ON A SHARED iPAD § */
 function bookFollow_(signingIn) {
@@ -18662,9 +18610,9 @@ function bookFollow_(signingIn) {
     if (may === 'own' && bookBlank_()) bookBack_('device');
     if (may && !bookBlank_()) {
       /* THEIR OWN DRAFT FIRST, then the device's form joined to it. */
-      try { bookJoin_(draftRead_('book', 'form', undefined, now)); } catch (e) {}
+      try { bookJoin_(draftRead_('book', 'form', undefined, now)); } catch (e) { /* storage can be blocked; the app runs without it */ }
       bookKeep_();
-      try { draftDrop_('book', 'form', 'device'); } catch (e) {}
+      try { draftDrop_('book', 'form', 'device'); } catch (e) { /* storage can be blocked; the app runs without it */ }
       return;
     }
   }
@@ -18691,7 +18639,7 @@ function bookJoin_(raw) {
           const offered = (st.options() || []).map(norm);
           const at_ = x => { const i = offered.indexOf(norm(x)); return i === -1 ? offered.length : i; };
           list.sort((a, b) => at_(a) - at_(b));
-        } catch (e) {}
+        } catch (e) { /* no option list means any value is accepted */ }
       }
       BOOKING[k] = list;
     } else if (plain(mine) && !blank(mine)) {
@@ -18734,7 +18682,7 @@ on('book-block', el => {
 function bookKidsFor_() {
   const st = bookStep_('kids');
   let offered = [];
-  try { offered = (st && st.options() || []).map(norm); } catch (e) {}
+  try { offered = (st && st.options() || []).map(norm); } catch (e) { /* no option list means any value is accepted */ }
   BOOKING.kids = (BOOKING.kids || []).filter(k => offered.indexOf(norm(k)) !== -1);
 }
 
@@ -18748,7 +18696,7 @@ function bookToggle_(step, v) {
       const offered = (step.options() || []).map(norm);
       const at_ = x => { const i = offered.indexOf(norm(x)); return i === -1 ? offered.length : i; };
       list.sort((a, b) => at_(a) - at_(b));
-    } catch (err) {}
+    } catch (err) { /* no option list means any value is accepted */ }
     BOOKING[step.id] = list;
     if (step.set) step.set(list);
   }
@@ -18998,7 +18946,7 @@ function noteRow_() {
 /* ---------- SEVERAL ANSWERS, THE SAME DROPDOWN AS ONE § */
 function stepPick_(st) {
   let opts = [];
-  try { opts = (st.options() || []).filter(Boolean); } catch (e) {}
+  try { opts = (st.options() || []).filter(Boolean); } catch (e) { /* no option list means any value is accepted */ }
   const chosen = BOOKING[st.id] || [], on = o => chosen.some(c => norm(c) === norm(o));
   const said = o => String(st.label_ ? st.label_(o) : o);
   const fb = st.fallback ? String(st.fallback() || '') : '';
@@ -20022,7 +19970,7 @@ function bookFocusBack_(k) {
   if (!card) return;
   const el = [...card.querySelectorAll('[data-do]')].find(x => x.tagName === k.tag && bookDataOf_(x) === k.data
     && (k.value === null || x.value === k.value));
-  if (el && !el.disabled && document.activeElement !== el) { try { el.focus({ preventScroll: true }); } catch (e) {} }
+  if (el && !el.disabled && document.activeElement !== el) { try { el.focus({ preventScroll: true }); } catch (e) { /* focus is a nicety; an old browser without the option still works */ } }
 }
 
 /* BOOKING, AS A COLUMN `bookingPages_` ALREADY BUILDS THIS and has done since the form was folded into the funnel — it answers `What for · Booking`, and it § */
@@ -21354,8 +21302,7 @@ on('sr-read', () => {
 ;
 /* ==== js/writings.js ==== */
 /* ================= ONE MODEL FOR EVERY WRITTEN WORK (520): ONE SHELF, ONE FACET SET, ONE AGE, ONE REGISTRY ================= */
-/* "texts and writings?? what's the difference?" — none now: every loader (the Bible, talmud, quran, hadith, works, texts,
-   pdtexts, orthodox, hymns) maps its index onto `writingUnit_`, one shape. */
+/* "texts and writings?? what's the difference?" § */
 
 /* ONE COLLECTION, THREE NAMES (520): the Protestant, Catholic and Orthodox words for the same books. */
 const WRITING_DEUTERO = 'Deuterocanon / Apocrypha / Anagignoskomena';
@@ -21363,8 +21310,7 @@ const WRITING_DEUTERO_BOOKS = ['Tobit', 'Judith', 'Additions to Esther', 'Esther
   'Baruch', 'Letter of Jeremiah', 'Epistle of Jeremiah', 'Prayer of Azariah', 'Song of the Three Children', 'Susanna', 'Bel and the Dragon',
   '1 Maccabees', '2 Maccabees', '3 Maccabees', '4 Maccabees', '1 Esdras', '2 Esdras', 'Prayer of Manasseh', 'Prayer of Manasses', 'Psalm 151', 'Odes'];
 
-/* THE WORKS REGISTRY (520): each source's work, its tradition (a topic) and its subject; a source not here is literature or
-   history and keeps its own subject. Keyed by loader, then by the index's own id. */
+/* THE WORKS REGISTRY (520): § */
 const WRITING_WORKS = {
   bible: { work: 'Bible', topic: 'Christianity' },
   /* QURAN OR HADITH FIRST (owner, 6 Nov): two collections, asked before the six books. */
@@ -21396,8 +21342,7 @@ const writingFor_ = () => true;
 
 /* TEXT IS BUILT, NEVER WRITTEN (520): "<language>, <translator> (<year>)" from structured fields, keyed by what each index calls it. */
 const WRITING_LANG = { en: 'English', he: 'Hebrew', hbo: 'Hebrew', grc: 'Greek', ar: 'Arabic', arc: 'Aramaic', la: 'Latin', akk: 'Akkadian' };
-/* THE SOURCE TEXT IS A TEXT'S BASE (529: "pick Bible, then original text like LXX or MT, then translation"): what it was made
-   from, by Collection where its testaments came from different originals; an original is its own base. */
+/* THE SOURCE TEXT IS A TEXT'S BASE (529: "pick Bible, then original text like LXX or MT, then translation"): § */
 const WRITING_MT = 'Hebrew Masoretic Text', WRITING_LXX = 'Greek Septuagint', WRITING_GNT = 'Greek New Testament';
 /* A SOURCE TEXT IS A TEXT, NEVER A BARE LANGUAGE (546): the Quran's original is the Arabic Quran, as the Bible's is the Masoretic Text. */
 const WRITING_QURAN = 'Arabic Quran';
@@ -21518,11 +21463,10 @@ function writingLinkOf_(x) {
   return WRITING_TITLES.get(spellKey_(String(x.name || '').split(':')[0].trim())) || '';
 }
 /* A WRITING'S RELIGION (546) is its registry topic (Christianity, Judaism, Islam): "why is religion not coming up" — Topic holds hundreds of answers. */
-const writingAt1_ = (x, k) => (!x ? '' : k === 'religion' ? ((x.w || (x.kind === 'bible' && x.bb)) && x.topic) || ''
-  : x.w ? x.w[k] || '' : x.kind === 'bible' && x.bb ? bibleW_(x, k) || ''
+const writingAt1_ = (x, k) => (!x ? '' : k === 'religion' ? ((x.w || (isBible_(x) && x.bb)) && x.topic) || ''
+  : x.w ? x.w[k] || '' : isBible_(x) && x.bb ? bibleW_(x, k) || ''
   : k === 'work' ? writingLinkOf_(x) : '');
-/* A SOURCE TEXT TWO TRADITIONS HOLD (660): "where's the bible here?" under Judaism — the Masoretic Text in its own Hebrew is the
-   Old Testament's original and Judaism's Tanakh, so those cards answer both. */
+/* A SOURCE TEXT TWO TRADITIONS HOLD (660): § */
 const WRITING_HELD = { [WRITING_MT]: { work: 'Bible', religion: 'Judaism', collection: 'Tanakh' } };
 function writingAt_(x, k) {
   const v = writingAt1_(x, k);
@@ -21531,8 +21475,7 @@ function writingAt_(x, k) {
   /* THE ORIGINAL ONLY: a text with a translator (KJV's Old Testament) is a translation of it, not it. */
   if (!also || !also[k] || writingAt1_(x, 'work') !== also.work || writingVersionOf_(writingAt1_(x, 'text'))) return v;
   const had = [].concat(v || []);
-  /* A COLLECTION IS NAMED BY THE RELIGION ASKED (770): under Judaism the Masoretic books are the Tanakh and never the Old Testament;
-     under Christianity the other way; with no religion chosen, both. */
+  /* A COLLECTION IS NAMED BY THE RELIGION ASKED (770): § */
   if (k === 'collection') {
     const rel = writingReligionAsked_();
     if (rel && spellKey_(rel) === spellKey_(also.religion)) return also[k];
@@ -21545,14 +21488,13 @@ function writingReligionAsked_() {
   try { const f = (STUFF.filters || []).find(g => g && g.field === 'wReligion' && !g.any); return f ? String(f.value || '') : ''; } catch (e) { return ''; }
 }
 function writingOf_(x) {
-  if (!x || !(x.w || (x.kind === 'bible' && x.bb))) return null;
+  if (!x || !(x.w || (isBible_(x) && x.bb))) return null;
   const w = {};
   WRITING_KEYS.forEach(k => { w[k] = writingAt_(x, k); });
   return w;
 }
 
-/* ---------- R4: THE SET A FUNNEL ANSWERS OVER IS FIXED WHEN IT STARTS (520). A source whose index comes later joins at the next
-   fresh start (no chip, no words), never under an answered question. */
+/* ---------- R4: THE SET A FUNNEL ANSWERS OVER IS FIXED WHEN IT STARTS (520). A source whose index comes later joins at the next § */
 const WRITING_CAME = {};
 function writingCame_(src) {
   WRITING_CAME[src] = true;
@@ -21581,8 +21523,6 @@ function writingAdmit_() {
   return STUFF.admit == null ? writingNow_() : STUFF.admit;
 }
 const writingAdmitted_ = (x, admit) => !x.wSrc || (',' + admit + ',').indexOf(',' + x.wSrc + ',') >= 0;
-/* WHETHER ANY SOURCE'S INDEX IS STILL ON ITS WAY (546) — every loader keeps `asking` on its own state, read here as one list. */
-const writingAsking_ = () => [BIBLE, TALMUD, QURAN, HADITH, WORKS, TEXTS, PDTEXTS, ORTHO, HYMNS].some(S => S && S.asking);
 
 /* ---------- ONE READING LAYOUT FOR EVERY LIBRARY TEXT (owner, 8 Nov): title, a reference in its tradition's own numbering, the text. */
 /* THE NUMBERING IS DATA: `{path}` reads the item, `[...]` drops when a path in it is empty, `a|b` falls back, `@name` is `READING_SAY`. */
@@ -24149,226 +24089,6 @@ function layoutSeen_(col, D) {
   return (D.widgets[col] || []).filter(id => { const w = layoutWidgetOf_(id); return w && widgetFor_(w); });
 }
 
-/* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete, as tile_'s options grouped by `widgetOnColumn_` (arcade.js) ---------- */
-function layoutOpts_(w) {
-  if (!w || !isAdmin()) return null;
-  /* A FIND CARD (790) IS PLACED BY THE FUNNEL, so it has no ▲ ▼ ◀ ▶: its words, who sees it and Delete, which are the widget's own. */
-  if (typeof widgetInFind_ === 'function' && widgetInFind_(w)) {
-    const id = String(w.id);
-    return [wordsOpts_('w:' + id, id), { icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }];
-  }
-  if (!LAYOUT_EDIT || !LAYOUT_COL[w.kind]) return null;
-  const id = String(w.id), L = layoutNow_(), col = layoutHome_(w, L);
-  if (!col) return null;
-  /* THE COLUMN'S UNITS AS DRAWN (710), widgets and cards together, so ▲ ▼ step over a card as over a widget. */
-  const units = mergeUnits_(CARD_SEEN[col] || layoutSeen_(col, layoutDraftOf_(L)), L), ui = units.findIndex(u => u.indexOf(id) !== -1);
-  const grp = mergedOf_(id, L), above = ui > 0 ? units[ui - 1] : null;
-  /* A MERGE IS OF ONE KIND: a widget with the widget above, never with a card. */
-  const up = above && above.every(isWidgetId_) && mergeOk_(mergeAll_(above[0], L).concat(grp || [id]));
-  return [{ icon: 'up', label: 'Move up', act: 'lay-w-move', tone: 'admin', data: { w: id, d: -1 }, off: ui <= 0 },
-    { icon: 'down', label: 'Move down', act: 'lay-w-move', tone: 'admin', data: { w: id, d: 1 }, off: ui === -1 || ui >= units.length - 1 },
-    acrossOpts_(id, col, true, { w: id }), ...colOpts_(col, id),
-    up ? { icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } } : null,
-    grp ? { icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } } : null,
-    startOpts_(col, id, ((L || {}).start || {})[col] || ''), frontOpts_(col, id), wordsOpts_('w:' + id, id),
-    !(grp || [id]).some(basketKept_) ? { icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' } : null];
-}
-/* ◀ ▶ FOR EVERY UNIT (710): the neighbouring column whatever it holds; past an edge, a new column. */
-function acrossOpts_(id, col, isW, data) {
-  /* EACH ACT SPELT AS check-doors reads it, so both pair with their handlers. */
-  const act = isW ? { act: 'lay-w-col' }.act : { act: 'lay-c-col' }.act;
-  const cols = cardColsFor_(id), ci = cols.indexOf(col), last = ci !== -1 && ci >= cols.length - 1, adm = adminCol_(col), room = customRoom_();
-  return [{ icon: 'left', label: ci === 0 && !adm ? 'Move to a new column on the left' : 'Move to previous column', act: act, tone: 'admin',
-      data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || (ci === 0 && (adm || !room)) },
-    { icon: 'right', label: last ? (adm ? 'Move to a new admin-only column' : 'Move to a new column') : 'Move to next column', act: act, tone: 'admin',
-      data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || (last && !room) },
-    /* A NEW COLUMN BETWEEN TWO (730): the owner, "insert a column in between two columns" — made here, beside this one, holding this unit. */
-    { icon: 'plus', label: 'Move to a new column here, on the left', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || !room },
-    { icon: 'plus', label: 'Move to a new column here, on the right', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || !room }];
-}
-/* THE NEW COLUMN STANDS BESIDE `col` by the saved `order` (colOrderApply_); empty again, it goes like any custom column. */
-function layNewCol_(id, col, d, kind) {
-  if (!customRoom_() || cardColsFor_(id).indexOf(col) === -1) return;
-  const L = layoutNow_(), D = layoutDraftOf_(L), cu = D.custom || [];
-  const to = 'custom-' + (cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1);
-  D.custom = cu.concat([adminCol_(col) ? { id: to, admin: true } : { id: to }]);
-  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1);
-  all.forEach(x => cardUnlist_(D, x));
-  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
-  colOrderSet_(D, col, from);
-  colOrderSet_(D, to, all);
-  const ord = COLUMNS.map(t => t.id).filter(x => x !== to), at = ord.indexOf(col);
-  ord.splice(d < 0 ? at : at + 1, 0, to);
-  D.order = ord;
-  layMoveShow_(kind, id, col, () => layoutSave_(D), to);
-}
-on('lay-newcol', el => {
-  const w = el.getAttribute('data-w'), c = el.getAttribute('data-lc');
-  layNewCol_(w || c || '', el.getAttribute('data-col') || '', Number(el.getAttribute('data-d')) || 0, w ? 'w' : 'c');
-});
-
-/* ---------- A MOVE YOU CAN SEE (498): "add a transition so I can see where it goes" ----------
-   Up or down: FLIP, drawn where it was and slid to where it is. Across: the column slides there and the thing is lit. */
-/* LESS MOTION is the app's one question, `motionOK_` (537): the ring still lights, as a ring, for `--dur-mark`. */
-const layCalm_ = () => !motionOK_();
-function layThing_(kind, id, col) {
-  const host = col ? document.getElementById('s-' + col) : document;
-  if (!host || !id) return null;
-  const css = s => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'));
-  const el = kind === 'w' ? host.querySelector('#wgt-' + css(id)) : host.querySelector('[data-lay-for="' + css(id) + '"]');
-  return el ? (el.closest('.card') || el.closest('.page')) : null;
-}
-function layLight_(el) {
-  if (!el) return;
-  el.classList.remove('lay-moved');
-  void el.offsetWidth;
-  el.classList.add('lay-moved');
-  /* OFF WHEN ITS RING ENDS; the timer only for a ring that never ran (an element not drawn), and one per element, so a second light is not cut short by the first's. */
-  clearTimeout(el.layLitT);
-  const off = () => { clearTimeout(el.layLitT); el.classList.remove('lay-moved'); };
-  el.addEventListener('animationend', e => { if (e.animationName === 'lay-moved') off(); }, { once: true });
-  el.layLitT = setTimeout(off, MOTION_.mark + 200);
-}
-/* SAVE, THEN SHOW IT: `before` is where it stood; `to` the column it went to, when it went across. */
-/* THE OTHERS MAKE ROOM (710): "I should see the other widgets moving out of the way" — every unit on the column, read before and glided after. */
-function layUnitsAt_(col) {
-  const host = col && document.getElementById('s-' + col), out = new Map();
-  if (!host) return out;
-  host.querySelectorAll('.card-admin[data-lay-for], .widget-slot[id^="wgt-"]').forEach(x => {
-    const el = x.closest('.card') || x.closest('.page'), k = x.getAttribute('data-lay-for') || x.id;
-    if (el && !out.has(k)) out.set(k, el.getBoundingClientRect());
-  });
-  return out;
-}
-function layMakeRoom_(col, before, skip) {
-  if (layCalm_() || !before.size) return;
-  const host = document.getElementById('s-' + col);
-  if (!host) return;
-  host.querySelectorAll('.card-admin[data-lay-for], .widget-slot[id^="wgt-"]').forEach(x => {
-    const k = x.getAttribute('data-lay-for') || x.id, r0 = before.get(k), el = x.closest('.card') || x.closest('.page');
-    if (!r0 || !el || el === skip || typeof el.animate !== 'function') return;
-    const r1 = el.getBoundingClientRect(), dx = r0.left - r1.left, dy = r0.top - r1.top, z = el.currentCSSZoom || 1;
-    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth) return;
-    el.animate([{ translate: `${dx / z}px ${dy / z}px` }, { translate: '0 0' }], { duration: MOTION_.move, easing: MOTION_.spring });
-  });
-}
-function layMoveShow_(kind, id, col, save, to) {
-  const was = layThing_(kind, id, col), r0 = was && was.getBoundingClientRect(), room = layUnitsAt_(col);
-  save();
-  const after = () => {
-    if (to && to !== col) {
-      try { go(to); } catch (e) {}
-      /* ITS PAGE BY THE PAGER, never scrollIntoView: the parked columns are off-canvas by design and a scroll would move the whole app. */
-      setTimeout(() => {
-        const el = layThing_(kind, id, to), pg = el && el.closest('.page'), host = document.getElementById('s-' + to);
-        const n = pg && host ? [...host.querySelectorAll('.page')].indexOf(pg) : -1;
-        if (n > -1) { try { goPage(to, n, layCalm_()); } catch (e) {} }
-        layLight_(el);
-      }, layCalm_() ? 0 : MOTION_.move + 140);
-      return;
-    }
-    const el = layThing_(kind, id, col);
-    if (!el) return;
-    layMakeRoom_(col, room, el);
-    if (!r0 || layCalm_()) { layLight_(el); return; }
-    /* ONE GLIDE AT A TIME, WAAPI (537): a move during a move starts from where the eye sees it (`r0`, read with the old glide running) and the old one is cancelled before the new place is read. */
-    if (el.layGlide) { try { el.layGlide.cancel(); } catch (e) { /* already gone */ } el.layGlide = null; }
-    const r1 = el.getBoundingClientRect(), dx = r0.left - r1.left, dy = r0.top - r1.top;
-    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth || typeof el.animate !== 'function') { layLight_(el); return; }
-    const z = el.currentCSSZoom || 1;
-    el.layGlide = el.animate([{ translate: `${dx / z}px ${dy / z}px` }, { translate: '0 0' }],
-                             { duration: MOTION_.move, easing: MOTION_.spring });
-    layLight_(el);
-  };
-  try { requestAnimationFrame(after); } catch (e) { after(); }
-}
-
-/* ---------- THE MOVES: each one a change to the whole layout, saved at once — the same two for a widget and a card (710) ---------- */
-on('lay-w-move', el => {
-  if (!isAdmin()) return;
-  const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
-  if (w) layUpDown_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
-});
-on('lay-w-col', el => {
-  if (!isAdmin()) return;
-  const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
-  if (w) layAcross_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
-});
-/* A COLUMN'S ORDER WRITTEN BACK (710): its widgets to `widgets[col]`, and the whole mixed order to `cards[col]` when it holds a card. */
-function colOrderSet_(D, col, order) {
-  const wl = order.filter(isWidgetId_);
-  if (wl.length || layoutWidgetCols_().indexOf(col) !== -1) D.widgets[col] = wl; else delete D.widgets[col];
-  D.cards = D.cards || {};
-  if (order.some(x => !isWidgetId_(x))) D.cards[col] = order.slice(); else delete D.cards[col];
-  if (!Object.keys(D.cards).length) delete D.cards;
-}
-/* UP OR DOWN past the neighbouring unit, widget or card. */
-function layUpDown_(id, col, d, kind) {
-  const L = layoutNow_();
-  if (!col || !hostIs_(col, L)) return;
-  const list = cardListOf_(col, L), units = mergeUnits_(CARD_SEEN[col] || [], L);
-  const ui = units.findIndex(u => u.indexOf(id) !== -1), next = units[ui + d];
-  if (ui === -1 || !next) return;
-  const D = layoutDraftOf_(L);
-  colOrderSet_(D, col, unitPlace_(list, mergeAll_(id, L), next, d));
-  layMoveShow_(kind, id, col, () => layoutSave_(D));
-}
-/* ACROSS: to the end of the neighbouring column, whatever it holds; past an edge a new unnamed column (466, 600, 710). */
-function layAcross_(id, col, d, kind) {
-  const cols = cardColsFor_(id), L = layoutNow_(), D = layoutDraftOf_(L);
-  if (cols.indexOf(col) === -1) return;
-  let to = cols[cols.indexOf(col) + d], fresh = false;
-  if (!to && customRoom_() && (d > 0 || !adminCol_(col))) {
-    fresh = true;
-    const cu = D.custom || [], n = cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1;
-    to = 'custom-' + n;
-    const made = d < 0 ? { id: to, first: true } : adminCol_(col) ? { id: to, admin: true } : { id: to };
-    D.custom = d < 0 ? [made].concat(cu) : cu.concat([made]);
-  }
-  if (!to) return;
-  /* A MERGED CARD MOVES WHOLE (480). */
-  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1), there = fresh ? [] : cardListOf_(to, L).filter(x => all.indexOf(x) === -1);
-  all.forEach(x => cardUnlist_(D, x));
-  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
-  colOrderSet_(D, col, from);
-  colOrderSet_(D, to, there.concat(all));
-  layMoveShow_(kind, id, col, () => layoutSave_(D), to);
-}
-/* ASKED TWICE THROUGH sure_ (534), so its 400 ms rule holds here too: the tile keeps its mark, the question is its label and, with `word`, a word beside it. */
-function layArm_(el, say, rest, word) {
-  return sure_(el, say, { ms: 3000,
-    face: x => {
-      x.classList.add('is-armed'); tileSet_(x, { label: say });
-      const k = x.querySelector('.tile-i');
-      if (word && k && !x.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', `<span class="lay-again">${esc(say)}</span>`);
-    },
-    back: x => { x.classList.remove('is-armed'); tileSet_(x, { label: rest }); x.querySelector('.lay-again')?.remove(); } });
-}
-/* DELETE ASKS TWICE, IN PLACE, THEN IS FINAL (477): `deleted` only keeps it from being drawn again; there is no undo. */
-on('lay-w-del', el => {
-  if (!isAdmin()) return;
-  const id = el.getAttribute('data-w');
-  const all = mergeAll_(id, layoutNow_());
-  if (all.some(basketKept_)) return;
-  if (!layArm_(el, all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete', 'Delete', true)) return;
-  const D = layoutDraftOf_(layoutNow_());
-  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
-  all.forEach(x => { cardUnlist_(D, x); if (D.deleted.indexOf(x) === -1) D.deleted.push(x); });
-  layoutSave_(D);
-});
-/* ---------- SAVED FOR EVERYBODY, DRAWN AT ONCE, PUT BACK IF THE SHEET SAYS NO ---------- */
-function layoutSave_(next) {
-  if (!isAdmin() || !next) return Promise.resolve(false);
-  const was = layoutNow_();
-  customPrune_(next); mergePrune_(next);
-  const set = v => { try { DATA.layout = v; } catch (e) {} layoutKeep_(v); layoutRelayout_(); };
-  const val = layoutSane_(next);
-  set(val);
-  return send({ action: 'layoutSave', personId: (USER && USER.personId) || '', layout: val })
-    .then(() => true)
-    .catch(err => { set(was); toast(why_(err)); return false; });
-}
-
 /* ---------- DELETED, PUT BACK (an admin deleted the whiteboard and had no way back): every deleted widget and card on Business, a Put back tile each ---------- */
 function layoutDeletedName_(id) {
   const w = anyWidgetOf_(id);
@@ -25111,6 +24831,235 @@ on('lay-unmerge', el => {
 /* FOR THE JOURNEYS: the merged groups in force. */
 function mergedNow_() { return (((layoutNow_() || {}).merged) || []).map(g => g.slice()); }
 
+/* THE CODE'S OWN GATE, where it is known: a widget's flags, a card on an admin column; '' when it is for everyone or decided inside its builder. */
+function seenGate_(id) {
+  const w = typeof anyWidgetOf_ === 'function' ? anyWidgetOf_(id) : null;
+  if (w) return w.admin ? 'admin' : w.tutor ? 'staff' : w.signedIn ? 'in' : '';
+  try { if (adminCol_(cardHome0_(id))) return 'admin'; } catch (e) {}
+  return '';
+}
+
+;
+/* ==== js/layout-moves.js ==== */
+/* @family. — js/layout-moves.js AN ADMIN'S MOVES: the tiles that move a widget or card, the move you can see, and the save for everybody (cut from layout.js; read as one by tools/piece-src.js). */
+/* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete, as tile_'s options grouped by `widgetOnColumn_` (arcade.js) ---------- */
+function layoutOpts_(w) {
+  if (!w || !isAdmin()) return null;
+  /* A FIND CARD (790) IS PLACED BY THE FUNNEL, so it has no ▲ ▼ ◀ ▶: its words, who sees it and Delete, which are the widget's own. */
+  if (typeof widgetInFind_ === 'function' && widgetInFind_(w)) {
+    const id = String(w.id);
+    return [wordsOpts_('w:' + id, id), { icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }];
+  }
+  if (!LAYOUT_EDIT || !LAYOUT_COL[w.kind]) return null;
+  const id = String(w.id), L = layoutNow_(), col = layoutHome_(w, L);
+  if (!col) return null;
+  /* THE COLUMN'S UNITS AS DRAWN (710), widgets and cards together, so ▲ ▼ step over a card as over a widget. */
+  const units = mergeUnits_(CARD_SEEN[col] || layoutSeen_(col, layoutDraftOf_(L)), L), ui = units.findIndex(u => u.indexOf(id) !== -1);
+  const grp = mergedOf_(id, L), above = ui > 0 ? units[ui - 1] : null;
+  /* A MERGE IS OF ONE KIND: a widget with the widget above, never with a card. */
+  const up = above && above.every(isWidgetId_) && mergeOk_(mergeAll_(above[0], L).concat(grp || [id]));
+  return [{ icon: 'up', label: 'Move up', act: 'lay-w-move', tone: 'admin', data: { w: id, d: -1 }, off: ui <= 0 },
+    { icon: 'down', label: 'Move down', act: 'lay-w-move', tone: 'admin', data: { w: id, d: 1 }, off: ui === -1 || ui >= units.length - 1 },
+    acrossOpts_(id, col, true, { w: id }), ...colOpts_(col, id),
+    up ? { icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } } : null,
+    grp ? { icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } } : null,
+    startOpts_(col, id, ((L || {}).start || {})[col] || ''), frontOpts_(col, id), wordsOpts_('w:' + id, id),
+    !(grp || [id]).some(basketKept_) ? { icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' } : null];
+}
+/* ◀ ▶ FOR EVERY UNIT (710): the neighbouring column whatever it holds; past an edge, a new column. */
+function acrossOpts_(id, col, isW, data) {
+  /* EACH ACT SPELT AS check-doors reads it, so both pair with their handlers. */
+  const act = isW ? { act: 'lay-w-col' }.act : { act: 'lay-c-col' }.act;
+  const cols = cardColsFor_(id), ci = cols.indexOf(col), last = ci !== -1 && ci >= cols.length - 1, adm = adminCol_(col), room = customRoom_();
+  return [{ icon: 'left', label: ci === 0 && !adm ? 'Move to a new column on the left' : 'Move to previous column', act: act, tone: 'admin',
+      data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || (ci === 0 && (adm || !room)) },
+    { icon: 'right', label: last ? (adm ? 'Move to a new admin-only column' : 'Move to a new column') : 'Move to next column', act: act, tone: 'admin',
+      data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || (last && !room) },
+    /* A NEW COLUMN BETWEEN TWO (730): the owner, "insert a column in between two columns" — made here, beside this one, holding this unit. */
+    { icon: 'plus', label: 'Move to a new column here, on the left', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || !room },
+    { icon: 'plus', label: 'Move to a new column here, on the right', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || !room }];
+}
+/* THE NEW COLUMN STANDS BESIDE `col` by the saved `order` (colOrderApply_); empty again, it goes like any custom column. */
+function layNewCol_(id, col, d, kind) {
+  if (!customRoom_() || cardColsFor_(id).indexOf(col) === -1) return;
+  const L = layoutNow_(), D = layoutDraftOf_(L), cu = D.custom || [];
+  const to = 'custom-' + (cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1);
+  D.custom = cu.concat([adminCol_(col) ? { id: to, admin: true } : { id: to }]);
+  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1);
+  all.forEach(x => cardUnlist_(D, x));
+  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
+  colOrderSet_(D, col, from);
+  colOrderSet_(D, to, all);
+  const ord = COLUMNS.map(t => t.id).filter(x => x !== to), at = ord.indexOf(col);
+  ord.splice(d < 0 ? at : at + 1, 0, to);
+  D.order = ord;
+  layMoveShow_(kind, id, col, () => layoutSave_(D), to);
+}
+on('lay-newcol', el => {
+  const w = el.getAttribute('data-w'), c = el.getAttribute('data-lc');
+  layNewCol_(w || c || '', el.getAttribute('data-col') || '', Number(el.getAttribute('data-d')) || 0, w ? 'w' : 'c');
+});
+/* ---------- A MOVE YOU CAN SEE (498): "add a transition so I can see where it goes" ----------
+   Up or down: FLIP, drawn where it was and slid to where it is. Across: the column slides there and the thing is lit. */
+/* LESS MOTION is the app's one question, `motionOK_` (537): the ring still lights, as a ring, for `--dur-mark`. */
+const layCalm_ = () => !motionOK_();
+function layThing_(kind, id, col) {
+  const host = col ? document.getElementById('s-' + col) : document;
+  if (!host || !id) return null;
+  const css = s => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'));
+  const el = kind === 'w' ? host.querySelector('#wgt-' + css(id)) : host.querySelector('[data-lay-for="' + css(id) + '"]');
+  return el ? (el.closest('.card') || el.closest('.page')) : null;
+}
+function layLight_(el) {
+  if (!el) return;
+  el.classList.remove('lay-moved');
+  void el.offsetWidth;
+  el.classList.add('lay-moved');
+  /* OFF WHEN ITS RING ENDS; the timer only for a ring that never ran (an element not drawn), and one per element, so a second light is not cut short by the first's. */
+  clearTimeout(el.layLitT);
+  const off = () => { clearTimeout(el.layLitT); el.classList.remove('lay-moved'); };
+  el.addEventListener('animationend', e => { if (e.animationName === 'lay-moved') off(); }, { once: true });
+  el.layLitT = setTimeout(off, MOTION_.mark + 200);
+}
+/* SAVE, THEN SHOW IT: `before` is where it stood; `to` the column it went to, when it went across. */
+/* THE OTHERS MAKE ROOM (710): "I should see the other widgets moving out of the way" — every unit on the column, read before and glided after. */
+function layUnitsAt_(col) {
+  const host = col && document.getElementById('s-' + col), out = new Map();
+  if (!host) return out;
+  host.querySelectorAll('.card-admin[data-lay-for], .widget-slot[id^="wgt-"]').forEach(x => {
+    const el = x.closest('.card') || x.closest('.page'), k = x.getAttribute('data-lay-for') || x.id;
+    if (el && !out.has(k)) out.set(k, el.getBoundingClientRect());
+  });
+  return out;
+}
+function layMakeRoom_(col, before, skip) {
+  if (layCalm_() || !before.size) return;
+  const host = document.getElementById('s-' + col);
+  if (!host) return;
+  host.querySelectorAll('.card-admin[data-lay-for], .widget-slot[id^="wgt-"]').forEach(x => {
+    const k = x.getAttribute('data-lay-for') || x.id, r0 = before.get(k), el = x.closest('.card') || x.closest('.page');
+    if (!r0 || !el || el === skip || typeof el.animate !== 'function') return;
+    const r1 = el.getBoundingClientRect(), dx = r0.left - r1.left, dy = r0.top - r1.top, z = el.currentCSSZoom || 1;
+    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth) return;
+    el.animate([{ translate: `${dx / z}px ${dy / z}px` }, { translate: '0 0' }], { duration: MOTION_.move, easing: MOTION_.spring });
+  });
+}
+function layMoveShow_(kind, id, col, save, to) {
+  const was = layThing_(kind, id, col), r0 = was && was.getBoundingClientRect(), room = layUnitsAt_(col);
+  save();
+  const after = () => {
+    if (to && to !== col) {
+      try { go(to); } catch (e) { /* the column went mid-move: the layout is saved, the view stays */ }
+      /* ITS PAGE BY THE PAGER, never scrollIntoView: the parked columns are off-canvas by design and a scroll would move the whole app. */
+      setTimeout(() => {
+        const el = layThing_(kind, id, to), pg = el && el.closest('.page'), host = document.getElementById('s-' + to);
+        const n = pg && host ? [...host.querySelectorAll('.page')].indexOf(pg) : -1;
+        if (n > -1) { try { goPage(to, n, layCalm_()); } catch (e) { /* the page went mid-move: the layout is saved, the view stays */ } }
+        layLight_(el);
+      }, layCalm_() ? 0 : MOTION_.move + 140);
+      return;
+    }
+    const el = layThing_(kind, id, col);
+    if (!el) return;
+    layMakeRoom_(col, room, el);
+    if (!r0 || layCalm_()) { layLight_(el); return; }
+    /* ONE GLIDE AT A TIME, WAAPI (537): a move during a move starts from where the eye sees it (`r0`, read with the old glide running) and the old one is cancelled before the new place is read. */
+    if (el.layGlide) { try { el.layGlide.cancel(); } catch (e) { /* already gone */ } el.layGlide = null; }
+    const r1 = el.getBoundingClientRect(), dx = r0.left - r1.left, dy = r0.top - r1.top;
+    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth || typeof el.animate !== 'function') { layLight_(el); return; }
+    const z = el.currentCSSZoom || 1;
+    el.layGlide = el.animate([{ translate: `${dx / z}px ${dy / z}px` }, { translate: '0 0' }],
+                             { duration: MOTION_.move, easing: MOTION_.spring });
+    layLight_(el);
+  };
+  try { requestAnimationFrame(after); } catch (e) { after(); }
+}
+/* ---------- THE MOVES: each one a change to the whole layout, saved at once — the same two for a widget and a card (710) ---------- */
+on('lay-w-move', el => {
+  if (!isAdmin()) return;
+  const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
+  if (w) layUpDown_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
+});
+on('lay-w-col', el => {
+  if (!isAdmin()) return;
+  const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
+  if (w) layAcross_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
+});
+/* A COLUMN'S ORDER WRITTEN BACK (710): its widgets to `widgets[col]`, and the whole mixed order to `cards[col]` when it holds a card. */
+function colOrderSet_(D, col, order) {
+  const wl = order.filter(isWidgetId_);
+  if (wl.length || layoutWidgetCols_().indexOf(col) !== -1) D.widgets[col] = wl; else delete D.widgets[col];
+  D.cards = D.cards || {};
+  if (order.some(x => !isWidgetId_(x))) D.cards[col] = order.slice(); else delete D.cards[col];
+  if (!Object.keys(D.cards).length) delete D.cards;
+}
+/* UP OR DOWN past the neighbouring unit, widget or card. */
+function layUpDown_(id, col, d, kind) {
+  const L = layoutNow_();
+  if (!col || !hostIs_(col, L)) return;
+  const list = cardListOf_(col, L), units = mergeUnits_(CARD_SEEN[col] || [], L);
+  const ui = units.findIndex(u => u.indexOf(id) !== -1), next = units[ui + d];
+  if (ui === -1 || !next) return;
+  const D = layoutDraftOf_(L);
+  colOrderSet_(D, col, unitPlace_(list, mergeAll_(id, L), next, d));
+  layMoveShow_(kind, id, col, () => layoutSave_(D));
+}
+/* ACROSS: to the end of the neighbouring column, whatever it holds; past an edge a new unnamed column (466, 600, 710). */
+function layAcross_(id, col, d, kind) {
+  const cols = cardColsFor_(id), L = layoutNow_(), D = layoutDraftOf_(L);
+  if (cols.indexOf(col) === -1) return;
+  let to = cols[cols.indexOf(col) + d], fresh = false;
+  if (!to && customRoom_() && (d > 0 || !adminCol_(col))) {
+    fresh = true;
+    const cu = D.custom || [], n = cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1;
+    to = 'custom-' + n;
+    const made = d < 0 ? { id: to, first: true } : adminCol_(col) ? { id: to, admin: true } : { id: to };
+    D.custom = d < 0 ? [made].concat(cu) : cu.concat([made]);
+  }
+  if (!to) return;
+  /* A MERGED CARD MOVES WHOLE (480). */
+  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1), there = fresh ? [] : cardListOf_(to, L).filter(x => all.indexOf(x) === -1);
+  all.forEach(x => cardUnlist_(D, x));
+  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
+  colOrderSet_(D, col, from);
+  colOrderSet_(D, to, there.concat(all));
+  layMoveShow_(kind, id, col, () => layoutSave_(D), to);
+}
+/* ASKED TWICE THROUGH sure_ (534), so its 400 ms rule holds here too: the tile keeps its mark, the question is its label and, with `word`, a word beside it. */
+function layArm_(el, say, rest, word) {
+  return sure_(el, say, { ms: 3000,
+    face: x => {
+      x.classList.add('is-armed'); tileSet_(x, { label: say });
+      const k = x.querySelector('.tile-i');
+      if (word && k && !x.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', `<span class="lay-again">${esc(say)}</span>`);
+    },
+    back: x => { x.classList.remove('is-armed'); tileSet_(x, { label: rest }); x.querySelector('.lay-again')?.remove(); } });
+}
+/* DELETE ASKS TWICE, IN PLACE, THEN IS FINAL (477): `deleted` only keeps it from being drawn again; there is no undo. */
+on('lay-w-del', el => {
+  if (!isAdmin()) return;
+  const id = el.getAttribute('data-w');
+  const all = mergeAll_(id, layoutNow_());
+  if (all.some(basketKept_)) return;
+  if (!layArm_(el, all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete', 'Delete', true)) return;
+  const D = layoutDraftOf_(layoutNow_());
+  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
+  all.forEach(x => { cardUnlist_(D, x); if (D.deleted.indexOf(x) === -1) D.deleted.push(x); });
+  layoutSave_(D);
+});
+/* ---------- SAVED FOR EVERYBODY, DRAWN AT ONCE, PUT BACK IF THE SHEET SAYS NO ---------- */
+function layoutSave_(next) {
+  if (!isAdmin() || !next) return Promise.resolve(false);
+  const was = layoutNow_();
+  customPrune_(next); mergePrune_(next);
+  const set = v => { try { DATA.layout = v; } catch (e) { /* no payload yet: the device's copy below still holds it */ } layoutKeep_(v); layoutRelayout_(); };
+  const val = layoutSane_(next);
+  set(val);
+  return send({ action: 'layoutSave', personId: (USER && USER.personId) || '', layout: val })
+    .then(() => true)
+    .catch(err => { set(was); toast(why_(err)); return false; });
+}
+
 ;
 /* ==== js/words.js ==== */
 /* @family. — words.js THE ADMIN CHANGES THE SITE WITHOUT ASKING (497): the words on every widget and card edited in place, and who sees each. */
@@ -25274,13 +25223,6 @@ function seenOk_(id) {
   if (s === 'out') return !signed;
   if (s === 'in') return signed;
   return typeof rankAtLeast_ === 'function' && rankAtLeast_(s);
-}
-/* THE CODE'S OWN GATE, where it is known: a widget's flags, a card on an admin column; '' when it is for everyone or decided inside its builder. */
-function seenGate_(id) {
-  const w = typeof anyWidgetOf_ === 'function' ? anyWidgetOf_(id) : null;
-  if (w) return w.admin ? 'admin' : w.tutor ? 'staff' : w.signedIn ? 'in' : '';
-  try { if (adminCol_(cardHome0_(id))) return 'admin'; } catch (e) {}
-  return '';
 }
 /* A LEVEL BELOW THE CODE'S GATE WOULD WIDEN IT, so it is not offered (and would not work: both are asked). */
 const seenWider_ = (lvl, gate) => !!gate && lvl !== '' && (lvl === 'out' || SEEN_ORDER.indexOf(lvl) < SEEN_ORDER.indexOf(gate));

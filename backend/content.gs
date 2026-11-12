@@ -367,7 +367,7 @@ function reportsMigrate_() {
     moved++;
   });
   clearCache();
-  try { claudeNotesWrite_(claudeNotesOpen_()); } catch (err) {}
+  try { claudeNotesWrite_(claudeNotesOpen_()); } catch (err) { /* the notes sheet is optional; the edit itself already landed */ }
   return moved + ' old report' + (moved === 1 ? '' : 's') + ' moved to Notes for Claude';
 }
 

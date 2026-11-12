@@ -18,7 +18,7 @@ const SUITE = [
   { file: 'check-strings.js', what: 'templates that do not interpolate' },
   { file: 'check-css.js',     what: 'the stylesheet', par: true },
   /* FEWER PLACES A STYLE CAN LIVE: colours only as :root tokens, !important only from a named list; read, so it stays in --fast. */
-  { file: 'check-style-sources.js', what: 'colour literals only in :root tokens, !important only from its allow-list, js colours only go down' },
+  { file: 'check-style-sources.js', what: '!important only from its allow-list, js colours only go down' },
   /* MOTION IS ONE SYSTEM (531): read, not run, so it stays in --fast; a ratchet on literal durations, curves and moved properties. */
   { file: 'check/motion.js', what: 'durations, curves and moved properties: no count grows past check/motion-baseline.json' },
   /* ---------- ONE LOADER, AND NOTHING ELSE DRAWS A WAIT § */
@@ -97,7 +97,7 @@ const SUITE = [
   { file: 'check-mechanics.js', what: 'the mechanics cards: system, source, no part numbers (548)' },
   { file: 'check-chemistry.js', what: 'the chemistry cards: 118 elements 1–118, reactions name real cards, sources (550)' },
   { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary', par: true },
-  /* THE ONE SCHEMA (R4, R5): every card file's rows against check/schema.js, counts pinned until P4; both row-writers refuse a bad row. */
+  /* THE ONE SCHEMA (R4, R5): every card file's rows against check/library-schema.js, counts pinned until P4; both row-writers refuse a bad row. */
   { file: 'check-schema.js', what: 'the whole library against its one schema, and the importers\' gate', par: true },
   /* ---------- AND HOW READY EACH PAPER IS, AS A REPORT § */
   { file: 'check-qtypes.js', what: 'every question part one interaction type, every type a protocol — gaps a report' },
@@ -199,7 +199,7 @@ const SUITE = [
   { file: 'check-rooms.js', what: 'rooms: a blank cell is the venue’s, an explicit 0 stays 0, the caps, the floor, a booking, the waiting list' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE § */
   { file: 'check-secrets.js', what: 'no PIN in the source, and no word of the library in data/' },
-  { file: 'check-markers.js', what: 'no merge-conflict line left in any tracked file' },
+  { file: 'check-conflicts.js', what: 'no merge-conflict line left in any tracked file' },
   /* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING § */
   /* ---------- AND THE NINE TABS THAT BECAME FILES § */
   { file: 'check-settings.js', what: 'the settings files, against what the app reads off them' },
@@ -234,6 +234,13 @@ const SUITE = [
   { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true, heavy: true },
   /* ONE PRESS, ONE ACTION (534): a double tap posts once, a yes under 400 ms is ignored, a request that never answers lets go after a minute. */
   { file: 'check-policy-fill.js', what: 'each policy opens with its placeholders filled from the payload, headings drawn, no made-up value committed' },
+  /* RULES THAT HAD NO CHECK: read, not run, each well under a second. */
+  { file: 'check-money-terms.js', what: 'rule 1.4: terms, refunds and complaints written, linked, and every policy reviewed within the year' },
+  { file: 'check-how-we-work.js', what: 'rule 1.6: every CI job has a timeout, pull requests run check-all, a session starts with it' },
+  { file: 'check-no-games.js', what: 'rule 6.2: no new leaderboard, points, streak or high score; the ones left only go down' },
+  { file: 'check-free.js', what: 'rule 10.2: every host called and package shipped is on the owner\'s list in rule-guards.json' },
+  { file: 'check-no-new-screen.js', what: 'rule 11.1: TAB_ORDER and columns.json never grow past the screen budget' },
+  { file: 'check-effort-report.js', what: 'rule 12.1: effort is report-only, recorded by the full health run alone' },
   { file: 'check-api-deadline.js', what: 'a POST the backend runs for minutes is not cut by api()\'s one-minute deadline' },
   { file: 'check-press-hold.js', what: 'a control waiting on its request holds itself, not its twin, and not for ever; steppers take two fast taps' },
   { file: 'check/offline.js', what: 'a paper made available offline: opened with no connection, rule parts marked, an AI part held; back online every press arrives once', slow: true },
@@ -248,7 +255,7 @@ const SUITE = [
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
   { file: 'check/fluid.js',   what: 'any shape of screen: seven phone, tablet and desktop sizes scroll no wider than the window and leave no blank side', slow: true },
   { file: 'check/setting-forms.js', what: 'every Settings card, signed out and in, at 390 and 820px: no box, menu or tile cut by its card (owner, 10 Nov)', slow: true },
-  { file: 'check/card-facts.js', what: 'every card kind in Find, four viewers, 390 and 820px, closed and open: no text cut, blank card, centred text, kind HTML or stray profile picture (owner, 10 Nov)', slow: true },
+  { file: 'check/card-render.js', what: 'every card kind in Find, four viewers, 390 and 820px, closed and open: no text cut, blank card, centred text, kind HTML or stray profile picture (owner, 10 Nov)', slow: true },
   { file: 'check/centred.js', what: 'Find floats back to the middle when words or chips are cleared (508)', slow: true },
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
   { file: 'check/slide.js',   what: 'the slide between columns as iOS does it: landings, a spring, the rubber band, a held row (527)', slow: true },

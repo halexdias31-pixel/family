@@ -5,16 +5,13 @@
 /* ---------- ONE RESOURCE, AND NO SHEET FOR IT § */
 
 
-/* A column name as a person would say it. Everything not named here is the column with its
-   underscores taken out, which is right far more often than it is wrong — `exam_board` reads
-   perfectly well as "exam board". */
+/* A column name as a person would say it. § */
 const FIELD_LABEL = {
   band_type: 'grade or stage', band_value: 'which one', key_stage: 'key stage',
   exam_board: 'exam board', exam_wave: 'exam wave', document_type: 'type',
   print_required: 'needs printing', level_required: 'unlocks at level',
   pages_checked: 'page count checked', trackable: 'can be ticked off',
-  /* Inside a group already called "Library card", "library card" and "library pin" say the word
-     twice and read as two different cards. The group names the thing; these name the parts. */
+  /* Inside a group already called "Library card", "library card" and "library pin" say the word twice and read as two different § */
   library_card: 'card number', library_pin: 'PIN',
   /* ---------- AND THE TWO EXAMS, IN THE WORDS THEY WERE ASKED FOR IN § */
   exam_small_date: 'small exam', exam_big_date: 'big exam',
@@ -55,8 +52,7 @@ on('cart-add', el => {
   if (Object.prototype.hasOwnProperty.call(CART_ADD_OWN, el.dataset.kind)) { CART_ADD_OWN[el.dataset.kind](el); return; }
   const key = el.dataset.key;
   const kind = ['topic', 'print', 'shop'].includes(el.dataset.kind) ? el.dataset.kind : 'shop';
-  /* Keyed on BOTH, because a printed copy and a shop item can share a name and they are not the
-     same line. The old test dropped the second one silently. */
+  /* Keyed on BOTH, because a printed copy and a shop item can share a name and they are not the same line. § */
   if (CART.some(c => c.key === key && c.kind === kind)) { toast('Already in your basket'); return; }
 
   /* ---------- `print` AND `topic` WERE TWO OF THE THREE KINDS, AND BOTH LOOKED A DOCUMENT UP § */
@@ -103,8 +99,7 @@ function cartAddBundle_(el) {
 }
 
 /* ---------- AND THE WAY TO IT, FROM THE CARD THAT FILLED IT § */
-/* THE SHOP NOW, NOT TOOLS. The basket moved to the Shop column's first page; asked for by the same
-   lookup, so the day another widget goes on top of it this still lands on the basket. */
+/* THE SHOP NOW, NOT TOOLS. § */
 on('cart-open', () => {
   /* A MERGED BASKET IS A PART OF ITS PAGE (480). */
   const n = typeof widgetPagesOf_ === 'function'
@@ -134,7 +129,7 @@ on('cart-drop', el => {
 
 
 /* ---------- SENDING THE ORDER, AS A MESSAGE TO THE OWNER § */
-/* WHO IT GOES TO. An admin off the payload — `doGet` sends admins among the tutors, with their `personId` — and a PERSON rather than the brand account where § */
+/* WHO IT GOES TO. An admin off the payload — `doGet` sends admins among the tutors, with their `personId` — and a PERSON rather § */
 function orderTo_() {
   const me = String((USER && USER.personId) || '');
   const house = norm(brand('name', '@family.'));
@@ -168,7 +163,7 @@ function orderLine_(c, i, full, under) {
   return (i + 1) + '. ' + String(name) + (bits.length ? ' — ' + bits.join(', ') : '') + parts;
 }
 
-/* WHERE IT GOES. The login reply carries `address` and `postcode` for exactly this — the note in `loginReplyFor_` says the basket has to know whether it can § */
+/* WHERE IT GOES. The login reply carries `address` and `postcode` for exactly this — the note in `loginReplyFor_` says the § */
 function orderWhere_() {
   const u = USER || {};
   const p = u.profile || {};
@@ -234,13 +229,12 @@ on('cart-send', el => {
       cartSave();
       if (typeof cartPaint_ === 'function') cartPaint_();
       toast('Order sent to ' + to.title + ' — the reply will be in Messages');
-      /* SO THE CONVERSATION IS THERE WHEN THEY LOOK, which is the first thing anybody does after sending something — the `msg-send` handler's own reason. § */
+      /* SO THE CONVERSATION IS THERE WHEN THEY LOOK, which is the first thing anybody does after sending something — the `msg-send` § */
       if (typeof loadMessages === 'function') {
         try { Promise.resolve(loadMessages()).catch(() => {}); } catch (e) { /* messages load again on the next visit */ }
       }
     })
-    /* `send_` HAS ALREADY SAID THE SERVER'S SENTENCE, and rethrows so a caller could react. This
-       one's reaction is to keep the basket, which is doing nothing. */
+    /* `send_` HAS ALREADY SAID THE SERVER'S SENTENCE, and rethrows so a caller could react. § */
     .catch(() => {});
 });
 /* THE WHOLE PAPER, READ FROM THE ROWS THAT ALREADY DRAW ITS QUESTIONS. § */

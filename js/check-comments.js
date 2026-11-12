@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 const { VERBOSE } = require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 // A comment says WHY in a line or two: none over 240 characters, outside the list tools/comments.js keeps verbatim.
-// The story goes in docs/history; a shortened comment's full text is in docs/notes/<path>.md.
+// The story goes in docs/history; a shortened comment's full text is in docs/notes/<path>.md. No tombstone either
+// (the same reading tools/ai-cost.js scores as `tombstones`).
 'use strict';
-const { files, plan, kept, LIMIT } = require('../tools/comments.js');
+const { files, plan, kept, LIMIT, tombstones } = require('../tools/comments.js');
 
 let total = 0, nfiles = 0, held = 0;
 const bad = [];
@@ -18,12 +19,13 @@ for (const rel of files()) {
     bad.push(rel + ':' + line + ': a comment of ' + (c.end - c.start) + ' characters');
   }
 }
+tombstones().forEach(t => bad.push(t.where + ': a tombstone — ' + t.say));
 if (nfiles === 0) { console.log('FAILED — check-comments found no files to read.'); process.exit(1); }
 if (bad.length) {
   const show = VERBOSE ? bad : bad.slice(0, 20);   // the first twenty say what is wrong; -v for all
   for (const b of show) console.log('  FAIL ' + b);
   if (show.length < bad.length) console.log('  … and ' + (bad.length - show.length) + ' more (-v for all)');
-  console.log('FAILED — ' + bad.length + ' comment(s) over ' + LIMIT + ' characters. Fix: node tools/comments.js '
+  console.log('FAILED — ' + bad.length + ' comment(s) over ' + LIMIT + ' characters or tombstone(s). Fix a tombstone by deleting it; a long one: node tools/comments.js '
     + '(it keeps the headline and moves the full text to docs/notes), then put the story in docs/history.');
   process.exit(1);
 }

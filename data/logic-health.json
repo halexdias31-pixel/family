@@ -43,7 +43,7 @@
   {
    "id": "twins",
    "label": "two answers that keep exactly the same cards",
-   "count": 6
+   "count": 7
   },
   {
    "id": "twinpaths",
@@ -81,6 +81,15 @@
    ]
   },
   {
+   "where": "Find › Library › Maths › GCSE",
+   "asks": "Topic",
+   "cards": 32,
+   "why": [
+    "two answers that keep exactly the same cards: Manipulating Expressions = Simplifying & Collecting Terms",
+    "two answer paths to the same cards (owner, 12 Nov: \"two ways to get to the right path\"): Subject \"Maths\" › Topic \"Statistics\", while Subject offers \"Statistics\" too"
+   ]
+  },
+  {
    "where": "Find › Library › Physical Education › Fights › February",
    "asks": "Fighter",
    "cards": 10,
@@ -101,7 +110,7 @@
   {
    "where": "Find",
    "asks": "What kind",
-   "cards": 283061,
+   "cards": 283383,
    "why": [
     "a finer question asked before its coarser one: What kind before What for"
    ]
@@ -203,6 +212,14 @@
    ]
   },
   {
+   "where": "Find › Library › Physics",
+   "asks": "Topic",
+   "cards": 147,
+   "why": [
+    "an answer that repeats the answer above it: Physics › Astrophysics; Physics › Nuclear Physics; Physics › Space Physics"
+   ]
+  },
+  {
    "where": "Find › Library › Chemistry › Solid › Substance",
    "asks": "Chemical type",
    "cards": 130,
@@ -235,27 +252,11 @@
    ]
   },
   {
-   "where": "Find › Library › Physics",
-   "asks": "Topic",
-   "cards": 56,
-   "why": [
-    "an answer that repeats the answer above it: Physics › Astrophysics; Physics › Nuclear Physics; Physics › Space Physics"
-   ]
-  },
-  {
    "where": "Find › Library › English Language › SATs",
    "asks": "Topic",
    "cards": 47,
    "why": [
     "two answers that keep exactly the same cards: Adjectives = Adverbs; Antonyms = Synonyms; Brackets = Dashes"
-   ]
-  },
-  {
-   "where": "Find › Library › Physical Education › Fighters › 1980s",
-   "asks": "Fighter",
-   "cards": 35,
-   "why": [
-    "a finer question asked before its coarser one: Fighter before Division"
    ]
   }
  ],
@@ -263,10 +264,10 @@
   {
    "where": "Find › Library",
    "asks": "subject",
-   "bits": 0.34,
+   "bits": 0.35,
    "best": "wLanguage",
    "bestBits": 1.95,
-   "cards": 251353
+   "cards": 251675
   },
   {
    "where": "Find › Library › Religious Studies › Christianity",
@@ -441,7 +442,7 @@
   {
    "field": "forLabel",
    "label": "What for",
-   "cards": 283061,
+   "cards": 283383,
    "why": "lopsided — pressing its commonest answer would leave 0% of the list, needs 2%"
   },
   {

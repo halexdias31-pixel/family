@@ -1011,11 +1011,16 @@ let proofRules = 0;
     if (ur) ur[ph.indexOf('email')] = 'una.new@example.org';
     const una = unaLink ? post(b, { action: 'pinLink', key: unaLink }) : { success: true };
     rule(!!unaLink && !una.success, 'a sign-in link mailed to an address the account has since left still signed in to it', una);
-    /* A CHILD'S PIN MAILED TO THEIR GROWN-UP CARRIES NO LINK — it would sign the grown-up's phone in as the child. */
+    /* A CHILD'S PIN MAILED TO THE BUSINESS CARRIES A LINK THAT SIGNS IN AS THE CHILD (owner, 12 Nov). */
     m = MAIL.length;
     post(b, { action: 'forgotPin', who: 'kit_kind132' });
     const kitMail = mailTo('admin@example.org', m)[0];
-    rule(!!pinIn(kitMail) && !/\?signin=/.test(S(kitMail && kitMail.body)), 'a child\'s forgotten PIN, mailed to the business, carried a sign-in link', kitMail && kitMail.body);
+    const kitLink = (S(kitMail && kitMail.body).match(/\?signin=(\w+)/) || [])[1] || '';
+    rule(!!pinIn(kitMail) && !!kitLink, 'a child\'s forgotten PIN, mailed to the business, carried no sign-in link', kitMail && kitMail.body);
+    const kit = kitLink ? post(b, { action: 'pinLink', key: kitLink }) : {};
+    rule(kit.success && live(b, kit.token) && kit.personId === 'P-KIT' && kit.role === 'kid',
+      'the link in a child\'s forgotten-PIN mail did not sign in as that child', kit);
+    rule(!post(b, { action: 'pinLink', key: kitLink }).success, 'a child\'s sign-in link worked twice', kitLink);
   }
 
   /* ---------- (h) TAKING IT BACK CANCELS A CHANGE OF ADDRESS THE SQUATTER LEFT WAITING § */
@@ -1189,7 +1194,7 @@ const faceOf = (packed, handle) => {
 
 
 
-const PROOF_RULES = 80;   // 81 until 461 took the confirmed parent's makeChild away
+const PROOF_RULES = 82;   // +2: a child's link signs in as the child, once
 if (proofRules !== PROOF_RULES && !bad.length) no('only ' + proofRules + ' of ' + PROOF_RULES + ' unproved-address rules were asked');
 
 console.log('\nWRONG  (' + bad.length + ')');

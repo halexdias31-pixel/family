@@ -1,9 +1,9 @@
 {
  "v": 1,
- "items": 283061,
+ "items": 283383,
  "menus": 117,
  "counts": {
-  "words-all": 246,
+  "words-all": 251,
   "near-dup": 2
  },
  "findings": [
@@ -12,6 +12,30 @@
    "menu": "What kind (kindLabel)",
    "value": "Profiles",
    "say": "menu \"Profiles\", chip \"Profiles\", tag \"Booking\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Collection (wCollection)",
+   "value": "Quran",
+   "say": "menu \"Quran\", chip \"Quran\", tag \"Arabic Quran\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Work (wWork)",
+   "value": "Quran",
+   "say": "menu \"Quran\", chip \"Quran\", tag \"Arabic Quran\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Language (wLanguage)",
+   "value": "Arabic",
+   "say": "menu \"Arabic\", chip \"Arabic\", tag \"Arabic Quran\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Translation (wText)",
+   "value": "Set",
+   "say": "menu \"Set\", chip \"Set\", tag \"GCSE English Literature set…\""
   },
   {
    "kind": "words-all",
@@ -210,6 +234,12 @@
    "menu": "Author (wAuthor)",
    "value": "P. P. Bliss",
    "say": "menu \"P. P. Bliss\", chip \"P. P. Bliss\", tag \"P.P. Bliss\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Author (wAuthor)",
+   "value": "Sozomen",
+   "say": "menu \"Sozomen\", chip \"Sozomen\", tag \"Sozomen, Ecclesiastical…\""
   },
   {
    "kind": "near-dup",

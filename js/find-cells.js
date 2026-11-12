@@ -20,8 +20,7 @@ function markSpoken_(s) {
 }
 
 /* ---------- A WORDED ANSWER OF A MARK OR TWO, MARKED BY RULE BEFORE ANY AI (359) */
-/* `mark_words`: points split by `;`, a mark each; ways by `|`; words that must all be there joined by `+`; a number is
-   compared as a number. Words are matched on their stems, and a word straight after "not" or "no" does not count. */
+/* `mark_words`: points split by `;`, a mark each; ways by `|`; words that must all be there joined by `+`; a number is compared as a number. § */
 const MW_STOP = /^(the|a|an|of|to|is|it|and|or|in|on|be|as|so|by|at|for)$/;
 function mwStem_(w) {
   /* a full stop ends the sentence, not the word: "No." is "no" and "the same." is "same" */
@@ -419,8 +418,7 @@ function padAdopt_(k, bare) {
   } catch (e) { /* storage blocked: the answer stays on the page only */ }
 }
 
-/* THE PICTURE IT DRAWS ON: its figure, else its stem's, else its own surface (a drawn part's a grid) -- for a drawn part (qType_) at once, for any
-   other part from its first Pen tap (`PEN_OPEN`, qtools.js) or once it has marks saved. */
+/* THE PICTURE IT DRAWS ON: § */
 /* OPTIONS OR CELLS ARE THE ANSWER where a row has them (as before round 3): their pen waits for its first tap, so the card is not drawn smaller under a pen it may never use */
 const padPicked_ = x => !!x && ((Array.isArray(x.choices) && x.choices.length >= 2) || (typeof cellsOf_ === 'function' && cellsOf_(x).length > 0));
 /* KEPT ON THE CARD per library generation (930): `stuffPages_` asks it of every result, and each ask copied the whole row (`workRow_`) -- seconds on a phone. */
