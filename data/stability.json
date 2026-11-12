@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 78.5,
+ "score": 83.7,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -34,32 +34,23 @@
   {
    "id": "dead",
    "label": "Code nothing calls",
-   "count": 16,
+   "count": 15,
    "weight": 0.3,
    "cap": 10,
-   "off": 4.8,
+   "off": 4.5,
    "where": {
-    "check-dead": "bcTaxPot_ (biz-check.js), bcItem_ (biz-check.js), dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), startTimesTables (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), ktLessonCount_ (tools.js), workPics_ (working.js), writingOf_ (writings.js), none"
+    "check-dead": "bcTaxPot_ (biz-check.js), bcItem_ (biz-check.js), dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), startTimesTables (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), ktLessonCount_ (tools.js), workPics_ (working.js), writingOf_ (writings.js)"
    }
-  },
-  {
-   "id": "catches",
-   "label": "Empty catches allowed (check-catches ceiling)",
-   "count": 228,
-   "weight": 0.02,
-   "cap": 15,
-   "off": 4.6,
-   "where": {}
   },
   {
    "id": "ceilings",
    "label": "Raised ratchet ceilings (*_MAX)",
-   "count": 1098,
+   "count": 958,
    "weight": 0.002,
    "cap": 10,
-   "off": 2.2,
+   "off": 1.9,
    "where": {
-    "js/check-library.js NOT_DRAWN_MAX": 410,
+    "js/check-library.js NOT_DRAWN_MAX": 270,
     "js/check-library.js STEM_NOT_DRAWN_MAX": 658,
     "js/check-practicals.js QTY_MAX": 12,
     "js/check-projects.js QTY_MAX": 12,
@@ -102,6 +93,15 @@
    }
   },
   {
+   "id": "catches",
+   "label": "Empty catches (tools/catches.js)",
+   "count": 1,
+   "weight": 0.02,
+   "cap": 15,
+   "off": 0,
+   "where": {}
+  },
+  {
    "id": "longfiles",
    "label": "Files over 3000 lines",
    "count": 0,
@@ -130,7 +130,7 @@
   }
  ],
  "secondary": {
-  "score": 88.5,
+  "score": 85.2,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
@@ -149,6 +149,15 @@
      "check/ui.js ACCEPTED_NEST": 9,
      "check/ui.js ACCEPTED_TAP": 22
     }
+   },
+   {
+    "id": "catches",
+    "label": "Empty catches (tools/catches.js)",
+    "count": 167,
+    "weight": 0.02,
+    "cap": 15,
+    "off": 3.3,
+    "where": {}
    },
    {
     "id": "special",
@@ -203,15 +212,6 @@
     "where": {
      "js/mat.js matPaint": 152
     }
-   },
-   {
-    "id": "catches",
-    "label": "Empty catches allowed (check-catches ceiling)",
-    "count": 0,
-    "weight": 0.02,
-    "cap": 15,
-    "off": 0,
-    "where": {}
    },
    {
     "id": "ceilings",
