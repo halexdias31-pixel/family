@@ -799,7 +799,7 @@ const CARD_SECTIONS = [
   { id: 'size', cap: 'Class size', fields: ['min_students', 'max_students'] },
   { id: 'headline', fields: ['headline'] },
   { id: 'photos', cap: 'Photographs', fields: ['video'], match: /^photos_\d+$/ },
-  { id: 'words', fields: ['adjective_1', 'adjective_2', 'adjective_3'] },
+  { id: 'words', fields: ADJECTIVE_FIELDS },
   { id: 'glance', cap: 'At a glance', fields: ['years_experience', 'favourite_colour', 'age_min', 'age_max', 'min_hours', 'max_hours'] },
   { id: 'quals', cap: 'Qualifications', match: /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/ },
   { id: 'jobs', cap: 'Jobs', match: /^job_\d+_(role|where|from|to)$/ },

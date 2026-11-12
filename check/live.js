@@ -148,8 +148,8 @@ const sandbox = {
 };
 sandbox.globalThis = sandbox;
 
-const ORDER = ['constants', 'access', 'core', 'people', 'booking', 'content', 'race', 'films', 'library', 'library-drive', 'media', 'setup', 'doget', 'get-start', 'get-people', 'get-posts', 'get-shop', 'post-account', 'post-family', 'post-content', 'post-learning', 'post-booking', 'post-admin', 'dopost'];
-const src = ORDER.map(n => fs.readFileSync(path.join(repo, 'backend', n + '.gs'), 'utf8')).join('\n;\n');
+/* backend/files.json's order, the order Apps Script loads them (tools/file-lists.js). */
+const src = require('../tools/file-lists.js').gsSource(repo);
 
 const ctx = vm.createContext(sandbox);
 try {

@@ -218,12 +218,8 @@ function widgetCard_(x) {
   </div>`;
 }
 
-/* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched; which are off is tiers.json's (TIER_OFF_WIDGETS). */
-const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos',
-  newspaper: 'Newspaper', flyers: 'Make a flyer', mat: 'Cheat sheet maker', timer: 'Timer', docket: 'Docket',
-  notepad: 'Notepad', spotify: 'Spotify', speedread: 'Speed reader (one word at a time)', timetable: 'Timetable', typing: 'Touch typing (keyboard practice)',
-  cart: 'Basket', shopfind: 'Search the shop', calendar: 'Calendar', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links',
-  rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', libcards: 'Library cards', homework: 'Homework' };
+/* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched: written by tools/tiers.js from map.js's WIDGETS, never by hand. */
+const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos', newspaper: 'Newspaper', homework: 'Homework', flyers: 'Make a flyer', mat: 'Cheat sheet maker', timer: 'Timer', docket: 'Docket', notepad: 'Notepad', spotify: 'Spotify', speedread: 'Speed reader (one word at a time)', timetable: 'Timetable', typing: 'Touch typing (keyboard practice)', cart: 'Basket', shopfind: 'Search the shop', calendar: 'Calendar', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links', rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', libcards: 'Library cards' };
 /* AN OFF WIDGET THAT WAITS UNDER ANOTHER FRONT ANSWER (owner, 6 Nov: Homework under Tools); the rest wait under Coming soon. */
 const SOON_WIDGET_UNDER = { videos: 'Videos', reels: 'Tools', flyers: 'Tools', poster: 'Tools', homework: 'Tools' };
 /* A FRONT ANSWER HOLDING ONLY COMING SOON CARDS IS GREYED, never hidden (owner, 7 Nov P7/P8): Videos and Games until one is turned on. */

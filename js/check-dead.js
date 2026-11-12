@@ -4,7 +4,7 @@ require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the who
 const path = require('path');
 const fs = require('fs');
 const O = path.join(__dirname, '..') + '/';
-const strip=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/.*/g,'');
+const strip=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/(^|[^:])\/\/.*/g,'$1');
 /* REACHED FROM OUTSIDE THE CODE. Apps Script calls doGet and doPost itself; the editor calls the
    maintenance jobs by name; a person types the console tools. None of these has a caller in the
    source and all of them are alive. */
@@ -21,16 +21,8 @@ const KEEP=new Set(['doGet','doPost','missingKeys','layout',
   'aheadBusy_']);
 const files=(dir,filter)=>fs.readdirSync(dir).filter(filter).map(f=>({f,p:dir+f}));
 const jsF=files(O+'js/',f=>f.endsWith('.js')&&!f.startsWith('check')&&f!=='_scope.js');
-/* THE BACKEND FILES, UNDER WHATEVER THEY ARE CALLED. § */
-const gsF=['constants','access','core','people','booking','content','race','films','library','library-drive','media','setup','doGet','doPost']
-  .map((n,i)=>{
-    const tries=[['00_','10_','20_','30_','40_','41_','42_','43_','44_','45_','50_','60_','70_'][i]+n, n, n.toLowerCase()];
-    /* `backend/` FIRST. This looked only beside the project and the .gs files moved into backend/, so the second half of this check — dead functions in the BACKEND § */
-    const hit=[O+'backend/',O].flatMap(d=>tries.map(x=>d+x+'.gs')).find(p2=>fs.existsSync(p2));
-    return hit?{f:path.basename(hit),p:hit}:null;
-  }).filter(Boolean);
-/* doPost's handlers, split out of it into post-*.gs (1130), and doGet's sections into get-*.gs (1140). */
-if(fs.existsSync(O+'backend/'))gsF.push(...files(O+'backend/',f=>/^(post|get)-.*\.gs$/.test(f)));
+/* THE BACKEND FILES: backend/files.json's list (tools/file-lists.js), the one the deploy pushes. */
+const gsF=fs.existsSync(O+'backend/files.json')?require('../tools/file-lists.js').gsFiles(O).filter(p2=>fs.existsSync(p2)).map(p2=>({f:path.basename(p2),p:p2})):[];
 const scan=(set,label)=>{
   const code=strip(set.map(x=>fs.readFileSync(x.p,'utf8')).join('\n'));
   const d=[...code.matchAll(/^function ([A-Za-z_$][\w$]*)/gm)].map(m=>m[1]);

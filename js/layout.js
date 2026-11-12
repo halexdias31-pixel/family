@@ -583,8 +583,9 @@ function ownSecReg_() {
     jobs: ['Jobs', 'your jobs', 'Your current and past jobs, shown on your tutor card.'],
     where: ['Where you teach', 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
   const of = OWN_SEC_OF_SET_;
-  const where = { account: 'Kids settings', family: 'Parent settings', staff: 'Tutor settings' };
-  return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where[c] + ')', only: S[k][1], say: S[k][2] }))));
+  /* Each settings column's name from the one tab table (TABS_BUILT, shell-boot.js), never a copy of it. */
+  const where = c => ((typeof TABS_BUILT !== 'undefined' ? TABS_BUILT : []).find(t => t.id === c) || {}).label || c;
+  return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where(c) + ')', only: S[k][1], say: S[k][2] }))));
 }
 /* WHAT EACH CARD IS FOR, one faint line under its title (467) — the owner: "I should know what they are even if I can't edit." */
 const CARD_SAY_DYN = { 'deleted': 'Every deleted widget and card, each with Put back.', 'about-you': 'Your name and the details about you.', 'contact-address': 'How to reach you, and your address.',

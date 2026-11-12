@@ -452,12 +452,8 @@ function widgetCard_(x) {
   </div>`;
 }
 
-/* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched; which are off is tiers.json's (TIER_OFF_WIDGETS). */
-const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos',
-  newspaper: 'Newspaper', flyers: 'Make a flyer', mat: 'Cheat sheet maker', timer: 'Timer', docket: 'Docket',
-  notepad: 'Notepad', spotify: 'Spotify', speedread: 'Speed reader (one word at a time)', timetable: 'Timetable', typing: 'Touch typing (keyboard practice)',
-  cart: 'Basket', shopfind: 'Search the shop', calendar: 'Calendar', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links',
-  rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', libcards: 'Library cards', homework: 'Homework' };
+/* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched: written by tools/tiers.js from map.js's WIDGETS, never by hand. */
+const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos', newspaper: 'Newspaper', homework: 'Homework', flyers: 'Make a flyer', mat: 'Cheat sheet maker', timer: 'Timer', docket: 'Docket', notepad: 'Notepad', spotify: 'Spotify', speedread: 'Speed reader (one word at a time)', timetable: 'Timetable', typing: 'Touch typing (keyboard practice)', cart: 'Basket', shopfind: 'Search the shop', calendar: 'Calendar', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links', rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', libcards: 'Library cards' };
 /* AN OFF WIDGET THAT WAITS UNDER ANOTHER FRONT ANSWER (owner, 6 Nov: Homework under Tools); the rest wait under Coming soon. */
 const SOON_WIDGET_UNDER = { videos: 'Videos', reels: 'Tools', flyers: 'Tools', poster: 'Tools', homework: 'Tools' };
 /* A FRONT ANSWER HOLDING ONLY COMING SOON CARDS IS GREYED, never hidden (owner, 7 Nov P7/P8): Videos and Games until one is turned on. */
@@ -24424,8 +24420,9 @@ function ownSecReg_() {
     jobs: ['Jobs', 'your jobs', 'Your current and past jobs, shown on your tutor card.'],
     where: ['Where you teach', 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
   const of = OWN_SEC_OF_SET_;
-  const where = { account: 'Kids settings', family: 'Parent settings', staff: 'Tutor settings' };
-  return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where[c] + ')', only: S[k][1], say: S[k][2] }))));
+  /* Each settings column's name from the one tab table (TABS_BUILT, shell-boot.js), never a copy of it. */
+  const where = c => ((typeof TABS_BUILT !== 'undefined' ? TABS_BUILT : []).find(t => t.id === c) || {}).label || c;
+  return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where(c) + ')', only: S[k][1], say: S[k][2] }))));
 }
 /* WHAT EACH CARD IS FOR, one faint line under its title (467) — the owner: "I should know what they are even if I can't edit." */
 const CARD_SAY_DYN = { 'deleted': 'Every deleted widget and card, each with Put back.', 'about-you': 'Your name and the details about you.', 'contact-address': 'How to reach you, and your address.',

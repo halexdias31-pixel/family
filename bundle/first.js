@@ -11154,9 +11154,11 @@ document.addEventListener('change', e => {
 });
 
 /* ---------- BOXES THAT ARE ONE QUESTION SIT ON ONE LINE § */
+/* The three words a person describes themself in: the one list, read by me-settings.js and me-card.js too. */
+const ADJECTIVE_FIELDS = ['adjective_1', 'adjective_2', 'adjective_3'];
 const FIELD_ROWS = [
   { fields: ['first_name', 'last_name'] },
-  { fields: ['adjective_1', 'adjective_2', 'adjective_3'], cap: 'you, in 3 words',
+  { fields: ADJECTIVE_FIELDS, cap: 'you, in 3 words',
     ph: ['word 1', 'word 2', 'word 3'] },
   /* ONE LINE PER THING IN A FORM (owner): two different answers (city and town, the two exams) each get their own line. */
   /* "max and min number of students could more efficiently be written as '[] - []'."* One row, one caption, a dash between — and MIN FIRST although the backend § */
@@ -12449,7 +12451,7 @@ const CARD_SECTIONS = [
   { id: 'size', cap: 'Class size', fields: ['min_students', 'max_students'] },
   { id: 'headline', fields: ['headline'] },
   { id: 'photos', cap: 'Photographs', fields: ['video'], match: /^photos_\d+$/ },
-  { id: 'words', fields: ['adjective_1', 'adjective_2', 'adjective_3'] },
+  { id: 'words', fields: ADJECTIVE_FIELDS },
   { id: 'glance', cap: 'At a glance', fields: ['years_experience', 'favourite_colour', 'age_min', 'age_max', 'min_hours', 'max_hours'] },
   { id: 'quals', cap: 'Qualifications', match: /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/ },
   { id: 'jobs', cap: 'Jobs', match: /^job_\d+_(role|where|from|to)$/ },
@@ -13159,7 +13161,7 @@ function cardPatchRow_(pid, all, sent) {
     row.jobs = [1, 2, 3, 4, 5, 6].map(n => ({ role: txt(all['job_' + n + '_role']), where: txt(all['job_' + n + '_where']),
       from: txt(all['job_' + n + '_from']), to: txt(all['job_' + n + '_to']) })).filter(j => j.role || j.where);
   }
-  if (['adjective_1', 'adjective_2', 'adjective_3'].some(has)) {
+  if (ADJECTIVE_FIELDS.some(has)) {
     row.tags = [all.adjective_1, all.adjective_2, all.adjective_3].map(txt).filter(Boolean);
   }
   if (Object.keys(sent).some(isPhotoField_)) {

@@ -557,7 +557,7 @@ function cardPatchRow_(pid, all, sent) {
     row.jobs = [1, 2, 3, 4, 5, 6].map(n => ({ role: txt(all['job_' + n + '_role']), where: txt(all['job_' + n + '_where']),
       from: txt(all['job_' + n + '_from']), to: txt(all['job_' + n + '_to']) })).filter(j => j.role || j.where);
   }
-  if (['adjective_1', 'adjective_2', 'adjective_3'].some(has)) {
+  if (ADJECTIVE_FIELDS.some(has)) {
     row.tags = [all.adjective_1, all.adjective_2, all.adjective_3].map(txt).filter(Boolean);
   }
   if (Object.keys(sent).some(isPhotoField_)) {
