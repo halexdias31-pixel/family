@@ -15529,6 +15529,8 @@ function subAdopt_() {
     const pid = String(USER.personId), who = 'u:' + pid;
     const lost = subRequeue_(who);
     const s = typeof DATA === 'object' && DATA ? DATA.submissions : null;
+    /* A KEY ON A GONE PART ID LANDS ON ITS PART (answer-ids); the backend did this already unless its copy is older. */
+    if (s && s.mine && typeof qAliasMine_ === 'function') { try { s.mine = qAliasMine_(s.mine, QALIAS); } catch (e) { oops_(e, 'submit:qAliasMine_') } }
     if (s && s.mine && typeof s.mine === 'object' && String(s.for || '') === pid) {
       const all = subAll_(who);
       const moved = [], filled = [];

@@ -1,15 +1,10 @@
 # The rulebook — the one foundation
 
-**One source for every truth, one template for every thing, one rule for every case. Measure everything against
-these rules, keep only what is needed, and where they don't decide, ask the owner.**
+<!-- generated — edit data/settings/rules.json, then run: node tools/rules.js --write -->
 
-Everything below derives from that core: 12 principles, each with its specific rules. Each rule is stated once, in
-its current form, with the checks that enforce it after `Checks:` (`tools/rules.js` reads them; a check id is a
-`tools/health.js` rule, `js/check-<id>.js` or `check/<id>.js`; `flow/*` is every journey in `check/flow/`). A
-higher principle wins a clash. Edit a rule here, never in code. Superseded decisions and their dates:
-`docs/history/1213-one-rulebook.md` (which archives the old philosophy and decisions files whole).
-The Optimiser counts this file: rules with a check, checks tied to a rule, rules stated once (`rule-checked`,
-`check-tied`, `rule-once`).
+**One source for every truth, one template for every thing, one rule for every case. Measure everything against these rules, keep only what is needed, and where they don't decide, ask the owner.**
+
+Everything below derives from that core: 12 principles, each with its specific rules. Each rule is stated once, in its current form, with the checks that enforce it after `Checks:`; a check id is a `tools/health.js` rule, `js/check-<id>.js` or `check/<id>.js`, and `flow/*` is every journey in `check/flow/`. A higher principle wins a clash. The rulebook is code: `data/settings/rules.json` is the one source, `node tools/rules.js --write` writes this page from it, and `node tools/rules.js` fails when a rule names no check, a check serves no rule, a named check does not exist, or this page is stale. Superseded decisions and their dates: `docs/history/1213-one-rulebook.md`.
 
 ## 1. The law, then the owner
 - **1.1** The law always wins, silently; a deletion request for personal data beats keeping things. Checks: `biz`, `one-place`, `biz-checker`
@@ -30,7 +25,7 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 - **2.8** Generated content (teaching animations, finder tags, bundles) is written by its script and re-run, never hand-edited; the build stamp is last after any served change. Checks: `bundle`, `cache`, `stability`, `deploy`
 
 ## 3. One template for every thing
-- **3.1** Every card, every kind, is one static centred column drawn by `findCard`: real picture if any → tags (the name is a tag) → content → one round button row; no title line, no open/closed, no 8-bit or kind icon. Checks: `one-template`, `card-shape`, `card-render`, `find-card`, `shape`, `email-card`, `share-profile`, `share`, `tutor-card`, `template-measure`
+- **3.1** Every card, every kind, is one static centred column drawn by `findCard`: real picture if any → tags (the name is a tag) → content → one round button row; no title line, no open/closed, no 8-bit or kind icon. Checks: `one-template`, `card-shape`, `card-render`, `find-card`, `shape`, `email-card`, `share-profile`, `share`, `tutor-card`, `template-measure`, `tpl-built`, `tpl-centre`, `tpl-colour`, `tpl-font`, `tpl-inline`, `tpl-order`, `tpl-picture`, `tpl-radius`, `tpl-same`, `tpl-spacing`, `tpl-stray`, `tpl-tag-look`, `tpl-tags`, `tpl-tile-size`, `tpl-tiles`, `tpl-title`, `tpl-variety`, `tpl-variety-kind`, `tpl-width`
 - **3.2** People always have a picture (their own or the steady default); a question or paper its figure; a part that names a picture has it drawn. Checks: `figures`, `diagram-png`, `diagrams`, `picture-first`
 - **3.3** A thing has tiles, a form has buttons: every action is `tile_` in one `.tile-row`, round icons only, its word on hover or long press; one icon style. Checks: `makers`, `tiles`, `doors`, `variety-maker`, `variety-cardrow`, `press-hold`
 - **3.4** One text box (the cream answer pill), one form maker from a field list, one wait (`loading_()`'s spinning ring), one empty state, one viewer (`fileView_`) that opens in place. Checks: `variety-textbox`, `forms`, `loading`, `variety-wait`, `bootslow`, `answer-width`, `keyboard`, `dropdowns`, `surfaces`, `surface-nesting`
@@ -54,13 +49,14 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 - **4.9** One value per meaning: no merged or near-duplicate facet values, one tag per attribute, no tag made of other tags or holding another facet's value (`Paper 1 · 2017`): two answers drawn the same are one answer, and what tells them apart is its own question, Doesn't matter included, none every card in the list shares. Checks: `tags`, `merged-value`, `merged-all`, `near-dup`, `odd-tags`, `card-tags`, `attr-outside-tags`, `car-tags-split`
 - **4.10** Booking terms: blocks of sessions (a term) paid up front; single lessons free to cancel until 24h before; no refund for a lesson inside a paid block or for leaving midway, within consumer law (14-day cooling-off online); a tutor's cancellation refunds and tells the family automatically; seats = the smaller of tutor and place capacity (online and at home hold 4; at home takes every seat the tutor holds). Checks: `booking`, `booking-journey`, `lifecycle`
 - **4.11** The school year is worked out, never typed: `schoolYear` (booking.gs) for any year, its browser copy agreeing, contiguous, Mon–Thu starts, 38–40 weeks, fitted to published London dates (history 1215); the terms tab may override. Checks: `terms`
+- **4.12** One item per printed part, its id from the printed label, ids for life: a part's id is its paper's prefix plus the printed question and part (`Q-1MA1-2406-1F-7aii`), so a re-import makes the same id; an importer never merges parts the mark scheme marks separately nor splits one; an id that leaves the library is aliased in `data/settings/question-aliases.json`, and saved answers land on its part (merged boxes joined ` ; `). Checks: `question-ids`
 
 ## 5. Find is the one front door
 - **5.1** One Find, chips only; everything browsable is a card in it (Settings, Booking, Messages, Tools, Games); signed out sees only Settings. Checks: `front-door`, `find-first`, `people-one-kind`, `manuscripts-reach`
 - **5.2** Find shows cards only when the funnel is done (or asked); taps are looked up, not counted. Checks: `find-settle`, `chip-feel`, `firstpaint`
-- **5.3** All learning content is free behind a free sign-in, with no age gates; the content is the source and tools follow from it. Checks: `no-age-gates`, `media-age`, `chemistry`, `mechanics`, `history-db`, `practicals`, `projects`, `timeline-anim`, `timelines`, `missing`
-- **5.5** One path to every card set: no two answer paths reach the same cards (science is Subject Physics, Biology or Chemistry; no Combined Science or Science subject). Checks: `twinpaths` (1213)
+- **5.3** All learning content is free behind a free sign-in, with no age gates; the content is the source and tools follow from it. Checks: `no-age-gates`, `media-age`, `chemistry`, `mechanics`, `history-db`, `practicals`, `projects`, `timeline-anim`, `timelines`, `missing`, `spec-lesson`, `spec-practice`, `spec-figure`
 - **5.4** Content in is our own, public domain or licensed; copyrighted papers stay private. Checks: `library`, `talmud`, `hymns`
+- **5.5** No umbrella answers: a menu never offers an answer that is the union of other answers beside it (no Science or Combined Science beside Biology, Physics and Chemistry), a parent next to its own child, or one label twice. Overlap across subjects is fine: a card may sit under several subjects (History and Religious Studies share cards). Checks: `twin-path`
 
 ## 6. Fewest words, picture first
 - **6.1** Icons and one-word labels, no grey clutter, information as a tag; a failure is said in words through `why_()`. Checks: `clutter`, `said`, `answers`
@@ -98,17 +94,13 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 - **11.3** Checks are honest: no written exception lists, ratchet ceilings at zero, budgets only go down. Checks: `exceptions`, `ceilings`, `catches`, `stability`
 
 ## 12. Measure everything
-- **12.1** The Optimiser (`tools/health.js`) measures every rule as followed ÷ applies to, in the unit a person would fix, and the score is their plain average, no weights; when nothing else is asked, raise it. Checks: `ux`, `effort-report`, `effort-report`
+- **12.1** The Optimiser (`tools/health.js`) measures every rule as followed ÷ applies to, in the unit a person would fix, and the score is their plain average, no weights; when nothing else is asked, raise it. Checks: `ux`, `effort-report`
 - **12.2** Every change runs the checks it affects (`node js/check.js`, `check-all`, the journeys) and CI stays green; a merge to main happens only when `node tools/gate.js` and the required `gate` status on the pull request are green (the merge-always rule means merge when green, never red), and a changed screenshot is signed in `gallery-approved.json` after someone looked. Checks: `check`, `all`, `changed`, `conflicts`, `flow`, `flow/*`
-- **12.3** This rulebook is the one foundation: every rule names a check, every check serves a rule, each rule is stated once. Checks: `rule-checked`, `check-tied`, `rule-once`
+- **12.3** This rulebook is the one foundation and it is code: `data/settings/rules.json` holds every rule, every rule names a check, every check serves a rule, each rule is stated once, and `docs/rules.md` is written from it. Checks: `rule-checked`, `check-tied`, `rule-once`
 
 ## How a sweep works
 1. Read this file; read `docs/history` only for the area in hand (`grep -ril <keyword> docs/history`).
-2. Read the `owner_answers` tab (the ledger spreadsheet). A specific answer becomes its change, an edit of the rule it
-   touches here and a history note; its question in `data/settings/owner-questions.json` gets `status: "answered"`.
-   A general answer ("always do X") becomes a rule here with the checks that enforce it. A clash becomes a question (1.3).
+2. Read the `owner_answers` tab (the ledger spreadsheet). A specific answer becomes its change, an edit of the rule it touches here and a history note; its question in `data/settings/owner-questions.json` gets `status: "answered"`. A general answer ("always do X") becomes a rule here with the checks that enforce it. A clash becomes a question (1.3).
 3. Work the one worklist, dearest first, budgets only going down: `node tools/health.js --list`, `--changed`.
-4. Anything the rules don't decide becomes an open question (id, words, options a/b/c), never a guess. Write the guess
-   first; where guesses match the owner's answers ~9 in 10, stop asking there.
-5. Stable = the core (Find, Library, Questions, Settings, Bookings) works on a phone with no errors and CI is green 3 runs
-   running; frozen features return one at a time after that, most-used first. The Apps Script deploy stays the owner's.
+4. Anything the rules don't decide becomes an open question (id, words, options a/b/c), never a guess. Write the guess first; where guesses match the owner's answers ~9 in 10, stop asking there.
+5. Stable = the core (Find, Library, Questions, Settings, Bookings) works on a phone with no errors and CI is green 3 runs running; frozen features return one at a time after that, most-used first. The Apps Script deploy stays the owner's.

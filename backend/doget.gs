@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-12-terms-specs-1";
+const DOGET_VERSION = "2026-11-12-answer-ids-1";
 
 
 function doGet(e) {
@@ -400,7 +400,7 @@ function submissionsBuild_(pid, people) {
     const came = answerAtMs_(r.submitted_at);
     if (people) {
       const p = sum[who] || (sum[who] = { qs: {}, at: 0 });
-      p.qs[k.split('#')[0]] = 1;
+      p.qs[qAliasKey_(k.split('#')[0])] = 1;
       /* A ROW CARRIED OVER FROM BEFORE THE SWITCH ARRIVED THE DAY THE BACKEND LANDED and was done weeks before: § */
       const when = SUBMISSION_CARRIED.test(S(r.event_id)) ? (answerAtMs_(r.pressed_at) || came) : came;
       if (when >= p.at) p.at = when;
@@ -411,7 +411,10 @@ function submissionsBuild_(pid, people) {
     if (was && was.at > at) return;
     mine[k] = { answer: S(r.answer), verdict: S(r.verdict), at: at, id: S(r.event_id) };
   });
-  const out = { mine: mine };
+  /* A KEY ON A PART ID THAT IS GONE LANDS ON THE PART IT BECAME (answer-ids): never Unattempted for work that was done. */
+  let landed = mine;
+  try { landed = qAliasMine_(mine, QALIAS); } catch (err) { landed = mine; }
+  const out = { mine: landed };
   if (people) {
     out.people = {};
     Object.keys(sum).forEach(who => {

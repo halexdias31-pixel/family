@@ -1,7 +1,7 @@
 {
- "score": 85.3,
- "questions": 211,
- "healthy": 180,
+ "score": 74.3,
+ "questions": 202,
+ "healthy": 150,
  "walked": {
   "nodes": 300,
   "maxNodes": 300,
@@ -28,33 +28,65 @@
   {
    "id": "subtype",
    "label": "a finer question asked before its coarser one",
-   "count": 18
+   "count": 29
   },
   {
    "id": "siblings",
    "label": "sibling branches ask their next question in different orders",
-   "count": 6
+   "count": 7
   },
   {
    "id": "echo",
    "label": "an answer that repeats the answer above it",
-   "count": 5
+   "count": 7
   },
   {
    "id": "twins",
    "label": "two answers that keep exactly the same cards",
-   "count": 3
+   "count": 6
+  },
+  {
+   "id": "twinpaths",
+   "label": "an umbrella answer, a parent beside its child, or one label twice in a menu (overlap across subjects is fine)",
+   "count": 7
   }
  ],
  "cannot": "Whether a card is filed under the right answer, or an answer has the best name: content and categorisation need a person.",
  "top": [
   {
-   "where": "Find › Practice › Practicals › Chemistry › Compound Measures",
-   "asks": "Level",
-   "cards": 3,
+   "where": "Find › Library › History › Writings",
+   "asks": "Work",
+   "cards": 3383,
    "why": [
-    "a finer question asked before its coarser one: Level before Required",
-    "two answers that keep exactly the same cards: KS3 = SATs"
+    "a finer question asked before its coarser one: Work before Translation",
+    "sibling branches ask their next question in different orders: Germania and Agricola asks Unit, The Gallic War asks Book; The Gallic War asks Book, Germania and Agricola asks Unit"
+   ]
+  },
+  {
+   "where": "Find › Library › English Literature › Anthology",
+   "asks": "Collection",
+   "cards": 153,
+   "why": [
+    "a finer question asked before its coarser one: Collection before Author",
+    "an answer that repeats the answer above it: Anthology › Poetry Anthology (Eduqas)"
+   ]
+  },
+  {
+   "where": "Find › Library › Mechanics › Car part",
+   "asks": "Engine",
+   "cards": 69,
+   "why": [
+    "two answers that keep exactly the same cards: D4F = SNJB",
+    "an umbrella answer, a parent beside its child, or one label twice in a menu (overlap across subjects is fine): parent \"D4FT\" (63) beside its child \"D4F\" (62)"
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Fights › February",
+   "asks": "Fighter",
+   "cards": 10,
+   "why": [
+    "a finer question asked before its coarser one: Fighter before Division",
+    "two answers that keep exactly the same cards: Jake LaMotta = Sugar Ray Robinson"
    ]
   },
   {
@@ -66,15 +98,15 @@
    ]
   },
   {
-   "where": "Find › Library",
+   "where": "Find › Library › Religious Studies",
    "asks": "Religion",
-   "cards": 251724,
+   "cards": 240857,
    "why": [
     "sibling branches ask their next question in different orders: Christianity asks Work, Islam asks Collection; Christianity asks Work, Judaism asks Collection"
    ]
   },
   {
-   "where": "Find › Library › Christianity",
+   "where": "Find › Library › Religious Studies › Christianity",
    "asks": "Work",
    "cards": 170845,
    "why": [
@@ -82,11 +114,19 @@
    ]
   },
   {
-   "where": "Find › Library › Christianity › Bible",
+   "where": "Find › Library › Religious Studies › Christianity › Bible",
    "asks": "Collection",
    "cards": 156723,
    "why": [
-    "sibling branches ask their next question in different orders: New Testament asks Section, Septuagint additions asks Language; Old Testament asks Section, Septuagint additions asks Language"
+    "an umbrella answer, a parent beside its child, or one label twice in a menu (overlap across subjects is fine): parent \"Old Testament\" (116363) beside its child \"Psalter\" (5054)"
+   ]
+  },
+  {
+   "where": "Find › Practice",
+   "asks": "Which",
+   "cards": 31613,
+   "why": [
+    "an umbrella answer, a parent beside its child, or one label twice in a menu (overlap across subjects is fine): parent \"Questions\" (31531) beside its child \"Answers\" (30343)"
    ]
   },
   {
@@ -94,7 +134,7 @@
    "asks": "Subject",
    "cards": 31531,
    "why": [
-    "sibling branches ask their next question in different orders: Biology asks Type, Physics asks Level; Chemistry asks Type, Physics asks Level"
+    "sibling branches ask their next question in different orders: English Literature asks Exam board, Geography asks Level; English Literature asks Exam board, Psychology asks Level"
    ]
   },
   {
@@ -102,11 +142,19 @@
    "asks": "Subject",
    "cards": 30343,
    "why": [
-    "sibling branches ask their next question in different orders: Biology asks Type, Maths asks Level; Biology asks Type, Physics asks Level"
+    "sibling branches ask their next question in different orders: Biology asks Type, Maths asks Level; Chemistry asks Type, Maths asks Level"
    ]
   },
   {
-   "where": "Find › Library › Judaism › Second Temple",
+   "where": "Find › Practice › Answers › Maths",
+   "asks": "Level",
+   "cards": 9646,
+   "why": [
+    "an umbrella answer, a parent beside its child, or one label twice in a menu (overlap across subjects is fine): parent \"GCSE\" (5131) beside its child \"KS3\" (1027)"
+   ]
+  },
+  {
+   "where": "Find › Library › Religious Studies › Judaism › Second Temple",
    "asks": "Work",
    "cards": 5455,
    "why": [
@@ -114,107 +162,59 @@
    ]
   },
   {
-   "where": "Find › Library › Judaism › Kabbalah › Zohar Chadash",
-   "asks": "Chapter",
-   "cards": 4421,
+   "where": "Find › Library › English Literature",
+   "asks": "Translation",
+   "cards": 5216,
    "why": [
-    "an answer that repeats the answer above it: Zohar Chadash › Tikkunim Mizohar Chadash"
+    "sibling branches ask their next question in different orders: Complete Works asks Work, First edition (1861) asks Chapter; First edition (1861) asks Chapter, Complete Works asks Work"
    ]
   },
   {
-   "where": "Find › Practice › Answers › Maths › A-Level",
+   "where": "Find › Library › History",
+   "asks": "Manuscripts, people, writings, events or timelines",
+   "cards": 3619,
+   "why": [
+    "sibling branches ask their next question in different orders: Events asks Theatre, Timelines asks Era; Timelines asks Era, Events asks Theatre"
+   ]
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works",
+   "asks": "Work",
+   "cards": 942,
+   "why": [
+    "a finer question asked before its coarser one: Work before Kind of writing"
+   ]
+  },
+  {
+   "where": "Find › Practice › Answers › Statistics",
    "asks": "Year",
-   "cards": 2588,
+   "cards": 517,
    "why": [
     "a finer question asked before its coarser one: Year before Month"
    ]
   },
   {
-   "where": "Find › Library › Judaism › Second Temple › Josephus",
-   "asks": "Book",
-   "cards": 2313,
-   "why": [
-    "an answer that repeats the answer above it: Josephus › The Life of Flavius Josephus"
-   ]
-  },
-  {
-   "where": "Find › Practice › Answers › Combined Science › Foundation",
+   "where": "Find › Practice › Questions › Statistics",
    "asks": "Year",
-   "cards": 1226,
+   "cards": 517,
    "why": [
     "a finer question asked before its coarser one: Year before Month"
    ]
   },
   {
-   "where": "Find › Practice › Questions › Combined Science › Foundation",
-   "asks": "Year",
-   "cards": 1226,
+   "where": "Find › Library › Physics",
+   "asks": "Topic",
+   "cards": 151,
    "why": [
-    "a finer question asked before its coarser one: Year before Month"
+    "an answer that repeats the answer above it: Physics › Astrophysics; Physics › Nuclear Physics; Physics › Space Physics"
    ]
   },
   {
-   "where": "Find › Practice › Answers › Combined Science › Higher",
-   "asks": "Year",
-   "cards": 1119,
+   "where": "Find › Library › Physical Education › Fighters",
+   "asks": "Decade",
+   "cards": 103,
    "why": [
-    "a finer question asked before its coarser one: Year before Month"
-   ]
-  },
-  {
-   "where": "Find › Practice › Questions › Combined Science › Higher",
-   "asks": "Year",
-   "cards": 1119,
-   "why": [
-    "a finer question asked before its coarser one: Year before Month"
-   ]
-  },
-  {
-   "where": "Find › Practice › Answers › Geography › GCSE",
-   "asks": "Year",
-   "cards": 230,
-   "why": [
-    "a finer question asked before its coarser one: Year before Month"
-   ]
-  },
-  {
-   "where": "Find › Practice › Questions › Geography › GCSE",
-   "asks": "Year",
-   "cards": 230,
-   "why": [
-    "a finer question asked before its coarser one: Year before Month"
-   ]
-  },
-  {
-   "where": "Find › Practice › Answers › English Literature › A-Level",
-   "asks": "Year",
-   "cards": 164,
-   "why": [
-    "a finer question asked before its coarser one: Year before Month"
-   ]
-  },
-  {
-   "where": "Find › Practice › Questions › English Literature › A-Level",
-   "asks": "Year",
-   "cards": 164,
-   "why": [
-    "a finer question asked before its coarser one: Year before Month"
-   ]
-  },
-  {
-   "where": "Find › Practice › Answers › Religious Studies › OCR",
-   "asks": "Year",
-   "cards": 136,
-   "why": [
-    "a finer question asked before its coarser one: Year before Month"
-   ]
-  },
-  {
-   "where": "Find › Practice › Questions › Religious Studies › OCR",
-   "asks": "Year",
-   "cards": 136,
-   "why": [
-    "a finer question asked before its coarser one: Year before Month"
+    "an umbrella answer, a parent beside its child, or one label twice in a menu (overlap across subjects is fine): parent \"1920s\" (12) beside its child \"1910s\" (8); parent \"2010s\" (34) beside its child \"2020s\" (15)"
    ]
   },
   {
@@ -226,33 +226,49 @@
    ]
   },
   {
-   "where": "Find › Practice › Practicals › Chemistry",
+   "where": "Find › Library › English Language › SATs",
    "asks": "Topic",
-   "cards": 31,
+   "cards": 49,
    "why": [
-    "an answer that repeats the answer above it: Chemistry › Organic Chemistry; Chemistry › Quantitative Chemistry"
+    "two answers that keep exactly the same cards: Adjectives = Adverbs; Antonyms = Synonyms; Brackets = Dashes"
    ]
   },
   {
-   "where": "Find › Practice › Practicals › Physics",
-   "asks": "Topic",
-   "cards": 29,
+   "where": "Find › Settings",
+   "asks": "Account type",
+   "cards": 44,
    "why": [
-    "sibling branches ask their next question in different orders: Energy asks Required, Forces asks Experiment or build; Forces asks Experiment or build, Energy asks Required"
+    "an umbrella answer, a parent beside its child, or one label twice in a menu (overlap across subjects is fine): parent \"Student\" (17) beside its child \"Parent\" (7); parent \"Staff\" (16) beside its child \"Parent\" (7); parent \"Apprentice\" (8) beside its child \"Parent\" (7)"
    ]
   },
   {
-   "where": "Find › Practice › Answers › Maths › Functional Skills L2",
-   "asks": "What you need",
-   "cards": 24,
+   "where": "Find › Library › Maths › A-Level",
+   "asks": "Topic",
+   "cards": 36,
    "why": [
-    "a finer question asked before its coarser one: What you need before Paper"
+    "two answers that keep exactly the same cards: Tree Diagrams = Venn Diagrams & Set Notation"
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Fighters › 1980s",
+   "asks": "Fighter",
+   "cards": 35,
+   "why": [
+    "a finer question asked before its coarser one: Fighter before Division"
    ]
   }
  ],
  "menuRule": [
   {
-   "where": "Find › Library › Christianity",
+   "where": "Find › Library",
+   "asks": "subject",
+   "bits": 0.35,
+   "best": "wLanguage",
+   "bestBits": 1.93,
+   "cards": 251724
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity",
    "asks": "wWork",
    "bits": 0.74,
    "best": "wCollection",
@@ -260,68 +276,20 @@
    "cards": 170845
   },
   {
-   "where": "Find › Library",
+   "where": "Find › Library › Religious Studies",
    "asks": "wReligion",
    "bits": 1.29,
    "best": "wCollection",
    "bestBits": 2,
-   "cards": 251724
+   "cards": 240857
   },
   {
-   "where": "Find › Library › Christianity › Bible",
+   "where": "Find › Library › Religious Studies › Christianity › Bible",
    "asks": "wCollection",
    "bits": 1.26,
    "best": "wSection",
    "bestBits": 2,
    "cards": 156723
-  },
-  {
-   "where": "Find › Library › Christianity › Bible › Old Testament › History",
-   "asks": "wSource",
-   "bits": 0.97,
-   "best": "wUnit",
-   "bestBits": 2,
-   "cards": 35468
-  },
-  {
-   "where": "Find › Library › Christianity › Bible › Old Testament › Poetry & Wisdom",
-   "asks": "wSource",
-   "bits": 0.97,
-   "best": "wChapter",
-   "bestBits": 2,
-   "cards": 24125
-  },
-  {
-   "where": "Find › Library › Christianity › Bible › Old Testament › Major Prophets",
-   "asks": "wSource",
-   "bits": 0.97,
-   "best": "wUnit",
-   "bestBits": 2,
-   "cards": 22323
-  },
-  {
-   "where": "Find › Library › Christianity › Bible › Deuterocanon / Apocrypha / Anagignoskomena",
-   "asks": "wLanguage",
-   "bits": 0.93,
-   "best": "wBook",
-   "bestBits": 2,
-   "cards": 16502
-  },
-  {
-   "where": "Find › Library › Christianity › Bible › New Testament › Gospels",
-   "asks": "wLanguage",
-   "bits": 0.92,
-   "best": "wUnit",
-   "bestBits": 2,
-   "cards": 11337
-  },
-  {
-   "where": "Find › Library › Christianity › Bible › New Testament › Pauline Epistles",
-   "asks": "wLanguage",
-   "bits": 0.01,
-   "best": "wBook",
-   "bestBits": 2,
-   "cards": 6099
   },
   {
    "where": "Find › Practice › Questions › Maths",
@@ -332,15 +300,7 @@
    "cards": 10719
   },
   {
-   "where": "Find › Library › Christianity › Bible › Psalter",
-   "asks": "wLanguage",
-   "bits": 0,
-   "best": "wChapter",
-   "bestBits": 2,
-   "cards": 5054
-  },
-  {
-   "where": "Find › Library › Judaism › Rabbinic",
+   "where": "Find › Library › Religious Studies › Judaism › Rabbinic",
    "asks": "wWork",
    "bits": 1,
    "best": "wSection",
@@ -350,58 +310,50 @@
   {
    "where": "Find › Practice › Questions › Biology",
    "asks": "documentType",
-   "bits": 0.72,
+   "bits": 0.64,
    "best": "qPart",
    "bestBits": 2,
-   "cards": 3875
+   "cards": 4656
   },
   {
    "where": "Find › Practice › Answers › Biology",
    "asks": "documentType",
-   "bits": 0.72,
+   "bits": 0.64,
    "best": "qPart",
    "bestBits": 2,
-   "cards": 3875
+   "cards": 4656
   },
   {
-   "where": "Find › Practice › Questions › Physics › GCSE",
-   "asks": "documentType",
-   "bits": 0.92,
-   "best": "qPart",
+   "where": "Find › Library › History",
+   "asks": "histKind",
+   "bits": 0.42,
+   "best": "wWork",
    "bestBits": 2,
-   "cards": 2553
+   "cards": 3619
   },
   {
-   "where": "Find › Practice › Answers › Physics › GCSE",
-   "asks": "documentType",
-   "bits": 0.91,
-   "best": "qPart",
-   "bestBits": 2,
-   "cards": 2517
-  },
-  {
-   "where": "Find › Practice › Answers › Maths › SATs",
-   "asks": "documentType",
-   "bits": 0.85,
-   "best": "yearGroup",
-   "bestBits": 2,
-   "cards": 1903
-  },
-  {
-   "where": "Find › Library › Christianity › Bible › Old Testament › Minor Prophets",
-   "asks": "wSource",
-   "bits": 0.97,
-   "best": "wLanguage",
-   "bestBits": 1.37,
-   "cards": 5250
-  },
-  {
-   "where": "Find › Library › Judaism › Second Temple",
+   "where": "Find › Library › Religious Studies › Judaism › Second Temple",
    "asks": "wWork",
    "bits": 1.75,
    "best": "wUnit",
    "bestBits": 2,
    "cards": 5455
+  },
+  {
+   "where": "Find › Practice › Answers › Physics",
+   "asks": "documentType",
+   "bits": 0.69,
+   "best": "tier",
+   "bestBits": 0.99,
+   "cards": 4503
+  },
+  {
+   "where": "Find › Practice › Questions › Physics",
+   "asks": "documentType",
+   "bits": 0.7,
+   "best": "tier",
+   "bestBits": 0.99,
+   "cards": 4539
   },
   {
    "where": "Find › Practice › Answers › Maths",
@@ -410,14 +362,6 @@
    "best": "keystage",
    "bestBits": 1.92,
    "cards": 9646
-  },
-  {
-   "where": "Find › Practice › Questions › Maths › Worksheet",
-   "asks": "level",
-   "bits": 1.4,
-   "best": "keystage",
-   "bestBits": 1.61,
-   "cards": 4693
   },
   {
    "where": "Find › Practice › Questions › Religious Studies",
@@ -436,20 +380,44 @@
    "cards": 1004
   },
   {
-   "where": "Find › Practice › Questions › Psychology › A-Level",
-   "asks": "examBoard",
-   "bits": 0.74,
-   "best": "examMonth",
-   "bestBits": 0.9,
-   "cards": 587
+   "where": "Find › Library › Physical Education",
+   "asks": "boxKind",
+   "bits": 0.97,
+   "best": "boutMonth",
+   "bestBits": 2,
+   "cards": 270
   },
   {
-   "where": "Find › Practice › Answers › Psychology › A-Level",
-   "asks": "examBoard",
-   "bits": 0.74,
-   "best": "examMonth",
-   "bestBits": 0.9,
-   "cards": 587
+   "where": "Find › Library › Mechanics",
+   "asks": "mScope",
+   "bits": 0.44,
+   "best": "mSystem",
+   "bestBits": 2,
+   "cards": 76
+  },
+  {
+   "where": "Find › Library › History › Manuscripts",
+   "asks": "wLanguage",
+   "bits": 1.38,
+   "best": "histRepository",
+   "bestBits": 2,
+   "cards": 12
+  },
+  {
+   "where": "Find › Library › History › Manuscripts › Greek",
+   "asks": "histMaterial",
+   "bits": 0.59,
+   "best": "histFormat",
+   "bestBits": 1.56,
+   "cards": 7
+  },
+  {
+   "where": "Find › Library › Mechanics › Car",
+   "asks": "mMake",
+   "bits": 1.66,
+   "best": "mSize",
+   "bestBits": 2,
+   "cards": 7
   },
   {
    "where": "Find › Practice › Practicals › Maths",
@@ -458,6 +426,14 @@
    "best": "topic",
    "bestBits": 2,
    "cards": 10
+  },
+  {
+   "where": "Find › Library › History › Timelines",
+   "asks": "histEra",
+   "bits": 1.85,
+   "best": "histTheatre",
+   "bestBits": 2,
+   "cards": 6
   }
  ],
  "tagAsked": [
@@ -466,6 +442,12 @@
    "label": "What for",
    "cards": 283432,
    "why": "lopsided — pressing its commonest answer would leave 0% of the list, needs 2%"
+  },
+  {
+   "field": "qNumber",
+   "label": "Question",
+   "cards": 31531,
+   "why": "counts within each Type — asked once one Type is left"
   },
   {
    "field": "myResult",
@@ -486,16 +468,10 @@
    "why": "one answer — nothing to decide"
   },
   {
-   "field": "decade",
-   "label": "Decade",
-   "cards": 260,
-   "why": "counts within each Fighters or fights — asked once one Fighters or fights is left"
-  },
-  {
-   "field": "histTheatre",
-   "label": "Theatre",
-   "cards": 169,
-   "why": "counts within each Manuscripts, people, writings, events or timelines — asked once one Manuscripts, people, writings, events or timelines is left"
+   "field": "paperSection",
+   "label": "Paper section",
+   "cards": 302,
+   "why": "counts within each Verified — asked once one Verified is left"
   },
   {
    "field": "mMarket",
@@ -542,774 +518,436 @@
  ],
  "menuSense": [
   {
-   "where": "Find › Library › Mesopotamian religion",
+   "where": "Find › Library › Religious Studies › Mesopotamian religion",
    "kind": "spelling",
    "say": "Chapter: Column I ~ Column II"
   },
   {
-   "where": "Find › Library › Mesopotamian religion",
+   "where": "Find › Library › Religious Studies › Mesopotamian religion",
    "kind": "spelling",
    "say": "Chapter: Column I ~ Column IV"
   },
   {
-   "where": "Find › Library › Mesopotamian religion",
+   "where": "Find › Library › Religious Studies › Mesopotamian religion",
    "kind": "spelling",
    "say": "Chapter: Column I ~ Column V"
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae",
+   "where": "Find › Library › English Literature › Complete Works",
+   "kind": "spelling",
+   "say": "Work: Richard II ~ Richard III"
+  },
+  {
+   "where": "Find › Library › English Literature › Baker’s selection (1899)",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 10"
+  },
+  {
+   "where": "Find › Library › English Literature › Baker’s selection (1899)",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 11"
+  },
+  {
+   "where": "Find › Library › English Literature › Baker’s selection (1899)",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 12"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 10"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 11"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 12"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1813)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 10"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1813)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 11"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1813)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 12"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1847)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 10"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1847)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 11"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1847)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 12"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1898)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 10"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1898)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 11"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1898)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 12"
+  },
+  {
+   "where": "Find › Library › Maths › A-Level",
+   "kind": "answer-words",
+   "say": "Topic: menu \"Coordinate Geometry\", chip \"Coordinate Geometry\", tag \"Coordinate Geometry (A-Level)\""
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Summa Theologiae",
    "kind": "mangled-text",
    "say": "Book: menu \"Second Part of the… (part 3)\" vs source \"Second Part of the Second Part (II-II) (part 3)\""
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae",
+   "where": "Find › Library › Religious Studies › Christianity › Summa Theologiae",
    "kind": "mangled-text",
    "say": "Book: chip \"Second Part of the… (part 3)\" vs source \"Second Part of the Second Part (II-II) (part 3)\""
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae",
+   "where": "Find › Library › Religious Studies › Christianity › Summa Theologiae",
    "kind": "mangled-text",
    "say": "Book: tag \"Second Part of the… (part 3)\" vs source \"Second Part of the Second Part (II-II) (part 3)\""
   },
   {
-   "where": "Find › Library › Christianity › Eusebius, Church History",
+   "where": "Find › Library › Religious Studies › Christianity › Eusebius, Church History",
    "kind": "spelling",
    "say": "Chapter: Book 1, Chapter 1, Section 1 ~ Book 1, Chapter 10, Section 1"
   },
   {
-   "where": "Find › Library › Christianity › Eusebius, Church History",
+   "where": "Find › Library › Religious Studies › Christianity › Eusebius, Church History",
    "kind": "spelling",
    "say": "Chapter: Book 1, Chapter 1, Section 1 ~ Book 1, Chapter 11, Section 1"
   },
   {
-   "where": "Find › Library › Christianity › Eusebius, Church History",
+   "where": "Find › Library › Religious Studies › Christianity › Eusebius, Church History",
    "kind": "spelling",
    "say": "Chapter: Book 1, Chapter 1, Section 1 ~ Book 1, Chapter 12, Section 1"
   },
   {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion",
+   "where": "Find › Library › Religious Studies › Christianity › Institutes of the Christian Religion",
    "kind": "spelling",
    "say": "Book: Book I ~ Book II"
   },
   {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion",
+   "where": "Find › Library › Religious Studies › Christianity › Institutes of the Christian Religion",
    "kind": "spelling",
    "say": "Book: Book I ~ Book IV"
   },
   {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion",
+   "where": "Find › Library › Religious Studies › Christianity › Institutes of the Christian Religion",
    "kind": "spelling",
    "say": "Book: Book II ~ Book III"
   },
   {
-   "where": "Find › Library › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
+   "where": "Find › Library › Religious Studies › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
    "kind": "spelling",
    "say": "Chapter: Ascension to the… part 1 ~ Ascension to the… part 10"
   },
   {
-   "where": "Find › Library › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
+   "where": "Find › Library › Religious Studies › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
    "kind": "spelling",
    "say": "Chapter: Ascension to the… part 1 ~ Ascension to the… part 11"
   },
   {
-   "where": "Find › Library › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
+   "where": "Find › Library › Religious Studies › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
    "kind": "spelling",
    "say": "Chapter: Ascension to the… part 1 ~ Ascension to the… part 12"
   },
   {
-   "where": "Find › Library › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
+   "where": "Find › Library › Religious Studies › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
    "kind": "mangled-text",
    "say": "Chapter: menu \"Ascension to the… part 1\" vs source \"Ascension to the Dormition, part 1\""
   },
   {
-   "where": "Find › Library › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
+   "where": "Find › Library › Religious Studies › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
    "kind": "mangled-text",
    "say": "Chapter: chip \"Ascension to the… part 1\" vs source \"Ascension to the Dormition, part 1\""
   },
   {
-   "where": "Find › Library › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
+   "where": "Find › Library › Religious Studies › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
    "kind": "mangled-text",
    "say": "Chapter: tag \"Ascension to the… part 1\" vs source \"Ascension to the Dormition, part 1\""
   },
   {
-   "where": "Find › Library › Christianity › John Chrysostom, Homilies on the Statues",
+   "where": "Find › Library › Religious Studies › Christianity › John Chrysostom, Homilies on the Statues",
    "kind": "spelling",
    "say": "Chapter: Homily I, Section 1 ~ Homily I, Section 10"
   },
   {
-   "where": "Find › Library › Christianity › John Chrysostom, Homilies on the Statues",
+   "where": "Find › Library › Religious Studies › Christianity › John Chrysostom, Homilies on the Statues",
    "kind": "spelling",
    "say": "Chapter: Homily I, Section 1 ~ Homily I, Section 11"
   },
   {
-   "where": "Find › Library › Christianity › John Chrysostom, Homilies on the Statues",
+   "where": "Find › Library › Religious Studies › Christianity › John Chrysostom, Homilies on the Statues",
    "kind": "spelling",
    "say": "Chapter: Homily I, Section 1 ~ Homily I, Section 12"
   },
   {
-   "where": "Find › Library › Ancient Egyptian religion › Isis and Osiris",
+   "where": "Find › Library › Religious Studies › Ancient Egyptian religion › Isis and Osiris",
    "kind": "spelling",
    "say": "Unit: Section 1 ~ Section 10"
   },
   {
-   "where": "Find › Library › Ancient Egyptian religion › Isis and Osiris",
+   "where": "Find › Library › Religious Studies › Ancient Egyptian religion › Isis and Osiris",
    "kind": "spelling",
    "say": "Unit: Section 1 ~ Section 11"
   },
   {
-   "where": "Find › Library › Ancient Egyptian religion › Isis and Osiris",
+   "where": "Find › Library › Religious Studies › Ancient Egyptian religion › Isis and Osiris",
    "kind": "spelling",
    "say": "Unit: Section 1 ~ Section 12"
   },
   {
-   "where": "Find › Library › Ancient Egyptian religion › Legends of the Gods",
+   "where": "Find › Library › Religious Studies › Ancient Egyptian religion › Legends of the Gods",
    "kind": "spelling",
    "say": "Chapter: The History of Creation (A) ~ The History of Creation (B)"
   },
   {
-   "where": "Find › Library › Christianity › Bible › Old Testament",
+   "where": "Find › Library › English Literature › Complete Works › Shakespeare’s Sonnets",
    "kind": "spelling",
-   "say": "Section: Kathisma 1 ~ Kathisma 10"
+   "say": "Unit: Sonnet 1 ~ Sonnet 10"
   },
   {
-   "where": "Find › Library › Christianity › Bible › Old Testament",
+   "where": "Find › Library › English Literature › Complete Works › Shakespeare’s Sonnets",
    "kind": "spelling",
-   "say": "Section: Kathisma 1 ~ Kathisma 11"
+   "say": "Unit: Sonnet 1 ~ Sonnet 11"
   },
   {
-   "where": "Find › Library › Christianity › Bible › Old Testament",
+   "where": "Find › Library › English Literature › Complete Works › Shakespeare’s Sonnets",
    "kind": "spelling",
-   "say": "Section: Kathisma 1 ~ Kathisma 12"
+   "say": "Unit: Sonnet 1 ~ Sonnet 12"
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › First Part of the Second Part (I-II) (part 1)",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1820",
    "kind": "spelling",
-   "say": "Chapter: I-II.1.1 ~ I-II.10.1"
+   "say": "Unit: Stanza 1 ~ Stanza 1 (2)"
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › First Part of the Second Part (I-II) (part 1)",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1820",
    "kind": "spelling",
-   "say": "Chapter: I-II.1.1 ~ I-II.11.1"
+   "say": "Unit: Stanza 1 ~ Stanza 10"
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › First Part of the Second Part (I-II) (part 1)",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1820",
    "kind": "spelling",
-   "say": "Chapter: I-II.1.1 ~ I-II.11.2"
+   "say": "Unit: Stanza 1 ~ Stanza 11"
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › Second Part of the Second Part (II-II) (part 1)",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1821",
    "kind": "spelling",
-   "say": "Chapter: II-II.1.1 ~ II-II.1.10"
+   "say": "Unit: Stanza 1 ~ Stanza 1 (2)"
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › Second Part of the Second Part (II-II) (part 1)",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1821",
    "kind": "spelling",
-   "say": "Chapter: II-II.1.1 ~ II-II.10.1"
+   "say": "Unit: Stanza 1 ~ Stanza 1 (3)"
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › Second Part of the Second Part (II-II) (part 1)",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1821",
    "kind": "spelling",
-   "say": "Chapter: II-II.1.1 ~ II-II.11.1"
+   "say": "Unit: Stanza 1 ~ Stanza 10"
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › Third Part (III) (part 1)",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1819",
    "kind": "spelling",
-   "say": "Chapter: III.1.1 ~ III.2.11"
+   "say": "Unit: Stanza 1 ~ Stanza 10"
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › Third Part (III) (part 1)",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1819",
    "kind": "spelling",
-   "say": "Chapter: III.1.1 ~ III.7.11"
+   "say": "Unit: Stanza 1 ~ Stanza 11"
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › Third Part (III) (part 1)",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1819",
    "kind": "spelling",
-   "say": "Chapter: III.1.1 ~ III.10.1"
+   "say": "Unit: Stanza 1 ~ Stanza 12"
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › Third Part (III) (part 1)",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1817",
    "kind": "answer-words",
-   "say": "Chapter: menu \"III.1.1\", chip \"III.1.1\", tag \"III.1.1 Whether it was…\""
+   "say": "Chapter: menu \"Fragment\", chip \"Fragment\", tag \"Fragment: \"igniculus…\""
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › Third Part (III) (part 1)",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1818",
    "kind": "answer-words",
-   "say": "Chapter: menu \"III.1.2\", chip \"III.1.2\", tag \"III.1.2 Whether it was…\""
+   "say": "Chapter: menu \"Fragment\", chip \"Fragment\", tag \"Fragment: 'my Head Is Wild…\""
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › Third Part (III) (part 1)",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1822",
    "kind": "answer-words",
-   "say": "Chapter: menu \"III.1.3\", chip \"III.1.3\", tag \"III.1.3 Whether, if man had…\""
+   "say": "Chapter: menu \"Lines\", chip \"Lines\", tag \"Lines: 'we Meet Not as We…\""
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › Second Part of the Second Part (II-II) (part 2)",
-   "kind": "spelling",
-   "say": "Chapter: II-II.121.2 ~ II-II.123.12"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › Second Part of the Second Part (II-II) (part 2)",
-   "kind": "spelling",
-   "say": "Chapter: II-II.123.1 ~ II-II.123.10"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › Second Part of the Second Part (II-II) (part 2)",
-   "kind": "spelling",
-   "say": "Chapter: II-II.123.1 ~ II-II.123.12"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › Supplement (Suppl.) (part 1)",
-   "kind": "spelling",
-   "say": "Chapter: Suppl..1.1 Whether… ~ Suppl..10.1 Whether…"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › Supplement (Suppl.) (part 1)",
-   "kind": "spelling",
-   "say": "Chapter: Suppl..1.1 Whether… ~ Suppl..12.1 Whether…"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › Supplement (Suppl.) (part 1)",
-   "kind": "spelling",
-   "say": "Chapter: Suppl..1.1 Whether… ~ Suppl..15.1 Whether…"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › First Part (I) (part 1)",
-   "kind": "spelling",
-   "say": "Chapter: I.12.11 ~ I.21.1"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › First Part (I) (part 1)",
-   "kind": "spelling",
-   "say": "Chapter: I.12.12 ~ I.21.2"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › First Part (I) (part 1)",
-   "kind": "spelling",
-   "say": "Chapter: I.12.13 ~ I.21.3"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › First Part of the Second Part (I-II) (part 2)",
-   "kind": "spelling",
-   "say": "Chapter: I-II.100.1 ~ I-II.100.10"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › First Part of the Second Part (I-II) (part 2)",
-   "kind": "spelling",
-   "say": "Chapter: I-II.100.1 ~ I-II.100.11"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › First Part of the Second Part (I-II) (part 2)",
-   "kind": "spelling",
-   "say": "Chapter: I-II.100.1 ~ I-II.100.12"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › Third Part (III) (part 2)",
-   "kind": "spelling",
-   "say": "Chapter: III.80.1 ~ III.80.10"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › Third Part (III) (part 2)",
-   "kind": "spelling",
-   "say": "Chapter: III.80.1 ~ III.80.11"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › Third Part (III) (part 2)",
-   "kind": "spelling",
-   "say": "Chapter: III.80.1 ~ III.80.12"
-  },
-  {
-   "where": "Find › Library › Christianity › Summa Theologiae › Third Part (III) (part 2)",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1816",
    "kind": "answer-words",
-   "say": "Chapter: menu \"III.72.4\", chip \"III.72.4\", tag \"III.72.4 Whether the proper…\""
+   "say": "Chapter: menu \"Fragment\", chip \"Fragment\", tag \"Fragment: Home\""
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › Third Part (III) (part 2)",
+   "where": "Find › Library › English Literature › Anthology › Love and Relationships (AQA)",
    "kind": "answer-words",
-   "say": "Chapter: menu \"III.72.5\", chip \"III.72.5\", tag \"III.72.5 Whether the…\""
+   "say": "Chapter: menu \"Sonnet 29\", chip \"Sonnet 29\", tag \"Sonnet 29 – ‘I think of thee!’\""
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › Third Part (III) (part 2)",
+   "where": "Find › Library › English Literature › Anthology › Power and Conflict (AQA)",
    "kind": "answer-words",
-   "say": "Chapter: menu \"III.72.6\", chip \"III.72.6\", tag \"III.72.6 Whether the…\""
+   "say": "Chapter: menu \"Extract from The Prelude\", chip \"Extract from The Prelude\", tag \"Extract from The… the Boat\""
   },
   {
-   "where": "Find › Library › Christianity › Summa Theologiae › Supplement (Suppl.) (part 2)",
-   "kind": "spelling",
-   "say": "Chapter: Suppl..96.2 Whether the… ~ Suppl..96.12 Whether the…"
-  },
-  {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion › Book IV",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1, Argument ~ Chapter 10, Argument"
-  },
-  {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion › Book IV",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1, Argument ~ Chapter 11, Argument"
-  },
-  {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion › Book IV",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1, Argument ~ Chapter 12, Argument"
-  },
-  {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion › Book III",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1, Argument ~ Chapter 10, Argument"
-  },
-  {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion › Book III",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1, Argument ~ Chapter 11, Argument"
-  },
-  {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion › Book III",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1, Argument ~ Chapter 12, Argument"
-  },
-  {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion › Book II",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1, Argument ~ Chapter 10, Argument"
-  },
-  {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion › Book II",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1, Argument ~ Chapter 11, Argument"
-  },
-  {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion › Book II",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1, Argument ~ Chapter 12, Argument"
-  },
-  {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion › Book I",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1, Section 1 ~ Chapter 10, Section 1"
-  },
-  {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion › Book I",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1, Section 1 ~ Chapter 11, Section 1"
-  },
-  {
-   "where": "Find › Library › Christianity › Institutes of the Christian Religion › Book I",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1, Section 1 ~ Chapter 12, Section 1"
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Conferences",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 10"
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Conferences",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 11"
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Conferences",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 12"
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Conferences",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 1\", chip \"Chapter 1\", tag \"Chapter 1 · ארבעה ראשי שנים\""
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Conferences",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 2\", chip \"Chapter 2\", tag \"Chapter 2 · כל הזבחים שקבלו…\""
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Conferences",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 3\", chip \"Chapter 3\", tag \"Chapter 3 · הקורא את המגילה…\""
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Institutes",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 10"
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Institutes",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 11"
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Institutes",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 12"
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Institutes",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 1\", chip \"Chapter 1\", tag \"Chapter 1 · ארבעה ראשי שנים\""
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Institutes",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 2\", chip \"Chapter 2\", tag \"Chapter 2 · כל הזבחים שקבלו…\""
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Institutes",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 3\", chip \"Chapter 3\", tag \"Chapter 3 · הקורא את המגילה…\""
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Life of Antony",
-   "kind": "spelling",
-   "say": "Chapter: Section 1 ~ Section 10"
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Life of Antony",
-   "kind": "spelling",
-   "say": "Chapter: Section 1 ~ Section 11"
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Life of Antony",
-   "kind": "spelling",
-   "say": "Chapter: Section 1 ~ Section 12"
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Dialogue I: The Monks of the East",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 10"
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Dialogue I: The Monks of the East",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 11"
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Dialogue I: The Monks of the East",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 12"
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Dialogue I: The Monks of the East",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 1\", chip \"Chapter 1\", tag \"Chapter 1 · ארבעה ראשי שנים\""
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Dialogue I: The Monks of the East",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 2\", chip \"Chapter 2\", tag \"Chapter 2 · כל הזבחים שקבלו…\""
-  },
-  {
-   "where": "Find › Library › Christianity › Desert Fathers › Dialogue I: The Monks of the East",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 3\", chip \"Chapter 3\", tag \"Chapter 3 · הקורא את המגילה…\""
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › Dialogue with Trypho",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 10"
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › Dialogue with Trypho",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 11"
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › Dialogue with Trypho",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 12"
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › Dialogue with Trypho",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 1\", chip \"Chapter 1\", tag \"Chapter 1 · ארבעה ראשי שנים\""
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › Dialogue with Trypho",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 2\", chip \"Chapter 2\", tag \"Chapter 2 · כל הזבחים שקבלו…\""
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › Dialogue with Trypho",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 3\", chip \"Chapter 3\", tag \"Chapter 3 · הקורא את המגילה…\""
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › First Apology",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 10"
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › First Apology",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 11"
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › First Apology",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 12"
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › First Apology",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 1\", chip \"Chapter 1\", tag \"Chapter 1 · ארבעה ראשי שנים\""
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › First Apology",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 2\", chip \"Chapter 2\", tag \"Chapter 2 · כל הזבחים שקבלו…\""
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › First Apology",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 3\", chip \"Chapter 3\", tag \"Chapter 3 · הקורא את המגילה…\""
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › Second Apology",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 10"
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › Second Apology",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 11"
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › Second Apology",
-   "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 12"
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › Second Apology",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 1\", chip \"Chapter 1\", tag \"Chapter 1 · ארבעה ראשי שנים\""
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › Second Apology",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 2\", chip \"Chapter 2\", tag \"Chapter 2 · כל הזבחים שקבלו…\""
-  },
-  {
-   "where": "Find › Library › Christianity › Justin Martyr › Second Apology",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 3\", chip \"Chapter 3\", tag \"Chapter 3 · הקורא את המגילה…\""
-  },
-  {
-   "where": "Find › Library › Islam › Hadith › Sahih al-Bukhari",
-   "kind": "answer-words",
-   "say": "Book: menu \"4 · Ablutions\", chip \"4 · Ablutions\", tag \"4 · Ablutions (Wudu')\""
-  },
-  {
-   "where": "Find › Library › Islam › Hadith › Sahih al-Bukhari",
-   "kind": "answer-words",
-   "say": "Book: menu \"5 · Bathing\", chip \"5 · Bathing\", tag \"5 · Bathing (Ghusl)\""
-  },
-  {
-   "where": "Find › Library › Islam › Hadith › Sahih al-Bukhari",
-   "kind": "answer-words",
-   "say": "Book: menu \"8 · Prayers\", chip \"8 · Prayers\", tag \"8 · Prayers (Salat)\""
-  },
-  {
-   "where": "Find › Library › Islam › Hadith › Sunan an-Nasa'i",
-   "kind": "answer-words",
-   "say": "Book: menu \"3 · The Book of Menstruation…\", chip \"3 · The Book of Menstruation…\", tag \"3 · The Book of… Istihadah\""
-  },
-  {
-   "where": "Find › Library › Islam › Hadith › Sunan an-Nasa'i",
+   "where": "Find › Library › English Literature › Anthology › Power and Conflict (AQA)",
    "kind": "mangled-text",
-   "say": "Book: tag \"3 · The Book of… Istihadah\" vs source \"3 · The Book of Menstruation and Istihadah\""
+   "say": "Chapter: tag \"Extract from The… the Boat\" vs source \"Extract from The Prelude: Stealing the Boat\""
   },
   {
-   "where": "Find › Library › Islam › Hadith › Sunan Abi Dawud",
+   "where": "Find › Library › English Literature › Anthology › Relationships (Edexcel)",
    "kind": "answer-words",
-   "say": "Book: menu \"2 · Prayer\", chip \"2 · Prayer\", tag \"2 · Prayer (Kitab Al-Salat)\""
+   "say": "Chapter: menu \"1st Date\", chip \"1st Date\", tag \"1st Date – She and 1st Date…\""
   },
   {
-   "where": "Find › Library › Islam › Hadith › Sunan Abi Dawud",
+   "where": "Find › Library › History › Writings › The Histories",
    "kind": "answer-words",
-   "say": "Book: menu \"4 · Prayer\", chip \"4 · Prayer\", tag \"4 · Prayer (Kitab Al-Salat)\""
+   "say": "Book: menu \"Book 1\", chip \"Book 1\", tag \"Book 1 (Clio)\""
   },
   {
-   "where": "Find › Library › Islam › Hadith › Sunan Abi Dawud",
+   "where": "Find › Library › History › Writings › The Histories",
    "kind": "answer-words",
-   "say": "Book: menu \"5 · Prayer\", chip \"5 · Prayer\", tag \"5 · Prayer (Kitab Al-Salat)\""
+   "say": "Book: menu \"Book 2\", chip \"Book 2\", tag \"Book 2 (Euterpe)\""
   },
   {
-   "where": "Find › Library › Islam › Hadith › Sunan Ibn Majah",
+   "where": "Find › Library › History › Writings › The Histories",
    "kind": "answer-words",
-   "say": "Book: menu \"1 · The Book of Purification…\", chip \"1 · The Book of Purification…\", tag \"1 · The Book of… its Sunnah\""
+   "say": "Book: menu \"Book 3\", chip \"Book 3\", tag \"Book 3 (Thalia)\""
   },
   {
-   "where": "Find › Library › Islam › Hadith › Sunan Ibn Majah",
-   "kind": "mangled-text",
-   "say": "Book: tag \"1 · The Book of… its Sunnah\" vs source \"1 · The Book of Purification and its Sunnah\""
-  },
-  {
-   "where": "Find › Library › Islam › Hadith › Jami' at-Tirmidhi",
-   "kind": "answer-words",
-   "say": "Book: menu \"2 · The Book on Salat\", chip \"2 · The Book on Salat\", tag \"2 · The Book on Salat (Prayer)\""
-  },
-  {
-   "where": "Find › Library › Judaism › Kabbalah › Tikkunei Zohar",
-   "kind": "answer-words",
-   "say": "Unit: menu \"1\", chip \"Unit 1\", tag \"1\""
-  },
-  {
-   "where": "Find › Library › Judaism › Kabbalah › Tikkunei Zohar",
-   "kind": "answer-words",
-   "say": "Unit: menu \"2\", chip \"Unit 2\", tag \"2\""
-  },
-  {
-   "where": "Find › Library › Judaism › Kabbalah › Tikkunei Zohar",
-   "kind": "answer-words",
-   "say": "Unit: menu \"3\", chip \"Unit 3\", tag \"3\""
-  },
-  {
-   "where": "Find › Library › Judaism › Second Temple › Jubilees",
+   "where": "Find › Library › History › Writings › Germania and Agricola",
    "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 10"
+   "say": "Unit: Section 1 ~ Section 10"
   },
   {
-   "where": "Find › Library › Judaism › Second Temple › Jubilees",
+   "where": "Find › Library › History › Writings › Germania and Agricola",
    "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 11"
+   "say": "Unit: Section 1 ~ Section 11"
   },
   {
-   "where": "Find › Library › Judaism › Second Temple › Jubilees",
+   "where": "Find › Library › History › Writings › Germania and Agricola",
    "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 12"
+   "say": "Unit: Section 1 ~ Section 12"
   },
   {
-   "where": "Find › Library › Judaism › Second Temple › Jubilees",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 1\", chip \"Chapter 1\", tag \"Chapter 1 · ארבעה ראשי שנים\""
-  },
-  {
-   "where": "Find › Library › Judaism › Second Temple › Jubilees",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 2\", chip \"Chapter 2\", tag \"Chapter 2 · כל הזבחים שקבלו…\""
-  },
-  {
-   "where": "Find › Library › Judaism › Second Temple › Jubilees",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 3\", chip \"Chapter 3\", tag \"Chapter 3 · הקורא את המגילה…\""
-  },
-  {
-   "where": "Find › Library › Judaism › Second Temple › 1 Enoch",
+   "where": "Find › Library › History › Writings › The Genuine Works of Hippocrates",
    "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 10"
+   "say": "Unit: Section 1 ~ Section 10"
   },
   {
-   "where": "Find › Library › Judaism › Second Temple › 1 Enoch",
+   "where": "Find › Library › History › Writings › The Genuine Works of Hippocrates",
    "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 11"
+   "say": "Unit: Section 1 ~ Section 11"
   },
   {
-   "where": "Find › Library › Judaism › Second Temple › 1 Enoch",
+   "where": "Find › Library › History › Writings › The Genuine Works of Hippocrates",
    "kind": "spelling",
-   "say": "Chapter: Chapter 1 ~ Chapter 12"
+   "say": "Unit: Section 1 ~ Section 12"
   },
   {
-   "where": "Find › Library › Judaism › Second Temple › 1 Enoch",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 1\", chip \"Chapter 1\", tag \"Chapter 1 · ארבעה ראשי שנים\""
+   "where": "Find › Library › History › Writings › Constitution of the United States",
+   "kind": "spelling",
+   "say": "Chapter: Amendment I ~ Amendment II"
   },
   {
-   "where": "Find › Library › Judaism › Second Temple › 1 Enoch",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 2\", chip \"Chapter 2\", tag \"Chapter 2 · כל הזבחים שקבלו…\""
+   "where": "Find › Library › History › Writings › Constitution of the United States",
+   "kind": "spelling",
+   "say": "Chapter: Amendment I ~ Amendment IV"
   },
   {
-   "where": "Find › Library › Judaism › Second Temple › 1 Enoch",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"Chapter 3\", chip \"Chapter 3\", tag \"Chapter 3 · הקורא את המגילה…\""
+   "where": "Find › Library › History › Writings › Constitution of the United States",
+   "kind": "spelling",
+   "say": "Chapter: Amendment I ~ Amendment IX"
   },
   {
-   "where": "Find › Library › Judaism › Second Temple › Letter of Aristeas",
-   "kind": "answer-words",
-   "say": "Unit: menu \"1\", chip \"Unit 1\", tag \"1\""
+   "where": "Find › Library › History › Writings › Bill of Rights 1689",
+   "kind": "spelling",
+   "say": "Unit: Paragraph 1 ~ Paragraph 10"
   },
   {
-   "where": "Find › Library › Judaism › Second Temple › Letter of Aristeas",
-   "kind": "answer-words",
-   "say": "Unit: menu \"2\", chip \"Unit 2\", tag \"2\""
+   "where": "Find › Library › History › Writings › Bill of Rights 1689",
+   "kind": "spelling",
+   "say": "Unit: Paragraph 1 ~ Paragraph 11"
   },
   {
-   "where": "Find › Library › Judaism › Second Temple › Letter of Aristeas",
-   "kind": "answer-words",
-   "say": "Unit: menu \"3\", chip \"Unit 3\", tag \"3\""
+   "where": "Find › Library › History › Writings › Bill of Rights 1689",
+   "kind": "spelling",
+   "say": "Unit: Paragraph 1 ~ Paragraph 12"
   },
   {
-   "where": "Find › Practice › Questions › Biology › Worksheet",
+   "where": "Find › Library › History › Manuscripts › Hebrew",
    "kind": "answer-words",
-   "say": "Paper: menu \"Adaptation\", chip \"Adaptation\", tag \"\""
+   "say": "Material: menu \"Parchment\", chip \"Parchment\", tag \"Parchment (leather)\""
+  }
+ ],
+ "twinPaths": [
+  {
+   "where": "Find › Practice",
+   "say": "parent \"Questions\" (31531) beside its child \"Answers\" (30343)"
   },
   {
-   "where": "Find › Practice › Questions › Biology › Worksheet",
-   "kind": "answer-words",
-   "say": "Paper: menu \"Animal Organ Systems\", chip \"Animal Organ Systems\", tag \"\""
+   "where": "Find › Settings",
+   "say": "parent \"Student\" (17) beside its child \"Parent\" (7)"
   },
   {
-   "where": "Find › Practice › Questions › Biology › Worksheet",
-   "kind": "answer-words",
-   "say": "Paper: menu \"Biodiversity\", chip \"Biodiversity\", tag \"\""
+   "where": "Find › Settings",
+   "say": "parent \"Staff\" (16) beside its child \"Parent\" (7)"
   },
   {
-   "where": "Find › Practice › Answers › Biology › Worksheet",
-   "kind": "answer-words",
-   "say": "Paper: menu \"Adaptation\", chip \"Adaptation\", tag \"\""
+   "where": "Find › Settings",
+   "say": "parent \"Apprentice\" (8) beside its child \"Parent\" (7)"
   },
   {
-   "where": "Find › Practice › Answers › Biology › Worksheet",
-   "kind": "answer-words",
-   "say": "Paper: menu \"Animal Organ Systems\", chip \"Animal Organ Systems\", tag \"\""
+   "where": "Find › Library › Physical Education › Fighters",
+   "say": "parent \"1920s\" (12) beside its child \"1910s\" (8)"
   },
   {
-   "where": "Find › Practice › Answers › Biology › Worksheet",
-   "kind": "answer-words",
-   "say": "Paper: menu \"Biodiversity\", chip \"Biodiversity\", tag \"\""
+   "where": "Find › Library › Physical Education › Fighters",
+   "say": "parent \"2010s\" (34) beside its child \"2020s\" (15)"
   },
   {
-   "where": "Find › Library › Christianity › Bible › Old Testament › Kathisma 17",
-   "kind": "answer-words",
-   "say": "Unit: menu \"1\", chip \"Unit 1\", tag \"1\""
+   "where": "Find › Library › Maths › GCSE",
+   "say": "parent \"KS4\" (32) beside its child \"KS3\" (7)"
   },
   {
-   "where": "Find › Library › Christianity › Bible › Old Testament › Kathisma 17",
-   "kind": "answer-words",
-   "say": "Unit: menu \"2\", chip \"Unit 2\", tag \"2\""
+   "where": "Find › Library › Mechanics › Car part",
+   "say": "parent \"D4FT\" (63) beside its child \"D4F\" (62)"
   },
   {
-   "where": "Find › Library › Christianity › Bible › Old Testament › Kathisma 17",
-   "kind": "answer-words",
-   "say": "Unit: menu \"3\", chip \"Unit 3\", tag \"3\""
+   "where": "Find › Practice › Answers › Maths",
+   "say": "parent \"GCSE\" (5131) beside its child \"KS3\" (1027)"
   },
   {
-   "where": "Find › Library › Christianity › Bible › Psalter › English",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"1\", chip \"Chapter 1\", tag \"1\""
-  },
-  {
-   "where": "Find › Library › Christianity › Bible › Psalter › English",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"2\", chip \"Chapter 2\", tag \"2\""
-  },
-  {
-   "where": "Find › Library › Christianity › Bible › Psalter › English",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"3\", chip \"Chapter 3\", tag \"3\""
-  },
-  {
-   "where": "Find › Library › Christianity › Bible › Psalter › Greek",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"1\", chip \"Chapter 1\", tag \"1\""
-  },
-  {
-   "where": "Find › Library › Christianity › Bible › Psalter › Greek",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"2\", chip \"Chapter 2\", tag \"2\""
-  },
-  {
-   "where": "Find › Library › Christianity › Bible › Psalter › Greek",
-   "kind": "answer-words",
-   "say": "Chapter: menu \"3\", chip \"Chapter 3\", tag \"3\""
+   "where": "Find › Library › Religious Studies › Christianity › Bible",
+   "say": "parent \"Old Testament\" (116363) beside its child \"Psalter\" (5054)"
   }
  ]
 }

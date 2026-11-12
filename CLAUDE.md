@@ -5,9 +5,11 @@ spreadsheets as the database. No build, no framework, no modules. **Everything e
 the data tabs, the library, the animations list, deploying, CI — is in `docs/map-detail.md`** (grep it,
 don't read it whole). Past bugs and decisions: `grep -ril <keyword> docs/history`, read around the hits.
 
-**The foundation is `docs/rules.md`** — one rulebook: the core ("one source for every truth, one template for every
-thing, one rule for every case"), 12 principles, each rule once with the checks that enforce it. It wins over this
-file; the rules below are its most-hit ones. New owner answers edit it (`docs/philosophy.md`, `docs/decisions.md` point there).
+**The foundation is `data/settings/rules.json`** — the rulebook as code: the core ("one source for every truth, one
+template for every thing, one rule for every case"), 12 principles, each rule once with the checks that enforce it.
+`docs/rules.md` is generated from it (`node tools/rules.js --write`; `node tools/rules.js` fails on a rule with no check,
+a check with no rule, or a stale page). It wins over this file; the rules below are its most-hit ones. New owner
+answers edit the JSON (`docs/philosophy.md`, `docs/decisions.md` point there).
 
 ## Reading cheaply
 
