@@ -2452,7 +2452,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
    words carry the line. */
 .prof-words { margin: var(--s2) 0 0; font-size: var(--fs-body); line-height: 1.3; color: var(--ink); }
 .prof-words b { font-weight: 800; }
-.prof-words i { font-style: normal; color: color-mix(in srgb, var(--gold) 70%, var(--bg)); margin: 0 var(--s2); }
+.prof-words i { font-style: normal; color: var(--ink); margin: 0 var(--s2); }
 /* ---------- AND THE ROWS ARE A NOTCH SMALLER THAN AN ORDINARY ROW, because a profile has twice as § */
 .is-prof .row { padding: var(--s1) 0; font-size: var(--fs-small); }
 .is-prof .prof-say { font-size: var(--fs-small); line-height: 1.35; }

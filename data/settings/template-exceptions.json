@@ -1,0 +1,8 @@
+{
+ "about": "Cards allowed to differ from the one template, read by tools/template-health.js. Each needs an owner decision in docs/decisions.md; nothing else goes here. kind: the card kind as the tool names it ('*' any); prop: a template property ('*' all, 'shape' one more allowed shape).",
+ "allowed": [
+  { "kind": "reel", "prop": "*", "owner": "9 Nov · 1a one card shape (owner, 8 Nov)", "why": "the reel is a full-screen player; tool, game and reel stay as the live widget card" },
+  { "kind": "reel", "prop": "shape", "owner": "9 Nov · 1a one card shape (owner, 8 Nov)", "why": "the player is the one declared second shape" },
+  { "kind": "widget", "prop": "stray", "owner": "9 Nov · 1a one card shape (owner, 8 Nov); 12 Nov Console and Word games", "why": "a tool's or game's own controls are its content (the live slot), inside a card on the template" }
+ ]
+}

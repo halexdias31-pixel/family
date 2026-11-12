@@ -19266,6 +19266,9 @@ function tileRowsJoin_(html) {
     if (!prev || !prev.classList.contains('tile-row') || !row.parentNode || (formOwn && prev.closest('.me-form')) || prev.classList.contains('person-tiles')) return;
     group(prev, row, !coreIn_(row));
   });
+  /* A CARD'S ONE ROW IS ITS FOUR (owner, 10 Nov): a group joined after them (your own, an admin's) waits behind ⋯, never a second line. */
+  t.content.querySelectorAll('.kc-row').forEach(r => { const more = r.querySelector(':scope > .kc-more');
+    if (more) [...r.children].filter(k => k !== more && !k.classList.contains('kc-four')).forEach(k => { more.appendChild(k); joined++; }); });
   return joined ? t.innerHTML : h;
 }
 

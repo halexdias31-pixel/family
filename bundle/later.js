@@ -3062,6 +3062,11 @@ function stuffPart_(x, part) {
   return practicalPart_(x, part);
 }
 
+/* A PART IS A CARD LIKE ANY OTHER (owner, 12 Nov: one template): a practical's, a lesson's or a history page's own markup, cut into the parts by card_. */
+function partCard_(x, part) {
+  const h = stuffPart_(x, part);
+  return isQ_(x) || /^\s*<div class=.card\b/.test(h) ? h : card_(h, 'part');
+}
 
 /* TWO LETTERS FOR THE PLACEHOLDER: § */
 const BOXER_PARTICLE = /^(de|la|del|della|van|von|da|di|du|le|der|den|dos|das)$/i;
@@ -10898,7 +10903,7 @@ function stuffPageHtml(n) {
   if (pg.slim) return rowsOne_(libWaitHtml_(pg.x) + findTopRow_());
   /* ONE TILE ROW PER THING (489, 495): a card's own row holds `Top` (950); a part page without one gets this one. */
   const html = pg.part === 'q' && pg.parts ? questionWhole_(pg.x, pg.parts, pg.open, pg.ans)
-    : pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits);
+    : pg.part ? partCard_(pg.x, pg.part) : stuffCard(pg.x, credits);
   return rowsOne_(html + (/data-do="find-top"/.test(html) ? '' : findTopRow_()));
 }
 /* BACK TO TOP (463): "a button to scroll back to the top of the finder"; on a kept card outside one, its column scrolls up. */

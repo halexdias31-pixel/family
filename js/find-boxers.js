@@ -256,6 +256,11 @@ function stuffPart_(x, part) {
   return practicalPart_(x, part);
 }
 
+/* A PART IS A CARD LIKE ANY OTHER (owner, 12 Nov: one template): a practical's, a lesson's or a history page's own markup, cut into the parts by card_. */
+function partCard_(x, part) {
+  const h = stuffPart_(x, part);
+  return isQ_(x) || /^\s*<div class=.card\b/.test(h) ? h : card_(h, 'part');
+}
 
 /* TWO LETTERS FOR THE PLACEHOLDER: § */
 const BOXER_PARTICLE = /^(de|la|del|della|van|von|da|di|du|le|der|den|dos|das)$/i;

@@ -359,6 +359,12 @@ function oneTemplate() {
   const bad = T.bad.map(t => { const at = /^([^:]+:\d+)/.exec(t); return { kind: 'one-template', where: at ? at[1] : 'js/check-one-template.js', say: t }; }), made = T.made;
   return { ok: made, of: made + bad.length, work: bad };
 }
+/* THE ONE TEMPLATE AS RENDERED (owner, 12 Nov): tools/template-health.js drives every role at 390 and 820 and reads each card's computed shape; read here, never re-run. */
+function templateRendered() {
+  const j = jread('data/template-health.json');
+  if (!j) return { rules: [], work: [{ kind: 'tpl-built', where: 'data/template-health.json', say: 'missing — run node tools/template-health.js; the rendered cards were NOT checked' }] };
+  return { rules: (j.rules || []).map(r => Object.assign(rule(r.id, 'ui', r.label, r.ok, r.of), { unit: r.unit, variety: r.variety })), work: j.work || [] };
+}
 function ui() {
   const raw = read('style.css'), css = raw.replace(/\/\*[\s\S]*?\*\//g, '');
   const rules = [];
@@ -373,8 +379,8 @@ function ui() {
     const had = seen.get(r.sel); if (had) props.forEach(p => { if (had.has(p)) reset.add(b); had.add(p); }); else seen.set(r.sel, props); });
   /* THE SCALE AND PALETTE: tools/css-scale.js, the same reading js/check-scale.js gates on. */
   const SC = require('./css-scale.js').cssScale(raw).measure, sc = k => [SC[k].ok, SC[k].of];
-  const AW = answerWidths(raw), OT = oneTemplate();
-  const work = uniformWork().concat(uxWork().work, ownerWork(), AW.bad, OT.work), k = {};
+  const AW = answerWidths(raw), OT = oneTemplate(), TH = templateRendered();
+  const work = uniformWork().concat(uxWork().work, ownerWork(), AW.bad, OT.work, TH.work), k = {};
   work.forEach(w => { k[w.kind] = (k[w.kind] || 0) + 1; });
   const P = UNIFORM_POP || {}, n = id => k[id] || 0;
   const R = [
@@ -386,6 +392,7 @@ function ui() {
     rule('radius-scale', 'ui', 'CSS rule-blocks with a corner radius, all from the radius tokens', ...sc('radius')),
     rule('answer-width', 'ui', 'Answer-box width rules on the one width', AW.of - AW.bad.length, AW.of),
     rule('one-template', 'ui', 'Cards made on the one template (findCard/card_)', OT.ok, OT.of),
+    ...TH.rules,
     rule('makers', 'ui', 'Tiles made by tile_() rather than by hand', P.tiles, P.tiles + n('raw-button') + n('hand-tile'), ['raw-button', 'hand-tile']),
     rule('inline-style', 'ui', 'Elements in markup with no inline style', P.tags - n('inline-style'), P.tags),
     rule('once-class', 'ui', 'Styled classes used in more than one place', P.classes - n('once-class'), P.classes),
@@ -546,8 +553,10 @@ function extraWork(st) {
   W.push(...require('./rules.js').ownerQuestions().work);
   return { work: W, skipped, sizes };
 }
+/* THE RENDERED TEMPLATE'S RULES (tools/template-health.js). */
+const TPL_KINDS = ['tpl-built', 'tpl-order', 'tpl-picture', 'tpl-tags', 'tpl-tag-look', 'tpl-title', 'tpl-tiles', 'tpl-tile-size', 'tpl-stray', 'tpl-width', 'tpl-centre', 'tpl-font', 'tpl-colour', 'tpl-radius', 'tpl-inline', 'tpl-spacing', 'tpl-same', 'tpl-variety-kind', 'tpl-variety'];
 /* THE CHECK IDS health.js prices, for the rulebook's coverage. */
-const knownChecks = st => [FIND_KINDS, UX_KINDS, UNIFORM_KINDS, STRUCT, EXTRA_KINDS, VARIETY_KINDS].flat()
+const knownChecks = st => [FIND_KINDS, UX_KINDS, UNIFORM_KINDS, STRUCT, EXTRA_KINDS, VARIETY_KINDS, TPL_KINDS].flat()
   .concat((st.signals || []).map(x => x.id), ['important', 'pxlit', 'colourlit', 'order', 'selectors', 'zindex', 'position'],
     ['font-scale', 'space-scale', 'radius-scale', 'answer-width', 'one-template', 'makers', 'one-place', 'biz-checker', 'exceptions', 'ceilings', 'markers', 'truth-facts', 'truth-lists', 'truth-labels'], ['read-bytes', 'search-bytes', 'comment-ratio', 'big-notes', 'spread', 'test-biggest', 'tombstones', 'claude-lines', 'effort']);
 /* THE BUSINESS AREA (1060): how much of the business the site runs (one-place.json), and the checker's own faults; the card goes live. */
