@@ -1003,13 +1003,46 @@ function kidNamesBack_(stored, sent, field, idx) {
 
 /* ---------- AND THE MAIL, THROUGH ONE DOOR § */
 function mailOut_(o) {
-  /* FOR THE PERSON IT GOES TO (342): § */
-  /* `firstNamesOnly`: A WHOLE NAME BECOMES THE FIRST NAME ALONE, NEVER "First (@handle)". § */
+  /* A PARENT GETS NO EMAIL FROM THE SITE (owner, 11 Nov): theirs goes to the admin to pass on, unless it is an optional kind they ticked. */
+  const kind = S(o && o.kind);
+  if (o) delete o.kind;
   const bare = !!(o && o.firstNamesOnly);
   if (o) delete o.firstNamesOnly;
+  const K = NOTIFY_KINDS[kind];
+  if (o && !(K && !K.essential)) {
+    const keep = [];
+    S(o.to).split(',').map(x => x.trim()).filter(Boolean).forEach(a => {
+      const r = mailParentRow_(a);
+      if (!r) { keep.push(a); return; }
+      const admin = ownerEmail_();
+      if (!admin) { console.log('parent email held: no admin address to send it to. Subject: ' + S(o.subject)); return; }
+      const who = (S(r.first_name) || 'a parent') + (S(r.handle) ? ' (@' + S(r.handle) + ')' : '');
+      const said = 'This email was meant for ' + who + ', at ' + a + '. Parents get no email from the site for now, so please pass it on.';
+      const c = Object.assign({}, o, { to: admin, subject: 'For ' + who + ': ' + S(o.subject), body: said + '\n\n' + S(o.body) });
+      if (typeof o.htmlBody === 'string') c.htmlBody = '<p>' + said.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</p>' + o.htmlBody;
+      mailSend_(c, bare, r);
+    });
+    if (!keep.length) return;
+    o.to = keep.join(',');
+  }
+  return mailSend_(o, bare);
+}
+/* THE ROW AN ADDRESS REACHES AS A PARENT — a client or a linked parent who is not a tutor or admin; pending rows count, as sign-in links go to them. */
+function mailParentRow_(addr) {
+  const a = norm(addr);
+  let hits = [];
+  try { hits = read(TAB.people).rows.filter(r => norm(r.email) === a); } catch (err) { return null; }
+  const par = hits.filter(r => { const ro = notifyRoles_(r);
+    return ro.indexOf('tutor') === -1 && ro.indexOf('admin') === -1 && (ro.indexOf('client') !== -1 || notifyParent_(r)); });
+  return hits.length && par.length === hits.length ? par[0] : null;
+}
+/* `viewer`: a redirected parent's email is netted as that parent would read it, so it can be passed on as it stands. */
+function mailSend_(o, bare, viewer) {
+  /* FOR THE PERSON IT GOES TO (342): § */
+  /* `firstNamesOnly`: A WHOLE NAME BECOMES THE FIRST NAME ALONE, NEVER "First (@handle)". § */
   const was = NET_VIEWER_;
   try {
-    netViewerSet_(mailViewer_(o && o.to));
+    netViewerSet_(viewer || mailViewer_(o && o.to));
     const idx = bare ? kidNamesBare_(kidNamesIndex_()) : kidNamesIndex_();
     ['subject', 'body', 'htmlBody'].forEach(k => { if (typeof o[k] === 'string') o[k] = kidNamesOff_(o[k], idx); });
   } catch (err) { /* a broken people tab names no child, so there is nothing to take out */ }
@@ -1124,7 +1157,7 @@ function notify(name, subject, body, kind) {
     /* NOT A KIND THEY HAVE TURNED OFF — see `wants_`. False, like the two above: the action that wanted
        to tell them has happened, and whether they hear of it by email was theirs to decide. */
     if (!wants_(p, kind)) { notifyHeld_(p, kind, subject); return false; }
-    mailOut_({ to, subject, body, name: '@family.' });
+    mailOut_({ to, subject, body, name: '@family.', kind });
     return true;
   } catch (err) {
     return false;
