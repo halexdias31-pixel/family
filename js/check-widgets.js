@@ -186,6 +186,7 @@ const ACCEPTED_IMPURE = {
   mat: 'reads the cheat sheet tab (`DATA.cheatsheet`), which the fixture leaves empty, so both payloads draw the built-in sheet',
   reels: 'reads the facts tab through `factsNow_`, which the fixture leaves empty, so both payloads deal the built-in facts',
   videos: 'a typed search lists the owner\'s list and an admin\'s films (`DATA.films`); the bar drawn ahead with nothing typed reads neither',
+  spotify: 'reads the site\'s Spotify app id (`brand`) and this browser\'s own link to Spotify; drawn ahead it is the same not-switched-on card for everyone, and drawing it fetches nothing of its own',
   favlinks: 'reads the viewer\'s own links (`DATA.favLinks`, 509), which the fixture leaves out, so every scenario draws the empty list',
 };
 async function drawAheadRuntime_() {
