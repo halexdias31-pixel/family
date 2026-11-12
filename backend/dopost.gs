@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-12-link-diagram-1";
+const DOPOST_VERSION = "2026-11-12-uk-dates-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -871,6 +871,13 @@ function submissionsAppend_(pid, items, sent) {
 function answerAtMs_(v) {
   if (v instanceof Date) return isNaN(v) ? 0 : v.getTime();
   if (typeof v === 'number') return isFinite(v) ? v : 0;
+  /* A SLASHED DAY IS READ BY WHICH HALF CAN BE A MONTH, UK when either could: Date.parse reads US and NaNs "20/10/2026" (owner, 12 Nov). */
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(S(v).trim());
+  if (m) {
+    const a = +m[1], b = +m[2], us = a <= 12 && b > 12;
+    const d = new Date(+m[3], (us ? a : b) - 1, us ? b : a, +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+    return isNaN(d) ? 0 : d.getTime();
+  }
   const t = Date.parse(S(v));
   return isNaN(t) ? 0 : t;
 }
