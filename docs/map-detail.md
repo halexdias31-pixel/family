@@ -262,7 +262,7 @@ Follow it. It is unusual and it is deliberate.
     places to get it wrong. If you are unsure which you are building, it is a thing, and it is tiles.
   - A tile has room for a label and about three words of `note`. When an action needs a real warning
     — "everyone is withdrawn", "never as though Stripe had confirmed it" — put **one** paragraph
-    under the row rather than one per button. See `jobAdminTiles_`.
+    under the row rather than one per button. See `jobAdminOpts_`.
 - **THERE ARE TWO PALETTES.** The screen is black and gold (`--bg`, `--gold`, `--ink`, `--line`).
   Everything standing in for PAPER — the receipt, the job stubs, the roster, the print sheet, the
   calendar, the splash — is cream and warm ink (`--paper`, `--paper-ink`, `--paper-dim`,
@@ -482,7 +482,7 @@ not green). `npm run check:changed` runs only what a change touches. `live.yml` 
   `.tile-row`, tiles.js) are the action row under a thing — a paper, a tutor, a shop item, a session.
   Buttons are the controls inside a form or dialog. On a question's pages everything is a tile (Check,
   Show answer, the pen's tools, Mark with AI) except the keypad keys and multiple-choice options. Tiles
-  win any tie. A real warning is one paragraph under the row, not one per tile (`jobAdminTiles_`).
+  win any tie. A real warning is one paragraph under the row, not one per tile (`jobAdminOpts_`).
   `check-doors` pairs every `act` with a handler.
 - **One line per thing:** a form is label/value rows, one thing each; never several controls boxed in a grid (421).
 - **Two palettes.** The screen is black and white (466; the accent token is still named `--gold`) (`--bg`, `--gold`, `--ink`, `--line`). Anything standing in

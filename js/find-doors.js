@@ -88,7 +88,7 @@ function profileDoorCard_(x) {
   /* NO FACE, NO LETTER: the card draws its own default picture, so a lone initial would only stand beside the handle. */
   return `<div class="is-prof prof-door">${!(t.image || t.avatar) ? '' : personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title || t.name, personId: t.personId },
     { cls: 'prof-big', none: 'prof-none', size: 160 })}<h3>${esc(x.name)}</h3>${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
-    ${tileRow_((typeof peopleTiles_ === 'function' ? peopleTiles_(t) : ''), 'person-tiles')}${typeof personEdHtml_ === 'function' ? personEdHtml_(t) : ''}</div>`;
+    ${tileRow_((typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(t)) : ''), 'person-tiles')}${typeof personEdHtml_ === 'function' ? personEdHtml_(t) : ''}</div>`;
 }
 
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */

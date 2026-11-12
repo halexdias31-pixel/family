@@ -50,7 +50,7 @@ const WIDGET_KEY = w => 'w:' + String(w.id);
 
 /* NAMED FOR THE COLUMN, because `find.js` already has a `widgetCard_` and it is a different object: § */
 /* ---------- AND UNTIL IT HAS STARTED, IT IS WAITING, AND IT LOOKS IT § */
-/* `own` is its own column (not Saved): only there does an admin get the layout row (463, `layoutTiles_` in layout.js). */
+/* `own` is its own column (not Saved): only there does an admin get the layout row (463, `layoutOpts_` in layout.js). */
 function widgetOnColumn_(w, own) {
   if (w && w.parts) return widgetMergedOn_(w, own);
   const waits = typeof w.start === 'function' && typeof loading_ === 'function';
@@ -60,7 +60,7 @@ function widgetOnColumn_(w, own) {
     ? `<span class="tile-group wgt-keep">${tile_([favOpts_({ key: WIDGET_KEY(w), kind: 'widget' }),
       typeof gameLockOpts_ === 'function' ? gameLockOpts_(w.id) : null])}${
       typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), w.name || w.title || w.label || '') : ''}</span>` : '';
-  const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(w) : '';
+  const lay = own === true && typeof layoutOpts_ === 'function' ? tileGroup_(layoutOpts_(w), 'is-admin wgt-admin') : '';
   return card_(`<div class="is-widget${held ? ' is-locked' : ''}">
       <div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${
         typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div>
@@ -73,7 +73,7 @@ function widgetMergedOn_(m, own) {
   const top = m.parts[0];
   const keep = typeof favOpts_ === 'function' ? `<span class="tile-group wgt-keep">${tile_([favOpts_({ key: WIDGET_KEY(top), kind: 'widget' }),
     typeof gameLockOpts_ === 'function' ? gameLockOpts_(top.id) : null])}${typeof suggestTile_ === 'function' ? suggestTile_('widget', String(top.id), top.name || top.title || top.label || '') : ''}</span>` : '';
-  const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(top) : '';
+  const lay = own === true && typeof layoutOpts_ === 'function' ? tileGroup_(layoutOpts_(top), 'is-admin wgt-admin') : '';
   const parts = m.parts.map(w => {
     const waits = typeof w.start === 'function' && typeof loading_ === 'function';
     return `<div class="merged-part"><div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div></div>`;

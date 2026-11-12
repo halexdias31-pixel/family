@@ -99,12 +99,12 @@ top level, before `passFor_`
    card is already on this device because it is yours. */
 ```
 
-### NO `cardTiles_` CALL HERE.
+### NO `cardRow_` CALL HERE.
 
 top level, before `passFor_`
 
 ```
-/* NO `cardTiles_` CALL HERE. `stuffCard` in find.js appends the action row to every card it draws,
+/* NO `cardRow_` CALL HERE. `stuffCard` in find.js appends the action row to every card it draws,
    and this card is drawn through it — the `me` kind is registered in `KINDS` like any other. This
    builder kept the call it had from before the actions were centralised, so the row came out twice:
    two stars, two pencils, two bins, two admin rows, all live and all doing the same thing. */

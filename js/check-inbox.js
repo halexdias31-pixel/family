@@ -183,13 +183,13 @@ async function screens() {
   if (A.u.widgetsOf_('tool').some(x => x.id === 'inbox')) fail('admin', 'Email is still a Tools widget; it lives on Site (500)');
   A.u.go('site');
   /* THE LAST FOUR (owner, 29 Oct): eight threads come back, four are drawn, newest first; no search, chips or More. */
-  if (!(await until(() => A.d.querySelectorAll('#s-site .ib-box .ib-row').length && !A.d.querySelector('#s-site .ib-list[aria-busy]'), 20000))) {
+  if (!(await until(() => A.d.querySelectorAll('#s-site .ib-box .row.ib-item').length && !A.d.querySelector('#s-site .ib-list[aria-busy]'), 20000))) {
     return fail('admin', 'the list did not draw: ' + ((A.d.querySelector('#s-site .ib-box') || {}).textContent || '(no box)').replace(/\s+/g, ' ').slice(0, 200));
   }
-  const rowsDrawn = [...A.d.querySelectorAll('#s-site .ib-box .ib-row')];
+  const rowsDrawn = [...A.d.querySelectorAll('#s-site .ib-box .row.ib-item')];
   if (rowsDrawn.length !== 4) fail('admin', 'the list drew ' + rowsDrawn.length + ' rows of 8 sent — it shows the last four');
   if (!rowsDrawn[3] || !/Older mail 2/.test(rowsDrawn[3].textContent)) fail('admin', 'the four drawn are not the newest four: ' + rowsDrawn.map(r => r.querySelector('.ib-subj').textContent).join(' | '));
-  const first = A.d.querySelector('#s-site .ib-row');
+  const first = A.d.querySelector('#s-site .row.ib-item');
   if (!first.classList.contains('is-unread') || !/Ada Sample/.test(first.textContent) || !/Thursday lesson/.test(first.textContent)) fail('admin', 'the first row reads "' + first.textContent.replace(/\s+/g, ' ').trim() + '"');
   if (A.d.querySelector('#s-site .ib-box .search-pill, #s-site .ib-box .chip, #s-site .ib-box [data-do="inbox-more"]')) fail('admin', 'the widget still has a search pill, chips or More');
   const asks = A.sent.filter(x => x.action === 'inboxList');
@@ -208,7 +208,7 @@ async function screens() {
   await until(() => C.u.LOADED(), 45000);
   C.u.go('site');
   await tick(300);
-  if (C.u.sitePages_().some(h => /inbox-card/.test(h)) || C.d.querySelector('.ib-box .ib-row, .ib-box')) fail('client', 'a client sees the Email widget');
+  if (C.u.sitePages_().some(h => /inbox-card/.test(h)) || C.d.querySelector('.ib-box .row.ib-item, .ib-box')) fail('client', 'a client sees the Email widget');
   if (C.sent.some(x => /^inbox/.test(x.action))) fail('client', 'a client\'s phone asked for mail');
   if (!bad.some(x => /^client/.test(x))) said.push('screen: a client has no Email widget and sends nothing');
   [A, C].forEach(X => X.errs.length && fail('the app', 'script errors: ' + X.errs.slice(0, 3).join(' | ')));

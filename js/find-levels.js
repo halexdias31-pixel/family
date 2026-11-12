@@ -560,7 +560,7 @@ function jobPage_(j) {
   const stage = typeof jobStage_ === 'function' ? jobStage_(j) : '';
   const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
   const admin = typeof isAdmin === 'function' && isAdmin();
-  const own = typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '';
+  const own = typeof jobOpts_ === 'function' ? tile_(jobOpts_({ row: j })) : '';
   /* ONE CART TILE (owner, 7 Nov): an admin on their own booking already has Pay and confirm, so no Mark as paid beside it. */
   const pays = own.indexOf('job-pay') !== -1;
   const tiles = (typeof jobMsgTiles_ === 'function' ? jobMsgTiles_({ row: j }) : '')
@@ -568,7 +568,7 @@ function jobPage_(j) {
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
     + (typeof suggestTile_ === 'function' && j && j.id ? suggestTile_('session', String(j.id), 'Booking') : '')
-    + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes && !pays) : '');
+    + (admin && typeof jobAdminOpts_ === 'function' ? tile_(jobAdminOpts_(j, stage, yes && !pays)) : '');
   /* THE REQUEST'S STANDING, one paragraph under the row (488). */
   const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
   const roomOk = j && j.id && (admin || (USER && norm(j.tutor || '') === norm(USER.name)));
@@ -716,7 +716,7 @@ function accountFamCard_(f, famLabel_, personForm_, tcard_) {
   /* A CHILD'S PHOTOGRAPHED WORKING (501), to the parent they accepted; staff see it on the admin's list below. */
   const more = tile_(f.relation === 'child' ? [typeof workSeeOpts_ === 'function' ? workSeeOpts_(f.personId, true) : null,
       typeof workFileOpts_ === 'function' ? workFileOpts_(f.personId) : null] : null)
-    + (typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '');
+    + (typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(row)) : '');
   return personMark_(f.personId, personForm_(row) || tcard_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
 }
 
@@ -740,7 +740,7 @@ function accountEveryone_(col, famIds, personForm_, tcard_) {
           data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
           + tile_(isStudentsCol_(col) ? [typeof workSeeOpts_ === 'function' ? workSeeOpts_(p.personId) : null,
             typeof workFileOpts_ === 'function' ? workFileOpts_(p.personId) : null] : null)
-          + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : ''), 'person-tiles') : '')));
+          + (typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(p)) : ''), 'person-tiles') : '')));
 }
 
 /* YOUR OWN CARD, IN A LIST OF ONE OR NONE. */
@@ -773,7 +773,7 @@ function accountPages_(col) {
   const asItem_ = (t, kind) => ({
     kind: kind || 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
     cost: priced_(t.rate), off: t.listed === false, row: t, account: true, col: col,
-    more: typeof peopleTiles_ === 'function' ? peopleTiles_(t) : '',
+    more: typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(t)) : '',
   });
 
   /* ---------- A CARD OPEN FOR EDITING IS ITS OWN FORM, IN ITS OWN PLACE § */
@@ -782,7 +782,7 @@ function accountPages_(col) {
   const personForm_ = t => typeof personFormFor_ === 'function' ? personFormFor_(t, col) : '';
   const tcard_ = t => typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '';
   const withTiles_ = t => personForm_(t) || (editing_(t) ? cardEditHtml_(t)
-    : tcard_(t) + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : ''));
+    : tcard_(t) + (typeof cardRow_ === 'function' ? cardRow_(asItem_(t)) : ''));
 
   const { famLabel_, famMine, family } = accountFamily_();
   const famCard_ = f => accountFamCard_(f, famLabel_, personForm_, tcard_);

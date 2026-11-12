@@ -3263,7 +3263,7 @@ const STATES = {
         const pg = document.querySelector('#s-students .page.on');
         const card = pg && pg.querySelector('.kid-manage');
         if (!card) return 0;
-        const rows = [...card.querySelectorAll('.kid-list .kid-row')];
+        const rows = [...card.querySelectorAll('.kid-list .row.kid-item')];
         const rowsOk = rows.length === n && rows.every(r => r.querySelectorAll('.tile[data-do="kid-pin"]').length === 1
           && !!r.querySelector('.kid-face') && r.scrollWidth <= r.clientWidth + 1
           && r.querySelector('.tile').getBoundingClientRect().right <= r.getBoundingClientRect().right + 0.5);
@@ -4172,7 +4172,7 @@ const STATES = {
             { text: 'Run authoriseDrive in the editor. Only when its last line says READY: Deploy → Manage deployments → edit → Version: New version → Deploy.' }] };
         uploadsPaint_();
       },
-      expect: () => document.querySelectorAll('#s-tools .up-box .up-row.is-bad').length === 2
+      expect: () => document.querySelectorAll('#s-tools .up-box .row.up-item.is-bad').length === 2
         && document.querySelectorAll('#s-tools .up-box .up-steps li').length === 3
         && !!document.querySelector('#s-tools .up-box a.tile[href^="https://accounts.google.com"]')
         && !!document.querySelector('#s-tools .up-box [data-do="uploads-check"]'),

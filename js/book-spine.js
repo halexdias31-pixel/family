@@ -700,7 +700,7 @@ const jobReceipt = (j, foot) => bookingDoc_(j, foot);
 /* ---------- ASKING TO JOIN SOMEBODY ELSE'S SESSION IS A TILE ON ITS PAPER NOW § */
 /* ---------- THE STEP THAT WAS NOT THERE AT ALL § */
 /* `payBlock` AND `leaveBlock` WERE HERE. Both are marks in the tile row under the card now —
-   `jobTiles_` in tiles.js — which is where every other kind in this app keeps its actions, and the
+   `jobOpts_` in tiles-jobs.js — which is where every other kind in this app keeps its actions, and the
    reasoning is written there. */
 
 /* ---------- WHEN THE FAMILIES ON A LIST CAN COME § */

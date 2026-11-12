@@ -52,7 +52,7 @@ function paintDocket() {
 
   /* ---------- A ROW IS IDENTIFIED BY ITS TEXT, NOT BY WHERE IT SITS § */
   host.innerHTML = list.map((l, i) => `
-    <label class="dock-row${l.done ? ' done' : ''}">
+    <label class="row dock-item${l.done ? ' done' : ''}">
       <input type="checkbox" data-do="dock-tick" data-i="${i}" data-t="${esc(l.text)}"
              ${l.done ? 'checked' : ''}>
       <span class="box"></span>

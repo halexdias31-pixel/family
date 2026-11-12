@@ -77,17 +77,17 @@ function cardEditing_(t, col) {
   return !!(e && t && t.personId && String(t.personId) === e.pid && cardMayEdit_(t) && (!col || (e.col || cardColOf_(e)) === col));
 }
 /* ---------- THE EDIT TILE — `x.account` IS THE YOU COLUMN, the one place the editor is drawn § */
-function cardEditTile_(x) {
+function cardEditOpts_(x) {
   const t = (x && x.row) || {};
-  if (!x || !x.account || !cardMayEdit_(t)) return '';
+  if (!x || !x.account || !cardMayEdit_(t)) return null;
   /* NOT ON THE CARD BEING EDITED. § */
   const own = String(t.personId) === String(USER.personId || '');
   const col = x.col || (own ? homeCol_() : 'tutors');
-  if (cardEditing_(t, col)) return '';
+  if (cardEditing_(t, col)) return null;
   /* YOUR OWN CARD'S EDIT IS ON YOUR SETTINGS COLUMN ALONE (464, `ownCardSetPage_`); nobody edits somebody else's (467). */
-  if (own && !x.settings) return '';
-  if (own ? !ownCardSections_(col).length : !isTutorsCol_(col)) return '';
-  return tile_({ icon: 'edit', label: 'Edit', note: own ? (isTutorsCol_(col) && rankAtLeast_('staff') ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
+  if (own && !x.settings) return null;
+  if (own ? !ownCardSections_(col).length : !isTutorsCol_(col)) return null;
+  return ({ icon: 'edit', label: 'Edit', note: own ? (isTutorsCol_(col) && rankAtLeast_('staff') ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
                  tone: own ? '' : 'admin', data: { pid: t.personId, col } });
 }
 
@@ -217,13 +217,13 @@ function cardEditHtml_(t) {
   if (!base) {
     if (!e.err) setTimeout(() => cardFetch_(e), 0);
     return card_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}${
-      e.err ? `<p class="note me-said">${esc(e.err)}</p>` : loading_()}</div>${cardEditTiles_(pid, true)}`);
+      e.err ? `<p class="note me-said">${esc(e.err)}</p>` : loading_()}</div><div class="tile-row ce-tiles">${tile_(cardSaveOpts_(pid, true))}</div>`);
   }
   const { vals, held } = cardValues_(e, base);
   return card_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}
     <div class="me-form" data-draw="${cardDrawn_(base)}">${cardEditForm_(t, e, vals)}
       <p class="note me-said">${held ? esc(SET_HELD_SAY) : ''}</p></div>
-  </div>${cardEditTiles_(pid, false)}`);
+  </div><div class="tile-row ce-tiles">${tile_(cardSaveOpts_(pid, false))}</div>`);
 }
 /* YOUR OWN CARD'S EDIT, ONE CARD PER SECTION (468): each its own form, draft, Save and layout id — the owner, "settings is purely editing". */
 function cardEditCards_(t, e, secs, setCol) {
@@ -241,12 +241,12 @@ function cardEditCards_(t, e, secs, setCol) {
       save: cardCancelTile_(pid), foot: `<p class="note me-said">${held ? esc(SET_HELD_SAY) : ''}</p>` }));
   });
 }
-function cardEditTiles_(pid, saveOff) {
-  return `<div class="tile-row ce-tiles">${tile_({ icon: 'save', label: 'Save', note: 'every change', act: 'card-save',
-    off: !!saveOff, data: { pid } }) + cardCancelTile_(pid)}</div>`;
+function cardSaveOpts_(pid, saveOff) {
+  return [{ icon: 'save', label: 'Save', note: 'every change', act: 'card-save', off: !!saveOff, data: { pid } }, cardCancelOpts_(pid)];
 }
 /* A SETTINGS SECTION KEEPS ITS CANCEL (what it puts back is the last save) and has no Save: it saves as typed (owner, 8 Nov). */
-const cardCancelTile_ = pid => tile_({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel', data: { pid } });
+const cardCancelOpts_ = pid => ({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel', data: { pid } });
+const cardCancelTile_ = pid => tile_(cardCancelOpts_(pid));
 /* ---------- ONE LINE A THING, OPENING IN PLACE (docs/history/425) § */
 /* WHICH FOLDS ARE OPEN, as state and not in the DOM, so a repaint (a save, a figure pick) draws them as they were. */
 const CE_OPEN = new Set();
@@ -760,21 +760,19 @@ const peopleRolePicks_ = () => 'student client tutor'.split(' ').map(r => (ROLE_
 const peopleMay_ = () => typeof isAdmin === 'function' && isAdmin() && !!USER;
 const peopleSelf_ = p => !!(USER && p && p.personId && String(p.personId) === String(USER.personId || ''));
 
-/* DELETE, SHOW PIN AND THE DIGEST UNDER SOMEBODY ELSE'S CARD, for an admin; '' for anybody else and on your own. */
-function peopleTiles_(p) {
-  if (!peopleMay_() || !p || !p.personId || peopleSelf_(p)) return '';
+/* DELETE, SHOW PIN AND THE DIGEST UNDER SOMEBODY ELSE'S CARD, for an admin; null for anybody else and on your own. */
+function peopleOpts_(p) {
+  if (!peopleMay_() || !p || !p.personId || peopleSelf_(p)) return null;
   const first = String(nameBesideHandle_(p.title, p.handle) || p.title || '').trim().split(' ')[0] || 'them';
   /* EDIT THEIR DETAILS (edit-person): an admin's, by the permissions table; the card becomes the form (`personEdHtml_`). */
-  return (typeof personEdMay_ === 'function' && personEdMay_() ? tile_({ icon: 'edit', label: 'Edit', note: 'their details', act: 'person-edit', tone: 'admin',
-              data: { id: p.personId, name: p.title || '' } }) : '')
-    + tile_({ icon: 'bin', label: 'Delete', note: 'their account', act: 'person-del', tone: 'danger',
-              data: { id: p.personId, name: first } })
+  return [typeof personEdMay_ === 'function' && personEdMay_() ? { icon: 'edit', label: 'Edit', note: 'their details', act: 'person-edit', tone: 'admin',
+              data: { id: p.personId, name: p.title || '' } } : null,
+    { icon: 'bin', label: 'Delete', note: 'their account', act: 'person-del', tone: 'danger', data: { id: p.personId, name: first } },
     /* "SHOW PIN" (452): fetched on the tap by `pinShow`, admin only on the server too; never in the payload. */
-    + tile_({ icon: 'key', label: 'Show PIN', note: 'tap again to hide', act: 'pin-show', tone: 'admin',
-              data: { id: p.personId } })
+    { icon: 'key', label: 'Show PIN', note: 'tap again to hide', act: 'pin-show', tone: 'admin', data: { id: p.personId } },
     /* AND ON A PARENT'S CARD, LAST MONDAY–SUNDAY'S WORK EMAILED NOW (378) — `digestSendNow`, admin only on the server too. */
-    + (/^Client\b/.test(String(p.role || '')) ? tile_({ icon: 'send', label: 'Send last week', note: 'their child’s work, Mon–Sun',
-              act: 'digest-send-now', tone: 'admin', data: { id: p.personId } }) : '');
+    /^Client\b/.test(String(p.role || '')) ? { icon: 'send', label: 'Send last week', note: 'their child’s work, Mon–Sun',
+              act: 'digest-send-now', tone: 'admin', data: { id: p.personId } } : null];
 }
 
 /* THE TOP OF THE LIST: the "+", or the new person's form, or the slip once they are made. */

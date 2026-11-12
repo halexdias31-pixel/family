@@ -41,7 +41,7 @@ top level, before `loadOrder_`
 /* ---------- THIS LIST HAD GONE STALE, AND A STALE LIST HERE IS WORSE THAN NO LIST ----------------
    `collections` and `tiles` were added to index.html and never added here, so the checker read 21
    of the 23 files that actually load. What it printed was four names USED BUT NEVER DECLARED —
-   `cardTiles_`, `tileSet_`, `adoptSpotlight_` — every one of them a false alarm, in the one report
+   `cardRow_`, `tileSet_`, `adoptSpotlight_` — every one of them a false alarm, in the one report
    whose whole value is that it can be believed without checking. Two missing entries and the
    safety net reads FAILED on a working app, which is how a safety net stops being read at all.
 

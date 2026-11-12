@@ -905,7 +905,7 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (!A['lay-w-move'] || typeof w.layoutTiles_ !== 'function') return ['no lay-w-move handler or layoutTiles_ — NOT checked'];
+  if (!A['lay-w-move'] || typeof w.layoutOpts_ !== 'function') return ['no lay-w-move handler or layoutOpts_ — NOT checked'];
   if (A['layout-edit'] || A['layout-done'] || typeof w.layoutEditOpen_ === 'function') bad.push('the Edit layout board is still there');
   /* TOOLS ARE FIND CARDS, placed by the funnel (790): the Reels column's widgets are the ones that move. */
   t.go('reel', false, true); await wait(300);
@@ -1071,7 +1071,7 @@ check('split cards (464): an admin\'s Split draws a settings card and a Business
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (!A['lay-split'] || !A['lay-join'] || typeof w.splitTiles_ !== 'function') return ['no lay-split / lay-join handler — NOT checked'];
+  if (!A['lay-split'] || !A['lay-join'] || typeof w.splitOpts_ !== 'function') return ['no lay-split / lay-join handler — NOT checked'];
   ['account', 'staff', 'family', 'biz'].forEach(c => { try { w.paint(c); } catch (e) {} });
   await wait(200);
   const cardsOf = id => [...d.querySelectorAll('.card[data-split="' + id + '"]')];

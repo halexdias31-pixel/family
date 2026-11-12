@@ -437,7 +437,7 @@ function stuffCard(x, credits) {
   const shown = html;
   if (!x.key) return shown;
   /* A ONE-MAKER CARD CARRIES ITS OWN FOUR BUTTONS (`kcFour_`); only a widget kind still gets the row under it. */
-  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${shown}</div>${/\bkc-four\b/.test(shown) ? '' : cardTiles_(x)}`;
+  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${shown}</div>${/\bkc-four\b/.test(shown) ? '' : cardRow_(x)}`;
 }
 
 /* LONG CARD TEXT IS CUT TO TWO LINES (owner 8 Nov, 29a); a tap on it shows the rest, a second tap cuts it again. */

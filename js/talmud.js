@@ -267,7 +267,7 @@ on('tal-size', el => {
     const x = (typeof talmudItems_ === 'function' ? talmudItems_() : []).find(y => y.key === c.getAttribute('data-key'));
     const wrap = c.parentElement && c.parentElement.classList.contains('favwrap') ? c.parentElement : null;
     const row = wrap && wrap.nextElementSibling && wrap.nextElementSibling.classList.contains('tile-row') ? wrap.nextElementSibling : null;
-    const t = x && row && document.createElement('div'); if (t) t.innerHTML = cardTiles_(x);
+    const t = x && row && document.createElement('div'); if (t) t.innerHTML = cardRow_(x);
     const f = t && t.firstElementChild; if (f) { row.className = f.className; row.innerHTML = f.innerHTML; }
   });
 });
