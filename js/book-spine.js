@@ -59,8 +59,8 @@ const SPINE_EXTRA = [
   { after: '',        row: 'Note' },
   /* THE TWO WAITING-LIST ROWS. § */
   { after: '',        row: 'A seat',    only: 'wait' },
-  /* ---------- `Shared by` BELONGS TO THE FORM, ON BOTH ITS BRANCHES § */
-  { after: '',        row: 'Shared by', only: 'book, wait' },
+  /* `Shared by` IS THE WAITING LIST'S SEAT COUNT; a session has no split since 12 Nov (owner). */
+  { after: '',        row: 'Shared by', only: 'wait' },
   /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is about — which is where a receipt puts it and where the form now § */
   ...JOB_STAGES.map(st => ({ after: '', row: st.row, tick: true })),
   /* NO `Status` (owner, 29 Oct: "What is status for? … all those bits above status … tell you the status"): the four ticks are it. */
@@ -680,7 +680,6 @@ function bookFieldsSaid_() {
       const list = [].concat(v == null ? [] : v).filter(x => String(x).trim());
       const said = st.id === 'client' ? person(v || fb(st))
         : st.id === 'kids' ? list.map(person).join(', ')
-        : st.emails ? (list.length ? list.length + (list.length === 1 ? ' address' : ' addresses') : '')
         : st.grid === 'blocks' ? blockSay_(v)
         : st.grid ? bookRuns().map(r => day_(r.dayName) + ' ' + hours_(r.hour, r.hour + r.hours)).join(', ')
         : st.multi ? (list.join(', ') || fb(st))

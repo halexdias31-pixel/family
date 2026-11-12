@@ -77,20 +77,6 @@ check('drafts across tabs, the booking\'s addresses, and nothing kept for ever',
   w.localStorage.setItem(k, v2);
   w.dispatchEvent(new w.StorageEvent('storage', { key: k, oldValue: v1b, newValue: v2 }));
   if (box.value) bad.push('the other tab sent the message and this composer still holds it, for a second Send: ' + JSON.stringify(box.value));
-  /* THE ADDRESSES: a draft until `change` makes them answers, and then not. */
-  const st = w.__t.STEPS.find(s => s.emails);
-  if (!st || typeof w.stepInput_ !== 'function') bad.push('no addresses step to type into, so it was NOT checked');
-  else {
-    const h = draftBox_(w, w.stepInput_(st));
-    const el = h.querySelector('[data-do="book-emails"]');
-    el.value = 'a@example.org,b@example.org,';
-    el.dispatchEvent(new w.Event('input', { bubbles: true }));
-    el.dispatchEvent(new w.Event('change', { bubbles: true }));
-    if (JSON.stringify(w.__t.BOOKING[st.id]) !== '["a@example.org","b@example.org"]') bad.push('the addresses did not become answers: ' + JSON.stringify(w.__t.BOOKING[st.id]));
-    if (w.draftRead_('book', 'emails:' + st.id) !== null) bad.push('the addresses as typed are still a draft after `change` made them answers: ' + JSON.stringify(w.draftRead_('book', 'emails:' + st.id)));
-    h.innerHTML = w.stepInput_(st);
-    if (h.querySelector('[data-do="book-emails"]').value !== 'a@example.org, b@example.org') bad.push('the redrawn box holds ' + JSON.stringify(h.querySelector('[data-do="book-emails"]').value) + ', not the answers');
-  }
   return bad;
 });
 

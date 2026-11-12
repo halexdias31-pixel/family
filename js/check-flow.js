@@ -287,7 +287,6 @@ function boot(opts) {
          reads the app's own list rather than a copy of it written out here. */
       'JOB_STAGES: typeof JOB_STAGES !== "undefined" ? JOB_STAGES : [],' +
       'stageRows: typeof stageRows_ === "function" ? stageRows_ : null,' +
-      'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
       /* THE CONTROL A ROW CARRIES, so the several-answers journey can ask whether the row reads back what has been ticked — the button is the only label on it, which § */
       'control: typeof stepControl_ === "function" ? stepControl_ : null,' +
       /* THE FORM'S PAGE AS DRAWN, because a picker once replaced it rather than covering it — so the

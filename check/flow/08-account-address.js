@@ -52,7 +52,7 @@ check('a waiting list is asked everything an instant class is, bar the four it c
   ['subjects', 'level', 'loc', 'slots', 'interval', 'n'].forEach(id => {
     if (!session.includes(id)) bad.push('a session is not asked "' + id + '"');
   });
-  ['tutor', 'slots', 'split'].forEach(id => {
+  ['tutor', 'slots'].forEach(id => {
     if (klass.includes(id)) bad.push('a list is asked "' + id + '", which it cannot answer');
   });
   ['subjects', 'n', 'interval', 'loc', 'level'].forEach(id => {
@@ -108,7 +108,7 @@ check('every several-answer question on the booking card is the same dropdown as
   try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
   await wait(120);
   /* THE FORM PREFILLS THE SOONEST TERM (1040 friction); this journey picks from an empty question. */
-  B.interval = []; B.done = (B.done || []).filter(x => x !== 'interval');
+  B.interval = [];
   try { w.__t.go('booking', false, true); } catch (e) {}
   await wait(60);
   const bad = [];

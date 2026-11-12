@@ -262,11 +262,8 @@ function bookerCard() {
   /* ---------- THE LIST IS NOT DRAWN INSTEAD OF THE CARD § */
   const out = drawBooker_();
   if (!out) return '';
-  return `<div id="bookr">
-    ${/* ---------- NO CARD AROUND IT § */
-          ''}
-    ${out.html}
-  </div>`;
+  /* A CARD ON THE ONE TEMPLATE (owner, 12 Nov): name as first tag, the questions and price lines as its form, its round row last. */
+  return card_(`<div class="bookform" id="bookr"><h3>Booking form</h3>${out.html}${out.tiles}</div>`, 'bookform');
 }
 
 function drawBooker_() {
@@ -301,13 +298,6 @@ function drawBooker_() {
           ''}
     ${/* A CHILD ASKS A PARENT, NOT THE BUSINESS (398): no price reaches her, so the parent books it. Share stays — it is how she shows them. */
       childView_() ? `<p class="note rc-kid">${esc(KID_ASK_PARENT)}</p>` : ''}
-    <div class="tile-row rc-tiles">
-      ${childView_() ? '' : tile_({ icon: 'send', label: 'Ask for it', tone: 'buy', act: 'book-send' })}
-      ${tile_({ icon: 'share', label: 'Share this booking',
-                act: 'book-share' })}
-      ${/* REPORT OR SUGGEST A CHANGE ON THE BOOKING FORM TOO (489): "I still don't see it on booking". */
-        typeof suggestTile_ === 'function' ? suggestTile_('widget', 'booking', 'Booking') : ''}
-    </div>
     ${policyLinks_('family')}
     ${/* ---------- THE FOOTER LINE WENT § */
           ''}`;
@@ -319,7 +309,14 @@ function drawBooker_() {
   /* ONE RETURN. This was four branches — a question, a grid, a list of email boxes, and the card — and the last three have moved onto the paper. § */
   /* THE PAPER IS THE WHOLE THING NOW. The note box moved into it as a row, the buttons are printed
      on it above the barcode, and what is left out here is nothing at all. */
-  return { html: head || '<p class="note">Not enough answered to price it yet.</p>' };
+  /* THE CARD'S ROUND ROW (owner, 12 Nov): Send leads; findCard lifts this top-level row into the card's one row. */
+  const tiles = `<div class="tile-row rc-tiles">
+      ${childView_() ? '' : tile_({ icon: 'send', label: 'Send', tone: 'buy', act: 'book-send' })}
+      ${tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })}
+      ${/* REPORT OR SUGGEST A CHANGE ON THE BOOKING FORM TOO (489). */
+        typeof suggestTile_ === 'function' ? suggestTile_('widget', 'booking', 'Booking') : ''}
+    </div>`;
+  return { html: head || '<p class="note">Not enough answered to price it yet.</p>', tiles };
 }
 
 on('book-send', el => {
@@ -396,7 +393,8 @@ on('book-send', el => {
      button did nothing and the request was never sent, and nobody was told either fact. */
   bookSending_(true);
   send_({ action: 'createJob',
-    name: USER.name, clientName: USER.name,
+    /* THE CLIENT CHOSEN ON THE FORM (`createJob` takes `clientName` from an admin only): an admin's booking for a client was filed as the admin's. */
+    name: USER.name, clientName: (BOOKING.client && BOOKING.client !== NOBODY) ? BOOKING.client : USER.name,
     /* WHO THIS BOOKING BELONGS TO, permanently. § */
     personId: USER.personId || '',
     subject: spec.subjects.join(', '), level: spec.level,
@@ -430,9 +428,6 @@ on('book-send', el => {
     openToOthers: 'TRUE',
     kids: (BOOKING.kids || []).filter(Boolean).join(', '),
     service: BOOKING.service || 'Tuition',
-    /* Who to invite. `createJob` has accepted this since the beginning and nothing ever sent it,
-       so a split booking was priced per family and nobody else was ever told about it. */
-    splitEmails: (BOOKING.split || []).filter(x => String(x).trim()).join(', '),
     /* FROM `BOOKING`, NOT FROM THE DOM. This read `#book-note` directly, which only worked while
        that box was on screen — a redraw between typing and sending would have dropped it without a
        word. */
@@ -591,12 +586,8 @@ on('job-take-seat', el => {
   if (!j) { toast('That class has gone.'); return; }
   BOOKING.how      = 'Waiting list class';
   BOOKING.joining  = openClassLabel_(j);
-  BOOKING.subjects = j.subject ? [j.subject] : [];
-  BOOKING.level    = j.level || '';
-  BOOKING.loc      = j.location || j.venue || '';
-  BOOKING.n        = '1';
-  BOOKING.done = uniq((BOOKING.done || [])
-    .concat(['how', 'joining', 'subjects', 'level', 'loc', 'n']));
+  /* THE SAME RULE AS CHOOSING IT ON THE FORM: the class answers subject, level, place and seats (`joiningSet_`). */
+  joiningSet_();
   closeSheet();
   finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true });
   go('stuff');
@@ -613,12 +604,8 @@ on('job-join', el => {
   if (!j) { toast('That class has gone.'); return; }
   BOOKING.how      = 'Instant class';
   BOOKING.joining  = openClassLabel_(j);
-  BOOKING.subjects = j.subject ? [j.subject] : [];
-  BOOKING.level    = j.level || '';
-  BOOKING.loc      = j.location || j.venue || '';
-  BOOKING.n        = '1';
-  BOOKING.done = uniq((BOOKING.done || [])
-    .concat(['how', 'joining', 'subjects', 'level', 'loc', 'n']));
+  /* THE SAME RULE AS CHOOSING IT ON THE FORM: the class answers subject, level, place and seats (`joiningSet_`). */
+  joiningSet_();
   closeSheet();
   finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true });
   go('stuff');
