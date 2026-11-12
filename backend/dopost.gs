@@ -636,7 +636,7 @@ function aiQuotaDay_(text) {
 function aiSpend_(model, until) {
   const s = Math.min(AI_SPENT_MAX_S, Math.ceil((Number(until) - Date.now()) / 1000));
   if (!(s >= 1)) return;
-  try { CacheService.getScriptCache().put('AI_SPENT:' + S(model).slice(0, 200), String(until), s); } catch (e) {}
+  try { CacheService.getScriptCache().put('AI_SPENT:' + S(model).slice(0, 200), String(until), s); } catch (e) { /* the cache is an optimisation; a miss just rebuilds */ }
 }
 /* WHEN THAT MODEL IS BACK, in ms since 1970 -- 0 if nothing is remembered, or it is back already. */
 function aiSpentUntil_(model) {
@@ -665,7 +665,7 @@ function aiMarkTimed_(began, take, essay, got) {
       + (first ? (first.at - began) + ' ms before the first ask (the take ' + take + ' ms); ' : 'the take ' + take + ' ms; ')
       + (steps.length ? steps.join(', ') : 'Gemini not asked') + '; '
       + (got && !got.error && got.model ? 'marked by ' + got.model : 'no mark -- ' + (got ? S(got.error).slice(0, 120) : 'it threw')));
-  } catch (e) {}
+  } catch (e) { /* timing log only; the mark is already made */ }
 }
 /* THE MODEL THAT ANSWERED, from the response's `modelVersion`, else the name asked for. § */
 function aiServed_(text, model) {
@@ -799,10 +799,10 @@ function loginReplyFor_(r, token, extra) {
   const meId = S(r.person_id);
   /* ---------- `out.profile = {}` WAS HERE, AND IT THREW AWAY `profileOf_` TEN LINES AFTER USING IT § */
   /* ---------- AND WHAT THE PAYLOAD WOULD HAVE BROUGHT FIFTEEN SECONDS LATER § */
-  try { out.submissions = submissionsFor_(r, hasRole(r, 'admin')); } catch (err) {}
-  try { out.favourites = favouritesOf_(r); } catch (err) {}
-  try { const fam = familyOf_(r); out.family = fam.family; out.familyFor = fam.familyFor; } catch (err) {}
-  try { out.answers = answersFor_(meId); } catch (err) {}
+  try { out.submissions = submissionsFor_(r, hasRole(r, 'admin')); } catch (err) { /* one missing section must not lose the rest of the reply */ }
+  try { out.favourites = favouritesOf_(r); } catch (err) { /* one missing section must not lose the rest of the reply */ }
+  try { const fam = familyOf_(r); out.family = fam.family; out.familyFor = fam.familyFor; } catch (err) { /* one missing section must not lose the rest of the reply */ }
+  try { out.answers = answersFor_(meId); } catch (err) { /* one missing section must not lose the rest of the reply */ }
   if (extra) Object.assign(out, extra);
   return jsonOut(out);
 }

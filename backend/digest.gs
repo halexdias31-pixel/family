@@ -873,8 +873,8 @@ function digestWordsSafe_(s) {
 /* THE BUSINESS'S NAME AND THE SITE'S ADDRESS — each from the one place it is written, each with the constant beside it as the floor, so a broken config tab still § */
 function digestLook_(now, week) {
   let brand = '', site = '', cfg = {};
-  try { brand = S(brandName()); } catch (err) {}
-  try { cfg = config() || {}; site = S(cfg.site_url); } catch (err) {}
+  try { brand = S(brandName()); } catch (err) { /* without a brand the digest uses the default name */ }
+  try { cfg = config() || {}; site = S(cfg.site_url); } catch (err) { /* without config the digest goes without a site link */ }
   const d = now instanceof Date && !isNaN(now) ? now : new Date();
   const today = digestDay_(d);
   let hour = -1, minute = 0;
@@ -1036,7 +1036,7 @@ function digestMail_(emails, o) {
       }
       const r = o.put(log, row, m, Object.assign(v, { status: 'sending' }));
       /* FLUSHED BEFORE THE LOCK GOES, so the next run to take it reads the claim off the sheet. */
-      try { SpreadsheetApp.flush(); } catch (err) {}
+      try { SpreadsheetApp.flush(); } catch (err) { /* flush is an early write; Apps Script writes at the end anyway */ }
       return { row: r, log: log };
     });
     if (!claim) { out.busy++; return; }
@@ -1048,12 +1048,12 @@ function digestMail_(emails, o) {
          never "First (@handle)" — a parent's email carries no username (the note over `digestRender_`). */
       mailOut_({ to: m.to, subject: m.subject, body: m.text, htmlBody: m.html, firstNamesOnly: true, kind: 'weekly' });
     } catch (err) {
-      try { setCells(claim.log, claim.row, { status: 'failed', note: S(err && err.message || err).slice(0, 200) }); } catch (e2) {}
+      try { setCells(claim.log, claim.row, { status: 'failed', note: S(err && err.message || err).slice(0, 200) }); } catch (e2) { /* a failed courtesy note must not undo the work already done */ }
       out.failed++;
       return;
     }
     out.sent++;
-    try { setCells(claim.log, claim.row, { status: 'sent', at: new Date() }); } catch (err) {}
+    try { setCells(claim.log, claim.row, { status: 'sent', at: new Date() }); } catch (err) { /* a failed courtesy note must not undo the work already done */ }
   });
   return out;
 }
@@ -1069,7 +1069,7 @@ function digestNoSubmissions_() {
 
 /* THE LOG AS IT IS NOW — its cached copy dropped first, because a copy read before the lock was taken is the one another run has since written to. § */
 function digestLog_() {
-  try { delete _cache[TAB.digest_log]; } catch (err) {}
+  try { delete _cache[TAB.digest_log]; } catch (err) { /* a cache that was never filled has nothing to drop */ }
   return read(TAB.digest_log);
 }
 
@@ -1094,7 +1094,7 @@ function installWeeklyDigest_() {
   const hour = digestHour_(cfg);
   const gone = removeWeeklyDigest();
   ScriptApp.newTrigger(DIGEST_RUN).timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(hour).nearMinute(0).inTimezone(DIGEST_TZ).create();
-  try { PropertiesService.getScriptProperties().setProperty(DIGEST_BOOKED, String(hour)); } catch (err) {}
+  try { PropertiesService.getScriptProperties().setProperty(DIGEST_BOOKED, String(hour)); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
   const mode = digestMode_(cfg);
   const fns = Object.keys(gone.retired), old = fns.reduce((n, fn) => n + gone.retired[fn], 0);
   const out = { installed: 'every Sunday at about ' + hour + ':00, London time — the only trigger the email has',
@@ -1142,7 +1142,7 @@ function removeWeeklyDigest() {
   try {
     const props = PropertiesService.getScriptProperties();
     [DIGEST_BOOKED].concat(DIGEST_RETIRED_PROPS).forEach(k => props.deleteProperty(k));
-  } catch (err) {}
+  } catch (err) { /* script properties are best-effort here; the next run tries again */ }
   return { removed: n, retired: retired };
 }
 /* How many of `fn`'s triggers are booked — the email's by default — for the admin's card and

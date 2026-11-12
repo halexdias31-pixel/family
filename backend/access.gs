@@ -200,7 +200,7 @@ function handsRead_() {
   return all;
 }
 function handsWrite_(all) {
-  try { PropertiesService.getScriptProperties().setProperty(HANDS_KEY, JSON.stringify(all || {})); } catch (e) {}
+  try { PropertiesService.getScriptProperties().setProperty(HANDS_KEY, JSON.stringify(all || {})); } catch (e) { /* script properties are best-effort here; the next run tries again */ }
 }
 
 /* ============================== POST ========================================================= */

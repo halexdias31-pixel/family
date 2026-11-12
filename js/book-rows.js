@@ -15,21 +15,21 @@ function bookKeep_() {
     /* EVERY NEW FORM IS A FRESH FORM (owner, 11 Nov): a kept draft came back on the next form, ticked hours and all, and read as already booked. */
     BOOK_WHO = draftWho_();
     draftDrop_('book', 'form');
-  } catch (e) {}
+  } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 /* `who` IS ONLY EVER `'device'`: the device's form, read in for the person it is marked as (`bookFollow_`). */
 function bookBack_(who) {
   if (typeof draftRead_ !== 'function') return;
   BOOK_WHO = who || draftWho_();
   /* NOTHING IS BROUGHT BACK — see `bookKeep_`; an old synced draft is dropped, not read. */
-  try { draftDrop_('book', 'form', who); } catch (e) {}
+  try { draftDrop_('book', 'form', who); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 bookBack_();
 /* ---------- SENT IS NOT A DRAFT (`draftSent_`, data.js) § */
 function bookSending_(going) {
   try {
     if (going) draftSent_('book', 'form'); else draftSentBack_('book', 'form');
-  } catch (e) {}
+  } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 /* ---------- AND ANOTHER TAB'S FORM IS THIS TAB'S (the `storage` listener in data.js) § */
 function bookElsewhere_(v, old) {
@@ -39,7 +39,7 @@ function bookElsewhere_(v, old) {
     resetBooking_(true);
     bookBack_();
     if ($('bookr') && typeof redrawBooker_ === 'function' && typeof paintBook_ === 'function') redrawBooker_(paintBook_);
-  } catch (e) {}
+  } catch (e) { oops_(e, 'book:elsewhere'); }
 }
 /* ---------- AND THE FORM IS THE PERSON'S, ON A SHARED iPAD § */
 function bookFollow_(signingIn) {
@@ -52,9 +52,9 @@ function bookFollow_(signingIn) {
     if (may === 'own' && bookBlank_()) bookBack_('device');
     if (may && !bookBlank_()) {
       /* THEIR OWN DRAFT FIRST, then the device's form joined to it. */
-      try { bookJoin_(draftRead_('book', 'form', undefined, now)); } catch (e) {}
+      try { bookJoin_(draftRead_('book', 'form', undefined, now)); } catch (e) { /* storage can be blocked; the app runs without it */ }
       bookKeep_();
-      try { draftDrop_('book', 'form', 'device'); } catch (e) {}
+      try { draftDrop_('book', 'form', 'device'); } catch (e) { /* storage can be blocked; the app runs without it */ }
       return;
     }
   }
@@ -81,7 +81,7 @@ function bookJoin_(raw) {
           const offered = (st.options() || []).map(norm);
           const at_ = x => { const i = offered.indexOf(norm(x)); return i === -1 ? offered.length : i; };
           list.sort((a, b) => at_(a) - at_(b));
-        } catch (e) {}
+        } catch (e) { /* no option list means any value is accepted */ }
       }
       BOOKING[k] = list;
     } else if (plain(mine) && !blank(mine)) {
@@ -124,7 +124,7 @@ on('book-block', el => {
 function bookKidsFor_() {
   const st = bookStep_('kids');
   let offered = [];
-  try { offered = (st && st.options() || []).map(norm); } catch (e) {}
+  try { offered = (st && st.options() || []).map(norm); } catch (e) { /* no option list means any value is accepted */ }
   BOOKING.kids = (BOOKING.kids || []).filter(k => offered.indexOf(norm(k)) !== -1);
 }
 
@@ -138,7 +138,7 @@ function bookToggle_(step, v) {
       const offered = (step.options() || []).map(norm);
       const at_ = x => { const i = offered.indexOf(norm(x)); return i === -1 ? offered.length : i; };
       list.sort((a, b) => at_(a) - at_(b));
-    } catch (err) {}
+    } catch (err) { /* no option list means any value is accepted */ }
     BOOKING[step.id] = list;
     if (step.set) step.set(list);
   }
@@ -388,7 +388,7 @@ function noteRow_() {
 /* ---------- SEVERAL ANSWERS, THE SAME DROPDOWN AS ONE § */
 function stepPick_(st) {
   let opts = [];
-  try { opts = (st.options() || []).filter(Boolean); } catch (e) {}
+  try { opts = (st.options() || []).filter(Boolean); } catch (e) { /* no option list means any value is accepted */ }
   const chosen = BOOKING[st.id] || [], on = o => chosen.some(c => norm(c) === norm(o));
   const said = o => String(st.label_ ? st.label_(o) : o);
   const fb = st.fallback ? String(st.fallback() || '') : '';
