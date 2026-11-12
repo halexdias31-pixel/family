@@ -17,13 +17,13 @@ const SHOTS = process.env.CS_SHOTS || '';
 const COLS = ['staff', 'site', 'account', 'family', 'biz'];
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-/* WHAT EACH PILL MEASURES, in the page: the text's font-size, the pill's padding, height and radius, and the hit area a finger gets. */
+/* WHAT EACH PILL MEASURES, in the page (the shortest tag: a long title wraps to two lines): the text's font-size, the pill's padding, height and radius, and the hit area a finger gets. */
 function measure() {
   const one = (pill, text) => { if (!pill) return null; const s = getComputedStyle(pill), b = pill.getBoundingClientRect(), bf = getComputedStyle(pill, '::before');
     const inset = bf.content && bf.content !== 'none' && bf.position === 'absolute' ? parseFloat(bf.top) || 0 : 0;
     return { fs: getComputedStyle(text || pill).fontSize, pad: s.paddingTop + ' ' + s.paddingRight, h: Math.round(b.height * 10) / 10, r: s.borderTopLeftRadius, hit: Math.round(b.height - 2 * inset) }; };
   const ans = document.querySelector('#s-stuff .answers [data-do="facet-pick"]');
-  return { tag: one(document.querySelector('#s-stuff .qcard-tags .qtag')), chip: one(document.querySelector('#s-stuff .chips .chip.sm')),
+  return { tag: one([...document.querySelectorAll('#s-stuff .qcard-tags .qtag')].sort((a, b) => a.offsetHeight - b.offsetHeight)[0]), chip: one(document.querySelector('#s-stuff .chips .chip.sm')),
     answer: one(ans, ans && ans.querySelector('.k')) };
 }
 function chipWork(m, label) {
@@ -97,19 +97,31 @@ async function colSettings(col) {
     if (as === 'admin') {
       /* THE OWNER'S SCREENSHOT: Practice › Questions › Maths › Past paper › GCSE, the chips, the answers and the first card's tags. */
       await page.evaluate(() => go('stuff')); await wait(2500);
+      /* A QUESTION THE PATH DOES NOT NAME (Year before Level) is answered as a thumb would: its commonest answer, then look again. */
+      const pick = t => page.evaluate(t => { const es = [...document.querySelectorAll('#s-stuff [data-do="facet-pick"]')], e = es.find(e => (e.querySelector('.k') || e).textContent.trim() === t); if (e) { e.click(); return 'hit'; }
+        const F = es[0] && facetList().find(f => f.field === es[0].dataset.field); if (!F) return '';
+        const top = facetValues(stuffFiltered(), F).sort((a, b) => b.n - a.n)[0], d = top && es.find(x => x.dataset.value === String(top.value)); if (d) d.click(); return d ? 'detour' : ''; }, t);
       for (const t of ['Practice', 'Questions', 'Maths', 'Past paper', 'GCSE']) {
-        const ok = await page.evaluate(t => { const e = [...document.querySelectorAll('#s-stuff [data-do="facet-pick"]')].find(e => (e.querySelector('.k') || e).textContent.trim() === t); if (e) e.click(); return !!e; }, t);
+        let ok = false;
+        for (let hop = 0; hop < 3; hop++) { const r = await pick(t); if (r === 'hit') { ok = true; break; } if (!r) break; await wait(1800); }
         if (!ok) { work.push({ kind: 'chip-size', where: 'Find', say: `no "${t}" answer to press on the way to the GCSE card` }); break; }
         await wait(1800);
       }
       if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'gcse-menu.png') });
+      const atMenu = await page.evaluate(measure);
+      /* MUTATION: a chip one size up must be caught, or the check proves nothing. */
+      const mutMenu = await page.evaluate(f => { const s = document.createElement('style'); s.id = 'cs-mut'; s.textContent = '.chip.sm { font-size: .72rem !important; }'; document.head.appendChild(s);
+        const r = (0, eval)('(' + f + ')')(); s.remove(); return r; }, measure.toString());
+      /* ON TO THE CARD: the questions still asked past GCSE are answered Doesn't matter until the results come, then scrolled to (a result is drawn as the scroll comes near). */
+      for (let hop = 0; hop < 12 && !(await page.evaluate(() => !!document.querySelector('#s-stuff .qcard-tags .qtag'))); hop++) {
+        await page.evaluate(() => { const e = document.querySelector('#s-stuff [data-do="facet-skip"]'); if (e) e.click(); else window.scrollTo(0, document.body.scrollHeight); }); await wait(1500); }
+      await page.evaluate(() => window.scrollTo(0, 0));
       if (SHOTS) { await page.evaluate(() => { const q = document.querySelector('#s-stuff .qwhole'); if (q) q.scrollIntoView({ block: 'start' }); window.scrollBy(0, -80); }); await wait(500);
         await page.screenshot({ path: path.join(SHOTS, 'gcse-card.png') }); await page.evaluate(() => window.scrollTo(0, 0)); }
-      const m = await page.evaluate(measure);
+      /* THE CHIPS AND ANSWERS AS THE MENU DREW THEM, THE TAG AS THE CARD DOES. */
+      const m = Object.assign({}, atMenu, { tag: (await page.evaluate(measure)).tag || atMenu.tag });
       chips = m; work.push(...chipWork(m, 'Find › Practice › Questions › Maths › Past paper › GCSE'));
-      /* MUTATION: a chip one size up must be caught, or the check proves nothing. */
-      const mut = await page.evaluate(f => { const s = document.createElement('style'); s.id = 'cs-mut'; s.textContent = '.chip.sm { font-size: .72rem !important; }'; document.head.appendChild(s);
-        const r = (0, eval)('(' + f + ')')(); s.remove(); return r; }, measure.toString());
+      const mut = Object.assign({}, mutMenu, { tag: m.tag });
       if (!chipWork(mut, 'mutation').some(w => / fs /.test(w.say))) work.push({ kind: 'chip-size', where: 'mutation', say: 'a chip drawn at .72rem was NOT caught — the check proves nothing' });
     }
     /* EVERY SETTINGS BOX: changed, then each form's own Save pressed once. */
