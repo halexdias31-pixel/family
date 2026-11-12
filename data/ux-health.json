@@ -2,31 +2,35 @@
  "visits": {
   "first": {
    "n": 192,
-   "netKB": 98446,
+   "netKB": 101142,
    "cacheN": 12,
    "cacheKB": 0
   },
   "repeat": {
-   "error": "page.goto: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:39573/index.html\", waiting until "
+   "loadedMs": 1620,
+   "n": 39,
+   "netKB": 60896,
+   "cacheN": 0,
+   "cacheKB": 0
   }
  },
  "walked": {
   "viewport": "390x844 touch",
   "cpu": "4x (1x for the question sample)",
-  "ms": 100941,
+  "ms": 40017,
   "phase": {
-   "loaded": 6437,
-   "signin": 10883,
-   "findUsable": 14346,
-   "clicks": 26557,
-   "questions": 40209,
-   "boxLooks": 44597
+   "loaded": 6695,
+   "signin": 11391,
+   "findUsable": 14881,
+   "clicks": 25606,
+   "questions": 34283,
+   "boxLooks": 37984
   }
  },
- "firstScreenMs": 204,
- "findUsableMs": 3463,
- "signinMs": 2393,
- "heapMB": 289.9,
+ "firstScreenMs": 176,
+ "findUsableMs": 3490,
+ "signinMs": 2468,
+ "heapMB": 132.6,
  "boxLooks": {
   "faces": [
    {
@@ -43,13 +47,13 @@
   ],
   "off": []
  },
- "heapLiveMB": 193.6,
- "garbageMB": 96.3,
+ "heapLiveMB": 197.2,
+ "garbageMB": 0,
  "clicks": [
   {
    "what": "front menu: first answer",
-   "churnMB": -1.2,
-   "ms": 32,
+   "churnMB": -0.4,
+   "ms": 120,
    "shift": 0,
    "longs": 2,
    "by": "event-timing"
@@ -64,10 +68,10 @@
   },
   {
    "what": "back: drop the last chip",
-   "churnMB": -2.1,
-   "ms": 48,
+   "churnMB": 0.8,
+   "ms": 24,
    "shift": 0,
-   "longs": 3,
+   "longs": 4,
    "by": "event-timing"
   },
   {
@@ -76,16 +80,16 @@
   },
   {
    "what": "open a question",
-   "churnMB": 19.5,
-   "ms": 1349,
+   "churnMB": -15.1,
+   "ms": 963,
    "shift": 0,
    "longs": 1,
    "by": "frames"
   },
   {
    "what": "Check",
-   "churnMB": -3.8,
-   "ms": 112,
+   "churnMB": -3.7,
+   "ms": 184,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
@@ -104,40 +108,40 @@
   },
   {
    "what": "Start again",
-   "churnMB": -12,
-   "ms": 56,
+   "churnMB": 17.7,
+   "ms": 48,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "front menu again",
-   "churnMB": 0.7,
-   "ms": 32,
+   "churnMB": 1.1,
+   "ms": 24,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Next answer down",
-   "churnMB": 0.8,
-   "ms": 32,
+   "churnMB": 1.2,
+   "ms": 40,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Feed tab",
-   "churnMB": 1.2,
-   "ms": 115,
+   "churnMB": 0.5,
+   "ms": 49,
    "shift": 0,
    "longs": 0,
    "by": "frames"
   },
   {
    "what": "Find tab",
-   "churnMB": 1.3,
-   "ms": 68,
+   "churnMB": 0.5,
+   "ms": 79,
    "shift": 0,
    "longs": 0,
    "by": "frames"
@@ -149,28 +153,28 @@
  },
  "slow": [
   {
+   "what": "front menu: first answer",
+   "churnMB": -0.4,
+   "ms": 120,
+   "shift": 0,
+   "longs": 2,
+   "by": "event-timing"
+  },
+  {
    "what": "open a question",
-   "churnMB": 19.5,
-   "ms": 1349,
+   "churnMB": -15.1,
+   "ms": 963,
    "shift": 0,
    "longs": 1,
    "by": "frames"
   },
   {
    "what": "Check",
-   "churnMB": -3.8,
-   "ms": 112,
+   "churnMB": -3.7,
+   "ms": 184,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
-  },
-  {
-   "what": "Feed tab",
-   "churnMB": 1.2,
-   "ms": 115,
-   "shift": 0,
-   "longs": 0,
-   "by": "frames"
   }
  ],
  "missing": [
@@ -184,64 +188,7 @@
  "questions": {
   "sampled": 30,
   "types": 24,
-  "broken": [
-   {
-    "id": "Q-1MA1-2406-2H-20",
-    "type": "coords",
-    "why": [
-     "no answer box and no Check tile"
-    ]
-   },
-   {
-    "id": "Q0026",
-    "type": "fraction",
-    "why": [
-     "no answer box and no Check tile"
-    ]
-   },
-   {
-    "id": "Q-STA-KS2-2024-P2-18",
-    "type": "hand",
-    "why": [
-     "no answer box and no Check tile"
-    ]
-   },
-   {
-    "id": "Q-9MA031-2206-5c",
-    "type": "match",
-    "why": [
-     "no answer box and no Check tile"
-    ]
-   },
-   {
-    "id": "Q-1MA1-2406-2F-7a",
-    "type": "measure",
-    "why": [
-     "no answer box and no Check tile"
-    ]
-   },
-   {
-    "id": "Q-1MA1-2406-2H-5a",
-    "type": "table",
-    "why": [
-     "no answer box and no Check tile"
-    ]
-   },
-   {
-    "id": "Q-1MA1-2406-1H-17a",
-    "type": "words",
-    "why": [
-     "no answer box and no Check tile"
-    ]
-   },
-   {
-    "id": "Q-CBM-parallel-lines-perpendicular-lines-6",
-    "type": "chooseN",
-    "why": [
-     "no answer box and no Check tile"
-    ]
-   }
-  ]
+  "broken": []
  },
  "errors": [],
  "consoleErrors": [],
@@ -273,24 +220,34 @@
    "notPill": 1
   },
   "tool": {
-   "cards": 4,
-   "sampled": 4,
+   "cards": 17,
+   "sampled": 17,
    "noTags": 0,
    "missing": {
-    "forLabel": 4
+    "forLabel": 17
    },
    "fn": "card",
-   "notPill": 4
+   "notPill": 17
+  },
+  "game": {
+   "cards": 2,
+   "sampled": 2,
+   "noTags": 0,
+   "missing": {
+    "forLabel": 2
+   },
+   "fn": "card",
+   "notPill": 2
   },
   "soon": {
-   "cards": 25,
-   "sampled": 20,
+   "cards": 12,
+   "sampled": 12,
    "noTags": 0,
    "missing": {
-    "forLabel": 20
+    "forLabel": 12
    },
    "fn": "card",
-   "notPill": 20
+   "notPill": 12
   },
   "post": {
    "cards": 2,
@@ -367,15 +324,14 @@
    "noTags": 0,
    "missing": {},
    "fn": "card",
-   "notPill": 20
+   "notPill": 1
   },
   "fight": {
    "cards": 157,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card",
-   "notPill": 20
+   "fn": "card"
   },
   "practical": {
    "cards": 82,
@@ -399,15 +355,14 @@
    "noTags": 0,
    "missing": {},
    "fn": "card",
-   "notPill": 20
+   "notPill": 17
   },
   "insert": {
    "cards": 22,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card",
-   "notPill": 20
+   "fn": "card"
   },
   "manuscript": {
    "cards": 12,
@@ -503,15 +458,14 @@
    "noTags": 0,
    "missing": {},
    "fn": "card",
-   "notPill": 20
+   "notPill": 8
   },
   "mech": {
    "cards": 89,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card",
-   "notPill": 20
+   "fn": "card"
   },
   "chem": {
    "cards": 417,
@@ -522,12 +476,11 @@
    "notPill": 20
   },
   "question": {
-   "cards": 28650,
+   "cards": 29823,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card",
-   "notPill": 20
+   "fn": "card"
   }
  },
  "inSync": {

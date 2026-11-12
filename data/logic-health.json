@@ -78,7 +78,7 @@
   {
    "where": "Find",
    "asks": "What kind",
-   "cards": 280178,
+   "cards": 281353,
    "why": [
     "a finer question asked before its coarser one: What kind before What for"
    ]
@@ -102,17 +102,17 @@
   {
    "where": "Find › Practice › Questions",
    "asks": "Subject",
-   "cards": 28650,
+   "cards": 29823,
    "why": [
-    "sibling branches ask their next question in different orders: Biology asks Exam board, Chemistry asks Level; Biology asks Exam board, English Literature asks Level"
+    "sibling branches ask their next question in different orders: Biology asks Type, Physics asks Level; Chemistry asks Type, Physics asks Level"
    ]
   },
   {
    "where": "Find › Practice › Answers",
    "asks": "Subject",
-   "cards": 27462,
+   "cards": 28635,
    "why": [
-    "sibling branches ask their next question in different orders: Biology asks Exam board, Chemistry asks Level; Biology asks Exam board, English Literature asks Level"
+    "sibling branches ask their next question in different orders: Biology asks Type, Maths asks Level; Biology asks Type, Physics asks Level"
    ]
   },
   {
@@ -310,20 +310,36 @@
    "cards": 3617
   },
   {
-   "where": "Find › Practice › Answers › Physics",
+   "where": "Find › Practice › Questions › Biology",
    "asks": "documentType",
-   "bits": 0.32,
-   "best": "tier",
-   "bestBits": 0.99,
-   "cards": 3100
+   "bits": 0.41,
+   "best": "qPart",
+   "bestBits": 2,
+   "cards": 3398
   },
   {
-   "where": "Find › Practice › Questions › Physics",
+   "where": "Find › Practice › Answers › Biology",
    "asks": "documentType",
-   "bits": 0.36,
+   "bits": 0.41,
+   "best": "qPart",
+   "bestBits": 2,
+   "cards": 3398
+  },
+  {
+   "where": "Find › Practice › Questions › Chemistry",
+   "asks": "documentType",
+   "bits": 0.38,
    "best": "tier",
    "bestBits": 0.99,
-   "cards": 3136
+   "cards": 3206
+  },
+  {
+   "where": "Find › Practice › Answers › Chemistry",
+   "asks": "documentType",
+   "bits": 0.38,
+   "best": "tier",
+   "bestBits": 0.99,
+   "cards": 3206
   },
   {
    "where": "Find › Library › Religious Studies › Judaism › Second Temple",
@@ -418,25 +434,25 @@
   {
    "field": "forLabel",
    "label": "What for",
-   "cards": 280178,
+   "cards": 281353,
    "why": "lopsided — pressing its commonest answer would leave 0% of the list, needs 2%"
+  },
+  {
+   "field": "qNumber",
+   "label": "Question",
+   "cards": 29823,
+   "why": "counts within each Type — asked once one Type is left"
   },
   {
    "field": "myResult",
    "label": "Your result",
-   "cards": 28650,
+   "cards": 29823,
    "why": "one answer — nothing to decide"
-  },
-  {
-   "field": "qPart",
-   "label": "Part",
-   "cards": 18638,
-   "why": "counts within each Verified — asked once one Verified is left"
   },
   {
    "field": "qSub",
    "label": "Sub-part",
-   "cards": 2526,
+   "cards": 2849,
    "why": "counts within each Type — asked once one Type is left"
   },
   {

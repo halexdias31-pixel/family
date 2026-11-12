@@ -160,8 +160,10 @@ function instruments() {
     const r = await page.evaluate(async q => {
       const wait = ms => new Promise(ok => setTimeout(ok, ms)), bad = [];
       try { finderOpen_(stuffItemsAll_().find(x => x.key === q.key), null, FINDERS.stuff); } catch (e) { bad.push('opening threw: ' + String(e.message).slice(0, 80)); }
-      await wait(200);
-      const on = document.querySelector('#s-stuff > .page.on') || document.querySelector('#s-stuff');
+      /* THE CARD'S OWN PAGE: Find's results sit below its question page, which keeps `.on`; waited for up to 2 s, not a fixed 200 ms. */
+      const res = () => document.querySelector('#s-stuff > .page.is-res');
+      for (let t = 0; t < 20 && !(res() && res().querySelector('.pane > *')); t++) await wait(100);
+      const on = res() || document.querySelector('#s-stuff > .page.on') || document.querySelector('#s-stuff');
       if (!on || on.innerText.trim().length < 20) bad.push('empty body');
       const check = on && on.querySelector('[data-do$="-check"], [data-do="qp-check"]');
       const box = on && on.querySelector('input, textarea, [contenteditable="true"], .keypad, [data-do="qp-work"], .choices, canvas');
