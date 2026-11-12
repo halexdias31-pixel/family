@@ -1,28 +1,14 @@
 #!/usr/bin/env node
 /* @family. — tools/health.js THE SITE'S ONE HEALTH SCORE (890), measured, never judged by AI. --check: write nothing, exit 1 when stale. */
-/* Blends five parts into data/health.json (1060: business 12% joins; code 28, Find logic 25, UI 18, AI cost 17): */
-//   code stability (core)  28%  tools/stability.js, re-run here (cheap, reads the repo)
-//   AI cost                17%  tools/ai-cost.js: read bytes, comments, tombstones, CLAUDE.md, search bytes, effort, test/note size, spread
-//   Find logic             25%  data/logic-health.json, written by tools/logic-health.js (slow: walks the funnel). Never re-walked here;
-//                               it is "stale" when any of its inputs is newer than it.
-//   business               12%  one-place.json coverage (yes 1, partly ½) less 5 per js/check-biz.js finding; the card swaps in the live ticks
-//   UI simplicity          18%  style.css, read here — 100 less a penalty per signal, each capped:
-// important    0.05 per !important, cap 15
-// pxlit        0.004 per px literal outside :root, cap 15
-// colourlit    0.02 per hex/rgb()/hsl() colour literal outside :root and custom-property definitions, cap 15
-// order        0.05 per property a later rule with the very same selector sets again (won by order alone), cap 10
-//              (check/cascade.js needs a browser, so this is the cheap static half of it)
-// selectors    0.002 per selector over 1500, cap 15
-// zindex       0.5 per distinct z-index value over 5, cap 10
-// position     0.01 per transform or position:absolute, cap 10
-// FIND WORKLIST (920): §
-// TOP OFFENDERS: every signal and Find rule priced in points of the OVERALL score it costs; the five dearest, one plain line each.
+/* Every measure is a RULE over a countable population: followed ÷ applies to (owner, 12 Nov; docs/history/1210). The score is the plain average of the rules. */
+/* Rules come from: tools/stability.js (code), tools/ai-cost.js (AI cost), data/logic-health.json (Find logic; stale when an input is newer), style.css, the walks' files, one-place.json. */
+/* Pass/fail checks with no population count 1/1 or 0/1. Dropped, no population: selectors, z-index and position counts (none is wrong in itself), px literals (the scale rules hold sizes). */
+/* --list orders every finding by the points of the total its fix gains. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'data', 'health.json');
 const CHECK = process.argv.includes('--check');
-const WEIGHTS = { code: 0.28, logic: 0.25, ui: 0.18, cost: 0.17, business: 0.12 };   /* cost (940): ai-cost.js; business (1060): the checker, one score */
 const r1 = n => Math.round(n * 10) / 10;
 const read = f => { try { return fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { return ''; } };
 /* WHEN A FILE LAST CHANGED: its last commit, or now when the working tree has it edited (a checkout's mtimes all say "just now"). */
@@ -47,13 +33,15 @@ function logic() {
   return { j, stale: !j || newer.length > 0, newer };
 }
 
-/* FIND-LOGIC WORKLIST (920): four kinds, each located; their penalty comes off the walk's score, each capped. */
+/* FIND-LOGIC WORKLIST (920): its kinds, each located; each kind is a rule over Find's menus, walked nodes or lines. */
 const lineOf = (src, i) => src.slice(0, i).split('\n').length;
 const blank = src => src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, m => m.replace(/[^\n]/g, ' '));
+let FIND_POP = null;
 function findWork(L) {
   const fsrc = require('./find-src.js').findSrc(), work = [];
   const at = {};
   for (const m of fsrc.matchAll(/\{ field: '(\w+)',\s*label: '([^']+)'/g)) if (!at[m[1]]) at[m[1]] = { line: lineOf(fsrc, m.index), label: m[2] };
+  FIND_POP = { menus: Object.keys(at).length, compare: [...FIND_FILES, ...SHELL_FILES].reduce((a, f) => a + blank(read(f)).split('\n').filter(l => /[!=]==?/.test(l)).length, 0) };
   /* tag-colour (1030): ONE colour per menu — (a) every answer of a menu, (b) its chip and card words take the facet's colour alone, */
   /* (c) two facets asked on one path (data/facet-graph.json, tools/facet-hues.js) never share one, (d) each hue reads 3:1 on --bg. */
   const tagLine = /^const TAG_OF = (\{.*\});$/m.exec(fsrc);
@@ -114,15 +102,17 @@ function findWork(L) {
   ((jread('data/facet-health.json') || {}).findings || []).forEach(x => work.push({ kind: x.kind, where: 'menu ' + x.menu, say: '"' + x.value + '" ' + x.say }));
   return work;
 }
-const FIND_PENALTY = { 'menu-thin': [1, 15], 'answer-words': [0.2, 10], 'mangled-text': [0.5, 10], 'merged-value': [0.5, 10], 'tag-colour': [0.1, 10], 'menu-rule': [0.05, 15], 'tag-asked': [1, 10], 'find-one-off': [0.02, 10], 'merged-all': [0.5, 10], 'near-dup': [0.5, 10], 'words-all': [0.02, 5] };
+const FIND_KINDS = ['menu-thin', 'answer-words', 'mangled-text', 'merged-value', 'tag-colour', 'menu-rule', 'tag-asked', 'find-one-off', 'merged-all', 'near-dup', 'words-all'];
 
 /* UNIFORM (920): controls not built by the shared makers, each located. App files only; the makers' own files are exempt. */
+let UNIFORM_POP = null;
 function uniformWork() {
-  const W = [], MAKERS = new Set(['js/tiles.js', ...SHELL_FILES]);
+  const P = { tags: 0, tiles: 0, classes: 0, lookGroups: 0, looks: 0 }, W = [], MAKERS = new Set(['js/tiles.js', ...SHELL_FILES]);
   const app = git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f) && !MAKERS.has(f));
   const css = read('style.css'), cssLines = css.split('\n');
   const jsAll = {};
   app.forEach(f => { const src = blank(read(f)); jsAll[f] = src;
+    P.tags += (src.match(/<[a-z][\w-]*[\s>]/g) || []).length; P.tiles += (src.match(/\btile_\(/g) || []).length;
     src.split('\n').forEach((l, i) => {
       const at = f + ':' + (i + 1);
       /* A FORM's or a keypad's button is a button; anything else wearing <button> is a hand-rolled tile. */
@@ -136,6 +126,7 @@ function uniformWork() {
   for (const m of blob.matchAll(/class="([^"$]+)"/g)) m[1].split(/\s+/).forEach(c => { used[c] = (used[c] || 0) + 1; });
   const ruled = {};
   cssLines.forEach((l, i) => { if (/\{/.test(l) && !/^\s*(?:@|--)/.test(l)) for (const m of l.split('{')[0].matchAll(/\.([a-zA-Z][\w-]*)/g)) (ruled[m[1]] = ruled[m[1]] || []).push(i + 1); });
+  P.classes = Object.keys(ruled).length;
   Object.keys(ruled).forEach(c => { if (ruled[c].length === 1 && used[c] === 1 && !new RegExp('[\'"`\\s.]' + c + '[\'"`\\s]').test(blob.replace(/class="[^"]*"/g, '')))
     W.push({ kind: 'once-class', where: 'style.css:' + ruled[c][0], say: `.${c} styles one place only` }); });
   /* THE SAME CONTROL, DIFFERENT LOOKS: border-radius and font-size of .tile, .chip and button rules. */
@@ -144,11 +135,12 @@ function uniformWork() {
     for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) { const sel = m[1].trim().split('\n').pop(); if (!re.test(sel.split(',').map(x => x.trim().split(/\s+/).pop()).join(','))) continue;
       for (const d of m[2].matchAll(/(border-radius|font-size|font-family)\s*:\s*([^;]+)/g)) { const k = d[1], v = d[2].trim();
         (seen[k] = seen[k] || {}); if (!seen[k][v]) seen[k][v] = lineOf(css, m.index + m[0].indexOf(d[0])); } }
-    Object.keys(seen).forEach(k => { const vs = Object.keys(seen[k]); if (vs.length > 1) vs.slice(1).forEach(v => W.push({ kind: 'control-look', where: 'style.css:' + seen[k][v],
+    Object.keys(seen).forEach(k => { const vs = Object.keys(seen[k]); P.lookGroups++; P.looks += vs.length; if (vs.length > 1) vs.slice(1).forEach(v => W.push({ kind: 'control-look', where: 'style.css:' + seen[k][v],
       say: `${ctl} ${k} ${v} (the first ${ctl} rule says ${vs[0]}; ${vs.length} different)` })); }); });
+  UNIFORM_POP = P;
   return W;
 }
-const UNIFORM_PENALTY = { 'raw-button': [0.02, 5], 'hand-tile': [0.2, 5], 'inline-style': [0.02, 5], 'once-class': [0.005, 5], 'control-look': [0.1, 5], 'own-wait': [0.2, 5] };
+const UNIFORM_KINDS = ['raw-button', 'hand-tile', 'inline-style', 'once-class', 'control-look', 'own-wait'];
 /* UX AND QUESTIONS (920): read from data/ux-health.json, written by tools/ux-health.js (a browser walk); never walked here. */
 function uxWork() {
   let j = null; try { j = JSON.parse(read('data/ux-health.json')); } catch (e) { return { j: null, work: [] }; }
@@ -214,8 +206,7 @@ function uxWork() {
   });
   return { j, work: W };
 }
-const UX_PENALTY = { wait: [0.5, 10], 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10],
-  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10], 'in-sync': [0.5, 10], 'odd-tags': [0.02, 10], 'dup-controls': [0.5, 10], 'chip-size': [0.5, 10], 'settings-work': [1, 10], 'returned-features': [0.5, 10], clutter: [0.02, 10], 'front-door': [2, 10], 'picture-first': [1, 10], 'car-tags-split': [1, 10], 'people-one-kind': [2, 10], 'manuscripts-reach': [2, 10], 'no-age-gates': [5, 10], 'timeline-anim': [2, 10], friction: [3, 15], 'menu-order': [2, 10] };
+const UX_KINDS = ['wait', 'update-continuity', 'ux', 'question', 'a11y', 'console', 'card-tags', 'tag-colour', 'element-box', 'attr-outside-tags', 'text-boxes', 'in-sync', 'odd-tags', 'dup-controls', 'chip-size', 'settings-work', 'returned-features', 'clutter', 'front-door', 'picture-first', 'car-tags-split', 'people-one-kind', 'manuscripts-reach', 'no-age-gates', 'timeline-anim', 'friction', 'menu-order'];
 /* THE OWNER'S FOUR (1030), each its own named check, ideal 0, budget `owner` in structure-budgets.json; the drawn halves come from check/qcard.js. */
 const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1, 'in-sync': 1, 'odd-tags': 1, 'dup-controls': 1, 'chip-size': 1, 'settings-work': 1, 'returned-features': 1, clutter: 1, 'front-door': 1, 'picture-first': 1, 'car-tags-split': 1, 'people-one-kind': 1, 'manuscripts-reach': 1, 'no-age-gates': 1, 'timeline-anim': 1, friction: 1, 'menu-order': 1 };
 /* ONE CARD, ONE OF EACH (1040 r12): odd-tags and dup-controls from tools/card-health.js (the library in jsdom), chip-size and settings-work */
@@ -335,54 +326,79 @@ function ownerWork() {
   return W;
 }
 
+/* A RULE (owner, 12 Nov): a countable population and how many of it follow the rule; its score is ok ÷ of, every rule counted equally. */
+const rule = (id, group, label, ok, of, kinds) => ({ id, group, label, ok: Math.max(0, Math.min(of, ok)), of, kinds: kinds || [id] });
+/* A CHECK WITH NO COUNTABLE POPULATION is one thing that passes or fails: 1 of 1, or 0 of 1. */
+const passFail = (id, group, label, n, kinds) => Object.assign(rule(id, group, label, n ? 0 : 1, 1, kinds), { pf: n });
+/* THE ANSWER BOX'S ONE WIDTH (owner, 12 Nov): a box alone on its line fills it; boxes sharing a line are each --ans-w, never sized by kind. */
+function answerWidths(css) {
+  const flat = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' ')), out = { of: 0, bad: [] };
+  for (const m of flat.matchAll(/(?<=^|\})\s*([^{}@]+)\{([^{}]*)\}/g)) {
+    const sels = m[1].trim().replace(/\s+/g, ' ').split(',').map(x => x.trim()).filter(x => /\.qp-ans(?![-\w])[^\s>+~]*$/.test(x) && !/:/.test(x));
+    const sz = [...m[2].matchAll(/(?:^|;)\s*(flex|flex-basis|width|max-width)\s*:\s*([^;]+)/g)].map(d => [d[1], d[2].trim()]);
+    if (!sels.length || !sz.length) continue;
+    sels.forEach(sel => { out.of++;
+      const alone = /\.qp-bar > \.qp-ans$/.test(sel) && sz.every(([k, v]) => k === 'flex' && v === '1 1 auto');
+      const shared = sz.every(([k, v]) => /var\(--ans-w\)/.test(v) && (k !== 'flex' || /^[01] 1 var\(--ans-w\)$/.test(v)));
+      if (!alone && !shared) out.bad.push({ kind: 'answer-width', where: 'style.css:' + lineOf(flat, m.index + m[0].indexOf(m[1].trim())),
+        say: `${sel} sizes an answer box its own way (${sz.map(d => d.join(': ')).join('; ')}); one width, --ans-w` }); }); }
+  return out;
+}
+/* ONE TEMPLATE (owner, 11 Nov): of every card made, how many go through findCard/card_ rather than writing class="card" (js/check-one-template.js). */
+function oneTemplate() {
+  let bad = [];
+  try { execFileSync(process.execPath, ['js/check-one-template.js'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' }); }
+  catch (e) { bad = String(e.stderr || '').split('\n').filter(l => /^ {2}\S/.test(l)).map(l => { const t = l.trim(), at = /^([^:]+:\d+)/.exec(t); return { kind: 'one-template', where: at ? at[1] : 'js/check-one-template.js', say: t }; }); }
+  const html = read('index.html'), files = [...new Set([...html.matchAll(/'([a-z][\w-]*)'/g)].map(m => 'js/' + m[1] + '.js'))].filter(f => fs.existsSync(path.join(ROOT, f)));
+  const made = files.reduce((a, f) => a + (blank(read(f)).match(/(?<!function )\b(?:card_|findCard)\(/g) || []).length, 0);
+  return { ok: made, of: made + bad.length, work: bad };
+}
 function ui() {
-  const css = read('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
+  const raw = read('style.css'), css = raw.replace(/\/\*[\s\S]*?\*\//g, '');
   const rules = [];
-  // flat rules (and those inside @media): selector { body } with no nested braces in the body
   for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) rules.push({ sel: m[1].trim(), body: m[2] });
   const plain = rules.filter(r => !/^:root\b/.test(r.sel) && !r.sel.startsWith('@'));
-  const strip = b => b.replace(/--[\w-]+\s*:[^;]*;?/g, '');
-  const count = (re, src) => (src.match(re) || []).length;
-  const body = plain.map(r => strip(r.body)).join('\n');
-  const important = count(/!important/g, css);
-  const pxlit = count(/\b\d*\.?\d+px\b/g, body);
-  const colourlit = count(/#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/g, body);
+  /* EVERY DECLARATION outside :root, custom properties left out (they are the tokens themselves). */
+  const decls = plain.flatMap(r => r.body.split(';').map(d => /^\s*([\w-]+)\s*:\s*([\s\S]+?)\s*$/.exec(d)).filter(d => d && !d[1].startsWith('--')).map(d => ({ sel: r.sel, k: d[1], v: d[2] })));
   const seen = new Map(); let order = 0;
-  plain.forEach(r => {
-    const props = new Set([...strip(r.body).matchAll(/([\w-]+)\s*:/g)].map(m => m[1]));
-    const had = seen.get(r.sel);
-    if (had) props.forEach(p => { if (had.has(p)) order++; had.add(p); }); else seen.set(r.sel, props);
-  });
-  const selectors = plain.reduce((n, r) => n + r.sel.split(',').length, 0);
-  const zindex = new Set([...css.matchAll(/z-index\s*:\s*(-?\d+)/g)].map(m => m[1])).size;
-  const position = count(/position\s*:\s*absolute/g, css) + count(/(?:^|[;{\s])transform\s*:/g, css);
-  const S = [
-    ['important', '!important declarations in style.css', important, 0.05, 15, 0],
-    ['pxlit', 'Hard-coded px literals outside the tokens', pxlit, 0.004, 15, 0],
-    ['colourlit', 'Hard-coded colours outside the tokens', colourlit, 0.02, 15, 0],
-    ['order', 'Properties a repeated selector overrides only by order', order, 0.05, 10, 0],
-    ['selectors', 'style.css selectors (over 1500)', selectors, 0.002, 15, 1500],
-    ['zindex', 'Distinct z-index values (over 5)', zindex, 0.5, 10, 5],
-    ['position', 'transform and position:absolute uses', position, 0.01, 10, 0],
-  ].map(([id, label, n, w, cap, free]) => ({ id, label, count: n, weight: w, cap, off: r1(Math.min(cap, Math.max(0, n - free) * w)) }));
-  const work = uniformWork().concat(uxWork().work, ownerWork()), k = {};
+  plain.forEach(r => { const props = new Set(r.body.split(';').map(d => (/^\s*([\w-]+)\s*:/.exec(d) || [])[1]).filter(k => k && !k.startsWith('--')));
+    const had = seen.get(r.sel); if (had) props.forEach(p => { if (had.has(p)) order++; had.add(p); }); else seen.set(r.sel, props); });
+  /* THE PALETTE: the :root tokens whose value is a colour; a colour is either one of them or a literal. */
+  const COL = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/g, isCol = v => /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/.test(v), colTok = new Set();
+  for (const r of rules.filter(r => /^:root\b/.test(r.sel))) for (const d of r.body.matchAll(/(--[\w-]+)\s*:\s*([^;]+)/g)) if (isCol(d[2]) || /^var\(--[\w-]+\)$/.test(d[2].trim())) colTok.add(d[1]);
+  let colLit = 0, colVar = 0;
+  decls.forEach(d => { colLit += (d.v.match(COL) || []).length; colVar += [...d.v.matchAll(/var\((--[\w-]+)/g)].filter(x => colTok.has(x[1])).length; });
+  /* THE SCALE: a size is a token (var(--…)), a zero, auto or a keyword; a written length is off the scale. */
+  const LEN = /(?<![\w.-])-?(?:\d*\.)?\d+(?:px|rem|em|vh|vw|%|ch)\b/;
+  const offScale = v => LEN.test(v.replace(/var\([^()]*\)/g, '').replace(/(?<![\w.])0(?![\w.%])/g, ''));
+  const fonts = decls.filter(d => d.k === 'font-size' || (d.k === 'font' && !/^(?:inherit|initial|unset)$/.test(d.v)));
+  const space = decls.filter(d => /^(?:margin|padding)(?:-(?:top|right|bottom|left|inline|block)(?:-start|-end)?)?$|^(?:row-|column-)?gap$/.test(d.k));
+  const radius = decls.filter(d => /^border(?:-[a-z]+)*-radius$/.test(d.k));
+  const fontOff = d => d.k === 'font' ? offScale((/^(?:(?:italic|normal|bold|\d00)\s+)*(\S+)/.exec(d.v) || [])[1] || '') : offScale(d.v);
+  const AW = answerWidths(raw), OT = oneTemplate();
+  const work = uniformWork().concat(uxWork().work, ownerWork(), AW.bad, OT.work), k = {};
   work.forEach(w => { k[w.kind] = (k[w.kind] || 0) + 1; });
-  const PEN = Object.assign({}, UNIFORM_PENALTY, UX_PENALTY);
-  Object.keys(PEN).forEach(id => S.push({ id, label: id + ' findings', count: k[id] || 0, weight: PEN[id][0], cap: PEN[id][1], off: r1(Math.min(PEN[id][1], (k[id] || 0) * PEN[id][0])) }));
-  return { score: r1(Math.max(0, 100 - S.reduce((a, s) => a + s.off, 0))), signals: S.sort((a, b) => b.off - a.off), work };
+  const P = UNIFORM_POP || {}, n = id => k[id] || 0;
+  const R = [
+    rule('important', 'ui', 'CSS declarations that win without !important', decls.length - decls.filter(d => /!important/.test(d.v)).length, decls.length),
+    rule('order', 'ui', 'CSS declarations not set again by a repeated selector', decls.length - order, decls.length),
+    rule('colourlit', 'ui', 'Colours taken from the palette tokens', colVar, colVar + colLit),
+    rule('font-scale', 'ui', 'Font sizes from the --fs scale', fonts.filter(d => !fontOff(d)).length, fonts.length),
+    rule('space-scale', 'ui', 'Margins, paddings and gaps from the --s scale', space.filter(d => !offScale(d.v)).length, space.length),
+    rule('radius-scale', 'ui', 'Corner radii from the radius tokens', radius.filter(d => !offScale(d.v.replace(/\b50%/g, ''))).length, radius.length),
+    rule('answer-width', 'ui', 'Answer-box width rules on the one width', AW.of - AW.bad.length, AW.of),
+    rule('one-template', 'ui', 'Cards made on the one template (findCard/card_)', OT.ok, OT.of),
+    rule('makers', 'ui', 'Tiles made by tile_() rather than by hand', P.tiles, P.tiles + n('raw-button') + n('hand-tile'), ['raw-button', 'hand-tile']),
+    rule('inline-style', 'ui', 'Elements in markup with no inline style', P.tags - n('inline-style'), P.tags),
+    rule('once-class', 'ui', 'Styled classes used in more than one place', P.classes - n('once-class'), P.classes),
+    rule('control-look', 'ui', 'Tile, chip and button looks: one value per property', P.lookGroups, P.looks),
+  ];
+  return { rules: R, work, counts: k };
 }
 
-/* CODE STRUCTURE (920): where the one-off cases live, line by line, on CORE app files (tiers.json). Capped per signal.
-   It replaces stability's special/longfiles/longfns/duplicates, so nothing counts twice. */
-// one-off   0.05 per if/case/ternary testing a kind, facet, field, col, screen, tab, id, type, which, mode or key against a string literal, cap 20
-// long-fn   0.01 per line a top-level function runs over 80, cap 10
-// big-file  0.001 per line a file runs over 1500, cap 10
-// dup       0.02 per line of a 6+-line chunk already seen (normalised: trimmed, comments out), cap 10
-// nest      0.05 per run of lines nested over 4 blocks deep inside a function, cap 10
-// catch     an empty catch, listed for the fixer; priced by stability's `catches` (0.02 each), never again here
-// deliberate a catch holding only a why-comment: a chosen fallback, as check-catches counts it; listed, never priced
-const STRUCT = { 'one-off': [0.05, 20], 'long-fn': [0.01, 10], 'big-file': [0.001, 10], dup: [0.02, 10], nest: [0.05, 10], catch: [0.02, 0], deliberate: [0, 0] };
-const REPLACED = new Set(['special', 'longfiles', 'longfns', 'duplicates']);
+/* CODE STRUCTURE (920): where the one-off cases live, line by line, on CORE app files (tiers.json); each kind is a rule over its population (RULES below). */
+/* one-off: a comparison testing a kind/facet/field/... by literal; long-fn over 80 lines; big-file over 1500; dup: a 6+-line chunk seen before; nest: over 4 blocks deep; catch empty; deliberate: a why-comment only. */
+const STRUCT = ['one-off', 'long-fn', 'big-file', 'dup', 'nest', 'catch', 'deliberate'];
 const W_ = '(?:kind|facet|field|col|screen|tab|id|type|which|mode|key)';
 /* NOT A ONE-OFF: a DOM event's key or type ("Enter", "pointerup") and a `typeof` test are the language's words, not kinds of ours;
    js/predicates.js is where each named test is written once, for the rest to call. */
@@ -432,9 +448,9 @@ function scan(src) {
 }
 function structure() {
   const F = [], push = (file, line, kind, text, units) => F.push({ file, line, kind, text: String(text).trim().slice(0, 160), units });
-  const seen = new Map();
+  const seen = new Map(), pop = { files: 0, fns: 0, compare: 0, codeLines: 0, deep: 0, catches: 0 };
   coreFiles().forEach(file => {
-    const L = read(file).split('\n');
+    const L = read(file).split('\n'); pop.files++;
     if (L.length > 1500) push(file, 1501, 'big-file', `${L.length} lines, ${L.length - 1500} over the 1500 budget`, L.length - 1500);
     const { code: C, depthAt } = scan(L.join('\n'));
     let deepFrom = -1, fn = null;
@@ -442,10 +458,13 @@ function structure() {
     L.forEach((raw, i) => {
       const code = C[i] || '', depth = depthAt[i] || 0, before = i ? depthAt[i - 1] : 0;
       if (code.trim().length >= 8) N.push({ t: code.trim(), i });
+      if (/[!=]==?|^\s*case\b/.test(code)) pop.compare++;
+      pop.catches += (code.match(/\bcatch\b/g) || []).length;
+      if (depth > 5) pop.deep++;
       if (ONE_OFF.test(code.replace(DOM_EVENT, '')) && !SHARED_TESTS.includes(file)) push(file, i + 1, 'one-off', raw, 1);
       if (/catch\s*(?:\(\s*\w*\s*\))?\s*\{\s*\}/.test(code)) push(file, i + 1, /catch\s*(?:\([^)]*\))?\s*\{\s*\}/.test(raw) ? 'catch' : 'deliberate', raw, 1);
       const m = before === 0 && /^(?:async\s+)?function\s+([\w$]+)|^(?:const|let|var)\s+([\w$]+)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>\s*\{|[\w$]+\s*=>\s*\{)/.exec(raw);
-      if (m) fn = { name: m[1] || m[2], at: i };
+      if (m) { fn = { name: m[1] || m[2], at: i }; pop.fns++; }
       if (depth === 0 && fn) {
         const n = i - fn.at + 1; if (n > 80) push(file, fn.at + 1, 'long-fn', `${fn.name}(): ${n} lines`, n - 80);
         fn = null;
@@ -463,42 +482,14 @@ function structure() {
       } else { close(); if (!prev) seen.set(key, { file, line: N[k].i }); }
     }
     close();
+    pop.codeLines += N.length;
   });
-  F.forEach(f => { f.cost = Math.round(f.units * STRUCT[f.kind][0] * WEIGHTS.code * 1000) / 1000; });
   const totals = {};
-  Object.keys(STRUCT).forEach(k => {
-    const [w, cap] = STRUCT[k], mine = F.filter(f => f.kind === k), units = mine.reduce((a, f) => a + f.units, 0);
-    totals[k] = { count: mine.length, units, weight: w, cap, off: r1(Math.min(cap, units * w)) };
-  });
-  F.sort((a, b) => b.cost - a.cost || a.file.localeCompare(b.file) || a.line - b.line);
-  return { findings: F.map(({ units, ...f }) => f), totals };
+  STRUCT.forEach(k => { const mine = F.filter(f => f.kind === k); totals[k] = { count: mine.length, units: mine.reduce((a, f) => a + f.units, 0) }; });
+  F.sort((a, b) => b.units - a.units || a.file.localeCompare(b.file) || a.line - b.line);
+  return { findings: F, totals, pop };
 }
 
-const SAY_KIND = { 'one-off': 'One-off branches on a literal', 'long-fn': 'Functions over 80 lines', 'big-file': 'Files over 1500 lines',
-  dup: 'Duplicated 6+-line chunks', nest: 'Code nested over 4 levels' };
-const SAY = {
-  'one-off': n => `${n} branches test one kind, facet, field, screen or id by name; each is a special case to keep in mind.`,
-  'long-fn': n => `${n} functions are over 80 lines.`,
-  'big-file': n => `${n} files are over 1500 lines.`,
-  dup: n => `${n} chunks of 6+ lines are copies of another.`,
-  nest: n => `${n} places nest blocks more than 4 deep.`,
-  catches: n => `${n} empty catches are allowed by check-catches; each one hides an error.`,
-  special: n => `${n} per-facet or per-kind special cases in the app code, mostly js/find.js.`,
-  exceptions: n => `${n} written exceptions let checks pass despite a known problem.`,
-  dead: n => `${n} functions nothing calls.`,
-  ceilings: n => `Ratchet ceilings in the checks have been raised by ${n} units in all.`,
-  longfiles: n => `${n} files are over 3000 lines.`,
-  duplicates: n => `${n} long lines are copied three or more times.`,
-  longfns: n => `${n} functions are over 150 lines.`,
-  markers: n => `${n} TODO/FIXME/HACK markers.`,
-  important: n => `style.css uses !important ${n} times, so rules fight instead of cascading.`,
-  pxlit: n => `${n} pixel sizes are written by hand instead of as tokens.`,
-  colourlit: n => `${n} colours are written by hand instead of as :root tokens.`,
-  order: n => `${n} properties are set twice for the same selector; the later one wins by order alone.`,
-  selectors: n => `style.css has ${n} selectors; every one is something to keep in mind.`,
-  zindex: n => `${n} different z-index values stack the screen.`,
-  position: n => `${n} transforms and absolute positions place boxes by hand.`,
-};
 
 /* THE OCCASIONAL WALKS' FILES (920), each written by its own tool and only read here; a missing one is a skip, counted, never a zero. */
 const jread = f => { try { return JSON.parse(read(f)); } catch (e) { return null; } };
@@ -549,16 +540,19 @@ function extraWork(st) {
   return { work: W, skipped, sizes };
 }
 /* THE CHECK IDS health.js prices, for the philosophy's coverage. */
-const knownChecks = st => [FIND_PENALTY, UX_PENALTY, UNIFORM_PENALTY, STRUCT, EXTRA_PENALTY, VARIETY_PENALTY].flatMap(Object.keys)
+const knownChecks = st => [FIND_KINDS, UX_KINDS, UNIFORM_KINDS, STRUCT, EXTRA_KINDS, VARIETY_KINDS].flat()
   .concat((st.signals || []).map(x => x.id), ['important', 'pxlit', 'colourlit', 'order', 'selectors', 'zindex', 'position'],
-    ['read-bytes', 'search-bytes', 'comment-ratio', 'big-notes', 'spread', 'test-biggest', 'tombstones', 'claude-lines', 'effort']);
-/* THE BUSINESS AREA (1060): how much of the business the site runs (one-place.json), less the checker's own faults; the card goes live. */
+    ['font-scale', 'space-scale', 'radius-scale', 'answer-width', 'one-template', 'makers', 'one-place', 'biz-checker', 'exceptions', 'ceilings', 'markers'], ['read-bytes', 'search-bytes', 'comment-ratio', 'big-notes', 'spread', 'test-biggest', 'tombstones', 'claude-lines', 'effort']);
+/* THE BUSINESS AREA (1060): how much of the business the site runs (one-place.json), and the checker's own faults; the card goes live. */
 function business() {
   let bad = []; try { bad = require('../js/check-biz.js').work(); } catch (e) { bad = [{ kind: 'biz-checker', where: 'js/check-biz.js', say: 'would not run: ' + e.message }]; }
   const items = ((jread('data/settings/biz-checklist.json') || {}).items || []);
-  const op = require('./philosophy.js').onePlace(), got = op.reduce((a, f) => a + (f.status === 'yes' ? 1 : f.status === 'partly' ? 0.5 : 0), 0);
+  /* A JOB RUN "PARTLY" IS NOT YET RUN: a half would be a number chosen by hand. */
+  const op = require('./philosophy.js').onePlace(), yes = op.filter(f => f.status === 'yes').length;
   const gaps = op.filter(f => f.status !== 'yes').map(f => `The site does not yet run ${f.name.toLowerCase()} (${f.status}).`);
-  return { score: r1(Math.max(0, (op.length ? got / op.length * 100 : 0) - bad.length * 5)), bad, items: items.length, next: bad.map(b => b.say).concat(gaps, items.slice(0, 3).map(i => 'Tick in Checks: ' + i.title)).slice(0, 3) };
+  const rules = [rule('one-place', 'business', 'Business jobs the site runs in full (one-place.json)', yes, op.length),
+    passFail('biz-checker', 'business', 'The business checker runs clean (js/check-biz.js)', bad.length)];
+  return { rules, bad, items: items.length, next: bad.map(b => b.say).concat(gaps, items.slice(0, 3).map(i => 'Tick in Checks: ' + i.title)).slice(0, 3) };
 }
 /* VARIETY (920): a family where one is ideal (one question page, one card drawer, one tile maker, one row style, one wait) costs
    for every variant past the first; each variant is listed where it lives. */
@@ -610,7 +604,7 @@ function varietyWork(Q, waits) {
   VARIETY_LAST = fam;
   return W;
 }
-const VARIETY_PENALTY = { 'variety-qpage': [1.1, 30], 'variety-drawer': [0.2, 5], 'variety-maker': [0.2, 5], 'variety-listrow': [0.1, 5], 'variety-setrow': [0.05, 5], 'variety-wait': [0.5, 5], 'variety-cardrow': [0.2, 5], 'variety-textbox': [0.2, 5] };
+const VARIETY_KINDS = ['variety-qpage', 'variety-drawer', 'variety-maker', 'variety-listrow', 'variety-setrow', 'variety-wait', 'variety-cardrow', 'variety-textbox'];
 /* THE FIRST DOWNLOAD: index.html, style.css and every file index.html's list loads, in bytes. */
 function firstDownload() {
   /* EAGER, as index.html works it out: FILES less LATER (fetched after the first screen) and OFF (never fetched). */
@@ -621,63 +615,91 @@ function firstDownload() {
   list.forEach(f => { try { const n = fs.statSync(path.join(ROOT, f)).size; files[f] = n; total += n; } catch (e) { /* a listed file that is missing is check-loading's to say */ } });
   return { files, total };
 }
-const EXTRA_PENALTY = { field: [2, 10], answer: [0.5, 10], 'menu-sense': [0.1, 10], backend: [2, 10], resilience: [5, 10], dead: [0, 0], size: [1, 10],
-  a11y: [0.05, 5], console: [0.5, 5], qengine: [0.5, 5], variety: [0, 0], philosophy: [1, 5], 'owner-questions': [0.5, 5] };
+const EXTRA_KINDS = ['field', 'answer', 'menu-sense', 'backend', 'resilience', 'dead', 'size', 'a11y', 'console', 'qengine', 'variety', 'philosophy', 'owner-questions'];
 
+/* THE SCORE (owner, 12 Nov): every measure is a rule over a countable population; the total is the plain average of the rules, no weights, no caps. */
+const MEANS = "the share of the site's rules that are followed, each rule counted equally";
+const GROUPS = { code: 'Code', logic: 'Find logic', ui: 'Design and UI', cost: 'AI cost', business: 'Business' };
+/* KINDS SCORED INSIDE ANOTHER RULE, or listed only: own-wait is variety-wait's, text-boxes variety-textbox's, biz-checker business's, deliberate a chosen fallback. */
+const LISTED_ONLY = new Set(['deliberate']);
+function healthRules(st, L, U, S, work, X, C, B) {
+  const n = {}; work.concat(U.work, X.work).forEach(w => { n[w.kind] = (n[w.kind] || 0) + 1; });
+  const cnt = k => n[k] || 0, P = S.pop, T = S.totals, sg = id => (st.signals || []).find(x => x.id === id) || { count: 0, where: {} };
+  const R = [];
+  /* CODE: the structure kinds over the core files, and the checks' own honesty. */
+  const checks = git(['ls-files', 'js/check*.js', 'check/*.js']).split('\n').filter(Boolean);
+  const excFiles = new Set(Object.keys(sg('exceptions').where || {}).map(k => k.split(' ')[0]));
+  const maxes = checks.reduce((a, f) => a + (read(f).match(/\bconst \w*_MAX\s*=\s*\d+/g) || []).length, 0);
+  const app = git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/(check|_)/.test(f));
+  const fns = app.reduce((a, f) => a + (read(f).match(/^(?:async\s+)?function\s+[\w$]+/gm) || []).length, 0);
+  const fdOf = Object.keys((X.sizes || {}).files || {}).length + 1;
+  R.push(rule('one-off', 'code', 'Comparisons that test no single kind, facet or id by name', P.compare - T['one-off'].count, P.compare),
+    rule('long-fn', 'code', 'Functions within 80 lines', P.fns - T['long-fn'].count, P.fns),
+    rule('big-file', 'code', 'Core files within 1500 lines', P.files - T['big-file'].count, P.files),
+    rule('dup', 'code', 'Code lines not copied from another 6-line chunk', P.codeLines - T.dup.units, P.codeLines),
+    rule('nest', 'code', 'Code lines nested at most 4 blocks deep', P.codeLines - P.deep, P.codeLines),
+    rule('catch', 'code', 'Catches that handle the error or say why not', P.catches - T.catch.count, P.catches),
+    rule('exceptions', 'code', 'Checks with no written exception list', checks.length - excFiles.size, checks.length),
+    rule('ceilings', 'code', 'Ratchet ceilings in the checks at zero', maxes - Object.keys(sg('ceilings').where || {}).length, maxes),
+    rule('markers', 'code', 'App files with no TODO/FIXME/HACK marker', app.length - Math.min(app.length, sg('markers').count), app.length),
+    rule('dead', 'code', 'App functions something calls', fns - sg('dead').count, fns),
+    rule('size', 'code', 'First-download files (and their total) within budget', fdOf - cnt('size'), fdOf),
+    rule('philosophy', 'code', 'Principles that name a check that exists', 0, 0),
+    rule('owner-questions', 'code', 'Owner questions well formed', 0, 0));
+  const Ph = require('./philosophy.js'), cov = Ph.coverage(knownChecks(st)), oq = Ph.ownerQuestions();
+  const badP = new Set(cov.work.map(w => w.where)).size, badQ = new Set(oq.work.map(w => w.where)).size;
+  Object.assign(R[R.length - 2], { ok: Math.max(0, cov.principles - badP), of: cov.principles });
+  Object.assign(R[R.length - 1], { ok: Math.max(0, oq.of - badQ), of: oq.of });
+  /* FIND LOGIC: the walk's own rules over its questions, then the static and data kinds over their menus, nodes and lines. */
+  const q = (L.j && L.j.questions) || 0, nodes = ((L.j && L.j.walked) || {}).nodes || 0, FP = FIND_POP || {}, FH = jread('data/facet-health.json') || {};
+  ((L.j && L.j.rules) || []).forEach(r => R.push(rule('walk-' + r.id, 'logic', 'Questions with no ' + r.label.replace(/^an? /, ''), q - r.count, q)));
+  ['menu-thin', 'answer-words', 'mangled-text', 'merged-value', 'menu-rule', 'menu-sense'].forEach(k => R.push(rule(k, 'logic', `Walked menus with no ${k} finding`, nodes - cnt(k), nodes)));
+  R.push(rule('tag-asked', 'logic', 'Menus whose tag some walked node asks', FP.menus - cnt('tag-asked'), FP.menus),
+    rule('find-one-off', 'logic', "Find's comparisons that test no single kind or facet by name", FP.compare - cnt('find-one-off'), FP.compare));
+  ['merged-all', 'near-dup', 'words-all'].forEach(k => { const bad = new Set((FH.findings || []).filter(f => f.kind === k).map(f => f.menu)).size;
+    R.push(rule(k, 'logic', `Menus with no ${k} answer (every value read)`, (FH.menus || 0) - bad, FH.menus || 0)); });
+  const A = jread('data/answer-health.json'), Q = jread('data/qengine-health.json');
+  if (A && !A.skipped) R.push(rule('answer', 'logic', 'Stored answers the checker agrees with', (A.checked || 0) - cnt('answer'), A.checked || 0));
+  if (Q) { const pr = Object.values(Q.proofs || {}), types = Object.keys(Q.types || {}).length;
+    R.push(rule('qengine', 'logic', 'Checker proofs that pass', pr.reduce((a, p) => a + (p.pass || 0), 0), pr.reduce((a, p) => a + (p.cases || 0), 0), []),
+      rule('qengine-mapped', 'logic', 'Question types with a shared checker', types - (Q.unmapped || []).length, types, ['qengine'])); }
+  /* THE VARIETY FAMILIES: ideal ÷ variants, where one is ideal (one question page, one card drawer, one tile maker...). */
+  const V = VARIETY_LAST || {}, VK = { wait: ['variety-wait', 'own-wait'], textbox: ['variety-textbox', 'text-boxes'] };
+  Object.keys(V).forEach(id => R.push(Object.assign(rule('variety-' + id, id === 'qpage' ? 'logic' : 'ui', V[id].label + ': the ideal ' + V[id].ideal + ' of the variants', V[id].ideal, Math.max(V[id].ideal, V[id].count), VK[id] || ['variety-' + id]), { variety: true })));
+  R.push(...U.rules, ...C.rules.map(r => rule(r.id, 'cost', r.label, r.ok, r.of)), ...B.rules);
+  /* EVERY OTHER CHECK, from a walk or a static pass with no countable population: one thing, passing or failing. */
+  const has = new Set(R.flatMap(r => r.kinds).concat(['biz-checker', ...LISTED_ONLY]));
+  const partOf = { backend: 'code', resilience: 'code', field: 'ui' }; X.work.forEach(w => { partOf[w.kind] = w.part; }); work.forEach(w => { partOf[w.kind] = 'logic'; });
+  [...new Set(FIND_KINDS.concat(UX_KINDS, UNIFORM_KINDS, EXTRA_KINDS.filter(k => k !== 'variety'), Object.keys(n)))].filter(k => !has.has(k)).sort()
+    .forEach(k => R.push(passFail(k, partOf[k] || 'ui', `${k}: passes with no findings`, cnt(k))));
+  return R.filter(r => r.of > 0);
+}
 function health() {
   const st = require('./stability.js').stability();
-  const L = logic(), U = ui(), S = structure();
-  /* THE CODE PART: stability's signals less the four the structure signals replace, plus the structure signals. */
-  const kept = (st.signals || []).filter(s => !REPLACED.has(s.id));
-  const sig = kept.concat(Object.keys(STRUCT).filter(k => k !== 'catch' && k !== 'deliberate').map(k => ({ id: k, label: SAY_KIND[k], count: S.totals[k].count, off: S.totals[k].off })));
-  const code = r1(Math.max(0, 100 - sig.reduce((a, s) => a + s.off, 0)));
-  const work = findWork(L), kinds = {};
-  work.forEach(w => { kinds[w.kind] = (kinds[w.kind] || 0) + 1; });
-  const fpen = Object.keys(FIND_PENALTY).map(k => ({ id: k, count: kinds[k] || 0, off: r1(Math.min(FIND_PENALTY[k][1], (kinds[k] || 0) * FIND_PENALTY[k][0])) }));
-  const walk = L.j && typeof L.j.score === 'number' ? L.j.score : 0;
-  const X = extraWork(st), xk = {};
-  X.work.forEach(w => { const k = w.part + '|' + w.kind; xk[k] = (xk[k] || 0) + 1; });
-  /* dead is already priced by stability's `dead`; it is listed here, never charged twice. */
-  const xpen = Object.keys(xk).map(k => { const [part, id] = k.split('|'), P = EXTRA_PENALTY[id] || VARIETY_PENALTY[id] || [0.1, 5];
-    return { part, id, count: xk[k], off: r1(Math.min(P[1], xk[k] * P[0])) }; });
-  const less = part => xpen.filter(p => p.part === part).reduce((a, p) => a + p.off, 0);
-  const lscore = r1(Math.max(0, walk - fpen.reduce((a, p) => a + p.off, 0) - less('logic')));
-  const codeX = r1(Math.max(0, code - less('code')));
-  const uiX = r1(Math.max(0, U.score - less('ui')));
-  const C = require('./ai-cost.js').aiCost();
-  const B = business();
-  const overall = r1(WEIGHTS.code * codeX + WEIGHTS.logic * lscore + WEIGHTS.ui * uiX + WEIGHTS.cost * C.score + WEIGHTS.business * B.score);
-  const off = [];
-  sig.forEach(s => s.off > 0 && off.push({ part: 'code', id: s.id, cost: r1(s.off * WEIGHTS.code),
-    say: (SAY[s.id] ? SAY[s.id](s.count) : s.label + ': ' + s.count) }));
-  U.signals.forEach(s => s.off > 0 && off.push({ part: 'ui', id: s.id, cost: r1(s.off * WEIGHTS.ui), say: SAY[s.id] ? SAY[s.id](s.count) : `UI: ${s.count} ${s.id} findings (node tools/health.js --list --kind ${s.id}).` }));
-  const q = (L.j && L.j.questions) || 0;
-  ((L.j && L.j.rules) || []).forEach(r => r.count > 0 && q && off.push({ part: 'logic', id: r.id,
-    cost: r1(r.count / q * 100 * WEIGHTS.logic), say: `Find: ${r.count} of ${q} questions break a rule — ${r.label}.` }));
-  fpen.forEach(p => p.off > 0 && off.push({ part: 'logic', id: p.id, cost: r1(p.off * WEIGHTS.logic), say: `Find: ${p.count} ${p.id} findings (node tools/health.js --list --kind ${p.id}).` }));
-  xpen.forEach(p => { if (!(p.off > 0)) return; const v = /^variety-(\w+)$/.exec(p.id), F = v && VARIETY_LAST && VARIETY_LAST[v[1]];
-    off.push({ part: p.part, id: p.id, cost: r1(p.off * WEIGHTS[p.part]), say: F ? `${F.label}: ${F.count - F.ideal} past the ideal ${F.ideal} (node tools/health.js --list --kind ${p.id})` : `${p.count} ${p.id} findings (node tools/health.js --list --kind ${p.id}).` }); });
-  C.signals.forEach(s => s.off > 0 && off.push({ part: 'cost', id: s.id, cost: r1(s.off * WEIGHTS.cost), say: 'AI cost: ' + s.say + '.' }));
-  B.score < 100 && off.push({ part: 'business', id: 'business', cost: r1((100 - B.score) * WEIGHTS.business), say: `Business: ${B.next[0] || 'the site runs part of the business'}` });
-  off.sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id));
-  /* THE AREAS (1060): the five weighted parts, plus friction (inside UI) and speed (inside code) shown on their own; each with its next three. */
-  const fr = U.signals.find(x => x.id === 'friction') || { off: 0, cap: 15 }, sz = xpen.filter(p => p.id === 'size').reduce((a, p) => a + p.off, 0);
-  const nextOf = part => off.filter(o => o.part === part).slice(0, 3).map(o => o.say);
-  const says = kind => U.work.concat(X.work).filter(w => w.kind === kind).slice(0, 3).map(w => w.where + ': ' + w.say);
-  const areas = { code: { score: codeX, next: nextOf('code') }, logic: { score: lscore, next: nextOf('logic') }, ui: { score: uiX, next: nextOf('ui') },
-    friction: { score: r1(100 - fr.off / (fr.cap || 15) * 100), next: says('friction') }, cost: { score: C.score, next: nextOf('cost') },
-    speed: { score: r1(Math.max(0, 100 - sz * 10)), next: says('size') }, business: { score: B.score, next: B.next } };
+  const L = logic(), U = ui(), S = structure(), work = findWork(L), X = extraWork(st), C = require('./ai-cost.js').aiCost(), B = business();
+  const R = healthRules(st, L, U, S, work, X, C, B), avg = rs => rs.length ? r1(rs.reduce((a, r) => a + r.ok / r.of, 0) / rs.length * 100) : 100;
+  const overall = avg(R), pts = r => r1((r.of - r.ok) / r.of / R.length * 100);
+  /* WHAT ONE FIX GAINS, in points of the total: a share of its rule's one point. */
+  const gainOf = {}; R.forEach(r => { const g = r.pf ? 1 / r.pf : r.variety ? r.ok / Math.max(1, r.of - 1) - r.ok / r.of : 1 / r.of; r.kinds.forEach(k => { gainOf[k] = g / R.length * 100; }); });
+  const gain = (kind, units) => Number(((gainOf[kind] || 0) * (units || 1)).toPrecision(2));
+  const say = r => (r.pf ? `${r.label} (${r.pf} now)` : `${r.label}: ${r.ok} of ${r.of}`) + (r.kinds.length === 1 ? ` (node tools/health.js --list --kind ${r.kinds[0]})` : '');
+  const off = R.filter(r => r.ok < r.of).map(r => ({ part: r.group, id: r.id, cost: pts(r), say: say(r) })).sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id));
+  const parts = {}, weights = {}; Object.keys(GROUPS).forEach(g => { const rs = R.filter(r => r.group === g); parts[g] = avg(rs); weights[g] = Math.round(rs.length / R.length * 1000) / 1000; });
+  const nextOf = g => off.filter(o => o.part === g).slice(0, 3).map(o => o.say), one = id => R.find(r => r.id === id);
+  const areas = {}; Object.keys(GROUPS).forEach(g => { areas[g] = { score: parts[g], rules: R.filter(r => r.group === g).length, next: g === 'business' ? B.next : nextOf(g) }; });
+  ['friction', 'size'].forEach(id => { const r = one(id); if (r) areas[id === 'size' ? 'speed' : id] = { score: avg([r]), next: U.work.concat(X.work).filter(w => w.kind === id).slice(0, 3).map(w => w.where + ': ' + w.say) }; });
   const Ph = require('./philosophy.js'), cov = Ph.coverage(knownChecks(st)), oq = Ph.ownerQuestions();
-  /* DO THIS NEXT (920): the one change worth most points, in a sentence a person can act on. */
   const best = off[0];
-  const next = best ? `Do this next: ${best.say.replace(/\.$/, '')} — fixing it is worth up to ${best.cost} points (${best.part}).` : 'Do this next: nothing — every signal is clean.';
+  const next = best ? `Do this next: ${best.say} — following it fully is worth ${best.cost} points (${best.part}).` : 'Do this next: nothing — every rule is followed.';
   const counts = {}; Object.keys(S.totals).forEach(k => { counts[k] = S.totals[k].count; });
+  const worklist = S.findings.map(({ units, ...f }) => Object.assign(f, { cost: gain(f.kind, f.kind === 'dup' ? units : 1) })).sort((a, b) => b.cost - a.cost || a.file.localeCompare(b.file) || a.line - b.line);
+  const allWork = work.concat(U.work, X.work.map(w => ({ kind: w.kind, where: w.where, say: w.say }))).filter(notFrozen_).map(w => Object.assign({}, w, { cost: gain(w.kind) }));
   return {
-    v: 2, score: overall, weights: WEIGHTS,
-    parts: { code: codeX, logic: lscore, ui: uiX, cost: C.score, business: B.score }, areas, philosophy: { principles: cov.principles, findings: cov.work.length, untied: cov.untied }, ownerQuestions: { open: oq.open, of: oq.of }, onePlace: Ph.onePlace(), aiCost: { avgRead: C.avgRead, commentRatio: C.commentRatio, tombstones: C.tombstones.length, claudeLines: C.claudeLines, searchBytes: C.searchBytes, effort: (({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes, spread }) => ({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes: bigNotes.length, spread }))(C.effort), top: C.top.slice(0, 5) }, next, variety: VARIETY_LAST, qengine: (() => { const Q = jread('data/qengine-health.json'); return Q ? { moved: Q.moved, of: Q.of, proofs: Object.fromEntries(Object.keys(Q.proofs).map(k => [k, Q.proofs[k].pass + '/' + Q.proofs[k].cases])) } : null; })(), skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024),
-    logicStale: L.stale, logicWalk: walk, find: fpen, ui: U.signals, structure: S.totals, counts,
-    top: off.slice(0, 5), all: off,
-    worklist: S.findings, work: work.concat(U.work, X.work.map(w => ({ kind: w.kind, where: w.where, say: w.say }))).filter(notFrozen_),
+    v: 3, score: overall, means: MEANS, weights, rules: R.map(({ id, group, label, ok, of }) => ({ id, group, label, ok, of })),
+    parts, areas, philosophy: { principles: cov.principles, findings: cov.work.length, untied: cov.untied }, ownerQuestions: { open: oq.open, of: oq.of }, onePlace: Ph.onePlace(),
+    aiCost: { avgRead: C.avgRead, commentRatio: C.commentRatio, tombstones: C.tombstones.length, claudeLines: C.claudeLines, searchBytes: C.searchBytes, effort: (({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes, spread }) => ({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes: bigNotes.length, spread }))(C.effort), top: C.top.slice(0, 5) },
+    next, variety: VARIETY_LAST, qengine: (() => { const Q = jread('data/qengine-health.json'); return Q ? { moved: Q.moved, of: Q.of, proofs: Object.fromEntries(Object.keys(Q.proofs).map(k => [k, Q.proofs[k].pass + '/' + Q.proofs[k].cases])) } : null; })(), skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024), logicStale: L.stale, structure: S.totals, counts,
+    top: off.slice(0, 5), all: off, worklist, work: allWork.sort((a, b) => b.cost - a.cost),
   };
 }
 /* TREND (920): each full run's score in data/health-trend.json; the card draws the last thirty and names the commit of the worst drop. */
@@ -825,10 +847,10 @@ else if (require.main === module) {
   const at = process.argv.indexOf('--list');
   if (at >= 0) {
     const n = Number(process.argv[at + 1]) || 20, ki = process.argv.indexOf('--kind'), kind = ki >= 0 ? process.argv[ki + 1] : '';
-    const W = structure().findings.concat(findWork(logic()).concat(ui().work, extraWork(require('./stability.js').stability()).work).map(w => ({ file: w.where.replace(/:\d+$/, ''), line: (/:(\d+)$/.exec(w.where) || [])[1] || '-', kind: w.kind, text: w.say })))
-      .filter(f => (!kind || f.kind === kind) && notFrozen_(f));
-    W.slice(0, n).forEach(f => console.log(`${f.file}:${f.line}  ${f.kind}  ${f.text}`));
-    console.log(`(${Math.min(n, W.length)} of ${W.length}${kind ? ' ' + kind : ''} findings, dearest first)`);
+    const h = health(), W = h.worklist.concat(h.work.map(w => ({ file: w.where.replace(/:\d+$/, ''), line: (/:(\d+)$/.exec(w.where) || [])[1] || '-', kind: w.kind, text: w.say, cost: w.cost })))
+      .filter(f => (!kind || f.kind === kind) && notFrozen_(f)).sort((a, b) => b.cost - a.cost);
+    W.slice(0, n).forEach(f => console.log(`${f.file}:${f.line}  ${f.kind}  +${f.cost}  ${f.text}`));
+    console.log(`(${Math.min(n, W.length)} of ${W.length}${kind ? ' ' + kind : ''} findings; +N is the points of the total its fix gains, dearest first)`);
     process.exit(0);
   }
   const t0 = Date.now(), h = health();
@@ -843,11 +865,13 @@ else if (require.main === module) {
   trendAppend(h); h.trend = trendSummary();
   fs.writeFileSync(OUT, JSON.stringify(h) + '\n');
   console.log(h.next);
-  console.log(`wrote data/health.json: ${h.score}% (code ${h.parts.code}, Find logic ${h.parts.logic}${L.stale ? ' STALE' : ''}, UI ${h.parts.ui}, business ${h.parts.business}) in ${Date.now() - t0} ms`);
-  console.log('  areas: ' + Object.keys(h.areas).map(k => k + ' ' + h.areas[k].score).join(', '));
+  console.log(`wrote data/health.json: ${h.score}% — ${MEANS} (${h.rules.length} rules${L.stale ? '; Find logic STALE' : ''}) in ${Date.now() - t0} ms`);
+  console.log('  by group: ' + Object.keys(GROUPS).map(g => `${GROUPS[g]} ${h.parts[g]}% (${h.areas[g].rules} rules)`).join(', '));
+  if (process.argv.includes('-v')) h.rules.forEach(r => console.log(`  ${r.group.padEnd(8)} ${String(r.ok).padStart(6)}/${String(r.of).padEnd(6)} ${r.id}: ${r.label}`));
   console.log(`  philosophy: ${h.philosophy.principles} principles, ${h.philosophy.findings} coverage findings; checks tied to no principle (report-only): ${h.philosophy.untied.join(' ') || 'none'}`);
   console.log(`  owner questions: ${h.ownerQuestions.open} open of ${h.ownerQuestions.of}`);
   console.log('  one place: ' + h.onePlace.map(f => f.name + ' ' + f.status).join(' · '));
   console.log('  findings: ' + Object.keys(h.counts).map(k => k + ' ' + h.counts[k]).join(', '));
   h.top.forEach((t, i) => console.log(`  ${i + 1}. −${t.cost} ${t.say}`));
+  console.log('  (every rule: node tools/health.js -v)');
 }

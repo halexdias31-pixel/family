@@ -133,7 +133,7 @@ rule(!(tk['V-K1'].parents || []).length && !(tk['V-K1'].siblings || []).length, 
 /* A STRANGER: the tutors list, and nobody private. */
 const stranger = seenIn(get(null));
 rule(stranger.indexOf('V-T1') !== -1 && !stranger.some(x => PRIVATE.indexOf(x) !== -1), 'a stranger sees ' + stranger.join(' ') + ' — the tutors list, and nobody private');
-/* FRIENDING IS GONE: the action is unanswered and the old cell is left as it was. */
+/* NO FRIENDING: the action is unanswered and the old cell is left as it was. */
 const fr = as('V-K2', { action: 'saveFriends', friends: 'fiorella_vis6' });
 rule(fr && !fr.success, 'saveFriends is still answered — ' + JSON.stringify(fr));
 const cell = b.ev('S(findPerson("", "V-K1").friends)');

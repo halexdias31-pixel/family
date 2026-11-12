@@ -10,7 +10,8 @@ traced to a rule here, live in `docs/decisions.md`. Edit a rule here, never in c
 
 0. **The law always wins.** Where a rule or decision clashes with the law, the law is followed, silently. Checks: `business`, `biz-checker`
 0. **Contradictory owner answers → ask.** When two owner answers clash, show both to the owner as a question; never pick. Checks: `owner-questions`
-0. **The Optimiser kills arbitrariness.** `tools/health.js` is the Optimiser: it goes through everything — code, layout, menus and content (library cards, topic cards, lessons) — finds whatever is arbitrary and replaces it with the objectively optimal way, one rule for all. When nothing else is asked, the aim is 90% or a better Optimiser. Checks: `variety`
+0. **The Optimiser kills arbitrariness.** `tools/health.js` is the Optimiser: it goes through everything — code, layout, menus and content (library cards, topic cards, lessons) — finds whatever is arbitrary and replaces it with the objectively optimal way, one rule for all. When nothing else is asked, the aim is 90% or a better Optimiser. Checks: `variety`, `one-template`, `answer-width`, `font-scale`, `space-scale`, `radius-scale`, `colourlit`
+   (12 Nov 2026) The score has no hand-picked weights: each measure is a rule, followed ÷ applies to, and the total is the plain average of the rules, each counted equally (docs/history/1210).
 0. **When nothing decides it, choose the simplest.** Fewest parts, fewest options, least code. Checks: `variety`, `ai-cost`
 0. **Money disputes follow the written terms, leaning to the business.** Within the law; the owner may make goodwill exceptions by hand. Checks: `business`
 0. **Build it in the site.** Every job is built and run inside the site; an outside service is used only where the law or the job truly needs one (e.g. card processing via Stripe), driven from inside the site. Checks: `one-place`
