@@ -1866,13 +1866,15 @@ function tbSections_(c, keep, opt) {
 }
 
 /* ---------- ONE CHAPTER, AS AN ITEM THE FUNNEL ASKS THE QUESTIONS' QUESTIONS OF § */
+/* ONE SUBJECT STAYS A WORD; A COMMA LIST IS AN ARRAY, ONE ANSWER EACH (1213). */
+function subjectsOf_(s) { const a = String(s || '').split(/\s*,\s*/).filter(Boolean); return a.length > 1 ? a : (a[0] || ''); }
 function contentItem_(b, c) {
   return {
     kind: 'content', name: c.title, key: 'ct:' + b.id + '-' + c.n,
     sub: [c.subject, c.level].filter(Boolean).join(' · '),
     image: '',
     /* A CHAPTER CAN SIT IN SEVERAL SUBJECTS ("Biology, Chemistry, Physics"): one answer each, never an umbrella "Science" (12 Nov). */
-    subject: String(c.subject || '').split(/\s*,\s*/).filter(Boolean), level: c.level, keystage: c.keystage, topics: c.topics, years: c.years || [],
+    subject: subjectsOf_(c.subject), level: c.level, keystage: c.keystage, topics: c.topics, years: c.years || [],
     examBoard: c.board || '', tier: c.higher ? 'Higher' : '',
     text: contentText_(c) + ' ' + topicAtoms_(c.topics).join(' '),
     row: c,
