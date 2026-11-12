@@ -1,30 +1,30 @@
 {
  "chips": {
   "tag": {
-   "fs": "9.4848px",
-   "pad": "0.741px 6.669px",
-   "h": 16.3,
-   "r": "22px",
-   "hit": 16
+   "fs": "23.1192px",
+   "pad": "5.3352px 19.266px",
+   "h": 45.9,
+   "r": "999px",
+   "hit": 46
   },
   "chip": {
-   "fs": "9.4848px",
-   "pad": "0.741px 6.669px",
-   "h": 16.3,
-   "r": "22px",
+   "fs": "23.1192px",
+   "pad": "5.3352px 19.266px",
+   "h": 45.9,
+   "r": "999px",
    "hit": 44
   },
   "answer": {
-   "fs": "9.4848px",
-   "pad": "0.741px 6.669px",
-   "h": 16.3,
-   "r": "22px",
+   "fs": "23.1192px",
+   "pad": "5.3352px 19.266px",
+   "h": 45.9,
+   "r": "999px",
    "hit": 44
   }
  },
  "settings": {
-  "tried": 201,
-  "passed": 201,
+  "tried": 335,
+  "passed": 335,
   "each": [
    {
     "as": "student",
@@ -233,20 +233,6 @@
     "as": "admin",
     "col": "staff",
     "field": "max_hours",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "admin",
-    "col": "staff",
-    "field": "video",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "admin",
-    "col": "staff",
-    "field": "photos_1",
     "pass": true,
     "why": []
    },
@@ -1009,21 +995,497 @@
    {
     "as": "tutor",
     "col": "staff",
-    "field": "video",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "tutor",
-    "col": "staff",
-    "field": "photos_1",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "tutor",
-    "col": "staff",
     "field": "travel_km",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "m09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "m10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "m11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "m12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "m13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "m14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "m15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "m16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "m17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "m18",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "tu09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "tu10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "tu11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "tu12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "tu13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "tu14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "tu15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "tu16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "tu17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "tu18",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "w09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "w10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "w11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "w12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "w13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "w14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "w15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "w16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "w17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "w18",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "th09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "th10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "th11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "th12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "th13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "th14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "th15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "th16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "th17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "th18",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "f09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "f10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "f11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "f12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "f13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "f14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "f15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "f16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "f17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "f18",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "sa09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "sa10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "sa11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "sa12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "sa13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "sa14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "sa15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "sa16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "sa17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "sa18",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "su09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "su10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "su11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "su12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "su13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "su14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "su15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "su16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "su17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "su18",
     "pass": true,
     "why": []
    },
@@ -1219,21 +1681,497 @@
    {
     "as": "tutor-new",
     "col": "staff",
-    "field": "video",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "tutor-new",
-    "col": "staff",
-    "field": "photos_1",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "tutor-new",
-    "col": "staff",
     "field": "travel_km",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "m09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "m10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "m11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "m12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "m13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "m14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "m15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "m16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "m17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "m18",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "tu09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "tu10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "tu11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "tu12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "tu13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "tu14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "tu15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "tu16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "tu17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "tu18",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "w09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "w10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "w11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "w12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "w13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "w14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "w15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "w16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "w17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "w18",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "th09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "th10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "th11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "th12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "th13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "th14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "th15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "th16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "th17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "th18",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "f09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "f10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "f11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "f12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "f13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "f14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "f15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "f16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "f17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "f18",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "sa09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "sa10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "sa11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "sa12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "sa13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "sa14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "sa15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "sa16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "sa17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "sa18",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "su09",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "su10",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "su11",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "su12",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "su13",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "su14",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "su15",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "su16",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "su17",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "su18",
     "pass": true,
     "why": []
    },
@@ -1437,9 +2375,939 @@
  },
  "work": [
   {
-   "kind": "chip-size",
-   "where": "Find",
-   "say": "no \"GCSE\" answer to press on the way to the GCSE card"
+   "kind": "settings-title",
+   "where": "student › staff › set:staff:about-you",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › staff › set:staff:your-rate-and-group-size",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › staff › set:staff:photos",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › staff › set:staff:qualifications",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › staff › set:staff:where-you-teach",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › staff › set:staff:when-i-can-teach",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › staff › card fc kc kc-panel staff-top kc-facts is-locked",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › staff › set:staff:jobs",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › own:account:picture",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › own:account:name",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › own:account:handle",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › set:account:about-you",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › set:account:contact-address",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › card fc kc kc-panel signed-in",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › card fc kc kc-panel set-shape kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › card fc kc kc-panel roles-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › card fc kc kc-panel voice-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › card fc kc kc-panel workfile-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › card fc kc kc-panel soon-card soon-brownie",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › card fc kc kc-panel soon-card soon-roadmap",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › card fc kc kc-panel soon-card soon-conduct",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "student › account › card fc kc kc-panel set-shape notify-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-work",
+   "where": "student › refused save",
+   "say": "the sheet refused a save and the page did not say so"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › staff › set:staff:about-you",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › staff › set:staff:your-rate-and-group-size",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › staff › set:staff:photos",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › staff › set:staff:qualifications",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › staff › set:staff:where-you-teach",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › staff › set:staff:when-i-can-teach",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › staff › staff:flyer",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › staff › staff:lego",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › staff › set:staff:jobs",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › site › card fc kc kc-panel biz digest-look",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › site › card fc kc kc-panel biz digest-words kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › site › card fc kc kc-panel biz inbox-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › site › card fc kc kc-panel biz tpl-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › site › card fc kc kc-panel biz posts-wait",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › site › card fc kc kc-panel biz reports",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › site › card fc kc kc-panel biz libimp",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › site › card fc kc kc-panel",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › own:account:picture",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › own:account:name",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › own:account:handle",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › set:account:contact-address",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › card fc kc kc-panel signed-in",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › card fc kc kc-panel set-shape kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › card fc kc kc-panel roles-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › card fc kc kc-panel set-shape notify-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › card fc kc kc-panel voice-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › card fc kc kc-panel soon-card soon-brownie",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › card fc kc kc-panel soon-card soon-roadmap",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › card fc kc kc-panel soon-card soon-conduct",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › biz › card fc kc kc-panel biz biz-settings set-shape kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › biz › card fc kc kc-panel biz profit kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › biz › card fc kc kc-panel biz profit kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › biz › card fc kc kc-panel biz bc-card kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › biz › card fc kc kc-panel biz apps",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › biz › card fc kc kc-panel biz errs",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › biz › card fc kc kc-panel biz staff-card kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "admin › biz › card fc kc kc-panel biz deleted-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › staff › card fc kc kc-panel apply-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › staff › set:staff:about-you",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › staff › set:staff:your-rate-and-group-size",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › staff › set:staff:photos",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › staff › set:staff:qualifications",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › staff › set:staff:where-you-teach",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › staff › set:staff:when-i-can-teach",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › staff › card fc kc kc-panel staff-top kc-facts is-locked",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › staff › set:staff:jobs",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › own:account:picture",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › own:account:name",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › own:account:handle",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › set:account:contact-address",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › card fc kc kc-panel signed-in",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › card fc kc kc-panel set-shape kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › card fc kc kc-panel roles-card kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › card fc kc kc-panel voice-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › card fc kc kc-panel soon-card soon-brownie",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › card fc kc kc-panel soon-card soon-roadmap",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › card fc kc kc-panel soon-card soon-conduct",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "parent › account › card fc kc kc-panel set-shape notify-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-work",
+   "where": "parent › refused save",
+   "say": "the sheet refused a save and the page did not say so"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › staff › set:staff:about-you",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › staff › set:staff:your-rate-and-group-size",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › staff › set:staff:photos",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › staff › set:staff:qualifications",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › staff › set:staff:where-you-teach",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › staff › set:staff:when-i-can-teach",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › staff › staff:flyer",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › staff › staff:lego",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › staff › card fc kc kc-panel staff-top kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › staff › set:staff:jobs",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › own:account:picture",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › own:account:name",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › own:account:handle",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › set:account:contact-address",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › card fc kc kc-panel signed-in",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › card fc kc kc-panel set-shape kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › card fc kc kc-panel roles-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › card fc kc kc-panel voice-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › card fc kc kc-panel workfile-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › card fc kc kc-panel soon-card soon-brownie",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › card fc kc kc-panel soon-card soon-roadmap",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › card fc kc kc-panel soon-card soon-conduct",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor › account › card fc kc kc-panel set-shape notify-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › staff › set:staff:about-you",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › staff › set:staff:your-rate-and-group-size",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › staff › set:staff:photos",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › staff › set:staff:qualifications",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › staff › set:staff:where-you-teach",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › staff › set:staff:when-i-can-teach",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › staff › staff:flyer",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › staff › staff:lego",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › staff › card fc kc kc-panel staff-top kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › staff › set:staff:jobs",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › own:account:picture",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › own:account:name",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › own:account:handle",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › set:account:contact-address",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › card fc kc kc-panel signed-in",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › card fc kc kc-panel set-shape kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › card fc kc kc-panel roles-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › card fc kc kc-panel voice-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › card fc kc kc-panel workfile-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › card fc kc kc-panel soon-card soon-brownie",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › card fc kc kc-panel soon-card soon-roadmap",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › card fc kc kc-panel soon-card soon-conduct",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "tutor-new › account › card fc kc kc-panel set-shape notify-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › staff › set:staff:about-you",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › staff › set:staff:your-rate-and-group-size",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › staff › set:staff:photos",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › staff › set:staff:qualifications",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › staff › set:staff:where-you-teach",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › staff › set:staff:when-i-can-teach",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › staff › card fc kc kc-panel staff-top kc-facts is-locked",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › staff › set:staff:jobs",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › own:account:picture",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › own:account:name",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › own:account:handle",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › set:account:about-you",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › set:account:contact-address",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › card fc kc kc-panel signed-in",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › card fc kc kc-panel set-shape kc-facts",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › card fc kc kc-panel roles-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › card fc kc kc-panel voice-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › card fc kc kc-panel workfile-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › card fc kc kc-panel soon-card soon-brownie",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › card fc kc kc-panel soon-card soon-roadmap",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › card fc kc kc-panel soon-card soon-conduct",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › prog-w card fc kc kc-panel is-empty",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-title",
+   "where": "apprentice › account › card fc kc kc-panel set-shape notify-card",
+   "say": "a settings card with no plain title"
+  },
+  {
+   "kind": "settings-work",
+   "where": "apprentice › refused save",
+   "say": "the sheet refused a save and the page did not say so"
   }
  ]
 }

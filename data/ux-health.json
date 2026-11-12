@@ -2,35 +2,31 @@
  "visits": {
   "first": {
    "n": 192,
-   "netKB": 98410,
+   "netKB": 98446,
    "cacheN": 12,
    "cacheKB": 0
   },
   "repeat": {
-   "loadedMs": 733,
-   "n": 26,
-   "netKB": 55375,
-   "cacheN": 0,
-   "cacheKB": 0
+   "error": "page.goto: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:39573/index.html\", waiting until "
   }
  },
  "walked": {
   "viewport": "390x844 touch",
   "cpu": "4x (1x for the question sample)",
-  "ms": 43978,
+  "ms": 100941,
   "phase": {
-   "loaded": 5057,
-   "signin": 8961,
-   "findUsable": 12243,
-   "clicks": 20892,
-   "questions": 33884,
-   "boxLooks": 42497
+   "loaded": 6437,
+   "signin": 10883,
+   "findUsable": 14346,
+   "clicks": 26557,
+   "questions": 40209,
+   "boxLooks": 44597
   }
  },
- "firstScreenMs": 172,
- "findUsableMs": 3282,
- "signinMs": 1899,
- "heapMB": 272.8,
+ "firstScreenMs": 204,
+ "findUsableMs": 3463,
+ "signinMs": 2393,
+ "heapMB": 289.9,
  "boxLooks": {
   "faces": [
    {
@@ -47,12 +43,12 @@
   ],
   "off": []
  },
- "heapLiveMB": 193.4,
- "garbageMB": 79.4,
+ "heapLiveMB": 193.6,
+ "garbageMB": 96.3,
  "clicks": [
   {
    "what": "front menu: first answer",
-   "churnMB": -2.3,
+   "churnMB": -1.2,
    "ms": 32,
    "shift": 0,
    "longs": 2,
@@ -68,10 +64,10 @@
   },
   {
    "what": "back: drop the last chip",
-   "churnMB": -3.6,
-   "ms": 32,
+   "churnMB": -2.1,
+   "ms": 48,
    "shift": 0,
-   "longs": 2,
+   "longs": 3,
    "by": "event-timing"
   },
   {
@@ -80,16 +76,16 @@
   },
   {
    "what": "open a question",
-   "churnMB": -10.6,
-   "ms": 826,
+   "churnMB": 19.5,
+   "ms": 1349,
    "shift": 0,
-   "longs": 2,
+   "longs": 1,
    "by": "frames"
   },
   {
    "what": "Check",
-   "churnMB": -1.1,
-   "ms": 136,
+   "churnMB": -3.8,
+   "ms": 112,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
@@ -108,8 +104,8 @@
   },
   {
    "what": "Start again",
-   "churnMB": 17.5,
-   "ms": 24,
+   "churnMB": -12,
+   "ms": 56,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
@@ -117,7 +113,7 @@
   {
    "what": "front menu again",
    "churnMB": 0.7,
-   "ms": 16,
+   "ms": 32,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
@@ -125,23 +121,23 @@
   {
    "what": "Next answer down",
    "churnMB": 0.8,
-   "ms": 40,
+   "ms": 32,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Feed tab",
-   "churnMB": 1,
-   "ms": 76,
+   "churnMB": 1.2,
+   "ms": 115,
    "shift": 0,
    "longs": 0,
    "by": "frames"
   },
   {
    "what": "Find tab",
-   "churnMB": 0.4,
-   "ms": 40,
+   "churnMB": 1.3,
+   "ms": 68,
    "shift": 0,
    "longs": 0,
    "by": "frames"
@@ -154,19 +150,27 @@
  "slow": [
   {
    "what": "open a question",
-   "churnMB": -10.6,
-   "ms": 826,
+   "churnMB": 19.5,
+   "ms": 1349,
    "shift": 0,
-   "longs": 2,
+   "longs": 1,
    "by": "frames"
   },
   {
    "what": "Check",
-   "churnMB": -1.1,
-   "ms": 136,
+   "churnMB": -3.8,
+   "ms": 112,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
+  },
+  {
+   "what": "Feed tab",
+   "churnMB": 1.2,
+   "ms": 115,
+   "shift": 0,
+   "longs": 0,
+   "by": "frames"
   }
  ],
  "missing": [
@@ -363,14 +367,15 @@
    "noTags": 0,
    "missing": {},
    "fn": "card",
-   "notPill": 1
+   "notPill": 20
   },
   "fight": {
    "cards": 157,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "practical": {
    "cards": 82,
@@ -394,14 +399,15 @@
    "noTags": 0,
    "missing": {},
    "fn": "card",
-   "notPill": 17
+   "notPill": 20
   },
   "insert": {
    "cards": 22,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "manuscript": {
    "cards": 12,
@@ -497,14 +503,15 @@
    "noTags": 0,
    "missing": {},
    "fn": "card",
-   "notPill": 8
+   "notPill": 20
   },
   "mech": {
    "cards": 89,
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   },
   "chem": {
    "cards": 417,
@@ -519,13 +526,11 @@
    "sampled": 20,
    "noTags": 0,
    "missing": {},
-   "fn": "card"
+   "fn": "card",
+   "notPill": 20
   }
  },
  "inSync": {
-  "off": [
-   "tab icon http://localhost:43107/favicon.png?v=1106 is not favicon.png",
-   "home-screen icon http://localhost:43107/icon.png?v=1106 is not icon.png"
-  ]
+  "off": []
  }
 }

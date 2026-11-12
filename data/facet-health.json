@@ -1,9 +1,10 @@
 {
  "v": 1,
- "items": 279949,
- "menus": 118,
+ "items": 280178,
+ "menus": 117,
  "counts": {
-  "words-all": 34
+  "words-all": 246,
+  "near-dup": 1
  },
  "findings": [
   {
@@ -209,6 +210,1284 @@
    "menu": "Author (wAuthor)",
    "value": "P. P. Bliss",
    "say": "menu \"P. P. Bliss\", chip \"P. P. Bliss\", tag \"P.P. Bliss\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-1MA1-1811-1H",
+   "say": "menu \"Paper…\", chip \"Paper…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-1A",
+   "say": "menu \"Component 1A The Age of… 1204\", chip \"Component 1A The Age of… 1204\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-1B",
+   "say": "menu \"Component 1B Spain in… 1598\", chip \"Component 1B Spain in… 1598\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-1C",
+   "say": "menu \"Component 1C The Tudors\", chip \"Component 1C The Tudors\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-1D",
+   "say": "menu \"Component 1D Stuart… 1702\", chip \"Component 1D Stuart… 1702\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-1E",
+   "say": "menu \"Component 1E Russia in… 1796\", chip \"Component 1E Russia in… 1796\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-1F",
+   "say": "menu \"Component 1F… 1885\", chip \"Component 1F… 1885\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-1G",
+   "say": "menu \"Component 1G Challenge… 1964\", chip \"Component 1G Challenge… 1964\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-1H",
+   "say": "menu \"Component 1H Tsarist… 1964\", chip \"Component 1H Tsarist… 1964\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-1J",
+   "say": "menu \"Component 1J The… 1967\", chip \"Component 1J The… 1967\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-1K",
+   "say": "menu \"Component 1K The making… 1975\", chip \"Component 1K The making… 1975\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-1L",
+   "say": "menu \"Component 1L The quest… 1991\", chip \"Component 1L The quest… 1991\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-1A",
+   "say": "menu \"Component 1A The Age of the…\", chip \"Component 1A The Age of the…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-1C",
+   "say": "menu \"Component 1C The… 1603\", chip \"Component 1C The… 1603\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-1D",
+   "say": "menu \"Component 1D Stuart Britain…\", chip \"Component 1D Stuart Britain…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-1G",
+   "say": "menu \"Component 1G Challenge and…\", chip \"Component 1G Challenge and…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-1H",
+   "say": "menu \"Component 1H Tsarist and…\", chip \"Component 1H Tsarist and…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-1J",
+   "say": "menu \"Component 1J The British…\", chip \"Component 1J The British…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-1K",
+   "say": "menu \"Component 1K The making of a…\", chip \"Component 1K The making of a…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-1L",
+   "say": "menu \"Component 1L The quest for…\", chip \"Component 1L The quest for…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-1A",
+   "say": "menu \"Component 1A The… c1071-1204\", chip \"Component 1A The… c1071-1204\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-1B",
+   "say": "menu \"Component 1B Spain in the…\", chip \"Component 1B Spain in the…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-1C",
+   "say": "menu \"Component 1C The… 1485-1603\", chip \"Component 1C The… 1485-1603\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-1D",
+   "say": "menu \"Component 1D… 1603-1702\", chip \"Component 1D… 1603-1702\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-1E",
+   "say": "menu \"Component 1E Russia in the…\", chip \"Component 1E Russia in the…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-1F",
+   "say": "menu \"Component 1F…\", chip \"Component 1F…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-1G",
+   "say": "menu \"Component 1G… c1851-1964\", chip \"Component 1G… c1851-1964\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-1H",
+   "say": "menu \"Component 1H… 1855-1964\", chip \"Component 1H… 1855-1964\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-1J",
+   "say": "menu \"Component 1J The… c1857-1967\", chip \"Component 1J The… c1857-1967\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-1K",
+   "say": "menu \"Component 1K The… 1865-1975\", chip \"Component 1K The… 1865-1975\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-1L",
+   "say": "menu \"Component 1L The… 1871-1991\", chip \"Component 1L The… 1871-1991\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-1A",
+   "say": "menu \"Component 1A The Age of the C…\", chip \"Component 1A The Age of the C…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-1B",
+   "say": "menu \"Component 1B Spain… 1469-1598\", chip \"Component 1B Spain… 1469-1598\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-1C",
+   "say": "menu \"Component 1C The Tudors: Engl…\", chip \"Component 1C The Tudors: Engl…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-1D",
+   "say": "menu \"Component 1D Stuart Britain a…\", chip \"Component 1D Stuart Britain a…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-1E",
+   "say": "menu \"Component 1E… 1682-1796\", chip \"Component 1E… 1682-1796\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-1F",
+   "say": "menu \"Component 1F… c1783-1885\", chip \"Component 1F… c1783-1885\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-1G",
+   "say": "menu \"Component 1G Challenge and tr…\", chip \"Component 1G Challenge and tr…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-1H",
+   "say": "menu \"Component 1H Tsarist and Comm…\", chip \"Component 1H Tsarist and Comm…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-1J",
+   "say": "menu \"Component 1J The British Empi…\", chip \"Component 1J The British Empi…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-1K",
+   "say": "menu \"Component 1K The making of a…\", chip \"Component 1K The making of a…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-1L",
+   "say": "menu \"Component 1L The quest for po…\", chip \"Component 1L The quest for po…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-1A",
+   "say": "menu \"Component 1A The Age of the C…\", chip \"Component 1A The Age of the C…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-1B",
+   "say": "menu \"Component 1B Spain in the Age…\", chip \"Component 1B Spain in the Age…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-1C",
+   "say": "menu \"Component 1C The Tudors: Engl…\", chip \"Component 1C The Tudors: Engl…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-1D",
+   "say": "menu \"Component 1D Stuart Britain a…\", chip \"Component 1D Stuart Britain a…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-1E",
+   "say": "menu \"Component 1E Russia in the Ag…\", chip \"Component 1E Russia in the Ag…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-1F",
+   "say": "menu \"Component 1F Industrialisatio…\", chip \"Component 1F Industrialisatio…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-1G",
+   "say": "menu \"Component 1G Challenge and tr…\", chip \"Component 1G Challenge and tr…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-1H",
+   "say": "menu \"Component 1H Tsarist and Comm…\", chip \"Component 1H Tsarist and Comm…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-1J",
+   "say": "menu \"Component 1J The British Empi…\", chip \"Component 1J The British Empi…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-1K",
+   "say": "menu \"Component 1K The making of a…\", chip \"Component 1K The making of a…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-1L",
+   "say": "menu \"Component 1L The quest for po…\", chip \"Component 1L The quest for po…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-1A",
+   "say": "menu \"Component 1A The Age of the C…\", chip \"Component 1A The Age of the C…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-1B",
+   "say": "menu \"Component 1B Spain in the Age…\", chip \"Component 1B Spain in the Age…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-1C",
+   "say": "menu \"Component 1C The Tudors: Engl…\", chip \"Component 1C The Tudors: Engl…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-1D",
+   "say": "menu \"Component 1D Stuart Britain a…\", chip \"Component 1D Stuart Britain a…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-1E",
+   "say": "menu \"Component 1E Russia in the Ag…\", chip \"Component 1E Russia in the Ag…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-1F",
+   "say": "menu \"Component 1F Industrialisatio…\", chip \"Component 1F Industrialisatio…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-1G",
+   "say": "menu \"Component 1G Challenge and tr…\", chip \"Component 1G Challenge and tr…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-1H",
+   "say": "menu \"Component 1H Tsarist and Comm…\", chip \"Component 1H Tsarist and Comm…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-1J",
+   "say": "menu \"Component 1J The British Empi…\", chip \"Component 1J The British Empi…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-1K",
+   "say": "menu \"Component 1K The making of a…\", chip \"Component 1K The making of a…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-1L",
+   "say": "menu \"Component 1L The quest for po…\", chip \"Component 1L The quest for po…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7172-2306-1",
+   "say": "menu \"Philosophy Paper… philosophy\", chip \"Philosophy Paper… philosophy\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8702-2111-1M",
+   "say": "menu \"Paper 1M Modern prose and…\", chip \"Paper 1M Modern prose and…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8702-2111-1N",
+   "say": "menu \"Paper 1N The 19th-century…\", chip \"Paper 1N The 19th-century…\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8702-2111-1P",
+   "say": "menu \"Paper 1P Poetry anthology\", chip \"Paper 1P Poetry anthology\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8702-2206-1M",
+   "say": "menu \"Paper 1M Modern… and drama\", chip \"Paper 1M Modern… and drama\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8702-2206-1N",
+   "say": "menu \"Paper 1N The… novel\", chip \"Paper 1N The… novel\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8702-2206-1P",
+   "say": "menu \"Paper 1P Poetry anthology\", chip \"Paper 1P Poetry anthology\", tag \"Paper 1\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2A",
+   "say": "menu \"Component 2A Royal… 1216\", chip \"Component 2A Royal… 1216\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2B",
+   "say": "menu \"Component 2B The Wars… 1499\", chip \"Component 2B The Wars… 1499\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2D",
+   "say": "menu \"Component 2D Religious… 1570\", chip \"Component 2D Religious… 1570\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2E",
+   "say": "menu \"Component 2E The… 1660\", chip \"Component 2E The… 1660\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2F",
+   "say": "menu \"Component 2F The Sun King\", chip \"Component 2F The Sun King\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2G",
+   "say": "menu \"Component 2G The Birth… 1801\", chip \"Component 2G The Birth… 1801\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2H",
+   "say": "menu \"Component 2H France in… 1815\", chip \"Component 2H France in… 1815\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2J",
+   "say": "menu \"Component 2J America\", chip \"Component 2J America\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2K",
+   "say": "menu \"Component 2K… 1941\", chip \"Component 2K… 1941\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2L",
+   "say": "menu \"Component 2L Italy and… 1945\", chip \"Component 2L Italy and… 1945\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2M",
+   "say": "menu \"Component 2M Wars and Welfare\", chip \"Component 2M Wars and Welfare\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2N",
+   "say": "menu \"Component 2N Revolution… 1953\", chip \"Component 2N Revolution… 1953\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2O",
+   "say": "menu \"Component 2O Democracy… 1945\", chip \"Component 2O Democracy… 1945\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2P",
+   "say": "menu \"Component 2P The… 1997\", chip \"Component 2P The… 1997\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2Q",
+   "say": "menu \"Component 2Q The… 1980\", chip \"Component 2Q The… 1980\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2R",
+   "say": "menu \"Component 2R The Cold… 1991\", chip \"Component 2R The Cold… 1991\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2011-2S",
+   "say": "menu \"Component 2S The Making… 2007\", chip \"Component 2S The Making… 2007\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2A",
+   "say": "menu \"Component 2A Royal Authority…\", chip \"Component 2A Royal Authority…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2B",
+   "say": "menu \"Component 2B The Wars of the…\", chip \"Component 2B The Wars of the…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2D",
+   "say": "menu \"Component 2D Religious…\", chip \"Component 2D Religious…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2E",
+   "say": "menu \"Component 2E The English…\", chip \"Component 2E The English…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2F",
+   "say": "menu \"Component 2F The Sun… 1715\", chip \"Component 2F The Sun… 1715\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2G",
+   "say": "menu \"Component 2G The Birth of…\", chip \"Component 2G The Birth of…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2H",
+   "say": "menu \"Component 2H France in…\", chip \"Component 2H France in…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2J",
+   "say": "menu \"Component 2J America: A… 1877\", chip \"Component 2J America: A… 1877\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2L",
+   "say": "menu \"Component 2L Italy and…\", chip \"Component 2L Italy and…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2N",
+   "say": "menu \"Component 2N Revolution and…\", chip \"Component 2N Revolution and…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2O",
+   "say": "menu \"Component 2O Democracy and…\", chip \"Component 2O Democracy and…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2P",
+   "say": "menu \"Component 2P The…\", chip \"Component 2P The…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2Q",
+   "say": "menu \"Component 2Q The American…\", chip \"Component 2Q The American…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2R",
+   "say": "menu \"Component 2R The Cold War…\", chip \"Component 2R The Cold War…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2111-2S",
+   "say": "menu \"Component 2S The Making of…\", chip \"Component 2S The Making of…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2A",
+   "say": "menu \"Component 2A Royal… 1154-1216\", chip \"Component 2A Royal… 1154-1216\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2B",
+   "say": "menu \"Component 2B The… 1450-1499\", chip \"Component 2B The… 1450-1499\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2C",
+   "say": "menu \"Component 2C The… 1564\", chip \"Component 2C The… 1564\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2D",
+   "say": "menu \"Component 2D… c1529-1570\", chip \"Component 2D… c1529-1570\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2E",
+   "say": "menu \"Component 2E The… 1625-1660\", chip \"Component 2E The… 1625-1660\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2F",
+   "say": "menu \"Component 2F The… 1643-1715\", chip \"Component 2F The… 1643-1715\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2G",
+   "say": "menu \"Component 2G The… 1760-1801\", chip \"Component 2G The… 1760-1801\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2H",
+   "say": "menu \"Component 2H… 1774-1815\", chip \"Component 2H… 1774-1815\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2J",
+   "say": "menu \"Component 2J America: A…\", chip \"Component 2J America: A…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2K",
+   "say": "menu \"Component 2K International…\", chip \"Component 2K International…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2L",
+   "say": "menu \"Component 2L… c1900-1945\", chip \"Component 2L… c1900-1945\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2M",
+   "say": "menu \"Component 2M Wars and… 1957\", chip \"Component 2M Wars and… 1957\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2N",
+   "say": "menu \"Component 2N… 1917-1953\", chip \"Component 2N… 1917-1953\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2O",
+   "say": "menu \"Component 2O… 1918-1945\", chip \"Component 2O… 1918-1945\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2P",
+   "say": "menu \"Component 2P The… 1936-1997\", chip \"Component 2P The… 1936-1997\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2Q",
+   "say": "menu \"Component 2Q The… 1945-1980\", chip \"Component 2Q The… 1945-1980\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2R",
+   "say": "menu \"Component 2R The… c1945-1991\", chip \"Component 2R The… c1945-1991\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2S",
+   "say": "menu \"Component 2S The… 1951-2007\", chip \"Component 2S The… 1951-2007\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2206-2T",
+   "say": "menu \"Component 2T The Crisis… 2000\", chip \"Component 2T The Crisis… 2000\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2A",
+   "say": "menu \"Component 2A Royal Authority…\", chip \"Component 2A Royal Authority…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2B",
+   "say": "menu \"Component 2B The Wars of the…\", chip \"Component 2B The Wars of the…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2C",
+   "say": "menu \"Component 2C The Reformation…\", chip \"Component 2C The Reformation…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2D",
+   "say": "menu \"Component 2D Religious confli…\", chip \"Component 2D Religious confli…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2E",
+   "say": "menu \"Component 2E The English Revo…\", chip \"Component 2E The English Revo…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2F",
+   "say": "menu \"Component 2F The Sun King: Lo…\", chip \"Component 2F The Sun King: Lo…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2G",
+   "say": "menu \"Component 2G The Birth of the…\", chip \"Component 2G The Birth of the…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2H",
+   "say": "menu \"Component 2H France in Revolu…\", chip \"Component 2H France in Revolu…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2J",
+   "say": "menu \"Component 2J… c1845-1877\", chip \"Component 2J… c1845-1877\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2K",
+   "say": "menu \"Component 2K… c1890-1941\", chip \"Component 2K… c1890-1941\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2L",
+   "say": "menu \"Component 2L Italy and Fascis…\", chip \"Component 2L Italy and Fascis…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2M",
+   "say": "menu \"Component 2M Wars and…\", chip \"Component 2M Wars and…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2N",
+   "say": "menu \"Component 2N Revolution and d…\", chip \"Component 2N Revolution and d…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2O",
+   "say": "menu \"Component 2O Democracy and Na…\", chip \"Component 2O Democracy and Na…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2P",
+   "say": "menu \"Component 2P The Transformati…\", chip \"Component 2P The Transformati…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2Q",
+   "say": "menu \"Component 2Q The American Dre…\", chip \"Component 2Q The American Dre…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2R",
+   "say": "menu \"Component 2R The Cold War, c1…\", chip \"Component 2R The Cold War, c1…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2S",
+   "say": "menu \"Component 2S The Making of Mo…\", chip \"Component 2S The Making of Mo…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2306-2T",
+   "say": "menu \"Component 2T The Crisis of…\", chip \"Component 2T The Crisis of…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2A",
+   "say": "menu \"Component 2A Royal Authority…\", chip \"Component 2A Royal Authority…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2B",
+   "say": "menu \"Component 2B The Wars of the…\", chip \"Component 2B The Wars of the…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2C",
+   "say": "menu \"Component 2C The… c1500-1564\", chip \"Component 2C The… c1500-1564\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2D",
+   "say": "menu \"Component 2D Religious confli…\", chip \"Component 2D Religious confli…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2E",
+   "say": "menu \"Component 2E The English Revo…\", chip \"Component 2E The English Revo…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2F",
+   "say": "menu \"Component 2F The Sun King: Lo…\", chip \"Component 2F The Sun King: Lo…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2G",
+   "say": "menu \"Component 2G The Birth of the…\", chip \"Component 2G The Birth of the…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2H",
+   "say": "menu \"Component 2H France in Revolu…\", chip \"Component 2H France in Revolu…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2J",
+   "say": "menu \"Component 2J America: A Natio…\", chip \"Component 2J America: A Natio…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2K",
+   "say": "menu \"Component 2K International Re…\", chip \"Component 2K International Re…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2L",
+   "say": "menu \"Component 2L Italy and Fascis…\", chip \"Component 2L Italy and Fascis…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2M",
+   "say": "menu \"Component 2M Wars… 1906-1957\", chip \"Component 2M Wars… 1906-1957\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2N",
+   "say": "menu \"Component 2N Revolution and d…\", chip \"Component 2N Revolution and d…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2O",
+   "say": "menu \"Component 2O Democracy and Na…\", chip \"Component 2O Democracy and Na…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2P",
+   "say": "menu \"Component 2P The Transformati…\", chip \"Component 2P The Transformati…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2Q",
+   "say": "menu \"Component 2Q The American Dre…\", chip \"Component 2Q The American Dre…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2R",
+   "say": "menu \"Component 2R The Cold War, c1…\", chip \"Component 2R The Cold War, c1…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2S",
+   "say": "menu \"Component 2S The Making of Mo…\", chip \"Component 2S The Making of Mo…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2406-2T",
+   "say": "menu \"Component 2T The… 1953-2000\", chip \"Component 2T The… 1953-2000\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2A",
+   "say": "menu \"Component 2A Royal Authority…\", chip \"Component 2A Royal Authority…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2B",
+   "say": "menu \"Component 2B The Wars of the…\", chip \"Component 2B The Wars of the…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2C",
+   "say": "menu \"Component 2C The Reformation…\", chip \"Component 2C The Reformation…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2D",
+   "say": "menu \"Component 2D Religious confli…\", chip \"Component 2D Religious confli…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2E",
+   "say": "menu \"Component 2E The English Revo…\", chip \"Component 2E The English Revo…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2F",
+   "say": "menu \"Component 2F The Sun King: Lo…\", chip \"Component 2F The Sun King: Lo…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2G",
+   "say": "menu \"Component 2G The Birth of the…\", chip \"Component 2G The Birth of the…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2H",
+   "say": "menu \"Component 2H France in Revolu…\", chip \"Component 2H France in Revolu…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2J",
+   "say": "menu \"Component 2J America: A Natio…\", chip \"Component 2J America: A Natio…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2K",
+   "say": "menu \"Component 2K International Re…\", chip \"Component 2K International Re…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2L",
+   "say": "menu \"Component 2L Italy and Fascis…\", chip \"Component 2L Italy and Fascis…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2M",
+   "say": "menu \"Component 2M Wars and Welfare…\", chip \"Component 2M Wars and Welfare…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2N",
+   "say": "menu \"Component 2N Revolution and d…\", chip \"Component 2N Revolution and d…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2O",
+   "say": "menu \"Component 2O Democracy and Na…\", chip \"Component 2O Democracy and Na…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2P",
+   "say": "menu \"Component 2P The Transformati…\", chip \"Component 2P The Transformati…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2Q",
+   "say": "menu \"Component 2Q The American Dre…\", chip \"Component 2Q The American Dre…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2R",
+   "say": "menu \"Component 2R The Cold War, c1…\", chip \"Component 2R The Cold War, c1…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2S",
+   "say": "menu \"Component 2S The Making of Mo…\", chip \"Component 2S The Making of Mo…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7042-2506-2T",
+   "say": "menu \"Component 2T The Crisis of Co…\", chip \"Component 2T The Crisis of Co…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2011-2B",
+   "say": "menu \"Paper 2B Christianity and…\", chip \"Paper 2B Christianity and…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2011-2D",
+   "say": "menu \"Paper 2D Islam and dialogues\", chip \"Paper 2D Islam and dialogues\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2111-2B",
+   "say": "menu \"Paper 2B… dialogues\", chip \"Paper 2B… dialogues\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2111-2D",
+   "say": "menu \"Paper 2D Islam and dialogues\", chip \"Paper 2D Islam and dialogues\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2206-2B",
+   "say": "menu \"Paper 2B Christianity and dia…\", chip \"Paper 2B Christianity and dia…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2206-2C",
+   "say": "menu \"Paper 2C Hinduism and…\", chip \"Paper 2C Hinduism and…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2206-2D",
+   "say": "menu \"Paper 2D Islam and dialogues\", chip \"Paper 2D Islam and dialogues\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2206-2E",
+   "say": "menu \"Paper 2E Judaism and dialogues\", chip \"Paper 2E Judaism and dialogues\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2306-2B",
+   "say": "menu \"Paper 2B Christianity and dia…\", chip \"Paper 2B Christianity and dia…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2306-2C",
+   "say": "menu \"Paper 2C Hinduism… dialogues\", chip \"Paper 2C Hinduism… dialogues\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2306-2D",
+   "say": "menu \"Paper 2D Islam and dialogues\", chip \"Paper 2D Islam and dialogues\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2306-2E",
+   "say": "menu \"Paper 2E Judaism and dialogues\", chip \"Paper 2E Judaism and dialogues\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2406-2B",
+   "say": "menu \"Paper 2B Christianity and dia…\", chip \"Paper 2B Christianity and dia…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2406-2C",
+   "say": "menu \"Paper 2C Hinduism and dialogu…\", chip \"Paper 2C Hinduism and dialogu…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2406-2D",
+   "say": "menu \"Paper 2D Islam and dialogues\", chip \"Paper 2D Islam and dialogues\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2406-2E",
+   "say": "menu \"Paper 2E Judaism and dialogues\", chip \"Paper 2E Judaism and dialogues\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2506-2A",
+   "say": "menu \"Paper 2A Buddhism and…\", chip \"Paper 2A Buddhism and…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2506-2B",
+   "say": "menu \"Paper 2B Christianity and dia…\", chip \"Paper 2B Christianity and dia…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2506-2C",
+   "say": "menu \"Paper 2C Hinduism and dialogu…\", chip \"Paper 2C Hinduism and dialogu…\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2506-2D",
+   "say": "menu \"Paper 2D Islam and dialogues\", chip \"Paper 2D Islam and dialogues\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-7062-2506-2E",
+   "say": "menu \"Paper 2E Judaism and dialogues\", chip \"Paper 2E Judaism and dialogues\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8062-2011-2A",
+   "say": "menu \"Paper 2A Non-textual studies\", chip \"Paper 2A Non-textual studies\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8062-2011-2B",
+   "say": "menu \"Paper 2B Textual studies\", chip \"Paper 2B Textual studies\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8062-2111-2A",
+   "say": "menu \"Paper 2A Non-textual studies\", chip \"Paper 2A Non-textual studies\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8062-2111-2B",
+   "say": "menu \"Paper 2B Textual studies\", chip \"Paper 2B Textual studies\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8062-2206-2A",
+   "say": "menu \"Paper 2A Non-textual studies\", chip \"Paper 2A Non-textual studies\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8062-2206-2B",
+   "say": "menu \"Paper 2B Textual studies\", chip \"Paper 2B Textual studies\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8062-2306-2A",
+   "say": "menu \"Paper 2A Non-textual studies\", chip \"Paper 2A Non-textual studies\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8062-2306-2B",
+   "say": "menu \"Paper 2B Textual studies\", chip \"Paper 2B Textual studies\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8062-2406-2A",
+   "say": "menu \"Paper 2A Non-textual studies\", chip \"Paper 2A Non-textual studies\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8062-2406-2B",
+   "say": "menu \"Paper 2B Textual studies\", chip \"Paper 2B Textual studies\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8062-2506-2A",
+   "say": "menu \"Paper 2A Non-textual studies\", chip \"Paper 2A Non-textual studies\", tag \"Paper 2\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Paper (paperId)",
+   "value": "P-AQA-8062-2506-2B",
+   "say": "menu \"Paper 2B Textual studies\", chip \"Paper 2B Textual studies\", tag \"Paper 2\""
+  },
+  {
+   "kind": "near-dup",
+   "menu": "Paper section (paperSection)",
+   "value": "Section A",
+   "say": "one letter from \"Section A: A\""
   }
  ]
 }

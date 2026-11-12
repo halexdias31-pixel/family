@@ -189,9 +189,9 @@ function toolsStart_(kind, arriving) {
 }
 
 /* ---------- A WIDGET THAT IS A FIND CARD (790): data/settings/widgets-in-find.json names a kind or an id, the id's row winning; before it comes, every tool and game ---------- */
-const FIND_WIDGET_KINDS = ['tool', 'shop'];
+const FIND_WIDGET_KINDS = ['tool', 'game', 'shop'];
 /* A WIDGET THAT IS ITS OWN FIRST ANSWER IN FIND (batch B): a browsable thing gets a menu pill, not a column or a mini-app. */
-const FIND_WIDGET_GROUPS = { videos: 'Videos', reels: 'Tools', newspaper: 'Newspaper', flyers: 'Tools', poster: 'Tools', cart: 'Shop' };
+const FIND_WIDGET_GROUPS = { videos: 'Videos', reels: 'Tools', newspaper: 'Tools', shopfind: 'Tools', flyers: 'Tools', poster: 'Tools', cart: 'Shop' };
 function widgetInFind_(w) {
   if (!w) return false;
   const rows = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.widgetsInFind)) ? DATA.widgetsInFind : null;
@@ -626,12 +626,18 @@ function progressCountdownRows_() {
   return rows;
 }
 /* ---------- THE COUNTDOWNS WIDGET ON TOOLS (466): every copy by class, as the Saved column draws it too ---------- */
+/* DAYS TO GO BY DEFAULT; one tile shows each one's date instead (a safe press, owner 12 Nov). */
+let CD_DATES = false;
 function paintCountdowns_() {
   const rows = progressCountdownRows_();
+  const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return esc(day_(d) + ' ' + date_(d)); };
   document.querySelectorAll('.cd-box').forEach(box => {
-    box.innerHTML = rows.map(([k, n]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${progressDaysSaid_(n)}</span></div>`).join('');
+    box.innerHTML = (rows.length ? rows.map(([k, n]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${CD_DATES ? when(n) : progressDaysSaid_(n)}</span></div>`).join('')
+      : '<p class="note">Nothing to count down to yet.</p>')
+      + (rows.length ? `<div class="tile-row">${tile_({ icon: CD_DATES ? 'speed' : 'table', label: CD_DATES ? 'Days' : 'Dates', note: CD_DATES ? 'how many to go' : 'the day itself', act: 'cd-dates', pressed: CD_DATES })}</div>` : '');
   });
 }
+on('cd-dates', () => { CD_DATES = !CD_DATES; paintCountdowns_(); });
 
 /* ---------- TERM DATES (491): THE YEAR AS INTERVALS — terms, half-terms and holidays, each with its real first and last day ---------- */
 /* The usual England pattern, the backend's `schoolYear` (booking.gs) in the browser: a term runs Monday to Friday, a holiday Saturday to Sunday. */
