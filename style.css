@@ -5806,7 +5806,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .row.dock-foot { border: 0; padding: var(--s2) 0 0; }
 .post-ed-img { width: 100%; margin-bottom: var(--s3); }
 /* A CHIP'S CLOSE IS A TILE (owner, 8 Nov), drawn at the chip's own height so the pill stays one line. */
-.chip > .tile.chip-x, .msg-chip > .tile.msg-chip-x { width: 24px; height: 24px; min-width: 24px; border: 0; background: none; margin-left: var(--s1); }
+.msg-chip > .tile.msg-chip-x { width: 24px; height: 24px; min-width: 24px; border: 0; background: none; margin-left: var(--s1); }
+/* THE FILTER'S ✕ IS A 44px TAP TARGET, its 10px overhang taken back by negative margins so the pill keeps its 24px line. */
+.chip > .tile.chip-x { width: var(--tap); height: var(--tap); min-width: var(--tap); min-height: var(--tap); border: 0; background: none; margin: -10px -10px -10px calc(var(--s1) - 10px); }
 .chip > .tile.chip-x .tile-i, .msg-chip > .tile.msg-chip-x .tile-i { width: 12px; height: 12px; }
 /* LONG CARD TEXT, CUT TO TWO LINES WITH "…" (owner 8 Nov, 29a); `cut-open` toggles .is-open on a tap. */
 .cut2 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; cursor: pointer; }

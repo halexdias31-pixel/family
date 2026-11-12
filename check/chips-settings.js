@@ -8,7 +8,7 @@
 /*                  must show it after the reload. A backend that drops a field is not tested here: the fake keeps what it is sent.          */
 /*                  Also as a parent, a tutor, a brand-new tutor and an apprentice (glass.ACCOUNTS); a shut card's boxes must be disabled, and a */
 /*                  refused save must say the sheet's own words beside its Save.                                                                 */
-/*   settings-title every settings card has a plain title naming it (8 Nov): an h3 with words, never empty or a raw section id. Fails the run. */
+/*   settings-title every settings card is the one template (11 Nov) with its name as a tag (9 Nov: no title line), never empty or a raw id. Fails the run. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const glass = require('./glass.js');
@@ -144,18 +144,18 @@ async function colSettings(col) {
       if (r.none) continue;
       Object.assign(changed, Object.fromEntries(Object.entries(r.out).map(([k, v]) => [k, { col, v }])));
     }
-    /* EVERY SETTINGS CARD TITLED (8 Nov): a card with no h3, an empty one, or a raw id like "week" is a finding; a stripped h3 must be caught. */
+    /* EVERY SETTINGS CARD NAMED BY A TAG (9 Nov, superseding 8 Nov's h3): the one template (.kc) whose tags hold its name; an emptied tag line must be caught. */
     for (const col of COLS) {
       const bad = await page.evaluate(async ({ col, cs }) => { const s = await (0, eval)('(' + cs + ')')(col); if (!s) return null;
-        const untitled = root => [...root.querySelectorAll('.card')].filter(c => !c.parentElement.closest('.card')).filter(c => {
-          const h = c.querySelector(':scope > h3, :scope > .set-title, :scope > summary h3, :scope h3'); const t = h ? h.textContent.trim() : '';
-          return !t || /^[a-z_0-9]+$/.test(t); }).map(c => c.dataset.layCard || c.dataset.sec || c.className);
-        const out = untitled(s), first = s.querySelector('.card h3');
-        let caught = true; if (first) { const was = first.textContent; first.textContent = ''; caught = untitled(s).length > out.length; first.textContent = was; }
+        const unnamed = root => [...root.querySelectorAll('.card')].filter(c => !c.parentElement.closest('.card')).filter(c => {
+          const name = (c.getAttribute('aria-label') || '').trim(), tags = [...c.querySelectorAll(':scope > .kc-tags .qtag')].map(t => t.textContent.trim());
+          return !c.classList.contains('kc') || !name || /^[a-z_0-9:-]+$/.test(name) || tags.indexOf(name) === -1; }).map(c => c.dataset.layCard || c.dataset.sec || c.className);
+        const out = unnamed(s), first = s.querySelector('.card.kc > .kc-tags');
+        let caught = true; if (first) { const was = first.innerHTML; first.innerHTML = ''; caught = unnamed(s).length > out.length; first.innerHTML = was; }
         return { out, caught }; }, { col, cs: colSettings.toString() });
       if (!bad) continue;
-      bad.out.forEach(k => work.push({ kind: 'settings-title', where: as + ' › ' + col + ' › ' + k, say: 'a settings card with no plain title' }));
-      if (!bad.caught) work.push({ kind: 'settings-title', where: as + ' › ' + col + ' › mutation', say: 'an emptied title was NOT caught' });
+      bad.out.forEach(k => work.push({ kind: 'settings-title', where: as + ' › ' + col + ' › ' + k, say: 'a settings card not on the one template with its name as a tag' }));
+      if (!bad.caught) work.push({ kind: 'settings-title', where: as + ' › ' + col + ' › mutation', say: 'an emptied tag line was NOT caught' });
     }
     /* SHUT MEANS SHUT: a box on a card you do not hold is greyed, never typed into. */
     for (const col of COLS) {
@@ -197,7 +197,7 @@ async function colSettings(col) {
   errors.forEach(e => work.push({ kind: 'settings-work', where: 'page error', say: e }));
   const out = { chips, settings: { tried: settings.length, passed: settings.filter(s => s.pass).length, each: settings }, work };
   fs.writeFileSync(OUT, JSON.stringify(out, null, 1) + '\n');
-  console.log(`chips-settings: chip-size ${work.filter(w => w.kind === 'chip-size').length}, settings ${out.settings.passed}/${out.settings.tried} pass, settings-work findings ${work.filter(w => w.kind === 'settings-work').length}, untitled cards ${work.filter(w => w.kind === 'settings-title').length}`);
-  work.filter(w => w.kind === 'settings-title').forEach(w => console.log('  untitled: ' + w.where + ' — ' + w.say));
+  console.log(`chips-settings: chip-size ${work.filter(w => w.kind === 'chip-size').length}, settings ${out.settings.passed}/${out.settings.tried} pass, settings-work findings ${work.filter(w => w.kind === 'settings-work').length}, unnamed cards ${work.filter(w => w.kind === 'settings-title').length}`);
+  work.filter(w => w.kind === 'settings-title').forEach(w => console.log('  unnamed: ' + w.where + ' — ' + w.say));
   process.exit(work.some(w => w.kind === 'settings-title') ? 1 : 0);
 })().catch(e => { console.error('chips-settings: ' + (e && e.stack || e)); process.exit(2); });
