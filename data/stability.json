@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 77.7,
+ "score": 77.8,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -102,21 +102,19 @@
    }
   },
   {
-   "id": "longfns",
-   "label": "Functions over 150 lines",
-   "count": 1,
-   "weight": 0.05,
-   "cap": 10,
-   "off": 0.1,
-   "where": {
-    "backend/get-posts.gs getPosts_": 166
-   }
-  },
-  {
    "id": "longfiles",
    "label": "Files over 3000 lines",
    "count": 0,
    "weight": 0.5,
+   "cap": 10,
+   "off": 0,
+   "where": {}
+  },
+  {
+   "id": "longfns",
+   "label": "Functions over 150 lines",
+   "count": 0,
+   "weight": 0.05,
    "cap": 10,
    "off": 0,
    "where": {}

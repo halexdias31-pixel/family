@@ -10,10 +10,10 @@ function postSrc(root) {
   return files.map(f => fs.readFileSync(path.join(d, f), 'utf8')).join('\n');
 }
 
-/* [{ action, fn }] from the table, in its order. */
+/* [{ action, fn }] from the table, in its order: postActions_ joins the postActions<Group>_ maps. */
 function postTable(src) {
-  const m = /function postActions_\(\) \{\s*return \{([\s\S]*?)\};/.exec(src);
-  return m ? [...m[1].matchAll(/^\s*(\w+): (\w+),?\s*$/gm)].map(x => ({ action: x[1], fn: x[2] })) : [];
+  const ms = [...src.matchAll(/function postActions\w*_\(\) \{\s*return \{([\s\S]*?)\};/g)];
+  return ms.flatMap(m => [...m[1].matchAll(/^\s*(\w+): (\w+),?\s*$/gm)].map(x => ({ action: x[1], fn: x[2] })));
 }
 
 /* every action name: the table's and any `action === '…'` still tested in the gate. */
