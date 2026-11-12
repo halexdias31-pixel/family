@@ -32,73 +32,14 @@ function doGet(e) {
     // separate features broke rather than one line being wrong.
     /* Only the tabs the site genuinely can't run without. § */
     /* `resources` IS NO LONGER ON THIS LIST, because the tab is no longer in the spreadsheet. § */
-    /* ---------- THE ANSWER FROM LAST TIME, IF THERE IS ONE § */
-    /* THE TOKEN'S PERSON, NOT THE URL'S — see `payloadKey_`. Resolving it here costs one digest and
-       one property read, before the cache is asked, which is the only order in which the answer can
-       decide which copy comes back. */
-    const cacheViewer = askedBy_();
-    const cacheKey = payloadKey_(p, cacheViewer ? S(cacheViewer.person_id) : '');
-    /* THE NET IS TOLD HERE TOO (342), because a hit returns from just below with a fresh half
-       (`freshFor_`) the net has to say for this same person. */
-    netViewerSet_(cacheViewer);
-    /* ---------- `?warm=1` BUILDS AND STORES WITHOUT READING § */
-    const warming = S(p.warm) === '1';
-    if (cacheKey && !warming) {
-      const kept = cacheGet_(cacheKey);
-      /* ---------- A HIT SAYS SO § */
-      /* AND THIS VIEWER'S SUBMISSIONS AND FILMS, FRESH — the stored body has neither (`payloadWithFresh_`). */
-      if (kept) { mark('cache'); return jsonRaw_(payloadWithFresh_(kept, freshFor_(cacheViewer), true)); }
-    }
+    const cached = getCached_(p, askedBy_, mark), cacheKey = cached.cacheKey;
+    if (cached.hit) return cached.hit;
 
     const tabsNo = getRequiredTabs_();
     if (tabsNo) return tabsNo;
 
-    /* WHO IS LOOKING, asked ONCE. § */
-    /* AND ASKED OF THE TOKEN rather than of `?name=`. § */
-    const meAsked = askedBy_();
-    const meAskedName = meAsked ? personDisplayName(meAsked) : '';
-    /* `?person=` IS NO LONGER READ FOR IDENTITY ANYWHERE IN THIS FUNCTION. § */
-    const meAskedId = meAsked ? S(meAsked.person_id) : '';
-    const viewerIsAdmin = !!meAsked && hasRole(meAsked, 'admin');
-    /* AND THE NET IS TOLD (342): § */
-    netViewerSet_(meAsked);
-    /* WHO THEY MAY SEE (386, `seesWhom_`): null for nobody or an admin; else the ids a child, parent or tutor is shown. */
-    const vis = seesWhom_(meAsked);
-
-    const cfg = config(), opts = allOptions(), sur = surcharges();
-    mark('config');
-
-    /* ---------- THE FILMS, READ ONLY IF THE PERSON LOOKING MAY SEE THEM § */
-    const filmsOut = filmsFor_(meAsked);
-    /* `drive_id` IS DELIBERATELY NOT SENT. § */
-
-    const people = read(TAB.people).rows;
-    const venuesTab = read(TAB.venues).rows;
-    const jobsTab = read(TAB.jobs).rows;
-    mark('records');
-
-    const payload = getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, venuesTab);
-    mark('payloadInit');
-
-    getPeople_(meAsked, viewerIsAdmin, vis, people, venuesTab, payload);
-
-    getFamilyVenues_(p, meAsked, viewerIsAdmin, venuesTab, payload);
-
-    getPosts_(meAsked, meAskedId, viewerIsAdmin, vis, opts, payload);
-
-    getCalendar_(meAskedId, viewerIsAdmin, vis, payload);
-
-    getViewerBits_(meAsked, viewerIsAdmin, payload);
-
-    getTerms_(payload);
-
-    getShop_(payload);
-
-    getQuestions_(payload);
-    mark('lists');
-
-    getJobs_(meAskedName, viewerIsAdmin, vis, cfg, venuesTab, jobsTab, payload);
-    mark('jobs');
+    const built = getBuild_(p, behind, migrated, askedBy_, mark);
+    const payload = built.payload, people = built.people, venuesTab = built.venuesTab, jobsTab = built.jobsTab;
 
     if (p.debugTiming) return jsonOut({ version: BACKEND_VERSION, timings,
       counts: { people: people.length, venues: venuesTab.length, jobs: jobsTab.length,
@@ -113,6 +54,79 @@ function doGet(e) {
   } catch (err) {
     return jsonOut({ error: err.toString() });
   }
+}
+
+/* THE STORED ANSWER: the cache key for this viewer, and the reply itself when a kept copy may be sent. */
+function getCached_(p, askedBy_, mark) {
+  /* ---------- THE ANSWER FROM LAST TIME, IF THERE IS ONE § */
+  /* THE TOKEN'S PERSON, NOT THE URL'S — see `payloadKey_`. Resolving it here costs one digest and
+     one property read, before the cache is asked, which is the only order in which the answer can
+     decide which copy comes back. */
+  const cacheViewer = askedBy_();
+  const cacheKey = payloadKey_(p, cacheViewer ? S(cacheViewer.person_id) : '');
+  /* THE NET IS TOLD HERE TOO (342), because a hit returns from just below with a fresh half
+     (`freshFor_`) the net has to say for this same person. */
+  netViewerSet_(cacheViewer);
+  /* ---------- `?warm=1` BUILDS AND STORES WITHOUT READING § */
+  const warming = S(p.warm) === '1';
+  if (cacheKey && !warming) {
+    const kept = cacheGet_(cacheKey);
+    /* ---------- A HIT SAYS SO § */
+    /* AND THIS VIEWER'S SUBMISSIONS AND FILMS, FRESH — the stored body has neither (`payloadWithFresh_`). */
+    if (kept) { mark('cache'); return { cacheKey, hit: jsonRaw_(payloadWithFresh_(kept, freshFor_(cacheViewer), true)) }; }
+  }
+  return { cacheKey, hit: null };
+}
+
+/* THE PAYLOAD BUILT: who is looking, then every part in order; the tabs come back for `?debugTiming`. */
+function getBuild_(p, behind, migrated, askedBy_, mark) {
+  /* WHO IS LOOKING, asked ONCE. § */
+  /* AND ASKED OF THE TOKEN rather than of `?name=`. § */
+  const meAsked = askedBy_();
+  const meAskedName = meAsked ? personDisplayName(meAsked) : '';
+  /* `?person=` IS NO LONGER READ FOR IDENTITY ANYWHERE IN THIS FUNCTION. § */
+  const meAskedId = meAsked ? S(meAsked.person_id) : '';
+  const viewerIsAdmin = !!meAsked && hasRole(meAsked, 'admin');
+  /* AND THE NET IS TOLD (342): § */
+  netViewerSet_(meAsked);
+  /* WHO THEY MAY SEE (386, `seesWhom_`): null for nobody or an admin; else the ids a child, parent or tutor is shown. */
+  const vis = seesWhom_(meAsked);
+
+  const cfg = config(), opts = allOptions(), sur = surcharges();
+  mark('config');
+
+  /* ---------- THE FILMS, READ ONLY IF THE PERSON LOOKING MAY SEE THEM § */
+  const filmsOut = filmsFor_(meAsked);
+  /* `drive_id` IS DELIBERATELY NOT SENT. § */
+
+  const people = read(TAB.people).rows;
+  const venuesTab = read(TAB.venues).rows;
+  const jobsTab = read(TAB.jobs).rows;
+  mark('records');
+
+  const payload = getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, venuesTab);
+  mark('payloadInit');
+
+  getPeople_(meAsked, viewerIsAdmin, vis, people, venuesTab, payload);
+
+  getFamilyVenues_(p, meAsked, viewerIsAdmin, venuesTab, payload);
+
+  getPosts_(meAsked, meAskedId, viewerIsAdmin, vis, opts, payload);
+
+  getCalendar_(meAskedId, viewerIsAdmin, vis, payload);
+
+  getViewerBits_(meAsked, viewerIsAdmin, payload);
+
+  getTerms_(payload);
+
+  getShop_(payload);
+
+  getQuestions_(payload);
+  mark('lists');
+
+  getJobs_(meAskedName, viewerIsAdmin, vis, cfg, venuesTab, jobsTab, payload);
+  mark('jobs');
+  return { payload, people, venuesTab, jobsTab };
 }
 
 /* THE SHEET AGAINST THE CODE: whether it is behind, and brought up to date where nobody is waiting. */

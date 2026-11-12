@@ -5,6 +5,7 @@
   "owneranswers.gs",
   "booking.gs",
   "constants.gs",
+  "access.gs",
   "content.gs",
   "race.gs",
   "films.gs",

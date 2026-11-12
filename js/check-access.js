@@ -17,7 +17,7 @@ const read = f => { try { const p = find_(f); return p ? fs.readFileSync(p, 'utf
                     catch (e) { return ''; } };
 
 const post = read('doPost.gs');
-const consts = read('constants.gs');
+const consts = read('access.gs');
 const front = fs.readdirSync(path.join(__dirname, '..', 'js'))
   .filter(f => /\.js$/.test(f) && !/^check/.test(f))
   .map(f => read('js/' + f)).join('\n');

@@ -4324,3 +4324,8 @@ in `ACTION_ACCESS`
      spreadsheet and is the reason it is admin and nothing else. */
 ```
 
+
+
+### The split into access.gs
+
+The GET jobs (`RUNNABLE`), the one-off `MIGRATIONS`, the hands-up store and `ACTION_ACCESS` moved whole into access.gs, which loads right after constants.gs; their shortened comments' full text stays above.
