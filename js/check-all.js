@@ -85,6 +85,7 @@ const SUITE = [
   /* THE STABILITY SCORE (730): data/stability.json as tools/stability.js computes it now. */
   { file: 'check-stability.js', what: 'the Stability card\'s figures are current' },
   { file: 'check-booking.js', what: 'the booking machine, run not read' },
+  { file: 'check-terms.js', what: 'the school year worked out for 2020-2040: contiguous, sane, matching published London dates' },
   /* ---------- THREE CHECKS EXISTED AND NONE OF THEM RAN § */
   { file: 'check-lifecycle.js', what: 'every booking path ends where it should' },
   { file: 'check-spine.js',     what: 'one row order, both documents' },
