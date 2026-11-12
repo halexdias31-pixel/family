@@ -17558,7 +17558,7 @@ function paintCountdowns_() {
 on('cd-dates', () => { CD_DATES = !CD_DATES; paintCountdowns_(); });
 
 /* ---------- TERM DATES (491): THE YEAR AS INTERVALS — terms, half-terms and holidays, each with its real first and last day ---------- */
-/* The usual England pattern, the backend's `schoolYear` (booking.gs) in the browser: a term runs Monday to Friday, a holiday Saturday to Sunday. */
+/* The backend's `schoolYear` (booking.gs) in the browser, rule for rule: a term runs Monday to Friday, a holiday Saturday to Sunday; `check-terms` holds the two together. */
 function tdYear_(y) {
   const D = (yy, m, d) => new Date(yy, m, d), add = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
   const nth = (yy, mo, wd, n) => {
@@ -17571,13 +17571,16 @@ function tdYear_(y) {
       l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
     return D(yy, Math.floor((h + l - 7 * m + 114) / 31) - 1, ((h + l - 7 * m + 114) % 31) + 1);
   };
-  let autumn = nth(y, 8, 1, 1); if (autumn.getDate() <= 2) autumn = add(autumn, 3);
+  const fri = d => add(d, -((d.getDay() - 5 + 7) % 7)), mon = d => add(d, (8 - d.getDay()) % 7);
   const octMon = nth(y, 9, 1, -1), octHalf = octMon.getDate() + 4 > 31 ? add(octMon, -7) : octMon;
-  const decFri = nth(y, 11, 5, -1), xmas = decFri.getDate() > 22 ? add(decFri, -7) : decFri;
-  let jan = D(y + 1, 0, 2); while (jan.getDay() === 0 || jan.getDay() === 6) jan = add(jan, 1);
-  const feb = nth(y + 1, 1, 1, 3), easStart = add(easter(y + 1), -6), easEnd = add(easStart, 11), may = nth(y + 1, 4, 1, -1), jul = nth(y + 1, 6, 5, 3);
-  const terms = [['Autumn 1', autumn, add(octHalf, -3)], ['Autumn 2', add(octHalf, 7), xmas], ['Spring 1', jan, add(feb, -3)],
-    ['Spring 2', add(feb, 7), add(easStart, -3)], ['Summer 1', add(easEnd, 3), add(may, -3)], ['Summer 2', add(may, 7), jul]];
+  let xmas = fri(D(y, 11, 21)); if (xmas.getDate() < 16) xmas = D(y, 11, 20);
+  let jan = mon(D(y + 1, 0, 2)); if (jan.getDate() <= 3 && D(y + 1, 0, 1).getDay() % 6 === 0) jan = add(jan, 1);
+  const feb = mon(D(y + 1, 1, 12)), eas = easter(y + 1), gf = add(eas, -2), em = add(eas, 1);
+  const floor = mon(em < D(y + 1, 2, 29) ? em : D(y + 1, 2, 29)), early = add(gf, -11), easStart = early > floor ? early : floor;
+  const springEnd = gf < easStart ? add(gf, -1) : add(easStart, -3), summer = add(easStart, 14) > em ? add(easStart, 14) : add(em, 1);
+  const may = nth(y + 1, 4, 1, -1), jul = tdJul_(y + 1);
+  const terms = [['Autumn 1', tdYear0_(y), add(octHalf, -3)], ['Autumn 2', add(octHalf, 7), xmas], ['Spring 1', jan, add(feb, -3)],
+    ['Spring 2', add(feb, 7), springEnd], ['Summer 1', summer, add(may, -3)], ['Summer 2', add(may, 7), jul]];
   const hols = [['October half-term', 'half'], ['Christmas holidays', 'holiday'], ['February half-term', 'half'], ['Easter holidays', 'holiday'], ['May half-term', 'half']];
   const out = [];
   terms.forEach((t, i) => {
@@ -17587,8 +17590,14 @@ function tdYear_(y) {
   out.push({ name: 'Summer holidays', kind: 'holiday', from: add(jul, 1), to: add(tdYear0_(y + 1), -1) });
   return out;
 }
-/* THE FIRST DAY OF A YEAR'S AUTUMN TERM, which ends the summer before it. */
-function tdYear0_(y) { let d = new Date(y, 8, 1); d = new Date(y, 8, 1 + ((8 - d.getDay()) % 7)); return d.getDate() <= 2 ? new Date(y, 8, d.getDate() + 3) : d; }
+/* THE LAST DAY OF SUMMER TERM: 22 July, or the Friday before when that is a weekend. */
+function tdJul_(y) { const d = new Date(y, 6, 22); return d.getDay() % 6 ? d : new Date(y, 6, d.getDay() ? 21 : 20); }
+/* THE FIRST DAY OF A YEAR'S AUTUMN TERM: the first Wednesday from 1 Sep, or past the 5th the first Mon-Thu. */
+function tdYear0_(y) {
+  let d = new Date(y, 8, 1 + ((3 - new Date(y, 8, 1).getDay() + 7) % 7));
+  if (d.getDate() > 5) { d = new Date(y, 8, 1); while (d.getDay() === 0 || d.getDay() > 4) d.setDate(d.getDate() + 1); }
+  return d;
+}
 /* MY SCHOOL (491): starts and ends a few school days earlier or later, kept on this phone for whoever is signed in. */
 const tdKey_ = () => 'familyTermShift:' + ((typeof USER !== 'undefined' && USER && USER.personId) || 'anon');
 function tdShift_() { try { const o = JSON.parse(localStorage.getItem(tdKey_()) || 'null'); return { s: +(o && o.s) || 0, e: +(o && o.e) || 0 }; } catch (e) { return { s: 0, e: 0 }; } }
