@@ -157,6 +157,6 @@ const SOON_CARDS = [
   ['soon-roadmap', 'Roadmap', 'How much of your syllabus is left, subject by subject. Coming soon.'],
   ['soon-conduct', 'Code of conduct', 'How we treat each other here. Coming soon.'],
 ];
-const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => card_(`<div class="soon-card ${c}"><h3>${esc(h)}</h3><p class="note">${esc(p)}</p></div>`));
+const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => renderCard({ kind: 'soon', look: 'soon-card ' + c, tags: [{ text: h, colour: 0 }], body: [{ type: 'text', text: p }] }));
 const SETTINGS_OFF = false;
 screen('account', () => pages('account', SETTINGS_OFF || typeof cardsOf_ !== 'function' ? studentSetPages_() : cardsOf_('account')));

@@ -540,7 +540,7 @@ function cardEmbed_(b) {
 }
 /* THE BODY BLOCKS, each with its one renderer. */
 const CARD_BLOCKS = {
-  text: b => [].concat(b.paras || [b.text]).filter(p => p != null && p !== '').map(p => `<p class="kc-line${b.tone ? ' ' + esc('is-' + b.tone) : ''}">${cardRuns_(p)}</p>`).join(''),
+  text: b => [].concat(b.paras || [b.text]).filter(p => p != null && p !== '').map(p => `<p class="kc-line${b.tone ? ' ' + esc('is-' + b.tone) : ''}${b.look ? ' ' + esc(b.look) : ''}">${cardRuns_(p)}</p>`).join(''),
   figure: b => { const p = cardPic_(b); return p ? `<figure class="kc-fig">${p}${b.caption ? `<figcaption>${cardRuns_(b.caption)}</figcaption>` : ''}</figure>` : ''; },
   table: b => `<table class="kc-table">${(b.head || []).length ? `<thead><tr>${b.head.map(h => `<th>${cardRuns_(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${
     (b.rows || []).map(r => `<tr>${r.map(c => `<td>${cardRuns_(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`,
@@ -4016,7 +4016,7 @@ function oopsDevice_() {
   } catch (e) { return 'nostore'; }
 }
 function oopsHtml_() {
-  return card_('<div class="oops"><h3>This part did not load</h3></div>');
+  return renderCard({ kind: 'oops', look: 'oops', tags: [{ text: 'This part did not load', colour: 0 }] });
 }
 function oops_(err, where, host, o) {
   o = o || {};
@@ -4723,7 +4723,7 @@ function paint(id, fresh, o) {
     /* ITS CODE NOT IN YET (670, `LATER`): the column waits, and is drawn again when the payload lands. */
     if (!filesIn_() && err instanceof ReferenceError) { el.innerHTML = waitShape_(id); STALE[id] = 1; return; }
     oops_(err, 'draw:' + id);
-    el.innerHTML = `<div class="pane">${card_('<div class="draw-oops"><h3>This screen did not draw</h3></div>')}</div>`;
+    el.innerHTML = `<div class="pane">${renderCard({ kind: 'oops', look: 'draw-oops', tags: [{ text: 'This screen did not draw', colour: 0 }] })}</div>`;
     return;
   }
   /* ---------- AND A WIDGET RUNNING ON THIS COLUMN KEEPS THE SLOT IT IS RUNNING IN § */
@@ -6359,8 +6359,8 @@ const pages = (id, cards) =>
 /* One empty state for every list with nothing in it — Spotlight, Saved, the shop, the reels: no sentence explaining the emptiness, the owner's ask. */
 /* AND ITS ONE TILE, Suggest a change (486): the owner, of an empty Saved, "why is there no buttons on 'saved' widget" (1 Nov). */
 const emptyCard_ = title => {
-  const t = String(title || ''), s = typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', 'empty:' + t.toLowerCase().replace(/[^a-z0-9]+/g, '-'), t)) : '';
-  return card_(`<div class="is-empty"><h3>${esc(t)}</h3>${s ? `<div class="tile-row rep-row">${s}</div>` : ''}</div>`);
+  const t = String(title || ''), s = typeof suggestOpts_ === 'function' ? suggestOpts_('widget', 'empty:' + t.toLowerCase().replace(/[^a-z0-9]+/g, '-'), t) : null;
+  return renderCard({ kind: 'empty', look: 'is-empty', tags: [{ text: t, colour: 0 }], tiles: [].concat(s || []) });
 };
 
 /* ---------- ALL OF THEM ON ONE, WHICH IS WHAT A LIST IS § */
@@ -11073,7 +11073,7 @@ const SOON_CARDS = [
   ['soon-roadmap', 'Roadmap', 'How much of your syllabus is left, subject by subject. Coming soon.'],
   ['soon-conduct', 'Code of conduct', 'How we treat each other here. Coming soon.'],
 ];
-const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => card_(`<div class="soon-card ${c}"><h3>${esc(h)}</h3><p class="note">${esc(p)}</p></div>`));
+const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => renderCard({ kind: 'soon', look: 'soon-card ' + c, tags: [{ text: h, colour: 0 }], body: [{ type: 'text', text: p }] }));
 const SETTINGS_OFF = false;
 screen('account', () => pages('account', SETTINGS_OFF || typeof cardsOf_ !== 'function' ? studentSetPages_() : cardsOf_('account')));
 
@@ -19157,16 +19157,15 @@ const NOTHING_YET = 'Nothing here yet.';
 /* AND "NOBODY TEACHES THIS" HAS ONE: a level, a subject or the business with no tutor. */
 const NO_TUTOR = 'No tutor yet';
 function empty_(text) {
-  return `<p class="empty">${esc(String(text || NOTHING_YET))}</p>`;
+  return CARD_BLOCKS.text({ text: String(text || NOTHING_YET), look: 'empty' });
 }
 
 /* ---------- "+" AT THE TOP OF A LIST THAT CAN GROW (373) ---------- */
 /* ONE CARD, THE WHOLE OF IT THE TARGET: a plus and what it adds. `{ act, label, data }`; a list adopts it by putting it first. */
 function addCard_(o) {
-  const data = Object.keys(o.data || {}).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
-  return card_(`<div class="add-card"><h3>${esc(o.label)}</h3><div class="tile-row">${tile_({ icon: 'plus', label: o.label, act: o.act, data: o.data })}</div></div>`) + `${
-    /* A "+" IS A THING ON THE COLUMN TOO (720, 486): its Suggest in the row right after it, as a person's card has. */
-    typeof suggestOpts_ === 'function' && tile_(suggestOpts_('card', 'add:' + o.act, o.label)) ? `<div class="tile-row rep-row">${tile_(suggestOpts_('card', 'add:' + o.act, o.label))}</div>` : ''}`;
+  /* A "+" IS A THING ON THE COLUMN TOO (720, 486): its Suggest joins the plus in the card's one row. */
+  const s = typeof suggestOpts_ === 'function' ? suggestOpts_('card', 'add:' + o.act, o.label) : null;
+  return renderCard({ kind: 'add', look: 'add-card', tags: [{ text: o.label, colour: 0 }], tiles: [{ icon: 'plus', label: o.label, act: o.act, data: o.data }].concat(s || []) });
 }
 
 /* ---------- FILLING THE SHAPE § */

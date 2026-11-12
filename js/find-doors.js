@@ -43,7 +43,7 @@ function msgDoorCard_(x, draw) {
   const t = (typeof messageThreads_ === 'function' ? messageThreads_() : []).find(t2 => t2.id === x.thread);
   if (!t && x.to) return card_(`<div class="dm-card"><div class="dm-head"><h3>${esc(x.name)}</h3></div>
     ${msgForm_(x.to.name, x.to.id)}</div>`);
-  if (!t) return card_(`<div class=""><h3>${esc(x.name)}</h3></div>`);
+  if (!t) return renderCard({ kind: 'msg', tags: [{ text: x.name, colour: 0 }] });
   return msgFindCard_(x, t, draw);
 }
 window.KC_AROUND = Object.assign(window.KC_AROUND || {}, { msg: msgDoorCard_ });
