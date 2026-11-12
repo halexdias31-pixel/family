@@ -258,16 +258,15 @@ const NOTHING_YET = 'Nothing here yet.';
 /* AND "NOBODY TEACHES THIS" HAS ONE: a level, a subject or the business with no tutor. */
 const NO_TUTOR = 'No tutor yet';
 function empty_(text) {
-  return `<p class="empty">${esc(String(text || NOTHING_YET))}</p>`;
+  return CARD_BLOCKS.text({ text: String(text || NOTHING_YET), look: 'empty' });
 }
 
 /* ---------- "+" AT THE TOP OF A LIST THAT CAN GROW (373) ---------- */
 /* ONE CARD, THE WHOLE OF IT THE TARGET: a plus and what it adds. `{ act, label, data }`; a list adopts it by putting it first. */
 function addCard_(o) {
-  const data = Object.keys(o.data || {}).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
-  return card_(`<div class="add-card"><h3>${esc(o.label)}</h3><div class="tile-row">${tile_({ icon: 'plus', label: o.label, act: o.act, data: o.data })}</div></div>`) + `${
-    /* A "+" IS A THING ON THE COLUMN TOO (720, 486): its Suggest in the row right after it, as a person's card has. */
-    typeof suggestOpts_ === 'function' && tile_(suggestOpts_('card', 'add:' + o.act, o.label)) ? `<div class="tile-row rep-row">${tile_(suggestOpts_('card', 'add:' + o.act, o.label))}</div>` : ''}`;
+  /* A "+" IS A THING ON THE COLUMN TOO (720, 486): its Suggest joins the plus in the card's one row. */
+  const s = typeof suggestOpts_ === 'function' ? suggestOpts_('card', 'add:' + o.act, o.label) : null;
+  return renderCard({ kind: 'add', look: 'add-card', tags: [{ text: o.label, colour: 0 }], tiles: [{ icon: 'plus', label: o.label, act: o.act, data: o.data }].concat(s || []) });
 }
 
 /* ---------- FILLING THE SHAPE § */

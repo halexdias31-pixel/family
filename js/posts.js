@@ -229,28 +229,18 @@ function postCard_(p, i) {
 
 /* ---------- A POST AS A FIND CARD (owner, 8 Nov, 36a): cards.js's `findCard` over card-fields.json's `post` row. */
 const postWho_ = p => (profileOf_(p.authorId) || {}).handle || p.handle || p.author || brand('name', '@family.');
-function postFindCard_(x, draw) {
-  const p = (x && x.row) || {};
-  return draw({ row: p, cardCls: p.waiting ? 'is-pending' : '', cardData: { post: p.id || '' } });
-}
-window.KC_AROUND = Object.assign(window.KC_AROUND || {}, { post: postFindCard_ });
-window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
-  postPic: x => { const p = x.row, media = postMedia_(p);
-    return media.length ? `<figure class="msg-fc-pic post-fc-pic">${postItem_(media[0], 'post-fc-img')}</figure>` : ''; },
-  postTitle: x => `<h3>${esc(x.row.title || postWho_(x.row))}</h3>`,
-  postTags: x => { const p = x.row, media = postMedia_(p);
-    const at = p.at || p.when, d = at && typeof parseWhen === 'function' ? parseWhen(at) : null;
-    const kind = p.poll ? 'Poll' : media.some(postIsVideo_) ? 'Clip' : media.length ? 'Photo' : 'Post';
-    const extra = [d && !isNaN(d) ? date_(d) : '', kind, media.length > 1 ? media.length + ' pictures' : '', p.pinned ? 'pinned' : '']
-      .filter(Boolean).map(t => `${qtag_(`${esc(t)}`, '', `msg-tag`)}`).join('');
-    const row = typeof tagRow_ === 'function' ? String(tagRow_(x) || '') : '';
-    return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, extra + '</div>') : `<div class="qtags qcard-tags">${extra}</div>`; },
-  postBody: x => { const body = String(x.row.caption || x.row.body || x.row.text || '').trim(); return body ? `<p class="msg-fc-body">${mark(body)}</p>` : ''; },
-  postTiles: x => /* the post's own Suggest goes: every Find card's row already carries one */ { const p = x.row, r = p.reactions, first = r && Array.isArray(r.emoji) && r.emoji[0];
-    const react = first ? tile_({ icon: 'heart', label: 'Like', note: first + (r.total ? ' · ' + r.total : ''), on: r.yours === first,
-      act: 'react', data: { id: p.id, emoji: first } }) : '';
-    return tileRow_(react + tile_(postOpts_(p))); },
-});
+/* ITS SPEC: the first picture or clip, the date and kind as tags after its facets, the words, Like and the post's own tiles. */
+cardKind_('post', x => { const p = x.row || {}, media = postMedia_(p), r = p.reactions, first = r && Array.isArray(r.emoji) && r.emoji[0];
+  const at = p.at || p.when, d = at && typeof parseWhen === 'function' ? parseWhen(at) : null, m = media[0];
+  const kind = p.poll ? 'Poll' : media.some(postIsVideo_) ? 'Clip' : media.length ? 'Photo' : 'Post';
+  const body = String(p.caption || p.body || p.text || '').trim();
+  return { look: 'post-fc' + (p.waiting ? ' is-pending' : ''), data: { post: p.id || '' },
+    picture: !m ? null : postIsVideo_(m) ? { video: postVidSrc_(m), alt: kind } : { src: pic(m), alt: '' },
+    tags: (p.title ? [{ text: p.title, colour: 0 }] : []).concat(x.key && typeof tagList_ === 'function' ? tagList_(x) : [],
+      [d && !isNaN(d) ? date_(d) : '', kind, media.length > 1 ? media.length + ' pictures' : '', p.pinned ? 'pinned' : ''].filter(Boolean).map(t => ({ text: t, look: 'msg-tag' }))),
+    body: body ? [{ type: 'text', text: { marked: body } }] : [],
+    tiles: [first ? { icon: 'heart', label: 'Like', note: first + (r.total ? ' · ' + r.total : ''), on: r.yours === first, act: 'react', data: { id: p.id, emoji: first } } : null]
+      .concat(postOpts_(p) || []).filter(Boolean) }; });
 
 /* WHAT PEOPLE SAID UNDER IT. § */
 function commentsHtml_(p) {

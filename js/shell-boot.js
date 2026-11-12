@@ -11,7 +11,7 @@ function oopsDevice_() {
   } catch (e) { return 'nostore'; }
 }
 function oopsHtml_() {
-  return card_('<div class="oops"><h3>This part did not load</h3></div>');
+  return renderCard({ kind: 'oops', look: 'oops', tags: [{ text: 'This part did not load', colour: 0 }] });
 }
 function oops_(err, where, host, o) {
   o = o || {};
