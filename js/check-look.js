@@ -116,8 +116,8 @@ for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
 }
 if (!/tone === 'admin' && !\(typeof isAdmin === 'function' && isAdmin\(\)\)\) return ''/.test(tilesSrc)) bad.push('11a tile_ draws an admin tile for someone who is not an admin');
 
-/* ---------- 30a. ONE LOADING LOOK: THE THREE DOTS (comments aside) ---------- */
-if (/rotate\((360deg|1turn)\)/.test(noComments)) bad.push('30a a spinner in style.css — a wait is the three dots (loading_, .is-busy)');
+/* ---------- 30a. ONE LOADING LOOK: THE ONE RING (owner, 12 Nov), turned only by `@keyframes loading` ---------- */
+if (noComments.replace(/@keyframes loading\s*\{[^{}]*\{[^}]*\}\s*\}/, '').match(/rotate\((360deg|1turn)\)/)) bad.push('30a a second spinner in style.css — a wait is the one ring (loading_)');
 
 /* ---------- 57a. ONE CORNER: --r-ui, or round (--r-round, 50%); a slash or four-corner value is a drawn shape ---------- */
 for (const m of noComments.matchAll(/border-radius:\s*([^;}]+?)\s*(?=[;}])/g)) {
