@@ -11,7 +11,7 @@ const ELEMENT = {
   tag:     { maker: 'qtag_', file: 'js/cards-make.js', cls: ['qtag', 'chip', 'prof-tag'] },
   loading: { maker: 'loading_', file: 'js/shell-boot.js', cls: ['loading', 'is-busy'] },
   row:     { maker: 'row / rowHtml', file: 'js/core.js', cls: ['row'] },
-  markup:  { maker: 'renderCard(spec) (js/card-render.js)', file: 'js/card-render.js' },
+  markup:  { maker: 'renderCard(spec) (js/cards-render.js)', file: 'js/cards-render.js' },
   style:   { maker: 'a class in style.css', file: null },
   colour:  { maker: 'a token in style.css', file: null },
 };
@@ -25,7 +25,7 @@ const BUTTON = /<button\b/g, STYLE = /\sstyle=\\?["']/g, COLOUR = /(?:^|[^\w&-])
 const files = fs.readdirSync(path.join(ROOT, 'js')).filter(f => /\.js$/.test(f) && !/^check/.test(f)).map(f => 'js/' + f);
 const found = [];
 /* THE MASTER TEMPLATE (owner, 12 Nov, "go all the way"): markup of ANY tag is written only by the renderer files; everyone else hands over data. */
-const RENDERERS = ['js/card-render.js', 'js/tiles.js'];
+const RENDERERS = ['js/cards-render.js', 'js/tiles.js'];
 const MARKUP = /<\/?[a-zA-Z][a-zA-Z0-9-]*(?=[\s>\/])/;
 const hit = (f, line, kind, what) => { if (ELEMENT[kind].file !== f && !(RENDERERS.includes(f) && kind !== 'style' && kind !== 'colour')) found.push({ f, line, kind, what }); };
 /* ONLY STRINGS AND TEMPLATES: a regex that reads a card (`/^<div class="card x/`) builds nothing. */

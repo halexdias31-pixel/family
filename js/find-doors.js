@@ -244,6 +244,3 @@ function screenGone_(id) {
   try { if (typeof OPEN_JOB !== 'undefined' && OPEN_JOB) BOOK_OPEN = false; } catch (e) { oops_(e, 'doors:gone'); }
   finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: to[1] }], show: true }); go('stuff'); return true;
 }
-/* A VENUE'S 8-BIT BUILDING AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
-window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
-  venuePic: x => `<figure class="person-pic">${pixSvg_(VENUE_PIX[venueShape_(x.row || {})], x.name)}</figure>` });

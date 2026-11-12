@@ -185,7 +185,7 @@ const KINDS = {
   offBooking: { group: 'Booking', label: 'Booking', card: (x, c) => findCard(x, c) },
   /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
   health: { group: 'Settings', label: 'Settings', card: (x, c) => findCard(x, c) },
-  /* POSTS (owner, 8 Nov, 36a): the standard Find card shape (card-fields.json `post`, around it `postFindCard_`), not the feed's look. */
+  /* POSTS (owner, 8 Nov, 36a): the standard Find card shape (its spec, `cardKind_('post')` in posts.js), not the feed's look. */
   post: { group: 'Posts', label: 'Posts', card: x => findCard(x) },
 
   /* ---------- `link` WAS A KIND HERE, AND THE LINKS ARE OFF FIND § */

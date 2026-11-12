@@ -228,9 +228,10 @@ function tagShared_(x, facet, raw) {
   if (!memo.has(k)) memo.set(k, list.every(i => { try { return (facetTags_(facet, i) || []).some(v => String(v == null ? '' : v).trim() === raw); } catch (e) { return false; } }));
   return memo.get(k);
 }
-function tagRow_(x, page) {
+/* A CARD'S FACET TAGS AS DATA (the master template's `tags`); tagRow_ draws them as a row. */
+function tagList_(x, page) {
   const out = [], words = new Map(), ids = new Map(), said = [];
-  if (!x) return '';
+  if (!x) return [];
   /* A TAG SHOWS ONLY WHAT IS NOT ALREADY PICKED AS A CHIP (owner, 6 Nov): the chip above already says it. */
   const picked = new Set(), pickedWords = new Set();
   (STUFF.filters || []).filter(f => f && !f.any).forEach(f => { picked.add(f.field + '\u0000' + f.value);
@@ -256,9 +257,9 @@ function tagRow_(x, page) {
     });
   });
   tagFold_(out);
-  return `<div class="qtags qcard-tags">${out.map(t => qtag_(esc(t.text), `${tagAttr_(t.field)} data-f="${esc(t.field)}"${
-    t.also.length ? ` data-also="${esc(t.also.join(' '))}"` : ''}`)).join('')}</div>`;
+  return out.map(t => ({ text: t.text, colour: tagOf_(t.field), data: Object.assign({ f: t.field }, t.also.length ? { also: t.also.join(' ') } : {}) }));
 }
+const tagRow_ = (x, page) => renderTags(tagList_(x, page), 'qcard-tags');
 /* TAGS AT THE TOP OF EVERY CARD (1030, 1040 r10): a card with no tag line gets one, and one drawn under its title moves above it. */
 function tagsOnTop_(x, html) {
   if (!x || typeof html !== 'string' || !html) return html;

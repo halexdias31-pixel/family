@@ -447,8 +447,8 @@ function bookShares_(L) {
 
 
 ;
-/* ==== js/card-render.js ==== */
-/* @family. — card-render.js THE ONE MASTER TEMPLATE (owner, 12 Nov: "go all the way"; rules.md 3.11). */
+/* ==== js/cards-render.js ==== */
+/* @family. — cards-render.js THE ONE MASTER TEMPLATE (owner, 12 Nov: "go all the way"; rules.md 3.11). */
 /* A card is DATA: { kind, picture?, tags, body: [blocks], tiles }. renderCard is the only code that writes card markup. */
 /* Every string in a spec is TEXT and is escaped here; a spec never carries markup (check-card-spec holds that). */
 
@@ -463,29 +463,54 @@ function cardRuns_(v) {
   if (v.sub != null) return `<sub>${cardRuns_(v.sub)}</sub>`;
   if (v.math != null) return `<span class="kc-math">${cardRuns_(v.math)}</span>`;
   if (v.mono != null) return `<span class="mono">${cardRuns_(v.mono)}</span>`;
+  /* TEXT WITH THE SITE'S LAWS COLOURED (`mark`, which escapes first): still only text in the spec. */
+  if (v.marked != null) return typeof mark === 'function' ? mark(String(v.marked)) : esc(String(v.marked));
   if (v.tone) return `<span class="${esc('is-' + v.tone)}">${cardRuns_(v.text)}</span>`;
   return cardRuns_(v.text);
 }
 const cardAttrs_ = d => Object.keys(d || {}).map(k => ` data-${esc(k)}="${esc(String(d[k]))}"`).join('');
-/* A PICTURE: a photo (`src`), a clip (`video`), or a drawing a picture maker drew (`svg`, which must be one <svg>). */
+/* A PICTURE: a photo (`src`), a clip (`video`), an 8-bit drawing (`pix`: 16 rows of palette letters), or a drawing a picture maker drew (`svg`). */
 function cardPic_(p) {
   if (!p) return '';
   if (p.src) return `<img src="${esc(p.src)}" alt="${esc(p.alt || '')}" loading="lazy" decoding="async">`;
   if (p.video) return `<video src="${esc(p.video)}" muted playsinline loop aria-label="${esc(p.alt || '')}"></video>`;
-  if (p.svg && /^\s*<svg\b[\s\S]*<\/svg>\s*$/.test(String(p.svg))) return String(p.svg);
+  if (Array.isArray(p.pix)) return `<figure class="person-pic">${pixSvg_(p.pix, p.alt, p.flip, p.none ? ' is-none' : '')}</figure>`;
+  if (p.svg && /^\s*<(svg|figure)\b[\s\S]*<\/svg>[\s\S]*$/.test(String(p.svg))) return String(p.svg);
   return '';
 }
-/* ONE TAG, ONE SIZE: `colour` is a palette name (`is-<colour>`), never a literal. */
+/* THE PICTURE MAKER'S 8-BIT DRAWER (batch E): portraits, cars, car parts and PC parts are all 16 rows of palette letters (`.pp-<letter>`). */
+function pixSvg_(rows, name, flip, cls) {
+  const byC = {};
+  (rows || []).forEach((line, y) => {
+    for (let x = 0; x < line.length;) {
+      const c = line[x];
+      let w = 1;
+      while (line[x + w] === c) w++;
+      if (c !== '.') (byC[c] = byC[c] || []).push(`M${x} ${y}h${w}v1h-${w}z`);
+      x += w;
+    }
+  });
+  const paths = Object.keys(byC).map(c => `<path class="pp-${c}" d="${byC[c].join('')}"/>`).join('');
+  return `<svg class="pp${cls || ''}" viewBox="0 0 16 16" shape-rendering="crispEdges" role="img" aria-label="${esc(name || '')}">${
+    flip ? `<g transform="translate(16 0) scale(-1 1)">${paths}</g>` : paths}</svg>`;
+}
+
+/* ONE TAG, ONE SIZE: `colour` is the palette's tag number (data-tag; the name 0, the rest 1 unless said), never a literal. */
 function cardTag_(t, i) {
   t = typeof t === 'string' ? { text: t } : (t || {});
-  return `<span class="qtag${t.colour ? ' ' + esc('is-' + t.colour) : ''}${t.act ? ' is-act' : ''}" data-tag="${i}"${
+  const n = t.colour != null ? t.colour : i ? 1 : 0;
+  return `<span class="qtag${t.look ? ' ' + esc(t.look) : ''}" data-tag="${esc(n)}"${
     t.act ? ` data-do="${esc(t.act)}" role="button" tabindex="0"` : ''}${cardAttrs_(t.data)}>${cardRuns_(t.text)}</span>`;
 }
+/* A ROW OF TAGS on its own (a Find line, a list beside a card): the same tag maker. */
+const renderTags = (tags, look) => ((tags || []).length ? `<div class="qtags${look ? ' ' + esc(look) : ''}">${tags.map(cardTag_).join('')}</div>` : '');
 /* A FORM'S ONE CONTROL: input, number, date, select, textarea or check; the label is its row's left side. */
+/* `draft: { surface, id }` keeps what is typed over a reload (draftAttr_/draftVal_); without it, its builder keeps it or says why (check-drafts). */
 function cardControl_(c) {
-  c = c || {};
+  c = Object.assign({}, c || {});
+  if (c.draft && typeof draftVal_ === 'function') { c.drafted = draftAttr_(c.draft.surface, c.draft.id, c.value); c.value = draftVal_(c.draft.surface, c.draft.id, c.value); }
   const id = c.id ? ` id="${esc(c.id)}"` : '', name = c.name ? ` name="${esc(c.name)}"` : '', act = c.act ? ` data-do="${esc(c.act)}"` : '';
-  const more = id + name + act + cardAttrs_(c.data) + (c.off ? ' disabled' : '') + (c.required ? ' required' : '') + (c.aria ? ` aria-label="${esc(c.aria)}"` : '');
+  const more = id + name + act + cardAttrs_(c.data) + (c.off ? ' disabled' : '') + (c.required ? ' required' : '') + (c.aria ? ` aria-label="${esc(c.aria)}"` : '') + (c.drafted ? ' ' + c.drafted : '');
   if (c.kind === 'select') return `<select${more}>${(c.options || []).map(o => { o = typeof o === 'object' ? o : { value: o, text: o };
     return `<option value="${esc(o.value)}"${String(o.value) === String(c.value) ? ' selected' : ''}>${esc(o.text == null ? o.value : o.text)}</option>`; }).join('')}</select>`;
   if (c.kind === 'textarea') return `<textarea rows="${Number(c.rows) || 3}" placeholder="${esc(c.placeholder || '')}"${more}>${esc(c.value || '')}</textarea>`;
@@ -539,20 +564,32 @@ function cardBlock_(b) {
 function renderCard(spec) {
   spec = spec || {};
   const kind = spec.kind || 'thing', name = spec.name || ((spec.tags || [])[0] && ((spec.tags[0].text != null ? spec.tags[0].text : spec.tags[0]))) || '';
-  const tags = (spec.tags || []).filter(t => t != null && t !== '' && (typeof t !== 'object' || (t.text != null && t.text !== '')));
+  /* THE NAME IS SAID ONCE: a facet tag that says the first tag again is left out. */
+  const said = t => String(typeof t === 'object' ? t.text : t).trim().toLowerCase();
+  const tags = (spec.tags || []).filter(t => t != null && t !== '' && (typeof t !== 'object' || (t.text != null && t.text !== '')))
+    .filter((t, i, all) => !i || said(t) !== said(all[0]));
   const body = (spec.body || []).map(cardBlock_).join('');
   const x = { kind, key: spec.key || '', row: spec.row || { title: typeof name === 'string' ? name : '' } };
+  /* THE KIND'S OWN TILES (read aloud, admin, the padlock) join the spec's, through the one row maker. */
   let row = '';
-  try { row = typeof kcFour_ === 'function' ? kcFour_(x, tile_(spec.tiles || [])) : tile_(spec.tiles || []); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
+  try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || [])) : `<div class="tile-row kc-row">${tile_(spec.tiles || [])}</div>`; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
   const cls = 'card fc kc kc-' + kind + (spec.look ? ' ' + spec.look : '') + (spec.off ? ' is-off' : '');
   return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
     + `<div class="kc-pic">${cardPic_(spec.picture)}</div><div class="kc-head"></div>`
-    + `<div class="kc-tags">${tags.length ? `<div class="qtags">${tags.map(cardTag_).join('')}</div>` : ''}</div>`
+    + `<div class="kc-tags">${renderTags(tags)}</div>`
     + `<div class="kc-lines">${body || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>`
-    + `<div class="kc-act"><div class="tile-row kc-row">${row}</div></div></div>`;
+    + `<div class="kc-act">${row}</div></div>`;
 }
 /* SEVERAL CARDS, or a message where there are none (the one empty card). */
 const renderCards = (specs, empty) => ((specs || []).length ? specs.map(renderCard).join('') : renderCard(Object.assign({ kind: 'empty', tags: [{ text: (empty && empty.name) || 'Nothing yet' }] }, empty || {}, { empty: (empty && empty.say) || (typeof NOTHING_YET === 'string' ? NOTHING_YET : '') })));
+/* EACH CARD KIND'S BUILDER: `cardKind_('kind', x => spec)`; findCard draws a registered kind from its spec (check-card-spec runs each one). */
+const CARD_KINDS = {};
+function cardKind_(kind, build) { CARD_KINDS[kind] = build; }
+function cardOfKind_(x) {
+  let spec = null;
+  try { spec = CARD_KINDS[x.kind](x); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'spec:' + x.kind); }
+  return spec ? renderCard(Object.assign({ kind: x.kind, key: x.key, row: x.row }, spec)) : '';
+}
 
 ;
 /* ==== js/core-price.js ==== */
@@ -8298,22 +8335,6 @@ const KC_FIELDS = {
   places: x => profPlaces_(profList_(kcRow_(x).venues)),
   /* DAY PILLS. */
   avail: x => profAvail_(kcRow_(x)),
-  venueSub: () => '',
-  /* A CHILD IS TOLD THE SEATS AND NOT THE PRICE (398), and a room with neither says nothing. */
-  rooms: x => { const t = kcRow_(x), kid = childView_();
-    const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? perHour_(rate) : 'free'].filter(Boolean).join(' · ');
-    const one = (label, max, rate) => (say(max, rate) ? row(label, say(max, rate)) : '');
-    return (t.rooms || []).length ? t.rooms.slice(0, 4).map(r => one(r.name || 'Room', r.max, r.rate)).join('') : one('The room', t.maxCapacity, t.bestRate); },
-  surcharge: x => { const t = kcRow_(x); if (x.kind === 'level' && !t.priced) return row('Surcharge', 'Not priced yet', 'bad');
-    return kcPct_(t.mult) || t.mult === 1 ? row(t.mult === 1 ? 'No surcharge' : 'Surcharge', kcPct_(t.mult)) : ''; },
-  /* THE SUBJECTS THAT RUN AT A LEVEL, green as a subject is everywhere. */
-  levelSubjects: x => { const s = kcRow_(x).subjects || [];
-    return s.length ? rowHtml('Subjects', s.map(v => `<span class="subject">${esc(v)}</span>`).join(', ')) : row('Subjects', 'None yet', 'bad'); },
-  tutorCount: x => { const n = (kcRow_(x).tutors || []).length; return row('Tutors', n ? String(n) : NO_TUTOR, n ? '' : 'bad'); },
-  bookingForm: x => (kcRow_(x).listed ? '' : row('Booking form', 'Not offered', 'bad')),
-  levels: x => { const l = (kcRow_(x).levels || []).filter(Boolean); return l.length ? row('Levels', l.join(', ')) : ''; },
-  tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<div class="qtags">${t.map(y => qtag_(esc(y.title), ' data-tag="3"')).join('')}</div>`
-    : x.kind === 'subject' ? row('Tutors', 'None yet', 'bad') : ''; },
   /* A KIND WHOSE OWN FILE WRITES ITS INSIDES (`KC_OWN`) hands them over cut into the four parts (`kcSplit_`); no tag line of its own gets its facets. */
   ownPic: x => (x.kcOwn || {}).pic || '',
   ownHead: x => (x.kcOwn || {}).head || '',
@@ -8325,15 +8346,15 @@ const kcField_ = k => KC_FIELDS[k] || (window.KC_FIELDS_MORE || {})[k];
 /* THE FILE'S ROWS BEFORE IT ARRIVES (or if it never does): the same rows, held equal to the file by check-card-shape. */
 const KC_DEFAULT = {
   tutor: { cls: 'is-widget is-prof tcard', pic: ['face'], title: [], tags: ['nameTag', 'teaches', 'facts'], lines: ['listedNote', 'say', 'photos', 'words', 'quals', 'jobs', 'places', 'avail'], tiles: ['book-with:book:Book', 'msg-open:chat:Message'] },
-  venue: { cls: 'venue-door', pic: ['venuePic'], title: ['name'], tags: ['facets'], lines: ['venueSub', 'rooms'], tiles: [] },
-  level: { cls: 'is-level', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['surcharge', 'levelSubjects', 'tutorCount', 'bookingForm', 'tutorNames'], tiles: ['book-with:book:Book'] },
-  subject: { cls: 'is-subject', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['surcharge', 'levels', 'tutorNames'], tiles: ['book-with:book:Book'] },
-  manuscript: { cls: 'hdb hdb-msc lib-c', pic: ['msPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] },
-  writing: { cls: 'hdb lib-c', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['refs'], tiles: [] },
-  event: { cls: 'hdb lib-c', pic: ['kindPic'], title: ['name'], tags: ['facets'], lines: ['refs'], tiles: [] },
-  people: { cls: 'person lib-c', pic: ['boxerPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] },
+  venue: { cls: 'venue-door', pic: [], title: [], tags: [], lines: [], tiles: [] },
+  level: { cls: 'is-level', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },
+  subject: { cls: 'is-subject', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },
+  manuscript: { cls: 'hdb hdb-msc lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
+  writing: { cls: 'hdb lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
+  event: { cls: 'hdb lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
+  people: { cls: 'person lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
   msg: { cls: 'msg-fc', pic: ['msgPic'], title: ['msgWho'], tags: ['msgTags'], lines: ['msgBody', 'msgTiles'], tiles: ['msg-reply:send:Reply'] },
-  post: { cls: 'post-fc', pic: ['postPic'], title: [], tags: ['postTags'], lines: ['postBody', 'postTiles'], tiles: ['react:heart:Like'] },
+  post: { cls: 'post-fc', pic: [], title: [], tags: [], lines: [], tiles: ['react:heart:Like'] },
   receipt: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['receiptTags'], lines: ['receiptSum', 'ownLines'], tiles: ['job-pay:pound:Pay'] },
   question: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   answer: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
@@ -8507,6 +8528,32 @@ function kcPicOr_(x, html) {
 }
 /* A REAL PICTURE: a photo, a clip, or a drawing of this very thing (a manuscript, a car part, a timeline stop); a kind sign or icon is not one. */
 const kcRealPic_ = h => /<(img|video|picture)\b|mfrclip-|class="(mech|tl)-pic"/.test(String(h || ''));
+/* ---------- THE BOOKING KINDS AS SPECS (master template): a subject and a level are facts and their tutors' names as tags. ---------- */
+const kcSurcharge_ = x => { const t = kcRow_(x); if (x.kind === 'level' && !t.priced) return { label: 'Surcharge', value: 'Not priced yet', tone: 'bad' };
+  return kcPct_(t.mult) || t.mult === 1 ? { label: t.mult === 1 ? 'No surcharge' : 'Surcharge', value: kcPct_(t.mult) } : null; };
+const kcTutorTags_ = x => (kcRow_(x).tutors || []).map(y => ({ text: y.title, colour: 3 }));
+const kcName_ = x => ({ text: kcRow_(x).title || kcRow_(x).name || x.name || '', colour: 0 });
+cardKind_('subject', x => { const t = kcRow_(x), lv = (t.levels || []).filter(Boolean), tut = kcTutorTags_(x);
+  return { look: 'is-subject', tags: [kcName_(x)].concat(typeof tagList_ === 'function' && x.key ? tagList_(x) : [], tut),
+    body: [{ type: 'list', items: [kcSurcharge_(x), lv.length ? { label: 'Levels', value: lv.join(', ') } : null,
+      tut.length ? null : { label: 'Tutors', value: 'None yet', tone: 'bad' }].filter(Boolean) }] }; });
+cardKind_('level', x => { const t = kcRow_(x), s = t.subjects || [], n = (t.tutors || []).length;
+  return { look: 'is-level', tags: [kcName_(x)].concat(typeof tagList_ === 'function' && x.key ? tagList_(x) : [], kcTutorTags_(x)),
+    body: [{ type: 'list', items: [kcSurcharge_(x), s.length ? { label: 'Subjects', value: s.join(', ') } : { label: 'Subjects', value: 'None yet', tone: 'bad' },
+      { label: 'Tutors', value: n ? String(n) : (typeof NO_TUTOR === 'string' ? NO_TUTOR : 'None yet'), tone: n ? '' : 'bad' },
+      t.listed ? null : { label: 'Booking form', value: 'Not offered', tone: 'bad' }].filter(Boolean) }] }; });
+/* A VENUE: its name and facets (its 8-bit building is no picture of it), its rooms as facts. A child is told the seats and not the price (398). */
+const kcFacetTags_ = x => [kcName_(x)].concat(typeof tagList_ === 'function' && x.key ? tagList_(x) : []);
+cardKind_('venue', x => { const t = kcRow_(x), kid = childView_();
+  const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? perHour_(rate) : 'free'].filter(Boolean).join(' · ');
+  const one = (label, max, rate) => (say(max, rate) ? { label, value: say(max, rate) } : null);
+  const rooms = (t.rooms || []).length ? t.rooms.slice(0, 4).map(r => one(r.name || 'Room', r.max, r.rate)) : [one('The room', t.maxCapacity, t.bestRate)];
+  return { look: 'venue-door', tags: kcFacetTags_(x), body: [{ type: 'list', items: rooms.filter(Boolean) }] }; });
+/* A WRITING AND AN EVENT: the name and the facets; a manuscript adds its own fragment, drawn where there is one. */
+cardKind_('writing', x => ({ look: 'hdb lib-c', tags: kcFacetTags_(x) }));
+cardKind_('event', x => ({ look: 'hdb lib-c', tags: kcFacetTags_(x) }));
+cardKind_('manuscript', x => { const svg = typeof msFragSvg_ === 'function' ? msFragSvg_(kcRow_(x), x.msSideIx) : '';
+  return { look: 'hdb hdb-msc lib-c', picture: svg ? { svg, alt: x.name } : null, tags: kcFacetTags_(x) }; });
 
 ;
 /* ==== js/cards-make.js ==== */
@@ -8586,6 +8633,7 @@ on('kc-more', el => { const c = el.closest('.kc-row, .tile-row'), m = c && c.que
   m.hidden = !m.hidden; el.setAttribute('aria-expanded', m.hidden ? 'false' : 'true'); });
 /* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
 function findCard(x, credits) {
+  if (x && x.kind && CARD_KINDS[x.kind]) return cardOfKind_(x);
   const around = x && !x.kcIn && (window.KC_AROUND || {})[x.kind];
   if (around) return around(x, extra => findCard(Object.assign({}, x, extra || {}, { kcIn: true })));
   /* A KIND WHOSE OWN FILE STILL WRITES ITS CARD (`window.KC_OWN[kind] = (x, credits) => html`) is cut into the parts; one already in the shape is kept whole. */
@@ -14251,28 +14299,18 @@ function postCard_(p, i) {
 
 /* ---------- A POST AS A FIND CARD (owner, 8 Nov, 36a): cards.js's `findCard` over card-fields.json's `post` row. */
 const postWho_ = p => (profileOf_(p.authorId) || {}).handle || p.handle || p.author || brand('name', '@family.');
-function postFindCard_(x, draw) {
-  const p = (x && x.row) || {};
-  return draw({ row: p, cardCls: p.waiting ? 'is-pending' : '', cardData: { post: p.id || '' } });
-}
-window.KC_AROUND = Object.assign(window.KC_AROUND || {}, { post: postFindCard_ });
-window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
-  postPic: x => { const p = x.row, media = postMedia_(p);
-    return media.length ? `<figure class="msg-fc-pic post-fc-pic">${postItem_(media[0], 'post-fc-img')}</figure>` : ''; },
-  postTitle: x => `<h3>${esc(x.row.title || postWho_(x.row))}</h3>`,
-  postTags: x => { const p = x.row, media = postMedia_(p);
-    const at = p.at || p.when, d = at && typeof parseWhen === 'function' ? parseWhen(at) : null;
-    const kind = p.poll ? 'Poll' : media.some(postIsVideo_) ? 'Clip' : media.length ? 'Photo' : 'Post';
-    const extra = [d && !isNaN(d) ? date_(d) : '', kind, media.length > 1 ? media.length + ' pictures' : '', p.pinned ? 'pinned' : '']
-      .filter(Boolean).map(t => `${qtag_(`${esc(t)}`, '', `msg-tag`)}`).join('');
-    const row = typeof tagRow_ === 'function' ? String(tagRow_(x) || '') : '';
-    return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, extra + '</div>') : `<div class="qtags qcard-tags">${extra}</div>`; },
-  postBody: x => { const body = String(x.row.caption || x.row.body || x.row.text || '').trim(); return body ? `<p class="msg-fc-body">${mark(body)}</p>` : ''; },
-  postTiles: x => /* the post's own Suggest goes: every Find card's row already carries one */ { const p = x.row, r = p.reactions, first = r && Array.isArray(r.emoji) && r.emoji[0];
-    const react = first ? tile_({ icon: 'heart', label: 'Like', note: first + (r.total ? ' · ' + r.total : ''), on: r.yours === first,
-      act: 'react', data: { id: p.id, emoji: first } }) : '';
-    return tileRow_(react + tile_(postOpts_(p))); },
-});
+/* ITS SPEC: the first picture or clip, the date and kind as tags after its facets, the words, Like and the post's own tiles. */
+cardKind_('post', x => { const p = x.row || {}, media = postMedia_(p), r = p.reactions, first = r && Array.isArray(r.emoji) && r.emoji[0];
+  const at = p.at || p.when, d = at && typeof parseWhen === 'function' ? parseWhen(at) : null, m = media[0];
+  const kind = p.poll ? 'Poll' : media.some(postIsVideo_) ? 'Clip' : media.length ? 'Photo' : 'Post';
+  const body = String(p.caption || p.body || p.text || '').trim();
+  return { look: 'post-fc' + (p.waiting ? ' is-pending' : ''), data: { post: p.id || '' },
+    picture: !m ? null : postIsVideo_(m) ? { video: postVidSrc_(m), alt: kind } : { src: pic(m), alt: '' },
+    tags: (p.title ? [{ text: p.title, colour: 0 }] : []).concat(x.key && typeof tagList_ === 'function' ? tagList_(x) : [],
+      [d && !isNaN(d) ? date_(d) : '', kind, media.length > 1 ? media.length + ' pictures' : '', p.pinned ? 'pinned' : ''].filter(Boolean).map(t => ({ text: t, look: 'msg-tag' }))),
+    body: body ? [{ type: 'text', text: { marked: body } }] : [],
+    tiles: [first ? { icon: 'heart', label: 'Like', note: first + (r.total ? ' · ' + r.total : ''), on: r.yours === first, act: 'react', data: { id: p.id, emoji: first } } : null]
+      .concat(postOpts_(p) || []).filter(Boolean) }; });
 
 /* WHAT PEOPLE SAID UNDER IT. § */
 function commentsHtml_(p) {

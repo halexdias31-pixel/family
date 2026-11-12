@@ -477,23 +477,6 @@ function personPic_(id, name, flip) {
   const r = personPix_(id, name);
   return pixSvg_(r && Array.isArray(r.px) ? r.px : PIX_NONE, name, flip, r ? '' : ' is-none');
 }
-/* ONE 8-BIT DRAWER (batch E): portraits, cars, car parts and PC parts are all 16 rows of palette letters (`.pp-<letter>`). */
-function pixSvg_(rows, name, flip, cls) {
-  const byC = {};
-  (rows || []).forEach((line, y) => {
-    for (let x = 0; x < line.length;) {
-      const c = line[x];
-      let w = 1;
-      while (line[x + w] === c) w++;
-      if (c !== '.') (byC[c] = byC[c] || []).push(`M${x} ${y}h${w}v1h-${w}z`);
-      x += w;
-    }
-  });
-  const paths = Object.keys(byC).map(c => `<path class="pp-${c}" d="${byC[c].join('')}"/>`).join('');
-  return `<svg class="pp${cls || ''}" viewBox="0 0 16 16" shape-rendering="crispEdges" role="img" aria-label="${esc(name || '')}">${
-    flip ? `<g transform="translate(16 0) scale(-1 1)">${paths}</g>` : paths}</svg>`;
-}
-
 /* A COLUMN VECTOR AS TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) DRAWN TOP OVER BOTTOM in one pair of brackets -- the box, the card, Saved */
 function vecHtml_(html) {
   return String(html == null ? '' : html).replace(/\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g,
@@ -501,4 +484,6 @@ function vecHtml_(html) {
 }
 window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, spec: specExtras_, manuscript: histExtras_, writing: histExtras_, event: histExtras_ });
 /* A BOXER'S OR FIGURE'S PIXEL PORTRAIT AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
-window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, { boxerPic: x => `<figure class="person-pic">${personPic_(x.pixId, x.name)}</figure>` });
+/* A PERSON IN THE LIBRARY (a boxer, a figure): their 8-bit portrait, their name and facets (master template). */
+const personPicSpec_ = (id, name, flip) => { const r = personPix_(id, name); return { pix: r && Array.isArray(r.px) ? r.px : PIX_NONE, alt: name, flip, none: !r }; };
+cardKind_('people', x => ({ look: 'person lib-c', picture: personPicSpec_(x.pixId, x.name), tags: [{ text: x.name || '', colour: 0 }].concat(x.key ? tagList_(x) : []) }));

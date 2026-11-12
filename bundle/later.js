@@ -419,7 +419,7 @@ const KINDS = {
   offBooking: { group: 'Booking', label: 'Booking', card: (x, c) => findCard(x, c) },
   /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
   health: { group: 'Settings', label: 'Settings', card: (x, c) => findCard(x, c) },
-  /* POSTS (owner, 8 Nov, 36a): the standard Find card shape (card-fields.json `post`, around it `postFindCard_`), not the feed's look. */
+  /* POSTS (owner, 8 Nov, 36a): the standard Find card shape (its spec, `cardKind_('post')` in posts.js), not the feed's look. */
   post: { group: 'Posts', label: 'Posts', card: x => findCard(x) },
 
   /* ---------- `link` WAS A KIND HERE, AND THE LINKS ARE OFF FIND § */
@@ -2588,10 +2588,6 @@ function bibleItems_() {
 function bibleCard_(x) {
   return x && x.bb ? bibleVerseCard_(x) : '';
 }
-/* A MANUSCRIPT'S OWN FRAGMENT WHERE DRAWN (else its kind's picture), and a writing's references, as fields of the one card shape. */
-window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
-  msPic: x => msFragSvg_(x.row || {}, x.msSideIx), refs: x => writingRefs_((x.row || {}).id) });
-
 /* ---------- THE ONE VIEWER (owner, 9 Nov): a library card's book, paper, video or PDF opens inside its own card, never a new tab; a video plays there, not full screen. */
 function fileViewKind_(u) {
   const s = String(u || '');
@@ -3330,23 +3326,6 @@ function personPic_(id, name, flip) {
   const r = personPix_(id, name);
   return pixSvg_(r && Array.isArray(r.px) ? r.px : PIX_NONE, name, flip, r ? '' : ' is-none');
 }
-/* ONE 8-BIT DRAWER (batch E): portraits, cars, car parts and PC parts are all 16 rows of palette letters (`.pp-<letter>`). */
-function pixSvg_(rows, name, flip, cls) {
-  const byC = {};
-  (rows || []).forEach((line, y) => {
-    for (let x = 0; x < line.length;) {
-      const c = line[x];
-      let w = 1;
-      while (line[x + w] === c) w++;
-      if (c !== '.') (byC[c] = byC[c] || []).push(`M${x} ${y}h${w}v1h-${w}z`);
-      x += w;
-    }
-  });
-  const paths = Object.keys(byC).map(c => `<path class="pp-${c}" d="${byC[c].join('')}"/>`).join('');
-  return `<svg class="pp${cls || ''}" viewBox="0 0 16 16" shape-rendering="crispEdges" role="img" aria-label="${esc(name || '')}">${
-    flip ? `<g transform="translate(16 0) scale(-1 1)">${paths}</g>` : paths}</svg>`;
-}
-
 /* A COLUMN VECTOR AS TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) DRAWN TOP OVER BOTTOM in one pair of brackets -- the box, the card, Saved */
 function vecHtml_(html) {
   return String(html == null ? '' : html).replace(/\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g,
@@ -3354,7 +3333,9 @@ function vecHtml_(html) {
 }
 window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, spec: specExtras_, manuscript: histExtras_, writing: histExtras_, event: histExtras_ });
 /* A BOXER'S OR FIGURE'S PIXEL PORTRAIT AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
-window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, { boxerPic: x => `<figure class="person-pic">${personPic_(x.pixId, x.name)}</figure>` });
+/* A PERSON IN THE LIBRARY (a boxer, a figure): their 8-bit portrait, their name and facets (master template). */
+const personPicSpec_ = (id, name, flip) => { const r = personPix_(id, name); return { pix: r && Array.isArray(r.px) ? r.px : PIX_NONE, alt: name, flip, none: !r }; };
+cardKind_('people', x => ({ look: 'person lib-c', picture: personPicSpec_(x.pixId, x.name), tags: [{ text: x.name || '', colour: 0 }].concat(x.key ? tagList_(x) : []) }));
 
 ;
 /* ==== js/find-parts.js ==== */
@@ -8171,9 +8152,10 @@ function tagShared_(x, facet, raw) {
   if (!memo.has(k)) memo.set(k, list.every(i => { try { return (facetTags_(facet, i) || []).some(v => String(v == null ? '' : v).trim() === raw); } catch (e) { return false; } }));
   return memo.get(k);
 }
-function tagRow_(x, page) {
+/* A CARD'S FACET TAGS AS DATA (the master template's `tags`); tagRow_ draws them as a row. */
+function tagList_(x, page) {
   const out = [], words = new Map(), ids = new Map(), said = [];
-  if (!x) return '';
+  if (!x) return [];
   /* A TAG SHOWS ONLY WHAT IS NOT ALREADY PICKED AS A CHIP (owner, 6 Nov): the chip above already says it. */
   const picked = new Set(), pickedWords = new Set();
   (STUFF.filters || []).filter(f => f && !f.any).forEach(f => { picked.add(f.field + '\u0000' + f.value);
@@ -8199,9 +8181,9 @@ function tagRow_(x, page) {
     });
   });
   tagFold_(out);
-  return `<div class="qtags qcard-tags">${out.map(t => qtag_(esc(t.text), `${tagAttr_(t.field)} data-f="${esc(t.field)}"${
-    t.also.length ? ` data-also="${esc(t.also.join(' '))}"` : ''}`)).join('')}</div>`;
+  return out.map(t => ({ text: t.text, colour: tagOf_(t.field), data: Object.assign({ f: t.field }, t.also.length ? { also: t.also.join(' ') } : {}) }));
 }
+const tagRow_ = (x, page) => renderTags(tagList_(x, page), 'qcard-tags');
 /* TAGS AT THE TOP OF EVERY CARD (1030, 1040 r10): a card with no tag line gets one, and one drawn under its title moves above it. */
 function tagsOnTop_(x, html) {
   if (!x || typeof html !== 'string' || !html) return html;
@@ -9775,9 +9757,6 @@ function screenGone_(id) {
   try { if (typeof OPEN_JOB !== 'undefined' && OPEN_JOB) BOOK_OPEN = false; } catch (e) { oops_(e, 'doors:gone'); }
   finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: to[1] }], show: true }); go('stuff'); return true;
 }
-/* A VENUE'S 8-BIT BUILDING AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
-window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
-  venuePic: x => `<figure class="person-pic">${pixSvg_(VENUE_PIX[venueShape_(x.row || {})], x.name)}</figure>` });
 
 ;
 /* ==== js/find-levels.js ==== */
