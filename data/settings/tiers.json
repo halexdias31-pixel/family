@@ -176,6 +176,7 @@
     "words": "secondary",
     "gtasks": "secondary",
     "push": "secondary",
+    "offline": "secondary",
     "inbox": "secondary",
     "missing": "secondary",
     "boot": "core"
@@ -322,6 +323,7 @@
     "check-api-deadline.js": "core",
     "check-policy-fill.js": "secondary",
     "check-press-hold.js": "core",
+    "check/offline.js": "secondary",
     "check/press-twice.js": "secondary",
     "check/press-deadline.js": "secondary",
     "check/tiles.js": "secondary",
@@ -382,6 +384,7 @@
     "inbox",
     "gtasks",
     "push",
+    "offline",
     "reader",
     "writings",
     "talmud",

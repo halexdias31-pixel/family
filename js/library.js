@@ -624,7 +624,9 @@ function libDiskPut_(items, gen) {
     recs.forEach(r => LIB.disk.set(r.id, r));
     let drop = [];
     if (LIB.disk.size > LIB_DISK_MAX) {
-      drop = [...LIB.disk.values()].sort((a, b) => a.at - b.at).slice(0, LIB.disk.size - LIB_DISK_MAX).map(r => r.id);
+      /* A PAPER MADE AVAILABLE OFFLINE never gives way (offline.js `offPinned_`). */
+      const pin = typeof offPinned_ === 'function' ? offPinned_() : new Set();
+      drop = [...LIB.disk.values()].filter(r => !pin.has(r.id)).sort((a, b) => a.at - b.at).slice(0, LIB.disk.size - LIB_DISK_MAX).map(r => r.id);
       drop.forEach(id => LIB.disk.delete(id));
     }
     if (disk) { disk.put(recs).catch(() => {}); if (drop.length) disk.drop(drop).catch(() => {}); }

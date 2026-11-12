@@ -233,6 +233,7 @@ const SUITE = [
   { file: 'check-policy-fill.js', what: 'each policy opens with its placeholders filled from the payload, headings drawn, no made-up value committed' },
   { file: 'check-api-deadline.js', what: 'a POST the backend runs for minutes is not cut by api()\'s one-minute deadline' },
   { file: 'check-press-hold.js', what: 'a control waiting on its request holds itself, not its twin, and not for ever; steppers take two fast taps' },
+  { file: 'check/offline.js', what: 'a paper made available offline: opened with no connection, rule parts marked, an AI part held; back online every press arrives once', slow: true },
   { file: 'check/press-twice.js', what: 'two taps 110 ms apart on every control post nothing twice; a control that asks first ignores a yes under 400 ms', slow: true, heavy: true },
   { file: 'check/press-deadline.js', what: 'a press whose request never answers is busy, takes no second press, and lets go with a sentence after a minute', slow: true },
   /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT § */

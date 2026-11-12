@@ -55,7 +55,7 @@ async function pushOn_() {
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') throw new Error(perm === 'denied' ? 'Notifications are blocked for this site — allow them in the browser\'s settings.' : 'Not turned on.');
     /* OUR OWN sw.js, so Firebase does not register a second worker of its own. */
-    const reg = (await navigator.serviceWorker.getRegistration()) || (await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }));
+    const reg = await swReg_();
     await pushSdk_();
     if (!window.firebase.apps.length) window.firebase.initializeApp(cfg);
     const token = await window.firebase.messaging().getToken({ vapidKey: cfg.vapidKey, serviceWorkerRegistration: reg });
