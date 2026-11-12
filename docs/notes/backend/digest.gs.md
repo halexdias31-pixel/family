@@ -906,3 +906,8 @@ top level, before `digestCardTags_`
    is said once, the first facet wins, a bare number is never a name. The page tags ([1] [of 2]) are left off: the email shows the part whole. */
 ```
 
+
+
+### The split into digest-tags.gs
+
+The library half of the email (fetching the library, each question's tags, levels, papers and plain text) moved whole into digest-tags.gs; its shortened comments' full text stays above, under the function each named.

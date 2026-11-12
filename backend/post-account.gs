@@ -25,18 +25,8 @@ function postRegister_(body, action, began) {
   const email = S(body.email), pin = S(body.pin);
   const grownUp = email ? '' : S(body.parent_email);
   const asParent = norm(body.who) === 'parent';
-  if (!first || !last) return jsonOut({ error: 'Please give a first and last name.' });
-  if (asParent && !email) {
-    return jsonOut({ error: 'A parent\'s account needs your own email address — it is what you sign in with. Nothing was saved.' });
-  }
-  if (!email && !grownUp) {
-    return jsonOut({ error: 'Please give your email address — or, with no email of your own, a grown-up\'s.' });
-  }
-  if ((email || grownUp).indexOf('@') < 0) return jsonOut({ error: 'Please give a real email address.' });
-  if (!/^\d{4}$/.test(pin)) return jsonOut({ error: 'Choose a PIN of 4 digits.' });
-  /* THE SAME RULE `changePin` HAS — see `pinWeak_`. A form that let you choose 0000 and then
-     refused it when you tried to change it was two rules for one PIN. */
-  if (pinWeak_(pin)) return jsonOut({ error: 'Pick a PIN that is harder to guess than that.' });
+  const wrong = registerWrong_(first, last, email, pin, grownUp, asParent);
+  if (wrong) return jsonOut({ error: wrong });
 
   const full = (first + ' ' + last).trim();
   const t = read(TAB.people);
@@ -55,13 +45,7 @@ function postRegister_(body, action, began) {
 
   /* PENDING until they click the link. § */
   const token = 'V' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-  /* WHO SENT THEM. The referral code was generated and never recorded against anybody, so the loop was open at the far end — codes went out and nothing came back. § */
-  const arrivedWith = S(body.ref).toUpperCase().replace(/[^A-Z0-9]/g, '');
-  let inviter = '';
-  if (arrivedWith) {
-    const owner = t.rows.find(x => S(x.referral_code).toUpperCase() === arrivedWith);
-    if (owner) inviter = S(owner.person_id) || personDisplayName(owner);
-  }
+  const { arrivedWith, inviter } = registerInviter_(t, body);
 
   /* BEFORE THE ROW EXISTS: a draft with the id it will have, so the template (364) can use it. */
   const regId = 'P' + Date.now();
@@ -71,7 +55,62 @@ function postRegister_(body, action, began) {
   if (!email && !regHandle) {
     return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
   }
-  addRow(t, Object.assign({
+  addRow(t, registerRow_(body, regId, regHandle, first, last, email, pin, grownUp, asParent, arrivedWith, inviter, token));
+
+  /* Tell the person who sent them. It is the only thanks the mechanism can give, it costs
+     nothing, and somebody who hears that their introduction landed makes another. */
+  if (inviter) registerThank_(t, inviter, full);
+  // Sent directly rather than through notify(): notify looks the address up on the row, and
+  // the point here is to prove that THIS address reaches this person.
+  /* THE HANDLE IS IN IT. It was nowhere: not in this email, not in the reply, only on the
+     account's own card once signed in — which a child with no address cannot reach without it. */
+  try {
+    registerMail_(email, grownUp, first, regHandle, token, asParent);
+  } catch (err) {
+    return jsonOut({ error: 'Account created, but the confirmation email could not be sent. Please get in touch.' });
+  }
+  /* `role` IN THE APP'S WORD, as the sign-in reply says it, so the phone can tell a parent what
+     comes next without guessing from what it posted. */
+  /* THE REPLY IS THE REGISTRANT'S OWN (342): they typed the name, so a grown-up's whole name stays in
+     it; a child's is still her first name, to herself as to everybody. */
+  netViewerSet_({ person_id: regId });
+  return jsonOut({ success: true, name: full, pending: true, handle: regHandle || '',
+                   confirmBy: email ? 'self' : 'grown-up',
+                   role: toAppRole(asParent ? 'client' : 'student') });
+}
+
+/* WHAT THE FORM GOT WRONG, IN THE WORDS IT SAYS BACK — or '' when nothing. */
+function registerWrong_(first, last, email, pin, grownUp, asParent) {
+  if (!first || !last) return 'Please give a first and last name.';
+  if (asParent && !email) {
+    return 'A parent\'s account needs your own email address — it is what you sign in with. Nothing was saved.';
+  }
+  if (!email && !grownUp) {
+    return 'Please give your email address — or, with no email of your own, a grown-up\'s.';
+  }
+  if ((email || grownUp).indexOf('@') < 0) return 'Please give a real email address.';
+  if (!/^\d{4}$/.test(pin)) return 'Choose a PIN of 4 digits.';
+  /* THE SAME RULE `changePin` HAS — see `pinWeak_`. A form that let you choose 0000 and then
+     refused it when you tried to change it was two rules for one PIN. */
+  if (pinWeak_(pin)) return 'Pick a PIN that is harder to guess than that.';
+  return '';
+}
+
+/* WHO SENT THEM, from the code they arrived with. */
+function registerInviter_(t, body) {
+  /* WHO SENT THEM. The referral code was generated and never recorded against anybody, so the loop was open at the far end — codes went out and nothing came back. § */
+  const arrivedWith = S(body.ref).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  let inviter = '';
+  if (arrivedWith) {
+    const owner = t.rows.find(x => S(x.referral_code).toUpperCase() === arrivedWith);
+    if (owner) inviter = S(owner.person_id) || personDisplayName(owner);
+  }
+  return { arrivedWith, inviter };
+}
+
+/* THE NEW ROW, PENDING until they click the link. */
+function registerRow_(body, regId, regHandle, first, last, email, pin, grownUp, asParent, arrivedWith, inviter, token) {
+  return Object.assign({
     /* THE ROLE THEY CHOSE — see the note over this action. § */
     person_id: regId, role: asParent ? 'client' : 'student',
     first_name: first, last_name: last,
@@ -85,56 +124,43 @@ function postRegister_(body, action, began) {
     verified: 'PENDING', verify_token: token
   /* ONLY WHEN THERE IS ONE: a key the tab has no column for is a lost write, and an account made
      with an address of its own has nothing to put here. */
-  }, grownUp ? { parent_email: grownUp } : {}));
+  }, grownUp ? { parent_email: grownUp } : {});
+}
 
-  /* Tell the person who sent them. It is the only thanks the mechanism can give, it costs
-     nothing, and somebody who hears that their introduction landed makes another. */
-  if (inviter) {
-    const owner = t.rows.find(x => S(x.person_id) === inviter || personDisplayName(x) === inviter);
-    if (owner) {
-      /* A THANK-YOU, and theirs to turn off (`referrals_email`) — nothing waits on it. */
-      notify(personDisplayName(owner), 'Somebody joined through you',
-        full + ' has just signed up using your code. Thank you — that is genuinely how this '
-        + 'grows.', 'referrals');
-    }
+/* THE THANK-YOU TO WHOEVER SENT THEM. */
+function registerThank_(t, inviter, full) {
+  const owner = t.rows.find(x => S(x.person_id) === inviter || personDisplayName(x) === inviter);
+  if (owner) {
+    /* A THANK-YOU, and theirs to turn off (`referrals_email`) — nothing waits on it. */
+    notify(personDisplayName(owner), 'Somebody joined through you',
+      full + ' has just signed up using your code. Thank you — that is genuinely how this '
+      + 'grows.', 'referrals');
   }
-  // Sent directly rather than through notify(): notify looks the address up on the row, and
-  // the point here is to prove that THIS address reaches this person.
-  /* THE HANDLE IS IN IT. It was nowhere: not in this email, not in the reply, only on the
-     account's own card once signed in — which a child with no address cannot reach without it. */
+}
+
+/* THE LINK THAT PROVES THE ADDRESS: the account's own, else the grown-up's. */
+function registerMail_(email, grownUp, first, regHandle, token, asParent) {
   const said = regHandle ? '@' + regHandle : '';
-  try {
-    /* THE ACCOUNT'S OWN ADDRESS GETS `linkMail_`, which `resendLink` sends again word for word. */
-    if (email) linkMail_({ first_name: first, email: email, handle: regHandle || '' }, token, asParent);
-    else mailOut_({ to: grownUp, name: '@family.',
-          subject: first + ' has made an @family. account',
-          /* THE FIRST NAME, as every email names a child now (the owner, 10 Oct: *"dont show
-             children's last name"*) — the grown-up knows the rest, and `mailOut_` would take it out. */
-          body: 'Hello,\n\n' + first + ' has made an account on @family. and gave this address as '
-              + 'their grown-up\'s, because they have no email of their own.\n\n'
-              + 'Their account works already. If that is right, open this link to confirm your address'
-              + ' (it also puts them on your @family. parent account if you have one and have confirmed it):\n\n'
-              + SITE_URL + '?verify=' + token + '\n\n'
-              + 'They sign in with their handle, ' + said + ', and the PIN they chose. '
-              /* "ONCE YOU HAVE OPENED IT": § */
-              + 'Once you have opened the link, "Forgotten your PIN?" sends a new one to this address '
-              + 'if they forget it.\n\n'
-              /* "AND HAVE CONFIRMED IT" since `verifyEmail` stopped linking a PENDING parent row. */
-              + 'If you have an @family. parent account on this address and have confirmed it, opening the '
-              + 'link also puts ' + first + ' on it. If you do not know who this is, ignore this email and '
-              + 'nothing happens.'
-              + '\n\n— @family.' });
-  } catch (err) {
-    return jsonOut({ error: 'Account created, but the confirmation email could not be sent. Please get in touch.' });
-  }
-  /* `role` IN THE APP'S WORD, as the sign-in reply says it, so the phone can tell a parent what
-     comes next without guessing from what it posted. */
-  /* THE REPLY IS THE REGISTRANT'S OWN (342): they typed the name, so a grown-up's whole name stays in
-     it; a child's is still her first name, to herself as to everybody. */
-  netViewerSet_({ person_id: regId });
-  return jsonOut({ success: true, name: full, pending: true, handle: regHandle || '',
-                   confirmBy: email ? 'self' : 'grown-up',
-                   role: toAppRole(asParent ? 'client' : 'student') });
+  /* THE ACCOUNT'S OWN ADDRESS GETS `linkMail_`, which `resendLink` sends again word for word. */
+  if (email) linkMail_({ first_name: first, email: email, handle: regHandle || '' }, token, asParent);
+  else mailOut_({ to: grownUp, name: '@family.',
+        subject: first + ' has made an @family. account',
+        /* THE FIRST NAME, as every email names a child now (the owner, 10 Oct: *"dont show
+           children's last name"*) — the grown-up knows the rest, and `mailOut_` would take it out. */
+        body: 'Hello,\n\n' + first + ' has made an account on @family. and gave this address as '
+            + 'their grown-up\'s, because they have no email of their own.\n\n'
+            + 'Their account works already. If that is right, open this link to confirm your address'
+            + ' (it also puts them on your @family. parent account if you have one and have confirmed it):\n\n'
+            + SITE_URL + '?verify=' + token + '\n\n'
+            + 'They sign in with their handle, ' + said + ', and the PIN they chose. '
+            /* "ONCE YOU HAVE OPENED IT": § */
+            + 'Once you have opened the link, "Forgotten your PIN?" sends a new one to this address '
+            + 'if they forget it.\n\n'
+            /* "AND HAVE CONFIRMED IT" since `verifyEmail` stopped linking a PENDING parent row. */
+            + 'If you have an @family. parent account on this address and have confirmed it, opening the '
+            + 'link also puts ' + first + ' on it. If you do not know who this is, ignore this email and '
+            + 'nothing happens.'
+            + '\n\n— @family.' });
 }
 
 /* confirming an email address --------------------------------------------------------- The token is the proof: § */

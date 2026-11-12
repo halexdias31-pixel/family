@@ -589,81 +589,7 @@ function ensureSchema_() {
 function dataProblems(deep) {
   const out = [];
   const add = (level, what, fix) => out.push({ level, what, fix });
-
-  /* --- terms: the ones that stop a booking existing at all --- */
-  const terms = read(TAB.terms).rows.filter(r => S(r.term_name));
-  terms.forEach(r => {
-    const s = sheetDate(r.start_date), e = sheetDate(r.end_date);
-    if (!s || !e) {
-      add('stops bookings', S(r.term_name) + ' has no dates',
-          'Add a start and an end in the terms tab.');
-    } else if (s > e) {
-      add('stops bookings', S(r.term_name) + ' ends before it starts ('
-          + fmtDate(s) + ' → ' + fmtDate(e) + ')',
-          'One of those two dates is a typo.');
-    }
-  });
-  // Two rows for one term is two entries in the dropdown that look identical.
-  const seen = {};
-  terms.forEach(r => {
-    const k = key(r.term_name);
-    if (seen[k]) add('confusing', 'Two rows are both called ' + S(r.term_name),
-                     'Delete one — clients see both and cannot tell them apart.');
-    seen[k] = true;
-  });
-
-  /* --- tutors: a tutor nobody can book is a tutor who earns nothing --- */
-  read(TAB.people).rows.forEach(r => {
-    if (!personDisplayName(r)) return;
-    const role = mainRole(r);
-    if (role === 'tutor' || role === 'admin') {
-      // Availability is ONE cell, not a column per hour — `availSet` unpacks it.
-      if (!Object.keys(availSet(r.availability)).length) {
-        add('stops bookings', personDisplayName(r) + ' has no available hours',
-            'Nothing can be booked with them until some are ticked.');
-      }
-      if (!N(r.rate_per_hour)) {
-        add('stops bookings', personDisplayName(r) + ' has no hourly rate',
-            'Their bookings will price at the open rate.');
-      }
-      /* THEIR OWN CUT OF AN EXTRA SEAT (docs/history/345), typed into the sheet by hand where the card's refusal cannot reach. § */
-      const cut = S(r.extra_seat_cut);
-      if (cut !== '') {
-        add('pricing looks wrong', personDisplayName(r) + "'s extra_seat_cut is " + cut,
-            'It is ignored since 8 Nov: config B is the one @family. share for every tutor. Clear the cell.');
-      }
-    }
-    /* Email is how everybody finds out anything. Without one, every notification this system
-       sends to that person is thrown away silently. */
-    if (!S(r.email)) {
-      add('nobody is told', personDisplayName(r) + ' (' + role + ') has no email address',
-          'Every message the site sends them is discarded.');
-    }
-  });
-
-  /* --- venues --- */
-  read(TAB.venues).rows.forEach(r => {
-    if (!S(r.name)) return;
-    if (!Object.keys(availSet(r.availability)).length) {
-      add('stops bookings', S(r.name) + ' has no open hours',
-          'It will never appear as bookable.');
-    }
-  });
-
-  /* --- the numbers that decide what you earn --- */
-  const cfg = config();
-  const c = N(cfg.c), B = N(cfg.B);
-  if (c + B > 1) {
-    add('pricing looks wrong', 'Each extra seat adds ' + Math.round((c + B) * 100) + '%'
-        + ' (c ' + c + ' + B ' + B + ')',
-        'These are FRACTIONS of the rate — 0.25 means +25%. A value above 1 is usually a pound '
-        + 'figure left over from an older formula.');
-  }
-  /* B IS THE ONE @FAMILY SHARE (8 Nov), a fraction of each tutor's extra-seat rate: a nought here is nothing earned on any extra seat. */
-  if (!B) {
-    add('you earn nothing', 'B is 0 — you take no share of any extra seat',
-        'Every hour such a tutor teaches earns you £0. That is a directory, not an agency.');
-  }
+  [dpTermRows_, dpTutors_, dpVenueHours_, dpShares_].forEach(part => part(add));
 
   /* ---------- THE LAW-COLOUR CHECK WENT WITH THE TAB § */
 
@@ -701,7 +627,86 @@ function dataProblems(deep) {
   return out;
 }
 
-/* The parts of dataProblems: each adds what it finds via `add`. */
+/* The parts of dataProblems: each adds what it finds via `add`. --- terms: the ones that stop a booking existing at all --- */
+function dpTermRows_(add) {
+  const terms = read(TAB.terms).rows.filter(r => S(r.term_name));
+  terms.forEach(r => {
+    const s = sheetDate(r.start_date), e = sheetDate(r.end_date);
+    if (!s || !e) {
+      add('stops bookings', S(r.term_name) + ' has no dates',
+          'Add a start and an end in the terms tab.');
+    } else if (s > e) {
+      add('stops bookings', S(r.term_name) + ' ends before it starts ('
+          + fmtDate(s) + ' → ' + fmtDate(e) + ')',
+          'One of those two dates is a typo.');
+    }
+  });
+  // Two rows for one term is two entries in the dropdown that look identical.
+  const seen = {};
+  terms.forEach(r => {
+    const k = key(r.term_name);
+    if (seen[k]) add('confusing', 'Two rows are both called ' + S(r.term_name),
+                     'Delete one — clients see both and cannot tell them apart.');
+    seen[k] = true;
+  });
+}
+/* --- tutors: a tutor nobody can book is a tutor who earns nothing --- */
+function dpTutors_(add) {
+  read(TAB.people).rows.forEach(r => {
+    if (!personDisplayName(r)) return;
+    const role = mainRole(r);
+    if (role === 'tutor' || role === 'admin') {
+      // Availability is ONE cell, not a column per hour — `availSet` unpacks it.
+      if (!Object.keys(availSet(r.availability)).length) {
+        add('stops bookings', personDisplayName(r) + ' has no available hours',
+            'Nothing can be booked with them until some are ticked.');
+      }
+      if (!N(r.rate_per_hour)) {
+        add('stops bookings', personDisplayName(r) + ' has no hourly rate',
+            'Their bookings will price at the open rate.');
+      }
+      /* THEIR OWN CUT OF AN EXTRA SEAT (docs/history/345), typed into the sheet by hand where the card's refusal cannot reach. § */
+      const cut = S(r.extra_seat_cut);
+      if (cut !== '') {
+        add('pricing looks wrong', personDisplayName(r) + "'s extra_seat_cut is " + cut,
+            'It is ignored since 8 Nov: config B is the one @family. share for every tutor. Clear the cell.');
+      }
+    }
+    /* Email is how everybody finds out anything. Without one, every notification this system
+       sends to that person is thrown away silently. */
+    if (!S(r.email)) {
+      add('nobody is told', personDisplayName(r) + ' (' + role + ') has no email address',
+          'Every message the site sends them is discarded.');
+    }
+  });
+}
+/* --- venues --- */
+function dpVenueHours_(add) {
+  read(TAB.venues).rows.forEach(r => {
+    if (!S(r.name)) return;
+    if (!Object.keys(availSet(r.availability)).length) {
+      add('stops bookings', S(r.name) + ' has no open hours',
+          'It will never appear as bookable.');
+    }
+  });
+}
+/* --- the numbers that decide what you earn --- */
+function dpShares_(add) {
+  const cfg = config();
+  const c = N(cfg.c), B = N(cfg.B);
+  if (c + B > 1) {
+    add('pricing looks wrong', 'Each extra seat adds ' + Math.round((c + B) * 100) + '%'
+        + ' (c ' + c + ' + B ' + B + ')',
+        'These are FRACTIONS of the rate — 0.25 means +25%. A value above 1 is usually a pound '
+        + 'figure left over from an older formula.');
+  }
+  /* B IS THE ONE @FAMILY SHARE (8 Nov), a fraction of each tutor's extra-seat rate: a nought here is nothing earned on any extra seat. */
+  if (!B) {
+    add('you earn nothing', 'B is 0 — you take no share of any extra seat',
+        'Every hour such a tutor teaches earns you £0. That is a directory, not an agency.');
+  }
+}
+
 function dpJobs_(add, deep) {
   const seen = PropertiesService.getScriptProperties().getProperties() || {};
   if (seen.SCHEMA_VERSION !== BACKEND_VERSION) {
