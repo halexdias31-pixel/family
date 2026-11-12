@@ -14335,10 +14335,13 @@ on('qp-ai', (el) => {
          submission it now reads agree (`subVerdictPaint_` asks both). */
       if (essayBox) aiKeptPaint_(box, inp);
     })
-    .catch(() => {
+    .catch(e => {
       failed = true;
       done();
-      out.textContent = 'Could not reach the marker \u2014 check the connection';
+      /* THE REAL REASON, not a guess at the connection: a timeout, the server's own error, or truly offline. */
+      const why = String((e && e.message) || '');
+      out.textContent = (typeof navigator !== 'undefined' && navigator.onLine === false) || !why || /Failed to fetch|NetworkError|Load failed/i.test(why)
+        ? 'Could not reach the marker \u2014 check the connection' : 'The marker did not answer: ' + why.replace(/^Backend:\s*/, '');
     });
 });
 
