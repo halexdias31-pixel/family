@@ -139,7 +139,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     for (const [col, off] of [['staff', staffOff], ['family', famOff]]) {
       if (!off) continue;
       const lock = q('#s-' + col + ' .rank-off');
-      if (!lock.classList.contains('col-lock') || !lock.querySelector('.col-lock-i svg')) bad.push(rank + ': ' + col + ' is not a padlock');
+      if (!lock.classList.contains('col-lock') || !/Locked/.test((lock.querySelector('.kc-tags .qtag') || {}).textContent || '')) bad.push(rank + ': ' + col + ' is not a padlock');
       if (lock.querySelector('h3, input, select, textarea')) bad.push(rank + ': the ' + col + ' padlock line has a title or a box');
       const shut = [...a.d.querySelectorAll('#s-' + col + ' .is-locked')];
       if (col === 'staff' && shut.length < 2) bad.push(rank + ': ' + col + ' shows ' + shut.length + ' locked cards, wanted every card of the column');

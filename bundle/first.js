@@ -10578,11 +10578,10 @@ const VOICE_SAMPLE = 'Hello. This is how your questions will be read. For exampl
 on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
 
 /* A COLUMN ABOVE YOUR RANK, OR EMPTY: one line and the next step. Never the column's name (710, 770: "columns don't need names or a widget for the name"). */
-const rankOffCard_ = (title, say, more) => card_(`<div class="rank-off">${say ? `<p class="note">${esc(say)}</p>` : ''}
-    ${more || ''}</div>`);
+/* `look` names it for the doors that skip it (`settingNone_`); `tiles` its next step. */
+const rankOffCard_ = (title, say, tiles, look) => renderCard({ kind: 'rank', look: look || 'rank-off', body: say ? [{ type: 'text', text: say, look: 'note' }] : [], tiles: tiles || [] });
 /* A SETTINGS COLUMN FOR A ROLE YOU DO NOT HOLD (464): a padlock and one short line, and nothing else — the owner, "it will just show a padlock". */
-const padlockCard_ = (say, more) => card_(`<div class="rank-off col-lock"><span class="col-lock-i" aria-hidden="true">${tileIcon_('lock')}</span>${say ? `<p class="note">${esc(say)}</p>` : ''}
-    ${more || ''}</div>`);
+const padlockCard_ = say => renderCard({ kind: 'rank', look: 'rank-off col-lock', tags: [{ text: 'Locked', colour: 0 }], body: say ? [{ type: 'text', text: say, look: 'note' }] : [] });
 const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', 'Kids settings') + ' first.');
 
 /* ---------- EVERYBODY SEES EVERY CARD (467) — the owner: "Everybody can see everything; different things are just locked behind a padlock." § */
@@ -10623,7 +10622,7 @@ function familyPages_() {
   if (!rankAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
   const out = ownCardSetPage_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family'));
   /* NOTHING A PARENT'S ALONE (469): your picture, name and contact are everybody's, so on Student settings. */
-  return out.length ? out : [rankOffCard_(title, NOTHING_YET + ' Your details are on ' + tabLabel_('account', 'Kids settings') + '.').replace('rank-off', 'set-none')];
+  return out.length ? out : [rankOffCard_(title, NOTHING_YET + ' Your details are on ' + tabLabel_('account', 'Kids settings') + '.', null, 'set-none')];
 }
 screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_('family') : familyPages_()));
 
@@ -10643,7 +10642,7 @@ function staffPages_() {
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [card_(`<div class="staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`)] : [];
   const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof legoCards_ === 'function' ? legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
-  return out.length ? out : [card_(`<div class="rank-off set-none">${empty_()}</div>`)];
+  return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
 
@@ -11001,7 +11000,7 @@ function peoplePages_(col) {
   const title = tabLabel_(col, col);
   if (!USER) return [signedOutCard_(title)];
   const out = typeof accountPages_ === 'function' ? accountPages_(col) : [];
-  return out.length ? out : [rankOffCard_(title, 'Nobody to show here yet.').replace('rank-off', 'people-none')];
+  return out.length ? out : [rankOffCard_(title, 'Nobody to show here yet.', null, 'people-none')];
 }
 /* ---------- YOUR CARD ON YOUR ROLE'S SETTINGS COLUMN: ONLY ITS EDITING, A CARD PER THING (468) — never a preview; the person is drawn on the profile columns. */
 function ownCardSetPage_(setCol) {
