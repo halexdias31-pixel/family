@@ -23,7 +23,9 @@ const mailApp = {
   getRemainingDailyQuota: () => QUOTA,
 };
 const fresh = () => backend({ MailApp: mailApp });
-const mailTo = (addr, since) => MAIL.slice(since || 0).filter(m => S(m.to).split(',').indexOf(addr) !== -1);
+/* MEANT FOR `addr`: sent to it, or a parent's email the admin was sent to pass on ("…meant for X, at addr."), owner 11 Nov. */
+const mailTo = (addr, since) => MAIL.slice(since || 0).filter(m => S(m.to).split(',').indexOf(addr) !== -1
+  || (/^For /.test(S(m.subject)) && S(m.body).indexOf(', at ' + addr + '. ') !== -1));
 const pinIn = m => ((S(m && m.body).match(/PIN is (\d{4,8})/) || [])[1] || '');
 
 /* ---------- THE PEOPLE ----------------------------------------------------------------------------- */
@@ -638,7 +640,8 @@ let proofRules = 0;
       { sub: 'g-1', aud: 'cid-check', email_verified: 'true', email: gmail }) }) };
     const b = backend({ MailApp: mailApp, UrlFetchApp: google });
     b.seed('config', [{ key: 'google_client_id', value: 'cid-check' }]);
-    b.seed('people', [person('P-CON', 'client', 'Cy', 'Confirmed', { email: 'cy@example.org', handle: 'cy_kind98' })]);
+    b.seed('people', [person('P-CON', 'client', 'Cy', 'Confirmed', { email: 'cy@example.org', handle: 'cy_kind98' }),
+      person('P-ADX', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind99' })]);
     register(b, { who: 'parent', first_name: 'Sid', last_name: 'Squat', email: 'val@example.org', pin: P1 });
     const squat = signIn(b, 'val@example.org', P1);
     /* A CHILD ON THE SQUATTED ROW from before the rule — Google taking it back holds them, as the PIN does. */
@@ -780,7 +783,7 @@ let proofRules = 0;
       const one = post(b, { action: 'resendLink', token: kay.token, personId: 'P-ROY', email: 'roy@example.org', to: 'roy@example.org' });
       const sent = MAIL.slice(m);
       const now = rowOf(b, r => r.person_id === 'P-KAY');
-      rule(one.success && sent.length === 1 && S(sent[0].to) === 'kay@example.org',
+      rule(one.success && sent.length === 1 && mailTo('kay@example.org', m).length === 1,
         '"Send the link again" mailed somewhere other than the row\'s own pending address, or more than once', sent.map(x => x.to));
       rule(S(now.verify_token) && S(now.verify_token) !== 'Vkay-old' && sent[0] && S(sent[0].body).indexOf('?verify=' + S(now.verify_token)) !== -1,
         'the link sent again is not a fresh token written to the row', { token: now.verify_token });

@@ -1026,7 +1026,7 @@ function digestMail_(emails, o) {
     try {
       /* `firstNamesOnly`: the net in `mailOut_` leaves a child's whole name as the first name alone here,
          never "First (@handle)" — a parent's email carries no username (the note over `digestRender_`). */
-      mailOut_({ to: m.to, subject: m.subject, body: m.text, htmlBody: m.html, firstNamesOnly: true });
+      mailOut_({ to: m.to, subject: m.subject, body: m.text, htmlBody: m.html, firstNamesOnly: true, kind: 'weekly' });
     } catch (err) {
       try { setCells(claim.log, claim.row, { status: 'failed', note: S(err && err.message || err).slice(0, 200) }); } catch (e2) {}
       out.failed++;

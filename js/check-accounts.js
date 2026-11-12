@@ -157,7 +157,8 @@ const FULL = { action: 'applyTeach', subjects: 'Maths (GCSE), Physics (A level)'
   const m1 = MAIL.length;
   const iv = as('admin@example.org', { action: 'decideApplication', id: mine.id, status: 'interview' });
   rule(iv.success && iv.status === 'interview' && b.ev("rankOf(findPerson('', 'P-C1'))") === 'client', 'Interview did not keep them a client', iv);
-  rule(mailTo('pat@example.org', m1).some(m => /talk to you/.test(m.body)), 'the applicant was not emailed about the interview');
+  /* A CLIENT APPLYING IS STILL A PARENT, so the email lands at the admin to pass on (owner, 11 Nov). */
+  rule(MAIL.slice(m1).some(m => /^For Pat/.test(m.subject) && /talk to you/.test(m.body)), 'the applicant\'s interview email did not reach the admin to pass on');
   const odd = as('admin@example.org', { action: 'decideApplication', id: mine.id, status: 'hired' });
   rule(!odd.success, 'a status that is not one was written', odd);
   const before = (b.get({}).tutors || []).some(t => t.personId === 'P-C1');
@@ -184,7 +185,7 @@ const FULL = { action: 'applyTeach', subjects: 'Maths (GCSE), Physics (A level)'
     'a child\'s forgotten PIN did not go to owner_email alone', { fp, to: MAIL.slice(m0).map(m => m.to) });
   const m1 = MAIL.length;
   const own = b.post({ action: 'forgotPin', who: 'pat@example.org' });
-  rule(own.success && mailTo('pat@example.org', m1).length === 1 && !mailTo('boss@example.org', m1).length, 'an adult\'s own reset left their own inbox', own);
+  rule(own.success && !mailTo('pat@example.org', m1).length && mailTo('boss@example.org', m1).some(m => /^For Pat/.test(m.subject)), 'a parent\'s own reset did not go to owner_email marked "For Pat"', own);
   const vars = ((b.get({}).constants || {}).vars) || {};
   rule(!('owner_email' in vars) && JSON.stringify(b.get({})).indexOf('boss@example.org') === -1, 'owner_email was sent to a phone');
 }
