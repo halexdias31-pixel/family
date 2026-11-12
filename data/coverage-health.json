@@ -1,0 +1,208 @@
+{
+ "v": 1,
+ "privateText": true,
+ "subjects": {
+  "Biology": {
+   "spec": "AQA GCSE Biology (8461)",
+   "file": "data/specs/aqa-8461.json",
+   "points": 97,
+   "lesson": 97,
+   "practice": 96,
+   "figureNeed": 36,
+   "figureHave": 27,
+   "lessonPct": 100
+  },
+  "Chemistry": {
+   "spec": "AQA GCSE Chemistry (8462)",
+   "file": "data/specs/aqa-8462.json",
+   "points": 124,
+   "lesson": 124,
+   "practice": 123,
+   "figureNeed": 26,
+   "figureHave": 19,
+   "lessonPct": 100
+  },
+  "Physics": {
+   "spec": "AQA GCSE Physics (8463)",
+   "file": "data/specs/aqa-8463.json",
+   "points": 91,
+   "lesson": 91,
+   "practice": 91,
+   "figureNeed": 22,
+   "figureHave": 22,
+   "lessonPct": 100
+  },
+  "Maths": {
+   "spec": "Pearson Edexcel GCSE Mathematics (1MA1)",
+   "file": "data/specs/edexcel-1ma1.json",
+   "points": 97,
+   "lesson": 93,
+   "practice": 97,
+   "figureNeed": 20,
+   "figureHave": 17,
+   "lessonPct": 96
+  }
+ },
+ "work": [
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.2.2.5 Health issues",
+   "say": "lesson TB-AQA-8461#18 has no figure (the spec says diagram)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.2.2.6 The effect of lifestyle on some non-communicable diseases",
+   "say": "lesson TB-AQA-8461#19 has no figure (the spec says diagram, graph)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.5.3.3 Maintaining water and nitrogen balance in the body",
+   "say": "lesson TB-AQA-8461#49 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.6.1.4 DNA and the genome",
+   "say": "lesson TB-AQA-8461#59 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.6.3.3 The understanding of genetics",
+   "say": "lesson TB-AQA-8461#71 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.6.3.5 Fossils",
+   "say": "lesson TB-AQA-8461#73 has no figure (the spec says graph)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.6.4 Classification of living organisms",
+   "say": "lesson TB-AQA-8461#76 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.7.1.1 Communities",
+   "say": "lesson TB-AQA-8461#77 has no figure (the spec says graph)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Biology 4.7.1.2 Abiotic factors",
+   "say": "lesson TB-AQA-8461#78 has no figure (the spec says graph)"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Biology 4.7.2.4 Impact of environmental change",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.2.3.3 Graphene and fullerenes",
+   "say": "lesson TB-AQA-8462#31 has no figure (the spec says diagram, structure)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.2.4.1 Sizes of particles and their properties",
+   "say": "lesson TB-AQA-8462#32 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Chemistry 4.3.2.3 Using moles to balance equations",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.6.2.3 Equilibrium",
+   "say": "lesson TB-AQA-8462#73 has no figure (the spec says apparatus)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.7.2.2 Reactions of alkenes",
+   "say": "lesson TB-AQA-8462#83 has no figure (the spec says draw)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.7.2.4 Carboxylic acids",
+   "say": "lesson TB-AQA-8462#85 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.10.1.1 Using the Earth's resources and sustainable development",
+   "say": "lesson TB-AQA-8462#114 has no figure (the spec says graph)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Chemistry 4.10.3.3 Ceramics, polymers and composites",
+   "say": "lesson TB-AQA-8462#122 has no figure (the spec says structure)"
+  },
+  {
+   "kind": "spec-lesson",
+   "where": "Maths N6 Use positive integer powers and associated real roots (square, cube and higher), recognise powers of 2, 3,…",
+   "say": "no lesson"
+  },
+  {
+   "kind": "spec-lesson",
+   "where": "Maths A2 Substitute numerical values into formulae and expressions, including scientific formulae",
+   "say": "no lesson"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Maths A14 Plot and interpret graphs (including reciprocal graphs and exponential graphs) and graphs of non-standard…",
+   "say": "lesson TB-GCSE-MATHS#12 has no figure (the spec says graph, plot)"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Maths A15 Calculate or estimate gradients of graphs and areas under graphs (including quadratic and other non-linear…",
+   "say": "lesson TB-GCSE-MATHS#12 has no figure (the spec says graph)"
+  },
+  {
+   "kind": "spec-lesson",
+   "where": "Maths R3 Express one quantity as a fraction of another, where the fraction is less than 1 or greater than 1",
+   "say": "no lesson"
+  },
+  {
+   "kind": "spec-figure",
+   "where": "Maths R14 Interpret the gradient of a straight line graph as a rate of change",
+   "say": "lesson TB-GCSE-MATHS#12 has no figure (the spec says graph)"
+  },
+  {
+   "kind": "spec-lesson",
+   "where": "Maths G4 Derive and apply the properties and definitions of: special types of quadrilaterals, including square,…",
+   "say": "no lesson"
+  }
+ ],
+ "rules": [
+  {
+   "id": "spec-lesson",
+   "group": "content",
+   "label": "Spec points with a lesson",
+   "ok": 405,
+   "of": 409,
+   "kinds": [
+    "spec-lesson"
+   ],
+   "unit": "spec points"
+  },
+  {
+   "id": "spec-figure",
+   "group": "content",
+   "label": "Lessons with a figure where the spec point is a diagram, graph, apparatus or structure",
+   "ok": 85,
+   "of": 104,
+   "kinds": [
+    "spec-figure"
+   ],
+   "unit": "lessons"
+  },
+  {
+   "id": "spec-practice",
+   "group": "content",
+   "label": "Spec points with practice questions",
+   "ok": 407,
+   "of": 409,
+   "kinds": [
+    "spec-practice"
+   ],
+   "unit": "spec points"
+  }
+ ]
+}

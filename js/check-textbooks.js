@@ -102,7 +102,7 @@ if (!libM || libM[1].indexOf("'textbooks'") < 0) {
 }
 
 /* ---------- THE ROWS ---------------------------------------------------------------------------- */
-const POINTS_MIN = 3, POINTS_MAX = 5, POINT_LEN = 200, WORDS_MIN = 3;
+const POINTS_MIN = 3, POINTS_MAX = 5, POINT_LEN = 200, WORDS_MIN = 3, LESSON_LINE_LEN = 400;
 const NUMBERED = /^(word|formula|point|topic)s?_\d+$/;
 const books = new Map();
 const unknownTopics = new Map();
@@ -220,7 +220,9 @@ rows.forEach((r, line) => {
   words += w.length;
   /* WORDS NEWER THAN THE PINNED SEED (lib_pending, docs/library.md): on a machine without them the card is all there is. */
   if (wordless(r)) { pendingCards++; return; }
-  if (w.length < WORDS_MIN) fail.push(where + ' has ' + w.length + ' key words — the bones are key words, at least ' + WORDS_MIN);
+  /* A SPEC-POINT LESSON (tools/coverage.js) is one point, not a chapter: its definition may be one key word, its four lines a short paragraph each. */
+  const lesson = !!String(r.spec_ref || '').trim(), wordsMin = lesson ? 1 : WORDS_MIN, pointLen = lesson ? LESSON_LINE_LEN : POINT_LEN;
+  if (w.length < wordsMin) fail.push(where + ' has ' + w.length + ' key words — the bones are key words, at least ' + wordsMin);
   w.forEach(i => {
     /* A DEFINITION IS DRAWN AS TEXT, NOT TYPESET, so maths in one is maths nobody draws. */
     if (/[\/^]/.test(i.text)) fail.push(where + ' key word "' + i.name + '" has a / or ^ in its definition, which is drawn as plain text — put the maths in formulas');
@@ -234,7 +236,7 @@ rows.forEach((r, line) => {
     fail.push(where + ' has ' + p.length + ' worked lines — bare bones is ' + POINTS_MIN + ' to ' + POINTS_MAX);
   }
   p.forEach((i, k) => {
-    if (i.text.length > POINT_LEN) fail.push(where + ' worked line ' + (k + 1) + ' is ' + i.text.length + ' characters — a worked line, not a paragraph (max ' + POINT_LEN + ')');
+    if (i.text.length > pointLen) fail.push(where + ' worked line ' + (k + 1) + ' is ' + i.text.length + ' characters — a worked line, not a paragraph (max ' + pointLen + ')');
   });
   if (typeset_) {
     f.concat(p).forEach(i => {

@@ -107,6 +107,8 @@ almost never writes to it directly.
   constants.gs), copied once by `library-to-ledger` and fetched a card at a time by `libItems` (signed in,
   `library_items_per_day`). A card whose words have not come is one waiting page (`libWaitHtml_`). The teaching
   animation rows stay public whole. Tools: `tools/lib-private.js`; checks: `check/lib-full.js`.
+- **What must exist is the specification** (1213): `data/specs/*.json` lists every numbered spec point; `node tools/coverage.js -v`
+  maps lessons (`spec_ref`), questions and figures onto them and writes `data/coverage-health.json` for health.js's *Library content*.
 - **There are no textbooks on screen: each chapter row of `data/textbooks.json` is a CONTENT CARD**
   (kind `content`, `What kind · Content`; docs/history/347, part 2). *"Forget the whole concept of it
   being a text book. It's just a "content card""* — the owner, 12 Oct. A card wears the question
