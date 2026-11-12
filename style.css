@@ -1162,23 +1162,19 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
   width: 100%; min-height: 3rem; margin: 0; padding: 0;
 }
 .loading > span {
-  flex: none; display: block; width: 100%; max-width: 12rem; height: .25rem; overflow: hidden;
-  border-radius: var(--r-round); background: var(--line);
+  flex: none; display: block; width: var(--s5); height: var(--s5); box-sizing: border-box;
+  border: var(--s0) solid var(--ink); border-top-color: transparent; border-radius: 50%;
+  animation: loading .9s linear infinite;
 }
-/* THE FILL: fast at first, ever slower, never reaching the end on its own — the content landing is what ends it. */
-.loading > span::before {
-  content: ''; display: block; height: 100%; background: var(--gold);
-  transform-origin: left; transform: scaleX(.92);
-  animation: loading 12s cubic-bezier(.1, .7, .2, 1) both;
-}
-.qp-ai-stage > .loading { width: 4rem; min-height: 1.3em; flex: none; }
-@keyframes loading { from { transform: scaleX(.04); } to { transform: scaleX(.92); } }
-/* STILL, NOT GONE, for somebody who asked for less movement: a half-filled bar is still a thing on its way. */
+/* ONE SPINNING RING (owner, 12 Nov): a ring with a gap turning forever, ink on screen; the content landing is what ends it. */
+.qp-ai-stage > .loading { width: auto; min-height: 1.3em; flex: none; }
+@keyframes loading { to { transform: rotate(1turn); } }
+/* SLOWER, NOT GONE, for somebody who asked for less movement: a slow turn still says something is on its way. */
 @media (prefers-reduced-motion: reduce) {
-  .loading > span::before { animation: none; transform: scaleX(.5); }
+  .loading > span { animation-duration: 4s; }
 }
 /* ONLY THE CARD IN FRONT MOVES. § */
-.page:not(.on) .loading > span::before { animation-play-state: paused; }
+.page:not(.on) .loading > span { animation-play-state: paused; }
 /* A WHOLE PAGE WAITING: § */
 .pane:not([data-keep]):has(> .loading:only-child) {
   min-height: 6rem;
