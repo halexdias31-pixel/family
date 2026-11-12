@@ -108,51 +108,6 @@ function versionSaid_() {
       })()}`;
 }
 
-/* ---------- THE SETUP CARD (361): what has set itself up since the last deploy, for an admin only ----------
-   No buttons: every job runs by itself on an admin's page load, so there is nothing to press twice. */
-function setupWhen_(iso) {
-  const d = new Date(String(iso || ''));
-  if (isNaN(d)) return String(iso || '');
-  return date_(d) + ' ' + time_(d);
-}
-/* A JOB'S LINK — the tidy's backup copy (379) — only when it is an https address, opened beside the app. */
-function setupJobLink_(j) {
-  const url = String((j && j.link) || '');
-  if (url.slice(0, 8) !== 'https://') return '';
-  return ` <a href="https://${esc(url.slice(8))}" target="_blank" rel="noopener">Open the backup</a>`;
-}
-function setupCard_() {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return '';
-  const S_ = DATA && DATA.setup;
-  /* IN THE BUSINESS COLUMN (400), and it glows while something is wrong — `bizNeed_` in records.js. */
-  const need = (n, say) => typeof bizNeed_ === 'function' ? bizNeed_('setup', n, say) : '';
-  if (!S_) {
-    return typeof awaiting_ === 'function' && awaiting_()
-      ? card_(`<div class="setup-card" data-need="setup">${need(0)}<h3>Setup</h3>${loading_()}</div>`)
-      : card_(`<div class="setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Not deployed')}</div>`);
-  }
-  if (S_.error) return card_(`<div class="setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Setup failed')}</div>`);
-  const files = S_.files || {};
-  const odd = Object.keys(files).filter(k => files[k] !== S_.backend);
-  const jobs = Array.isArray(S_.jobs) ? S_.jobs : [];
-  const failed = jobs.filter(j => j && j.error);
-  const sun = S_.sunday || {};
-  const mode = { send: 'on — it emails parents', preview: 'preview — it writes the log and emails nobody' }[sun.mode] || 'off — nothing is sent';
-  const wrong = failed.length + (odd.length ? 1 : 0);
-  return card_(`<div class="setup-card" data-need="setup"><h3>Setup</h3>
-    ${need(wrong, wrong + (wrong === 1 ? ' thing to fix' : ' things to fix'))}
-    ${failed.map(j => `<p class="setup-bad">${esc(j.id)} failed: ${esc(j.error)} — it tries again on the next page load.</p>`).join('')}
-    <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} <span class="qtag">${j.ran
-      ? esc(j.ran === 'yes' ? 'done' : setupWhen_(j.ran)) : j.error ? 'failed' : 'waiting'}</span>${
-      /* WHAT THE JOB LEFT TO SAY — the tidy's backup copy and what it removed (379). */
-      j.said ? `<br><span class="qtag">${esc(j.said)}</span>` : ''}${
-      setupJobLink_(j)}</li>`).join('')}</ul>
-    <h4>Triggers</h4>
-    <ul class="setup-list">${(S_.triggers || []).map(t => `<li>${esc(t.fn)}${t.times > 1 ? ' ×' + esc(t.times) : ''} <span class="qtag">${esc(t.when)}</span></li>`).join('')
-      || ''}</ul>
-  </div>`);
-}
-
 /* ---------- APPLY TO TEACH (400): Staff only by application and an admin's yes ----------
    On You, for a signed-in adult who is not staff yet; no date of birth is underage (450), so the card asks for it. */
 const APP_SUBJECT_ROWS = 3;

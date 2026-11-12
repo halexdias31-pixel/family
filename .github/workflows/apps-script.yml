@@ -59,6 +59,7 @@ concurrency:
 jobs:
   push:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # Never from a fork. A pull_request trigger would not receive secrets anyway, but a public repo
     # deserves the belt as well as the braces.
     if: github.repository == 'halexdias31-pixel/family'

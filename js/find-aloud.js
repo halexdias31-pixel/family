@@ -766,7 +766,7 @@ function topicOf_(x) {
 /* ---------- THE TOPIC TREE WAS READ HERE § */
 
 /* THE LIBRARY'S LEVELS, ONE TABLE (R4): each level's key stages, tiers, other spellings, and rung on the ladder a range is
-   read along (0: never in a range). check/schema.js reads this very literal. */
+   read along (0: never in a range). check/library-schema.js reads this very literal. */
 const LEVEL_TABLE = [
   /* ---------- `KS2 SATs` IS TWO FACTS, AND THE LEVEL IS ONE OF THEM § */
   { level: 'SATs',        rung: 1, stages: ['KS1', 'KS2'], tiers: [], says: ['KS1', 'KS2', 'KS1 SATs', 'KS2 SATs'] },

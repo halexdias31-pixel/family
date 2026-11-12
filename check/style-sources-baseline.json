@@ -1,7 +1,6 @@
 {
   "why": "counts may only go down; lower them when you fix one",
   "allow": {
-    "cssColours": 0,
     "important": 32
   },
   "jsColours": {

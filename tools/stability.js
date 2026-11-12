@@ -2,10 +2,10 @@
 /* THE STABILITY SCORE (730): 100% less a penalty per signal, read from the repo alone — no network, no clock, no run. */
 // Weights (points off per unit, each signal capped):
 // exceptions   0.10 per entry in a check's written-exception list (ACCEPTED, *_OK, KNOWN*, ALLOW*), cap 20
-// catches      0.02 per empty catch allowed by check-catches' CEILING, cap 15
+// catches      0.02 per empty catch in js/ (tools/catches.js, the count check-catches gates), cap 15
 // ceilings     0.002 per unit of every raised *_MAX ratchet in the checks, cap 10
 // special      0.05 per per-facet or per-kind special case (`facet === '…'`, `kind === '…'`) outside the checks, cap 10
-// dead         0.30 per name check-dead reports nothing calls, cap 10
+// dead         0.30 per function nothing calls (tools/dead.js, the list check-dead fails on), cap 10
 // longfiles    0.50 per js/ or backend file over 3000 lines, cap 10
 // longfns      0.05 per top-level function over 150 lines, cap 10
 // markers      0.20 per TODO / FIXME / HACK / XXX outside the checks, cap 5
@@ -13,7 +13,7 @@
 // TIERS (860): the score weighs core files only (data/settings/tiers.json); the secondary files' figures are `secondary`, shown apart.
 // A red check is not scored: check-all fails it outright, and slowness depends on the machine. `--check` compares data/stability.json.
 'use strict';
-const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
+const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const read = f => { try { return fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { return ''; } };
 const list = d => { try { return fs.readdirSync(path.join(ROOT, d)).sort(); } catch (e) { return []; } };
@@ -44,7 +44,7 @@ function exceptions() {
   });
   return { n, where };
 }
-const catches = () => { if (TIER !== 'core') return { n: 0 }; const m = /const CEILING = (\d+)/.exec(read('js/check-catches.js')); return { n: m ? Number(m[1]) : 0 }; };
+const catches = () => ({ n: require('./catches.js').emptyCatches(jsApp.filter(mine)).length });   // the one count (tools/catches.js)
 function ceilings() {
   let n = 0; const where = {};
   jsCheck.filter(mine).forEach(f => { for (const m of read(f).matchAll(/^const (\w+_MAX) = (\d+);/gm)) { n += Number(m[2]); where[f + ' ' + m[1]] = Number(m[2]); } });
@@ -59,11 +59,7 @@ let DEAD = null;
 function dead() {
   if (TIER !== 'core') return { n: 0 };
   if (DEAD) return DEAD;
-  let out = '';
-  try { out = execFileSync(process.execPath, [path.join(ROOT, 'js', 'check-dead.js'), '-v'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); }
-  catch (e) { out = String(e.stdout || ''); }
-  const names = [];
-  out.split('\n').filter(l => /^(frontend|backend): /.test(l)).forEach(l => l.replace(/^\w+: /, '').split(', ').forEach(x => { if (x.trim()) names.push(x.trim()); }));
+  const names = require('./dead.js').deadFunctions().map(d => d.name + ' (' + d.file + ')');   // the one list (tools/dead.js)
   return (DEAD = { n: names.length, where: names.length ? { 'check-dead': names.slice(0, 40).join(', ') } : {} });
 }
 function longfiles() {
@@ -100,7 +96,7 @@ function duplicates() {
 
 const SIGNALS = [
   ['exceptions', 'Written exceptions in the checks', 0.10, 20, exceptions],
-  ['catches', 'Empty catches allowed (check-catches ceiling)', 0.02, 15, catches],
+  ['catches', 'Empty catches (tools/catches.js)', 0.02, 15, catches],
   ['ceilings', 'Raised ratchet ceilings (*_MAX)', 0.002, 10, ceilings],
   ['special', 'Per-facet and per-kind special cases', 0.05, 10, special],
   ['dead', 'Code nothing calls', 0.30, 10, dead],

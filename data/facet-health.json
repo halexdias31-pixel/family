@@ -1,9 +1,9 @@
 {
  "v": 1,
- "items": 283109,
+ "items": 283061,
  "menus": 117,
  "counts": {
-  "words-all": 213,
+  "words-all": 251,
   "near-dup": 2
  },
  "findings": [
@@ -12,6 +12,234 @@
    "menu": "What kind (kindLabel)",
    "value": "Profiles",
    "say": "menu \"Profiles\", chip \"Profiles\", tag \"Booking\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Collection (wCollection)",
+   "value": "Quran",
+   "say": "menu \"Quran\", chip \"Quran\", tag \"Arabic Quran\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Work (wWork)",
+   "value": "Quran",
+   "say": "menu \"Quran\", chip \"Quran\", tag \"Arabic Quran\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Language (wLanguage)",
+   "value": "Arabic",
+   "say": "menu \"Arabic\", chip \"Arabic\", tag \"Arabic Quran\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Translation (wText)",
+   "value": "Set",
+   "say": "menu \"Set\", chip \"Set\", tag \"GCSE English Literature set…\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 1 · ארבעה ראשי שנים",
+   "say": "menu \"Chapter 1 · ארבעה ראשי שנים\", chip \"Chapter 1 · ארבעה ראשי שנים\", tag \"Chapter 1 · מאימתי\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 2 · כל הזבחים שקבלו דמן",
+   "say": "menu \"Chapter 2 · כל הזבחים שקבלו…\", chip \"Chapter 2 · כל הזבחים שקבלו…\", tag \"Chapter 2 · היה קורא\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 3 · הקורא את המגילה עומד",
+   "say": "menu \"Chapter 3 · הקורא את המגילה…\", chip \"Chapter 3 · הקורא את המגילה…\", tag \"Chapter 3 · מי שמתו\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 4 · שור שנגח ארבע וחמשה",
+   "say": "menu \"Chapter 4 · שור שנגח ארבע…\", chip \"Chapter 4 · שור שנגח ארבע…\", tag \"Chapter 4 · תפלת השחר\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 5 · שור שנגח את הפרה",
+   "say": "menu \"Chapter 5 · שור שנגח את הפרה\", chip \"Chapter 5 · שור שנגח את הפרה\", tag \"Chapter 5 · אין עומדין\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 6 · הבא על יבמתו",
+   "say": "menu \"Chapter 6 · הבא על יבמתו\", chip \"Chapter 6 · הבא על יבמתו\", tag \"Chapter 6 · כיצד מברכין\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 7 · בא לו כהן גדול",
+   "say": "menu \"Chapter 7 · בא לו כהן גדול\", chip \"Chapter 7 · בא לו כהן גדול\", tag \"Chapter 7 · שלשה שאכלו\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 8 · כל הזבחים שנתערבו",
+   "say": "menu \"Chapter 8 · כל הזבחים שנתערבו\", chip \"Chapter 8 · כל הזבחים שנתערבו\", tag \"Chapter 8 · אלו דברים\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 9 · הכותים אין להם נזירות",
+   "say": "menu \"Chapter 9 · הכותים אין להם…\", chip \"Chapter 9 · הכותים אין להם…\", tag \"Chapter 9 · הרואה\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 10 · אלו הן הנחנקין",
+   "say": "menu \"Chapter 10 · אלו הן הנחנקין\", chip \"Chapter 10 · אלו הן הנחנקין\", tag \"Chapter 10 · המצניע\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 11 · כל ישראל יש להם חלק",
+   "say": "menu \"Chapter 11 · כל ישראל יש להם…\", chip \"Chapter 11 · כל ישראל יש להם…\", tag \"Chapter 11 · הזורק\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 12 · טבול יום",
+   "say": "menu \"Chapter 12 · טבול יום\", chip \"Chapter 12 · טבול יום\", tag \"Chapter 12 · הבונה\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 13 · שני דייני גזירות",
+   "say": "menu \"Chapter 13 · שני דייני גזירות\", chip \"Chapter 13 · שני דייני גזירות\", tag \"Chapter 13 · האורג\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 14 · פרת חטאת",
+   "say": "menu \"Chapter 14 · פרת חטאת\", chip \"Chapter 14 · פרת חטאת\", tag \"Chapter 14 · שמנה שרצים\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Chapter (wChapter)",
+   "value": "Chapter 15 · האשה שלום",
+   "say": "menu \"Chapter 15 · האשה שלום\", chip \"Chapter 15 · האשה שלום\", tag \"Chapter 15 · ואלו קשרים\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "384.2",
+   "say": "menu \"384.2\", chip \"384.2\", tag \"3842\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "434.2",
+   "say": "menu \"434.2\", chip \"434.2\", tag \"4342\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "My God, accept my heart this day",
+   "say": "menu \"My God, accept my heart this…\", chip \"My God, accept my heart this…\", tag \"My God! accept my heart this…\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "Stanza 1 (2)",
+   "say": "menu \"Stanza 1 (2)\", chip \"Stanza 1 (2)\", tag \"Stanza 12\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "Stanza 1 (3)",
+   "say": "menu \"Stanza 1 (3)\", chip \"Stanza 1 (3)\", tag \"Stanza 13\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "Stanza 4 (2)",
+   "say": "menu \"Stanza 4 (2)\", chip \"Stanza 4 (2)\", tag \"Stanza 42\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "Stanza 5 (2)",
+   "say": "menu \"Stanza 5 (2)\", chip \"Stanza 5 (2)\", tag \"Stanza 52\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "Stanza 6 (2)",
+   "say": "menu \"Stanza 6 (2)\", chip \"Stanza 6 (2)\", tag \"Stanza 62\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "Stanza 7 (2)",
+   "say": "menu \"Stanza 7 (2)\", chip \"Stanza 7 (2)\", tag \"Stanza 72\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "Stanza 8 (2)",
+   "say": "menu \"Stanza 8 (2)\", chip \"Stanza 8 (2)\", tag \"Stanza 82\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "Stanza 9 (2)",
+   "say": "menu \"Stanza 9 (2)\", chip \"Stanza 9 (2)\", tag \"Stanza 92\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "Stanza 10 (2)",
+   "say": "menu \"Stanza 10 (2)\", chip \"Stanza 10 (2)\", tag \"Stanza 102\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Unit (wUnit)",
+   "value": "Stanza 11 (2)",
+   "say": "menu \"Stanza 11 (2)\", chip \"Stanza 11 (2)\", tag \"Stanza 112\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Author (wAuthor)",
+   "value": "E. S. Lorenz",
+   "say": "menu \"E. S. Lorenz\", chip \"E. S. Lorenz\", tag \"E.S. Lorenz\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Author (wAuthor)",
+   "value": "J. E. Rankin, D. D",
+   "say": "menu \"J. E. Rankin, D. D\", chip \"J. E. Rankin, D. D\", tag \"J.E. Rankin D.D\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Author (wAuthor)",
+   "value": "J. H. Stockton",
+   "say": "menu \"J. H. Stockton\", chip \"J. H. Stockton\", tag \"J.H. Stockton\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Author (wAuthor)",
+   "value": "J.M. Neale, _tr._",
+   "say": "menu \"J.M. Neale, _tr._\", chip \"J.M. Neale, _tr._\", tag \"J.M. Neale, tr\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Author (wAuthor)",
+   "value": "P. P. Bliss",
+   "say": "menu \"P. P. Bliss\", chip \"P. P. Bliss\", tag \"P.P. Bliss\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Author (wAuthor)",
+   "value": "Sozomen",
+   "say": "menu \"Sozomen\", chip \"Sozomen\", tag \"Sozomen, Ecclesiastical…\""
   },
   {
    "kind": "near-dup",

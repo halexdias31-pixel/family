@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* @family. — check/card-facts.js ONE STATIC CENTRED CARD (owner, 10 Nov): every kind, four viewers.
+/* @family. — check/card-render.js ONE STATIC CENTRED CARD (owner, 10 Nov): every kind, four viewers.
    Fails on a blank card, cut text, kind HTML, a stand-in picture, parts off order or centre, a worded button. */
 'use strict';
 require('./quiet');
@@ -39,7 +39,7 @@ function measure(per) {
   /* DRAWN WHERE IT CAN BE MEASURED: a hidden screen gives every box no size, so the geometry would pass unseen. */
   const host = document.body;
   const box = document.createElement('div');
-  box.className = 'card-facts-check card-grid';
+  box.className = 'card-render-check card-grid';
   host.prepend(box);
   /* QUESTIONS AND ANSWERS ARE THEIR SHEET (owner, 9 Nov): their open content is the question itself, so only pictures and blanks are asked of them. */
   const WHOLE = ['question', 'answer', 'panel'];
@@ -173,7 +173,7 @@ function measure(per) {
   const server = await serve();
   const port = server.address().port;
   let browser;
-  try { browser = await chromium.launch(); } catch (e) { console.error('card-facts: no browser — ' + e.message); process.exit(2); }
+  try { browser = await chromium.launch(); } catch (e) { console.error('card-render: no browser — ' + e.message); process.exit(2); }
   const bad = [], said = [];
   try {
     for (const who of Object.keys(WHO)) {
@@ -193,9 +193,9 @@ function measure(per) {
     }
   } finally { await browser.close(); server.close(); }
   if (bad.length) {
-    console.error(`card-facts: ${bad.length} problem(s)`);
+    console.error(`card-render: ${bad.length} problem(s)`);
     bad.slice(0, process.argv.includes('--all') ? bad.length : 60).forEach(b => console.error('  ' + b));
     process.exit(1);
   }
-  console.log('card-facts: every card is facts, laid out one way; kinds/cards ' + said.join(', '));
+  console.log('card-render: every card is facts, laid out one way; kinds/cards ' + said.join(', '));
 })();

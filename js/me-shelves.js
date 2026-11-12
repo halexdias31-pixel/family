@@ -1,86 +1,7 @@
 
-/* A ROUND TRIP THAT CANNOT FAIL SILENTLY. § */
-function send_(body, o) {
-  o = o || {};
-  const btn = o.button;
-  /* AN ID OR THE ELEMENT ITSELF. A settings card's status line is a CLASS, one per card — there are
-     a dozen on one column, so it cannot be an id — and the caller already holds the element. */
-  const say = msg => {
-    const el = o.where && (typeof o.where === 'string' ? $(o.where) : o.where);
-    /* A REQUEST NOBODY PRESSED says nothing with no connection: the Reconnecting line already does, and offline nothing pressed is lost (offline.js). */
-    if (el) el.textContent = msg; else if (btn || navigator.onLine !== false) toast(msg);
-  };
-
-  /* `is-busy` IS THE SPINNER, and it goes on whether or not there is a `busy` label -- a
-     button with no relabel still has to show that it is waiting. See `.btn.is-busy`. */
-  /* `data-unlocked` — SEE BELOW: a control that queues its own press behind the save is left live. */
-  if (btn) { btn.disabled = !btn.hasAttribute('data-unlocked'); btn.classList.add('is-busy');
-             /* A TILE HAS NO WORD TO SWAP — its face is a mark, and writing text over it would lose
-                the mark for good. The ring is the whole of its busy state. */
-             if (o.busy && !btn.classList.contains('tile')) { btn.dataset.was = btn.textContent; btn.textContent = o.busy; } }
-  if (o.saying) say(o.saying);
-
-  /* ---------- AND THE FIELDS, WHICH IS THE HALF THAT WAS MISSING § */
-  const box = o.lock
-    ? (typeof o.lock === 'string' ? $(o.lock) : o.lock)
-    : btn && btn.closest('.me-form, .msg-form, .rc, #sheet-body, .card');
-  const had = document.activeElement;
-  const locked = [];
-  if (box) {
-    [].forEach.call(box.querySelectorAll('input, select, textarea, button'), el => {
-      if (el === btn || el.disabled || el.hasAttribute('data-unlocked')) return;
-      el.disabled = true;
-      locked.push(el);
-    });
-    box.classList.add('is-sending');
-  }
-
-  const done = () => {
-    locked.forEach(el => { el.disabled = false; });
-    locked.length = 0;
-    if (box) box.classList.remove('is-sending');
-    /* ONLY IF THE PAGE STILL HOLDS IT. A reply that repaints the card replaces the element that
-       had the caret, and focusing a detached node moves focus to the body -- which is worse than
-       leaving it where the repaint put it. */
-    if (had && had.focus && document.contains(had)) { try { had.focus(); } catch (e) { /* focus and scrolling are niceties */ } }
-    if (!btn) return;
-    btn.disabled = false;
-    btn.classList.remove('is-busy');
-    if (btn.dataset.was) { btn.textContent = btn.dataset.was; delete btn.dataset.was; }
-  };
-
-  return api(body)
-    .then(d => {
-      /* A REPLY CARRYING AN ERROR IS A FAILURE, and was being treated as success by anything that
-         only checked whether the request went through. */
-      /* AND IT IS MARKED `refused` — THE SERVER ANSWERED, AND THE ANSWER WAS NO. A caller can then tell that from a reply that never came: § */
-      if (!d || d.error) {
-        const refusal = new Error((d && d.error) || 'That did not work.');
-        refusal.refused = !!(d && d.error);
-        /* AND THE WHOLE REPLY RIDES ON IT, as on `send`'s — a refusal is sometimes a fact for the code as well as a sentence: § */
-        refusal.reply = d || null;
-        throw refusal;
-      }
-      done();
-      return d;
-    })
-    .catch(err => {
-      done();
-      /* THE MESSAGE, NOT THE STACK. And a network failure has none worth reading — `Failed to
-         fetch` tells somebody on a train nothing they can act on. */
-      /* THROUGH `why_`, so the same sentence appears here and in the banner — the line under the button is where somebody looks, the banner is where text can be § */
-      say(typeof why_ === 'function' ? why_(err) : String(err && err.message || err));
-      /* Rethrown so a caller can still react, and marked so a caller that does not care can tell
-         a handled failure from a bug. */
-      err.handled = true;
-      throw err;
-    });
-}
-
 /* ONE FIELD RENDERER. There were two, and they had different powers. § */
 
-/* Names that hold a yes or a no. Matched rather than listed, because the sheet grows columns and a
-   list has to be remembered — `dbs_checked` and `is_listed` are booleans by their names. */
+/* Names that hold a yes or a no. Matched rather than listed, because the sheet grows columns and a list has to be remembered — `dbs_checked` and `is_listed` are § */
 const FIELD_IS_BOOL = /^(dbs|active|listed|is_|has_|allow|paid|trackable|stealable)/;
 
 /* Names whose keyboard should be a number pad, and which kind. */
@@ -122,8 +43,7 @@ const QUAL_GRADES = [
   'First', '2:1', '2:2', 'Third',
 ];
 /* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell. */
-/* `venues_ok` IS NOT A COLUMN of `people` — it is the venues tab's own `tutors_happy_here`, read and
-   written through this one box. See `venuesWrites_` in core.gs for why there is no second copy. */
+/* `venues_ok` IS NOT A COLUMN of `people` — it is the venues tab's own `tutors_happy_here`, read and written through this one box. § */
 const FIELD_MULTI = { venues_ok: true };
 /* ---------- AND ONE SHELF SLOT'S LIST OFF THE FIRST SLOT'S § */
 function fieldOptions_(f) {
@@ -142,8 +62,7 @@ function fieldOptions_(f) {
 }
 
 /* ONE FIELD, drawn from what is known about it. § */
-/* WHICH OF YOUR OWN FIELDS KEEP A DRAFT — see the note in `fieldHtml`. A SEVERAL-OF-A-LIST DOES NOW
-   (`FIELD_MULTI` was refused here while its ticks lived in `#drop`; 315 put them in the card). */
+/* WHICH OF YOUR OWN FIELDS KEEP A DRAFT — see the note in `fieldHtml`. § */
 const setDraftOk_ = name => typeof draftAttr_ === 'function'
   && !/pin/i.test(String(name)) && !/^(lib\d+_|qual_)/.test(String(name));
 /* ---------- AND A CARD DRAWN HOLDING ONE SAYS SO § */
@@ -255,8 +174,7 @@ document.addEventListener('change', e => {
   const got = [...field.querySelectorAll('input[type="checkbox"][data-many-of]')]
     .filter(c => c.checked).map(c => c.value);
   box.value = got.join(', ');
-  /* AND KEPT AS A DRAFT, as every other box on your own card is -- `draftFrom_` (data.js) skips a hidden
-     input on purpose, so the ticks hand theirs over here. The saved list is the value that takes it away. */
+  /* AND KEPT AS A DRAFT, as every other box on your own card is -- `draftFrom_` (data.js) skips a hidden input on purpose, so the ticks hand theirs over here. § */
   const spec = box.getAttribute('data-draft');
   if (spec && typeof draftKeep_ === 'function') {
     try {
@@ -308,8 +226,7 @@ function fieldRows_(list, one) {
   const out = [], done = new Set();
   list.forEach(f => {
     if (done.has(f)) return;
-    /* ANY field of a row places it, not only its first: a row can now read in a different order
-       from the backend's list (the students range is min–max over a list that says max, min). */
+    /* ANY field of a row places it, not only its first: § */
     const row = FIELD_ROWS.find(r => r.fields.indexOf(f) !== -1 && r.fields.every(x => list.indexOf(x) !== -1));
     if (!row) { out.push(one(f, {})); return; }
     row.fields.forEach(x => done.add(x));
@@ -399,8 +316,7 @@ on('shelf-drop', el => {
   else shelf.insertAdjacentHTML('beforeend', shelfAdd_(shelf.dataset.noun || 'another'));
 });
 
-/* ---------- AND A GROUP OF `qual_N*` NAMES IS A SHELF OF QUALIFICATIONS -------------------------
-   RECOGNISED BY THE NAMES, NEVER BY THE GROUP'S TITLE, exactly as the library shelf is. */
+/* ---------- AND A GROUP OF `qual_N*` NAMES IS A SHELF OF QUALIFICATIONS § */
 const isQualField_ = f => /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/.test(String(f || ''));
 const isQuals_ = list => (list || []).some(isQualField_);
 /* THE SEVEN BOXES OF ONE SLOT, in the order they are read, compared and put back. */
@@ -452,8 +368,7 @@ function qualSlot_(i, value, o) {
   const cyc = formLine_('Teaching', formSelect_('class="q-teach" data-unlocked aria-label="Teaching"',
       QUAL_TEACH_OPTS_.map(([k, say]) => `<option value="${k}"${k === tv ? ' selected' : ''}>${say}</option>`).join('')), 'q-f q-cyc');
   const said = qualSay_(q);
-  /* EACH CAPTION IN TWO WORDINGS, a subject's and a certificate's, and the slot's `is-cert` says which
-     is shown — so a line that becomes a DBS by a pick changes its captions with no redraw. */
+  /* EACH CAPTION IN TWO WORDINGS, a subject's and a certificate's, and the slot's `is-cert` says which is shown — so a line that becomes a DBS by a pick changes § */
   const cap = (std, cert) => `<span class="q-cap-std">${esc(std)}</span><span class="q-cap-cert">${esc(cert)}</span>`;
   return `<div class="q-slot${qualIsCert_(q) ? ' is-cert' : ''}" data-slot="${esc(i)}"${q.first ? ' data-first="1"' : ''}>
     ${formHidden_(`data-me="${esc(f('_spec'))}"`, q.spec ? 'TRUE' : 'FALSE')}
@@ -481,8 +396,7 @@ function qualSlot_(i, value, o) {
     </div>
   </div>`;
 }
-/* THE FACE OF A LINE: the subject (on a subject's first line only), the notation, the teaching mark —
-   none on a certificate, which is held and not taught (see `qualIsCert_`). */
+/* THE FACE OF A LINE: the subject (on a subject's first line only), the notation, the teaching mark — none on a certificate, which is held and not taught § */
 function qualFace_(q) {
   const who = q.first || q.fresh ? (q.subject || (q.fresh ? 'New qualification' : '')) : '';
   const cert = qualIsCert_(q);
@@ -540,8 +454,7 @@ function qualPick_(attrs, v, list, cap, none, mine) {
       ${body}
       <option value="${QUAL_OTHER}">Something else…</option>`), 'q-f');
 }
-/* `Something else…` swaps the select for a box carrying the same attributes, so a save reads it exactly
-   as it read the select — and it saves on the box's own `change`, when the typing is finished. */
+/* `Something else…` swaps the select for a box carrying the same attributes, so a save reads it exactly as it read the select — and it saves on the box's own § */
 document.addEventListener('change', e => {
   const sel = e.target;
   if (!sel || sel.tagName !== 'SELECT' || sel.value !== QUAL_OTHER || !sel.closest('.q-shelf')) return;
@@ -631,8 +544,7 @@ function qualSet_(slot, vals) {
 /* ---------- REDRAWN FROM WHAT THE BOXES HOLD § */
 function qualRedraw_(shelf, over, open) {
   if (!shelf || !shelf.isConnected) return null;
-  /* A KEYBOARD STAYS WHERE IT WAS. The line that was pressed is replaced, and focus on a removed
-     element falls to the page — so a line opened from the keyboard hands focus to its new self. */
+  /* A KEYBOARD STAYS WHERE IT WAS. § */
   const had = shelf.contains(document.activeElement);
   const vals = {}, list = [];
   shelf.querySelectorAll('[data-me]').forEach(b => { list.push(b.dataset.me); vals[b.dataset.me] = b.value; });
@@ -646,8 +558,7 @@ function qualRedraw_(shelf, over, open) {
     qualOpen_(again);
     if (had) { try { again.querySelector('.q-line').focus({ preventScroll: true }); } catch (e) { /* an element that cannot take focus is left as it is */ } }
   } else if (typeof placeCells === 'function') { try { placeCells('y', true, 0, qualColumn_(next)); } catch (e) { oops_(e, 'me:qualRedraw_') } }
-  /* ON A CARD BEING EDITED THE SHELF IS PART OF THE CARD'S ONE DRAFT, and a redraw is a change no
-     `input` reports — a line put back to the pool, a removal — so the draft is written again here. */
+  /* ON A CARD BEING EDITED THE SHELF IS PART OF THE CARD'S ONE DRAFT, and a redraw is a change no `input` reports — a line put back to the pool, a removal — so the § */
   const ed = next.closest('.card-ed .me-form');
   if (ed && typeof cardKeep_ === 'function') cardKeep_(ed);
   return next;
@@ -681,8 +592,7 @@ on('qual-open', el => {
   if (slot.classList.contains('is-open')) return qualDone_(slot);
   qualReopen_(shelf, slot);
 });
-/* THE SLOT OPEN IN A FRESH SHELF — a saved line in its place, an empty one as a new line at the foot —
-   with whatever was open before shut as it was last saved. Answers the slot as it is in the new shelf. */
+/* THE SLOT OPEN IN A FRESH SHELF — a saved line in its place, an empty one as a new line at the foot — with whatever was open before shut as it was last saved. § */
 function qualReopen_(shelf, slot) {
   const i = slot.dataset.slot, pooled = !!slot.closest('.q-pool');
   const next = qualRedraw_(shelf, qualOver_(shelf), pooled ? null : i);

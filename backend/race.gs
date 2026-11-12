@@ -117,7 +117,7 @@ function raceHeights_(ll, until) {
       if (!vals) { gaveUp = true; notes.push(dem.id + ' did not answer for every point'); break; }
       const put = {};
       idx.forEach((k, j) => { h[k] = vals[j]; put[keyOf(dem, ll[k])] = String(vals[j]); });
-      try { if (c) c.putAll(put, 21600); } catch (err) {}
+      try { if (c) c.putAll(put, 21600); } catch (err) { /* the cache is an optimisation; a miss just rebuilds */ }
       /* OpenTopoData's public limit is one call a second. */
       Utilities.sleep(1100);
     }
@@ -167,7 +167,7 @@ function buildRaceMap_(arg) {
   if (busy && t0 - busy < 6 * 60 * 1000) return { error: 'The map is already being built — give it a few minutes.' };
   props.setProperty('RACE_BUILDING', String(t0));
   try { return raceBuild_(arg, t0); }
-  finally { try { props.deleteProperty('RACE_BUILDING'); } catch (err) {} }
+  finally { try { props.deleteProperty('RACE_BUILDING'); } catch (err) { /* script properties are best-effort here; the next run tries again */ } }
 }
 
 /* THE OVERPASS QUERY for one box: roads (with their nodes), rivers and buildings. */

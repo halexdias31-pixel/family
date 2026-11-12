@@ -223,7 +223,7 @@ function handleParts_(h, first) {
 /* A NAME'S LETTERS folded to a–z (accents off, `HANDLE_KID_FOLD` for the ones NFKD keeps), in order. */
 function handleLetters_(v) {
   return Array.from(String(v == null ? '' : v).toLowerCase()).map(c => {
-    try { c = c.normalize('NFKD').charAt(0); } catch (err) {}
+    try { c = c.normalize('NFKD').charAt(0); } catch (err) { /* an engine without normalize keeps the raw letter */ }
     c = HANDLE_KID_FOLD[c] || c;
     return /^[a-z]$/.test(c) ? c : '';
   }).join('');
@@ -245,7 +245,7 @@ function handleFirstSeen_(rows) {
   (rows || []).forEach(r => ['handle_changed_at', 'agreement_signed_at'].forEach(c => see(r.person_id, r[c])));
   HANDLE_ACTIVITY.forEach(([tab, idCol, dateCol]) => {
     if (!TAB[tab]) return;
-    try { (read(TAB[tab]).rows || []).forEach(x => see(x[idCol], x[dateCol])); } catch (err) {}
+    try { (read(TAB[tab]).rows || []).forEach(x => see(x[idCol], x[dateCol])); } catch (err) { /* a missing tab adds no dates */ }
   });
   return out;
 }

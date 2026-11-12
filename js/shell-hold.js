@@ -1,4 +1,4 @@
-/* ---------- NO FIELD REMEMBERS OR SUGGESTS (383): "every field is trying to fill in suggested memory details … i dont want that on any part". One rule for every box, drawn by any file. */
+/* ---------- NO FIELD REMEMBERS OR SUGGESTS (383): the owner wants no autofill on any box; one rule for every box. § */
 const QUIET_FIELD = { autocomplete: 'off', autocorrect: 'off', autocapitalize: 'off',
   'data-lpignore': 'true', 'data-1p-ignore': 'true', 'data-form-type': 'other', 'data-bwignore': 'true' };
 function quietField_(el) {
@@ -22,5 +22,5 @@ try {
     .observe(document.documentElement, { childList: true, subtree: true });
 } catch (e) { /* no MutationObserver: new fields keep the browser's own behaviour */ }
 
-/* A DOUBLE TAP ZOOMS NOTHING (466): iPad Safari zoomed whatever the viewport said. Its two clicks reach the dispatcher, which drops the second on the same control (534). */
+/* A DOUBLE TAP ZOOMS NOTHING (466): iPad Safari zoomed; the dispatcher drops the second click (534). § */
 document.addEventListener('dblclick', e => { try { e.preventDefault(); } catch (err) { oops_(err, 'shell:quietFields_') } }, { passive: false });

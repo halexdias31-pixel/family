@@ -53,7 +53,7 @@ function libDriveZipRead_(z) {
   const size = Number(z.getSize && z.getSize()) || 0, mb = n => (n / 1048576).toFixed(1) + ' MB';
   if (size > LIB_DRIVE_ZIP_BYTES) return { error: 'it is ' + mb(size) + ' — a zip may be at most ' + mb(LIB_DRIVE_ZIP_BYTES) + ' (Apps Script cannot unpack more); split it' };
   const blob = z.getBlob();
-  try { if (typeof blob.setContentType === 'function') blob.setContentType('application/zip'); } catch (err) {}
+  try { if (typeof blob.setContentType === 'function') blob.setContentType('application/zip'); } catch (err) { /* the zip still downloads without its content type */ }
   let inner;
   try { inner = Utilities.unzip(blob) || []; } catch (err) { return { error: 'it could not be unzipped — ' + S(err && err.message || err).slice(0, 120) }; }
   if (inner.length > LIB_DRIVE_ZIP_FILES) return { error: 'it holds ' + inner.length + ' files — at most ' + LIB_DRIVE_ZIP_FILES + ' a zip' };
@@ -236,7 +236,7 @@ function libDriveApply_(parsed, memo) {
   let bad = '';
   try {
     writes.forEach(w => { libSheet_(LIB_FILES[w.key], w.row); w.sh.getRange(w.row, 1, 1, 3 + LIB_PARTS).setValues([libRowOut_(w.item)]); });
-    try { SpreadsheetApp.flush(); } catch (err) {}
+    try { SpreadsheetApp.flush(); } catch (err) { /* flush is an early write; Apps Script writes at the end anyway */ }
     for (let i = 0; i < writes.length && !bad; i++) {
       const w = writes[i], have = libRowIn_(w.sh.getRange(w.row, 1, 1, 3 + LIB_PARTS).getValues()[0]);
       if (have.id !== w.item.id) bad = 'row ' + w.row + ' of ' + LIB_FILES[w.key].tab + ' is ' + have.id + ', not ' + w.item.id;
@@ -306,8 +306,8 @@ function libImportDrive_(by, auto) {
     if (any) libGenBump_();
     if (report.failed) report.success = report.imported > 0;
     if (report.failed && !report.imported) report.error = report.files.filter(x => x.error).map(x => x.name + ': ' + x.error).join('; ');
-    try { PropertiesService.getScriptProperties().setProperty(LIB_DRIVE_LAST, JSON.stringify(report).slice(0, 8000)); } catch (err) {}
-    if (auto) try { PropertiesService.getScriptProperties().setProperty(LIB_DRIVE_AUTO, JSON.stringify(report).slice(0, 8000)); } catch (err) {}
+    try { PropertiesService.getScriptProperties().setProperty(LIB_DRIVE_LAST, JSON.stringify(report).slice(0, 8000)); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
+    if (auto) try { PropertiesService.getScriptProperties().setProperty(LIB_DRIVE_AUTO, JSON.stringify(report).slice(0, 8000)); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
     return report;
   } finally {
     lock.releaseLock();

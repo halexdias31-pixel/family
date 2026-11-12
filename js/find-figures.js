@@ -203,6 +203,17 @@ function tagMadeOf_(text, said) {
   const from = i => i === t.length || parts.some(p => t.startsWith(p, i) && (i + p.length === t.length || (t[i + p.length] === ' ' && from(i + p.length + 1))));
   return parts.length > 1 && t.indexOf(' ') > 0 && from(0);
 }
+/* A TITLE TAG HOLDING TWO+ OTHER TAGS AS WHOLE WORDS (`Arabic Quran` beside Arabic, Quran) says them: they fold into its `data-also`. */
+function tagFold_(out) {
+  const k = s => ' ' + String(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+  const inside = (a, b) => { const B = k(b); return B.trim().length >= 3 && k(a) !== B && k(a).indexOf(B) !== -1; };
+  out.slice().sort((a, b) => b.text.length - a.text.length).forEach(t => {
+    if (out.indexOf(t) < 0 || !TAG_NAME.test(t.text)) return;
+    const parts = out.filter(u => u !== t && inside(t.text, u.text));
+    if (parts.length < 2) return;
+    parts.forEach(u => { [u.field].concat(u.also).forEach(f => { if (f !== t.field && t.also.indexOf(f) < 0) t.also.push(f); }); out.splice(out.indexOf(u), 1); });
+  });
+}
 /* A TAG EVERY CARD IN VIEW SHARES SAYS NOTHING (owner, 8 Nov: `Edexcel` `June` `KS4` on every card of one paper): held per list. */
 const TAG_SHARED = new WeakMap();
 function tagShared_(x, facet, raw) {
@@ -244,6 +255,7 @@ function tagRow_(x, page) {
       words.set(w, t); ids.set(raw, t); said.push(text); out.push(t);
     });
   });
+  tagFold_(out);
   return `<div class="qtags qcard-tags">${out.map(t => `<span class="qtag"${tagAttr_(t.field)} data-f="${esc(t.field)}"${
     t.also.length ? ` data-also="${esc(t.also.join(' '))}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
 }

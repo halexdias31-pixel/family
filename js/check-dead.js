@@ -1,40 +1,12 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-dead.js FUNCTIONS NOTHING CALLS, on both sides of the app. § */
-const path = require('path');
 const fs = require('fs');
-const O = path.join(__dirname, '..') + '/';
-const strip=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/(^|[^:])\/\/.*/g,'$1');
-/* REACHED FROM OUTSIDE THE CODE. Apps Script calls doGet and doPost itself; the editor calls the
-   maintenance jobs by name; a person types the console tools. None of these has a caller in the
-   source and all of them are alive. */
-const KEEP=new Set(['doGet','doPost','missingKeys','layout',
-  'ensureSchema_','checkEverything','checkPostsFolder','checkScopes','authoriseDrive',
-  'makeBrandAccount','installTriggers_','listTriggers',
-  'refreshPageCounts','closeFinishedJobs','geocodeVenues','renameValue_',
-  'seedOptions','ensureResourceIds','schemaGaps','dataProblems','autoMigrate_',
-  'seedConfig_','seedAvatarItems_','seedPostcodes','ensurePersonIds_','gallery','landmarks',
-  /* Run from the editor's dropdown and say what they found in words (core.gs, setup.gs). */
-  'testCache','checkTabs',
-  /* THE CHECKS' QUESTION "is the builder done?" (docs/history/341) — asked by check-flow, swipe, reach, press
-     and ui through the page, and by nothing in the app, which never needs to wait for itself. */
-  'aheadBusy_']);
-const files=(dir,filter)=>fs.readdirSync(dir).filter(filter).map(f=>({f,p:dir+f}));
-const jsF=files(O+'js/',f=>f.endsWith('.js')&&!f.startsWith('check')&&f!=='_scope.js');
-/* THE BACKEND FILES: backend/files.json's list (tools/file-lists.js), the one the deploy pushes. */
-const gsF=fs.existsSync(O+'backend/files.json')?require('../tools/file-lists.js').gsFiles(O).filter(p2=>fs.existsSync(p2)).map(p2=>({f:path.basename(p2),p:p2})):[];
-const scan=(set,label)=>{
-  const code=strip(set.map(x=>fs.readFileSync(x.p,'utf8')).join('\n'));
-  const d=[...code.matchAll(/^function ([A-Za-z_$][\w$]*)/gm)].map(m=>m[1]);
-  const dead=d.filter(n=>!KEEP.has(n)&&(code.match(new RegExp('\\b'+n+'\\b','g'))||[]).length<=1);
-  const where={};
-  dead.forEach(n=>{ set.forEach(x=>{ if(new RegExp('^function '+n+'\\(','m').test(fs.readFileSync(x.p,'utf8'))) where[n]=x.f; }); });
-  console.log(label+': '+(dead.length?dead.map(n=>n+' ('+where[n]+')').join(', '):'none'));
-  return dead.length;
-};
-const a=scan(jsF,'frontend');
-const b=gsF.length?scan(gsF,'backend')
-  :(console.log('backend: no .gs files found beside the project — skipped'),0);
+/* The list is tools/dead.js's, the one the Stability score and the Optimiser read. */
+const { deadFunctions, jsF, gsF } = require('../tools/dead.js');
+const D=deadFunctions(), say=side=>{ const d=D.filter(x=>x.side===side); console.log(side+': '+(d.length?d.map(x=>x.name+' ('+x.file+')').join(', '):'none')); return d.length; };
+const a=say('frontend');
+const b=gsF.length?say('backend'):(console.log('backend: no .gs files found beside the project — skipped'),0);
 
 /* AND THE TWO RULES ABOUT HEADINGS, which are not style but structure. § */
 const CARD = /<div class="card[^>]*>([\s\S]{0,900}?)<\/div>/g;

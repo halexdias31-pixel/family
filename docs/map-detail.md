@@ -107,6 +107,8 @@ almost never writes to it directly.
   constants.gs), copied once by `library-to-ledger` and fetched a card at a time by `libItems` (signed in,
   `library_items_per_day`). A card whose words have not come is one waiting page (`libWaitHtml_`). The teaching
   animation rows stay public whole. Tools: `tools/lib-private.js`; checks: `check/lib-full.js`.
+- **What must exist is the specification** (1213): `data/specs/*.json` lists every numbered spec point; `node tools/coverage.js -v`
+  maps lessons (`spec_ref`), questions and figures onto them and writes `data/coverage-health.json` for health.js's *Library content*.
 - **There are no textbooks on screen: each chapter row of `data/textbooks.json` is a CONTENT CARD**
   (kind `content`, `What kind · Content`; docs/history/347, part 2). *"Forget the whole concept of it
   being a text book. It's just a "content card""* — the owner, 12 Oct. A card wears the question
@@ -221,7 +223,7 @@ node check/digest-dry.js --sheets s.json --week 2026-10-18 --out /tmp/sunday   #
 
 - `.github/workflows/checks.yml`, every push and every PR to main, core only (99, 9 Nov), 9 jobs in parallel: `fast` (`check.js` +
   `check-all.js --fast`) and `flow k/8` (`FLOW_PART=k/8 node --max-old-space-size=3000 js/check-flow.js`, core journeys), and on a
-  PR the `stability guard` (`check/stability-guard.js .base`). About 10 minutes of wall time. `.github/workflows/nightly.yml`
+  PR the `stability guard` (`js/check-stability.js --base .base`). About 10 minutes of wall time. `.github/workflows/nightly.yml`
   (02:41 UTC and by hand, report-only) runs the rest: secondary checks and journeys, `browser k/8` (`check-all.js --slow=k/8`)
   and `heavy k/6`.
 - **CI has no private words.** It sets `LIB_PRIVATE=absent`: check/lib-full.js then never seeds data-private/ from history,

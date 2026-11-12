@@ -18,9 +18,7 @@ function qualTeachTo_(slot, el, face, v) {
   qualDirty_(el);
   qualCommit_(slot);
 }
-/* THE NEXT UNUSED SLOT. Moving the element keeps every `data-me` in the form, so a save posts it
-   wherever it sits. The `+` is off once the pool is empty (see `qualShelf_`), so this sentence is for a
-   press that raced a redraw. */
+/* THE NEXT UNUSED SLOT. § */
 function qualTake_(shelf) {
   const slot = shelf && shelf.querySelector('.q-pool > .q-slot');
   if (!slot) toast('That is the most this card holds — 10 qualifications in all.');
@@ -35,8 +33,7 @@ on('qual-add', el => {
   const slot = qualTake_(next);
   if (slot) qualStart_(next, slot);
 });
-/* AN EMPTY SLOT, MOVED OUT OF THE POOL AS A NEW LINE AT THE FOOT OF THE LIST, open, emptied and marked
-   new — so a Done or a bin before it has a subject and a level puts it back unsaved. */
+/* AN EMPTY SLOT, MOVED OUT OF THE POOL AS A NEW LINE AT THE FOOT OF THE LIST, open, emptied and marked new — so a Done or a bin before it has a § */
 function qualStart_(next, slot) {
   qualSet_(slot, qualBlank_(slot));
   slot.dataset.new = '1';
@@ -97,8 +94,7 @@ function libraryShelf_(list, value) {
     .map(f => String(f).match(/^lib(\d+)_/)[1]))];
   const quiet = 'spellcheck="false"';
   const has = i => shelfFilled_(value, ['lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin']);
-  /* ONE CARD ONLY (489, the owner on Library cards: "change this to be only 1 card allowed") — the one already
-     filled, else the first; no Add another, and a new card is written over it. */
+  /* ONE CARD ONLY (489, the owner on Library cards: "change this to be only 1 card allowed") — the one already filled, else the first; no Add § */
   /* A RULE (496): `library-one-card` — Universal, every slot with Add another, like any shelf. */
   const nums = !(typeof ruleOn_ !== 'function' || ruleOn_('library-one-card')) ? all : all.length ? [all.find(has) || all[0]] : [];
   return `<div class="lib-shelf" data-noun="library card">${shelfSlots_(nums,
@@ -139,8 +135,7 @@ function libBars_(no) {
   return `<svg class="lib-bars${blank ? ' is-blank' : ''}" viewBox="0 0 ${x} 1" preserveAspectRatio="none"
     shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path fill="currentColor" d="${d}"/></svg>`;
 }
-/* THE BARS FOLLOW THE NUMBER as it is typed, the photograph shelf's thumbnail one rule down: the card
-   is a preview of itself, so what is printed under the bars and the bars cannot disagree. */
+/* THE BARS FOLLOW THE NUMBER as it is typed, the photograph shelf's thumbnail one rule down: § */
 document.addEventListener('input', e => {
   const t = e.target;
   if (!t || !t.matches || !t.matches('.lib-no input')) return;
@@ -170,302 +165,6 @@ function libFit_(pane) {
   } catch (e) { /* the column's width stands */ }
 }
 
-/* ---------- AND A GROUP OF `photos_N` NAMES IS A SHELF OF PHOTOGRAPHS § */
-const isPhotoField_ = f => /^photos_\d+$/.test(String(f));
-const isPhotos_ = list => (list || []).some(isPhotoField_);
-/* `o.draft` IS PASSED THROUGH TO THE BOXES — the card editor keeps its own draft (`fieldHtml`'s note). § */
-function photoShelf_(list, value, o) {
-  const nums = (list || []).filter(isPhotoField_).map(f => String(f).match(/^photos_(\d+)$/)[1]);
-  return `<div class="lib-shelf ph-shelf" data-noun="photo">${shelfSlots_(nums,
-    i => shelfFilled_(value, ['photos_' + i]),
-    (i, hide) => {
-      const v = String(value('photos_' + i) || '').trim();
-      return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
-        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : ''}</span>
-        ${fieldHtml('photos_' + i, v, { placeholder: 'Photo', draft: (o || {}).draft, extra: 'type="hidden"' })}
-        <div class="tile-row">${tile_({ icon: 'plus', label: v ? 'Change photo' : 'Choose photo', act: 'ph-pick' })}${shelfDrop_('photo')}</div>
-        <p class="note ph-said"></p>${formFile_('ph-in', 'image/*')}
-      </div>`;
-    }, 'photo')}</div>`;
-}
-/* THE PREVIEW FOLLOWS THE BOX as it is typed into, so the check above does not wait for a Save. One
-   listener for the document, which is how every other input here is heard. */
-document.addEventListener('input', e => {
-  const t = e.target;
-  if (!t || !t.matches || !t.matches('.ph-slot input')) return;
-  const thumb = t.closest('.ph-slot').querySelector('.ph-thumb');
-  const v = String(t.value || '').trim();
-  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : '';
-});
-
-/* ---------- AN EXTRA PHOTO IS UPLOADED, NOT LINKED (owner, 8 Nov): redrawn here at 1200px JPEG, kept in Drive by
-   `photoFile`, and its link put in the slot's box so Save keeps it with the rest of the card. */
-const PHOTO_EDGE_ = 1200;
-function photoShrink_(file) {
-  return new Promise(done => {
-    try {
-      const url = URL.createObjectURL(file), img = new Image();
-      img.onload = () => {
-        const w = img.naturalWidth || 1, h = img.naturalHeight || 1, k = Math.min(1, PHOTO_EDGE_ / Math.max(w, h));
-        const cv = document.createElement('canvas');
-        cv.width = Math.max(1, Math.round(w * k)); cv.height = Math.max(1, Math.round(h * k));
-        try { cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); done(cv.toDataURL('image/jpeg', 0.82)); } catch (e) { done(null); }
-        URL.revokeObjectURL(url);
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); done(null); };
-      img.src = url;
-    } catch (e) { done(null); }
-  });
-}
-on('ph-pick', el => { const slot = el.closest('.ph-slot'), inp = slot && slot.querySelector('.ph-in'); if (inp) inp.click(); });
-document.addEventListener('change', e => {
-  const inp = e.target;
-  if (!inp || !inp.matches || !inp.matches('.ph-in')) return;
-  const file = (inp.files || [])[0], slot = inp.closest('.ph-slot');
-  inp.value = '';
-  if (!file || !slot || !USER) return;
-  const said = slot.querySelector('.ph-said'), say = m => { if (said) said.textContent = m; };
-  if (!/^image\//.test(file.type || '')) { say('That is not a picture. Choose a photo from your phone.'); return; }
-  say('Getting the photo ready…');
-  photoShrink_(file).then(data => {
-    if (!data || !/^data:image\/jpeg/.test(data)) { say('The phone could not read that photo. Try another.'); return; }
-    return send_({ action: 'photoFile', name: USER.name, personId: USER.personId, data },
-      { button: slot.querySelector('[data-do="ph-pick"]'), where: said, saying: 'Uploading…', lock: slot }).then(d => {
-      const url = String((d && d.url) || ''), box = slot.querySelector('input[data-me]');
-      if (!url || !box) { say('The photo went but no link came back. Try again.'); return; }
-      box.value = url;
-      box.dispatchEvent(new Event('input', { bubbles: true }));
-      say('Uploaded. Press Save to keep it on your card.');
-    });
-  }).catch(() => { /* `send_` has said why on the line */ });
-});
-
-/* ---------- YOUR PICTURE, CHOSEN RATHER THAN LINKED § */
-/* `o.fold`: ON YOUR CARD'S EDIT THE PICKER IS ONE LINE, the face beside "Picture", opening in place (docs/history/425). */
-function photoPicker_(value, said, o) {
-  const v = String(value('photo') || '').trim();
-  const K = picKindRow_(v);
-  const chosen = K ? K.chosen(v) : '';
-  const opt = n => {
-    const label = PFP_ART[n].name;
-    return tile_({ label: label, act: 'pfp-choose', data: { pic: n }, on: chosen === n, pressed: chosen === n, cls: 'pfp-opt',
-      face: pfpArt_(n, 40) });
-  };
-  const face = `<span class="pfp-face">${pfpFace_(v)}</span>`;
-  const fold = !!(o && o.fold);
-  return `${fold ? `<details class="pfp ce-fold" data-fold="picture" open>
-    <summary class="ce-line"><span class="ce-k">Picture</span>${face}</summary>` : `<div class="pfp">${face}`}
-    <div class="pfp-side">
-      <div class="tile-row">
-        ${/* A CHILD CHOOSES FROM THE GRID, NEVER A FILE (413) — `savePhoto` refuses one too. */
-          uiMay_('upload-photo') ? tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' }) : ''}
-        ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
-      </div>
-    </div>
-    <div class="pfp-grid" role="group" aria-label="Or choose a picture">${Object.keys(PFP_ART).map(opt).join('')}</div>
-    <p class="note pfp-said">${esc(said || pfpSaid_(v))}</p>
-    ${uiMay_('upload-photo') ? formFile_('pfp-in', 'image/*') : ''}
-  ${fold ? '</details>' : '</div>'}`;
-}
-/* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */
-function pfpSaid_(v) {
-  const K = picKindRow_(v);
-  if (K) return K.said(v);
-  return 'No picture yet, so your card shows your initial. Choose one, or a photo.';
-}
-/* THE PREVIEW IS `personFace_` LIKE EVERY OTHER FACE, so what you see here is what everybody else's card draws — so a picker and a card never disagree. § */
-function pfpFace_(v) {
-  const me = USER || {};
-  return personFace_({ pic: v, personId: me.personId, handle: me.handle,
-                       name: (me.profile && me.profile.first_name) || me.name || '?' },
-                     { cls: 'pfp-pic', none: 'pfp-none', size: 88, alt: 'Your profile picture', eager: true });
-}
-/* THE RING FOLLOWS A TAP AT ONCE, and goes back where it was if the server says no. */
-function pfpRing_(box, name) {
-  if (!box) return;
-  box.querySelectorAll('.pfp-opt').forEach(b => {
-    const on = !!name && b.dataset.pic === name;
-    b.classList.toggle('on', on);
-    b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  });
-}
-/* ---------- A REFUSAL KEEPS THE OLD PICTURE AND SAYS SO § */
-const PFP_SINCE = '2026-10-10-h-pictures';
-function pfpKept_(chose) {
-  const v = String((typeof DATA !== 'undefined' && DATA && DATA.version) || '');
-  const old = !!chose && /^\d{4}-\d\d-\d\d/.test(v) && v < PFP_SINCE;
-  return 'Your picture is unchanged.' + (old
-    ? ' The server has not been updated for the pictures yet; until it is, a photo still works.' : '');
-}
-
-/* ---------- SQUARE, AND SMALL ENOUGH TO POST § */
-const PFP_SIZE = 600;
-function pfpPrepare_(file) {
-  if (typeof camItemOf_ !== 'function') return Promise.resolve(null);
-  return camItemOf_(file).then(it => {
-    if (!it || it.kind !== 'image' || !it.data) return null;
-    return new Promise(done => {
-      const img = new Image();
-      img.onload = () => {
-        const w = img.naturalWidth || 1, h = img.naturalHeight || 1, s = Math.min(w, h);
-        const out = Math.max(1, Math.min(PFP_SIZE, s));
-        const cv = document.createElement('canvas');
-        cv.width = cv.height = out;
-        try {
-          cv.getContext('2d').drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, out, out);
-          done(cv.toDataURL('image/jpeg', 0.85));
-        } catch (e) { done(null); }
-      };
-      img.onerror = () => done(null);
-      img.src = it.data;
-    });
-  }).catch(() => null);
-}
-
-/* WHAT THE SERVER SAID THE PICTURE NOW IS, written everywhere this phone keeps it: § */
-function pfpTake_(box, url, said) {
-  if (!USER) return;
-  USER.profile = Object.assign({}, USER.profile || {}, { photo: url });
-  USER.photo = url;
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
-  ['tutors', 'people', 'students', 'clients', 'family', 'everyone'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
-    if (r && USER.personId && (r.personId === USER.personId || r.person_id === USER.personId || r.id === USER.personId)) {
-      if ('image' in r) r.image = url;
-      if ('photo' in r) r.photo = url;
-    }
-  }));
-  const onCard = !!(box && box.closest && box.closest('.card-ed'));
-  if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''), said, { fold: onCard });
-  /* NOT WHILE THE PICKER IS ON YOUR OWN CARD'S EDIT (docs/history/339) — which is where it is now, for everybody. § */
-  try { if (typeof postFacesMine_ === 'function') postFacesMine_(); } catch (e) { oops_(e, 'me:pfpTake_') }
-  if (onCard) return;
-  try { if (typeof paint === 'function') paint('account'); } catch (e) { oops_(e, 'me:pfpTake_') }
-}
-
-on('pfp-pick', el => {
-  const inp = el.closest('.pfp') && el.closest('.pfp').querySelector('.pfp-in');
-  if (inp) inp.click();
-});
-on('pfp-remove', el => {
-  const box = el.closest('.pfp');
-  if (!USER || !box || !sure_(el, 'Remove?')) return;
-  send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, remove: true },
-        { button: el, where: box.querySelector('.pfp-said'), saying: 'Removing…', lock: box })
-    .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Removed. ' + pfpSaid_(got)); toast('Picture removed'); })
-    .catch(() => { const said = box.querySelector('.pfp-said'); if (said) said.textContent += ' ' + pfpKept_(); });
-});
-/* ---------- ONE OF THE ELEVEN, TAPPED § */
-on('pfp-choose', el => {
-  const box = el.closest('.pfp');
-  const name = String(el.dataset.pic || '');
-  if (!USER || !box || !pfpChoice_(PFP_PREFIX + name)) return;
-  const choice = PFP_PREFIX + name;
-  const said = box.querySelector('.pfp-said');
-  const was = String((USER.profile && USER.profile.photo) || '').trim();
-  if (pfpChoice_(was) === name) { if (said) said.textContent = 'Already chosen. ' + pfpSaid_(was); return; }
-  const face = box.querySelector('.pfp-face');
-  if (face) face.innerHTML = pfpFace_(choice);
-  pfpRing_(box, name);
-  send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, choice },
-        { button: el, where: said, saying: 'Saving…', lock: box })
-    .then(d => {
-      const got = String((d && d.photo) || '');
-      pfpTake_(box, got, (pfpChoice_(got) === name ? 'Saved. ' : 'The server kept something else. ') + pfpSaid_(got));
-      toast('Picture saved');
-    })
-    .catch(() => {
-      if (face) face.innerHTML = pfpFace_(was);
-      pfpRing_(box, pfpChoice_(was));
-      if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_(true);
-    });
-});
-/* `change`, NOT A `data-do` CLICK — a file input reports its choice by changing, the camera's
-   `cam-pick` argument. The value is cleared so choosing the same picture again still fires. */
-document.addEventListener('change', e => {
-  const inp = e.target;
-  if (!inp || !inp.matches || !inp.matches('.pfp-in')) return;
-  const file = (inp.files || [])[0];
-  inp.value = '';
-  const box = inp.closest('.pfp');
-  if (!file || !box || !USER) return;
-  const said = box.querySelector('.pfp-said');
-  const btn = box.querySelector('[data-do="pfp-pick"]');
-  if (said) said.textContent = 'Getting it ready…';
-  pfpPrepare_(file).then(data => {
-    if (!data) { if (said) said.textContent = 'That file is not a picture this phone can read. Try another.'; return; }
-    /* THE PREVIEW CHANGES BEFORE THE UPLOAD, so the crop is seen while it travels; if the server refuses, the line says why and the old picture comes back. § */
-    const face = box.querySelector('.pfp-face');
-    if (face) face.innerHTML = `<img class="pfp-pic" src="${esc(data)}" alt="Your profile picture" decoding="async">`;
-    pfpRing_(box, '');
-    return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
-                 { button: btn, where: said, saying: 'Saving…', lock: box })
-      .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Saved. ' + pfpSaid_(got)); toast('Picture saved'); })
-      .catch(() => {
-        const was = (USER.profile && USER.profile.photo) || '';
-        if (face) face.innerHTML = pfpFace_(was);
-        pfpRing_(box, pfpChoice_(was));
-        if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_();
-      });
-  });
-});
-
-/* THE HOUR CODES, WHEREVER THE BACKEND PUT THEM. § */
-function availCodes_() {
-  const groups = (DATA && DATA.profileFields) || {};
-  const hit = Object.keys(groups).find(g => isTimetable_(groups[g]));
-  return hit ? groups[hit] : [];
-}
-
-/* ---------- AND WHAT A GROUP HEADING IS DEPENDS ON THE SURFACE, SO THE SURFACE SAYS § */
-function fieldsHtml(groups, o) {
-  o = o || {};
-  const head = o.head === false ? '' : o.head || 'h2';
-  const value = o.value || (() => '');
-  const plain = (f, extra) => formField_(f, value(f), Object.assign({
-    attr: o.attr,
-    label: ROW_LABEL[f],
-    options: o.options ? o.options(f) : null,
-    suggest: o.suggest ? o.suggest(f) : null,
-    readonly: (o.readonly || []).indexOf(f) !== -1,
-  }, extra));
-  return Object.keys(groups).map(g => {
-    const list = (groups[g] || []).filter(f => RETIRED_FIELDS_.indexOf(f) === -1);
-    const timetable = isTimetable_(list);
-    /* THE SHELF, THEN WHATEVER ELSE IS IN THE GROUP. § */
-    const library = !timetable && isLibrary_(list);
-    const quals = !timetable && isQuals_(list);
-    const jobs = !timetable && isJobs_(list);
-    /* ---------- AND THE THREE DATE BOXES, WHICH REPLACE ONE FIELD RATHER THAN JOINING IT § */
-    /* EITHER SHAPE. The backend's group list names COLUMNS, so today it says `date_of_birth` — and `isDob_` is asked as well so a deployment that ever sends the § */
-    const wantsDob = !timetable && (list.indexOf('date_of_birth') !== -1 || isDob_(list));
-    /* THE PHONE, AS A CODE AND A NUMBER — the birthday's arrangement: § */
-    const wantsPhone = !timetable && list.indexOf('phone') !== -1;
-    /* THE PHOTOGRAPH SHELF GOES UNDER THE REST, not over it as the library one does: the page
-       reads profile photo, video, then the others, which is the order somebody thinks of them in. */
-    const photos = !timetable && isPhotos_(list);
-    /* ---------- AND `photo` IS A PICTURE YOU CHOOSE, NOT A LINK YOU PASTE § */
-    const picture = !timetable && o.attr === 'data-me' && list.indexOf('photo') !== -1;
-    const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f)) && !(jobs && isJobField_(f))
-                              && !(photos && (isPhotoField_(f) || f === 'video')) && !(picture && f === 'photo')
-                              && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
-    const body = timetable
-      ? availGrid_(list, o.raw || {}, o.readonly || [], o.attr === 'data-me')
-      : (picture ? photoPicker_(value) : '')
-      + (library ? libraryShelf_(list, value) : '')
-      + (quals ? qualShelf_(list, value) : '')
-      + (jobs ? jobShelf_(list, value) : '')
-      + (wantsDob ? dobBoxes_(value) : '')
-      + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneField_(value) : plain(f, extra))
-      + (photos ? videoPicker_(value) + photoShelf_(list, value) : '');
-    return (head ? `<${head}><span>${esc(g)}</span></${head}>` : '') + body;
-  }).join('');
-}
-
-/* The sheet writes TRUE/FALSE as text and the payload sends real booleans; rows written by older
-   versions send neither consistently. One reader for all three. */
-const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').trim());
-
-
 /* YOUR LIBRARY CARDS, A TOOL (docs/history/339) § */
 function libCardsDraw_(into) {
   if (!into) return;
@@ -486,8 +185,7 @@ function libCardsDraw_(into) {
 function initLibCards_() { libCardsDraw_($('lib-box')); }
 /* EVERY COPY ON THE PAGE — Tools' and, starred, Saved's — for `myProfile` landing (`profileRefresh_`): § */
 function libCardsRedraw_() {
-  /* NOT A COPY SOMEBODY IS IN — a box focused and not yet typed into is not dirty, and redrawing it would
-     take the caret away (`landRepaint_`'s reason). It is drawn the next time it is started. */
+  /* NOT A COPY SOMEBODY IS IN — a box focused and not yet typed into is not dirty, and redrawing it would take the caret away § */
   document.querySelectorAll('[id="lib-box"]').forEach(into => {
     if (!into.contains(document.activeElement)) libCardsDraw_(into);
   });
@@ -496,8 +194,7 @@ function libCardsRedraw_() {
 /* ---------- ONE SAVE, TWO SURFACES, AND THE DOM SAYS WHICH § */
 on('me-save', el => { meSave_(el); });
 
-/* ---------- EVERY SETTINGS FIELD SAVES AS YOU TYPE (owner, 8 Nov) ----------
-   ~800ms after the last change a card sends itself: no Save button, a small tick when it lands, a toast when it fails. */
+/* ---------- EVERY SETTINGS FIELD SAVES AS YOU TYPE (owner, 8 Nov) § */
 const AUTOSAVE_MS = 800;
 const AUTOSAVE_T = new WeakMap();
 const AUTOSAVE_FORMS_ = '.set-shape .me-form, #lib-box .me-form';
@@ -538,11 +235,9 @@ function meSave_(el, auto) {
   /* SIGNED OUT (the session ended under an open card): nothing to save to, and `USER.name` would throw. */
   if (!USER) { toast('Sign in first.'); return resolve(false); }
   /* AND A THIRD SURFACE, WHICH IS THE SETTINGS COLUMN. § */
-  const box = el.closest('.me-form') || el.closest('#sheet-body') || el.closest('.widget-slot')
-           || document.body;
+  const box = el.closest('.me-form') || el.closest('#sheet-body') || el.closest('.widget-slot') || document.body;
   const said = box.querySelector('.me-said');
-  /* GATHERED BEFORE `send_` LOCKS THE CARD. The lock disables every box, and this skips a disabled
-     one on purpose (a locked field is not an answer) — so gathering afterwards would post nothing. */
+  /* GATHERED BEFORE `send_` LOCKS THE CARD. § */
   const fields = {};
   box.querySelectorAll('[data-me]').forEach(box => {
     if (box.disabled) return;
@@ -561,8 +256,7 @@ function meSave_(el, auto) {
     if (PROFILE_SERVER_OLD) { if (packed) { blocked(); return resolve(false); } return saveNow(); }
     if (said) said.textContent = 'Your saved details are still loading from the sheet, so nothing was sent. Try again in a moment.';
     profileRefresh_(true, () => (packed ? (blocked(), resolve(false)) : saveNow()));
-    /* NOT SENT YET, AND THE CALLER IS TOLD SO — a refresh that ends in `saveNow` saves the card, but
-       an editor waiting on this would otherwise wait for ever on the path that never calls back. */
+    /* NOT SENT YET, AND THE CALLER IS TOLD SO — a refresh that ends in `saveNow` saves the card, but an editor waiting on this would otherwise wait for § */
     resolve(false);
     return;
   }
@@ -575,7 +269,7 @@ function meSave_(el, auto) {
     .then(d => {
       /* THE SERVER'S OWN READING OF THE ROW, NOT WHAT WAS TYPED. § */
       USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
-      /* AND THE PROGRESS COLUMN, whose journey card counts down to the two exam dates on About you (`progressRedraw_`, js/arcade.js) — not left to the payload this § */
+      /* AND THE PROGRESS COLUMN, whose journey card counts down to the two exam dates on About you (`progressRedraw_`, js/arcade.js) — not left to the § */
       if (typeof progressRedraw_ === 'function') progressRedraw_();
       /* ON THE SHEET NOW, SO EACH FIELD SENT IS NO LONGER A DRAFT (`fieldHtml`; 317). */
       Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) { oops_(e, 'me:meSave_') } });
@@ -599,7 +293,7 @@ function meSave_(el, auto) {
       const at = [...document.querySelectorAll('#s-' + col + ' .me-form')].indexOf(form);
       const lineAt = () => at < 0 ? null
         : (document.querySelectorAll('#s-' + col + ' .me-form')[at] || {}).querySelector?.('.me-said');
-      /* THE CARD IS REDRAWN WHEN AN ADDRESS WAS TYPED — the line under the box and the tile beside Save come and go with a waiting address, and nothing else repaints § */
+      /* THE CARD IS REDRAWN WHEN AN ADDRESS WAS TYPED — the line under the box and the tile beside Save come and go with a waiting address, and nothing § */
       if (d && d.said && !(auto && form && form.dataset.dirty)) {
         try { paint(col); placeCells('y', true, 0, col); } catch (e) { oops_(e, 'me:meSave_') }
         const el2 = lineAt(); if (el2) el2.textContent = word;
@@ -613,8 +307,7 @@ function meSave_(el, auto) {
   });
 }
 
-/* A QUALIFICATION WITH NO SUBJECT, ASKED OF A FORM — lifted out of `meSave_` so the card's own Save
-   (`card-save`) refuses exactly what a Settings card refuses, in the same words. */
+/* A QUALIFICATION WITH NO SUBJECT, ASKED OF A FORM — lifted out of `meSave_` so the card's own Save (`card-save`) refuses exactly what a Settings § */
 const QUAL_NAMELESS_SAY_ = 'Choose a subject for each qualification first — nothing was saved.';
 function qualNameless_(box) {
   return [...box.querySelectorAll('.q-shelf .q-slot')].some(slot => {
@@ -631,16 +324,14 @@ function sayAfterLoad_(find, text) {
   }, 0), () => {});
 }
 
-/* THE FIELD NAMES THAT ARE HALVES OF ONE CELL — see the old-server note in `me-save`. Hour codes are
-   a day prefix and an hour; the rest are the prefixes `fieldsHtml` expands a packed column into. */
+/* THE FIELD NAMES THAT ARE HALVES OF ONE CELL — see the old-server note in `me-save`. § */
 const PACKED_FIELD_ = /^(phone_(cc|no)|dob_[dmy]|qual_\d+(_|$)|lib\d+_|photos_\d+|(m|tu|w|th|f|sa|su)\d{1,2})$|^(qual_\d+_\w+|lib\d+_\w+)$/;
 let PROFILE_SERVER_OLD = false;
 const OLD_SERVER_SAY_ = 'The server in Apps Script is older than this site. Update the backend (pull from GitHub, then Deploy \u2192 Manage deployments \u2192 New version).';
 
 /* ---------- WHICH SETTINGS CARDS HAVE SOMETHING TYPED INTO THEM § */
 /* AND THE BUSINESS COLUMN BY THE SAME RULE. § */
-/* AND THE LIBRARY CARDS ON TOOLS (docs/history/339), and their starred copy on Saved — a `.me-form` in a
-   widget's slot, kept by the same two lines for the same reason: they were a Settings card until 11 Oct. */
+/* AND THE LIBRARY CARDS ON TOOLS (docs/history/339), and their starred copy on Saved — a `.me-form` in a widget's slot, kept by the same two lines § */
 const KEEP_FORMS_ = '#s-account .me-form, #s-staff .me-form, #s-family .me-form, #s-biz .me-form, #s-stuff .widget-slot .me-form, #s-saved .widget-slot .me-form';
 document.addEventListener('input', e => {
   const f = e.target && e.target.closest && e.target.closest(KEEP_FORMS_);
@@ -657,8 +348,7 @@ function settingsKeep_(id) {
     /* AND STUDENT SETTINGS' CARDS, and the card editors and person forms on the people columns (453). */
     return !!(acc && acc.querySelector('.card-ed .me-form[data-dirty], .is-sending .card-ed, .me-form[data-dirty], .me-form.is-sending'));
   }
-  /* AND SAVED, WHILE THE LIBRARY CARDS ON THEM HOLD TYPING (docs/history/339) — the one form a
-     widget slot holds. The rest of the column waits with it, as the rest of Settings waits with a card. */
+  /* AND SAVED, WHILE THE LIBRARY CARDS ON THEM HOLD TYPING (docs/history/339) — the one form a widget slot holds. § */
   if (['saved', 'stuff'].indexOf(id) !== -1 && USER) {   /* Find's too: the library cards are a Find card (790) */
     const col = $('s-' + id);
     return !!(col && col.querySelector('.widget-slot .me-form[data-dirty], .widget-slot .me-form.is-sending'));
@@ -678,15 +368,13 @@ function profileRefresh_(loud, onOld) {
   if (!USER || !USER.token || PROFILE_ASKING) return;
   PROFILE_ASKING = true;
   const askedAt = Date.now();
-  /* RETURNED, so a caller waiting on a copy it can trust (the card editor, `cardFetch_`) knows when the
-     question has been answered either way — every other caller ignores it, as before. */
+  /* RETURNED, so a caller waiting on a copy it can trust (the card editor, `cardFetch_`) knows when the question has been answered either way — every § */
   return api({ action: 'myProfile', name: USER.name, personId: USER.personId || '' })
     .then(d => {
       PROFILE_ASKING = false;
       /* ---------- AN ANSWER OLDER THAN WHAT THE PHONE NOW KNOWS IS NOT PAINTED § */
       if (askedAt < ACCOUNT_AT_) { if (d && d.success) profileRefresh_(loud, onOld); return; }
-      /* AN OLD SERVER, NOT A FAULT. "That action is not recognised" is the server saying it predates
-         this site — remembered, so the next save does not ask again, and never shown raw. */
+      /* AN OLD SERVER, NOT A FAULT. § */
       if (d && d.error && /unknown action|not recognis/i.test(String(d.error))) {
         PROFILE_SERVER_OLD = true;
         if (typeof onOld === 'function') return onOld();
@@ -730,24 +418,21 @@ function profileRefresh_(loud, onOld) {
       /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: § */
       const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());
       if (roleMoved) { try { land(); } catch (e) { oops_(e, 'me:profileRefresh_') } return; }
-      /* AND YOUR CARD, WHEN IT IS OPEN FOR EDITING — it is drawn from this copy (`cardEditHtml_`), and one still waiting for a copy it can trust (`profileShapeOk_`) is § */
+      /* AND YOUR CARD, WHEN IT IS OPEN FOR EDITING — it is drawn from this copy (`cardEditHtml_`), and one still waiting for a copy it can trust § */
       if (CARD_EDIT && CARD_EDIT.own) { try { land(() => paint(SET_OF_FACE_[CARD_EDIT.col] || 'account')); } catch (e) { oops_(e, 'me:profileRefresh_') } }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
       ['account', 'staff', 'family'].concat(PEOPLE_COLS_).forEach(c => {
         if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_(c))
           try { land(() => { paint(c); placeCells('y', true, 0, c); }); } catch (e) { /* a screen gone before it lands is painted on its next draw */ }
       });
-      /* AND THE PROGRESS COLUMN, the same rule: its journey card counts down to the exam dates in this
-         copy, which a Save on another phone may have moved (`progressRedraw_`, js/arcade.js). */
+      /* AND THE PROGRESS COLUMN, the same rule: § */
       if (typeof progressRedraw_ === 'function') { try { land(() => progressRedraw_()); } catch (e) { oops_(e, 'me:profileRefresh_') } }
-      /* AND THE LIBRARY CARDS ON TOOLS, which are drawn from this copy and are a widget now, not a page this
-         column repaints (docs/history/339). `libCardsDraw_` leaves a copy with typing in it alone. */
+      /* AND THE LIBRARY CARDS ON TOOLS, which are drawn from this copy and are a widget now, not a page this column repaints (docs/history/339). § */
       try { land(() => libCardsRedraw_()); } catch (e) { oops_(e, 'me:profileRefresh_') }
     })
     .catch(() => { PROFILE_ASKING = false; });
 }
-/* `change-pin` opened a sheet of its own. It is three fields at the bottom of `edit-me` now — the
-   sheet that already exists for changing your details, which a PIN is one of. */
+/* `change-pin` opened a sheet of its own. § */
 on('pin-save', el => {
   const v = id => ($(id) || {}).value || '';
   const said = $('pin-said');
@@ -778,10 +463,7 @@ on('pin-save', el => {
     .catch(() => {});
 });
 
-
-
 /* `LOADED` and `LOAD_FAILED` were declared here and are now in data.js, with the rest of the state. § */
-
 
 /* YOUR CARD IS WHERE YOU EDIT IT (docs/history/330) § */
 
@@ -858,8 +540,7 @@ function jobShelf_(list, value, o) {
 /* HOW MANY JOBS, for the fold's line. */
 const jobCount_ = val => [1, 2, 3, 4, 5, 6].filter(n => String(val('job_' + n + '_role') || val('job_' + n + '_where') || '').trim()).length;
 
-/* ---------- THE INTRO VIDEO, UPLOADED (8 Nov): a file, not a link — about a minute, 100 MB at most, checked here before
-   anything is sent, then sent in 4 MB parts (`videoPart`) to the owner's private Drive folder. */
+/* ---------- THE INTRO VIDEO, UPLOADED (8 Nov): a file, not a link — about a minute, 100 MB at most, checked here before § */
 const VIDEO_MAX_MB_ = 100, VIDEO_MAX_S_ = 75, VIDEO_PART_ = 4 * 1024 * 1024;
 const introSrc_ = id => 'https://drive.google.com/file/d/' + encodeURIComponent(String(id || '')) + '/preview';
 function videoPicker_(value, said) {

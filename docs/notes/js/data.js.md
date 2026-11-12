@@ -693,3 +693,189 @@ top level, before `ago`
  */
 ```
 
+### null is never a row; in a list of objects a string or number is not one either.
+
+top level, before `dataRowsClean_`
+
+```
+/* null is never a row; in a list of objects a string or number is not one either. Returns {key: dropped}, so load() can report the count. */
+```
+
+### A script that 404s fires `onerror`, which is the one thing this route can report:
+
+in `jsonp`
+
+```
+/* A script that 404s fires `onerror`, which is the one thing this route can report: it cannot
+       see a status code, so "the address did not load" is all there is to say. */
+```
+
+### THE FILES THE FIRST SCREEN DOES NOT NEED (670):
+
+top level, before `LATER_ASK`
+
+```
+/* THE FILES THE FIRST SCREEN DOES NOT NEED (670): index.html's `LATER`, asked for once the first column is drawn. Never rejects: a file that fails is named by `__missing`. */
+```
+
+### ALL AT ONCE (720): fetched side by side, then run in one task, so no screen ever sees one LATER file
+
+in `laterFiles_`
+
+```
+/* ALL AT ONCE (720): fetched side by side, then run in one task, so no screen ever sees one LATER file without the rest (`WIDGETS` was read between find.js and map.js). */
+```
+
+### THE SECOND BATCH (1080):
+
+top level, before `LAZY_ASK`
+
+```
+/* THE SECOND BATCH (1080): index.html's `LAZY`, files Find never needs, asked for behind the library (boot.js) or when a widget of theirs starts — one task, same rule. */
+```
+
+### ONE URL FOR THE BATCH (1211):
+
+in `batchFiles_`
+
+```
+/* ONE URL FOR THE BATCH (1211): tools/bundle.js joined these files in this order; a bundle that fails falls back to the files one by one. */
+```
+
+### NAMES (owner, 8 Nov):
+
+top level, before `capFirst_`
+
+```
+/* NAMES (owner, 8 Nov): an admin sees the whole name; families, tutors and anything public see first name + surname initial ("Halex D.").
+   `viewer` is a user, 'public' for a share, or left out for whoever is signed in. */
+```
+
+### WHAT A PERSON HAS WRITTEN IS KEPT ON THE DEVICE AS THEY WRITE IT — AND A WRITE THE DEVICE REFUSED IS
+
+top level, before `KEEP_MEM`
+
+```
+/* WHAT A PERSON HAS WRITTEN IS KEPT ON THE DEVICE AS THEY WRITE IT — AND A WRITE THE DEVICE REFUSED IS SAID, NEVER KEPT QUIETLY IN MEMORY. § */
+```
+
+### NOT WRITTEN BEFORE WHAT IT WAITS ON — an answer whose owner's mark the store has not taken yet
+
+in `keepPut_`
+
+```
+/* NOT WRITTEN BEFORE WHAT IT WAITS ON — an answer whose owner's mark the store has not taken yet
+     (`keepWaits_`, answers.js): held for the visit and said, as a refused write is. */
+```
+
+### WHAT ONLY THIS VISIT HOLDS — non-empty, and not on the account either (`ansOnAccount_`, answers.js).
+
+top level, before `keepAtRisk_`
+
+```
+/* WHAT ONLY THIS VISIT HOLDS — non-empty, and not on the account either (`ansOnAccount_`, answers.js).
+   NOT A RECORD (`'record'` above): it is nobody's writing, and the answer it guards counts for itself. */
+```
+
+### LONGER THAN ANY ANSWER APPS SCRIPT GIVES (six minutes is its ceiling), so a send still out in another tab
+
+top level, before `DRAFT_SENT_MS`
+
+```
+/* LONGER THAN ANY ANSWER APPS SCRIPT GIVES (six minutes is its ceiling), so a send still out in another
+   tab is never swept from under it. */
+```
+
+### `who` only to name somebody else's draft — the device's, carried into the person who signed in
+
+top level, before `draftKey_`
+
+```
+/* `who` only to name somebody else's draft — the device's, carried into the person who signed in
+   (`bookFollow_`, book.js). Every other caller is the person in front of the screen. */
+```
+
+### ---------- SENT, ANSWERED, REFUSED — see "SENT IS NOT A DRAFT" above. `v` is the words that went, so a
+
+top level, before `draftIs_`
+
+```
+/* ---------- SENT, ANSWERED, REFUSED — see "SENT IS NOT A DRAFT" above. `v` is the words that went, so a
+   box written in again since Send keeps its new draft; a surface that sends a whole form passes none. */
+```
+
+### The letter to put in a circle when there is no picture.
+
+top level, before `initial`
+
+```
+/* The letter to put in a circle when there is no picture. The first LETTER, not the first
+   character — punctuation is not an initial, and "@family." was giving "@", which sat next to the
+   name and read as @@family. */
+```
+
+### Anything from the branding tab, by name, with a fallback.
+
+top level, before `brand`
+
+```
+/* Anything from the branding tab, by name, with a fallback. Never throws on a key that has not
+   been filled in — the whole point of that tab is that most of it is empty most of the time. */
+```
+
+### A CONTACT DETAIL NEVER LIVES IN THE PUBLIC REPO:
+
+top level, before `brand`
+
+```
+/* A CONTACT DETAIL NEVER LIVES IN THE PUBLIC REPO: a blank brand key falls back to the private policy values the backend sends (phone, email). */
+```
+
+### THE BUSINESS'S ONE PICTURE (1040 r10):
+
+top level, before `brandLogo_`
+
+```
+/* THE BUSINESS'S ONE PICTURE (1040 r10): tab icon, home-screen icon, Web profile and the business's posts all read it here. */
+```
+
+### MAY THIS ROLE DO IT:
+
+top level, before `can_`
+
+```
+/* MAY THIS ROLE DO IT: DATA.permissions (data/settings/permissions.json), else admin only — the table the backend's gate reads too. */
+```
+
+### THREE ROLES FOR WHO SEES A SETTING (93):
+
+top level, before `ROLE_THREE_`
+
+```
+/* THREE ROLES FOR WHO SEES A SETTING (93): keyed by the role a word means (`roleOf`), so teacher, parent, kid… are ROLE_ALIASES' alone. */
+```
+
+### THE VIEWER'S THREE ROLES:
+
+top level, before `seeRoles_`
+
+```
+/* THE VIEWER'S THREE ROLES: rank and held roles mapped, a higher role holding the lower ones as ranks always have; a pending tutor is not one yet. */
+```
+
+### MAY THE VIEWER SEE THIS SETTINGS CARD OR ACCOUNT TYPE:
+
+top level, before `seeMay_`
+
+```
+/* MAY THE VIEWER SEE THIS SETTINGS CARD OR ACCOUNT TYPE: permissions.json's `see` rows; no row, an admin's only (`can_`). */
+```
+
+### MAY THE VIEWER HAVE THIS BUTTON:
+
+top level, before `uiMay_`
+
+```
+/* MAY THE VIEWER HAVE THIS BUTTON: permissions.json's `ui` rows, by the action roles, so a child differs from a parent; no row, an admin's only. */
+```
+

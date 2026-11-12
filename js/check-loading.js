@@ -23,7 +23,7 @@ function appFiles_() {
 /* ---------- 1. THE OLD WORDS § */
 const PHRASES = [
   /* ANY WAIT THAT TRAILS OFF, NOT ONLY THE BARE WORD. § */
-  [/\b(Loading|Searching|Finding|Opening)\b[^<"]*(…|\.\.\.)/, 'a "Loading…" of its own — or "Searching…", "Finding…", "Opening…"'],
+  [/\b(Loading|Searching|Finding|Opening|Working)\b[^<"]*(…|\.\.\.)/, 'a "Loading…" of its own — or "Searching…", "Finding…", "Opening…", "Working…"'],
   /* `i`, because "still loading." is the same sentence with a small s. */
   [/\bStill loading\b/i, '"Still loading" — the 30-second line in index.html (#boot-slow), and nowhere in a card'],
   /* WITH ITS ELLIPSIS, because "looking for the TV remote" is a Charades card and not a wait. */
@@ -236,6 +236,9 @@ let splashLoader = '';
   else if (/\bid="splash\b/.test(html)) bad.push('index.html has a `#splash` again — the app opens straight onto its first screen (466)');
   else splashLoader = 'none';
 }
+
+/* THE OPTIMISER READS THESE SAME FINDINGS (tools/health.js `own-wait`, scored in variety-wait). */
+if (process.argv.includes('--json')) { if (calls < 15) bad.push(`loading_() is called ${calls} times`); console.log(JSON.stringify(bad)); process.exit(0); }
 
 /* ---------- THE REPORT --------------------------------------------------------------------------- */
 console.log('\nWAITS DRAWN ANOTHER WAY  (' + bad.length + ')');
