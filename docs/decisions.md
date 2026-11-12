@@ -315,3 +315,7 @@ become an owner question showing both; never pick one.
 - 12 Nov — names in one place: receipts, reports, applications and lib_log stop storing a name or handle; it is read from the people row by person id, an old row's stored cell kept as the fallback. Version stamps bumped (redeploy the backend).
 - 12 Nov — Homework stays off for now; Spotify, Newspaper, Basket and the rest are undecided and left as they are.
 - 12 Nov — the served JS is combined into bundles (bundle/first.js, later.js, lazy.js, written by tools/bundle.js inside build-stamp) so a return visit re-checks 3 URLs instead of ~100; js/ stays the source, ?dev or ?nobundle loads it file by file (1211).
+## 12 Nov — booking form order and the discount (owner)
+- 12 Nov — the booking form's rows are in dependency order, each reading only rows above it: For, Child, Kind, Class, Subject, Extra subj., Level, Tutor, Venue, Room, Space, Extra seats, Term, the week, Dates, Note, the four ticks, Discount, the money (1212).
+- 12 Nov — minimal dynamism for maximum stability: a fixed set of rows in a fixed order and height; a row that does not apply keeps its place with "—"; nothing appears, disappears or moves while filling it in.
+- 12 Nov — the discount has no maximum (replaces the 8 Nov cap): it comes off the teaching only (room and card fees are not discounted) and is shared — the tutor's pay and @family.'s margin fall by the same %; at 100% both get nothing.

@@ -1050,7 +1050,7 @@ check('an admin\'s booking form ends on Discount, one percentage, and Client pay
   if (!aj) bad.push('the admin\'s booking was never sent');
   else {
     if (Math.round(Number(aj.price) * 100) !== Math.round(off * 100)) bad.push('the admin\'s booking sent price ' + aj.price + ', wanted what the client pays, ' + off);
-    if (aj.discountType !== '%' || aj.discountValue !== '30' || aj.discountAbsorbedBy !== 'Business' || aj.discountCode) {
+    if (aj.discountType !== '%' || aj.discountValue !== '30' || aj.discountAbsorbedBy !== 'Shared with tutor' || aj.discountCode) {
       bad.push('the admin\'s booking sent the discount as ' + JSON.stringify([aj.discountType, aj.discountValue, aj.discountAbsorbedBy, aj.discountCode]));
     }
   }

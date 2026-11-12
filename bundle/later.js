@@ -18242,6 +18242,28 @@ const BOOK_STEPS = [
     options: () => ['Instant class', 'Waiting list class'],
   },
 
+  /* ORDER BY DEPENDENCY (owner, 12 Nov): who → what → who teaches → where → how many → when; a row reads only rows above it. */
+  /* ---------- WHOSE CHILDREN ARE THESE? § */
+  /* THE SEATS FOLLOW THE CHILDREN (owner, 7 Nov): picking a child past the count raises it; seats beyond them stay the admin's. */
+  { id: 'kids', label: 'Which of your children is this for?', short: 'Child', multi: true, set: list => { if (list && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length); },
+    /* EVERY CHILD IS OFFERED. § */
+    /* ---------- WHOSE CHILDREN, WHICH IS NOT ALWAYS YOURS § */
+    options: () => {
+      if (isWaiting_()) return [];
+      const forWhom = BOOKING.client || (USER && USER.name) || '';
+      /* THE CHOSEN CLIENT'S OWN ROW FIRST, yourself included (owner, 7 Nov: another client's children were offered); your own list only when you have no row. */
+      const c = (DATA.clients || []).find(x => norm(x.name) === norm(forWhom));
+      if (c || !USER || norm(forWhom) !== norm(USER.name)) return ((c && c.children) || []).filter(Boolean).concat([UNNAMED]);
+      return (USER.children || USER.kids || []).filter(Boolean).concat([UNNAMED]);
+    },
+    /* ---------- AND ONE UNNAMED SEAT, ALWAYS OFFERED § */
+
+    /* Once you have ticked as many as you paid for, the rest say why. Still there, still readable,
+       and tickable the moment you untick one — which is how you change your mind about which two
+       of three are coming. */
+    /* NO "that is N seats already" (owner, 7 Nov): the seats follow the children picked — see `bookToggle_`. */
+  },
+
   /* ---------- JOINING ONE, OR STARTING ONE § */
   /* CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS (`joiningSet_`). */
   { id: 'joining', label: 'Something already going, or a new one?', short: 'Class', set: () => joiningSet_(),
@@ -18292,6 +18314,38 @@ const BOOK_STEPS = [
       const missing = BOOKING.subjects.filter(sub => teaches.indexOf(norm(sub)) === -1);
       return missing.length ? 'does not teach ' + missing.join(', ') : '';
     } },
+  /* AT THE CLIENT'S OWN HOUSE THE SPACE IS THEIRS: an earlier `No` must not stand under a row that cannot be answered. */
+  { id: 'loc', label: 'Where?', short: 'Venue', only: 'wait, tutoring', set: () => { if (takesAllSeats_(BOOKING.loc)) BOOKING.hosting = ''; },
+    options: () => bookableSpaces().map(x => x.label),
+    /* THE ANSWER WRAPS. A room is "Venue — Room", and the three rooms of one building are the same
+       answer until its last word — see the note at the foot of `stepSelect_`. */
+    wrap: true,
+    why: v => {
+      const sp = spaceFor(v);
+      /* A ROOM SMALLER THAN THE CHILDREN ALREADY PICKED says so rather than quietly resetting the count. */
+      if (sp && Number(sp.max) && BOOKING.n > Number(sp.max)) {
+        return 'holds ' + sp.max + ', you asked for ' + BOOKING.n;
+      }
+      return '';
+    } },
+
+  /* "I'LL HOST" IS A CHOICE, and it was an inference — turned on only when somebody picked "At home", so a client who wanted to provide the room at a paid venue § */
+  /* A CLASS IS AT A VENUE. Somebody's front room is not a place three other families are going. */
+  { id: 'hosting', label: 'Are you providing the space?', short: 'Space', only: 'wait, tutoring',
+    /* AT THE CLIENT'S OWN HOUSE THE CLIENT IS THE SPACE (owner, 29 Oct: "the space field is redundant"): no options, so the row is text, `Yes`. */
+    fallback: () => takesAllSeats_(BOOKING.loc) ? 'Yes' : '',
+    options: () => {
+      if (isWaiting_() || takesAllSeats_(BOOKING.loc)) return [];
+      const rate = venueRate_();
+      /* Nothing to charge means nothing to decide: hosting is already true and asking would be
+         the app consulting somebody about a fact. */
+      return rate > 0 ? ['No', 'Yes'] : ['Yes'];
+    },
+    /* The saving was spelled out here and it is already on the card: the Host row shows
+       − £15.00/h against the venue's + £15.00/h, one line apart. Saying it twice made the option
+       longer to read than the question. */
+    label_: v => v === 'Yes' ? 'Yes — no room hire' : 'No — we book the room' },
+
   /* ---------- THE NUMBER ON THE ROW IS THE EXTRA SEATS, AND THE ONE IN `BOOKING` IS THE TOTAL § */
   { id: 'n', label: 'How many extra seats?', short: 'Extra seats',
     label_: v => String(Math.max(0, Number(v) - 1)),
@@ -18327,38 +18381,14 @@ const BOOK_STEPS = [
       return '';
     } },
 
-  /* AT THE CLIENT'S OWN HOUSE THE SPACE IS THEIRS: an earlier `No` must not stand under a row that cannot be answered. */
-  { id: 'loc', label: 'Where?', short: 'Venue', only: 'wait, tutoring', set: () => { if (takesAllSeats_(BOOKING.loc)) BOOKING.hosting = ''; },
-    options: () => bookableSpaces().map(x => x.label),
-    /* THE ANSWER WRAPS. A room is "Venue — Room", and the three rooms of one building are the same
-       answer until its last word — see the note at the foot of `stepSelect_`. */
-    wrap: true,
-    why: v => {
-      const sp = spaceFor(v);
-      /* The seat count is already chosen by now, so a room too small says so rather than
-         quietly resetting it. */
-      if (sp && Number(sp.max) && BOOKING.n > Number(sp.max)) {
-        return 'holds ' + sp.max + ', you asked for ' + BOOKING.n;
-      }
-      return '';
-    } },
-
-  /* "I'LL HOST" IS A CHOICE, and it was an inference — turned on only when somebody picked "At home", so a client who wanted to provide the room at a paid venue § */
-  /* A CLASS IS AT A VENUE. Somebody's front room is not a place three other families are going. */
-  { id: 'hosting', label: 'Are you providing the space?', short: 'Space', only: 'wait, tutoring',
-    /* AT THE CLIENT'S OWN HOUSE THE CLIENT IS THE SPACE (owner, 29 Oct: "the space field is redundant"): no options, so the row is text, `Yes`. */
-    fallback: () => takesAllSeats_(BOOKING.loc) ? 'Yes' : '',
-    options: () => {
-      if (isWaiting_() || takesAllSeats_(BOOKING.loc)) return [];
-      const rate = venueRate_();
-      /* Nothing to charge means nothing to decide: hosting is already true and asking would be
-         the app consulting somebody about a fact. */
-      return rate > 0 ? ['No', 'Yes'] : ['Yes'];
-    },
-    /* The saving was spelled out here and it is already on the card: the Host row shows
-       − £15.00/h against the venue's + £15.00/h, one line apart. Saying it twice made the option
-       longer to read than the question. */
-    label_: v => v === 'Yes' ? 'Yes — no room hire' : 'No — we book the room' },
+  /* AND NO TERM, for the same reason as the day. */
+  /* ---------- SEVERAL TERMS, BECAUSE A BOOKING IS RARELY ONE OF THEM § */
+  /* ---------- AND ON A WAITING LIST IT ANSWERS ITSELF § */
+  { id: 'interval', label: 'Over what period?', short: 'Term', multi: true,
+    fallback: () => { const t = isWaiting_() ? waitTerm_() : null;
+                      return t ? (t.label || t.term) : ''; },
+    /* ---------- AND IT IS OFFERED ON BOTH BRANCHES NOW § */
+    options: () => intervals_().map(x => x.label || x.term).filter(Boolean) },
 
   /* ONE QUESTION WHERE THERE WERE THREE. § */
   /* NO DAY YET. It is settled when the list fills — a time promised now is a promise about a room
@@ -18376,37 +18406,8 @@ const BOOK_STEPS = [
     only: 'wait',
     grid: 'blocks', week: true, options: () => [], why: () => '' },
 
-  /* AND NO TERM, for the same reason as the day. */
-  /* ---------- SEVERAL TERMS, BECAUSE A BOOKING IS RARELY ONE OF THEM § */
-  /* ---------- AND ON A WAITING LIST IT ANSWERS ITSELF § */
-  { id: 'interval', label: 'Over what period?', short: 'Term', multi: true,
-    fallback: () => { const t = isWaiting_() ? waitTerm_() : null;
-                      return t ? (t.label || t.term) : ''; },
-    /* ---------- AND IT IS OFFERED ON BOTH BRANCHES NOW § */
-    options: () => intervals_().map(x => x.label || x.term).filter(Boolean) },
-
   /* ---------- WOULD YOU SHARE WITH SOMEBODY YOU DO NOT KNOW? § */
 
-  /* ---------- WHOSE CHILDREN ARE THESE? § */
-  /* THE SEATS FOLLOW THE CHILDREN (owner, 7 Nov): picking a child past the count raises it; seats beyond them stay the admin's. */
-  { id: 'kids', label: 'Which of your children is this for?', short: 'Child', multi: true, set: list => { if (list && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length); },
-    /* EVERY CHILD IS OFFERED. § */
-    /* ---------- WHOSE CHILDREN, WHICH IS NOT ALWAYS YOURS § */
-    options: () => {
-      if (isWaiting_()) return [];
-      const forWhom = BOOKING.client || (USER && USER.name) || '';
-      /* THE CHOSEN CLIENT'S OWN ROW FIRST, yourself included (owner, 7 Nov: another client's children were offered); your own list only when you have no row. */
-      const c = (DATA.clients || []).find(x => norm(x.name) === norm(forWhom));
-      if (c || !USER || norm(forWhom) !== norm(USER.name)) return ((c && c.children) || []).filter(Boolean).concat([UNNAMED]);
-      return (USER.children || USER.kids || []).filter(Boolean).concat([UNNAMED]);
-    },
-    /* ---------- AND ONE UNNAMED SEAT, ALWAYS OFFERED § */
-
-    /* Once you have ticked as many as you paid for, the rest say why. Still there, still readable,
-       and tickable the moment you untick one — which is how you change your mind about which two
-       of three are coming. */
-    /* NO "that is N seats already" (owner, 7 Nov): the seats follow the children picked — see `bookToggle_`. */
-  },
 
 
 ];
@@ -18493,7 +18494,7 @@ function bookSpec() {
     /* AN ADMIN'S ALONE, and asked here as well as hidden on the form: a draft carried from an admin's
        session to a family's on one device must not price their booking with the admin's discount. */
     discount: (typeof isAdmin === 'function' && isAdmin() && !isWaiting_() && Number(BOOKING.discValue) > 0)
-      ? { type: '%', value: BOOKING.discValue, by: 'Business' }
+      ? { type: '%', value: BOOKING.discValue, by: 'Shared with tutor' }
       : null,
   });
 }
@@ -18512,7 +18513,19 @@ function waitPrice_() {
   };
 }
 
+/* ONE MONEY OBJECT PER FORM STATE (owner, 12 Nov): a draw asks ~6 times; the memo lives one tick, so fresh data is never priced stale. */
+let BOOK_PRICE_MEMO = null;
 function bookPrice() {
+  let key = '';
+  try { key = JSON.stringify(BOOKING); } catch (e) { return bookPriceNow_(); }
+  if (BOOK_PRICE_MEMO && BOOK_PRICE_MEMO.key === key) return BOOK_PRICE_MEMO.L;
+  const L = bookPriceNow_();
+  BOOK_PRICE_MEMO = { key, L };
+  Promise.resolve().then(() => { BOOK_PRICE_MEMO = null; });
+  return L;
+}
+
+function bookPriceNow_() {
   if (isWaiting_()) {
     /* THE VENUE IS THE ONLY ANSWER IT NEEDS. Level does not change what a seat costs, and the day
        is not settled until the list fills — so a list can be priced the moment somebody says where. */
@@ -19239,7 +19252,7 @@ const SPINE_EXTRA = [
   { after: 'When free', row: 'Can come',  only: 'receipt' },
   /* ---------- PINNED TO THE FOOT RATHER THAN TO WHICHEVER QUESTION IS LAST § */
   { after: '',        row: 'About',     only: 'wait' },
-  { after: '',        row: 'Dates' },
+  { after: 'When',    row: 'Dates' },
   { after: '',        row: 'Note' },
   /* THE TWO WAITING-LIST ROWS. § */
   { after: '',        row: 'A seat',    only: 'wait' },
@@ -19256,8 +19269,9 @@ const SPINE = (() => {
   BOOK_STEPS.forEach(st => {
     if (!st.short) return;
     /* ---------- A WEEK STEP IS SEVEN ROWS AND THEY ARE THE SAME SEVEN ON BOTH BRANCHES § */
+    /* THE WEEK'S ROWS UNDER THEIR DRAWN NAME (`day_`, Mon…Sun): under the full name they missed the spine and fell below the ticks. */
     if (st.week) SLOT_DAYS.forEach(([, label]) => {
-      if (out.indexOf(label) === -1) out.push(label);
+      if (out.indexOf(day_(label)) === -1) out.push(day_(label));
     });
     else out.push(st.short);
     SPINE_EXTRA.forEach(x => { if (x.after === st.short) out.push(x.row); });
@@ -19324,7 +19338,7 @@ function spineRows_(rows, opts) {
 function weekLeft_(steps) {
   const weekDrew = steps.filter(r => r.strip).map(r => r.k);
   const weekLeft = {};
-  if (weekDrew.length) SLOT_DAYS.forEach(([, label]) => { if (weekDrew.indexOf(label) === -1) weekLeft[label] = true; });
+  if (weekDrew.length) SLOT_DAYS.forEach(([, label]) => { if (weekDrew.indexOf(day_(label)) === -1) weekLeft[day_(label)] = true; });
   return weekLeft;
 }
 
@@ -19804,8 +19818,7 @@ function discountRow_(L) {
   const admin = typeof isAdmin === 'function' && isAdmin();
   const e = (L && L.earn) || { discount: 0 };
   return receiptRow({ n: '', k: 'Discount', v: '', mul: '', cls: 'rc-disc', ctl: bkCtl_('discValue'),
-    /* CAPPED WHERE @FAMILY'S SHARE RUNS OUT (owner, 8 Nov): the most it can be is said in the rate column. */
-    rate: e.capped ? 'max ' + e.maxPct + '%' : '',
+    rate: '',
     total: e.discount > 0 ? '− ' + money_(e.discount / ((L && L.splitShares) || 1)) : dash_(),
     sel: `<input class="bk-in" id="${bkCtl_('discValue')}" data-do="book-disc" data-field="discValue" type="number"
       inputmode="decimal" min="0" max="100" step="1" value="${admin ? esc(BOOKING.discValue) : ''}" placeholder="% off"${admin ? '' : ' disabled'}

@@ -580,7 +580,7 @@ function createJobRow_(body, ctx) {
     card_fees: cash(body.cardFees), net_profit: cash(body.netProfit),
     discount_type: S(body.discountType), discount_value: cash(body.discountValue),
     discount_code: S(body.discountCode),
-    discount_absorbed_by: S(body.discountType) ? (S(body.discountAbsorbedBy) || 'Business') : '',
+    discount_absorbed_by: S(body.discountType) ? (S(body.discountAbsorbedBy) || 'Shared with tutor') : '',
   };
 }
 

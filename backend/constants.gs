@@ -130,7 +130,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-12-lego-names-1";
+const BACKEND_VERSION = "2026-11-12-discount-shared-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
