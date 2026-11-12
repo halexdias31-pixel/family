@@ -111,16 +111,16 @@ function instruments() {
   await tap('Find tab', null, () => go('stuff'));
   mark('clicks');
   /* ACCESSIBILITY BASICS (920) on Find and Feed as drawn: a target under 44 px, a box with no label, text under 4.5:1 on its own background. */
-  const a11y = [];
+  const a11y = []; let a11yChecked = 0;
   for (const sid of ['stuff', 'feed']) {
     await page.evaluate(sid => go(sid), sid); await page.waitForTimeout(500);
-    a11y.push(...await page.evaluate(sid => {
-      const out = [], root = document.getElementById('s-' + sid), seen = new Set();
-      if (!root) return out;
+    const got = await page.evaluate(sid => {
+      const out = [], root = document.getElementById('s-' + sid), seen = new Set(), all = new Set();
+      if (!root) return { out, n: 0 };
       const vis = e => { const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0 && b.left >= 0 && b.right <= innerWidth && b.top < innerHeight && b.bottom > 0; };
       const name = e => (e.getAttribute('data-do') || e.tagName.toLowerCase()) + (e.textContent.trim() ? ' "' + e.textContent.trim().slice(0, 24) + '"' : '');
       root.querySelectorAll('[data-do], button, a[href], input, select, textarea').forEach(e => {
-        if (!vis(e)) return; const b = e.getBoundingClientRect(), k = name(e);
+        if (!vis(e)) return; all.add(e); const b = e.getBoundingClientRect(), k = name(e);
         if ((b.width < 44 || b.height < 44) && !seen.has('t' + k)) { seen.add('t' + k); out.push({ screen: sid, what: 'tap target', say: `${k} is ${Math.round(b.width)}x${Math.round(b.height)} px (under 44)` }); }
         if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName) && e.type !== 'hidden' && !e.getAttribute('aria-label') && !(e.id && document.querySelector('label[for="' + e.id + '"]')) && !e.closest('label') && !seen.has('l' + k)) {
           seen.add('l' + k); out.push({ screen: sid, what: 'label', say: `${k} has no label` }); }
@@ -129,12 +129,13 @@ function instruments() {
       const bgOf = e => { for (let p = e; p; p = p.parentElement) { const c = getComputedStyle(p).backgroundColor, a = rgb(c); if (a.length === 3 || (a.length === 4 && a[3] > 0.9)) return c; } return 'rgb(255,255,255)'; };
       root.querySelectorAll('p, span, b, h3, li, label, .k').forEach(e => {
         if (!vis(e) || !e.childNodes.length || ![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) return;
-        const f = getComputedStyle(e).color, a = rgb(f); if (a.length === 4 && a[3] < 0.5) return;
+        all.add(e); const f = getComputedStyle(e).color, a = rgb(f); if (a.length === 4 && a[3] < 0.5) return;
         const L1 = lum(f), L2 = lum(bgOf(e)), r = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
         const k = 'c' + e.className + f; if (r < 4.5 && !seen.has(k)) { seen.add(k); out.push({ screen: sid, what: 'contrast', say: `"${e.textContent.trim().slice(0, 24)}" (${e.tagName.toLowerCase()}.${e.className || '-'}) is ${r.toFixed(2)}:1` }); }
       });
-      return out;
-    }, sid));
+      return { out, n: all.size };
+    }, sid);
+    a11y.push(...got.out); a11yChecked += got.n;
   }
   const heap = await page.evaluate(() => (performance.memory && performance.memory.usedJSHeapSize) || 0);
   /* RAW AND LIVE (940, after 930): the raw heap counts garbage not yet collected; after a forced GC is what the page really holds. */
@@ -281,7 +282,7 @@ function instruments() {
     slow: clicks.filter(c => !c.missing && (c.ms > CLICK_MS || c.shift > SHIFT)),
     missing: clicks.filter(c => c.missing).map(c => c.what),
     questions: { sampled: questions.length, types: [...new Set(questions.map(q => q.type))].length, broken },
-    errors: [...new Set(errors)].slice(0, 20), consoleErrors: [...new Set(consoleErrors)].slice(0, 20), a11y, cardTags, inSync,
+    errors: [...new Set(errors)].slice(0, 20), consoleErrors: [...new Set(consoleErrors)].slice(0, 20), a11y, a11yChecked, cardTags, inSync,
   };
   fs.writeFileSync(OUT, JSON.stringify(out, null, 1) + '\n');
   console.log(`ux-health: wrote data/ux-health.json — first screen ${out.firstScreenMs} ms, Find usable ${out.findUsableMs} ms, sign-in ${out.signinMs} ms, `

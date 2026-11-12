@@ -35,7 +35,7 @@ function effort() {
     medianFiles: median(R.map(r => r.files.length)), worstFiles: Math.max(0, ...R.map(r => r.files.length)),
     testBytes: tests.reduce((a, t) => a + t.b, 0), testBiggest: (tests[0] || { b: 0 }).b, testBiggestFile: (tests[0] || {}).f || '',
     historyBytes: notes.reduce((a, t) => a + t.b, 0), historyBiggest: (notes[0] || { b: 0 }).b, historyBiggestFile: (notes[0] || {}).f || '',
-    bigNotes: notes.filter(n => n.b > NOTE_MAX).map(n => n.f), notes: notes.length, tests: tests.length, bigTests: tests.filter(t => t.b > TEST_MAX).length, spread: median(js.map(r => new Set(r.files).size)),
+    bigNotes: notes.filter(n => n.b > NOTE_MAX).map(n => n.f), notes: notes.length, tests: tests.length, bigTests: tests.filter(t => t.b > TEST_MAX).length, spread: median(js.map(r => new Set(r.files).size)), spreadOk: js.filter(r => new Set(r.files).size <= 6).length, spreadOf: js.length,
   };
 }
 function aiCost() {
@@ -76,7 +76,7 @@ function aiCost() {
     { id: 'search-bytes', label: 'js/ within 4 MB to search', ok: searchBytes > 4e6 ? 0 : 1, of: 1 },
     { id: 'test-biggest', label: `Test files under ${TEST_MAX / 1000} KB`, ok: E.tests - E.bigTests, of: E.tests },
     { id: 'big-notes', label: `History notes under ${NOTE_MAX / 1024} KB`, ok: E.notes - E.bigNotes.length, of: E.notes },
-    { id: 'spread', label: 'A change to js/ touches at most 6 files (median)', ok: E.spread > 6 ? 0 : 1, of: 1 },
+    { id: 'spread', label: 'Commits to js/ that touch at most 6 files', ok: E.spreadOk, of: E.spreadOf },
   ];
   const score = Math.round(rules.reduce((a, r) => a + (r.of ? r.ok / r.of : 1), 0) / rules.length * 1000) / 10;
   return { score, rules, avgRead, commentRatio: Math.round(ratio * 1000) / 1000, tombstones: tombs, claudeLines, searchBytes, signals, effort: E, top: elements.slice(0, 10) };
