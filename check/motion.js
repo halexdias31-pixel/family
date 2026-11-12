@@ -25,7 +25,6 @@ const EASE_WORD = /^(ease|ease-in|ease-out|ease-in-out|linear|step-start|step-en
    `js` is a file and a pattern on the line. Everything else is a token: --dur-*, --ease-*, MOTION_. */
 const ACCEPTED = [
   { css: /^\.screen$/, why: 'the slide between columns (527) owns its own spring and timing' },
-  { css: /^\.btn\.is-busy::before, \.tile:is\(\.is-busy, \[aria-busy="true"\]\)::before$/, why: 'a busy button or tile shows the loader\'s three dots, the same loop (30a)' },
   { css: /^\.loading > span/, why: 'the loading ring turns forever at its own speed (owner, 12 Nov), not a movement' },
   { css: /^\.kp-caret$/, why: 'the keypad (528) owns its caret' },
   { css: /^\.mc-caret$/, why: 'the calculator (calc.js, 11 Nov) blinks its caret as the Casio does, like the keypad\'s' },

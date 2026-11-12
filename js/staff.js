@@ -315,8 +315,7 @@ function stmtHtml_() {
 function stmtDraw_() {
   const out = document.querySelector('.hub .stmt-out');
   if (!out) return;
-  out.innerHTML = stmtOutHtml_();
-  if (STMT.asking) out.setAttribute('aria-busy', 'true'); else out.removeAttribute('aria-busy');
+  if (STMT.asking) { out.innerHTML = ''; waiting_(out); } else { out.removeAttribute('aria-busy'); out.innerHTML = stmtOutHtml_(); }
   const p = document.querySelector('.hub [data-do="stmt-print"]');
   if (p) p.disabled = !STMT.data;
 }

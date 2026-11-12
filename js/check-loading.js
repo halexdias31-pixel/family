@@ -41,7 +41,7 @@ const PHRASES = [
   [/\bhave not arrived yet\b/i,'the score board\'s "Scores have not arrived yet" while they were on their way — the sentence is kept only where `scoreBoard_` knows the payload came'],
   [/\bhave not arrived from the server\b/i, 'the hours\' "The hours have not arrived from the server yet" while the payload was on its way — gone with the `avail` tool (432); the Staff hub\'s Hours draws the loader instead'],
   /* ---------- AND THE SHAPE, WHATEVER THE WORDS § */
-  /* A WAIT'S STAGES IN WORDS (456): allowed in one place, Mark with AI, below -- anywhere else it is the dots. */
+  /* A WAIT'S STAGES IN WORDS (456): allowed in one place, Mark with AI, below -- anywhere else it is the ring. */
   [/\b(Sending your work|Marking against the scheme|Still working)\b/, 'a wait told in stages — allowed for Mark with AI alone (keypad.js, 456)'],
   [/>[^<>]*\w(…|\.\.\.)\s*<\/(p|div|span|li|h\d|b|i|small)>/, 'an element whose text trails off in "…" — the shape of a wait drawn in words of its own'],
 ];
@@ -53,7 +53,7 @@ const PHRASE_OK = [
   { file: 'me.js', re: />sending…<\/p>/,
     why: 'a message already sent and in flight under its bubble — a press answered (send_\'s "Sending…", docs/history/094), not content on its way' },
   { file: 'keypad.js', re: /\b(Sending your work|Marking against the scheme|Still working)\b/,
-    why: 'Mark with AI\'s stage line beside the dots (aiStageSay_, 456) — the owner, 25 Oct: "It takes so long and just says marking. Would be nice if there was more feedback so we didn\'t feel blind."' },
+    why: 'Mark with AI\'s stage line beside the ring (aiStageSay_, 456) — the owner, 25 Oct: "It takes so long and just says marking. Would be nice if there was more feedback so we didn\'t feel blind."' },
   { file: 'me.js', re: /\bstill loading from the sheet, so nothing was sent\b/,
     why: 'the answer to a press of Save before the saved details came: a refusal said once, after the press, and not a wait drawn on a card' },
 ];
@@ -64,7 +64,7 @@ const LOADER_CLASS = 'loading';
 
 /* ---------- 3. THE STYLESHEET § */
 const WAIT_KEYFRAME = /(^|-)(sk|skeleton|shimmer|spin\w*|load\w*|wait\w*|pulse\w*|busy\w*)($|-)/;
-/* NONE ACCEPTED (owner, 8 Nov, 30a): a pressed button or tile waits with the same three dots as a page, so no spinner keyframe may exist. */
+/* NONE ACCEPTED (owner, 8 Nov, 30a): a pressed button or tile waits with the same spinning ring as a page, so no spinner keyframe may exist. */
 const ACCEPTED_KEYFRAMES = {};
 const BLOCK_START = '---------- WAITING: ONE LOADER';
 
@@ -104,7 +104,7 @@ for (const f of appFiles_()) {
       const body = src.slice(fn[0], fn[1]);
       loaderSrc = body;
       if (!/role="status"/.test(body)) bad.push('loading_() does not say role="status" — a screen reader hears nothing while it waits');
-      if (!/aria-label="Loading"/.test(body)) bad.push('loading_() has no aria-label="Loading" — three dots say nothing out loud');
+      if (!/aria-label="Loading"/.test(body)) bad.push('loading_() has no aria-label="Loading" — the ring says nothing out loud');
       if ((body.match(/<span><\/span>/g) || []).length !== 1) bad.push('loading_() does not draw its one bar');
     }
   }

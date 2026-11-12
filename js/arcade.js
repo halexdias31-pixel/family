@@ -151,8 +151,8 @@ function widgetsReveil_(col, who) {
     if (!slot || slot.getAttribute('aria-busy')) return;
     if (TOOLS_ON.some(e => e.slot === slot)) return;
     if (who ? slot.WHO === me : (w.pure || (slot.OWN !== undefined && slot.OWN === me))) return;
-    slot.innerHTML = w.html + loading_();
-    slot.setAttribute('aria-busy', 'true');
+    slot.innerHTML = w.html;
+    waiting_(slot);
     delete slot.AHEAD;
     delete slot.WHO;
     delete slot.LENT;

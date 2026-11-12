@@ -510,7 +510,7 @@ function tallyHeld(what, writes) {
   if (outside) bad.push(outside + ' of 200 storms waited outside 0.8 s / 2 s ± 30%');
   if (worst > 3640) bad.push('the longest storm waited ' + worst + ' ms — the bound is 3.64 s, the fallback\'s two waits');
   if (firsts.size < 20) bad.push('200 storms drew only ' + firsts.size + ' different first waits — the jitter is not spreading anybody out');
-  if (BUDGET > 25000) bad.push('AI_BUDGET_MS is ' + BUDGET + ' — a pupil is watching three dots; keep it well under 30 s');
+  if (BUDGET > 25000) bad.push('AI_BUDGET_MS is ' + BUDGET + ' — a pupil is watching the ring; keep it well under 30 s');
   const real = Date.now, base = real();
   gem.clock = { now: 0, per: 7000 };
   Date.now = () => base + gem.clock.now;
