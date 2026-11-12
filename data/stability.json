@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 83.7,
+ "score": 83.4,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -34,12 +34,12 @@
   {
    "id": "dead",
    "label": "Code nothing calls",
-   "count": 15,
+   "count": 16,
    "weight": 0.3,
    "cap": 10,
-   "off": 4.5,
+   "off": 4.8,
    "where": {
-    "check-dead": "bcTaxPot_ (biz-check.js), bcItem_ (biz-check.js), dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), startTimesTables (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), ktLessonCount_ (tools.js), workPics_ (working.js), writingOf_ (writings.js)"
+    "check-dead": "bcTaxPot_ (biz-check.js), bcItem_ (biz-check.js), dropOnFront_ (book-rows.js), mondayOf_ (book-steps.js), boxerPic_ (find-boxers.js), contentPageTitle_ (find-facets.js), insertsFor_ (find-history.js), startTimesTables (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qAliasKey_ (qaliases.js), qtFigureOf_ (qtypes.js), ktLessonCount_ (tools.js), workPics_ (working.js), writingOf_ (writings.js)"
    }
   },
   {

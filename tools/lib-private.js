@@ -54,6 +54,17 @@ function splitGate(name, rows, map, before) {
     return w;
   });
   SC.refuse(name, whole, before, 'tools/lib-private.js split ' + name);
+  if (name === 'questions') idsForLife(before, rows);
+}
+/* IDS FOR LIFE (answer-ids): a part id the committed file had and this one drops strands every saved answer on it, so the
+   split refuses unless data/settings/question-aliases.json says where its answers land. */
+function idsForLife(before, rows) {
+  let A = {};
+  try { A = JSON.parse(fs.readFileSync(path.join(L.ROOT, 'data', 'settings', 'question-aliases.json'), 'utf8')).aliases || {}; } catch (e) { A = {}; }
+  const now = new Set((rows || []).map(r => r && String(r.row_id || '')));
+  const lost = (before || []).map(r => r && String(r.row_id || '')).filter(id => id && !now.has(id) && !A[id]);
+  if (lost.length) throw new Error('tools/lib-private.js split questions: ' + lost.length + ' part id(s) dropped with no alias (' + lost.slice(0, 8).join(', ')
+    + '). One item per printed part, ids for life: keep the part, or add it to data/settings/question-aliases.json (docs/rules.md).');
 }
 
 /* ---------- SPLIT: whole rows → metadata in data/, words in data-private/ ---------- */
