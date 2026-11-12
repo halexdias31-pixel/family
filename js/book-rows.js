@@ -1,5 +1,5 @@
 /* ---------- THE FORM SURVIVES A RELOAD (docs/history/317) § */
-const bookBlank_ = () => Object.keys(BOOKING).every(k => k === 'done' || k === 'picking'
+const bookBlank_ = () => Object.keys(BOOKING).every(k => k === 'picking'
   || ![].concat(BOOKING[k] == null ? [] : BOOKING[k]).join('').trim());
 /* WHOSE FORM IS IN `BOOKING` — the draft it was read from or last written to. See `bookFollow_`. */
 let BOOK_WHO = '';
@@ -126,7 +126,6 @@ function bookKidsFor_() {
   let offered = [];
   try { offered = (st && st.options() || []).map(norm); } catch (e) {}
   BOOKING.kids = (BOOKING.kids || []).filter(k => offered.indexOf(norm(k)) !== -1);
-  if (!BOOKING.kids.length) BOOKING.done = (BOOKING.done || []).filter(id => id !== 'kids');
 }
 
 function bookToggle_(step, v) {
@@ -142,11 +141,6 @@ function bookToggle_(step, v) {
     } catch (err) {}
     BOOKING[step.id] = list;
     if (step.set) step.set(list);
-  }
-  /* ANSWERED THE MOMENT THERE IS SOMETHING IN IT. § */
-  BOOKING.done = uniq((BOOKING.done || []).concat([step.id]));
-  if (!(BOOKING[step.id] || []).length) {
-    BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
   }
 }
 
@@ -169,7 +163,6 @@ document.addEventListener('change', e => {
   const no = step.off && el.value ? String(step.off(el.value) || '') : '';
   if (no) { toast(el.value + ' ' + no); drawBooker(); return; }
   BOOKING[step.id] = el.value || '';
-  BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
 
   /* WHAT THIS ANSWER DOES TO THE OTHERS IS THE STEP'S OWN `set` (book-steps.js), never a branch here. */
   if (step.set) step.set(BOOKING[step.id]);
@@ -183,10 +176,6 @@ function joiningSet_() {
   BOOKING.level    = (j && j.level) || '';
   BOOKING.loc      = (j && (j.location || j.venue)) || '';
   BOOKING.n        = j ? '1' : '';
-  ['subjects', 'level', 'loc', 'n'].forEach(id => {
-    BOOKING.done = j ? uniq((BOOKING.done || []).concat([id]))
-                     : (BOOKING.done || []).filter(x => x !== id);
-  });
 }
 
 

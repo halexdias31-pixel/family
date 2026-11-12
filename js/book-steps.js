@@ -214,8 +214,6 @@ const BOOKING = {
   /* `m16` codes — Monday at four. One list replaces days, time and length, because ticking two
      adjacent hours says all three at once. */
   slots: [],
-  /* Which questions have been finished with. A multiple-choice question needs telling. */
-  done: [],
   /* WHICH OF YOUR OWN CHILDREN THIS IS FOR. § */
   kids: [],
   /* A LIST NOW — see the `interval` step. § */
@@ -616,7 +614,6 @@ function bookHomeSeats_() {
   const n = homeSeats_();
   if (!n) return;
   BOOKING.n = String(n);
-  BOOKING.done = uniq((BOOKING.done || []).concat(['n']));
 }
 
 const tutorRow_ = () => (DATA.tutors || []).find(t => norm(t.title) === norm(BOOKING.tutor)) || null;
@@ -633,40 +630,6 @@ function venueRate_() {
 }
 
 const bookStep_ = id => BOOK_STEPS.find(s => s.id === id);
-
-/** Has this one been answered? A multi is answered when it holds anything. */
-function bookAnswered_(step) {
-  /* A QUESTION YOU CAN ANSWER SEVERAL TIMES IS FINISHED WHEN YOU SAY IT IS. § */
-  if (step.multi || step.grid) {
-    const any = step.grid ? (Array.isArray(BOOKING.slots) && BOOKING.slots.length > 0)
-                          : (BOOKING[step.id] || []).length > 0;
-    return any && (BOOKING.done || []).indexOf(step.id) !== -1;
-  }
-  /* Answered by SAYING so, since nought is a legitimate answer and an empty list cannot be told
-     apart from an unanswered one. */
-  const v = BOOKING[step.id];
-  /* EMPTY IS UNANSWERED. § */
-  return String(v ?? '') !== '';
-}
-
-/* THE NEXT QUESTION WORTH ASKING, or nothing left. § */
-function nextBookStep() {
-  const on = bookOn_();
-  for (const step of BOOK_STEPS) {
-    /* THE OTHER BRANCH'S QUESTIONS ARE NOT ASKED — see the `only:` note on the `avail` step. § */
-    if (!onlyHas_(step.only, on)) continue;
-    if (bookAnswered_(step)) continue;
-    const opts = step.options().filter(Boolean);
-    if (!opts.length) continue;                    // nothing to offer: leave it unanswered
-    /* A GRID AND AN EMAIL LIST ARE NOT ONE-ANSWER QUESTIONS. § */
-    if (opts.length === 1 && !step.multi && !step.grid) {
-      BOOKING[step.id] = opts[0];                  // the only answer there is
-      continue;
-    }
-    return step;
-  }
-  return null;
-}
 
 /* ---------- ONE TERM PER NAME, AND THE NEAREST ONE § */
 function intervals_() {
@@ -761,7 +724,6 @@ function resetBooking_(keepDraft) {
     BOOKING[st.id] = (st.multi || st.grid) ? [] : '';
   });
   /* THE ONE THAT IS NOT AN ANSWER: § */
-  BOOKING.done = [];
   BOOKING.note = '';
   BOOKING.discValue = '';
   /* AND WHICH LIST IS OPEN, for the same reason: it is about the form rather than about the

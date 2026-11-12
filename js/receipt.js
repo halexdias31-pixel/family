@@ -586,12 +586,8 @@ on('job-take-seat', el => {
   if (!j) { toast('That class has gone.'); return; }
   BOOKING.how      = 'Waiting list class';
   BOOKING.joining  = openClassLabel_(j);
-  BOOKING.subjects = j.subject ? [j.subject] : [];
-  BOOKING.level    = j.level || '';
-  BOOKING.loc      = j.location || j.venue || '';
-  BOOKING.n        = '1';
-  BOOKING.done = uniq((BOOKING.done || [])
-    .concat(['how', 'joining', 'subjects', 'level', 'loc', 'n']));
+  /* THE SAME RULE AS CHOOSING IT ON THE FORM: the class answers subject, level, place and seats (`joiningSet_`). */
+  joiningSet_();
   closeSheet();
   finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true });
   go('stuff');
@@ -608,12 +604,8 @@ on('job-join', el => {
   if (!j) { toast('That class has gone.'); return; }
   BOOKING.how      = 'Instant class';
   BOOKING.joining  = openClassLabel_(j);
-  BOOKING.subjects = j.subject ? [j.subject] : [];
-  BOOKING.level    = j.level || '';
-  BOOKING.loc      = j.location || j.venue || '';
-  BOOKING.n        = '1';
-  BOOKING.done = uniq((BOOKING.done || [])
-    .concat(['how', 'joining', 'subjects', 'level', 'loc', 'n']));
+  /* THE SAME RULE AS CHOOSING IT ON THE FORM: the class answers subject, level, place and seats (`joiningSet_`). */
+  joiningSet_();
   closeSheet();
   finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true });
   go('stuff');
