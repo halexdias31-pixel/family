@@ -201,7 +201,7 @@ function pageParts_(x, prev) {
      one titled page per thing, and a page only where the row has the thing. */
   if (x && isContent_(x) && x.row) {
     const c = x.row;
-    return [null].concat((c.formulas || []).length ? ['formulas'] : [], (c.points || []).length ? ['worked'] : []);
+    return [null].concat(c.diagram ? ['fig'] : [], (c.formulas || []).length ? ['formulas'] : [], (c.points || []).length ? ['worked'] : []);
   }
   /* THE BIBLE HAS NO BRANCH HERE ANY MORE. Its cover and each of its verses are one page, the
      default below; the cover's three lists of books and the open book's pages went with the reader

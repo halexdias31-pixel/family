@@ -792,7 +792,7 @@ function contentCard_(x) {
 }
 
 /* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): `check-flow`'s one-widget journey reads the same table. */
-const CONTENT_PAGE = { formulas: 'Formulas', worked: 'Worked examples' };
+const CONTENT_PAGE = { fig: 'Diagram', formulas: 'Formulas', worked: 'Worked examples' };
 function contentPageTitle_(x, part) {
   if (!part) return String((x && x.name) || '');
   return CONTENT_PAGE[part] || '';
@@ -803,7 +803,7 @@ function contentPart_(x, part) {
   return `<div class="fc prac prac-part tb tb-page is-${part}">
     <p class="fc-kick">${esc([c.subject, c.title].filter(Boolean).join(' · '))}${tbHigher_(c.higher)}</p>
     <h3>${esc(CONTENT_PAGE[part])}</h3>
-    ${tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })}
+    ${part === 'fig' ? `<div class="gd"><figure>${c.diagram}</figure></div>` : tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })}
   </div>`;
 }
 

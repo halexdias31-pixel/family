@@ -643,7 +643,7 @@ const EXTRA_KINDS = ['field', 'answer', 'menu-sense', 'backend', 'resilience', '
 
 /* THE SCORE (owner, 12 Nov): every measure is a rule over a countable population; the total is the plain average of the rules, no weights, no caps. */
 const MEANS = "the share of the site's rules that are followed, each rule counted equally";
-const GROUPS = { code: 'Code', logic: 'Find logic', ui: 'Design and UI', cost: 'AI cost', business: 'Business' };
+const GROUPS = { code: 'Code', logic: 'Find logic', ui: 'Design and UI', cost: 'AI cost', business: 'Business', content: 'Library content' };
 /* KINDS SCORED INSIDE ANOTHER RULE, or listed only: own-wait is variety-wait's, text-boxes variety-textbox's, biz-checker business's, deliberate a chosen fallback. */
 const LISTED_ONLY = new Set(['deliberate']);
 function healthRules(st, L, U, S, work, X, C, B) {
@@ -739,6 +739,10 @@ function health() {
   const L = logic(), U = ui(), S = structure(), work = findWork(L), X = extraWork(st), C = require('./ai-cost.js').aiCost(), B = business();
   /* ONE TRUTH, ONE PLACE (owner, 12 Nov): facts, file lists and id labels written once — tools/one-truth.js. */
   const OT = require('./one-truth.js').oneTruth(); X.work.push(...OT.work); B.rules = B.rules.concat(OT.rules);
+  /* THE SPECIFICATION IS WHAT MUST EXIST (owner, 12 Nov): tools/coverage.js maps lessons, questions and figures onto every spec point. */
+  const CV = jread('data/coverage-health.json');
+  if (!CV) X.work.push({ kind: 'spec-lesson', part: 'content', where: 'data/coverage-health.json', say: 'missing — run node tools/coverage.js; the spec points were NOT counted' });
+  else { X.work.push(...(CV.work || []).map(w => Object.assign({ part: 'content' }, w))); B.rules = B.rules.concat(CV.rules || []); }
   const R = healthRules(st, L, U, S, work, X, C, B), avg = rs => rs.length ? r1(rs.reduce((a, r) => a + r.ok / r.of, 0) / rs.length * 100) : 100;
   const overall = avg(R), pts = r => r1((r.of - r.ok) / r.of / R.length * 100);
   /* WHAT ONE FIX GAINS, in points of the total: a share of its rule's one point. */
