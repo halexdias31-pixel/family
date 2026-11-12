@@ -87,6 +87,7 @@
     "finder-tags": "core",
     "price-rows": "core",
     "facts": "secondary",
+    "data-who": "core",
     "data": "core",
     "data-text": "core",
     "library": "core",
@@ -94,10 +95,12 @@
     "settings": "core",
     "settings-read": "core",
     "shell-boot": "core",
+    "shell-go": "core",
     "shell-layout": "core",
     "shell-pages": "core",
     "shell-click": "core",
     "shell-api": "core",
+    "shell-load": "core",
     "shell-hold": "core",
     "rules": "core",
     "cards-people": "core",
@@ -107,8 +110,11 @@
     "me-account": "core",
     "me-messages": "core",
     "me-roles": "core",
+    "me-columns": "core",
+    "me-send": "core",
     "me-shelves": "core",
     "me-settings": "core",
+    "me-fields": "core",
     "me-card": "core",
     "me-people": "core",
     "posts": "secondary",
@@ -128,8 +134,10 @@
     "find-doors": "core",
     "find-timelines": "core",
     "find-levels": "core",
+    "find-account": "core",
     "find-bundles": "core",
     "find-pages": "core",
+    "find-settled": "core",
     "find-quick": "core",
     "find-measure": "core",
     "keypad-keys": "core",
@@ -137,11 +145,13 @@
     "keypad-edit": "core",
     "answers": "core",
     "submit": "core",
+    "submit-suggest": "core",
     "working": "core",
     "work-file": "secondary",
     "calc-engine": "core",
     "calc": "core",
     "qtools": "core",
+    "qtools-row": "core",
     "resource": "core",
     "arcade": "secondary",
     "map": "core",
@@ -176,6 +186,7 @@
     "lego": "secondary",
     "help": "secondary",
     "layout": "secondary",
+    "layout-moves": "secondary",
     "words": "secondary",
     "gtasks": "secondary",
     "push": "secondary",
@@ -386,9 +397,11 @@
     "keypad-edit",
     "answers",
     "submit",
+    "submit-suggest",
     "calc-engine",
     "calc",
     "qtools",
+    "qtools-row",
     "working",
     "work-file",
     "receipt",
@@ -416,6 +429,7 @@
     "mechanics",
     "chemistry",
     "layout",
+    "layout-moves",
     "words",
     "help",
     "map",
@@ -438,8 +452,10 @@
     "find-doors",
     "find-timelines",
     "find-levels",
+    "find-account",
     "find-bundles",
     "find-pages",
+    "find-settled",
     "find-quick",
     "find-measure",
     "tools",
@@ -463,12 +479,28 @@
     "pixel"
   ],
   "widgetFiles": {
-    "tools": ["timer", "calendar", "timetable", "typing"],
-    "games": ["console", "wordgames"],
-    "newspaper": ["newspaper"],
-    "spotify": ["spotify"],
-    "favlinks": ["favlinks"],
-    "pixel": ["pixel"]
+    "tools": [
+      "timer",
+      "calendar",
+      "timetable",
+      "typing"
+    ],
+    "games": [
+      "console",
+      "wordgames"
+    ],
+    "newspaper": [
+      "newspaper"
+    ],
+    "spotify": [
+      "spotify"
+    ],
+    "favlinks": [
+      "favlinks"
+    ],
+    "pixel": [
+      "pixel"
+    ]
   },
   "frozen": {
     "notes": "FROZEN (owner, 7 Nov 2026; docs/history/1090): only Find, the library, questions, settings and bookings matter for now. tools/health.js leaves these js/ file stems out of its score and worklist, beside every non-core file above. Unfreeze: take a stem off this list.",
@@ -511,6 +543,11 @@
   },
   "findNeeds": {
     "notes": "Whole files Find cannot run without, beside the find, shell and keypad pieces; js/check-tiers.js holds each to core.",
-    "files": ["data", "boot", "library", "answers"]
+    "files": [
+      "data",
+      "boot",
+      "library",
+      "answers"
+    ]
   }
 }

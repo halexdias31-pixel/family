@@ -10321,6 +10321,41 @@ function rcpPaid_(j) {
   if (!slots.length) return '';
   return slots.some(sl => /^booked$/i.test(String(sl.status || ''))) ? 'Paid' : slots.some(sl => /^paying$/i.test(String(sl.status || ''))) ? 'Paying' : 'Unpaid';
 }
+
+/* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */
+function subsLine_(pid) {
+  try {
+    const a = DATA && DATA.submissions;
+    if (!pid || !a || !a.people || !USER || String(a.for || '') !== String(USER.personId || '')) return '';
+    const p = a.people[String(pid)];
+    if (!p || !(Number(p.n) > 0)) return '';
+    const last = subDayText_(p.last);
+    return Number(p.n) + (Number(p.n) === 1 ? ' question' : ' questions') + (last ? ' · last ' + last : '');
+  } catch (e) { return ''; }
+}
+/* A submission's day, DD/MM/YY like every date (owner, 8 Nov). */
+function subDayText_(iso) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? date_(iso) : '';
+}
+
+/* THE PEOPLE COLUMNS (453); `peoplePages_` (me.js) adds the signed-out card and the empty one. Student settings is `studentSetPages_`. */
+screen('tutors', () => pages('tutors', typeof cardsOf_ === 'function' ? cardsOf_('tutors') : peoplePages_('tutors')));
+screen('students', () => pages('students', typeof cardsOf_ === 'function' ? cardsOf_('students') : peoplePages_('students')));
+screen('parents', () => pages('parents', typeof cardsOf_ === 'function' ? cardsOf_('parents') : peoplePages_('parents')));
+
+/** Everything spliced between the question and the results, whichever answer is showing. */
+/* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. § */
+/* THE BOUND FINDER'S, since there are two (`FINDERS`): § */
+function frontPages_() {
+  return FINDER.front();
+}
+
+/* A BUNDLE — THE PAPERS ON THE SCREEN, AS ONE THING YOU CAN ORDER. § */
+const BUNDLE_MIN = 2;
+
+;
+/* ==== js/find-account.js ==== */
+/* @family. — js/find-account.js BOOKINGS, THE FEED AND YOUR ACCOUNT AS PAGES (cut from find-levels.js; Find is read as one by tools/find-src.js). */
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
   receiptTags: x => { const j = x.row || {}, paid = rcpPaid_(j);
     const rate = Number(j.rate) || (/hour/i.test(String(j.unit || '')) ? Number(j.price) : 0) || 0;
@@ -10333,11 +10368,9 @@ window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
     const said = [who, weeks ? weeks + (weeks === 1 ? ' week' : ' weeks') : '', total].filter(Boolean).join(' · ');
     return said ? `<p class="rc-sum">${esc(said)}</p>` : ''; },
 });
-
 /* THE FRONT MENU'S ANSWER, read through `DOOR_FIELD` (find-finder.js) — the one name every writer and reader of it uses (1040 friction). */
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === DOOR_FIELD && norm(f.value) === want);
-
 function bookingPages_(o) {
   /* ---------- THE COLUMN ASKS FOR IT DIRECTLY § */
   if (!(o && o.column) && !forIs_('booking')) return [];
@@ -10383,14 +10416,12 @@ on('job-room', el => {
     .catch(() => { el.disabled = false; toast('Not saved'); });
 });
 on('book-open', () => { BOOK_OPEN = !BOOK_OPEN; repaint(); });
-
 /* ---------- THE FEED, BEHIND ITS OWN ANSWER § */
 function feedPages_() {
   /* POSTS ARE DOOR ITEMS (find-doors.js); the whole feed only stands in when those are switched off, or each post would show twice. */
   if (!forIs_('posts') || typeof postDoorItems_ === 'function') return [];
   return (typeof postsBlocks === 'function' ? postsBlocks() : []).filter(Boolean);
 }
-
 /* ---------- SIGNING IN AND OUT, ON A PAGE OF ITS OWN § */
 /* ---------- WHICH ROW IS YOU, ASKED IN ONE PLACE § */
 function mineIs_(t) {
@@ -10403,7 +10434,6 @@ function mineIs_(t) {
     (USER.name && t.title && norm(t.title) === norm(USER.name)) ||
     (USER.name && t.name && norm(t.name) === norm(USER.name)));
 }
-
 /* ---------- YOUR OWN ROW, WHEREVER IT COMES FROM § */
 function myCardRow_() {
   return (DATA.tutors || []).filter(mineIs_)[0] || {
@@ -10420,7 +10450,6 @@ function myCardRow_() {
     /* ---------- `dbs` IS DELIBERATELY ABSENT HERE, AND ABSENT IS NOT `false` § */
   };
 }
-
 /* YOUR FAMILY AS `doGet` SENT IT, less you; `famMine` only when it was sent for you. */
 function accountFamily_() {
   /* ---------- YOUR FAMILY ---------- */
@@ -10432,7 +10461,6 @@ function accountFamily_() {
       && !(USER.personId && String(f.personId) === String(USER.personId)));
   return { famLabel_, famMine, family };
 }
-
 /* ONE FAMILY MEMBER'S CARD, their tutor row under it when they teach. */
 function accountFamCard_(f, famLabel_, personForm_, tcard_) {
   const asTutor = (DATA.tutors || []).find(t => t && t.personId && String(t.personId) === String(f.personId));
@@ -10449,7 +10477,6 @@ function accountFamCard_(f, famLabel_, personForm_, tcard_) {
     + (typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(row)) : '');
   return personMark_(f.personId, personForm_(row) || tcard_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
 }
-
 /* FOR AN ADMIN, EVERYBODY ELSE IN THIS COLUMN, each with Message and New PIN. */
 function accountEveryone_(col, famIds, personForm_, tcard_) {
   /* ---------- AND FOR AN ADMIN, EVERYBODY ELSE AS WELL, by their main role (`doGet` sends no tutor or admin here) ---------- */
@@ -10472,7 +10499,6 @@ function accountEveryone_(col, famIds, personForm_, tcard_) {
             typeof workFileOpts_ === 'function' ? workFileOpts_(p.personId) : null] : null)
           + (typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(p)) : ''), 'person-tiles') : '')));
 }
-
 /* YOUR OWN CARD, IN A LIST OF ONE OR NONE. */
 function accountMine_(col, family, myRow, tcard_) {
   /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */
@@ -10491,7 +10517,6 @@ function accountMine_(col, family, myRow, tcard_) {
   }
   return mine;
 }
-
 /* `col` IS THE PEOPLE COLUMN (453): 'tutors', 'students' or 'parents' — a card per person you may already see, by category. */
 function accountPages_(col) {
   if (!col) return ['tutors', 'students', 'parents'].reduce((a, c) => a.concat(accountPages_(c)), []);
@@ -10553,37 +10578,6 @@ function accountPages_(col) {
   }
   return out.concat(coming);
 }
-
-/* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */
-function subsLine_(pid) {
-  try {
-    const a = DATA && DATA.submissions;
-    if (!pid || !a || !a.people || !USER || String(a.for || '') !== String(USER.personId || '')) return '';
-    const p = a.people[String(pid)];
-    if (!p || !(Number(p.n) > 0)) return '';
-    const last = subDayText_(p.last);
-    return Number(p.n) + (Number(p.n) === 1 ? ' question' : ' questions') + (last ? ' · last ' + last : '');
-  } catch (e) { return ''; }
-}
-/* A submission's day, DD/MM/YY like every date (owner, 8 Nov). */
-function subDayText_(iso) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? date_(iso) : '';
-}
-
-/* THE PEOPLE COLUMNS (453); `peoplePages_` (me.js) adds the signed-out card and the empty one. Student settings is `studentSetPages_`. */
-screen('tutors', () => pages('tutors', typeof cardsOf_ === 'function' ? cardsOf_('tutors') : peoplePages_('tutors')));
-screen('students', () => pages('students', typeof cardsOf_ === 'function' ? cardsOf_('students') : peoplePages_('students')));
-screen('parents', () => pages('parents', typeof cardsOf_ === 'function' ? cardsOf_('parents') : peoplePages_('parents')));
-
-/** Everything spliced between the question and the results, whichever answer is showing. */
-/* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. § */
-/* THE BOUND FINDER'S, since there are two (`FINDERS`): § */
-function frontPages_() {
-  return FINDER.front();
-}
-
-/* A BUNDLE — THE PAPERS ON THE SCREEN, AS ONE THING YOU CAN ORDER. § */
-const BUNDLE_MIN = 2;
 
 ;
 /* ==== js/find-bundles.js ==== */
@@ -11932,37 +11926,6 @@ function finderWake_(id) {
 
 /* THE QUESTION, ON THE PAGE. § */
 /* NAMED FOR WHAT IT WAS, not what it is. § */
-
-/* ---------- THE FIRST PAINT IS THE LAST (546): a question the build already answered (FINDER_TAGS, tools/finder-tags.js) is painted whole while the finder's files still arrive, so no list of answers grows or changes in front of you. */
-const finderSettled_ = () => {
-  try {
-    if (typeof awaiting_ === 'function' && awaiting_()) return false;
-    /* A KEPT PAYLOAD DRAWS BEFORE THE LIBRARY (1070): the build's answers stand until the cards are in. */
-    if (typeof LIBRARY_LATE !== 'undefined' && LIBRARY_LATE) return false;
-    if (typeof LIBRARY_ASK !== 'undefined' && (LIBRARY_ASK || LIBRARY_EXTRA_ASK)) return false;
-    return !writingAsking_();
-  } catch (e) { return true; }
-};
-/* WHICH VIEW OF THE LIBRARY THIS VIEWER HAS: admin or not, the Bible or not — no age lines (1040). */
-function finderTagsView_() {
-  const T = typeof FINDER_TAGS !== 'undefined' ? FINDER_TAGS : null;
-  if (!T || !T.views) return null;
-  /* AN ADMIN SEES People and Settings: a view of its own. */
-  let adm = false;
-  try { adm = typeof isAdmin === 'function' && isAdmin(); } catch (e) { adm = false; }
-  const v = T.views[(adm ? 'admin+' : '') + (typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '')];
-  return v ? Object.assign({}, T.same || {}, v) : null;
-}
-/* WHERE THE FINDER STANDS, as the build writes it: each chip in the order pressed, `field=value` or `field=*` for Doesn't matter. */
-const finderStateKey_ = () => (STUFF.filters || []).map(f => f.field + '=' + (f.any ? '*' : f.value)).join('&');
-/* A FRESH START ONLY (no answer pressed, R4): once pressed, the funnel answers over what had come, as it always did. */
-function finderTagsAt_() {
-  if (STUFF.admit != null || finderSettled_()) return null;
-  const key = finderStateKey_(), view = key === null ? null : finderTagsView_();
-  const at = view && view[key], facet = at && facetBy(at[0]);
-  return facet ? { facet: facet, values: at[1].map(v => ({ value: v[0], show: v.length > 1 ? v[1] : v[0] })) } : null;
-}
-
 function stuffQuestion() {
   const pre = finderTagsAt_() || finderTagsLook_();
   if (pre) return facetAnswersHtml_(pre.facet, pre.values, '') + findPeek_();
@@ -12149,6 +12112,42 @@ const docketText = list =>
 /* Kept in step on the phone first, then sent. A tick that waits for a round trip before moving is
    a tick that feels broken on a train — and this is a scrap of paper, not a payment. */
 let dockTimer = null;
+
+;
+/* ==== js/find-settled.js ==== */
+/* @family. — js/find-settled.js THE FIRST PAINT IS THE LAST (546): whether every source has come, and the build's answer for where the finder stands (cut from find-pages.js). */
+/* WHETHER ANY SOURCE'S INDEX IS STILL ON ITS WAY (546) — every loader keeps `asking` on its own state, read here as one list. */
+const writingAsking_ = () => [BIBLE, TALMUD, QURAN, HADITH, WORKS, TEXTS, PDTEXTS, ORTHO, HYMNS].some(S => S && S.asking);
+
+/* ---------- THE FIRST PAINT IS THE LAST (546): a question the build already answered (FINDER_TAGS, tools/finder-tags.js) is painted whole while the finder's files still arrive, so no list of answers grows or changes in front of you. */
+const finderSettled_ = () => {
+  try {
+    if (typeof awaiting_ === 'function' && awaiting_()) return false;
+    /* A KEPT PAYLOAD DRAWS BEFORE THE LIBRARY (1070): the build's answers stand until the cards are in. */
+    if (typeof LIBRARY_LATE !== 'undefined' && LIBRARY_LATE) return false;
+    if (typeof LIBRARY_ASK !== 'undefined' && (LIBRARY_ASK || LIBRARY_EXTRA_ASK)) return false;
+    return !writingAsking_();
+  } catch (e) { return true; }
+};
+/* WHICH VIEW OF THE LIBRARY THIS VIEWER HAS: admin or not, the Bible or not — no age lines (1040). */
+function finderTagsView_() {
+  const T = typeof FINDER_TAGS !== 'undefined' ? FINDER_TAGS : null;
+  if (!T || !T.views) return null;
+  /* AN ADMIN SEES People and Settings: a view of its own. */
+  let adm = false;
+  try { adm = typeof isAdmin === 'function' && isAdmin(); } catch (e) { adm = false; }
+  const v = T.views[(adm ? 'admin+' : '') + (typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '')];
+  return v ? Object.assign({}, T.same || {}, v) : null;
+}
+/* WHERE THE FINDER STANDS, as the build writes it: each chip in the order pressed, `field=value` or `field=*` for Doesn't matter. */
+const finderStateKey_ = () => (STUFF.filters || []).map(f => f.field + '=' + (f.any ? '*' : f.value)).join('&');
+/* A FRESH START ONLY (no answer pressed, R4): once pressed, the funnel answers over what had come, as it always did. */
+function finderTagsAt_() {
+  if (STUFF.admit != null || finderSettled_()) return null;
+  const key = finderStateKey_(), view = key === null ? null : finderTagsView_();
+  const at = view && view[key], facet = at && facetBy(at[0]);
+  return facet ? { facet: facet, values: at[1].map(v => ({ value: v[0], show: v.length > 1 ? v[1] : v[0] })) } : null;
+}
 
 ;
 /* ==== js/find-quick.js ==== */
@@ -15924,6 +15923,9 @@ function subForget_() {
   SUB_AGAIN = false;
 }
 
+;
+/* ==== js/submit-suggest.js ==== */
+/* @family. — js/submit-suggest.js SUGGEST A CHANGE (494): the one tile, its box in place, pictures and files sent (cut from submit.js; read as one by tools/piece-src.js). */
 /* ---------- SUGGEST A CHANGE (494): one tile on every thing, one box in place ----------
    An admin's goes to Notes for Claude; anybody else's waits for Confirm. A message's says "Tell the admin" (413). */
 /* VIRTUALLY UNLIMITED (562, owner note 119), the backend's CLAUDE_NOTE_MAX: a sheet cell's 50,000 less room for the rest of the row. */
@@ -15932,7 +15934,6 @@ const SUGGEST_NOTE_MAX = 40000;
 const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'function' || ruleOn_('tell-admin'));
 /* WHAT HAS AN OPEN NOTE FOR CLAUDE, by `kind|id` — sent to everybody as `reportedItems`, no names in it. */
 const reportedNow_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA.reportedItems) || []).indexOf(kind + '|' + id) !== -1;
-
 /* THE ONE TILE'S OPTIONS, on every thing, drawn by `tile_`: Student rank and up; signed out, null (no tile). `check-suggest` holds every such tile to it. */
 function suggestOpts_(kind, id, label, cls) {
   if (!kind || !id || typeof rankAtLeast_ !== 'function' || !rankAtLeast_('student')) return null;
@@ -15949,7 +15950,6 @@ function suggestOptsFor_(x) {
   if (!x || !x.key) return null;
   return suggestOpts_(x.soon || x.kind, x.soon ? String(x.soonId) : x.key, [x.name, x.sub].filter(Boolean).join(' · '));
 }
-
 /* WHAT KIND OF SCREEN IT WAS SEEN ON — enough for the owner to try it on the same, and nothing that names a device. */
 function reportDevice_() {
   try {
@@ -15959,7 +15959,6 @@ function reportDevice_() {
     return !touch ? 'computer' : w < 600 ? 'phone' : 'tablet';
   } catch (e) { return ''; }
 }
-
 /* IN PLACE OF THE THING (489, `boxInPlace_`): one text area, a picture, Send and Cancel. No notes listed (498): Done is Claude's, by data/notes-done.json. */
 function reportBoxHtml_(kind, id, label, finder, path) {
   const admin = isAdmin();
@@ -16245,7 +16244,6 @@ async function repFilesSend_(form) {
   return { batch: b.batch, count: list.length, names: list.map(x => b.strip ? x.rel.split('/').slice(1).join('/') : x.rel) };
 }
 const reportBoxOf_ = (kind, id) => [...document.querySelectorAll('.rep-box')].find(b => b.dataset.rk === kind && b.dataset.ri === id) || null;
-
 on('rep-box', el => {
   if (!(typeof rankAtLeast_ === 'function' && rankAtLeast_('student'))) { toast('Sign in to suggest a change.'); return; }
   const kind = el.getAttribute('data-rk') || '', id = el.getAttribute('data-ri') || '';
@@ -16264,7 +16262,6 @@ on('rep-box', el => {
 });
 /* CANCEL CLOSES THE BOX AND KEEPS THE WORDS as the draft, for the next open. */
 on('rep-cancel', el => { boxOut_(el.closest('.rep-box')); });
-
 on('rep-send', el => {
   const form = el.closest('.rep-box');
   if (!form || form.classList.contains('is-sending') || !USER) return;
@@ -17261,120 +17258,6 @@ const qtSchemeIn_ = x => !!x && !!String(x.answer || '').replace(/<[^>]*>/g, ' '
 /* IS A MARKER'S SCHEME THERE: options with a key, or an AI part with an answer to mark against; the rest are ready as written. */
 const choiceKeyed_ = x => (Array.isArray(x.choiceRight) ? x.choiceRight.length > 0 : !!x.choiceRight);
 const MARKER_READY = { choice: choiceKeyed_, order: choiceKeyed_, ai: x => qtSchemeIn_(x) };
-function markerOf_(x) {
-  let kind = 'ai';
-  try { kind = qtMarker_(workRow_(x || {})); } catch (e) { kind = 'ai'; }
-  /* options with no key are still options to tap: their Check says the key is missing (never a person) */
-  if (!isChoiceMarker_(kind) && x && Array.isArray(x.choices) && x.choices.length >= 2) kind = orderIs_(x) ? 'order' : 'choice';
-  /* NO MARK SCHEME is no accept, key words, cells, options or answer (round 4): an importer's note alone is not a scheme to mark against */
-  const ready = Object.prototype.hasOwnProperty.call(MARKER_READY, kind) ? MARKER_READY[kind](x) : true;
-  const how = ready ? QT_HOW_ALL : QT_NO_SCHEME;
-  return { kind, ready, how };
-}
-/* THE CHECK TILE FOR THAT MARKER, last in the row. An AI part whose marker is off says why under the row, not by vanishing. */
-function qtCheck_(x, m) {
-  const k = (m || markerOf_(x)).kind;
-  if (QT_SCHEME_KINDS[k] && (m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-check', cls: 'qp-check' });
-  if (k === 'cells') return tile_({ send: true, act: 'qp-cells-check', cls: 'qp-check' });
-  if (k === 'draw') return tile_({ send: true, act: 'pad-check', cls: 'qp-check' });
-  /* NO SCHEME, NO AI CHECK: a request could only fail, so its Check says so under the row, as options with no key do (round 4) */
-  if (!(m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-noscheme', cls: 'qp-check', data: { key: (x && x.key) || '' } });
-  const ai = typeof aiOpts_ === 'function' ? tile_(aiOpts_(x)) : '';
-  return ai || tile_({ send: true, act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true });
-}
-
-/* ---------- THE ROW. QT_ROW on every part, the pen's tiles where there is a figure, then Undo, Clear and Check (1020). */
-const PEN_OPEN = new Set();
-/* WHAT `qPartCard_` HANDS THE NEXT ROW DRAWN: its part's other tiles; `used` says a row took them */
-const QT_MORE = { html: '', used: false };      // parts whose pen was opened this visit (the surface is made on the first Pen tap)
-/* EACH TOOL'S OWN TILE, by its id in QT_TOOLS: a `tile(t, x, key)` of its own, else the one lit-by-`qtToolOn_` tile below */
-const QT_TILE = {
-  mag: () => typeof magOpts_ === 'function' ? magOpts_() : null,
-  lock: () => typeof qLockOpts_ === 'function' ? qLockOpts_() : null,
-  read: (t, x, key) => {
-    const o = typeof readAloudOpts_ === 'function' ? readAloudOpts_(x) : null;
-    if (o) o.data = Object.assign({}, o.data, { part: 1 });
-    return o || { icon: t.icon, label: t.label, note: 'not on this device', act: 'read-aloud', cls: 'read-aloud', off: true, data: { key } };
-  },
-  /* ONLY WHERE A CALCULATOR IS ALLOWED: a Non-calculator paper never shows it; unknown shows it (owner, 11 Nov) */
-  calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
-  /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
-  offline: (t, x) => (typeof offOpts_ === 'function' ? offOpts_(x) : null),
-  photo: (t, x) => ({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } }),
-};
-/* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
-const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
-const qtInHand_ = pk => pk && typeof PAD_ON !== 'undefined' && PAD_ON === pk ? (PAD_TOOL.get(pk) || 'pen') : '';
-function qtToolOpts_(t, x) {
-  const key = (x && x.key) || '';
-  if (QT_TILE[t.id]) return QT_TILE[t.id](t, x, key);
-  /* A CARD DRAWN AGAIN keeps the tool in hand lit, by the one rule `qtLight_` uses too */
-  const pk = qtPadKey_(t, x);
-  const on = qtToolOn_(t.id, key, pk, qtInHand_(pk));
-  const cls = 'qt-t' + (isMeasureTool_(t.id) ? ' q-meast' : '');
-  return { icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } };
-}
-/* IS THIS TOOL IN HAND, the one rule: Ruler or Protractor laid on a figure (MEAS), the protractor on the pad, the rest the pad's tool */
-/* A MEASURING TOOL NOT LAID ON A FIGURE: the ruler is then out of hand; the protractor may still be on the pad. */
-const MEASURE_ON_PAD = { ruler: () => false, protractor: pk => !!(pk && padProtOn_(pk)) };
-function qtToolOn_(id, key, pk, inHand) {
-  if (isMeasureTool_(id) && typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === id) return true;
-  if (Object.prototype.hasOwnProperty.call(MEASURE_ON_PAD, id)) return MEASURE_ON_PAD[id](pk);
-  if (!pk || !inHand) return false;
-  return inHand === QT_PAD_TOOL[id];
-}
-/* EVERY PEN/INSTRUMENT TILE UNDER `root` LIT AGAIN BY `qtToolOn_`, in place; `inHand` stands in for the tool of a pad being armed */
-function qtLight_(root, inHand) {
-  if (!root || !root.querySelectorAll) return;
-  root.querySelectorAll('.qt-row .qt-t[data-do="qt-inst"], .qt-row .qt-t[data-do="qt-pen"]').forEach(t => {
-    const card = t.closest('.qcard'), pad = card && card.querySelector('.qpad');
-    const pk = (pad && pad.getAttribute('data-k')) || '';
-    const lit = qtToolOn_(t.getAttribute('data-tool'), t.getAttribute('data-key') || '', pk, inHand !== undefined ? inHand : qtInHand_(pk));
-    tileSet_(t, { on: lit, pressed: lit });
-  });
-}
-function qtRow_(x, held) {
-  if (!x || !x.key) return '';
-  const key = x.key;
-  /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
-  if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
-  /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
-  const art = typeof padReady_ !== 'function' || padReady_(x);
-  const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
-  const tools = tile_(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x))) + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
-  const m = markerOf_(x);
-  /* A PART OF A WHOLE QUESTION (owner, 8 Nov): its Show-the-answer and card tiles join this row, so the part has one row, not three */
-  const more = QT_MORE.html; QT_MORE.html = ''; QT_MORE.used = true;
-  const wk = typeof ansKey_ === 'function' && isQ_(x) ? ansKey_(x) : '';
-  const work = wk && typeof workGoOpts_ === 'function' ? `<span class="qp-work-slot" data-k="${esc(wk)}">${tile_(workGoOpts_(wk))}</span>` : '';
-  /* THE FOUR (owner, 9 Nov): Send/Check, Message, Star, ⋯; the tools, help, share and suggest wait behind ⋯ (`kcFour_`). */
-  const four = kcFour_(x, `<span class="qt-tools">${tools}</span>${held || ''}${work}${more}`, qtCheck_(x, m));
-  /* NO GREY LINE UNDER IT (owner, 9 Nov): how a part is marked is said when Check is pressed, on its verdict line. */
-  return `<div class="tile-row qt-row kc-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${four}</div>` + (QCALC_OPEN.has(key) ? qcalcHtml_(key) : '');
-}
-const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
-const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';
-
-
-/* ---------- THE CARD DRAWN AGAIN, where it stands: what a pen opened needs, its plan forgotten first. */
-/* A PART'S PEN OPENED OR PUT AWAY, and the plans that read it forgotten: what the card is drawn from next. */
-function qtPenSet_(x, on) {
-  if (!x || !x.key) return;
-  if (on) PEN_OPEN.add(x.key); else PEN_OPEN.delete(x.key);
-  CHUNK_MEMO.delete(x);   // a WeakMap's delete never throws, whatever it is given
-  STEM_PEN = { from: null, svgs: null };
-}
-function qtRedraw_(card, x) {
-  if (!card || !x) return null;
-  qtPenSet_(x, PEN_OPEN.has(x.key));
-  const t = document.createElement('div');
-  /* A FIND CARD STAYS IN THE ONE CARD SHAPE when drawn again (owner 1a, 8 Nov). */
-  t.innerHTML = card.classList.contains('kc') && isQ_(x) ? findCard(x) : questionCard_(x, card);
-  const next = t.firstElementChild;
-  if (!next) return null;
-  card.replaceWith(next);
-  return next;
-}
 /* THE PEN: the card's pad, made on the first tap where the part has none -- its figure, else its stem's, else a grid. */
 function qtPenOpen_(el, tool) {
   const key = qtKeyOf_(el);
@@ -17523,6 +17406,121 @@ function aiImages_(x, card) {
   const pad = card && [].find.call(card.querySelectorAll('.qpad[data-k]'), p => p.getAttribute('data-k') === pk);
   const inked = padRead_(pk).length > 0;
   return (inked && pad ? penPng_(pad) : Promise.resolve('')).then(png => (png ? [png] : []).concat(pics)).catch(() => pics);
+}
+
+;
+/* ==== js/qtools-row.js ==== */
+/* @family. — js/qtools-row.js A PART'S TOOL ROW: its marker, the pen, ruler and Check tiles, redrawn in place (cut from qtools.js; read as one by tools/piece-src.js). */
+function markerOf_(x) {
+  let kind = 'ai';
+  try { kind = qtMarker_(workRow_(x || {})); } catch (e) { kind = 'ai'; }
+  /* options with no key are still options to tap: their Check says the key is missing (never a person) */
+  if (!isChoiceMarker_(kind) && x && Array.isArray(x.choices) && x.choices.length >= 2) kind = orderIs_(x) ? 'order' : 'choice';
+  /* NO MARK SCHEME is no accept, key words, cells, options or answer (round 4): an importer's note alone is not a scheme to mark against */
+  const ready = Object.prototype.hasOwnProperty.call(MARKER_READY, kind) ? MARKER_READY[kind](x) : true;
+  const how = ready ? QT_HOW_ALL : QT_NO_SCHEME;
+  return { kind, ready, how };
+}
+/* THE CHECK TILE FOR THAT MARKER, last in the row. An AI part whose marker is off says why under the row, not by vanishing. */
+function qtCheck_(x, m) {
+  const k = (m || markerOf_(x)).kind;
+  if (QT_SCHEME_KINDS[k] && (m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-check', cls: 'qp-check' });
+  if (k === 'cells') return tile_({ send: true, act: 'qp-cells-check', cls: 'qp-check' });
+  if (k === 'draw') return tile_({ send: true, act: 'pad-check', cls: 'qp-check' });
+  /* NO SCHEME, NO AI CHECK: a request could only fail, so its Check says so under the row, as options with no key do (round 4) */
+  if (!(m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-noscheme', cls: 'qp-check', data: { key: (x && x.key) || '' } });
+  const ai = typeof aiOpts_ === 'function' ? tile_(aiOpts_(x)) : '';
+  return ai || tile_({ send: true, act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true });
+}
+/* ---------- THE ROW. QT_ROW on every part, the pen's tiles where there is a figure, then Undo, Clear and Check (1020). */
+const PEN_OPEN = new Set();
+/* WHAT `qPartCard_` HANDS THE NEXT ROW DRAWN: its part's other tiles; `used` says a row took them */
+const QT_MORE = { html: '', used: false };      // parts whose pen was opened this visit (the surface is made on the first Pen tap)
+/* EACH TOOL'S OWN TILE, by its id in QT_TOOLS: a `tile(t, x, key)` of its own, else the one lit-by-`qtToolOn_` tile below */
+const QT_TILE = {
+  mag: () => typeof magOpts_ === 'function' ? magOpts_() : null,
+  lock: () => typeof qLockOpts_ === 'function' ? qLockOpts_() : null,
+  read: (t, x, key) => {
+    const o = typeof readAloudOpts_ === 'function' ? readAloudOpts_(x) : null;
+    if (o) o.data = Object.assign({}, o.data, { part: 1 });
+    return o || { icon: t.icon, label: t.label, note: 'not on this device', act: 'read-aloud', cls: 'read-aloud', off: true, data: { key } };
+  },
+  /* ONLY WHERE A CALCULATOR IS ALLOWED: a Non-calculator paper never shows it; unknown shows it (owner, 11 Nov) */
+  calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
+  /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
+  offline: (t, x) => (typeof offOpts_ === 'function' ? offOpts_(x) : null),
+  photo: (t, x) => ({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } }),
+};
+/* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
+const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
+const qtInHand_ = pk => pk && typeof PAD_ON !== 'undefined' && PAD_ON === pk ? (PAD_TOOL.get(pk) || 'pen') : '';
+function qtToolOpts_(t, x) {
+  const key = (x && x.key) || '';
+  if (QT_TILE[t.id]) return QT_TILE[t.id](t, x, key);
+  /* A CARD DRAWN AGAIN keeps the tool in hand lit, by the one rule `qtLight_` uses too */
+  const pk = qtPadKey_(t, x);
+  const on = qtToolOn_(t.id, key, pk, qtInHand_(pk));
+  const cls = 'qt-t' + (isMeasureTool_(t.id) ? ' q-meast' : '');
+  return { icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } };
+}
+/* IS THIS TOOL IN HAND, the one rule: Ruler or Protractor laid on a figure (MEAS), the protractor on the pad, the rest the pad's tool */
+/* A MEASURING TOOL NOT LAID ON A FIGURE: the ruler is then out of hand; the protractor may still be on the pad. */
+const MEASURE_ON_PAD = { ruler: () => false, protractor: pk => !!(pk && padProtOn_(pk)) };
+function qtToolOn_(id, key, pk, inHand) {
+  if (isMeasureTool_(id) && typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === id) return true;
+  if (Object.prototype.hasOwnProperty.call(MEASURE_ON_PAD, id)) return MEASURE_ON_PAD[id](pk);
+  if (!pk || !inHand) return false;
+  return inHand === QT_PAD_TOOL[id];
+}
+/* EVERY PEN/INSTRUMENT TILE UNDER `root` LIT AGAIN BY `qtToolOn_`, in place; `inHand` stands in for the tool of a pad being armed */
+function qtLight_(root, inHand) {
+  if (!root || !root.querySelectorAll) return;
+  root.querySelectorAll('.qt-row .qt-t[data-do="qt-inst"], .qt-row .qt-t[data-do="qt-pen"]').forEach(t => {
+    const card = t.closest('.qcard'), pad = card && card.querySelector('.qpad');
+    const pk = (pad && pad.getAttribute('data-k')) || '';
+    const lit = qtToolOn_(t.getAttribute('data-tool'), t.getAttribute('data-key') || '', pk, inHand !== undefined ? inHand : qtInHand_(pk));
+    tileSet_(t, { on: lit, pressed: lit });
+  });
+}
+function qtRow_(x, held) {
+  if (!x || !x.key) return '';
+  const key = x.key;
+  /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
+  if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
+  /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
+  const art = typeof padReady_ !== 'function' || padReady_(x);
+  const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
+  const tools = tile_(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x))) + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
+  const m = markerOf_(x);
+  /* A PART OF A WHOLE QUESTION (owner, 8 Nov): its Show-the-answer and card tiles join this row, so the part has one row, not three */
+  const more = QT_MORE.html; QT_MORE.html = ''; QT_MORE.used = true;
+  const wk = typeof ansKey_ === 'function' && isQ_(x) ? ansKey_(x) : '';
+  const work = wk && typeof workGoOpts_ === 'function' ? `<span class="qp-work-slot" data-k="${esc(wk)}">${tile_(workGoOpts_(wk))}</span>` : '';
+  /* THE FOUR (owner, 9 Nov): Send/Check, Message, Star, ⋯; the tools, help, share and suggest wait behind ⋯ (`kcFour_`). */
+  const four = kcFour_(x, `<span class="qt-tools">${tools}</span>${held || ''}${work}${more}`, qtCheck_(x, m));
+  /* NO GREY LINE UNDER IT (owner, 9 Nov): how a part is marked is said when Check is pressed, on its verdict line. */
+  return `<div class="tile-row qt-row kc-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${four}</div>` + (QCALC_OPEN.has(key) ? qcalcHtml_(key) : '');
+}
+const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
+const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';
+/* ---------- THE CARD DRAWN AGAIN, where it stands: what a pen opened needs, its plan forgotten first. */
+/* A PART'S PEN OPENED OR PUT AWAY, and the plans that read it forgotten: what the card is drawn from next. */
+function qtPenSet_(x, on) {
+  if (!x || !x.key) return;
+  if (on) PEN_OPEN.add(x.key); else PEN_OPEN.delete(x.key);
+  CHUNK_MEMO.delete(x);   // a WeakMap's delete never throws, whatever it is given
+  STEM_PEN = { from: null, svgs: null };
+}
+function qtRedraw_(card, x) {
+  if (!card || !x) return null;
+  qtPenSet_(x, PEN_OPEN.has(x.key));
+  const t = document.createElement('div');
+  /* A FIND CARD STAYS IN THE ONE CARD SHAPE when drawn again (owner 1a, 8 Nov). */
+  t.innerHTML = card.classList.contains('kc') && isQ_(x) ? findCard(x) : questionCard_(x, card);
+  const next = t.firstElementChild;
+  if (!next) return null;
+  card.replaceWith(next);
+  return next;
 }
 
 ;
@@ -21464,8 +21462,8 @@ function writingLinkOf_(x) {
   return WRITING_TITLES.get(spellKey_(String(x.name || '').split(':')[0].trim())) || '';
 }
 /* A WRITING'S RELIGION (546) is its registry topic (Christianity, Judaism, Islam): "why is religion not coming up" — Topic holds hundreds of answers. */
-const writingAt1_ = (x, k) => (!x ? '' : k === 'religion' ? ((x.w || (x.kind === 'bible' && x.bb)) && x.topic) || ''
-  : x.w ? x.w[k] || '' : x.kind === 'bible' && x.bb ? bibleW_(x, k) || ''
+const writingAt1_ = (x, k) => (!x ? '' : k === 'religion' ? ((x.w || (isBible_(x) && x.bb)) && x.topic) || ''
+  : x.w ? x.w[k] || '' : isBible_(x) && x.bb ? bibleW_(x, k) || ''
   : k === 'work' ? writingLinkOf_(x) : '');
 /* A SOURCE TEXT TWO TRADITIONS HOLD (660): § */
 const WRITING_HELD = { [WRITING_MT]: { work: 'Bible', religion: 'Judaism', collection: 'Tanakh' } };
@@ -21489,7 +21487,7 @@ function writingReligionAsked_() {
   try { const f = (STUFF.filters || []).find(g => g && g.field === 'wReligion' && !g.any); return f ? String(f.value || '') : ''; } catch (e) { return ''; }
 }
 function writingOf_(x) {
-  if (!x || !(x.w || (x.kind === 'bible' && x.bb))) return null;
+  if (!x || !(x.w || (isBible_(x) && x.bb))) return null;
   const w = {};
   WRITING_KEYS.forEach(k => { w[k] = writingAt_(x, k); });
   return w;
@@ -21524,8 +21522,6 @@ function writingAdmit_() {
   return STUFF.admit == null ? writingNow_() : STUFF.admit;
 }
 const writingAdmitted_ = (x, admit) => !x.wSrc || (',' + admit + ',').indexOf(',' + x.wSrc + ',') >= 0;
-/* WHETHER ANY SOURCE'S INDEX IS STILL ON ITS WAY (546) — every loader keeps `asking` on its own state, read here as one list. */
-const writingAsking_ = () => [BIBLE, TALMUD, QURAN, HADITH, WORKS, TEXTS, PDTEXTS, ORTHO, HYMNS].some(S => S && S.asking);
 
 /* ---------- ONE READING LAYOUT FOR EVERY LIBRARY TEXT (owner, 8 Nov): title, a reference in its tradition's own numbering, the text. */
 /* THE NUMBERING IS DATA: `{path}` reads the item, `[...]` drops when a path in it is empty, `a|b` falls back, `@name` is `READING_SAY`. */
@@ -24092,226 +24088,6 @@ function layoutSeen_(col, D) {
   return (D.widgets[col] || []).filter(id => { const w = layoutWidgetOf_(id); return w && widgetFor_(w); });
 }
 
-/* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete, as tile_'s options grouped by `widgetOnColumn_` (arcade.js) ---------- */
-function layoutOpts_(w) {
-  if (!w || !isAdmin()) return null;
-  /* A FIND CARD (790) IS PLACED BY THE FUNNEL, so it has no ▲ ▼ ◀ ▶: its words, who sees it and Delete, which are the widget's own. */
-  if (typeof widgetInFind_ === 'function' && widgetInFind_(w)) {
-    const id = String(w.id);
-    return [wordsOpts_('w:' + id, id), { icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }];
-  }
-  if (!LAYOUT_EDIT || !LAYOUT_COL[w.kind]) return null;
-  const id = String(w.id), L = layoutNow_(), col = layoutHome_(w, L);
-  if (!col) return null;
-  /* THE COLUMN'S UNITS AS DRAWN (710), widgets and cards together, so ▲ ▼ step over a card as over a widget. */
-  const units = mergeUnits_(CARD_SEEN[col] || layoutSeen_(col, layoutDraftOf_(L)), L), ui = units.findIndex(u => u.indexOf(id) !== -1);
-  const grp = mergedOf_(id, L), above = ui > 0 ? units[ui - 1] : null;
-  /* A MERGE IS OF ONE KIND: a widget with the widget above, never with a card. */
-  const up = above && above.every(isWidgetId_) && mergeOk_(mergeAll_(above[0], L).concat(grp || [id]));
-  return [{ icon: 'up', label: 'Move up', act: 'lay-w-move', tone: 'admin', data: { w: id, d: -1 }, off: ui <= 0 },
-    { icon: 'down', label: 'Move down', act: 'lay-w-move', tone: 'admin', data: { w: id, d: 1 }, off: ui === -1 || ui >= units.length - 1 },
-    acrossOpts_(id, col, true, { w: id }), ...colOpts_(col, id),
-    up ? { icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } } : null,
-    grp ? { icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } } : null,
-    startOpts_(col, id, ((L || {}).start || {})[col] || ''), frontOpts_(col, id), wordsOpts_('w:' + id, id),
-    !(grp || [id]).some(basketKept_) ? { icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' } : null];
-}
-/* ◀ ▶ FOR EVERY UNIT (710): the neighbouring column whatever it holds; past an edge, a new column. */
-function acrossOpts_(id, col, isW, data) {
-  /* EACH ACT SPELT AS check-doors reads it, so both pair with their handlers. */
-  const act = isW ? { act: 'lay-w-col' }.act : { act: 'lay-c-col' }.act;
-  const cols = cardColsFor_(id), ci = cols.indexOf(col), last = ci !== -1 && ci >= cols.length - 1, adm = adminCol_(col), room = customRoom_();
-  return [{ icon: 'left', label: ci === 0 && !adm ? 'Move to a new column on the left' : 'Move to previous column', act: act, tone: 'admin',
-      data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || (ci === 0 && (adm || !room)) },
-    { icon: 'right', label: last ? (adm ? 'Move to a new admin-only column' : 'Move to a new column') : 'Move to next column', act: act, tone: 'admin',
-      data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || (last && !room) },
-    /* A NEW COLUMN BETWEEN TWO (730): the owner, "insert a column in between two columns" — made here, beside this one, holding this unit. */
-    { icon: 'plus', label: 'Move to a new column here, on the left', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || !room },
-    { icon: 'plus', label: 'Move to a new column here, on the right', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || !room }];
-}
-/* THE NEW COLUMN STANDS BESIDE `col` by the saved `order` (colOrderApply_); empty again, it goes like any custom column. */
-function layNewCol_(id, col, d, kind) {
-  if (!customRoom_() || cardColsFor_(id).indexOf(col) === -1) return;
-  const L = layoutNow_(), D = layoutDraftOf_(L), cu = D.custom || [];
-  const to = 'custom-' + (cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1);
-  D.custom = cu.concat([adminCol_(col) ? { id: to, admin: true } : { id: to }]);
-  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1);
-  all.forEach(x => cardUnlist_(D, x));
-  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
-  colOrderSet_(D, col, from);
-  colOrderSet_(D, to, all);
-  const ord = COLUMNS.map(t => t.id).filter(x => x !== to), at = ord.indexOf(col);
-  ord.splice(d < 0 ? at : at + 1, 0, to);
-  D.order = ord;
-  layMoveShow_(kind, id, col, () => layoutSave_(D), to);
-}
-on('lay-newcol', el => {
-  const w = el.getAttribute('data-w'), c = el.getAttribute('data-lc');
-  layNewCol_(w || c || '', el.getAttribute('data-col') || '', Number(el.getAttribute('data-d')) || 0, w ? 'w' : 'c');
-});
-
-/* ---------- A MOVE YOU CAN SEE (498): "add a transition so I can see where it goes" ----------
-   Up or down: FLIP, drawn where it was and slid to where it is. Across: the column slides there and the thing is lit. */
-/* LESS MOTION is the app's one question, `motionOK_` (537): the ring still lights, as a ring, for `--dur-mark`. */
-const layCalm_ = () => !motionOK_();
-function layThing_(kind, id, col) {
-  const host = col ? document.getElementById('s-' + col) : document;
-  if (!host || !id) return null;
-  const css = s => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'));
-  const el = kind === 'w' ? host.querySelector('#wgt-' + css(id)) : host.querySelector('[data-lay-for="' + css(id) + '"]');
-  return el ? (el.closest('.card') || el.closest('.page')) : null;
-}
-function layLight_(el) {
-  if (!el) return;
-  el.classList.remove('lay-moved');
-  void el.offsetWidth;
-  el.classList.add('lay-moved');
-  /* OFF WHEN ITS RING ENDS; the timer only for a ring that never ran (an element not drawn), and one per element, so a second light is not cut short by the first's. */
-  clearTimeout(el.layLitT);
-  const off = () => { clearTimeout(el.layLitT); el.classList.remove('lay-moved'); };
-  el.addEventListener('animationend', e => { if (e.animationName === 'lay-moved') off(); }, { once: true });
-  el.layLitT = setTimeout(off, MOTION_.mark + 200);
-}
-/* SAVE, THEN SHOW IT: `before` is where it stood; `to` the column it went to, when it went across. */
-/* THE OTHERS MAKE ROOM (710): "I should see the other widgets moving out of the way" — every unit on the column, read before and glided after. */
-function layUnitsAt_(col) {
-  const host = col && document.getElementById('s-' + col), out = new Map();
-  if (!host) return out;
-  host.querySelectorAll('.card-admin[data-lay-for], .widget-slot[id^="wgt-"]').forEach(x => {
-    const el = x.closest('.card') || x.closest('.page'), k = x.getAttribute('data-lay-for') || x.id;
-    if (el && !out.has(k)) out.set(k, el.getBoundingClientRect());
-  });
-  return out;
-}
-function layMakeRoom_(col, before, skip) {
-  if (layCalm_() || !before.size) return;
-  const host = document.getElementById('s-' + col);
-  if (!host) return;
-  host.querySelectorAll('.card-admin[data-lay-for], .widget-slot[id^="wgt-"]').forEach(x => {
-    const k = x.getAttribute('data-lay-for') || x.id, r0 = before.get(k), el = x.closest('.card') || x.closest('.page');
-    if (!r0 || !el || el === skip || typeof el.animate !== 'function') return;
-    const r1 = el.getBoundingClientRect(), dx = r0.left - r1.left, dy = r0.top - r1.top, z = el.currentCSSZoom || 1;
-    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth) return;
-    el.animate([{ translate: `${dx / z}px ${dy / z}px` }, { translate: '0 0' }], { duration: MOTION_.move, easing: MOTION_.spring });
-  });
-}
-function layMoveShow_(kind, id, col, save, to) {
-  const was = layThing_(kind, id, col), r0 = was && was.getBoundingClientRect(), room = layUnitsAt_(col);
-  save();
-  const after = () => {
-    if (to && to !== col) {
-      try { go(to); } catch (e) {}
-      /* ITS PAGE BY THE PAGER, never scrollIntoView: the parked columns are off-canvas by design and a scroll would move the whole app. */
-      setTimeout(() => {
-        const el = layThing_(kind, id, to), pg = el && el.closest('.page'), host = document.getElementById('s-' + to);
-        const n = pg && host ? [...host.querySelectorAll('.page')].indexOf(pg) : -1;
-        if (n > -1) { try { goPage(to, n, layCalm_()); } catch (e) {} }
-        layLight_(el);
-      }, layCalm_() ? 0 : MOTION_.move + 140);
-      return;
-    }
-    const el = layThing_(kind, id, col);
-    if (!el) return;
-    layMakeRoom_(col, room, el);
-    if (!r0 || layCalm_()) { layLight_(el); return; }
-    /* ONE GLIDE AT A TIME, WAAPI (537): a move during a move starts from where the eye sees it (`r0`, read with the old glide running) and the old one is cancelled before the new place is read. */
-    if (el.layGlide) { try { el.layGlide.cancel(); } catch (e) { /* already gone */ } el.layGlide = null; }
-    const r1 = el.getBoundingClientRect(), dx = r0.left - r1.left, dy = r0.top - r1.top;
-    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth || typeof el.animate !== 'function') { layLight_(el); return; }
-    const z = el.currentCSSZoom || 1;
-    el.layGlide = el.animate([{ translate: `${dx / z}px ${dy / z}px` }, { translate: '0 0' }],
-                             { duration: MOTION_.move, easing: MOTION_.spring });
-    layLight_(el);
-  };
-  try { requestAnimationFrame(after); } catch (e) { after(); }
-}
-
-/* ---------- THE MOVES: each one a change to the whole layout, saved at once — the same two for a widget and a card (710) ---------- */
-on('lay-w-move', el => {
-  if (!isAdmin()) return;
-  const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
-  if (w) layUpDown_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
-});
-on('lay-w-col', el => {
-  if (!isAdmin()) return;
-  const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
-  if (w) layAcross_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
-});
-/* A COLUMN'S ORDER WRITTEN BACK (710): its widgets to `widgets[col]`, and the whole mixed order to `cards[col]` when it holds a card. */
-function colOrderSet_(D, col, order) {
-  const wl = order.filter(isWidgetId_);
-  if (wl.length || layoutWidgetCols_().indexOf(col) !== -1) D.widgets[col] = wl; else delete D.widgets[col];
-  D.cards = D.cards || {};
-  if (order.some(x => !isWidgetId_(x))) D.cards[col] = order.slice(); else delete D.cards[col];
-  if (!Object.keys(D.cards).length) delete D.cards;
-}
-/* UP OR DOWN past the neighbouring unit, widget or card. */
-function layUpDown_(id, col, d, kind) {
-  const L = layoutNow_();
-  if (!col || !hostIs_(col, L)) return;
-  const list = cardListOf_(col, L), units = mergeUnits_(CARD_SEEN[col] || [], L);
-  const ui = units.findIndex(u => u.indexOf(id) !== -1), next = units[ui + d];
-  if (ui === -1 || !next) return;
-  const D = layoutDraftOf_(L);
-  colOrderSet_(D, col, unitPlace_(list, mergeAll_(id, L), next, d));
-  layMoveShow_(kind, id, col, () => layoutSave_(D));
-}
-/* ACROSS: to the end of the neighbouring column, whatever it holds; past an edge a new unnamed column (466, 600, 710). */
-function layAcross_(id, col, d, kind) {
-  const cols = cardColsFor_(id), L = layoutNow_(), D = layoutDraftOf_(L);
-  if (cols.indexOf(col) === -1) return;
-  let to = cols[cols.indexOf(col) + d], fresh = false;
-  if (!to && customRoom_() && (d > 0 || !adminCol_(col))) {
-    fresh = true;
-    const cu = D.custom || [], n = cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1;
-    to = 'custom-' + n;
-    const made = d < 0 ? { id: to, first: true } : adminCol_(col) ? { id: to, admin: true } : { id: to };
-    D.custom = d < 0 ? [made].concat(cu) : cu.concat([made]);
-  }
-  if (!to) return;
-  /* A MERGED CARD MOVES WHOLE (480). */
-  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1), there = fresh ? [] : cardListOf_(to, L).filter(x => all.indexOf(x) === -1);
-  all.forEach(x => cardUnlist_(D, x));
-  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
-  colOrderSet_(D, col, from);
-  colOrderSet_(D, to, there.concat(all));
-  layMoveShow_(kind, id, col, () => layoutSave_(D), to);
-}
-/* ASKED TWICE THROUGH sure_ (534), so its 400 ms rule holds here too: the tile keeps its mark, the question is its label and, with `word`, a word beside it. */
-function layArm_(el, say, rest, word) {
-  return sure_(el, say, { ms: 3000,
-    face: x => {
-      x.classList.add('is-armed'); tileSet_(x, { label: say });
-      const k = x.querySelector('.tile-i');
-      if (word && k && !x.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', `<span class="lay-again">${esc(say)}</span>`);
-    },
-    back: x => { x.classList.remove('is-armed'); tileSet_(x, { label: rest }); x.querySelector('.lay-again')?.remove(); } });
-}
-/* DELETE ASKS TWICE, IN PLACE, THEN IS FINAL (477): `deleted` only keeps it from being drawn again; there is no undo. */
-on('lay-w-del', el => {
-  if (!isAdmin()) return;
-  const id = el.getAttribute('data-w');
-  const all = mergeAll_(id, layoutNow_());
-  if (all.some(basketKept_)) return;
-  if (!layArm_(el, all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete', 'Delete', true)) return;
-  const D = layoutDraftOf_(layoutNow_());
-  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
-  all.forEach(x => { cardUnlist_(D, x); if (D.deleted.indexOf(x) === -1) D.deleted.push(x); });
-  layoutSave_(D);
-});
-/* ---------- SAVED FOR EVERYBODY, DRAWN AT ONCE, PUT BACK IF THE SHEET SAYS NO ---------- */
-function layoutSave_(next) {
-  if (!isAdmin() || !next) return Promise.resolve(false);
-  const was = layoutNow_();
-  customPrune_(next); mergePrune_(next);
-  const set = v => { try { DATA.layout = v; } catch (e) {} layoutKeep_(v); layoutRelayout_(); };
-  const val = layoutSane_(next);
-  set(val);
-  return send({ action: 'layoutSave', personId: (USER && USER.personId) || '', layout: val })
-    .then(() => true)
-    .catch(err => { set(was); toast(why_(err)); return false; });
-}
-
 /* ---------- DELETED, PUT BACK (an admin deleted the whiteboard and had no way back): every deleted widget and card on Business, a Put back tile each ---------- */
 function layoutDeletedName_(id) {
   const w = anyWidgetOf_(id);
@@ -25054,6 +24830,235 @@ on('lay-unmerge', el => {
 /* FOR THE JOURNEYS: the merged groups in force. */
 function mergedNow_() { return (((layoutNow_() || {}).merged) || []).map(g => g.slice()); }
 
+/* THE CODE'S OWN GATE, where it is known: a widget's flags, a card on an admin column; '' when it is for everyone or decided inside its builder. */
+function seenGate_(id) {
+  const w = typeof anyWidgetOf_ === 'function' ? anyWidgetOf_(id) : null;
+  if (w) return w.admin ? 'admin' : w.tutor ? 'staff' : w.signedIn ? 'in' : '';
+  try { if (adminCol_(cardHome0_(id))) return 'admin'; } catch (e) {}
+  return '';
+}
+
+;
+/* ==== js/layout-moves.js ==== */
+/* @family. — js/layout-moves.js AN ADMIN'S MOVES: the tiles that move a widget or card, the move you can see, and the save for everybody (cut from layout.js; read as one by tools/piece-src.js). */
+/* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete, as tile_'s options grouped by `widgetOnColumn_` (arcade.js) ---------- */
+function layoutOpts_(w) {
+  if (!w || !isAdmin()) return null;
+  /* A FIND CARD (790) IS PLACED BY THE FUNNEL, so it has no ▲ ▼ ◀ ▶: its words, who sees it and Delete, which are the widget's own. */
+  if (typeof widgetInFind_ === 'function' && widgetInFind_(w)) {
+    const id = String(w.id);
+    return [wordsOpts_('w:' + id, id), { icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }];
+  }
+  if (!LAYOUT_EDIT || !LAYOUT_COL[w.kind]) return null;
+  const id = String(w.id), L = layoutNow_(), col = layoutHome_(w, L);
+  if (!col) return null;
+  /* THE COLUMN'S UNITS AS DRAWN (710), widgets and cards together, so ▲ ▼ step over a card as over a widget. */
+  const units = mergeUnits_(CARD_SEEN[col] || layoutSeen_(col, layoutDraftOf_(L)), L), ui = units.findIndex(u => u.indexOf(id) !== -1);
+  const grp = mergedOf_(id, L), above = ui > 0 ? units[ui - 1] : null;
+  /* A MERGE IS OF ONE KIND: a widget with the widget above, never with a card. */
+  const up = above && above.every(isWidgetId_) && mergeOk_(mergeAll_(above[0], L).concat(grp || [id]));
+  return [{ icon: 'up', label: 'Move up', act: 'lay-w-move', tone: 'admin', data: { w: id, d: -1 }, off: ui <= 0 },
+    { icon: 'down', label: 'Move down', act: 'lay-w-move', tone: 'admin', data: { w: id, d: 1 }, off: ui === -1 || ui >= units.length - 1 },
+    acrossOpts_(id, col, true, { w: id }), ...colOpts_(col, id),
+    up ? { icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } } : null,
+    grp ? { icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } } : null,
+    startOpts_(col, id, ((L || {}).start || {})[col] || ''), frontOpts_(col, id), wordsOpts_('w:' + id, id),
+    !(grp || [id]).some(basketKept_) ? { icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' } : null];
+}
+/* ◀ ▶ FOR EVERY UNIT (710): the neighbouring column whatever it holds; past an edge, a new column. */
+function acrossOpts_(id, col, isW, data) {
+  /* EACH ACT SPELT AS check-doors reads it, so both pair with their handlers. */
+  const act = isW ? { act: 'lay-w-col' }.act : { act: 'lay-c-col' }.act;
+  const cols = cardColsFor_(id), ci = cols.indexOf(col), last = ci !== -1 && ci >= cols.length - 1, adm = adminCol_(col), room = customRoom_();
+  return [{ icon: 'left', label: ci === 0 && !adm ? 'Move to a new column on the left' : 'Move to previous column', act: act, tone: 'admin',
+      data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || (ci === 0 && (adm || !room)) },
+    { icon: 'right', label: last ? (adm ? 'Move to a new admin-only column' : 'Move to a new column') : 'Move to next column', act: act, tone: 'admin',
+      data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || (last && !room) },
+    /* A NEW COLUMN BETWEEN TWO (730): the owner, "insert a column in between two columns" — made here, beside this one, holding this unit. */
+    { icon: 'plus', label: 'Move to a new column here, on the left', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || !room },
+    { icon: 'plus', label: 'Move to a new column here, on the right', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || !room }];
+}
+/* THE NEW COLUMN STANDS BESIDE `col` by the saved `order` (colOrderApply_); empty again, it goes like any custom column. */
+function layNewCol_(id, col, d, kind) {
+  if (!customRoom_() || cardColsFor_(id).indexOf(col) === -1) return;
+  const L = layoutNow_(), D = layoutDraftOf_(L), cu = D.custom || [];
+  const to = 'custom-' + (cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1);
+  D.custom = cu.concat([adminCol_(col) ? { id: to, admin: true } : { id: to }]);
+  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1);
+  all.forEach(x => cardUnlist_(D, x));
+  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
+  colOrderSet_(D, col, from);
+  colOrderSet_(D, to, all);
+  const ord = COLUMNS.map(t => t.id).filter(x => x !== to), at = ord.indexOf(col);
+  ord.splice(d < 0 ? at : at + 1, 0, to);
+  D.order = ord;
+  layMoveShow_(kind, id, col, () => layoutSave_(D), to);
+}
+on('lay-newcol', el => {
+  const w = el.getAttribute('data-w'), c = el.getAttribute('data-lc');
+  layNewCol_(w || c || '', el.getAttribute('data-col') || '', Number(el.getAttribute('data-d')) || 0, w ? 'w' : 'c');
+});
+/* ---------- A MOVE YOU CAN SEE (498): "add a transition so I can see where it goes" ----------
+   Up or down: FLIP, drawn where it was and slid to where it is. Across: the column slides there and the thing is lit. */
+/* LESS MOTION is the app's one question, `motionOK_` (537): the ring still lights, as a ring, for `--dur-mark`. */
+const layCalm_ = () => !motionOK_();
+function layThing_(kind, id, col) {
+  const host = col ? document.getElementById('s-' + col) : document;
+  if (!host || !id) return null;
+  const css = s => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'));
+  const el = kind === 'w' ? host.querySelector('#wgt-' + css(id)) : host.querySelector('[data-lay-for="' + css(id) + '"]');
+  return el ? (el.closest('.card') || el.closest('.page')) : null;
+}
+function layLight_(el) {
+  if (!el) return;
+  el.classList.remove('lay-moved');
+  void el.offsetWidth;
+  el.classList.add('lay-moved');
+  /* OFF WHEN ITS RING ENDS; the timer only for a ring that never ran (an element not drawn), and one per element, so a second light is not cut short by the first's. */
+  clearTimeout(el.layLitT);
+  const off = () => { clearTimeout(el.layLitT); el.classList.remove('lay-moved'); };
+  el.addEventListener('animationend', e => { if (e.animationName === 'lay-moved') off(); }, { once: true });
+  el.layLitT = setTimeout(off, MOTION_.mark + 200);
+}
+/* SAVE, THEN SHOW IT: `before` is where it stood; `to` the column it went to, when it went across. */
+/* THE OTHERS MAKE ROOM (710): "I should see the other widgets moving out of the way" — every unit on the column, read before and glided after. */
+function layUnitsAt_(col) {
+  const host = col && document.getElementById('s-' + col), out = new Map();
+  if (!host) return out;
+  host.querySelectorAll('.card-admin[data-lay-for], .widget-slot[id^="wgt-"]').forEach(x => {
+    const el = x.closest('.card') || x.closest('.page'), k = x.getAttribute('data-lay-for') || x.id;
+    if (el && !out.has(k)) out.set(k, el.getBoundingClientRect());
+  });
+  return out;
+}
+function layMakeRoom_(col, before, skip) {
+  if (layCalm_() || !before.size) return;
+  const host = document.getElementById('s-' + col);
+  if (!host) return;
+  host.querySelectorAll('.card-admin[data-lay-for], .widget-slot[id^="wgt-"]').forEach(x => {
+    const k = x.getAttribute('data-lay-for') || x.id, r0 = before.get(k), el = x.closest('.card') || x.closest('.page');
+    if (!r0 || !el || el === skip || typeof el.animate !== 'function') return;
+    const r1 = el.getBoundingClientRect(), dx = r0.left - r1.left, dy = r0.top - r1.top, z = el.currentCSSZoom || 1;
+    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth) return;
+    el.animate([{ translate: `${dx / z}px ${dy / z}px` }, { translate: '0 0' }], { duration: MOTION_.move, easing: MOTION_.spring });
+  });
+}
+function layMoveShow_(kind, id, col, save, to) {
+  const was = layThing_(kind, id, col), r0 = was && was.getBoundingClientRect(), room = layUnitsAt_(col);
+  save();
+  const after = () => {
+    if (to && to !== col) {
+      try { go(to); } catch (e) { /* the column went mid-move: the layout is saved, the view stays */ }
+      /* ITS PAGE BY THE PAGER, never scrollIntoView: the parked columns are off-canvas by design and a scroll would move the whole app. */
+      setTimeout(() => {
+        const el = layThing_(kind, id, to), pg = el && el.closest('.page'), host = document.getElementById('s-' + to);
+        const n = pg && host ? [...host.querySelectorAll('.page')].indexOf(pg) : -1;
+        if (n > -1) { try { goPage(to, n, layCalm_()); } catch (e) { /* the page went mid-move: the layout is saved, the view stays */ } }
+        layLight_(el);
+      }, layCalm_() ? 0 : MOTION_.move + 140);
+      return;
+    }
+    const el = layThing_(kind, id, col);
+    if (!el) return;
+    layMakeRoom_(col, room, el);
+    if (!r0 || layCalm_()) { layLight_(el); return; }
+    /* ONE GLIDE AT A TIME, WAAPI (537): a move during a move starts from where the eye sees it (`r0`, read with the old glide running) and the old one is cancelled before the new place is read. */
+    if (el.layGlide) { try { el.layGlide.cancel(); } catch (e) { /* already gone */ } el.layGlide = null; }
+    const r1 = el.getBoundingClientRect(), dx = r0.left - r1.left, dy = r0.top - r1.top;
+    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth || typeof el.animate !== 'function') { layLight_(el); return; }
+    const z = el.currentCSSZoom || 1;
+    el.layGlide = el.animate([{ translate: `${dx / z}px ${dy / z}px` }, { translate: '0 0' }],
+                             { duration: MOTION_.move, easing: MOTION_.spring });
+    layLight_(el);
+  };
+  try { requestAnimationFrame(after); } catch (e) { after(); }
+}
+/* ---------- THE MOVES: each one a change to the whole layout, saved at once — the same two for a widget and a card (710) ---------- */
+on('lay-w-move', el => {
+  if (!isAdmin()) return;
+  const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
+  if (w) layUpDown_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
+});
+on('lay-w-col', el => {
+  if (!isAdmin()) return;
+  const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
+  if (w) layAcross_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
+});
+/* A COLUMN'S ORDER WRITTEN BACK (710): its widgets to `widgets[col]`, and the whole mixed order to `cards[col]` when it holds a card. */
+function colOrderSet_(D, col, order) {
+  const wl = order.filter(isWidgetId_);
+  if (wl.length || layoutWidgetCols_().indexOf(col) !== -1) D.widgets[col] = wl; else delete D.widgets[col];
+  D.cards = D.cards || {};
+  if (order.some(x => !isWidgetId_(x))) D.cards[col] = order.slice(); else delete D.cards[col];
+  if (!Object.keys(D.cards).length) delete D.cards;
+}
+/* UP OR DOWN past the neighbouring unit, widget or card. */
+function layUpDown_(id, col, d, kind) {
+  const L = layoutNow_();
+  if (!col || !hostIs_(col, L)) return;
+  const list = cardListOf_(col, L), units = mergeUnits_(CARD_SEEN[col] || [], L);
+  const ui = units.findIndex(u => u.indexOf(id) !== -1), next = units[ui + d];
+  if (ui === -1 || !next) return;
+  const D = layoutDraftOf_(L);
+  colOrderSet_(D, col, unitPlace_(list, mergeAll_(id, L), next, d));
+  layMoveShow_(kind, id, col, () => layoutSave_(D));
+}
+/* ACROSS: to the end of the neighbouring column, whatever it holds; past an edge a new unnamed column (466, 600, 710). */
+function layAcross_(id, col, d, kind) {
+  const cols = cardColsFor_(id), L = layoutNow_(), D = layoutDraftOf_(L);
+  if (cols.indexOf(col) === -1) return;
+  let to = cols[cols.indexOf(col) + d], fresh = false;
+  if (!to && customRoom_() && (d > 0 || !adminCol_(col))) {
+    fresh = true;
+    const cu = D.custom || [], n = cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1;
+    to = 'custom-' + n;
+    const made = d < 0 ? { id: to, first: true } : adminCol_(col) ? { id: to, admin: true } : { id: to };
+    D.custom = d < 0 ? [made].concat(cu) : cu.concat([made]);
+  }
+  if (!to) return;
+  /* A MERGED CARD MOVES WHOLE (480). */
+  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1), there = fresh ? [] : cardListOf_(to, L).filter(x => all.indexOf(x) === -1);
+  all.forEach(x => cardUnlist_(D, x));
+  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
+  colOrderSet_(D, col, from);
+  colOrderSet_(D, to, there.concat(all));
+  layMoveShow_(kind, id, col, () => layoutSave_(D), to);
+}
+/* ASKED TWICE THROUGH sure_ (534), so its 400 ms rule holds here too: the tile keeps its mark, the question is its label and, with `word`, a word beside it. */
+function layArm_(el, say, rest, word) {
+  return sure_(el, say, { ms: 3000,
+    face: x => {
+      x.classList.add('is-armed'); tileSet_(x, { label: say });
+      const k = x.querySelector('.tile-i');
+      if (word && k && !x.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', `<span class="lay-again">${esc(say)}</span>`);
+    },
+    back: x => { x.classList.remove('is-armed'); tileSet_(x, { label: rest }); x.querySelector('.lay-again')?.remove(); } });
+}
+/* DELETE ASKS TWICE, IN PLACE, THEN IS FINAL (477): `deleted` only keeps it from being drawn again; there is no undo. */
+on('lay-w-del', el => {
+  if (!isAdmin()) return;
+  const id = el.getAttribute('data-w');
+  const all = mergeAll_(id, layoutNow_());
+  if (all.some(basketKept_)) return;
+  if (!layArm_(el, all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete', 'Delete', true)) return;
+  const D = layoutDraftOf_(layoutNow_());
+  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
+  all.forEach(x => { cardUnlist_(D, x); if (D.deleted.indexOf(x) === -1) D.deleted.push(x); });
+  layoutSave_(D);
+});
+/* ---------- SAVED FOR EVERYBODY, DRAWN AT ONCE, PUT BACK IF THE SHEET SAYS NO ---------- */
+function layoutSave_(next) {
+  if (!isAdmin() || !next) return Promise.resolve(false);
+  const was = layoutNow_();
+  customPrune_(next); mergePrune_(next);
+  const set = v => { try { DATA.layout = v; } catch (e) { /* no payload yet: the device's copy below still holds it */ } layoutKeep_(v); layoutRelayout_(); };
+  const val = layoutSane_(next);
+  set(val);
+  return send({ action: 'layoutSave', personId: (USER && USER.personId) || '', layout: val })
+    .then(() => true)
+    .catch(err => { set(was); toast(why_(err)); return false; });
+}
+
 ;
 /* ==== js/words.js ==== */
 /* @family. — words.js THE ADMIN CHANGES THE SITE WITHOUT ASKING (497): the words on every widget and card edited in place, and who sees each. */
@@ -25217,13 +25222,6 @@ function seenOk_(id) {
   if (s === 'out') return !signed;
   if (s === 'in') return signed;
   return typeof rankAtLeast_ === 'function' && rankAtLeast_(s);
-}
-/* THE CODE'S OWN GATE, where it is known: a widget's flags, a card on an admin column; '' when it is for everyone or decided inside its builder. */
-function seenGate_(id) {
-  const w = typeof anyWidgetOf_ === 'function' ? anyWidgetOf_(id) : null;
-  if (w) return w.admin ? 'admin' : w.tutor ? 'staff' : w.signedIn ? 'in' : '';
-  try { if (adminCol_(cardHome0_(id))) return 'admin'; } catch (e) {}
-  return '';
 }
 /* A LEVEL BELOW THE CODE'S GATE WOULD WIDEN IT, so it is not offered (and would not work: both are asked). */
 const seenWider_ = (lvl, gate) => !!gate && lvl !== '' && (lvl === 'out' || SEEN_ORDER.indexOf(lvl) < SEEN_ORDER.indexOf(gate));

@@ -1,6 +1,5 @@
 /* @family. — data.js ONE FILE, SPLIT. § */
 
-
 /* @family. — the shell. § */
 
 /* ---------- WHERE THE DATA COMES FROM § */
@@ -19,8 +18,6 @@ function cssVersion() {
     return v || '(older than versioning)';
   } catch { return '(unknown)'; }
 }
-
-let DATA = {};
 
 /* ---------- A ROW THAT IS NOT A ROW IS DROPPED AT THE DOOR (R6) ---------- */
 /* null is never a row; in a list of objects a string or number is not one either. § */
@@ -107,7 +104,6 @@ function missingKeys() {
   console.table(MISSING_KEYS);
   return MISSING_KEYS;
 }
-let USER = null;
 
 /* HAS THE FIRST LOAD COME BACK? § */
 let LOADED = false;
@@ -119,7 +115,6 @@ let LIBRARY_FAILED = '';
 
 /* WHETHER THE 30-SECOND WATCHDOG IN index.html HAS SPOKEN. § */
 let LOAD_SLOW = false;
-try { USER = JSON.parse(localStorage.getItem('familyUser') || 'null'); } catch { /* a bad stored user reads as signed out */ }
 /* ---------- A NAME PRINTED ABOVE ITS OWN HANDLE DOES NOT SAY THE HANDLE TOO § */
 function nameBesideHandle_(name, handle) {
   const n = String(name || ''), h = String(handle || '').replace(/^@/, '');
@@ -388,49 +383,6 @@ window.addEventListener('storage', e => {
     if (spec === 'book:form' && typeof bookElsewhere_ === 'function') bookElsewhere_(v, old ? old.v : null);
   } catch (err) { /* a form mid-change keeps what it shows */ }
 });
-
-/* ---------- THE SMALLEST HELPERS ---------------------------------------------------------------- */
-/* ---------- AND WHEN ONE ID IS ON THE PAGE TWICE, THE COPY ON THE SCREEN IN FRONT § */
-/* ---------- AND WHEN THE SCREEN IN FRONT HAS NO COPY, THE COPY ITS WIDGET WAS STARTED ON § */
-const WIDGET_HOME = {};
-const $ = id => {
-  const el = document.getElementById(id);
-  if (!el || typeof AT === 'undefined' || !AT) return el;
-  const scr = document.getElementById('s-' + AT);
-  if (!scr || scr.contains(el)) return el;
-  try {
-    const mine = scr.querySelector('#' + CSS.escape(id));
-    if (mine) return mine;
-    const slot = el.closest && el.closest('.widget-slot');
-    const home = slot && WIDGET_HOME[slot.id];
-    const host = home && home !== AT && document.getElementById('s-' + home);
-    if (!host || host.contains(el)) return el;
-    return host.querySelector('#' + CSS.escape(id)) || el;
-  } catch { return el; }
-};
-
-/* The letter to put in a circle when there is no picture. § */
-const initial = s => (String(s ?? '').match(/[A-Za-z0-9]/) || ['?'])[0].toUpperCase();
-
-/* Anything from the branding tab, by name, with a fallback. § */
-/* A CONTACT DETAIL NEVER LIVES IN THE PUBLIC REPO: § */
-const brand = (k, or) => ((DATA.brand || {})[k] || (DATA.policy || {})[k] || or || '');
-/* THE BUSINESS'S ONE PICTURE (1040 r10): § */
-/* A Drive share link is a page, so its picture's own address (as `pic`, posts.js). */
-function brandLogo_() {
-  const u = String(brand('logo_square', '') || brand('logo_circle', '') || 'icon.png').trim();
-  const id = (u.match(/\/file\/d\/([\w-]{20,})/) || u.match(/[?&]id=([\w-]{20,})/) || [])[1];
-  return id ? 'https://lh3.googleusercontent.com/d/' + id + '=w1200' : u;
-}
-
-/* IS THIS SOMETHING YOU WEAR? § */
-const isWearable = x => {
-  const k = norm(x && (x.kind || x.kindRaw));
-  return k === 'wearable' || k === 'avatar';
-};
-
-/* Whether the person signed in is an admin. § */
-const isAdmin = () => !!USER && rankAtLeast_('admin');
 /* THE VIEWER'S ROLE IN THE PERMISSIONS TABLE (86a): anyone, member, child or admin. */
 const myRole_ = () => (!USER ? 'anyone' : isAdmin() ? 'admin' : (typeof childView_ === 'function' && childView_()) ? 'child' : 'member');
 /* MAY THIS ROLE DO IT: § */
