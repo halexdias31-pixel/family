@@ -84,9 +84,12 @@ function ratchet(changedFiles) {
   /* A SPLIT (1040): a removed file's functions and counts pass to the new files cut from it, so a move is not a new giant. */
   const old = {}; Object.keys(B.functions).forEach(k => { const n = k.slice(k.indexOf(' ') + 1); old[n] = Math.max(old[n] || 0, B.functions[k]); });
   const pool = {}; files.filter(f => !fs.existsSync(path.join(ROOT, f)) && B.files[f]).forEach(f => ['oneOff', 'emptyCatch', 'inlineStyle', 'rawButton'].forEach(k => { pool[k] = (pool[k] || 0) + (B.files[f][k] || 0); }));
+  /* A CUT FROM A FILE THAT STAYS (1040) frees what it lost to the new files, so moved code is not counted twice. */
+  files.filter(f => fs.existsSync(path.join(ROOT, f)) && B.files[f]).forEach(f => { const m = M[f] = measure(f);
+    ['oneOff', 'emptyCatch', 'inlineStyle', 'rawButton'].forEach(k => { pool[k] = (pool[k] || 0) + Math.max(0, (B.files[f][k] || 0) - (m[k] || 0)); }); });
   files.forEach(f => {
     if (!fs.existsSync(path.join(ROOT, f))) { if (B.files[f]) { delete B.files[f]; gains.push(f + ' removed'); } Object.keys(B.functions).filter(k => k.startsWith(f + ' ')).forEach(k => delete B.functions[k]); return; }
-    const m = M[f] = measure(f), was = B.files[f];
+    const m = M[f] = M[f] || measure(f), was = B.files[f];
     if (!was) { if (m.lines > TARGET.fileLines) bad.push(`big-file\t${f}\ta new file of ${m.lines} lines (target ${TARGET.fileLines})`);
       ['oneOff', 'emptyCatch', 'inlineStyle', 'rawButton'].forEach(k => { if (m[k] && m[k] <= (pool[k] || 0)) pool[k] -= m[k]; else if (m[k]) bad.push(`${k}\t${f}\t${m[k]} in a new file (allowed 0)`); });
       B.files[f] = { lines: m.lines, oneOff: m.oneOff, emptyCatch: m.emptyCatch, inlineStyle: m.inlineStyle, rawButton: m.rawButton };

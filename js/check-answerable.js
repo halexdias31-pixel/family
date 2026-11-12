@@ -398,8 +398,8 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
   /* ---------- THE IMPORT'S OWN SELF-TEST (backend `libSelfTest_`) REFUSES NO ROW THE LIBRARY HOLDS, and flags only those waiting for the owner ---------- */
   if (!ONLY) {
     const { cutFrom } = require('./check-marks-load.js');
-    const body = cutFrom(fs.readFileSync(path.join(ROOT, 'backend', 'content.gs'), 'utf8'), 'libSelfTest_');
-    if (!body) (fails.import = fails.import || []).push('libSelfTest_ could not be read out of backend/content.gs — the import is not self-testing');
+    const body = cutFrom(fs.readFileSync(path.join(ROOT, 'backend', 'library.gs'), 'utf8'), 'libSelfTest_');
+    if (!body) (fails.import = fails.import || []).push('libSelfTest_ could not be read out of backend/library.gs — the import is not self-testing');
     else {
       const selfTest = eval('(' + body + ')');
       LIB.forEach(r => {
