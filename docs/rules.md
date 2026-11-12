@@ -30,7 +30,7 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 - **2.8** Generated content (teaching animations, finder tags, bundles) is written by its script and re-run, never hand-edited; the build stamp is last after any served change. Checks: `bundle`, `cache`, `stability`, `deploy`
 
 ## 3. One template for every thing
-- **3.1** Every card, every kind, is one static centred column drawn by `findCard`: real picture if any → tags (the name is a tag) → content → one round button row; no title line, no open/closed, no 8-bit or kind icon. Checks: `one-template`, `card-shape`, `card-render`, `find-card`, `shape`, `email-card`, `share-profile`, `share`, `tutor-card`
+- **3.1** Every card, every kind, is one static centred column drawn by `findCard`: real picture if any → tags (the name is a tag) → content → one round button row; no title line, no open/closed, no 8-bit or kind icon. Checks: `one-template`, `card-shape`, `card-render`, `find-card`, `shape`, `email-card`, `share-profile`, `share`, `tutor-card`, `template-measure`
 - **3.2** People always have a picture (their own or the steady default); a question or paper its figure; a part that names a picture has it drawn. Checks: `figures`, `diagram-png`, `diagrams`, `picture-first`
 - **3.3** A thing has tiles, a form has buttons: every action is `tile_` in one `.tile-row`, round icons only, its word on hover or long press; one icon style. Checks: `makers`, `tiles`, `doors`, `variety-maker`, `variety-cardrow`, `press-hold`
 - **3.4** One text box (the cream answer pill), one form maker from a field list, one wait (`loading_()`'s spinning ring), one empty state, one viewer (`fileView_`) that opens in place. Checks: `variety-textbox`, `forms`, `loading`, `variety-wait`, `bootslow`, `answer-width`, `keyboard`, `dropdowns`, `surfaces`, `surface-nesting`
@@ -95,7 +95,7 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 - **11.3** Checks are honest: no written exception lists, ratchet ceilings at zero, budgets only go down. Checks: `exceptions`, `ceilings`, `catches`, `stability`
 
 ## 12. Measure everything
-- **12.1** The Optimiser (`tools/health.js`) measures every rule as followed ÷ applies to, in the unit a person would fix, and the score is their plain average, no weights; when nothing else is asked, raise it. Checks: `ux`, `effort`, `effort-report`
+- **12.1** The Optimiser (`tools/health.js`) measures every rule as followed ÷ applies to, in the unit a person would fix, and the score is their plain average, no weights; when nothing else is asked, raise it. Checks: `ux`, `effort-report`, `effort-report`
 - **12.2** Every change runs the checks it affects (`node js/check.js`, `check-all`, the journeys) and CI stays green. Checks: `check`, `all`, `changed`, `conflicts`, `flow`, `flow/*`
 - **12.3** This rulebook is the one foundation: every rule names a check, every check serves a rule, each rule is stated once. Checks: `rule-checked`, `check-tied`, `rule-once`
 
