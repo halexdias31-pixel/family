@@ -492,7 +492,7 @@ function soonItems_() {
 }
 function soonCard_(x) {
   /* "COMING SOON" IS A TAG, beside its name, never a line. */
-  return `<div class="soon-card"><h3>${esc(x.name)}</h3><div class="qtags"><span class="qtag" data-tag="0">${esc(x.name)}</span><span class="qtag">${esc(brand('comingSoon', 'Coming soon'))}</span></div>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}</div>`;
+  return `<div class="soon-card"><h3>${esc(x.name)}</h3><div class="qtags">${qtag_(`${esc(x.name)}`, ` data-tag="0"`)}${qtag_(`${esc(brand('comingSoon', 'Coming soon'))}`)}</div>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}</div>`;
 }
 
 /* The card a resource and a shop row share. Named rather than written twice, because the two
@@ -507,12 +507,12 @@ function thingCard_(x, credits) {
     /* ---------- AND A FOURTH ANSWER: NOBODY HAS PRICED IT § */
     const price = !isShop_(x) ? ''
       : x.level > 0
-        ? `<span class="qtags"><span class="qtag price ${myLevel >= x.level ? 'can' : ''}">${
-            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span></span>`
+        ? `<span class="qtags">${qtag_(`${
+            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}`, '', `price ${myLevel >= x.level ? 'can' : ''}`)}</span>`
       : x.cost === undefined
         ? ''   /* "Not priced yet" is its Price tag now (499) */
-      : `<span class="qtags"><span class="qtag price ${free ? 'free' : afford ? 'can' : ''}">${
-          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}</span></span>`;
+      : `<span class="qtags">${qtag_(`${
+          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}`, '', `price ${free ? 'free' : afford ? 'can' : ''}`)}</span>`;
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
        so it is marked as one and coloured as one, the same way a subject and a venue are. */
     /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. § */
@@ -536,7 +536,7 @@ function thingCard_(x, credits) {
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
             : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)])
             .filter(Boolean).map(v => esc(String(v))).join('  ')}</p>`}
-          <h3>${esc(x.name)}${x.off ? ' <span class="qtag">deleted</span>' : ''}</h3>
+          <h3>${esc(x.name)}${x.off ? ' ' + qtag_('deleted') : ''}</h3>
           ${/* Its own second line: § */
                 ''}
           ${/* THE YEAR, ON THE CARD. § */
@@ -8199,8 +8199,8 @@ function tagRow_(x, page) {
     });
   });
   tagFold_(out);
-  return `<div class="qtags qcard-tags">${out.map(t => `<span class="qtag"${tagAttr_(t.field)} data-f="${esc(t.field)}"${
-    t.also.length ? ` data-also="${esc(t.also.join(' '))}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
+  return `<div class="qtags qcard-tags">${out.map(t => qtag_(esc(t.text), `${tagAttr_(t.field)} data-f="${esc(t.field)}"${
+    t.also.length ? ` data-also="${esc(t.also.join(' '))}"` : ''}`)).join('')}</div>`;
 }
 /* TAGS AT THE TOP OF EVERY CARD (1030, 1040 r10): a card with no tag line gets one, and one drawn under its title moves above it. */
 function tagsOnTop_(x, html) {
@@ -8221,8 +8221,8 @@ function creditsToTags_(root) {
     const card = el.closest('.card'), row = card && card.querySelector('.qcard-tags'), w = (el.textContent || '').trim();
     /* A ONE-SHAPE CARD'S LONG CREDIT IS A LINE (KC_TAG_MAX), and its hidden original (`.kc-src`) is never read for tags. */
     if (!row || !w || el.closest('.qcard-tags, .kc-src') || (card.classList.contains('kc') && w.length > (typeof KC_TAG_MAX === 'number' ? KC_TAG_MAX : 30))) return;
-    const t = document.createElement('span');
-    t.className = 'qtag q-credit'; t.textContent = w;
+    const box = document.createElement('div'); box.innerHTML = qtag_(esc(w), '', 'q-credit');
+    const t = box.firstChild;
     row.appendChild(t); el.remove();
   });
 }
@@ -9713,8 +9713,8 @@ function settingDoorCard_(x) {
 function notifyDoorCard_() {
   const needs = typeof BIZ_NEEDS !== 'undefined' ? Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0) : [];
   const waiting = ((DATA && DATA.posts) || []).filter(p => p && p.active !== false && p.waiting).length;
-  const rows = needs.map(k => `<li><span class="qtag">${esc(String(BIZ_NEEDS[k]))}</span> ${esc(k.replace(/[-_]/g, ' '))}</li>`)
-    .concat(waiting ? [`<li><span class="qtag">${waiting}</span> posts waiting for approval</li>`] : []);
+  const rows = needs.map(k => `<li>${qtag_(`${esc(String(BIZ_NEEDS[k]))}`)} ${esc(k.replace(/[-_]/g, ' '))}</li>`)
+    .concat(waiting ? [`<li>${qtag_(`${waiting}`)} posts waiting for approval</li>`] : []);
   return card_(`<div class="notify-door"><h3>Notifications</h3>${rows.length ? `<ul class="notify-list">${rows.join('')}</ul>` : '<p>Nothing needs you.</p>'}</div>`);
 }
 
@@ -10228,7 +10228,7 @@ function myResultNew_(k) {
   try {
     const x = stuffItemsAll_().find(i => isQ_(i) && ansKey_(i) === k);
     if (!x) return;
-    const tags = asList_(myResultOf_(x)).map(v => `<span class="qtag"${tagAttr_('myResult')} data-f="myResult">${esc(v)}</span>`).join('');
+    const tags = asList_(myResultOf_(x)).map(v => qtag_(esc(v), tagAttr_('myResult') + ' data-f="myResult"')).join('');
     /* ONLY THE PRESSED PART'S OWN TAG LINE: a whole question's page holds every part's card (`.qb`), and each says its own result. */
     document.querySelectorAll('[data-k]').forEach(b => {
       if (b.getAttribute('data-k') !== k) return;
@@ -10873,7 +10873,7 @@ function bundleCard_(b) {
   const inCart = bundleInCart_(b);
   const off = b.papers.filter(p => !p.ok);
   const note = b.noun + ' · ' + bundlePriceLine_(b);
-  const pp = p => p.pages ? ` <span class="mono qtag">${p.pages}pp</span>` : '';
+  const pp = p => p.pages ? ' ' + qtag_(p.pages + 'pp', '', 'mono') : '';
   /* ONE LINE PER GROUP WHEN IT IS GROUPED — a sitting, a tier, or both — one per paper when it is
      not. Numbered either way: the count down the edge is how many LINES, and the title already says
      how many papers. */
@@ -11121,15 +11121,9 @@ function filterChips() {
       const show = chipText_(f, i), key = spellKey_(show);
       if (said[key]) return '';
       said[key] = 1;
-      return `
-      <span class="chip sm" data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}>
-        ${/* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it. */ ''}
-        ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody made and has to be able to unmake. § */
-             ''}
-        ${/* ---------- THE CHIP SHOWS WHAT THE BUTTON SHOWED, NOT WHAT IT MATCHES ON § */
-             ''}
-        ${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}
-      </span>`;
+      /* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it; a skip is a chip like any other. */
+      return qtag_(`${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}`,
+        ` data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}`, 'sm', 'chip');
     }).join('')}
   </div>`;
 }
@@ -19576,7 +19570,7 @@ function receiptHtml(r) {
       ${/* THE THREE LINES ON ONE LINE. § */
            ''}
       ${(r.lines || []).filter(Boolean).length
-        ? `<div class="qtags qcard-tags">${(r.lines || []).map((l, i) => l ? `<span class="qtag" data-tag="${[6, 9, 4][i] || 0}">${esc(l)}</span>` : '').join('')}</div>` : ''}
+        ? `<div class="qtags qcard-tags">${(r.lines || []).map((l, i) => l ? `${qtag_(`${esc(l)}`, ` data-tag="${[6, 9, 4][i] || 0}"`)}` : '').join('')}</div>` : ''}
     </div>
     ${/* `r.photos` WAS HERE. Nothing passes photos to a receipt any more — see `bookBreakdown`. */''}
     ${/* ---------- AND THE RULE ABOVE THE ROWS IS THE HEADER'S OWN § */
@@ -20250,9 +20244,17 @@ function rcOffer_(blob, name, rc) {
     <p class="note">${can ? 'Press Share to send it.' : 'Press and hold the picture to save it.'}</p>
     <div class="btn-row">
       ${can ? tile_({ form: true, label: 'Share', act: 'rc-shot-share', cls: 'primary' }) : ''}
-      <a class="btn quiet" href="${RC_SHOT.url}" download="${esc(name)}">Save</a>
+      ${tile_({ form: true, label: 'Save', act: 'rc-shot-save', kind: 'quiet', data: { name } })}
     </div></div>`);
 }
+
+/* SAVE IS A FORM BUTTON LIKE SHARE (one way only): the download link is made and clicked here, never written as markup. */
+on('rc-shot-save', el => {
+  if (!RC_SHOT) return;
+  const a = document.createElement('a');
+  a.href = RC_SHOT.url; a.download = (el && el.dataset && el.dataset.name) || 'booking.png';
+  document.body.appendChild(a); a.click(); a.remove();
+});
 
 on('rc-shot-share', () => {
   if (!RC_SHOT || !navigator.share) return;
@@ -20890,7 +20892,7 @@ function cartRow_(c, i, under) {
     sel: (() => {
       const lam = lamControl_(c);
       const pp = c.kind === 'print'
-        ? `<span class="qtag cart-pp">${c.pages ? esc(c.pages) + 'pp' : '? pp'}</span>` : '';
+        ? `${qtag_(`${c.pages ? esc(c.pages) + 'pp' : '? pp'}`, '', `cart-pp`)}` : '';
       const drop = tile_({ icon: 'close', label: 'Take this out', act: 'cart-drop', cls: 'text-drop', data: { key: c.key, kind: c.kind } });
       return `<span class="cart-ln"><span class="cart-nm">${esc(under && c.short ? c.short : c.name)}</span>${
         lam ? '' : pp}<i class="cart-lead" aria-hidden="true"></i>${lam ? '' : drop}</span>${
@@ -21127,7 +21129,7 @@ function shopCards_() {
       g.items.slice(i, i + SHOP_PER).forEach(x => at.push({ name: x.title || x.name || x.key || '', group: g.kind, page: out.length,
         say: [x.title, x.name, x.key, x.sub, x.description, x.desc, g.label].filter(Boolean).join(' ').toLowerCase() }));
       /* AN `<h2>` BETWEEN CARDS, NOT INSIDE ONE — the rule `check-dead.js` states and `split_` cuts on. § */
-      out.push(`<h2><span>${esc(g.label)}</span><span class="qtag">${g.items.length}</span></h2>`
+      out.push(`<h2><span>${esc(g.label)}</span>${qtag_(`${g.items.length}`)}</h2>`
         + g.items.slice(i, i + SHOP_PER).map(x => shopWithIcon_(stuffCard(x, credits), x, g.kind)).join(''));
     }
   });
@@ -23234,10 +23236,10 @@ function staffCard_() {
 function staffInner_(wait) {
   const list = STAFF.list || [];
   const n = list.filter(s => !staffAgreed_(s)).length, dbs = list.filter(staffDbsDue_).length;
-  const dbsLine = s => !staffDbsDue_(s) ? '' : `<p class="biz-cap staff-dbs"><b class="biz-flag">DBS check due</b> <span class="qtags"><span class="qtag">${
-      esc(s.dbsCheckedOn ? 'last ' + date_(s.dbsCheckedOn) : 'never logged')}</span><span class="qtag">${esc(s.dbsNumber ? 'cert. ' + s.dbsNumber : 'no certificate no. on file')}</span></span></p>`;
+  const dbsLine = s => !staffDbsDue_(s) ? '' : `<p class="biz-cap staff-dbs"><b class="biz-flag">DBS check due</b> <span class="qtags">${qtag_(`${
+      esc(s.dbsCheckedOn ? 'last ' + date_(s.dbsCheckedOn) : 'never logged')}`)}${qtag_(`${esc(s.dbsNumber ? 'cert. ' + s.dbsNumber : 'no certificate no. on file')}`)}</span></p>`;
   const item = s => `<div class="kc-item biz-item staff-item" data-id="${esc(s.personId)}">
-      <p class="biz-cap"><b>${esc(s.name)}</b> <span class="qtags biz-when"><span class="qtag">${esc(s.rank === 'admin' ? 'admin' : 'staff')}</span></span>
+      <p class="biz-cap"><b>${esc(s.name)}</b> <span class="qtags biz-when">${qtag_(`${esc(s.rank === 'admin' ? 'admin' : 'staff')}`)}</span>
         ${staffAgreed_(s) ? '' : `<b class="biz-flag">${s.termsVersion ? 'Old terms' : 'Not agreed'}</b>`}</p>
       ${dbsLine(s)}
       <div class="tile-row">${tile_({ icon: 'print', label: 'Statement', note: 'any month', act: 'stmt-for', data: { id: s.personId, name: s.name } })}${staffDbsDue_(s)
@@ -25193,7 +25195,7 @@ function wordsEditOn_(root) {
   root.querySelectorAll('[data-wkp]').forEach(inp => {
     if (inp.nextElementSibling && inp.nextElementSibling.classList.contains('wk-ph-row')) return;
     const k = inp.getAttribute('data-wkp'), set = Object.prototype.hasOwnProperty.call(wordsNow_(), k);
-    inp.insertAdjacentHTML('afterend', `<span class="wk-ph-row"><span class="qtag">Placeholder</span> <span class="wk-ph" contenteditable="plaintext-only" data-wk="${esc(k)}" data-wko="${esc(inp.getAttribute('data-wko') || '')}"${
+    inp.insertAdjacentHTML('afterend', `<span class="wk-ph-row">${qtag_(`Placeholder`)} <span class="wk-ph" contenteditable="plaintext-only" data-wk="${esc(k)}" data-wko="${esc(inp.getAttribute('data-wko') || '')}"${
       set ? ' data-wk-set=""' : ''}>${esc(inp.getAttribute('placeholder') || '')}</span></span>`);
   });
   const all = [...root.querySelectorAll('[data-wk]')];

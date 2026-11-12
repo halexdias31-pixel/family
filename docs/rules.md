@@ -40,6 +40,7 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 - **3.8** One reading layout for every library text (`readingCard_`), one model for every written work. Checks: `reading`, `writings`, `texts`, `pdtexts`, `bible`, `hymns`, `talmud`, `talpage`, `textbooks`
 - **3.9** CSS stays one cascade: no `!important`, no property re-set by the same selector, no inline styles, classes used more than once. Checks: `important`, `order`, `inline-style`, `once-class`, `css`, `cascade`
 - **3.10** The variety families each hold the ideal one (question page, card drawer, list row, settings row). Checks: `variety-qpage`, `variety-drawer`, `variety-listrow`, `variety-setrow`, `widgets`
+- **3.11** One way only (owner, 12 Nov): each element has ONE maker and nothing else writes its markup — cards `card_`/`findCard` (`card qcard kc`), tiles and buttons `tile_` (`tile btn <button>`), tags `qtag_` (`qtag chip prof-tag`), spinners `loading_` (`loading is-busy`), list rows `row`/`rowHtml` (`row`); no inline `style=` and no colour literal in served js. What is still hand-built is listed in `check/one-way-ratchet.json` and only goes down; the gate fails on anything new. Checks: `one-way`
 
 ## 4. One rule for every case
 - **4.1** No one-offs: no function tests a single kind, facet or id by name; front end and backend alike. Checks: `one-off`, `find-one-off`, `rules`
@@ -98,7 +99,7 @@ The Optimiser counts this file: rules with a check, checks tied to a rule, rules
 
 ## 12. Measure everything
 - **12.1** The Optimiser (`tools/health.js`) measures every rule as followed ÷ applies to, in the unit a person would fix, and the score is their plain average, no weights; when nothing else is asked, raise it. Checks: `ux`, `effort-report`, `effort-report`
-- **12.2** Every change runs the checks it affects (`node js/check.js`, `check-all`, the journeys) and CI stays green. Checks: `check`, `all`, `changed`, `conflicts`, `flow`, `flow/*`
+- **12.2** Every change runs the checks it affects (`node js/check.js`, `check-all`, the journeys) and CI stays green; a merge to main happens only when `node tools/gate.js` and the required `gate` status on the pull request are green (the merge-always rule means merge when green, never red), and a changed screenshot is signed in `gallery-approved.json` after someone looked. Checks: `check`, `all`, `changed`, `conflicts`, `flow`, `flow/*`
 - **12.3** This rulebook is the one foundation: every rule names a check, every check serves a rule, each rule is stated once. Checks: `rule-checked`, `check-tied`, `rule-once`
 
 ## How a sweep works

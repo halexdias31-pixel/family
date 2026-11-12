@@ -25,8 +25,8 @@ const row = (label, value, extra) => {
 };
 
 /* THE SAME ROW, WITH THE VALUE ALREADY MARKED UP — a link, a coloured word, a small drawing. § */
-const rowHtml = (label, html, extra) =>
-  `<div class="row"><span class="k">${esc(label)}</span>` +
+const rowHtml = (label, html, extra, rowCls) =>
+  `<div class="row${rowCls ? ' ' + rowCls : ''}"><span class="k">${esc(label)}</span>` +
   `<span class="${['v', extra || ''].filter(Boolean).join(' ')}">${html}</span></div>`;
 
 /* ---------- THE TWO SHAPES THE FIRST TWO COULD NOT MAKE § */
@@ -833,20 +833,20 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=A-Level&examYear=2018": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"]],[3,3,6,1,5,3,3,4,3,6],37,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE": ["tier",[["Foundation"],["Higher"]],[968,838],1806,["Foundation","Higher"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"]],[134,189,169,162,149,165],968,["2025","2024","2023","2022","2021","2020"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2025": ["paperId",[["P-AQA-8461-2506-1F","Paper 1"],["P-AQA-8464B-2506-1F","Paper 1 Biology"],["P-AQA-8461-2506-2F","Paper 2"],["P-AQA-8464B-2506-2F","Paper 2 Biology"]],[41,27,36,30],134,["Paper 1 · Biology · GCSE · AQ…","Paper 1 Biology","Paper 2 · Biology · GCSE · AQ…","Paper 2 Biology"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2024": ["paperId",[["P-AQA-8461-2406-1F","Paper 1"],["P-AQA-8464B-2406-1F","Paper 1 Biology"],["P-AQA-8461-2406-2F","Paper 2"],["P-AQA-8464B-2406-2F","Paper 2 Biology"]],[66,28,64,31],189,["Paper 1 · Biology · GCSE · AQ…","Paper 1 Biology","Paper 2 · Biology · GCSE · AQ…","Paper 2 Biology"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2023": ["paperId",[["P-AQA-8461-2306-1F","Paper 1"],["P-AQA-8464B-2306-1F","Paper 1 Biology"],["P-AQA-8461-2306-2F","Paper 2"],["P-AQA-8464B-2306-2F","Paper 2 Biology"]],[56,31,45,37],169,["Paper 1 · Biology · GCSE · AQ…","Paper 1 Biology","Paper 2 · Biology · GCSE · AQ…","Paper 2 Biology"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2022": ["paperId",[["P-AQA-8461-2206-1F","Paper 1"],["P-AQA-8464B-2206-1F","Paper 1 Biology"],["P-AQA-8461-2206-2F","Paper 2"],["P-AQA-8464B-2206-2F","Paper 2 Biology"]],[45,38,45,34],162,["Paper 1 · Biology · GCSE · AQ…","Paper 1 Biology","Paper 2 · Biology · GCSE · AQ…","Paper 2 Biology"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2021": ["paperId",[["P-AQA-8461-2111-1F","Paper 1"],["P-AQA-8464B-2111-1F","Paper 1 Biology"],["P-AQA-8461-2111-2F","Paper 2"],["P-AQA-8464B-2111-2F","Paper 2 Biology"]],[46,32,34,37],149,["Paper 1 · Biology · GCSE · AQ…","Paper 1 Biology","Paper 2 · Biology · GCSE · AQ…","Paper 2 Biology"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2020": ["paperId",[["P-AQA-8461-2011-1F","Paper 1"],["P-AQA-8464B-2011-1F","Paper 1 Biology"],["P-AQA-8461-2011-2F","Paper 2"],["P-AQA-8464B-2011-2F","Paper 2 Biology"]],[44,34,55,32],165,["Paper 1 · Biology · GCSE…","Paper 1 Biology","Paper 2 · Biology · GCSE…","Paper 2 Biology"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2025": ["paperId",[["P-AQA-8461-2506-1F","Paper 1"],["P-AQA-8464B-2506-1F","Paper 1 Biology"],["P-AQA-8461-2506-2F","Paper 2"],["P-AQA-8464B-2506-2F","Paper 2 Biology"]],[41,27,36,30],134,["Paper 1","Paper 1 Biology","Paper 2","Paper 2 Biology"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2024": ["paperId",[["P-AQA-8461-2406-1F","Paper 1"],["P-AQA-8464B-2406-1F","Paper 1 Biology"],["P-AQA-8461-2406-2F","Paper 2"],["P-AQA-8464B-2406-2F","Paper 2 Biology"]],[66,28,64,31],189,["Paper 1","Paper 1 Biology","Paper 2","Paper 2 Biology"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2023": ["paperId",[["P-AQA-8461-2306-1F","Paper 1"],["P-AQA-8464B-2306-1F","Paper 1 Biology"],["P-AQA-8461-2306-2F","Paper 2"],["P-AQA-8464B-2306-2F","Paper 2 Biology"]],[56,31,45,37],169,["Paper 1","Paper 1 Biology","Paper 2","Paper 2 Biology"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2022": ["paperId",[["P-AQA-8461-2206-1F","Paper 1"],["P-AQA-8464B-2206-1F","Paper 1 Biology"],["P-AQA-8461-2206-2F","Paper 2"],["P-AQA-8464B-2206-2F","Paper 2 Biology"]],[45,38,45,34],162,["Paper 1","Paper 1 Biology","Paper 2","Paper 2 Biology"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2021": ["paperId",[["P-AQA-8461-2111-1F","Paper 1"],["P-AQA-8464B-2111-1F","Paper 1 Biology"],["P-AQA-8461-2111-2F","Paper 2"],["P-AQA-8464B-2111-2F","Paper 2 Biology"]],[46,32,34,37],149,["Paper 1","Paper 1 Biology","Paper 2","Paper 2 Biology"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2020": ["paperId",[["P-AQA-8461-2011-1F","Paper 1"],["P-AQA-8464B-2011-1F","Paper 1 Biology"],["P-AQA-8461-2011-2F","Paper 2"],["P-AQA-8464B-2011-2F","Paper 2 Biology"]],[44,34,55,32],165,["Paper 1","Paper 1 Biology","Paper 2","Paper 2 Biology"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"]],[111,154,118,105,110,120,43,77],838,["2025","2024","2023","2022","2021","2020","2019","2018"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2025": ["paperId",[["P-AQA-8461-2506-1H","Paper 1"],["P-AQA-8464B-2506-1H","Paper 1 Biology"],["P-AQA-8461-2506-2H","Paper 2"],["P-AQA-8464B-2506-2H","Paper 2 Biology"]],[36,23,28,24],111,["Paper 1 · Biology · GCSE · AQ…","Paper 1 Biology","Paper 2 · Biology · GCSE · AQ…","Paper 2 Biology"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2024": ["paperId",[["P-AQA-8461-2406-1H","Paper 1"],["P-AQA-8464B-2406-1H","Biology Paper 1"],["P-AQA-8461-2406-2H","Paper 2"],["P-AQA-8464B-2406-2H","Biology Paper 2"]],[50,27,43,34],154,["Paper 1 · Biology · GCSE · AQ…","Biology Paper 1","Paper 2 · Biology · GCSE · AQ…","Biology Paper 2"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2025": ["paperId",[["P-AQA-8461-2506-1H","Paper 1"],["P-AQA-8464B-2506-1H","Paper 1 Biology"],["P-AQA-8461-2506-2H","Paper 2"],["P-AQA-8464B-2506-2H","Paper 2 Biology"]],[36,23,28,24],111,["Paper 1","Paper 1 Biology","Paper 2","Paper 2 Biology"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2024": ["paperId",[["P-AQA-8461-2406-1H","Paper 1"],["P-AQA-8464B-2406-1H","Biology Paper 1"],["P-AQA-8461-2406-2H","Paper 2"],["P-AQA-8464B-2406-2H","Biology Paper 2"]],[50,27,43,34],154,["Paper 1","Biology Paper 1","Paper 2","Biology Paper 2"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2023": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"]],[26,13,20,18,15,14,9,2,1],118,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2022": ["paperId",[["P-AQA-8461-2206-1H","Paper 1"],["P-AQA-8464B-2206-1H","Paper 1 Biology"],["P-AQA-8461-2206-2H","Paper 2"],["P-AQA-8464B-2206-2H","Paper 2 Biology"]],[33,22,33,17],105,["Paper 1 · Biology · GCSE · AQ…","Paper 1 Biology","Paper 2 · Biology · GCSE · AQ…","Paper 2 Biology"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2022": ["paperId",[["P-AQA-8461-2206-1H","Paper 1"],["P-AQA-8464B-2206-1H","Paper 1 Biology"],["P-AQA-8461-2206-2H","Paper 2"],["P-AQA-8464B-2206-2H","Paper 2 Biology"]],[33,22,33,17],105,["Paper 1","Paper 1 Biology","Paper 2","Paper 2 Biology"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2021": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"]],[20,9,22,12,23,16,6,2],110,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2020": ["qPart",[[".1"],[".2"],[".3"],[".4"],[".5"],[".6"],[".7"],[".8"],[".9"]],[25,19,19,20,17,7,8,4,1],120,[".1",".2",".3",".4",".5",".6",".7",".8",".9"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2019": ["paperId",[["P-AQA-8464B-1906-1H","Paper 1"],["P-AQA-8464B-1906-2H","Paper 2"]],[20,23],43,["Paper 1 Biology","Paper 2 Biology"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2019": ["paperId",[["P-AQA-8464B-1906-1H","Paper 1"],["P-AQA-8464B-1906-2H","Paper 2"]],[20,23],43,["Paper 1 · Biology… 2019","Paper 2 · Biology · GCSE · AQ…"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2018": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"]],[17,9,14,12,8,7,10],77,["Q1","Q2","Q3","Q4","Q5","Q6","Q7"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=OCR": ["level",[["A-Level"],["GCSE"]],[665,896],1561,["A-Level","GCSE"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=OCR&level=A-Level": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[54,78,124,78,101,42,49,95,44],665,["2025","2024","2023","2022","2021","2020","2019","2018","2017"]],
@@ -916,24 +916,24 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE": ["tier",[["Foundation"],["Higher"]],[1348,1130],2478,["Foundation","Higher"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation": ["examBoard",[["AQA"],["OCR"]],[1096,252],1348,["AQA","OCR"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"]],[164,191,158,127,149,157,79,71],1096,["2025","2024","2023","2022","2021","2020","2019","2018"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8462-2506-1F","Paper 1"],["P-AQA-8464C-2506-1F","Paper 1 Chemistry"],["P-AQA-8462-2506-2F","Paper 2"],["P-AQA-8464C-2506-2F","Paper 2 Chemistry"]],[44,36,50,34],164,["Paper 1 · Chemistry · GCSE ·…","Paper 1 Chemistry","Paper 2 · Chemistry · GCSE ·…","Paper 2 Chemistry"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2024": ["paperId",[["P-AQA-8462-2406-1F","Paper 1"],["P-AQA-8464C-2406-1F","Paper 1 Chemistry"],["P-AQA-8462-2406-2F","Paper 2"],["P-AQA-8464C-2406-2F","Paper 2 Chemistry"]],[65,27,71,28],191,["Paper 1 · Chemistry · GCSE ·…","Paper 1 Chemistry","Paper 2 · Chemistry · GCSE ·…","Paper 2 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8462-2506-1F","Paper 1"],["P-AQA-8464C-2506-1F","Paper 1 Chemistry"],["P-AQA-8462-2506-2F","Paper 2"],["P-AQA-8464C-2506-2F","Paper 2 Chemistry"]],[44,36,50,34],164,["Paper 1","Paper 1 Chemistry","Paper 2","Paper 2 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2024": ["paperId",[["P-AQA-8462-2406-1F","Paper 1"],["P-AQA-8464C-2406-1F","Paper 1 Chemistry"],["P-AQA-8462-2406-2F","Paper 2"],["P-AQA-8464C-2406-2F","Paper 2 Chemistry"]],[65,27,71,28],191,["Paper 1","Paper 1 Chemistry","Paper 2","Paper 2 Chemistry"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2023": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"]],[17,25,12,18,24,18,15,10,10,7,2],158,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2022": ["paperId",[["P-AQA-8462-2206-1F","Paper 1"],["P-AQA-8462-2206-2F","Paper 2"],["P-AQA-8464C-2206-2F","Paper 2 Chemistry"]],[46,51,30],127,["Paper 1 · Chemistry · GCSE ·…","Paper 2 · Chemistry · GCSE ·…","Paper 2 Chemistry"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2021": ["paperId",[["P-AQA-8462-2111-1F","Paper 1"],["P-AQA-8464C-2111-1F","Paper 1 Chemistry"],["P-AQA-8462-2111-2F","Paper 2"],["P-AQA-8464C-2111-2F","Paper 2 Chemistry"]],[44,27,44,34],149,["Paper 1 · Chemistry · GCSE ·…","Paper 1 Chemistry","Paper 2 · Chemistry · GCSE ·…","Paper 2 Chemistry"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2020": ["paperId",[["P-AQA-8462-2011-1F","Paper 1"],["P-AQA-8464C-2011-1F","Paper 1 Chemistry"],["P-AQA-8462-2011-2F","Paper 2"],["P-AQA-8464C-2011-2F","Paper 2 Chemistry"]],[43,33,51,30],157,["Paper 1 · Chemistry · GCSE ·…","Paper 1 Chemistry","Paper 2 · Chemistry · GCSE ·…","Paper 2 Chemistry"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2019": ["paperId",[["P-AQA-8462-1906-1F","Paper 1"],["P-AQA-8464C-1906-1F","Paper 1 Chemistry"]],[43,36],79,["Paper 1 · Chemistry · GCSE ·…","Paper 1 Chemistry"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2018": ["paperId",[["P-AQA-8462-1806-1F","Paper 1"],["P-AQA-8464C-1806-1F","Paper 1 Chemistry"]],[43,28],71,["Paper 1 · Chemistry · GCSE…","Paper 1 · Combined… 2018"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2022": ["paperId",[["P-AQA-8462-2206-1F","Paper 1"],["P-AQA-8462-2206-2F","Paper 2"],["P-AQA-8464C-2206-2F","Paper 2 Chemistry"]],[46,51,30],127,["Paper 1 · Chemistry · GCSE…","Paper 2","Paper 2 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2021": ["paperId",[["P-AQA-8462-2111-1F","Paper 1"],["P-AQA-8464C-2111-1F","Paper 1 Chemistry"],["P-AQA-8462-2111-2F","Paper 2"],["P-AQA-8464C-2111-2F","Paper 2 Chemistry"]],[44,27,44,34],149,["Paper 1","Paper 1 Chemistry","Paper 2","Paper 2 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2020": ["paperId",[["P-AQA-8462-2011-1F","Paper 1"],["P-AQA-8464C-2011-1F","Paper 1 Chemistry"],["P-AQA-8462-2011-2F","Paper 2"],["P-AQA-8464C-2011-2F","Paper 2 Chemistry"]],[43,33,51,30],157,["Paper 1","Paper 1 Chemistry","Paper 2","Paper 2 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2019": ["paperId",[["P-AQA-8462-1906-1F","Paper 1"],["P-AQA-8464C-1906-1F","Paper 1 Chemistry"]],[43,36],79,["Paper 1","Paper 1 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2018": ["paperId",[["P-AQA-8462-1806-1F","Paper 1"],["P-AQA-8464C-1806-1F","Paper 1 Chemistry"]],[43,28],71,["Paper 1","Paper 1 Chemistry"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=OCR": ["examYear",[["2021"],["2020"],["2019"],["2018"]],[48,54,48,102],252,["2021","2020","2019","2018"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher": ["examBoard",[["AQA"],["OCR"]],[950,180],1130,["AQA","OCR"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"]],[137,157,143,90,91,119,86,127],950,["2025","2024","2023","2022","2021","2020","2019","2018"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8462-2506-1H","Paper 1"],["P-AQA-8464C-2506-1H","Paper 1 Chemistry"],["P-AQA-8462-2506-2H","Paper 2"],["P-AQA-8464C-2506-2H","Paper 2 Chemistry"]],[38,27,41,31],137,["Paper 1 · Chemistry · GCSE ·…","Paper 1 Chemistry","Paper 2 · Chemistry · GCSE ·…","Paper 2 Chemistry"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2024": ["paperId",[["P-AQA-8462-2406-1H","Paper 1"],["P-AQA-8464C-2406-1H","Chemistry Paper 1"],["P-AQA-8462-2406-2H","Paper 2"],["P-AQA-8464C-2406-2H","Chemistry Paper 2"]],[45,32,47,33],157,["Paper 1 · Chemistry · GCSE ·…","Chemistry Paper 1","Paper 2 · Chemistry · GCSE ·…","Chemistry Paper 2"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2023": ["paperId",[["P-AQA-8462-2306-1H","Paper 1"],["P-AQA-8464C-2306-1H","Paper 1 Chemistry"],["P-AQA-8462-2306-2H","Paper 2"],["P-AQA-8464C-2306-2H","Paper 2 Chemistry"]],[37,27,47,32],143,["Paper 1 · Chemistry · GCSE ·…","Paper 1 Chemistry","Paper 2 · Chemistry · GCSE ·…","Paper 2 Chemistry"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2022": ["paperId",[["P-AQA-8462-2206-1H","Paper 1"],["P-AQA-8462-2206-2H","Paper 2"],["P-AQA-8464C-2206-2H","Paper 2 Chemistry"]],[36,32,22],90,["Paper 1 · Chemistry · GCSE ·…","Paper 2 · Chemistry · GCSE ·…","Paper 2 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8462-2506-1H","Paper 1"],["P-AQA-8464C-2506-1H","Paper 1 Chemistry"],["P-AQA-8462-2506-2H","Paper 2"],["P-AQA-8464C-2506-2H","Paper 2 Chemistry"]],[38,27,41,31],137,["Paper 1","Paper 1 Chemistry","Paper 2","Paper 2 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2024": ["paperId",[["P-AQA-8462-2406-1H","Paper 1"],["P-AQA-8464C-2406-1H","Chemistry Paper 1"],["P-AQA-8462-2406-2H","Paper 2"],["P-AQA-8464C-2406-2H","Chemistry Paper 2"]],[45,32,47,33],157,["Paper 1","Chemistry Paper 1","Paper 2","Chemistry Paper 2"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2023": ["paperId",[["P-AQA-8462-2306-1H","Paper 1"],["P-AQA-8464C-2306-1H","Paper 1 Chemistry"],["P-AQA-8462-2306-2H","Paper 2"],["P-AQA-8464C-2306-2H","Paper 2 Chemistry"]],[37,27,47,32],143,["Paper 1","Paper 1 Chemistry","Paper 2","Paper 2 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2022": ["paperId",[["P-AQA-8462-2206-1H","Paper 1"],["P-AQA-8462-2206-2H","Paper 2"],["P-AQA-8464C-2206-2H","Paper 2 Chemistry"]],[36,32,22],90,["Paper 1 · Chemistry · GCSE ·…","Paper 2","Paper 2 Chemistry"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2021": ["marks",[["1 mark","[1]"],["2 marks","[2]"],["3 marks","[3]"],["4 marks","[4]"],["5 marks","[5]"],["6 marks","[6]"]],[33,31,14,7,2,4],91,["[1]","[2]","[3]","[4]","[5]","[6]"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2020": ["paperId",[["P-AQA-8462-2011-1H","Paper 1"],["P-AQA-8464C-2011-1H","Paper 1 Chemistry"],["P-AQA-8462-2011-2H","Paper 2"],["P-AQA-8464C-2011-2H","Paper 2 Chemistry"]],[35,25,38,21],119,["Paper 1 · Chemistry · GCSE ·…","Paper 1 Chemistry","Paper 2 · Chemistry · GCSE ·…","Paper 2 Chemistry"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2019": ["paperId",[["P-AQA-8462-1906-1H","Paper 1"],["P-AQA-8464C-1906-1H","Paper 1 Chemistry"],["P-AQA-8464C-1906-2H","Paper 2"]],[35,25,26],86,["Paper 1 · Chemistry · GCSE ·…","Paper 1 Chemistry","Paper 2 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2020": ["paperId",[["P-AQA-8462-2011-1H","Paper 1"],["P-AQA-8464C-2011-1H","Paper 1 Chemistry"],["P-AQA-8462-2011-2H","Paper 2"],["P-AQA-8464C-2011-2H","Paper 2 Chemistry"]],[35,25,38,21],119,["Paper 1","Paper 1 Chemistry","Paper 2","Paper 2 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2019": ["paperId",[["P-AQA-8462-1906-1H","Paper 1"],["P-AQA-8464C-1906-1H","Paper 1 Chemistry"],["P-AQA-8464C-1906-2H","Paper 2"]],[35,25,26],86,["Paper 1","Paper 1 Chemistry","Paper 2 · Chemistry · GCSE…"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2018": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"]],[19,19,14,15,9,11,12,13,12,3],127,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=OCR": ["examYear",[["2021"],["2020"],["2019"],["2018"]],[47,43,46,44],180,["2021","2020","2019","2018"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Worksheet": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"]],[277,260,266,243,247,125,30,17,3,1],1469,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10"]],
@@ -1101,24 +1101,24 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE": ["tier",[["Foundation"],["Higher"]],[1349,1090],2439,["Foundation","Higher"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation": ["examBoard",[["AQA"],["OCR"]],[1088,261],1349,["AQA","OCR"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"]],[144,200,145,141,151,154,111,42],1088,["2025","2024","2023","2022","2021","2020","2019","2018"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8463-2506-1F","Paper 1"],["P-AQA-8464P-2506-1F","Paper 1 Physics"],["P-AQA-8463-2506-2F","Paper 2"],["P-AQA-8464P-2506-2F","Paper 2 Physics"]],[40,29,42,33],144,["Paper 1 · Physics · GCSE · AQ…","Paper 1 Physics","Paper 2 · Physics · GCSE · AQ…","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8463-2506-1F","Paper 1"],["P-AQA-8464P-2506-1F","Paper 1 Physics"],["P-AQA-8463-2506-2F","Paper 2"],["P-AQA-8464P-2506-2F","Paper 2 Physics"]],[40,29,42,33],144,["Paper 1","Paper 1 Physics","Paper 2","Paper 2 Physics"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2024": ["needs",[["Calculator allowed"],["Equation booklet"],["Protractor"],["Ruler"]],[133,133,64,133],200,["Calculator allowed","Equation booklet","Protractor","Ruler"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2023": ["paperId",[["P-AQA-8463-2306-1F","Paper 1"],["P-AQA-8464P-2306-1F","Paper 1 Physics"],["P-AQA-8463-2306-2F","Paper 2"],["P-AQA-8464P-2306-2F","Paper 2 Physics"]],[44,32,38,31],145,["Paper 1 · Physics · GCSE · AQ…","Paper 1 Physics","Paper 2 · Physics · GCSE · AQ…","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2023": ["paperId",[["P-AQA-8463-2306-1F","Paper 1"],["P-AQA-8464P-2306-1F","Paper 1 Physics"],["P-AQA-8463-2306-2F","Paper 2"],["P-AQA-8464P-2306-2F","Paper 2 Physics"]],[44,32,38,31],145,["Paper 1","Paper 1 Physics","Paper 2","Paper 2 Physics"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2022": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"]],[17,20,19,20,16,12,15,9,5,4,4],141,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2021": ["paperId",[["P-AQA-8463-2111-1F","Paper 1"],["P-AQA-8464P-2111-1F","Paper 1 Physics"],["P-AQA-8463-2111-2F","Paper 2"],["P-AQA-8464P-2111-2F","Paper 2 Physics"]],[46,35,35,35],151,["Paper 1 · Physics · GCSE · AQ…","Paper 1 Physics","Paper 2 · Physics · GCSE · AQ…","Paper 2 Physics"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2020": ["paperId",[["P-AQA-8463-2011-1F","Paper 1"],["P-AQA-8464P-2011-1F","Paper 1 Physics"],["P-AQA-8463-2011-2F","Paper 2"],["P-AQA-8464P-2011-2F","Paper 2 Physics"]],[39,40,46,29],154,["Paper 1 · Physics… 2020","Paper 1 Physics","Paper 2 · Physics… 2020","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2021": ["paperId",[["P-AQA-8463-2111-1F","Paper 1"],["P-AQA-8464P-2111-1F","Paper 1 Physics"],["P-AQA-8463-2111-2F","Paper 2"],["P-AQA-8464P-2111-2F","Paper 2 Physics"]],[46,35,35,35],151,["Paper 1","Paper 1 Physics","Paper 2","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2020": ["paperId",[["P-AQA-8463-2011-1F","Paper 1"],["P-AQA-8464P-2011-1F","Paper 1 Physics"],["P-AQA-8463-2011-2F","Paper 2"],["P-AQA-8464P-2011-2F","Paper 2 Physics"]],[39,40,46,29],154,["Paper 1","Paper 1 Physics","Paper 2","Paper 2 Physics"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2019": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"]],[14,16,10,12,13,13,13,4,8,4,4],111,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2018": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"],["Q12"]],[5,3,3,5,5,4,3,4,1,1,5,3],42,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11","Q12"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=OCR": ["examYear",[["2022"],["2021"],["2020"],["2019"],["2018"]],[42,95,41,42,41],261,["2022","2021","2020","2019","2018"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher": ["examBoard",[["AQA"],["OCR"]],[796,294],1090,["AQA","OCR"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"]],[102,137,142,93,104,104,52,62],796,["2025","2024","2023","2022","2021","2020","2019","2018"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8463-2506-1H","Paper 1"],["P-AQA-8464P-2506-1H","Paper 1 Physics"],["P-AQA-8463-2506-2H","Paper 2"],["P-AQA-8464P-2506-2H","Paper 2 Physics"]],[31,23,30,18],102,["Paper 1 · Physics · GCSE · AQ…","Paper 1 Physics","Paper 2 · Physics · GCSE · AQ…","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8463-2506-1H","Paper 1"],["P-AQA-8464P-2506-1H","Paper 1 Physics"],["P-AQA-8463-2506-2H","Paper 2"],["P-AQA-8464P-2506-2H","Paper 2 Physics"]],[31,23,30,18],102,["Paper 1","Paper 1 Physics","Paper 2","Paper 2 Physics"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2024": ["needs",[["Calculator allowed"],["Equation booklet"],["Protractor"],["Ruler"]],[90,90,43,90],137,["Calculator allowed","Equation booklet","Protractor","Ruler"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2023": ["paperId",[["P-AQA-8464P-2306-1H","8464/P/1H"],["P-AQA-8463-2306-1H","Paper 1"],["P-AQA-8463-2306-2H","Paper 2"],["P-AQA-8464P-2306-2H","Paper 2 Physics"]],[31,41,48,22],142,["8464/P/1H","Paper 1 · Physics · GCSE · AQ…","Paper 2 · Physics · GCSE · AQ…","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2023": ["paperId",[["P-AQA-8464P-2306-1H","8464/P/1H"],["P-AQA-8463-2306-1H","Paper 1"],["P-AQA-8463-2306-2H","Paper 2"],["P-AQA-8464P-2306-2H","Paper 2 Physics"]],[31,41,48,22],142,["8464/P/1H","Paper 1 · Physics · GCSE…","Paper 2","Paper 2 Physics"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2022": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"]],[14,13,12,13,10,8,9,6,3,3,2],93,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2021": ["paperId",[["P-AQA-8463-2111-1H","Paper 1"],["P-AQA-8464P-2111-1H","Paper 1 Physics"],["P-AQA-8463-2111-2H","Paper 2"],["P-AQA-8464P-2111-2H","Paper 2 Physics"]],[31,23,26,24],104,["Paper 1 · Physics · GCSE · AQ…","Paper 1 Physics","Paper 2 · Physics · GCSE · AQ…","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2021": ["paperId",[["P-AQA-8463-2111-1H","Paper 1"],["P-AQA-8464P-2111-1H","Paper 1 Physics"],["P-AQA-8463-2111-2H","Paper 2"],["P-AQA-8464P-2111-2H","Paper 2 Physics"]],[31,23,26,24],104,["Paper 1","Paper 1 Physics","Paper 2","Paper 2 Physics"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2020": ["marks",[["1 mark","[1]"],["2 marks","[2]"],["3 marks","[3]"],["4 marks","[4]"],["5 marks","[5]"],["6 marks","[6]"]],[33,36,16,11,3,5],104,["[1]","[2]","[3]","[4]","[5]","[6]"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2019": ["paperId",[["P-AQA-8464P-1906-1H","Paper 1"],["P-AQA-8463-1906-2H","Paper 2"]],[27,25],52,["Paper 1 Physics","Paper 2 · Physics · GCSE · AQ…"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2019": ["paperId",[["P-AQA-8464P-1906-1H","Paper 1"],["P-AQA-8463-1906-2H","Paper 2"]],[27,25],52,["Paper 1 · Physics… 2019","Paper 2 · Physics · GCSE…"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2018": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"]],[8,8,12,8,12,4,3,3,3,1],62,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=OCR": ["examYear",[["2024"],["2022"],["2021"],["2020"],["2019"],["2018"]],[41,45,41,39,88,40],294,["2024","2022","2021","2020","2019","2018"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Worksheet": ["paperId",[["T-AT-P-atomic-structure","Atomic Structure (Physics)"],["W-AT-P-radiation","Atoms and Nuclear Radiation"],["W-AT-P-black-body","Black Body Radiation"],["W-AT-P-change-of-state","Change of State and Specific…"],["W-AT-P-energy-conservation","Conservation and Transfer of…"],["W-AT-P-electricity","Electricity"],["T-AT-P-electricity","Electricity (Physics)"],["W-AT-P-electricity-home","Electricity in the Home"],["W-AT-P-em-radiation","Electromagnetic Radiation"],["W-AT-P-energy","Energy"],["T-AT-P-energy","Energy (Separate… Trilogy)"],["W-AT-P-energy-resources","Energy Resources"],["W-AT-P-forces","Forces"],["T-AT-P-forces","Forces (Separate Physics)"],["W-AT-P-forces-motion","Forces and Motion"],["W-AT-P-half-life","Half-Life and Uses of…"],["T-AT-P-magnetism","Magnetism and Electromagnetism"],["W-AT-P-moments","Moments"],["W-AT-P-momentum","Momentum"],["W-AT-P-fission-fusion","Nuclear Fission and Fusion"],["T-AT-P-particle-model","Particle Model of Matter"],["W-AT-P-density","Particle Model of… Density"],["W-AT-P-gas-pressure","Particle Model of… Pressure"],["W-AT-P-magnetism","Permanent and Induced…"],["W-AT-P-pressure-fluids","Pressure in Fluids"],["W-AT-P-red-shift","Red Shift"],["W-AT-P-solar-system","Solar System"],["T-AT-P-space","Space (Physics)"],["W-AT-P-static","Static Electricity"],["W-AT-P-motor-effect","The Motor Effect"],["W-AT-P-transformers","Transformers and the…"],["W-AT-P-waves","Waves"],["T-AT-P-waves","Waves (Physics)"]],[18,34,26,30,27,27,20,32,41,21,16,30,29,17,36,29,21,28,28,35,19,10,24,29,28,26,33,15,23,25,32,33,23],865,["Atomic Structure (Physics)","Atoms and Nuclear Radiation","Black Body Radiation","Change of State and Specific…","Conservation and Transfer of…","Electricity","Electricity (Physics)","Electricity in the Home","Electromagnetic Radiation","Energy","Energy (Separate… Trilogy)","Energy Resources","Forces","Forces (Separate Physics)","Forces and Motion","Half-Life and Uses of…","Magnetism and Electromagnetism","Moments","Momentum","Nuclear Fission and Fusion","Particle Model of Matter","Particle Model of… Density","Particle Model of… Pressure","Permanent and Induced…","Pressure in Fluids","Red Shift","Solar System","Space","Static Electricity","The Motor Effect","Transformers and the…","Waves","Waves (Physics)"]],
@@ -1207,20 +1207,20 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE": ["tier",[["Foundation"],["Higher"]],[521,483],1004,["Foundation","Higher"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"]],[57,189,68,72,69,66],521,["2025","2024","2023","2022","2021","2020"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2025": ["paperId",[["P-AQA-8464B-2506-1F","Paper 1"],["P-AQA-8464B-2506-2F","Paper 2"]],[27,30],57,["Paper 1 Biology","Paper 2 Biology"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2024": ["paperId",[["P-AQA-8461-2406-1F","Paper 1"],["P-AQA-8464B-2406-1F","Paper 1 Biology"],["P-AQA-8461-2406-2F","Paper 2"],["P-AQA-8464B-2406-2F","Paper 2 Biology"]],[66,28,64,31],189,["Paper 1 · Biology · GCSE · AQ…","Paper 1 Biology","Paper 2 · Biology · GCSE · AQ…","Paper 2 Biology"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2024": ["paperId",[["P-AQA-8461-2406-1F","Paper 1"],["P-AQA-8464B-2406-1F","Paper 1 Biology"],["P-AQA-8461-2406-2F","Paper 2"],["P-AQA-8464B-2406-2F","Paper 2 Biology"]],[66,28,64,31],189,["Paper 1","Paper 1 Biology","Paper 2","Paper 2 Biology"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2023": ["marks",[["1 mark","[1]"],["2 marks","[2]"],["3 marks","[3]"],["4 marks","[4]"],["5 marks","[5]"],["6 marks","[6]"]],[43,16,6,1,1,1],68,["[1]","[2]","[3]","[4]","[5]","[6]"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2022": ["paperId",[["P-AQA-8464B-2206-1F","Paper 1"],["P-AQA-8464B-2206-2F","Paper 2"]],[38,34],72,["Paper 1 Biology","Paper 2 Biology"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2021": ["paperId",[["P-AQA-8464B-2111-1F","Paper 1"],["P-AQA-8464B-2111-2F","Paper 2"]],[32,37],69,["Paper 1 Biology","Paper 2 Biology"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Foundation&examYear=2020": ["paperId",[["P-AQA-8464B-2011-1F","Paper 1"],["P-AQA-8464B-2011-2F","Paper 2"]],[34,32],66,["Paper 1 Biology","Paper 2 Biology"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"]],[47,154,51,39,49,54,43,46],483,["2025","2024","2023","2022","2021","2020","2019","2018"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2025": ["paperId",[["P-AQA-8464B-2506-1H","Paper 1"],["P-AQA-8464B-2506-2H","Paper 2"]],[23,24],47,["Paper 1 Biology","Paper 2 Biology"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2024": ["paperId",[["P-AQA-8461-2406-1H","Paper 1"],["P-AQA-8464B-2406-1H","Biology Paper 1"],["P-AQA-8461-2406-2H","Paper 2"],["P-AQA-8464B-2406-2H","Biology Paper 2"]],[50,27,43,34],154,["Paper 1 · Biology · GCSE · AQ…","Biology Paper 1","Paper 2 · Biology · GCSE · AQ…","Biology Paper 2"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2024": ["paperId",[["P-AQA-8461-2406-1H","Paper 1"],["P-AQA-8464B-2406-1H","Biology Paper 1"],["P-AQA-8461-2406-2H","Paper 2"],["P-AQA-8464B-2406-2H","Biology Paper 2"]],[50,27,43,34],154,["Paper 1","Biology Paper 1","Paper 2","Biology Paper 2"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2023": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"]],[13,3,8,7,7,8,5],51,["Q1","Q2","Q3","Q4","Q5","Q6","Q7"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2022": ["paperId",[["P-AQA-8464B-2206-1H","Paper 1"],["P-AQA-8464B-2206-2H","Paper 2"]],[22,17],39,["Paper 1 Biology","Paper 2 Biology"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2021": ["paperId",[["P-AQA-8464B-2111-1H","Paper 1"],["P-AQA-8464B-2111-2H","Paper 2"]],[24,25],49,["Paper 1 Biology","Paper 2 Biology"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2020": ["qPart",[[".1"],[".2"],[".3"],[".4"],[".5"],[".6"],[".7"],[".8"]],[11,10,9,10,10,1,2,1],54,[".1",".2",".3",".4",".5",".6",".7",".8"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2019": ["paperId",[["P-AQA-8464B-1906-1H","Paper 1"],["P-AQA-8464B-1906-2H","Paper 2"]],[20,23],43,["Paper 1 Biology","Paper 2 Biology"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2018": ["paperId",[["P-AQA-8464B-1806-1H","Paper 1"],["P-AQA-8464B-1806-2H","Paper 2"]],[19,27],46,["Paper 1 Biology","Paper 2 Biology"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2019": ["paperId",[["P-AQA-8464B-1906-1H","Paper 1"],["P-AQA-8464B-1906-2H","Paper 2"]],[20,23],43,["Paper 1 · Biology… 2019","Paper 2 · Biology · GCSE · AQ…"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=AQA&level=GCSE&tier=Higher&examYear=2018": ["paperId",[["P-AQA-8464B-1806-1H","Paper 1"],["P-AQA-8464B-1806-2H","Paper 2"]],[19,27],46,["Paper 1 Biology","Paper 2 · Biology · GCSE…"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=OCR": ["level",[["A-Level"],["GCSE"]],[665,896],1561,["A-Level","GCSE"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=OCR&level=A-Level": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[54,78,124,78,101,42,49,95,44],665,["2025","2024","2023","2022","2021","2020","2019","2018","2017"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Biology&documentType=Past paper&examBoard=OCR&level=A-Level&examYear=2025": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"],["Q12"],["Q13"],["Q14"],["Q15"],["Q16"],["Q17"],["Q18"],["Q19"],["Q20"],["Q21"]],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,6,8,10,8,4,4],54,["Q1","Q2","Q3","Q4","Q5","Q7","Q8","Q9","Q10","Q11","Q12","Q13","Q14","Q15","Q16","Q17","Q18","Q19","Q20","Q21"]],
@@ -1290,7 +1290,7 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation": ["examBoard",[["AQA"],["OCR"]],[545,252],797,["AQA","OCR"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"]],[70,191,66,30,61,63,36,28],545,["2025","2024","2023","2022","2021","2020","2019","2018"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8464C-2506-1F","Paper 1"],["P-AQA-8464C-2506-2F","Paper 2"]],[36,34],70,["Paper 1 Chemistry","Paper 2 Chemistry"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2024": ["paperId",[["P-AQA-8462-2406-1F","Paper 1"],["P-AQA-8464C-2406-1F","Paper 1 Chemistry"],["P-AQA-8462-2406-2F","Paper 2"],["P-AQA-8464C-2406-2F","Paper 2 Chemistry"]],[65,27,71,28],191,["Paper 1 · Chemistry · GCSE ·…","Paper 1 Chemistry","Paper 2 · Chemistry · GCSE ·…","Paper 2 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2024": ["paperId",[["P-AQA-8462-2406-1F","Paper 1"],["P-AQA-8464C-2406-1F","Paper 1 Chemistry"],["P-AQA-8462-2406-2F","Paper 2"],["P-AQA-8464C-2406-2F","Paper 2 Chemistry"]],[65,27,71,28],191,["Paper 1","Paper 1 Chemistry","Paper 2","Paper 2 Chemistry"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2023": ["marks",[["1 mark","[1]"],["2 marks","[2]"],["3 marks","[3]"],["4 marks","[4]"],["6 marks","[6]"]],[45,15,4,1,1],66,["[1]","[2]","[3]","[4]","[6]"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2022": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"]],[3,4,7,5,6,2,3],30,["Q1","Q2","Q3","Q4","Q5","Q6","Q7"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2021": ["paperId",[["P-AQA-8464C-2111-1F","Paper 1"],["P-AQA-8464C-2111-2F","Paper 2"]],[27,34],61,["Paper 1 Chemistry","Paper 2 Chemistry"]],
@@ -1301,12 +1301,12 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher": ["examBoard",[["AQA"],["OCR"]],[496,180],676,["AQA","OCR"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"]],[58,157,59,22,55,46,51,48],496,["2025","2024","2023","2022","2021","2020","2019","2018"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8464C-2506-1H","Paper 1"],["P-AQA-8464C-2506-2H","Paper 2"]],[27,31],58,["Paper 1 Chemistry","Paper 2 Chemistry"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2024": ["paperId",[["P-AQA-8462-2406-1H","Paper 1"],["P-AQA-8464C-2406-1H","Chemistry Paper 1"],["P-AQA-8462-2406-2H","Paper 2"],["P-AQA-8464C-2406-2H","Chemistry Paper 2"]],[45,32,47,33],157,["Paper 1 · Chemistry · GCSE ·…","Chemistry Paper 1","Paper 2 · Chemistry · GCSE ·…","Chemistry Paper 2"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2024": ["paperId",[["P-AQA-8462-2406-1H","Paper 1"],["P-AQA-8464C-2406-1H","Chemistry Paper 1"],["P-AQA-8462-2406-2H","Paper 2"],["P-AQA-8464C-2406-2H","Chemistry Paper 2"]],[45,32,47,33],157,["Paper 1","Chemistry Paper 1","Paper 2","Chemistry Paper 2"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2023": ["paperId",[["P-AQA-8464C-2306-1H","Paper 1"],["P-AQA-8464C-2306-2H","Paper 2"]],[27,32],59,["Paper 1 Chemistry","Paper 2 Chemistry"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2022": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"]],[2,3,2,4,5,6],22,["Q1","Q2","Q3","Q4","Q5","Q6"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2021": ["paperId",[["P-AQA-8464C-2111-1H","Paper 1"],["P-AQA-8464C-2111-2H","Paper 2"]],[26,29],55,["Paper 1 Chemistry","Paper 2 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2021": ["paperId",[["P-AQA-8464C-2111-1H","Paper 1"],["P-AQA-8464C-2111-2H","Paper 2"]],[26,29],55,["Paper 1 · Chemistry · GCSE ·…","Paper 2 Chemistry"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2020": ["paperId",[["P-AQA-8464C-2011-1H","Paper 1"],["P-AQA-8464C-2011-2H","Paper 2"]],[25,21],46,["Paper 1 Chemistry","Paper 2 Chemistry"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2019": ["paperId",[["P-AQA-8464C-1906-1H","Paper 1"],["P-AQA-8464C-1906-2H","Paper 2"]],[25,26],51,["Paper 1 Chemistry","Paper 2 Chemistry"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2019": ["paperId",[["P-AQA-8464C-1906-1H","Paper 1"],["P-AQA-8464C-1906-2H","Paper 2"]],[25,26],51,["Paper 1 Chemistry","Paper 2 · Chemistry · GCSE…"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2018": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"]],[11,8,6,7,5,5,2,4],48,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Past paper&level=GCSE&tier=Higher&examBoard=OCR": ["examYear",[["2021"],["2020"],["2019"],["2018"]],[47,43,46,44],180,["2021","2020","2019","2018"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&documentType=Worksheet": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"]],[277,260,266,243,247,125,30,17,3,1],1469,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10"]],
@@ -1464,24 +1464,24 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE": ["tier",[["Foundation"],["Higher"]],[1349,1090],2439,["Foundation","Higher"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation": ["examBoard",[["AQA"],["OCR"]],[1088,261],1349,["AQA","OCR"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"]],[144,200,145,141,151,154,111,42],1088,["2025","2024","2023","2022","2021","2020","2019","2018"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8463-2506-1F","Paper 1"],["P-AQA-8464P-2506-1F","Paper 1 Physics"],["P-AQA-8463-2506-2F","Paper 2"],["P-AQA-8464P-2506-2F","Paper 2 Physics"]],[40,29,42,33],144,["Paper 1 · Physics · GCSE · AQ…","Paper 1 Physics","Paper 2 · Physics · GCSE · AQ…","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8463-2506-1F","Paper 1"],["P-AQA-8464P-2506-1F","Paper 1 Physics"],["P-AQA-8463-2506-2F","Paper 2"],["P-AQA-8464P-2506-2F","Paper 2 Physics"]],[40,29,42,33],144,["Paper 1","Paper 1 Physics","Paper 2","Paper 2 Physics"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2024": ["needs",[["Calculator allowed"],["Equation booklet"],["Protractor"],["Ruler"]],[133,133,64,133],200,["Calculator allowed","Equation booklet","Protractor","Ruler"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2023": ["paperId",[["P-AQA-8463-2306-1F","Paper 1"],["P-AQA-8464P-2306-1F","Paper 1 Physics"],["P-AQA-8463-2306-2F","Paper 2"],["P-AQA-8464P-2306-2F","Paper 2 Physics"]],[44,32,38,31],145,["Paper 1 · Physics · GCSE · AQ…","Paper 1 Physics","Paper 2 · Physics · GCSE · AQ…","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2023": ["paperId",[["P-AQA-8463-2306-1F","Paper 1"],["P-AQA-8464P-2306-1F","Paper 1 Physics"],["P-AQA-8463-2306-2F","Paper 2"],["P-AQA-8464P-2306-2F","Paper 2 Physics"]],[44,32,38,31],145,["Paper 1","Paper 1 Physics","Paper 2","Paper 2 Physics"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2022": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"]],[17,20,19,20,16,12,15,9,5,4,4],141,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2021": ["paperId",[["P-AQA-8463-2111-1F","Paper 1"],["P-AQA-8464P-2111-1F","Paper 1 Physics"],["P-AQA-8463-2111-2F","Paper 2"],["P-AQA-8464P-2111-2F","Paper 2 Physics"]],[46,35,35,35],151,["Paper 1 · Physics · GCSE · AQ…","Paper 1 Physics","Paper 2 · Physics · GCSE · AQ…","Paper 2 Physics"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2020": ["paperId",[["P-AQA-8463-2011-1F","Paper 1"],["P-AQA-8464P-2011-1F","Paper 1 Physics"],["P-AQA-8463-2011-2F","Paper 2"],["P-AQA-8464P-2011-2F","Paper 2 Physics"]],[39,40,46,29],154,["Paper 1 · Physics… 2020","Paper 1 Physics","Paper 2 · Physics… 2020","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2021": ["paperId",[["P-AQA-8463-2111-1F","Paper 1"],["P-AQA-8464P-2111-1F","Paper 1 Physics"],["P-AQA-8463-2111-2F","Paper 2"],["P-AQA-8464P-2111-2F","Paper 2 Physics"]],[46,35,35,35],151,["Paper 1","Paper 1 Physics","Paper 2","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2020": ["paperId",[["P-AQA-8463-2011-1F","Paper 1"],["P-AQA-8464P-2011-1F","Paper 1 Physics"],["P-AQA-8463-2011-2F","Paper 2"],["P-AQA-8464P-2011-2F","Paper 2 Physics"]],[39,40,46,29],154,["Paper 1","Paper 1 Physics","Paper 2","Paper 2 Physics"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2019": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"]],[14,16,10,12,13,13,13,4,8,4,4],111,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=AQA&examYear=2018": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"],["Q12"]],[5,3,3,5,5,4,3,4,1,1,5,3],42,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11","Q12"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Foundation&examBoard=OCR": ["examYear",[["2022"],["2021"],["2020"],["2019"],["2018"]],[42,95,41,42,41],261,["2022","2021","2020","2019","2018"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher": ["examBoard",[["AQA"],["OCR"]],[796,294],1090,["AQA","OCR"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"]],[102,137,142,93,104,104,52,62],796,["2025","2024","2023","2022","2021","2020","2019","2018"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8463-2506-1H","Paper 1"],["P-AQA-8464P-2506-1H","Paper 1 Physics"],["P-AQA-8463-2506-2H","Paper 2"],["P-AQA-8464P-2506-2H","Paper 2 Physics"]],[31,23,30,18],102,["Paper 1 · Physics · GCSE · AQ…","Paper 1 Physics","Paper 2 · Physics · GCSE · AQ…","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-8463-2506-1H","Paper 1"],["P-AQA-8464P-2506-1H","Paper 1 Physics"],["P-AQA-8463-2506-2H","Paper 2"],["P-AQA-8464P-2506-2H","Paper 2 Physics"]],[31,23,30,18],102,["Paper 1","Paper 1 Physics","Paper 2","Paper 2 Physics"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2024": ["needs",[["Calculator allowed"],["Equation booklet"],["Protractor"],["Ruler"]],[90,90,43,90],137,["Calculator allowed","Equation booklet","Protractor","Ruler"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2023": ["paperId",[["P-AQA-8464P-2306-1H","8464/P/1H"],["P-AQA-8463-2306-1H","Paper 1"],["P-AQA-8463-2306-2H","Paper 2"],["P-AQA-8464P-2306-2H","Paper 2 Physics"]],[31,41,48,22],142,["8464/P/1H","Paper 1 · Physics · GCSE · AQ…","Paper 2 · Physics · GCSE · AQ…","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2023": ["paperId",[["P-AQA-8464P-2306-1H","8464/P/1H"],["P-AQA-8463-2306-1H","Paper 1"],["P-AQA-8463-2306-2H","Paper 2"],["P-AQA-8464P-2306-2H","Paper 2 Physics"]],[31,41,48,22],142,["8464/P/1H","Paper 1 · Physics · GCSE…","Paper 2","Paper 2 Physics"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2022": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"]],[14,13,12,13,10,8,9,6,3,3,2],93,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2021": ["paperId",[["P-AQA-8463-2111-1H","Paper 1"],["P-AQA-8464P-2111-1H","Paper 1 Physics"],["P-AQA-8463-2111-2H","Paper 2"],["P-AQA-8464P-2111-2H","Paper 2 Physics"]],[31,23,26,24],104,["Paper 1 · Physics · GCSE · AQ…","Paper 1 Physics","Paper 2 · Physics · GCSE · AQ…","Paper 2 Physics"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2021": ["paperId",[["P-AQA-8463-2111-1H","Paper 1"],["P-AQA-8464P-2111-1H","Paper 1 Physics"],["P-AQA-8463-2111-2H","Paper 2"],["P-AQA-8464P-2111-2H","Paper 2 Physics"]],[31,23,26,24],104,["Paper 1","Paper 1 Physics","Paper 2","Paper 2 Physics"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2020": ["marks",[["1 mark","[1]"],["2 marks","[2]"],["3 marks","[3]"],["4 marks","[4]"],["5 marks","[5]"],["6 marks","[6]"]],[33,36,16,11,3,5],104,["[1]","[2]","[3]","[4]","[5]","[6]"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2019": ["paperId",[["P-AQA-8464P-1906-1H","Paper 1"],["P-AQA-8463-1906-2H","Paper 2"]],[27,25],52,["Paper 1 Physics","Paper 2 · Physics · GCSE · AQ…"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2019": ["paperId",[["P-AQA-8464P-1906-1H","Paper 1"],["P-AQA-8463-1906-2H","Paper 2"]],[27,25],52,["Paper 1 · Physics… 2019","Paper 2 · Physics · GCSE…"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=AQA&examYear=2018": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"]],[8,8,12,8,12,4,3,3,3,1],62,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Past paper&level=GCSE&tier=Higher&examBoard=OCR": ["examYear",[["2024"],["2022"],["2021"],["2020"],["2019"],["2018"]],[41,45,41,39,88,40],294,["2024","2022","2021","2020","2019","2018"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Physics&documentType=Worksheet": ["paperId",[["T-AT-P-atomic-structure","Atomic Structure (Physics)"],["W-AT-P-radiation","Atoms and Nuclear Radiation"],["W-AT-P-black-body","Black Body Radiation"],["W-AT-P-change-of-state","Change of State and Specific…"],["W-AT-P-energy-conservation","Conservation and Transfer of…"],["W-AT-P-electricity","Electricity"],["T-AT-P-electricity","Electricity (Physics)"],["W-AT-P-electricity-home","Electricity in the Home"],["W-AT-P-em-radiation","Electromagnetic Radiation"],["W-AT-P-energy","Energy"],["T-AT-P-energy","Energy (Separate… Trilogy)"],["W-AT-P-energy-resources","Energy Resources"],["W-AT-P-forces","Forces"],["T-AT-P-forces","Forces (Separate Physics)"],["W-AT-P-half-life","Half-Life and Uses of…"],["T-AT-P-magnetism","Magnetism and Electromagnetism"],["W-AT-P-moments","Moments"],["W-AT-P-momentum","Momentum"],["W-AT-P-fission-fusion","Nuclear Fission and Fusion"],["T-AT-P-particle-model","Particle Model of Matter"],["W-AT-P-density","Particle Model of… Density"],["W-AT-P-gas-pressure","Particle Model of… Pressure"],["W-AT-P-magnetism","Permanent and Induced…"],["W-AT-P-pressure-fluids","Pressure in Fluids"],["W-AT-P-red-shift","Red Shift"],["W-AT-P-solar-system","Solar System"],["T-AT-P-space","Space (Physics)"],["W-AT-P-static","Static Electricity"],["W-AT-P-motor-effect","The Motor Effect"],["W-AT-P-transformers","Transformers and the…"],["W-AT-P-waves","Waves"],["T-AT-P-waves","Waves (Physics)"]],[18,34,26,30,27,27,20,32,41,21,16,30,29,17,29,21,28,28,35,19,10,24,29,28,26,33,15,23,25,32,33,23],829,["Atomic Structure (Physics)","Atoms and Nuclear Radiation","Black Body Radiation","Change of State and Specific…","Conservation and Transfer of…","Electricity","Electricity (Physics)","Electricity in the Home","Electromagnetic Radiation","Energy","Energy (Separate… Trilogy)","Energy Resources","Forces","Forces (Separate Physics)","Half-Life and Uses of…","Magnetism and Electromagnetism","Moments","Momentum","Nuclear Fission and Fusion","Particle Model of Matter","Particle Model of… Density","Particle Model of… Pressure","Permanent and Induced…","Pressure in Fluids","Red Shift","Solar System","Space","Static Electricity","The Motor Effect","Transformers and the…","Waves","Waves (Physics)"]],
@@ -7663,7 +7663,7 @@ function loadFailBanner_(err, reached) {
           + 'them is the script itself — open it in a tab and see how long it takes.'
         : 'Something else went wrong on the way.';
       el.innerHTML = 'Could not reach the backend.' + (reached ? '' : ' Still trying by itself.') + '<br>'
-        + '<span class="qtag">' + esc(why) + '</span><br>'
+        + qtag_(esc(why)) + '<br>'
         + '<a class="link" href="' + esc(API) + '" target="_blank" rel="noopener">Open it in a '
         + 'tab</a> — the page itself will say which it is.<br>'
         + '<span>' + esc(msg)
@@ -7953,8 +7953,8 @@ function teachGroups_(list) {
   return out;
 }
 /* ONE CHIP. The levels are a `<sup>`, and each level is its own no-wrap span, so at 320px a long list breaks BETWEEN levels § */
-const teachChip_ = (g, main) => `<span class="prof-tag${main ? ' is-main' : ''}">${mark(g.subject)}${
-  g.levels.length ? `<sup class="prof-lv">&nbsp;${g.levels.map(l => `<span>${mark(l)}</span>`).join(', ')}</sup>` : ''}</span>`;
+const teachChip_ = (g, main) => qtag_(`${mark(g.subject)}${
+  g.levels.length ? `<sup class="prof-lv">&nbsp;${g.levels.map(l => `<span>${mark(l)}</span>`).join(', ')}</sup>` : ''}`, '', main ? 'is-main' : '', 'prof-tag');
 
 /* ---------- A QUALIFICATION, WRITTEN LIKE AN ISOTOPE § */
 const profQualV_ = v => String(v == null ? '' : v).trim();
@@ -7970,14 +7970,12 @@ function profQualChip_(p) {
   const say = esc(profQualSay_(p));
   const low = grade ? mark(grade) : profQualNow_(p) ? '<i>studying</i>' : '';
   if (p.kind === 'cert' || !(level || low)) {
-    return `<span class="prof-tag" role="img" aria-label="${say}" title="${say}">${
-      mark([subject, level, grade].filter(Boolean).join(' '))}</span>`;
+    return qtag_(mark([subject, level, grade].filter(Boolean).join(' ')), ` role="img" aria-label="${say}" title="${say}"`, '', 'prof-tag');
   }
   /* THE LAST WORD OF THE SUBJECT IS HELD TO ITS NOTATION, so at 320px a long subject breaks between its own words and never § */
   const said = mark(subject), cut = profLastGap_(said);
-  return `<span class="prof-tag prof-q" role="img" aria-label="${say}" title="${say}">${
-    cut > 0 ? said.slice(0, cut) + ' ' : ''}<span class="prof-q-end">${said.slice(cut + 1)}<span class="prof-iso">${
-    level ? `<sup>${mark(level)}</sup>` : ''}${low ? `<sub>${low}</sub>` : ''}</span></span></span>`;
+  return qtag_(`${cut > 0 ? said.slice(0, cut) + ' ' : ''}<span class="prof-q-end">${said.slice(cut + 1)}<span class="prof-iso">${
+    level ? `<sup>${mark(level)}</sup>` : ''}${low ? `<sub>${low}</sub>` : ''}</span></span>`, ` role="img" aria-label="${say}" title="${say}"`, 'prof-q', 'prof-tag');
 }
 /* THE LAST SPACE IN `mark`'s HTML THAT IS NEITHER INSIDE A TAG NOR INSIDE A COLOURED SPAN, or -1. § */
 function profLastGap_(html) {
@@ -7994,7 +7992,7 @@ function profLastGap_(html) {
 }
 /* A LONG LIST SHORTENED TO "+N" (8 Nov): the whole tutor card fits one phone screen; the rest are named in the pill's title. */
 const PROF_MORE_ = (chips, n, names) => chips.length > n
-  ? chips.slice(0, n).concat(`<span class="prof-tag prof-more" title="${esc((names || []).slice(n).join(', '))}">+${chips.length - n}</span>`) : chips;
+  ? chips.slice(0, n).concat(qtag_(`+${chips.length - n}`, ` title="${esc((names || []).slice(n).join(', '))}"`, 'prof-more', 'prof-tag')) : chips;
 function profQuals_(t) {
   const parts = Array.isArray(t.qualsParts) ? t.qualsParts.filter(p => p && profQualV_(p.subject)) : [];
   let chips;
@@ -8007,7 +8005,7 @@ function profQuals_(t) {
     });
     chips = [].concat(...groups).map(profQualChip_);
   } else {
-    chips = profList_(t.quals).map(v => `<span class="prof-tag">${esc(v)}</span>`);
+    chips = profList_(t.quals).map(v => qtag_(esc(v), '', '', 'prof-tag'));
   }
   chips = PROF_MORE_(chips, 2, parts.length ? parts.map(p => profQualV_(p.subject)) : profList_(t.quals));
   return chips.length
@@ -8018,7 +8016,7 @@ function profQuals_(t) {
 const profJobSay_ = j => [j.role, j.where, [j.from, j.to].filter(Boolean).join('–')].map(v => String(v || '').trim()).filter(Boolean).join(' · ');
 function profJobs_(t) {
   const says = (Array.isArray(t.jobs) ? t.jobs : []).map(profJobSay_).filter(Boolean);
-  const chips = PROF_MORE_(says.map(v => `<span class="prof-tag">${esc(v)}</span>`), 1, says);
+  const chips = PROF_MORE_(says.map(v => qtag_(esc(v), '', '', 'prof-tag')), 1, says);
   return chips.length ? `<div class="qtags prof-tags prof-teach prof-jobs">${chips.join('')}</div>` : '';
 }
 
@@ -8113,7 +8111,7 @@ function profAvail_(t) {
     hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
     /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; the aria-label above says every hour. */
     const say = !spans.length ? '' : profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '');
-    return spans.length ? `<span class="prof-tag prof-day">${esc(day_(d.label))} ${esc(say)}</span>` : '';
+    return spans.length ? qtag_(`${esc(day_(d.label))} ${esc(say)}`, '', 'prof-day', 'prof-tag') : '';
   }).filter(Boolean).join('<span class="prof-sep"> </span>');
   const free = line(c => c.lit), busyLine = line(c => c.busy);
   return `<div class="prof-week prof-hours" data-avail="${ticked.length}"
@@ -8162,7 +8160,7 @@ const KC_FIELDS = {
     if (k === 'photo') return `<img class="prof-pic" src="${esc(pic(t.image))}" alt="" loading="lazy" decoding="async">`;
     return k === 'basic' && typeof pfpArt_ === 'function' ? pfpArt_(pfpChoice_(t.image), 96) : ''; },
   /* THE NAME IS A TAG (owner, 9 Nov): first name and an initial for everyone; the role and rate are tags beside it. */
-  nameTag: x => { const t = kcRow_(x), tag = (v, n, c) => `<span class="prof-tag${c ? ' ' + c : ''}" data-tag="${n}">${esc(v)}</span>`;
+  nameTag: x => { const t = kcRow_(x), tag = (v, n, c) => qtag_(esc(v), ` data-tag="${n}"`, c, 'prof-tag');
     return `<div class="qtags prof-tags prof-who-tags">${tag(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')}${
       [t.role || 'Tutor'].concat(profList_(t.titles)).map(v => tag(v, 1)).join('')}${
       t.rate && !childView_() ? tag(rateRange_(t), 4, 'prof-tag-rate') : ''}${t.activity ? tag(t.activity, 3, 'prof-act') : ''}${
@@ -8206,7 +8204,7 @@ const KC_FIELDS = {
   tutorCount: x => { const n = (kcRow_(x).tutors || []).length; return row('Tutors', n ? String(n) : NO_TUTOR, n ? '' : 'bad'); },
   bookingForm: x => (kcRow_(x).listed ? '' : row('Booking form', 'Not offered', 'bad')),
   levels: x => { const l = (kcRow_(x).levels || []).filter(Boolean); return l.length ? row('Levels', l.join(', ')) : ''; },
-  tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<div class="qtags">${t.map(y => `<span class="qtag" data-tag="3">${esc(y.title)}</span>`).join('')}</div>`
+  tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<div class="qtags">${t.map(y => qtag_(esc(y.title), ' data-tag="3"')).join('')}</div>`
     : x.kind === 'subject' ? row('Tutors', 'None yet', 'bad') : ''; },
   /* A KIND WHOSE OWN FILE WRITES ITS INSIDES (`KC_OWN`) hands them over cut into the four parts (`kcSplit_`); no tag line of its own gets its facets. */
   ownPic: x => (x.kcOwn || {}).pic || '',
@@ -8358,7 +8356,7 @@ function kcHoist_(html, panel) {
 /* WHETHER SOME TAGS ALREADY SAY A NAME, and the name put in front of them as a tag. */
 const kcSays_ = (tags, name) => norm(String(tags || '').replace(/<[^>]+>/g, ' ').replace(/&#0*39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&')).indexOf(norm(name)) >= 0;
 function kcTagFirst_(tags, name) {
-  const tag = `<span class="qtag" data-tag="0">${esc(name)}</span>`;
+  const tag = `${qtag_(`${esc(name)}`, ` data-tag="0"`)}`;
   return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, '$1' + tag) : `<div class="qtags">${tag}</div>` + (tags || '');
 }
 /* TAGS ARE SHORT FACTS, LINES HAVE NO HEADINGS (owner, 9 Nov): a longer tag (a credit) becomes a later line, open-only; a heading in the lines a plain line. */
@@ -8503,7 +8501,7 @@ function findCard(x, credits) {
   /* A PANEL (card_) IS DRAWN WHILE FIND'S OWN LIST IS BEING MADE, so it never reads Find's chips back (that would build the list inside itself). */
   parts.tags = it.kcPanel ? parts.tags : kcUnpicked_(parts.tags);
   /* A CARD WITH NO TAGS OF ITS OWN STILL HAS ONE: its name (owner, 9 Nov: the name is a tag). */
-  if (!parts.tags.trim() && name) parts.tags = `<div class="qtags"><span class="qtag" data-tag="0">${esc(name)}</span></div>`;
+  if (!parts.tags.trim() && name) parts.tags = `<div class="qtags">${qtag_(`${esc(name)}`, ` data-tag="0"`)}</div>`;
   /* NO TITLE LINE ON ANY CARD (owner, 9 Nov): the name is a tag, put first when the tags do not already say it. */
   if (name && parts.head && !kcSays_(parts.tags, name)) parts.tags = kcTagFirst_(parts.tags, name);
   parts.head = '';
@@ -8531,6 +8529,8 @@ function findCard(x, credits) {
     (parts.form ? ['pic', 'head', 'tags', 'lines', 'form', 'act'] : KC_PARTS).map(p => `<div class="kc-${p}">${parts[p]}</div>`).join('')}</div>`;
 }
 
+/* THE ONE TAG MAKER (one way only): `inner` is HTML the caller escaped, `attrs` its attributes, `cls` extra classes; `base` a tutor pill or a filter chip. */
+function qtag_(inner, attrs, cls, base) { return `<span class="${base || 'qtag'}${cls ? ' ' + cls : ''}"${attrs || ''}>${inner}</span>`; }
 /* EVERY OTHER CARD COMES HERE TOO (owner, 11 Nov: one template): its maker writes a plain `<div class="x">…</div>`; a form inside stays whole, the booking form's too. */
 const KC_FORMY = /<(input(?![^>]*type="hidden")|select|textarea|form)\b|\bkc-items\b/;
 function card_(html, kind, called) {
@@ -8710,7 +8710,7 @@ function formToggle_(t) {
   return `<label class="check role-pick${t.cls ? ' ' + t.cls : ''}">
         <input type="checkbox" data-do="${esc(t.act)}"${data}${t.on ? ' checked' : ''}>
         <span class="box"></span><span class="role-pick-say"><b>${esc(t.label)}</b>
-          <span class="qtag">${esc(t.note || '')}</span></span></label>`;
+          ${qtag_(`${esc(t.note || '')}`)}</span></label>`;
 }
 
 /* THE CARD: a title, then `groups` (backend field lists via `fieldsHtml`), `boxes` or `toggles`; `spec.id` fills it from FORM_SPECS.cards. */
@@ -8843,7 +8843,7 @@ function meRest_() {
 /* ---------- THE BUILD STAMPS, FOR WHEN SOMETHING HAS CHANGED AND HAS NOT § */
 /* THE BUILD CARD IS ITS LINES, so they are no grey clutter (A+): `build-said` keeps them past the rule that hides a card's grey lines. */
 function versionSaid_() {
-  return `<p class="build-said" style="text-align:center">@family. · Merton &amp; Wandsworth<br>
+  return `<p class="build-said">@family. · Merton &amp; Wandsworth<br>
       site ${esc(SITE_VERSION)} · css ${esc(cssVersion())}<br>
       backend ${esc(dash_(DATA.version))}</p>
       ${(() => {
@@ -8920,14 +8920,14 @@ function applyFormHtml_() {
   const doc = (k, label) => `<div class="field apply-doc" data-doc="${k}"><span>${esc(label)}</span>
       <div class="btn-row">${tile_({ form: true, kind: 'quiet', label: APPLY_DOCS[k] ? 'Change photo' : 'Choose photo', act: 'apply-pick' })}</div>
       <p class="note apply-doc-said">${APPLY_DOCS[k] ? 'Photo ready.' : ''}</p>${formFile_('apply-in', 'image/*')}</div>`;
-  const ref = n => `<div class="f-row" style="--n:2">${box(`ref${n}Name`, 'name')}${box(`ref${n}Relationship`, 'relationship to you')}</div>
-    <div class="f-row" style="--n:2">${box(`ref${n}Email`, 'email', { type: 'email' })}${box(`ref${n}Phone`, 'phone', { type: 'tel' })}</div>`;
+  const ref = n => `<div class="f-row">${box(`ref${n}Name`, 'name')}${box(`ref${n}Relationship`, 'relationship to you')}</div>
+    <div class="f-row">${box(`ref${n}Email`, 'email', { type: 'email' })}${box(`ref${n}Phone`, 'phone', { type: 'tel' })}</div>`;
   return `<div class="me-form app-form">
     <h4>You</h4>
     ${box('fullName', 'full name')}
-    <div class="f-row" style="--n:2">${box('phone', 'phone', { type: 'tel' })}${box('email', 'email', { type: 'email' })}</div>
+    <div class="f-row">${box('phone', 'phone', { type: 'tel' })}${box('email', 'email', { type: 'email' })}</div>
     ${area('address', 'home address')}
-    <div class="f-row" style="--n:2">${box('postcode', 'postcode', { more: 'autocapitalize="characters"' })}${box('dob', 'date of birth', { type: 'date' })}</div>
+    <div class="f-row">${box('postcode', 'postcode', { more: 'autocapitalize="characters"' })}${box('dob', 'date of birth', { type: 'date' })}</div>
     <h4>Documents</h4>
     ${doc('idDoc', 'photo ID — passport or driving licence')}
     ${formLine_('right to work in the UK', formSelect_('data-app="rightToWork"', '<option value="">Choose</option><option value="yes">Yes</option><option value="no">No</option>'))}
@@ -8937,7 +8937,7 @@ function applyFormHtml_() {
     ${Array.from({ length: APPLY_QUAL_SLOTS }, (_, i) => doc('qual' + i, i ? 'another qualification certificate (optional)' : 'a qualification certificate')).join('')}
     ${box('rate', 'hourly rate (£)', { type: 'number', more: 'min="1" step="0.5" inputmode="decimal"' })}
     <h4>Checks</h4>
-    <div class="f-row" style="--n:2">${box('dbsNumber', 'enhanced DBS certificate number')}${box('dbsIssued', 'issued on', { type: 'date' })}</div>
+    <div class="f-row">${box('dbsNumber', 'enhanced DBS certificate number')}${box('dbsIssued', 'issued on', { type: 'date' })}</div>
     ${formTick_('data-app="dbsUpdate"', '<span>I consent to you checking it on the DBS Update Service</span>')}
     ${formTick_('data-app="dbsNeeded"', '<span>I need a DBS check</span>')}
     <h4>When and where</h4>
@@ -9352,7 +9352,7 @@ function registerCard_() {
             ''}
       ${/* THE NAMES AND THE ADDRESS ARE DRAFTS (data.js; docs/history/317) — the sheet closed by a tap outside, or the page reloaded, and they were gone. § */
             ''}
-      <div class="f-row" style="--n:2">
+      <div class="f-row">
         ${formLine_('first name', formInput_(`id="reg-first" autocomplete="off"${draftAttr_('reg', 'first')} value="${esc(draftVal_('reg', 'first'))}"`))}
         ${formLine_('last name', formInput_(`id="reg-last" autocomplete="off"${draftAttr_('reg', 'last')} value="${esc(draftVal_('reg', 'last'))}"`))}
       </div>
@@ -10151,7 +10151,7 @@ function msgFacePic_(t, mine) {
 /* THE SHARED TAG LINE, with what no facet says (when, unread, kind) added to its end. */
 function msgTags_(x, extra) {
   const row = typeof tagRow_ === 'function' && x ? String(tagRow_(x) || '') : '';
-  const more = extra.filter(Boolean).map(t => `<span class="qtag msg-tag${t.cls ? ' ' + t.cls : ''}">${esc(t.text)}</span>`).join('');
+  const more = extra.filter(Boolean).map(t => `${qtag_(`${esc(t.text)}`, '', `msg-tag${t.cls ? ' ' + t.cls : ''}`)}`).join('');
   return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, more + '</div>') : `<div class="qtags qcard-tags">${more}</div>`;
 }
 function msgKindWord_(m) {
@@ -10245,7 +10245,7 @@ function mailHeldNote_() {
   /* `overflow-wrap:anywhere` ON THE ADDRESS: it is one word with no space in it, and a long one at 320
      took the card sideways — the fault the dotted answer line paid for (check/states.js). */
   return at ? `<p class="said mail-held">We will email you once you open the link
-    we sent to <b style="overflow-wrap:anywhere">${esc(at)}</b>.</p>` : '';
+    we sent to <b class="wrap-any">${esc(at)}</b>.</p>` : '';
 }
 
 /* ---------- A NEW ADDRESS WAITING TO BE PROVED, ON THE CARD IT WAS TYPED ON § */
@@ -10254,8 +10254,8 @@ function movingNote_(p) {
   if (!to) return '';
   const was = String((p && p.email) || '');
   return `<p class="said mail-moving">Your email changes to
-    <b style="overflow-wrap:anywhere">${esc(to)}</b> once you open the link we sent there, on a phone where you
-    are signed in.${was ? ` Until then it is still <b style="overflow-wrap:anywhere">${esc(was)}</b> — sign in
+    <b class="wrap-any">${esc(to)}</b> once you open the link we sent there, on a phone where you
+    are signed in.${was ? ` Until then it is still <b class="wrap-any">${esc(was)}</b> — sign in
     with that, or your handle. Type it back here to keep it.` : ''}</p>`;
 }
 
@@ -10263,7 +10263,7 @@ function movingNote_(p) {
 function kidHeldSec_() {
   return `<div class="kid-sec kid-held">
     <h4 class="kid-h">Add your child</h4>
-    <p class="note">Open the link we emailed to <b style="overflow-wrap:anywhere">${esc(pendingAddr_())}</b>
+    <p class="note">Open the link we emailed to <b class="wrap-any">${esc(pendingAddr_())}</b>
       first, then you can add your child.</p>
     <div class="tile-row">${tile_(RESEND_LINK)}</div>
   </div>`;
@@ -10512,7 +10512,7 @@ screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web'
 /* ---------- APPRENTICE PROFILE (730): a card per apprentice an admin is sent (`everyone`, role Apprentice); none yet is a line from brand() ---------- */
 function apprenticeProfilePages_() {
   const all = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title && /apprentice/i.test(String(p.role || '')));
-  if (all.length) return all.map(p => card_(`<div class="appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="qtags"><span class="qtag prof-handle">@${esc(p.handle)}</span></p>` : ''}</div>`));
+  if (all.length) return all.map(p => card_(`<div class="appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="qtags">${qtag_(`@${esc(p.handle)}`, '', `prof-handle`)}</p>` : ''}</div>`));
   return [card_(`<div class="appr-card people-none">${
     empty_(brand('apprentices_none', 'No apprentices yet.'))}</div>`)];
 }
@@ -10550,7 +10550,7 @@ function stabilityCard_() {
   const s = STAB.got, head = '<h3>Stability</h3>';
   if (!s) return card_(`<div class="biz stability-card">${head}${STAB.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`);
   const sig = (s.signals || []).filter(x => x.off > 0);
-  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} <span class="qtag">−${esc(String(x.off))}</span></li>`;
+  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} ${qtag_(`−${esc(String(x.off))}`)}</li>`;
   return card_(`<div class="biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
     ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`);
@@ -12918,7 +12918,7 @@ function ceWhere_(L, val, box) {
   const ro = (((typeof DATA !== 'undefined' && DATA && DATA.profileReadonly) || []).indexOf('venues_ok') !== -1);
   const ticks = L.indexOf('venues_ok') === -1 ? '' : formHidden_('data-me="venues_ok"', got.join(', ')) + `
     <div class="many-list where-areas" role="group" aria-label="Areas you teach in">${Object.keys(by).sort().map(a => formTick_(`data-where-area="${esc(a)}"${by[a].some(has) ? ' checked' : ''}${ro ? ' disabled' : ''}`, `<span>${esc(a)}</span>
-      <span class="qtag">${esc(ceCount_(by[a].length, 'venue', 'venues'))}</span>`, 'many-opt')).join('')}</div>`;
+      ${qtag_(`${esc(ceCount_(by[a].length, 'venue', 'venues'))}`)}`, 'many-opt')).join('')}</div>`;
   return ceFold_('where', 'Areas', esc(ceCount_(got.length, 'venue', 'venues')), ticks)
     + fieldRows_(L.filter(f => f !== 'venues_ok'), box);
 }
@@ -13450,7 +13450,7 @@ function psCard_(who, tiles) {
   return `<div class="ps-hit">
     ${personFace_({ pic: who.image, avatar: who.avatar, handle: who.handle, name: first, personId: who.personId },
                   { cls: 'kid-face', none: 'prof-none', size: 36 })}
-    <p class="kid-who"><b>${esc(first)}</b><span class="prof-handle">@${esc(who.handle)}</span>${who.role ? `<span class="qtag ps-role">${esc(who.role)}</span>` : ''}</p>
+    <p class="kid-who"><b>${esc(first)}</b><span class="prof-handle">@${esc(who.handle)}</span>${who.role ? `${qtag_(`${esc(who.role)}`, '', `ps-role`)}` : ''}</p>
     ${tiles ? `<div class="tile-row">${tiles}</div>` : ''}
   </div>`;
 }
@@ -14110,7 +14110,7 @@ function postCard_(p, i) {
           ${/* No "· deleted" any more: a deleted post is not drawn at all, so nothing reaching
                  here can be one. */''}
           <span class="post-who">${esc(who)}${p.pinned
-            ? ' <span class="qtag">pinned</span>' : ''}${p.refused
+            ? ' ' + qtag_('pinned') : ''}${p.refused
             ? ' <span class="post-wait">· not put up</span>' : ''}</span>
           ${p.location ? `<span class="post-where">${esc(p.location)}</span>` : ''}
         </span>
@@ -14156,7 +14156,7 @@ window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
     const at = p.at || p.when, d = at && typeof parseWhen === 'function' ? parseWhen(at) : null;
     const kind = p.poll ? 'Poll' : media.some(postIsVideo_) ? 'Clip' : media.length ? 'Photo' : 'Post';
     const extra = [d && !isNaN(d) ? date_(d) : '', kind, media.length > 1 ? media.length + ' pictures' : '', p.pinned ? 'pinned' : '']
-      .filter(Boolean).map(t => `<span class="qtag msg-tag">${esc(t)}</span>`).join('');
+      .filter(Boolean).map(t => `${qtag_(`${esc(t)}`, '', `msg-tag`)}`).join('');
     const row = typeof tagRow_ === 'function' ? String(tagRow_(x) || '') : '';
     return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, extra + '</div>') : `<div class="qtags qcard-tags">${extra}</div>`; },
   postBody: x => { const body = String(x.row.caption || x.row.body || x.row.text || '').trim(); return body ? `<p class="msg-fc-body">${mark(body)}</p>` : ''; },
@@ -14178,14 +14178,14 @@ function commentsHtml_(p) {
     ${list.length ? `<ul class="cmt-list">${list.map(x => `
       <li class="cmt${x.mine ? ' mine' : ''}">
         <p class="cmt-body"><b>${esc(displayName_(x.name))}</b> ${mark(x.body)}</p>
-        <p class="cmt-when"><span class="qtag">${esc(ago(x.at) || x.at || '')}</span>${x.canRemove
+        <p class="cmt-when">${qtag_(`${esc(ago(x.at) || x.at || '')}`)}${x.canRemove
           ? tile_({ icon: 'bin', label: 'Remove', act: 'cmt-del', cls: 'cmt-x', data: { id: x.id } })
           : ''}</p>
       </li>`).join('')}</ul>` : ''}
     ${/* THE ONES NOT SHOWN ARE A NUMBER RATHER THAN A SILENCE. `doGet` caps the list at sixty;
           a conversation that simply stops at sixty with nothing saying so is a conversation
           somebody thinks they have read. */''}
-    ${more ? `<p class="qtags"><span class="qtag">${more} more</span></p>` : ''}
+    ${more ? `<p class="qtags">${qtag_(`${more} more`)}</p>` : ''}
     ${/* ---------- POST IS A TILE § */
           ''}
     ${USER
@@ -15354,8 +15354,8 @@ function postAsRow_(id) {
     </span></label>`;
 }
 /* THE TWO ANSWERS, the composer's and the camera's alike. */
-const postAsButtons_ = id => tile_({ form: true, look: 'btn quiet on', act: 'as', data: { for: id, as: 'brand' }, html: `${esc(brand('name', '@family.'))} <span class="qtag">business</span>` })
-  + tile_({ form: true, look: 'btn quiet', act: 'as', data: { for: id, as: 'me' }, html: 'me <span class="qtag">personal</span>' });
+const postAsButtons_ = id => tile_({ form: true, look: 'btn quiet on', act: 'as', data: { for: id, as: 'brand' }, html: `${esc(brand('name', '@family.'))} ${qtag_(`business`)}` })
+  + tile_({ form: true, look: 'btn quiet', act: 'as', data: { for: id, as: 'me' }, html: 'me ' + qtag_('personal') });
 const postAsOf_ = id => (typeof isAdmin === 'function' && isAdmin()) ? ((($(id) || {}).dataset || {}).as || 'brand') : 'me';
 /* WRITING A POST CHANGES THE CAMERA CARD IN PLACE (448): "do not use pop-up menus on my site". Words only — no picture picker; Photos is beside the shutter. */
 let POST_COMPOSING = false;
@@ -15481,7 +15481,7 @@ on('post-edit', el => {
           ''}
     <label class="field"><span>poll</span>
       <input id="pe-poll" value="${esc(voted ? opts : draftVal_('post-edit', p.id + ':poll', opts))}" placeholder="Yes, No, Maybe" ${voted ? 'disabled' : draftAttr_('post-edit', p.id + ':poll', opts)}>
-      ${voted ? `<span class="qtag">${p.poll.total} vote${p.poll.total === 1 ? '' : 's'}</span>` : ''}</label>` : `
+      ${voted ? `${qtag_(`${p.poll.total} vote${p.poll.total === 1 ? '' : 's'}`)}` : ''}</label>` : `
     ${/* The date is editable because the feed is ORDERED by it — a post from the folder with the wrong timestamp sits in the wrong place for ever otherwise. */''}
     <label class="field"><span>posted on</span>
       <input id="pe-when" value="${esc(draftVal_('post-edit', p.id + ':when', p.when || ''))}" placeholder="DD/MM/YYYY HH:MM:SS"${draftAttr_('post-edit', p.id + ':when', p.when || '')}></label>
@@ -17546,7 +17546,7 @@ function paintCountdowns_() {
   const rows = progressCountdownRows_();
   const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return esc(day_(d) + ' ' + date_(d)); };
   document.querySelectorAll('.cd-box').forEach(box => {
-    box.innerHTML = (rows.length ? rows.map(([k, n]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${CD_DATES ? when(n) : progressDaysSaid_(n)}</span></div>`).join('')
+    box.innerHTML = (rows.length ? rows.map(([k, n]) => rowHtml(k, CD_DATES ? when(n) : progressDaysSaid_(n))).join('')
       : '<p class="note">Nothing to count down to yet.</p>')
       + (rows.length ? `<div class="tile-row">${tile_({ icon: CD_DATES ? 'speed' : 'table', label: CD_DATES ? 'Days' : 'Dates', note: CD_DATES ? 'how many to go' : 'the day itself', act: 'cd-dates', pressed: CD_DATES })}</div>` : '');
   });
@@ -17616,14 +17616,14 @@ function tdLine_(x) {
   const back = new Date(x.to.getFullYear(), x.to.getMonth(), x.to.getDate() + 1);
   while (back.getDay() % 6 === 0) back.setDate(back.getDate() + 1);
   const v = x.kind === 'term' ? `${tdDay_(x.from)} – last day of term ${tdDay_(x.to)}` : `from ${tdDay_(x.from)} · first day back ${tdDay_(back)}`;
-  return `<div class="row td-${x.kind}${x.now ? ' td-now' : ''}"><span class="k">${x.now ? 'Now: ' : ''}${esc(x.name)}</span><span class="v">${esc(v)}</span></div>`;
+  return rowHtml((x.now ? 'Now: ' : '') + x.name, esc(v), '', `td-${x.kind}${x.now ? ' td-now' : ''}`);
 }
 /* THE NEXT FOUR BY DEFAULT; one tile shows the rest of the year ahead too (owner, 12 Nov: a safe press on every tool). */
 let TD_MORE = false;
 function paintTermDates_() {
   const rows = termDatesRows_(), sh = tdShift_();
-  const adj = (id, v, label) => `<div class="row"><span class="k">${label}</span><span class="v"><select class="td-adj" data-td="${id}" aria-label="${label}">${
-    [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map(n => `<option value="${n}"${n === v ? ' selected' : ''}>${n ? (n > 0 ? n + ' later' : -n + ' earlier') : 'as usual'}</option>`).join('')}</select></span></div>`;
+  const adj = (id, v, label) => rowHtml(label, `<select class="td-adj" data-td="${id}" aria-label="${label}">${
+    [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map(n => `<option value="${n}"${n === v ? ' selected' : ''}>${n ? (n > 0 ? n + ' later' : -n + ' earlier') : 'as usual'}</option>`).join('')}</select>`);
   document.querySelectorAll('.td-box').forEach(box => {
     box.removeAttribute('aria-busy');
     box.innerHTML = rows.map(tdLine_).join('')
@@ -17763,33 +17763,33 @@ const progressPct_ = (a, b) => (b > 0 ? Math.round(100 * a / b) : 0);
 function progressAnsweredCard_(st) {
   if (!st.n) return emptyCard_('Questions');
   const rows = st.topics.slice(0, 12).map(o => `<div class="prog-topic">
-      <div class="row"><span class="k">${esc(o.topic)}</span><span class="v">${o.marked ? o.right + ' of ' + o.marked + ' right' : o.n + ' tried'}</span></div>
+      ${rowHtml(o.topic, o.marked ? o.right + ' of ' + o.marked + ' right' : o.n + ' tried')}
       <div class="prog-bar" aria-hidden="true"><span style="width:${o.marked ? progressPct_(o.right, o.marked) : 0}%"></span></div>
     </div>`).join('');
   return card_(`<div class="prog-answered">
     <h3>Questions</h3>
-    <div class="row prog-tot"><span class="k">Answered</span><span class="v">${st.n}</span></div>
-    <div class="row prog-tot"><span class="k">Right</span><span class="v">${st.right}</span></div>
-    <div class="row prog-tot"><span class="k">Marks</span><span class="v">${st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet'}</span></div>
+    ${rowHtml('Answered', st.n, '', 'prog-tot')}
+    ${rowHtml('Right', st.right, '', 'prog-tot')}
+    ${rowHtml('Marks', st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet', '', 'prog-tot')}
     ${rows}
   </div>`);
 }
 function progressActivityCard_(st) {
   if (!st.n) return emptyCard_('Recent activity');
   const said = p => !p.sc ? 'sent' : p.ok ? 'right' : p.sc.of > 1 ? p.sc.got + '/' + p.sc.of : 'wrong';
-  const last = st.recent.map(r => `<div class="row"><span class="k">${esc((r.x && (r.x.sub ? r.x.sub + ' · ' : '') + (r.x.name || '')) || 'A question')}</span>
-      <span class="v prog-v${r.ok ? ' is-good' : r.sc ? ' is-bad' : ''}">${esc(said(r))}</span></div>`).join('');
+  const last = st.recent.map(r => rowHtml((r.x && (r.x.sub ? r.x.sub + ' · ' : '') + (r.x.name || '')) || 'A question',
+      esc(said(r)), `prog-v${r.ok ? ' is-good' : r.sc ? ' is-bad' : ''}`)).join('');
   return card_(`<div class="prog-activity">
     <h3>Recent activity</h3>
-    <div class="row"><span class="k">Streak</span><span class="v">${st.streak ? progressDaysSaid_(st.streak) : 'none yet'}</span></div>
-    <div class="row"><span class="k">Last 7 days</span><span class="v">${st.week} on ${progressDaysSaid_(st.weekDays)}</span></div>
+    ${rowHtml('Streak', st.streak ? progressDaysSaid_(st.streak) : 'none yet')}
+    ${rowHtml('Last 7 days', `${st.week} on ${progressDaysSaid_(st.weekDays)}`)}
     ${last}
   </div>`);
 }
 function progressWeakCard_(st) {
   if (!st.weak.length) return emptyCard_('Work on next');
   const items = st.weak.map(o => `<div class="prog-weak">
-      <div class="row"><span class="k">${esc(o.topic)}</span><span class="v">${progressPct_(o.got, o.of)}% of marks</span></div>
+      ${rowHtml(o.topic, `${progressPct_(o.got, o.of)}% of marks`)}
       <div class="tile-row">${tile_({ icon: 'search', label: 'Practise', note: o.topic + ' in Find', act: 'prog-practise',
         data: { topic: o.topic, key: (o.miss && o.miss.key) || '' } })}</div>
     </div>`).join('');
@@ -17819,14 +17819,14 @@ function progressSeriesCard_(sr) {
       const k = String(q.key || q.name), sc = pp.done[k];
       const v = !sc ? 'not done' : sc.sent ? 'sent' : sc.of > 1 ? sc.got + '/' + sc.of : sc.got ? 'right' : 'wrong';
       const tone = !sc || sc.sent ? '' : sc.got === sc.of ? ' is-good' : ' is-bad';
-      return `<div class="row"><span class="k">${esc('Q' + (q.qNumber != null && q.qNumber !== '' ? q.qNumber + (q.qPart || '') : q.name))}</span><span class="v prog-v${tone}">${esc(v)}</span></div>`;
+      return rowHtml('Q' + (q.qNumber != null && q.qNumber !== '' ? q.qNumber + (q.qPart || '') : q.name), esc(v), `prog-v${tone}`);
     }).join('');
     return `<details class="prog-paper" data-paper="${esc(pp.id)}"${PROG_OPEN.has(pp.id) ? ' open' : ''}>
       <summary class="row"><span class="k">${esc(progressPaperName_(pp.x))}</span><span class="v">${esc(sums)}</span></summary>
       <div class="prog-qs">${qs}</div>
     </details>`;
   }).join('');
-  const untouched = sr.untouched ? `<div class="row"><span class="k">Not started</span><span class="v">${sr.untouched}</span></div>` : '';
+  const untouched = sr.untouched ? rowHtml('Not started', sr.untouched) : '';
   /* ITS OWN CARD ID (466), so one series — past papers, Religious Studies — moves or goes alone. */
   const lid = 'prog:series:' + String(sr.name || 'x').toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
   return card_(`<div class="prog-series" data-lay-card="${esc(lid)}">
@@ -17875,7 +17875,7 @@ function progressGradeCard_(st) {
       : o.lv === 'sats' ? progressGrade_(PROG_SATS_STEPS, pct, 'working towards')
       : 'working at grade ' + o.best;
     const label = o.subj + (o.lv === 'gcse' ? ' GCSE' : o.lv === 'alevel' ? ' A-level' : o.lv === 'sats' ? ' SATs' : ' worksheets');
-    return `<div class="row"><span class="k">${esc(label)}</span><span class="v">${esc(g)}</span></div>`;
+    return rowHtml(label, esc(g));
   }).join('');
   if (!rows) return emptyCard_('Grade estimate');
   return card_(`<div class="prog-grade">
@@ -17905,7 +17905,7 @@ function progressSessions_() {
 function progressSessionsCard_(ss) {
   if (!ss.ahead.length && !ss.past.length) return emptyCard_('Sessions');
   const when = s => day_(s.d) + ' ' + date_(s.d) + (s.j.time ? ' · ' + time_(s.j.time) : '');
-  const row = s => `<div class="row"><span class="k">${esc(when(s))}</span><span class="v">${esc(s.j.title || s.j.subject || 'Session')}</span></div>`;
+  const row = s => rowHtml(when(s), esc(s.j.title || s.j.subject || 'Session'));
   return card_(`<div class="prog-sessions">
     <h3>Sessions</h3>
     ${ss.ahead.map(row).join('')}
@@ -19462,7 +19462,7 @@ function siteHealthCard_(raw) {
   const said = { code: 'Code', logic: 'Find logic', ui: 'UI' };
   return out(`<div class="logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     ${s.next ? `<p><b>${esc(String(s.next))}</b></p>` : ''}${healthTrend_(s.trend)}
-    <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} <span class="qtag">${esc(said[t.part] || t.part)}, −${esc(String(t.cost))}</span></li>`).join('')}</ol>
+    <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} ${qtag_(`${esc(said[t.part] || t.part)}, −${esc(String(t.cost))}`)}</li>`).join('')}</ol>
     ${healthWork_(s.worklist)}
     ${(s.all || []).length > 5 ? tileRow_(tile_({ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top 5' : 'Show the full list', act: 'health-all' }), '', true) : ''}</div>`);
 }
@@ -19481,7 +19481,7 @@ const HEALTH_SAY = { 'one-off': 'A special case for one name', 'long-fn': 'A lon
 function healthWork_(w) {
   const top = (Array.isArray(w) ? w : []).slice(0, 5);
   if (!top.length) return '';
-  return `<ol class="stab-top">${top.map(f => `<li><b>${esc(String(f.file))}:${esc(String(f.line))}</b> · ${esc(HEALTH_SAY[f.kind] || String(f.kind))}<br><span class="qtag">${esc(String(f.text || ''))}</span></li>`).join('')}</ol>`;
+  return `<ol class="stab-top">${top.map(f => `<li><b>${esc(String(f.file))}:${esc(String(f.line))}</b> · ${esc(HEALTH_SAY[f.kind] || String(f.kind))}<br>${qtag_(`${esc(String(f.text || ''))}`)}</li>`).join('')}</ol>`;
 }
 on('health-all', () => { HEALTH.all = !HEALTH.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 
@@ -19508,7 +19508,7 @@ function logicCard_() {
   if (!s) return card_(`<div class="logic-card">${head}${LOGIC.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/logic-health.js and push.</p>' : loading_()}</div>`);
   const rules = (s.rules || []).filter(r => r.count > 0).sort((a, b) => b.count - a.count);
   const top = (s.top || []).slice(0, LOGIC.all ? 25 : 3);
-  const line = t => `<li><b>${esc(t.where)}</b> · ${esc(t.asks || '')}<br><span class="qtag">${esc((t.why || []).join(' · '))}</span></li>`;
+  const line = t => `<li><b>${esc(t.where)}</b> · ${esc(t.asks || '')}<br>${qtag_(`${esc((t.why || []).join(' · '))}`)}</li>`;
   return card_(`<div class="logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <ol class="stab-top">${top.map(line).join('')}</ol>
     ${(s.top || []).length > 3 ? tileRow_(tile_({ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top 3' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }), '', true) : ''}</div>`);
@@ -19637,8 +19637,8 @@ function missingQual_(g) {
     return `<div class="row miss-done">${k}<span class="v">complete${g.waiting ? ' · ' + g.waiting + ' waiting' : ''}</span></div>`;
   }
   const say = g.missing === g.want ? 'none yet' : g.missing + ' missing';
-  const lines = g.gaps.map(x => `<div class="row"><span class="k">${esc(x.sitting)}</span><span class="v">${esc(missingPapers_(x.papers))}</span></div>`).join('');
-  const wait = g.waiting ? `<div class="row"><span class="k">Waiting for their words</span><span class="v">${g.waiting}</span></div>` : '';
+  const lines = g.gaps.map(x => rowHtml(x.sitting, esc(missingPapers_(x.papers)))).join('');
+  const wait = g.waiting ? rowHtml('Waiting for their words', g.waiting) : '';
   const id = g.q.label;
   return `<details class="miss-q" data-q="${esc(id)}"${MISSING_OPEN.has(id) ? ' open' : ''}>
       <summary class="row">${k}<span class="v">${esc(say)}</span></summary>

@@ -275,6 +275,7 @@
     "check-history-db.js": "secondary",
     "check-card-shape.js": "core",
     "check-one-template.js": "core",
+    "check-one-way.js": "core",
     "check-email-card.js": "core",
     "check-talmud.js": "secondary",
     "check-writings.js": "secondary",

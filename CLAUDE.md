@@ -44,6 +44,9 @@ file; the rules below are its most-hit ones. New owner answers edit it (`docs/ph
 13. Teaching animations are script-written rows (`tools/anim_row.py`): change the script, re-run, never hand-edit.
 14. **Two finders, one list:** outside `inFinder_(F, fn)`, `STUFF` is Find's; async jobs must re-bind.
 
+15. **Run `node tools/gate.js` before every merge; never merge red.** It is check.js, stamp, bundle, rules, check-all
+    (core and secondary), the 8 journeys, the Optimiser ratchet and the screenshot gate; GitHub's `gate` status is required.
+
 ## Optimiser tools (cheap, use these; `tools/health.js` is the Optimiser)
 
 ```bash

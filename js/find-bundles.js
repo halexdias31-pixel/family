@@ -232,7 +232,7 @@ function bundleCard_(b) {
   const inCart = bundleInCart_(b);
   const off = b.papers.filter(p => !p.ok);
   const note = b.noun + ' · ' + bundlePriceLine_(b);
-  const pp = p => p.pages ? ` <span class="mono qtag">${p.pages}pp</span>` : '';
+  const pp = p => p.pages ? ' ' + qtag_(p.pages + 'pp', '', 'mono') : '';
   /* ONE LINE PER GROUP WHEN IT IS GROUPED — a sitting, a tier, or both — one per paper when it is
      not. Numbered either way: the count down the edge is how many LINES, and the title already says
      how many papers. */
@@ -480,15 +480,9 @@ function filterChips() {
       const show = chipText_(f, i), key = spellKey_(show);
       if (said[key]) return '';
       said[key] = 1;
-      return `
-      <span class="chip sm" data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}>
-        ${/* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it. */ ''}
-        ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody made and has to be able to unmake. § */
-             ''}
-        ${/* ---------- THE CHIP SHOWS WHAT THE BUTTON SHOWED, NOT WHAT IT MATCHES ON § */
-             ''}
-        ${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}
-      </span>`;
+      /* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it; a skip is a chip like any other. */
+      return qtag_(`${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}`,
+        ` data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}`, 'sm', 'chip');
     }).join('')}
   </div>`;
 }

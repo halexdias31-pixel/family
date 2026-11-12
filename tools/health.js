@@ -556,7 +556,7 @@ function extraWork(st) {
   return { work: W, skipped, sizes };
 }
 /* THE RENDERED TEMPLATE'S RULES (tools/template-health.js). */
-const TPL_KINDS = ['tpl-built', 'tpl-order', 'tpl-picture', 'tpl-tags', 'tpl-tag-look', 'tpl-title', 'tpl-tiles', 'tpl-tile-size', 'tpl-stray', 'tpl-width', 'tpl-centre', 'tpl-font', 'tpl-colour', 'tpl-radius', 'tpl-inline', 'tpl-spacing', 'tpl-same', 'tpl-variety-kind', 'tpl-variety'];
+const TPL_KINDS = ['tpl-built', 'tpl-order', 'tpl-picture', 'tpl-tags', 'tpl-tag-look', 'tpl-title', 'tpl-tiles', 'tpl-tile-size', 'tpl-pic-size', 'tpl-stray', 'tpl-width', 'tpl-centre', 'tpl-font', 'tpl-colour', 'tpl-radius', 'tpl-inline', 'tpl-spacing', 'tpl-same', 'tpl-variety-kind', 'tpl-variety'];
 /* THE CHECK IDS health.js prices, for the rulebook's coverage. */
 const knownChecks = st => [FIND_KINDS, UX_KINDS, UNIFORM_KINDS, STRUCT, EXTRA_KINDS, VARIETY_KINDS, TPL_KINDS].flat()
   .concat((st.signals || []).map(x => x.id), ['important', 'pxlit', 'colourlit', 'order', 'selectors', 'zindex', 'position'],

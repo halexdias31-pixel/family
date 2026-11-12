@@ -63,12 +63,17 @@ function onePlace() {
 }
 module.exports = { rules, checkFiles, coverage, ownerQuestions, onePlace };
 if (require.main === module) {
-  let ids = [], known = [];
+  let ids = [];
   try { ids = (JSON.parse(read('data/health.json')).rules || []).map(r => r.id); } catch (e) { ids = []; /* no full run yet: files alone */ }
-  known = ids;
+  /* EVERY ID health.js PRICES, read from its source, so a rule it measures but the last full run did not write still counts. */
+  const known = ids.concat([...read('tools/health.js').matchAll(/'([a-z][a-z0-9]*(?:-[a-z0-9]+)*)'/g)].map(m => m[1]));
   const c = coverage(ids, known);
   console.log(`${c.rules} rules, ${c.checked} with a check; ${c.checks} checks, ${c.tied} tied to a rule; ${c.once} stated once`);
   c.work.forEach(w => console.log('  ' + w.say));
   const q = ownerQuestions(); console.log(`owner questions: ${q.open} open of ${q.of}; ${q.work.length} findings`);
   onePlace().forEach(f => console.log(`  ${f.status.padEnd(6)} ${f.name} (${f.found}/${f.of})`));
+  /* A GATE, NOT A SCORE (owner, 12 Nov): a rule with no check, a check with no rule, or a rule said twice fails. */
+  if (c.work.length || c.checked !== c.rules || c.tied !== c.checks) {
+    console.log(`FAILED — the rulebook and the checks do not match: ${c.checked}/${c.rules} rules checked, ${c.tied}/${c.checks} checks tied.`); process.exit(1); }
+  console.log(`OK — every rule has a check and every check a rule (${c.checked}/${c.rules}, ${c.tied}/${c.checks}).`);
 }

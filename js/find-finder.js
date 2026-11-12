@@ -258,7 +258,7 @@ function soonItems_() {
 }
 function soonCard_(x) {
   /* "COMING SOON" IS A TAG, beside its name, never a line. */
-  return `<div class="soon-card"><h3>${esc(x.name)}</h3><div class="qtags"><span class="qtag" data-tag="0">${esc(x.name)}</span><span class="qtag">${esc(brand('comingSoon', 'Coming soon'))}</span></div>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}</div>`;
+  return `<div class="soon-card"><h3>${esc(x.name)}</h3><div class="qtags">${qtag_(`${esc(x.name)}`, ` data-tag="0"`)}${qtag_(`${esc(brand('comingSoon', 'Coming soon'))}`)}</div>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}</div>`;
 }
 
 /* The card a resource and a shop row share. Named rather than written twice, because the two
@@ -273,12 +273,12 @@ function thingCard_(x, credits) {
     /* ---------- AND A FOURTH ANSWER: NOBODY HAS PRICED IT § */
     const price = !isShop_(x) ? ''
       : x.level > 0
-        ? `<span class="qtags"><span class="qtag price ${myLevel >= x.level ? 'can' : ''}">${
-            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span></span>`
+        ? `<span class="qtags">${qtag_(`${
+            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}`, '', `price ${myLevel >= x.level ? 'can' : ''}`)}</span>`
       : x.cost === undefined
         ? ''   /* "Not priced yet" is its Price tag now (499) */
-      : `<span class="qtags"><span class="qtag price ${free ? 'free' : afford ? 'can' : ''}">${
-          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}</span></span>`;
+      : `<span class="qtags">${qtag_(`${
+          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}`, '', `price ${free ? 'free' : afford ? 'can' : ''}`)}</span>`;
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
        so it is marked as one and coloured as one, the same way a subject and a venue are. */
     /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. § */
@@ -302,7 +302,7 @@ function thingCard_(x, credits) {
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
             : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)])
             .filter(Boolean).map(v => esc(String(v))).join('  ')}</p>`}
-          <h3>${esc(x.name)}${x.off ? ' <span class="qtag">deleted</span>' : ''}</h3>
+          <h3>${esc(x.name)}${x.off ? ' ' + qtag_('deleted') : ''}</h3>
           ${/* Its own second line: § */
                 ''}
           ${/* THE YEAR, ON THE CARD. § */

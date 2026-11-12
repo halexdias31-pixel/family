@@ -163,8 +163,8 @@
   /* THE FIXED SCALE (owner, 11 Nov: a small set of sizes; nothing makes its own). js/check-scale.js holds every rule to it. */
   --tap: 44px;
   --pic-s: 48px; --pic-l: 88px;
-  /* ONE PICTURE HEIGHT (owner 58a, 9 Nov): every card's picture, cropped to fill (object-fit: cover). */
-  --pic-h: 7.5rem;
+  /* ONE PICTURE HEIGHT (owner 58a, 9 Nov; 12 Nov: the same for every kind, a face or an animation): every card's picture. */
+  --pic-h: 9rem;
   /* ONE GAP BETWEEN CARDS (owner 62a, 9 Nov): a bare card's padding either side of its rule, a boxed card's margin. */
   --card-gap: .85rem;
   --r-round: 999px;
@@ -426,6 +426,9 @@ html.wide body { max-width: none; box-shadow: none; }
 }
 /* AND A HEADING IN THE SHEET MAY HOLD AN ADDRESS, which has nothing to break at. § */
 #sheet-body h3 { overflow-wrap: anywhere; }
+/* AN EMAIL ADDRESS IN A SENTENCE breaks anywhere rather than pushing the card wider (one way: a class, never style=). */
+.wrap-any { overflow-wrap: anywhere; }
+.build-said { text-align: center; }
 
 /* ---------- CARDS § */
 /* NOT A BOX. A card is a block with a rule under it — the rectangle around everything was the single least minimal thing in the file, and eight of them stacked § */
@@ -5838,14 +5841,13 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
   #screen { overflow: hidden; }
 }
 /* ONE CARD ANATOMY, CENTRED, STATIC (owner, 10 Nov): picture, tags, lines and content, four buttons, on one axis; drawn once, whole. */
-.card.kc { --pic-h: 4.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.card.kc { display: flex; flex-direction: column; align-items: center; text-align: center; }
 .card.kc > * { width: 100%; max-width: 70ch; margin-left: auto; margin-right: auto; box-sizing: border-box; }
 .card.kc > .kc-head { display: none; }
 .card.kc > .kc-pic { flex: none; width: var(--pic-h); border-radius: 50%; }
 .card.kc > .kc-pic > * { max-width: none; width: 100%; height: 100%; border-radius: 50%; }
 /* NO REAL PICTURE, NO PICTURE PART (owner, 10 Nov late): the tags lead. A thing's own photo or figure is its shape, not a circle. */
 .card.kc > .kc-pic:empty { display: none; }
-.card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) { --pic-h: 12rem; }
 .card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) > .kc-pic { width: 100%; border-radius: var(--r-ui); }
 .card.kc > .kc-pic > figure { background: none; padding: 0; }
 .card.kc > .kc-pic .hdb-ms-sides, .card.kc > .kc-pic .hdb-ms-side { height: 100%; justify-content: center; }  /* A DRAWING SHOWN WHOLE, not cut at the picture's height */
