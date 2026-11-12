@@ -2740,27 +2740,28 @@ function nesPaint_() {
   }
   nesSysSet_(NES_.sys);
   nesBlit_();
-  nesTiles_();
+  nesRowPaint_();
   csvLine_();
   if (NES_.saved == null) Promise.all([nesKept_(), nesKind_()]).then(([b, k]) => {
     NES_.saved = b ? new Uint8Array(b) : false; NES_.kind = typeof k === 'string' ? k : null;
     /* THE KEPT GAME'S SHAPE AND PAD NOW, not when Play is pressed: the stage changes shape once, before anyone is looking at a game (419). */
     if (NES_.saved && NES_DIMS[NES_.kind] && !NES_.rom && !EMU_.ejs) nesSysSet_(NES_.kind);
-    nesTiles_(); });
+    nesRowPaint_(); });
 }
 
-function nesTiles_() {
+/* THE CONSOLE'S TILES AS `tile_` OPTIONS: the same tiles playing or not (419), so the row never grows under a thumb; Forget is greyed with nothing kept. */
+function nesOpts_() {
+  const have = NES_.rom || NES_.saved, keys = nesLegendOn_();
+  return [NES_.running ? { icon: 'pause', label: 'Pause', act: 'nes-pause' } : { icon: 'play', label: 'Play', act: 'nes-play', note: have ? '' : 'choose a game file' },
+    { icon: 'open', label: 'Choose file', act: 'nes-pick' },
+    { icon: 'bin', label: 'Forget file', act: 'nes-forget', off: !have, note: have ? '' : 'nothing kept' },
+    nesMode_() === 'touch' ? null : { icon: 'keys', label: 'Keys', act: 'nes-keys', on: keys, pressed: keys, note: keys ? 'hide the key list' : 'show the key list' }];
+}
+/* THE ROW, REPAINTED; the padlock is the widget's (`gameLockTile_`, 461). */
+function nesRowPaint_() {
   const t = $('nes-tiles');
   if (!t) return;
-  const have = NES_.rom || NES_.saved;
-  /* THE SAME TILES PLAYING OR NOT (419), so the row never grows under a thumb; Forget is greyed with nothing kept. The padlock is the widget's (`gameLockTile_`, 461). */
-  const keys = nesLegendOn_(), touch = nesMode_() === 'touch';
-  t.innerHTML = (NES_.running
-      ? tile_({ icon: 'pause', label: 'Pause', act: 'nes-pause' })
-      : tile_({ icon: 'play', label: 'Play', act: 'nes-play', note: have ? '' : 'choose a game file' }))
-    + tile_({ icon: 'open', label: 'Choose file', act: 'nes-pick' })
-    + tile_({ icon: 'bin', label: 'Forget file', act: 'nes-forget', off: !have, note: have ? '' : 'nothing kept' })
-    + (touch ? '' : tile_({ icon: 'keys', label: 'Keys', act: 'nes-keys', on: keys, pressed: keys, note: keys ? 'hide the key list' : 'show the key list' }));
+  t.innerHTML = tile_(nesOpts_());
   nesPadShow_();
 }
 
@@ -2865,7 +2866,7 @@ function nesGo_() {
     if (n === 3) NES_.acc = 0;
   };
   NES_.raf = requestAnimationFrame(loop);
-  nesTiles_();
+  nesRowPaint_();
 }
 /* PAUSED, NOT ENDED: the game stays in memory and Play carries on from here. */
 function nesStop_(force) {
@@ -2876,7 +2877,7 @@ function nesStop_(force) {
   if (NES_.nes) Object.values(NES_B).forEach(b => { try { NES_.nes.buttonUp(1, b); } catch (e) {} });
   if (EMU_.ejs) emuPause_(force);
   else if (was && NES_.nes) csvKeep_(force);
-  if (was) nesTiles_();
+  if (was) nesRowPaint_();
 }
 
 /* EVERY SOURCE (keys, pad, touch) IS OR-ED, then only changes reach the engine. */
@@ -2984,7 +2985,7 @@ function nesMode_() {
 function nesModeSet_(m) {
   if (nesMode_() === m) return;
   NES_.mode = m;
-  nesPadShow_(); nesTiles_();
+  nesPadShow_(); nesRowPaint_();
 }
 function nesModeWire_(w) {
   if (!w) return;
@@ -2997,7 +2998,7 @@ function nesLegendOn_() {
 }
 on('nes-keys', () => {
   NES_.legend = !nesLegendOn_();
-  nesPadShow_(); nesTiles_();
+  nesPadShow_(); nesRowPaint_();
 });
 
 /* THE TOUCH PAD on touch with no controller, from the first paint, so nothing moves when a game starts (419); the key list beside it. */
@@ -3081,7 +3082,7 @@ on('nes-forget', () => {
   emuEnd_();
   NES_.nes = null; NES_.rom = null; NES_.saved = false; NES_.kind = null; NES_.img = null; NES_.u32 = null;
   const c = $('nes-canvas'); if (c) c.getContext('2d').clearRect(0, 0, 256, 240);
-  nesForgetDb_().then(() => { nesTiles_(); nesSay_('Forgotten. The file is no longer kept on this device.'); });
+  nesForgetDb_().then(() => { nesRowPaint_(); nesSay_('Forgotten. The file is no longer kept on this device.'); });
 });
 
 document.addEventListener('change', e => {
@@ -3310,7 +3311,7 @@ function emuStart_(bytes, sys) {
   const name = emuName_(bytes, sys);
   if (EMU_.ejs && EMU_.key === name) { emuGo_(); return; }
   /* NOT THE DS ON AN IPHONE OR IPAD (446): "ds isn't working on my iPad" — melonDS stops there with no word, so a plain one is said instead. */
-  if (sys === 'nds' && emuIos_()) { nesStop_(); emuEnd_(); nesSysSet_(sys); nesTiles_(); nesSay_(NES_NO_DS_IOS); return; }
+  if (sys === 'nds' && emuIos_()) { nesStop_(); emuEnd_(); nesSysSet_(sys); nesRowPaint_(); nesSay_(NES_NO_DS_IOS); return; }
   nesStop_(); NES_.nes = null; emuEnd_();
   nesSysSet_(sys); nesSay_('');
   NES_.rom = bytes;
@@ -3332,7 +3333,7 @@ function emuStart_(bytes, sys) {
       volume: 1, threads, backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--on-gold').trim(), buttonOpts: {}, cheats: [],
       defaultOptions: Object.assign({}, EMU_LEAN, sys === 'nds' ? Object.assign({ melonds_screen_gap: String(NES_GAP) }, threads ? { melonds_threaded_renderer: 'enabled' } : {}) : {}) });
     EMU_.ejs = ejs; EMU_.sys = sys; EMU_.key = name; EMU_.ready = false; EMU_.held = {}; EMU_.ax = [];
-    const fail = m => { if (EMU_.ejs !== ejs) return; loaded_($('nes-stage')); emuEnd_(); nesTiles_(); nesSay_('This game file could not be started: ' + (m || 'the engine stopped') + '.'); };
+    const fail = m => { if (EMU_.ejs !== ejs) return; loaded_($('nes-stage')); emuEnd_(); nesRowPaint_(); nesSay_('This game file could not be started: ' + (m || 'the engine stopped') + '.'); };
     const said = ejs.startGameError.bind(ejs);
     ejs.startGameError = m => { try { said(m); } catch (e) {} fail(String(m || '').replace(/\s+/g, ' ')); };
     ejs['on']('start', () => {   // EmulatorJS's own event, not a tile
@@ -3344,10 +3345,10 @@ function emuStart_(bytes, sys) {
       if (sys === 'nds') emuTouch_(ejs.canvas);
       if (!$('nes-wrap') || document.hidden) { try { ejs.pause(true); } catch (e) {} nesRun_(false); }
       else nesRun_(true);
-      emuWake_(); nesTiles_();
+      emuWake_(); nesRowPaint_();
       csvBegin_(bytes, sys, name, csvApplyEmu_);
     });
-  }).catch(() => { loaded_(stage); emuEnd_(); nesTiles_(); nesSay_('The console could not load. Check the connection and press Play again.'); });
+  }).catch(() => { loaded_(stage); emuEnd_(); nesRowPaint_(); nesSay_('The console could not load. Check the connection and press Play again.'); });
 }
 
 /* A FINGER IS THE DS PEN: the core reads only the mouse, so the first finger on its picture is passed on as one (399). */
@@ -3369,7 +3370,7 @@ function emuTouch_(c) {
 function emuGo_() {
   if (!EMU_.ready || NES_.running) return;
   try { EMU_.ejs.play(true); } catch (e) { return; }
-  nesRun_(true); emuWake_(); nesTiles_();
+  nesRun_(true); emuWake_(); nesRowPaint_();
 }
 /* PAUSE KEEPS THE BATTERY SAVE: the cartridge's memory is written to this device's IndexedDB (EmulatorJS's own) at every pause. */
 function emuPause_(force) {

@@ -201,7 +201,7 @@ function kcActRow_(x, html, own) {
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {
-  /* A `.kc-items` LIST KEEPS EACH THING'S TILES BESIDE IT; none is lifted into the card's row too. A panel's own lines may hold a whole card (a widget's), whose row is its own. */
+  /* A `.kc-items` LIST KEEPS EACH THING'S TILES BESIDE IT; a whole card in a panel's lines (a widget's) keeps its own row. */
   if (new RegExp('class="[^"]*\\b(' + (panel ? '' : 'kc-four|') + 'kc-items)\\b').test(html)) return { lines: html, tiles: '' };
   let tiles = '';
   const lines = kcKids_(String(html || '')).map(k => {
@@ -241,7 +241,7 @@ function kcUnpicked_(html) {
   if (!said.size) return html;
   return String(html || '').replace(/<span class="(?:qtag|prof-tag)(?![^"]*prof-tag-name)[^"]*"[^>]*>([^<]*)<\/span>/g, (m, t) => (said.has(norm(t.replace(/&amp;/g, '&'))) ? '' : m));
 }
-/* IMAGE ON TOP ONLY WHEN REAL (owner, 10 Nov late): a person keeps a photo or a steady profile picture; any other kind shows a photo, figure or cover, else nothing. */
+/* IMAGE ON TOP ONLY WHEN REAL (owner, 10 Nov): a person's photo or steady profile picture; else a photo, figure or cover, or nothing. */
 function kcPicOr_(x, html) {
   html = String(html || '');
   if (KC_PERSON_KINDS.indexOf(x && x.kind) < 0) return kcRealPic_(html) ? html : '';

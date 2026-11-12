@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
-/* @family. — check-forms.js ONE FORM MAKER (84a): forms.json and form.js agree, and no Settings file draws a raw box beyond its budget. */
+/* @family. — check-forms.js ONE FORM MAKER (84a): forms.json and form.js agree, and no app file draws a raw box beyond its budget. */
 const fs = require('fs'), path = require('path');
 const O = path.join(__dirname, '..');
 const bad = [];
@@ -16,9 +16,9 @@ else ['kinds', 'rules', 'cards'].forEach(k => {
 /* EVERY RULE NAMES A KIND, AND THE LAST CATCHES EVERYTHING. */
 (data.rules || []).forEach(r => { if ((data.kinds || []).indexOf(r.kind) === -1) bad.push('rule ' + r.match + ': no kind ' + r.kind); });
 if (!data.rules || data.rules[data.rules.length - 1].match !== '') bad.push('the last rule must match everything ("")');
-/* THE RATCHET: a raw box in a Settings file over its budget fails; under it, lower the budget. */
+/* THE RATCHET: a raw box in any app file (index.html's FILES) but the maker's own over its budget fails; under it, lower the budget. */
 const left = data.leftovers || {};
-const files = ['me-account', 'me-roles', 'me-settings', 'me-shelves', 'me-card', 'me-people', 'staff', 'records'].map(f => f + '.js');
+const files = require('../tools/file-lists.js').appFiles().filter(f => f !== 'form').map(f => f + '.js');
 files.forEach(f => {
   const n = (fs.readFileSync(path.join(O, 'js', f), 'utf8').match(/<(input|select|textarea)\b/g) || []).length;
   const b = left[f] ? left[f].n : 0;

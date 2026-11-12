@@ -46,7 +46,7 @@ function meCard(given) {
 }
 
 /* ---------- A FIELD THAT MIGHT BE A LIST, AND MIGHT BE A STRING, AND MIGHT BE NEITHER § */
-/* EACH WORD ONCE (414): a list typed twice over ("patient, driven, driven") said a trait twice on the card. The first spelling is kept; case is ignored. */
+/* EACH WORD ONCE (414): "patient, driven, driven" says a trait once; the first spelling is kept, case ignored. */
 function profList_(v) {
   const seen = new Set();
   return (Array.isArray(v) ? v : String(v == null ? '' : v).split(','))

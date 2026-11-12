@@ -59,7 +59,7 @@ function widgetOnColumn_(w, own) {
   const keep = typeof favOpts_ === 'function'
     ? `<span class="tile-group wgt-keep">${tile_([favOpts_({ key: WIDGET_KEY(w), kind: 'widget' }),
       typeof gameLockOpts_ === 'function' ? gameLockOpts_(w.id) : null])}${
-      typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), w.name || w.title || w.label || '') : ''}</span>` : '';
+      typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', String(w.id), w.name || w.title || w.label || '')) : ''}</span>` : '';
   const lay = own === true && typeof layoutOpts_ === 'function' ? tileGroup_(layoutOpts_(w), 'is-admin wgt-admin') : '';
   return card_(`<div class="is-widget${held ? ' is-locked' : ''}">
       <div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${
@@ -72,7 +72,7 @@ function widgetOnColumn_(w, own) {
 function widgetMergedOn_(m, own) {
   const top = m.parts[0];
   const keep = typeof favOpts_ === 'function' ? `<span class="tile-group wgt-keep">${tile_([favOpts_({ key: WIDGET_KEY(top), kind: 'widget' }),
-    typeof gameLockOpts_ === 'function' ? gameLockOpts_(top.id) : null])}${typeof suggestTile_ === 'function' ? suggestTile_('widget', String(top.id), top.name || top.title || top.label || '') : ''}</span>` : '';
+    typeof gameLockOpts_ === 'function' ? gameLockOpts_(top.id) : null])}${typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', String(top.id), top.name || top.title || top.label || '')) : ''}</span>` : '';
   const lay = own === true && typeof layoutOpts_ === 'function' ? tileGroup_(layoutOpts_(top), 'is-admin wgt-admin') : '';
   const parts = m.parts.map(w => {
     const waits = typeof w.start === 'function' && typeof loading_ === 'function';

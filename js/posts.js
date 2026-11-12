@@ -1812,8 +1812,8 @@ function reelCards_(count) {
       /* HOW OLD YOU HAVE TO BE (406), when it is not everyone. */
       `${window.mediaAgeSay_ && window.mediaAgeSay_(it.age) ? `<span class="media-age-badge is-reel" aria-label="for ages ${esc(window.mediaAgeSay_(it.age))}">${esc(window.mediaAgeSay_(it.age))}</span>` : ''}` +
       `${tile_(reelSoundOpts_(false))}</div>
-    </div>${typeof suggestTile_ === 'function' && suggestTile_('reel', String(it.id || it.clip || ''), it.title || '')
-      ? `<div class="tile-row rep-row">${suggestTile_('reel', String(it.id || it.clip || ''), it.title || '')}</div>` : ''}</div>`);
+    </div>${typeof suggestOpts_ === 'function' && tile_(suggestOpts_('reel', String(it.id || it.clip || ''), it.title || ''))
+      ? `<div class="tile-row rep-row">${tile_(suggestOpts_('reel', String(it.id || it.clip || ''), it.title || ''))}</div>` : ''}</div>`);
     REEL_SHOWN++;
   }
   return out;

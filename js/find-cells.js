@@ -1,3 +1,24 @@
+/* A NUMBER OR SUM SAID IN WORDS (920 qengine): "fifteen" is 15, "two x plus one" is 2 x + 1; null when no word was a number or an operation. */
+const MARK_NUM_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const MARK_TENS = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+const MARK_OP_WORDS = { plus: '+', add: '+', minus: '-', take: '-', times: '*', over: '/', squared: '^2', cubed: '^3', equals: '=' };
+function markSpoken_(s) {
+  const out = [];
+  let n = null, said = false;
+  const end = () => { if (n !== null) { out.push(String(n.total + n.part)); n = null; } };
+  String(s == null ? '' : s).toLowerCase().replace(/-/g, ' ').split(/\s+/).filter(Boolean).forEach(w => {
+    const u = MARK_NUM_WORDS.indexOf(w), t = MARK_TENS[w];
+    if (u >= 0 || t) { n = n || { total: 0, part: 0 }; n.part += u >= 0 ? u : t; said = true; return; }
+    if (n && w === 'hundred') { n.part *= 100; return; }
+    if (n && w === 'thousand') { n.total += n.part * 1000; n.part = 0; return; }
+    if (n && w === 'and') return;
+    end();
+    if (MARK_OP_WORDS[w]) { out.push(MARK_OP_WORDS[w]); said = true; } else out.push(w);
+  });
+  end();
+  return said ? out.join(' ') : null;
+}
+
 /* ---------- A WORDED ANSWER OF A MARK OR TWO, MARKED BY RULE BEFORE ANY AI (359) */
 /* `mark_words`: points split by `;`, a mark each; ways by `|`; words that must all be there joined by `+`; a number is
    compared as a number. Words are matched on their stems, and a word straight after "not" or "no" does not count. */

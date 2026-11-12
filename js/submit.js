@@ -672,21 +672,21 @@ const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'functi
 /* WHAT HAS AN OPEN NOTE FOR CLAUDE, by `kind|id` — sent to everybody as `reportedItems`, no names in it. */
 const reportedNow_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA.reportedItems) || []).indexOf(kind + '|' + id) !== -1;
 
-/* THE ONE TILE, on every thing: Student rank and up; signed out it is not drawn. `check-suggest` holds every such tile to it. */
-function suggestTile_(kind, id, label, cls) {
-  if (!kind || !id || typeof rankAtLeast_ !== 'function' || !rankAtLeast_('student')) return '';
-  return tile_({ icon: 'suggest', label: suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change', note: reportedNow_(kind, id) ? 'to change' : '',
+/* THE ONE TILE'S OPTIONS, on every thing, drawn by `tile_`: Student rank and up; signed out, null (no tile). `check-suggest` holds every such tile to it. */
+function suggestOpts_(kind, id, label, cls) {
+  if (!kind || !id || typeof rankAtLeast_ !== 'function' || !rankAtLeast_('student')) return null;
+  return ({ icon: 'suggest', label: suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change', note: reportedNow_(kind, id) ? 'to change' : '',
                  act: 'rep-box', cls: 'rep-tile' + (cls ? ' ' + cls : ''), data: { rk: kind, ri: id, rl: String(label || '').slice(0, 120) } });
 }
 /* A CARD WITH NO TILE ROW OF ITS OWN takes the tile in one of its own, put inside the card by `cardRowIn_`. */
 function suggestRowIn_(html, kind, id, label) {
-  const t = suggestTile_(kind, id, label);
+  const t = tile_(suggestOpts_(kind, id, label));
   return t && typeof cardRowIn_ === 'function' ? cardRowIn_(html, `<div class="tile-row rep-row">${t}</div>`) : html;
 }
 /* A FIND CARD'S KIND AND ID: a question by its key (`q:…`); a coming-soon card by what is coming. */
-function suggestTileFor_(x) {
-  if (!x || !x.key) return '';
-  return suggestTile_(x.soon || x.kind, x.soon ? String(x.soonId) : x.key, [x.name, x.sub].filter(Boolean).join(' · '));
+function suggestOptsFor_(x) {
+  if (!x || !x.key) return null;
+  return suggestOpts_(x.soon || x.kind, x.soon ? String(x.soonId) : x.key, [x.name, x.sub].filter(Boolean).join(' · '));
 }
 
 /* WHAT KIND OF SCREEN IT WAS SEEN ON — enough for the owner to try it on the same, and nothing that names a device. */

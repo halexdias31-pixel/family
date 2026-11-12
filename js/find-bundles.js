@@ -258,7 +258,7 @@ function bundleCard_(b) {
   const tiles = tile_({ icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket', note: note, act: 'cart-add', on: inCart, off: inCart, tone: 'buy',
       data: { kind: 'bundle', ids: b.ids.join(','), key: b.title || '' } })
     + tile_({ icon: 'open', label: 'See your basket', act: 'cart-open' })
-    + (typeof suggestTile_ === 'function' ? suggestTile_('bundle', 'b:' + String(b.ids[0] || 'x').replace(/[^A-Za-z0-9_.:-]/g, '') + ':' + b.ids.length, b.title || 'Bundle') : '');
+    + (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('bundle', 'b:' + String(b.ids[0] || 'x').replace(/[^A-Za-z0-9_.:-]/g, '') + ':' + b.ids.length, b.title || 'Bundle')) : '');
   const name = b.title || 'These papers', x = { kind: 'bundle', name: name, key: 'bundle:' + b.ids.join(',') };
   return findCard(Object.assign(x, { kcOwn: { cls: 'bundle', attrs: '', pic: '', head: `<h3>${esc(name)}</h3>`, tags: bundleTags_(b), lines: lines + `<div class="tile-row">${tiles}</div>` } }));
 }

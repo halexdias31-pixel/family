@@ -448,7 +448,7 @@ function markExprGrad_(R) {
   return flat && Math.abs(b) > 1e-12 ? -a / b : null;
 }
 function markExpr_(typed, want, eqn, fns) {
-  const T = markExprRead_(typed, fns), W = markExprRead_(want, fns);
+  const said = typeof typed === 'string' && markSpoken_(typed), T = (said && markExprRead_(said, fns)) || markExprRead_(typed, fns), W = markExprRead_(want, fns);
   if (!T || !W) return false;
   let f, g;
   if (eqn) {
@@ -598,6 +598,8 @@ function markAnswer_(typed, accept, again) {
   if (Array.isArray(typed)) typed = typed.map(v => String(v == null ? '' : v).trim()).filter(Boolean).join(', ');
   const t = markNorm_(typed);
   if (!t) return null;                              /* nothing typed is not a wrong answer */
+  const said = !again && markSpoken_(t);   /* "fifteen" IS 15: the words read as digits are tried first */
+  if (said && said !== t && markAnswer_(said, accept)) return true;
   /* A `rule:` WAY IS TESTED, NOT MATCHED (markRule_); the other ways are matched as before. */
   const rules = String(accept || '').split('|').filter(w => /^\s*rule:/i.test(w));
   if (rules.length) {

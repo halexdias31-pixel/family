@@ -1,7 +1,7 @@
 {
- "score": 78.6,
+ "score": 79.1,
  "questions": 201,
- "healthy": 158,
+ "healthy": 159,
  "walked": {
   "nodes": 300,
   "maxNodes": 300,
@@ -28,7 +28,7 @@
   {
    "id": "subtype",
    "label": "a finer question asked before its coarser one",
-   "count": 27
+   "count": 26
   },
   {
    "id": "siblings",
@@ -76,14 +76,6 @@
    ]
   },
   {
-   "where": "Find",
-   "asks": "What kind",
-   "cards": 281353,
-   "why": [
-    "a finer question asked before its coarser one: What kind before What for"
-   ]
-  },
-  {
    "where": "Find › Library › Religious Studies",
    "asks": "Religion",
    "cards": 240854,
@@ -102,17 +94,17 @@
   {
    "where": "Find › Practice › Questions",
    "asks": "Subject",
-   "cards": 29823,
+   "cards": 31049,
    "why": [
-    "sibling branches ask their next question in different orders: Biology asks Type, Physics asks Level; Chemistry asks Type, Physics asks Level"
+    "sibling branches ask their next question in different orders: Biology asks Type, Chemistry asks Level; Biology asks Type, Physics asks Level"
    ]
   },
   {
    "where": "Find › Practice › Answers",
    "asks": "Subject",
-   "cards": 28635,
+   "cards": 29861,
    "why": [
-    "sibling branches ask their next question in different orders: Biology asks Type, Maths asks Level; Biology asks Type, Physics asks Level"
+    "sibling branches ask their next question in different orders: Biology asks Type, Chemistry asks Level; Biology asks Type, Maths asks Level"
    ]
   },
   {
@@ -250,6 +242,14 @@
    "why": [
     "a finer question asked before its coarser one: Fighter before Division"
    ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Fighters › 2020s",
+   "asks": "Fighter",
+   "cards": 15,
+   "why": [
+    "a finer question asked before its coarser one: Fighter before Division"
+   ]
   }
  ],
  "menuRule": [
@@ -312,34 +312,18 @@
   {
    "where": "Find › Practice › Questions › Biology",
    "asks": "documentType",
-   "bits": 0.41,
+   "bits": 0.72,
    "best": "qPart",
    "bestBits": 2,
-   "cards": 3398
+   "cards": 3875
   },
   {
    "where": "Find › Practice › Answers › Biology",
    "asks": "documentType",
-   "bits": 0.41,
+   "bits": 0.72,
    "best": "qPart",
    "bestBits": 2,
-   "cards": 3398
-  },
-  {
-   "where": "Find › Practice › Questions › Chemistry",
-   "asks": "documentType",
-   "bits": 0.38,
-   "best": "tier",
-   "bestBits": 0.99,
-   "cards": 3206
-  },
-  {
-   "where": "Find › Practice › Answers › Chemistry",
-   "asks": "documentType",
-   "bits": 0.38,
-   "best": "tier",
-   "bestBits": 0.99,
-   "cards": 3206
+   "cards": 3875
   },
   {
    "where": "Find › Library › Religious Studies › Judaism › Second Temple",
@@ -434,25 +418,25 @@
   {
    "field": "forLabel",
    "label": "What for",
-   "cards": 281353,
+   "cards": 282579,
    "why": "lopsided — pressing its commonest answer would leave 0% of the list, needs 2%"
   },
   {
    "field": "qNumber",
    "label": "Question",
-   "cards": 29823,
+   "cards": 31049,
    "why": "counts within each Type — asked once one Type is left"
   },
   {
    "field": "myResult",
    "label": "Your result",
-   "cards": 29823,
+   "cards": 31049,
    "why": "one answer — nothing to decide"
   },
   {
    "field": "qSub",
    "label": "Sub-part",
-   "cards": 2849,
+   "cards": 3176,
    "why": "counts within each Type — asked once one Type is left"
   },
   {

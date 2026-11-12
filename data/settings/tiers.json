@@ -502,5 +502,9 @@
     "flyers": "Tools",
     "poster": "Tools",
     "homework": "Tools"
+  },
+  "findNeeds": {
+    "notes": "Whole files Find cannot run without, beside the find, shell and keypad pieces; js/check-tiers.js holds each to core.",
+    "files": ["data", "boot", "library", "answers"]
   }
 }

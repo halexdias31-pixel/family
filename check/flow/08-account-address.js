@@ -273,7 +273,7 @@ check('Suggest a change on the Booking widget sends the filled-in fields, people
     split: ['someone@example.org'], discValue: '30', note: 'secret words about my child' });
   const host = d.createElement('div');
   host.className = 'pane';
-  host.innerHTML = '<div class="card"><h3>Booking</h3><div class="tile-row">' + w.suggestTile_('widget', 'booking', 'Booking') + '</div></div>';
+  host.innerHTML = '<div class="card"><h3>Booking</h3><div class="tile-row">' + w.tile_(w.suggestOpts_('widget', 'booking', 'Booking')) + '</div></div>';
   d.body.appendChild(host);
   const tile = host.querySelector('[data-do="rep-box"]');
   if (!tile) return ['the Booking widget has no Suggest a change tile — NOTHING was checked'];
@@ -292,7 +292,7 @@ check('Suggest a change on the Booking widget sends the filled-in fields, people
   });
   ['Ann', 'Amy', 'someone@example.org', 'secret words'].forEach(x => { if (note.indexOf(x) !== -1) bad.push('the note carries ' + JSON.stringify(x) + ' — a public repository reads these'); });
   /* AND ONLY THE BOOKING WIDGET'S: a suggestion about anything else is the words alone. */
-  host.innerHTML = '<div class="card"><h3>Other</h3><div class="tile-row">' + w.suggestTile_('widget', 'other', 'Other') + '</div></div>';
+  host.innerHTML = '<div class="card"><h3>Other</h3><div class="tile-row">' + w.tile_(w.suggestOpts_('widget', 'other', 'Other')) + '</div></div>';
   t.ACTIONS['rep-box'](host.querySelector('[data-do="rep-box"]'));
   const box2 = d.querySelector('.rep-box[data-ri="other"]');
   if (box2) {

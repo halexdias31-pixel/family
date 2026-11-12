@@ -267,7 +267,7 @@ function addCard_(o) {
   const data = Object.keys(o.data || {}).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
   return card_(`<div class="add-card"><h3>${esc(o.label)}</h3><div class="tile-row">${tile_({ icon: 'plus', label: o.label, act: o.act, data: o.data })}</div></div>`) + `${
     /* A "+" IS A THING ON THE COLUMN TOO (720, 486): its Suggest in the row right after it, as a person's card has. */
-    typeof suggestTile_ === 'function' && suggestTile_('card', 'add:' + o.act, o.label) ? `<div class="tile-row rep-row">${suggestTile_('card', 'add:' + o.act, o.label)}</div>` : ''}`;
+    typeof suggestOpts_ === 'function' && tile_(suggestOpts_('card', 'add:' + o.act, o.label)) ? `<div class="tile-row rep-row">${tile_(suggestOpts_('card', 'add:' + o.act, o.label))}</div>` : ''}`;
 }
 
 /* ---------- FILLING THE SHAPE § */
@@ -410,7 +410,7 @@ function cardCore_(x) {
   const one = {
     share: () => tile_({ icon: 'share', label: 'Share', act: 'card-share', data: { key: x.key } }),
     fav: () => tile_(favOpts_(x)),
-    suggest: () => (typeof suggestTileFor_ === 'function' ? suggestTileFor_(x) : ''),
+    suggest: () => (typeof suggestOptsFor_ === 'function' ? tile_(suggestOptsFor_(x)) : ''),
     top: () => tile_({ icon: 'up', label: 'Top', act: 'find-top' }) };
   return x.key ? CARD_CORE_.map(k => one[k]()).join('') : '';
 }

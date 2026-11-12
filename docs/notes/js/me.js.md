@@ -4698,7 +4698,7 @@ top level, before `HANDLE_NAME_FIRST_`
 ```
 /* ON YOUR OWN CARD NOW (docs/history/339), the `handle` section of its Edit — `el.closest('.card')` is the
    card being edited, and `send_` locks its form while the press is out. YOUR ROWS IN THE PAYLOAD TAKE THE NEW
-   HANDLE AT ONCE, as `cardPatchRow_` puts a saved name on them: the card the form turns back into is drawn
+   HANDLE AT ONCE, as `cardPatchTutor_` puts a saved name on them: the card the form turns back into is drawn
    from your tutor row, and until the payload `load()` asks for lands it would print the old handle under
    your name beside a toast saying the new one. */
 ```
@@ -5273,7 +5273,7 @@ top level, before `cardFaceOnly_`
 
 ### ---------- WHAT IS ON THE CARD THE MOMENT IT IS SAVED
 
-top level, before `cardPatchRow_`
+top level, before `cardPatchTutor_`
 
 ```
 /* ---------- WHAT IS ON THE CARD THE MOMENT IT IS SAVED ------------------------------------------------------
