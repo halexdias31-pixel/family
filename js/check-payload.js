@@ -135,11 +135,9 @@ const rowKeys = new Map();
     }
     return out.join('');
   })(gs);
-  const re = /payload\.([A-Za-z_]\w*)\.push\(\{/g;
-  let m;
-  while ((m = re.exec(rs))) {
+  const keysAt = start => {
     const keys = [];
-    let i = rs.indexOf('{', m.index + m[0].length - 1), depth = 0;
+    let i = start, depth = 0;
     for (; i < rs.length; i++) {
       const c = rs[i];
       if (c === '"' || c === "'" || c === '`') {
@@ -147,8 +145,8 @@ const rowKeys = new Map();
         for (i++; i < rs.length && rs[i] !== q; i++) if (rs[i] === '\\') i++;
         continue;
       }
-      if (c === '{' || c === '[') { depth++; continue; }
-      if (c === '}' || c === ']') { depth--; if (depth === 0) break; continue; }
+      if (c === '{' || c === '[' || c === '(') { depth++; continue; }
+      if (c === '}' || c === ']' || c === ')') { depth--; if (depth === 0) break; continue; }
       /* ---------- A SHORTHAND PROPERTY IS STILL A KEY § */
       if (depth === 1 && /[A-Za-z_]/.test(c) && !/\w/.test(rs[i - 1] || '')) {
         let j = i - 1;
@@ -159,7 +157,23 @@ const rowKeys = new Map();
         }
       }
     }
+    return keys;
+  };
+  const re = /payload\.([A-Za-z_]\w*)\.push\(\{/g;
+  let m;
+  while ((m = re.exec(rs))) {
+    const keys = keysAt(rs.indexOf('{', m.index + m[0].length - 1));
     if (keys.length) rowKeys.set(m[1], keys);
+  }
+  /* A ROW BUILT BY HELPERS (`push(Object.assign(a_(…), b_(…)))`): each helper's returned literal, in order. */
+  for (const c of rs.matchAll(/payload\.([A-Za-z_]\w*)\.push\((?!\{)([^;]*)\);/g)) {
+    const keys = [];
+    for (const f of c[2].matchAll(/\b(\w+_)\(/g)) {
+      const at = rs.search(new RegExp('\\nfunction ' + f[1] + '\\('));
+      const ret = at < 0 ? -1 : rs.indexOf('return {', at);
+      if (ret >= 0) keys.push(...keysAt(ret + 7));
+    }
+    if (keys.length) rowKeys.set(c[1], keys);
   }
 }
 

@@ -148,6 +148,11 @@ function doPost(e) {
 
 /* WHICH HANDLER EACH ACTION RUNS (1130). Built when asked, not a top-level value, so file load order never matters. */
 function postActions_() {
+  return Object.assign({}, postActionsAccount_(), postActionsPosts_(), postActionsWork_(), postActionsAdmin_());
+}
+
+/* Handlers for sign-in, profile and records. */
+function postActionsAccount_() {
   return {
     pushState: postPushState_,
     pushSubscribe: postPushState_,
@@ -171,7 +176,13 @@ function postActions_() {
     updateProfile: postUpdateProfile_,
     videoPart: postVideoPart_,
     photoFile: postPhotoFile_,
-    imageData: postImageData_,
+    imageData: postImageData_
+  };
+}
+
+/* Handlers for posts, messages, children and the viewer's own saves. */
+function postActionsPosts_() {
+  return {
     editPost: postEditPost_,
     approvePost: postApprovePost_,
     deletePost: postDeletePost_,
@@ -207,7 +218,13 @@ function postActions_() {
     setMyRoles: postSetMyRoles_,
     saveAvatar: postSaveAvatar_,
     saveScore: postSaveScore_,
-    saveTtHighscore: postSaveScore_,
+    saveTtHighscore: postSaveScore_
+  };
+}
+
+/* Handlers for marking, work files, payments, jobs and answers. */
+function postActionsWork_() {
+  return {
     aiMark: postAiMark_,
     markWorking: postMarkWorking_,
     workingOf: postWorkingOf_,
@@ -229,7 +246,13 @@ function postActions_() {
     favourite: postFavourite_,
     submitAnswer: postSubmitAnswer_,
     saveAnswers: postSaveAnswers_,
-    myAnswers: postMyAnswers_,
+    myAnswers: postMyAnswers_
+  };
+}
+
+/* Handlers for reports, staff, settings, media, people and the library. */
+function postActionsAdmin_() {
+  return {
     clientError: postClientError_,
     healthLog: postHealthLog_,
     listClientErrors: postListClientErrors_,

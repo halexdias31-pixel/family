@@ -364,33 +364,8 @@ function digestQuestions_(items, max, o) {
   const lib = o.lib && o.lib.rows ? o.lib : null, pre = lib && lib.pre ? lib.pre : [];
   const said = o.cut || {}, kid = S(o.kid) || 'Your child', site = S(o.site) || SITE_URL;
   const cut = (t, most) => { const x = S(t).replace(/\s*\n+\s*/g, ' ').trim(); return x.length > most ? x.slice(0, most - 1).replace(/\s+\S*$/, '') + '…' : x; };
-  const heads = {};
-  items.forEach(q => {
-    const label = S(q && q.label);
-    if (!label || (q && q.hidden) || label === S(q && q.key)) return;
-    const bits = label.split(' · ');
-    const head = bits.length > 1 ? bits.slice(0, -1).join(' · ') : label;
-    const num = bits.length > 1 ? bits[bits.length - 1] : '';
-    /* THE STEM AND THE ASK, either side of a `---` line — which may be the last line, when a part's own
-       ask is only its picture and the cell was trimmed. */
-    const w = S(q && q.words), cutAt = /\n---(?:\n|$)/.exec(w);
-    const row = digestLibRow_(lib, q && q.key);
-    (heads[head] || (heads[head] = [])).push({ mark: digestMark_(q && q.verdict), how: digestHow_(q && q.verdict),
-      key: S(q && q.key), row: row, num: num, stem: cutAt ? w.slice(0, cutAt.index) : '', ask: cutAt ? w.slice(cutAt.index + cutAt[0].length) : w,
-      theirs: digestTheirAnswer_(row, q && q.answer), right: digestRightAnswer_(row),
-      tags: digestWornTags_(lib, row, bits, num) });
-  });
-  /* A CAP THAT IS NOT A NUMBER IS THE WEEK'S, never "all of them": `slice(0, undefined)` is the whole
-     list, and the cap is what keeps an email under the size a mail client clips it at. */
-  let room = typeof max === 'number' && max >= 0 ? max : DIGEST_WEEK_LIST_MAX, printed = 0;
-  const shown = [];
-  Object.keys(heads).sort((a, b) => a.localeCompare(b)).forEach(h => {
-    if (room <= 0) return;
-    const list = heads[h].slice().sort((a, b) => a.num.localeCompare(b.num, undefined, { numeric: true }));
-    const take = list.slice(0, room);
-    room -= take.length; printed += take.length;
-    shown.push({ head: h, items: take, worded: take.some(it => S(it.ask) || it.row) });
-  });
+  const heads = digestHeads_(items, lib);
+  const sh = digestShown_(heads, max), shown = sh.shown, printed = sh.printed;
   const more = n - printed;
   /* A NAME OF ONE SEGMENT HAS NO NUMBER, so no number in its tag: its mark alone, and its words after —
      never ": What is 7 × 8?". */
@@ -486,6 +461,43 @@ function digestQuestions_(items, max, o) {
   shown.forEach(h => h.items.forEach(it => marks.push(it.mark)));
   return { lines: lines, html: parts.join('') + (printed && more > 0 ? '<p style="margin:12px 0 0">…and ' + more + ' more.</p>' : ''),
            printed: printed, marks: marks, more: more, fromLib: fromLib, sizes: sizes };
+}
+
+/* The questions grouped under their heading, each with its stem, ask, answers and tags. */
+function digestHeads_(items, lib) {
+  const heads = {};
+  items.forEach(q => {
+    const label = S(q && q.label);
+    if (!label || (q && q.hidden) || label === S(q && q.key)) return;
+    const bits = label.split(' · ');
+    const head = bits.length > 1 ? bits.slice(0, -1).join(' · ') : label;
+    const num = bits.length > 1 ? bits[bits.length - 1] : '';
+    /* THE STEM AND THE ASK, either side of a `---` line — which may be the last line, when a part's own
+       ask is only its picture and the cell was trimmed. */
+    const w = S(q && q.words), cutAt = /\n---(?:\n|$)/.exec(w);
+    const row = digestLibRow_(lib, q && q.key);
+    (heads[head] || (heads[head] = [])).push({ mark: digestMark_(q && q.verdict), how: digestHow_(q && q.verdict),
+      key: S(q && q.key), row: row, num: num, stem: cutAt ? w.slice(0, cutAt.index) : '', ask: cutAt ? w.slice(cutAt.index + cutAt[0].length) : w,
+      theirs: digestTheirAnswer_(row, q && q.answer), right: digestRightAnswer_(row),
+      tags: digestWornTags_(lib, row, bits, num) });
+  });
+  return heads;
+}
+
+/* The headings in order and the questions under each, up to the week's cap. */
+function digestShown_(heads, max) {
+  /* A CAP THAT IS NOT A NUMBER IS THE WEEK'S, never "all of them": `slice(0, undefined)` is the whole
+     list, and the cap is what keeps an email under the size a mail client clips it at. */
+  let room = typeof max === 'number' && max >= 0 ? max : DIGEST_WEEK_LIST_MAX, printed = 0;
+  const shown = [];
+  Object.keys(heads).sort((a, b) => a.localeCompare(b)).forEach(h => {
+    if (room <= 0) return;
+    const list = heads[h].slice().sort((a, b) => a.num.localeCompare(b.num, undefined, { numeric: true }));
+    const take = list.slice(0, room);
+    room -= take.length; printed += take.length;
+    shown.push({ head: h, items: take, worded: take.some(it => S(it.ask) || it.row) });
+  });
+  return { shown: shown, printed: printed };
 }
 
 /* ---------- ONE QUESTION AS THE SITE'S CARD (57a–62a): picture, heading, tags, lines, a rule under it — lean, said 80 times under Gmail's clip. */

@@ -3,170 +3,185 @@
 /* The posts, with their likes counted and yours marked. */
 function getPosts_(meAsked, meAskedId, viewerIsAdmin, vis, opts, payload) {
   /* THE POSTS, with their likes counted and yours marked. § */
-  {
-    /* ---------- NOTHING HERE TOUCHES DRIVE § */
-    const votes = read(TAB.post_votes).rows;
-    const reacts = read(TAB.post_reactions).rows;
-    /* READ ONCE, LIKE THE OTHER TWO. A `read` inside the post loop is one pass of the tab per
-       post — the same argument the `faces` lookup below makes about the people tab. */
-    const said = read(TAB.post_comments).rows;
+  /* ---------- NOTHING HERE TOUCHES DRIVE § */
+  const votes = read(TAB.post_votes).rows;
+  const reacts = read(TAB.post_reactions).rows;
+  /* READ ONCE, LIKE THE OTHER TWO. A `read` inside the post loop is one pass of the tab per
+     post — the same argument the `faces` lookup below makes about the people tab. */
+  const said = read(TAB.post_comments).rows;
 
-    const me = meAskedId;
+  const me = meAskedId;
+  const { faces, byId } = postFaces_(meAsked, vis);
+  read(TAB.posts).rows.forEach(r => {
+    if (!S(r.post_id)) return;
+    /* A DELETED POST STILL GOES TO AN ADMIN, marked. § */
+    const live = ON_(r.active);
+    if (!live && !viewerIsAdmin) return;
 
-    /* Who posted it, and their face. Built once as a lookup rather than searched per post —
-       fifteen people and ten posts is nothing, but a hundred posts against a growing people
-       list is a hundred scans of it for no reason. */
-    const faces = {};
-    /* A TUTOR IS PUBLIC (their profile is listed); anybody else is named only to whom may see them (10 Nov). */
-    const open_ = pp => rankAtLeast_(pp, 'staff') || seesPerson_(meAsked ? vis : {}, pp);
-    /* And the same people keyed by ID, for the likes — which know a person_id and not a name. § */
-    const byId = {};
-    read(TAB.people).rows.forEach(pp => {
-      const nm = personDisplayName(pp);
-      if (!nm) return;
-      /* ---------- THE FACE IS THE `photo` CELL, AND THE FIGURE ONLY WHEN IT IS THE FACE § */
-      const face = S(pp.photo);
-      const kidHid = !photoChoice_(face) && hasRole(pp, 'student') && !!S(pp.avatar);
-      /* KEYED BY THE WHOLE NAME, because that is what a post's `author` cell holds — and what goes
-         OUT is `nameFor_`'s: "who reacted" names a child by their first name (the owner, 10 Oct). */
-      faces[key(nm)] = {
-        handle: S(pp.handle) || S(pp.first_name) || nameFor_(pp),
-        avatar: kidHid ? '' : face,
-        figure: faceFig_(pp).avatar,
-        /* WHO, so the phone draws the author's picture as it is now, by id (474). */
-        personId: S(pp.person_id),
+    /* ---------- WHO SEES A POST THAT IS WAITING § */
+    const state = norm(r.approved);
+    const waiting = state === 'pending';
+    const refused = state === 'refused';
+    /* WHO PRESSED POST, not only the name on it — an admin's business post carries the brand's name (413). */
+    const mine = !!meAskedId && postIsBy_(r, { person_id: meAskedId });
+    if (refused && !viewerIsAdmin) return;
+    if (waiting && !viewerIsAdmin && !mine) return;
+    /* An author who is not in the people list still gets a name — the one typed in the row. § */
+    const who = faces[key(S(r.author))]
+      || { handle: S(r.author) || '@family.', avatar: '' };
+    if (!who.avatar && !faces[key(S(r.author))]) {
+      who.avatar = S(payload.brand.logo_square) || S(payload.brand.logo_circle);
+    }
+
+    payload.posts.push({
+      id: S(r.post_id),
+      /* THE CELL HOLDS THE WHOLE NAME (the sheet keeps it); what goes out is `nameFor_`'s, so a child's post is signed with their first name. § */
+      author: postAuthorOut_(r, faces),
+      handle: who.handle,
+      avatar: who.avatar,
+      /* THE AUTHOR'S PERSON ID, blank for the business (474): "the profile picture should be in sync with my dp for my account". */
+      authorId: S((faces[key(S(r.author))] || {}).personId),
+      /* THE FIGURE, ONLY WHEN THE AUTHOR'S FACE IS THEIR FIGURE — set on `faces` above. § */
+      figure: (faces[key(S(r.author))] || {}).figure,
+      image: S(r.image),        // converted on the phone, the way the gallery already does it
+      /* THE FIRST PICTURE'S SIZE (561); an unsized old row reads 0 (the phone's 4:5) until `migrateOldRows_` writes 800 x 1000. */
+      imageW: Number(r.image_w) || 0, imageH: Number(r.image_h) || 0,
+      /* EVERY PICTURE AND CLIP, THE FIRST INCLUDED, so the phone reads one list rather than stitching `image` onto the front itself — which would be a second place for § */
+      media: postMediaOut_(r),
+      /* THE CAPTION, RESOLVED HERE AND NOWHERE ELSE. § */
+      caption: S(r.caption) || captionFromName_(S(r.file_name)),
+      body: S(r.body),
+      location: S(r.location),
+      when: fmtDate(postWhen_(r)),
+      /* THE TIMESTAMP, in milliseconds. § */
+      at: postWhen_(r) ? postWhen_(r).getTime() : 0,
+      pinned: TRUE_(r.pinned),
+      /* Sent so an admin can SEE which ones are switched off, and switch one back. Everyone
+         else never receives an inactive post, so the flag is always true for them. */
+      active: live,
+      /* AND WHETHER IT IS WAITING. The phone draws the mark and the buttons from this; nobody
+         who should not see it has been sent it at all, so a stale copy in a browser cannot
+         leak one. */
+      waiting: waiting,
+      refused: refused,
+      /* YOURS, so the phone offers Edit while it waits and Delete always — the server checks again (`editPost`, `deletePost`). */
+      mine: !!mine,
+      approvedBy: S(r.approved_by),
+      /* THE POLL. Options split from the cell, counts from the votes tab, and which one is
+         yours — everything the phone needs to draw it without a second request. */
+      poll: postPollOut_(r, votes, me),
+      /* REACTIONS — and they are now the ONLY thing a person presses on a post. § */
+      reactions: postReactionsOut_(r, reacts, me, byId),
+      /* ---------- WHAT PEOPLE SAID § */
+      comments: postCommentsOut_(r, said, me, byId, viewerIsAdmin),
+      rowIndex: r._row,
+    });
+  });
+  /* Pinned first, then newest. § */
+  payload.posts.sort((a, b) => (b.pinned - a.pinned) || (b.at - a.at));
+}
+
+/* Who posted, and their face, keyed by whole name; and the names a viewer may see, keyed by id. */
+function postFaces_(meAsked, vis) {
+  /* Who posted it, and their face. Built once as a lookup rather than searched per post —
+     fifteen people and ten posts is nothing, but a hundred posts against a growing people
+     list is a hundred scans of it for no reason. */
+  const faces = {};
+  /* A TUTOR IS PUBLIC (their profile is listed); anybody else is named only to whom may see them (10 Nov). */
+  const open_ = pp => rankAtLeast_(pp, 'staff') || seesPerson_(meAsked ? vis : {}, pp);
+  /* And the same people keyed by ID, for the likes — which know a person_id and not a name. § */
+  const byId = {};
+  read(TAB.people).rows.forEach(pp => {
+    const nm = personDisplayName(pp);
+    if (!nm) return;
+    /* ---------- THE FACE IS THE `photo` CELL, AND THE FIGURE ONLY WHEN IT IS THE FACE § */
+    const face = S(pp.photo);
+    const kidHid = !photoChoice_(face) && hasRole(pp, 'student') && !!S(pp.avatar);
+    /* KEYED BY THE WHOLE NAME, because that is what a post's `author` cell holds — and what goes
+       OUT is `nameFor_`'s: "who reacted" names a child by their first name (the owner, 10 Oct). */
+    faces[key(nm)] = {
+      handle: S(pp.handle) || S(pp.first_name) || nameFor_(pp),
+      avatar: kidHid ? '' : face,
+      figure: faceFig_(pp).avatar,
+      /* WHO, so the phone draws the author's picture as it is now, by id (474). */
+      personId: S(pp.person_id),
+    };
+    /* ONLY WHOM THEY MAY SEE (386): a hidden reactor is not named, a hidden commenter is "Someone"; signed out, only staff are named. */
+    if (S(pp.person_id) && open_(pp)) byId[S(pp.person_id)] = nameFor_(pp);
+    else faces[key(nm)] = { handle: '', avatar: '', figure: '', personId: '', hidden: true };
+  });
+  return { faces: faces, byId: byId };
+}
+
+/* A post's signed name: the people list's form for a known person, else the typed cell. */
+function postAuthorOut_(r, faces) {
+  const a = S(r.author);
+  const pp = a ? findPerson(a) : null;
+  if (pp && key(personDisplayName(pp)) === key(a)) return (faces[key(a)] || {}).hidden ? 'Someone' : nameFor_(pp);
+  return a;
+}
+
+/* A post's poll: options, counts from the votes tab, and which is yours. */
+function postPollOut_(r, votes, me) {
+  const opts = S(r.poll).split(',').map(x => x.trim()).filter(Boolean);
+  if (!opts.length) return null;
+  const cast = votes.filter(v => S(v.post_id) === S(r.post_id));
+  const tally = {};
+  opts.forEach(o => { tally[o] = 0; });
+  cast.forEach(v => {
+    const c = S(v.choice);
+    /* A vote for an option since removed is counted for nobody rather than crashing —
+       the options are a cell somebody can edit after people have voted. */
+    if (tally[c] !== undefined) tally[c]++;
+  });
+  const mineVote = me ? cast.find(v => S(v.person_id) === me) : null;
+  return {
+    options: opts,
+    counts: opts.map(o => tally[o]),
+    total: cast.length,
+    yours: mineVote ? S(mineVote.choice) : '',
+  };
+}
+
+/* A post's reactions: counts per emoji, yours, and who (named only when seen). */
+function postReactionsOut_(r, reacts, me, byId) {
+  const emoji = reactionSet(r);
+  if (!emoji.length) return null;
+  const cast = reacts.filter(x => S(x.post_id) === S(r.post_id));
+  const yours = me ? cast.find(x => S(x.person_id) === me) : null;
+  return {
+    emoji: emoji,
+    /* Counted per emoji, because the phone needs a number under each face. */
+    counts: emoji.map(x => cast.filter(c => S(c.emoji) === x).length),
+    total: cast.length,
+    yours: yours ? S(yours.emoji) : '',
+    /* WHO, AND WITH WHAT. Names rather than ids — a reaction is a public thing and an id is not, and a list of P17390421 tells nobody anything. § */
+    by: cast.slice(0, 40).map(x => ({
+      name: byId[S(x.person_id)] || '', emoji: S(x.emoji),
+    })).filter(x => x.name),
+  };
+}
+
+/* A post's live comments, oldest first, each with who may remove it. */
+function postCommentsOut_(r, said, me, byId, viewerIsAdmin) {
+  const all = said.filter(c => S(c.post_id) === S(r.post_id) && ON_(c.active))
+    .sort(function (a, b) {
+      return new Date(a.said_on || 0) - new Date(b.said_on || 0);
+    });
+  return {
+    total: all.length,
+    list: all.slice(0, 60).map(function (c) {
+      return {
+        id: S(c.comment_id),
+        name: byId[S(c.person_id)] || 'Someone',
+        body: S(c.body),
+        /* `fmtDateTime`, WHICH IS WHAT A MESSAGE ALREADY SENDS. § */
+        at: fmtDateTime(c.said_on),
+        mine: !!me && S(c.person_id) === me,
+        canRemove: (!!me && S(c.person_id) === me) || viewerIsAdmin,
       };
-      /* ONLY WHOM THEY MAY SEE (386): a hidden reactor is not named, a hidden commenter is "Someone"; signed out, only staff are named. */
-      if (S(pp.person_id) && open_(pp)) byId[S(pp.person_id)] = nameFor_(pp);
-      else faces[key(nm)] = { handle: '', avatar: '', figure: '', personId: '', hidden: true };
-    });
-    read(TAB.posts).rows.forEach(r => {
-      if (!S(r.post_id)) return;
-      /* A DELETED POST STILL GOES TO AN ADMIN, marked. § */
-      const live = ON_(r.active);
-      if (!live && !viewerIsAdmin) return;
-
-      /* ---------- WHO SEES A POST THAT IS WAITING § */
-      const state = norm(r.approved);
-      const waiting = state === 'pending';
-      const refused = state === 'refused';
-      /* WHO PRESSED POST, not only the name on it — an admin's business post carries the brand's name (413). */
-      const mine = !!meAskedId && postIsBy_(r, { person_id: meAskedId });
-      if (refused && !viewerIsAdmin) return;
-      if (waiting && !viewerIsAdmin && !mine) return;
-      /* An author who is not in the people list still gets a name — the one typed in the row. § */
-      const who = faces[key(S(r.author))]
-        || { handle: S(r.author) || '@family.', avatar: '' };
-      if (!who.avatar && !faces[key(S(r.author))]) {
-        who.avatar = S(payload.brand.logo_square) || S(payload.brand.logo_circle);
-      }
-
-      payload.posts.push({
-        id: S(r.post_id),
-        /* THE CELL HOLDS THE WHOLE NAME (the sheet keeps it); what goes out is `nameFor_`'s, so a child's post is signed with their first name. § */
-        author: (function () {
-          const a = S(r.author);
-          const pp = a ? findPerson(a) : null;
-          if (pp && key(personDisplayName(pp)) === key(a)) return (faces[key(a)] || {}).hidden ? 'Someone' : nameFor_(pp);
-          return a;
-        })(),
-        handle: who.handle,
-        avatar: who.avatar,
-        /* THE AUTHOR'S PERSON ID, blank for the business (474): "the profile picture should be in sync with my dp for my account". */
-        authorId: S((faces[key(S(r.author))] || {}).personId),
-        /* THE FIGURE, ONLY WHEN THE AUTHOR'S FACE IS THEIR FIGURE — set on `faces` above. § */
-        figure: (faces[key(S(r.author))] || {}).figure,
-        image: S(r.image),        // converted on the phone, the way the gallery already does it
-        /* THE FIRST PICTURE'S SIZE (561); an unsized old row reads 0 (the phone's 4:5) until `migrateOldRows_` writes 800 x 1000. */
-        imageW: Number(r.image_w) || 0, imageH: Number(r.image_h) || 0,
-        /* EVERY PICTURE AND CLIP, THE FIRST INCLUDED, so the phone reads one list rather than stitching `image` onto the front itself — which would be a second place for § */
-        media: postMediaOut_(r),
-        /* THE CAPTION, RESOLVED HERE AND NOWHERE ELSE. § */
-        caption: S(r.caption) || captionFromName_(S(r.file_name)),
-        body: S(r.body),
-        location: S(r.location),
-        when: fmtDate(postWhen_(r)),
-        /* THE TIMESTAMP, in milliseconds. § */
-        at: postWhen_(r) ? postWhen_(r).getTime() : 0,
-        pinned: TRUE_(r.pinned),
-        /* Sent so an admin can SEE which ones are switched off, and switch one back. Everyone
-           else never receives an inactive post, so the flag is always true for them. */
-        active: live,
-        /* AND WHETHER IT IS WAITING. The phone draws the mark and the buttons from this; nobody
-           who should not see it has been sent it at all, so a stale copy in a browser cannot
-           leak one. */
-        waiting: waiting,
-        refused: refused,
-        /* YOURS, so the phone offers Edit while it waits and Delete always — the server checks again (`editPost`, `deletePost`). */
-        mine: !!mine,
-        approvedBy: S(r.approved_by),
-        /* THE POLL. Options split from the cell, counts from the votes tab, and which one is
-           yours — everything the phone needs to draw it without a second request. */
-        poll: (function () {
-          const opts = S(r.poll).split(',').map(x => x.trim()).filter(Boolean);
-          if (!opts.length) return null;
-          const cast = votes.filter(v => S(v.post_id) === S(r.post_id));
-          const tally = {};
-          opts.forEach(o => { tally[o] = 0; });
-          cast.forEach(v => {
-            const c = S(v.choice);
-            /* A vote for an option since removed is counted for nobody rather than crashing —
-               the options are a cell somebody can edit after people have voted. */
-            if (tally[c] !== undefined) tally[c]++;
-          });
-          const mineVote = me ? cast.find(v => S(v.person_id) === me) : null;
-          return {
-            options: opts,
-            counts: opts.map(o => tally[o]),
-            total: cast.length,
-            yours: mineVote ? S(mineVote.choice) : '',
-          };
-        })(),
-        /* REACTIONS — and they are now the ONLY thing a person presses on a post. § */
-        reactions: (function () {
-          const emoji = reactionSet(r);
-          if (!emoji.length) return null;
-          const cast = reacts.filter(x => S(x.post_id) === S(r.post_id));
-          const yours = me ? cast.find(x => S(x.person_id) === me) : null;
-          return {
-            emoji: emoji,
-            /* Counted per emoji, because the phone needs a number under each face. */
-            counts: emoji.map(x => cast.filter(c => S(c.emoji) === x).length),
-            total: cast.length,
-            yours: yours ? S(yours.emoji) : '',
-            /* WHO, AND WITH WHAT. Names rather than ids — a reaction is a public thing and an id is not, and a list of P17390421 tells nobody anything. § */
-            by: cast.slice(0, 40).map(x => ({
-              name: byId[S(x.person_id)] || '', emoji: S(x.emoji),
-            })).filter(x => x.name),
-          };
-        })(),
-        /* ---------- WHAT PEOPLE SAID § */
-        comments: (function () {
-          const all = said.filter(c => S(c.post_id) === S(r.post_id) && ON_(c.active))
-            .sort(function (a, b) {
-              return new Date(a.said_on || 0) - new Date(b.said_on || 0);
-            });
-          return {
-            total: all.length,
-            list: all.slice(0, 60).map(function (c) {
-              return {
-                id: S(c.comment_id),
-                name: byId[S(c.person_id)] || 'Someone',
-                body: S(c.body),
-                /* `fmtDateTime`, WHICH IS WHAT A MESSAGE ALREADY SENDS. § */
-                at: fmtDateTime(c.said_on),
-                mine: !!me && S(c.person_id) === me,
-                canRemove: (!!me && S(c.person_id) === me) || viewerIsAdmin,
-              };
-            }),
-          };
-        })(),
-        rowIndex: r._row,
-      });
-    });
-    /* Pinned first, then newest. § */
-    payload.posts.sort((a, b) => (b.pinned - a.pinned) || (b.at - a.at));
-  }
+    }),
+  };
 }
 
 /* Exams and birthdays for the calendar. */
