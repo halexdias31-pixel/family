@@ -1,11 +1,9 @@
 #!/usr/bin/env node
-/* @family. — check-one-template.js ONE TEMPLATE (owner, 11 Nov): only findCard writes `class="card`; every other maker hands card_ a plain div. bookform is the one exception. */
+/* @family. — check-one-template.js ONE TEMPLATE (owner, 11 Nov): only findCard writes `class="card`; every other maker hands card_ a plain div, the booking form too (owner, 12 Nov). */
 const fs = require('fs');
 const path = require('path');
 const acorn = require('acorn');
 const ROOT = path.join(__dirname, '..');
-/* THE ONE EXCEPTION, by name: the booking form's steps draw their own pages (docs/decisions.md, 11 Nov). */
-const EXCEPT = { 'js/book-steps.js': 'bookform' };
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const files = [...new Set([...html.matchAll(/'([a-z][\w-]*)'/g)].map(m => 'js/' + m[1] + '.js'))].filter(f => fs.existsSync(path.join(ROOT, f)));
 const bad = [];
@@ -13,7 +11,6 @@ const bad = [];
 const WRITES = /class=\\?"card(?:["\s$])/;
 let seen = 0;
 files.forEach(f => {
-  if (EXCEPT[f]) return;
   const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
   let ast;
   try { ast = acorn.parse(src, { ecmaVersion: 'latest', sourceType: 'script', allowHashBang: true }); } catch (e) { bad.push(f + ': would not parse (' + e.message + ')'); return; }
@@ -41,4 +38,4 @@ if (bad.length) {
   bad.slice(0, 60).forEach(b => console.error('  ' + b));
   process.exit(1);
 }
-console.log('one template: ' + seen + ' served files, every card through findCard (card_), bookform the one exception');
+console.log('one template: ' + seen + ' served files, every card through findCard (card_), no exception');

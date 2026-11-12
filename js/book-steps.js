@@ -10,8 +10,8 @@
 /* ---------- THE BOOKING PAGES ARE THE FORM, AND ONLY THE FORM § */
 function bookBlocks() {
   if (!USER) {
-    return [`<div class="card"><h3>Booking</h3>
-      <p class="note">Sign in to book — your account is a few screens to the right.</p></div>`];
+    return [card_(`<div class="book-signin"><h3>Booking</h3>
+      <p class="note">Sign in to book — your account is a few screens to the right.</p></div>`, 'bookform')];
   }
   /* ---------- THE FORM, THEN WHAT IS ALREADY BOOKED, THEN WHAT IS FINISHED § */
   /* ---------- THE FORM, AND ONLY THE FORM, AGAIN § */
@@ -102,8 +102,8 @@ function liveWidgets_() {
         what: 'Who is in it',
         into: 'live-body-' + id,
         start: () => fillRoster_(id),
-        html: '<div class="card"><h3>' + esc(name) + '</h3>'
-            + '<div id="live-body-' + esc(id) + '"></div></div>',
+        html: card_('<div class="live-roster"><h3>' + esc(name) + '</h3>'
+            + '<div id="live-body-' + esc(id) + '"></div></div>'),
       };
     });
 }
@@ -214,11 +214,6 @@ const BOOKING = {
   /* `m16` codes — Monday at four. One list replaces days, time and length, because ticking two
      adjacent hours says all three at once. */
   slots: [],
-  /* Which questions have been finished with. A multiple-choice question needs telling. */
-  done: [],
-  /* The addresses of the other families, and whether the question has been put at all. */
-  /* WHO ELSE IS SHARING THE COST, stored under the STEP'S OWN ID like every other answer. § */
-  split: [],
   /* WHICH OF YOUR OWN CHILDREN THIS IS FOR. § */
   kids: [],
   /* A LIST NOW — see the `interval` step. § */
@@ -582,20 +577,6 @@ const BOOK_STEPS = [
     /* ---------- AND IT IS OFFERED ON BOTH BRANCHES NOW § */
     options: () => intervals_().map(x => x.label || x.term).filter(Boolean) },
 
-  /* SHARING THE COST. The pricing chain divides by `splitShares` and has since the beginning — three families in one session each pay a third — and the form never § */
-  /* NAMING SOMEONE IS SPLITTING WITH THEM. § */
-  /* SHARING IS THE WHOLE PRODUCT here — there is nobody to invite, because the other three seats
-     are for whoever joins the list. */
-  /* ---------- AND A TYPED ADDRESS IS CHECKED FOR BEING ONE § */
-  { id: 'split', label: 'Sharing the cost with anyone?', short: 'Split', emails: true,
-    why: () => {
-      const bad = (BOOKING.split || []).map(x => String(x).trim()).filter(Boolean)
-        .filter(x => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x));
-      return bad.length ? 'not an email address: ' + bad.join(', ') : '';
-    },
-    /* A HOME BOOKING IS PRIVATE (owner, 8 Nov): every seat is theirs, so nobody to share with — `Just you`. */
-    options: () => (isWaiting_() || homeSeats_() > 0) ? [] : ['emails'] },
-
   /* ---------- WOULD YOU SHARE WITH SOMEBODY YOU DO NOT KNOW? § */
 
   /* ---------- WHOSE CHILDREN ARE THESE? § */
@@ -633,8 +614,6 @@ function bookHomeSeats_() {
   const n = homeSeats_();
   if (!n) return;
   BOOKING.n = String(n);
-  BOOKING.split = [];
-  BOOKING.done = uniq((BOOKING.done || []).concat(['n']));
 }
 
 const tutorRow_ = () => (DATA.tutors || []).find(t => norm(t.title) === norm(BOOKING.tutor)) || null;
@@ -651,43 +630,6 @@ function venueRate_() {
 }
 
 const bookStep_ = id => BOOK_STEPS.find(s => s.id === id);
-
-/** Has this one been answered? A multi is answered when it holds anything. */
-function bookAnswered_(step) {
-  /* A QUESTION YOU CAN ANSWER SEVERAL TIMES IS FINISHED WHEN YOU SAY IT IS. § */
-  if (step.multi || step.grid) {
-    const any = step.grid ? (Array.isArray(BOOKING.slots) && BOOKING.slots.length > 0)
-                          : (BOOKING[step.id] || []).length > 0;
-    return any && (BOOKING.done || []).indexOf(step.id) !== -1;
-  }
-  /* Answered by SAYING so, since nought is a legitimate answer and an empty list cannot be told
-     apart from an unanswered one. */
-  /* An emails step finishes the way a multiple-choice one does — when it is marked done. There is
-     no separate flag for it any more. */
-  if (step.emails) return (BOOKING.done || []).indexOf(step.id) !== -1;
-  const v = BOOKING[step.id];
-  /* EMPTY IS UNANSWERED. § */
-  return String(v ?? '') !== '';
-}
-
-/* THE NEXT QUESTION WORTH ASKING, or nothing left. § */
-function nextBookStep() {
-  const on = bookOn_();
-  for (const step of BOOK_STEPS) {
-    /* THE OTHER BRANCH'S QUESTIONS ARE NOT ASKED — see the `only:` note on the `avail` step. § */
-    if (!onlyHas_(step.only, on)) continue;
-    if (bookAnswered_(step)) continue;
-    const opts = step.options().filter(Boolean);
-    if (!opts.length) continue;                    // nothing to offer: leave it unanswered
-    /* A GRID AND AN EMAIL LIST ARE NOT ONE-ANSWER QUESTIONS. § */
-    if (opts.length === 1 && !step.multi && !step.grid && !step.emails) {
-      BOOKING[step.id] = opts[0];                  // the only answer there is
-      continue;
-    }
-    return step;
-  }
-  return null;
-}
 
 /* ---------- ONE TERM PER NAME, AND THE NEAREST ONE § */
 function intervals_() {
@@ -723,8 +665,8 @@ function bookSpec() {
        whether or not anybody said so. */
     hosting: takesAllSeats_(BOOKING.loc) ? true : BOOKING.hosting ? BOOKING.hosting === 'Yes'
                              : isHome(BOOKING.loc),
-    /* HOW MANY OTHERS, counted from the addresses given rather than picked separately. */
-    splitOthers: (BOOKING.split || []).filter(x => String(x).trim()).length,
+    /* NO SPLIT (owner, 12 Nov): one family pays for its booking; the chain's share count stays 1. */
+    splitOthers: 0,
     day: days.join(', '), time: firstHour,
     hours: hours,
     /* EVERY TICKED HOUR, added up. § */
@@ -779,10 +721,9 @@ function bookPrice() {
 function resetBooking_(keepDraft) {
   BOOK_STEPS.forEach(st => {
     /* A list question gets an empty list and a single one gets an empty string, because that is what each is tested against — `[].length` for one, `''` for the other. § */
-    BOOKING[st.id] = (st.multi || st.grid || st.emails) ? [] : '';
+    BOOKING[st.id] = (st.multi || st.grid) ? [] : '';
   });
   /* THE ONE THAT IS NOT AN ANSWER: § */
-  BOOKING.done = [];
   BOOKING.note = '';
   BOOKING.discValue = '';
   /* AND WHICH LIST IS OPEN, for the same reason: it is about the form rather than about the
@@ -792,9 +733,6 @@ function resetBooking_(keepDraft) {
   BOOK_PREFILLED = false;
   /* AND THE DRAFT OF IT — sent, or started again, is not a booking to bring back (`bookKeep_`). § */
   if (keepDraft) return;
-  try {
-    draftDrop_('book', 'form');
-    BOOK_STEPS.forEach(st => { if (st.emails) draftDrop_('book', 'emails:' + st.id); });
-  } catch (e) {}
+  try { draftDrop_('book', 'form'); } catch (e) {}
 }
 

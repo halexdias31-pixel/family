@@ -1,5 +1,5 @@
 /* ---------- THE FORM SURVIVES A RELOAD (docs/history/317) § */
-const bookBlank_ = () => Object.keys(BOOKING).every(k => k === 'done' || k === 'picking'
+const bookBlank_ = () => Object.keys(BOOKING).every(k => k === 'picking'
   || ![].concat(BOOKING[k] == null ? [] : BOOKING[k]).join('').trim());
 /* WHOSE FORM IS IN `BOOKING` — the draft it was read from or last written to. See `bookFollow_`. */
 let BOOK_WHO = '';
@@ -28,9 +28,7 @@ bookBack_();
 /* ---------- SENT IS NOT A DRAFT (`draftSent_`, data.js) § */
 function bookSending_(going) {
   try {
-    [['form']].concat(BOOK_STEPS.filter(st => st.emails).map(st => ['emails:' + st.id])).forEach(([id]) => {
-      if (going) draftSent_('book', id); else draftSentBack_('book', id);
-    });
+    if (going) draftSent_('book', 'form'); else draftSentBack_('book', 'form');
   } catch (e) {}
 }
 /* ---------- AND ANOTHER TAB'S FORM IS THIS TAB'S (the `storage` listener in data.js) § */
@@ -56,10 +54,7 @@ function bookFollow_(signingIn) {
       /* THEIR OWN DRAFT FIRST, then the device's form joined to it. */
       try { bookJoin_(draftRead_('book', 'form', undefined, now)); } catch (e) {}
       bookKeep_();
-      try {
-        draftDrop_('book', 'form', 'device');
-        BOOK_STEPS.forEach(st => { if (st.emails) bookEmailsCarry_(st, now); });
-      } catch (e) {}
+      try { draftDrop_('book', 'form', 'device'); } catch (e) {}
       return;
     }
   }
@@ -97,21 +92,6 @@ function bookJoin_(raw) {
     }
   });
 }
-/* THE ADDRESSES TYPED ON THE DEVICE'S FORM AND NOT YET LEFT, into the person's: § */
-function bookEmailsCarry_(st, now) {
-  const id = 'emails:' + st.id;
-  const dev = draftRead_('book', id, undefined, 'device');
-  if (dev === null) return;
-  if (typeof ansMayMove_ === 'function' && !ansMayMove_(draftKey_('book', id, 'device'), draftKey_('book', id, now))) return;
-  const mine = draftRead_('book', id, undefined, now);
-  const all = [];
-  [mine, dev].forEach(v => String(v == null ? '' : v).split(',').map(x => x.trim()).filter(Boolean)
-    .forEach(x => { if (!all.some(y => norm(y) === norm(x))) all.push(x); }));
-  /* `from` IS THE LIST THE BOX WILL BE DRAWN OVER (`stepInput_`), so the box draws this draft. */
-  const saved = (BOOKING[st.id] || []).filter(x => String(x).trim()).join(', ');
-  if (all.length) draftKeep_('book', id, all.join(', '), false, saved);
-  draftDrop_('book', id, 'device');
-}
 
 
 /* Ticking an hour. Adjacent ticks become one session; the grid is redrawn so the summary under it
@@ -135,8 +115,6 @@ on('book-block', el => {
   drawBooker();
 });
 
-/* `on('split-add')`, `on('split-set')` AND `on('split-done')` WERE HERE — the three handlers for
-   the panel of email boxes. One text field replaced all of it; `book-emails` reads it. */
 
 
 /* Answering one. A multi toggles, everything else replaces and moves on. */
@@ -148,7 +126,6 @@ function bookKidsFor_() {
   let offered = [];
   try { offered = (st && st.options() || []).map(norm); } catch (e) {}
   BOOKING.kids = (BOOKING.kids || []).filter(k => offered.indexOf(norm(k)) !== -1);
-  if (!BOOKING.kids.length) BOOKING.done = (BOOKING.done || []).filter(id => id !== 'kids');
 }
 
 function bookToggle_(step, v) {
@@ -164,11 +141,6 @@ function bookToggle_(step, v) {
     } catch (err) {}
     BOOKING[step.id] = list;
     if (step.set) step.set(list);
-  }
-  /* ANSWERED THE MOMENT THERE IS SOMETHING IN IT. § */
-  BOOKING.done = uniq((BOOKING.done || []).concat([step.id]));
-  if (!(BOOKING[step.id] || []).length) {
-    BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
   }
 }
 
@@ -191,7 +163,6 @@ document.addEventListener('change', e => {
   const no = step.off && el.value ? String(step.off(el.value) || '') : '';
   if (no) { toast(el.value + ' ' + no); drawBooker(); return; }
   BOOKING[step.id] = el.value || '';
-  BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
 
   /* WHAT THIS ANSWER DOES TO THE OTHERS IS THE STEP'S OWN `set` (book-steps.js), never a branch here. */
   if (step.set) step.set(BOOKING[step.id]);
@@ -205,10 +176,6 @@ function joiningSet_() {
   BOOKING.level    = (j && j.level) || '';
   BOOKING.loc      = (j && (j.location || j.venue)) || '';
   BOOKING.n        = j ? '1' : '';
-  ['subjects', 'level', 'loc', 'n'].forEach(id => {
-    BOOKING.done = j ? uniq((BOOKING.done || []).concat([id]))
-                     : (BOOKING.done || []).filter(x => x !== id);
-  });
 }
 
 
@@ -229,21 +196,6 @@ document.addEventListener('input', e => {
   bookKeep_();
 });
 
-/* ---------- THE SPLIT, TYPED § */
-document.addEventListener('change', e => {
-  const el = e.target && e.target.closest && e.target.closest('[data-do="book-emails"]');
-  if (!el) return;
-  const step = bookStep_(el.dataset.step);
-  if (!step) return;
-  const list = String(el.value || '').split(',').map(x => x.trim()).filter(Boolean);
-  BOOKING[step.id] = list;
-  /* AN ANSWER NOW, SO NO LONGER A DRAFT OF ITS OWN — `BOOKING`'s draft has it (`stepInput_`). */
-  try { draftDrop_('book', 'emails:' + step.id); } catch (err) {}
-  BOOKING.done = list.length
-    ? uniq((BOOKING.done || []).concat([step.id]))
-    : (BOOKING.done || []).filter(id => id !== step.id);
-  drawBooker();
-});
 
 
 /* THE CARD. Photographs, then every priced row, then the dates, then where it stands. § */
@@ -352,8 +304,7 @@ function breakdownRows(L) {
                             .replace(/<[^>]*>/g, '').trim()
         : '';
       const asked = { base: 'tutor', subject: 'subjects', level: 'level', students: 'n',
-                      venue: 'loc', host: 'hosting', term: 'interval',
-                      split: 'split' }[r.key];
+                      venue: 'loc', host: 'hosting', term: 'interval' }[r.key];
       /* AN UNANSWERED ROW SHOWS A DASH, the same as one on the unpriced card — see `stepRows_`. § */
       /* THE SAME DROPDOWN THE UNPRICED CARD USES. § */
       const st = asked ? bookStep_(asked) : null;
@@ -368,7 +319,6 @@ function breakdownRows(L) {
   });
 
   /* ---------- AND THE COUNT OF FAMILIES IS ON BOTH DOCUMENTS NOW § */
-  push('Shared by', familiesSay_(L.splitShares), '', '', '', { free: true });
 
   /* ---------- AND IT IS EVERY DATE AGAIN, WHICH IS THE OWNER'S CALL AND THE SECOND TIME ROUND § */
   /* ---------- AND HOW MANY OF THEM THERE ARE GOES IN THE COLUMN THAT COUNTS § */
@@ -396,10 +346,7 @@ function stepSelect_(st) {
 
   /* ---------- A SETTLED ANSWER IS TEXT, NOT A CONTROL § */
   if (stepLocked_(st)) {
-    const said = st.emails
-      ? (BOOKING[st.id] || []).filter(x => String(x).trim()).join(', ')
-      /* ---------- AND A LOCKED MULTI HAD NO FALLBACK EITHER § */
-      : st.multi ? (chosen.join(', ') || fb)
+    const said = st.multi ? (chosen.join(', ') || fb)
       : (st.label_ && v ? st.label_(v) : v);   /* `v` already carries the fallback — see above */
     return `<span class="bk-set">${esc(String(dash_(said)))}</span>`;
   }
@@ -436,17 +383,6 @@ function noteRow_() {
     sel: `<input class="bk-in bk-in-l" id="${bkCtl_('note')}" type="text" data-do="book-note"
       value="${esc(BOOKING.note || '')}" placeholder="anything else we should know"
       aria-label="Anything else we should know">` };
-}
-
-/* ---------- TYPING INTO A ROW § */
-function stepInput_(st) {
-  const v = (BOOKING[st.id] || []).filter(x => String(x).trim()).join(', ');
-  /* `readonly`, NOT `disabled`. A locked text box should still be readable and selectable — somebody
-     joining a class may well want to copy the addresses already on it. */
-  /* THE ADDRESSES AS TYPED ARE A DRAFT of their own (data.js; 317) until `change` makes them answers — typed and reloaded before leaving the box, they were not in § */
-  return `<input class="bk-in" id="${bkCtl_(st.id)}" type="text" data-do="book-emails" data-step="${esc(st.id)}"
-    value="${esc(draftVal_('book', 'emails:' + st.id, v))}"${draftAttr_('book', 'emails:' + st.id, v)} placeholder="—" aria-label="${esc(st.label)}"
-    ${stepLocked_(st) ? 'readonly' : ''} autocomplete="off" spellcheck="false">`;
 }
 
 /* ---------- SEVERAL ANSWERS, THE SAME DROPDOWN AS ONE § */
@@ -627,14 +563,13 @@ const FIXED_BY_CLASS = ['subjects', 'level', 'loc', 'n'];
 
 function stepLocked_(st) {
   if (joinedJob_() && FIXED_BY_CLASS.indexOf(st.id) !== -1) return true;
-  try { return !(st.grid || st.emails || st.options().filter(Boolean).length); }
+  try { return !(st.grid || st.options().filter(Boolean).length); }
   catch (e) { return true; }
 }
 
 /* The control a row carries. § */
 function stepControl_(st) {
   if (st.grid) return '';
-  if (st.emails) return stepInput_(st);
   /* A QUESTION TAKING SEVERAL ANSWERS IS THE SAME DROPDOWN — see `stepPick_`. A locked one falls through to the text
      `stepSelect_` draws for a settled answer. */
   if (st.multi && !stepLocked_(st)) return stepPick_(st);
@@ -655,9 +590,7 @@ function stepRows_() {
     .flatMap(st => {
       if (st.week) return stepWeekRows_(st);
       const v = BOOKING[st.id];
-      const text = st.emails
-        ? ((BOOKING.split || []).filter(x => String(x).trim()).join(', '))
-        : st.grid === 'blocks'
+      const text = st.grid === 'blocks'
         /* GROUPED — see `blockSay_`. The stored list is one phrase per cell and this is the
            sentence they add up to, which is the same split the hour grid makes between `m13, m14`
            and `Monday 13:00–15:00`. */
@@ -681,7 +614,7 @@ function stepRows_() {
                sel: stepControl_(st),
                /* THE CONTROL THE ROW'S LABEL IS FOR — see `bkCtl_`. Only when one was drawn: a locked
                   row is text and a grid row has none, and a `for` naming nothing is a label that lies. */
-               ctl: st.grid ? '' : st.emails || !stepLocked_(st) ? bkCtl_(st.id) : '',
+               ctl: st.grid ? '' : !stepLocked_(st) ? bkCtl_(st.id) : '',
                /* ---------- `why` WAS WRITTEN OUT ON FOUR STEPS AND DRAWN NOWHERE § */
                say: (() => {
                  /* ---------- NOTHING IS SAID ABOUT AN ANSWER NOBODY HAS GIVEN § */

@@ -284,7 +284,7 @@ become an owner question showing both; never pick one.
 - Verified needs accuracy, function and every visual its words name (grid, diagram, table, graph…) drawn on it, its stem or what it `uses`: `figUndrawn_` in js/predicates.js, read by `verifyTags_` and by js/check-figures.js, one rule. The parts still waiting are data/settings/figure-backlog.json, which only shrinks.
 ## 11 Nov — one template, one small set of sizes and colours, content by rule (owner)
 - "I just want one template for everything. And a small fixed set of sizes and colors. And content follows rules too."
-- One card template everywhere (picture if real, tags, content, round buttons, centred); the booking form is the one agreed exception.
+- One card template everywhere (picture if real, tags, content, round buttons, centred); the booking form too, since 12 Nov (no exception).
 - A small fixed set of sizes (text, pictures, buttons, corners) and colours; nothing makes its own.
 - Content (pictures, answers, tables) follows one rule per kind. Every visual bug the owner reports becomes a rule the checks hold for all cards.
 ## 11 Nov — the Optimiser (owner)

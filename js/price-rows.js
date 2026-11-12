@@ -77,19 +77,6 @@ const PRICE_ROWS = [
     atCost: true,
     show:  L => false },
 
-  { key: 'split',  label: 'Split with', kind: 'total-mult', group: 'shape',
-    /* The count comes from the addresses. § */
-    control: 'split-emails',
-    /* Splitting changes both the hourly rate and the total, so it reports both — it was the only
-       row that moved the price without saying by how much. */
-    perHour: L => (L.splitOthers || 0) > 0 && L.chargePerHour
-      ? -(L.chargePerHour * (L.splitOthers || 0)) : 0,
-    value: L => String(L.splitOthers || 0),
-    // Splitting with nobody is not a division — a row saying "÷ 1" is an operation that isn't
-    // happening, which reads as a rule you have to think about.
-    scale: L => (L.splitOthers || 0) > 0 ? 1 / ((L.splitOthers || 0) + 1) : 1,
-    show:  L => (L.splitOthers || 0) > 0 },
-
   // --- what builds the hourly rate ---
   /* The bulk and booked-ahead rows lived here. § */
 ];
