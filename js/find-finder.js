@@ -561,8 +561,8 @@ const FACETS = [
   { field: 'qSub',      label: 'Sub-part',    of: x => qSplitOf_(x).sub },
   { field: 'qPage',     label: 'Page',
     of: x => { const n = qPagesOf_(x); return n > 1 ? Array.from({ length: n }, (_, i) => 'Page ' + (i + 1)) : ''; },
-    /* THE ONE PAGE THIS IS, of the pages above. */
-    tagOf: (x, page) => { const i = qPageAt_(x, page); return i && qPagesOf_(x) > 1 ? 'Page ' + i : ''; } },
+    /* THE ONE PAGE THIS IS, of the pages above; the whole card (no page) holds every page, so a walk's `Page 1` chip keeps it. */
+    tagOf: (x, page) => { if (page == null || page === '') return facetBy('qPage').of(x); const i = qPageAt_(x, page); return i && qPagesOf_(x) > 1 ? 'Page ' + i : ''; } },
   { field: 'qPages',    label: 'Pages',
     of: x => { const n = qPagesOf_(x); return n > 1 ? n + ' pages' : ''; },
     tagOf: (x, page) => { const n = qPagesOf_(x); return n > 1 && qPageAt_(x, page) ? n + ' pages' : ''; } },

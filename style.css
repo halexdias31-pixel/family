@@ -1434,12 +1434,12 @@ button.text-drop { color: var(--bad); }
   /* ---------- THE SAME FAMILY AS THE ANSWERS UNDER IT § */
   min-height: var(--tap); padding: 0 var(--s3);
   background: color-mix(in srgb, var(--white) 8%, transparent); border: 1px solid var(--chip-line); border-radius: var(--r-round);
-  color: var(--ink); font: inherit; font-size: var(--fs-small); cursor: pointer;
+  color: var(--ink); font: inherit; font-size: var(--tp-fs); cursor: pointer;
   transition: transform var(--quick) ease, border-color var(--quick) ease;
 }
 .chip:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
-/* THE FUNNEL'S OWN CHIPS: smaller type, but a 44px tap like every control (950); the radius is the one chip token. */
-.chip.sm { min-height: var(--tp-h); border-radius: var(--r-round); padding: var(--tp-pad); position: relative; font-size: var(--tp-fs); line-height: var(--tp-lh); gap: var(--s1); }
+/* THE FUNNEL'S OWN CHIPS: the tag's padding, but a 44px tap like every control (950); the radius is the one chip token. */
+.chip.sm { min-height: var(--tp-h); border-radius: var(--r-round); padding: var(--tp-pad); position: relative; line-height: var(--tp-lh); gap: var(--s1); }
 .chip.sm::before, .row.tap.counted::before { content: ""; position: absolute; inset: calc((var(--tp-h) - 44px) / 2) 0; }
 /* A CHIP OF A KIND IS DRAWN IN ITS COLOUR: § */
 .chip[data-tag] {
@@ -5943,10 +5943,10 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .fav-letter { font-weight: 700; font-size: var(--fs-title); color: var(--ink); }
 .fav-img { position: absolute; inset: 9px; width: 26px; height: 26px; object-fit: contain; background: var(--fav-plate); }
 .fav-name { max-width: 100%; font-size: var(--fs-small); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fav-row { display: flex; align-items: center; gap: var(--s2); padding: var(--s1) 0; border-bottom: 1px solid var(--line); }
 .fav-a { flex: 1; min-width: 0; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fav-host { margin-left: var(--s2); color: var(--ink); font-size: var(--fs-small); }
-.fav-row .tile-row { flex: 0 0 auto; margin: 0; }
+.row.fav-edit { align-items: center; }
+.fav-edit .tile-row { flex: 0 0 auto; margin: 0; }
 .fav-new { margin-top: var(--s2); }
 .cal .cal-h { font-size: var(--fs-small); color: var(--ink); padding: var(--s1) 0; }
 .cal .cal-d { font-size: var(--fs-small); border-radius: var(--r-ui); }

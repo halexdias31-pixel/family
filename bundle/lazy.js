@@ -7622,7 +7622,7 @@ function favDraw_(into) {
       <span class="fav-ico" aria-hidden="true"><span class="fav-letter">${esc((name.replace(/^www\./i, '').match(/[A-Za-z0-9]/) || ['?'])[0].toUpperCase())}</span>${
         favIcoOk_(host) ? `<img class="fav-img" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" src="${esc(favIco_(httpUrl))}">` : ''}</span>
       <span class="fav-name">${esc(name)}</span></a>`; }).join('');
-  const rows = !FAV_EDIT_ ? '' : list.map((l, i) => `<div class="fav-row">
+  const rows = !FAV_EDIT_ ? '' : list.map((l, i) => `<div class="row fav-edit">
       <span class="fav-a">${esc(l.title || favHost_(l.url))}<span class="fav-host">${esc(favHost_(l.url))}</span></span>
       <div class="tile-row fav-tiles">${
         tile_({ icon: 'up', label: 'Move up', act: 'fav-move', data: { i: i, by: -1 }, off: !i || FAV_BUSY_ })
