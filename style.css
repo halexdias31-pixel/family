@@ -486,14 +486,9 @@ html.wide body { max-width: none; box-shadow: none; }
 }
 .btn:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 
-/* ---------- A BUTTON THAT IS WAITING SHOWS THE THREE DOTS (owner, 8 Nov, 30a): loading_()'s look, never a spinner. */
-.btn.is-busy::before, .tile:is(.is-busy, [aria-busy="true"])::before {
-  content: ''; flex: 0 0 auto; width: .32rem; height: .32rem; margin: 0 var(--s2); border-radius: var(--r-round);
-  background: currentColor; box-shadow: -.5rem 0 currentColor, .5rem 0 currentColor;
-  animation: loading 1.2s ease-in-out infinite;
-}
-@media (prefers-reduced-motion: reduce) { .btn.is-busy::before, .tile.is-busy::before { animation: none; } }
-/* A TILE WAITING SHOWS THE DOTS IN PLACE OF ITS MARK. */
+/* ---------- A BUTTON OR TILE THAT IS WAITING SHOWS THE ONE RING (owner, 12 Nov): drawn by the WAITING block below, scaled to 1em. */
+.btn.is-busy::before, .tile:is(.is-busy, [aria-busy="true"])::before { content: ''; margin: 0 var(--s2); }
+/* A TILE WAITING SHOWS THE RING IN PLACE OF ITS MARK. */
 .tile:is(.is-busy, [aria-busy="true"]) { opacity: 1; background: color-mix(in srgb, var(--white) 3%, transparent);
   border-color: var(--line-soft); cursor: progress; }
 .tile:is(.is-busy, [aria-busy="true"]) svg { display: none; }
@@ -1183,17 +1178,19 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
   display: flex; align-items: center; justify-content: center; gap: var(--s2);
   width: 100%; min-height: 3rem; margin: 0; padding: 0;
 }
-.loading > span {
+.loading > span, .btn.is-busy::before, .tile:is(.is-busy, [aria-busy="true"])::before {
   flex: none; display: block; width: var(--s5); height: var(--s5); box-sizing: border-box;
   border: var(--s0) solid var(--ink); border-top-color: transparent; border-radius: 50%;
   animation: loading .9s linear infinite;
 }
+/* ON A CONTROL the ring takes the control's size and colour. */
+.btn.is-busy::before, .tile:is(.is-busy, [aria-busy="true"])::before { width: 1em; height: 1em; border-color: currentColor; border-top-color: transparent; }
 /* ONE SPINNING RING (owner, 12 Nov): a ring with a gap turning forever, ink on screen; the content landing is what ends it. */
 .qp-ai-stage > .loading { width: auto; min-height: 1.3em; flex: none; }
 @keyframes loading { to { transform: rotate(1turn); } }
 /* SLOWER, NOT GONE, for somebody who asked for less movement: a slow turn still says something is on its way. */
 @media (prefers-reduced-motion: reduce) {
-  .loading > span { animation-duration: 4s; }
+  .loading > span, .btn.is-busy::before, .tile:is(.is-busy, [aria-busy="true"])::before { animation-duration: 4s; }
 }
 /* ONLY THE CARD IN FRONT MOVES. § */
 .page:not(.on) .loading > span { animation-play-state: paused; }
@@ -4421,7 +4418,7 @@ a.boxer-src { display: flex; align-items: center; min-height: var(--tap); text-d
 /* THE VERDICT'S LINE, reserved: one line of `.qp-verdict` tall when it is empty, and it wraps rather
    than cutting a sentence off when one is longer. Set in from the edge to sit under the field's words. */
 .qp-compose > .qp-verdict { display: block; min-height: 1.3em; margin: var(--s1) var(--s3) 0; }
-/* MARK WITH AI'S STAGE LINE (456): the dots small and to the left, then where the marking has got to and the seconds. */
+/* MARK WITH AI'S STAGE LINE (456): the ring small and to the left, then where the marking has got to and the seconds. */
 .qp-ai-stage { display: flex; align-items: center; gap: var(--s2); margin: var(--s1) var(--s3) 0; color: var(--ink); font-size: var(--fs-small); }
 /* The saved line under the verdict, indented with it to the field's own text (`.qp-saved` below). */
 .qp-compose > .qp-saved { margin: 2px var(--s3) 0; }

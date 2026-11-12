@@ -673,6 +673,13 @@ function shapeSave_() {
   } catch (e) { /* storage blocked: the column shapes are measured again next visit */ }
 }
 
+/* A BOX PUT TO WAIT: busy, with the one loader first in it -- what loaded_() below undoes. */
+function waiting_(el) {
+  if (!el || !el.setAttribute) return;
+  el.setAttribute('aria-busy', 'true');
+  el.insertAdjacentHTML('afterbegin', loading_());
+}
+
 /* AND TAKEN OFF AGAIN — the one way a box drawn `aria-busy="true"` with a loader over it shows what
    is under it. Silent on a box that was never waiting, so a caller need not know whether it was. */
 function loaded_(el) {

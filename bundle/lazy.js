@@ -255,7 +255,7 @@ function errsStart_() {
     }, errsDraw_)
     .catch(() => { ERRS.asking = false; ERRS.error = 'The error log could not be fetched — check the connection.'; errsDraw_(); });
 }
-on('errs-refresh', () => { ERRS.list = null; ERRS.error = ''; errsDraw_(); document.querySelectorAll('[data-errs] .err-body').forEach(b => { b.setAttribute('aria-busy', 'true'); b.insertAdjacentHTML('beforeend', loading_()); }); errsStart_(); });
+on('errs-refresh', () => { ERRS.list = null; ERRS.error = ''; errsDraw_(); document.querySelectorAll('[data-errs] .err-body').forEach(waiting_); errsStart_(); });
 
 on('tidy-old-rows', el => {
   if (!(typeof isAdmin === 'function' && isAdmin())) return;
@@ -6616,8 +6616,7 @@ function nesStart_(bytes) {
   if (sys !== 'nes') { emuStart_(bytes, sys); return; }
   emuEnd_(); nesSysSet_('nes');
   nesSay_('');
-  stage.setAttribute('aria-busy', 'true');
-  stage.insertAdjacentHTML('beforeend', loading_());
+  waiting_(stage);
   nesLib_().then(lib => {
     loaded_(stage);
     nesStop_();
@@ -7102,8 +7101,7 @@ function emuStart_(bytes, sys) {
   nesStop_(); NES_.nes = null; emuEnd_();
   nesSysSet_(sys); nesSay_('');
   NES_.rom = bytes;
-  stage.setAttribute('aria-busy', 'true');
-  stage.insertAdjacentHTML('beforeend', loading_());
+  waiting_(stage);
   emuLib_().then(cdn => {
     if (!$('nes-stage')) return;
     const ios = emuIos_();

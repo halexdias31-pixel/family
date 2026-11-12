@@ -254,7 +254,7 @@ function errsStart_() {
     }, errsDraw_)
     .catch(() => { ERRS.asking = false; ERRS.error = 'The error log could not be fetched — check the connection.'; errsDraw_(); });
 }
-on('errs-refresh', () => { ERRS.list = null; ERRS.error = ''; errsDraw_(); document.querySelectorAll('[data-errs] .err-body').forEach(b => { b.setAttribute('aria-busy', 'true'); b.insertAdjacentHTML('beforeend', loading_()); }); errsStart_(); });
+on('errs-refresh', () => { ERRS.list = null; ERRS.error = ''; errsDraw_(); document.querySelectorAll('[data-errs] .err-body').forEach(waiting_); errsStart_(); });
 
 on('tidy-old-rows', el => {
   if (!(typeof isAdmin === 'function' && isAdmin())) return;
