@@ -99,7 +99,7 @@ function bizCard_(pg) {
   const due = bizDueCount_(pg);
   /* SPLIT (464): an admin's Split draws each record its own card with its own Save, in the same place; Join puts them back. */
   const id = typeof splitId_ === 'function' ? splitId_('biz', 'rec', pg.title) : '';
-  const tiles = n => (id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '');
+  const tiles = n => (id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '');
   /* A PIECE IS A CARD OF ITS OWN (466): `data-lay-card` names it, so it moves, goes or starts alone. */
   const one = (title, items, first, piece) => card_(`<div class="biz"${first ? ` data-need="rec:${esc(pg.title)}"` : ''}${id ? ` data-split="${esc(id)}"` : ''}${piece ? ` data-lay-card="${esc(piece)}"` : ''}><div class="me-form" data-biz-page="${esc(pg.title)}">
     <h3>${esc(title)}</h3>
@@ -637,7 +637,7 @@ function profitCards_() {
   /* SPLIT (464): each term its own card after the head, in the same place; Join puts them back. */
   const id = typeof splitId_ === 'function' ? splitId_('biz', 'profit-terms') : '';
   const split = id && typeof splitOn_ === 'function' && splitOn_(id);
-  const tiles = n => (id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '');
+  const tiles = n => (id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '');
   const pc = k => (typeof pieceId_ === 'function' ? ` data-lay-card="${esc(pieceId_(id, k))}"` : '');
   if (split) return [sum, card_(`<div class="biz profit" data-profit="terms" data-split="${esc(id)}"${pc('head')}>
     <h3>Profit · the terms</h3>
@@ -1108,7 +1108,7 @@ function bcStatus_(s) {
 }
 
 function bcItem_(item, s) {
-  /* THE TICK ON THE LEFT, THE THING IN WORDS BESIDE IT — one line, as a checklist reads (`.kid-row` lays out a tile and its caption). */
+  /* THE TICK ON THE LEFT, THE THING IN WORDS BESIDE IT — one line, as a checklist reads (`.row.kid-item` lays out a tile and its caption). */
   /* ONE CHILD LINE A THING (10 Nov): its words, its status as a tag coloured by urgency (gold soon, red overdue), its tile in the row. */
   const glow = s.expired ? ' is-over' : s.soon ? ' is-soon' : '';
   const line = `<p class="kc-line bc-line">${esc(item.title)} <span class="qtags"><span class="qtag bc-tag${glow}">${esc(bcTag_(s))}</span></span></p>
@@ -3049,7 +3049,7 @@ function inboxWhen_(ms) {
   return d.toDateString() === now.toDateString() ? time_(d) : date_(d);
 }
 function inboxRowHtml_(r) {
-  return `<div class="ib-row${r.unread ? ' is-unread' : ''}">
+  return `<div class="row ib-item${r.unread ? ' is-unread' : ''}">
     <span class="ib-dot" aria-label="${r.unread ? 'Unread' : ''}"></span>
     <span class="ib-from">${esc(r.from || '(no sender)')}${r.count > 1 ? ` <small>${r.count}</small>` : ''}</span>
     <span class="ib-at">${esc(inboxWhen_(r.at))}</span>

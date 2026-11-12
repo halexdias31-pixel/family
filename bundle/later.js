@@ -446,7 +446,7 @@ const ansKind_ = () => (kindMap_().answer || {}).label || 'Answers';
 
 /* A WIDGET'S FIND CARD (790) IS THE CARD ITS COLUMN DREW — slot, star, padlock, Suggest — started and stopped by arcade.js as a column's are (`finderWidgets_`). */
 function widgetCard_(x) {
-  if (x.widget && typeof widgetOnColumn_ === 'function') return widgetOnColumn_(x.widget, true);   /* `true`: with the admin's group, which a Find card keeps short (`layoutTiles_`) */
+  if (x.widget && typeof widgetOnColumn_ === 'function') return widgetOnColumn_(x.widget, true);   /* `true`: with the admin's group, which a Find card keeps short (`layoutOpts_`) */
   return `<div class="tool-name">
     <h3>${esc(x.name)}</h3>
   </div>`;
@@ -1794,7 +1794,7 @@ function projectPart_(x, part) {
     inner = `${head('Materials')}<div class="gd"><section class="prac-kit">
       ${kitList_(p.materials)}</section></div>`;
   } else if (part === 'steps') {
-    /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminTiles_`'s rule. On a
+    /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminOpts_`'s rule. On a
        project it is mostly about who is in the shot and what stays offline, which is a thing to
        read before filming rather than after. */
     /* A COURSEWORK'S STEPS ARE ITS STAGES -- brief, research, specification, ideas, development, models, making, evaluation -- and that is the word a GCSE pupil and § */
@@ -2909,7 +2909,7 @@ function bibleRedraw_(n) {
     const wrap = card.parentElement && card.parentElement.classList.contains('favwrap') ? card.parentElement : null;
     const row = wrap && wrap.nextElementSibling && wrap.nextElementSibling.classList.contains('tile-row')
       ? wrap.nextElementSibling : null;
-    const tiles = wrap ? cardTiles_(x) : '';
+    const tiles = wrap ? cardRow_(x) : '';
     if (row) { if (tiles) row.outerHTML = tiles; else row.remove(); }
     else if (wrap && tiles) wrap.insertAdjacentHTML('afterend', tiles);
     if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) { oops_(e, 'find:bibleRedraw_') } }
@@ -8241,10 +8241,10 @@ function qAreaWithFoot_(x) {
   QT_MORE.html = ''; QT_MORE.used = false;
   return area + left;
 }
-/* THE CARD'S OWN TILES (share, star, message, top, help) as bare tiles, without the row `cardTiles_` wraps them in */
+/* THE CARD'S OWN TILES (share, star, message, top, help) as bare tiles, without the row `cardRow_` wraps them in */
 function qPartFoot_(p) {
   const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(p, '') : null);
-  return String(cardTiles_(Object.assign(Object.create(p), { lead: help }), true) || '').trim();
+  return String(cardRow_(Object.assign(Object.create(p), { lead: help }), true) || '').trim();
 }
 /* ONE PART, THE SHAPE OF ANY CARD: its tags, a shared stem the first time a drawn part needs it, its words and box, its whole tile row. */
 function qOneCard_(p, ctx) {
@@ -9555,7 +9555,7 @@ function profileDoorCard_(x) {
   /* NO FACE, NO LETTER: the card draws its own default picture, so a lone initial would only stand beside the handle. */
   return `<div class="is-prof prof-door">${!(t.image || t.avatar) ? '' : personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title || t.name, personId: t.personId },
     { cls: 'prof-big', none: 'prof-none', size: 160 })}<h3>${esc(x.name)}</h3>${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
-    ${tileRow_((typeof peopleTiles_ === 'function' ? peopleTiles_(t) : ''), 'person-tiles')}${typeof personEdHtml_ === 'function' ? personEdHtml_(t) : ''}</div>`;
+    ${tileRow_((typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(t)) : ''), 'person-tiles')}${typeof personEdHtml_ === 'function' ? personEdHtml_(t) : ''}</div>`;
 }
 
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */
@@ -10284,7 +10284,7 @@ function jobPage_(j) {
   const stage = typeof jobStage_ === 'function' ? jobStage_(j) : '';
   const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
   const admin = typeof isAdmin === 'function' && isAdmin();
-  const own = typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '';
+  const own = typeof jobOpts_ === 'function' ? tile_(jobOpts_({ row: j })) : '';
   /* ONE CART TILE (owner, 7 Nov): an admin on their own booking already has Pay and confirm, so no Mark as paid beside it. */
   const pays = own.indexOf('job-pay') !== -1;
   const tiles = (typeof jobMsgTiles_ === 'function' ? jobMsgTiles_({ row: j }) : '')
@@ -10292,7 +10292,7 @@ function jobPage_(j) {
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
     + (typeof suggestTile_ === 'function' && j && j.id ? suggestTile_('session', String(j.id), 'Booking') : '')
-    + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes && !pays) : '');
+    + (admin && typeof jobAdminOpts_ === 'function' ? tile_(jobAdminOpts_(j, stage, yes && !pays)) : '');
   /* THE REQUEST'S STANDING, one paragraph under the row (488). */
   const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
   const roomOk = j && j.id && (admin || (USER && norm(j.tutor || '') === norm(USER.name)));
@@ -10440,7 +10440,7 @@ function accountFamCard_(f, famLabel_, personForm_, tcard_) {
   /* A CHILD'S PHOTOGRAPHED WORKING (501), to the parent they accepted; staff see it on the admin's list below. */
   const more = tile_(f.relation === 'child' ? [typeof workSeeOpts_ === 'function' ? workSeeOpts_(f.personId, true) : null,
       typeof workFileOpts_ === 'function' ? workFileOpts_(f.personId) : null] : null)
-    + (typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '');
+    + (typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(row)) : '');
   return personMark_(f.personId, personForm_(row) || tcard_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
 }
 
@@ -10464,7 +10464,7 @@ function accountEveryone_(col, famIds, personForm_, tcard_) {
           data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
           + tile_(isStudentsCol_(col) ? [typeof workSeeOpts_ === 'function' ? workSeeOpts_(p.personId) : null,
             typeof workFileOpts_ === 'function' ? workFileOpts_(p.personId) : null] : null)
-          + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : ''), 'person-tiles') : '')));
+          + (typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(p)) : ''), 'person-tiles') : '')));
 }
 
 /* YOUR OWN CARD, IN A LIST OF ONE OR NONE. */
@@ -10497,7 +10497,7 @@ function accountPages_(col) {
   const asItem_ = (t, kind) => ({
     kind: kind || 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
     cost: priced_(t.rate), off: t.listed === false, row: t, account: true, col: col,
-    more: typeof peopleTiles_ === 'function' ? peopleTiles_(t) : '',
+    more: typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(t)) : '',
   });
 
   /* ---------- A CARD OPEN FOR EDITING IS ITS OWN FORM, IN ITS OWN PLACE § */
@@ -10506,7 +10506,7 @@ function accountPages_(col) {
   const personForm_ = t => typeof personFormFor_ === 'function' ? personFormFor_(t, col) : '';
   const tcard_ = t => typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '';
   const withTiles_ = t => personForm_(t) || (editing_(t) ? cardEditHtml_(t)
-    : tcard_(t) + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : ''));
+    : tcard_(t) + (typeof cardRow_ === 'function' ? cardRow_(asItem_(t)) : ''));
 
   const { famLabel_, famMine, family } = accountFamily_();
   const famCard_ = f => accountFamCard_(f, famLabel_, personForm_, tcard_);
@@ -11020,7 +11020,7 @@ function stuffCard(x, credits) {
   const shown = html;
   if (!x.key) return shown;
   /* A ONE-MAKER CARD CARRIES ITS OWN FOUR BUTTONS (`kcFour_`); only a widget kind still gets the row under it. */
-  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${shown}</div>${/\bkc-four\b/.test(shown) ? '' : cardTiles_(x)}`;
+  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${shown}</div>${/\bkc-four\b/.test(shown) ? '' : cardRow_(x)}`;
 }
 
 /* LONG CARD TEXT IS CUT TO TWO LINES (owner 8 Nov, 29a); a tap on it shows the rest, a second tap cuts it again. */
@@ -12361,7 +12361,7 @@ function paintDocket() {
 
   /* ---------- A ROW IS IDENTIFIED BY ITS TEXT, NOT BY WHERE IT SITS § */
   host.innerHTML = list.map((l, i) => `
-    <label class="dock-row${l.done ? ' done' : ''}">
+    <label class="row dock-item${l.done ? ' done' : ''}">
       <input type="checkbox" data-do="dock-tick" data-i="${i}" data-t="${esc(l.text)}"
              ${l.done ? 'checked' : ''}>
       <span class="box"></span>
@@ -16527,7 +16527,7 @@ function wfList_(of) {
   const s = wfOf_(of);
   if (s.rows === null) return loading_();
   if (!s.rows.length) return '<p class="note">Nothing on file yet. Scan a page to keep it here.</p>';
-  return `<ul class="wf-rows">${s.rows.map(r => `<li class="wf-row">
+  return `<ul class="wf-rows">${s.rows.map(r => `<li class="row wf-item">
     ${r.thumb ? `<img class="wf-thumb" src="${esc(r.thumb)}" alt="">` : '<span class="wf-thumb" aria-hidden="true"></span>'}
     <span class="wf-what"><span class="wf-name">${esc(r.title || r.subject || 'Scanned work')}</span>
       <span class="wf-when note">${esc(wfDate_(r.at))}${r.subject && r.title ? ' · ' + esc(r.subject) : ''} · ${esc(String(r.pages || 1))} page${r.pages === 1 ? '' : 's'}${r.by && r.by !== 'you' ? ' · by ' + esc(r.by) : ''}</span></span>
@@ -17319,14 +17319,14 @@ const QT_TILE = {
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
 const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
 const qtInHand_ = pk => pk && typeof PAD_ON !== 'undefined' && PAD_ON === pk ? (PAD_TOOL.get(pk) || 'pen') : '';
-function qtToolTile_(t, x) {
+function qtToolOpts_(t, x) {
   const key = (x && x.key) || '';
-  if (QT_TILE[t.id]) { const o = QT_TILE[t.id](t, x, key); return o ? tile_(o) : ''; }
+  if (QT_TILE[t.id]) return QT_TILE[t.id](t, x, key);
   /* A CARD DRAWN AGAIN keeps the tool in hand lit, by the one rule `qtLight_` uses too */
   const pk = qtPadKey_(t, x);
   const on = qtToolOn_(t.id, key, pk, qtInHand_(pk));
   const cls = 'qt-t' + (isMeasureTool_(t.id) ? ' q-meast' : '');
-  return tile_({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } });
+  return { icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } };
 }
 /* IS THIS TOOL IN HAND, the one rule: Ruler or Protractor laid on a figure (MEAS), the protractor on the pad, the rest the pad's tool */
 /* A MEASURING TOOL NOT LAID ON A FIGURE: the ruler is then out of hand; the protractor may still be on the pad. */
@@ -17355,7 +17355,7 @@ function qtRow_(x, held) {
   /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
   const art = typeof padReady_ !== 'function' || padReady_(x);
   const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
-  const tools = ids.map(qtTool_).filter(Boolean).map(t => qtToolTile_(t, x)).join('') + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
+  const tools = tile_(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x))) + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
   const m = markerOf_(x);
   /* A PART OF A WHOLE QUESTION (owner, 8 Nov): its Show-the-answer and card tiles join this row, so the part has one row, not three */
   const more = QT_MORE.html; QT_MORE.html = ''; QT_MORE.used = true;
@@ -19898,7 +19898,7 @@ const jobReceipt = (j, foot) => bookingDoc_(j, foot);
 /* ---------- ASKING TO JOIN SOMEBODY ELSE'S SESSION IS A TILE ON ITS PAPER NOW § */
 /* ---------- THE STEP THAT WAS NOT THERE AT ALL § */
 /* `payBlock` AND `leaveBlock` WERE HERE. Both are marks in the tile row under the card now —
-   `jobTiles_` in tiles.js — which is where every other kind in this app keeps its actions, and the
+   `jobOpts_` in tiles-jobs.js — which is where every other kind in this app keeps its actions, and the
    reasoning is written there. */
 
 /* ---------- WHEN THE FAMILIES ON A LIST CAN COME § */
@@ -21828,7 +21828,7 @@ on('tal-size', el => {
     const x = (typeof talmudItems_ === 'function' ? talmudItems_() : []).find(y => y.key === c.getAttribute('data-key'));
     const wrap = c.parentElement && c.parentElement.classList.contains('favwrap') ? c.parentElement : null;
     const row = wrap && wrap.nextElementSibling && wrap.nextElementSibling.classList.contains('tile-row') ? wrap.nextElementSibling : null;
-    const t = x && row && document.createElement('div'); if (t) t.innerHTML = cardTiles_(x);
+    const t = x && row && document.createElement('div'); if (t) t.innerHTML = cardRow_(x);
     const f = t && t.firstElementChild; if (f) { row.className = f.className; row.innerHTML = f.innerHTML; }
   });
 });
@@ -24074,33 +24074,29 @@ function layoutSeen_(col, D) {
   return (D.widgets[col] || []).filter(id => { const w = layoutWidgetOf_(id); return w && widgetFor_(w); });
 }
 
-/* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete — drawn by `widgetOnColumn_` (arcade.js) ---------- */
-function layoutTiles_(w) {
-  if (!w || !isAdmin()) return '';
+/* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete, as tile_'s options grouped by `widgetOnColumn_` (arcade.js) ---------- */
+function layoutOpts_(w) {
+  if (!w || !isAdmin()) return null;
   /* A FIND CARD (790) IS PLACED BY THE FUNNEL, so it has no ▲ ▼ ◀ ▶: its words, who sees it and Delete, which are the widget's own. */
   if (typeof widgetInFind_ === 'function' && widgetInFind_(w)) {
     const id = String(w.id);
-    return `<span class="tile-group is-admin wgt-admin">${tile_(wordsOpts_('w:' + id, id))}${
-      tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' })}</span>`;
+    return [wordsOpts_('w:' + id, id), { icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }];
   }
-  if (!LAYOUT_EDIT || !LAYOUT_COL[w.kind]) return '';
+  if (!LAYOUT_EDIT || !LAYOUT_COL[w.kind]) return null;
   const id = String(w.id), L = layoutNow_(), col = layoutHome_(w, L);
-  if (!col) return '';
+  if (!col) return null;
   /* THE COLUMN'S UNITS AS DRAWN (710), widgets and cards together, so ▲ ▼ step over a card as over a widget. */
   const units = mergeUnits_(CARD_SEEN[col] || layoutSeen_(col, layoutDraftOf_(L)), L), ui = units.findIndex(u => u.indexOf(id) !== -1);
   const grp = mergedOf_(id, L), above = ui > 0 ? units[ui - 1] : null;
   /* A MERGE IS OF ONE KIND: a widget with the widget above, never with a card. */
   const up = above && above.every(isWidgetId_) && mergeOk_(mergeAll_(above[0], L).concat(grp || [id]));
-  return `<span class="tile-group is-admin wgt-admin">${
-    tile_({ icon: 'up', label: 'Move up', act: 'lay-w-move', tone: 'admin', data: { w: id, d: -1 }, off: ui <= 0 })}${
-    tile_({ icon: 'down', label: 'Move down', act: 'lay-w-move', tone: 'admin', data: { w: id, d: 1 }, off: ui === -1 || ui >= units.length - 1 })}${
-    tile_(acrossOpts_(id, col, true, { w: id }))}${colTiles_(col, id)}${
-    up ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } }) : ''}${
-    grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
-    tile_(startOpts_(col, id, ((L || {}).start || {})[col] || ''))}${
-    tile_(frontOpts_(col, id))}${tile_(wordsOpts_('w:' + id, id))}${
-    notePair_(!(grp || [id]).some(basketKept_) ? tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }) : '',
-      '')}</span>`;
+  return [{ icon: 'up', label: 'Move up', act: 'lay-w-move', tone: 'admin', data: { w: id, d: -1 }, off: ui <= 0 },
+    { icon: 'down', label: 'Move down', act: 'lay-w-move', tone: 'admin', data: { w: id, d: 1 }, off: ui === -1 || ui >= units.length - 1 },
+    acrossOpts_(id, col, true, { w: id }), ...colOpts_(col, id),
+    up ? { icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } } : null,
+    grp ? { icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } } : null,
+    startOpts_(col, id, ((L || {}).start || {})[col] || ''), frontOpts_(col, id), wordsOpts_('w:' + id, id),
+    !(grp || [id]).some(basketKept_) ? { icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' } : null];
 }
 /* ◀ ▶ FOR EVERY UNIT (710): the neighbouring column whatever it holds; past an edge, a new column. */
 function acrossOpts_(id, col, isW, data) {
@@ -24328,13 +24324,15 @@ const splitId_ = (kind, a, b) => kind + ':' + [a, b].filter(Boolean).map(x => St
   .replace(/^-|-$/g, '').slice(0, 28) || 'x').join(':');
 function splitOn_(id) { const L = layoutNow_(); return !!(L && L.split && L.split.indexOf(id) !== -1); }
 /* THE ADMIN'S TILE UNDER A SPLITTABLE CARD (Split) or under each of its pieces (Join); '' for anybody else. */
-function splitTiles_(id, n) {
-  if (!isAdmin() || !LAYOUT_SPLIT_ID.test(id)) return '';
-  if (!splitOn_(id) && !(n > 1)) return '';
-  return `<div class="tile-row wgt-admin split-tiles">${splitOn_(id)
-    ? tile_({ icon: 'merge', label: 'Join', note: 'gathers every piece back into one card', act: 'lay-join', tone: 'admin', data: { card: id } })
-    : tile_({ icon: 'split', label: 'Split', note: 'a card a field', act: 'lay-split', tone: 'admin', data: { card: id } })}</div>`;
+function splitOpts_(id, n) {
+  if (!isAdmin() || !LAYOUT_SPLIT_ID.test(id)) return null;
+  if (!splitOn_(id) && !(n > 1)) return null;
+  return splitOn_(id)
+    ? { icon: 'merge', label: 'Join', note: 'gathers every piece back into one card', act: 'lay-join', tone: 'admin', data: { card: id } }
+    : { icon: 'split', label: 'Split', note: 'a card a field', act: 'lay-split', tone: 'admin', data: { card: id } };
 }
+/* ITS ROW UNDER THE CARD, or '' for anybody but an admin. */
+function splitRow_(id, n) { const h = tile_(splitOpts_(id, n)); return h ? `<div class="tile-row wgt-admin split-tiles">${h}</div>` : ''; }
 function splitSet_(id, on) {
   if (!isAdmin() || !LAYOUT_SPLIT_ID.test(id)) return;
   const D = layoutDraftOf_(layoutNow_());
@@ -24674,7 +24672,7 @@ function cardAdminRow_(id, col, mergeable) {
   return `<div class="tile-row wgt-admin card-admin" data-lay-for="${esc(id)}">${
     tile_({ icon: 'up', label: 'Move up', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: i <= 0 })}${
     tile_({ icon: 'down', label: 'Move down', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: 1 }, off: i === -1 || i >= seen.length - 1 })}${
-    tile_(acrossOpts_(id, col, false, { lc: id }))}${colTiles_(col, id)}${
+    tile_([acrossOpts_(id, col, false, { lc: id }), ...colOpts_(col, id)])}${
     tile_(startOpts_(col, id, start))}${
     tile_(frontOpts_(col, id))}${tile_(wordsOpts_(id, id))}${
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
@@ -24910,15 +24908,14 @@ function colOrderApply_(L) {
   slots.forEach((at, k) => { COLUMNS[at] = tabs[k]; });
 }
 /* ◀ ▶ ON A COLUMN: on its first unit's admin row, beside that unit's own; `lay-col` swaps it with the neighbouring column this admin sees. */
-function colTiles_(col, id) {
-  if (!isAdmin() || (CARD_SEEN[col] || [])[0] !== id) return '';
+function colOpts_(col, id) {
+  if (!isAdmin() || (CARD_SEEN[col] || [])[0] !== id) return [];
   let seq = [];
   try { seq = TABS.map(t => t.id); } catch (e) { seq = []; }
   const i = seq.indexOf(col);
-  if (i === -1) return '';
-  return `<span class="tile-group is-admin col-move">${
-    tile_({ icon: 'col-left', label: 'Move this column left', act: 'lay-col', tone: 'admin', data: { col: col, d: -1 }, off: i <= 0 })}${
-    tile_({ icon: 'col-right', label: 'Move this column right', act: 'lay-col', tone: 'admin', data: { col: col, d: 1 }, off: i >= seq.length - 1 })}</span>`;
+  if (i === -1) return [];
+  return [{ icon: 'col-left', label: 'Move this column left', act: 'lay-col', tone: 'admin', data: { col: col, d: -1 }, off: i <= 0 },
+    { icon: 'col-right', label: 'Move this column right', act: 'lay-col', tone: 'admin', data: { col: col, d: 1 }, off: i >= seq.length - 1 }];
 }
 on('lay-col', el => {
   const col = el.getAttribute('data-col') || '', d = Number(el.getAttribute('data-d')) || 0;
@@ -25216,7 +25213,7 @@ function seenBox_(id) {
   const now = seenOf_(id), gate = seenGate_(id);
   const opt = (v, say) => `<option value="${v}"${v === now ? ' selected' : ''}${seenWider_(v, gate) && v !== now ? ' disabled' : ''}>${esc(say)}</option>`;
   return `<div class="seen-box" data-seen-for="${esc(id)}">
-    <label class="seen-row"><span class="seen-l">Who sees this</span><select data-do="seen-set" data-lc="${esc(id)}" aria-label="Who sees this">${
+    <label class="row seen-item"><span class="seen-l">Who sees this</span><select data-do="seen-set" data-lc="${esc(id)}" aria-label="Who sees this">${
       opt('', 'Everyone')}${SEEN_ORDER.map(v => opt(v, SEEN_SAY[v])).join('')}</select></label>
     <div class="tile-row">${tile_({ icon: 'close', label: 'Close', act: 'seen-close', tone: 'admin' })}</div>
   </div>`;

@@ -4360,7 +4360,7 @@ function nothingHere(whenEmpty, needsLibrary) {
 }
 
 /* WAITING — ONE LOADER FOR EVERY CARD, AND THIS IS THE ONLY PLACE IT IS WRITTEN § */
-/* A BAR, NOT DOTS (owner, 11 Nov): its one track fills steadily and slows near the end, so a long Apps Script wait reads as progress. */
+/* A SPINNING RING (owner, 12 Nov): one ring with a gap, turning forever; style.css draws it. */
 function loading_() {
   return '<div class="loading" role="status" aria-label="Loading">'
     + '<span></span></div>';
@@ -7741,7 +7741,7 @@ function rulesCard_() {
   const row = r => {
     const uni = !ruleOn_(r.id);
     const opt = (to, label) => tile_({ form: true, look: 'btn quiet rule-opt' + ((to === 'universal') === uni ? ' on' : ''), act: 'rule-set', data: { rule: r.id, to: to }, pressed: (to === 'universal') === uni, html: label });
-    return `<div class="rule-row${r.lock ? ' is-locked' : ''}" data-rule="${esc(r.id)}">
+    return `<div class="row rule-item${r.lock ? ' is-locked' : ''}" data-rule="${esc(r.id)}">
       <p class="rule-say">${esc(r.say)} <span class="qtag">${esc(r.where)}</span></p>
       ${r.lock ? ''
         : `<div class="rule-sw" role="group" aria-label="${esc(r.say)}">${opt('exception', 'Exception')}${opt('universal', 'Universal')}</div>
@@ -7785,7 +7785,7 @@ on('rules-undo', el => rulesSend_({ undo: true }, el));
 /* ---------- WHAT A PERSON, A PLACE AND A SUBJECT LOOK LIKE § */
 /** One card. The three shapes, each carrying the class that colours its name. */
 /* ---------- YOU, AS A CARD § */
-/* NO `cardTiles_` CALL HERE. § */
+/* NO `cardRow_` CALL HERE. § */
 /* ---------- ONE PERSON, ONE CARD § */
 function passFor_(name) {
   const n = norm(name);
@@ -8035,7 +8035,7 @@ function rateRange_(t) {
 ;
 /* ==== js/cards-parts.js ==== */
 
-/* ONE CARD FOR EVERY KIND (owner, 8 Nov): picture, title, tags, lines, then its tile row (`cardTiles_`).
+/* ONE CARD FOR EVERY KIND (owner, 8 Nov): picture, title, tags, lines, then its tile row (`cardRow_`).
    card-fields.json picks each part's fields; check-card-shape holds the shape. */
 const KC_PARTS = ['pic', 'head', 'tags', 'lines', 'act'];
 /* WHO A CARD IS DRAWN FOR: undefined is whoever is signed in; a share sets 'public' while it draws (tutorPng_). */
@@ -8157,11 +8157,11 @@ function kcSpec_(kind) {
   return rows[kind] || KC_BARE;
 }
 /* EVERY CARD OF A KIND SHOWS ITS KIND'S TILES (owner 35a, 8 Nov): one this card cannot use is drawn greyed (`off`), never left out. */
-function kcTilesFill_(x, html) {
+function kcOffOpts_(x, html) {
   const s = x && x.key ? kcSpec_(x.kind) : null;
-  if (!s || !(s.tiles || []).length) return html;
-  return html + s.tiles.map(t => { const [act, icon, label] = String(t).split(':');
-    return new RegExp('data-do="' + act + '"').test(html) ? '' : tile_({ icon, label: label || act, act, off: true, cls: 'kc-off' }); }).join('');
+  if (!s || !(s.tiles || []).length) return [];
+  return s.tiles.map(t => { const [act, icon, label] = String(t).split(':');
+    return new RegExp('data-do="' + act + '"').test(html) ? null : { icon, label: label || act, act, off: true, cls: 'kc-off' }; }).filter(Boolean);
 }
 /* ---------- A CARD ITS OWN FILE STILL WRITES, CUT INTO THE FOUR PARTS ---------- */
 const KC_VOID = /^(area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr)$/;
@@ -8229,11 +8229,11 @@ function kcFour_(x, rest, main) {
 function kcActRow_(x, html, own) {
   if (/class="[^"]*\bkc-four\b/.test(html)) return '';
   let rest = own || '';
-  try { rest += x && x.key && typeof cardTiles_ === 'function' ? cardTiles_(x, true) : ''; } catch (e) { oops_(e, 'card:tiles'); }
+  try { rest += x && x.key && typeof cardRow_ === 'function' ? cardRow_(x, true) : ''; } catch (e) { oops_(e, 'card:tiles'); }
   /* A KIND'S TILE GREYED FOR WANT OF ONE goes when its own maker's row brought the real one. */
   const real = (String(own || '').match(KC_TILE_RE) || []).map(kcAct_);
   rest = rest.replace(KC_TILE_RE, t => (/\bkc-off\b/.test(t) && real.indexOf(kcAct_(t)) >= 0 ? '' : t));
-  return `<div class="tile-row kc-row">${kcFour_(x, kcTilesFill_(x, rest))}</div>`;
+  return `<div class="tile-row kc-row">${kcFour_(x, rest + tile_(kcOffOpts_(x, rest)))}</div>`;
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {
@@ -8820,16 +8820,16 @@ function applyAdult_() {
   const age = profileAge_(USER && USER.profile);
   return age !== null && age >= 18;
 }
-/* THE PADLOCK'S ONE TILE (464): Apply to teach, or where the application stands, on the tile itself; '' for a child. */
-function applyTile_() {
-  if (!USER || rankAtLeast_('staff')) return '';
+/* THE PADLOCK'S ONE TILE (464): Apply to teach, or where the application stands, on the tile itself; null for a child. */
+function applyOpts_() {
+  if (!USER || rankAtLeast_('staff')) return null;
   if (profileAge_(USER.profile) === null)
-    return tileRow_(tile_({ icon: 'join', label: 'Apply to teach', note: 'add your date of birth first', act: 'apply-open', off: true }), 'apply-tiles');
-  if (!applyAdult_()) return '';
+    return { icon: 'join', label: 'Apply to teach', note: 'add your date of birth first', act: 'apply-open', off: true };
+  if (!applyAdult_()) return null;
   const st = USER.application && USER.application.status;
   if (st === 'new' || st === 'interview')
-    return tileRow_(tile_({ icon: 'join', label: 'Application sent', note: st === 'interview' ? 'we will arrange a talk' : 'we will be in touch', act: 'apply-open', off: true }), 'apply-tiles');
-  return tileRow_(tile_({ icon: 'join', label: st === 'declined' ? 'Apply again' : 'Apply to teach', note: st === 'approved' ? 'approved' : '', act: 'apply-open' }), 'apply-tiles');
+    return { icon: 'join', label: 'Application sent', note: st === 'interview' ? 'we will arrange a talk' : 'we will be in touch', act: 'apply-open', off: true };
+  return { icon: 'join', label: st === 'declined' ? 'Apply again' : 'Apply to teach', note: st === 'approved' ? 'approved' : '', act: 'apply-open' };
 }
 /* THE DOCUMENT PHOTOS PICKED SO FAR, as 1200px JPEG data URLs by slot (idDoc, rtwDoc, qual0…): sent with the form, kept nowhere else. */
 const APPLY_DOCS = {};
@@ -9991,7 +9991,7 @@ function uploadsHtml_(d) {
       shared and binned.</p>`;
   }
   if (d.error) return tile + `<p class="up-said up-bad">${esc(d.error)}</p>`;
-  const rows = (d.checks || []).map(c => `<li class="up-row ${c.ok ? 'is-ok' : 'is-bad'}">
+  const rows = (d.checks || []).map(c => `<li class="row up-item ${c.ok ? 'is-ok' : 'is-bad'}">
       <b class="up-mark" role="img" aria-label="${c.ok ? 'yes' : 'no'}">${c.ok ? '✓' : '✗'}</b>
       <span><span class="up-k">${esc(c.label)}</span>
       <span class="up-v">${esc(c.said)}</span></span></li>`).join('');
@@ -10225,7 +10225,7 @@ function kidListSec_(held) {
     /* THEIR FIRST NAME, as the server calls a child (docs/history/333), without the `(@handle)` it adds
        when two children share one — the handle is printed beside it. */
     const first = String(nameBesideHandle_(f.title, f.handle) || f.title).trim();
-    return `<div class="kid-row">
+    return `<div class="row kid-item">
       ${personFace_({ pic: f.image, avatar: f.avatar, handle: f.handle, name: first, personId: f.personId },
                     { cls: 'kid-face', none: 'prof-none', size: 36 })}
       <p class="kid-who"><b>${esc(first)}</b>${f.handle ? `<span class="prof-handle">@${esc(f.handle)}</span>` : ''}</p>
@@ -10401,7 +10401,7 @@ function settingsCards_(shown, moved, col) {
     },
     save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
     foot: (mail(list) ? movingNote_(p) : '') + '<p class="note me-said"></p>',
-    after: id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '' }));
+    after: id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '' }));
   const out = [];
   Object.keys(shown).forEach((g, k) => {
     const list = shown[g] || [], top = k === 0 ? moved : '';
@@ -10575,14 +10575,14 @@ screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_
 /* APPLY TO TEACH IS A CARD OF ITS OWN, not a line on the padlock: Find › Settings skips a padlock, and the owner onboards through Find (1150). */
 function applyCard_() {
   const open = typeof applyFormOpen_ === 'function' && applyFormOpen_();
-  const body = open ? applyFormHtml_() : typeof applyTile_ === 'function' ? applyTile_() : '';
+  const body = open ? applyFormHtml_() : typeof applyOpts_ === 'function' && applyOpts_() ? tileRow_(tile_(applyOpts_()), 'apply-tiles') : '';
   return body ? [card_(`<div class="apply-card" data-yours="1"><h3>Apply to teach</h3><p class="note">Teach with us: tell us what you teach, and we will be in touch.</p>${body}</div>`)] : [];
 }
 /* ---------- TUTOR SETTINGS: THE STAFF HUB AND THE TEACHING SETTINGS WITH NO CARD TO LIVE ON (453) ---------- */
 function staffPages_() {
   const title = tabLabel_('staff', 'Tutor settings');
   if (!USER) return [signedOutCard_(title)].concat(lockedPages_('staff'));
-  /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyTile_`), then every card shut (467). */
+  /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyOpts_`), then every card shut (467). */
   if (!rankAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
   const hub = typeof hubBlock_ === 'function' ? hubBlock_() : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
@@ -12675,17 +12675,17 @@ function cardEditing_(t, col) {
   return !!(e && t && t.personId && String(t.personId) === e.pid && cardMayEdit_(t) && (!col || (e.col || cardColOf_(e)) === col));
 }
 /* ---------- THE EDIT TILE — `x.account` IS THE YOU COLUMN, the one place the editor is drawn § */
-function cardEditTile_(x) {
+function cardEditOpts_(x) {
   const t = (x && x.row) || {};
-  if (!x || !x.account || !cardMayEdit_(t)) return '';
+  if (!x || !x.account || !cardMayEdit_(t)) return null;
   /* NOT ON THE CARD BEING EDITED. § */
   const own = String(t.personId) === String(USER.personId || '');
   const col = x.col || (own ? homeCol_() : 'tutors');
-  if (cardEditing_(t, col)) return '';
+  if (cardEditing_(t, col)) return null;
   /* YOUR OWN CARD'S EDIT IS ON YOUR SETTINGS COLUMN ALONE (464, `ownCardSetPage_`); nobody edits somebody else's (467). */
-  if (own && !x.settings) return '';
-  if (own ? !ownCardSections_(col).length : !isTutorsCol_(col)) return '';
-  return tile_({ icon: 'edit', label: 'Edit', note: own ? (isTutorsCol_(col) && rankAtLeast_('staff') ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
+  if (own && !x.settings) return null;
+  if (own ? !ownCardSections_(col).length : !isTutorsCol_(col)) return null;
+  return ({ icon: 'edit', label: 'Edit', note: own ? (isTutorsCol_(col) && rankAtLeast_('staff') ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
                  tone: own ? '' : 'admin', data: { pid: t.personId, col } });
 }
 
@@ -12815,13 +12815,13 @@ function cardEditHtml_(t) {
   if (!base) {
     if (!e.err) setTimeout(() => cardFetch_(e), 0);
     return card_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}${
-      e.err ? `<p class="note me-said">${esc(e.err)}</p>` : loading_()}</div>${cardEditTiles_(pid, true)}`);
+      e.err ? `<p class="note me-said">${esc(e.err)}</p>` : loading_()}</div><div class="tile-row ce-tiles">${tile_(cardSaveOpts_(pid, true))}</div>`);
   }
   const { vals, held } = cardValues_(e, base);
   return card_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}
     <div class="me-form" data-draw="${cardDrawn_(base)}">${cardEditForm_(t, e, vals)}
       <p class="note me-said">${held ? esc(SET_HELD_SAY) : ''}</p></div>
-  </div>${cardEditTiles_(pid, false)}`);
+  </div><div class="tile-row ce-tiles">${tile_(cardSaveOpts_(pid, false))}</div>`);
 }
 /* YOUR OWN CARD'S EDIT, ONE CARD PER SECTION (468): each its own form, draft, Save and layout id — the owner, "settings is purely editing". */
 function cardEditCards_(t, e, secs, setCol) {
@@ -12839,12 +12839,12 @@ function cardEditCards_(t, e, secs, setCol) {
       save: cardCancelTile_(pid), foot: `<p class="note me-said">${held ? esc(SET_HELD_SAY) : ''}</p>` }));
   });
 }
-function cardEditTiles_(pid, saveOff) {
-  return `<div class="tile-row ce-tiles">${tile_({ icon: 'save', label: 'Save', note: 'every change', act: 'card-save',
-    off: !!saveOff, data: { pid } }) + cardCancelTile_(pid)}</div>`;
+function cardSaveOpts_(pid, saveOff) {
+  return [{ icon: 'save', label: 'Save', note: 'every change', act: 'card-save', off: !!saveOff, data: { pid } }, cardCancelOpts_(pid)];
 }
 /* A SETTINGS SECTION KEEPS ITS CANCEL (what it puts back is the last save) and has no Save: it saves as typed (owner, 8 Nov). */
-const cardCancelTile_ = pid => tile_({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel', data: { pid } });
+const cardCancelOpts_ = pid => ({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel', data: { pid } });
+const cardCancelTile_ = pid => tile_(cardCancelOpts_(pid));
 /* ---------- ONE LINE A THING, OPENING IN PLACE (docs/history/425) § */
 /* WHICH FOLDS ARE OPEN, as state and not in the DOM, so a repaint (a save, a figure pick) draws them as they were. */
 const CE_OPEN = new Set();
@@ -13358,21 +13358,19 @@ const peopleRolePicks_ = () => 'student client tutor'.split(' ').map(r => (ROLE_
 const peopleMay_ = () => typeof isAdmin === 'function' && isAdmin() && !!USER;
 const peopleSelf_ = p => !!(USER && p && p.personId && String(p.personId) === String(USER.personId || ''));
 
-/* DELETE, SHOW PIN AND THE DIGEST UNDER SOMEBODY ELSE'S CARD, for an admin; '' for anybody else and on your own. */
-function peopleTiles_(p) {
-  if (!peopleMay_() || !p || !p.personId || peopleSelf_(p)) return '';
+/* DELETE, SHOW PIN AND THE DIGEST UNDER SOMEBODY ELSE'S CARD, for an admin; null for anybody else and on your own. */
+function peopleOpts_(p) {
+  if (!peopleMay_() || !p || !p.personId || peopleSelf_(p)) return null;
   const first = String(nameBesideHandle_(p.title, p.handle) || p.title || '').trim().split(' ')[0] || 'them';
   /* EDIT THEIR DETAILS (edit-person): an admin's, by the permissions table; the card becomes the form (`personEdHtml_`). */
-  return (typeof personEdMay_ === 'function' && personEdMay_() ? tile_({ icon: 'edit', label: 'Edit', note: 'their details', act: 'person-edit', tone: 'admin',
-              data: { id: p.personId, name: p.title || '' } }) : '')
-    + tile_({ icon: 'bin', label: 'Delete', note: 'their account', act: 'person-del', tone: 'danger',
-              data: { id: p.personId, name: first } })
+  return [typeof personEdMay_ === 'function' && personEdMay_() ? { icon: 'edit', label: 'Edit', note: 'their details', act: 'person-edit', tone: 'admin',
+              data: { id: p.personId, name: p.title || '' } } : null,
+    { icon: 'bin', label: 'Delete', note: 'their account', act: 'person-del', tone: 'danger', data: { id: p.personId, name: first } },
     /* "SHOW PIN" (452): fetched on the tap by `pinShow`, admin only on the server too; never in the payload. */
-    + tile_({ icon: 'key', label: 'Show PIN', note: 'tap again to hide', act: 'pin-show', tone: 'admin',
-              data: { id: p.personId } })
+    { icon: 'key', label: 'Show PIN', note: 'tap again to hide', act: 'pin-show', tone: 'admin', data: { id: p.personId } },
     /* AND ON A PARENT'S CARD, LAST MONDAY–SUNDAY'S WORK EMAILED NOW (378) — `digestSendNow`, admin only on the server too. */
-    + (/^Client\b/.test(String(p.role || '')) ? tile_({ icon: 'send', label: 'Send last week', note: 'their child’s work, Mon–Sun',
-              act: 'digest-send-now', tone: 'admin', data: { id: p.personId } }) : '');
+    /^Client\b/.test(String(p.role || '')) ? { icon: 'send', label: 'Send last week', note: 'their child’s work, Mon–Sun',
+              act: 'digest-send-now', tone: 'admin', data: { id: p.personId } } : null];
 }
 
 /* THE TOP OF THE LIST: the "+", or the new person's form, or the slip once they are made. */
@@ -14118,7 +14116,7 @@ function postCard_(p, i) {
       ${postWhen_(p)}
       ${/* WHAT YOU CAN DO ABOUT IT, IN ONE ROW. § */
             ''}
-      ${postTiles_(p)}
+      ${postRow_(p)}
       ${commentsHtml_(p)}
     </article>`;
 }
@@ -14145,7 +14143,7 @@ window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
   postTiles: x => /* the post's own Suggest goes: every Find card's row already carries one */ { const p = x.row, r = p.reactions, first = r && Array.isArray(r.emoji) && r.emoji[0];
     const react = first ? tile_({ icon: 'heart', label: 'Like', note: first + (r.total ? ' · ' + r.total : ''), on: r.yours === first,
       act: 'react', data: { id: p.id, emoji: first } }) : '';
-    return tileRow_(react + String(postTiles_(p)).replace(/^<div class="tile-row[^"]*">|<\/div>$/g, '').replace(/<button[^>]*\brep-tile\b[^>]*>[\s\S]*?<\/button>/g, '')); },
+    return tileRow_(react + tile_(postOpts_(p))); },
 });
 
 /* WHAT PEOPLE SAID UNDER IT. § */
@@ -15316,7 +15314,7 @@ function openSharedTutor() {
   TUTOR_LINK_DONE = true;
   const item = { kind: 'tutor', name: t.title, key: t.title, row: t };
   openSheet(t.title, `<div class="tutor-link">${typeof findCard === 'function' ? findCard(item) : ''}
-    ${tileRow_(tutorTiles_(item))}</div>`);
+    ${tileRow_(tile_(tutorOpts_(item)))}</div>`);
 }
 
 /* ---------- POSTING § */
@@ -16952,7 +16950,7 @@ const WIDGET_KEY = w => 'w:' + String(w.id);
 
 /* NAMED FOR THE COLUMN, because `find.js` already has a `widgetCard_` and it is a different object: § */
 /* ---------- AND UNTIL IT HAS STARTED, IT IS WAITING, AND IT LOOKS IT § */
-/* `own` is its own column (not Saved): only there does an admin get the layout row (463, `layoutTiles_` in layout.js). */
+/* `own` is its own column (not Saved): only there does an admin get the layout row (463, `layoutOpts_` in layout.js). */
 function widgetOnColumn_(w, own) {
   if (w && w.parts) return widgetMergedOn_(w, own);
   const waits = typeof w.start === 'function' && typeof loading_ === 'function';
@@ -16962,7 +16960,7 @@ function widgetOnColumn_(w, own) {
     ? `<span class="tile-group wgt-keep">${tile_([favOpts_({ key: WIDGET_KEY(w), kind: 'widget' }),
       typeof gameLockOpts_ === 'function' ? gameLockOpts_(w.id) : null])}${
       typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), w.name || w.title || w.label || '') : ''}</span>` : '';
-  const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(w) : '';
+  const lay = own === true && typeof layoutOpts_ === 'function' ? tileGroup_(layoutOpts_(w), 'is-admin wgt-admin') : '';
   return card_(`<div class="is-widget${held ? ' is-locked' : ''}">
       <div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${
         typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div>
@@ -16975,7 +16973,7 @@ function widgetMergedOn_(m, own) {
   const top = m.parts[0];
   const keep = typeof favOpts_ === 'function' ? `<span class="tile-group wgt-keep">${tile_([favOpts_({ key: WIDGET_KEY(top), kind: 'widget' }),
     typeof gameLockOpts_ === 'function' ? gameLockOpts_(top.id) : null])}${typeof suggestTile_ === 'function' ? suggestTile_('widget', String(top.id), top.name || top.title || top.label || '') : ''}</span>` : '';
-  const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(top) : '';
+  const lay = own === true && typeof layoutOpts_ === 'function' ? tileGroup_(layoutOpts_(top), 'is-admin wgt-admin') : '';
   const parts = m.parts.map(w => {
     const waits = typeof w.start === 'function' && typeof loading_ === 'function';
     return `<div class="merged-part"><div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div></div>`;
@@ -18091,7 +18089,7 @@ const PADLOCK = { game: '', q: '' };
 const padlocked_ = () => !!(PADLOCK.game || PADLOCK.q);
 const padHere_ = () => String(typeof AT !== 'undefined' ? AT : '') + ':' + String((typeof PAGE !== 'undefined' && PAGE[AT]) || 0);
 
-/* ONE PADLOCK FOR EVERY WIDGET AND CARD (461, 498): `widgetOnColumn_` and `cardTiles_` put it on each, so text can be selected and copied with the column held. */
+/* ONE PADLOCK FOR EVERY WIDGET AND CARD (461, 498): `widgetOnColumn_` and `cardRow_` put it on each, so text can be selected and copied with the column held. */
 const gameLocked_ = id => !!PADLOCK.game && PADLOCK.game.split('@')[0] === String(id);
 const gameLockLook_ = on => ({ icon: on ? 'lock' : 'unlock', label: on ? 'Locked' : 'Lock',
   note: on ? 'tap to let the page move' : 'hold it still to select text', on, pressed: on });
@@ -19024,15 +19022,11 @@ function tileSet_(el, o) {
 let SPOT_TILES = false;
 const adminLearn_ = x => typeof kindOf_ === 'function'
   && asList_(kindOf_(x).group).indexOf('Learning') !== -1;
-function adminTiles_(x, t) {
-  if (adminLearn_(x) && !SPOT_TILES) return '';
-  /* A `span`, NOT A ROW. These go inside the one row every card has now — see `tilesFor_`. It keeps
-     the group for a screen reader, which is the half of the old wrapper worth having. */
-  return `<span class="tile-group is-admin" role="group" aria-label="Admin">
-    ${tile_({ icon: 'spot', label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin',
-              on: isSpot(x.key), act: 'spot',
-              data: { key: x.key, kind: x.kind || 'item' } })}
-  </span>`;
+function adminOpts_(x) {
+  if (adminLearn_(x) && !SPOT_TILES) return null;
+  /* INSIDE THE ONE ROW every card has (`tilesFor_`), in a group a screen reader names. */
+  return { icon: 'spot', label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin', on: isSpot(x.key), act: 'spot',
+    data: { key: x.key, kind: x.kind || 'item' } };
 }
 
 
@@ -19049,15 +19043,10 @@ function favOpts_(x) {
 
 
 /* ---------- A SHOP THING § */
-function shopTiles_(x) {
+function shopOpts_(x) {
   const inCart = CART.some(c => c.key === x.key && isShop_(c));
-  return `
-    ${tile_({ icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket',
-              tone: 'buy', on: inCart,
-              note: inCart ? '' : (x.cost ? x.cost + ' credits' : 'free'),
-              act: 'cart-add', off: !USER || inCart,
-              data: { key: x.key, kind: 'shop' } })}
-  `;
+  return { icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket', tone: 'buy', on: inCart,
+    note: inCart ? '' : (x.cost ? x.cost + ' credits' : 'free'), act: 'cart-add', off: !USER || inCart, data: { key: x.key, kind: 'shop' } };
 }
 
 
@@ -19078,31 +19067,20 @@ function bookOpts_(x) {
   return !isMe_(x) && !childView_() && t.listed !== false ? { icon: 'book', label: 'Book', tone: 'buy',
     act: 'book-with', data: { tutor: x.name || '' } } : null;
 }
-function tutorTiles_(x) {
+function tutorOpts_(x) {
   const t = x.row || {};
-  return `
-    ${/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered. */ tile_(bookOpts_(x))}
-    ${/* THEIR INTRO VIDEO: the uploaded one plays on the card (`intro-play`); an older row's link still goes out. */
-          String(t.videoFile || '').trim() ? tile_({ icon: 'play', label: 'Watch intro', act: 'intro-play', data: { file: t.videoFile } })
-          : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? tile_({ icon: 'play', label: 'Watch intro', href: t.mediaUrl }) : ''}
-    ${/* SILVER, IN THE ORDINARY ROW. § */
-          ''}
-    ${/* ---------- WRITE TO THEM, FROM THE ONE PLACE YOU ARE LOOKING AT THEM § */
-          ''}
-    ${/* NOT FOR A CHILD, unless they are the business (405): `MESSAGING` lets a student write to an admin only — no tile the server refuses. */
-          (USER && !isMe_(x) && (!childView_() || /admin/i.test(String(t.role || '')))) ? tile_({ icon: 'chat', label: 'Message',
-              note: 'a note to them', act: 'msg-open',
-              data: { to: x.name, id: (x.row && x.row.personId) || '' } }) : ''}
-    ${/* EDIT, FOR AN ADMIN, ON SOMEBODY ELSE'S CARD ON THE YOU COLUMN — `updateProfile` lets an admin write another person's row, so the card turns into its form for § */
-          ''}
-    ${typeof cardEditTile_ === 'function' ? cardEditTile_(x) : ''}
-    ${x.key ? tile_({ icon: t.listed === false ? 'hide' : 'show',
-              label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
-              on: t.listed !== false, act: 'set-listed',
-              note: t.listed === false ? 'clients cannot see them' : 'clients can see them',
-              /* THE ID AS WELL AS THE NAME. `x.key` is a display name, and naming a person by
-                 one is the fault `findPerson` exists to fall back from rather than rely on. */
-              data: { who: x.key, pid: (x.row && x.row.personId) || '' } }) : ''}`;
+  return [/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered. */ bookOpts_(x),
+    /* THEIR INTRO VIDEO: the uploaded one plays on the card (`intro-play`); an older row's link still goes out. */
+    String(t.videoFile || '').trim() ? { icon: 'play', label: 'Watch intro', act: 'intro-play', data: { file: t.videoFile } }
+      : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? { icon: 'play', label: 'Watch intro', href: t.mediaUrl } : null,
+    /* NOT FOR A CHILD, unless they are the business (405): `MESSAGING` lets a student write to an admin only — no tile the server refuses. */
+    USER && !isMe_(x) && (!childView_() || /admin/i.test(String(t.role || ''))) ? { icon: 'chat', label: 'Message',
+      note: 'a note to them', act: 'msg-open', data: { to: x.name, id: (x.row && x.row.personId) || '' } } : null,
+    typeof cardEditOpts_ === 'function' ? cardEditOpts_(x) : null,
+    x.key ? { icon: t.listed === false ? 'hide' : 'show', label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
+      on: t.listed !== false, act: 'set-listed', note: t.listed === false ? 'clients cannot see them' : 'clients can see them',
+      /* THE ID AS WELL AS THE NAME: `x.key` is a display name, which `findPerson` only falls back to. */
+      data: { who: x.key, pid: (x.row && x.row.personId) || '' } } : null];
 }
 
 
@@ -19143,15 +19121,15 @@ function jobPeople_(j) {
   return out.filter(p => msgMay_(p.role));
 }
 const jobMsgTiles_ = x => jobPeople_(x && x.row).map(p => msgTile_(p.name, p.id)).join('');
-/* A PROFILE'S Message, by the same rule — the tutor card draws its own (`tutorTiles_`). */
+/* A PROFILE'S Message, by the same rule — the tutor card has its own (`tutorOpts_`). */
 const personTiles_ = x => { const t = (x && x.row) || {}; const name = t.title || t.name || x.name;
   return name && !isMe_(x) && msgMay_(t.role) ? msgTile_(name, t.personId) : ''; };
 
 /* EVERY CARD'S ROW STARTS WITH THESE (950); health.js's "card tile rows" holds it. */
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
 /* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
-const CARD_EXTRAS_ = { shop: shopTiles_, tutor: tutorTiles_, subject: x => tile_(subjectOpts_(x)),
-  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + jobTiles_(x), person: x => personTiles_(x), talmud: x => tile_(talmudOpts_(x)) };
+const CARD_EXTRAS_ = { shop: shopOpts_, tutor: tutorOpts_, subject: x => tile_(subjectOpts_(x)),
+  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + tile_(jobOpts_(x)), person: x => personTiles_(x), talmud: x => tile_(talmudOpts_(x)) };
 function cardCore_(x) {
   const one = {
     share: () => tile_({ icon: 'share', label: 'Share', act: 'card-share', data: { key: x.key } }),
@@ -19168,17 +19146,17 @@ function cardExtras_(x) {
   return (x.lead || '') + (typeof r === 'string' ? r : tile_(r));
 }
 /* `flat` HANDS THE TILES BACK UNWRAPPED, for a card that sorts them into its four and its ⋯ (`kcFour_`). */
-function cardTiles_(x, flat) {
+function cardRow_(x, flat) {
   /* THEN WHAT ANY KIND MAY ADD: Read aloud, Hear it, speed, magnifier, Open, a column's `more`, the padlock. */
   /* ONE READ-ALOUD PER CARD (owner's look rule): a language card's Hear it stands in for Read aloud, never beside it. */
   const hear = typeof hearItOpts_ === 'function' ? hearItOpts_(x) : null;
-  const mine = (typeof kcTilesFill_ === 'function' ? kcTilesFill_ : (a, h) => h)(x, cardCore_(x) + cardExtras_(x)
+  const mine = (h => h + (typeof kcOffOpts_ === 'function' ? tile_(kcOffOpts_(x, h)) : ''))(cardCore_(x) + cardExtras_(x)
     /* a question's Read aloud is each part's (`qtRow_`) */
     + tile_(hear || (typeof readAloudOpts_ === 'function' && !isQ_(x) ? readAloudOpts_(x) : null))
     + tile_([typeof speedOpts_ === 'function' ? speedOpts_(x) : null, typeof magCardOpts_ === 'function' ? magCardOpts_(x) : null, finderOpenOpts_(x)]) + (x.more || '')
     /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
     + (x.key && !isMeCard_(x) && !isQ_(x) && tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('c:' + x.key) : null)));
-  const admin = adminTiles_(x, x.topic || null);
+  const admin = tileGroup_(adminOpts_(x), 'is-admin', 'Admin');
   if (flat) return mine + admin;
   if (!mine && !admin) return '';
   /* YOUR OWN CARD IS ALL YOURS: nothing on it is split off as an admin's (the hub's gold means "terms to agree" there). */
@@ -19194,6 +19172,11 @@ function tileAdminRank_(t) {
   if (/\bclass="tile\b[^"]*\bis-danger\b/.test(t)) return 99;
   const i = TILE_ADMIN_ORDER_.indexOf(tileAct_(t));
   return i === -1 ? TILE_ADMIN_ORDER_.length : i;
+}
+/* A NAMED GROUP OF tile_'s TILES (an admin's, a widget's keep); '' when none is drawn, so no empty group is left. */
+function tileGroup_(opts, cls, label) {
+  const h = tile_(opts);
+  return h ? `<span class="tile-group${cls ? ' ' + cls : ''}"${label ? ` role="group" aria-label="${esc(label)}"` : ''}>${h}</span>` : '';
 }
 function tileRow_(html, cls, own) {
   const src = String(html || '');
@@ -19267,31 +19250,26 @@ on('intro-play', el => {
 /* ==== js/tiles-jobs.js ==== */
 /* ---------- WHAT YOU CAN DO WITH A SESSION § */
 /* ---------- AND FOR SOMEBODY NOT IN IT, THE ONE ACTION IS GETTING IN § */
-function jobTiles_(x) {
+function jobOpts_(x) {
   const j = x.row || {};
   const id = String(j.id || j.jobId || '');
-  if (!id || !USER) return '';
+  if (!id || !USER) return null;
   const mine = (j.slots || []).some(sl => norm(sl.client) === norm(USER.name));
   /* THE ASKED TUTOR, OR AN ADMIN, ANSWERS IN PLACE (488) — Accept, or Decline with an optional line why. */
   const asked = requestAsked_(j);
   const answer = asked && (norm(asked) === norm(USER.name) || (typeof isAdmin === 'function' && isAdmin()))
-    ? tile_({ icon: 'tick', label: 'Accept request', tone: 'buy', note: 'it becomes a booking',
-              act: 'job-request-answer', data: { id: id, yes: '1' } })
-      + tile_({ icon: 'close', label: 'Decline request', note: 'a line why, if you like',
-                act: 'job-request-answer', data: { id: id, yes: '' } })
-    : '';
+    ? [{ icon: 'tick', label: 'Accept request', tone: 'buy', note: 'it becomes a booking', act: 'job-request-answer', data: { id: id, yes: '1' } },
+      { icon: 'close', label: 'Decline request', note: 'a line why, if you like', act: 'job-request-answer', data: { id: id, yes: '' } }]
+    : null;
   /* A CHILD JOINS AND PAYS THROUGH A PARENT (398) — no join tile, no Pay tile, no figure. */
-  if (!mine) return answer + tile_([jobApplyOpts_(j, id), answer || childView_() ? null : joinOpts_(j, id)]);
+  if (!mine) return [answer, jobApplyOpts_(j, id), answer || childView_() ? null : joinOpts_(j, id)];
   const paid = (j.slots || []).some(sl =>
     norm(sl.client) === norm(USER.name) && /^(paying|booked)$/i.test(String(sl.status || '')));
   const owed = typeof jobAccepted_ === 'function' && jobAccepted_(j) && !paid;
-  return tile_(jobChooseOpts_(j, id)) + `
-    ${owed && !childView_() ? tile_({ icon: 'pound', label: 'Pay and confirm', tone: 'buy',
-                     note: typeof money_ === 'function' ? money_(j.price || 0) : '',
-                     act: 'job-pay', data: { id: id } }) : ''}
-    ${tile_({ icon: 'undo', label: 'Withdraw from this',
-              act: 'job-leave', data: { id: id, paid: paid ? '1' : '' } })}
-  `;
+  return [jobChooseOpts_(j, id),
+    owed && !childView_() ? { icon: 'pound', label: 'Pay and confirm', tone: 'buy',
+      note: typeof money_ === 'function' ? money_(j.price || 0) : '', act: 'job-pay', data: { id: id } } : null,
+    { icon: 'undo', label: 'Withdraw from this', act: 'job-leave', data: { id: id, paid: paid ? '1' : '' } }];
 }
 
 /* NO PREFERENCE (decision): tutors apply, the client picks. Apply is for an approved tutor not yet on it, while nobody is confirmed. */
@@ -19345,46 +19323,36 @@ function joinOpts_(j, id) {
 
 /* A tap on a tile row that is not on a row. § */
 /* ---------- AN ADMIN'S ACTIONS ON A JOB, AS TILES § */
-function jobAdminTiles_(j, stage, accepted) {
+function jobAdminOpts_(j, stage, accepted) {
   const id = String((j && (j.id || j.jobId)) || '');
-  if (!id) return '';
-  const rows = [];
-  if (stage === 'application' || stage === 'waitlist') {
-    rows.push(tile_({ icon: 'tick', label: 'Accept', tone: 'buy', note: 'settles the terms',
-                      act: 'job-answer', data: { id: id, yes: '1' } }));
-    rows.push(tile_({ icon: 'close', label: 'Decline', note: 'turns it down',
-                      act: 'job-answer', data: { id: id, yes: '' } }));
-  }
-  rows.push(tile_({ icon: 'bin', label: 'Delete', tone: 'danger', note: 'ends it for everybody',
-                    act: 'job-delete', data: { id: id } }));
-  /* TILES, NOT A ROW. This returned its own `.tile-row`, and `jobPage_` wrapped it in another beside the client's two — a row inside a row. § */
-  return rows.join('');
+  if (!id) return null;
+  const ask = stage === 'application' || stage === 'waitlist';
+  /* TILES, NOT A ROW: the receipt's foot (`jobPage_`) is the one row they go in. */
+  return [ask ? { icon: 'tick', label: 'Accept', tone: 'buy', note: 'settles the terms', act: 'job-answer', data: { id: id, yes: '1' } } : null,
+    ask ? { icon: 'close', label: 'Decline', note: 'turns it down', act: 'job-answer', data: { id: id, yes: '' } } : null,
+    { icon: 'bin', label: 'Delete', tone: 'danger', note: 'ends it for everybody', act: 'job-delete', data: { id: id } }];
 }
 
 /* ---------- WHAT YOU CAN DO ABOUT A POST § */
-function postTiles_(p) {
+function postOpts_(p) {
+  const id = String((p && p.id) || '');
+  if (!id) return null;
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  const approve = { icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it', act: 'post-approve', data: { id: id, on: '1' } };
+  return [{ icon: 'share', label: 'Share', note: 'as a picture', act: 'share', data: { id: id } },
+    /* WAITING (413): the admin decides on the post itself; ALREADY DECLINED: only the way back. */
+    (p.waiting || p.refused) && admin ? approve : null,
+    p.waiting && admin ? { icon: 'close', label: 'Decline', note: 'stays hidden', act: 'post-approve', data: { id: id, on: '' } } : null,
+    p.waiting && p.mine && !admin ? { icon: 'edit', label: 'Edit', note: 'until it is approved', act: 'post-edit', data: { id: id } } : null,
+    /* UP IS FINAL (413): nobody changes the words; an admin still pins it or fixes its date. */
+    admin && !p.waiting && !p.refused ? { icon: 'edit', label: 'Pin or date', act: 'post-edit', data: { id: id } } : null];
+}
+/* THE POST'S ROW: its options, the one Suggest tile (your own too, 720), then Delete for an admin or its author. */
+function postRow_(p) {
   const id = String((p && p.id) || '');
   if (!id) return '';
-  const admin = typeof isAdmin === 'function' && isAdmin();
-  const rows = [tile_({ icon: 'share', label: 'Share', note: 'as a picture', act: 'share', data: { id: id } })];
-  /* WAITING (413): the admin decides on the post itself; its author may still change the words or take it back. */
-  if (p.waiting && admin) {
-    rows.push(tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it',
-                      act: 'post-approve', data: { id: id, on: '1' } }));
-    rows.push(tile_({ icon: 'close', label: 'Decline', note: 'stays hidden',
-                      act: 'post-approve', data: { id: id, on: '' } }));
-  } else if (p.refused && admin) {
-    /* ALREADY DECLINED: only the way back; declining again is a control that does nothing. */
-    rows.push(tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it',
-                      act: 'post-approve', data: { id: id, on: '1' } }));
-  }
-  if (p.waiting && p.mine && !admin) rows.push(tile_({ icon: 'edit', label: 'Edit', note: 'until it is approved', act: 'post-edit', data: { id: id } }));
-  /* UP IS FINAL (413): nobody changes the words; an admin still pins it or fixes its date. */
-  if (admin && !p.waiting && !p.refused) rows.push(tile_({ icon: 'edit', label: 'Pin or date', act: 'post-edit', data: { id: id } }));
-  /* YOUR OWN TOO (720): every thing carries the tile (486), and the owner's posts are his own. */
-  if (typeof suggestTile_ === 'function') rows.push(suggestTile_('post', id, String(p.title || p.body || '').slice(0, 80)));
-  if (admin || p.mine) rows.push(tile_({ icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } }));
-  return tileRow_(rows.join(''));
+  const del = typeof isAdmin === 'function' && isAdmin() || p.mine ? { icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } } : null;
+  return tileRow_(tile_(postOpts_(p)) + (typeof suggestTile_ === 'function' ? suggestTile_('post', id, String(p.title || p.body || '').slice(0, 80)) : '') + tile_(del));
 }
 
 on('noop', () => {});
