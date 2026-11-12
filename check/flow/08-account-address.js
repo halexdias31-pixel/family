@@ -628,6 +628,22 @@ check('arriving on ?verify= confirms the address once and takes it out of the ba
   return bad;
 });
 
+check('a child\'s forgotten-PIN link, opened from the business inbox, lands signed in as that child', async () => {
+  /* The owner, 12 Nov: the mail for JP and Theo goes to the admin; its `?signin=` must sign in as the child. */
+  const { w, sent } = boot({ url: 'https://example.org/family/?signin=Rkidkey123',
+    reply: b => b.action === 'pinLink' && b.key === 'Rkidkey123'
+      ? { success: true, pinLink: true, role: 'kid', roles: ['kid'], name: 'JP', personId: 'P-JP', handle: 'jp_kind1', token: 'tok-JP', message: 'Signed in.' }
+      : { success: true } });
+  await wait(400);
+  const bad = [];
+  const posts = sent.filter(b => b.action === 'pinLink');
+  if (posts.length !== 1) bad.push('booting on ?signin= posted pinLink ' + posts.length + ' time(s), wanted once');
+  const u = w.__t.whoami() || {};
+  if (u.personId !== 'P-JP' && u.person_id !== 'P-JP') bad.push('after the link the device is signed in as ' + JSON.stringify(u.personId || u.name || null) + ', not the child');
+  if (/signin=/.test(String(w.location.search))) bad.push('the key is still in the address bar');
+  return bad;
+});
+
 /* EVERY WAY A CHILD GETS IN, ON THE SCREEN. § */
 check('a child with no email makes their own account with a grown-up\'s address, and is handed their handle', async () => {
   const { w, sent } = boot({ reply: b => b.action === 'register'
