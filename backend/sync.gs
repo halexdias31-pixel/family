@@ -21,8 +21,6 @@ function ghToApps_(filename, source) {
 
 /* ---------- WHY THIS DOES NOT USE THE GITHUB API § */
 const RAW = 'https://raw.githubusercontent.com/' + GH_OWNER + '/' + GH_REPO + '/' + GH_BRANCH + '/';
-const FALLBACK_FILES = ['appsscript.json', 'booking.gs', 'constants.gs', 'content.gs', 'core.gs',
-                        'doget.gs', 'dopost.gs', 'people.gs', 'setup.gs', 'sync.gs'];
 
 /* A CACHE-BUSTER ON EVERY FETCH. raw.githubusercontent.com holds a file for about five minutes,
    which is long enough to pull the version from before the merge you just did and spend twenty
@@ -46,11 +44,8 @@ function fetchBackend_() {
       if (parsed && parsed.length) names = parsed;
     } catch (err) { /* falls through to the fallback below */ }
   }
-  if (!names) {
-    names = FALLBACK_FILES;
-    Logger.log('files.json did not load (HTTP ' + man.code + ') — using the built-in list. '
-             + 'If a file has been added to backend/ since, it will be missed.');
-  }
+  /* NO BUILT-IN LIST: files.json is the one list, and a copy here would push a backend missing every file added since. */
+  if (!names) throw new Error('files.json did not load (HTTP ' + man.code + ') — nothing pulled; try again.');
 
   const files = [];
   names.forEach(name => {
