@@ -795,8 +795,8 @@ const FACETS = [
   { field: 'qSub',      label: 'Sub-part',    of: x => qSplitOf_(x).sub },
   { field: 'qPage',     label: 'Page',
     of: x => { const n = qPagesOf_(x); return n > 1 ? Array.from({ length: n }, (_, i) => 'Page ' + (i + 1)) : ''; },
-    /* THE ONE PAGE THIS IS, of the pages above; the whole card (no page) holds every page, so a walk's `Page 1` chip keeps it. */
-    tagOf: (x, page) => { if (page == null || page === '') return facetBy('qPage').of(x); const i = qPageAt_(x, page); return i && qPagesOf_(x) > 1 ? 'Page ' + i : ''; } },
+    /* THE ONE PAGE THIS IS, of the pages above. */
+    tagOf: (x, page) => { const i = qPageAt_(x, page); return i && qPagesOf_(x) > 1 ? 'Page ' + i : ''; } },
   { field: 'qPages',    label: 'Pages',
     of: x => { const n = qPagesOf_(x); return n > 1 ? n + ' pages' : ''; },
     tagOf: (x, page) => { const n = qPagesOf_(x); return n > 1 && qPageAt_(x, page) ? n + ' pages' : ''; } },
@@ -2960,7 +2960,8 @@ function finderWalk_(x) {
     if (looked && !(looked.n > 1)) break;
     const facet = looked ? looked.facet : (() => { const items = stuffFiltered(); return items.length <= 1 ? null : nextFacet(items); })();
     if (!facet) break;
-    const own = (() => { try { return facetOwn_(facet, x); } catch (e) { return []; } })();
+    /* A FACET READ OFF PAGES (`tagOf`) TAKES THE CARD'S OWN TAG, the one `stuffPages_` keeps it by, not the first of its values. */
+    const own = (() => { try { const t = facet.tagOf ? asList_(facet.tagOf(x, null)) : []; return t.length ? t : facetOwn_(facet, x); } catch (e) { return []; } })();
     out.push(own.length ? { field: facet.field, value: String(own[0]) } : { field: facet.field, any: true });
     /* A LOOKED-UP ANSWER IS ONE OF THE BUILD'S, so the item is still in the list; a counted one is checked against it. */
     if (looked) { if (own.length && !looked.has(own[0])) { out.pop(); break; } continue; }

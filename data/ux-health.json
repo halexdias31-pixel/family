@@ -2,14 +2,14 @@
  "visits": {
   "first": {
    "n": 192,
-   "netKB": 101144,
+   "netKB": 101142,
    "cacheN": 12,
    "cacheKB": 0
   },
   "repeat": {
-   "loadedMs": 1163,
-   "n": 38,
-   "netKB": 58807,
+   "loadedMs": 1620,
+   "n": 39,
+   "netKB": 60896,
    "cacheN": 0,
    "cacheKB": 0
   }
@@ -17,20 +17,20 @@
  "walked": {
   "viewport": "390x844 touch",
   "cpu": "4x (1x for the question sample)",
-  "ms": 38662,
+  "ms": 40017,
   "phase": {
-   "loaded": 6781,
-   "signin": 11159,
-   "findUsable": 15428,
-   "clicks": 24892,
-   "questions": 33881,
-   "boxLooks": 37184
+   "loaded": 6695,
+   "signin": 11391,
+   "findUsable": 14881,
+   "clicks": 25606,
+   "questions": 34283,
+   "boxLooks": 37984
   }
  },
- "firstScreenMs": 376,
- "findUsableMs": 4269,
- "signinMs": 2036,
- "heapMB": 256.5,
+ "firstScreenMs": 176,
+ "findUsableMs": 3490,
+ "signinMs": 2468,
+ "heapMB": 132.6,
  "boxLooks": {
   "faces": [
    {
@@ -48,14 +48,14 @@
   "off": []
  },
  "heapLiveMB": 197.2,
- "garbageMB": 59.3,
+ "garbageMB": 0,
  "clicks": [
   {
    "what": "front menu: first answer",
-   "churnMB": -10.1,
-   "ms": 48,
+   "churnMB": -0.4,
+   "ms": 120,
    "shift": 0,
-   "longs": 3,
+   "longs": 2,
    "by": "event-timing"
   },
   {
@@ -68,10 +68,10 @@
   },
   {
    "what": "back: drop the last chip",
-   "churnMB": -6.2,
-   "ms": 32,
+   "churnMB": 0.8,
+   "ms": 24,
    "shift": 0,
-   "longs": 2,
+   "longs": 4,
    "by": "event-timing"
   },
   {
@@ -80,16 +80,16 @@
   },
   {
    "what": "open a question",
-   "churnMB": 20.5,
-   "ms": 979,
+   "churnMB": -15.1,
+   "ms": 963,
    "shift": 0,
    "longs": 1,
    "by": "frames"
   },
   {
    "what": "Check",
-   "churnMB": -3.9,
-   "ms": 160,
+   "churnMB": -3.7,
+   "ms": 184,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
@@ -108,16 +108,16 @@
   },
   {
    "what": "Start again",
-   "churnMB": -12.4,
-   "ms": 56,
+   "churnMB": 17.7,
+   "ms": 48,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "front menu again",
-   "churnMB": 1,
-   "ms": 16,
+   "churnMB": 1.1,
+   "ms": 24,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
@@ -125,7 +125,7 @@
   {
    "what": "Next answer down",
    "churnMB": 1.2,
-   "ms": 24,
+   "ms": 40,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
@@ -133,7 +133,7 @@
   {
    "what": "Feed tab",
    "churnMB": 0.5,
-   "ms": 45,
+   "ms": 49,
    "shift": 0,
    "longs": 0,
    "by": "frames"
@@ -141,7 +141,7 @@
   {
    "what": "Find tab",
    "churnMB": 0.5,
-   "ms": 49,
+   "ms": 79,
    "shift": 0,
    "longs": 0,
    "by": "frames"
@@ -153,17 +153,25 @@
  },
  "slow": [
   {
+   "what": "front menu: first answer",
+   "churnMB": -0.4,
+   "ms": 120,
+   "shift": 0,
+   "longs": 2,
+   "by": "event-timing"
+  },
+  {
    "what": "open a question",
-   "churnMB": 20.5,
-   "ms": 979,
+   "churnMB": -15.1,
+   "ms": 963,
    "shift": 0,
    "longs": 1,
    "by": "frames"
   },
   {
    "what": "Check",
-   "churnMB": -3.9,
-   "ms": 160,
+   "churnMB": -3.7,
+   "ms": 184,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
