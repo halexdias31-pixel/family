@@ -15,10 +15,11 @@ const OWN = /^['"`](?:\.\/)?(?:data|tools|js)\//;
 const bad = [];
 let read = 0, own = 0;
 
-/* NO WORKER HOLDS OUR FILES (98): sw.js draws notifications only, so the stamp is all that keeps a browser's own cache honest. */
+/* THE NETWORK FIRST (98; offline, 11 Nov): sw.js may answer a fetch only by asking the network, its store only when that fails. */
 const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-if (/addEventListener\(\s*['"]fetch['"]/.test(sw)) bad.push('sw.js answers fetches again — the site loads fresh files each visit (owner, 9 Nov, 98)');
-if (/serviceWorker\.register\(/.test(html)) bad.push('index.html registers a service worker on every visit — only turning on notifications may (98)');
+const swFetch = /async function offFetch_\(req\) \{\s*try \{\s*const res = await fetch\(req\);/.test(sw) && !/caches\.match[^]*?await fetch\(req\)/.test(sw.slice(sw.indexOf('offFetch_')));
+if (/addEventListener\(\s*['"]fetch['"]/.test(sw) && !swFetch) bad.push('sw.js answers fetches from its store before the network — the site loads fresh files each visit (owner, 9 Nov, 98)');
+if (/serviceWorker\.register\(/.test(html)) bad.push('index.html registers a service worker on every visit — only turning on notifications or making a paper offline may (98)');
 const src = {};
 files.forEach(f => { try { src[f] = fs.readFileSync(path.join(root, f), 'utf8'); } catch (e) { bad.push(f + ': listed in index.html and not readable'); } });
 /* A NAME THAT HOLDS ONE OF OUR PATHS (`const RACE_SHIPPED = 'data/race-map.json'`) counts as the path. */

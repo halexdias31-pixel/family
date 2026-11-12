@@ -206,6 +206,7 @@ node check/anims.js              # every content card's animation at 320 and 390
 node check/videos.js             # the videos card: the bar held as you type, one player, full screen on its side
 node check/sounds.js             # the marking chime and buzzer: short, quiet, as loud as each other to an ear, no click, one tap one sound
 node check/boxes.js              # a question's pages: every foot last and alike, answer boxes one a line and one width (553)
+node check/offline.js            # offline mode (1201): a paper downloaded, the app reopened with no connection, parts marked, back online every press arrives once; --shots=<dir>
 node check/ui.js                 # 9 screens x 5 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at

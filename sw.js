@@ -1,11 +1,36 @@
-/* @family. — sw.js — the worker that draws phone notifications; it holds no files (98). */
+/* @family. — sw.js — the worker that draws phone notifications and, once a paper is offline, opens the app with no connection (98). */
 
-/* PUSH ONLY (98, owner 9 Nov): no fetch handler, so every visit loads the current files; an old worker's stores are emptied on activate. */
+/* THE NETWORK FIRST, ALWAYS (98): a visit with a connection loads the current files; only a failed fetch is answered from the store. */
+/* The store exists only once a paper is made available offline (offline.js makes it, sign-out empties it); any other store goes on activate. */
+const OFF_CACHE = 'family-offline';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil((async () => {
-  try { const names = await caches.keys(); await Promise.all(names.map(n => caches.delete(n))); } catch (err) { /* no stores to empty */ }
+  try { const names = await caches.keys(); await Promise.all(names.filter(n => n !== OFF_CACHE).map(n => caches.delete(n))); } catch (err) { /* no stores to empty */ }
   await self.clients.claim();
 })()));
+
+/* OUR OWN GETS ONLY: the backend's requests and anything cross-origin go past untouched. */
+self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  e.respondWith(offFetch_(req));
+});
+async function offFetch_(req) {
+  try {
+    const res = await fetch(req);
+    if (res && res.ok && await caches.has(OFF_CACHE)) {
+      const copy = res.clone();
+      caches.open(OFF_CACHE).then(c => c.put(req, copy)).catch(() => {});
+    }
+    return res;
+  } catch (err) {
+    const c = (await caches.has(OFF_CACHE).catch(() => false)) ? await caches.open(OFF_CACHE) : null;
+    const hit = c && ((await c.match(req)) || (await c.match(req, { ignoreSearch: true }))
+      || (req.mode === 'navigate' ? await c.match('index.html', { ignoreSearch: true }) : null));
+    if (hit) return hit;
+    throw err;
+  }
+}
 
 /* ---------- PHONE NOTIFICATIONS (492): FCM sends data only; this draws it, and a tap opens the site at the item. */
 self.addEventListener('push', e => {

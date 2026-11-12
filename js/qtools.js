@@ -16,10 +16,11 @@ const QT_TOOLS = [
   { id: 'read',       icon: 'speak',      label: 'Read aloud',      note: 'reads the question out',   act: 'read-aloud' },
   { id: 'lock',       icon: 'unlock',     label: 'Lock',            note: 'hold this page still',     act: 'q-lock' },
   { id: 'calc',       icon: 'calc',       label: 'Calculator',      note: 'scientific',               act: 'qt-calc' },
+  { id: 'offline',    icon: 'down',       label: 'Make available offline', note: 'this paper, on this device', act: 'offline-get' },
   { id: 'check',      icon: 'send',       label: 'Check',           note: '',                         act: '' },
 ];
 /* THE ONE ROW EVERY PART SHOWS, identically (owner, 8 Nov); data/settings/qengine.json `row` repeats it (check-answerable) */
-const QT_ROW = ['photo', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc'];
+const QT_ROW = ['photo', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc', 'offline'];
 /* THE PEN'S TILES, added only where the part has a figure to draw on (a drawing answer needs its pen) */
 const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
 const QT_ORDER = QT_ROW.concat(Object.keys(QT_DRAWING), ['check']);
@@ -124,6 +125,8 @@ const QT_TILE = {
   },
   /* ONLY WHERE A CALCULATOR IS ALLOWED: a Non-calculator paper never shows it; unknown shows it (owner, 11 Nov) */
   calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
+  /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
+  offline: (t, x) => (typeof offTileOpts_ === 'function' ? offTileOpts_(x) : null),
   photo: (t, x) => ({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } }),
 };
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */

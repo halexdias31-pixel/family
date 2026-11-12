@@ -7,7 +7,8 @@ function send_(body, o) {
      a dozen on one column, so it cannot be an id — and the caller already holds the element. */
   const say = msg => {
     const el = o.where && (typeof o.where === 'string' ? $(o.where) : o.where);
-    if (el) el.textContent = msg; else toast(msg);
+    /* A REQUEST NOBODY PRESSED says nothing with no connection: the Reconnecting line already does, and offline nothing pressed is lost (offline.js). */
+    if (el) el.textContent = msg; else if (btn || navigator.onLine !== false) toast(msg);
   };
 
   /* `is-busy` IS THE SPINNER, and it goes on whether or not there is a `busy` label -- a
