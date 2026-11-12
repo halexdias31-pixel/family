@@ -1353,6 +1353,14 @@ if (standingIn.length) {
   standingIn.forEach(r => console.log(`  ${r.row_id}  ${String(r.name || '').slice(0, 64)}`));
 }
 
+/* A WORD BANK AND BLANKS ARE MARKED BY RULE (owner, 12 Nov: "Chemical, kinetic" went to the AI): `cells`, one a blank, or the bank as `choices`. */
+const WORD_BANK = /choos(?:e|ing)\b[^.<]{0,30}\bfrom\b|\bfrom the (?:box|list)\b|selected from the list|choosing the correct words?:|\bcomplete\b[^<]{0,40}\busing:?\s+[^.<:]{1,40},\s*[^.<:]{1,40}(?:,|\bor\b)/i;
+const BLANKS = /_{3,}|\.{4,}|…{2,}/;
+const bankless = rows.filter(r => r && r.kind === 'question' && WORD_BANK.test(String(r.html || '')) && BLANKS.test(String(r.html || ''))
+  && !String(r.cells || '').trim() && !String(r.choices || '').trim());
+bankless.forEach(r => fail.push(`${r.row_id}: a word bank and blanks but no \`cells\` (one per blank) — it would go to the AI`));
+console.log(`parts with a word bank and blanks: ${bankless.length} without cells`);
+
 if (fail.length) {
   console.log('\nFAILED — ' + fail.length + ' thing(s) wrong with data/questions.json above.');
   process.exit(1);

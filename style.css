@@ -1186,7 +1186,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* ON A CONTROL the ring takes the control's size and colour. */
 .btn.is-busy::before, .tile:is(.is-busy, [aria-busy="true"])::before { width: 1em; height: 1em; border-color: currentColor; border-top-color: transparent; }
 /* ONE SPINNING RING (owner, 12 Nov): a ring with a gap turning forever, ink on screen; the content landing is what ends it. */
-.qp-ai-stage > .loading { width: auto; min-height: 1.3em; flex: none; }
 @keyframes loading { to { transform: rotate(1turn); } }
 /* SLOWER, NOT GONE, for somebody who asked for less movement: a slow turn still says something is on its way. */
 @media (prefers-reduced-motion: reduce) {
