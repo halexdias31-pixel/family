@@ -124,7 +124,8 @@ const SUITE = [
   { file: 'check-history-db.js', what: 'the history database: schema, ids, links both ways, years, sources' },
   { file: 'check-card-shape.js', what: 'one card shape for every kind in Find: picture, title, tags, lines (owner, 8 Nov)' },
   { file: 'check-one-template.js', what: 'every card on the site built by findCard (card_), the booking form too (owner, 12 Nov)' },
-  { file: 'check-one-way.js', what: 'card, tile, spinner and tag markup only from its one maker (owner, 12 Nov)' },
+  { file: 'check-one-way.js', what: 'any markup only from the renderer files (card-render.js, tiles.js); the rest hand over data (owner, 12 Nov)' },
+  { file: 'check-card-spec.js', what: 'every card kind builder returns a spec object; renderCard escapes its text (owner, 12 Nov)' },
   { file: 'check-email-card.js', what: 'the Sunday email card is the site card: parts, lines, labels, corner, gap, sizes, tag colours (57a–62a)' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
