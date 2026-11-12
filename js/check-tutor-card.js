@@ -15,6 +15,8 @@ function draw() {
     qualsParts: [P('Maths', 'A-Level', 'A*'), P('Maths', 'GCSE', '9'), P('English Language and Literature', "Master's degree", 'Distinction'), P('DBS', 'Enhanced', '', 'cert')] };
   const one = Object.assign({}, row, { personId: 'P-one', title: 'One Seat', rate: 20, maxStudents: 1 });
   /* IN THE FIND SCREEN, so its rules apply, but beside its pages so a late redraw does not wipe it. */
+  const old = document.getElementById('tc-check');
+  if (old) old.remove();
   const host = document.createElement('div');
   host.id = 'tc-check';
   host.className = 'page on';
@@ -78,8 +80,12 @@ function scan() {
       await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED && typeof findCard === 'function', null, { timeout: 90000 });
       await page.evaluate(() => go('stuff'));
       await page.waitForTimeout(2500);
-      await page.evaluate(draw);
-      await page.waitForTimeout(300);
+      /* A slow machine's late Find redraw can wipe the drawn cards; draw again until they stay. */
+      for (let t = 0; t < 5; t++) {
+        await page.evaluate(draw);
+        await page.waitForTimeout(300 + t * 700);
+        if (await page.evaluate(() => !!document.getElementById('tc-check'))) break;
+      }
       (await page.evaluate(scan)).forEach(f => fails.push(width + 'px: ' + f));
       if (SHOTS) await page.locator('#tc-check').screenshot({ path: path.join(SHOTS, 'tutor-card-' + width + '.png') });
       await ctx.close();
