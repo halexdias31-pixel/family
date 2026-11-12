@@ -349,10 +349,10 @@ function qAreaWithFoot_(x) {
   QT_MORE.html = ''; QT_MORE.used = false;
   return area + left;
 }
-/* THE CARD'S OWN TILES (share, star, message, top, help) as bare tiles, without the row `cardTiles_` wraps them in */
+/* THE CARD'S OWN TILES (share, star, message, top, help) as bare tiles, without the row `cardRow_` wraps them in */
 function qPartFoot_(p) {
   const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(p, '') : null);
-  return String(cardTiles_(Object.assign(Object.create(p), { lead: help }), true) || '').trim();
+  return String(cardRow_(Object.assign(Object.create(p), { lead: help }), true) || '').trim();
 }
 /* ONE PART, THE SHAPE OF ANY CARD: its tags, a shared stem the first time a drawn part needs it, its words and box, its whole tile row. */
 function qOneCard_(p, ctx) {

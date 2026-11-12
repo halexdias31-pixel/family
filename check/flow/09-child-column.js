@@ -292,7 +292,7 @@ check('"Manage your child" lists the children linked to you with New PIN beside 
   await wait(200);
   const card = () => d.querySelector('#s-students .kid-manage');
   if (!card()) return bad.concat(['a parent\'s Settings has no "Manage your child"']);
-  const rows = () => [...card().querySelectorAll('.kid-list .kid-row')];
+  const rows = () => [...card().querySelectorAll('.kid-list .row.kid-item')];
   const names = rows().map(r => (r.querySelector('.kid-who b') || {}).textContent + ' ' + (r.querySelector('.prof-handle') || {}).textContent);
   if (JSON.stringify(names) !== JSON.stringify(['Wren @wren_kind43', 'Maximilian @maximilian_steady42'])) bad.push('"Manage your child" lists ' + JSON.stringify(names) + ', wanted the two children and not the parent\'s own parent');
   const pins = rows().map(r => r.querySelector('.tile[data-do="kid-pin"]'));
@@ -324,7 +324,7 @@ check('"Manage your child" lists the children linked to you with New PIN beside 
   t.DATA().family = [];
   draw();
   await wait(150);
-  if (!card() || !/No child linked yet/.test(card().textContent) || card().querySelectorAll('.kid-row').length) bad.push('with no child linked the card does not say so');
+  if (!card() || !/No child linked yet/.test(card().textContent) || card().querySelectorAll('.row.kid-item').length) bad.push('with no child linked the card does not say so');
   if (!card() || !card().querySelector('.kid-add')) bad.push('with no child linked the card lost a section');
   /* HELD: your address waiting — the held sentence where the forms were, and Wren listed with no New PIN. */
   t.DATA().family = [{ personId: 'P-K1', title: 'Wren', relation: 'child', handle: 'wren_kind43', image: '' }];
@@ -332,14 +332,14 @@ check('"Manage your child" lists the children linked to you with New PIN beside 
   draw();
   await wait(150);
   if (!card() || !card().querySelector('.kid-held') || card().querySelector('[data-kid-new], [data-kid]')) bad.push('with the address waiting the card still offers a form, or does not say to open the link');
-  if (!card() || card().querySelectorAll('.kid-row').length !== 1 || card().querySelector('[data-do="kid-pin"]')) bad.push('with the address waiting the card does not list Wren, or offers a New PIN the server refuses');
+  if (!card() || card().querySelectorAll('.row.kid-item').length !== 1 || card().querySelector('[data-do="kid-pin"]')) bad.push('with the address waiting the card does not list Wren, or offers a New PIN the server refuses');
   if (d.querySelectorAll('#s-students .kid-manage').length !== 1) bad.push('the held state is not the same one card');
   /* A LIST STAMPED FOR SOMEBODY ELSE IS NOBODY'S. */
   t.whoami().pendingEmail = '';
   t.DATA().familyFor = 'P-OTHER';
   draw();
   await wait(150);
-  if (card() && card().querySelectorAll('.kid-row').length) bad.push('a family list stamped for somebody else was drawn as Pat\'s children');
+  if (card() && card().querySelectorAll('.row.kid-item').length) bad.push('a family list stamped for somebody else was drawn as Pat\'s children');
   /* A STUDENT HAS NOBODY TO MANAGE. */
   t.USER({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' });
   try { t.repaint(true); } catch (e) {}
@@ -951,7 +951,7 @@ check('a client can pay once it is accepted, and not before', async () => {
   const { w } = boot();
   await wait(300);
   w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
-  if (typeof w.__t.jobTiles !== 'function') return ['jobTiles_ is not exported — cannot check Pay'];
+  if (typeof w.__t.jobTiles !== 'function') return ['jobOpts_ is not exported — cannot check Pay'];
 
   const bad = [];
   const offersPay = id => {

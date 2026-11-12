@@ -28,6 +28,16 @@ function finderTagsSame_(view, first) {
   } catch (e) { return false; }
 }
 
+/* A WALK'S NEXT QUESTION (`finderWalk_`), the build's own while its library is this one; null when it must be counted. */
+function finderTagsNext_(out) {
+  try {
+    if (!out.length || out.some(f => f.any) || !finderSettled_()) return null;
+    const view = finderTagsView_(), at = view && view[out.map(f => f.field + '=' + f.value).join('&')];
+    const facet = at && finderTagsSame_(view, out[0]) ? facetBy(at[0]) : null;
+    return facet ? { facet: facet, n: at[3], has: v => at[1].some(a => spellKey_(a[0]) === spellKey_(v)) } : null;
+  } catch (e) { return null; }
+}
+
 /* THE BUILD'S WORDS (1100, js/finder-tags.js `#says`) while its library is this one (`finderTagsSame_` on Practice and Library): a tag row never tallies the library. */
 const SAYS_BUILT = new WeakMap();
 function answerSaysBuilt_(items) {
@@ -111,8 +121,9 @@ function paintStuffSoon_() {
   const chips = $(F.id + '-chips'), groups = $(F.id + '-groups');
   if (chips) chips.innerHTML = filterChips();
   if (groups) groups.innerHTML = loading_();
-  const want = JSON.stringify(STUFF.filters);
-  requestAnimationFrame(() => setTimeout(() => inFinder_(F, () => { if (JSON.stringify(STUFF.filters) === want) paintStuff(); }), 0));
+  const want = JSON.stringify(STUFF.filters), at = PAGE[F.id] || 0;
+  /* A PAGE TURNED BEFORE THE LATE PAINT LANDS is kept: painting "fresh" threw the child back to the question. */
+  requestAnimationFrame(() => setTimeout(() => inFinder_(F, () => { if (JSON.stringify(STUFF.filters) === want) paintStuff((PAGE[F.id] || 0) !== at); }), 0));
 }
 
 /* THE MENU A CHIP WAS PICKED FROM, AS THE BUILD WROTE IT (1100): its words without narrowing the list again, while the build's library is this one. */

@@ -68,7 +68,7 @@ function kidListSec_(held) {
     /* THEIR FIRST NAME, as the server calls a child (docs/history/333), without the `(@handle)` it adds
        when two children share one — the handle is printed beside it. */
     const first = String(nameBesideHandle_(f.title, f.handle) || f.title).trim();
-    return `<div class="kid-row">
+    return `<div class="row kid-item">
       ${personFace_({ pic: f.image, avatar: f.avatar, handle: f.handle, name: first, personId: f.personId },
                     { cls: 'kid-face', none: 'prof-none', size: 36 })}
       <p class="kid-who"><b>${esc(first)}</b>${f.handle ? `<span class="prof-handle">@${esc(f.handle)}</span>` : ''}</p>
@@ -244,7 +244,7 @@ function settingsCards_(shown, moved, col) {
     },
     save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
     foot: (mail(list) ? movingNote_(p) : '') + '<p class="note me-said"></p>',
-    after: id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '' }));
+    after: id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '' }));
   const out = [];
   Object.keys(shown).forEach((g, k) => {
     const list = shown[g] || [], top = k === 0 ? moved : '';
@@ -418,14 +418,14 @@ screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_
 /* APPLY TO TEACH IS A CARD OF ITS OWN, not a line on the padlock: Find › Settings skips a padlock, and the owner onboards through Find (1150). */
 function applyCard_() {
   const open = typeof applyFormOpen_ === 'function' && applyFormOpen_();
-  const body = open ? applyFormHtml_() : typeof applyTile_ === 'function' ? applyTile_() : '';
+  const body = open ? applyFormHtml_() : typeof applyOpts_ === 'function' && applyOpts_() ? tileRow_(tile_(applyOpts_()), 'apply-tiles') : '';
   return body ? [card_(`<div class="apply-card" data-yours="1"><h3>Apply to teach</h3><p class="note">Teach with us: tell us what you teach, and we will be in touch.</p>${body}</div>`)] : [];
 }
 /* ---------- TUTOR SETTINGS: THE STAFF HUB AND THE TEACHING SETTINGS WITH NO CARD TO LIVE ON (453) ---------- */
 function staffPages_() {
   const title = tabLabel_('staff', 'Tutor settings');
   if (!USER) return [signedOutCard_(title)].concat(lockedPages_('staff'));
-  /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyTile_`), then every card shut (467). */
+  /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyOpts_`), then every card shut (467). */
   if (!rankAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
   const hub = typeof hubBlock_ === 'function' ? hubBlock_() : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';

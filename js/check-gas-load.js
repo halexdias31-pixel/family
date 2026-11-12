@@ -141,13 +141,13 @@ function backend(extra) {
   sandbox.globalThis = sandbox;
   /* `digest` WITH THE REST — `digestPreview` in dopost.gs calls into it, and `check-digest.js` runs its
      Sunday function on this same scope. */
-  const ORDER = ['constants', 'access', 'core', 'people', 'booking', 'content', 'race', 'films', 'library', 'library-drive', 'media', 'setup', 'migrate', 'records', 'bizchecks', 'workfile', 'digest', 'digest-tags', 'push', 'inbox', 'doget', 'get-start', 'get-people', 'get-posts', 'get-shop', 'post-account', 'post-family', 'post-content', 'post-learning', 'post-booking', 'post-admin', 'dopost'];
-  const missing = ORDER.filter(n => !fs.existsSync(path.join(REPO, 'backend', n + '.gs')));
+  /* backend/files.json's order, the order Apps Script loads them (tools/file-lists.js). */
+  const GS = require('../tools/file-lists.js').gsFiles(REPO), missing = GS.filter(p => !fs.existsSync(p)).map(p => path.basename(p, '.gs'));
   if (missing.length) {
     console.log('backend/' + missing.join('.gs, backend/') + '.gs could not be read, so NOTHING was checked — not a pass.');
     process.exit(1);
   }
-  const src = ORDER.map(n => fs.readFileSync(path.join(REPO, 'backend', n + '.gs'), 'utf8')).join('\n;\n');
+  const src = GS.map(p => fs.readFileSync(p, 'utf8')).join('\n;\n');
   const ctx = vm.createContext(sandbox);
   vm.runInContext(src, ctx, { filename: 'backend.gs' });
   const ev = s => vm.runInContext(s, ctx);

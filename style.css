@@ -819,19 +819,19 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
               box-shadow var(--dur-quick) var(--ease-out);
 }
 /* ---------- ONE TICK (owner 63a, 9 Nov): every tick, checkbox and stage box is this square with a ✓ in it, ghosted when off, gold when on. ---------- */
-:is(.check .box, .dock-row .box, .bk-tick, .mat-list input) {
+:is(.check .box, .row.dock-item .box, .bk-tick, .mat-list input) {
   border-radius: var(--r-ui);
   border: 1.5px solid color-mix(in srgb, var(--white) 14%, transparent);
   background: color-mix(in srgb, var(--white) 4%, transparent);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 5%, transparent);
   display: inline-flex; align-items: center; justify-content: center; }
-.dock-row .box { flex: none; width: max(22px, 1.5rem); height: max(22px, 1.5rem); }
+.row.dock-item .box { flex: none; width: max(22px, 1.5rem); height: max(22px, 1.5rem); }
 /* The ghost of the mark, so an empty box says what would go in it. */
-:is(.check .box, .dock-row .box, .mat-list input)::after { content: '✓'; font-weight: 700; line-height: 1; color: color-mix(in srgb, var(--white) 16%, transparent); }
+:is(.check .box, .row.dock-item .box, .mat-list input)::after { content: '✓'; font-weight: 700; line-height: 1; color: color-mix(in srgb, var(--white) 16%, transparent); }
 .bk-tick { color: color-mix(in srgb, var(--white) 16%, transparent); }
 .check:is(:active, .is-pressed) .box { border-color: var(--gold); }
-:is(.check input:checked + .box, .dock-row input:checked + .box, .bk-tick.on, .mat-list input:checked) { background: var(--gold); border-color: var(--gold); box-shadow: none; color: var(--on-gold); }
-:is(.check input:checked + .box, .dock-row input:checked + .box, .mat-list input:checked)::after { color: var(--on-gold); }
+:is(.check input:checked + .box, .row.dock-item input:checked + .box, .bk-tick.on, .mat-list input:checked) { background: var(--gold); border-color: var(--gold); box-shadow: none; color: var(--on-gold); }
+:is(.check input:checked + .box, .row.dock-item input:checked + .box, .mat-list input:checked)::after { color: var(--on-gold); }
 
 /* ---------- YOUR ROLES: A TICK WITH ITS MEANING UNDER THE WORD § */
 .notify-card .role-pick { align-items: flex-start; }
@@ -1162,23 +1162,19 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
   width: 100%; min-height: 3rem; margin: 0; padding: 0;
 }
 .loading > span {
-  flex: none; display: block; width: 100%; max-width: 12rem; height: .25rem; overflow: hidden;
-  border-radius: var(--r-round); background: var(--line);
+  flex: none; display: block; width: var(--s5); height: var(--s5); box-sizing: border-box;
+  border: var(--s0) solid var(--ink); border-top-color: transparent; border-radius: 50%;
+  animation: loading .9s linear infinite;
 }
-/* THE FILL: fast at first, ever slower, never reaching the end on its own — the content landing is what ends it. */
-.loading > span::before {
-  content: ''; display: block; height: 100%; background: var(--gold);
-  transform-origin: left; transform: scaleX(.92);
-  animation: loading 12s cubic-bezier(.1, .7, .2, 1) both;
-}
-.qp-ai-stage > .loading { width: 4rem; min-height: 1.3em; flex: none; }
-@keyframes loading { from { transform: scaleX(.04); } to { transform: scaleX(.92); } }
-/* STILL, NOT GONE, for somebody who asked for less movement: a half-filled bar is still a thing on its way. */
+/* ONE SPINNING RING (owner, 12 Nov): a ring with a gap turning forever, ink on screen; the content landing is what ends it. */
+.qp-ai-stage > .loading { width: auto; min-height: 1.3em; flex: none; }
+@keyframes loading { to { transform: rotate(1turn); } }
+/* SLOWER, NOT GONE, for somebody who asked for less movement: a slow turn still says something is on its way. */
 @media (prefers-reduced-motion: reduce) {
-  .loading > span::before { animation: none; transform: scaleX(.5); }
+  .loading > span { animation-duration: 4s; }
 }
 /* ONLY THE CARD IN FRONT MOVES. § */
-.page:not(.on) .loading > span::before { animation-play-state: paused; }
+.page:not(.on) .loading > span { animation-play-state: paused; }
 /* A WHOLE PAGE WAITING: § */
 .pane:not([data-keep]):has(> .loading:only-child) {
   min-height: 6rem;
@@ -1306,22 +1302,19 @@ button.text-drop { color: var(--bad); }
 /* THE THINGS THAT WERE BUILT AFTER THE SCREENS. § */
 
 /* ---------- THE DOCKET § */
-.dock-row { display: flex; align-items: center; gap: var(--s3); cursor: pointer;
-            padding: var(--s1) 0; min-height: max(44px, 2.9rem);
-            border-bottom: 1px solid var(--line-soft); }
-.dock-row:last-of-type { border-bottom: 0; }
-.dock-row input { position: absolute; opacity: 0; width: 0; height: 0; }
+.row.dock-item { flex-direction: row; align-items: center; justify-content: flex-start; cursor: pointer; min-height: max(44px, 2.9rem); }
+.row.dock-item input { position: absolute; opacity: 0; width: 0; height: 0; }
 .dock-text { flex: 1; min-width: 0; font-size: var(--fs-body); line-height: 1.35;
              overflow-wrap: anywhere; }
 /* Done: struck through and dimmed, still there. Crossing something out is most of the point of
    having done it, and a line that vanishes takes the evidence with it. */
-.dock-row.done .dock-text { color: var(--ink); text-decoration: line-through; }
+.row.dock-item.done .dock-text { color: var(--ink); text-decoration: line-through; }
 /* The ✕ only when the row is touched or hovered — a column of them down the side turns a list of
    things to do into a list of things to delete. */
-.dock-row .text-drop { opacity: 0; transition: opacity var(--quick) ease; }
-@media (hover: hover) { .dock-row:hover .text-drop { opacity: 1; } }
-.dock-row:is(:active, .is-pressed) .text-drop { opacity: 1; }
-@media (hover: none) { .dock-row .text-drop { opacity: .5; } }
+.row.dock-item .text-drop { opacity: 0; transition: opacity var(--quick) ease; }
+@media (hover: hover) { .row.dock-item:hover .text-drop { opacity: 1; } }
+.row.dock-item:is(:active, .is-pressed) .text-drop { opacity: 1; }
+@media (hover: none) { .row.dock-item .text-drop { opacity: .5; } }
 
 .dock-new { display: flex; gap: var(--s2); align-items: stretch; margin-top: var(--s2); }
 .dock-new[hidden] { display: none; }
@@ -2613,15 +2606,14 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 /* THE MAP UNDER THE VENUES, redrawn from the ticks; nothing ticked is no map and no gap. */
 /* WHERE THE PAGES WENT, once, at the top of Settings — for everybody since docs/history/339. */
 /* ---------- A CHILD LINKED TO YOU, ONE LINE EACH — `kidListSec_` in me.js (docs/history/339) § */
-.kid-row { display: flex; align-items: center; gap: var(--s2); }
-.kid-row + .kid-row { margin-top: var(--s2); }
+.row.kid-item { flex-direction: row; align-items: center; justify-content: flex-start; gap: var(--s2); }
 .kid-face {
   width: var(--pic-s); height: var(--pic-s); flex: none; object-fit: cover;
   border-radius: 50%; border: 1px solid var(--line); background: var(--bg);
 }
 .kid-face.prof-none { font-size: var(--fs-body); }
 .kid-who { display: flex; flex-direction: column; gap: var(--s0); min-width: 0; flex: 1; margin: 0; overflow-wrap: anywhere; }
-.kid-row > .tile-row { margin: 0; flex: none; }
+.row.kid-item > .tile-row { margin: 0; flex: none; }
 /* FIND BY HANDLE (442): one found person per line, like a child on "Manage your child". */
 .ps-hit { display: flex; align-items: center; gap: var(--s2); margin-top: var(--s2); }
 .ps-hit > .tile-row { margin: 0; flex: none; }
@@ -4654,7 +4646,7 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .wf-line input { display: block; width: 100%; margin-top: var(--s1); }
 .wf-say:empty { display: none; }
 .wf-rows { list-style: none; margin: var(--s2) 0 0; padding: 0; }
-.wf-row { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) 0; border-top: 1px solid var(--line); text-align: left; }
+.row.wf-item { flex-direction: row; align-items: center; justify-content: flex-start; gap: var(--s2); text-align: left; }
 .wf-thumb { flex: none; width: 3rem; height: 4rem; object-fit: cover; border: 1px solid var(--line); border-radius: var(--r-ui); }
 .wf-what { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .wf-name { overflow-wrap: anywhere; }
@@ -5201,11 +5193,10 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 
 /* ---------- CHECK UPLOADS: AN ADMIN TOOL — see `uploadsHtml_` in me.js § */
 .up-list { list-style: none; margin: var(--s3) 0 var(--s2); padding: 0; }
-.up-row { display: flex; gap: var(--s2); align-items: baseline; }
-.up-row + .up-row { margin-top: var(--s2); }
+.row.up-item { flex-direction: row; gap: var(--s2); align-items: baseline; justify-content: flex-start; }
 .up-mark { flex: 0 0 1rem; text-align: center; font-weight: 700; }
-.up-row.is-ok .up-mark { color: var(--good); }
-.up-row.is-bad .up-mark { color: var(--bad); }
+.row.up-item.is-ok .up-mark { color: var(--good); }
+.row.up-item.is-bad .up-mark { color: var(--bad); }
 .up-k { display: block; font-size: var(--fs-body); line-height: 1.3; }
 .up-v { display: block; font-size: var(--fs-small); line-height: 1.35; color: var(--ink); overflow-wrap: anywhere; }
 .up-said { margin: var(--s2) 0 var(--s1); font-size: var(--fs-body); line-height: 1.35; overflow-wrap: anywhere; }
@@ -5563,7 +5554,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .dw-row { display: flex; flex-direction: column; margin-bottom: var(--s2); }
 
 /* ---------- THE RULES (496): the Rules card on Site, and the two rules only CSS applies (`data-uni`, rules.js) ---------- */
-.rules-card .rule-row { padding: var(--s2) 0; border-top: 1px solid var(--line); }
+.row.rule-item { display: block; }
 .rules-card .rule-say { margin: 0; }
 .rules-card .rule-lock, .rules-card .rule-uni { margin: var(--s1) 0 0; }
 .rules-card .rule-sw { display: flex; gap: var(--s2); margin: var(--s1) 0 0; }
@@ -5581,18 +5572,17 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .wk-bar { margin-top: var(--s2); padding-top: var(--s2); border-top: 1px solid var(--line); }
 .wk-bar .wk-say { margin: 0 0 var(--s2); }
 .seen-box { margin: var(--s2) 0; padding-top: var(--s2); border-top: 1px solid var(--line); }
-.seen-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: var(--tap); }
-.seen-row select { min-height: var(--tap); max-width: 60%; }
+.row.seen-item { flex-direction: row; align-items: center; min-height: var(--tap); }
+.row.seen-item select { min-height: var(--tap); max-width: 60%; }
 .seen-box .seen-say { margin: var(--s1) 0 var(--s2); }
 /* ---------- THE EMAIL WIDGET (493): one line per message, the unread dot in the accent; a static overview, nothing opens (547). */
 .ib-list { display: flex; flex-direction: column; }
-.ib-row { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; column-gap: var(--s2);
-  padding: var(--s2) 0; border-bottom: 1px solid var(--line); color: var(--ink); }
+.row.ib-item { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 0 var(--s2); justify-content: normal; align-items: normal; color: var(--ink); }
 .ib-dot { grid-row: 1; align-self: center; width: 8px; height: 8px; border-radius: 50%; }
-.ib-row.is-unread .ib-dot { background: var(--gold); }
+.row.ib-item.is-unread .ib-dot { background: var(--gold); }
 .ib-from, .ib-subj, .ib-snip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .ib-from { grid-column: 2; }
-.ib-row.is-unread .ib-from, .ib-row.is-unread .ib-subj { font-weight: 700; }
+.row.ib-item.is-unread .ib-from, .row.ib-item.is-unread .ib-subj { font-weight: 700; }
 .ib-at { grid-column: 3; font-size: var(--fs-small); color: var(--ink); }
 .ib-subj, .ib-snip { grid-column: 2 / 4; }
 .ib-snip { font-size: var(--fs-body); color: var(--ink); }

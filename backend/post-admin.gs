@@ -173,7 +173,7 @@ function postListApplications_(body, action, began) {
   const list = t.rows.map(r => {
     const p = people.find(x => S(x.person_id) === S(r.person_id));
     const o = { id: S(r.application_id), at: appMs_(r.at), status: norm(r.status) || 'new', statusAt: appMs_(r.status_at),
-                personId: S(r.person_id), handle: p ? S(p.handle) : S(r.handle), name: p ? personDisplayName(p) : S(r.handle) };
+                personId: S(r.person_id), handle: p ? S(p.handle) : '', name: p ? personDisplayName(p) : '' };
     SCHEMA.applications.slice(5).forEach(k => { o[k] = S(r[k]); });
     return o;
   }).sort((a, b) => b.at - a.at);

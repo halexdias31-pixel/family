@@ -163,7 +163,7 @@ const PADLOCK = { game: '', q: '' };
 const padlocked_ = () => !!(PADLOCK.game || PADLOCK.q);
 const padHere_ = () => String(typeof AT !== 'undefined' ? AT : '') + ':' + String((typeof PAGE !== 'undefined' && PAGE[AT]) || 0);
 
-/* ONE PADLOCK FOR EVERY WIDGET AND CARD (461, 498): `widgetOnColumn_` and `cardTiles_` put it on each, so text can be selected and copied with the column held. */
+/* ONE PADLOCK FOR EVERY WIDGET AND CARD (461, 498): `widgetOnColumn_` and `cardRow_` put it on each, so text can be selected and copied with the column held. */
 const gameLocked_ = id => !!PADLOCK.game && PADLOCK.game.split('@')[0] === String(id);
 const gameLockLook_ = on => ({ icon: on ? 'lock' : 'unlock', label: on ? 'Locked' : 'Lock',
   note: on ? 'tap to let the page move' : 'hold it still to select text', on, pressed: on });

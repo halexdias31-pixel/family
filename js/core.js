@@ -417,26 +417,20 @@ function bookMoney_(m) {
   const d = m.discount || {};
   const discountType = d.type === '%' ? '%' : (d.type === '£' ? '£' : '');
   const discountValue = discountType ? pos(d.value) : 0;
-  /* `%` IS OFF WHAT THE CLIENT PAYS (owner, 29 Oct: "If I put 30 in that field then it's just 30 percent off"), the room included. */
+  /* THE DISCOUNT IS OFF THE TEACHING, NO MAXIMUM, SHARED (owner, 12 Nov): tutor and @family. each lose the same %; room and card fees are not discounted. */
   const asked = !discountValue ? 0
-    : discountType === '%' ? gross * Math.min(discountValue, 100) / 100
-    : Math.min(discountValue, gross);
-  const shared = /^shared/i.test(String(d.by || ''));
+    : discountType === '%' ? teaching * Math.min(discountValue, 100) / 100
+    : discountValue;
   const tutor = pos(m.tutorPay), p = pos(m.feePct) / 100, f = pos(m.feeFixed);
-  /* THE DISCOUNT COMES OUT OF @FAMILY'S SHARE AND STOPS AT NOTHING LEFT (owner, 8 Nov): never pays the tutor more than the client pays. */
-  const den = 1 - p - (shared && teaching > 0 ? tutor / teaching : 0);
-  const room = gross * (1 - p) - tutor - venue - f;
-  const cap = den > 0 ? Math.max(0, Math.floor(room / den * 100) / 100) : gross;
-  const discount = Math.min(Math.round(asked * 100) / 100, cap, gross);
-  const scale = shared && teaching > 0 ? 1 - Math.min(discount, teaching) / teaching : 1;
+  const discount = Math.min(Math.round(asked * 100) / 100, teaching);
+  const scale = teaching > 0 ? 1 - discount / teaching : 1;
   const tutorPayout = Math.round(tutor * scale * 100) / 100;
   const charged = Math.round((gross - discount) * 100) / 100;
   const cardFees = charged > 0 ? Math.round((charged * p + f) * 100) / 100 : 0;
   const net = Math.round((charged - tutorPayout - venue - cardFees) * 100) / 100;
   return {
     gross, discount, discountType, discountValue, discountCode: String(d.code || ''),
-    capped: asked > discount, maxPct: gross > 0 ? Math.floor(Math.min(cap, gross) / gross * 100) : 0,
-    absorbedBy: discount ? (shared ? 'Shared with tutor' : 'Business') : '',
+    absorbedBy: discount ? 'Shared with tutor' : '',
     charged, teaching, tutorPayout, venue, cardFees, net, margin: charged > 0 ? net / charged : 0,
   };
 }

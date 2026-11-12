@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* @family. — tools/health.js THE SITE'S ONE HEALTH SCORE (890), measured, never judged by AI. --check: write nothing, exit 1 when stale. */
 /* Every measure is a RULE over a countable population: followed ÷ applies to (owner, 12 Nov; docs/history/1210). The score is the plain average of the rules. */
-/* Rules come from: tools/stability.js (code), tools/ai-cost.js (AI cost), data/logic-health.json (Find logic; stale when an input is newer), style.css, the walks' files, one-place.json. */
+/* Rules come from: tools/stability.js (code), tools/ai-cost.js (AI cost), data/logic-health.json (Find logic; stale when an input is newer), style.css, the walks' files, one-place.json, tools/one-truth.js. */
 /* Pass/fail checks with no population count 1/1 or 0/1. Dropped, no population: selectors, z-index and position counts (none is wrong in itself), px literals (the scale rules hold sizes). */
 /* --list orders every finding by the points of the total its fix gains. */
 'use strict';
@@ -555,7 +555,7 @@ function extraWork(st) {
 /* THE CHECK IDS health.js prices, for the philosophy's coverage. */
 const knownChecks = st => [FIND_KINDS, UX_KINDS, UNIFORM_KINDS, STRUCT, EXTRA_KINDS, VARIETY_KINDS].flat()
   .concat((st.signals || []).map(x => x.id), ['important', 'pxlit', 'colourlit', 'order', 'selectors', 'zindex', 'position'],
-    ['font-scale', 'space-scale', 'radius-scale', 'answer-width', 'one-template', 'makers', 'one-place', 'biz-checker', 'exceptions', 'ceilings', 'markers'], ['read-bytes', 'search-bytes', 'comment-ratio', 'big-notes', 'spread', 'test-biggest', 'tombstones', 'claude-lines', 'effort']);
+    ['font-scale', 'space-scale', 'radius-scale', 'answer-width', 'one-template', 'makers', 'one-place', 'biz-checker', 'exceptions', 'ceilings', 'markers', 'truth-facts', 'truth-lists', 'truth-labels'], ['read-bytes', 'search-bytes', 'comment-ratio', 'big-notes', 'spread', 'test-biggest', 'tombstones', 'claude-lines', 'effort']);
 /* THE BUSINESS AREA (1060): how much of the business the site runs (one-place.json), and the checker's own faults; the card goes live. */
 function business() {
   let bad = []; try { bad = require('../js/check-biz.js').work(); } catch (e) { bad = [{ kind: 'biz-checker', where: 'js/check-biz.js', say: 'would not run: ' + e.message }]; }
@@ -585,22 +585,31 @@ function varietyWork(Q, waits) {
   const fsrc = require('./find-src.js').findSrc(), seen = new Map();
   for (const m of fsrc.matchAll(/^\s*(\w+): \{[^\n]*?card: x => \(?(?:typeof \w+ === 'function' \? )?(\w+)\(/gm)) if (!seen.has(m[2])) seen.set(m[2], m[1]);
   add('drawer', 'Card drawers', 1, 'ui', [...seen.keys()].map(fn => ({ where: fnAt(fn) || 'js/find.js', say: `${fn} (first for ${seen.get(fn)})` })));
-  /* CARD TILE ROWS (950): cardTiles_ is the one; a card drawer drawing its own tile-row is another, and so is a core row out of order. */
-  const tsrc = read('js/tiles.js'), cv = [{ where: fnAt('cardTiles_', ['js/tiles.js']) || 'js/tiles.js', say: 'cardTiles_' }];
+  /* CARD TILE ROWS (950): cardRow_ is the one; a card drawer drawing its own tile-row is another, and so is a core row out of order. */
+  const tsrc = read('js/tiles.js'), cv = [{ where: fnAt('cardRow_', ['js/tiles.js']) || 'js/tiles.js', say: 'cardRow_' }];
   const core = (/const CARD_CORE_ = \[([^\]]*)\]/.exec(tsrc) || [])[1] || '';
-  if (core.replace(/\s/g, '') !== "'share','fav','suggest','top'" || !/function cardTiles_[^]*?const mine = cardCore_\(x\) \+ cardExtras_\(x\)/.test(tsrc))
+  if (core.replace(/\s/g, '') !== "'share','fav','suggest','top'" || !/function cardRow_[^]*?const mine = [^\n]*cardCore_\(x\) \+ cardExtras_\(x\)/.test(tsrc))
     cv.push({ where: 'js/tiles.js', say: 'the core row is not Share, Save, Suggest, Top first on every card' });
   [...seen.keys()].forEach(fn => { const at = fnAt(fn); if (!at) return; const src = read(at.split(':')[0]), i = src.search(new RegExp('function ' + fn + '\\s*\\('));
     if (/class="tile-row/.test(src.slice(i, src.indexOf('\n}', i)))) cv.push({ where: at, say: fn + ' draws its own tile row' }); });
   add('cardrow', 'Card tile rows', 1, 'ui', cv);
-  /* TILE AND BUTTON MAKERS: functions whose name says they make one. tile_ is the one. */
+  /* TILE AND BUTTON MAKERS: functions whose name says they make one. tile_ is the one; its own parts (`tileIcon_`, `tileWordShow_`,
+     any `tile…_` in tiles.js) are that one maker, not another. */
   const makers = [];
-  app.forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*(?:[Tt]ile|Btn|Button)\w*)\s*\(/g)) if (!/Row|row_|Set|Paint|Look|Html_$|Join/.test(m[1])) makers.push({ name: m[1], where: f + ':' + lineOf(src, m.index) }); });
+  app.forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*(?:[Tt]ile|Btn|Button)\w*)\s*\(/g)) if (!/Row|row_|Set|Paint|Look|Html_$|Join/.test(m[1]) && !(f === 'js/tiles.js' && /^tile[A-Z]\w*_$/.test(m[1]))) makers.push({ name: m[1], where: f + ':' + lineOf(src, m.index) }); });
   makers.sort((a, b) => (a.name === 'tile_' ? -1 : b.name === 'tile_' ? 1 : 0));
   add('maker', 'Tile and button makers', 1, 'ui', makers.map(m => ({ where: m.where, say: m.name })));
-  /* LIST-ROW STYLES: the base classes style.css gives a row of a list. */
-  const css = read('style.css'), rows = new Map();
-  for (const m of css.matchAll(/(?:^|[\s,}])\.((?:[a-z]+-)?row)(?=[\s,{.:[])/g)) if (!/tile-row|row-?$/.test(m[1] + '-x') || true) if (!rows.has(m[1]) && m[1] !== 'tile-row') rows.set(m[1], 'style.css:' + lineOf(css, m.index + 1));
+  /* LIST-ROW STYLES: a `.…row` class whose own rule stacks it in a list (a dividing line, or spacing from its neighbour row);
+     a form grid, a button row, a margin or a box of its own (a radius: a poll option, a bar) is not one. */
+  const css = read('style.css'), rows = new Map(), flat = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' ')), boxed = new Set();
+  for (const b of flat.matchAll(/([^{}]+)\{([^{}]*)\}/g)) b[1].split(',').forEach(sel => {
+    const subj = sel.trim().split(/\s+|\s*[>~]\s*/).pop() || '', m = /^\.((?:[a-z]+-)?row)(?::(?:last-child|last-of-type|first-child))?$/.exec(subj);
+    if (!m || m[1] === 'tile-row') return;
+    if (/border-radius/.test(b[2])) boxed.add(m[1]);
+    const stacked = new RegExp('\\.' + m[1] + '[^\\s+]*\\s*\\+\\s*\\.' + m[1] + '(?![\\w-])').test(sel) || /:(last-child|last-of-type|first-child)/.test(subj);
+    if ((stacked || /border-(top|bottom|block)\s*:\s*[^;]*\b(solid|var\(--line)/.test(b[2])) && !rows.has(m[1])) rows.set(m[1], 'style.css:' + lineOf(flat, b.index + b[0].indexOf(m[0])));
+  });
+  boxed.forEach(c => rows.delete(c));
   const rv = [...rows.keys()].sort((a, b) => (a === 'row' ? -1 : b === 'row' ? 1 : 0));
   add('listrow', 'List-row styles', 1, 'ui', rv.map(c => ({ where: rows.get(c), say: '.' + c })));
   /* SETTINGS ROW SHAPES: the row builders the settings screens use. */
@@ -726,6 +735,8 @@ const UNIT = { 'one-off': FN_UNIT, 'long-fn': 'functions', 'big-file': 'files', 
 function health() {
   const st = require('./stability.js').stability();
   const L = logic(), U = ui(), S = structure(), work = findWork(L), X = extraWork(st), C = require('./ai-cost.js').aiCost(), B = business();
+  /* ONE TRUTH, ONE PLACE (owner, 12 Nov): facts, file lists and id labels written once — tools/one-truth.js. */
+  const OT = require('./one-truth.js').oneTruth(); X.work.push(...OT.work); B.rules = B.rules.concat(OT.rules);
   const R = healthRules(st, L, U, S, work, X, C, B), avg = rs => rs.length ? r1(rs.reduce((a, r) => a + r.ok / r.of, 0) / rs.length * 100) : 100;
   const overall = avg(R), pts = r => r1((r.of - r.ok) / r.of / R.length * 100);
   /* WHAT ONE FIX GAINS, in points of the total: a share of its rule's one point. */

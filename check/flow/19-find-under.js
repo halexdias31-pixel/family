@@ -146,7 +146,7 @@ check('the Talmud (473, 490): Berakhot 2a is a card of its own found under Learn
   const walk = w.finderWalk_(x);
   t.STUFF().filters = walk;
   if (w.stuffFiltered().indexOf(x) < 0) bad.push('the funnel\'s own walk loses Berakhot 2a: ' + JSON.stringify(walk));
-  const el = d.createElement('div'); el.innerHTML = w.stuffCard(x) + w.cardTiles_(x);
+  const el = d.createElement('div'); el.innerHTML = w.stuffCard(x) + w.cardRow_(x);
   d.body.appendChild(el);
   if (!el.querySelector('.card.tal .tal-card-page')) return bad.concat(['Berakhot 2a draws no page on its card']);
   if (el.querySelector('[data-do="tal-open"]')) bad.push('the card still has a tile to open the page — the card is the page (490)');

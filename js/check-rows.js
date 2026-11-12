@@ -5,29 +5,17 @@ const fs = require('fs');
 const path = require('path');
 const acorn = require('acorn');
 
-/* THE .gs FILES, WHEREVER THEY ARE. § */
-const dir = path.join(__dirname, '..');
-const PLACES = [path.join(dir, 'backend'), path.join(dir, '..', 'backend'), dir];
-/* `digest` too — the weekly parent email reads `submissions` and `people` rows and writes `digest_log`. */
-const NAMES = ['constants', 'access', 'core', 'people', 'booking', 'content', 'race', 'films', 'library', 'library-drive', 'media', 'setup', 'doGet', 'doPost', 'digest', 'digest-tags'];
-const NUMBERED = ['00_constants', '05_access', '10_core', '20_people', '30_booking', '40_content', '41_race', '42_films', '43_library', '44_library-drive', '45_media',
-                  '50_setup', '60_doGet', '70_doPost', '80_digest', '81_digest-tags'];
-
-const found = NAMES.map((n, i) => PLACES
-  .flatMap(w => [NUMBERED[i], n, n.toLowerCase()].map(s => path.join(w, s + '.gs')))
-  .find(p => fs.existsSync(p)));
-
-/* A CHECK THAT CANNOT FIND ITS SUBJECT MUST EXIT NON-ZERO. "I did not check" and "I checked and it
-   was fine" are different answers, and exit 0 says the second one to everything that reads it. */
-const absent = NAMES.filter((n, i) => !found[i]);
-if (absent.length) {
-  console.error('check-rows: cannot find ' + absent.join(', ') + '. Looked in:\n  ' +
-                PLACES.join('\n  '));
-  process.exit(1);
-}
+/* THE .gs FILES: backend/files.json's list (tools/file-lists.js), constants.gs first because SCHEMA and TAB live there. */
+let all = [];
+const { OLD_READS } = require('../tools/file-lists.js');
+try { all = require('../tools/file-lists.js').gsFiles(); } catch (e) { console.error('check-rows: backend/files.json could not be read — ' + e.message); process.exit(1); }
+const found = all.filter(p => /constants\.gs$/.test(p)).concat(all.filter(p => !/constants\.gs$/.test(p)));
+/* A CHECK THAT CANNOT FIND ITS SUBJECT MUST EXIT NON-ZERO: "I did not check" is not "I checked and it was fine". */
+const absent = found.filter(p => !fs.existsSync(p));
+if (absent.length || !found.length) { console.error('check-rows: cannot find ' + (absent.join(', ') || 'constants.gs')); process.exit(1); }
 
 const srcOf = {};
-NAMES.forEach((n, i) => { srcOf[path.basename(found[i])] = fs.readFileSync(found[i], 'utf8'); });
+found.forEach(p => { srcOf[path.basename(p)] = fs.readFileSync(p, 'utf8'); });
 const constants = srcOf[path.basename(found[0])];
 
 /* ---------- SCHEMA AND TAB, READ OUT OF THE SOURCE § */
@@ -209,7 +197,7 @@ for (const file of Object.keys(srcOf)) {
         readsChecked++;
         const cols = SCHEMA[t];
         if (!cols) untraced.add(t);
-        else if (!cols.has(name)) {
+        else if (!cols.has(name) && !(OLD_READS[t] || []).includes(name)) {
           findings.push({ file, line: node.loc.start.line, tab: t, name,
                           src: srcOf[file].split('\n')[node.loc.start.line - 1].trim().slice(0, 78) });
         }

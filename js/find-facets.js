@@ -238,14 +238,16 @@ function facetTally_(items, facet) {
     folded[k] = { best: best, n: (seen ? seen.n : 0) + by[v] };
   });
   /* `value` IS WHAT IS MATCHED, `text` WHAT IT IS CALLED, `show` WHAT IS DRAWN — the shortest unique form (`shortLabels_`). */
-  const values = Object.keys(folded)
-    .map(k => ({ value: String(folded[k].best.value), n: folded[k].n }));
-  values.forEach(v => { v.text = facetSay_(facet, v.value); });
-  const cmp = answerCmp_(values.map(v => v.text));
-  values.sort((a, b) => cmp(a.text, b.text) || cmpText(a.value, b.value));
-  shortLabels_(values);
-  tellApart_(items, facet, values);
-  showFit_(values);
+  /* NAMED AND SORTED ONLY WHEN READ: a question turned away for its count alone (`facetWhy_`) never pays for its words. */
+  let values = null;
+  const named = () => {
+    if (values) return values;
+    values = Object.keys(folded).map(k => ({ value: String(folded[k].best.value), n: folded[k].n, text: facetSay_(facet, String(folded[k].best.value)) }));
+    const cmp = answerCmp_(values.map(v => v.text));
+    values.sort((a, b) => cmp(a.text, b.text) || cmpText(a.value, b.value));
+    shortLabels_(values); tellApart_(items, facet, values); showFit_(values);
+    return values;
+  };
 
   /* THE SPLIT IS MEASURED IN THINGS, NOT CARDS (517): a writing (`libBook`) weighs one however many verses it is, so the
      Bible's 31,000 cards cannot make Subject look lopsided. Every facet, one rule. */
@@ -253,10 +255,11 @@ function facetTally_(items, facet) {
 
   const out = {
     facet: facet,
-    values: values,
+    get values() { return named(); },
+    count: Object.keys(folded).length,
     coverage: items.length ? answered / items.length : 0,
     /* ---------- HOW MUCH OF THE LIST THE COMMONEST ANSWER DOES *NOT* KEEP § */
-    split: values.length < 2 || !whole ? 0 : (whole - top) / whole,
+    split: Object.keys(folded).length < 2 || !whole ? 0 : (whole - top) / whole,
   };
   perList[facet.field] = out;
   return out;
@@ -337,6 +340,8 @@ const FACET_MAX_GRID = 200;
 const runNumber_ = v => (/^(?:([A-Za-z]+) )?(\d+)$/.exec(String(v.show || v.value)) || []);
 const numberedRun_ = values => values.length > 1 && values.every(v => runNumber_(v)[2]) && new Set(values.map(v => runNumber_(v)[1] || '')).size === 1;
 function facetWhy_(items, facet, over) {
+  /* COUNTED BEFORE NAMED: past every grid and every answer the chips or DOC_TYPE_UNDER could take away, it is a list whatever its words. */
+  if (!over && facetTally_(items, facet).count - ((STUFF && STUFF.filters) || []).length > Math.max(FACET_MAX_GRID, Object.keys(DOC_TYPE_UNDER).length)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
   const all = facetValues(items, facet), vals = all.length;
   /* 680: answers that are all BELOW an answer already chosen are asked even alone — Doesn't matter is the parent's own. */
   if (vals > 1 && underChosen_(all)) return ''; /* owner 5 Nov: one answer is never a question, even below a chosen one */
@@ -732,7 +737,7 @@ function projectPart_(x, part) {
     inner = `${head('Materials')}<div class="gd"><section class="prac-kit">
       ${kitList_(p.materials)}</section></div>`;
   } else if (part === 'steps') {
-    /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminTiles_`'s rule. On a
+    /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminOpts_`'s rule. On a
        project it is mostly about who is in the shot and what stays offline, which is a thing to
        read before filming rather than after. */
     /* A COURSEWORK'S STEPS ARE ITS STAGES -- brief, research, specification, ideas, development, models, making, evaluation -- and that is the word a GCSE pupil and § */

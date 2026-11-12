@@ -95,6 +95,8 @@ async function offShell_(items) {
   await swReg_().catch(() => null);
   const t = deployStamp_(), urls = new Set(['index.html', 'style.css' + t, 'fonts/family-code.woff2', 'icon.png', 'favicon.png', 'manifest.webmanifest']);
   (window.FILES || []).filter(f => (window.OFF || []).indexOf(f) === -1).forEach(f => urls.add('js/' + f + '.js' + t));
+  /* THE BUILD'S BUNDLES TOO (1211): an offline open asks for these, not js/, unless the page was opened with ?nobundle. */
+  ['first', 'later', 'lazy'].forEach(b => urls.add('bundle/' + b + '.js' + t));
   try { performance.getEntriesByType('resource').forEach(e => { const u = new URL(e.name); if (u.origin === location.origin && u.pathname.indexOf('/sw.js') === -1) urls.add(u.pathname.replace(/^\//, '') + u.search); }); } catch (e) { oops_(e, 'offline:timings'); }
   (items || []).forEach(x => [x.row].concat(x.stems || [], (questionParts_()[qId_(x)] || [])).forEach(r => { const h = libS(r && (r.row || r).diagram_twin).trim(); if (/^[0-9a-f]{12}$/.test(h)) urls.add('data/diagrams/' + h + '.png'); }));
   const c = await caches.open(OFF_CACHE);

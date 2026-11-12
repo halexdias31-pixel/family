@@ -11,7 +11,7 @@ function inboxWhen_(ms) {
   return d.toDateString() === now.toDateString() ? time_(d) : date_(d);
 }
 function inboxRowHtml_(r) {
-  return `<div class="ib-row${r.unread ? ' is-unread' : ''}">
+  return `<div class="row ib-item${r.unread ? ' is-unread' : ''}">
     <span class="ib-dot" aria-label="${r.unread ? 'Unread' : ''}"></span>
     <span class="ib-from">${esc(r.from || '(no sender)')}${r.count > 1 ? ` <small>${r.count}</small>` : ''}</span>
     <span class="ib-at">${esc(inboxWhen_(r.at))}</span>

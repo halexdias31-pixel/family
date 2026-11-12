@@ -615,7 +615,7 @@ function uploadsHtml_(d) {
       shared and binned.</p>`;
   }
   if (d.error) return tile + `<p class="up-said up-bad">${esc(d.error)}</p>`;
-  const rows = (d.checks || []).map(c => `<li class="up-row ${c.ok ? 'is-ok' : 'is-bad'}">
+  const rows = (d.checks || []).map(c => `<li class="row up-item ${c.ok ? 'is-ok' : 'is-bad'}">
       <b class="up-mark" role="img" aria-label="${c.ok ? 'yes' : 'no'}">${c.ok ? '✓' : '✗'}</b>
       <span><span class="up-k">${esc(c.label)}</span>
       <span class="up-v">${esc(c.said)}</span></span></li>`).join('');

@@ -298,15 +298,11 @@ function tileSet_(el, o) {
 let SPOT_TILES = false;
 const adminLearn_ = x => typeof kindOf_ === 'function'
   && asList_(kindOf_(x).group).indexOf('Learning') !== -1;
-function adminTiles_(x, t) {
-  if (adminLearn_(x) && !SPOT_TILES) return '';
-  /* A `span`, NOT A ROW. These go inside the one row every card has now — see `tilesFor_`. It keeps
-     the group for a screen reader, which is the half of the old wrapper worth having. */
-  return `<span class="tile-group is-admin" role="group" aria-label="Admin">
-    ${tile_({ icon: 'spot', label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin',
-              on: isSpot(x.key), act: 'spot',
-              data: { key: x.key, kind: x.kind || 'item' } })}
-  </span>`;
+function adminOpts_(x) {
+  if (adminLearn_(x) && !SPOT_TILES) return null;
+  /* INSIDE THE ONE ROW every card has (`tilesFor_`), in a group a screen reader names. */
+  return { icon: 'spot', label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin', on: isSpot(x.key), act: 'spot',
+    data: { key: x.key, kind: x.kind || 'item' } };
 }
 
 
@@ -323,15 +319,10 @@ function favOpts_(x) {
 
 
 /* ---------- A SHOP THING § */
-function shopTiles_(x) {
+function shopOpts_(x) {
   const inCart = CART.some(c => c.key === x.key && isShop_(c));
-  return `
-    ${tile_({ icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket',
-              tone: 'buy', on: inCart,
-              note: inCart ? '' : (x.cost ? x.cost + ' credits' : 'free'),
-              act: 'cart-add', off: !USER || inCart,
-              data: { key: x.key, kind: 'shop' } })}
-  `;
+  return { icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket', tone: 'buy', on: inCart,
+    note: inCart ? '' : (x.cost ? x.cost + ' credits' : 'free'), act: 'cart-add', off: !USER || inCart, data: { key: x.key, kind: 'shop' } };
 }
 
 
@@ -352,31 +343,20 @@ function bookOpts_(x) {
   return !isMe_(x) && !childView_() && t.listed !== false ? { icon: 'book', label: 'Book', tone: 'buy',
     act: 'book-with', data: { tutor: x.name || '' } } : null;
 }
-function tutorTiles_(x) {
+function tutorOpts_(x) {
   const t = x.row || {};
-  return `
-    ${/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered. */ tile_(bookOpts_(x))}
-    ${/* THEIR INTRO VIDEO: the uploaded one plays on the card (`intro-play`); an older row's link still goes out. */
-          String(t.videoFile || '').trim() ? tile_({ icon: 'play', label: 'Watch intro', act: 'intro-play', data: { file: t.videoFile } })
-          : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? tile_({ icon: 'play', label: 'Watch intro', href: t.mediaUrl }) : ''}
-    ${/* SILVER, IN THE ORDINARY ROW. § */
-          ''}
-    ${/* ---------- WRITE TO THEM, FROM THE ONE PLACE YOU ARE LOOKING AT THEM § */
-          ''}
-    ${/* NOT FOR A CHILD, unless they are the business (405): `MESSAGING` lets a student write to an admin only — no tile the server refuses. */
-          (USER && !isMe_(x) && (!childView_() || /admin/i.test(String(t.role || '')))) ? tile_({ icon: 'chat', label: 'Message',
-              note: 'a note to them', act: 'msg-open',
-              data: { to: x.name, id: (x.row && x.row.personId) || '' } }) : ''}
-    ${/* EDIT, FOR AN ADMIN, ON SOMEBODY ELSE'S CARD ON THE YOU COLUMN — `updateProfile` lets an admin write another person's row, so the card turns into its form for § */
-          ''}
-    ${typeof cardEditTile_ === 'function' ? cardEditTile_(x) : ''}
-    ${x.key ? tile_({ icon: t.listed === false ? 'hide' : 'show',
-              label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
-              on: t.listed !== false, act: 'set-listed',
-              note: t.listed === false ? 'clients cannot see them' : 'clients can see them',
-              /* THE ID AS WELL AS THE NAME. `x.key` is a display name, and naming a person by
-                 one is the fault `findPerson` exists to fall back from rather than rely on. */
-              data: { who: x.key, pid: (x.row && x.row.personId) || '' } }) : ''}`;
+  return [/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered. */ bookOpts_(x),
+    /* THEIR INTRO VIDEO: the uploaded one plays on the card (`intro-play`); an older row's link still goes out. */
+    String(t.videoFile || '').trim() ? { icon: 'play', label: 'Watch intro', act: 'intro-play', data: { file: t.videoFile } }
+      : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? { icon: 'play', label: 'Watch intro', href: t.mediaUrl } : null,
+    /* NOT FOR A CHILD, unless they are the business (405): `MESSAGING` lets a student write to an admin only — no tile the server refuses. */
+    USER && !isMe_(x) && (!childView_() || /admin/i.test(String(t.role || ''))) ? { icon: 'chat', label: 'Message',
+      note: 'a note to them', act: 'msg-open', data: { to: x.name, id: (x.row && x.row.personId) || '' } } : null,
+    typeof cardEditOpts_ === 'function' ? cardEditOpts_(x) : null,
+    x.key ? { icon: t.listed === false ? 'hide' : 'show', label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
+      on: t.listed !== false, act: 'set-listed', note: t.listed === false ? 'clients cannot see them' : 'clients can see them',
+      /* THE ID AS WELL AS THE NAME: `x.key` is a display name, which `findPerson` only falls back to. */
+      data: { who: x.key, pid: (x.row && x.row.personId) || '' } } : null];
 }
 
 
@@ -417,15 +397,15 @@ function jobPeople_(j) {
   return out.filter(p => msgMay_(p.role));
 }
 const jobMsgTiles_ = x => jobPeople_(x && x.row).map(p => msgTile_(p.name, p.id)).join('');
-/* A PROFILE'S Message, by the same rule — the tutor card draws its own (`tutorTiles_`). */
+/* A PROFILE'S Message, by the same rule — the tutor card has its own (`tutorOpts_`). */
 const personTiles_ = x => { const t = (x && x.row) || {}; const name = t.title || t.name || x.name;
   return name && !isMe_(x) && msgMay_(t.role) ? msgTile_(name, t.personId) : ''; };
 
 /* EVERY CARD'S ROW STARTS WITH THESE (950); health.js's "card tile rows" holds it. */
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
 /* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
-const CARD_EXTRAS_ = { shop: shopTiles_, tutor: tutorTiles_, subject: x => tile_(subjectOpts_(x)),
-  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + jobTiles_(x), person: x => personTiles_(x), talmud: x => tile_(talmudOpts_(x)) };
+const CARD_EXTRAS_ = { shop: shopOpts_, tutor: tutorOpts_, subject: x => tile_(subjectOpts_(x)),
+  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + tile_(jobOpts_(x)), person: x => personTiles_(x), talmud: x => tile_(talmudOpts_(x)) };
 function cardCore_(x) {
   const one = {
     share: () => tile_({ icon: 'share', label: 'Share', act: 'card-share', data: { key: x.key } }),
@@ -442,17 +422,17 @@ function cardExtras_(x) {
   return (x.lead || '') + (typeof r === 'string' ? r : tile_(r));
 }
 /* `flat` HANDS THE TILES BACK UNWRAPPED, for a card that sorts them into its four and its ⋯ (`kcFour_`). */
-function cardTiles_(x, flat) {
+function cardRow_(x, flat) {
   /* THEN WHAT ANY KIND MAY ADD: Read aloud, Hear it, speed, magnifier, Open, a column's `more`, the padlock. */
   /* ONE READ-ALOUD PER CARD (owner's look rule): a language card's Hear it stands in for Read aloud, never beside it. */
   const hear = typeof hearItOpts_ === 'function' ? hearItOpts_(x) : null;
-  const mine = (typeof kcTilesFill_ === 'function' ? kcTilesFill_ : (a, h) => h)(x, cardCore_(x) + cardExtras_(x)
+  const mine = (h => h + (typeof kcOffOpts_ === 'function' ? tile_(kcOffOpts_(x, h)) : ''))(cardCore_(x) + cardExtras_(x)
     /* a question's Read aloud is each part's (`qtRow_`) */
     + tile_(hear || (typeof readAloudOpts_ === 'function' && !isQ_(x) ? readAloudOpts_(x) : null))
     + tile_([typeof speedOpts_ === 'function' ? speedOpts_(x) : null, typeof magCardOpts_ === 'function' ? magCardOpts_(x) : null, finderOpenOpts_(x)]) + (x.more || '')
     /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
     + (x.key && !isMeCard_(x) && !isQ_(x) && tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('c:' + x.key) : null)));
-  const admin = adminTiles_(x, x.topic || null);
+  const admin = tileGroup_(adminOpts_(x), 'is-admin', 'Admin');
   if (flat) return mine + admin;
   if (!mine && !admin) return '';
   /* YOUR OWN CARD IS ALL YOURS: nothing on it is split off as an admin's (the hub's gold means "terms to agree" there). */
@@ -468,6 +448,11 @@ function tileAdminRank_(t) {
   if (/\bclass="tile\b[^"]*\bis-danger\b/.test(t)) return 99;
   const i = TILE_ADMIN_ORDER_.indexOf(tileAct_(t));
   return i === -1 ? TILE_ADMIN_ORDER_.length : i;
+}
+/* A NAMED GROUP OF tile_'s TILES (an admin's, a widget's keep); '' when none is drawn, so no empty group is left. */
+function tileGroup_(opts, cls, label) {
+  const h = tile_(opts);
+  return h ? `<span class="tile-group${cls ? ' ' + cls : ''}"${label ? ` role="group" aria-label="${esc(label)}"` : ''}>${h}</span>` : '';
 }
 function tileRow_(html, cls, own) {
   const src = String(html || '');

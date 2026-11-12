@@ -510,17 +510,20 @@ if (money_) {
       want('tutoring, 2 children, 2h', quote({ n: 2, hours: 2, hoursPerWeek: 2 }), 102, 90, 12);
       /* AN OLD DRAFT'S `format: 'Trip'` IS IGNORED (463): it prices as the tutoring it is. */
       want('an old draft saying Trip', quote({ n: 2, hours: 2, hoursPerWeek: 2, format: 'Trip', trip: 'x' }), 102, 90, 12);
-      want('£10 off, business absorbs', quote({ n: 2, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 10 } }), 92, 90, 2);
+      /* SHARED BY THE SAME % (owner, 12 Nov): £10 of £102 is 9.80%, so the tutor's £90 falls to £81.18 and @family.'s £12 to £10.82. */
+      want('£10 off, shared', quote({ n: 2, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 10 } }), 92, 81.18, 10.82);
       want('10% off, shared with tutor', quote({ n: 2, hours: 2, hoursPerWeek: 2,
         discount: { type: '%', value: 10, by: 'Shared with tutor' } }), 91.8, 81, 10.8);
-      /* NO LOSS (owner, 8 Nov): @family.'s share on one child is nothing, so the £20 is capped at nothing. */
-      want('£20 off one child, business absorbs: capped, no loss', quote({ n: 1, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 20 } }), 60, 60, 0);
+      /* NO MAXIMUM (owner, 12 Nov): £20 off one child's £60 is a third off the tutor, whose share it all is. */
+      want('£20 off one child, shared: no cap, nothing negative', quote({ n: 1, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 20 } }), 40, 40, 0);
+      want('100% off: both get nothing', quote({ n: 2, hours: 2, hoursPerWeek: 2, discount: { type: '%', value: 100 } }), 0, 0, 0);
       /* "IF I PUT 30 IN THAT FIELD THEN IT'S JUST 30 PERCENT OFF" (owner, 29 Oct): off what the client pays, the room included. */
       const full = quote({ n: 2, hours: 2, hoursPerWeek: 2, loc: 'Somewhere' });
-      /* 5%, under the cap where @family.'s share runs out (owner, 8 Nov), so the room-included base is what is tested. */
+      /* 5% OFF THE TEACHING ONLY (owner, 12 Nov): the room is not discounted. */
       const off30 = quote({ n: 2, hours: 2, hoursPerWeek: 2, loc: 'Somewhere', discount: { type: '%', value: 5 } });
       if (!(full.earn.venue > 0)) bad.push('the 5% example has no room in it, so it proves nothing about the room: ' + JSON.stringify(full.earn));
-      if (r2(off30.total) !== r2(full.total * 0.95)) bad.push('5% off ' + r2(full.total) + ' came to ' + r2(off30.total) + ', wanted ' + r2(full.total * 0.95));
+      const want5 = r2(full.total - Math.round(full.earn.teaching * 5) / 100);
+      if (r2(off30.total) !== want5) bad.push('5% off the teaching of ' + r2(full.total) + ' came to ' + r2(off30.total) + ', wanted ' + want5);
       const fees = quote({ n: 2, hours: 2, hoursPerWeek: 2 }, { card_fee_pct: 1.5, card_fee_fixed: 0.2 });
       if (r2(fees.earn.cardFees) !== 1.73 || r2(fees.earn.net) !== 10.27) {
         bad.push('card fees 1.5% + 20p on £102 came to ' + r2(fees.earn.cardFees) + ', net ' + r2(fees.earn.net) + ', wanted 1.73 and 10.27');
@@ -536,7 +539,7 @@ if (money_) {
         ['1 child', {}], ['4 seats', { n: 4 }], ['4 seats, 33% off', { n: 4, discount: { type: '%', value: 33, by: 'Business' } }],
         ['2 seats, room, 30% off', { n: 2, loc: 'Somewhere', discount: { type: '%', value: 30 } }],
         ['split with one other family, 10% off', { n: 3, splitOthers: 1, discount: { type: '%', value: 10 } }],
-        ['4 seats, 55% off: capped at what @family. keeps', { n: 4, discount: { type: '%', value: 55, by: 'Business' } }],
+        ['4 seats, 55% off: no cap, admin below nothing', { n: 4, discount: { type: '%', value: 55, by: 'Business' } }],
         ['4 seats, 90% off shared with tutor', { n: 4, discount: { type: '%', value: 90, by: 'Shared with tutor' } }],
       ];
       cases.forEach(([what, spec]) => {
@@ -545,12 +548,13 @@ if (money_) {
         if (!sh) { bad.push(what + ': no figures'); return; }
         if (r2(sh.tutor + sh.admin + sh.fees) !== sh.pays) bad.push(what + ': ' + JSON.stringify(sh) + ' does not add up');
         if (sh.pays !== r2(L.total)) bad.push(what + ': client pays ' + sh.pays + ' but COST reads ' + r2(L.total));
-        /* CLIENT PAYS = TOTAL − DISCOUNT, AND ADMIN NEVER BELOW NOTHING (owner, 8 Nov). */
+        /* CLIENT PAYS = TOTAL − DISCOUNT (owner, 8 Nov); no cap, so admin may go below nothing (owner, 12 Nov). */
         if (r2(L.earn.gross - L.earn.discount) !== r2(L.earn.charged)) bad.push(what + ': total ' + r2(L.earn.gross) + ' − discount ' + r2(L.earn.discount) + ' is not ' + r2(L.earn.charged));
-        /* A DISCOUNT NEVER TAKES ADMIN BELOW NOTHING; card fees on a margin-free booking can, and that is not the discount's doing. */
+        /* THE TUTOR AND @FAMILY. LOSE THE SAME % (owner, 12 Nov): the tutor's pay falls by the discount's share of the teaching. */
         const plain = quote(Object.assign({ n: 1, hours: 2, hoursPerWeek: 2 }, spec, { discount: null }), { card_fee_pct: 1.5, card_fee_fixed: 0.2 });
-        if (L.earn.discount > 0 && L.earn.net < Math.min(0, plain.earn.net)) bad.push(what + ': the discount took admin to ' + r2(L.earn.net));
-        if (sh.tutor > sh.pays) bad.push(what + ': tutor earns ' + sh.tutor + ', more than the client pays ' + sh.pays);
+        const t0 = plain.earn.tutorPayout, want = r2(t0 * (1 - L.earn.discount / plain.earn.teaching));
+        if (Math.abs(r2(L.earn.tutorPayout) - want) > 0.011) bad.push(what + ': tutor earns ' + r2(L.earn.tutorPayout) + ', wanted ' + want);
+        if (L.earn.tutorPayout < 0) bad.push(what + ': tutor below nothing');
       });
       return bad;
     },

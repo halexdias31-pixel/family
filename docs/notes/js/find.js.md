@@ -5127,7 +5127,7 @@ top level, before `KEPT_DRAW`
 
 ```
 /* SET WHILE A KEPT LIST IS BEING DRAWN (`keptPages_`, for Saved and the Spotlight), in the way
-   `SPOT_TILES` is: a card is drawn by the same `stuffCard` → `cardTiles_` in Find's fill and on Saved,
+   `SPOT_TILES` is: a card is drawn by the same `stuffCard` → `cardRow_` in Find's fill and on Saved,
    both outside any binding, so nothing else tells the two apart. */
 ```
 
@@ -12615,7 +12615,7 @@ top level, before `jobPage_`
 /* ---------- "THE PAPER, AND NOTHING ELSE" WAS TRUE WHILE SOMETHING ELSE ADDED THE TILES ----------
    THE NOTE THAT STOOD HERE said paying and withdrawing are marks in the tile row *under the card*,
    `jobTiles_` in tiles.js, "which is where every other kind keeps its actions". That was exactly
-   right and it depended on a caller that no longer exists: `stuffCard` appends `cardTiles_` to
+   right and it depended on a caller that no longer exists: `stuffCard` appends `cardRow_` to
    every card it draws, and a receipt was a card it drew. Booking left the funnel, `bookBlocks`
    draws these pages instead, and **the tile row did not come with them** — so on the Booking column
    a client had no way to pay for an accepted session and an admin had no Accept or Decline.
@@ -13051,13 +13051,13 @@ in `accountPages_`
      the doors. This time the card is right here on the account column and the tile is genuinely
      not drawn, for a different reason.
 
-     `cardTiles_` IS APPENDED BY `stuffCard`, NOT BY `findCard`. Its own note says why — "one place
+     `cardRow_` IS APPENDED BY `stuffCard`, NOT BY `findCard`. Its own note says why — "one place
      instead of nine... a kind added tomorrow gets its actions without anybody doing anything" —
      and that is right, except this column calls `findCard` directly and so gets the card without
      the row of actions under it. A person seen on the Find screen has a Message tile; the same
      person seen here had none.
 
-     AND A ROW IS NOT AN ITEM. `cardTiles_` reads `x.name`, `x.key` and `x.row.personId`; passing
+     AND A ROW IS NOT AN ITEM. `cardRow_` reads `x.name`, `x.key` and `x.row.personId`; passing
      `{ kind, row }` gives it a card and an empty tile row, which is worse than no tiles because it
      draws a Message button addressed to nobody. So the shape is built the way `stuffItems` builds
      it, in one helper used for you and for everybody else — the same argument as `mineIs_` above:
@@ -13070,7 +13070,7 @@ in `accountPages_`
 
 ```
 /* ---------- AND YOUR OWN CARD IS `me`, WHICH IS THE KIND NOTHING HAD EVER BUILT ----------------
-     `cardTiles_` ROUTES `meTiles_` ON `x.kind === 'me'` AND NO ITEM IN THIS APP CARRIED THAT KIND.
+     `cardRow_` ROUTES `meTiles_` ON `x.kind === 'me'` AND NO ITEM IN THIS APP CARRIED THAT KIND.
      Measured across `js/`: `kind: 'me'` occurs nowhere. So `Your settings`, `Add your child`,
      `Your figure` and `Build` — four tiles, written, styled, each with a live handler behind it —
      were drawn on no screen at all, and the only way to any of them was a swipe to a column at the
@@ -14050,13 +14050,13 @@ in `stuffCard`
      nothing said so until a shop card asked what it could afford. */
 ```
 
-### THE STAR IS NOT HERE ANY MORE — it is the first tile in the action row, drawn by `favTile_` inside `cardTiles_`, which every card builder already calls.
+### THE STAR IS NOT HERE ANY MORE — it is the first tile in the action row, drawn by `favTile_` inside `cardRow_`, which every card builder already calls.
 
 in `stuffCard`
 
 ```
 /* THE STAR IS NOT HERE ANY MORE — it is the first tile in the action row, drawn by `favTile_`
-     inside `cardTiles_`, which every card builder already calls. A floating button in the corner
+     inside `cardRow_`, which every card builder already calls. A floating button in the corner
      was the one control that was not where the others were, and it was the one people went looking
      for among them.
 
@@ -14066,7 +14066,7 @@ in `stuffCard`
      ---------------------------------------------------------------------------------------------
      AND THE ACTIONS ARE OUTSIDE THE CARD NOW, added here rather than by each builder.
 
-     EVERY BUILDER USED TO END WITH `${cardTiles_(x)}` INSIDE ITS OWN MARKUP, which put the controls
+     EVERY BUILDER USED TO END WITH `${cardRow_(x)}` INSIDE ITS OWN MARKUP, which put the controls
      on the thing rather than under it — and on a past paper that is literal: `.paper` is a sheet of
      off-white exam paper, and the buttons were printed on it, below "ANSWER ALL QUESTIONS". A
      control belongs to the app, not to the document it acts on.

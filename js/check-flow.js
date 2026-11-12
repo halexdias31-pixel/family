@@ -268,7 +268,7 @@ function boot(opts) {
       + 'dockLines: typeof docketLines === "function" ? docketLines : null,'
       + 'dockText: typeof docketText === "function" ? docketText : null,'
       + 'paintDocket: typeof paintDocket === "function" ? paintDocket : null,'
-      + 'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
+      + 'jobAdmin: typeof jobAdminOpts_ === "function" ? (j, s, a) => tile_(jobAdminOpts_(j, s, a)) : null,'
       /* THE WHOLE SESSION PAGE AND THE FIGURES ON IT, so a journey can ask who is shown which money
          and whether the actions are printed on the paper rather than floating under it. */
       + 'jobPage: typeof jobPage_ === "function" ? jobPage_ : null,'
@@ -325,7 +325,7 @@ function boot(opts) {
       /* THE CARD ON THE 📷 COLUMN. § */
       'card: typeof cameraCard === "function" ? cameraCard : null,' +
       /* THE TILE ROW UNDER A SESSION CARD, which is where Pay lives. § */
-      'jobTiles: typeof jobTiles_ === "function" ? jobTiles_ : null,' +
+      'jobTiles: typeof jobOpts_ === "function" ? x => tile_(jobOpts_(x)) : null,' +
       /* THE BOOKING COLUMN AS DRAWN, and the id of the booking just asked for. § */
       'blocks: typeof bookBlocks === "function" ? bookBlocks : null,' +
       'asked: () => ASKED_JOB,' +

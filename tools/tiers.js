@@ -7,6 +7,9 @@ const T = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/tiers.json')
 const of = (sec, t) => Object.keys(T[sec] || {}).filter(k => T[sec][k] === t);
 /* A FILE IS OFF when every widget it serves is off (`widgetFiles`); its code stays in the repo and in FILES, and is never fetched. */
 const offFiles = Object.keys(T.widgetFiles || {}).filter(f => [].concat(T.widgetFiles[f]).every(w => (T.widgets || {})[w] === 'off'));
+/* A widget's name, as map.js's WIDGETS gives it. */
+const MAP_SRC = fs.readFileSync(path.join(ROOT, 'js/map.js'), 'utf8');
+const widgetName = id => (new RegExp("\\{ id: '" + id + "',[^\\n]*?name: '([^'\\n]*)'").exec(MAP_SRC) || [])[1] || '';
 const q = a => a.map(x => `'${x}'`).join(', ');
 const later = (T.later || []).filter(f => offFiles.indexOf(f) === -1);
 /* LAZY (1080): LATER files fetched when one of their widgets first starts; their widgets wait in tierLazy_ (shell-boot.js). */
@@ -22,6 +25,8 @@ const want = {
   ],
   /* WHERE EACH OFF WIDGET'S COMING SOON CARD WAITS (`soonUnder`): a front answer, greyed while all it holds is Coming soon. */
   'js/find-finder.js': [
+    /* THE OFF WIDGETS' NAMES, copied from map.js's WIDGETS (the one place a widget is named): map.js is a LATER file, so Find needs them before it loads. */
+    [/const SOON_WIDGET_NAMES = \{[^}]*\};/, `const SOON_WIDGET_NAMES = { ${Object.keys(T.widgets || {}).map(id => [id, widgetName(id)]).filter(p => p[1]).map(([id, n]) => id + ': ' + JSON.stringify(n).replace(/^"|"$/g, "'")).join(', ')} };`],
     [/const SOON_WIDGET_UNDER = \{[^}]*\};/, `const SOON_WIDGET_UNDER = { ${Object.keys(T.soonUnder || {}).filter(k => k !== 'notes').map(k => k + ": '" + T.soonUnder[k] + "'").join(', ')} };`],
   ],
   'index.html': [

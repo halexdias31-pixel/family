@@ -308,6 +308,7 @@
     "check-settings.js": "core",
     "check-finder.js": "core",
     "tools/finder-tags.js --check": "core",
+    "tools/bundle.js --check": "core",
     "tools/build-stamp.js --check": "core",
     "tools/logic-health.js --check": "core",
     "check-cache.js": "core",

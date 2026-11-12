@@ -82,7 +82,7 @@ check('486: every top-level card and widget in every column has the one Report t
     }
     if (seen < 10) bad.push(rank + ': only ' + seen + ' cards were seen, so the rule was NOT checked');
     /* YOUR OWN POST AND A "+" CARD TOO (720): both had been let off. */
-    if (!/rep-box/.test(a.w.postTiles_({ id: 'P-own', mine: true, title: 'Mine' }))) bad.push(rank + ': your own post has no Suggest a change');
+    if (!/rep-box/.test(a.w.postRow_({ id: 'P-own', mine: true, title: 'Mine' }))) bad.push(rank + ': your own post has no Suggest a change');
     if (!/rep-box/.test(a.w.addCard_({ act: 'media-add', label: 'Add a reel', data: { kind: 'reel' } }))) bad.push(rank + ': a "+" card has no Suggest a change');
   }
   return bad;

@@ -11,7 +11,7 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const m = /window\.FILES\s*=\s*\[([\s\S]*?)\]/.exec(html);
 if (!m) { console.error('check-cache: cannot read window.FILES out of index.html — nothing to read'); process.exit(2); }
 const files = [...m[1].matchAll(/'([^']+)'/g)].map(x => 'js/' + x[1] + '.js');
-const OWN = /^['"`](?:\.\/)?(?:data|tools|js)\//;
+const OWN = /^['"`](?:\.\/)?(?:data|tools|js|bundle)\//;
 const bad = [];
 let read = 0, own = 0;
 

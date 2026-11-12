@@ -55,7 +55,7 @@ const SPINE_EXTRA = [
   { after: 'When free', row: 'Can come',  only: 'receipt' },
   /* ---------- PINNED TO THE FOOT RATHER THAN TO WHICHEVER QUESTION IS LAST § */
   { after: '',        row: 'About',     only: 'wait' },
-  { after: '',        row: 'Dates' },
+  { after: 'When',    row: 'Dates' },
   { after: '',        row: 'Note' },
   /* THE TWO WAITING-LIST ROWS. § */
   { after: '',        row: 'A seat',    only: 'wait' },
@@ -72,8 +72,9 @@ const SPINE = (() => {
   BOOK_STEPS.forEach(st => {
     if (!st.short) return;
     /* ---------- A WEEK STEP IS SEVEN ROWS AND THEY ARE THE SAME SEVEN ON BOTH BRANCHES § */
+    /* THE WEEK'S ROWS UNDER THEIR DRAWN NAME (`day_`, Mon…Sun): under the full name they missed the spine and fell below the ticks. */
     if (st.week) SLOT_DAYS.forEach(([, label]) => {
-      if (out.indexOf(label) === -1) out.push(label);
+      if (out.indexOf(day_(label)) === -1) out.push(day_(label));
     });
     else out.push(st.short);
     SPINE_EXTRA.forEach(x => { if (x.after === st.short) out.push(x.row); });
@@ -140,7 +141,7 @@ function spineRows_(rows, opts) {
 function weekLeft_(steps) {
   const weekDrew = steps.filter(r => r.strip).map(r => r.k);
   const weekLeft = {};
-  if (weekDrew.length) SLOT_DAYS.forEach(([, label]) => { if (weekDrew.indexOf(label) === -1) weekLeft[label] = true; });
+  if (weekDrew.length) SLOT_DAYS.forEach(([, label]) => { if (weekDrew.indexOf(day_(label)) === -1) weekLeft[day_(label)] = true; });
   return weekLeft;
 }
 
@@ -620,8 +621,7 @@ function discountRow_(L) {
   const admin = typeof isAdmin === 'function' && isAdmin();
   const e = (L && L.earn) || { discount: 0 };
   return receiptRow({ n: '', k: 'Discount', v: '', mul: '', cls: 'rc-disc', ctl: bkCtl_('discValue'),
-    /* CAPPED WHERE @FAMILY'S SHARE RUNS OUT (owner, 8 Nov): the most it can be is said in the rate column. */
-    rate: e.capped ? 'max ' + e.maxPct + '%' : '',
+    rate: '',
     total: e.discount > 0 ? '− ' + money_(e.discount / ((L && L.splitShares) || 1)) : dash_(),
     sel: `<input class="bk-in" id="${bkCtl_('discValue')}" data-do="book-disc" data-field="discValue" type="number"
       inputmode="decimal" min="0" max="100" step="1" value="${admin ? esc(BOOKING.discValue) : ''}" placeholder="% off"${admin ? '' : ' disabled'}
@@ -700,7 +700,7 @@ const jobReceipt = (j, foot) => bookingDoc_(j, foot);
 /* ---------- ASKING TO JOIN SOMEBODY ELSE'S SESSION IS A TILE ON ITS PAPER NOW § */
 /* ---------- THE STEP THAT WAS NOT THERE AT ALL § */
 /* `payBlock` AND `leaveBlock` WERE HERE. Both are marks in the tile row under the card now —
-   `jobTiles_` in tiles.js — which is where every other kind in this app keeps its actions, and the
+   `jobOpts_` in tiles-jobs.js — which is where every other kind in this app keeps its actions, and the
    reasoning is written there. */
 
 /* ---------- WHEN THE FAMILIES ON A LIST CAN COME § */

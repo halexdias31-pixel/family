@@ -544,7 +544,7 @@ async function screens() {
     await until(() => O.d.querySelector('#s-tools .up-box .up-steps'), 15000);
     const steps = (O.d.querySelector('#s-tools .up-box .up-steps') || {}).textContent || '';
     if (!/Allow/.test(steps) || !/New version/.test(steps)) fail('the tool', 'a read-only deployment\'s steps read "' + steps.replace(/\s+/g, ' ').trim() + '"');
-    if (!O.d.querySelector('#s-tools .up-box .up-row.is-bad')) fail('the tool', 'a read-only deployment drew no ✗');
+    if (!O.d.querySelector('#s-tools .up-box .row.up-item.is-bad')) fail('the tool', 'a read-only deployment drew no ✗');
   }
   if (!bad.some(x => /^the tool/.test(x))) said.push('the tool: on an admin\'s Tools column only; pressed, it draws four ticks — or the crosses and the steps');
 

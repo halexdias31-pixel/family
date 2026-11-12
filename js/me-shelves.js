@@ -283,9 +283,11 @@ document.addEventListener('change', e => {
 });
 
 /* ---------- BOXES THAT ARE ONE QUESTION SIT ON ONE LINE § */
+/* The three words a person describes themself in: the one list, read by me-settings.js and me-card.js too. */
+const ADJECTIVE_FIELDS = ['adjective_1', 'adjective_2', 'adjective_3'];
 const FIELD_ROWS = [
   { fields: ['first_name', 'last_name'] },
-  { fields: ['adjective_1', 'adjective_2', 'adjective_3'], cap: 'you, in 3 words',
+  { fields: ADJECTIVE_FIELDS, cap: 'you, in 3 words',
     ph: ['word 1', 'word 2', 'word 3'] },
   /* ONE LINE PER THING IN A FORM (owner): two different answers (city and town, the two exams) each get their own line. */
   /* "max and min number of students could more efficiently be written as '[] - []'."* One row, one caption, a dash between — and MIN FIRST although the backend § */

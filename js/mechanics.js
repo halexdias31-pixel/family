@@ -30,8 +30,7 @@ function mechIndex_() {
     MECH.data = d;
     MECH.cars = new Map(d.models.map(c => [c.code, c]));
     /* A SOURCE THAT CAME LATE joins the list at the next paint, as the writings' do (520). */
-    if (typeof stuffForget_ === 'function') stuffForget_();
-    if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
+    if (typeof lateCame_ === 'function') lateCame_();
     return d;
   });
   return null;

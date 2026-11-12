@@ -632,7 +632,7 @@ function nothingHere(whenEmpty, needsLibrary) {
 }
 
 /* WAITING — ONE LOADER FOR EVERY CARD, AND THIS IS THE ONLY PLACE IT IS WRITTEN § */
-/* A BAR, NOT DOTS (owner, 11 Nov): its one track fills steadily and slows near the end, so a long Apps Script wait reads as progress. */
+/* A SPINNING RING (owner, 12 Nov): one ring with a gap, turning forever; style.css draws it. */
 function loading_() {
   return '<div class="loading" role="status" aria-label="Loading">'
     + '<span></span></div>';

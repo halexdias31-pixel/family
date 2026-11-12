@@ -1,5 +1,5 @@
 
-/* ONE CARD FOR EVERY KIND (owner, 8 Nov): picture, title, tags, lines, then its tile row (`cardTiles_`).
+/* ONE CARD FOR EVERY KIND (owner, 8 Nov): picture, title, tags, lines, then its tile row (`cardRow_`).
    card-fields.json picks each part's fields; check-card-shape holds the shape. */
 const KC_PARTS = ['pic', 'head', 'tags', 'lines', 'act'];
 /* WHO A CARD IS DRAWN FOR: undefined is whoever is signed in; a share sets 'public' while it draws (tutorPng_). */
@@ -121,11 +121,11 @@ function kcSpec_(kind) {
   return rows[kind] || KC_BARE;
 }
 /* EVERY CARD OF A KIND SHOWS ITS KIND'S TILES (owner 35a, 8 Nov): one this card cannot use is drawn greyed (`off`), never left out. */
-function kcTilesFill_(x, html) {
+function kcOffOpts_(x, html) {
   const s = x && x.key ? kcSpec_(x.kind) : null;
-  if (!s || !(s.tiles || []).length) return html;
-  return html + s.tiles.map(t => { const [act, icon, label] = String(t).split(':');
-    return new RegExp('data-do="' + act + '"').test(html) ? '' : tile_({ icon, label: label || act, act, off: true, cls: 'kc-off' }); }).join('');
+  if (!s || !(s.tiles || []).length) return [];
+  return s.tiles.map(t => { const [act, icon, label] = String(t).split(':');
+    return new RegExp('data-do="' + act + '"').test(html) ? null : { icon, label: label || act, act, off: true, cls: 'kc-off' }; }).filter(Boolean);
 }
 /* ---------- A CARD ITS OWN FILE STILL WRITES, CUT INTO THE FOUR PARTS ---------- */
 const KC_VOID = /^(area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr)$/;
@@ -193,11 +193,11 @@ function kcFour_(x, rest, main) {
 function kcActRow_(x, html, own) {
   if (/class="[^"]*\bkc-four\b/.test(html)) return '';
   let rest = own || '';
-  try { rest += x && x.key && typeof cardTiles_ === 'function' ? cardTiles_(x, true) : ''; } catch (e) { oops_(e, 'card:tiles'); }
+  try { rest += x && x.key && typeof cardRow_ === 'function' ? cardRow_(x, true) : ''; } catch (e) { oops_(e, 'card:tiles'); }
   /* A KIND'S TILE GREYED FOR WANT OF ONE goes when its own maker's row brought the real one. */
   const real = (String(own || '').match(KC_TILE_RE) || []).map(kcAct_);
   rest = rest.replace(KC_TILE_RE, t => (/\bkc-off\b/.test(t) && real.indexOf(kcAct_(t)) >= 0 ? '' : t));
-  return `<div class="tile-row kc-row">${kcFour_(x, kcTilesFill_(x, rest))}</div>`;
+  return `<div class="tile-row kc-row">${kcFour_(x, rest + tile_(kcOffOpts_(x, rest)))}</div>`;
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {
