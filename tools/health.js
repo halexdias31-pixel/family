@@ -537,6 +537,8 @@ function extraWork(st) {
   /* TWO ANSWERS THAT DIFFER ONLY IN A DIGIT are two things (1813 and 1843, Part 1 and Part 2), not one misspelt. */
   const digitsOnly = m => { const p = /: (.*) ~ (.*)$/.exec(m.say); const z = t => t.replace(/\d+|\b[IVXLC]+\b/g, '#'); return p && z(p[1]) === z(p[2]); };
   ((L && L.menuSense) || []).filter(m => !['thin', 'zero-count', 'answer-words', 'mangled-text', 'merged-value'].includes(m.kind) && !(m.kind === 'spelling' && digitsOnly(m))).forEach(m => W.push({ kind: 'menu-sense', part: 'logic', where: m.where, say: m.kind + ': ' + m.say }));
+  /* TWIN PATHS (12 Nov): two answer paths to the same cards, from the funnel walk. */
+  ((L && L.twinPaths) || []).forEach(t => W.push({ kind: 'twin-path', part: 'logic', where: t.where, say: t.say }));
   /* DEAD CODE: tools/dead.js, the list check-dead fails on and stability weighs: one item per function nothing calls. */
   require('./dead.js').deadFunctions().forEach(d => W.push({ kind: 'dead', part: 'code', where: (d.side === 'backend' ? 'backend/' : 'js/') + d.file, say: d.name + ' is never called' }));
   /* SIZE BUDGETS (920): each first-download file and their total, against data/settings/size-budgets.json (current + 5% when set). */
