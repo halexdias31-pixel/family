@@ -1227,7 +1227,7 @@ console.log(`parts that show an earlier part's drawing (\`uses\`): ${usesN}`
 usesBad.concat(usesMissing).forEach(m => console.log('   ' + m));
 
 /* ---------- THE FIGURES THE PAPER PRINTS AND NOBODY HAS DRAWN, COUNTED SO THE COUNT CANNOT GROW § */
-const NOT_DRAWN_MAX = 410;
+const NOT_DRAWN_MAX = 270;
 const nfSrc_ = ['FIG_NAMED', 'figWanted_'].map(n => cutFrom(findSrc_, n));
 if (nfSrc_.some(c => !c)) {
   const why = 'FIG_NAMED or figWanted_ is not in find.js — renamed? The figures not drawn yet were NOT counted.';

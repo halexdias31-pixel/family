@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 77.9,
+ "score": 78.2,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -54,12 +54,12 @@
   {
    "id": "ceilings",
    "label": "Raised ratchet ceilings (*_MAX)",
-   "count": 1098,
+   "count": 958,
    "weight": 0.002,
    "cap": 10,
-   "off": 2.2,
+   "off": 1.9,
    "where": {
-    "js/check-library.js NOT_DRAWN_MAX": 410,
+    "js/check-library.js NOT_DRAWN_MAX": 270,
     "js/check-library.js STEM_NOT_DRAWN_MAX": 658,
     "js/check-practicals.js QTY_MAX": 12,
     "js/check-projects.js QTY_MAX": 12,
