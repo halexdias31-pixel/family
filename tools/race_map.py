@@ -30,7 +30,7 @@ except ImportError:
     sys.exit('tools/race_map.py needs shapely 2.1+: pip install shapely')
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RACE_BOX = [51.4113, -0.1888, 51.4247, -0.1672]   # south, west, north, east — backend/content.gs's RACE_BOX
+RACE_BOX = [51.4113, -0.1888, 51.4247, -0.1672]   # south, west, north, east — backend/race.gs's RACE_BOX
 STEP_M, GRID_M = 15, 25
 DRIVE = set('motorway trunk primary secondary tertiary unclassified residential living_street service road '
             'motorway_link trunk_link primary_link secondary_link tertiary_link'.split())

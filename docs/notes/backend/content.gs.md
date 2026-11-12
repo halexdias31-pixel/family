@@ -962,3 +962,7 @@ top level, before `libSelfTest_`
    The site's marker runs the full test over the whole library (js/check-answerable.js); this is the part a sheet can ask. */
 ```
 
+
+### The split into race.gs, films.gs, library.gs and media.gs
+
+The racer's ground, the films, the library's private half and the reels/console saves moved whole out of content.gs into those files; their shortened comments' full text stays above, under the function each named.

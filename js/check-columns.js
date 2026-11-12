@@ -8,8 +8,8 @@ const dir = path.join(__dirname, '..');
 const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
 /* THE BACKEND FILES, IN LOAD ORDER, UNDER WHATEVER THEY ARE CALLED. § */
 /* `digest` LAST — the weekly parent email (backend/digest.gs) reads `submissions`, `people` and writes `digest_log`, and a column it named wrong would be an § */
-const ORDER_ = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'doGet', 'doPost', 'digest'];
-const NUMBERED = ['00_constants', '10_core', '20_people', '30_booking', '40_content',
+const ORDER_ = ['constants', 'core', 'people', 'booking', 'content', 'race', 'films', 'library', 'library-drive', 'media', 'setup', 'doGet', 'doPost', 'digest'];
+const NUMBERED = ['00_constants', '10_core', '20_people', '30_booking', '40_content', '41_race', '42_films', '43_library', '44_library-drive', '45_media',
                   '50_setup', '60_doGet', '70_doPost', '80_digest'];
 /* Each name tried in turn: numbered, plain, and plain lower-cased — `doget.gs` and `doGet.gs` are
    the same file to a person and different to a filesystem. */
