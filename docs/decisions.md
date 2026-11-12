@@ -313,4 +313,9 @@ become an owner question showing both; never pick one.
 - 12 Nov — Notepad, Term dates and the maths mat (now called "Cheat sheet maker" wherever the user sees it) are back on (secondary), Tools cards in Find, each with a safe press (Notepad: Copy; Term dates: Later/Fewer).
 - 12 Nov — one Notifications item in Find › Settings: the email ticks and the phone's (push) on one card; an admin ticks for someone from their Edit form (parents opt in, 11 Nov).
 - 12 Nov — names in one place: receipts, reports, applications and lib_log stop storing a name or handle; it is read from the people row by person id, an old row's stored cell kept as the fallback. Version stamps bumped (redeploy the backend).
-- 12 Nov — Homework stays off for now; Spotify, Newspaper, Basket and the rest are undecided and left as they are.
+- 12 Nov — Homework stays off for now; the rest were decided later the same day (below).
+## 12 Nov — the tools come back (owner)
+- 12 Nov — back on as tools (secondary), each a Find card under Tools on the one template with a safe press: One more thing, Newspaper, Timer, Docket, Spotify, Speed reader, Timetable, Touch typing, Search the shop, Calendar, Countdowns, Favourite links, Pixel editor. One more thing, Newspaper and Search the shop become kind `tool` so Tools lists them all.
+- 12 Nov — not brought back: Rewrite coach, Poster planner. Homework, Basket and Make a flyer stay off.
+- 12 Nov — the Newspaper is "Sunday Funday", a Sunday paper's fun section: one card, one page, never endless (a joke, a riddle, a scramble, a puzzle, a fact; Answers shows the answers). Its words are data/settings/newspaper.json.
+- 12 Nov — the Console and the Word games come back (secondary) under a Games answer in Find, beside Tools, each a card on the one template. The Console keeps game files you own, Linked pictures and the guesser; Flabby Pird and the Colliers Wood racer stay deleted (their engines went in 1110/88a). Board games, chess and the calculator stay in attic. A pad key with no game, and Start on a word game, now always answer.
