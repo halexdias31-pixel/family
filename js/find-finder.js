@@ -20,7 +20,7 @@ const finder_ = o => Object.assign({
 const FINDER_EMPTY = 'Nothing in the shop or the library yet.';
 const FINDERS = {
   stuff: finder_({ id: 'stuff', st: STUFF, place: 'find', widgets: true,
-                   front: () => [].concat(bookingPages_(), feedPages_(), bundlePages_()),
+                   front: () => [].concat(typeof offlinePages_ === 'function' ? offlinePages_() : [], bookingPages_(), feedPages_(), bundlePages_()),
                    lead: () => (typeof missingLead_ === 'function' ? missingLead_() : []),
                    leadN: () => (typeof missingLeadN_ === 'function' ? missingLeadN_() : 0),
                    empty: FINDER_EMPTY }),

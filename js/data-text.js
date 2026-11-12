@@ -161,11 +161,12 @@ function payloadForget_() {
 }
 
 /* KEPT READS (`apiKept_`): each fetched card's last reply, per account and build like the payload, so it draws at once next time. */
-/* KEYED BY THE REQUEST, never the token, and readable with no connection: an offline mode would read this same store. */
+/* KEYED BY THE REQUEST, never the token, and readable with no connection: offline mode (offline.js) keeps its records here too. */
 const KEPT_PREFIX = 'kept:', KEPT_MAX = 200000;
 const keptKey_ = body => { const b = Object.assign({}, body); delete b.token; return KEPT_PREFIX + payloadFor_().who + ':' + JSON.stringify(b); };
-function keptGet_(k) {
-  try { const o = JSON.parse(localStorage.getItem(k) || 'null'); return o && o.build === payloadFor_().build && o.d && typeof o.d === 'object' ? o.d : null; } catch (e) { return null; }
+/* `anyBuild`: a record that is the person's own (a paper they downloaded), not a reply a new build may answer differently. */
+function keptGet_(k, anyBuild) {
+  try { const o = JSON.parse(localStorage.getItem(k) || 'null'); return o && (anyBuild || o.build === payloadFor_().build) && o.d && typeof o.d === 'object' ? o.d : null; } catch (e) { return null; }
 }
 function keptPut_(k, text) {
   if (!text || text.length > KEPT_MAX) return;

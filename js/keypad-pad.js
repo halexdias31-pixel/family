@@ -584,6 +584,8 @@ function aiDecided_() {
     b.classList.remove('qp-ai-wait');
     b.disabled = false;
   });
+  /* AND A PART PRESSED WITH NO CONNECTION is marked now its card is drawn again online (offline.js). */
+  if (typeof offAiFlush_ === 'function') offAiFlush_();
 }
 
 /* THE QUESTION AS WORDS. § */

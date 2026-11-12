@@ -682,7 +682,8 @@ function libSlim_(x) {
   if (isPractical_(x) || isProject_(x) || isContent_(x)) return libWaits_(x.row);
   return false;
 }
-function libIdsFor_(x) {
+/* `all`: every row that has words, come or not (a paper made available offline, offline.js), not only those still waiting. */
+function libIdsFor_(x, all) {
   if (!x || !x.row) return [];
   if (isPractical_(x)) return ['pr:' + x.row.id];
   if (isProject_(x)) return ['pj:' + x.row.id];
@@ -691,7 +692,7 @@ function libIdsFor_(x) {
   const rows = [x.row].concat((x.stems || []).map(p => p.row || p));
   const k = qId_(x);
   try { if (k) (questionParts_()[k] || []).forEach(s => rows.push(s.row)); } catch (e) { oops_(e, 'find:libIdsFor_') }
-  return [...new Set(rows.filter(libWaits_).map(libWireQ_))];
+  return [...new Set(rows.filter(r => libWaits_(r) || (all && r && r.__libHas)).map(libWireQ_))];
 }
 /* ASK FOR ONE CARD'S WORDS (nothing, signed out — the card says so). */
 function libWant_(x) { if (libSlim_(x)) libAsk_(libIdsFor_(x)); }
