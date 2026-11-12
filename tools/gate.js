@@ -49,7 +49,7 @@ async function ratchet() {
   (now.rules || []).forEach(x => { const w = wasBy.get(x.id);
     if (w && ratio(x) < ratio(w) - 1e-9) bad.push(`rule ${x.id} fell: ${w.ok}/${w.of} → ${x.ok}/${x.of} (${x.label})`); });
   /* A FINDING is known by what and where, not its line number, so code moving down a file is not new. */
-  const key = f => [f.kind, f.file || f.where, f.text || f.say].map(s => String(s || '').replace(/:\d+$/, '')).join('\t');
+  const key = f => [f.kind, f.file || f.where, f.text || f.say].map(s => String(s || '').replace(/:\d+/g, '')).join('\t');
   const seen = new Set([].concat(was.worklist || [], was.work || []).map(key));
   [].concat(now.worklist || [], now.work || []).filter(f => !seen.has(key(f)))
     .forEach(f => bad.push(`new finding: ${f.kind} ${f.file ? f.file + ':' + f.line : f.where} — ${f.text || f.say}`));

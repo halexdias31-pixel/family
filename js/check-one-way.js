@@ -5,7 +5,7 @@ require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the who
 const fs = require('fs'), path = require('path'), acorn = require('acorn');
 const ROOT = path.join(__dirname, '..');
 /* THE MAKERS: the one file allowed to write each class as markup. */
-const MAKER = { card: ['js/cards-make.js'], tile: ['js/tiles.js'], loading: ['js/shell-boot.js'], qtag: ['js/find-figures.js'] };
+const MAKER = { card: ['js/cards-make.js'], tile: ['js/tiles.js'], loading: ['js/shell-boot.js'], qtag: ['js/cards-make.js'] };
 const KINDS = Object.keys(MAKER).join('|');
 /* `class="card"`, `class="x tile y"` (quote escaped or not), or `className = 'qtag …'`: the class as a whole word, not `card-sub`. */
 const AS_TEXT = new RegExp(`class=\\\\?["'](?:[^"'\\\\]*\\s)?(${KINDS})(?=[\\s"'\\\\])`, 'g');
