@@ -169,7 +169,7 @@ FILES.forEach(f => {
     const mailCall = c.type === 'MemberExpression' && c.object.type === 'Identifier' && (c.object.name === 'MailApp' || c.object.name === 'GmailApp')
         && c.property && (c.property.name === 'sendEmail' || c.property.name === 'send');
     const door = c.type === 'Identifier' && c.name === 'mailOut_';
-    if (mailCall && placeOf(up) === 'mailOut_' && c.object.name === 'MailApp') return;
+    if (mailCall && placeOf(up) === 'mailSend_' && c.object.name === 'MailApp') return;
     if (mailCall || door) {
       const at_ = placeOf(up);
       directSeen[at_] = (directSeen[at_] || 0) + 1;
@@ -446,7 +446,8 @@ OPTIONAL.forEach(k => rule(proved[k], 'no real sender proved `' + k + '` on and 
   PEOPLE.forEach(p => COLS.forEach(c => E.typed(p.person_id, c, 'no')));
   const sentTo = (addr, re, fn, said) => { const m = E.mark(); const d = fn();
     rule(E.to(addr, m, re).length >= 1, 'ESSENTIAL ' + said + ' was not sent with every column saying no — ' + JSON.stringify(d)); return d; };
-  const job = sentTo('parent@example.org', /Booking received/, () => E.as('P-C1', { action: 'createJob', requestedTutor: 'Ada Tutor',
+  /* A PARENT'S ESSENTIALS LAND AT THE ADMIN, prefixed with who they were for (owner, 11 Nov). */
+  const job = sentTo('admin@example.org', /^For Pat \(@patparent\): .*Booking received/, () => E.as('P-C1', { action: 'createJob', requestedTutor: 'Ada Tutor',
     subject: 'Maths', level: 'GCSE', day: 'Saturday', time: '11:00', slots: 'sa11', location: 'Online', dates: dmy(day(47)), hours: 1, price: 30 }),
     'booked: the parent\'s booking receipt');
   rule(E.to('tutor@example.org', 0, /New request/).length === 1, 'ESSENTIAL booked: the tutor the family booked (their own Accept is logged) was not told');
@@ -464,7 +465,7 @@ OPTIONAL.forEach(k => rule(proved[k], 'no real sender proved `' + k + '` on and 
   /* LAST, because a new PIN ends the sessions it was changed for — the child's, and the parent's own
      (`changePin` hands back another). */
   sentTo('student@example.org', /PIN was changed/, () => E.as('P-C1', { action: 'resetPin', targetId: 'P-S1' }), 'security: a child\'s "Your PIN was changed"');
-  sentTo('parent@example.org', /PIN was changed/, () => E.as('P-C1', { action: 'changePin', currentPin: '0000', newPin: FRESH }), 'security: the parent\'s "Your PIN was changed"');
+  sentTo('admin@example.org', /^For Pat \(@patparent\): .*PIN was changed/, () => E.as('P-C1', { action: 'changePin', currentPin: '0000', newPin: FRESH }), 'security: the parent\'s "Your PIN was changed"');
 }
 
 /* 3e. A ROW FROM BEFORE THE COLUMNS, AND A SHEET WITHOUT THEM: on. */
@@ -589,7 +590,12 @@ OPTIONAL.forEach(k => rule(proved[k], 'no real sender proved `' + k + '` on and 
     'ticking Bookings did not turn on Bookings alone');
   const m1 = G.mark();
   G.b.post({ action: 'forgotPin', who: 'parent@example.org' });
-  rule(G.to('parent@example.org', m1, /PIN/i).length >= 1, 'ESSENTIAL access: a parent who ticked nothing was not sent their new PIN');
+  rule(G.to('admin@example.org', m1, /^For Pat \(@patparent\): .*PIN/i).length >= 1, 'ESSENTIAL access: a parent\'s new PIN did not reach the admin with "For Pat (@patparent): "');
+  rule(!G.to('parent@example.org', m1).length, 'ESSENTIAL access: a parent was emailed their new PIN directly — parents get no email from the site');
+  rule(G.sent.slice(m1).some(m => /meant for Pat/.test(String(m.body))), 'the redirected PIN email does not say who it was meant for');
+  const m2 = G.mark();
+  G.b.post({ action: 'forgotPin', who: 'tutor@example.org' });
+  rule(G.to('tutor@example.org', m2, /PIN/i).length >= 1, 'ESSENTIAL access: a tutor\'s new PIN did not reach the tutor');
 }
 
 /* 3h. AN ADMIN TICKS SOMEBODY'S NOTIFICATIONS ON THEIR EDIT FORM: personGet carries their card's kinds; setNotify with targetId writes yes/no; nobody else may. */

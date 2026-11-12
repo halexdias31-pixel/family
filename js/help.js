@@ -119,7 +119,8 @@ function helpTick_() {
     if (!d || d.error) return;
     /* THE TUTOR SAID DONE (or 30 minutes passed there): the card goes back to normal. */
     if (helpOn_() && !d.mine) { helpPut_(null); helpPaint_(); }
-    if (d.hands) { HELP_LIST = d.hands; helpListPaint_(); }
+    /* NO LIST IS AN EMPTY LIST once the server has answered: the card never waits on a field an older backend leaves out. */
+    HELP_LIST = Array.isArray(d.hands) ? d.hands : (HELP_LIST || []); helpListPaint_();
   }).catch(() => {}).then(() => { if (!HELP_TIMER && helpPollWanted_()) HELP_TIMER = setTimeout(helpTick_, HELP_POLL_MS); });
 }
 function helpPoll_() {

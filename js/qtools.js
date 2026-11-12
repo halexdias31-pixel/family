@@ -3,7 +3,7 @@
 
 /* ---------- THE REGISTRY: what each tool is called, the act its tile carries, and how it opens, closes, saves and restores. */
 /* `open`/`close` take the card and the part; `save`/`restore` read and write the part's one record (`partRec_`). */
-/* THE OWNER'S ROW (round 4): no Calculator, Grid, Table or Formula sheet -- a question brings its own grid, table or insert -- and the one padlock */
+/* THE OWNER'S ROW (round 4): no Grid, Table or Formula sheet -- a question brings its own -- one padlock; Calculator back (owner, 11 Nov) */
 const QT_TOOLS = [
   { id: 'pen',        icon: 'pen',        label: 'Pen',             note: 'draw on the figure',       act: 'qt-pen' },
   /* TWO TILES WHERE ONE DID TWO THINGS (owner, 1 Nov): "sometimes the ruler ... displays a ruler and sometimes ... draw straight lines" -- Straight line is the pen's, Ruler always measures. */
@@ -15,10 +15,11 @@ const QT_TOOLS = [
   { id: 'mag',        icon: 'zoom',       label: 'Magnifier',       note: 'hold it over the page',    act: 'q-mag' },
   { id: 'read',       icon: 'speak',      label: 'Read aloud',      note: 'reads the question out',   act: 'read-aloud' },
   { id: 'lock',       icon: 'unlock',     label: 'Lock',            note: 'hold this page still',     act: 'q-lock' },
+  { id: 'calc',       icon: 'calc',       label: 'Calculator',      note: 'scientific',               act: 'qt-calc' },
   { id: 'check',      icon: 'send',       label: 'Check',           note: '',                         act: '' },
 ];
 /* THE ONE ROW EVERY PART SHOWS, identically (owner, 8 Nov); data/settings/qengine.json `row` repeats it (check-answerable) */
-const QT_ROW = ['photo', 'mag', 'read', 'lock', 'ruler', 'protractor'];
+const QT_ROW = ['photo', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc'];
 /* THE PEN'S TILES, added only where the part has a figure to draw on (a drawing answer needs its pen) */
 const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
 const QT_ORDER = QT_ROW.concat(Object.keys(QT_DRAWING), ['check']);
@@ -121,6 +122,8 @@ const QT_TILE = {
     if (o) o.data = Object.assign({}, o.data, { part: 1 });
     return o || { icon: t.icon, label: t.label, note: 'not on this device', act: 'read-aloud', cls: 'read-aloud', off: true, data: { key } };
   },
+  /* ONLY WHERE A CALCULATOR IS ALLOWED: a Non-calculator paper never shows it; unknown shows it (owner, 11 Nov) */
+  calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
   photo: (t, x) => ({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } }),
 };
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
@@ -171,7 +174,7 @@ function qtRow_(x, held) {
   /* THE FOUR (owner, 9 Nov): Send/Check, Message, Star, ⋯; the tools, help, share and suggest wait behind ⋯ (`kcFour_`). */
   const four = kcFour_(x, `<span class="qt-tools">${tools}</span>${held || ''}${work}${more}`, qtCheck_(x, m));
   /* NO GREY LINE UNDER IT (owner, 9 Nov): how a part is marked is said when Check is pressed, on its verdict line. */
-  return `<div class="tile-row qt-row kc-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${four}</div>`;
+  return `<div class="tile-row qt-row kc-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${four}</div>` + (QCALC_OPEN.has(key) ? qcalcHtml_(key) : '');
 }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
 const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';
@@ -228,6 +231,20 @@ on('qt-inst', el => {
   }
   if (!pad && tool === 'protractor' && card && card.querySelector('figure svg')) return measOpen_(el);
   qtPenOpen_(el, tool);
+});
+/* ---------- THE CALCULATOR (owner, 11 Nov): the old fx-83GT CW face (calc.js, its engine calc-engine.js), centred under the part's row. */
+const calcAllowed_ = x => ![].concat((x && x.needs) || []).some(v => /^non-calculator$|^no calculator$/i.test(String(v).trim()));
+const QCALC_OPEN = new Set();
+const qcalcHtml_ = key => calcFaceHtml_(key);
+on('qt-calc', el => {
+  const key = qtKeyOf_(el), row = el.closest('.qt-row');
+  if (!key || !row) return;
+  const open = !QCALC_OPEN.has(key);
+  if (open) QCALC_OPEN.add(key); else QCALC_OPEN.delete(key);
+  const was = row.nextElementSibling && row.nextElementSibling.matches('.calc') ? row.nextElementSibling : null;
+  if (was) was.remove();
+  if (open) { row.insertAdjacentHTML('afterend', qcalcHtml_(key)); calcPaint_(row.nextElementSibling); }
+  tileSet_(el, { on: open, pressed: open });
 });
 /* ---------- CHECK WITH NO MARK SCHEME: nothing is sent; the verdict line says what is missing, for a missing key too. */
 on('qp-noscheme', el => {

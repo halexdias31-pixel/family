@@ -105,7 +105,7 @@ for (const f of appFiles_()) {
       loaderSrc = body;
       if (!/role="status"/.test(body)) bad.push('loading_() does not say role="status" — a screen reader hears nothing while it waits');
       if (!/aria-label="Loading"/.test(body)) bad.push('loading_() has no aria-label="Loading" — three dots say nothing out loud');
-      if ((body.match(/<span><\/span>/g) || []).length !== 3) bad.push('loading_() does not draw three dots');
+      if ((body.match(/<span><\/span>/g) || []).length !== 1) bad.push('loading_() does not draw its one bar');
     }
   }
   const inOwn = at => own.some(o => at >= o[0] && at < o[1]);

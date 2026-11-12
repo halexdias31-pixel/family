@@ -14,7 +14,7 @@
    "where": {
     "js/check-answerable.js ACCEPTED": 6,
     "js/check-answers.js ACCEPTED": 1,
-    "js/check-css.js DIM_OK": 8,
+    "js/check-css.js DIM_OK": 7,
     "js/check-dropdowns.js PICKER_OK": 1,
     "js/check-format.js ALLOW": 8,
     "js/check-library.js KNOWN_F": 1,
@@ -27,7 +27,7 @@
     "js/check-strings.js ROLE_OK": 1,
     "js/check-surfaces.js POPUP_OK": 1,
     "check/diagrams.js ACCEPTED": 4,
-    "check/motion.js ACCEPTED": 12,
+    "check/motion.js ACCEPTED": 13,
     "check/types.js ACCEPTED": 2
    }
   },

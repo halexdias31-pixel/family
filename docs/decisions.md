@@ -301,3 +301,9 @@ become an owner question showing both; never pick one.
 - A blank notification cell is OFF where the kind reaches the person as a parent (`notifyCellOn_`); a tutor's, student's or admin's own blank cell stays on. A tick writes `yes`, an untick `no`.
 - Push stays device opt-in: only the person's own "Turn on" subscribes a device. An admin can tick anyone's (non-admin) boxes from their Edit form.
 - Still always sent (essential): sign-in links, PINs, security warnings, family-link requests, booking received/accepted/cancelled receipts, an admin-made account's PIN.
+- 11 Nov — parents get NO email from the site, essential ones included: sign-in links, PINs, security warnings, family-link and booking emails meant for a parent go to the admin instead for now, saying who they were for (owner: "they can go to me for now").
+- 11 Nov — offline mode: yes, after the loading work (download a paper, answer and rule-mark offline, sync when back online; AI marking waits until online).
+## 12 Nov — the booking form, made stable (owner)
+- It becomes a card on the one template, fresh every time (no carry-over, no hours greyed by other bookings; any hour 9am–9pm; only a booked room blocks).
+- Keep: the four class variations (create a class, join a class, start a waitlist class, join a waitlist class), extra seats, space/room/venue, the Requested/Applied for/Accepted/Paid ticks ON the form, discount as one % box, the academic intervals (+ Rest of this half term), and the full price breakdown (multiplier, + per hour, running total).
+- Remove: Split.

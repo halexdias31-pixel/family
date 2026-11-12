@@ -38,7 +38,7 @@ const fnAt = (src, i) => { const m = [...src.slice(0, i).matchAll(/\bfunction\s+
 FILES.forEach(f => {
   const src = SRC[f];
   for (const m of src.matchAll(/\b(MailApp|GmailApp)\s*\.\s*send(Email)?\s*\(/g)) {
-    rule(m[1] === 'MailApp' && fnAt(src, m.index) === 'mailOut_', 'backend/' + f + ' sends an email from `' + fnAt(src, m.index)
+    rule(m[1] === 'MailApp' && fnAt(src, m.index) === 'mailSend_', 'backend/' + f + ' sends an email from `' + fnAt(src, m.index)
       + '` with ' + m[1] + ' — every email goes through `mailOut_`, which is what takes a child\'s surname out of it');
   }
   for (const m of src.matchAll(/\bContentService\s*\.\s*createTextOutput\s*\(/g)) {
@@ -261,7 +261,7 @@ rule(claim && claim.success, 'another parent could not ask to add her, so the cl
 const herClaim = (get('P-KID').claims || [])[0];
 const m1 = MAIL.length;
 const no = herClaim ? as('P-KID', { action: 'answerClaim', rowIndex: herClaim.rowIndex, accept: false }) : null;
-rule(no && no.success && MAIL.slice(m1).some(m => m.to === 'ola@example.org'),
+rule(no && no.success && MAIL.slice(m1).some(m => m.to === 'ola@example.org' || /^For /.test(S(m.subject))),
   'her "no" did not reach the parent who asked, so that email\'s wording was not asked — ' + JSON.stringify(no));
 /* HER OWN NEW PIN — the "Your PIN was changed" email is to her. BEFORE the parent's New PIN below, which
    signs her out everywhere. */

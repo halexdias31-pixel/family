@@ -402,14 +402,12 @@ const staffDraw_ = () => { document.querySelectorAll('[data-staff]').forEach(c =
 function staffStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || STAFF.asking) return;
   STAFF.asking = true;
-  api({ action: 'listStaff' })
-    .then(d => {
+  apiKept_({ action: 'listStaff' }, d => {
       STAFF.asking = false;
       if (!d || d.error) { STAFF.error = String((d && d.error) || 'The staff list did not come.'); return; }
       STAFF.error = ''; STAFF.list = Array.isArray(d.staff) ? d.staff : [];
-    })
-    .catch(() => { STAFF.asking = false; STAFF.error = 'The staff list could not be fetched — check the connection.'; })
-    .then(staffDraw_);
+    }, staffDraw_)
+    .catch(() => { STAFF.asking = false; STAFF.error = 'The staff list could not be fetched — check the connection.'; staffDraw_(); });
 }
 on('stmt-for', el => {
   if (!(typeof isAdmin === 'function' && isAdmin())) return;

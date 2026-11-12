@@ -591,44 +591,6 @@ check('edges: a later visitor who writes over the whole of an answer marked as s
   return bad;
 });
 
-check('edges: the booking form filled in signed out after the server ended a session is that person\'s — not carried into the next child\'s, and theirs when they sign in again, from nobody or over somebody (P8)', async () => {
-  const bad = [];
-  for (const over of [false, true]) {
-    const ended = new Set(['tok-P7']);
-    const { w } = boot({ before: signedInAs_(ANS_ADA), reply: q => (ended.has(q.token) ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
-    await wait(300);
-    const fns = ['bookFollow_', 'signedOut_', 'signedIn_', 'noteRow_', 'draftRead_', 'ansMayMove_', 'ansGoneOf_'].filter(n => typeof w[n] !== 'function');
-    if (fns.length) return [fns.join(', ') + ' not reachable — nothing was checked'];
-    for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50);
-    if (w.__t.whoami()) { await w.api({ action: 'myProfile' }); for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50); }
-    if (w.__t.whoami()) return bad.concat([EDGE_ENDED]);
-    const B = w.__t.BOOKING;
-    const how = over ? 'over Ben' : 'from nobody';
-    /* THROUGH THE REAL LISTENER, as she types the note — her address, on the family computer. */
-    const h = w.document.createElement('div');
-    w.document.body.appendChild(h);
-    h.innerHTML = w.noteRow_().sel;
-    const el = h.querySelector('[data-do="book-note"]');
-    const ADDR = 'Ada, signed out: our address is 1 Example Road';
-    el.value = ADDR;
-    el.dispatchEvent(new w.Event('input', { bubbles: true }));
-    if (!/Example Road/.test(String(w.localStorage.getItem('draft:device:book:form') || ''))) return bad.concat(['setup: the note is not the device\'s booking draft — NOT checked']);
-    /* BEN SIGNS IN NEXT, FROM NOBODY. */
-    w.signedIn_(Object.assign({}, ANS_BEN));
-    if (/Example Road/.test(String(B.note || ''))) bad.push('Ben signed in and his booking form holds Ada\'s address, typed signed out after her session ended');
-    if (/Example Road/.test(String(w.draftRead_('book', 'form') || ''))) bad.push('Ben signed in and Ada\'s address is his booking draft');
-    if (!/Example Road/.test(String(w.localStorage.getItem('draft:device:book:form') || ''))) bad.push('Ben signed in and the device lost the form Ada filled in, which is hers to sign in to');
-    /* ADA COMES BACK: after Ben signs out, or straight over him. */
-    if (!over) w.signedOut_();
-    w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b' }));
-    if (B.note !== ADDR) bad.push('Ada signed in again ' + how + ' and her booking form holds ' + JSON.stringify(B.note) + ', not the address she typed signed out');
-    if (!/Example Road/.test(String(w.draftRead_('book', 'form') || ''))) bad.push('Ada signed in again ' + how + ' and the form she filled in signed out is not her draft');
-    if (w.localStorage.getItem('draft:device:book:form') !== null) bad.push('Ada signed in again ' + how + ' and her form is still the device\'s draft, for the next visitor');
-    if (w.ansGoneOf_('draft:device:book:form')) bad.push('Ada signed in again ' + how + ' and a mark is left for the device\'s form she took');
-  }
-  return bad;
-});
-
 check('edges: back on a device signed in as somebody else, what the owner typed, drew and rang after the server ended their session is all theirs again, joined to their answers (G1)', async () => {
   const b = edgeBoot_(signedInAs_(ANS_ADA));
   const { w } = b;
@@ -880,93 +842,6 @@ check('edges: Undo puts back whose it was — Clear then Undo on a pad, Ctrl+Z a
     w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
     await w.answersPush_(true);
     if (/Sam typed/.test(JSON.stringify(b.of('P8')))) bad.push('Sam\'s words reached BEN\'S ACCOUNT through the keypad\'s history');
-  }
-  return bad;
-});
-
-check('edges: signing in again, the booking form typed signed out after the session ended is joined to the person\'s own draft, not written over it — and the addresses typed on it go with it, from nobody and over somebody', async () => {
-  const bad = [];
-  for (const over of [false, true]) {
-    const ended = new Set();
-    const { w } = boot({ before: signedInAs_(ANS_ADA), reply: q => (ended.has(q.token) ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
-    await wait(300);
-    const fns = ['bookFollow_', 'signedOut_', 'signedIn_', 'noteRow_', 'stepInput_', 'draftRead_', 'ansMayMove_', 'ansGoneOf_'].filter(n => typeof w[n] !== 'function');
-    if (fns.length) return [fns.join(', ') + ' not reachable — nothing was checked'];
-    const B = w.__t.BOOKING;
-    const split = (w.__t.STEPS || []).find(s => s.emails);
-    if (!split) return ['no booking step takes addresses — renamed? NOT checked'];
-    const how = over ? 'over Ben' : 'from nobody';
-    const h = w.document.createElement('div');
-    w.document.body.appendChild(h);
-    /* THROUGH THE REAL LISTENERS: the note's `input` writes the whole form (`bookKeep_`); the addresses box
-       is a draft of its own until it is left (`draftFrom_`). */
-    const typeNote = text => {
-      h.innerHTML = w.noteRow_().sel;
-      const el = h.querySelector('[data-do="book-note"]');
-      el.value = text;
-      el.dispatchEvent(new w.Event('input', { bubbles: true }));
-    };
-    /* SIGNED IN: Ada part-way through a booking — who it is for, a subject, a level and a note. */
-    B.client = 'Ada';
-    B.subjects = ['Maths'];
-    B.level = 'GCSE';
-    typeNote('Tuesdays after school');
-    if (!/Tuesdays/.test(String(w.localStorage.getItem('draft:u:P7:book:form')))) return bad.concat(['setup: Ada\'s signed-in booking is not her draft — NOT checked']);
-    ended.add('tok-P7');
-    await w.api({ action: 'myProfile' });
-    for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50);
-    if (w.__t.whoami()) return bad.concat([EDGE_ENDED]);
-    if (B.note || B.client) bad.push('the server ended Ada\'s session and her booking is still on the screen: ' + JSON.stringify([B.note, B.client]));
-    /* SIGNED OUT, ON THE FORM THE ENDED SESSION EMPTIED: another subject, another level, her address, and
-       somebody to share with, typed into the addresses box and not yet left. */
-    B.subjects = ['English'];
-    B.level = 'A level';
-    typeNote('Ada signed out: 1 Example Road');
-    h.innerHTML = w.stepInput_(split);
-    const box = h.querySelector('[data-do="book-emails"]');
-    box.value = 'kit@example.com';
-    box.dispatchEvent(new w.Event('input', { bubbles: true }));
-    if (!/Example Road/.test(String(w.localStorage.getItem('draft:device:book:form'))) || !/kit@example/.test(String(w.localStorage.getItem('draft:device:book:emails:' + split.id)))) {
-      return bad.concat(['setup: the signed-out form and its addresses are not the device\'s drafts — NOT checked']);
-    }
-    if (over) w.signedIn_(Object.assign({}, ANS_BEN));
-    w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b' }));
-    const NOTE = 'Tuesdays after school\n\nAda signed out: 1 Example Road';
-    if (B.note !== NOTE) bad.push('Ada signed in again ' + how + ' and the note is ' + JSON.stringify(B.note) + ', wanted hers, then what she typed signed out');
-    if (B.client !== 'Ada') bad.push('Ada signed in again ' + how + ' and "who is this for", answered signed in, is ' + JSON.stringify(B.client) + ' — her draft was written over');
-    if (JSON.stringify(B.subjects) !== '["Maths","English"]') bad.push('Ada signed in again ' + how + ' and the subjects are ' + JSON.stringify(B.subjects) + ', wanted both forms\'');
-    if (B.level !== 'A level') bad.push('Ada signed in again ' + how + ' and the level is ' + JSON.stringify(B.level) + ', wanted the one chosen later, signed out');
-    const draft = String(w.draftRead_('book', 'form') || '');
-    if (!/Tuesdays/.test(draft) || !/Example Road/.test(draft) || !/"client":"Ada"/.test(draft)) bad.push('Ada signed in again ' + how + ' and her draft is not the two forms joined: ' + draft.slice(0, 160));
-    if (w.localStorage.getItem('draft:device:book:form') !== null) bad.push('Ada signed in again ' + how + ' and the device still holds her signed-out form');
-    if (w.draftRead_('book', 'emails:' + split.id) !== 'kit@example.com') bad.push('Ada signed in again ' + how + ' and the addresses she typed signed out are ' + JSON.stringify(w.draftRead_('book', 'emails:' + split.id)) + ' in her box — dropped, not carried');
-    if (w.localStorage.getItem('draft:device:book:emails:' + split.id) !== null) bad.push('Ada signed in again ' + how + ' and the device still holds the addresses she typed signed out');
-  }
-  /* AND THE ADDRESSES ARE ASKED ON THEIR OWN. § */
-  {
-    const { w } = boot({
-      before: win => {
-        signedInAs_(ANS_ADA)(win);
-        try { win.localStorage.setItem('draft:device:book:form', JSON.stringify({ v: JSON.stringify({ note: 'A visitor\'s note' }), at: Date.now() })); } catch (e) {}
-      },
-      reply: q => (q.token === 'tok-P7' && q.action === 'myProfile' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined)
-    });
-    await wait(300);
-    const split = (w.__t.STEPS || []).find(s => s.emails);
-    if (w.__t.whoami()) await w.api({ action: 'myProfile', token: 'tok-P7' });
-    for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50);
-    if (w.__t.whoami()) return bad.concat([EDGE_ENDED]);
-    if (w.__t.BOOKING.note !== 'A visitor\'s note') return bad.concat(['setup: the visitor\'s form is not on the screen after the session ended (' + JSON.stringify(w.__t.BOOKING.note) + ') — the addresses were NOT checked']);
-    const h = w.document.createElement('div');
-    w.document.body.appendChild(h);
-    h.innerHTML = w.stepInput_(split);
-    const box = h.querySelector('[data-do="book-emails"]');
-    box.value = 'ada@example.com';
-    box.dispatchEvent(new w.Event('input', { bubbles: true }));
-    w.signedIn_(Object.assign({}, ANS_BEN));
-    if (w.__t.BOOKING.note !== 'A visitor\'s note') bad.push('Ben signed in from nobody and the visitor\'s form was not carried to his seat: ' + JSON.stringify(w.__t.BOOKING.note));
-    if (/ada@example/.test(String(w.draftRead_('book', 'emails:' + split.id) || ''))) bad.push('Ben signed in from nobody and the address Ada typed after her session ended is in HIS addresses box');
-    if (!/ada@example/.test(String(w.localStorage.getItem('draft:device:book:emails:' + split.id) || ''))) bad.push('the address Ada typed after her session ended left the device when Ben signed in — it is hers to sign in to');
   }
   return bad;
 });

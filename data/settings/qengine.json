@@ -2,8 +2,8 @@
  "mergedWhy": "Moved (1200): the type is answered on the one page (qtools.js qtRow_), marked by its checker's one marker (find-marking.js markPart_, or the pen's DRAW_MARK), its differences data on its QTYPE_PROTOCOL row (keys); check-qmerge.js proves the marks unchanged. coords is a typed pair marked by markAnswer_ (number); hand is drawn (points). table, match and label (cells) and essay (AI only) are not yet.",
  "why": "The universal question page (roadmap 7, 920): each qtype's shared checker, and whether it has moved onto the one page. Move a type by setting moved: true once its answer check proves the batch.",
  "answer_why": "Every part is answered in one typed box, plus a photo of working where needed (owner, 9 Nov); a drawing stays only where the answer IS a drawing. Marked by markPart_ (find-marking.js): the scheme first, then the AI if the student asks.",
- "row": ["photo", "mag", "read", "lock", "ruler", "protractor"],
- "rowWhy": "The tools every question part shows, identically, in this order (owner, 8 Nov); js/qtools.js QT_ROW must match (check-answerable).",
+ "row": ["photo", "mag", "read", "lock", "ruler", "protractor", "calc"],
+ "rowWhy": "The tools every question part shows, identically, in this order (owner, 8 Nov), Calculator only where the paper allows one (owner, 11 Nov); js/qtools.js QT_ROW must match (check-answerable).",
  "checkers": ["number", "expression", "points", "choice", "words"],
  "types": {
   "value": { "checker": "number", "moved": true, "answer": "typed" },

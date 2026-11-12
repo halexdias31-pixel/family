@@ -81,7 +81,7 @@ const S = v => (v == null ? '' : String(v)).trim();
 const QT_ROW_DATA = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'settings', 'qengine.json'), 'utf8')).row || []; } catch (e) { return []; } })();
 const DRAWING_TOOLS = new Set(['pen', 'line', 'compass']);
 const TOOL_ORDER = QT_ROW_DATA.concat([...DRAWING_TOOLS], ['check']);
-const TOOL_OF = { 'qt-pen': 'pen', 'qp-work': 'photo', 'q-mag': 'mag', 'read-aloud': 'read', 'q-lock': 'lock' };
+const TOOL_OF = { 'qt-calc': 'calc', 'qt-pen': 'pen', 'qp-work': 'photo', 'q-mag': 'mag', 'read-aloud': 'read', 'q-lock': 'lock' };
 /* EACH TILE ONCE ON A PAGE (round 4: two padlocks, `q-lock` and the widgets' `game-lock`): a tile is its act and tool, and a lock is a lock */
 const SAME_AS = { 'game-lock': 'q-lock' };
 const twiceOn = root => {
@@ -234,7 +234,9 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       /* THE SAME ROW ON EVERY PART; the pen's tiles only where there is something to draw on (`padHasArt_`, owner 29 Oct) */
       /* AND ONLY WHERE THE PAD IS ON THE CARD (`padReady_`, 1020), with Undo and Clear before the Check */
       const ready = A.padReady(x);
-      const wantRow = TOOL_ORDER.filter(t => (ready || !DRAWING_TOOLS.has(t)) && true);
+      /* THE CALCULATOR ONLY WHERE THE PAPER ALLOWS ONE (owner, 11 Nov): Non-calculator in its needs, none; unknown, one */
+      const noCalc = (x.needs || []).some(v => /^non-calculator$/i.test(S(v)));
+      const wantRow = TOOL_ORDER.filter(t => (ready || !DRAWING_TOOLS.has(t)) && !(noCalc && t === 'calc'));
       if (ready) wantRow.splice(wantRow.length - 1, 0, 'pad-undo', 'pad-clear');
       if (got.join(' ') !== wantRow.join(' ')) bad('tools', x, 'its row reads ' + got.join(' ') + (ready ? '' : ' — nothing to draw on, so no drawing tools'));
       const box = rows[0].closest('.qp-mark');

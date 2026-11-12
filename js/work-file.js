@@ -56,7 +56,7 @@ function wfLoad_(of) {
   const s = wfOf_(of);
   if (s.asked || typeof api !== 'function' || !USER || !USER.token) return;
   s.asked = true;
-  api({ action: 'workFilesOf', personId: USER.personId || '', of }).then(d => {
+  apiKept_({ action: 'workFilesOf', personId: USER.personId || '', of }, d => {
     if (!d || !d.success) { s.rows = []; s.say = (d && (d.message || d.error)) || 'Could not load the work on file'; }
     else { s.rows = Array.isArray(d.work) ? d.work : []; s.mayDelete = !!d.mayDelete; s.others = Array.isArray(d.others) ? d.others : []; }
     wfPaint_(of);

@@ -1,0 +1,279 @@
+{
+ "latency": 2000,
+ "shift": 0,
+ "waits": 6,
+ "firstLoadCold": [
+  2884,
+  1212
+ ],
+ "firstLoadWarm": [
+  1395,
+  522
+ ],
+ "rows": [
+  {
+   "who": "pupil",
+   "warm": false,
+   "screen": "first-load",
+   "first": 2884,
+   "done": 2884,
+   "dots": 1,
+   "shift": 0
+  },
+  {
+   "who": "pupil",
+   "warm": false,
+   "screen": "stuff",
+   "first": 635,
+   "done": 635,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "pupil",
+   "warm": false,
+   "screen": "reel",
+   "first": 632,
+   "done": 632,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "pupil",
+   "warm": false,
+   "screen": "dm",
+   "first": 647,
+   "done": 647,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "pupil",
+   "warm": false,
+   "screen": "tutors",
+   "first": 662,
+   "done": 662,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "pupil",
+   "warm": false,
+   "screen": "students",
+   "first": 667,
+   "done": 667,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "pupil",
+   "warm": false,
+   "screen": "parents",
+   "first": 648,
+   "done": 648,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "pupil",
+   "warm": true,
+   "screen": "first-load",
+   "first": 1395,
+   "done": 1395,
+   "dots": 1,
+   "shift": 0
+  },
+  {
+   "who": "pupil",
+   "warm": true,
+   "screen": "stuff",
+   "first": 636,
+   "done": 636,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "pupil",
+   "warm": true,
+   "screen": "reel",
+   "first": 654,
+   "done": 654,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "pupil",
+   "warm": true,
+   "screen": "dm",
+   "first": 626,
+   "done": 626,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "pupil",
+   "warm": true,
+   "screen": "tutors",
+   "first": 632,
+   "done": 632,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "pupil",
+   "warm": true,
+   "screen": "students",
+   "first": 647,
+   "done": 647,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "pupil",
+   "warm": true,
+   "screen": "parents",
+   "first": 658,
+   "done": 658,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": false,
+   "screen": "first-load",
+   "first": 1212,
+   "done": 1212,
+   "dots": 1,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": false,
+   "screen": "stuff",
+   "first": 645,
+   "done": 645,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": false,
+   "screen": "reel",
+   "first": 644,
+   "done": 644,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": false,
+   "screen": "dm",
+   "first": 654,
+   "done": 654,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": false,
+   "screen": "tutors",
+   "first": 634,
+   "done": 634,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": false,
+   "screen": "students",
+   "first": 643,
+   "done": 2038,
+   "dots": 1,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": false,
+   "screen": "parents",
+   "first": 647,
+   "done": 647,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": true,
+   "screen": "first-load",
+   "first": 522,
+   "done": 522,
+   "dots": 1,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": true,
+   "screen": "stuff",
+   "first": 656,
+   "done": 656,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": true,
+   "screen": "reel",
+   "first": 635,
+   "done": 635,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": true,
+   "screen": "dm",
+   "first": 642,
+   "done": 642,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": true,
+   "screen": "tutors",
+   "first": 630,
+   "done": 630,
+   "dots": 0,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": true,
+   "screen": "students",
+   "first": 645,
+   "done": 2066,
+   "dots": 1,
+   "shift": 0
+  },
+  {
+   "who": "admin",
+   "warm": true,
+   "screen": "parents",
+   "first": 639,
+   "done": 639,
+   "dots": 0,
+   "shift": 0
+  }
+ ],
+ "asked": {
+  "get": 6,
+  "messages": 6,
+  "pushState": 6,
+  "myProfile": 6,
+  "workFilesOf": 3,
+  "listRecords": 3,
+  "listStaff": 3,
+  "listBizChecks": 3,
+  "digestPreview": 3,
+  "hands": 2
+ }
+}
