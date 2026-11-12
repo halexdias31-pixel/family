@@ -722,19 +722,43 @@ function whenCouldHtml(j) {
 /* REDRAW WITHOUT MOVING. § */
 /* ---------- KEEPING THE PLACE ACROSS A REDRAW § */
 function redrawBooker_(draw) {
-  const before = $('bookr');
-  const pane = before && before.closest('.pane');
-  const was = pane ? pane.scrollTop : 0;
-  const held = bookFocusOf_(before);
-  draw();
+  const card = $('bookr');
+  const held = bookFocusOf_(card);
+  const pane = card && card.closest('.pane'), was = pane ? pane.scrollTop : 0, y = window.scrollY || 0;
+  /* ONLY WHAT CHANGED IS TOUCHED (owner, 12 Nov: "it jumps me back up to the top"): the card is patched against a fresh
+     `bookerCard()`, so the Find page round it is never rebuilt; no card, the caller paints. */
+  let done = false;
+  try {
+    const t = document.createElement('div');
+    t.innerHTML = card && card.isConnected ? bookerCard() : '';
+    if (t.children.length === 1 && t.firstElementChild.id === card.id) { patchNode_(card, t.firstElementChild); done = true; }
+  } catch (e) { done = false; }
+  if (!done) draw();
   bookFocusBack_(held);
-  if (!was) return;
-  const after = $('bookr');
-  const now = after && after.closest('.pane');
-  if (!now) return;
-  requestAnimationFrame(() => {
-    now.scrollTop = Math.min(was, Math.max(0, now.scrollHeight - now.clientHeight));
-  });
+  const keep = () => {
+    const now = $('bookr') && $('bookr').closest('.pane');
+    if (now && was && Math.abs(now.scrollTop - was) > 1) now.scrollTop = was;
+    if (Math.abs((window.scrollY || 0) - y) > 1) window.scrollTo(window.scrollX || 0, y);
+  };
+  if (!done) { keep(); requestAnimationFrame(keep); }
+}
+
+/* A NODE MADE TO MATCH ANOTHER, keeping every element whose shape is the same — so a focused control stays the one in the page. */
+function patchNode_(old, fresh) {
+  if (old.nodeType !== fresh.nodeType || old.nodeName !== fresh.nodeName) { old.replaceWith(fresh); return; }
+  if (old.nodeType !== 1) { if (old.nodeValue !== fresh.nodeValue) old.nodeValue = fresh.nodeValue; return; }
+  [...old.attributes].forEach(a => { if (!fresh.hasAttribute(a.name)) old.removeAttribute(a.name); });
+  [...fresh.attributes].forEach(a => { if (old.getAttribute(a.name) !== a.value) old.setAttribute(a.name, a.value); });
+  /* A CONTROL'S LIVE STATE IS A PROPERTY, NOT ITS ATTRIBUTE: set from what was drawn, unless it is being typed in now. */
+  const ctl = /^(SELECT|INPUT|TEXTAREA)$/.test(old.tagName);
+  if (!ctl && old.innerHTML === fresh.innerHTML) return;
+  const a = [...old.childNodes], b = [...fresh.childNodes];
+  if (a.length !== b.length) old.replaceChildren(...b);
+  else a.forEach((n, i) => patchNode_(n, b[i]));
+  if (!ctl) return;
+  if (/^(checkbox|radio)$/.test(old.type)) old.checked = fresh.hasAttribute('checked');
+  else if (old.options) old.selectedIndex = Math.max(0, [...old.options].findIndex(o => o.hasAttribute('selected')));
+  else if (document.activeElement !== old && old.value !== (fresh.getAttribute('value') || '')) old.value = fresh.getAttribute('value') || '';
 }
 
 /* ---------- AND THE FOCUS STAYS ON WHAT WAS JUST ANSWERED § */
