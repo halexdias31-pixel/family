@@ -30,3 +30,26 @@ A single answer alone in the bar still fills its line (`.qp-bar > .qp-ans`): tha
 
 The worklist (`--list`) is ordered by the points of the total a fix gains: 1/population of its rule for a ratio rule,
 an equal share of the rule's one point for a pass/fail rule, divided by the number of rules.
+
+## Second pass, same day: the unit a rule counts
+
+The owner's next point: the unit is itself a choice. Rules that counted LINES (dup 33957/33986, nest 33979/33986,
+one-off over 4063 comparison lines) or every CSS declaration (important, order, 7665) sat near 100% however bad things
+were, beside families counted as 1/43. **Now every rule counts the thing a person would fix**, and `-v` prints that unit
+beside each rule:
+
+- code `one-off`, `dup`, `nest` and Find's `find-one-off`: functions (top-level functions, plus each file's code outside
+  any function) with a finding ÷ all of them (`fnUnits` in tools/health.js). dup's worklist gain is per finding now.
+- CSS `important`, `order`, `colourlit`, `font-scale`, `space-scale`, `radius-scale`: rule-blocks that break the rule ÷
+  the rule-blocks it applies to (a block with no colour is not counted for `colourlit`).
+- `spread`: commits to js/ touching at most 6 files ÷ such commits (was the median, 0/1).
+
+**Pass/fail checks that inspect a population are ratios over it** (the walked things with no finding ÷ walked, by the
+finding's `where`): friction over journeys, returned-features over features, timeline-anim over timelines, ux over its
+budgets (each click, each missing control, each load/heap/live measure, each non-owner qcard count, the text-box
+measure), settings-work over settings boxes, wait over screen loads, card-tags and attr-outside-tags over card kinds,
+odd-tags over tagged cards. a11y becomes elements once `tools/ux-health.js` records `a11yChecked` (added; the walk needs
+re-running); until then it stays pass/fail. The rest (console, in-sync, chip-size, clutter, resilience, ...) have no
+recorded population and stay one check each. `claude-lines` and `search-bytes` are about one file and one directory.
+
+Thresholds are unchanged: each is still the rule's definition. Score at this change: 73.9% → 80.1%.

@@ -335,7 +335,7 @@ function libDriveLog_(by, name, one) {
     const t = read(TAB.libLog);
     if (!t.sheet) return;
     const said = Object.keys(one.counts).map(k => { const c = one.counts[k]; return k + ' +' + c.added + ' ~' + c.replaced + ' =' + c.same + (c.deleted ? ' -' + c.deleted + ' field(s)' : ''); }).join('; ');
-    addRow(t, { day: reportDay_(new Date()), person_id: 'library-import', handle: S(by && by.handle), served: one.written,
-                ids: (name + ': ' + said + (one.note ? ' — ' + one.note : '')).slice(0, 2000), refused: 0, last_at: new Date() });
+    addRow(t, { day: reportDay_(new Date()), person_id: 'library-import', served: one.written,
+                ids: ((by && (S(by.person_id) || S(by.handle)) ? 'by ' + (S(by.person_id) || S(by.handle)) + ' — ' : '') + name + ': ' + said + (one.note ? ' — ' + one.note : '')).slice(0, 2000), refused: 0, last_at: new Date() });
   } catch (err) { /* the log costs a line, never the import */ }
 }

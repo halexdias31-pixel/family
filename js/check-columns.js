@@ -69,7 +69,9 @@ const NOT = new Set(('sheet rows headers length push find filter map forEach ind
   + 'getTime includes tab field').split(' '));
 
 const badWrite = [...writes].filter(c => !cols.has(c));
-const badRead  = [...reads].filter(c => !cols.has(c) && !cfg.has(c) && !NOT.has(c));
+/* OLD COLUMNS, READ ONLY AS AN OLD ROW'S FALLBACK (owner, 12 Nov: names in one place): out of the schema, never written, still in old sheets. */
+const OLD_READS = new Set(['person_name']);
+const badRead  = [...reads].filter(c => !cols.has(c) && !cfg.has(c) && !NOT.has(c) && !OLD_READS.has(c));
 
 const say = (title, list, why) => {
   console.log('');

@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-12-hours-9-21-1";
+const BOOKING_VERSION = "2026-11-12-lego-names-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -80,7 +80,7 @@ function writeReceipt_(o) {
       receipt_id: id,
       kind: S(o.kind) || 'session',
       job_id: S(o.jobId), order_id: S(o.orderId),
-      person_id: S(o.personId), person_name: S(o.personName),
+      person_id: S(o.personId),
       issued_on: new Date(),
       /* Rounded to whole pence at the moment of writing, so the stored figure is the one anybody
          will ever be asked to pay. */
@@ -1317,6 +1317,7 @@ const PERMISSIONS = {
   inboxList: ['admin'],
   joinWaitlist: ['member', 'admin'],
   layoutSave: ['admin'],
+  legoCount: ['member', 'admin'],
   libExport: ['admin'],
   libImport: ['admin'],
   libImportDrive: ['admin'],

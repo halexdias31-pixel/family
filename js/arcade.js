@@ -679,7 +679,7 @@ function termDatesRows_(today) {
     if (sh.e) { x.to = tdSchoolDays_(x.to, sh.e); if (all[i + 1]) all[i + 1].from = new Date(x.to.getFullYear(), x.to.getMonth(), x.to.getDate() + 1); }
   });
   const i = all.findIndex(x => x.from <= t && t <= x.to);
-  return all.slice(Math.max(0, i), Math.max(0, i) + 4).map((x, k) => Object.assign(x, { now: k === 0 && i >= 0 }));
+  return all.slice(Math.max(0, i), Math.max(0, i) + (TD_MORE ? 10 : 4)).map((x, k) => Object.assign(x, { now: k === 0 && i >= 0 }));
 }
 const tdDay_ = d => day_(d) + ' ' + date_(d);
 /* A TERM SAYS ITS FIRST AND LAST DAY OF TERM; A BREAK SAYS WHEN IT STARTS AND THE FIRST DAY BACK — never "ends" on a Sunday. */
@@ -689,6 +689,8 @@ function tdLine_(x) {
   const v = x.kind === 'term' ? `${tdDay_(x.from)} – last day of term ${tdDay_(x.to)}` : `from ${tdDay_(x.from)} · first day back ${tdDay_(back)}`;
   return `<div class="row td-${x.kind}${x.now ? ' td-now' : ''}"><span class="k">${x.now ? 'Now: ' : ''}${esc(x.name)}</span><span class="v">${esc(v)}</span></div>`;
 }
+/* THE NEXT FOUR BY DEFAULT; one tile shows the rest of the year ahead too (owner, 12 Nov: a safe press on every tool). */
+let TD_MORE = false;
 function paintTermDates_() {
   const rows = termDatesRows_(), sh = tdShift_();
   const adj = (id, v, label) => `<div class="row"><span class="k">${label}</span><span class="v"><select class="td-adj" data-td="${id}" aria-label="${label}">${
@@ -696,9 +698,11 @@ function paintTermDates_() {
   document.querySelectorAll('.td-box').forEach(box => {
     box.removeAttribute('aria-busy');
     box.innerHTML = rows.map(tdLine_).join('')
-      + adj('s', sh.s, 'My school starts') + adj('e', sh.e, 'My school ends');
+      + adj('s', sh.s, 'My school starts') + adj('e', sh.e, 'My school ends')
+      + `<div class="tile-row">${tile_({ icon: TD_MORE ? 'up' : 'down', label: TD_MORE ? 'Fewer' : 'Later', note: TD_MORE ? 'the next four' : 'the year ahead', act: 'td-more' })}</div>`;
   });
 }
+on('td-more', () => { TD_MORE = !TD_MORE; paintTermDates_(); });
 document.addEventListener('change', e => {
   const el = e.target && e.target.closest && e.target.closest('.td-adj');
   if (!el) return;

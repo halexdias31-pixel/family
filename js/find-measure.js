@@ -145,6 +145,12 @@ function initPad() {
   if (said) said.textContent = USER ? 'Saves as you type.' : 'Sign in to keep notes.';
 }
 
+/* THE NOTEPAD'S SAFE PRESS (owner, 12 Nov): copies the notes and says so; nothing is changed or lost. */
+on('pad-copy', () => {
+  const pad = $('notepad'), said = $('pad-said');
+  const say = t => { if (said) said.textContent = t; };
+  Promise.resolve().then(() => navigator.clipboard.writeText(pad ? pad.value : '')).then(() => say('Copied.'), () => say('Copy is blocked here.'));
+});
 let padTimer = null;
 document.addEventListener('input', e => {
   if (e.target.id !== 'notepad' || !USER) return;

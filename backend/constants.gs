@@ -130,7 +130,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-12-hours-9-21-1";
+const BACKEND_VERSION = "2026-11-12-lego-names-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -282,8 +282,9 @@ const SCHEMA = {
     "person_id", "library", "card_number", "pin"
   ],
   /* ---------- RECEIPTS § */
+  /* NAMES IN ONE PLACE (owner, 12 Nov): no tab but people stores a name or handle; an old row's `person_name`/`handle` cell is still read by header as a fallback. */
   receipts: [
-    "receipt_id", "kind", "job_id", "order_id", "person_id", "person_name",
+    "receipt_id", "kind", "job_id", "order_id", "person_id",
     "issued_on", "total_pence", "currency", "lines", "note",
   ],
 
@@ -517,7 +518,7 @@ const SCHEMA = {
   /* ---------- REPORTS (395, 486), HISTORY SINCE 494: read once into `claude_notes` by `reports-to-notes`, each row then `migrated`.
      Nothing writes here now. Blank `kind` is a question. */
   reports: [
-    "report_id", "at", "person_id", "handle",
+    "report_id", "at", "person_id",
     "question_id", "paper_id", "part", "label",
     "reason", "note", "finder", "device",
     "status", "status_at",
@@ -548,7 +549,7 @@ const SCHEMA = {
   /* ---------- APPLICATIONS TO TEACH (400) ----------
      `status` is new, interview, approved or declined, set from the Business column; Approve makes the person Staff. */
   applications: [
-    "application_id", "at", "person_id", "handle", "status", "status_at",
+    "application_id", "at", "person_id", "status", "status_at",
     "subjects", "qualifications", "dbs_number", "dbs_issued", "dbs_needed", "right_to_work",
     "experience", "availability", "area", "ref1_name", "ref1_contact", "ref2_name", "ref2_contact",
     "statement", "cv_link", "consent",
@@ -566,7 +567,7 @@ const SCHEMA = {
   lib_inserts: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
   /* `ids` is every item served that day (so a second look is free), `refused` what the cap turned away. */
   lib_log: [
-    "day", "person_id", "handle", "served", "ids", "refused", "last_at",
+    "day", "person_id", "served", "ids", "refused", "last_at",
   ],
 
   /* ---------- THE WEEKLY PARENT EMAIL'S RECEIPTS § */
