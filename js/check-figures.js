@@ -14,9 +14,11 @@ catch (e) { console.log('data/questions.json could not be read (' + e.message + 
 const P = {};
 require('vm').runInNewContext(require('../tools/piece-src.js').pieceSrc('predicates', path.join(__dirname, '..')) + ';this.figUndrawn_ = figUndrawn_;', P);
 
-const byId = {}, stems = {};
+const byId = {}, stems = {}, parts = {};
+const partKey = (r, p) => r.paper_id + '|' + (r.question || '') + '|' + String(p == null ? '' : p).toLowerCase().replace(/[^a-z0-9]/g, '');
 rows.forEach(r => {
   byId[r.row_id] = r;
+  if (r.kind === 'question') parts[partKey(r, r.part)] = r;
   if (r.kind !== 'preamble') return;
   const k = r.paper_id + '|' + (r.question || '');
   (stems[k] || (stems[k] = [])).push(r);
@@ -28,7 +30,8 @@ rows.forEach(r => {
   /* A stem is checked on its own words; a part on its own, so one bare stem is one line, not one per part under it. */
   if (!r || (r.kind !== 'question' && r.kind !== 'preamble') || String(r.active) === 'False') return;
   const up = r.kind === 'preamble' ? [] : stemsOf(r);
-  const used = String(r.uses || '').split(/[,\s]+/).filter(Boolean).map(id => byId[id]);
+  /* `uses` is a part of the same question ('b'), as the site's `usesOf_` reads it; a whole row id still works. */
+  const used = String(r.uses || '').split(/[,\s]+/).filter(Boolean).map(id => byId[id] || parts[partKey(r, id)]);
   if (!P.figUndrawn_(r, up.concat(used))) return;
   missing.push(r.row_id);
 });
