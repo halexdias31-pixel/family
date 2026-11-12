@@ -280,6 +280,8 @@ const ACTION_ACCESS = {
   aiMark: 'self',
   /* A PHOTO OF THE WORKING (501): sent as yourself; read back by yourself, a linked parent, staff or admin (the handler checks). */
   markWorking: 'self', workingOf: 'self',
+  /* THE LEGO PIECE CHECK (owner, 12 Nov): `self`, so the cap is the token's person's; the handler lets staff and admin only. */
+  legoCount: 'self',
   /* WORK ON FILE: as yourself; the handler decides whose file (the student, a parent, a booked tutor, the admin). */
   workFileSave: 'self', workFilesOf: 'self', workFileOpen: 'self', workFileDelete: 'self',
   /* THE ASSISTANT IN MESSAGES (449): `self`, so the day's count is the token's person's. */
