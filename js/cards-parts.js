@@ -62,7 +62,7 @@ const KC_FIELDS = {
   tutorCount: x => { const n = (kcRow_(x).tutors || []).length; return row('Tutors', n ? String(n) : NO_TUTOR, n ? '' : 'bad'); },
   bookingForm: x => (kcRow_(x).listed ? '' : row('Booking form', 'Not offered', 'bad')),
   levels: x => { const l = (kcRow_(x).levels || []).filter(Boolean); return l.length ? row('Levels', l.join(', ')) : ''; },
-  tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<div class="qtags">${t.map(y => `<span class="qtag" data-tag="3">${esc(y.title)}</span>`).join('')}</div>`
+  tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<div class="qtags">${t.map(y => qtag_(esc(y.title), ' data-tag="3"')).join('')}</div>`
     : x.kind === 'subject' ? row('Tutors', 'None yet', 'bad') : ''; },
   /* A KIND WHOSE OWN FILE WRITES ITS INSIDES (`KC_OWN`) hands them over cut into the four parts (`kcSplit_`); no tag line of its own gets its facets. */
   ownPic: x => (x.kcOwn || {}).pic || '',
@@ -213,7 +213,7 @@ function kcHoist_(html, panel) {
 /* WHETHER SOME TAGS ALREADY SAY A NAME, and the name put in front of them as a tag. */
 const kcSays_ = (tags, name) => norm(String(tags || '').replace(/<[^>]+>/g, ' ').replace(/&#0*39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&')).indexOf(norm(name)) >= 0;
 function kcTagFirst_(tags, name) {
-  const tag = `<span class="qtag" data-tag="0">${esc(name)}</span>`;
+  const tag = `${qtag_(`${esc(name)}`, ` data-tag="0"`)}`;
   return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, '$1' + tag) : `<div class="qtags">${tag}</div>` + (tags || '');
 }
 /* TAGS ARE SHORT FACTS, LINES HAVE NO HEADINGS (owner, 9 Nov): a longer tag (a credit) becomes a later line, open-only; a heading in the lines a plain line. */

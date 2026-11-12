@@ -104,7 +104,7 @@ function rulesCard_() {
     const uni = !ruleOn_(r.id);
     const opt = (to, label) => tile_({ form: true, look: 'btn quiet rule-opt' + ((to === 'universal') === uni ? ' on' : ''), act: 'rule-set', data: { rule: r.id, to: to }, pressed: (to === 'universal') === uni, html: label });
     return `<div class="row rule-item${r.lock ? ' is-locked' : ''}" data-rule="${esc(r.id)}">
-      <p class="rule-say">${esc(r.say)} <span class="qtag">${esc(r.where)}</span></p>
+      <p class="rule-say">${esc(r.say)} ${qtag_(`${esc(r.where)}`)}</p>
       ${r.lock ? ''
         : `<div class="rule-sw" role="group" aria-label="${esc(r.say)}">${opt('exception', 'Exception')}${opt('universal', 'Universal')}</div>
       `}</div>`;

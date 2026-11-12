@@ -45,7 +45,7 @@ function oqItem_(q) {
   const opts = Object.keys(q.options || {}).filter(k => q.options[k]);
   const said = a ? 'Answered: ' + (a.choice === 'note' ? '' : '(' + a.choice + ') ' + ((q.options || {})[a.choice] || '')) + (a.note ? ' “' + a.note + '”' : '') : '';
   return `<div class="oq-item" data-oq="${esc(q.id)}">
-    <p class="oq-q">${q.philosophy ? '<span class="qtag">Philosophy</span> ' : ''}${esc(q.question)}</p>
+    <p class="oq-q">${q.philosophy ? qtag_('Philosophy') + ' ' : ''}${esc(q.question)}</p>
     <div class="tile-row">${opts.map(k => tile_({ form: true, kind: a && a.choice === k ? '' : 'quiet', label: k + ') ' + q.options[k], act: 'oq-answer', data: { id: q.id, choice: k } })).join('')}</div>
     <label class="field"><input type="text" data-oq-note value="${esc((a && a.note) || '')}" placeholder="Something else…" maxlength="500" aria-label="${esc(q.question)} — something else" autocomplete="off"></label>
     <div class="tile-row">${tile_({ form: true, kind: 'quiet', label: 'Send note', act: 'oq-answer', data: { id: q.id, choice: 'note' } })}</div>
@@ -68,11 +68,11 @@ function checksInner_() {
   const s = typeof HEALTH !== 'undefined' ? HEALTH.got : null;
   if (typeof siteHealthCard_ === 'function' && typeof HEALTH !== 'undefined' && !HEALTH.asked) siteHealthCard_();
   if (typeof bizCheckCard_ === 'function' && typeof BC !== 'undefined' && !BC.asking && !BC.fetched && typeof bcStart_ === 'function') setTimeout(bcStart_, 0);
-  const head = '<div class="qtags"><span class="qtag">Business</span><span class="qtag">Admin only</span></div><h3>Optimiser</h3>';
+  const head = '<div class="qtags">' + qtag_('Business') + qtag_('Admin only') + '</div><h3>Optimiser</h3>';
   if (!s) return head + (HEALTH && HEALTH.failed ? '<p class="me-said">The score could not be read. Run node tools/health.js and push.</p>' : (typeof loading_ === 'function' ? loading_() : '')) + oqInbox_();
   const A = checksAreas_(s);
   return `${head}<p class="stab-score">Optimiser: ${esc(String(checksTotal_(s, A)))}%</p>
-    ${CHECK_AREAS.filter(([k]) => A[k]).map(([k, n]) => `<h4>${esc(n)} ${esc(String(A[k].score))}%${(s.weights || {})[k] ? '' : ' <span class="qtag">inside the others</span>'}</h4>
+    ${CHECK_AREAS.filter(([k]) => A[k]).map(([k, n]) => `<h4>${esc(n)} ${esc(String(A[k].score))}%${(s.weights || {})[k] ? '' : ' ' + qtag_('inside the others')}</h4>
       <ol class="stab-top">${(A[k].next || []).slice(0, 3).map(t => `<li>${esc(String(t))}</li>`).join('') || '<li>Nothing to do.</li>'}</ol>`).join('')}
     ${oqInbox_()}`;
 }

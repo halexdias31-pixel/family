@@ -123,6 +123,7 @@ const SUITE = [
   { file: 'check-history-db.js', what: 'the history database: schema, ids, links both ways, years, sources' },
   { file: 'check-card-shape.js', what: 'one card shape for every kind in Find: picture, title, tags, lines (owner, 8 Nov)' },
   { file: 'check-one-template.js', what: 'every card on the site built by findCard (card_), the booking form too (owner, 12 Nov)' },
+  { file: 'check-one-way.js', what: 'card, tile, spinner and tag markup only from its one maker (owner, 12 Nov)' },
   { file: 'check-email-card.js', what: 'the Sunday email card is the site card: parts, lines, labels, corner, gap, sizes, tag colours (57a–62a)' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
@@ -293,7 +294,9 @@ const SUITE = [
 const TIER_OF = (() => { try { return JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'tiers.json'), 'utf8')).checks || {}; } catch (e) { return {}; } })();
 const TIER_ARG = (/^--tier=(core|secondary|all)$/.exec(process.argv.find(a => a.startsWith('--tier=')) || '') || [])[1]
   || (process.argv.includes('--all') ? 'all' : 'core');
-SUITE.forEach(c => { c.tier = TIER_OF[c.file] || 'core'; if (c.tier === 'secondary') c.report = true; });
+/* --strict (the gate, owner 12 Nov): a secondary check blocks a merge too, so nothing that breaks a rule goes live. */
+const STRICT = process.argv.includes('--strict');
+SUITE.forEach(c => { c.tier = TIER_OF[c.file] || 'core'; if (c.tier === 'secondary' && !STRICT) c.report = true; });
 /* OFF (860): a deactivated widget's checks are skipped, and counted, never passed. */
 const OFF_SKIPPED = SUITE.filter(c => c.tier === 'off').map(c => c.file);
 for (let i = SUITE.length - 1; i >= 0; i--) if (SUITE[i].tier === 'off') SUITE.splice(i, 1);

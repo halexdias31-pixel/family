@@ -456,7 +456,7 @@ screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web'
 /* ---------- APPRENTICE PROFILE (730): a card per apprentice an admin is sent (`everyone`, role Apprentice); none yet is a line from brand() ---------- */
 function apprenticeProfilePages_() {
   const all = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title && /apprentice/i.test(String(p.role || '')));
-  if (all.length) return all.map(p => card_(`<div class="appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="qtags"><span class="qtag prof-handle">@${esc(p.handle)}</span></p>` : ''}</div>`));
+  if (all.length) return all.map(p => card_(`<div class="appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="qtags">${qtag_(`@${esc(p.handle)}`, '', `prof-handle`)}</p>` : ''}</div>`));
   return [card_(`<div class="appr-card people-none">${
     empty_(brand('apprentices_none', 'No apprentices yet.'))}</div>`)];
 }
@@ -494,7 +494,7 @@ function stabilityCard_() {
   const s = STAB.got, head = '<h3>Stability</h3>';
   if (!s) return card_(`<div class="biz stability-card">${head}${STAB.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`);
   const sig = (s.signals || []).filter(x => x.off > 0);
-  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} <span class="qtag">−${esc(String(x.off))}</span></li>`;
+  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} ${qtag_(`−${esc(String(x.off))}`)}</li>`;
   return card_(`<div class="biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
     ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`);

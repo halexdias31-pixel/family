@@ -68,7 +68,7 @@ function siteHealthCard_(raw) {
   const said = { code: 'Code', logic: 'Find logic', ui: 'UI' };
   return out(`<div class="logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     ${s.next ? `<p><b>${esc(String(s.next))}</b></p>` : ''}${healthTrend_(s.trend)}
-    <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} <span class="qtag">${esc(said[t.part] || t.part)}, −${esc(String(t.cost))}</span></li>`).join('')}</ol>
+    <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} ${qtag_(`${esc(said[t.part] || t.part)}, −${esc(String(t.cost))}`)}</li>`).join('')}</ol>
     ${healthWork_(s.worklist)}
     ${(s.all || []).length > 5 ? tileRow_(tile_({ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top 5' : 'Show the full list', act: 'health-all' }), '', true) : ''}</div>`);
 }
@@ -87,7 +87,7 @@ const HEALTH_SAY = { 'one-off': 'A special case for one name', 'long-fn': 'A lon
 function healthWork_(w) {
   const top = (Array.isArray(w) ? w : []).slice(0, 5);
   if (!top.length) return '';
-  return `<ol class="stab-top">${top.map(f => `<li><b>${esc(String(f.file))}:${esc(String(f.line))}</b> · ${esc(HEALTH_SAY[f.kind] || String(f.kind))}<br><span class="qtag">${esc(String(f.text || ''))}</span></li>`).join('')}</ol>`;
+  return `<ol class="stab-top">${top.map(f => `<li><b>${esc(String(f.file))}:${esc(String(f.line))}</b> · ${esc(HEALTH_SAY[f.kind] || String(f.kind))}<br>${qtag_(`${esc(String(f.text || ''))}`)}</li>`).join('')}</ol>`;
 }
 on('health-all', () => { HEALTH.all = !HEALTH.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 
@@ -114,7 +114,7 @@ function logicCard_() {
   if (!s) return card_(`<div class="logic-card">${head}${LOGIC.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/logic-health.js and push.</p>' : loading_()}</div>`);
   const rules = (s.rules || []).filter(r => r.count > 0).sort((a, b) => b.count - a.count);
   const top = (s.top || []).slice(0, LOGIC.all ? 25 : 3);
-  const line = t => `<li><b>${esc(t.where)}</b> · ${esc(t.asks || '')}<br><span class="qtag">${esc((t.why || []).join(' · '))}</span></li>`;
+  const line = t => `<li><b>${esc(t.where)}</b> · ${esc(t.asks || '')}<br>${qtag_(`${esc((t.why || []).join(' · '))}`)}</li>`;
   return card_(`<div class="logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <ol class="stab-top">${top.map(line).join('')}</ol>
     ${(s.top || []).length > 3 ? tileRow_(tile_({ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top 3' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }), '', true) : ''}</div>`);

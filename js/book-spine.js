@@ -325,7 +325,7 @@ function receiptHtml(r) {
       ${/* THE THREE LINES ON ONE LINE. § */
            ''}
       ${(r.lines || []).filter(Boolean).length
-        ? `<div class="qtags qcard-tags">${(r.lines || []).map((l, i) => l ? `<span class="qtag" data-tag="${[6, 9, 4][i] || 0}">${esc(l)}</span>` : '').join('')}</div>` : ''}
+        ? `<div class="qtags qcard-tags">${(r.lines || []).map((l, i) => l ? `${qtag_(`${esc(l)}`, ` data-tag="${[6, 9, 4][i] || 0}"`)}` : '').join('')}</div>` : ''}
     </div>
     ${/* `r.photos` WAS HERE. Nothing passes photos to a receipt any more — see `bookBreakdown`. */''}
     ${/* ---------- AND THE RULE ABOVE THE ROWS IS THE HEADER'S OWN § */

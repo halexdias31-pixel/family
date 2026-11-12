@@ -142,13 +142,13 @@ function setupCard_() {
   return card_(`<div class="setup-card" data-need="setup"><h3>Setup</h3>
     ${need(wrong, wrong + (wrong === 1 ? ' thing to fix' : ' things to fix'))}
     ${failed.map(j => `<p class="setup-bad">${esc(j.id)} failed: ${esc(j.error)} — it tries again on the next page load.</p>`).join('')}
-    <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} <span class="qtag">${j.ran
-      ? esc(j.ran === 'yes' ? 'done' : setupWhen_(j.ran)) : j.error ? 'failed' : 'waiting'}</span>${
+    <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} ${qtag_(`${j.ran
+      ? esc(j.ran === 'yes' ? 'done' : setupWhen_(j.ran)) : j.error ? 'failed' : 'waiting'}`)}${
       /* WHAT THE JOB LEFT TO SAY — the tidy's backup copy and what it removed (379). */
-      j.said ? `<br><span class="qtag">${esc(j.said)}</span>` : ''}${
+      j.said ? `<br>${qtag_(`${esc(j.said)}`)}` : ''}${
       setupJobLink_(j)}</li>`).join('')}</ul>
     <h4>Triggers</h4>
-    <ul class="setup-list">${(S_.triggers || []).map(t => `<li>${esc(t.fn)}${t.times > 1 ? ' ×' + esc(t.times) : ''} <span class="qtag">${esc(t.when)}</span></li>`).join('')
+    <ul class="setup-list">${(S_.triggers || []).map(t => `<li>${esc(t.fn)}${t.times > 1 ? ' ×' + esc(t.times) : ''} ${qtag_(`${esc(t.when)}`)}</li>`).join('')
       || ''}</ul>
   </div>`);
 }

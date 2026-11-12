@@ -32,7 +32,7 @@ function psCard_(who, tiles) {
   return `<div class="ps-hit">
     ${personFace_({ pic: who.image, avatar: who.avatar, handle: who.handle, name: first, personId: who.personId },
                   { cls: 'kid-face', none: 'prof-none', size: 36 })}
-    <p class="kid-who"><b>${esc(first)}</b><span class="prof-handle">@${esc(who.handle)}</span>${who.role ? `<span class="qtag ps-role">${esc(who.role)}</span>` : ''}</p>
+    <p class="kid-who"><b>${esc(first)}</b><span class="prof-handle">@${esc(who.handle)}</span>${who.role ? `${qtag_(`${esc(who.role)}`, '', `ps-role`)}` : ''}</p>
     ${tiles ? `<div class="tile-row">${tiles}</div>` : ''}
   </div>`;
 }

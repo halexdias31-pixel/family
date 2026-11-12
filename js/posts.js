@@ -196,7 +196,7 @@ function postCard_(p, i) {
           ${/* No "· deleted" any more: a deleted post is not drawn at all, so nothing reaching
                  here can be one. */''}
           <span class="post-who">${esc(who)}${p.pinned
-            ? ' <span class="qtag">pinned</span>' : ''}${p.refused
+            ? ' ' + qtag_('pinned') : ''}${p.refused
             ? ' <span class="post-wait">· not put up</span>' : ''}</span>
           ${p.location ? `<span class="post-where">${esc(p.location)}</span>` : ''}
         </span>
@@ -242,7 +242,7 @@ window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
     const at = p.at || p.when, d = at && typeof parseWhen === 'function' ? parseWhen(at) : null;
     const kind = p.poll ? 'Poll' : media.some(postIsVideo_) ? 'Clip' : media.length ? 'Photo' : 'Post';
     const extra = [d && !isNaN(d) ? date_(d) : '', kind, media.length > 1 ? media.length + ' pictures' : '', p.pinned ? 'pinned' : '']
-      .filter(Boolean).map(t => `<span class="qtag msg-tag">${esc(t)}</span>`).join('');
+      .filter(Boolean).map(t => `${qtag_(`${esc(t)}`, '', `msg-tag`)}`).join('');
     const row = typeof tagRow_ === 'function' ? String(tagRow_(x) || '') : '';
     return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, extra + '</div>') : `<div class="qtags qcard-tags">${extra}</div>`; },
   postBody: x => { const body = String(x.row.caption || x.row.body || x.row.text || '').trim(); return body ? `<p class="msg-fc-body">${mark(body)}</p>` : ''; },
@@ -264,14 +264,14 @@ function commentsHtml_(p) {
     ${list.length ? `<ul class="cmt-list">${list.map(x => `
       <li class="cmt${x.mine ? ' mine' : ''}">
         <p class="cmt-body"><b>${esc(displayName_(x.name))}</b> ${mark(x.body)}</p>
-        <p class="cmt-when"><span class="qtag">${esc(ago(x.at) || x.at || '')}</span>${x.canRemove
+        <p class="cmt-when">${qtag_(`${esc(ago(x.at) || x.at || '')}`)}${x.canRemove
           ? tile_({ icon: 'bin', label: 'Remove', act: 'cmt-del', cls: 'cmt-x', data: { id: x.id } })
           : ''}</p>
       </li>`).join('')}</ul>` : ''}
     ${/* THE ONES NOT SHOWN ARE A NUMBER RATHER THAN A SILENCE. `doGet` caps the list at sixty;
           a conversation that simply stops at sixty with nothing saying so is a conversation
           somebody thinks they have read. */''}
-    ${more ? `<p class="qtags"><span class="qtag">${more} more</span></p>` : ''}
+    ${more ? `<p class="qtags">${qtag_(`${more} more`)}</p>` : ''}
     ${/* ---------- POST IS A TILE § */
           ''}
     ${USER
@@ -1440,8 +1440,8 @@ function postAsRow_(id) {
     </span></label>`;
 }
 /* THE TWO ANSWERS, the composer's and the camera's alike. */
-const postAsButtons_ = id => tile_({ form: true, look: 'btn quiet on', act: 'as', data: { for: id, as: 'brand' }, html: `${esc(brand('name', '@family.'))} <span class="qtag">business</span>` })
-  + tile_({ form: true, look: 'btn quiet', act: 'as', data: { for: id, as: 'me' }, html: 'me <span class="qtag">personal</span>' });
+const postAsButtons_ = id => tile_({ form: true, look: 'btn quiet on', act: 'as', data: { for: id, as: 'brand' }, html: `${esc(brand('name', '@family.'))} ${qtag_(`business`)}` })
+  + tile_({ form: true, look: 'btn quiet', act: 'as', data: { for: id, as: 'me' }, html: 'me ' + qtag_('personal') });
 const postAsOf_ = id => (typeof isAdmin === 'function' && isAdmin()) ? ((($(id) || {}).dataset || {}).as || 'brand') : 'me';
 /* WRITING A POST CHANGES THE CAMERA CARD IN PLACE (448): "do not use pop-up menus on my site". Words only — no picture picker; Photos is beside the shutter. */
 let POST_COMPOSING = false;
@@ -1567,7 +1567,7 @@ on('post-edit', el => {
           ''}
     <label class="field"><span>poll</span>
       <input id="pe-poll" value="${esc(voted ? opts : draftVal_('post-edit', p.id + ':poll', opts))}" placeholder="Yes, No, Maybe" ${voted ? 'disabled' : draftAttr_('post-edit', p.id + ':poll', opts)}>
-      ${voted ? `<span class="qtag">${p.poll.total} vote${p.poll.total === 1 ? '' : 's'}</span>` : ''}</label>` : `
+      ${voted ? `${qtag_(`${p.poll.total} vote${p.poll.total === 1 ? '' : 's'}`)}` : ''}</label>` : `
     ${/* The date is editable because the feed is ORDERED by it — a post from the folder with the wrong timestamp sits in the wrong place for ever otherwise. */''}
     <label class="field"><span>posted on</span>
       <input id="pe-when" value="${esc(draftVal_('post-edit', p.id + ':when', p.when || ''))}" placeholder="DD/MM/YYYY HH:MM:SS"${draftAttr_('post-edit', p.id + ':when', p.when || '')}></label>

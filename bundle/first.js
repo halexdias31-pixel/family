@@ -7684,7 +7684,7 @@ function loadFailBanner_(err, reached) {
           + 'them is the script itself — open it in a tab and see how long it takes.'
         : 'Something else went wrong on the way.';
       el.innerHTML = 'Could not reach the backend.' + (reached ? '' : ' Still trying by itself.') + '<br>'
-        + '<span class="qtag">' + esc(why) + '</span><br>'
+        + qtag_(esc(why)) + '<br>'
         + '<a class="link" href="' + esc(API) + '" target="_blank" rel="noopener">Open it in a '
         + 'tab</a> — the page itself will say which it is.<br>'
         + '<span>' + esc(msg)
@@ -7897,7 +7897,7 @@ function rulesCard_() {
     const uni = !ruleOn_(r.id);
     const opt = (to, label) => tile_({ form: true, look: 'btn quiet rule-opt' + ((to === 'universal') === uni ? ' on' : ''), act: 'rule-set', data: { rule: r.id, to: to }, pressed: (to === 'universal') === uni, html: label });
     return `<div class="row rule-item${r.lock ? ' is-locked' : ''}" data-rule="${esc(r.id)}">
-      <p class="rule-say">${esc(r.say)} <span class="qtag">${esc(r.where)}</span></p>
+      <p class="rule-say">${esc(r.say)} ${qtag_(`${esc(r.where)}`)}</p>
       ${r.lock ? ''
         : `<div class="rule-sw" role="group" aria-label="${esc(r.say)}">${opt('exception', 'Exception')}${opt('universal', 'Universal')}</div>
       `}</div>`;
@@ -8253,7 +8253,7 @@ const KC_FIELDS = {
   tutorCount: x => { const n = (kcRow_(x).tutors || []).length; return row('Tutors', n ? String(n) : NO_TUTOR, n ? '' : 'bad'); },
   bookingForm: x => (kcRow_(x).listed ? '' : row('Booking form', 'Not offered', 'bad')),
   levels: x => { const l = (kcRow_(x).levels || []).filter(Boolean); return l.length ? row('Levels', l.join(', ')) : ''; },
-  tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<div class="qtags">${t.map(y => `<span class="qtag" data-tag="3">${esc(y.title)}</span>`).join('')}</div>`
+  tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<div class="qtags">${t.map(y => qtag_(esc(y.title), ' data-tag="3"')).join('')}</div>`
     : x.kind === 'subject' ? row('Tutors', 'None yet', 'bad') : ''; },
   /* A KIND WHOSE OWN FILE WRITES ITS INSIDES (`KC_OWN`) hands them over cut into the four parts (`kcSplit_`); no tag line of its own gets its facets. */
   ownPic: x => (x.kcOwn || {}).pic || '',
@@ -8404,7 +8404,7 @@ function kcHoist_(html, panel) {
 /* WHETHER SOME TAGS ALREADY SAY A NAME, and the name put in front of them as a tag. */
 const kcSays_ = (tags, name) => norm(String(tags || '').replace(/<[^>]+>/g, ' ').replace(/&#0*39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&')).indexOf(norm(name)) >= 0;
 function kcTagFirst_(tags, name) {
-  const tag = `<span class="qtag" data-tag="0">${esc(name)}</span>`;
+  const tag = `${qtag_(`${esc(name)}`, ` data-tag="0"`)}`;
   return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, '$1' + tag) : `<div class="qtags">${tag}</div>` + (tags || '');
 }
 /* TAGS ARE SHORT FACTS, LINES HAVE NO HEADINGS (owner, 9 Nov): a longer tag (a credit) becomes a later line, open-only; a heading in the lines a plain line. */
@@ -8549,7 +8549,7 @@ function findCard(x, credits) {
   /* A PANEL (card_) IS DRAWN WHILE FIND'S OWN LIST IS BEING MADE, so it never reads Find's chips back (that would build the list inside itself). */
   parts.tags = it.kcPanel ? parts.tags : kcUnpicked_(parts.tags);
   /* A CARD WITH NO TAGS OF ITS OWN STILL HAS ONE: its name (owner, 9 Nov: the name is a tag). */
-  if (!parts.tags.trim() && name) parts.tags = `<div class="qtags"><span class="qtag" data-tag="0">${esc(name)}</span></div>`;
+  if (!parts.tags.trim() && name) parts.tags = `<div class="qtags">${qtag_(`${esc(name)}`, ` data-tag="0"`)}</div>`;
   /* NO TITLE LINE ON ANY CARD (owner, 9 Nov): the name is a tag, put first when the tags do not already say it. */
   if (name && parts.head && !kcSays_(parts.tags, name)) parts.tags = kcTagFirst_(parts.tags, name);
   parts.head = '';
@@ -8756,7 +8756,7 @@ function formToggle_(t) {
   return `<label class="check role-pick${t.cls ? ' ' + t.cls : ''}">
         <input type="checkbox" data-do="${esc(t.act)}"${data}${t.on ? ' checked' : ''}>
         <span class="box"></span><span class="role-pick-say"><b>${esc(t.label)}</b>
-          <span class="qtag">${esc(t.note || '')}</span></span></label>`;
+          ${qtag_(`${esc(t.note || '')}`)}</span></label>`;
 }
 
 /* THE CARD: a title, then `groups` (backend field lists via `fieldsHtml`), `boxes` or `toggles`; `spec.id` fills it from FORM_SPECS.cards. */
@@ -8940,13 +8940,13 @@ function setupCard_() {
   return card_(`<div class="setup-card" data-need="setup"><h3>Setup</h3>
     ${need(wrong, wrong + (wrong === 1 ? ' thing to fix' : ' things to fix'))}
     ${failed.map(j => `<p class="setup-bad">${esc(j.id)} failed: ${esc(j.error)} — it tries again on the next page load.</p>`).join('')}
-    <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} <span class="qtag">${j.ran
-      ? esc(j.ran === 'yes' ? 'done' : setupWhen_(j.ran)) : j.error ? 'failed' : 'waiting'}</span>${
+    <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} ${qtag_(`${j.ran
+      ? esc(j.ran === 'yes' ? 'done' : setupWhen_(j.ran)) : j.error ? 'failed' : 'waiting'}`)}${
       /* WHAT THE JOB LEFT TO SAY — the tidy's backup copy and what it removed (379). */
-      j.said ? `<br><span class="qtag">${esc(j.said)}</span>` : ''}${
+      j.said ? `<br>${qtag_(`${esc(j.said)}`)}` : ''}${
       setupJobLink_(j)}</li>`).join('')}</ul>
     <h4>Triggers</h4>
-    <ul class="setup-list">${(S_.triggers || []).map(t => `<li>${esc(t.fn)}${t.times > 1 ? ' ×' + esc(t.times) : ''} <span class="qtag">${esc(t.when)}</span></li>`).join('')
+    <ul class="setup-list">${(S_.triggers || []).map(t => `<li>${esc(t.fn)}${t.times > 1 ? ' ×' + esc(t.times) : ''} ${qtag_(`${esc(t.when)}`)}</li>`).join('')
       || ''}</ul>
   </div>`);
 }
@@ -10242,7 +10242,7 @@ function msgFacePic_(t, mine) {
 /* THE SHARED TAG LINE, with what no facet says (when, unread, kind) added to its end. */
 function msgTags_(x, extra) {
   const row = typeof tagRow_ === 'function' && x ? String(tagRow_(x) || '') : '';
-  const more = extra.filter(Boolean).map(t => `<span class="qtag msg-tag${t.cls ? ' ' + t.cls : ''}">${esc(t.text)}</span>`).join('');
+  const more = extra.filter(Boolean).map(t => `${qtag_(`${esc(t.text)}`, '', `msg-tag${t.cls ? ' ' + t.cls : ''}`)}`).join('');
   return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, more + '</div>') : `<div class="qtags qcard-tags">${more}</div>`;
 }
 function msgKindWord_(m) {
@@ -10768,7 +10768,7 @@ screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web'
 /* ---------- APPRENTICE PROFILE (730): a card per apprentice an admin is sent (`everyone`, role Apprentice); none yet is a line from brand() ---------- */
 function apprenticeProfilePages_() {
   const all = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title && /apprentice/i.test(String(p.role || '')));
-  if (all.length) return all.map(p => card_(`<div class="appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="qtags"><span class="qtag prof-handle">@${esc(p.handle)}</span></p>` : ''}</div>`));
+  if (all.length) return all.map(p => card_(`<div class="appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="qtags">${qtag_(`@${esc(p.handle)}`, '', `prof-handle`)}</p>` : ''}</div>`));
   return [card_(`<div class="appr-card people-none">${
     empty_(brand('apprentices_none', 'No apprentices yet.'))}</div>`)];
 }
@@ -10806,7 +10806,7 @@ function stabilityCard_() {
   const s = STAB.got, head = '<h3>Stability</h3>';
   if (!s) return card_(`<div class="biz stability-card">${head}${STAB.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`);
   const sig = (s.signals || []).filter(x => x.off > 0);
-  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} <span class="qtag">−${esc(String(x.off))}</span></li>`;
+  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} ${qtag_(`−${esc(String(x.off))}`)}</li>`;
   return card_(`<div class="biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
     ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`);
@@ -13051,7 +13051,7 @@ function ceWhere_(L, val, box) {
   const ro = (((typeof DATA !== 'undefined' && DATA && DATA.profileReadonly) || []).indexOf('venues_ok') !== -1);
   const ticks = L.indexOf('venues_ok') === -1 ? '' : formHidden_('data-me="venues_ok"', got.join(', ')) + `
     <div class="many-list where-areas" role="group" aria-label="Areas you teach in">${Object.keys(by).sort().map(a => formTick_(`data-where-area="${esc(a)}"${by[a].some(has) ? ' checked' : ''}${ro ? ' disabled' : ''}`, `<span>${esc(a)}</span>
-      <span class="qtag">${esc(ceCount_(by[a].length, 'venue', 'venues'))}</span>`, 'many-opt')).join('')}</div>`;
+      ${qtag_(`${esc(ceCount_(by[a].length, 'venue', 'venues'))}`)}`, 'many-opt')).join('')}</div>`;
   return ceFold_('where', 'Areas', esc(ceCount_(got.length, 'venue', 'venues')), ticks)
     + fieldRows_(L.filter(f => f !== 'venues_ok'), box);
 }
@@ -13583,7 +13583,7 @@ function psCard_(who, tiles) {
   return `<div class="ps-hit">
     ${personFace_({ pic: who.image, avatar: who.avatar, handle: who.handle, name: first, personId: who.personId },
                   { cls: 'kid-face', none: 'prof-none', size: 36 })}
-    <p class="kid-who"><b>${esc(first)}</b><span class="prof-handle">@${esc(who.handle)}</span>${who.role ? `<span class="qtag ps-role">${esc(who.role)}</span>` : ''}</p>
+    <p class="kid-who"><b>${esc(first)}</b><span class="prof-handle">@${esc(who.handle)}</span>${who.role ? `${qtag_(`${esc(who.role)}`, '', `ps-role`)}` : ''}</p>
     ${tiles ? `<div class="tile-row">${tiles}</div>` : ''}
   </div>`;
 }
@@ -14243,7 +14243,7 @@ function postCard_(p, i) {
           ${/* No "· deleted" any more: a deleted post is not drawn at all, so nothing reaching
                  here can be one. */''}
           <span class="post-who">${esc(who)}${p.pinned
-            ? ' <span class="qtag">pinned</span>' : ''}${p.refused
+            ? ' ' + qtag_('pinned') : ''}${p.refused
             ? ' <span class="post-wait">· not put up</span>' : ''}</span>
           ${p.location ? `<span class="post-where">${esc(p.location)}</span>` : ''}
         </span>
@@ -14289,7 +14289,7 @@ window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
     const at = p.at || p.when, d = at && typeof parseWhen === 'function' ? parseWhen(at) : null;
     const kind = p.poll ? 'Poll' : media.some(postIsVideo_) ? 'Clip' : media.length ? 'Photo' : 'Post';
     const extra = [d && !isNaN(d) ? date_(d) : '', kind, media.length > 1 ? media.length + ' pictures' : '', p.pinned ? 'pinned' : '']
-      .filter(Boolean).map(t => `<span class="qtag msg-tag">${esc(t)}</span>`).join('');
+      .filter(Boolean).map(t => `${qtag_(`${esc(t)}`, '', `msg-tag`)}`).join('');
     const row = typeof tagRow_ === 'function' ? String(tagRow_(x) || '') : '';
     return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, extra + '</div>') : `<div class="qtags qcard-tags">${extra}</div>`; },
   postBody: x => { const body = String(x.row.caption || x.row.body || x.row.text || '').trim(); return body ? `<p class="msg-fc-body">${mark(body)}</p>` : ''; },
@@ -14311,14 +14311,14 @@ function commentsHtml_(p) {
     ${list.length ? `<ul class="cmt-list">${list.map(x => `
       <li class="cmt${x.mine ? ' mine' : ''}">
         <p class="cmt-body"><b>${esc(displayName_(x.name))}</b> ${mark(x.body)}</p>
-        <p class="cmt-when"><span class="qtag">${esc(ago(x.at) || x.at || '')}</span>${x.canRemove
+        <p class="cmt-when">${qtag_(`${esc(ago(x.at) || x.at || '')}`)}${x.canRemove
           ? tile_({ icon: 'bin', label: 'Remove', act: 'cmt-del', cls: 'cmt-x', data: { id: x.id } })
           : ''}</p>
       </li>`).join('')}</ul>` : ''}
     ${/* THE ONES NOT SHOWN ARE A NUMBER RATHER THAN A SILENCE. `doGet` caps the list at sixty;
           a conversation that simply stops at sixty with nothing saying so is a conversation
           somebody thinks they have read. */''}
-    ${more ? `<p class="qtags"><span class="qtag">${more} more</span></p>` : ''}
+    ${more ? `<p class="qtags">${qtag_(`${more} more`)}</p>` : ''}
     ${/* ---------- POST IS A TILE § */
           ''}
     ${USER
@@ -15487,8 +15487,8 @@ function postAsRow_(id) {
     </span></label>`;
 }
 /* THE TWO ANSWERS, the composer's and the camera's alike. */
-const postAsButtons_ = id => tile_({ form: true, look: 'btn quiet on', act: 'as', data: { for: id, as: 'brand' }, html: `${esc(brand('name', '@family.'))} <span class="qtag">business</span>` })
-  + tile_({ form: true, look: 'btn quiet', act: 'as', data: { for: id, as: 'me' }, html: 'me <span class="qtag">personal</span>' });
+const postAsButtons_ = id => tile_({ form: true, look: 'btn quiet on', act: 'as', data: { for: id, as: 'brand' }, html: `${esc(brand('name', '@family.'))} ${qtag_(`business`)}` })
+  + tile_({ form: true, look: 'btn quiet', act: 'as', data: { for: id, as: 'me' }, html: 'me ' + qtag_('personal') });
 const postAsOf_ = id => (typeof isAdmin === 'function' && isAdmin()) ? ((($(id) || {}).dataset || {}).as || 'brand') : 'me';
 /* WRITING A POST CHANGES THE CAMERA CARD IN PLACE (448): "do not use pop-up menus on my site". Words only — no picture picker; Photos is beside the shutter. */
 let POST_COMPOSING = false;
@@ -15614,7 +15614,7 @@ on('post-edit', el => {
           ''}
     <label class="field"><span>poll</span>
       <input id="pe-poll" value="${esc(voted ? opts : draftVal_('post-edit', p.id + ':poll', opts))}" placeholder="Yes, No, Maybe" ${voted ? 'disabled' : draftAttr_('post-edit', p.id + ':poll', opts)}>
-      ${voted ? `<span class="qtag">${p.poll.total} vote${p.poll.total === 1 ? '' : 's'}</span>` : ''}</label>` : `
+      ${voted ? `${qtag_(`${p.poll.total} vote${p.poll.total === 1 ? '' : 's'}`)}` : ''}</label>` : `
     ${/* The date is editable because the feed is ORDERED by it — a post from the folder with the wrong timestamp sits in the wrong place for ever otherwise. */''}
     <label class="field"><span>posted on</span>
       <input id="pe-when" value="${esc(draftVal_('post-edit', p.id + ':when', p.when || ''))}" placeholder="DD/MM/YYYY HH:MM:SS"${draftAttr_('post-edit', p.id + ':when', p.when || '')}></label>
@@ -19589,7 +19589,7 @@ function siteHealthCard_(raw) {
   const said = { code: 'Code', logic: 'Find logic', ui: 'UI' };
   return out(`<div class="logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     ${s.next ? `<p><b>${esc(String(s.next))}</b></p>` : ''}${healthTrend_(s.trend)}
-    <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} <span class="qtag">${esc(said[t.part] || t.part)}, −${esc(String(t.cost))}</span></li>`).join('')}</ol>
+    <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} ${qtag_(`${esc(said[t.part] || t.part)}, −${esc(String(t.cost))}`)}</li>`).join('')}</ol>
     ${healthWork_(s.worklist)}
     ${(s.all || []).length > 5 ? tileRow_(tile_({ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top 5' : 'Show the full list', act: 'health-all' }), '', true) : ''}</div>`);
 }
@@ -19608,7 +19608,7 @@ const HEALTH_SAY = { 'one-off': 'A special case for one name', 'long-fn': 'A lon
 function healthWork_(w) {
   const top = (Array.isArray(w) ? w : []).slice(0, 5);
   if (!top.length) return '';
-  return `<ol class="stab-top">${top.map(f => `<li><b>${esc(String(f.file))}:${esc(String(f.line))}</b> · ${esc(HEALTH_SAY[f.kind] || String(f.kind))}<br><span class="qtag">${esc(String(f.text || ''))}</span></li>`).join('')}</ol>`;
+  return `<ol class="stab-top">${top.map(f => `<li><b>${esc(String(f.file))}:${esc(String(f.line))}</b> · ${esc(HEALTH_SAY[f.kind] || String(f.kind))}<br>${qtag_(`${esc(String(f.text || ''))}`)}</li>`).join('')}</ol>`;
 }
 on('health-all', () => { HEALTH.all = !HEALTH.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 
@@ -19635,7 +19635,7 @@ function logicCard_() {
   if (!s) return card_(`<div class="logic-card">${head}${LOGIC.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/logic-health.js and push.</p>' : loading_()}</div>`);
   const rules = (s.rules || []).filter(r => r.count > 0).sort((a, b) => b.count - a.count);
   const top = (s.top || []).slice(0, LOGIC.all ? 25 : 3);
-  const line = t => `<li><b>${esc(t.where)}</b> · ${esc(t.asks || '')}<br><span class="qtag">${esc((t.why || []).join(' · '))}</span></li>`;
+  const line = t => `<li><b>${esc(t.where)}</b> · ${esc(t.asks || '')}<br>${qtag_(`${esc((t.why || []).join(' · '))}`)}</li>`;
   return card_(`<div class="logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <ol class="stab-top">${top.map(line).join('')}</ol>
     ${(s.top || []).length > 3 ? tileRow_(tile_({ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top 3' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }), '', true) : ''}</div>`);

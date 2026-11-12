@@ -247,6 +247,8 @@ function tagRow_(x, page) {
   return `<div class="qtags qcard-tags">${out.map(t => `<span class="qtag"${tagAttr_(t.field)} data-f="${esc(t.field)}"${
     t.also.length ? ` data-also="${esc(t.also.join(' '))}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
 }
+/* THE ONE TAG MAKER (one way only): `inner` is HTML the caller escaped, `attrs` its data-* attributes, `cls` extra classes. */
+function qtag_(inner, attrs, cls) { return `<span class="qtag${cls ? ' ' + cls : ''}"${attrs || ''}>${inner}</span>`; }
 /* TAGS AT THE TOP OF EVERY CARD (1030, 1040 r10): a card with no tag line gets one, and one drawn under its title moves above it. */
 function tagsOnTop_(x, html) {
   if (!x || typeof html !== 'string' || !html) return html;
