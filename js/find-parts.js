@@ -590,8 +590,15 @@ function questionText_(r, lead, spec) {
             + ' ' + paperCodeAtoms_(r.row || r, spec);
 }
 
+/* ONE BUILD PER PAYLOAD, whoever is signed in (nothing below reads the viewer): a sign-in re-lists Find without re-making every question. */
+let Q_ITEMS = { from: null, rows: null, items: null };
 function questionItems() {
   const all = DATA.questions || [];
+  if (Q_ITEMS.from === DATA && Q_ITEMS.rows === all) return Q_ITEMS.items;
+  Q_ITEMS = { from: DATA, rows: all, items: questionItemsNow_(all) };
+  return Q_ITEMS.items;
+}
+function questionItemsNow_(all) {
   if (!all.length) return [];
 
   const stems = stemIndex_(all);

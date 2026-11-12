@@ -52,6 +52,20 @@ function libraryRows_() {
   if (!LIBRARY_ASK) LIBRARY_ASK = libraryRowsAsk_().finally(() => { LIBRARY_ASK = null; });
   return LIBRARY_ASK;
 }
+/* ONE COPY OF EACH SHORT CELL ("True", "GCSE", "AQA"): a parsed file holds a fresh string per row, a hundred thousand of each. */
+function libIntern_(rows) {
+  const pool = new Map();
+  rows.forEach(r => {
+    if (!r || typeof r !== 'object') return;
+    for (const k in r) {
+      const v = r[k];
+      if (typeof v !== 'string' || v.length > 32) continue;
+      const had = pool.get(v);
+      if (had === undefined) pool.set(v, v); else r[k] = had;
+    }
+  });
+  return rows;
+}
 async function libraryRowsAsk_() {
   let rows = null;
   /* ---------- A FILE THAT DID NOT ARRIVE IS NOT AN EMPTY LIBRARY § */
@@ -67,7 +81,7 @@ async function libraryRowsAsk_() {
   }
   /* AN EMPTY ARRAY IS A REAL ANSWER and is left alone — the file legitimately parses to `[]` on a
      fresh clone. Only a throw or a refusal sets the flag, so "empty" and "absent" stay different. */
-  LIBRARY_ROWS = Array.isArray(rows) ? rows : [];
+  LIBRARY_ROWS = Array.isArray(rows) ? libIntern_(rows) : [];
   if (Array.isArray(rows)) LIBRARY_FAILED = '';
   return LIBRARY_ROWS;
 }

@@ -28,7 +28,7 @@ function hadithIndex_() {
       d.collections.forEach(c => { HADITH_ORDER.push(c.name); c.books.forEach(b => HADITH_ORDER.push(hadithBookSay_(b))); });
       writingCame_('hadith');
     }
-    if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
+    if (!ok && typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
     return ok ? d : null;
   });
   return null;
