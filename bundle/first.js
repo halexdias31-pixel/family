@@ -1916,9 +1916,56 @@ function levelRows() {
 }
 
 ;
+/* ==== js/data-who.js ==== */
+/* @family. — js/data-who.js THE PAYLOAD AND THE VIEWER (cut from data.js): DATA, USER, `$`, brand and isAdmin, which nearly every file reads; loaded just before data.js. */
+let DATA = {};
+let USER = null;
+try { USER = JSON.parse(localStorage.getItem('familyUser') || 'null'); } catch { /* a bad stored user reads as signed out */ }
+/* ---------- THE SMALLEST HELPERS ---------------------------------------------------------------- */
+/* ---------- AND WHEN ONE ID IS ON THE PAGE TWICE, THE COPY ON THE SCREEN IN FRONT § */
+/* ---------- AND WHEN THE SCREEN IN FRONT HAS NO COPY, THE COPY ITS WIDGET WAS STARTED ON § */
+const WIDGET_HOME = {};
+const $ = id => {
+  const el = document.getElementById(id);
+  if (!el || typeof AT === 'undefined' || !AT) return el;
+  const scr = document.getElementById('s-' + AT);
+  if (!scr || scr.contains(el)) return el;
+  try {
+    const mine = scr.querySelector('#' + CSS.escape(id));
+    if (mine) return mine;
+    const slot = el.closest && el.closest('.widget-slot');
+    const home = slot && WIDGET_HOME[slot.id];
+    const host = home && home !== AT && document.getElementById('s-' + home);
+    if (!host || host.contains(el)) return el;
+    return host.querySelector('#' + CSS.escape(id)) || el;
+  } catch { return el; }
+};
+/* The letter to put in a circle when there is no picture. The first LETTER, not the first
+   character — punctuation is not an initial, and "@family." was giving "@", which sat next to the
+   name and read as @@family. */
+const initial = s => (String(s ?? '').match(/[A-Za-z0-9]/) || ['?'])[0].toUpperCase();
+/* Anything from the branding tab, by name, with a fallback. Never throws on a key that has not
+   been filled in — the whole point of that tab is that most of it is empty most of the time. */
+/* A CONTACT DETAIL NEVER LIVES IN THE PUBLIC REPO: a blank brand key falls back to the private policy values the backend sends (phone, email). */
+const brand = (k, or) => ((DATA.brand || {})[k] || (DATA.policy || {})[k] || or || '');
+/* THE BUSINESS'S ONE PICTURE (1040 r10): tab icon, home-screen icon, Web profile and the business's posts all read it here. */
+/* A Drive share link is a page, so its picture's own address (as `pic`, posts.js). */
+function brandLogo_() {
+  const u = String(brand('logo_square', '') || brand('logo_circle', '') || 'icon.png').trim();
+  const id = (u.match(/\/file\/d\/([\w-]{20,})/) || u.match(/[?&]id=([\w-]{20,})/) || [])[1];
+  return id ? 'https://lh3.googleusercontent.com/d/' + id + '=w1200' : u;
+}
+/* IS THIS SOMETHING YOU WEAR? § */
+const isWearable = x => {
+  const k = norm(x && (x.kind || x.kindRaw));
+  return k === 'wearable' || k === 'avatar';
+};
+/* Whether the person signed in is an admin. § */
+const isAdmin = () => !!USER && rankAtLeast_('admin');
+
+;
 /* ==== js/data.js ==== */
 /* @family. — data.js ONE FILE, SPLIT. § */
-
 
 /* @family. — the shell. § */
 
@@ -1938,8 +1985,6 @@ function cssVersion() {
     return v || '(older than versioning)';
   } catch { return '(unknown)'; }
 }
-
-let DATA = {};
 
 /* ---------- A ROW THAT IS NOT A ROW IS DROPPED AT THE DOOR (R6) ---------- */
 /* null is never a row; in a list of objects a string or number is not one either. Returns {key: dropped}, so load() can report the count. */
@@ -2027,7 +2072,6 @@ function missingKeys() {
   console.table(MISSING_KEYS);
   return MISSING_KEYS;
 }
-let USER = null;
 
 /* HAS THE FIRST LOAD COME BACK? § */
 let LOADED = false;
@@ -2039,7 +2083,6 @@ let LIBRARY_FAILED = '';
 
 /* WHETHER THE 30-SECOND WATCHDOG IN index.html HAS SPOKEN. § */
 let LOAD_SLOW = false;
-try { USER = JSON.parse(localStorage.getItem('familyUser') || 'null'); } catch { /* a bad stored user reads as signed out */ }
 /* ---------- A NAME PRINTED ABOVE ITS OWN HANDLE DOES NOT SAY THE HANDLE TOO § */
 function nameBesideHandle_(name, handle) {
   const n = String(name || ''), h = String(handle || '').replace(/^@/, '');
@@ -2314,52 +2357,6 @@ window.addEventListener('storage', e => {
     if (spec === 'book:form' && typeof bookElsewhere_ === 'function') bookElsewhere_(v, old ? old.v : null);
   } catch (err) { /* a form mid-change keeps what it shows */ }
 });
-
-/* ---------- THE SMALLEST HELPERS ---------------------------------------------------------------- */
-/* ---------- AND WHEN ONE ID IS ON THE PAGE TWICE, THE COPY ON THE SCREEN IN FRONT § */
-/* ---------- AND WHEN THE SCREEN IN FRONT HAS NO COPY, THE COPY ITS WIDGET WAS STARTED ON § */
-const WIDGET_HOME = {};
-const $ = id => {
-  const el = document.getElementById(id);
-  if (!el || typeof AT === 'undefined' || !AT) return el;
-  const scr = document.getElementById('s-' + AT);
-  if (!scr || scr.contains(el)) return el;
-  try {
-    const mine = scr.querySelector('#' + CSS.escape(id));
-    if (mine) return mine;
-    const slot = el.closest && el.closest('.widget-slot');
-    const home = slot && WIDGET_HOME[slot.id];
-    const host = home && home !== AT && document.getElementById('s-' + home);
-    if (!host || host.contains(el)) return el;
-    return host.querySelector('#' + CSS.escape(id)) || el;
-  } catch { return el; }
-};
-
-/* The letter to put in a circle when there is no picture. The first LETTER, not the first
-   character — punctuation is not an initial, and "@family." was giving "@", which sat next to the
-   name and read as @@family. */
-const initial = s => (String(s ?? '').match(/[A-Za-z0-9]/) || ['?'])[0].toUpperCase();
-
-/* Anything from the branding tab, by name, with a fallback. Never throws on a key that has not
-   been filled in — the whole point of that tab is that most of it is empty most of the time. */
-/* A CONTACT DETAIL NEVER LIVES IN THE PUBLIC REPO: a blank brand key falls back to the private policy values the backend sends (phone, email). */
-const brand = (k, or) => ((DATA.brand || {})[k] || (DATA.policy || {})[k] || or || '');
-/* THE BUSINESS'S ONE PICTURE (1040 r10): tab icon, home-screen icon, Web profile and the business's posts all read it here. */
-/* A Drive share link is a page, so its picture's own address (as `pic`, posts.js). */
-function brandLogo_() {
-  const u = String(brand('logo_square', '') || brand('logo_circle', '') || 'icon.png').trim();
-  const id = (u.match(/\/file\/d\/([\w-]{20,})/) || u.match(/[?&]id=([\w-]{20,})/) || [])[1];
-  return id ? 'https://lh3.googleusercontent.com/d/' + id + '=w1200' : u;
-}
-
-/* IS THIS SOMETHING YOU WEAR? § */
-const isWearable = x => {
-  const k = norm(x && (x.kind || x.kindRaw));
-  return k === 'wearable' || k === 'avatar';
-};
-
-/* Whether the person signed in is an admin. § */
-const isAdmin = () => !!USER && rankAtLeast_('admin');
 /* THE VIEWER'S ROLE IN THE PERMISSIONS TABLE (86a): anyone, member, child or admin. */
 const myRole_ = () => (!USER ? 'anyone' : isAdmin() ? 'admin' : (typeof childView_ === 'function' && childView_()) ? 'child' : 'member');
 /* MAY THIS ROLE DO IT: DATA.permissions (data/settings/permissions.json), else admin only — the table the backend's gate reads too. */
@@ -4207,284 +4204,6 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 
 /* ---------- THE COLUMN BEFORE THIS ONE § */
 let PREV_AT = '';
-function go(id, remember, instant) {
-  id = screenNow_(id); if (typeof screenGone_ === 'function' && screenGone_(id)) return;  /* a column switched off is a Find door now (batch C) */
-  const tab = TABS.find(t => t.id === id)
-           || TABS.find(t => t.id === TAB_HOME)
-           || TABS[0];
-  const was = AT;
-  AT = tab.id;
-  if (was && was !== AT) PREV_AT = was;
-  if (remember !== false) {
-    try {
-      localStorage.setItem('familyTab', AT);
-      /* THE STAMP IS WRITTEN WITH THE ID AND NEVER WITHOUT IT — see the note over `AT` above. A
-         stamp left behind by an id that was not written is a column remembered by its timestamp. */
-      localStorage.setItem('familyTabAt', String(Date.now()));
-    } catch { /* storage blocked: the tab is not remembered */ }
-  }
-
-  /* NOTHING IS HIDDEN ANY MORE. § */
-  /* IT ARRIVES FROM THE SIDE IT CAME FROM. One class and one keyframe, rather than eight screens
-     held in position so that one of them could be seen sliding in. */
-  const from = TABS.findIndex(t => t.id === was), to = TABS.findIndex(t => t.id === AT);
-  const way = (was && was !== AT) ? (to > from ? 1 : -1) : 0;
-  /* THE WAY THE ROW WAS LAST TRAVELLED — the builder takes the columns on that side first (`ahead_`). */
-  if (way) AHEAD.dir.x = way;
-  /* AND A COLUMN THIS LANDING WILL SHOW THAT STILL HOLDS THE BOOT'S LOADER IS DRAWN NOW — see `bootGlass_`. */
-  oopsTry_('go:glass', bootGlass_);
-
-  /* PAINT FIRST, PLACE SECOND, ALWAYS. § */
-  oopsTry_('go:neighbours', paintNeighbours);
-  oopsTry_('go:place', () => placeCells('x', instant));
-
-  /* ---------- WHY A SIDEWAYS SWIPE WAS THE ROUGH ONE § */
-  /* OR IF IT IS STALE — something changed while you were elsewhere. See the note on `STALE`. */
-  const painted = !screenHasMarkup_(AT) || !!STALE[AT];
-  if (painted) oopsTry_('go:paint:' + AT, () => paint(AT));
-  if (was !== AT && typeof widgetsBeforeSlide_ === 'function') oopsTry_('go:beforeSlide', () => widgetsBeforeSlide_(AT));
-  /* Anything that needs to start running once its markup exists — a canvas, a board, a clock.
-     After paint, because none of it can find an element that has not been drawn yet. */
-  /* A hoisted FUNCTION, not a const. § */
-  /* WHEN, and it is not simply "after the slide". § */
-
-  /* THE TOOLS AND THE GAMES ARE STARTED WHEN THEIR COLUMN ARRIVES, and stopped when it leaves. § */
-  /* AND THE CAMERA, for the same reason and with more force: a canvas loop behind a screen nobody
-     is looking at is a flat battery, and a live camera behind one is a recording light on for
-     nothing. */
-  /* THE CAMERA IS A PAGE OF THE FEED NOW, so leaving the FEED is what lets it go. Turning a page
-     within the feed is the other half, and it is `feedCamWatch_` — booked from `goPage` and from
-     `startScreen_` below. */
-  /* ---------- ONLY WHEN LEAVING THE FEED, OR WITH A CAMERA ACTUALLY OPEN § */
-  /* PARKED, NOT STOPPED (427): coming back must not ask again, and a parked stream is no reason to run this on other columns. */
-  if (typeof camStop_ === 'function' && AT !== 'feed'
-      && (was === 'feed' || (typeof camOn_ === 'function' && camOn_()))) camStop_(false, true);
-  /* AND THE REEL, which is the third of these and was the one nobody had written. § */
-  if (typeof reelsStop_ === 'function' && AT !== 'reel') reelsStop_();
-  /* A PIN SHOWN ON A CARD (452) goes when its column is left. */
-  if (was !== AT && typeof pinHideAll_ === 'function') pinHideAll_();
-  /* AND THE MESSAGE POLL, which is the fourth. § */
-  if (typeof dmStop_ === 'function' && AT !== 'dm') dmStop_();
-  /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
-     just rebuilt this screen's markup too — and two copies of "what does this screen need running"
-     is two places to forget the camera. */
-  /* `true`: ARRIVING, so a column of widgets starts the ones in view first — see `widgetsWake_`. § */
-  if (was !== AT || painted) afterSlide_(() => startScreen_(AT, true), 'start');
-  aheadKick_(AHEAD_QUIET);
-
-  /* EITHER FINDER (find.js, `FINDERS`): § */
-  const finder = typeof finderOf_ === 'function' ? finderOf_(AT) : null;
-  if (finder) {
-    const host = $('s-' + finder.id);
-    const drawn = host && host.querySelector('.page[data-filled]');
-    if (instant || !drawn) oopsTry_('go:fill:' + finder.id, () => finderSoon_(finder, fillStuffPages));
-    else afterSlide_(() => finderSoon_(finder, fillStuffPages), 'fill:' + finder.id);
-  }
-  /* After wake, because a page holding a canvas has to exist and be sized before it is moved. § */
-  oopsTry_('go:pager', () => paintPager(AT, instant));
-  if (FLOW_LAYOUT) oopsTry_('go:flow', () => { topbarPaint_(); if (was && was !== AT) $('s-' + AT).scrollIntoView({ block: 'start' }); });
-
-}
-
-/* DRAW THE SCREEN EITHER SIDE, so a sideways drag reveals one rather than an empty rectangle. § */
-/* ---------- WHAT EACH SCREEN NEEDS RUNNING ONCE ITS MARKUP EXISTS § */
-/* SCREEN HOOKS: what one screen runs on starting, on being drawn and after a page turn; the shell keeps one rule.
-   Saved, Shop and Reels hold widgets (414) whose cards grow (regrow); a start returns true when it ran. */
-const SCREEN_HOOKS = {
-  saved: { regrow: true, start: a => typeof savedStart_ === 'function' && (savedStart_(a), true) },
-  shop: { regrow: true, start: a => typeof toolsStart_ === 'function' && (toolsStart_('shop', a), true) },
-  reel: { regrow: true, start: a => typeof toolsStart_ === 'function' && (toolsStart_('reel', a), true),
-    started: [() => typeof reelsWatch_ === 'function' && reelsWatch_()],
-    paged: n => { if (typeof reelAhead_ === 'function') { try { reelAhead_(n); } catch (e) { oops_(e, 'shell:goPage') } } },
-    slid: () => { if (typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_); } },
-  /* the camera is a page of the feed: started when its page arrives, put at rest at once when the page turns away (docs/history/341) */
-  feed: { started: [() => typeof feedCamWatch_ === 'function' && feedCamWatch_()],
-    slid: n => { if (typeof feedCamWatch_ === 'function') afterSlide_(feedCamWatch_); if (n !== 0 && typeof camRest_ === 'function') camRest_(); } },
-  /* an admin's business records are asked for, a POST, once (js/records.js) */
-  biz: { started: [() => typeof bizStart_ === 'function' && bizStart_()] },
-  /* a conversation opens at its newest message, and keeps itself up to date while it is the screen you are on (`dmPoll_`) */
-  dm: { started: [() => typeof dmFoot_ === 'function' && dmFoot_(), () => typeof dmPoll_ === 'function' && dmPoll_()],
-    drawn: () => { if (typeof dmFoot_ === 'function') { try { dmFoot_(); } catch (e) { oops_(e, 'shell:drawnScreen_') } } } },
-};
-
-function startScreen_(id, arriving) {
-  /* NOT A COLUMN A LANDING PAYLOAD LEFT ALONE — its markup was not replaced, so what runs in it is still
-     running, and restarting it is what moves the caret: the notepad's `start` writes its value back.
-     See `landRepaint_`. */
-  if (typeof reconnectKeep_ === 'function' && reconnectKeep_(id)) return;
-  /* NOR ONE `paint` HELD UNDER A STROKE (`padHold_`, find.js), for the same reason and one more: § */
-  if (typeof padHold_ === 'function' && padHold_(id)) return;
-  /* NOR A WIDGET COLUMN `paint` HELD FOR A FORM WITH TYPING IN IT (`settingsKeep_`, me.js) — the library cards on Tools, and their starred copy on Saved § */
-  if (!arriving && ['saved', 'stuff'].indexOf(id) !== -1 && typeof settingsKeep_ === 'function' && settingsKeep_(id)) return;
-  /* A SCREEN'S OWN WORK on starting is its row of SCREEN_HOOKS: the widgets it holds, its camera, reels, records or thread. */
-  const H = SCREEN_HOOKS[id] || {};
-  if (H.start && H.start(arriving)) { /* its own widgets, started from its own list */ }
-  /* AND A WIDGET MOVED ONTO ANY OTHER COLUMN (710, layout.js). */
-  else if (typeof WIDGET_COLS !== 'undefined' && WIDGET_COLS.indexOf(id) !== -1 && typeof widgetsWake_ === 'function') {
-    const ws = widgetsOn_(id);
-    if (ws.length) { widgetsWake_(ws, id, arriving); if (id === AT) placeCells('y', true, 0, id); }
-  }
-  /* ---------- AND A COLUMN WHOSE CARDS JUST GREW IS PLACED AGAIN § */
-  if (H.regrow && id === AT) placeCells('y', true, 0, id);
-  (H.started || []).forEach(f => f());
-}
-
-/* ---------- A COLUMN THE LANDING WILL SHOW, STILL ON THE BOOT'S LOADER, IS DRAWN BEFORE THE SLIDE § */
-function bootGlass_() {
-  if (!PRE_PAYLOAD.size || typeof GLASS === 'undefined') return;
-  const ti = TABS.findIndex(t => t.id === AT);
-  if (ti < 0) return;
-  const k = WIDE ? Math.max(1, GLASS.reach || 1) : 1;
-  TABS.forEach((t, i) => {
-    if (t.id === AT || Math.abs(i - ti) > k || !PRE_PAYLOAD.has(t.id) || !STALE[t.id]) return;
-    paint(t.id);
-    if (!STALE[t.id] && PAGER[t.id]) paintPager(t.id, true);
-  });
-}
-
-/** Has this screen been drawn? A screen with markup needs no redrawing to be arrived at. */
-function screenHasMarkup_(id) {
-  /* BY ID, NOT `$`: a section is on the page once, and a check that saw data.js fail to load crashed here on `$` */
-  const el = document.getElementById('s-' + id);
-  /* THE FIRST CHILD, NOT `innerHTML`, which serialises every screen's whole markup to answer yes or no — about a millisecond across eleven at 1x and four at 4x § */
-  return !!(el && el.firstElementChild);
-}
-
-function paintNeighbours() {
-  /* EVERY SCREEN, not the two either side. § */
-  TABS.forEach((t, i) => {
-    const id = t.id;
-    if (id === AT) return;
-    const el = $('s-' + id);
-    if (!el || el.firstChild) return;         // already drawn; redrawing would only cost
-    paint(id);
-    /* And placed, if it is a paged screen. A neighbour whose pages have no position shows nothing
-       when a drag reveals it, which is worse than showing an empty rectangle because it looks like
-       the screen itself is empty. */
-    if (PAGER[id]) paintPager(id, true);
-  });
-  /* The screen in front is NOT repainted here. `go` has already drawn it, and drawing it a second
-     time is what threw its placement away. */
-}
-
-/** Redraw one screen where it stands. Called after anything that changes what it should say. */
-/* ---------- WHICH SCREENS ARE OUT OF DATE § */
-let STALE = {};
-/* ---------- TWO MARKS NOW, AND TWO CLOCKS § */
-let ACT_EPOCH = 0;
-let DRAW_EPOCH = 0;
-/* ---------- A MARK MADE OUTSIDE `repaint` IS ONE CALL, AND IT TELLS THE BUILDER § */
-function markStale_(ids) {
-  [].concat(ids).forEach(id => { if (id) STALE[id] = 1; });
-  if (typeof aheadKick_ === 'function') aheadKick_();
-}
-/* WHICH MARK `repaint` WRITES — 1, except for the length of a landing. */
-let REPAINT_MARK = 1;
-/* THE COLUMNS WHOSE MARKUP WAS DRAWN BEFORE THE FIRST PAYLOAD — drawn again from nothing (`fresh`) whenever
-   they are drawn, so a widget started on the boot's markup is started again in the payload's (331). */
-const PRE_PAYLOAD = new Set();
-/* HOW MANY TIMES EACH COLUMN WAS DRAWN, for the journeys that ask what a landing drew (check-flow). */
-const PAINT_N = {};
-
-/* A REDRAW KEEPS THE READER'S PLACE (561, U2): each scrolled box's offset, keyed by its path of child indexes from the column, and focus by id. */
-function placeKeep_(el) {
-  const out = [];
-  el.querySelectorAll('*').forEach(n => {
-    if (!n.scrollTop && !n.scrollLeft) return;
-    const path = [];
-    for (let x = n; x && x !== el; x = x.parentElement) path.unshift([...x.parentElement.children].indexOf(x) + ':' + x.tagName);
-    out.push({ path: path, top: n.scrollTop, left: n.scrollLeft });
-  });
-  const f = document.activeElement;
-  return { boxes: out, focus: f && f.id && el.contains(f) ? f.id : '' };
-}
-function placeBack_(el, kept) {
-  kept.boxes.forEach(k => {
-    let n = el;
-    for (const step of k.path) {
-      const [i, tag] = step.split(':');
-      n = n && n.children[+i];
-      if (!n || n.tagName !== tag) return;
-    }
-    n.scrollTop = k.top; n.scrollLeft = k.left;
-  });
-  if (kept.focus) { const f = document.getElementById(kept.focus); if (f && el.contains(f)) try { f.focus({ preventScroll: true }); } catch (e) { /* focus is a courtesy: a box that cannot take it keeps the place anyway */ } }
-}
-
-/* `fresh`: DRAWN FROM NOTHING, because the caller starts again whatever runs in it — `repaint`, for the column in front. § */
-function paint(id, fresh, o) {
-  /* ---------- A SETTINGS CARD WITH SOMETHING TYPED INTO IT IS NOT REDRAWN UNDER THE TYPING § */
-  if (typeof settingsKeep_ === 'function' && settingsKeep_(id)) { STALE[id] = 1; return; }
-  /* ---------- AND NEITHER FINDER IS REDRAWN UNDER A CHILD WHO IS WRITING § */
-  if (typeof findKeep_ === 'function' && findKeep_(id)) { STALE[id] = 1; return; }
-  /* AND NO COLUMN IS REBUILT BY A PAYLOAD LANDING UNDER SOMEBODY TYPING IN IT — see `landRepaint_`. */
-  if (typeof reconnectKeep_ === 'function' && reconnectKeep_(id)) { STALE[id] = 1; return; }
-  /* ---------- AND NO COLUMN IS REDRAWN UNDER A STROKE, WHICHEVER COLUMN IT IS § */
-  if (typeof padHold_ === 'function' && padHold_(id)) { STALE[id] = 1; return; }
-  /* Drawn is fresh, by definition, whoever asked for it. THE MARK IS KEPT FOR ONE QUESTION FIRST: whether
-     a landing's `'maybe'` may be answered by writing nothing (below). */
-  const mark = STALE[id];
-  delete STALE[id];
-  /* A COLUMN STILL HOLDING THE BOOT'S MARKUP: § */
-  const pre = PRE_PAYLOAD.has(id);
-  /* A PAGED SCREEN HAS NO PADDING OF ITS OWN — each page supplies it, because a page is positioned against the screen's padding box and would otherwise be inset by § */
-  $('s-' + id)?.classList.toggle('paged', !!PAGER[id]);
-  const el = $('s-' + id);
-  const s = SCREENS[id];
-  if (!el) return;
-
-  /* ONE SCREEN THAT WILL NOT DRAW MUST NOT TAKE THE OTHERS WITH IT. § */
-  let html;
-  try {
-    /* A COLUMN WHOSE FILE IS STILL ON ITS WAY (670, `LATER`) waits, and `load()` paints it once it is in. */
-    html = s ? s.draw() : (filesIn_() ? null : waitShape_(id));
-  } catch (err) {
-    /* ITS CODE NOT IN YET (670, `LATER`): the column waits, and is drawn again when the payload lands. */
-    if (!filesIn_() && err instanceof ReferenceError) { el.innerHTML = waitShape_(id); STALE[id] = 1; return; }
-    oops_(err, 'draw:' + id);
-    el.innerHTML = `<div class="pane">${card_('<div class="draw-oops"><h3>This screen did not draw</h3></div>')}</div>`;
-    return;
-  }
-  /* ---------- AND A WIDGET RUNNING ON THIS COLUMN KEEPS THE SLOT IT IS RUNNING IN § */
-  /* ---------- A LANDING THAT CHANGES NOTHING WRITES NOTHING § */
-  const want = (o && o.land && mark !== 1) ? 'maybe' : mark;
-  if (want === 'maybe' && !fresh && html !== null && !PRE_PAYLOAD.has(id)
-      && !(typeof finderOf_ === 'function' && finderOf_(id))
-      && el.DRAWN && el.DRAWN.html === html && el.DRAWN.epoch === ACT_EPOCH && el.firstElementChild) {
-    if (typeof widgetsReveil_ === 'function') widgetsReveil_(id, false);
-    return 'kept';
-  }
-  const held = !fresh && typeof widgetsHeld_ === 'function' ? widgetsHeld_(id, pre) : [];
-  const waited = waitingPages_(el);
-  const kept = pre ? null : placeKeep_(el);
-  el.innerHTML = html !== null
-    ? html
-    : empty_();
-  el.DRAWN = { html: html, epoch: ACT_EPOCH };
-  PRE_PAYLOAD.delete(id);
-  PAINT_N[id] = (PAINT_N[id] || 0) + 1;
-  if (held.length) {
-    const left = widgetsBack_(id, held);
-    if (typeof finderOf_ === 'function' && finderOf_(id)) WIDGET_HELD[id] = left;
-  }
-  shapeHold_(el, id);
-  arrivePages_(el, waited);
-  if (kept) placeBack_(el, kept);
-  /* NEW MARKUP IS NEW PAGES, so the next placement walks this column's pages whatever its signature says
-     (`placePages_`). */
-  el.PG_SIG = null;
-
-  /* ---------- AND THE COLUMN IS CENTRED ON WHAT WAS JUST DRAWN § */
-  if (typeof PLACED_ONCE !== 'undefined' && PLACED_ONCE && !(o && o.ahead)
-      && !(typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis)) {
-    placeCells('y', true, 0, id);
-  }
-
-  /* ---------- AND WHETHER THE NEW CARDS FIT THE PANES THEY ARE IN § */
-  if (typeof afterSlide_ === 'function' && typeof paneWatch_ === 'function' && !(o && o.ahead)) {
-    afterSlide_(() => paneWatch_($('s-' + id)), 'panes:' + id);
-  }
-}
 
 /* WHAT TO SAY WHEN THERE IS NOTHING. § */
 function nothingHere(whenEmpty, needsLibrary) {
@@ -4640,6 +4359,280 @@ function awaiting_() {
     if (!LOADED) return true;
     return retrying_() && !RECONNECT.shown;
   } catch (e) { return typeof LOADED !== 'undefined' && !LOADED; }
+}
+
+;
+/* ==== js/shell-go.js ==== */
+/* ---------- GOING TO A COLUMN AND PAINTING IT (cut from shell-boot.js; read with the other shell-*.js by tools/piece-src.js). */
+function go(id, remember, instant) {
+  id = screenNow_(id); if (typeof screenGone_ === 'function' && screenGone_(id)) return;  /* a column switched off is a Find door now (batch C) */
+  const tab = TABS.find(t => t.id === id)
+           || TABS.find(t => t.id === TAB_HOME)
+           || TABS[0];
+  const was = AT;
+  AT = tab.id;
+  if (was && was !== AT) PREV_AT = was;
+  if (remember !== false) {
+    try {
+      localStorage.setItem('familyTab', AT);
+      /* THE STAMP IS WRITTEN WITH THE ID AND NEVER WITHOUT IT — see the note over `AT` above. A
+         stamp left behind by an id that was not written is a column remembered by its timestamp. */
+      localStorage.setItem('familyTabAt', String(Date.now()));
+    } catch { /* storage blocked: the tab is not remembered */ }
+  }
+
+  /* NOTHING IS HIDDEN ANY MORE. § */
+  /* IT ARRIVES FROM THE SIDE IT CAME FROM. One class and one keyframe, rather than eight screens
+     held in position so that one of them could be seen sliding in. */
+  const from = TABS.findIndex(t => t.id === was), to = TABS.findIndex(t => t.id === AT);
+  const way = (was && was !== AT) ? (to > from ? 1 : -1) : 0;
+  /* THE WAY THE ROW WAS LAST TRAVELLED — the builder takes the columns on that side first (`ahead_`). */
+  if (way) AHEAD.dir.x = way;
+  /* AND A COLUMN THIS LANDING WILL SHOW THAT STILL HOLDS THE BOOT'S LOADER IS DRAWN NOW — see `bootGlass_`. */
+  oopsTry_('go:glass', bootGlass_);
+
+  /* PAINT FIRST, PLACE SECOND, ALWAYS. § */
+  oopsTry_('go:neighbours', paintNeighbours);
+  oopsTry_('go:place', () => placeCells('x', instant));
+
+  /* ---------- WHY A SIDEWAYS SWIPE WAS THE ROUGH ONE § */
+  /* OR IF IT IS STALE — something changed while you were elsewhere. See the note on `STALE`. */
+  const painted = !screenHasMarkup_(AT) || !!STALE[AT];
+  if (painted) oopsTry_('go:paint:' + AT, () => paint(AT));
+  if (was !== AT && typeof widgetsBeforeSlide_ === 'function') oopsTry_('go:beforeSlide', () => widgetsBeforeSlide_(AT));
+  /* Anything that needs to start running once its markup exists — a canvas, a board, a clock.
+     After paint, because none of it can find an element that has not been drawn yet. */
+  /* A hoisted FUNCTION, not a const. § */
+  /* WHEN, and it is not simply "after the slide". § */
+
+  /* THE TOOLS AND THE GAMES ARE STARTED WHEN THEIR COLUMN ARRIVES, and stopped when it leaves. § */
+  /* AND THE CAMERA, for the same reason and with more force: a canvas loop behind a screen nobody
+     is looking at is a flat battery, and a live camera behind one is a recording light on for
+     nothing. */
+  /* THE CAMERA IS A PAGE OF THE FEED NOW, so leaving the FEED is what lets it go. Turning a page
+     within the feed is the other half, and it is `feedCamWatch_` — booked from `goPage` and from
+     `startScreen_` below. */
+  /* ---------- ONLY WHEN LEAVING THE FEED, OR WITH A CAMERA ACTUALLY OPEN § */
+  /* PARKED, NOT STOPPED (427): coming back must not ask again, and a parked stream is no reason to run this on other columns. */
+  if (typeof camStop_ === 'function' && AT !== 'feed'
+      && (was === 'feed' || (typeof camOn_ === 'function' && camOn_()))) camStop_(false, true);
+  /* AND THE REEL, which is the third of these and was the one nobody had written. § */
+  if (typeof reelsStop_ === 'function' && AT !== 'reel') reelsStop_();
+  /* A PIN SHOWN ON A CARD (452) goes when its column is left. */
+  if (was !== AT && typeof pinHideAll_ === 'function') pinHideAll_();
+  /* AND THE MESSAGE POLL, which is the fourth. § */
+  if (typeof dmStop_ === 'function' && AT !== 'dm') dmStop_();
+  /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
+     just rebuilt this screen's markup too — and two copies of "what does this screen need running"
+     is two places to forget the camera. */
+  /* `true`: ARRIVING, so a column of widgets starts the ones in view first — see `widgetsWake_`. § */
+  if (was !== AT || painted) afterSlide_(() => startScreen_(AT, true), 'start');
+  aheadKick_(AHEAD_QUIET);
+
+  /* EITHER FINDER (find.js, `FINDERS`): § */
+  const finder = typeof finderOf_ === 'function' ? finderOf_(AT) : null;
+  if (finder) {
+    const host = $('s-' + finder.id);
+    const drawn = host && host.querySelector('.page[data-filled]');
+    if (instant || !drawn) oopsTry_('go:fill:' + finder.id, () => finderSoon_(finder, fillStuffPages));
+    else afterSlide_(() => finderSoon_(finder, fillStuffPages), 'fill:' + finder.id);
+  }
+  /* After wake, because a page holding a canvas has to exist and be sized before it is moved. § */
+  oopsTry_('go:pager', () => paintPager(AT, instant));
+  if (FLOW_LAYOUT) oopsTry_('go:flow', () => { topbarPaint_(); if (was && was !== AT) $('s-' + AT).scrollIntoView({ block: 'start' }); });
+
+}
+/* DRAW THE SCREEN EITHER SIDE, so a sideways drag reveals one rather than an empty rectangle. § */
+/* ---------- WHAT EACH SCREEN NEEDS RUNNING ONCE ITS MARKUP EXISTS § */
+/* SCREEN HOOKS: what one screen runs on starting, on being drawn and after a page turn; the shell keeps one rule.
+   Saved, Shop and Reels hold widgets (414) whose cards grow (regrow); a start returns true when it ran. */
+const SCREEN_HOOKS = {
+  saved: { regrow: true, start: a => typeof savedStart_ === 'function' && (savedStart_(a), true) },
+  shop: { regrow: true, start: a => typeof toolsStart_ === 'function' && (toolsStart_('shop', a), true) },
+  reel: { regrow: true, start: a => typeof toolsStart_ === 'function' && (toolsStart_('reel', a), true),
+    started: [() => typeof reelsWatch_ === 'function' && reelsWatch_()],
+    paged: n => { if (typeof reelAhead_ === 'function') { try { reelAhead_(n); } catch (e) { oops_(e, 'shell:goPage') } } },
+    slid: () => { if (typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_); } },
+  /* the camera is a page of the feed: started when its page arrives, put at rest at once when the page turns away (docs/history/341) */
+  feed: { started: [() => typeof feedCamWatch_ === 'function' && feedCamWatch_()],
+    slid: n => { if (typeof feedCamWatch_ === 'function') afterSlide_(feedCamWatch_); if (n !== 0 && typeof camRest_ === 'function') camRest_(); } },
+  /* an admin's business records are asked for, a POST, once (js/records.js) */
+  biz: { started: [() => typeof bizStart_ === 'function' && bizStart_()] },
+  /* a conversation opens at its newest message, and keeps itself up to date while it is the screen you are on (`dmPoll_`) */
+  dm: { started: [() => typeof dmFoot_ === 'function' && dmFoot_(), () => typeof dmPoll_ === 'function' && dmPoll_()],
+    drawn: () => { if (typeof dmFoot_ === 'function') { try { dmFoot_(); } catch (e) { oops_(e, 'shell:drawnScreen_') } } } },
+};
+function startScreen_(id, arriving) {
+  /* NOT A COLUMN A LANDING PAYLOAD LEFT ALONE — its markup was not replaced, so what runs in it is still
+     running, and restarting it is what moves the caret: the notepad's `start` writes its value back.
+     See `landRepaint_`. */
+  if (typeof reconnectKeep_ === 'function' && reconnectKeep_(id)) return;
+  /* NOR ONE `paint` HELD UNDER A STROKE (`padHold_`, find.js), for the same reason and one more: § */
+  if (typeof padHold_ === 'function' && padHold_(id)) return;
+  /* NOR A WIDGET COLUMN `paint` HELD FOR A FORM WITH TYPING IN IT (`settingsKeep_`, me.js) — the library cards on Tools, and their starred copy on Saved § */
+  if (!arriving && ['saved', 'stuff'].indexOf(id) !== -1 && typeof settingsKeep_ === 'function' && settingsKeep_(id)) return;
+  /* A SCREEN'S OWN WORK on starting is its row of SCREEN_HOOKS: the widgets it holds, its camera, reels, records or thread. */
+  const H = SCREEN_HOOKS[id] || {};
+  if (H.start && H.start(arriving)) { /* its own widgets, started from its own list */ }
+  /* AND A WIDGET MOVED ONTO ANY OTHER COLUMN (710, layout.js). */
+  else if (typeof WIDGET_COLS !== 'undefined' && WIDGET_COLS.indexOf(id) !== -1 && typeof widgetsWake_ === 'function') {
+    const ws = widgetsOn_(id);
+    if (ws.length) { widgetsWake_(ws, id, arriving); if (id === AT) placeCells('y', true, 0, id); }
+  }
+  /* ---------- AND A COLUMN WHOSE CARDS JUST GREW IS PLACED AGAIN § */
+  if (H.regrow && id === AT) placeCells('y', true, 0, id);
+  (H.started || []).forEach(f => f());
+}
+/* ---------- A COLUMN THE LANDING WILL SHOW, STILL ON THE BOOT'S LOADER, IS DRAWN BEFORE THE SLIDE § */
+function bootGlass_() {
+  if (!PRE_PAYLOAD.size || typeof GLASS === 'undefined') return;
+  const ti = TABS.findIndex(t => t.id === AT);
+  if (ti < 0) return;
+  const k = WIDE ? Math.max(1, GLASS.reach || 1) : 1;
+  TABS.forEach((t, i) => {
+    if (t.id === AT || Math.abs(i - ti) > k || !PRE_PAYLOAD.has(t.id) || !STALE[t.id]) return;
+    paint(t.id);
+    if (!STALE[t.id] && PAGER[t.id]) paintPager(t.id, true);
+  });
+}
+/** Has this screen been drawn? A screen with markup needs no redrawing to be arrived at. */
+function screenHasMarkup_(id) {
+  /* BY ID, NOT `$`: a section is on the page once, and a check that saw data.js fail to load crashed here on `$` */
+  const el = document.getElementById('s-' + id);
+  /* THE FIRST CHILD, NOT `innerHTML`, which serialises every screen's whole markup to answer yes or no — about a millisecond across eleven at 1x and four at 4x § */
+  return !!(el && el.firstElementChild);
+}
+function paintNeighbours() {
+  /* EVERY SCREEN, not the two either side. § */
+  TABS.forEach((t, i) => {
+    const id = t.id;
+    if (id === AT) return;
+    const el = $('s-' + id);
+    if (!el || el.firstChild) return;         // already drawn; redrawing would only cost
+    paint(id);
+    /* And placed, if it is a paged screen. A neighbour whose pages have no position shows nothing
+       when a drag reveals it, which is worse than showing an empty rectangle because it looks like
+       the screen itself is empty. */
+    if (PAGER[id]) paintPager(id, true);
+  });
+  /* The screen in front is NOT repainted here. `go` has already drawn it, and drawing it a second
+     time is what threw its placement away. */
+}
+/** Redraw one screen where it stands. Called after anything that changes what it should say. */
+/* ---------- WHICH SCREENS ARE OUT OF DATE § */
+let STALE = {};
+/* ---------- TWO MARKS NOW, AND TWO CLOCKS § */
+let ACT_EPOCH = 0;
+let DRAW_EPOCH = 0;
+/* ---------- A MARK MADE OUTSIDE `repaint` IS ONE CALL, AND IT TELLS THE BUILDER § */
+function markStale_(ids) {
+  [].concat(ids).forEach(id => { if (id) STALE[id] = 1; });
+  if (typeof aheadKick_ === 'function') aheadKick_();
+}
+/* WHICH MARK `repaint` WRITES — 1, except for the length of a landing. */
+let REPAINT_MARK = 1;
+/* THE COLUMNS WHOSE MARKUP WAS DRAWN BEFORE THE FIRST PAYLOAD — drawn again from nothing (`fresh`) whenever
+   they are drawn, so a widget started on the boot's markup is started again in the payload's (331). */
+const PRE_PAYLOAD = new Set();
+/* HOW MANY TIMES EACH COLUMN WAS DRAWN, for the journeys that ask what a landing drew (check-flow). */
+const PAINT_N = {};
+/* A REDRAW KEEPS THE READER'S PLACE (561, U2): each scrolled box's offset, keyed by its path of child indexes from the column, and focus by id. */
+function placeKeep_(el) {
+  const out = [];
+  el.querySelectorAll('*').forEach(n => {
+    if (!n.scrollTop && !n.scrollLeft) return;
+    const path = [];
+    for (let x = n; x && x !== el; x = x.parentElement) path.unshift([...x.parentElement.children].indexOf(x) + ':' + x.tagName);
+    out.push({ path: path, top: n.scrollTop, left: n.scrollLeft });
+  });
+  const f = document.activeElement;
+  return { boxes: out, focus: f && f.id && el.contains(f) ? f.id : '' };
+}
+function placeBack_(el, kept) {
+  kept.boxes.forEach(k => {
+    let n = el;
+    for (const step of k.path) {
+      const [i, tag] = step.split(':');
+      n = n && n.children[+i];
+      if (!n || n.tagName !== tag) return;
+    }
+    n.scrollTop = k.top; n.scrollLeft = k.left;
+  });
+  if (kept.focus) { const f = document.getElementById(kept.focus); if (f && el.contains(f)) try { f.focus({ preventScroll: true }); } catch (e) { /* focus is a courtesy: a box that cannot take it keeps the place anyway */ } }
+}
+/* `fresh`: DRAWN FROM NOTHING, because the caller starts again whatever runs in it — `repaint`, for the column in front. § */
+function paint(id, fresh, o) {
+  /* ---------- A SETTINGS CARD WITH SOMETHING TYPED INTO IT IS NOT REDRAWN UNDER THE TYPING § */
+  if (typeof settingsKeep_ === 'function' && settingsKeep_(id)) { STALE[id] = 1; return; }
+  /* ---------- AND NEITHER FINDER IS REDRAWN UNDER A CHILD WHO IS WRITING § */
+  if (typeof findKeep_ === 'function' && findKeep_(id)) { STALE[id] = 1; return; }
+  /* AND NO COLUMN IS REBUILT BY A PAYLOAD LANDING UNDER SOMEBODY TYPING IN IT — see `landRepaint_`. */
+  if (typeof reconnectKeep_ === 'function' && reconnectKeep_(id)) { STALE[id] = 1; return; }
+  /* ---------- AND NO COLUMN IS REDRAWN UNDER A STROKE, WHICHEVER COLUMN IT IS § */
+  if (typeof padHold_ === 'function' && padHold_(id)) { STALE[id] = 1; return; }
+  /* Drawn is fresh, by definition, whoever asked for it. THE MARK IS KEPT FOR ONE QUESTION FIRST: whether
+     a landing's `'maybe'` may be answered by writing nothing (below). */
+  const mark = STALE[id];
+  delete STALE[id];
+  /* A COLUMN STILL HOLDING THE BOOT'S MARKUP: § */
+  const pre = PRE_PAYLOAD.has(id);
+  /* A PAGED SCREEN HAS NO PADDING OF ITS OWN — each page supplies it, because a page is positioned against the screen's padding box and would otherwise be inset by § */
+  $('s-' + id)?.classList.toggle('paged', !!PAGER[id]);
+  const el = $('s-' + id);
+  const s = SCREENS[id];
+  if (!el) return;
+
+  /* ONE SCREEN THAT WILL NOT DRAW MUST NOT TAKE THE OTHERS WITH IT. § */
+  let html;
+  try {
+    /* A COLUMN WHOSE FILE IS STILL ON ITS WAY (670, `LATER`) waits, and `load()` paints it once it is in. */
+    html = s ? s.draw() : (filesIn_() ? null : waitShape_(id));
+  } catch (err) {
+    /* ITS CODE NOT IN YET (670, `LATER`): the column waits, and is drawn again when the payload lands. */
+    if (!filesIn_() && err instanceof ReferenceError) { el.innerHTML = waitShape_(id); STALE[id] = 1; return; }
+    oops_(err, 'draw:' + id);
+    el.innerHTML = `<div class="pane">${card_('<div class="draw-oops"><h3>This screen did not draw</h3></div>')}</div>`;
+    return;
+  }
+  /* ---------- AND A WIDGET RUNNING ON THIS COLUMN KEEPS THE SLOT IT IS RUNNING IN § */
+  /* ---------- A LANDING THAT CHANGES NOTHING WRITES NOTHING § */
+  const want = (o && o.land && mark !== 1) ? 'maybe' : mark;
+  if (want === 'maybe' && !fresh && html !== null && !PRE_PAYLOAD.has(id)
+      && !(typeof finderOf_ === 'function' && finderOf_(id))
+      && el.DRAWN && el.DRAWN.html === html && el.DRAWN.epoch === ACT_EPOCH && el.firstElementChild) {
+    if (typeof widgetsReveil_ === 'function') widgetsReveil_(id, false);
+    return 'kept';
+  }
+  const held = !fresh && typeof widgetsHeld_ === 'function' ? widgetsHeld_(id, pre) : [];
+  const waited = waitingPages_(el);
+  const kept = pre ? null : placeKeep_(el);
+  el.innerHTML = html !== null
+    ? html
+    : empty_();
+  el.DRAWN = { html: html, epoch: ACT_EPOCH };
+  PRE_PAYLOAD.delete(id);
+  PAINT_N[id] = (PAINT_N[id] || 0) + 1;
+  if (held.length) {
+    const left = widgetsBack_(id, held);
+    if (typeof finderOf_ === 'function' && finderOf_(id)) WIDGET_HELD[id] = left;
+  }
+  shapeHold_(el, id);
+  arrivePages_(el, waited);
+  if (kept) placeBack_(el, kept);
+  /* NEW MARKUP IS NEW PAGES, so the next placement walks this column's pages whatever its signature says
+     (`placePages_`). */
+  el.PG_SIG = null;
+
+  /* ---------- AND THE COLUMN IS CENTRED ON WHAT WAS JUST DRAWN § */
+  if (typeof PLACED_ONCE !== 'undefined' && PLACED_ONCE && !(o && o.ahead)
+      && !(typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis)) {
+    placeCells('y', true, 0, id);
+  }
+
+  /* ---------- AND WHETHER THE NEW CARDS FIT THE PANES THEY ARE IN § */
+  if (typeof afterSlide_ === 'function' && typeof paneWatch_ === 'function' && !(o && o.ahead)) {
+    afterSlide_(() => paneWatch_($('s-' + id)), 'panes:' + id);
+  }
 }
 
 ;
@@ -7405,6 +7398,11 @@ function loadRowsClean_(d) {
   const keys = Object.keys(gone);
   if (keys.length) oops_(new Error(keys.map(k => k + ' ' + gone[k]).join(', ') + ' malformed row(s) dropped'), 'load:rows');
 }
+
+
+;
+/* ==== js/shell-load.js ==== */
+/* ---------- THE PAYLOAD LOAD: asked, landed, painted, and the banner when it fails (cut from shell-api.js; read with the other shell-*.js by tools/piece-src.js). */
 async function load(again) {
   const R = RECONNECT;
   if (!again) reconnectStop_();
@@ -7424,7 +7422,6 @@ async function load(again) {
     if (!R.flying && R.due) reconnectAsk_('owed');
   }
 }
-
 /* `DATA` IS THE PAYLOAD BEHIND A PROXY that counts the keys read and never sent (`missingKeys`). A new proxy on the library's arrival is a new `DATA`, so every memo keyed on it starts again. */
 function dataProxy_(d) {
   return new Proxy(d, {
@@ -7454,7 +7451,6 @@ async function libraryLate_(d) {
   catch (e) { oops_(e, 'load:library-paint'); }
   setTimeout(shapeSave_, 4000);
 }
-
 /* WHETHER A GOOD PAYLOAD HAS EVER BEEN PAINTED — see the end of `load()`. */
 let FIRST_PAINT_DONE = false;
 async function loadOnce_(again, n, kept) {
@@ -7528,7 +7524,6 @@ async function loadOnce_(again, n, kept) {
   if (again && !got && LOADED && reconnecting_()) return;
   loadFinish_(kept);
 }
-
 /* THE REQUEST ITSELF, under its deadlines: the reply parsed, or a throw for the catch in `loadOnce_`. */
 async function loadFetch_(who) {
     const bust = (who ? '&' : '?') + '_=' + Date.now();
@@ -7585,7 +7580,6 @@ async function loadFetch_(who) {
     return await Promise.race([bootJson_(res), new Promise((u, no) => { bodyBell = setTimeout(() => no(new Error('timeout')), 60000); })])
       .finally(() => clearTimeout(bodyBell));
 }
-
 /* THE PAYLOAD BECOMES `DATA`, library and settings merged in first; false when it went stale on the way. */
 async function loadTakeData_(d, n, who) {
       await laterFiles_();
@@ -7611,7 +7605,6 @@ async function loadTakeData_(d, n, who) {
       LOAD_FAILED = '';
       return true;
 }
-
 /* WHAT A FRESH (NOT KEPT) PAYLOAD HAS TO SAY: banners, messages, settings, missing features. */
 function loadNotices_(d) {
       if (LOAD_SLOW) banner('');
@@ -7650,7 +7643,6 @@ function loadNotices_(d) {
              + 'Deployment ID in Manage deployments.');
       }
 }
-
 /* THE ADMIN'S DIAGNOSTIC for a load that failed: which URL, and advice that matches the fault. */
 function loadFailBanner_(err, reached) {
     const el = $('banner');
@@ -7691,7 +7683,6 @@ function loadFailBanner_(err, reached) {
         + ' · site ' + esc(SITE_VERSION) + ' · css ' + esc(cssVersion()) + '</span>';
     }
 }
-
 /* A LOAD FINISHED, whether it succeeded or failed: the loader goes and every screen is drawn. */
 function loadFinish_(kept) {
   LOADED = true;
@@ -7725,7 +7716,6 @@ function loadFinish_(kept) {
      arrived, when the column came back too. See `findPlaceBack_` in find.js and docs/history/317. */
   if (!LOAD_FAILED && !LIBRARY_LATE && typeof findPlaceBack_ === 'function') findPlaceBack_();
 }
-
 /* ---------- NO SPLASH (466): THE APP IS ON SCREEN FROM THE FIRST FRAME */
 /* `html.is-loaded` says the first load finished, for a check to wait on; it covers nothing. */
 const EARLY_AFTER = 15000;
@@ -7749,7 +7739,6 @@ function splashForget_() {
   } catch (e) { /* storage blocked: old splash keys stay, unread */ }
   return gone.length > 0;
 }
-
 /* A BANNER IS WORDS ONLY: the one tap it ever carried, "load the new version", is gone (610). */
 function banner(msg) {
   const el = $('banner');
@@ -7758,7 +7747,6 @@ function banner(msg) {
   el.removeAttribute('data-do');
   el.classList.remove('hidden');
 }
-
 
 ;
 /* ==== js/shell-hold.js ==== */
@@ -10322,7 +10310,6 @@ function pinSlip_(first, handle, pin) {
   </div>`;
 }
 
-
 /* ---------- AN ADDRESS NOBODY HAS PROVED: THE MAIL IT IS NOT SENT, AND THE CHILD IT CANNOT HOLD YET § */
 function pendingAddr_() { return (USER && USER.pendingEmail) ? String(USER.pendingEmail) : ''; }
 
@@ -10503,170 +10490,6 @@ function notLibrary_(groups) {
   return out;
 }
 const libFieldsOf_ = groups => [].concat(...Object.keys(groups || {}).map(g => groups[g] || [])).filter(isLibraryCard_);
-/* ---------- A COLUMN PER RANK (444): YOU FOR EVERY ACCOUNT, THEN FAMILY, TUTOR AND ADMIN ----------
-   The owner: one column whose contents change with rank "becomes really messy and hard for me to know what's going on". */
-/* A FIELD IS A TUTOR'S WHEN NEITHER A CLIENT'S NOR A STUDENT'S GROUPS HAVE IT — the backend's lists decide, not a list here. */
-const STAFF_GROUPS_ = ['Your rate and group size', 'Qualifications', 'Jobs', 'Availability', 'When I can teach'];
-function staffField_(f, g) {
-  const sets = [DATA.clientFields, DATA.studentFields].filter(x => x && Object.keys(x).length);
-  if (!sets.length) return STAFF_GROUPS_.indexOf(g) !== -1;
-  return !sets.some(x => Object.keys(x).some(k => (x[k] || []).indexOf(f) !== -1));
-}
-/* A PARENT'S ALONE (469): a client's field no student's group has — else it is everybody's and lives on Student settings. */
-function parentOnly_(f) {
-  const c = DATA.clientFields, k = DATA.studentFields, has = x => x && Object.keys(x).length, inn = x => Object.keys(x).some(g => (x[g] || []).indexOf(f) !== -1);
-  return !!(has(c) && has(k) && inn(c) && !inn(k));
-}
-/* WHAT A SPLIT GROUP IS CALLED ON THE TUTOR COLUMN, where "Contact & address" would mislead. */
-const STAFF_GROUP_NAMES_ = { 'Contact & address': 'Where you teach', 'About you': 'About you as a tutor' };
-/* YOUR SETTINGS' GROUPS, SPLIT: `{ you, staff }`, each `{ group: [fields] }`, card fields already taken out. */
-function settingsSplit_() {
-  const shown = notLibrary_(cardSettingsGroups_(myGroups_(), ownCardFields_()));
-  /* AND STAFF SET THEIR WEEK ON THE AVAILABLE CARD (487), so it is not drawn twice — but that card needs a tutor row, which a new tutor lacks. */
-  if (typeof hubFor_ === 'function' && hubFor_() && cardMine_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
-  const out = { you: {}, parent: {}, staff: {} };
-  Object.keys(shown).forEach(g => {
-    if (!shown[g].length) return;
-    const mine = shown[g].filter(f => !staffField_(f, g)), staff = shown[g].filter(f => staffField_(f, g));
-    const kid = mine.filter(f => !parentOnly_(f)), par = mine.filter(parentOnly_);
-    if (kid.length) out.you[g] = kid;
-    if (par.length) out.parent[g] = par;
-    if (staff.length) out.staff[mine.length ? (STAFF_GROUP_NAMES_[g] || g) : g] = staff;
-  });
-  return out;
-}
-/* ONE GROUP, ONE CARD, ITS OWN SAVE — `meSave_` posts the boxes of the card it is pressed in, whichever column.
-   `col` names the column, so an admin's Split (464, layout.js) can draw a group a field a card, each with its own Save. */
-function settingsCards_(shown, moved, col) {
-  const p = USER.profile || {};
-  /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
-     admin's to set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
-  const readonly = (DATA.profileReadonly || []).concat(isAdmin() ? [] : ['extra_seat_cut']);
-  /* ONE SHAPE FOR EVERY CARD (8 Nov; 84a): `formCard_` — the title, one line per field, saved as you type. */
-  const mail = list => (list || []).indexOf('email') !== -1;
-  const one = (g, list, top, id, n, lid) => setHeldSay_(formCard_({ title: g, cls: id ? 'set-card' : '', lead: (top || '') + shareBarFor_(list, p),
-    attrs: (id ? ` data-split="${esc(id)}"` : '') + (lid ? ` data-lay-card="${esc(lid)}"` : ''),
-    groups: { [g]: list },
-    fieldOpts: {
-      /* THE ADDRESS WAITING TO BE PROVED, in the address's box — see `movingNote_`. */
-      value: f => (f === 'email' && p.email_moving) ? p.email_moving : (p[f] ?? ''),
-      raw: p,
-      readonly: readonly,
-      options: fieldOptions_,
-    },
-    save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
-    foot: (mail(list) ? movingNote_(p) : '') + '<p class="note me-said"></p>',
-    after: id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '' }));
-  const out = [];
-  Object.keys(shown).forEach((g, k) => {
-    const list = shown[g] || [], top = k === 0 ? moved : '';
-    const id = col && settingsSplittable_(list) && typeof splitId_ === 'function' ? splitId_('set', col, g) : '';
-    if (id && typeof splitOn_ === 'function' && splitOn_(id))
-      list.forEach((f, i) => out.push(one(String((typeof fieldLabel === 'function' && fieldLabel(f)) || ROW_LABEL[f] || g).replace(/^./, c => c.toUpperCase()), [f], i === 0 ? top : '', id, 1, typeof pieceId_ === 'function' ? pieceId_(id, f) : '')));
-    else out.push(one(g, list, top, id, list.length, col && typeof splitId_ === 'function' ? splitId_('set', col, g) : ''));
-  });
-  return out;
-}
-/* A GROUP SPLITS WHEN ITS FIELDS STAND ALONE: not the qualifications (one shelf) and not a week of hours (one grid). */
-const settingsSplittable_ = list => (list || []).length > 1 && !list.some(isQualField_) && !isTimetable_(list);
-
-/* ---------- SIX COLUMNS (453): TUTORS, STUDENTS, PARENTS, THEN EACH ACCOUNT TYPE'S SETTINGS ----------
-   The owner: "A user in theory could appear in each of these 3 categories" and "split account settings into 3". */
-const tabLabel_ = (id, or) => ((typeof TABS_BUILT !== 'undefined' && TABS_BUILT.find(t => t.id === id)) || {}).label || or;
-/* THE PEOPLE COLUMN OF YOUR RANK, where your own card is shown first (453); what you edit is on Student settings for every rank (469). */
-const homeCol_ = () => rankAtLeast_('staff') ? 'tutors' : rankAtLeast_('client') ? 'parents' : 'students';
-/* DO YOU BELONG IN THIS PEOPLE COLUMN — by rank, or by a family link (a parent is a parent whatever their rank). */
-/* THE FAMILY LINK THAT PUTS YOU IN A PEOPLE COLUMN: a parent has a child; anyone else in a column has a parent. */
-const PEOPLE_COL_LINK = { parents: 'child' };
-function peopleBelong_(col, family) {
-  if (!USER) return false;
-  const rel = r => (family || []).some(f => f && f.relation === r);
-  if (col === homeCol_()) return true;
-  if (isTutorsCol_(col)) return !!(typeof cardMine_ === 'function' && cardMine_());
-  return rel(Object.prototype.hasOwnProperty.call(PEOPLE_COL_LINK, col) ? PEOPLE_COL_LINK[col] : 'parent');
-}
-/* A PEOPLE COLUMN: signed out it says where to sign in; with nobody in it, its title and one line. */
-function peoplePages_(col) {
-  const title = tabLabel_(col, col);
-  if (!USER) return [signedOutCard_(title)];
-  const out = typeof accountPages_ === 'function' ? accountPages_(col) : [];
-  return out.length ? out : [rankOffCard_(title, 'Nobody to show here yet.').replace('rank-off', 'people-none')];
-}
-
-/* ---------- YOUR CARD ON YOUR ROLE'S SETTINGS COLUMN: ONLY ITS EDITING, A CARD PER THING (468) — never a preview; the person is drawn on the profile columns. */
-function ownCardSetPage_(setCol) {
-  const face = FACE_OF_SET_[setCol];
-  if (!USER || !face || typeof ownCardSections_ !== 'function') return [];
-  const secs = ownCardSections_(face);
-  if (!secs.length) return [];
-  const mine = typeof myCardRow_ === 'function' ? myCardRow_() : null;
-  const row = face === 'tutors' ? (cardMine_() || mine) : mine;
-  if (!row || !row.personId || !cardMayEdit_(row)) return [];
-  return cardEditCards_(row, cardOwnOpen_(row), secs, setCol);
-}
-/* ALWAYS OPEN: the edit of your own card is the settings column itself, so nothing is pressed to start it. */
-function cardOwnOpen_(t) {
-  const now = cardEditNow_();
-  if (now && now.pid === String(t.personId)) { now.col = 'settings'; return now; }
-  const e = CARD_EDIT = cardEditFresh_(t.personId);
-  e.pic0 = cardPicNow_(t);
-  e.fig0 = String(USER.avatar || ''); e.cr0 = Number(USER.credits || 0); e.h0 = String(USER.handle || USER.name || '');
-  cardRemember_(e);
-  return e;
-}
-
-/* ---------- STUDENT SETTINGS: EVERY ACCOUNT'S SIGNING IN AND OUT, PIN, ROLES, NOTIFICATIONS, AND A STUDENT'S DETAILS ---------- */
-function youSettingsPages_() {
-  if (!USER) return [];
-  /* EVERYBODY'S DETAILS, WHATEVER THE RANK (469): a parent's or tutor's own contact is edited here, as a student's is. */
-  const shown = settingsSplit_().you;
-  const pages = settingsCards_(shown, '', 'account');
-  /* ONE LINE A BOX, ONE Save: a PIN is never saved as you type; its boxes are forms.json's `signing-in`. */
-  pages.push(formCard_({ id: 'signing-in' }));
-  /* YOUR ROLES, THEN WHICH EMAILS YOU WANT — every signed-in person has both. */
-  pages.push(rolesCard_());
-  pages.push(notifyCard_());
-  const voice = voiceCard_();
-  if (voice) pages.push(voice);
-  return pages;
-}
-function studentSetPages_() {
-  if (!USER) {
-    /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist first. */
-    if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
-    /* SIGN IN AND SIGNED IN ARE ONE UNIT, `acct:signed-in` (770): the owner moved it, signed out, and it jumped back — one saved place. */
-    const signIn = (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean);
-    const reg = typeof registerCard_ === 'function' ? [registerCard_()] : [];
-    return (typeof cardMark_ === 'function' ? cardMark_('acct:signed-in', signIn) : signIn).concat(reg, lockedPages_('account'));
-  }
-  const who = nameBesideHandle_(USER.name, USER.handle) || 'you';
-  /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
-  const top = card_(`<div class="signed-in"><h3>Signed in</h3>
-    ${tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
-      + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)}
-    ${/* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
-      typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''}</div>`);
-  const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
-  /* WHAT WAS THE PROGRESS COLUMN (461, the owner: "the progress column content can all be moved to student column account settings"). */
-  const all = typeof progressCards_ === 'function' ? progressCards_() : [];
-  /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
-  const prog = all.map(c => String(c).replace(/^(\s*<div class=")/, '$1prog-w ')), wait = coming.length || !(typeof progressComing_ === 'function' && progressComing_()) ? coming : [loading_()];
-  /* ONLY SIGN IN HERE (owner, 4 Nov, 880): every other setting is a Coming soon card in Find until it is wanted. */
-  if (typeof SETTINGS_OFF !== 'undefined' && SETTINGS_OFF) return [top];
-  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(),
-    /* WORK ON FILE (owner, 11 Nov): a student's own scanned pages; a tutor's opens each booked student's. */
-    /^(student|staff)$/.test(rank_()) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [], soonCards_(),
-    prog, wait);
-}
-/* PLACEHOLDERS (562, owner notes 116, 118, 114): one card each, its title and one line, until the thing is built; each in CARD_REG so it moves and deletes. */
-const SOON_CARDS = [
-  ['soon-brownie', 'Brownie points', 'Points you earn for good work. Coming soon.'],
-  ['soon-roadmap', 'Roadmap', 'How much of your syllabus is left, subject by subject. Coming soon.'],
-  ['soon-conduct', 'Code of conduct', 'How we treat each other here. Coming soon.'],
-];
-const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => card_(`<div class="soon-card ${c}"><h3>${esc(h)}</h3><p class="note">${esc(p)}</p></div>`));
-const SETTINGS_OFF = false;
-screen('account', () => pages('account', SETTINGS_OFF || typeof cardsOf_ !== 'function' ? studentSetPages_() : cardsOf_('account')));
 
 /* ---------- READING ALOUD (453, 463) — no choice: the device's calmest natural voice, free; a sample is all there is to do ---------- */
 function voiceCard_() {
@@ -10980,10 +10803,6 @@ on('notify-pick', el => {
     });
 });
 
-
-
-
-
 /* THE HOURS SOMEBODY IS FREE, as a week you tick. § */
 /* ---------- AND IT IS `weekGrid_`, BECAUSE THE COMMENT ABOVE STOPPED BEING TRUE § */
 function availGrid_(codes, p, readonly, mine) {
@@ -11017,8 +10836,173 @@ function availGrid_(codes, p, readonly, mine) {
 }
 
 ;
-/* ==== js/me-shelves.js ==== */
+/* ==== js/me-columns.js ==== */
+/* ---------- THE SETTINGS COLUMNS: a column per rank and the people on each (cut from me-roles.js; read with the other me-*.js by tools/piece-src.js). */
+/* ---------- A COLUMN PER RANK (444): YOU FOR EVERY ACCOUNT, THEN FAMILY, TUTOR AND ADMIN ----------
+   The owner: one column whose contents change with rank "becomes really messy and hard for me to know what's going on". */
+/* A FIELD IS A TUTOR'S WHEN NEITHER A CLIENT'S NOR A STUDENT'S GROUPS HAVE IT — the backend's lists decide, not a list here. */
+const STAFF_GROUPS_ = ['Your rate and group size', 'Qualifications', 'Jobs', 'Availability', 'When I can teach'];
+function staffField_(f, g) {
+  const sets = [DATA.clientFields, DATA.studentFields].filter(x => x && Object.keys(x).length);
+  if (!sets.length) return STAFF_GROUPS_.indexOf(g) !== -1;
+  return !sets.some(x => Object.keys(x).some(k => (x[k] || []).indexOf(f) !== -1));
+}
+/* A PARENT'S ALONE (469): a client's field no student's group has — else it is everybody's and lives on Student settings. */
+function parentOnly_(f) {
+  const c = DATA.clientFields, k = DATA.studentFields, has = x => x && Object.keys(x).length, inn = x => Object.keys(x).some(g => (x[g] || []).indexOf(f) !== -1);
+  return !!(has(c) && has(k) && inn(c) && !inn(k));
+}
+/* WHAT A SPLIT GROUP IS CALLED ON THE TUTOR COLUMN, where "Contact & address" would mislead. */
+const STAFF_GROUP_NAMES_ = { 'Contact & address': 'Where you teach', 'About you': 'About you as a tutor' };
+/* YOUR SETTINGS' GROUPS, SPLIT: `{ you, staff }`, each `{ group: [fields] }`, card fields already taken out. */
+function settingsSplit_() {
+  const shown = notLibrary_(cardSettingsGroups_(myGroups_(), ownCardFields_()));
+  /* AND STAFF SET THEIR WEEK ON THE AVAILABLE CARD (487), so it is not drawn twice — but that card needs a tutor row, which a new tutor lacks. */
+  if (typeof hubFor_ === 'function' && hubFor_() && cardMine_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
+  const out = { you: {}, parent: {}, staff: {} };
+  Object.keys(shown).forEach(g => {
+    if (!shown[g].length) return;
+    const mine = shown[g].filter(f => !staffField_(f, g)), staff = shown[g].filter(f => staffField_(f, g));
+    const kid = mine.filter(f => !parentOnly_(f)), par = mine.filter(parentOnly_);
+    if (kid.length) out.you[g] = kid;
+    if (par.length) out.parent[g] = par;
+    if (staff.length) out.staff[mine.length ? (STAFF_GROUP_NAMES_[g] || g) : g] = staff;
+  });
+  return out;
+}
+/* ONE GROUP, ONE CARD, ITS OWN SAVE — `meSave_` posts the boxes of the card it is pressed in, whichever column.
+   `col` names the column, so an admin's Split (464, layout.js) can draw a group a field a card, each with its own Save. */
+function settingsCards_(shown, moved, col) {
+  const p = USER.profile || {};
+  /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
+     admin's to set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
+  const readonly = (DATA.profileReadonly || []).concat(isAdmin() ? [] : ['extra_seat_cut']);
+  /* ONE SHAPE FOR EVERY CARD (8 Nov; 84a): `formCard_` — the title, one line per field, saved as you type. */
+  const mail = list => (list || []).indexOf('email') !== -1;
+  const one = (g, list, top, id, n, lid) => setHeldSay_(formCard_({ title: g, cls: id ? 'set-card' : '', lead: (top || '') + shareBarFor_(list, p),
+    attrs: (id ? ` data-split="${esc(id)}"` : '') + (lid ? ` data-lay-card="${esc(lid)}"` : ''),
+    groups: { [g]: list },
+    fieldOpts: {
+      /* THE ADDRESS WAITING TO BE PROVED, in the address's box — see `movingNote_`. */
+      value: f => (f === 'email' && p.email_moving) ? p.email_moving : (p[f] ?? ''),
+      raw: p,
+      readonly: readonly,
+      options: fieldOptions_,
+    },
+    save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
+    foot: (mail(list) ? movingNote_(p) : '') + '<p class="note me-said"></p>',
+    after: id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '' }));
+  const out = [];
+  Object.keys(shown).forEach((g, k) => {
+    const list = shown[g] || [], top = k === 0 ? moved : '';
+    const id = col && settingsSplittable_(list) && typeof splitId_ === 'function' ? splitId_('set', col, g) : '';
+    if (id && typeof splitOn_ === 'function' && splitOn_(id))
+      list.forEach((f, i) => out.push(one(String((typeof fieldLabel === 'function' && fieldLabel(f)) || ROW_LABEL[f] || g).replace(/^./, c => c.toUpperCase()), [f], i === 0 ? top : '', id, 1, typeof pieceId_ === 'function' ? pieceId_(id, f) : '')));
+    else out.push(one(g, list, top, id, list.length, col && typeof splitId_ === 'function' ? splitId_('set', col, g) : ''));
+  });
+  return out;
+}
+/* A GROUP SPLITS WHEN ITS FIELDS STAND ALONE: not the qualifications (one shelf) and not a week of hours (one grid). */
+const settingsSplittable_ = list => (list || []).length > 1 && !list.some(isQualField_) && !isTimetable_(list);
+/* ---------- SIX COLUMNS (453): TUTORS, STUDENTS, PARENTS, THEN EACH ACCOUNT TYPE'S SETTINGS ----------
+   The owner: "A user in theory could appear in each of these 3 categories" and "split account settings into 3". */
+const tabLabel_ = (id, or) => ((typeof TABS_BUILT !== 'undefined' && TABS_BUILT.find(t => t.id === id)) || {}).label || or;
+/* THE PEOPLE COLUMN OF YOUR RANK, where your own card is shown first (453); what you edit is on Student settings for every rank (469). */
+const homeCol_ = () => rankAtLeast_('staff') ? 'tutors' : rankAtLeast_('client') ? 'parents' : 'students';
+/* DO YOU BELONG IN THIS PEOPLE COLUMN — by rank, or by a family link (a parent is a parent whatever their rank). */
+/* THE FAMILY LINK THAT PUTS YOU IN A PEOPLE COLUMN: a parent has a child; anyone else in a column has a parent. */
+const PEOPLE_COL_LINK = { parents: 'child' };
+function peopleBelong_(col, family) {
+  if (!USER) return false;
+  const rel = r => (family || []).some(f => f && f.relation === r);
+  if (col === homeCol_()) return true;
+  if (isTutorsCol_(col)) return !!(typeof cardMine_ === 'function' && cardMine_());
+  return rel(Object.prototype.hasOwnProperty.call(PEOPLE_COL_LINK, col) ? PEOPLE_COL_LINK[col] : 'parent');
+}
+/* A PEOPLE COLUMN: signed out it says where to sign in; with nobody in it, its title and one line. */
+function peoplePages_(col) {
+  const title = tabLabel_(col, col);
+  if (!USER) return [signedOutCard_(title)];
+  const out = typeof accountPages_ === 'function' ? accountPages_(col) : [];
+  return out.length ? out : [rankOffCard_(title, 'Nobody to show here yet.').replace('rank-off', 'people-none')];
+}
+/* ---------- YOUR CARD ON YOUR ROLE'S SETTINGS COLUMN: ONLY ITS EDITING, A CARD PER THING (468) — never a preview; the person is drawn on the profile columns. */
+function ownCardSetPage_(setCol) {
+  const face = FACE_OF_SET_[setCol];
+  if (!USER || !face || typeof ownCardSections_ !== 'function') return [];
+  const secs = ownCardSections_(face);
+  if (!secs.length) return [];
+  const mine = typeof myCardRow_ === 'function' ? myCardRow_() : null;
+  const row = face === 'tutors' ? (cardMine_() || mine) : mine;
+  if (!row || !row.personId || !cardMayEdit_(row)) return [];
+  return cardEditCards_(row, cardOwnOpen_(row), secs, setCol);
+}
+/* ALWAYS OPEN: the edit of your own card is the settings column itself, so nothing is pressed to start it. */
+function cardOwnOpen_(t) {
+  const now = cardEditNow_();
+  if (now && now.pid === String(t.personId)) { now.col = 'settings'; return now; }
+  const e = CARD_EDIT = cardEditFresh_(t.personId);
+  e.pic0 = cardPicNow_(t);
+  e.fig0 = String(USER.avatar || ''); e.cr0 = Number(USER.credits || 0); e.h0 = String(USER.handle || USER.name || '');
+  cardRemember_(e);
+  return e;
+}
+/* ---------- STUDENT SETTINGS: EVERY ACCOUNT'S SIGNING IN AND OUT, PIN, ROLES, NOTIFICATIONS, AND A STUDENT'S DETAILS ---------- */
+function youSettingsPages_() {
+  if (!USER) return [];
+  /* EVERYBODY'S DETAILS, WHATEVER THE RANK (469): a parent's or tutor's own contact is edited here, as a student's is. */
+  const shown = settingsSplit_().you;
+  const pages = settingsCards_(shown, '', 'account');
+  /* ONE LINE A BOX, ONE Save: a PIN is never saved as you type; its boxes are forms.json's `signing-in`. */
+  pages.push(formCard_({ id: 'signing-in' }));
+  /* YOUR ROLES, THEN WHICH EMAILS YOU WANT — every signed-in person has both. */
+  pages.push(rolesCard_());
+  pages.push(notifyCard_());
+  const voice = voiceCard_();
+  if (voice) pages.push(voice);
+  return pages;
+}
+function studentSetPages_() {
+  if (!USER) {
+    /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist first. */
+    if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
+    /* SIGN IN AND SIGNED IN ARE ONE UNIT, `acct:signed-in` (770): the owner moved it, signed out, and it jumped back — one saved place. */
+    const signIn = (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean);
+    const reg = typeof registerCard_ === 'function' ? [registerCard_()] : [];
+    return (typeof cardMark_ === 'function' ? cardMark_('acct:signed-in', signIn) : signIn).concat(reg, lockedPages_('account'));
+  }
+  const who = nameBesideHandle_(USER.name, USER.handle) || 'you';
+  /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
+  const top = card_(`<div class="signed-in"><h3>Signed in</h3>
+    ${tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
+      + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)}
+    ${/* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
+      typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''}</div>`);
+  const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
+  /* WHAT WAS THE PROGRESS COLUMN (461, the owner: "the progress column content can all be moved to student column account settings"). */
+  const all = typeof progressCards_ === 'function' ? progressCards_() : [];
+  /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
+  const prog = all.map(c => String(c).replace(/^(\s*<div class=")/, '$1prog-w ')), wait = coming.length || !(typeof progressComing_ === 'function' && progressComing_()) ? coming : [loading_()];
+  /* ONLY SIGN IN HERE (owner, 4 Nov, 880): every other setting is a Coming soon card in Find until it is wanted. */
+  if (typeof SETTINGS_OFF !== 'undefined' && SETTINGS_OFF) return [top];
+  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(),
+    /* WORK ON FILE (owner, 11 Nov): a student's own scanned pages; a tutor's opens each booked student's. */
+    /^(student|staff)$/.test(rank_()) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [], soonCards_(),
+    prog, wait);
+}
+/* PLACEHOLDERS (562, owner notes 116, 118, 114): one card each, its title and one line, until the thing is built; each in CARD_REG so it moves and deletes. */
+const SOON_CARDS = [
+  ['soon-brownie', 'Brownie points', 'Points you earn for good work. Coming soon.'],
+  ['soon-roadmap', 'Roadmap', 'How much of your syllabus is left, subject by subject. Coming soon.'],
+  ['soon-conduct', 'Code of conduct', 'How we treat each other here. Coming soon.'],
+];
+const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => card_(`<div class="soon-card ${c}"><h3>${esc(h)}</h3><p class="note">${esc(p)}</p></div>`));
+const SETTINGS_OFF = false;
+screen('account', () => pages('account', SETTINGS_OFF || typeof cardsOf_ !== 'function' ? studentSetPages_() : cardsOf_('account')));
 
+;
+/* ==== js/me-send.js ==== */
+/* ---------- THE ROUND TRIP every me-*.js form saves through (cut from me-shelves.js; read with the other me-*.js by tools/piece-src.js). */
 /* A ROUND TRIP THAT CANNOT FAIL SILENTLY. § */
 function send_(body, o) {
   o = o || {};
@@ -11096,6 +11080,9 @@ function send_(body, o) {
       throw err;
     });
 }
+
+;
+/* ==== js/me-shelves.js ==== */
 
 /* ONE FIELD RENDERER. There were two, and they had different powers. § */
 
@@ -11972,302 +11959,6 @@ function libFit_(pane) {
   } catch (e) { /* the column's width stands */ }
 }
 
-/* ---------- AND A GROUP OF `photos_N` NAMES IS A SHELF OF PHOTOGRAPHS § */
-const isPhotoField_ = f => /^photos_\d+$/.test(String(f));
-const isPhotos_ = list => (list || []).some(isPhotoField_);
-/* `o.draft` IS PASSED THROUGH TO THE BOXES — the card editor keeps its own draft (`fieldHtml`'s note). § */
-function photoShelf_(list, value, o) {
-  const nums = (list || []).filter(isPhotoField_).map(f => String(f).match(/^photos_(\d+)$/)[1]);
-  return `<div class="lib-shelf ph-shelf" data-noun="photo">${shelfSlots_(nums,
-    i => shelfFilled_(value, ['photos_' + i]),
-    (i, hide) => {
-      const v = String(value('photos_' + i) || '').trim();
-      return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
-        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : ''}</span>
-        ${fieldHtml('photos_' + i, v, { placeholder: 'Photo', draft: (o || {}).draft, extra: 'type="hidden"' })}
-        <div class="tile-row">${tile_({ icon: 'plus', label: v ? 'Change photo' : 'Choose photo', act: 'ph-pick' })}${shelfDrop_('photo')}</div>
-        <p class="note ph-said"></p>${formFile_('ph-in', 'image/*')}
-      </div>`;
-    }, 'photo')}</div>`;
-}
-/* THE PREVIEW FOLLOWS THE BOX as it is typed into, so the check above does not wait for a Save. One
-   listener for the document, which is how every other input here is heard. */
-document.addEventListener('input', e => {
-  const t = e.target;
-  if (!t || !t.matches || !t.matches('.ph-slot input')) return;
-  const thumb = t.closest('.ph-slot').querySelector('.ph-thumb');
-  const v = String(t.value || '').trim();
-  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : '';
-});
-
-/* ---------- AN EXTRA PHOTO IS UPLOADED, NOT LINKED (owner, 8 Nov): redrawn here at 1200px JPEG, kept in Drive by
-   `photoFile`, and its link put in the slot's box so Save keeps it with the rest of the card. */
-const PHOTO_EDGE_ = 1200;
-function photoShrink_(file) {
-  return new Promise(done => {
-    try {
-      const url = URL.createObjectURL(file), img = new Image();
-      img.onload = () => {
-        const w = img.naturalWidth || 1, h = img.naturalHeight || 1, k = Math.min(1, PHOTO_EDGE_ / Math.max(w, h));
-        const cv = document.createElement('canvas');
-        cv.width = Math.max(1, Math.round(w * k)); cv.height = Math.max(1, Math.round(h * k));
-        try { cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); done(cv.toDataURL('image/jpeg', 0.82)); } catch (e) { done(null); }
-        URL.revokeObjectURL(url);
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); done(null); };
-      img.src = url;
-    } catch (e) { done(null); }
-  });
-}
-on('ph-pick', el => { const slot = el.closest('.ph-slot'), inp = slot && slot.querySelector('.ph-in'); if (inp) inp.click(); });
-document.addEventListener('change', e => {
-  const inp = e.target;
-  if (!inp || !inp.matches || !inp.matches('.ph-in')) return;
-  const file = (inp.files || [])[0], slot = inp.closest('.ph-slot');
-  inp.value = '';
-  if (!file || !slot || !USER) return;
-  const said = slot.querySelector('.ph-said'), say = m => { if (said) said.textContent = m; };
-  if (!/^image\//.test(file.type || '')) { say('That is not a picture. Choose a photo from your phone.'); return; }
-  say('Getting the photo ready…');
-  photoShrink_(file).then(data => {
-    if (!data || !/^data:image\/jpeg/.test(data)) { say('The phone could not read that photo. Try another.'); return; }
-    return send_({ action: 'photoFile', name: USER.name, personId: USER.personId, data },
-      { button: slot.querySelector('[data-do="ph-pick"]'), where: said, saying: 'Uploading…', lock: slot }).then(d => {
-      const url = String((d && d.url) || ''), box = slot.querySelector('input[data-me]');
-      if (!url || !box) { say('The photo went but no link came back. Try again.'); return; }
-      box.value = url;
-      box.dispatchEvent(new Event('input', { bubbles: true }));
-      say('Uploaded. Press Save to keep it on your card.');
-    });
-  }).catch(() => { /* `send_` has said why on the line */ });
-});
-
-/* ---------- YOUR PICTURE, CHOSEN RATHER THAN LINKED § */
-/* `o.fold`: ON YOUR CARD'S EDIT THE PICKER IS ONE LINE, the face beside "Picture", opening in place (docs/history/425). */
-function photoPicker_(value, said, o) {
-  const v = String(value('photo') || '').trim();
-  const K = picKindRow_(v);
-  const chosen = K ? K.chosen(v) : '';
-  const opt = n => {
-    const label = PFP_ART[n].name;
-    return tile_({ label: label, act: 'pfp-choose', data: { pic: n }, on: chosen === n, pressed: chosen === n, cls: 'pfp-opt',
-      face: pfpArt_(n, 40) });
-  };
-  const face = `<span class="pfp-face">${pfpFace_(v)}</span>`;
-  const fold = !!(o && o.fold);
-  return `${fold ? `<details class="pfp ce-fold" data-fold="picture" open>
-    <summary class="ce-line"><span class="ce-k">Picture</span>${face}</summary>` : `<div class="pfp">${face}`}
-    <div class="pfp-side">
-      <div class="tile-row">
-        ${/* A CHILD CHOOSES FROM THE GRID, NEVER A FILE (413) — `savePhoto` refuses one too. */
-          uiMay_('upload-photo') ? tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' }) : ''}
-        ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
-      </div>
-    </div>
-    <div class="pfp-grid" role="group" aria-label="Or choose a picture">${Object.keys(PFP_ART).map(opt).join('')}</div>
-    <p class="note pfp-said">${esc(said || pfpSaid_(v))}</p>
-    ${uiMay_('upload-photo') ? formFile_('pfp-in', 'image/*') : ''}
-  ${fold ? '</details>' : '</div>'}`;
-}
-/* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */
-function pfpSaid_(v) {
-  const K = picKindRow_(v);
-  if (K) return K.said(v);
-  return 'No picture yet, so your card shows your initial. Choose one, or a photo.';
-}
-/* THE PREVIEW IS `personFace_` LIKE EVERY OTHER FACE, so what you see here is what everybody else's card draws — so a picker and a card never disagree. § */
-function pfpFace_(v) {
-  const me = USER || {};
-  return personFace_({ pic: v, personId: me.personId, handle: me.handle,
-                       name: (me.profile && me.profile.first_name) || me.name || '?' },
-                     { cls: 'pfp-pic', none: 'pfp-none', size: 88, alt: 'Your profile picture', eager: true });
-}
-/* THE RING FOLLOWS A TAP AT ONCE, and goes back where it was if the server says no. */
-function pfpRing_(box, name) {
-  if (!box) return;
-  box.querySelectorAll('.pfp-opt').forEach(b => {
-    const on = !!name && b.dataset.pic === name;
-    b.classList.toggle('on', on);
-    b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  });
-}
-/* ---------- A REFUSAL KEEPS THE OLD PICTURE AND SAYS SO § */
-const PFP_SINCE = '2026-10-10-h-pictures';
-function pfpKept_(chose) {
-  const v = String((typeof DATA !== 'undefined' && DATA && DATA.version) || '');
-  const old = !!chose && /^\d{4}-\d\d-\d\d/.test(v) && v < PFP_SINCE;
-  return 'Your picture is unchanged.' + (old
-    ? ' The server has not been updated for the pictures yet; until it is, a photo still works.' : '');
-}
-
-/* ---------- SQUARE, AND SMALL ENOUGH TO POST § */
-const PFP_SIZE = 600;
-function pfpPrepare_(file) {
-  if (typeof camItemOf_ !== 'function') return Promise.resolve(null);
-  return camItemOf_(file).then(it => {
-    if (!it || it.kind !== 'image' || !it.data) return null;
-    return new Promise(done => {
-      const img = new Image();
-      img.onload = () => {
-        const w = img.naturalWidth || 1, h = img.naturalHeight || 1, s = Math.min(w, h);
-        const out = Math.max(1, Math.min(PFP_SIZE, s));
-        const cv = document.createElement('canvas');
-        cv.width = cv.height = out;
-        try {
-          cv.getContext('2d').drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, out, out);
-          done(cv.toDataURL('image/jpeg', 0.85));
-        } catch (e) { done(null); }
-      };
-      img.onerror = () => done(null);
-      img.src = it.data;
-    });
-  }).catch(() => null);
-}
-
-/* WHAT THE SERVER SAID THE PICTURE NOW IS, written everywhere this phone keeps it: § */
-function pfpTake_(box, url, said) {
-  if (!USER) return;
-  USER.profile = Object.assign({}, USER.profile || {}, { photo: url });
-  USER.photo = url;
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
-  ['tutors', 'people', 'students', 'clients', 'family', 'everyone'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
-    if (r && USER.personId && (r.personId === USER.personId || r.person_id === USER.personId || r.id === USER.personId)) {
-      if ('image' in r) r.image = url;
-      if ('photo' in r) r.photo = url;
-    }
-  }));
-  const onCard = !!(box && box.closest && box.closest('.card-ed'));
-  if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''), said, { fold: onCard });
-  /* NOT WHILE THE PICKER IS ON YOUR OWN CARD'S EDIT (docs/history/339) — which is where it is now, for everybody. § */
-  try { if (typeof postFacesMine_ === 'function') postFacesMine_(); } catch (e) { oops_(e, 'me:pfpTake_') }
-  if (onCard) return;
-  try { if (typeof paint === 'function') paint('account'); } catch (e) { oops_(e, 'me:pfpTake_') }
-}
-
-on('pfp-pick', el => {
-  const inp = el.closest('.pfp') && el.closest('.pfp').querySelector('.pfp-in');
-  if (inp) inp.click();
-});
-on('pfp-remove', el => {
-  const box = el.closest('.pfp');
-  if (!USER || !box || !sure_(el, 'Remove?')) return;
-  send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, remove: true },
-        { button: el, where: box.querySelector('.pfp-said'), saying: 'Removing…', lock: box })
-    .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Removed. ' + pfpSaid_(got)); toast('Picture removed'); })
-    .catch(() => { const said = box.querySelector('.pfp-said'); if (said) said.textContent += ' ' + pfpKept_(); });
-});
-/* ---------- ONE OF THE ELEVEN, TAPPED § */
-on('pfp-choose', el => {
-  const box = el.closest('.pfp');
-  const name = String(el.dataset.pic || '');
-  if (!USER || !box || !pfpChoice_(PFP_PREFIX + name)) return;
-  const choice = PFP_PREFIX + name;
-  const said = box.querySelector('.pfp-said');
-  const was = String((USER.profile && USER.profile.photo) || '').trim();
-  if (pfpChoice_(was) === name) { if (said) said.textContent = 'Already chosen. ' + pfpSaid_(was); return; }
-  const face = box.querySelector('.pfp-face');
-  if (face) face.innerHTML = pfpFace_(choice);
-  pfpRing_(box, name);
-  send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, choice },
-        { button: el, where: said, saying: 'Saving…', lock: box })
-    .then(d => {
-      const got = String((d && d.photo) || '');
-      pfpTake_(box, got, (pfpChoice_(got) === name ? 'Saved. ' : 'The server kept something else. ') + pfpSaid_(got));
-      toast('Picture saved');
-    })
-    .catch(() => {
-      if (face) face.innerHTML = pfpFace_(was);
-      pfpRing_(box, pfpChoice_(was));
-      if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_(true);
-    });
-});
-/* `change`, NOT A `data-do` CLICK — a file input reports its choice by changing, the camera's
-   `cam-pick` argument. The value is cleared so choosing the same picture again still fires. */
-document.addEventListener('change', e => {
-  const inp = e.target;
-  if (!inp || !inp.matches || !inp.matches('.pfp-in')) return;
-  const file = (inp.files || [])[0];
-  inp.value = '';
-  const box = inp.closest('.pfp');
-  if (!file || !box || !USER) return;
-  const said = box.querySelector('.pfp-said');
-  const btn = box.querySelector('[data-do="pfp-pick"]');
-  if (said) said.textContent = 'Getting it ready…';
-  pfpPrepare_(file).then(data => {
-    if (!data) { if (said) said.textContent = 'That file is not a picture this phone can read. Try another.'; return; }
-    /* THE PREVIEW CHANGES BEFORE THE UPLOAD, so the crop is seen while it travels; if the server refuses, the line says why and the old picture comes back. § */
-    const face = box.querySelector('.pfp-face');
-    if (face) face.innerHTML = `<img class="pfp-pic" src="${esc(data)}" alt="Your profile picture" decoding="async">`;
-    pfpRing_(box, '');
-    return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
-                 { button: btn, where: said, saying: 'Saving…', lock: box })
-      .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Saved. ' + pfpSaid_(got)); toast('Picture saved'); })
-      .catch(() => {
-        const was = (USER.profile && USER.profile.photo) || '';
-        if (face) face.innerHTML = pfpFace_(was);
-        pfpRing_(box, pfpChoice_(was));
-        if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_();
-      });
-  });
-});
-
-/* THE HOUR CODES, WHEREVER THE BACKEND PUT THEM. § */
-function availCodes_() {
-  const groups = (DATA && DATA.profileFields) || {};
-  const hit = Object.keys(groups).find(g => isTimetable_(groups[g]));
-  return hit ? groups[hit] : [];
-}
-
-/* ---------- AND WHAT A GROUP HEADING IS DEPENDS ON THE SURFACE, SO THE SURFACE SAYS § */
-function fieldsHtml(groups, o) {
-  o = o || {};
-  const head = o.head === false ? '' : o.head || 'h2';
-  const value = o.value || (() => '');
-  const plain = (f, extra) => formField_(f, value(f), Object.assign({
-    attr: o.attr,
-    label: ROW_LABEL[f],
-    options: o.options ? o.options(f) : null,
-    suggest: o.suggest ? o.suggest(f) : null,
-    readonly: (o.readonly || []).indexOf(f) !== -1,
-  }, extra));
-  return Object.keys(groups).map(g => {
-    const list = (groups[g] || []).filter(f => RETIRED_FIELDS_.indexOf(f) === -1);
-    const timetable = isTimetable_(list);
-    /* THE SHELF, THEN WHATEVER ELSE IS IN THE GROUP. § */
-    const library = !timetable && isLibrary_(list);
-    const quals = !timetable && isQuals_(list);
-    const jobs = !timetable && isJobs_(list);
-    /* ---------- AND THE THREE DATE BOXES, WHICH REPLACE ONE FIELD RATHER THAN JOINING IT § */
-    /* EITHER SHAPE. The backend's group list names COLUMNS, so today it says `date_of_birth` — and `isDob_` is asked as well so a deployment that ever sends the § */
-    const wantsDob = !timetable && (list.indexOf('date_of_birth') !== -1 || isDob_(list));
-    /* THE PHONE, AS A CODE AND A NUMBER — the birthday's arrangement: § */
-    const wantsPhone = !timetable && list.indexOf('phone') !== -1;
-    /* THE PHOTOGRAPH SHELF GOES UNDER THE REST, not over it as the library one does: the page
-       reads profile photo, video, then the others, which is the order somebody thinks of them in. */
-    const photos = !timetable && isPhotos_(list);
-    /* ---------- AND `photo` IS A PICTURE YOU CHOOSE, NOT A LINK YOU PASTE § */
-    const picture = !timetable && o.attr === 'data-me' && list.indexOf('photo') !== -1;
-    const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f)) && !(jobs && isJobField_(f))
-                              && !(photos && (isPhotoField_(f) || f === 'video')) && !(picture && f === 'photo')
-                              && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
-    const body = timetable
-      ? availGrid_(list, o.raw || {}, o.readonly || [], o.attr === 'data-me')
-      : (picture ? photoPicker_(value) : '')
-      + (library ? libraryShelf_(list, value) : '')
-      + (quals ? qualShelf_(list, value) : '')
-      + (jobs ? jobShelf_(list, value) : '')
-      + (wantsDob ? dobBoxes_(value) : '')
-      + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneField_(value) : plain(f, extra))
-      + (photos ? videoPicker_(value) + photoShelf_(list, value) : '');
-    return (head ? `<${head}><span>${esc(g)}</span></${head}>` : '') + body;
-  }).join('');
-}
-
-/* The sheet writes TRUE/FALSE as text and the payload sends real booleans; rows written by older
-   versions send neither consistently. One reader for all three. */
-const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').trim());
-
-
 /* YOUR LIBRARY CARDS, A TOOL (docs/history/339) § */
 function libCardsDraw_(into) {
   if (!into) return;
@@ -12340,8 +12031,7 @@ function meSave_(el, auto) {
   /* SIGNED OUT (the session ended under an open card): nothing to save to, and `USER.name` would throw. */
   if (!USER) { toast('Sign in first.'); return resolve(false); }
   /* AND A THIRD SURFACE, WHICH IS THE SETTINGS COLUMN. § */
-  const box = el.closest('.me-form') || el.closest('#sheet-body') || el.closest('.widget-slot')
-           || document.body;
+  const box = el.closest('.me-form') || el.closest('#sheet-body') || el.closest('.widget-slot') || document.body;
   const said = box.querySelector('.me-said');
   /* GATHERED BEFORE `send_` LOCKS THE CARD. The lock disables every box, and this skips a disabled
      one on purpose (a locked field is not an answer) — so gathering afterwards would post nothing. */
@@ -12580,10 +12270,7 @@ on('pin-save', el => {
     .catch(() => {});
 });
 
-
-
 /* `LOADED` and `LOAD_FAILED` were declared here and are now in data.js, with the rest of the state. § */
-
 
 /* YOUR CARD IS WHERE YOU EDIT IT (docs/history/330) § */
 
@@ -12746,6 +12433,296 @@ document.addEventListener('change', e => {
     });
   }).catch(() => { /* `send_` has said why on the line */ });
 });
+
+;
+/* ==== js/me-fields.js ==== */
+/* ---------- THE SETTINGS FORM'S FIELDS: photos, the profile picture, availability and fieldsHtml (cut from me-settings.js; read with the other me-*.js by tools/piece-src.js). */
+/* ---------- AND A GROUP OF `photos_N` NAMES IS A SHELF OF PHOTOGRAPHS § */
+const isPhotoField_ = f => /^photos_\d+$/.test(String(f));
+const isPhotos_ = list => (list || []).some(isPhotoField_);
+/* `o.draft` IS PASSED THROUGH TO THE BOXES — the card editor keeps its own draft (`fieldHtml`'s note). § */
+function photoShelf_(list, value, o) {
+  const nums = (list || []).filter(isPhotoField_).map(f => String(f).match(/^photos_(\d+)$/)[1]);
+  return `<div class="lib-shelf ph-shelf" data-noun="photo">${shelfSlots_(nums,
+    i => shelfFilled_(value, ['photos_' + i]),
+    (i, hide) => {
+      const v = String(value('photos_' + i) || '').trim();
+      return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
+        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : ''}</span>
+        ${fieldHtml('photos_' + i, v, { placeholder: 'Photo', draft: (o || {}).draft, extra: 'type="hidden"' })}
+        <div class="tile-row">${tile_({ icon: 'plus', label: v ? 'Change photo' : 'Choose photo', act: 'ph-pick' })}${shelfDrop_('photo')}</div>
+        <p class="note ph-said"></p>${formFile_('ph-in', 'image/*')}
+      </div>`;
+    }, 'photo')}</div>`;
+}
+/* THE PREVIEW FOLLOWS THE BOX as it is typed into, so the check above does not wait for a Save. One
+   listener for the document, which is how every other input here is heard. */
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('.ph-slot input')) return;
+  const thumb = t.closest('.ph-slot').querySelector('.ph-thumb');
+  const v = String(t.value || '').trim();
+  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : '';
+});
+/* ---------- AN EXTRA PHOTO IS UPLOADED, NOT LINKED (owner, 8 Nov): redrawn here at 1200px JPEG, kept in Drive by
+   `photoFile`, and its link put in the slot's box so Save keeps it with the rest of the card. */
+const PHOTO_EDGE_ = 1200;
+function photoShrink_(file) {
+  return new Promise(done => {
+    try {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const w = img.naturalWidth || 1, h = img.naturalHeight || 1, k = Math.min(1, PHOTO_EDGE_ / Math.max(w, h));
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(w * k)); cv.height = Math.max(1, Math.round(h * k));
+        try { cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); done(cv.toDataURL('image/jpeg', 0.82)); } catch (e) { done(null); }
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); done(null); };
+      img.src = url;
+    } catch (e) { done(null); }
+  });
+}
+on('ph-pick', el => { const slot = el.closest('.ph-slot'), inp = slot && slot.querySelector('.ph-in'); if (inp) inp.click(); });
+document.addEventListener('change', e => {
+  const inp = e.target;
+  if (!inp || !inp.matches || !inp.matches('.ph-in')) return;
+  const file = (inp.files || [])[0], slot = inp.closest('.ph-slot');
+  inp.value = '';
+  if (!file || !slot || !USER) return;
+  const said = slot.querySelector('.ph-said'), say = m => { if (said) said.textContent = m; };
+  if (!/^image\//.test(file.type || '')) { say('That is not a picture. Choose a photo from your phone.'); return; }
+  say('Getting the photo ready…');
+  photoShrink_(file).then(data => {
+    if (!data || !/^data:image\/jpeg/.test(data)) { say('The phone could not read that photo. Try another.'); return; }
+    return send_({ action: 'photoFile', name: USER.name, personId: USER.personId, data },
+      { button: slot.querySelector('[data-do="ph-pick"]'), where: said, saying: 'Uploading…', lock: slot }).then(d => {
+      const url = String((d && d.url) || ''), box = slot.querySelector('input[data-me]');
+      if (!url || !box) { say('The photo went but no link came back. Try again.'); return; }
+      box.value = url;
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      say('Uploaded. Press Save to keep it on your card.');
+    });
+  }).catch(() => { /* `send_` has said why on the line */ });
+});
+/* ---------- YOUR PICTURE, CHOSEN RATHER THAN LINKED § */
+/* `o.fold`: ON YOUR CARD'S EDIT THE PICKER IS ONE LINE, the face beside "Picture", opening in place (docs/history/425). */
+function photoPicker_(value, said, o) {
+  const v = String(value('photo') || '').trim();
+  const K = picKindRow_(v);
+  const chosen = K ? K.chosen(v) : '';
+  const opt = n => {
+    const label = PFP_ART[n].name;
+    return tile_({ label: label, act: 'pfp-choose', data: { pic: n }, on: chosen === n, pressed: chosen === n, cls: 'pfp-opt',
+      face: pfpArt_(n, 40) });
+  };
+  const face = `<span class="pfp-face">${pfpFace_(v)}</span>`;
+  const fold = !!(o && o.fold);
+  return `${fold ? `<details class="pfp ce-fold" data-fold="picture" open>
+    <summary class="ce-line"><span class="ce-k">Picture</span>${face}</summary>` : `<div class="pfp">${face}`}
+    <div class="pfp-side">
+      <div class="tile-row">
+        ${/* A CHILD CHOOSES FROM THE GRID, NEVER A FILE (413) — `savePhoto` refuses one too. */
+          uiMay_('upload-photo') ? tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' }) : ''}
+        ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
+      </div>
+    </div>
+    <div class="pfp-grid" role="group" aria-label="Or choose a picture">${Object.keys(PFP_ART).map(opt).join('')}</div>
+    <p class="note pfp-said">${esc(said || pfpSaid_(v))}</p>
+    ${uiMay_('upload-photo') ? formFile_('pfp-in', 'image/*') : ''}
+  ${fold ? '</details>' : '</div>'}`;
+}
+/* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */
+function pfpSaid_(v) {
+  const K = picKindRow_(v);
+  if (K) return K.said(v);
+  return 'No picture yet, so your card shows your initial. Choose one, or a photo.';
+}
+/* THE PREVIEW IS `personFace_` LIKE EVERY OTHER FACE, so what you see here is what everybody else's card draws — so a picker and a card never disagree. § */
+function pfpFace_(v) {
+  const me = USER || {};
+  return personFace_({ pic: v, personId: me.personId, handle: me.handle,
+                       name: (me.profile && me.profile.first_name) || me.name || '?' },
+                     { cls: 'pfp-pic', none: 'pfp-none', size: 88, alt: 'Your profile picture', eager: true });
+}
+/* THE RING FOLLOWS A TAP AT ONCE, and goes back where it was if the server says no. */
+function pfpRing_(box, name) {
+  if (!box) return;
+  box.querySelectorAll('.pfp-opt').forEach(b => {
+    const on = !!name && b.dataset.pic === name;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+/* ---------- A REFUSAL KEEPS THE OLD PICTURE AND SAYS SO § */
+const PFP_SINCE = '2026-10-10-h-pictures';
+function pfpKept_(chose) {
+  const v = String((typeof DATA !== 'undefined' && DATA && DATA.version) || '');
+  const old = !!chose && /^\d{4}-\d\d-\d\d/.test(v) && v < PFP_SINCE;
+  return 'Your picture is unchanged.' + (old
+    ? ' The server has not been updated for the pictures yet; until it is, a photo still works.' : '');
+}
+/* ---------- SQUARE, AND SMALL ENOUGH TO POST § */
+const PFP_SIZE = 600;
+function pfpPrepare_(file) {
+  if (typeof camItemOf_ !== 'function') return Promise.resolve(null);
+  return camItemOf_(file).then(it => {
+    if (!it || it.kind !== 'image' || !it.data) return null;
+    return new Promise(done => {
+      const img = new Image();
+      img.onload = () => {
+        const w = img.naturalWidth || 1, h = img.naturalHeight || 1, s = Math.min(w, h);
+        const out = Math.max(1, Math.min(PFP_SIZE, s));
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = out;
+        try {
+          cv.getContext('2d').drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, out, out);
+          done(cv.toDataURL('image/jpeg', 0.85));
+        } catch (e) { done(null); }
+      };
+      img.onerror = () => done(null);
+      img.src = it.data;
+    });
+  }).catch(() => null);
+}
+/* WHAT THE SERVER SAID THE PICTURE NOW IS, written everywhere this phone keeps it: § */
+function pfpTake_(box, url, said) {
+  if (!USER) return;
+  USER.profile = Object.assign({}, USER.profile || {}, { photo: url });
+  USER.photo = url;
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  ['tutors', 'people', 'students', 'clients', 'family', 'everyone'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
+    if (r && USER.personId && (r.personId === USER.personId || r.person_id === USER.personId || r.id === USER.personId)) {
+      if ('image' in r) r.image = url;
+      if ('photo' in r) r.photo = url;
+    }
+  }));
+  const onCard = !!(box && box.closest && box.closest('.card-ed'));
+  if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''), said, { fold: onCard });
+  /* NOT WHILE THE PICKER IS ON YOUR OWN CARD'S EDIT (docs/history/339) — which is where it is now, for everybody. § */
+  try { if (typeof postFacesMine_ === 'function') postFacesMine_(); } catch (e) { oops_(e, 'me:pfpTake_') }
+  if (onCard) return;
+  try { if (typeof paint === 'function') paint('account'); } catch (e) { oops_(e, 'me:pfpTake_') }
+}
+on('pfp-pick', el => {
+  const inp = el.closest('.pfp') && el.closest('.pfp').querySelector('.pfp-in');
+  if (inp) inp.click();
+});
+on('pfp-remove', el => {
+  const box = el.closest('.pfp');
+  if (!USER || !box || !sure_(el, 'Remove?')) return;
+  send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, remove: true },
+        { button: el, where: box.querySelector('.pfp-said'), saying: 'Removing…', lock: box })
+    .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Removed. ' + pfpSaid_(got)); toast('Picture removed'); })
+    .catch(() => { const said = box.querySelector('.pfp-said'); if (said) said.textContent += ' ' + pfpKept_(); });
+});
+/* ---------- ONE OF THE ELEVEN, TAPPED § */
+on('pfp-choose', el => {
+  const box = el.closest('.pfp');
+  const name = String(el.dataset.pic || '');
+  if (!USER || !box || !pfpChoice_(PFP_PREFIX + name)) return;
+  const choice = PFP_PREFIX + name;
+  const said = box.querySelector('.pfp-said');
+  const was = String((USER.profile && USER.profile.photo) || '').trim();
+  if (pfpChoice_(was) === name) { if (said) said.textContent = 'Already chosen. ' + pfpSaid_(was); return; }
+  const face = box.querySelector('.pfp-face');
+  if (face) face.innerHTML = pfpFace_(choice);
+  pfpRing_(box, name);
+  send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, choice },
+        { button: el, where: said, saying: 'Saving…', lock: box })
+    .then(d => {
+      const got = String((d && d.photo) || '');
+      pfpTake_(box, got, (pfpChoice_(got) === name ? 'Saved. ' : 'The server kept something else. ') + pfpSaid_(got));
+      toast('Picture saved');
+    })
+    .catch(() => {
+      if (face) face.innerHTML = pfpFace_(was);
+      pfpRing_(box, pfpChoice_(was));
+      if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_(true);
+    });
+});
+/* `change`, NOT A `data-do` CLICK — a file input reports its choice by changing, the camera's
+   `cam-pick` argument. The value is cleared so choosing the same picture again still fires. */
+document.addEventListener('change', e => {
+  const inp = e.target;
+  if (!inp || !inp.matches || !inp.matches('.pfp-in')) return;
+  const file = (inp.files || [])[0];
+  inp.value = '';
+  const box = inp.closest('.pfp');
+  if (!file || !box || !USER) return;
+  const said = box.querySelector('.pfp-said');
+  const btn = box.querySelector('[data-do="pfp-pick"]');
+  if (said) said.textContent = 'Getting it ready…';
+  pfpPrepare_(file).then(data => {
+    if (!data) { if (said) said.textContent = 'That file is not a picture this phone can read. Try another.'; return; }
+    /* THE PREVIEW CHANGES BEFORE THE UPLOAD, so the crop is seen while it travels; if the server refuses, the line says why and the old picture comes back. § */
+    const face = box.querySelector('.pfp-face');
+    if (face) face.innerHTML = `<img class="pfp-pic" src="${esc(data)}" alt="Your profile picture" decoding="async">`;
+    pfpRing_(box, '');
+    return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
+                 { button: btn, where: said, saying: 'Saving…', lock: box })
+      .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Saved. ' + pfpSaid_(got)); toast('Picture saved'); })
+      .catch(() => {
+        const was = (USER.profile && USER.profile.photo) || '';
+        if (face) face.innerHTML = pfpFace_(was);
+        pfpRing_(box, pfpChoice_(was));
+        if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_();
+      });
+  });
+});
+/* THE HOUR CODES, WHEREVER THE BACKEND PUT THEM. § */
+function availCodes_() {
+  const groups = (DATA && DATA.profileFields) || {};
+  const hit = Object.keys(groups).find(g => isTimetable_(groups[g]));
+  return hit ? groups[hit] : [];
+}
+/* ---------- AND WHAT A GROUP HEADING IS DEPENDS ON THE SURFACE, SO THE SURFACE SAYS § */
+function fieldsHtml(groups, o) {
+  o = o || {};
+  const head = o.head === false ? '' : o.head || 'h2';
+  const value = o.value || (() => '');
+  const plain = (f, extra) => formField_(f, value(f), Object.assign({
+    attr: o.attr,
+    label: ROW_LABEL[f],
+    options: o.options ? o.options(f) : null,
+    suggest: o.suggest ? o.suggest(f) : null,
+    readonly: (o.readonly || []).indexOf(f) !== -1,
+  }, extra));
+  return Object.keys(groups).map(g => {
+    const list = (groups[g] || []).filter(f => RETIRED_FIELDS_.indexOf(f) === -1);
+    const timetable = isTimetable_(list);
+    /* THE SHELF, THEN WHATEVER ELSE IS IN THE GROUP. § */
+    const library = !timetable && isLibrary_(list);
+    const quals = !timetable && isQuals_(list);
+    const jobs = !timetable && isJobs_(list);
+    /* ---------- AND THE THREE DATE BOXES, WHICH REPLACE ONE FIELD RATHER THAN JOINING IT § */
+    /* EITHER SHAPE. The backend's group list names COLUMNS, so today it says `date_of_birth` — and `isDob_` is asked as well so a deployment that ever sends the § */
+    const wantsDob = !timetable && (list.indexOf('date_of_birth') !== -1 || isDob_(list));
+    /* THE PHONE, AS A CODE AND A NUMBER — the birthday's arrangement: § */
+    const wantsPhone = !timetable && list.indexOf('phone') !== -1;
+    /* THE PHOTOGRAPH SHELF GOES UNDER THE REST, not over it as the library one does: the page
+       reads profile photo, video, then the others, which is the order somebody thinks of them in. */
+    const photos = !timetable && isPhotos_(list);
+    /* ---------- AND `photo` IS A PICTURE YOU CHOOSE, NOT A LINK YOU PASTE § */
+    const picture = !timetable && o.attr === 'data-me' && list.indexOf('photo') !== -1;
+    const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f)) && !(jobs && isJobField_(f))
+                              && !(photos && (isPhotoField_(f) || f === 'video')) && !(picture && f === 'photo')
+                              && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
+    const body = timetable
+      ? availGrid_(list, o.raw || {}, o.readonly || [], o.attr === 'data-me')
+      : (picture ? photoPicker_(value) : '')
+      + (library ? libraryShelf_(list, value) : '')
+      + (quals ? qualShelf_(list, value) : '')
+      + (jobs ? jobShelf_(list, value) : '')
+      + (wantsDob ? dobBoxes_(value) : '')
+      + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneField_(value) : plain(f, extra))
+      + (photos ? videoPicker_(value) + photoShelf_(list, value) : '');
+    return (head ? `<${head}><span>${esc(g)}</span></${head}>` : '') + body;
+  }).join('');
+}
+/* The sheet writes TRUE/FALSE as text and the payload sends real booleans; rows written by older
+   versions send neither consistently. One reader for all three. */
+const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').trim());
 
 ;
 /* ==== js/me-card.js ==== */

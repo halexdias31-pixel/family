@@ -163,8 +163,8 @@ function writingLinkOf_(x) {
   return WRITING_TITLES.get(spellKey_(String(x.name || '').split(':')[0].trim())) || '';
 }
 /* A WRITING'S RELIGION (546) is its registry topic (Christianity, Judaism, Islam): "why is religion not coming up" — Topic holds hundreds of answers. */
-const writingAt1_ = (x, k) => (!x ? '' : k === 'religion' ? ((x.w || (x.kind === 'bible' && x.bb)) && x.topic) || ''
-  : x.w ? x.w[k] || '' : x.kind === 'bible' && x.bb ? bibleW_(x, k) || ''
+const writingAt1_ = (x, k) => (!x ? '' : k === 'religion' ? ((x.w || (isBible_(x) && x.bb)) && x.topic) || ''
+  : x.w ? x.w[k] || '' : isBible_(x) && x.bb ? bibleW_(x, k) || ''
   : k === 'work' ? writingLinkOf_(x) : '');
 /* A SOURCE TEXT TWO TRADITIONS HOLD (660): "where's the bible here?" under Judaism — the Masoretic Text in its own Hebrew is the
    Old Testament's original and Judaism's Tanakh, so those cards answer both. */
@@ -190,7 +190,7 @@ function writingReligionAsked_() {
   try { const f = (STUFF.filters || []).find(g => g && g.field === 'wReligion' && !g.any); return f ? String(f.value || '') : ''; } catch (e) { return ''; }
 }
 function writingOf_(x) {
-  if (!x || !(x.w || (x.kind === 'bible' && x.bb))) return null;
+  if (!x || !(x.w || (isBible_(x) && x.bb))) return null;
   const w = {};
   WRITING_KEYS.forEach(k => { w[k] = writingAt_(x, k); });
   return w;
@@ -226,8 +226,6 @@ function writingAdmit_() {
   return STUFF.admit == null ? writingNow_() : STUFF.admit;
 }
 const writingAdmitted_ = (x, admit) => !x.wSrc || (',' + admit + ',').indexOf(',' + x.wSrc + ',') >= 0;
-/* WHETHER ANY SOURCE'S INDEX IS STILL ON ITS WAY (546) — every loader keeps `asking` on its own state, read here as one list. */
-const writingAsking_ = () => [BIBLE, TALMUD, QURAN, HADITH, WORKS, TEXTS, PDTEXTS, ORTHO, HYMNS].some(S => S && S.asking);
 
 /* ---------- ONE READING LAYOUT FOR EVERY LIBRARY TEXT (owner, 8 Nov): title, a reference in its tradition's own numbering, the text. */
 /* THE NUMBERING IS DATA: `{path}` reads the item, `[...]` drops when a path in it is empty, `a|b` falls back, `@name` is `READING_SAY`. */

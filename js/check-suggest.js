@@ -144,7 +144,7 @@ const sg = more => Object.assign({ action: 'suggest', kind: 'question', itemId: 
   const files = fs.readdirSync(dir).filter(f => /\.js$/.test(f) && !/^check/.test(f));
   files.forEach(f => {
     const src = fs.readFileSync(path.join(dir, f), 'utf8');
-    const own = f === 'submit.js' ? src.replace(/function suggestOpts_\([\s\S]*?\n\}/, '') : src;
+    const own = f === 'submit-suggest.js' ? src.replace(/function suggestOpts_\([\s\S]*?\n\}/, '') : src;
     if (/act:\s*'rep-box'/.test(own)) bad.push('js/' + f + ' draws a Suggest tile of its own — use tile_(suggestOpts_(kind, id, label))');
     if (/label:\s*'(Report[^']*|Note for Claude)'/.test(src)) bad.push('js/' + f + ' still has a Report or Note for Claude tile');
     if (/act:\s*'ncl-open'|reportTile_|noteTile_/.test(src)) bad.push('js/' + f + ' still calls the old report or note tile');
@@ -154,7 +154,7 @@ const sg = more => Object.assign({ action: 'suggest', kind: 'question', itemId: 
   ['tiles.js', 'arcade.js', 'layout.js', 'me.js', 'find.js', 'posts.js'].forEach(f => { if (!uses.some(u => u === f || u.startsWith(f.slice(0, -3) + '-'))) bad.push(f + ' no longer calls suggestOpts_ — cards, widgets, column cards, the finder and messages each need it'); });
   const icons = fs.readFileSync(path.join(dir, 'tiles.js'), 'utf8');
   if (!/^\s*suggest:\s*'/m.test(icons)) bad.push('TILE_ICONS has no `suggest` icon');
-  if (!/icon: 'suggest'/.test(fs.readFileSync(path.join(dir, 'submit.js'), 'utf8'))) bad.push('suggestOpts_ does not use the suggest icon');
+  if (!/icon: 'suggest'/.test(require('../tools/piece-src.js').pieceSrc('submit'))) bad.push('suggestOpts_ does not use the suggest icon');
 }
 
 /* ---------- 5. ROUND THREE (498): a shop item's id with spaces is taken; Find's path is a line of the note; data/notes-done.json marks done; one day's mistaken Done reopened ---------- */
