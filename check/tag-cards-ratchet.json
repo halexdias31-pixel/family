@@ -1,0 +1,428 @@
+{
+ "say": "Tags with no card, and tags with two. Only goes down: node js/check-tag-cards.js --lower",
+ "tags": 24246,
+ "missing": 22921,
+ "twice": 67,
+ "per": {
+  "Chapter (wChapter)": {
+   "missing": 10354,
+   "twice": 0
+  },
+  "Unit (wUnit)": {
+   "missing": 9145,
+   "twice": 7
+  },
+  "Book (wBook)": {
+   "missing": 566,
+   "twice": 2
+  },
+  "Paper (paperId)": {
+   "missing": 541,
+   "twice": 0
+  },
+  "Author (wAuthor)": {
+   "missing": 388,
+   "twice": 0
+  },
+  "Topic (topic)": {
+   "missing": 291,
+   "twice": 3
+  },
+  "Day (fiveDay)": {
+   "missing": 214,
+   "twice": 0
+  },
+  "Section (wSection)": {
+   "missing": 142,
+   "twice": 0
+  },
+  "Work (wWork)": {
+   "missing": 137,
+   "twice": 0
+  },
+  "Years (personYears)": {
+   "missing": 130,
+   "twice": 0
+  },
+  "Year (boutYear)": {
+   "missing": 79,
+   "twice": 0
+  },
+  "From (personFrom)": {
+   "missing": 60,
+   "twice": 0
+  },
+  "Event (boutEvent)": {
+   "missing": 44,
+   "twice": 0
+  },
+  "Role (histRole)": {
+   "missing": 42,
+   "twice": 0
+  },
+  "Subject (subject)": {
+   "missing": 41,
+   "twice": 0
+  },
+  "Fighter (fighter)": {
+   "missing": 41,
+   "twice": 0
+  },
+  "Translation (wText)": {
+   "missing": 40,
+   "twice": 0
+  },
+  "Chemical type (cCategory)": {
+   "missing": 39,
+   "twice": 1
+  },
+  "Theatre (histTheatre)": {
+   "missing": 38,
+   "twice": 0
+  },
+  "Price band (mPrice)": {
+   "missing": 36,
+   "twice": 0
+  },
+  "Collection (wCollection)": {
+   "missing": 29,
+   "twice": 0
+  },
+  "Kind of writing (wForm)": {
+   "missing": 24,
+   "twice": 0
+  },
+  "Part (qPart)": {
+   "missing": 24,
+   "twice": 0
+  },
+  "Marks (marks)": {
+   "missing": 22,
+   "twice": 0
+  },
+  "Group (cGroup)": {
+   "missing": 16,
+   "twice": 0
+  },
+  "Division (division)": {
+   "missing": 16,
+   "twice": 0
+  },
+  "System (mSystem)": {
+   "missing": 15,
+   "twice": 0
+  },
+  "Round (boutRound)": {
+   "missing": 15,
+   "twice": 0
+  },
+  "Interface (pcIface)": {
+   "missing": 14,
+   "twice": 0
+  },
+  "Decade (decade)": {
+   "missing": 14,
+   "twice": 0
+  },
+  "Month (boutMonth)": {
+   "missing": 12,
+   "twice": 0
+  },
+  "Winner (boutWinner)": {
+   "missing": 12,
+   "twice": 0
+  },
+  "Which (kindOwn)": {
+   "missing": 10,
+   "twice": 0
+  },
+  "Socket or form factor (pcSocket)": {
+   "missing": 10,
+   "twice": 0
+  },
+  "Found (histFound)": {
+   "missing": 10,
+   "twice": 0
+  },
+  "Dated (histDated)": {
+   "missing": 10,
+   "twice": 0
+  },
+  "Year (examYear)": {
+   "missing": 10,
+   "twice": 0
+  },
+  "Held at (histRepository)": {
+   "missing": 9,
+   "twice": 0
+  },
+  "What for (forLabel)": {
+   "missing": 8,
+   "twice": 0
+  },
+  "What kind (kindLabel)": {
+   "missing": 8,
+   "twice": 0
+  },
+  "Language (wLanguage)": {
+   "missing": 8,
+   "twice": 0
+  },
+  "Level (level)": {
+   "missing": 8,
+   "twice": 0
+  },
+  "Grade (bandValue)": {
+   "missing": 8,
+   "twice": 0
+  },
+  "Exam board (examBoard)": {
+   "missing": 8,
+   "twice": 0
+  },
+  "Tier (tier)": {
+   "missing": 8,
+   "twice": 0
+  },
+  "Paper section (paperSection)": {
+   "missing": 8,
+   "twice": 0
+  },
+  "Sub-part (qSub)": {
+   "missing": 8,
+   "twice": 0
+  },
+  "What you need (needs)": {
+   "missing": 8,
+   "twice": 1
+  },
+  "Account type (settingFor)": {
+   "missing": 7,
+   "twice": 0
+  },
+  "Engine (mEngine)": {
+   "missing": 7,
+   "twice": 0
+  },
+  "Connects to (pcLinks)": {
+   "missing": 7,
+   "twice": 0
+  },
+  "Period (cPeriod)": {
+   "missing": 7,
+   "twice": 0
+  },
+  "Result (boutMethod)": {
+   "missing": 7,
+   "twice": 0
+  },
+  "Month (fiveMonth)": {
+   "missing": 7,
+   "twice": 0
+  },
+  "Tradition (wTradition)": {
+   "missing": 6,
+   "twice": 0
+  },
+  "Card type (mKind)": {
+   "missing": 6,
+   "twice": 0
+  },
+  "Version (mBadge)": {
+   "missing": 6,
+   "twice": 0
+  },
+  "Format (histFormat)": {
+   "missing": 6,
+   "twice": 0
+  },
+  "Category (shopKind)": {
+   "missing": 6,
+   "twice": 0
+  },
+  "School year (yearGroup)": {
+   "missing": 6,
+   "twice": 0
+  },
+  "Religion (wReligion)": {
+   "missing": 5,
+   "twice": 0
+  },
+  "Manuscripts, people, writings, events or timelines (histKind)": {
+   "missing": 5,
+   "twice": 0
+  },
+  "Source text (wSource)": {
+   "missing": 5,
+   "twice": 0
+  },
+  "Part type (pcType)": {
+   "missing": 5,
+   "twice": 0
+  },
+  "Engine size (mSize)": {
+   "missing": 5,
+   "twice": 0
+  },
+  "State (cState)": {
+   "missing": 5,
+   "twice": 0
+  },
+  "Price (shopPrice)": {
+   "missing": 5,
+   "twice": 0
+  },
+  "Shelf (shelf)": {
+   "missing": 4,
+   "twice": 0
+  },
+  "Brand (mMake)": {
+   "missing": 4,
+   "twice": 0
+  },
+  "Model (mModel)": {
+   "missing": 4,
+   "twice": 0
+  },
+  "Generation (mGen)": {
+   "missing": 4,
+   "twice": 0
+  },
+  "Era (histEra)": {
+   "missing": 4,
+   "twice": 0
+  },
+  "How you get it (shopHow)": {
+   "missing": 4,
+   "twice": 0
+  },
+  "Key stage (keystage)": {
+   "missing": 4,
+   "twice": 0
+  },
+  "Who (profileType)": {
+   "missing": 3,
+   "twice": 0
+  },
+  "Years made (mYears)": {
+   "missing": 3,
+   "twice": 0
+  },
+  "Material (histMaterial)": {
+   "missing": 3,
+   "twice": 0
+  },
+  "For (shopFor)": {
+   "missing": 3,
+   "twice": 0
+  },
+  "Required (required)": {
+   "missing": 3,
+   "twice": 0
+  },
+  "Type (documentType)": {
+   "missing": 3,
+   "twice": 0
+  },
+  "Which type (typeOwn)": {
+   "missing": 3,
+   "twice": 0
+  },
+  "Month (examMonth)": {
+   "missing": 3,
+   "twice": 0
+  },
+  "Source (source)": {
+   "missing": 3,
+   "twice": 0
+  },
+  "Which posts (postState)": {
+   "missing": 2,
+   "twice": 0
+  },
+  "Who posted (postBy)": {
+   "missing": 2,
+   "twice": 0
+  },
+  "Holds (venueSize)": {
+   "missing": 2,
+   "twice": 0
+  },
+  "Project or coursework (projectType)": {
+   "missing": 2,
+   "twice": 0
+  },
+  "Primary or secondary source (wPrimacy)": {
+   "missing": 2,
+   "twice": 0
+  },
+  "Car or car part? (mScope)": {
+   "missing": 2,
+   "twice": 0
+  },
+  "Valves (mValves)": {
+   "missing": 2,
+   "twice": 0
+  },
+  "Fuel (mFuel)": {
+   "missing": 2,
+   "twice": 0
+  },
+  "Fighters or fights (boxKind)": {
+   "missing": 2,
+   "twice": 0
+  },
+  "Side (histSide)": {
+   "missing": 2,
+   "twice": 0
+  },
+  "Theme (shopTheme)": {
+   "missing": 2,
+   "twice": 0
+  },
+  "Verified (verified)": {
+   "missing": 2,
+   "twice": 0
+  },
+  "When (postWhen)": {
+   "missing": 1,
+   "twice": 0
+  },
+  "Area (venueArea)": {
+   "missing": 1,
+   "twice": 0
+  },
+  "Good for (venueFor)": {
+   "missing": 1,
+   "twice": 0
+  },
+  "Phase (mPhase)": {
+   "missing": 1,
+   "twice": 0
+  },
+  "Market (mMarket)": {
+   "missing": 1,
+   "twice": 0
+  },
+  "Experiment or build (practicalType)": {
+   "missing": 1,
+   "twice": 0
+  },
+  "Brand (shopBrand)": {
+   "missing": 1,
+   "twice": 0
+  },
+  "Level (fiveLevel)": {
+   "missing": 1,
+   "twice": 0
+  },
+  "Your result (myResult)": {
+   "missing": 1,
+   "twice": 0
+  },
+  "Question (qNumber)": {
+   "missing": 0,
+   "twice": 53
+  }
+ }
+}
