@@ -30,7 +30,7 @@ check('the fill-in standard: every library part that asks to fill something in s
     /* NO TABLE TO FILL: EVERY GAP IN ONE BOX (owner, 13 Nov), its answers typed as a child might part them, in order */
     const one = host.querySelector('.qp-cells-box .qp-ans-in');
     if (!host.querySelector('table[data-cells]') && want.length) {
-      if (!one || inputs.length || !host.querySelector('.qp-cells-hint')) { bad.push(r.row_id + ': its gaps are not one box with its line (' + inputs.length + ' loose cells)'); return; }
+      if (!one || inputs.length || !host.querySelector('.qp-cells-box > .q-hint')) { bad.push(r.row_id + ': its gaps are not one box with its line (' + inputs.length + ' loose cells)'); return; }
       boxes++;
       const own1 = (String(r.html || '').match(/<table[\s\S]*?<\/table>/) || [''])[0];
       if ((own1.match(/<(td|th)([^>]*)>(?:\s|&nbsp;| )*<\/\1>/g) || []).length > (w.cellCorner_ && w.cellCorner_(own1) ? 1 : 0)) bad.push(r.row_id + '\'s own table has blanks and its gaps stand under it, not in it');

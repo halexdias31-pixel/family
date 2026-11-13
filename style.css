@@ -5240,7 +5240,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .qp-cell.is-near { box-shadow: 0 0 0 3px var(--warn); }
 td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* EVERY GAP IN ONE BOX (owner, 13 Nov): the one line over it says to write the answers in order. */
-.qp-cells-hint { flex: 1 1 100%; margin: 0 0 var(--s1); font: 400 var(--fs-body)/1.3 var(--font); color: var(--ink); text-align: center; }
+.qp-compose > .q-hint { font-size: var(--fs-body); line-height: 1.3; text-align: center; }
 
 /* IN THE CARD a long maths answer stops at four lines and scrolls, where it used to push the card taller. */
 .qp-bar .kp-field.kp-maths > .kp-show { max-height: 9.5rem; overflow-y: auto; }
@@ -5295,7 +5295,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .prog-weak + .prog-weak { margin-top: var(--s2); }
 .prog-weak .row { border-bottom: 0; }
 .prog-sessions .note { margin: var(--s2) 0 0; }
-.prog-from { margin: -.2rem 0 var(--s2); font-size: var(--fs-small); }
+.prog-from { margin: calc(-1 * var(--s1)) 0 var(--s2); font-size: var(--fs-small); }
 .prog-paper > summary, .miss-q > summary { min-height: var(--tap); cursor: pointer; list-style: none; align-items: center; }
 .prog-paper > summary::-webkit-details-marker, .miss-q > summary::-webkit-details-marker { display: none; }
 .prog-paper > summary .k::before, .miss-q > summary .k::before { content: "▸"; display: inline-block; width: 1rem; color: var(--gold); }
@@ -5828,7 +5828,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-tags :is(.qtags, .prof-tags, .prof-who-tags, .prof-who, .prof-line) { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--s1); }
 .card.kc > .kc-lines { margin-top: var(--s2); }
 /* ONE TEXT SIZE IN A CARD'S CONTENT, THE TAG'S (rule tpl-text-size): body and small both read --fs-tag inside it, so every block follows the one token. */
-.card.kc > :is(.kc-lines, .kc-form) :is(figure, .kc-fig) > :is(svg:not(.pp), img) { width: min(100%, var(--pic-w)); height: auto; }
+.card.kc > :is(.kc-lines, .kc-form) figure > :is(svg:not(.pp), img) { width: min(100%, var(--pic-w)); height: auto; }
 .card.kc > :is(.kc-lines, .kc-form) { --fs-body: var(--fs-tag); --fs-small: var(--fs-tag); font-size: var(--fs-tag); }
 .card.kc > .kc-lines > * { margin: var(--s0) 0 0; }
 .card.kc > .kc-lines :is(.qtags, .prof-tags, .tile-row, .btn-row) { justify-content: center; }

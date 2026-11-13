@@ -203,7 +203,7 @@ function cellsBox_(x) {
   const inTable = !!cellsTable_(x, cellsCardHtml_(x));
   const val = String(ansRead_(k) || '').replace(/(?:\s*;\s*)+$/, '');
   const maths = cells.filter(c => c.ways).every(c => /^[-\d.,\s|£$%°/]+$/.test(c.ways));
-  const one = inTable ? '' : `<p class="qp-cells-hint">${esc(cellsHint_(cells))}</p><div class="qp-ans-row qp-bar"><label class="qp-ans${
+  const one = inTable ? '' : `<p class="q-hint">${esc(cellsHint_(cells))}</p><div class="qp-ans-row qp-bar"><label class="qp-ans${
     maths ? ' qp-ans-maths' : ''}" aria-label="Your answers, in order">${kpField_(k, val, maths ? 'maths' : 'words', 3)}</label></div>`;
   const said = subBoxSay_(k, val);
   return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${one}
