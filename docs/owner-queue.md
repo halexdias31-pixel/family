@@ -68,3 +68,11 @@ One list, so nothing asked for gets lost. Claude ticks items off here when they 
 - [ ] Computer Science: AQA A-Level
 - [ ] Portuguese: Edexcel GCSE and A-Level
 - [ ] Biology, Chemistry, Physics: A-Level (board to match students; default AQA)
+
+## Reference databases (owner, 13 Nov), each in its own Reference branch, never mixed with spec topics
+- [ ] Hebrew and Greek Bible words (Strong's numbers, public domain): meaning, root, grammar
+- [ ] Logical fallacies: definition plus a neutral example each
+- [ ] Physical constants and units: value, unit, which specs use it
+- [ ] Mathematicians as people (no theorems database)
+- [ ] Countries, with capitals, major cities and flags (cities and capitals are their own items, linked)
+- [ ] Solar system: planets and moons, with sizes and distances
