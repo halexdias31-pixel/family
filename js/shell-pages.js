@@ -180,15 +180,17 @@ function flowShow_(id, n) {
   }, 'flow-show');
 }
 
-/* THE TOP BAR (900): the brand, and who is signed in with Sign out; never a Sign in tile (owner, 6 Nov). */
+/* THE TOP BAR (900): the brand, and who is signed in as a removable tag; never a Sign in tile (owner, 6 Nov). */
 function topbarPaint_() {
   const bar = $('topbar-who');
   if (!bar || typeof tile_ !== 'function') return;
   const mark = document.querySelector('.topbar-brand');
   if (mark && mark.textContent !== brand('name', '@family.')) mark.textContent = brand('name', '@family.');
   const who = USER ? String(USER.name || USER.handle || '').trim() : '';
-  /* ONLY @family., THE NAME AND SIGN OUT (owner, 6 Nov); signed out, Sign in is Find › Settings (C+). */
-  const html = USER ? `<span class="topbar-name">${esc(who)}</span>${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}` : '';
+  /* THE NAME IS A CHIP: removing it signs out, one control one job (owner, 13 Nov); signed out, Sign in is Find › Settings. */
+  const label = 'Sign out ' + who;
+  const html = USER ? qtag_(`${esc(who)}${tile_({ icon: 'close', label: label, act: 'signout', cls: 'chip-x' })}`,
+    ` data-do="signout" role="button" tabindex="0" aria-label="${esc(label)}"`, 'sm topbar-name', 'chip') : '';
   if (bar.innerHTML !== html) bar.innerHTML = html;
 }
 

@@ -44,6 +44,29 @@ check('signing out sends the notepad typed a moment before — what waits for it
   return bad;
 });
 
+/* THE NAME IN THE TOP BAR IS A CHIP: removing it is signing out, and it goes as a removed chip does (owner, 13 Nov). */
+check('the top bar shows the name as a removable tag; removing it signs out and the tag is gone', async () => {
+  const { w, sent } = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const d = w.document, bad = [];
+  if (typeof w.topbarPaint_ === 'function') w.topbarPaint_();
+  const bar = d.getElementById('topbar-who');
+  if (!bar) return ['#topbar-who is not on the page — nothing was checked'];
+  const tag = bar.querySelector('.chip[data-do="signout"]');
+  if (!tag) return ['signed in, the top bar has no name tag that signs out: ' + bar.innerHTML.slice(0, 200)];
+  if (!/Ada/.test(tag.textContent)) bad.push('the name tag reads ' + JSON.stringify(tag.textContent));
+  if (!/^Sign out /.test(tag.getAttribute('aria-label') || '')) bad.push('the name tag is labelled ' + JSON.stringify(tag.getAttribute('aria-label')));
+  if (!tag.querySelector('.chip-x')) bad.push('the name tag has no ×, so it does not look removable like Find\'s chips');
+  if (bar.querySelectorAll('[data-do="signout"]:not(.chip):not(.chip-x)').length) bad.push('a separate Sign out button is still beside the name');
+  tag.click();
+  await wait(200);
+  if (w.__t.whoami()) bad.push('removing the name tag left somebody signed in');
+  if (!sent.some(b => b.action === 'signOut')) bad.push('removing the name tag never ended the session on the server');
+  if (typeof w.topbarPaint_ === 'function') w.topbarPaint_();
+  if (bar.querySelector('.chip')) bad.push('the name tag is still in the top bar after signing out');
+  return bad;
+});
+
 check('drafts across tabs, the booking\'s addresses, and nothing kept for ever', async () => {
   const OLD = Date.now() - 31 * 24 * 60 * 60 * 1000;
   const seed = win => {
