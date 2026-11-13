@@ -86,6 +86,7 @@ Everything below derives from that core: 12 principles, each with its specific r
 - **9.4** No price reaches a child; no child's surname leaves the server. Checks: `kid-prices`, `surnames`
 - **9.5** Posts and photos wait for approval and are kept as files. Checks: `posts`, `uploads`, `choice`, `hands`, `media`, `films`, `suggest`
 - **9.6** Names on screen are first name + initial for everyone; parents' essential emails go to the admin for now, saying who they were for. Checks: `format`, `prefs`, `handles`
+- **9.7** An admin sees and changes a person's settings through one lens: every settings card reads `whose_()`, never USER, so no card has an admin copy; only an admin opens it (`lensOpen` in the permissions table), the viewed person's sign-out, PIN and roles are shut in it, and every change to somebody else's row is logged by id in `lens_log`. Checks: `lens`, `flow/40`
 
 ## 10. The site is the business
 - **10.1** Everything the business does runs from here, autonomously (booking, matching, payment, reminders, receipts, tax pot, renewals), built in the site; outside services only where needed (Stripe). Checks: `one-place`, `biz`, `biz-checker`, `flow/*`

@@ -372,4 +372,6 @@ const ACTION_ACCESS = {
   linkChild: 'admin', adminUnlinkFamily: 'admin',
   /* PEOPLE MADE, CHANGED AND REMOVED FROM THE PEOPLE COLUMN (373). */
   personGet: 'admin', personSave: 'admin', personDelete: 'admin',
+  /* THE ADMIN'S LENS: somebody else's whole settings, read to be drawn and changed — an admin's alone. */
+  lensOpen: 'admin',
 };

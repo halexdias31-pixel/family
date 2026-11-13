@@ -43,3 +43,9 @@ const isWearable = x => {
 };
 /* Whether the person signed in is an admin. § */
 const isAdmin = () => !!USER && rankAtLeast_('admin');
+/* WHOSE SETTINGS (the admin's lens): every settings card reads `whose_()`, never USER, so one path draws anybody's. */
+/* LENS is the person an admin picked in Find › Settings (`lensCard_`, find-doors.js); nobody else can set it, and USER stays the asker. */
+let LENS = null;
+const whose_ = () => (LENS && isAdmin() ? LENS : USER);
+const lensOn_ = () => !!USER && whose_() !== USER;
+const whoseAtLeast_ = want => rankAtLeast_(want, whose_());

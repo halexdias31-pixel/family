@@ -296,9 +296,9 @@ function stuffSorted_(items) {
 /* PADDED SO THE ALPHABET AGREES WITH ARITHMETIC. § */
 /* ---------- AND THE PAPER ITSELF STRAIGHT AFTER ITS NAME, THEN THE PART BY `qPartKey` § */
 /* ---------- CONTENT CARDS AFTER THE REST, IN THE ORDER THEY TEACH — AND FIRST ONLY WHEN THEY ARE ASKED FOR § */
-/* A SETTING THAT IS NOT YOURS (shut, greyed) comes after all of yours. */
+/* A SETTING THAT IS NOT YOURS (shut, greyed) comes after all of yours; the admin's lens (whose settings these are) before them all. */
 const sortKey_ = x => [
-  isContent_(x) ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : x.mine === false ? '3' : '1',
+  x.key === 'set:lens' ? '0' : isContent_(x) ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : x.mine === false ? '3' : '1',
   padNums_(String(x.sub || x.name || '').toLowerCase()),
   isQ_(x) ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
   padNums_(String(x.qNumber == null ? '' : x.qNumber)),

@@ -107,7 +107,7 @@ function endTimesTables() {
         if (typeof d.best === 'number') USER.ttHighscore = d.best;
         try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
         /* ---------- AND THE ROW THE BOARD READS, WHICH THIS NEVER TOUCHED § */
-        const meRow = (DATA.students || []).concat(DATA.tutors || []).filter(mineIs_)[0];
+        const meRow = (DATA.students || []).concat(DATA.tutors || []).filter(t => mineIs_(t))[0];
         if (meRow) meRow.ttHighscore = Number(USER.ttHighscore) || 0;
         paintBoard_('tt-board', 'ttHighscore');
       })
