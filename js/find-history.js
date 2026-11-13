@@ -101,7 +101,8 @@ function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or s
 function specItem_(r) {
   return {
     kind: 'spec', name: r.code, key: 'spec:' + r.id, sub: '', image: '',
-    subject: r.subject, level: r.level, examBoard: r.board,
+    /* A SPEC THAT SPANS ITS LEVEL'S TIERS NAMES THEM (`tiers`, ESL's A1 to C2), so the tier question is asked over its cards too. */
+    subject: r.subject, level: r.level, examBoard: r.board, tier: r.tiers || '',
     text: plainText_([r.board, r.qualification, r.subject, r.code, 'specification spec syllabus']
       .concat((r.sections || []).map(s => s.title), (r.points || []).map(p => p.id + ' ' + p.text)).join(' ')),
     row: r,
