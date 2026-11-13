@@ -52,6 +52,8 @@ const SUITE = [
   { file: 'check-tutor-card.js', what: 'a tutor card at 390 and 830: every pill holds its text, the rate says /h once, no-hours in the ink', par: true },
   /* A STEM'S TABLE DREW WITH NO BORDERS (`.qsheet table` only): a browser, about 10s, so it stays in --fast. */
   { file: 'check-tables.js', what: 'every table in a question, at 390 wide in its card: bordered, no cell under 1.5em, columns in line, inside .qtext', par: true },
+  { file: 'check-table-grid.js', what: 'every library table a true grid: each row as wide as the header once colspan and rowspan count' },
+  { file: 'check-bare-text.js', what: 'no card shows a bare false, true, undefined, null or NaN', par: true },
   /* THE RUNTIME SAFETY NET (R6): one sink, malformed rows, and empty catches only falling. */
   { file: 'check-errors.js',    what: 'a throw in a draw, an act, a timer and a promise: one report each, a fallback, the rest works', par: true },
   { file: 'check-malformed.js', what: 'a null and a string in every DATA list: every column still draws', par: true },
@@ -106,6 +108,7 @@ const SUITE = [
   /* ---------- THE ONE PIECE OF THIS APP THAT TELLS A CHILD THEY ARE WRONG § */
   { file: 'check-marking.js', what: 'a right answer marked right, a wrong one wrong', par: true },
   { file: 'check-calc.js',  what: 'the calculator engine: exact fractions, roots, powers, degrees, DEL as a unit' },
+  { file: 'check-keypad-power.js', what: 'the keypad power key types like a Casio; every written power marks and works out the same' },
   { file: 'check-qmerge.js', what: 'one marker per checker: every part of every type marked as the per-type markers did (1200)', par: true },
   { file: 'check-marking-norm.js', what: 'every spelling of one value marked alike, its near misses wrong', par: true },
   /* ---------- AND WHETHER THE MATHS ON A CARD LOOKS LIKE MATHS § */

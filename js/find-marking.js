@@ -188,7 +188,7 @@ function markNorm_(s) {
     .replace(/(^|[^\d.)a-z])\.(?=\d)/g, '$10.')
     /* ONE SPELLING PER UNIT (R2): MARK_SYNONYMS below; superscript powers are ^2 ^3, as the keypad writes them. */
     .replace(/(\d)\s*(degrees?|deg|per\s?cent|percent)(?![a-z])/g, (m, d, u) => d + MARK_SYNONYMS[u.replace(/\s/g, '')])
-    .replace(/²/g, '^2').replace(/³/g, '^3')
+    .replace(/[⁰¹²³⁴-⁹⁻]+/g, m => '^' + [...m].map(c => MARK_SUPS[c]).join(''))
     .replace(/[£$€]/g, '')
     /* A THOUSANDS SEPARATOR IS A COMMA, A SPACE, OR A THIN SPACE, and which one you get depends on who printed the paper. § */
     .replace(/(\d)[,\u2009\u00a0 ](?=\d\d\d\b)/g, '$1')
@@ -219,6 +219,22 @@ function markNorm_(s) {
     .trim();
 }
 
+/* A RAISED RUN IS A POWER, 10⁻¹⁴ as 10^-14 and 10²³ as 10^23, as the keypad stores it. */
+const MARK_SUPS = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁻': '-' };
+/* A NUMBER WRITTEN WITH A POWER, worked out: 2^3, 2**3, 2³, 2<sup>3</sup>, 6.02×10^23, 1e-14; null for anything with a letter or no power in it. */
+function markPowVal_(s) {
+  const raw = String(s == null ? '' : s);
+  if (!/\^|\*\*|[⁰¹²³⁴-⁹⁻]|<sup>|\d\s*e\s*[-+−]?\d/i.test(raw)) return null;
+  const t = raw.replace(/<sup>(.*?)<\/sup>/gi, '^($1)').replace(/<\/?[a-z][a-z0-9]*(?=[\s\/>])[^>]*>/gi, '').replace(/&minus;/g, '-').replace(/[−–—]/g, '-').replace(/\s+/g, '')
+    .replace(/[⁰¹²³⁴-⁹⁻]+/g, m => '^(' + [...m].map(c => MARK_SUPS[c]).join('') + ')').replace(/\*\*/g, '^')
+    .replace(/(\d)e([-+]?\d+)/gi, '$1×10^($2)').replace(/(\d)x(?=\d)/gi, '$1×');
+  /* -1² IS READ TWO WAYS BY CHILDREN, so a minus in front of a bare power is left to the written ways */
+  if (/[a-z]/i.test(t) || /^-[\d.]+\^/.test(t)) return null;
+  const r = markExprRead_(t);
+  if (!r || r.sides.length !== 1) return null;
+  const v = markExprVal_(r.sides[0], {});
+  return isFinite(v) ? v : null;
+}
 /* The words a unit is spelt in, each to the one symbol markNorm_ keeps. */
 const MARK_SYNONYMS = { degree: '°', degrees: '°', deg: '°', percent: '%' };
 /* A LIST IS A SET. "1, 2, 5, 10" and "10, 5, 2, 1" are the same answer to "list the factors", and a child who works outwards from the middle writes the second. § */
@@ -648,6 +664,10 @@ function markAnswer_(typed, accept, again) {
       if (tTerms && tTerms === markTerms_(w)) return true;
     }
     if (markNum_(t) === markNum_(markNorm_(w))) return true;
+    /* THE SAME NUMBER WITH A POWER IN IT (owner, 13 Nov): 2^3 is 8, 1e-14 is 10^-14, 6.02×10^23 is 6.02e23 */
+    if (free) { const pv = markPowVal_(typed), wv = markPowVal_(w), tv = pv != null ? pv : markFrac_(t), qv = wv != null ? wv : markFrac_(markBare_(w));
+      const num = v => (v == null ? null : typeof v === 'number' ? v : v.n / v.d), a = num(tv), b = num(qv);
+      if ((pv != null || wv != null) && a != null && b != null && Math.abs(a - b) <= 1e-9 * Math.max(Math.abs(a), Math.abs(b))) return true; }
     if (t === markBare_(w) || markNum_(t) === markNum_(markBare_(w))) return true;
     const a = markParts_(t).map(tight).sort(), b = markParts_(w).map(tight).sort();
     if (a.length && a.length === b.length && a.join('|') === b.join('|')) return true;

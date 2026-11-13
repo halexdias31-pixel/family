@@ -42,8 +42,8 @@ Everything below derives from that core: 12 principles, each with its specific r
 
 ## 4. One rule for every case
 - **4.1** No one-offs: no function tests a single kind, facet or id by name; front end and backend alike. Checks: `one-off`, `find-one-off`, `rules`
-- **4.2** Questions show the paper's own words, one card per question number, every part its own card with one tool row (`QT_ROW`). Checks: `question`, `qcard`, `answerable`, `boxes`, `cards`, `typeset`, `tables`
-- **4.3** Marking is mechanical and fair: one typed box, one marker per checker, every accept marked right against itself and typeable on the pad. Checks: `answer`, `answers`, `marking`, `marking-norm`, `qmerge`, `qtypes`, `typeable`, `types`, `qengine`, `qengine-mapped`, `saved-answers`, `submissions`
+- **4.2** Questions show the paper's own words, one card per question number, every part its own card with one tool row (`QT_ROW`). Checks: `question`, `qcard`, `answerable`, `boxes`, `cards`, `typeset`, `tables`, `table-grid`, `bare-text`
+- **4.3** Marking is mechanical and fair: one typed box, one marker per checker, every accept marked right against itself and typeable on the pad. Checks: `answer`, `answers`, `marking`, `keypad-power`, `marking-norm`, `qmerge`, `qtypes`, `typeable`, `types`, `qengine`, `qengine-mapped`, `saved-answers`, `submissions`
 - **4.4** AI only where a rule can't mark: open writing and photographed working, clearly labelled; nowhere else. Checks: `aimark`, `aiimage`, `working`, `assistant`
 - **4.5** Prices and tutor pay come from one formula each, never by hand; a discount comes off teaching only and is shared by tutor and margin alike. Checks: `booking`, `spine`, `kid-prices`
 - **4.6** The booking form is one card in a fixed dependency order of fixed rows ("—" where a row doesn't apply), fresh each time; the saved booking is the same document. Checks: `spine`, `booking-journey`, `lifecycle`, `rooms`

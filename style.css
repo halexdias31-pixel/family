@@ -3309,13 +3309,15 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qsheet .stat { text-align: center; margin: var(--s4) 0; }
 /* ---------- A WIDE TABLE SCROLLS IN ITS OWN BOX, AND NOTHING ELSE DOES § */
 /* ONE RULE FOR EVERY TABLE IN A QUESTION'S WORDS: `.qtext` is on each box question html is drawn into (js/check-tables.js). */
-.qtext table {
-  border-collapse: collapse; margin: var(--s4) auto;
-  display: block; width: max-content; max-width: 100%;
+.qtext table { border-collapse: collapse; margin: var(--s4) auto; }
+/* THE SCROLLER IS A BOX ROUND THE TABLE, never the table made a block: Safari then built the grid a row out of line (13 Nov). */
+.qtext .q-tscroll {
+  display: block; width: max-content; max-width: 100%; margin: var(--s4) auto;
   overflow-x: auto; overscroll-behavior-x: contain;
   /* `pan-x`, BECAUSE A SCROLLER STARTS ITS OWN `touch-action`. § */
   touch-action: pan-x;
 }
+.qtext .q-tscroll > table { margin: 0; }
 .qtext th, .qtext td { border: 1px solid var(--line); padding: var(--s1) var(--s3); min-width: 1.5em; text-align: center; }
 /* THE BOX A PAPER LEAVES FOR AN ANSWER. § */
 .qsheet span.box {
@@ -5850,6 +5852,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* A WIDE TABLE OR FORMULA LINE IS CENTRED AND SCROLLS INSIDE ITSELF, never past the card's edge. */
 .card.kc > .kc-form :is(table, pre), .card.kc-panel > .kc-lines :is(table, pre) { display: block; width: max-content; max-width: 100%; overflow-x: auto; margin-inline: auto; }
 .card.kc > .kc-form :is(td, th), .card.kc-panel > .kc-lines :is(td, th) { text-align: center; }
+.card.kc .qtext .q-tscroll > table { display: table; width: auto; max-width: none; overflow: visible; margin: 0; }
 .card.kc > .kc-form { margin-top: var(--s2); align-self: stretch; }
 /* A PANEL (card_) KEEPS ITS LINES FULL WIDTH, so a list, a thread or a table is not shrunk to its words. */
 .card.kc-panel > .kc-lines { align-self: stretch; }

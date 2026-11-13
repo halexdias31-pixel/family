@@ -62,6 +62,10 @@ function scan() {
         grid.forEach((row, ri) => { if (!ri) return; row.forEach((c, ci) => { const h = head[ci]; if (!c || !h) return;
           const a = h.getBoundingClientRect(), b = c.getBoundingClientRect();
           if (Math.abs(a.left - b.left) > 2 || Math.abs(a.right - b.right) > 2) off.push('row ' + (ri + 1) + ' col ' + (ci + 1)); }); });
+        /* A REAL TABLE, NEVER A BLOCK (13 Nov: Safari drew a block table's percentages a row low); every row's cells share one top. */
+        if (getComputedStyle(t).display !== 'table') out.fails.push(where + ': drawn as display ' + getComputedStyle(t).display + ', not a table (the scroller is .q-tscroll round it)');
+        rows.forEach((r, ri) => { const tops = [...r.cells].filter(c => (c.rowSpan || 1) === 1).map(c => c.getBoundingClientRect().top);
+          if (tops.length && Math.max(...tops) - Math.min(...tops) > 2) off.push('row ' + (ri + 1) + ' cells at different heights'); });
         if (off.length) out.fails.push(where + ': cells out of line with row 1 (' + off.slice(0, 3).join(', ') + (off.length > 3 ? ' …' : '') + ')');
       });
     });

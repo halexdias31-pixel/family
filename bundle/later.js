@@ -4284,7 +4284,7 @@ function markNorm_(s) {
     .replace(/(^|[^\d.)a-z])\.(?=\d)/g, '$10.')
     /* ONE SPELLING PER UNIT (R2): MARK_SYNONYMS below; superscript powers are ^2 ^3, as the keypad writes them. */
     .replace(/(\d)\s*(degrees?|deg|per\s?cent|percent)(?![a-z])/g, (m, d, u) => d + MARK_SYNONYMS[u.replace(/\s/g, '')])
-    .replace(/²/g, '^2').replace(/³/g, '^3')
+    .replace(/[⁰¹²³⁴-⁹⁻]+/g, m => '^' + [...m].map(c => MARK_SUPS[c]).join(''))
     .replace(/[£$€]/g, '')
     /* A THOUSANDS SEPARATOR IS A COMMA, A SPACE, OR A THIN SPACE, and which one you get depends on who printed the paper. § */
     .replace(/(\d)[,\u2009\u00a0 ](?=\d\d\d\b)/g, '$1')
@@ -4315,6 +4315,22 @@ function markNorm_(s) {
     .trim();
 }
 
+/* A RAISED RUN IS A POWER, 10⁻¹⁴ as 10^-14 and 10²³ as 10^23, as the keypad stores it. */
+const MARK_SUPS = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁻': '-' };
+/* A NUMBER WRITTEN WITH A POWER, worked out: 2^3, 2**3, 2³, 2<sup>3</sup>, 6.02×10^23, 1e-14; null for anything with a letter or no power in it. */
+function markPowVal_(s) {
+  const raw = String(s == null ? '' : s);
+  if (!/\^|\*\*|[⁰¹²³⁴-⁹⁻]|<sup>|\d\s*e\s*[-+−]?\d/i.test(raw)) return null;
+  const t = raw.replace(/<sup>(.*?)<\/sup>/gi, '^($1)').replace(/<\/?[a-z][a-z0-9]*(?=[\s\/>])[^>]*>/gi, '').replace(/&minus;/g, '-').replace(/[−–—]/g, '-').replace(/\s+/g, '')
+    .replace(/[⁰¹²³⁴-⁹⁻]+/g, m => '^(' + [...m].map(c => MARK_SUPS[c]).join('') + ')').replace(/\*\*/g, '^')
+    .replace(/(\d)e([-+]?\d+)/gi, '$1×10^($2)').replace(/(\d)x(?=\d)/gi, '$1×');
+  /* -1² IS READ TWO WAYS BY CHILDREN, so a minus in front of a bare power is left to the written ways */
+  if (/[a-z]/i.test(t) || /^-[\d.]+\^/.test(t)) return null;
+  const r = markExprRead_(t);
+  if (!r || r.sides.length !== 1) return null;
+  const v = markExprVal_(r.sides[0], {});
+  return isFinite(v) ? v : null;
+}
 /* The words a unit is spelt in, each to the one symbol markNorm_ keeps. */
 const MARK_SYNONYMS = { degree: '°', degrees: '°', deg: '°', percent: '%' };
 /* A LIST IS A SET. "1, 2, 5, 10" and "10, 5, 2, 1" are the same answer to "list the factors", and a child who works outwards from the middle writes the second. § */
@@ -4744,6 +4760,10 @@ function markAnswer_(typed, accept, again) {
       if (tTerms && tTerms === markTerms_(w)) return true;
     }
     if (markNum_(t) === markNum_(markNorm_(w))) return true;
+    /* THE SAME NUMBER WITH A POWER IN IT (owner, 13 Nov): 2^3 is 8, 1e-14 is 10^-14, 6.02×10^23 is 6.02e23 */
+    if (free) { const pv = markPowVal_(typed), wv = markPowVal_(w), tv = pv != null ? pv : markFrac_(t), qv = wv != null ? wv : markFrac_(markBare_(w));
+      const num = v => (v == null ? null : typeof v === 'number' ? v : v.n / v.d), a = num(tv), b = num(qv);
+      if ((pv != null || wv != null) && a != null && b != null && Math.abs(a - b) <= 1e-9 * Math.max(Math.abs(a), Math.abs(b))) return true; }
     if (t === markBare_(w) || markNum_(t) === markNum_(markBare_(w))) return true;
     const a = markParts_(t).map(tight).sort(), b = markParts_(w).map(tight).sort();
     if (a.length && a.length === b.length && a.join('|') === b.join('|')) return true;
@@ -8280,7 +8300,7 @@ function qStemWhole_(x, p, onScreen, pics) {
   const html = [], fig = h => (Array.isArray(pics) ? pics : html).push(h);
   stemChunks_(p).forEach(ch => {
     let run = [];
-    const flush = () => { if (run.length) html.push(typeset_(run.join(''))); run = []; };
+    const flush = () => { if (run.length) html.push(qTables_(typeset_(run.join('')))); run = []; };
     ch.forEach(b => {
       if (b.k === 'pb') { run.push(b.h); return; }
       flush();
@@ -8559,17 +8579,17 @@ function chunkHtml_(chunk, circ, x) {
   let pb = '', run = [];
   const flush = () => {
     if (!run.length) return;
-    pb += circ ? run.map(b => circWords_(typeset_(b.h), b.i, circ.on)).join('') : typeset_(run.map(b => b.h).join(''));
+    pb += qTables_(circ ? run.map(b => circWords_(typeset_(b.h), b.i, circ.on)).join('') : typeset_(run.map(b => b.h).join('')));
     run = [];
   };
   rest.forEach(b => { if (b.k === 'pb') run.push(b); else { flush(); pb += figHtml_(x, b); } });
   flush();
   /* A CARRIED STEM'S WORDS (`sb`) ARE TYPESET A RUN AT A TIME in the stem's own wrapper, between its figures */
   let top = '', sbs = [];
-  const sbFlush = () => { if (sbs.length) top += `<div class="qsheet-stem qtext is-over">${typeset_(sbs.join(''))}</div>`; sbs = []; };
+  const sbFlush = () => { if (sbs.length) top += `<div class="qsheet-stem qtext is-over">${qTables_(typeset_(sbs.join('')))}</div>`; sbs = []; };
   head.forEach(b => { if (b.k === 'sb') sbs.push(b.h); else { sbFlush(); top += figHtml_(x, b); } });
   sbFlush();
-  return `${top}${lead ? `<div class="qsheet-lead">${typeset_(lead)}</div>` : ''}
+  return `${top}${lead ? `<div class="qsheet-lead">${qTables_(typeset_(lead))}</div>` : ''}
       <div class="qsheet-part${circ ? ' is-text' : ''}"${circ ? ` data-circ="${esc(circ.k)}"` : ''}>
         <div class="qsheet-pb">${pb}</div>
       </div>${circ && words.length ? `<p class="qpad-note qw-note">Tap a word to ring it, and again to take
@@ -13468,12 +13488,28 @@ function kpPartner_(v, i) {
 /* ---------- HOME AND END ARE THE LINE'S, CTRL/⌘ WITH THEM THE WHOLE ANSWER'S § */
 function kpLineStart_(v, i) { return i <= 0 ? 0 : v.lastIndexOf('\n', i - 1) + 1; }
 function kpLineEnd_(v, i) { const n = v.indexOf('\n', i); return n < 0 ? v.length : n; }
+/* THE RAISED BOX THE CARET IS AT THE END OF: the index of its `)` when the caret sits just before it and `^(` opened it, else -1. */
+function kpPowAt_(v, a) {
+  if (v.charAt(a) !== ')') return -1;
+  const o = kpPartner_(v, a);
+  return o > 0 && v.charAt(o - 1) === '^' ? a : -1;
+}
+/* AN OPERATOR AT THE END OF A NUMBER POWER LEAVES IT FIRST, as a Casio's does after 2^3: 2^3+1 is 9, never 2^(3+1); a minus into an empty one stays, so 10^-14 types. */
+function kpPowOut_(v, a, cmd) {
+  const z = kpPowAt_(v, a);
+  if (z < 0 || !/^[-+\u00d7\u00f7=]$/.test(cmd)) return a;
+  const o = kpPartner_(v, z);
+  /* a letter in it is algebra, x^(n+1), and stays in as the pad always typed it */
+  if (z === o + 1 || !/^[-\d.]+$/.test(v.slice(o + 1, z)) || (cmd === '-' && /[(\u00d7\u00f7+\-^]$/.test(v.slice(0, a)))) return a;
+  return z + 1;
+}
 function kpEdit_(inp, cmd) {
   if (kpSite_(inp)) return kpSiteEdit_(inp, cmd);
   const v = inp.value;
   const words = inp.getAttribute('data-kp') === 'words';
   let a = inp.selectionStart, b = inp.selectionEnd;
   if (a == null) { a = v.length; b = v.length; }
+  if (!words && a === b) { a = kpPowOut_(v, a, cmd); b = a; }
   const a0 = a, b0 = b;
   const put = (t, at) => {
     inp.value = v.slice(0, a) + t + v.slice(b);
@@ -17215,6 +17251,26 @@ const calcHtml = st => ({
     : st.fresh && st.val != null ? calcSay(st.val, st.dec)
     : st.note ? '<span class="mc-note">' + cEsc(st.note) + '</span>' : '',
 });
+/* A WRITTEN SUM AS THE CALCULATOR'S KEYS (owner, 13 Nov): the keypad's 10^(−14), 2³, 6.02×10^23, 1e-14 and 2**3 pressed and worked; null when it is no sum. */
+const CALC_SUPS = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁻': '-' };
+function calcTextVal(text) {
+  let s = String(text == null ? '' : text).replace(/<sup>(.*?)<\/sup>/g, '^($1)').replace(/\s+/g, '').replace(/\*\*/g, '^')
+    .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+/g, m => '^(' + [...m].map(c => CALC_SUPS[c]).join('') + ')')
+    .replace(/(\d)[eE]([-+−]?\d+)/g, '$1×10^($2)').replace(/(\d)[xX](?=\d)/g, '$1×').replace(/\*/g, '×').replace(/\//g, '÷')
+    .replace(/\^([-+−]?[\d.]+)/g, '^($1)').replace(/[-‐–]/g, '−');
+  if (!s || /[^0-9.+−×÷()^π]/.test(s)) return null;
+  const st = calcNew(), shut = [];
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === '^' && s[i + 1] === '(') { calcKey(st, 'pow'); shut.push(true); i++; }
+    else if (c === '(') { calcKey(st, '('); shut.push(false); }
+    else if (c === ')') calcKey(st, shut.pop() ? 'right' : ')');
+    else if (c === '^') return null;
+    else calcKey(st, c === 'π' ? 'pi' : c);
+  }
+  calcKey(st, '=');
+  return st.err || st.val == null ? null : cF(st.val);
+}
 /* ---------- END OF THE CALCULATOR ENGINE */
 
 ;

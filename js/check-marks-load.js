@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const NAMES = ['MARK_SYNONYMS', 'markNorm_', 'markParts_', 'markNum_', 'MARK_NUM', 'MARK_SYM', 'MARK_POW', 'MARK_BARE', 'markBare_', 'markFrac_',
-               'markRange_', 'markRuleNums_', 'markRuleVal_', 'markNear_', 'markPrime_', 'MARK_RULE_TESTS', 'markRuleIs_', 'markRuleSet_', 'markRuleSeq_', 'markExprParse_', 'MARK_EXPR_OPS', 'markExprVal_', 'MARK_NUM_WORDS', 'MARK_TENS', 'MARK_OP_WORDS', 'markSpoken_', 'markExprRead_', 'markExprGrad_', 'markExpr_', 'markRule_', 'MARK_WORD', 'MARK_UNIT', 'MARK_UNIT_OF', 'markUnitOff_', 'markTerms_', 'markAnswer_',
+               'markRange_', 'markRuleNums_', 'markRuleVal_', 'markNear_', 'markPrime_', 'MARK_RULE_TESTS', 'markRuleIs_', 'markRuleSet_', 'markRuleSeq_', 'markExprParse_', 'MARK_EXPR_OPS', 'markExprVal_', 'MARK_NUM_WORDS', 'MARK_TENS', 'MARK_OP_WORDS', 'markSpoken_', 'markExprRead_', 'markExprGrad_', 'markExpr_', 'markRule_', 'MARK_WORD', 'MARK_UNIT', 'MARK_UNIT_OF', 'markUnitOff_', 'markTerms_', 'MARK_SUPS', 'markPowVal_', 'markAnswer_',
                'multiSplit_', 'multiOf_', 'multiVals_', 'multiJoin_'];
 
 function cutFrom(src, name) {
