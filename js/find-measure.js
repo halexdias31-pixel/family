@@ -458,3 +458,32 @@ document.addEventListener('wheel', e => {
 function measRepaint_() { if (MEAS) { const f = measFig_(MEAS.k); if (f) measDraw_(f); } }
 /* A TURNED PHONE OR A RESIZED WINDOW moves the picture: the tool is laid over it again */
 if (typeof addEventListener === 'function') addEventListener('resize', () => { if (MEAS) setTimeout(measRepaint_, 120); });
+/* A FLOATING TOOL (`.floaty`, the calculator) is held the ruler's way: the spot grabbed stays under the finger; it never leaves the window. */
+const FLOAT_GO = new Map();   // pointerId -> { el, dx, dy }: the grabbed spot, from the tool's corner
+function floatPlace_(el, x, y) {
+  const r = el.getBoundingClientRect();
+  el.style.right = 'auto';
+  el.style.left = Math.max(0, Math.min(innerWidth - r.width, x)) + 'px';
+  el.style.top = Math.max(0, Math.min(innerHeight - r.height, y)) + 'px';
+}
+document.addEventListener('pointerdown', e => {
+  const el = e.target && e.target.closest && e.target.closest('.floaty');
+  /* A KEY IS TAPPED, NOT HELD: only the body and the edge carry it */
+  if (!el || e.target.closest('[data-do], button, .mc-display')) return;
+  e.preventDefault();
+  if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+  const r = el.getBoundingClientRect();
+  FLOAT_GO.set(e.pointerId, { el, dx: e.clientX - r.left, dy: e.clientY - r.top });
+  el.classList.add('held');
+}, true);
+document.addEventListener('pointermove', e => {
+  const g = FLOAT_GO.get(e.pointerId);
+  if (!g) return;
+  if (e.cancelable) e.preventDefault();
+  floatPlace_(g.el, e.clientX - g.dx, e.clientY - g.dy);
+}, { capture: true, passive: false });
+['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, e => {
+  const g = FLOAT_GO.get(e.pointerId);
+  if (g) { g.el.classList.remove('held'); FLOAT_GO.delete(e.pointerId); }
+}, true));
+if (typeof addEventListener === 'function') addEventListener('resize', () => { document.querySelectorAll('.floaty').forEach(el => floatPlace_(el, el.offsetLeft, el.offsetTop)); });

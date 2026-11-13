@@ -49,3 +49,23 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
   calcPress_(box, k);
 });
+/* THE QUESTION TOOL ROW'S CALCULATOR (owner, 11 Nov), this face; since 13 Nov a small one floating over the page, dragged like the ruler. */
+const calcAllowed_ = x => ![].concat((x && x.needs) || []).some(v => /^non-calculator$|^no calculator$/i.test(String(v).trim()));
+/* ONE AT A TIME: the part whose calculator floats, or none */
+const QCALC_OPEN = new Set();
+on('qt-calc', el => {
+  const key = qtKeyOf_(el);
+  if (!key) return;
+  const open = !QCALC_OPEN.has(key);
+  QCALC_OPEN.clear();
+  document.querySelectorAll('.calc-float').forEach(e => e.remove());
+  document.querySelectorAll('.qt-calc[aria-pressed="true"]').forEach(t => { if (t !== el) tileSet_(t, { on: false, pressed: false }); });
+  if (open) {
+    QCALC_OPEN.add(key);
+    document.body.insertAdjacentHTML('beforeend', calcFaceHtml_(key));
+    const box = document.body.lastElementChild;
+    box.classList.add('calc-float', 'floaty');
+    calcPaint_(box);
+  }
+  tileSet_(el, { on: open, pressed: open });
+});
