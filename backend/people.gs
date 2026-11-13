@@ -296,9 +296,14 @@ function handleMake_(me, seen) {
   return handleTemplate_(me || {}, want => handleTrouble_(want, me && me.person_id ? me : null), seen);
 }
 
+/* THE THREE COLUMNS A HANDLE MOVE NEEDS, the ones `t` lacks: one list for the follow and the rename. */
+function handleColsLacking_(t) {
+  return ['handle', 'handle_was', 'handle_changed_at'].filter(c => !t || !t.headers || t.headers.indexOf(c) === -1);
+}
+
 /* THE HANDLE FOLLOWS THE FIRST NAME (one rule): the cells a changed `first` on row `r` also writes, {} when it already fits. The old handle goes to handle_was and still signs in. */
 function handleFollow_(t, r, first) {
-  if (!t || !t.headers || !r || ['handle', 'handle_was', 'handle_changed_at'].some(c => t.headers.indexOf(c) === -1)) return {};
+  if (!t || !t.headers || !r || handleColsLacking_(t).length) return {};
   const draft = Object.assign({}, r, { first_name: first });
   const has = S(r.handle);
   if (!S(first) || key(first) === key(r.first_name) || (has && handleInShape_(has, draft))) return {};

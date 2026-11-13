@@ -65,6 +65,7 @@ const SRC = [
   /* ---------- AND THE REPAIR JOB, WHICH IS THE ONE THING HERE THAT WRITES § */
   grab(setup,  /function fillHandles\([\s\S]*?\n\}/, 'fillHandles'),
   /* AND THE ONE THAT REPLACES A HANDLE ON PURPOSE, into the owner's `<first>_<virtue>`. */
+  grab(people, /function handleColsLacking_\([\s\S]*?\n\}/, 'handleColsLacking_'),
   grab(setup,  /function renameHandles_\([\s\S]*?\n\}/, 'renameHandles_'),
   /* WHICH NOW REPORTS A PRIVATE GROWN-UP WHOSE HANDLE CARRIES THEIR SURNAME (342) — the real test of who
      is private, cut out with it. */
