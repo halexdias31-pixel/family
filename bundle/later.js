@@ -9754,8 +9754,8 @@ const settingNone_ = h => /^\s*<div class="card [^"]*\b(?:rank-off|set-none|own-
 /* EVERY SETTING ONCE (owner, 7 Nov): its `see` rows tag it with each account type; one of the same name joins it. */
 /* A type you do not hold still shows its cards, shut (`lockedAs_`); Business and Site hold the business's own data, so stay an admin's. */
 function settingDoorItems_() {
-  /* SIGN IN AND JOIN ARE FORMS (owner, 10 Nov): drawn open, never a closed card cut to two lines. */
-  if (!USER) return [{ kind: 'setting', name: 'Sign in or join', key: 'set:signin', sub: '', image: '', signIn: true, open: true, text: 'sign in join make an account pin' }];
+  /* JOIN IS A FORM (owner, 10 Nov), drawn open; signing in is Find's first menu (`signMenu_`, owner 13 Nov). */
+  if (!USER) return [{ kind: 'setting', name: 'Make an account', key: 'set:join', sub: '', image: '', join: true, open: true, text: 'join make an account' }];
   const tags = (DATA && DATA.settingFor) || {}, out = [], byName = {}, seen = {};
   /* RECORDS ARE LAZY (the weekly email's cards): until that batch lands they are missing, so Find is drawn again once it does. */
   try { if (typeof lazyFiles_ === 'function' && !lazyFiles_.in) doorAsk_(lazyFiles_()); } catch (e) { oops_(e, 'find:doorAsk'); }
@@ -9798,7 +9798,7 @@ function settingPart_(p) {
   return g ? g.pages.join('').replace(/<!--(card|person):[^>]*-->/g, '') : '';
 }
 function settingDoorCard_(x) {
-  if (x.signIn) { if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn(); return (typeof signInCard_ === 'function' ? signInCard_() : '') + (typeof registerCard_ === 'function' ? registerCard_() : ''); }
+  if (x.join) return typeof registerCard_ === 'function' ? registerCard_() : '';
   if (x.notify) return notifyDoorCard_();
   return (x.parts || [{ col: x.setCol, at: x.setAt, id: x.setId }]).map(settingPart_).join('');
 }
@@ -10760,6 +10760,95 @@ function accountPages_(col) {
   return out.concat(coming);
 }
 
+/* ---------- SIGNING IN IS FIND'S FIRST STEP (owner, 13 Nov) ---------- */
+/* Signed out, the first menu is Guest or who you are; a name is followed by four menus of digits, each picked one a ● chip. */
+/* The digits live in `SIGN.pin` for the one call and nowhere else: never a chip's value, the URL, history, storage or a log. */
+const SIGN = { step: '', who: '', pin: [], busy: false };
+const SIGN_PIN_LEN = 4;
+const SIGN_DIGITS = '0123456789'.split('');
+const signAsking_ = () => !USER && SIGN.step !== 'guest';
+const signPaint_ = () => finderEach_(() => paintStuff());
+function signMenu_() {
+  if (!signAsking_()) return '';
+  if (SIGN.busy) return loading_();
+  if (SIGN.step === 'join') return typeof registerCard_ === 'function' ? registerCard_() : '';
+  if (SIGN.step === 'pin') return answersRow_(SIGN_DIGITS.map(d => answerTag_(d, ` data-do="sign-digit" data-d="${d}" data-repeat`)).join(''), 'is-grid sign-pin')
+    + answersRow_(answerTag_('Forgot PIN', ' data-do="forgot-pin"'), 'sign-more');
+  /* ONE BOX ON ONE FINDER: Find's carries the id the forgotten-PIN tag and the checks read. */
+  const mine = FINDER === FINDERS.stuff, google = mine && !!(DATA.googleClientId || '');
+  if (google && typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
+  return answersRow_(answerTag_('Guest', ' data-do="sign-guest"') + signBox_(mine)
+    + answerTag_('Make an account', ' data-do="sign-join"') + answerTag_('Forgot PIN', ' data-do="forgot-pin"'), 'sign-who')
+    + (google ? answersRow_('', 'g-row', 'g-btn') : '');
+}
+/* THE BLANK TAG YOU TYPE YOUR NAME ON: no example and nothing remembered (383); `mine` gives it the id. */
+const signBox_ = mine => answerBox_(`${mine ? ' id="in-name"' : ''} class="sign-box" type="text" inputmode="email" autocomplete="off"
+  autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" data-1p-ignore data-lpignore="true" aria-label="Your name, @username or email"
+  value="${esc(SIGN.who)}"`, 'sign-type');
+/* THE STEP'S CHIPS, first in the row: your name signed in (its × signs out), Guest, or the name and a ● per digit. */
+function signChips_() {
+  const chip = (text, act, label) => qtag_(`${esc(text)}${tile_({ icon: 'close', label: label, act: act, cls: 'chip-x' })}`,
+    ` data-do="${act}" role="button" tabindex="0" aria-label="${esc(label)}"`, 'sm sign-chip', 'chip');
+  if (USER) { const who = String(USER.name || USER.handle || '').trim(); return chip(who, 'signout', 'Sign out ' + who); }
+  if (SIGN.step === 'guest') return chip('Guest', 'sign-restart', 'Sign in instead');
+  if (SIGN.step === 'join') return chip('Make an account', 'sign-restart', 'Back to sign in');
+  if (SIGN.step !== 'pin') return '';
+  const dots = SIGN.busy ? SIGN_PIN_LEN : SIGN.pin.length;
+  return chip(SIGN.who, 'sign-restart', 'Not ' + SIGN.who) + qtag_('●', ' aria-hidden="true"', 'sm sign-dot', 'chip').repeat(dots);
+}
+on('sign-guest', () => { SIGN.step = 'guest'; SIGN.pin = []; signPaint_(); });
+on('sign-join', () => { SIGN.step = 'join'; SIGN.pin = []; signPaint_(); });
+on('sign-restart', () => {
+  SIGN.step = ''; SIGN.pin = [];
+  finderEach_(F => finderSet_(F, { paint: false }));
+  signPaint_();
+});
+/* AN ACCOUNT MADE FROM FIND'S Make an account goes straight on to its PIN, under the name it signs in with. */
+function signAfterJoin_(who) {
+  if (USER || SIGN.step !== 'join' || !who) return;
+  SIGN.who = who; SIGN.step = 'pin'; SIGN.pin = [];
+  signPaint_();
+}
+function signWho_(box) {
+  const who = String((box && box.value) || '').trim();
+  if (!who) { toast('Type your name, @username or email first.'); return; }
+  SIGN.who = who; SIGN.step = 'pin'; SIGN.pin = [];
+  signPaint_();
+}
+/* ENTER IN THE BOX PICKS THE NAME, as a tap picks a tag. */
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (!t || !t.classList || !t.classList.contains('sign-box') || !/^Enter$/.test(e.key)) return;
+  e.preventDefault();
+  signWho_(t);
+});
+/* THE FOURTH DIGIT SENDS: the same `verifyLogin`, so the server's attempt limits are the ones it always had. */
+on('sign-digit', el => {
+  const d = String((el && el.dataset && el.dataset.d) || '');
+  if (USER || SIGN.step !== 'pin' || SIGN.busy || !SIGN.who || !/^\d$/.test(d)) return;
+  SIGN.pin.push(d);
+  if (SIGN.pin.length < SIGN_PIN_LEN) { signPaint_(); return; }
+  const who = SIGN.who, pin = SIGN.pin.join('');
+  SIGN.pin = []; SIGN.busy = true;
+  signPaint_();
+  send_({ action: 'verifyLogin', email: who, name: who, pin: pin })
+    .then(d2 => {
+      SIGN.busy = false;
+      if (!d2.success) { toast(d2.error || 'That did not work.'); signPaint_(); return; }
+      SIGN.step = ''; SIGN.who = '';
+      signedIn_(d2, who);
+    })
+    /* `send_` HAS TOASTED THE SERVER'S SENTENCE; a name it does not know goes back to the box to correct. */
+    .catch(err => {
+      SIGN.busy = false;
+      const why = err && err.reply && err.reply.why;
+      if (why === 'not-an-email' || why === 'no-such-email') SIGN.step = '';
+      signPaint_();
+      const box = $('in-name');
+      if (box && !SIGN.step) { box.setAttribute('aria-invalid', 'true'); box.focus(); box.select(); }
+    });
+});
+
 ;
 /* ==== js/find-bundles.js ==== */
 const BUNDLE_MAX = 24;
@@ -11241,7 +11330,7 @@ function chipText_(f, i) {
 /* 680: THE ROW NEVER SAYS THE SAME THING TWICE — a second chip with the same words is left out (its filter stays). */
 function filterChips() {
   const said = {};
-  return `<div class="chips">
+  return `<div class="chips">${signChips_()}
     ${STUFF.filters.map((f, i) => {
       const show = chipText_(f, i), key = spellKey_(show);
       if (said[key]) return '';
@@ -12113,6 +12202,9 @@ function finderWake_(id) {
 /* THE QUESTION, ON THE PAGE. § */
 /* NAMED FOR WHAT IT WAS, not what it is. § */
 function stuffQuestion() {
+  /* SIGNED OUT, THE FIRST MENU IS WHO YOU ARE (`signMenu_`, find-account.js); Guest or a name lets the ordinary menus follow. */
+  const sign = signMenu_();
+  if (sign) return sign;
   const pre = finderTagsAt_() || finderTagsLook_();
   if (pre) return facetAnswersHtml_(pre.facet, pre.values, '') + findPeek_();
   const items = stuffFiltered();
@@ -12167,21 +12259,16 @@ function facetAnswersHtml_(facet, values, more) {
   /* `counted` TAKES THE CHEVRON OFF. § */
   /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION § */
   /* `counted` WITHOUT A COUNT, which is not a contradiction: § */
-  const skip = `<div class="counted row tap is-skip" role="button" tabindex="0" data-do="facet-skip"
-        data-field="${esc(facet.field)}">
-        <span class="k">Doesn't matter</span>
-      </div>`;
+  const skip = answerTag_('Doesn\'t matter', ` data-do="facet-skip" data-field="${esc(facet.field)}"`, 'is-skip');
   /* THE "and N more" LINE WENT WITH THE TRIM. § */
   /* `data-value` IS THE FULL NAME (`filterHit` matches it); THE TEXT IS `show`, what tells it apart from the answers beside it, as
      its chip says it (1180: SATs said `Paper 1 · Maths · SATs · KS2`). */
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
   const grid = numberedRun_(values);
-  return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap${facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? ' is-off' : ''}" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
-        data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.also && v.also.length ? ` data-also="${esc(JSON.stringify(v.also))}"` : ''}${
-        grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
-        <span class="k">${mark(v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value))}</span>
-      </div>`).join('') + skip + '</div>' + more;
+  return answersRow_(values.map(v => answerTag_(mark(v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value)),
+    ` data-do="facet-pick"${tagAttr_(facet.field)} data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.also && v.also.length ? ` data-also="${esc(JSON.stringify(v.also))}"` : ''}${
+      grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}`, facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? 'is-off' : '')).join('') + skip, grid ? 'is-grid' : '') + more;
 }
 
 /* `stuff-jump` went with the group list. § */

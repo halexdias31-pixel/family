@@ -107,7 +107,7 @@ function pinFromLink_() {
   send_({ action: 'pinLink', key })
     .then(d => {
       if (!d || !d.success) { toast((d && d.error) || 'That link did not work.'); return; }
-      /* THE PIN PATH'S DOOR, for its reasons — see `do-signin` and `signedIn_`. */
+      /* THE PIN PATH'S DOOR, for its reasons — see `sign-digit` (find-account.js) and `signedIn_`. */
       signedIn_(d);
     })
     .catch(() => {});      // `send_` has already toasted the server's sentence

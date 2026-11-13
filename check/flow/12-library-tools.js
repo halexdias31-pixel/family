@@ -437,30 +437,29 @@ check('business: signing in as an admin adds Find › Settings › Admin (the Bu
   if (admin().length) return ['signed out, Find already holds Admin settings — the sign-in was NOT checked'];
   const doc = d.documentElement;
 
-  /* IN, THROUGH FIND'S ONE SETTINGS CARD (C+), from another column. */
+  /* IN, THROUGH FIND'S FIRST MENU (owner, 13 Nov): the name, then four digit tags. */
   t.go(away, false, true); await wait(LEAVE_MS); await woken_();
-  const sign = w.stuffItemsBuild_().find(x => x && x.signIn);
-  if (!sign) return ['signed out, Find holds no Sign in card — NOT checked'];
-  const host = d.createElement('div'); host.innerHTML = w.settingDoorCard_(sign); d.body.appendChild(host);
-  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin'), btn = host.querySelector('[data-do="do-signin"]');
-  if (!name || !pin || !btn) return ['the sign-in card has no name, PIN and Sign in — NOT checked'];
-  name.value = 'annadmin'; pin.value = '4826';
+  if (w.stuffItemsBuild_().some(x => x && x.signIn)) bad.push('signed out, Find › Settings still holds a separate Sign in card');
   const asked = () => gets.filter(u => /script\.google\.com/.test(u)).length;
   const askedBefore = asked();
   hold = true;
-  try { t.ACTIONS['do-signin'](btn); } catch (e) { return ['do-signin threw: ' + e.message]; }
+  const no = await findSign_(w, null);
+  if (no) return bad.concat([no + ' — NOT checked']);
+  const here = t.AT();
+  const no2 = await findSign_(w, 'annadmin', '4826');
+  if (no2) return bad.concat([no2 + ' — NOT checked']);
   for (let n = 0; n < 50 && !(t.whoami() && t.whoami().role === 'admin'); n++) await wait(100);
   await wait(LEAVE_MS); await woken_();
-  host.remove();
   if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin did not sign in — NOT checked'];
   if (d.documentElement !== doc) bad.push('the page was reloaded');
-  if (t.AT() !== away) bad.push('signing in moved the admin from ' + away + ' to ' + t.AT());
+  if (t.AT() !== here) bad.push('signing in moved the admin from ' + here + ' to ' + t.AT());
   if (!admin().some(x => (x.parts || []).some(p => p.col === 'biz'))) bad.push('signed in as an admin, Find › Settings › Admin holds no Business card: ' + JSON.stringify(admin().map(x => x.name)));
   if (!admin().some(x => (x.parts || []).some(p => p.notify))) bad.push('signed in as an admin, Find › Settings › Admin has no Notifications');
   if (t.TABS.some(x => x.id === 'biz') || d.getElementById('s-biz')) bad.push('signed in, a Business column came back (batch C: its cards are Find items)');
   if (asked() <= askedBefore) bad.push('signing in asked for no payload — the hold proved nothing');
 
-  /* OUT, FROM THE SAME COLUMN: the Admin items go, and the person stays where they are. */
+  /* OUT, FROM ANOTHER COLUMN: the Admin items go, and the person stays where they are. */
+  t.go(away, false, true); await wait(LEAVE_MS); await woken_();
   try { t.ACTIONS['signout'](d.createElement('button')); } catch (e) { return bad.concat(['signout threw: ' + e.message]); }
   await wait(LEAVE_MS); await woken_();
   if (t.whoami()) return bad.concat(['Sign out did not sign the admin out — NOT checked']);

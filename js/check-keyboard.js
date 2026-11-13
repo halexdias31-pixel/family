@@ -207,7 +207,7 @@ if (!/document\.addEventListener\('focusin', e => \{\s*const t = e\.target;\s*kp
   for (const t of h.TABS) { try { h.go(t.id, false, true); h.paint(t.id, true); } catch (e) { bad.push(t.id + ' threw while drawing: ' + e.message); } }
   const extra = d.createElement('div');
   d.body.appendChild(extra);
-  try { extra.innerHTML = w.signInCard_() + w.msgForm_('Tom Tutor', 'P-TOM'); } catch (e) { bad.push('the sign-in card or the composer did not draw: ' + e.message); }
+  try { extra.innerHTML = '<div class="answers">' + w.signBox_(true) + '</div>' + w.msgForm_('Tom Tutor', 'P-TOM'); } catch (e) { bad.push('Find\'s sign-in name tag or the composer did not draw: ' + e.message); }
   await tick(50);
   const onScreen = [...d.querySelectorAll('input, textarea, [contenteditable]')].filter(el => !el.closest('#kp'));
   let screenBoxes = 0;
@@ -219,9 +219,11 @@ if (!/document\.addEventListener\('focusin', e => \{\s*const t = e\.target;\s*kp
   }
   if (fromSource < 60) bad.push('only ' + fromSource + ' text boxes were drawn from the source — the walk did not find them all');
   if (screenBoxes < 40) bad.push('only ' + screenBoxes + ' text boxes on the screens — the columns did not draw');
-  /* THE FACE IS READ FROM THE MARKUP BEFORE THE BINDING WRITES OVER IT: the sign-in PIN's inputmode="numeric" is the digits */
-  const pin = d.getElementById('in-pin');
-  if (!pin || pin.getAttribute('data-kpb') !== 'num') bad.push('the sign-in PIN box is bound to ' + JSON.stringify(pin && pin.getAttribute('data-kpb')) + ' — its markup asks for digits');
+  /* THE FACE IS READ FROM THE MARKUP BEFORE THE BINDING WRITES OVER IT: the name tag's inputmode="email" is the letters with @. */
+  /* The PIN is four digit tags on Find (owner, 13 Nov), so there is no PIN box for any keyboard to come up on. */
+  const nm = d.getElementById('in-name');
+  if (!nm || nm.getAttribute('data-kpb') !== 'mail') bad.push('Find\'s sign-in name tag is bound to ' + JSON.stringify(nm && nm.getAttribute('data-kpb')) + ' — its markup asks for an address');
+  if (d.getElementById('in-pin')) bad.push('a sign-in PIN box is drawn — the PIN is four digit tags on Find');
   said.push(sites.length + ' boxes in the source of ' + FILES.length + ' files: ' + fromSource + ' text boxes bound, ' + notText + ' that take no text left alone; '
     + screenBoxes + ' text boxes on ' + h.TABS.length + ' columns and the sign-in card; ' + taps + ' taps brought the pad up (faces: ' + Object.keys(types).sort().map(k => k + ' ' + types[k]).join(', ') + ')');
   a.close();

@@ -2703,11 +2703,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .wc-row.is-all .wc-n { color: var(--hue-10); }
 .wc-slot { position: relative; }
 
-/* THE "or" BETWEEN THE TWO WAYS IN. A rule either side rather than a word floating in space, so it
-   reads as a fork in one card and not as a heading over a second one. */
-.in-or { display: flex; align-items: center; gap: var(--s2); margin: var(--s4) 0 var(--s3); }
-.in-or::before, .in-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-.in-or span { font-size: var(--fs-small); color: var(--ink); letter-spacing: .08em; }
 #g-btn { display: flex; justify-content: center; min-height: 2.5rem; }
 
 /* ---------- A ROW WITH NOTHING IN THE FIGURE COLUMNS § */
@@ -4015,6 +4010,11 @@ a.boxer-src { display: flex; align-items: center; min-height: var(--tap); text-d
 /* THE SAME CHIP AS EVERY OTHER ANSWER (660): "why is it rectangular?" — a grid places the chips, it does not square them. */
 .answers.is-grid > .row.tap.counted:not(.is-skip) .k { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .answers.is-grid > .row.tap.counted.is-skip { grid-column: 1 / -1; justify-self: start; }
+/* SIGNED OUT, THE NAME IS A BLANK TAG (owner, 13 Nov): a tag's height and type, drawn as an underline to type on. */
+.answers > .row.counted.sign-type { display: inline-flex; align-items: center; flex: 1 1 100%; max-width: 20rem; min-height: var(--tp-h); padding: 0 var(--s1); margin: 0; border: 0; border-bottom: 2px solid var(--chip-line); border-radius: 0; }
+.sign-type .sign-box { width: 100%; min-height: var(--tap); border: 0; background: none; color: var(--ink); font: inherit; font-size: var(--tp-fs); text-align: center; outline: none; padding: 0; }
+.sign-type:focus-within, .sign-type:has(.sign-box[aria-invalid]) { border-bottom-color: var(--gold); }
+.answers.sign-more { margin-top: var(--s2); }
 
 /* REELS — one reel per widget, one widget per page § */
 .reel {

@@ -497,18 +497,13 @@ check('a refusal is a toast and never a banner that outlives it', async () => {
   const t = w.__t;
   const bad = [];
   t.USER(null);
-  t.go('account', false, true);
-  await wait(120);
   const d = w.document;
-  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
-  if (!name || !pin) return ['the sign-in card is not on the account column, so nothing can be refused'];
-  name.value = 'Nobody'; pin.value = '9999';
-  const btn = d.querySelector('[data-do="do-signin"]');
-  if (!btn) return ['there is no Sign in button to press'];
   /* ---------- WHAT THE BANNER SAID BEFORE, BECAUSE A STANDING ONE IS CORRECT § */
   const bannerWas = (() => { const b = d.getElementById('banner');
     return b && !b.classList.contains('hidden') ? String(b.textContent || '') : ''; })();
-  try { t.ACTIONS['do-signin'](btn); } catch (e) { return ['do-signin threw: ' + e.message]; }
+  /* SIGNED IN ON FIND NOW (owner, 13 Nov): the name, then four digit tags. */
+  const no = await findSign_(w, 'Nobody', '9999');
+  if (no) return [no + ', so nothing can be refused'];
   await wait(400);
 
   const toastEl = d.getElementById('toast');
@@ -529,41 +524,40 @@ check('a refusal is a toast and never a banner that outlives it', async () => {
   return bad;
 });
 
-check('the sign-in card is one tile row, and Make an account posts register', async () => {
-  /* ASKED FOR AS *"turn the sign in and forgot pin buttons into tiles. same with create account button."* Three things are held here, because each one broke or § */
+check('Find\'s sign-in tags come from the one tag maker, and Make an account posts register', async () => {
+  /* ASKED FOR AS *"turn the sign in and forgot pin buttons into tiles."*; since 13 Nov they are Find tags (owner): one maker, all on show, nothing behind ⋯. */
   const { w, sent } = boot({ reply: b => b.action === 'register'
     ? { success: true, name: 'Rae Newcomer', pending: true } : { success: true } });
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
   t.USER(null);
-  t.go('account', false, true);
-  await wait(120);
-  const row = d.querySelector('#s-account .tile-row');
-  const acts = row ? [...row.querySelectorAll('.tile')].map(x => x.dataset.do) : [];
-  if (acts.join(',') !== 'do-signin,forgot-pin,register') {
-    bad.push('the sign-in card\'s tile row holds ' + JSON.stringify(acts) + ', wanted do-signin, forgot-pin, register');
+  const no = await findSign_(w, null);
+  if (no) return [no];
+  const row = d.querySelector('#stuff-groups .sign-who');
+  const acts = row ? [...row.querySelectorAll('.row.tap.counted')].map(x => x.dataset.do) : [];
+  if (acts.join(',') !== 'sign-guest,sign-join,forgot-pin') {
+    bad.push('the first menu\'s tags are ' + JSON.stringify(acts) + ', wanted sign-guest, sign-join, forgot-pin');
   }
-  const loose = [...d.querySelectorAll('#s-account [data-do="do-signin"], #s-account [data-do="forgot-pin"], #s-account [data-do="register"]')]
-    .filter(x => !x.classList.contains('tile'));
-  if (loose.length) bad.push(loose.length + ' sign-in control(s) are still not tiles: ' + loose.map(x => x.dataset.do).join(', '));
-  if (row && [...row.querySelectorAll('.tile')].some(x => !x.querySelector('svg.tile-i'))) {
-    bad.push('a sign-in tile has no mark — TILE_ICONS is missing one of in, key, join');
-  }
+  const loose = [...d.querySelectorAll('#stuff-groups [data-do="sign-guest"], #stuff-groups [data-do="forgot-pin"], #stuff-groups [data-do="sign-join"]')]
+    .filter(x => !x.matches('.row.tap.counted'));
+  if (loose.length) bad.push(loose.length + ' sign-in control(s) are not Find tags: ' + loose.map(x => x.dataset.do).join(', '));
 
-  /* ENTER STILL SIGNS IN — the listener clicks `[data-do="do-signin"]`, whatever element that is. */
-  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
-  if (name && pin) {
-    name.value = 'x@example.org'; pin.value = '0000';
-    sent.length = 0;
-    pin.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    await wait(300);
-    if (!sent.some(b => b.action === 'verifyLogin')) bad.push('Enter in the PIN box posted ' + JSON.stringify(sent.map(b => b.action)) + ', not verifyLogin');
-    t.USER(null); t.go('account', false, true); try { w.paint('account'); } catch (e) {} await wait(80);
-  } else bad.push('the sign-in card has no #in-name / #in-pin');
+  /* ENTER IN THE NAME TAG MOVES ON TO THE DIGITS, and the fourth digit sends verifyLogin. */
+  sent.length = 0;
+  const no2 = await findSign_(w, 'x@example.org', '0000');
+  if (no2) bad.push(no2);
+  await wait(300);
+  if (!sent.some(b => b.action === 'verifyLogin')) bad.push('the name and four digits posted ' + JSON.stringify(sent.map(b => b.action)) + ', not verifyLogin');
+  t.USER(null);
 
-  const reg = d.querySelector('#s-account [data-do="register"]');
-  if (!reg) return bad.concat(['there is no Make an account tile to press']);
-  t.ACTIONS['register'](reg);
+  /* MAKE AN ACCOUNT ON FIND draws the form in place of the menu. */
+  t.ACTIONS['sign-restart'](d.createElement('button'));
+  t.ACTIONS['sign-join'](d.querySelector('#stuff-groups [data-do="sign-join"]') || d.createElement('button'));
+  if (!d.querySelector('#stuff-groups .reg-card .reg-form')) bad.push('Make an account on Find drew no form');
+  t.ACTIONS['sign-restart'](d.createElement('button'));
+  t.go('account', false, true); try { w.paint('account'); } catch (e) {} await wait(80);
+  const reg = d.querySelector('#s-account .reg-card');
+  if (!reg) return bad.concat(['there is no Make an account card on the account column']);
   await wait(50);
   if (d.querySelector('#sheet:not(.hidden)')) bad.push('pressing Make an account opened a sheet — the form is in its card (owner, 7 Nov)');
   if (!d.querySelector('#s-account .reg-card .reg-form')) return bad.concat(['the account column has no Make an account card with its form']);
@@ -655,7 +649,7 @@ check('a child with no email makes their own account with a grown-up\'s address,
   t.USER(null);
   t.go('account', false, true);
   await wait(120);
-  const open = () => { const reg = d.querySelector('#s-account [data-do="register"]'); if (reg) t.ACTIONS['register'](reg); return !!reg; };
+  const open = () => { const reg = d.querySelector('#s-account .reg-card'); return !!reg; };
   if (!open()) return ['there is no Make an account tile to press'];
   await wait(50);
   const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
@@ -950,8 +944,7 @@ check('proof: a link that moves your address, opened before signing in, finishes
   t.go('account', false, true);
   await wait(200);
   const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
-  if (!fill('in-name', 'jsmith@example.org') || !fill('in-pin', ['3', '8', '1', '5'].join(''))) return bad.concat(['there is no sign-in card to sign in on']);
-  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  { const no = await findSign_(w, 'jsmith@example.org', ['3', '8', '1', '5'].join('')); if (no) return bad.concat([no]); }
   await wait(600);
   const again = sent.filter(b => b.action === 'verifyEmail');
   if (again.length !== 2 || again[1].token !== 'Mmove1' || again[1].session !== 'tk-jo')
@@ -1035,8 +1028,7 @@ check('a Stripe return before signing in waits for the sign-in, and a refused on
   t.go('account', false, true);
   await wait(150);
   const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
-  if (!fill('in-name', 'mo@example.org') || !fill('in-pin', ['2', '9', '1', '7'].join(''))) return bad.concat(['there is no sign-in card']);
-  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  { const no = await findSign_(w, 'mo@example.org', ['2', '9', '1', '7'].join('')); if (no) return bad.concat([no]); }
   await wait(900);
   if (calls.length !== 1 || calls[0].ref !== 'PAY-222-8') bad.push('after signing in finalizePayment was posted ' + JSON.stringify(calls.map(c => c.ref)) + ', wanted PAY-222-8 once');
   else if (calls[0].token !== 't-member') bad.push('after signing in finalizePayment went without the new token');
@@ -1070,8 +1062,7 @@ check('proof: a PIN sign-in that took an account back says the children were tak
   t.go('account', false, true);
   await wait(150);
   const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
-  if (!fill('in-name', 'jsmith1@example.org') || !fill('in-pin', ['2', '9', '1', '7'].join(''))) return ['there is no sign-in card'];
-  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  { const no = await findSign_(w, 'jsmith1@example.org', ['2', '9', '1', '7'].join('')); if (no) return [no]; }
   await wait(500);
   if (!sheetOpen_(d) || !/taken off/.test(String(d.getElementById('sheet-body').textContent))) bad.push('the children taken off the account were said nowhere that stays: ' + JSON.stringify(toastOf_(d)));
   /* AND AN ORDINARY SIGN-IN OPENS NOTHING. */
@@ -1082,8 +1073,7 @@ check('proof: a PIN sign-in that took an account back says the children were tak
   b2.w.__t.USER(null); b2.w.__t.go('account', false, true);
   await wait(150);
   const d2 = b2.w.document;
-  d2.getElementById('in-name').value = 'cy@example.org'; d2.getElementById('in-pin').value = ['2', '9', '1', '7'].join('');
-  b2.w.__t.ACTIONS['do-signin'](d2.querySelector('[data-do="do-signin"]'));
+  { const no = await findSign_(b2.w, 'cy@example.org', ['2', '9', '1', '7'].join('')); if (no) return bad.concat([no]); }
   await wait(500);
   if (sheetOpen_(d2)) bad.push('an ordinary sign-in opened a sheet');
   return bad;
@@ -1106,9 +1096,8 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   t.USER(null);
   t.go('account', false, true);
   await wait(120);
-  const reg = d.querySelector('#s-account [data-do="register"]');
+  const reg = d.querySelector('#s-account .reg-card');
   if (!reg) return ['there is no Make an account tile to press'];
-  t.ACTIONS['register'](reg);
   await wait(50);
   const choice = who => d.querySelector('#s-account .reg-card #reg-who-in option[data-who="' + who + '"]');
   const rest = () => d.getElementById('reg-rest');
@@ -1150,8 +1139,7 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   /* THE FIRST SIGN-IN, AND SETTINGS ON THE VERY NEXT PAINT — nothing reloaded, nobody signed out. */
   t.go('account', false, true);
   await wait(80);
-  fill('in-name', 'dana@example.org'); fill('in-pin', '0000');
-  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  { const no = await findSign_(w, 'dana@example.org', '0000'); if (no) return bad.concat([no]); }
   await wait(300);
   const u = t.whoami();
   if (!u || u.role !== 'parent') return bad.concat(['signing in did not leave a parent signed in: ' + JSON.stringify(u && u.role)]);
@@ -1168,7 +1156,6 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   t.go('account', false, true);
   try { w.paint('account'); } catch (e) {}
   await wait(80);
-  t.ACTIONS['register'](d.querySelector('#s-account [data-do="register"]'));
   await wait(50);
   t.ACTIONS['reg-who'](choice('student'));
   fill('reg-first', 'Mo'); fill('reg-last', 'Learner'); fill('reg-email', 'mo@example.org'); fill('reg-pin', '0000');

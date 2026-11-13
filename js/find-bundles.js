@@ -477,7 +477,7 @@ function chipText_(f, i) {
 /* 680: THE ROW NEVER SAYS THE SAME THING TWICE — a second chip with the same words is left out (its filter stays). */
 function filterChips() {
   const said = {};
-  return `<div class="chips">
+  return `<div class="chips">${signChips_()}
     ${STUFF.filters.map((f, i) => {
       const show = chipText_(f, i), key = spellKey_(show);
       if (said[key]) return '';
