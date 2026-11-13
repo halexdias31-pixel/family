@@ -25,7 +25,7 @@ const lib = require('./lib-full.js');
 const GZ = new Map();
 /* WHAT EACH VISIT COST OVER THE WIRE (750), counted where it leaves the server: bytes, and the code files asked for at all. */
 const SENT = { bytes: 0, code: [], by: {} };
-const TYPES = { '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.html': 'text/html', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
+const { MIME: TYPES } = require('./mime.js');
 
 /* COMPRESSED AND CACHEABLE AS PAGES SENDS IT, so the second visit is a real warm one. */
 function serve() {

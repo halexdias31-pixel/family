@@ -51,6 +51,8 @@ const WHERE = {
   /* A SCREEN THAT THREW ON SOMEBODY'S PHONE — the Ledger, because the app writes it. Admin-only to read; no learner data in a row. */
   client_errors:  { file: 'ledger' },
   health_log:     { file: 'ledger' },
+  /* WHO CHANGED SOMEBODY ELSE'S SETTINGS (the admin's lens) — the Ledger, because the app writes it. Admin-only; ids, never names. */
+  lens_log:       { file: 'ledger' },
   /* A PERSON'S FAVOURITE LINKS (509) — the Ledger, because the app writes it. doGet sends each viewer their own rows alone. */
   fav_links:      { file: 'ledger' },
   /* A PHONE'S NOTIFICATION ADDRESS (492) — the Ledger, because the app writes it. Never sent by doGet. */
@@ -130,7 +132,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-13-chain-cols-1";
+const BACKEND_VERSION = "2026-11-13-lens-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -172,6 +174,8 @@ const TAB = {
   client_errors: 'client_errors',
   /* How the site felt on real phones (920) — see SCHEMA.health_log. */
   health_log: 'health_log',
+  /* Who changed somebody else's settings — see SCHEMA.lens_log. */
+  lens_log: 'lens_log',
   /* A person's favourite links — see SCHEMA.fav_links. */
   fav_links: 'fav_links',
   /* What the BUSINESS has chosen to put in front of everybody — see SCHEMA.spotlight. */
@@ -541,6 +545,11 @@ const SCHEMA = {
   /* ---------- HOW THE SITE FELT ON A PHONE (920): one row per sampled visit; a rank and a device class, never a name or id ---------- */
   health_log: [
     "at", "version", "rank", "device", "load_ms", "find_ms", "long_tasks", "long_ms", "heap_mb", "errors",
+  ],
+
+  /* ---------- THE ADMIN'S LENS: one row per change an admin made to somebody else's settings; `fields` names what, never the values ---------- */
+  lens_log: [
+    "at", "by_id", "for_id", "action", "fields",
   ],
 
   /* ---------- FAVOURITE LINKS (509): one row per link, in the person's order, ten at most ---------- */

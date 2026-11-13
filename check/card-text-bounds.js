@@ -11,7 +11,7 @@ const { chromium } = require('playwright');
 const ROOT = path.join(__dirname, '..');
 const W = 390;
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.png': 'image/png' };
+const { MIME } = require('./mime.js');
 
 /* IN THE PAGE: each lesson's worked, formulas and words pages, one at a time, in a Find-classed slot. */
 function measure(max) {
