@@ -322,6 +322,7 @@
     "check-missing.js": "secondary",
     "check-assistant.js": "secondary",
     "check-push.js": "secondary",
+    "check-insert-parts.js": "secondary",
     "check-question-ids.js": "core",
     "check-saved-answers.js": "core",
     "check-digest.js": "secondary",

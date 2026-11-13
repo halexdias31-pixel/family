@@ -580,7 +580,8 @@
    "principle": 4,
    "text": "One item per printed part, its id from the printed label, ids for life: a part's id is its paper's prefix plus the printed question and part (`Q-1MA1-2406-1F-7aii`), so a re-import makes the same id; an importer never merges parts the mark scheme marks separately nor splits one; an id that leaves the library is aliased in `data/settings/question-aliases.json`, and saved answers land on its part (merged boxes joined ` ; `).",
    "checks": [
-    "question-ids"
+    "question-ids",
+    "insert-parts"
    ],
    "since": "2026-11-12"
   },

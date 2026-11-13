@@ -189,6 +189,7 @@ const SUITE = [
   { file: 'check-missing.js', what: 'What\'s missing (526): the gaps between data/settings/expected-papers.json and the covers, a present paper never listed, the list spelled as the library' },
   { file: 'check-assistant.js', what: 'the Assistant in Messages (449): signed in only, the token’s person, five a day from config, a failure given back' },
   { file: 'check-push.js', what: 'phone notifications (492): no keys a quiet no-op, recipient-only, per-kind off, UNREGISTERED dropped, no token in doGet' },
+  { file: 'check-insert-parts.js', what: 'inserts: no two sheets or two parts with the same content; every part has its parent sheet' },
   { file: 'check-question-ids.js', what: 'ids for life: every question id ever committed exists or is aliased; one item per printed part; ids derived from the label' },
   { file: 'check-saved-answers.js', what: 'answers on the account: the token’s person, the later edit wins, text in and text out' },
   /* THE WEEKLY PARENT EMAIL, BUILT AND SWITCHED OFF. § */
