@@ -1,6 +1,6 @@
 /* TYPE AN ANSWER INTO A CARD'S ONE BOX AND PRESS ITS CHECK (owner, 9 Nov: options and orders are typed too); the card's item is the library for the press. */
 function typeChoice_(w, card, x, typed) {
-  const A = w.__t.ACTIONS, inp = card.querySelector('.qp-ans-in'), go = card.querySelector('.qp-mark [data-do="qp-check"]');
+  const A = w.__t.ACTIONS, inp = card.querySelector('.qp-ans-in'), go = card.querySelector('.qt-row [data-do="qp-check"]');
   if (!inp || !go) return { said: '(no box or no Check)' };
   inp.value = typed;
   const held = w.stuffItemsAll_;
@@ -525,7 +525,7 @@ check('a drawing question\'s figure draws only once its pen is picked: an untouc
     row: { row_id: 'Q-TYPED', paper_id: 'P-TYPED', subject: 'Maths', name: 'Typed' }, stems: [], html: '<p>Work out x.</p>' };
   const tSrc = typeof w.padSource_ === 'function' ? w.padSource_(typed) : null;
   if (!tSrc || tSrc.from !== 'part') bad.push('a typed question\'s own figure is not its pad from the start (1020): ' + JSON.stringify(tSrc && tSrc.from));
-  const tCard = d.createElement('div'); tCard.innerHTML = w.questionCard_(typed);
+  const tCard = d.createElement('div'); tCard.innerHTML = w.findCard(typed);
   if (!tCard.querySelector('.qp-ans-in')) bad.push('a typed question whose figure is a pad lost its answer box');
   w.padDrop_(); t.padOn('');
   [kx, ky].forEach(k => { try { w.localStorage.removeItem(k); } catch (e) {} });
@@ -779,14 +779,14 @@ check('a fraction is drawn stacked in the stem, lead, part, answer and choices, 
   const { w } = boot();
   await wait(300);
   const bad = [];
-  if (typeof w.questionCard_ !== 'function') return ['questionCard_ is not reachable — renamed?'];
+  if (typeof w.findCard !== 'function') return ['findCard is not reachable — renamed?'];
   const half = '<sup>1</sup>&frasl;<sub>2</sub>';
   const base = { kind: 'question', key: 'q-typeset', name: 'Q9', marks: 2,
     row: { row_id: 'Q-TYPESET-9', paper_id: 'P-TYPESET', subject: 'Maths', name: 'Typeset' },
     stems: [{ html: '<p>Stem ' + half + '</p>' }], lead: '<p>Lead ' + half + '</p>',
     html: '<p>Work out 3<sup>4</sup>&frasl;<sub>5</sub> and <i>x</i>^2</p>',
     answer: '<b><sup>32</sup>&frasl;<sub>15</sub></b>' };
-  const draw = x => { const d = w.document.createElement('div'); d.innerHTML = w.questionCard_(x, 0); return d; };
+  const draw = x => { const d = w.document.createElement('div'); d.innerHTML = w.findCard(x, 0); return d; };
   const tapped = draw(Object.assign({}, base, {
     choices: [half, '<sup>1</sup>&frasl;<sub>3</sub>'], choiceRight: [1] }));
   /* THE ANSWER IS ITS OWN PAGE NOW (`questionAnsCard_`), drawn open by `answerBlock_` -- so its
@@ -882,11 +882,11 @@ check('marking, revealing and tapping leave the question where it is, and typing
   await wait(300);
   const d = w.document;
   const bad = [];
-  if (typeof w.questionCard_ !== 'function') return ['questionCard_ is not reachable — renamed?'];
+  if (typeof w.findCard !== 'function') return ['findCard is not reachable — renamed?'];
   const A = w.__t.ACTIONS;
   ['qp-check', 'qa-show'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
   if (bad.length) return bad;
-  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.findCard(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
   /* THE TAG ROW AND THE QUESTION. There was a gold header line above the tags; everything it said is a
      tag now (`qPage_`), so the row is the card's whole head and is held as one block. */
   const still = card => {
@@ -979,7 +979,7 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
   if (!A['kp-key']) return ['the keypad has no handler — keypad.js did not load'];
-  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.findCard(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
   const base = { kind: 'question', name: 'Q4', marks: 1, answerType: 'calculation', accept: '0.75',
     row: { row_id: 'Q-KP-4', paper_id: 'P-KP', subject: 'Maths', name: 'Keypad' },
     html: '<p>Write 0.75 as a fraction.</p>', answer: '<b>3/4</b>' };

@@ -81,7 +81,7 @@ const S = v => (v == null ? '' : String(v)).trim();
 const QT_ROW_DATA = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'settings', 'qengine.json'), 'utf8')).row || []; } catch (e) { return []; } })();
 const DRAWING_TOOLS = new Set(['pen', 'line', 'compass']);
 const TOOL_ORDER = QT_ROW_DATA.concat([...DRAWING_TOOLS], ['check']);
-const TOOL_OF = { 'qt-calc': 'calc', 'qt-pen': 'pen', 'qp-work': 'photo', 'q-mag': 'mag', 'read-aloud': 'read', 'q-lock': 'lock' };
+const TOOL_OF = { 'offline-get': 'offline', 'qt-calc': 'calc', 'qt-pen': 'pen', 'qp-work': 'photo', 'q-mag': 'mag', 'read-aloud': 'read', 'q-lock': 'lock' };
 /* EACH TILE ONCE ON A PAGE (round 4: two padlocks, `q-lock` and the widgets' `game-lock`): a tile is its act and tool, and a lock is a lock */
 const SAME_AS = { 'game-lock': 'q-lock' };
 const twiceOn = root => {
@@ -230,16 +230,17 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     const rows = host.querySelectorAll('.qt-row');
     if (rows.length !== 1) bad('tools', x, rows.length + ' tool rows, wanted one');
     else {
-      const got = toolsOf(rows[0]);
+      /* THE CARD'S ONE ROW (rule 3.11): Check first, then the tools in order; the card's own tiles (Message, Save, Share…) are not tools */
+      const known = new Set(TOOL_ORDER.concat(['pad-undo', 'pad-clear'])), got = toolsOf(rows[0]).filter(t => known.has(t));
       /* THE SAME ROW ON EVERY PART; the pen's tiles only where there is something to draw on (`padHasArt_`, owner 29 Oct) */
       /* AND ONLY WHERE THE PAD IS ON THE CARD (`padReady_`, 1020), with Undo and Clear before the Check */
       const ready = A.padReady(x);
       /* THE CALCULATOR ONLY WHERE THE PAPER ALLOWS ONE (owner, 11 Nov): Non-calculator in its needs, none; unknown, one */
       const noCalc = (x.needs || []).some(v => /^non-calculator$/i.test(S(v)));
-      const wantRow = TOOL_ORDER.filter(t => (ready || !DRAWING_TOOLS.has(t)) && !(noCalc && t === 'calc'));
-      if (ready) wantRow.splice(wantRow.length - 1, 0, 'pad-undo', 'pad-clear');
+      const wantRow = ['check'].concat(TOOL_ORDER.filter(t => t !== 'check' && (ready || !DRAWING_TOOLS.has(t)) && !(noCalc && t === 'calc')));
+      if (ready) wantRow.push('pad-undo', 'pad-clear');
       if (got.join(' ') !== wantRow.join(' ')) bad('tools', x, 'its row reads ' + got.join(' ') + (ready ? '' : ' — nothing to draw on, so no drawing tools'));
-      const box = rows[0].closest('.qp-mark');
+      const box = rows[0].closest('.qcard') && rows[0].closest('.qcard').querySelector('.qp-mark');
       if (!box || !box.querySelector('.qp-verdict')) bad('tools', x, 'its row is not in the box\'s mark with a verdict line under it');
       /* ---------- ITS MARKER (markerOf_), NEVER A PERSON: the Check is that marker's, and the line under it says how ---------- */
       let m = null;
@@ -271,7 +272,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     }
     /* THE PHOTO TILE HAS ITS STRIP: thumbnails, removing one and Mark my working show there, on every kind of box (Review B) */
     host.querySelectorAll('.qt-row [data-do="qp-work"]').forEach(t => {
-      const k = t.getAttribute('data-k'), mark = t.closest('.qp-mark');
+      const k = t.getAttribute('data-k'), card = t.closest('.qcard'), mark = card && card.querySelector('.qp-mark');
       if (!k || !mark || ![...mark.querySelectorAll('.qp-work')].some(s => s.getAttribute('data-k') === k)) bad('photo', x, 'its Photo of working tile has no strip with its key to show the photos in');
     });
     const boxes = n('.qp-mark:not(.qp-cells-box) .qp-ans-in:not(.kp-in[data-do="qp-multi"])') + n('.qp-multi') + n('.qp-cells-box');
@@ -355,7 +356,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       host.querySelectorAll('.qb').forEach(b => {
         const id = b.getAttribute('data-part') || '?', foot = b.nextElementSibling;
         if (b.parentElement.closest('.qb')) bad('own-card', x, 'part ' + id + ' is drawn inside another part');
-        if (!b.querySelector(':scope > .qcard-tags')) bad('own-card', x, 'part ' + id + ' has no tag line of its own at its top');
+        if (!b.querySelector(':scope > .kc-tags > .qcard-tags')) bad('own-card', x, 'part ' + id + ' has no tag line of its own at its top');
         if (!b.querySelector('[data-do="card-share"]')) bad('own-card', x, 'part ' + id + ' has no whole tile row of its own');
         /* ONE ROW, EVERY TILE IN IT (owner, 8 Nov): no second row, no lone tile, no row left after the part */
         const rows = b.querySelectorAll('.tile-row');

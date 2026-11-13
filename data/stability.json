@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 86.8,
+ "score": 86.4,
  "verdict": "Solid: little is held together by exceptions.",
  "signals": [
   {
@@ -34,10 +34,10 @@
   {
    "id": "special",
    "label": "Per-facet and per-kind special cases",
-   "count": 40,
+   "count": 42,
    "weight": 0.05,
    "cap": 10,
-   "off": 2,
+   "off": 2.1,
    "where": {
     "js/cards-make.js": 1,
     "js/cards-parts.js": 1,
@@ -52,6 +52,7 @@
     "js/predicates-marks.js": 3,
     "js/predicates.js": 13,
     "js/price-rows.js": 2,
+    "js/qtools-row.js": 2,
     "js/submit-suggest.js": 1
    }
   },
@@ -74,12 +75,12 @@
   {
    "id": "dead",
    "label": "Code nothing calls",
-   "count": 5,
+   "count": 6,
    "weight": 0.3,
    "cap": 10,
-   "off": 1.5,
+   "off": 1.8,
    "where": {
-    "check-dead": "cardRedraw_ (cards-render.js), paintBoard_ (map.js), paintTimer (overworld.js), staffCard_ (staff.js), staffStart_ (staff.js)"
+    "check-dead": "cardRedraw_ (cards-render.js), paintBoard_ (map.js), paintTimer (overworld.js), qtRow_ (qtools-row.js), staffCard_ (staff.js), staffStart_ (staff.js)"
    }
   },
   {

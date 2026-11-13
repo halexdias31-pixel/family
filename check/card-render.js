@@ -140,13 +140,14 @@ function measure(per) {
     box.innerHTML = `<div class="pane" style="position:static;overflow:visible">${html}</div>`;
     box.querySelectorAll('.qwhole > .qb').forEach(qb => {
       out.cards++;
-      const mid = cx(qb), part = qb.querySelector(':scope > .qb-part');
-      const order = [qb.querySelector(':scope > .qb-pic'), qb.querySelector(':scope > .qcard-tags'), part && part.querySelector(':scope > .qsheet'),
-        part && part.querySelector(':scope > :is(.qp-area, .qp-compose, .qp-mark, .qpad)'), part && part.querySelector(':scope .tile-row')].filter(seen);
+      /* ONE TEMPLATE CARD PER PART (rule 3.11): picture, tags, the sheet embed, then the card's tile row. */
+      const mid = cx(qb), part = qb.querySelector(':scope > .kc-lines > .kc-embed');
+      const order = [qb.querySelector(':scope > .kc-pic'), qb.querySelector(':scope > .kc-tags > .qcard-tags'), part && part.querySelector(':scope > .qsheet'),
+        part && part.querySelector(':scope > :is(.qp-area, .qp-compose, .qp-mark, .qpad)'), qb.querySelector(':scope > .kc-act .tile-row')].filter(seen);
       for (let i = 1; i < order.length; i++) if (order[i].getBoundingClientRect().top + 1 < order[i - 1].getBoundingClientRect().top) say(x, 'question page: .' + order[i].className.split(' ')[0] + ' sits above .' + order[i - 1].className.split(' ')[0]);
-      [qb.querySelector(':scope > .qcard-tags .qtag'), part && part.querySelector(':scope > .qsheet p')].filter(seen).forEach(el => {
+      [qb.querySelector(':scope > .kc-tags .qcard-tags .qtag'), part && part.querySelector(':scope > .qsheet p')].filter(seen).forEach(el => {
         if (getComputedStyle(el.parentElement).textAlign !== 'center' && getComputedStyle(el.parentElement).justifyContent !== 'center' && getComputedStyle(el).textAlign !== 'center') say(x, 'question page: .' + (el.className || el.tagName.toLowerCase()) + ' is not centred'); });
-      [qb.querySelector(':scope > .qcard-tags'), part && part.querySelector(':scope > .qsheet')].filter(seen).forEach(el => {
+      [qb.querySelector(':scope > .kc-tags > .qcard-tags'), part && part.querySelector(':scope > .qsheet')].filter(seen).forEach(el => {
         if (Math.abs(cx(el) - mid) > 2) say(x, 'question page: .' + el.className.split(' ')[0] + ' is ' + Math.round(cx(el) - mid) + 'px off the centre line'); });
       const tiles = part ? [...part.querySelectorAll(':scope .tile-row > .tile')].map(t => t.getBoundingClientRect()).filter(r => r.width && r.top === part.querySelector('.tile-row > .tile').getBoundingClientRect().top) : [];
       if (tiles.length) { const l = Math.min(...tiles.map(r => r.left)), rr = Math.max(...tiles.map(r => r.right)); if (Math.abs((l + rr) / 2 - mid) > 2) say(x, 'question page: its round buttons are ' + Math.round((l + rr) / 2 - mid) + 'px off the centre line'); }

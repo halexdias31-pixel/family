@@ -119,7 +119,7 @@ const KC_TILE_RE = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/
 const kcAct_ = t => (/\bdata-do="([^"]*)"/.exec(t) || [])[1] || '';
 /* WHAT COUNTS AS A CARD'S MAIN ACTION when its kind names none first: a Send/Check, a buy-toned tile, Open. */
 const KC_MAIN_ACTS = ['find-open', 'book-with'];
-function kcFour_(x, rest, main) {
+function kcFour_(x, rest, main, flat) {
   const all = String(rest || '').match(KC_TILE_RE) || [];
   const spec = x && x.kind ? kcSpec_(x.kind) : KC_BARE;
   const first = String((spec.tiles || [])[0] || '').split(':')[0];
@@ -136,17 +136,21 @@ function kcFour_(x, rest, main) {
   const lead = main || pick(t => kcAct_(t) === 'card-share') || tile_({ icon: 'share', label: 'Share', act: 'card-share', off: !(x && x.key), data: { key: (x && x.key) || '' } });
   /* WHAT IS NOT A TILE (a verdict, a slot) stays beside the rest, behind ⋯. */
   const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
-  return `<span class="kc-four">${lead}${msg}${star}${tile_({ icon: 'more', label: 'More', act: 'kc-more' })}</span><span class="kc-more" hidden>${all.join('')}${left}</span>`;
+  /* `flat` (a question, owner 13 Nov): every action a visible tile, nothing behind ⋯. */
+  const rest2 = all.join('') + left;
+  return `<span class="kc-four">${lead}${msg}${star}${flat ? rest2 : tile_({ icon: 'more', label: 'More', act: 'kc-more' })}</span><span class="kc-more" hidden>${flat ? '' : rest2}</span>`;
 }
 /* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
-function kcActRow_(x, html, own) {
+/* `o`: { flat, look, key } -- a question's row is its tool row (`.qt-row`, its key on it) with every tile shown. */
+function kcActRow_(x, html, own, o) {
+  o = o || {};
   if (/class="[^"]*\bkc-four\b/.test(html)) return '';
   let rest = own || '';
   try { rest += x && x.key && typeof cardRow_ === 'function' ? cardRow_(x, true) : ''; } catch (e) { oops_(e, 'card:tiles'); }
   /* A KIND'S TILE GREYED FOR WANT OF ONE goes when its own maker's row brought the real one. */
   const real = (String(own || '').match(KC_TILE_RE) || []).map(kcAct_);
   rest = rest.replace(KC_TILE_RE, t => (/\bkc-off\b/.test(t) && real.indexOf(kcAct_(t)) >= 0 ? '' : t));
-  return `<div class="tile-row kc-row">${kcFour_(x, rest + tile_(kcOffOpts_(x, rest)))}</div>`;
+  return `<div class="tile-row kc-row${o.look ? ' ' + esc(o.look) : ''}"${o.look ? cardAttrs_({ key: o.key || '' }) : ''}>${kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main, o.flat)}</div>`;
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {

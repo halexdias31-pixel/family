@@ -648,7 +648,7 @@ function cardBlock_(b) {
   const r = CARD_BLOCKS[b.type];
   try { return r ? r(b) : ''; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'block:' + b.type); return ''; }
 }
-/* THE CARD. Its tile row is the one round row: the first tile leads, Message and Save stand beside it, the rest wait behind ⋯. */
+/* THE CARD. Its tile row is the one round row: the first tile leads, Message and Save stand beside it, the rest behind ⋯ (a question's all shown). */
 function renderCard(spec) {
   spec = spec || {};
   const kind = spec.kind || 'thing', name = spec.name || ((spec.tags || [])[0] && ((spec.tags[0].text != null ? spec.tags[0].text : spec.tags[0]))) || '';
@@ -660,7 +660,9 @@ function renderCard(spec) {
   const x = Object.assign({}, spec.item || {}, { kind, key: spec.key || '', row: spec.row || { title: typeof name === 'string' ? name : '' } });
   /* THE KIND'S OWN TILES (read aloud, admin, the padlock, its extras off `item`) join the spec's, through the one row maker. */
   let row = '';
-  try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || [])) : `<div class="tile-row kc-row">${tile_(spec.tiles || [])}</div>`; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
+  /* `toolRow: { key }` (a question): every tile shown, nothing behind ⋯, the row its part's tool row (`.qt-row`). */
+  const tr = spec.toolRow ? { flat: true, look: 'qt-row', key: spec.toolRow.key || '' } : null;
+  try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || []), tr) : `<div class="tile-row kc-row">${tile_(spec.tiles || [])}</div>`; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
   const cls = 'card fc kc kc-' + kind + (spec.look ? ' ' + spec.look : '') + (spec.off ? ' is-off' : '');
   return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
     + `<div class="kc-pic">${cardPic_(spec.picture)}</div><div class="kc-head"></div>`
@@ -8522,7 +8524,7 @@ const KC_TILE_RE = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/
 const kcAct_ = t => (/\bdata-do="([^"]*)"/.exec(t) || [])[1] || '';
 /* WHAT COUNTS AS A CARD'S MAIN ACTION when its kind names none first: a Send/Check, a buy-toned tile, Open. */
 const KC_MAIN_ACTS = ['find-open', 'book-with'];
-function kcFour_(x, rest, main) {
+function kcFour_(x, rest, main, flat) {
   const all = String(rest || '').match(KC_TILE_RE) || [];
   const spec = x && x.kind ? kcSpec_(x.kind) : KC_BARE;
   const first = String((spec.tiles || [])[0] || '').split(':')[0];
@@ -8539,17 +8541,21 @@ function kcFour_(x, rest, main) {
   const lead = main || pick(t => kcAct_(t) === 'card-share') || tile_({ icon: 'share', label: 'Share', act: 'card-share', off: !(x && x.key), data: { key: (x && x.key) || '' } });
   /* WHAT IS NOT A TILE (a verdict, a slot) stays beside the rest, behind ⋯. */
   const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
-  return `<span class="kc-four">${lead}${msg}${star}${tile_({ icon: 'more', label: 'More', act: 'kc-more' })}</span><span class="kc-more" hidden>${all.join('')}${left}</span>`;
+  /* `flat` (a question, owner 13 Nov): every action a visible tile, nothing behind ⋯. */
+  const rest2 = all.join('') + left;
+  return `<span class="kc-four">${lead}${msg}${star}${flat ? rest2 : tile_({ icon: 'more', label: 'More', act: 'kc-more' })}</span><span class="kc-more" hidden>${flat ? '' : rest2}</span>`;
 }
 /* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
-function kcActRow_(x, html, own) {
+/* `o`: { flat, look, key } -- a question's row is its tool row (`.qt-row`, its key on it) with every tile shown. */
+function kcActRow_(x, html, own, o) {
+  o = o || {};
   if (/class="[^"]*\bkc-four\b/.test(html)) return '';
   let rest = own || '';
   try { rest += x && x.key && typeof cardRow_ === 'function' ? cardRow_(x, true) : ''; } catch (e) { oops_(e, 'card:tiles'); }
   /* A KIND'S TILE GREYED FOR WANT OF ONE goes when its own maker's row brought the real one. */
   const real = (String(own || '').match(KC_TILE_RE) || []).map(kcAct_);
   rest = rest.replace(KC_TILE_RE, t => (/\bkc-off\b/.test(t) && real.indexOf(kcAct_(t)) >= 0 ? '' : t));
-  return `<div class="tile-row kc-row">${kcFour_(x, rest + tile_(kcOffOpts_(x, rest)))}</div>`;
+  return `<div class="tile-row kc-row${o.look ? ' ' + esc(o.look) : ''}"${o.look ? cardAttrs_({ key: o.key || '' }) : ''}>${kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main, o.flat)}</div>`;
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {
@@ -8770,8 +8776,6 @@ function findCard(x, credits) {
 }
 
 /* THE ONE TAG MAKER (one way only): `inner` is HTML the caller escaped, `attrs` its attributes, `cls` extra classes; `base` a tutor pill or a filter chip. */
-/* A CARD ITS OWN FILE STILL LAYS OUT (a question's part): the template's classes, from the card's one maker file. */
-const kcCls_ = kind => 'card fc kc kc-' + kind;
 function qtag_(inner, attrs, cls, base) { return `<span class="${base || 'qtag'}${cls ? ' ' + cls : ''}"${attrs || ''}>${inner}</span>`; }
 /* EVERY OTHER CARD COMES HERE TOO (owner, 11 Nov: one template): its maker writes a plain `<div class="x">…</div>`; a form inside stays whole, the booking form's too. */
 const KC_FORMY = /<(input(?![^>]*type="hidden")|select|textarea|form)\b|\bkc-items\b/;

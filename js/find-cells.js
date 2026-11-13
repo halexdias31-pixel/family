@@ -188,7 +188,7 @@ function cellsTable_(x, html) {
 }
 /* THE BOX UNDER IT: Check marks every cell; with no table to fill, the cells stand in a row of their own. */
 const cellsHere_ = (x, html) => (cellsOf_(x).length && cellsTable_(x, html)) || html;
-/* THE WORDS THE ANSWER CARD ITSELF SHOWS -- its last chunk, as `questionCard_` draws it; the part's whole words where it has no plan */
+/* THE WORDS THE ANSWER CARD ITSELF SHOWS -- its last chunk, as the question card draws it; the part's whole words where it has no plan */
 const cellsCardHtml_ = x => {
   try { const c = partChunks_(x); return c.length ? chunkHtml_(c[c.length - 1], null, x) : String((x && x.html) || ''); }
   catch (e) { return String((x && x.html) || ''); }
@@ -209,7 +209,7 @@ function cellsBox_(x) {
     maths ? ' qp-ans-maths' : ''}" aria-label="Your answers, in order">${kpField_(k, val, maths ? 'maths' : 'words', 3)}</label></div>`;
   const said = subBoxSay_(k, val);
   return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${one}
-    ${qtRow_(x)}${workStrip_(x)}
+    ${workStrip_(x)}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
 }
@@ -228,7 +228,7 @@ document.addEventListener('input', e => {
   el.classList.remove('is-right', 'is-near');
 });
 on('qp-cells-check', el => {
-  const box = el.closest('.qp-cells-box');
+  const box = qMark_(el, '.qp-cells-box');
   const out = box && box.querySelector('.qp-verdict');
   const x = box && stuffItemsAll_().find(it => ansKey_(it) === box.getAttribute('data-k'));
   if (!x || !out) return;
@@ -360,6 +360,15 @@ function multiNext_(inp) {
   return i >= 0 && i < ins.length - 1 ? ins[i + 1] : null;
 }
 
+/* A TILE'S ANSWER BOX: the box is in the card's sheet and its Check in the card's one tile row (rule 3.11), so a tile asks its card. */
+function qMark_(el, sel) {
+  const s = sel || '.qp-mark', own = el && el.closest && el.closest(s);
+  if (own) return own;
+  const card = el && el.closest && el.closest('.qcard');
+  return card ? card.querySelector(s) : null;
+}
+/* AND A BOX'S TILES: its card's one row, or the box itself where it stands alone. */
+const qRowOf_ = box => { const card = box && box.closest && box.closest('.qcard'); return (card && card.querySelector(':scope > .kc-act')) || box; };
 function ansBox_(x) {
   if (cellsOf_(x).length) return cellsBox_(x);
   const opts = choiceList_(x);
@@ -374,7 +383,6 @@ function ansBox_(x) {
   const ai = isAiMark_(m) ? tile_(aiOpts_(x)) : '';
   const val = ansRead_(k);
   const ws = workStrip_(x);
-  const row = qtRow_(x);
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
   const drawAt = geo ? ` data-k="${esc(k)}" data-pad="${esc(padKey_(x))}" data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '';
   const isAi = isAiMark_(m) && m.ready;
@@ -390,7 +398,7 @@ function ansBox_(x) {
     return `<div class="${cls} qp-essay${vcls ? ' ' + vcls : ''}"${dataAt}>
     <label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, val, 'essay', 3)}</label>
     <p class="qp-words">${esc(kpWordsSay_(val))}</p>
-    ${row}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
+    ${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(vsay)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${isAi ? `<p class="qp-ai-why">${own ? esc(own.why) : ''}</p>` : ''}`;
@@ -404,7 +412,7 @@ function ansBox_(x) {
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
   return `<div class="${cls}${said.cls ? ' ' + said.cls : ''}"${dataAt}>
-    ${bar}${row}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
+    ${bar}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(geo ? padSaid_(said.text) : said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${isAi ? '<p class="qp-ai-why"></p>' : ''}`;
@@ -418,7 +426,7 @@ function subBoxSay_(k, val) {
 
 /* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `markPart_` against the scheme; a part with no rule goes to the AI from the same button. */
 on('qp-check', (el) => {
-  const box = el.closest('.qp-mark');
+  const box = qMark_(el);
   const card = el.closest('.qcard');
   /* ITS OWN BOX'S FIELD FIRST (508): a card with two boxes marked the first one's. */
   const inp = (box && box.querySelector('.qp-multi-val, .qp-ans-in')) || (card && card.querySelector('.qp-multi-val, .qp-ans-in'));
@@ -450,7 +458,7 @@ on('qp-check', (el) => {
 
 /* ---------- SEND, WHERE NOTHING CAN MARK IT § */
 on('qp-send', (el) => {
-  const box = el.closest('.qp-mark');
+  const box = qMark_(el);
   const inp = box && box.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
   if (!inp || !out || el.disabled) return;
@@ -643,9 +651,10 @@ const padAspectOf_ = pad => Number(pad && pad.getAttribute && pad.getAttribute('
 const PAD_TOOLS = ['pen', 'ruler', 'compass', 'protractor'];
 
 /* UNDO AND CLEAR, dimmed while there is nothing to take back; in a question's tool row by key (1020). The row offers a pen only where the pad is already drawn */
-const padUndoTiles_ = (x, k0) => { const k = k0 || padKey_(x), n = padRead_(k).length, data = k0 ? {} : { k };
-  return tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo', off: !n && !PAD_CLEARED.has(k), data })
-    + tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear', off: !n, data }); };
+const padUndoOpts_ = (x, k0) => { const k = k0 || padKey_(x), n = padRead_(k).length, data = k0 ? {} : { k };
+  return [{ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo', off: !n && !PAD_CLEARED.has(k), data },
+    { icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear', off: !n, data }]; };
+const padUndoTiles_ = (x, k0) => tile_(padUndoOpts_(x, k0));
 const padBar_ = k => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing"><span class="qpad-group">${padUndoTiles_(null, k)}</span></div>`;
 const padReady_ = x => padHasArt_(x) && (!!padSource_(x) || padSurface_(x) === 'text');
 

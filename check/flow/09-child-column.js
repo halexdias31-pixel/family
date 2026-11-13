@@ -115,7 +115,7 @@ const HELP_KID_ = { name: 'Ada Pupil', personId: 'P-S1', role: 'student', roles:
 const HELP_Q_ = { kind: 'question', key: 'q-help', name: 'Q3', marks: 1, row: { row_id: 'Q-HELP-3', paper_id: 'P-HELP', subject: 'Maths', name: 'Help' },
   html: '<p>Work out 12 &divide; 4</p>', answer: '<b>3</b>' };
 const helpDraw_ = w => { const d = w.document.createElement('div'); d.className = 'help-probe';
-  d.innerHTML = w.questionCard_(HELP_Q_) + w.questionAnsCard_(HELP_Q_); w.document.body.appendChild(d); return d; };
+  d.innerHTML = w.findCard(HELP_Q_) + w.questionAnsCard_(HELP_Q_); w.document.body.appendChild(d); return d; };
 check('455: Help on a question turns that page red and no other (owner, 1 Nov: "just current widget"), rings the bell, says Waiting for help, tells the tutor, and survives a reload until I\'m OK now', async () => {
   const bad = [];
   const r = boot({ before: signedInAs_(HELP_KID_), reply: b => b.action === 'hands' ? { success: true, mine: { personId: 'P-S1', q: 'q-help', at: Date.now() } } : { success: true } });

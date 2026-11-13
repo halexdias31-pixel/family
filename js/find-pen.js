@@ -715,7 +715,7 @@ function padCheck_(row, pad) {
   if (typeof answersPush_ === 'function') answersPush_(true);
   return r;
 }
-on('pad-check', el => { const row = el.closest('.qpad-send'); padCheck_(row, padOfRow_(row)); });
+on('pad-check', el => { const row = qMark_(el, '.qpad-send'); padCheck_(row, padOfRow_(row)); });
 /* ---------- ARMING ONE PAD, EVERY PART OF IT TOGETHER § */
 function padArm_(pad, on) {
   if (!pad) return;

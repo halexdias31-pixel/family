@@ -134,7 +134,7 @@ check('multipart: Saved and Spotlight draw a question\'s opening and its figure 
     w.collItems_ = () => [eight[1]];
     const alone = w.savedPages_().map(read).join(' ');
     if (alone !== 'Q8(ii) ans') bad.push('a part kept alone reads "' + alone + '", wanted its card (its opening on it, 500) and its answer');
-    const card = w.questionCard_(eight[1]);
+    const card = w.findCard(eight[1]);
     if (!/qstem-fig/.test(card)) bad.push('Q8(ii)\'s card does not carry its opening\'s figure (500)');
   } finally { w.collItems_ = heldC; lib.put(); }
   return bad;
@@ -146,7 +146,7 @@ check('multipart: the answer is a swipe after the card -- after a figure printed
   await wait(300);
   const d = w.document;
   const bad = [];
-  const need = ['questionCard_', 'questionWhole_', 'pageParts_'].filter(n => typeof w[n] !== 'function');
+  const need = ['findCard', 'questionWhole_', 'pageParts_'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — the way to the answer was NOT checked'];
   if (w.__t.ACTIONS['qa-go']) bad.push('`qa-go` still has a handler, so a tile to the answer could still be drawn and work');
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
@@ -168,7 +168,7 @@ check('multipart: the answer is a swipe after the card -- after a figure printed
     const whole = el(w.questionWhole_(x, [x], null, true)), part = whole.querySelector('.qb-part'), ac = part && part.querySelector('.qans-card');
     if (!ac || part.innerHTML.indexOf('qans-card') < part.innerHTML.indexOf('qsheet')) bad.push(what + ' does not carry its answer in its card, after its words');
     /* AND NOTHING ON ANY OF ITS PAGES TURNS FOR YOU. */
-    const all = el(w.questionCard_(x) + '');
+    const all = el(w.findCard(x) + '');
     if (all.querySelector('[data-do="qa-go"], .qa-to, .tile-i-next, .qfig-tiles')) bad.push(what + ' still carries a tile to its answer');
   });
   return bad;
@@ -210,7 +210,7 @@ check('multipart: a figure the words name and nobody drew is a "not drawn yet" p
   try {
     const a = find('Q20a');
     /* ONE LINE IN THE FIRST CARD OF THE RUN, WHERE THE FIGURE WOULD STAND -- no page (356). */
-    const gap = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x); return h.querySelectorAll('.qsheet .qfig-missing').length; };
+    const gap = x => { const h = d.createElement('div'); h.innerHTML = w.findCard(x); return h.querySelectorAll('.qsheet .qfig-missing').length; };
     const b = find('Q20b');
     if (!a || JSON.stringify(w.pageParts_(a)) !== '["q"]') bad.push('Q20a has pages ' + (a && JSON.stringify(w.pageParts_(a))) + ', wanted its card alone, ["q"] -- the gap is a line in it');
     else if (gap(a) !== 1) bad.push('Q20a, "Use the graph" with no graph anywhere, does not say "Figure not drawn yet." once in its card');
@@ -294,7 +294,7 @@ check('multipart: "Answers" is a kind at the start of the funnel, and choosing i
     const answered = [].concat(...all.map(pg => (pg.parts || []).filter(x => w.questionHasAns_(x)).map(x => [pg, x])));
     if (!answered.length) bad.push('the paper with no kind chosen has no question with an answer, so "after its question" was NOT checked');
     answered.forEach(([pg, x]) => {
-      const part = draw(pg).querySelector('.qb[data-part="' + x.key + '"] .qb-part');
+      const part = draw(pg).querySelector('.qb.qb-part[data-part="' + x.key + '"]');
       if (!part || !part.querySelector('.qans-card') || part.innerHTML.indexOf('qans-card') < part.innerHTML.indexOf('qsheet')) bad.push('with no kind chosen, ' + x.name + '\'s answer is not in its card after its words');
     });
   } finally { lib.put(); S.filters = []; if (w.__t.go) { try { w.__t.go('stuff', false, true); } catch (e) {} } }
@@ -527,7 +527,7 @@ const ansCards_ = (w, tag) => {
   const held = w.stuffItemsAll_;
   w.stuffItemsAll_ = () => (held() || []).concat([words, maths, pick]);
   const draw = () => {
-    host.innerHTML = [words, maths, pick].map(x => '<div class="cardhost">' + w.questionCard_(x, 0) + '</div>').join('')
+    host.innerHTML = [words, maths, pick].map(x => '<div class="cardhost">' + w.findCard(x, 0) + '</div>').join('')
       + w.__t.padCard(pen, pen.diagram, '')
       /* A PASSAGE TO RING WORDS IN, keyed as `circOf_` keys it. */
       + '<div class="qsheet-part is-text" data-circ="' + w.__t.padKey(pen) + ':words">'
@@ -559,7 +559,7 @@ const ansStroke_ = (w, c, pts) => {
   pts.slice(1).forEach(p => fire('pointermove', p[0], p[1]));
   fire('pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1]);
 };
-const ansNeed_ = w => ['questionCard_', 'ansStore_', 'answersPush_', 'answersPull_', 'ansSavedSay_', 'ansRead_']
+const ansNeed_ = w => ['findCard', 'ansStore_', 'answersPush_', 'answersPull_', 'ansSavedSay_', 'ansRead_']
   .filter(n => typeof w[n] !== 'function').concat(typeof (w.__t || {}).padWrap === 'function' ? [] : ['padWrap_']);
 
 check('answers: typed, picked and drawn go to the account a moment later, and the line under the box says whose', async () => {
@@ -872,7 +872,7 @@ const RELOAD_ESSAY_X = { kind: 'question', name: 'Q5', marks: 40, key: 'q:Q-ANS-
 const reloadEssayBox_ = w => {
   const h = w.document.createElement('div');
   w.document.body.appendChild(h);
-  h.innerHTML = w.questionCard_(RELOAD_ESSAY_X, 0);
+  h.innerHTML = w.findCard(RELOAD_ESSAY_X, 0);
   /* BY `data-do="qp-ans"`, the one thing every box that saves as an answer carries — not by how the essay's
      box is drawn, which is being rebuilt as a writing sheet. */
   return h.querySelector('[data-do="qp-ans"][data-k$="' + RELOAD_ESSAY_X.key + '"]');
@@ -1021,7 +1021,7 @@ check('multipart: a right press on part a alone leaves parts b and c Unattempted
     d.body.appendChild(host);
     const cards = [...host.querySelectorAll('.qb')];
     if (cards.length !== 3) bad.push('the question drew ' + cards.length + ' part cards, not 3');
-    const tagOf = b => [...b.querySelectorAll(':scope > .qcard-tags .qtag[data-f="myResult"]')].map(e => e.textContent).join(',');
+    const tagOf = b => [...b.querySelectorAll(':scope > .kc-tags > .qcard-tags .qtag[data-f="myResult"]')].map(e => e.textContent).join(',');
     if (cards.some(b => tagOf(b) !== 'Unattempted')) bad.push('before a press the tags say ' + cards.map(tagOf).join(' | '));
     if (!host.querySelector('[data-k="' + t.ansKey(parts[0]) + '"]')) bad.push('part a drew no answer box keyed to it — the live tag was NOT checked');
     w.subRecord_(t.ansKey(parts[0]), '497', 'right', 'none');

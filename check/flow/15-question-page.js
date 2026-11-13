@@ -10,7 +10,7 @@ check('a backend without aiMarkWhole is sent no essay over its old 2,000-charact
     serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
-  if (!A['qp-ai'] || typeof w.questionCard_ !== 'function') return ['Mark with AI is not reachable — nothing was sent'];
+  if (!A['qp-ai'] || typeof w.findCard !== 'function') return ['Mark with AI is not reachable — nothing was sent'];
   w.__t.USER({ name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student' });
   const x = w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
   if (!x) return ['the real ' + ID + ' did not come through the loader — nothing was sent'];
@@ -19,7 +19,7 @@ check('a backend without aiMarkWhole is sent no essay over its old 2,000-charact
   d.body.appendChild(host);
   const mark = async text => {
     try { w.localStorage.setItem(k, text); w.localStorage.removeItem(k.replace(/^ans:/, 'part:')); } catch (e) {}
-    host.innerHTML = w.questionCard_(x, 0);
+    host.innerHTML = w.findCard(x, 0);
     const go = host.querySelector('.qp-ai-go');
     if (!go) return null;
     const n = sent.filter(b => b.action === 'aiMark').length;
@@ -51,7 +51,7 @@ check('an answer is its own page after its question, hidden from everybody alike
   await wait(300);
   const d = w.document;
   const bad = [];
-  const gone = ['pageParts_', 'questionCard_', 'questionAnsCard_', 'cardPages_']
+  const gone = ['pageParts_', 'findCard', 'questionAnsCard_', 'cardPages_']
     .filter(n => typeof w[n] !== 'function');
   /* `ansKey_` IS A `const`, and only a function declaration reaches the window -- so it comes
      through `__t`. `w.ansKey_` is undefined, and a `try` around it clears nothing and says nothing. */
@@ -75,13 +75,13 @@ check('an answer is its own page after its question, hidden from everybody alike
     if (parts(x) !== want) bad.push(x.row.row_id + ' has pages ' + parts(x) + ', wanted ' + want);
   });
   /* THE QUESTION CARD: the box, and no answer. */
-  const q = el(w.questionCard_(base));
+  const q = el(w.findCard(base));
   if (q.querySelector('.qans, .qans-body') || q.textContent.indexOf(SECRET) >= 0) bad.push('the question card still draws the answer');
   if (!q.querySelector('.qp-ans')) bad.push('the question card lost its answer box');
   /* NO WAY TO IT ON THE QUESTION'S OWN PAGE -- the owner, 8 Oct: *"there doesnt need to be a scroll down
      tile on questions."* Not in the row, not on the card, with or without an answer. */
   [base, none, fig].forEach(x => {
-    const h = el('' + w.questionCard_(x));
+    const h = el('' + w.findCard(x));
     if (h.querySelector('[data-do="qa-go"], .qa-to, .tile-i-next')) bad.push(x.row.row_id + '\'s question page still carries a tile to its answer');
   });
   /* HIDDEN, signed out. */
@@ -130,7 +130,7 @@ check('an answer is its own page after its question, hidden from everybody alike
   /* AND NOT BY A RIGHT TAP AS IT HAPPENS, through the real handler on a real card. */
   const mcLive = Object.assign({}, mc, { key: 'q-ansp-mc2', row: row('Q-ANSP-11') });
   try { w.localStorage.removeItem(ansKey(mcLive)); } catch (e) {}
-  const tapCard = el(w.questionCard_(mcLive));
+  const tapCard = el(w.findCard(mcLive));
   d.body.appendChild(tapCard);
   typeChoice_(w, tapCard, mcLive, 'B');
   if (!tapCard.querySelector('.qp-mark.is-right')) bad.push('the right letter was not marked Correct, so the Check was NOT checked');
@@ -138,7 +138,7 @@ check('an answer is its own page after its question, hidden from everybody alike
   try { w.localStorage.removeItem(ansKey(mcLive)); } catch (e) {}
   /* AND NOT BY A TYPED ANSWER MARKED RIGHT. */
   const typedX = Object.assign({}, base, { key: 'q-ansp-typed', row: row('Q-ANSP-12'), accept: '17.5' });
-  const typedCard = el(w.questionCard_(typedX));
+  const typedCard = el(w.findCard(typedX));
   d.body.appendChild(typedCard);
   const inp = typedCard.querySelector('.qp-ans-in');
   if (inp) { inp.value = '17.5'; inp.dispatchEvent(new w.Event('input', { bubbles: true })); }
@@ -227,7 +227,7 @@ check('the answer page shows, hides and shows again from one tile, hidden by def
     const s0 = slot(card());
     /* THE QUESTION'S OWN PAGE, drawn first: no tile to the answer on it, and drawing it reveals nothing. */
     const qt = d.createElement('div');
-    qt.innerHTML = w.questionCard_(x) + '<div class="tile-row">' + '' + '</div>';
+    qt.innerHTML = w.findCard(x) + '<div class="tile-row">' + '' + '</div>';
     d.body.appendChild(qt);
     if (qt.querySelector('[data-do="qa-go"], .tile-i-next')) bad.push(what + ': the question page still carries a tile to the answer');
     qt.remove();
@@ -273,7 +273,7 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   await wait(300);
   const d = w.document;
   const bad = [];
-  const need = ['pageParts_', 'questionCard_', 'padSource_', 'padSurface_', 'surfaceSvg_', 'circWords_']
+  const need = ['pageParts_', 'findCard', 'padSource_', 'padSurface_', 'surfaceSvg_', 'circWords_']
     .filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — renamed? The surfaces were NOT checked'];
   const A = w.__t.ACTIONS;
@@ -289,7 +289,7 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   if (JSON.stringify(w.pageParts_(grid)) !== '["q"]') bad.push('a drawing question with no picture has pages ' + JSON.stringify(w.pageParts_(grid)) + ', wanted ["q"] -- the card, its grid where the box would be and no page of its own');
   try { w.localStorage.setItem('pad:' + grid.key, JSON.stringify([[20, 20, 200, 200]])); } catch (e) {}
   /* THE CARD IS THE GRID, with no box and nothing to switch (356). */
-  const gp = el(w.questionCard_(grid));
+  const gp = el(w.findCard(grid));
   const pad = gp.querySelector('.qcard .qp-area .qpad');
   if (!pad) bad.push('the card of a drawing question shows no pen on its surface');
   if (!gp.querySelector('.qp-ans-in')) bad.push('a drawing question has no answer box -- every part has one (round 3)');
@@ -316,10 +316,10 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
     if (got !== want) bad.push(x.row.row_id + ' gets surface "' + got + '", wanted "' + want + '"');
   });
   const coord2 = q('coord2', { answerType: 'drawing' }, { figure: 'coordinate-grid' });
-  const coordP = el(w.questionCard_(coord2));
+  const coordP = el(w.findCard(coord2));
   if (!coordP.querySelector('.qp-area svg.qsurf.is-coord line.axis')) bad.push('a coordinate-grid question is not given axes on a grid, on its card');
   const own = q('own', { answerType: 'drawing', diagram: svgDiag });
-  const ownCard = el(w.questionCard_(own));
+  const ownCard = el(w.findCard(own));
   if (!w.padSource_(own) || w.padSource_(own).from !== 'part' || ownCard.querySelector('svg.qsurf')) bad.push('a drawing question with its own picture had it replaced by a surface');
   /* AND ITS PEN IS OVER THAT PICTURE, IN THE CARD'S SHEET, AND THE PICTURE IS NOWHERE ELSE (356). */
   const ownFace = ownCard.querySelector('.qsheet .qpad .qpad-art > svg:first-child');
@@ -338,8 +338,8 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   const tk = 'pad:' + text.key + ':words';
   try { w.localStorage.removeItem(tk); } catch (e) {}
   if (JSON.stringify(w.pageParts_(text)) !== '["q"]') bad.push('a passage question has pages ' + JSON.stringify(w.pageParts_(text)) + ', wanted ["q"] -- it needs no picture, the passage is the surface');
-  const plain = el(w.questionCard_(Object.assign({}, text, { key: 'q:Q-SURF-text-plain', surface: '', answerType: 'short', row: row('Q-SURF-text-plain') })));
-  const card = el(w.questionCard_(text));
+  const plain = el(w.findCard(Object.assign({}, text, { key: 'q:Q-SURF-text-plain', surface: '', answerType: 'short', row: row('Q-SURF-text-plain') })));
+  const card = el(w.findCard(text));
   const host = card.querySelector('.qsheet-part.is-text[data-circ]');
   if (!host) bad.push('the passage is not drawn as a surface (.qsheet-part.is-text[data-circ])');
   else {
@@ -361,7 +361,7 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
     if (!crumbling.classList.contains('is-circled') || crumbling.getAttribute('aria-pressed') !== 'true') bad.push('a tap did not ring "crumbling"');
     if (stored.length !== 1 || stored[0] !== crumbling.getAttribute('data-w')) bad.push('the ring was not stored: ' + JSON.stringify(stored));
     A['qw-tap'](word('rocky'));
-    const again = el(w.questionCard_(text));
+    const again = el(w.findCard(text));
     const lit = [...again.querySelectorAll('.qw.is-circled')].map(s => s.textContent).sort().join(',');
     if (lit !== 'crumbling,rocky') bad.push('a redrawn card rings [' + lit + '], wanted crumbling and rocky');
     A['qw-tap'](crumbling);
@@ -385,8 +385,8 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
   const t = w.__t;
   const A = t.ACTIONS;
   const bad = [];
-  if (typeof w.questionCard_ !== 'function' || !t.padKey || !A['pad-undo'] || !A['qw-tap']) {
-    return ['questionCard_, padKey_ or the pen\'s handlers are not reachable — renamed? Whose drawing it is was NOT checked'];
+  if (typeof w.findCard !== 'function' || !t.padKey || !A['pad-undo'] || !A['qw-tap']) {
+    return ['findCard, padKey_ or the pen\'s handlers are not reachable — renamed? Whose drawing it is was NOT checked'];
   }
   const LS = w.localStorage;
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
@@ -400,7 +400,7 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
   const got = k => { try { return JSON.parse(LS.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
   /* ON ITS CARD, SWITCHED TO THE DRAWING for whoever is signed in -- a made-up surface is the answer box's
      other face now, not a page (327); the face is remembered by the pad's own per-person key. */
-  const pad = () => el(w.questionCard_(x)).querySelector('.qp-area .qpad');
+  const pad = () => el(w.findCard(x)).querySelector('.qp-area .qpad');
   const lines = p => (p ? p.querySelectorAll('.qpad-g path').length : -1);
 
   /* SIGNED OUT: THE PHONE'S KEY, AND A LINE LEFT ON IT FROM BEFORE TODAY. */
@@ -447,10 +447,10 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
                  answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>' };
   const OLDW = 'pad:q:Q-WHO-9:words';
   t.USER(null);
-  const tall = (() => { const h = el(w.questionCard_(text)).querySelector('[data-circ]'); return [...h.querySelectorAll('.qw')].find(s => s.textContent === 'tall').getAttribute('data-w'); })();
+  const tall = (() => { const h = el(w.findCard(text)).querySelector('[data-circ]'); return [...h.querySelectorAll('.qw')].find(s => s.textContent === 'tall').getAttribute('data-w'); })();
   LS.setItem(OLDW, JSON.stringify([tall]));
   t.USER(ALI);
-  const hostA = el(w.questionCard_(text)).querySelector('[data-circ]');
+  const hostA = el(w.findCard(text)).querySelector('[data-circ]');
   const kAw = 'pad:u:P21:q:Q-WHO-9:words';
   if (!hostA || hostA.getAttribute('data-circ') !== kAw) bad.push('Ali\'s rings are kept under ' + (hostA && hostA.getAttribute('data-circ')) + ', not ' + kAw);
   else {
@@ -459,7 +459,7 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
     if (LS.getItem(OLDW) !== null) bad.push('the phone\'s old ring was copied, not moved');
   }
   t.USER(BEN);
-  const hostB = el(w.questionCard_(text)).querySelector('[data-circ]');
+  const hostB = el(w.findCard(text)).querySelector('[data-circ]');
   if (hostB.querySelectorAll('.qw.is-circled').length) bad.push('Ben sees Ali\'s ringed word');
   A['qw-tap']([...hostB.querySelectorAll('.qw')].find(s => s.textContent === 'tree'));
   if (got('pad:u:P22:q:Q-WHO-9:words').length !== 1) bad.push('Ben\'s ring was not stored under his own key');
@@ -479,7 +479,7 @@ check('June 2024 1F Q7 is one card with its grid under the pen in its words: no 
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
   await wait(300);
   const d = w.document, t = w.__t, A = t.ACTIONS, bad = [];
-  if (typeof w.questionCard_ !== 'function' || !t.padKey) return ['questionCard_ or padKey_ not reachable — NOT checked'];
+  if (typeof w.findCard !== 'function' || !t.padKey) return ['findCard or padKey_ not reachable — NOT checked'];
   const x = w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
   if (!x) return ['the real ' + ID + ' did not come through the loader — NOT checked'];
   const parts = JSON.stringify(w.pageParts_(x));
@@ -487,7 +487,7 @@ check('June 2024 1F Q7 is one card with its grid under the pen in its words: no 
   if (parts !== '["q"]') bad.push(ID + ' has pages ' + parts + ', wanted ["q"] (960)');
   const host = d.createElement('div');
   d.body.appendChild(host);
-  host.innerHTML = w.questionCard_(x) + '';
+  host.innerHTML = w.findCard(x) + '';
   const pad = host.querySelector('.qcard .qsheet .qpad');
   if (!pad) bad.push('the card does not hold the grid as a pen inside its sheet');
   if (host.querySelectorAll('.qp-ans-in').length !== 1) bad.push('the card draws ' + host.querySelectorAll('.qp-ans-in').length + ' answer boxes, wanted the one every part has');
@@ -497,7 +497,7 @@ check('June 2024 1F Q7 is one card with its grid under the pen in its words: no 
   /* A STROKE, SAVED UNDER THE PAD'S KEY -- through the store the pen writes, as the other journeys put one. */
   if (pad) {
     try { w.localStorage.setItem(t.padKey(x), JSON.stringify([[30, 30, 120, 90]])); } catch (e) {}
-    host.innerHTML = w.questionCard_(x);
+    host.innerHTML = w.findCard(x);
     if (!host.querySelector('.qsheet .qpad .qpad-g path')) bad.push('a stroke kept under padKey_ is not drawn back on the card');
     try { w.localStorage.removeItem(t.padKey(x)); } catch (e) {}
   }
@@ -526,7 +526,7 @@ check('no question in the library has a figure page or points at one, and every 
       pp.forEach(p => {
         pages++;
         if (/^(fig|sfig\d+|use|nofig)$/.test(p || '')) gone[p.replace(/\d+$/, '')] = (gone[p.replace(/\d+$/, '')] || 0) + 1;
-        const h = p ? w.stuffPart_(x, p) : w.questionCard_(x);
+        const h = p ? w.stuffPart_(x, p) : w.findCard(x);
         if (/Figure on the next page/.test(h)) ptr.push(x.row.row_id);
         html += h;
       });
@@ -569,7 +569,7 @@ check('the hexagon shows its surface and its box, a question with options or cel
   if (typeof w.markerOf_ !== 'function' || typeof w.qtRow_ !== 'function') return ['markerOf_ or qtRow_ not reachable — NOT checked'];
   const [hex, gps, tri, lab] = IDS.map(id => w.stuffItemsAll_().find(it => it.row && it.row.row_id === id));
   if (!hex || !gps || !tri || !lab) return ['a real row did not come through the loader — NOT checked'];
-  const card = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x); return h; };
+  const card = x => { const h = d.createElement('div'); h.innerHTML = w.findCard(x); return h; };
   const H = card(hex), G = card(gps), T = card(tri);
   if (!H.querySelector('.qp-area .qpad') || !H.querySelector('.qp-ans-in')) bad.push('the hexagon does not show both its surface and its box');
   /* ROUND 3: options and no pen until the Pen is tapped; the triangle a pen over its figure AND the one box every part has */
@@ -621,7 +621,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in its o
   const t = w.__t;
   const A = t.ACTIONS;
   const bad = [];
-  const need = ['pageParts_', 'stuffPart_', 'questionCard_', 'cardPages_', 'usesOf_', 'figsBefore_', 'figMissing_'].filter(n => typeof w[n] !== 'function');
+  const need = ['pageParts_', 'stuffPart_', 'findCard', 'cardPages_', 'usesOf_', 'figsBefore_', 'figMissing_'].filter(n => typeof w[n] !== 'function');
   if (need.length || !t.padKey || !A['pad-undo']) return [(need.join(', ') || 'padKey_ / pad-undo') + ' not reachable — renamed? "Use your graph" was NOT checked'];
   const LS = w.localStorage;
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
@@ -666,7 +666,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in its o
     t.USER(ALI);
     put(b, [[20, 300, 100, 120, 170, 60], [200, 60, 320, 300]]);
     const CRED = /redrawn|not the paper.s own|drawn (by|for) @family|your marks from|marks are yours|yours from|nothing drawn on|your drawing/i;
-    const card = x => el(w.questionCard_(x)).querySelector('.qcard');
+    const card = x => el(w.findCard(x)).querySelector('.qcard');
     /* THE MARKED PICTURE IN FRONT OF (c)'s WORDS, IN (c)'s CARD (it was the `use` page; 356). */
     const seenIn = x => { const c0 = card(x); return c0 ? c0.querySelector('.qsheet .qseen') : null; };
     const penOf = x => { const c0 = card(x); return c0 ? c0.querySelector('.qsheet .qpad, .qp-area .qpad') : null; };
@@ -859,7 +859,7 @@ check('every fact about a page of a question is a tag in one row at the top: wha
   const d = w.document;
   const bad = [];
   const t = w.__t;
-  const need = ['questionCard_', 'questionAnsCard_', 'questionWhole_', 'tagRow_', 'chipShow_']
+  const need = ['findCard', 'questionAnsCard_', 'questionWhole_', 'tagRow_', 'chipShow_']
     .filter(n => typeof w[n] !== 'function');
   if (need.length || typeof t.facetBy !== 'function') return [need.concat(['facetBy']).join(', ') + ' not reachable — renamed? The tag row was NOT checked'];
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
@@ -868,7 +868,7 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     const card = el(html).querySelector('.qwhole .qb, .qcard');
     const r = card && card.querySelector('.qcard-tags');
     /* A REAL PICTURE MAY SIT ABOVE THE TAG ROW (owner, 10 Nov: picture, tags, words, buttons). */
-    return { card, first: card && card.firstElementChild && card.firstElementChild.classList.contains('qb-pic') ? card.firstElementChild.nextElementSibling : card && card.firstElementChild,
+    return { card, first: card && card.firstElementChild && (card.querySelector(':scope > .kc-tags') || card).firstElementChild,
              tags: r ? [...r.querySelectorAll('.qtag')].map(s => ({ tag: s.getAttribute('data-tag') || '', f: s.getAttribute('data-f') || '', text: s.textContent.trim() })) : [] };
   };
   /* A TAG IS NAMED BY ITS FACET (data-f); ITS COLOUR IS ITS MENU'S (1030), h<N> from TAG_OF — the same for every answer of one facet. */
@@ -884,7 +884,7 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     stems: [{ id: 'S-TAGS-4', html: '<p>A shape is drawn on a grid.</p>', diagram: svg }],
     html: '<p>Work out the size of angle x.</p>', diagram: svg, answer: '<b>40</b>', accept: '40' };
   const pages = {
-    question: w.questionCard_(gcse), answer: w.questionAnsCard_(gcse), whole: w.questionWhole_(gcse, [gcse], null, true),
+    question: w.findCard(gcse), answer: w.questionAnsCard_(gcse), whole: w.questionWhole_(gcse, [gcse], null, true),
   };
   const kind = { question: 'Questions', answer: 'Answers', whole: 'Questions' };
   let itemFacts = null;
@@ -920,7 +920,7 @@ check('every fact about a page of a question is a tag in one row at the top: wha
   /* A CALCULATOR PAPER, AND A ROW WITH NO MARKS. */
   const calcQ = Object.assign({}, gcse, { key: 'q-tags-c', name: 'Q3', qNumber: '3', qPart: '', marks: '', sub: 'Paper 2 (Calculator) — June 2017', needs: w.needsOf_({ needs: 'Calculator' }),
     row: Object.assign({}, gcse.row, { row_id: 'Q-TAGS-C', name: 'Paper 2 (Calculator) — June 2017' }), stems: [], diagram: '' });
-  const c = row(w.questionCard_(calcQ));
+  const c = row(w.findCard(calcQ));
   if (c.tags.filter(x => /calculator/i.test(x.text)).map(x => x.f + ':' + x.text).join() !== 'needs:Calculator allowed') bad.push('a calculator paper says ' + say(c.tags.filter(x => /calculator/i.test(x.text))) + ', wanted one needs tag, Calculator allowed');
   if (c.tags.some(x => x.f === 'marks' || /\b0 marks?\b/.test(x.text))) bad.push('a row with no marks has a marks tag: ' + say(c.tags));
   /* THE FUNNEL SAYS THE SAME WORD, BECAUSE THE WORD IS THE VALUE (396): no `showOf` on What you need, and its chip reads its value. */
@@ -937,7 +937,7 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     sub: 'Paper 1: Arithmetic — May 2024', examBoard: 'STA', marks: 1, company: 'Standards & Testing Agency',
     row: { row_id: 'Q-TAGS-STA', paper_id: 'P-TAGS-STA', name: 'Paper 1: Arithmetic — May 2024' } });
   [['a SATs worksheet', sheet, false], ['an STA paper', sta, true]].forEach(([what, x, board]) => {
-    const r = row(w.questionCard_(x));
+    const r = row(w.findCard(x));
     const lv = r.tags.filter(y => y.f === 'level' || y.f === 'keystage').map(y => y.f + ':' + y.text);
     if (lv.indexOf('level:SATs') < 0 || lv.indexOf('keystage:KS2') !== lv.indexOf('level:SATs') + 1) bad.push(what + ' does not say SATs and then KS2 as two tags, its level and its key stage: ' + say(r.tags));
     if (r.tags.some(y => /KS\s*\d\s*SATs/i.test(y.text))) bad.push(what + ' still says the key stage inside the level: ' + say(r.tags));
@@ -946,7 +946,7 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     if (!r.tags.some(y => y.f === 'qNumber' && y.text === 'Q1')) bad.push(what + ' has no [Q1] tag: ' + say(r.tags));
   });
   /* A MAKER'S SHEET (O3): its maker is its Source tag, and it says no exam board even where the row names one. */
-  const ws = row(w.questionCard_(Object.assign({}, sheet, { key: 'q-tags-ws2', examBoard: 'Edexcel' })));
+  const ws = row(w.findCard(Object.assign({}, sheet, { key: 'q-tags-ws2', examBoard: 'Edexcel' })));
   if (!ws.tags.some(y => y.f === 'source' && y.text === '1st Class Maths') || ws.tags.some(y => y.f === 'examBoard')) bad.push('a 1st Class Maths sheet should say its Source and no exam board: ' + say(ws.tags));
   return bad;
 });

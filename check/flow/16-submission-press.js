@@ -155,7 +155,7 @@ const SUB_SUM = { kind: 'question', key: 'q:Q-SUB-1', name: 'Q3', marks: 1, subj
 /* THE CARD AND THE TILE ROW UNDER IT, as `stuffCard` puts them -- the verdict is in the row. */
 const subDraw_ = (w, x, host) => {
   const h = host || w.document.createElement('div');
-  h.innerHTML = w.questionCard_(x, 0) + '<div class="tile-row">' + '' + '</div>';
+  h.innerHTML = w.findCard(x, 0) + '<div class="tile-row">' + '' + '</div>';
   if (!host) w.document.body.appendChild(h);
   return h.querySelector('.qcard');
 };
@@ -172,9 +172,9 @@ check('submission: the latest one is the verdict beside the star, never a date, 
   const { w } = boot();
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
-  if (typeof w.questionCard_ !== 'function' || typeof w.subRecord_ !== 'function'
+  if (typeof w.findCard !== 'function' || typeof w.subRecord_ !== 'function'
       || !A['qp-check'] || !A['qp-send']) {
-    return ['subRecord_, questionCard_ or the marking handlers are not reachable — renamed? The verdict was NOT checked'];
+    return ['subRecord_, findCard or the marking handlers are not reachable — renamed? The verdict was NOT checked'];
   }
   const base = { kind: 'question', name: 'Q8', marks: 2, row: { row_id: 'Q-V-8', paper_id: 'P-V', subject: 'Maths', name: 'Verdict' },
     html: '<p>Work out 3 &times; 5</p>', answer: '<b>15</b>', accept: '15' };
@@ -251,7 +251,7 @@ check('submission: right, edited, wrong — two events on the account, a draft s
   const rows = [], drafts = {};
   const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), reply: ansBackend_(drafts, subBackend_(rows)) });
   await wait(300);
-  const need = ['subRecord_', 'subAdopt_', 'questionCard_', 'ansSavedSay_'].filter(n => typeof w[n] !== 'function');
+  const need = ['subRecord_', 'subAdopt_', 'findCard', 'ansSavedSay_'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — renamed? Nothing was sent'];
   const bad = [];
   const subs = () => sent.filter(b => b.action === 'submitAnswer');
@@ -388,7 +388,7 @@ check('submission: a pick, an ordering, Mark with AI and a worksheet box are eac
   /* AN ORDERING: typed as letters in order; a short row is not an answer, the full one is one event. */
   const host = w.document.createElement('div');
   w.document.body.appendChild(host);
-  host.innerHTML = w.questionCard_(ORD, 0);
+  host.innerHTML = w.findCard(ORD, 0);
   typeChoice_(w, host, ORD, 'B, C');
   await wait(30);
   if (of('q:Q-SUB-ORD').length !== 1 || of('q:Q-SUB-ORD')[0].verdict !== 'wrong') bad.push('a short order went up as ' + JSON.stringify(of('q:Q-SUB-ORD')) + ' — wanted one event, wrong');
@@ -401,7 +401,7 @@ check('submission: a pick, an ordering, Mark with AI and a worksheet box are eac
   /* MARK WITH AI: the marks are the verdict, ai:2/3. */
   const ah = w.document.createElement('div');
   w.document.body.appendChild(ah);
-  ah.innerHTML = w.questionCard_(AIQ, 0) + '<div class="tile-row">' + '' + '</div>';
+  ah.innerHTML = w.findCard(AIQ, 0) + '<div class="tile-row">' + '' + '</div>';
   const ai = ah.querySelector('.qp-ai-go');
   if (!ai) bad.push('the worded card drew no Mark with AI — the AI press was NOT checked');
   else {
@@ -524,7 +524,7 @@ check('submission: a press carries the question’s own words — its stem above
   const { w, sent } = boot({ payload: p, reply: ansBackend_({}, subBackend_(rows)) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, ansKey = w.__t.ansKey;
-  const need = ['questionItems', 'subRecord_', 'questionCard_'].filter(n => typeof w[n] !== 'function')
+  const need = ['questionItems', 'subRecord_', 'findCard'].filter(n => typeof w[n] !== 'function')
     .concat(A['qp-check'] ? [] : ['qp-check']).concat(typeof ansKey === 'function' ? [] : ['ansKey_']);
   if (need.length) return [need.join(', ') + ' not reachable — renamed? The words a press sends were NOT checked'];
   const bad = [];
@@ -538,7 +538,7 @@ check('submission: a press carries the question’s own words — its stem above
     const q5a = item('Q5a');
     if (!q5a) return ['Q5a did not reach the library — the words were NOT checked'];
     const h = d.createElement('div');
-    h.innerHTML = w.questionCard_(q5a, 0) + '<div class="tile-row">' + '' + '</div>';
+    h.innerHTML = w.findCard(q5a, 0) + '<div class="tile-row">' + '' + '</div>';
     d.body.appendChild(h);
     const card = h.querySelector('.qcard');
     const box = card && card.querySelector('.qp-ans-in'), btn = card && card.querySelector('.qp-check');
@@ -671,7 +671,7 @@ check('submission: the keypad’s gold Send and a laptop’s Enter send the box�
   /* AN ESSAY: its key says "done", and neither it nor Ctrl+Enter sends anything — its Send is a tile. */
   const eh = d.createElement('div');
   d.body.appendChild(eh);
-  eh.innerHTML = w.questionCard_(ESS, 0);
+  eh.innerHTML = w.findCard(ESS, 0);
   const ei = eh.querySelector('.kp-in[data-kp-essay]');
   if (!ei) bad.push('the forty-mark English question drew no essay sheet — its "done" was NOT pressed');
   else {
@@ -813,7 +813,7 @@ check('submission: a typed draft the store refuses is not on the account until i
     w.dispatchEvent(ev);
     if (!ev.defaultPrevented) bad.push('leaving with a refused, unsent draft did not ask first');
     /* SENT: the account holds exactly this, so nothing is at risk and the line says where it went. */
-    const send = c.kp().closest('.qp-mark') && c.kp().closest('.qp-mark').querySelector('.qt-row [data-do="qp-check"]');
+    const send = c.kp().closest('.qcard') && c.kp().closest('.qcard').querySelector('.qt-row [data-do="qp-check"]');
     if (!send) bad.push('the maths box has no Check — nothing to send it with');
     else {
       send.click();
