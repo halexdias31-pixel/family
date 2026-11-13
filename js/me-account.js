@@ -586,7 +586,11 @@ const REG_NOTE = {
 };
 /* MAKE AN ACCOUNT IS A CARD OF ITS OWN beside Sign in, its form there from the start (no sheet, owner 7 Nov). */
 function registerCard_() {
-  return card_(`<div class="reg-card"><h3>Make an account</h3><div class="reg-form">
+  return renderCard({ kind: 'panel', look: 'reg-card', name: 'Make an account', tags: ['Make an account'], body: [{ type: 'embed', tool: 'reg-form' }] });
+}
+/* THE FORM IS THE CARD'S ONE EMBED; its send (reg-send) is unchanged. */
+function regFormHtml_() {
+  return `<div class="reg-form">
     ${/* ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */''}
     <div class="reg-who" id="reg-who" data-who="">
       <p class="reg-cap" id="reg-who-cap">Both are free; teaching starts with "Apply to teach" once you are in.</p>
@@ -612,8 +616,9 @@ function registerCard_() {
       ${/* THREE LINES AT 320, MEASURED: § */
             ''}
       <p class="said" id="reg-note"></p>
-    </div></div></div>`);
+    </div></div>`;
 }
+CARD_EMBEDS['reg-form'] = regFormHtml_;
 /* THE SIGN-IN CARD'S TILE GOES TO THE FORM: on this column if it is drawn, else on the account column. */
 on('register', el => {
   const near = () => (el && el.closest && el.closest('.screen') || document).querySelector('.reg-card') || document.querySelector('.screen.on .reg-card');

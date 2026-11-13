@@ -109,9 +109,9 @@ const EXEMPT = [
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-name"', why: 'the sign-in box — half a handle is not work, and none is kept after (383)' },
   { file: 'tiles.js', fn: 'searchPill_', has: 'type="search"', why: 'the one search bar (487): Reels\' videos and the People search — a word looked up, not work, retyped in a second' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-pin"', why: PIN },
-  { file: 'me.js', fn: 'registerCard_', has: 'id="reg-pin"', why: PIN },
+  { file: 'me.js', fn: 'regFormHtml_', has: 'id="reg-pin"', why: PIN },
   { file: 'form.js', fn: 'formBox_', has: 'id="${esc(b.id)}"', why: PIN + ': the Signing in boxes, forms.json\'s `signing-in`' },
-  { file: 'me.js', fn: 'registerCard_', has: 'id="reg-noemail"', why: 'reset by the who-is-it question above it, which is asked again on purpose (`REG_NOTE`)' },
+  { file: 'me.js', fn: 'regFormHtml_', has: 'id="reg-noemail"', why: 'reset by the who-is-it question above it, which is asked again on purpose (`REG_NOTE`)' },
   /* THE PEOPLE COLUMN'S PERSON FORM (373): another person's account, decided and saved there and then. */
   { file: 'me.js', fn: 'box', has: 'data-pf="${k}"', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf="dob"', why: PEOPLE_FORM },
