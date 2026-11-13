@@ -1,5 +1,7 @@
 # The long map
 
+> Reference, not rules: the one rulebook is `data/settings/rules.json` (read `docs/rules.md`); where this page disagrees, it wins.
+
 CLAUDE.md as it stood on 18 Oct 2026, verbatim except for the Deploying section (now docs/deploying.md).
 CLAUDE.md is loaded into every session, so it was cut to the rules; the reasons, figures and the
 owner's words behind them are kept here. Figures in it (sizes, counts) were true then and are not kept up to date.

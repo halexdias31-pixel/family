@@ -341,6 +341,7 @@
     "check/fixed-tiles.js": "core",
     "check-funnel.js": "core",
     "check-tags.js": "core",
+    "check-tag-cards.js": "secondary",
     "check-bundle.js": "secondary",
     "check-flow.js": "core",
     "check/cards.js": "core",

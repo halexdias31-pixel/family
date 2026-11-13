@@ -1,5 +1,7 @@
 # The library's two halves (docs/history/397)
 
+> Reference, not rules: the one rulebook is `data/settings/rules.json` (read `docs/rules.md`); where this page disagrees, it wins.
+
 The questions, content cards, practicals and projects are each two halves:
 
 - **The card** — `data/questions.json`, `data/textbooks.json`, `data/practicals.json`, `data/projects.json` in this
