@@ -120,7 +120,7 @@ function fieldHtml(name, value, o) {
   /* A FIXED LIST IS A SELECT. § */
   /* A MANAGER IS A TUTOR, KEPT BY PERSON ID AND SHOWN BY NAME (`{ v, t }`); blank is the admin (`chainShares_`). */
   const opts = name === 'manager'
-    ? managerOptions_(String((o.raw && o.raw.person_id) || ((typeof USER !== 'undefined' && USER) || {}).personId || '')) : (o.options || []);
+    ? managerOptions_(String((o.raw && o.raw.person_id) || (whose_() || {}).personId || '')) : (o.options || []);
   const ov = x => String(x && typeof x === 'object' ? x.v : x), ot = x => String(x && typeof x === 'object' ? x.t : x);
   if (opts.length) {
     /* A PLACEHOLDER ON A SELECT IS ITS EMPTY OPTION, and the caption goes exactly as it does for a box below: § */

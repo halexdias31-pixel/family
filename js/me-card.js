@@ -1,8 +1,8 @@
 
 /* ---------- WHO HAS A PUBLIC CARD, AND WHAT SETTINGS STOPS DRAWING FOR THEM § */
 function cardMine_() {
-  if (typeof USER === 'undefined' || !USER || typeof mineIs_ !== 'function') return null;
-  return ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).find(t => t && t.personId && mineIs_(t)) || null;
+  if (!whose_() || typeof mineIs_ !== 'function') return null;
+  return ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).find(t => t && t.personId && mineIs_(t, whose_())) || null;
 }
 const cardHolds_ = () => !!USER && cardSent_().length > 0 && !!cardMine_();
 /* THE GROUPS WITH EVERY FIELD THE CARD EDITS TAKEN OUT, AND A GROUP LEFT EMPTY DROPPED — so for a tutor with a card About you, Photos, the rate, Qualifications § */
@@ -22,13 +22,13 @@ let CARD_EDIT = null;
 let CARD_EDIT_READ = '';
 const CARD_EDIT_KEY = 'familyCardEdit';
 function cardEditFresh_(pid) {
-  const me = String((USER && USER.personId) || '');
+  const me = String((whose_() && whose_().personId) || '');
   const own = !!me && String(pid) === me;
   return { who: me, pid: String(pid), own, col: own ? 'settings' : undefined, base: null, asking: false, err: '' };
 }
 function cardEditNow_() {
-  if (typeof USER === 'undefined' || !USER) { CARD_EDIT = null; CARD_EDIT_READ = ''; return null; }
-  const me = String(USER.personId || '');
+  if (!whose_()) { CARD_EDIT = null; CARD_EDIT_READ = ''; return null; }
+  const me = String(whose_().personId || '');
   if (CARD_EDIT && CARD_EDIT.who !== me) CARD_EDIT = null;
   if (!CARD_EDIT && CARD_EDIT_READ !== me) {
     CARD_EDIT_READ = me;
@@ -59,9 +59,9 @@ function cardForget_() { try { localStorage.removeItem(CARD_EDIT_KEY); } catch (
 
 /* WHO MAY EDIT THIS CARD: § */
 function cardMayEdit_(t) {
-  if (typeof USER === 'undefined' || !USER || !t || !t.personId) return false;
+  if (!whose_() || !t || !t.personId) return false;
   /* YOUR OWN CARD ONLY, for every rank (467) — the owner: "Profile cards are uneditable by anyone, including admin." */
-  return String(t.personId) === String(USER.personId || '');
+  return String(t.personId) === String(whose_().personId || '');
 }
 /* `col` IS WHICH PEOPLE COLUMN ASKS (453): your own card's face there (`ownCardSections_`); anybody else's tutor card on Tutors. */
 const PEOPLE_COLS_ = ['tutors', 'students', 'parents'];
@@ -81,7 +81,7 @@ function cardEditOpts_(x) {
   const t = (x && x.row) || {};
   if (!x || !x.account || !cardMayEdit_(t)) return null;
   /* NOT ON THE CARD BEING EDITED. § */
-  const own = String(t.personId) === String(USER.personId || '');
+  const own = String(t.personId) === String((whose_() || {}).personId || '');
   const col = x.col || (own ? homeCol_() : 'tutors');
   if (cardEditing_(t, col)) return null;
   /* YOUR OWN CARD'S EDIT IS ON YOUR SETTINGS COLUMN ALONE (464, `ownCardSetPage_`); nobody edits somebody else's (467). */
@@ -171,7 +171,7 @@ function cardKeep_(form) {
 /* ---------- THE COPY OF THE ROW THE FORM IS FILLED FROM § */
 function cardBaseNow_(e) {
   if (!e) return null;
-  if (e.own) return profileShapeOk_() ? USER.profile : null;
+  if (e.own) return profileShapeOk_() ? whose_().profile : null;
   return e.base;
 }
 function cardFetch_(e) {
@@ -331,7 +331,7 @@ const CARD_SECTION = {
 };
 /* WHO GETS THE EXTRA-SEAT MONEY, in words: the split `chainShares_` makes with this manager chosen. */
 function chainSay_(t, manager) {
-  const id = String((t && t.personId) || ((typeof USER !== 'undefined' && USER) || {}).personId || 'me');
+  const id = String((t && t.personId) || (whose_() || {}).personId || 'me');
   t = t || ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).find(x => x && String(x.personId) === id) || null;
   const tutors = ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).filter(x => x && String(x.personId) !== id);
   const me = { personId: id, manager: String(manager || ''), role: (t && t.role) || 'Tutor', title: 'You' };
@@ -349,7 +349,7 @@ function cardEditForm_(t, e, vals, only) {
   const ro = (DATA && DATA.profileReadonly) || [];
   const box = (f, extra) => fieldHtml(f, val(f), Object.assign({ attr: 'data-me', label: ROW_LABEL[f],
     options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !isAdmin()), draft: false,
-    raw: { person_id: (t && t.personId) || ((typeof USER !== 'undefined' && USER) || {}).personId || '' } }, extra));
+    raw: { person_id: (t && t.personId) || (whose_() || {}).personId || '' } }, extra));
   /* YOUR OWN CARD'S SECTIONS ARE YOUR ROLE'S (`ownCardSections_`), with the figure and the handle;
      somebody else's are the tutor's card, as an admin has always edited it. */
   return (only || (e.own ? ownCardSections_() : cardSections_())).map(s => {
@@ -528,12 +528,12 @@ function cardSeatRefusal_(form, fields) {
 /* ---------- YOUR HANDLE, ON YOUR CARD, UNDER YOUR NAME (docs/history/339) § */
 function cardHandleHtml_() {
   /* NO PRESS ANY MORE (364, 367): the handle is a template, said here so nobody has to be told it. */
-  const said = (HANDLE_SAID.pid && HANDLE_SAID.pid === String(USER.personId || '') && HANDLE_SAID.text)
+  const said = (HANDLE_SAID.pid && HANDLE_SAID.pid === String(whose_().personId || '') && HANDLE_SAID.text)
     || 'Your handle is the first and last letter of your first name and the year you joined. If somebody '
      + 'had it already, more letters of your first name were added, and then a number.';
   /* ONE LINE, AND THE RULE ONE TAP UNDER IT (425) — the handle is read here, never typed. */
   return ceFold_('handle', 'Handle', `<span class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
-      esc((USER && USER.handle) || '')}</span></span>`, `<p class="note handle-said">${esc(said)}</p>`);
+      esc((whose_() && whose_().handle) || '')}</span></span>`, `<p class="note handle-said">${esc(said)}</p>`);
 }
 /* SOMEBODY ELSE'S PICTURE, SHOWN AND NOT OFFERED — `savePhoto` writes the asker's own row. § */
 function cardFaceOnly_(t) {
@@ -600,8 +600,8 @@ function cardQualHole_(form, base) {
 function cardClose_(e, pane, sec) {
   try { draftDrop_('card', e.pid + (sec ? ':' + sec : '')); } catch (x) { oops_(x, 'me:cardClose_') }
   /* YOUR OWN STAYS OPEN (468) — the column is its editor — and what it would put back is what is there now. */
-  if (CARD_EDIT === e && e.own && USER) {
-    Object.assign(e, { pic0: cardPicNow_(), h0: String(USER.handle || USER.name || '') });
+  if (CARD_EDIT === e && e.own && whose_()) {
+    Object.assign(e, { pic0: cardPicNow_(), h0: String(whose_().handle || whose_().name || '') });
     cardRemember_(e);
   } else { if (CARD_EDIT === e) CARD_EDIT = null; cardForget_(); }
   /* CLEAN FIRST, or `settingsKeep_` holds the column and the repaint that ends the edit never happens. */
@@ -648,9 +648,9 @@ on('card-edit', el => {
 /* YOUR PICTURE AS THIS PHONE LAST KEPT IT — `USER.profile.photo`, which `pfpTake_` writes on every save,
    else the sign-in reply's `USER.photo`, else your row's face. */
 function cardPicNow_(t) {
-  const p = (USER && USER.profile) || {};
+  const p = (whose_() && whose_().profile) || {};
   const v = Object.prototype.hasOwnProperty.call(p, 'photo') ? p.photo
-    : (USER && USER.photo != null ? USER.photo : (t && t.image));
+    : (whose_() && whose_().photo != null ? whose_().photo : (t && t.image));
   return String(v == null ? '' : v).trim();
 }
 
@@ -697,14 +697,16 @@ function cardSave_(el, auto) {
   /* NOTHING TYPED — BUT A SECTION THAT SAVES ITSELF MAY HAVE BEEN (`cardSelfSaved_`): § */
   if (!Object.keys(fields).length) { if (auto) return; toast(cardSelfSay_(e) || 'Nothing had changed'); cardClose_(e, pane, sec); return; }
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === e.pid) || {};
+  /* `own` IS `whose_()`'S CARD: yours, or the lens's person's, written to their row by `targetId`. */
+  const W = whose_();
   send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '',
-          target: e.own ? USER.name : (t.title || ''), targetId: e.pid, fields },
+          target: e.own ? W.name : (t.title || ''), targetId: e.pid, fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said, lock: pane })
     .then(d => {
       if (e.own) {
-        USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
-        if (d && d.name) USER.name = d.name;
-        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) { /* storage can be blocked; the app runs without it */ }
+        W.profile = (d && d.profile) ? d.profile : Object.assign({}, W.profile || {}, fields);
+        if (d && d.name) W.name = d.name;
+        if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) { /* storage can be blocked; the app runs without it */ }
         /* YOUR OWN COPY CHANGED, and the Progress column's journey card is drawn from it — see `meSave_`. */
         if (typeof progressRedraw_ === 'function') progressRedraw_();
       }

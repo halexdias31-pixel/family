@@ -410,9 +410,31 @@ function postVerifyLogin_(body, action, began) {
 function postMyProfile_(body, action, began) {
   const me = findPerson('', S(body.personId));
   if (!me) return jsonOut({ error: 'We could not find your account.' });
+  return jsonOut(settingsOf_(me));
+}
+/* ---------- THE ADMIN'S LENS: SOMEBODY ELSE'S SETTINGS, IN THE SHAPE `myProfile` SENDS YOURS ----------
+   `lensOpen` is admin-only in the permissions table; the gate refuses anybody else before this runs. */
+function postLensOpen_(body, action, began) {
+  const me = findPerson('', S(body.personId));
+  if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Only an admin can open somebody else\'s settings.' });
+  const r = read(TAB.people).rows.find(x => S(x.person_id) === S(body.targetId));
+  if (!r) return jsonOut({ error: 'We could not find that person.' });
+  /* NO SECRETS: the PIN, its hash and the session token are never in this shape (`profileOf_` sends the editable fields alone). */
+  return jsonOut(settingsOf_(r));
+}
+/* WHO CHANGED SOMEBODY ELSE'S ROW: a lens_log row of ids and the field names, never the values. Not written for your own row. */
+function lensLog_(me, r, action, fields) {
+  if (!me || !r || S(me.person_id) === S(r.person_id)) return;
+  try {
+    addRow(read(TAB.lens_log), { at: new Date(), by_id: S(me.person_id), for_id: S(r.person_id), action: action,
+      fields: (fields || []).join(', ') });
+  } catch (err) { /* the change stands; a missing log tab is made by ?setup=1 */ }
+}
+/* ONE PERSON'S SETTINGS AS THE SETTINGS CARDS READ THEM: yours by `myProfile`, somebody else's by `lensOpen`. */
+function settingsOf_(me) {
   /* AND THE NAMES, said as the sign-in reply says them — `nameFor_` and `familyNamesOf_`. § */
   /* AND THE HANDLE, which the business may have moved (342). */
-  return jsonOut(Object.assign({ success: true, personId: S(me.person_id), name: nameFor_(me),
+  return Object.assign({ success: true, personId: S(me.person_id), name: nameFor_(me),
                    handle: S(me.handle),
                    profile: profileOf_(me),
                    agreementSignedAt: S(me.agreement_signed_at),
@@ -420,7 +442,7 @@ function postMyProfile_(body, action, began) {
                    role: toAppRole(mainRole(me)), roles: rolesOf(me).map(toAppRole),
                    tutorPending: tutorPending_(me), rank: rankOf(me), application: applicationOf_(me),
                    /* AND WHETHER THE ADDRESS IS PROVED YET — stale on the phone exactly as the role was: § */
-                   pendingEmail: pendingEmailOf_(me) }, familyNamesOf_(me)));
+                   pendingEmail: pendingEmailOf_(me) }, familyNamesOf_(me));
 }
 
 function postGetProfile_(body, action, began) {
@@ -637,6 +659,7 @@ function postUpdateProfile_(body, action, began) {
 
   /* 3. ONE WRITE. `setCells` is `setCell` for a whole row: § */
   const wrote = setCells(t, r, put);
+  if (adminEditing) lensLog_(who.me, r, 'updateProfile', Object.keys(fields));
   /* AND WHAT WAITS BESIDE THE ROW. § */
   profileMailAfter_(r, mail);
   const rowsMoved = profileBeside_(r, fields, wrote, venueTab, qualsSent, libSent);
@@ -1065,7 +1088,7 @@ function postSetNotify_(body, action, began) {
   if (changed && !setCell(t, r, K.col, on ? 'yes' : 'no')) {
     return jsonOut({ error: 'That could not be written to the sheet — nothing was saved.' });
   }
-  if (changed) clearCache();
+  if (changed) { clearCache(); lensLog_(me, r, 'setNotify', [K.col]); }
   return jsonOut({ success: true, kind: kind, on: on, changed: changed ? 1 : 0,
                    personId: S(r.person_id), notify: notifyOf_(r) });
 }
