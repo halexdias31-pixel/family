@@ -91,7 +91,8 @@ function coverage() {
     out.specs.push(S);
     if (!S.measured) return;
     const figPts = pts.filter(p => p.figure && p.figure.length && lessonOf[p.id]);
-    const sub = out.subjects[S.subject] = { spec: `${S.board} ${S.qualification} ${S.subject} (${S.code})`, file: S.file, points: pts.length,
+    /* A SUBJECT AT ANOTHER LEVEL (ESL's English Language) is its own line, never folded into the GCSE one. */
+    const sub = out.subjects[S.level === 'GCSE' ? S.subject : S.subject + ' (' + S.level + ')'] = { spec: `${S.board} ${S.qualification} ${S.subject} (${S.code})`, file: S.file, points: pts.length,
       lesson: pts.filter(p => lessonOf[p.id]).length, practice: pts.filter(p => pracOf[p.id]).length,
       figureNeed: figPts.length, figureHave: figPts.filter(p => figOf[p.id]).length,
       each: pts.map(p => ({ id: p.id, title: p.text, lessons: lessonOf[p.id] || [], questions: (pracOf[p.id] || []).length, figure: (p.figure || []).join(' '), drawn: !!figOf[p.id] })) };

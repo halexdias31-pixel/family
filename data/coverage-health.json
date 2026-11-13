@@ -32,6 +32,16 @@
    "figureHave": 22,
    "lessonPct": 100
   },
+  "English Language (ESL)": {
+   "spec": "Council of Europe ESL English Language (CEFR)",
+   "file": "data/spec/coe-cefr.json",
+   "points": 84,
+   "lesson": 84,
+   "practice": 84,
+   "figureNeed": 0,
+   "figureHave": 0,
+   "lessonPct": 100
+  },
   "Maths": {
    "spec": "Edexcel GCSE Maths (1MA1)",
    "file": "data/spec/edexcel-1ma1.json",
@@ -70,8 +80,8 @@
    "id": "spec-lesson",
    "group": "content",
    "label": "Spec points with a lesson",
-   "ok": 408,
-   "of": 409,
+   "ok": 492,
+   "of": 493,
    "kinds": [
     "spec-lesson"
    ],
@@ -92,8 +102,8 @@
    "id": "spec-practice",
    "group": "content",
    "label": "Spec points with practice questions",
-   "ok": 409,
-   "of": 409,
+   "ok": 493,
+   "of": 493,
    "kinds": [
     "spec-practice"
    ],

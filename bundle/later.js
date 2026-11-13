@@ -1814,7 +1814,7 @@ function contentItem_(b, c) {
     image: '',
     /* A CHAPTER CAN SIT IN SEVERAL SUBJECTS ("Biology, Chemistry, Physics"): one answer each, never an umbrella "Science" (12 Nov). */
     subject: subjectsOf_(c.subject), level: c.level, keystage: c.keystage, topics: c.topics, years: c.years || [],
-    examBoard: c.board || '', tier: c.higher ? 'Higher' : '',
+    examBoard: c.board || '', tier: c.tier || '',
     text: contentText_(c) + ' ' + topicAtoms_(c.topics).join(' '),
     row: c,
   };
@@ -1932,7 +1932,8 @@ function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or s
 function specItem_(r) {
   return {
     kind: 'spec', name: r.code, key: 'spec:' + r.id, sub: '', image: '',
-    subject: r.subject, level: r.level, examBoard: r.board,
+    /* A SPEC THAT SPANS ITS LEVEL'S TIERS NAMES THEM (`tiers`, ESL's A1 to C2), so the tier question is asked over its cards too. */
+    subject: r.subject, level: r.level, examBoard: r.board, tier: r.tiers || '',
     text: plainText_([r.board, r.qualification, r.subject, r.code, 'specification spec syllabus']
       .concat((r.sections || []).map(s => s.title), (r.points || []).map(p => p.id + ' ' + p.text)).join(' ')),
     row: r,
@@ -9515,6 +9516,8 @@ const LEVEL_TABLE = [
   { level: 'A-Level',     rung: 4, stages: ['KS5'],        tiers: [], says: ['Alevel', 'A level', 'KS5'] },
   { level: 'AS',          rung: 0, stages: ['KS5'],        tiers: [], says: ['AS level', 'AS-level'] },
   { level: 'Theory test', rung: 0, stages: [],             tiers: [], says: [] },
+  /* ENGLISH AS A SECOND LANGUAGE: one level off the school ladder; its CEFR bands are its tiers, as GCSE's are Foundation and Higher. */
+  { level: 'ESL',         rung: 0, stages: [],             tiers: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'], says: ['EFL', 'ESOL', 'CEFR'] },
 ];
 
 ;

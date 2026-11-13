@@ -1,0 +1,1276 @@
+{
+ "id": "coe-cefr",
+ "board": "Council of Europe",
+ "qualification": "ESL",
+ "level": "ESL",
+ "tiers": [
+  "A1",
+  "A2",
+  "B1",
+  "B2",
+  "C1",
+  "C2"
+ ],
+ "subject": "English Language",
+ "code": "CEFR",
+ "url": "https://www.coe.int/en/web/common-european-framework-reference-languages/table-1-cefr-3.3-common-reference-levels-global-scale",
+ "measured": true,
+ "note": "English as a Second Language, by the Common European Framework of Reference for Languages: its six levels and the can-do descriptors for each skill, in short headings of our own; the framework page is the full text.",
+ "sections": [
+  {
+   "id": "A1",
+   "title": "A1 Breakthrough"
+  },
+  {
+   "id": "A2",
+   "title": "A2 Waystage"
+  },
+  {
+   "id": "B1",
+   "title": "B1 Threshold"
+  },
+  {
+   "id": "B2",
+   "title": "B2 Vantage"
+  },
+  {
+   "id": "C1",
+   "title": "C1 Effective Operational Proficiency"
+  },
+  {
+   "id": "C2",
+   "title": "C2 Mastery"
+  }
+ ],
+ "points": [
+  {
+   "id": "A1.R",
+   "text": "Reading",
+   "parent": "A1",
+   "links": []
+  },
+  {
+   "id": "A1.R.1",
+   "text": "Can understand familiar names, words and very simple sentences on notices and signs",
+   "parent": "A1.R",
+   "links": [
+    "ct:TB-ESL-A1-1",
+    "q:S-Q-ESL-A1-RD-1",
+    "q:Q-ESL-A1-RD-1a",
+    "q:Q-ESL-A1-RD-1b",
+    "q:Q-ESL-A1-RD-1c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A1.R.2",
+   "text": "Can understand a short, simple personal message or postcard",
+   "parent": "A1.R",
+   "links": [
+    "ct:TB-ESL-A1-2",
+    "q:S-Q-ESL-A1-RD-2",
+    "q:Q-ESL-A1-RD-2a",
+    "q:Q-ESL-A1-RD-2b",
+    "q:Q-ESL-A1-RD-2c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A1.L",
+   "text": "Listening",
+   "parent": "A1",
+   "links": []
+  },
+  {
+   "id": "A1.L.1",
+   "text": "Can recognise familiar words and basic phrases about self and family when people speak slowly and clearly",
+   "parent": "A1.L",
+   "links": [
+    "ct:TB-ESL-A1-3",
+    "q:S-Q-ESL-A1-LS-1",
+    "q:Q-ESL-A1-LS-1a",
+    "q:Q-ESL-A1-LS-1b"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "A1.L.2",
+   "text": "Can follow short, simple instructions and directions given slowly",
+   "parent": "A1.L",
+   "links": [
+    "ct:TB-ESL-A1-4",
+    "q:S-Q-ESL-A1-LS-2",
+    "q:Q-ESL-A1-LS-2a",
+    "q:Q-ESL-A1-LS-2b"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "A1.S",
+   "text": "Spoken interaction and production",
+   "parent": "A1",
+   "links": []
+  },
+  {
+   "id": "A1.S.1",
+   "text": "Can introduce themselves and answer simple questions about personal details",
+   "parent": "A1.S",
+   "links": [
+    "ct:TB-ESL-A1-5",
+    "q:Q-ESL-A1-SP-1a",
+    "q:Q-ESL-A1-SP-1b"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "A1.S.2",
+   "text": "Can ask and answer simple questions about familiar things such as time, prices and food",
+   "parent": "A1.S",
+   "links": [
+    "ct:TB-ESL-A1-6",
+    "q:Q-ESL-A1-SP-2a",
+    "q:Q-ESL-A1-SP-2b"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "A1.W",
+   "text": "Writing",
+   "parent": "A1",
+   "links": []
+  },
+  {
+   "id": "A1.W.1",
+   "text": "Can fill in forms with personal details such as name, nationality and address",
+   "parent": "A1.W",
+   "links": [
+    "ct:TB-ESL-A1-7",
+    "q:Q-ESL-A1-WR-1"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "A1.W.2",
+   "text": "Can write a short, simple postcard or message",
+   "parent": "A1.W",
+   "links": [
+    "ct:TB-ESL-A1-8",
+    "q:Q-ESL-A1-WR-2"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "A1.G",
+   "text": "Grammatical range and accuracy",
+   "parent": "A1",
+   "links": []
+  },
+  {
+   "id": "A1.G.1",
+   "text": "The verb be in the present: am, is, are, in statements, negatives and questions",
+   "parent": "A1.G",
+   "links": [
+    "ct:TB-ESL-A1-9",
+    "q:Q-ESL-A1-GR-1a",
+    "q:Q-ESL-A1-GR-1b",
+    "q:Q-ESL-A1-GR-1c",
+    "q:Q-ESL-A1-GR-1d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A1.G.2",
+   "text": "The present simple for habits and facts, with -s for he, she and it",
+   "parent": "A1.G",
+   "links": [
+    "ct:TB-ESL-A1-10",
+    "q:Q-ESL-A1-GR-2a",
+    "q:Q-ESL-A1-GR-2b",
+    "q:Q-ESL-A1-GR-2c",
+    "q:Q-ESL-A1-GR-2d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A1.G.3",
+   "text": "There is and there are with a, an, some and any",
+   "parent": "A1.G",
+   "links": [
+    "ct:TB-ESL-A1-11",
+    "q:Q-ESL-A1-GR-3a",
+    "q:Q-ESL-A1-GR-3b",
+    "q:Q-ESL-A1-GR-3c",
+    "q:Q-ESL-A1-GR-3d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A1.G.4",
+   "text": "Can and can't for ability and permission",
+   "parent": "A1.G",
+   "links": [
+    "ct:TB-ESL-A1-12",
+    "q:Q-ESL-A1-GR-4a",
+    "q:Q-ESL-A1-GR-4b",
+    "q:Q-ESL-A1-GR-4c",
+    "q:Q-ESL-A1-GR-4d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A1.V",
+   "text": "Vocabulary range and control",
+   "parent": "A1",
+   "links": []
+  },
+  {
+   "id": "A1.V.1",
+   "text": "Numbers, days of the week, months and telling the time",
+   "parent": "A1.V",
+   "links": [
+    "ct:TB-ESL-A1-13",
+    "q:Q-ESL-A1-VO-1a",
+    "q:Q-ESL-A1-VO-1b",
+    "q:Q-ESL-A1-VO-1c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "A1.V.2",
+   "text": "Family, the home and everyday objects",
+   "parent": "A1.V",
+   "links": [
+    "ct:TB-ESL-A1-14",
+    "q:Q-ESL-A1-VO-2a",
+    "q:Q-ESL-A1-VO-2b",
+    "q:Q-ESL-A1-VO-2c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "A2.R",
+   "text": "Reading",
+   "parent": "A2",
+   "links": []
+  },
+  {
+   "id": "A2.R.1",
+   "text": "Can find specific, predictable information in everyday material such as timetables, menus and adverts",
+   "parent": "A2.R",
+   "links": [
+    "ct:TB-ESL-A2-1",
+    "q:S-Q-ESL-A2-RD-1",
+    "q:Q-ESL-A2-RD-1a",
+    "q:Q-ESL-A2-RD-1b",
+    "q:Q-ESL-A2-RD-1c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A2.R.2",
+   "text": "Can understand short, simple personal letters and emails",
+   "parent": "A2.R",
+   "links": [
+    "ct:TB-ESL-A2-2",
+    "q:S-Q-ESL-A2-RD-2",
+    "q:Q-ESL-A2-RD-2a",
+    "q:Q-ESL-A2-RD-2b",
+    "q:Q-ESL-A2-RD-2c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A2.L",
+   "text": "Listening",
+   "parent": "A2",
+   "links": []
+  },
+  {
+   "id": "A2.L.1",
+   "text": "Can catch the main point in short, clear, simple messages and announcements",
+   "parent": "A2.L",
+   "links": [
+    "ct:TB-ESL-A2-3",
+    "q:S-Q-ESL-A2-LS-1",
+    "q:Q-ESL-A2-LS-1a",
+    "q:Q-ESL-A2-LS-1b"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "A2.L.2",
+   "text": "Can understand phrases and expressions about areas of immediate need, such as shopping and the local area",
+   "parent": "A2.L",
+   "links": [
+    "ct:TB-ESL-A2-4",
+    "q:S-Q-ESL-A2-LS-2",
+    "q:Q-ESL-A2-LS-2a",
+    "q:Q-ESL-A2-LS-2b"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "A2.S",
+   "text": "Spoken interaction and production",
+   "parent": "A2",
+   "links": []
+  },
+  {
+   "id": "A2.S.1",
+   "text": "Can describe family, living conditions, daily routine and education in simple terms",
+   "parent": "A2.S",
+   "links": [
+    "ct:TB-ESL-A2-5",
+    "q:Q-ESL-A2-SP-1a",
+    "q:Q-ESL-A2-SP-1b"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "A2.S.2",
+   "text": "Can handle short social exchanges: invite, accept, refuse and make arrangements",
+   "parent": "A2.S",
+   "links": [
+    "ct:TB-ESL-A2-6",
+    "q:Q-ESL-A2-SP-2a",
+    "q:Q-ESL-A2-SP-2b"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "A2.W",
+   "text": "Writing",
+   "parent": "A2",
+   "links": []
+  },
+  {
+   "id": "A2.W.1",
+   "text": "Can write short, simple notes and messages relating to matters of immediate need",
+   "parent": "A2.W",
+   "links": [
+    "ct:TB-ESL-A2-7",
+    "q:Q-ESL-A2-WR-1"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "A2.W.2",
+   "text": "Can write a very simple personal letter, for example to thank someone",
+   "parent": "A2.W",
+   "links": [
+    "ct:TB-ESL-A2-8",
+    "q:Q-ESL-A2-WR-2"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "A2.G",
+   "text": "Grammatical range and accuracy",
+   "parent": "A2",
+   "links": []
+  },
+  {
+   "id": "A2.G.1",
+   "text": "The past simple: regular and common irregular verbs, negatives and questions",
+   "parent": "A2.G",
+   "links": [
+    "ct:TB-ESL-A2-9",
+    "q:Q-ESL-A2-GR-1a",
+    "q:Q-ESL-A2-GR-1b",
+    "q:Q-ESL-A2-GR-1c",
+    "q:Q-ESL-A2-GR-1d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A2.G.2",
+   "text": "The present continuous for now and for future arrangements, compared with the present simple",
+   "parent": "A2.G",
+   "links": [
+    "ct:TB-ESL-A2-10",
+    "q:Q-ESL-A2-GR-2a",
+    "q:Q-ESL-A2-GR-2b",
+    "q:Q-ESL-A2-GR-2c",
+    "q:Q-ESL-A2-GR-2d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A2.G.3",
+   "text": "Comparative and superlative adjectives",
+   "parent": "A2.G",
+   "links": [
+    "ct:TB-ESL-A2-11",
+    "q:Q-ESL-A2-GR-3a",
+    "q:Q-ESL-A2-GR-3b",
+    "q:Q-ESL-A2-GR-3c",
+    "q:Q-ESL-A2-GR-3d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A2.G.4",
+   "text": "Going to and will for plans, predictions and quick decisions",
+   "parent": "A2.G",
+   "links": [
+    "ct:TB-ESL-A2-12",
+    "q:Q-ESL-A2-GR-4a",
+    "q:Q-ESL-A2-GR-4b",
+    "q:Q-ESL-A2-GR-4c",
+    "q:Q-ESL-A2-GR-4d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A2.V",
+   "text": "Vocabulary range and control",
+   "parent": "A2",
+   "links": []
+  },
+  {
+   "id": "A2.V.1",
+   "text": "Shopping, food and prices",
+   "parent": "A2.V",
+   "links": [
+    "ct:TB-ESL-A2-13",
+    "q:Q-ESL-A2-VO-1a",
+    "q:Q-ESL-A2-VO-1b",
+    "q:Q-ESL-A2-VO-1c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "A2.V.2",
+   "text": "Jobs, school subjects and free-time activities",
+   "parent": "A2.V",
+   "links": [
+    "ct:TB-ESL-A2-14",
+    "q:Q-ESL-A2-VO-2a",
+    "q:Q-ESL-A2-VO-2b",
+    "q:Q-ESL-A2-VO-2c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "B1.R",
+   "text": "Reading",
+   "parent": "B1",
+   "links": []
+  },
+  {
+   "id": "B1.R.1",
+   "text": "Can understand the main points of straightforward texts on familiar everyday or work topics",
+   "parent": "B1.R",
+   "links": [
+    "ct:TB-ESL-B1-1",
+    "q:S-Q-ESL-B1-RD-1",
+    "q:Q-ESL-B1-RD-1a",
+    "q:Q-ESL-B1-RD-1b",
+    "q:Q-ESL-B1-RD-1c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "B1.R.2",
+   "text": "Can understand the description of events, feelings and wishes in personal letters",
+   "parent": "B1.R",
+   "links": [
+    "ct:TB-ESL-B1-2",
+    "q:S-Q-ESL-B1-RD-2",
+    "q:Q-ESL-B1-RD-2a",
+    "q:Q-ESL-B1-RD-2b",
+    "q:Q-ESL-B1-RD-2c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "B1.L",
+   "text": "Listening",
+   "parent": "B1",
+   "links": []
+  },
+  {
+   "id": "B1.L.1",
+   "text": "Can understand the main points of clear standard speech on familiar matters at work, school and leisure",
+   "parent": "B1.L",
+   "links": [
+    "ct:TB-ESL-B1-3",
+    "q:S-Q-ESL-B1-LS-1",
+    "q:Q-ESL-B1-LS-1a",
+    "q:Q-ESL-B1-LS-1b"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "B1.L.2",
+   "text": "Can follow the main points of radio or TV programmes on familiar topics when speech is fairly slow",
+   "parent": "B1.L",
+   "links": [
+    "ct:TB-ESL-B1-4",
+    "q:S-Q-ESL-B1-LS-2",
+    "q:Q-ESL-B1-LS-2a",
+    "q:Q-ESL-B1-LS-2b"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "B1.S",
+   "text": "Spoken interaction and production",
+   "parent": "B1",
+   "links": []
+  },
+  {
+   "id": "B1.S.1",
+   "text": "Can deal with most situations likely to arise while travelling",
+   "parent": "B1.S",
+   "links": [
+    "ct:TB-ESL-B1-5",
+    "q:Q-ESL-B1-SP-1a",
+    "q:Q-ESL-B1-SP-1b"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "B1.S.2",
+   "text": "Can narrate a story or experience and give brief reasons and explanations for opinions",
+   "parent": "B1.S",
+   "links": [
+    "ct:TB-ESL-B1-6",
+    "q:Q-ESL-B1-SP-2a",
+    "q:Q-ESL-B1-SP-2b"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "B1.W",
+   "text": "Writing",
+   "parent": "B1",
+   "links": []
+  },
+  {
+   "id": "B1.W.1",
+   "text": "Can write simple connected text on topics which are familiar or of personal interest",
+   "parent": "B1.W",
+   "links": [
+    "ct:TB-ESL-B1-7",
+    "q:Q-ESL-B1-WR-1"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "B1.W.2",
+   "text": "Can write personal letters describing experiences and impressions",
+   "parent": "B1.W",
+   "links": [
+    "ct:TB-ESL-B1-8",
+    "q:Q-ESL-B1-WR-2"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "B1.G",
+   "text": "Grammatical range and accuracy",
+   "parent": "B1",
+   "links": []
+  },
+  {
+   "id": "B1.G.1",
+   "text": "The present perfect for experience and recent events, contrasted with the past simple",
+   "parent": "B1.G",
+   "links": [
+    "ct:TB-ESL-B1-9",
+    "q:Q-ESL-B1-GR-1a",
+    "q:Q-ESL-B1-GR-1b",
+    "q:Q-ESL-B1-GR-1c",
+    "q:Q-ESL-B1-GR-1d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "B1.G.2",
+   "text": "First and second conditionals for real and imaginary situations",
+   "parent": "B1.G",
+   "links": [
+    "ct:TB-ESL-B1-10",
+    "q:Q-ESL-B1-GR-2a",
+    "q:Q-ESL-B1-GR-2b",
+    "q:Q-ESL-B1-GR-2c",
+    "q:Q-ESL-B1-GR-2d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "B1.G.3",
+   "text": "Modal verbs for obligation, prohibition and advice: must, have to, mustn't, don't have to, should",
+   "parent": "B1.G",
+   "links": [
+    "ct:TB-ESL-B1-11",
+    "q:Q-ESL-B1-GR-3a",
+    "q:Q-ESL-B1-GR-3b",
+    "q:Q-ESL-B1-GR-3c",
+    "q:Q-ESL-B1-GR-3d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "B1.G.4",
+   "text": "Defining relative clauses with who, which, that, where and whose",
+   "parent": "B1.G",
+   "links": [
+    "ct:TB-ESL-B1-12",
+    "q:Q-ESL-B1-GR-4a",
+    "q:Q-ESL-B1-GR-4b",
+    "q:Q-ESL-B1-GR-4c",
+    "q:Q-ESL-B1-GR-4d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "B1.V",
+   "text": "Vocabulary range and control",
+   "parent": "B1",
+   "links": []
+  },
+  {
+   "id": "B1.V.1",
+   "text": "Common phrasal verbs for everyday life",
+   "parent": "B1.V",
+   "links": [
+    "ct:TB-ESL-B1-13",
+    "q:Q-ESL-B1-VO-1a",
+    "q:Q-ESL-B1-VO-1b",
+    "q:Q-ESL-B1-VO-1c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "B1.V.2",
+   "text": "Word formation: common prefixes and suffixes to form nouns and adjectives",
+   "parent": "B1.V",
+   "links": [
+    "ct:TB-ESL-B1-14",
+    "q:Q-ESL-B1-VO-2a",
+    "q:Q-ESL-B1-VO-2b",
+    "q:Q-ESL-B1-VO-2c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "B2.R",
+   "text": "Reading",
+   "parent": "B2",
+   "links": []
+  },
+  {
+   "id": "B2.R.1",
+   "text": "Can read articles and reports on contemporary problems in which writers adopt particular stances or viewpoints",
+   "parent": "B2.R",
+   "links": [
+    "ct:TB-ESL-B2-1",
+    "q:S-Q-ESL-B2-RD-1",
+    "q:Q-ESL-B2-RD-1a",
+    "q:Q-ESL-B2-RD-1b",
+    "q:Q-ESL-B2-RD-1c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "B2.R.2",
+   "text": "Can understand contemporary literary prose, including implied attitudes and feelings",
+   "parent": "B2.R",
+   "links": [
+    "ct:TB-ESL-B2-2",
+    "q:S-Q-ESL-B2-RD-2",
+    "q:Q-ESL-B2-RD-2a",
+    "q:Q-ESL-B2-RD-2b",
+    "q:Q-ESL-B2-RD-2c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "B2.L",
+   "text": "Listening",
+   "parent": "B2",
+   "links": []
+  },
+  {
+   "id": "B2.L.1",
+   "text": "Can understand extended speech and lectures and follow complex lines of argument on familiar topics",
+   "parent": "B2.L",
+   "links": [
+    "ct:TB-ESL-B2-3",
+    "q:S-Q-ESL-B2-LS-1",
+    "q:Q-ESL-B2-LS-1a",
+    "q:Q-ESL-B2-LS-1b",
+    "q:Q-ESL-B2-LS-1c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "B2.L.2",
+   "text": "Can understand most TV news and current affairs programmes",
+   "parent": "B2.L",
+   "links": [
+    "ct:TB-ESL-B2-4",
+    "q:S-Q-ESL-B2-LS-2",
+    "q:Q-ESL-B2-LS-2a",
+    "q:Q-ESL-B2-LS-2b"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "B2.S",
+   "text": "Spoken interaction and production",
+   "parent": "B2",
+   "links": []
+  },
+  {
+   "id": "B2.S.1",
+   "text": "Can interact with fluency and spontaneity and take an active part in discussion, accounting for and sustaining views",
+   "parent": "B2.S",
+   "links": [
+    "ct:TB-ESL-B2-5",
+    "q:Q-ESL-B2-SP-1a",
+    "q:Q-ESL-B2-SP-1b"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "B2.S.2",
+   "text": "Can give clear, detailed descriptions and explain a viewpoint, giving the advantages and disadvantages of options",
+   "parent": "B2.S",
+   "links": [
+    "ct:TB-ESL-B2-6",
+    "q:Q-ESL-B2-SP-2a",
+    "q:Q-ESL-B2-SP-2b"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "B2.W",
+   "text": "Writing",
+   "parent": "B2",
+   "links": []
+  },
+  {
+   "id": "B2.W.1",
+   "text": "Can write an essay or report which develops an argument, giving reasons for or against a point of view",
+   "parent": "B2.W",
+   "links": [
+    "ct:TB-ESL-B2-7",
+    "q:Q-ESL-B2-WR-1"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "B2.W.2",
+   "text": "Can write letters highlighting the personal significance of events and experiences",
+   "parent": "B2.W",
+   "links": [
+    "ct:TB-ESL-B2-8",
+    "q:Q-ESL-B2-WR-2"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "B2.G",
+   "text": "Grammatical range and accuracy",
+   "parent": "B2",
+   "links": []
+  },
+  {
+   "id": "B2.G.1",
+   "text": "The passive in a range of tenses, and causative have something done",
+   "parent": "B2.G",
+   "links": [
+    "ct:TB-ESL-B2-9",
+    "q:Q-ESL-B2-GR-1a",
+    "q:Q-ESL-B2-GR-1b",
+    "q:Q-ESL-B2-GR-1c",
+    "q:Q-ESL-B2-GR-1d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "B2.G.2",
+   "text": "Reported speech: statements, questions and requests, with tense and pronoun changes",
+   "parent": "B2.G",
+   "links": [
+    "ct:TB-ESL-B2-10",
+    "q:Q-ESL-B2-GR-2a",
+    "q:Q-ESL-B2-GR-2b",
+    "q:Q-ESL-B2-GR-2c",
+    "q:Q-ESL-B2-GR-2d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "B2.G.3",
+   "text": "The third conditional and mixed conditionals for unreal past situations",
+   "parent": "B2.G",
+   "links": [
+    "ct:TB-ESL-B2-11",
+    "q:Q-ESL-B2-GR-3a",
+    "q:Q-ESL-B2-GR-3b",
+    "q:Q-ESL-B2-GR-3c",
+    "q:Q-ESL-B2-GR-3d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "B2.G.4",
+   "text": "Narrative tenses: past simple, past continuous, past perfect and past perfect continuous",
+   "parent": "B2.G",
+   "links": [
+    "ct:TB-ESL-B2-12",
+    "q:Q-ESL-B2-GR-4a",
+    "q:Q-ESL-B2-GR-4b",
+    "q:Q-ESL-B2-GR-4c",
+    "q:Q-ESL-B2-GR-4d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "B2.V",
+   "text": "Vocabulary range and control",
+   "parent": "B2",
+   "links": []
+  },
+  {
+   "id": "B2.V.1",
+   "text": "Linking words and discourse markers for contrast, addition, cause and result",
+   "parent": "B2.V",
+   "links": [
+    "ct:TB-ESL-B2-13",
+    "q:Q-ESL-B2-VO-1a",
+    "q:Q-ESL-B2-VO-1b",
+    "q:Q-ESL-B2-VO-1c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "B2.V.2",
+   "text": "Formal and informal register, and common idiomatic expressions",
+   "parent": "B2.V",
+   "links": [
+    "ct:TB-ESL-B2-14",
+    "q:Q-ESL-B2-VO-2a",
+    "q:Q-ESL-B2-VO-2b",
+    "q:Q-ESL-B2-VO-2c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "C1.R",
+   "text": "Reading",
+   "parent": "C1",
+   "links": []
+  },
+  {
+   "id": "C1.R.1",
+   "text": "Can understand long and complex factual and literary texts, appreciating distinctions of style",
+   "parent": "C1.R",
+   "links": [
+    "ct:TB-ESL-C1-1",
+    "q:S-Q-ESL-C1-RD-1",
+    "q:Q-ESL-C1-RD-1a",
+    "q:Q-ESL-C1-RD-1b",
+    "q:Q-ESL-C1-RD-1c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C1.R.2",
+   "text": "Can understand specialised articles and longer technical instructions outside their own field",
+   "parent": "C1.R",
+   "links": [
+    "ct:TB-ESL-C1-2",
+    "q:S-Q-ESL-C1-RD-2",
+    "q:Q-ESL-C1-RD-2a",
+    "q:Q-ESL-C1-RD-2b",
+    "q:Q-ESL-C1-RD-2c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C1.L",
+   "text": "Listening",
+   "parent": "C1",
+   "links": []
+  },
+  {
+   "id": "C1.L.1",
+   "text": "Can understand extended speech even when it is not clearly structured and relationships are only implied",
+   "parent": "C1.L",
+   "links": [
+    "ct:TB-ESL-C1-3",
+    "q:S-Q-ESL-C1-LS-1",
+    "q:Q-ESL-C1-LS-1a",
+    "q:Q-ESL-C1-LS-1b",
+    "q:Q-ESL-C1-LS-1c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C1.L.2",
+   "text": "Can understand films and TV programmes without too much effort, including idiomatic language and changes of register",
+   "parent": "C1.L",
+   "links": [
+    "ct:TB-ESL-C1-4",
+    "q:S-Q-ESL-C1-LS-2",
+    "q:Q-ESL-C1-LS-2a",
+    "q:Q-ESL-C1-LS-2b",
+    "q:Q-ESL-C1-LS-2c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C1.S",
+   "text": "Spoken interaction and production",
+   "parent": "C1",
+   "links": []
+  },
+  {
+   "id": "C1.S.1",
+   "text": "Can express ideas fluently and spontaneously and use language flexibly for social and professional purposes",
+   "parent": "C1.S",
+   "links": [
+    "ct:TB-ESL-C1-5",
+    "q:Q-ESL-C1-SP-1a",
+    "q:Q-ESL-C1-SP-1b"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "C1.S.2",
+   "text": "Can present clear, detailed descriptions of complex subjects, integrating sub-themes and rounding off with a conclusion",
+   "parent": "C1.S",
+   "links": [
+    "ct:TB-ESL-C1-6",
+    "q:Q-ESL-C1-SP-2a",
+    "q:Q-ESL-C1-SP-2b"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "C1.W",
+   "text": "Writing",
+   "parent": "C1",
+   "links": []
+  },
+  {
+   "id": "C1.W.1",
+   "text": "Can express themselves in clear, well-structured text, expressing points of view at some length",
+   "parent": "C1.W",
+   "links": [
+    "ct:TB-ESL-C1-7",
+    "q:Q-ESL-C1-WR-1"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "C1.W.2",
+   "text": "Can write about complex subjects in a letter, report or proposal, underlining the salient issues and choosing a style for the reader",
+   "parent": "C1.W",
+   "links": [
+    "ct:TB-ESL-C1-8",
+    "q:Q-ESL-C1-WR-2"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "C1.G",
+   "text": "Grammatical range and accuracy",
+   "parent": "C1",
+   "links": []
+  },
+  {
+   "id": "C1.G.1",
+   "text": "Inversion after negative and limiting adverbials for emphasis",
+   "parent": "C1.G",
+   "links": [
+    "ct:TB-ESL-C1-9",
+    "q:Q-ESL-C1-GR-1a",
+    "q:Q-ESL-C1-GR-1b",
+    "q:Q-ESL-C1-GR-1c",
+    "q:Q-ESL-C1-GR-1d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C1.G.2",
+   "text": "Cleft sentences for focus: it-clefts and what-clefts",
+   "parent": "C1.G",
+   "links": [
+    "ct:TB-ESL-C1-10",
+    "q:Q-ESL-C1-GR-2a",
+    "q:Q-ESL-C1-GR-2b",
+    "q:Q-ESL-C1-GR-2c",
+    "q:Q-ESL-C1-GR-2d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C1.G.3",
+   "text": "Modal verbs for deduction and speculation about the past: must have, can't have, might have",
+   "parent": "C1.G",
+   "links": [
+    "ct:TB-ESL-C1-11",
+    "q:Q-ESL-C1-GR-3a",
+    "q:Q-ESL-C1-GR-3b",
+    "q:Q-ESL-C1-GR-3c",
+    "q:Q-ESL-C1-GR-3d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C1.G.4",
+   "text": "Participle clauses to express time, reason and result concisely",
+   "parent": "C1.G",
+   "links": [
+    "ct:TB-ESL-C1-12",
+    "q:Q-ESL-C1-GR-4a",
+    "q:Q-ESL-C1-GR-4b",
+    "q:Q-ESL-C1-GR-4c",
+    "q:Q-ESL-C1-GR-4d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C1.V",
+   "text": "Vocabulary range and control",
+   "parent": "C1",
+   "links": []
+  },
+  {
+   "id": "C1.V.1",
+   "text": "Idiomatic expressions and phrasal verbs with precise shades of meaning",
+   "parent": "C1.V",
+   "links": [
+    "ct:TB-ESL-C1-13",
+    "q:Q-ESL-C1-VO-1a",
+    "q:Q-ESL-C1-VO-1b",
+    "q:Q-ESL-C1-VO-1c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "C1.V.2",
+   "text": "Academic and abstract vocabulary: nominalisation and hedging",
+   "parent": "C1.V",
+   "links": [
+    "ct:TB-ESL-C1-14",
+    "q:Q-ESL-C1-VO-2a",
+    "q:Q-ESL-C1-VO-2b",
+    "q:Q-ESL-C1-VO-2c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "C2.R",
+   "text": "Reading",
+   "parent": "C2",
+   "links": []
+  },
+  {
+   "id": "C2.R.1",
+   "text": "Can read with ease virtually all forms of written language, including abstract, structurally complex texts",
+   "parent": "C2.R",
+   "links": [
+    "ct:TB-ESL-C2-1",
+    "q:S-Q-ESL-C2-RD-1",
+    "q:Q-ESL-C2-RD-1a",
+    "q:Q-ESL-C2-RD-1b",
+    "q:Q-ESL-C2-RD-1c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C2.R.2",
+   "text": "Can understand implicit meaning, irony and subtle distinctions of attitude in complex texts",
+   "parent": "C2.R",
+   "links": [
+    "ct:TB-ESL-C2-2",
+    "q:S-Q-ESL-C2-RD-2",
+    "q:Q-ESL-C2-RD-2a",
+    "q:Q-ESL-C2-RD-2b",
+    "q:Q-ESL-C2-RD-2c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C2.L",
+   "text": "Listening",
+   "parent": "C2",
+   "links": []
+  },
+  {
+   "id": "C2.L.1",
+   "text": "Can understand any kind of spoken language, live or broadcast, at fast natural speed",
+   "parent": "C2.L",
+   "links": [
+    "ct:TB-ESL-C2-3",
+    "q:S-Q-ESL-C2-LS-1",
+    "q:Q-ESL-C2-LS-1a",
+    "q:Q-ESL-C2-LS-1b",
+    "q:Q-ESL-C2-LS-1c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C2.L.2",
+   "text": "Can follow specialised lectures and presentations with colloquialisms and unfamiliar terminology",
+   "parent": "C2.L",
+   "links": [
+    "ct:TB-ESL-C2-4",
+    "q:S-Q-ESL-C2-LS-2",
+    "q:Q-ESL-C2-LS-2a",
+    "q:Q-ESL-C2-LS-2b",
+    "q:Q-ESL-C2-LS-2c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C2.S",
+   "text": "Spoken interaction and production",
+   "parent": "C2",
+   "links": []
+  },
+  {
+   "id": "C2.S.1",
+   "text": "Can take part effortlessly in any conversation, conveying finer shades of meaning precisely and reformulating smoothly",
+   "parent": "C2.S",
+   "links": [
+    "ct:TB-ESL-C2-5",
+    "q:Q-ESL-C2-SP-1a",
+    "q:Q-ESL-C2-SP-1b"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "C2.S.2",
+   "text": "Can present a clear, smoothly flowing description or argument in a style appropriate to the context, with an effective logical structure",
+   "parent": "C2.S",
+   "links": [
+    "ct:TB-ESL-C2-6",
+    "q:Q-ESL-C2-SP-2a",
+    "q:Q-ESL-C2-SP-2b"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "C2.W",
+   "text": "Writing",
+   "parent": "C2",
+   "links": []
+  },
+  {
+   "id": "C2.W.1",
+   "text": "Can write clear, smoothly flowing, complex texts in an appropriate and effective style, such as articles and reports",
+   "parent": "C2.W",
+   "links": [
+    "ct:TB-ESL-C2-7",
+    "q:Q-ESL-C2-WR-1"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "C2.W.2",
+   "text": "Can write summaries and reviews of professional or literary works",
+   "parent": "C2.W",
+   "links": [
+    "ct:TB-ESL-C2-8",
+    "q:Q-ESL-C2-WR-2"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "C2.G",
+   "text": "Grammatical range and accuracy",
+   "parent": "C2",
+   "links": []
+  },
+  {
+   "id": "C2.G.1",
+   "text": "The subjunctive and formal hypothetical structures",
+   "parent": "C2.G",
+   "links": [
+    "ct:TB-ESL-C2-9",
+    "q:Q-ESL-C2-GR-1a",
+    "q:Q-ESL-C2-GR-1b",
+    "q:Q-ESL-C2-GR-1c",
+    "q:Q-ESL-C2-GR-1d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C2.G.2",
+   "text": "Ellipsis and substitution to avoid repetition",
+   "parent": "C2.G",
+   "links": [
+    "ct:TB-ESL-C2-10",
+    "q:Q-ESL-C2-GR-2a",
+    "q:Q-ESL-C2-GR-2b",
+    "q:Q-ESL-C2-GR-2c",
+    "q:Q-ESL-C2-GR-2d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C2.G.3",
+   "text": "Fronting and emphatic structures for focus and cohesion",
+   "parent": "C2.G",
+   "links": [
+    "ct:TB-ESL-C2-11",
+    "q:Q-ESL-C2-GR-3a",
+    "q:Q-ESL-C2-GR-3b",
+    "q:Q-ESL-C2-GR-3c",
+    "q:Q-ESL-C2-GR-3d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C2.G.4",
+   "text": "Nuanced uses of tense and modality for distance, politeness and tentativeness",
+   "parent": "C2.G",
+   "links": [
+    "ct:TB-ESL-C2-12",
+    "q:Q-ESL-C2-GR-4a",
+    "q:Q-ESL-C2-GR-4b",
+    "q:Q-ESL-C2-GR-4c",
+    "q:Q-ESL-C2-GR-4d"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "C2.V",
+   "text": "Vocabulary range and control",
+   "parent": "C2",
+   "links": []
+  },
+  {
+   "id": "C2.V.1",
+   "text": "Subtle shades of meaning: near-synonyms, connotation and collocation",
+   "parent": "C2.V",
+   "links": [
+    "ct:TB-ESL-C2-13",
+    "q:Q-ESL-C2-VO-1a",
+    "q:Q-ESL-C2-VO-1b",
+    "q:Q-ESL-C2-VO-1c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "C2.V.2",
+   "text": "The full range of idiom, collocation and register, used with precision",
+   "parent": "C2.V",
+   "links": [
+    "ct:TB-ESL-C2-14",
+    "q:Q-ESL-C2-VO-2a",
+    "q:Q-ESL-C2-VO-2b",
+    "q:Q-ESL-C2-VO-2c"
+   ],
+   "asked": 3
+  }
+ ]
+}

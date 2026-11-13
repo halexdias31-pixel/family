@@ -191,7 +191,10 @@ rows.forEach((r, line) => {
   if (!String(r.title || '').trim()) fail.push(where + ' has no title');
 
   const tier = String(r.tier || '').trim();
-  if (tier && tier !== 'Higher') fail.push(where + ' has tier "' + tier + '" — blank (both tiers) or Higher');
+  /* A LEVEL'S OWN TIERS TOO (LEVEL_TABLE): ESL's CEFR bands, A1 to C2, are its tiers. */
+  const lvl = String(r.level || (b.title && b.title.level) || '').trim();
+  const tiers = ['Higher'].concat((require('../check/library-schema.js').LEVEL_TABLE().find(l => l.level === lvl) || {}).tiers || []);
+  if (tier && tiers.indexOf(tier) === -1) fail.push(where + ' has tier "' + tier + '" — blank (both tiers), Higher, or one of its level\'s tiers');
   chapterRows.push({ id: id, n: n, r: r, where: where });
   const wholeHigher = tier === 'Higher';
 
