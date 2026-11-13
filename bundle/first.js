@@ -8651,6 +8651,8 @@ function findCard(x, credits) {
 }
 
 /* THE ONE TAG MAKER (one way only): `inner` is HTML the caller escaped, `attrs` its attributes, `cls` extra classes; `base` a tutor pill or a filter chip. */
+/* A CARD ITS OWN FILE STILL LAYS OUT (a question's part): the template's classes, from the card's one maker file. */
+const kcCls_ = kind => 'card fc kc kc-' + kind;
 function qtag_(inner, attrs, cls, base) { return `<span class="${base || 'qtag'}${cls ? ' ' + cls : ''}"${attrs || ''}>${inner}</span>`; }
 /* EVERY OTHER CARD COMES HERE TOO (owner, 11 Nov: one template): its maker writes a plain `<div class="x">…</div>`; a form inside stays whole, the booking form's too. */
 const KC_FORMY = /<(input(?![^>]*type="hidden")|select|textarea|form)\b|\bkc-items\b/;
@@ -10544,7 +10546,8 @@ on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
 
 /* A COLUMN ABOVE YOUR RANK, OR EMPTY: one line and the next step. Never the column's name (710, 770: "columns don't need names or a widget for the name"). */
 /* `look` names it for the doors that skip it (`settingNone_`); `tiles` its next step. */
-const rankOffCard_ = (title, say, tiles, look) => renderCard({ kind: 'rank', look: look || 'rank-off', body: say ? [{ type: 'text', text: say, look: 'note' }] : [], tiles: tiles || [] });
+/* ITS ONE TAG SAYS THE STATE, never the column's name: the template's name is a tag (rules.md 3). */
+const rankOffCard_ = (title, say, tiles, look) => renderCard({ kind: 'rank', look: look || 'rank-off', tags: [{ text: /people-none/.test(look || '') ? 'Nobody yet' : /^Sign in/.test(say || '') ? 'Signed out' : 'Nothing yet', colour: 0 }], body: say ? [{ type: 'text', text: say, look: 'note' }] : [], tiles: tiles || [] });
 /* A SETTINGS COLUMN FOR A ROLE YOU DO NOT HOLD (464): a padlock and one short line, and nothing else — the owner, "it will just show a padlock". */
 const padlockCard_ = say => renderCard({ kind: 'rank', look: 'rank-off col-lock', tags: [{ text: 'Locked', colour: 0 }], body: say ? [{ type: 'text', text: say, look: 'note' }] : [] });
 const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', 'Kids settings') + ' first.');

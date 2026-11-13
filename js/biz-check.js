@@ -222,7 +222,7 @@ function bcInner_() {
       ${BC.list ? `<p class="bc-count"><b>${done} of ${counted.length} sorted</b></p>${money}
       ${next.length ? next.map(i => bcItem_(i, st[i.id])).join('') : '<p>Everything that applies is sorted.</p>'}
       ${groups.map(g => { const gi = all.filter(i => i.group === g && next.indexOf(i) === -1);
-        return gi.length ? `<h4 class="bc-group">${esc(g)} ${qtag_(`${gi.filter(i => st[i.id].sorted).length}/${gi.filter(i => !st[i.id].info).length}`)}</h4>${gi.map(i => bcItem_(i, st[i.id])).join('')}` : ''; }).join('')}
+        return gi.length ? (typeof renderTags === 'function' ? renderTags : () => '')([g, gi.filter(i => st[i.id].sorted).length + '/' + gi.filter(i => !st[i.id].info).length], 'bc-group') + gi.map(i => bcItem_(i, st[i.id])).join('') : ''; }).join('')}
       ` : ''}
     ${wait ? loading_() : ''}</div>
     <p class="note me-said bc-said">${esc(BC.error)}</p>`;

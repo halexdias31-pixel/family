@@ -617,10 +617,10 @@ function practicalPart_(x, part) {
     /* ---------- THE WORKSHEET, AND THE CANDIDATE LISTS ARE PART OF IT § */
     inner = `${head('Worksheet')}<div class="gd"><section class="fc-sec">
       ${(p.variables.length || p.log.length) ? `<div class="prac-tab">
-        ${p.variables.length ? `<div><h4>Things you could change</h4><ul class="fc-list">${
-          p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
-        ${p.log.length ? `<div><h4>Things you could measure</h4><ul class="fc-list">${
-          p.log.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
+        ${p.variables.length ? renderTags(['Things you could change']) + `<ul class="fc-list">${
+          p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}
+        ${p.log.length ? renderTags(['Things you could measure']) + `<ul class="fc-list">${
+          p.log.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}
       </div>` : ''}
       ${guideBox_(x, 'iv', 'Independent variable — the one thing you will change',
         'One only. Everything else has to stay still, or you will not know which of them did it.')}

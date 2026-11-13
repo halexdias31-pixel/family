@@ -773,8 +773,7 @@ const TPL_SCALE_ = [
   ['Button', 'bt', ['--tile', '--tile-i', '--tap']], ['Picture', 'pc', ['--pic-s', '--pic-l', '--pic-h']],
   ['Corners', 'cr', ['--r-ui', '--r-round']],
   ['Colours', 'co', ['--bg', '--raised', '--line', '--ink', '--dim', '--faint', '--gold', '--good', '--warn', '--bad', '--paper', '--paper-ink']]];
-/* EACH VALUE AS THE BROWSER HAS IT NOW, so the card can never disagree with style.css; the swatch wears the token itself. */
-const TPL_WEAR_ = { fs: 'font-size', sp: 'width', bt: 'width: VAR; height', pc: 'width: VAR; height', cr: 'border-radius', co: 'background' };
+/* EACH VALUE AS THE BROWSER HAS IT NOW, so the card can never disagree with style.css; the swatch wears the token (`--tok`, style.css). */
 const tplTok_ = k => { try { return getComputedStyle(document.documentElement).getPropertyValue(k).trim(); } catch (e) { return ''; } };
 function tplSample_() {
   const h = card_(`<div class="tpl-sample"><img src="icon.png" alt="A sample picture"><h3>A sample card</h3>
@@ -784,7 +783,7 @@ function tplSample_() {
 }
 function tplCard_() {
   const scale = TPL_SCALE_.map(([name, k, list]) => `<p class="tpl-group">${esc(name)}</p><div class="tpl-row tpl-${k}">${list.map(t =>
-    `<span class="tpl-sw"><i aria-hidden="true" style="${TPL_WEAR_[k].replace('VAR', 'var(' + t + ')')}: var(${t})"></i><code>${esc(t)}</code><small>${esc(dash_(tplTok_(t)))}</small></span>`).join('')}</div>`).join('');
+    `<span class="tpl-sw"><i aria-hidden="true" data-t="${t}" style="--tok: var(${t})"></i><code>${esc(t)}</code><small>${esc(dash_(tplTok_(t)))}</small></span>`).join('')}</div>`).join('');
   const outer = card_(`<div class="biz tpl-card"><h3>Card template</h3>
     <p class="note">Every card on the site is drawn by this one template: picture, tags, content, buttons, top to bottom on one centre line.</p>
     <div class="tpl-spec"></div>
@@ -1158,7 +1157,7 @@ function bcInner_() {
       ${BC.list ? `<p class="bc-count"><b>${done} of ${counted.length} sorted</b></p>${money}
       ${next.length ? next.map(i => bcItem_(i, st[i.id])).join('') : '<p>Everything that applies is sorted.</p>'}
       ${groups.map(g => { const gi = all.filter(i => i.group === g && next.indexOf(i) === -1);
-        return gi.length ? `<h4 class="bc-group">${esc(g)} ${qtag_(`${gi.filter(i => st[i.id].sorted).length}/${gi.filter(i => !st[i.id].info).length}`)}</h4>${gi.map(i => bcItem_(i, st[i.id])).join('')}` : ''; }).join('')}
+        return gi.length ? (typeof renderTags === 'function' ? renderTags : () => '')([g, gi.filter(i => st[i.id].sorted).length + '/' + gi.filter(i => !st[i.id].info).length], 'bc-group') + gi.map(i => bcItem_(i, st[i.id])).join('') : ''; }).join('')}
       ` : ''}
     ${wait ? loading_() : ''}</div>
     <p class="note me-said bc-said">${esc(BC.error)}</p>`;

@@ -491,7 +491,7 @@ function soonItems_() {
 }
 /* A SWITCHED-OFF THING'S SPEC: "Coming soon" is a tag beside its name, never a line; what it is, below. */
 const soonSpec_ = x => ({ look: 'soon-card', tags: [{ text: x.name, colour: 0 }, { text: brand('comingSoon', 'Coming soon') }],
-  body: x.sub && x.sub !== x.name ? [{ type: 'text', text: x.sub }] : [] });
+  body: [{ type: 'text', text: x.sub && x.sub !== x.name ? x.sub : brand('soonSay', 'Not switched on yet.') }] });
 ['soon', 'offPosts', 'offShop', 'offBooking'].forEach(k => cardKind_(k, soonSpec_));
 const soonCard_ = x => renderCard(Object.assign({ kind: x.kind || 'soon', key: x.key }, soonSpec_(x)));
 
@@ -1678,10 +1678,10 @@ function practicalPart_(x, part) {
     /* ---------- THE WORKSHEET, AND THE CANDIDATE LISTS ARE PART OF IT § */
     inner = `${head('Worksheet')}<div class="gd"><section class="fc-sec">
       ${(p.variables.length || p.log.length) ? `<div class="prac-tab">
-        ${p.variables.length ? `<div><h4>Things you could change</h4><ul class="fc-list">${
-          p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
-        ${p.log.length ? `<div><h4>Things you could measure</h4><ul class="fc-list">${
-          p.log.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
+        ${p.variables.length ? renderTags(['Things you could change']) + `<ul class="fc-list">${
+          p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}
+        ${p.log.length ? renderTags(['Things you could measure']) + `<ul class="fc-list">${
+          p.log.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}
       </div>` : ''}
       ${guideBox_(x, 'iv', 'Independent variable — the one thing you will change',
         'One only. Everything else has to stay still, or you will not know which of them did it.')}
@@ -8201,7 +8201,7 @@ function qStemWhole_(x, p, onScreen, pics) {
   /* A FIGURE LEFT FOR THE PART THAT PENS ON IT, when that part is not on screen: drawn here, under the stem's words. */
   if (stemHasFig_(p) && stemPenned_(p) && !(onScreen || []).some(y => { const s = isQ_(y) ? padSource_(y) : null; return s && s.svg === p.diagram; })) fig((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
   if (stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
-  return `<div class="qsheet-stem qtext qb-stem${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
+  return `<div class="qsheet-stem qtext qb-stem kc-lines${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
 }
 /* A PART'S WORDS AND ANSWER ROW, a `.qcard` of its own so every handler's `closest('.qcard')` finds this part and no other. */
 function qPartCard_(x, ans) {
@@ -8214,7 +8214,7 @@ function qPartCard_(x, ans) {
   const area = ansArea_(x);
   const left = QT_MORE.used ? '' : (more ? `<div class="tile-row">${more}</div>` : '');
   QT_MORE.html = ''; QT_MORE.used = false;
-  return `<div class="qcard qb-part" data-of="${esc((x.row && x.row.row_id) || x.key || '')}"><div class="qsheet qtext">${qWordsOr_(x, cellsHere_(x, words))}</div>${area}${left}${a}</div>`;
+  return `<div class="qcard qb-part kc-form" data-of="${esc((x.row && x.row.row_id) || x.key || '')}"><div class="qsheet qtext">${qWordsOr_(x, cellsHere_(x, words))}</div>${area}${left}${a}</div>`;
 }
 /* HELP (455) AND THE CARD'S TILES join the answer's tool row, behind its ⋯ (owner, 9 Nov); a box with no row keeps Help's own row. */
 function qAreaWithFoot_(x) {
@@ -8228,13 +8228,13 @@ function qPartFoot_(p) {
   const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(p, '') : null);
   return String(cardRow_(Object.assign(Object.create(p), { lead: help }), true) || '').trim();
 }
-/* ONE PART, THE SHAPE OF ANY CARD: its tags, a shared stem the first time a drawn part needs it, its words and box, its whole tile row. */
+/* ONE PART, THE SHAPE OF ANY CARD (rules.md 3): a card of the template, its picture, tags, stem lines and the part as its form. */
 function qOneCard_(p, ctx) {
   const pics = [];
   const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)])
     .map(s => { ctx.drawn[stemId_(s)] = true; return qStemWhole_(p, s, ctx.shown, pics); }).join('');
-  const pic = pics.join('').trim() ? `<div class="qb-stem qb-pic">${pics.join('')}</div>` : '';
-  return `<div class="qb favwrap${isFav(p.key) ? ' is-fav' : ''}" data-part="${esc(p.key || '')}">${pic}${tagRow_(p)}${stems}${qPartCard_(p, ctx.ans)}</div>`;
+  const pic = pics.join('').trim() ? `<div class="qb-stem qb-pic kc-pic">${pics.join('')}</div>` : '';
+  return `<div class="qb favwrap ${kcCls_('question')}${isFav(p.key) ? ' is-fav' : ''}" data-part="${esc(p.key || '')}">${pic}${renderTags(tagList_(p), 'qcard-tags kc-tags')}${stems}${qPartCard_(p, ctx.ans)}</div>`;
 }
 /* A QUESTION NUMBER: its parts the search kept, one card each, one after another; none indented under another. */
 function questionWhole_(x, parts, open, ans) {

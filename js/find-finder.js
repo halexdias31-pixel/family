@@ -257,7 +257,7 @@ function soonItems_() {
 }
 /* A SWITCHED-OFF THING'S SPEC: "Coming soon" is a tag beside its name, never a line; what it is, below. */
 const soonSpec_ = x => ({ look: 'soon-card', tags: [{ text: x.name, colour: 0 }, { text: brand('comingSoon', 'Coming soon') }],
-  body: x.sub && x.sub !== x.name ? [{ type: 'text', text: x.sub }] : [] });
+  body: [{ type: 'text', text: x.sub && x.sub !== x.name ? x.sub : brand('soonSay', 'Not switched on yet.') }] });
 ['soon', 'offPosts', 'offShop', 'offBooking'].forEach(k => cardKind_(k, soonSpec_));
 const soonCard_ = x => renderCard(Object.assign({ kind: x.kind || 'soon', key: x.key }, soonSpec_(x)));
 
