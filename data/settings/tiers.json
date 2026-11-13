@@ -286,6 +286,7 @@
     "check-hymns.js": "secondary",
     "check-bible.js": "secondary",
     "check-handles.js": "core",
+    "check-handle-follows.js": "core",
     "check-people.js": "core",
     "check-profile.js": "secondary",
     "check-layout.js": "secondary",
