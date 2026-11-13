@@ -6,7 +6,6 @@ function setColumns_(d, extra) {
       .filter(x => libS(x.r.screen) && libOn(x.r.active))
       .sort((a, b) => (libN(a.r.sort_order) - libN(b.r.sort_order)) || (a.i - b.i))
       .map(x => ({ screen: libS(x.r.screen), label: libS(x.r.label), icon: libS(x.r.icon) }));
-    /* AND NOT AN EMPTY LIST. § */
     if (live.length) d.columns = live;
     /* SWITCHED OFF (880): each is a Coming soon card in Find, its first plain line its notes; switched on again, its card goes. */
     d.columnsOff = columns.filter(r => libS(r.screen) && !libOn(r.active))
@@ -16,7 +15,7 @@ function setColumns_(d, extra) {
 }
 
 function setSpot_(d, extra) {
-  /* ---------- THE SHOP WINDOW'S FLOOR, AND IT IS `spotlightFile` RATHER THAN `spotlight` § */
+  /* THE SHOP WINDOW'S FLOOR, `spotlightFile` not `spotlight` § */
   const spot = extra['settings/spotlight'];
   if (spot && spot.length) {
     d.spotlightFile = spot
@@ -89,9 +88,6 @@ const labelOf_ = (group, key, fallback) => {
 
 function settingsInto_(d, extra) {
   if (!d || !extra) return d;
-  /* the link tiles WERE MAPPED HERE -------------------------------------------------------------- into `d.links` and `d.dropdowns.linkCategories`, the backend's § */
-  /* the campaigns, and the words they say ---------------------------------------------------- ONE PASS OVER `copy`, INDEXED BY CAMPAIGN, so the phone never joins § */
-  /* ---------- WHICH COLUMNS THE APP HAS, AND IN WHAT ORDER § */
   setBrand_(d, extra); setMoved_(d, extra); setFacets_(d, extra); setKinds_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
   setCampaigns_(d, extra); setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setConfusables_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
   setDefaultPictures_(d, extra); setPermissions_(d, extra); setLabels_(d, extra);

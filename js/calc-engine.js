@@ -482,24 +482,4 @@ const calcHtml = st => ({
     : st.fresh && st.val != null ? calcSay(st.val, st.dec)
     : st.note ? '<span class="mc-note">' + cEsc(st.note) + '</span>' : '',
 });
-/* A WRITTEN SUM AS THE CALCULATOR'S KEYS (owner, 13 Nov): the keypad's 10^(−14), 2³, 6.02×10^23, 1e-14 and 2**3 pressed and worked; null when it is no sum. */
-const CALC_SUPS = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁻': '-' };
-function calcTextVal(text) {
-  let s = String(text == null ? '' : text).replace(/<sup>(.*?)<\/sup>/g, '^($1)').replace(/\s+/g, '').replace(/\*\*/g, '^')
-    .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+/g, m => '^(' + [...m].map(c => CALC_SUPS[c]).join('') + ')')
-    .replace(/(\d)[eE]([-+−]?\d+)/g, '$1×10^($2)').replace(/(\d)[xX](?=\d)/g, '$1×').replace(/\*/g, '×').replace(/\//g, '÷')
-    .replace(/\^([-+−]?[\d.]+)/g, '^($1)').replace(/[-‐–]/g, '−');
-  if (!s || /[^0-9.+−×÷()^π]/.test(s)) return null;
-  const st = calcNew(), shut = [];
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (c === '^' && s[i + 1] === '(') { calcKey(st, 'pow'); shut.push(true); i++; }
-    else if (c === '(') { calcKey(st, '('); shut.push(false); }
-    else if (c === ')') calcKey(st, shut.pop() ? 'right' : ')');
-    else if (c === '^') return null;
-    else calcKey(st, c === 'π' ? 'pi' : c);
-  }
-  calcKey(st, '=');
-  return st.err || st.val == null ? null : cF(st.val);
-}
 /* ---------- END OF THE CALCULATOR ENGINE */

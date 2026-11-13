@@ -166,10 +166,11 @@ const roleOf = r => roleAliases_()[norm(r)] || norm(r);
 const isRole = (r, want) => roleOf(r) === want;
 
 
-const heldRoles = () => (USER && (USER.roles || [USER.role]) || []).map(x => String(x).toLowerCase());
+/* `u` IS WHOSE ROLES: the viewer by default; a settings card passes `whose_()` (the admin's lens, data-who.js). */
+const heldRoles = (u = USER) => (u && (u.roles || [u.role]) || []).map(x => String(x).toLowerCase());
 
 
-const hasRole = r => heldRoles().some(h => roleOf(h) === roleOf(r));
+const hasRole = (r, u = USER) => heldRoles(u).some(h => roleOf(h) === roleOf(r));
 
 
 const uniq = arr => [...new Set((arr||[]).filter(Boolean))];
@@ -301,16 +302,16 @@ const tutorHeld_ = () => hasRole('tutor');
 /* ---------- ONE RANK PER ACCOUNT (400): student < client < staff < admin, as `rankOf` (people.gs) ----------
    The server's word when the sign-in reply carried one; worked out from the roles for a copy kept before it did. */
 const RANKS = ['student', 'client', 'staff', 'admin'];
-const rank_ = () => {
-  if (!USER) return '';
-  if (RANKS.indexOf(String(USER.rank || '')) !== -1) return USER.rank;
-  if (hasRole('admin')) return 'admin';
-  if (tutorHeld_() && !USER.tutorPending) return 'staff';
-  if (hasRole('client')) return 'client';
-  return hasRole('student') ? 'student' : 'client';
+const rank_ = (u = USER) => {
+  if (!u) return '';
+  if (RANKS.indexOf(String(u.rank || '')) !== -1) return u.rank;
+  if (hasRole('admin', u)) return 'admin';
+  if (hasRole('tutor', u) && !u.tutorPending) return 'staff';
+  if (hasRole('client', u)) return 'client';
+  return hasRole('student', u) ? 'student' : 'client';
 };
-/* AT LEAST THIS RANK; nobody signed in holds none. */
-const rankAtLeast_ = want => !!USER && RANKS.indexOf(rank_()) >= RANKS.indexOf(want);
+/* AT LEAST THIS RANK; nobody signed in holds none. `u` as `heldRoles`. */
+const rankAtLeast_ = (want, u = USER) => !!u && RANKS.indexOf(rank_(u)) >= RANKS.indexOf(want);
 const isTutorRole = () => rankAtLeast_('staff');
 
 /* ---------- A CHILD IS SHOWN NO PRICE (398) — the owner: "Kids' profiles shouldn't be able to see tutors' prices." */

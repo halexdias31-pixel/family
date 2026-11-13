@@ -18,7 +18,7 @@ const KP_NAMES = ['KP_HOLE', 'KP_SEL_A', 'KP_VEC_A', 'kpVecStep_', 'kpPartner_',
   'kpPowAt_', 'kpPowOut_', 'kpEdit_', 'kpTypeset_'];
 const kpParts = KP_NAMES.map(n => [n, cutFrom(kp, n)]);
 kpParts.filter(p => !p[1]).forEach(p => bad.push('keypad: ' + p[0] + ' not found in js/keypad-*.js'));
-const ctx = { typeset_, esc: s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])),
+const ctx = { typeset_, esc: require('./check-esc.js').esc,
   vecHtml_: s => s, kpSite_: () => false, kpUndoNote_: () => {}, Event: function () {}, console };
 vm.createContext(ctx);
 vm.runInContext(kpParts.filter(p => p[1]).map(p => p[1].replace(/^const /, 'var ')).join('\n'), ctx);
@@ -33,7 +33,27 @@ const csrc = fs.readFileSync(path.join(ROOT, 'js', 'calc-engine.js'), 'utf8');
 const ca = csrc.indexOf('/* ---------- THE CALCULATOR: KEYS AND ENGINE'), cb = csrc.indexOf('/* ---------- END OF THE CALCULATOR ENGINE');
 const cctx = {};
 vm.createContext(cctx);
-vm.runInContext(csrc.slice(ca, cb) + '\nthis.api = { calcNew, calcKey, calcText, calcTextVal };', cctx);
+/* THE KEYPAD'S TEXT PRESSED AS CALCULATOR KEYS (owner, 13 Nov): the stored 10^(−14), 2³, 6.02×10^23, 1e-14 and 2**3 pressed and worked; null when it is no sum. */
+const CALC_SUPS = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁻': '-' };
+function calcTextVal(text) {
+  let s = String(text == null ? '' : text).replace(/<sup>(.*?)<\/sup>/g, '^($1)').replace(/\s+/g, '').replace(/\*\*/g, '^')
+    .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+/g, m => '^(' + [...m].map(c => CALC_SUPS[c]).join('') + ')')
+    .replace(/(\d)[eE]([-+−]?\d+)/g, '$1×10^($2)').replace(/(\d)[xX](?=\d)/g, '$1×').replace(/\*/g, '×').replace(/\//g, '÷')
+    .replace(/\^([-+−]?[\d.]+)/g, '^($1)').replace(/[-‐–]/g, '−');
+  if (!s || /[^0-9.+−×÷()^π]/.test(s)) return null;
+  const st = calcNew(), shut = [];
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === '^' && s[i + 1] === '(') { calcKey(st, 'pow'); shut.push(true); i++; }
+    else if (c === '(') { calcKey(st, '('); shut.push(false); }
+    else if (c === ')') calcKey(st, shut.pop() ? 'right' : ')');
+    else if (c === '^') return null;
+    else calcKey(st, c === 'π' ? 'pi' : c);
+  }
+  calcKey(st, '=');
+  return st.err || st.val == null ? null : cF(st.val);
+}
+vm.runInContext(csrc.slice(ca, cb) + '\nconst CALC_SUPS = ' + JSON.stringify(CALC_SUPS) + ';\n' + calcTextVal + '\nthis.api = { calcNew, calcKey, calcText, calcTextVal };', cctx);
 
 function box() {
   return { value: '', selectionStart: 0, selectionEnd: 0, tagName: 'INPUT',
