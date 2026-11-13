@@ -82,11 +82,8 @@ const mechOwn_ = (x, file, k) => (x && x.kind === 'mech' && x.mFile === file && 
 
 /* A CARD IS ITS TAGS AND ITS DRAWING; a part adds one line of what it does. No title: the name is a tag. */
 function mechPic_(x) { return `<figure class="mech-pic">${pixSvg_(x.mech.px, x.name, false, ' mech-px')}</figure>`; }
-function mechCard_(x) {
-  const r = x.mech || {};
-  return `<div class="fc mech" data-key="${esc(x.key)}" aria-label="${esc(x.name)}">${tagRow_(x)}${mechPic_(x)}${
-    r.does ? `<p class="mech-does">${esc(r.does)}</p>` : ''}</div>`;
-}
+cardKind_('mech', x => { const r = x.mech || {};
+  return { look: 'mech', picture: Array.isArray(r.px) ? { svg: mechPic_(x), alt: x.name } : null, tags: typeof tagList_ === 'function' && x.key ? tagList_(x) : [], body: r.does ? [{ type: 'text', text: r.does, look: 'mech-does' }] : [] }; });
 /* A CAR'S PARTS ARE A FIND (650): its every part, Car part chosen and the car's make, model and engine (`CARD_EXTRAS_`). */
 function mechExtras_(x) { const r = x.mech || {}; return x.mFile === 'models' && r.code ? { icon: 'search', label: 'Parts', note: 'every part for this car', act: 'mech-parts', data: { engine: r.code } } : null; }
 window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { mech: mechExtras_ });
