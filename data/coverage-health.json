@@ -7,9 +7,9 @@
    "file": "data/spec/aqa-8461.json",
    "points": 97,
    "lesson": 97,
-   "practice": 96,
+   "practice": 97,
    "figureNeed": 36,
-   "figureHave": 27,
+   "figureHave": 36,
    "lessonPct": 100
   },
   "Chemistry": {
@@ -17,9 +17,9 @@
    "file": "data/spec/aqa-8462.json",
    "points": 124,
    "lesson": 124,
-   "practice": 123,
+   "practice": 124,
    "figureNeed": 26,
-   "figureHave": 19,
+   "figureHave": 26,
    "lessonPct": 100
   },
   "Physics": {
@@ -44,96 +44,6 @@
   }
  },
  "work": [
-  {
-   "kind": "spec-figure",
-   "where": "Biology 4.2.2.5 Health issues",
-   "say": "lesson TB-AQA-8461#18 has no figure (the spec says diagram)"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Biology 4.2.2.6 The effect of lifestyle on some non-communicable diseases",
-   "say": "lesson TB-AQA-8461#19 has no figure (the spec says diagram, graph)"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Biology 4.5.3.3 Maintaining water and nitrogen balance in the body (biology only)",
-   "say": "lesson TB-AQA-8461#49 has no figure (the spec says structure)"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Biology 4.6.1.4 DNA and the genome",
-   "say": "lesson TB-AQA-8461#59 has no figure (the spec says structure)"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Biology 4.6.3.3 The understanding of genetics (biology only)",
-   "say": "lesson TB-AQA-8461#71 has no figure (the spec says structure)"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Biology 4.6.3.5 Fossils",
-   "say": "lesson TB-AQA-8461#73 has no figure (the spec says graph)"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Biology 4.6.4 Classification of living organisms",
-   "say": "lesson TB-AQA-8461#76 has no figure (the spec says structure)"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Biology 4.7.1.1 Communities",
-   "say": "lesson TB-AQA-8461#77 has no figure (the spec says graph)"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Biology 4.7.1.2 Abiotic factors",
-   "say": "lesson TB-AQA-8461#78 has no figure (the spec says graph)"
-  },
-  {
-   "kind": "spec-practice",
-   "where": "Biology 4.7.2.4 Impact of environmental change",
-   "say": "no practice question"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Chemistry 4.2.3.3 Graphene and fullerenes",
-   "say": "lesson TB-AQA-8462#31 has no figure (the spec says diagram, structure)"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Chemistry 4.2.4.1 Sizes of particles and their properties",
-   "say": "lesson TB-AQA-8462#32 has no figure (the spec says structure)"
-  },
-  {
-   "kind": "spec-practice",
-   "where": "Chemistry 4.3.2.3 Using moles to balance equations (HT only)",
-   "say": "no practice question"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Chemistry 4.6.2.3 Equilibrium",
-   "say": "lesson TB-AQA-8462#73 has no figure (the spec says apparatus)"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Chemistry 4.7.2.2 Reactions of alkenes",
-   "say": "lesson TB-AQA-8462#83 has no figure (the spec says draw)"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Chemistry 4.7.2.4 Carboxylic acids",
-   "say": "lesson TB-AQA-8462#85 has no figure (the spec says structure)"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Chemistry 4.10.1.1 Using the Earth's resources and sustainable development",
-   "say": "lesson TB-AQA-8462#114 has no figure (the spec says graph)"
-  },
-  {
-   "kind": "spec-figure",
-   "where": "Chemistry 4.10.3.3 Ceramics, polymers and composites",
-   "say": "lesson TB-AQA-8462#122 has no figure (the spec says structure)"
-  },
   {
    "kind": "spec-lesson",
    "where": "Maths N6 use positive integer powers and associated real roots (square, cube and higher), recognise powers of 2, 3, 4, 5; estimate powers and roots…",
@@ -171,7 +81,7 @@
    "id": "spec-figure",
    "group": "content",
    "label": "Lessons with a figure where the spec point is a diagram, graph, apparatus or structure",
-   "ok": 85,
+   "ok": 101,
    "of": 104,
    "kinds": [
     "spec-figure"
@@ -182,7 +92,7 @@
    "id": "spec-practice",
    "group": "content",
    "label": "Spec points with practice questions",
-   "ok": 407,
+   "ok": 409,
    "of": 409,
    "kinds": [
     "spec-practice"

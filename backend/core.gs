@@ -398,6 +398,27 @@ function warmPayload() {
   return 'warmed ' + done.join(', ');
 }
 
+/* THE KEEP-AWAKE (owner, 13 Nov): a ping every 5 minutes so a visitor never waits for a cold start; `?ping=1` touches no sheet, so it is cheap. */
+const KEEP_WARM_FN = 'keepWarm';
+/* The trigger's handler. Public: a trigger cannot call a name ending _. */
+function keepWarm() { return keepWarm_(); }
+function keepWarm_() {
+  try {
+    const url = webAppUrl_();
+    if (!url) return 'no web app url';
+    const r = UrlFetchApp.fetch(url + (url.indexOf('?') === -1 ? '?' : '&') + 'ping=1', { muteHttpExceptions: true, followRedirects: true });
+    return 'pinged ' + r.getResponseCode();
+  } catch (err) { return 'ping failed: ' + String((err && err.message) || err); }
+}
+/* KEPT BOOKED BY THE ADMIN-LOAD SETUP (361), like `libImportKeepBooked_`: exactly one trigger; null when it already is. */
+function keepWarmKeepBooked_() {
+  const mine = ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === KEEP_WARM_FN);
+  if (mine.length === 1) return null;
+  mine.forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger(KEEP_WARM_FN).timeBased().everyMinutes(5).create();
+  return { installed: KEEP_WARM_FN, removed: mine.length };
+}
+
 /* `installWarmTrigger` WAS HERE (361): every five minutes ate the day's script time, nothing called it, and it was a Run-menu item to press by mistake. */
 
 /* AN EDIT TYPED INTO THE SPREADSHEET IS A CHANGE TO THE SITE, AND UNTIL NOW IT WAS NOT. § */

@@ -5235,10 +5235,8 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .qp-cell.is-right { box-shadow: 0 0 0 3px var(--good); }
 .qp-cell.is-near { box-shadow: 0 0 0 3px var(--warn); }
 td.qp-cell-at, th.qp-cell-at { padding: 2px; }
-/* ONE LINE PER BOX (421; owner, 1 Nov: "looks messy when the answer boxes are like this"): its name in one column, the boxes in the next, every box one width. */
-.qp-cells { display: grid; grid-template-columns: fit-content(55%) minmax(44px, 8rem); gap: var(--s2) var(--s3); align-items: center; }
-.qp-cell-l { display: contents; font: 600 var(--fs-small)/1.2 var(--font); color: var(--ink); }
-.qp-cell-l > span { font: 600 var(--fs-small)/1.2 var(--font); color: var(--ink); }
+/* EVERY GAP IN ONE BOX (owner, 13 Nov): the one line over it says to write the answers in order. */
+.qp-cells-hint { flex: 1 1 100%; margin: 0 0 var(--s1); font: 400 var(--fs-body)/1.3 var(--font); color: var(--ink); text-align: center; }
 
 /* IN THE CARD a long maths answer stops at four lines and scrolls, where it used to push the card taller. */
 .qp-bar .kp-field.kp-maths > .kp-show { max-height: 9.5rem; overflow-y: auto; }

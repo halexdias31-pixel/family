@@ -173,6 +173,7 @@ const SUITE = [
   { file: 'check-suggest.js', what: 'Suggest a change: an admin’s straight to Notes for Claude, anybody else’s waits for Confirm; the old reports moved once; one tile everywhere' },
   /* THE LIBRARY'S WORDS IN THE LEDGER (397): the copy checked row by row, libItems signed-in and capped, the tools' copy the admin's. */
   { file: 'check-library-ledger.js', what: 'the library in the Ledger: copied and checked a step at a time, served signed-in with a day\'s cap', par: true },
+  { file: 'check-keepwarm.js', what: 'the keep-awake: ?ping=1 reads no sheet, one five-minute trigger however often setup runs' },
   /* THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER. § */
   { file: 'check-films.js', what: 'the films from the Notflix folder: the upsert, admin only, no id sent, the clock' },
   { file: 'check-hands.js', what: 'a hand up from a question: signed in, own hand only, staff list oldest first and Done, 30-minute TTL' },
@@ -269,7 +270,7 @@ const SUITE = [
   { file: 'check/pen.js',     what: 'a finger on the pen: two fingers, a palm or a thumb leave nothing, and the column holds', slow: true },
   /* ---------- AND EVERY INTERACTION TYPE ANSWERED WRONG, CHANGED, AND RIGHT (385) ---------- */
   { file: 'check/ruler.js',   what: 'two touch points move, turn and cross over the ruler and protractor exactly; every figure question has both (502)', slow: true },
-  { file: 'check/boxes.js',   what: 'a question\'s pages: every foot last and alike (Help, star, Suggest, Back to top), answer boxes one a line and one width (553)', slow: true },
+  { file: 'check/boxes.js',   what: 'a question\'s pages: every foot last and alike (Help, star, Suggest, Back to top), a part\'s gaps one box with its line (553)', slow: true },
   { file: 'check/types.js',   what: 'every interaction type answered wrong, changed and right by touch and mouse; boxes edit like iOS', slow: true },
   /* ---------- AND THE WHITEBOARD, A MATHS NOTEBOOK (377) ---------- */
   /* ---------- AND WHAT A RUN OF FAST FLICKS REACHES IS ALREADY DRAWN WHEN IT GETS THERE § */

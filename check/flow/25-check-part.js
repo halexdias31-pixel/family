@@ -27,8 +27,23 @@ check('the fill-in standard: every library part that asks to fill something in s
     host.innerHTML = w.questionCard_(x, 0);
     const want = w.cellsOf_(x).map((c, i) => [c, i]).filter(([c]) => c.ways);
     const inputs = [...host.querySelectorAll('.qp-cell')];
+    /* NO TABLE TO FILL: EVERY GAP IN ONE BOX (owner, 13 Nov), its answers typed as a child might part them, in order */
+    const one = host.querySelector('.qp-cells-box .qp-ans-in');
+    if (!host.querySelector('table[data-cells]') && want.length) {
+      if (!one || inputs.length || !host.querySelector('.qp-cells-hint')) { bad.push(r.row_id + ': its gaps are not one box with its line (' + inputs.length + ' loose cells)'); return; }
+      boxes++;
+      const own1 = (String(r.html || '').match(/<table[\s\S]*?<\/table>/) || [''])[0];
+      if ((own1.match(/<(td|th)([^>]*)>(?:\s|&nbsp;| )*<\/\1>/g) || []).length > (w.cellCorner_ && w.cellCorner_(own1) ? 1 : 0)) bad.push(r.row_id + '\'s own table has blanks and its gaps stand under it, not in it');
+      one.value = want.map(([c]) => c.ways.split('|')[0].trim()).join([' ; ', ' / ', '; '][boxes % 3]);
+      one.dispatchEvent(new w.Event('input', { bubbles: true }));
+      A['qp-cells-check'](host.querySelector('[data-do="qp-cells-check"]'));
+      const said = (host.querySelector('.qp-cells-box .qp-verdict') || {}).textContent;
+      if (said !== 'Correct — every answer') bad.push(r.row_id + ': its own answers typed in its one box say ' + JSON.stringify(said));
+      w.localStorage.removeItem(host.querySelector('.qp-cells-box').getAttribute('data-k'));
+      return;
+    }
     if (!want.length || inputs.length !== want.length) { bad.push(r.row_id + ' shows ' + inputs.length + ' cell(s) for ' + want.length + ' asked'); return; }
-    if (host.querySelector('table[data-cells]')) inTable++; else boxes++;
+    inTable++;
     /* A TABLE OF ITS OWN WITH BLANKS IS WHERE ITS CELLS GO: one more or one fewer, and they fall out under it as boxes. */
     const own = (String(r.html || '').match(/<table[\s\S]*?<\/table>/) || [''])[0];
     const blanks = (own.match(/<(td|th)([^>]*)>(?:\s|&nbsp;| )*<\/\1>/g) || []).length - (w.cellCorner_ && w.cellCorner_(own) ? 1 : 0);
@@ -46,7 +61,7 @@ check('the fill-in standard: every library part that asks to fill something in s
     try { w.localStorage.removeItem(w.ansKey_(x)); } catch (e) {}
   });
   host.remove();
-  console.log('          ' + asks.length + ' fill-in parts: ' + inTable + ' in their own table, ' + boxes + ' as labelled boxes, each marked right by its own answers; ' + waiting + ' waiting for newer words');
+  console.log('          ' + asks.length + ' fill-in parts: ' + inTable + ' in their own table, ' + boxes + ' in one box, each marked right by its own answers; ' + waiting + ' waiting for newer words');
   return bad;
 });
 
@@ -345,8 +360,13 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
     host.innerHTML = w.questionCard_(x, 0);
     /* ITS FIGURE MAY BE A PAD WITH THE PEN OFF (1020, owner 7 Nov: the pen is off until chosen); drawn on means a drawing Check. */
     if (host.querySelector('.qpad-send [data-do="pad-check"], .qpad.is-drawing')) bad.push(id + ': made a box, and still drawn on');
-    const cells = [...host.querySelectorAll('.qp-cell')], opts = [];
-    if (cells.length) {
+    const cells = [...host.querySelectorAll('.qp-cell')], opts = [], one = host.querySelector('.qp-cells-box .qp-ans-in');
+    if (one && !cells.length) {
+      one.value = w.cellsOf_(x).filter(c => c.ways).map(c => c.ways.split('|')[0].trim()).join(' ; ');
+      A['qp-cells-check'](host.querySelector('[data-do="qp-cells-check"]'));
+      const say = host.querySelector('.qp-cells-box .qp-verdict').textContent;
+      if (!/^Correct/.test(say)) bad.push(id + ': its own answers in its one box say ' + JSON.stringify(say));
+    } else if (cells.length) {
       const ways = w.cellsOf_(x);
       cells.forEach(c => { const v = ways[Number(c.getAttribute('data-n'))]; c.value = v ? v.ways.split('|')[0].trim() : ''; });
       A['qp-cells-check'](host.querySelector('[data-do="qp-cells-check"]'));
