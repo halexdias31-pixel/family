@@ -29,20 +29,8 @@ function meCard(given) {
     return findCard({ kind: 'tutor', row: mine });
   }
 
-  return card_(`<div class="is-widget">
-    <div class="thing">
-      ${/* THROUGH `personFace_` LIKE EVERY FACE. § */
-            ''}
-      ${personFace_({ pic: face, avatar: USER.avatar || '', handle: USER.handle, name: USER.name, personId: USER.personId },
-                    { cls: 'thing-pic', none: 'none', size: 52 })}
-      <div class="thing-body">
-        <h3>${esc(nameBesideHandle_(USER.name, USER.handle))}</h3>
-        ${USER.handle ? `<p class="prof-handle">@${esc(USER.handle)}</p>` : ''}
-      </div>
-    </div>
-    ${/* THE `Sign out` BUTTON WAS HERE, briefly. § */
-          ''}
-  </div>`);
+  return renderCard({ kind: 'me', look: 'is-widget', name: USER.name, picture: profFace_({ kind: 'me', key: USER.personId, row: { image: face, personId: USER.personId } }),
+    tags: [{ text: nameBesideHandle_(USER.name, USER.handle), colour: 0 }], body: USER.handle ? [{ type: 'text', look: 'prof-handle', text: '@' + USER.handle }] : [] });
 }
 
 /* ---------- A FIELD THAT MIGHT BE A LIST, AND MIGHT BE A STRING, AND MIGHT BE NEITHER § */
@@ -65,9 +53,8 @@ function teachGroups_(list) {
   });
   return out;
 }
-/* ONE CHIP. The levels are a `<sup>`, and each level is its own no-wrap span, so at 320px a long list breaks BETWEEN levels § */
-const teachChip_ = (g, main) => qtag_(`${mark(g.subject)}${
-  g.levels.length ? `<sup class="prof-lv">&nbsp;${g.levels.map(l => `<span>${mark(l)}</span>`).join(', ')}</sup>` : ''}`, '', main ? 'is-main' : '', 'prof-tag');
+/* ONE CHIP (a tag spec): the subject, its levels raised and each held whole so a long list breaks between levels. */
+const teachChip_ = (g, main) => ({ pill: true, look: main ? 'is-main' : '', text: [{ marked: g.subject }, g.levels.length ? { levels: g.levels } : ''] });
 
 /* ---------- A QUALIFICATION, WRITTEN LIKE AN ISOTOPE § */
 const profQualV_ = v => String(v == null ? '' : v).trim();
@@ -79,33 +66,15 @@ function profQualSay_(p) {
 }
 function profQualChip_(p) {
   const v = k => profQualV_(p[k]);
-  const subject = v('subject'), level = norm(v('level')) === norm(subject) ? '' : v('level'), grade = v('grade');
-  const say = esc(profQualSay_(p));
-  const low = grade ? mark(grade) : profQualNow_(p) ? '<i>studying</i>' : '';
-  if (p.kind === 'cert' || !(level || low)) {
-    return qtag_(mark([subject, level, grade].filter(Boolean).join(' ')), ` role="img" aria-label="${say}" title="${say}"`, '', 'prof-tag');
-  }
-  /* THE LAST WORD OF THE SUBJECT IS HELD TO ITS NOTATION, so at 320px a long subject breaks between its own words and never § */
-  const said = mark(subject), cut = profLastGap_(said);
-  return qtag_(`${cut > 0 ? said.slice(0, cut) + ' ' : ''}<span class="prof-q-end">${said.slice(cut + 1)}<span class="prof-iso">${
-    level ? `<sup>${mark(level)}</sup>` : ''}${low ? `<sub>${low}</sub>` : ''}</span></span>`, ` role="img" aria-label="${say}" title="${say}"`, 'prof-q', 'prof-tag');
-}
-/* THE LAST SPACE IN `mark`'s HTML THAT IS NEITHER INSIDE A TAG NOR INSIDE A COLOURED SPAN, or -1. § */
-function profLastGap_(html) {
-  let depth = 0, at = -1;
-  for (let i = 0; i < html.length; i++) {
-    if (html[i] === '<') {
-      const end = html.indexOf('>', i);
-      if (end < 0) break;
-      depth += html[i + 1] === '/' ? -1 : html[end - 1] === '/' ? 0 : 1;
-      i = end;
-    } else if (html[i] === ' ' && depth <= 0) at = i;
-  }
-  return at;
+  const subject = v('subject'), level = norm(v('level')) === norm(subject) ? '' : v('level'), grade = v('grade'), say = profQualSay_(p);
+  const low = grade ? { marked: grade } : profQualNow_(p) ? { i: 'studying' } : null;
+  if (p.kind === 'cert' || !(level || low)) return { pill: true, say, text: { marked: [subject, level, grade].filter(Boolean).join(' ') } };
+  return { pill: true, look: 'prof-q', say, text: { iso: subject, sup: level ? { marked: level } : null, sub: low } };
 }
 /* A LONG LIST SHORTENED TO "+N" (8 Nov): the whole tutor card fits one phone screen; the rest are named in the pill's title. */
 const PROF_MORE_ = (chips, n, names) => chips.length > n
-  ? chips.slice(0, n).concat(qtag_(`+${chips.length - n}`, ` title="${esc((names || []).slice(n).join(', '))}"`, 'prof-more', 'prof-tag')) : chips;
+  ? chips.slice(0, n).concat({ pill: true, look: 'prof-more', text: `+${chips.length - n}`, title: (names || []).slice(n).join(', ') }) : chips;
+const profTagRow_ = (look, tags) => (tags.length ? { type: 'tags', look: 'prof-tags prof-teach ' + look, tags } : null);
 function profQuals_(t) {
   const parts = Array.isArray(t.qualsParts) ? t.qualsParts.filter(p => p && profQualV_(p.subject)) : [];
   let chips;
@@ -118,19 +87,17 @@ function profQuals_(t) {
     });
     chips = [].concat(...groups).map(profQualChip_);
   } else {
-    chips = profList_(t.quals).map(v => qtag_(esc(v), '', '', 'prof-tag'));
+    chips = profList_(t.quals).map(text => ({ pill: true, text }));
   }
   chips = PROF_MORE_(chips, 2, parts.length ? parts.map(p => profQualV_(p.subject)) : profList_(t.quals));
-  return chips.length
-    ? `<div class="qtags prof-tags prof-teach prof-quals">${chips.join('')}</div>` : '';
+  return profTagRow_('prof-quals', chips);
 }
 
 /* ---------- JOBS, CURRENT AND PAST (8 Nov): one pill a job — "Role · Where · 2019–now" — in the jobs colour. */
 const profJobSay_ = j => [j.role, j.where, [j.from, j.to].filter(Boolean).join('–')].map(v => String(v || '').trim()).filter(Boolean).join(' · ');
 function profJobs_(t) {
   const says = (Array.isArray(t.jobs) ? t.jobs : []).map(profJobSay_).filter(Boolean);
-  const chips = PROF_MORE_(says.map(v => qtag_(esc(v), '', '', 'prof-tag')), 1, says);
-  return chips.length ? `<div class="qtags prof-tags prof-teach prof-jobs">${chips.join('')}</div>` : '';
+  return profTagRow_('prof-jobs', PROF_MORE_(says.map(text => ({ pill: true, text })), 1, says));
 }
 
 /* ---------- "1 to 4 students", NOT `minStudents` AND `maxStudents` § */
@@ -173,21 +140,20 @@ function profFacts_(t) {
 
 /* ---------- WHERE THEY TUTOR: every place by name, as tags. */
 function profPlaces_(names) {
-  return names && names.length ? `<div class="qtags prof-tags prof-teach prof-places">${PROF_MORE_(names.map(n => `<span class="prof-tag">${esc(n)}</span>`), 3, names).join('')}</div>` : '';
+  return profTagRow_('prof-places', PROF_MORE_((names || []).map(text => ({ pill: true, text })), 3, names));
 }
 
 /* ---------- WHEN THEY TEACH, AS THE RECEIPT'S WEEK § */
 function profAvail_(t) {
-  if (!t || typeof weekGrid_ !== 'function' || typeof availSet_ !== 'function') return '';
+  if (!t || typeof weekGrid_ !== 'function' || typeof availSet_ !== 'function') return null;
   /* ---------- NO `avail` KEY AT ALL IS NOT A TUTOR § */
-  if (t.avail === undefined) return '';
+  if (t.avail === undefined) return null;
   const on = availSet_(t.avail);
   const ticked = Object.keys(on);
   /* ---------- NO HOURS IS SAID, NOT LEFT BLANK § */
   if (!ticked.length) {
-    return `<p class="prof-say prof-nohours">Hasn\u2019t set usual hours yet \u2014 ask for any hour;
-        they accept or decline.${typeof isAdmin === 'function' && isAdmin()
-          ? ' They tick them in Settings, under their week.' : ''}</p>`;
+    return { type: 'text', look: 'prof-say prof-nohours', text: 'Hasn\u2019t set usual hours yet \u2014 ask for any hour; they accept or decline.'
+      + (typeof isAdmin === 'function' && isAdmin() ? ' They tick them in Settings, under their week.' : '') };
   }
   /* `busy` IS `{ m16: 'Ada' }` OFF `busyHours`, but the fixture once said `[]` and an older backend may say nothing; a list of § */
   const busy = {};
@@ -206,9 +172,8 @@ function profAvail_(t) {
   }).filter(d => d.hours.some(c => c.lit || c.busy));
   /* ---------- TICKED, BUT NOT AT AN HOUR THAT CAN BE BOOKED § */
   if (!days.length) {
-    return `<p class="prof-say prof-hid prof-nofree">No free hours this week.${typeof isAdmin === 'function' && isAdmin()
-          ? ' Every hour they have ticked is outside ' + hours_(hours[0], hours[hours.length - 1])
-            + ', the hours a session can be booked at.' : ''}</p>`;
+    return { type: 'text', look: 'prof-say prof-hid prof-nofree', text: 'No free hours this week.' + (typeof isAdmin === 'function' && isAdmin()
+      ? ' Every hour they have ticked is outside ' + hours_(hours[0], hours[hours.length - 1]) + ', the hours a session can be booked at.' : '') };
   }
   /* ---------- SPANS, NOT THE RECEIPT'S DISABLED BUTTONS § */
   const hoursOn = which => days.map(d => {
@@ -222,15 +187,11 @@ function profAvail_(t) {
   const line = which => days.map(d => {
     const hs = d.hours.filter(which).map(c => c.h), spans = [];
     hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
-    /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; the aria-label above says every hour. */
-    const say = !spans.length ? '' : profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '');
-    return spans.length ? qtag_(`${esc(day_(d.label))} ${esc(say)}`, '', 'prof-day', 'prof-tag') : '';
-  }).filter(Boolean).join('<span class="prof-sep"> </span>');
-  const free = line(c => c.lit), busyLine = line(c => c.busy);
-  return `<div class="prof-week prof-hours" data-avail="${ticked.length}"
-      aria-label="${esc((said ? 'Available ' + said : 'No free hours this week')
-        + (taught ? '. Already teaching ' + taught : ''))}">${free ? `<p class="prof-hour-line">${free}</p>` : ''}${busyLine
-        ? `<p class="prof-key prof-busy">Already teaching ${busyLine}</p>` : ''}</div>`;
+    /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; `say` reads every hour. */
+    return spans.length ? day_(d.label) + ' ' + profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '') : '';
+  }).filter(Boolean);
+  return { type: 'hours', count: ticked.length, free: line(c => c.lit), busy: line(c => c.busy),
+    say: (said ? 'Available ' + said : 'No free hours this week') + (taught ? '. Already teaching ' + taught : '') };
 }
 /* AN HOUR SPAN, 24-hour (owner, 8 Nov): 16:00–19:00. */
 const profSpan_ = ([a, b]) => hours_(a, b);
@@ -250,3 +211,34 @@ function rateRange_(t) {
   const max = Math.round(Number(t.maxStudents)) || 1, seat = profSeat_(t);
   return max > 1 && seat > 0 ? say(r) + '–' + perHour_(r + seat * (max - 1)).slice(1) : perHour_(r);
 }
+
+/* ---------- THE TUTOR CARD AS A SPEC (master template): face, the name line's pills, subjects and facts, then its lines. */
+function profFace_(x) {
+  const t = kcRow_(x), k = typeof picKind_ === 'function' ? picKind_(t.image) : (t.image ? 'photo' : '');
+  if (k === 'photo') return { src: pic(t.image), alt: '' };
+  const svg = k === 'basic' && typeof pfpArt_ === 'function' ? pfpArt_(pfpChoice_(t.image), 96) : '';
+  return { svg: svg || (typeof kcPicOr_ === 'function' ? kcPicOr_(x, '') : '') };
+}
+cardKind_('tutor', x => {
+  const t = kcRow_(x), pill = (text, colour, look) => ({ pill: true, text, colour, look });
+  const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v)), facts = profFacts_(t);
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  const note = t.listed === false && admin ? (t.pending ? 'They ticked Tutor in their settings. Until you list them they are not on the site, cannot be booked and cannot take a session — the crossed-out eye below approves them.'
+    : 'Clients cannot see them. The crossed-out eye below puts them back on the site.') : '';
+  const words = profList_(t.tags).slice(0, 3);
+  return {
+    name: t.title || x.name || '', look: 'is-widget is-prof tcard', off: t.listed === false, picture: profFace_(x),
+    tagLook: 'prof-tags prof-who-tags',
+    tags: [pill(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')].concat([t.role || 'Tutor'].concat(profList_(t.titles)).map(v => pill(v, 1)),
+      t.rate && !childView_() ? [pill(rateRange_(t), 4, 'prof-tag-rate')] : [], t.activity ? [pill(t.activity, 3, 'prof-act')] : [],
+      t.listed === false ? [pill(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off')] : []),
+    tagRows: [main.length ? { look: 'prof-tags prof-teach', tags: PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 3) } : null,
+      also.length ? { look: 'prof-tags prof-teach', tags: PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 2) } : null,
+      profTagRow_('prof-facts', facts.map(text => ({ pill: true, text })))].filter(Boolean),
+    body: [note ? { type: 'text', look: 'prof-say prof-hid', text: note } : null,
+      t.description ? { type: 'text', look: 'prof-say cut2', act: 'cut-open', text: t.description } : null,
+      Array.isArray(t.photos) && t.photos.length ? { type: 'photos', srcs: t.photos.map(u => pic(u)), more: 4 } : null,
+      words.length ? { type: 'text', look: 'prof-words', text: words.map((v, i) => (i ? [{ i: '·' }, { b: v }] : [{ b: v }])) } : null,
+      profQuals_(t), profJobs_(t), profPlaces_(profList_(t.venues)), profAvail_(t)].filter(Boolean),
+  };
+});

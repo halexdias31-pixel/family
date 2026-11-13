@@ -75,7 +75,8 @@ on('kc-more', el => { const c = el.closest('.kc-row, .tile-row'), m = c && c.que
 /* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
 function findCard(x, credits) {
   /* A PANEL (card_) KEEPS ITS OWN INSIDES: a DM thread is kind `msg`, and Find's message door (KC_AROUND) drew it empty. */
-  if (x && x.kind && CARD_KINDS[x.kind] && !x.kcPanel) return cardOfKind_(x);
+  /* A ONE-OFF CARD ITS OWN FORM DRAWS WHOLE (`ownCard`: Add a person) skips its kind's spec. */
+  if (x && x.kind && CARD_KINDS[x.kind] && !x.kcPanel && !x.ownCard) return cardOfKind_(x);
   const around = x && !x.kcIn && !x.kcPanel && (window.KC_AROUND || {})[x.kind];
   if (around) return around(x, extra => findCard(Object.assign({}, x, extra || {}, { kcIn: true })));
   /* A KIND WHOSE OWN FILE STILL WRITES ITS CARD (`window.KC_OWN[kind] = (x, credits) => html`) is cut into the parts; one already in the shape is kept whole. */

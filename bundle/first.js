@@ -486,6 +486,11 @@ function cardRuns_(v) {
   if (v == null) return '';
   if (Array.isArray(v)) return v.map(cardRuns_).join('');
   if (typeof v !== 'object') return esc(String(v));
+  /* A SUBJECT'S LEVELS RAISED after it (a tutor's pill), each level held whole so a long list breaks between levels. */
+  if (Array.isArray(v.levels)) return `<sup class="prof-lv">&nbsp;${v.levels.map(l => `<span>${cardRuns_({ marked: l })}</span>`).join(', ')}</sup>`;
+  /* A QUALIFICATION WRITTEN LIKE AN ISOTOPE: the level raised and the grade lowered, held to the subject's last word. */
+  if (v.iso != null) { const said = cardRuns_({ marked: v.iso }), cut = cardLastGap_(said), sup = cardRuns_(v.sup), sub = cardRuns_(v.sub);
+    return `${cut > 0 ? said.slice(0, cut) + ' ' : ''}<span class="prof-q-end">${said.slice(cut + 1)}<span class="prof-iso">${sup ? `<sup>${sup}</sup>` : ''}${sub ? `<sub>${sub}</sub>` : ''}</span></span>`; }
   if (v.b != null) return `<b>${cardRuns_(v.b)}</b>`;
   if (v.i != null) return `<i>${cardRuns_(v.i)}</i>`;
   if (v.sup != null) return `<sup>${cardRuns_(v.sup)}</sup>`;
@@ -498,6 +503,15 @@ function cardRuns_(v) {
   if (v.word && /^(subject|venue|level)$/.test(v.word)) return `<span class="${v.word}">${cardRuns_(v.text)}</span>`;
   if (v.tone) return `<span class="${esc('is-' + v.tone)}">${cardRuns_(v.text)}</span>`;
   return cardRuns_(v.text);
+}
+/* THE LAST SPACE IN SOME HTML THAT IS NEITHER INSIDE A TAG NOR INSIDE A COLOURED SPAN, or -1 (an isotope's subject breaks there). */
+function cardLastGap_(html) {
+  let depth = 0, at = -1;
+  for (let i = 0; i < html.length; i++) {
+    if (html[i] === '<') { const end = html.indexOf('>', i); if (end < 0) break; depth += html[i + 1] === '/' ? -1 : html[end - 1] === '/' ? 0 : 1; i = end; }
+    else if (html[i] === ' ' && depth <= 0) at = i;
+  }
+  return at;
 }
 const cardAttrs_ = d => Object.keys(d || {}).map(k => ` data-${esc(k)}="${esc(String(d[k]))}"`).join('');
 /* A PICTURE: a photo (`src`), a clip (`video`), an 8-bit drawing (`pix`: 16 rows of palette letters), or a drawing a picture maker drew (`svg`). */
@@ -527,10 +541,12 @@ function pixSvg_(rows, name, flip, cls) {
 }
 
 /* ONE TAG, ONE SIZE: `colour` is the palette's tag number (data-tag; the name 0, the rest 1 unless said), never a literal. */
+/* A `pill` is a profile's pill (`prof-tag`), coloured by its row unless it names a colour; `say` reads it aloud whole, `title` names what a "+N" hides. */
 function cardTag_(t, i) {
   t = typeof t === 'string' ? { text: t } : (t || {});
-  const n = t.colour != null ? t.colour : i ? 1 : 0;
-  return `<span class="qtag${t.look ? ' ' + esc(t.look) : ''}" data-tag="${esc(n)}"${
+  const n = t.colour != null ? t.colour : t.pill ? null : i ? 1 : 0;
+  return `<span class="${t.pill ? 'prof-tag' : 'qtag'}${t.look ? ' ' + esc(t.look) : ''}"${n != null ? ` data-tag="${esc(n)}"` : ''}${
+    t.say ? ` role="img" aria-label="${esc(t.say)}" title="${esc(t.say)}"` : t.title ? ` title="${esc(t.title)}"` : ''}${
     t.act ? ` data-do="${esc(t.act)}" role="button" tabindex="0"` : ''}${cardAttrs_(t.data)}>${cardRuns_(t.text)}</span>`;
 }
 /* A ROW OF TAGS on its own (a Find line, a list beside a card): the same tag maker. */
@@ -569,7 +585,18 @@ function cardEmbed_(b) {
 }
 /* THE BODY BLOCKS, each with its one renderer. */
 const CARD_BLOCKS = {
-  text: b => [].concat(b.paras || [b.text]).filter(p => p != null && p !== '').map(p => `<p class="kc-line${b.tone ? ' ' + esc('is-' + b.tone) : ''}${b.look ? ' ' + esc(b.look) : ''}">${cardRuns_(p)}</p>`).join(''),
+  text: b => [].concat(b.paras || [b.text]).filter(p => p != null && p !== '').map(p => `<p class="kc-line${b.tone ? ' ' + esc('is-' + b.tone) : ''}${b.look ? ' ' + esc(b.look) : ''}"${
+    b.act ? ` data-do="${esc(b.act)}"` : ''}>${cardRuns_(p)}</p>`).join(''),
+  /* A ROW OF TAGS among the lines (a tutor's quals, jobs, places), its look naming its colour family. */
+  tags: b => ((b.tags || []).length ? `<div class="qtags${b.look ? ' ' + esc(b.look) : ''}">${b.tags.map(cardTag_).join('')}</div>` : ''),
+  /* PHOTOS, small and square, the first `more` shown and "+N" for the rest; one that will not load takes itself away. */
+  photos: b => { const all = (b.srcs || []).filter(Boolean), n = Number(b.more) || all.length;
+    return all.length ? `<div class="prof-photos">${all.slice(0, n).map(u => `<span class="prof-shot"><img src="${esc(u)}" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></span>`).join('')}${
+      all.length > n ? cardTag_({ pill: true, look: 'prof-more', text: '+' + (all.length - n) }) : ''}</div>` : ''; },
+  /* A WEEK'S HOURS: one pill a day free, then the hours already taught; `say` reads every hour aloud. */
+  hours: b => `<div class="prof-week prof-hours" data-avail="${esc(b.count || 0)}" aria-label="${esc(b.say || '')}">${
+    (b.free || []).length ? `<p class="prof-hour-line">${b.free.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}${
+    (b.busy || []).length ? `<p class="prof-key prof-busy">${cardRuns_(b.busyLabel || 'Already teaching')} ${b.busy.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}</div>`,
   figure: b => { const p = cardPic_(b); return p ? `<figure class="kc-fig">${p}${b.caption ? `<figcaption>${cardRuns_(b.caption)}</figcaption>` : ''}</figure>` : ''; },
   table: b => `<table class="kc-table">${(b.head || []).length ? `<thead><tr>${b.head.map(h => `<th>${cardRuns_(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${
     (b.rows || []).map(r => `<tr>${r.map(c => `<td>${cardRuns_(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`,
@@ -605,7 +632,7 @@ function renderCard(spec) {
   const cls = 'card fc kc kc-' + kind + (spec.look ? ' ' + spec.look : '') + (spec.off ? ' is-off' : '');
   return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
     + `<div class="kc-pic">${cardPic_(spec.picture)}</div><div class="kc-head"></div>`
-    + `<div class="kc-tags">${renderTags(tags)}</div>`
+    + `<div class="kc-tags">${renderTags(tags, spec.tagLook)}${(spec.tagRows || []).map(CARD_BLOCKS.tags).join('')}</div>`
     + `<div class="kc-lines">${body || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>`
     + `<div class="kc-act">${row}</div></div>`;
 }
@@ -8059,20 +8086,8 @@ function meCard(given) {
     return findCard({ kind: 'tutor', row: mine });
   }
 
-  return card_(`<div class="is-widget">
-    <div class="thing">
-      ${/* THROUGH `personFace_` LIKE EVERY FACE. § */
-            ''}
-      ${personFace_({ pic: face, avatar: USER.avatar || '', handle: USER.handle, name: USER.name, personId: USER.personId },
-                    { cls: 'thing-pic', none: 'none', size: 52 })}
-      <div class="thing-body">
-        <h3>${esc(nameBesideHandle_(USER.name, USER.handle))}</h3>
-        ${USER.handle ? `<p class="prof-handle">@${esc(USER.handle)}</p>` : ''}
-      </div>
-    </div>
-    ${/* THE `Sign out` BUTTON WAS HERE, briefly. § */
-          ''}
-  </div>`);
+  return renderCard({ kind: 'me', look: 'is-widget', name: USER.name, picture: profFace_({ kind: 'me', key: USER.personId, row: { image: face, personId: USER.personId } }),
+    tags: [{ text: nameBesideHandle_(USER.name, USER.handle), colour: 0 }], body: USER.handle ? [{ type: 'text', look: 'prof-handle', text: '@' + USER.handle }] : [] });
 }
 
 /* ---------- A FIELD THAT MIGHT BE A LIST, AND MIGHT BE A STRING, AND MIGHT BE NEITHER § */
@@ -8095,9 +8110,8 @@ function teachGroups_(list) {
   });
   return out;
 }
-/* ONE CHIP. The levels are a `<sup>`, and each level is its own no-wrap span, so at 320px a long list breaks BETWEEN levels § */
-const teachChip_ = (g, main) => qtag_(`${mark(g.subject)}${
-  g.levels.length ? `<sup class="prof-lv">&nbsp;${g.levels.map(l => `<span>${mark(l)}</span>`).join(', ')}</sup>` : ''}`, '', main ? 'is-main' : '', 'prof-tag');
+/* ONE CHIP (a tag spec): the subject, its levels raised and each held whole so a long list breaks between levels. */
+const teachChip_ = (g, main) => ({ pill: true, look: main ? 'is-main' : '', text: [{ marked: g.subject }, g.levels.length ? { levels: g.levels } : ''] });
 
 /* ---------- A QUALIFICATION, WRITTEN LIKE AN ISOTOPE § */
 const profQualV_ = v => String(v == null ? '' : v).trim();
@@ -8109,33 +8123,15 @@ function profQualSay_(p) {
 }
 function profQualChip_(p) {
   const v = k => profQualV_(p[k]);
-  const subject = v('subject'), level = norm(v('level')) === norm(subject) ? '' : v('level'), grade = v('grade');
-  const say = esc(profQualSay_(p));
-  const low = grade ? mark(grade) : profQualNow_(p) ? '<i>studying</i>' : '';
-  if (p.kind === 'cert' || !(level || low)) {
-    return qtag_(mark([subject, level, grade].filter(Boolean).join(' ')), ` role="img" aria-label="${say}" title="${say}"`, '', 'prof-tag');
-  }
-  /* THE LAST WORD OF THE SUBJECT IS HELD TO ITS NOTATION, so at 320px a long subject breaks between its own words and never § */
-  const said = mark(subject), cut = profLastGap_(said);
-  return qtag_(`${cut > 0 ? said.slice(0, cut) + ' ' : ''}<span class="prof-q-end">${said.slice(cut + 1)}<span class="prof-iso">${
-    level ? `<sup>${mark(level)}</sup>` : ''}${low ? `<sub>${low}</sub>` : ''}</span></span>`, ` role="img" aria-label="${say}" title="${say}"`, 'prof-q', 'prof-tag');
-}
-/* THE LAST SPACE IN `mark`'s HTML THAT IS NEITHER INSIDE A TAG NOR INSIDE A COLOURED SPAN, or -1. § */
-function profLastGap_(html) {
-  let depth = 0, at = -1;
-  for (let i = 0; i < html.length; i++) {
-    if (html[i] === '<') {
-      const end = html.indexOf('>', i);
-      if (end < 0) break;
-      depth += html[i + 1] === '/' ? -1 : html[end - 1] === '/' ? 0 : 1;
-      i = end;
-    } else if (html[i] === ' ' && depth <= 0) at = i;
-  }
-  return at;
+  const subject = v('subject'), level = norm(v('level')) === norm(subject) ? '' : v('level'), grade = v('grade'), say = profQualSay_(p);
+  const low = grade ? { marked: grade } : profQualNow_(p) ? { i: 'studying' } : null;
+  if (p.kind === 'cert' || !(level || low)) return { pill: true, say, text: { marked: [subject, level, grade].filter(Boolean).join(' ') } };
+  return { pill: true, look: 'prof-q', say, text: { iso: subject, sup: level ? { marked: level } : null, sub: low } };
 }
 /* A LONG LIST SHORTENED TO "+N" (8 Nov): the whole tutor card fits one phone screen; the rest are named in the pill's title. */
 const PROF_MORE_ = (chips, n, names) => chips.length > n
-  ? chips.slice(0, n).concat(qtag_(`+${chips.length - n}`, ` title="${esc((names || []).slice(n).join(', '))}"`, 'prof-more', 'prof-tag')) : chips;
+  ? chips.slice(0, n).concat({ pill: true, look: 'prof-more', text: `+${chips.length - n}`, title: (names || []).slice(n).join(', ') }) : chips;
+const profTagRow_ = (look, tags) => (tags.length ? { type: 'tags', look: 'prof-tags prof-teach ' + look, tags } : null);
 function profQuals_(t) {
   const parts = Array.isArray(t.qualsParts) ? t.qualsParts.filter(p => p && profQualV_(p.subject)) : [];
   let chips;
@@ -8148,19 +8144,17 @@ function profQuals_(t) {
     });
     chips = [].concat(...groups).map(profQualChip_);
   } else {
-    chips = profList_(t.quals).map(v => qtag_(esc(v), '', '', 'prof-tag'));
+    chips = profList_(t.quals).map(text => ({ pill: true, text }));
   }
   chips = PROF_MORE_(chips, 2, parts.length ? parts.map(p => profQualV_(p.subject)) : profList_(t.quals));
-  return chips.length
-    ? `<div class="qtags prof-tags prof-teach prof-quals">${chips.join('')}</div>` : '';
+  return profTagRow_('prof-quals', chips);
 }
 
 /* ---------- JOBS, CURRENT AND PAST (8 Nov): one pill a job — "Role · Where · 2019–now" — in the jobs colour. */
 const profJobSay_ = j => [j.role, j.where, [j.from, j.to].filter(Boolean).join('–')].map(v => String(v || '').trim()).filter(Boolean).join(' · ');
 function profJobs_(t) {
   const says = (Array.isArray(t.jobs) ? t.jobs : []).map(profJobSay_).filter(Boolean);
-  const chips = PROF_MORE_(says.map(v => qtag_(esc(v), '', '', 'prof-tag')), 1, says);
-  return chips.length ? `<div class="qtags prof-tags prof-teach prof-jobs">${chips.join('')}</div>` : '';
+  return profTagRow_('prof-jobs', PROF_MORE_(says.map(text => ({ pill: true, text })), 1, says));
 }
 
 /* ---------- "1 to 4 students", NOT `minStudents` AND `maxStudents` § */
@@ -8203,21 +8197,20 @@ function profFacts_(t) {
 
 /* ---------- WHERE THEY TUTOR: every place by name, as tags. */
 function profPlaces_(names) {
-  return names && names.length ? `<div class="qtags prof-tags prof-teach prof-places">${PROF_MORE_(names.map(n => `<span class="prof-tag">${esc(n)}</span>`), 3, names).join('')}</div>` : '';
+  return profTagRow_('prof-places', PROF_MORE_((names || []).map(text => ({ pill: true, text })), 3, names));
 }
 
 /* ---------- WHEN THEY TEACH, AS THE RECEIPT'S WEEK § */
 function profAvail_(t) {
-  if (!t || typeof weekGrid_ !== 'function' || typeof availSet_ !== 'function') return '';
+  if (!t || typeof weekGrid_ !== 'function' || typeof availSet_ !== 'function') return null;
   /* ---------- NO `avail` KEY AT ALL IS NOT A TUTOR § */
-  if (t.avail === undefined) return '';
+  if (t.avail === undefined) return null;
   const on = availSet_(t.avail);
   const ticked = Object.keys(on);
   /* ---------- NO HOURS IS SAID, NOT LEFT BLANK § */
   if (!ticked.length) {
-    return `<p class="prof-say prof-nohours">Hasn\u2019t set usual hours yet \u2014 ask for any hour;
-        they accept or decline.${typeof isAdmin === 'function' && isAdmin()
-          ? ' They tick them in Settings, under their week.' : ''}</p>`;
+    return { type: 'text', look: 'prof-say prof-nohours', text: 'Hasn\u2019t set usual hours yet \u2014 ask for any hour; they accept or decline.'
+      + (typeof isAdmin === 'function' && isAdmin() ? ' They tick them in Settings, under their week.' : '') };
   }
   /* `busy` IS `{ m16: 'Ada' }` OFF `busyHours`, but the fixture once said `[]` and an older backend may say nothing; a list of § */
   const busy = {};
@@ -8236,9 +8229,8 @@ function profAvail_(t) {
   }).filter(d => d.hours.some(c => c.lit || c.busy));
   /* ---------- TICKED, BUT NOT AT AN HOUR THAT CAN BE BOOKED § */
   if (!days.length) {
-    return `<p class="prof-say prof-hid prof-nofree">No free hours this week.${typeof isAdmin === 'function' && isAdmin()
-          ? ' Every hour they have ticked is outside ' + hours_(hours[0], hours[hours.length - 1])
-            + ', the hours a session can be booked at.' : ''}</p>`;
+    return { type: 'text', look: 'prof-say prof-hid prof-nofree', text: 'No free hours this week.' + (typeof isAdmin === 'function' && isAdmin()
+      ? ' Every hour they have ticked is outside ' + hours_(hours[0], hours[hours.length - 1]) + ', the hours a session can be booked at.' : '') };
   }
   /* ---------- SPANS, NOT THE RECEIPT'S DISABLED BUTTONS § */
   const hoursOn = which => days.map(d => {
@@ -8252,15 +8244,11 @@ function profAvail_(t) {
   const line = which => days.map(d => {
     const hs = d.hours.filter(which).map(c => c.h), spans = [];
     hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
-    /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; the aria-label above says every hour. */
-    const say = !spans.length ? '' : profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '');
-    return spans.length ? qtag_(`${esc(day_(d.label))} ${esc(say)}`, '', 'prof-day', 'prof-tag') : '';
-  }).filter(Boolean).join('<span class="prof-sep"> </span>');
-  const free = line(c => c.lit), busyLine = line(c => c.busy);
-  return `<div class="prof-week prof-hours" data-avail="${ticked.length}"
-      aria-label="${esc((said ? 'Available ' + said : 'No free hours this week')
-        + (taught ? '. Already teaching ' + taught : ''))}">${free ? `<p class="prof-hour-line">${free}</p>` : ''}${busyLine
-        ? `<p class="prof-key prof-busy">Already teaching ${busyLine}</p>` : ''}</div>`;
+    /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; `say` reads every hour. */
+    return spans.length ? day_(d.label) + ' ' + profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '') : '';
+  }).filter(Boolean);
+  return { type: 'hours', count: ticked.length, free: line(c => c.lit), busy: line(c => c.busy),
+    say: (said ? 'Available ' + said : 'No free hours this week') + (taught ? '. Already teaching ' + taught : '') };
 }
 /* AN HOUR SPAN, 24-hour (owner, 8 Nov): 16:00–19:00. */
 const profSpan_ = ([a, b]) => hours_(a, b);
@@ -8281,6 +8269,37 @@ function rateRange_(t) {
   return max > 1 && seat > 0 ? say(r) + '–' + perHour_(r + seat * (max - 1)).slice(1) : perHour_(r);
 }
 
+/* ---------- THE TUTOR CARD AS A SPEC (master template): face, the name line's pills, subjects and facts, then its lines. */
+function profFace_(x) {
+  const t = kcRow_(x), k = typeof picKind_ === 'function' ? picKind_(t.image) : (t.image ? 'photo' : '');
+  if (k === 'photo') return { src: pic(t.image), alt: '' };
+  const svg = k === 'basic' && typeof pfpArt_ === 'function' ? pfpArt_(pfpChoice_(t.image), 96) : '';
+  return { svg: svg || (typeof kcPicOr_ === 'function' ? kcPicOr_(x, '') : '') };
+}
+cardKind_('tutor', x => {
+  const t = kcRow_(x), pill = (text, colour, look) => ({ pill: true, text, colour, look });
+  const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v)), facts = profFacts_(t);
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  const note = t.listed === false && admin ? (t.pending ? 'They ticked Tutor in their settings. Until you list them they are not on the site, cannot be booked and cannot take a session — the crossed-out eye below approves them.'
+    : 'Clients cannot see them. The crossed-out eye below puts them back on the site.') : '';
+  const words = profList_(t.tags).slice(0, 3);
+  return {
+    name: t.title || x.name || '', look: 'is-widget is-prof tcard', off: t.listed === false, picture: profFace_(x),
+    tagLook: 'prof-tags prof-who-tags',
+    tags: [pill(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')].concat([t.role || 'Tutor'].concat(profList_(t.titles)).map(v => pill(v, 1)),
+      t.rate && !childView_() ? [pill(rateRange_(t), 4, 'prof-tag-rate')] : [], t.activity ? [pill(t.activity, 3, 'prof-act')] : [],
+      t.listed === false ? [pill(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off')] : []),
+    tagRows: [main.length ? { look: 'prof-tags prof-teach', tags: PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 3) } : null,
+      also.length ? { look: 'prof-tags prof-teach', tags: PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 2) } : null,
+      profTagRow_('prof-facts', facts.map(text => ({ pill: true, text })))].filter(Boolean),
+    body: [note ? { type: 'text', look: 'prof-say prof-hid', text: note } : null,
+      t.description ? { type: 'text', look: 'prof-say cut2', act: 'cut-open', text: t.description } : null,
+      Array.isArray(t.photos) && t.photos.length ? { type: 'photos', srcs: t.photos.map(u => pic(u)), more: 4 } : null,
+      words.length ? { type: 'text', look: 'prof-words', text: words.map((v, i) => (i ? [{ i: '·' }, { b: v }] : [{ b: v }])) } : null,
+      profQuals_(t), profJobs_(t), profPlaces_(profList_(t.venues)), profAvail_(t)].filter(Boolean),
+  };
+});
+
 ;
 /* ==== js/cards-parts.js ==== */
 
@@ -8297,42 +8316,6 @@ const kcPct_ = m => (typeof m !== 'number' || !isFinite(m) ? '' : m === 1 ? dash
 const KC_FIELDS = {
   kindPic: () => '',
   name: x => `<h3>${esc(x.name || '')}</h3>`,
-  /* THE TUTOR'S COMPACT ONE-SCREEN CARD (547) as fields: face, role, the name line with the rate, then pills and lines. */
-  /* A PHOTO, ELSE A DEFAULT PICTURE (owner, 9 Nov): never an avatar figure on a card. */
-  face: x => { const t = kcRow_(x), k = typeof picKind_ === 'function' ? picKind_(t.image) : (t.image ? 'photo' : '');
-    if (k === 'photo') return `<img class="prof-pic" src="${esc(pic(t.image))}" alt="" loading="lazy" decoding="async">`;
-    return k === 'basic' && typeof pfpArt_ === 'function' ? pfpArt_(pfpChoice_(t.image), 96) : ''; },
-  /* THE NAME IS A TAG (owner, 9 Nov): first name and an initial for everyone; the role and rate are tags beside it. */
-  nameTag: x => { const t = kcRow_(x), tag = (v, n, c) => qtag_(esc(v), ` data-tag="${n}"`, c, 'prof-tag');
-    return `<div class="qtags prof-tags prof-who-tags">${tag(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')}${
-      [t.role || 'Tutor'].concat(profList_(t.titles)).map(v => tag(v, 1)).join('')}${
-      t.rate && !childView_() ? tag(rateRange_(t), 4, 'prof-tag-rate') : ''}${t.activity ? tag(t.activity, 3, 'prof-act') : ''}${
-      t.listed === false ? tag(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off') : ''}</div>`; },
-  /* A TICKED TUTOR BOX IS A QUESTION TO THE ADMIN, answered by the eye tile; the line says what pressing it means. */
-  listedNote: x => { const t = kcRow_(x); if (!(t.listed === false && isAdmin())) return '';
-    return t.pending ? `<p class="prof-say prof-hid">They ticked Tutor in their settings. Until you list them they are not on the site,
-      cannot be booked and cannot take a session — the crossed-out eye below approves them.</p>`
-      : '<p class="prof-say prof-hid">Clients cannot see them. The crossed-out eye below puts them back on the site.</p>'; },
-  /* SUBJECT PILLS: one chip a subject, its levels raised (`teachGroups_`). */
-  teaches: x => { const t = kcRow_(x), main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
-    return (main.length ? `<div class="qtags prof-tags prof-teach">${
-      PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 3).join('')}</div>` : '')
-      + (also.length ? `<div class="qtags prof-tags prof-teach">${
-      PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 2).join('')}</div>` : ''); },
-  facts: x => { const f = profFacts_(kcRow_(x));
-    return f.length ? `<div class="qtags prof-tags prof-teach prof-facts">${f.map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''; },
-  /* WHAT THEY WROTE: `doget.gs` already quotes it, so it is printed as said. */
-  say: x => (kcRow_(x).description ? `<p class="prof-say cut2" data-do="cut-open">${esc(kcRow_(x).description)}</p>` : ''),
-  photos: x => { const p = kcRow_(x).photos; return Array.isArray(p) && p.length ? `<div class="prof-photos">${PROF_MORE_(p.map(u =>
-    `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></span>`), 4).join('')}</div>` : ''; },
-  words: x => { const w = profList_(kcRow_(x).tags).slice(0, 3);
-    return w.length ? `<p class="prof-words">${w.map(v => `<b>${esc(v)}</b>`).join('<i aria-hidden="true">·</i>')}</p>` : ''; },
-  quals: x => profQuals_(kcRow_(x)),
-  jobs: x => profJobs_(kcRow_(x)),
-  /* THE MAP: the venues tab's `tutors_happy_here`; an older backend sends no key and nothing is drawn. */
-  places: x => profPlaces_(profList_(kcRow_(x).venues)),
-  /* DAY PILLS. */
-  avail: x => profAvail_(kcRow_(x)),
   /* A KIND WHOSE OWN FILE WRITES ITS INSIDES (`KC_OWN`) hands them over cut into the four parts (`kcSplit_`); no tag line of its own gets its facets. */
   ownPic: x => (x.kcOwn || {}).pic || '',
   ownHead: x => (x.kcOwn || {}).head || '',
@@ -8343,7 +8326,7 @@ const KC_FIELDS = {
 const kcField_ = k => KC_FIELDS[k] || (window.KC_FIELDS_MORE || {})[k];
 /* THE FILE'S ROWS BEFORE IT ARRIVES (or if it never does): the same rows, held equal to the file by check-card-shape. */
 const KC_DEFAULT = {
-  tutor: { cls: 'is-widget is-prof tcard', pic: ['face'], title: [], tags: ['nameTag', 'teaches', 'facts'], lines: ['listedNote', 'say', 'photos', 'words', 'quals', 'jobs', 'places', 'avail'], tiles: ['book-with:book:Book', 'msg-open:chat:Message'] },
+  tutor: { cls: 'is-widget is-prof tcard', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book', 'msg-open:chat:Message'] },
   venue: { cls: 'venue-door', pic: [], title: [], tags: [], lines: [], tiles: [] },
   level: { cls: 'is-level', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },
   subject: { cls: 'is-subject', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },
@@ -8376,7 +8359,7 @@ const KC_DEFAULT = {
   mech: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   chem: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   soon: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
-  person: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  person: { cls: 'is-prof prof-door', pic: [], title: [], tags: [], lines: [], tiles: [] },
   setting: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   health: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   offPosts: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
@@ -8634,7 +8617,8 @@ on('kc-more', el => { const c = el.closest('.kc-row, .tile-row'), m = c && c.que
 /* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
 function findCard(x, credits) {
   /* A PANEL (card_) KEEPS ITS OWN INSIDES: a DM thread is kind `msg`, and Find's message door (KC_AROUND) drew it empty. */
-  if (x && x.kind && CARD_KINDS[x.kind] && !x.kcPanel) return cardOfKind_(x);
+  /* A ONE-OFF CARD ITS OWN FORM DRAWS WHOLE (`ownCard`: Add a person) skips its kind's spec. */
+  if (x && x.kind && CARD_KINDS[x.kind] && !x.kcPanel && !x.ownCard) return cardOfKind_(x);
   const around = x && !x.kcIn && !x.kcPanel && (window.KC_AROUND || {})[x.kind];
   if (around) return around(x, extra => findCard(Object.assign({}, x, extra || {}, { kcIn: true })));
   /* A KIND WHOSE OWN FILE STILL WRITES ITS CARD (`window.KC_OWN[kind] = (x, credits) => html`) is cut into the parts; one already in the shape is kept whole. */

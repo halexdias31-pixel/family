@@ -206,7 +206,7 @@ window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   content: x => contentCard_(x), insert: x => insertCard_(x), spec: x => specCard_(x),
   timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
-  hymn: x => hymnsCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x), game: x => widgetCard_(x),
+  hymn: x => hymnsCard_(x), person: x => (x.add && typeof personAddCard_ === 'function' ? personAddCard_() : ''), tool: x => widgetCard_(x), game: x => widgetCard_(x),
   setting: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)), health: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : ''),
 });
 

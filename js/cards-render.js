@@ -7,6 +7,11 @@ function cardRuns_(v) {
   if (v == null) return '';
   if (Array.isArray(v)) return v.map(cardRuns_).join('');
   if (typeof v !== 'object') return esc(String(v));
+  /* A SUBJECT'S LEVELS RAISED after it (a tutor's pill), each level held whole so a long list breaks between levels. */
+  if (Array.isArray(v.levels)) return `<sup class="prof-lv">&nbsp;${v.levels.map(l => `<span>${cardRuns_({ marked: l })}</span>`).join(', ')}</sup>`;
+  /* A QUALIFICATION WRITTEN LIKE AN ISOTOPE: the level raised and the grade lowered, held to the subject's last word. */
+  if (v.iso != null) { const said = cardRuns_({ marked: v.iso }), cut = cardLastGap_(said), sup = cardRuns_(v.sup), sub = cardRuns_(v.sub);
+    return `${cut > 0 ? said.slice(0, cut) + ' ' : ''}<span class="prof-q-end">${said.slice(cut + 1)}<span class="prof-iso">${sup ? `<sup>${sup}</sup>` : ''}${sub ? `<sub>${sub}</sub>` : ''}</span></span>`; }
   if (v.b != null) return `<b>${cardRuns_(v.b)}</b>`;
   if (v.i != null) return `<i>${cardRuns_(v.i)}</i>`;
   if (v.sup != null) return `<sup>${cardRuns_(v.sup)}</sup>`;
@@ -19,6 +24,15 @@ function cardRuns_(v) {
   if (v.word && /^(subject|venue|level)$/.test(v.word)) return `<span class="${v.word}">${cardRuns_(v.text)}</span>`;
   if (v.tone) return `<span class="${esc('is-' + v.tone)}">${cardRuns_(v.text)}</span>`;
   return cardRuns_(v.text);
+}
+/* THE LAST SPACE IN SOME HTML THAT IS NEITHER INSIDE A TAG NOR INSIDE A COLOURED SPAN, or -1 (an isotope's subject breaks there). */
+function cardLastGap_(html) {
+  let depth = 0, at = -1;
+  for (let i = 0; i < html.length; i++) {
+    if (html[i] === '<') { const end = html.indexOf('>', i); if (end < 0) break; depth += html[i + 1] === '/' ? -1 : html[end - 1] === '/' ? 0 : 1; i = end; }
+    else if (html[i] === ' ' && depth <= 0) at = i;
+  }
+  return at;
 }
 const cardAttrs_ = d => Object.keys(d || {}).map(k => ` data-${esc(k)}="${esc(String(d[k]))}"`).join('');
 /* A PICTURE: a photo (`src`), a clip (`video`), an 8-bit drawing (`pix`: 16 rows of palette letters), or a drawing a picture maker drew (`svg`). */
@@ -48,10 +62,12 @@ function pixSvg_(rows, name, flip, cls) {
 }
 
 /* ONE TAG, ONE SIZE: `colour` is the palette's tag number (data-tag; the name 0, the rest 1 unless said), never a literal. */
+/* A `pill` is a profile's pill (`prof-tag`), coloured by its row unless it names a colour; `say` reads it aloud whole, `title` names what a "+N" hides. */
 function cardTag_(t, i) {
   t = typeof t === 'string' ? { text: t } : (t || {});
-  const n = t.colour != null ? t.colour : i ? 1 : 0;
-  return `<span class="qtag${t.look ? ' ' + esc(t.look) : ''}" data-tag="${esc(n)}"${
+  const n = t.colour != null ? t.colour : t.pill ? null : i ? 1 : 0;
+  return `<span class="${t.pill ? 'prof-tag' : 'qtag'}${t.look ? ' ' + esc(t.look) : ''}"${n != null ? ` data-tag="${esc(n)}"` : ''}${
+    t.say ? ` role="img" aria-label="${esc(t.say)}" title="${esc(t.say)}"` : t.title ? ` title="${esc(t.title)}"` : ''}${
     t.act ? ` data-do="${esc(t.act)}" role="button" tabindex="0"` : ''}${cardAttrs_(t.data)}>${cardRuns_(t.text)}</span>`;
 }
 /* A ROW OF TAGS on its own (a Find line, a list beside a card): the same tag maker. */
@@ -90,7 +106,18 @@ function cardEmbed_(b) {
 }
 /* THE BODY BLOCKS, each with its one renderer. */
 const CARD_BLOCKS = {
-  text: b => [].concat(b.paras || [b.text]).filter(p => p != null && p !== '').map(p => `<p class="kc-line${b.tone ? ' ' + esc('is-' + b.tone) : ''}${b.look ? ' ' + esc(b.look) : ''}">${cardRuns_(p)}</p>`).join(''),
+  text: b => [].concat(b.paras || [b.text]).filter(p => p != null && p !== '').map(p => `<p class="kc-line${b.tone ? ' ' + esc('is-' + b.tone) : ''}${b.look ? ' ' + esc(b.look) : ''}"${
+    b.act ? ` data-do="${esc(b.act)}"` : ''}>${cardRuns_(p)}</p>`).join(''),
+  /* A ROW OF TAGS among the lines (a tutor's quals, jobs, places), its look naming its colour family. */
+  tags: b => ((b.tags || []).length ? `<div class="qtags${b.look ? ' ' + esc(b.look) : ''}">${b.tags.map(cardTag_).join('')}</div>` : ''),
+  /* PHOTOS, small and square, the first `more` shown and "+N" for the rest; one that will not load takes itself away. */
+  photos: b => { const all = (b.srcs || []).filter(Boolean), n = Number(b.more) || all.length;
+    return all.length ? `<div class="prof-photos">${all.slice(0, n).map(u => `<span class="prof-shot"><img src="${esc(u)}" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></span>`).join('')}${
+      all.length > n ? cardTag_({ pill: true, look: 'prof-more', text: '+' + (all.length - n) }) : ''}</div>` : ''; },
+  /* A WEEK'S HOURS: one pill a day free, then the hours already taught; `say` reads every hour aloud. */
+  hours: b => `<div class="prof-week prof-hours" data-avail="${esc(b.count || 0)}" aria-label="${esc(b.say || '')}">${
+    (b.free || []).length ? `<p class="prof-hour-line">${b.free.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}${
+    (b.busy || []).length ? `<p class="prof-key prof-busy">${cardRuns_(b.busyLabel || 'Already teaching')} ${b.busy.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}</div>`,
   figure: b => { const p = cardPic_(b); return p ? `<figure class="kc-fig">${p}${b.caption ? `<figcaption>${cardRuns_(b.caption)}</figcaption>` : ''}</figure>` : ''; },
   table: b => `<table class="kc-table">${(b.head || []).length ? `<thead><tr>${b.head.map(h => `<th>${cardRuns_(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${
     (b.rows || []).map(r => `<tr>${r.map(c => `<td>${cardRuns_(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`,
@@ -126,7 +153,7 @@ function renderCard(spec) {
   const cls = 'card fc kc kc-' + kind + (spec.look ? ' ' + spec.look : '') + (spec.off ? ' is-off' : '');
   return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
     + `<div class="kc-pic">${cardPic_(spec.picture)}</div><div class="kc-head"></div>`
-    + `<div class="kc-tags">${renderTags(tags)}</div>`
+    + `<div class="kc-tags">${renderTags(tags, spec.tagLook)}${(spec.tagRows || []).map(CARD_BLOCKS.tags).join('')}</div>`
     + `<div class="kc-lines">${body || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>`
     + `<div class="kc-act">${row}</div></div>`;
 }

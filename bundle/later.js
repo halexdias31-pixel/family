@@ -440,7 +440,7 @@ window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   content: x => contentCard_(x), insert: x => insertCard_(x), spec: x => specCard_(x),
   timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
-  hymn: x => hymnsCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x), game: x => widgetCard_(x),
+  hymn: x => hymnsCard_(x), person: x => (x.add && typeof personAddCard_ === 'function' ? personAddCard_() : ''), tool: x => widgetCard_(x), game: x => widgetCard_(x),
   setting: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)), health: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : ''),
 });
 
@@ -9723,19 +9723,18 @@ function profileDoorItems_() {
   ((DATA && DATA.tutors) || []).forEach(t => { if (t) seen[String(t.personId || t.title || t.handle || '')] = 1; });
   if (seeMay_('find:all-people')) ((DATA && DATA.everyone) || []).filter(p => p && p.title).forEach(p => add(p, false));
   /* ADD A PERSON (add-person): one card for an admin, first among the people, drawn by `personAddCard_` (me-people.js). */
-  if (typeof personAddMay_ === 'function' && personAddMay_()) out.unshift({ kind: 'person', add: true, name: 'Add a person', key: 'person:add', sub: '',
+  if (typeof personAddMay_ === 'function' && personAddMay_()) out.unshift({ kind: 'person', add: true, ownCard: true, name: 'Add a person', key: 'person:add', sub: '',
     image: '', row: {}, profileType: ['Student', 'Parent', 'Tutor'], text: 'add a person new account student parent tutor' });
   return out;
 }
-/* PICTURE FIRST: the face fills the top of the card, the name under it; everything else is a tag. */
-function profileDoorCard_(x) {
-  if (x.add) return typeof personAddCard_ === 'function' ? personAddCard_() : '';
-  const t = x.row || {};
-  /* NO FACE, NO LETTER: the card draws its own default picture, so a lone initial would only stand beside the handle. */
-  return `<div class="is-prof prof-door">${!(t.image || t.avatar) ? '' : personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title || t.name, personId: t.personId },
-    { cls: 'prof-big', none: 'prof-none', size: 160 })}<h3>${esc(x.name)}</h3>${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
-    ${tileRow_((typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(t)) : ''), 'person-tiles')}${typeof personEdHtml_ === 'function' ? personEdHtml_(t) : ''}</div>`;
-}
+/* PICTURE FIRST: the face, the name and facets as tags, the handle; an admin's tiles, and the Edit form while it is open. */
+cardKind_('person', x => { const t = kcRow_(x), k = typeof picKind_ === 'function' ? picKind_(t.image) : '';
+  const picture = k === 'photo' ? { src: pic(t.image), alt: '' } : { svg: (k === 'basic' ? pfpArt_(pfpChoice_(t.image), 160) : '') || kcPicOr_(x, '') };
+  const open = typeof PERSON_ED_ !== 'undefined' && PERSON_ED_ && String(PERSON_ED_.id) === String(t.personId);
+  return { look: 'is-prof prof-door kc-facts', picture, tags: [{ text: x.name || '', colour: 0 }].concat(typeof tagList_ === 'function' && x.key ? tagList_(x) : []),
+    body: [t.handle ? { type: 'text', text: '@' + t.handle } : null, open ? { type: 'embed', tool: 'person-edit', args: { row: t } } : null].filter(Boolean),
+    tiles: typeof peopleOpts_ === 'function' ? peopleOpts_(t) : [] }; });
+CARD_EMBEDS['person-edit'] = a => (typeof personEdHtml_ === 'function' ? personEdHtml_(a.row) : '');
 
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */
 /* WHICH COLUMN'S CARDS ANSWER WHICH TYPE, IN THE MENU'S ORDER: setting-for.json's `type:` rows; who opens each is permissions.json's `see` rows. */
