@@ -137,6 +137,7 @@ const SUITE = [
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE § */
   /* ---------- AND WHAT A PERSON MAY CALL THEMSELVES § */
   { file: 'check-handles.js', what: 'who a name resolves to, and what a person may change' },
+  { file: 'check-handle-follows.js', what: 'the handle follows the first name; an old handle still signs in' },
   /* ---------- AND THE CELLS ON THAT SAME TAB THAT HOLD MORE THAN ONE FACT § */
   { file: 'check-people.js', what: 'the packed cells on the people tab, round-tripped' },
   /* THE SETTINGS COLUMN THROUGH THE REAL BACKEND. § */

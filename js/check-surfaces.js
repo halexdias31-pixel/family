@@ -60,7 +60,8 @@ function stripComments(src) {
 
 /* AND IN THE STYLESHEET: only these may be position: fixed, and none of them is a menu. */
 const FIXED_OK = ['.tile-word', /* a long press's one-word label (4c): it names the tile and is gone on release, not a menu */ '#banner', '#toasts', '#reconnect', '#boot-slow', '#kp', '.kp-loupe', '.pad-sizes', '.pad-loupe', '.biz-dot',
-  '.vid-watch.on.is-fs'];
+  '.vid-watch.on.is-fs',
+  /* the floating calculator (owner, 13 Nov): a tool laid on the page and dragged, like the ruler, not a menu */ '.calc-float'];
 
 const files = fs.readdirSync(DIR)
   .filter(f => f.endsWith('.js') && !f.startsWith('check'))
