@@ -718,7 +718,19 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
     if (!ct) bad.push('the calculator-allowed part ' + calcYes.row.row_id + ' has no Calculator tile');
     else {
       A['qt-calc'](ct);
-      const pad = host.querySelector('.qt-row + .calc');
+      const pad = d.querySelector('body > .calc.calc-float.floaty');
+      if (host.querySelector('.qt-row + .calc')) bad.push('the calculator opened inline under the part\'s row, not floating over the page');
+      /* IT FLOATS AND IS CARRIED (owner, 13 Nov): held by its body it moves with the finger; a key pressed does not carry it */
+      const ptr = (el, type, x, y) => { const ev = new w.MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y }); Object.defineProperty(ev, 'pointerId', { value: 7 }); el.dispatchEvent(ev); };
+      if (pad) {
+        const key = pad.querySelector('[data-do="qcalc-key"]');
+        ptr(key, 'pointerdown', 5, 5);
+        if (pad.classList.contains('held')) bad.push('a press on a calculator key started a drag');
+        ptr(key, 'pointerup', 5, 5);
+        const bez = pad.querySelector('.calc-bezel');
+        ptr(bez, 'pointerdown', 10, 10); ptr(bez, 'pointermove', 110, 60); ptr(bez, 'pointerup', 110, 60);
+        if (pad.style.left !== '100px' || pad.style.top !== '50px') bad.push('the floating calculator dragged by its body went to ' + pad.style.left + ',' + pad.style.top + ', not 100px,50px');
+      }
       if (!pad || !pad.querySelector('.calc-bezel .mc-display .mc-stat') || !pad.querySelector('.calc-fn [data-mc="frac"] .mk')) bad.push('the Calculator tile opened no fx-83GT face (bezel, LCD status row, drawn keys)');
       else {
         const press = seq => { seq.forEach(v => { const b = [...pad.querySelectorAll('[data-do="qcalc-key"]')].find(e => e.getAttribute('data-mc') === v); if (b) A['qcalc-key'](b); else bad.push('the calculator has no ' + v + ' key'); }); const o = (pad.querySelector('.mc-out') || d.createElement('i')).cloneNode(true); o.querySelectorAll('.mc-den').forEach(e => { e.textContent = '/' + e.textContent; }); return o.textContent.trim(); };
@@ -729,7 +741,7 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
         });
       }
       A['qt-calc'](ct);
-      if (host.querySelector('.qt-row + .calc')) bad.push('the Calculator tile pressed again left the calculator open');
+      if (d.querySelector('.calc-float')) bad.push('the Calculator tile pressed again left the calculator open');
     }
     host.innerHTML = whole(calcNo);
     if (host.querySelector('[data-do="qt-calc"]')) bad.push('the Non-calculator part ' + calcNo.row.row_id + ' shows a Calculator tile');
