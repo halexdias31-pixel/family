@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-13-keep-warm-1";
+const BOOKING_VERSION = "2026-11-13-handles-warm-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */

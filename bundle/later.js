@@ -12822,6 +12822,35 @@ document.addEventListener('wheel', e => {
 function measRepaint_() { if (MEAS) { const f = measFig_(MEAS.k); if (f) measDraw_(f); } }
 /* A TURNED PHONE OR A RESIZED WINDOW moves the picture: the tool is laid over it again */
 if (typeof addEventListener === 'function') addEventListener('resize', () => { if (MEAS) setTimeout(measRepaint_, 120); });
+/* A FLOATING TOOL (`.floaty`, the calculator) is held the ruler's way: the spot grabbed stays under the finger; it never leaves the window. */
+const FLOAT_GO = new Map();   // pointerId -> { el, dx, dy }: the grabbed spot, from the tool's corner
+function floatPlace_(el, x, y) {
+  const r = el.getBoundingClientRect();
+  el.style.right = 'auto';
+  el.style.left = Math.max(0, Math.min(innerWidth - r.width, x)) + 'px';
+  el.style.top = Math.max(0, Math.min(innerHeight - r.height, y)) + 'px';
+}
+document.addEventListener('pointerdown', e => {
+  const el = e.target && e.target.closest && e.target.closest('.floaty');
+  /* A KEY IS TAPPED, NOT HELD: only the body and the edge carry it */
+  if (!el || e.target.closest('[data-do], button, .mc-display')) return;
+  e.preventDefault();
+  if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+  const r = el.getBoundingClientRect();
+  FLOAT_GO.set(e.pointerId, { el, dx: e.clientX - r.left, dy: e.clientY - r.top });
+  el.classList.add('held');
+}, true);
+document.addEventListener('pointermove', e => {
+  const g = FLOAT_GO.get(e.pointerId);
+  if (!g) return;
+  if (e.cancelable) e.preventDefault();
+  floatPlace_(g.el, e.clientX - g.dx, e.clientY - g.dy);
+}, { capture: true, passive: false });
+['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, e => {
+  const g = FLOAT_GO.get(e.pointerId);
+  if (g) { g.el.classList.remove('held'); FLOAT_GO.delete(e.pointerId); }
+}, true));
+if (typeof addEventListener === 'function') addEventListener('resize', () => { document.querySelectorAll('.floaty').forEach(el => floatPlace_(el, el.offsetLeft, el.offsetTop)); });
 
 ;
 /* ==== js/keypad-keys.js ==== */
@@ -17218,6 +17247,26 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
   calcPress_(box, k);
 });
+/* THE QUESTION TOOL ROW'S CALCULATOR (owner, 11 Nov), this face; since 13 Nov a small one floating over the page, dragged like the ruler. */
+const calcAllowed_ = x => ![].concat((x && x.needs) || []).some(v => /^non-calculator$|^no calculator$/i.test(String(v).trim()));
+/* ONE AT A TIME: the part whose calculator floats, or none */
+const QCALC_OPEN = new Set();
+on('qt-calc', el => {
+  const key = qtKeyOf_(el);
+  if (!key) return;
+  const open = !QCALC_OPEN.has(key);
+  QCALC_OPEN.clear();
+  document.querySelectorAll('.calc-float').forEach(e => e.remove());
+  document.querySelectorAll('.qt-calc[aria-pressed="true"]').forEach(t => { if (t !== el) tileSet_(t, { on: false, pressed: false }); });
+  if (open) {
+    QCALC_OPEN.add(key);
+    document.body.insertAdjacentHTML('beforeend', calcFaceHtml_(key));
+    const box = document.body.lastElementChild;
+    box.classList.add('calc-float', 'floaty');
+    calcPaint_(box);
+  }
+  tileSet_(el, { on: open, pressed: open });
+});
 
 ;
 /* ==== js/qtools.js ==== */
@@ -17343,20 +17392,6 @@ on('qt-inst', el => {
   }
   if (!pad && tool === 'protractor' && card && card.querySelector('figure svg')) return measOpen_(el);
   qtPenOpen_(el, tool);
-});
-/* ---------- THE CALCULATOR (owner, 11 Nov): the old fx-83GT CW face (calc.js, its engine calc-engine.js), centred under the part's row. */
-const calcAllowed_ = x => ![].concat((x && x.needs) || []).some(v => /^non-calculator$|^no calculator$/i.test(String(v).trim()));
-const QCALC_OPEN = new Set();
-const qcalcHtml_ = key => calcFaceHtml_(key);
-on('qt-calc', el => {
-  const key = qtKeyOf_(el), row = el.closest('.qt-row');
-  if (!key || !row) return;
-  const open = !QCALC_OPEN.has(key);
-  if (open) QCALC_OPEN.add(key); else QCALC_OPEN.delete(key);
-  const was = row.nextElementSibling && row.nextElementSibling.matches('.calc') ? row.nextElementSibling : null;
-  if (was) was.remove();
-  if (open) { row.insertAdjacentHTML('afterend', qcalcHtml_(key)); calcPaint_(row.nextElementSibling); }
-  tileSet_(el, { on: open, pressed: open });
 });
 /* ---------- CHECK WITH NO MARK SCHEME: nothing is sent; the verdict line says what is missing, for a missing key too. */
 on('qp-noscheme', el => {
@@ -17552,7 +17587,7 @@ function qtRow_(x, held) {
   /* THE FOUR (owner, 9 Nov): Send/Check, Message, Star, ⋯; the tools, help, share and suggest wait behind ⋯ (`kcFour_`). */
   const four = kcFour_(x, `<span class="qt-tools">${tools}</span>${held || ''}${work}${more}`, qtCheck_(x, m));
   /* NO GREY LINE UNDER IT (owner, 9 Nov): how a part is marked is said when Check is pressed, on its verdict line. */
-  return `<div class="tile-row qt-row kc-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${four}</div>` + (QCALC_OPEN.has(key) ? qcalcHtml_(key) : '');
+  return `<div class="tile-row qt-row kc-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${four}</div>`;
 }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
 const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';

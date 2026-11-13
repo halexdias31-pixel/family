@@ -1121,7 +1121,7 @@ const faceOf = (packed, handle) => {
 };
 {
   const b = fresh();
-  /* FICTIONAL PEOPLE IN OLD SHAPES (372). Tam and Tom share a first stem and a year, Tam joined first; Bo is already on the template, so Bao, earlier, works round him. */
+  /* FICTIONAL PEOPLE IN OLD SHAPES (372). Ann and Bo are already on the template (first two + last two letters + year) and stay put. */
   const CHOSEN = 'hair:bun|headwear:none|faceware:none|shoulders:none|handheld:none|legs:plain|skin:4|hairColour:2|shirt:3';
   const NOW_Y = String(new Date().getFullYear());
   b.seed('people', [
@@ -1131,24 +1131,24 @@ const faceOf = (packed, handle) => {
     person('P-02', 'student', 'Tom', 'Dunn', { handle: 'td2345', joined_on: '04/11/2025', avatar: CHOSEN }),
     person('P-03', 'student', 'Oli', 'Sand', { handle: 'kindoli63', friends: 'tam_kind62, td2345' }),
     person('P-04', 'client', 'Gus', 'Grown', { email: 'gus@example.org', handle: 'GusTyped', joined_on: '19/07/2025' }),
-    person('P-05', 'student', 'Ann', 'Roe', { handle: 'an2024', joined_on: '09/01/2024' }),
+    person('P-05', 'student', 'Ann', 'Roe', { handle: 'annn2024', joined_on: '09/01/2024' }),
     person('P-06', 'student', 'Christopher', 'Lake', { handle: 'christoph_kind42', joined_on: '12/05/2025' }),
     person('P-07', 'student', 'Bao', 'Cole', { handle: 'bea_true12', joined_on: '05/02/2025' }),
-    person('P-08', 'student', 'Bo', 'Cox', { handle: 'bo2025', joined_on: '06/02/2025' }),
+    person('P-08', 'student', 'Bo', 'Cox', { handle: 'bobo2025', joined_on: '06/02/2025' }),
     person('P-09', 'student', 'Kai', 'Penn', { handle: 'kai_kind13' }),
   ]);
   b.seed('family', [{ link_id: 'L1', parent_id: 'P-PAT', child_id: 'P-01', state: 'accepted' }]);
   /* OLI'S JOIN DATE IS BLANK, so his year is his first recorded activity. */
   b.seed('submissions', [{ person_id: 'P-03', key: 'q1', submitted_at: '2024-06-01' }, { person_id: 'P-03', key: 'q2', submitted_at: '2025-03-01' }]);
 
-  /* ---- THE DOORS THAT MAKE A HANDLE: first and last letter and the year now (372) ---- */
+  /* ---- THE DOORS THAT MAKE A HANDLE: first two and last two letters and the year now ---- */
   const pat = signIn(b, 'pat@example.org', PLACE);
   if (!pat.token) no('the parent could not sign in, so the doors that make a handle were NOT checked', pat);
   else {
     /* `makeChild` WAS A DOOR HERE; it makes nothing since 461. */
   }
   const reg = post(b, { action: 'register', who: 'parent', first_name: 'Una', last_name: 'Vale', email: 'una@example.org', pin: ZERO2 });
-  kidRule(reg.success && S(reg.handle) === 'ua' + NOW_Y, 'a person who registered was not given the template (initial and the year joined)', reg);
+  kidRule(reg.success && S(reg.handle) === 'unna' + NOW_Y, 'a person who registered was not given the template (initial and the year joined)', reg);
   kidRule(post(b, { action: 'randomiseHandle', token: pat.token }).error, 'randomiseHandle is still answered — the handle is a template now, not a press');
 
   /* ---- THE MIGRATION, ON THE NEXT ADMIN LOAD ---- */
@@ -1156,24 +1156,24 @@ const faceOf = (packed, handle) => {
   delete b.props['MIGRATED_handles-first-last-year'];
   b.get({ run: 'schemaGaps', name: 'Hal Admin', pin: PLACE });
   kidRule(!!b.props['MIGRATED_handles-first-last-year'], 'the handles-first-last-year job did not run on an admin page load', Object.keys(b.props));
-  const want = { 'P-01': 'tm2025', 'P-02': 'tom2025', 'P-03': 'oi2024', 'P-04': 'gs2025', 'P-05': 'an2024',
-                 'P-06': 'cr2025', 'P-07': 'bao2025', 'P-08': 'bo2025', 'P-09': 'ki' + NOW_Y, 'P-ADM': 'hl2024', 'P-PAT': 'pt2024' };
+  const want = { 'P-01': 'taam2025', 'P-02': 'toom2025', 'P-03': 'olli2024', 'P-04': 'guus2025', 'P-05': 'annn2024',
+                 'P-06': 'cher2025', 'P-07': 'baao2025', 'P-08': 'bobo2025', 'P-09': 'kaai' + NOW_Y, 'P-ADM': 'haal2024', 'P-PAT': 'paat2024' };
   const got = {};
   Object.keys(want).forEach(id => { got[id] = S(byId(b, id).handle); });
   kidRule(JSON.stringify(got) === JSON.stringify(want), 'the move did not give everybody the template, clashes broken by join order', got);
   kidRule(S(byId(b, 'P-02').handle_was).split(',')[0].trim() === 'td2345', 'Tom\'s old handle is not at the front of his handle_was', byId(b, 'P-02').handle_was);
   kidRule(S(byId(b, 'P-05').handle_changed_at) === '' && S(byId(b, 'P-08').handle_changed_at) === '', 'somebody already on the template was moved', [byId(b, 'P-05'), byId(b, 'P-08')]);
   kidRule(S(byId(b, 'P-03').friends) === 'tam_kind62, td2345', 'the move wrote to the friends cell, which is kept and never read (10 Nov)', byId(b, 'P-03').friends);
-  kidRule(faceOf(S(byId(b, 'P-01').avatar), 'tm2025') === tamFace, 'the move changed the face Tam\'s blank look drew', byId(b, 'P-01').avatar);
+  kidRule(faceOf(S(byId(b, 'P-01').avatar), 'taam2025') === tamFace, 'the move changed the face Tam\'s blank look drew', byId(b, 'P-01').avatar);
   kidRule(S(byId(b, 'P-02').avatar) === CHOSEN, 'the move wrote over a look somebody chose', byId(b, 'P-02').avatar);
   kidRule(!Object.keys(want).some(id => /dove|dunn|sand|grown|lake|cole|cox|admin|ashdown|penn/i.test(got[id])), 'a handle carries a surname', got);
 
   /* ---- OLD HANDLES STILL SIGN IN, AND THE NEW ONE DOES ---- */
   const viaOld = signIn(b, 'tam_kind62', PLACE);
-  kidRule(viaOld.success && viaOld.handle === 'tm2025', 'Tam\'s old handle no longer signs him in, or the reply does not say the new one', viaOld);
+  kidRule(viaOld.success && viaOld.handle === 'taam2025', 'Tam\'s old handle no longer signs him in, or the reply does not say the new one', viaOld);
   const long = signIn(b, 'christopher_kind42', PLACE);
-  kidRule(long.success && long.handle === 'cr2025', 'Christopher\'s old handle, with his first name spelled out, no longer signs him in', long);
-  kidRule(signIn(b, 'tom2025', PLACE).success, 'Tom cannot sign in with his new handle');
+  kidRule(long.success && long.handle === 'cher2025', 'Christopher\'s old handle, with his first name spelled out, no longer signs him in', long);
+  kidRule(signIn(b, 'toom2025', PLACE).success, 'Tom cannot sign in with his new handle');
   kidRule(!signIn(b, 'td2345', ZERO).success, 'an old handle signed in with the wrong PIN');
 
   /* ---- A SECOND RUN MOVES NOBODY ---- */
@@ -1181,12 +1181,12 @@ const faceOf = (packed, handle) => {
   kidRule(again.renamed === 0 && again.couldNotGenerate && !again.couldNotGenerate.length, 'a second run moved somebody', again);
 
   /* ---- A BIRTHDAY TYPED LATER CHANGES NOTHING (367: the date of birth no longer matters) ---- */
-  const oli = signIn(b, 'oi2024', PLACE);
+  const oli = signIn(b, 'olli2024', PLACE);
   if (!oli.token) no('Oli could not sign in, so a birthday typed later was NOT checked', oli);
   else {
     const u = post(b, { action: 'updateProfile', token: oli.token, name: oli.name, personId: 'P-03', target: oli.name, targetId: 'P-03',
                         fields: { dob_d: '7', dob_m: '8', dob_y: '2014' } });
-    kidRule(u.success && S(byId(b, 'P-03').handle) === 'oi2024', 'a birthday typed later moved Oli\'s handle', { u, handle: byId(b, 'P-03').handle });
+    kidRule(u.success && S(byId(b, 'P-03').handle) === 'olli2024', 'a birthday typed later moved Oli\'s handle', { u, handle: byId(b, 'P-03').handle });
     kidRule(signIn(b, 'kindoli63', PLACE).success, 'Oli\'s first handle no longer signs him in');
   }
   kidRule(kidRules >= 17, 'only ' + kidRules + ' of the handle rules were asked');

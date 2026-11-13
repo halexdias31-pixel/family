@@ -251,7 +251,8 @@ function postPersonSave_(body, action, began) {
                 email: email, date_of_birth: dobIn(adminDobFields_(body.dob)) };
   let row = r, pin = '';
   if (r) {
-    /* THE HANDLE STAYS — a name corrected is not a new person, and a handle is how they sign in. */
+    /* THE HANDLE FOLLOWS THE FIRST NAME (`handleFollow_`); the old one stays in handle_was and still signs in. */
+    Object.assign(put, handleFollow_(t, r, first));
     const before = personDisplayName(r);
     if (t.headers.indexOf('name_was') !== -1 && key(before) && key(before) !== key(first + ' ' + last)) {
       put.name_was = nameWasWith_(r.name_was, before);

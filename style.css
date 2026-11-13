@@ -4782,7 +4782,13 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .mc-zero { color: var(--ink); }
 .mc-caret { display: inline-block; width: 2px; height: 1.2em; background: var(--gold); margin: 0 -1px;
             vertical-align: middle; animation: caret 1.06s steps(1) infinite; }
-.qt-row + .calc { margin-top: var(--s3); }
+/* THE FLOATING CALCULATOR (owner, 13 Nov): small, over the page, landing top right, carried by its body and edge (`floaty`, find-measure.js); keys stay taps. */
+.calc-float { position: fixed; z-index: 60; right: calc(16px + var(--safe-right)); top: calc(72px + var(--safe-top)); margin: 0; width: min(18.5rem, calc(100vw - 32px)); max-width: none;
+              --calc-row: 32px; --calc-gut: .3rem; padding: var(--s2) var(--s1); cursor: grab; touch-action: none; user-select: none; }
+.calc-float.held { cursor: grabbing; }
+.calc-float .mc-display { height: 5rem; }
+.calc-float .mc-in { height: 1.9rem; line-height: 1.9rem; }
+.calc-float .mc-out, .calc-float .mc-out .mc-note { height: 2.1rem; line-height: 2.1rem; }
 /* HOW THIS PART WILL BE MARKED, one short line under its Check: never a person (markerOf_, qtools.js) */
 /* HOW A PART IS MARKED IS A TAG (owner, 8 Nov: no grey sentences), on its own line under the tool row. */
 .qt-tags { margin: var(--s1) 0 0; }

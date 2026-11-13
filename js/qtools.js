@@ -121,20 +121,6 @@ on('qt-inst', el => {
   if (!pad && tool === 'protractor' && card && card.querySelector('figure svg')) return measOpen_(el);
   qtPenOpen_(el, tool);
 });
-/* ---------- THE CALCULATOR (owner, 11 Nov): the old fx-83GT CW face (calc.js, its engine calc-engine.js), centred under the part's row. */
-const calcAllowed_ = x => ![].concat((x && x.needs) || []).some(v => /^non-calculator$|^no calculator$/i.test(String(v).trim()));
-const QCALC_OPEN = new Set();
-const qcalcHtml_ = key => calcFaceHtml_(key);
-on('qt-calc', el => {
-  const key = qtKeyOf_(el), row = el.closest('.qt-row');
-  if (!key || !row) return;
-  const open = !QCALC_OPEN.has(key);
-  if (open) QCALC_OPEN.add(key); else QCALC_OPEN.delete(key);
-  const was = row.nextElementSibling && row.nextElementSibling.matches('.calc') ? row.nextElementSibling : null;
-  if (was) was.remove();
-  if (open) { row.insertAdjacentHTML('afterend', qcalcHtml_(key)); calcPaint_(row.nextElementSibling); }
-  tileSet_(el, { on: open, pressed: open });
-});
 /* ---------- CHECK WITH NO MARK SCHEME: nothing is sent; the verdict line says what is missing, for a missing key too. */
 on('qp-noscheme', el => {
   const mark = el.closest('.qp-mark'), out = mark && mark.querySelector('.qp-verdict');

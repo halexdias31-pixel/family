@@ -157,6 +157,12 @@ const MIGRATIONS = [
     what: 'every handle becomes the first and last letter of the first name and the year they joined',
     run: () => { const r = renameHandles_(); if (r && r.error) throw new Error(r.error); return r; } },
 
+  /* THE HANDLE FOLLOWS THE FIRST NAME (owner, 13 Nov): first two + last two letters + year; every handle that does not fit moves, the old one still signs in. */
+  { id: 'handles-follow-first-name',
+    retry: true,
+    what: 'every handle that does not fit its first name is made again from it',
+    run: () => { const r = renameHandles_(); if (r && r.error) throw new Error(r.error); return r; } },
+
   /* THE OWNER (20 Oct): "delete any old bullshit we don't need anymore". A whole copy of the file first, then the tabs and columns nothing reads (379). */
   { id: 'tidy-old-tabs',
     retry: true,
