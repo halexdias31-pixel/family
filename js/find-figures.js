@@ -329,7 +329,7 @@ function qStemWhole_(x, p, onScreen, pics) {
   const html = [], fig = h => (Array.isArray(pics) ? pics : html).push(h);
   stemChunks_(p).forEach(ch => {
     let run = [];
-    const flush = () => { if (run.length) html.push(typeset_(run.join(''))); run = []; };
+    const flush = () => { if (run.length) html.push(qTables_(typeset_(run.join('')))); run = []; };
     ch.forEach(b => {
       if (b.k === 'pb') { run.push(b.h); return; }
       flush();
@@ -608,17 +608,17 @@ function chunkHtml_(chunk, circ, x) {
   let pb = '', run = [];
   const flush = () => {
     if (!run.length) return;
-    pb += circ ? run.map(b => circWords_(typeset_(b.h), b.i, circ.on)).join('') : typeset_(run.map(b => b.h).join(''));
+    pb += qTables_(circ ? run.map(b => circWords_(typeset_(b.h), b.i, circ.on)).join('') : typeset_(run.map(b => b.h).join('')));
     run = [];
   };
   rest.forEach(b => { if (b.k === 'pb') run.push(b); else { flush(); pb += figHtml_(x, b); } });
   flush();
   /* A CARRIED STEM'S WORDS (`sb`) ARE TYPESET A RUN AT A TIME in the stem's own wrapper, between its figures */
   let top = '', sbs = [];
-  const sbFlush = () => { if (sbs.length) top += `<div class="qsheet-stem qtext is-over">${typeset_(sbs.join(''))}</div>`; sbs = []; };
+  const sbFlush = () => { if (sbs.length) top += `<div class="qsheet-stem qtext is-over">${qTables_(typeset_(sbs.join('')))}</div>`; sbs = []; };
   head.forEach(b => { if (b.k === 'sb') sbs.push(b.h); else { sbFlush(); top += figHtml_(x, b); } });
   sbFlush();
-  return `${top}${lead ? `<div class="qsheet-lead">${typeset_(lead)}</div>` : ''}
+  return `${top}${lead ? `<div class="qsheet-lead">${qTables_(typeset_(lead))}</div>` : ''}
       <div class="qsheet-part${circ ? ' is-text' : ''}"${circ ? ` data-circ="${esc(circ.k)}"` : ''}>
         <div class="qsheet-pb">${pb}</div>
       </div>${circ && words.length ? `<p class="qpad-note qw-note">Tap a word to ring it, and again to take

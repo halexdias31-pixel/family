@@ -18,6 +18,8 @@ if (marks.missing.length) {
   console.log('check-marking: cannot find ' + marks.missing.join(', ') + ' in find.js — renamed?');
   process.exit(1);
 }
+/* the confusables the page reads into DATA (settings.js), so the typo rule is tested against the real list */
+global.DATA = { confusables: JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'confusables.json'), 'utf8')) };
 eval(marks.source);
 
 /* typed, accept, expected. `null` means "nothing typed", which is not a wrong answer. */
@@ -931,6 +933,81 @@ DRAW.forEach(([kind, fig, spec, strokes, want, why]) => {
 });
 if (drawBad) { console.log('\n%d of %d drawing cases wrong — a drawn answer is being marked wrongly.', drawBad, DRAW.length); process.exit(1); }
 console.log('drawings: %d cases over %d kinds, each a right drawing right and a near miss wrong; %d drawn again by a wobbly hand, backwards; the metric-units dial by hand', DRAW.length, drawKinds.size, handN);
+
+/* ---------- A TYPO FORGIVEN, A DIFFERENT ANSWER NEVER (owner, 13 Nov): typed, accept, opt, right?, why */
+const TYPOS = [
+  ['kinetc', 'kinetic', null, true, 'the owner\'s own example: one letter dropped from a 7-letter word'],
+  ['kinteic', 'kinetic', null, true, 'two letters swapped is one edit'],
+  ['photosynthsis', 'photosynthesis', null, true, '8+ letters: one dropped'],
+  ['fotosynthesis', 'photosynthesis', null, true, '8+ letters: two edits'],
+  ['fotosynthsis', 'photosynthesis', null, false, 'three edits is too many'],
+  ['kintc', 'kinetic', null, false, 'two edits in a 7-letter word is too many'],
+  ['kinetic enrgy', 'kinetic energy', null, true, 'per word in a multi-word answer'],
+  ['kinetc enrgy', 'kinetic energy', null, true, 'one typo in each word'],
+  ['enrgy kinetic', 'kinetic energy', null, false, 'the words in another order are not a typo'],
+  ['ribosome', 'ribosomes | ribosome', null, true, 'an exact way still right'],
+  ['cat', 'car', null, false, '1-3 letters: no typo forgiven'],
+  ['ion', 'iron', null, false, 'confusable: ion is not iron'],
+  ['iron', 'ion', null, false, 'nor iron ion'],
+  ['meiosis', 'mitosis', null, false, 'confusable: a different division'],
+  ['mitosos', 'mitosis', null, true, 'but a true typo of mitosis is right'],
+  ['meiosos', 'mitosis', null, false, 'a near miss of meiosis is meiosis, typed'],
+  ['except', 'accept', null, false, 'confusable'],
+  ['effect', 'affect', null, false, 'confusable'],
+  ['their', 'there', null, false, 'confusable'],
+  ['chlorine', 'chloride', null, false, 'confusable'],
+  ['chlorid', 'chloride', null, false, 'one edit from chloride and one from chlorine: refused'],
+  ['fusion', 'fission', null, false, 'confusable'],
+  ['diffusion', 'osmosis', null, false, 'confusable'],
+  ['alkene', 'alkane', null, false, 'confusable'],
+  ['alkine', 'alkane', null, false, 'one from alkane, one from alkene and alkyne: refused'],
+  ['fastes', 'faster', { others: ['fasten'] }, false, 'near another option of the question: refused'],
+  ['planit', 'planet', { others: ['plant', 'plane'] }, false, 'near a word-bank word: refused'],
+  ['planat', 'planet', { others: ['moon', 'star'] }, true, 'the options are far away: forgiven'],
+  /* NUMBERS, UNITS, SYMBOLS, FORMULAS, ALGEBRA, LETTERS: never forgiven */
+  ['1235', '1234', null, false, 'a number is never a typo'],
+  ['12.5 cm', '12.5 mm', null, false, 'nor a unit'],
+  ['36 kg', '35 kg', null, false, 'nor a number with its unit'],
+  ['NaBr', 'NaCl', null, false, 'nor a formula'],
+  ['co3', 'CO2', null, false, 'nor a formula with a digit'],
+  ['2x+4', '2x+3', null, false, 'nor algebra'],
+  ['xyz', 'xyw', null, false, 'nor short letters'],
+  ['b', 'a', null, false, 'nor a single letter'],
+  ['>', '<', null, false, 'nor a symbol'],
+  /* STRICT SPELLING STAYS STRICT */
+  ['recieve', 'receive', { strict: true }, false, 'a strict_spelling question'],
+  ['receive', 'receive', { strict: true }, true, 'its right spelling still right'],
+];
+let typoBad = 0;
+TYPOS.forEach(([typed, accept, opt, want, why]) => {
+  const got = markAnswer_(typed, accept, false, opt || undefined);
+  if (got !== want) { typoBad++; console.log('  TYPO  %j against %j — marked %s, should be %s   (%s)', typed, accept, got, want, why); }
+});
+/* which questions are strict, read off the row */
+const STRICT = [
+  [{ row: { subject: 'English Language', key_stage: 'KS2', name: 'GPS Paper 1' } }, true, 'a KS2 grammar, punctuation and spelling paper'],
+  [{ row: { subject: 'English Language', key_stage: 'KS4', name: 'Paper 1', topics: 'SPaG' } }, true, 'a question tagged SPaG'],
+  [{ row: { subject: 'Biology', strict_spelling: true } }, true, 'the per-question flag'],
+  [{ row: { subject: 'Chemistry' }, answer: 'Must be spelt correctly' }, true, 'a scheme that credits spelling'],
+  [{ row: { subject: 'Physics', key_stage: 'KS4' } }, false, 'a physics question forgives typos'],
+];
+STRICT.forEach(([x, want, why]) => { if (markOpt_(x).strict !== want) { typoBad++; console.log('  STRICT  %s: got %s', why, !want); } });
+/* and the note the child sees, through the part marker */
+const PART_MARKERS = eval('(' + require('./check-marks-load.js').cutFrom(src, 'PART_MARKERS').replace(/^const PART_MARKERS =\s*/, '').replace(/;\s*$/, '') + ')');
+const noted = PART_MARKERS.accept({ accept: 'kinetic', row: { subject: 'Physics' } }, 'kinetc');
+if (!noted || noted.got !== 1 || noted.typo !== 'kinetic') { typoBad++; console.log('  NOTE  kinetc gave %j, wanted a right mark with typo "kinetic"', noted); }
+const plain = PART_MARKERS.accept({ accept: 'kinetic', row: { subject: 'Physics' } }, 'kinetic');
+if (!plain || plain.typo) { typoBad++; console.log('  NOTE  an exact answer carries no spelling note: %j', plain); }
+const spag = PART_MARKERS.accept({ accept: 'receive', row: { subject: 'English Language', key_stage: 'KS2', name: 'GPS Paper 1' } }, 'recieve');
+if (!spag || spag.got !== 0) { typoBad++; console.log('  NOTE  a SPaG typo was marked right: %j', spag); }
+/* per gap in a one-box gap answer */
+const gapCells = [{ ways: 'kinetic' }, { ways: 'potential' }];
+const gm = markCells_('kinetc ; potental', gapCells);
+if (gm.right !== 2) { typoBad++; console.log('  GAPS  a typo in each gap: %j', gm); }
+const gs = markCells_('kinetc ; potental', gapCells, { strict: true });
+if (gs.right !== 0) { typoBad++; console.log('  GAPS  strict gaps forgave a typo: %j', gs); }
+if (typoBad) { console.log('\n%d typo cases wrong — a misspelling is being forgiven, or a different answer accepted.', typoBad); process.exit(1); }
+console.log('typos: %d cases, %d strictness rows, the spelling note and gaps: near misses forgiven, confusables, numbers and SPaG kept strict', TYPOS.length, STRICT.length);
 
 if (bad || normBad || lib.bad.length || rowBad || slow || orderBad || orderLib.bad.length || seqBad || seqLib.bad.length) {
   console.log('\n%d of %d marking cases wrong, %d of %d markNorm_ cases, %d in the library sweep, %d of %d\n' +

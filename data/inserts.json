@@ -37,19 +37,27 @@
     "lines": [
      {
       "name": "Area of a trapezium",
-      "math": "Area = <sup>1</sup>&frasl;<sub>2</sub> (<i>a</i> + <i>b</i>)<i>h</i>"
+      "math": "Area = <sup>1</sup>&frasl;<sub>2</sub> (<i>a</i> + <i>b</i>)<i>h</i>",
+      "topic": "Area and volume",
+      "id": "INS-GCSE-MATHS-F-1.1"
      },
      {
       "name": "Volume of a prism",
-      "math": "Volume = area of cross-section &times; length"
+      "math": "Volume = area of cross-section &times; length",
+      "topic": "Area and volume",
+      "id": "INS-GCSE-MATHS-F-1.2"
      },
      {
       "name": "Circle: circumference",
-      "math": "<i>C</i> = &pi;<i>d</i> = 2&pi;<i>r</i>"
+      "math": "<i>C</i> = &pi;<i>d</i> = 2&pi;<i>r</i>",
+      "topic": "Area and volume",
+      "id": "INS-GCSE-MATHS-F-1.3"
      },
      {
       "name": "Circle: area",
-      "math": "<i>A</i> = &pi;<i>r</i><sup>2</sup>"
+      "math": "<i>A</i> = &pi;<i>r</i><sup>2</sup>",
+      "topic": "Area and volume",
+      "id": "INS-GCSE-MATHS-F-1.4"
      }
     ]
    },
@@ -58,19 +66,27 @@
     "lines": [
      {
       "name": "Pythagoras’ theorem",
-      "math": "<i>a</i><sup>2</sup> + <i>b</i><sup>2</sup> = <i>c</i><sup>2</sup>"
+      "math": "<i>a</i><sup>2</sup> + <i>b</i><sup>2</sup> = <i>c</i><sup>2</sup>",
+      "topic": "Right-angled triangles",
+      "id": "INS-GCSE-MATHS-F-2.1"
      },
      {
       "name": "Sine",
-      "math": "sin <i>x</i> = <sup>opposite</sup>&frasl;<sub>hypotenuse</sub>"
+      "math": "sin <i>x</i> = <sup>opposite</sup>&frasl;<sub>hypotenuse</sub>",
+      "topic": "Right-angled triangles",
+      "id": "INS-GCSE-MATHS-F-2.2"
      },
      {
       "name": "Cosine",
-      "math": "cos <i>x</i> = <sup>adjacent</sup>&frasl;<sub>hypotenuse</sub>"
+      "math": "cos <i>x</i> = <sup>adjacent</sup>&frasl;<sub>hypotenuse</sub>",
+      "topic": "Right-angled triangles",
+      "id": "INS-GCSE-MATHS-F-2.3"
      },
      {
       "name": "Tangent",
-      "math": "tan <i>x</i> = <sup>opposite</sup>&frasl;<sub>adjacent</sub>"
+      "math": "tan <i>x</i> = <sup>opposite</sup>&frasl;<sub>adjacent</sub>",
+      "topic": "Right-angled triangles",
+      "id": "INS-GCSE-MATHS-F-2.4"
      }
     ]
    },
@@ -80,15 +96,21 @@
      {
       "name": "Compound interest",
       "math": "Total = <i>P</i> (1 + <sup><i>r</i></sup>&frasl;<sub>100</sub>)<sup><i>n</i></sup>",
-      "note": "P the amount at the start, r the percentage rate each period, n the number of periods"
+      "note": "P the amount at the start, r the percentage rate each period, n the number of periods",
+      "topic": "Money and chance",
+      "id": "INS-GCSE-MATHS-F-3.1"
      },
      {
       "name": "Either event",
-      "math": "P(<i>A</i> or <i>B</i>) = P(<i>A</i>) + P(<i>B</i>) &minus; P(<i>A</i> and <i>B</i>)"
+      "math": "P(<i>A</i> or <i>B</i>) = P(<i>A</i>) + P(<i>B</i>) &minus; P(<i>A</i> and <i>B</i>)",
+      "topic": "Money and chance",
+      "id": "INS-GCSE-MATHS-F-3.2"
      },
      {
       "name": "Both events",
-      "math": "P(<i>A</i> and <i>B</i>) = P(<i>A</i> given <i>B</i>) &times; P(<i>B</i>)"
+      "math": "P(<i>A</i> and <i>B</i>) = P(<i>A</i> given <i>B</i>) &times; P(<i>B</i>)",
+      "topic": "Money and chance",
+      "id": "INS-GCSE-MATHS-F-3.3"
      }
     ]
    }
@@ -134,19 +156,27 @@
     "lines": [
      {
       "name": "Area of a trapezium",
-      "math": "Area = <sup>1</sup>&frasl;<sub>2</sub> (<i>a</i> + <i>b</i>)<i>h</i>"
+      "math": "Area = <sup>1</sup>&frasl;<sub>2</sub> (<i>a</i> + <i>b</i>)<i>h</i>",
+      "topic": "Area and volume",
+      "id": "INS-GCSE-MATHS-F-1.1"
      },
      {
       "name": "Volume of a prism",
-      "math": "Volume = area of cross-section &times; length"
+      "math": "Volume = area of cross-section &times; length",
+      "topic": "Area and volume",
+      "id": "INS-GCSE-MATHS-F-1.2"
      },
      {
       "name": "Circle: circumference",
-      "math": "<i>C</i> = &pi;<i>d</i> = 2&pi;<i>r</i>"
+      "math": "<i>C</i> = &pi;<i>d</i> = 2&pi;<i>r</i>",
+      "topic": "Area and volume",
+      "id": "INS-GCSE-MATHS-F-1.3"
      },
      {
       "name": "Circle: area",
-      "math": "<i>A</i> = &pi;<i>r</i><sup>2</sup>"
+      "math": "<i>A</i> = &pi;<i>r</i><sup>2</sup>",
+      "topic": "Area and volume",
+      "id": "INS-GCSE-MATHS-F-1.4"
      }
     ]
    },
@@ -155,19 +185,27 @@
     "lines": [
      {
       "name": "Pythagoras’ theorem",
-      "math": "<i>a</i><sup>2</sup> + <i>b</i><sup>2</sup> = <i>c</i><sup>2</sup>"
+      "math": "<i>a</i><sup>2</sup> + <i>b</i><sup>2</sup> = <i>c</i><sup>2</sup>",
+      "topic": "Right-angled triangles",
+      "id": "INS-GCSE-MATHS-F-2.1"
      },
      {
       "name": "Sine",
-      "math": "sin <i>x</i> = <sup>opposite</sup>&frasl;<sub>hypotenuse</sub>"
+      "math": "sin <i>x</i> = <sup>opposite</sup>&frasl;<sub>hypotenuse</sub>",
+      "topic": "Right-angled triangles",
+      "id": "INS-GCSE-MATHS-F-2.2"
      },
      {
       "name": "Cosine",
-      "math": "cos <i>x</i> = <sup>adjacent</sup>&frasl;<sub>hypotenuse</sub>"
+      "math": "cos <i>x</i> = <sup>adjacent</sup>&frasl;<sub>hypotenuse</sub>",
+      "topic": "Right-angled triangles",
+      "id": "INS-GCSE-MATHS-F-2.3"
      },
      {
       "name": "Tangent",
-      "math": "tan <i>x</i> = <sup>opposite</sup>&frasl;<sub>adjacent</sub>"
+      "math": "tan <i>x</i> = <sup>opposite</sup>&frasl;<sub>adjacent</sub>",
+      "topic": "Right-angled triangles",
+      "id": "INS-GCSE-MATHS-F-2.4"
      }
     ]
    },
@@ -177,15 +215,21 @@
      {
       "name": "Compound interest",
       "math": "Total = <i>P</i> (1 + <sup><i>r</i></sup>&frasl;<sub>100</sub>)<sup><i>n</i></sup>",
-      "note": "P the amount at the start, r the percentage rate each period, n the number of periods"
+      "note": "P the amount at the start, r the percentage rate each period, n the number of periods",
+      "topic": "Money and chance",
+      "id": "INS-GCSE-MATHS-F-3.1"
      },
      {
       "name": "Either event",
-      "math": "P(<i>A</i> or <i>B</i>) = P(<i>A</i>) + P(<i>B</i>) &minus; P(<i>A</i> and <i>B</i>)"
+      "math": "P(<i>A</i> or <i>B</i>) = P(<i>A</i>) + P(<i>B</i>) &minus; P(<i>A</i> and <i>B</i>)",
+      "topic": "Money and chance",
+      "id": "INS-GCSE-MATHS-F-3.2"
      },
      {
       "name": "Both events",
-      "math": "P(<i>A</i> and <i>B</i>) = P(<i>A</i> given <i>B</i>) &times; P(<i>B</i>)"
+      "math": "P(<i>A</i> and <i>B</i>) = P(<i>A</i> given <i>B</i>) &times; P(<i>B</i>)",
+      "topic": "Money and chance",
+      "id": "INS-GCSE-MATHS-F-3.3"
      }
     ]
    },
@@ -195,22 +239,30 @@
      {
       "name": "Quadratic formula",
       "math": "For <i>a</i><i>x</i><sup>2</sup> + <i>b</i><i>x</i> + <i>c</i> = 0 with <i>a</i> &ne; 0: &nbsp;<i>x</i> = <sup>&minus;<i>b</i> &plusmn; &radic;<span class=\"insh-rad\"><i>b</i><sup>2</sup> &minus; 4<i>a</i><i>c</i></span></sup>&frasl;<sub>2<i>a</i></sub>",
-      "higher": "True"
+      "higher": "True",
+      "id": "INS-GCSE-MATHS-H-4.1",
+      "topic": "Higher tier only"
      },
      {
       "name": "Sine rule",
       "math": "<sup><i>a</i></sup>&frasl;<sub>sin <i>A</i></sub> = <sup><i>b</i></sup>&frasl;<sub>sin <i>B</i></sub> = <sup><i>c</i></sup>&frasl;<sub>sin <i>C</i></sub>",
-      "higher": "True"
+      "higher": "True",
+      "id": "INS-GCSE-MATHS-H-4.2",
+      "topic": "Higher tier only"
      },
      {
       "name": "Cosine rule",
       "math": "<i>a</i><sup>2</sup> = <i>b</i><sup>2</sup> + <i>c</i><sup>2</sup> &minus; 2<i>b</i><i>c</i> cos <i>A</i>",
-      "higher": "True"
+      "higher": "True",
+      "id": "INS-GCSE-MATHS-H-4.3",
+      "topic": "Higher tier only"
      },
      {
       "name": "Area of any triangle",
       "math": "Area = <sup>1</sup>&frasl;<sub>2</sub> <i>a</i><i>b</i> sin <i>C</i>",
-      "higher": "True"
+      "higher": "True",
+      "id": "INS-GCSE-MATHS-H-4.4",
+      "topic": "Higher tier only"
      }
     ]
    }
@@ -227,7 +279,7 @@
   "keystage": "KS4",
   "board": "AQA, Edexcel, OCR",
   "tier": "Foundation, Higher",
-  "for_subjects": "Physics",
+  "for_subjects": "Physics, Combined Science",
   "for_levels": "GCSE",
   "for_tiers": "",
   "verified": "False",
@@ -252,59 +304,83 @@
     "lines": [
      {
       "name": "Weight",
-      "math": "weight = mass &times; gravitational field strength &nbsp; <i>W</i> = <i>m</i><i>g</i>"
+      "math": "weight = mass &times; gravitational field strength &nbsp; <i>W</i> = <i>m</i><i>g</i>",
+      "id": "INS-GCSE-PHYSICS-1.1",
+      "topic": "Forces and motion"
      },
      {
       "name": "Work done",
-      "math": "work done = force &times; distance along the line of the force &nbsp; <i>W</i> = <i>F</i><i>s</i>"
+      "math": "work done = force &times; distance along the line of the force &nbsp; <i>W</i> = <i>F</i><i>s</i>",
+      "id": "INS-GCSE-PHYSICS-1.2",
+      "topic": "Forces and motion"
      },
      {
       "name": "Hooke’s law",
-      "math": "force = spring constant &times; extension &nbsp; <i>F</i> = <i>k</i><i>e</i>"
+      "math": "force = spring constant &times; extension &nbsp; <i>F</i> = <i>k</i><i>e</i>",
+      "id": "INS-GCSE-PHYSICS-1.3",
+      "topic": "Forces and motion"
      },
      {
       "name": "Moment",
       "math": "moment = force &times; perpendicular distance from the pivot &nbsp; <i>M</i> = <i>F</i><i>d</i>",
-      "only": "Physics"
+      "only": "Physics",
+      "id": "INS-GCSE-PHYSICS-1.4",
+      "topic": "Forces and motion"
      },
      {
       "name": "Pressure",
       "math": "pressure = <sup>force normal to a surface</sup>&frasl;<sub>area</sub> &nbsp; <i>p</i> = <sup><i>F</i></sup>&frasl;<sub><i>A</i></sub>",
-      "only": "Physics"
+      "only": "Physics",
+      "id": "INS-GCSE-PHYSICS-1.5",
+      "topic": "Forces and motion"
      },
      {
       "name": "Pressure in a liquid",
       "math": "pressure = column height &times; density &times; <i>g</i> &nbsp; <i>p</i> = <i>h</i>&rho;<i>g</i>",
       "higher": "True",
-      "only": "Physics"
+      "only": "Physics",
+      "id": "INS-GCSE-PHYSICS-1.6",
+      "topic": "Forces and motion"
      },
      {
       "name": "Speed",
-      "math": "distance = speed &times; time &nbsp; <i>s</i> = <i>v</i><i>t</i>"
+      "math": "distance = speed &times; time &nbsp; <i>s</i> = <i>v</i><i>t</i>",
+      "id": "INS-GCSE-PHYSICS-1.7",
+      "topic": "Forces and motion"
      },
      {
       "name": "Acceleration",
-      "math": "acceleration = <sup>change in velocity</sup>&frasl;<sub>time taken</sub> &nbsp; <i>a</i> = <sup>&Delta;<i>v</i></sup>&frasl;<sub><i>t</i></sub>"
+      "math": "acceleration = <sup>change in velocity</sup>&frasl;<sub>time taken</sub> &nbsp; <i>a</i> = <sup>&Delta;<i>v</i></sup>&frasl;<sub><i>t</i></sub>",
+      "id": "INS-GCSE-PHYSICS-1.8",
+      "topic": "Forces and motion"
      },
      {
       "name": "Uniform acceleration",
       "math": "<i>v</i><sup>2</sup> &minus; <i>u</i><sup>2</sup> = 2<i>a</i><i>s</i>",
-      "note": "v the final velocity, u the initial velocity, s the distance"
+      "note": "v the final velocity, u the initial velocity, s the distance",
+      "id": "INS-GCSE-PHYSICS-1.9",
+      "topic": "Forces and motion"
      },
      {
       "name": "Newton’s second law",
-      "math": "force = mass &times; acceleration &nbsp; <i>F</i> = <i>m</i><i>a</i>"
+      "math": "force = mass &times; acceleration &nbsp; <i>F</i> = <i>m</i><i>a</i>",
+      "id": "INS-GCSE-PHYSICS-1.10",
+      "topic": "Forces and motion"
      },
      {
       "name": "Momentum",
       "math": "momentum = mass &times; velocity &nbsp; <i>p</i> = <i>m</i><i>v</i>",
-      "higher": "True"
+      "higher": "True",
+      "id": "INS-GCSE-PHYSICS-1.11",
+      "topic": "Forces and motion"
      },
      {
       "name": "Force and momentum",
       "math": "force = <sup>change in momentum</sup>&frasl;<sub>time taken</sub> &nbsp; <i>F</i> = <sup><i>m</i>&Delta;<i>v</i></sup>&frasl;<sub>&Delta;<i>t</i></sub>",
       "higher": "True",
-      "only": "Physics"
+      "only": "Physics",
+      "id": "INS-GCSE-PHYSICS-1.12",
+      "topic": "Forces and motion"
      }
     ]
    },
@@ -313,38 +389,54 @@
     "lines": [
      {
       "name": "Kinetic energy",
-      "math": "<i>E</i><sub>k</sub> = <sup>1</sup>&frasl;<sub>2</sub> <i>m</i><i>v</i><sup>2</sup>"
+      "math": "<i>E</i><sub>k</sub> = <sup>1</sup>&frasl;<sub>2</sub> <i>m</i><i>v</i><sup>2</sup>",
+      "id": "INS-GCSE-PHYSICS-2.1",
+      "topic": "Energy"
      },
      {
       "name": "Gravitational potential energy",
-      "math": "<i>E</i><sub>p</sub> = <i>m</i><i>g</i><i>h</i>"
+      "math": "<i>E</i><sub>p</sub> = <i>m</i><i>g</i><i>h</i>",
+      "id": "INS-GCSE-PHYSICS-2.2",
+      "topic": "Energy"
      },
      {
       "name": "Elastic potential energy",
       "math": "<i>E</i><sub>e</sub> = <sup>1</sup>&frasl;<sub>2</sub> <i>k</i><i>e</i><sup>2</sup>",
-      "note": "while the limit of proportionality is not passed"
+      "note": "while the limit of proportionality is not passed",
+      "id": "INS-GCSE-PHYSICS-2.3",
+      "topic": "Energy"
      },
      {
       "name": "Specific heat capacity",
       "math": "&Delta;<i>E</i> = <i>m</i><i>c</i>&Delta;&theta;",
-      "note": "thermal energy change = mass × specific heat capacity × temperature change"
+      "note": "thermal energy change = mass × specific heat capacity × temperature change",
+      "id": "INS-GCSE-PHYSICS-2.4",
+      "topic": "Energy"
      },
      {
       "name": "Specific latent heat",
       "math": "<i>E</i> = <i>m</i><i>L</i>",
-      "note": "energy for a change of state = mass × specific latent heat"
+      "note": "energy for a change of state = mass × specific latent heat",
+      "id": "INS-GCSE-PHYSICS-2.5",
+      "topic": "Energy"
      },
      {
       "name": "Power from energy",
-      "math": "<i>P</i> = <sup><i>E</i></sup>&frasl;<sub><i>t</i></sub>"
+      "math": "<i>P</i> = <sup><i>E</i></sup>&frasl;<sub><i>t</i></sub>",
+      "id": "INS-GCSE-PHYSICS-2.6",
+      "topic": "Energy"
      },
      {
       "name": "Power from work",
-      "math": "<i>P</i> = <sup><i>W</i></sup>&frasl;<sub><i>t</i></sub>"
+      "math": "<i>P</i> = <sup><i>W</i></sup>&frasl;<sub><i>t</i></sub>",
+      "id": "INS-GCSE-PHYSICS-2.7",
+      "topic": "Energy"
      },
      {
       "name": "Efficiency",
-      "math": "efficiency = <sup>useful output energy transfer</sup>&frasl;<sub>total input energy transfer</sub> = <sup>useful power output</sup>&frasl;<sub>total power input</sub>"
+      "math": "efficiency = <sup>useful output energy transfer</sup>&frasl;<sub>total input energy transfer</sub> = <sup>useful power output</sup>&frasl;<sub>total power input</sub>",
+      "id": "INS-GCSE-PHYSICS-2.8",
+      "topic": "Energy"
      }
     ]
    },
@@ -354,41 +446,57 @@
      {
       "name": "Charge",
       "math": "<i>Q</i> = <i>I</i><i>t</i>",
-      "note": "charge = current × time"
+      "note": "charge = current × time",
+      "id": "INS-GCSE-PHYSICS-3.1",
+      "topic": "Electricity and magnetism"
      },
      {
       "name": "Potential difference",
       "math": "<i>V</i> = <i>I</i><i>R</i>",
-      "note": "potential difference = current × resistance"
+      "note": "potential difference = current × resistance",
+      "id": "INS-GCSE-PHYSICS-3.2",
+      "topic": "Electricity and magnetism"
      },
      {
       "name": "Electrical power",
-      "math": "<i>P</i> = <i>V</i><i>I</i> = <i>I</i><sup>2</sup><i>R</i>"
+      "math": "<i>P</i> = <i>V</i><i>I</i> = <i>I</i><sup>2</sup><i>R</i>",
+      "id": "INS-GCSE-PHYSICS-3.3",
+      "topic": "Electricity and magnetism"
      },
      {
       "name": "Energy from power",
-      "math": "<i>E</i> = <i>P</i><i>t</i>"
+      "math": "<i>E</i> = <i>P</i><i>t</i>",
+      "id": "INS-GCSE-PHYSICS-3.4",
+      "topic": "Electricity and magnetism"
      },
      {
       "name": "Energy from charge",
-      "math": "<i>E</i> = <i>Q</i><i>V</i>"
+      "math": "<i>E</i> = <i>Q</i><i>V</i>",
+      "id": "INS-GCSE-PHYSICS-3.5",
+      "topic": "Electricity and magnetism"
      },
      {
       "name": "Force on a wire",
       "math": "<i>F</i> = <i>B</i><i>I</i><i>l</i>",
       "higher": "True",
-      "note": "force = magnetic flux density × current × length"
+      "note": "force = magnetic flux density × current × length",
+      "id": "INS-GCSE-PHYSICS-3.6",
+      "topic": "Electricity and magnetism"
      },
      {
       "name": "Transformer turns",
       "math": "<sup><i>V</i><sub>p</sub></sup>&frasl;<sub><i>V</i><sub>s</sub></sub> = <sup><i>n</i><sub>p</sub></sup>&frasl;<sub><i>n</i><sub>s</sub></sub>",
       "higher": "True",
-      "only": "Physics"
+      "only": "Physics",
+      "id": "INS-GCSE-PHYSICS-3.7",
+      "topic": "Electricity and magnetism"
      },
      {
       "name": "Transformer power",
       "math": "<i>V</i><sub>s</sub><i>I</i><sub>s</sub> = <i>V</i><sub>p</sub><i>I</i><sub>p</sub>",
-      "note": "a transformer that wastes no energy"
+      "note": "a transformer that wastes no energy",
+      "id": "INS-GCSE-PHYSICS-3.8",
+      "topic": "Electricity and magnetism"
      }
     ]
    },
@@ -397,25 +505,35 @@
     "lines": [
      {
       "name": "Density",
-      "math": "&rho; = <sup><i>m</i></sup>&frasl;<sub><i>V</i></sub>"
+      "math": "&rho; = <sup><i>m</i></sup>&frasl;<sub><i>V</i></sub>",
+      "id": "INS-GCSE-PHYSICS-4.1",
+      "topic": "Matter and waves"
      },
      {
       "name": "Gas at constant temperature",
       "math": "<i>p</i><i>V</i> = constant",
-      "only": "Physics"
+      "only": "Physics",
+      "id": "INS-GCSE-PHYSICS-4.2",
+      "topic": "Matter and waves"
      },
      {
       "name": "Wave speed",
-      "math": "<i>v</i> = <i>f</i>&lambda;"
+      "math": "<i>v</i> = <i>f</i>&lambda;",
+      "id": "INS-GCSE-PHYSICS-4.3",
+      "topic": "Matter and waves"
      },
      {
       "name": "Period",
-      "math": "<i>T</i> = <sup>1</sup>&frasl;<sub><i>f</i></sub>"
+      "math": "<i>T</i> = <sup>1</sup>&frasl;<sub><i>f</i></sub>",
+      "id": "INS-GCSE-PHYSICS-4.4",
+      "topic": "Matter and waves"
      },
      {
       "name": "Magnification",
       "math": "magnification = <sup>image height</sup>&frasl;<sub>object height</sub>",
-      "only": "Physics"
+      "only": "Physics",
+      "id": "INS-GCSE-PHYSICS-4.5",
+      "topic": "Matter and waves"
      }
     ]
    }
@@ -430,9 +548,9 @@
   "subject": "Chemistry",
   "level": "GCSE",
   "keystage": "KS4",
-  "board": "AQA",
+  "board": "AQA, Edexcel",
   "tier": "Foundation, Higher",
-  "for_subjects": "Chemistry",
+  "for_subjects": "Chemistry, Combined Science",
   "for_levels": "GCSE",
   "for_tiers": "",
   "verified": "False",
@@ -2695,24 +2813,34 @@
     "lines": [
      {
       "name": "Arithmetic series",
-      "math": "<i>S</i><sub><i>n</i></sub> = <sup>1</sup>&frasl;<sub>2</sub> <i>n</i>(<i>a</i> + <i>l</i>) = <sup>1</sup>&frasl;<sub>2</sub> <i>n</i>[2<i>a</i> + (<i>n</i> &minus; 1)<i>d</i>]"
+      "math": "<i>S</i><sub><i>n</i></sub> = <sup>1</sup>&frasl;<sub>2</sub> <i>n</i>(<i>a</i> + <i>l</i>) = <sup>1</sup>&frasl;<sub>2</sub> <i>n</i>[2<i>a</i> + (<i>n</i> &minus; 1)<i>d</i>]",
+      "id": "INS-ALEVEL-MATHS-1.1",
+      "topic": "Algebra and series"
      },
      {
       "name": "Geometric series",
-      "math": "<i>S</i><sub><i>n</i></sub> = <sup><i>a</i>(1 &minus; <i>r</i><sup><i>n</i></sup>)</sup>&frasl;<sub>1 &minus; <i>r</i></sub>; &nbsp; <i>S</i><sub>&infin;</sub> = <sup><i>a</i></sup>&frasl;<sub>1 &minus; <i>r</i></sub> for |<i>r</i>| &lt; 1"
+      "math": "<i>S</i><sub><i>n</i></sub> = <sup><i>a</i>(1 &minus; <i>r</i><sup><i>n</i></sup>)</sup>&frasl;<sub>1 &minus; <i>r</i></sub>; &nbsp; <i>S</i><sub>&infin;</sub> = <sup><i>a</i></sup>&frasl;<sub>1 &minus; <i>r</i></sub> for |<i>r</i>| &lt; 1",
+      "id": "INS-ALEVEL-MATHS-1.2",
+      "topic": "Algebra and series"
      },
      {
       "name": "Binomial, n a positive integer",
       "math": "(<i>a</i> + <i>b</i>)<sup><i>n</i></sup> = <i>a</i><sup><i>n</i></sup> + <sup><i>n</i></sup>C<sub>1</sub> <i>a</i><sup><i>n</i>&minus;1</sup><i>b</i> + &hellip; + <sup><i>n</i></sup>C<sub><i>r</i></sub> <i>a</i><sup><i>n</i>&minus;<i>r</i></sup><i>b</i><sup><i>r</i></sup> + &hellip; + <i>b</i><sup><i>n</i></sup>",
-      "note": "nCr = n! ÷ (r!(n − r)!)"
+      "note": "nCr = n! ÷ (r!(n − r)!)",
+      "id": "INS-ALEVEL-MATHS-1.3",
+      "topic": "Algebra and series"
      },
      {
       "name": "Binomial, any n",
-      "math": "(1 + <i>x</i>)<sup><i>n</i></sup> = 1 + <i>n</i><i>x</i> + <sup><i>n</i>(<i>n</i> &minus; 1)</sup>&frasl;<sub>2 &times; 1</sub> <i>x</i><sup>2</sup> + &hellip; &nbsp; for |<i>x</i>| &lt; 1"
+      "math": "(1 + <i>x</i>)<sup><i>n</i></sup> = 1 + <i>n</i><i>x</i> + <sup><i>n</i>(<i>n</i> &minus; 1)</sup>&frasl;<sub>2 &times; 1</sub> <i>x</i><sup>2</sup> + &hellip; &nbsp; for |<i>x</i>| &lt; 1",
+      "id": "INS-ALEVEL-MATHS-1.4",
+      "topic": "Algebra and series"
      },
      {
       "name": "Change of base",
-      "math": "log<sub><i>a</i></sub> <i>x</i> = <sup>log<sub><i>b</i></sub> <i>x</i></sup>&frasl;<sub>log<sub><i>b</i></sub> <i>a</i></sub>"
+      "math": "log<sub><i>a</i></sub> <i>x</i> = <sup>log<sub><i>b</i></sub> <i>x</i></sup>&frasl;<sub>log<sub><i>b</i></sub> <i>a</i></sub>",
+      "id": "INS-ALEVEL-MATHS-1.5",
+      "topic": "Algebra and series"
      }
     ]
    },
@@ -2721,19 +2849,27 @@
     "lines": [
      {
       "name": "Compound angles",
-      "math": "sin(<i>A</i> &plusmn; <i>B</i>) = sin <i>A</i> cos <i>B</i> &plusmn; cos <i>A</i> sin <i>B</i>"
+      "math": "sin(<i>A</i> &plusmn; <i>B</i>) = sin <i>A</i> cos <i>B</i> &plusmn; cos <i>A</i> sin <i>B</i>",
+      "id": "INS-ALEVEL-MATHS-2.1",
+      "topic": "Trigonometry"
      },
      {
       "name": "",
-      "math": "cos(<i>A</i> &plusmn; <i>B</i>) = cos <i>A</i> cos <i>B</i> &#8723; sin <i>A</i> sin <i>B</i>"
+      "math": "cos(<i>A</i> &plusmn; <i>B</i>) = cos <i>A</i> cos <i>B</i> &#8723; sin <i>A</i> sin <i>B</i>",
+      "id": "INS-ALEVEL-MATHS-2.2",
+      "topic": "Trigonometry"
      },
      {
       "name": "",
-      "math": "tan(<i>A</i> &plusmn; <i>B</i>) = <sup>tan <i>A</i> &plusmn; tan <i>B</i></sup>&frasl;<sub>1 &#8723; tan <i>A</i> tan <i>B</i></sub>"
+      "math": "tan(<i>A</i> &plusmn; <i>B</i>) = <sup>tan <i>A</i> &plusmn; tan <i>B</i></sup>&frasl;<sub>1 &#8723; tan <i>A</i> tan <i>B</i></sub>",
+      "id": "INS-ALEVEL-MATHS-2.3",
+      "topic": "Trigonometry"
      },
      {
       "name": "Cosine rule",
-      "math": "<i>a</i><sup>2</sup> = <i>b</i><sup>2</sup> + <i>c</i><sup>2</sup> &minus; 2<i>b</i><i>c</i> cos <i>A</i>"
+      "math": "<i>a</i><sup>2</sup> = <i>b</i><sup>2</sup> + <i>c</i><sup>2</sup> &minus; 2<i>b</i><i>c</i> cos <i>A</i>",
+      "id": "INS-GCSE-MATHS-H-4.3",
+      "topic": "Trigonometry"
      }
     ]
    },
@@ -2742,28 +2878,40 @@
     "lines": [
      {
       "name": "Derivatives",
-      "math": "tan <i>kx</i> &rarr; <i>k</i> sec<sup>2</sup> <i>kx</i>; &nbsp; sec <i>x</i> &rarr; sec <i>x</i> tan <i>x</i>; &nbsp; cot <i>x</i> &rarr; &minus;cosec<sup>2</sup> <i>x</i>; &nbsp; cosec <i>x</i> &rarr; &minus;cosec <i>x</i> cot <i>x</i>"
+      "math": "tan <i>kx</i> &rarr; <i>k</i> sec<sup>2</sup> <i>kx</i>; &nbsp; sec <i>x</i> &rarr; sec <i>x</i> tan <i>x</i>; &nbsp; cot <i>x</i> &rarr; &minus;cosec<sup>2</sup> <i>x</i>; &nbsp; cosec <i>x</i> &rarr; &minus;cosec <i>x</i> cot <i>x</i>",
+      "id": "INS-ALEVEL-MATHS-3.1",
+      "topic": "Calculus and numerical methods"
      },
      {
       "name": "Quotient rule",
-      "math": "d(<i>u</i>/<i>v</i>)/d<i>x</i> = <sup><i>v</i><i>u</i>&prime; &minus; <i>u</i><i>v</i>&prime;</sup>&frasl;<sub><i>v</i><sup>2</sup></sub>"
+      "math": "d(<i>u</i>/<i>v</i>)/d<i>x</i> = <sup><i>v</i><i>u</i>&prime; &minus; <i>u</i><i>v</i>&prime;</sup>&frasl;<sub><i>v</i><sup>2</sup></sub>",
+      "id": "INS-ALEVEL-MATHS-3.2",
+      "topic": "Calculus and numerical methods"
      },
      {
       "name": "Integration by parts",
-      "math": "&int; <i>u</i><i>v</i>&prime; d<i>x</i> = <i>u</i><i>v</i> &minus; &int; <i>v</i><i>u</i>&prime; d<i>x</i>"
+      "math": "&int; <i>u</i><i>v</i>&prime; d<i>x</i> = <i>u</i><i>v</i> &minus; &int; <i>v</i><i>u</i>&prime; d<i>x</i>",
+      "id": "INS-ALEVEL-MATHS-3.3",
+      "topic": "Calculus and numerical methods"
      },
      {
       "name": "An integral",
-      "math": "&int; tan <i>kx</i> d<i>x</i> = <sup>1</sup>&frasl;<sub><i>k</i></sub> ln|sec <i>kx</i>| + <i>c</i>"
+      "math": "&int; tan <i>kx</i> d<i>x</i> = <sup>1</sup>&frasl;<sub><i>k</i></sub> ln|sec <i>kx</i>| + <i>c</i>",
+      "id": "INS-ALEVEL-MATHS-3.4",
+      "topic": "Calculus and numerical methods"
      },
      {
       "name": "Trapezium rule",
       "math": "&int;<sub><i>a</i></sub><sup><i>b</i></sup> <i>y</i> d<i>x</i> &asymp; <sup>1</sup>&frasl;<sub>2</sub> <i>h</i>{(<i>y</i><sub>0</sub> + <i>y</i><sub><i>n</i></sub>) + 2(<i>y</i><sub>1</sub> + &hellip; + <i>y</i><sub><i>n</i>&minus;1</sub>)}",
-      "note": "h = (b − a) ÷ n"
+      "note": "h = (b − a) ÷ n",
+      "id": "INS-ALEVEL-MATHS-3.5",
+      "topic": "Calculus and numerical methods"
      },
      {
       "name": "Newton–Raphson",
-      "math": "<i>x</i><sub><i>n</i>+1</sub> = <i>x</i><sub><i>n</i></sub> &minus; <sup>f(<i>x</i><sub><i>n</i></sub>)</sup>&frasl;<sub>f&prime;(<i>x</i><sub><i>n</i></sub>)</sub>"
+      "math": "<i>x</i><sub><i>n</i>+1</sub> = <i>x</i><sub><i>n</i></sub> &minus; <sup>f(<i>x</i><sub><i>n</i></sub>)</sup>&frasl;<sub>f&prime;(<i>x</i><sub><i>n</i></sub>)</sub>",
+      "id": "INS-ALEVEL-MATHS-3.6",
+      "topic": "Calculus and numerical methods"
      }
     ]
    },
@@ -2772,25 +2920,35 @@
     "lines": [
      {
       "name": "Either event",
-      "math": "P(<i>A</i> &cup; <i>B</i>) = P(<i>A</i>) + P(<i>B</i>) &minus; P(<i>A</i> &cap; <i>B</i>)"
+      "math": "P(<i>A</i> &cup; <i>B</i>) = P(<i>A</i>) + P(<i>B</i>) &minus; P(<i>A</i> &cap; <i>B</i>)",
+      "id": "INS-ALEVEL-MATHS-4.1",
+      "topic": "Statistics and mechanics"
      },
      {
       "name": "Conditional probability",
-      "math": "P(<i>A</i> | <i>B</i>) = <sup>P(<i>A</i> &cap; <i>B</i>)</sup>&frasl;<sub>P(<i>B</i>)</sub>"
+      "math": "P(<i>A</i> | <i>B</i>) = <sup>P(<i>A</i> &cap; <i>B</i>)</sup>&frasl;<sub>P(<i>B</i>)</sub>",
+      "id": "INS-ALEVEL-MATHS-4.2",
+      "topic": "Statistics and mechanics"
      },
      {
       "name": "Binomial distribution",
       "math": "P(<i>X</i> = <i>x</i>) = <sup><i>n</i></sup>C<sub><i>x</i></sub> <i>p</i><sup><i>x</i></sup>(1 &minus; <i>p</i>)<sup><i>n</i>&minus;<i>x</i></sup>",
-      "note": "X ~ B(n, p): mean np, variance np(1 − p)"
+      "note": "X ~ B(n, p): mean np, variance np(1 − p)",
+      "id": "INS-ALEVEL-MATHS-4.3",
+      "topic": "Statistics and mechanics"
      },
      {
       "name": "Standard normal",
       "math": "<i>Z</i> = <sup><i>X</i> &minus; &mu;</sup>&frasl;<sub>&sigma;</sub>",
-      "note": "X ~ N(μ, σ²)"
+      "note": "X ~ N(μ, σ²)",
+      "id": "INS-ALEVEL-MATHS-4.4",
+      "topic": "Statistics and mechanics"
      },
      {
       "name": "Constant acceleration",
-      "math": "<i>v</i> = <i>u</i> + <i>a</i><i>t</i>; &nbsp; <i>s</i> = <i>u</i><i>t</i> + <sup>1</sup>&frasl;<sub>2</sub> <i>a</i><i>t</i><sup>2</sup>; &nbsp; <i>s</i> = <sup>1</sup>&frasl;<sub>2</sub> (<i>u</i> + <i>v</i>)<i>t</i>; &nbsp; <i>v</i><sup>2</sup> = <i>u</i><sup>2</sup> + 2<i>a</i><i>s</i>; &nbsp; <i>s</i> = <i>v</i><i>t</i> &minus; <sup>1</sup>&frasl;<sub>2</sub> <i>a</i><i>t</i><sup>2</sup>"
+      "math": "<i>v</i> = <i>u</i> + <i>a</i><i>t</i>; &nbsp; <i>s</i> = <i>u</i><i>t</i> + <sup>1</sup>&frasl;<sub>2</sub> <i>a</i><i>t</i><sup>2</sup>; &nbsp; <i>s</i> = <sup>1</sup>&frasl;<sub>2</sub> (<i>u</i> + <i>v</i>)<i>t</i>; &nbsp; <i>v</i><sup>2</sup> = <i>u</i><sup>2</sup> + 2<i>a</i><i>s</i>; &nbsp; <i>s</i> = <i>v</i><i>t</i> &minus; <sup>1</sup>&frasl;<sub>2</sub> <i>a</i><i>t</i><sup>2</sup>",
+      "id": "INS-ALEVEL-MATHS-4.5",
+      "topic": "Statistics and mechanics"
      }
     ]
    }
@@ -2832,63 +2990,93 @@
     "lines": [
      {
       "name": "Speed of light in a vacuum",
-      "math": "<i>c</i> = 3.00 &times; 10<sup>8</sup> m s<sup>&minus;1</sup>"
+      "math": "<i>c</i> = 3.00 &times; 10<sup>8</sup> m s<sup>&minus;1</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.1",
+      "topic": "Constants"
      },
      {
       "name": "Elementary charge",
-      "math": "<i>e</i> = 1.60 &times; 10<sup>&minus;19</sup> C"
+      "math": "<i>e</i> = 1.60 &times; 10<sup>&minus;19</sup> C",
+      "id": "INS-ALEVEL-PHYSICS-1.2",
+      "topic": "Constants"
      },
      {
       "name": "Planck constant",
-      "math": "<i>h</i> = 6.63 &times; 10<sup>&minus;34</sup> J s"
+      "math": "<i>h</i> = 6.63 &times; 10<sup>&minus;34</sup> J s",
+      "id": "INS-ALEVEL-PHYSICS-1.3",
+      "topic": "Constants"
      },
      {
       "name": "Gravitational constant",
-      "math": "<i>G</i> = 6.67 &times; 10<sup>&minus;11</sup> N m<sup>2</sup> kg<sup>&minus;2</sup>"
+      "math": "<i>G</i> = 6.67 &times; 10<sup>&minus;11</sup> N m<sup>2</sup> kg<sup>&minus;2</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.4",
+      "topic": "Constants"
      },
      {
       "name": "Avogadro constant",
-      "math": "<i>N</i><sub>A</sub> = 6.02 &times; 10<sup>23</sup> mol<sup>&minus;1</sup>"
+      "math": "<i>N</i><sub>A</sub> = 6.02 &times; 10<sup>23</sup> mol<sup>&minus;1</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.5",
+      "topic": "Constants"
      },
      {
       "name": "Molar gas constant",
-      "math": "<i>R</i> = 8.31 J K<sup>&minus;1</sup> mol<sup>&minus;1</sup>"
+      "math": "<i>R</i> = 8.31 J K<sup>&minus;1</sup> mol<sup>&minus;1</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.6",
+      "topic": "Constants"
      },
      {
       "name": "Boltzmann constant",
-      "math": "<i>k</i> = 1.38 &times; 10<sup>&minus;23</sup> J K<sup>&minus;1</sup>"
+      "math": "<i>k</i> = 1.38 &times; 10<sup>&minus;23</sup> J K<sup>&minus;1</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.7",
+      "topic": "Constants"
      },
      {
       "name": "Stefan constant",
-      "math": "&sigma; = 5.67 &times; 10<sup>&minus;8</sup> W m<sup>&minus;2</sup> K<sup>&minus;4</sup>"
+      "math": "&sigma; = 5.67 &times; 10<sup>&minus;8</sup> W m<sup>&minus;2</sup> K<sup>&minus;4</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.8",
+      "topic": "Constants"
      },
      {
       "name": "Permittivity of free space",
-      "math": "&epsilon;<sub>0</sub> = 8.85 &times; 10<sup>&minus;12</sup> F m<sup>&minus;1</sup>"
+      "math": "&epsilon;<sub>0</sub> = 8.85 &times; 10<sup>&minus;12</sup> F m<sup>&minus;1</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.9",
+      "topic": "Constants"
      },
      {
       "name": "Permeability of free space",
-      "math": "&mu;<sub>0</sub> = 4&pi; &times; 10<sup>&minus;7</sup> H m<sup>&minus;1</sup>"
+      "math": "&mu;<sub>0</sub> = 4&pi; &times; 10<sup>&minus;7</sup> H m<sup>&minus;1</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.10",
+      "topic": "Constants"
      },
      {
       "name": "Electron rest mass",
-      "math": "<i>m</i><sub>e</sub> = 9.11 &times; 10<sup>&minus;31</sup> kg"
+      "math": "<i>m</i><sub>e</sub> = 9.11 &times; 10<sup>&minus;31</sup> kg",
+      "id": "INS-ALEVEL-PHYSICS-1.11",
+      "topic": "Constants"
      },
      {
       "name": "Proton rest mass",
-      "math": "<i>m</i><sub>p</sub> = 1.67 &times; 10<sup>&minus;27</sup> kg"
+      "math": "<i>m</i><sub>p</sub> = 1.67 &times; 10<sup>&minus;27</sup> kg",
+      "id": "INS-ALEVEL-PHYSICS-1.12",
+      "topic": "Constants"
      },
      {
       "name": "g at the Earth’s surface",
-      "math": "<i>g</i> = 9.81 N kg<sup>&minus;1</sup>"
+      "math": "<i>g</i> = 9.81 N kg<sup>&minus;1</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.13",
+      "topic": "Constants"
      },
      {
       "name": "Atomic mass unit",
-      "math": "1 u = 1.661 &times; 10<sup>&minus;27</sup> kg"
+      "math": "1 u = 1.661 &times; 10<sup>&minus;27</sup> kg",
+      "id": "INS-ALEVEL-PHYSICS-1.14",
+      "topic": "Constants"
      },
      {
       "name": "Wien constant",
-      "math": "&alpha; = 2.90 &times; 10<sup>&minus;3</sup> m K"
+      "math": "&alpha; = 2.90 &times; 10<sup>&minus;3</sup> m K",
+      "id": "INS-ALEVEL-PHYSICS-1.15",
+      "topic": "Constants"
      }
     ]
    },
@@ -2897,31 +3085,45 @@
     "lines": [
      {
       "name": "Photon energy",
-      "math": "<i>E</i> = <i>hf</i> = <sup><i>hc</i></sup>&frasl;<sub>&lambda;</sub>"
+      "math": "<i>E</i> = <i>hf</i> = <sup><i>hc</i></sup>&frasl;<sub>&lambda;</sub>",
+      "id": "INS-ALEVEL-PHYSICS-2.1",
+      "topic": "Particles, waves and quanta"
      },
      {
       "name": "Photoelectric effect",
-      "math": "<i>hf</i> = &phi; + <i>E</i><sub>k(max)</sub>"
+      "math": "<i>hf</i> = &phi; + <i>E</i><sub>k(max)</sub>",
+      "id": "INS-ALEVEL-PHYSICS-2.2",
+      "topic": "Particles, waves and quanta"
      },
      {
       "name": "de Broglie wavelength",
-      "math": "&lambda; = <sup><i>h</i></sup>&frasl;<sub><i>mv</i></sub>"
+      "math": "&lambda; = <sup><i>h</i></sup>&frasl;<sub><i>mv</i></sub>",
+      "id": "INS-ALEVEL-PHYSICS-2.3",
+      "topic": "Particles, waves and quanta"
      },
      {
       "name": "Wave speed",
-      "math": "<i>c</i> = <i>f</i>&lambda;"
+      "math": "<i>c</i> = <i>f</i>&lambda;",
+      "id": "INS-ALEVEL-PHYSICS-2.4",
+      "topic": "Particles, waves and quanta"
      },
      {
       "name": "Refraction",
-      "math": "<i>n</i><sub>1</sub> sin &theta;<sub>1</sub> = <i>n</i><sub>2</sub> sin &theta;<sub>2</sub>; &nbsp; <i>n</i> = <sup><i>c</i></sup>&frasl;<sub><i>c</i><sub>s</sub></sub>; &nbsp; sin &theta;<sub>c</sub> = <sup><i>n</i><sub>2</sub></sup>&frasl;<sub><i>n</i><sub>1</sub></sub>"
+      "math": "<i>n</i><sub>1</sub> sin &theta;<sub>1</sub> = <i>n</i><sub>2</sub> sin &theta;<sub>2</sub>; &nbsp; <i>n</i> = <sup><i>c</i></sup>&frasl;<sub><i>c</i><sub>s</sub></sub>; &nbsp; sin &theta;<sub>c</sub> = <sup><i>n</i><sub>2</sub></sup>&frasl;<sub><i>n</i><sub>1</sub></sub>",
+      "id": "INS-ALEVEL-PHYSICS-2.5",
+      "topic": "Particles, waves and quanta"
      },
      {
       "name": "Diffraction grating",
-      "math": "<i>d</i> sin &theta; = <i>n</i>&lambda;"
+      "math": "<i>d</i> sin &theta; = <i>n</i>&lambda;",
+      "id": "INS-ALEVEL-PHYSICS-2.6",
+      "topic": "Particles, waves and quanta"
      },
      {
       "name": "Fringe spacing",
-      "math": "<i>w</i> = <sup>&lambda;<i>D</i></sup>&frasl;<sub><i>s</i></sub>"
+      "math": "<i>w</i> = <sup>&lambda;<i>D</i></sup>&frasl;<sub><i>s</i></sub>",
+      "id": "INS-ALEVEL-PHYSICS-2.7",
+      "topic": "Particles, waves and quanta"
      }
     ]
    },
@@ -2930,28 +3132,40 @@
     "lines": [
      {
       "name": "Constant acceleration",
-      "math": "<i>v</i> = <i>u</i> + <i>a</i><i>t</i>; &nbsp; <i>s</i> = <i>u</i><i>t</i> + <sup>1</sup>&frasl;<sub>2</sub> <i>a</i><i>t</i><sup>2</sup>; &nbsp; <i>s</i> = <sup>1</sup>&frasl;<sub>2</sub> (<i>u</i> + <i>v</i>)<i>t</i>; &nbsp; <i>v</i><sup>2</sup> = <i>u</i><sup>2</sup> + 2<i>a</i><i>s</i>"
+      "math": "<i>v</i> = <i>u</i> + <i>a</i><i>t</i>; &nbsp; <i>s</i> = <i>u</i><i>t</i> + <sup>1</sup>&frasl;<sub>2</sub> <i>a</i><i>t</i><sup>2</sup>; &nbsp; <i>s</i> = <sup>1</sup>&frasl;<sub>2</sub> (<i>u</i> + <i>v</i>)<i>t</i>; &nbsp; <i>v</i><sup>2</sup> = <i>u</i><sup>2</sup> + 2<i>a</i><i>s</i>",
+      "id": "INS-ALEVEL-PHYSICS-3.1",
+      "topic": "Mechanics and materials"
      },
      {
       "name": "Force and momentum",
-      "math": "<i>F</i> = <sup>&Delta;(<i>mv</i>)</sup>&frasl;<sub>&Delta;<i>t</i></sub>"
+      "math": "<i>F</i> = <sup>&Delta;(<i>mv</i>)</sup>&frasl;<sub>&Delta;<i>t</i></sub>",
+      "id": "INS-ALEVEL-PHYSICS-3.2",
+      "topic": "Mechanics and materials"
      },
      {
       "name": "Power",
       "math": "<i>P</i> = <i>Fv</i>",
-      "note": "efficiency = useful output power ÷ input power"
+      "note": "efficiency = useful output power ÷ input power",
+      "id": "INS-ALEVEL-PHYSICS-3.3",
+      "topic": "Mechanics and materials"
      },
      {
       "name": "Density",
-      "math": "&rho; = <sup><i>m</i></sup>&frasl;<sub><i>V</i></sub>"
+      "math": "&rho; = <sup><i>m</i></sup>&frasl;<sub><i>V</i></sub>",
+      "id": "INS-GCSE-PHYSICS-4.1",
+      "topic": "Mechanics and materials"
      },
      {
       "name": "Young modulus",
-      "math": "<i>E</i> = <sup>tensile stress</sup>&frasl;<sub>tensile strain</sub> = <sup><i>FL</i></sup>&frasl;<sub><i>A</i>&Delta;<i>L</i></sub>"
+      "math": "<i>E</i> = <sup>tensile stress</sup>&frasl;<sub>tensile strain</sub> = <sup><i>FL</i></sup>&frasl;<sub><i>A</i>&Delta;<i>L</i></sub>",
+      "id": "INS-ALEVEL-PHYSICS-3.5",
+      "topic": "Mechanics and materials"
      },
      {
       "name": "Elastic energy",
-      "math": "<i>E</i> = <sup>1</sup>&frasl;<sub>2</sub> <i>F</i>&Delta;<i>L</i>"
+      "math": "<i>E</i> = <sup>1</sup>&frasl;<sub>2</sub> <i>F</i>&Delta;<i>L</i>",
+      "id": "INS-ALEVEL-PHYSICS-3.6",
+      "topic": "Mechanics and materials"
      }
     ]
    },
@@ -2960,37 +3174,53 @@
     "lines": [
      {
       "name": "Resistivity",
-      "math": "&rho; = <sup><i>RA</i></sup>&frasl;<sub><i>L</i></sub>"
+      "math": "&rho; = <sup><i>RA</i></sup>&frasl;<sub><i>L</i></sub>",
+      "id": "INS-ALEVEL-PHYSICS-4.1",
+      "topic": "Electricity and fields"
      },
      {
       "name": "EMF",
-      "math": "&epsilon; = <i>I</i>(<i>R</i> + <i>r</i>)"
+      "math": "&epsilon; = <i>I</i>(<i>R</i> + <i>r</i>)",
+      "id": "INS-ALEVEL-PHYSICS-4.2",
+      "topic": "Electricity and fields"
      },
      {
       "name": "Capacitance",
       "math": "<i>C</i> = <sup><i>Q</i></sup>&frasl;<sub><i>V</i></sub>; &nbsp; <i>E</i> = <sup>1</sup>&frasl;<sub>2</sub> <i>QV</i>",
-      "note": "time constant RC"
+      "note": "time constant RC",
+      "id": "INS-ALEVEL-PHYSICS-4.3",
+      "topic": "Electricity and fields"
      },
      {
       "name": "Capacitor discharge",
-      "math": "<i>Q</i> = <i>Q</i><sub>0</sub> e<sup>&minus;<i>t</i>/<i>RC</i></sup>"
+      "math": "<i>Q</i> = <i>Q</i><sub>0</sub> e<sup>&minus;<i>t</i>/<i>RC</i></sup>",
+      "id": "INS-ALEVEL-PHYSICS-4.4",
+      "topic": "Electricity and fields"
      },
      {
       "name": "Gravitation",
-      "math": "<i>F</i> = <sup><i>Gm</i><sub>1</sub><i>m</i><sub>2</sub></sup>&frasl;<sub><i>r</i><sup>2</sup></sub>; &nbsp; <i>V</i> = &minus;<sup><i>GM</i></sup>&frasl;<sub><i>r</i></sub>"
+      "math": "<i>F</i> = <sup><i>Gm</i><sub>1</sub><i>m</i><sub>2</sub></sup>&frasl;<sub><i>r</i><sup>2</sup></sub>; &nbsp; <i>V</i> = &minus;<sup><i>GM</i></sup>&frasl;<sub><i>r</i></sub>",
+      "id": "INS-ALEVEL-PHYSICS-4.5",
+      "topic": "Electricity and fields"
      },
      {
       "name": "Electric force",
       "math": "<i>F</i> = <sup><i>Q</i><sub>1</sub><i>Q</i><sub>2</sub></sup>&frasl;<sub>4&pi;&epsilon;<sub>0</sub><i>r</i><sup>2</sup></sub>; &nbsp; <i>E</i> = <sup><i>V</i></sup>&frasl;<sub><i>d</i></sub>",
-      "note": "E = V ÷ d in a uniform field"
+      "note": "E = V ÷ d in a uniform field",
+      "id": "INS-ALEVEL-PHYSICS-4.6",
+      "topic": "Electricity and fields"
      },
      {
       "name": "Magnetic force",
-      "math": "<i>F</i> = <i>BIl</i>; &nbsp; <i>F</i> = <i>BQv</i>"
+      "math": "<i>F</i> = <i>BIl</i>; &nbsp; <i>F</i> = <i>BQv</i>",
+      "id": "INS-ALEVEL-PHYSICS-4.7",
+      "topic": "Electricity and fields"
      },
      {
       "name": "Induction",
-      "math": "&epsilon; = <i>N</i> <sup>&Delta;&Phi;</sup>&frasl;<sub>&Delta;<i>t</i></sub>"
+      "math": "&epsilon; = <i>N</i> <sup>&Delta;&Phi;</sup>&frasl;<sub>&Delta;<i>t</i></sub>",
+      "id": "INS-ALEVEL-PHYSICS-4.8",
+      "topic": "Electricity and fields"
      }
     ]
    },
@@ -2999,45 +3229,1166 @@
     "lines": [
      {
       "name": "Circular motion",
-      "math": "&omega; = <sup><i>v</i></sup>&frasl;<sub><i>r</i></sub>; &nbsp; <i>a</i> = <sup><i>v</i><sup>2</sup></sup>&frasl;<sub><i>r</i></sub> = &omega;<sup>2</sup><i>r</i>"
+      "math": "&omega; = <sup><i>v</i></sup>&frasl;<sub><i>r</i></sub>; &nbsp; <i>a</i> = <sup><i>v</i><sup>2</sup></sup>&frasl;<sub><i>r</i></sub> = &omega;<sup>2</sup><i>r</i>",
+      "id": "INS-ALEVEL-PHYSICS-5.1",
+      "topic": "Circles, oscillations, gases and nuclei"
      },
      {
       "name": "Simple harmonic motion",
-      "math": "<i>a</i> = &minus;&omega;<sup>2</sup><i>x</i>; &nbsp; <i>x</i> = <i>A</i> cos &omega;<i>t</i>"
+      "math": "<i>a</i> = &minus;&omega;<sup>2</sup><i>x</i>; &nbsp; <i>x</i> = <i>A</i> cos &omega;<i>t</i>",
+      "id": "INS-ALEVEL-PHYSICS-5.2",
+      "topic": "Circles, oscillations, gases and nuclei"
      },
      {
       "name": "Mass on a spring",
-      "math": "<i>T</i> = 2&pi;&radic;<span class=\"insh-rad\"><i>m</i>/<i>k</i></span>"
+      "math": "<i>T</i> = 2&pi;&radic;<span class=\"insh-rad\"><i>m</i>/<i>k</i></span>",
+      "id": "INS-ALEVEL-PHYSICS-5.3",
+      "topic": "Circles, oscillations, gases and nuclei"
      },
      {
       "name": "Simple pendulum",
-      "math": "<i>T</i> = 2&pi;&radic;<span class=\"insh-rad\"><i>l</i>/<i>g</i></span>"
+      "math": "<i>T</i> = 2&pi;&radic;<span class=\"insh-rad\"><i>l</i>/<i>g</i></span>",
+      "id": "INS-ALEVEL-PHYSICS-5.4",
+      "topic": "Circles, oscillations, gases and nuclei"
      },
      {
       "name": "Ideal gas",
-      "math": "<i>pV</i> = <i>nRT</i> = <i>NkT</i>"
+      "math": "<i>pV</i> = <i>nRT</i> = <i>NkT</i>",
+      "id": "INS-ALEVEL-PHYSICS-5.5",
+      "topic": "Circles, oscillations, gases and nuclei"
      },
      {
       "name": "Molecular kinetic energy",
-      "math": "<sup>1</sup>&frasl;<sub>2</sub> <i>m</i>(<i>c</i><sub>rms</sub>)<sup>2</sup> = <sup>3</sup>&frasl;<sub>2</sub> <i>kT</i>"
+      "math": "<sup>1</sup>&frasl;<sub>2</sub> <i>m</i>(<i>c</i><sub>rms</sub>)<sup>2</sup> = <sup>3</sup>&frasl;<sub>2</sub> <i>kT</i>",
+      "id": "INS-ALEVEL-PHYSICS-5.6",
+      "topic": "Circles, oscillations, gases and nuclei"
      },
      {
       "name": "Radioactive decay",
-      "math": "<i>A</i> = &lambda;<i>N</i>; &nbsp; <i>N</i> = <i>N</i><sub>0</sub> e<sup>&minus;&lambda;<i>t</i></sup>; &nbsp; <i>T</i><sub>&frac12;</sub> = <sup>ln 2</sup>&frasl;<sub>&lambda;</sub>"
+      "math": "<i>A</i> = &lambda;<i>N</i>; &nbsp; <i>N</i> = <i>N</i><sub>0</sub> e<sup>&minus;&lambda;<i>t</i></sup>; &nbsp; <i>T</i><sub>&frac12;</sub> = <sup>ln 2</sup>&frasl;<sub>&lambda;</sub>",
+      "id": "INS-ALEVEL-PHYSICS-5.7",
+      "topic": "Circles, oscillations, gases and nuclei"
      },
      {
       "name": "Nuclear radius",
-      "math": "<i>R</i> = <i>R</i><sub>0</sub><i>A</i><sup>1/3</sup>"
+      "math": "<i>R</i> = <i>R</i><sub>0</sub><i>A</i><sup>1/3</sup>",
+      "id": "INS-ALEVEL-PHYSICS-5.8",
+      "topic": "Circles, oscillations, gases and nuclei"
      },
      {
       "name": "Mass and energy",
-      "math": "<i>E</i> = <i>mc</i><sup>2</sup>"
+      "math": "<i>E</i> = <i>mc</i><sup>2</sup>",
+      "id": "INS-ALEVEL-PHYSICS-5.9",
+      "topic": "Circles, oscillations, gases and nuclei"
      }
     ]
    }
   ],
   "table": "",
   "active": "True"
+ },
+ {
+  "insert_id": "INS-OCR-ALEVEL-PHYSICS",
+  "name": "OCR A level Physics data, formulae and relationships",
+  "summary": "The data and the key relationships of the booklet an OCR A level Physics A candidate is given in the exam.",
+  "subject": "Physics",
+  "level": "A-Level",
+  "keystage": "KS5",
+  "board": "OCR",
+  "tier": "",
+  "for_subjects": "Physics",
+  "for_levels": "A-Level",
+  "for_tiers": "",
+  "verified": "False",
+  "verified_note": "The data and the key relationships of the Data, Formulae and Relationships booklet OCR gives with every Physics A paper, in our own setting; its units and prefixes pages are in the booklet itself. Written from knowledge of the booklet and not yet compared line by line, so marked unverified.",
+  "official": [
+   {
+    "label": "OCR A Level Physics A",
+    "url": "https://www.ocr.org.uk/qualifications/as-and-a-level/physics-a-h156-h556-from-2015/"
+   }
+  ],
+  "sections": [
+   {
+    "head": "Data",
+    "lines": [
+     {
+      "name": "Gravitational field strength",
+      "math": "<i>g</i> = 9.81 N kg<sup>&minus;1</sup>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-1.1",
+      "topic": "Data"
+     },
+     {
+      "name": "Elementary charge",
+      "math": "<i>e</i> = 1.60 &times; 10<sup>&minus;19</sup> C",
+      "id": "INS-ALEVEL-PHYSICS-1.2",
+      "topic": "Data"
+     },
+     {
+      "name": "Speed of light in a vacuum",
+      "math": "<i>c</i> = 3.00 &times; 10<sup>8</sup> m s<sup>&minus;1</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.1",
+      "topic": "Data"
+     },
+     {
+      "name": "Planck constant",
+      "math": "<i>h</i> = 6.63 &times; 10<sup>&minus;34</sup> J s",
+      "id": "INS-ALEVEL-PHYSICS-1.3",
+      "topic": "Data"
+     },
+     {
+      "name": "Avogadro constant",
+      "math": "<i>N</i><sub>A</sub> = 6.02 &times; 10<sup>23</sup> mol<sup>&minus;1</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.5",
+      "topic": "Data"
+     },
+     {
+      "name": "Molar gas constant",
+      "math": "<i>R</i> = 8.31 J mol<sup>&minus;1</sup> K<sup>&minus;1</sup>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-1.6",
+      "topic": "Data"
+     },
+     {
+      "name": "Boltzmann constant",
+      "math": "<i>k</i> = 1.38 &times; 10<sup>&minus;23</sup> J K<sup>&minus;1</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.7",
+      "topic": "Data"
+     },
+     {
+      "name": "Gravitational constant",
+      "math": "<i>G</i> = 6.67 &times; 10<sup>&minus;11</sup> N m<sup>2</sup> kg<sup>&minus;2</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.4",
+      "topic": "Data"
+     },
+     {
+      "name": "Permittivity of free space",
+      "math": "&epsilon;<sub>0</sub> = 8.85 &times; 10<sup>&minus;12</sup> C<sup>2</sup> N<sup>&minus;1</sup> m<sup>&minus;2</sup>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-1.9",
+      "topic": "Data"
+     },
+     {
+      "name": "Electron rest mass",
+      "math": "<i>m</i><sub>e</sub> = 9.11 &times; 10<sup>&minus;31</sup> kg",
+      "id": "INS-ALEVEL-PHYSICS-1.11",
+      "topic": "Data"
+     },
+     {
+      "name": "Proton rest mass",
+      "math": "<i>m</i><sub>p</sub> = 1.673 &times; 10<sup>&minus;27</sup> kg",
+      "id": "INS-OCR-ALEVEL-PHYSICS-1.11",
+      "topic": "Data"
+     },
+     {
+      "name": "Neutron rest mass",
+      "math": "<i>m</i><sub>n</sub> = 1.675 &times; 10<sup>&minus;27</sup> kg",
+      "id": "INS-OCR-ALEVEL-PHYSICS-1.12",
+      "topic": "Data"
+     },
+     {
+      "name": "Alpha particle rest mass",
+      "math": "<i>m</i><sub>&alpha;</sub> = 6.646 &times; 10<sup>&minus;27</sup> kg",
+      "id": "INS-OCR-ALEVEL-PHYSICS-1.13",
+      "topic": "Data"
+     },
+     {
+      "name": "Stefan constant",
+      "math": "&sigma; = 5.67 &times; 10<sup>&minus;8</sup> W m<sup>&minus;2</sup> K<sup>&minus;4</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.8",
+      "topic": "Data"
+     },
+     {
+      "name": "Atomic mass unit",
+      "math": "1 u = 1.661 &times; 10<sup>&minus;27</sup> kg",
+      "id": "INS-ALEVEL-PHYSICS-1.14",
+      "topic": "Data"
+     },
+     {
+      "name": "Light-year",
+      "math": "1 ly = 9.46 &times; 10<sup>15</sup> m",
+      "id": "INS-OCR-ALEVEL-PHYSICS-1.16",
+      "topic": "Data"
+     },
+     {
+      "name": "Parsec",
+      "math": "1 pc = 3.09 &times; 10<sup>16</sup> m",
+      "id": "INS-OCR-ALEVEL-PHYSICS-1.17",
+      "topic": "Data"
+     }
+    ]
+   },
+   {
+    "head": "Mechanics",
+    "lines": [
+     {
+      "name": "Constant acceleration",
+      "math": "<i>v</i> = <i>u</i> + <i>a</i><i>t</i>; &nbsp; <i>s</i> = <i>u</i><i>t</i> + <sup>1</sup>&frasl;<sub>2</sub> <i>a</i><i>t</i><sup>2</sup>; &nbsp; <i>s</i> = <sup>1</sup>&frasl;<sub>2</sub> (<i>u</i> + <i>v</i>)<i>t</i>; &nbsp; <i>v</i><sup>2</sup> = <i>u</i><sup>2</sup> + 2<i>a</i><i>s</i>",
+      "id": "INS-ALEVEL-PHYSICS-3.1",
+      "topic": "Mechanics"
+     },
+     {
+      "name": "Force",
+      "math": "<i>F</i> = <sup>&Delta;<i>p</i></sup>&frasl;<sub>&Delta;<i>t</i></sub>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-2.2",
+      "topic": "Mechanics"
+     },
+     {
+      "name": "Power",
+      "math": "<i>P</i> = <i>F</i><i>v</i>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-2.3",
+      "topic": "Mechanics"
+     },
+     {
+      "name": "Hooke’s law",
+      "math": "<i>F</i> = <i>k</i><i>x</i>; &nbsp; <i>E</i> = <sup>1</sup>&frasl;<sub>2</sub> <i>F</i><i>x</i> = <sup>1</sup>&frasl;<sub>2</sub> <i>k</i><i>x</i><sup>2</sup>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-2.4",
+      "topic": "Mechanics"
+     },
+     {
+      "name": "Stress, strain, Young modulus",
+      "math": "&sigma; = <sup><i>F</i></sup>&frasl;<sub><i>A</i></sub>; &nbsp; &epsilon; = <sup><i>x</i></sup>&frasl;<sub><i>L</i></sub>; &nbsp; <i>E</i> = <sup>&sigma;</sup>&frasl;<sub>&epsilon;</sub>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-2.5",
+      "topic": "Mechanics"
+     },
+     {
+      "name": "Circular motion",
+      "math": "<i>v</i> = &omega;<i>r</i>; &nbsp; <i>a</i> = <sup><i>v</i><sup>2</sup></sup>&frasl;<sub><i>r</i></sub> = &omega;<sup>2</sup><i>r</i>; &nbsp; <i>F</i> = <sup><i>m</i><i>v</i><sup>2</sup></sup>&frasl;<sub><i>r</i></sub>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-2.6",
+      "topic": "Mechanics"
+     },
+     {
+      "name": "Simple harmonic motion",
+      "math": "<i>a</i> = &minus;&omega;<sup>2</sup><i>x</i>; &nbsp; <i>x</i> = <i>A</i> cos &omega;<i>t</i>; &nbsp; <i>v</i> = &plusmn;&omega;&radic;<span class=\"insh-rad\"><i>A</i><sup>2</sup> &minus; <i>x</i><sup>2</sup></span>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-2.7",
+      "topic": "Mechanics"
+     }
+    ]
+   },
+   {
+    "head": "Electricity and waves",
+    "lines": [
+     {
+      "name": "Current",
+      "math": "<i>I</i> = <i>A</i><i>n</i><i>e</i><i>v</i>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-3.1",
+      "topic": "Electricity and waves"
+     },
+     {
+      "name": "Resistivity",
+      "math": "<i>R</i> = <sup>&rho;<i>L</i></sup>&frasl;<sub><i>A</i></sub>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-3.2",
+      "topic": "Electricity and waves"
+     },
+     {
+      "name": "Potential divider",
+      "math": "<i>V</i><sub>out</sub> = <sup><i>R</i><sub>2</sub></sup>&frasl;<sub><i>R</i><sub>1</sub> + <i>R</i><sub>2</sub></sub> &times; <i>V</i><sub>in</sub>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-3.3",
+      "topic": "Electricity and waves"
+     },
+     {
+      "name": "Wave speed",
+      "math": "<i>v</i> = <i>f</i>&lambda;",
+      "id": "INS-GCSE-PHYSICS-4.3",
+      "topic": "Electricity and waves"
+     },
+     {
+      "name": "Double slit",
+      "math": "&lambda; = <sup><i>a</i><i>x</i></sup>&frasl;<sub><i>D</i></sub>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-3.5",
+      "topic": "Electricity and waves"
+     },
+     {
+      "name": "Diffraction grating",
+      "math": "<i>d</i> sin &theta; = <i>n</i>&lambda;",
+      "id": "INS-ALEVEL-PHYSICS-2.6",
+      "topic": "Electricity and waves"
+     },
+     {
+      "name": "Refraction",
+      "math": "<i>n</i> sin &theta; = constant; &nbsp; sin <i>C</i> = <sup>1</sup>&frasl;<sub><i>n</i></sub>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-3.7",
+      "topic": "Electricity and waves"
+     },
+     {
+      "name": "Photon",
+      "math": "<i>E</i> = <i>h</i><i>f</i> = <sup><i>h</i><i>c</i></sup>&frasl;<sub>&lambda;</sub>; &nbsp; <i>h</i><i>f</i> = &phi; + <i>KE</i><sub>max</sub>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-3.8",
+      "topic": "Electricity and waves"
+     },
+     {
+      "name": "de Broglie",
+      "math": "&lambda; = <sup><i>h</i></sup>&frasl;<sub><i>p</i></sub>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-3.9",
+      "topic": "Electricity and waves"
+     }
+    ]
+   },
+   {
+    "head": "Thermal, fields and nuclear",
+    "lines": [
+     {
+      "name": "Ideal gas",
+      "math": "<i>p</i><i>V</i> = <i>n</i><i>R</i><i>T</i> = <i>N</i><i>k</i><i>T</i>; &nbsp; <i>p</i><i>V</i> = <sup>1</sup>&frasl;<sub>3</sub> <i>N</i><i>m</i><span style=\"text-decoration:overline\"><i>c</i><sup>2</sup></span>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-4.1",
+      "topic": "Thermal, fields and nuclear"
+     },
+     {
+      "name": "Mean kinetic energy",
+      "math": "<sup>1</sup>&frasl;<sub>2</sub> <i>m</i><span style=\"text-decoration:overline\"><i>c</i><sup>2</sup></span> = <sup>3</sup>&frasl;<sub>2</sub> <i>k</i><i>T</i>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-4.2",
+      "topic": "Thermal, fields and nuclear"
+     },
+     {
+      "name": "Gravitational field",
+      "math": "<i>g</i> = &minus;<sup><i>G</i><i>M</i></sup>&frasl;<sub><i>r</i><sup>2</sup></sub>; &nbsp; <i>V</i><sub>g</sub> = &minus;<sup><i>G</i><i>M</i></sup>&frasl;<sub><i>r</i></sub>; &nbsp; <i>T</i><sup>2</sup> = <sup>4&pi;<sup>2</sup></sup>&frasl;<sub><i>G</i><i>M</i></sub> <i>r</i><sup>3</sup>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-4.3",
+      "topic": "Thermal, fields and nuclear"
+     },
+     {
+      "name": "Electric field",
+      "math": "<i>F</i> = <sup><i>Q</i><i>q</i></sup>&frasl;<sub>4&pi;&epsilon;<sub>0</sub><i>r</i><sup>2</sup></sub>; &nbsp; <i>E</i> = <sup><i>V</i></sup>&frasl;<sub><i>d</i></sub>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-4.4",
+      "topic": "Thermal, fields and nuclear"
+     },
+     {
+      "name": "Capacitors",
+      "math": "<i>C</i> = <sup><i>Q</i></sup>&frasl;<sub><i>V</i></sub>; &nbsp; <i>W</i> = <sup>1</sup>&frasl;<sub>2</sub> <i>Q</i><i>V</i>; &nbsp; &tau; = <i>C</i><i>R</i>; &nbsp; <i>x</i> = <i>x</i><sub>0</sub>e<sup>&minus;<i>t</i>/<i>CR</i></sup>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-4.5",
+      "topic": "Thermal, fields and nuclear"
+     },
+     {
+      "name": "Magnetic force",
+      "math": "<i>F</i> = <i>B</i><i>I</i><i>L</i> sin &theta;; &nbsp; <i>F</i> = <i>B</i><i>Q</i><i>v</i>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-4.6",
+      "topic": "Thermal, fields and nuclear"
+     },
+     {
+      "name": "Induction",
+      "math": "&phi; = <i>B</i><i>A</i> cos &theta;; &nbsp; &epsilon; = &minus;<sup>d(<i>N</i>&phi;)</sup>&frasl;<sub>d<i>t</i></sub>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-4.7",
+      "topic": "Thermal, fields and nuclear"
+     },
+     {
+      "name": "Radioactive decay",
+      "math": "<i>A</i> = &lambda;<i>N</i>; &nbsp; <i>N</i> = <i>N</i><sub>0</sub>e<sup>&minus;&lambda;<i>t</i></sup>; &nbsp; &lambda;<i>t</i><sub>&frac12;</sub> = ln 2",
+      "id": "INS-OCR-ALEVEL-PHYSICS-4.8",
+      "topic": "Thermal, fields and nuclear"
+     },
+     {
+      "name": "Mass–energy",
+      "math": "&Delta;<i>E</i> = &Delta;<i>m</i><i>c</i><sup>2</sup>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-4.9",
+      "topic": "Thermal, fields and nuclear"
+     },
+     {
+      "name": "Stars",
+      "math": "<i>L</i> = 4&pi;<i>r</i><sup>2</sup>&sigma;<i>T</i><sup>4</sup>; &nbsp; &lambda;<sub>max</sub><i>T</i> = constant",
+      "id": "INS-OCR-ALEVEL-PHYSICS-4.10",
+      "topic": "Thermal, fields and nuclear"
+     },
+     {
+      "name": "Universe",
+      "math": "<i>v</i> &asymp; <i>H</i><sub>0</sub><i>d</i>; &nbsp; <sup>&Delta;&lambda;</sup>&frasl;<sub>&lambda;</sub> &asymp; <sup><i>v</i></sup>&frasl;<sub><i>c</i></sub>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-4.11",
+      "topic": "Thermal, fields and nuclear"
+     },
+     {
+      "name": "Medical imaging",
+      "math": "<i>I</i> = <i>I</i><sub>0</sub>e<sup>&minus;&mu;<i>x</i></sup>; &nbsp; <i>Z</i> = &rho;<i>c</i>",
+      "id": "INS-OCR-ALEVEL-PHYSICS-4.12",
+      "topic": "Thermal, fields and nuclear"
+     }
+    ]
+   }
+  ],
+  "table": "",
+  "active": "True"
+ },
+ {
+  "insert_id": "INS-OCR-ALEVEL-CHEMISTRY",
+  "name": "OCR A level Chemistry data sheet",
+  "summary": "The periodic table, constants and infrared table of the Data Sheet an OCR A level Chemistry A candidate is given in the exam.",
+  "subject": "Chemistry",
+  "level": "A-Level",
+  "keystage": "KS5",
+  "board": "OCR",
+  "tier": "",
+  "for_subjects": "Chemistry",
+  "for_levels": "A-Level",
+  "for_tiers": "",
+  "verified": "False",
+  "verified_note": "The facts of OCR’s H432 Data Sheet in our own setting: its periodic table as on the OCR GCSE sheet (masses to one decimal place), its constants and its infrared table; the NMR chemical-shift charts are on the sheet itself. Written from knowledge of the sheet and not yet compared line by line, so marked unverified.",
+  "official": [
+   {
+    "label": "OCR A Level Chemistry A",
+    "url": "https://www.ocr.org.uk/qualifications/as-and-a-level/chemistry-a-h032-h432-from-2015/"
+   }
+  ],
+  "sections": [
+   {
+    "head": "Constants and conversions",
+    "lines": [
+     {
+      "name": "Avogadro constant",
+      "math": "<i>N</i><sub>A</sub> = 6.02 &times; 10<sup>23</sup> mol<sup>&minus;1</sup>",
+      "id": "INS-ALEVEL-PHYSICS-1.5",
+      "topic": "Constants and conversions"
+     },
+     {
+      "name": "Gas constant",
+      "math": "<i>R</i> = 8.314 J mol<sup>&minus;1</sup> K<sup>&minus;1</sup>",
+      "id": "INS-OCR-ALEVEL-CHEMISTRY-1.2",
+      "topic": "Constants and conversions"
+     },
+     {
+      "name": "Molar gas volume at RTP",
+      "math": "24.0 dm<sup>3</sup> mol<sup>&minus;1</sup>",
+      "id": "INS-OCR-ALEVEL-CHEMISTRY-1.3",
+      "topic": "Constants and conversions"
+     },
+     {
+      "name": "Specific heat capacity of water",
+      "math": "<i>c</i> = 4.18 J g<sup>&minus;1</sup> K<sup>&minus;1</sup>",
+      "id": "INS-OCR-ALEVEL-CHEMISTRY-1.4",
+      "topic": "Constants and conversions"
+     },
+     {
+      "name": "Ionic product of water",
+      "math": "<i>K</i><sub>w</sub> = 1.00 &times; 10<sup>&minus;14</sup> mol<sup>2</sup> dm<sup>&minus;6</sup> at 298 K",
+      "id": "INS-OCR-ALEVEL-CHEMISTRY-1.5",
+      "topic": "Constants and conversions"
+     },
+     {
+      "name": "Volume",
+      "math": "1 cm<sup>3</sup> = 10<sup>&minus;3</sup> dm<sup>3</sup> = 10<sup>&minus;6</sup> m<sup>3</sup>",
+      "id": "INS-OCR-ALEVEL-CHEMISTRY-1.6",
+      "topic": "Constants and conversions"
+     },
+     {
+      "name": "Mass",
+      "math": "1 tonne = 10<sup>6</sup> g",
+      "id": "INS-OCR-ALEVEL-CHEMISTRY-1.7",
+      "topic": "Constants and conversions"
+     }
+    ]
+   },
+   {
+    "head": "Infrared absorptions in organic molecules",
+    "lines": [
+     {
+      "name": "C–O (alcohols, esters, acids)",
+      "math": "1000&ndash;1300 cm<sup>&minus;1</sup>",
+      "id": "INS-OCR-ALEVEL-CHEMISTRY-2.1",
+      "topic": "Infrared absorptions in organic molecules"
+     },
+     {
+      "name": "C=O (aldehydes, ketones, acids, esters, amides)",
+      "math": "1630&ndash;1820 cm<sup>&minus;1</sup>",
+      "id": "INS-OCR-ALEVEL-CHEMISTRY-2.2",
+      "topic": "Infrared absorptions in organic molecules"
+     },
+     {
+      "name": "C–H (alkyl groups, alkenes, arenes)",
+      "math": "2850&ndash;3100 cm<sup>&minus;1</sup>",
+      "id": "INS-OCR-ALEVEL-CHEMISTRY-2.3",
+      "topic": "Infrared absorptions in organic molecules"
+     },
+     {
+      "name": "O–H (carboxylic acids)",
+      "math": "2500&ndash;3300 cm<sup>&minus;1</sup>",
+      "note": "very broad",
+      "id": "INS-OCR-ALEVEL-CHEMISTRY-2.4",
+      "topic": "Infrared absorptions in organic molecules"
+     },
+     {
+      "name": "N–H (amines, amides)",
+      "math": "3300&ndash;3500 cm<sup>&minus;1</sup>",
+      "id": "INS-OCR-ALEVEL-CHEMISTRY-2.5",
+      "topic": "Infrared absorptions in organic molecules"
+     },
+     {
+      "name": "O–H (alcohols, phenols)",
+      "math": "3200&ndash;3600 cm<sup>&minus;1</sup>",
+      "id": "INS-OCR-ALEVEL-CHEMISTRY-2.6",
+      "topic": "Infrared absorptions in organic molecules"
+     }
+    ]
+   }
+  ],
+  "table": "periodic",
+  "active": "True",
+  "elements": [
+   [
+    1,
+    "H",
+    "Hydrogen",
+    "1.0",
+    1,
+    1
+   ],
+   [
+    2,
+    "He",
+    "Helium",
+    "4.0",
+    18,
+    1
+   ],
+   [
+    3,
+    "Li",
+    "Lithium",
+    "6.9",
+    1,
+    2
+   ],
+   [
+    4,
+    "Be",
+    "Beryllium",
+    "9.0",
+    2,
+    2
+   ],
+   [
+    5,
+    "B",
+    "Boron",
+    "10.8",
+    13,
+    2
+   ],
+   [
+    6,
+    "C",
+    "Carbon",
+    "12.0",
+    14,
+    2
+   ],
+   [
+    7,
+    "N",
+    "Nitrogen",
+    "14.0",
+    15,
+    2
+   ],
+   [
+    8,
+    "O",
+    "Oxygen",
+    "16.0",
+    16,
+    2
+   ],
+   [
+    9,
+    "F",
+    "Fluorine",
+    "19.0",
+    17,
+    2
+   ],
+   [
+    10,
+    "Ne",
+    "Neon",
+    "20.2",
+    18,
+    2
+   ],
+   [
+    11,
+    "Na",
+    "Sodium",
+    "23.0",
+    1,
+    3
+   ],
+   [
+    12,
+    "Mg",
+    "Magnesium",
+    "24.3",
+    2,
+    3
+   ],
+   [
+    13,
+    "Al",
+    "Aluminium",
+    "27.0",
+    13,
+    3
+   ],
+   [
+    14,
+    "Si",
+    "Silicon",
+    "28.1",
+    14,
+    3
+   ],
+   [
+    15,
+    "P",
+    "Phosphorus",
+    "31.0",
+    15,
+    3
+   ],
+   [
+    16,
+    "S",
+    "Sulfur",
+    "32.1",
+    16,
+    3
+   ],
+   [
+    17,
+    "Cl",
+    "Chlorine",
+    "35.5",
+    17,
+    3
+   ],
+   [
+    18,
+    "Ar",
+    "Argon",
+    "39.9",
+    18,
+    3
+   ],
+   [
+    19,
+    "K",
+    "Potassium",
+    "39.1",
+    1,
+    4
+   ],
+   [
+    20,
+    "Ca",
+    "Calcium",
+    "40.1",
+    2,
+    4
+   ],
+   [
+    21,
+    "Sc",
+    "Scandium",
+    "45.0",
+    3,
+    4
+   ],
+   [
+    22,
+    "Ti",
+    "Titanium",
+    "47.9",
+    4,
+    4
+   ],
+   [
+    23,
+    "V",
+    "Vanadium",
+    "50.9",
+    5,
+    4
+   ],
+   [
+    24,
+    "Cr",
+    "Chromium",
+    "52.0",
+    6,
+    4
+   ],
+   [
+    25,
+    "Mn",
+    "Manganese",
+    "54.9",
+    7,
+    4
+   ],
+   [
+    26,
+    "Fe",
+    "Iron",
+    "55.8",
+    8,
+    4
+   ],
+   [
+    27,
+    "Co",
+    "Cobalt",
+    "58.9",
+    9,
+    4
+   ],
+   [
+    28,
+    "Ni",
+    "Nickel",
+    "58.7",
+    10,
+    4
+   ],
+   [
+    29,
+    "Cu",
+    "Copper",
+    "63.5",
+    11,
+    4
+   ],
+   [
+    30,
+    "Zn",
+    "Zinc",
+    "65.4",
+    12,
+    4
+   ],
+   [
+    31,
+    "Ga",
+    "Gallium",
+    "69.7",
+    13,
+    4
+   ],
+   [
+    32,
+    "Ge",
+    "Germanium",
+    "72.6",
+    14,
+    4
+   ],
+   [
+    33,
+    "As",
+    "Arsenic",
+    "74.9",
+    15,
+    4
+   ],
+   [
+    34,
+    "Se",
+    "Selenium",
+    "79.0",
+    16,
+    4
+   ],
+   [
+    35,
+    "Br",
+    "Bromine",
+    "79.9",
+    17,
+    4
+   ],
+   [
+    36,
+    "Kr",
+    "Krypton",
+    "83.8",
+    18,
+    4
+   ],
+   [
+    37,
+    "Rb",
+    "Rubidium",
+    "85.5",
+    1,
+    5
+   ],
+   [
+    38,
+    "Sr",
+    "Strontium",
+    "87.6",
+    2,
+    5
+   ],
+   [
+    39,
+    "Y",
+    "Yttrium",
+    "88.9",
+    3,
+    5
+   ],
+   [
+    40,
+    "Zr",
+    "Zirconium",
+    "91.2",
+    4,
+    5
+   ],
+   [
+    41,
+    "Nb",
+    "Niobium",
+    "92.9",
+    5,
+    5
+   ],
+   [
+    42,
+    "Mo",
+    "Molybdenum",
+    "95.9",
+    6,
+    5
+   ],
+   [
+    43,
+    "Tc",
+    "Technetium",
+    "",
+    7,
+    5
+   ],
+   [
+    44,
+    "Ru",
+    "Ruthenium",
+    "101.1",
+    8,
+    5
+   ],
+   [
+    45,
+    "Rh",
+    "Rhodium",
+    "102.9",
+    9,
+    5
+   ],
+   [
+    46,
+    "Pd",
+    "Palladium",
+    "106.4",
+    10,
+    5
+   ],
+   [
+    47,
+    "Ag",
+    "Silver",
+    "107.9",
+    11,
+    5
+   ],
+   [
+    48,
+    "Cd",
+    "Cadmium",
+    "112.4",
+    12,
+    5
+   ],
+   [
+    49,
+    "In",
+    "Indium",
+    "114.8",
+    13,
+    5
+   ],
+   [
+    50,
+    "Sn",
+    "Tin",
+    "118.7",
+    14,
+    5
+   ],
+   [
+    51,
+    "Sb",
+    "Antimony",
+    "121.8",
+    15,
+    5
+   ],
+   [
+    52,
+    "Te",
+    "Tellurium",
+    "127.6",
+    16,
+    5
+   ],
+   [
+    53,
+    "I",
+    "Iodine",
+    "126.9",
+    17,
+    5
+   ],
+   [
+    54,
+    "Xe",
+    "Xenon",
+    "131.3",
+    18,
+    5
+   ],
+   [
+    55,
+    "Cs",
+    "Caesium",
+    "132.9",
+    1,
+    6
+   ],
+   [
+    56,
+    "Ba",
+    "Barium",
+    "137.3",
+    2,
+    6
+   ],
+   [
+    72,
+    "Hf",
+    "Hafnium",
+    "178.5",
+    4,
+    6
+   ],
+   [
+    73,
+    "Ta",
+    "Tantalum",
+    "180.9",
+    5,
+    6
+   ],
+   [
+    74,
+    "W",
+    "Tungsten",
+    "183.8",
+    6,
+    6
+   ],
+   [
+    75,
+    "Re",
+    "Rhenium",
+    "186.2",
+    7,
+    6
+   ],
+   [
+    76,
+    "Os",
+    "Osmium",
+    "190.2",
+    8,
+    6
+   ],
+   [
+    77,
+    "Ir",
+    "Iridium",
+    "192.2",
+    9,
+    6
+   ],
+   [
+    78,
+    "Pt",
+    "Platinum",
+    "195.1",
+    10,
+    6
+   ],
+   [
+    79,
+    "Au",
+    "Gold",
+    "197.0",
+    11,
+    6
+   ],
+   [
+    80,
+    "Hg",
+    "Mercury",
+    "200.6",
+    12,
+    6
+   ],
+   [
+    81,
+    "Tl",
+    "Thallium",
+    "204.4",
+    13,
+    6
+   ],
+   [
+    82,
+    "Pb",
+    "Lead",
+    "207.2",
+    14,
+    6
+   ],
+   [
+    83,
+    "Bi",
+    "Bismuth",
+    "209.0",
+    15,
+    6
+   ],
+   [
+    84,
+    "Po",
+    "Polonium",
+    "",
+    16,
+    6
+   ],
+   [
+    85,
+    "At",
+    "Astatine",
+    "",
+    17,
+    6
+   ],
+   [
+    86,
+    "Rn",
+    "Radon",
+    "",
+    18,
+    6
+   ],
+   [
+    87,
+    "Fr",
+    "Francium",
+    "",
+    1,
+    7
+   ],
+   [
+    88,
+    "Ra",
+    "Radium",
+    "",
+    2,
+    7
+   ],
+   [
+    104,
+    "Rf",
+    "Rutherfordium",
+    "",
+    4,
+    7
+   ],
+   [
+    105,
+    "Db",
+    "Dubnium",
+    "",
+    5,
+    7
+   ],
+   [
+    106,
+    "Sg",
+    "Seaborgium",
+    "",
+    6,
+    7
+   ],
+   [
+    107,
+    "Bh",
+    "Bohrium",
+    "",
+    7,
+    7
+   ],
+   [
+    108,
+    "Hs",
+    "Hassium",
+    "",
+    8,
+    7
+   ],
+   [
+    109,
+    "Mt",
+    "Meitnerium",
+    "",
+    9,
+    7
+   ],
+   [
+    110,
+    "Ds",
+    "Darmstadtium",
+    "",
+    10,
+    7
+   ],
+   [
+    111,
+    "Rg",
+    "Roentgenium",
+    "",
+    11,
+    7
+   ],
+   [
+    112,
+    "Cn",
+    "Copernicium",
+    "",
+    12,
+    7
+   ],
+   [
+    114,
+    "Fl",
+    "Flerovium",
+    "",
+    14,
+    7
+   ],
+   [
+    116,
+    "Lv",
+    "Livermorium",
+    "",
+    16,
+    7
+   ]
+  ]
  },
  {
   "insert_id": "INS-AQA-8700-P-AQA-8700-2306-1",

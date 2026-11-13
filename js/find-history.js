@@ -10,6 +10,24 @@ function insertItem_(r) {
     row: r,
   };
 }
+/* EACH LINE OF A SHEET IS A PART, as a paper's parts are (4.12): one row per id, its boards and sheets the union of every sheet it is on. */
+function insertParts_() {
+  const by = {};
+  (DATA.inserts || []).forEach(r => (r.sections || []).forEach(s => (s.lines || []).forEach(l => {
+    if (!l || !l.id) return;
+    const p = by[l.id] || (by[l.id] = { id: l.id, name: l.name || s.head || '', summary: '', subject: r.subject, levels: [], keystage: r.keystage,
+      boards: [], tiers: [], forSubjects: [], forLevels: [], forTiers: [], verified: r.verified, verifiedNote: r.verifiedNote, official: [],
+      sections: [{ head: l.topic || s.head || '', lines: [l] }], table: '', elements: [], forPapers: [], sources: [], parents: [] });
+    const add = (k, v) => (v || []).forEach(t => { if (p[k].indexOf(t) === -1) p[k].push(t); });
+    add('levels', r.levels); add('boards', r.boards); add('tiers', r.tiers); add('forSubjects', r.forSubjects); add('forLevels', r.forLevels);
+    p.parents.push(r.id);
+    p.summary = 'On the ' + p.parents.map(id => (insertSheetRow_(id) || {}).name || id).join(', the ') + '.';
+  })));
+  return Object.keys(by).map(k => by[k]);
+}
+const insertSheetRow_ = id => (DATA.inserts || []).find(r => r.id === id) || null;
+const insertPartItem_ = p => Object.assign(insertItem_(p), { name: p.name + ' (' + p.sections[0].head + ')',
+  text: plainText_([p.name, p.sections[0].head, p.summary, 'insert formula equation', String(p.sections[0].lines[0].math || '').replace(/<[^>]*>/g, '')].join(' ')) });
 /* WHICH INSERTS A QUESTION'S PAPER COMES WITH: its subject, level, tier and board, read as the facets read them; a blank list is any. */
 function insertsFor_(x) {
   if (!isQ_(x) || !/paper/i.test(String(x.documentType || ''))) return [];
@@ -53,12 +71,12 @@ function insLanded_() {
   });
 }
 /* NO INSERT TILE ON A QUESTION (463): the owner, "they can open it in their 2nd finder" -- an insert is Library, found like any card. */
-const insertRow_ = id => (DATA.inserts || []).find(r => r.id === id) || null;
+const insertRow_ = id => insertSheetRow_(id) || insertParts_().find(r => r.id === id) || null;
 /* THE SHEET ITSELF, on paper: each line a name and its formula, typeset as a question's maths is (`typeset_`). */
 function insertSheet_(r) {
   const mark = l => (l.higher ? '<span class="tb-h" title="Higher tier only">H</span>' : '')
     + (l.only ? `<span class="insh-only">${esc(l.only)} only</span>` : '');
-  const body = r.table === 'periodic' ? insertTable_(r) : r.sections.map(s => `<section class="insh-sec">
+  const body = (r.table === 'periodic' ? insertTable_(r) : '') + r.sections.map(s => `<section class="insh-sec">
       <h4>${esc(s.head || '')}</h4>
       <ul>${(s.lines || []).map(l => `<li><span class="insh-fn">${esc(l.name || '')}${mark(l)}</span>
         <span class="insh-fm">${typeset_(String(l.math || ''))}</span>${l.note ? `<span class="insh-note">${esc(l.note)}</span>` : ''}</li>`).join('')}</ul>

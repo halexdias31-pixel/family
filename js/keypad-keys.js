@@ -590,12 +590,28 @@ function kpPartner_(v, i) {
 /* ---------- HOME AND END ARE THE LINE'S, CTRL/⌘ WITH THEM THE WHOLE ANSWER'S § */
 function kpLineStart_(v, i) { return i <= 0 ? 0 : v.lastIndexOf('\n', i - 1) + 1; }
 function kpLineEnd_(v, i) { const n = v.indexOf('\n', i); return n < 0 ? v.length : n; }
+/* THE RAISED BOX THE CARET IS AT THE END OF: the index of its `)` when the caret sits just before it and `^(` opened it, else -1. */
+function kpPowAt_(v, a) {
+  if (v.charAt(a) !== ')') return -1;
+  const o = kpPartner_(v, a);
+  return o > 0 && v.charAt(o - 1) === '^' ? a : -1;
+}
+/* AN OPERATOR AT THE END OF A NUMBER POWER LEAVES IT FIRST, as a Casio's does after 2^3: 2^3+1 is 9, never 2^(3+1); a minus into an empty one stays, so 10^-14 types. */
+function kpPowOut_(v, a, cmd) {
+  const z = kpPowAt_(v, a);
+  if (z < 0 || !/^[-+\u00d7\u00f7=]$/.test(cmd)) return a;
+  const o = kpPartner_(v, z);
+  /* a letter in it is algebra, x^(n+1), and stays in as the pad always typed it */
+  if (z === o + 1 || !/^[-\d.]+$/.test(v.slice(o + 1, z)) || (cmd === '-' && /[(\u00d7\u00f7+\-^]$/.test(v.slice(0, a)))) return a;
+  return z + 1;
+}
 function kpEdit_(inp, cmd) {
   if (kpSite_(inp)) return kpSiteEdit_(inp, cmd);
   const v = inp.value;
   const words = inp.getAttribute('data-kp') === 'words';
   let a = inp.selectionStart, b = inp.selectionEnd;
   if (a == null) { a = v.length; b = v.length; }
+  if (!words && a === b) { a = kpPowOut_(v, a, cmd); b = a; }
   const a0 = a, b0 = b;
   const put = (t, at) => {
     inp.value = v.slice(0, a) + t + v.slice(b);

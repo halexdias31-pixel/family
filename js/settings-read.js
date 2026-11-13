@@ -25,6 +25,12 @@ function setSpot_(d, extra) {
   }
 }
 
+/* THE WORDS A TYPO IS NEVER FORGIVEN TOWARDS (`markTypo_`): each row's words are different answers */
+function setConfusables_(d, extra) {
+  const confusables = extra['settings/confusables'];
+  if (confusables && confusables.length) d.confusables = confusables.filter(r => libS(r.words).trim()).map(r => ({ words: libS(r.words) }));
+}
+
 function setInFind_(d, extra) {
   /* ---------- WHICH WIDGETS ARE FIND CARDS (790): a row names a widget's kind or its id; the id's row wins (`widgetInFind_`, arcade.js) ---------- */
   const inFind = extra['settings/widgets-in-find'];
@@ -87,7 +93,7 @@ function settingsInto_(d, extra) {
   /* the campaigns, and the words they say ---------------------------------------------------- ONE PASS OVER `copy`, INDEXED BY CAMPAIGN, so the phone never joins § */
   /* ---------- WHICH COLUMNS THE APP HAS, AND IN WHAT ORDER § */
   setBrand_(d, extra); setMoved_(d, extra); setFacets_(d, extra); setKinds_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
-  setCampaigns_(d, extra); setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
+  setCampaigns_(d, extra); setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setConfusables_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
   setDefaultPictures_(d, extra); setPermissions_(d, extra); setLabels_(d, extra);
   return d;
 }
