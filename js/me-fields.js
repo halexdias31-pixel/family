@@ -51,7 +51,7 @@ document.addEventListener('change', e => {
   if (!inp || !inp.matches || !inp.matches('.ph-in')) return;
   const file = (inp.files || [])[0], slot = inp.closest('.ph-slot');
   inp.value = '';
-  if (!file || !slot || !USER) return;
+  if (!file || !slot || !whose_()) return;
   const said = slot.querySelector('.ph-said'), say = m => { if (said) said.textContent = m; };
   if (!/^image\//.test(file.type || '')) { say('That is not a picture. Choose a photo from your phone.'); return; }
   say('Getting the photo ready…');
@@ -102,7 +102,7 @@ function pfpSaid_(v) {
 }
 /* THE PREVIEW IS `personFace_` LIKE EVERY OTHER FACE, so what you see here is what everybody else's card draws — so a picker and a card never disagree. § */
 function pfpFace_(v) {
-  const me = USER || {};
+  const me = whose_() || {};
   return personFace_({ pic: v, personId: me.personId, handle: me.handle,
                        name: (me.profile && me.profile.first_name) || me.name || '?' },
                      { cls: 'pfp-pic', none: 'pfp-none', size: 88, alt: 'Your profile picture', eager: true });

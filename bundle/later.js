@@ -9690,8 +9690,10 @@ function settingDoorItems_() {
     const it = { kind: 'setting', name: name, key: 'set:' + (id || part.col + ':' + part.at), sub: '', image: '', parts: [part], mine: mine, settingFor: fr.slice(), rank: row ? row.rank || 0 : 5000 + out.length };
     byName[norm(name)] = it; out.push(it);
   };
+  if (isAdmin()) add(lensOn_() ? 'Viewing ' + (whose_().name || 'somebody') : 'View as', 'lens', { lens: true }, 'Student', true);
   settingTypes_().forEach(({ type, col, peek }) => {
-    if (!col) return;
+    /* IN THE LENS, ONLY THE PERSON'S OWN COLUMNS: Business and Site are the business's, not theirs. */
+    if (!col || (lensOn_() && LENS_COLS_.indexOf(col) === -1)) return;
     const ok = settingMay_('type:' + type);
     if (!ok && !peek) return;
     settingGroups_(col).forEach((g, i) => {
@@ -9704,7 +9706,9 @@ function settingDoorItems_() {
       if (name) add(name, g.id, { col: col, at: i, id: g.id || '' }, type, own && (ok || /^\s*<div\b[^>]*\bdata-yours="1"/.test(html)) && !/^\s*<div\b[^>]*\bis-locked\b/.test(html));
     });
   });
-  if (settingMay_('door:notify')) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
+  if (settingMay_('door:notify') && !lensOn_()) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
+  const lens = out.find(x => x.key === 'set:lens');
+  if (lens) { lens.rank = -1; lens.open = true; lens.settingFor = settingTypes_().map(t => t.type); }
   /* ORDER IS DATA (setting-for.json's rows, types too); an untagged card keeps its column's place after them. */
   out.sort((a, b) => a.rank - b.rank);
   const order = settingTypes_().map(t => t.type);
@@ -9712,6 +9716,7 @@ function settingDoorItems_() {
   return out;
 }
 function settingPart_(p) {
+  if (p.lens) return lensCard_();
   if (p.notify) return notifyDoorCard_();
   const gs = settingGroups_(p.col), g = (p.id && gs.find(k => k.id === p.id)) || gs[p.at];
   return g ? g.pages.join('').replace(/<!--(card|person):[^>]*-->/g, '') : '';
@@ -9721,6 +9726,37 @@ function settingDoorCard_(x) {
   if (x.notify) return notifyDoorCard_();
   return (x.parts || [{ col: x.setCol, at: x.setAt, id: x.setId }]).map(settingPart_).join('');
 }
+/* ---------- THE ADMIN'S LENS (owner, 13 Nov): Find › Settings drawn as somebody else's, every card through `whose_()` (data-who.js) ---------- */
+const LENS_COLS_ = ['account', 'family', 'staff'];
+/* THE PICKER, OR THE BANNER: a removable tag like the top bar's name, its ✕ back to your own settings. */
+CARD_EMBEDS['lens-pick'] = () => famPick_('lens', 'any', 'Somebody\'s settings');
+CARD_EMBEDS['lens-tag'] = () => {
+  const who = String(whose_().name || whose_().handle || 'somebody'), label = 'Back to your own settings';
+  return qtag_(`Viewing ${esc(who)}'s settings${tile_({ icon: 'close', label: label, act: 'lens-off', cls: 'chip-x' })}`,
+    ` data-do="lens-off" role="button" tabindex="0" aria-label="${esc(label)}"`, 'sm lens-tag', 'chip');
+};
+function lensCard_() {
+  if (!isAdmin()) return '';
+  const on = lensOn_();
+  return renderCard({ kind: 'panel', look: 'lens-card' + (on ? ' is-lens' : ''), tags: [{ text: on ? 'Viewing as' : 'View as', colour: 0 }],
+    body: on ? [{ type: 'embed', tool: 'lens-tag' }] : [{ type: 'embed', tool: 'lens-pick' }, { type: 'text', text: ' ', look: 'lens-said' }] });
+}
+/* FIND'S MEMOS DROPPED, so the settings items are built again for whoever the lens is on now. */
+function lensRedraw_() {
+  try { FUNNEL_MEMO.from = null; ITEM_MEMO.from = null; ALL_MEMO.from = null; } catch (e) { /* no memo yet: the next paint builds them */ }
+  try { if (typeof paintStuff === 'function') inFinder_(FINDER, () => paintStuff(true)); } catch (e) { oops_(e, 'lens:redraw'); }
+}
+/* THEIR SETTINGS, ASKED FOR: `lensOpen` is an admin's alone (permissions.json); nobody else's tap gets this far. */
+on('lens-pick', el => {
+  const id = (el && el.getAttribute('data-id')) || '';
+  if (!isAdmin() || !id) return;
+  const card = el.closest('.lens-card'), said = card && card.querySelector('.lens-said');
+  send_({ action: 'lensOpen', name: USER.name, personId: USER.personId || '', targetId: id }, { button: el, where: said || undefined })
+    .then(d => { if (!isAdmin() || !d || !d.personId) return; LENS = Object.assign({ lens: true }, d); lensRedraw_(); })
+    .catch(() => {});
+});
+on('lens-off', () => { LENS = null; lensRedraw_(); });
+
 /* WHAT THE TOP BAR'S RED DOT USED TO SAY (owner, 6 Nov): each Business or Site card that needs you, by name, with a way there. */
 function notifyDoorCard_() {
   const needs = typeof BIZ_NEEDS !== 'undefined' ? Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0) : [];
@@ -10089,9 +10125,9 @@ function stuffSorted_(items) {
 /* PADDED SO THE ALPHABET AGREES WITH ARITHMETIC. § */
 /* ---------- AND THE PAPER ITSELF STRAIGHT AFTER ITS NAME, THEN THE PART BY `qPartKey` § */
 /* ---------- CONTENT CARDS AFTER THE REST, IN THE ORDER THEY TEACH — AND FIRST ONLY WHEN THEY ARE ASKED FOR § */
-/* A SETTING THAT IS NOT YOURS (shut, greyed) comes after all of yours. */
+/* A SETTING THAT IS NOT YOURS (shut, greyed) comes after all of yours; the admin's lens (whose settings these are) before them all. */
 const sortKey_ = x => [
-  isContent_(x) ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : x.mine === false ? '3' : '1',
+  x.key === 'set:lens' ? '0' : isContent_(x) ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : x.mine === false ? '3' : '1',
   padNums_(String(x.sub || x.name || '').toLowerCase()),
   isQ_(x) ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
   padNums_(String(x.qNumber == null ? '' : x.qNumber)),
@@ -10492,29 +10528,29 @@ function feedPages_() {
 }
 /* ---------- SIGNING IN AND OUT, ON A PAGE OF ITS OWN § */
 /* ---------- WHICH ROW IS YOU, ASKED IN ONE PLACE § */
-function mineIs_(t) {
+function mineIs_(t, u = USER) {
   /* ---------- AND A STRANGER HAS NO ROW, WHICH THIS DID NOT HAVE TO KNOW BEFORE § */
-  if (typeof USER === 'undefined' || !USER) return false;
+  if (!u) return false;
   /* ---------- AN ID ON BOTH SIDES DECIDES, AND THE NAME IS ONLY FOR A ROW WITHOUT ONE § */
-  if (t && USER.personId && t.personId) return String(t.personId) === String(USER.personId);
+  if (t && u.personId && t.personId) return String(t.personId) === String(u.personId);
   return !!t && (
-    (USER.handle && t.handle && norm(t.handle) === norm(USER.handle)) ||
-    (USER.name && t.title && norm(t.title) === norm(USER.name)) ||
-    (USER.name && t.name && norm(t.name) === norm(USER.name)));
+    (u.handle && t.handle && norm(t.handle) === norm(u.handle)) ||
+    (u.name && t.title && norm(t.title) === norm(u.name)) ||
+    (u.name && t.name && norm(t.name) === norm(u.name)));
 }
 /* ---------- YOUR OWN ROW, WHEREVER IT COMES FROM § */
-function myCardRow_() {
-  return (DATA.tutors || []).filter(mineIs_)[0] || {
+function myCardRow_(u = USER) {
+  return (DATA.tutors || []).filter(t => mineIs_(t, u))[0] || {
     /* ---------- THE HANDLE IS PRINTED UNDER THE NAME, SO IT IS NOT SAID IN IT TOO § */
-    title: nameBesideHandle_(USER.name, USER.handle) || 'Signed in',
-    role:  roleOf(USER.role || 'student'),
-    handle: USER.handle,
-    /* YOUR PICTURE AS THE PICKER LAST KEPT IT (`USER.profile.photo`, written by `pfpTake_`), else the sign-in reply's. § */
-    image: (USER.profile && typeof USER.profile.photo === 'string') ? USER.profile.photo : (USER.image || USER.photo || ''),
-    avatar: USER.avatar || '',
-    rate:  USER.rate,
+    title: nameBesideHandle_(u.name, u.handle) || 'Signed in',
+    role:  roleOf(u.role || 'student'),
+    handle: u.handle,
+    /* YOUR PICTURE AS THE PICKER LAST KEPT IT (`profile.photo`, written by `pfpTake_`), else the sign-in reply's. § */
+    image: (u.profile && typeof u.profile.photo === 'string') ? u.profile.photo : (u.image || u.photo || ''),
+    avatar: u.avatar || '',
+    rate:  u.rate,
     teaches: [],
-    personId: USER.personId,
+    personId: u.personId,
     /* ---------- `dbs` IS DELIBERATELY ABSENT HERE, AND ABSENT IS NOT `false` § */
   };
 }

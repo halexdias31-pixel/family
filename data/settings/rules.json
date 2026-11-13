@@ -852,6 +852,16 @@
    "since": "2026-11-12"
   },
   {
+   "id": "9.7",
+   "principle": 9,
+   "text": "An admin sees and changes a person's settings through one lens: every settings card reads `whose_()`, never USER, so no card has an admin copy; only an admin opens it (`lensOpen` in the permissions table), the viewed person's sign-out, PIN and roles are shut in it, and every change to somebody else's row is logged by id in `lens_log`.",
+   "checks": [
+    "lens",
+    "flow/40"
+   ],
+   "since": "2026-11-13"
+  },
+  {
    "id": "10.1",
    "principle": 10,
    "text": "Everything the business does runs from here, autonomously (booking, matching, payment, reminders, receipts, tax pot, renewals), built in the site; outside services only where needed (Stripe).",

@@ -167,10 +167,11 @@ const roleOf = r => roleAliases_()[norm(r)] || norm(r);
 const isRole = (r, want) => roleOf(r) === want;
 
 
-const heldRoles = () => (USER && (USER.roles || [USER.role]) || []).map(x => String(x).toLowerCase());
+/* `u` IS WHOSE ROLES: the viewer by default; a settings card passes `whose_()` (the admin's lens, data-who.js). */
+const heldRoles = (u = USER) => (u && (u.roles || [u.role]) || []).map(x => String(x).toLowerCase());
 
 
-const hasRole = r => heldRoles().some(h => roleOf(h) === roleOf(r));
+const hasRole = (r, u = USER) => heldRoles(u).some(h => roleOf(h) === roleOf(r));
 
 
 const uniq = arr => [...new Set((arr||[]).filter(Boolean))];
@@ -302,16 +303,16 @@ const tutorHeld_ = () => hasRole('tutor');
 /* ---------- ONE RANK PER ACCOUNT (400): student < client < staff < admin, as `rankOf` (people.gs) ----------
    The server's word when the sign-in reply carried one; worked out from the roles for a copy kept before it did. */
 const RANKS = ['student', 'client', 'staff', 'admin'];
-const rank_ = () => {
-  if (!USER) return '';
-  if (RANKS.indexOf(String(USER.rank || '')) !== -1) return USER.rank;
-  if (hasRole('admin')) return 'admin';
-  if (tutorHeld_() && !USER.tutorPending) return 'staff';
-  if (hasRole('client')) return 'client';
-  return hasRole('student') ? 'student' : 'client';
+const rank_ = (u = USER) => {
+  if (!u) return '';
+  if (RANKS.indexOf(String(u.rank || '')) !== -1) return u.rank;
+  if (hasRole('admin', u)) return 'admin';
+  if (hasRole('tutor', u) && !u.tutorPending) return 'staff';
+  if (hasRole('client', u)) return 'client';
+  return hasRole('student', u) ? 'student' : 'client';
 };
-/* AT LEAST THIS RANK; nobody signed in holds none. */
-const rankAtLeast_ = want => !!USER && RANKS.indexOf(rank_()) >= RANKS.indexOf(want);
+/* AT LEAST THIS RANK; nobody signed in holds none. `u` as `heldRoles`. */
+const rankAtLeast_ = (want, u = USER) => !!u && RANKS.indexOf(rank_(u)) >= RANKS.indexOf(want);
 const isTutorRole = () => rankAtLeast_('staff');
 
 /* ---------- A CHILD IS SHOWN NO PRICE (398) — the owner: "Kids' profiles shouldn't be able to see tutors' prices." */
@@ -1723,16 +1724,16 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=English Language&level=SATs": ["topic",[["Active & Passive Voice"],["Adjectives"],["Adverbials"],["Adverbs"],["Antonyms"],["Apostrophes"],["Brackets"],["Colons"],["Commas"],["Conjunctions"],["Dashes"],["Determiners"],["Exclamation Marks"],["Formal & Informal Language"],["Full Stops & Capital Letters"],["Hyphens"],["Inverted Commas"],["Main Clauses"],["Modal Verbs"],["Noun Phrases"],["Nouns"],["Perfect Forms"],["Prefixes"],["Prepositions"],["Progressive Forms"],["Pronouns"],["Question Marks"],["Relative Clauses"],["Semi-colons"],["Sentence Structure"],["Sentence Types"],["Simple Past"],["Spelling"],["Standard English"],["Subject & Object"],["Subjunctive"],["Subordinate Clauses"],["Suffixes"],["Synonyms"],["Verb Forms & Tenses"],["Verbs"],["Word Classes"],["Word Meaning"]],[2,2,3,2,3,2,2,2,2,2,2,2,1,2,1,2,2,2,2,1,2,2,2,2,2,2,1,2,2,1,3,2,3,2,1,2,2,2,3,1,2,1,1],49,["Active & Passive Voice","Adjectives","Adverbials","Adverbs","Antonyms","Apostrophes","Brackets","Colons","Commas","Conjunctions","Dashes","Determiners","Exclamation Marks","Formal & Informal Language","Full Stops & Capital Letters","Hyphens","Inverted Commas","Main Clauses","Modal Verbs","Noun Phrases","Nouns","Perfect Forms","Prefixes","Prepositions","Progressive Forms","Pronouns","Question Marks","Relative Clauses","Semi-colons","Sentence Structure","Sentence Types","Simple Past","Spelling","Standard English","Subject & Object","Subjunctive","Subordinate Clauses","Suffixes","Synonyms","Verb Forms & Tenses","Verbs","Word Classes","Word Meaning"]],
   "kindLabel=Library&subject=English Literature": ["wText",[["Anthology"],["Baker’s selection (1899)"],["Blake’s"],["Complete Works"],["First edition (1813)"],["First edition (1843)"],["First edition (1847)"],["First edition (1861)"],["First edition (1886)"],["First edition (1890)"],["First edition (1898)"],["Hutchinson’s (1904)"],["Set"]],[153,485,201,942,61,5,37,80,10,12,27,728,17],5216,["Anthology","Baker’s selection (1899)","Blake’s","Complete Works","First edition (1813)","First edition (1843)","First edition (1847)","First edition (1861)","First edition (1886)","First edition (1890)","First edition (1898)","Hutchinson’s (1904)","Set"]],
   "kindLabel=Library&subject=English Literature&wText=Anthology": ["wCollection",[["Conflict (Edexcel)"],["Conflict (OCR)"],["Love and Relationships (AQA)"],["Love and Relationships (OCR)"],["Poetry Anthology (Eduqas)"],["Power and Conflict (AQA)"],["Relationships (Edexcel)"],["Unseen poetry"],["Youth and Age (OCR)"]],[15,15,15,15,18,15,15,30,15],153,["Conflict (Edexcel)","Conflict (OCR)","Love and Relationships (AQA)","Love and Relationships (OCR)","Poetry Anthology (Eduqas)","Power and Conflict (AQA)","Relationships (Edexcel)","Unseen poetry","Youth and Age (OCR)"]],
-  "kindLabel=Library&subject=English Literature&wText=Baker’s selection (1899)": ["wUnit",[["Stanza 1"],["Stanza 2"],["Stanza 3"],["Stanza 4"],["Stanza 5"],["Stanza 6"],["Stanza 7"],["Stanza 8"],["Stanza 9"],["Stanza 10"],["Stanza 11"],["Stanza 12"],["Stanza 13"],["Stanza 14"],["Stanza 15"],["Stanza 16"],["Stanza 17"],["Stanza 18"],["Stanza 19"],["Stanza 20"],["Stanza 21"],["Stanza 22"],["Stanza 23"],["Stanza 24"],["Stanza 25"],["Stanza 26"],["Stanza 27"],["Stanza 28"],["Stanza 29"],["Stanza 30"],["Stanza 31"],["Stanza 32"],["Stanza 33"],["Stanza 34"],["Stanza 35"],["Stanza 36"],["Stanza 37"],["Stanza 38"],["Stanza 39"]],[45,45,37,37,34,31,27,24,22,20,17,16,13,13,12,10,9,8,7,4,4,4,4,3,3,3,3,3,3,3,3,3,2,2,2,1,1,1,1],485,["Stanza 1","Stanza 2","Stanza 3","Stanza 4","Stanza 5","Stanza 6","Stanza 7","Stanza 8","Stanza 9","Stanza 10","Stanza 11","Stanza 1 (2)","Stanza 1 (3)","Stanza 1 (4)","Stanza 15","Stanza 16","Stanza 17","Stanza 18","Stanza 19","Stanza 20","Stanza 21","Stanza 2 (2)","Stanza 2 (3)","Stanza 2 (4)","Stanza 25","Stanza 26","Stanza 27","Stanza 28","Stanza 29","Stanza 30","Stanza 31","Stanza 3 (2)","Stanza 3 (3)","Stanza 3 (4)","Stanza 35","Stanza 36","Stanza 37","Stanza 38","Stanza 39"]],
+  "kindLabel=Library&subject=English Literature&wText=Baker’s selection (1899)": ["wUnit",[["Stanza 1"],["Stanza 2"],["Stanza 3"],["Stanza 4"],["Stanza 5"],["Stanza 6"],["Stanza 7"],["Stanza 8"],["Stanza 9"],["Stanza 10"],["Stanza 11"],["Stanza 12"],["Stanza 13"],["Stanza 14"],["Stanza 15"],["Stanza 16"],["Stanza 17"],["Stanza 18"],["Stanza 19"],["Stanza 20"],["Stanza 21"],["Stanza 22"],["Stanza 23"],["Stanza 24"],["Stanza 25"],["Stanza 26"],["Stanza 27"],["Stanza 28"],["Stanza 29"],["Stanza 30"],["Stanza 31"],["Stanza 32"],["Stanza 33"],["Stanza 34"],["Stanza 35"],["Stanza 36"],["Stanza 37"],["Stanza 38"],["Stanza 39"]],[45,45,37,37,34,31,27,24,22,20,17,16,13,13,12,10,9,8,7,4,4,4,4,3,3,3,3,3,3,3,3,3,2,2,2,1,1,1,1],485,["Stanza 1","Stanza 2","Stanza 3","Stanza 4","Stanza 5","Stanza 6","Stanza 7","Stanza 8","Stanza 9","Stanza 10","Stanza 11","Stanza 12","Stanza 13","Stanza 14","Stanza 15","Stanza 16","Stanza 17","Stanza 18","Stanza 19","Stanza 20","Stanza 21","Stanza 22","Stanza 23","Stanza 24","Stanza 25","Stanza 26","Stanza 27","Stanza 28","Stanza 29","Stanza 30","Stanza 31","Stanza 32","Stanza 33","Stanza 34","Stanza 35","Stanza 36","Stanza 37","Stanza 38","Stanza 39"]],
   "kindLabel=Library&subject=English Literature&wText=Blake’s": ["wBook",[["Songs of Experience"],["Songs of Innocence"]],[122,79],201,["Songs of Experience","Songs of Innocence"]],
   "kindLabel=Library&subject=English Literature&wText=Complete Works": ["wWork",[["A Midsummer Night’s Dream"],["All’s Well That Ends Well"],["Antony and Cleopatra"],["As You Like It"],["Coriolanus"],["Cymbeline"],["Hamlet"],["Henry IV, Part 1"],["Henry IV, Part 2"],["Henry V"],["Henry VI, Part 1"],["Henry VI, Part 2"],["Henry VI, Part 3"],["Henry VIII"],["Julius Caesar"],["King John"],["King Lear"],["Love’s Labour’s Lost"],["Macbeth"],["Measure for Measure"],["Much Ado About Nothing"],["Othello"],["Pericles"],["Richard II"],["Richard III"],["Romeo and Juliet"],["Shakespeare’s Sonnets"],["The Comedy of Errors"],["The Merchant of Venice"],["The Merry Wives of Windsor"],["The Taming of the Shrew"],["The Tempest"],["The Two Gentlemen of Verona"],["The Two Noble Kinsmen"],["The Winter’s Tale"],["Timon of Athens"],["Titus Andronicus"],["Troilus and Cressida"],["Twelfth Night"]],[11,23,42,23,29,29,21,19,20,28,27,24,28,17,18,16,26,9,28,17,13,15,26,19,25,25,154,11,20,23,12,10,20,25,15,18,14,24,18],942,["A Midsummer Night’s Dream","All’s Well That Ends Well","Antony and Cleopatra","As You Like It","Coriolanus","Cymbeline","Hamlet","Henry IV, Part 1","Henry IV, Part 2","Henry V","Henry VI, Part 1","Henry VI, Part 2","Henry VI, Part 3","Henry VIII","Julius Caesar","King John","King Lear","Love’s Labour’s Lost","Macbeth","Measure for Measure","Much Ado About Nothing","Othello","Pericles","Richard II","Richard III","Romeo and Juliet","Shakespeare’s Sonnets","The Comedy of Errors","The Merchant of Venice","The Merry Wives of Windsor","The Taming of the Shrew","The Tempest","The Two Gentlemen of Verona","The Two Noble Kinsmen","The Winter’s Tale","Timon of Athens","Titus Andronicus","Troilus and Cressida","Twelfth Night"]],
-  "kindLabel=Library&subject=English Literature&wText=First edition (1813)": ["wChapter",[["Chapter 1"],["Chapter 2"],["Chapter 3"],["Chapter 4"],["Chapter 5"],["Chapter 6"],["Chapter 7"],["Chapter 8"],["Chapter 9"],["Chapter 10"],["Chapter 11"],["Chapter 12"],["Chapter 13"],["Chapter 14"],["Chapter 15"],["Chapter 16"],["Chapter 17"],["Chapter 18"],["Chapter 19"],["Chapter 20"],["Chapter 21"],["Chapter 22"],["Chapter 23"]],[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,1,1,1,1],61,["Chapter 1 · ארבעה ראשי שנים","Chapter 2 · כל הזבחים שקבלו…","Chapter 3 · הקורא את המגילה…","Chapter 4 · שור שנגח ארבע…","Chapter 5 · שור שנגח את הפרה","Chapter 6 · הבא על יבמתו","Chapter 7 · בא לו כהן גדול","Chapter 8 · כל הזבחים שנתערבו","Chapter 9 · הכותים אין להם…","Chapter 10 · אלו הן הנחנקין","Chapter 11 · כל ישראל יש להם…","Chapter 12 · טבול יום","Chapter 13 · שני דייני גזירות","Chapter 14 · פרת חטאת","Chapter 15 · האשה שלום","Chapter 16 · כל כתבי","Chapter 17 · כל הכלים","Chapter 18 · מפנין","Chapter 19 · רבי אליעזר דמילה","Chapter 20 · תולין","Chapter 21 · נוטל אדם את בנו","Chapter 22 · חבית","Chapter 23 · שואל"]],
+  "kindLabel=Library&subject=English Literature&wText=First edition (1813)": ["wChapter",[["Chapter 1"],["Chapter 2"],["Chapter 3"],["Chapter 4"],["Chapter 5"],["Chapter 6"],["Chapter 7"],["Chapter 8"],["Chapter 9"],["Chapter 10"],["Chapter 11"],["Chapter 12"],["Chapter 13"],["Chapter 14"],["Chapter 15"],["Chapter 16"],["Chapter 17"],["Chapter 18"],["Chapter 19"],["Chapter 20"],["Chapter 21"],["Chapter 22"],["Chapter 23"]],[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,1,1,1,1],61,["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5","Chapter 6","Chapter 7","Chapter 8","Chapter 9","Chapter 10","Chapter 11","Chapter 12","Chapter 13","Chapter 14","Chapter 15","Chapter 16","Chapter 17","Chapter 18","Chapter 19","Chapter 20","Chapter 21","Chapter 22","Chapter 23"]],
   "kindLabel=Library&subject=English Literature&wText=First edition (1843)": ["wChapter",[["Stave 1"],["Stave 2"],["Stave 3"],["Stave 4"],["Stave 5"]],[1,1,1,1,1],5,["Stave 1","Stave 2","Stave 3","Stave 4","Stave 5"]],
-  "kindLabel=Library&subject=English Literature&wText=First edition (1847)": ["wChapter",[["Chapter 1"],["Chapter 2"],["Chapter 3"],["Chapter 4"],["Chapter 5"],["Chapter 6"],["Chapter 7"],["Chapter 8"],["Chapter 9"],["Chapter 10"],["Chapter 11"],["Chapter 12"],["Chapter 13"],["Chapter 14"],["Chapter 15"],["Chapter 16"],["Chapter 17"],["Chapter 18"],["Chapter 19"],["Chapter 20"],["Chapter 21"],["Chapter 22"],["Chapter 23"],["Chapter 24"],["Chapter 25"],["Chapter 26"],["Chapter 27"],["Chapter 28"],["Chapter 29"],["Chapter 30"],["Chapter 31"],["Chapter 32"],["Chapter 33"],["Chapter 34"],["Chapter 35"],["Chapter 36"],["Chapter 37"]],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],37,["Chapter 1 · ארבעה ראשי שנים","Chapter 2 · כל הזבחים שקבלו…","Chapter 3 · הקורא את המגילה…","Chapter 4 · שור שנגח ארבע…","Chapter 5 · שור שנגח את הפרה","Chapter 6 · הבא על יבמתו","Chapter 7 · בא לו כהן גדול","Chapter 8 · כל הזבחים שנתערבו","Chapter 9 · הכותים אין להם…","Chapter 10 · אלו הן הנחנקין","Chapter 11 · כל ישראל יש להם…","Chapter 12 · טבול יום","Chapter 13 · שני דייני גזירות","Chapter 14 · פרת חטאת","Chapter 15 · האשה שלום","Chapter 16 · כל כתבי","Chapter 17 · כל הכלים","Chapter 18 · מפנין","Chapter 19 · רבי אליעזר דמילה","Chapter 20 · תולין","Chapter 21 · נוטל אדם את בנו","Chapter 22 · חבית","Chapter 23 · שואל","Chapter 24 · מי שהחשיך","Chapter 25","Chapter 26","Chapter 27","Chapter 28","Chapter 29","Chapter 30","Chapter 31","Chapter 32","Chapter 33","Chapter 34","Chapter 35","Chapter 36","Chapter 37"]],
-  "kindLabel=Library&subject=English Literature&wText=First edition (1861)": ["wChapter",[["Chapter 1"],["Chapter 2"],["Chapter 3"],["Chapter 4"],["Chapter 5"],["Chapter 6"],["Chapter 7"],["Chapter 8"],["Chapter 9"],["Chapter 10"],["Chapter 11"],["Chapter 12"],["Chapter 13"],["Chapter 14"],["Chapter 15"],["Chapter 16"],["Chapter 17"],["Chapter 18"],["Chapter 19"],["Chapter 20"],["Chapter 21"],["Chapter 22"],["Chapter 23"],["Chapter 24"],["Chapter 25"],["Chapter 26"],["Chapter 27"],["Chapter 28"],["Chapter 29"],["Chapter 30"],["Chapter 31"],["Chapter 32"],["Chapter 33"],["Chapter 34"],["Chapter 35"],["Chapter 36"],["Chapter 37"],["Chapter 38"],["Chapter 39"],["Chapter 40"],["Chapter 41"],["Chapter 42"],["Chapter 43"],["Chapter 44"],["Chapter 45"],["Chapter 46"],["Chapter 47"],["Chapter 48"],["Chapter 49"],["Chapter 50"],["Chapter 51"],["Chapter 52"],["Chapter 53"],["Chapter 54"],["Chapter 55"],["Chapter 56"],["Chapter 57"],["Chapter 58"],["Chapter 59"]],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],80,["Chapter 1 · ארבעה ראשי שנים","Chapter 2 · כל הזבחים שקבלו…","Chapter 3 · הקורא את המגילה…","Chapter 4 · שור שנגח ארבע…","Chapter 5 · שור שנגח את הפרה","Chapter 6 · הבא על יבמתו","Chapter 7 · בא לו כהן גדול","Chapter 8 · כל הזבחים שנתערבו","Chapter 9 · הכותים אין להם…","Chapter 10 · אלו הן הנחנקין","Chapter 11 · כל ישראל יש להם…","Chapter 12 · טבול יום","Chapter 13 · שני דייני גזירות","Chapter 14 · פרת חטאת","Chapter 15 · האשה שלום","Chapter 16 · כל כתבי","Chapter 17 · כל הכלים","Chapter 18 · מפנין","Chapter 19 · רבי אליעזר דמילה","Chapter 20 · תולין","Chapter 21 · נוטל אדם את בנו","Chapter 22 · חבית","Chapter 23 · שואל","Chapter 24 · מי שהחשיך","Chapter 25","Chapter 26","Chapter 27","Chapter 28","Chapter 29","Chapter 30","Chapter 31","Chapter 32","Chapter 33","Chapter 34","Chapter 35","Chapter 36","Chapter 37","Chapter 38","Chapter 39","Chapter 40","Chapter 41","Chapter 42","Chapter 43","Chapter 44","Chapter 45","Chapter 46","Chapter 47","Chapter 48","Chapter 49","Chapter 50","Chapter 51","Chapter 52","Chapter 53","Chapter 54","Chapter 55","Chapter 56","Chapter 57","Chapter 58","Chapter 59"]],
+  "kindLabel=Library&subject=English Literature&wText=First edition (1847)": ["wChapter",[["Chapter 1"],["Chapter 2"],["Chapter 3"],["Chapter 4"],["Chapter 5"],["Chapter 6"],["Chapter 7"],["Chapter 8"],["Chapter 9"],["Chapter 10"],["Chapter 11"],["Chapter 12"],["Chapter 13"],["Chapter 14"],["Chapter 15"],["Chapter 16"],["Chapter 17"],["Chapter 18"],["Chapter 19"],["Chapter 20"],["Chapter 21"],["Chapter 22"],["Chapter 23"],["Chapter 24"],["Chapter 25"],["Chapter 26"],["Chapter 27"],["Chapter 28"],["Chapter 29"],["Chapter 30"],["Chapter 31"],["Chapter 32"],["Chapter 33"],["Chapter 34"],["Chapter 35"],["Chapter 36"],["Chapter 37"]],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],37,["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5","Chapter 6","Chapter 7","Chapter 8","Chapter 9","Chapter 10","Chapter 11","Chapter 12","Chapter 13","Chapter 14","Chapter 15","Chapter 16","Chapter 17","Chapter 18","Chapter 19","Chapter 20","Chapter 21","Chapter 22","Chapter 23","Chapter 24","Chapter 25","Chapter 26","Chapter 27","Chapter 28","Chapter 29","Chapter 30","Chapter 31","Chapter 32","Chapter 33","Chapter 34","Chapter 35","Chapter 36","Chapter 37"]],
+  "kindLabel=Library&subject=English Literature&wText=First edition (1861)": ["wChapter",[["Chapter 1"],["Chapter 2"],["Chapter 3"],["Chapter 4"],["Chapter 5"],["Chapter 6"],["Chapter 7"],["Chapter 8"],["Chapter 9"],["Chapter 10"],["Chapter 11"],["Chapter 12"],["Chapter 13"],["Chapter 14"],["Chapter 15"],["Chapter 16"],["Chapter 17"],["Chapter 18"],["Chapter 19"],["Chapter 20"],["Chapter 21"],["Chapter 22"],["Chapter 23"],["Chapter 24"],["Chapter 25"],["Chapter 26"],["Chapter 27"],["Chapter 28"],["Chapter 29"],["Chapter 30"],["Chapter 31"],["Chapter 32"],["Chapter 33"],["Chapter 34"],["Chapter 35"],["Chapter 36"],["Chapter 37"],["Chapter 38"],["Chapter 39"],["Chapter 40"],["Chapter 41"],["Chapter 42"],["Chapter 43"],["Chapter 44"],["Chapter 45"],["Chapter 46"],["Chapter 47"],["Chapter 48"],["Chapter 49"],["Chapter 50"],["Chapter 51"],["Chapter 52"],["Chapter 53"],["Chapter 54"],["Chapter 55"],["Chapter 56"],["Chapter 57"],["Chapter 58"],["Chapter 59"]],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],80,["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5","Chapter 6","Chapter 7","Chapter 8","Chapter 9","Chapter 10","Chapter 11","Chapter 12","Chapter 13","Chapter 14","Chapter 15","Chapter 16","Chapter 17","Chapter 18","Chapter 19","Chapter 20","Chapter 21","Chapter 22","Chapter 23","Chapter 24","Chapter 25","Chapter 26","Chapter 27","Chapter 28","Chapter 29","Chapter 30","Chapter 31","Chapter 32","Chapter 33","Chapter 34","Chapter 35","Chapter 36","Chapter 37","Chapter 38","Chapter 39","Chapter 40","Chapter 41","Chapter 42","Chapter 43","Chapter 44","Chapter 45","Chapter 46","Chapter 47","Chapter 48","Chapter 49","Chapter 50","Chapter 51","Chapter 52","Chapter 53","Chapter 54","Chapter 55","Chapter 56","Chapter 57","Chapter 58","Chapter 59"]],
   "kindLabel=Library&subject=English Literature&wText=First edition (1886)": ["wChapter",[["Dr Jekyll Was Quite at Ease"],["Dr Lanyon’s Narrative"],["Henry Jekyll’s Full Statement of the Case","Henry Jekyll’s Full…"],["Incident at the Window"],["Incident of Dr Lanyon"],["Incident of the Letter"],["Search for Mr Hyde"],["Story of the Door"],["The Carew Murder Case"],["The Last Night"]],[1,1,1,1,1,1,1,1,1,1],10,["Dr Jekyll Was Quite at Ease","Dr Lanyon’s Narrative","Henry Jekyll’s Full…","Incident at the Window","Incident of Dr Lanyon","Incident of the Letter","Search for Mr Hyde","Story of the Door","The Carew Murder Case","The Last Night"]],
-  "kindLabel=Library&subject=English Literature&wText=First edition (1890)": ["wChapter",[["Chapter 1"],["Chapter 2"],["Chapter 3"],["Chapter 4"],["Chapter 5"],["Chapter 6"],["Chapter 7"],["Chapter 8"],["Chapter 9"],["Chapter 10"],["Chapter 11"],["Chapter 12"]],[1,1,1,1,1,1,1,1,1,1,1,1],12,["Chapter 1 · ארבעה ראשי שנים","Chapter 2 · כל הזבחים שקבלו…","Chapter 3 · הקורא את המגילה…","Chapter 4 · שור שנגח ארבע…","Chapter 5 · שור שנגח את הפרה","Chapter 6 · הבא על יבמתו","Chapter 7 · בא לו כהן גדול","Chapter 8 · כל הזבחים שנתערבו","Chapter 9 · הכותים אין להם…","Chapter 10 · אלו הן הנחנקין","Chapter 11 · כל ישראל יש להם…","Chapter 12 · טבול יום"]],
-  "kindLabel=Library&subject=English Literature&wText=First edition (1898)": ["wChapter",[["Chapter 1"],["Chapter 2"],["Chapter 3"],["Chapter 4"],["Chapter 5"],["Chapter 6"],["Chapter 7"],["Chapter 8"],["Chapter 9"],["Chapter 10"],["Chapter 11"],["Chapter 12"],["Chapter 13"],["Chapter 14"],["Chapter 15"],["Chapter 16"],["Chapter 17"]],[2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1],27,["Chapter 1 · ארבעה ראשי שנים","Chapter 2 · כל הזבחים שקבלו…","Chapter 3 · הקורא את המגילה…","Chapter 4 · שור שנגח ארבע…","Chapter 5 · שור שנגח את הפרה","Chapter 6 · הבא על יבמתו","Chapter 7 · בא לו כהן גדול","Chapter 8 · כל הזבחים שנתערבו","Chapter 9 · הכותים אין להם…","Chapter 10 · אלו הן הנחנקין","Chapter 11 · כל ישראל יש להם…","Chapter 12 · טבול יום","Chapter 13 · שני דייני גזירות","Chapter 14 · פרת חטאת","Chapter 15 · האשה שלום","Chapter 16 · כל כתבי","Chapter 17 · כל הכלים"]],
+  "kindLabel=Library&subject=English Literature&wText=First edition (1890)": ["wChapter",[["Chapter 1"],["Chapter 2"],["Chapter 3"],["Chapter 4"],["Chapter 5"],["Chapter 6"],["Chapter 7"],["Chapter 8"],["Chapter 9"],["Chapter 10"],["Chapter 11"],["Chapter 12"]],[1,1,1,1,1,1,1,1,1,1,1,1],12,["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5","Chapter 6","Chapter 7","Chapter 8","Chapter 9","Chapter 10","Chapter 11","Chapter 12"]],
+  "kindLabel=Library&subject=English Literature&wText=First edition (1898)": ["wChapter",[["Chapter 1"],["Chapter 2"],["Chapter 3"],["Chapter 4"],["Chapter 5"],["Chapter 6"],["Chapter 7"],["Chapter 8"],["Chapter 9"],["Chapter 10"],["Chapter 11"],["Chapter 12"],["Chapter 13"],["Chapter 14"],["Chapter 15"],["Chapter 16"],["Chapter 17"]],[2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1],27,["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5","Chapter 6","Chapter 7","Chapter 8","Chapter 9","Chapter 10","Chapter 11","Chapter 12","Chapter 13","Chapter 14","Chapter 15","Chapter 16","Chapter 17"]],
   "kindLabel=Library&subject=English Literature&wText=Hutchinson’s (1904)": ["wBook",[["Poems Written in 1816"],["Poems Written in 1817"],["Poems Written in 1818"],["Poems Written in 1819"],["Poems Written in 1820"],["Poems Written in 1821"],["Poems Written in 1822"]],[19,83,81,117,227,135,66],728,["Poems Written in 1816","Poems Written in 1817","Poems Written in 1818","Poems Written in 1819","Poems Written in 1820","Poems Written in 1821","Poems Written in 1822"]],
   "kindLabel=Library&subject=English Literature&wText=Set": ["wChapter",[["A Taste of Honey"],["An Inspector Calls"],["Animal Farm"],["Anita and Me"],["Blood Brothers"],["DNA"],["Hobson’s Choice"],["Journey’s End"],["Leave Taking"],["Lord of the Flies"],["My Name is Leon"],["Never Let Me Go"],["Pigeon English"],["Princess & the Hustler"],["The Curious Incident of the Dog in the Night-Time (play)","The Curious Incident of the…"],["The History Boys"],["The Woman in Black"]],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],17,["A Taste of Honey","An Inspector Calls","Animal Farm","Anita and Me","Blood Brothers","DNA","Hobson’s Choice","Journey’s End","Leave Taking","Lord of the Flies","My Name is Leon","Never Let Me Go","Pigeon English","Princess & the Hustler","The Curious Incident of the…","The History Boys","The Woman in Black"]],
   "kindLabel=Library&subject=French": ["level",[["A-Level"],["GCSE"]],[12,29],41,["A-Level","GCSE"]],
@@ -1788,9 +1789,9 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31850,251967,9,2,4,5,10,44,20,2],283912,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31850,251967,9,2,4,5,10,45,20,2],283913,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[2,2,2],4,["Parent","Student","Tutor"]],
-  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[17,7,16,8,10,14,4],44,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
+  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,17,9,11,15,5],45,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
   "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31850,251967,9,2,1,5,10,29,20,2],283894,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
@@ -2107,6 +2108,12 @@ const isWearable = x => {
 };
 /* Whether the person signed in is an admin. § */
 const isAdmin = () => !!USER && rankAtLeast_('admin');
+/* WHOSE SETTINGS (the admin's lens): every settings card reads `whose_()`, never USER, so one path draws anybody's. */
+/* LENS is the person an admin picked in Find › Settings (`lensCard_`, find-doors.js); nobody else can set it, and USER stays the asker. */
+let LENS = null;
+const whose_ = () => (LENS && isAdmin() ? LENS : USER);
+const lensOn_ = () => !!USER && whose_() !== USER;
+const whoseAtLeast_ = want => rankAtLeast_(want, whose_());
 
 ;
 /* ==== js/data.js ==== */
@@ -9028,16 +9035,16 @@ function profileAge_(p) {
   return a ? Number(a[1]) : null;
 }
 function applyAdult_() {
-  const age = profileAge_(USER && USER.profile);
+  const age = profileAge_(whose_() && whose_().profile);
   return age !== null && age >= 18;
 }
 /* THE PADLOCK'S ONE TILE (464): Apply to teach, or where the application stands, on the tile itself; null for a child. */
 function applyOpts_() {
-  if (!USER || rankAtLeast_('staff')) return null;
-  if (profileAge_(USER.profile) === null)
+  if (!whose_() || whoseAtLeast_('staff')) return null;
+  if (profileAge_(whose_().profile) === null)
     return { icon: 'join', label: 'Apply to teach', note: 'add your date of birth first', act: 'apply-open', off: true };
   if (!applyAdult_()) return null;
-  const st = USER.application && USER.application.status;
+  const st = whose_().application && whose_().application.status;
   if (st === 'new' || st === 'interview')
     return { icon: 'join', label: 'Application sent', note: st === 'interview' ? 'we will arrange a talk' : 'we will be in touch', act: 'apply-open', off: true };
   return { icon: 'join', label: st === 'declined' ? 'Apply again' : 'Apply to teach', note: st === 'approved' ? 'approved' : '', act: 'apply-open' };
@@ -9047,7 +9054,7 @@ const APPLY_DOCS = {};
 const APPLY_QUAL_SLOTS = 3;
 /* WHAT THE FORM HAS ALREADY: name, email, phone and date of birth from the account, so an applicant types them once. */
 function applyKnown_() {
-  const q = (USER && USER.profile) || {};
+  const q = (whose_() && whose_().profile) || {};
   const pad = n => String(n).padStart(2, '0');
   const dob = Number(q.dob_y) > 1900 ? q.dob_y + '-' + pad(Number(q.dob_m) || 1) + '-' + pad(Number(q.dob_d) || 1) : '';
   return { fullName: [q.first_name, q.last_name].filter(Boolean).join(' '), email: q.email || '', phone: q.phone || '', dob };
@@ -9120,8 +9127,8 @@ function applyMissing_(b) {
 }
 /* MAY THIS ACCOUNT FILL THE FORM NOW: an adult with no application waiting. The form is in its card from the start (no sheet, owner 8 Nov). */
 function applyFormOpen_() {
-  if (!USER || rankAtLeast_('staff') || profileAge_(USER.profile) === null || !applyAdult_()) return false;
-  const st = USER.application && USER.application.status;
+  if (!whose_() || whoseAtLeast_('staff') || profileAge_(whose_().profile) === null || !applyAdult_()) return false;
+  const st = whose_().application && whose_().application.status;
   return st !== 'new' && st !== 'interview';
 }
 on('apply-open', () => { const f = document.querySelector('.apply-card .app-form'); if (f) f.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
@@ -9329,7 +9336,7 @@ function signedOut_(opts) {
   const was = USER;
   let wasAdmin = false;
   try { wasAdmin = (typeof isAdmin === 'function' && isAdmin()) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) { oops_(e, 'me:signedOut_') }
-  USER = null;
+  USER = null; LENS = null;   /* and the lens: the next admin opens their own settings */
   try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ }
   payloadForget_();   /* the device's copy of their payload goes with them (1070) */
   if (typeof offForget_ === 'function') offForget_();   /* and the app's offline copy; the words go with libDiskClear_ */
@@ -9412,7 +9419,7 @@ function signedIn_(d, typed) {
   /* SIGNED IN, FIND IS THE PERSON'S OWN, and `USER` says whose — `whose` is only for while nobody is. */
   try { finders_().forEach(st => { st.whose = ''; st.whoseAt = 0; }); } catch (e) { /* no finder yet: nothing to read or clear */ }
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
-  USER = me;
+  USER = me; LENS = null;
   if (!USER.name) USER.name = me.handle || typed || '';
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
   /* ---------- AND ARRIVED OVER SOMEBODY ELSE, WRITTEN DOWN BEFORE ANY DOOR IS ASKED § */
@@ -10379,7 +10386,7 @@ function pinSlip_(first, handle, pin) {
 }
 
 /* ---------- AN ADDRESS NOBODY HAS PROVED: THE MAIL IT IS NOT SENT, AND THE CHILD IT CANNOT HOLD YET § */
-function pendingAddr_() { return (USER && USER.pendingEmail) ? String(USER.pendingEmail) : ''; }
+function pendingAddr_() { return (whose_() && whose_().pendingEmail) ? String(whose_().pendingEmail) : ''; }
 
 /* A TILE, because the link is a thing about your account, not a field on a form (CLAUDE.md). The same
    tile in both places, so a fix to its words is one fix. `send` is the mark that means the act. */
@@ -10539,7 +10546,7 @@ let HANDLE_SAID = { pid: '', text: '' };
 const GROUPS_OLD_ = { 'About you': ['first_name', 'last_name', 'photo'],
                       'Where': ['borough', 'city'], 'Contact': ['email', 'phone'] };
 function myGroups_() {
-  const role = roleOf((USER && USER.role) || '');
+  const role = roleOf((whose_() && whose_().role) || '');
   const has = g => !!(g && Object.keys(g).length);
   return (role === 'client' && has(DATA.clientFields)) ? DATA.clientFields
     : (role === 'student' && has(DATA.studentFields)) ? DATA.studentFields
@@ -10610,8 +10617,8 @@ const lockedPages_ = col => lockedAs_(col, LOCKED_DRAW_[col]);
 /* ---------- PARENT SETTINGS: A PARENT'S OR PAYER'S OWN DETAILS (453) — the children are on Students ---------- */
 function familyPages_() {
   const title = tabLabel_('family', 'Parent settings');
-  if (!USER) return [signedOutCard_(title)].concat(lockedPages_('family'));
-  if (!rankAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
+  if (!whose_()) return [signedOutCard_(title)].concat(lockedPages_('family'));
+  if (!whoseAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
   const out = ownCardSetPage_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family'));
   /* NOTHING A PARENT'S ALONE (469): your picture, name and contact are everybody's, so on Student settings. */
   return out.length ? out : [rankOffCard_(title, NOTHING_YET + ' Your details are on ' + tabLabel_('account', 'Kids settings') + '.', null, 'set-none')];
@@ -10622,14 +10629,16 @@ screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_
 function applyCard_() {
   const open = typeof applyFormOpen_ === 'function' && applyFormOpen_();
   const body = open ? applyFormHtml_() : typeof applyOpts_ === 'function' && applyOpts_() ? tileRow_(tile_(applyOpts_()), 'apply-tiles') : '';
-  return body ? [card_(`<div class="apply-card" data-yours="1"><h3>Apply to teach</h3><p class="note">Teach with us: tell us what you teach, and we will be in touch.</p>${body}</div>`)] : [];
+  const h = body ? card_(`<div class="apply-card" data-yours="1"><h3>Apply to teach</h3><p class="note">Teach with us: tell us what you teach, and we will be in touch.</p>${body}</div>`) : '';
+  /* AN APPLICATION IS THE ASKER'S OWN (`applyTeach`), so in the lens it is shown shut. */
+  return h ? [lensOn_() ? lockCard_(h) : h] : [];
 }
 /* ---------- TUTOR SETTINGS: THE STAFF HUB AND THE TEACHING SETTINGS WITH NO CARD TO LIVE ON (453) ---------- */
 function staffPages_() {
   const title = tabLabel_('staff', 'Tutor settings');
-  if (!USER) return [signedOutCard_(title)].concat(lockedPages_('staff'));
+  if (!whose_()) return [signedOutCard_(title)].concat(lockedPages_('staff'));
   /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyOpts_`), then every card shut (467). */
-  if (!rankAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
+  if (!whoseAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
   const hub = typeof hubBlock_ === 'function' ? hubBlock_() : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [card_(`<div class="staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`)] : [];
@@ -10713,17 +10722,17 @@ const ROLE_PICKS = [
 ];
 /* WHAT THE LINE UNDER THE CARD SAYS WHEN NOTHING HAS JUST HAPPENED, by rank. */
 function rolesSaid_() {
-  if (!USER) return '';
-  if (isAdmin()) return '';
-  if (USER.tutorPending && tutorHeld_())
+  if (!whose_()) return '';
+  if (whoseAtLeast_('admin')) return '';
+  if (whose_().tutorPending && hasRole('tutor', whose_()))
     return 'Tutor is waiting for ' + brand('name', '@family.') + ' to approve you. Until then you are not on the site and '
          + 'cannot be booked — fill in your teaching pages meanwhile.';
-  if (rankAtLeast_('staff')) return 'You teach here. Your hours, pricing and terms are in the Staff hub on ' + tabLabel_('staff', 'Tutor settings') + '.';
-  if (rank_() === 'student') return 'A parent links you to their account from theirs.';
+  if (whoseAtLeast_('staff')) return 'You teach here. Your hours, pricing and terms are in the Staff hub on ' + tabLabel_('staff', 'Tutor settings') + '.';
+  if (rank_(whose_()) === 'student') return 'A parent links you to their account from theirs.';
   return '';
 }
 /* THE CHOICE THE CARD OFFERS: only a Client has one. A waiting Tutor keeps the old row's tutor alongside it (`rolesPicked_`). */
-const rolesPickable_ = () => !!USER && rank_() === 'client';
+const rolesPickable_ = () => !!whose_() && rank_(whose_()) === 'client';
 function rolesCard_() {
   const name = brand('name', '@family.');
   /* ONE ROW, THE PHONE'S OWN PICKER, and no notes under it (469: the owner, "so much filler space"). */
@@ -10787,7 +10796,7 @@ on('roles-save', el => {
 /* WHAT THE LINE UNDER THE TICKS SAYS AFTER ONE IS SAVED, kept as state for `HANDLE_SAID`'s reason: § */
 let NOTIFY_SAID = { pid: '', text: '' };
 const notifyList_ = () => {
-  const n = USER && USER.profile && USER.profile.notify;
+  const n = whose_() && whose_().profile && whose_().profile.notify;
   return n && Array.isArray(n.kinds) ? n : null;
 };
 function notifyCard_() {
@@ -10803,7 +10812,7 @@ function notifyCard_() {
   else if (!n.to) {
     /* NO ADDRESS OF THEIR OWN — `notify` writes to the row's own address and nowhere else, so nothing at
        all is sent to them; a child's forgotten PIN goes to their grown-ups (`authGrownUps_`). */
-    const kid = heldRoles().map(roleOf).indexOf('student') !== -1;
+    const kid = heldRoles(whose_()).map(roleOf).indexOf('student') !== -1;
     inner = empty_(kid ? 'No email address, so no emails.' : 'No email address yet — add one on your Contact card.');
   }
   /* A LIST WITH NOTHING IN IT. § */
@@ -10811,7 +10820,7 @@ function notifyCard_() {
     inner = empty_('No email choices yet.');
   } else {
     const opt = n.kinds.filter(k => !k.essential), must = n.kinds.filter(k => k.essential);
-    const mine = NOTIFY_SAID.pid && NOTIFY_SAID.pid === String(USER.personId || '') ? NOTIFY_SAID.text : '';
+    const mine = NOTIFY_SAID.pid && NOTIFY_SAID.pid === String(whose_().personId || '') ? NOTIFY_SAID.text : '';
     /* ---------- SHORT, BECAUSE IT HAS TO FIT A 320 PHONE WITHOUT SCROLLING § */
     inner = '';
     toggles = opt.map(k => ({ act: 'notify-pick', cls: 'notify-pick', data: { kind: k.kind }, on: k.on, label: k.label,
@@ -10842,18 +10851,20 @@ on('notify-pick', el => {
   const n = notifyList_();
   const label = ((n && n.kinds.find(x => x.kind === kind)) || {}).label || 'That email';
   /* ---------- THIS BOX'S ROW IS LOCKED, NOT THE CARD § */
-  send_({ action: 'setNotify', name: USER.name, personId: USER.personId || '', kind: kind, on: want },
+  /* THE LENS'S PERSON BY `targetId`: the backend lets an admin (or a parent, for a child) choose for somebody else. */
+  const W = whose_();
+  send_(Object.assign({ action: 'setNotify', name: USER.name, personId: USER.personId || '', kind: kind, on: want }, W === USER ? {} : { targetId: W.personId || '' }),
         { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
     .then(d => {
       /* THIS KIND'S ANSWER, MERGED INTO THE LIST WE HOLD — not the reply's whole list. § */
       const on = d && typeof d.on === 'boolean' ? d.on : want;
       const held = notifyList_();
       if (held && held.kinds.some(x => x.kind === kind)) {
-        USER.profile = Object.assign({}, USER.profile, { notify: Object.assign({}, held, {
+        W.profile = Object.assign({}, W.profile, { notify: Object.assign({}, held, {
           kinds: held.kinds.map(x => x.kind === kind && !x.essential ? Object.assign({}, x, { on: on }) : x) }) });
-      } else if (d && d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
-      NOTIFY_SAID = { pid: String(USER.personId || ''),
+      } else if (d && d.notify) W.profile = Object.assign({}, W.profile || {}, { notify: d.notify });
+      if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+      NOTIFY_SAID = { pid: String(W.personId || ''),
         text: on ? label + ' is on.' : label + ' is off — we will not email you that.' };
       /* THE CARD ON THE PAGE NOW, for the roles card's reason: a payload landing mid-request repaints the
          column, and the card held from the press would be a detached copy. */
@@ -10941,7 +10952,7 @@ function settingsSplit_() {
 /* ONE GROUP, ONE CARD, ITS OWN SAVE — `meSave_` posts the boxes of the card it is pressed in, whichever column.
    `col` names the column, so an admin's Split (464, layout.js) can draw a group a field a card, each with its own Save. */
 function settingsCards_(shown, moved, col) {
-  const p = USER.profile || {};
+  const p = whose_().profile || {};
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
      admin's to set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
   const readonly = (DATA.profileReadonly || []).concat(isAdmin() ? [] : ['extra_seat_cut']);
@@ -10997,13 +11008,14 @@ function peoplePages_(col) {
 /* ---------- YOUR CARD ON YOUR ROLE'S SETTINGS COLUMN: ONLY ITS EDITING, A CARD PER THING (468) — never a preview; the person is drawn on the profile columns. */
 function ownCardSetPage_(setCol) {
   const face = FACE_OF_SET_[setCol];
-  if (!USER || !face || typeof ownCardSections_ !== 'function') return [];
+  if (!whose_() || !face || typeof ownCardSections_ !== 'function') return [];
   const secs = ownCardSections_(face);
   if (!secs.length) return [];
-  const mine = typeof myCardRow_ === 'function' ? myCardRow_() : null;
+  const mine = typeof myCardRow_ === 'function' ? myCardRow_(whose_()) : null;
   const row = face === 'tutors' ? (cardMine_() || mine) : mine;
   if (!row || !row.personId || !cardMayEdit_(row)) return [];
-  return cardEditCards_(row, cardOwnOpen_(row), secs, setCol);
+  /* THE PICTURE AND THE VIDEO SAVE TO THE ASKER'S OWN ROW (`savePhoto`, `videoPart`), so in the lens they are shown shut. */
+  return cardEditCards_(row, cardOwnOpen_(row), secs, setCol).map(h => (lensOn_() && /data-sec="picture"|class="vid-/.test(h) ? lockCard_(h) : h));
 }
 /* ALWAYS OPEN: the edit of your own card is the settings column itself, so nothing is pressed to start it. */
 function cardOwnOpen_(t) {
@@ -11011,27 +11023,29 @@ function cardOwnOpen_(t) {
   if (now && now.pid === String(t.personId)) { now.col = 'settings'; return now; }
   const e = CARD_EDIT = cardEditFresh_(t.personId);
   e.pic0 = cardPicNow_(t);
-  e.fig0 = String(USER.avatar || ''); e.cr0 = Number(USER.credits || 0); e.h0 = String(USER.handle || USER.name || '');
+  e.fig0 = String(whose_().avatar || ''); e.cr0 = Number(whose_().credits || 0); e.h0 = String(whose_().handle || whose_().name || '');
   cardRemember_(e);
   return e;
 }
 /* ---------- STUDENT SETTINGS: EVERY ACCOUNT'S SIGNING IN AND OUT, PIN, ROLES, NOTIFICATIONS, AND A STUDENT'S DETAILS ---------- */
 function youSettingsPages_() {
-  if (!USER) return [];
+  if (!whose_()) return [];
   /* EVERYBODY'S DETAILS, WHATEVER THE RANK (469): a parent's or tutor's own contact is edited here, as a student's is. */
   const shown = settingsSplit_().you;
   const pages = settingsCards_(shown, '', 'account');
   /* ONE LINE A BOX, ONE Save: a PIN is never saved as you type; its boxes are forms.json's `signing-in`. */
-  pages.push(formCard_({ id: 'signing-in' }));
+  /* THEIR PIN AND ROLES ARE NOT AN ADMIN'S TO CHANGE IN THE LENS: shown shut, greyed not hidden. */
+  const shut = h => (lensOn_() ? lockCard_(h) : h);
+  pages.push(shut(formCard_({ id: 'signing-in' })));
   /* YOUR ROLES, THEN WHICH EMAILS YOU WANT — every signed-in person has both. */
-  pages.push(rolesCard_());
+  pages.push(shut(rolesCard_()));
   pages.push(notifyCard_());
   const voice = voiceCard_();
   if (voice) pages.push(voice);
   return pages;
 }
 function studentSetPages_() {
-  if (!USER) {
+  if (!whose_()) {
     /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist first. */
     if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
     /* SIGN IN AND SIGNED IN ARE ONE UNIT, `acct:signed-in` (770): the owner moved it, signed out, and it jumped back — one saved place. */
@@ -11039,14 +11053,16 @@ function studentSetPages_() {
     const reg = typeof registerCard_ === 'function' ? [registerCard_()] : [];
     return (typeof cardMark_ === 'function' ? cardMark_('acct:signed-in', signIn) : signIn).concat(reg, lockedPages_('account'));
   }
-  const who = nameBesideHandle_(USER.name, USER.handle) || 'you';
+  const who = nameBesideHandle_(whose_().name, whose_().handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
-  const top = card_(`<div class="signed-in"><h3>Signed in</h3>
+  let top = card_(`<div class="signed-in"><h3>Signed in</h3>
     ${tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
       + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)}
     ${/* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
       typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''}</div>`);
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
+  /* IN THE LENS, SIGN OUT IS THE ADMIN'S OWN SESSION: shut, greyed not hidden (the fixed tile rule). */
+  if (lensOn_()) top = lockCard_(top);
   /* WHAT WAS THE PROGRESS COLUMN (461, the owner: "the progress column content can all be moved to student column account settings"). */
   const all = typeof progressCards_ === 'function' ? progressCards_() : [];
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
@@ -11055,7 +11071,7 @@ function studentSetPages_() {
   if (typeof SETTINGS_OFF !== 'undefined' && SETTINGS_OFF) return [top];
   return [top].concat(ownCardSetPage_('account'), youSettingsPages_(),
     /* WORK ON FILE (owner, 11 Nov): a student's own scanned pages; a tutor's opens each booked student's. */
-    /^(student|staff)$/.test(rank_()) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [], soonCards_(),
+    /^(student|staff)$/.test(rank_(whose_())) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [], soonCards_(),
     prog, wait);
 }
 /* PLACEHOLDERS (562, owner notes 116, 118, 114): one card each, its title and one line, until the thing is built; each in CARD_REG so it moves and deletes. */
@@ -11273,7 +11289,7 @@ function fieldHtml(name, value, o) {
   /* A FIXED LIST IS A SELECT. § */
   /* A MANAGER IS A TUTOR, KEPT BY PERSON ID AND SHOWN BY NAME (`{ v, t }`); blank is the admin (`chainShares_`). */
   const opts = name === 'manager'
-    ? managerOptions_(String((o.raw && o.raw.person_id) || ((typeof USER !== 'undefined' && USER) || {}).personId || '')) : (o.options || []);
+    ? managerOptions_(String((o.raw && o.raw.person_id) || (whose_() || {}).personId || '')) : (o.options || []);
   const ov = x => String(x && typeof x === 'object' ? x.v : x), ot = x => String(x && typeof x === 'object' ? x.t : x);
   if (opts.length) {
     /* A PLACEHOLDER ON A SELECT IS ITS EMPTY OPTION, and the caption goes exactly as it does for a box below: § */
@@ -12026,7 +12042,7 @@ function libCardsDraw_(into) {
   if (!into) return;
   const held = into.querySelector('.me-form[data-dirty], .me-form.is-sending');
   if (held) return;
-  if (!USER) { into.innerHTML = `<p class="note">Sign in and your library cards are kept here.</p>`; return; }
+  if (!whose_()) { into.innerHTML = `<p class="note">Sign in and your library cards are kept here.</p>`; return; }
   const list = libFieldsOf_(myGroups_());
   if (!list.length && typeof awaiting_ === 'function' && awaiting_()) { into.innerHTML = loading_(); return; }
   /* AN OLDER SERVER, SAID AS ONE — `OLD_SERVER_SAY_`, the card editor's sentence for the same case. § */
@@ -12034,7 +12050,7 @@ function libCardsDraw_(into) {
     into.innerHTML = `<p class="note">${esc(OLD_SERVER_SAY_)}</p>`;
     return;
   }
-  const p = USER.profile || {};
+  const p = whose_().profile || {};
   into.innerHTML = `<div class="me-form">${libraryShelf_(list, f => p[f] ?? '')}
     <p class="note me-said"></p></div>`;
 }
@@ -12116,22 +12132,24 @@ function meSave_(el, auto) {
   saveNow();
   function saveNow() {
   /* `send_`, NOT `api()`. § */
+  /* YOU ASK; `whose_()` IS WHOSE ROW — yours, or the person an admin's lens is on (the backend lets only an admin name another). */
+  const W = whose_();
   send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '',
-          target: USER.name, targetId: USER.personId || '', fields },
+          target: W.name, targetId: W.personId || '', fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said })
     .then(d => {
       /* THE SERVER'S OWN READING OF THE ROW, NOT WHAT WAS TYPED. § */
-      USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
+      W.profile = (d && d.profile) ? d.profile : Object.assign({}, W.profile || {}, fields);
       /* AND THE PROGRESS COLUMN, whose journey card counts down to the two exam dates on About you (`progressRedraw_`, js/arcade.js) — not left to the § */
       if (typeof progressRedraw_ === 'function') progressRedraw_();
       /* ON THE SHEET NOW, SO EACH FIELD SENT IS NO LONGER A DRAFT (`fieldHtml`; 317). */
       Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) { oops_(e, 'me:meSave_') } });
-      if (d && d.name) USER.name = d.name;
+      if (d && d.name) W.name = d.name;
       /* A CORRECTED PENDING ADDRESS IS STILL PENDING, at the new address — the held cards say which. */
-      if (d && d.pendingEmail !== undefined) { accountChanged_(); USER.pendingEmail = String(d.pendingEmail || ''); }
+      if (d && d.pendingEmail !== undefined) { accountChanged_(); W.pendingEmail = String(d.pendingEmail || ''); }
       /* ---------- "SAVED" IS NOT THE WHOLE STORY WHEN AN ADDRESS WAS TYPED § */
       const word = (d && d.said) || 'Saved';
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+      if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
       if (box.closest('#sheet-body') && !auto) closeSheet();
       /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_` — unless the caret is still in it. */
       const form = el.closest('.me-form');
@@ -12214,7 +12232,7 @@ function settingsKeep_(id) {
 /* ---------- YOUR SETTINGS, AS THE SHEET HOLDS THEM § */
 let PROFILE_ASKING = false;
 function profileShapeOk_() {
-  const p = USER && USER.profile;
+  const p = whose_() && whose_().profile;
   return !!p && Object.prototype.hasOwnProperty.call(p, 'phone_cc');
 }
 function profileRefresh_(loud, onOld) {
@@ -12537,7 +12555,7 @@ document.addEventListener('change', e => {
   if (!inp || !inp.matches || !inp.matches('.ph-in')) return;
   const file = (inp.files || [])[0], slot = inp.closest('.ph-slot');
   inp.value = '';
-  if (!file || !slot || !USER) return;
+  if (!file || !slot || !whose_()) return;
   const said = slot.querySelector('.ph-said'), say = m => { if (said) said.textContent = m; };
   if (!/^image\//.test(file.type || '')) { say('That is not a picture. Choose a photo from your phone.'); return; }
   say('Getting the photo ready…');
@@ -12588,7 +12606,7 @@ function pfpSaid_(v) {
 }
 /* THE PREVIEW IS `personFace_` LIKE EVERY OTHER FACE, so what you see here is what everybody else's card draws — so a picker and a card never disagree. § */
 function pfpFace_(v) {
-  const me = USER || {};
+  const me = whose_() || {};
   return personFace_({ pic: v, personId: me.personId, handle: me.handle,
                        name: (me.profile && me.profile.first_name) || me.name || '?' },
                      { cls: 'pfp-pic', none: 'pfp-none', size: 88, alt: 'Your profile picture', eager: true });
@@ -12777,8 +12795,8 @@ const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').t
 
 /* ---------- WHO HAS A PUBLIC CARD, AND WHAT SETTINGS STOPS DRAWING FOR THEM § */
 function cardMine_() {
-  if (typeof USER === 'undefined' || !USER || typeof mineIs_ !== 'function') return null;
-  return ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).find(t => t && t.personId && mineIs_(t)) || null;
+  if (!whose_() || typeof mineIs_ !== 'function') return null;
+  return ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).find(t => t && t.personId && mineIs_(t, whose_())) || null;
 }
 const cardHolds_ = () => !!USER && cardSent_().length > 0 && !!cardMine_();
 /* THE GROUPS WITH EVERY FIELD THE CARD EDITS TAKEN OUT, AND A GROUP LEFT EMPTY DROPPED — so for a tutor with a card About you, Photos, the rate, Qualifications § */
@@ -12798,13 +12816,13 @@ let CARD_EDIT = null;
 let CARD_EDIT_READ = '';
 const CARD_EDIT_KEY = 'familyCardEdit';
 function cardEditFresh_(pid) {
-  const me = String((USER && USER.personId) || '');
+  const me = String((whose_() && whose_().personId) || '');
   const own = !!me && String(pid) === me;
   return { who: me, pid: String(pid), own, col: own ? 'settings' : undefined, base: null, asking: false, err: '' };
 }
 function cardEditNow_() {
-  if (typeof USER === 'undefined' || !USER) { CARD_EDIT = null; CARD_EDIT_READ = ''; return null; }
-  const me = String(USER.personId || '');
+  if (!whose_()) { CARD_EDIT = null; CARD_EDIT_READ = ''; return null; }
+  const me = String(whose_().personId || '');
   if (CARD_EDIT && CARD_EDIT.who !== me) CARD_EDIT = null;
   if (!CARD_EDIT && CARD_EDIT_READ !== me) {
     CARD_EDIT_READ = me;
@@ -12835,9 +12853,9 @@ function cardForget_() { try { localStorage.removeItem(CARD_EDIT_KEY); } catch (
 
 /* WHO MAY EDIT THIS CARD: § */
 function cardMayEdit_(t) {
-  if (typeof USER === 'undefined' || !USER || !t || !t.personId) return false;
+  if (!whose_() || !t || !t.personId) return false;
   /* YOUR OWN CARD ONLY, for every rank (467) — the owner: "Profile cards are uneditable by anyone, including admin." */
-  return String(t.personId) === String(USER.personId || '');
+  return String(t.personId) === String(whose_().personId || '');
 }
 /* `col` IS WHICH PEOPLE COLUMN ASKS (453): your own card's face there (`ownCardSections_`); anybody else's tutor card on Tutors. */
 const PEOPLE_COLS_ = ['tutors', 'students', 'parents'];
@@ -12857,7 +12875,7 @@ function cardEditOpts_(x) {
   const t = (x && x.row) || {};
   if (!x || !x.account || !cardMayEdit_(t)) return null;
   /* NOT ON THE CARD BEING EDITED. § */
-  const own = String(t.personId) === String(USER.personId || '');
+  const own = String(t.personId) === String((whose_() || {}).personId || '');
   const col = x.col || (own ? homeCol_() : 'tutors');
   if (cardEditing_(t, col)) return null;
   /* YOUR OWN CARD'S EDIT IS ON YOUR SETTINGS COLUMN ALONE (464, `ownCardSetPage_`); nobody edits somebody else's (467). */
@@ -12947,7 +12965,7 @@ function cardKeep_(form) {
 /* ---------- THE COPY OF THE ROW THE FORM IS FILLED FROM § */
 function cardBaseNow_(e) {
   if (!e) return null;
-  if (e.own) return profileShapeOk_() ? USER.profile : null;
+  if (e.own) return profileShapeOk_() ? whose_().profile : null;
   return e.base;
 }
 function cardFetch_(e) {
@@ -13107,7 +13125,7 @@ const CARD_SECTION = {
 };
 /* WHO GETS THE EXTRA-SEAT MONEY, in words: the split `chainShares_` makes with this manager chosen. */
 function chainSay_(t, manager) {
-  const id = String((t && t.personId) || ((typeof USER !== 'undefined' && USER) || {}).personId || 'me');
+  const id = String((t && t.personId) || (whose_() || {}).personId || 'me');
   t = t || ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).find(x => x && String(x.personId) === id) || null;
   const tutors = ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).filter(x => x && String(x.personId) !== id);
   const me = { personId: id, manager: String(manager || ''), role: (t && t.role) || 'Tutor', title: 'You' };
@@ -13125,7 +13143,7 @@ function cardEditForm_(t, e, vals, only) {
   const ro = (DATA && DATA.profileReadonly) || [];
   const box = (f, extra) => fieldHtml(f, val(f), Object.assign({ attr: 'data-me', label: ROW_LABEL[f],
     options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !isAdmin()), draft: false,
-    raw: { person_id: (t && t.personId) || ((typeof USER !== 'undefined' && USER) || {}).personId || '' } }, extra));
+    raw: { person_id: (t && t.personId) || (whose_() || {}).personId || '' } }, extra));
   /* YOUR OWN CARD'S SECTIONS ARE YOUR ROLE'S (`ownCardSections_`), with the figure and the handle;
      somebody else's are the tutor's card, as an admin has always edited it. */
   return (only || (e.own ? ownCardSections_() : cardSections_())).map(s => {
@@ -13304,12 +13322,12 @@ function cardSeatRefusal_(form, fields) {
 /* ---------- YOUR HANDLE, ON YOUR CARD, UNDER YOUR NAME (docs/history/339) § */
 function cardHandleHtml_() {
   /* NO PRESS ANY MORE (364, 367): the handle is a template, said here so nobody has to be told it. */
-  const said = (HANDLE_SAID.pid && HANDLE_SAID.pid === String(USER.personId || '') && HANDLE_SAID.text)
+  const said = (HANDLE_SAID.pid && HANDLE_SAID.pid === String(whose_().personId || '') && HANDLE_SAID.text)
     || 'Your handle is the first and last letter of your first name and the year you joined. If somebody '
      + 'had it already, more letters of your first name were added, and then a number.';
   /* ONE LINE, AND THE RULE ONE TAP UNDER IT (425) — the handle is read here, never typed. */
   return ceFold_('handle', 'Handle', `<span class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
-      esc((USER && USER.handle) || '')}</span></span>`, `<p class="note handle-said">${esc(said)}</p>`);
+      esc((whose_() && whose_().handle) || '')}</span></span>`, `<p class="note handle-said">${esc(said)}</p>`);
 }
 /* SOMEBODY ELSE'S PICTURE, SHOWN AND NOT OFFERED — `savePhoto` writes the asker's own row. § */
 function cardFaceOnly_(t) {
@@ -13376,8 +13394,8 @@ function cardQualHole_(form, base) {
 function cardClose_(e, pane, sec) {
   try { draftDrop_('card', e.pid + (sec ? ':' + sec : '')); } catch (x) { oops_(x, 'me:cardClose_') }
   /* YOUR OWN STAYS OPEN (468) — the column is its editor — and what it would put back is what is there now. */
-  if (CARD_EDIT === e && e.own && USER) {
-    Object.assign(e, { pic0: cardPicNow_(), h0: String(USER.handle || USER.name || '') });
+  if (CARD_EDIT === e && e.own && whose_()) {
+    Object.assign(e, { pic0: cardPicNow_(), h0: String(whose_().handle || whose_().name || '') });
     cardRemember_(e);
   } else { if (CARD_EDIT === e) CARD_EDIT = null; cardForget_(); }
   /* CLEAN FIRST, or `settingsKeep_` holds the column and the repaint that ends the edit never happens. */
@@ -13424,9 +13442,9 @@ on('card-edit', el => {
 /* YOUR PICTURE AS THIS PHONE LAST KEPT IT — `USER.profile.photo`, which `pfpTake_` writes on every save,
    else the sign-in reply's `USER.photo`, else your row's face. */
 function cardPicNow_(t) {
-  const p = (USER && USER.profile) || {};
+  const p = (whose_() && whose_().profile) || {};
   const v = Object.prototype.hasOwnProperty.call(p, 'photo') ? p.photo
-    : (USER && USER.photo != null ? USER.photo : (t && t.image));
+    : (whose_() && whose_().photo != null ? whose_().photo : (t && t.image));
   return String(v == null ? '' : v).trim();
 }
 
@@ -13473,14 +13491,16 @@ function cardSave_(el, auto) {
   /* NOTHING TYPED — BUT A SECTION THAT SAVES ITSELF MAY HAVE BEEN (`cardSelfSaved_`): § */
   if (!Object.keys(fields).length) { if (auto) return; toast(cardSelfSay_(e) || 'Nothing had changed'); cardClose_(e, pane, sec); return; }
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === e.pid) || {};
+  /* `own` IS `whose_()`'S CARD: yours, or the lens's person's, written to their row by `targetId`. */
+  const W = whose_();
   send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '',
-          target: e.own ? USER.name : (t.title || ''), targetId: e.pid, fields },
+          target: e.own ? W.name : (t.title || ''), targetId: e.pid, fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said, lock: pane })
     .then(d => {
       if (e.own) {
-        USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
-        if (d && d.name) USER.name = d.name;
-        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) { /* storage can be blocked; the app runs without it */ }
+        W.profile = (d && d.profile) ? d.profile : Object.assign({}, W.profile || {}, fields);
+        if (d && d.name) W.name = d.name;
+        if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) { /* storage can be blocked; the app runs without it */ }
         /* YOUR OWN COPY CHANGED, and the Progress column's journey card is drawn from it — see `meSave_`. */
         if (typeof progressRedraw_ === 'function') progressRedraw_();
       }
@@ -13958,7 +13978,7 @@ on('person-edit-done', () => {
 
 /* ---------- FAMILY PICKER: a typed search over the payload's people cards, its hits a tap each (add-person, edit-person) ---------- */
 /* `want` 'student' or 'client'; `scope` 'pa' (the Add card) or 'pe' (the Edit form), which names the tap a hit makes. */
-const famIs_ = (p, want) => (want === 'student' ? /student/i : /client|parent/i).test(String((p && p.role) || ''));
+const famIs_ = (p, want) => want === 'any' || (want === 'student' ? /student/i : /client|parent/i).test(String((p && p.role) || ''));
 function famHits_(q, want, skip) {
   q = String(q || '').trim().toLowerCase().replace(/^@/, '');
   if (!q) return [];
@@ -13966,7 +13986,7 @@ function famHits_(q, want, skip) {
     && [p.title, p.name, p.handle].filter(Boolean).join(' ').toLowerCase().indexOf(q) !== -1).slice(0, 6);
 }
 /* THE TAP A HIT MAKES, by where the picker stands. */
-const FAM_ACT_ = { pa: { act: 'pa-pick' }, pe: { act: 'pe-link' } };
+const FAM_ACT_ = { pa: { act: 'pa-pick' }, pe: { act: 'pe-link' }, lens: { act: 'lens-pick' } };
 const famPick_ = (scope, want, label) => `<div class="fam-pick">${formLine_(label, formInput_(`data-fam-q="${scope}" data-fam-want="${want}" type="search" autocomplete="off" placeholder="name or @handle"`))}
   <div class="tile-row fam-hits" data-fam-hits="${scope}"></div></div>`;
 document.addEventListener('input', e => {
@@ -13975,7 +13995,8 @@ document.addEventListener('input', e => {
   const scope = box.getAttribute('data-fam-q'), want = box.getAttribute('data-fam-want');
   const out = box.closest('.fam-pick') && box.closest('.fam-pick').querySelector('.fam-hits');
   if (!out) return;
-  const skip = scope === 'pa' ? ((PERSON_ADD_ && PERSON_ADD_.picked) || []).map(x => x.id) : peLinked_().concat([String((PERSON_ED_ || {}).id || '')]);
+  const skip = scope === 'pa' ? ((PERSON_ADD_ && PERSON_ADD_.picked) || []).map(x => x.id) : scope === 'lens' ? [String((USER || {}).personId || '')]
+    : peLinked_().concat([String((PERSON_ED_ || {}).id || '')]);
   out.innerHTML = famHits_(box.value, want, skip).map(p => tile_({ form: true, kind: 'quiet', label: displayName_(p) + (p.handle ? ' @' + p.handle : ''),
     act: (FAM_ACT_[scope] || FAM_ACT_.pe).act, data: { id: p.personId, name: displayName_(p), want } })).join('');
 });
