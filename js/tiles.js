@@ -430,7 +430,7 @@ function cardRow_(x, flat) {
     + tile_(hear || (typeof readAloudOpts_ === 'function' && !isQ_(x) ? readAloudOpts_(x) : null))
     + tile_([typeof speedOpts_ === 'function' ? speedOpts_(x) : null, typeof magCardOpts_ === 'function' ? magCardOpts_(x) : null, finderOpenOpts_(x)]) + (x.more || '')
     /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
-    + (x.key && !isMeCard_(x) && !isQ_(x) && tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('c:' + x.key) : null)));
+    + (x.key && !isMeCard_(x) && !isQ_(x) ? tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('c:' + x.key) : null) : ''));
   const admin = tileGroup_(adminOpts_(x), 'is-admin', 'Admin');
   if (flat) return mine + admin;
   if (!mine && !admin) return '';

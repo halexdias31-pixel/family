@@ -291,6 +291,90 @@ APH_NOTE = ('The key constants and equations of the data and formulae booklet AQ
             'Not yet compared line by line with the booklet, so marked unverified.')
 
 
+# ---------- OCR A level Physics A (H556): the Data, Formulae and Relationships booklet's key lines ----------
+def x10(m, e):
+    return m + ' &times; 10<sup>' + e.replace('-', '&minus;') + '</sup>'
+
+
+def sq(v):
+    return v + '<sup>2</sup>'
+
+
+BAR = '<span style="text-decoration:overline">' + '<i>c</i><sup>2</sup>' + '</span>'
+OPH = [
+    {'head': 'Data', 'lines': [
+        L('Gravitational field strength', i('g') + ' = 9.81 N kg<sup>&minus;1</sup>'),
+        L('Elementary charge', i('e') + ' = ' + x10('1.60', '-19') + ' C'),
+        L('Speed of light in a vacuum', i('c') + ' = ' + x10('3.00', '8') + ' m s<sup>&minus;1</sup>'),
+        L('Planck constant', i('h') + ' = ' + x10('6.63', '-34') + ' J s'),
+        L('Avogadro constant', i('N') + '<sub>A</sub> = ' + x10('6.02', '23') + ' mol<sup>&minus;1</sup>'),
+        L('Molar gas constant', i('R') + ' = 8.31 J mol<sup>&minus;1</sup> K<sup>&minus;1</sup>'),
+        L('Boltzmann constant', i('k') + ' = ' + x10('1.38', '-23') + ' J K<sup>&minus;1</sup>'),
+        L('Gravitational constant', i('G') + ' = ' + x10('6.67', '-11') + ' N m<sup>2</sup> kg<sup>&minus;2</sup>'),
+        L('Permittivity of free space', '&epsilon;<sub>0</sub> = ' + x10('8.85', '-12') + ' C<sup>2</sup> N<sup>&minus;1</sup> m<sup>&minus;2</sup>'),
+        L('Electron rest mass', i('m') + '<sub>e</sub> = ' + x10('9.11', '-31') + ' kg'),
+        L('Proton rest mass', i('m') + '<sub>p</sub> = ' + x10('1.673', '-27') + ' kg'),
+        L('Neutron rest mass', i('m') + '<sub>n</sub> = ' + x10('1.675', '-27') + ' kg'),
+        L('Alpha particle rest mass', i('m') + '<sub>&alpha;</sub> = ' + x10('6.646', '-27') + ' kg'),
+        L('Stefan constant', '&sigma; = ' + x10('5.67', '-8') + ' W m<sup>&minus;2</sup> K<sup>&minus;4</sup>'),
+        L('Atomic mass unit', '1 u = ' + x10('1.661', '-27') + ' kg'),
+        L('Light-year', '1 ly = ' + x10('9.46', '15') + ' m'),
+        L('Parsec', '1 pc = ' + x10('3.09', '16') + ' m')]},
+    {'head': 'Mechanics', 'lines': [
+        L('Constant acceleration', SUVAT_M),
+        L('Force', i('F') + ' = ' + F(D + i('p'), D + i('t'))),
+        L('Power', i('P') + ' = ' + i('F') + i('v')),
+        L('Hooke’s law', i('F') + ' = ' + i('k') + i('x') + '; &nbsp; ' + i('E') + ' = ' + HALF + i('F') + i('x') + ' = ' + HALF + i('k') + sq(i('x'))),
+        L('Stress, strain, Young modulus', '&sigma; = ' + F(i('F'), i('A')) + '; &nbsp; &epsilon; = ' + F(i('x'), i('L')) + '; &nbsp; ' + i('E') + ' = ' + F('&sigma;', '&epsilon;')),
+        L('Circular motion', i('v') + ' = &omega;' + i('r') + '; &nbsp; ' + i('a') + ' = ' + F(sq(i('v')), i('r')) + ' = ' + sq('&omega;') + i('r') + '; &nbsp; ' + i('F') + ' = ' + F(i('m') + sq(i('v')), i('r'))),
+        L('Simple harmonic motion', i('a') + ' = &minus;' + sq('&omega;') + i('x') + '; &nbsp; ' + i('x') + ' = ' + i('A') + ' cos &omega;' + i('t') + '; &nbsp; ' + i('v') + ' = &plusmn;&omega;' + rad(sq(i('A')) + ' &minus; ' + sq(i('x'))))]},
+    {'head': 'Electricity and waves', 'lines': [
+        L('Current', i('I') + ' = ' + i('A') + i('n') + i('e') + i('v')),
+        L('Resistivity', i('R') + ' = ' + F('&rho;' + i('L'), i('A'))),
+        L('Potential divider', i('V') + '<sub>out</sub> = ' + F(i('R') + '<sub>2</sub>', i('R') + '<sub>1</sub> + ' + i('R') + '<sub>2</sub>') + ' &times; ' + i('V') + '<sub>in</sub>'),
+        L('Wave speed', i('v') + ' = ' + i('f') + '&lambda;'),
+        L('Double slit', '&lambda; = ' + F(i('a') + i('x'), i('D'))),
+        L('Diffraction grating', i('d') + ' sin &theta; = ' + i('n') + '&lambda;'),
+        L('Refraction', i('n') + ' sin &theta; = constant; &nbsp; sin ' + i('C') + ' = ' + F(1, i('n'))),
+        L('Photon', i('E') + ' = ' + i('h') + i('f') + ' = ' + F(i('h') + i('c'), '&lambda;') + '; &nbsp; ' + i('h') + i('f') + ' = &phi; + ' + i('KE') + '<sub>max</sub>'),
+        L('de Broglie', '&lambda; = ' + F(i('h'), i('p')))]},
+    {'head': 'Thermal, fields and nuclear', 'lines': [
+        L('Ideal gas', i('p') + i('V') + ' = ' + i('n') + i('R') + i('T') + ' = ' + i('N') + i('k') + i('T') + '; &nbsp; ' + i('p') + i('V') + ' = ' + F(1, 3) + ' ' + i('N') + i('m') + BAR),
+        L('Mean kinetic energy', HALF + i('m') + BAR + ' = ' + F(3, 2) + ' ' + i('k') + i('T')),
+        L('Gravitational field', i('g') + ' = &minus;' + F(i('G') + i('M'), sq(i('r'))) + '; &nbsp; ' + i('V') + '<sub>g</sub> = &minus;' + F(i('G') + i('M'), i('r')) + '; &nbsp; ' + sq(i('T')) + ' = ' + F('4' + sq('&pi;'), i('G') + i('M')) + ' ' + i('r') + '<sup>3</sup>'),
+        L('Electric field', i('F') + ' = ' + F(i('Q') + i('q'), '4&pi;&epsilon;<sub>0</sub>' + sq(i('r'))) + '; &nbsp; ' + i('E') + ' = ' + F(i('V'), i('d'))),
+        L('Capacitors', i('C') + ' = ' + F(i('Q'), i('V')) + '; &nbsp; ' + i('W') + ' = ' + HALF + i('Q') + i('V') + '; &nbsp; &tau; = ' + i('C') + i('R') + '; &nbsp; ' + i('x') + ' = ' + i('x') + '<sub>0</sub>e<sup>&minus;' + i('t') + '/' + i('CR') + '</sup>'),
+        L('Magnetic force', i('F') + ' = ' + i('B') + i('I') + i('L') + ' sin &theta;; &nbsp; ' + i('F') + ' = ' + i('B') + i('Q') + i('v')),
+        L('Induction', '&phi; = ' + i('B') + i('A') + ' cos &theta;; &nbsp; &epsilon; = &minus;' + F('d(' + i('N') + '&phi;)', 'd' + i('t'))),
+        L('Radioactive decay', i('A') + ' = &lambda;' + i('N') + '; &nbsp; ' + i('N') + ' = ' + i('N') + '<sub>0</sub>e<sup>&minus;&lambda;' + i('t') + '</sup>; &nbsp; &lambda;' + i('t') + '<sub>&frac12;</sub> = ln 2'),
+        L('Mass–energy', D + i('E') + ' = ' + D + i('m') + sq(i('c'))),
+        L('Stars', i('L') + ' = 4&pi;' + sq(i('r')) + '&sigma;' + i('T') + '<sup>4</sup>; &nbsp; &lambda;<sub>max</sub>' + i('T') + ' = constant'),
+        L('Universe', i('v') + ' &asymp; ' + i('H') + '<sub>0</sub>' + i('d') + '; &nbsp; ' + F(D + '&lambda;', '&lambda;') + ' &asymp; ' + F(i('v'), i('c'))),
+        L('Medical imaging', i('I') + ' = ' + i('I') + '<sub>0</sub>e<sup>&minus;&mu;' + i('x') + '</sup>; &nbsp; ' + i('Z') + ' = &rho;' + i('c'))]},
+]
+OPH_NOTE = ('The data and the key relationships of the Data, Formulae and Relationships booklet OCR gives with every Physics A paper, in our own '
+            'setting; its units and prefixes pages are in the booklet itself. Written from knowledge of the booklet and not yet compared line by line, so marked unverified.')
+
+# ---------- OCR A level Chemistry A (H432): the Data Sheet ----------
+OCH = [
+    {'head': 'Constants and conversions', 'lines': [
+        L('Avogadro constant', i('N') + '<sub>A</sub> = ' + x10('6.02', '23') + ' mol<sup>&minus;1</sup>'),
+        L('Gas constant', i('R') + ' = 8.314 J mol<sup>&minus;1</sup> K<sup>&minus;1</sup>'),
+        L('Molar gas volume at RTP', '24.0 dm<sup>3</sup> mol<sup>&minus;1</sup>'),
+        L('Specific heat capacity of water', i('c') + ' = 4.18 J g<sup>&minus;1</sup> K<sup>&minus;1</sup>'),
+        L('Ionic product of water', i('K') + '<sub>w</sub> = ' + x10('1.00', '-14') + ' mol<sup>2</sup> dm<sup>&minus;6</sup> at 298 K'),
+        L('Volume', '1 cm<sup>3</sup> = 10<sup>&minus;3</sup> dm<sup>3</sup> = 10<sup>&minus;6</sup> m<sup>3</sup>'),
+        L('Mass', '1 tonne = 10<sup>6</sup> g')]},
+    {'head': 'Infrared absorptions in organic molecules', 'lines': [
+        L('C–O (alcohols, esters, acids)', '1000&ndash;1300 cm<sup>&minus;1</sup>'),
+        L('C=O (aldehydes, ketones, acids, esters, amides)', '1630&ndash;1820 cm<sup>&minus;1</sup>'),
+        L('C–H (alkyl groups, alkenes, arenes)', '2850&ndash;3100 cm<sup>&minus;1</sup>'),
+        L('O–H (carboxylic acids)', '2500&ndash;3300 cm<sup>&minus;1</sup>', note='very broad'),
+        L('N–H (amines, amides)', '3300&ndash;3500 cm<sup>&minus;1</sup>'),
+        L('O–H (alcohols, phenols)', '3200&ndash;3600 cm<sup>&minus;1</sup>')]},
+]
+
+
 def row(**k):
     base = {'insert_id': '', 'name': '', 'summary': '', 'subject': '', 'level': '', 'keystage': '', 'board': '', 'tier': '',
             'for_subjects': '', 'for_levels': '', 'for_tiers': '', 'verified': 'False', 'verified_note': '',
@@ -317,7 +401,7 @@ ROWS = [
         verified_note=PHYS_NOTE, official=PHYS_LINKS, sections=PHYS),
     row(insert_id='INS-GCSE-PERIODIC', name='GCSE Chemistry periodic table',
         summary='The periodic table a GCSE Chemistry or Combined Science candidate is given in the exam.',
-        subject='Chemistry', level='GCSE', keystage='KS4', board='AQA', tier='Foundation, Higher',
+        subject='Chemistry', level='GCSE', keystage='KS4', board='AQA, Edexcel', tier='Foundation, Higher',
         for_subjects='Chemistry, Combined Science', for_levels='GCSE',
         verified_note=('The facts of the periodic table insert AQA prints (docs/history/106): atomic number, symbol, name and relative atomic mass, '
                        'the masses whole except chlorine and copper, and in brackets for an element with no stable isotope. '
@@ -352,7 +436,35 @@ ROWS = [
         subject='Physics', level='A-Level', keystage='KS5', board='AQA',
         for_subjects='Physics', for_levels='A-Level',
         verified_note=APH_NOTE, official=APH_LINKS, sections=APH),
+    row(insert_id='INS-OCR-ALEVEL-PHYSICS', name='OCR A level Physics data, formulae and relationships',
+        summary='The data and the key relationships of the booklet an OCR A level Physics A candidate is given in the exam.',
+        subject='Physics', level='A-Level', keystage='KS5', board='OCR',
+        for_subjects='Physics', for_levels='A-Level',
+        verified_note=OPH_NOTE, official=[{'label': 'OCR A Level Physics A', 'url': 'https://www.ocr.org.uk/qualifications/as-and-a-level/physics-a-h156-h556-from-2015/'}],
+        sections=OPH),
+    row(insert_id='INS-OCR-ALEVEL-CHEMISTRY', name='OCR A level Chemistry data sheet',
+        summary='The periodic table, constants and infrared table of the Data Sheet an OCR A level Chemistry A candidate is given in the exam.',
+        subject='Chemistry', level='A-Level', keystage='KS5', board='OCR',
+        for_subjects='Chemistry', for_levels='A-Level',
+        verified_note=('The facts of OCR’s H432 Data Sheet in our own setting: its periodic table as on the OCR GCSE sheet (masses to one decimal place), '
+                       'its constants and its infrared table; the NMR chemical-shift charts are on the sheet itself. Written from knowledge of the sheet and not yet compared line by line, so marked unverified.'),
+        official=[{'label': 'OCR A Level Chemistry A', 'url': 'https://www.ocr.org.uk/qualifications/as-and-a-level/chemistry-a-h032-h432-from-2015/'}],
+        table='periodic', elements=ELEMENTS_OCR, sections=OCH),
 ]
+
+def parts(rows):
+    """Each line is a part (rule 4.12): id = sheet id plus its order; a line already on an earlier sheet keeps that one id."""
+    seen = {}
+    for r in rows:
+        for si, s in enumerate(r['sections']):
+            for li, ln in enumerate(s['lines']):
+                ln.pop('id', None)
+                key = json.dumps([ln.get('name'), ln.get('math'), ln.get('note', '')], ensure_ascii=False)
+                ln['id'] = seen.setdefault(key, '%s-%d.%d' % (r['insert_id'], si + 1, li + 1))
+                ln['topic'] = s['head']
+
+
+parts(ROWS)
 
 if __name__ == '__main__':
     # a reading insert (458) is written by its own tool, so a row this script does not write is kept as it stands

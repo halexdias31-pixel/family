@@ -52,6 +52,8 @@ const SUITE = [
   { file: 'check-tutor-card.js', what: 'a tutor card at 390 and 830: every pill holds its text, the rate says /h once, no-hours in the ink', par: true },
   /* A STEM'S TABLE DREW WITH NO BORDERS (`.qsheet table` only): a browser, about 10s, so it stays in --fast. */
   { file: 'check-tables.js', what: 'every table in a question, at 390 wide in its card: bordered, no cell under 1.5em, columns in line, inside .qtext', par: true },
+  { file: 'check-table-grid.js', what: 'every library table a true grid: each row as wide as the header once colspan and rowspan count' },
+  { file: 'check-bare-text.js', what: 'no card shows a bare false, true, undefined, null or NaN', par: true },
   /* THE RUNTIME SAFETY NET (R6): one sink, malformed rows, and empty catches only falling. */
   { file: 'check-errors.js',    what: 'a throw in a draw, an act, a timer and a promise: one report each, a fallback, the rest works', par: true },
   { file: 'check-malformed.js', what: 'a null and a string in every DATA list: every column still draws', par: true },
@@ -106,6 +108,7 @@ const SUITE = [
   /* ---------- THE ONE PIECE OF THIS APP THAT TELLS A CHILD THEY ARE WRONG § */
   { file: 'check-marking.js', what: 'a right answer marked right, a wrong one wrong', par: true },
   { file: 'check-calc.js',  what: 'the calculator engine: exact fractions, roots, powers, degrees, DEL as a unit' },
+  { file: 'check-keypad-power.js', what: 'the keypad power key types like a Casio; every written power marks and works out the same' },
   { file: 'check-qmerge.js', what: 'one marker per checker: every part of every type marked as the per-type markers did (1200)', par: true },
   { file: 'check-marking-norm.js', what: 'every spelling of one value marked alike, its near misses wrong', par: true },
   /* ---------- AND WHETHER THE MATHS ON A CARD LOOKS LIKE MATHS § */
@@ -189,6 +192,7 @@ const SUITE = [
   { file: 'check-missing.js', what: 'What\'s missing (526): the gaps between data/settings/expected-papers.json and the covers, a present paper never listed, the list spelled as the library' },
   { file: 'check-assistant.js', what: 'the Assistant in Messages (449): signed in only, the token’s person, five a day from config, a failure given back' },
   { file: 'check-push.js', what: 'phone notifications (492): no keys a quiet no-op, recipient-only, per-kind off, UNREGISTERED dropped, no token in doGet' },
+  { file: 'check-insert-parts.js', what: 'inserts: no two sheets or two parts with the same content; every part has its parent sheet' },
   { file: 'check-question-ids.js', what: 'ids for life: every question id ever committed exists or is aliased; one item per printed part; ids derived from the label' },
   { file: 'check-saved-answers.js', what: 'answers on the account: the token’s person, the later edit wins, text in and text out' },
   /* THE WEEKLY PARENT EMAIL, BUILT AND SWITCHED OFF. § */
@@ -259,7 +263,9 @@ const SUITE = [
   { file: 'check/press-deadline.js', what: 'a press whose request never answers is busy, takes no second press, and lets go with a sentence after a minute', slow: true },
   /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT § */
   { file: 'check/tiles.js',   what: 'every tile is tile_(), 44px with a 16px mark, no overlap, spill or orphan at four widths, and never drawn under a fingertip in any state (533)', slow: true, heavy: true },
-  { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503)', slow: true },
+  { file: 'check/fig-labels.js', what: 'every library figure in a lesson card at 390: no label overlaps another or leaves its drawing, whatever the card text size (owner, 13 Nov)', slow: true },
+  { file: 'check/card-text-bounds.js', what: 'every lesson page at 390: no glyph or list bullet outside its card (owner, 13 Nov)', slow: true },
+  { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503), never over content and gone once content paints (owner, 13 Nov)', slow: true },
   { file: 'check/chip-feel.js', what: 'at 4x CPU a tapped Find answer is lit in a frame before the funnel redraws, and three taps in a row are three answers (720)', slow: true },
   { file: 'check/kp-centred.js', what: 'Find centred above the @family. keypad, the box still as you type, centred again when it goes (720)', slow: true },
   { file: 'check/later.js', what: 'every column gone to and started while the LATER files are away reads none of their names; they arrive in one task (720)', slow: true },

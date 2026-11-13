@@ -188,7 +188,7 @@ function markNorm_(s) {
     .replace(/(^|[^\d.)a-z])\.(?=\d)/g, '$10.')
     /* ONE SPELLING PER UNIT (R2): MARK_SYNONYMS below; superscript powers are ^2 ^3, as the keypad writes them. */
     .replace(/(\d)\s*(degrees?|deg|per\s?cent|percent)(?![a-z])/g, (m, d, u) => d + MARK_SYNONYMS[u.replace(/\s/g, '')])
-    .replace(/²/g, '^2').replace(/³/g, '^3')
+    .replace(/[⁰¹²³⁴-⁹⁻]+/g, m => '^' + [...m].map(c => MARK_SUPS[c]).join(''))
     .replace(/[£$€]/g, '')
     /* A THOUSANDS SEPARATOR IS A COMMA, A SPACE, OR A THIN SPACE, and which one you get depends on who printed the paper. § */
     .replace(/(\d)[,\u2009\u00a0 ](?=\d\d\d\b)/g, '$1')
@@ -219,6 +219,22 @@ function markNorm_(s) {
     .trim();
 }
 
+/* A RAISED RUN IS A POWER, 10⁻¹⁴ as 10^-14 and 10²³ as 10^23, as the keypad stores it. */
+const MARK_SUPS = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁻': '-' };
+/* A NUMBER WRITTEN WITH A POWER, worked out: 2^3, 2**3, 2³, 2<sup>3</sup>, 6.02×10^23, 1e-14; null for anything with a letter or no power in it. */
+function markPowVal_(s) {
+  const raw = String(s == null ? '' : s);
+  if (!/\^|\*\*|[⁰¹²³⁴-⁹⁻]|<sup>|\d\s*e\s*[-+−]?\d/i.test(raw)) return null;
+  const t = raw.replace(/<sup>(.*?)<\/sup>/gi, '^($1)').replace(/<\/?[a-z][a-z0-9]*(?=[\s\/>])[^>]*>/gi, '').replace(/&minus;/g, '-').replace(/[−–—]/g, '-').replace(/\s+/g, '')
+    .replace(/[⁰¹²³⁴-⁹⁻]+/g, m => '^(' + [...m].map(c => MARK_SUPS[c]).join('') + ')').replace(/\*\*/g, '^')
+    .replace(/(\d)e([-+]?\d+)/gi, '$1×10^($2)').replace(/(\d)x(?=\d)/gi, '$1×');
+  /* -1² IS READ TWO WAYS BY CHILDREN, so a minus in front of a bare power is left to the written ways */
+  if (/[a-z]/i.test(t) || /^-[\d.]+\^/.test(t)) return null;
+  const r = markExprRead_(t);
+  if (!r || r.sides.length !== 1) return null;
+  const v = markExprVal_(r.sides[0], {});
+  return isFinite(v) ? v : null;
+}
 /* The words a unit is spelt in, each to the one symbol markNorm_ keeps. */
 const MARK_SYNONYMS = { degree: '°', degrees: '°', deg: '°', percent: '%' };
 /* A LIST IS A SET. "1, 2, 5, 10" and "10, 5, 2, 1" are the same answer to "list the factors", and a child who works outwards from the middle writes the second. § */
@@ -593,7 +609,82 @@ function markTerms_(s) {
   }).join('=');
 }
 
-function markAnswer_(typed, accept, again) {
+/* ---------- A TYPO IS FORGIVEN, A DIFFERENT ANSWER NEVER (owner, 13 Nov): edits allowed by word length, 1-3 letters none, 4-7 one, 8+ two */
+const MARK_TYPO_OF = n => (n >= 8 ? 2 : n >= 4 ? 1 : 0);
+/* Damerau-Levenshtein (adjacent swap is one edit), stopped early past `cap` */
+function markEdits_(a, b, cap) {
+  if (Math.abs(a.length - b.length) > cap) return cap + 1;
+  const d = [];
+  for (let i = 0; i <= a.length; i++) d.push([i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+    const c = a[i - 1] === b[j - 1] ? 0 : 1;
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + c);
+    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+  }
+  return d[a.length][b.length];
+}
+/* the words of a way, or null when it is not plain words: numbers, units, symbols, formulas, algebra are never forgiven */
+function markTypoWords_(s, raw) {
+  if (raw != null && /[A-Z][a-z]?[A-Z0-9]|[a-z][A-Z]/.test(String(raw).replace(/<[^>]*>/g, ''))) return null;   // NaCl, CO2: a formula
+  const w = markNorm_(s);
+  if (!w || /[^a-z' ,\-]/.test(w)) return null;
+  const out = w.split(/[\s,]+/).filter(Boolean);
+  return out.length ? out : null;
+}
+/* THE CONFUSABLES ARE DATA (data/settings/confusables.json); with the question's other options, each is an answer in its own right */
+function markRivals_(opt) {
+  const rows = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.confusables)) ? DATA.confusables : [];
+  if (markRivals_.rows !== rows) {   /* read once per list: the marker is asked thousands of times */
+    markRivals_.rows = rows;
+    markRivals_.words = [];
+    rows.forEach(r => String((r && r.words) || '').split(/[|,]/).forEach(w => { w = markNorm_(w); if (/^[a-z'\-]+$/.test(w)) markRivals_.words.push(w); }));
+  }
+  const out = markRivals_.words.slice();
+  ((opt && opt.others) || []).forEach(o => String(o || '').split('|').forEach(v => (markTypoWords_(v, v) || []).forEach(w => out.push(w))));
+  return out;
+}
+/* THE SPELLING THE SCHEME WANTS when `typed` is a forgiven near miss of a way; '' when it is not one (or is exact) */
+function markTypo_(typed, accept, opt) {
+  if (opt && opt.strict) return '';
+  const tw = markTypoWords_(typed);
+  if (!tw) return '';
+  const rivals = markRivals_(opt);
+  const ways = String(accept || '').split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w));
+  for (let k = 0; k < ways.length; k++) {
+    /* cheap first: a way of a very different length cannot be a near miss */
+    if (Math.abs(ways[k].length - String(typed).trim().length) > 2 * tw.length + 2) continue;
+    const ww = markTypoWords_(ways[k], ways[k]);
+    if (!ww || ww.length !== tw.length) continue;
+    let near = false;
+    const ok = ww.every((w, i) => {
+      const t = tw[i];
+      if (t === w) return true;
+      const cap = MARK_TYPO_OF(w.length);
+      if (!cap || markEdits_(t, w, cap) > cap) return false;
+      /* a near miss as near to another answer is that answer, typed: wrong */
+      if (rivals.some(r => r !== w && markEdits_(t, r, MARK_TYPO_OF(r.length)) <= MARK_TYPO_OF(r.length))) return false;
+      near = true;
+      return true;
+    });
+    if (ok && near) return markNorm_(ways[k]);
+  }
+  return '';
+}
+/* WHAT A QUESTION TELLS THE MARKER: strict where spelling is marked (SPaG, a scheme crediting it, `strict_spelling`); its options are rivals */
+function markOpt_(x) {
+  const r = (x && x.row) || x || {};
+  const said = [x && x.answer, x && x.examinerNote, r.answer, r.examiner_note].join(' ');
+  const strict = [x && x.strictSpelling, x && x.strict_spelling, r.strict_spelling, r.strictSpelling].some(v => v === true || /^(true|yes|1)$/i.test(String(v || '')))
+    || (/^english/i.test(String(r.subject || (x && x.subject) || '')) && /KS[12]/i.test(String(r.key_stage || (x && x.keyStage) || '')))
+    || /\b(gps|spag|spelling)\b/i.test(String(r.name || (x && x.name) || '') + ' ' + String(r.topics || ''))
+    || /\b(correct(ly)?\s+spel|spelling\s+(must|is)|spelt\s+correctly)/i.test(said);
+  const ch = x && x.choices;
+  const others = (Array.isArray(ch) ? ch : String(ch || '').split('|').filter(Boolean)).map(c => String(c).replace(/<[^>]*>/g, ' '));
+  return { strict: strict, others: others };
+}
+
+function markAnswer_(typed, accept, again, opt) {
   /* ONE BOX PER VALUE hands the values as a list (362): read as the comma list the scheme writes. */
   if (Array.isArray(typed)) typed = typed.map(v => String(v == null ? '' : v).trim()).filter(Boolean).join(', ');
   const t = markNorm_(typed);
@@ -645,9 +736,14 @@ function markAnswer_(typed, accept, again) {
       /* 25% is 0.25, and 0.25 is 25% (O2) */
       const wn = markNorm_(w), a = pct(t) || markFrac_(t), b = pct(wn) || markFrac_(wn);
       if ((pct(t) || pct(wn)) && !(pct(t) && pct(wn)) && a && b && a.n * b.d === b.n * a.d) return true;
-      if (tTerms && tTerms === markTerms_(w)) return true;
+      /* a plain word of 4+ letters is a word, not a product of letters: "recieve" is not "receive" in another order */
+      if (tTerms && !/^[a-z]{4,}$/.test(t) && tTerms === markTerms_(w)) return true;
     }
     if (markNum_(t) === markNum_(markNorm_(w))) return true;
+    /* THE SAME NUMBER WITH A POWER IN IT (owner, 13 Nov): 2^3 is 8, 1e-14 is 10^-14, 6.02×10^23 is 6.02e23 */
+    if (free) { const pv = markPowVal_(typed), wv = markPowVal_(w), tv = pv != null ? pv : markFrac_(t), qv = wv != null ? wv : markFrac_(markBare_(w));
+      const num = v => (v == null ? null : typeof v === 'number' ? v : v.n / v.d), a = num(tv), b = num(qv);
+      if ((pv != null || wv != null) && a != null && b != null && Math.abs(a - b) <= 1e-9 * Math.max(Math.abs(a), Math.abs(b))) return true; }
     if (t === markBare_(w) || markNum_(t) === markNum_(markBare_(w))) return true;
     const a = markParts_(t).map(tight).sort(), b = markParts_(w).map(tight).sort();
     if (a.length && a.length === b.length && a.join('|') === b.join('|')) return true;
@@ -666,7 +762,7 @@ function markAnswer_(typed, accept, again) {
       && p.n * band.lo.d >= band.lo.n * p.d
       && p.n * band.hi.d <= band.hi.n * p.d) return true;
   }
-  return false;
+  return !again && free && !!markTypo_(typed, accept, opt);
 }
 
 /* ---------- OPTIONS ARE READ, AND THE ANSWER IS TYPED (owner, 9 Nov): one typed box for every part; the options are listed A, B, C to type. */
@@ -710,7 +806,12 @@ const markChoice_ = (x, typed, ord) => {
 const PART_MARKERS = {
   choice: (x, typed) => markChoice_(x, typed, false),
   order: (x, typed) => markChoice_(x, typed, true),
-  accept: (x, typed) => { const v = markAnswer_(typed, x.accept); return v === null ? null : { got: v ? 1 : 0, of: 1 }; },
+  accept: (x, typed) => {
+    const o = markOpt_(x), v = markAnswer_(typed, x.accept, false, o);
+    if (v === null) return null;
+    const fix = v && !markAnswer_(typed, x.accept, false, { strict: true }) ? markTypo_(typed, x.accept, o) : '';
+    return fix ? { got: 1, of: 1, typo: fix } : { got: v ? 1 : 0, of: 1 };
+  },
   words: (x, typed) => {
     const w = markWords_(typed, x.markWords);
     if (!w) return null;
