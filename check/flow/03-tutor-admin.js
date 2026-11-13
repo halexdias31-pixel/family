@@ -496,6 +496,36 @@ check('rate card (620): a tutor\'s three cards — rate and extra seat, @family.
   return bad;
 });
 
+/* ---------- A TUTOR CHOOSES THEIR MANAGER, AND THE BOOKING'S MONEY SHOWS THE SPLIT (owner, 13 Nov; history 1217) ---------- */
+check('manager chain (1217): Ada picks Ben as her manager on her Staff card, the line says Ben 25% and @family. 25%, Save writes it, and the admin\'s booking breakdown shows Ben\'s line', async () => {
+  const W = cardWorld_({ vars: CUT_VARS_ });
+  const c = await cardOpen_(W, 'tutor@example.org', { col: 'tutors' });
+  if (c.err) return [c.err];
+  const bad = [];
+  for (let k = 0; k < 20 && !c.sec('manager'); k++) await wait(100);
+  const sec = c.sec('manager');
+  if (!sec) return ['Ada\'s Staff card has no Your manager section: ' + c.secs().join(', ')];
+  const pick = sec.querySelector('select[data-me="manager"]');
+  if (!pick) return ['the Your manager section has no picker'];
+  const names = [...pick.options].map(o => o.textContent);
+  if (!names.some(x => /Ben/.test(x)) || names.some(x => /Ada/.test(x))) bad.push('the picker should offer Ben and not Ada herself: ' + names.join(', '));
+  c.type(pick, 'P-T2'); await wait(50);
+  const line = String((sec.querySelector('details[data-fold="manager"] .ce-v') || {}).textContent || '');
+  if (!/you 50%/.test(line) || !/Ben\b[^,]* 25%/.test(line) || !/@family\. 25%/.test(line)) bad.push('the split line does not say you 50%, Ben 25%, @family. 25%: ' + line);
+  c.A('card-save', c.tileOn('manager', 'card-save')); await wait(600);
+  if (W.real.row('P-T1').manager !== 'P-T2') bad.push('the manager did not reach the sheet: ' + JSON.stringify(W.real.row('P-T1').manager));
+  const a = await cardOpen_(W, 'admin@example.org', { col: 'tutors' });
+  if (a.err) return bad.concat([a.err]);
+  const ada = (a.t.DATA().tutors || []).find(t => t.personId === 'P-T1');
+  if (!ada || ada.manager !== 'P-T2') return bad.concat(['the admin\'s payload does not carry Ada\'s manager: ' + JSON.stringify(ada && ada.manager)]);
+  const L = a.w.priceFrom({ tutorRow: ada, n: 2, slots: 1, hoursPerWeek: 1, loc: 'Online', format: 'Tutoring' });
+  const lines = a.w.moneyLines_(a.w.formMoney_(L)).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  if (!/Ben[^£]*manager, 25% of extra seats\)\s*£\d/.test(lines)) bad.push('the booking breakdown has no line for Ben\'s 25%: ' + lines.slice(0, 300));
+  const e = L.earn || {};
+  if (!(e.managers && e.managers.length === 1 && e.managerTotal > 0)) bad.push('priceFrom did not pay Ben from the extra seat: ' + JSON.stringify(e.managers));
+  return bad;
+});
+
 check('the read-only cut a tutor cannot change says who sets it (345)', async () => {
   const W = cardWorld_({ vars: CUT_VARS_ });
   const c = await cardOpen_(W, 'tutor@example.org');

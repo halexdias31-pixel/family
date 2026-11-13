@@ -287,7 +287,7 @@ function libExtrasBooks_(d, extra) {
         Object.assign(b, own, { name: libS(r.title), summary: libS(r.summary) });
         return;
       }
-      b.chapters.push(Object.assign({ n: n, title: libS(r.title), higher: /^higher$/i.test(libS(r.tier).trim()), own: own,
+      b.chapters.push(Object.assign({ n: n, title: libS(r.title), higher: /^higher$/i.test(libS(r.tier).trim()), tier: libS(r.tier).trim(), own: own,
                                       topics: libS(r.topics), pending: /^true$/i.test(libS(r.lib_pending).trim()),
                                       /* THE SCHOOL YEARS A CHAPTER IS TAUGHT IN (770), `3, 4, 5, 6`: a key stage spans years, so the funnel can ask which. */
                                       years: libS(r.year_group).split(',').map(t => t.trim()).filter(t => /^\d{1,2}$/.test(t)) },

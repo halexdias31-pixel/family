@@ -326,8 +326,20 @@ const CARD_SECTION = {
   quals: (L, c) => ceFold_('quals', 'Qualifications', esc(ceCount_(c.filled(/^qual_\d+$/), 'held', 'held')), qualShelf_(L, c.val)),
   week: (L, c) => availGrid_(L, c.vals, c.ro, false), seat: (L, c) => cardRateHtml_(L, c.val, c.box, c.e),
   cut: (L, c) => cardCutHtml_(L, c.val, c.box), size: (L, c) => cardSizeHtml_(L, c.val, c.box),
+  manager: (L, c) => ceFold_('manager', 'Your manager', esc(chainSay_(c.t, c.val('manager'))), fieldRows_(L, c.box)),
   glance: (L, c) => ceFold_('glance', 'At a glance', esc(ceGlanceSay_(c.val)), fieldRows_(L, c.box)), where: (L, c) => ceWhere_(L, c.val, c.box),
 };
+/* WHO GETS THE EXTRA-SEAT MONEY, in words: the split `chainShares_` makes with this manager chosen. */
+function chainSay_(t, manager) {
+  const id = String((t && t.personId) || ((typeof USER !== 'undefined' && USER) || {}).personId || 'me');
+  t = t || ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).find(x => x && String(x.personId) === id) || null;
+  const tutors = ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).filter(x => x && String(x.personId) !== id);
+  const me = { personId: id, manager: String(manager || ''), role: (t && t.role) || 'Tutor', title: 'You' };
+  const c = chainShares_(id, tutors.concat([me]));
+  const pc = x => (Math.round(x * 1000) / 10) + '%';
+  if (c.tutor === 1) return 'Your extra seats are all yours.';
+  return 'Of your extra-seat money: you ' + pc(c.tutor) + ', ' + c.managers.map(m => m.name + ' ' + pc(m.share)).concat(['@family. ' + pc(c.admin)]).join(', ') + '.';
+}
 /* THE MONEY SECTIONS, redrawn as the rate is typed (`cardSeatSync_`): the line each one says, and how. */
 const CARD_RATE_SECTION = { seat: { line: '.ce-seat', say: (rate, seat) => cardSeatSay_(rate, seat) },
   cut: { line: '.ce-cut', say: (rate, seat, cut) => cardCutSay_(rate, cut) }, size: { sizeLine: true } };
@@ -336,7 +348,8 @@ function cardEditForm_(t, e, vals, only) {
   const val = f => (vals[f] == null ? '' : vals[f]);
   const ro = (DATA && DATA.profileReadonly) || [];
   const box = (f, extra) => fieldHtml(f, val(f), Object.assign({ attr: 'data-me', label: ROW_LABEL[f],
-    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !isAdmin()), draft: false }, extra));
+    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !isAdmin()), draft: false,
+    raw: { person_id: (t && t.personId) || ((typeof USER !== 'undefined' && USER) || {}).personId || '' } }, extra));
   /* YOUR OWN CARD'S SECTIONS ARE YOUR ROLE'S (`ownCardSections_`), with the figure and the handle;
      somebody else's are the tutor's card, as an admin has always edited it. */
   return (only || (e.own ? ownCardSections_() : cardSections_())).map(s => {
@@ -794,4 +807,11 @@ document.addEventListener('input', e => {
   const v = f => { const b = form.querySelector('[data-me="' + f + '"]'); return b ? b.value : ''; };
   const cut = form.querySelector('[data-me="extra_seat_cut"]') ? v('extra_seat_cut') : bar.dataset.cut;
   bar.innerHTML = cardShareBar_(num(v('rate_per_hour')), v('extra_seat_rate'), cut);
+});
+/* THE SPLIT LINE FOLLOWS THE PICKER as it is changed, before Save. */
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('select[data-me="manager"]')) return;
+  const sec = t.closest('.ce-sec'), line = sec && sec.querySelector('details[data-fold="manager"] > summary .ce-v');
+  if (line) line.textContent = chainSay_(null, t.value);
 });

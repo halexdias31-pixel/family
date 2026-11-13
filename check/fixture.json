@@ -131,6 +131,7 @@
    "ageMax": 16,
    "extraSeat": 0.5,
    "extraSeatCut": "",
+   "manager": "",
    "focus": [
     "Maths"
    ],
@@ -739,7 +740,8 @@
    "max_students",
    "min_students",
    "min_hours",
-   "max_hours"
+   "max_hours",
+   "manager"
   ],
   "When I can teach": [
    "m09",

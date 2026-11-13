@@ -69,7 +69,7 @@ function legoSteps_() {
     ${legoLine_('Counted so far: ' + legoResult_(s).total + ' pieces in ' + sent + ' batch' + (sent === 1 ? '' : 'es') + '.')}
     ${s.say ? legoLine_(s.say) : ''}
     ${legoBtns_([
-      { label: 'Next batch', act: 'lego-next', off: LEGO_BUSY || !n, hidden: n >= LEGO_SHOTS },
+      { label: 'Next batch', act: 'lego-next', off: LEGO_BUSY || !n || n >= LEGO_SHOTS },
       { label: 'Finished', act: 'lego-done', off: LEGO_BUSY },
       { label: 'Start again', act: 'lego-reset', off: LEGO_BUSY },
     ].filter(o => !o.hidden))}

@@ -119,7 +119,7 @@ function renameHandles_() {
   const t = read(TAB.people);
   if (!t.sheet) return { error: 'no people tab' };
   /* ALL THREE BEFORE ANYTHING — a handle moved with nowhere to put the old one is somebody whose slip no longer signs them in. */
-  const lacking = ['handle', 'handle_was', 'handle_changed_at'].filter(c => t.headers.indexOf(c) === -1);
+  const lacking = handleColsLacking_(t);
   if (lacking.length) {
     return { error: 'the people tab has no ' + lacking.join(', ') + ' column. Run ?setup=1 first '
                   + '— nothing was changed.' };

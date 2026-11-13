@@ -395,9 +395,9 @@ function seatShare_(tutorRow, c, B) {
   const seatTop = x => Math.min(x, STAFF_SEAT_MAX);
   const seatOwn = !!tutorRow && Number(tutorRow.extraSeat) > 0;
   const cRaw = seatOwn ? Number(tutorRow.extraSeat) : c;
-  /* @FAMILY'S BLOCK IS B x THE EXTRA-SEAT RATE (8 Nov, the owner): one B for everyone, a tutor's own cut no longer read; bUsed is still a fraction of the rate. */
   const cUsed = seatTop(asFraction(cRaw, 0));
-  return { cRaw, bRaw: B, seatOwn, cutOwn: false, cUsed, bUsed: asFraction(B, 0) * cUsed };
+  /* NO PLATFORM SHARE ON TOP SINCE 13 NOV: the extra seat costs the tutor's own rate, and `chainShares_` splits that money. */
+  return { cRaw, bRaw: B, seatOwn, cutOwn: false, cUsed, bUsed: 0 };
 }
 /* ---------- A TUTOR'S OWN CUT, READ THE ONE WAY THE SERVER SENDS IT (`seatCutOut_`, people.gs) § */
 function seatCutOf_(v) {
@@ -428,12 +428,38 @@ function bookMoney_(m) {
   const tutorPayout = Math.round(tutor * scale * 100) / 100;
   const charged = Math.round((gross - discount) * 100) / 100;
   const cardFees = charged > 0 ? Math.round((charged * p + f) * 100) / 100 : 0;
-  const net = Math.round((charged - tutorPayout - venue - cardFees) * 100) / 100;
-  return {
+  /* THE MANAGERS' PART OF THE EXTRA-SEAT MONEY, after the discount like the tutor's (`chainShares_`); it comes out of @family.'s. */
+  const seatMoney = pos(m.seatMoney) * scale;
+  const managers = ((m.chain && m.chain.managers) || []).map(x => ({ id: x.id, name: x.name, share: x.share,
+    amount: Math.round(seatMoney * x.share * 100) / 100 }));
+  const managerTotal = Math.round(managers.reduce((a, x) => a + x.amount, 0) * 100) / 100;
+  const net = Math.round((charged - tutorPayout - venue - cardFees - managerTotal) * 100) / 100;
+  return { managers, managerTotal, seatMoney,
     gross, discount, discountType, discountValue, discountCode: String(d.code || ''),
     absorbedBy: discount ? 'Shared with tutor' : '',
     charged, teaching, tutorPayout, venue, cardFees, net, margin: charged > 0 ? net / charged : 0,
   };
+}
+
+/* ---------- WHO SHARES A TUTOR'S EXTRA-SEAT MONEY (history 1217): the tutor half; each manager up half of what is left; the admin the rest.
+   A blank, missing or looping `manager` ends the walk at the admin. */
+const CHAIN_GIVE = 0.5;
+function chainShares_(tutorId, people) {
+  const byId = {};
+  (people || []).forEach(p => { if (p && p.personId) byId[String(p.personId)] = p; });
+  const boss = p => !!p && String(p.role || '') === 'Admin';
+  const me = byId[String(tutorId || '')];
+  if (boss(me)) return { tutor: 1, managers: [], admin: 0 };
+  const managers = [], seen = {};
+  seen[String(tutorId || '')] = 1;
+  let left = CHAIN_GIVE, m = String((me && me.manager) || '').trim();
+  while (m && byId[m] && !boss(byId[m]) && !seen[m]) {
+    managers.push({ id: m, name: String(byId[m].title || m), share: left / 2 });
+    left -= left / 2;
+    seen[m] = 1;
+    m = String(byId[m].manager || '').trim();
+  }
+  return { tutor: 1 - CHAIN_GIVE, managers, admin: left };
 }
 
 /* THE THREE FIGURES A BOOKING ROW KEEPS, per family and after the discount, so client pays = tutor + admin + room and fees to the penny. */
@@ -442,7 +468,9 @@ function bookShares_(L) {
   if (!e || !(Number(L.total) > 0)) return null;
   const n = Math.max(1, Number(L.splitShares) || 1), p2 = x => Math.round((Number(x) || 0) / n * 100) / 100;
   const pays = p2(e.charged), tutor = p2(e.tutorPayout), fees = p2(e.venue + e.cardFees);
-  return { pays, tutor, fees, admin: Math.round((pays - tutor - fees) * 100) / 100 };
+  const managers = (e.managers || []).map(x => ({ name: x.name, share: x.share, amount: p2(x.amount) }));
+  const up = managers.reduce((a, x) => a + x.amount, 0);
+  return { pays, tutor, fees, managers, admin: Math.round((pays - tutor - fees - up) * 100) / 100 };
 }
 
 
@@ -791,7 +819,7 @@ function priceFrom(spec) {
   const { weeksBooked, hoursTotal, splitShares, chargePerHour, tutorPay, profitTotal, venueTotal,
           cost, tutorHourly, belowMinWage, mo, total, wholeTotal, shareAmount } = priceMoney_(spec, knobs,
     { R, fSeats, discountFactor, promoAdj, V, splitOthers, bookedDays, sessionDates, slots,
-      chargeRate, avgSubject, L, D, T, fSubjects, cUsed, bUsed, M,
+      chargeRate, avgSubject, L, D, T, fSubjects, cUsed, bUsed, M, tutorRow,
       rows: { chargeRate, avgSubject, fSubjectCount: fSubjects, L, D, T, fChildrenAll: fSeats, n } });
   return {
     i, total, weeks, slots, n, V, loc, day, time, level, subjects, tutor, interval, endDate, startDate, lastSun,
@@ -832,13 +860,7 @@ function priceFrom(spec) {
 function priceMoney_(spec, knobs, p) {
   const { R, fSeats, discountFactor, promoAdj, V, splitOthers, bookedDays, sessionDates, slots,
           chargeRate, avgSubject, L, D, T, fSubjects, cUsed, bUsed, M } = p;
-  /* Hours a week, times weeks. Simpler and truer than sessions x session-length: a booking with
-     Monday 1-3 and Tuesday 10-11 has two sessions of different lengths, which the old pair of
-     numbers could not express at all. */
-  /* Weeks the booking runs for. Sessions divided by runs-per-week — a Monday-and-Tuesday booking
-     over 11 weeks has 22 sessions but runs for 11 weeks, and hours-a-week must multiply the
-     second, not the first. */
-  // Days a week, not blocks a week — for the same reason the dates are per day.
+  /* HOURS A WEEK × WEEKS RUN (sessions ÷ days a week): sessions can differ in length, and 22 Mon+Tue sessions are 11 weeks. */
   const runsPerWeek = Math.max(1, bookedDays.length || 1);
   /* ---------- BILLED BY THE SESSIONS THAT EXIST, NOT THE WEEKS THAT REMAIN § */
   const weeksBooked = sessionDates.length
@@ -853,31 +875,27 @@ function priceMoney_(spec, knobs, p) {
   const chargePerHour = (rate + V) / splitShares;
   const teachTotal = hoursTotal ? chargePerHour * hoursTotal : null;
 
-  // The three shares. They must add up to exactly what the client pays, so each is derived from
-  // the same numbers rather than computed independently:
-  //   the tutor is paid their own rate plus every teaching surcharge
-  //   your margin is the markup M(w−1)
-  //   the extra-seat money is split between you by the ratio of c to B
+  /* THE SHARES ADD UP TO WHAT THE CLIENT PAYS, so each comes from the same numbers. */
   /* TUTOR = THEIR OWN RATE FOR THE FIRST SEAT + THEIR EXTRA-SEAT RATE FOR EACH OTHER, × HOURS (owner, 8 Nov); @family. keeps the rest of the teaching. */
   const r = pence_(runningAfter('daytime', p.rows) * discountFactor * promoAdj);
-  const tutorHour = pence_(r + r * cUsed * Math.max(0, (p.rows.n || 1) - 1));
+  /* THE EXTRA-SEAT MONEY IS SHARED UP THE MANAGER CHAIN (`chainShares_`); the 1-to-1 rate stays the tutor's. */
+  const chain = chainShares_(p.tutorRow && p.tutorRow.personId, (typeof DATA !== 'undefined' && DATA && DATA.tutors) || []);
+  const seatHour = pence_(r * cUsed * Math.max(0, (p.rows.n || 1) - 1));
+  const tutorHour = pence_(r + seatHour * chain.tutor);
   const tutorPay    = Math.min(tutorHour, rate) * hoursTotal;
   const profitTotal = rate * hoursTotal - tutorPay;
   const venueTotal  = V * hoursTotal;                                   // venue gets
   const cost        = tutorPay + venueTotal;                            // what the job costs us
 
-  // The tutor's effective £/hour — surfaced so you can SEE if discounts push it under minimum
-  // wage (the formula doesn't silently clamp it; this just makes the number visible).
+  /* THE TUTOR'S REAL £/HOUR, shown (never clamped) so a discount under minimum wage is seen. */
   const tutorHourly = hoursTotal ? tutorPay / hoursTotal : 0;
   const belowMinWage = M > 0 && tutorHourly > 0 && tutorHourly < M;
 
-  // The whole booking, before it's divided — what the tutor and the venue are actually paid,
-  // which is a different question from what one family hands over.
   /* ---------- WHAT THE BOOKING EARNS, AFTER EVERYTHING IT COSTS (docs/history/353) § */
   const mo = bookMoney_({
     hours: hoursTotal,
     tutorPay, profit: profitTotal, venue: venueTotal,
-    discount: spec.discount || null,
+    discount: spec.discount || null, seatMoney: seatHour * hoursTotal, chain,
     feePct: knobs.cvD('card_fee_pct', 0), feeFixed: knobs.cvD('card_fee_fixed', 0),
   });
   /* THE TOTAL IS THE CHARGED FIGURE NOW, still per family. § */
@@ -962,8 +980,8 @@ const figUndrawn_ = (r, around) => figWords_(r) && !figPictured_(r) && !(around 
 const FINDER_TAGS = {
 "facets": "forLabel,kindLabel,kindOwn,postState,postBy,postWhen,msgWith,profileType,settingFor,vidSubject,vidTopic,vidChannel,vidLevel,vidType,venueArea,venueFor,venueSize,projectType,subject,shelf,wReligion,histKind,wCollection,wWork,wSection,wSource,wLanguage,wText,wTradition,wBook,wChapter,wUnit,wAuthor,wForm,wPrimacy,mScope,mMake,mModel,mGen,mEngine,mKind,mSystem,pcType,pcSocket,pcIface,pcLinks,mPhase,mMarket,mYears,mSize,mValves,mBadge,mFuel,mPart,mPrice,cCategory,cGroup,cPeriod,cState,boxKind,fighter,boutMonth,boutYear,decade,division,boutRound,boutMethod,boutWinner,boutEvent,histEra,histMaterial,histFormat,histGenre,histRole,personName,personYears,personFrom,histTheme,histRepository,histSide,histFound,histDated,histTheatre,practicalType,shopKind,shopHow,shopPrice,shopBrand,shopFor,shopTheme,required,documentType,typeOwn,fiveLevel,fiveMonth,fiveDay,level,keystage,yearGroup,bandValue,topic,examBoard,tier,examYear,examMonth,verified,paperId,paperSection,qNumber,qPart,qSub,qPage,qPages,marks,needs,myResult,source",
 "same": {
-  "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Practicals"]],[31535,26856,82],31617,["Questions","Answers","Practicals"]],
-  "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4658,393,5252,10,131,181,522,522,78,944,10719,322,4539,120,1187,1004,436,517],31535,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","Greek","History","Maths","Physical Education","Physics","Politics","Psychology","Religious Studies","Sociology","Statistics"]],
+  "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Practicals"]],[31768,26856,82],31850,["Questions","Answers","Practicals"]],
+  "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4658,393,5252,10,131,414,522,522,78,944,10719,322,4539,120,1187,1004,436,517],31768,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","Greek","History","Maths","Physical Education","Physics","Politics","Psychology","Religious Studies","Sociology","Statistics"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["documentType",[["Past paper"],["Worksheet"]],[3896,762],4658,["Past paper","Worksheet"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper": ["examBoard",[["AQA"],["OCR"]],[2335,1561],3896,["AQA","OCR"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper&examBoard=AQA": ["level",[["A-Level"],["GCSE"]],[529,1806],2335,["A-Level","GCSE"]],
@@ -1084,7 +1102,9 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Questions&subject=Chemistry&documentType=Worksheet&qNumber=Q9": ["qPart",[["a"],["b"],["c"]],[1,1,1],3,["a","b","c"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Driving Theory": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"]],[1,1,1,1,1,1,1,1,1,1],10,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Economics": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"]],[20,26,21,22,22,20],131,["2025","2024","2023","2022","2021","2020"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=English Language": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2018"],["2017"]],[71,10,20,20,10,10,20,20],181,["2025","2024","2023","2022","2021","2020","2018","2017"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=English Language": ["documentType",[["Exercise"],["Past paper"]],[233,181],414,["Exercise","Past paper"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=English Language&documentType=Exercise": ["tier",[["A1"],["A2"],["B1"],["B2"],["C1"],["C2"]],[38,38,38,39,40,40],233,["A1","A2","B1","B2","C1","C2"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=English Language&documentType=Past paper": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2018"],["2017"]],[71,10,20,20,10,10,20,20],181,["2025","2024","2023","2022","2021","2020","2018","2017"]],
   "kindLabel=Practice&kindOwn=Questions&subject=English Literature": ["examBoard",[["AQA"],["OCR"]],[247,275],522,["AQA","OCR"]],
   "kindLabel=Practice&kindOwn=Questions&subject=English Literature&examBoard=AQA": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"]],[42,41,41,41,41,41],247,["2025","2024","2023","2022","2021","2020"]],
   "kindLabel=Practice&kindOwn=Questions&subject=English Literature&examBoard=OCR": ["level",[["A-Level"],["GCSE"]],[164,111],275,["A-Level","GCSE"]],
@@ -1680,7 +1700,7 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Practicals&subject=Chemistry": ["topic",[["Bar Charts & Pictograms"],["Bounds & Error Intervals"],["Cell Biology"],["Chemical Analysis"],["Chemical Changes"],["Compound Measures"],["Direct Proportion"],["Electricity"],["Energy Changes"],["Inequalities"],["Mean"],["Negative Numbers"],["Ordering Numbers & Decimals"],["Organic Chemistry"],["Particle Model of Matter"],["Percentage Increase & Decrease"],["Percentage of an Amount"],["Percentages"],["Quantitative Chemistry"],["Rate of Reaction"],["Ratio Problems"],["Real-Life Graphs"],["Rounding"],["Scatter Graphs & Correlation"],["Separating Mixtures"],["Straight Line Graphs"],["Units & Measures"],["Using Resources"],["Writing & Simplifying Ratio"]],[1,1,1,8,16,3,2,1,4,1,1,1,1,1,1,1,1,2,2,6,1,3,2,1,5,1,5,1,1],31,["Bar Charts & Pictograms","Bounds & Error Intervals","Cell Biology","Chemical Analysis","Chemical Changes","Compound Measures","Direct Proportion","Electricity","Energy Changes","Inequalities","Mean","Negative Numbers","Ordering Numbers & Decimals","Organic Chemistry","Particle Model of Matter","Percentage Increase & Decrease","Percentage of an Amount","Percentages","Quantitative Chemistry","Rate of Reaction","Ratio Problems","Real-Life Graphs","Rounding","Scatter Graphs & Correlation","Separating Mixtures","Straight Line Graphs","Units & Measures","Using Resources","Writing & Simplifying Ratio"]],
   "kindLabel=Practice&kindOwn=Practicals&subject=Maths": ["level",[["A-Level"],["GCSE"],["KS3"],["SATs"]],[2,7,8,4],10,["A-Level","GCSE","KS3","SATs"]],
   "kindLabel=Practice&kindOwn=Practicals&subject=Physics": ["topic",[["Angles"],["Averages & Range"],["Bar Charts & Pictograms"],["Compound Measures"],["Direct Proportion"],["Electricity"],["Energy"],["Enlargements"],["Estimation"],["Forces"],["Inverse Proportion"],["Magnetism & Electromagnetism"],["Mean"],["Particle Model of Matter"],["Ratio Problems"],["Real-Life Graphs"],["Rearranging Formulae"],["Standard Form"],["Straight Line Graphs"],["Substitution"],["Units & Measures"],["Waves"],["Writing & Simplifying Ratio"]],[4,1,1,6,5,5,9,1,1,13,1,1,6,1,2,1,2,1,11,3,9,6,1],29,["Angles","Averages & Range","Bar Charts & Pictograms","Compound Measures","Direct Proportion","Electricity","Energy","Enlargements","Estimation","Forces","Inverse Proportion","Magnetism & Electromagnetism","Mean","Particle Model of Matter","Ratio Problems","Real-Life Graphs","Rearranging Formulae","Standard Form","Straight Line Graphs","Substitution","Units & Measures","Waves","Writing & Simplifying Ratio"]],
-  "kindLabel=Library": ["subject",[["Art and Design"],["Astronomy"],["Biology"],["Business"],["Chemistry"],["Citizenship"],["Classical Civilisation"],["Combined Science"],["Computer Science"],["Design and Technology"],["Drama"],["Economics"],["English Language"],["English Literature"],["Food Preparation and Nutrition"],["French"],["Further Maths"],["Geography"],["German"],["Greek"],["History"],["Latin"],["Maths"],["Mechanics"],["Media Studies"],["Music"],["Non-verbal Reasoning"],["Philosophy"],["Phonics"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Russian"],["Sociology"],["Spanish"],["Statistics"],["Study Skills"],["Verbal Reasoning"]],[8,14,158,37,595,10,10,2,45,11,8,29,104,5216,8,41,34,37,14,1,3619,14,131,76,10,9,14,1,12,270,151,17,31,240857,15,26,41,17,14,21],251724,["Art and Design","Astronomy","Biology","Business","Chemistry","Citizenship","Classical Civilisation","Combined Science","Computer Science","Design and Technology","Drama","Economics","English Language","English Literature","Food Preparation and Nutrition","French","Further Maths","Geography","German","Greek","History","Latin","Maths","Mechanics","Media Studies","Music","Non-verbal Reasoning","Philosophy","Phonics","Physical Education","Physics","Politics","Psychology","Religious Studies","Russian","Sociology","Spanish","Statistics","Study Skills","Verbal Reasoning"]],
+  "kindLabel=Library": ["subject",[["Art and Design"],["Astronomy"],["Biology"],["Business"],["Chemistry"],["Citizenship"],["Classical Civilisation"],["Combined Science"],["Computer Science"],["Design and Technology"],["Drama"],["Economics"],["English Language"],["English Literature"],["Food Preparation and Nutrition"],["French"],["Further Maths"],["Geography"],["German"],["Greek"],["History"],["Latin"],["Maths"],["Mechanics"],["Media Studies"],["Music"],["Non-verbal Reasoning"],["Philosophy"],["Phonics"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Russian"],["Sociology"],["Spanish"],["Statistics"],["Study Skills"],["Verbal Reasoning"]],[8,14,158,37,595,10,10,2,45,11,8,29,189,5216,8,41,34,37,14,1,3619,14,131,76,10,9,14,1,12,270,151,17,31,240857,15,26,41,17,14,21],251809,["Art and Design","Astronomy","Biology","Business","Chemistry","Citizenship","Classical Civilisation","Combined Science","Computer Science","Design and Technology","Drama","Economics","English Language","English Literature","Food Preparation and Nutrition","French","Further Maths","Geography","German","Greek","History","Latin","Maths","Mechanics","Media Studies","Music","Non-verbal Reasoning","Philosophy","Phonics","Physical Education","Physics","Politics","Psychology","Religious Studies","Russian","Sociology","Spanish","Statistics","Study Skills","Verbal Reasoning"]],
   "kindLabel=Library&subject=Astronomy": ["topic",[["Astrophysics"],["Classification of Stars"],["Cosmology"],["Space Physics"],["Telescopes"]],[1,2,2,5,1],14,["Astrophysics","Classification of Stars","Cosmology","Space Physics","Telescopes"]],
   "kindLabel=Library&subject=Biology": ["level",[["A-Level"],["GCSE"],["KS3"],["SATs"]],[22,118,11,7],158,["A-Level","GCSE","KS3","SATs"]],
   "kindLabel=Library&subject=Biology&level=A-Level": ["topic",[["Bioenergetics"],["Cell Biology"],["Ecology"],["Homeostasis & Response"],["Infection & Response"],["Inheritance & Evolution"],["Organisation"]],[2,5,2,2,1,4,4],22,["Bioenergetics","Cell Biology","Ecology","Homeostasis & Response","Infection & Response","Inheritance & Evolution","Organisation"]],
@@ -1697,7 +1717,8 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=Combined Science": ["examBoard",[["AQA"],["Edexcel"]],[1,1],2,["AQA","Edexcel"]],
   "kindLabel=Library&subject=Computer Science": ["level",[["A-Level"],["GCSE"]],[18,14],45,["A-Level","GCSE"]],
   "kindLabel=Library&subject=Economics": ["keystage",[["KS4"],["KS5"]],[10,18],29,["KS4","KS5"]],
-  "kindLabel=Library&subject=English Language": ["level",[["GCSE"],["KS3"],["SATs"]],[55,3,49],104,["GCSE","KS3","SATs"]],
+  "kindLabel=Library&subject=English Language": ["level",[["ESL"],["GCSE"],["KS3"],["SATs"]],[85,55,3,49],189,["ESL","GCSE","KS3","SATs"]],
+  "kindLabel=Library&subject=English Language&level=ESL": ["tier",[["A1"],["A2"],["B1"],["B2"],["C1"],["C2"]],[15,15,15,15,15,15],85,["A1","A2","B1","B2","C1","C2"]],
   "kindLabel=Library&subject=English Language&level=GCSE": ["topic",[["Formal & Informal Language"],["Internal Punctuation"],["Language Techniques"],["Noun Phrases"],["Other Punctuation"],["Paper 1 Reading"],["Paper 1 Writing"],["Paper 2 Reading"],["Paper 2 Writing"],["Punctuation"],["Register"],["Sentence Structure"],["Sentence Types"],["Spelling"],["Spoken Language"],["Standard English"],["Structure in Texts"],["Technical Accuracy"],["Verb Forms & Tenses"],["Vocabulary & Spelling"],["Word Meaning"]],[3,1,9,1,1,6,3,4,3,1,1,2,2,1,1,1,3,3,1,1,1],55,["Formal & Informal Language","Internal Punctuation","Language Techniques","Noun Phrases","Other Punctuation","Paper 1 Reading","Paper 1 Writing","Paper 2 Reading","Paper 2 Writing","Punctuation","Register","Sentence Structure","Sentence Types","Spelling","Spoken Language","Standard English","Structure in Texts","Technical Accuracy","Verb Forms & Tenses","Vocabulary & Spelling","Word Meaning"]],
   "kindLabel=Library&subject=English Language&level=SATs": ["topic",[["Active & Passive Voice"],["Adjectives"],["Adverbials"],["Adverbs"],["Antonyms"],["Apostrophes"],["Brackets"],["Colons"],["Commas"],["Conjunctions"],["Dashes"],["Determiners"],["Exclamation Marks"],["Formal & Informal Language"],["Full Stops & Capital Letters"],["Hyphens"],["Inverted Commas"],["Main Clauses"],["Modal Verbs"],["Noun Phrases"],["Nouns"],["Perfect Forms"],["Prefixes"],["Prepositions"],["Progressive Forms"],["Pronouns"],["Question Marks"],["Relative Clauses"],["Semi-colons"],["Sentence Structure"],["Sentence Types"],["Simple Past"],["Spelling"],["Standard English"],["Subject & Object"],["Subjunctive"],["Subordinate Clauses"],["Suffixes"],["Synonyms"],["Verb Forms & Tenses"],["Verbs"],["Word Classes"],["Word Meaning"]],[2,2,3,2,3,2,2,2,2,2,2,2,1,2,1,2,2,2,2,1,2,2,2,2,2,2,1,2,2,1,3,2,3,2,1,2,2,2,3,1,2,1,1],49,["Active & Passive Voice","Adjectives","Adverbials","Adverbs","Antonyms","Apostrophes","Brackets","Colons","Commas","Conjunctions","Dashes","Determiners","Exclamation Marks","Formal & Informal Language","Full Stops & Capital Letters","Hyphens","Inverted Commas","Main Clauses","Modal Verbs","Noun Phrases","Nouns","Perfect Forms","Prefixes","Prepositions","Progressive Forms","Pronouns","Question Marks","Relative Clauses","Semi-colons","Sentence Structure","Sentence Types","Simple Past","Spelling","Standard English","Subject & Object","Subjunctive","Subordinate Clauses","Suffixes","Synonyms","Verb Forms & Tenses","Verbs","Word Classes","Word Meaning"]],
   "kindLabel=Library&subject=English Literature": ["wText",[["Anthology"],["Baker’s selection (1899)"],["Blake’s"],["Complete Works"],["First edition (1813)"],["First edition (1843)"],["First edition (1847)"],["First edition (1861)"],["First edition (1886)"],["First edition (1890)"],["First edition (1898)"],["Hutchinson’s (1904)"],["Set"]],[153,485,201,942,61,5,37,80,10,12,27,728,17],5216,["Anthology","Baker’s selection (1899)","Blake’s","Complete Works","First edition (1813)","First edition (1843)","First edition (1847)","First edition (1861)","First edition (1886)","First edition (1890)","First edition (1898)","Hutchinson’s (1904)","Set"]],
@@ -1766,12 +1787,12 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31617,251724,9,2,4,5,10,44,20,2],283436,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31850,251809,9,2,4,5,10,44,20,2],283754,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[2,2,2],4,["Parent","Student","Tutor"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[17,7,16,8,10,14,4],44,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31617,251724,9,2,1,5,10,29,20,2],283418,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31850,251809,9,2,1,5,10,29,20,2],283736,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[20,8,17,8,7],29,["Student","Parent","Staff","Apprentice","Admin"]]
 }
 }};
@@ -2999,7 +3020,7 @@ function libExtrasBooks_(d, extra) {
         Object.assign(b, own, { name: libS(r.title), summary: libS(r.summary) });
         return;
       }
-      b.chapters.push(Object.assign({ n: n, title: libS(r.title), higher: /^higher$/i.test(libS(r.tier).trim()), own: own,
+      b.chapters.push(Object.assign({ n: n, title: libS(r.title), higher: /^higher$/i.test(libS(r.tier).trim()), tier: libS(r.tier).trim(), own: own,
                                       topics: libS(r.topics), pending: /^true$/i.test(libS(r.lib_pending).trim()),
                                       /* THE SCHOOL YEARS A CHAPTER IS TAUGHT IN (770), `3, 4, 5, 6`: a key stage spans years, so the funnel can ask which. */
                                       years: libS(r.year_group).split(',').map(t => t.trim()).filter(t => /^\d{1,2}$/.test(t)) },
@@ -5734,15 +5755,17 @@ function flowShow_(id, n) {
   }, 'flow-show');
 }
 
-/* THE TOP BAR (900): the brand, and who is signed in with Sign out; never a Sign in tile (owner, 6 Nov). */
+/* THE TOP BAR (900): the brand, and who is signed in as a removable tag; never a Sign in tile (owner, 6 Nov). */
 function topbarPaint_() {
   const bar = $('topbar-who');
   if (!bar || typeof tile_ !== 'function') return;
   const mark = document.querySelector('.topbar-brand');
   if (mark && mark.textContent !== brand('name', '@family.')) mark.textContent = brand('name', '@family.');
   const who = USER ? String(USER.name || USER.handle || '').trim() : '';
-  /* ONLY @family., THE NAME AND SIGN OUT (owner, 6 Nov); signed out, Sign in is Find › Settings (C+). */
-  const html = USER ? `<span class="topbar-name">${esc(who)}</span>${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}` : '';
+  /* THE NAME IS A CHIP: removing it signs out, one control one job (owner, 13 Nov); signed out, Sign in is Find › Settings. */
+  const label = 'Sign out ' + who;
+  const html = USER ? qtag_(`${esc(who)}${tile_({ icon: 'close', label: label, act: 'signout', cls: 'chip-x' })}`,
+    ` data-do="signout" role="button" tabindex="0" aria-label="${esc(label)}"`, 'sm topbar-name', 'chip') : '';
   if (bar.innerHTML !== html) bar.innerHTML = html;
 }
 
@@ -8311,9 +8334,9 @@ const KC_DEFAULT = {
   venue: { cls: 'venue-door', pic: [], title: [], tags: [], lines: [], tiles: [] },
   level: { cls: 'is-level', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },
   subject: { cls: 'is-subject', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },
-  manuscript: { cls: 'hdb hdb-msc lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
+  manuscript: { cls: 'hdb hdb-msc lib-c', pic: [], title: [], tags: [], lines: [], tiles: ['file-view:ext:Source'] },
   writing: { cls: 'hdb lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
-  event: { cls: 'hdb lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
+  event: { cls: 'hdb lib-c', pic: [], title: [], tags: [], lines: [], tiles: ['file-view:ext:Source'] },
   people: { cls: 'person lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
   msg: { cls: 'msg-fc', pic: ['msgPic'], title: ['msgWho'], tags: ['msgTags'], lines: ['msgBody', 'msgTiles'], tiles: ['msg-reply:send:Reply'] },
   post: { cls: 'post-fc', pic: [], title: [], tags: [], lines: [], tiles: ['react:heart:Like'] },
@@ -11247,15 +11270,18 @@ function fieldHtml(name, value, o) {
   }
 
   /* A FIXED LIST IS A SELECT. § */
-  const opts = o.options || [];
+  /* A MANAGER IS A TUTOR, KEPT BY PERSON ID AND SHOWN BY NAME (`{ v, t }`); blank is the admin (`chainShares_`). */
+  const opts = name === 'manager'
+    ? managerOptions_(String((o.raw && o.raw.person_id) || ((typeof USER !== 'undefined' && USER) || {}).personId || '')) : (o.options || []);
+  const ov = x => String(x && typeof x === 'object' ? x.v : x), ot = x => String(x && typeof x === 'object' ? x.t : x);
   if (opts.length) {
     /* A PLACEHOLDER ON A SELECT IS ITS EMPTY OPTION, and the caption goes exactly as it does for a box below: § */
     const ph = o.placeholder || '';
     return formLine_(ph ? '' : label, formSelect_(`${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}${da}`, `
-        <option value="">${ph ? esc(ph) : NONE_LABEL}</option>
-        ${(v !== '' && v != null && !opts.some(x => String(x) === String(v)) ? [String(v)] : [])
-          .concat(opts).map(x => `<option value="${esc(x)}"${
-          String(v) === String(x) ? ' selected' : ''}>${esc(x)}</option>`).join('')}`));
+        <option value="">${ph ? esc(ph) : name === 'manager' ? esc(MANAGER_NONE) : NONE_LABEL}</option>
+        ${(v !== '' && v != null && !opts.some(x => ov(x) === String(v)) ? [String(v)] : [])
+          .concat(opts).map(x => `<option value="${esc(ov(x))}"${
+          String(v) === ov(x) ? ' selected' : ''}>${esc(ot(x))}</option>`).join('')}`));
   }
 
   /* ---------- A DAY ON A CALENDAR IS A DATE INPUT § */
@@ -11350,7 +11376,15 @@ const ROW_LABEL = {
   video: 'video link',
   travel_km: 'will travel (km)', favourite_colour: 'favourite colour',
   venues_ok: 'venues you teach at',
+  manager: 'your manager',
 };
+/* WHO MAY BE YOUR MANAGER: every other tutor the site was sent, by name; the admin is the blank line. */
+const MANAGER_NONE = '@family. (the admin)';
+function managerOptions_(self) {
+  return ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || [])
+    .filter(t => t && t.personId && String(t.personId) !== String(self || '') && t.role !== 'Admin')
+    .map(t => ({ v: String(t.personId), t: String(t.title || t.personId) }));
+}
 function fieldRows_(list, one) {
   const out = [], done = new Set();
   list.forEach(f => {
@@ -12294,6 +12328,8 @@ const CARD_SECTIONS = [
   /* THREE CARDS, EACH ONE HOME (620): the rate and the tutor's seat k; @family.'s share g, an admin's; the class size. */
   { id: 'seat', cap: 'Rate and extra seat', fields: ['rate_per_hour', 'extra_seat_rate'] },
   { id: 'size', cap: 'Class size', fields: ['min_students', 'max_students'] },
+  /* WHO MANAGES YOU (13 Nov): a tutor you choose, and the extra-seat split it makes (`chainShares_`). */
+  { id: 'manager', cap: 'Your manager', fields: ['manager'] },
   { id: 'headline', fields: ['headline'] },
   /* NO `video` BOX: the clip is uploaded (videoPicker_); updateProfile writes no `video` cell since 8 Nov. */
   { id: 'photos', cap: 'Photographs', fields: [], match: /^photos_\d+$/ },
@@ -12333,11 +12369,11 @@ function ownCardSections_(col) {
 }
 const OWN_CARD_SECTIONS_ = ['picture', 'name', 'handle'];
 /* EACH SECTION'S CARD TITLE, and which a locked settings column shows (468). */
-const OWN_SEC_TITLE_ = { picture: 'Picture', name: 'Name', handle: 'Handle', seat: 'Rate and extra seat', cut: "@family.'s share", size: 'Class size', headline: 'Headline',
+const OWN_SEC_TITLE_ = { picture: 'Picture', name: 'Name', handle: 'Handle', seat: 'Rate and extra seat', cut: "@family.'s share", size: 'Class size', manager: 'Your manager', headline: 'Headline',
   photos: 'Photographs', words: '3 words', glance: 'At a glance', quals: 'Qualifications', jobs: 'Jobs', where: 'Where you teach', week: 'Available' };
 /* EACH SECTION ON ONE COLUMN FOR EVERYONE, the lowest rank it applies to (469): the owner, "the lowest common denominator". */
 const OWN_SEC_OF_SET_ = { account: OWN_CARD_SECTIONS_, family: [],
-  staff: ['seat', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'jobs', 'where', 'week'] };
+  staff: ['seat', 'size', 'manager', 'headline', 'photos', 'words', 'glance', 'quals', 'jobs', 'where', 'week'] };
 const OWN_SET_OF_SEC_ = sec => Object.keys(OWN_SEC_OF_SET_).find(c => OWN_SEC_OF_SET_[c].indexOf(sec) !== -1) || '';
 /* THE RATE, THE SEAT AND THE CLASS SIZE HAVE ONE HOME, the Rate and class size card (620); the hub's Pricing only tries figures and points here. */
 const ownCardFields_ = () => [].concat(...ownCardSections_().map(s => s.list));
@@ -13065,8 +13101,20 @@ const CARD_SECTION = {
   quals: (L, c) => ceFold_('quals', 'Qualifications', esc(ceCount_(c.filled(/^qual_\d+$/), 'held', 'held')), qualShelf_(L, c.val)),
   week: (L, c) => availGrid_(L, c.vals, c.ro, false), seat: (L, c) => cardRateHtml_(L, c.val, c.box, c.e),
   cut: (L, c) => cardCutHtml_(L, c.val, c.box), size: (L, c) => cardSizeHtml_(L, c.val, c.box),
+  manager: (L, c) => ceFold_('manager', 'Your manager', esc(chainSay_(c.t, c.val('manager'))), fieldRows_(L, c.box)),
   glance: (L, c) => ceFold_('glance', 'At a glance', esc(ceGlanceSay_(c.val)), fieldRows_(L, c.box)), where: (L, c) => ceWhere_(L, c.val, c.box),
 };
+/* WHO GETS THE EXTRA-SEAT MONEY, in words: the split `chainShares_` makes with this manager chosen. */
+function chainSay_(t, manager) {
+  const id = String((t && t.personId) || ((typeof USER !== 'undefined' && USER) || {}).personId || 'me');
+  t = t || ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).find(x => x && String(x.personId) === id) || null;
+  const tutors = ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).filter(x => x && String(x.personId) !== id);
+  const me = { personId: id, manager: String(manager || ''), role: (t && t.role) || 'Tutor', title: 'You' };
+  const c = chainShares_(id, tutors.concat([me]));
+  const pc = x => (Math.round(x * 1000) / 10) + '%';
+  if (c.tutor === 1) return 'Your extra seats are all yours.';
+  return 'Of your extra-seat money: you ' + pc(c.tutor) + ', ' + c.managers.map(m => m.name + ' ' + pc(m.share)).concat(['@family. ' + pc(c.admin)]).join(', ') + '.';
+}
 /* THE MONEY SECTIONS, redrawn as the rate is typed (`cardSeatSync_`): the line each one says, and how. */
 const CARD_RATE_SECTION = { seat: { line: '.ce-seat', say: (rate, seat) => cardSeatSay_(rate, seat) },
   cut: { line: '.ce-cut', say: (rate, seat, cut) => cardCutSay_(rate, cut) }, size: { sizeLine: true } };
@@ -13075,7 +13123,8 @@ function cardEditForm_(t, e, vals, only) {
   const val = f => (vals[f] == null ? '' : vals[f]);
   const ro = (DATA && DATA.profileReadonly) || [];
   const box = (f, extra) => fieldHtml(f, val(f), Object.assign({ attr: 'data-me', label: ROW_LABEL[f],
-    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !isAdmin()), draft: false }, extra));
+    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !isAdmin()), draft: false,
+    raw: { person_id: (t && t.personId) || ((typeof USER !== 'undefined' && USER) || {}).personId || '' } }, extra));
   /* YOUR OWN CARD'S SECTIONS ARE YOUR ROLE'S (`ownCardSections_`), with the figure and the handle;
      somebody else's are the tutor's card, as an admin has always edited it. */
   return (only || (e.own ? ownCardSections_() : cardSections_())).map(s => {
@@ -13533,6 +13582,13 @@ document.addEventListener('input', e => {
   const v = f => { const b = form.querySelector('[data-me="' + f + '"]'); return b ? b.value : ''; };
   const cut = form.querySelector('[data-me="extra_seat_cut"]') ? v('extra_seat_cut') : bar.dataset.cut;
   bar.innerHTML = cardShareBar_(num(v('rate_per_hour')), v('extra_seat_rate'), cut);
+});
+/* THE SPLIT LINE FOLLOWS THE PICKER as it is changed, before Save. */
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('select[data-me="manager"]')) return;
+  const sec = t.closest('.ce-sec'), line = sec && sec.querySelector('details[data-fold="manager"] > summary .ce-v');
+  if (line) line.textContent = chainSay_(null, t.value);
 });
 
 ;
@@ -14466,7 +14522,7 @@ function cameraCard() {
       ${tile_({ form: true, look: 'cam-shot', act: 'cam-shoot', id: 'cam-shoot', aria: 'Take a photo', title: 'Take a photo', off: true, html: '' })}
       ${tile_({ form: true, look: 'cam-rec', act: 'cam-video', id: 'cam-video', aria: 'Record a video', title: 'Record a video', off: true, html: '' })}
       ${tile_({ form: true, look: 'cam-round cam-write', act: 'new-post', aria: 'Write a post', title: 'Write a post', html: '<span class="cam-disc" aria-hidden="true">✎</span><span class="cam-word">Write a post</span>' })}
-      ${tile_({ form: true, look: 'cam-side', act: 'cam-flip', id: 'cam-flip', aria: 'Switch camera', title: 'Switch camera', hidden: true, label: 'Switch' })}
+      ${tile_({ form: true, look: 'cam-side', act: 'cam-flip', id: 'cam-flip', aria: 'Switch camera', title: 'Switch camera', off: true, label: 'Switch' })}
     </div>
     ${/* ---------- ONE LINE ABOUT IT, BECAUSE A POST WITH NOTHING SAID ABOUT IT IS A PHOTOGRAPH § */
           ''}
@@ -14483,15 +14539,15 @@ function cameraCard() {
       ${postAsButtons_('cam-as')}
     </span>` : ''}
     <div class="btn-row cam-row">
-      ${tile_({ form: true, look: 'btn quiet', act: 'cam-again', id: 'cam-again', hidden: true, label: 'Again' })}
+      ${tile_({ form: true, look: 'btn quiet', act: 'cam-again', id: 'cam-again', off: true, label: 'Again' })}
       ${/* KEEP THIS ONE AND TAKE ANOTHER. The picture goes into the tray and the viewfinder comes
             back, so a post of five is five presses of the shutter and one of `Post it`. */''}
-      ${tile_({ form: true, look: 'btn quiet', act: 'cam-more', id: 'cam-more', hidden: true, label: 'Add another' })}
-      ${tile_({ form: true, act: 'cam-post', id: 'cam-post', hidden: true, label: 'Post it' })}
-      ${tile_({ form: true, look: 'btn quiet', act: 'cam-save', id: 'cam-save', hidden: true, label: 'Save a copy' })}
-      ${/* HIDDEN UNTIL SOMETHING FAILS. See the note at the top: this is the way back from a refused
+      ${tile_({ form: true, look: 'btn quiet', act: 'cam-more', id: 'cam-more', off: true, label: 'Add another' })}
+      ${tile_({ form: true, act: 'cam-post', id: 'cam-post', off: true, label: 'Post it' })}
+      ${tile_({ form: true, look: 'btn quiet', act: 'cam-save', id: 'cam-save', off: true, label: 'Save a copy' })}
+      ${/* GREYED UNTIL SOMETHING FAILS. See the note at the top: this is the way back from a refused
             prompt, not a step on the way in. */''}
-      ${tile_({ form: true, act: 'cam-on', id: 'cam-on', hidden: true, label: 'Try the camera again' })}
+      ${tile_({ form: true, act: 'cam-on', id: 'cam-on', off: true, label: 'Try the camera again' })}
     </div>
     <p class="note" id="cam-said"></p>
   </div>`);
@@ -14552,7 +14608,7 @@ async function camStart_(asked) {
     const off = $('cam-off');
     if (off) { off.hidden = false; off.innerHTML = ''; }
     if (said) said.textContent = '';
-    if (retry) retry.hidden = true;          // nothing a retry could change
+    if (retry) retry.disabled = true;          // nothing a retry could change
     camSettle_();
     return;
   }
@@ -14605,7 +14661,7 @@ async function camStart_(asked) {
   now.srcObject = CAM_STREAM;
   try { await now.play(); } catch (e) {}
   $('cam-off') && ($('cam-off').hidden = true);
-  if (retry) { retry.hidden = true; retry.disabled = false; }
+  if (retry) { retry.disabled = true; }
   camLive_(true);
   if (said) said.textContent = '';
   /* ---------- AND ONLY NOW CAN ANYBODY ASK HOW MANY CAMERAS THERE ARE § */
@@ -14616,9 +14672,9 @@ async function camStart_(asked) {
 function camFailed_(err) {
   const said = $('cam-said'), retry = $('cam-on'), off = $('cam-off');
   if (said) said.textContent = camWhy_(err);
-  /* THE WAY BACK APPEARS ONLY NOW. Until something fails there is nothing to retry, and a button
+  /* THE WAY BACK IS LIT ONLY NOW. Until something fails there is nothing to retry, and a button
      offering to start a camera that is already running is the thing this replaced. */
-  if (retry) { retry.hidden = false; retry.disabled = false; }
+  if (retry) { retry.disabled = false; }
   /* THE PANEL'S WHOLE CONTENT, NOT A LINE INSIDE IT: while it waits it holds the loader and no
      sentence, so there is no line to find and rewrite. */
   if (off) { off.hidden = false; off.innerHTML = ''; }
@@ -14643,7 +14699,7 @@ async function camWays_() {
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
     const list = await navigator.mediaDevices.enumerateDevices();
-    flip.hidden = list.filter(d => d.kind === 'videoinput').length < 2;
+    flip.disabled = list.filter(d => d.kind === 'videoinput').length < 2;
   } catch (e) {}
 }
 
@@ -14705,7 +14761,7 @@ document.addEventListener('change', e => {
     camHold_();
     $('cam-off')   && ($('cam-off').hidden = true);
     /* SEE `cam-shoot`: `Again` already offers the camera, so this would be the second button for it. */
-    $('cam-on')    && ($('cam-on').hidden = true);
+    $('cam-on')    && ($('cam-on').disabled = true);
     camSettle_();
     if (said) said.textContent = '';
     /* THE CAMERA IS LET GO, not left running behind the picture. § */
@@ -14729,8 +14785,8 @@ on('cam-shoot', () => {
      see `Again` — so they would work; what they would do is throw away the shot you just took. */
   camLive_(false);
   camHold_();
-  /* `Try the camera again` GOES WHILE A PICTURE IS BEING HELD, and that is a duplicate removed rather than a control taken away. § */
-  $('cam-on') && ($('cam-on').hidden = true);
+  /* `Try the camera again` GREYS WHILE A PICTURE IS BEING HELD, and that is a duplicate removed rather than a control taken away. § */
+  $('cam-on') && ($('cam-on').disabled = true);
   camSettle_();
 });
 
@@ -14784,9 +14840,11 @@ function camKeep_() {
 function camHold_() {
   const still = !!($('cam-still') && !$('cam-still').hidden);
   const n = CAM_ITEMS.length + (still ? 1 : 0);
+  /* EVERY BUTTON STAYS IN SIGHT (owner, 13 Nov: no dynamic buttons): one that cannot act yet is greyed, never hidden. */
+  const can = (id, on) => { const el = $(id); if (el) el.disabled = !on; };
   const show = (id, on) => { const el = $(id); if (el) el.hidden = !on; };
-  show('cam-again', still); show('cam-save', still); show('cam-more', still);
-  show('cam-post', n > 0); show('cam-cap', n > 0); show('cam-as', n > 0);
+  can('cam-again', still); can('cam-save', still); can('cam-more', still);
+  can('cam-post', n > 0); show('cam-cap', n > 0); show('cam-as', n > 0);
   const post = $('cam-post');
   if (post) post.textContent = n > 1 ? 'Post all ' + n : 'Post it';
   const tray = $('cam-tray');
@@ -15001,14 +15059,14 @@ function camStop_(keepShown, park) {
 
   camRecMark_(false);
   camLive_(false);
-  const flip = $('cam-flip'); if (flip) flip.hidden = true;
+  const flip = $('cam-flip'); if (flip) flip.disabled = true;
 
   if (v) v.hidden = false;
   const c = $('cam-still'); if (c) c.hidden = true;
   /* BACK TO THE VIEWFINDER AT REST — the dark stage, no loader: nothing is being asked for now (`cameraCard`). */
   const off = $('cam-off');
   if (off) { off.hidden = false; off.innerHTML = ''; }
-  $('cam-on')    && ($('cam-on').hidden = true, $('cam-on').disabled = false);
+  $('cam-on')    && ($('cam-on').disabled = true);
   /* LEAVING THE COLUMN LETS THE POST GO TOO, the tray with it — the same thing it has always done to
      a single held picture. */
   CAM_ITEMS = [];
@@ -15486,7 +15544,7 @@ function postComposeHtml_() {
   <label class="field"><span>more, if you want it</span>
     <textarea id="post-body" placeholder="Optional"${draftAttr_('post', 'body')}>${esc(draftVal_('post', 'body'))}</textarea></label>
   <div class="poll-opts" id="post-poll-opts" data-n="${n}">${Array.from({ length: n }, (_, k) => pollBox_(k)).join('')}</div>
-  ${tile_({ form: true, look: 'btn quiet', act: 'poll-more', id: 'poll-more', hidden: n >= POLL_MAX, label: 'Add option' })}
+  ${tile_({ form: true, look: 'btn quiet', act: 'poll-more', id: 'poll-more', off: n >= POLL_MAX, label: 'Add option' })}
   ${postAsRow_('post-as')}
   <div class="btn-row">
     ${tile_({ form: true, label: 'Back', act: 'post-cancel', kind: 'quiet' })}
@@ -15525,7 +15583,7 @@ on('poll-more', () => {
   const n = box.querySelectorAll('.post-poll-in').length;
   if (n >= POLL_MAX) return;
   box.insertAdjacentHTML('beforeend', pollBox_(n));
-  const b = $('poll-more'); if (b && n + 1 >= POLL_MAX) b.hidden = true;
+  const b = $('poll-more'); if (b && n + 1 >= POLL_MAX) b.disabled = true;
   const inp = $('post-poll-' + n); if (inp) { try { inp.focus({ preventScroll: true }); } catch (e) {} }
 });
 /* THE OPTIONS AS THE SHEET KEEPS THEM — one cell, comma-joined (doget splits it), so a comma typed inside an option is taken out. */

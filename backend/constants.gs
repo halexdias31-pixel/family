@@ -130,7 +130,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-13-handles-warm-1";
+const BACKEND_VERSION = "2026-11-13-chain-cols-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -259,6 +259,8 @@ const SCHEMA = {
     "rate_per_hour", "extra_seat_rate",
     /* THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR (docs/history/345) — a fraction of THIS tutor's rate, beside their own share. § */
     "extra_seat_cut",
+    /* WHO MANAGES THIS TUTOR (13 Nov): a person id the tutor chooses (an admin may too); blank is the admin. `chainShares_` splits the extra-seat money up it. */
+    "manager",
     "min_students", "max_students", "min_hours", "max_hours",
     "pricing_changed_at", "availability", "agreement_signed_at", "agreement_version",
     /* a family's and a student's own */
@@ -665,7 +667,7 @@ const CONFIG_DEFAULTS = [
   ['s', 0, 'each extra subject adds this FRACTION of the base rate. 0.15 = +15%'],
   ['c', 0, "each extra seat adds this fraction — the tutor's share of it. 0.15 = +15%"],
   /* B IS THE DEFAULT NOW, NOT THE CUT (docs/history/345): § */
-  ['B', 0, "@family.'s share of each extra seat, as a fraction of the tutor's extra-seat rate, for every tutor (extra_seat_cut is ignored). 0.5 = half"],
+  ['B', 0, "Not used since 13 Nov: an extra seat costs the tutor's own extra-seat rate, and half of it goes up the manager chain"],
   ['b', 0, 'bulk discount taken off per session AFTER THE FIRST. 0.01 is about 9% off a 10-session term. 0 = off'],
 
   ['a', 0, 'advance discount taken off per week ahead AFTER THE FIRST. 0 = off'],
@@ -1206,6 +1208,8 @@ const SEAT_RATE_MAX = 1;
 
 /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS ON THE RATE PAGE AND NOT THE FIFTH OF THEM § */
 const SEAT_CUT_FIELD = 'extra_seat_cut';
+/* WHO A TUTOR ANSWERS TO, a tutor's own choice (owner, 13 Nov: a manager who poaches loses tutors). `managerRefusal_` checks it. */
+const MANAGER_FIELD = 'manager';
 
 /* ---------- THE AGES A TUTOR MAY SAY THEY TEACH, AS ONE LIST THE FORM AND THE RULE BOTH READ § */
 const AGE_FIELDS = ['age_min', 'age_max'];
@@ -1235,7 +1239,7 @@ const PROFILE_GROUPS = {
   /* AND THE BUSINESS'S CUT OF AN EXTRA SEAT straight after the tutor's own share, as the card reads them — an
      admin's to write, which `seatCutRefusal_` decides, not this list (`SEAT_CUT_FIELD` above says why). */
   'Your rate and group size': PRICING_FIELDS.slice()
-                                .concat(SESSION_FIELDS),
+                                .concat(SESSION_FIELDS, [MANAGER_FIELD]),
   /* WHAT YOU TEACH, WHAT YOU ARE STUDYING AND ANYTHING ELSE — one page, because they are the
      three answers to "what do you know". `Qualifications` beside it is the graded list. */
   /* ---------- WHAT YOU SPECIALISE IN, THEN WHAT ELSE YOU TEACH § */

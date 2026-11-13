@@ -650,6 +650,7 @@ function formMoney_(L) {
   const dash = dash_();
   return { label: 'Client pays', total: sh ? money_(sh.pays) : dash,
            more: [{ k: 'Tutor earns', t: sh ? money_(sh.tutor) : dash }]
+             .concat(sh ? sh.managers.map(m => ({ k: m.name + ' (manager, ' + (Math.round(m.share * 1000) / 10) + '% of extra seats)', t: money_(m.amount) })) : [])
              .concat(sh && sh.fees > 0 ? [{ k: 'Room and fees', t: money_(sh.fees) }] : [])
              .concat([{ k: 'Admin earns', t: sh ? money_(sh.admin) : dash }]) };
 }

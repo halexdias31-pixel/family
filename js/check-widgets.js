@@ -315,8 +315,10 @@ async function drawAheadRuntime_() {
       w.HTMLMediaElement.prototype.pause = function () {};
       w.HTMLMediaElement.prototype.load = function () {};
     } catch (e) {}
-    w.__sb = { on: false, hits: [] };
-    const hit = what => { if (w.__sb.on) w.__sb.hits.push(what); };
+    w.__sb = { on: false, hits: [], inDraw: () => false };
+    /* ATTRIBUTED BY THE STACK, NOT THE CLOCK: a fetch boot or an earlier draw left in flight lands in any later
+       window under load, so only a call made while this draw (or a timer/frame it set) runs is its own. */
+    const hit = what => { if (w.__sb.on && w.__sb.inDraw()) w.__sb.hits.push(what); };
     const realFetch = (url, o) => {
       hit('a fetch of ' + String(url).slice(0, 80));
       const body = o && o.body ? { success: true } : sc.data;
@@ -413,7 +415,7 @@ async function drawAheadRuntime_() {
     mo.observe(w.document, { subtree: true, childList: true, attributes: true, characterData: true });
     const had = Object.prototype.hasOwnProperty.call(t.HOME, slot.id) ? t.HOME[slot.id] : undefined;
     t.HOME[slot.id] = col;
-    sb.hits = []; sb.on = true;
+    sb.hits = []; sb.inDraw = () => inMine > 0; sb.on = true;
     /* AS THE BUILDER DRAWS IT — inside a slice (`AHEAD.running`, which `aheadSlice_` holds for the job), so a
        draw that asks whether it is being drawn ahead is asked the question the app asks it. */
     try { t.ahead('widget:' + col + ':' + id); wrap(() => draw())(); }
@@ -424,7 +426,7 @@ async function drawAheadRuntime_() {
        as the first. */
     const until = RealDate.now() + 400;
     while (RealDate.now() < until) await new Promise(r => rT.call(w, r, 20));
-    sb.on = false;
+    sb.on = false; sb.inDraw = () => false;
     audit();
     mo.disconnect();
     sb.hits.forEach(h => fails.push('asked for ' + h));

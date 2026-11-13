@@ -173,7 +173,7 @@ function priceSplit_(n) {
   let p = null;
   try { p = priceFrom({ tutorRow: row, n, slots: 1, hoursPerWeek: 1, loc: PRICE.loc, format: 'Tutoring' }); } catch (e) { p = null; }
   const e = (p && p.earn) || {};
-  return { n, charged: e.charged || 0, tutor: e.tutorPayout || 0, room: e.venue || 0, fees: e.cardFees || 0, business: e.net || 0 };
+  return { n, charged: e.charged || 0, tutor: e.tutorPayout || 0, room: e.venue || 0, fees: e.cardFees || 0, managers: e.managerTotal || 0, business: e.net || 0 };
 }
 /* WHAT IS WRONG WITH THE BOXES, in the words the server would use — '' when Save may go. */
 function priceWrong_() {
@@ -182,10 +182,11 @@ function priceWrong_() {
   if (PRICE.seat < 0 || PRICE.seat > PRICE.rate * STAFF_SEAT_MAX) return 'An extra seat adds £0 to ' + money_(PRICE.rate * STAFF_SEAT_MAX) + ' an hour — at most what the first student pays.';
   return '';
 }
-const PRICE_SEGS = [['tutor', 'You'], ['room', 'Room'], ['fees', 'Card fees'], ['business', '@family.']];
+/* YOUR MANAGERS' PART OF THE EXTRA SEATS (`chainShares_`) has its own colour; it is nought for one student. */
+const PRICE_SEGS = [['tutor', 'You'], ['room', 'Room'], ['fees', 'Card fees'], ['managers', 'Managers'], ['business', '@family.']];
 function priceBarsHtml_() {
   const rows = [1, 2, 3].map(priceSplit_);
-  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + Math.max(0, r.business)));
+  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + r.managers + Math.max(0, r.business)));
   /* EACH PART ENDS WHERE THE SUM SO FAR ENDS: the bars are drawn on top of each other and scaled, not laid side by side (537). */
   const x = (r, i) => (PRICE_SEGS.slice(0, i + 1).reduce((a, [k]) => a + Math.max(0, r[k]), 0) / full).toFixed(4);
   return rows.map(r => `<div class="pb-row" data-n="${r.n}">
@@ -226,7 +227,7 @@ function priceRedraw_() {
   const box = document.querySelector('.hub .pb');
   if (!box) return;
   const rows = [1, 2, 3].map(priceSplit_);
-  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + Math.max(0, r.business)));
+  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + r.managers + Math.max(0, r.business)));
   rows.forEach(r => {
     const row = box.querySelector('.pb-row[data-n="' + r.n + '"]');
     if (!row) return;

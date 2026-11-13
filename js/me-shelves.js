@@ -118,15 +118,18 @@ function fieldHtml(name, value, o) {
   }
 
   /* A FIXED LIST IS A SELECT. § */
-  const opts = o.options || [];
+  /* A MANAGER IS A TUTOR, KEPT BY PERSON ID AND SHOWN BY NAME (`{ v, t }`); blank is the admin (`chainShares_`). */
+  const opts = name === 'manager'
+    ? managerOptions_(String((o.raw && o.raw.person_id) || ((typeof USER !== 'undefined' && USER) || {}).personId || '')) : (o.options || []);
+  const ov = x => String(x && typeof x === 'object' ? x.v : x), ot = x => String(x && typeof x === 'object' ? x.t : x);
   if (opts.length) {
     /* A PLACEHOLDER ON A SELECT IS ITS EMPTY OPTION, and the caption goes exactly as it does for a box below: § */
     const ph = o.placeholder || '';
     return formLine_(ph ? '' : label, formSelect_(`${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}${da}`, `
-        <option value="">${ph ? esc(ph) : NONE_LABEL}</option>
-        ${(v !== '' && v != null && !opts.some(x => String(x) === String(v)) ? [String(v)] : [])
-          .concat(opts).map(x => `<option value="${esc(x)}"${
-          String(v) === String(x) ? ' selected' : ''}>${esc(x)}</option>`).join('')}`));
+        <option value="">${ph ? esc(ph) : name === 'manager' ? esc(MANAGER_NONE) : NONE_LABEL}</option>
+        ${(v !== '' && v != null && !opts.some(x => ov(x) === String(v)) ? [String(v)] : [])
+          .concat(opts).map(x => `<option value="${esc(ov(x))}"${
+          String(v) === ov(x) ? ' selected' : ''}>${esc(ot(x))}</option>`).join('')}`));
   }
 
   /* ---------- A DAY ON A CALENDAR IS A DATE INPUT § */
@@ -221,7 +224,15 @@ const ROW_LABEL = {
   video: 'video link',
   travel_km: 'will travel (km)', favourite_colour: 'favourite colour',
   venues_ok: 'venues you teach at',
+  manager: 'your manager',
 };
+/* WHO MAY BE YOUR MANAGER: every other tutor the site was sent, by name; the admin is the blank line. */
+const MANAGER_NONE = '@family. (the admin)';
+function managerOptions_(self) {
+  return ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || [])
+    .filter(t => t && t.personId && String(t.personId) !== String(self || '') && t.role !== 'Admin')
+    .map(t => ({ v: String(t.personId), t: String(t.title || t.personId) }));
+}
 function fieldRows_(list, one) {
   const out = [], done = new Set();
   list.forEach(f => {

@@ -1814,7 +1814,7 @@ function contentItem_(b, c) {
     image: '',
     /* A CHAPTER CAN SIT IN SEVERAL SUBJECTS ("Biology, Chemistry, Physics"): one answer each, never an umbrella "Science" (12 Nov). */
     subject: subjectsOf_(c.subject), level: c.level, keystage: c.keystage, topics: c.topics, years: c.years || [],
-    examBoard: c.board || '', tier: c.higher ? 'Higher' : '',
+    examBoard: c.board || '', tier: c.tier || '',
     text: contentText_(c) + ' ' + topicAtoms_(c.topics).join(' '),
     row: c,
   };
@@ -1932,7 +1932,8 @@ function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or s
 function specItem_(r) {
   return {
     kind: 'spec', name: r.code, key: 'spec:' + r.id, sub: '', image: '',
-    subject: r.subject, level: r.level, examBoard: r.board,
+    /* A SPEC THAT SPANS ITS LEVEL'S TIERS NAMES THEM (`tiers`, ESL's A1 to C2), so the tier question is asked over its cards too. */
+    subject: r.subject, level: r.level, examBoard: r.board, tier: r.tiers || '',
     text: plainText_([r.board, r.qualification, r.subject, r.code, 'specification spec syllabus']
       .concat((r.sections || []).map(s => s.title), (r.points || []).map(p => p.id + ' ' + p.text)).join(' ')),
     row: r,
@@ -5083,7 +5084,7 @@ function cellsBox_(x) {
   const inTable = !!cellsTable_(x, cellsCardHtml_(x));
   const val = String(ansRead_(k) || '').replace(/(?:\s*;\s*)+$/, '');
   const maths = cells.filter(c => c.ways).every(c => /^[-\d.,\s|£$%°/]+$/.test(c.ways));
-  const one = inTable ? '' : `<p class="qp-cells-hint">${esc(cellsHint_(cells))}</p><div class="qp-ans-row qp-bar"><label class="qp-ans${
+  const one = inTable ? '' : `<p class="q-hint">${esc(cellsHint_(cells))}</p><div class="qp-ans-row qp-bar"><label class="qp-ans${
     maths ? ' qp-ans-maths' : ''}" aria-label="Your answers, in order">${kpField_(k, val, maths ? 'maths' : 'words', 3)}</label></div>`;
   const said = subBoxSay_(k, val);
   return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${one}
@@ -9515,6 +9516,8 @@ const LEVEL_TABLE = [
   { level: 'A-Level',     rung: 4, stages: ['KS5'],        tiers: [], says: ['Alevel', 'A level', 'KS5'] },
   { level: 'AS',          rung: 0, stages: ['KS5'],        tiers: [], says: ['AS level', 'AS-level'] },
   { level: 'Theory test', rung: 0, stages: [],             tiers: [], says: [] },
+  /* ENGLISH AS A SECOND LANGUAGE: one level off the school ladder; its CEFR bands are its tiers, as GCSE's are Foundation and Higher. */
+  { level: 'ESL',         rung: 0, stages: [],             tiers: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'], says: ['EFL', 'ESOL', 'CEFR'] },
 ];
 
 ;
@@ -13810,10 +13813,11 @@ function kpHitMaths_(inp, show, x, y) {
     + 'px;visibility:hidden;pointer-events:none;contain:layout style paint';
   let html = '';
   for (let i = 0; i <= inp.value.length; i++) {
-    html += '<span class="kp-show" style="position:absolute;left:0;top:0;width:' + sr.width + 'px">'
-      + kpTypeset_(inp.value, i) + '</span>';
+    html += '<span class="kp-show">' + kpTypeset_(inp.value, i) + '</span>';
   }
   host.innerHTML = html;
+  /* EVERY CARET'S COPY ON THE SAME SPOT, the field's width, so each caret is measured where it would stand. */
+  [...host.children].forEach(g => { g.style.cssText = 'position:absolute;left:0;top:0;width:' + sr.width + 'px'; });
   document.body.appendChild(host);
   let best = inp.value.length, bd = Infinity;
   try {
@@ -19930,6 +19934,7 @@ function formMoney_(L) {
   const dash = dash_();
   return { label: 'Client pays', total: sh ? money_(sh.pays) : dash,
            more: [{ k: 'Tutor earns', t: sh ? money_(sh.tutor) : dash }]
+             .concat(sh ? sh.managers.map(m => ({ k: m.name + ' (manager, ' + (Math.round(m.share * 1000) / 10) + '% of extra seats)', t: money_(m.amount) })) : [])
              .concat(sh && sh.fees > 0 ? [{ k: 'Room and fees', t: money_(sh.fees) }] : [])
              .concat([{ k: 'Admin earns', t: sh ? money_(sh.admin) : dash }]) };
 }
@@ -23053,7 +23058,7 @@ function priceSplit_(n) {
   let p = null;
   try { p = priceFrom({ tutorRow: row, n, slots: 1, hoursPerWeek: 1, loc: PRICE.loc, format: 'Tutoring' }); } catch (e) { p = null; }
   const e = (p && p.earn) || {};
-  return { n, charged: e.charged || 0, tutor: e.tutorPayout || 0, room: e.venue || 0, fees: e.cardFees || 0, business: e.net || 0 };
+  return { n, charged: e.charged || 0, tutor: e.tutorPayout || 0, room: e.venue || 0, fees: e.cardFees || 0, managers: e.managerTotal || 0, business: e.net || 0 };
 }
 /* WHAT IS WRONG WITH THE BOXES, in the words the server would use — '' when Save may go. */
 function priceWrong_() {
@@ -23062,10 +23067,11 @@ function priceWrong_() {
   if (PRICE.seat < 0 || PRICE.seat > PRICE.rate * STAFF_SEAT_MAX) return 'An extra seat adds £0 to ' + money_(PRICE.rate * STAFF_SEAT_MAX) + ' an hour — at most what the first student pays.';
   return '';
 }
-const PRICE_SEGS = [['tutor', 'You'], ['room', 'Room'], ['fees', 'Card fees'], ['business', '@family.']];
+/* YOUR MANAGERS' PART OF THE EXTRA SEATS (`chainShares_`) has its own colour; it is nought for one student. */
+const PRICE_SEGS = [['tutor', 'You'], ['room', 'Room'], ['fees', 'Card fees'], ['managers', 'Managers'], ['business', '@family.']];
 function priceBarsHtml_() {
   const rows = [1, 2, 3].map(priceSplit_);
-  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + Math.max(0, r.business)));
+  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + r.managers + Math.max(0, r.business)));
   /* EACH PART ENDS WHERE THE SUM SO FAR ENDS: the bars are drawn on top of each other and scaled, not laid side by side (537). */
   const x = (r, i) => (PRICE_SEGS.slice(0, i + 1).reduce((a, [k]) => a + Math.max(0, r[k]), 0) / full).toFixed(4);
   return rows.map(r => `<div class="pb-row" data-n="${r.n}">
@@ -23106,7 +23112,7 @@ function priceRedraw_() {
   const box = document.querySelector('.hub .pb');
   if (!box) return;
   const rows = [1, 2, 3].map(priceSplit_);
-  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + Math.max(0, r.business)));
+  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + r.managers + Math.max(0, r.business)));
   rows.forEach(r => {
     const row = box.querySelector('.pb-row[data-n="' + r.n + '"]');
     if (!row) return;
@@ -23710,7 +23716,7 @@ function legoSteps_() {
     ${legoLine_('Counted so far: ' + legoResult_(s).total + ' pieces in ' + sent + ' batch' + (sent === 1 ? '' : 'es') + '.')}
     ${s.say ? legoLine_(s.say) : ''}
     ${legoBtns_([
-      { label: 'Next batch', act: 'lego-next', off: LEGO_BUSY || !n, hidden: n >= LEGO_SHOTS },
+      { label: 'Next batch', act: 'lego-next', off: LEGO_BUSY || !n || n >= LEGO_SHOTS },
       { label: 'Finished', act: 'lego-done', off: LEGO_BUSY },
       { label: 'Start again', act: 'lego-reset', off: LEGO_BUSY },
     ].filter(o => !o.hidden))}
@@ -24306,6 +24312,7 @@ function ownSecReg_() {
     seat: ['Rate and extra seat', 'your rate and extra seat', 'Your rate and what each extra student adds for you.'],
     cut: ["@family.'s share", "@family.'s share of a seat", 'What @family. adds for each extra student; an admin sets it.'],
     size: ['Class size', 'your class size', 'The fewest and most students you take, and what a class pays.'], headline: ['Headline', 'your headline', 'The line under your name on your tutor card.'],
+    manager: ['Your manager', 'your manager', 'The tutor you answer to, and how your extra-seat money is split.'],
     photos: ['Photographs', 'your photographs', 'The photos and video on your tutor card.'], words: ['3 words', 'your 3 words', '3 words that describe you.'],
     glance: ['At a glance', 'your experience and ages', 'Your experience, the ages you teach and your hours.'], quals: ['Qualifications', 'your qualifications', 'What you are qualified in and teach.'],
     jobs: ['Jobs', 'your jobs', 'Your current and past jobs, shown on your tutor card.'],

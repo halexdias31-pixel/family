@@ -753,7 +753,7 @@ function contentItem_(b, c) {
     image: '',
     /* A CHAPTER CAN SIT IN SEVERAL SUBJECTS ("Biology, Chemistry, Physics"): one answer each, never an umbrella "Science" (12 Nov). */
     subject: subjectsOf_(c.subject), level: c.level, keystage: c.keystage, topics: c.topics, years: c.years || [],
-    examBoard: c.board || '', tier: c.higher ? 'Higher' : '',
+    examBoard: c.board || '', tier: c.tier || '',
     text: contentText_(c) + ' ' + topicAtoms_(c.topics).join(' '),
     row: c,
   };

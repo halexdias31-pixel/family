@@ -778,4 +778,6 @@ const LEVEL_TABLE = [
   { level: 'A-Level',     rung: 4, stages: ['KS5'],        tiers: [], says: ['Alevel', 'A level', 'KS5'] },
   { level: 'AS',          rung: 0, stages: ['KS5'],        tiers: [], says: ['AS level', 'AS-level'] },
   { level: 'Theory test', rung: 0, stages: [],             tiers: [], says: [] },
+  /* ENGLISH AS A SECOND LANGUAGE: one level off the school ladder; its CEFR bands are its tiers, as GCSE's are Foundation and Higher. */
+  { level: 'ESL',         rung: 0, stages: [],             tiers: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'], says: ['EFL', 'ESOL', 'CEFR'] },
 ];

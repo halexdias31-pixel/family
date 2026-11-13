@@ -502,6 +502,8 @@ function profileRefused_(r, wanted, fields, iAmAdmin) {
   /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS AN ADMIN'S (docs/history/345) § */
   const cutNo = seatCutRefusal_(r, priceAsked, iAmAdmin);
   if (cutNo) leaveOut([SEAT_CUT_FIELD], cutNo);
+  const bossNo = managerRefusal_(r, priceAsked);
+  if (bossNo) leaveOut([MANAGER_FIELD], bossNo);
   return { priceAsked: priceAsked, refused: refused };
 }
 
