@@ -94,7 +94,9 @@ function findPerson(nameOrId, altId) {
   return rows.find(r =>
     key(S(r.first_name) + ' ' + S(r.last_name)) === want ||
     key(r.handle) === want ||
-    (mail.indexOf('@') !== -1 && norm(r.email) === mail)) || null;
+    (mail.indexOf('@') !== -1 && norm(r.email) === mail))
+    /* AN OLD HANDLE STILL FINDS ITS PERSON — a renamed first name moves the handle, never the links to it. */
+    || rows.find(r => S(r.handle_was).split(',').some(w => key(w) === want)) || null;
 }
 
 /* AN E-MAIL ADDRESS THAT ALREADY ANSWERS TO SOMEBODY ELSE. § */
@@ -169,8 +171,8 @@ function handleTrouble_(want, me) {
 }
 
 /* ---------- A HANDLE IS A TEMPLATE ANYBODY CAN WORK OUT FOR THEMSELVES (docs/history/364) */
-/* First and last letter of the first name and the year joined: "to2026" (372). A clash adds letters before
-   the last ("tho2026"), then a counter; earliest joiner first. No surname, no birthday, nothing random. */
+/* First two and last two letters of the first name, even overlapping, and the year joined: "fiey2026" (owner, 13 Nov). A clash adds
+   a counter ("fiey20262"); earliest joiner first. No surname, no birthday, nothing random. */
 const HANDLE_NO_LETTER = 'x';
 
 /* THE OLD SHAPES (342) are read, never made: an old handle is a sign-in alias in `handle_was`, and
@@ -259,14 +261,11 @@ function handleJoined_(r, seen) {
   return { when: new Date(), from: 'now' };
 }
 
-/* THE STEMS (372): first letter + last letter of the first name, then one more letter from the start each
-   time before the last (`to`, `tho`, `theo`); a one-letter name doubles (`aa`). */
+/* THE STEM (owner, 13 Nov): first two + last two letters of the first name, overlap and all (`fiey`, `alli`, `jpjp`); one letter is doubled first. */
 function handleStems_(r) {
-  const first = handleLetters_(r && r.first_name) || HANDLE_NO_LETTER;
-  const last = first.charAt(first.length - 1);
-  const out = [];
-  for (let n = 1; n <= Math.max(1, first.length - 1); n++) out.push(first.slice(0, n) + last);
-  return out;
+  let first = handleLetters_(r && r.first_name) || HANDLE_NO_LETTER;
+  if (first.length < 2) first += first;
+  return [first.slice(0, 2) + first.slice(-2)];
 }
 
 /* The template's candidates for row `r`, in the order tried: each stem + year joined, then a counter. */
@@ -295,6 +294,19 @@ function handleTemplate_(r, trouble, seen) {
 /* One handle for a person about to be written or already on the tab — `handleTrouble_` is the gate, so somebody else's handle or old handle is never given. `me` may be a draft row. */
 function handleMake_(me, seen) {
   return handleTemplate_(me || {}, want => handleTrouble_(want, me && me.person_id ? me : null), seen);
+}
+
+/* THE HANDLE FOLLOWS THE FIRST NAME (one rule): the cells a changed `first` on row `r` also writes, {} when it already fits. The old handle goes to handle_was and still signs in. */
+function handleFollow_(t, r, first) {
+  if (!t || !t.headers || !r || ['handle', 'handle_was', 'handle_changed_at'].some(c => t.headers.indexOf(c) === -1)) return {};
+  const draft = Object.assign({}, r, { first_name: first });
+  const has = S(r.handle);
+  if (!S(first) || key(first) === key(r.first_name) || (has && handleInShape_(has, draft))) return {};
+  const made = handleTemplate_(draft, want => handleTrouble_(want, r), null);
+  if (!made || key(made) === key(has)) return {};
+  const out = { handle: made, handle_changed_at: new Date() };
+  if (has) Object.assign(out, { handle_was: handleWasWith_(r.handle_was, has) }, handleFaceKept_(t, r, has));
+  return out;
 }
 
 /* ---------- THE ROWS AN OLD HANDLE STILL SIGNS IN (342) § */
@@ -494,7 +506,8 @@ function peopleNamed(name) {
   return read(TAB.people).rows.filter(r =>
     key(r.person_id) === want ||
     key(S(r.first_name) + ' ' + S(r.last_name)) === want ||
-    key(r.handle) === want);
+    key(r.handle) === want ||
+    S(r.handle_was).split(',').some(w => key(w) === want));
 }
 
 /** Give every row a permanent id. Rows that predate this have none, which is how they were

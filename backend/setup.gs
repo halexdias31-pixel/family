@@ -149,8 +149,8 @@ function renameHandles_() {
   } finally {
     clearCache();
   }
-  out.means = out.renamed + ' handle(s) moved to the template (first and last letter of the first name and the year joined; a clash '
-            + 'adds first-name letters before the last, then a counter). Each old handle is at the front of handle_was and '
+  out.means = out.renamed + ' handle(s) moved to the template (first two and last two letters of the first name, even overlapping, and the year joined; a clash '
+            + 'adds a counter). Each old handle is at the front of handle_was and '
             + 'still signs in.';
   return out;
 }
