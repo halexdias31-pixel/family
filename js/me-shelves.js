@@ -301,8 +301,29 @@ function setCard_(o) {
   const save = o.save ? `<div class="tile-row set-save">${o.save}</div>` : '';
   const body = o.form == null ? (o.body || '') + save
     : `<div class="me-form"${o.formAttrs || ''}>${o.form}${save}${o.foot == null ? '<p class="note me-said"></p>' : o.foot}</div>`;
-  return card_(`<div class="set-shape${o.cls ? ' ' + o.cls : ''}"${o.attrs || ''}><h3 class="set-title">${esc(o.title || '')}</h3>${o.lead || ''}${body}${o.after || ''}</div>`);
+  return renderCard({ kind: 'setting', look: 'set-shape' + (o.cls ? ' ' + o.cls : ''), name: o.title || '', tags: [o.title || ''], data: meData_(o.attrs),
+    body: [{ type: 'embed', tool: 'me-form', args: { draw: () => (o.lead || '') + body + (o.after || '') } }] });
 }
+/* ONE TEMPLATE FOR SETTINGS AND ACCOUNT CARDS (owner, 13 Nov): a spec through renderCard; the form is its one embed, drawn by a function so no spec string holds markup. */
+CARD_EMBEDS['me-form'] = a => (a && typeof a.draw === 'function' ? String(a.draw() || '') : '');
+const meUnesc_ = v => String(v).replace(/&quot;/g, '"').replace(/&#0*39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+/* A WRAPPER'S data-* ATTRIBUTES (data-lay-card, data-pid) stay on the card, which renderCard escapes again. */
+function meData_(attrs) {
+  const d = {};
+  String(attrs || '').replace(/\sdata-([\w-]+)="([^"]*)"/g, (m, k, v) => { d[k] = meUnesc_(v); return m; });
+  return d;
+}
+/* A SETTINGS CARD WRITTEN AS ONE <div> WITH A HEADING becomes a spec: the heading its name, the class its look, the rest its embed. */
+function meSpec_(html, called) {
+  const cut = typeof kcSplit_ === 'function' ? kcSplit_(String(html || '').trim()) : null;
+  if (!cut) return { kind: 'setting', name: String(called || ''), body: [{ type: 'embed', tool: 'me-form', args: { draw: () => String(html || '') } }] };
+  const name = meUnesc_(String(cut.head || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()) || String(called || '');
+  const id = (/\sid="([^"]*)"/.exec(cut.attrs || '') || [])[1];
+  return { kind: 'setting', look: cut.cls || '', name, tags: name ? [name] : [], data: meData_(cut.attrs), id: id ? meUnesc_(id) : '',
+    body: [{ type: 'embed', tool: 'me-form', args: { draw: () => (cut.pic || '') + (cut.tags || '') + (cut.lines || '') } }] };
+}
+cardKind_('me-card', x => meSpec_(x && x.html, x && x.name));
+const meCard_ = (html, kind, called) => renderCard(meSpec_(html, called));
 const shelfFilled_ = (value, names) => names.some(f => String(value(f) ?? '').trim() !== '');
 
 on('shelf-more', el => {

@@ -437,8 +437,8 @@ const KINDS = {
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   receipt: x => jobPage_(x.row), question: thingCard_, answer: thingCard_, shop: thingCard_,
-  bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
-  worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
+  bible: x => bibleCard_(x), talmud: x => window.talmudCard_(x), quran: x => quranCard_(x),
+  worktext: x => window.worksCard_(x), hadith: x => window.hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => window.orthoCard_(x),
   hymn: x => hymnsCard_(x), person: x => (x.add && typeof personAddCard_ === 'function' ? personAddCard_() : ''), tool: x => widgetCard_(x), game: x => widgetCard_(x),
   setting: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)), health: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : ''),
 });
@@ -2030,7 +2030,7 @@ function histLinks_(r) {
   const out = [], seen = new Set();
   const add = (id, label) => {
     /* A WRITING IS ITS PAGES (520): a WR- link lands on the work's first unit card, never a profile row. */
-    const to = histRow_(id) || (typeof worksRowOf_ === 'function' ? worksRowOf_(id) : null);
+    const to = histRow_(id) || (typeof window.worksRowOf_ === 'function' ? window.worksRowOf_(id) : null);
     if (!to || seen.has(id) || id === r.id) return;
     seen.add(id); out.push({ id: id, label: label, row: to });
   };
@@ -2245,7 +2245,7 @@ function histFactsPart_(x, part) {
 }
 /* THE ESSENTIALS (498): "don't need so many" -- three links and one source, on the card's one row (`CARD_EXTRAS_`). */
 function histExtras_(x) {
-  const r = x.row || {}, read = isWriting_(x) && typeof worksFirstKey_ === 'function' ? worksFirstKey_(r.id) : '';
+  const r = x.row || {}, read = isWriting_(x) && typeof window.worksFirstKey_ === 'function' ? window.worksFirstKey_(r.id) : '';
   const icon = l => (l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'flag');
   return [read ? { icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } } : null]
     .concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => ({ icon: icon(l), label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })),
@@ -2281,9 +2281,9 @@ function scriptureWait_(items) {
   if (!items || !items.length || !items.every(x => x && SCRIPTURE_KINDS[x.kind])) return null;
   const books = [['the Bible', BIBLE, bibleFor_()],
     ['the Quran', typeof QURAN !== 'undefined' ? QURAN : null, typeof quranFor_ === 'function' && quranFor_()],
-    ['the Talmud', typeof TALMUD !== 'undefined' ? TALMUD : null, typeof talmudFor_ === 'function' && talmudFor_()],
-    ['the Hadith', typeof HADITH !== 'undefined' ? HADITH : null, typeof hadithFor_ === 'function' && hadithFor_()],
-    ['the other writings', typeof WORKS !== 'undefined' ? WORKS : null, true]]
+    ['the Talmud', typeof window.TALMUD !== 'undefined' ? window.TALMUD : null, typeof window.talmudFor_ === 'function' && window.talmudFor_()],
+    ['the Hadith', typeof window.HADITH !== 'undefined' ? window.HADITH : null, typeof window.hadithFor_ === 'function' && window.hadithFor_()],
+    ['the other writings', typeof window.WORKS !== 'undefined' ? window.WORKS : null, true]]
     .filter(b => b[1] && b[2]);
   if (books.some(b => b[1].asking)) return loading_();
   const gone = books.filter(b => b[1].failed).map(b => b[0]);
@@ -9553,15 +9553,15 @@ function stuffItemsRaw_() {
     ...bibleItems_(),
 
     /* ---------- THE TALMUD (473), once its index has come */
-    ...(typeof talmudItems_ === 'function' ? talmudItems_() : []),
+    ...(typeof window.talmudItems_ === 'function' ? window.talmudItems_() : []),
 
     /* ---------- THE QURAN (490), one item a verse, once its index has come */
     ...(typeof quranItems_ === 'function' ? quranItems_() : []),
-    ...(typeof hadithItems_ === 'function' ? hadithItems_() : []),
-    ...(typeof worksItems_ === 'function' ? worksItems_() : []),
+    ...(typeof window.hadithItems_ === 'function' ? window.hadithItems_() : []),
+    ...(typeof window.worksItems_ === 'function' ? window.worksItems_() : []),
     ...(typeof textsItems_ === 'function' ? textsItems_() : []),
     ...(typeof pdtextsItems_ === 'function' ? pdtextsItems_() : []),
-    ...(typeof orthoItems_ === 'function' ? orthoItems_() : []),
+    ...(typeof window.orthoItems_ === 'function' ? window.orthoItems_() : []),
     ...(typeof hymnsItems_ === 'function' ? hymnsItems_() : []),
     ...(typeof mechItems_ === 'function' ? mechItems_() : []),
     ...(typeof chemItems_ === 'function' ? chemItems_() : []),
@@ -10600,7 +10600,7 @@ on('book-open', () => { BOOK_OPEN = !BOOK_OPEN; repaint(); });
 function feedPages_() {
   /* POSTS ARE DOOR ITEMS (find-doors.js); the whole feed only stands in when those are switched off, or each post would show twice. */
   if (!forIs_('posts') || typeof postDoorItems_ === 'function') return [];
-  return (typeof postsBlocks === 'function' ? postsBlocks() : []).filter(Boolean);
+  return (typeof window.postsBlocks === 'function' ? window.postsBlocks() : []).filter(Boolean);
 }
 /* ---------- SIGNING IN AND OUT, ON A PAGE OF ITS OWN § */
 /* ---------- WHICH ROW IS YOU, ASKED IN ONE PLACE § */
@@ -11482,13 +11482,13 @@ function stuffKeepPlace_(host, d) {
 /* EVERY LIBRARY INDEX `paintStuff` asks for, one call each. */
 function stuffIndexesAsk_() {
   if (USER || !ruleOn_('finder-members')) {
-  if (typeof talmudIndex_ === 'function') talmudIndex_();
+  if (typeof window.talmudIndex_ === 'function') window.talmudIndex_();
   if (typeof quranIndex_ === 'function') quranIndex_();
-  if (typeof hadithIndex_ === 'function') hadithIndex_();
-  if (typeof worksIndex_ === 'function') worksIndex_();
+  if (typeof window.hadithIndex_ === 'function') window.hadithIndex_();
+  if (typeof window.worksIndex_ === 'function') window.worksIndex_();
   if (typeof textsIndex_ === 'function') textsIndex_();
   if (typeof pdtextsIndex_ === 'function') pdtextsIndex_();
-  if (typeof orthoIndex_ === 'function') orthoIndex_();
+  if (typeof window.orthoIndex_ === 'function') window.orthoIndex_();
   if (typeof hymnsIndex_ === 'function') hymnsIndex_();
   if (typeof mechIndex_ === 'function') mechIndex_();
   if (typeof chemIndex_ === 'function') chemIndex_(); }
@@ -11716,7 +11716,7 @@ function paneReset_(list, kids, hold) {
   /* AND A LIBRARY CARD GIVES UP ITS BLANK BAND FIRST — `libFit_` in me.js, the sheet's rule for the one card whose height follows its width: § */
   if (!hold && typeof libFit_ === 'function') list.forEach(p => { if (p.querySelector('.lib-face')) libFit_(p); });
   /* A TALMUD SIDE IS FETCHED AND LAID OUT AS ITS PANE IS REACHED (490) -- `talCardsFit_`, talmud.js. */
-  if (!hold && typeof talCardsFit_ === 'function') list.forEach(p => { if (p.querySelector('.tal-card-page')) talCardsFit_(p); });
+  if (!hold && typeof window.talCardsFit_ === 'function') list.forEach(p => { if (p.querySelector('.tal-card-page')) window.talCardsFit_(p); });
   /* AND A CARD WITH A FIGURE IN IT GIVES WAY THE SAME WAY -- `cardFigFit_`, the sheet's answer for a picture (356): § */
   if (!hold) list.forEach(p => { if (cardFigs_(p.querySelector('.qcard')).length) cardFigFit_(p); });
   return { was, snugWas };
@@ -12388,7 +12388,7 @@ let dockTimer = null;
 /* ==== js/find-settled.js ==== */
 /* @family. — js/find-settled.js THE FIRST PAINT IS THE LAST (546): whether every source has come, and the build's answer for where the finder stands (cut from find-pages.js). */
 /* WHETHER ANY SOURCE'S INDEX IS STILL ON ITS WAY (546) — every loader keeps `asking` on its own state, read here as one list. */
-const writingAsking_ = () => [BIBLE, TALMUD, QURAN, HADITH, WORKS, TEXTS, PDTEXTS, ORTHO, HYMNS].some(S => S && S.asking);
+const writingAsking_ = () => [BIBLE, window.TALMUD, QURAN, window.HADITH, window.WORKS, TEXTS, PDTEXTS, window.ORTHO, HYMNS].some(S => S && S.asking);
 
 /* ---------- THE FIRST PAINT IS THE LAST (546): a question the build already answered (FINDER_TAGS, tools/finder-tags.js) is painted whole while the finder's files still arrive, so no list of answers grows or changes in front of you. */
 const finderSettled_ = () => {
@@ -12442,7 +12442,7 @@ function finderTagsSame_(view, first) {
     if (!T || T.facets !== facetList().map(f => f.field).join(',')) return false;
     const m = myResults_();
     if (m && m.size) return false;
-    if ([BIBLE, TALMUD, QURAN, HADITH, WORKS, TEXTS, PDTEXTS, ORTHO, HYMNS].some(b => b && b.failed)) return false;
+    if ([BIBLE, window.TALMUD, QURAN, window.HADITH, window.WORKS, TEXTS, PDTEXTS, window.ORTHO, HYMNS].some(b => b && b.failed)) return false;
     if (TAGS_SAME.all !== all || TAGS_SAME.gen !== gen) { TAGS_SAME.all = all; TAGS_SAME.gen = gen; TAGS_SAME.by = {}; }
     const k = first.field + '=' + first.value;
     if (k in TAGS_SAME.by) return TAGS_SAME.by[k];
@@ -17912,7 +17912,7 @@ const WIDGETS = [
   { id: 'reels', kind: 'tool', name: 'One more thing', start: () => initFeed?.(),
     /* DRAWN AHEAD AS THE FACT'S CARD AND NOTHING ELSE (`feedPaint_`, overworld.js): § */
     draw: () => feedPaint_?.(),
-    stop: () => clipsStop_($('feed-screen')),
+    stop: () => { if (typeof window.clipsStop_ === 'function') window.clipsStop_($('feed-screen')); },
     into: 'feed-screen', what: 'This',
     get html() { return `
     <h3>One more thing</h3>
@@ -21595,12 +21595,12 @@ function bibleW_(x, k) {
     case 'text': return bb.text || bb.translation;
     case 'source': return writingSourceOf_(bb.text || bb.translation, bb.group === 'Deuterocanon' ? WRITING_DEUTERO : bb.testament);
     case 'section': {
-      const g = bb.group === 'Deuterocanon' ? '' : bb.group, k = typeof orthoKathisma_ === 'function' ? orthoKathisma_(x) : '';
+      const g = bb.group === 'Deuterocanon' ? '' : bb.group, k = typeof window.orthoKathisma_ === 'function' ? window.orthoKathisma_(x) : '';
       return k ? [g, k].filter(Boolean) : g;
     }
     case 'collection': {
       const col = bb.group === 'Deuterocanon' ? WRITING_DEUTERO : bb.testament;
-      const more = typeof orthoBibleTags_ === 'function' ? orthoBibleTags_(x).filter(v => v !== col) : [];
+      const more = typeof window.orthoBibleTags_ === 'function' ? window.orthoBibleTags_(x).filter(v => v !== col) : [];
       return more.length ? [col].concat(more) : col;
     }
     default: return '';
@@ -21727,290 +21727,6 @@ function readingCard_(x, o) {
 }
 
 ;
-/* ==== js/talmud.js ==== */
-/* ================= THE TALMUD (473): THE VILNA PAGE, FOUND IN FIND ================= */
-/* One card a side of a daf (490), asked by ordinary facets; the card IS the page as the Romm printers set it — Gemara in the middle, Rashi
-   inner, Tosafot outer — scaled to the card. */
-
-const TALMUD_NAME = () => brand('talmud_name', 'Babylonian Talmud');
-/* WHAT A SEARCH FINDS IT BY that a daf's own name does not say. */
-const TALMUD_WORDS = 'Talmud Bavli Babylonian Gemara Mishnah Rashi Tosafot Vilna Romm Shas daf';
-const TALMUD = { index: null, asking: null, failed: false, chunks: {}, loading: {}, missed: {}, items: null, from: null, at: null };
-
-/* THE ORDERS AND TRACTATES IN THE PRINTED ORDER, not the alphabet's — `answerCmp_` reads `ANSWER_ORDERS`. */
-const TALMUD_ORDER_SEDARIM = [], TALMUD_ORDER_TRACTATES = [];
-ANSWER_ORDERS.push(TALMUD_ORDER_SEDARIM, TALMUD_ORDER_TRACTATES);
-
-function talmudGet_(file) {
-  return scriptureFetch_(o => fetch('data/talmud/' + file + deployStamp_(), o));
-}
-
-/* THE LIST OF TRACTATES, asked for the first time a finder is painted (`paintStuff`); ~34 KB, never part of the boot payload. */
-/* ONLY FOR A VIEWER OF AGE (490): under it, or signed out, the index is never even fetched. */
-const talmudFor_ = () => writingFor_(writingWork_('talmud'));
-function talmudIndex_() {
-  if (TALMUD.index) return TALMUD.index;
-  if (!talmudFor_()) return null;
-  if (TALMUD.asking || TALMUD.failed || typeof fetch !== 'function') return null;
-  TALMUD.asking = talmudGet_('index.json').then(d => {
-    const ok = !!d && Array.isArray(d.tractates) && d.tractates.length > 0 && Array.isArray(d.sedarim)
-      && d.tractates.every(t => t && /^[a-z-]+$/.test(t.slug) && t.en && t.he && Number.isInteger(t.first)
-        && t.last >= t.first && Array.isArray(t.chapters) && t.chapters.length > 0);
-    TALMUD.asking = null;
-    /* A MISS IS REDRAWN TOO (504), so the dots under its question end in words. */
-    if (!ok) { TALMUD.failed = true; if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); }); return null; }
-    TALMUD.index = d;
-    TALMUD_ORDER_SEDARIM.push(...d.sedarim);
-    TALMUD_ORDER_TRACTATES.push(...d.tractates.map(t => t.en));
-    writingCame_('talmud');
-    return d;
-  });
-  return null;
-}
-
-/* ---------- HEBREW NUMERALS: 15 and 16 are ט״ו and ט״ז, never the Name. */
-function talHeb_(n) {
-  n = Number(n) || 0;
-  const H = [[400, 'ת'], [300, 'ש'], [200, 'ר'], [100, 'ק'], [90, 'צ'], [80, 'פ'], [70, 'ע'], [60, 'ס'], [50, 'נ'], [40, 'מ'],
-    [30, 'ל'], [20, 'כ'], [10, 'י'], [9, 'ט'], [8, 'ח'], [7, 'ז'], [6, 'ו'], [5, 'ה'], [4, 'ד'], [3, 'ג'], [2, 'ב'], [1, 'א']];
-  let s = '';
-  while (n > 0) {
-    if (n % 100 === 15 || n % 100 === 16) { s += n % 100 === 15 ? 'טו' : 'טז'; n -= n % 100; continue; }
-    const p = H.find(h => h[0] <= n);
-    s += p[1]; n -= p[0];
-  }
-  return s.length > 1 ? s.slice(0, -1) + '״' + s.slice(-1) : s + '׳';
-}
-const talDafOf_ = i => Math.floor(i / 2) + 1;
-const talSide_ = i => (i % 2 ? 'b' : 'a');
-const talTractate_ = slug => (TALMUD.index ? TALMUD.index.tractates.find(t => t.slug === slug) : null) || null;
-function talChapterAt_(t, i) {
-  let at = 0;
-  t.chapters.forEach((c, n) => { if (c.from <= i) at = n; });
-  return at;
-}
-
-/* ---------- ONE ITEM A SIDE (490): the owner expected "one page of the Talmud" as the card, not a card that opens one. */
-function talmudItems_() {
-  const ix = TALMUD.index;
-  if (!ix || !talmudFor_()) return [];
-  if (TALMUD.items && TALMUD.from === ix) return TALMUD.items;
-  const list = [], reg = writingWork_('talmud'), text = writingText_(WRITING_TEXTS['Talmud Bavli']);
-  ix.tractates.forEach(t => {
-    for (let i = t.first; i <= t.last; i++) {
-      const d = talDafOf_(i), c = talChapterAt_(t, i), ch = t.chapters[c], side = talSide_(i);
-      /* ONE SHAPE (520): the order is the Section, the tractate the Book (as the Mishnah's), the daf side the Unit. */
-      list.push(writingUnit_('talmud', reg, {
-        kind: 'talmud', key: 'tal:' + t.slug + ':' + d + side, name: t.en + ' ' + d + side,
-        sub: t.he + ' ' + talHeb_(d) + (i % 2 ? ' :' : ' .') + ' · ' + 'פרק ' + ch.he,
-        text: [TALMUD_NAME(), TALMUD_WORDS, 'Seder ' + t.seder, t.en, t.he, ch.he].join(' '),
-        w: { section: t.seder, book: t.en, chapter: 'Chapter ' + (c + 1) + ' · ' + ch.he, unit: d + side, text: text },
-        tal: { slug: t.slug, d: d, i: i },
-      }));
-    }
-  });
-  TALMUD.items = list; TALMUD.from = ix;
-  return list;
-}
-
-/* THE TEXT SIZE, the viewer's own: a factor on the page's fitted size, kept on this device only. */
-const TAL_SCALE_KEY = 'tal:scale', TAL_SCALES = [0.6, 0.75, 0.9, 1, 1.15, 1.35, 1.6, 2];
-function talScale_() {
-  let v = 1;
-  try { v = Number(localStorage.getItem(TAL_SCALE_KEY)) || 1; } catch (e) {}
-  return TAL_SCALES.indexOf(v) >= 0 ? v : 1;
-}
-function talScaleSet_(by) {
-  const at = TAL_SCALES.indexOf(talScale_());
-  const v = TAL_SCALES[Math.max(0, Math.min(TAL_SCALES.length - 1, at + by))];
-  try { localStorage.setItem(TAL_SCALE_KEY, String(v)); } catch (e) {}
-  return v;
-}
-
-/* THE CARD: the tags, then the side itself — drawn when its file of ten dafim is here, the one loader until then. */
-function talmudCard_(x) {
-  const t = x && x.tal ? talTractate_(x.tal.slug) : null;
-  if (!t) return readingCard_(x, { cls: 'tal' });
-  const i = x.tal.i, d = TALMUD.chunks[t.slug + '/' + talChunkOf_(i)] || null;
-  return readingCard_(x, { cls: 'tal', bodyCls: 'tal-body', body: `<article class="tal-page tal-card-page" dir="rtl" lang="he" data-t="${esc(t.slug)}"
-    data-i="${i}" data-drawn="${d ? 1 : 0}" aria-label="${esc(x.name)}">${talPage_(t, i, d)}</article>` });
-}
-
-/* THE TEXT-SIZE TILES, one each way; the page grows downward and the card with it. */
-function talmudOpts_(x) {
-  if (!x || !x.tal) return null;
-  const v = talScale_();
-  return [{ icon: 'down', label: 'Text −', note: 'smaller', act: 'tal-size', data: { by: -1 }, off: v <= TAL_SCALES[0] },
-    { icon: 'up', label: 'Text +', note: 'larger', act: 'tal-size', data: { by: 1 }, off: v >= TAL_SCALES[TAL_SCALES.length - 1] }];
-}
-
-/* ---------- THE TEXT OF ONE SIDE, from its file of ten dafim. */
-const talChunkOf_ = i => Math.floor(talDafOf_(i) / ((TALMUD.index && TALMUD.index.chunk) || 10));
-function talLoad_(slug, i) {
-  const k = slug + '/' + talChunkOf_(i);
-  if (TALMUD.chunks[k]) return Promise.resolve(TALMUD.chunks[k]);
-  if (!TALMUD.loading[k]) {
-    TALMUD.loading[k] = talmudGet_(k + '.json').then(d => {
-      TALMUD.loading[k] = null;
-      const ok = !!d && d.amudim && typeof d.amudim === 'object';
-      TALMUD.missed[k] = !ok;
-      if (ok) TALMUD.chunks[k] = d;
-      return ok ? d : null;
-    });
-  }
-  return TALMUD.loading[k];
-}
-
-/* ONLY THE PRINTER'S THREE MARKS SURVIVE: everything is escaped, then <big>, <strong> and <br> are let back. */
-const talText_ = s => esc(String(s == null ? '' : s)).replace(/&lt;(\/?)(big|strong|br)&gt;/g, '<$1$2>');
-/* A COMMENT'S OPENING WORDS (the dibbur ha-matchil) bold, as printed: up to the dash. */
-function talComment_(s) {
-  const m = /^(.{1,90}?)\s+[–-]\s+([\s\S]*)$/.exec(String(s || ''));
-  return m ? `<b>${talText_(m[1])}</b> ${talText_(m[2])} ` : talText_(s) + ' ';
-}
-function talGemara_(segs) {
-  return (segs || []).map(s => /הדרן עלך/.test(s)
-    ? `<span class="tal-hadran">${talText_(s.replace(/<br>/g, ''))}</span>` : talText_(s) + ' ').join('');
-}
-
-/* ---------- THE PAGE ---------- */
-function talCredit_(t) {
-  const L = (t && t.licences) || {};
-  const pd = k => !L[k] || L[k].license === 'Public Domain';
-  return 'Gemara: Hebrew Wikisource via Sefaria, CC BY-SA 3.0 · Rashi and Tosafot: Vilna edition, '
-    + (pd('r') && pd('t') ? 'public domain' : 'via Sefaria (CC BY-SA 3.0 here)');
-}
-function talPage_(t, i, d) {
-  const a = d && d.amudim[String(i)];
-  const c = t.chapters[talChapterAt_(t, i)], n = talDafOf_(i);
-  const head = `<header class="tal-head">
-      <span class="tal-hd-ch">${esc(c.he)}</span>
-      <span class="tal-hd-pr">פרק ${talHeb_(talChapterAt_(t, i) + 1).replace(/[׳״]/g, '')}</span>
-      <span class="tal-hd-tr">${esc(t.he)}</span>
-      <span class="tal-hd-daf">${talHeb_(n).replace(/[׳״]/g, '')}${i % 2 ? ':' : '.'}</span>
-    </header>
-    <p class="tal-credit" dir="ltr" lang="en">${esc(talCredit_(t))}</p>`;
-  if (!d) {
-    const k = t.slug + '/' + talChunkOf_(i);
-    return head + (TALMUD.missed[k] && !TALMUD.loading[k]
-      ? `<p class="tal-miss" dir="ltr" lang="en">This page did not arrive. ${tile_({ form: true, label: 'Try again', act: 'tal-retry' })}</p>`
-      : loading_());
-  }
-  const g = a && a.g && a.g.length ? talGemara_(a.g)
-    : '<span class="tal-blank" dir="ltr" lang="en">This side has no Gemara in the source text.</span>';
-  const side = (cls, list) => `<div class="tal-layer ${cls}"><div class="tal-spacer"></div><div class="tal-spacer tal-spacer2"></div>
-      <div class="tal-txt">${(list || []).map(talComment_).join('')}</div></div>`;
-  return head + `<div class="tal-body tal-${talSide_(i)}">
-      ${side('tal-rashi', a && a.r)}${side('tal-tos', a && a.t)}
-      <div class="tal-layer tal-gem"><div class="tal-spacer tal-sp-r"></div><div class="tal-spacer tal-sp-l"></div>
-        <div class="tal-txt">${g}</div></div>
-    </div>`;
-}
-
-/* ---------- TZURAT HA-DAF (494): the Gemara centred, Rashi (inner) and Tosafot round it; whatever runs longer
-   continues under the rest across the freed width — a balanced rectangle, never one long column. */
-function talLayout_(body) {
-  if (!body || !body.isConnected) return;
-  const W = body.clientWidth;
-  if (!W) return;
-  const page = body.closest('.tal-page');
-  const fs = Math.max(4, Math.min(48, W / 40 * talScale_()));
-  if (page) page.style.setProperty('--tal-fs', fs.toFixed(2) + 'px');
-  const gap = Math.round(fs * 0.9), gW = Math.round(W * 0.46), s = Math.floor((W - gW) / 2 - gap);
-  const aSide = body.classList.contains('tal-a');
-  const L = { r: body.querySelector('.tal-rashi'), t: body.querySelector('.tal-tos'), g: body.querySelector('.tal-gem') };
-  const sp = el => el.querySelectorAll('.tal-spacer');
-  const reset = el => { el.style.cssText = ''; sp(el).forEach(x => { x.style.cssText = 'display:none'; }); };
-  [L.r, L.t, L.g].forEach(reset);
-  const put = (el, right, w) => Object.assign(el.style, { position: 'absolute', top: '0', width: w + 'px', left: right ? (W - w) + 'px' : '0' });
-  const hole = (x, right, w, h, clear) => { x.style.cssText = h > 0 ? `display:block;float:${right ? 'right' : 'left'};width:${Math.ceil(w)}px;height:${Math.ceil(h)}px;clear:${clear ? (right ? 'right' : 'left') : 'none'}` : 'display:none'; };
-  const empty = el => !el.querySelector('.tal-txt').textContent.trim();
-  const rRight = aSide;
-  put(L.r, rRight, s); put(L.t, !rRight, s);
-  Object.assign(L.g.style, { position: 'absolute', top: '0', width: gW + 'px', left: Math.round((W - gW) / 2) + 'px' });
-  const Hr = empty(L.r) ? 0 : L.r.offsetHeight, Ht = empty(L.t) ? 0 : L.t.offsetHeight, Hg = L.g.offsetHeight;
-  /* C is the shorter commentary, B the longer; cR/bR say which side each stands on. */
-  const [C, Hc, cR, B, Hb, bR] = Hr <= Ht ? [L.r, Hr, rRight, L.t, Ht, !rRight] : [L.t, Ht, !rRight, L.r, Hr, rRight];
-  let H;
-  if (Hb <= Hg) {
-    /* THE GEMARA IS LONGEST: it takes the whole width, with a hole each commentary's height on its side. */
-    put(L.g, false, W);
-    hole(L.g.querySelector('.tal-sp-r'), true, s + gap, rRight ? (Hr && Hr + gap / 2) : (Ht && Ht + gap / 2));
-    hole(L.g.querySelector('.tal-sp-l'), false, s + gap, rRight ? (Ht && Ht + gap / 2) : (Hr && Hr + gap / 2));
-    H = Math.max(L.g.offsetHeight, Hr, Ht);
-  } else if (Hc <= Hg) {
-    /* ONE COMMENTARY ENDS BESIDE THE GEMARA: the Gemara widens under it, and the longer one runs under both across the page. */
-    const gw = W - s - gap;
-    put(L.g, cR, gw);
-    hole(L.g.querySelector(cR ? '.tal-sp-r' : '.tal-sp-l'), cR, s + gap, Hc && Hc + gap / 2);
-    const Hg2 = L.g.offsetHeight;
-    put(B, bR, W);
-    hole(sp(B)[0], !bR, gw + gap, Hg2 + gap / 2);
-    H = Math.max(B.offsetHeight, Hg2, Hc);
-  } else {
-    /* BOTH OUTRUN THE GEMARA: under it they share the page in two columns; the longer one, once the other ends, takes the full width. */
-    const half = Math.floor(W / 2 - gap / 2), cut = Math.ceil(gW / 2 + gap / 2);
-    [[C, cR], [B, bR]].forEach(([el, right]) => { put(el, right, half); hole(sp(el)[0], !right, cut, Hg + gap / 2); });
-    const Hc2 = C.offsetHeight, Hb2 = B.offsetHeight;
-    if (Hb2 - Hc2 > fs * 3) {
-      put(B, bR, W);
-      hole(sp(B)[0], !bR, W - half + cut, Hg + gap / 2);
-      hole(sp(B)[1], !bR, W - half, Hc2 + gap / 2 - (Hg + gap / 2), true);
-    }
-    H = Math.max(C.offsetHeight, B.offsetHeight, Hg);
-  }
-  body.style.height = Math.ceil(H) + 'px';
-}
-
-/* ---------- THE PAGES IN A PANE, as the pane is reached (`paneReach_`): fetched then, laid out to the card's width. */
-function talCardsFit_(root) {
-  if (!root || !root.querySelectorAll) return;
-  root.querySelectorAll('.tal-card-page').forEach(el => {
-    const t = talTractate_(el.getAttribute('data-t')), i = Number(el.getAttribute('data-i'));
-    if (!t) return;
-    const k = t.slug + '/' + talChunkOf_(i), d = TALMUD.chunks[k];
-    if (d && el.getAttribute('data-drawn') !== '1') { el.innerHTML = talPage_(t, i, d); el.setAttribute('data-drawn', '1'); }
-    if (d) {
-      const body = el.querySelector('.tal-body');
-      talLayout_(body);
-      try { document.fonts && document.fonts.ready.then(() => talLayout_(body)); } catch (e) {}
-      return;
-    }
-    if (TALMUD.missed[k] && !TALMUD.loading[k]) { el.innerHTML = talPage_(t, i, null); return; }
-    talLoad_(t.slug, i).then(got => {
-      if (!el.isConnected) return;
-      el.setAttribute('data-drawn', '0');
-      if (!got) { el.innerHTML = talPage_(t, i, null); return; }
-      talCardsFit_(el.parentElement);
-      const pane = el.closest('.pane');
-      if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
-    });
-  });
-}
-const talAllFit_ = () => { if (typeof document !== 'undefined') document.querySelectorAll('.tal-card-page .tal-body').forEach(talLayout_); };
-
-on('tal-size', el => {
-  talScaleSet_(Number(el.getAttribute('data-by')) || 0);
-  talAllFit_();
-  /* THE TILES SAY WHICH WAY IS LEFT: redrawn where they stand. */
-  if (typeof document !== 'undefined') document.querySelectorAll('.card.tal').forEach(c => {
-    const x = (typeof talmudItems_ === 'function' ? talmudItems_() : []).find(y => y.key === c.getAttribute('data-key'));
-    const wrap = c.parentElement && c.parentElement.classList.contains('favwrap') ? c.parentElement : null;
-    const row = wrap && wrap.nextElementSibling && wrap.nextElementSibling.classList.contains('tile-row') ? wrap.nextElementSibling : null;
-    const t = x && row && document.createElement('div'); if (t) t.innerHTML = cardRow_(x);
-    const f = t && t.firstElementChild; if (f) { row.className = f.className; row.innerHTML = f.innerHTML; }
-  });
-});
-on('tal-retry', el => {
-  const page = el && el.closest ? el.closest('.tal-card-page') : null;
-  if (!page) return;
-  TALMUD.missed[page.getAttribute('data-t') + '/' + talChunkOf_(Number(page.getAttribute('data-i')))] = false;
-  page.setAttribute('data-drawn', '0');
-  talCardsFit_(page.parentElement);
-});
-if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', talAllFit_);
-
-;
 /* ==== js/quran.js ==== */
 /* ================= THE QURAN (490): ONE CARD A VERSE, FOUND IN FIND ================= */
 /* The owner: "each verse can be a widget ... all tags like everything else". Ordinary facets; the index when a finder paints, a surah's text
@@ -22130,237 +21846,6 @@ on('qr-retry', el => {
   QURAN.missed[n] = false;
   quranRedraw_(n);
 });
-
-;
-/* ==== js/hadith.js ==== */
-/* ================= THE HADITH (504): THE SIX BOOKS IN ARABIC, ONE CARD A HADITH ================= */
-/* The owner: "add open source original hadith to the collection of writings". data/hadith/: the index when a finder paints,
-   a book's words when one of its cards is drawn. */
-
-const HADITH = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {}, items: null, from: null };
-/* THE COLLECTIONS AND THEIR BOOKS IN THEIR OWN ORDER, not the alphabet's — `answerCmp_` reads `ANSWER_ORDERS`. */
-const HADITH_ORDER = [];
-ANSWER_ORDERS.push(HADITH_ORDER);
-const HADITH_WORDS = 'Hadith hadeeth sunnah Kutub al-Sittah six books Arabic';
-/* FOR A VIEWER OF AGE (490), like all scripture. */
-const hadithFor_ = () => writingFor_(writingWork_('hadith'));
-
-function hadithGet_(file) {
-  return scriptureFetch_(o => fetch('data/hadith/' + file + deployStamp_(), o));
-}
-
-function hadithIndex_() {
-  if (HADITH.index) return HADITH.index;
-  if (!hadithFor_() || HADITH.asking || HADITH.failed || typeof fetch !== 'function') return null;
-  HADITH.asking = hadithGet_('index.json').then(d => {
-    const ok = !!d && Array.isArray(d.collections) && d.collections.length > 0
-      && d.collections.every(c => c && /^[a-z]+$/.test(c.id) && c.name && Array.isArray(c.books)
-        && c.books.every(b => b && Number.isInteger(b.n) && b.name && /^[a-z]+\/\d{3}\.json$/.test(b.file) && Array.isArray(b.nums)));
-    HADITH.asking = null;
-    if (!ok) HADITH.failed = true;
-    else {
-      HADITH.index = d;
-      d.collections.forEach(c => { HADITH_ORDER.push(c.name); c.books.forEach(b => HADITH_ORDER.push(hadithBookSay_(b))); });
-      writingCame_('hadith');
-    }
-    if (!ok && typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
-    return ok ? d : null;
-  });
-  return null;
-}
-const hadithBookSay_ = b => b.n + ' · ' + b.name;
-/* A BOOK'S HADITH NUMBERS from the index's runs: [first, last] or a lone "3.1". */
-const hadithNums_ = b => [].concat(...b.nums.map(r => {
-  if (!Array.isArray(r)) return [String(r)];
-  const out = [];
-  for (let i = r[0]; i <= r[1]; i++) out.push(String(i));
-  return out;
-}));
-
-/* ---------- ONE ITEM A HADITH, built once the index has come. */
-function hadithItems_() {
-  const ix = HADITH.index;
-  if (!ix || !hadithFor_()) return [];
-  if (HADITH.items && HADITH.from === ix) return HADITH.items;
-  const list = [], reg = writingWork_('hadith'), text = writingText_(writingTextOf_('Arabic'));
-  ix.collections.forEach(c => c.books.forEach(b => {
-    const say = hadithBookSay_(b), words = [HADITH_WORDS, c.name, c.ar, b.name].join(' ');
-    hadithNums_(b).forEach((n, i) => {
-      /* ONE SHAPE (520, 600): each of the six is a Work in the Hadith collection, its book the Book, the number the Unit. */
-      list.push(writingUnit_('hadith', reg, {
-        kind: 'hadith', key: 'hd:' + c.id + ':' + n, name: c.name + ' ' + n, sub: b.name, text: words,
-        w: { work: c.name, collection: 'Hadith', book: say, unit: n, text: text },
-        hd: { c: c.id, b: b.n, file: b.file, i: i },
-      }));
-    });
-  }));
-  HADITH.items = list; HADITH.from = ix;
-  return list;
-}
-
-/* ONE BOOK'S WORDS, held to the index's count. */
-function hadithLoad_(file, count) {
-  if (HADITH.books[file]) return Promise.resolve(HADITH.books[file]);
-  if (HADITH.loading[file]) return HADITH.loading[file];
-  if (!hadithFor_()) return Promise.resolve(null);
-  HADITH.loading[file] = hadithGet_(file).then(d => {
-    HADITH.loading[file] = null;
-    const ok = !!d && Array.isArray(d.h) && (!count || d.h.length === count);
-    HADITH.missed[file] = !ok;
-    if (ok) HADITH.books[file] = d;
-    return ok ? d : null;
-  });
-  return HADITH.loading[file];
-}
-function hadithCountOf_(file) {
-  let n = 0;
-  (HADITH.index ? HADITH.index.collections : []).forEach(c => c.books.forEach(b => { if (b.file === file) n = b.count; }));
-  return n;
-}
-
-/* THE HADITH ITSELF, in Arabic, and whose edition it is. */
-function hadithBody_(hd) {
-  const d = HADITH.books[hd.file], f = hd.file;
-  if (d) {
-    const h = d.h[hd.i];
-    return h ? `<p class="qr-ar hd-ar" dir="rtl" lang="ar">${esc(h[1])}</p>
-      <p class="qr-credit">Arabic text, public domain · digital edition: fawazahmed0/hadith-api, The Unlicense</p>` : '';
-  }
-  if (HADITH.missed[f] && !HADITH.loading[f]) {
-    return `<p class="fc-note">This book did not arrive. ${tile_({ form: true, act: 'hd-retry', data: { f: f }, label: 'Try again' })}</p>`;
-  }
-  if (!HADITH.loading[f]) hadithLoad_(f, hadithCountOf_(f)).then(() => hadithRedraw_(f));
-  return loading_();
-}
-function hadithCard_(x) {
-  return readingCard_(x, { cls: 'qr hd', bodyCls: 'hd-body', body: x.hd ? hadithBody_(x.hd) : '',
-    data: { hf: x.hd ? x.hd.file : '', hi: x.hd ? x.hd.i : 0 } });
-}
-/* ITS WORDS CAME: every card of that book on screen is filled where it stands. */
-function hadithRedraw_(f) {
-  if (typeof document === 'undefined') return;
-  document.querySelectorAll('.hd-body').forEach(el => {
-    if (el.getAttribute('data-hf') !== f) return;
-    el.innerHTML = hadithBody_({ file: f, i: Number(el.getAttribute('data-hi')) });
-    const pane = el.closest('.pane');
-    if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
-  });
-}
-on('hd-retry', el => {
-  const f = String((el && el.getAttribute('data-f')) || '');
-  if (!/^[a-z]+\/\d{3}\.json$/.test(f)) return;
-  HADITH.missed[f] = false;
-  hadithRedraw_(f);
-});
-
-;
-/* ==== js/works.js ==== */
-/* ================= A WRITING'S OWN WORDS (499): ONE CARD A CHAPTER, IN EACH LANGUAGE ================= */
-/* The owner: "this should be the work itself, in my database, each page can be a widget, treat it how you treat the Talmud".
-   data/works/: the index when a finder paints, the words when a card is drawn. */
-
-const WORKS = { index: null, asking: null, failed: false, texts: {}, loading: {}, missed: {}, items: null, from: null };
-const worksGet_ = file => {
-  const stamp = deployStamp_();
-  return Promise.resolve()
-    .then(() => fetch('data/works/' + file + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null)
-    .catch(() => null);
-};
-
-function worksIndex_() {
-  if (WORKS.index) return WORKS.index;
-  if (WORKS.asking || WORKS.failed || typeof fetch !== 'function' || !writingFor_(writingWork_('works'))) return null;
-  WORKS.asking = worksGet_('index.json').then(d => {
-    const ok = !!d && Array.isArray(d.works) && d.works.every(w => w && /^WR-\d{4}$/.test(w.id) && /^WR-\d{4}\.json$/.test(w.file)
-      && Array.isArray(w.chapters) && w.chapters.length > 0 && Array.isArray(w.languages) && w.languages.length > 0);
-    WORKS.asking = null;
-    if (!ok) { WORKS.failed = true; return null; }
-    WORKS.index = d;
-    writingCame_('works');
-    return d;
-  });
-  return null;
-}
-
-/* ---------- ONE ITEM A CHAPTER (or numbered section) A LANGUAGE (520): a `writingUnit_`; the history database's row of the same
-   work links here (`worksFirstKey_`), so the work is held once. */
-function worksItems_() {
-  const ix = WORKS.index;
-  if (!ix) return [];
-  if (WORKS.items && WORKS.from === ix) return WORKS.items;
-  const list = [];
-  ix.works.forEach(w => {
-    const reg = writingWork_('works', w.id);
-    w.languages.forEach(lang => w.chapters.forEach((say, i) => {
-      const text = writingText_(writingTextOf_((w.says && w.says[lang]) || lang));
-      list.push(writingUnit_('works', reg, {
-        kind: 'worktext', key: 'wt:' + w.id + ':' + lang + ':' + i, name: w.title + ' ' + say, sub: text,
-        text: [w.title, say, lang, w.id].join(' '),
-        /* THE WORK'S FACTS ON EVERY PAGE (520): no profile card; its author, kind and date are each unit's tags. */
-        w: { work: w.title, chapter: w.unit === 'section' ? '' : say, unit: w.unit === 'section' ? say : '', text: text,
-             author: w.author || '', form: w.genre || '' },
-        wDate: [w.date_from, w.date_to],
-        wt: { id: w.id, file: w.file, i: i, lang: lang },
-      }));
-    }));
-  });
-  WORKS.items = list; WORKS.from = ix;
-  return list;
-}
-
-function worksLoad_(id, file) {
-  if (WORKS.texts[id]) return Promise.resolve(WORKS.texts[id]);
-  if (!WORKS.loading[id]) {
-    WORKS.loading[id] = worksGet_(file).then(d => {
-      WORKS.loading[id] = null;
-      const ok = !!d && d.id === id && Array.isArray(d.chapters);
-      WORKS.missed[id] = !ok;
-      if (ok) WORKS.texts[id] = d;
-      return ok ? d : null;
-    });
-  }
-  return WORKS.loading[id];
-}
-
-const WORK_LANG = { Greek: { k: 'grc', lang: 'grc' }, English: { k: 'en', lang: 'en' }, Latin: { k: 'la', lang: 'la' } };
-/* THE PAGE ITSELF: the chapter in its language, and whose words they are. */
-function worksBody_(x) {
-  const d = WORKS.texts[x.wt.id], L = WORK_LANG[x.wt.lang] || { k: 'en', lang: 'en' };
-  if (d) {
-    const c = d.chapters[x.wt.i] || {};
-    const src = (d.sources || []).find(s => s.language === x.wt.lang) || {};
-    return `<p class="wt-text" lang="${L.lang}">${esc(c[L.k] || '')}</p>
-      <p class="wt-credit">${esc(src.text || '')}${src.via ? ', via ' + esc(src.via) : ''} · ${esc(src.licence || '')}</p>${writingRefs_(x.wt.id)}`;
-  }
-  if (WORKS.missed[x.wt.id] && !WORKS.loading[x.wt.id]) return '<p class="fc-note">This text did not arrive.</p>';
-  if (!WORKS.loading[x.wt.id]) worksLoad_(x.wt.id, x.wt.file).then(() => worksRedraw_(x.wt.id));
-  return loading_();
-}
-function worksCard_(x) {
-  return readingCard_(x, { cls: 'wt', bodyCls: 'wt-body', body: x.wt ? worksBody_(x) : '', data: { wt: x.wt ? x.wt.id : '', k: x.key } });
-}
-/* ITS TEXT CAME: every card of that work on screen is filled where it stands. */
-function worksRedraw_(id) {
-  if (typeof document === 'undefined') return;
-  document.querySelectorAll('.wt-body[data-wt="' + id + '"]').forEach(el => {
-    const x = (WORKS.items || []).find(i => i.key === el.getAttribute('data-k'));
-    if (!x) return;
-    el.innerHTML = worksBody_(x);
-    const pane = el.closest('.pane');
-    if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
-  });
-}
-/* A HISTORY ROW'S LINK TO A WORK (520): the work as a row-like name and the key of its first page, for `histLinks_`. */
-function worksRowOf_(id) {
-  const w = WORKS.index && WORKS.index.works.find(v => v.id === id);
-  return w ? { id: w.id, title_english: w.title, key: worksFirstKey_(id) } : null;
-}
-/* THE FIRST PAGE OF A WORK: a link to it from a history row lands here (findCard). */
-function worksFirstKey_(id) {
-  const w = WORKS.index && WORKS.index.works.find(v => v.id === id);
-  return w ? 'wt:' + w.id + ':' + (w.languages.indexOf('English') >= 0 ? 'English' : w.languages[0]) + ':0' : '';
-}
 
 ;
 /* ==== js/texts.js ==== */
@@ -22558,128 +22043,6 @@ function pdtextsRedraw_(id) {
     const x = (PDTEXTS.items || []).find(i => i.key === el.getAttribute('data-k'));
     if (!x) return;
     el.innerHTML = pdtextsBody_(x);
-    const pane = el.closest('.pane');
-    if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
-  });
-}
-
-;
-/* ==== js/orthodox.js ==== */
-/* ================= ORTHODOX TEXTS AND CHURCH HISTORY (516): ONE CARD A CANON, SECTION OR CHAPTER ================= */
-/* The owner: "to learn all about church history, how we got from 0 to 2026". data/orthodox/, written by tools/orthodox-texts.py;
-   the works.js pattern with its own folder, on the Writings shelf under Religious Studies. */
-
-const ORTHO = { index: null, asking: null, failed: false, texts: {}, loading: {}, missed: {}, items: null, from: null };
-const orthoGet_ = file => {
-  const stamp = deployStamp_();
-  return Promise.resolve()
-    .then(() => fetch('data/orthodox/' + file + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null)
-    .catch(() => null);
-};
-
-function orthoIndex_() {
-  if (ORTHO.index) return ORTHO.index;
-  if (ORTHO.asking || ORTHO.failed || typeof fetch !== 'function' || !writingFor_(WRITING_WORKS.orthodox)) return null;
-  ORTHO.asking = orthoGet_('index.json').then(d => {
-    const ok = !!d && Array.isArray(d.works) && d.works.every(w => w && /^OR-\d{4}$/.test(w.id) && /^OR-\d{4}\.json$/.test(w.file)
-      && Array.isArray(w.chapters) && w.chapters.length > 0 && Array.isArray(w.languages) && w.languages.length > 0);
-    ORTHO.asking = null;
-    if (!ok) { ORTHO.failed = true; return null; }
-    ORTHO.index = d;
-    writingCame_('orthodox');
-    return d;
-  });
-  return null;
-}
-
-/* A WORK'S TAGS ARE ITS INDEX ROW'S, split as lists ("Orthodox | Catholic"), so the owner browses by tradition, era and kind. */
-const orthoList_ = s => String(s || '').split('|').map(v => v.trim()).filter(Boolean);
-
-function orthoItems_() {
-  const ix = ORTHO.index;
-  if (!ix) return [];
-  if (ORTHO.items && ORTHO.from === ix) return ORTHO.items;
-  /* A WORK IN SEVERAL VOLUMES IS ONE WORK (600): `work` names it and `book` the volume, so Summa Theologiae is a Work, never a Collection. */
-  const list = [], reg = writingWork_('orthodox');
-  ix.works.forEach(w => {
-    w.languages.forEach(lang => w.chapters.forEach((say, i) => {
-      list.push(writingUnit_('orthodox', reg, {
-        kind: 'orthotext', key: 'or:' + w.id + ':' + lang + ':' + i, name: w.title + ', ' + say, sub: w.about || lang,
-        text: [w.title, say, lang, w.author, w.collection, w.genre, w.era].join(' '),
-        w: { work: w.work || w.title, book: w.book || '', chapter: say, text: writingText_(writingTextOf_(lang)), tradition: orthoList_(w.tradition),
-             collection: orthoList_(w.collection), author: w.author || '', form: w.genre || '' },
-        ot: { id: w.id, file: w.file, i: i, lang: lang },
-      }));
-    }));
-  });
-  ORTHO.items = list; ORTHO.from = ix;
-  return list;
-}
-
-/* THE BIBLE'S OWN VERSES, TAGGED (516): the Anagignoskomena, and the Psalter's twenty kathismata (Septuagint numbering) on the
-   Septuagint and Brenton cards. No second copy of a verse. */
-const ORTHO_ANAG = ['Tobit', 'Judith', 'Wisdom of Solomon', 'Sirach', 'Baruch', 'Letter of Jeremiah', 'Susanna', 'Bel and the Dragon',
-  '1 Maccabees', '2 Maccabees', '3 Maccabees', '4 Maccabees', '1 Esdras', 'Prayer of Manasseh'];
-const ORTHO_KATHISMA = [8, 16, 23, 31, 36, 45, 54, 63, 69, 76, 84, 90, 100, 104, 108, 117, 118, 133, 142, 150];
-/* A KATHISMA IS A PART OF THE PSALTER, so it answers Section beside the book's group, never Collection beside the testaments (594). */
-function orthoKathisma_(x) {
-  const bb = x && x.kind === 'bible' ? x.bb : null;
-  if (!bb || bb.book !== 'Psalms' || (bb.dir !== 'lxx' && bb.dir !== 'brenton')) return '';
-  const k = ORTHO_KATHISMA.findIndex(last => Number(x.ch) <= last);
-  return k >= 0 ? 'Kathisma ' + (k + 1) : '';
-}
-function orthoBibleTags_(x) {
-  const bb = x && x.kind === 'bible' ? x.bb : null;
-  if (!bb) return [];
-  const greek = bb.dir === 'lxx' || bb.dir === 'brenton';
-  if (ORTHO_ANAG.indexOf(bb.book) >= 0) return [WRITING_DEUTERO];
-  if (!greek) return [];
-  const c = Number(x.ch);
-  if (bb.book === 'Psalms') {
-    if (c === 151) return [WRITING_DEUTERO];
-    return orthoKathisma_(x) ? ['Psalter'] : [];
-  }
-  if (bb.book === 'Esther' || (bb.book === 'Daniel' && c === 3)) return ['Septuagint additions'];
-  return [];
-}
-
-function orthoLoad_(id, file) {
-  if (ORTHO.texts[id]) return Promise.resolve(ORTHO.texts[id]);
-  if (!ORTHO.loading[id]) {
-    ORTHO.loading[id] = orthoGet_(file).then(d => {
-      ORTHO.loading[id] = null;
-      const ok = !!d && d.id === id && Array.isArray(d.chapters);
-      ORTHO.missed[id] = !ok;
-      if (ok) ORTHO.texts[id] = d;
-      return ok ? d : null;
-    });
-  }
-  return ORTHO.loading[id];
-}
-
-/* THE PAGE ITSELF: its paragraphs, and whose words they are. */
-function orthoBody_(x) {
-  const d = ORTHO.texts[x.ot.id], L = (typeof WORK_LANG !== 'undefined' && WORK_LANG[x.ot.lang]) || { k: 'en', lang: 'en' };
-  if (d) {
-    const c = d.chapters[x.ot.i] || {};
-    const src = (d.sources || []).find(s => s.language === x.ot.lang) || {};
-    return String(c[L.k] || '').split('\n').map(p => `<p class="wt-text" lang="${L.lang}">${esc(p)}</p>`).join('')
-      + `<p class="wt-credit">${esc(src.text || '')} · ${esc(src.licence || '')}</p>`;
-  }
-  if (ORTHO.missed[x.ot.id] && !ORTHO.loading[x.ot.id]) return '<p class="fc-note">This text did not arrive.</p>';
-  if (!ORTHO.loading[x.ot.id]) orthoLoad_(x.ot.id, x.ot.file).then(() => orthoRedraw_(x.ot.id));
-  return loading_();
-}
-function orthoCard_(x) {
-  return readingCard_(x, { cls: 'wt', bodyCls: 'wt-body', body: x.ot ? orthoBody_(x) : '', data: { ot: x.ot ? x.ot.id : '', k: x.key } });
-}
-function orthoRedraw_(id) {
-  if (typeof document === 'undefined') return;
-  document.querySelectorAll('.wt-body[data-ot="' + id + '"]').forEach(el => {
-    const x = (ORTHO.items || []).find(i => i.key === el.getAttribute('data-k'));
-    if (!x) return;
-    el.innerHTML = orthoBody_(x);
     const pane = el.closest('.pane');
     if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
   });
@@ -22931,441 +22294,6 @@ cardKind_('chem', x => { const r = x.chem || {}, has = v => v || v === 0;
     ['Discovered', r.discovered], ['Also called', r.also], ['Formula', r.formula], ['Use', r.use], ['Hazard', r.hazard], ['Pattern', r.pattern],
     ['Conditions', r.conditions], ['Observations', r.observations]].filter(f => has(f[1])).map(([k, v]) => k + ' ' + v);
   return { look: 'tx kc-facts', tags: kcFacetTags_(x), body: [{ type: 'text', paras: facts.concat((r.examples || []).map(e => String(e.equation || '')), r.source || '') }] }; });
-
-;
-/* ==== js/staff.js ==== */
-/* @family. — staff.js THE STAFF HUB (405): the tutor terms, pricing with where a booking's money goes, the monthly statement.
-   Rank Staff and an admin who teaches; the server gates each part again. */
-
-/* THE MOST AN HOUR MAY BE — the server's `RATE_MAX` (constants.gs) is the same number; check-staff compares them. */
-const STAFF_RATE_MAX = 200;
-
-/* ---------- WHO HAS A HUB ---------- */
-const hubFor_ = () => typeof USER !== 'undefined' && !!USER && (rank_() === 'staff' || (isAdmin() && tutorHeld_()));
-
-/* ---------- THE TUTOR TERMS: `brand` KEYS WITH THIS DRAFT BEHIND THEM ----------
-   `tutor_terms` (a "## " line starts a section) and `tutor_terms_version` in data/settings/brand.json. A new version asks again. */
-const TERMS_VERSION = 'v1-2026-10-24';
-const TERMS_DRAFT = [
-  '## About these terms',
-  'These terms are between you and @family. They apply to every session you teach that was booked through this site, and they replace the earlier tutor agreement.',
-  '## You are self-employed',
-  '- You work for @family. as an independent contractor, not as an employee or a worker.',
-  '- You are responsible for your own tax and National Insurance, and for registering with HMRC for Self Assessment.',
-  '- There is no holiday pay, sick pay or pension from @family. You are free to work for others, and you decide how to teach within what was booked.',
-  '## Bookings',
-  '- Families book and pay through this site. You take on only the sessions you can teach well.',
-  '- Keep your availability, venues and subjects up to date on your card, so you are only booked for what you can do.',
-  '- Arrive on time and prepared, and tell the family through Messages if anything about a session changes.',
-  '## Cancellations',
-  '- If you cannot make a session, give at least 24 hours’ notice to the family and to @family., except in a real emergency.',
-  '- Repeated late cancellations may end this arrangement.',
-  '- When a family cancels, what is paid follows the family terms in force when they booked.',
-  '## Pay and the business’s share',
-  '- The family pays the price shown when they book. You are paid your own hourly rate for the first student, plus your part of each extra seat.',
-  '- @family. keeps its share of each extra seat. Room hire goes to the venue, and card fees come out of @family.’s share, not yours.',
-  '- The Staff hub shows exactly where each booking’s money goes before you set your rate. You can change your rate once a month; a change applies to new bookings.',
-  '- You are paid for the sessions you teach, monthly. Your statement on the Staff hub lists each session. It is a statement, not a payslip.',
-  '- Families pay through this platform only. Never take payment directly, and do not take on a family you met through us privately while you work with us or for 6 months after.',
-  '## Safeguarding and DBS',
-  '- You hold an enhanced DBS check, and you tell @family. straight away if anything about it changes.',
-  '- Safeguarding comes first. Report any concern about a child to @family. the same day.',
-  '- Never meet a student alone somewhere that has not been agreed, and keep contact with students on this site, not on personal social media or phone numbers.',
-  '## Conduct',
-  '- Be polite and professional with students, parents, venues and staff, in person and in messages.',
-  '- No alcohol, smoking or drugs before or during a session, and treat the rooms we hire with care.',
-  '## Data protection',
-  '- Use what you learn about students and families only to teach them. Keep it private and secure, and do not share it.',
-  '- Tell @family. straight away if any of it is lost or seen by somebody who should not have it. When you stop teaching here, delete what you hold.',
-  '## Ending the arrangement',
-  '- Either side can end this with 2 weeks’ written notice, or straight away for a serious breach such as a safeguarding failure.',
-  '- Sessions you have taught are still paid, and booked sessions are finished or handed over as agreed.',
-  '## Changes to these terms',
-  '- @family. may change these terms. A new version appears in your Staff hub and you are asked to agree again; until you do, your card on You says so and @family. sees it.',
-].join('\n');
-/* A BARE DATE IS PREFIXED: the sheet stores "2026-11-01" as a date, and a version that comes back as a date never matches again. */
-const termsVersion_ = () => { const v = String(brand('tutor_terms_version', TERMS_VERSION)).trim(); return /^\d{4}-\d{1,2}(-\d{1,2})?$/.test(v) ? 'v' + v : v; };
-const termsDraft_ = () => !(typeof DATA !== 'undefined' && DATA && DATA.brand && DATA.brand.tutor_terms);
-const termsAgreed_ = () => !!(USER && USER.agreementSignedAt && String(USER.agreementVersion || '') === termsVersion_());
-/* PARAGRAPHS, "- " LISTS AND **bold** — moved here from terms.js when that file went (431); the agreement is its only reader. */
-function termsProse_(s) {
-  const src = String(s || '').replace(/\r/g, '');
-  return src.split(/\n{2,}/).map(block => {
-    const lines = block.split('\n').filter(l => l.trim());
-    if (!lines.length) return '';
-    if (lines.every(l => /^\s*[-•]\s+/.test(l))) {
-      return '<ul>' + lines.map(l =>
-        '<li>' + termsMarks_(l.replace(/^\s*[-•]\s+/, '')) + '</li>').join('') + '</ul>';
-    }
-    return '<p>' + lines.map(l => termsMarks_(l)).join('<br>') + '</p>';
-  }).join('');
-}
-function termsMarks_(s) {
-  return esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
-}
-/* "## Heading" STARTS A SECTION; what follows is `termsProse_`'s: paragraphs, "- " lists, **bold**. */
-function termsSections_(src) {
-  const out = [];
-  String(src || '').replace(/\r/g, '').split('\n').forEach(line => {
-    const h = /^##\s+(.*)$/.exec(line);
-    if (h || !out.length) out.push({ h: h ? h[1].trim() : '', lines: [] });
-    if (!h) out[out.length - 1].lines.push(line);
-  });
-  /* "- " LINES IN A RUN ARE ONE LIST: a blank line between paragraphs, none between bullets. */
-  return out.map(s => ({ h: s.h, body: s.lines.reduce((acc, l) => {
-    const prev = acc.length ? acc[acc.length - 1] : '';
-    if (!l.trim()) return acc;
-    if (/^\s*[-•]\s+/.test(l) && /^\s*[-•]\s+/.test(prev)) acc.push(l); else acc.push('', l);
-    return acc;
-  }, []).join('\n').trim() }));
-}
-function agreementCard_() {
-  const at = USER && USER.agreementSignedAt, now = termsAgreed_(), was = String((USER && USER.agreementVersion) || '');
-  const prose = termsProse_;
-  return `<div class="hub-terms agree">
-    <h3>Tutor Terms &amp; Conditions${termsDraft_() ? ' <span class="agree-draft">Draft</span>' : ''}</h3>
-    <div class="doc">${termsSections_(brand('tutor_terms', TERMS_DRAFT)).map(s =>
-      `<div class="doc-part">${s.h ? `<h4>${esc(s.h)}</h4>` : ''}${prose(s.body)}</div>`).join('')}</div>
-    ${formTick_(`data-do="agree-sign"${now ? ' checked disabled' : ''}`, '<span>I have read these terms and I agree to them</span>')}
-    <p class="note agree-said">${now ? 'Agreed on ' + esc(at) + ' · version ' + esc(was) + '.'
-      : at ? 'These terms have changed since you agreed to version ' + esc(was) + ' on ' + esc(at) + '. Please read them and agree again.'
-      : 'Your agreement, the version and the time are recorded.'}</p>
-    ${typeof policyLinks_ === 'function' ? policyLinks_('tutor') : ''}
-  </div>`;
-}
-on('agree-sign', el => {
-  if (!USER || el.disabled) return;
-  el.disabled = true;
-  const said = el.closest('.agree') && el.closest('.agree').querySelector('.agree-said');
-  const version = termsVersion_();
-  send({ action: 'signAgreement', name: USER.name, personId: USER.personId, version })
-    .then(d => {
-      USER.agreementSignedAt = (d && d.signedAt) || 'today';
-      USER.agreementVersion = (d && d.version) || version;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
-      el.checked = true;
-      if (said) said.textContent = 'Agreed on ' + USER.agreementSignedAt + ' · version ' + USER.agreementVersion + '.';
-      toast('Agreed');
-      hubTilesRedraw_();
-      try { paint('staff'); } catch (e) {}
-    })
-    .catch(err => { el.checked = false; el.disabled = false; toast(why_(err)); });
-});
-
-/* ---------- ON THE TUTOR COLUMN (444): THE HUB'S TILE, AND ONE LINE UNDER THE ROW UNTIL THE TERMS ARE AGREED ---------- */
-const hubBlock_ = () => hubFor_() ? hubHtml_() : '';
-const hubWarn_ = () => hubFor_() && !termsAgreed_()
-  ? `<p class="hub-warn" role="status">${USER.agreementSignedAt ? 'The tutor terms have changed.' : 'You have not agreed to the tutor terms yet.'}
-     Read them below and tick I agree and tick I agree — until then @family. sees you as not agreed.</p>` : '';
-
-/* ---------- THE HUB: ONE SHEET, THREE PARTS — Hours left in 487 for Tutor settings' Available card ---------- */
-const HUB = { part: 'terms' };
-const HUB_PARTS = [['terms', 'doc', 'Terms'], ['pricing', 'edit', 'Pricing'], ['statement', 'print', 'Statement']];
-function hubTilesHtml_() {
-  return `<div class="tile-row hub-tabs">${HUB_PARTS.map(([k, icon, label]) => tile_({ icon, label, act: 'hub-part', data: { part: k },
-    on: HUB.part === k, pressed: HUB.part === k,
-    note: k === 'terms' ? (termsAgreed_() ? 'agreed' : 'to agree') : k === 'pricing' ? 'what you charge' : 'each month' })).join('')}</div>`;
-}
-const hubTilesRedraw_ = () => document.querySelectorAll('.hub .hub-tabs').forEach(r => { r.outerHTML = hubTilesHtml_(); });
-function hubHtml_() {
-  const body = HUB.part === 'pricing' ? priceHtml_() : HUB.part === 'statement' ? stmtHtml_() : agreementCard_();
-  return `<div class="hub" data-hub="${esc(HUB.part)}">${hubTilesHtml_()}<div class="hub-body">${body}</div></div>`;
-}
-/* NO SHEET (owner, 8 Nov): the hub is in its card from the start; a part's tile redraws every live hub in place. */
-function hubOpen_(part) {
-  if (!hubFor_()) return;
-  if (part) HUB.part = part;
-  if (HUB.part === 'statement') { STMT.tutorId = ''; STMT.tutorName = ''; }
-  if (HUB.part === 'pricing') priceStart_();
-  document.querySelectorAll('.hub[data-hub]').forEach(h => { if (!h.closest('.is-locked')) h.outerHTML = hubHtml_(); });
-  if (HUB.part === 'statement') stmtAsk_();
-}
-on('hub-part', el => hubOpen_(el.dataset.part));
-
-
-/* ---------- PRICING: YOUR RATE AND EXTRA SEAT, AND WHERE A BOOKING'S MONEY GOES ----------
-   Every figure is `priceFrom` → `bookMoney_` (core.js) over the row being typed — the booking's own sum, never a second one. */
-const PRICE = { rate: 0, seat: 0, loc: '', moved: {}, open: false };
-const priceMine_ = () => ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).find(t => typeof mineIs_ === 'function' && mineIs_(t)) || {};
-const priceRooms_ = () => ((typeof DATA !== 'undefined' && DATA && DATA.venues) || []).filter(v => v && v.title && parseFloat(v.bestRate) > 0);
-/* WHAT A SEAT ADDS IN POUNDS, for the row as saved: their own part, else the config's `c`, through `seatShare_`. */
-const priceUsualSeat_ = rate => typeof seatShare_ === 'function' ? Math.round(rate * seatShare_(null).cUsed * 100) / 100 : 0;
-function priceStart_() {
-  const t = priceMine_();
-  /* NO RATE YET IS PRICED AT THE OPEN RATE (`priceFrom`'s own fallback), so the slider starts where the bars are; Save makes it theirs. */
-  PRICE.open = !(Number(t.rate) > 0);
-  PRICE.rate = PRICE.open ? OPEN_RATE : Number(t.rate);
-  const s = typeof seatShare_ === 'function' ? seatShare_(t) : { seatOwn: false, cRaw: 0 };
-  PRICE.seat = s.seatOwn ? Math.round(s.cRaw * PRICE.rate * 100) / 100 : 0;
-  const rooms = priceRooms_();
-  if (!PRICE.loc || !rooms.some(v => v.title === PRICE.loc)) PRICE.loc = (rooms.find(v => (t.venues || []).indexOf(v.title) !== -1) || rooms[0] || {}).title || '';
-  PRICE.moved = PRICE.open ? { rate: true } : {};
-}
-/* ONE BOOKING OF ONE HOUR FOR N STUDENTS, split four ways. Business is what is left — negative when fees outrun its share. */
-function priceSplit_(n) {
-  const t = priceMine_();
-  const frac = PRICE.rate > 0 && PRICE.seat > 0 ? PRICE.seat / PRICE.rate : 0;
-  const row = Object.assign({}, t, { rate: PRICE.rate, extraSeat: frac });
-  let p = null;
-  try { p = priceFrom({ tutorRow: row, n, slots: 1, hoursPerWeek: 1, loc: PRICE.loc, format: 'Tutoring' }); } catch (e) { p = null; }
-  const e = (p && p.earn) || {};
-  return { n, charged: e.charged || 0, tutor: e.tutorPayout || 0, room: e.venue || 0, fees: e.cardFees || 0, managers: e.managerTotal || 0, business: e.net || 0 };
-}
-/* WHAT IS WRONG WITH THE BOXES, in the words the server would use — '' when Save may go. */
-function priceWrong_() {
-  if (!(PRICE.rate > 0)) return 'Your rate is pounds an hour — more than £0.';
-  if (PRICE.rate > STAFF_RATE_MAX) return 'Your rate is at most ' + money_(STAFF_RATE_MAX) + ' an hour.';
-  if (PRICE.seat < 0 || PRICE.seat > PRICE.rate * STAFF_SEAT_MAX) return 'An extra seat adds £0 to ' + money_(PRICE.rate * STAFF_SEAT_MAX) + ' an hour — at most what the first student pays.';
-  return '';
-}
-/* YOUR MANAGERS' PART OF THE EXTRA SEATS (`chainShares_`) has its own colour; it is nought for one student. */
-const PRICE_SEGS = [['tutor', 'You'], ['room', 'Room'], ['fees', 'Card fees'], ['managers', 'Managers'], ['business', '@family.']];
-function priceBarsHtml_() {
-  const rows = [1, 2, 3].map(priceSplit_);
-  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + r.managers + Math.max(0, r.business)));
-  /* EACH PART ENDS WHERE THE SUM SO FAR ENDS: the bars are drawn on top of each other and scaled, not laid side by side (537). */
-  const x = (r, i) => (PRICE_SEGS.slice(0, i + 1).reduce((a, [k]) => a + Math.max(0, r[k]), 0) / full).toFixed(4);
-  return rows.map(r => `<div class="pb-row" data-n="${r.n}">
-      <p class="pb-cap"><b>${r.n} ${r.n === 1 ? 'student' : 'students'}</b> <span class="pb-paid">family pays ${esc(money_(r.charged))} an hour</span></p>
-      <div class="pb-bar" role="img" aria-label="${esc(PRICE_SEGS.map(([k, l]) => l + ' ' + money_(r[k])).join(', '))}">${
-        PRICE_SEGS.map(([k], i) => `<span class="pb-seg is-${k}" style="--x:${x(r, i)}"></span>`).join('')}</div>
-      <p class="pb-say">${PRICE_SEGS.map(([k, l]) => `<span class="pb-k is-${k}">${esc(l)} <b>${esc((r[k] < 0 ? '−' : '') + money_(Math.abs(r[k])))}</b></span>`).join('')}</p>
-    </div>`).join('') + (rows[0].business < 0
-      ? '' : '');
-}
-function priceHtml_() {
-  const t = priceMine_();
-  const usual = priceUsualSeat_(PRICE.rate);
-  const s = typeof seatShare_ === 'function' ? seatShare_(t) : { bUsed: 0 };
-  const v = ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
-  const fee = [Number(v.card_fee_pct) > 0 ? v.card_fee_pct + '%' : '', Number(v.card_fee_fixed) > 0 ? money_(v.card_fee_fixed) + ' a payment' : ''].filter(Boolean).join(' + ');
-  const ctl = (k, label, min, max, step, val, note) => `<div class="pf-var hub-var" data-pv="${k}">
-      <p class="pf-name">${esc(label)}<span class="pf-from">${esc(note)}</span></p>
-      ${formSlider_(`data-pv="${k}"`, { min: min, max: max, numMax: k === 'rate' ? STAFF_RATE_MAX : max, step: step, value: val, label: label })}
-    </div>`;
-  const rooms = priceRooms_();
-  const opt = (val, txt) => `<option value="${esc(val)}"${PRICE.loc === val ? ' selected' : ''}>${esc(txt)}</option>`;
-  return `<div class="hub-price me-form">
-    <h3>Pricing</h3>
-    <div class="pf-vars">
-      ${ctl('rate', 'Your rate, £ an hour', 5, Math.max(80, PRICE.rate), 0.5, PRICE.rate, PRICE.open ? 'none yet: the open rate' : 'the first student')}
-      ${ctl('seat', 'Each extra seat adds, £ an hour', 0, Math.max(1, PRICE.rate * STAFF_SEAT_MAX), 0.25, PRICE.seat, '0 is the usual ' + money_(usual))}
-    </div>
-    ${formLine_('room', formSelect_('data-pv="loc" aria-label="Room"', opt('', 'No room hire (online or at home)') +
-      rooms.map(r => opt(r.title, r.title + ' · ' + perHour_(parseFloat(r.bestRate)))).join('')), 'hub-room')}
-    <div class="pb" aria-live="polite">${priceBarsHtml_()}</div>
-    <div class="tile-row">${tile_({ icon: 'edit', label: 'Set it', note: 'on your Rate and class size card', act: 'price-card' })}</div>
-    <p class="note me-said hub-said" aria-live="polite">${esc(priceWrong_())}</p>
-  </div>`;
-}
-/* IN PLACE, as the thumb moves: widths and words change, so the bars slide (the CSS transition) and the slider stays held. */
-function priceRedraw_() {
-  const box = document.querySelector('.hub .pb');
-  if (!box) return;
-  const rows = [1, 2, 3].map(priceSplit_);
-  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + r.managers + Math.max(0, r.business)));
-  rows.forEach(r => {
-    const row = box.querySelector('.pb-row[data-n="' + r.n + '"]');
-    if (!row) return;
-    let sum = 0;
-    PRICE_SEGS.forEach(([k, l], i) => {
-      const seg = row.querySelector('.pb-seg.is-' + k);
-      sum += Math.max(0, r[k]);
-      if (seg) seg.style.setProperty('--x', (sum / full).toFixed(4));
-      const say = row.querySelectorAll('.pb-k b')[i];
-      if (say) say.textContent = (r[k] < 0 ? '−' : '') + money_(Math.abs(r[k]));
-    });
-    row.querySelector('.pb-paid').textContent = 'family pays ' + perHour_(r.charged);
-    row.querySelector('.pb-bar').setAttribute('aria-label', PRICE_SEGS.map(([k, l]) => l + ' ' + money_(r[k])).join(', '));
-  });
-  const note = box.querySelector('.pb-note');
-  if (note) note.hidden = !(rows[0].business < 0);
-  const said = document.querySelector('.hub .hub-said');
-  if (said) said.textContent = priceWrong_();
-}
-function priceInput_(el) {
-  const k = el.dataset.pv;
-  if (k === 'loc') { PRICE.loc = el.value; priceRedraw_(); return; }
-  const x = num(el.value);
-  PRICE[k] = isNaN(x) ? 0 : x;
-  PRICE.moved[k] = true;
-  /* THE TWIN FOLLOWS: slider ↔ box, and the seat slider's end follows the rate (twice it). */
-  document.querySelectorAll('.hub [data-pv="' + k + '"]').forEach(o => { if (o !== el && o.tagName === 'INPUT') o.value = String(PRICE[k]); });
-  if (k === 'rate') document.querySelectorAll('.hub input[data-pv="seat"]').forEach(o => { o.max = String(Math.max(1, PRICE.rate * STAFF_SEAT_MAX)); });
-  priceRedraw_();
-}
-document.addEventListener('input', e => { const el = e.target; if (el && el.dataset && el.dataset.pv && el.closest('.hub-price')) priceInput_(el); });
-document.addEventListener('change', e => { const el = e.target; if (el && el.dataset && el.dataset.pv && el.closest('.hub-price')) priceInput_(el); });
-/* THE ONE HOME OF THE RATE, THE SEAT AND THE CLASS SIZE IS YOUR CARD (620, CLAUDE.md "every setting has one home"): Pricing opens it. */
-on('price-card', () => {
-  /* ON YOUR PUBLIC CARD (the Tutors column) when you have one; otherwise Tutor settings carries the same fields. */
-  const col = cardMine_() ? 'tutors' : 'staff';
-  go(col);
-  setTimeout(() => {
-    const box = document.querySelector('#s-' + col + ' .card-ed[data-sec="seat"], #s-' + col + ' [data-me="rate_per_hour"]');
-    const c = box && (box.closest('.card') || box);
-    if (c && c.scrollIntoView) c.scrollIntoView({ block: 'center' });
-  }, 350);
-});
-
-/* ---------- THE MONTHLY STATEMENT: SESSIONS, WHAT THE FAMILY PAID, THE BUSINESS'S SHARE AND YOURS ----------
-   `payStatement` is the asker's own; an admin names a tutor (`tutorId`) from Business. A statement, not a payslip. */
-const ymOf_ = d => d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2);
-const STMT = { month: ymOf_(new Date()), tutorId: '', tutorName: '', data: null, error: '', asking: false, seq: 0 };
-const ymSay_ = ym => { const m = /^(\d{4})-(\d{2})$/.exec(ym || ''); return m ? MONTH_NAMES[+m[2] - 1] + ' ' + m[1] : ym; };
-function stmtMonths_() {
-  const out = [], d = new Date(); d.setDate(1);
-  for (let i = 0; i < 12; i++) { out.push(ymOf_(d)); d.setMonth(d.getMonth() - 1); }
-  return out;
-}
-function stmtPaper_(s) {
-  const own = !STMT.tutorId || (USER && String(STMT.tutorId) === String(USER.personId));
-  const day = date_;
-  const rows = (s.sessions || []).map(r => `<tr><td><b>${esc(day(r.date))}</b><span>${esc(r.what)}</span></td><td>${esc(String(r.hours))}</td>
-      <td>${esc(String(r.students))}</td><td>${esc(money_(r.paid))}</td><td>${esc(money_(r.business))}</td><td>${esc(money_(r.tutor))}</td></tr>`).join('');
-  const T = s.totals || {};
-  return `<div class="stmt">
-    <div class="stmt-head"><b>${esc(brand('name', '@family.'))}</b><span>Statement</span></div>
-    <p class="stmt-who">${esc(displayName_(s.tutor || ''))} · ${esc(ymSay_(s.month))}</p>
-    ${rows ? `<table class="stmt-t"><thead><tr><th>Session</th><th>Hrs</th><th>Pupils</th><th>Paid</th><th title="@family.’s share">Share</th><th>${own ? 'You' : 'Tutor'}</th></tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr><td>${esc(String(T.sessions || 0))} ${T.sessions === 1 ? 'session' : 'sessions'}</td><td>${esc(String(T.hours || 0))}</td><td></td>
-        <td>${esc(money_(T.paid))}</td><td>${esc(money_(T.business))}</td><td>${esc(money_(T.tutor))}</td></tr></tfoot></table>`
-      : `<p class="stmt-none">No paid sessions in ${esc(ymSay_(s.month))}.</p>`}
-    <p class="stmt-note">A statement of sessions taught, not a payslip. Paid is what the family paid for each session and Share is @family.’s; ${own ? 'you are' : 'the tutor is'} self-employed and responsible for ${own ? 'your' : 'their'} own tax and National Insurance.</p>
-  </div>`;
-}
-function stmtOutHtml_() {
-  if (STMT.asking) return loading_();
-  if (STMT.error) return `<p class="note stmt-said">${esc(STMT.error)}</p>`;
-  return STMT.data ? stmtPaper_(STMT.data) : '';
-}
-function stmtHtml_() {
-  const opt = ym => `<option value="${ym}"${ym === STMT.month ? ' selected' : ''}>${esc(ymSay_(ym))}</option>`;
-  return `<div class="hub-stmt">
-    <h3>Statement${STMT.tutorName ? ' · ' + esc(STMT.tutorName) : ''}</h3>
-    ${formLine_('month', formSelect_('data-stmt="month" aria-label="Month"', stmtMonths_().map(opt).join('')))}
-    <div class="stmt-out"${STMT.asking ? ' aria-busy="true"' : ''}>${stmtOutHtml_()}</div>
-    <div class="tile-row">${tile_({ icon: 'print', label: 'Download PDF', note: 'print or save', act: 'stmt-print', off: !STMT.data })}</div>
-  </div>`;
-}
-function stmtDraw_() {
-  const out = document.querySelector('.hub .stmt-out');
-  if (!out) return;
-  if (STMT.asking) { out.innerHTML = ''; waiting_(out); } else { out.removeAttribute('aria-busy'); out.innerHTML = stmtOutHtml_(); }
-  const p = document.querySelector('.hub [data-do="stmt-print"]');
-  if (p) p.disabled = !STMT.data;
-}
-function stmtAsk_() {
-  const seq = ++STMT.seq;
-  STMT.asking = true; STMT.error = ''; STMT.data = null;
-  stmtDraw_();
-  api({ action: 'payStatement', month: STMT.month, tutorId: STMT.tutorId || '', personId: (USER && USER.personId) || '' })
-    .then(d => {
-      if (seq !== STMT.seq) return;
-      STMT.asking = false;
-      if (!d || d.error || !d.success) { STMT.error = String((d && d.error) || 'The statement did not come.'); return; }
-      STMT.data = d;
-    })
-    .catch(() => { if (seq === STMT.seq) { STMT.asking = false; STMT.error = 'The statement could not be fetched — check the connection.'; } })
-    .then(() => { if (seq === STMT.seq) stmtDraw_(); });
-}
-document.addEventListener('change', e => {
-  const el = e.target;
-  if (!el || !el.matches || !el.matches('.hub select[data-stmt="month"]')) return;
-  STMT.month = el.value;
-  stmtAsk_();
-});
-/* "DOWNLOAD PDF" IS THE PRINT DIALOGUE: a paper copy at the end of the body, everything else hidden (`.printing-stmt`), as the mat prints. */
-on('stmt-print', () => {
-  const src = document.querySelector('.hub .stmt');
-  if (!src || !STMT.data) return;
-  const paper = document.createElement('div');
-  paper.className = 'stmt-paper';
-  paper.innerHTML = src.outerHTML;
-  document.body.appendChild(paper);
-  document.body.classList.add('printing-stmt');
-  const was = document.title;
-  document.title = 'Statement ' + (STMT.data.tutor || '') + ' ' + STMT.data.month;
-  const done = () => {
-    document.body.classList.remove('printing-stmt');
-    paper.remove();
-    document.title = was;
-    window.removeEventListener('afterprint', done);
-  };
-  window.addEventListener('afterprint', done);
-  /* AND A TIMER: some browsers never fire `afterprint` on a cancelled dialogue, which would leave the app hidden. */
-  setTimeout(done, 4000);
-  window.print();
-});
-
-/* ---------- IN BUSINESS: WHO TEACHES, WHO HAS AGREED TO THE CURRENT TERMS, AND ANY TUTOR'S STATEMENT ---------- */
-const STAFF = { list: null, error: '', asking: false };
-const staffAgreed_ = s => String(s.termsVersion || '') === termsVersion_();
-/* A TUTOR'S DBS IS DUE 12 MONTHS AFTER THE LAST ONLINE CHECK (10 Nov), or now if never logged. */
-const STAFF_DBS_LINK = 'https://secure.crbonline.gov.uk/crsc/check';
-function staffDbsDue_(s) {
-  const m = String((s && s.dbsCheckedOn) || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!m) return true;
-  const next = new Date(+m[1] + 1, +m[2] - 1, +m[3]), now = new Date(); now.setHours(0, 0, 0, 0);
-  return next <= now;
-}
-function staffCard_() {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return '';
-  return card_(`<div class="biz staff-card" data-staff data-need="staff">${staffInner_(!STAFF.list && !STAFF.error)}</div>`);
-}
-function staffInner_(wait) {
-  const list = STAFF.list || [];
-  const n = list.filter(s => !staffAgreed_(s)).length, dbs = list.filter(staffDbsDue_).length;
-  const dbsLine = s => !staffDbsDue_(s) ? '' : `<p class="biz-cap staff-dbs"><b class="biz-flag">DBS check due</b> <span class="qtags">${qtag_(`${
-      esc(s.dbsCheckedOn ? 'last ' + date_(s.dbsCheckedOn) : 'never logged')}`)}${qtag_(`${esc(s.dbsNumber ? 'cert. ' + s.dbsNumber : 'no certificate no. on file')}`)}</span></p>`;
-  const item = s => `<div class="kc-item biz-item staff-item" data-id="${esc(s.personId)}">
-      <p class="biz-cap"><b>${esc(s.name)}</b> <span class="qtags biz-when">${qtag_(`${esc(s.rank === 'admin' ? 'admin' : 'staff')}`)}</span>
-        ${staffAgreed_(s) ? '' : `<b class="biz-flag">${s.termsVersion ? 'Old terms' : 'Not agreed'}</b>`}</p>
-      ${dbsLine(s)}
-      <div class="tile-row">${tile_({ icon: 'print', label: 'Statement', note: 'any month', act: 'stmt-for', data: { id: s.personId, name: s.name } })}${staffDbsDue_(s)
-        ? tile_({ icon: 'ext', label: 'DBS online check', href: STAFF_DBS_LINK, leave: true }) + tile_({ icon: 'tick', label: 'Checked today', act: 'staff-dbs', data: { id: s.personId } }) : ''}</div>
-    </div>`;
-  return `<h3>Staff</h3>
-    ${(window.bizNeed_ || (() => ''))('staff', STAFF.list ? n + dbs : 0, [n ? n + ' not agreed to the terms' : '', dbs ? dbs + (dbs === 1 ? ' DBS check due' : ' DBS checks due') : ''].filter(Boolean).join(' · '))}
-    <div class="kc-items biz-body staff-body"${wait ? ' aria-busy="true"' : ''}>
-      ${STAFF.list && !list.length ? empty_(NO_TUTOR + '.') : ''}
-      ${list.map(item).join('')}
-    ${wait ? loading_() : ''}</div>
-    <p class="note me-said staff-said">${esc(STAFF.error)}</p>`;
-}
-const staffDraw_ = () => { document.querySelectorAll('[data-staff]').forEach(c => { cardFill_(c, staffInner_(false)); }); if (typeof window.bizNeedsPaint_ === 'function') window.bizNeedsPaint_(); };
-function staffStart_() {
-  if (!(typeof isAdmin === 'function' && isAdmin()) || STAFF.asking) return;
-  STAFF.asking = true;
-  apiKept_({ action: 'listStaff' }, d => {
-      STAFF.asking = false;
-      if (!d || d.error) { STAFF.error = String((d && d.error) || 'The staff list did not come.'); return; }
-      STAFF.error = ''; STAFF.list = Array.isArray(d.staff) ? d.staff : [];
-    }, staffDraw_)
-    .catch(() => { STAFF.asking = false; STAFF.error = 'The staff list could not be fetched — check the connection.'; staffDraw_(); });
-}
-on('stmt-for', el => {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return;
-  STMT.tutorId = el.dataset.id || ''; STMT.tutorName = el.dataset.name || '';
-  /* IN THE CARD PRESSED, under its row: one statement at a time, no sheet. */
-  document.querySelectorAll('.hub-for').forEach(h => h.remove());
-  const c = el.closest('.card'); if (c) (c.querySelector(':scope > .kc-form, :scope > .kc-lines') || c).insertAdjacentHTML('beforeend', `<div class="hub hub-for">${stmtHtml_()}</div>`);
-  stmtAsk_();
-});
-/* "CHECKED TODAY": the admin ran the DBS online check; the date restarts the 12 months. */
-on('staff-dbs', el => {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return;
-  const id = el.dataset.id;
-  send_({ action: 'tutorDbsChecked', tutorId: id }, { button: el, where: el.closest('.card') && el.closest('.card').querySelector('.staff-said'), busy: 'Saving…' })
-    .then(d => {
-      const s = (STAFF.list || []).find(x => x.personId === id);
-      if (s) s.dbsCheckedOn = (d && d.dbsCheckedOn) || new Date().toISOString().slice(0, 10);
-      staffDraw_(); if (typeof window.bcDraw_ === 'function') window.bcDraw_();
-      toast('DBS check logged');
-    })
-    .catch(() => {});
-});
 
 ;
 /* ==== js/qr.js ==== */
@@ -24492,8 +23420,8 @@ function frontPageOf_(col) {
     const n = widgetPagesOf_(kind).findIndex(w => String(w.id) === f.id || (w.parts || []).some(p => String(p.id) === f.id));
     if (n !== -1) return n;
   }
-  if (col === 'feed' && typeof feedCamAt_ === 'function') {
-    if (f.id === 'item:feed:camera') return feedCamAt_();
+  if (col === 'feed' && typeof window.feedCamAt_ === 'function') {
+    if (f.id === 'item:feed:camera') return window.feedCamAt_();
   }
   const n = CARD_START_AT[col];
   return typeof n === 'number' && n >= 0 ? n : -1;
@@ -25509,7 +24437,7 @@ function pushGo_(what) {
   if (!m) return;
   try {
     if (m[1] === 'job' && typeof openJob_ === 'function') openJob_(m[2]);
-    else if (m[1] === 'post' && typeof postGo_ === 'function') postGo_(m[2]);
+    else if (m[1] === 'post' && typeof window.postGo_ === 'function') window.postGo_(m[2]);
     else go('dm');
   } catch (e) {}
 }

@@ -69,9 +69,6 @@ function kcFactsWatch_() {
       seen.forEach(redo);
     } catch (e) { oops_(e, 'card:facts'); } finally { busy = false; } }).observe(document.body, { subtree: true, childList: true, characterData: true });
 }
-/* ⋯ IS A CARD'S ONLY TOGGLE (owner, 10 Nov): a wrapping row of the other round buttons, under the row. */
-on('kc-more', el => { const c = el.closest('.kc-row, .tile-row'), m = c && c.querySelector('.kc-more'); if (!m) return;
-  m.hidden = !m.hidden; el.setAttribute('aria-expanded', m.hidden ? 'false' : 'true'); });
 /* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
 function findCard(x, credits) {
   /* A PANEL (card_) KEEPS ITS OWN INSIDES: a DM thread is kind `msg`, and Find's message door (KC_AROUND) drew it empty. */

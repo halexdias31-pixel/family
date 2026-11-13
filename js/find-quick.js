@@ -18,7 +18,7 @@ function finderTagsSame_(view, first) {
     if (!T || T.facets !== facetList().map(f => f.field).join(',')) return false;
     const m = myResults_();
     if (m && m.size) return false;
-    if ([BIBLE, TALMUD, QURAN, HADITH, WORKS, TEXTS, PDTEXTS, ORTHO, HYMNS].some(b => b && b.failed)) return false;
+    if ([BIBLE, window.TALMUD, QURAN, window.HADITH, window.WORKS, TEXTS, PDTEXTS, window.ORTHO, HYMNS].some(b => b && b.failed)) return false;
     if (TAGS_SAME.all !== all || TAGS_SAME.gen !== gen) { TAGS_SAME.all = all; TAGS_SAME.gen = gen; TAGS_SAME.by = {}; }
     const k = first.field + '=' + first.value;
     if (k in TAGS_SAME.by) return TAGS_SAME.by[k];

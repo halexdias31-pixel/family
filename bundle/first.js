@@ -4232,7 +4232,7 @@ function oopsTry_(where, fn, host) {
 /* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
 const TIER_CORE_WIDGETS = [];
 const TIER_LAZY_WIDGETS = [];
-const TIER_OFF_WIDGETS = ['reels', 'newspaper', 'homework', 'flyers', 'mat', 'timer', 'docket', 'notepad', 'spotify', 'speedread', 'timetable', 'typing', 'cart', 'calendar', 'countdowns', 'favlinks', 'rewrite', 'poster', 'pixel', 'console', 'wordgames'];
+const TIER_OFF_WIDGETS = ['reels', 'newspaper', 'homework', 'flyers', 'mat', 'timer', 'docket', 'notepad', 'spotify', 'speedread', 'timetable', 'typing', 'cart', 'shopfind', 'calendar', 'countdowns', 'favlinks', 'rewrite', 'poster', 'pixel', 'console', 'wordgames'];
 const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
 const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
 const TIER_RUN = { depth: 0 };
@@ -4696,10 +4696,10 @@ function go(id, remember, instant) {
      `startScreen_` below. */
   /* ---------- ONLY WHEN LEAVING THE FEED, OR WITH A CAMERA ACTUALLY OPEN § */
   /* PARKED, NOT STOPPED (427): coming back must not ask again, and a parked stream is no reason to run this on other columns. */
-  if (typeof camStop_ === 'function' && AT !== 'feed'
-      && (was === 'feed' || (typeof camOn_ === 'function' && camOn_()))) camStop_(false, true);
+  if (typeof window.camStop_ === 'function' && AT !== 'feed'
+      && (was === 'feed' || (typeof window.camOn_ === 'function' && window.camOn_()))) window.camStop_(false, true);
   /* AND THE REEL, which is the third of these and was the one nobody had written. § */
-  if (typeof reelsStop_ === 'function' && AT !== 'reel') reelsStop_();
+  if (typeof window.reelsStop_ === 'function' && AT !== 'reel') window.reelsStop_();
   /* A PIN SHOWN ON A CARD (452) goes when its column is left. */
   if (was !== AT && typeof pinHideAll_ === 'function') pinHideAll_();
   /* AND THE MESSAGE POLL, which is the fourth. § */
@@ -4732,12 +4732,12 @@ const SCREEN_HOOKS = {
   saved: { regrow: true, start: a => typeof savedStart_ === 'function' && (savedStart_(a), true) },
   shop: { regrow: true, start: a => typeof toolsStart_ === 'function' && (toolsStart_('shop', a), true) },
   reel: { regrow: true, start: a => typeof toolsStart_ === 'function' && (toolsStart_('reel', a), true),
-    started: [() => typeof reelsWatch_ === 'function' && reelsWatch_()],
-    paged: n => { if (typeof reelAhead_ === 'function') { try { reelAhead_(n); } catch (e) { oops_(e, 'shell:goPage') } } },
-    slid: () => { if (typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_); } },
+    started: [() => typeof window.reelsWatch_ === 'function' && window.reelsWatch_()],
+    paged: n => { if (typeof window.reelAhead_ === 'function') { try { window.reelAhead_(n); } catch (e) { oops_(e, 'shell:goPage') } } },
+    slid: () => { if (typeof window.reelsWatch_ === 'function') afterSlide_(window.reelsWatch_); } },
   /* the camera is a page of the feed: started when its page arrives, put at rest at once when the page turns away (docs/history/341) */
-  feed: { started: [() => typeof feedCamWatch_ === 'function' && feedCamWatch_()],
-    slid: n => { if (typeof feedCamWatch_ === 'function') afterSlide_(feedCamWatch_); if (n !== 0 && typeof camRest_ === 'function') camRest_(); } },
+  feed: { started: [() => typeof window.feedCamWatch_ === 'function' && window.feedCamWatch_()],
+    slid: n => { if (typeof window.feedCamWatch_ === 'function') afterSlide_(window.feedCamWatch_); if (n !== 0 && typeof window.camRest_ === 'function') window.camRest_(); } },
   /* an admin's business records are asked for, a POST, once (js/records.js) */
   biz: { started: [() => typeof window.bizStart_ === 'function' && window.bizStart_()] },
   /* a conversation opens at its newest message, and keeps itself up to date while it is the screen you are on (`dmPoll_`) */
@@ -5989,7 +5989,7 @@ function placeNow_(which, instant, dragPx, id) {
   /* ---------- AND WHICH CARDS ARE TOO TALL FOR THE PANE THEY ARE IN § */
   if (typeof paneWatch_ === 'function') paneWatch_($('s-' + AT));
   /* THE NEXT PICTURES OF THE COLUMN IN FRONT, asked for six pages ahead — see `picsAhead_` in posts.js. § */
-  if (typeof picsAhead_ === 'function') picsAhead_(AT);
+  if (typeof window.picsAhead_ === 'function') window.picsAhead_(AT);
 
   /* ANY SCREEN NO TAB POINTS AT. index.html lists eight sections and the tab table decides which of
      them exist, so removing a tab leaves a section behind that nothing places. */
@@ -6072,9 +6072,9 @@ const PAGER = {
 
   /* ---------- AND `spotPages()` WENT FROM HERE, BECAUSE THE FEED STOPPED DRAWING IT § */
   /* COUNTED FROM `feedColumn_`, the list `screen('feed')` draws, which now holds the camera as well — one page directly above the newest post. § */
-  feed:   () => (typeof feedColumn_ === 'function' ? [].concat(feedColumn_()) : ['']).map(() => ''),
+  feed:   () => (typeof window.feedColumn_ === 'function' ? [].concat(window.feedColumn_()) : ['']).map(() => ''),
   /* ---------- THE REELS COLUMN HAD NO ENTRY HERE, AND THAT IS WHY IT MOVED DIFFERENTLY § */
-  reel:   () => (typeof reelPages_ === 'function' ? reelPages_() : ['']),
+  reel:   () => (typeof window.reelPages_ === 'function' ? window.reelPages_() : ['']),
   /* ---------- AND MESSAGES WAS THE SIXTH COLUMN TO LOSE ITS AXIS THIS WAY § */
   dm:     () => (typeof dmPages_ === 'function' ? dmPages_().map(p => p.name) : ['']),
   /* THE CAMERA, WHICH IS ONE PAGE AND IS COUNTED ANYWAY. § */
@@ -6105,15 +6105,15 @@ const PAGE_HOME = {
   /* ---------- THE NEWEST POST, PAST THE CAMERA ABOVE IT § */
   /* ---------- AND WHEN THERE IS NO POST, NOT THE CAMERA EITHER § */
   feed:    () => {
-    if (typeof feedCamAt_ !== 'function') return 0;
+    if (typeof window.feedCamAt_ !== 'function') return 0;
     /* THE NEWEST POST; with no post, the page after the camera, never the camera itself (489: camera first). */
-    const at = typeof feedPostsAt_ === 'function' ? feedPostsAt_() : feedCamAt_() + 1, n = pageCount('feed');
-    return n > at ? at : n > 1 && feedCamAt_() === 0 ? 1 : 0;
+    const at = typeof window.feedPostsAt_ === 'function' ? window.feedPostsAt_() : window.feedCamAt_() + 1, n = pageCount('feed');
+    return n > at ? at : n > 1 && window.feedCamAt_() === 0 ? 1 : 0;
   },
   /* ---------- AND `account` HAS BEEN OPENING ON SOMEBODY ELSE § */
   account: () => 0,
   /* THE FIRST REEL (414), past the pages that lead it — the widgets and an admin's "+" (`REEL_LEAD`, posts.js). */
-  reel: () => (typeof REEL_LEAD === 'number' ? REEL_LEAD : 0),
+  reel: () => (typeof window.REEL_LEAD === 'number' ? window.REEL_LEAD : 0),
 };
 /* ---------- THE TAB AND HOME-SCREEN ICON ARE THE REPO'S FILES (owner's logo, 6 Nov): a sheet `logo_square` still drives posts and avatars, never these. */
 function applyBrandIcon_() {
@@ -7989,7 +7989,7 @@ function loadFinish_(kept) {
     });
     aheadOpen_(); if (kept) payloadFind_();
   }
-  openSharedPost();     // if the app was opened on a shared link, go to that post
+  if (typeof window.openSharedPost === 'function') window.openSharedPost();     // if the app was opened on a shared link, go to that post
   try { openSharedTutor(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // or on a tutor's own link (400)
   try { if (typeof pushLanding_ === 'function') pushLanding_(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // or on a tapped notification (492, push.js)
   /* AND BACK TO THE QUESTION A RELOAD TOOK YOU AWAY FROM — once a visit, on the first payload that
@@ -8539,11 +8539,11 @@ function kcFour_(x, rest, main, flat) {
     || tile_({ icon: 'star', label: 'Save', act: 'fav', off: true, data: { key: (x && x.key) || '', kind: (x && x.kind) || 'item' } });
   /* A CARD IS STATIC (owner, 10 Nov): with no main of its own, Share leads; the card already shows everything it holds. */
   const lead = main || pick(t => kcAct_(t) === 'card-share') || tile_({ icon: 'share', label: 'Share', act: 'card-share', off: !(x && x.key), data: { key: (x && x.key) || '' } });
-  /* WHAT IS NOT A TILE (a verdict, a slot) stays beside the rest, behind ⋯. */
+  /* EVERY OTHER ACTION IS ITS OWN VISIBLE TILE (owner, 13 Nov): no hidden menu; the fixed three lead, the rest wrap under them. */
   const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
-  /* `flat` (a question, owner 13 Nov): every action a visible tile, nothing behind ⋯. */
   const rest2 = all.join('') + left;
-  return `<span class="kc-four">${lead}${msg}${star}${flat ? rest2 : tile_({ icon: 'more', label: 'More', act: 'kc-more' })}</span><span class="kc-more" hidden>${flat ? '' : rest2}</span>`;
+  /* `flat` (a question): every tile in its one row; otherwise the rest wrap visibly under the fixed three. */
+  return `<span class="kc-four">${lead}${msg}${star}${flat ? rest2 : ''}</span>${flat ? '' : `<span class="kc-more">${rest2}</span>`}`;
 }
 /* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
 /* `o`: { flat, look, key } -- a question's row is its tool row (`.qt-row`, its key on it) with every tile shown. */
@@ -8716,9 +8716,6 @@ function kcFactsWatch_() {
       seen.forEach(redo);
     } catch (e) { oops_(e, 'card:facts'); } finally { busy = false; } }).observe(document.body, { subtree: true, childList: true, characterData: true });
 }
-/* ⋯ IS A CARD'S ONLY TOGGLE (owner, 10 Nov): a wrapping row of the other round buttons, under the row. */
-on('kc-more', el => { const c = el.closest('.kc-row, .tile-row'), m = c && c.querySelector('.kc-more'); if (!m) return;
-  m.hidden = !m.hidden; el.setAttribute('aria-expanded', m.hidden ? 'false' : 'true'); });
 /* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
 function findCard(x, credits) {
   /* A PANEL (card_) KEEPS ITS OWN INSIDES: a DM thread is kind `msg`, and Find's message door (KC_AROUND) drew it empty. */
@@ -9387,7 +9384,7 @@ function signedOut_(opts) {
   try { if (typeof subForget_ === 'function') subForget_(); } catch (e) { oops_(e, 'me:signedOut_') }
   try { if (typeof kpClose_ === 'function') kpClose_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* AND THE CAMERA, which is kept parked while the app is open (427) — the next person's phone light is not this one's. */
-  try { if (typeof camStop_ === 'function') camStop_(); } catch (e) { oops_(e, 'me:signedOut_') }
+  try { if (typeof window.camStop_ === 'function') window.camStop_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* AND THE KEYPAD'S UNDO (`KP_UNDO`, keypad.js), as the pen's held Clears go (`padWhoChanged_`). § */
   try { if (typeof KP_UNDO !== 'undefined') KP_UNDO.clear(); } catch (e) { oops_(e, 'me:signedOut_') }
   try { if (typeof closeSheet === 'function') closeSheet(); } catch (e) { oops_(e, 'me:signedOut_') }
@@ -10466,7 +10463,7 @@ function kidListSec_(held) {
 }
 function childManageCard_() {
   const held = !!pendingAddr_();
-  return card_(`<div class="kid-card kid-manage">
+  return meCard_(`<div class="kid-card kid-manage">
     <h3>Manage your child</h3>
     ${kidListSec_(held)}
     ${held ? kidHeldSec_() : kidAddSec_()}
@@ -10582,7 +10579,7 @@ const libFieldsOf_ = groups => [].concat(...Object.keys(groups || {}).map(g => g
 /* ---------- READING ALOUD (453, 463) — no choice: the device's calmest natural voice, free; a sample is all there is to do ---------- */
 function voiceCard_() {
   if (!canSay_()) return '';
-  return card_(`<div class="voice-card"><h3>Reading aloud</h3>
+  return meCard_(`<div class="voice-card"><h3>Reading aloud</h3>
     <div class="tile-row">${tile_({ icon: 'speak', label: 'Hear a sample', note: 'the reading voice', act: 'voice-try' })}</div></div>`);
 }
 const VOICE_SAMPLE = 'Hello. This is how your questions will be read. For example: x² ÷ 4 is less than 3/4.';
@@ -10617,11 +10614,11 @@ function lockCard_(h) {
     .replace(/(<[a-z]+\b[^>]*?)\sid="/g, '$1 data-lock-id="');
 }
 /* YOUR CARD'S PLACE ON A LOCKED COLUMN: its title only — a placeholder has no card to draw. */
-const lockedOwnCards_ = col => (OWN_SEC_OF_SET_[col] || []).map(k => card_(`<div class="own-lock" data-lay-card="own:${col}:${k}"><h3>${esc(OWN_SEC_TITLE_[k] || k)}</h3></div>`));
+const lockedOwnCards_ = col => (OWN_SEC_OF_SET_[col] || []).map(k => meCard_(`<div class="own-lock" data-lay-card="own:${col}:${k}"><h3>${esc(OWN_SEC_TITLE_[k] || k)}</h3></div>`));
 /* EACH SETTINGS COLUMN'S CARDS FOR ITS ROLE, built the same way as for a holder (`staffPages_`, `familyPages_`, `youSettingsPages_`). */
 const LOCKED_DRAW_ = {
-  staff: () => lockedOwnCards_('staff').concat([card_(`<div class="staff-top"><h3>Staff hub</h3>${
-    typeof hubBlock_ === 'function' ? hubBlock_() : ''}</div>`)]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
+  staff: () => lockedOwnCards_('staff').concat([meCard_(`<div class="staff-top"><h3>Staff hub</h3>${
+    typeof window.hubBlock_ === 'function' ? window.hubBlock_() : ''}</div>`)]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
   family: () => lockedOwnCards_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family')),
   account: () => lockedOwnCards_('account').concat(youSettingsPages_()),
 };
@@ -10642,7 +10639,7 @@ screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_
 function applyCard_() {
   const open = typeof applyFormOpen_ === 'function' && applyFormOpen_();
   const body = open ? applyFormHtml_() : typeof applyOpts_ === 'function' && applyOpts_() ? tileRow_(tile_(applyOpts_()), 'apply-tiles') : '';
-  const h = body ? card_(`<div class="apply-card" data-yours="1"><h3>Apply to teach</h3><p class="note">Teach with us: tell us what you teach, and we will be in touch.</p>${body}</div>`) : '';
+  const h = body ? meCard_(`<div class="apply-card" data-yours="1"><h3>Apply to teach</h3><p class="note">Teach with us: tell us what you teach, and we will be in touch.</p>${body}</div>`) : '';
   /* AN APPLICATION IS THE ASKER'S OWN (`applyTeach`), so in the lens it is shown shut. */
   return h ? [lensOn_() ? lockCard_(h) : h] : [];
 }
@@ -10652,9 +10649,9 @@ function staffPages_() {
   if (!whose_()) return [signedOutCard_(title)].concat(lockedPages_('staff'));
   /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyOpts_`), then every card shut (467). */
   if (!whoseAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
-  const hub = typeof hubBlock_ === 'function' ? hubBlock_() : '';
-  const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
-  const top = hub ? [card_(`<div class="staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`)] : [];
+  const hub = typeof window.hubBlock_ === 'function' ? window.hubBlock_() : '';
+  const warn = typeof window.hubWarn_ === 'function' ? window.hubWarn_() : '';
+  const top = hub ? [meCard_(`<div class="staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`)] : [];
   const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
@@ -10662,7 +10659,7 @@ screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('
 
 /* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
 function apprenticePages_() {
-  return [card_(`<div class="appr-set"><p class="note">${
+  return [meCard_(`<div class="appr-set"><p class="note">${
     esc(brand('apprentice_blurb', 'Work experience with us. Coming soon.'))}</p></div>`)];
 }
 screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? cardsOf_('apprentice') : apprenticePages_()));
@@ -10673,7 +10670,7 @@ function webProfilePages_() {
   const name = b.name || brand('name', '@family.'), logo = brandLogo_();
   const lines = [brand('web_tagline', 'Tutoring for every age, at home and online.'), b.area ? 'Where: ' + b.area : '',
     b.phone ? 'Phone: ' + b.phone : '', b.site ? 'Online: ' + b.site : ''].filter(Boolean);
-  return [card_(`<div class="web-card"><h3>${esc(name)}</h3>${logo ? `<img class="web-logo" alt="" src="${esc(logo)}">` : ''}${
+  return [meCard_(`<div class="web-card"><h3>${esc(name)}</h3>${logo ? `<img class="web-logo" alt="" src="${esc(logo)}">` : ''}${
     ''}</div>`)];
 }
 screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web') : webProfilePages_()));
@@ -10681,8 +10678,8 @@ screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web'
 /* ---------- APPRENTICE PROFILE (730): a card per apprentice an admin is sent (`everyone`, role Apprentice); none yet is a line from brand() ---------- */
 function apprenticeProfilePages_() {
   const all = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title && /apprentice/i.test(String(p.role || '')));
-  if (all.length) return all.map(p => card_(`<div class="appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="qtags">${qtag_(`@${esc(p.handle)}`, '', `prof-handle`)}</p>` : ''}</div>`));
-  return [card_(`<div class="appr-card people-none">${
+  if (all.length) return all.map(p => meCard_(`<div class="appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="qtags">${qtag_(`@${esc(p.handle)}`, '', `prof-handle`)}</p>` : ''}</div>`));
+  return [meCard_(`<div class="appr-card people-none">${
     empty_(brand('apprentices_none', 'No apprentices yet.'))}</div>`)];
 }
 screen('apprentices', () => pages('apprentices', typeof cardsOf_ === 'function' ? cardsOf_('apprentices') : apprenticeProfilePages_()));
@@ -10698,7 +10695,7 @@ function sitePages_() {
   return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
     .concat(typeof inboxCard_ === 'function' ? [inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
-    .concat([card_(`<div class=""><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`)]);
+    .concat([meCard_(`<div class=""><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`)]);
 }
 
 /* ---------- STABILITY (730): data/stability.json, written by tools/stability.js, read the first time the card is drawn ---------- */
@@ -10717,10 +10714,10 @@ function stabilityCard_() {
     } catch (e) { STAB.failed = true; }
   }
   const s = STAB.got, head = '<h3>Stability</h3>';
-  if (!s) return card_(`<div class="biz stability-card">${head}${STAB.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`);
+  if (!s) return meCard_(`<div class="biz stability-card">${head}${STAB.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`);
   const sig = (s.signals || []).filter(x => x.off > 0);
   const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} ${qtag_(`−${esc(String(x.off))}`)}</li>`;
-  return card_(`<div class="biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
+  return meCard_(`<div class="biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
     ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`);
 }
@@ -10755,7 +10752,7 @@ function rolesCard_() {
 `
     + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'roles-save' })}</div>` : '';
   const said = rolesSaid_();
-  return card_(`<div class="roles-card">
+  return meCard_(`<div class="roles-card">
     <h3>Your roles</h3>
     ${picks}
     ${picks || said ? `<p class="note roles-said" aria-live="polite">${esc(said)}</p>` : ''}
@@ -10950,7 +10947,7 @@ const STAFF_GROUP_NAMES_ = { 'Contact & address': 'Where you teach', 'About you'
 function settingsSplit_() {
   const shown = notLibrary_(cardSettingsGroups_(myGroups_(), ownCardFields_()));
   /* AND STAFF SET THEIR WEEK ON THE AVAILABLE CARD (487), so it is not drawn twice — but that card needs a tutor row, which a new tutor lacks. */
-  if (typeof hubFor_ === 'function' && hubFor_() && cardMine_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
+  if (typeof window.hubFor_ === 'function' && window.hubFor_() && cardMine_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
   const out = { you: {}, parent: {}, staff: {} };
   Object.keys(shown).forEach(g => {
     if (!shown[g].length) return;
@@ -11065,7 +11062,7 @@ function studentSetPages_() {
   }
   const who = nameBesideHandle_(whose_().name, whose_().handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
-  let top = card_(`<div class="signed-in"><h3>Signed in</h3>
+  let top = meCard_(`<div class="signed-in"><h3>Signed in</h3>
     ${tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
       + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)}
     ${/* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
@@ -11480,8 +11477,29 @@ function setCard_(o) {
   const save = o.save ? `<div class="tile-row set-save">${o.save}</div>` : '';
   const body = o.form == null ? (o.body || '') + save
     : `<div class="me-form"${o.formAttrs || ''}>${o.form}${save}${o.foot == null ? '<p class="note me-said"></p>' : o.foot}</div>`;
-  return card_(`<div class="set-shape${o.cls ? ' ' + o.cls : ''}"${o.attrs || ''}><h3 class="set-title">${esc(o.title || '')}</h3>${o.lead || ''}${body}${o.after || ''}</div>`);
+  return renderCard({ kind: 'setting', look: 'set-shape' + (o.cls ? ' ' + o.cls : ''), name: o.title || '', tags: [o.title || ''], data: meData_(o.attrs),
+    body: [{ type: 'embed', tool: 'me-form', args: { draw: () => (o.lead || '') + body + (o.after || '') } }] });
 }
+/* ONE TEMPLATE FOR SETTINGS AND ACCOUNT CARDS (owner, 13 Nov): a spec through renderCard; the form is its one embed, drawn by a function so no spec string holds markup. */
+CARD_EMBEDS['me-form'] = a => (a && typeof a.draw === 'function' ? String(a.draw() || '') : '');
+const meUnesc_ = v => String(v).replace(/&quot;/g, '"').replace(/&#0*39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+/* A WRAPPER'S data-* ATTRIBUTES (data-lay-card, data-pid) stay on the card, which renderCard escapes again. */
+function meData_(attrs) {
+  const d = {};
+  String(attrs || '').replace(/\sdata-([\w-]+)="([^"]*)"/g, (m, k, v) => { d[k] = meUnesc_(v); return m; });
+  return d;
+}
+/* A SETTINGS CARD WRITTEN AS ONE <div> WITH A HEADING becomes a spec: the heading its name, the class its look, the rest its embed. */
+function meSpec_(html, called) {
+  const cut = typeof kcSplit_ === 'function' ? kcSplit_(String(html || '').trim()) : null;
+  if (!cut) return { kind: 'setting', name: String(called || ''), body: [{ type: 'embed', tool: 'me-form', args: { draw: () => String(html || '') } }] };
+  const name = meUnesc_(String(cut.head || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()) || String(called || '');
+  const id = (/\sid="([^"]*)"/.exec(cut.attrs || '') || [])[1];
+  return { kind: 'setting', look: cut.cls || '', name, tags: name ? [name] : [], data: meData_(cut.attrs), id: id ? meUnesc_(id) : '',
+    body: [{ type: 'embed', tool: 'me-form', args: { draw: () => (cut.pic || '') + (cut.tags || '') + (cut.lines || '') } }] };
+}
+cardKind_('me-card', x => meSpec_(x && x.html, x && x.name));
+const meCard_ = (html, kind, called) => renderCard(meSpec_(html, called));
 const shelfFilled_ = (value, names) => names.some(f => String(value(f) ?? '').trim() !== '');
 
 on('shelf-more', el => {
@@ -12676,7 +12694,7 @@ function pfpTake_(box, url, said) {
   const onCard = !!(box && box.closest && box.closest('.card-ed'));
   if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''), said, { fold: onCard });
   /* NOT WHILE THE PICKER IS ON YOUR OWN CARD'S EDIT (docs/history/339) — which is where it is now, for everybody. § */
-  try { if (typeof postFacesMine_ === 'function') postFacesMine_(); } catch (e) { oops_(e, 'me:pfpTake_') }
+  try { if (typeof window.postFacesMine_ === 'function') window.postFacesMine_(); } catch (e) { oops_(e, 'me:pfpTake_') }
   if (onCard) return;
   try { if (typeof paint === 'function') paint('account'); } catch (e) { oops_(e, 'me:pfpTake_') }
 }
@@ -13020,11 +13038,11 @@ function cardEditHtml_(t) {
   const base = cardBaseNow_(e);
   if (!base) {
     if (!e.err) setTimeout(() => cardFetch_(e), 0);
-    return card_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}${
+    return meCard_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}${
       e.err ? `<p class="note me-said">${esc(e.err)}</p>` : loading_()}</div><div class="tile-row ce-tiles">${tile_(cardSaveOpts_(pid, true))}</div>`);
   }
   const { vals, held } = cardValues_(e, base);
-  return card_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}
+  return meCard_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}
     <div class="me-form" data-draw="${cardDrawn_(base)}">${cardEditForm_(t, e, vals)}
       <p class="note me-said">${held ? esc(SET_HELD_SAY) : ''}</p></div>
   </div><div class="tile-row ce-tiles">${tile_(cardSaveOpts_(pid, false))}</div>`);
@@ -13630,7 +13648,7 @@ function peopleAddPage_(col) {
   const F = PEOPLE_FORM_, plus = addCard_({ act: 'person-add', label: PEOPLE_ADD_[col].say, data: { col } });
   if (F && !F.id && (F.col || 'students') !== col) return plus;
   if (F && !F.id && F.made) {
-    return card_(`<div class="person-made"><h3>${esc(F.made.first)} is on the people tab</h3>
+    return meCard_(`<div class="person-made"><h3>${esc(F.made.first)} is on the people tab</h3>
       ${pinSlip_(F.made.first, F.made.handle, F.made.pin)}
       <p class="note">Write it down or read it to them — the PIN is not shown again.</p>
       ${tile_({ form: true, label: 'Done', act: 'person-cancel', kind: 'quiet' })}</div>`);
@@ -13686,7 +13704,7 @@ function psResults_(col) {
 function peopleSearchPage_(col) {
   if (!USER) return '';
   const c = col || 'students', S = psState_(c);
-  return card_(`<div class="ps-card" data-ps-col="${esc(c)}">
+  return meCard_(`<div class="ps-card" data-ps-col="${esc(c)}">
     <div class="ps-bar">${searchPill_(`data-psearch aria-label="Find someone by handle" placeholder="@handle" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(S.q)}"`)}</div>
     <div class="ps-out" aria-live="polite">${psResults_(c)}</div>
   </div>`);
@@ -13747,7 +13765,7 @@ function personFormHtml_(F) {
   const head = `<h3>${F.id ? 'Edit ' + esc((F.data && F.data.person && F.data.person.firstName) || 'them') : 'A new person'}</h3>`;
   if (!F.data) {
     if (!F.asked && !F.err) { F.asked = true; setTimeout(() => personFetch_(F), 0); }
-    return card_(`<div class="person-form" data-pid="${esc(F.id)}">${head}${F.err
+    return meCard_(`<div class="person-form" data-pid="${esc(F.id)}">${head}${F.err
       ? `${tile_({ form: true, label: 'Close', act: 'person-cancel', kind: 'quiet' })}` : loading_()}</div>`);
   }
   const p = F.data.person || { firstName: '', lastName: '', roles: [F.role || 'student'], email: '', dob: '', parentIds: [] };
@@ -13757,7 +13775,7 @@ function personFormHtml_(F) {
   const kid = (p.roles || []).indexOf('student') !== -1;
   const box = (k, ph, v, type) => formLine_('', formInput_(`data-pf="${k}" placeholder="${esc(ph)}"
     autocomplete="off"${type ? ` type="${type}"` : ''} value="${esc(v || '')}"`));
-  return card_(`<div class="person-form" data-pid="${esc(F.id)}">${head}
+  return meCard_(`<div class="person-form" data-pid="${esc(F.id)}">${head}
     <div class="f-row" style="--n:2">${box('first', 'First name', p.firstName)}${box('last', 'Last name', p.lastName)}</div>
     <div class="pf-roles" role="group" aria-label="Role">${peopleRolePicks_().map(([r, label]) => formTick_(`data-pf-role="${r}"${(p.roles || []).indexOf(r) !== -1 ? ' checked' : ''}`, `<span>${label}</span>`)).join('')}</div>
     ${box('email', 'Email (optional)', p.email, 'email')}
@@ -14027,7 +14045,7 @@ function personAddCard_() {
   if (!personAddMay_()) return '';
   const F = paState_(), v = k => esc(F.v[k] || '');
   if (F.made) {
-    return card_(`<div class="is-prof prof-door pa-card"><h3>${esc(F.made.first)} is added</h3>
+    return meCard_(`<div class="is-prof prof-door pa-card"><h3>${esc(F.made.first)} is added</h3>
       ${F.made.pin ? pinSlip_(F.made.first, F.made.handle, F.made.pin) + '<p class="note">Write it down or read it to them — the PIN is not shown again.</p>'
         : `<p class="note">The PIN went to ${esc(F.made.email)}, with the handle @${esc(F.made.handle)}.</p>`}
       ${F.made.said ? `<p class="note">${esc(F.made.said)}</p>` : ''}
@@ -14035,7 +14053,7 @@ function personAddCard_() {
   }
   const kid = F.role === 'student', tutor = F.role === 'tutor';
   const box = (k, ph, type) => formLine_('', formInput_(`data-pa="${k}" placeholder="${esc(ph)}" autocomplete="off"${type ? ` type="${type}"` : ''} value="${v(k)}"`));
-  return card_(`<div class="is-prof prof-door pa-card"><h3>Add a person</h3>
+  return meCard_(`<div class="is-prof prof-door pa-card"><h3>Add a person</h3>
     ${box('first', 'First name')}${box('last', 'Last name')}
     ${formLine_('Role', formSelect_('data-pa="role"', PA_ROLES_.map(([r, l]) => `<option value="${r}"${r === F.role ? ' selected' : ''}>${l}</option>`).join('')))}
     ${box('email', kid ? 'Email (optional)' : 'Email', 'email')}
@@ -14122,2184 +14140,8 @@ on('pe-link', el => peFamSend_(el, 'linkChild', el.getAttribute('data-want') ===
 on('pe-unlink', el => sure_(el, 'Tap again to confirm') && peFamSend_(el, 'adminUnlinkFamily', el.getAttribute('data-side') || '', (l, id) => l.filter(x => String(x) !== id)));
 
 ;
-/* ==== js/posts.js ==== */
-/* @family. — posts.js ONE FILE, SPLIT. § */
-
-/* ---------- POSTS § */
-
-/* A Google Drive share link is a page, not a picture — pasting one into an <img> gives a broken
-   image every time. This turns it into the direct thumbnail. Anything that is already a plain URL
-   passes straight through. */
-function pic(url) {
-  const u = String(url || '').trim();
-  if (!u) return '';
-  const id = (u.match(/\/file\/d\/([\w-]{20,})/) || u.match(/[?&]id=([\w-]{20,})/) || [])[1];
-  return id ? 'https://lh3.googleusercontent.com/d/' + id + '=w1200' : u;
-}
-
-/* THE FEED, IN ORDER. The sheet's row order is Drive's iteration order, which is not chronological and not anything — February posts were sitting between June § */
-/* ---------- ONE POST, AS A CARD § */
-/* ---------- EVERY PICTURE AND CLIP ON A POST, AS ONE LIST § */
-function postMedia_(p) {
-  const list = Array.isArray(p && p.media) && p.media.length ? p.media : [p && p.image];
-  return list.map(x => String(x || '').trim()).filter(Boolean);
-}
-/* A CLIP IS MARKED `#video` BY THE BACKEND THAT UPLOADED IT, because a Drive address names no type;
-   an address typed in is a clip if it ends like one. */
-const postIsVideo_ = u => /#video$/i.test(u) || /\.(mp4|webm|mov|m4v)(?:[?#]|$)/i.test(u);
-/* THE ADDRESS A `<video>` IS POINTED AT. § */
-function postVidSrc_(u) {
-  const bare = String(u || '').replace(/#video$/i, '');
-  const id = (bare.match(/\/file\/d\/([\w-]{20,})/) || bare.match(/[?&]id=([\w-]{20,})/) || [])[1];
-  return id ? 'https://drive.usercontent.google.com/download?id=' + id + '&export=download' : bare;
-}
-/* ONE ITEM, drawn as a picture or as a clip. § */
-function postItem_(u, cls, eager) {
-  if (postIsVideo_(u)) {
-    return `<video class="${cls} post-vid" src="${esc(postVidSrc_(u))}"
-      data-open="${esc(String(u).replace(/#video$/i, ''))}" controls playsinline preload="metadata"></video>`;
-  }
-  return `<img class="${cls}" src="${esc(pic(u))}" alt="" loading="${eager ? 'eager' : 'lazy'}" decoding="async">`;
-}
-/* ---------- SEVERAL OF THEM, IN A GRID RATHER THAN A STRIP § */
-/* ---------- THE NEXT POSTS' PICTURES ARE ASKED FOR BEFORE YOU REACH THEM § */
-const PICS_BACK = 2, PICS_AHEAD = 6, PICS_DECODE = 2;
-function picsAhead_(id) {
-  try {
-    const host = $('s-' + id);
-    if (!host) return;
-    const pages = host.querySelectorAll(':scope > .page');
-    if (!pages.length) return;
-    const at = PAGE[id] || 0;
-    const k = typeof domIndex_ === 'function' ? domIndex_(id, at) : at;
-    const dir = (typeof AHEAD !== 'undefined' && AHEAD.dir.y[id]) || 1;
-    const lit = new Set(typeof GLASS !== 'undefined' && GLASS.at === AT ? GLASS.pages : []);
-    for (let j = -PICS_BACK; j <= PICS_AHEAD; j++) {
-      const pg = pages[k + dir * j];
-      if (!pg) continue;
-      const low = !lit.has(pg);
-      pg.querySelectorAll('img').forEach(img => {
-        if (img.loading === 'lazy') img.loading = 'eager';
-        if (low) { if (img.getAttribute('fetchpriority') !== 'low' && !img.complete) img.setAttribute('fetchpriority', 'low'); }
-        else if (img.getAttribute('fetchpriority') === 'low') img.removeAttribute('fetchpriority');
-      });
-    }
-  } catch (e) { /* a picture fetched on arrival is still a picture */ }
-}
-
-/* ---------- AND IN THE QUIET: THE NEXT TWO DECODED, THE COLUMNS BESIDE, THEN EVERY OTHER COLUMN § */
-/* ---------- AND A CARD FILLED AFTER THE PLACEMENT IS ASKED FOR AS IF THE PLACEMENT HAD SEEN IT § */
-const PICS_ASKED = new WeakSet();
-function picsWant_(id) {
-  const host = $('s-' + id);
-  if (!host) return null;
-  const pages = host.querySelectorAll(':scope > .page');
-  if (!pages.length) return null;
-  const ti = TABS.findIndex(t => t.id === AT), ci = TABS.findIndex(t => t.id === id);
-  if (ci < 0) return null;
-  const at = PAGE[id] || 0;
-  const k = typeof domIndex_ === 'function' ? domIndex_(id, at) : at;
-  const wide = typeof WIDE !== 'undefined' && WIDE;
-  const beside = id !== AT && (wide ? (typeof GLASS !== 'undefined' && GLASS.cols.indexOf(id) !== -1) : Math.abs(ci - ti) === 1);
-  const eager = [], decode = [];
-  if (id === AT) {
-    const dir = (typeof AHEAD !== 'undefined' && AHEAD.dir.y[id]) || 1;
-    for (let j = -PICS_BACK; j <= PICS_AHEAD; j++) if (pages[k + dir * j]) eager.push(pages[k + dir * j]);
-    for (let j = 1; j <= PICS_DECODE; j++) if (pages[k + dir * j]) decode.push(pages[k + dir * j]);
-  } else {
-    const hi = beside ? 2 : 4;
-    for (let j = -1; j <= hi; j++) if (pages[k + j]) eager.push(pages[k + j]);
-    if (beside && wide && pages[k]) decode.push(pages[k]);
-  }
-  return { eager, decode };
-}
-function picsTodo_(w) {
-  return !!w && (w.eager.some(pg => pg.querySelector('img[loading="lazy"]'))
-    || w.decode.some(pg => [...pg.querySelectorAll('img')].some(img => !PICS_ASKED.has(img) && !(img.complete && img.naturalWidth))));
-}
-function picsRun_(id) {
-  const w = picsWant_(id);
-  if (!w) return;
-  if (id === AT) picsAhead_(id);
-  else w.eager.forEach(pg => pg.querySelectorAll('img[loading="lazy"]').forEach(img => { img.loading = 'eager'; }));
-  w.decode.forEach(pg => pg.querySelectorAll('img').forEach(img => {
-    if (PICS_ASKED.has(img) || (img.complete && img.naturalWidth)) return;
-    PICS_ASKED.add(img);
-    if (img.loading === 'lazy') img.loading = 'eager';
-    try { if (img.decode) img.decode().catch(() => {}); } catch (e) {}
-  }));
-}
-function picsJobs_() {
-  if (typeof AHEAD_KINDS === 'undefined') return [];
-  const out = [];
-  TABS.forEach(t => {
-    if (STALE[t.id]) return;
-    const w = picsWant_(t.id);
-    if (picsTodo_(w)) out.push({ key: 'pics:' + t.id, kind: 'pics', d: aheadDist_(t.id, null), run: () => picsRun_(t.id) });
-  });
-  return out;
-}
-if (typeof AHEAD_KINDS !== 'undefined') AHEAD_KINDS.push(picsJobs_);
-function postMediaHtml_(list, i, p) {
-  if (!list.length) return '';
-  if (list.length === 1) {
-    const u = list[0];
-    if (postIsVideo_(u)) return postItem_(u, 'post-pic', i < 2);
-    /* THE PICTURE'S OWN SHAPE, EDGE TO EDGE — and 4:5 only until the file says what that is. § */
-    const sized = !!(p && p.imageW > 0 && p.imageH > 0);
-    return `<img class="post-pic" src="${esc(pic(u))}" alt="" width="${sized ? Math.round(p.imageW) : 800}" height="${sized ? Math.round(p.imageH) : 1000}"
-           decoding="async" loading="${i < 2 ? 'eager' : 'lazy'}">`;
-  }
-  return `<div class="post-grid${list.length % 2 ? ' is-odd' : ''}">${
-    list.map((u, k) => postItem_(u, 'post-cell', i < 2 && k < 2)).join('')}</div>`;
-}
-/* A CLIP DRIVE WOULD NOT HAND OVER BECOMES A LINK TO IT, not a black box with a play button that does nothing. § */
-function postVidFail_(v) {
-  if (!v || v.dataset.dead) return;
-  v.dataset.dead = '1';
-  const href = v.dataset.open || '';
-  const a = document.createElement('a');
-  a.className = v.className.replace('post-vid', 'post-vid-out');
-  a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.dataset.do = 'file-view';
-  a.textContent = '\u25b6 Open the video';
-  v.replaceWith(a);
-}
-document.addEventListener('error', e => {
-  const v = e.target;
-  if (v && v.matches && v.matches('video.post-vid')) postVidFail_(v);
-}, true);
-
-/* A PERSON'S FACE AND NAME FROM THEIR PROFILE ROW in the payload, by id (1040 r10); a post's own copy only when no list has them. */
-const profileOf_ = id => { const r = id && ['people', 'tutors', 'family', 'students', 'clients', 'everyone'].map(k => ((DATA || {})[k] || []).find(x => x && String(x.personId || x.person_id || '') === String(id))).find(Boolean);
-  return r ? { pic: r.image != null ? r.image : r.photo, avatar: r.avatar, handle: r.handle } : null; };
-/* THE AUTHOR'S FACE, READ AT DRAW TIME (474): your own post wears the picture on your account now, not the one the post was sent with; the brand's mark only for the business. */
-function postFaceWho_(p, who) {
-  const id = String((p && p.authorId) || '');
-  const me = id && typeof USER !== 'undefined' && USER && String(USER.personId || '') === id;
-  if (me) {
-    const now = String(USER.photo || (USER.profile || {}).photo || '');
-    return { pic: now, avatar: USER.avatar || '', handle: USER.handle || p.handle, name: who, personId: id };
-  }
-  const at = profileOf_(id) || { pic: p.avatar, avatar: p.figure, handle: p.handle };
-  if (id) return { pic: at.pic || '', avatar: at.avatar, handle: at.handle || p.handle, name: at.handle || who, personId: id };
-  return { pic: brandLogo_(), avatar: p.figure, handle: p.handle, name: who };
-}
-function postFace_(p, who) {
-  const f = postFaceWho_(p, who);
-  return personFace_(f, { cls: 'post-face', none: 'none', size: 30 })
-    .replace(/^<(img|span) class="/, '<$1 data-face-of="' + esc(f.personId || '') + '" class="');
-}
-/* A NEW PICTURE ON THE ACCOUNT REDRAWS YOUR FACES ON THE FEED where they stand — `pfpTake_` (me.js) calls this. */
-function postFacesMine_() {
-  if (typeof USER === 'undefined' || !USER || !USER.personId) return;
-  const id = String(USER.personId);
-  document.querySelectorAll('[data-face-of="' + id + '"]').forEach(el => {
-    const p = (DATA.posts || []).find(x => String(x.authorId || '') === id) || { authorId: id };
-    el.outerHTML = postFace_(p, p.handle || p.author || USER.name);
-  });
-}
-
-function postCard_(p, i) {
-    const media = postMedia_(p);
-    /* The author's face, or the brand's mark when the post is the business speaking. A column of
-       blank circles is the thing that makes a feed look unfinished. */
-    const who = (profileOf_(p.authorId) || {}).handle || p.handle || p.author || brand('name', '@family.');
-    /* ---------- THROUGH `personFace_`, THE ONE FUNCTION EVERY FACE GOES THROUGH § */
-    const faceHtml = postFace_(p, who);
-
-    /* ---------- THE FACES' SLOT, BUILT ONCE BECAUSE IT GOES IN ONE OF TWO PLACES § */
-    const acts = reacts(p) || '';
-    const actsHtml = acts ? `<div class="post-acts">${acts}</div>` : '';
-
-    /* The order is Instagram's, and it is right: § */
-    /* WAITING FOR APPROVAL (413): a dotted outline and a line saying so — only its author and an admin are ever sent one. */
-    return `<article class="post${p.waiting ? ' is-pending' : ''}" data-post="${esc(p.id)}">
-      ${p.waiting ? `<p class="post-pending" role="status">Waiting for approval${isAdmin() ? '' : ' · only you and the admin can see it'}</p>` : ''}
-      <header class="post-by">
-        ${faceHtml}
-        <span class="post-nm">
-          ${/* No "· deleted" any more: a deleted post is not drawn at all, so nothing reaching
-                 here can be one. */''}
-          <span class="post-who">${esc(who)}${p.pinned
-            ? ' ' + qtag_('pinned') : ''}${p.refused
-            ? ' <span class="post-wait">· not put up</span>' : ''}</span>
-          ${p.location ? `<span class="post-where">${esc(p.location)}</span>` : ''}
-        </span>
-        ${/* THE ⋯ STOOD HERE — "one glyph, at the end of the row where it does not compete with the picture; a post is looked at a hundred times for every time it is § */
-              ''}
-      </header>
-
-      ${/* A SHAPE BEFORE IT LOADS. § */
-             ''}
-      ${postMediaHtml_(media, i, p)}
-
-      ${/* THE FACES, DIRECTLY UNDER THE PICTURE — the place the heart held, where the eye already goes and where the thing you can do about a photograph belongs. § */
-            ''}
-      ${media.length ? actsHtml : ''}
-
-      ${/* The name leads the caption, as it does everywhere — but ONLY when there is a caption.
-            Without a caption it was printing the name on its own under the picture, which is the
-            name said twice and answers nothing. */''}
-      ${p.caption ? `<p class="post-cap"><b>${esc(who)}</b> ${mark(p.caption)}</p>` : ''}
-      ${p.poll ? poll(p) : ''}
-      ${p.body ? `<p class="note">${mark(p.body)}</p>` : ''}
-      ${media.length ? '' : actsHtml}
-      ${postWhen_(p)}
-      ${/* WHAT YOU CAN DO ABOUT IT, IN ONE ROW. § */
-            ''}
-      ${postRow_(p)}
-      ${commentsHtml_(p)}
-    </article>`;
-}
-
-/* ---------- A POST AS A FIND CARD (owner, 8 Nov, 36a): cards.js's `findCard` over card-fields.json's `post` row. */
-const postWho_ = p => (profileOf_(p.authorId) || {}).handle || p.handle || p.author || brand('name', '@family.');
-/* ITS SPEC: the first picture or clip, the date and kind as tags after its facets, the words, Like and the post's own tiles. */
-cardKind_('post', x => { const p = x.row || {}, media = postMedia_(p), r = p.reactions, first = r && Array.isArray(r.emoji) && r.emoji[0];
-  const at = p.at || p.when, d = at && typeof parseWhen === 'function' ? parseWhen(at) : null, m = media[0];
-  const kind = p.poll ? 'Poll' : media.some(postIsVideo_) ? 'Clip' : media.length ? 'Photo' : 'Post';
-  const body = String(p.caption || p.body || p.text || '').trim();
-  return { look: 'post-fc' + (p.waiting ? ' is-pending' : ''), data: { post: p.id || '' },
-    picture: !m ? null : postIsVideo_(m) ? { video: postVidSrc_(m), alt: kind } : { src: pic(m), alt: '' },
-    tags: (p.title ? [{ text: p.title, colour: 0 }] : []).concat(x.key && typeof tagList_ === 'function' ? tagList_(x) : [],
-      [d && !isNaN(d) ? date_(d) : '', kind, media.length > 1 ? media.length + ' pictures' : '', p.pinned ? 'pinned' : ''].filter(Boolean).map(t => ({ text: t, look: 'msg-tag' }))),
-    body: body ? [{ type: 'text', text: { marked: body } }] : [],
-    tiles: [first ? { icon: 'heart', label: 'Like', note: first + (r.total ? ' · ' + r.total : ''), on: r.yours === first, act: 'react', data: { id: p.id, emoji: first } } : null]
-      .concat(postOpts_(p) || []).filter(Boolean) }; });
-
-/* WHAT PEOPLE SAID UNDER IT. § */
-function commentsHtml_(p) {
-  const c = p && p.comments;
-  if (!c || !Array.isArray(c.list)) return '';
-  const list = c.list;
-  const more = Math.max(0, Number(c.total || list.length) - list.length);
-
-  /* ---------- A CONVERSATION IS ONE ELEMENT, NOT A SECOND CARD § */
-  return `<div class="post-said">
-    ${list.length ? `<ul class="cmt-list">${list.map(x => `
-      <li class="cmt${x.mine ? ' mine' : ''}">
-        <p class="cmt-body"><b>${esc(displayName_(x.name))}</b> ${mark(x.body)}</p>
-        <p class="cmt-when">${qtag_(`${esc(ago(x.at) || x.at || '')}`)}${x.canRemove
-          ? tile_({ icon: 'bin', label: 'Remove', act: 'cmt-del', cls: 'cmt-x', data: { id: x.id } })
-          : ''}</p>
-      </li>`).join('')}</ul>` : ''}
-    ${/* THE ONES NOT SHOWN ARE A NUMBER RATHER THAN A SILENCE. `doGet` caps the list at sixty;
-          a conversation that simply stops at sixty with nothing saying so is a conversation
-          somebody thinks they have read. */''}
-    ${more ? `<p class="qtags">${qtag_(`${more} more`)}</p>` : ''}
-    ${/* ---------- POST IS A TILE § */
-          ''}
-    ${USER
-      ? `<div class="cmt-form">
-           ${/* A DRAFT (data.js), per post and per person: § */
-                 ''}
-           <textarea class="cmt-text" rows="1" maxlength="2000"
-             placeholder="Say something…"${draftAttr_('cmt', p.id)}>${esc(draftVal_('cmt', p.id))}</textarea>
-           ${tile_({ icon: 'send', label: 'Post', note: 'your comment', act: 'cmt-add', cls: 'cmt-go',
-                     data: { id: p.id } })}
-           <p class="note cmt-said"></p>
-         </div>`
-      : `<p class="note">Sign in to say something.</p>`}
-  </div>`;
-}
-
-/* ---------- POSTING ONE § */
-on('cmt-add', el => {
-  const form = el.closest ? el.closest('.cmt-form') : null;
-  const box  = form ? form.querySelector('.cmt-text') : null;
-  const said = form ? form.querySelector('.cmt-said') : null;
-  const text = ((box && box.value) || '').trim();
-  if (!text) { box && box.focus(); return; }
-  if (!USER) { if (said) said.textContent = 'Sign in first.'; return; }
-
-  /* THE RING, NOT A WORD. § */
-  el.disabled = true;
-  el.classList.add('is-busy');
-  const done = () => { el.disabled = false; el.classList.remove('is-busy'); };
-
-  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server answered put the comment back in
-     the box after it was on the post (`draftSent_`, data.js; the review of 317). Dropped by the reply,
-     given back by a refusal. */
-  try { draftSent_('cmt', el.dataset.id, text); } catch (e) {}
-  send({ action: 'addComment', name: USER.name, personId: USER.personId,
-         postId: el.dataset.id, body: text })
-    .then(() => { done(); if (box) { box.value = ''; box.style.height = ''; }
-                  try { draftSentDone_('cmt', el.dataset.id, text); } catch (e) {}
-                  if (said) said.textContent = ''; load(); })
-    /* THE SERVER'S OWN SENTENCE. Every refusal it can give is written for a person to read — the
-       length, the post being gone, not being signed in — and "Not posted" would throw away the
-       only part that says what to do about it. */
-    .catch(err => { done(); try { draftSentBack_('cmt', el.dataset.id, text); } catch (e) {}
-                    if (said) said.textContent = why_(err); });
-});
-
-/* TAKING ONE DOWN. `canRemove` came from the server per comment, so this button only exists where the server has already said yes — and the server checks again § */
-on('cmt-del', el => {
-  if (!USER || !sure_(el, 'Delete?')) return;
-  el.disabled = true;
-  send({ action: 'deleteComment', name: USER.name, personId: USER.personId,
-         commentId: el.dataset.id })
-    .then(() => load())
-    .catch(err => { el.disabled = false; toast(why_(err)); });
-});
-
-function feedPosts() {
-  return [...(DATA.posts || [])]
-    /* A DELETED POST IS GONE FROM THE FEED, for everybody including the admin who deleted it. § */
-    .filter(p => p.active !== false)
-    .sort((a, b) => {
-      const pin = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
-      if (pin) return pin;
-      /* `at` first — the payload's millisecond timestamp. `when` is a DAY, so two posts from the
-         same afternoon tie on it and fall back to sheet order, which after a folder scan is
-         Drive's order and no order at all. */
-      const da = parseWhen(a.at || a.when), db = parseWhen(b.at || b.when);
-      /* An undated post goes LAST, not first. Sorting a null as 0 put every unparsed date at the
-         bottom of time — which is 1970, and above everything. */
-      if (!da && !db) return 0;
-      if (!da) return 1;
-      if (!db) return -1;
-      return db - da;
-    });
-}
-
-/* ---------- THE FEED IS A FUNNEL ANSWER, NOT A COLUMN § */
-function postsBlocks() {
-  /* NOTHING LOADED YET is not the same as NOTHING TO SHOW, and the difference matters: § */
-  if (!LOADED) return [loading_()];
-
-  const posts = feedPosts();
-
-  /* THE FEED IS NEVER EMPTY WHEN SOMEBODY IS SIGNED OUT — the sign-in card is always there — so the
-     nothing-here message is only right when there is genuinely nothing and somebody to see it. */
-  if (!posts.length && USER) {
-    return [nothingHere('No posts yet.')];
-  }
-
-  /* ONE POST PER SCREEN, and the same pager the tools use. § */
-  /* THE ＋ IS ON THE FEED, not in a bar above it. § */
-  const cards = posts.map((p, i) => postCard_(p, i));
-
-  /* ---------- SPOTLIGHT IS NOT HERE ANY MORE § */
-
-  /* ---------- SIGNING IN IS NOT HERE EITHER § */
-
-  /* THE CARDS THEMSELVES. This was `pages('posts', cards)` — the screen's own pager — and there is
-     no Posts screen to page. `screen('stuff')` pages the whole funnel, and these are pages in it. */
-  return cards;
-}
-
-/* The first page of the feed, for an admin. A card rather than a glyph: it can say what it does,
-   which a ＋ in a corner cannot, and it is the width of a thumb rather than the width of a
-   fingernail. */
-/* THE CAMERA, ON THE PAGE. § */
-let CAM_STREAM = null;
-/* ---------- A QUESTION STILL OPEN, AND AN ANSWER THAT WAS NO § */
-let CAM_ASKING = false;
-let CAM_FAILED = null;
-/* ---------- WHICH WAY IT IS POINTING, AND WHY IT IS A VARIABLE NOW § */
-let CAM_FACE = 'environment';
-/* THE ANSWER IS KEPT ON THE DEVICE (427): 'granted' or 'refused'. A refusal is never asked again by arriving — only `Try the camera again` asks. */
-const CAM_KEY = 'family:cam';
-function camMinded_() { try { return localStorage.getItem(CAM_KEY) || ''; } catch (e) { return ''; } }
-function camMind_(v) { try { if (v) localStorage.setItem(CAM_KEY, v); else localStorage.removeItem(CAM_KEY); } catch (e) {} }
-/* WHAT THE BROWSER ITSELF SAYS, where it will say: 'granted', 'denied', 'prompt' or '' (no answer within a second). */
-async function camPermission_() {
-  try {
-    if (!navigator.permissions || !navigator.permissions.query) return '';
-    const s = await Promise.race([navigator.permissions.query({ name: 'camera' }),
-      new Promise(ok => setTimeout(() => ok(null), 1000))]);
-    return (s && s.state) || '';
-  } catch (e) { return ''; }
-}
-/* PARKED, NOT STOPPED (427): every new getUserMedia after a stop re-prompts on an iPhone, so off its page the stream stays and its track is switched off. */
-function camPark_() {
-  try { recStop_(); } catch (e) {}
-  try { if (CAM_STREAM) CAM_STREAM.getTracks().forEach(t => { t.enabled = false; }); } catch (e) {}
-  const v = $('cam-view'); if (v) { try { v.pause(); } catch (e) {} }
-  camLive_(false);
-}
-function camWake_() {
-  try { if (CAM_STREAM) CAM_STREAM.getTracks().forEach(t => { t.enabled = true; }); } catch (e) {}
-}
-/* IS A CAMERA ACTUALLY LOOKING — a parked stream is not. */
-function camOn_() {
-  try { return !!CAM_STREAM && CAM_STREAM.getTracks().some(t => t.enabled !== false); } catch (e) { return !!CAM_STREAM; }
-}
-
-function cameraCard() {
-  if (POST_COMPOSING) return card_(`<div class="cam-card is-composing">${postComposeHtml_()}</div>`);
-  return card_(`<div class="cam-card">
-    <h3>Camera</h3>
-    <div class="cam-stage" id="cam-stage">
-      <video id="cam-view" playsinline muted autoplay></video>
-      <canvas id="cam-still" hidden></canvas>
-      ${/* "Starting" RATHER THAN "off", BECAUSE IT IS. § */
-            ''}
-      ${/* ---------- AND AT REST IT IS A VIEWFINDER THAT IS OFF, NOT A WAIT (docs/history/341) § */
-            ''}
-      <div class="cam-off" id="cam-off"></div>
-    </div>
-    ${/* ---------- FOUR CONTROLS, WHICH IS WHAT A CAMERA HAS § */
-          ''}
-    <div class="cam-bar">
-      ${/* A LABEL, NOT A BUTTON, so the file input opens with no script at all — a `for` reaches a control the page is hiding, which is the one way to style a file § */
-            ''}
-      ${/* ROUND, LIKE THE SHUTTER (448): "I would rather it be a circular button". The word sits under the disc. */''}
-      <label class="cam-round cam-pick" for="cam-pick" title="Choose photos or videos"><span class="cam-disc" aria-hidden="true">▦</span><span class="cam-word">Photos</span></label>
-      ${/* SEVERAL, AND CLIPS AS WELL AS PHOTOGRAPHS — "tutors should be able to post more then one photo. not just one. and also videos." § */
-            ''}
-      <input type="file" id="cam-pick" data-do="cam-pick" accept="image/*,video/*" multiple hidden>
-      ${/* THE WORDS ARE IN `aria-label` AND `title` RATHER THAN IN THE DISC. A shutter with the
-            word "Photo" written across it is not a shutter, and a control with no name at all is
-            one a screen reader cannot offer. */''}
-      ${tile_({ form: true, look: 'cam-shot', act: 'cam-shoot', id: 'cam-shoot', aria: 'Take a photo', title: 'Take a photo', off: true, html: '' })}
-      ${tile_({ form: true, look: 'cam-rec', act: 'cam-video', id: 'cam-video', aria: 'Record a video', title: 'Record a video', off: true, html: '' })}
-      ${tile_({ form: true, look: 'cam-round cam-write', act: 'new-post', aria: 'Write a post', title: 'Write a post', html: '<span class="cam-disc" aria-hidden="true">✎</span><span class="cam-word">Write a post</span>' })}
-      ${tile_({ form: true, look: 'cam-side', act: 'cam-flip', id: 'cam-flip', aria: 'Switch camera', title: 'Switch camera', off: true, label: 'Switch' })}
-    </div>
-    ${/* ---------- ONE LINE ABOUT IT, BECAUSE A POST WITH NOTHING SAID ABOUT IT IS A PHOTOGRAPH § */
-          ''}
-    ${/* ---------- WHAT IS ALREADY IN THIS POST § */
-          ''}
-    <div class="cam-tray" id="cam-tray" hidden></div>
-    <input id="cam-cap" class="cam-cap" hidden
-           placeholder="One line about it" autocomplete="off" maxlength="200">
-
-    ${/* ---------- WHO IT GOES UP AS, WHICH IS THE SAME QUESTION THE COMPOSER ASKS § */
-          ''}
-    ${/* AN ADMIN'S QUESTION ONLY (413): anybody else's post is their own. */
-          typeof isAdmin === 'function' && isAdmin() ? `<span class="btn-row cam-as" id="cam-as" data-as="brand" hidden>
-      ${postAsButtons_('cam-as')}
-    </span>` : ''}
-    <div class="btn-row cam-row">
-      ${tile_({ form: true, look: 'btn quiet', act: 'cam-again', id: 'cam-again', off: true, label: 'Again' })}
-      ${/* KEEP THIS ONE AND TAKE ANOTHER. The picture goes into the tray and the viewfinder comes
-            back, so a post of five is five presses of the shutter and one of `Post it`. */''}
-      ${tile_({ form: true, look: 'btn quiet', act: 'cam-more', id: 'cam-more', off: true, label: 'Add another' })}
-      ${tile_({ form: true, act: 'cam-post', id: 'cam-post', off: true, label: 'Post it' })}
-      ${tile_({ form: true, look: 'btn quiet', act: 'cam-save', id: 'cam-save', off: true, label: 'Save a copy' })}
-      ${/* GREYED UNTIL SOMETHING FAILS. See the note at the top: this is the way back from a refused
-            prompt, not a step on the way in. */''}
-      ${tile_({ form: true, act: 'cam-on', id: 'cam-on', off: true, label: 'Try the camera again' })}
-    </div>
-    <p class="note" id="cam-said"></p>
-  </div>`);
-}
-
-/* WHY IT MIGHT NOT WORK, IN WORDS. Three refusals look identical from the outside — no camera, a
-   refused prompt, and a page that is not on HTTPS — and only the first is worth giving up over. */
-function camWhy_(err) {
-  const n = String((err && err.name) || err || '');
-  if (!window.isSecureContext) {
-    return 'The camera only works on a secure page. Open the site over https.';
-  }
-  if (/NotAllowedError|SecurityError/i.test(n)) {
-    return 'The camera was refused. Allow it for this site in the browser\u2019s address bar, then try again.';
-  }
-  if (/NotFoundError|OverconstrainedError/i.test(n)) return 'No camera on this device.';
-  if (/NotReadableError/i.test(n)) return 'Something else is using the camera.';
-  return 'The camera would not start: ' + n;
-}
-
-/* ---------- STARTING IT, FROM THE COLUMN ARRIVING OR FROM A RETRY § */
-/** @param {boolean} [asked] a tap asked for it (`Try the camera again`, Switch): a remembered refusal does not stand in the way. */
-async function camStart_(asked) {
-  const v = $('cam-view');
-  if (!v) return;
-  /* A REBUILT CARD HAS AN EMPTY TRAY while `CAM_ITEMS` still holds the post being made — `repaint` replaces the markup and keeps the state — so the tray is drawn § */
-  camHold_();
-
-  /* A STREAM THE SYSTEM ENDED while it was parked (a phone call, a long time away) is let go, and asked for afresh below. */
-  try { if (CAM_STREAM && CAM_STREAM.getTracks().some(t => t.readyState === 'ended')) camStop_(true); } catch (e) {}
-
-  /* ---------- THE MARKUP CAN BE REPLACED UNDER A LIVE STREAM § */
-  /* AND A PARKED ONE IS WOKEN, with no new ask (427) — unless a picture is being held, when it stays off until `Again`. */
-  if (CAM_STREAM) {
-    const held = $('cam-still');
-    if (held && !held.hidden) return;
-    camWake_();
-    if (v.srcObject !== CAM_STREAM) v.srcObject = CAM_STREAM;
-    try { await v.play(); } catch (e) {}
-    $('cam-off')   && ($('cam-off').hidden = true);
-    camLive_(true);
-    camWays_();
-    return;
-  }
-
-  /* A PICTURE ALREADY ON THE CARD IS NOT INTERRUPTED. Coming back to a shot you took, or a photo you
-     picked, must not have the live preview reopen underneath it and throw the picture away. */
-  const c = $('cam-still');
-  if (c && !c.hidden) return;
-
-  /* ONE QUESTION AT A TIME, AND A NO IS NOT ASKED AGAIN BEHIND YOUR BACK — see `CAM_ASKING` and `CAM_FAILED` where they are declared. § */
-  if (CAM_ASKING) return;
-  if (CAM_FAILED) { camFailed_(CAM_FAILED); return; }
-
-  let said = $('cam-said'), retry = $('cam-on');
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    /* A FACT, SO THE VIEWFINDER SAYS IT — and the loader comes out of it. § */
-    const off = $('cam-off');
-    if (off) { off.hidden = false; off.innerHTML = ''; }
-    if (said) said.textContent = '';
-    if (retry) retry.disabled = true;          // nothing a retry could change
-    camSettle_();
-    return;
-  }
-  /* A NO KEPT ON THE DEVICE, OR ONE THE BROWSER REPORTS, IS NOT ASKED AGAIN BY ARRIVING (427). A 'granted' from the browser overrules a kept no. */
-  if (!asked) {
-    CAM_ASKING = true;
-    const perm = await camPermission_();
-    CAM_ASKING = false;
-    if (perm === 'granted' && camMinded_() === 'refused') camMind_('');
-    if (perm === 'denied' || (perm !== 'granted' && camMinded_() === 'refused')) {
-      if (perm === 'denied') camMind_('refused');
-      camFailed_({ name: 'NotAllowedError' });
-      return;
-    }
-    if (CAM_ASKING || CAM_STREAM || !$('cam-view')) return;
-  }
-  said = $('cam-said'); retry = $('cam-on');
-  if (retry) retry.disabled = true;
-  /* ---------- A NEW ASK IS A WAIT AGAIN, AND IT LOOKS LIKE ONE § */
-  const off = $('cam-off');
-  if (off) { off.hidden = false; if (!off.querySelector('.loading')) off.innerHTML = loading_(); }
-  if (said) said.textContent = '';
-  CAM_ASKING = true;
-  try {
-    /* THE BACK CAMERA IF THERE IS ONE. `ideal` rather than `exact` so a laptop with one front
-       camera gets that rather than an OverconstrainedError. */
-    CAM_STREAM = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: CAM_FACE } }, audio: false });
-  } catch (err) {
-    CAM_ASKING = false;
-    CAM_STREAM = null;
-    /* REMEMBERED ONLY IF IT IS STILL THE PAGE IN FRONT. A refusal that lands after the page was left
-       belongs to a visit that is over, and the next swipe up is a fresh ask. */
-    CAM_FAILED = feedCamHere_() ? err : null;
-    /* BUT A REFUSAL IS THE PERSON'S ANSWER WHENEVER IT LANDS, and it is kept on the device (427). */
-    if (/NotAllowedError|SecurityError/i.test(String((err && err.name) || err || ''))) camMind_('refused');
-    camFailed_(err);
-    return;
-  }
-  CAM_ASKING = false;
-  camMind_('granted');
-
-  /* THE COLUMN MAY HAVE LEFT WHILE THE PROMPT WAS UP. § */
-  if (!feedCamHere_()) { camStop_(true, true); camRest_(); return; }
-
-  /* ---------- AND THE CARD MAY HAVE BEEN DRAWN AGAIN WHILE IT WAS UP § */
-  const now = $('cam-view');
-  if (!now) { camStop_(true); return; }
-  said = $('cam-said'); retry = $('cam-on');
-  now.srcObject = CAM_STREAM;
-  try { await now.play(); } catch (e) {}
-  $('cam-off') && ($('cam-off').hidden = true);
-  if (retry) { retry.disabled = true; }
-  camLive_(true);
-  if (said) said.textContent = '';
-  /* ---------- AND ONLY NOW CAN ANYBODY ASK HOW MANY CAMERAS THERE ARE § */
-  camWays_();
-}
-
-/* ---------- WHAT THE CARD SAYS WHEN THE CAMERA DID NOT START § */
-function camFailed_(err) {
-  const said = $('cam-said'), retry = $('cam-on'), off = $('cam-off');
-  if (said) said.textContent = camWhy_(err);
-  /* THE WAY BACK IS LIT ONLY NOW. Until something fails there is nothing to retry, and a button
-     offering to start a camera that is already running is the thing this replaced. */
-  if (retry) { retry.disabled = false; }
-  /* THE PANEL'S WHOLE CONTENT, NOT A LINE INSIDE IT: while it waits it holds the loader and no
-     sentence, so there is no line to find and rewrite. */
-  if (off) { off.hidden = false; off.innerHTML = ''; }
-  /* A 44px BUTTON THAT WAS NOT THERE A MOMENT AGO IS A CHANGE OF HEIGHT LIKE ANY OTHER. */
-  camSettle_();
-}
-
-/* ---------- THE TWO SHUTTERS ARE ONE FACT: IS THERE A LIVE STREAM § */
-function camLive_(on) {
-  const shoot = $('cam-shoot'), rec = $('cam-video');
-  if (shoot) shoot.disabled = !on;
-  if (rec) {
-    rec.hidden = typeof MediaRecorder !== 'function';
-    rec.disabled = !on;
-  }
-}
-
-/* IS THERE A SECOND CAMERA TO SWITCH TO. § */
-async function camWays_() {
-  const flip = $('cam-flip');
-  if (!flip) return;
-  try {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
-    const list = await navigator.mediaDevices.enumerateDevices();
-    flip.disabled = list.filter(d => d.kind === 'videoinput').length < 2;
-  } catch (e) {}
-}
-
-/* ---------- TURNING IT ROUND § */
-async function camFlip_() {
-  const said = $('cam-said');
-  if (CAM_REC && CAM_REC.state === 'recording') {
-    if (said) said.textContent = 'Stop the recording first.';
-    return;
-  }
-  CAM_FACE = CAM_FACE === 'environment' ? 'user' : 'environment';
-  camStop_(true);
-  await camStart_(true);
-}
-
-on('cam-flip', () => camFlip_());
-/* THE ONE DOOR THAT ASKS AGAIN ON THE SPOT. § */
-on('cam-on', () => { CAM_FAILED = null; camMind_(''); camStart_(true); });
-
-/* ---------- A PICTURE OUT OF THE GALLERY § */
-document.addEventListener('change', e => {
-  const el = e.target && e.target.closest && e.target.closest('[data-do="cam-pick"]');
-  if (!el) return;
-  const files = Array.from(el.files || []);
-  el.value = '';
-  if (!files.length) return;
-
-  const said = $('cam-said'), c = $('cam-still'), v = $('cam-view');
-  if (!c) return;
-
-  /* ---------- ONE PHOTOGRAPH WITH NOTHING HELD IS THE CARD IT ALWAYS WAS § */
-  const file = files[0];
-  if (files.length > 1 || !/^image\//i.test(file.type || '') || CAM_ITEMS.length || !c.hidden) {
-    camKeep_();
-    if (said) said.textContent = 'Adding\u2026';
-    Promise.all(files.map(camItemOf_)).then(got => {
-      const kept = got.filter(Boolean);
-      CAM_ITEMS = CAM_ITEMS.concat(kept);
-      if (said) said.textContent = kept.length < got.length
-        ? (got.length - kept.length) + ' could not be added \u2014 a clip over '
-          + Math.round(CAM_VID_MAX / 1048576) + ' MB is too big to post from here.'
-        : '';
-      camHold_();
-      camSettle_();
-    });
-    return;
-  }
-
-  const url = URL.createObjectURL(file);
-  const img = new Image();
-  img.onload = () => {
-    c.width = img.naturalWidth; c.height = img.naturalHeight;
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    /* REVOKED THE MOMENT IT IS DRAWN. § */
-    URL.revokeObjectURL(url);
-    c.hidden = false;
-    if (v) v.hidden = true;
-    camLive_(false);
-    camHold_();
-    $('cam-off')   && ($('cam-off').hidden = true);
-    /* SEE `cam-shoot`: `Again` already offers the camera, so this would be the second button for it. */
-    $('cam-on')    && ($('cam-on').disabled = true);
-    camSettle_();
-    if (said) said.textContent = '';
-    /* THE CAMERA IS LET GO, not left running behind the picture. § */
-    /* Parked, not stopped (427): `Again` wakes it without a second prompt. */
-    camStop_(true, true);
-  };
-  img.onerror = () => {
-    URL.revokeObjectURL(url);
-    if (said) said.textContent = 'That file would not open as a picture.';
-  };
-  img.src = url;
-});
-
-on('cam-shoot', () => {
-  const v = $('cam-view'), c = $('cam-still');
-  if (!v || !c || !v.videoWidth) return;
-  c.width = v.videoWidth; c.height = v.videoHeight;
-  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
-  c.hidden = false; v.hidden = true;
-  /* THE SHUTTERS GREY WHILE A PICTURE IS BEING LOOKED AT. The stream is still running underneath —
-     see `Again` — so they would work; what they would do is throw away the shot you just took. */
-  camLive_(false);
-  camHold_();
-  /* `Try the camera again` GREYS WHILE A PICTURE IS BEING HELD, and that is a duplicate removed rather than a control taken away. § */
-  $('cam-on') && ($('cam-on').disabled = true);
-  camSettle_();
-});
-
-/* THE COLUMN HAS TO BE MEASURED AGAIN WHEN THE CARD CHANGES SIZE. § */
-/* ---------- THE POST BEING MADE, AS A LIST § */
-let CAM_ITEMS = [];
-/* TWENTY MEGABYTES A CLIP AND FORTY-FIVE A POST, because the whole post travels in one request and
-   base64 adds a third. Numbers a phone can post over a school's wifi, not limits anybody enforces
-   past this card. */
-const CAM_VID_MAX = 20 * 1048576;
-const CAM_POST_MAX = 45 * 1048576;
-
-/* ONE FILE OR RECORDING, READY TO POST. § */
-function camItemOf_(file) {
-  return new Promise(done => {
-    const type = String((file && file.type) || '');
-    if (/^video\//i.test(type)) {
-      if (file.size > CAM_VID_MAX) { done(null); return; }
-      const r = new FileReader();
-      r.onload = () => done({ kind: 'video', data: String(r.result || '') });
-      r.onerror = () => done(null);
-      try { r.readAsDataURL(file); } catch (e) { done(null); }
-      return;
-    }
-    if (!/^image\//i.test(type)) { done(null); return; }
-    /* NO OBJECT URLS (an old browser, a test page): nothing redrawn, and the caller sends the file as it is. */
-    let url = '';
-    try { url = URL.createObjectURL(file); } catch (e) { done(null); return; }
-    const img = new Image();
-    img.onload = () => {
-      const k = Math.min(1, 1600 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
-      const cv = document.createElement('canvas');
-      cv.width = Math.max(1, Math.round(img.naturalWidth * k));
-      cv.height = Math.max(1, Math.round(img.naturalHeight * k));
-      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-      URL.revokeObjectURL(url);
-      try { done({ kind: 'image', data: cv.toDataURL('image/jpeg', 0.85) }); } catch (e) { done(null); }
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); done(null); };
-    img.src = url;
-  });
-}
-/* THE PICTURE ON THE CARD GOES INTO THE TRAY, and the card goes back to the viewfinder. */
-function camKeep_() {
-  const c = $('cam-still');
-  if (!c || c.hidden) return;
-  try { CAM_ITEMS.push({ kind: 'image', data: c.toDataURL('image/jpeg', 0.85), w: c.width, h: c.height }); } catch (e) { return; }
-  c.hidden = true;
-}
-/* ---------- WHICH CONTROLS ARE SHOWING IS ONE FACT: WHAT IS BEING HELD § */
-function camHold_() {
-  const still = !!($('cam-still') && !$('cam-still').hidden);
-  const n = CAM_ITEMS.length + (still ? 1 : 0);
-  /* EVERY BUTTON STAYS IN SIGHT (owner, 13 Nov: no dynamic buttons): one that cannot act yet is greyed, never hidden. */
-  const can = (id, on) => { const el = $(id); if (el) el.disabled = !on; };
-  const show = (id, on) => { const el = $(id); if (el) el.hidden = !on; };
-  can('cam-again', still); can('cam-save', still); can('cam-more', still);
-  can('cam-post', n > 0); show('cam-cap', n > 0); show('cam-as', n > 0);
-  const post = $('cam-post');
-  if (post) post.textContent = n > 1 ? 'Post all ' + n : 'Post it';
-  const tray = $('cam-tray');
-  if (!tray) return;
-  tray.hidden = !CAM_ITEMS.length;
-  tray.innerHTML = CAM_ITEMS.length ? `<div class="cam-thumbs">${CAM_ITEMS.map((x, k) =>
-    tile_({ form: true, look: 'cam-thumb', act: 'cam-drop', data: { i: k }, aria: 'Take this one out of the post', title: 'Take this one out', html: x.kind === 'video'
-      ? '<span class="cam-thumb-vid">\u25b6</span>'
-      : `<img src="${esc(x.data)}" alt="" decoding="async">` })).join('')}</div>` : '';
-}
-on('cam-more', () => {
-  camKeep_();
-  camAgain_();
-});
-on('cam-drop', el => {
-  const k = Number(el.dataset.i);
-  if (k >= 0 && k < CAM_ITEMS.length) CAM_ITEMS.splice(k, 1);
-  camHold_();
-  camSettle_();
-});
-
-function camSettle_() {
-  try { placeCells('y', true, 0, 'feed'); } catch (err) {}
-}
-
-/* `Again` NOW HAS TO PUT THE CAMERA BACK, not just uncover it. § */
-/* ONE FUNCTION, TWO CALLERS. § */
-function camAgain_() {
-  const v = $('cam-view'), c = $('cam-still');
-  if (c) c.hidden = true;
-  if (v) v.hidden = false;
-  /* EMPTIED AS WELL AS HIDDEN, and that is the half a `hidden` does not do. § */
-  const cap = $('cam-cap'); if (cap && !CAM_ITEMS.length) cap.value = '';
-  camHold_();
-  camLive_(true);
-  const said = $('cam-said'); if (said) said.textContent = '';
-  camStart_();
-  /* AND THE OTHER DIRECTION. § */
-  camSettle_();
-}
-on('cam-again', camAgain_);
-
-/* ---------- RECORDING, WHICH IS THE SAME SHAPE AS A PHOTOGRAPH § */
-let CAM_REC = null;
-let CAM_BITS = [];
-
-function canRecord_() {
-  return typeof MediaRecorder === 'function' && !!CAM_STREAM;
-}
-
-/* THE FIRST TYPE THE BROWSER ADMITS TO. § */
-function recType_() {
-  const want = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
-  for (const t of want) {
-    if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) return t;
-  }
-  return '';
-}
-
-function recStop_() {
-  if (CAM_REC && CAM_REC.state !== 'inactive') { try { CAM_REC.stop(); } catch (e) {} }
-}
-
-on('cam-video', () => {
-  const said = $('cam-said'), btn = $('cam-video');
-  if (!canRecord_()) { if (said) said.textContent = 'This browser cannot record video.'; return; }
-
-  if (CAM_REC && CAM_REC.state === 'recording') { recStop_(); return; }
-
-  CAM_BITS = [];
-  try {
-    const type = recType_();
-    CAM_REC = new MediaRecorder(CAM_STREAM, type ? { mimeType: type } : undefined);
-  } catch (err) {
-    if (said) said.textContent = 'Could not start recording: ' + why_(err);
-    return;
-  }
-
-  CAM_REC.ondataavailable = e => { if (e.data && e.data.size) CAM_BITS.push(e.data); };
-  CAM_REC.onstop = () => {
-    camRecMark_(false);
-    const blob = new Blob(CAM_BITS, { type: (CAM_REC && CAM_REC.mimeType) || 'video/webm' });
-    CAM_BITS = [];
-    if (!blob.size) { if (said) said.textContent = 'Nothing was recorded.'; return; }
-    /* THE SAME WAY OUT AS A PHOTOGRAPH — see `cam-save`. § */
-    try {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'family-' + stamp_() + (/mp4/.test(blob.type) ? '.mp4' : '.webm');
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-      if (said) said.textContent = 'Saved.';
-      /* AND INTO THE POST, which is the half that makes a clip postable at all — "and also videos". § */
-      camItemOf_(blob).then(it => {
-        if (!it) {
-          if (said) said.textContent = 'Saved. Too long to post from here \u2014 a clip over '
-            + Math.round(CAM_VID_MAX / 1048576) + ' MB.';
-          return;
-        }
-        CAM_ITEMS.push(it);
-        if (said) said.textContent = 'Saved, and added to this post.';
-        camHold_(); camSettle_();
-      });
-    } catch (err) {
-      if (said) said.textContent = 'Could not save that: ' + why_(err);
-    }
-  };
-
-  try { CAM_REC.start(); } catch (err) {
-    if (said) said.textContent = 'Could not start recording: ' + why_(err);
-    return;
-  }
-  camRecMark_(true);
-  if (said) said.textContent = 'Recording. Press the square when you are done.';
-});
-
-/* ---------- THE DISC SAYS WHAT IT IS DOING, BECAUSE IT CANNOT SAY IT IN WORDS § */
-function camRecMark_(on) {
-  const btn = $('cam-video');
-  if (!btn) return;
-  btn.classList.toggle('is-rec', !!on);
-  btn.setAttribute('aria-label', on ? 'Stop recording' : 'Record a video');
-  btn.setAttribute('title', on ? 'Stop recording' : 'Record a video');
-}
-
-/* ONE PLACE THAT NAMES A FILE. `cam-save` built this inline and the recorder needed the same thing;
-   two copies of a filename format is two things to keep in step, which is this repository's most
-   repeated fault. */
-function stamp_() {
-  return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-}
-
-/* POSTING THE SHOT, AND THE ENDPOINT HAD BEEN THERE THE WHOLE TIME § */
-on('cam-post', el => {
-  const c = $('cam-still'), said = $('cam-said');
-  if (!c) return;
-  if (!USER) { if (said) said.textContent = 'Sign in first — a post needs somebody to be from.'; return; }
-  /* ---------- EVERYTHING IN THE TRAY, THEN THE PICTURE ON THE CARD § */
-  /* 0.85 RATHER THAN THE DOWNLOAD'S 0.92. § */
-  const list = CAM_ITEMS.map(x => x.data);
-  if (!c.hidden) {
-    try { list.push(c.toDataURL('image/jpeg', 0.85)); }
-    catch (err) { if (said) said.textContent = 'Could not read that photo: '
-      + why_(err); return; }
-  }
-  if (!list.length) { if (said) said.textContent = 'Take a photo or pick one first.'; return; }
-  /* ONE REQUEST CARRIES ALL OF IT, base64 inside a JSON body, and Apps Script refuses a body much
-     past fifty megabytes — so the phone says so in words rather than letting the server fail in
-     its own. */
-  const size = list.reduce((n, x) => n + x.length, 0);
-  if (size > CAM_POST_MAX) {
-    if (said) said.textContent = 'That is too much to post at once (' + Math.round(size / 1048576)
-      + ' MB). Take a clip or two out and post them separately.';
-    return;
-  }
-  const data = list[0];
-  /* THE FIRST PICTURE'S SIZE TRAVELS WITH IT (561, U20): the card's box is final before the file arrives. */
-  const first = CAM_ITEMS[0] || (!c.hidden ? { kind: 'image', w: c.width, h: c.height } : {});
-
-  /* `send_` RATHER THAN `api`, WHICH IS THE WHOLE OF `check-replies.js`. § */
-  send_({
-    action: 'addPost',
-    name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
-    data: data,
-    media: list.slice(1),
-    imageW: first.kind === 'image' ? first.w || 0 : 0, imageH: first.kind === 'image' ? first.h || 0 : 0,
-    postAs: postAsOf_('cam-as'),
-    caption: ($('cam-cap') || {}).value || '',
-    body: '', location: '', poll: '',
-  }, { button: el, busy: 'Posting…', where: 'cam-said' })
-    .then(d => {
-      toast(d && d.pending ? 'Posted — waiting for approval' : 'Posted'); CAM_ITEMS = []; camAgain_(); load();
-    })
-    /* `send_` HAS ALREADY WRITTEN THE REASON into `cam-said` and marked the error handled; this
-       catch exists so the rejection does not reach the console as an unhandled one. */
-    .catch(() => {});
-});
-
-on('cam-save', () => {
-  const c = $('cam-still'), said = $('cam-said');
-  if (!c) return;
-  /* A DOWNLOAD, WHICH IS NOW THE SECOND WAY OUT RATHER THAN THE ONLY ONE — see `cam-post` above. */
-  try {
-    const a = document.createElement('a');
-    a.href = c.toDataURL('image/jpeg', 0.92);
-    a.download = 'family-' + stamp_() + '.jpg';
-    document.body.appendChild(a); a.click(); a.remove();
-    if (said) said.textContent = 'Saved to this device.';
-  } catch (err) {
-    if (said) said.textContent = 'Could not save that: ' + why_(err);
-  }
-});
-
-/** Let the camera go, or park it (427). Called when the column leaves — see `go` in shell.js.
- *  @param {boolean} [keepShown] leave the card exactly as it looks.
- *  @param {boolean} [park] track off, stream kept. */
-/* EVERY BUTTON BACK TO ITS STARTING STATE TOO, not just the stream. § */
-function camStop_(keepShown, park) {
-  /* ---------- A RECORDING IN PROGRESS IS STOPPED FIRST, AND THAT ORDER MATTERS § */
-  try { recStop_(); } catch (e) {}
-  const v = $('cam-view');
-  if (park) camPark_();
-  else {
-    try { if (CAM_STREAM) CAM_STREAM.getTracks().forEach(t => t.stop()); } catch (e) {}
-    CAM_STREAM = null;
-    if (v) { try { v.srcObject = null; } catch (e) {} }
-  }
-  if (keepShown) return;
-  /* LEAVING THE COLUMN FORGETS A REFUSAL, like swiping off the page does in `feedCamWatch_`. § */
-  CAM_FAILED = null;
-
-  camRecMark_(false);
-  camLive_(false);
-  const flip = $('cam-flip'); if (flip) flip.disabled = true;
-
-  if (v) v.hidden = false;
-  const c = $('cam-still'); if (c) c.hidden = true;
-  /* BACK TO THE VIEWFINDER AT REST — the dark stage, no loader: nothing is being asked for now (`cameraCard`). */
-  const off = $('cam-off');
-  if (off) { off.hidden = false; off.innerHTML = ''; }
-  $('cam-on')    && ($('cam-on').disabled = true);
-  /* LEAVING THE COLUMN LETS THE POST GO TOO, the tray with it — the same thing it has always done to
-     a single held picture. */
-  CAM_ITEMS = [];
-  const cap = $('cam-cap'); if (cap) cap.value = '';
-  camHold_();
-}
-
-/* ---------- REACTIONS § */
-/* ONE PAINT'S WORTH OF "THE FACE YOU JUST PRESSED". § */
-var REACT_POP_ = '';
-
-/* ---------- A PRESS ON ONE POST REDRAWS THAT POST'S OWN PARTS, WHERE THEY STAND — NEVER THE COLUMN -- § */
-function postRedraw_(id, parts) {
-  const data = el => [].filter.call(el.attributes, x => x.name.indexOf('data-') === 0)
-    .map(x => x.name + '=' + x.value).sort().join('\n');
-  const a = document.activeElement;
-  const held = a && a.dataset && a.dataset.do && a.closest
-    ? { el: a, data: data(a), host: a.closest('section.screen') } : null;
-
-  const p = (DATA.posts || []).find(x => x.id === id);
-  const cards = p ? [].filter.call(document.querySelectorAll('article.post[data-post]'),
-                                   x => x.dataset.post === id) : [];
-  /* NO COPY OF THE POST ON THE PAGE, NOTHING TO REDRAW. § */
-  if (!cards.length) return;
-  const drawn = parts.map(([, draw]) => (p ? draw(p) || '' : ''));
-  /* A CARD WITHOUT A PART THAT NOW DRAWS SOMETHING is the one case left for the whole repaint, and no press reaches it: § */
-  const fits = cards.every(c => parts.every(([sel], i) => !!c.querySelector(sel) || !drawn[i]));
-  if (!fits) repaint();
-  else cards.forEach(c => parts.forEach(([sel], i) => {
-    const old = c.querySelector(sel);
-    if (!old) return;
-    if (drawn[i]) old.outerHTML = drawn[i]; else old.remove();
-  }));
-
-  if (!held || !held.host || held.el.isConnected) return;
-  const again = [].find.call(held.host.querySelectorAll('[data-do]'), b => data(b) === held.data);
-  if (again) { try { again.focus({ preventScroll: true }); } catch (e) {} }
-}
-/* A REACTION CHANGES TWO PARTS: the row of faces, and the total on the time line. */
-function reactRepaint_(id) {
-  postRedraw_(id, [['.reacts', reacts], ['.post-when', postWhen_]]);
-}
-
-/* A COUNT IS AT MOST THREE CHARACTERS, so a pill never grows for its number: § */
-function reactN_(n) {
-  n = Number(n) || 0;
-  return n < 1000 ? String(n) : Math.floor(n / 1000) + 'k';
-}
-
-function reacts(p) {
-  const r = p.reactions;
-  /* NO FACES, NO ROW — and the caller is told, rather than being handed an empty div. § */
-  if (!r || !Array.isArray(r.emoji) || !r.emoji.length) return '';
-  const counts = Array.isArray(r.counts) ? r.counts : [];
-  /* `mine` RIGHT AFTER `react` IN THE CLASS LIST, because `check/ui.js` names a control by its first two classes and its `ACCEPTED_TAP` entry for these cells is § */
-  return `<div class="reacts" role="group" aria-label="Reactions">${r.emoji.map((e, i) => {
-    const n = Number(counts[i]) || 0;
-    const t = n ? reactN_(n) : '';            // no zero counts: an empty pill, not a 0
-    const mine = r.yours === e;
-    const cls = 'react' + (mine ? ' mine' : '') + (t.length > 2 ? ' is-long' : '')
-              + (REACT_POP_ && REACT_POP_ === p.id + ' ' + e ? ' is-pop' : '');
-    return tile_({ form: true, look: cls, act: 'react', data: { id: p.id, emoji: e }, pressed: mine, html: `<span class="react-e">${esc(e)}</span>${
-      t ? `<span class="react-n">${t}</span>` : ''}` });
-  }).join('')}</div>`;
-}
-
-/* THE TOTAL, and it is its own button. § */
-function reactWho_(p) {
-  const r = p && p.reactions;
-  const n = r ? Number(r.total) || 0 : 0;
-  if (!n) return '';                          // a 0 that opens an empty sheet is a promise broken
-  return tile_({ form: true, look: 'text-action react-who', act: 'who-reacted', data: { id: p.id }, label: n + ' reaction' + (n === 1 ? '' : 's') });
-}
-/* WHEN, AND HOW MANY. Time first, so a total appearing never moves it; 44px tall either way, so the first reaction on a post moves nothing below it — the tile § */
-function postWhen_(p) {
-  const at = p.at || p.when;
-  const when = at ? `<span>${esc(ago(at))}</span>` : '';
-  const who = reactWho_(p);
-  const r = p.reactions;
-  const faces = !!(r && Array.isArray(r.emoji) && r.emoji.length);   // `reacts()` draws a row
-  if (!when && !who && !faces) return '';
-  return `<p class="note post-when">${when}${when && who ? '<span aria-hidden="true">·</span>' : ''}${who}</p>`;
-}
-
-/* WHO REACTED, AND WITH WHAT. § */
-on('who-reacted', el => {
-  const p = (DATA.posts || []).find(x => x.id === el.dataset.id);
-  const r = p && p.reactions;
-  if (!r || !r.total) return;
-  const me = USER ? norm(USER.name) : '';
-  const isMe = n => !!me && norm(n) === me;
-  const by = r.by || [];
-  const groups = (r.emoji || []).map((e, i) => ({
-    emoji: e, at: i, mine: r.yours === e, n: Number((r.counts || [])[i]) || 0,
-    /* YOU FIRST in your own group — the one name in the sheet you are looking for. */
-    names: by.filter(x => x && x.emoji === e).map(x => x.name).sort((a, b) => isMe(b) - isMe(a)),
-  })).filter(g => g.n)
-    /* MOST FIRST, ties in the house order: "four people laughed" is the shape of the answer. */
-    .sort((a, b) => b.n - a.n || a.at - b.at);
-
-  sheetHere_(el);    // under the post's own tile row (453)
-  openSheet(r.total + ' reaction' + (r.total === 1 ? '' : 's'),
-    groups.map(g => `<section class="rx-group">
-      <h3 class="rx-head"><span class="rx-pill${g.mine ? ' mine' : ''}"><span class="react-e">${
-        esc(g.emoji)}</span><span class="react-n">${g.n}</span></span></h3>
-      ${g.names.map(n => rowValue(mark(n) + (isMe(n) ? '<span class="rx-you">you</span>' : ''))).join('')}
-    </section>`).join(''));
-});
-
-on('react', el => {
-  /* THE COLUMN THAT HOLDS THE SIGN-IN CARD. This said `goFor_('You')`, which filtered the Find
-     screen to a group nothing is in — see the note where `goFor_` used to be. */
-  if (!USER) { toast('Sign in to react'); go('account'); return; }
-  const id = el.dataset.id, emoji = el.dataset.emoji;
-  const post = (DATA.posts || []).find(x => x.id === id);
-  if (!post || !post.reactions) return;
-
-  const r = post.reactions;
-  /* A counts array shorter than the emoji list would go NaN on the first press and stay NaN. The
-     button can only exist if there are emoji, so this fills in whatever the payload left out. */
-  if (!Array.isArray(r.counts) || r.counts.length !== r.emoji.length) {
-    r.counts = r.emoji.map((_, i) => Number((r.counts || [])[i]) || 0);
-  }
-  if (typeof r.total !== 'number') r.total = r.counts.reduce((a, b) => a + b, 0);
-
-  /* ---------- `by` IS THE FOURTH THING THAT MOVES, AND IT WAS THE ONE LEFT BEHIND § */
-  if (r.emoji.indexOf(emoji) < 0) return;
-
-  /* WHAT THE SERVER HOLDS, read before the move — unless a save of this post is already on its way,
-     when `choiceSave_` keeps the one it was given at the start (see there). */
-  const had = r.yours || '';
-  /* Moved before the server answers: the same tap takes yours back, any other face moves it. */
-  reactMove_(r, r.yours === emoji ? '' : emoji);
-  /* THE FACE THAT JUST LANDED IS MARKED FOR THIS ONE PAINT — see `REACT_POP_`. § */
-  REACT_POP_ = r.yours === emoji ? id + ' ' + emoji : '';   // added or moved: it lands; taken back: quiet
-  reactRepaint_(id);
-  REACT_POP_ = '';
-
-  /* `personId` AS WELL AS `name`. § */
-  const yours = () => { const q = (DATA.posts || []).find(x => x.id === id);
-                        return q && q.reactions ? q.reactions.yours || '' : null; };
-  choiceSave_('react ' + id, had, {
-    mine: yours,
-    send: (want, held) => send({ action: 'reactPost', name: USER.name,
-      personId: (USER && USER.personId) || '', postId: id, emoji: want || held, want }),
-    put: held => {
-      const q = (DATA.posts || []).find(x => x.id === id);
-      if (!q || !q.reactions) return;
-      reactMove_(q.reactions, held);
-      reactRepaint_(id);          // in place again, and whichever face holds the focus NOW keeps it
-    },
-    or: 'Could not save that',
-  });
-});
-
-/* YOURS MOVES TO `to` ('' for none), AND ALL FOUR FIELDS MOVE WITH IT — `yours`, the two counts, the total and `by` § */
-function reactMove_(r, to) {
-  const at = e => r.emoji.indexOf(e);
-  const me = USER ? norm(USER.name) : '';
-  if (r.yours && at(r.yours) >= 0) { r.counts[at(r.yours)]--; r.total--; }
-  /* MINE OUT OF THE LIST FIRST, whichever face it was on, and back in under the new one: changing your
-     face is one move rather than two that have to agree. */
-  if (me) r.by = (r.by || []).filter(x => !x || norm(x.name) !== me);
-  r.yours = to && at(to) >= 0 ? to : '';
-  if (r.yours) {
-    r.counts[at(r.yours)]++; r.total++;
-    if (me) r.by.push({ name: USER.name, emoji: r.yours });
-  }
-}
-
-/* ---------- ONE CHOICE PER PERSON PER POST, SAVED ONE REQUEST AT A TIME, AND A REFUSAL PUTS BACK WHAT § */
-const CHOICE_SAVE_ = {};
-function choiceSave_(key, saved, o) {
-  const s = CHOICE_SAVE_[key] || (CHOICE_SAVE_[key] = { saved: saved, busy: false });
-  s.o = o;
-  choicePump_(key);
-}
-function choicePump_(key) {
-  const s = CHOICE_SAVE_[key];
-  if (!s || s.busy) return;
-  const want = s.o.mine();
-  if (want === null || want === s.saved) { delete CHOICE_SAVE_[key]; return; }
-  s.busy = true;
-  Promise.resolve().then(() => s.o.send(want, s.saved))
-    .then(() => { s.saved = want; },
-          err => { s.o.put(s.saved); toast(why_(err)); })
-    .then(() => { s.busy = false; choicePump_(key); });
-}
-
-/* ---------- A POLL § */
-function poll(p) {
-  const q = p.poll;
-  const voted = !!q.yours;
-  const most = Math.max(1, ...q.counts);
-
-  return `<div class="poll">
-    ${q.options.map((opt, i) => {
-      const n = q.counts[i];
-      const share = q.total ? Math.round(n / q.total * 100) : 0;
-      const mine = q.yours === opt;
-      return tile_({ form: true, look: 'poll-row' + (mine ? ' mine' : '') + (voted ? ' done' : ''), act: 'vote', data: { id: p.id, choice: opt }, html: `
-        ${voted
-          /* The bar is drawn against the BIGGEST answer, not against the total — with four options
-             the winner might be 30%, and a bar 30% across reads as nobody choosing it. */
-          ? `<span class="poll-bar" style="--f:${(n / most).toFixed(3)}"></span>` : ''}
-        <span class="poll-text">${mine ? '✓ ' : ''}${esc(opt)}</span>
-        ${voted ? `<span class="poll-n">${share}%</span>` : ''}
-      ` });
-    }).join('')}
-    <p class="note poll-tot">${
-      !USER ? 'Sign in to vote'
-      : q.total === 0 ? 'No votes yet'
-      : q.total + ' vote' + (q.total === 1 ? '' : 's')
-        + (voted ? ' · tap yours again to take it back' : '')
-    }</p>
-  </div>`;
-}
-
-on('vote', el => {
-  if (!USER) { toast('Sign in to vote'); return; }
-  const id = el.dataset.id, choice = el.dataset.choice;
-  const post = (DATA.posts || []).find(x => x.id === id);
-  if (!post || !post.poll) return;
-
-  const q = post.poll;
-  if (q.options.indexOf(choice) < 0) return;
-  const had = q.yours || '';             // what the server holds — see the same line in on('react')
-
-  /* Moved on screen before the server answers, the same as a face — and the whole poll is redrawn rather than one row, because a vote changes every percentage on § */
-  voteMove_(q, q.yours === choice ? '' : choice);
-  postRedraw_(id, [['.poll', poll]]);
-
-  /* ONE SAVE AT A TIME, CARRYING WHERE THE PERSON STOPPED, and a refusal puts back what the server holds — `choiceSave_`. § */
-  choiceSave_('vote ' + id, had, {
-    mine: () => { const x = (DATA.posts || []).find(y => y.id === id);
-                  return x && x.poll ? x.poll.yours || '' : null; },
-    send: (want, held) => api({ action: 'votePoll', name: USER.name,
-      personId: (USER && USER.personId) || '', postId: id, choice: want || held, want })
-      .then(d => { if (d && d.error) throw new Error(d.error); }),
-    put: held => {
-      const x = (DATA.posts || []).find(y => y.id === id);
-      if (!x || !x.poll) return;
-      voteMove_(x.poll, held);
-      postRedraw_(id, [['.poll', poll]]);
-    },
-    or: 'Could not save that vote',
-  });
-});
-
-/* YOUR VOTE MOVES TO `to` ('' for none), its count and the total with it — the tap and the undo both,
-   for the reason `reactMove_` gives. */
-function voteMove_(q, to) {
-  const at = c => q.options.indexOf(c);
-  if (q.yours && at(q.yours) >= 0) { q.counts[at(q.yours)]--; q.total--; }
-  q.yours = to && at(to) >= 0 ? to : '';
-  if (q.yours) { q.counts[at(q.yours)]++; q.total++; }
-}
-
-/* SHARING. A post needs an address of its own or there is nothing to send — so each one gets
-   `?post=` and the app opens on it. Without that, sharing sends somebody to the top of a feed to
-   hunt for a photograph they were shown. */
-/* A PICTURE OF THE WHOLE POST (413) — `postPng_` below; the link alone when no canvas can be drawn. */
-let POST_PNG_BUSY = false;
-on('share', el => {
-  const id = el.dataset.id;
-  const post = (DATA.posts || []).find(p => p.id === id);
-  const url = location.origin + location.pathname + '?post=' + encodeURIComponent(id);
-  const text = post && post.caption ? post.caption : '@family.';
-  if (post && !POST_PNG_BUSY && typeof document.createElement('canvas').getContext === 'function') {
-    POST_PNG_BUSY = true;
-    el.classList.add('is-busy');
-    const done = () => { POST_PNG_BUSY = false; el.classList.remove('is-busy'); };
-    postPng_(post, url)
-      .then(cv => shareCanvasPng_(cv, 'family-post-' + String(id).replace(/[^\w-]/g, '') + '.png', text + ' ' + url))
-      .then(done, () => { done(); postShareLink_(text, url); });
-    return;
-  }
-  postShareLink_(text, url);
-});
-function postShareLink_(text, url) {
-  if (navigator.share) {
-    navigator.share({ title: '@family.', text, url }).catch(() => {});
-    return;
-  }
-  /* No share sheet — a desktop, or an older phone. Copying is the honest fallback; a dialog
-     saying "sharing is not supported" helps nobody. */
-  navigator.clipboard?.writeText(url)
-    .then(() => toast('Link copied'))
-    .catch(() => toast(url));
-}
-
-/* Arriving on a shared post. Read once at start-up and cleared, so a refresh later does not drag
-   somebody back to a photograph they have finished with. */
-function openSharedPost() {
-  let id = '';
-  try { id = new URLSearchParams(location.search).get('post') || ''; } catch {}
-  if (!id) return;
-
-  /* TURN THE DIAL TO IT, rather than scrolling. § */
-  postGo_(id);
-}
-/* THE FEED'S PAGE FOR ONE POST: the camera, then the posts (`feedColumn_`) — the index alone landed short by the camera (413). */
-function feedPageOf_(id) {
-  const n = feedPosts().findIndex(p => String(p.id) === String(id));
-  return n < 0 ? -1 : feedPostsAt_() + n;
-}
-function postGo_(id) {
-  const n = feedPageOf_(id);
-  /* ---------- THE FEED IS A COLUMN AND THIS WAS ASKING THE FUNNEL FOR IT § */
-  if (n < 0) { go('feed'); return; }
-  PAGE.feed = n;                 // the screen is `feed`; `PAGE.posts` went nowhere — see PAGER
-  go('feed');
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    document.querySelector(`[data-post="${CSS.escape(String(id))}"]`)?.classList.add('post-lit');
-  }));
-}
-on('post-open', el => postGo_(el.dataset.id));
-
-/* ---------- A TUTOR'S OWN ADDRESS (400): `?tutor=<handle>` opens their card, signed out or in ----------
-   Prices follow the card's own rule (398): a child's phone has none to draw. */
-const tutorLink_ = t => location.origin + location.pathname + '?tutor=' + encodeURIComponent(String((t && t.handle) || ''));
-/* BY THE HANDLE ON THE TILE, so your own card's "Share my profile" works before the tutor list has you. */
-/* A PICTURE OF THE CARD, NOT ONLY THE LINK (412) — the owner: "I meant it would share a PNG"; since 547 the picture is the card on the site itself. */
-let TUTOR_PNG_BUSY = false;
-on('tutor-share', el => {
-  const handle = String(el.dataset.handle || '');
-  if (!handle || TUTOR_PNG_BUSY) return;
-  const t = (DATA.tutors || []).find(x => x && String(x.handle || '') === handle)
-    || (USER && USER.handle === handle ? tutorPngMe_() : { handle, title: '@' + handle });
-  const url = tutorLink_({ handle });
-  TUTOR_PNG_BUSY = true;
-  toast('Making a picture of this profile…');
-  tutorPng_(t)
-    .then(blob => tutorPngHand_(blob, handle + '-profile.png', url, t.title || '@' + handle))
-    /* NO CANVAS (an old browser, a test page): the link alone, as before 412. */
-    .catch(() => tutorLinkOnly_(t.title || '@' + handle, url))
-    .then(() => { TUTOR_PNG_BUSY = false; }, () => { TUTOR_PNG_BUSY = false; });
-});
-
-/* YOUR OWN CARD BEFORE THE TUTOR LIST HAS YOU: what the sign-in reply knows. */
-function tutorPngMe_() {
-  const p = (USER && USER.profile) || {};
-  return { handle: USER.handle, title: USER.name, image: p.photo || USER.photo || '', avatar: USER.avatar || '',
-           personId: USER.personId, role: 'Tutor', description: p.headline ? '"' + p.headline + '"' : '' };
-}
-
-function tutorLinkOnly_(title, url) {
-  if (navigator.share) return navigator.share({ title, text: title + ' on ' + brand('name', '@family.'), url }).catch(() => {});
-  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(url).then(() => toast('Link copied')).catch(() => toast(url));
-  toast(url);
-}
-
-/* THE SHARE SHEET WITH THE FILE AND THE LINK; ELSE THE FILE DOWNLOADED AND THE LINK COPIED. */
-function tutorPngHand_(blob, name, url, title) {
-  const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
-  const can = !!(file && navigator.share && navigator.canShare
-                 && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
-  const save = () => {
-    const href = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = href; a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(href), 60000);   // not at once: a download can start after the click returns
-    const copy = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(url) : Promise.reject();
-    return copy.then(() => toast('Image saved · link copied'), () => toast('Image saved · ' + url));
-  };
-  if (!can) return save();
-  return navigator.share({ files: [file], title, text: url }).catch(e => { if (!e || e.name !== 'AbortError') return save(); });
-}
-
-/* ---------- THE PICTURE IS THE CARD (547): the owner, "when i share a staff profile it shares exactly as is" -- `findCard` draws it, the receipt's snapshot photographs it ---------- */
-function tutorPng_(t) {
-  const host = document.createElement('div');
-  host.className = 'tpng-host';
-  host.setAttribute('aria-hidden', 'true');
-  const was = CARD_VIEWER; CARD_VIEWER = 'public';
-  try { host.innerHTML = findCard({ kind: 'tutor', key: t.title || '', name: t.title || '', row: t }); } finally { CARD_VIEWER = was; }
-  const card = host.firstElementChild;
-  if (!card) return Promise.reject(new Error('no card'));
-  host.style.width = tpngWidth_(t) + 'px';
-  document.body.appendChild(host);
-  return tpngInline_(card).then(() => rcPng_(card)).then(r => r.blob)
-    .then(b => { host.remove(); return b; }, e => { host.remove(); throw e; });
-}
-/* THE SITE CARD'S OWN WIDTH, unzoomed, so the picture wraps where the site does; a column's card when no tutor card is drawn. */
-function tpngWidth_(t) {
-  const px = el => { const w = el ? parseFloat(getComputedStyle(el).width) : 0; return w > 0 ? w : 0; };
-  const cards = [...document.querySelectorAll('.card.is-prof')].filter(el => !el.closest('.tpng-host') && px(el));
-  const own = h => ((h.querySelector('.prof-handle') || {}).textContent || '') === '@' + (t && t.handle);
-  const shown = cards.find(own) || cards[0];
-  if (shown) return px(shown);
-  const any = [...document.querySelectorAll('.screen .card, section .card')].find(el => !el.closest('.tpng-host') && px(el));
-  return any ? px(any) : 24 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
-}
-/* A PICTURE INSIDE AN SVG IMAGE LOADS NOTHING FROM OUTSIDE, so each photo and map tile goes in as data, decoded before the shot; what will not come is left out whole, never blurred. */
-function tpngInline_(card) {
-  const asData = src => fetch(src, { mode: 'cors' }).then(r => (r.ok ? r.blob() : Promise.reject(new Error(r.status))))
-    .then(b => new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = () => no(fr.error); fr.readAsDataURL(b); }));
-  const safe = src => { try { return asData(src); } catch (e) { return Promise.reject(e); } };
-  const imgs = [...card.querySelectorAll('img')].map(img => {
-    const src = img.getAttribute('src') || '';
-    const got = /^data:/.test(src) ? Promise.resolve(src) : safe(img.src);
-    return got.then(d => { img.removeAttribute('loading'); img.setAttribute('src', d);
-      return img.decode ? img.decode().catch(() => img.remove()) : null; }, () => { img.remove(); });
-  });
-  const maps = [...card.querySelectorAll('.prof-heat')].map(heat => {
-    const drop = () => {
-      const cap = heat.previousElementSibling, next = heat.nextElementSibling;
-      heat.remove();
-      if (cap && cap.classList.contains('prof-cap') && !(next && next.classList.contains('prof-tags'))) cap.remove();
-    };
-    const tiles = heat.querySelector('.heat-tiles');
-    const css = tiles ? tiles.style.backgroundImage : '';
-    const urls = [...css.matchAll(/url\(["']?([^"')]+)["']?\)/g)].map(m => m[1]);
-    if (!urls.length) { drop(); return null; }
-    return Promise.all(urls.map(safe)).then(ds => {
-      tiles.style.backgroundImage = ds.map(d => 'url("' + d + '")').join(',');
-      return Promise.all(ds.map(d => { const i = new Image(); i.src = d; return i.decode ? i.decode() : null; }));
-    }).catch(drop);
-  });
-  const fonts = document.fonts && document.fonts.ready ? document.fonts.ready.catch(() => {}) : null;
-  return Promise.all(imgs.concat(maps, [fonts]));
-}
-
-/* ONCE A VISIT, on the first payload that has them — `openSharedPost`'s place in the landing. */
-let TUTOR_LINK_DONE = false;
-function openSharedTutor() {
-  if (TUTOR_LINK_DONE) return;
-  let h = '';
-  try { h = String(new URLSearchParams(location.search).get('tutor') || '').replace(/^@+/, '').toLowerCase(); } catch (e) { h = ''; }
-  if (!h) { TUTOR_LINK_DONE = true; return; }
-  const t = (DATA.tutors || []).find(x => x && x.listed !== false && String(x.handle || '').toLowerCase() === h);
-  if (!t) return;
-  TUTOR_LINK_DONE = true;
-  const item = { kind: 'tutor', name: t.title, key: t.title, row: t };
-  openSheet(t.title, `<div class="tutor-link">${typeof findCard === 'function' ? findCard(item) : ''}
-    ${tileRow_(tile_(tutorOpts_(item)))}</div>`);
-}
-
-/* ---------- POSTING § */
-/* `shrink` lived here — it resized a chosen photograph in the browser before uploading it, so a 4MB camera picture did not become a 4MB row. § */
-
-/* ---------- THE SHEET'S BOXES ARE DRAFTS (data.js; docs/history/317) § */
-/* THE POLL'S OPTIONS ARE ONE BOX EACH (448): "you shouldn't have to separate it with commas". At least two, at most six. */
-const POLL_MIN = 2, POLL_MAX = 6;
-const POST_DRAFT_FIELDS = ['cap', 'loc', 'body'].concat(Array.from({ length: POLL_MAX }, (_, k) => 'poll' + k));
-const mayUpload_ = () => rankAtLeast_('client');
-/* POST AS THE BUSINESS OR AS ME — an admin's question only; anybody else's post is theirs (413). */
-function postAsRow_(id) {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return '';
-  return `<label class="field"><span>post as</span>
-    <span class="btn-row post-as" id="${id}" data-as="brand">
-      ${postAsButtons_(id)}
-    </span></label>`;
-}
-/* THE TWO ANSWERS, the composer's and the camera's alike. */
-const postAsButtons_ = id => tile_({ form: true, look: 'btn quiet on', act: 'as', data: { for: id, as: 'brand' }, html: `${esc(brand('name', '@family.'))} ${qtag_(`business`)}` })
-  + tile_({ form: true, look: 'btn quiet', act: 'as', data: { for: id, as: 'me' }, html: 'me ' + qtag_('personal') });
-const postAsOf_ = id => (typeof isAdmin === 'function' && isAdmin()) ? ((($(id) || {}).dataset || {}).as || 'brand') : 'me';
-/* WRITING A POST CHANGES THE CAMERA CARD IN PLACE (448): "do not use pop-up menus on my site". Words only — no picture picker; Photos is beside the shutter. */
-let POST_COMPOSING = false;
-function pollBox_(k) {
-  return `<label class="field poll-opt"><span>option ${k + 1}</span>
-    <input id="post-poll-${k}" class="post-poll-in" maxlength="80" placeholder="${k ? 'Another answer' : 'An answer'}"${draftAttr_('post', 'poll' + k)} value="${esc(draftVal_('post', 'poll' + k))}"></label>`;
-}
-function postComposeHtml_() {
-  let n = POLL_MIN;
-  for (let k = 0; k < POLL_MAX; k++) if (draftVal_('post', 'poll' + k)) n = Math.max(n, k + 1);
-  return `<div class="post-compose" id="post-compose">
-  <h3>Write a post</h3>
-  <label class="field"><span>caption</span>
-    <input id="post-cap" placeholder="One line about it"${draftAttr_('post', 'cap')} value="${esc(draftVal_('post', 'cap'))}"></label>
-  <label class="field"><span>where</span>
-    <input id="post-loc" placeholder="Colliers Wood Library"${draftAttr_('post', 'loc')} value="${esc(draftVal_('post', 'loc'))}"></label>
-  <label class="field"><span>more, if you want it</span>
-    <textarea id="post-body" placeholder="Optional"${draftAttr_('post', 'body')}>${esc(draftVal_('post', 'body'))}</textarea></label>
-  <div class="poll-opts" id="post-poll-opts" data-n="${n}">${Array.from({ length: n }, (_, k) => pollBox_(k)).join('')}</div>
-  ${tile_({ form: true, look: 'btn quiet', act: 'poll-more', id: 'poll-more', off: n >= POLL_MAX, label: 'Add option' })}
-  ${postAsRow_('post-as')}
-  <div class="btn-row">
-    ${tile_({ form: true, label: 'Back', act: 'post-cancel', kind: 'quiet' })}
-    ${tile_({ form: true, label: 'Post it', act: 'post-send' })}
-  </div>
-  <p class="said" id="post-said">${isAdmin() ? '' : 'An admin approves it before anybody else sees it.'}</p>
-</div>`;
-}
-/* REDRAWS THE CARD ITSELF, so the camera's markup and the composer's are never on screen together. */
-function camCardRedraw_() {
-  const card = document.querySelector('#s-feed .cam-card') || document.querySelector('.cam-card');
-  if (!card) return false;
-  const box = document.createElement('div');
-  box.innerHTML = camItem_(cameraCard());
-  if (!box.firstElementChild) { card.remove(); return true; }
-  card.replaceWith(box.firstElementChild);
-  return true;
-}
-on('new-post', () => {
-  if (!USER) return;
-  if (!mayUpload_()) { toast('Posts are put up by a grown-up — ask your parent or tutor.'); return; }
-  POST_COMPOSING = true;
-  try { camStop_(true, true); } catch (e) {}
-  camCardRedraw_();
-  const cap = $('post-cap'); if (cap) { try { cap.focus({ preventScroll: true }); } catch (e) {} }
-});
-function postComposeClose_() {
-  POST_COMPOSING = false;
-  camCardRedraw_();
-  try { feedCamWatch_(); } catch (e) {}
-}
-on('post-cancel', () => postComposeClose_());
-on('poll-more', () => {
-  const box = $('post-poll-opts');
-  if (!box) return;
-  const n = box.querySelectorAll('.post-poll-in').length;
-  if (n >= POLL_MAX) return;
-  box.insertAdjacentHTML('beforeend', pollBox_(n));
-  const b = $('poll-more'); if (b && n + 1 >= POLL_MAX) b.disabled = true;
-  const inp = $('post-poll-' + n); if (inp) { try { inp.focus({ preventScroll: true }); } catch (e) {} }
-});
-/* THE OPTIONS AS THE SHEET KEEPS THEM — one cell, comma-joined (doget splits it), so a comma typed inside an option is taken out. */
-function pollOptsOf_() {
-  return [].slice.call(document.querySelectorAll('#post-poll-opts .post-poll-in'))
-    .map(x => String(x.value || '').replace(/,/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean);
-}
-/* WHO THE POST IS FROM. § */
-/* `data-for` NAMES THE ROW, because there are two of them now — the composer's and the camera's — and `$('post-as')` was the id of one. § */
-on('as', el => {
-  const row = $(el.dataset.for || 'post-as');
-  if (!row) return;
-  row.dataset.as = el.dataset.as || 'brand';
-  row.querySelectorAll('[data-do="as"]').forEach(b => b.classList.toggle('on', b === el));
-});
-
-on('post-send', el => {
-  const said = $('post-said');
-  const v = id => String(($(id) || {}).value || '').trim();
-  const opts = pollOptsOf_();
-  if (opts.length === 1) { if (said) said.textContent = 'A poll needs at least 2 options.'; return; }
-  if (!v('post-cap') && !v('post-body') && !opts.length) { if (said) said.textContent = 'Write something first.'; return; }
-  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE (`draftSent_`, data.js). */
-  POST_DRAFT_FIELDS.forEach(f => { try { draftSent_('post', f); } catch (e) {} });
-
-  send_({ action: 'addPost',
-    name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
-    caption: v('post-cap'),
-    location: v('post-loc'),
-    poll: opts.join(', '),
-    postAs: postAsOf_('post-as'),
-    body: v('post-body') }, { button: el, busy: 'Posting…', where: 'post-said' })
-    .then(d => {
-      POST_DRAFT_FIELDS.forEach(f => { try { draftDrop_('post', f); } catch (e) {} });
-      postComposeClose_();
-      toast(d && d.pending ? 'Posted — waiting for approval' : 'Posted'); load();
-    })
-    .catch(() => { POST_DRAFT_FIELDS.forEach(f => { try { draftSentBack_('post', f); } catch (e) {} }); });
-});
-/* ---------- EDITING A POST § */
-/* TWO SHEETS (413): its author's words while it waits; once it is up only an admin's pin and date — the words are final. */
-on('post-edit', el => {
-  const p = (DATA.posts || []).find(x => x.id === el.dataset.id);
-  if (!p) return;
-  const words = !!(p.waiting && p.mine);
-  /* The options only, not the counts. What the site holds is what a phone was sent; the sheet's
-     cell is the source, and the two are the same list while nobody has voted. */
-  const opts = p.poll ? (p.poll.options || []).join(', ') : '';
-  const voted = !!(p.poll && p.poll.total);
-
-  sheetHere_(el, true);    // the post card becomes its editor (453)
-  openSheet(words ? 'Edit post' : 'Pin or date', `
-    ${p.image ? `<img src="${esc(pic(p.image))}" decoding="async" alt=""
-         class="post-ed-img">` : ''}
-    ${/* EACH BOX A DRAFT OF THE EDIT (data.js; 317), drawn from the saved post when there is none and
-          dropped on Save — so a reload mid-edit reopens the sheet holding the edit, not the post. */''}
-    ${words ? `<label class="field"><span>caption</span>
-      <input id="pe-cap" value="${esc(draftVal_('post-edit', p.id + ':cap', p.caption || ''))}"${draftAttr_('post-edit', p.id + ':cap', p.caption || '')}></label>
-    <label class="field"><span>more</span>
-      <textarea id="pe-body"${draftAttr_('post-edit', p.id + ':body', p.body || '')}>${esc(draftVal_('post-edit', p.id + ':body', p.body || ''))}</textarea></label>
-    <label class="field"><span>where</span>
-      <input id="pe-loc" value="${esc(draftVal_('post-edit', p.id + ':loc', p.location || ''))}"${draftAttr_('post-edit', p.id + ':loc', p.location || '')}></label>
-    ${/* A VOTE IS STORED AGAINST THE WORDS. § */
-          ''}
-    <label class="field"><span>poll</span>
-      <input id="pe-poll" value="${esc(voted ? opts : draftVal_('post-edit', p.id + ':poll', opts))}" placeholder="Yes, No, Maybe" ${voted ? 'disabled' : draftAttr_('post-edit', p.id + ':poll', opts)}>
-      ${voted ? `${qtag_(`${p.poll.total} vote${p.poll.total === 1 ? '' : 's'}`)}` : ''}</label>` : `
-    ${/* The date is editable because the feed is ORDERED by it — a post from the folder with the wrong timestamp sits in the wrong place for ever otherwise. */''}
-    <label class="field"><span>posted on</span>
-      <input id="pe-when" value="${esc(draftVal_('post-edit', p.id + ':when', p.when || ''))}" placeholder="DD/MM/YYYY HH:MM:SS"${draftAttr_('post-edit', p.id + ':when', p.when || '')}></label>
-    <label class="check">
-      <input type="checkbox" id="pe-pin" ${p.pinned ? 'checked' : ''}>
-      <span class="box"></span>
-      <span>Pin to the top</span>
-    </label>`}
-
-    ${tile_({ form: true, label: 'Save', act: 'post-save', data: { id: p.id } })}
-    <div class="btn-row gap-t">
-      ${tile_({ form: true, label: 'Delete', act: 'post-delete', data: { id: p.id, on: '' }, kind: 'danger' })}
-    </div>
-    <p class="said" id="pe-said">${words
-      ? 'You can change it until it is approved. After that it stays as it is — you can still delete it.'
-      : 'Once a post is up its words and pictures stay as they are. To change them, delete it and post again.'}</p>`);
-});
-
-/* LETTING ONE THROUGH, or turning it down. `data-on` carries which — an empty string is false to
-   `TRUE_` on the backend, so one handler covers both and there is no second name to keep in step. */
-on('post-approve', el => {
-  const on = el.dataset.on === '1';
-  /* TWO PRESSES, NOT A confirm() — the same pattern as `post-delete` below, and for the same reason: § */
-  if (!on && !sure_(el, 'Turn it down?')) return;
-  el.disabled = true;
-  api({ action: 'approvePost', adminName: USER.name, name: USER.name, personId: USER.personId || '',
-        id: el.dataset.id, on: on ? 'TRUE' : 'FALSE' })
-    .then(d => {
-      if (d && d.error) { el.disabled = false; toast(d.error); return; }
-      toast(on ? 'It is up' : 'Not put up');
-      load();
-    })
-    .catch(err => { el.disabled = false; toast(why_(err)); });
-});
-
-on('post-save', el => {
-  const v = id => (($(id) || {}).value || '').trim();
-  const has = id => !!$(id);
-  const said = $('pe-said');
-  const p = (DATA.posts || []).find(x => x.id === el.dataset.id);
-  const voted = !!(p && p.poll && p.poll.total);
-
-  /* A date typed into the wrong shape sorts the post to the bottom of the feed and gives no hint
-     why. Checked here, where it can still be corrected. */
-  if (v('pe-when') && !parseWhen(v('pe-when'))) {
-    if (said) said.textContent = 'That date is not DD/MM/YYYY.';
-    return;
-  }
-
-  /* ONLY WHAT THIS SHEET SHOWS — the server refuses a field this person may not change on this post (413). */
-  const fields = {};
-  if (has('pe-cap')) Object.assign(fields, { caption: v('pe-cap'), body: v('pe-body'), location: v('pe-loc') });
-  /* Left out ENTIRELY rather than sent unchanged — the server tests whether the field was sent at
-     all, and sending it back identical would still count as an attempt to change it. */
-  if (has('pe-poll') && !voted) fields.poll = v('pe-poll');
-  if (has('pe-pin')) Object.assign(fields, { posted_on: v('pe-when'), pinned: ($('pe-pin') || {}).checked });
-
-  el.disabled = true;
-  if (said) said.textContent = 'Saving…';
-  api({ action: 'editPost',
-    name: USER.name, adminName: USER.name, personId: USER.personId || '', id: el.dataset.id, fields })
-    .then(d => {
-      if (d && d.error) throw new Error(d.error);
-      ['cap', 'body', 'loc', 'when', 'poll'].forEach(f => { try { draftDrop_('post-edit', el.dataset.id + ':' + f); } catch (e) {} });
-      closeSheet(); toast('Saved'); load();
-    })
-    .catch(err => {
-      el.disabled = false;
-      if (said) said.textContent = why_(err);
-    });
-});
-
-/* TWO PRESSES, not a confirm() — `sure_` (receipt.js), the tile's and the sheet's alike. An author takes their own down; an admin any (413). */
-on('post-delete', el => {
-  const restoring = !!el.dataset.on;
-  if (!restoring && !sure_(el, 'Really delete?')) return;
-  const said = $('pe-said');
-  el.disabled = true;
-  if (said) said.textContent = restoring ? 'Restoring…' : 'Deleting…';
-
-  api({ action: 'deletePost',
-    name: USER.name, adminName: USER.name, personId: USER.personId || '', id: el.dataset.id, on: restoring })
-    .then(d => {
-      if (d && d.error) throw new Error(d.error);
-      if (el.closest && el.closest('#sheet')) closeSheet();
-      toast(restoring ? 'Back on the feed' : 'Deleted');
-      load();
-    })
-    .catch(err => {
-      el.disabled = false;
-      delete el.dataset.sure; sureBack_(el);
-      const why = why_(err);
-      if (said) said.textContent = why; else toast(why);
-    });
-});
-
-/* THE COLUMNS These are not screens coming back unchanged. § */
-
-/* ---------- MAKING ONE § */
-/* ONE PAGE, AND IT IS THE CAMERA. § */
-/* ---------- IT WAS A COLUMN, AND IT IS ONE PAGE OF THE FEED NOW § */
-/* THE CAMERA IS AN ITEM (487): an admin's Delete and Note on it, and gone for everyone once deleted. */
-const camItem_ = h => typeof itemMark_ === 'function' ? itemMark_('item:feed:camera', 'feed', h) : h;
-function feedCamCard_() { return camItem_(feedCamCard0_()); }
-function feedCamCard0_() {
-  /* A CHILD HAS NO CAMERA HERE AND NO PICKER (413): nothing on this card could upload, and the server would refuse it. */
-  if (USER && !mayUpload_()) {
-    return suggestRowIn_(card_(`<div class="cam-kid"><h3>Camera</h3>
-      </div>`), 'widget', 'camera', 'Camera');
-  }
-  return USER
-    ? suggestRowIn_(cameraCard(), 'widget', 'camera', 'Camera')
-    : card_(`<div class=""><h3>Camera</h3>
-      </div>`);
-}
-
-/* ---------- READING THEM § */
-/* ---------- THE CAMERA IS THE PAGE ABOVE THE NEWEST POST § */
-function feedCamAt_() {
-  /* THE CAMERA IS THE FEED'S FIRST PAGE (489), the posts under it; deleted, there is no camera page (-1). */
-  return LOADED && !(typeof itemGone_ === 'function' && itemGone_('item:feed:camera')) ? 0 : -1;
-}
-/* WHERE THE POSTS START: past the camera, if it is drawn. */
-function feedPostsAt_() {
-  if (!LOADED) return 0;
-  return feedCamAt_() === 0 ? 1 : 0;
-}
-function feedColumn_() {
-  const blocks = postsBlocks();
-  if (!LOADED || !Array.isArray(blocks)) return blocks;
-  return [feedCamCard_()].filter(Boolean).concat(blocks);
-}
-screen('feed', () => pages('feed', feedColumn_()));
-
-/* IS THE CAMERA ON THE SCREEN, which is the only moment it should be running. */
-/* ---------- AND NOT BEFORE THE FEED HAS BEEN OPENED AT ITS FRONT DOOR § */
-function feedCamHere_() {
-  return !POST_COMPOSING && typeof AT !== 'undefined' && AT === 'feed' && LOADED
-    && typeof PAGE_OPENED !== 'undefined' && !!PAGE_OPENED.feed
-    && (PAGE.feed || 0) === feedCamAt_();
-}
-/* START IT ON ITS PAGE AND LET IT GO ON EVERY OTHER. § */
-function feedCamWatch_() {
-  if (feedCamHere_()) { camStart_(); return; }
-  /* OFF ITS PAGE, A REFUSAL IS FORGOTTEN. Coming back up to it is a swipe, and a swipe is somebody
-     asking for the camera — see `CAM_FAILED`. */
-  CAM_FAILED = null;
-  if (CAM_STREAM || (CAM_REC && CAM_REC.state === 'recording')) camStop_(true, true);
-  camRest_();
-}
-/* LET GO FOR REAL when the page goes, or has been out of sight a minute; parked at once when it is hidden (427). */
-let CAM_AWAY = 0;
-document.addEventListener('visibilitychange', () => {
-  clearTimeout(CAM_AWAY); CAM_AWAY = 0;
-  if (document.visibilityState === 'hidden') {
-    if (!CAM_STREAM) return;
-    camStop_(true, true);
-    CAM_AWAY = setTimeout(() => { CAM_AWAY = 0; if (document.visibilityState === 'hidden') camStop_(true); }, 60000);
-    return;
-  }
-  try { if (feedCamHere_()) camStart_(); } catch (e) {}
-});
-window.addEventListener('pagehide', () => { try { if (CAM_STREAM) camStop_(true); } catch (e) {} });
-/* ---------- OFF ITS PAGE THE VIEWFINDER IS AT REST, WHATEVER THE ASK IS DOING (docs/history/341) § */
-function camRest_() {
-  const off = $('cam-off');
-  if (off && off.querySelector(':scope > .loading')) off.innerHTML = '';
-}
-
-/* REELS AND MESSAGES — the last two columns on the layout sheet § */
-
-/* ---------- REELS § */
-/* ---------- AND IT WAS EMPTY, FOR EVERYBODY, SINCE THE DAY IT WAS WRITTEN § */
-screen('reel', () => {
-  /* WAITING, AS EVERY COLUMN WAITS — `loading_()` on a page of its own. */
-  if (!LOADED) return `<section class="page"><div class="pane">${loading_()}</div></section>`;
-  /* ---------- CLIPS ONLY, AND THE FACTS ARE NOT A FALLBACK § */
-  /* ONE SNAPSHOT PER DRAW, and everything below reads it. § */
-  const facts = REEL_CLIPS = clipsNow_();
-  /* THE PAGES BEFORE THE FIRST REEL (414): the column's widgets, then an admin's "+" (404). Every reel's page is its index plus `REEL_LEAD`. */
-  const lead = reelLead_();
-  reelLeadSet_(lead.length);
-  if (!facts.length) {
-    /* NO CLIPS: the one empty state (`emptyCard_`, shell.js) — the title alone. */
-    return pages('reel', lead.concat([emptyCard_('Reels')]));
-  }
-  /* ---------- ONE WIDGET PER REEL, WHICH IS WHAT EVERY OTHER COLUMN IN THE APP IS § */
-  /* ---------- A REDRAW MUST NOT LOSE THE PAGE YOU ARE ON § */
-  REEL_SHOWN = 0;
-  return pages('reel', lead.concat(reelCards_(Math.max(REEL_FIRST, (PAGE.reel || 0) + 1 + REEL_AHEAD - REEL_LEAD))));
-});
-
-/* WHAT LEADS THE COLUMN (414): its widgets (kind `reel`, map.js) and an admin's "+", in that order, so the "+" sits next to the reels it adds to and the first reel is where the column opens (`PAGE_HOME.reel`). */
-function reelLead_() {
-  const wgts = typeof widgetColumn_ === 'function' ? widgetColumn_('reel') : [];
-  const add = window.mediaHtml_ ? window.mediaHtml_('reel') : '';
-  return wgts.concat(add ? [add] : []);
-}
-/* A LEAD THAT GREW OR SHRANK (an admin signing in) MOVES THE PAGE WITH IT, so the reel in front stays in front. */
-function reelLeadSet_(n) {
-  if (n !== REEL_LEAD) PAGE.reel = Math.max(0, (PAGE.reel || 0) + n - REEL_LEAD);
-  REEL_LEAD = n;
-}
-
-/* ---------- IT GOES DOWN FOR EVER, AND THE DECK IT DRAWS FROM ALREADY DID § */
-/* ---------- SEVEN, SIX AND SIX SINCE 11 OCT (docs/history/341) § */
-const REEL_FIRST = 7;      // on the first paint. One is on screen; the rest are the next flicks.
-const REEL_MORE  = 6;      // appended at a time when fewer than REEL_AHEAD are ahead.
-const REEL_AHEAD = 6;      // how far ahead of you the column is kept — the top-up and the redraw
-                           // read the same number, or one of them builds a page short of the other.
-const REEL_MAX   = 60;     // the ceiling, in slides. See above.
-let REEL_SHOWN = 0;
-/* PAGES BEFORE THE FIRST REEL: the lead widgets plus an admin's "+" (404, 414). `data-reel` is the page. */
-let REEL_LEAD = 0;
-/* WHICH REEL SOMEBODY HAS DELIBERATELY STOPPED, by index, or −1 for none. § */
-let REEL_HELD = -1;
-
-/* ONE READER FOR "WHICH CLIPS", and this function was a second one. § */
-/* THE LIST THIS COLUMN WAS DRAWN FROM, held for as long as the column is. § */
-let REEL_CLIPS = null;
-function reelClips_() {
-  if (!REEL_CLIPS) REEL_CLIPS = (typeof clipsNow_ === 'function' ? clipsNow_() : []);
-  return REEL_CLIPS;
-}
-
-function reelItem_(n) {
-  const clips = reelClips_();
-  if (!clips.length || n >= REEL_MAX) return null;
-  return clips[n % clips.length];
-}
-
-/* ONE CARD PER REEL, AND THE CARD IS THE WIDGET. § */
-function reelCards_(count) {
-  const out = [];
-  for (let i = 0; i < count; i++) {
-    const it = reelItem_(REEL_SHOWN);
-    if (!it) break;
-    /* THE WHOLE SLIDE IS THE PAUSE, which is what a video is everywhere else. § */
-    out.push(card_(`<div class="is-widget"><div class="widget-slot">
-      <div class="reel${REEL_SHOWN + REEL_LEAD === REEL_HELD ? ' is-held' : ''}"
-           data-reel="${REEL_SHOWN + REEL_LEAD}" role="button" tabindex="0" data-do="reel-tap">${(window.feedSlide || (() => ''))(it)}`) +
-      /* HOW OLD YOU HAVE TO BE (406), when it is not everyone. */
-      `${window.mediaAgeSay_ && window.mediaAgeSay_(it.age) ? `<span class="media-age-badge is-reel" aria-label="for ages ${esc(window.mediaAgeSay_(it.age))}">${esc(window.mediaAgeSay_(it.age))}</span>` : ''}` +
-      `${tile_(reelSoundOpts_(false))}</div>
-    </div>${typeof suggestOpts_ === 'function' && tile_(suggestOpts_('reel', String(it.id || it.clip || ''), it.title || ''))
-      ? `<div class="tile-row rep-row">${tile_(suggestOpts_('reel', String(it.id || it.clip || ''), it.title || ''))}</div>` : ''}</div>`);
-    REEL_SHOWN++;
-  }
-  return out;
-}
-
-/* HOW MANY PAGES THIS COLUMN HAS, asked by `PAGER.reel` in shell.js — and it is the same counter the markup is built from, so the pager and the screen cannot § */
-function reelPages_() {
-  const n = reelClips_().length ? REEL_SHOWN + REEL_LEAD : REEL_LEAD + 1;
-  return new Array(Math.max(1, n)).fill('');
-}
-
-/* ---------- THE PAGER SAYS WHICH ONE IS BEING WATCHED, AND IT IS THE ONLY THING THAT DOES § */
-/* CALLED BY `startScreen_`, WHICH IS THE LIST OF WHAT A SCREEN HAS RUNNING — and it was booked on its own from `go` until it was measured. § */
-function reelsWatch_() {
-  reelTurn_(PAGE.reel || 0);
-}
-
-function reelTurn_(n) {
-  const host = $('s-reel');
-  if (!host) return;
-
-  /* MORE REELS BEFORE THE BOTTOM RATHER THAN AT IT. § */
-  /* AND NOT WHILE THE COLUMN IS STILL WAITING. § */
-  if (LOADED && n - REEL_LEAD >= REEL_SHOWN - REEL_AHEAD) reelMore_(host);
-  ytSweep_();
-
-  /* THE ONE BEING WATCHED PLAYS AND THE REST DO NOT — and the rest are two pixels off the screen rather than gone, because the column peeks above and below. § */
-  host.querySelectorAll('.reel').forEach(el => {
-    const at = Number(el.dataset.reel);
-    const here = at === n && REEL_HELD !== n;
-    const v = el.querySelector('video.feed-vid');
-    if (v) {
-      if (here) reelPlay_(v);
-      else { try { v.pause(); } catch {} }
-    }
-    /* A SHORT OBEYS THE SAME RULE, and one more: § */
-    const yt = el.querySelector('.feed-yt');
-    if (yt) {
-      if (here) reelYtPlay_(yt);
-      else if (Math.abs(at - n) > 1) reelYtDrop_(yt);
-      else reelYtPause_(yt);
-    }
-  });
-
-  /* AND THE NEIGHBOURS' FOCUS IS READ AGAIN, NOW THAT THEY ARE STILL. § */
-  if (typeof softDim_ === 'function' && !SOFT_DRAG) {
-    host.querySelectorAll('.page.soft').forEach(p => p.classList.toggle('soft-dim', softDim_(p)));
-  }
-}
-
-/* ---------- AND IT STOPS WHEN YOU LEAVE THE COLUMN § */
-function reelsStop_() { clipsStop_($('s-reel')); }
-
-/* ONE FUNCTION, BECAUSE THERE ARE TWO SURFACES THAT PLAY A CLIP and they are the two this feature has always had: § */
-function clipsStop_(root) {
-  if (!root) return;
-  root.querySelectorAll('video.feed-vid').forEach(v => { try { v.pause(); } catch {} });
-  /* A SHORT IS TAKEN DOWN RATHER THAN PAUSED when its column is left — `reelYtDrop_` says why. It is
-     built again, from its poster, the moment `reelsWatch_` finds it on screen on the way back. */
-  root.querySelectorAll('.feed-yt').forEach(reelYtDrop_);
-}
-
-/* ONE MORE LAP, AS PAGES. § */
-/* ---------- AND THE COLUMN IS NO LONGER WHAT IT WAS DRAWN WITH (`DRAWN = null`) § */
-function reelMore_(host, n) {
-  const cards = reelCards_(n || REEL_MORE);
-  if (!cards.length) return;
-  host.insertAdjacentHTML('beforeend', pages('reel', cards));
-  host.DRAWN = null;
-  paintPager('reel', true);
-}
-/* IN THE RELEASE: ONE SLIDE, when fewer than `REEL_AHEAD` are left past the page being turned to — markup, amortised as Find's window is, so a run of flicks § */
-function reelAhead_(n) {
-  const host = $('s-reel');
-  if (!host || !LOADED || n - REEL_LEAD < REEL_SHOWN - REEL_AHEAD) return;
-  const cards = reelCards_(1);
-  if (cards.length) { host.insertAdjacentHTML('beforeend', pages('reel', cards)); host.DRAWN = null; }
-}
-/* AND IN THE QUIET, UP TO TWELVE AHEAD — the builder's `reels` job. */
-function reelJobs_() {
-  if (!LOADED || STALE.reel || !$('s-reel') || !$('s-reel').firstElementChild) return [];
-  const want = (PAGE.reel || 0) - REEL_LEAD + 1 + REEL_AHEAD + REEL_MORE;
-  if (REEL_SHOWN >= want || REEL_SHOWN >= REEL_MAX || !reelItem_(REEL_SHOWN)) return [];
-  return [{ key: 'reels', kind: 'reels', d: aheadDist_('reel', null), run: () => reelMore_($('s-reel'), want - REEL_SHOWN) }];
-}
-if (typeof AHEAD_KINDS !== 'undefined') AHEAD_KINDS.push(reelJobs_);
-
-/* ---------- A CLIP, AND NOTHING BEHIND IT IF IT WILL NOT PLAY § */
-function reelPlay_(v) {
-  if (!v || v.dataset.dead) return;
-  if (!v.getAttribute('src')) {
-    const src = (window.clipSrc_ || (() => ''))(v.dataset.clip);
-    if (!src) { v.dataset.dead = '1'; return; }
-    /* THE SCRIM AND THE WHITE TEXT ARRIVE WITH THE FIRST FRAME, for the reason the photograph slide
-       waits for `img.onload`: until then the slide is its own gradient and its subject's initial. */
-    v.addEventListener('loadeddata', () => {
-      const art = v.closest('.feed-art');
-      if (art) art.classList.add('has-photo');
-    }, { once: true });
-    v.addEventListener('error', () => { v.dataset.dead = '1'; }, { once: true });
-    v.src = src;
-  }
-  /* A BLOCKED AUTOPLAY IS A REJECTED PROMISE AND NOT AN ERROR. § */
-  const p = v.play();
-  if (p && p.catch) p.catch(() => {});
-}
-/* A YOUTUBE SHORT, DRIVEN THE WAY THE `<video>` ABOVE IS § */
-const YT_HOST = 'https://www.youtube-nocookie.com';
-/* HOW LONG A PLAYER HAS TO PLAY ITS FIRST FRAME before the slide stops waiting and offers the door. § */
-const YT_GIVE_UP = 20000;
-/* HOW LONG THE PLAYER STAYS SHOWING ACROSS A LAP — see `reelYtHeard_`. A restart that has not said
-   PLAYING again by then is not a lap any more, and whatever YouTube is drawing goes back under the
-   poster. */
-const YT_LAP = 2500;
-let YT_SEQ = 0;
-/* PER SLIDE, ITS TWO CLOCKS AND THE LAST STATE ITS PLAYER REPORTED. A WeakMap, so a slide a repaint
-   threw away takes its entry with it, and nothing about a clock is written into the markup. */
-const YT_BOX = new WeakMap();
-/* BOTH CLOCKS STOPPED — when the player is taken down, or given up on. A clock left running over a
-   player that is gone would fire into the NEXT one built on the same slide and decide about it. */
-function ytClocksOff_(box) {
-  const o = ytBox_(box);
-  clearTimeout(o.clock); clearTimeout(o.lap);
-  o.clock = o.lap = 0;
-  o.st = null;
-  YT_WOUND.delete(box);
-}
-/* A REPAINT THROWS A SLIDE AWAY WITHOUT DROPPING IT (750), and its clock ran on beside the new slide's: two clocks for one Short. Stopped before any clock is wound. */
-const YT_WOUND = new Set();
-function ytSweep_() {
-  YT_WOUND.forEach(box => { if (!box.isConnected) ytClocksOff_(box); });
-}
-function ytBox_(box) {
-  let o = YT_BOX.get(box);
-  if (!o) YT_BOX.set(box, o = { clock: 0, lap: 0, st: null });
-  return o;
-}
-
-/* THE ADDRESS, and every word in it is doing something. § */
-function reelYtSrc_(id) {
-  const o = /^https?:$/.test(location.protocol) ? '&origin=' + encodeURIComponent(location.origin) : '';
-  const v = encodeURIComponent(id);
-  return YT_HOST + '/embed/' + v + '?enablejsapi=1&mute=1&autoplay=1&loop=1&playlist=' + v
-    + '&controls=0&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3' + o;
-}
-
-/* ONE ORDER TO ONE PLAYER. § */
-function reelYtSay_(box, func, args) {
-  const f = box && box.querySelector('iframe.feed-yt-frame');
-  if (!f || !f.contentWindow) return;
-  try {
-    f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: func, args: args || [],
-                                                 id: f.dataset.n, channel: 'widget' }), YT_HOST);
-  } catch (e) {}
-}
-
-/* PLAY: build the player the first time this slide is the one on screen, and ask it to play after. § */
-function reelYtPlay_(box) {
-  if (!box || box.dataset.dead) return;
-  box.dataset.want = 'play';
-  if (box.querySelector('iframe.feed-yt-frame')) reelYtSay_(box, 'playVideo');
-  else if (!reelYtBuild_(box)) return;
-  reelYtClock_(box);
-}
-
-/* THE PLAYER ITSELF, put in the slide under the veil. False when the slide names no video. */
-function reelYtBuild_(box) {
-  const id = box.dataset.yt;
-  if (!id) return false;
-  const f = document.createElement('iframe');
-  f.className = 'feed-yt-frame';
-  f.dataset.n = String(++YT_SEQ);
-  f.title = 'YouTube video';
-  /* `autoplay` IN `allow` IS WHAT LETS THE SOUND TILE WORK: § */
-  f.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
-  f.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
-  f.setAttribute('tabindex', '-1');
-  f.addEventListener('load', () => reelYtHello_(f));
-  f.src = reelYtSrc_(id);
-  box.insertBefore(f, box.firstChild);
-  return true;
-}
-
-/* ---------- THE GIVE-UP CLOCK, WOUND BY EVERY ASK TO PLAY § */
-function reelYtClock_(box) {
-  const f = box.querySelector('iframe.feed-yt-frame');
-  const o = ytBox_(box);
-  ytSweep_();
-  if (!f || f.dataset.played || o.clock) return;
-  YT_WOUND.add(box);
-  o.clock = setTimeout(() => {
-    o.clock = 0;
-    if (!f.isConnected || f.dataset.played) return;
-    if (!f.dataset.heard || box.dataset.want === 'play') reelYtDead_(box);
-  }, YT_GIVE_UP);
-}
-
-/* PAUSE, and the poster goes back over it at once rather than when YouTube confirms — the frame
-   between is YouTube's pause screen. */
-function reelYtPause_(box) {
-  if (!box) return;
-  box.dataset.want = 'pause';
-  box.classList.remove('is-live');
-  reelYtSay_(box, 'pauseVideo');
-}
-
-/* ---------- TAKEN DOWN, NOT PAUSED, ONCE IT IS OUT OF REACH § */
-function reelYtDrop_(box) {
-  if (!box) return;
-  box.dataset.want = 'pause';
-  box.classList.remove('is-live');
-  ytClocksOff_(box);
-  const f = box.querySelector('iframe.feed-yt-frame');
-  if (f) f.remove();
-  if (box.dataset.sound) {
-    delete box.dataset.sound;
-    reelSoundSay_(box.closest('.reel') && box.closest('.reel').querySelector('.reel-sound'), false);
-  }
-}
-
-/* ---------- WHEN IT CANNOT PLAY, IT STAYS A PICTURE WITH A WAY OUT § */
-function reelYtDead_(box) {
-  if (!box || box.dataset.dead) return;
-  box.dataset.dead = '1';
-  box.classList.remove('is-live');
-  ytClocksOff_(box);
-  const f = box.querySelector('iframe.feed-yt-frame');
-  if (f) f.remove();
-  const art = box.closest('.feed-art');
-  if (art) art.classList.add('is-dead');
-  const reel = box.closest('.reel');
-  if (reel) {
-    reel.classList.remove('is-held');
-    if (REEL_HELD === Number(reel.dataset.reel)) REEL_HELD = -1;
-  }
-}
-
-/* HELLO, UNTIL IT ANSWERS. § */
-function reelYtHello_(f) {
-  let n = 0;
-  const say = () => {
-    if (!f.isConnected || f.dataset.heard || ++n > YT_GIVE_UP / 400) return;
-    try {
-      const w = f.contentWindow;
-      const id = f.dataset.n;
-      w.postMessage(JSON.stringify({ event: 'listening', id: id, channel: 'widget' }), YT_HOST);
-      ['onReady', 'onStateChange', 'onError'].forEach(ev =>
-        w.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: [ev],
-                                       id: id, channel: 'widget' }), YT_HOST));
-    } catch (e) {}
-    setTimeout(say, 400);
-  };
-  say();
-}
-
-/* WHAT THE PLAYER SAYS. § */
-function reelYtHeard_(f, d) {
-  const box = f.closest('.feed-yt');
-  if (!box) return;
-  const first = !f.dataset.heard;
-  f.dataset.heard = '1';
-  if (d.event === 'onError') { reelYtDead_(box); return; }
-  if (first || d.event === 'onReady') {
-    reelYtSay_(box, box.dataset.sound === 'on' ? 'unMute' : 'mute');
-    reelYtSay_(box, box.dataset.want === 'play' ? 'playVideo' : 'pauseVideo');
-  }
-  const st = d.event === 'onStateChange' ? Number(d.info)
-    : d.event === 'infoDelivery' && d.info && typeof d.info.playerState === 'number' ? d.info.playerState
-    : null;
-  if (st === null) return;
-  const o = ytBox_(box);
-  o.st = st;
-  if (st === 1) {
-    clearTimeout(o.lap); o.lap = 0;
-    /* PLAYING WHILE IT WAS ASKED NOT TO — `autoplay` beat a flick away, or a pause sent before it was
-       listening — is told again rather than shown. */
-    f.dataset.played = '1';
-    if (box.dataset.want !== 'play') { reelYtSay_(box, 'pauseVideo'); return; }
-    box.classList.add('is-live');
-    const art = box.closest('.feed-art');
-    if (art) art.classList.add('has-photo');
-  } else if (st === 3) {
-    /* buffering: as it is */
-  } else if ((st === 0 || st === -1) && box.dataset.want === 'play' && box.classList.contains('is-live')) {
-    if (!o.lap) YT_WOUND.add(box), o.lap = setTimeout(() => {
-      o.lap = 0;
-      if (o.st !== 1 && o.st !== 3) box.classList.remove('is-live');
-    }, YT_LAP);
-  } else {
-    clearTimeout(o.lap); o.lap = 0;
-    box.classList.remove('is-live');
-  }
-}
-
-/* ONE LISTENER FOR EVERY PLAYER, matched to its frame by the window that sent the message — the `data-do` shape, one listener for the document. § */
-addEventListener('message', e => {
-  if (!/^https:\/\/www\.youtube(?:-nocookie)?\.com$/.test(String(e.origin || ''))) return;
-  let d = e.data;
-  if (typeof d === 'string') { try { d = JSON.parse(d); } catch (x) { return; } }
-  if (!d || typeof d !== 'object' || !d.event) return;
-  const f = [...document.querySelectorAll('iframe.feed-yt-frame')].find(x => x.contentWindow === e.source);
-  if (f) reelYtHeard_(f, d);
-});
-
-/* SOUND IS OFF UNTIL IT IS ASKED FOR, because a column that starts talking the moment it opens is a column nobody opens twice — and because a muted video is the § */
-/* ---------- A REEL YOU CANNOT STOP § */
-on('reel-tap', (el, e) => {
-  /* THE DOOR OUT IS NOT A PAUSE. "Watch on YouTube" sits inside the slide, so its click reaches this
-     handler too; the link does its own job and this one does nothing. */
-  if (e && e.target && e.target.closest && e.target.closest('a[href]')) return;
-  const n = Number(el.dataset.reel);
-  /* A SHORT IS HELD BY `REEL_HELD`, NOT BY ASKING IT. § */
-  const yt = el.querySelector('.feed-yt');
-  if (yt) {
-    if (yt.dataset.dead) return;
-    if (REEL_HELD === n) {
-      REEL_HELD = -1;
-      el.classList.remove('is-held');
-      reelYtPlay_(yt);
-    } else {
-      REEL_HELD = n;
-      el.classList.add('is-held');
-      reelYtPause_(yt);
-    }
-    return;
-  }
-  const v = el.querySelector('video.feed-vid');
-  if (!v) return;
-  if (v.paused) {
-    REEL_HELD = -1;
-    el.classList.remove('is-held');
-    reelPlay_(v);
-  } else {
-    REEL_HELD = n;
-    el.classList.add('is-held');
-    try { v.pause(); } catch {}
-  }
-});
-
-/* ---------- THE SOUND IS A TILE, LIKE EVERYTHING ELSE § */
-const reelSoundOpts_ = on => ({ icon: on ? 'sound' : 'mute', label: on ? 'Sound on' : 'Sound off',
-  tone: 'over', cls: 'reel-sound', act: 'reel-sound', pressed: !!on });
-function reelSoundSay_(el, on) {
-  if (!el) return;
-  const o = reelSoundOpts_(on);
-  tileSet_(el, { icon: o.icon, label: o.label, pressed: o.pressed });
-}
-
-on('reel-sound', (el) => {
-  const slide = el.closest('.reel');
-  /* THE SAME TILE AND THE SAME WORDS FOR A SHORT, said to the player instead of set on an element.
-     A held Short is not started by it: sound on a stopped reel is a choice for when it next plays. */
-  const yt = slide && slide.querySelector('.feed-yt');
-  if (yt) {
-    if (yt.dataset.dead) return;
-    const on_ = yt.dataset.sound !== 'on';
-    if (on_) yt.dataset.sound = 'on'; else delete yt.dataset.sound;
-    reelYtSay_(yt, on_ ? 'unMute' : 'mute');
-    if (on_ && yt.dataset.want === 'play') reelYtSay_(yt, 'playVideo');
-    reelSoundSay_(el, on_);
-    return;
-  }
-  const v = slide && slide.querySelector('video.feed-vid');
-  if (!v) return;
-  v.muted = !v.muted;
-  reelSoundSay_(el, !v.muted);
-  if (!v.muted) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
-});
-
+/* ==== js/messages.js ==== */
+/* @family. — messages.js DMs, Messages and Daive, cut out of posts.js when the Feed was switched off (13 Nov). */
 /* ---------- MESSAGES § */
 /* ---------- ONE CONVERSATION PER PAGE, WHICH IS WHAT EVERY OTHER COLUMN ALREADY IS § */
 /* ---------- BUT A COLUMN DRAWN AHEAD ASKS NOBODY (`dmAsk_`) § */
@@ -16578,148 +14420,187 @@ function dmFoot_() {
    a message that arrived after the tab was first opened would not appear until a reload. */
 on('dm-refresh', () => { loadMessages().then(() => { paint('dm'); setTimeout(dmFoot_, 0); }); });
 
-/* ---------- A POST AS A PNG (413): "share a post as a PNG of the full post widget" ----------
-   On a canvas in the stylesheet's own black and gold: face, name, picture, words, reactions, brand, link. */
-const PPNG_W = 1080, PPNG_M = 72;
-function ppngTokens_() {
-  return { bg: token_('--bg', 'black'), raised: token_('--raised', 'black'), line: token_('--line', 'dimgray'), ink: token_('--ink', 'white'),
-           dim: token_('--dim', 'gray'), gold: token_('--gold', 'white'), font: token_('--font', 'ui-monospace, monospace') };
+/* ---------- SHARED HELPERS FROM posts.js: a Drive address, a face by id, a picked file, a filename stamp, a tutor's own link § */
+/* A Google Drive share link is a page, not a picture — pasting one into an <img> gives a broken
+   image every time. This turns it into the direct thumbnail. Anything that is already a plain URL
+   passes straight through. */
+function pic(url) {
+  const u = String(url || '').trim();
+  if (!u) return '';
+  const id = (u.match(/\/file\/d\/([\w-]{20,})/) || u.match(/[?&]id=([\w-]{20,})/) || [])[1];
+  return id ? 'https://lh3.googleusercontent.com/d/' + id + '=w1200' : u;
 }
-/* AN IMAGE THE CANVAS MAY EXPORT, OR NULL: straight, with CORS; else through `imageData` (the backend's proxy); else nothing. */
-function ppngImg_(src) {
-  const load = (u, cors) => new Promise(ok => {
-    if (!u) return ok(null);
+/* A CLIP IS MARKED `#video` BY THE BACKEND THAT UPLOADED IT, because a Drive address names no type;
+   an address typed in is a clip if it ends like one. */
+const postIsVideo_ = u => /#video$/i.test(u) || /\.(mp4|webm|mov|m4v)(?:[?#]|$)/i.test(u);
+/* THE ADDRESS A `<video>` IS POINTED AT. § */
+function postVidSrc_(u) {
+  const bare = String(u || '').replace(/#video$/i, '');
+  const id = (bare.match(/\/file\/d\/([\w-]{20,})/) || bare.match(/[?&]id=([\w-]{20,})/) || [])[1];
+  return id ? 'https://drive.usercontent.google.com/download?id=' + id + '&export=download' : bare;
+}
+
+/* A PERSON'S FACE AND NAME FROM THEIR PROFILE ROW in the payload, by id (1040 r10); a post's own copy only when no list has them. */
+const profileOf_ = id => { const r = id && ['people', 'tutors', 'family', 'students', 'clients', 'everyone'].map(k => ((DATA || {})[k] || []).find(x => x && String(x.personId || x.person_id || '') === String(id))).find(Boolean);
+  return r ? { pic: r.image != null ? r.image : r.photo, avatar: r.avatar, handle: r.handle } : null; };
+/* TWENTY MEGABYTES A CLIP AND FORTY-FIVE A POST, because the whole post travels in one request and
+   base64 adds a third. Numbers a phone can post over a school's wifi, not limits anybody enforces
+   past this card. */
+const CAM_VID_MAX = 20 * 1048576;
+const CAM_POST_MAX = 45 * 1048576;
+/* ONE FILE OR RECORDING, READY TO POST. § */
+function camItemOf_(file) {
+  return new Promise(done => {
+    const type = String((file && file.type) || '');
+    if (/^video\//i.test(type)) {
+      if (file.size > CAM_VID_MAX) { done(null); return; }
+      const r = new FileReader();
+      r.onload = () => done({ kind: 'video', data: String(r.result || '') });
+      r.onerror = () => done(null);
+      try { r.readAsDataURL(file); } catch (e) { done(null); }
+      return;
+    }
+    if (!/^image\//i.test(type)) { done(null); return; }
+    /* NO OBJECT URLS (an old browser, a test page): nothing redrawn, and the caller sends the file as it is. */
+    let url = '';
+    try { url = URL.createObjectURL(file); } catch (e) { done(null); return; }
     const img = new Image();
-    let over = false;
-    const end = v => { if (!over) { over = true; ok(v); } };
-    setTimeout(() => end(null), 5000);
-    if (cors) img.crossOrigin = 'anonymous';
     img.onload = () => {
-      try { const c = document.createElement('canvas'); c.width = c.height = 1; const g = c.getContext('2d'); g.drawImage(img, 0, 0, 1, 1); g.getImageData(0, 0, 1, 1); end(img); }
-      catch (e) { end(null); }
-    };
-    img.onerror = () => end(null);
-    img.src = u;
-  });
-  if (!src) return Promise.resolve(null);
-  if (/^data:/i.test(src)) return load(src, false);
-  return load(src, true).then(img => img || (typeof api === 'function'
-    ? api({ action: 'imageData', url: src }).then(d => (d && d.dataUri ? load(d.dataUri, false) : null), () => null)
-    : null));
-}
-const ppngSvg_ = s => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(String(s)
-  .replace(/<svg(?![^>]*xmlns=)/, '<svg xmlns="http://www.w3.org/2000/svg"'));
-/* THE AUTHOR'S FACE BY THE CARD'S OWN ORDER (`postCard_`): their photo or picture or figure, else the brand's mark, else the initial. */
-function ppngFace_(p) {
-  const own = p.authorId ? String((profileOf_(p.authorId) || {}).pic || p.avatar || '') : '', v = picKind_(own) ? own : brandLogo_();
-  const kind = picKind_(v);
-  try {
-    if (kind === 'photo') return ppngImg_(pic(v));
-    if (kind === 'basic') return ppngImg_(ppngSvg_(pfpArt_(pfpChoice_(v), 240)));
-  } catch (e) {}
-  return Promise.resolve(null);
-}
-/* WORDS INTO AT MOST `max` LINES OF `w` PIXELS, the last cut with an ellipsis. */
-function ppngWrap_(g, text, w, max) {
-  const out = [];
-  String(text || '').split(/\n+/).forEach(par => {
-    let cur = '';
-    par.split(/\s+/).filter(Boolean).forEach(word => {
-      while (g.measureText(word).width > w && word.length > 1) {
-        let k = word.length - 1;
-        while (k > 1 && g.measureText(word.slice(0, k)).width > w) k--;
-        if (cur) { out.push(cur); cur = ''; }
-        out.push(word.slice(0, k)); word = word.slice(k);
-      }
-      const next = cur ? cur + ' ' + word : word;
-      if (g.measureText(next).width <= w) cur = next; else { out.push(cur); cur = word; }
-    });
-    if (cur) out.push(cur);
-  });
-  if (out.length > max) {
-    const kept = out.slice(0, max);
-    let last = kept[max - 1] + '…';
-    while (last.length > 1 && g.measureText(last).width > w) last = last.slice(0, -2) + '…';
-    kept[max - 1] = last;
-    return kept;
-  }
-  return out;
-}
-function postPng_(p, url) {
-  const media = postMedia_(p).filter(u => !postIsVideo_(u));
-  const fonts = document.fonts && document.fonts.load
-    ? Promise.race([Promise.all(['700 40px', '400 30px'].map(f => document.fonts.load(f + ' "Family Code"'))).catch(() => {}), new Promise(r => setTimeout(r, 2000))])
-    : Promise.resolve();
-  const logoSrc = brandLogo_();
-  return Promise.all([ppngFace_(p), media[0] ? ppngImg_(pic(media[0])) : null, logoSrc ? ppngImg_(pic(logoSrc)) : null, fonts])
-    .then(([face, photo, logo]) => {
-      const C = ppngTokens_(), F = C.font, W = PPNG_W, M = PPNG_M, inner = W - 2 * M;
-      const probe = document.createElement('canvas').getContext('2d');
-      if (!probe) throw new Error('no canvas');
-      const who = String(p.handle || p.author || brand('name', '@family.'));
-      probe.font = '400 32px ' + F;
-      const cap = p.caption ? ppngWrap_(probe, who + '  ' + p.caption, inner, 8) : [];
-      probe.font = '400 28px ' + F;
-      const body = p.body ? ppngWrap_(probe, p.body, inner, 8) : [];
-      const r = p.reactions || {};
-      const total = (Array.isArray(r.counts) ? r.counts : []).reduce((n, x) => n + (Number(x) || 0), 0);
-      const iw = photo ? (photo.naturalWidth || photo.width || 1) : 0, ih = photo ? (photo.naturalHeight || photo.height || 1) : 0;
-      /* THE PICTURE'S OWN SHAPE, between 16:9 and 4:5 — the card's own limits. */
-      const ph = photo ? Math.round(inner * Math.min(1.25, Math.max(0.5625, ih / iw))) : 0;
-      const H = 60 + 150 + (ph ? ph + 40 : 0) + cap.length * 46 + (cap.length ? 16 : 0) + body.length * 40 + (body.length ? 16 : 0)
-              + (total ? 56 : 0) + 190;
+      const k = Math.min(1, 1600 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
       const cv = document.createElement('canvas');
-      cv.width = W; cv.height = H;
-      const g = cv.getContext('2d');
-      const text = (t, x, y, size, colour, weight, align) => { g.font = (weight || 400) + ' ' + size + 'px ' + F; g.fillStyle = colour; g.textAlign = align || 'left'; g.fillText(t, x, y); };
-      g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
-      g.strokeStyle = C.gold; g.globalAlpha = .55; g.lineWidth = 3;
-      g.beginPath(); if (g.roundRect) g.roundRect(24, 24, W - 48, H - 48, 26); else g.rect(24, 24, W - 48, H - 48); g.stroke();
-      g.globalAlpha = 1;
-      /* THE HEAD: the face in a gold ring, the name, where. */
-      let y = 60;
-      const fx = M + 46, fy = y + 56, fr = 46;
-      g.save(); g.beginPath(); g.arc(fx, fy, fr, 0, Math.PI * 2); g.clip();
-      g.fillStyle = C.raised; g.fillRect(fx - fr, fy - fr, fr * 2, fr * 2);
-      if (face) {
-        const w0 = face.naturalWidth || face.width || 1, h0 = face.naturalHeight || face.height || 1, sq = Math.min(w0, h0);
-        g.drawImage(face, (w0 - sq) / 2, (h0 - sq) / 2, sq, sq, fx - fr, fy - fr, fr * 2, fr * 2);
-      } else { g.textBaseline = 'middle'; text(initial(who), fx, fy + 2, 46, C.gold, 700, 'center'); g.textBaseline = 'alphabetic'; }
-      g.restore();
-      g.beginPath(); g.arc(fx, fy, fr + 3, 0, Math.PI * 2); g.strokeStyle = C.gold; g.lineWidth = 4; g.stroke();
-      probe.font = '700 38px ' + F;
-      text(ppngWrap_(probe, who, inner - 130, 1)[0] || who, fx + fr + 26, fy + (p.location ? -4 : 13), 38, C.ink, 700);
-      if (p.location) { probe.font = '400 26px ' + F; text(ppngWrap_(probe, p.location, inner - 130, 1)[0], fx + fr + 26, fy + 34, 26, C.dim); }
-      y += 150;
-      if (photo) {
-        const want = inner / ph, have = iw / ih;
-        let sx = 0, sy = 0, sw = iw, sh = ih;
-        if (have > want) { sw = ih * want; sx = (iw - sw) / 2; } else { sh = iw / want; sy = (ih - sh) / 2; }
-        g.save(); g.beginPath(); if (g.roundRect) g.roundRect(M, y, inner, ph, 14); else g.rect(M, y, inner, ph); g.clip();
-        g.drawImage(photo, sx, sy, sw, sh, M, y, inner, ph); g.restore();
-        if (media.length > 1) text('+' + (media.length - 1) + ' more', W - M - 14, y + ph - 18, 26, C.ink, 700, 'right');
-        y += ph + 40;
-      }
-      cap.forEach((line, i) => {
-        y += 38;
-        if (i === 0 && line.indexOf(who) === 0) { text(who, M, y, 32, C.ink, 700); probe.font = '700 32px ' + F; text(line.slice(who.length), M + probe.measureText(who).width, y, 32, C.ink); }
-        else text(line, M, y, 32, C.ink);
-        y += 8;
-      });
-      if (cap.length) y += 16;
-      body.forEach(line => { y += 34; text(line, M, y, 28, C.dim); y += 6; });
-      if (body.length) y += 16;
-      if (total) { y += 40; text((Array.isArray(r.emoji) ? r.emoji.slice(0, 3).join(' ') + '  ' : '') + total + (total === 1 ? ' reaction' : ' reactions'), M, y, 28, C.dim); y += 16; }
-      /* THE FOOT: the brand and the link back to this post. */
-      const fy2 = H - 150;
-      g.fillStyle = C.line; g.fillRect(M, fy2, inner, 2);
-      let bx = M;
-      if (logo) { g.save(); g.beginPath(); g.arc(M + 28, fy2 + 62, 28, 0, Math.PI * 2); g.clip(); g.drawImage(logo, M, fy2 + 34, 56, 56); g.restore(); bx = M + 74; }
-      text(brand('name', '@family.'), bx, fy2 + 60, 36, C.gold, 700);
-      probe.font = '400 22px ' + F;
-      text(ppngWrap_(probe, String(url || '').replace(/^https?:\/\//, ''), inner - (bx - M), 1)[0] || '', bx, fy2 + 96, 22, C.dim);
-      return cv;
-    });
+      cv.width = Math.max(1, Math.round(img.naturalWidth * k));
+      cv.height = Math.max(1, Math.round(img.naturalHeight * k));
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(url);
+      try { done({ kind: 'image', data: cv.toDataURL('image/jpeg', 0.85) }); } catch (e) { done(null); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); done(null); };
+    img.src = url;
+  });
+}
+/* ONE FILENAME STAMP for every saved picture. */
+function stamp_() {
+  return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+}
+/* ---------- A TUTOR'S OWN ADDRESS (400): `?tutor=<handle>` opens their card, signed out or in ----------
+   Prices follow the card's own rule (398): a child's phone has none to draw. */
+const tutorLink_ = t => location.origin + location.pathname + '?tutor=' + encodeURIComponent(String((t && t.handle) || ''));
+/* BY THE HANDLE ON THE TILE, so your own card's "Share my profile" works before the tutor list has you. */
+/* A PICTURE OF THE CARD, NOT ONLY THE LINK (412) — the owner: "I meant it would share a PNG"; since 547 the picture is the card on the site itself. */
+let TUTOR_PNG_BUSY = false;
+on('tutor-share', el => {
+  const handle = String(el.dataset.handle || '');
+  if (!handle || TUTOR_PNG_BUSY) return;
+  const t = (DATA.tutors || []).find(x => x && String(x.handle || '') === handle)
+    || (USER && USER.handle === handle ? tutorPngMe_() : { handle, title: '@' + handle });
+  const url = tutorLink_({ handle });
+  TUTOR_PNG_BUSY = true;
+  toast('Making a picture of this profile…');
+  tutorPng_(t)
+    .then(blob => tutorPngHand_(blob, handle + '-profile.png', url, t.title || '@' + handle))
+    /* NO CANVAS (an old browser, a test page): the link alone, as before 412. */
+    .catch(() => tutorLinkOnly_(t.title || '@' + handle, url))
+    .then(() => { TUTOR_PNG_BUSY = false; }, () => { TUTOR_PNG_BUSY = false; });
+});
+
+/* YOUR OWN CARD BEFORE THE TUTOR LIST HAS YOU: what the sign-in reply knows. */
+function tutorPngMe_() {
+  const p = (USER && USER.profile) || {};
+  return { handle: USER.handle, title: USER.name, image: p.photo || USER.photo || '', avatar: USER.avatar || '',
+           personId: USER.personId, role: 'Tutor', description: p.headline ? '"' + p.headline + '"' : '' };
+}
+
+function tutorLinkOnly_(title, url) {
+  if (navigator.share) return navigator.share({ title, text: title + ' on ' + brand('name', '@family.'), url }).catch(() => {});
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(url).then(() => toast('Link copied')).catch(() => toast(url));
+  toast(url);
+}
+
+/* THE SHARE SHEET WITH THE FILE AND THE LINK; ELSE THE FILE DOWNLOADED AND THE LINK COPIED. */
+function tutorPngHand_(blob, name, url, title) {
+  const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
+  const can = !!(file && navigator.share && navigator.canShare
+                 && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
+  const save = () => {
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 60000);   // not at once: a download can start after the click returns
+    const copy = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(url) : Promise.reject();
+    return copy.then(() => toast('Image saved · link copied'), () => toast('Image saved · ' + url));
+  };
+  if (!can) return save();
+  return navigator.share({ files: [file], title, text: url }).catch(e => { if (!e || e.name !== 'AbortError') return save(); });
+}
+
+/* ---------- THE PICTURE IS THE CARD (547): the owner, "when i share a staff profile it shares exactly as is" -- `findCard` draws it, the receipt's snapshot photographs it ---------- */
+function tutorPng_(t) {
+  const host = document.createElement('div');
+  host.className = 'tpng-host';
+  host.setAttribute('aria-hidden', 'true');
+  const was = CARD_VIEWER; CARD_VIEWER = 'public';
+  try { host.innerHTML = findCard({ kind: 'tutor', key: t.title || '', name: t.title || '', row: t }); } finally { CARD_VIEWER = was; }
+  const card = host.firstElementChild;
+  if (!card) return Promise.reject(new Error('no card'));
+  host.style.width = tpngWidth_(t) + 'px';
+  document.body.appendChild(host);
+  return tpngInline_(card).then(() => rcPng_(card)).then(r => r.blob)
+    .then(b => { host.remove(); return b; }, e => { host.remove(); throw e; });
+}
+/* THE SITE CARD'S OWN WIDTH, unzoomed, so the picture wraps where the site does; a column's card when no tutor card is drawn. */
+function tpngWidth_(t) {
+  const px = el => { const w = el ? parseFloat(getComputedStyle(el).width) : 0; return w > 0 ? w : 0; };
+  const cards = [...document.querySelectorAll('.card.is-prof')].filter(el => !el.closest('.tpng-host') && px(el));
+  const own = h => ((h.querySelector('.prof-handle') || {}).textContent || '') === '@' + (t && t.handle);
+  const shown = cards.find(own) || cards[0];
+  if (shown) return px(shown);
+  const any = [...document.querySelectorAll('.screen .card, section .card')].find(el => !el.closest('.tpng-host') && px(el));
+  return any ? px(any) : 24 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
+}
+/* A PICTURE INSIDE AN SVG IMAGE LOADS NOTHING FROM OUTSIDE, so each photo and map tile goes in as data, decoded before the shot; what will not come is left out whole, never blurred. */
+function tpngInline_(card) {
+  const asData = src => fetch(src, { mode: 'cors' }).then(r => (r.ok ? r.blob() : Promise.reject(new Error(r.status))))
+    .then(b => new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = () => no(fr.error); fr.readAsDataURL(b); }));
+  const safe = src => { try { return asData(src); } catch (e) { return Promise.reject(e); } };
+  const imgs = [...card.querySelectorAll('img')].map(img => {
+    const src = img.getAttribute('src') || '';
+    const got = /^data:/.test(src) ? Promise.resolve(src) : safe(img.src);
+    return got.then(d => { img.removeAttribute('loading'); img.setAttribute('src', d);
+      return img.decode ? img.decode().catch(() => img.remove()) : null; }, () => { img.remove(); });
+  });
+  const maps = [...card.querySelectorAll('.prof-heat')].map(heat => {
+    const drop = () => {
+      const cap = heat.previousElementSibling, next = heat.nextElementSibling;
+      heat.remove();
+      if (cap && cap.classList.contains('prof-cap') && !(next && next.classList.contains('prof-tags'))) cap.remove();
+    };
+    const tiles = heat.querySelector('.heat-tiles');
+    const css = tiles ? tiles.style.backgroundImage : '';
+    const urls = [...css.matchAll(/url\(["']?([^"')]+)["']?\)/g)].map(m => m[1]);
+    if (!urls.length) { drop(); return null; }
+    return Promise.all(urls.map(safe)).then(ds => {
+      tiles.style.backgroundImage = ds.map(d => 'url("' + d + '")').join(',');
+      return Promise.all(ds.map(d => { const i = new Image(); i.src = d; return i.decode ? i.decode() : null; }));
+    }).catch(drop);
+  });
+  const fonts = document.fonts && document.fonts.ready ? document.fonts.ready.catch(() => {}) : null;
+  return Promise.all(imgs.concat(maps, [fonts]));
+}
+
+/* ONCE A VISIT, on the first payload that has them — `openSharedPost`'s place in the landing. */
+let TUTOR_LINK_DONE = false;
+function openSharedTutor() {
+  if (TUTOR_LINK_DONE) return;
+  let h = '';
+  try { h = String(new URLSearchParams(location.search).get('tutor') || '').replace(/^@+/, '').toLowerCase(); } catch (e) { h = ''; }
+  if (!h) { TUTOR_LINK_DONE = true; return; }
+  const t = (DATA.tutors || []).find(x => x && x.listed !== false && String(x.handle || '').toLowerCase() === h);
+  if (!t) return;
+  TUTOR_LINK_DONE = true;
+  const item = { kind: 'tutor', name: t.title, key: t.title, row: t };
+  openSheet(t.title, `<div class="tutor-link">${typeof findCard === 'function' ? findCard(item) : ''}
+    ${tileRow_(tile_(tutorOpts_(item)))}</div>`);
 }
 
 ;
@@ -18280,7 +16161,7 @@ function drawFeed() {
   /* The photograph arrives afterwards and fades in over the drawing. § */
   /* A CLIP PLAYS HERE TOO, AND IT HAS TO BE ASKED. § */
   const vid = host.querySelector('video.feed-vid');
-  if (vid && typeof reelPlay_ === 'function') reelPlay_(vid);
+  if (vid && typeof window.reelPlay_ === 'function') window.reelPlay_(vid);
 
   const at = FEED_AT;
   if (it.pic) feedPicture(it.pic).then(found => {
@@ -19418,7 +17299,7 @@ const personTiles_ = x => { const t = (x && x.row) || {}; const name = t.title |
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
 /* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
 const CARD_EXTRAS_ = { shop: shopOpts_, tutor: tutorOpts_, subject: x => tile_(subjectOpts_(x)),
-  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + tile_(jobOpts_(x)), person: x => personTiles_(x), talmud: x => tile_(talmudOpts_(x)) };
+  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + tile_(jobOpts_(x)), person: x => personTiles_(x), talmud: x => tile_(window.talmudOpts_(x)) };
 function cardCore_(x) {
   const one = {
     share: () => tile_({ icon: 'share', label: 'Share', act: 'card-share', data: { key: x.key } }),
@@ -19519,7 +17400,7 @@ function tileRowsJoin_(html) {
     if (!prev || !prev.classList.contains('tile-row') || !row.parentNode || (formOwn && prev.closest('.me-form')) || prev.classList.contains('person-tiles')) return;
     group(prev, row, !coreIn_(row));
   });
-  /* A CARD'S ONE ROW IS ITS FOUR (owner, 10 Nov): a group joined after them (your own, an admin's) waits behind ⋯, never a second line. */
+  /* A CARD'S ONE ROW IS ITS FOUR (owner, 10 Nov): a group joined after them (your own, an admin's) joins the visible wrap under them. */
   t.content.querySelectorAll('.kc-row').forEach(r => { const more = r.querySelector(':scope > .kc-more');
     if (more) [...r.children].filter(k => k !== more && !k.classList.contains('kc-four')).forEach(k => { more.appendChild(k); joined++; }); });
   return joined ? t.innerHTML : h;

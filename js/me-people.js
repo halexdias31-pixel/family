@@ -4,7 +4,7 @@ function peopleAddPage_(col) {
   const F = PEOPLE_FORM_, plus = addCard_({ act: 'person-add', label: PEOPLE_ADD_[col].say, data: { col } });
   if (F && !F.id && (F.col || 'students') !== col) return plus;
   if (F && !F.id && F.made) {
-    return card_(`<div class="person-made"><h3>${esc(F.made.first)} is on the people tab</h3>
+    return meCard_(`<div class="person-made"><h3>${esc(F.made.first)} is on the people tab</h3>
       ${pinSlip_(F.made.first, F.made.handle, F.made.pin)}
       <p class="note">Write it down or read it to them — the PIN is not shown again.</p>
       ${tile_({ form: true, label: 'Done', act: 'person-cancel', kind: 'quiet' })}</div>`);
@@ -60,7 +60,7 @@ function psResults_(col) {
 function peopleSearchPage_(col) {
   if (!USER) return '';
   const c = col || 'students', S = psState_(c);
-  return card_(`<div class="ps-card" data-ps-col="${esc(c)}">
+  return meCard_(`<div class="ps-card" data-ps-col="${esc(c)}">
     <div class="ps-bar">${searchPill_(`data-psearch aria-label="Find someone by handle" placeholder="@handle" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(S.q)}"`)}</div>
     <div class="ps-out" aria-live="polite">${psResults_(c)}</div>
   </div>`);
@@ -121,7 +121,7 @@ function personFormHtml_(F) {
   const head = `<h3>${F.id ? 'Edit ' + esc((F.data && F.data.person && F.data.person.firstName) || 'them') : 'A new person'}</h3>`;
   if (!F.data) {
     if (!F.asked && !F.err) { F.asked = true; setTimeout(() => personFetch_(F), 0); }
-    return card_(`<div class="person-form" data-pid="${esc(F.id)}">${head}${F.err
+    return meCard_(`<div class="person-form" data-pid="${esc(F.id)}">${head}${F.err
       ? `${tile_({ form: true, label: 'Close', act: 'person-cancel', kind: 'quiet' })}` : loading_()}</div>`);
   }
   const p = F.data.person || { firstName: '', lastName: '', roles: [F.role || 'student'], email: '', dob: '', parentIds: [] };
@@ -131,7 +131,7 @@ function personFormHtml_(F) {
   const kid = (p.roles || []).indexOf('student') !== -1;
   const box = (k, ph, v, type) => formLine_('', formInput_(`data-pf="${k}" placeholder="${esc(ph)}"
     autocomplete="off"${type ? ` type="${type}"` : ''} value="${esc(v || '')}"`));
-  return card_(`<div class="person-form" data-pid="${esc(F.id)}">${head}
+  return meCard_(`<div class="person-form" data-pid="${esc(F.id)}">${head}
     <div class="f-row" style="--n:2">${box('first', 'First name', p.firstName)}${box('last', 'Last name', p.lastName)}</div>
     <div class="pf-roles" role="group" aria-label="Role">${peopleRolePicks_().map(([r, label]) => formTick_(`data-pf-role="${r}"${(p.roles || []).indexOf(r) !== -1 ? ' checked' : ''}`, `<span>${label}</span>`)).join('')}</div>
     ${box('email', 'Email (optional)', p.email, 'email')}
@@ -401,7 +401,7 @@ function personAddCard_() {
   if (!personAddMay_()) return '';
   const F = paState_(), v = k => esc(F.v[k] || '');
   if (F.made) {
-    return card_(`<div class="is-prof prof-door pa-card"><h3>${esc(F.made.first)} is added</h3>
+    return meCard_(`<div class="is-prof prof-door pa-card"><h3>${esc(F.made.first)} is added</h3>
       ${F.made.pin ? pinSlip_(F.made.first, F.made.handle, F.made.pin) + '<p class="note">Write it down or read it to them — the PIN is not shown again.</p>'
         : `<p class="note">The PIN went to ${esc(F.made.email)}, with the handle @${esc(F.made.handle)}.</p>`}
       ${F.made.said ? `<p class="note">${esc(F.made.said)}</p>` : ''}
@@ -409,7 +409,7 @@ function personAddCard_() {
   }
   const kid = F.role === 'student', tutor = F.role === 'tutor';
   const box = (k, ph, type) => formLine_('', formInput_(`data-pa="${k}" placeholder="${esc(ph)}" autocomplete="off"${type ? ` type="${type}"` : ''} value="${v(k)}"`));
-  return card_(`<div class="is-prof prof-door pa-card"><h3>Add a person</h3>
+  return meCard_(`<div class="is-prof prof-door pa-card"><h3>Add a person</h3>
     ${box('first', 'First name')}${box('last', 'Last name')}
     ${formLine_('Role', formSelect_('data-pa="role"', PA_ROLES_.map(([r, l]) => `<option value="${r}"${r === F.role ? ' selected' : ''}>${l}</option>`).join('')))}
     ${box('email', kid ? 'Email (optional)' : 'Email', 'email')}

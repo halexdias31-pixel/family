@@ -187,7 +187,7 @@ check('no age gates (1040): a ten-year-old, a member with no date of birth, a si
     if (!b.w.__t) { bad.push(what + ': the app did not boot — NOT checked'); continue; }
     const { w } = b, t = w.__t;
     t.go('stuff'); w.paintStuff();
-    for (let i = 0; i < 160 && ok && !(w.talmudItems_().length && w.quranItems_().length && w.bibleItems_().length); i++) await wait(25);
+    for (let i = 0; i < 160 && ok && !((w.talmudItems_ ? w.talmudItems_().length : 1) && w.quranItems_().length && w.bibleItems_().length); i++) await wait(25);
     if (!ok) await wait(150);
     const all = w.stuffItemsAll_();
     const kinds = k => all.filter(x => x.kind === k).length;
@@ -291,7 +291,7 @@ check('one verse, one text (504): an adult client is offered the Bible under Whi
   if (!b.w.__t) return ['the app did not boot — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, bad = [];
   t.go('stuff'); w.paintStuff();
-  for (let i = 0; i < 200 && !(w.bibleItems_().length && w.quranItems_().length && w.talmudItems_().length && w.hadithItems_().length); i++) await wait(25);
+  for (let i = 0; i < 200 && !(w.bibleItems_().length && w.quranItems_().length && (w.talmudItems_ ? w.talmudItems_().length : 1) && (w.hadithItems_ ? w.hadithItems_().length : 1)); i++) await wait(25);
   if (!w.bibleItems_().length) return ['the Bible never came for an adult client — fetched: ' + b.gets.filter(u => /bible/.test(u)).join(', ')];
   t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }, { field: 'shelf', value: 'Writings' }];
   const items = w.stuffFiltered(), facet = w.nextFacet(items);
@@ -853,7 +853,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Bible apart �
     const R = findView_(w);
     /* AND THE TALMUD'S INDEX (473), which both are given once a finder paints — or the two would differ by its timing. */
     try { t.go('stuff'); w.paintStuff(); } catch (e) {}
-    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && w.talmudItems_().length && w.textsItems_().length && (u.role !== 'admin' || (t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
+    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && (w.talmudItems_ ? w.talmudItems_().length : 1) && w.textsItems_().length && (u.role !== 'admin' || (t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
     if (!t || w.stuffItems().length < 1000) { bad.push(what + ': the library did not load, so the walk was NOT checked'); return bad; }
     /* OPEN TO ANYONE OF AGE (504): a parent of thirty holds it as an admin does. */
     if (!w.stuffItems().some(x => x.kind === 'bible')) bad.push(what + '\'s Find holds no Bible — it is open to anyone of age since 504');

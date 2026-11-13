@@ -5885,7 +5885,7 @@ figure svg text:not([font-family], [font-family] *, [style*="font"]) { font-fami
 .card.kc.kc-facts > .kc-lines > .kc-line { margin: var(--s0) 0 0; font-size: var(--fs-body); line-height: 1.5; overflow-wrap: anywhere; }
 .kc-four { display: contents; }
 /* ⋯ OPENS A ROW OF THE SAME ROUND BUTTONS, wrapping and centred; a long press says a button's word (`tileWordShow_`). */
-.kc-more[hidden] { display: none; }
+.kc-more:empty { display: none; }
 .kc-more { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s3) var(--s4); flex-basis: 100%; margin: var(--s2) auto var(--s2); }
 .kc-more > * { margin: 0; }
 .prof-tag-name { color: var(--ink); }

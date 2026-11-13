@@ -62,7 +62,7 @@ const WIDGETS = [
   { id: 'reels', kind: 'tool', name: 'One more thing', start: () => initFeed?.(),
     /* DRAWN AHEAD AS THE FACT'S CARD AND NOTHING ELSE (`feedPaint_`, overworld.js): § */
     draw: () => feedPaint_?.(),
-    stop: () => clipsStop_($('feed-screen')),
+    stop: () => { if (typeof window.clipsStop_ === 'function') window.clipsStop_($('feed-screen')); },
     into: 'feed-screen', what: 'This',
     get html() { return `
     <h3>One more thing</h3>

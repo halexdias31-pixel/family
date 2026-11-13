@@ -131,7 +131,7 @@ function pushGo_(what) {
   if (!m) return;
   try {
     if (m[1] === 'job' && typeof openJob_ === 'function') openJob_(m[2]);
-    else if (m[1] === 'post' && typeof postGo_ === 'function') postGo_(m[2]);
+    else if (m[1] === 'post' && typeof window.postGo_ === 'function') window.postGo_(m[2]);
     else go('dm');
   } catch (e) {}
 }

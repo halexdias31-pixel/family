@@ -269,7 +269,7 @@ function placeNow_(which, instant, dragPx, id) {
   /* ---------- AND WHICH CARDS ARE TOO TALL FOR THE PANE THEY ARE IN § */
   if (typeof paneWatch_ === 'function') paneWatch_($('s-' + AT));
   /* THE NEXT PICTURES OF THE COLUMN IN FRONT, asked for six pages ahead — see `picsAhead_` in posts.js. § */
-  if (typeof picsAhead_ === 'function') picsAhead_(AT);
+  if (typeof window.picsAhead_ === 'function') window.picsAhead_(AT);
 
   /* ANY SCREEN NO TAB POINTS AT. index.html lists eight sections and the tab table decides which of
      them exist, so removing a tab leaves a section behind that nothing places. */
@@ -352,9 +352,9 @@ const PAGER = {
 
   /* ---------- AND `spotPages()` WENT FROM HERE, BECAUSE THE FEED STOPPED DRAWING IT § */
   /* COUNTED FROM `feedColumn_`, the list `screen('feed')` draws, which now holds the camera as well — one page directly above the newest post. § */
-  feed:   () => (typeof feedColumn_ === 'function' ? [].concat(feedColumn_()) : ['']).map(() => ''),
+  feed:   () => (typeof window.feedColumn_ === 'function' ? [].concat(window.feedColumn_()) : ['']).map(() => ''),
   /* ---------- THE REELS COLUMN HAD NO ENTRY HERE, AND THAT IS WHY IT MOVED DIFFERENTLY § */
-  reel:   () => (typeof reelPages_ === 'function' ? reelPages_() : ['']),
+  reel:   () => (typeof window.reelPages_ === 'function' ? window.reelPages_() : ['']),
   /* ---------- AND MESSAGES WAS THE SIXTH COLUMN TO LOSE ITS AXIS THIS WAY § */
   dm:     () => (typeof dmPages_ === 'function' ? dmPages_().map(p => p.name) : ['']),
   /* THE CAMERA, WHICH IS ONE PAGE AND IS COUNTED ANYWAY. § */
@@ -385,15 +385,15 @@ const PAGE_HOME = {
   /* ---------- THE NEWEST POST, PAST THE CAMERA ABOVE IT § */
   /* ---------- AND WHEN THERE IS NO POST, NOT THE CAMERA EITHER § */
   feed:    () => {
-    if (typeof feedCamAt_ !== 'function') return 0;
+    if (typeof window.feedCamAt_ !== 'function') return 0;
     /* THE NEWEST POST; with no post, the page after the camera, never the camera itself (489: camera first). */
-    const at = typeof feedPostsAt_ === 'function' ? feedPostsAt_() : feedCamAt_() + 1, n = pageCount('feed');
-    return n > at ? at : n > 1 && feedCamAt_() === 0 ? 1 : 0;
+    const at = typeof window.feedPostsAt_ === 'function' ? window.feedPostsAt_() : window.feedCamAt_() + 1, n = pageCount('feed');
+    return n > at ? at : n > 1 && window.feedCamAt_() === 0 ? 1 : 0;
   },
   /* ---------- AND `account` HAS BEEN OPENING ON SOMEBODY ELSE § */
   account: () => 0,
   /* THE FIRST REEL (414), past the pages that lead it — the widgets and an admin's "+" (`REEL_LEAD`, posts.js). */
-  reel: () => (typeof REEL_LEAD === 'number' ? REEL_LEAD : 0),
+  reel: () => (typeof window.REEL_LEAD === 'number' ? window.REEL_LEAD : 0),
 };
 /* ---------- THE TAB AND HOME-SCREEN ICON ARE THE REPO'S FILES (owner's logo, 6 Nov): a sheet `logo_square` still drives posts and avatars, never these. */
 function applyBrandIcon_() {

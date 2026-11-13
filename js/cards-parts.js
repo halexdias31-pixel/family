@@ -134,11 +134,11 @@ function kcFour_(x, rest, main, flat) {
     || tile_({ icon: 'star', label: 'Save', act: 'fav', off: true, data: { key: (x && x.key) || '', kind: (x && x.kind) || 'item' } });
   /* A CARD IS STATIC (owner, 10 Nov): with no main of its own, Share leads; the card already shows everything it holds. */
   const lead = main || pick(t => kcAct_(t) === 'card-share') || tile_({ icon: 'share', label: 'Share', act: 'card-share', off: !(x && x.key), data: { key: (x && x.key) || '' } });
-  /* WHAT IS NOT A TILE (a verdict, a slot) stays beside the rest, behind ⋯. */
+  /* EVERY OTHER ACTION IS ITS OWN VISIBLE TILE (owner, 13 Nov): no hidden menu; the fixed three lead, the rest wrap under them. */
   const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
-  /* `flat` (a question, owner 13 Nov): every action a visible tile, nothing behind ⋯. */
   const rest2 = all.join('') + left;
-  return `<span class="kc-four">${lead}${msg}${star}${flat ? rest2 : tile_({ icon: 'more', label: 'More', act: 'kc-more' })}</span><span class="kc-more" hidden>${flat ? '' : rest2}</span>`;
+  /* `flat` (a question): every tile in its one row; otherwise the rest wrap visibly under the fixed three. */
+  return `<span class="kc-four">${lead}${msg}${star}${flat ? rest2 : ''}</span>${flat ? '' : `<span class="kc-more">${rest2}</span>`}`;
 }
 /* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
 /* `o`: { flat, look, key } -- a question's row is its tool row (`.qt-row`, its key on it) with every tile shown. */

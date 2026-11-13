@@ -662,8 +662,8 @@ function frontPageOf_(col) {
     const n = widgetPagesOf_(kind).findIndex(w => String(w.id) === f.id || (w.parts || []).some(p => String(p.id) === f.id));
     if (n !== -1) return n;
   }
-  if (col === 'feed' && typeof feedCamAt_ === 'function') {
-    if (f.id === 'item:feed:camera') return feedCamAt_();
+  if (col === 'feed' && typeof window.feedCamAt_ === 'function') {
+    if (f.id === 'item:feed:camera') return window.feedCamAt_();
   }
   const n = CARD_START_AT[col];
   return typeof n === 'number' && n >= 0 ? n : -1;

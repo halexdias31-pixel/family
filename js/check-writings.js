@@ -17,7 +17,7 @@ const find = require('../tools/find-src.js').findSrc();
 const LOADERS = [['talmud', 'TALMUD', 'talmudItems_', 'data/talmud/index.json'], ['quran', 'QURAN', 'quranItems_', 'data/quran/index.json'],
   ['hadith', 'HADITH', 'hadithItems_', 'data/hadith/index.json'], ['works', 'WORKS', 'worksItems_', 'data/works/index.json'],
   ['texts', 'TEXTS', 'textsItems_', 'data/texts/index.json'], ['pdtexts', 'PDTEXTS', 'pdtextsItems_', 'data/pdtexts/index.json'],
-  ['orthodox', 'ORTHO', 'orthoItems_', 'data/orthodox/index.json'], ['hymns', 'HYMNS', 'hymnsItems_', 'data/hymns/index.json']];
+  ['orthodox', 'ORTHO', 'orthoItems_', 'data/orthodox/index.json'], ['hymns', 'HYMNS', 'hymnsItems_', 'data/hymns/index.json']].filter(l => fs.existsSync(path.join(ROOT, 'js', l[0] + '.js')));
 const ctx = { window: {}, Array, String, Number, Object, Promise, Math, JSON, Set, Map, RegExp, console,
   BIBLE_SHELF: 'Writings', SCRIPTURE_SUBJECT: () => 'Religious Studies', brand: (k, v) => v,
   ruleOn_: () => true, ANSWER_ORDERS: [], esc: s => String(s), on: () => {}, $: () => null, loading_: () => '', tagRow_: () => '', tile_: () => '', spellKey_: s => String(s).toLowerCase() };
