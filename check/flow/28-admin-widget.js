@@ -369,7 +369,7 @@ check('Mechanics (batch E): Library → Mechanics asks Car or Car part (owner, 7
   if (!/data-do="mech-parts"[^>]*data-engine="K9K"/.test(chtml)) bad.push('a car card offers no Parts tile');
   S.filters = base.concat({ field: 'mScope', value: 'Car part' }, { field: 'mMake', value: 'Renault' }, { field: 'mEngine', value: 'K9K' });
   const part = dci.find(x => x.mKind === 'Part'), html = part ? w.stuffCard(part, 0) : '';
-  if ((html.match(/<svg class="pp/g) || []).length !== 1 || (html.match(/class="mech-does"/g) || []).length !== 1 || />K9K</.test(html)) bad.push('a part card is not tags, one drawing and its one line, with the chosen engine left to its chip');
+  if ((html.match(/<svg class="pp/g) || []).length !== 1 || (html.match(/class="[^"]*\bmech-does\b/g) || []).length !== 1 || />K9K</.test(html)) bad.push('a part card is not tags, one drawing and its one line, with the chosen engine left to its chip');
   S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Computer Science' }, { field: 'shelf', value: 'PC parts' }];
   ['CPU', 'Motherboard', 'RAM', 'GPU', 'Storage', 'PSU'].forEach(k => { if (vals('pcType').indexOf(k) < 0) bad.push('PC parts → Part type lacks ' + k); });
   return bad;
@@ -400,8 +400,8 @@ check('Chemistry (550): Library → Chemistry offers Element, Substance and Reac
   if (vals('cGroup').join() !== 'Group 17') bad.push('Element → Halogen offers groups ' + vals('cGroup').join(', '));
   if (vals('cState').sort().join() !== 'Gas,Liquid,Solid,Unknown') bad.push('halogens offer states ' + vals('cState').join(', '));
   const rx = all.find(x => x.mKind === 'Reaction');
-  const html = w.chemCard_(rx);
-  if (!/Observations/.test(html) || !/<ol>/.test(html) || html.indexOf('chemistry knowledge') < 0 || !/qtag/.test(html)) bad.push('a reaction card does not draw its words, examples, tags and source');
+  const html = w.findCard(rx);
+  if (!/Observations/.test(html) || !(rx.chem.examples || []).every(e => html.indexOf(String(e.equation).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) >= 0) || html.indexOf('chemistry knowledge') < 0 || !/qtag/.test(html)) bad.push('a reaction card does not draw its words, examples, tags and source');
   return bad;
 });
 

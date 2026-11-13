@@ -571,8 +571,8 @@ function renderCard(spec) {
   const tags = (spec.tags || []).filter(t => t != null && t !== '' && (typeof t !== 'object' || (t.text != null && t.text !== '')))
     .filter((t, i, all) => !i || said(t) !== said(all[0]));
   const body = (spec.body || []).map(cardBlock_).join('');
-  const x = { kind, key: spec.key || '', row: spec.row || { title: typeof name === 'string' ? name : '' } };
-  /* THE KIND'S OWN TILES (read aloud, admin, the padlock) join the spec's, through the one row maker. */
+  const x = Object.assign({}, spec.item || {}, { kind, key: spec.key || '', row: spec.row || { title: typeof name === 'string' ? name : '' } });
+  /* THE KIND'S OWN TILES (read aloud, admin, the padlock, its extras off `item`) join the spec's, through the one row maker. */
   let row = '';
   try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || [])) : `<div class="tile-row kc-row">${tile_(spec.tiles || [])}</div>`; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
   const cls = 'card fc kc kc-' + kind + (spec.look ? ' ' + spec.look : '') + (spec.off ? ' is-off' : '');
@@ -590,7 +590,7 @@ function cardKind_(kind, build) { CARD_KINDS[kind] = build; }
 function cardOfKind_(x) {
   let spec = null;
   try { spec = CARD_KINDS[x.kind](x); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'spec:' + x.kind); }
-  return spec ? renderCard(Object.assign({ kind: x.kind, key: x.key, row: x.row }, spec)) : '';
+  return spec ? renderCard(Object.assign({ kind: x.kind, key: x.key, row: x.row, item: x }, spec)) : '';
 }
 
 ;
@@ -7977,8 +7977,6 @@ function ruleOn_(id) {
   const marked = !!(s && s.set && s.set[id] === 'universal');
   return r.flip ? marked : !marked;
 }
-/* WHAT THE BACKEND STORES for a choice: a `flip` rule is stored the other way round, so the backend needs no change. */
-const ruleStored_ = (r, to) => r && r.flip ? (to === 'universal' ? 'exception' : 'universal') : to;
 /* THE RULES ONLY CSS CAN APPLY, said on the root as `data-uni` (style.css reads `:root[data-uni~="…"]`). */
 function rulesMark_() {
   try {
@@ -7991,26 +7989,6 @@ function rulesMark_() {
 }
 rulesMark_();
 
-function rulesSend_(body, el) {
-  if (!USER || !(typeof isAdmin === 'function' && isAdmin())) return;
-  const card = el.closest('.rules-card');
-  send_(Object.assign({ action: 'rulesSave', name: USER.name, personId: USER.personId || '' }, body),
-    { button: el, where: (card && card.querySelector('.rules-said')) || undefined, busy: 'Saving…' })
-    .then(d => {
-      if (!d || !d.success) return;
-      try { DATA.rules = d.rules; } catch (e) { oops_(e, 'rules:rulesSend_') }
-      rulesNow_();
-      toast(body.undo ? 'The last rule change is undone' : 'Saved for everybody');
-      /* EVERY COLUMN, because a rule reaches past this one; a finder's memo catches up on the next reload. */
-      try { markStale_(TABS.map(t => t.id)); repaint(true); } catch (e) { oops_(e, 'rules:rulesSend_') }
-    });
-}
-on('rule-set', el => {
-  const id = el.getAttribute('data-rule'), to = el.getAttribute('data-to'), r = RULE_OF_(id);
-  if (!r || r.lock || (to === 'universal') === !ruleOn_(id)) return;
-  rulesSend_({ rule: id, to: ruleStored_(r, to) }, el);
-});
-on('rules-undo', el => rulesSend_({ undo: true }, el));
 
 ;
 /* ==== js/cards-people.js ==== */
@@ -8343,8 +8321,8 @@ const KC_DEFAULT = {
   question: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   answer: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   shop: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: ['cart-add:cart:Buy'] },
-  practical: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
-  project: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  practical: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
+  project: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   content: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   insert: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   spec: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
@@ -8359,8 +8337,8 @@ const KC_DEFAULT = {
   pdtext: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   orthotext: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   hymn: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
-  mech: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
-  chem: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  mech: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
+  chem: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   soon: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   person: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   setting: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
@@ -8532,7 +8510,9 @@ cardKind_('venue', x => { const t = kcRow_(x), kid = childView_();
   const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? perHour_(rate) : 'free'].filter(Boolean).join(' · ');
   const one = (label, max, rate) => (say(max, rate) ? { label, value: say(max, rate) } : null);
   const rooms = (t.rooms || []).length ? t.rooms.slice(0, 4).map(r => one(r.name || 'Room', r.max, r.rate)) : [one('The room', t.maxCapacity, t.bestRate)];
-  return { look: 'venue-door', tags: kcFacetTags_(x), body: [{ type: 'list', items: rooms.filter(Boolean) }] }; });
+  /* ITS 8-BIT BUILDING (find-doors.js), which the move to specs (2c2bab5) left behind. */
+  const pix = typeof VENUE_PIX === 'object' && typeof venueShape_ === 'function' ? VENUE_PIX[venueShape_(x.row || {})] : null;
+  return { look: 'venue-door', picture: pix ? { pix, alt: x.name } : null, tags: kcFacetTags_(x), body: [{ type: 'list', items: rooms.filter(Boolean) }] }; });
 /* A WRITING AND AN EVENT: the name and the facets; a manuscript adds its own fragment, drawn where there is one. */
 cardKind_('writing', x => ({ look: 'hdb lib-c', tags: kcFacetTags_(x) }));
 cardKind_('event', x => ({ look: 'hdb lib-c', tags: kcFacetTags_(x) }));
@@ -8617,8 +8597,9 @@ on('kc-more', el => { const c = el.closest('.kc-row, .tile-row'), m = c && c.que
   m.hidden = !m.hidden; el.setAttribute('aria-expanded', m.hidden ? 'false' : 'true'); });
 /* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
 function findCard(x, credits) {
-  if (x && x.kind && CARD_KINDS[x.kind]) return cardOfKind_(x);
-  const around = x && !x.kcIn && (window.KC_AROUND || {})[x.kind];
+  /* A PANEL (card_) KEEPS ITS OWN INSIDES: a DM thread is kind `msg`, and Find's message door (KC_AROUND) drew it empty. */
+  if (x && x.kind && CARD_KINDS[x.kind] && !x.kcPanel) return cardOfKind_(x);
+  const around = x && !x.kcIn && !x.kcPanel && (window.KC_AROUND || {})[x.kind];
   if (around) return around(x, extra => findCard(Object.assign({}, x, extra || {}, { kcIn: true })));
   /* A KIND WHOSE OWN FILE STILL WRITES ITS CARD (`window.KC_OWN[kind] = (x, credits) => html`) is cut into the parts; one already in the shape is kept whole. */
   const own = x && !x.kcOwn && x.kind && (window.KC_OWN || {})[x.kind];
@@ -8634,7 +8615,7 @@ function findCard(x, credits) {
   const it = x && (x.row || x.kcOwn) ? x : { kind: 'subject', row: x || {} };
   const t = kcRow_(it), name = it.name || t.title || t.name || '';
   const one = it.name ? it : Object.assign({}, it, { name });
-  const s = it.kcOwn && kcSpec_(it.kind) === KC_BARE ? KC_OWN_SPEC : kcSpec_(it.kind);
+  const s = it.kcOwn && (it.kcPanel || kcSpec_(it.kind) === KC_BARE) ? KC_OWN_SPEC : kcSpec_(it.kind);
   const run = list => (list || []).map(k => { try { const f = kcField_(k); return f ? f(one) || '' : ''; } catch (e) { oops_(e, 'card:' + k); return ''; } }).join('');
   const parts = { pic: run(s.pic), head: run(s.title), tags: run(s.tags), lines: run(s.lines), act: '' };
   parts.pic = kcPicOr_(one, parts.pic);
@@ -8670,6 +8651,8 @@ function findCard(x, credits) {
 }
 
 /* THE ONE TAG MAKER (one way only): `inner` is HTML the caller escaped, `attrs` its attributes, `cls` extra classes; `base` a tutor pill or a filter chip. */
+/* A CARD ITS OWN FILE STILL LAYS OUT (a question's part): the template's classes, from the card's one maker file. */
+const kcCls_ = kind => 'card fc kc kc-' + kind;
 function qtag_(inner, attrs, cls, base) { return `<span class="${base || 'qtag'}${cls ? ' ' + cls : ''}"${attrs || ''}>${inner}</span>`; }
 /* EVERY OTHER CARD COMES HERE TOO (owner, 11 Nov: one template): its maker writes a plain `<div class="x">…</div>`; a form inside stays whole, the booking form's too. */
 const KC_FORMY = /<(input(?![^>]*type="hidden")|select|textarea|form)\b|\bkc-items\b/;
@@ -10563,7 +10546,8 @@ on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
 
 /* A COLUMN ABOVE YOUR RANK, OR EMPTY: one line and the next step. Never the column's name (710, 770: "columns don't need names or a widget for the name"). */
 /* `look` names it for the doors that skip it (`settingNone_`); `tiles` its next step. */
-const rankOffCard_ = (title, say, tiles, look) => renderCard({ kind: 'rank', look: look || 'rank-off', body: say ? [{ type: 'text', text: say, look: 'note' }] : [], tiles: tiles || [] });
+/* ITS ONE TAG SAYS THE STATE, never the column's name: the template's name is a tag (rules.md 3). */
+const rankOffCard_ = (title, say, tiles, look) => renderCard({ kind: 'rank', look: look || 'rank-off', tags: [{ text: /people-none/.test(look || '') ? 'Nobody yet' : /^Sign in/.test(say || '') ? 'Signed out' : 'Nothing yet', colour: 0 }], body: say ? [{ type: 'text', text: say, look: 'note' }] : [], tiles: tiles || [] });
 /* A SETTINGS COLUMN FOR A ROLE YOU DO NOT HOLD (464): a padlock and one short line, and nothing else — the owner, "it will just show a padlock". */
 const padlockCard_ = say => renderCard({ kind: 'rank', look: 'rank-off col-lock', tags: [{ text: 'Locked', colour: 0 }], body: say ? [{ type: 'text', text: say, look: 'note' }] : [] });
 const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', 'Kids settings') + ' first.');
@@ -12028,9 +12012,6 @@ function libCardsRedraw_() {
   });
 }
 
-/* ---------- ONE SAVE, TWO SURFACES, AND THE DOM SAYS WHICH § */
-on('me-save', el => { meSave_(el); });
-
 /* ---------- EVERY SETTINGS FIELD SAVES AS YOU TYPE (owner, 8 Nov) § */
 const AUTOSAVE_MS = 800;
 const AUTOSAVE_T = new WeakMap();
@@ -12314,7 +12295,8 @@ const CARD_SECTIONS = [
   { id: 'seat', cap: 'Rate and extra seat', fields: ['rate_per_hour', 'extra_seat_rate'] },
   { id: 'size', cap: 'Class size', fields: ['min_students', 'max_students'] },
   { id: 'headline', fields: ['headline'] },
-  { id: 'photos', cap: 'Photographs', fields: ['video'], match: /^photos_\d+$/ },
+  /* NO `video` BOX: the clip is uploaded (videoPicker_); updateProfile writes no `video` cell since 8 Nov. */
+  { id: 'photos', cap: 'Photographs', fields: [], match: /^photos_\d+$/ },
   { id: 'words', fields: ADJECTIVE_FIELDS },
   { id: 'glance', cap: 'At a glance', fields: ['years_experience', 'favourite_colour', 'age_min', 'age_max', 'min_hours', 'max_hours'] },
   { id: 'quals', cap: 'Qualifications', match: /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/ },

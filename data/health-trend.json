@@ -1213,5 +1213,32 @@
    "bigNotes": 0,
    "spread": 16
   }
+ },
+ {
+  "date": "2026-11-13",
+  "commit": "59d5381",
+  "score": 91.1,
+  "parts": {
+   "code": 92.9,
+   "logic": 89.6,
+   "ui": 94.5,
+   "cost": 67,
+   "business": 73.1,
+   "content": 93.7
+  },
+  "topKind": "search-bytes",
+  "effort": {
+   "commits": 30,
+   "medianLines": 79,
+   "worstLines": 11355,
+   "medianFiles": 7,
+   "worstFiles": 708,
+   "testBytes": 5717843,
+   "testBiggest": 372953,
+   "historyBytes": 4604598,
+   "historyBiggest": 38859,
+   "bigNotes": 0,
+   "spread": 10
+  }
  }
 ]

@@ -16,6 +16,7 @@ const REASONS = {
   mediaUpload: 'its front end (the reels and videos admin, games.js/racer.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
   raceBuild: 'its front end (the racer, games.js/racer.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
   saveAvatar: 'its front end (the figure and its wardrobe, links.js and me-account.js) was removed (9 Nov, one card everywhere); the handler stays until the backend is next redeployed. Restore from 5cc3c89.',
+  rulesSave: 'its front end (the Rules card, rules.js) was taken off by the owner on 10 Nov and its leftovers cut (ee7617b); the handler stays until the backend is next redeployed.',
   saveScore: 'its front end (the Flabby Pird game, receipt.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
   rewriteIdeas: 'its front end was frozen and deleted (1100); the handler stays until the backend is next redeployed. Restore from c9b8d2f.',
   rewriteCheck: 'its front end was frozen and deleted (1100); the handler stays until the backend is next redeployed. Restore from c9b8d2f.',

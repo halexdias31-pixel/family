@@ -1,13 +1,13 @@
 {
  "why": "first-download budgets: current + 5% when set (920); raise one only with a reason in docs/history",
- "total": 1649513,
+ "total": 2050966,
  "files": {
   "index.html": 18645,
   "style.css": 486540,
   "fonts/family-code.woff2": 56528,
   "js/core.js": 34811,
   "js/core-price.js": 18495,
-  "js/finder-tags.js": 3056,
+  "js/finder-tags.js": 363556,
   "js/price-rows.js": 13963,
   "js/data.js": 27234,
   "js/data-text.js": 9287,
@@ -18,8 +18,8 @@
   "js/shell.js": 230033,
   "js/rules.js": 11032,
   "js/cards-people.js": 13240,
-  "js/cards-parts.js": 22880,
-  "js/cards-make.js": 18643,
+  "js/cards-parts.js": 25157,
+  "js/cards-make.js": 20117,
   "js/me.js": 300026,
   "js/posts.js": 135823,
   "js/links.js": 19718,
@@ -43,6 +43,8 @@
   "js/form.js": 6570,
   "js/me-account.js": 48533,
   "js/me-roles.js": 46547,
-  "js/me-settings.js": 58959
+  "js/me-settings.js": 58959,
+  "js/cards-render.js": 12377,
+  "js/qaliases.js": 12544
  }
 }

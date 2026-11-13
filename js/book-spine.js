@@ -61,6 +61,8 @@ const SPINE_EXTRA = [
   { after: '',        row: 'A seat',    only: 'wait' },
   /* `Shared by` IS THE WAITING LIST'S SEAT COUNT; a session has no split since 12 Nov (owner). */
   { after: '',        row: 'Shared by', only: 'wait' },
+  /* A SAVED BOOKING STILL SAYS WHO SHARES IT (stored splitEmails, or the free seats); the form stopped asking on 12 Nov. */
+  { after: 'Term',    row: 'Split',     only: 'receipt' },
   /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is about — which is where a receipt puts it and where the form now § */
   ...JOB_STAGES.map(st => ({ after: '', row: st.row, tick: true })),
   /* NO `Status` (owner, 29 Oct: "What is status for? … all those bits above status … tell you the status"): the four ticks are it. */

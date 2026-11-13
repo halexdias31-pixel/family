@@ -80,8 +80,6 @@ function ruleOn_(id) {
   const marked = !!(s && s.set && s.set[id] === 'universal');
   return r.flip ? marked : !marked;
 }
-/* WHAT THE BACKEND STORES for a choice: a `flip` rule is stored the other way round, so the backend needs no change. */
-const ruleStored_ = (r, to) => r && r.flip ? (to === 'universal' ? 'exception' : 'universal') : to;
 /* THE RULES ONLY CSS CAN APPLY, said on the root as `data-uni` (style.css reads `:root[data-uni~="…"]`). */
 function rulesMark_() {
   try {
@@ -94,23 +92,3 @@ function rulesMark_() {
 }
 rulesMark_();
 
-function rulesSend_(body, el) {
-  if (!USER || !(typeof isAdmin === 'function' && isAdmin())) return;
-  const card = el.closest('.rules-card');
-  send_(Object.assign({ action: 'rulesSave', name: USER.name, personId: USER.personId || '' }, body),
-    { button: el, where: (card && card.querySelector('.rules-said')) || undefined, busy: 'Saving…' })
-    .then(d => {
-      if (!d || !d.success) return;
-      try { DATA.rules = d.rules; } catch (e) { oops_(e, 'rules:rulesSend_') }
-      rulesNow_();
-      toast(body.undo ? 'The last rule change is undone' : 'Saved for everybody');
-      /* EVERY COLUMN, because a rule reaches past this one; a finder's memo catches up on the next reload. */
-      try { markStale_(TABS.map(t => t.id)); repaint(true); } catch (e) { oops_(e, 'rules:rulesSend_') }
-    });
-}
-on('rule-set', el => {
-  const id = el.getAttribute('data-rule'), to = el.getAttribute('data-to'), r = RULE_OF_(id);
-  if (!r || r.lock || (to === 'universal') === !ruleOn_(id)) return;
-  rulesSend_({ rule: id, to: ruleStored_(r, to) }, el);
-});
-on('rules-undo', el => rulesSend_({ undo: true }, el));

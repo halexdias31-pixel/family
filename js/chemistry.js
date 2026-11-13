@@ -44,19 +44,9 @@ function chemItems_() {
   return list;
 }
 
-/* ONE LINE PER THING (421): label and value rows, then where the facts came from. */
-function chemCard_(x) {
-  const r = x.chem || {};
-  const row = (k, v) => (v || v === 0) ? `<p><b>${esc(k)}</b> ${esc(v)}</p>` : '';
-  const rows = [
-    row('Symbol', r.symbol), row('Atomic number', r.number), row('Relative atomic mass', r.mass), row('Block', r.block),
-    row('Electron configuration', r.config), row('Discovered', r.discovered),
-    row('Also called', r.also), row('Formula', r.formula), row('Use', r.use), row('Hazard', r.hazard),
-    row('Pattern', r.pattern), row('Conditions', r.conditions), row('Observations', r.observations),
-    r.examples ? '<ol>' + r.examples.map(e => '<li>' + esc(e.equation) + '</li>').join('') + '</ol>' : '',
-  ].join('');
-  return `<div class="fc tx" data-key="${esc(x.key)}">
-    ${tagRow_(x)}
-    <div class="tx-body"><h3>${esc(x.name)}</h3><div class="tx-text">${rows}</div><p class="wt-credit">${esc(r.source || '')}</p></div>
-  </div>`;
-}
+/* ONE LINE PER THING (421): a fact a line, its examples, then where the facts came from (a spec, master template). */
+cardKind_('chem', x => { const r = x.chem || {}, has = v => v || v === 0;
+  const facts = [['Symbol', r.symbol], ['Atomic number', r.number], ['Relative atomic mass', r.mass], ['Block', r.block], ['Electron configuration', r.config],
+    ['Discovered', r.discovered], ['Also called', r.also], ['Formula', r.formula], ['Use', r.use], ['Hazard', r.hazard], ['Pattern', r.pattern],
+    ['Conditions', r.conditions], ['Observations', r.observations]].filter(f => has(f[1])).map(([k, v]) => k + ' ' + v);
+  return { look: 'tx kc-facts', tags: kcFacetTags_(x), body: [{ type: 'text', paras: facts.concat((r.examples || []).map(e => String(e.equation || '')), r.source || '') }] }; });

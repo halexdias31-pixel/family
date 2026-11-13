@@ -53,9 +53,28 @@ files.forEach(({ n, src }) => {
   }
 
   /* ---------- A TILE'S `act` IS A DOOR § */
-  for (const m of code.matchAll(/\bact:\s*['"]([a-z0-9-]+)['"]/g)) {
+  for (const m of code.matchAll(/\bact:\s*(?:\w+\s*\|\|\s*)?['"]([a-z0-9-]+)['"]/g)) {
     if (!doors.has(m[1])) doors.set(m[1], new Set());
     doors.get(m[1]).add(n);
+  }
+  /* A HELPER WHOSE `act` PARAMETER BECOMES ITS TILE'S `act` (partyPair_, flyer's row): the literal passed there is a door. */
+  for (const h of code.matchAll(/(?:function\s+([\w$]+)\s*\(|(?:const|let)\s+([\w$]+)\s*=\s*\()([^)]*)\)/g)) {
+    const name = h[1] || h[2], at = h[3].split(',').map(p => p.trim()).indexOf('act');
+    if (at < 0) continue;
+    for (const c of code.matchAll(new RegExp('\\b' + name.replace(/\$/g, '\\$') + '\\(', 'g'))) {
+      let depth = 0, arg = 0, i = c.index + c[0].length, start = i;
+      const args = [];
+      for (; i < code.length; i++) {
+        const ch = code[i];
+        if ('([{'.includes(ch)) depth++;
+        else if (')]}'.includes(ch)) { if (!depth) { args.push(code.slice(start, i)); break; } depth--; }
+        else if (ch === ',' && !depth) { args.push(code.slice(start, i)); start = i + 1; arg++; }
+      }
+      const lit = /^\s*['"]([a-z0-9-]+)['"]\s*$/.exec(args[at] || '');
+      if (!lit) continue;
+      if (!doors.has(lit[1])) doors.set(lit[1], new Set());
+      doors.get(lit[1]).add(n);
+    }
   }
 
   for (const m of code.matchAll(/data-do="\$\{([^}]+)\}"/g)) {

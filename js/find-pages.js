@@ -575,7 +575,6 @@ function stuffQuestion() {
 /* WHILE A QUESTION IS ASKED, THE CARDS SO FAR ON ASK (`findDone_`): one tile, gone once they are shown. */
 /* NO "SHOW SO FAR" ARROW (owner, 9 Nov: "remove it"): cards come when the menus finish. */
 const findPeek_ = () => '';
-on('find-reveal', el => { const F = finderAt_(el); inFinder_(F, () => { findShow_(); paintStuff(true); }); });
 /* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): § */
 const FACET_NONE_SHOWN = false; /* owner 5 Nov: "Accuracy verified 0" read as noise; switched off, kept */
 function facetNoneHtml_(items, shown) {

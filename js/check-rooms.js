@@ -249,7 +249,7 @@ function make() {
   rule('8. a row with no hours is left blank', cell('J-NONE') === '', 'J-NONE\'s slot_codes became ' + J(cell('J-NONE')));
   rule('8. the first run wrote one row', first && first.wrote === 1 && first.noHours === 1, 'the first run said ' + J(first));
   rule('8. the second run writes nothing', second && second.wrote === 0, 'the second run said ' + J(second));
-  rule('8. it is a migration', /id: 'jobs-slot-codes'[\s\S]{0,300}backfillSlotCodes_\(\)/.test(fs.readFileSync(path.join(__dirname, '..', 'backend', 'constants.gs'), 'utf8')),
+  rule('8. it is a migration', /id: 'jobs-slot-codes'[\s\S]{0,300}backfillSlotCodes_\(\)/.test(fs.readFileSync(path.join(__dirname, '..', 'backend', 'access.gs'), 'utf8')),
     'no MIGRATIONS entry runs backfillSlotCodes_, so the setup an admin\'s page load runs (361) never fills old jobs');
 })();
 

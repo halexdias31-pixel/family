@@ -97,7 +97,7 @@
   "find-cells.js": {
    "n": 2
   },
-  "find-levels.js": {
+  "find-account.js": {
    "n": 1
   },
   "find-measure.js": {
@@ -109,7 +109,10 @@
   "keypad-pad.js": {
    "n": 1
   },
-  "submit.js": {
+  "submit-suggest.js": {
+   "n": 4
+  },
+  "cards-render.js": {
    "n": 4
   },
   "work-file.js": {

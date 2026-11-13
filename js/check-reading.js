@@ -26,8 +26,9 @@ JS.filter(([f]) => TEXT_FILES.includes(f)).forEach(([, s]) => [...s.matchAll(/ki
 made.add('bible');
 made.forEach(k => { if (!kinds.includes(k)) bad.push(`kind ${k} is a Library text but has no READING_REF row`); });
 kinds.forEach(k => {
-  const m = new RegExp('\\n\\s*' + k + ': \\{[^\\n]*card: x => (\\w+)\\(x\\)').exec(finder);
-  if (!m) return bad.push(`kind ${k}: no card in find-finder.js KINDS`);
+  /* THE FIND CARD IS findCard's (the card template); the reader a tap opens is the kind's entry in the opener table. */
+  const m = new RegExp('\\b' + k + ': x => (\\w+)\\(x\\)').exec(finder);
+  if (!m) return bad.push(`kind ${k}: no reader in find-finder.js's opener table`);
   let fn = fnBody(m[1]), hops = 0;
   while (fn && !/readingCard_\(/.test(fn.body) && hops++ < 2) {
     const next = /return [^;]*?(\w+Card_)\(x\)/.exec(fn.body);

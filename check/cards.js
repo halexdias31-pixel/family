@@ -202,7 +202,7 @@ function outside(svg, row) {
   /* ---------- AND EVERY PRACTICAL CARD, WHICH NOTHING HAD EVER LAID OUT § */
   /* ---------- A REAL PHONE'S HEIGHT, BECAUSE THE PANE'S CAP IS MEASURED IN `dvh` § */
   const practicals = await pracPage.evaluate(width => {
-    if (typeof stuffItems !== 'function' || typeof practicalCard_ !== 'function') return -1;
+    if (typeof stuffItems !== 'function' || typeof findCard !== 'function') return -1;
     const items = stuffItems().filter(x => x.kind === 'practical');
     /* IN A `.pane` INSIDE A `.page`, because that is what the card sits in when the app draws it
        and half its width comes from those two. A card measured in a bare div is a card measured in
@@ -213,9 +213,9 @@ function outside(svg, row) {
     document.body.appendChild(host);
     /* EVERY PAGE OF EVERY PRACTICAL, not just its first card: § */
     host.querySelector('.pane').innerHTML = items.map(x =>
-      pageParts_(x).map(part => (part ? practicalPart_(x, part) : practicalCard_(x))
-        .replace('<div class="card prac', '<div data-row="' + x.key + (part ? '#' + part : '')
-          + '" class="card prac')).join('')).join('');
+      pageParts_(x).map(part => (part ? practicalPart_(x, part) : findCard(x))
+        .replace(/^<div class="card /, '<div data-row="' + x.key + (part ? '#' + part : '')
+          + '" class="card ')).join('')).join('');
     window.__pracHost = host;
     /* ---------- AND WHETHER THE CARD FITS THE PANE, WHICH IS THE OTHER AXIS § */
     /* A bare `.pane` has no max-height outside `#screen` (NaN); the phone's own height is the fold then. */
@@ -300,7 +300,7 @@ function outside(svg, row) {
   await pracPage.evaluate('window.__outside = ' + outside.toString());
   /* ---------- ON THE CARD, WHERE IT IS DRAWN, AND IT USED TO BE IN A SHEET § */
   const guides = await pracPage.evaluate(arg => {
-    if (typeof practicalCard_ !== 'function') return -1;
+    if (typeof findCard !== 'function') return -1;
     const items = stuffItems().filter(x => x.kind === 'practical');
     const wide = [], clipped = [], order = [];
     let drawings = 0, lines = 0, withQty = 0;
@@ -312,7 +312,7 @@ function outside(svg, row) {
     items.forEach(x => {
       /* ALL OF A PRACTICAL'S PAGES AT ONCE, in the order the strip draws them — see `pageParts_`. § */
       const parts = pageParts_(x);
-      pane.innerHTML = parts.map(part => part ? practicalPart_(x, part) : practicalCard_(x)).join('');
+      pane.innerHTML = parts.map(part => part ? practicalPart_(x, part) : findCard(x)).join('');
       const gd = parts.length > 1 ? pane.querySelector('.gd') : null;
       /* A REFUSED PRACTICAL DRAWS NO GUIDE, BY RULE — no kit, no method, no worksheet, because writing out a procedure for something nobody will run is inventing § */
       if (!gd) return;

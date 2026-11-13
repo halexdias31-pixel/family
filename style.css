@@ -1022,7 +1022,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* RECEDED IN COLOUR, NOT OPACITY (541): ink falls to --dim and the accent with it, so every word stays ≥4.5:1. `:where` lets a part's own colour win. */
 :where(.card.is-off, .post.is-off),
 :where(.is-locked > :not(.card-lock, h3, .card-say)),
-:where(.prac.is-off > :not(h3, .prac-no)) { --ink: var(--dim); --gold: var(--dim); color: var(--ink); }
+:where(.prac.is-off > :not(h3)) { --ink: var(--dim); --gold: var(--dim); color: var(--ink); }
 :where(.msg.is-sending .msg-bub) { --ink: var(--dim); --gold: var(--dim); }
 :where(.card.is-off, .post.is-off, .is-locked > :not(.card-lock, h3, .card-say)) :is(img, video, canvas) { opacity: .6; }
 
@@ -3240,7 +3240,9 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qwhole { background: none; border: 0; border-radius: 0; padding: var(--s3) 0; margin: 0; }
 .qwhole .qcard { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
 .qwhole .qb-stem { color: var(--ink); border-bottom: 0; margin: var(--s2) 0 0; }
-.qwhole > .qb:not(:last-child) { padding-bottom: var(--s3); margin-bottom: var(--s3); border-bottom: 1px solid var(--line-soft); }
+.qwhole > .qb + .qb { margin-top: var(--card-gap); }
+/* A PART IS A TEMPLATE CARD (.kc-question): its form (the words, the box and the tool row) runs edge to edge. */
+.card.kc-question > .kc-form { --kc-side: 0; }
 .qp-work-slot { display: contents; }
 .qwhole .qb-part .qsheet { margin-top: var(--s2); }
 /* ---------- A QUESTION IS A CARD LIKE ANY OTHER (owner, 10-11 Nov): picture, tags, words, answer, round buttons, all on one centre line. */
@@ -3419,24 +3421,8 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: var(--s6); }
 .prac-tab { display: grid; grid-template-columns: 1fr; gap: var(--s2); margin: var(--s3) 0 0; }
 /* ONE COLUMN ON EVERY SCREEN SIZE (owner 59a, 9 Nov): the two halves stack, wide or narrow. */
 /* A COLUMN LABEL, NOT A SECTION HEAD, AND IT WAS DRAWN AS BOTH. § */
-.fc-sec .prac-tab h4 { margin: 0 0 var(--s1); font: 400 var(--fs-small)/1 var(--mono); letter-spacing: .08em; color: var(--ink); }
+.fc-sec .prac-tab .qtags { margin: var(--s1) 0 0; justify-content: center; }
 .prac-tab li { font-size: var(--fs-small); line-height: 1.5; color: var(--ink); }
-
-/* ---------- THE HAZARD WORD § */
-.prac-haz { display: inline-block; margin-left: var(--s0); padding: 0 var(--s1);
-            border: 1px solid currentColor; border-radius: var(--r-ui);
-            font-size: var(--fs-small); color: var(--ink); }
-.prac-haz.haz-medium { color: var(--warn); }
-.prac-haz.haz-high   { color: var(--bad); }
-
-/* ---------- AND THE ONES THAT ARE NOT RUN § */
-/* Their other lines recede in colour beside `.card.is-off` (541); the reason stays at full ink. */
-.prac-no { margin: var(--s2) 0 0; padding-left: var(--s2); border-left: 2px solid var(--bad);
-           font-size: var(--fs-small); line-height: 1.5; color: var(--ink); }
-.prac-no b { color: var(--bad); font-weight: 600; }
-/* WORTH ANOTHER LOOK AT FOURTEEN is a different sentence from "no", so it reads as its own clause
-   rather than running on from the reason. */
-.prac-again { display: block; margin-top: var(--s1); color: var(--ink); }
 
 /* ---------- ONE SENTENCE THAT BELONGED TO THE VENUE, NOT TO ANY ROW § */
 .prac-cost { margin: var(--s2) 0 0; font-size: var(--fs-small); line-height: 1.45; color: var(--ink); }
@@ -3444,9 +3430,6 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: var(--s6); }
 /* ---------- A PRACTICAL'S OTHER THREE PAGES — WHOSE PAGE IT IS, THEN WHAT IT IS § */
 .fc-kick { margin: 0 0 var(--fc-in); font: 600 var(--fs-small)/1.3 var(--mono); letter-spacing: .06em; color: var(--ink); overflow-wrap: anywhere; }
 .prac-part > h3 { margin: 0 0 var(--fc-line); }
-/* The one line on the card that is a recommendation rather than a fact, so it is the one that
-   carries the gold. */
-.prac-open { margin: var(--fc-line) 0 0; font: 600 var(--fs-small)/1.45 var(--mono); color: var(--gold); }
 /* `.prac-safety b` AND `.prac-maths b` WERE IN THIS SELECTOR and went with their two rules above.
    `.fc-say` is the card's own "You end up with", which is untouched. */
 .fc-say b { color: var(--gold); font-weight: 600; }
@@ -5914,6 +5897,16 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tpl-pc .tpl-sw i { border: 1px solid var(--line); background: var(--raised); }
 .tpl-cr .tpl-sw i { width: 2.5rem; height: 2.5rem; border: 1px solid var(--ink); background: none; }
 .tpl-co .tpl-sw i { width: 2.5rem; height: 2.5rem; border: 1px solid var(--line); }
+/* THE SWATCH WEARS ITS TOKEN, handed in as `--tok` (data, not a look), so the card holds no inline style. */
+.tpl-fs .tpl-sw i[data-t="--fs-small"] { font-size: var(--fs-small); }
+.tpl-fs .tpl-sw i[data-t="--fs-title"] { font-size: var(--fs-title); }
+.tpl-fs .tpl-sw i[data-t="--fs-body"] { font-size: var(--fs-body); }
+.tpl-sp .tpl-sw i { width: var(--tok); }
+:is(.tpl-bt, .tpl-pc) .tpl-sw i { width: var(--tok); height: var(--tok); }
+.tpl-cr .tpl-sw i[data-t="--r-ui"] { border-radius: var(--r-ui); }
+.tpl-cr .tpl-sw i[data-t="--r-round"] { border-radius: var(--r-round); }
+.tpl-co .tpl-sw i { background: var(--tok); }
+.tpl-sw small { font-size: inherit; }
 
 /* ---------- THE TOOLS BROUGHT BACK (owner, 12 Nov): Spotify, favourite links, pixel editor, calendar, timetable, touch typing. */
 .pxe-line { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: var(--tap); }

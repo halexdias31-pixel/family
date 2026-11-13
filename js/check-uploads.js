@@ -119,6 +119,10 @@ function world(opts) {
     const g = b.tabs.messages; const at = g[0].indexOf('attachments'); if (at >= 0) g[0].splice(at, 1);
   }
   b.seed('people', PEOPLE);
+  /* ADA TEACHES PAT'S FAMILY (a booking): a parent messages only the tutors of their own bookings (`seesWhom_`, 10 Nov). */
+  b.seed('jobs', [{ job_id: 'UJ1', subject: 'Maths', level: 'GCSE', weekday: 'Mon', start_time: '16:00', venue: '', max_students: 4, kind: '' }]);
+  b.seed('events', [{ event_id: 'UE1', at: '01/10/2026', job_id: 'UJ1', actor: 'Pat Parent', role: 'client', action: 'Request' },
+    { event_id: 'UE2', at: '01/10/2026', job_id: 'UJ1', actor: 'Ada Tutor', role: 'tutor', action: 'Accept' }]);
   const tok = {};
   PEOPLE.forEach(p => {
     const d = b.post({ action: 'verifyLogin', email: p.email, pin: '0000' });

@@ -437,10 +437,10 @@ const KINDS = {
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   receipt: x => jobPage_(x.row), question: thingCard_, answer: thingCard_, shop: thingCard_,
-  practical: x => practicalCard_(x), project: x => projectCard_(x), content: x => contentCard_(x), insert: x => insertCard_(x), spec: x => specCard_(x),
+  content: x => contentCard_(x), insert: x => insertCard_(x), spec: x => specCard_(x),
   timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
-  hymn: x => hymnsCard_(x), mech: x => mechCard_(x), chem: x => chemCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x), game: x => widgetCard_(x),
+  hymn: x => hymnsCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x), game: x => widgetCard_(x),
   setting: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)), health: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : ''),
 });
 
@@ -491,7 +491,7 @@ function soonItems_() {
 }
 /* A SWITCHED-OFF THING'S SPEC: "Coming soon" is a tag beside its name, never a line; what it is, below. */
 const soonSpec_ = x => ({ look: 'soon-card', tags: [{ text: x.name, colour: 0 }, { text: brand('comingSoon', 'Coming soon') }],
-  body: x.sub && x.sub !== x.name ? [{ type: 'text', text: x.sub }] : [] });
+  body: [{ type: 'text', text: x.sub && x.sub !== x.name ? x.sub : brand('soonSay', 'Not switched on yet.') }] });
 ['soon', 'offPosts', 'offShop', 'offBooking'].forEach(k => cardKind_(k, soonSpec_));
 const soonCard_ = x => renderCard(Object.assign({ kind: x.kind || 'soon', key: x.key }, soonSpec_(x)));
 
@@ -1614,44 +1614,19 @@ const PRAC_TYPE = { experiment: 'Experiment', build: 'Build' };
 /* THE `required` FACET'S THREE ANSWERS, IN THE ORDER A TUTOR READS THEM: § */
 const PRAC_NEED = ['Required practical', 'Extra', 'Not for now'];
 
-function practicalCard_(x) {
-  const p = x.row;
+/* A FACTS CARD (master template): each line plain words, said in the order a tutor reads them; a refused one says why first. */
+cardKind_('practical', x => {
+  const p = x.row || {}, off = p.excluded;
   /* THE STRIP SAID "lab · needs a lab" AND A SCREENSHOT IS WHAT CAUGHT IT. § */
   const kit = /with kit/i.test(p.feasible) ? 'needs kit' : '';
-  /* ---------- AGE, HAZARD AND COST JOIN THE STRIP, AND ONLY WHERE THEY WERE ANSWERED § */
-  const money = p.costPerRun == null ? ''
-    : p.costPerRun === 0 ? 'free to run'
-    : money_(p.costPerRun) + ' a run';
-  const strip = [p.minutes ? p.minutes + ' min' : '',
-                 p.ageMin ? p.ageMin + '+' : '',
-                 p.groupSize > 1 ? p.groupSize + ' students' : '',
-                 p.venue, kit, money].filter(Boolean).join(' · ');
-
-  /* ---------- A REFUSED EXPERIMENT SAYS SO BEFORE IT SAYS ANYTHING ELSE § */
-  const off = p.excluded;
-  return `<div class="fc prac${off ? ' is-off' : ''}">
-    <div class="fc-head">
-      <h3>${esc(x.name)}</h3>
-    </div>
-    ${/* WHAT KIND OF AFTERNOON THIS IS AND WHETHER A BOARD DEMANDS IT -- `Build · Extra` -- were two pills of the § */
-          ''}
-    ${tagRow_(x)}
-    ${off ? `<p class="prac-no"><b>Why not</b> ${esc(p.excluded)}${p.reconsiderAt
-      ? ' <span class="prac-again">Worth another look at ' + p.reconsiderAt + ', in a lab.</span>'
-      : ''}</p>` : ''}
-    <p class="fc-lede">${esc(p.aim)}</p>
-    <p class="fc-meta">${esc(strip)}${p.hazard
-      ? ` <span class="prac-haz haz-${esc(p.hazard.replace(/\s+/g, '-'))}">${
-          esc(p.hazard)} hazard</span>` : ''}</p>
-    ${p.outcome ? `<p class="fc-say"><b>You end up with</b> ${esc(p.outcome)}</p>` : ''}
-    ${/* ---------- `wow` STAYS ON THE CARD, WHERE EVERYTHING ELSE MOVED INTO THE GUIDE § */
-          ''}
-    ${(!off && (p.wow === 'high' || p.wow === 'very high'))
-      ? `<p class="prac-open">Worth opening a session with.</p>` : ''}
-    ${/* ---------- FOUR CARDS NOW, AND THIS IS THE FIRST OF THEM § */
-          ''}
-  </div>`;
-}
+  const money = p.costPerRun == null ? '' : p.costPerRun === 0 ? 'free to run' : money_(p.costPerRun) + ' a run';
+  const strip = [p.minutes ? p.minutes + ' min' : '', p.ageMin ? p.ageMin + '+' : '', p.groupSize > 1 ? p.groupSize + ' students' : '',
+    p.venue, kit, money].filter(Boolean).join(' · ');
+  const lines = [off ? 'Why not ' + off + (p.reconsiderAt ? ' Worth another look at ' + p.reconsiderAt + ', in a lab.' : '') : '', p.aim,
+    [strip, p.hazard ? p.hazard + ' hazard' : ''].filter(Boolean).join(' '), p.outcome ? 'You end up with ' + p.outcome : '',
+    !off && (p.wow === 'high' || p.wow === 'very high') ? 'Worth opening a session with.' : ''];
+  return { look: 'prac kc-facts', off: !!off, tags: kcFacetTags_(x), body: [{ type: 'text', paras: lines }] };
+});
 
 /* THE GUIDE — WHAT A PRACTICAL NEEDS AROUND IT BEFORE ANYBODY RUNS ONE. § */
 
@@ -1703,10 +1678,10 @@ function practicalPart_(x, part) {
     /* ---------- THE WORKSHEET, AND THE CANDIDATE LISTS ARE PART OF IT § */
     inner = `${head('Worksheet')}<div class="gd"><section class="fc-sec">
       ${(p.variables.length || p.log.length) ? `<div class="prac-tab">
-        ${p.variables.length ? `<div><h4>Things you could change</h4><ul class="fc-list">${
-          p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
-        ${p.log.length ? `<div><h4>Things you could measure</h4><ul class="fc-list">${
-          p.log.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
+        ${p.variables.length ? renderTags(['Things you could change']) + `<ul class="fc-list">${
+          p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}
+        ${p.log.length ? renderTags(['Things you could measure']) + `<ul class="fc-list">${
+          p.log.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}
       </div>` : ''}
       ${guideBox_(x, 'iv', 'Independent variable — the one thing you will change',
         'One only. Everything else has to stay still, or you will not know which of them did it.')}
@@ -1724,26 +1699,15 @@ function practicalPart_(x, part) {
 const PROJ_TYPE = { project: 'Project', coursework: 'Coursework' };
 const projType_ = p => PROJ_TYPE[(p && p.projectType) || 'project'] || String(p.projectType);
 
-function projectCard_(x) {
-  const p = x.row;
+cardKind_('project', x => {
+  const p = x.row || {};
   /* AGES AS A RANGE, because "8+" on a podcast for sixteen-year-olds would be true and useless. */
-  const ages = p.ageMin && p.ageMax ? 'ages ' + p.ageMin + '–' + p.ageMax
-    : p.ageMin ? p.ageMin + '+' : '';
-  const strip = [p.sessions ? p.sessions + (p.sessions === 1 ? ' session' : ' sessions') : '',
-                 ages].filter(Boolean).join(' · ');
-  /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE -- `AQA 8552` is which qualification the work counts § */
+  const ages = p.ageMin && p.ageMax ? 'ages ' + p.ageMin + '–' + p.ageMax : p.ageMin ? p.ageMin + '+' : '';
+  const strip = [p.sessions ? p.sessions + (p.sessions === 1 ? ' session' : ' sessions') : '', ages].filter(Boolean).join(' · ');
+  /* THE BOARD AND THE SPEC (`AQA 8552`): which qualification the work counts towards. */
   const qual = [p.board, p.specRef].filter(Boolean).join('\u00a0');
-  return `<div class="fc prac proj lib-c">
-    ${tagRow_(x)}
-    <div class="fc-head">
-      <h3>${esc(x.name)}</h3>
-    </div>
-    ${qual ? `<p class="fc-meta">${esc(qual)}</p>` : ''}
-    <p class="fc-lede">${esc(p.summary)}</p>
-    ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
-    ${p.makes ? `<p class="fc-say"><b>You end up with</b> ${esc(p.makes)}</p>` : ''}
-  </div>`;
-}
+  return { look: 'prac proj lib-c kc-facts', tags: kcFacetTags_(x), body: [{ type: 'text', paras: [qual, p.summary, strip, p.makes ? 'You end up with ' + p.makes : ''] }] };
+});
 
 function projectPart_(x, part) {
   const p = x.row;
@@ -8237,7 +8201,7 @@ function qStemWhole_(x, p, onScreen, pics) {
   /* A FIGURE LEFT FOR THE PART THAT PENS ON IT, when that part is not on screen: drawn here, under the stem's words. */
   if (stemHasFig_(p) && stemPenned_(p) && !(onScreen || []).some(y => { const s = isQ_(y) ? padSource_(y) : null; return s && s.svg === p.diagram; })) fig((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
   if (stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
-  return `<div class="qsheet-stem qtext qb-stem${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
+  return `<div class="qsheet-stem qtext qb-stem kc-lines${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
 }
 /* A PART'S WORDS AND ANSWER ROW, a `.qcard` of its own so every handler's `closest('.qcard')` finds this part and no other. */
 function qPartCard_(x, ans) {
@@ -8250,7 +8214,7 @@ function qPartCard_(x, ans) {
   const area = ansArea_(x);
   const left = QT_MORE.used ? '' : (more ? `<div class="tile-row">${more}</div>` : '');
   QT_MORE.html = ''; QT_MORE.used = false;
-  return `<div class="qcard qb-part" data-of="${esc((x.row && x.row.row_id) || x.key || '')}"><div class="qsheet qtext">${qWordsOr_(x, cellsHere_(x, words))}</div>${area}${left}${a}</div>`;
+  return `<div class="qcard qb-part kc-form" data-of="${esc((x.row && x.row.row_id) || x.key || '')}"><div class="qsheet qtext">${qWordsOr_(x, cellsHere_(x, words))}</div>${area}${left}${a}</div>`;
 }
 /* HELP (455) AND THE CARD'S TILES join the answer's tool row, behind its ⋯ (owner, 9 Nov); a box with no row keeps Help's own row. */
 function qAreaWithFoot_(x) {
@@ -8264,13 +8228,13 @@ function qPartFoot_(p) {
   const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(p, '') : null);
   return String(cardRow_(Object.assign(Object.create(p), { lead: help }), true) || '').trim();
 }
-/* ONE PART, THE SHAPE OF ANY CARD: its tags, a shared stem the first time a drawn part needs it, its words and box, its whole tile row. */
+/* ONE PART, THE SHAPE OF ANY CARD (rules.md 3): a card of the template, its picture, tags, stem lines and the part as its form. */
 function qOneCard_(p, ctx) {
   const pics = [];
   const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)])
     .map(s => { ctx.drawn[stemId_(s)] = true; return qStemWhole_(p, s, ctx.shown, pics); }).join('');
-  const pic = pics.join('').trim() ? `<div class="qb-stem qb-pic">${pics.join('')}</div>` : '';
-  return `<div class="qb favwrap${isFav(p.key) ? ' is-fav' : ''}" data-part="${esc(p.key || '')}">${pic}${tagRow_(p)}${stems}${qPartCard_(p, ctx.ans)}</div>`;
+  const pic = pics.join('').trim() ? `<div class="qb-stem qb-pic kc-pic">${pics.join('')}</div>` : '';
+  return `<div class="qb favwrap ${kcCls_('question')}${isFav(p.key) ? ' is-fav' : ''}" data-part="${esc(p.key || '')}">${pic}${renderTags(tagList_(p), 'qcard-tags kc-tags')}${stems}${qPartCard_(p, ctx.ans)}</div>`;
 }
 /* A QUESTION NUMBER: its parts the search kept, one card each, one after another; none indented under another. */
 function questionWhole_(x, parts, open, ans) {
@@ -11974,7 +11938,6 @@ function stuffQuestion() {
 /* WHILE A QUESTION IS ASKED, THE CARDS SO FAR ON ASK (`findDone_`): one tile, gone once they are shown. */
 /* NO "SHOW SO FAR" ARROW (owner, 9 Nov: "remove it"): cards come when the menus finish. */
 const findPeek_ = () => '';
-on('find-reveal', el => { const F = finderAt_(el); inFinder_(F, () => { findShow_(); paintStuff(true); }); });
 /* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): § */
 const FACET_NONE_SHOWN = false; /* owner 5 Nov: "Accuracy verified 0" read as noise; switched off, kept */
 function facetNoneHtml_(items, shown) {
@@ -19272,6 +19235,8 @@ const SPINE_EXTRA = [
   { after: '',        row: 'A seat',    only: 'wait' },
   /* `Shared by` IS THE WAITING LIST'S SEAT COUNT; a session has no split since 12 Nov (owner). */
   { after: '',        row: 'Shared by', only: 'wait' },
+  /* A SAVED BOOKING STILL SAYS WHO SHARES IT (stored splitEmails, or the free seats); the form stopped asking on 12 Nov. */
+  { after: 'Term',    row: 'Split',     only: 'receipt' },
   /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is about — which is where a receipt puts it and where the form now § */
   ...JOB_STAGES.map(st => ({ after: '', row: st.row, tick: true })),
   /* NO `Status` (owner, 29 Oct: "What is status for? … all those bits above status … tell you the status"): the four ticks are it. */
@@ -22737,11 +22702,8 @@ const mechOwn_ = (x, file, k) => (x && x.kind === 'mech' && x.mFile === file && 
 
 /* A CARD IS ITS TAGS AND ITS DRAWING; a part adds one line of what it does. No title: the name is a tag. */
 function mechPic_(x) { return `<figure class="mech-pic">${pixSvg_(x.mech.px, x.name, false, ' mech-px')}</figure>`; }
-function mechCard_(x) {
-  const r = x.mech || {};
-  return `<div class="fc mech" data-key="${esc(x.key)}" aria-label="${esc(x.name)}">${tagRow_(x)}${mechPic_(x)}${
-    r.does ? `<p class="mech-does">${esc(r.does)}</p>` : ''}</div>`;
-}
+cardKind_('mech', x => { const r = x.mech || {};
+  return { look: 'mech', picture: Array.isArray(r.px) ? { svg: mechPic_(x), alt: x.name } : null, tags: typeof tagList_ === 'function' && x.key ? tagList_(x) : [], body: r.does ? [{ type: 'text', text: r.does, look: 'mech-does' }] : [] }; });
 /* A CAR'S PARTS ARE A FIND (650): its every part, Car part chosen and the car's make, model and engine (`CARD_EXTRAS_`). */
 function mechExtras_(x) { const r = x.mech || {}; return x.mFile === 'models' && r.code ? { icon: 'search', label: 'Parts', note: 'every part for this car', act: 'mech-parts', data: { engine: r.code } } : null; }
 window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { mech: mechExtras_ });
@@ -22801,22 +22763,12 @@ function chemItems_() {
   return list;
 }
 
-/* ONE LINE PER THING (421): label and value rows, then where the facts came from. */
-function chemCard_(x) {
-  const r = x.chem || {};
-  const row = (k, v) => (v || v === 0) ? `<p><b>${esc(k)}</b> ${esc(v)}</p>` : '';
-  const rows = [
-    row('Symbol', r.symbol), row('Atomic number', r.number), row('Relative atomic mass', r.mass), row('Block', r.block),
-    row('Electron configuration', r.config), row('Discovered', r.discovered),
-    row('Also called', r.also), row('Formula', r.formula), row('Use', r.use), row('Hazard', r.hazard),
-    row('Pattern', r.pattern), row('Conditions', r.conditions), row('Observations', r.observations),
-    r.examples ? '<ol>' + r.examples.map(e => '<li>' + esc(e.equation) + '</li>').join('') + '</ol>' : '',
-  ].join('');
-  return `<div class="fc tx" data-key="${esc(x.key)}">
-    ${tagRow_(x)}
-    <div class="tx-body"><h3>${esc(x.name)}</h3><div class="tx-text">${rows}</div><p class="wt-credit">${esc(r.source || '')}</p></div>
-  </div>`;
-}
+/* ONE LINE PER THING (421): a fact a line, its examples, then where the facts came from (a spec, master template). */
+cardKind_('chem', x => { const r = x.chem || {}, has = v => v || v === 0;
+  const facts = [['Symbol', r.symbol], ['Atomic number', r.number], ['Relative atomic mass', r.mass], ['Block', r.block], ['Electron configuration', r.config],
+    ['Discovered', r.discovered], ['Also called', r.also], ['Formula', r.formula], ['Use', r.use], ['Hazard', r.hazard], ['Pattern', r.pattern],
+    ['Conditions', r.conditions], ['Observations', r.observations]].filter(f => has(f[1])).map(([k, v]) => k + ' ' + v);
+  return { look: 'tx kc-facts', tags: kcFacetTags_(x), body: [{ type: 'text', paras: facts.concat((r.examples || []).map(e => String(e.equation || '')), r.source || '') }] }; });
 
 ;
 /* ==== js/staff.js ==== */
