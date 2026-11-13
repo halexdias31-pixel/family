@@ -65,7 +65,7 @@
   /* ONE PILL SIZE (owner, 1040 r12): a chosen chip, a menu answer and a card tag are drawn alike; a tappable one keeps 44px in an invisible ::before. */
   /* ONE DIAL FOR EVERY TAG'S SIZE (owner, 10 Nov): change this, not each tag. */
   --tag-scale: 2;
-  --tp-fs: calc(.78rem * var(--tag-scale)); --tp-lh: 1.35; --tp-pad: calc(.18rem * var(--tag-scale)) calc(.65rem * var(--tag-scale)); --tp-h: calc(1.55rem * var(--tag-scale));
+  --tp-fs: var(--fs-tag); --tp-lh: 1.35; --tp-pad: calc(.18rem * var(--tag-scale)) calc(.65rem * var(--tag-scale)); --tp-h: calc(1.55rem * var(--tag-scale));
   --r-sm:   2px;
 
   /* ---------- THE SECOND PALETTE, WHICH HAD NO NAMES AT ALL § */
@@ -138,6 +138,8 @@
   --fs-body:  1rem;
   --fs-title: 1.125rem;
   --fs-small: max(11px, .75rem);
+  /* THE TAG'S SIZE, AND A CARD'S CONTENT READS AT IT (owner, 13 Nov: "body text the same size as tag text"). The dial is --tag-scale. */
+  --fs-tag: calc(.78rem * var(--tag-scale));
   /* A DIAGRAM'S LINES, IN SCREEN PIXELS (bold figures, style.css): grid, thin, mid, normal, bold. */
   --fig-grid: .75px; --fig-thin: 1.25px; --fig-mid: 1.75px; --fig-line: 2.25px; --fig-bold: 3px;
   /* A SCANNED CROP IS LIGHT INK ON BLACK: LIFT ITS GREYS (faint grids, thin rules) WITHOUT SPREADING ITS TEXT. */
@@ -164,7 +166,9 @@
   --tap: 44px;
   --pic-s: 48px; --pic-l: 88px;
   /* ONE PICTURE HEIGHT (owner 58a, 9 Nov; 12 Nov: the same for every kind, a face or an animation): every card's picture. */
-  --pic-h: 9rem;
+  --pic-h: 12rem;
+  /* ONE FIGURE WIDTH (owner, 13 Nov: "all diagrams feel small"): a figure fills the content width up to this, aspect kept; a library SVG's own width="300" loses to it. */
+  --pic-w: 34rem;
   /* ONE GAP BETWEEN CARDS (owner 62a, 9 Nov): a bare card's padding either side of its rule, a boxed card's margin. */
   --card-gap: .85rem;
   --r-round: 999px;
@@ -1330,12 +1334,6 @@ button.text-drop { color: var(--bad); }
 /* Done: struck through and dimmed, still there. Crossing something out is most of the point of
    having done it, and a line that vanishes takes the evidence with it. */
 .row.dock-item.done .dock-text { color: var(--ink); text-decoration: line-through; }
-/* The ✕ only when the row is touched or hovered — a column of them down the side turns a list of
-   things to do into a list of things to delete. */
-.row.dock-item .text-drop { opacity: 0; transition: opacity var(--quick) ease; }
-@media (hover: hover) { .row.dock-item:hover .text-drop { opacity: 1; } }
-.row.dock-item:is(:active, .is-pressed) .text-drop { opacity: 1; }
-@media (hover: none) { .row.dock-item .text-drop { opacity: .5; } }
 
 .dock-new { display: flex; gap: var(--s2); align-items: stretch; margin-top: var(--s2); }
 .dock-new[hidden] { display: none; }
@@ -2385,11 +2383,9 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 /* WAITING FOR APPROVAL (413): dotted, inset so a picture that bleeds to the edge cannot cover it; the line says what the dots mean. */
 .post.is-pending { outline: 2px dotted var(--gold); outline-offset: -2px; border-radius: var(--r-ui); padding-top: var(--s2); }
 .post-pending { margin: 0 0 var(--s2); font-size: var(--fs-small); color: var(--gold); font-weight: 600; letter-spacing: .02em; }
-/* A RECEIVED MESSAGE AND ITS REPORT TILE, side by side (413); the tile is quiet until it is wanted. */
+/* A RECEIVED MESSAGE AND ITS REPORT TILE, side by side (413), at full strength always: no button changes on hover. */
 .msg-line { display: flex; align-items: flex-end; gap: var(--s1); width: 100%; }
-.msg-line .msg-flag { opacity: .5; flex: 0 0 auto; }
-.msg-line .msg-flag:focus-visible { opacity: 1; }
-@media (hover: hover) { .msg-line .msg-flag:hover { opacity: 1; } }
+.msg-line .msg-flag { flex: 0 0 auto; }
 /* THE COMPOSER'S PICKER (413): a file, never a link — the label is the control, so it carries the gap the box above it would have. */
 
 /* THREE THINGS THAT ARE WHAT THEY ARE The receipt works because a booking genuinely produces a receipt — the form is not a costume, it is the honest shape of the § */
@@ -3251,7 +3247,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 :is(.qwhole > .qb, .qcard) :is(.qsheet, .qb-stem) { margin-left: auto; margin-right: auto; }
 .qwhole > .qb > .qb-pic { margin: 0 0 var(--s2); }
 .qb-pic figure { margin: 0 auto; text-align: center; }
-.qb-pic figure svg { width: min(100%, 20rem); height: auto; }
+.qb-pic figure svg { width: min(100%, var(--pic-w)); height: auto; }
 .qb-pic img { max-width: 100%; height: auto; }
 .qwhole .qb-stem:empty { display: none; }
 :is(.qwhole > .qb, .qcard) .qtext :is(table, figure, p) { margin-left: auto; margin-right: auto; }
@@ -3333,7 +3329,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qsheet .qpic { margin: var(--s4) 0; }
 .qsheet .qpic img { display: block; width: 100%; max-width: 100%; height: auto;
   border-radius: var(--r-ui); background: var(--sunk); filter: var(--fig-scan); }
-.qsheet figure svg, .gd figure svg { width: min(100%, 20rem); height: auto; }
+.qsheet figure svg, .gd figure svg { width: min(100%, var(--pic-w)); height: auto; }
 
 /* ---------- A DRAWING'S LABELS ARE SERIF, AND THAT IS MEASURED RATHER THAN PREFERRED § */
 /* `.qp-area` TOO: WHATEVER THE PEN IS ON INKS ITSELF ON THE CARD. § */
@@ -4808,13 +4804,13 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 
 /* ---------- A DIAGRAM YOU CAN WRITE ON § */
 .qpad { margin: var(--s4) 0; }
-.qpad-art { position: relative; display: inline-block; max-width: 100%; line-height: 0; }
-.qpad-art > svg:first-child { width: min(100%, 20rem); height: auto; display: block; }
+.qpad-art { position: relative; display: inline-block; width: min(100%, var(--pic-w)); line-height: 0; }
+.qpad-art > svg:first-child { width: 100%; height: auto; display: block; }
 /* ---------- A PEN ON A QUESTION'S CARD § */
 .qcard .qpad { margin: var(--s4) 0 var(--s1); font: 400 var(--fs-small)/1.4 var(--font); }
-.qp-area .qpad-art > svg.qsurf:first-child { width: min(100%, 20rem, 44svh); }
+.qp-area .qpad-art > svg.qsurf:first-child { width: min(100%, var(--pic-w), 44svh); }
 /* AND THE PICTURE'S BOX HELD TO IT TOO, OR THE INK IS NOT OVER THE GRID. § */
-.qp-area .qpad-art:has(> svg.qsurf:first-child) { max-width: min(100%, 20rem, 44svh); }
+.qp-area .qpad-art:has(> svg.qsurf:first-child) { max-width: min(100%, var(--pic-w), 44svh); }
 /* ONE LINE OF SMALL PRINT UNDER THE BAR. § */
 .qcard .qpad-bar { margin-bottom: var(--s1); }
 .qcard .qpad > .qpad-note { display: block; margin: var(--s1) 0 0; }
@@ -4896,7 +4892,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 /* ---------- AN EARLIER PART'S MARKS, WHICH THIS PAGE CANNOT CHANGE § */
 .qseen { margin: var(--s4) 0; }
 /* THE BOX IS AS WIDE AS THE PICTURE, SAID OUTRIGHT: § */
-.qseen .qpad-art { width: min(100%, 20rem); }
+.qseen .qpad-art { width: min(100%, var(--pic-w)); }
 .qseen .qpad-art > svg:first-child { width: 100%; }
 .qpad-was path { fill: none; stroke: var(--gold); stroke-width: 2.5;
                  stroke-linecap: round; stroke-linejoin: round; }
@@ -5831,6 +5827,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-tags { margin-top: var(--s2); }
 .card.kc > .kc-tags :is(.qtags, .prof-tags, .prof-who-tags, .prof-who, .prof-line) { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--s1); }
 .card.kc > .kc-lines { margin-top: var(--s2); }
+/* ONE TEXT SIZE IN A CARD'S CONTENT, THE TAG'S (rule tpl-text-size): body and small both read --fs-tag inside it, so every block follows the one token. */
+.card.kc > :is(.kc-lines, .kc-form) :is(figure, .kc-fig) > :is(svg:not(.pp), img) { width: min(100%, var(--pic-w)); height: auto; }
+.card.kc > :is(.kc-lines, .kc-form) { --fs-body: var(--fs-tag); --fs-small: var(--fs-tag); font-size: var(--fs-tag); }
 .card.kc > .kc-lines > * { margin: var(--s0) 0 0; }
 .card.kc > .kc-lines :is(.qtags, .prof-tags, .tile-row, .btn-row) { justify-content: center; }
 /* LONG CONTENT READS LEFT INSIDE ITS CENTRED BLOCK: a passage, a policy, a table, a list, a form. */

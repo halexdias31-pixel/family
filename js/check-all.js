@@ -126,6 +126,7 @@ const SUITE = [
   { file: 'check-card-shape.js', what: 'one card shape for every kind in Find: picture, title, tags, lines (owner, 8 Nov)' },
   { file: 'check-one-template.js', what: 'every card on the site built by findCard (card_), the booking form too (owner, 12 Nov)' },
   { file: 'check-one-way.js', what: 'any markup only from the renderer files (cards-render.js, tiles.js); the rest hand over data (owner, 12 Nov)' },
+  { file: 'check-card-type.js', what: 'card content reads at the tag size (--fs-tag) and every figure fills to --pic-w (owner, 13 Nov)' },
   { file: 'check-card-spec.js', what: 'every card kind builder returns a spec object; renderCard escapes its text (owner, 12 Nov)' },
   { file: 'check-email-card.js', what: 'the Sunday email card is the site card: parts, lines, labels, corner, gap, sizes, tag colours (57a–62a)' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
@@ -222,6 +223,7 @@ const SUITE = [
   { file: 'check-cache.js', what: 'every fetch of our own files carries the deploy\'s stamp' },
   { file: 'check/find-first.js', what: 'Find\'s search box is the first thing under the top bar for every viewer on a phone (1070)', slow: true },
   { file: 'check/firstpaint.js', what: 'the finder\'s first answers are drawn once and never change on a cold phone load (546)', slow: true },
+  { file: 'check/fixed-tiles.js', what: 'no dynamic buttons: each card row the same four tiles in every state, no tile shown on hover or focus (owner, 13 Nov)', slow: true },
   { file: 'check/arrival.js', what: 'a phone\'s first eleven seconds: no layout shift, nothing empty or waiting in view once the payload lands, cold and warm (630)', slow: true },
   /* SLOW, LIKE THE BROWSERS, AND FOR THE SAME REASON. § */
   { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something', slow: true },

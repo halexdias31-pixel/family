@@ -410,6 +410,25 @@
    "since": "2026-11-12"
   },
   {
+   "id": "3.12",
+   "principle": 3,
+   "text": "A card's content reads at the tag's size: `--fs-tag` (the dial is `--tag-scale`) is the one size for every body block, question stem, lesson line, table and answer box, set once on `.kc-lines` / `.kc-form` (owner, 13 Nov).",
+   "checks": [
+    "card-type"
+   ],
+   "since": "2026-11-13"
+  },
+  {
+   "id": "3.13",
+   "principle": 3,
+   "text": "One picture size: a figure fills the content width up to `--pic-w` (34rem), aspect kept, whatever width its own markup says; a card's top picture box is `--pic-h` (12rem) tall (owner, 13 Nov: \"all diagrams feel small\").",
+   "checks": [
+    "card-type",
+    "tpl-pic-size"
+   ],
+   "since": "2026-11-13"
+  },
+  {
    "id": "4.1",
    "principle": 4,
    "text": "No one-offs: no function tests a single kind, facet or id by name; front end and backend alike.",
@@ -699,6 +718,15 @@
     "ruler"
    ],
    "since": "2026-11-12"
+  },
+  {
+   "id": "7.4",
+   "principle": 7,
+   "text": "No dynamic buttons: a card kind's tile row is the same tiles in the same order in every state and for every visitor; a tile that cannot act yet is greyed (`off`), never hidden, and no CSS shows or hides a control on hover or focus. A menu opened by a tap is not this.",
+   "checks": [
+    "fixed-tiles"
+   ],
+   "since": "2026-11-13"
   },
   {
    "id": "8.1",

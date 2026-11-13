@@ -275,8 +275,6 @@ const artOf_ = sel => (ART_TONE.find(a => a[0].test(sel)) || [])[1];
 const DIM_OK = [
   [/^\.page\.soft/, 'a parked pane behind the one in front — the slide\'s, never read while dimmed (ui.js stops there too)'],
   [/\.pfp-opt$/, 'a face picture to choose; pictures only'],
-  [/\.text-drop$/, 'the one-glyph ✕ that removes a row, half strength until a touch screen shows it'],
-  [/\.msg-flag$/, 'a flag icon beside a message; full strength on hover and focus'],
   [/\.qsheet span\.box$/, 'the empty box a paper leaves for an answer — an outline, no words'],
   [/\.slot-hours$/, 'the hour cells of a week that cannot be answered: disabled buttons with no text'],
   [/^\.hr\.shut$/, 'an hour nobody can book: a disabled button with no text'],

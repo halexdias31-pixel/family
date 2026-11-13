@@ -157,8 +157,8 @@ files.forEach(({ n, src }) => {
 
 /* ---------- 61a. THREE TEXT SIZES: --fs-body, --fs-title, --fs-small ---------- */
 /* Not a text size: the root lever (html), a printed sheet at paper size (mm), a drawing scaled to its box (cq*), the Talmud page's viewer-set size. */
-/* A tag's size is the owner's one tag dial (--tp-fs, set by --tag-scale), not a fourth size of its own. */
-const FS_OK = /^(var\(--fs-(body|title|small)\)|inherit)$|mm\b|cq[whi]\b|^var\(--(tal|tp)-fs\)$/;
+/* A tag's size is the owner's one tag dial (--fs-tag, --tp-fs, set by --tag-scale), and a card's content reads at it (rule 3.12): not a fourth size. */
+const FS_OK = /^(var\(--fs-(body|title|small)\)|inherit)$|mm\b|cq[whi]\b|^var\(--((tal|tp)-fs|fs-tag)\)$/;
 for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
   if (/(^|[\s,}])html\s*$/.test(m[1]) || /^\s*:root\s*$/.test(m[1])) continue;
   for (const d of m[2].matchAll(/(?:^|;)\s*font-size:\s*([^;]+?)\s*(?=;|$)/g)) {
