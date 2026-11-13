@@ -1,1 +1,140 @@
-{ "why": "visual changes a person or agent looked at and approved (node tools/gallery.js --sign --by=<who>); the gate reads it", "shots": {} }
+{
+ "why": "visual changes a person or agent looked at and approved (node tools/gallery.js --sign --by=<who>); the gate reads it",
+ "shots": {
+  "parent-390--find--venue.png": {
+   "hash": "2213e7eb091d08ec",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "tutor-390--find--venue.png": {
+   "hash": "2213e7eb091d08ec",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "admin-390--find--venue.png": {
+   "hash": "2213e7eb091d08ec",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "pupil-390--find--venue.png": {
+   "hash": "8d7dffde3700443d",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "parent-820--find--venue.png": {
+   "hash": "bee0fd15922fb44e",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "tutor-820--find--venue.png": {
+   "hash": "bee0fd15922fb44e",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "admin-820--find--venue.png": {
+   "hash": "bee0fd15922fb44e",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "pupil-820--find--venue.png": {
+   "hash": "5706ec6ac5492f9a",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "pupil-390--parents--kc-rank.png": {
+   "hash": "a0d2753236f6764b",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "tutor-390--parents--kc-rank.png": {
+   "hash": "a0d2753236f6764b",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "pupil-820--parents--kc-rank.png": {
+   "hash": "48f89a619344b403",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "tutor-820--parents--kc-rank.png": {
+   "hash": "48f89a619344b403",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "tutor-390--students--kc-panel.png": {
+   "hash": "8810f7839e27ed8d",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "tutor-820--students--kc-panel.png": {
+   "hash": "0f362465d34c73f7",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "admin-820--students--kc-panel.png": {
+   "hash": "af0f096e2eabce88",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "admin-820--students--screen.png": {
+   "hash": "faabcf53fce25eda",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "tutor-390--students--screen.png": {
+   "hash": "a89c8bfe1f70c4e1",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "admin-820--students--kc-tutor.png": {
+   "hash": "61306b2e0f24e0fe",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "admin-820--students--kc-panel.form.png": {
+   "hash": "292aecc0cdbe4a41",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "tutor-820--students--screen.png": {
+   "hash": "55ded41d941df087",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "pupil-390--parents--screen.png": {
+   "hash": "d294441f24b11a5f",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "tutor-390--parents--screen.png": {
+   "hash": "879072312b145640",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "admin-820--students--kc-add.png": {
+   "hash": "5fbe6b58130d469b",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "pupil-820--parents--screen.png": {
+   "hash": "8cc2130ebc843561",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "tutor-820--parents--screen.png": {
+   "hash": "53dc649f4a11d3e9",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "parent-820--reel--screen.png": {
+   "hash": "4d2d1d032eaad0b2",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "tutor-820--reel--screen.png": {
+   "hash": "42550e5159e3f7d9",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  }
+ }
+}
