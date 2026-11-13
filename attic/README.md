@@ -93,3 +93,13 @@ records (business records), biz-check, lego; checks `check-lego.js`, `check-biz.
 Their widgets are `off` in `data/settings/tiers.json`. To bring one back: `git mv` it, re-add it to `window.FILES` (and LATER/LAZY),
 `files`/`later`/`lazy`/`widgetFiles` in tiers.json (see the commit before this one), set its widget on, `node tools/tiers.js`,
 then `node js/check.js` and `node tools/build-stamp.js`. Spreadsheet data was not touched.
+
+## Posts, the Feed, the camera and Reels (switched off 13 Nov 2026)
+
+`attic/js/posts.js` is the whole file as it was (`git log --follow attic/js/posts.js`). Its DMs, Messages and Daive
+moved to `js/messages.js`, with the few helpers other files read (`pic`, `profileOf_`, `postVidSrc_`, `camItemOf_`,
+`stamp_`, the tutor link). The posts check (`attic/js/check-posts.js`) and journey 11 (`attic/check/flow/11-post-back.js`)
+went with it. The sheet tabs and `doGet`/`doPost` are untouched. To bring it back: `git mv` the three home, add `'posts'`
+after `'me-people'` in `window.FILES`, `"posts": "secondary"` under `files` (and `check-posts.js` under `checks`) in
+tiers.json, set `reel` active in columns.json, delete the duplicated helpers from posts.js, then `node js/check.js`.
+The shell reads the feed/reel hooks as `window.<name>`, so they come back without edits.

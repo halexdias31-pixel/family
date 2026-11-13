@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* @family. — check/fixed-tiles.js NO DYNAMIC BUTTONS (owner, 13 Nov): a card kind's visible tile row is the same tiles in the same order in every state. */
 /* In the browser: a few cards of every kind, drawn for each visitor and again with a question's pen open; each card's own row (`.kc-four`) must be */
-/* four tiles, Message, Save and More in their places, and the same lead tile every time. Statically: no CSS rule shows or hides a tile on hover or focus. */
+/* three tiles, lead, Message and Save, the same every time, and no menu-reveal tile (⋯) or hidden tiles anywhere in a card. Statically: no CSS hover/focus hide, no kc-more act. */
 'use strict';
 require('./quiet');
 const fs = require('fs');
@@ -38,6 +38,8 @@ function rows(per) {
     let h = '';
     try { h = inFinder_(FINDERS.stuff, () => findCard(x)); } catch (e) { return 'threw ' + e.message; }
     host.innerHTML = h;
+    const reveal = host.querySelector('[data-do="kc-more"], .kc-row [hidden] .tile, .kc-row .tile[hidden]');
+    if (reveal) return 'menu ' + (reveal.getAttribute('data-do') || 'hidden tile');
     const four = host.querySelector('.kc-four');
     if (!four) return '';
     return [...four.children].filter(t => t.matches('.tile, button, a')).map(t => (t.hidden ? '!hidden ' : '') + (t.getAttribute('data-do') || '?')).join(' ');
@@ -53,8 +55,17 @@ function rows(per) {
   return out;
 }
 
+/* ---------- STATIC: no card maker draws a menu-reveal tile. */
+function menuPass() {
+  const dir = path.join(ROOT, 'js');
+  fs.readdirSync(dir).filter(f => f.endsWith('.js') && !/^check/.test(f)).forEach(f => {
+    if (/act:\s*'kc-more'|data-do="kc-more"|on\('kc-more'/.test(fs.readFileSync(path.join(dir, f), 'utf8'))) bad.push(`js/${f}: draws or answers a menu-reveal tile (kc-more); every action is its own tile`);
+  });
+}
+
 (async () => {
   cssPass();
+  menuPass();
   const { chromium } = require('playwright');
   const server = await glass.serve('FIXED_TILES_PORT');
   const port = server.address().port;
@@ -70,13 +81,13 @@ function rows(per) {
       } finally { await s.ctx.close(); }
     }
   } finally { await browser.close(); server.close(); }
-  const SLOTS = /^\S+ msg-open fav kc-more$/;
+  const SLOTS = /^\S+ msg-open fav$/;
   let cards = 0;
   Object.keys(seen).forEach(id => {
     const list = seen[id].filter(([, g]) => g !== '');
     if (!list.length) return;
     cards++;
-    list.forEach(([as, g]) => { if (!SLOTS.test(g)) bad.push(`${id} (${as}): row is "${g}" — want lead, Message, Save, More`); });
+    list.forEach(([as, g]) => { if (!SLOTS.test(g)) bad.push(`${id} (${as}): row is "${g}" — want lead, Message, Save (every other act its own visible tile, no menu)`); });
     const kinds = [...new Set(list.map(([, g]) => g))];
     if (kinds.length > 1) bad.push(`${id}: row changes between states — ${list.map(([as, g]) => as + ': ' + g).join(' / ')}`);
   });

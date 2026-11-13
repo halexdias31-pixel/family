@@ -63,7 +63,7 @@ on('book-open', () => { BOOK_OPEN = !BOOK_OPEN; repaint(); });
 function feedPages_() {
   /* POSTS ARE DOOR ITEMS (find-doors.js); the whole feed only stands in when those are switched off, or each post would show twice. */
   if (!forIs_('posts') || typeof postDoorItems_ === 'function') return [];
-  return (typeof postsBlocks === 'function' ? postsBlocks() : []).filter(Boolean);
+  return (typeof window.postsBlocks === 'function' ? window.postsBlocks() : []).filter(Boolean);
 }
 /* ---------- SIGNING IN AND OUT, ON A PAGE OF ITS OWN § */
 /* ---------- WHICH ROW IS YOU, ASKED IN ONE PLACE § */

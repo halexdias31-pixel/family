@@ -37,7 +37,7 @@
   "in_find": "TRUE",
   "label": "Reels",
   "icon": "▶",
-  "active": "TRUE",
+  "active": "FALSE",
   "sort_order": 7,
   "notes": "one clip per page, opening on the first reel; before it, one swipe back, the Videos and One more thing widgets and an admin's \"+ Add a reel\" (docs/history/414)."
  },

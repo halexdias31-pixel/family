@@ -260,9 +260,9 @@ function inSyncWork() {
   const fsrc = app.map(read).join('\n'), fnOf = n => (new RegExp('function ' + n + '\\([\\s\\S]*?\\n\\}').exec(fsrc) || [''])[0];
   if (!/brandLogo_\(/.test(fnOf('webProfilePages_'))) add('js/me-roles.js', 'the Web profile picture does not read brandLogo_');
   const fw = fnOf('postFaceWho_');
-  if (!/brandLogo_\(/.test(fw)) add('js/posts.js', "a business post's face does not read brandLogo_");
-  if (!/profileOf_\(/.test(fw)) add('js/posts.js', "a post's face is the copy sent with the post, not the author's profile (profileOf_)");
-  if (!/profileOf_\(/.test(fnOf('postCard_'))) add('js/posts.js', "a post's name is the copy sent with the post, not the author's profile (profileOf_)");
+  if (fw && !/brandLogo_\(/.test(fw)) add('js/posts.js', "a business post's face does not read brandLogo_");
+  if (fw && !/profileOf_\(/.test(fw)) add('js/posts.js', "a post's face is the copy sent with the post, not the author's profile (profileOf_)");
+  if (fw && !/profileOf_\(/.test(fnOf('postCard_'))) add('js/posts.js', "a post's name is the copy sent with the post, not the author's profile (profileOf_)");
   const html = read('index.html');
   ['icon', 'apple-touch-icon'].forEach(r => { if (!new RegExp('<link rel="' + r + '" id="favicon').test(html)) add('index.html', `no <link rel="${r}" id="favicon…"> for applyBrandIcon_ to follow`); });
   /* THE TOP BAR IS @family., THE NAME AND SIGN OUT (owner, 6 Nov): no badge; what the dot counted is Find › Settings › Notifications. */

@@ -64,7 +64,7 @@ function drawFeed() {
   /* The photograph arrives afterwards and fades in over the drawing. § */
   /* A CLIP PLAYS HERE TOO, AND IT HAS TO BE ASKED. § */
   const vid = host.querySelector('video.feed-vid');
-  if (vid && typeof reelPlay_ === 'function') reelPlay_(vid);
+  if (vid && typeof window.reelPlay_ === 'function') window.reelPlay_(vid);
 
   const at = FEED_AT;
   if (it.pic) feedPicture(it.pic).then(found => {

@@ -41,7 +41,7 @@ const CHROME = process.env.CHROME ||
       .find(p => fs.existsSync(p)))) || undefined;
 
 /* THE FILES THE DEPLOY TOUCHES — in the copy above, which is thrown away whatever happens. */
-const POSTS = path.join(ROOT, 'js', 'posts.js');
+const POSTS = path.join(ROOT, 'js', 'messages.js');
 const PAGE = path.join(ROOT, 'index.html');
 /* ---------- AND A DATA FILE, BECAUSE THE WORKER PINNED THOSE TOO § */
 const BOOKS = path.join(ROOT, 'data', 'textbooks.json');

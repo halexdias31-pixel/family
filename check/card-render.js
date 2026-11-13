@@ -87,10 +87,10 @@ function measure(per) {
       const row = card.querySelector(':scope > .kc-act .kc-four');
       if (row) { const tiles = [...card.querySelectorAll(':scope > .kc-act .kc-four > .tile')].map(t => t.getBoundingClientRect()).filter(r => r.width);
         if (tiles.length) { const l = Math.min(...tiles.map(r => r.left)), rr = Math.max(...tiles.map(r => r.right)); if (Math.abs((l + rr) / 2 - mid) > 2) say(x, 'its four buttons are ' + Math.round((l + rr) / 2 - mid) + 'px off the centre line'); } }
-      const more = card.querySelector(':scope > .kc-act [data-do="kc-more"]'), list = card.querySelector(':scope > .kc-act .kc-more');
+      const list = card.querySelector(':scope > .kc-act .kc-more');
       /* ROUND ICONS ONLY (owner, 10 Nov late): no word under or in any tile, ⋯'s too; a long press says it. */
-      if (more && list) { list.hidden = false; [...card.querySelectorAll(':scope > .kc-act .tile')].forEach(t => { const w = getComputedStyle(t, '::after').content;
-        if ((w && w !== 'none' && w !== 'normal' && w !== '""') || t.innerText.trim()) say(x, 'round button "' + (t.getAttribute('aria-label') || '') + '" shows a word'); }); list.hidden = true; }
+      if (list) { [...card.querySelectorAll(':scope > .kc-act .tile')].forEach(t => { const w = getComputedStyle(t, '::after').content;
+        if ((w && w !== 'none' && w !== 'normal' && w !== '""') || t.innerText.trim()) say(x, 'round button "' + (t.getAttribute('aria-label') || '') + '" shows a word'); }); }
       /* A CARD IN A CARD UNDER THE SAME NAME is one card drawn twice: two name tags, two button rows. */
       const tag0 = c => ((c.querySelector(':scope > .kc-tags .qtag') || {}).textContent || '').trim();
       if (tag0(card) && [...card.querySelectorAll('.card.kc')].some(n => tag0(n) === tag0(card))) say(x, 'a card inside a card with the same name "' + tag0(card).slice(0, 30) + '"');

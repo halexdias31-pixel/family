@@ -119,7 +119,7 @@
     "me-fields": "core",
     "me-card": "core",
     "me-people": "core",
-    "posts": "secondary",
+    "messages": "core",
     "links": "core",
     "find-finder": "core",
     "find-facets": "core",
@@ -195,7 +195,6 @@
     "boot": "core"
   },
   "eagerSecondary": {
-    "posts": "the Feed is TAB_HOME, the column drawn at first paint (670); its draw runs inside drawOne's guard",
     "overworld": "the Feed's picture and paint timer, drawn at first paint with posts (670)",
     "arcade": "the widget runner: Find's Tools cards (790) and the Saved column start widgets through it; every widget it runs is guarded by tierGuardWidgets_",
     "missing": "an admin card on Find's front pages (526), counted by the eager pager (shell.js, me.js) before LATER lands"
@@ -302,7 +301,6 @@
     "check-accounts.js": "core",
     "check-staff.js": "secondary",
     "check-flyer.js": "secondary",
-    "check-posts.js": "secondary",
     "check-suggest.js": "secondary",
     "check-library-ledger.js": "core",
     "check-keepwarm.js": "secondary",
@@ -476,7 +474,7 @@
       "me-shelves",
       "me-card",
       "chess",
-      "posts",
+      "messages",
       "overworld",
       "arcade",
       "mechanics",

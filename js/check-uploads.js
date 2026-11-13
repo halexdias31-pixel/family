@@ -302,7 +302,7 @@ const WORKS = world({});
 
 /* 8. POSTS, NOW THAT DRIVE CAN BE WRITTEN `addPost` is open to any signed-in account and used to keep any `data:` URL at any size, uploaded before it even asked § */
 {
-  const cam = fs.readFileSync(path.join(ROOT, 'js', 'posts.js'), 'utf8');
+  const cam = ['js', 'attic/js'].map(d => path.join(ROOT, d, 'posts.js')).filter(f => fs.existsSync(f)).map(f => fs.readFileSync(f, 'utf8'))[0] || '';
   const mib = n => { const m = new RegExp('const ' + n + '\\s*=\\s*(\\d+)\\s*\\*\\s*1048576').exec(cam); return m ? Number(m[1]) * 1048576 : 0; };
   const VID = mib('CAM_VID_MAX'), POST = mib('CAM_POST_MAX');
   if (!VID || !POST) fail('posts', 'could not read CAM_VID_MAX / CAM_POST_MAX out of js/posts.js, so the caps were NOT compared with the phone');

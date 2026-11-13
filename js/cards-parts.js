@@ -134,9 +134,9 @@ function kcFour_(x, rest, main) {
     || tile_({ icon: 'star', label: 'Save', act: 'fav', off: true, data: { key: (x && x.key) || '', kind: (x && x.kind) || 'item' } });
   /* A CARD IS STATIC (owner, 10 Nov): with no main of its own, Share leads; the card already shows everything it holds. */
   const lead = main || pick(t => kcAct_(t) === 'card-share') || tile_({ icon: 'share', label: 'Share', act: 'card-share', off: !(x && x.key), data: { key: (x && x.key) || '' } });
-  /* WHAT IS NOT A TILE (a verdict, a slot) stays beside the rest, behind ⋯. */
+  /* EVERY OTHER ACTION IS ITS OWN VISIBLE TILE (owner, 13 Nov): no hidden menu; the fixed three lead, the rest wrap under them. */
   const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
-  return `<span class="kc-four">${lead}${msg}${star}${tile_({ icon: 'more', label: 'More', act: 'kc-more' })}</span><span class="kc-more" hidden>${all.join('')}${left}</span>`;
+  return `<span class="kc-four">${lead}${msg}${star}</span><span class="kc-more">${all.join('')}${left}</span>`;
 }
 /* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
 function kcActRow_(x, html, own) {

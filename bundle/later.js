@@ -10601,7 +10601,7 @@ on('book-open', () => { BOOK_OPEN = !BOOK_OPEN; repaint(); });
 function feedPages_() {
   /* POSTS ARE DOOR ITEMS (find-doors.js); the whole feed only stands in when those are switched off, or each post would show twice. */
   if (!forIs_('posts') || typeof postDoorItems_ === 'function') return [];
-  return (typeof postsBlocks === 'function' ? postsBlocks() : []).filter(Boolean);
+  return (typeof window.postsBlocks === 'function' ? window.postsBlocks() : []).filter(Boolean);
 }
 /* ---------- SIGNING IN AND OUT, ON A PAGE OF ITS OWN § */
 /* ---------- WHICH ROW IS YOU, ASKED IN ONE PLACE § */
@@ -17829,7 +17829,7 @@ const WIDGETS = [
   { id: 'reels', kind: 'tool', name: 'One more thing', start: () => initFeed?.(),
     /* DRAWN AHEAD AS THE FACT'S CARD AND NOTHING ELSE (`feedPaint_`, overworld.js): § */
     draw: () => feedPaint_?.(),
-    stop: () => clipsStop_($('feed-screen')),
+    stop: () => { if (typeof window.clipsStop_ === 'function') window.clipsStop_($('feed-screen')); },
     into: 'feed-screen', what: 'This',
     get html() { return `
     <h3>One more thing</h3>
@@ -24409,8 +24409,8 @@ function frontPageOf_(col) {
     const n = widgetPagesOf_(kind).findIndex(w => String(w.id) === f.id || (w.parts || []).some(p => String(p.id) === f.id));
     if (n !== -1) return n;
   }
-  if (col === 'feed' && typeof feedCamAt_ === 'function') {
-    if (f.id === 'item:feed:camera') return feedCamAt_();
+  if (col === 'feed' && typeof window.feedCamAt_ === 'function') {
+    if (f.id === 'item:feed:camera') return window.feedCamAt_();
   }
   const n = CARD_START_AT[col];
   return typeof n === 'number' && n >= 0 ? n : -1;
@@ -25426,7 +25426,7 @@ function pushGo_(what) {
   if (!m) return;
   try {
     if (m[1] === 'job' && typeof openJob_ === 'function') openJob_(m[2]);
-    else if (m[1] === 'post' && typeof postGo_ === 'function') postGo_(m[2]);
+    else if (m[1] === 'post' && typeof window.postGo_ === 'function') window.postGo_(m[2]);
     else go('dm');
   } catch (e) {}
 }

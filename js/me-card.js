@@ -216,11 +216,11 @@ function cardEditHtml_(t) {
   const base = cardBaseNow_(e);
   if (!base) {
     if (!e.err) setTimeout(() => cardFetch_(e), 0);
-    return card_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}${
+    return meCard_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}${
       e.err ? `<p class="note me-said">${esc(e.err)}</p>` : loading_()}</div><div class="tile-row ce-tiles">${tile_(cardSaveOpts_(pid, true))}</div>`);
   }
   const { vals, held } = cardValues_(e, base);
-  return card_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}
+  return meCard_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}
     <div class="me-form" data-draw="${cardDrawn_(base)}">${cardEditForm_(t, e, vals)}
       <p class="note me-said">${held ? esc(SET_HELD_SAY) : ''}</p></div>
   </div><div class="tile-row ce-tiles">${tile_(cardSaveOpts_(pid, false))}</div>`);

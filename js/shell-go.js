@@ -49,10 +49,10 @@ function go(id, remember, instant) {
      `startScreen_` below. */
   /* ---------- ONLY WHEN LEAVING THE FEED, OR WITH A CAMERA ACTUALLY OPEN § */
   /* PARKED, NOT STOPPED (427): coming back must not ask again, and a parked stream is no reason to run this on other columns. */
-  if (typeof camStop_ === 'function' && AT !== 'feed'
-      && (was === 'feed' || (typeof camOn_ === 'function' && camOn_()))) camStop_(false, true);
+  if (typeof window.camStop_ === 'function' && AT !== 'feed'
+      && (was === 'feed' || (typeof window.camOn_ === 'function' && window.camOn_()))) window.camStop_(false, true);
   /* AND THE REEL, which is the third of these and was the one nobody had written. § */
-  if (typeof reelsStop_ === 'function' && AT !== 'reel') reelsStop_();
+  if (typeof window.reelsStop_ === 'function' && AT !== 'reel') window.reelsStop_();
   /* A PIN SHOWN ON A CARD (452) goes when its column is left. */
   if (was !== AT && typeof pinHideAll_ === 'function') pinHideAll_();
   /* AND THE MESSAGE POLL, which is the fourth. § */
@@ -85,12 +85,12 @@ const SCREEN_HOOKS = {
   saved: { regrow: true, start: a => typeof savedStart_ === 'function' && (savedStart_(a), true) },
   shop: { regrow: true, start: a => typeof toolsStart_ === 'function' && (toolsStart_('shop', a), true) },
   reel: { regrow: true, start: a => typeof toolsStart_ === 'function' && (toolsStart_('reel', a), true),
-    started: [() => typeof reelsWatch_ === 'function' && reelsWatch_()],
-    paged: n => { if (typeof reelAhead_ === 'function') { try { reelAhead_(n); } catch (e) { oops_(e, 'shell:goPage') } } },
-    slid: () => { if (typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_); } },
+    started: [() => typeof window.reelsWatch_ === 'function' && window.reelsWatch_()],
+    paged: n => { if (typeof window.reelAhead_ === 'function') { try { window.reelAhead_(n); } catch (e) { oops_(e, 'shell:goPage') } } },
+    slid: () => { if (typeof window.reelsWatch_ === 'function') afterSlide_(window.reelsWatch_); } },
   /* the camera is a page of the feed: started when its page arrives, put at rest at once when the page turns away (docs/history/341) */
-  feed: { started: [() => typeof feedCamWatch_ === 'function' && feedCamWatch_()],
-    slid: n => { if (typeof feedCamWatch_ === 'function') afterSlide_(feedCamWatch_); if (n !== 0 && typeof camRest_ === 'function') camRest_(); } },
+  feed: { started: [() => typeof window.feedCamWatch_ === 'function' && window.feedCamWatch_()],
+    slid: n => { if (typeof window.feedCamWatch_ === 'function') afterSlide_(window.feedCamWatch_); if (n !== 0 && typeof window.camRest_ === 'function') window.camRest_(); } },
   /* an admin's business records are asked for, a POST, once (js/records.js) */
   biz: { started: [() => typeof window.bizStart_ === 'function' && window.bizStart_()] },
   /* a conversation opens at its newest message, and keeps itself up to date while it is the screen you are on (`dmPoll_`) */

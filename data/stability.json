@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 86.8,
+ "score": 85.5,
  "verdict": "Solid: little is held together by exceptions.",
  "signals": [
   {
@@ -29,6 +29,17 @@
     "check/diagrams.js ACCEPTED": 4,
     "check/motion.js ACCEPTED": 11,
     "check/types.js ACCEPTED": 2
+   }
+  },
+  {
+   "id": "dead",
+   "label": "Code nothing calls",
+   "count": 9,
+   "weight": 0.3,
+   "cap": 10,
+   "off": 2.7,
+   "where": {
+    "check-dead": "cardRedraw_ (cards-render.js), clipsNow_ (facts.js), paintBoard_ (map.js), paintTimer (overworld.js), sheetHere_ (shell-click.js), shareCanvasPng_ (shell-click.js), staffCard_ (staff.js), staffStart_ (staff.js), postRow_ (tiles-jobs.js)"
    }
   },
   {
@@ -72,17 +83,6 @@
    }
   },
   {
-   "id": "dead",
-   "label": "Code nothing calls",
-   "count": 5,
-   "weight": 0.3,
-   "cap": 10,
-   "off": 1.5,
-   "where": {
-    "check-dead": "cardRedraw_ (cards-render.js), paintBoard_ (map.js), paintTimer (overworld.js), staffCard_ (staff.js), staffStart_ (staff.js)"
-   }
-  },
-  {
    "id": "duplicates",
    "label": "Repeated long lines",
    "count": 40,
@@ -96,10 +96,10 @@
   {
    "id": "catches",
    "label": "Empty catches (tools/catches.js)",
-   "count": 1,
+   "count": 4,
    "weight": 0.02,
    "cap": 15,
-   "off": 0,
+   "off": 0.1,
    "where": {}
   },
   {
@@ -131,7 +131,7 @@
   }
  ],
  "secondary": {
-  "score": 87.4,
+  "score": 88.6,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
@@ -153,21 +153,12 @@
     }
    },
    {
-    "id": "catches",
-    "label": "Empty catches (tools/catches.js)",
-    "count": 103,
-    "weight": 0.02,
-    "cap": 15,
-    "off": 2.1,
-    "where": {}
-   },
-   {
     "id": "special",
     "label": "Per-facet and per-kind special cases",
-    "count": 36,
+    "count": 30,
     "weight": 0.05,
     "cap": 10,
-    "off": 1.8,
+    "off": 1.5,
     "where": {
      "js/arcade.js": 7,
      "js/collections.js": 7,
@@ -175,19 +166,27 @@
      "js/layout-moves.js": 1,
      "js/mechanics.js": 1,
      "js/orthodox.js": 2,
-     "js/posts.js": 6,
      "js/reader.js": 11
     }
    },
    {
+    "id": "catches",
+    "label": "Empty catches (tools/catches.js)",
+    "count": 64,
+    "weight": 0.02,
+    "cap": 15,
+    "off": 1.3,
+    "where": {}
+   },
+   {
     "id": "duplicates",
     "label": "Repeated long lines",
-    "count": 18,
+    "count": 15,
     "weight": 0.02,
     "cap": 10,
-    "off": 0.4,
+    "off": 0.3,
     "where": {
-     "lines": 6
+     "lines": 5
     }
    },
    {
