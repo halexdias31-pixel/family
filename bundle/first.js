@@ -8311,9 +8311,9 @@ const KC_DEFAULT = {
   venue: { cls: 'venue-door', pic: [], title: [], tags: [], lines: [], tiles: [] },
   level: { cls: 'is-level', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },
   subject: { cls: 'is-subject', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },
-  manuscript: { cls: 'hdb hdb-msc lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
+  manuscript: { cls: 'hdb hdb-msc lib-c', pic: [], title: [], tags: [], lines: [], tiles: ['file-view:ext:Source'] },
   writing: { cls: 'hdb lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
-  event: { cls: 'hdb lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
+  event: { cls: 'hdb lib-c', pic: [], title: [], tags: [], lines: [], tiles: ['file-view:ext:Source'] },
   people: { cls: 'person lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
   msg: { cls: 'msg-fc', pic: ['msgPic'], title: ['msgWho'], tags: ['msgTags'], lines: ['msgBody', 'msgTiles'], tiles: ['msg-reply:send:Reply'] },
   post: { cls: 'post-fc', pic: [], title: [], tags: [], lines: [], tiles: ['react:heart:Like'] },
@@ -14466,7 +14466,7 @@ function cameraCard() {
       ${tile_({ form: true, look: 'cam-shot', act: 'cam-shoot', id: 'cam-shoot', aria: 'Take a photo', title: 'Take a photo', off: true, html: '' })}
       ${tile_({ form: true, look: 'cam-rec', act: 'cam-video', id: 'cam-video', aria: 'Record a video', title: 'Record a video', off: true, html: '' })}
       ${tile_({ form: true, look: 'cam-round cam-write', act: 'new-post', aria: 'Write a post', title: 'Write a post', html: '<span class="cam-disc" aria-hidden="true">✎</span><span class="cam-word">Write a post</span>' })}
-      ${tile_({ form: true, look: 'cam-side', act: 'cam-flip', id: 'cam-flip', aria: 'Switch camera', title: 'Switch camera', hidden: true, label: 'Switch' })}
+      ${tile_({ form: true, look: 'cam-side', act: 'cam-flip', id: 'cam-flip', aria: 'Switch camera', title: 'Switch camera', off: true, label: 'Switch' })}
     </div>
     ${/* ---------- ONE LINE ABOUT IT, BECAUSE A POST WITH NOTHING SAID ABOUT IT IS A PHOTOGRAPH § */
           ''}
@@ -14483,15 +14483,15 @@ function cameraCard() {
       ${postAsButtons_('cam-as')}
     </span>` : ''}
     <div class="btn-row cam-row">
-      ${tile_({ form: true, look: 'btn quiet', act: 'cam-again', id: 'cam-again', hidden: true, label: 'Again' })}
+      ${tile_({ form: true, look: 'btn quiet', act: 'cam-again', id: 'cam-again', off: true, label: 'Again' })}
       ${/* KEEP THIS ONE AND TAKE ANOTHER. The picture goes into the tray and the viewfinder comes
             back, so a post of five is five presses of the shutter and one of `Post it`. */''}
-      ${tile_({ form: true, look: 'btn quiet', act: 'cam-more', id: 'cam-more', hidden: true, label: 'Add another' })}
-      ${tile_({ form: true, act: 'cam-post', id: 'cam-post', hidden: true, label: 'Post it' })}
-      ${tile_({ form: true, look: 'btn quiet', act: 'cam-save', id: 'cam-save', hidden: true, label: 'Save a copy' })}
-      ${/* HIDDEN UNTIL SOMETHING FAILS. See the note at the top: this is the way back from a refused
+      ${tile_({ form: true, look: 'btn quiet', act: 'cam-more', id: 'cam-more', off: true, label: 'Add another' })}
+      ${tile_({ form: true, act: 'cam-post', id: 'cam-post', off: true, label: 'Post it' })}
+      ${tile_({ form: true, look: 'btn quiet', act: 'cam-save', id: 'cam-save', off: true, label: 'Save a copy' })}
+      ${/* GREYED UNTIL SOMETHING FAILS. See the note at the top: this is the way back from a refused
             prompt, not a step on the way in. */''}
-      ${tile_({ form: true, act: 'cam-on', id: 'cam-on', hidden: true, label: 'Try the camera again' })}
+      ${tile_({ form: true, act: 'cam-on', id: 'cam-on', off: true, label: 'Try the camera again' })}
     </div>
     <p class="note" id="cam-said"></p>
   </div>`);
@@ -14552,7 +14552,7 @@ async function camStart_(asked) {
     const off = $('cam-off');
     if (off) { off.hidden = false; off.innerHTML = ''; }
     if (said) said.textContent = '';
-    if (retry) retry.hidden = true;          // nothing a retry could change
+    if (retry) retry.disabled = true;          // nothing a retry could change
     camSettle_();
     return;
   }
@@ -14605,7 +14605,7 @@ async function camStart_(asked) {
   now.srcObject = CAM_STREAM;
   try { await now.play(); } catch (e) {}
   $('cam-off') && ($('cam-off').hidden = true);
-  if (retry) { retry.hidden = true; retry.disabled = false; }
+  if (retry) { retry.disabled = true; }
   camLive_(true);
   if (said) said.textContent = '';
   /* ---------- AND ONLY NOW CAN ANYBODY ASK HOW MANY CAMERAS THERE ARE § */
@@ -14616,9 +14616,9 @@ async function camStart_(asked) {
 function camFailed_(err) {
   const said = $('cam-said'), retry = $('cam-on'), off = $('cam-off');
   if (said) said.textContent = camWhy_(err);
-  /* THE WAY BACK APPEARS ONLY NOW. Until something fails there is nothing to retry, and a button
+  /* THE WAY BACK IS LIT ONLY NOW. Until something fails there is nothing to retry, and a button
      offering to start a camera that is already running is the thing this replaced. */
-  if (retry) { retry.hidden = false; retry.disabled = false; }
+  if (retry) { retry.disabled = false; }
   /* THE PANEL'S WHOLE CONTENT, NOT A LINE INSIDE IT: while it waits it holds the loader and no
      sentence, so there is no line to find and rewrite. */
   if (off) { off.hidden = false; off.innerHTML = ''; }
@@ -14643,7 +14643,7 @@ async function camWays_() {
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
     const list = await navigator.mediaDevices.enumerateDevices();
-    flip.hidden = list.filter(d => d.kind === 'videoinput').length < 2;
+    flip.disabled = list.filter(d => d.kind === 'videoinput').length < 2;
   } catch (e) {}
 }
 
@@ -14705,7 +14705,7 @@ document.addEventListener('change', e => {
     camHold_();
     $('cam-off')   && ($('cam-off').hidden = true);
     /* SEE `cam-shoot`: `Again` already offers the camera, so this would be the second button for it. */
-    $('cam-on')    && ($('cam-on').hidden = true);
+    $('cam-on')    && ($('cam-on').disabled = true);
     camSettle_();
     if (said) said.textContent = '';
     /* THE CAMERA IS LET GO, not left running behind the picture. § */
@@ -14729,8 +14729,8 @@ on('cam-shoot', () => {
      see `Again` — so they would work; what they would do is throw away the shot you just took. */
   camLive_(false);
   camHold_();
-  /* `Try the camera again` GOES WHILE A PICTURE IS BEING HELD, and that is a duplicate removed rather than a control taken away. § */
-  $('cam-on') && ($('cam-on').hidden = true);
+  /* `Try the camera again` GREYS WHILE A PICTURE IS BEING HELD, and that is a duplicate removed rather than a control taken away. § */
+  $('cam-on') && ($('cam-on').disabled = true);
   camSettle_();
 });
 
@@ -14784,9 +14784,11 @@ function camKeep_() {
 function camHold_() {
   const still = !!($('cam-still') && !$('cam-still').hidden);
   const n = CAM_ITEMS.length + (still ? 1 : 0);
+  /* EVERY BUTTON STAYS IN SIGHT (owner, 13 Nov: no dynamic buttons): one that cannot act yet is greyed, never hidden. */
+  const can = (id, on) => { const el = $(id); if (el) el.disabled = !on; };
   const show = (id, on) => { const el = $(id); if (el) el.hidden = !on; };
-  show('cam-again', still); show('cam-save', still); show('cam-more', still);
-  show('cam-post', n > 0); show('cam-cap', n > 0); show('cam-as', n > 0);
+  can('cam-again', still); can('cam-save', still); can('cam-more', still);
+  can('cam-post', n > 0); show('cam-cap', n > 0); show('cam-as', n > 0);
   const post = $('cam-post');
   if (post) post.textContent = n > 1 ? 'Post all ' + n : 'Post it';
   const tray = $('cam-tray');
@@ -15001,14 +15003,14 @@ function camStop_(keepShown, park) {
 
   camRecMark_(false);
   camLive_(false);
-  const flip = $('cam-flip'); if (flip) flip.hidden = true;
+  const flip = $('cam-flip'); if (flip) flip.disabled = true;
 
   if (v) v.hidden = false;
   const c = $('cam-still'); if (c) c.hidden = true;
   /* BACK TO THE VIEWFINDER AT REST — the dark stage, no loader: nothing is being asked for now (`cameraCard`). */
   const off = $('cam-off');
   if (off) { off.hidden = false; off.innerHTML = ''; }
-  $('cam-on')    && ($('cam-on').hidden = true, $('cam-on').disabled = false);
+  $('cam-on')    && ($('cam-on').disabled = true);
   /* LEAVING THE COLUMN LETS THE POST GO TOO, the tray with it — the same thing it has always done to
      a single held picture. */
   CAM_ITEMS = [];
@@ -15486,7 +15488,7 @@ function postComposeHtml_() {
   <label class="field"><span>more, if you want it</span>
     <textarea id="post-body" placeholder="Optional"${draftAttr_('post', 'body')}>${esc(draftVal_('post', 'body'))}</textarea></label>
   <div class="poll-opts" id="post-poll-opts" data-n="${n}">${Array.from({ length: n }, (_, k) => pollBox_(k)).join('')}</div>
-  ${tile_({ form: true, look: 'btn quiet', act: 'poll-more', id: 'poll-more', hidden: n >= POLL_MAX, label: 'Add option' })}
+  ${tile_({ form: true, look: 'btn quiet', act: 'poll-more', id: 'poll-more', off: n >= POLL_MAX, label: 'Add option' })}
   ${postAsRow_('post-as')}
   <div class="btn-row">
     ${tile_({ form: true, label: 'Back', act: 'post-cancel', kind: 'quiet' })}
@@ -15525,7 +15527,7 @@ on('poll-more', () => {
   const n = box.querySelectorAll('.post-poll-in').length;
   if (n >= POLL_MAX) return;
   box.insertAdjacentHTML('beforeend', pollBox_(n));
-  const b = $('poll-more'); if (b && n + 1 >= POLL_MAX) b.hidden = true;
+  const b = $('poll-more'); if (b && n + 1 >= POLL_MAX) b.disabled = true;
   const inp = $('post-poll-' + n); if (inp) { try { inp.focus({ preventScroll: true }); } catch (e) {} }
 });
 /* THE OPTIONS AS THE SHEET KEEPS THEM — one cell, comma-joined (doget splits it), so a comma typed inside an option is taken out. */
