@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-13-chain-cols-1";
+const DOPOST_VERSION = "2026-11-13-lens-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -166,6 +166,7 @@ function postActionsAccount_() {
     signOut: postSignOut_,
     verifyLogin: postVerifyLogin_,
     myProfile: postMyProfile_,
+    lensOpen: postLensOpen_,
     getProfile: postGetProfile_,
     listRecords: postListRecords_,
     saveRecordsPage: postListRecords_,

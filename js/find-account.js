@@ -67,29 +67,29 @@ function feedPages_() {
 }
 /* ---------- SIGNING IN AND OUT, ON A PAGE OF ITS OWN § */
 /* ---------- WHICH ROW IS YOU, ASKED IN ONE PLACE § */
-function mineIs_(t) {
+function mineIs_(t, u = USER) {
   /* ---------- AND A STRANGER HAS NO ROW, WHICH THIS DID NOT HAVE TO KNOW BEFORE § */
-  if (typeof USER === 'undefined' || !USER) return false;
+  if (!u) return false;
   /* ---------- AN ID ON BOTH SIDES DECIDES, AND THE NAME IS ONLY FOR A ROW WITHOUT ONE § */
-  if (t && USER.personId && t.personId) return String(t.personId) === String(USER.personId);
+  if (t && u.personId && t.personId) return String(t.personId) === String(u.personId);
   return !!t && (
-    (USER.handle && t.handle && norm(t.handle) === norm(USER.handle)) ||
-    (USER.name && t.title && norm(t.title) === norm(USER.name)) ||
-    (USER.name && t.name && norm(t.name) === norm(USER.name)));
+    (u.handle && t.handle && norm(t.handle) === norm(u.handle)) ||
+    (u.name && t.title && norm(t.title) === norm(u.name)) ||
+    (u.name && t.name && norm(t.name) === norm(u.name)));
 }
 /* ---------- YOUR OWN ROW, WHEREVER IT COMES FROM § */
-function myCardRow_() {
-  return (DATA.tutors || []).filter(mineIs_)[0] || {
+function myCardRow_(u = USER) {
+  return (DATA.tutors || []).filter(t => mineIs_(t, u))[0] || {
     /* ---------- THE HANDLE IS PRINTED UNDER THE NAME, SO IT IS NOT SAID IN IT TOO § */
-    title: nameBesideHandle_(USER.name, USER.handle) || 'Signed in',
-    role:  roleOf(USER.role || 'student'),
-    handle: USER.handle,
-    /* YOUR PICTURE AS THE PICKER LAST KEPT IT (`USER.profile.photo`, written by `pfpTake_`), else the sign-in reply's. § */
-    image: (USER.profile && typeof USER.profile.photo === 'string') ? USER.profile.photo : (USER.image || USER.photo || ''),
-    avatar: USER.avatar || '',
-    rate:  USER.rate,
+    title: nameBesideHandle_(u.name, u.handle) || 'Signed in',
+    role:  roleOf(u.role || 'student'),
+    handle: u.handle,
+    /* YOUR PICTURE AS THE PICKER LAST KEPT IT (`profile.photo`, written by `pfpTake_`), else the sign-in reply's. § */
+    image: (u.profile && typeof u.profile.photo === 'string') ? u.profile.photo : (u.image || u.photo || ''),
+    avatar: u.avatar || '',
+    rate:  u.rate,
     teaches: [],
-    personId: USER.personId,
+    personId: u.personId,
     /* ---------- `dbs` IS DELIBERATELY ABSENT HERE, AND ABSENT IS NOT `false` § */
   };
 }

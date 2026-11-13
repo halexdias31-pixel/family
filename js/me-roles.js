@@ -11,7 +11,7 @@ function pinSlip_(first, handle, pin) {
 }
 
 /* ---------- AN ADDRESS NOBODY HAS PROVED: THE MAIL IT IS NOT SENT, AND THE CHILD IT CANNOT HOLD YET § */
-function pendingAddr_() { return (USER && USER.pendingEmail) ? String(USER.pendingEmail) : ''; }
+function pendingAddr_() { return (whose_() && whose_().pendingEmail) ? String(whose_().pendingEmail) : ''; }
 
 /* A TILE, because the link is a thing about your account, not a field on a form (CLAUDE.md). The same
    tile in both places, so a fix to its words is one fix. `send` is the mark that means the act. */
@@ -171,7 +171,7 @@ let HANDLE_SAID = { pid: '', text: '' };
 const GROUPS_OLD_ = { 'About you': ['first_name', 'last_name', 'photo'],
                       'Where': ['borough', 'city'], 'Contact': ['email', 'phone'] };
 function myGroups_() {
-  const role = roleOf((USER && USER.role) || '');
+  const role = roleOf((whose_() && whose_().role) || '');
   const has = g => !!(g && Object.keys(g).length);
   return (role === 'client' && has(DATA.clientFields)) ? DATA.clientFields
     : (role === 'student' && has(DATA.studentFields)) ? DATA.studentFields
@@ -242,8 +242,8 @@ const lockedPages_ = col => lockedAs_(col, LOCKED_DRAW_[col]);
 /* ---------- PARENT SETTINGS: A PARENT'S OR PAYER'S OWN DETAILS (453) — the children are on Students ---------- */
 function familyPages_() {
   const title = tabLabel_('family', 'Parent settings');
-  if (!USER) return [signedOutCard_(title)].concat(lockedPages_('family'));
-  if (!rankAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
+  if (!whose_()) return [signedOutCard_(title)].concat(lockedPages_('family'));
+  if (!whoseAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
   const out = ownCardSetPage_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family'));
   /* NOTHING A PARENT'S ALONE (469): your picture, name and contact are everybody's, so on Student settings. */
   return out.length ? out : [rankOffCard_(title, NOTHING_YET + ' Your details are on ' + tabLabel_('account', 'Kids settings') + '.', null, 'set-none')];
@@ -254,14 +254,16 @@ screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_
 function applyCard_() {
   const open = typeof applyFormOpen_ === 'function' && applyFormOpen_();
   const body = open ? applyFormHtml_() : typeof applyOpts_ === 'function' && applyOpts_() ? tileRow_(tile_(applyOpts_()), 'apply-tiles') : '';
-  return body ? [card_(`<div class="apply-card" data-yours="1"><h3>Apply to teach</h3><p class="note">Teach with us: tell us what you teach, and we will be in touch.</p>${body}</div>`)] : [];
+  const h = body ? card_(`<div class="apply-card" data-yours="1"><h3>Apply to teach</h3><p class="note">Teach with us: tell us what you teach, and we will be in touch.</p>${body}</div>`) : '';
+  /* AN APPLICATION IS THE ASKER'S OWN (`applyTeach`), so in the lens it is shown shut. */
+  return h ? [lensOn_() ? lockCard_(h) : h] : [];
 }
 /* ---------- TUTOR SETTINGS: THE STAFF HUB AND THE TEACHING SETTINGS WITH NO CARD TO LIVE ON (453) ---------- */
 function staffPages_() {
   const title = tabLabel_('staff', 'Tutor settings');
-  if (!USER) return [signedOutCard_(title)].concat(lockedPages_('staff'));
+  if (!whose_()) return [signedOutCard_(title)].concat(lockedPages_('staff'));
   /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyOpts_`), then every card shut (467). */
-  if (!rankAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
+  if (!whoseAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
   const hub = typeof hubBlock_ === 'function' ? hubBlock_() : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [card_(`<div class="staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`)] : [];
@@ -345,17 +347,17 @@ const ROLE_PICKS = [
 ];
 /* WHAT THE LINE UNDER THE CARD SAYS WHEN NOTHING HAS JUST HAPPENED, by rank. */
 function rolesSaid_() {
-  if (!USER) return '';
-  if (isAdmin()) return '';
-  if (USER.tutorPending && tutorHeld_())
+  if (!whose_()) return '';
+  if (whoseAtLeast_('admin')) return '';
+  if (whose_().tutorPending && hasRole('tutor', whose_()))
     return 'Tutor is waiting for ' + brand('name', '@family.') + ' to approve you. Until then you are not on the site and '
          + 'cannot be booked — fill in your teaching pages meanwhile.';
-  if (rankAtLeast_('staff')) return 'You teach here. Your hours, pricing and terms are in the Staff hub on ' + tabLabel_('staff', 'Tutor settings') + '.';
-  if (rank_() === 'student') return 'A parent links you to their account from theirs.';
+  if (whoseAtLeast_('staff')) return 'You teach here. Your hours, pricing and terms are in the Staff hub on ' + tabLabel_('staff', 'Tutor settings') + '.';
+  if (rank_(whose_()) === 'student') return 'A parent links you to their account from theirs.';
   return '';
 }
 /* THE CHOICE THE CARD OFFERS: only a Client has one. A waiting Tutor keeps the old row's tutor alongside it (`rolesPicked_`). */
-const rolesPickable_ = () => !!USER && rank_() === 'client';
+const rolesPickable_ = () => !!whose_() && rank_(whose_()) === 'client';
 function rolesCard_() {
   const name = brand('name', '@family.');
   /* ONE ROW, THE PHONE'S OWN PICKER, and no notes under it (469: the owner, "so much filler space"). */
@@ -419,7 +421,7 @@ on('roles-save', el => {
 /* WHAT THE LINE UNDER THE TICKS SAYS AFTER ONE IS SAVED, kept as state for `HANDLE_SAID`'s reason: § */
 let NOTIFY_SAID = { pid: '', text: '' };
 const notifyList_ = () => {
-  const n = USER && USER.profile && USER.profile.notify;
+  const n = whose_() && whose_().profile && whose_().profile.notify;
   return n && Array.isArray(n.kinds) ? n : null;
 };
 function notifyCard_() {
@@ -435,7 +437,7 @@ function notifyCard_() {
   else if (!n.to) {
     /* NO ADDRESS OF THEIR OWN — `notify` writes to the row's own address and nowhere else, so nothing at
        all is sent to them; a child's forgotten PIN goes to their grown-ups (`authGrownUps_`). */
-    const kid = heldRoles().map(roleOf).indexOf('student') !== -1;
+    const kid = heldRoles(whose_()).map(roleOf).indexOf('student') !== -1;
     inner = empty_(kid ? 'No email address, so no emails.' : 'No email address yet — add one on your Contact card.');
   }
   /* A LIST WITH NOTHING IN IT. § */
@@ -443,7 +445,7 @@ function notifyCard_() {
     inner = empty_('No email choices yet.');
   } else {
     const opt = n.kinds.filter(k => !k.essential), must = n.kinds.filter(k => k.essential);
-    const mine = NOTIFY_SAID.pid && NOTIFY_SAID.pid === String(USER.personId || '') ? NOTIFY_SAID.text : '';
+    const mine = NOTIFY_SAID.pid && NOTIFY_SAID.pid === String(whose_().personId || '') ? NOTIFY_SAID.text : '';
     /* ---------- SHORT, BECAUSE IT HAS TO FIT A 320 PHONE WITHOUT SCROLLING § */
     inner = '';
     toggles = opt.map(k => ({ act: 'notify-pick', cls: 'notify-pick', data: { kind: k.kind }, on: k.on, label: k.label,
@@ -474,18 +476,20 @@ on('notify-pick', el => {
   const n = notifyList_();
   const label = ((n && n.kinds.find(x => x.kind === kind)) || {}).label || 'That email';
   /* ---------- THIS BOX'S ROW IS LOCKED, NOT THE CARD § */
-  send_({ action: 'setNotify', name: USER.name, personId: USER.personId || '', kind: kind, on: want },
+  /* THE LENS'S PERSON BY `targetId`: the backend lets an admin (or a parent, for a child) choose for somebody else. */
+  const W = whose_();
+  send_(Object.assign({ action: 'setNotify', name: USER.name, personId: USER.personId || '', kind: kind, on: want }, W === USER ? {} : { targetId: W.personId || '' }),
         { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
     .then(d => {
       /* THIS KIND'S ANSWER, MERGED INTO THE LIST WE HOLD — not the reply's whole list. § */
       const on = d && typeof d.on === 'boolean' ? d.on : want;
       const held = notifyList_();
       if (held && held.kinds.some(x => x.kind === kind)) {
-        USER.profile = Object.assign({}, USER.profile, { notify: Object.assign({}, held, {
+        W.profile = Object.assign({}, W.profile, { notify: Object.assign({}, held, {
           kinds: held.kinds.map(x => x.kind === kind && !x.essential ? Object.assign({}, x, { on: on }) : x) }) });
-      } else if (d && d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
-      NOTIFY_SAID = { pid: String(USER.personId || ''),
+      } else if (d && d.notify) W.profile = Object.assign({}, W.profile || {}, { notify: d.notify });
+      if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+      NOTIFY_SAID = { pid: String(W.personId || ''),
         text: on ? label + ' is on.' : label + ' is off — we will not email you that.' };
       /* THE CARD ON THE PAGE NOW, for the roles card's reason: a payload landing mid-request repaints the
          column, and the card held from the press would be a detached copy. */

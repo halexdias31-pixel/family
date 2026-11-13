@@ -296,6 +296,7 @@
     "check-profile.js": "secondary",
     "check-layout.js": "secondary",
     "check-pin-show.js": "secondary",
+    "check-lens.js": "core",
     "check-signin.js": "core",
     "check-surnames.js": "core",
     "check-visibility.js": "core",

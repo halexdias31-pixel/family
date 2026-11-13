@@ -170,7 +170,7 @@ function libCardsDraw_(into) {
   if (!into) return;
   const held = into.querySelector('.me-form[data-dirty], .me-form.is-sending');
   if (held) return;
-  if (!USER) { into.innerHTML = `<p class="note">Sign in and your library cards are kept here.</p>`; return; }
+  if (!whose_()) { into.innerHTML = `<p class="note">Sign in and your library cards are kept here.</p>`; return; }
   const list = libFieldsOf_(myGroups_());
   if (!list.length && typeof awaiting_ === 'function' && awaiting_()) { into.innerHTML = loading_(); return; }
   /* AN OLDER SERVER, SAID AS ONE — `OLD_SERVER_SAY_`, the card editor's sentence for the same case. § */
@@ -178,7 +178,7 @@ function libCardsDraw_(into) {
     into.innerHTML = `<p class="note">${esc(OLD_SERVER_SAY_)}</p>`;
     return;
   }
-  const p = USER.profile || {};
+  const p = whose_().profile || {};
   into.innerHTML = `<div class="me-form">${libraryShelf_(list, f => p[f] ?? '')}
     <p class="note me-said"></p></div>`;
 }
@@ -260,22 +260,24 @@ function meSave_(el, auto) {
   saveNow();
   function saveNow() {
   /* `send_`, NOT `api()`. § */
+  /* YOU ASK; `whose_()` IS WHOSE ROW — yours, or the person an admin's lens is on (the backend lets only an admin name another). */
+  const W = whose_();
   send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '',
-          target: USER.name, targetId: USER.personId || '', fields },
+          target: W.name, targetId: W.personId || '', fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said })
     .then(d => {
       /* THE SERVER'S OWN READING OF THE ROW, NOT WHAT WAS TYPED. § */
-      USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
+      W.profile = (d && d.profile) ? d.profile : Object.assign({}, W.profile || {}, fields);
       /* AND THE PROGRESS COLUMN, whose journey card counts down to the two exam dates on About you (`progressRedraw_`, js/arcade.js) — not left to the § */
       if (typeof progressRedraw_ === 'function') progressRedraw_();
       /* ON THE SHEET NOW, SO EACH FIELD SENT IS NO LONGER A DRAFT (`fieldHtml`; 317). */
       Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) { oops_(e, 'me:meSave_') } });
-      if (d && d.name) USER.name = d.name;
+      if (d && d.name) W.name = d.name;
       /* A CORRECTED PENDING ADDRESS IS STILL PENDING, at the new address — the held cards say which. */
-      if (d && d.pendingEmail !== undefined) { accountChanged_(); USER.pendingEmail = String(d.pendingEmail || ''); }
+      if (d && d.pendingEmail !== undefined) { accountChanged_(); W.pendingEmail = String(d.pendingEmail || ''); }
       /* ---------- "SAVED" IS NOT THE WHOLE STORY WHEN AN ADDRESS WAS TYPED § */
       const word = (d && d.said) || 'Saved';
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+      if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
       if (box.closest('#sheet-body') && !auto) closeSheet();
       /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_` — unless the caret is still in it. */
       const form = el.closest('.me-form');
@@ -358,7 +360,7 @@ function settingsKeep_(id) {
 /* ---------- YOUR SETTINGS, AS THE SHEET HOLDS THEM § */
 let PROFILE_ASKING = false;
 function profileShapeOk_() {
-  const p = USER && USER.profile;
+  const p = whose_() && whose_().profile;
   return !!p && Object.prototype.hasOwnProperty.call(p, 'phone_cc');
 }
 function profileRefresh_(loud, onOld) {
