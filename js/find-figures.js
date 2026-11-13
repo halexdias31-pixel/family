@@ -240,6 +240,8 @@ function tagList_(x, page) {
   /* but that tag names this facet too (`data-also`, 1030), so every attribute is on the line. */
   facetList().forEach(facet => {
     let vals;
+    /* YOUR RESULT IS THE QUESTION'S: the answer card under it does not say it again. */
+    if (page === 'ans' && facet.field === 'myResult') return;
     try { vals = facetTags_(facet, x, page); } catch (e) { vals = []; }
     vals.forEach(v => {
       const raw = String(v == null ? '' : v).trim();

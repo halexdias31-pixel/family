@@ -105,7 +105,9 @@ check('writings (520): answering Doesn\'t matter at every step never raises the 
     w.paintStuff();
   await wait(100);
   const fresh = seen().kinds, want = ['bible', 'talmud', 'quran', 'hadith', 'worktext', 'writ', 'pdtext', 'orthotext', 'hymn'];
-  const missing = want.filter(k => !fresh.has(k));
+  /* A WRITING SWITCHED OFF (tiers.json, its file in attic/) has no loader, so it is not owed. */
+  const off = { talmud: 'talmudItems_', hadith: 'hadithItems_', worktext: 'worksItems_', orthotext: 'orthoItems_' };
+  const missing = want.filter(k => !fresh.has(k) && !(off[k] && typeof w[off[k]] !== 'function'));
   if (missing.length) bad.push('a fresh start does not have ' + missing.join(', ') + ' though their indexes came');
   return bad;
 });
