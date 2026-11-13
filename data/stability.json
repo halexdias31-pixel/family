@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 88.1,
+ "score": 88.4,
  "verdict": "Solid: little is held together by exceptions.",
  "signals": [
   {
@@ -74,7 +74,7 @@
   {
    "id": "duplicates",
    "label": "Repeated long lines",
-   "count": 42,
+   "count": 40,
    "weight": 0.02,
    "cap": 10,
    "off": 0.8,
@@ -83,22 +83,20 @@
    }
   },
   {
-   "id": "dead",
-   "label": "Code nothing calls",
-   "count": 1,
-   "weight": 0.3,
-   "cap": 10,
-   "off": 0.3,
-   "where": {
-    "check-dead": "calcTextVal (calc-engine.js)"
-   }
-  },
-  {
    "id": "catches",
    "label": "Empty catches (tools/catches.js)",
    "count": 1,
    "weight": 0.02,
    "cap": 15,
+   "off": 0,
+   "where": {}
+  },
+  {
+   "id": "dead",
+   "label": "Code nothing calls",
+   "count": 0,
+   "weight": 0.3,
+   "cap": 10,
    "off": 0,
    "where": {}
   },

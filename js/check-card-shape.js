@@ -15,7 +15,7 @@ const OWN = new Set();
 (cards + '\n' + settings).replace(/^(?:function|const|let|var)\s+([A-Za-z_$][\w$]*)/gm, (m, n) => OWN.add(n));
 const stub = new Proxy(function () { return ''; }, { get: (f, k) => (k === Symbol.toPrimitive ? () => '' : stub), apply: () => '' });
 const scope = new Proxy({
-  esc: s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])),
+  esc: require('./check-esc.js').esc,
   libS: v => (v == null ? '' : String(v)), oops_: () => {}, on: () => {}, window: {}, console, Object, Array, String, Number, JSON, Math, Set, Map, Symbol, Boolean, RegExp, Date,
   DATA: {},
 }, { has: (o, k) => !OWN.has(k), get: (o, k) => (k in o ? o[k] : k === Symbol.unscopables ? undefined : stub), set: (o, k, v) => { o[k] = v; return true; } });

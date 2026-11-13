@@ -149,6 +149,8 @@ const SUITE = [
   { file: 'check-profile.js', what: 'your settings, saved and read back through the real backend' },
   /* "admin should be able to see each person's pin" (452). */
   { file: 'check-layout.js', what: 'Edit layout: layoutSave is admin only, checked, size-capped; doGet sends it once' },
+  /* THE ADMIN'S LENS (rules 9.7): settings cards read `whose_()`; only an admin opens somebody else's. */
+  { file: 'check-lens.js', what: 'the settings lens: every settings card reads whose_(), lensOpen is an admin\'s alone, a change is logged by id' },
   { file: 'check-pin-show.js', what: 'Show PIN: an admin gets the named person\'s PIN or "No PIN"; nobody else gets any' },
   /* EVERY WAY A CHILD GETS IN, FROM THE CHILD'S SIDE. § */
   { file: 'check-signin.js', what: 'a child with no email: made, registered, signed in by handle, a new PIN' },

@@ -15,7 +15,7 @@ Everything below derives from that core: 12 principles, each with its specific r
 - **1.6** Report only results and "safe to merge"; never idle on CI; bugs before anything new; quality first, done once. Checks: `stability`, `spread`, `how-we-work`
 
 ## 2. One source for every truth
-- **2.1** Anything that might change (wording, prices, lists, menus, switches) is data, not code; every fact has one home and everything reads from it; a copy a tool writes from the source counts once. Checks: `truth-facts`, `truth-lists`, `truth-labels`, `settings`, `tabs`, `columns`, `rows`, `schema`, `library-schema`
+- **2.1** Anything that might change (wording, prices, lists, menus, switches) is data, not code; every fact has one home and everything reads from it; a copy a tool writes from the source counts once. Checks: `truth-facts`, `truth-lists`, `truth-labels`, `settings`, `tabs`, `columns`, `rows`, `schema`, `library-schema`, `esc`, `mime`
 - **2.2** Every key the site reads, `doGet` sends; one payload, one data source, in sync. Checks: `payload`, `in-sync`, `gas-load`, `later`
 - **2.3** Switches are data: `tiers.json` marks core/secondary, `columns.json` the screens; a secondary part cannot break Find. Checks: `tiers`, `isolation`, `widgets`
 - **2.4** Private things (learners, money, staff records, library private fields) live only in the owner's Sheets; the public repo holds no real names, emails, PINs, learner data, secrets or model ids. Checks: `secrets`, `surnames`, `library`, `library-ledger`, `claude-lines`
@@ -86,6 +86,7 @@ Everything below derives from that core: 12 principles, each with its specific r
 - **9.4** No price reaches a child; no child's surname leaves the server. Checks: `kid-prices`, `surnames`
 - **9.5** Posts and photos wait for approval and are kept as files. Checks: `posts`, `uploads`, `choice`, `hands`, `media`, `films`, `suggest`
 - **9.6** Names on screen are first name + initial for everyone; parents' essential emails go to the admin for now, saying who they were for. Checks: `format`, `prefs`, `handles`
+- **9.7** An admin sees and changes a person's settings through one lens: every settings card reads `whose_()`, never USER, so no card has an admin copy; only an admin opens it (`lensOpen` in the permissions table), the viewed person's sign-out, PIN and roles are shut in it, and every change to somebody else's row is logged by id in `lens_log`. Checks: `lens`, `flow/40`
 
 ## 10. The site is the business
 - **10.1** Everything the business does runs from here, autonomously (booking, matching, payment, reminders, receipts, tax pot, renewals), built in the site; outside services only where needed (Stripe). Checks: `one-place`, `biz`, `biz-checker`, `flow/*`

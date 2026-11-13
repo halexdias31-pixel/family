@@ -129,16 +129,16 @@ function profileAge_(p) {
   return a ? Number(a[1]) : null;
 }
 function applyAdult_() {
-  const age = profileAge_(USER && USER.profile);
+  const age = profileAge_(whose_() && whose_().profile);
   return age !== null && age >= 18;
 }
 /* THE PADLOCK'S ONE TILE (464): Apply to teach, or where the application stands, on the tile itself; null for a child. */
 function applyOpts_() {
-  if (!USER || rankAtLeast_('staff')) return null;
-  if (profileAge_(USER.profile) === null)
+  if (!whose_() || whoseAtLeast_('staff')) return null;
+  if (profileAge_(whose_().profile) === null)
     return { icon: 'join', label: 'Apply to teach', note: 'add your date of birth first', act: 'apply-open', off: true };
   if (!applyAdult_()) return null;
-  const st = USER.application && USER.application.status;
+  const st = whose_().application && whose_().application.status;
   if (st === 'new' || st === 'interview')
     return { icon: 'join', label: 'Application sent', note: st === 'interview' ? 'we will arrange a talk' : 'we will be in touch', act: 'apply-open', off: true };
   return { icon: 'join', label: st === 'declined' ? 'Apply again' : 'Apply to teach', note: st === 'approved' ? 'approved' : '', act: 'apply-open' };
@@ -148,7 +148,7 @@ const APPLY_DOCS = {};
 const APPLY_QUAL_SLOTS = 3;
 /* WHAT THE FORM HAS ALREADY: name, email, phone and date of birth from the account, so an applicant types them once. */
 function applyKnown_() {
-  const q = (USER && USER.profile) || {};
+  const q = (whose_() && whose_().profile) || {};
   const pad = n => String(n).padStart(2, '0');
   const dob = Number(q.dob_y) > 1900 ? q.dob_y + '-' + pad(Number(q.dob_m) || 1) + '-' + pad(Number(q.dob_d) || 1) : '';
   return { fullName: [q.first_name, q.last_name].filter(Boolean).join(' '), email: q.email || '', phone: q.phone || '', dob };
@@ -221,8 +221,8 @@ function applyMissing_(b) {
 }
 /* MAY THIS ACCOUNT FILL THE FORM NOW: an adult with no application waiting. The form is in its card from the start (no sheet, owner 8 Nov). */
 function applyFormOpen_() {
-  if (!USER || rankAtLeast_('staff') || profileAge_(USER.profile) === null || !applyAdult_()) return false;
-  const st = USER.application && USER.application.status;
+  if (!whose_() || whoseAtLeast_('staff') || profileAge_(whose_().profile) === null || !applyAdult_()) return false;
+  const st = whose_().application && whose_().application.status;
   return st !== 'new' && st !== 'interview';
 }
 on('apply-open', () => { const f = document.querySelector('.apply-card .app-form'); if (f) f.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
@@ -430,7 +430,7 @@ function signedOut_(opts) {
   const was = USER;
   let wasAdmin = false;
   try { wasAdmin = (typeof isAdmin === 'function' && isAdmin()) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) { oops_(e, 'me:signedOut_') }
-  USER = null;
+  USER = null; LENS = null;   /* and the lens: the next admin opens their own settings */
   try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ }
   payloadForget_();   /* the device's copy of their payload goes with them (1070) */
   if (typeof offForget_ === 'function') offForget_();   /* and the app's offline copy; the words go with libDiskClear_ */
@@ -513,7 +513,7 @@ function signedIn_(d, typed) {
   /* SIGNED IN, FIND IS THE PERSON'S OWN, and `USER` says whose — `whose` is only for while nobody is. */
   try { finders_().forEach(st => { st.whose = ''; st.whoseAt = 0; }); } catch (e) { /* no finder yet: nothing to read or clear */ }
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
-  USER = me;
+  USER = me; LENS = null;
   if (!USER.name) USER.name = me.handle || typed || '';
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
   /* ---------- AND ARRIVED OVER SOMEBODY ELSE, WRITTEN DOWN BEFORE ANY DOOR IS ASKED § */
