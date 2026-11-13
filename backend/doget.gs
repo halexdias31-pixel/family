@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-12-answer-ids-1";
+const DOGET_VERSION = "2026-11-13-keep-warm-1";
 
 
 function doGet(e) {
@@ -14,6 +14,8 @@ function doGet(e) {
     const t0 = Date.now(), timings = {};
     const mark = n => { timings[n] = Date.now() - t0; };
     const p = (e && e.parameter) || {};
+    /* THE KEEP-AWAKE PING (`keepWarm`, core.gs): answered before any sheet, cache or sign-in work (by `jsonRaw_`: jsonOut's strips read sheets, and a ping carries no name), so it costs milliseconds. */
+    if (p.ping) return jsonRaw_(JSON.stringify({ ok: true, ping: 1, v: DOGET_VERSION }));
 
     /* WHO IS LOOKING, AND IT IS THE SESSION TOKEN THAT SAYS SO THIS FUNCTION DECIDED WHO YOU ARE FROM `?name=`. § */
     let ASKED_BY = undefined;

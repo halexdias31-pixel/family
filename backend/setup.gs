@@ -1271,6 +1271,8 @@ function setupOnAdminLoad_() {
     try { claudeNotesDoneSync_(); } catch (err) { Logger.log('notes done: ' + err); }
     try { libImportKeepBooked_(); props.deleteProperty('FAILED_library-import-hourly'); }
     catch (err) { props.setProperty('FAILED_library-import-hourly', String((err && err.message) || err).slice(0, 300)); }
+    try { keepWarmKeepBooked_(); props.deleteProperty('FAILED_keep-warm'); }
+    catch (err) { props.setProperty('FAILED_keep-warm', String((err && err.message) || err).slice(0, 300)); }
   } catch (err) { Logger.log('setup: ' + err); }
 }
 
@@ -1278,7 +1280,7 @@ function setupOnAdminLoad_() {
 function setupTriggerWhen_(fn, hour) {
   const said = { closeFinishedJobs: 'every day, about 3am', geocodeVenues: 'every day, about 3am',
     refreshPageCounts: 'every day, about 3am', onSheetChange: 'whenever a spreadsheet is edited',
-    warmAfterEdit: 'once, a minute after an edit', warmPayload: 'every 5 minutes', libImportHourly: 'every hour' };
+    warmAfterEdit: 'once, a minute after an edit', warmPayload: 'every 5 minutes', libImportHourly: 'every hour', keepWarm: 'every 5 minutes' };
   return digestTriggerWhen_(fn, hour) || said[fn] || 'booked';
 }
 
