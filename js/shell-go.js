@@ -92,7 +92,7 @@ const SCREEN_HOOKS = {
   feed: { started: [() => typeof feedCamWatch_ === 'function' && feedCamWatch_()],
     slid: n => { if (typeof feedCamWatch_ === 'function') afterSlide_(feedCamWatch_); if (n !== 0 && typeof camRest_ === 'function') camRest_(); } },
   /* an admin's business records are asked for, a POST, once (js/records.js) */
-  biz: { started: [() => typeof bizStart_ === 'function' && bizStart_()] },
+  biz: { started: [() => typeof window.bizStart_ === 'function' && window.bizStart_()] },
   /* a conversation opens at its newest message, and keeps itself up to date while it is the screen you are on (`dmPoll_`) */
   dm: { started: [() => typeof dmFoot_ === 'function' && dmFoot_(), () => typeof dmPoll_ === 'function' && dmPoll_()],
     drawn: () => { if (typeof dmFoot_ === 'function') { try { dmFoot_(); } catch (e) { oops_(e, 'shell:drawnScreen_') } } } },

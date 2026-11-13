@@ -173,8 +173,6 @@ const SUITE = [
   { file: 'check-submissions.js', what: 'submissions: a row per press, the token’s person, the latest per question, whose' },
   /* ONE RANK PER ACCOUNT, STAFF ONLY BY APPLICATION (400): ranks from old cells, sign-up, the application flow, a child's PIN to the owner. */
   { file: 'check-accounts.js', what: 'ranks, sign-up as Student or Client, Staff only by an approved application, a child\'s PIN to the owner' },
-  { file: 'check-biz.js', what: 'the business checker (1050): every item has why, how and an official link, every auto rule exists, and the card draws with an empty payload' },
-  { file: 'check-lego.js', what: 'the LEGO piece check: a set picked, three shots a batch, the AI counts tallied (stubbed) and the missing list' },
   { file: 'check-flyer.js', what: 'the flyer maker: every word from the Web profile or the tutor card, nothing typed, every QR tagged for came_from' },
   { file: 'check-staff.js', what: 'the Staff hub: tutor terms by version, pricing refusals, a statement only for its own tutor (any for an admin)' },
   { file: 'check-posts.js', what: 'posts wait for approval (author and admin only), final once up, no links, a child uploads nothing, message faces' },

@@ -34,7 +34,7 @@ files.forEach(f => { const src = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8
     try { s = KINDS[k]({ kind: k, key: 'k1', row: {} }); } catch (e) { bad.push(`js/${f}: kind ${k} threw on an empty row: ${e.message}`); return; }
     if (s == null || typeof s !== 'object' || Array.isArray(s)) { bad.push(`js/${f}: kind ${k} returned ${typeof s}, not a spec object`); return; }
     const said = []; walk(s, k, said); said.forEach(a => bad.push(`js/${f}: ${a} carries markup — a spec holds text and blocks only`));
-    (s.body || []).forEach((b, i) => { if (b && typeof b === 'object' && !/^(text|figure|table|list|answer|formRow|embed)$/.test(b.type)) bad.push(`js/${f}: ${k}.body[${i}] is no block type (${b.type})`); });
+    (s.body || []).forEach((b, i) => { if (b && typeof b === 'object' && !/^(text|figure|table|list|answer|formRow|embed|section|tree|grid|wait)$/.test(b.type)) bad.push(`js/${f}: ${k}.body[${i}] is no block type (${b.type})`); });
   }); });
 if (bad.length) { bad.forEach(b => console.log('  ' + b)); console.log(`FAILED — ${bad.length} card spec problem(s).`); process.exit(1); }
 console.log(`OK — ${seen.length} card kind builder(s) return a spec (${seen.join(', ')}); renderCard escapes its text.`);

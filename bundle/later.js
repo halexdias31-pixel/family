@@ -437,8 +437,7 @@ const KINDS = {
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   receipt: x => jobPage_(x.row), question: thingCard_, answer: thingCard_, shop: thingCard_,
-  content: x => contentCard_(x), insert: x => insertCard_(x), spec: x => specCard_(x),
-  timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
+  bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
   hymn: x => hymnsCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x), game: x => widgetCard_(x),
   setting: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)), health: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : ''),
@@ -1558,11 +1557,9 @@ function overFacet_(items) {
 /* THE CARD. Small — a reference, the marks, and the first line of the question, because a list of ninety § */
 /* THE RECORD IS THE FACE OF IT. § */
 /* ---------- ONE BOUT (batch D): the two fighters' portraits facing each other under the tags, and nothing else § */
-function fightCard_(x) {
-  const f = x.row || {};
-  return `<div class="fc fight" aria-label="${esc(f.a + ' and ' + f.b)}">${tagRow_(x)}
-    <div class="fight-faces">${personPic_(f.aId, f.a)}${personPic_(f.bId, f.b, true)}</div></div>`;
-}
+cardKind_('fight', x => { const f = x.row || {};
+  return { look: 'fight', name: [f.a, f.b].filter(Boolean).join(' and '), tags: tagList_(x),
+    body: [{ type: 'figure', ...personPicSpec_(f.aId, f.a) }, { type: 'figure', ...personPicSpec_(f.bId, f.b, true) }] }; });
 
 /* WHO WON A BOUT, by id where there is one (as the card frames the face), else by the name the row gives. */
 function boutWinner_(x) {
@@ -1756,14 +1753,12 @@ const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</spa
 
 /* ---------- A CONTENT CARD: ONE CHAPTER, WHOLE, WITH THE QUESTIONS' TAGS ON IT § */
 /* ONE WIDGET PER THING (408): § */
-function contentCard_(x) {
-  const c = x.row;
-  return `<div class="fc prac tb ct lib-c">
-    ${tagRow_(x)}
-    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
-    ${tbSections_(c, null, { only: 'words' })}
-  </div>`;
-}
+const tbMark_ = on => (on ? [' ', { badge: 'H', hint: 'Higher tier only' }] : []);
+cardKind_('content', x => { const c = x.row || {};
+  const words = c.words || [];
+  return { look: 'prac tb ct lib-c', name: x.name, tags: kcFacetTags_(x), body: [
+    words.length ? { type: 'section', look: 'tb-words', head: 'Key words', blocks: [{ type: 'list', items: words.map(w => [{ b: w.name }, ' — ', w.text].concat(tbMark_(w.higher))) }] } : null,
+  ].filter(Boolean) }; });
 
 /* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): § */
 const CONTENT_PAGE = { fig: 'Diagram', formulas: 'Formulas', worked: 'Worked examples' };
@@ -1830,7 +1825,7 @@ function contentText_(c) {
 ;
 /* ==== js/find-history.js ==== */
 
-/* ---------- AN EXAM INSERT (455): ONE CARD, THE WHOLE SHEET, TAGGED AS A PAPER IS ---------- */
+/* ---------- AN EXAM INSERT (455): EACH FORMULA, CONSTANT AND TABLE ITS OWN PART; THE SHEET IS ONLY A TAG (owner, 13 Nov) ---------- */
 function insertItem_(r) {
   return {
     kind: 'insert', name: r.name, key: 'in:' + r.id, sub: r.summary, image: '',
@@ -1852,13 +1847,26 @@ function insertParts_() {
     const add = (k, v) => (v || []).forEach(t => { if (p[k].indexOf(t) === -1) p[k].push(t); });
     add('levels', r.levels); add('boards', r.boards); add('tiers', r.tiers); add('forSubjects', r.forSubjects); add('forLevels', r.forLevels);
     p.parents.push(r.id);
-    p.summary = 'On the ' + p.parents.map(id => (insertSheetRow_(id) || {}).name || id).join(', the ') + '.';
   })));
-  return Object.keys(by).map(k => by[k]);
+  /* A SHEET'S TABLE (the periodic table) IS ONE TABLE PART, as a question's table is; the same table on two sheets is one part. */
+  const tables = {};
+  (DATA.inserts || []).filter(r => r.table && (r.elements || []).length).forEach(r => {
+    const sig = r.table + JSON.stringify(r.elements), p = tables[sig] || (by[r.id + '-table'] = tables[sig] = { id: r.id + '-table', name: r.table === 'periodic' ? 'Periodic table' : String(r.table),
+      summary: '', subject: r.subject, levels: [], keystage: r.keystage, boards: [], tiers: [], forSubjects: [], forLevels: [], forTiers: [], verified: r.verified, verifiedNote: r.verifiedNote,
+      official: [], sections: [], table: r.table, elements: r.elements, forPapers: [], sources: [], parents: [] });
+    (r.levels || []).concat().forEach(t => { if (p.levels.indexOf(t) === -1) p.levels.push(t); });
+    (r.boards || []).forEach(t => { if (p.boards.indexOf(t) === -1) p.boards.push(t); });
+    (r.tiers || []).forEach(t => { if (p.tiers.indexOf(t) === -1) p.tiers.push(t); });
+    p.parents.push(r.id);
+  });
+  return Object.keys(by).map(k => by[k]).map(p => Object.assign(p, { sheets: p.parents.map(id => (insertSheetRow_(id) || {}).name || id),
+    summary: 'On the ' + p.parents.map(id => (insertSheetRow_(id) || {}).name || id).join(', the ') + '.' }));
 }
 const insertSheetRow_ = id => (DATA.inserts || []).find(r => r.id === id) || null;
-const insertPartItem_ = p => Object.assign(insertItem_(p), { name: p.name + ' (' + p.sections[0].head + ')',
-  text: plainText_([p.name, p.sections[0].head, p.summary, 'insert formula equation', String(p.sections[0].lines[0].math || '').replace(/<[^>]*>/g, '')].join(' ')) });
+/* A PART'S SHEETS ARE ITS TAGS (`sheets`), as a paper's name groups its questions: Find narrows by sheet, and no sheet card is drawn. */
+const insertPartItem_ = p => { const head = (p.sections[0] || {}).head || '', line = ((p.sections[0] || {}).lines || [])[0] || {};
+  return Object.assign(insertItem_(p), { name: head ? p.name + ' (' + head + ')' : p.name, sheets: p.sheets || [],
+    text: plainText_([p.name, head, p.summary, 'insert formula equation'].concat(p.sheets || [], String(line.math || '').replace(/<[^>]*>/g, '')).join(' ')) }); };
 /* WHICH INSERTS A QUESTION'S PAPER COMES WITH: its subject, level, tier and board, read as the facets read them; a blank list is any. */
 function insertsFor_(x) {
   if (!isQ_(x) || !/paper/i.test(String(x.documentType || ''))) return [];
@@ -1904,45 +1912,24 @@ function insLanded_() {
 /* NO INSERT TILE ON A QUESTION (463): the owner, "they can open it in their 2nd finder" -- an insert is Library, found like any card. */
 const insertRow_ = id => insertSheetRow_(id) || insertParts_().find(r => r.id === id) || null;
 /* THE SHEET ITSELF, on paper: each line a name and its formula, typeset as a question's maths is (`typeset_`). */
-function insertSheet_(r) {
-  const mark = l => (l.higher ? '<span class="tb-h" title="Higher tier only">H</span>' : '')
-    + (l.only ? `<span class="insh-only">${esc(l.only)} only</span>` : '');
-  const body = (r.table === 'periodic' ? insertTable_(r) : '') + r.sections.map(s => `<section class="insh-sec">
-      <h4>${esc(s.head || '')}</h4>
-      <ul>${(s.lines || []).map(l => `<li><span class="insh-fn">${esc(l.name || '')}${mark(l)}</span>
-        <span class="insh-fm">${typeset_(String(l.math || ''))}</span>${l.note ? `<span class="insh-note">${esc(l.note)}</span>` : ''}</li>`).join('')}</ul>
-    </section>`).join('');
-  if (insReading_(r)) {
-    return `<div class="insh-sheet insh-reading">
-    <p class="insh-kick">${esc(['Insert'].concat(r.boards).join(' · '))}</p>
-    <h3>${esc(r.name)}</h3>
-    ${r.summary ? `<p class="insh-sum">${esc(r.summary)}</p>` : ''}
-    ${r.sourceText ? `<div class="insrc${r.lineNumbers ? ' has-lines' : ''}">${insSource_(r)}</div>`
-      : `<div class="insrc insrc-wait${r.lineNumbers ? ' has-lines' : ''}" data-ins="${esc(r.id)}">${insSay_(r)}</div>`}
-  </div>`;
-  }
-  return `<div class="insh-sheet">
-    <p class="insh-kick">${esc(['Insert'].concat(r.boards).join(' · '))}</p>
-    <h3>${esc(r.name)}</h3>
-    ${body}
-    <p class="insh-check"><b>${r.verified ? 'Checked' : 'Not yet checked'}</b> ${esc(r.verifiedNote)}</p>
-  </div>`;
+/* AN INSERT AS BLOCKS: its kicker, a reading's source (filled when its words come) or the sheet's sections, and whether it was checked. */
+function insertBody_(r) {
+  const kick = { type: 'text', look: 'insh-kick', text: ['Insert'].concat(r.boards || []).join(' · ') };
+  if (insReading_(r)) return [kick, { type: 'text', look: 'insh-sum', text: r.summary || '' },
+    { type: 'embed', tool: 'ins-source', look: 'insrc' + (r.sourceText ? '' : ' insrc-wait') + (r.lineNumbers ? ' has-lines' : ''), data: r.sourceText ? null : { ins: r.id }, args: { id: r.id } }];
+  const mark = l => [l.higher ? { badge: 'H', hint: 'Higher tier only' } : '', l.only ? { badge: l.only + ' only' } : ''];
+  return [kick].concat(r.table === 'periodic' ? [{ type: 'grid', caption: 'Periodic table',
+    cells: (r.elements || []).map(e => ({ col: e[4], row: e[5], parts: [e[3], e[1], e[2], e[0]] })) },
+    { type: 'text', look: 'insh-key', text: 'In each box: relative atomic mass, symbol, name, atomic number.' }] : [])
+    .concat((r.sections || []).map(s => ({ type: 'section', look: 'insh-sec', head: s.head || '', blocks: [{ type: 'tree',
+      nodes: (s.lines || []).map(l => ({ label: [l.name || ''].concat(mark(l)), text: [{ typeset: String(l.math || '') }].concat(l.note ? [' ', { i: l.note }] : []) })) }] })),
+    { type: 'text', look: 'insh-check', text: [{ b: r.verified ? 'Checked' : 'Not yet checked' }, ' ', r.verifiedNote || ''] });
 }
-/* THE PERIODIC TABLE: 18 columns, an element where its group and period put it. */
-function insertTable_(r) {
-  const cells = r.elements.map(e => `<div class="insh-el" style="grid-column:${Number(e[4])};grid-row:${Number(e[5])}">
-      <span class="insh-ar">${esc(String(e[3]))}</span><b>${esc(e[1])}</b><span class="insh-nm">${esc(e[2])}</span><span class="insh-z">${Number(e[0])}</span></div>`).join('');
-  return `<div class="insh-pt-wrap"><div class="insh-pt" role="table" aria-label="Periodic table">${cells}</div></div>
-    <p class="insh-key">In each box: relative atomic mass, symbol, name, atomic number.</p>`;
-}
-function insertCard_(x) {
-  const r = x.row;
-  insWant_(r);
-  return `<div class="insh">
-    ${tagRow_(x)}
-    ${insertSheet_(r)}
-  </div>`;
-}
+/* A READING INSERT'S SOURCE, drawn when its words are here; until then what it waits on (`insSay_`). */
+CARD_EMBEDS['ins-source'] = a => { const r = insertRow_(a.id); return !r ? '' : r.sourceText ? insSource_(r) : insSay_(r); };
+cardKind_('insert', x => { const r = x.row || {}; insWant_(r);
+  return { look: 'insh', name: x.name, tags: kcFacetTags_(x).concat((x.sheets || []).map(t => ({ text: t, colour: 2 }))), body: insertBody_(r) }; });
+const insertSheet_ = r => renderCard({ kind: 'insert', look: 'insh', name: r.name, tags: [{ text: r.name, colour: 0 }], body: insertBody_(r) });
 /* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies. */
 function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
   .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'file-view', data: { url: o.url, title: o.label } }))); }
@@ -1957,17 +1944,14 @@ function specItem_(r) {
     row: r,
   };
 }
-/* A POINT'S LESSONS AND QUESTIONS (tools/coverage.js wrote their Find keys); each tile names its card, a key Find lacks is left out. */
-function specLinks_(p, named) {
-  const tiles = (p.links || []).filter(k => named[k]).map(k => tile_({ icon: /^q:/.test(k) ? 'edit' : 'book', label: /^q:/.test(k) ? 'Question' : 'Lesson',
-    note: named[k], act: 'find-open', data: { key: String(k) } })).join('');
-  const shown = (p.links || []).filter(k => /^q:/.test(k)).length, more = (p.asked || 0) - shown;
-  return (tiles ? `<div class="tile-row">${tiles}</div>` : '') + (more > 0 ? `<p class="spec-more">and ${more} more question${more === 1 ? '' : 's'} on this point</p>` : '');
-}
-function specPoints_(r, parent, named) {
-  const kids = (r.points || []).filter(p => p.parent === parent);
-  return kids.length ? `<ul>${kids.map(p => `<li class="spec-pt"><span class="insh-fn">${esc(p.id)}</span>
-    <span class="spec-say">${esc(p.text)}</span>${specLinks_(p, named)}${specPoints_(r, p.id, named)}</li>`).join('')}</ul>` : '';
+/* A POINT'S LESSONS AND QUESTIONS (tools/coverage.js wrote their Find keys) as tree nodes; a key Find lacks is left out. */
+function specNodes_(r, parent, named) {
+  return (r.points || []).filter(p => p.parent === parent).map(p => {
+    const shown = (p.links || []).filter(k => /^q:/.test(k)).length, more = (p.asked || 0) - shown;
+    return { label: p.id, text: p.text, kids: specNodes_(r, p.id, named),
+      tiles: (p.links || []).filter(k => named[k]).map(k => ({ icon: /^q:/.test(k) ? 'edit' : 'book', label: /^q:/.test(k) ? 'Question' : 'Lesson', note: named[k], act: 'find-open', data: { key: String(k) } })),
+      more: more > 0 ? 'and ' + more + ' more question' + (more === 1 ? '' : 's') + ' on this point' : '' };
+  });
 }
 /* WHAT EACH LINKED KEY IS CALLED in Find now, looked up once per card. */
 function specNamed_(r) {
@@ -1976,18 +1960,11 @@ function specNamed_(r) {
   try { (stuffItemsAll_() || []).forEach(i => { if (i && want.has(i.key)) out[i.key] = /^q:/.test(i.key) && i.sub ? i.sub + ' · ' + i.name : i.name || i.key; }); } catch (e) { /* Find not ready: the card shows its tree alone */ }
   return out;
 }
-/* THE SECTION TREE, each section folded (a <details> grows where it is); the official PDF holds the full wording. */
-function specCard_(x) {
-  const r = x.row, named = specNamed_(r);
-  return `<div class="insh">
-    ${tagRow_(x)}
-    <div class="insh-sheet spec-sheet">
-      <p class="insh-kick">${esc([r.board, r.qualification, r.subject, r.code].join(' · '))}</p>
-      ${(r.sections || []).map(s => `<details class="insh-sec spec-sec"><summary class="kc-h">${esc(s.title)}</summary>${specPoints_(r, s.id, named)}</details>`).join('')}
-      <p class="insh-check">Short headings; the official specification has the full wording.</p>
-    </div>
-  </div>`;
-}
+/* THE SECTION TREE, each section folded; the official PDF holds the full wording. */
+cardKind_('spec', x => { const r = x.row || {}, named = specNamed_(r);
+  return { look: 'insh spec-sheet', name: x.name, tags: kcFacetTags_(x), body: [{ type: 'text', look: 'insh-kick', text: [r.board, r.qualification, r.subject, r.code].join(' · ') },
+    { type: 'tree', nodes: (r.sections || []).map(s => ({ label: s.title, kids: specNodes_(r, s.id, named) })) },
+    { type: 'text', look: 'insh-check', text: 'Short headings; the official specification has the full wording.' }] }; });
 const specExtras_ = x => [{ icon: 'open', label: 'Official', note: /\.pdf$/i.test(x.row.url) ? 'specification PDF' : 'the framework page', act: 'file-view', data: { url: x.row.url, title: x.row.board + ' ' + x.row.code } }];
 /* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
 on('ins-print', el => {
@@ -2721,17 +2698,13 @@ function tlStage_(x) {
   return `<div class="tl-scene" aria-live="polite">${tlScene_(stops[i])}</div>
     <div class="tl-view"><div class="tl-track" style="width:${(g.wide * 100).toFixed(2)}%;transform:translateX(${tlShift_(g, i)}%)">${ticks}${dots}</div><span class="tl-pin"></span></div>`;
 }
-function histTimelineCard_(x) {
-  setTimeout(() => tlAuto_(x.key), 700);
-  /* THE ANIMATION IS THE PICTURE (owner, 11 Nov): `tl-art` makes it the card's kc-pic; its controls join the card's one row. */
+/* THE ANIMATION IS THE PICTURE (owner, 11 Nov): its stage is the timeline tool's embed; its controls join the card's one row. */
+CARD_EMBEDS.timeline = a => { const x = tlItem_(a.key); return x ? tlStage_(x) : ''; };
+cardKind_('timeline', x => { setTimeout(() => tlAuto_(x.key), 700);
   const stops = (x.row && x.row.stops) || [], n = stops.length;
-  return `<div class="fc hdb hdb-tl lib-c" aria-label="${esc(x.name)}">
-    <section class="fc-sec tl-anim tl-art" data-tl="${esc(x.key)}">${tlStage_(x)}</section><h3>${esc(x.name)}</h3>
-    ${tagRow_(x)}
-    <p class="tl-say">${n} event${n === 1 ? '' : 's'}, one at a time</p>
-    <div class="tile-row">${n ? tile_(tlOpts_(x.key, Math.min(TL_AT[x.key] || 0, n - 1), n)) : ''}</div>
-  </div>`;
-}
+  return { look: 'hdb hdb-tl lib-c', name: x.name, tags: kcFacetTags_(x), body: [{ type: 'embed', tool: 'timeline', look: 'tl-anim tl-art', data: { tl: x.key }, args: { key: x.key } },
+    { type: 'text', look: 'tl-say', text: n + ' event' + (n === 1 ? '' : 's') + ', one at a time' }],
+    tiles: n ? tlOpts_(x.key, Math.min(TL_AT[x.key] || 0, n - 1), n) : [] }; });
 
 /* ONE PLAYER FOR EVERY TIMELINE: a step moves the track (a CSS transition pans it) and swaps the scene; the tiles never move. */
 const TL_AT = {}, TL_PLAY = { key: '', timer: null }, TL_STEP_MS = 2600;
@@ -9560,7 +9533,8 @@ function findStudyItems_() {
     ...[].concat(...(DATA.textbooks || []).map(b => (b.chapters || []).map(c => contentItem_(b, c)))),
 
     /* ---------- THE EXAM INSERTS (455) */
-    ...(DATA.inserts || []).map(insertItem_),
+    /* A READING INSERT IS ONE SOURCE TEXT, kept whole; a formula sheet is drawn only as its parts. */
+    ...(DATA.inserts || []).filter(insReading_).map(insertItem_),
     ...insertParts_().map(insertPartItem_),
     ...(DATA.specs || []).map(specItem_),
   ];
@@ -9862,7 +9836,8 @@ on('lens-off', () => { LENS = null; lensRedraw_(); });
 
 /* WHAT THE TOP BAR'S RED DOT USED TO SAY (owner, 6 Nov): each Business or Site card that needs you, by name, with a way there. */
 function notifyDoorCard_() {
-  const needs = typeof BIZ_NEEDS !== 'undefined' ? Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0) : [];
+  /* THE BUSINESS RECORDS ARE SWITCHED OFF (attic/js/records.js, owner 13 Nov): their counts come back with them. */
+  const BIZ_NEEDS = window.BIZ_NEEDS || {}, needs = Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0);
   const waiting = ((DATA && DATA.posts) || []).filter(p => p && p.active !== false && p.waiting).length;
   const rows = needs.map(k => ({ label: k.replace(/[-_]/g, ' '), value: String(BIZ_NEEDS[k]) }))
     .concat(waiting ? [{ label: 'posts waiting for approval', value: String(waiting) }] : []);
@@ -17896,7 +17871,7 @@ const WIDGETS = [
 
 
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker', solid: true,
-    start: () => initMat?.(),
+    start: () => window.initMat?.(),
     into: 'mat-box', what: 'The cheat sheet',
     /* NO BLURB. It said "one sheet of A4, tick what goes on it" over a list of tickboxes on a page showing a sheet of A4 — three sentences describing what is already § */
     get html() { return card_(`<div class="">
@@ -21655,15 +21630,18 @@ function readingFill_(x, tpl) {
 const readingTitle_ = x => readingFill_(x, (READING_REF[x && x.kind] || {}).title) || (x && x.name) || '';
 const readingRef_ = x => readingFill_(x, (READING_REF[x && x.kind] || {}).ref) || (x && x.name) || '';
 /* THE ONE CARD: `o.body` is the text (or its loader); `o.cls`, `o.bodyCls`, `o.data` keep each source's hooks for its redraw. */
+/* ITS TEXT IS THE READING EMBED'S (filled by its source's loader, redrawn in place); the card around it is a spec. */
+const READING_BODY = {};
+CARD_EMBEDS.reading = a => READING_BODY[a.key] || '';
 function readingCard_(x, o) {
   o = o || {};
-  const attrs = d => Object.keys(d || {}).map(n => ` data-${n}="${esc(String(d[n] == null ? '' : d[n]))}"`).join('');
   const title = readingTitle_(x), ref = readingRef_(x);
-  /* THE ONE CARD SHAPE (owner 1a, 8 Nov): its heading is the head, its tags the tags, its text the lines (`findCard`). */
-  return findCard(Object.assign({}, x, { kcOwn: { cls: 'rd ' + (o.cls || ''),
-    attrs: ` data-key="${esc(x.key)}" data-rd="${esc(x.kind || '')}"${attrs(o.cardData)}`,
-    head: `<div class="rd-head"><h3 class="rd-title">${esc(title)}</h3>${ref && ref !== title ? `<span class="rd-ref">${esc(ref)}</span>` : ''}</div>`,
-    tags: tagRow_(x), lines: `<div class="rd-body ${esc(o.bodyCls || '')}"${attrs(o.data)}>${o.body || ''}</div>` } }));
+  READING_BODY[x.key] = o.body || '';
+  return renderCard({ kind: x.kind, key: x.key, item: x, name: title, look: 'rd ' + (o.cls || ''),
+    data: Object.assign({ key: x.key, rd: x.kind || '' }, o.cardData || {}),
+    tags: [{ text: title, colour: 0 }].concat(tagList_(x)),
+    body: [ref && ref !== title ? { type: 'text', look: 'rd-ref', text: ref } : null,
+      { type: 'embed', tool: 'reading', look: 'rd-body ' + (o.bodyCls || ''), data: o.data, args: { key: x.key } }] });
 }
 
 ;
@@ -23267,14 +23245,14 @@ function staffInner_(wait) {
         ? tile_({ icon: 'ext', label: 'DBS online check', href: STAFF_DBS_LINK, leave: true }) + tile_({ icon: 'tick', label: 'Checked today', act: 'staff-dbs', data: { id: s.personId } }) : ''}</div>
     </div>`;
   return `<h3>Staff</h3>
-    ${bizNeed_('staff', STAFF.list ? n + dbs : 0, [n ? n + ' not agreed to the terms' : '', dbs ? dbs + (dbs === 1 ? ' DBS check due' : ' DBS checks due') : ''].filter(Boolean).join(' · '))}
+    ${(window.bizNeed_ || (() => ''))('staff', STAFF.list ? n + dbs : 0, [n ? n + ' not agreed to the terms' : '', dbs ? dbs + (dbs === 1 ? ' DBS check due' : ' DBS checks due') : ''].filter(Boolean).join(' · '))}
     <div class="kc-items biz-body staff-body"${wait ? ' aria-busy="true"' : ''}>
       ${STAFF.list && !list.length ? empty_(NO_TUTOR + '.') : ''}
       ${list.map(item).join('')}
     ${wait ? loading_() : ''}</div>
     <p class="note me-said staff-said">${esc(STAFF.error)}</p>`;
 }
-const staffDraw_ = () => { document.querySelectorAll('[data-staff]').forEach(c => { cardFill_(c, staffInner_(false)); }); if (typeof bizNeedsPaint_ === 'function') bizNeedsPaint_(); };
+const staffDraw_ = () => { document.querySelectorAll('[data-staff]').forEach(c => { cardFill_(c, staffInner_(false)); }); if (typeof window.bizNeedsPaint_ === 'function') window.bizNeedsPaint_(); };
 function staffStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || STAFF.asking) return;
   STAFF.asking = true;
@@ -23301,7 +23279,7 @@ on('staff-dbs', el => {
     .then(d => {
       const s = (STAFF.list || []).find(x => x.personId === id);
       if (s) s.dbsCheckedOn = (d && d.dbsCheckedOn) || new Date().toISOString().slice(0, 10);
-      staffDraw_(); if (typeof bcDraw_ === 'function') bcDraw_();
+      staffDraw_(); if (typeof window.bcDraw_ === 'function') window.bcDraw_();
       toast('DBS check logged');
     })
     .catch(() => {});
@@ -23633,183 +23611,6 @@ function cameFromSave_() {
 }
 const cameFrom_ = () => { try { return localStorage.getItem(FLY_FROM_KEY) || ''; } catch (e) { return ''; } };
 cameFromSave_();
-
-;
-/* ==== js/lego.js ==== */
-/* @family. — lego.js THE LEGO PIECE CHECK (owner, 12 Nov): "make sure all the pieces of a set are there", for the trade-in. */
-/* A set is picked (data/lego-sets.json, or a typed number) with its parts list pasted; then batch by batch, three photos of one pile */
-/* shaken between shots, each batch counted by the marking model (`legoCount`) and added to a tally kept on this device. */
-
-const LEGO_SHOTS = 3;
-let LEGO_SETS = null;
-let LEGO_PICS = [];
-let LEGO_BUSY = false;
-const legoKey_ = () => KEPT_PREFIX + payloadFor_().who + ':lego';
-const legoFresh_ = () => ({ set: '', name: '', parts: [], batch: 1, tally: {}, done: false, say: '', typed: { num: '', parts: '' } });
-/* THE KEPT STORE (data-text.js), the device's one store: finished batches survive a refresh; a half-shot batch's photos are retaken. */
-function legoRead_() {
-  let o = null;
-  try { o = payloadFor_().who ? keptGet_(legoKey_(), true) : null; } catch (e) { o = null; }
-  return Object.assign(legoFresh_(), o || {});
-}
-let LEGO = null;
-const legoNow_ = () => (LEGO || (LEGO = legoRead_()));
-function legoWrite_() { try { if (payloadFor_().who) keptPut_(legoKey_(), JSON.stringify(legoNow_())); } catch (e) { /* not kept: this visit still counts */ } }
-
-/* ONE NAME PER PIECE: part and colour, case and spaces ignored, so the model's "3001 | Red" meets the list's "3001, red". */
-const legoId_ = (part, colour) => (String(part || '').trim() + '|' + String(colour || '').trim()).toLowerCase().replace(/\s+/g, ' ');
-/* A PASTED LIST, one piece a line: "part, colour, qty" (commas, tabs or semicolons), or "part colour qty" with spaces. */
-function legoParse_(text) {
-  return String(text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
-    let f = l.split(/\s*[,\t;]\s*/).filter(Boolean);
-    if (f.length < 2) f = l.split(/\s+/);
-    const qty = /^\d+$/.test(f[f.length - 1]) ? Number(f.pop()) : 1;
-    return { part: f[0] || '', colour: f.slice(1).join(' '), qty: qty };
-  }).filter(p => p.part && p.qty > 0);
-}
-
-/* FOUND AGAINST NEEDED: every listed piece with what the batches counted, and the ones short. */
-function legoResult_(s) {
-  const tally = s.tally || {};
-  const rows = (s.parts || []).map(p => ({ part: p.part, colour: p.colour, need: p.qty, got: Number(tally[legoId_(p.part, p.colour)]) || 0 }));
-  const total = Object.keys(tally).reduce((n, k) => n + (Number(tally[k]) || 0), 0);
-  return { rows: rows, missing: rows.filter(r => r.got < r.need), total: total, need: rows.reduce((n, r) => n + r.need, 0) };
-}
-
-function legoSets_() {
-  if (LEGO_SETS || typeof fetch !== 'function') return;
-  LEGO_SETS = [];
-  fetch('data/lego-sets.json' + (typeof deployStamp_ === 'function' ? deployStamp_() : ''), { cache: 'default' })
-    .then(r => r.json()).then(rows => { LEGO_SETS = (Array.isArray(rows) ? rows : []).filter(r => r && r.set_number); legoRedraw_(); })
-    .catch(() => { /* no list: a number can still be typed */ });
-}
-
-const legoLine_ = t => `<p>${esc(t)}</p>`;
-/* THE CARD'S ONE ROUND TILE IS THE STEP DUE NOW; the other steps are the form's buttons, which stay in the card (`kcHoist_`). */
-const legoBtns_ = list => `<div class="btn-row">${list.map(o => tile_(Object.assign({ form: true, kind: 'quiet' }, o))).join('')}</div>`;
-function legoPick_() {
-  const sets = LEGO_SETS || [];
-  return `${legoLine_('Pick the set, or type its number, then paste its parts list: one piece a line, "part, colour, qty".')}
-    ${sets.map((r, i) => (i % 2 ? '' : legoBtns_(sets.slice(i, i + 2).map(x => ({ label: x.set_number + ' ' + (x.name || '').replace(/^LEGO\s+/, ''), act: 'lego-set', data: { v: x.set_number }, cls: 'lego-pick', pressed: false }))))).join('')}
-    <label class="field">Set number <input type="text" class="lego-num" value="${esc(legoNow_().typed.num)}" maxlength="12" autocomplete="off" aria-label="Set number"></label>
-    <label class="field">Parts list <textarea class="lego-parts" rows="5" placeholder="3001, Red, 4" aria-label="Parts list">${esc(legoNow_().typed.parts)}</textarea></label>
-    <div class="tile-row">${tile_({ icon: 'play', label: 'Start', act: 'lego-start' })}</div>`;
-}
-function legoSteps_() {
-  const s = legoNow_(), n = LEGO_PICS.length;
-  const next = n === 0 ? 'Spread the pile out and take photo 1.' : n < LEGO_SHOTS ? 'Shake the pile, then take photo ' + (n + 1) + '.' : LEGO_SHOTS + ' photos taken: next batch, or finished.';
-  const sent = s.batch - 1;
-  const step = n < LEGO_SHOTS ? { icon: 'photo', label: 'Photo ' + (n + 1), act: 'lego-shot', off: LEGO_BUSY } : { icon: 'send', label: 'Next batch', act: 'lego-next', off: LEGO_BUSY };
-  return `${legoLine_(s.set + (s.name ? ' ' + s.name : '') + ' · ' + (s.parts || []).length + ' kinds of piece listed')}
-    <h4>Batch ${s.batch} · photo ${Math.min(n + 1, LEGO_SHOTS)} of ${LEGO_SHOTS}</h4>
-    ${legoLine_(LEGO_BUSY ? 'Counting batch ' + s.batch + '…' : next)}
-    ${LEGO_BUSY ? loading_() : ''}
-    ${legoLine_('Counted so far: ' + legoResult_(s).total + ' pieces in ' + sent + ' batch' + (sent === 1 ? '' : 'es') + '.')}
-    ${s.say ? legoLine_(s.say) : ''}
-    ${legoBtns_([
-      { label: 'Next batch', act: 'lego-next', off: LEGO_BUSY || !n || n >= LEGO_SHOTS },
-      { label: 'Finished', act: 'lego-done', off: LEGO_BUSY },
-      { label: 'Start again', act: 'lego-reset', off: LEGO_BUSY },
-    ].filter(o => !o.hidden))}
-    <div class="tile-row">${tile_(step)}</div>`;
-}
-function legoEnd_() {
-  const s = legoNow_(), r = legoResult_(s);
-  const found = r.rows.reduce((n, x) => n + Math.min(x.got, x.need), 0);
-  return `${legoLine_(s.set + (s.name ? ' ' + s.name : '') + ' · ' + (s.batch - 1) + ' batches')}
-    <h4>Found ${found} of ${r.need}</h4>
-    ${r.rows.length ? (r.missing.length
-      ? `<p><b>Missing</b></p>${r.missing.map(m => legoLine_(m.part + (m.colour ? ' ' + m.colour : '') + ': ' + (m.need - m.got) + ' short (' + m.got + ' of ' + m.need + ')')).join('')}`
-      : legoLine_('Every listed piece was counted.'))
-    : legoLine_('No parts list was given, so nothing is missing by it: ' + r.total + ' pieces counted.')}
-    ${s.say ? legoLine_(s.say) : ''}
-    <div class="tile-row">${tile_({ icon: 'undo', label: 'Start again', act: 'lego-reset' })}</div>`;
-}
-const legoBody_ = () => '<h3>LEGO piece check</h3>' + (legoNow_().done ? legoEnd_() : legoNow_().set ? legoSteps_() : legoPick_());
-
-function legoCards_() {
-  if (!USER || !rankAtLeast_('staff')) return [];
-  legoSets_();
-  return [card_(`<div class="lego-check" data-lay-card="staff:lego">${legoBody_()}</div>`)];
-}
-/* EVERY COPY ON THE PAGE (both finders) drawn again, as the same element (`cardFill_`), as the flyer maker's. */
-function legoRedraw_() {
-  if (typeof document === 'undefined') return;
-  document.querySelectorAll('.card.lego-check').forEach(c => cardFill_(c, legoBody_()));
-}
-
-/* PICKING A SET ONLY FILLS THE NUMBER: the parts list is pasted before Start. */
-on('lego-set', el => {
-  const box = el.closest('.lego-check'), num = box && box.querySelector('.lego-num');
-  if (num) num.value = el.dataset.v || '';
-  legoNow_().typed.num = el.dataset.v || ''; legoWrite_();
-  if (box) box.querySelectorAll('.lego-pick').forEach(t => t.setAttribute('aria-pressed', t === el ? 'true' : 'false'));
-});
-on('lego-start', el => {
-  const box = el.closest('.lego-check');
-  const num = String(((box && box.querySelector('.lego-num')) || {}).value || legoNow_().set).trim();
-  if (!num) { toast('Pick a set or type its number'); return; }
-  const row = (LEGO_SETS || []).find(r => String(r.set_number) === num);
-  LEGO = Object.assign(legoFresh_(), { set: num, name: row ? String(row.name || '').replace(/^LEGO\s+/, '') : '', parts: legoParse_(((box && box.querySelector('.lego-parts')) || {}).value) });
-  LEGO_PICS = [];
-  legoWrite_();
-  legoRedraw_();
-});
-/* THE CAMERA: one shot a press, the back camera first (`capture`), shrunk as a working photo is (`workShrink_`). */
-on('lego-shot', () => {
-  if (LEGO_PICS.length >= LEGO_SHOTS || typeof document === 'undefined') return;
-  const inp = document.createElement('input');
-  inp.type = 'file';
-  inp.accept = 'image/*';
-  inp.setAttribute('capture', 'environment');
-  inp.className = 'lego-file';
-  inp.hidden = true;
-  inp.addEventListener('change', () => { legoAdd_((inp.files || [])[0]); inp.remove(); });
-  document.body.appendChild(inp);
-  inp.click();
-});
-function legoAdd_(file) {
-  if (!file) return Promise.resolve();
-  const shrink = typeof workShrink_ === 'function' ? workShrink_(file) : Promise.reject(new Error('no shrinker'));
-  return shrink.then(url => { LEGO_PICS.push(url); legoNow_().say = ''; legoRedraw_(); })
-    .catch(() => { toast('That photo could not be used — try again'); });
-}
-/* ONE ASK PER BATCH, all its photos together; the reply's counts (the most seen in any one shot) are added to the tally. */
-function legoSend_() {
-  const s = legoNow_();
-  if (!LEGO_PICS.length) return Promise.resolve(true);
-  LEGO_BUSY = true;
-  legoRedraw_();
-  return Promise.resolve(api({ action: 'legoCount', personId: (USER && USER.personId) || '', set: s.set + (s.name ? ' ' + s.name : ''),
-    parts: (s.parts || []).map(p => ({ part: p.part, colour: p.colour })), images: LEGO_PICS.slice() }))
-    .then(d => {
-      if (!d || !d.success) { s.say = (d && (d.message || d.error)) || 'The batch could not be counted — try again.'; return false; }
-      (d.counts || []).forEach(c => { const k = legoId_(c.part, c.colour); s.tally[k] = (Number(s.tally[k]) || 0) + (Number(c.count) || 0); });
-      s.batch += 1; s.say = ''; LEGO_PICS = [];
-      return true;
-    })
-    .catch(e => { s.say = typeof why_ === 'function' ? why_(e) : 'The batch could not be counted — try again.'; return false; })
-    .then(ok => { LEGO_BUSY = false; legoWrite_(); legoRedraw_(); return ok; });
-}
-on('lego-next', () => { if (!LEGO_BUSY) legoSend_(); });
-on('lego-done', () => {
-  if (LEGO_BUSY) return;
-  legoSend_().then(ok => { if (!ok) return; legoNow_().done = true; legoWrite_(); legoRedraw_(); });
-});
-on('lego-reset', el => {
-  if (LEGO_BUSY || !sure_(el, 'Tap again to start again')) return;
-  LEGO = legoFresh_(); LEGO_PICS = [];
-  legoWrite_();
-  legoRedraw_();
-});
-/* WHAT IS TYPED IS KEPT AS IT IS TYPED (the kept store, `legoWrite_`), so a reload before Start keeps the number and the pasted list. */
-try {
-  document.addEventListener('input', e => {
-    const t = e.target, k = t && t.classList ? (t.classList.contains('lego-num') ? 'num' : t.classList.contains('lego-parts') ? 'parts' : '') : '';
-    if (!k) return;
-    legoNow_().typed[k] = String(t.value || ''); legoWrite_();
-  });
-} catch (e) { /* no document in a check */ }
 
 ;
 /* ==== js/help.js ==== */

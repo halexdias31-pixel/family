@@ -267,7 +267,7 @@ function staffPages_() {
   const hub = typeof hubBlock_ === 'function' ? hubBlock_() : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [card_(`<div class="staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`)] : [];
-  const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof legoCards_ === 'function' ? legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
+  const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
@@ -281,7 +281,7 @@ screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? 
 
 /* ---------- WEB PROFILE (730): @family.'s own public card, from the brand tab, every line with its fallback ---------- */
 function webProfilePages_() {
-  const b = typeof matBrand === 'function' ? matBrand() : {};
+  const b = typeof window.matBrand === 'function' ? window.matBrand() : {};
   const name = b.name || brand('name', '@family.'), logo = brandLogo_();
   const lines = [brand('web_tagline', 'Tutoring for every age, at home and online.'), b.area ? 'Where: ' + b.area : '',
     b.phone ? 'Phone: ' + b.phone : '', b.site ? 'Online: ' + b.site : ''].filter(Boolean);
@@ -302,12 +302,12 @@ screen('apprentices', () => pages('apprentices', typeof cardsOf_ === 'function' 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  return (typeof bizPages_ === 'function' ? bizPages_() : []).concat(typeof deletedCard_ === 'function' ? [deletedCard_()] : []);
+  return (typeof window.bizPages_ === 'function' ? window.bizPages_() : []).concat(typeof deletedCard_ === 'function' ? [deletedCard_()] : []);
 }
 /* THE SITE COLUMN (491): what runs the site rather than the business — setup, moderation, imports, the weekly email, the build. */
 function sitePages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  return (typeof siteBizPages_ === 'function' ? siteBizPages_() : [])
+  return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
     .concat(typeof inboxCard_ === 'function' ? [inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
     .concat([card_(`<div class=""><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`)]);

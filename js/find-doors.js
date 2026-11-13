@@ -216,7 +216,8 @@ on('lens-off', () => { LENS = null; lensRedraw_(); });
 
 /* WHAT THE TOP BAR'S RED DOT USED TO SAY (owner, 6 Nov): each Business or Site card that needs you, by name, with a way there. */
 function notifyDoorCard_() {
-  const needs = typeof BIZ_NEEDS !== 'undefined' ? Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0) : [];
+  /* THE BUSINESS RECORDS ARE SWITCHED OFF (attic/js/records.js, owner 13 Nov): their counts come back with them. */
+  const BIZ_NEEDS = window.BIZ_NEEDS || {}, needs = Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0);
   const waiting = ((DATA && DATA.posts) || []).filter(p => p && p.active !== false && p.waiting).length;
   const rows = needs.map(k => ({ label: k.replace(/[-_]/g, ' '), value: String(BIZ_NEEDS[k]) }))
     .concat(waiting ? [{ label: 'posts waiting for approval', value: String(waiting) }] : []);

@@ -701,7 +701,8 @@ function findStudyItems_() {
     ...[].concat(...(DATA.textbooks || []).map(b => (b.chapters || []).map(c => contentItem_(b, c)))),
 
     /* ---------- THE EXAM INSERTS (455) */
-    ...(DATA.inserts || []).map(insertItem_),
+    /* A READING INSERT IS ONE SOURCE TEXT, kept whole; a formula sheet is drawn only as its parts. */
+    ...(DATA.inserts || []).filter(insReading_).map(insertItem_),
     ...insertParts_().map(insertPartItem_),
     ...(DATA.specs || []).map(specItem_),
   ];
