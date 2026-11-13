@@ -142,3 +142,65 @@ function cardOfKind_(x) {
 }
 /* A QUESTION'S TABLE SCROLLS IN A BOX OF ITS OWN and stays a real table: as `display:block` Safari laid the iPad's isotope table out a row out of line (13 Nov). */
 const qTables_ = h => String(h).replace(/<table\b/gi, '<div class="q-tscroll"><table').replace(/<\/table>/gi, '</table></div>');
+/* THE BOOKING PAPER (one master template): a receipt's rows, controls, week and roster are drawn here from data the booking hands over. */
+function paperRow_(r) {
+  const cls = [r.blank ? 'is-blank' : '', r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '', r.wide ? 'is-wide' : '',
+    r.strip ? 'bk-wk' : '', r.strip && r.shut ? 'is-shut' : '', r.strip && r.off ? 'is-off' : '', r.tally ? 'bk-tally' : '', r.cls || ''].filter(Boolean).join(' ');
+  const has = v => v != null && String(v).trim() !== '';
+  const value = r.tick !== undefined
+    ? `${has(r.v) ? `<span class="bk-when">${esc(r.v)}</span> ` : ''}<span class="bk-tick${r.tick ? ' on' : ''}" role="img" aria-label="${r.tick ? 'done' : 'not yet'}">✓</span>`
+    : r.strip ? r.strip : r.sel ? r.sel : r.tally ? r.tally
+    : r.hourCells ? `<span class="bk-hrs">${r.hourCells.map(h => `<span class="bk-hr${h.on ? ' on' : ''}">${esc(h.h)}</span>`).join('')}</span>`
+    : r.dates ? `<span class="bk-dates">${esc(r.v)}</span>` : esc(r.v);
+  const bare = (!r.id || !!r.open || !!r.strip) && !has(r.mul) && !has(r.rate) && !has(r.total);
+  const heads = !!r.open || !!r.strip || !!r.tally;
+  return `<div class="bk-row ${esc(cls)}${bare ? ' is-bare' : ''}${heads ? ' is-head' : ''}"><span class="bk-n">${esc(r.n)}</span>`
+    + (r.ctl && r.sel ? `<label for="${esc(r.ctl)}" class="bk-k">${esc(r.k)}</label>` : `<span class="bk-k">${esc(r.k)}</span>`)
+    + `<span class="bk-v">${heads && r.dash != null && String(r.v) === r.dash ? '' : value}</span><span class="bk-m">${esc(r.mul)}</span>`
+    + `<span class="bk-r">${esc(r.rate)}</span><span class="bk-t">${esc(r.total)}</span>${r.open || ''}</div>`
+    + (r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : '');
+}
+const paperTotal_ = (k, t, cls) => `<div class="bk-row rc-total${cls ? ' ' + esc(cls) : ''}"><span class="bk-n"></span><span class="bk-k">${esc(k)}</span><span class="bk-v"></span><span class="bk-m"></span><span class="bk-r"></span><span class="bk-t">${esc(t)}</span></div>`;
+const paperHead_ = () => '<div class="bk-row is-cols"><span class="bk-n"></span><span class="bk-k"></span><span class="bk-v"></span><span class="bk-m">×</span><span class="bk-r">+/h</span><span class="bk-t">=</span></div>';
+/* `rows`, `before`, `roster` and `foot` arrive already drawn by these same paper blocks. */
+function paperDoc_(r) {
+  const head = !!(r.cols && (r.rows || []).length);
+  const lines = (r.lines || []).filter(Boolean).length && typeof qtag_ === 'function'
+    ? `<div class="qtags qcard-tags">${(r.lines || []).map((l, i) => (l ? qtag_(esc(l), ` data-tag="${[6, 9, 4][i] || 0}"`) : '')).join('')}</div>` : '';
+  return `<div class="rc${r.done ? ' is-done' : ''}"><div class="rc-head">${lines}</div>${head ? '' : '<div class="rc-rule"></div>'}`
+    + `<div class="bk">${head ? paperHead_() : ''}${(r.rows || []).join('')}${r.before || ''}${r.noTotal ? '' : paperTotal_(r.totalLabel || 'Cost', r.total || '')}`
+    + (r.more || []).map(m => paperTotal_(m.k, m.t, 'rc-more' + (m.cls ? ' ' + m.cls : ''))).join('')
+    + `${r.moreSay ? `<p class="bk-say rc-money-say">${esc(r.moreSay)}</p>` : ''}</div>`
+    + `${r.roster ? '<div class="rc-rule"></div>' + r.roster : ''}<div class="rc-rule"></div>${r.foot || ''}${r.ref ? `<p class="rc-ref">${esc(r.ref)}</p>` : ''}</div>`;
+}
+const paperRoster_ = b => `<div class="rost">${(b.slots || []).map(sl => `<div class="rost-slot${sl.filled ? ' on' : ''}${sl.tutor ? ' tut' : ''}"><span class="rost-pic">${
+  sl.filled ? (sl.face || '') : '<span class="rost-plus">+</span>'}</span><span class="rost-name">${esc(sl.said)}</span>${sl.filled ? `<span class="rost-role">${esc(sl.role)}</span>` : ''}</div>`).join('')}</div>`;
+/* A BAR'S LENGTH IS ONE OF ELEVEN STEPS (`data-f`, 0–100 by tens), a class in style.css rather than a style written here. */
+const paperWhenCould_ = b => `<div class="wc">${(b.slots || []).map(s => `<div class="wc-row${s.all ? ' is-all' : ''}"><span class="wc-n">${esc(s.n)}/${esc(b.people)}</span>`
+  + `<span class="wc-slot">${esc(s.slot)}</span><i data-f="${esc(s.f)}"></i></div>`).join('')}</div>`;
+const paperHours_ = cols => `<div class="slot-row slot-head" aria-hidden="true"><span class="slot-day"></span><div class="slot-hours">${cols.map(h => `<span class="slot-hh">${esc(h)}</span>`).join('')}</div></div>`;
+/* A WEEK: `days` [{ label, cells }], each day's cells already drawn by the caller's own cell maker. */
+const paperWeek_ = b => `<div class="slot-grid">${paperHours_(b.cols || [])}${(b.days || []).map(d => `<div class="slot-row"><span class="slot-day">${esc(d.label)}</span><div class="slot-hours">${d.cells || ''}</div></div>`).join('')}</div>`;
+const paperStrip_ = b => (b.head === 'ruler' ? `<span class="wk-hh wk-rule" aria-hidden="true">${esc(b.from)} – ${esc(b.to)}</span>`
+  : b.head === 'cols' ? `<span class="wk-hh" aria-hidden="true">${(b.cols || []).map(h => `<span class="slot-hh">${esc(h)}</span>`).join('')}</span>` : '')
+  + `<span class="slot-hours">${b.cells || ''}</span>`;
+/* THE PAPER'S CONTROLS: a select (`face` lays words over it), a typed box, or a settled answer as text. */
+function paperSelect_(b) {
+  const opt = o => `<option value="${esc(o.value)}"${o.on ? ' selected' : ''}${o.off ? ' disabled' : ''}>${esc(o.text)}</option>`;
+  const sel = `<select class="bk-sel" id="${esc(b.id)}" data-do="book-set" data-step="${esc(b.step)}"${b.off ? ' disabled' : ''} aria-label="${esc(b.aria)}">${(b.options || []).map(opt).join('')}</select>`;
+  return b.face == null ? sel : `<span class="bk-face${b.set ? ' is-set' : ''}"><span class="bk-said" aria-hidden="true">${esc(b.face)}</span>${sel}</span>`;
+}
+const paperSet_ = b => `<span class="bk-set">${esc(b.text)}</span>`;
+const paperInput_ = b => `<input class="bk-in${b.wide ? ' bk-in-l' : ''}"${b.id ? ` id="${esc(b.id)}"` : ''}${b.act ? ` data-do="${esc(b.act)}"` : ''}${b.field ? ` data-field="${esc(b.field)}"` : ''} type="${b.kind === 'number' ? 'number' : 'text'}"`
+  + `${b.kind === 'number' ? ' inputmode="decimal" min="0" max="100" step="1"' : ''} value="${esc(b.value == null ? '' : b.value)}" placeholder="${esc(b.placeholder || '')}"${b.off ? ' disabled' : ''} aria-label="${esc(b.aria || '')}">`;
+const paperNote_ = b => `<p class="note${b.look ? ' ' + esc(b.look) : ''}">${cardRuns_(b.text)}</p>`;
+const paperLinks_ = b => `<p class="note policy-links">${esc(b.say || '')}${(b.links || []).map(l => `<a href="${esc(l.href)}" data-do="file-view" target="_blank" rel="noopener">${esc(l.text)}</a>`).join(' · ')}</p>`;
+const paperBox_ = b => `<div${b.id ? ` id="${esc(b.id)}"` : ''} class="${esc(b.look || '')}">${b.inner || ''}</div>`;
+Object.assign(CARD_BLOCKS, { paperRow: paperRow_, paperDoc: paperDoc_, paperRoster: paperRoster_, paperWhenCould: paperWhenCould_, paperWeek: paperWeek_,
+  paperStrip: paperStrip_, paperSelect: paperSelect_, paperSet: paperSet_, paperInput: paperInput_, paperNote: paperNote_, paperLinks: paperLinks_, paperBox: paperBox_ });
+/* A BOOKING AS A PICTURE: the paper's own markup (`xml`, already serialised) laid in an SVG at the screen's width; `css` is the page's own rules. */
+const paperSnap_ = b => `<svg xmlns="http://www.w3.org/2000/svg" width="${Number(b.cw) || 1}" height="${Number(b.ch) || 1}" viewBox="0 0 ${(Number(b.cw) || 1) / (Number(b.k) || 1)} ${(Number(b.ch) || 1) / (Number(b.k) || 1)}">`
+  + `<style>${String(b.css || '').replace(/<\//g, '<\\/')}</style><foreignObject x="0" y="0" width="${Number(b.w) || 1}" height="${Number(b.h) || 1}">${b.xml || ''}</foreignObject></svg>`;
+/* TURNING A REQUEST DOWN asks why, in one optional line. */
+const paperWhy_ = b => `<form class="req-why" data-id="${esc(b.id)}"><label>Why not? <input name="why" maxlength="200" placeholder="optional, one line" autocomplete="off"></label>${tile_({ form: true, submit: true, label: 'Decline' })}</form>`;
+Object.assign(CARD_BLOCKS, { paperSnap: paperSnap_, paperWhy: paperWhy_ });

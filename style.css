@@ -2688,6 +2688,17 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .wc-row:last-child { margin-bottom: 0; }
 /* THE BAR IS BEHIND THE WORDS, not beside them — a row that is both a label and a measurement
    reads faster than a label with a chart next to it, and takes half the width. */
+.wc-row i[data-f="0"] { --f: 0%; }
+.wc-row i[data-f="10"] { --f: 10%; }
+.wc-row i[data-f="20"] { --f: 20%; }
+.wc-row i[data-f="30"] { --f: 30%; }
+.wc-row i[data-f="40"] { --f: 40%; }
+.wc-row i[data-f="50"] { --f: 50%; }
+.wc-row i[data-f="60"] { --f: 60%; }
+.wc-row i[data-f="70"] { --f: 70%; }
+.wc-row i[data-f="80"] { --f: 80%; }
+.wc-row i[data-f="90"] { --f: 90%; }
+.wc-row i[data-f="100"] { --f: 100%; }
 .wc-row i { position: absolute; inset: 0 auto 0 0; width: var(--f);
             background: color-mix(in srgb, var(--hue-5) 18%, transparent); }
 .wc-row.is-all i { background: color-mix(in srgb, var(--hue-10) 30%, transparent); }
