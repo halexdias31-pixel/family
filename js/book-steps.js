@@ -10,8 +10,8 @@
 /* ---------- THE BOOKING PAGES ARE THE FORM, AND ONLY THE FORM § */
 function bookBlocks() {
   if (!USER) {
-    return [card_(`<div class="book-signin"><h3>Booking</h3>
-      <p class="note">Sign in to book — your account is a few screens to the right.</p></div>`, 'bookform')];
+    return [renderCard({ kind: 'bookform', look: 'book-signin', name: 'Booking', tags: [{ text: 'Booking' }],
+      body: [{ type: 'text', look: 'note', text: 'Sign in to book — your account is a few screens to the right.' }] })];
   }
   /* ---------- THE FORM, THEN WHAT IS ALREADY BOOKED, THEN WHAT IS FINISHED § */
   /* ---------- THE FORM, AND ONLY THE FORM, AGAIN § */
@@ -102,8 +102,7 @@ function liveWidgets_() {
         what: 'Who is in it',
         into: 'live-body-' + id,
         start: () => fillRoster_(id),
-        html: card_('<div class="live-roster"><h3>' + esc(name) + '</h3>'
-            + '<div id="live-body-' + esc(id) + '"></div></div>'),
+        html: renderCard({ kind: 'panel', look: 'live-roster', name: name, tags: [{ text: name }], body: [{ type: 'paperBox', id: 'live-body-' + id }] }),
       };
     });
 }

@@ -13,9 +13,8 @@ check('An admin opens a parent\'s settings in Find through the lens, sees their 
     const i = a.w.stuffPages_().findIndex(pg => pg.x && pg.x.name === name && !pg.part); if (i < 0) return null;
     a.w.goPage('stuff', a.w.stuffFirstResult_() + i, true); await wait(300); return inFind(sel); };
   const shot = n => { try { if (typeof onboardShot_ === 'function') onboardShot_(a, 'lens-' + n); } catch (e) { /* a picture is a nicety */ } };
-  /* THE PEOPLE CARDS THE PICKER SEARCHES, as an admin's payload carries them (flow 35 does the same). */
-  a.t.DATA().everyone = [{ personId: 'P-C1', title: 'Pat P.', handle: 'patparent', role: 'Client', image: '' },
-    { personId: 'P-S1', title: 'Sam S.', handle: 'samstudent', role: 'Student', image: '' }]; a.t.memoDrop();
+  /* THE PEOPLE CARDS THE PICKER SEARCHES, as an admin's payload carries them (flow 35's fixture). */
+  a.t.DATA().everyone = flowEveryone_('pat', 'sam'); a.t.memoDrop();
   await findSet_();
   /* 1. THE PICKER: the people picker the Edit form uses, its hits a tap each. */
   const q = inFind('.lens-card [data-fam-q="lens"]');

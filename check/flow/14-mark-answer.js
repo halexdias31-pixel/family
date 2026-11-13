@@ -335,37 +335,38 @@ check('a message and a settings box type on the @family keypad: tapped, the pad 
   return bad;
 });
 
-check('signing in types on the @family keypad: the handle on the letters with @ and . on top, the PIN on the digits and never read out, and ✓ signs in (528)', async () => {
+check('signing in on Find types on the @family keypad: the name tag on the letters with @ and . on top, and the PIN is four digit tags, never a box the pad reads out (528)', async () => {
   const reply = b => (b.action === 'verifyLogin' ? Object.assign({ success: true }, ANS_ADA) : { success: true, messages: [] });
   const { w, sent } = boot({ reply });
   await wait(300);
-  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  t.USER(null); t.go('account', false, true); w.paint('account');
-  await wait(20);
-  const nm = d.getElementById('in-name'), pin = d.getElementById('in-pin');
-  /* ONE SCROLLING PAGE (900): the sign-in boxes keep the phone's own keyboard — never bound to the pad. */
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null);
+  const no = await findSign_(w, null);
+  if (no) return [no];
+  const nm = d.getElementById('in-name');
+  /* THE PIN IS NO BOX (owner, 13 Nov): nothing for a pad, a password manager or the iPad to keep. */
+  if (d.getElementById('in-pin')) bad.push('a PIN box is still drawn — the PIN is four digit tags on Find');
+  /* ONE SCROLLING PAGE (900): the name tag keeps the phone's own keyboard — never bound to the pad. */
   if (d.documentElement.classList.contains('flow')) {
-    [nm, pin].forEach(b => { if (!b) bad.push('the sign-in card drew no box'); else if (b.hasAttribute('data-kpb') || b.getAttribute('inputmode') === 'none') bad.push('#' + b.id + ' was bound to the pad'); });
-    return bad;
+    if (!nm) bad.push('Find drew no name tag');
+    else if (nm.hasAttribute('data-kpb') || nm.getAttribute('inputmode') === 'none') bad.push('the name tag was bound to the pad');
+  } else {
+    bad.push(...kpBoundSays_(w, nm, 'mail', 'the name tag'));
+    if (!nm) return bad;
+    kpTap_(w, nm);
+    const pad = kpPadOf_(w);
+    if (!pad || pad.hidden || pad.getAttribute('data-layer') !== 'abc' || !pad.querySelector('.kp-key[data-v="@"]')) bad.push('the name tag did not open the pad on its letters with @ on top');
+    kpTypeOn_(w, 'ada_kind7', bad);
+    if (nm.value !== 'ada_kind7') bad.push('the pad typed ' + JSON.stringify(nm.value) + ' as the name');
   }
-  bad.push(...kpBoundSays_(w, nm, 'mail', 'the handle box'), ...kpBoundSays_(w, pin, 'num', 'the PIN box'));
-  if (!nm || !pin) return bad;
-  if (pin.getAttribute('autocomplete') !== 'one-time-code') bad.push('the PIN box lost its autocomplete="one-time-code"');
-  kpTap_(w, nm);
-  const pad = kpPadOf_(w);
-  if (!pad || pad.hidden || pad.getAttribute('data-layer') !== 'abc' || !pad.querySelector('.kp-key[data-v="@"]')) bad.push('the handle box did not open the pad on its letters with @ on top');
-  kpTypeOn_(w, 'ada_kind7', bad);
-  if (nm.value !== 'ada_kind7') bad.push('the pad typed ' + JSON.stringify(nm.value) + ' as the handle');
-  kpTap_(w, pin);
-  if (pad.hidden || pad.getAttribute('data-layer') !== 'maths') bad.push('the PIN box did not open the pad on its digits');
-  kpTypeOn_(w, '482611119', bad);
-  if (pin.value !== '48261111') bad.push('the PIN box holds ' + JSON.stringify(pin.value) + ' — the pad did not keep to its eight digits');
+  /* THE FOURTH DIGIT TAG SIGNS IN, and no digit is read out. */
+  sent.length = 0;
+  const P4 = ['4', '8', '2', '6'].join('');
+  const no2 = await findSign_(w, 'ada_kind7', P4);
+  if (no2) return bad.concat([no2]);
   await wait(700);
-  if (/4826/.test(String((d.getElementById('kp-say') || {}).textContent || ''))) bad.push('the PIN was read out by the pad\'s screen-reader line');
-  A['kp-key'](pad.querySelector('.kp-key.kp-done'));
-  await wait(300);
-  if (!sent.some(b => b.action === 'verifyLogin')) bad.push('✓ on the PIN box did not sign in — it is the field\'s Enter');
-  if (!pad.hidden) bad.push('✓ on the PIN box left the pad up');
+  if (new RegExp(P4).test(String((d.getElementById('kp-say') || {}).textContent || ''))) bad.push('the PIN was read out by the pad\'s screen-reader line');
+  if (!sent.some(b => b.action === 'verifyLogin' && b.pin === P4)) bad.push('the fourth digit tag did not sign in');
   return bad;
 });
 

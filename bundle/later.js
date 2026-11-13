@@ -437,10 +437,9 @@ const KINDS = {
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   receipt: x => jobPage_(x.row), question: thingCard_, answer: thingCard_, shop: thingCard_,
-  content: x => contentCard_(x), insert: x => insertCard_(x), spec: x => specCard_(x),
-  timeline: x => histTimelineCard_(x), fight: x => fightCard_(x), bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
+  bible: x => bibleCard_(x), talmud: x => talmudCard_(x), quran: x => quranCard_(x),
   worktext: x => worksCard_(x), hadith: x => hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => orthoCard_(x),
-  hymn: x => hymnsCard_(x), person: x => profileDoorCard_(x), tool: x => widgetCard_(x), game: x => widgetCard_(x),
+  hymn: x => hymnsCard_(x), person: x => (x.add && typeof personAddCard_ === 'function' ? personAddCard_() : ''), tool: x => widgetCard_(x), game: x => widgetCard_(x),
   setting: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)), health: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : ''),
 });
 
@@ -1558,11 +1557,9 @@ function overFacet_(items) {
 /* THE CARD. Small — a reference, the marks, and the first line of the question, because a list of ninety § */
 /* THE RECORD IS THE FACE OF IT. § */
 /* ---------- ONE BOUT (batch D): the two fighters' portraits facing each other under the tags, and nothing else § */
-function fightCard_(x) {
-  const f = x.row || {};
-  return `<div class="fc fight" aria-label="${esc(f.a + ' and ' + f.b)}">${tagRow_(x)}
-    <div class="fight-faces">${personPic_(f.aId, f.a)}${personPic_(f.bId, f.b, true)}</div></div>`;
-}
+cardKind_('fight', x => { const f = x.row || {};
+  return { look: 'fight', name: [f.a, f.b].filter(Boolean).join(' and '), tags: tagList_(x),
+    body: [{ type: 'figure', ...personPicSpec_(f.aId, f.a) }, { type: 'figure', ...personPicSpec_(f.bId, f.b, true) }] }; });
 
 /* WHO WON A BOUT, by id where there is one (as the card frames the face), else by the name the row gives. */
 function boutWinner_(x) {
@@ -1756,14 +1753,12 @@ const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</spa
 
 /* ---------- A CONTENT CARD: ONE CHAPTER, WHOLE, WITH THE QUESTIONS' TAGS ON IT § */
 /* ONE WIDGET PER THING (408): § */
-function contentCard_(x) {
-  const c = x.row;
-  return `<div class="fc prac tb ct lib-c">
-    ${tagRow_(x)}
-    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
-    ${tbSections_(c, null, { only: 'words' })}
-  </div>`;
-}
+const tbMark_ = on => (on ? [' ', { badge: 'H', hint: 'Higher tier only' }] : []);
+cardKind_('content', x => { const c = x.row || {};
+  const words = c.words || [];
+  return { look: 'prac tb ct lib-c', name: x.name, tags: kcFacetTags_(x), body: [
+    words.length ? { type: 'section', look: 'tb-words', head: 'Key words', blocks: [{ type: 'list', items: words.map(w => [{ b: w.name }, ' — ', w.text].concat(tbMark_(w.higher))) }] } : null,
+  ].filter(Boolean) }; });
 
 /* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): § */
 const CONTENT_PAGE = { fig: 'Diagram', formulas: 'Formulas', worked: 'Worked examples' };
@@ -1830,7 +1825,7 @@ function contentText_(c) {
 ;
 /* ==== js/find-history.js ==== */
 
-/* ---------- AN EXAM INSERT (455): ONE CARD, THE WHOLE SHEET, TAGGED AS A PAPER IS ---------- */
+/* ---------- AN EXAM INSERT (455): EACH FORMULA, CONSTANT AND TABLE ITS OWN PART; THE SHEET IS ONLY A TAG (owner, 13 Nov) ---------- */
 function insertItem_(r) {
   return {
     kind: 'insert', name: r.name, key: 'in:' + r.id, sub: r.summary, image: '',
@@ -1852,13 +1847,26 @@ function insertParts_() {
     const add = (k, v) => (v || []).forEach(t => { if (p[k].indexOf(t) === -1) p[k].push(t); });
     add('levels', r.levels); add('boards', r.boards); add('tiers', r.tiers); add('forSubjects', r.forSubjects); add('forLevels', r.forLevels);
     p.parents.push(r.id);
-    p.summary = 'On the ' + p.parents.map(id => (insertSheetRow_(id) || {}).name || id).join(', the ') + '.';
   })));
-  return Object.keys(by).map(k => by[k]);
+  /* A SHEET'S TABLE (the periodic table) IS ONE TABLE PART, as a question's table is; the same table on two sheets is one part. */
+  const tables = {};
+  (DATA.inserts || []).filter(r => r.table && (r.elements || []).length).forEach(r => {
+    const sig = r.table + JSON.stringify(r.elements), p = tables[sig] || (by[r.id + '-table'] = tables[sig] = { id: r.id + '-table', name: r.table === 'periodic' ? 'Periodic table' : String(r.table),
+      summary: '', subject: r.subject, levels: [], keystage: r.keystage, boards: [], tiers: [], forSubjects: [], forLevels: [], forTiers: [], verified: r.verified, verifiedNote: r.verifiedNote,
+      official: [], sections: [], table: r.table, elements: r.elements, forPapers: [], sources: [], parents: [] });
+    (r.levels || []).concat().forEach(t => { if (p.levels.indexOf(t) === -1) p.levels.push(t); });
+    (r.boards || []).forEach(t => { if (p.boards.indexOf(t) === -1) p.boards.push(t); });
+    (r.tiers || []).forEach(t => { if (p.tiers.indexOf(t) === -1) p.tiers.push(t); });
+    p.parents.push(r.id);
+  });
+  return Object.keys(by).map(k => by[k]).map(p => Object.assign(p, { sheets: p.parents.map(id => (insertSheetRow_(id) || {}).name || id),
+    summary: 'On the ' + p.parents.map(id => (insertSheetRow_(id) || {}).name || id).join(', the ') + '.' }));
 }
 const insertSheetRow_ = id => (DATA.inserts || []).find(r => r.id === id) || null;
-const insertPartItem_ = p => Object.assign(insertItem_(p), { name: p.name + ' (' + p.sections[0].head + ')',
-  text: plainText_([p.name, p.sections[0].head, p.summary, 'insert formula equation', String(p.sections[0].lines[0].math || '').replace(/<[^>]*>/g, '')].join(' ')) });
+/* A PART'S SHEETS ARE ITS TAGS (`sheets`), as a paper's name groups its questions: Find narrows by sheet, and no sheet card is drawn. */
+const insertPartItem_ = p => { const head = (p.sections[0] || {}).head || '', line = ((p.sections[0] || {}).lines || [])[0] || {};
+  return Object.assign(insertItem_(p), { name: head ? p.name + ' (' + head + ')' : p.name, sheets: p.sheets || [],
+    text: plainText_([p.name, head, p.summary, 'insert formula equation'].concat(p.sheets || [], String(line.math || '').replace(/<[^>]*>/g, '')).join(' ')) }); };
 /* WHICH INSERTS A QUESTION'S PAPER COMES WITH: its subject, level, tier and board, read as the facets read them; a blank list is any. */
 function insertsFor_(x) {
   if (!isQ_(x) || !/paper/i.test(String(x.documentType || ''))) return [];
@@ -1904,45 +1912,24 @@ function insLanded_() {
 /* NO INSERT TILE ON A QUESTION (463): the owner, "they can open it in their 2nd finder" -- an insert is Library, found like any card. */
 const insertRow_ = id => insertSheetRow_(id) || insertParts_().find(r => r.id === id) || null;
 /* THE SHEET ITSELF, on paper: each line a name and its formula, typeset as a question's maths is (`typeset_`). */
-function insertSheet_(r) {
-  const mark = l => (l.higher ? '<span class="tb-h" title="Higher tier only">H</span>' : '')
-    + (l.only ? `<span class="insh-only">${esc(l.only)} only</span>` : '');
-  const body = (r.table === 'periodic' ? insertTable_(r) : '') + r.sections.map(s => `<section class="insh-sec">
-      <h4>${esc(s.head || '')}</h4>
-      <ul>${(s.lines || []).map(l => `<li><span class="insh-fn">${esc(l.name || '')}${mark(l)}</span>
-        <span class="insh-fm">${typeset_(String(l.math || ''))}</span>${l.note ? `<span class="insh-note">${esc(l.note)}</span>` : ''}</li>`).join('')}</ul>
-    </section>`).join('');
-  if (insReading_(r)) {
-    return `<div class="insh-sheet insh-reading">
-    <p class="insh-kick">${esc(['Insert'].concat(r.boards).join(' · '))}</p>
-    <h3>${esc(r.name)}</h3>
-    ${r.summary ? `<p class="insh-sum">${esc(r.summary)}</p>` : ''}
-    ${r.sourceText ? `<div class="insrc${r.lineNumbers ? ' has-lines' : ''}">${insSource_(r)}</div>`
-      : `<div class="insrc insrc-wait${r.lineNumbers ? ' has-lines' : ''}" data-ins="${esc(r.id)}">${insSay_(r)}</div>`}
-  </div>`;
-  }
-  return `<div class="insh-sheet">
-    <p class="insh-kick">${esc(['Insert'].concat(r.boards).join(' · '))}</p>
-    <h3>${esc(r.name)}</h3>
-    ${body}
-    <p class="insh-check"><b>${r.verified ? 'Checked' : 'Not yet checked'}</b> ${esc(r.verifiedNote)}</p>
-  </div>`;
+/* AN INSERT AS BLOCKS: its kicker, a reading's source (filled when its words come) or the sheet's sections, and whether it was checked. */
+function insertBody_(r) {
+  const kick = { type: 'text', look: 'insh-kick', text: ['Insert'].concat(r.boards || []).join(' · ') };
+  if (insReading_(r)) return [kick, { type: 'text', look: 'insh-sum', text: r.summary || '' },
+    { type: 'embed', tool: 'ins-source', look: 'insrc' + (r.sourceText ? '' : ' insrc-wait') + (r.lineNumbers ? ' has-lines' : ''), data: r.sourceText ? null : { ins: r.id }, args: { id: r.id } }];
+  const mark = l => [l.higher ? { badge: 'H', hint: 'Higher tier only' } : '', l.only ? { badge: l.only + ' only' } : ''];
+  return [kick].concat(r.table === 'periodic' ? [{ type: 'grid', caption: 'Periodic table',
+    cells: (r.elements || []).map(e => ({ col: e[4], row: e[5], parts: [e[3], e[1], e[2], e[0]] })) },
+    { type: 'text', look: 'insh-key', text: 'In each box: relative atomic mass, symbol, name, atomic number.' }] : [])
+    .concat((r.sections || []).map(s => ({ type: 'section', look: 'insh-sec', head: s.head || '', blocks: [{ type: 'tree',
+      nodes: (s.lines || []).map(l => ({ label: [l.name || ''].concat(mark(l)), text: [{ typeset: String(l.math || '') }].concat(l.note ? [' ', { i: l.note }] : []) })) }] })),
+    { type: 'text', look: 'insh-check', text: [{ b: r.verified ? 'Checked' : 'Not yet checked' }, ' ', r.verifiedNote || ''] });
 }
-/* THE PERIODIC TABLE: 18 columns, an element where its group and period put it. */
-function insertTable_(r) {
-  const cells = r.elements.map(e => `<div class="insh-el" style="grid-column:${Number(e[4])};grid-row:${Number(e[5])}">
-      <span class="insh-ar">${esc(String(e[3]))}</span><b>${esc(e[1])}</b><span class="insh-nm">${esc(e[2])}</span><span class="insh-z">${Number(e[0])}</span></div>`).join('');
-  return `<div class="insh-pt-wrap"><div class="insh-pt" role="table" aria-label="Periodic table">${cells}</div></div>
-    <p class="insh-key">In each box: relative atomic mass, symbol, name, atomic number.</p>`;
-}
-function insertCard_(x) {
-  const r = x.row;
-  insWant_(r);
-  return `<div class="insh">
-    ${tagRow_(x)}
-    ${insertSheet_(r)}
-  </div>`;
-}
+/* A READING INSERT'S SOURCE, drawn when its words are here; until then what it waits on (`insSay_`). */
+CARD_EMBEDS['ins-source'] = a => { const r = insertRow_(a.id); return !r ? '' : r.sourceText ? insSource_(r) : insSay_(r); };
+cardKind_('insert', x => { const r = x.row || {}; insWant_(r);
+  return { look: 'insh', name: x.name, tags: kcFacetTags_(x).concat((x.sheets || []).map(t => ({ text: t, colour: 2 }))), body: insertBody_(r) }; });
+const insertSheet_ = r => renderCard({ kind: 'insert', look: 'insh', name: r.name, tags: [{ text: r.name, colour: 0 }], body: insertBody_(r) });
 /* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies. */
 function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
   .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'file-view', data: { url: o.url, title: o.label } }))); }
@@ -1957,17 +1944,14 @@ function specItem_(r) {
     row: r,
   };
 }
-/* A POINT'S LESSONS AND QUESTIONS (tools/coverage.js wrote their Find keys); each tile names its card, a key Find lacks is left out. */
-function specLinks_(p, named) {
-  const tiles = (p.links || []).filter(k => named[k]).map(k => tile_({ icon: /^q:/.test(k) ? 'edit' : 'book', label: /^q:/.test(k) ? 'Question' : 'Lesson',
-    note: named[k], act: 'find-open', data: { key: String(k) } })).join('');
-  const shown = (p.links || []).filter(k => /^q:/.test(k)).length, more = (p.asked || 0) - shown;
-  return (tiles ? `<div class="tile-row">${tiles}</div>` : '') + (more > 0 ? `<p class="spec-more">and ${more} more question${more === 1 ? '' : 's'} on this point</p>` : '');
-}
-function specPoints_(r, parent, named) {
-  const kids = (r.points || []).filter(p => p.parent === parent);
-  return kids.length ? `<ul>${kids.map(p => `<li class="spec-pt"><span class="insh-fn">${esc(p.id)}</span>
-    <span class="spec-say">${esc(p.text)}</span>${specLinks_(p, named)}${specPoints_(r, p.id, named)}</li>`).join('')}</ul>` : '';
+/* A POINT'S LESSONS AND QUESTIONS (tools/coverage.js wrote their Find keys) as tree nodes; a key Find lacks is left out. */
+function specNodes_(r, parent, named) {
+  return (r.points || []).filter(p => p.parent === parent).map(p => {
+    const shown = (p.links || []).filter(k => /^q:/.test(k)).length, more = (p.asked || 0) - shown;
+    return { label: p.id, text: p.text, kids: specNodes_(r, p.id, named),
+      tiles: (p.links || []).filter(k => named[k]).map(k => ({ icon: /^q:/.test(k) ? 'edit' : 'book', label: /^q:/.test(k) ? 'Question' : 'Lesson', note: named[k], act: 'find-open', data: { key: String(k) } })),
+      more: more > 0 ? 'and ' + more + ' more question' + (more === 1 ? '' : 's') + ' on this point' : '' };
+  });
 }
 /* WHAT EACH LINKED KEY IS CALLED in Find now, looked up once per card. */
 function specNamed_(r) {
@@ -1976,18 +1960,11 @@ function specNamed_(r) {
   try { (stuffItemsAll_() || []).forEach(i => { if (i && want.has(i.key)) out[i.key] = /^q:/.test(i.key) && i.sub ? i.sub + ' · ' + i.name : i.name || i.key; }); } catch (e) { /* Find not ready: the card shows its tree alone */ }
   return out;
 }
-/* THE SECTION TREE, each section folded (a <details> grows where it is); the official PDF holds the full wording. */
-function specCard_(x) {
-  const r = x.row, named = specNamed_(r);
-  return `<div class="insh">
-    ${tagRow_(x)}
-    <div class="insh-sheet spec-sheet">
-      <p class="insh-kick">${esc([r.board, r.qualification, r.subject, r.code].join(' · '))}</p>
-      ${(r.sections || []).map(s => `<details class="insh-sec spec-sec"><summary class="kc-h">${esc(s.title)}</summary>${specPoints_(r, s.id, named)}</details>`).join('')}
-      <p class="insh-check">Short headings; the official specification has the full wording.</p>
-    </div>
-  </div>`;
-}
+/* THE SECTION TREE, each section folded; the official PDF holds the full wording. */
+cardKind_('spec', x => { const r = x.row || {}, named = specNamed_(r);
+  return { look: 'insh spec-sheet', name: x.name, tags: kcFacetTags_(x), body: [{ type: 'text', look: 'insh-kick', text: [r.board, r.qualification, r.subject, r.code].join(' · ') },
+    { type: 'tree', nodes: (r.sections || []).map(s => ({ label: s.title, kids: specNodes_(r, s.id, named) })) },
+    { type: 'text', look: 'insh-check', text: 'Short headings; the official specification has the full wording.' }] }; });
 const specExtras_ = x => [{ icon: 'open', label: 'Official', note: /\.pdf$/i.test(x.row.url) ? 'specification PDF' : 'the framework page', act: 'file-view', data: { url: x.row.url, title: x.row.board + ' ' + x.row.code } }];
 /* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
 on('ins-print', el => {
@@ -2721,17 +2698,13 @@ function tlStage_(x) {
   return `<div class="tl-scene" aria-live="polite">${tlScene_(stops[i])}</div>
     <div class="tl-view"><div class="tl-track" style="width:${(g.wide * 100).toFixed(2)}%;transform:translateX(${tlShift_(g, i)}%)">${ticks}${dots}</div><span class="tl-pin"></span></div>`;
 }
-function histTimelineCard_(x) {
-  setTimeout(() => tlAuto_(x.key), 700);
-  /* THE ANIMATION IS THE PICTURE (owner, 11 Nov): `tl-art` makes it the card's kc-pic; its controls join the card's one row. */
+/* THE ANIMATION IS THE PICTURE (owner, 11 Nov): its stage is the timeline tool's embed; its controls join the card's one row. */
+CARD_EMBEDS.timeline = a => { const x = tlItem_(a.key); return x ? tlStage_(x) : ''; };
+cardKind_('timeline', x => { setTimeout(() => tlAuto_(x.key), 700);
   const stops = (x.row && x.row.stops) || [], n = stops.length;
-  return `<div class="fc hdb hdb-tl lib-c" aria-label="${esc(x.name)}">
-    <section class="fc-sec tl-anim tl-art" data-tl="${esc(x.key)}">${tlStage_(x)}</section><h3>${esc(x.name)}</h3>
-    ${tagRow_(x)}
-    <p class="tl-say">${n} event${n === 1 ? '' : 's'}, one at a time</p>
-    <div class="tile-row">${n ? tile_(tlOpts_(x.key, Math.min(TL_AT[x.key] || 0, n - 1), n)) : ''}</div>
-  </div>`;
-}
+  return { look: 'hdb hdb-tl lib-c', name: x.name, tags: kcFacetTags_(x), body: [{ type: 'embed', tool: 'timeline', look: 'tl-anim tl-art', data: { tl: x.key }, args: { key: x.key } },
+    { type: 'text', look: 'tl-say', text: n + ' event' + (n === 1 ? '' : 's') + ', one at a time' }],
+    tiles: n ? tlOpts_(x.key, Math.min(TL_AT[x.key] || 0, n - 1), n) : [] }; });
 
 /* ONE PLAYER FOR EVERY TIMELINE: a step moves the track (a CSS transition pans it) and swaps the scene; the tiles never move. */
 const TL_AT = {}, TL_PLAY = { key: '', timer: null }, TL_STEP_MS = 2600;
@@ -9560,7 +9533,8 @@ function findStudyItems_() {
     ...[].concat(...(DATA.textbooks || []).map(b => (b.chapters || []).map(c => contentItem_(b, c)))),
 
     /* ---------- THE EXAM INSERTS (455) */
-    ...(DATA.inserts || []).map(insertItem_),
+    /* A READING INSERT IS ONE SOURCE TEXT, kept whole; a formula sheet is drawn only as its parts. */
+    ...(DATA.inserts || []).filter(insReading_).map(insertItem_),
     ...insertParts_().map(insertPartItem_),
     ...(DATA.specs || []).map(specItem_),
   ];
@@ -9723,19 +9697,18 @@ function profileDoorItems_() {
   ((DATA && DATA.tutors) || []).forEach(t => { if (t) seen[String(t.personId || t.title || t.handle || '')] = 1; });
   if (seeMay_('find:all-people')) ((DATA && DATA.everyone) || []).filter(p => p && p.title).forEach(p => add(p, false));
   /* ADD A PERSON (add-person): one card for an admin, first among the people, drawn by `personAddCard_` (me-people.js). */
-  if (typeof personAddMay_ === 'function' && personAddMay_()) out.unshift({ kind: 'person', add: true, name: 'Add a person', key: 'person:add', sub: '',
+  if (typeof personAddMay_ === 'function' && personAddMay_()) out.unshift({ kind: 'person', add: true, ownCard: true, name: 'Add a person', key: 'person:add', sub: '',
     image: '', row: {}, profileType: ['Student', 'Parent', 'Tutor'], text: 'add a person new account student parent tutor' });
   return out;
 }
-/* PICTURE FIRST: the face fills the top of the card, the name under it; everything else is a tag. */
-function profileDoorCard_(x) {
-  if (x.add) return typeof personAddCard_ === 'function' ? personAddCard_() : '';
-  const t = x.row || {};
-  /* NO FACE, NO LETTER: the card draws its own default picture, so a lone initial would only stand beside the handle. */
-  return `<div class="is-prof prof-door">${!(t.image || t.avatar) ? '' : personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title || t.name, personId: t.personId },
-    { cls: 'prof-big', none: 'prof-none', size: 160 })}<h3>${esc(x.name)}</h3>${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
-    ${tileRow_((typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(t)) : ''), 'person-tiles')}${typeof personEdHtml_ === 'function' ? personEdHtml_(t) : ''}</div>`;
-}
+/* PICTURE FIRST: the face, the name and facets as tags, the handle; an admin's tiles, and the Edit form while it is open. */
+cardKind_('person', x => { const t = kcRow_(x), k = typeof picKind_ === 'function' ? picKind_(t.image) : '';
+  const picture = k === 'photo' ? { src: pic(t.image), alt: '' } : { svg: (k === 'basic' ? pfpArt_(pfpChoice_(t.image), 160) : '') || kcPicOr_(x, '') };
+  const open = typeof PERSON_ED_ !== 'undefined' && PERSON_ED_ && String(PERSON_ED_.id) === String(t.personId);
+  return { look: 'is-prof prof-door kc-facts', picture, tags: [{ text: x.name || '', colour: 0 }].concat(typeof tagList_ === 'function' && x.key ? tagList_(x) : []),
+    body: [t.handle ? { type: 'text', text: '@' + t.handle } : null, open ? { type: 'embed', tool: 'person-edit', args: { row: t } } : null].filter(Boolean),
+    tiles: typeof peopleOpts_ === 'function' ? peopleOpts_(t) : [] }; });
+CARD_EMBEDS['person-edit'] = a => (typeof personEdHtml_ === 'function' ? personEdHtml_(a.row) : '');
 
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */
 /* WHICH COLUMN'S CARDS ANSWER WHICH TYPE, IN THE MENU'S ORDER: setting-for.json's `type:` rows; who opens each is permissions.json's `see` rows. */
@@ -9781,19 +9754,21 @@ const settingNone_ = h => /^\s*<div class="card [^"]*\b(?:rank-off|set-none|own-
 /* EVERY SETTING ONCE (owner, 7 Nov): its `see` rows tag it with each account type; one of the same name joins it. */
 /* A type you do not hold still shows its cards, shut (`lockedAs_`); Business and Site hold the business's own data, so stay an admin's. */
 function settingDoorItems_() {
-  /* SIGN IN AND JOIN ARE FORMS (owner, 10 Nov): drawn open, never a closed card cut to two lines. */
-  if (!USER) return [{ kind: 'setting', name: 'Sign in or join', key: 'set:signin', sub: '', image: '', signIn: true, open: true, text: 'sign in join make an account pin' }];
+  /* JOIN IS A FORM (owner, 10 Nov), drawn open; signing in is Find's first menu (`signMenu_`, owner 13 Nov). */
+  if (!USER) return [{ kind: 'setting', name: 'Make an account', key: 'set:join', sub: '', image: '', join: true, open: true, text: 'join make an account' }];
   const tags = (DATA && DATA.settingFor) || {}, out = [], byName = {}, seen = {};
   /* RECORDS ARE LAZY (the weekly email's cards): until that batch lands they are missing, so Find is drawn again once it does. */
-  try { if (typeof lazyFiles_ === 'function' && !lazyFiles_.in) doorAsk_(lazyFiles_()); } catch (e) { /* drawn without them; the next paint has them */ }
+  try { if (typeof lazyFiles_ === 'function' && !lazyFiles_.in) doorAsk_(lazyFiles_()); } catch (e) { oops_(e, 'find:doorAsk'); }
   const add = (name, id, part, type, mine) => {
     const row = tags[id], fr = settingTagsOf_(id, type);
     const x = byName[norm(name)];
-    if (x) { x.parts.push(part); if (row && (row.rank || 0) < x.rank) x.rank = row.rank || 0; fr.forEach(t => { if (x.settingFor.indexOf(t) === -1) x.settingFor.push(t); }); x.mine = x.mine || mine; return; }
+    if (x) { x.parts.push(part); if (row && (row.rank || 0) < x.rank) x.rank = row.rank || 0; fr.forEach(t => { if (x.settingFor.indexOf(t) === -1) x.settingFor.push(t); }); x.mine = x.mine || mine; return x; }
     const it = { kind: 'setting', name: name, key: 'set:' + (id || part.col + ':' + part.at), sub: '', image: '', parts: [part], mine: mine, settingFor: fr.slice(), rank: row ? row.rank || 0 : 5000 + out.length };
-    byName[norm(name)] = it; out.push(it);
+    byName[norm(name)] = it; out.push(it); return it;
   };
-  if (isAdmin()) add(lensOn_() ? 'Viewing ' + (whose_().name || 'somebody') : 'View as', 'lens', { lens: true }, 'Student', true);
+  /* THE LENS LEADS (`first`): drawn open, above every type, and sorted ahead by `sortKey_`. */
+  if (isAdmin()) Object.assign(add(lensOn_() ? 'Viewing ' + (whose_().name || 'somebody') : 'View as', 'lens', { lens: true }, 'Student', true),
+    { rank: -1, open: true, first: true, settingFor: settingTypes_().map(t => t.type) });
   settingTypes_().forEach(({ type, col, peek }) => {
     /* IN THE LENS, ONLY THE PERSON'S OWN COLUMNS: Business and Site are the business's, not theirs. */
     if (!col || (lensOn_() && LENS_COLS_.indexOf(col) === -1)) return;
@@ -9810,8 +9785,6 @@ function settingDoorItems_() {
     });
   });
   if (settingMay_('door:notify') && !lensOn_()) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
-  const lens = out.find(x => x.key === 'set:lens');
-  if (lens) { lens.rank = -1; lens.open = true; lens.settingFor = settingTypes_().map(t => t.type); }
   /* ORDER IS DATA (setting-for.json's rows, types too); an untagged card keeps its column's place after them. */
   out.sort((a, b) => a.rank - b.rank);
   const order = settingTypes_().map(t => t.type);
@@ -9825,7 +9798,7 @@ function settingPart_(p) {
   return g ? g.pages.join('').replace(/<!--(card|person):[^>]*-->/g, '') : '';
 }
 function settingDoorCard_(x) {
-  if (x.signIn) { if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn(); return (typeof signInCard_ === 'function' ? signInCard_() : '') + (typeof registerCard_ === 'function' ? registerCard_() : ''); }
+  if (x.join) return typeof registerCard_ === 'function' ? registerCard_() : '';
   if (x.notify) return notifyDoorCard_();
   return (x.parts || [{ col: x.setCol, at: x.setAt, id: x.setId }]).map(settingPart_).join('');
 }
@@ -9846,7 +9819,7 @@ function lensCard_() {
 }
 /* FIND'S MEMOS DROPPED, so the settings items are built again for whoever the lens is on now. */
 function lensRedraw_() {
-  try { FUNNEL_MEMO.from = null; ITEM_MEMO.from = null; ALL_MEMO.from = null; } catch (e) { /* no memo yet: the next paint builds them */ }
+  FUNNEL_MEMO.from = null; ITEM_MEMO.from = null; ALL_MEMO.from = null;
   try { if (typeof paintStuff === 'function') inFinder_(FINDER, () => paintStuff(true)); } catch (e) { oops_(e, 'lens:redraw'); }
 }
 /* THEIR SETTINGS, ASKED FOR: `lensOpen` is an admin's alone (permissions.json); nobody else's tap gets this far. */
@@ -9862,7 +9835,8 @@ on('lens-off', () => { LENS = null; lensRedraw_(); });
 
 /* WHAT THE TOP BAR'S RED DOT USED TO SAY (owner, 6 Nov): each Business or Site card that needs you, by name, with a way there. */
 function notifyDoorCard_() {
-  const needs = typeof BIZ_NEEDS !== 'undefined' ? Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0) : [];
+  /* THE BUSINESS RECORDS ARE SWITCHED OFF (attic/js/records.js, owner 13 Nov): their counts come back with them. */
+  const BIZ_NEEDS = window.BIZ_NEEDS || {}, needs = Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0);
   const waiting = ((DATA && DATA.posts) || []).filter(p => p && p.active !== false && p.waiting).length;
   const rows = needs.map(k => ({ label: k.replace(/[-_]/g, ' '), value: String(BIZ_NEEDS[k]) }))
     .concat(waiting ? [{ label: 'posts waiting for approval', value: String(waiting) }] : []);
@@ -10228,9 +10202,9 @@ function stuffSorted_(items) {
 /* PADDED SO THE ALPHABET AGREES WITH ARITHMETIC. § */
 /* ---------- AND THE PAPER ITSELF STRAIGHT AFTER ITS NAME, THEN THE PART BY `qPartKey` § */
 /* ---------- CONTENT CARDS AFTER THE REST, IN THE ORDER THEY TEACH — AND FIRST ONLY WHEN THEY ARE ASKED FOR § */
-/* A SETTING THAT IS NOT YOURS (shut, greyed) comes after all of yours; the admin's lens (whose settings these are) before them all. */
+/* A SETTING THAT IS NOT YOURS (shut, greyed) comes after all of yours; one marked `first` (the admin's lens) before them all. */
 const sortKey_ = x => [
-  x.key === 'set:lens' ? '0' : isContent_(x) ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : x.mine === false ? '3' : '1',
+  x.first ? '0' : isContent_(x) ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : x.mine === false ? '3' : '1',
   padNums_(String(x.sub || x.name || '').toLowerCase()),
   isQ_(x) ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
   padNums_(String(x.qNumber == null ? '' : x.qNumber)),
@@ -10786,6 +10760,95 @@ function accountPages_(col) {
   return out.concat(coming);
 }
 
+/* ---------- SIGNING IN IS FIND'S FIRST STEP (owner, 13 Nov) ---------- */
+/* Signed out, the first menu is Guest or who you are; a name is followed by four menus of digits, each picked one a ● chip. */
+/* The digits live in `SIGN.pin` for the one call and nowhere else: never a chip's value, the URL, history, storage or a log. */
+const SIGN = { step: '', who: '', pin: [], busy: false };
+const SIGN_PIN_LEN = 4;
+const SIGN_DIGITS = '0123456789'.split('');
+const signAsking_ = () => !USER && SIGN.step !== 'guest';
+const signPaint_ = () => finderEach_(() => paintStuff());
+function signMenu_() {
+  if (!signAsking_()) return '';
+  if (SIGN.busy) return loading_();
+  if (SIGN.step === 'join') return typeof registerCard_ === 'function' ? registerCard_() : '';
+  if (SIGN.step === 'pin') return answersRow_(SIGN_DIGITS.map(d => answerTag_(d, ` data-do="sign-digit" data-d="${d}" data-repeat`)).join(''), 'is-grid sign-pin')
+    + answersRow_(answerTag_('Forgot PIN', ' data-do="forgot-pin"'), 'sign-more');
+  /* ONE BOX ON ONE FINDER: Find's carries the id the forgotten-PIN tag and the checks read. */
+  const mine = FINDER === FINDERS.stuff, google = mine && !!(DATA.googleClientId || '');
+  if (google && typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
+  return answersRow_(answerTag_('Guest', ' data-do="sign-guest"') + signBox_(mine)
+    + answerTag_('Make an account', ' data-do="sign-join"') + answerTag_('Forgot PIN', ' data-do="forgot-pin"'), 'sign-who')
+    + (google ? answersRow_('', 'g-row', 'g-btn') : '');
+}
+/* THE BLANK TAG YOU TYPE YOUR NAME ON: no example and nothing remembered (383); `mine` gives it the id. */
+const signBox_ = mine => answerBox_(`${mine ? ' id="in-name"' : ''} class="sign-box" type="text" inputmode="email" autocomplete="off"
+  autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" data-1p-ignore data-lpignore="true" aria-label="Your name, @username or email"
+  value="${esc(SIGN.who)}"`, 'sign-type');
+/* THE STEP'S CHIPS, first in the row: your name signed in (its × signs out), Guest, or the name and a ● per digit. */
+function signChips_() {
+  const chip = (text, act, label) => qtag_(`${esc(text)}${tile_({ icon: 'close', label: label, act: act, cls: 'chip-x' })}`,
+    ` data-do="${act}" role="button" tabindex="0" aria-label="${esc(label)}"`, 'sm sign-chip', 'chip');
+  if (USER) { const who = String(USER.name || USER.handle || '').trim(); return chip(who, 'signout', 'Sign out ' + who); }
+  if (SIGN.step === 'guest') return chip('Guest', 'sign-restart', 'Sign in instead');
+  if (SIGN.step === 'join') return chip('Make an account', 'sign-restart', 'Back to sign in');
+  if (SIGN.step !== 'pin') return '';
+  const dots = SIGN.busy ? SIGN_PIN_LEN : SIGN.pin.length;
+  return chip(SIGN.who, 'sign-restart', 'Not ' + SIGN.who) + qtag_('●', ' aria-hidden="true"', 'sm sign-dot', 'chip').repeat(dots);
+}
+on('sign-guest', () => { SIGN.step = 'guest'; SIGN.pin = []; signPaint_(); });
+on('sign-join', () => { SIGN.step = 'join'; SIGN.pin = []; signPaint_(); });
+on('sign-restart', () => {
+  SIGN.step = ''; SIGN.pin = [];
+  finderEach_(F => finderSet_(F, { paint: false }));
+  signPaint_();
+});
+/* AN ACCOUNT MADE FROM FIND'S Make an account goes straight on to its PIN, under the name it signs in with. */
+function signAfterJoin_(who) {
+  if (USER || SIGN.step !== 'join' || !who) return;
+  SIGN.who = who; SIGN.step = 'pin'; SIGN.pin = [];
+  signPaint_();
+}
+function signWho_(box) {
+  const who = String((box && box.value) || '').trim();
+  if (!who) { toast('Type your name, @username or email first.'); return; }
+  SIGN.who = who; SIGN.step = 'pin'; SIGN.pin = [];
+  signPaint_();
+}
+/* ENTER IN THE BOX PICKS THE NAME, as a tap picks a tag. */
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (!t || !t.classList || !t.classList.contains('sign-box') || !/^Enter$/.test(e.key)) return;
+  e.preventDefault();
+  signWho_(t);
+});
+/* THE FOURTH DIGIT SENDS: the same `verifyLogin`, so the server's attempt limits are the ones it always had. */
+on('sign-digit', el => {
+  const d = String((el && el.dataset && el.dataset.d) || '');
+  if (USER || SIGN.step !== 'pin' || SIGN.busy || !SIGN.who || !/^\d$/.test(d)) return;
+  SIGN.pin.push(d);
+  if (SIGN.pin.length < SIGN_PIN_LEN) { signPaint_(); return; }
+  const who = SIGN.who, pin = SIGN.pin.join('');
+  SIGN.pin = []; SIGN.busy = true;
+  signPaint_();
+  send_({ action: 'verifyLogin', email: who, name: who, pin: pin })
+    .then(d2 => {
+      SIGN.busy = false;
+      if (!d2.success) { toast(d2.error || 'That did not work.'); signPaint_(); return; }
+      SIGN.step = ''; SIGN.who = '';
+      signedIn_(d2, who);
+    })
+    /* `send_` HAS TOASTED THE SERVER'S SENTENCE; a name it does not know goes back to the box to correct. */
+    .catch(err => {
+      SIGN.busy = false;
+      const why = err && err.reply && err.reply.why;
+      if (why === 'not-an-email' || why === 'no-such-email') SIGN.step = '';
+      signPaint_();
+      const box = $('in-name');
+      if (box && !SIGN.step) { box.setAttribute('aria-invalid', 'true'); box.focus(); box.select(); }
+    });
+});
+
 ;
 /* ==== js/find-bundles.js ==== */
 const BUNDLE_MAX = 24;
@@ -11267,7 +11330,7 @@ function chipText_(f, i) {
 /* 680: THE ROW NEVER SAYS THE SAME THING TWICE — a second chip with the same words is left out (its filter stays). */
 function filterChips() {
   const said = {};
-  return `<div class="chips">
+  return `<div class="chips">${signChips_()}
     ${STUFF.filters.map((f, i) => {
       const show = chipText_(f, i), key = spellKey_(show);
       if (said[key]) return '';
@@ -12139,6 +12202,9 @@ function finderWake_(id) {
 /* THE QUESTION, ON THE PAGE. § */
 /* NAMED FOR WHAT IT WAS, not what it is. § */
 function stuffQuestion() {
+  /* SIGNED OUT, THE FIRST MENU IS WHO YOU ARE (`signMenu_`, find-account.js); Guest or a name lets the ordinary menus follow. */
+  const sign = signMenu_();
+  if (sign) return sign;
   const pre = finderTagsAt_() || finderTagsLook_();
   if (pre) return facetAnswersHtml_(pre.facet, pre.values, '') + findPeek_();
   const items = stuffFiltered();
@@ -12193,21 +12259,16 @@ function facetAnswersHtml_(facet, values, more) {
   /* `counted` TAKES THE CHEVRON OFF. § */
   /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION § */
   /* `counted` WITHOUT A COUNT, which is not a contradiction: § */
-  const skip = `<div class="counted row tap is-skip" role="button" tabindex="0" data-do="facet-skip"
-        data-field="${esc(facet.field)}">
-        <span class="k">Doesn't matter</span>
-      </div>`;
+  const skip = answerTag_('Doesn\'t matter', ` data-do="facet-skip" data-field="${esc(facet.field)}"`, 'is-skip');
   /* THE "and N more" LINE WENT WITH THE TRIM. § */
   /* `data-value` IS THE FULL NAME (`filterHit` matches it); THE TEXT IS `show`, what tells it apart from the answers beside it, as
      its chip says it (1180: SATs said `Paper 1 · Maths · SATs · KS2`). */
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
   const grid = numberedRun_(values);
-  return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap${facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? ' is-off' : ''}" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
-        data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.also && v.also.length ? ` data-also="${esc(JSON.stringify(v.also))}"` : ''}${
-        grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
-        <span class="k">${mark(v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value))}</span>
-      </div>`).join('') + skip + '</div>' + more;
+  return answersRow_(values.map(v => answerTag_(mark(v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value)),
+    ` data-do="facet-pick"${tagAttr_(facet.field)} data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.also && v.also.length ? ` data-also="${esc(JSON.stringify(v.also))}"` : ''}${
+      grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}`, facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? 'is-off' : '')).join('') + skip, grid ? 'is-grid' : '') + more;
 }
 
 /* `stuff-jump` went with the group list. § */
@@ -17896,7 +17957,7 @@ const WIDGETS = [
 
 
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker', solid: true,
-    start: () => initMat?.(),
+    start: () => window.initMat?.(),
     into: 'mat-box', what: 'The cheat sheet',
     /* NO BLURB. It said "one sheet of A4, tick what goes on it" over a list of tickboxes on a page showing a sheet of A4 — three sentences describing what is already § */
     get html() { return card_(`<div class="">
@@ -18079,8 +18140,8 @@ tierGuardWidgets_(WIDGETS);
 /* ---------- THE BOOKING PAGES ARE THE FORM, AND ONLY THE FORM § */
 function bookBlocks() {
   if (!USER) {
-    return [card_(`<div class="book-signin"><h3>Booking</h3>
-      <p class="note">Sign in to book — your account is a few screens to the right.</p></div>`, 'bookform')];
+    return [renderCard({ kind: 'bookform', look: 'book-signin', name: 'Booking', tags: [{ text: 'Booking' }],
+      body: [{ type: 'text', look: 'note', text: 'Sign in to book — your account is a few screens to the right.' }] })];
   }
   /* ---------- THE FORM, THEN WHAT IS ALREADY BOOKED, THEN WHAT IS FINISHED § */
   /* ---------- THE FORM, AND ONLY THE FORM, AGAIN § */
@@ -18171,8 +18232,7 @@ function liveWidgets_() {
         what: 'Who is in it',
         into: 'live-body-' + id,
         start: () => fillRoster_(id),
-        html: card_('<div class="live-roster"><h3>' + esc(name) + '</h3>'
-            + '<div id="live-body-' + esc(id) + '"></div></div>'),
+        html: renderCard({ kind: 'panel', look: 'live-roster', name: name, tags: [{ text: name }], body: [{ type: 'paperBox', id: 'live-body-' + id }] }),
       };
     });
 }
@@ -19171,7 +19231,7 @@ function stepSelect_(st) {
   if (stepLocked_(st)) {
     const said = st.multi ? (chosen.join(', ') || fb)
       : (st.label_ && v ? st.label_(v) : v);   /* `v` already carries the fallback — see above */
-    return `<span class="bk-set">${esc(String(dash_(said)))}</span>`;
+    return cardBlock_({ type: 'paperSet', text: String(dash_(said)) });
   }
   const isOn = o => norm(o) === norm(v);
   /* ---------- THE BLANK OPTION DOES NOT REPEAT AN ANSWER ON THE LIST § */
@@ -19186,26 +19246,18 @@ function stepSelect_(st) {
   const noOf = o => st.off ? String(st.off(o) || '') : '';
   const words = o => said(o) + (noOf(o) ? ' · ' + noOf(o) : '');
   const blank = dup ? dash_() : dash_(fb);
-  const sel = `<select class="bk-sel" id="${bkCtl_(st.id)}" data-do="book-set" data-step="${esc(st.id)}"
-      ${off ? 'disabled' : ''} aria-label="${esc(st.label)}">
-    <option value=""${!v || !opts.some(isOn) ? ' selected' : ''}>${esc(blank)}</option>
-    ${opts.map(o => `<option value="${esc(o)}"${isOn(o) ? ' selected' : ''}${
-        noOf(o) && !isOn(o) ? ' disabled' : ''}>${esc(words(o))}</option>`).join('')}
-  </select>`;
-  /* ---------- AN ANSWER TOLD APART BY ITS END IS DRAWN IN WORDS, WITH THE SELECT LAID OVER THEM § */
-  if (!st.wrap) return sel;
   const picked = opts.filter(isOn).pop();
-  return `<span class="bk-face"><span class="bk-said" aria-hidden="true">${
-    esc(picked !== undefined ? words(picked) : blank)}</span>${sel}</span>`;
+  return cardBlock_({ type: 'paperSelect', id: bkCtl_(st.id), step: st.id, off, aria: st.label,
+    options: [{ value: '', text: blank, on: !v || !opts.some(isOn) }].concat(opts.map(o => ({ value: o, text: words(o), on: isOn(o), off: !!noOf(o) && !isOn(o) }))),
+    face: st.wrap ? (picked !== undefined ? words(picked) : blank) : null });
 }
 
 /* ---------- THE NOTE IS A ROW LIKE THE REST § */
 function noteRow_() {
   return { n: '', k: 'Note', v: '', mul: '', rate: '', total: '', step: '',
     ctl: bkCtl_('note'),
-    sel: `<input class="bk-in bk-in-l" id="${bkCtl_('note')}" type="text" data-do="book-note"
-      value="${esc(BOOKING.note || '')}" placeholder="anything else we should know"
-      aria-label="Anything else we should know">` };
+    sel: cardBlock_({ type: 'paperInput', wide: true, id: bkCtl_('note'), act: 'book-note', value: BOOKING.note || '',
+      placeholder: 'anything else we should know', aria: 'Anything else we should know' }) };
 }
 
 /* ---------- SEVERAL ANSWERS, THE SAME DROPDOWN AS ONE § */
@@ -19216,11 +19268,8 @@ function stepPick_(st) {
   const said = o => String(st.label_ ? st.label_(o) : o);
   const fb = st.fallback ? String(st.fallback() || '') : '';
   const face = chosen.map(said).join(', ') || fb || dash_();
-  return `<span class="bk-face${chosen.length ? ' is-set' : ''}"><span class="bk-said" aria-hidden="true">${esc(face)}</span><select class="bk-sel"
-    id="${bkCtl_(st.id)}" data-do="book-set" data-step="${esc(st.id)}" aria-label="${esc(st.label)}">
-    <option value="" selected>${esc(face)}</option>
-    ${opts.map(o => `<option value="${esc(o)}">${on(o) ? '✓ ' : ''}${esc(said(o))}</option>`).join('')}
-  </select></span>`;
+  return cardBlock_({ type: 'paperSelect', id: bkCtl_(st.id), step: st.id, aria: st.label, face, set: !!chosen.length,
+    options: [{ value: '', text: face, on: true }].concat(opts.map(o => ({ value: o, text: (on(o) ? '✓ ' : '') + said(o) }))) });
 }
 
 /* ON THE SCREEN YOU ARE ON, ON THE PAGE IN FRONT OF YOU. § */
@@ -19265,15 +19314,6 @@ function tickListShow_(find, still) {
 /* EVERY `<select>` IS THE PLATFORM'S OWN AGAIN THE OWNER, 9 OCTOBER: § */
 
 /* ---------- ELEVEN HOURS, SAID ONCE § */
-function slotHead_(hours) {
-  return `<div class="slot-row slot-head" aria-hidden="true">
-    <span class="slot-day"></span>
-    <div class="slot-hours">
-      ${hours.map(h => `<span class="slot-hh">${h}</span>`).join('')}
-    </div>
-  </div>`;
-}
-
 /* ---------- AND THE WEEK ROUND IT, BECAUSE THERE WERE THREE OF THESE § */
 /* ---------- THE WEEK AS SEVEN ROWS OF THE CARD, NOT ONE BLOCK UNDER ONE ROW § */
 function weekRows_(days, cell, opts) {
@@ -19294,13 +19334,8 @@ function weekRows_(days, cell, opts) {
     id: o.id || '',
     /* ---------- THE ANSWER IS DRAWN, NOT WRITTEN § */
     /* ---------- AND A TEN-COLUMN STRIP HAS NO ROOM TO LETTER EVERY COLUMN § */
-    strip: (i === 0 ? (o.ruler
-              ? '<span class="wk-hh wk-rule" aria-hidden="true">'
-                + esc(String(cols[0])) + ' \u2013 ' + esc(String(cols[cols.length - 1])) + '</span>'
-              : '<span class="wk-hh" aria-hidden="true">'
-                + cols.map(h => '<span class="slot-hh">' + esc(String(h)) + '</span>').join('')
-                + '</span>') : '')
-      + '<span class="slot-hours">' + d.hours.map(h => cell(h, d)).join('') + '</span>',
+    strip: cardBlock_({ type: 'paperStrip', head: i ? '' : (o.ruler ? 'ruler' : 'cols'), from: String(cols[0]), to: String(cols[cols.length - 1]),
+      cols: cols.map(String), cells: d.hours.map(h => cell(h, d)).join('') }),
     /* A DAY WITH NOTHING OPEN COLLAPSES. § */
     shut: !!d.shut,
     off: !!o.off,
@@ -19312,15 +19347,7 @@ function weekRows_(days, cell, opts) {
 /* A DAY IS ITS SHORT NAME, Mon to Sun, everywhere (owner, 8 Nov). */
 function weekGrid_(days, cell) {
   const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
-  return `<div class="slot-grid">
-    ${slotHead_(cols)}
-    ${/* ---------- NO DAY HERE COLLAPSES ANY MORE, SO THIS NO LONGER DRAWS ONE § */
-          ''}
-    ${days.map(d => `<div class="slot-row">
-      <span class="slot-day">${esc(day_(d.label))}</span>
-      <div class="slot-hours">${d.hours.map(h => cell(h, d)).join('')}</div>
-    </div>`).join('')}
-  </div>`;
+  return cardBlock_({ type: 'paperWeek', cols, days: days.map(d => ({ label: day_(d.label), cells: d.hours.map(h => cell(h, d)).join('') })) });
 }
 
 /* ---------- THE WAITING LIST'S WEEK, IN BLOCKS § */
@@ -19729,161 +19756,33 @@ function rosterHtml(o) {
   const tutor = o.tutor || '';
   const seats = Math.max(0, Number(o.seats) || 0);
   const names = (o.names || []).filter(Boolean);
-
-  const slots = [];
-  slots.push({ role: 'Tutor', name: tutor, filled: !!tutor, tutor: true });
-  for (let i = 0; i < seats; i++) {
-    /* A SEAT SOMEBODY HAS PAID FOR IS TAKEN, whether or not it has a name on it. § */
-    /* NAMED IF WE KNOW, "Child" IF WE DO NOT. § */
-    /* "SOMEONE ELSE" IS AN ANSWER, NOT A NAME. § */
-    slots.push({ role: 'Seat ' + (i + 1),
-                 name: (names[i] && names[i] !== UNNAMED) ? names[i] : 'Child',
-                 filled: true });
-  }
-  /* Pad to four. An open slot is drawn as open rather than left off, because the empty ones are
-     the ones that say something. */
+  const slots = [{ role: 'Tutor', name: tutor, filled: !!tutor, tutor: true }];
+  for (let i = 0; i < seats; i++) slots.push({ role: 'Seat ' + (i + 1), name: (names[i] && names[i] !== UNNAMED) ? names[i] : 'Child', filled: true });
+  /* Pad to four: the empty seats are the ones that say something. */
   while (slots.length < 4) slots.push({ role: 'Open', name: '', filled: false });
-
-  return `<div class="rost">
-    ${slots.map(sl => `<div class="rost-slot${sl.filled ? ' on' : ''}${sl.tutor ? ' tut' : ''}">
-      <span class="rost-pic">${sl.filled
-        ? personFace_({ name: sl.name || sl.role }, { size: 34 })
-        : '<span class="rost-plus">+</span>'}</span>
-      ${/* ---------- AN EMPTY SEAT SAID "OPEN" TWICE § */
-            ''}
-      <span class="rost-name">${esc(sl.filled ? (sl.name ? displayName_(sl.name) : sl.role) : 'Open')}</span>
-      ${sl.filled ? `<span class="rost-role">${esc(sl.role)}</span>` : ''}
-    </div>`).join('')}
-  </div>`;
+  slots.forEach(sl => {
+    sl.face = sl.filled ? personFace_({ name: sl.name || sl.role }, { size: 34 }) : '';
+    sl.said = sl.filled ? (sl.name ? displayName_(sl.name) : sl.role) : 'Open';
+  });
+  return cardBlock_({ type: 'paperRoster', slots });
 }
 
 /* `facesFor` AND `rosterPips` WENT WITH `jobCard`. § */
 
 /* FOUR OBJECTS, NOT ONE OBJECT IN FOUR MOODS. § */
 /* ---------- WHAT EACH COLUMN IS, IN ONE SMALL ROW AT THE TOP § */
-function spineHead_(r) {
-  if (!r || !r.cols || !(r.rows || []).length) return '';
-  return `<div class="bk-row is-cols">
-    <span class="bk-n"></span>
-    <span class="bk-k"></span>
-    <span class="bk-v"></span>
-    <span class="bk-m">×</span>
-    <span class="bk-r">+/h</span>
-    <span class="bk-t">=</span>
-  </div>`;
-}
 
-function receiptHtml(r) {
-  /* ---------- `kind`, `SKIN` AND `STAGE` STOOD HERE, AND ONE OF THEM WAS ALREADY DEAD § */
-  /* `.is-done` STAYS, and it is not a skin. It marks the SAVED document so the hour grid tightens —
-     a record does not need rows you can press — which is a layout, not a colour. */
-  const done = r.done ? ' is-done' : '';
-  return `<div class="rc${done}">
-    <div class="rc-head">
-      ${/* ---------- THE SHOP NAME WAS FOR A RECEIPT, AND THIS IS NOT ONE ANY MORE § */
-            ''}
-      ${/* THE THREE LINES ON ONE LINE. § */
-           ''}
-      ${(r.lines || []).filter(Boolean).length
-        ? `<div class="qtags qcard-tags">${(r.lines || []).map((l, i) => l ? `${qtag_(`${esc(l)}`, ` data-tag="${[6, 9, 4][i] || 0}"`)}` : '').join('')}</div>` : ''}
-    </div>
-    ${/* `r.photos` WAS HERE. Nothing passes photos to a receipt any more — see `bookBreakdown`. */''}
-    ${/* ---------- AND THE RULE ABOVE THE ROWS IS THE HEADER'S OWN § */
-         ''}
-    ${spineHead_(r) ? '' : '<div class="rc-rule"></div>'}
-    ${/* THE OLD COLUMN HEADINGS ARE STILL GONE, and `spineHead_` is not them. § */
-         ''}
-    ${/* ---------- THE TOTAL IS A ROW OF THE TABLE NOW, NOT A BAR BESIDE IT § */
-         ''}
-    ${/* ---------- `r.more`: WHO GETS WHAT, FOR THE ONE PERSON ALLOWED TO KNOW § */
-         ''}
-    <div class="bk">${spineHead_(r)}${(r.rows || []).join('')}${r.before || ''}${r.noTotal ? '' : `<div class="bk-row rc-total">
-      <span class="bk-n"></span>
-      <span class="bk-k">${esc(r.totalLabel || 'Cost')}</span>
-      <span class="bk-v"></span>
-      <span class="bk-m"></span>
-      <span class="bk-r"></span>
-      <span class="bk-t">${esc(r.total || '')}</span>
-    </div>`}${(r.more || []).map(m => `<div class="bk-row rc-total rc-more${m.cls ? ' ' + esc(m.cls) : ''}">
-      <span class="bk-n"></span>
-      <span class="bk-k">${esc(m.k)}</span>
-      <span class="bk-v"></span>
-      <span class="bk-m"></span>
-      <span class="bk-r"></span>
-      <span class="bk-t">${esc(m.t)}</span>
-    </div>`).join('')}${r.moreSay ? `<p class="bk-say rc-money-say">${esc(r.moreSay)}</p>` : ''}</div>
-    ${/* THE ROSTER SLOT IS STILL HERE and nothing fills it — see the notes above. § */
-          ''}
-    ${r.roster ? `<div class="rc-rule"></div>${r.roster}` : ''}
-    <div class="rc-rule"></div>
-    ${/* ---------- WHAT YOU DO WITH IT, ON IT § */
-          ''}
-    ${r.foot || ''}
-    ${/* THE BARCODE WAS HERE. § */
-          ''}
-    ${/* THE FOOTER LINE IS DRAWN ONLY IF THERE IS ONE. § */
-          ''}
-    ${/* THE REFERENCE, WHEN THERE IS ONE. § */
-          ''}
-    ${r.ref ? `<p class="rc-ref">${esc(r.ref)}</p>` : ''}
-  </div>`;
-}
+/* THE PAPER ITSELF is drawn by the one renderer (`paperDoc` in cards-render.js). */
+const receiptHtml = r => cardBlock_(Object.assign({ type: 'paperDoc' }, r));
 
 /** One row of a receipt, from the shape `breakdownRows` and `jobRows` both produce. */
 function receiptRow(r) {
-  /* `wide` — A TITLE IS NOT A VALUE. § */
-  const cls = [r.blank ? 'is-blank' : '',
-               r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '',
-               r.wide ? 'is-wide' : '',
-               /* THE WEEK'S OWN THREE. `bk-wk` lays the strip out in the answer cell, `is-shut`
-                  collapses a day nobody works, `is-off` greys a week that cannot be answered. */
-               r.strip ? 'bk-wk' : '', r.strip && r.shut ? 'is-shut' : '',
-               r.strip && r.off ? 'is-off' : '',
-               /* AND THE LIST'S TALLY, whose bars take the empty figure tracks — see `.bk-tally`. */
-               r.tally ? 'bk-tally' : '', r.cls || '']
-    .filter(Boolean).join(' ');
-  /* A DAY SHOWS ITS HOURS, drawn rather than written — the same row of boxes the picker uses, so a day on the receipt and a day in the grid are visibly the same § */
-  /* A DROPDOWN WHERE THERE IS ONE, and it replaces the value rather than sitting beside it: § */
-  /* ---------- A DAY'S HOURS ARE ITS ANSWER § */
-  /* ---------- A STAGE IS A MARK, NOT A VALUE § */
-  /* THE BOX LAST, BECAUSE `.bk-v` IS RIGHT-ALIGNED AND FIVE BOXES HAVE TO BE ONE COLUMN. § */
-  const value = r.tick !== undefined
-    ? `${S_(r.v) ? `<span class="bk-when">${esc(r.v)}</span> ` : ''}<span
-       class="bk-tick${r.tick ? ' on' : ''}" role="img" aria-label="${
-       r.tick ? 'done' : 'not yet'}">✓</span>`
-    : r.strip ? r.strip
-    : r.sel ? r.sel
-    /* A TALLY IS MARKUP FOR `strip`'S REASON — `whenCouldHtml` draws it, and nothing else does. */
-    : r.tally ? r.tally
-    : r.hours
-    ? `<span class="bk-hrs">${((slotGrid().rows.find(x => x.prefix === r.hours.day)
-        || { hours: [] }).hours).map(h => `<span class="bk-hr${
-          (BOOKING.slots || []).indexOf(h.code) !== -1 ? ' on' : ''}">${h.h}</span>`).join('')}</span>`
-    : r.dates ? `<span class="bk-dates">${esc(r.v)}</span>`
-    : esc(r.v);
-  /* ---------- A ROW WITH NO FIGURES DOES NOT NEED THE FIGURE COLUMNS § */
-  /* ---------- A QUESTION KEEPS ITS COLUMNS WHETHER OR NOT IT HAS FIGURES § */
-  /* AND A DAY ROW NEVER COLLAPSES TO THE NARROW COLUMN EITHER, for the reason the grid row had it: § */
-  const bare = (!r.id || !!r.open || !!r.strip) && !S_(r.mul) && !S_(r.rate) && !S_(r.total);
-  /* ---------- THE ROW ABOVE A GRID IS A HEADING, NOT A FIELD § */
-  /* AND A DAY ROW LOSES ITS DASHED UNDERLINE FOR THE SAME REASON THE `When` ROW DID: § */
-  /* AND A TALLY'S BARS ARE ITS ANSWER IN THE SAME WAY — a dashed "an answer goes here" under a
-     count of answers already given is the card advertising a blank that is full. */
-  const heads = !!r.open || !!r.strip || !!r.tally;
-  return `<div class="bk-row ${cls}${bare ? ' is-bare' : ''}${heads ? ' is-head' : ''}">
-    <span class="bk-n">${esc(r.n)}</span>
-    ${/* A ROW WITH A CONTROL LABELS IT — see `bkCtl_`. `for` before `class`, so the receipt's own
-          readers that look for `class="bk-k">` find the words either way. */
-      r.ctl && r.sel ? `<label for="${esc(r.ctl)}" class="bk-k">${esc(r.k)}</label>`
-                     : `<span class="bk-k">${esc(r.k)}</span>`}
-    <span class="bk-v">${heads && String(r.v) === dash_() ? '' : value}</span>
-    <span class="bk-m">${esc(r.mul)}</span>
-    <span class="bk-r">${esc(r.rate)}</span>
-    <span class="bk-t">${esc(r.total)}</span>
-    ${/* ---------- THE WEEK IS A CELL OF THIS ROW NOW, NOT A BLOCK AFTER IT § */
-          ''}
-    ${r.open || ''}
-  </div>${r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : ''}`;
+  /* A DAY SHOWS ITS HOURS, the same boxes the picker uses. */
+  const hourCells = r.tick === undefined && !r.strip && !r.sel && !r.tally && r.hours
+    ? ((slotGrid().rows.find(x => x.prefix === r.hours.day) || { hours: [] }).hours).map(h => ({ h: h.h, on: (BOOKING.slots || []).indexOf(h.code) !== -1 }))
+    : null;
+  return cardBlock_(Object.assign({}, r, { type: 'paperRow', hourCells, dash: dash_(),
+    mul: S_(r.mul) ? r.mul : '', rate: S_(r.rate) ? r.rate : '', total: S_(r.total) ? r.total : '', v: r.v == null ? '' : r.v }));
 }
 
 /* A SAVED JOB, AS A RECEIPT OF WHAT WAS ASKED FOR. § */
@@ -20083,9 +19982,8 @@ function discountRow_(L) {
   return receiptRow({ n: '', k: 'Discount', v: '', mul: '', cls: 'rc-disc', ctl: bkCtl_('discValue'),
     rate: '',
     total: e.discount > 0 ? '− ' + money_(e.discount / ((L && L.splitShares) || 1)) : dash_(),
-    sel: `<input class="bk-in" id="${bkCtl_('discValue')}" data-do="book-disc" data-field="discValue" type="number"
-      inputmode="decimal" min="0" max="100" step="1" value="${admin ? esc(BOOKING.discValue) : ''}" placeholder="% off"${admin ? '' : ' disabled'}
-      aria-label="Discount, per cent off">` });
+    sel: cardBlock_({ type: 'paperInput', kind: 'number', id: bkCtl_('discValue'), act: 'book-disc', field: 'discValue',
+      value: admin ? BOOKING.discValue : '', placeholder: '% off', off: !admin, aria: 'Discount, per cent off' }) });
 }
 /* KEPT AS IT IS TYPED, REDRAWN ON A CHANGE. § */
 document.addEventListener('input', e => {
@@ -20126,7 +20024,7 @@ function payRow_(L) {
 function discountSaid_(j) {
   const pc = Number(j && j.discountValue) || 0;
   return receiptRow({ n: '', k: 'Discount', v: '', mul: '', rate: '', cls: 'rc-disc', total: dash_(),
-    sel: `<input class="bk-in" type="number" value="${pc > 0 ? esc(String(pc)) : ''}" placeholder="% off" disabled aria-label="Discount, per cent off">` });
+    sel: cardBlock_({ type: 'paperInput', kind: 'number', value: pc > 0 ? String(pc) : '', placeholder: '% off', off: true, aria: 'Discount, per cent off' }) });
 }
 
 /* ---------- WHAT THE CARD HOLDS, FOR A SUGGESTION ABOUT IT § */
@@ -20171,11 +20069,8 @@ function whenCouldHtml(j) {
   /* A COUNT OUT OF NOBODY IS NOT A BAR. `people` is the number of families who answered, so it is
      never below a slot's own count — but a payload that sent it blank would draw `Infinity%`. */
   const of = Math.max(1, Number(w.people) || 0);
-  return `<div class="wc">${w.slots.map(s => `<div class="wc-row${s.all ? ' is-all' : ''}">
-      <span class="wc-n">${esc(s.n)}/${esc(w.people)}</span>
-      <span class="wc-slot">${esc(s.slot)}</span>
-      <i style="--f:${Math.min(100, (Number(s.n) || 0) / of * 100).toFixed(0)}%"></i>
-    </div>`).join('')}</div>`;
+  return cardBlock_({ type: 'paperWhenCould', people: w.people, slots: w.slots.map(s => ({ n: s.n, slot: s.slot, all: s.all,
+    f: Math.round(Math.min(100, (Number(s.n) || 0) / of * 100) / 10) * 10 })) });
 }
 
 /* ---------- `joinBlock` STOOD HERE, UNDER THE PAPER, AND IT IS THREE PIECES OF THE PAPER NOW § */
@@ -20402,9 +20297,7 @@ function rcPng_(rc) {
   const cw = Math.ceil(w * RC_SNAP_K), ch = Math.ceil(h * RC_SNAP_K);
   return rcFonts_().then(fonts => {
     /* `viewBox` IS THE CSS SIZE AND `width`/`height` THE PIXEL SIZE, so the browser lays the HTML out at the width it had on the screen — the same wraps, the same § */
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" `
-      + `viewBox="0 0 ${cw / RC_SNAP_K} ${ch / RC_SNAP_K}"><style>${fonts}\n${rules.join('\n')}</style>`
-      + `<foreignObject x="0" y="0" width="${w}" height="${h}">${xml}</foreignObject></svg>`;
+    const svg = cardBlock_({ type: 'paperSnap', cw, ch, k: RC_SNAP_K, w, h, css: fonts + '\n' + rules.join('\n'), xml });
     return new Promise((ok, no) => {
       const img = new Image();
       img.onload = () => {
@@ -20455,13 +20348,10 @@ function rcOffer_(blob, name, rc) {
   const at = rc || document.querySelector('.screen.on .rc') || document.querySelector('.rc');
   if (!at) { toast('There is no booking on screen to share'); return; }
   document.querySelectorAll('.rc-shot-box').forEach(x => x.remove());
-  at.insertAdjacentHTML('afterend', `<div class="rc-shot-box">
-    <img class="rc-shot" src="${RC_SHOT.url}" alt="This booking, as a picture" decoding="async">
-    <p class="note">${can ? 'Press Share to send it.' : 'Press and hold the picture to save it.'}</p>
-    <div class="btn-row">
-      ${can ? tile_({ form: true, label: 'Share', act: 'rc-shot-share', cls: 'primary' }) : ''}
-      ${tile_({ form: true, label: 'Save', act: 'rc-shot-save', kind: 'quiet', data: { name } })}
-    </div></div>`);
+  at.insertAdjacentHTML('afterend', renderCard({ kind: 'shot', look: 'rc-shot-box', name: 'This booking, as a picture',
+    picture: { src: RC_SHOT.url, alt: 'This booking, as a picture' },
+    body: [{ type: 'text', look: 'note', text: can ? 'Press Share to send it.' : 'Press and hold the picture to save it.' }],
+    tiles: [can ? { label: 'Share', act: 'rc-shot-share', tone: 'buy' } : null, { label: 'Save', act: 'rc-shot-save', data: { name } }].filter(Boolean) }));
 }
 
 /* SAVE IS A FORM BUTTON LIKE SHARE (one way only): the download link is made and clicked here, never written as markup. */
@@ -20493,7 +20383,7 @@ on('book-share', el => {
   /* THE DOCUMENT THIS CONTROL IS PART OF, asked of the DOM rather than remembered — the same move as
      `msg-send` walking up to its nearest `.msg-form`. The form and a saved session share this handler
      without either being named. */
-  const rc = el && el.closest && el.closest('.rc');
+  const rc = el && el.closest && (el.closest('.rc') || (el.closest('.card') && el.closest('.card').querySelector('.rc')));
   if (!rc) return toast('There is nothing to share on this card yet');
   /* SAID AT ONCE, because the picture takes a moment and a press that answers nothing for half a
      second gets pressed again. */
@@ -20519,7 +20409,8 @@ function bookerCard() {
   const out = drawBooker_();
   if (!out) return '';
   /* A CARD ON THE ONE TEMPLATE (owner, 12 Nov): name as first tag, the questions and price lines as its form, its round row last. */
-  return card_(`<div class="bookform" id="bookr"><h3>Booking form</h3>${out.html}${out.tiles}</div>`, 'bookform');
+  return renderCard({ kind: 'bookform', id: 'bookr', look: 'bookform', name: 'Booking form', tags: [{ text: 'Booking form' }],
+    body: [{ type: 'paperBox', look: 'bookform-paper', inner: out.html }], tiles: out.tiles });
 }
 
 function drawBooker_() {
@@ -20540,23 +20431,15 @@ function drawBooker_() {
     && !bookStep_('kids').options().length
     && rank_() !== 'staff' && rank_() !== 'student';
   const kidsNote = noKids
-    ? `<p class="note note-gap">No children are on
-         ${mine ? 'your account' : esc(forWhom) + '&rsquo;s account'}, so we cannot ask which of
-         them this is for — the seats will just say <b>Child</b>.
-         <span>${mine ? 'Ask us to add them and the next booking will name them.'
-           : 'Add them to that account and the next booking will name them.'}</span></p>`
+    ? cardBlock_({ type: 'paperNote', look: 'note-gap', text: ['No children are on ' + (mine ? 'your account' : forWhom + '’s account')
+        + ', so we cannot ask which of them this is for — the seats will just say ', { b: 'Child' }, '. '
+        + (mine ? 'Ask us to add them and the next booking will name them.' : 'Add them to that account and the next booking will name them.')] })
     : '';
 
   /* THE RUNNING BREAKDOWN. § */
   /* ---------- THE ACTIONS ARE PRINTED ON THE PAPER § */
-  const foot = `
-    ${/* ---------- TWO MARKS, NOT A BUTTON AND A MARK § */
-          ''}
-    ${/* A CHILD ASKS A PARENT, NOT THE BUSINESS (398): no price reaches her, so the parent books it. Share stays — it is how she shows them. */
-      childView_() ? `<p class="note rc-kid">${esc(KID_ASK_PARENT)}</p>` : ''}
-    ${policyLinks_('family')}
-    ${/* ---------- THE FOOTER LINE WENT § */
-          ''}`;
+  /* A CHILD ASKS A PARENT, NOT THE BUSINESS (398): no price reaches her, so the parent books it. Share stays — it is how she shows them. */
+  const foot = (childView_() ? cardBlock_({ type: 'paperNote', look: 'rc-kid', text: KID_ASK_PARENT }) : '') + policyLinks_('family');
   const money_ = bookBreakdown(L, foot);
 
   /* ---------- THE CARD IS THE FORM, FROM THE FIRST QUESTION § */
@@ -20566,13 +20449,11 @@ function drawBooker_() {
   /* THE PAPER IS THE WHOLE THING NOW. The note box moved into it as a row, the buttons are printed
      on it above the barcode, and what is left out here is nothing at all. */
   /* THE CARD'S ROUND ROW (owner, 12 Nov): Send leads; findCard lifts this top-level row into the card's one row. */
-  const tiles = `<div class="tile-row rc-tiles">
-      ${childView_() ? '' : tile_({ icon: 'send', label: 'Send', tone: 'buy', act: 'book-send' })}
-      ${tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })}
-      ${/* REPORT OR SUGGEST A CHANGE ON THE BOOKING FORM TOO (489). */
-        typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', 'booking', 'Booking')) : ''}
-    </div>`;
-  return { html: head || '<p class="note">Not enough answered to price it yet.</p>', tiles };
+  const tiles = [].concat(childView_() ? null : { icon: 'send', label: 'Send', tone: 'buy', act: 'book-send' },
+    { icon: 'share', label: 'Share this booking', act: 'book-share' },
+    /* REPORT OR SUGGEST A CHANGE ON THE BOOKING FORM TOO (489). */
+    typeof suggestOpts_ === 'function' ? suggestOpts_('widget', 'booking', 'Booking') : null).filter(Boolean);
+  return { html: head || cardBlock_({ type: 'paperNote', text: 'Not enough answered to price it yet.' }), tiles };
 }
 
 on('book-send', el => {
@@ -20805,9 +20686,7 @@ on('job-request-answer', el => {
   if (!sure_(el, 'Turn it down?')) return;
   const row = el.closest('.tile-row');
   if (!row || (row.nextElementSibling && row.nextElementSibling.classList.contains('req-why'))) return;
-  row.insertAdjacentHTML('afterend', `<form class="req-why" data-id="${esc(id)}">
-    <label>Why not? <input name="why" maxlength="200" placeholder="optional, one line" autocomplete="off"></label>
-    ${tile_({ form: true, submit: true, label: 'Decline' })}</form>`);
+  row.insertAdjacentHTML('afterend', cardBlock_({ type: 'paperWhy', id }));
   const form = row.nextElementSibling;
   form.addEventListener('submit', e => { e.preventDefault(); form.querySelector('button').disabled = true; send(form.querySelector('input').value.trim()); });
   form.querySelector('input').focus();
@@ -20948,8 +20827,7 @@ function policyHref_(doc) {
 function policyLinks_(who) {
   const list = (POLICY_DOCS[who] || []).filter(d => policyHref_(d[0]));
   if (!list.length) return '';
-  return `<p class="note policy-links">Policies: ${list.map(d =>
-    `<a href="${esc(policyHref_(d[0]))}" data-do="file-view" target="_blank" rel="noopener">${esc(d[1])}</a>`).join(' · ')}</p>`;
+  return cardBlock_({ type: 'paperLinks', say: 'Policies: ', links: list.map(d => ({ href: policyHref_(d[0]), text: d[1] })) });
 }
 
 ;
@@ -21838,15 +21716,18 @@ function readingFill_(x, tpl) {
 const readingTitle_ = x => readingFill_(x, (READING_REF[x && x.kind] || {}).title) || (x && x.name) || '';
 const readingRef_ = x => readingFill_(x, (READING_REF[x && x.kind] || {}).ref) || (x && x.name) || '';
 /* THE ONE CARD: `o.body` is the text (or its loader); `o.cls`, `o.bodyCls`, `o.data` keep each source's hooks for its redraw. */
+/* ITS TEXT IS THE READING EMBED'S (filled by its source's loader, redrawn in place); the card around it is a spec. */
+const READING_BODY = {};
+CARD_EMBEDS.reading = a => READING_BODY[a.key] || '';
 function readingCard_(x, o) {
   o = o || {};
-  const attrs = d => Object.keys(d || {}).map(n => ` data-${n}="${esc(String(d[n] == null ? '' : d[n]))}"`).join('');
   const title = readingTitle_(x), ref = readingRef_(x);
-  /* THE ONE CARD SHAPE (owner 1a, 8 Nov): its heading is the head, its tags the tags, its text the lines (`findCard`). */
-  return findCard(Object.assign({}, x, { kcOwn: { cls: 'rd ' + (o.cls || ''),
-    attrs: ` data-key="${esc(x.key)}" data-rd="${esc(x.kind || '')}"${attrs(o.cardData)}`,
-    head: `<div class="rd-head"><h3 class="rd-title">${esc(title)}</h3>${ref && ref !== title ? `<span class="rd-ref">${esc(ref)}</span>` : ''}</div>`,
-    tags: tagRow_(x), lines: `<div class="rd-body ${esc(o.bodyCls || '')}"${attrs(o.data)}>${o.body || ''}</div>` } }));
+  READING_BODY[x.key] = o.body || '';
+  return renderCard({ kind: x.kind, key: x.key, item: x, name: title, look: 'rd ' + (o.cls || ''),
+    data: Object.assign({ key: x.key, rd: x.kind || '' }, o.cardData || {}),
+    tags: [{ text: title, colour: 0 }].concat(tagList_(x)),
+    body: [ref && ref !== title ? { type: 'text', look: 'rd-ref', text: ref } : null,
+      { type: 'embed', tool: 'reading', look: 'rd-body ' + (o.bodyCls || ''), data: o.data, args: { key: x.key } }] });
 }
 
 ;
@@ -23450,14 +23331,14 @@ function staffInner_(wait) {
         ? tile_({ icon: 'ext', label: 'DBS online check', href: STAFF_DBS_LINK, leave: true }) + tile_({ icon: 'tick', label: 'Checked today', act: 'staff-dbs', data: { id: s.personId } }) : ''}</div>
     </div>`;
   return `<h3>Staff</h3>
-    ${bizNeed_('staff', STAFF.list ? n + dbs : 0, [n ? n + ' not agreed to the terms' : '', dbs ? dbs + (dbs === 1 ? ' DBS check due' : ' DBS checks due') : ''].filter(Boolean).join(' · '))}
+    ${(window.bizNeed_ || (() => ''))('staff', STAFF.list ? n + dbs : 0, [n ? n + ' not agreed to the terms' : '', dbs ? dbs + (dbs === 1 ? ' DBS check due' : ' DBS checks due') : ''].filter(Boolean).join(' · '))}
     <div class="kc-items biz-body staff-body"${wait ? ' aria-busy="true"' : ''}>
       ${STAFF.list && !list.length ? empty_(NO_TUTOR + '.') : ''}
       ${list.map(item).join('')}
     ${wait ? loading_() : ''}</div>
     <p class="note me-said staff-said">${esc(STAFF.error)}</p>`;
 }
-const staffDraw_ = () => { document.querySelectorAll('[data-staff]').forEach(c => { cardFill_(c, staffInner_(false)); }); if (typeof bizNeedsPaint_ === 'function') bizNeedsPaint_(); };
+const staffDraw_ = () => { document.querySelectorAll('[data-staff]').forEach(c => { cardFill_(c, staffInner_(false)); }); if (typeof window.bizNeedsPaint_ === 'function') window.bizNeedsPaint_(); };
 function staffStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || STAFF.asking) return;
   STAFF.asking = true;
@@ -23484,7 +23365,7 @@ on('staff-dbs', el => {
     .then(d => {
       const s = (STAFF.list || []).find(x => x.personId === id);
       if (s) s.dbsCheckedOn = (d && d.dbsCheckedOn) || new Date().toISOString().slice(0, 10);
-      staffDraw_(); if (typeof bcDraw_ === 'function') bcDraw_();
+      staffDraw_(); if (typeof window.bcDraw_ === 'function') window.bcDraw_();
       toast('DBS check logged');
     })
     .catch(() => {});
@@ -23816,183 +23697,6 @@ function cameFromSave_() {
 }
 const cameFrom_ = () => { try { return localStorage.getItem(FLY_FROM_KEY) || ''; } catch (e) { return ''; } };
 cameFromSave_();
-
-;
-/* ==== js/lego.js ==== */
-/* @family. — lego.js THE LEGO PIECE CHECK (owner, 12 Nov): "make sure all the pieces of a set are there", for the trade-in. */
-/* A set is picked (data/lego-sets.json, or a typed number) with its parts list pasted; then batch by batch, three photos of one pile */
-/* shaken between shots, each batch counted by the marking model (`legoCount`) and added to a tally kept on this device. */
-
-const LEGO_SHOTS = 3;
-let LEGO_SETS = null;
-let LEGO_PICS = [];
-let LEGO_BUSY = false;
-const legoKey_ = () => KEPT_PREFIX + payloadFor_().who + ':lego';
-const legoFresh_ = () => ({ set: '', name: '', parts: [], batch: 1, tally: {}, done: false, say: '', typed: { num: '', parts: '' } });
-/* THE KEPT STORE (data-text.js), the device's one store: finished batches survive a refresh; a half-shot batch's photos are retaken. */
-function legoRead_() {
-  let o = null;
-  try { o = payloadFor_().who ? keptGet_(legoKey_(), true) : null; } catch (e) { o = null; }
-  return Object.assign(legoFresh_(), o || {});
-}
-let LEGO = null;
-const legoNow_ = () => (LEGO || (LEGO = legoRead_()));
-function legoWrite_() { try { if (payloadFor_().who) keptPut_(legoKey_(), JSON.stringify(legoNow_())); } catch (e) { /* not kept: this visit still counts */ } }
-
-/* ONE NAME PER PIECE: part and colour, case and spaces ignored, so the model's "3001 | Red" meets the list's "3001, red". */
-const legoId_ = (part, colour) => (String(part || '').trim() + '|' + String(colour || '').trim()).toLowerCase().replace(/\s+/g, ' ');
-/* A PASTED LIST, one piece a line: "part, colour, qty" (commas, tabs or semicolons), or "part colour qty" with spaces. */
-function legoParse_(text) {
-  return String(text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
-    let f = l.split(/\s*[,\t;]\s*/).filter(Boolean);
-    if (f.length < 2) f = l.split(/\s+/);
-    const qty = /^\d+$/.test(f[f.length - 1]) ? Number(f.pop()) : 1;
-    return { part: f[0] || '', colour: f.slice(1).join(' '), qty: qty };
-  }).filter(p => p.part && p.qty > 0);
-}
-
-/* FOUND AGAINST NEEDED: every listed piece with what the batches counted, and the ones short. */
-function legoResult_(s) {
-  const tally = s.tally || {};
-  const rows = (s.parts || []).map(p => ({ part: p.part, colour: p.colour, need: p.qty, got: Number(tally[legoId_(p.part, p.colour)]) || 0 }));
-  const total = Object.keys(tally).reduce((n, k) => n + (Number(tally[k]) || 0), 0);
-  return { rows: rows, missing: rows.filter(r => r.got < r.need), total: total, need: rows.reduce((n, r) => n + r.need, 0) };
-}
-
-function legoSets_() {
-  if (LEGO_SETS || typeof fetch !== 'function') return;
-  LEGO_SETS = [];
-  fetch('data/lego-sets.json' + (typeof deployStamp_ === 'function' ? deployStamp_() : ''), { cache: 'default' })
-    .then(r => r.json()).then(rows => { LEGO_SETS = (Array.isArray(rows) ? rows : []).filter(r => r && r.set_number); legoRedraw_(); })
-    .catch(() => { /* no list: a number can still be typed */ });
-}
-
-const legoLine_ = t => `<p>${esc(t)}</p>`;
-/* THE CARD'S ONE ROUND TILE IS THE STEP DUE NOW; the other steps are the form's buttons, which stay in the card (`kcHoist_`). */
-const legoBtns_ = list => `<div class="btn-row">${list.map(o => tile_(Object.assign({ form: true, kind: 'quiet' }, o))).join('')}</div>`;
-function legoPick_() {
-  const sets = LEGO_SETS || [];
-  return `${legoLine_('Pick the set, or type its number, then paste its parts list: one piece a line, "part, colour, qty".')}
-    ${sets.map((r, i) => (i % 2 ? '' : legoBtns_(sets.slice(i, i + 2).map(x => ({ label: x.set_number + ' ' + (x.name || '').replace(/^LEGO\s+/, ''), act: 'lego-set', data: { v: x.set_number }, cls: 'lego-pick', pressed: false }))))).join('')}
-    <label class="field">Set number <input type="text" class="lego-num" value="${esc(legoNow_().typed.num)}" maxlength="12" autocomplete="off" aria-label="Set number"></label>
-    <label class="field">Parts list <textarea class="lego-parts" rows="5" placeholder="3001, Red, 4" aria-label="Parts list">${esc(legoNow_().typed.parts)}</textarea></label>
-    <div class="tile-row">${tile_({ icon: 'play', label: 'Start', act: 'lego-start' })}</div>`;
-}
-function legoSteps_() {
-  const s = legoNow_(), n = LEGO_PICS.length;
-  const next = n === 0 ? 'Spread the pile out and take photo 1.' : n < LEGO_SHOTS ? 'Shake the pile, then take photo ' + (n + 1) + '.' : LEGO_SHOTS + ' photos taken: next batch, or finished.';
-  const sent = s.batch - 1;
-  const step = n < LEGO_SHOTS ? { icon: 'photo', label: 'Photo ' + (n + 1), act: 'lego-shot', off: LEGO_BUSY } : { icon: 'send', label: 'Next batch', act: 'lego-next', off: LEGO_BUSY };
-  return `${legoLine_(s.set + (s.name ? ' ' + s.name : '') + ' · ' + (s.parts || []).length + ' kinds of piece listed')}
-    <h4>Batch ${s.batch} · photo ${Math.min(n + 1, LEGO_SHOTS)} of ${LEGO_SHOTS}</h4>
-    ${legoLine_(LEGO_BUSY ? 'Counting batch ' + s.batch + '…' : next)}
-    ${LEGO_BUSY ? loading_() : ''}
-    ${legoLine_('Counted so far: ' + legoResult_(s).total + ' pieces in ' + sent + ' batch' + (sent === 1 ? '' : 'es') + '.')}
-    ${s.say ? legoLine_(s.say) : ''}
-    ${legoBtns_([
-      { label: 'Next batch', act: 'lego-next', off: LEGO_BUSY || !n || n >= LEGO_SHOTS },
-      { label: 'Finished', act: 'lego-done', off: LEGO_BUSY },
-      { label: 'Start again', act: 'lego-reset', off: LEGO_BUSY },
-    ].filter(o => !o.hidden))}
-    <div class="tile-row">${tile_(step)}</div>`;
-}
-function legoEnd_() {
-  const s = legoNow_(), r = legoResult_(s);
-  const found = r.rows.reduce((n, x) => n + Math.min(x.got, x.need), 0);
-  return `${legoLine_(s.set + (s.name ? ' ' + s.name : '') + ' · ' + (s.batch - 1) + ' batches')}
-    <h4>Found ${found} of ${r.need}</h4>
-    ${r.rows.length ? (r.missing.length
-      ? `<p><b>Missing</b></p>${r.missing.map(m => legoLine_(m.part + (m.colour ? ' ' + m.colour : '') + ': ' + (m.need - m.got) + ' short (' + m.got + ' of ' + m.need + ')')).join('')}`
-      : legoLine_('Every listed piece was counted.'))
-    : legoLine_('No parts list was given, so nothing is missing by it: ' + r.total + ' pieces counted.')}
-    ${s.say ? legoLine_(s.say) : ''}
-    <div class="tile-row">${tile_({ icon: 'undo', label: 'Start again', act: 'lego-reset' })}</div>`;
-}
-const legoBody_ = () => '<h3>LEGO piece check</h3>' + (legoNow_().done ? legoEnd_() : legoNow_().set ? legoSteps_() : legoPick_());
-
-function legoCards_() {
-  if (!USER || !rankAtLeast_('staff')) return [];
-  legoSets_();
-  return [card_(`<div class="lego-check" data-lay-card="staff:lego">${legoBody_()}</div>`)];
-}
-/* EVERY COPY ON THE PAGE (both finders) drawn again, as the same element (`cardFill_`), as the flyer maker's. */
-function legoRedraw_() {
-  if (typeof document === 'undefined') return;
-  document.querySelectorAll('.card.lego-check').forEach(c => cardFill_(c, legoBody_()));
-}
-
-/* PICKING A SET ONLY FILLS THE NUMBER: the parts list is pasted before Start. */
-on('lego-set', el => {
-  const box = el.closest('.lego-check'), num = box && box.querySelector('.lego-num');
-  if (num) num.value = el.dataset.v || '';
-  legoNow_().typed.num = el.dataset.v || ''; legoWrite_();
-  if (box) box.querySelectorAll('.lego-pick').forEach(t => t.setAttribute('aria-pressed', t === el ? 'true' : 'false'));
-});
-on('lego-start', el => {
-  const box = el.closest('.lego-check');
-  const num = String(((box && box.querySelector('.lego-num')) || {}).value || legoNow_().set).trim();
-  if (!num) { toast('Pick a set or type its number'); return; }
-  const row = (LEGO_SETS || []).find(r => String(r.set_number) === num);
-  LEGO = Object.assign(legoFresh_(), { set: num, name: row ? String(row.name || '').replace(/^LEGO\s+/, '') : '', parts: legoParse_(((box && box.querySelector('.lego-parts')) || {}).value) });
-  LEGO_PICS = [];
-  legoWrite_();
-  legoRedraw_();
-});
-/* THE CAMERA: one shot a press, the back camera first (`capture`), shrunk as a working photo is (`workShrink_`). */
-on('lego-shot', () => {
-  if (LEGO_PICS.length >= LEGO_SHOTS || typeof document === 'undefined') return;
-  const inp = document.createElement('input');
-  inp.type = 'file';
-  inp.accept = 'image/*';
-  inp.setAttribute('capture', 'environment');
-  inp.className = 'lego-file';
-  inp.hidden = true;
-  inp.addEventListener('change', () => { legoAdd_((inp.files || [])[0]); inp.remove(); });
-  document.body.appendChild(inp);
-  inp.click();
-});
-function legoAdd_(file) {
-  if (!file) return Promise.resolve();
-  const shrink = typeof workShrink_ === 'function' ? workShrink_(file) : Promise.reject(new Error('no shrinker'));
-  return shrink.then(url => { LEGO_PICS.push(url); legoNow_().say = ''; legoRedraw_(); })
-    .catch(() => { toast('That photo could not be used — try again'); });
-}
-/* ONE ASK PER BATCH, all its photos together; the reply's counts (the most seen in any one shot) are added to the tally. */
-function legoSend_() {
-  const s = legoNow_();
-  if (!LEGO_PICS.length) return Promise.resolve(true);
-  LEGO_BUSY = true;
-  legoRedraw_();
-  return Promise.resolve(api({ action: 'legoCount', personId: (USER && USER.personId) || '', set: s.set + (s.name ? ' ' + s.name : ''),
-    parts: (s.parts || []).map(p => ({ part: p.part, colour: p.colour })), images: LEGO_PICS.slice() }))
-    .then(d => {
-      if (!d || !d.success) { s.say = (d && (d.message || d.error)) || 'The batch could not be counted — try again.'; return false; }
-      (d.counts || []).forEach(c => { const k = legoId_(c.part, c.colour); s.tally[k] = (Number(s.tally[k]) || 0) + (Number(c.count) || 0); });
-      s.batch += 1; s.say = ''; LEGO_PICS = [];
-      return true;
-    })
-    .catch(e => { s.say = typeof why_ === 'function' ? why_(e) : 'The batch could not be counted — try again.'; return false; })
-    .then(ok => { LEGO_BUSY = false; legoWrite_(); legoRedraw_(); return ok; });
-}
-on('lego-next', () => { if (!LEGO_BUSY) legoSend_(); });
-on('lego-done', () => {
-  if (LEGO_BUSY) return;
-  legoSend_().then(ok => { if (!ok) return; legoNow_().done = true; legoWrite_(); legoRedraw_(); });
-});
-on('lego-reset', el => {
-  if (LEGO_BUSY || !sure_(el, 'Tap again to start again')) return;
-  LEGO = legoFresh_(); LEGO_PICS = [];
-  legoWrite_();
-  legoRedraw_();
-});
-/* WHAT IS TYPED IS KEPT AS IT IS TYPED (the kept store, `legoWrite_`), so a reload before Start keeps the number and the pasted list. */
-try {
-  document.addEventListener('input', e => {
-    const t = e.target, k = t && t.classList ? (t.classList.contains('lego-num') ? 'num' : t.classList.contains('lego-parts') ? 'parts' : '') : '';
-    if (!k) return;
-    legoNow_().typed[k] = String(t.value || ''); legoWrite_();
-  });
-} catch (e) { /* no document in a check */ }
 
 ;
 /* ==== js/help.js ==== */

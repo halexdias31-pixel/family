@@ -12,41 +12,10 @@ const split_ = html => String(html).split(/(?=<div class="card|<h2)/).map(x => x
 
 /** Every card on the You screen, in order. */
 function meBlocks() {
-  if (!USER) return split_(signInCard_() + registerCard_());
+  if (!USER) return split_(registerCard_());
   return meRest_();
 }
 
-/* ---------- SIGNING IN AND OUT BELONGS AT THE TOP OF THE FEED § */
-function signInCard_() {
-  return card_(`<div class="">
-        <h3>Sign in</h3>
-        ${/* ---------- NAME, USERNAME OR E-MAIL, AND THE LABEL HAS TO SAY SO § */
-             ''}
-        <label class="field"><span>email or handle</span>
-          ${formInput_('id="in-name" type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false"')}</label>
-        ${/* ---------- THE PIN, ON A SHARED iPAD § */
-             ''}
-        <label class="field"><span>PIN</span>
-          ${formInput_(`id="in-pin" ${pinDotsOk_() ? 'type="text" class="pin-dots"' : 'type="password"'}
-                 inputmode="numeric" pattern="[0-9]*" maxlength="4" enterkeyhint="go"
-                 autocomplete="one-time-code" autocorrect="off" autocapitalize="off" spellcheck="false"
-                 data-1p-ignore data-lpignore="true"`)}</label>
-        ${/* ---------- THREE TILES, WHERE THERE WERE TWO BUTTONS AND A CARD § */
-             ''}
-        <div class="tile-row">${tile_({ icon: 'in', label: 'Sign in', tone: 'buy', act: 'do-signin' })}${
-          tile_({ icon: 'key', label: 'Forgotten your PIN?', act: 'forgot-pin' })}${
-          tile_({ icon: 'join', label: 'Make an account', act: 'register' })}</div>
-        ${/* A TILE SHOWS A MARK AND NO WORD — its name is in `title` and `aria-label`, which a finger never reads. § */
-             ''}
-        ${/* ---------- AND THE OTHER DOOR § */
-             ''}
-        ${(DATA.googleClientId || '') ? `<div class="in-or"><span>or</span></div>
-        <div id="g-btn"></div>` : ''}
-        ${/* `#in-said` STOOD HERE — a faint grey line carrying a validation, a "Checking…" the button already says with a spinner on it, and a refusal that is now a toast. § */
-              ''}
-      </div>`);
-  /* THE `No account yet?` CARD THAT STOOD HERE is the third tile in the row above now. */
-}
 
 
 function meRest_() {
@@ -341,14 +310,14 @@ function googleSignedIn_(res) {
       /* THE SAME DOOR AS THE PIN PATH — `signedIn_`, because the reply is the same reply (one function builds it on the server for exactly this reason) and both doors § */
       signedIn_(d);
     })
-    /* `send_` HAS ALREADY TOASTED IT — see the note over `do-signin`. */
+    /* `send_` HAS ALREADY TOASTED IT — see the note over `sign-digit` in find-account.js. */
     .catch(() => {});
 }
 
 /* THE SIGN-IN CARD SPEAKS IN TOASTS, AND IT USED TO SAY EVERYTHING THREE TIMES. § */
 /* ---------- A NEW PIN, TO THE ADDRESS IN THE SHEET AND NOWHERE ELSE § */
 on('forgot-pin', el => {
-  const who = (($('in-name') || {}).value || '').trim();
+  const who = ((($('in-name') || {}).value || '').trim() || (typeof SIGN !== 'undefined' ? SIGN.who : '')).trim();
   if (!who) { toast('Type your email address or your handle first.'); return; }
   send_({ action: 'forgotPin', who }, { button: el, busy: 'Sending\u2026' })
     .then(d => toast((d && d.message)
@@ -357,52 +326,11 @@ on('forgot-pin', el => {
     .catch(() => {});
 });
 
-on('do-signin', el => {
-  const name = ($('in-name') || {}).value || '';
-  const pin = ($('in-pin') || {}).value || '';
-  if (!name || !pin) { toast('Both, please.'); return; }
-  /* ---------- THE BUTTON HAS TO LOOK PRESSED § */
-  /* NO `where` AND NO `saying`. § */
-  /* `email` AND `name`, THE SAME STRING TWICE. § */
-  send_({ action: 'verifyLogin', email: name.trim(), name: name.trim(), pin },
-        { button: el, busy: 'Checking…' })
-    .then(d => {
-      /* `send_` THROWS ON A REPLY CARRYING `error`, and `verifyLogin` refuses with one — so this branch is for a reply that says `success: false` and nothing else § */
-      if (!d.success) { toast(d.error || 'That did not work.'); return; }
-      /* THE REPLY, PLUS WHAT WE ALREADY KNEW. § */
-      /* ---------- CLEARING THE LAST ATTEMPT'S REFUSAL IS NOT A LINE ANY MORE § */
-      /* NOT THE TYPED TEXT AS A NAME FALLBACK ANY MORE — it is an e-mail address now, and a row with no first or last name would have signed in wearing its address as § */
-      /* ---------- DRAWN NOW, REFRESHED AFTER § */
-      signedIn_(d, name);
-    })
-    /* NO `.catch` THAT SPEAKS. § */
-    .catch(err => {
-      const why = err && err.reply && err.reply.why;
-      const B = Object.prototype.hasOwnProperty.call(SIGN_IN_REFUSED, why) ? SIGN_IN_REFUSED[why] : null;
-      const box = B && $(B.id);
-      if (!box) return;
-      if (B.clear) box.value = '';
-      box.setAttribute('aria-invalid', 'true');
-      try { box.focus(); if (B.select) box.select(); } catch (e) { /* focus and scrolling are niceties */ }
-    });
-});
-/* A SIGN-IN REFUSAL MARKS ITS BOX: a wrong PIN is cleared to type again, a bad address is selected to correct. */
-const SIGN_IN_PIN = { id: 'in-pin', clear: true }, SIGN_IN_ADDRESS = { id: 'in-name', select: true };
-const SIGN_IN_REFUSED = { 'wrong-pin': SIGN_IN_PIN, 'not-an-email': SIGN_IN_ADDRESS, 'no-such-email': SIGN_IN_ADDRESS };
 /* THE MARK COMES OFF AT THE NEXT KEYSTROKE — a red edge round a box being corrected is the app still
    complaining about what is no longer there. */
 document.addEventListener('input', e => {
   const t = e.target;
   if (isSignInBox_(t) && t.hasAttribute('aria-invalid')) t.removeAttribute('aria-invalid');
-});
-
-/* ---------- ENTER SUBMITS, BECAUSE THE KEYBOARD SAYS IT WILL § */
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  if (!isSignInBox_(e.target)) return;
-  e.preventDefault();
-  const btn = document.querySelector('[data-do="do-signin"]');
-  if (btn && !btn.disabled) btn.click();
 });
 
 on('signout', () => {
@@ -512,7 +440,7 @@ function signedIn_(d, typed) {
   else if (over) signedOut_({ quiet: true });
   /* SIGNED IN, FIND IS THE PERSON'S OWN, and `USER` says whose — `whose` is only for while nobody is. */
   try { finders_().forEach(st => { st.whose = ''; st.whoseAt = 0; }); } catch (e) { /* no finder yet: nothing to read or clear */ }
-  /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
+  /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `sign-digit`. The handle when the row has no name. */
   USER = me; LENS = null;
   if (!USER.name) USER.name = me.handle || typed || '';
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
@@ -564,12 +492,6 @@ function signInForgetOld_() {
   try { localStorage.removeItem('familyHandles'); localStorage.removeItem('familyAdminHint'); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 signInForgetOld_();
-/* DOTS ON A TEXT BOX, WHERE THE BROWSER CAN DRAW THEM — see `.pin-dots` and the PIN box above. Asked of
-   the browser rather than of its name. */
-function pinDotsOk_() {
-  try { return !!(window.CSS && CSS.supports && CSS.supports('-webkit-text-security', 'disc')); }
-  catch (e) { return false; }
-}
 
 /* ---------- MAKING AN ACCOUNT § */
 /* A PIN IS FOUR DIGITS (owner, 10 Nov). */
@@ -586,7 +508,11 @@ const REG_NOTE = {
 };
 /* MAKE AN ACCOUNT IS A CARD OF ITS OWN beside Sign in, its form there from the start (no sheet, owner 7 Nov). */
 function registerCard_() {
-  return card_(`<div class="reg-card"><h3>Make an account</h3><div class="reg-form">
+  return renderCard({ kind: 'panel', look: 'reg-card', name: 'Make an account', tags: ['Make an account'], body: [{ type: 'embed', tool: 'reg-form' }] });
+}
+/* THE FORM IS THE CARD'S ONE EMBED; its send (reg-send) is unchanged. */
+function regFormHtml_() {
+  return `<div class="reg-form">
     ${/* ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */''}
     <div class="reg-who" id="reg-who" data-who="">
       <p class="reg-cap" id="reg-who-cap">Both are free; teaching starts with "Apply to teach" once you are in.</p>
@@ -612,15 +538,9 @@ function registerCard_() {
       ${/* THREE LINES AT 320, MEASURED: § */
             ''}
       <p class="said" id="reg-note"></p>
-    </div></div></div>`);
+    </div></div>`;
 }
-/* THE SIGN-IN CARD'S TILE GOES TO THE FORM: on this column if it is drawn, else on the account column. */
-on('register', el => {
-  const near = () => (el && el.closest && el.closest('.screen') || document).querySelector('.reg-card') || document.querySelector('.screen.on .reg-card');
-  let f = near();
-  if (!f && typeof go === 'function') { go('account'); f = document.querySelector('#s-account .reg-card'); }
-  if (f && f.scrollIntoView) f.scrollIntoView({ block: 'start', behavior: 'smooth' });
-});
+CARD_EMBEDS['reg-form'] = regFormHtml_;
 
 /* `regWho_` IS THE ONE READER of the answer, so the send and the redraw cannot disagree about it. */
 const regIn_ = (el, id) => ((el && el.closest && el.closest('.reg-form')) || document).querySelector('#' + id);
@@ -671,7 +591,8 @@ on('reg-send', el => {
       const pinBox = regIn_(el, 'reg-pin'); if (pinBox) pinBox.value = '';
       /* THE ADDRESS GOES INTO THE SIGN-IN BOX, because the next thing this person does — after the email — is sign in with it, and they have just typed it once. § */
       const handle = String((d && d.handle) || '');
-      const box = $('in-name'); if (box) box.value = kid && handle ? '@' + handle : email;
+      const said = kid && handle ? '@' + handle : email, box = $('in-name'); if (box) box.value = said;
+      if (typeof signAfterJoin_ === 'function') signAfterJoin_(said);
       /* NO WAITING ON THE LINK — see the note over `verifyLogin`'s old PENDING refusal in dopost.gs.
          The account works now; the link is said as what it is, a confirmation, not a door. */
       toast(kid ? 'Account made — sign in now as ' + (handle ? '@' + handle : 'your handle')

@@ -143,8 +143,8 @@ Object.keys(SCHEMA).forEach(f => {
 ['manuscript', 'writing', 'event'].forEach(k => { if (!new RegExp('\\n  ' + k + ": \\{ group: 'Learning', label: 'Library', card: x => findCard\\(x\\) \\}").test(find)) bad.push('find.js KINDS has no ' + k + ' drawn by findCard'); });
 
 if (!/\n  people: \{ group: 'Learning', label: 'Library', card: x => findCard\(x\) \}/.test(find)) bad.push('find.js KINDS has no people (boxers and figures alike) drawn by findCard');
-/* ONE TEMPLATE (owner, 11 Nov): KINDS draws a timeline by findCard, which cuts histTimelineCard_'s html (KC_OWN) into the parts. */
-if (!/\n  timeline: \{ group: 'Learning', label: 'Timeline', card: \(x, c\) => findCard\(x, c\) \}/.test(find) || !/\btimeline: x => histTimelineCard_\(x\)/.test(find)) bad.push('find.js KINDS has no timeline drawn by findCard from histTimelineCard_ (KC_OWN)');
+/* ONE TEMPLATE (owner, 11 Nov): KINDS draws a timeline by findCard, from its spec (`cardKind_('timeline')`). */
+if (!/\n  timeline: \{ group: 'Learning', label: 'Timeline', card: \(x, c\) => findCard\(x, c\) \}/.test(find) || !/cardKind_\('timeline'/.test(find)) bad.push('find.js KINDS has no timeline drawn by findCard from its spec (cardKind_)');
 const n = Object.keys(T).map(f => T[f].length + ' ' + f).join(', ');
 if (bad.length) { bad.forEach(b => console.log('FAIL ' + b)); console.log(bad.length + ' problem(s) in the history database (' + n + ')'); process.exit(1); }
 console.log('history database: ' + n + ' — schema, ids, links both ways, years and sources all sound');

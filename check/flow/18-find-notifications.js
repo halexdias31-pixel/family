@@ -275,7 +275,8 @@ check('a chosen answer is only its value, Clear is a tile of its own, and Find d
     { field: 'yearGroup', any: true }, { field: 'wChapter', value: '119' });
   w.paintStuff();
   await wait(30);
-  const chips = [...d.querySelectorAll('#stuff-chips .chip')];
+  /* THE ANSWERS' CHIPS; the name chip that leads the row signed in (owner, 13 Nov) is not one of them. */
+  const chips = [...d.querySelectorAll('#stuff-chips .chip[data-do="filter-drop"]')];
   const text = el => el.textContent.replace(/\s+/g, ' ').trim();
   const said = chips.map(text);
   if (chips.length !== 4) bad.push('four answers drew ' + chips.length + ' chip(s): ' + said.join(' | '));

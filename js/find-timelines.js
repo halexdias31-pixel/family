@@ -69,17 +69,13 @@ function tlStage_(x) {
   return `<div class="tl-scene" aria-live="polite">${tlScene_(stops[i])}</div>
     <div class="tl-view"><div class="tl-track" style="width:${(g.wide * 100).toFixed(2)}%;transform:translateX(${tlShift_(g, i)}%)">${ticks}${dots}</div><span class="tl-pin"></span></div>`;
 }
-function histTimelineCard_(x) {
-  setTimeout(() => tlAuto_(x.key), 700);
-  /* THE ANIMATION IS THE PICTURE (owner, 11 Nov): `tl-art` makes it the card's kc-pic; its controls join the card's one row. */
+/* THE ANIMATION IS THE PICTURE (owner, 11 Nov): its stage is the timeline tool's embed; its controls join the card's one row. */
+CARD_EMBEDS.timeline = a => { const x = tlItem_(a.key); return x ? tlStage_(x) : ''; };
+cardKind_('timeline', x => { setTimeout(() => tlAuto_(x.key), 700);
   const stops = (x.row && x.row.stops) || [], n = stops.length;
-  return `<div class="fc hdb hdb-tl lib-c" aria-label="${esc(x.name)}">
-    <section class="fc-sec tl-anim tl-art" data-tl="${esc(x.key)}">${tlStage_(x)}</section><h3>${esc(x.name)}</h3>
-    ${tagRow_(x)}
-    <p class="tl-say">${n} event${n === 1 ? '' : 's'}, one at a time</p>
-    <div class="tile-row">${n ? tile_(tlOpts_(x.key, Math.min(TL_AT[x.key] || 0, n - 1), n)) : ''}</div>
-  </div>`;
-}
+  return { look: 'hdb hdb-tl lib-c', name: x.name, tags: kcFacetTags_(x), body: [{ type: 'embed', tool: 'timeline', look: 'tl-anim tl-art', data: { tl: x.key }, args: { key: x.key } },
+    { type: 'text', look: 'tl-say', text: n + ' event' + (n === 1 ? '' : 's') + ', one at a time' }],
+    tiles: n ? tlOpts_(x.key, Math.min(TL_AT[x.key] || 0, n - 1), n) : [] }; });
 
 /* ONE PLAYER FOR EVERY TIMELINE: a step moves the track (a CSS transition pans it) and swaps the scene; the tiles never move. */
 const TL_AT = {}, TL_PLAY = { key: '', timer: null }, TL_STEP_MS = 2600;

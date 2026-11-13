@@ -544,6 +544,9 @@ function finderWake_(id) {
 /* THE QUESTION, ON THE PAGE. § */
 /* NAMED FOR WHAT IT WAS, not what it is. § */
 function stuffQuestion() {
+  /* SIGNED OUT, THE FIRST MENU IS WHO YOU ARE (`signMenu_`, find-account.js); Guest or a name lets the ordinary menus follow. */
+  const sign = signMenu_();
+  if (sign) return sign;
   const pre = finderTagsAt_() || finderTagsLook_();
   if (pre) return facetAnswersHtml_(pre.facet, pre.values, '') + findPeek_();
   const items = stuffFiltered();
@@ -598,21 +601,16 @@ function facetAnswersHtml_(facet, values, more) {
   /* `counted` TAKES THE CHEVRON OFF. § */
   /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION § */
   /* `counted` WITHOUT A COUNT, which is not a contradiction: § */
-  const skip = `<div class="counted row tap is-skip" role="button" tabindex="0" data-do="facet-skip"
-        data-field="${esc(facet.field)}">
-        <span class="k">Doesn't matter</span>
-      </div>`;
+  const skip = answerTag_('Doesn\'t matter', ` data-do="facet-skip" data-field="${esc(facet.field)}"`, 'is-skip');
   /* THE "and N more" LINE WENT WITH THE TRIM. § */
   /* `data-value` IS THE FULL NAME (`filterHit` matches it); THE TEXT IS `show`, what tells it apart from the answers beside it, as
      its chip says it (1180: SATs said `Paper 1 · Maths · SATs · KS2`). */
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
   const grid = numberedRun_(values);
-  return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap${facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? ' is-off' : ''}" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
-        data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.also && v.also.length ? ` data-also="${esc(JSON.stringify(v.also))}"` : ''}${
-        grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
-        <span class="k">${mark(v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value))}</span>
-      </div>`).join('') + skip + '</div>' + more;
+  return answersRow_(values.map(v => answerTag_(mark(v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value)),
+    ` data-do="facet-pick"${tagAttr_(facet.field)} data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.also && v.also.length ? ` data-also="${esc(JSON.stringify(v.also))}"` : ''}${
+      grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}`, facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? 'is-off' : '')).join('') + skip, grid ? 'is-grid' : '') + more;
 }
 
 /* `stuff-jump` went with the group list. § */

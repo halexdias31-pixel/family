@@ -391,14 +391,14 @@ function staffInner_(wait) {
         ? tile_({ icon: 'ext', label: 'DBS online check', href: STAFF_DBS_LINK, leave: true }) + tile_({ icon: 'tick', label: 'Checked today', act: 'staff-dbs', data: { id: s.personId } }) : ''}</div>
     </div>`;
   return `<h3>Staff</h3>
-    ${bizNeed_('staff', STAFF.list ? n + dbs : 0, [n ? n + ' not agreed to the terms' : '', dbs ? dbs + (dbs === 1 ? ' DBS check due' : ' DBS checks due') : ''].filter(Boolean).join(' · '))}
+    ${(window.bizNeed_ || (() => ''))('staff', STAFF.list ? n + dbs : 0, [n ? n + ' not agreed to the terms' : '', dbs ? dbs + (dbs === 1 ? ' DBS check due' : ' DBS checks due') : ''].filter(Boolean).join(' · '))}
     <div class="kc-items biz-body staff-body"${wait ? ' aria-busy="true"' : ''}>
       ${STAFF.list && !list.length ? empty_(NO_TUTOR + '.') : ''}
       ${list.map(item).join('')}
     ${wait ? loading_() : ''}</div>
     <p class="note me-said staff-said">${esc(STAFF.error)}</p>`;
 }
-const staffDraw_ = () => { document.querySelectorAll('[data-staff]').forEach(c => { cardFill_(c, staffInner_(false)); }); if (typeof bizNeedsPaint_ === 'function') bizNeedsPaint_(); };
+const staffDraw_ = () => { document.querySelectorAll('[data-staff]').forEach(c => { cardFill_(c, staffInner_(false)); }); if (typeof window.bizNeedsPaint_ === 'function') window.bizNeedsPaint_(); };
 function staffStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || STAFF.asking) return;
   STAFF.asking = true;
@@ -425,7 +425,7 @@ on('staff-dbs', el => {
     .then(d => {
       const s = (STAFF.list || []).find(x => x.personId === id);
       if (s) s.dbsCheckedOn = (d && d.dbsCheckedOn) || new Date().toISOString().slice(0, 10);
-      staffDraw_(); if (typeof bcDraw_ === 'function') bcDraw_();
+      staffDraw_(); if (typeof window.bcDraw_ === 'function') window.bcDraw_();
       toast('DBS check logged');
     })
     .catch(() => {});

@@ -486,18 +486,36 @@ function cardRuns_(v) {
   if (v == null) return '';
   if (Array.isArray(v)) return v.map(cardRuns_).join('');
   if (typeof v !== 'object') return esc(String(v));
+  /* A SUBJECT'S LEVELS RAISED after it (a tutor's pill), each level held whole so a long list breaks between levels. */
+  if (Array.isArray(v.levels)) return `<sup class="prof-lv">&nbsp;${v.levels.map(l => `<span>${cardRuns_({ marked: l })}</span>`).join(', ')}</sup>`;
+  /* A QUALIFICATION WRITTEN LIKE AN ISOTOPE: the level raised and the grade lowered, held to the subject's last word. */
+  if (v.iso != null) { const said = cardRuns_({ marked: v.iso }), cut = cardLastGap_(said), sup = cardRuns_(v.sup), sub = cardRuns_(v.sub);
+    return `${cut > 0 ? said.slice(0, cut) + ' ' : ''}<span class="prof-q-end">${said.slice(cut + 1)}<span class="prof-iso">${sup ? `<sup>${sup}</sup>` : ''}${sub ? `<sub>${sub}</sub>` : ''}</span></span>`; }
   if (v.b != null) return `<b>${cardRuns_(v.b)}</b>`;
   if (v.i != null) return `<i>${cardRuns_(v.i)}</i>`;
   if (v.sup != null) return `<sup>${cardRuns_(v.sup)}</sup>`;
   if (v.sub != null) return `<sub>${cardRuns_(v.sub)}</sub>`;
   if (v.math != null) return `<span class="kc-math">${cardRuns_(v.math)}</span>`;
   if (v.mono != null) return `<span class="mono">${cardRuns_(v.mono)}</span>`;
+  /* MATHS AS TYPED (`x^2`, `a/b`): escaped first, then the typesetter raises and stacks it. */
+  if (v.typeset != null) return `<span class="kc-math">${typeof typeset_ === 'function' ? typeset_(esc(String(v.typeset))) : esc(String(v.typeset))}</span>`;
+  /* A SMALL MARK BESIDE A WORD (Higher tier's `H`, `only Foundation`): text, one fixed class. */
+  if (v.badge != null) return `<span class="kc-badge"${v.hint ? ` title="${esc(v.hint)}"` : ''}>${esc(String(v.badge))}</span>`;
   /* TEXT WITH THE SITE'S LAWS COLOURED (`mark`, which escapes first): still only text in the spec. */
   if (v.marked != null) return typeof mark === 'function' ? mark(String(v.marked)) : esc(String(v.marked));
   /* A NAMED WORD (a subject, green as a subject is everywhere): one of a fixed set, never a free class. */
   if (v.word && /^(subject|venue|level)$/.test(v.word)) return `<span class="${v.word}">${cardRuns_(v.text)}</span>`;
   if (v.tone) return `<span class="${esc('is-' + v.tone)}">${cardRuns_(v.text)}</span>`;
   return cardRuns_(v.text);
+}
+/* THE LAST SPACE IN SOME HTML THAT IS NEITHER INSIDE A TAG NOR INSIDE A COLOURED SPAN, or -1 (an isotope's subject breaks there). */
+function cardLastGap_(html) {
+  let depth = 0, at = -1;
+  for (let i = 0; i < html.length; i++) {
+    if (html[i] === '<') { const end = html.indexOf('>', i); if (end < 0) break; depth += html[i + 1] === '/' ? -1 : html[end - 1] === '/' ? 0 : 1; i = end; }
+    else if (html[i] === ' ' && depth <= 0) at = i;
+  }
+  return at;
 }
 const cardAttrs_ = d => Object.keys(d || {}).map(k => ` data-${esc(k)}="${esc(String(d[k]))}"`).join('');
 /* A PICTURE: a photo (`src`), a clip (`video`), an 8-bit drawing (`pix`: 16 rows of palette letters), or a drawing a picture maker drew (`svg`). */
@@ -527,10 +545,12 @@ function pixSvg_(rows, name, flip, cls) {
 }
 
 /* ONE TAG, ONE SIZE: `colour` is the palette's tag number (data-tag; the name 0, the rest 1 unless said), never a literal. */
+/* A `pill` is a profile's pill (`prof-tag`), coloured by its row unless it names a colour; `say` reads it aloud whole, `title` names what a "+N" hides. */
 function cardTag_(t, i) {
   t = typeof t === 'string' ? { text: t } : (t || {});
-  const n = t.colour != null ? t.colour : i ? 1 : 0;
-  return `<span class="qtag${t.look ? ' ' + esc(t.look) : ''}" data-tag="${esc(n)}"${
+  const n = t.colour != null ? t.colour : t.pill ? null : i ? 1 : 0;
+  return `<span class="${t.pill ? 'prof-tag' : 'qtag'}${t.look ? ' ' + esc(t.look) : ''}"${n != null ? ` data-tag="${esc(n)}"` : ''}${
+    t.say ? ` role="img" aria-label="${esc(t.say)}" title="${esc(t.say)}"` : t.title ? ` title="${esc(t.title)}"` : ''}${
     t.act ? ` data-do="${esc(t.act)}" role="button" tabindex="0"` : ''}${cardAttrs_(t.data)}>${cardRuns_(t.text)}</span>`;
 }
 /* A ROW OF TAGS on its own (a Find line, a list beside a card): the same tag maker. */
@@ -565,11 +585,37 @@ function cardEmbed_(b) {
   const make = CARD_EMBEDS[b.tool];
   let inner = '';
   try { inner = make ? make(b.args || {}) : ''; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'embed:' + b.tool); }
-  return `<div class="kc-embed" data-embed="${esc(b.tool || '')}">${inner || ''}</div>`;
+  return `<div class="kc-embed${b.look ? ' ' + esc(b.look) : ''}" data-embed="${esc(b.tool || '')}"${cardAttrs_(b.data)}>${inner || ''}</div>`;
 }
+/* A TREE: headed nodes, each with its words, its tiles (`tile_` specs) and its children; `fold` folds the top level. */
+function cardTree_(nodes, fold, top) {
+  const one = n => { const head = `<span class="kc-tree-k">${cardRuns_(n.label)}</span>`;
+    const inner = (n.text != null && n.text !== '' ? `<span class="kc-tree-v">${cardRuns_(n.text)}</span>` : '')
+      + ((n.tiles || []).length ? `<div class="tile-row">${tile_(n.tiles)}</div>` : '')
+      + (n.more ? `<p class="kc-tree-more">${cardRuns_(n.more)}</p>` : '') + cardTree_(n.kids, false, false);
+    return fold && top ? `<details class="kc-tree-sec"><summary class="kc-h">${cardRuns_(n.label)}</summary>${inner}</details>`
+      : `<li class="kc-tree-n">${head}${inner}</li>`; };
+  const list = (nodes || []).map(one).join('');
+  return !list ? '' : fold && top ? list : `<ul class="kc-tree">${list}</ul>`;
+}
+/* A GRID OF CELLS AT THEIR COLUMN AND ROW (the periodic table): each cell's parts are text. */
+const cardGrid_ = b => `<div class="kc-grid-wrap"><div class="kc-grid" role="table" aria-label="${esc(b.caption || '')}">${(b.cells || []).map(c =>
+  `<div class="kc-cell kc-c${Math.min(18, Number(c.col) || 1)} kc-r${Math.min(10, Number(c.row) || 1)}">${
+    (c.parts || []).map((t, i) => `<span class="kc-cell-${i}">${esc(String(t == null ? '' : t))}</span>`).join('')}</div>`).join('')}</div></div>`;
 /* THE BODY BLOCKS, each with its one renderer. */
 const CARD_BLOCKS = {
-  text: b => [].concat(b.paras || [b.text]).filter(p => p != null && p !== '').map(p => `<p class="kc-line${b.tone ? ' ' + esc('is-' + b.tone) : ''}${b.look ? ' ' + esc(b.look) : ''}">${cardRuns_(p)}</p>`).join(''),
+  text: b => [].concat(b.paras || [b.text]).filter(p => p != null && p !== '').map(p => `<p class="kc-line${b.tone ? ' ' + esc('is-' + b.tone) : ''}${b.look ? ' ' + esc(b.look) : ''}"${
+    b.act ? ` data-do="${esc(b.act)}"` : ''}>${cardRuns_(p)}</p>`).join(''),
+  /* A ROW OF TAGS among the lines (a tutor's quals, jobs, places), its look naming its colour family. */
+  tags: b => ((b.tags || []).length ? `<div class="qtags${b.look ? ' ' + esc(b.look) : ''}">${b.tags.map(cardTag_).join('')}</div>` : ''),
+  /* PHOTOS, small and square, the first `more` shown and "+N" for the rest; one that will not load takes itself away. */
+  photos: b => { const all = (b.srcs || []).filter(Boolean), n = Number(b.more) || all.length;
+    return all.length ? `<div class="prof-photos">${all.slice(0, n).map(u => `<span class="prof-shot"><img src="${esc(u)}" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></span>`).join('')}${
+      all.length > n ? cardTag_({ pill: true, look: 'prof-more', text: '+' + (all.length - n) }) : ''}</div>` : ''; },
+  /* A WEEK'S HOURS: one pill a day free, then the hours already taught; `say` reads every hour aloud. */
+  hours: b => `<div class="prof-week prof-hours" data-avail="${esc(b.count || 0)}" aria-label="${esc(b.say || '')}">${
+    (b.free || []).length ? `<p class="prof-hour-line">${b.free.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}${
+    (b.busy || []).length ? `<p class="prof-key prof-busy">${cardRuns_(b.busyLabel || 'Already teaching')} ${b.busy.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}</div>`,
   figure: b => { const p = cardPic_(b); return p ? `<figure class="kc-fig">${p}${b.caption ? `<figcaption>${cardRuns_(b.caption)}</figcaption>` : ''}</figure>` : ''; },
   table: b => `<table class="kc-table">${(b.head || []).length ? `<thead><tr>${b.head.map(h => `<th>${cardRuns_(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${
     (b.rows || []).map(r => `<tr>${r.map(c => `<td>${cardRuns_(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`,
@@ -582,7 +628,20 @@ const CARD_BLOCKS = {
   answer: cardAnswer_,
   formRow: b => `<label class="kc-form-row"><span class="k">${cardRuns_(b.label || '')}</span>${cardControl_(b.control)}</label>`,
   embed: cardEmbed_,
+  /* A HEADED SECTION: a small heading, then any blocks. */
+  section: b => `<section class="kc-sec${b.look ? ' ' + esc(b.look) : ''}">${b.head ? `<h4 class="kc-h">${cardRuns_(b.head)}</h4>` : ''}${(b.blocks || []).map(cardBlock_).join('')}</section>`,
+  tree: b => cardTree_(b.nodes, !!b.fold, true),
+  grid: cardGrid_,
+  /* A WAIT is `loading_()` and nothing else; `look` and `data` name a region its redraw finds (`.err-body`). */
+  wait: b => `<div class="kc-wait${b.look ? ' ' + esc(b.look) : ''}"${cardAttrs_(b.data)}${b.on ? ' aria-busy="true"' : ''}>${b.on && typeof loading_ === 'function' ? loading_() : ''}</div>`,
 };
+/* A CARD DRAWN AGAIN WHERE IT STANDS: the new card replaces the old element whole. */
+function cardRedraw_(el, spec) {
+  if (!el || typeof document === 'undefined') return;
+  const t = document.createElement('template');
+  t.innerHTML = renderCard(spec);
+  if (t.content.firstElementChild) el.replaceWith(t.content.firstElementChild);
+}
 function cardBlock_(b) {
   if (b == null || b === '') return '';
   if (typeof b === 'string') return CARD_BLOCKS.text({ text: b });
@@ -605,7 +664,7 @@ function renderCard(spec) {
   const cls = 'card fc kc kc-' + kind + (spec.look ? ' ' + spec.look : '') + (spec.off ? ' is-off' : '');
   return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
     + `<div class="kc-pic">${cardPic_(spec.picture)}</div><div class="kc-head"></div>`
-    + `<div class="kc-tags">${renderTags(tags)}</div>`
+    + `<div class="kc-tags">${renderTags(tags, spec.tagLook)}${(spec.tagRows || []).map(CARD_BLOCKS.tags).join('')}</div>`
     + `<div class="kc-lines">${body || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>`
     + `<div class="kc-act">${row}</div></div>`;
 }
@@ -621,6 +680,73 @@ function cardOfKind_(x) {
 }
 /* A QUESTION'S TABLE SCROLLS IN A BOX OF ITS OWN and stays a real table: as `display:block` Safari laid the iPad's isotope table out a row out of line (13 Nov). */
 const qTables_ = h => String(h).replace(/<table\b/gi, '<div class="q-tscroll"><table').replace(/<\/table>/gi, '</table></div>');
+/* THE BOOKING PAPER (one master template): a receipt's rows, controls, week and roster are drawn here from data the booking hands over. */
+function paperRow_(r) {
+  const cls = [r.blank ? 'is-blank' : '', r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '', r.wide ? 'is-wide' : '',
+    r.strip ? 'bk-wk' : '', r.strip && r.shut ? 'is-shut' : '', r.strip && r.off ? 'is-off' : '', r.tally ? 'bk-tally' : '', r.cls || ''].filter(Boolean).join(' ');
+  const has = v => v != null && String(v).trim() !== '';
+  const value = r.tick !== undefined
+    ? `${has(r.v) ? `<span class="bk-when">${esc(r.v)}</span> ` : ''}<span class="bk-tick${r.tick ? ' on' : ''}" role="img" aria-label="${r.tick ? 'done' : 'not yet'}">✓</span>`
+    : r.strip ? r.strip : r.sel ? r.sel : r.tally ? r.tally
+    : r.hourCells ? `<span class="bk-hrs">${r.hourCells.map(h => `<span class="bk-hr${h.on ? ' on' : ''}">${esc(h.h)}</span>`).join('')}</span>`
+    : r.dates ? `<span class="bk-dates">${esc(r.v)}</span>` : esc(r.v);
+  const bare = (!r.id || !!r.open || !!r.strip) && !has(r.mul) && !has(r.rate) && !has(r.total);
+  const heads = !!r.open || !!r.strip || !!r.tally;
+  return `<div class="bk-row ${esc(cls)}${bare ? ' is-bare' : ''}${heads ? ' is-head' : ''}"><span class="bk-n">${esc(r.n)}</span>`
+    + (r.ctl && r.sel ? `<label for="${esc(r.ctl)}" class="bk-k">${esc(r.k)}</label>` : `<span class="bk-k">${esc(r.k)}</span>`)
+    + `<span class="bk-v">${heads && r.dash != null && String(r.v) === r.dash ? '' : value}</span><span class="bk-m">${esc(r.mul)}</span>`
+    + `<span class="bk-r">${esc(r.rate)}</span><span class="bk-t">${esc(r.total)}</span>${r.open || ''}</div>`
+    + (r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : '');
+}
+const paperTotal_ = (k, t, cls) => `<div class="bk-row rc-total${cls ? ' ' + esc(cls) : ''}"><span class="bk-n"></span><span class="bk-k">${esc(k)}</span><span class="bk-v"></span><span class="bk-m"></span><span class="bk-r"></span><span class="bk-t">${esc(t)}</span></div>`;
+const paperHead_ = () => '<div class="bk-row is-cols"><span class="bk-n"></span><span class="bk-k"></span><span class="bk-v"></span><span class="bk-m">×</span><span class="bk-r">+/h</span><span class="bk-t">=</span></div>';
+/* `rows`, `before`, `roster` and `foot` arrive already drawn by these same paper blocks. */
+function paperDoc_(r) {
+  const head = !!(r.cols && (r.rows || []).length);
+  const lines = (r.lines || []).filter(Boolean).length && typeof qtag_ === 'function'
+    ? `<div class="qtags qcard-tags">${(r.lines || []).map((l, i) => (l ? qtag_(esc(l), ` data-tag="${[6, 9, 4][i] || 0}"`) : '')).join('')}</div>` : '';
+  return `<div class="rc${r.done ? ' is-done' : ''}"><div class="rc-head">${lines}</div>${head ? '' : '<div class="rc-rule"></div>'}`
+    + `<div class="bk">${head ? paperHead_() : ''}${(r.rows || []).join('')}${r.before || ''}${r.noTotal ? '' : paperTotal_(r.totalLabel || 'Cost', r.total || '')}`
+    + (r.more || []).map(m => paperTotal_(m.k, m.t, 'rc-more' + (m.cls ? ' ' + m.cls : ''))).join('')
+    + `${r.moreSay ? `<p class="bk-say rc-money-say">${esc(r.moreSay)}</p>` : ''}</div>`
+    + `${r.roster ? '<div class="rc-rule"></div>' + r.roster : ''}<div class="rc-rule"></div>${r.foot || ''}${r.ref ? `<p class="rc-ref">${esc(r.ref)}</p>` : ''}</div>`;
+}
+const paperRoster_ = b => `<div class="rost">${(b.slots || []).map(sl => `<div class="rost-slot${sl.filled ? ' on' : ''}${sl.tutor ? ' tut' : ''}"><span class="rost-pic">${
+  sl.filled ? (sl.face || '') : '<span class="rost-plus">+</span>'}</span><span class="rost-name">${esc(sl.said)}</span>${sl.filled ? `<span class="rost-role">${esc(sl.role)}</span>` : ''}</div>`).join('')}</div>`;
+/* A BAR'S LENGTH IS ONE OF ELEVEN STEPS (`data-f`, 0–100 by tens), a class in style.css rather than a style written here. */
+const paperWhenCould_ = b => `<div class="wc">${(b.slots || []).map(s => `<div class="wc-row${s.all ? ' is-all' : ''}"><span class="wc-n">${esc(s.n)}/${esc(b.people)}</span>`
+  + `<span class="wc-slot">${esc(s.slot)}</span><i data-f="${esc(s.f)}"></i></div>`).join('')}</div>`;
+const paperHours_ = cols => `<div class="slot-row slot-head" aria-hidden="true"><span class="slot-day"></span><div class="slot-hours">${cols.map(h => `<span class="slot-hh">${esc(h)}</span>`).join('')}</div></div>`;
+/* A WEEK: `days` [{ label, cells }], each day's cells already drawn by the caller's own cell maker. */
+const paperWeek_ = b => `<div class="slot-grid">${paperHours_(b.cols || [])}${(b.days || []).map(d => `<div class="slot-row"><span class="slot-day">${esc(d.label)}</span><div class="slot-hours">${d.cells || ''}</div></div>`).join('')}</div>`;
+const paperStrip_ = b => (b.head === 'ruler' ? `<span class="wk-hh wk-rule" aria-hidden="true">${esc(b.from)} – ${esc(b.to)}</span>`
+  : b.head === 'cols' ? `<span class="wk-hh" aria-hidden="true">${(b.cols || []).map(h => `<span class="slot-hh">${esc(h)}</span>`).join('')}</span>` : '')
+  + `<span class="slot-hours">${b.cells || ''}</span>`;
+/* THE PAPER'S CONTROLS: a select (`face` lays words over it), a typed box, or a settled answer as text. */
+function paperSelect_(b) {
+  const opt = o => `<option value="${esc(o.value)}"${o.on ? ' selected' : ''}${o.off ? ' disabled' : ''}>${esc(o.text)}</option>`;
+  const sel = `<select class="bk-sel" id="${esc(b.id)}" data-do="book-set" data-step="${esc(b.step)}"${b.off ? ' disabled' : ''} aria-label="${esc(b.aria)}">${(b.options || []).map(opt).join('')}</select>`;
+  return b.face == null ? sel : `<span class="bk-face${b.set ? ' is-set' : ''}"><span class="bk-said" aria-hidden="true">${esc(b.face)}</span>${sel}</span>`;
+}
+const paperSet_ = b => `<span class="bk-set">${esc(b.text)}</span>`;
+const paperInput_ = b => `<input class="bk-in${b.wide ? ' bk-in-l' : ''}"${b.id ? ` id="${esc(b.id)}"` : ''}${b.act ? ` data-do="${esc(b.act)}"` : ''}${b.field ? ` data-field="${esc(b.field)}"` : ''} type="${b.kind === 'number' ? 'number' : 'text'}"`
+  + `${b.kind === 'number' ? ' inputmode="decimal" min="0" max="100" step="1"' : ''} value="${esc(b.value == null ? '' : b.value)}" placeholder="${esc(b.placeholder || '')}"${b.off ? ' disabled' : ''} aria-label="${esc(b.aria || '')}">`;
+const paperNote_ = b => `<p class="note${b.look ? ' ' + esc(b.look) : ''}">${cardRuns_(b.text)}</p>`;
+const paperLinks_ = b => `<p class="note policy-links">${esc(b.say || '')}${(b.links || []).map(l => `<a href="${esc(l.href)}" data-do="file-view" target="_blank" rel="noopener">${esc(l.text)}</a>`).join(' · ')}</p>`;
+const paperBox_ = b => `<div${b.id ? ` id="${esc(b.id)}"` : ''} class="${esc(b.look || '')}">${b.inner || ''}</div>`;
+Object.assign(CARD_BLOCKS, { paperRow: paperRow_, paperDoc: paperDoc_, paperRoster: paperRoster_, paperWhenCould: paperWhenCould_, paperWeek: paperWeek_,
+  paperStrip: paperStrip_, paperSelect: paperSelect_, paperSet: paperSet_, paperInput: paperInput_, paperNote: paperNote_, paperLinks: paperLinks_, paperBox: paperBox_ });
+/* A BOOKING AS A PICTURE: the paper's own markup (`xml`, already serialised) laid in an SVG at the screen's width; `css` is the page's own rules. */
+const paperSnap_ = b => `<svg xmlns="http://www.w3.org/2000/svg" width="${Number(b.cw) || 1}" height="${Number(b.ch) || 1}" viewBox="0 0 ${(Number(b.cw) || 1) / (Number(b.k) || 1)} ${(Number(b.ch) || 1) / (Number(b.k) || 1)}">`
+  + `<style>${String(b.css || '').replace(/<\//g, '<\\/')}</style><foreignObject x="0" y="0" width="${Number(b.w) || 1}" height="${Number(b.h) || 1}">${b.xml || ''}</foreignObject></svg>`;
+/* TURNING A REQUEST DOWN asks why, in one optional line. */
+const paperWhy_ = b => `<form class="req-why" data-id="${esc(b.id)}"><label>Why not? <input name="why" maxlength="200" placeholder="optional, one line" autocomplete="off"></label>${tile_({ form: true, submit: true, label: 'Decline' })}</form>`;
+Object.assign(CARD_BLOCKS, { paperSnap: paperSnap_, paperWhy: paperWhy_ });
+/* THE ONE TAG MAKER for a finder's menu (owner, 13 Nov): every answer, Doesn't matter, and the sign-in step's tags. `inner` is markup, escaped already. */
+const answerTag_ = (inner, attrs, cls) => `<div class="counted row tap${cls ? ' ' + cls : ''}" role="button" tabindex="0"${attrs || ''}><span class="k">${inner}</span></div>`;
+/* A MENU'S ROW OF TAGS, and the blank tag typed on (the sign-in name); `id` names a slot something else fills, Google's button. */
+const answersRow_ = (tags, cls, id) => `<div${id ? ` id="${id}"` : ''} class="answers${cls ? ' ' + cls : ''}">${tags || ''}</div>`;
+const answerBox_ = (attrs, cls) => `<label class="counted row${cls ? ' ' + cls : ''}"><input${attrs || ''}></label>`;
 
 ;
 /* ==== js/core-price.js ==== */
@@ -948,7 +1074,7 @@ const isStudentsCol_ = col => col === 'students';
 /* A screen's host that is the screen you are on; the toast now on screen; a sign-in box, its name or its code (owner, 11 Nov). */
 const isAtHost_ = h => !!h && h.id === 's-' + AT;
 const isToast_ = el => !!el && el.id === 'toast';
-const SIGN_IN_BOXES = ['in-name', 'in-pin'];
+const SIGN_IN_BOXES = ['in-name'];
 const isSignInBox_ = el => !!el && SIGN_IN_BOXES.indexOf(el.id) !== -1;
 /* A tool laid on a figure (MEAS) rather than held on the pad: the ruler and the protractor. */
 const MEASURE_TOOLS = ['ruler', 'protractor'];
@@ -1703,7 +1829,7 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Practicals&subject=Chemistry": ["topic",[["Bar Charts & Pictograms"],["Bounds & Error Intervals"],["Cell Biology"],["Chemical Analysis"],["Chemical Changes"],["Compound Measures"],["Direct Proportion"],["Electricity"],["Energy Changes"],["Inequalities"],["Mean"],["Negative Numbers"],["Ordering Numbers & Decimals"],["Organic Chemistry"],["Particle Model of Matter"],["Percentage Increase & Decrease"],["Percentage of an Amount"],["Percentages"],["Quantitative Chemistry"],["Rate of Reaction"],["Ratio Problems"],["Real-Life Graphs"],["Rounding"],["Scatter Graphs & Correlation"],["Separating Mixtures"],["Straight Line Graphs"],["Units & Measures"],["Using Resources"],["Writing & Simplifying Ratio"]],[1,1,1,8,16,3,2,1,4,1,1,1,1,1,1,1,1,2,2,6,1,3,2,1,5,1,5,1,1],31,["Bar Charts & Pictograms","Bounds & Error Intervals","Cell Biology","Chemical Analysis","Chemical Changes","Compound Measures","Direct Proportion","Electricity","Energy Changes","Inequalities","Mean","Negative Numbers","Ordering Numbers & Decimals","Organic Chemistry","Particle Model of Matter","Percentage Increase & Decrease","Percentage of an Amount","Percentages","Quantitative Chemistry","Rate of Reaction","Ratio Problems","Real-Life Graphs","Rounding","Scatter Graphs & Correlation","Separating Mixtures","Straight Line Graphs","Units & Measures","Using Resources","Writing & Simplifying Ratio"]],
   "kindLabel=Practice&kindOwn=Practicals&subject=Maths": ["level",[["A-Level"],["GCSE"],["KS3"],["SATs"]],[2,7,8,4],10,["A-Level","GCSE","KS3","SATs"]],
   "kindLabel=Practice&kindOwn=Practicals&subject=Physics": ["topic",[["Angles"],["Averages & Range"],["Bar Charts & Pictograms"],["Compound Measures"],["Direct Proportion"],["Electricity"],["Energy"],["Enlargements"],["Estimation"],["Forces"],["Inverse Proportion"],["Magnetism & Electromagnetism"],["Mean"],["Particle Model of Matter"],["Ratio Problems"],["Real-Life Graphs"],["Rearranging Formulae"],["Standard Form"],["Straight Line Graphs"],["Substitution"],["Units & Measures"],["Waves"],["Writing & Simplifying Ratio"]],[4,1,1,6,5,5,9,1,1,13,1,1,6,1,2,1,2,1,11,3,9,6,1],29,["Angles","Averages & Range","Bar Charts & Pictograms","Compound Measures","Direct Proportion","Electricity","Energy","Enlargements","Estimation","Forces","Inverse Proportion","Magnetism & Electromagnetism","Mean","Particle Model of Matter","Ratio Problems","Real-Life Graphs","Rearranging Formulae","Standard Form","Straight Line Graphs","Substitution","Units & Measures","Waves","Writing & Simplifying Ratio"]],
-  "kindLabel=Library": ["subject",[["Art and Design"],["Astronomy"],["Biology"],["Business"],["Chemistry"],["Citizenship"],["Classical Civilisation"],["Combined Science"],["Computer Science"],["Design and Technology"],["Drama"],["Economics"],["English Language"],["English Literature"],["Food Preparation and Nutrition"],["French"],["Further Maths"],["Geography"],["German"],["Greek"],["History"],["Latin"],["Maths"],["Mechanics"],["Media Studies"],["Music"],["Non-verbal Reasoning"],["Philosophy"],["Phonics"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Russian"],["Sociology"],["Spanish"],["Statistics"],["Study Skills"],["Verbal Reasoning"]],[8,14,158,37,608,10,10,2,45,11,8,29,189,5216,8,41,34,37,14,1,3619,14,165,76,10,9,14,1,12,270,262,17,31,240857,15,26,41,17,14,21],251967,["Art and Design","Astronomy","Biology","Business","Chemistry","Citizenship","Classical Civilisation","Combined Science","Computer Science","Design and Technology","Drama","Economics","English Language","English Literature","Food Preparation and Nutrition","French","Further Maths","Geography","German","Greek","History","Latin","Maths","Mechanics","Media Studies","Music","Non-verbal Reasoning","Philosophy","Phonics","Physical Education","Physics","Politics","Psychology","Religious Studies","Russian","Sociology","Spanish","Statistics","Study Skills","Verbal Reasoning"]],
+  "kindLabel=Library": ["subject",[["Art and Design"],["Astronomy"],["Biology"],["Business"],["Chemistry"],["Citizenship"],["Classical Civilisation"],["Combined Science"],["Computer Science"],["Design and Technology"],["Drama"],["Economics"],["English Language"],["English Literature"],["Food Preparation and Nutrition"],["French"],["Further Maths"],["Geography"],["German"],["Greek"],["History"],["Latin"],["Maths"],["Mechanics"],["Media Studies"],["Music"],["Non-verbal Reasoning"],["Philosophy"],["Phonics"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Russian"],["Sociology"],["Spanish"],["Statistics"],["Study Skills"],["Verbal Reasoning"]],[8,14,158,37,607,10,10,2,45,11,8,29,189,5216,8,41,34,37,14,1,3619,14,162,76,10,9,14,1,12,270,259,17,31,240857,15,26,41,17,14,21],251960,["Art and Design","Astronomy","Biology","Business","Chemistry","Citizenship","Classical Civilisation","Combined Science","Computer Science","Design and Technology","Drama","Economics","English Language","English Literature","Food Preparation and Nutrition","French","Further Maths","Geography","German","Greek","History","Latin","Maths","Mechanics","Media Studies","Music","Non-verbal Reasoning","Philosophy","Phonics","Physical Education","Physics","Politics","Psychology","Religious Studies","Russian","Sociology","Spanish","Statistics","Study Skills","Verbal Reasoning"]],
   "kindLabel=Library&subject=Astronomy": ["topic",[["Astrophysics"],["Classification of Stars"],["Cosmology"],["Space Physics"],["Telescopes"]],[1,2,2,5,1],14,["Astrophysics","Classification of Stars","Cosmology","Space Physics","Telescopes"]],
   "kindLabel=Library&subject=Biology": ["level",[["A-Level"],["GCSE"],["KS3"],["SATs"]],[22,118,11,7],158,["A-Level","GCSE","KS3","SATs"]],
   "kindLabel=Library&subject=Biology&level=A-Level": ["topic",[["Bioenergetics"],["Cell Biology"],["Ecology"],["Homeostasis & Response"],["Infection & Response"],["Inheritance & Evolution"],["Organisation"]],[2,5,2,2,1,4,4],22,["Bioenergetics","Cell Biology","Ecology","Homeostasis & Response","Infection & Response","Inheritance & Evolution","Organisation"]],
@@ -1711,7 +1837,7 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=Biology&level=KS3": ["topic",[["Bioenergetics"],["Cell Biology"],["Ecology"],["Infection & Response"],["Inheritance & Evolution"],["Organisation"]],[2,1,1,1,2,3],11,["Bioenergetics","Cell Biology","Ecology","Infection & Response","Inheritance & Evolution","Organisation"]],
   "kindLabel=Library&subject=Biology&level=SATs": ["topic",[["Bioenergetics"],["Ecology"],["Inheritance & Evolution"],["Organisation"]],[1,2,1,2],7,["Bioenergetics","Ecology","Inheritance & Evolution","Organisation"]],
   "kindLabel=Library&subject=Business": ["level",[["A-Level"],["GCSE"]],[17,20],37,["A-Level","GCSE"]],
-  "kindLabel=Library&subject=Chemistry": ["cState",[["Aqueous solution"],["Gas"],["Liquid"],["Solid"],["Unknown"]],[23,36,39,216,19],608,["Aqueous solution","Gas","Liquid","Solid","Unknown"]],
+  "kindLabel=Library&subject=Chemistry": ["cState",[["Aqueous solution"],["Gas"],["Liquid"],["Solid"],["Unknown"]],[23,36,39,216,19],607,["Aqueous solution","Gas","Liquid","Solid","Unknown"]],
   "kindLabel=Library&subject=Chemistry&cState=Aqueous solution": ["cCategory",[["Acid"],["Alkali"],["Covalent compound"],["Indicator"],["Mixture"],["Salt"]],[7,2,4,5,1,4],23,["Acid","Alkali","Covalent compound","Indicator","Mixture","Salt"]],
   "kindLabel=Library&subject=Chemistry&cState=Gas": ["mKind",[["Element"],["Substance"]],[11,25],36,["Element","Substance"]],
   "kindLabel=Library&subject=Chemistry&cState=Liquid": ["mKind",[["Element"],["Substance"]],[2,37],39,["Element","Substance"]],
@@ -1749,10 +1875,10 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=History&histKind=People": ["personFrom",[["Alexandria"],["Antioch"],["Antium"],["Arianzus, Cappadocia"],["Bethelia, near Gaza"],["Blenheim Palace, Oxfordshire"],["Boston"],["Braunau am Inn, Austria"],["Caesarea in Cappadocia"],["Caesarea Maritima"],["Carthage"],["Chur, Switzerland"],["Coma, Egypt"],["Constantinople"],["Constantinople (or Palestine)"],["Damascus"],["Denison, Texas"],["Eisleben"],["Galatia, Paphlagonia"],["Gori, Georgia"],["Hyde Park, New York"],["Imbros"],["Kiev (probably)"],["Lamar, Missouri"],["London"],["Moscow"],["Naissus"],["Naxos"],["Noyon, France"],["Predappio, Italy"],["Rome"],["Salona, Dalmatia"],["Shovsk, Tambov province"],["Syria"],["Thessalonica"],["Tokyo"],["Toropets"],["Vasiliko, Epirus"]],[2,2,1,1,1,1,1,1,2,1,1,1,1,4,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,2,1,1,1],53,["Alexandria","Antioch","Antium","Arianzus, Cappadocia","Bethelia, near Gaza","Blenheim Palace, Oxfordshire","Boston","Braunau am Inn, Austria","Caesarea in Cappadocia","Caesarea Maritima","Carthage","Chur, Switzerland","Coma, Egypt","Constantinople","Constantinople (or Palestine)","Damascus","Denison, Texas","Eisleben","Galatia, Paphlagonia","Gori, Georgia","Hyde Park, New York","Imbros","Kiev (probably)","Lamar, Missouri","London","Moscow","Naissus","Naxos","Noyon, France","Predappio, Italy","Rome","Salona, Dalmatia","Shovsk, Tambov province","Syria","Thessalonica","Tokyo","Toropets","Vasiliko, Epirus"]],
   "kindLabel=Library&subject=History&histKind=Timelines": ["histEra",[["Ancient"],["Medieval"],["Early modern"],["Modern"]],[3,2,1,4],6,["Ancient","Medieval","Early modern","Modern"]],
   "kindLabel=Library&subject=History&histKind=Writings": ["wWork",[["Bill of Rights 1689"],["Constitution of the United States","Constitution of the United…"],["Declaration of Independence"],["Fireside Chats"],["Germania and Agricola"],["Gettysburg Address"],["History of the Peloponnesian War","History of the Peloponnesian…"],["Magna Carta"],["Presidential Inaugural Addresses","Presidential Inaugural…"],["The Anglo-Saxon Chronicle"],["The Gallic War"],["The Genuine Works of Hippocrates","The Genuine Works of…"],["The Histories"],["The Lives of the Twelve Caesars","The Lives of the Twelve…"]],[52,74,33,25,92,1,26,128,55,403,384,86,1483,485],3383,["Bill of Rights 1689","Constitution of the United…","Declaration of Independence","Fireside Chats","Germania and Agricola","Gettysburg Address","History of the Peloponnesian…","Magna Carta","Presidential Inaugural…","The Anglo-Saxon Chronicle","The Gallic War","The Genuine Works of…","The Histories","The Lives of the Twelve…"]],
-  "kindLabel=Library&subject=Maths": ["level",[["A-Level"],["AS"],["GCSE"],["KS3"],["SATs"]],[56,22,48,26,39],165,["A-Level","AS","GCSE","KS3","SATs"]],
-  "kindLabel=Library&subject=Maths&level=A-Level": ["keystage",[["KS4"],["KS5"]],[1,52],56,["KS4","KS5"]],
-  "kindLabel=Library&subject=Maths&level=AS": ["keystage",[["KS4"],["KS5"]],[1,20],22,["KS4","KS5"]],
-  "kindLabel=Library&subject=Maths&level=GCSE": ["examBoard",[["AQA"],["Edexcel"],["OCR"]],[17,28,17],48,["AQA","Edexcel","OCR"]],
+  "kindLabel=Library&subject=Maths": ["level",[["A-Level"],["AS"],["GCSE"],["KS3"],["SATs"]],[55,21,46,26,39],162,["A-Level","AS","GCSE","KS3","SATs"]],
+  "kindLabel=Library&subject=Maths&level=A-Level": ["keystage",[["KS4"],["KS5"]],[1,51],55,["KS4","KS5"]],
+  "kindLabel=Library&subject=Maths&level=AS": ["keystage",[["KS4"],["KS5"]],[1,19],21,["KS4","KS5"]],
+  "kindLabel=Library&subject=Maths&level=GCSE": ["examBoard",[["AQA"],["Edexcel"],["OCR"]],[15,26,15],46,["AQA","Edexcel","OCR"]],
   "kindLabel=Library&subject=Maths&level=KS3": ["topic",[["3-D Shapes"],["Adding & Subtracting Fractions"],["Angles at a Point & on a Line"],["Angles in Parallel Lines"],["Angles in Polygons"],["Angles in Triangles & Quadrilaterals","Angles in Triangles…"],["Area & Circumference of Circles","Area & Circumference of…"],["Area of 2-D Shapes"],["Averages & Range"],["Averages from a Table"],["Bar Charts & Pictograms"],["Basic Probability"],["Bearings"],["Best Value & Unitary Method"],["Calculating with Decimals"],["Compound Measures"],["Compound Shapes"],["Coordinates"],["Cubes & Cube Roots"],["Describing a Single Transformation","Describing a Single…"],["Direct Proportion"],["Enlargements"],["Equation of a Line"],["Equivalent & Simplifying Fractions","Equivalent & Simplifying…"],["Estimation"],["Expanding Brackets"],["Factorising"],["Factors & Multiples"],["Fraction Decimal Percentage Conversion","Fraction Decimal Percentage…"],["Fractions of an Amount"],["Function Machines"],["HCF & LCM"],["Inequalities on a Number Line"],["Laws of Indices"],["Linear Equations"],["Listing Outcomes & Sample Space","Listing Outcomes & Sample…"],["Mean"],["Median"],["Mixed Numbers"],["Mode"],["Multiplication"],["Multiplying & Dividing Fractions","Multiplying & Dividing…"],["Negative Numbers"],["nth Term of a Linear Sequence","Nth Term of a Linear Sequence"],["Order of Operations"],["Ordering Numbers & Decimals"],["Parts of a Circle"],["Percentage Increase & Decrease"],["Percentage of an Amount"],["Perimeter"],["Pie Charts"],["Place Value & Ordering"],["Primes & Prime Factorisation"],["Pythagoras' Theorem"],["Range"],["Ratio Problems"],["Real-Life Graphs"],["Rearranging Formulae"],["Reflections"],["Relative Frequency & Expectation","Relative Frequency…"],["Rotations"],["Rounding"],["Scale Drawings & Maps"],["Scatter Graphs & Correlation"],["Sequences"],["Sharing in a Ratio"],["Significant Figures"],["Simplifying & Collecting Terms"],["Solving Inequalities"],["Squares & Square Roots"],["Standard Form"],["Straight Line Graphs"],["Substitution"],["Term-to-Term Rules"],["Translations"],["Types of Angle"],["Units & Measures"],["Unknowns on Both Sides"],["Venn Diagrams & Set Notation"],["Volume & Surface Area"],["Writing & Simplifying Ratio"]],[1,1,1,1,1,1,1,1,1,1,2,2,2,2,1,3,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,3,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,3,1,1,1,1],26,["3-D Shapes","Adding & Subtracting Fractions","Angles at a Point & on a Line","Angles in Parallel Lines","Angles in Polygons","Angles in Triangles…","Area & Circumference of…","Area of 2-D Shapes","Averages & Range","Averages from a Table","Bar Charts & Pictograms","Basic Probability","Bearings","Best Value & Unitary Method","Calculating with Decimals","Compound Measures","Compound Shapes","Coordinates","Cubes & Cube Roots","Describing a Single…","Direct Proportion","Enlargements","Equation of a Line","Equivalent & Simplifying…","Estimation","Expanding Brackets","Factorising","Factors & Multiples","Fraction Decimal Percentage…","Fractions of an Amount","Function Machines","HCF & LCM","Inequalities on a Number Line","Laws of Indices","Linear Equations","Listing Outcomes & Sample…","Mean","Median","Mixed Numbers","Mode","Multiplication","Multiplying & Dividing…","Negative Numbers","Nth Term of a Linear Sequence","Order of Operations","Ordering Numbers & Decimals","Parts of a Circle","Percentage Increase & Decrease","Percentage of an Amount","Perimeter","Pie Charts","Place Value & Ordering","Primes & Prime Factorisation","Pythagoras' Theorem","Range","Ratio Problems","Real-Life Graphs","Rearranging Formulae","Reflections","Relative Frequency…","Rotations","Rounding","Scale Drawings & Maps","Scatter Graphs & Correlation","Sequences","Sharing in a Ratio","Significant Figures","Simplifying & Collecting Terms","Solving Inequalities","Squares & Square Roots","Standard Form","Straight Line Graphs","Substitution","Term-to-Term Rules","Translations","Types of Angle","Units & Measures","Unknowns on Both Sides","Venn Diagrams & Set Notation","Volume & Surface Area","Writing & Simplifying Ratio"]],
   "kindLabel=Library&subject=Maths&level=SATs": ["keystage",[["KS1"],["KS2"]],[15,20],39,["KS1","KS2"]],
   "kindLabel=Library&subject=Mechanics": ["mScope",[["Car"],["Car part"]],[7,69],76,["Car","Car part"]],
@@ -1761,7 +1887,7 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=Physical Education": ["boxKind",[["Fighters"],["Fights"]],[103,157],270,["Fighters","Fights"]],
   "kindLabel=Library&subject=Physical Education&boxKind=Fighters": ["decade",[["1890s"],["1900s"],["1910s"],["1920s"],["1930s"],["1940s"],["1950s"],["1960s"],["1970s"],["1980s"],["1990s"],["2000s"],["2010s"],["2020s"]],[1,2,8,12,11,13,16,20,24,35,42,46,34,15],103,["1890s","1900s","1910s","1920s","1930s","1940s","1950s","1960s","1970s","1980s","1990s","2000s","2010s","2020s"]],
   "kindLabel=Library&subject=Physical Education&boxKind=Fights": ["boutMonth",[["January"],["February"],["March"],["April"],["May"],["June"],["July"],["August"],["September"],["October"],["November"],["December"]],[4,10,12,5,13,30,7,4,29,9,25,9],157,["January","February","March","April","May","June","July","August","September","October","November","December"]],
-  "kindLabel=Library&subject=Physics": ["topic",[["Astrophysics"],["Atomic Structure"],["Capacitors"],["Circular & Periodic Motion"],["Classification of Stars"],["Cosmology"],["Electric & Magnetic Fields"],["Electric Circuits"],["Electricity"],["Electromagnetic Waves"],["Energy"],["Forces"],["Gravitational Fields"],["Magnetism & Electromagnetism"],["Measurements & Their Errors"],["Mechanics & Materials"],["Nuclear Physics"],["Particle Model of Matter"],["Particles & Radiation"],["Progressive & Stationary Waves"],["Space Physics"],["Telescopes"],["Thermal Physics"],["Waves"]],[1,14,1,2,1,1,2,1,18,2,11,33,1,13,2,3,1,12,1,2,7,1,1,18],262,["Astrophysics","Atomic Structure","Capacitors","Circular & Periodic Motion","Classification of Stars","Cosmology","Electric & Magnetic Fields","Electric Circuits","Electricity","Electromagnetic Waves","Energy","Forces","Gravitational Fields","Magnetism & Electromagnetism","Measurements & Their Errors","Mechanics & Materials","Nuclear Physics","Particle Model of Matter","Particles & Radiation","Progressive & Stationary Waves","Space Physics","Telescopes","Thermal Physics","Waves"]],
+  "kindLabel=Library&subject=Physics": ["topic",[["Astrophysics"],["Atomic Structure"],["Capacitors"],["Circular & Periodic Motion"],["Classification of Stars"],["Cosmology"],["Electric & Magnetic Fields"],["Electric Circuits"],["Electricity"],["Electromagnetic Waves"],["Energy"],["Forces"],["Gravitational Fields"],["Magnetism & Electromagnetism"],["Measurements & Their Errors"],["Mechanics & Materials"],["Nuclear Physics"],["Particle Model of Matter"],["Particles & Radiation"],["Progressive & Stationary Waves"],["Space Physics"],["Telescopes"],["Thermal Physics"],["Waves"]],[1,14,1,2,1,1,2,1,18,2,11,33,1,13,2,3,1,12,1,2,7,1,1,18],259,["Astrophysics","Atomic Structure","Capacitors","Circular & Periodic Motion","Classification of Stars","Cosmology","Electric & Magnetic Fields","Electric Circuits","Electricity","Electromagnetic Waves","Energy","Forces","Gravitational Fields","Magnetism & Electromagnetism","Measurements & Their Errors","Mechanics & Materials","Nuclear Physics","Particle Model of Matter","Particles & Radiation","Progressive & Stationary Waves","Space Physics","Telescopes","Thermal Physics","Waves"]],
   "kindLabel=Library&subject=Physics&topic=Electricity": ["level",[["GCSE"],["KS3"],["SATs"]],[16,1,1],18,["GCSE","KS3","SATs"]],
   "kindLabel=Library&subject=Physics&topic=Energy": ["level",[["GCSE"],["KS3"]],[10,1],11,["GCSE","KS3"]],
   "kindLabel=Library&subject=Physics&topic=Forces": ["level",[["A-Level"],["GCSE"],["KS3"],["SATs"]],[1,29,1,2],33,["A-Level","GCSE","KS3","SATs"]],
@@ -1791,12 +1917,12 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31850,251967,9,2,4,5,10,45,20,2],283913,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,251960,24,2,4,5,10,31,7],283892,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[2,2,2],4,["Parent","Student","Tutor"]],
-  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,17,9,11,15,5],45,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
+  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,5,2],31,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31850,251967,9,2,1,5,10,29,20,2],283894,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,251960,24,2,1,5,10,29,7],283887,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[20,8,17,8,7],29,["Student","Parent","Staff","Apprentice","Admin"]]
 }
 }};
@@ -4036,6 +4162,10 @@ function oopsDevice_() {
 function oopsHtml_() {
   return renderCard({ kind: 'oops', look: 'oops', tags: [{ text: 'This part did not load', colour: 0 }] });
 }
+/* THE SIGN-IN KEPT ON THIS PHONE; false when storage is blocked, and the sign-in still holds for this visit. */
+function keepUser_() {
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); return true; } catch (e) { return false; }
+}
 function oops_(err, where, host, o) {
   o = o || {};
   if (err && typeof err === 'object') { if (err.__oops) return; try { err.__oops = true; } catch (e) { /* a frozen error is still reported */ } }
@@ -4099,8 +4229,8 @@ function oopsTry_(where, fn, host) {
 }
 /* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
 const TIER_CORE_WIDGETS = [];
-const TIER_LAZY_WIDGETS = ['timer', 'calendar', 'timetable', 'typing', 'console', 'wordgames', 'newspaper', 'spotify', 'favlinks', 'pixel'];
-const TIER_OFF_WIDGETS = ['homework', 'flyers', 'cart', 'rewrite', 'poster'];
+const TIER_LAZY_WIDGETS = [];
+const TIER_OFF_WIDGETS = ['reels', 'newspaper', 'homework', 'flyers', 'mat', 'timer', 'docket', 'notepad', 'spotify', 'speedread', 'timetable', 'typing', 'cart', 'calendar', 'countdowns', 'favlinks', 'rewrite', 'poster', 'pixel', 'console', 'wordgames'];
 const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
 const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
 const TIER_RUN = { depth: 0 };
@@ -4607,7 +4737,7 @@ const SCREEN_HOOKS = {
   feed: { started: [() => typeof feedCamWatch_ === 'function' && feedCamWatch_()],
     slid: n => { if (typeof feedCamWatch_ === 'function') afterSlide_(feedCamWatch_); if (n !== 0 && typeof camRest_ === 'function') camRest_(); } },
   /* an admin's business records are asked for, a POST, once (js/records.js) */
-  biz: { started: [() => typeof bizStart_ === 'function' && bizStart_()] },
+  biz: { started: [() => typeof window.bizStart_ === 'function' && window.bizStart_()] },
   /* a conversation opens at its newest message, and keeps itself up to date while it is the screen you are on (`dmPoll_`) */
   dm: { started: [() => typeof dmFoot_ === 'function' && dmFoot_(), () => typeof dmPoll_ === 'function' && dmPoll_()],
     drawn: () => { if (typeof dmFoot_ === 'function') { try { dmFoot_(); } catch (e) { oops_(e, 'shell:drawnScreen_') } } } },
@@ -5768,18 +5898,14 @@ function flowShow_(id, n) {
   }, 'flow-show');
 }
 
-/* THE TOP BAR (900): the brand, and who is signed in as a removable tag; never a Sign in tile (owner, 6 Nov). */
+/* THE TOP BAR (900): the brand only; who is signed in is Find's first chip (owner, 13 Nov). */
 function topbarPaint_() {
   const bar = $('topbar-who');
   if (!bar || typeof tile_ !== 'function') return;
   const mark = document.querySelector('.topbar-brand');
   if (mark && mark.textContent !== brand('name', '@family.')) mark.textContent = brand('name', '@family.');
-  const who = USER ? String(USER.name || USER.handle || '').trim() : '';
-  /* THE NAME IS A CHIP: removing it signs out, one control one job (owner, 13 Nov); signed out, Sign in is Find › Settings. */
-  const label = 'Sign out ' + who;
-  const html = USER ? qtag_(`${esc(who)}${tile_({ icon: 'close', label: label, act: 'signout', cls: 'chip-x' })}`,
-    ` data-do="signout" role="button" tabindex="0" aria-label="${esc(label)}"`, 'sm topbar-name', 'chip') : '';
-  if (bar.innerHTML !== html) bar.innerHTML = html;
+  /* THE NAME IS FIND'S FIRST CHIP NOW (`signChips_`, owner 13 Nov), so the bar holds no tag of its own. */
+  if (bar.innerHTML) bar.innerHTML = '';
 }
 
 /* ---------- ONE COLUMN PLACED ON ITS OWN, WITH NOTHING MOVING § */
@@ -8059,20 +8185,8 @@ function meCard(given) {
     return findCard({ kind: 'tutor', row: mine });
   }
 
-  return card_(`<div class="is-widget">
-    <div class="thing">
-      ${/* THROUGH `personFace_` LIKE EVERY FACE. § */
-            ''}
-      ${personFace_({ pic: face, avatar: USER.avatar || '', handle: USER.handle, name: USER.name, personId: USER.personId },
-                    { cls: 'thing-pic', none: 'none', size: 52 })}
-      <div class="thing-body">
-        <h3>${esc(nameBesideHandle_(USER.name, USER.handle))}</h3>
-        ${USER.handle ? `<p class="prof-handle">@${esc(USER.handle)}</p>` : ''}
-      </div>
-    </div>
-    ${/* THE `Sign out` BUTTON WAS HERE, briefly. § */
-          ''}
-  </div>`);
+  return renderCard({ kind: 'me', look: 'is-widget', name: USER.name, picture: profFace_({ kind: 'me', key: USER.personId, row: { image: face, personId: USER.personId } }),
+    tags: [{ text: nameBesideHandle_(USER.name, USER.handle), colour: 0 }], body: USER.handle ? [{ type: 'text', look: 'prof-handle', text: '@' + USER.handle }] : [] });
 }
 
 /* ---------- A FIELD THAT MIGHT BE A LIST, AND MIGHT BE A STRING, AND MIGHT BE NEITHER § */
@@ -8095,9 +8209,8 @@ function teachGroups_(list) {
   });
   return out;
 }
-/* ONE CHIP. The levels are a `<sup>`, and each level is its own no-wrap span, so at 320px a long list breaks BETWEEN levels § */
-const teachChip_ = (g, main) => qtag_(`${mark(g.subject)}${
-  g.levels.length ? `<sup class="prof-lv">&nbsp;${g.levels.map(l => `<span>${mark(l)}</span>`).join(', ')}</sup>` : ''}`, '', main ? 'is-main' : '', 'prof-tag');
+/* ONE CHIP (a tag spec): the subject, its levels raised and each held whole so a long list breaks between levels. */
+const teachChip_ = (g, main) => ({ pill: true, look: main ? 'is-main' : '', text: [{ marked: g.subject }, g.levels.length ? { levels: g.levels } : ''] });
 
 /* ---------- A QUALIFICATION, WRITTEN LIKE AN ISOTOPE § */
 const profQualV_ = v => String(v == null ? '' : v).trim();
@@ -8109,33 +8222,15 @@ function profQualSay_(p) {
 }
 function profQualChip_(p) {
   const v = k => profQualV_(p[k]);
-  const subject = v('subject'), level = norm(v('level')) === norm(subject) ? '' : v('level'), grade = v('grade');
-  const say = esc(profQualSay_(p));
-  const low = grade ? mark(grade) : profQualNow_(p) ? '<i>studying</i>' : '';
-  if (p.kind === 'cert' || !(level || low)) {
-    return qtag_(mark([subject, level, grade].filter(Boolean).join(' ')), ` role="img" aria-label="${say}" title="${say}"`, '', 'prof-tag');
-  }
-  /* THE LAST WORD OF THE SUBJECT IS HELD TO ITS NOTATION, so at 320px a long subject breaks between its own words and never § */
-  const said = mark(subject), cut = profLastGap_(said);
-  return qtag_(`${cut > 0 ? said.slice(0, cut) + ' ' : ''}<span class="prof-q-end">${said.slice(cut + 1)}<span class="prof-iso">${
-    level ? `<sup>${mark(level)}</sup>` : ''}${low ? `<sub>${low}</sub>` : ''}</span></span>`, ` role="img" aria-label="${say}" title="${say}"`, 'prof-q', 'prof-tag');
-}
-/* THE LAST SPACE IN `mark`'s HTML THAT IS NEITHER INSIDE A TAG NOR INSIDE A COLOURED SPAN, or -1. § */
-function profLastGap_(html) {
-  let depth = 0, at = -1;
-  for (let i = 0; i < html.length; i++) {
-    if (html[i] === '<') {
-      const end = html.indexOf('>', i);
-      if (end < 0) break;
-      depth += html[i + 1] === '/' ? -1 : html[end - 1] === '/' ? 0 : 1;
-      i = end;
-    } else if (html[i] === ' ' && depth <= 0) at = i;
-  }
-  return at;
+  const subject = v('subject'), level = norm(v('level')) === norm(subject) ? '' : v('level'), grade = v('grade'), say = profQualSay_(p);
+  const low = grade ? { marked: grade } : profQualNow_(p) ? { i: 'studying' } : null;
+  if (p.kind === 'cert' || !(level || low)) return { pill: true, say, text: { marked: [subject, level, grade].filter(Boolean).join(' ') } };
+  return { pill: true, look: 'prof-q', say, text: { iso: subject, sup: level ? { marked: level } : null, sub: low } };
 }
 /* A LONG LIST SHORTENED TO "+N" (8 Nov): the whole tutor card fits one phone screen; the rest are named in the pill's title. */
 const PROF_MORE_ = (chips, n, names) => chips.length > n
-  ? chips.slice(0, n).concat(qtag_(`+${chips.length - n}`, ` title="${esc((names || []).slice(n).join(', '))}"`, 'prof-more', 'prof-tag')) : chips;
+  ? chips.slice(0, n).concat({ pill: true, look: 'prof-more', text: `+${chips.length - n}`, title: (names || []).slice(n).join(', ') }) : chips;
+const profTagRow_ = (look, tags) => (tags.length ? { type: 'tags', look: 'prof-tags prof-teach ' + look, tags } : null);
 function profQuals_(t) {
   const parts = Array.isArray(t.qualsParts) ? t.qualsParts.filter(p => p && profQualV_(p.subject)) : [];
   let chips;
@@ -8148,19 +8243,17 @@ function profQuals_(t) {
     });
     chips = [].concat(...groups).map(profQualChip_);
   } else {
-    chips = profList_(t.quals).map(v => qtag_(esc(v), '', '', 'prof-tag'));
+    chips = profList_(t.quals).map(text => ({ pill: true, text }));
   }
   chips = PROF_MORE_(chips, 2, parts.length ? parts.map(p => profQualV_(p.subject)) : profList_(t.quals));
-  return chips.length
-    ? `<div class="qtags prof-tags prof-teach prof-quals">${chips.join('')}</div>` : '';
+  return profTagRow_('prof-quals', chips);
 }
 
 /* ---------- JOBS, CURRENT AND PAST (8 Nov): one pill a job — "Role · Where · 2019–now" — in the jobs colour. */
 const profJobSay_ = j => [j.role, j.where, [j.from, j.to].filter(Boolean).join('–')].map(v => String(v || '').trim()).filter(Boolean).join(' · ');
 function profJobs_(t) {
   const says = (Array.isArray(t.jobs) ? t.jobs : []).map(profJobSay_).filter(Boolean);
-  const chips = PROF_MORE_(says.map(v => qtag_(esc(v), '', '', 'prof-tag')), 1, says);
-  return chips.length ? `<div class="qtags prof-tags prof-teach prof-jobs">${chips.join('')}</div>` : '';
+  return profTagRow_('prof-jobs', PROF_MORE_(says.map(text => ({ pill: true, text })), 1, says));
 }
 
 /* ---------- "1 to 4 students", NOT `minStudents` AND `maxStudents` § */
@@ -8203,21 +8296,20 @@ function profFacts_(t) {
 
 /* ---------- WHERE THEY TUTOR: every place by name, as tags. */
 function profPlaces_(names) {
-  return names && names.length ? `<div class="qtags prof-tags prof-teach prof-places">${PROF_MORE_(names.map(n => `<span class="prof-tag">${esc(n)}</span>`), 3, names).join('')}</div>` : '';
+  return profTagRow_('prof-places', PROF_MORE_((names || []).map(text => ({ pill: true, text })), 3, names));
 }
 
 /* ---------- WHEN THEY TEACH, AS THE RECEIPT'S WEEK § */
 function profAvail_(t) {
-  if (!t || typeof weekGrid_ !== 'function' || typeof availSet_ !== 'function') return '';
+  if (!t || typeof weekGrid_ !== 'function' || typeof availSet_ !== 'function') return null;
   /* ---------- NO `avail` KEY AT ALL IS NOT A TUTOR § */
-  if (t.avail === undefined) return '';
+  if (t.avail === undefined) return null;
   const on = availSet_(t.avail);
   const ticked = Object.keys(on);
   /* ---------- NO HOURS IS SAID, NOT LEFT BLANK § */
   if (!ticked.length) {
-    return `<p class="prof-say prof-nohours">Hasn\u2019t set usual hours yet \u2014 ask for any hour;
-        they accept or decline.${typeof isAdmin === 'function' && isAdmin()
-          ? ' They tick them in Settings, under their week.' : ''}</p>`;
+    return { type: 'text', look: 'prof-say prof-nohours', text: 'Hasn\u2019t set usual hours yet \u2014 ask for any hour; they accept or decline.'
+      + (typeof isAdmin === 'function' && isAdmin() ? ' They tick them in Settings, under their week.' : '') };
   }
   /* `busy` IS `{ m16: 'Ada' }` OFF `busyHours`, but the fixture once said `[]` and an older backend may say nothing; a list of § */
   const busy = {};
@@ -8236,9 +8328,8 @@ function profAvail_(t) {
   }).filter(d => d.hours.some(c => c.lit || c.busy));
   /* ---------- TICKED, BUT NOT AT AN HOUR THAT CAN BE BOOKED § */
   if (!days.length) {
-    return `<p class="prof-say prof-hid prof-nofree">No free hours this week.${typeof isAdmin === 'function' && isAdmin()
-          ? ' Every hour they have ticked is outside ' + hours_(hours[0], hours[hours.length - 1])
-            + ', the hours a session can be booked at.' : ''}</p>`;
+    return { type: 'text', look: 'prof-say prof-hid prof-nofree', text: 'No free hours this week.' + (typeof isAdmin === 'function' && isAdmin()
+      ? ' Every hour they have ticked is outside ' + hours_(hours[0], hours[hours.length - 1]) + ', the hours a session can be booked at.' : '') };
   }
   /* ---------- SPANS, NOT THE RECEIPT'S DISABLED BUTTONS § */
   const hoursOn = which => days.map(d => {
@@ -8252,15 +8343,11 @@ function profAvail_(t) {
   const line = which => days.map(d => {
     const hs = d.hours.filter(which).map(c => c.h), spans = [];
     hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
-    /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; the aria-label above says every hour. */
-    const say = !spans.length ? '' : profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '');
-    return spans.length ? qtag_(`${esc(day_(d.label))} ${esc(say)}`, '', 'prof-day', 'prof-tag') : '';
-  }).filter(Boolean).join('<span class="prof-sep"> </span>');
-  const free = line(c => c.lit), busyLine = line(c => c.busy);
-  return `<div class="prof-week prof-hours" data-avail="${ticked.length}"
-      aria-label="${esc((said ? 'Available ' + said : 'No free hours this week')
-        + (taught ? '. Already teaching ' + taught : ''))}">${free ? `<p class="prof-hour-line">${free}</p>` : ''}${busyLine
-        ? `<p class="prof-key prof-busy">Already teaching ${busyLine}</p>` : ''}</div>`;
+    /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; `say` reads every hour. */
+    return spans.length ? day_(d.label) + ' ' + profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '') : '';
+  }).filter(Boolean);
+  return { type: 'hours', count: ticked.length, free: line(c => c.lit), busy: line(c => c.busy),
+    say: (said ? 'Available ' + said : 'No free hours this week') + (taught ? '. Already teaching ' + taught : '') };
 }
 /* AN HOUR SPAN, 24-hour (owner, 8 Nov): 16:00–19:00. */
 const profSpan_ = ([a, b]) => hours_(a, b);
@@ -8281,6 +8368,37 @@ function rateRange_(t) {
   return max > 1 && seat > 0 ? say(r) + '–' + perHour_(r + seat * (max - 1)).slice(1) : perHour_(r);
 }
 
+/* ---------- THE TUTOR CARD AS A SPEC (master template): face, the name line's pills, subjects and facts, then its lines. */
+function profFace_(x) {
+  const t = kcRow_(x), k = typeof picKind_ === 'function' ? picKind_(t.image) : (t.image ? 'photo' : '');
+  if (k === 'photo') return { src: pic(t.image), alt: '' };
+  const svg = k === 'basic' && typeof pfpArt_ === 'function' ? pfpArt_(pfpChoice_(t.image), 96) : '';
+  return { svg: svg || (typeof kcPicOr_ === 'function' ? kcPicOr_(x, '') : '') };
+}
+cardKind_('tutor', x => {
+  const t = kcRow_(x), pill = (text, colour, look) => ({ pill: true, text, colour, look });
+  const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v)), facts = profFacts_(t);
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  const note = t.listed === false && admin ? (t.pending ? 'They ticked Tutor in their settings. Until you list them they are not on the site, cannot be booked and cannot take a session — the crossed-out eye below approves them.'
+    : 'Clients cannot see them. The crossed-out eye below puts them back on the site.') : '';
+  const words = profList_(t.tags).slice(0, 3);
+  return {
+    name: t.title || x.name || '', look: 'is-widget is-prof tcard', off: t.listed === false, picture: profFace_(x),
+    tagLook: 'prof-tags prof-who-tags',
+    tags: [pill(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')].concat([t.role || 'Tutor'].concat(profList_(t.titles)).map(v => pill(v, 1)),
+      t.rate && !childView_() ? [pill(rateRange_(t), 4, 'prof-tag-rate')] : [], t.activity ? [pill(t.activity, 3, 'prof-act')] : [],
+      t.listed === false ? [pill(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off')] : []),
+    tagRows: [main.length ? { look: 'prof-tags prof-teach', tags: PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 3) } : null,
+      also.length ? { look: 'prof-tags prof-teach', tags: PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 2) } : null,
+      profTagRow_('prof-facts', facts.map(text => ({ pill: true, text })))].filter(Boolean),
+    body: [note ? { type: 'text', look: 'prof-say prof-hid', text: note } : null,
+      t.description ? { type: 'text', look: 'prof-say cut2', act: 'cut-open', text: t.description } : null,
+      Array.isArray(t.photos) && t.photos.length ? { type: 'photos', srcs: t.photos.map(u => pic(u)), more: 4 } : null,
+      words.length ? { type: 'text', look: 'prof-words', text: words.map((v, i) => (i ? [{ i: '·' }, { b: v }] : [{ b: v }])) } : null,
+      profQuals_(t), profJobs_(t), profPlaces_(profList_(t.venues)), profAvail_(t)].filter(Boolean),
+  };
+});
+
 ;
 /* ==== js/cards-parts.js ==== */
 
@@ -8297,42 +8415,6 @@ const kcPct_ = m => (typeof m !== 'number' || !isFinite(m) ? '' : m === 1 ? dash
 const KC_FIELDS = {
   kindPic: () => '',
   name: x => `<h3>${esc(x.name || '')}</h3>`,
-  /* THE TUTOR'S COMPACT ONE-SCREEN CARD (547) as fields: face, role, the name line with the rate, then pills and lines. */
-  /* A PHOTO, ELSE A DEFAULT PICTURE (owner, 9 Nov): never an avatar figure on a card. */
-  face: x => { const t = kcRow_(x), k = typeof picKind_ === 'function' ? picKind_(t.image) : (t.image ? 'photo' : '');
-    if (k === 'photo') return `<img class="prof-pic" src="${esc(pic(t.image))}" alt="" loading="lazy" decoding="async">`;
-    return k === 'basic' && typeof pfpArt_ === 'function' ? pfpArt_(pfpChoice_(t.image), 96) : ''; },
-  /* THE NAME IS A TAG (owner, 9 Nov): first name and an initial for everyone; the role and rate are tags beside it. */
-  nameTag: x => { const t = kcRow_(x), tag = (v, n, c) => qtag_(esc(v), ` data-tag="${n}"`, c, 'prof-tag');
-    return `<div class="qtags prof-tags prof-who-tags">${tag(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')}${
-      [t.role || 'Tutor'].concat(profList_(t.titles)).map(v => tag(v, 1)).join('')}${
-      t.rate && !childView_() ? tag(rateRange_(t), 4, 'prof-tag-rate') : ''}${t.activity ? tag(t.activity, 3, 'prof-act') : ''}${
-      t.listed === false ? tag(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off') : ''}</div>`; },
-  /* A TICKED TUTOR BOX IS A QUESTION TO THE ADMIN, answered by the eye tile; the line says what pressing it means. */
-  listedNote: x => { const t = kcRow_(x); if (!(t.listed === false && isAdmin())) return '';
-    return t.pending ? `<p class="prof-say prof-hid">They ticked Tutor in their settings. Until you list them they are not on the site,
-      cannot be booked and cannot take a session — the crossed-out eye below approves them.</p>`
-      : '<p class="prof-say prof-hid">Clients cannot see them. The crossed-out eye below puts them back on the site.</p>'; },
-  /* SUBJECT PILLS: one chip a subject, its levels raised (`teachGroups_`). */
-  teaches: x => { const t = kcRow_(x), main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
-    return (main.length ? `<div class="qtags prof-tags prof-teach">${
-      PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 3).join('')}</div>` : '')
-      + (also.length ? `<div class="qtags prof-tags prof-teach">${
-      PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 2).join('')}</div>` : ''); },
-  facts: x => { const f = profFacts_(kcRow_(x));
-    return f.length ? `<div class="qtags prof-tags prof-teach prof-facts">${f.map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''; },
-  /* WHAT THEY WROTE: `doget.gs` already quotes it, so it is printed as said. */
-  say: x => (kcRow_(x).description ? `<p class="prof-say cut2" data-do="cut-open">${esc(kcRow_(x).description)}</p>` : ''),
-  photos: x => { const p = kcRow_(x).photos; return Array.isArray(p) && p.length ? `<div class="prof-photos">${PROF_MORE_(p.map(u =>
-    `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></span>`), 4).join('')}</div>` : ''; },
-  words: x => { const w = profList_(kcRow_(x).tags).slice(0, 3);
-    return w.length ? `<p class="prof-words">${w.map(v => `<b>${esc(v)}</b>`).join('<i aria-hidden="true">·</i>')}</p>` : ''; },
-  quals: x => profQuals_(kcRow_(x)),
-  jobs: x => profJobs_(kcRow_(x)),
-  /* THE MAP: the venues tab's `tutors_happy_here`; an older backend sends no key and nothing is drawn. */
-  places: x => profPlaces_(profList_(kcRow_(x).venues)),
-  /* DAY PILLS. */
-  avail: x => profAvail_(kcRow_(x)),
   /* A KIND WHOSE OWN FILE WRITES ITS INSIDES (`KC_OWN`) hands them over cut into the four parts (`kcSplit_`); no tag line of its own gets its facets. */
   ownPic: x => (x.kcOwn || {}).pic || '',
   ownHead: x => (x.kcOwn || {}).head || '',
@@ -8343,7 +8425,7 @@ const KC_FIELDS = {
 const kcField_ = k => KC_FIELDS[k] || (window.KC_FIELDS_MORE || {})[k];
 /* THE FILE'S ROWS BEFORE IT ARRIVES (or if it never does): the same rows, held equal to the file by check-card-shape. */
 const KC_DEFAULT = {
-  tutor: { cls: 'is-widget is-prof tcard', pic: ['face'], title: [], tags: ['nameTag', 'teaches', 'facts'], lines: ['listedNote', 'say', 'photos', 'words', 'quals', 'jobs', 'places', 'avail'], tiles: ['book-with:book:Book', 'msg-open:chat:Message'] },
+  tutor: { cls: 'is-widget is-prof tcard', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book', 'msg-open:chat:Message'] },
   venue: { cls: 'venue-door', pic: [], title: [], tags: [], lines: [], tiles: [] },
   level: { cls: 'is-level', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },
   subject: { cls: 'is-subject', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },
@@ -8376,7 +8458,7 @@ const KC_DEFAULT = {
   mech: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   chem: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   soon: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
-  person: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  person: { cls: 'is-prof prof-door', pic: [], title: [], tags: [], lines: [], tiles: [] },
   setting: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   health: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   offPosts: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
@@ -8634,7 +8716,8 @@ on('kc-more', el => { const c = el.closest('.kc-row, .tile-row'), m = c && c.que
 /* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
 function findCard(x, credits) {
   /* A PANEL (card_) KEEPS ITS OWN INSIDES: a DM thread is kind `msg`, and Find's message door (KC_AROUND) drew it empty. */
-  if (x && x.kind && CARD_KINDS[x.kind] && !x.kcPanel) return cardOfKind_(x);
+  /* A ONE-OFF CARD ITS OWN FORM DRAWS WHOLE (`ownCard`: Add a person) skips its kind's spec. */
+  if (x && x.kind && CARD_KINDS[x.kind] && !x.kcPanel && !x.ownCard) return cardOfKind_(x);
   const around = x && !x.kcIn && !x.kcPanel && (window.KC_AROUND || {})[x.kind];
   if (around) return around(x, extra => findCard(Object.assign({}, x, extra || {}, { kcIn: true })));
   /* A KIND WHOSE OWN FILE STILL WRITES ITS CARD (`window.KC_OWN[kind] = (x, credits) => html`) is cut into the parts; one already in the shape is kept whole. */
@@ -8923,41 +9006,10 @@ const split_ = html => String(html).split(/(?=<div class="card|<h2)/).map(x => x
 
 /** Every card on the You screen, in order. */
 function meBlocks() {
-  if (!USER) return split_(signInCard_() + registerCard_());
+  if (!USER) return split_(registerCard_());
   return meRest_();
 }
 
-/* ---------- SIGNING IN AND OUT BELONGS AT THE TOP OF THE FEED § */
-function signInCard_() {
-  return card_(`<div class="">
-        <h3>Sign in</h3>
-        ${/* ---------- NAME, USERNAME OR E-MAIL, AND THE LABEL HAS TO SAY SO § */
-             ''}
-        <label class="field"><span>email or handle</span>
-          ${formInput_('id="in-name" type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false"')}</label>
-        ${/* ---------- THE PIN, ON A SHARED iPAD § */
-             ''}
-        <label class="field"><span>PIN</span>
-          ${formInput_(`id="in-pin" ${pinDotsOk_() ? 'type="text" class="pin-dots"' : 'type="password"'}
-                 inputmode="numeric" pattern="[0-9]*" maxlength="4" enterkeyhint="go"
-                 autocomplete="one-time-code" autocorrect="off" autocapitalize="off" spellcheck="false"
-                 data-1p-ignore data-lpignore="true"`)}</label>
-        ${/* ---------- THREE TILES, WHERE THERE WERE TWO BUTTONS AND A CARD § */
-             ''}
-        <div class="tile-row">${tile_({ icon: 'in', label: 'Sign in', tone: 'buy', act: 'do-signin' })}${
-          tile_({ icon: 'key', label: 'Forgotten your PIN?', act: 'forgot-pin' })}${
-          tile_({ icon: 'join', label: 'Make an account', act: 'register' })}</div>
-        ${/* A TILE SHOWS A MARK AND NO WORD — its name is in `title` and `aria-label`, which a finger never reads. § */
-             ''}
-        ${/* ---------- AND THE OTHER DOOR § */
-             ''}
-        ${(DATA.googleClientId || '') ? `<div class="in-or"><span>or</span></div>
-        <div id="g-btn"></div>` : ''}
-        ${/* `#in-said` STOOD HERE — a faint grey line carrying a validation, a "Checking…" the button already says with a spinner on it, and a refusal that is now a toast. § */
-              ''}
-      </div>`);
-  /* THE `No account yet?` CARD THAT STOOD HERE is the third tile in the row above now. */
-}
 
 
 function meRest_() {
@@ -9252,14 +9304,14 @@ function googleSignedIn_(res) {
       /* THE SAME DOOR AS THE PIN PATH — `signedIn_`, because the reply is the same reply (one function builds it on the server for exactly this reason) and both doors § */
       signedIn_(d);
     })
-    /* `send_` HAS ALREADY TOASTED IT — see the note over `do-signin`. */
+    /* `send_` HAS ALREADY TOASTED IT — see the note over `sign-digit` in find-account.js. */
     .catch(() => {});
 }
 
 /* THE SIGN-IN CARD SPEAKS IN TOASTS, AND IT USED TO SAY EVERYTHING THREE TIMES. § */
 /* ---------- A NEW PIN, TO THE ADDRESS IN THE SHEET AND NOWHERE ELSE § */
 on('forgot-pin', el => {
-  const who = (($('in-name') || {}).value || '').trim();
+  const who = ((($('in-name') || {}).value || '').trim() || (typeof SIGN !== 'undefined' ? SIGN.who : '')).trim();
   if (!who) { toast('Type your email address or your handle first.'); return; }
   send_({ action: 'forgotPin', who }, { button: el, busy: 'Sending\u2026' })
     .then(d => toast((d && d.message)
@@ -9268,52 +9320,11 @@ on('forgot-pin', el => {
     .catch(() => {});
 });
 
-on('do-signin', el => {
-  const name = ($('in-name') || {}).value || '';
-  const pin = ($('in-pin') || {}).value || '';
-  if (!name || !pin) { toast('Both, please.'); return; }
-  /* ---------- THE BUTTON HAS TO LOOK PRESSED § */
-  /* NO `where` AND NO `saying`. § */
-  /* `email` AND `name`, THE SAME STRING TWICE. § */
-  send_({ action: 'verifyLogin', email: name.trim(), name: name.trim(), pin },
-        { button: el, busy: 'Checking…' })
-    .then(d => {
-      /* `send_` THROWS ON A REPLY CARRYING `error`, and `verifyLogin` refuses with one — so this branch is for a reply that says `success: false` and nothing else § */
-      if (!d.success) { toast(d.error || 'That did not work.'); return; }
-      /* THE REPLY, PLUS WHAT WE ALREADY KNEW. § */
-      /* ---------- CLEARING THE LAST ATTEMPT'S REFUSAL IS NOT A LINE ANY MORE § */
-      /* NOT THE TYPED TEXT AS A NAME FALLBACK ANY MORE — it is an e-mail address now, and a row with no first or last name would have signed in wearing its address as § */
-      /* ---------- DRAWN NOW, REFRESHED AFTER § */
-      signedIn_(d, name);
-    })
-    /* NO `.catch` THAT SPEAKS. § */
-    .catch(err => {
-      const why = err && err.reply && err.reply.why;
-      const B = Object.prototype.hasOwnProperty.call(SIGN_IN_REFUSED, why) ? SIGN_IN_REFUSED[why] : null;
-      const box = B && $(B.id);
-      if (!box) return;
-      if (B.clear) box.value = '';
-      box.setAttribute('aria-invalid', 'true');
-      try { box.focus(); if (B.select) box.select(); } catch (e) { /* focus and scrolling are niceties */ }
-    });
-});
-/* A SIGN-IN REFUSAL MARKS ITS BOX: a wrong PIN is cleared to type again, a bad address is selected to correct. */
-const SIGN_IN_PIN = { id: 'in-pin', clear: true }, SIGN_IN_ADDRESS = { id: 'in-name', select: true };
-const SIGN_IN_REFUSED = { 'wrong-pin': SIGN_IN_PIN, 'not-an-email': SIGN_IN_ADDRESS, 'no-such-email': SIGN_IN_ADDRESS };
 /* THE MARK COMES OFF AT THE NEXT KEYSTROKE — a red edge round a box being corrected is the app still
    complaining about what is no longer there. */
 document.addEventListener('input', e => {
   const t = e.target;
   if (isSignInBox_(t) && t.hasAttribute('aria-invalid')) t.removeAttribute('aria-invalid');
-});
-
-/* ---------- ENTER SUBMITS, BECAUSE THE KEYBOARD SAYS IT WILL § */
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  if (!isSignInBox_(e.target)) return;
-  e.preventDefault();
-  const btn = document.querySelector('[data-do="do-signin"]');
-  if (btn && !btn.disabled) btn.click();
 });
 
 on('signout', () => {
@@ -9423,7 +9434,7 @@ function signedIn_(d, typed) {
   else if (over) signedOut_({ quiet: true });
   /* SIGNED IN, FIND IS THE PERSON'S OWN, and `USER` says whose — `whose` is only for while nobody is. */
   try { finders_().forEach(st => { st.whose = ''; st.whoseAt = 0; }); } catch (e) { /* no finder yet: nothing to read or clear */ }
-  /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
+  /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `sign-digit`. The handle when the row has no name. */
   USER = me; LENS = null;
   if (!USER.name) USER.name = me.handle || typed || '';
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
@@ -9475,12 +9486,6 @@ function signInForgetOld_() {
   try { localStorage.removeItem('familyHandles'); localStorage.removeItem('familyAdminHint'); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 signInForgetOld_();
-/* DOTS ON A TEXT BOX, WHERE THE BROWSER CAN DRAW THEM — see `.pin-dots` and the PIN box above. Asked of
-   the browser rather than of its name. */
-function pinDotsOk_() {
-  try { return !!(window.CSS && CSS.supports && CSS.supports('-webkit-text-security', 'disc')); }
-  catch (e) { return false; }
-}
 
 /* ---------- MAKING AN ACCOUNT § */
 /* A PIN IS FOUR DIGITS (owner, 10 Nov). */
@@ -9497,7 +9502,11 @@ const REG_NOTE = {
 };
 /* MAKE AN ACCOUNT IS A CARD OF ITS OWN beside Sign in, its form there from the start (no sheet, owner 7 Nov). */
 function registerCard_() {
-  return card_(`<div class="reg-card"><h3>Make an account</h3><div class="reg-form">
+  return renderCard({ kind: 'panel', look: 'reg-card', name: 'Make an account', tags: ['Make an account'], body: [{ type: 'embed', tool: 'reg-form' }] });
+}
+/* THE FORM IS THE CARD'S ONE EMBED; its send (reg-send) is unchanged. */
+function regFormHtml_() {
+  return `<div class="reg-form">
     ${/* ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */''}
     <div class="reg-who" id="reg-who" data-who="">
       <p class="reg-cap" id="reg-who-cap">Both are free; teaching starts with "Apply to teach" once you are in.</p>
@@ -9523,15 +9532,9 @@ function registerCard_() {
       ${/* THREE LINES AT 320, MEASURED: § */
             ''}
       <p class="said" id="reg-note"></p>
-    </div></div></div>`);
+    </div></div>`;
 }
-/* THE SIGN-IN CARD'S TILE GOES TO THE FORM: on this column if it is drawn, else on the account column. */
-on('register', el => {
-  const near = () => (el && el.closest && el.closest('.screen') || document).querySelector('.reg-card') || document.querySelector('.screen.on .reg-card');
-  let f = near();
-  if (!f && typeof go === 'function') { go('account'); f = document.querySelector('#s-account .reg-card'); }
-  if (f && f.scrollIntoView) f.scrollIntoView({ block: 'start', behavior: 'smooth' });
-});
+CARD_EMBEDS['reg-form'] = regFormHtml_;
 
 /* `regWho_` IS THE ONE READER of the answer, so the send and the redraw cannot disagree about it. */
 const regIn_ = (el, id) => ((el && el.closest && el.closest('.reg-form')) || document).querySelector('#' + id);
@@ -9582,7 +9585,8 @@ on('reg-send', el => {
       const pinBox = regIn_(el, 'reg-pin'); if (pinBox) pinBox.value = '';
       /* THE ADDRESS GOES INTO THE SIGN-IN BOX, because the next thing this person does — after the email — is sign in with it, and they have just typed it once. § */
       const handle = String((d && d.handle) || '');
-      const box = $('in-name'); if (box) box.value = kid && handle ? '@' + handle : email;
+      const said = kid && handle ? '@' + handle : email, box = $('in-name'); if (box) box.value = said;
+      if (typeof signAfterJoin_ === 'function') signAfterJoin_(said);
       /* NO WAITING ON THE LINK — see the note over `verifyLogin`'s old PENDING refusal in dopost.gs.
          The account works now; the link is said as what it is, a confirmation, not a door. */
       toast(kid ? 'Account made — sign in now as ' + (handle ? '@' + handle : 'your handle')
@@ -9706,7 +9710,7 @@ function pinFromLink_() {
   send_({ action: 'pinLink', key })
     .then(d => {
       if (!d || !d.success) { toast((d && d.error) || 'That link did not work.'); return; }
-      /* THE PIN PATH'S DOOR, for its reasons — see `do-signin` and `signedIn_`. */
+      /* THE PIN PATH'S DOOR, for its reasons — see `sign-digit` (find-account.js) and `signedIn_`. */
       signedIn_(d);
     })
     .catch(() => {});      // `send_` has already toasted the server's sentence
@@ -10647,7 +10651,7 @@ function staffPages_() {
   const hub = typeof hubBlock_ === 'function' ? hubBlock_() : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [card_(`<div class="staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`)] : [];
-  const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof legoCards_ === 'function' ? legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
+  const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
@@ -10661,7 +10665,7 @@ screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? 
 
 /* ---------- WEB PROFILE (730): @family.'s own public card, from the brand tab, every line with its fallback ---------- */
 function webProfilePages_() {
-  const b = typeof matBrand === 'function' ? matBrand() : {};
+  const b = typeof window.matBrand === 'function' ? window.matBrand() : {};
   const name = b.name || brand('name', '@family.'), logo = brandLogo_();
   const lines = [brand('web_tagline', 'Tutoring for every age, at home and online.'), b.area ? 'Where: ' + b.area : '',
     b.phone ? 'Phone: ' + b.phone : '', b.site ? 'Online: ' + b.site : ''].filter(Boolean);
@@ -10682,12 +10686,12 @@ screen('apprentices', () => pages('apprentices', typeof cardsOf_ === 'function' 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  return (typeof bizPages_ === 'function' ? bizPages_() : []).concat(typeof deletedCard_ === 'function' ? [deletedCard_()] : []);
+  return (typeof window.bizPages_ === 'function' ? window.bizPages_() : []).concat(typeof deletedCard_ === 'function' ? [deletedCard_()] : []);
 }
 /* THE SITE COLUMN (491): what runs the site rather than the business — setup, moderation, imports, the weekly email, the build. */
 function sitePages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  return (typeof siteBizPages_ === 'function' ? siteBizPages_() : [])
+  return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
     .concat(typeof inboxCard_ === 'function' ? [inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
     .concat([card_(`<div class=""><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`)]);
@@ -10868,7 +10872,7 @@ on('notify-pick', el => {
         W.profile = Object.assign({}, W.profile, { notify: Object.assign({}, held, {
           kinds: held.kinds.map(x => x.kind === kind && !x.essential ? Object.assign({}, x, { on: on }) : x) }) });
       } else if (d && d.notify) W.profile = Object.assign({}, W.profile || {}, { notify: d.notify });
-      if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+      if (W === USER) keepUser_();
       NOTIFY_SAID = { pid: String(W.personId || ''),
         text: on ? label + ' is on.' : label + ' is off — we will not email you that.' };
       /* THE CARD ON THE PAGE NOW, for the roles card's reason: a payload landing mid-request repaints the
@@ -11051,12 +11055,9 @@ function youSettingsPages_() {
 }
 function studentSetPages_() {
   if (!whose_()) {
-    /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist first. */
-    if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
-    /* SIGN IN AND SIGNED IN ARE ONE UNIT, `acct:signed-in` (770): the owner moved it, signed out, and it jumped back — one saved place. */
-    const signIn = (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean);
+    /* SIGNING IN IS FIND'S FIRST MENU (`signMenu_`, owner 13 Nov); signed out this column offers Make an account. */
     const reg = typeof registerCard_ === 'function' ? [registerCard_()] : [];
-    return (typeof cardMark_ === 'function' ? cardMark_('acct:signed-in', signIn) : signIn).concat(reg, lockedPages_('account'));
+    return reg.concat(lockedPages_('account'));
   }
   const who = nameBesideHandle_(whose_().name, whose_().handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
@@ -12154,7 +12155,7 @@ function meSave_(el, auto) {
       if (d && d.pendingEmail !== undefined) { accountChanged_(); W.pendingEmail = String(d.pendingEmail || ''); }
       /* ---------- "SAVED" IS NOT THE WHOLE STORY WHEN AN ADDRESS WAS TYPED § */
       const word = (d && d.said) || 'Saved';
-      if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+      if (W === USER) keepUser_();
       if (box.closest('#sheet-body') && !auto) closeSheet();
       /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_` — unless the caret is still in it. */
       const form = el.closest('.me-form');
@@ -13982,16 +13983,19 @@ on('person-edit-done', () => {
 });
 
 /* ---------- FAMILY PICKER: a typed search over the payload's people cards, its hits a tap each (add-person, edit-person) ---------- */
-/* `want` 'student' or 'client'; `scope` 'pa' (the Add card) or 'pe' (the Edit form), which names the tap a hit makes. */
-const famIs_ = (p, want) => want === 'any' || (want === 'student' ? /student/i : /client|parent/i).test(String((p && p.role) || ''));
+/* `want` 'student', 'client' or 'any'; `scope` 'pa' (the Add card), 'pe' (the Edit form) or 'lens', which names the tap a hit makes. */
+const FAM_WANT_ = { student: /student/i, client: /client|parent/i, any: /(?:)/ };
+const famIs_ = (p, want) => (FAM_WANT_[want] || FAM_WANT_.client).test(String((p && p.role) || ''));
 function famHits_(q, want, skip) {
   q = String(q || '').trim().toLowerCase().replace(/^@/, '');
   if (!q) return [];
   return ((DATA && DATA.everyone) || []).filter(p => p && p.personId && famIs_(p, want) && (skip || []).indexOf(String(p.personId)) === -1
     && [p.title, p.name, p.handle].filter(Boolean).join(' ').toLowerCase().indexOf(q) !== -1).slice(0, 6);
 }
-/* THE TAP A HIT MAKES, by where the picker stands. */
-const FAM_ACT_ = { pa: { act: 'pa-pick' }, pe: { act: 'pe-link' }, lens: { act: 'lens-pick' } };
+/* THE TAP A HIT MAKES, by where the picker stands, and the people it leaves out. */
+const FAM_ACT_ = { pa: { act: 'pa-pick', skip: () => ((PERSON_ADD_ && PERSON_ADD_.picked) || []).map(x => x.id) },
+  pe: { act: 'pe-link', skip: () => peLinked_().concat([String((PERSON_ED_ || {}).id || '')]) },
+  lens: { act: 'lens-pick', skip: () => [String((USER || {}).personId || '')] } };
 const famPick_ = (scope, want, label) => `<div class="fam-pick">${formLine_(label, formInput_(`data-fam-q="${scope}" data-fam-want="${want}" type="search" autocomplete="off" placeholder="name or @handle"`))}
   <div class="tile-row fam-hits" data-fam-hits="${scope}"></div></div>`;
 document.addEventListener('input', e => {
@@ -14000,10 +14004,9 @@ document.addEventListener('input', e => {
   const scope = box.getAttribute('data-fam-q'), want = box.getAttribute('data-fam-want');
   const out = box.closest('.fam-pick') && box.closest('.fam-pick').querySelector('.fam-hits');
   if (!out) return;
-  const skip = scope === 'pa' ? ((PERSON_ADD_ && PERSON_ADD_.picked) || []).map(x => x.id) : scope === 'lens' ? [String((USER || {}).personId || '')]
-    : peLinked_().concat([String((PERSON_ED_ || {}).id || '')]);
-  out.innerHTML = famHits_(box.value, want, skip).map(p => tile_({ form: true, kind: 'quiet', label: displayName_(p) + (p.handle ? ' @' + p.handle : ''),
-    act: (FAM_ACT_[scope] || FAM_ACT_.pe).act, data: { id: p.personId, name: displayName_(p), want } })).join('');
+  const at = FAM_ACT_[scope] || FAM_ACT_.pe;
+  out.innerHTML = famHits_(box.value, want, at.skip()).map(p => tile_({ form: true, kind: 'quiet', label: displayName_(p) + (p.handle ? ' @' + p.handle : ''),
+    act: at.act, data: { id: p.personId, name: displayName_(p), want } })).join('');
 });
 
 /* ---------- ADD A PERSON, A CARD IN FIND › PROFILES (add-person): the server's `personSave`, then `linkChild` for a parent's child ---------- */
@@ -14092,13 +14095,13 @@ on('pa-save', el => {
 const peLinked_ = () => { const q = (PERSON_ED_ && PERSON_ED_.data && PERSON_ED_.data.person) || {}; return [].concat(q.parentIds || [], q.childIds || []).map(String); };
 function peFamHtml_(F) {
   const q = (F.data && F.data.person) || {}, roles = q.roles || [];
-  const side = (say, key, want, mine) => {
+  const side = (say, key, want, mine, add) => {
     const ids = (q[key] || []).filter(Boolean);
     if (!ids.length && roles.indexOf(mine) === -1) return '';
     return `<p class="note pe-fam">${esc(say)}</p>${ids.map(id => `<div class="tile-row"><span class="note">${esc(displayName_(peNameOf_(id, F.data)))}</span>${
-      tile_({ form: true, kind: 'quiet', label: 'Remove', act: 'pe-unlink', data: { id, side: key } })}</div>`).join('')}${famPick_('pe', want, key === 'parentIds' ? 'Add a parent' : 'Add a child')}`;
+      tile_({ form: true, kind: 'quiet', label: 'Remove', act: 'pe-unlink', data: { id, side: key } })}</div>`).join('')}${famPick_('pe', want, add)}`;
   };
-  return `<div class="pe-fambox">${side('Linked parents', 'parentIds', 'client', 'student')}${side('Linked children', 'childIds', 'student', 'client')}</div>`;
+  return `<div class="pe-fambox">${side('Linked parents', 'parentIds', 'client', 'student', 'Add a parent')}${side('Linked children', 'childIds', 'student', 'client', 'Add a child')}</div>`;
 }
 const peFamPaint_ = form => { const at = form && form.querySelector('.pe-fambox'); if (at && PERSON_ED_) at.outerHTML = peFamHtml_(PERSON_ED_); };
 /* WHICH WAY ROUND: a hit under "Add a parent" is the parent of the card's person; a Remove names its own side. */
@@ -16427,12 +16430,8 @@ function dmPages_() {
   /* THE NAME IS THE PERSON, and the unread count rides on it — so the header says who you are reading rather than "3 of 7", which is the same judgement § */
   return daivePages_().concat(threads.map(t => ({
     name: displayName_(t.name) + (t.unread ? ' (' + t.unread + ')' : ''),
-    html: card_(`<div class="dm-page${t.unread ? ' unread' : ''}">
-      <div class="dm-head">${dmFace_(t)}
-        <h3>${esc(displayName_(t.name))}${t.unread ? ` <span class="dm-new">${t.unread} new</span>` : ''}</h3></div>
-      <div class="msg-body">${messagesHtml_(t.msgs)}</div>
-      ${msgForm_(t.name, t.id)}
-    </div>`, 'msg'),
+    html: renderCard({ kind: 'msg', look: 'dm-page' + (t.unread ? ' unread' : ''), name: displayName_(t.name),
+      body: [{ type: 'embed', tool: 'dm-thread', args: { t } }] }),
   })));
 }
 
@@ -16481,20 +16480,24 @@ function asstFacts_() {
 function asstMsgs_(s) {
   return s.msgs.map(m => ({ mine: m.role === 'user', read: true, body: m.text, atMs: m.at || 0, fromName: DAIVE }));
 }
-function daiveHtml_() {
+/* A CONVERSATION'S INSIDES (head, bubbles, composer) are the card's one embed: the send path stays msgForm_'s own. */
+CARD_EMBEDS['dm-thread'] = ({ t }) => `<div class="dm-head">${dmFace_(t)}
+    <h3>${esc(displayName_(t.name))}${t.unread ? ` <span class="dm-new">${t.unread} new</span>` : ''}</h3></div>
+  <div class="msg-body">${messagesHtml_(t.msgs)}</div>
+  ${msgForm_(t.name, t.id)}`;
+CARD_EMBEDS['daive'] = () => {
   const s = asstGet_(), cap = asstCap_(), out = s.left <= 0, shut = out || ASST_BUSY;
   const said = out ? 'No questions left today — they come back tomorrow.' : s.left + ' of ' + cap + ' questions left today';
-  return card_(`<div class="daive" data-daive="1">
-    <div class="dm-head"><span class="dm-av daive-av" aria-hidden="true">D</span><h3>${DAIVE}</h3></div>
-    <div class="msg-body">${messagesHtml_(asstMsgs_(s)) }${ASST_BUSY ? loading_() : ''}</div>
+  return `<div class="dm-head"><span class="dm-av daive-av" aria-hidden="true">D</span><h3>${DAIVE}</h3></div>
+    <div class="msg-body">${messagesHtml_(asstMsgs_(s))}${ASST_BUSY ? loading_() : ''}</div>
     <div class="msg-form" data-k="daive">
       <textarea class="msg-text" rows="1" maxlength="1000" placeholder="Message…" aria-label="Message ${DAIVE}"${shut ? ' disabled' : ''}${draftAttr_('asst', '')}>${ASST_BUSY ? '' : esc(draftVal_('asst', '', ''))}</textarea>
       ${tile_({ form: true, look: 'btn msg-go', act: 'daive-send', off: shut, label: 'Send' })}
       <p class="note msg-said">${esc(ASST_SAID)}</p>
       <p class="note msg-said daive-left">${esc(said)}</p>
-    </div>
-  </div>`);
-}
+    </div>`;
+};
+const daiveHtml_ = () => renderCard({ kind: 'msg', look: 'daive', name: DAIVE, data: { daive: 1 }, body: [{ type: 'embed', tool: 'daive' }] });
 /* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. */
 const daiveItem_ = () => {
   const h = typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', 'dm', daiveHtml_()) : daiveHtml_();
@@ -19685,7 +19688,7 @@ const missingLeadN_ = () => HEALTH_IN_FIND ? 0 : (LOGIC_SHOWN && logicFor_() ? 1
 /* ONE SCORE (890): `health` is the Optimiser; the Logic health card stays written but is off behind LOGIC_SHOWN. */
 const LOGIC_SHOWN = false;
 /* SETTINGS CARDS IN FIND BESIDE THE HEALTH ONES, drawn by their own files: the business checker (1050). */
-const HEALTH_MORE_ = { bizcheck: () => (typeof bizCheckCard_ === 'function' ? bizCheckCard_() : '') };
+const HEALTH_MORE_ = { bizcheck: () => (typeof window.bizCheckCard_ === 'function' ? window.bizCheckCard_() : '') };
 function healthCardOf_(which) {
   if (HEALTH_MORE_[which]) return HEALTH_MORE_[which]();
   /* ONE CARD (owner, 6 Nov): the Optimiser holds What's missing too, how complete Find's resources are, under its score. */

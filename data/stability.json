@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 88.4,
+ "score": 86.8,
  "verdict": "Solid: little is held together by exceptions.",
  "signals": [
   {
@@ -32,6 +32,30 @@
    }
   },
   {
+   "id": "special",
+   "label": "Per-facet and per-kind special cases",
+   "count": 40,
+   "weight": 0.05,
+   "cap": 10,
+   "off": 2,
+   "where": {
+    "js/cards-make.js": 1,
+    "js/cards-parts.js": 1,
+    "js/cards-people.js": 1,
+    "js/cards-render.js": 5,
+    "js/find-cells.js": 2,
+    "js/find-finder.js": 2,
+    "js/find-history.js": 2,
+    "js/find-pad.js": 4,
+    "js/keypad-keys.js": 1,
+    "js/me-messages.js": 2,
+    "js/predicates-marks.js": 3,
+    "js/predicates.js": 13,
+    "js/price-rows.js": 2,
+    "js/submit-suggest.js": 1
+   }
+  },
+  {
    "id": "ceilings",
    "label": "Raised ratchet ceilings (*_MAX)",
    "count": 958,
@@ -48,27 +72,14 @@
    }
   },
   {
-   "id": "special",
-   "label": "Per-facet and per-kind special cases",
-   "count": 38,
-   "weight": 0.05,
+   "id": "dead",
+   "label": "Code nothing calls",
+   "count": 5,
+   "weight": 0.3,
    "cap": 10,
-   "off": 1.9,
+   "off": 1.5,
    "where": {
-    "js/cards-make.js": 1,
-    "js/cards-parts.js": 1,
-    "js/cards-people.js": 1,
-    "js/cards-render.js": 3,
-    "js/find-cells.js": 2,
-    "js/find-finder.js": 2,
-    "js/find-history.js": 2,
-    "js/find-pad.js": 4,
-    "js/keypad-keys.js": 1,
-    "js/me-messages.js": 2,
-    "js/predicates-marks.js": 3,
-    "js/predicates.js": 13,
-    "js/price-rows.js": 2,
-    "js/submit-suggest.js": 1
+    "check-dead": "cardRedraw_ (cards-render.js), paintBoard_ (map.js), paintTimer (overworld.js), staffCard_ (staff.js), staffStart_ (staff.js)"
    }
   },
   {
@@ -88,15 +99,6 @@
    "count": 1,
    "weight": 0.02,
    "cap": 15,
-   "off": 0,
-   "where": {}
-  },
-  {
-   "id": "dead",
-   "label": "Code nothing calls",
-   "count": 0,
-   "weight": 0.3,
-   "cap": 10,
    "off": 0,
    "where": {}
   },
@@ -129,7 +131,7 @@
   }
  ],
  "secondary": {
-  "score": 85.3,
+  "score": 87.4,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
@@ -153,63 +155,39 @@
    {
     "id": "catches",
     "label": "Empty catches (tools/catches.js)",
-    "count": 164,
+    "count": 103,
     "weight": 0.02,
     "cap": 15,
-    "off": 3.3,
+    "off": 2.1,
     "where": {}
    },
    {
     "id": "special",
     "label": "Per-facet and per-kind special cases",
-    "count": 40,
+    "count": 36,
     "weight": 0.05,
     "cap": 10,
-    "off": 2,
+    "off": 1.8,
     "where": {
      "js/arcade.js": 7,
      "js/collections.js": 7,
      "js/flyer.js": 1,
      "js/layout-moves.js": 1,
-     "js/mat.js": 3,
      "js/mechanics.js": 1,
      "js/orthodox.js": 2,
      "js/posts.js": 6,
-     "js/reader.js": 11,
-     "js/records.js": 1
+     "js/reader.js": 11
     }
    },
    {
     "id": "duplicates",
     "label": "Repeated long lines",
-    "count": 25,
+    "count": 18,
     "weight": 0.02,
     "cap": 10,
-    "off": 0.5,
+    "off": 0.4,
     "where": {
-     "lines": 9
-    }
-   },
-   {
-    "id": "longfiles",
-    "label": "Files over 3000 lines",
-    "count": 1,
-    "weight": 0.5,
-    "cap": 10,
-    "off": 0.5,
-    "where": {
-     "js/games.js": 3581
-    }
-   },
-   {
-    "id": "longfns",
-    "label": "Functions over 150 lines",
-    "count": 1,
-    "weight": 0.05,
-    "cap": 10,
-    "off": 0.1,
-    "where": {
-     "js/mat.js matPaint": 152
+     "lines": 6
     }
    },
    {
@@ -226,6 +204,24 @@
     "label": "Code nothing calls",
     "count": 0,
     "weight": 0.3,
+    "cap": 10,
+    "off": 0,
+    "where": {}
+   },
+   {
+    "id": "longfiles",
+    "label": "Files over 3000 lines",
+    "count": 0,
+    "weight": 0.5,
+    "cap": 10,
+    "off": 0,
+    "where": {}
+   },
+   {
+    "id": "longfns",
+    "label": "Functions over 150 lines",
+    "count": 0,
+    "weight": 0.05,
     "cap": 10,
     "off": 0,
     "where": {}

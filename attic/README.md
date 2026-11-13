@@ -85,3 +85,11 @@ Checks moved with them (were in `js/check-all.js`; tier in brackets):
 
 `js/check-css-splash.js` is section 9 of `js/check-css.js`. The journeys that tested only the engines (games,
 racer, maze, console, connect 4, e-ink, a content card's animation) are in ba02cc6's `check/flow/03, 04, 06, 07, 12, 19`.
+
+## Switched off 13 Nov 2026 (owner: switch off instead of migrating to the one card template)
+
+Moved intact: `js/` games, tools (timer, calendar, timetable, typing), newspaper, spotify, favlinks, pixel, mat (cheat-sheet maker),
+records (business records), biz-check, lego; checks `check-lego.js`, `check-biz.js`; journey `check/flow/01-cheat-sheet.js`.
+Their widgets are `off` in `data/settings/tiers.json`. To bring one back: `git mv` it, re-add it to `window.FILES` (and LATER/LAZY),
+`files`/`later`/`lazy`/`widgetFiles` in tiers.json (see the commit before this one), set its widget on, `node tools/tiers.js`,
+then `node js/check.js` and `node tools/build-stamp.js`. Spreadsheet data was not touched.
