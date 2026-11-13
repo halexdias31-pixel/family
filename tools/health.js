@@ -260,9 +260,9 @@ function inSyncWork() {
   const fsrc = app.map(read).join('\n'), fnOf = n => (new RegExp('function ' + n + '\\([\\s\\S]*?\\n\\}').exec(fsrc) || [''])[0];
   if (!/brandLogo_\(/.test(fnOf('webProfilePages_'))) add('js/me-roles.js', 'the Web profile picture does not read brandLogo_');
   const fw = fnOf('postFaceWho_');
-  if (!/brandLogo_\(/.test(fw)) add('js/posts.js', "a business post's face does not read brandLogo_");
-  if (!/profileOf_\(/.test(fw)) add('js/posts.js', "a post's face is the copy sent with the post, not the author's profile (profileOf_)");
-  if (!/profileOf_\(/.test(fnOf('postCard_'))) add('js/posts.js', "a post's name is the copy sent with the post, not the author's profile (profileOf_)");
+  if (fw && !/brandLogo_\(/.test(fw)) add('js/posts.js', "a business post's face does not read brandLogo_");
+  if (fw && !/profileOf_\(/.test(fw)) add('js/posts.js', "a post's face is the copy sent with the post, not the author's profile (profileOf_)");
+  if (fw && !/profileOf_\(/.test(fnOf('postCard_'))) add('js/posts.js', "a post's name is the copy sent with the post, not the author's profile (profileOf_)");
   const html = read('index.html');
   ['icon', 'apple-touch-icon'].forEach(r => { if (!new RegExp('<link rel="' + r + '" id="favicon').test(html)) add('index.html', `no <link rel="${r}" id="favicon…"> for applyBrandIcon_ to follow`); });
   /* THE TOP BAR IS @family., THE NAME AND SIGN OUT (owner, 6 Nov): no badge; what the dot counted is Find › Settings › Notifications. */
@@ -321,8 +321,8 @@ function ownerWork() {
     const out = new Function('tagRow_', ft + '; return tagsOnTop_;')(() => row)({ k: 1 }, '<div class="card"><h3>T</h3>' + row + '<p>x</p></div>');
     if (!(out.indexOf('qtags') >= 0 && out.indexOf('qtags') < out.indexOf('<h3'))) W.push({ kind: 'card-tags', where: 'js/find-figures.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function tagsOnTop_'))), say: 'a card that draws its tag line under its title keeps it there (tagsOnTop_ must move it to the top)' }); }
   catch (e) { W.push({ kind: 'card-tags', where: 'js/find-figures.js', say: 'tagsOnTop_ could not be run on a fixture: ' + e.message }); }
-  const wt = (/function qOneCard_\([\s\S]*?\n\}/.exec(fsrc) || [''])[0];
-  if (!/tagRow_\(p\)/.test(wt)) W.push({ kind: 'card-tags', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function qOneCard_'))), say: 'a question part\'s card no longer starts with its own tag line (owner, 8 Nov)' });
+  const wt = (/cardKind_\('question'[\s\S]*?\n\}\);/.exec(fsrc) || [''])[0];
+  if (!/tags: [^\n]*tagList_\(x\)/.test(wt)) W.push({ kind: 'card-tags', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf("cardKind_('question'"))), say: 'a question part\'s card no longer starts with its own tag line (owner, 8 Nov)' });
   /* attr-outside-tags: no template draws an attribute beside the tag line — a marks label, "[2 marks]". */
   for (const f of git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f))) { const src = read(f);
     for (const m of src.matchAll(/class="[^"]*\b[\w-]*marks\b[^"]*"|\[\$\{[^}]*marks[^}]*\}\s*mark/g))
@@ -619,7 +619,7 @@ function varietyWork(Q, waits) {
   add('listrow', 'List-row styles', 1, 'ui', rv.map(c => ({ where: rows.get(c), say: '.' + c })));
   /* SETTINGS ROW SHAPES: the row builders the settings screens use. */
   const sv = [];
-  [...PS_.pieceFiles('settings'), 'js/staff.js', ...ME_FILES].forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*[Rr]ow\w*)\s*\(/g)) sv.push({ where: f + ':' + lineOf(src, m.index), say: m[1] }); });
+  [...PS_.pieceFiles('settings'), ...ME_FILES].forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*[Rr]ow\w*)\s*\(/g)) sv.push({ where: f + ':' + lineOf(src, m.index), say: m[1] }); });
   add('setrow', 'Settings row shapes', 1, 'ui', sv);
   /* WAIT INDICATORS: loading_ is the one; each file that makes its own wait is another. */
   const wv = [{ where: fnAt('loading_', SHELL_FILES) || 'js/shell-*.js', say: 'loading_' }];

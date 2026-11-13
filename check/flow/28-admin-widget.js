@@ -419,7 +419,7 @@ check('Library → a subject offers only shelves that subject has — never Book
   const { w } = boot({ payload: p, serve: serveAll, before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} } });
   const t = w.__t;
   try { t.go('stuff'); w.paintStuff(); } catch (e) {}
-  for (let i = 0; i < 160 && !(w.stuffItems().length > 1000 && w.talmudItems_().length && w.stuffItems().some(x => x.kind === 'quran') && w.stuffItems().some(x => x.kind === 'bible')); i++) await wait(50);
+  for (let i = 0; i < 160 && !(w.stuffItems().length > 1000 && (w.talmudItems_ ? w.talmudItems_().length : 1) && w.stuffItems().some(x => x.kind === 'quran') && w.stuffItems().some(x => x.kind === 'bible')); i++) await wait(50);
   const bad = [];
   if (w.stuffItems().length < 1000) return ['the library did not load, so NOT checked'];
   /* THE BIBLE IS A CARD A VERSE ON THE EVERYDAY LIST (499), no age limit, and no cover. */

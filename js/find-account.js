@@ -63,7 +63,7 @@ on('book-open', () => { BOOK_OPEN = !BOOK_OPEN; repaint(); });
 function feedPages_() {
   /* POSTS ARE DOOR ITEMS (find-doors.js); the whole feed only stands in when those are switched off, or each post would show twice. */
   if (!forIs_('posts') || typeof postDoorItems_ === 'function') return [];
-  return (typeof postsBlocks === 'function' ? postsBlocks() : []).filter(Boolean);
+  return (typeof window.postsBlocks === 'function' ? window.postsBlocks() : []).filter(Boolean);
 }
 /* ---------- SIGNING IN AND OUT, ON A PAGE OF ITS OWN § */
 /* ---------- WHICH ROW IS YOU, ASKED IN ONE PLACE § */
@@ -221,3 +221,92 @@ function accountPages_(col) {
   }
   return out.concat(coming);
 }
+
+/* ---------- SIGNING IN IS FIND'S FIRST STEP (owner, 13 Nov) ---------- */
+/* Signed out, the first menu is Guest or who you are; a name is followed by four menus of digits, each picked one a ● chip. */
+/* The digits live in `SIGN.pin` for the one call and nowhere else: never a chip's value, the URL, history, storage or a log. */
+const SIGN = { step: '', who: '', pin: [], busy: false };
+const SIGN_PIN_LEN = 4;
+const SIGN_DIGITS = '0123456789'.split('');
+const signAsking_ = () => !USER && SIGN.step !== 'guest';
+const signPaint_ = () => finderEach_(() => paintStuff());
+function signMenu_() {
+  if (!signAsking_()) return '';
+  if (SIGN.busy) return loading_();
+  if (SIGN.step === 'join') return typeof registerCard_ === 'function' ? registerCard_() : '';
+  if (SIGN.step === 'pin') return answersRow_(SIGN_DIGITS.map(d => answerTag_(d, ` data-do="sign-digit" data-d="${d}" data-repeat`)).join(''), 'is-grid sign-pin')
+    + answersRow_(answerTag_('Forgot PIN', ' data-do="forgot-pin"'), 'sign-more');
+  /* ONE BOX ON ONE FINDER: Find's carries the id the forgotten-PIN tag and the checks read. */
+  const mine = FINDER === FINDERS.stuff, google = mine && !!(DATA.googleClientId || '');
+  if (google && typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
+  return answersRow_(answerTag_('Guest', ' data-do="sign-guest"') + signBox_(mine)
+    + answerTag_('Make an account', ' data-do="sign-join"') + answerTag_('Forgot PIN', ' data-do="forgot-pin"'), 'sign-who')
+    + (google ? answersRow_('', 'g-row', 'g-btn') : '');
+}
+/* THE BLANK TAG YOU TYPE YOUR NAME ON: no example and nothing remembered (383); `mine` gives it the id. */
+const signBox_ = mine => answerBox_(`${mine ? ' id="in-name"' : ''} class="sign-box" type="text" inputmode="email" autocomplete="off"
+  autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" data-1p-ignore data-lpignore="true" aria-label="Your name, @username or email"
+  value="${esc(SIGN.who)}"`, 'sign-type');
+/* THE STEP'S CHIPS, first in the row: your name signed in (its × signs out), Guest, or the name and a ● per digit. */
+function signChips_() {
+  const chip = (text, act, label) => qtag_(`${esc(text)}${tile_({ icon: 'close', label: label, act: act, cls: 'chip-x' })}`,
+    ` data-do="${act}" role="button" tabindex="0" aria-label="${esc(label)}"`, 'sm sign-chip', 'chip');
+  if (USER) { const who = String(USER.name || USER.handle || '').trim(); return chip(who, 'signout', 'Sign out ' + who); }
+  if (SIGN.step === 'guest') return chip('Guest', 'sign-restart', 'Sign in instead');
+  if (SIGN.step === 'join') return chip('Make an account', 'sign-restart', 'Back to sign in');
+  if (SIGN.step !== 'pin') return '';
+  const dots = SIGN.busy ? SIGN_PIN_LEN : SIGN.pin.length;
+  return chip(SIGN.who, 'sign-restart', 'Not ' + SIGN.who) + qtag_('●', ' aria-hidden="true"', 'sm sign-dot', 'chip').repeat(dots);
+}
+on('sign-guest', () => { SIGN.step = 'guest'; SIGN.pin = []; signPaint_(); });
+on('sign-join', () => { SIGN.step = 'join'; SIGN.pin = []; signPaint_(); });
+on('sign-restart', () => {
+  SIGN.step = ''; SIGN.pin = [];
+  finderEach_(F => finderSet_(F, { paint: false }));
+  signPaint_();
+});
+/* AN ACCOUNT MADE FROM FIND'S Make an account goes straight on to its PIN, under the name it signs in with. */
+function signAfterJoin_(who) {
+  if (USER || SIGN.step !== 'join' || !who) return;
+  SIGN.who = who; SIGN.step = 'pin'; SIGN.pin = [];
+  signPaint_();
+}
+function signWho_(box) {
+  const who = String((box && box.value) || '').trim();
+  if (!who) { toast('Type your name, @username or email first.'); return; }
+  SIGN.who = who; SIGN.step = 'pin'; SIGN.pin = [];
+  signPaint_();
+}
+/* ENTER IN THE BOX PICKS THE NAME, as a tap picks a tag. */
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (!t || !t.classList || !t.classList.contains('sign-box') || !/^Enter$/.test(e.key)) return;
+  e.preventDefault();
+  signWho_(t);
+});
+/* THE FOURTH DIGIT SENDS: the same `verifyLogin`, so the server's attempt limits are the ones it always had. */
+on('sign-digit', el => {
+  const d = String((el && el.dataset && el.dataset.d) || '');
+  if (USER || SIGN.step !== 'pin' || SIGN.busy || !SIGN.who || !/^\d$/.test(d)) return;
+  SIGN.pin.push(d);
+  if (SIGN.pin.length < SIGN_PIN_LEN) { signPaint_(); return; }
+  const who = SIGN.who, pin = SIGN.pin.join('');
+  SIGN.pin = []; SIGN.busy = true;
+  signPaint_();
+  send_({ action: 'verifyLogin', email: who, name: who, pin: pin })
+    .then(d2 => {
+      SIGN.busy = false;
+      if (!d2.success) { toast(d2.error || 'That did not work.'); signPaint_(); return; }
+      SIGN.step = ''; SIGN.who = '';
+      signedIn_(d2, who);
+    })
+    /* `send_` HAS TOASTED THE SERVER'S SENTENCE; a name it does not know goes back to the box to correct. */
+    .catch(err => {
+      SIGN.busy = false;
+      const why = err && err.reply && err.reply.why;
+      if (why === 'not-an-email' || why === 'no-such-email') SIGN.step = '';
+      signPaint_();
+      const box = $('in-name');
+      if (box && !SIGN.step) { box.setAttribute('aria-invalid', 'true'); box.focus(); box.select(); }
+    });
+});

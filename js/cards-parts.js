@@ -12,42 +12,6 @@ const kcPct_ = m => (typeof m !== 'number' || !isFinite(m) ? '' : m === 1 ? dash
 const KC_FIELDS = {
   kindPic: () => '',
   name: x => `<h3>${esc(x.name || '')}</h3>`,
-  /* THE TUTOR'S COMPACT ONE-SCREEN CARD (547) as fields: face, role, the name line with the rate, then pills and lines. */
-  /* A PHOTO, ELSE A DEFAULT PICTURE (owner, 9 Nov): never an avatar figure on a card. */
-  face: x => { const t = kcRow_(x), k = typeof picKind_ === 'function' ? picKind_(t.image) : (t.image ? 'photo' : '');
-    if (k === 'photo') return `<img class="prof-pic" src="${esc(pic(t.image))}" alt="" loading="lazy" decoding="async">`;
-    return k === 'basic' && typeof pfpArt_ === 'function' ? pfpArt_(pfpChoice_(t.image), 96) : ''; },
-  /* THE NAME IS A TAG (owner, 9 Nov): first name and an initial for everyone; the role and rate are tags beside it. */
-  nameTag: x => { const t = kcRow_(x), tag = (v, n, c) => qtag_(esc(v), ` data-tag="${n}"`, c, 'prof-tag');
-    return `<div class="qtags prof-tags prof-who-tags">${tag(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')}${
-      [t.role || 'Tutor'].concat(profList_(t.titles)).map(v => tag(v, 1)).join('')}${
-      t.rate && !childView_() ? tag(rateRange_(t), 4, 'prof-tag-rate') : ''}${t.activity ? tag(t.activity, 3, 'prof-act') : ''}${
-      t.listed === false ? tag(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off') : ''}</div>`; },
-  /* A TICKED TUTOR BOX IS A QUESTION TO THE ADMIN, answered by the eye tile; the line says what pressing it means. */
-  listedNote: x => { const t = kcRow_(x); if (!(t.listed === false && isAdmin())) return '';
-    return t.pending ? `<p class="prof-say prof-hid">They ticked Tutor in their settings. Until you list them they are not on the site,
-      cannot be booked and cannot take a session — the crossed-out eye below approves them.</p>`
-      : '<p class="prof-say prof-hid">Clients cannot see them. The crossed-out eye below puts them back on the site.</p>'; },
-  /* SUBJECT PILLS: one chip a subject, its levels raised (`teachGroups_`). */
-  teaches: x => { const t = kcRow_(x), main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
-    return (main.length ? `<div class="qtags prof-tags prof-teach">${
-      PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 3).join('')}</div>` : '')
-      + (also.length ? `<div class="qtags prof-tags prof-teach">${
-      PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 2).join('')}</div>` : ''); },
-  facts: x => { const f = profFacts_(kcRow_(x));
-    return f.length ? `<div class="qtags prof-tags prof-teach prof-facts">${f.map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''; },
-  /* WHAT THEY WROTE: `doget.gs` already quotes it, so it is printed as said. */
-  say: x => (kcRow_(x).description ? `<p class="prof-say cut2" data-do="cut-open">${esc(kcRow_(x).description)}</p>` : ''),
-  photos: x => { const p = kcRow_(x).photos; return Array.isArray(p) && p.length ? `<div class="prof-photos">${PROF_MORE_(p.map(u =>
-    `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></span>`), 4).join('')}</div>` : ''; },
-  words: x => { const w = profList_(kcRow_(x).tags).slice(0, 3);
-    return w.length ? `<p class="prof-words">${w.map(v => `<b>${esc(v)}</b>`).join('<i aria-hidden="true">·</i>')}</p>` : ''; },
-  quals: x => profQuals_(kcRow_(x)),
-  jobs: x => profJobs_(kcRow_(x)),
-  /* THE MAP: the venues tab's `tutors_happy_here`; an older backend sends no key and nothing is drawn. */
-  places: x => profPlaces_(profList_(kcRow_(x).venues)),
-  /* DAY PILLS. */
-  avail: x => profAvail_(kcRow_(x)),
   /* A KIND WHOSE OWN FILE WRITES ITS INSIDES (`KC_OWN`) hands them over cut into the four parts (`kcSplit_`); no tag line of its own gets its facets. */
   ownPic: x => (x.kcOwn || {}).pic || '',
   ownHead: x => (x.kcOwn || {}).head || '',
@@ -58,7 +22,7 @@ const KC_FIELDS = {
 const kcField_ = k => KC_FIELDS[k] || (window.KC_FIELDS_MORE || {})[k];
 /* THE FILE'S ROWS BEFORE IT ARRIVES (or if it never does): the same rows, held equal to the file by check-card-shape. */
 const KC_DEFAULT = {
-  tutor: { cls: 'is-widget is-prof tcard', pic: ['face'], title: [], tags: ['nameTag', 'teaches', 'facts'], lines: ['listedNote', 'say', 'photos', 'words', 'quals', 'jobs', 'places', 'avail'], tiles: ['book-with:book:Book', 'msg-open:chat:Message'] },
+  tutor: { cls: 'is-widget is-prof tcard', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book', 'msg-open:chat:Message'] },
   venue: { cls: 'venue-door', pic: [], title: [], tags: [], lines: [], tiles: [] },
   level: { cls: 'is-level', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },
   subject: { cls: 'is-subject', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },
@@ -91,7 +55,7 @@ const KC_DEFAULT = {
   mech: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   chem: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   soon: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
-  person: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  person: { cls: 'is-prof prof-door', pic: [], title: [], tags: [], lines: [], tiles: [] },
   setting: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   health: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   offPosts: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
@@ -155,7 +119,7 @@ const KC_TILE_RE = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/
 const kcAct_ = t => (/\bdata-do="([^"]*)"/.exec(t) || [])[1] || '';
 /* WHAT COUNTS AS A CARD'S MAIN ACTION when its kind names none first: a Send/Check, a buy-toned tile, Open. */
 const KC_MAIN_ACTS = ['find-open', 'book-with'];
-function kcFour_(x, rest, main) {
+function kcFour_(x, rest, main, flat) {
   const all = String(rest || '').match(KC_TILE_RE) || [];
   const spec = x && x.kind ? kcSpec_(x.kind) : KC_BARE;
   const first = String((spec.tiles || [])[0] || '').split(':')[0];
@@ -170,19 +134,23 @@ function kcFour_(x, rest, main) {
     || tile_({ icon: 'star', label: 'Save', act: 'fav', off: true, data: { key: (x && x.key) || '', kind: (x && x.kind) || 'item' } });
   /* A CARD IS STATIC (owner, 10 Nov): with no main of its own, Share leads; the card already shows everything it holds. */
   const lead = main || pick(t => kcAct_(t) === 'card-share') || tile_({ icon: 'share', label: 'Share', act: 'card-share', off: !(x && x.key), data: { key: (x && x.key) || '' } });
-  /* WHAT IS NOT A TILE (a verdict, a slot) stays beside the rest, behind ⋯. */
+  /* EVERY OTHER ACTION IS ITS OWN VISIBLE TILE (owner, 13 Nov): no hidden menu; the fixed three lead, the rest wrap under them. */
   const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
-  return `<span class="kc-four">${lead}${msg}${star}${tile_({ icon: 'more', label: 'More', act: 'kc-more' })}</span><span class="kc-more" hidden>${all.join('')}${left}</span>`;
+  const rest2 = all.join('') + left;
+  /* `flat` (a question): every tile in its one row; otherwise the rest wrap visibly under the fixed three. */
+  return `<span class="kc-four">${lead}${msg}${star}${flat ? rest2 : ''}</span>${flat ? '' : `<span class="kc-more">${rest2}</span>`}`;
 }
 /* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
-function kcActRow_(x, html, own) {
+/* `o`: { flat, look, key } -- a question's row is its tool row (`.qt-row`, its key on it) with every tile shown. */
+function kcActRow_(x, html, own, o) {
+  o = o || {};
   if (/class="[^"]*\bkc-four\b/.test(html)) return '';
   let rest = own || '';
   try { rest += x && x.key && typeof cardRow_ === 'function' ? cardRow_(x, true) : ''; } catch (e) { oops_(e, 'card:tiles'); }
   /* A KIND'S TILE GREYED FOR WANT OF ONE goes when its own maker's row brought the real one. */
   const real = (String(own || '').match(KC_TILE_RE) || []).map(kcAct_);
   rest = rest.replace(KC_TILE_RE, t => (/\bkc-off\b/.test(t) && real.indexOf(kcAct_(t)) >= 0 ? '' : t));
-  return `<div class="tile-row kc-row">${kcFour_(x, rest + tile_(kcOffOpts_(x, rest)))}</div>`;
+  return `<div class="tile-row kc-row${o.look ? ' ' + esc(o.look) : ''}"${o.look ? cardAttrs_({ key: o.key || '' }) : ''}>${kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main, o.flat)}</div>`;
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {

@@ -62,7 +62,7 @@ const WIDGETS = [
   { id: 'reels', kind: 'tool', name: 'One more thing', start: () => initFeed?.(),
     /* DRAWN AHEAD AS THE FACT'S CARD AND NOTHING ELSE (`feedPaint_`, overworld.js): § */
     draw: () => feedPaint_?.(),
-    stop: () => clipsStop_($('feed-screen')),
+    stop: () => { if (typeof window.clipsStop_ === 'function') window.clipsStop_($('feed-screen')); },
     into: 'feed-screen', what: 'This',
     get html() { return `
     <h3>One more thing</h3>
@@ -103,7 +103,7 @@ const WIDGETS = [
 
 
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker', solid: true,
-    start: () => initMat?.(),
+    start: () => window.initMat?.(),
     into: 'mat-box', what: 'The cheat sheet',
     /* NO BLURB. It said "one sheet of A4, tick what goes on it" over a list of tickboxes on a page showing a sheet of A4 — three sentences describing what is already § */
     get html() { return card_(`<div class="">

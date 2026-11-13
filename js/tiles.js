@@ -404,7 +404,7 @@ const personTiles_ = x => { const t = (x && x.row) || {}; const name = t.title |
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
 /* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
 const CARD_EXTRAS_ = { shop: shopOpts_, tutor: tutorOpts_, subject: x => tile_(subjectOpts_(x)),
-  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + tile_(jobOpts_(x)), person: x => personTiles_(x), talmud: x => tile_(talmudOpts_(x)) };
+  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + tile_(jobOpts_(x)), person: x => personTiles_(x), talmud: x => tile_(window.talmudOpts_(x)) };
 function cardCore_(x) {
   const one = {
     share: () => tile_({ icon: 'share', label: 'Share', act: 'card-share', data: { key: x.key } }),
@@ -505,7 +505,7 @@ function tileRowsJoin_(html) {
     if (!prev || !prev.classList.contains('tile-row') || !row.parentNode || (formOwn && prev.closest('.me-form')) || prev.classList.contains('person-tiles')) return;
     group(prev, row, !coreIn_(row));
   });
-  /* A CARD'S ONE ROW IS ITS FOUR (owner, 10 Nov): a group joined after them (your own, an admin's) waits behind ⋯, never a second line. */
+  /* A CARD'S ONE ROW IS ITS FOUR (owner, 10 Nov): a group joined after them (your own, an admin's) joins the visible wrap under them. */
   t.content.querySelectorAll('.kc-row').forEach(r => { const more = r.querySelector(':scope > .kc-more');
     if (more) [...r.children].filter(k => k !== more && !k.classList.contains('kc-four')).forEach(k => { more.appendChild(k); joined++; }); });
   return joined ? t.innerHTML : h;

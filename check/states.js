@@ -4,6 +4,43 @@
 const STATES = {
   stuff: [
     { name: 'the question' },
+    /* ---------- SIGNING IN IS FIND'S FIRST STEP (owner, 13 Nov): the name tag, then four digit tags § */
+    { name: 'signing in, waiting for the answer',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        window.__siApi = api;
+        api = (b, o) => (b && b.action === 'verifyLogin') ? new Promise(() => {}) : window.__siApi(b, o);
+        ACTIONS['sign-restart'](document.body);
+        const n = document.getElementById('in-name');
+        if (!n) throw new Error('no name tag on the signed-out Find');
+        n.value = 'ada_kind7';
+        n.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        ['4', '8', '2', '6'].forEach(c => ACTIONS['sign-digit'](document.querySelector('#stuff-groups [data-do="sign-digit"][data-d="' + c + '"]')));
+      },
+      expect: () => document.querySelectorAll('#stuff-chips .sign-dot').length === 4 && !!document.querySelector('#stuff-groups .loading') ? 1 : 0,
+      wants: 'the fourth digit picked and waiting: four ● chips after the name, and the one loader where the digits were',
+      leave: () => { if (window.__siApi) api = window.__siApi; SIGN.busy = false; SIGN.step = ''; SIGN.who = ''; SIGN.pin = []; paintFinder_('stuff'); } },
+    { name: 'a wrong PIN, the ● chips cleared and the digits asked again',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        window.__wpApi = api;
+        api = (b, o) => (b && b.action === 'verifyLogin')
+          ? Promise.resolve({ success: false, why: 'wrong-pin', error: 'Wrong PIN for that handle.' })
+          : window.__wpApi(b, o);
+        ACTIONS['sign-restart'](document.body);
+        const n = document.getElementById('in-name');
+        if (!n) throw new Error('no name tag on the signed-out Find');
+        n.value = 'ada_kind7';
+        n.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        ['1', '2', '3', '9'].forEach(c => ACTIONS['sign-digit'](document.querySelector('#stuff-groups [data-do="sign-digit"][data-d="' + c + '"]')));
+      },
+      expect: () => {
+        const first = document.querySelector('#stuff-chips .chip');
+        return !document.querySelectorAll('#stuff-chips .sign-dot').length && !!document.querySelector('#stuff-groups [data-do="sign-digit"]')
+          && !!first && /ada_kind7/.test(first.textContent) ? 1 : 0;
+      },
+      wants: 'after a wrong PIN no ● chips, the name still the first chip and the digit menu asked again',
+      leave: () => { if (window.__wpApi) api = window.__wpApi; SIGN.step = ''; SIGN.who = ''; SIGN.pin = []; paintFinder_('stuff'); } },
     /* ---------- THE QUESTION FILE FAILED (531): the column draws, and never a loader that waits for ever (U13). D adds the failure card with Try again. */
     { name: 'the library failed',
       enter: () => inFinder_(finderOf_('stuff'), () => {
@@ -2370,9 +2407,8 @@ const STATES = {
     { name: 'making an account',
       only: () => typeof USER !== 'undefined' && !USER,
       enter: () => {
-        const tile = document.querySelector('#s-account [data-do="register"]');
-        if (!tile) throw new Error('no Make an account tile on the signed-out account column');
-        ACTIONS['register'](tile);
+        const tile = document.querySelector('#s-account .reg-card');
+        if (!tile) throw new Error('no Make an account card on the signed-out account column');
       },
       expect: () => {
         const sel = document.querySelector('#s-account .reg-card select#reg-who-in');
@@ -2386,9 +2422,8 @@ const STATES = {
     { name: 'making an account as a parent',
       only: () => typeof USER !== 'undefined' && !USER,
       enter: () => {
-        const tile = document.querySelector('#s-account [data-do="register"]');
-        if (!tile) throw new Error('no Make an account tile on the signed-out account column');
-        ACTIONS['register'](tile);
+        const tile = document.querySelector('#s-account .reg-card');
+        if (!tile) throw new Error('no Make an account card on the signed-out account column');
         const b = document.querySelector('#s-account .reg-card #reg-who-in option[data-who="parent"]');
         if (!b) throw new Error('the register form does not ask who the account is for');
         ACTIONS['reg-who'](b);
@@ -2407,9 +2442,8 @@ const STATES = {
     { name: 'making an account with no email of your own',
       only: () => typeof USER !== 'undefined' && !USER,
       enter: () => {
-        const tile = document.querySelector('#s-account [data-do="register"]');
-        if (!tile) throw new Error('no Make an account tile on the signed-out account column');
-        ACTIONS['register'](tile);
+        const tile = document.querySelector('#s-account .reg-card');
+        if (!tile) throw new Error('no Make an account card on the signed-out account column');
         /* A STUDENT'S TICK — the question is answered first, or the row is not drawn at all. */
         const b = document.querySelector('#s-account .reg-card #reg-who-in option[data-who="student"]');
         if (!b) throw new Error('the register form does not ask who the account is for');
@@ -2426,46 +2460,6 @@ const STATES = {
       },
       wants: 'the register form with the no-email tick ticked, a whole 44px row under the email box',
       leave: () => { paint('account'); } },
-    { name: 'signing in, waiting for the answer',
-      only: () => typeof USER !== 'undefined' && !USER,
-      enter: () => {
-        const n = document.getElementById('in-name'), p = document.getElementById('in-pin');
-        if (!n || !p) throw new Error('no sign-in card on the signed-out account column');
-        window.__siApi = api;
-        api = (b, o) => (b && b.action === 'verifyLogin') ? new Promise(() => {}) : window.__siApi(b, o);
-        n.value = 'ada_kind7'; p.value = '4826';
-        ACTIONS['do-signin'](document.querySelector('#s-account [data-do="do-signin"]'));
-      },
-      expect: () => {
-        const t = document.querySelector('#s-account [data-do="do-signin"]');
-        const p = document.getElementById('in-pin');
-        return !!t && t.classList.contains('is-busy') && !!p && p.disabled;
-      },
-      wants: 'Sign in pressed and waiting: its ring turning, the boxes locked and still readable',
-      leave: () => { if (window.__siApi) api = window.__siApi; paint('account'); paintPager('account', true); } },
-    { name: 'a wrong PIN, the box emptied and edged red',
-      only: () => typeof USER !== 'undefined' && !USER,
-      enter: () => {
-        const n = document.getElementById('in-name'), p = document.getElementById('in-pin');
-        if (!n || !p) throw new Error('no sign-in card on the signed-out account column');
-        window.__wpApi = api;
-        api = (b, o) => (b && b.action === 'verifyLogin')
-          ? Promise.resolve({ success: false, why: 'wrong-pin', error: 'Wrong PIN for that handle.' })
-          : window.__wpApi(b, o);
-        n.value = 'ada_kind7'; p.value = '1239';
-        ACTIONS['do-signin'](document.querySelector('#s-account [data-do="do-signin"]'));
-      },
-      expect: () => {
-        const p = document.getElementById('in-pin');
-        return !!p && p.value === '' && p.getAttribute('aria-invalid') === 'true' && document.activeElement === p;
-      },
-      wants: 'the PIN box emptied, focused and edged in --bad after a wrong PIN, the handle kept',
-      leave: () => {
-        if (window.__wpApi) api = window.__wpApi;
-        const p = document.getElementById('in-pin');
-        if (p) { p.removeAttribute('aria-invalid'); p.blur(); }
-        paint('account'); paintPager('account', true);
-      } },
     /* ---------- A CHILD WITH NO HANDLE, ON AN ADMIN'S PEOPLE COLUMN § */
     { col: 'students', name: 'a child with no handle yet, and New PIN',
       only: () => typeof USER !== 'undefined' && !!USER && typeof isAdmin === 'function' && isAdmin(),

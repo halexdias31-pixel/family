@@ -1,5 +1,7 @@
 # Time: availability, bookings, calendar, timetable and rota — one model
 
+> Reference, not rules: the one rulebook is `data/settings/rules.json` (read `docs/rules.md`); where this page disagrees, it wins.
+
 **Asked for, 24 Oct (workshop note):** *"I need to fix how calendar and timetable and availability and all of that
 should work or be set up or synced. It seems they clash or should or shouldn't be synced. Figure out timetable widget
 and rota widget like weekly timetable."*

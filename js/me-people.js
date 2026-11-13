@@ -4,7 +4,7 @@ function peopleAddPage_(col) {
   const F = PEOPLE_FORM_, plus = addCard_({ act: 'person-add', label: PEOPLE_ADD_[col].say, data: { col } });
   if (F && !F.id && (F.col || 'students') !== col) return plus;
   if (F && !F.id && F.made) {
-    return card_(`<div class="person-made"><h3>${esc(F.made.first)} is on the people tab</h3>
+    return meCard_(`<div class="person-made"><h3>${esc(F.made.first)} is on the people tab</h3>
       ${pinSlip_(F.made.first, F.made.handle, F.made.pin)}
       <p class="note">Write it down or read it to them — the PIN is not shown again.</p>
       ${tile_({ form: true, label: 'Done', act: 'person-cancel', kind: 'quiet' })}</div>`);
@@ -60,7 +60,7 @@ function psResults_(col) {
 function peopleSearchPage_(col) {
   if (!USER) return '';
   const c = col || 'students', S = psState_(c);
-  return card_(`<div class="ps-card" data-ps-col="${esc(c)}">
+  return meCard_(`<div class="ps-card" data-ps-col="${esc(c)}">
     <div class="ps-bar">${searchPill_(`data-psearch aria-label="Find someone by handle" placeholder="@handle" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(S.q)}"`)}</div>
     <div class="ps-out" aria-live="polite">${psResults_(c)}</div>
   </div>`);
@@ -121,7 +121,7 @@ function personFormHtml_(F) {
   const head = `<h3>${F.id ? 'Edit ' + esc((F.data && F.data.person && F.data.person.firstName) || 'them') : 'A new person'}</h3>`;
   if (!F.data) {
     if (!F.asked && !F.err) { F.asked = true; setTimeout(() => personFetch_(F), 0); }
-    return card_(`<div class="person-form" data-pid="${esc(F.id)}">${head}${F.err
+    return meCard_(`<div class="person-form" data-pid="${esc(F.id)}">${head}${F.err
       ? `${tile_({ form: true, label: 'Close', act: 'person-cancel', kind: 'quiet' })}` : loading_()}</div>`);
   }
   const p = F.data.person || { firstName: '', lastName: '', roles: [F.role || 'student'], email: '', dob: '', parentIds: [] };
@@ -131,7 +131,7 @@ function personFormHtml_(F) {
   const kid = (p.roles || []).indexOf('student') !== -1;
   const box = (k, ph, v, type) => formLine_('', formInput_(`data-pf="${k}" placeholder="${esc(ph)}"
     autocomplete="off"${type ? ` type="${type}"` : ''} value="${esc(v || '')}"`));
-  return card_(`<div class="person-form" data-pid="${esc(F.id)}">${head}
+  return meCard_(`<div class="person-form" data-pid="${esc(F.id)}">${head}
     <div class="f-row" style="--n:2">${box('first', 'First name', p.firstName)}${box('last', 'Last name', p.lastName)}</div>
     <div class="pf-roles" role="group" aria-label="Role">${peopleRolePicks_().map(([r, label]) => formTick_(`data-pf-role="${r}"${(p.roles || []).indexOf(r) !== -1 ? ' checked' : ''}`, `<span>${label}</span>`)).join('')}</div>
     ${box('email', 'Email (optional)', p.email, 'email')}
@@ -361,16 +361,19 @@ on('person-edit-done', () => {
 });
 
 /* ---------- FAMILY PICKER: a typed search over the payload's people cards, its hits a tap each (add-person, edit-person) ---------- */
-/* `want` 'student' or 'client'; `scope` 'pa' (the Add card) or 'pe' (the Edit form), which names the tap a hit makes. */
-const famIs_ = (p, want) => want === 'any' || (want === 'student' ? /student/i : /client|parent/i).test(String((p && p.role) || ''));
+/* `want` 'student', 'client' or 'any'; `scope` 'pa' (the Add card), 'pe' (the Edit form) or 'lens', which names the tap a hit makes. */
+const FAM_WANT_ = { student: /student/i, client: /client|parent/i, any: /(?:)/ };
+const famIs_ = (p, want) => (FAM_WANT_[want] || FAM_WANT_.client).test(String((p && p.role) || ''));
 function famHits_(q, want, skip) {
   q = String(q || '').trim().toLowerCase().replace(/^@/, '');
   if (!q) return [];
   return ((DATA && DATA.everyone) || []).filter(p => p && p.personId && famIs_(p, want) && (skip || []).indexOf(String(p.personId)) === -1
     && [p.title, p.name, p.handle].filter(Boolean).join(' ').toLowerCase().indexOf(q) !== -1).slice(0, 6);
 }
-/* THE TAP A HIT MAKES, by where the picker stands. */
-const FAM_ACT_ = { pa: { act: 'pa-pick' }, pe: { act: 'pe-link' }, lens: { act: 'lens-pick' } };
+/* THE TAP A HIT MAKES, by where the picker stands, and the people it leaves out. */
+const FAM_ACT_ = { pa: { act: 'pa-pick', skip: () => ((PERSON_ADD_ && PERSON_ADD_.picked) || []).map(x => x.id) },
+  pe: { act: 'pe-link', skip: () => peLinked_().concat([String((PERSON_ED_ || {}).id || '')]) },
+  lens: { act: 'lens-pick', skip: () => [String((USER || {}).personId || '')] } };
 const famPick_ = (scope, want, label) => `<div class="fam-pick">${formLine_(label, formInput_(`data-fam-q="${scope}" data-fam-want="${want}" type="search" autocomplete="off" placeholder="name or @handle"`))}
   <div class="tile-row fam-hits" data-fam-hits="${scope}"></div></div>`;
 document.addEventListener('input', e => {
@@ -379,10 +382,9 @@ document.addEventListener('input', e => {
   const scope = box.getAttribute('data-fam-q'), want = box.getAttribute('data-fam-want');
   const out = box.closest('.fam-pick') && box.closest('.fam-pick').querySelector('.fam-hits');
   if (!out) return;
-  const skip = scope === 'pa' ? ((PERSON_ADD_ && PERSON_ADD_.picked) || []).map(x => x.id) : scope === 'lens' ? [String((USER || {}).personId || '')]
-    : peLinked_().concat([String((PERSON_ED_ || {}).id || '')]);
-  out.innerHTML = famHits_(box.value, want, skip).map(p => tile_({ form: true, kind: 'quiet', label: displayName_(p) + (p.handle ? ' @' + p.handle : ''),
-    act: (FAM_ACT_[scope] || FAM_ACT_.pe).act, data: { id: p.personId, name: displayName_(p), want } })).join('');
+  const at = FAM_ACT_[scope] || FAM_ACT_.pe;
+  out.innerHTML = famHits_(box.value, want, at.skip()).map(p => tile_({ form: true, kind: 'quiet', label: displayName_(p) + (p.handle ? ' @' + p.handle : ''),
+    act: at.act, data: { id: p.personId, name: displayName_(p), want } })).join('');
 });
 
 /* ---------- ADD A PERSON, A CARD IN FIND › PROFILES (add-person): the server's `personSave`, then `linkChild` for a parent's child ---------- */
@@ -399,7 +401,7 @@ function personAddCard_() {
   if (!personAddMay_()) return '';
   const F = paState_(), v = k => esc(F.v[k] || '');
   if (F.made) {
-    return card_(`<div class="is-prof prof-door pa-card"><h3>${esc(F.made.first)} is added</h3>
+    return meCard_(`<div class="is-prof prof-door pa-card"><h3>${esc(F.made.first)} is added</h3>
       ${F.made.pin ? pinSlip_(F.made.first, F.made.handle, F.made.pin) + '<p class="note">Write it down or read it to them — the PIN is not shown again.</p>'
         : `<p class="note">The PIN went to ${esc(F.made.email)}, with the handle @${esc(F.made.handle)}.</p>`}
       ${F.made.said ? `<p class="note">${esc(F.made.said)}</p>` : ''}
@@ -407,7 +409,7 @@ function personAddCard_() {
   }
   const kid = F.role === 'student', tutor = F.role === 'tutor';
   const box = (k, ph, type) => formLine_('', formInput_(`data-pa="${k}" placeholder="${esc(ph)}" autocomplete="off"${type ? ` type="${type}"` : ''} value="${v(k)}"`));
-  return card_(`<div class="is-prof prof-door pa-card"><h3>Add a person</h3>
+  return meCard_(`<div class="is-prof prof-door pa-card"><h3>Add a person</h3>
     ${box('first', 'First name')}${box('last', 'Last name')}
     ${formLine_('Role', formSelect_('data-pa="role"', PA_ROLES_.map(([r, l]) => `<option value="${r}"${r === F.role ? ' selected' : ''}>${l}</option>`).join('')))}
     ${box('email', kid ? 'Email (optional)' : 'Email', 'email')}
@@ -471,13 +473,13 @@ on('pa-save', el => {
 const peLinked_ = () => { const q = (PERSON_ED_ && PERSON_ED_.data && PERSON_ED_.data.person) || {}; return [].concat(q.parentIds || [], q.childIds || []).map(String); };
 function peFamHtml_(F) {
   const q = (F.data && F.data.person) || {}, roles = q.roles || [];
-  const side = (say, key, want, mine) => {
+  const side = (say, key, want, mine, add) => {
     const ids = (q[key] || []).filter(Boolean);
     if (!ids.length && roles.indexOf(mine) === -1) return '';
     return `<p class="note pe-fam">${esc(say)}</p>${ids.map(id => `<div class="tile-row"><span class="note">${esc(displayName_(peNameOf_(id, F.data)))}</span>${
-      tile_({ form: true, kind: 'quiet', label: 'Remove', act: 'pe-unlink', data: { id, side: key } })}</div>`).join('')}${famPick_('pe', want, key === 'parentIds' ? 'Add a parent' : 'Add a child')}`;
+      tile_({ form: true, kind: 'quiet', label: 'Remove', act: 'pe-unlink', data: { id, side: key } })}</div>`).join('')}${famPick_('pe', want, add)}`;
   };
-  return `<div class="pe-fambox">${side('Linked parents', 'parentIds', 'client', 'student')}${side('Linked children', 'childIds', 'student', 'client')}</div>`;
+  return `<div class="pe-fambox">${side('Linked parents', 'parentIds', 'client', 'student', 'Add a parent')}${side('Linked children', 'childIds', 'student', 'client', 'Add a child')}</div>`;
 }
 const peFamPaint_ = form => { const at = form && form.querySelector('.pe-fambox'); if (at && PERSON_ED_) at.outerHTML = peFamHtml_(PERSON_ED_); };
 /* WHICH WAY ROUND: a hit under "Add a parent" is the parent of the card's person; a Remove names its own side. */

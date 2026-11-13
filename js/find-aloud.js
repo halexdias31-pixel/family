@@ -701,7 +701,8 @@ function findStudyItems_() {
     ...[].concat(...(DATA.textbooks || []).map(b => (b.chapters || []).map(c => contentItem_(b, c)))),
 
     /* ---------- THE EXAM INSERTS (455) */
-    ...(DATA.inserts || []).map(insertItem_),
+    /* A READING INSERT IS ONE SOURCE TEXT, kept whole; a formula sheet is drawn only as its parts. */
+    ...(DATA.inserts || []).filter(insReading_).map(insertItem_),
     ...insertParts_().map(insertPartItem_),
     ...(DATA.specs || []).map(specItem_),
   ];
@@ -721,15 +722,15 @@ function stuffItemsRaw_() {
     ...bibleItems_(),
 
     /* ---------- THE TALMUD (473), once its index has come */
-    ...(typeof talmudItems_ === 'function' ? talmudItems_() : []),
+    ...(typeof window.talmudItems_ === 'function' ? window.talmudItems_() : []),
 
     /* ---------- THE QURAN (490), one item a verse, once its index has come */
     ...(typeof quranItems_ === 'function' ? quranItems_() : []),
-    ...(typeof hadithItems_ === 'function' ? hadithItems_() : []),
-    ...(typeof worksItems_ === 'function' ? worksItems_() : []),
+    ...(typeof window.hadithItems_ === 'function' ? window.hadithItems_() : []),
+    ...(typeof window.worksItems_ === 'function' ? window.worksItems_() : []),
     ...(typeof textsItems_ === 'function' ? textsItems_() : []),
     ...(typeof pdtextsItems_ === 'function' ? pdtextsItems_() : []),
-    ...(typeof orthoItems_ === 'function' ? orthoItems_() : []),
+    ...(typeof window.orthoItems_ === 'function' ? window.orthoItems_() : []),
     ...(typeof hymnsItems_ === 'function' ? hymnsItems_() : []),
     ...(typeof mechItems_ === 'function' ? mechItems_() : []),
     ...(typeof chemItems_ === 'function' ? chemItems_() : []),

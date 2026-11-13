@@ -304,24 +304,6 @@ function qWordsOr_(x, html) {
   if (libSlim_(x)) return `<div class="lib-say">${libSay_(x)}</div>`;
   return empty_('This question’s words are missing.');
 }
-/* `was`, A CARD DRAWN AGAIN (qtools.js): a part of a whole question (960) is drawn as that part again. */
-function questionCard_(x, was) {
-  if (was && was.classList.contains('qb-part')) return qPartCard_(x, !!was.querySelector('.qans-card'));
-  return `<div class="qcard${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}">
-    ${/* THE ROW, AND NOTHING ELSE ABOVE THE QUESTION: every fact is a tag (`tagRow_`), and every tag
-          is an answer the finder offers. THE DAY YOU LAST DID IT is in the tile row, beside the star --
-          see `qtRow_`. */''}
-    ${tagRow_(x)}
-    <div class="qsheet qtext">
-      ${/* NO STEM HERE: a whole question draws its openings once, above its parts (`questionWhole_`). § */''}
-      ${qWordsOr_(x, cellsHere_(x, chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x), x)))}
-    </div>
-    ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. § */
-          ''}
-    ${qAreaWithFoot_(x)}
-  </div>`;
-}
-
 /* ---------- EVERY PART IS ITS OWN CARD, ALL AT ONE LEFT EDGE (owner, 8 Nov; history 1160) */
 /* A STEM WHOLE: its words and its figure, no page-cuts (a card scrolls). */
 function qStemWhole_(x, p, onScreen, pics) {
@@ -342,38 +324,45 @@ function qStemWhole_(x, p, onScreen, pics) {
   if (stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
   return `<div class="qsheet-stem qtext qb-stem kc-lines${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
 }
-/* A PART'S WORDS AND ANSWER ROW, a `.qcard` of its own so every handler's `closest('.qcard')` finds this part and no other. */
-function qPartCard_(x, ans) {
-  const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
-  const has = ans && (questionHasAns_(x) || schemeOwed_(x));
-  const a = has ? questionAnsCard_(x, true) : '';
-  /* EVERY TILE OF THE PART IN ITS ONE TOOL ROW (owner, 8 Nov): Show the answer, Help and the card's tiles handed to `qtRow_` */
-  const more = (has && !schemeOwed_(x) ? qaToggle_(ansKey_(x), ansOpen_(x)) : '') + qPartFoot_(x);
-  QT_MORE.html = more; QT_MORE.used = false;
-  const area = ansArea_(x);
-  const left = QT_MORE.used ? '' : (more ? `<div class="tile-row">${more}</div>` : '');
-  QT_MORE.html = ''; QT_MORE.used = false;
-  return `<div class="qcard qb-part kc-form" data-of="${esc((x.row && x.row.row_id) || x.key || '')}"><div class="qsheet qtext">${qWordsOr_(x, cellsHere_(x, words))}</div>${area}${left}${a}</div>`;
-}
-/* HELP (455) AND THE CARD'S TILES join the answer's tool row, behind its ⋯ (owner, 9 Nov); a box with no row keeps Help's own row. */
-function qAreaWithFoot_(x) {
-  QT_MORE.html = qPartFoot_(x); QT_MORE.used = false;
-  const area = ansArea_(x), left = QT_MORE.used || typeof helpRow_ !== 'function' ? '' : helpRow_(x, '');
-  QT_MORE.html = ''; QT_MORE.used = false;
-  return area + left;
-}
-/* THE CARD'S OWN TILES (share, star, message, top, help) as bare tiles, without the row `cardRow_` wraps them in */
-function qPartFoot_(p) {
-  const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(p, '') : null);
-  return String(cardRow_(Object.assign(Object.create(p), { lead: help }), true) || '').trim();
-}
-/* ONE PART, THE SHAPE OF ANY CARD (rules.md 3): a card of the template, its picture, tags, stem lines and the part as its form. */
-function qOneCard_(p, ctx) {
+/* ---------- A QUESTION PART IS A CARD OF THE ONE TEMPLATE (rule 3.11): its figure on top, its tags, its sheet an embed, its tiles the card's row. */
+/* WHAT A PART'S CARD DREW BESIDE ITSELF (its stems, the parts on screen, its figure on top), by key, so the card drawn again draws the same. */
+const Q_DRAWN = new Map();
+/* THE PART A CARD WAS BUILT FROM, by key, for its embed (a spec carries the key, never the part). */
+const Q_ITEM = new Map();
+const qPartOf_ = key => Q_ITEM.get(key) || (typeof qtItem_ === 'function' ? qtItem_(key) : null);
+/* THE STEMS' FIGURES, gathered for the picture box: a drawing goes on top, a photo stays among the words. */
+function qStemPic_(x, was) {
   const pics = [];
-  const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)])
-    .map(s => { ctx.drawn[stemId_(s)] = true; return qStemWhole_(p, s, ctx.shown, pics); }).join('');
-  const pic = pics.join('').trim() ? `<div class="qb-stem qb-pic kc-pic">${pics.join('')}</div>` : '';
-  return `<div class="qb favwrap ${kcCls_('question')}${isFav(p.key) ? ' is-fav' : ''}" data-part="${esc(p.key || '')}">${pic}${renderTags(tagList_(p), 'qcard-tags kc-tags')}${stems}${qPartCard_(p, ctx.ans)}</div>`;
+  was.stems.forEach(st => qStemWhole_(x, st, was.shown, pics));
+  const pic = pics.join('').trim();
+  return pic && /^\s*<(svg|figure)\b[\s\S]*<\/svg>[\s\S]*$/.test(pic) ? pic : '';
+}
+/* THE SHEET: the stems' words, the part's words and its answer box, then the answer card (`questionAnsCard_`). */
+CARD_EMBEDS.qsheet = a => {
+  const x = qPartOf_(a.key);
+  if (!x) return '';
+  const was = Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
+  const stems = was.stems.map(st => qStemWhole_(x, st, was.shown, a.pic ? [] : null)).join('');
+  const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
+  const has = was.ans && (questionHasAns_(x) || schemeOwed_(x));
+  return `${stems}<div class="qsheet qtext">${qWordsOr_(x, cellsHere_(x, words))}</div>${ansArea_(x)}${has ? questionAnsCard_(x, true) : ''}`;
+};
+cardKind_('question', x => {
+  const was = Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true }, id = (x.row && x.row.row_id) || x.key || '';
+  if (x.key) Q_ITEM.set(x.key, x.item || x);
+  const pic = was.stems.length && typeof qStemPic_ === 'function' ? qStemPic_(x, was) : '';
+  const tryOr = (f, or) => { try { return f(); } catch (e) { oops_(e, 'question:spec'); return or; } };
+  return { kind: 'question', look: 'qb favwrap qcard qb-part' + (typeof helpCls_ === 'function' ? helpCls_(x, '') : '') + (isFav(x.key) ? ' is-fav' : ''),
+    data: { part: x.key || '', of: id }, tags: tryOr(() => tagList_(x), []), tagLook: 'qcard-tags', picture: pic ? { svg: pic } : null,
+    body: [{ type: 'embed', tool: 'qsheet', look: 'qsheet-embed', args: { key: x.key || '', pic: !!pic } }],
+    tiles: tryOr(() => qtTiles_(x, was.ans && questionHasAns_(x) && !schemeOwed_(x)), []), toolRow: { key: x.key || '' } };
+});
+/* ONE PART'S CARD: the stems not drawn yet by an earlier part go with it. */
+function qOneCard_(p, ctx) {
+  const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)]);
+  stems.forEach(s => { ctx.drawn[stemId_(s)] = true; });
+  Q_DRAWN.set(p.key, { stems, shown: ctx.shown, ans: ctx.ans });
+  return findCard(p);
 }
 /* A QUESTION NUMBER: its parts the search kept, one card each, one after another; none indented under another. */
 function questionWhole_(x, parts, open, ans) {
@@ -719,9 +708,10 @@ function schemeOwed_(x) {
   return !['accept', 'cells', 'mark_words', 'draw_answer', 'choice_right'].some(f => libHasField_(r, f));
 }
 /* SHOW OR HIDE THE ANSWER, one tile that says which way it goes */
-const qaToggle_ = (k, open) => open
-  ? tile_({ icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } })
-  : tile_({ icon: 'show', label: 'Show the answer', note: 'one tap', act: 'qa-show', cls: 'qa-toggle', data: { k: k } });
+const qaToggleOpts_ = (k, open) => open
+  ? { icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } }
+  : { icon: 'show', label: 'Show the answer', note: 'one tap', act: 'qa-show', cls: 'qa-toggle', data: { k: k } };
+const qaToggle_ = (k, open) => tile_(qaToggleOpts_(k, open));
 /* `inRow`: a part of a whole question, whose toggle and Help are in its one tool row, so this card holds no row of its own */
 function questionAnsCard_(x, inRow) {
   const id = (x.row && x.row.row_id) || x.key || '';

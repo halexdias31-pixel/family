@@ -41,8 +41,9 @@ function kpDone_(inp) {
   if (nx) return kpTake_(nx);
   const box = inp.hasAttribute('data-kp-essay') ? null : inp.closest('.qp-mark');
   /* ONE SUBMIT PATH (508): ✓ presses the box's own send tile, whatever it is called. */
-  const go = box && (box.querySelector('.tile.is-submit[data-do]:not([disabled])')
-    || box.querySelector('.qp-ai-go[data-do="qp-ai"]:not([disabled])'));
+  const row = box && qRowOf_(box);
+  const go = row && (row.querySelector('.tile.is-submit[data-do]:not([disabled])')
+    || row.querySelector('.qp-ai-go[data-do="qp-ai"]:not([disabled])'));
   const run = go && ACTIONS[go.getAttribute('data-do')];
   if (run) run(go);
   inp.blur();
@@ -565,7 +566,7 @@ function aiUndecided_() {
 }
 
 /* THE AI MARKS EVERY PART NO RULE CAN (`markerOf_`, qtools.js), and only those: one mark button per part (owner, 11 Nov). */
-/* an AI part with no mark scheme is not offered it (round 4): its Check says "No mark scheme yet" instead (`qtCheck_`) */
+/* an AI part with no mark scheme is not offered it (round 4): its Check says "No mark scheme yet" instead (`qtCheckOpts_`) */
 function aiWanted_(x) {
   const m = x && typeof markerOf_ === 'function' ? markerOf_(x) : null;
   return !!m && m.ready && isAiMark_(m);
@@ -627,7 +628,7 @@ function aiOff_(said) {
   document.querySelectorAll('.qp-ai').forEach(box => {
     box.classList.add('is-off');
     /* NEVER SWAPPED FOR A PLAIN SEND: a human never marks, so the Check waits for the AI, off */
-    box.querySelectorAll('.qp-ai-go').forEach(b => { b.disabled = true; });
+    (box.closest('.qcard') || box).querySelectorAll('.qp-ai-go').forEach(b => { b.disabled = true; });
     const out = box.querySelector('.qp-verdict');
     const say = said || 'AI marking isn\u2019t switched on';
     if (out) out.textContent = say;
@@ -715,8 +716,8 @@ function aiStageEnd_(st, failed) {
   st.line.innerHTML = tile_({ icon: 'again', label: 'Try again', act: 'qp-ai-again' });
 }
 on('qp-ai-again', (el) => {
-  const box = el.closest('.qp-ai');
-  const go = box && box.querySelector('[data-do="qp-ai"]');
+  const box = qMark_(el, '.qp-ai');
+  const go = box && qRowOf_(box).querySelector('[data-do="qp-ai"]');
   if (go && !go.disabled) ACTIONS['qp-ai'](go);
 });
 

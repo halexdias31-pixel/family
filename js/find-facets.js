@@ -497,11 +497,9 @@ function overFacet_(items) {
 /* THE CARD. Small — a reference, the marks, and the first line of the question, because a list of ninety § */
 /* THE RECORD IS THE FACE OF IT. § */
 /* ---------- ONE BOUT (batch D): the two fighters' portraits facing each other under the tags, and nothing else § */
-function fightCard_(x) {
-  const f = x.row || {};
-  return `<div class="fc fight" aria-label="${esc(f.a + ' and ' + f.b)}">${tagRow_(x)}
-    <div class="fight-faces">${personPic_(f.aId, f.a)}${personPic_(f.bId, f.b, true)}</div></div>`;
-}
+cardKind_('fight', x => { const f = x.row || {};
+  return { look: 'fight', name: [f.a, f.b].filter(Boolean).join(' and '), tags: tagList_(x),
+    body: [{ type: 'figure', ...personPicSpec_(f.aId, f.a) }, { type: 'figure', ...personPicSpec_(f.bId, f.b, true) }] }; });
 
 /* WHO WON A BOUT, by id where there is one (as the card frames the face), else by the name the row gives. */
 function boutWinner_(x) {
@@ -695,14 +693,12 @@ const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</spa
 
 /* ---------- A CONTENT CARD: ONE CHAPTER, WHOLE, WITH THE QUESTIONS' TAGS ON IT § */
 /* ONE WIDGET PER THING (408): § */
-function contentCard_(x) {
-  const c = x.row;
-  return `<div class="fc prac tb ct lib-c">
-    ${tagRow_(x)}
-    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
-    ${tbSections_(c, null, { only: 'words' })}
-  </div>`;
-}
+const tbMark_ = on => (on ? [' ', { badge: 'H', hint: 'Higher tier only' }] : []);
+cardKind_('content', x => { const c = x.row || {};
+  const words = c.words || [];
+  return { look: 'prac tb ct lib-c', name: x.name, tags: kcFacetTags_(x), body: [
+    words.length ? { type: 'section', look: 'tb-words', head: 'Key words', blocks: [{ type: 'list', items: words.map(w => [{ b: w.name }, ' — ', w.text].concat(tbMark_(w.higher))) }] } : null,
+  ].filter(Boolean) }; });
 
 /* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): § */
 const CONTENT_PAGE = { fig: 'Diagram', formulas: 'Formulas', worked: 'Worked examples' };

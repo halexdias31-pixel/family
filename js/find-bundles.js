@@ -477,7 +477,7 @@ function chipText_(f, i) {
 /* 680: THE ROW NEVER SAYS THE SAME THING TWICE — a second chip with the same words is left out (its filter stays). */
 function filterChips() {
   const said = {};
-  return `<div class="chips">
+  return `<div class="chips">${signChips_()}
     ${STUFF.filters.map((f, i) => {
       const show = chipText_(f, i), key = spellKey_(show);
       if (said[key]) return '';
@@ -630,13 +630,13 @@ function stuffKeepPlace_(host, d) {
 /* EVERY LIBRARY INDEX `paintStuff` asks for, one call each. */
 function stuffIndexesAsk_() {
   if (USER || !ruleOn_('finder-members')) {
-  if (typeof talmudIndex_ === 'function') talmudIndex_();
+  if (typeof window.talmudIndex_ === 'function') window.talmudIndex_();
   if (typeof quranIndex_ === 'function') quranIndex_();
-  if (typeof hadithIndex_ === 'function') hadithIndex_();
-  if (typeof worksIndex_ === 'function') worksIndex_();
+  if (typeof window.hadithIndex_ === 'function') window.hadithIndex_();
+  if (typeof window.worksIndex_ === 'function') window.worksIndex_();
   if (typeof textsIndex_ === 'function') textsIndex_();
   if (typeof pdtextsIndex_ === 'function') pdtextsIndex_();
-  if (typeof orthoIndex_ === 'function') orthoIndex_();
+  if (typeof window.orthoIndex_ === 'function') window.orthoIndex_();
   if (typeof hymnsIndex_ === 'function') hymnsIndex_();
   if (typeof mechIndex_ === 'function') mechIndex_();
   if (typeof chemIndex_ === 'function') chemIndex_(); }

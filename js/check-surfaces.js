@@ -143,10 +143,11 @@ css.replace(/([^{}]+)\{([^{}]*)\}/g, (all, sel, body) => {
   const body = (sh.match(/function openSheet\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1];
   if (!body) { console.log('FAILED — openSheet could not be found in js/shell.js, so where it opens was not checked.'); process.exit(1); }
   if (!/sheetPlace_\(/.test(body)) popups.push({ short: 'js/shell.js', line: 0, name: 'openSheet does not move the sheet into the card pressed', use: 'sheetPlace_() (453)' });
-  const posts = stripComments(fs.readFileSync(path.join(DIR, 'posts.js'), 'utf8'));
+  /* POSTS ARE SWITCHED OFF (attic/js/posts.js, 13 Nov): their sheets are checked only while the file is in js/. */
+  const posts = fs.existsSync(path.join(DIR, 'posts.js')) ? stripComments(fs.readFileSync(path.join(DIR, 'posts.js'), 'utf8')) : '';
   [['who-reacted', /sheetHere_\(el\)/], ['post-edit', /sheetHere_\(el,\s*true\)/]].forEach(([act, re]) => {
     const h = (posts.match(new RegExp("on\\('" + act + "'[\\s\\S]*?\\n\\}\\);")) || [''])[0];
-    if (!re.test(h)) popups.push({ short: 'js/posts.js', line: 0, name: act + ' does not open in its post card', use: re.source + ' before openSheet (453)' });
+    if (posts && !re.test(h)) popups.push({ short: 'js/posts.js', line: 0, name: act + ' does not open in its post card', use: re.source + ' before openSheet (453)' });
   });
 }
 

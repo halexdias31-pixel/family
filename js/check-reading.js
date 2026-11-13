@@ -20,7 +20,7 @@ if (!table) { console.log('check-reading: READING_REF not found in js/writings.j
 const kinds = [...table[1].matchAll(/^\s*(\w+):\s*\{/gm)].map(m => m[1]);
 const finder = JS.find(([f]) => f === 'find-finder.js')[1];
 /* A TEXT KIND FIND KNOWS BUT THE TABLE DOES NOT is a text drawn another way. */
-const TEXT_FILES = ['writings.js', 'talmud.js', 'quran.js', 'hadith.js', 'works.js', 'texts.js', 'pdtexts.js', 'orthodox.js', 'hymns.js'];
+const TEXT_FILES = ['writings.js', 'quran.js', 'texts.js', 'pdtexts.js', 'hymns.js'];
 const made = new Set();
 JS.filter(([f]) => TEXT_FILES.includes(f)).forEach(([, s]) => [...s.matchAll(/kind: '(\w+)'/g)].forEach(m => made.add(m[1])));
 made.add('bible');

@@ -115,7 +115,7 @@ const HELP_KID_ = { name: 'Ada Pupil', personId: 'P-S1', role: 'student', roles:
 const HELP_Q_ = { kind: 'question', key: 'q-help', name: 'Q3', marks: 1, row: { row_id: 'Q-HELP-3', paper_id: 'P-HELP', subject: 'Maths', name: 'Help' },
   html: '<p>Work out 12 &divide; 4</p>', answer: '<b>3</b>' };
 const helpDraw_ = w => { const d = w.document.createElement('div'); d.className = 'help-probe';
-  d.innerHTML = w.questionCard_(HELP_Q_) + w.questionAnsCard_(HELP_Q_); w.document.body.appendChild(d); return d; };
+  d.innerHTML = w.findCard(HELP_Q_) + w.questionAnsCard_(HELP_Q_); w.document.body.appendChild(d); return d; };
 check('455: Help on a question turns that page red and no other (owner, 1 Nov: "just current widget"), rings the bell, says Waiting for help, tells the tutor, and survives a reload until I\'m OK now', async () => {
   const bad = [];
   const r = boot({ before: signedInAs_(HELP_KID_), reply: b => b.action === 'hands' ? { success: true, mine: { personId: 'P-S1', q: 'q-help', at: Date.now() } } : { success: true } });
@@ -250,7 +250,7 @@ check('442: a student sees the search but no Find and no tile, and posts no look
 });
 
 /* ---------- 770: NO FIND BUTTON, NO COLUMN NAMED, SIGN IN ONE UNIT, DELETED MOVES ---------- */
-check('770: the search card has no Find button; no card is titled with a column\'s name; Sign in is acct:signed-in; Deleted moves', async () => {
+check('770: the search card has no Find button; no card is titled with a column\'s name; signed out the account column draws no Sign in card (it is Find\'s first menu); Deleted moves', async () => {
   const { d, w, t } = await psBoot_({ name: 'Hal Admin', personId: 'P-A1', role: 'admin', roles: ['admin'], token: 'tk' }), bad = [];
   try { t.repaint(true); ['tutors', 'students', 'parents', 'account', 'family', 'staff', 'biz'].forEach(id => w.paint(id)); } catch (e) {}
   await wait(150);
@@ -268,7 +268,7 @@ check('770: the search card has no Find button; no card is titled with a column\
   if (/lay-c-del/.test(row)) bad.push('the Deleted card can be deleted');
   t.USER(null);
   const out = w.studentSetPages_();
-  if (w.cardIdOf_(out[0]) !== 'acct:signed-in') bad.push('signed out, the Sign in card is ' + JSON.stringify(w.cardIdOf_(out[0])) + ', not acct:signed-in — moved signed in, it would jump back');
+  if (out.some(h => /data-do="do-signin"|id="in-pin"/.test(h)) || out.some(h => w.cardIdOf_(h) === 'acct:signed-in')) bad.push('signed out, the account column still draws a Sign in card — signing in is Find\'s first menu (owner, 13 Nov)');
   return bad;
 });
 
@@ -448,7 +448,7 @@ check('New PIN is on a parent\'s "Manage your child" and not on the child\'s car
   return bad;
 });
 
-check('Forgotten your PIN? says what the server said, including that nobody can be written to', async () => {
+check('Forgot PIN says what the server said, including that nobody can be written to', async () => {
   const { w } = boot({ reply: b => b.action === 'forgotPin'
     ? (b.who === 'lee_kind42'
        ? { error: 'We have no email for this account, so we could not send a new PIN. Ask your parent or your tutor — they can give you one straight away.', why: 'no-inbox' }
@@ -456,17 +456,17 @@ check('Forgotten your PIN? says what the server said, including that nobody can 
     : { success: true } });
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
-  t.USER(null); t.go('account', false, true);
-  await wait(120);
-  const box = d.getElementById('in-name'), tile = d.querySelector('#s-account [data-do="forgot-pin"]');
-  if (!box || !tile) return ['the sign-in card has no name box or no forgot-PIN tile'];
+  t.USER(null);
+  { const no = await findSign_(w, null); if (no) return [no]; }
+  const box = d.getElementById('in-name'), tile = d.querySelector('#stuff-groups [data-do="forgot-pin"]');
+  if (!box || !tile) return ['Find\'s first menu has no name tag or no Forgot PIN tag'];
   box.value = 'lee_kind42';
   t.ACTIONS['forgot-pin'](tile);
   await wait(300);
   let said = String((d.getElementById('toast') || {}).textContent || '');
   if (!/no email for this account/i.test(said)) bad.push('a child nobody can be written to was told ' + JSON.stringify(said));
   box.value = '@kit_kind41';
-  t.ACTIONS['forgot-pin'](d.querySelector('#s-account [data-do="forgot-pin"]') || tile);
+  t.ACTIONS['forgot-pin'](d.querySelector('#stuff-groups [data-do="forgot-pin"]') || tile);
   await wait(300);
   said = String((d.getElementById('toast') || {}).textContent || '');
   if (!/old PIN still works/i.test(said)) bad.push('the sent case toasted ' + JSON.stringify(said) + ' — not the server\'s sentence');

@@ -58,7 +58,6 @@
    "principle": 1,
    "text": "The law always wins, silently; a deletion request for personal data beats keeping things.",
    "checks": [
-    "biz",
     "one-place",
     "biz-checker"
    ],
@@ -88,7 +87,6 @@
    "text": "Money disputes follow the written terms, leaning to the business; policies (terms, privacy, safeguarding, refunds) are drafted by the site, approved by the owner, reviewed yearly.",
    "checks": [
     "policy-fill",
-    "biz",
     "money-terms"
    ],
    "since": "2026-11-12"
@@ -214,7 +212,7 @@
   {
    "id": "2.8",
    "principle": 2,
-   "text": "Generated content (teaching animations, finder tags, bundles) is written by its script and re-run, never hand-edited; the build stamp is last after any served change.",
+   "text": "Generated content (teaching animations, written as rows by `tools/anim_row.py`; finder tags; bundles) is written by its script and re-run, never hand-edited; `node tools/build-stamp.js` runs last after any change to a served file (`index.html`, `js/`, `style.css`).",
    "checks": [
     "bundle",
     "cache",
@@ -229,6 +227,15 @@
    "text": "A handle is the first two and last two letters of the first name (overlapping on a short one) and the year joined, a counter on a clash (earliest joiner keeps the plain form), made by one maker (`handleStems_`) for sign-up, rename and backfill; the old one goes to `handle_was` and still signs in.",
    "checks": [
     "handle-follows"
+   ],
+   "since": "2026-11-13"
+  },
+  {
+   "id": "2.10",
+   "principle": 2,
+   "text": "The front end is one global scope with no modules: `index.html`'s script list is the load order, never reshuffled, `js/boot.js` last; since a missing name fails silently at load, `node js/check.js` runs after every change.",
+   "checks": [
+    "check"
    ],
    "since": "2026-11-13"
   },
@@ -300,7 +307,7 @@
   {
    "id": "3.4",
    "principle": 3,
-   "text": "One text box (the cream answer pill), one form maker from a field list, one wait (`loading_()`'s spinning ring), one empty state, one viewer (`fileView_`) that opens in place.",
+   "text": "One text box (the cream answer pill), one form maker from a field list, one wait (`loading_()`'s spinning ring), one empty state, one viewer (`fileView_`) that opens in place. A wait is `loading_()` and nothing else; \"payload still coming\" is `awaiting_()`, never `!LOADED`.",
    "checks": [
     "variety-textbox",
     "forms",
@@ -318,7 +325,7 @@
   {
    "id": "3.5",
    "principle": 3,
-   "text": "A small fixed set of sizes and colours: three text sizes, the space and radius scales, screen and paper palettes as tokens, black and white with colour only on tags and chips, no grey sentences, normal case.",
+   "text": "A small fixed set of sizes and colours: three text sizes, the space and radius scales, screen and paper palettes as tokens, black and white with colour only on tags and chips, no grey sentences, normal case. Never a colour literal for paper; tap targets in px, everything else rem.",
    "checks": [
     "scale",
     "font-scale",
@@ -675,6 +682,24 @@
    "since": "2026-11-12"
   },
   {
+   "id": "5.6",
+   "principle": 5,
+   "text": "Every tag is a card (owner, 13 Nov): a tag links to exactly one card — each subject, level, board, year and kind, and each entity (a work, a person, a place) — and picking it in Find shows that card first, then everything tagged with it; never two cards for one tag, never a tag without one. The count still missing sits in `check/tag-cards-ratchet.json` and only goes down.",
+   "checks": [
+    "tag-cards"
+   ],
+   "since": "2026-11-13"
+  },
+  {
+   "id": "5.7",
+   "principle": 5,
+   "text": "Two finders, one list: outside `inFinder_(F, fn)` the shared `STUFF` is Find's, and an async job re-binds its finder before it reads or writes; only `finderSet_` writes a finder's chips and words.",
+   "checks": [
+    "finder"
+   ],
+   "since": "2026-11-13"
+  },
+  {
    "id": "6.1",
    "principle": 6,
    "text": "Icons and one-word labels, no grey clutter, information as a tag; a failure is said in words through `why_()`.",
@@ -883,7 +908,6 @@
    "text": "Everything the business does runs from here, autonomously (booking, matching, payment, reminders, receipts, tax pot, renewals), built in the site; outside services only where needed (Stripe).",
    "checks": [
     "one-place",
-    "biz",
     "biz-checker",
     "flow/*"
    ],
@@ -926,7 +950,6 @@
     "sounds",
     "voice",
     "calc",
-    "lego",
     "flyer"
    ],
    "since": "2026-11-12"
@@ -934,14 +957,15 @@
   {
    "id": "10.5",
    "principle": 10,
-   "text": "When something fails, one short plain message says what; the rest keeps working; an empty sheet still renders.",
+   "text": "When something fails, one short plain message says what; the rest keeps working; an empty sheet still renders: every read has a fallback (`brand(key, fallback)`, `|| []`, try/catch around anything absent).",
    "checks": [
     "errors",
     "errlog",
     "resilience",
     "malformed",
     "catch",
-    "field"
+    "field",
+    "payload"
    ],
    "since": "2026-11-12"
   },
@@ -950,9 +974,7 @@
    "principle": 10,
    "text": "Business admin runs itself on the site, never by email: renewals (insurance, ICO fee, DBS 12-monthly, safeguarding, tax dates) glow on the Business card; the tax pot puts aside 25% of Stripe income; each tutor gets a yearly statement.",
    "checks": [
-    "biz",
-    "biz-checker",
-    "flow/34"
+    "biz-checker"
    ],
    "since": "2026-11-12"
   },

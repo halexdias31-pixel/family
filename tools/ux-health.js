@@ -49,12 +49,18 @@ function instruments() {
   mark('loaded');
   /* SIGN-IN: the form filled with the fixture's PIN, measured from the press to USER being set. */
   const signin = await page.evaluate(() => new Promise(ok => {
-    try { go('account'); } catch (e) { /* no account screen: measured as failed */ }
+    try { go('stuff'); } catch (e) { /* no Find: measured as failed */ }
     setTimeout(() => {
-      const n = document.getElementById('in-name'), p = document.getElementById('in-pin'), b = document.querySelector('[data-do="do-signin"]');
-      if (!n || !p || !b) return ok(-1);
-      n.value = 'test@example.org'; p.value = '0000';
-      const s = performance.now(); b.click();
+      /* ON FIND (owner, 13 Nov): the name tag and Enter, then four digit tags; timed from the fourth. */
+      try { ACTIONS['sign-restart'](document.body); } catch (e) { return ok(-1); }
+      const n = document.getElementById('in-name');
+      if (!n) return ok(-1);
+      n.value = 'test@example.org';
+      n.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      const dig = c => document.querySelector('#stuff-groups [data-do="sign-digit"][data-d="' + c + '"]');
+      if (!dig('0')) return ok(-1);
+      ['0', '0', '0'].forEach(c => ACTIONS['sign-digit'](dig(c)));
+      const s = performance.now(); ACTIONS['sign-digit'](dig('0'));
       window.__signAt = s;
       const t = setInterval(() => { if (typeof USER !== 'undefined' && USER) { clearInterval(t); ok(performance.now() - s); } }, 10);
       setTimeout(() => { clearInterval(t); ok(-2); }, 15000);

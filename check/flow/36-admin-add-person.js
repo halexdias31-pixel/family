@@ -3,8 +3,7 @@ check('an admin adds parent Pat Example linked to Finley from Find › Profiles,
   const W = cardWorld_({ people: [['P-S9', 'Finley', 'Example', 'student', '']] });
   const reply = b => (['personSave', 'personGet', 'linkChild', 'adminUnlinkFamily', 'updateProfile'].indexOf(b.action) !== -1 ? W.real.post(b) : { success: true, messages: [] });
   const bad = [];
-  const everyone = () => [{ personId: 'P-S9', title: 'Finley E.', handle: 'finleyexample', role: 'Student', image: '' },
-    { personId: 'P-C1', title: 'Pat P.', handle: 'patparent', role: 'Client', image: '' }];
+  const everyone = () => [{ personId: 'P-S9', title: 'Finley E.', handle: 'finleyexample', role: 'Student', image: '' }].concat(flowEveryone_('pat'));
   const profiles = async c => {
     c.t.DATA().everyone = everyone(); c.t.memoDrop();
     c.t.go('stuff', false, true);

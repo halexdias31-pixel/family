@@ -1,5 +1,5 @@
 on('qp-ai', (el) => {
-  const box = el.closest('.qp-ai');
+  const box = qMark_(el, '.qp-ai');
   const card = el.closest('.qcard');
   const inp = card && card.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');

@@ -441,7 +441,7 @@ let KP_ROOM = null;
 const kpBox_ = inp => {
   /* THE BOX AND ITS TOOL ROW (round 3): the row is under the box with Check last in it, so the row's foot is what stays above the pad */
   const mark = inp && inp.closest && inp.closest('.qp-mark');
-  const row = mark && mark.querySelector(':scope > .qt-row');
+  const card = mark && mark.closest('.qcard'), row = card && card.querySelector(':scope > .kc-act > .qt-row');
   if (row) return row;
   const essay = inp && inp.closest && inp.closest('.qp-essay');
   return (essay && essay.querySelector('.qp-sheet-foot')) || (inp && inp.closest && inp.closest('.qp-ans')) || inp;

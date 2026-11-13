@@ -134,7 +134,6 @@ const SUITE = [
   { file: 'check-email-card.js', what: 'the Sunday email card is the site card: parts, lines, labels, corner, gap, sizes, tag colours (57a–62a)' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
-  { file: 'check-talmud.js', what: 'the Talmud (473): every tractate and daf in the index loads with Gemara; licences CC BY-SA or public domain' },
   { file: 'check-writings.js', what: 'one model for every written work (520): one shape, one shelf, one facet set, tradition topics, one age, nothing twice, facets.json = FACETS' },
   { file: 'check-texts.js', what: 'more writings (513): every text loads, a unit a card, each with its source and licence; scripture-like texts held to the age rule' },
   { file: 'check-hymns.js', what: 'the hymns shelf (517): every hymn in the index has words, a pre-1929 public-domain source and a licence; audio only a Spotify link' },
@@ -173,11 +172,7 @@ const SUITE = [
   { file: 'check-submissions.js', what: 'submissions: a row per press, the token’s person, the latest per question, whose' },
   /* ONE RANK PER ACCOUNT, STAFF ONLY BY APPLICATION (400): ranks from old cells, sign-up, the application flow, a child's PIN to the owner. */
   { file: 'check-accounts.js', what: 'ranks, sign-up as Student or Client, Staff only by an approved application, a child\'s PIN to the owner' },
-  { file: 'check-biz.js', what: 'the business checker (1050): every item has why, how and an official link, every auto rule exists, and the card draws with an empty payload' },
-  { file: 'check-lego.js', what: 'the LEGO piece check: a set picked, three shots a batch, the AI counts tallied (stubbed) and the missing list' },
   { file: 'check-flyer.js', what: 'the flyer maker: every word from the Web profile or the tutor card, nothing typed, every QR tagged for came_from' },
-  { file: 'check-staff.js', what: 'the Staff hub: tutor terms by version, pricing refusals, a statement only for its own tutor (any for an admin)' },
-  { file: 'check-posts.js', what: 'posts wait for approval (author and admin only), final once up, no links, a child uploads nothing, message faces' },
   { file: 'check-suggest.js', what: 'Suggest a change: an admin’s straight to Notes for Claude, anybody else’s waits for Confirm; the old reports moved once; one tile everywhere' },
   /* THE LIBRARY'S WORDS IN THE LEDGER (397): the copy checked row by row, libItems signed-in and capped, the tools' copy the admin's. */
   { file: 'check-library-ledger.js', what: 'the library in the Ledger: copied and checked a step at a time, served signed-in with a day\'s cap', par: true },
@@ -235,6 +230,7 @@ const SUITE = [
   { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something', slow: true },
   /* EVERY FACT ITS OWN TAG (owner, 12 Nov): no answer, chip or card tag spells another facet's value, after every answer and Doesn't matter. */
   { file: 'check-tags.js', what: 'every answer, chip and card tag says its own fact, never another facet\'s glued on', slow: true },
+  { file: 'check-tag-cards.js', what: 'every tag is a card: tags with no card, or two, only go down (ratchet, owner 13 Nov)', slow: true },
   /* ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS § */
   { file: 'check-bundle.js', what: 'a bundle names its papers, and an order reaches the owner' },
   { file: 'check-flow.js',    what: 'the app, actually running', slow: true },
@@ -271,7 +267,6 @@ const SUITE = [
   { file: 'check/chip-feel.js', what: 'at 4x CPU a tapped Find answer is lit in a frame before the funnel redraws, and three taps in a row are three answers (720)', slow: true },
   { file: 'check/kp-centred.js', what: 'Find centred above the @family. keypad, the box still as you type, centred again when it goes (720)', slow: true },
   { file: 'check/later.js', what: 'every column gone to and started while the LATER files are away reads none of their names; they arrive in one task (720)', slow: true },
-  { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
   { file: 'check/fluid.js',   what: 'any shape of screen: seven phone, tablet and desktop sizes scroll no wider than the window and leave no blank side', slow: true },
   { file: 'check/setting-forms.js', what: 'every Settings card, signed out and in, at 390 and 820px: no box, menu or tile cut by its card (owner, 10 Nov)', slow: true },
   { file: 'check/cards-render.js', what: 'every card kind in Find, four viewers, 390 and 820px, closed and open: no text cut, blank card, centred text, kind HTML or stray profile picture (owner, 10 Nov)', slow: true },

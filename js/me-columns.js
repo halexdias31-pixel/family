@@ -19,7 +19,7 @@ const STAFF_GROUP_NAMES_ = { 'Contact & address': 'Where you teach', 'About you'
 function settingsSplit_() {
   const shown = notLibrary_(cardSettingsGroups_(myGroups_(), ownCardFields_()));
   /* AND STAFF SET THEIR WEEK ON THE AVAILABLE CARD (487), so it is not drawn twice — but that card needs a tutor row, which a new tutor lacks. */
-  if (typeof hubFor_ === 'function' && hubFor_() && cardMine_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
+  if (typeof window.hubFor_ === 'function' && window.hubFor_() && cardMine_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
   const out = { you: {}, parent: {}, staff: {} };
   Object.keys(shown).forEach(g => {
     if (!shown[g].length) return;
@@ -128,16 +128,13 @@ function youSettingsPages_() {
 }
 function studentSetPages_() {
   if (!whose_()) {
-    /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist first. */
-    if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
-    /* SIGN IN AND SIGNED IN ARE ONE UNIT, `acct:signed-in` (770): the owner moved it, signed out, and it jumped back — one saved place. */
-    const signIn = (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean);
+    /* SIGNING IN IS FIND'S FIRST MENU (`signMenu_`, owner 13 Nov); signed out this column offers Make an account. */
     const reg = typeof registerCard_ === 'function' ? [registerCard_()] : [];
-    return (typeof cardMark_ === 'function' ? cardMark_('acct:signed-in', signIn) : signIn).concat(reg, lockedPages_('account'));
+    return reg.concat(lockedPages_('account'));
   }
   const who = nameBesideHandle_(whose_().name, whose_().handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
-  let top = card_(`<div class="signed-in"><h3>Signed in</h3>
+  let top = meCard_(`<div class="signed-in"><h3>Signed in</h3>
     ${tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
       + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)}
     ${/* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */

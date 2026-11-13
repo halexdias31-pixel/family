@@ -9,7 +9,7 @@ check('a redraw with the keypad up keeps typing into the same question', async (
     html: '<p>Work out 3 &times; 25.</p>', answer: '<b>75</b>' };
   try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
   const host = d.createElement('div');
-  host.innerHTML = w.questionCard_(x);
+  host.innerHTML = w.findCard(x);
   d.body.appendChild(host);
   const first = host.querySelector('.kp-in');
   if (!first) return ['the card drew no maths box'];
@@ -20,7 +20,7 @@ check('a redraw with the keypad up keeps typing into the same question', async (
   press('7');
   if (first.value !== '7') bad.push('7 typed "' + first.value + '" before the redraw');
   /* THE REDRAW: the card's markup replaced, as `repaint` and `paintStuff(true)` do. */
-  host.innerHTML = w.questionCard_(x);
+  host.innerHTML = w.findCard(x);
   const now = host.querySelector('.kp-in');
   if (!now || now === first) return bad.concat(['the redraw did not replace the box, so nothing was asked']);
   press('5');
@@ -32,12 +32,12 @@ check('a redraw with the keypad up keeps typing into the same question', async (
   if (pad.hidden) bad.push('the redraw put the keypad away');
   /* AND THE CARET STAYS WHERE IT WAS, inside a structure, not thrown to the end. */
   press('!frac');
-  host.innerHTML = w.questionCard_(x);
+  host.innerHTML = w.findCard(x);
   const third = host.querySelector('.kp-in');
   press('4');
   if (!third || third.value !== '75/(4)') bad.push('a fraction begun before a redraw and finished after it reads "' + (third && third.value) + '", wanted "75/(4)" -- the caret lost its place in the slot');
   /* AND A REDRAW FOR SOMEBODY ELSE, whose box has another key, closes the pad rather than typing into it. */
-  host.innerHTML = w.questionCard_(Object.assign({}, x, { key: 'q-kp-redraw-other', row: Object.assign({}, x.row, { row_id: 'Q-KP-OTHER' }) }));
+  host.innerHTML = w.findCard(Object.assign({}, x, { key: 'q-kp-redraw-other', row: Object.assign({}, x.row, { row_id: 'Q-KP-OTHER' }) }));
   press('9');
   if (!pad.hidden) bad.push('with the question gone from the page, a key still left the pad up');
   if (host.querySelector('.kp-in').value) bad.push('a key typed into a different question\'s box after a redraw');
@@ -57,7 +57,7 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   const { w, errs } = boot({ payload: Object.assign(payload(), { practicals: made.practicals || [] }) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
-  const need = ['kpField_', 'questionCard_', 'stuffPart_', 'stuffItems'].filter(n => typeof w[n] !== 'function');
+  const need = ['kpField_', 'findCard', 'stuffPart_', 'stuffItems'].filter(n => typeof w[n] !== 'function');
   if (!A['kp-key'] || need.length) return ['the keypad or the cards are not reachable (' + need.join(', ') + ') — nothing was checked'];
   /* EVERY attribute change to `readonly` or `inputmode` anywhere, from here to the end. */
   const touched = [];
@@ -80,12 +80,12 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   const prac = (typeof w.stuffItemsAll_ === 'function' ? w.stuffItemsAll_() : w.stuffItems()).find(x => x.kind === 'practical');
   [maths, words, shortW, pen, paperPen, passage].forEach(x => { try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {} });
   const drawn = {
-    'a maths answer': host(w.questionCard_(maths)), 'an explain answer': host(w.questionCard_(words)),
-    'a short worded answer': host(w.questionCard_(shortW)),
+    'a maths answer': host(w.findCard(maths)), 'an explain answer': host(w.findCard(words)),
+    'a short worded answer': host(w.findCard(shortW)),
     /* A QUESTION ANSWERED BY DRAWING IS DRAWN, and has the one answer box every part has (round 3) */
-    'a drawing question\'s card': host(w.questionCard_(pen)),
-    'a paper figure question\'s card': host(w.questionCard_(paperPen)),
-    'a passage to ring words in': host(w.questionCard_(passage)),
+    'a drawing question\'s card': host(w.findCard(pen)),
+    'a paper figure question\'s card': host(w.findCard(paperPen)),
+    'a passage to ring words in': host(w.findCard(passage)),
     'a practical\'s worksheet': prac ? host(w.stuffPart_(prac, 'work')) : null,
   };
   if (!prac) bad.push('no practical in the fixture — its worksheet boxes were NOT checked');
@@ -130,7 +130,7 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   if (pad().getAttribute('data-layer') !== 'maths' || !key('7')) bad.push('`123` did not turn the pad back to the maths keys');
   still('after `123`');
   press('!abc');
-  mHost.innerHTML = w.questionCard_(maths);
+  mHost.innerHTML = w.findCard(maths);
   press('m');
   const mNow = mHost.querySelector('.kp-in');
   if (!mNow || mNow.value !== 'nm') bad.push('a letter after a redraw on the letters face typed into ' + (mNow ? JSON.stringify(mNow.value) : 'nothing') + ', wanted "nm" in the box that replaced it');
@@ -335,37 +335,38 @@ check('a message and a settings box type on the @family keypad: tapped, the pad 
   return bad;
 });
 
-check('signing in types on the @family keypad: the handle on the letters with @ and . on top, the PIN on the digits and never read out, and ✓ signs in (528)', async () => {
+check('signing in on Find types on the @family keypad: the name tag on the letters with @ and . on top, and the PIN is four digit tags, never a box the pad reads out (528)', async () => {
   const reply = b => (b.action === 'verifyLogin' ? Object.assign({ success: true }, ANS_ADA) : { success: true, messages: [] });
   const { w, sent } = boot({ reply });
   await wait(300);
-  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  t.USER(null); t.go('account', false, true); w.paint('account');
-  await wait(20);
-  const nm = d.getElementById('in-name'), pin = d.getElementById('in-pin');
-  /* ONE SCROLLING PAGE (900): the sign-in boxes keep the phone's own keyboard — never bound to the pad. */
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null);
+  const no = await findSign_(w, null);
+  if (no) return [no];
+  const nm = d.getElementById('in-name');
+  /* THE PIN IS NO BOX (owner, 13 Nov): nothing for a pad, a password manager or the iPad to keep. */
+  if (d.getElementById('in-pin')) bad.push('a PIN box is still drawn — the PIN is four digit tags on Find');
+  /* ONE SCROLLING PAGE (900): the name tag keeps the phone's own keyboard — never bound to the pad. */
   if (d.documentElement.classList.contains('flow')) {
-    [nm, pin].forEach(b => { if (!b) bad.push('the sign-in card drew no box'); else if (b.hasAttribute('data-kpb') || b.getAttribute('inputmode') === 'none') bad.push('#' + b.id + ' was bound to the pad'); });
-    return bad;
+    if (!nm) bad.push('Find drew no name tag');
+    else if (nm.hasAttribute('data-kpb') || nm.getAttribute('inputmode') === 'none') bad.push('the name tag was bound to the pad');
+  } else {
+    bad.push(...kpBoundSays_(w, nm, 'mail', 'the name tag'));
+    if (!nm) return bad;
+    kpTap_(w, nm);
+    const pad = kpPadOf_(w);
+    if (!pad || pad.hidden || pad.getAttribute('data-layer') !== 'abc' || !pad.querySelector('.kp-key[data-v="@"]')) bad.push('the name tag did not open the pad on its letters with @ on top');
+    kpTypeOn_(w, 'ada_kind7', bad);
+    if (nm.value !== 'ada_kind7') bad.push('the pad typed ' + JSON.stringify(nm.value) + ' as the name');
   }
-  bad.push(...kpBoundSays_(w, nm, 'mail', 'the handle box'), ...kpBoundSays_(w, pin, 'num', 'the PIN box'));
-  if (!nm || !pin) return bad;
-  if (pin.getAttribute('autocomplete') !== 'one-time-code') bad.push('the PIN box lost its autocomplete="one-time-code"');
-  kpTap_(w, nm);
-  const pad = kpPadOf_(w);
-  if (!pad || pad.hidden || pad.getAttribute('data-layer') !== 'abc' || !pad.querySelector('.kp-key[data-v="@"]')) bad.push('the handle box did not open the pad on its letters with @ on top');
-  kpTypeOn_(w, 'ada_kind7', bad);
-  if (nm.value !== 'ada_kind7') bad.push('the pad typed ' + JSON.stringify(nm.value) + ' as the handle');
-  kpTap_(w, pin);
-  if (pad.hidden || pad.getAttribute('data-layer') !== 'maths') bad.push('the PIN box did not open the pad on its digits');
-  kpTypeOn_(w, '482611119', bad);
-  if (pin.value !== '48261111') bad.push('the PIN box holds ' + JSON.stringify(pin.value) + ' — the pad did not keep to its eight digits');
+  /* THE FOURTH DIGIT TAG SIGNS IN, and no digit is read out. */
+  sent.length = 0;
+  const P4 = ['4', '8', '2', '6'].join('');
+  const no2 = await findSign_(w, 'ada_kind7', P4);
+  if (no2) return bad.concat([no2]);
   await wait(700);
-  if (/4826/.test(String((d.getElementById('kp-say') || {}).textContent || ''))) bad.push('the PIN was read out by the pad\'s screen-reader line');
-  A['kp-key'](pad.querySelector('.kp-key.kp-done'));
-  await wait(300);
-  if (!sent.some(b => b.action === 'verifyLogin')) bad.push('✓ on the PIN box did not sign in — it is the field\'s Enter');
-  if (!pad.hidden) bad.push('✓ on the PIN box left the pad up');
+  if (new RegExp(P4).test(String((d.getElementById('kp-say') || {}).textContent || ''))) bad.push('the PIN was read out by the pad\'s screen-reader line');
+  if (!sent.some(b => b.action === 'verifyLogin' && b.pin === P4)) bad.push('the fourth digit tag did not sign in');
   return bad;
 });
 
@@ -380,7 +381,7 @@ check('the pad\'s symbols face types ≈ → … ∛ and Greek letters into the 
   const x = { kind: 'question', key: 'q-sym-1', name: 'Q5c', marks: 1, html: '<p>Estimate the roots.</p>', answer: '<b>x &asymp; 2.6</b>',
     answerType: 'calculation', accept: 'x ≈ 2.6', row: { row_id: 'Q-SYM-1', paper_id: 'P-SYM', subject: 'Maths', name: 'Symbols' } };
   try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
-  h.innerHTML = w.questionCard_(x, 0);
+  h.innerHTML = w.findCard(x, 0);
   d.body.appendChild(h);
   const inp = h.querySelector('.kp-in');
   if (!inp) return ['the part drew no keypad box'];
@@ -414,7 +415,7 @@ check('the power key is on the maths face and the letters, types x^(n+1) with it
     const x = { kind: 'question', key: key, name: 'Q2', marks: 1, html: '<p>Differentiate.</p>', answer: '<b>' + accept + '</b>',
       answerType: 'calculation', accept: accept, row: { row_id: key.toUpperCase(), paper_id: 'P-POW', subject: 'Maths', name: 'Powers', level: 'A-level' } };
     try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
-    h.innerHTML = w.questionCard_(x, 0);
+    h.innerHTML = w.findCard(x, 0);
     d.body.appendChild(h);
     const inp = h.querySelector('.kp-in');
     if (!inp) { h.remove(); return bad.push('the part drew no keypad box'); }
@@ -448,7 +449,7 @@ check('the pad never repeats the question above its keys, on any face', async ()
   const h = d.createElement('div');
   const x = { kind: 'question', key: 'q-strip-1', name: 'Q4', marks: 1, html: '<p>Work out the area of the triangle.</p>',
     answer: '<b>24</b>', answerType: 'calculation', accept: '24', row: { row_id: 'Q-STRIP-1', paper_id: 'P-STRIP', subject: 'Maths', name: 'Strip' } };
-  h.innerHTML = w.questionCard_(x, 0);
+  h.innerHTML = w.findCard(x, 0);
   d.body.appendChild(h);
   const inp = h.querySelector('.kp-in');
   if (!inp) return ['the part drew no keypad box'];
@@ -468,7 +469,7 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
   if (!A['kp-key'] || !A['qp-check']) return ['the keypad or Check has no handler — nothing was checked'];
-  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.findCard(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
   const base = { kind: 'question', name: 'Q3', marks: 1, html: '<p>Name the process.</p>', answer: '<b>egestion</b>',
     row: { row_id: 'Q-ABC-1', paper_id: 'P-ABC', subject: 'Biology', name: 'Letters' } };
   const x = Object.assign({}, base, { key: 'q-abc-short', answerType: 'short', accept: 'egestion' });
@@ -662,13 +663,13 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
     html: '<p>Explain why the rate of reaction increases with temperature.</p>',
     answer: 'Particles move faster &mdash; more frequent collisions; more have the activation energy.' };
   try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
-  const draw = it => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(it, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const draw = it => { const h = d.createElement('div'); h.innerHTML = w.findCard(it, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
   const card = draw(x);
   const go = card.querySelector('.qp-ai-go[data-do="qp-ai"]');
   if (!go) return ['a worded question with a scheme and a deployment that has aiMark drew no "Mark with AI"'];
   /* IN THE CHAT BAR, WHERE SEND IS on a box with a scheme: the same gold tile beside the field, with its
      verdict line and its sentence under the bar (`ansBox_`, `aiOpts_`). */
-  if (!go.matches('.qp-mark.qp-ai > .qt-row > .kc-four > .tile:not(.is-send)')) bad.push('"Mark with AI" is not an ordinary tile in the answer bar: ' + go.outerHTML.slice(0, 120));
+  if (!go.matches('.qcard > .kc-act > .qt-row > .kc-four > .tile:not(.is-send)')) bad.push('"Mark with AI" is not an ordinary tile in the answer bar: ' + go.outerHTML.slice(0, 120));
   if (!card.querySelector('.qp-mark.qp-ai > .qp-verdict') || !(card.querySelector('.qp-mark.qp-ai').nextElementSibling || { classList: { contains: () => false } }).classList.contains('qp-ai-why')) bad.push('the AI\'s verdict line and sentence are not under the bar where the handler looks for them');
   const ta = card.querySelector('textarea.qp-ans-in');
   const held = w.stuffItemsAll_;
@@ -719,7 +720,7 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
     const b2 = boot({ payload: Object.assign(payload(), p) });
     await wait(300);
     const h = b2.w.document.createElement('div');
-    h.innerHTML = b2.w.questionCard_(Object.assign({}, x, { key: 'q-ai-5' }), 0);
+    h.innerHTML = b2.w.findCard(Object.assign({}, x, { key: 'q-ai-5' }), 0);
     const g5 = h.querySelector('.qt-row .qp-ai-go');
     if (!g5 || !g5.disabled || h.querySelector('[data-do="qp-send"]')) bad.push('with ' + why2 + ' the card drew ' + (g5 ? 'a Check that presses' : 'no AI Check') + (h.querySelector('[data-do="qp-send"]') ? ' and a plain Send' : ''));
   }
@@ -744,7 +745,7 @@ check('Photo of my working: shown only on working questions, sends its photos to
     html: '<p>Show that (x + 1)<sup>2</sup> = x<sup>2</sup> + 2x + 1</p>', answer: 'Expands (1); collects (1); conclusion (1)' };
   const plain = { kind: 'question', key: 'q-wk-2', name: 'Q1', marks: 1, answerType: 'number', accept: '7',
     row: { row_id: 'Q-WK-2', paper_id: 'P-WK', subject: 'Maths', name: 'Number' }, html: '<p>Work out 3 + 4</p>', answer: '7' };
-  const draw = it => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(it, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const draw = it => { const h = d.createElement('div'); h.innerHTML = w.findCard(it, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
   const card = draw(proof), other = draw(plain);
   const tile = card.querySelector('.tile[data-do="qp-work"]');
   if (!tile) bad.push('a "show that" proof drew no Photo of my working tile');
@@ -798,7 +799,7 @@ check('Mark with AI shows one ring (the tile\'s), its stages and the seconds bes
     row: { row_id: 'Q-AI-ST', paper_id: 'P-AI', subject: 'Chemistry', name: 'Rates' },
     html: '<p>Explain why a catalyst speeds up a reaction.</p>', answer: 'It lowers the activation energy.' };
   try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
-  const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h);
+  const h = d.createElement('div'); h.innerHTML = w.findCard(x, 0); d.body.appendChild(h);
   const card = h.querySelector('.qcard'), go = card.querySelector('.qp-ai-go');
   const ta = card.querySelector('textarea.qp-ans-in');
   if (!go || !ta) return ['no Mark with AI tile or box was drawn'];
@@ -857,7 +858,7 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
     serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
-  const need = ['ansEssay_', 'questionCard_', 'stuffItemsAll_', 'kpWordCount_'].filter(n => typeof w[n] !== 'function');
+  const need = ['ansEssay_', 'findCard', 'stuffItemsAll_', 'kpWordCount_'].filter(n => typeof w[n] !== 'function');
   if (need.length || !A['kp-key'] || !A['qp-ai']) return [need.join(', ') + ' or the keypad / Mark with AI not reachable — no essay was written'];
   w.__t.USER({ name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student' });
   const x = w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
@@ -877,7 +878,7 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   try { w.localStorage.removeItem(k); } catch (e) {}
   const host = d.createElement('div');
   d.body.appendChild(host);
-  const draw = it => { host.innerHTML = w.questionCard_(it, 0); return host.querySelector('.qcard'); };
+  const draw = it => { host.innerHTML = w.findCard(it, 0); return host.querySelector('.qcard'); };
   let card = draw(x);
   /* ---------- A SHEET, NOT A BAR ---------- */
   const inp = card.querySelector('.qp-ans-in');
@@ -886,7 +887,7 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   }
   if (card.querySelector('.qp-bar')) bad.push('the essay card still draws a chat bar');
   /* The row's first four tiles sit in its `.kc-four` (decisions 10 Nov evening: four buttons, then ⋯), Check first among them. */
-  const go = card.querySelector('.qp-essay > .qt-row > .kc-four > .tile.qp-ai-go[data-do="qp-ai"]:first-child');
+  const go = card.querySelector(':scope > .kc-act > .qt-row > .kc-four > .tile.qp-ai-go[data-do="qp-ai"]:first-child');
   if (!go) bad.push('Mark with AI is not a tile in the row under the sheet');
   /* ONE CHECK (368): the AI's tile is the same Check as every other question's, with no caption of its own */
   if (card.querySelector('.qp-ai-say')) bad.push('the essay still captions its Check "Mark with AI"');
@@ -1042,7 +1043,7 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
     const x3 = b3.w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
     const h3 = b3.w.document.createElement('div');
     b3.w.document.body.appendChild(h3);
-    h3.innerHTML = x3 ? b3.w.questionCard_(x3, 0) : '';
+    h3.innerHTML = x3 ? b3.w.findCard(x3, 0) : '';
     const fresh3 = h3.querySelector('.qp-ai.qp-essay');
     if (!fresh3 || (fresh3.querySelector('.qp-verdict') || {}).textContent !== '27 of 40 marks \u00b7 AI' || !fresh3.classList.contains('is-near')
         || (h3.querySelector('.qp-ai-why') || {}).textContent !== FEEDBACK) bad.push('after a reload the essay\'s mark and points are gone: ' + JSON.stringify(fresh3 && fresh3.outerHTML.slice(-300)));
@@ -1077,9 +1078,9 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
     const x2 = b2.w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
     if (!x2) { bad.push('the essay did not load with AI marking off'); continue; }
     const h2 = b2.w.document.createElement('div');
-    h2.innerHTML = b2.w.questionCard_(x2, 0);
+    h2.innerHTML = b2.w.findCard(x2, 0);
     const note = h2.querySelector('.qp-essay .qp-ai-note');
-    const g2 = h2.querySelector('.qp-essay .qt-row .qp-ai-go');
+    const g2 = h2.querySelector('.qcard > .kc-act > .qt-row .qp-ai-go');
     if (!g2 || !g2.disabled || h2.querySelector('[data-do="qp-send"]')) bad.push('with AI marking off the essay\'s Check is missing, still presses, or became a plain Send');
     if (!h2.querySelector('.qp-sheet .kp-in') || !h2.querySelector('.qp-words')) bad.push('with AI marking off the essay lost its sheet or its count');
     if (signedIn && !(note && /isn.t switched on/.test(note.textContent))) bad.push('with AI marking off a signed-in pupil is told nothing about why the Check does not press');

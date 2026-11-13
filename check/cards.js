@@ -47,7 +47,7 @@ function serve() {
   });
 }
 
-/* THE CARD, BUILT THE WAY `questionCard_` BUILDS IT — the same classes in the same nesting, because the stylesheet is the thing under test and a different § */
+/* THE CARD, BUILT THE WAY `findCard` BUILDS IT — the same classes in the same nesting, because the stylesheet is the thing under test and a different § */
 function cardHtml(r, stems) {
   const fig = d => (d ? `<figure>${d}</figure>` : '');
   /* ---------- EVERY PREAMBLE THIS PART SITS UNDER, OUTERMOST FIRST § */
@@ -235,7 +235,7 @@ function outside(svg, row) {
     await pracPage.setViewportSize({ width: w, height: h });
     await pracPage.waitForTimeout(150);
     return pracPage.evaluate(width => {
-      if (typeof stuffItems !== 'function' || typeof questionCard_ !== 'function'
+      if (typeof stuffItems !== 'function' || typeof findCard !== 'function'
           || typeof stuffPart_ !== 'function' || typeof stuffCard !== 'function') return -1;
       const items = stuffItems().filter(x => x.kind === 'question');
       const host = document.createElement('div');
@@ -250,7 +250,7 @@ function outside(svg, row) {
       const inline = [];
       const pages = [];
       items.forEach((x, i) => {
-        const q = questionCard_(x, 0);
+        const q = findCard(x, 0);
         /* `qpad` THE PAD, NOT ANY CLASS THAT STARTS WITH IT: § */
         /* A TILE'S MARK IS NOT A PICTURE. § */
         const qPic = q.replace(/<svg class="tile-i[\s\S]*?<\/svg>/g, '');
@@ -465,7 +465,7 @@ function outside(svg, row) {
   bad.push(...guides.wide);
   /* `practicals.tall` IS OUT OF THIS TEST, with the rule it belongs to: it counts cards taller than
      the fold, and the pane scrolls them. The question count beside it was never in it. */
-  const inline = (qtall === -1 ? ['questionCard_ could not be reached, so where the pictures are was NOT checked']
+  const inline = (qtall === -1 ? ['findCard could not be reached, so where the pictures are was NOT checked']
                                : qtall.inline);
   if (inline.length) {
     console.log('\nA PICTURE NOT IN ITS QUESTION\'S CARD, OR A FIGURE PAGE  (' + inline.length + ')');

@@ -923,7 +923,7 @@ check('every question has an Accuracy and a Function tag on its card and as funn
   const { w } = boot({ member: true, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
-  const need = ['verifyTags_', 'qtIncomplete_', 'qtMachine_', 'stuffQuestion', 'questionCard_', 'stuffItemsAll_', 'stuffFiltered', 'facetList']
+  const need = ['verifyTags_', 'qtIncomplete_', 'qtMachine_', 'stuffQuestion', 'findCard', 'stuffItemsAll_', 'stuffFiltered', 'facetList']
     .filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — no tag was checked'];
   if (typeof w.paperHealth_ === 'function' || t.ACTIONS['paper-health']) bad.push('the paper health score or its tile handler is back');
@@ -936,7 +936,7 @@ check('every question has an Accuracy and a Function tag on its card and as funn
   const fnOf = x => !w.qtIncomplete_(x.row).length && w.qtMachine_(x.row);
   [[h1, true], [h2, false]].forEach(([x, accOk]) => {
     const acc = accOk && fnOf(x) ? 'Verified' : 'Not verified';
-    host.innerHTML = w.questionCard_(x, 0);
+    host.innerHTML = w.findCard(x, 0);
     const said = (host.querySelector('.qcard-tags') || {}).textContent || '';
     if (said.indexOf(acc) === -1) bad.push(x.row.row_id + '\'s tag row lacks ' + acc + ': ' + JSON.stringify(said.replace(/\s+/g, ' ').trim()));
     if (acc === 'Verified' && /Not verified/.test(said)) bad.push(x.row.row_id + ' reads Not verified and Verified');
@@ -976,14 +976,14 @@ check('a fill-in table: its blanks are cells in the card, typing keeps them, Che
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
   const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  if (typeof w.questionCard_ !== 'function' || !A['qp-cells-check']) return ['questionCard_ or the qp-cells-check handler is not reachable — no cell was checked'];
+  if (typeof w.findCard !== 'function' || !A['qp-cells-check']) return ['findCard or the qp-cells-check handler is not reachable — no cell was checked'];
   t.STUFF().filters = [];
   const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === 'CT-1');
   if (!x) return ['the fixture row did not reach Find'];
   const host = d.createElement('div');
   host.className = 'qcard-host';
   d.body.appendChild(host);
-  host.innerHTML = w.questionCard_(x, 0);
+  host.innerHTML = w.findCard(x, 0);
   const cells = [...host.querySelectorAll('table[data-cells] .qp-cell')];
   if (cells.length !== 3) return ['the card\'s table holds ' + cells.length + ' cells, wanted 3 (the corner is not asked)'];
   if (host.querySelector('.qp-cells')) bad.push('the cells are drawn twice: in the table and in a row under it');
@@ -995,7 +995,7 @@ check('a fill-in table: its blanks are cells in the card, typing keeps them, Che
   const say = host.querySelector('.qp-cells-box .qp-verdict').textContent;
   if (say !== '2 of 3 cells right') bad.push('one wrong cell of three says ' + JSON.stringify(say));
   if (!cells[1].classList.contains('is-near') || !cells[0].classList.contains('is-right')) bad.push('the wrong cell and the right one are not told apart');
-  host.innerHTML = w.questionCard_(x, 0);
+  host.innerHTML = w.findCard(x, 0);
   const back = [...host.querySelectorAll('.qp-cell')].map(c => c.value).join(',');
   if (back !== '6,7,9') bad.push('drawn again, the cells hold ' + JSON.stringify(back) + ' — what was typed is lost');
   const again = [...host.querySelectorAll('.qp-cell')];

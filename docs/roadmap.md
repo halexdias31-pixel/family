@@ -1,5 +1,7 @@
 # The owner's roadmap — what was asked, where it stands
 
+> Reference, not rules: the one rulebook is `data/settings/rules.json` (read `docs/rules.md`); where this page disagrees, it wins.
+
 Kept so nothing is lost. "Coming soon" widgets on the site are the other half of this list: each one is
 something switched off on purpose (data/settings/tiers.json, history 860) and waiting to be done properly.
 

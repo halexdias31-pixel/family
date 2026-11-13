@@ -14,7 +14,7 @@ check('the fill-in standard: every library part that asks to fill something in s
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB.filter(r => papers.has(r.paper_id)) : undefined), before: signedInAs_(adult) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
-  if (typeof w.questionCard_ !== 'function' || typeof w.cellsOf_ !== 'function' || !A['qp-cells-check']) return ['questionCard_, cellsOf_ or qp-cells-check not reachable — NOT checked'];
+  if (typeof w.findCard !== 'function' || typeof w.cellsOf_ !== 'function' || !A['qp-cells-check']) return ['findCard, cellsOf_ or qp-cells-check not reachable — NOT checked'];
   w.__t.STUFF().filters = [];
   const all = w.stuffItemsAll_();
   const host = d.createElement('div');
@@ -24,7 +24,7 @@ check('the fill-in standard: every library part that asks to fill something in s
   asks.forEach(r => {
     const x = all.find(i => i.row && i.row.row_id === r.row_id);
     if (!x) { bad.push(r.row_id + ' did not reach Find'); return; }
-    host.innerHTML = w.questionCard_(x, 0);
+    host.innerHTML = w.findCard(x, 0);
     const want = w.cellsOf_(x).map((c, i) => [c, i]).filter(([c]) => c.ways);
     const inputs = [...host.querySelectorAll('.qp-cell')];
     /* NO TABLE TO FILL: EVERY GAP IN ONE BOX (owner, 13 Nov), its answers typed as a child might part them, in order */
@@ -78,7 +78,7 @@ check('one box per value: a counted rule, a pair and an open list each get their
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
   const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  if (typeof w.questionCard_ !== 'function' || !A['qp-check'] || typeof w.multiNext_ !== 'function') return ['questionCard_, qp-check or multiNext_ is not reachable — the boxes were NOT checked'];
+  if (typeof w.findCard !== 'function' || !A['qp-check'] || typeof w.multiNext_ !== 'function') return ['findCard, qp-check or multiNext_ is not reachable — the boxes were NOT checked'];
   t.STUFF().filters = [];
   const item = id => w.stuffItemsAll_().find(i => i.row && i.row.row_id === id);
   const host = d.createElement('div');
@@ -141,7 +141,7 @@ check('a drawn answer is never sent to a person: a made-up surface and a figure 
   const { w } = boot({ payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }), serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
   const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  if (typeof w.questionCard_ !== 'function' || !A['qp-ai'] || !t.padKey) return ['questionCard_, padKey_ or the qp-ai handler is not reachable — NOT checked'];
+  if (typeof w.findCard !== 'function' || !A['qp-ai'] || !t.padKey) return ['findCard, padKey_ or the qp-ai handler is not reachable — NOT checked'];
   /* ROUND 3 (the owner: "a human never marks"): the pen's own Send is gone */
   if (A['pad-send']) bad.push('pad-send still has a handler — a drawing could be sent for a person to mark');
   t.STUFF().filters = [];
@@ -150,13 +150,13 @@ check('a drawn answer is never sent to a person: a made-up surface and a figure 
   for (const id of ['DS-1', 'DS-2']) {
     const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === id);
     if (!x) { bad.push(id + ' did not reach Find'); continue; }
-    host.innerHTML = w.questionCard_(x, 0);
+    host.innerHTML = w.findCard(x, 0);
     if (!host.querySelector('.qpad .qpad-art > svg')) bad.push(id + ': a drawn part with nothing to draw on');
     if (host.querySelector('[data-do="pad-send"]')) bad.push(id + ': still draws a Send for a person');
     const go = host.querySelector('.qt-row .qp-ai-go[data-do="qp-ai"]');
     if (!go) { bad.push(id + ': no AI Check in its tool row — nothing marks it'); continue; }
     try { w.localStorage.setItem(t.padKey(x), JSON.stringify([[30, 30, 120, 90]])); } catch (e) {}
-    host.innerHTML = w.questionCard_(x, 0);
+    host.innerHTML = w.findCard(x, 0);
     A['qp-ai'](host.querySelector('.qt-row .qp-ai-go'));
     const out = (host.querySelector('.qp-ai .qp-verdict') || {}).textContent || '';
     if (!/Write your answer in the box too/.test(out)) bad.push(id + ': Check on a drawing with an empty box says ' + JSON.stringify(out) + ' — wanted it to ask for the answer in the box');
@@ -181,14 +181,14 @@ check('a part\'s tool row is the owner\'s one row with one padlock (8 Nov), the 
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
   const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  if (typeof w.questionCard_ !== 'function' || !A['qt-pen'] || !A['q-lock']) return ['questionCard_ or the qt-pen / q-lock handlers are not reachable — NOT checked'];
+  if (typeof w.findCard !== 'function' || !A['qt-pen'] || !A['q-lock']) return ['findCard or the qt-pen / q-lock handlers are not reachable — NOT checked'];
   t.STUFF().filters = [];
   const host = d.createElement('div');
   d.body.appendChild(host);
   const item = id => w.stuffItemsAll_().find(i => i.row && i.row.row_id === id);
   const x1 = item('GR-1');
   if (!x1) { host.remove(); return ['GR-1 did not reach Find']; }
-  host.innerHTML = w.questionCard_(x1, 0);
+  host.innerHTML = w.findCard(x1, 0);
   /* NO GREY LINE UNDER THE ROW (owner, 9 Nov). */
   if (host.querySelector('.qt-how')) bad.push('a grey line under Check is still drawn');
   /* THE OWNER'S ROW, by the tiles' own names (round 4, the Calculator back where allowed on 11 Nov): "get rid of that calculator button … and grid button … table … formula sheet … still two lock buttons" */
@@ -199,7 +199,7 @@ check('a part\'s tool row is the owner\'s one row with one padlock (8 Nov), the 
   /* RULER AND PROTRACTOR ON EVERY PART, figure or not (owner, 8 Nov); Check, Message, Save and ⋯ first, the tools behind ⋯ (owner, 9 Nov) */
   if (names.join(' | ') !== 'Check | Message | Save | More | Photo of working | Magnifier | Read aloud | Lock | Ruler | Protractor | Calculator | Share | Top | Help') bad.push('a part with no figure: the tool row reads ' + names.join(' | '));
   const x3 = item('GR-3');
-  host.innerHTML = x3 ? w.questionCard_(x3, 0) : '';
+  host.innerHTML = x3 ? w.findCard(x3, 0) : '';
   const row3 = host.querySelector('.qt-row');
   const names3 = row3 ? [...row3.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
   /* UNDO AND CLEAR ARE THE PAD'S, IN THIS ONE ROW FROM THE START (1020): a tap never adds or moves a control. */
@@ -210,7 +210,7 @@ check('a part\'s tool row is the owner\'s one row with one padlock (8 Nov), the 
   if (locks !== 1) bad.push('the whole question has ' + locks + ' padlocks, wanted one');
   A['qt-pen'](host.querySelector('[data-do="qt-pen"]'));
   if (!host.querySelector('.qpad .qsurf, .qpad svg line.grid')) bad.push('the first Pen tap did not lay a grid surface');
-  const layer = id => { host.innerHTML = w.questionCard_(item(id), 0); const i = host.querySelector('.qp-ans-in'); return i && i.getAttribute('data-kp'); };
+  const layer = id => { host.innerHTML = w.findCard(item(id), 0); const i = host.querySelector('.qp-ans-in'); return i && i.getAttribute('data-kp'); };
   if (layer('GR-2') !== 'words') bad.push('a prefix answer ("re | re-") opens on ' + layer('GR-2') + ', wanted the letters');
   if (layer('GR-1') !== 'maths') bad.push('a number answer ("7") opens on ' + layer('GR-1') + ', wanted the maths');
   host.remove();
@@ -223,7 +223,7 @@ check('every drawn part in the library has its pen and one Check in its tool row
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const bad = [];
-  if (typeof w.questionCard_ !== 'function' || typeof w.qtDrawn_ !== 'function' || typeof w.workRow_ !== 'function') return ['questionCard_, qtDrawn_ or workRow_ not reachable — NOT checked'];
+  if (typeof w.findCard !== 'function' || typeof w.qtDrawn_ !== 'function' || typeof w.workRow_ !== 'function') return ['findCard, qtDrawn_ or workRow_ not reachable — NOT checked'];
   w.__t.STUFF().filters = [];
   const host = w.document.createElement('div');
   w.document.body.appendChild(host);
@@ -232,7 +232,7 @@ check('every drawn part in the library has its pen and one Check in its tool row
     if (!x || x.kind !== 'question') continue;
     if (!w.qtDrawn_(w.workRow_(x))) continue;
     n++;
-    host.innerHTML = w.questionCard_(x, 0);
+    host.innerHTML = w.findCard(x, 0);
     const go = [...host.querySelectorAll('.qt-row .is-submit')].filter(g => !g.closest('[hidden]'));   // the AI's Check held back is not shown
     /* a passage to ring words in (`surface: text`) is drawn on in its words, not under a pen */
     if (!host.querySelector('.qpad, [data-circ]') || go.length !== 1 || host.querySelector('[data-do="pad-send"]')) bad.push((x.row && x.row.row_id) + ': drawn, with ' + (host.querySelector('.qpad, [data-circ]') ? '' : 'no pen, ') + go.length + ' Checks' + (host.querySelector('[data-do="pad-send"]') ? ' and a Send for a person' : ''));
@@ -252,7 +252,7 @@ check('every part of the 71 Corbettmaths primary worksheets has an answer and a 
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
   const bad = [];
-  if (typeof w.questionCard_ !== 'function') return ['questionCard_ not reachable — NOT checked'];
+  if (typeof w.findCard !== 'function') return ['findCard not reachable — NOT checked'];
   w.__t.STUFF().filters = [];
   const SEND = '[data-do="qp-check"], [data-do="qp-cells-check"], [data-do="pad-send"], [data-do="pad-check"]';
   /* a typed answer with no scheme is marked by a person or AI: Send or the AI tile, which come with signing in */
@@ -262,7 +262,7 @@ check('every part of the 71 Corbettmaths primary worksheets has an answer and a 
   for (const x of w.stuffItemsAll_()) {
     if (!x || x.kind !== 'question' || !papers.has(x.row && x.row.paper_id)) continue;
     n++;
-    host.innerHTML = w.questionCard_(x, 0);
+    host.innerHTML = w.findCard(x, 0);
     if (host.querySelector(SEND)) continue;
     const open = !String(x.accept || x.markWords || x.cells || '').trim() && !(x.choices && x.choices.length) && host.querySelector('.qp-ans-in');
     if (open) { later++; continue; }
@@ -282,7 +282,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, bad = [];
-  if (typeof w.questionCard_ !== 'function' || !A['pad-check'] || !t.padKey || typeof w.drawFig_ !== 'function') return ['questionCard_, padKey_, drawFig_ or the pad-check handler is not reachable — NOT checked'];
+  if (typeof w.findCard !== 'function' || !A['pad-check'] || !t.padKey || typeof w.drawFig_ !== 'function') return ['findCard, padKey_, drawFig_ or the pad-check handler is not reachable — NOT checked'];
   const DM = t.drawMark;
   if (!DM) return ['DRAW_MARK is not reachable — NOT checked'];
   t.STUFF().filters = [];
@@ -291,7 +291,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
   const all = w.stuffItemsAll_();
   const draw = (x, strokes) => {
     try { w.localStorage.setItem(t.padKey(x), JSON.stringify(strokes)); } catch (e) {}
-    host.innerHTML = w.questionCard_(x, 0);
+    host.innerHTML = w.findCard(x, 0);
     const go = host.querySelector('.qpad-send [data-do="pad-check"]');
     if (!go) return null;
     A['pad-check'](go);
@@ -301,7 +301,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
   const x7 = all.find(i => i.row && i.row.row_id === 'Q-CBM-reflections-7');
   if (!x7) bad.push('Reflections Q7 did not reach Find');
   else {
-    host.innerHTML = w.questionCard_(x7, 0);
+    host.innerHTML = w.findCard(x7, 0);
     const svg = host.querySelector('.qpad-art > svg');
     const F = DM.frameOf(JSON.parse(x7.drawAnswer), w.drawFig_(svg ? svg.outerHTML : ''));
     const vb = F.vb, pen = (...pts) => [].concat.apply([], pts.map(p => { const v = F.v(p); return [(v[0] - vb[0]) / vb[2] * 340, (v[1] - vb[1]) / vb[3] * 340]; }));
@@ -313,10 +313,10 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
     /* reflected in the y-axis instead: the near miss every class makes */
     const miss = [pen([-1, 4], [-1, 2]), pen([-1, 2], [-4, 2]), pen([-4, 2], [-1, 4])];
     if (draw(x7, miss) !== 'Not yet — have another go') bad.push('Reflections Q7 reflected in the wrong axis says ' + JSON.stringify(host.querySelector('.qpad-send .qp-verdict').textContent));
-    host.innerHTML = w.questionCard_(x7, 0);
+    host.innerHTML = w.findCard(x7, 0);
     if (host.querySelector('.qpad-send .qp-verdict').textContent !== 'Not yet — have another go') bad.push('drawn again, the card does not show the drawing\'s own verdict');
     try { w.localStorage.setItem(t.padKey(x7), '[]'); } catch (e) {}
-    host.innerHTML = w.questionCard_(x7, 0);
+    host.innerHTML = w.findCard(x7, 0);
     A['pad-check'](host.querySelector('.qpad-send [data-do="pad-check"]'));
     if (host.querySelector('.qpad-send .qp-verdict').textContent !== 'Draw your answer first') bad.push('Check with nothing drawn does not ask for a drawing');
   }
@@ -326,7 +326,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
   for (const x of all) {
     if (!x || x.kind !== 'question' || !String(x.drawAnswer || '').trim()) continue;
     n++;
-    host.innerHTML = w.questionCard_(x, 0);
+    host.innerHTML = w.findCard(x, 0);
     const svg = host.querySelector('.qpad-art > svg');
     if (!svg) { bad.push(x.row.row_id + ': has draw_answer and no figure to draw on'); continue; }
     const fig = w.drawFig_(svg.outerHTML), eg = DM.example(x.drawAnswer, fig);
@@ -349,7 +349,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
     if (!w.qtDrawn_(w.workRow_(x)) || ['draw', 'ai'].indexOf(w.markerOf_(x).kind) < 0) continue;
     /* A PENDING ROW WITHOUT ITS WORDS HERE (a fresh clone, 411) has no drawn answer to Check yet: not this journey's subject. */
     if (/^true$/i.test(String(x.row.lib_pending || '')) && !String(x.row.draw_answers || x.row.drawAnswer || x.drawAnswer || '').trim()) continue;
-    host.innerHTML = w.questionCard_(x, 0);
+    host.innerHTML = w.findCard(x, 0);
     if (!host.querySelector('.qpad-send [data-do="pad-check"]')) { waiting++; bad.push(x.row.row_id + ': drawn, and still sent to a person'); }
   }
   /* AND THE DRAWINGS MADE BOXES (a Venn diagram's regions, a tree's branches, a choice of brackets): each scheme's own answer, entered, is Correct */
@@ -357,7 +357,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
   for (const id of TYPED) {
     const x = all.find(i => i.row && i.row.row_id === id);
     if (!x) { bad.push(id + ' did not reach Find'); continue; }
-    host.innerHTML = w.questionCard_(x, 0);
+    host.innerHTML = w.findCard(x, 0);
     /* ITS FIGURE MAY BE A PAD WITH THE PEN OFF (1020, owner 7 Nov: the pen is off until chosen); drawn on means a drawing Check. */
     if (host.querySelector('.qpad-send [data-do="pad-check"], .qpad.is-drawing')) bad.push(id + ': made a box, and still drawn on');
     const cells = [...host.querySelectorAll('.qp-cell')], opts = [], one = host.querySelector('.qp-cells-box .qp-ans-in');
@@ -390,7 +390,7 @@ check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, bad = [];
-  if (typeof w.questionCard_ !== 'function' || !A['pad-check'] || !t.padKey || typeof w.pageParts_ !== 'function') return ['questionCard_, pageParts_, padKey_ or pad-check is not reachable — NOT checked'];
+  if (typeof w.findCard !== 'function' || !A['pad-check'] || !t.padKey || typeof w.pageParts_ !== 'function') return ['findCard, pageParts_, padKey_ or pad-check is not reachable — NOT checked'];
   t.STUFF().filters = [];
   const all = w.stuffItemsAll_();
   const a = all.find(i => i.row && i.row.row_id === 'Q-CBM-metric-units-1'), b = all.find(i => i.row && i.row.row_id === 'Q-CBM-metric-units-1b');
@@ -400,7 +400,7 @@ check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'
   /* (a): no stem page in front -- its words are on the card, over the dial */
   const pages = w.pageParts_(a, null);
   if (pages.some(p => /^stem/.test(p || ''))) bad.push('(a) still has the stem on a page of its own: ' + JSON.stringify(pages));
-  host.innerHTML = w.questionCard_(a, 0) + '';
+  host.innerHTML = w.findCard(a, 0) + '';
   const card = host.querySelector('.qcard');
   const figsIn = el => el.querySelectorAll('.qpad-art > svg:first-child, .qsheet figure > svg, .qseen svg:first-child').length;
   if (figsIn(host) !== 1) bad.push('(a) card holds ' + figsIn(host) + ' figures — wanted the one dial');
@@ -420,7 +420,7 @@ check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'
   const stroke = (g) => [].concat(at(g, 2), at(g, 30), at(g + 3, 46), at(g, 64), at(g - 12, 56), at(g, 64), at(g + 12, 56));
   const draw = strokes => {
     try { w.localStorage.setItem(t.padKey(a), JSON.stringify(strokes)); } catch (e) {}
-    host.innerHTML = w.questionCard_(a, 0);
+    host.innerHTML = w.findCard(a, 0);
     const go = host.querySelector('.qpad-send [data-do="pad-check"]');
     if (!go) return null;
     A['pad-check'](go);
@@ -434,7 +434,7 @@ check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'
   if (wrong !== 'Not yet — have another go') bad.push('an arrow at 300 g says ' + JSON.stringify(wrong));
   try { w.localStorage.removeItem(t.padKey(a)); } catch (e) {}
   /* (b): its box under its own words, Check beside it, and no pen, no dial, no Figure tile */
-  host.innerHTML = w.questionCard_(b, 0) + '';
+  host.innerHTML = w.findCard(b, 0) + '';
   if (!host.querySelector('.qp-ans-in, .qp-ans')) bad.push('(b) has no box to type 900 g in');
   if (host.querySelector('.qpad') || figsIn(host)) bad.push('(b) has a pen or a figure on its card');
   if (host.querySelector('[data-do="q-fig"]')) bad.push('(b) offers the dial again behind a Figure tile');
@@ -453,7 +453,7 @@ check('every part that draws on its stem\'s figure has exactly that one figure o
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const t = w.__t, bad = [];
-  if (typeof w.questionCard_ !== 'function' || typeof w.padSource_ !== 'function' || typeof w.stemCarried_ !== 'function') return ['questionCard_, padSource_ or stemCarried_ not reachable — NOT checked'];
+  if (typeof w.findCard !== 'function' || typeof w.padSource_ !== 'function' || typeof w.stemCarried_ !== 'function') return ['findCard, padSource_ or stemCarried_ not reachable — NOT checked'];
   t.STUFF().filters = [];
   const host = w.document.createElement('div');
   w.document.body.appendChild(host);
@@ -465,7 +465,7 @@ check('every part that draws on its stem\'s figure has exactly that one figure o
     if (!p || !p.from || typeof p.from !== 'object') continue;
     n++;
     const id = x.row.row_id;
-    host.innerHTML = w.questionCard_(x, 0) + '';
+    host.innerHTML = w.findCard(x, 0) + '';
     const svgs = [...host.querySelectorAll('.qpad-art > svg:first-child, .qsheet figure > svg, .qseen svg:first-child')];
     if (svgs.length !== 1) bad.push(id + ': ' + svgs.length + ' figures on its card');
     else if (!svgs[0].closest('.qpad')) bad.push(id + ': its figure is not under its pen');
@@ -490,7 +490,7 @@ check('every part that draws on its stem\'s figure has exactly that one figure o
     const sib = (Object.values(w.questionParts_()).find(g => g.indexOf(x) >= 0) || []).filter(y => y !== x && (q => q && q.svg === p.svg)(w.padSource_(y)));
     if (sib.length) {
       sib.forEach(y => { try { w.localStorage.setItem(t.padKey(y), JSON.stringify([[20, 20, 60, 60]])); } catch (e) {} });
-      host.innerHTML = w.questionCard_(x, 0);
+      host.innerHTML = w.findCard(x, 0);
       const was = host.querySelectorAll('.qpad .qpad-was path').length, own = host.querySelectorAll('.qpad .qpad-g path').length;
       if (was !== sib.length || own) bad.push(id + ': ' + was + ' of ' + sib.length + ' other parts\' strokes under it, ' + own + ' of its own');
       else under++;
@@ -522,7 +522,7 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
   if (!x) return ['the fixture row did not reach Find'];
   const host = d.createElement('div');
   d.body.appendChild(host);
-  host.innerHTML = w.questionCard_(x, 0);
+  host.innerHTML = w.findCard(x, 0);
   const go = host.querySelector('.qp-mark[data-rule] [data-do="qp-check"]');
   if (!go) return ['a row with mark_words has no Check by its key words'];
   if (host.querySelector('[data-do="qp-ai"]')) bad.push('a part a rule marks still carries an AI button: one mark button per part (owner, 11 Nov)');
@@ -547,7 +547,7 @@ check('one mark button: every sampled library part has exactly one, first in its
     payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }) });
   await wait(300);
   const bad = [], seen = {};
-  if (typeof w.questionCard_ !== 'function' || typeof w.qtMachine_ !== 'function') return ['questionCard_ or qtMachine_ not reachable — NOT checked'];
+  if (typeof w.findCard !== 'function' || typeof w.qtMachine_ !== 'function') return ['findCard or qtMachine_ not reachable — NOT checked'];
   w.__t.STUFF().filters = [];
   const host = w.document.createElement('div');
   w.document.body.appendChild(host);
@@ -557,7 +557,7 @@ check('one mark button: every sampled library part has exactly one, first in its
     const kind = w.markerOf_(x).kind;
     if (i % 15 && seen[kind]) return;
     seen[kind] = (seen[kind] || 0) + 1;
-    host.innerHTML = w.questionCard_(x, 0);
+    host.innerHTML = w.findCard(x, 0);
     const id = (x.row && x.row.row_id) || x.key;
     host.querySelectorAll('.qt-row').forEach(row => {
       const go = [...row.querySelectorAll('.is-submit')];
@@ -591,7 +591,7 @@ check('one mark per press: a rule part pressed twice is one submission and never
   const rule = item('OM-1'), open = item('OM-2');
   if (!rule || !open) return ['the fixture rows did not reach Find — NOT checked'];
   if (!w.qtMachine_(w.workRow_(rule)) || w.qtMachine_(w.workRow_(open))) bad.push('the fixture parts are not one machine-marked and one not');
-  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h; };
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.findCard(x, 0); d.body.appendChild(h); return h; };
   const press = go => A[go.getAttribute('data-do')](go);
   /* EVERY SUBMISSION MADE, by its id: a double tap hands back the first */
   const made = new Set(), real = w.subRecord_;
@@ -641,7 +641,7 @@ check('a part with photos of its working: Check sends the photos to the AI marke
   if (!x || !A['qp-check']) return ['the fixture row or the qp-check handler is not reachable — nothing was checked'];
   const host = d.createElement('div');
   d.body.appendChild(host);
-  host.innerHTML = w.questionCard_(x, 0);
+  host.innerHTML = w.findCard(x, 0);
   const go = host.querySelector('.qp-mark[data-rule] [data-do="qp-check"]');
   if (!go) return ['the proof row has no Check by its key words — the fixture no longer exercises the rule'];
   const inp = host.querySelector('.qp-ans-in'), out = host.querySelector('.qp-verdict');

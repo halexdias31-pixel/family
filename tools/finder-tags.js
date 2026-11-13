@@ -75,8 +75,9 @@ if (require.main === module) (async () => {
     await tick(250);
     ev('inFinder_(FINDERS.stuff, () => stuffItems())');
   }
-  const failed = ev('JSON.stringify([["the Bible",BIBLE],["the Talmud",TALMUD],["the Quran",QURAN],["the Hadith",HADITH],["the works",WORKS],'
-    + '["the texts",TEXTS],["the pdtexts",PDTEXTS],["the Orthodox texts",ORTHO],["the hymns",HYMNS]].filter(p => p[1].failed).map(p => p[0]))');
+  /* A COLLECTION SWITCHED OFF (attic/) is simply absent, not failed. */
+  const failed = ev('JSON.stringify([["the Bible","BIBLE"],["the Talmud","TALMUD"],["the Quran","QURAN"],["the Hadith","HADITH"],["the works","WORKS"],'
+    + '["the texts","TEXTS"],["the pdtexts","PDTEXTS"],["the Orthodox texts","ORTHO"],["the hymns","HYMNS"]].filter(p => { let v = null; try { v = eval(p[1]); } catch (e) { v = null; } return v && v.failed; }).map(p => p[0]))');
   if (JSON.parse(failed).length) { console.error('finder-tags: these did not load, so nothing is written: ' + JSON.parse(failed).join(', ')); process.exit(2); }
 
   /* THE VIEWERS: an admin (the Bible, People and Settings) and a student; no age lines (1040). */
