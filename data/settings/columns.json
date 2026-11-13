@@ -88,7 +88,7 @@
   "screen": "students",
   "label": "Student profile",
   "icon": "👤",
-  "active": "TRUE",
+  "active": "FALSE",
   "sort_order": 13,
   "cards": "TRUE",
   "notes": "Needs help on top for Staff (help.js HELP_COL), then a card per student you may see — your own first when you are one (its Edit is your card), your brothers, sisters and children, Find someone by handle with Add as my child, and Manage your child. An admin sees every student (docs/history/461)."
@@ -97,7 +97,7 @@
   "screen": "parents",
   "label": "Parent profile",
   "icon": "👪",
-  "active": "TRUE",
+  "active": "FALSE",
   "sort_order": 14,
   "cards": "TRUE",
   "notes": "a card per parent or client you may see — your own first when you are one, your parents, a parent's claim waiting for your yes. An admin sees every client, with Send last week (docs/history/461)."

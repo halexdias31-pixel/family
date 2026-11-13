@@ -103,3 +103,12 @@ went with it. The sheet tabs and `doGet`/`doPost` are untouched. To bring it bac
 after `'me-people'` in `window.FILES`, `"posts": "secondary"` under `files` (and `check-posts.js` under `checks`) in
 tiers.json, set `reel` active in columns.json, delete the duplicated helpers from posts.js, then `node js/check.js`.
 The shell reads the feed/reel hooks as `window.<name>`, so they come back without edits.
+
+## Staff hub, extra reading collections, shop search (switched off 13 Nov 2026, later the same day)
+
+`attic/js/staff.js` (the tutor hub: terms, pricing, statement, and Business's staff list), `talmud.js`, `hadith.js`,
+`orthodox.js`, `works.js`, with `attic/js/check-staff.js`, `attic/js/check-talmud.js` and `attic/check/talpage.js`.
+Callers read them as `window.<name>`, so: move them home, put them back in `window.FILES` at their old places (the
+commit before this one has the list), in tiers.json `files`/`later`/`checks`, then `node tools/tiers.js` and `node js/check.js`.
+Shop search is the `shopfind` widget, set `off` in tiers.json; the Parents and Students columns are `active: FALSE` in
+columns.json. Each tutor's own Staff card and its "Your manager" picker live in me-* and stay on.

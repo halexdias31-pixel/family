@@ -19,7 +19,7 @@ const STAFF_GROUP_NAMES_ = { 'Contact & address': 'Where you teach', 'About you'
 function settingsSplit_() {
   const shown = notLibrary_(cardSettingsGroups_(myGroups_(), ownCardFields_()));
   /* AND STAFF SET THEIR WEEK ON THE AVAILABLE CARD (487), so it is not drawn twice — but that card needs a tutor row, which a new tutor lacks. */
-  if (typeof hubFor_ === 'function' && hubFor_() && cardMine_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
+  if (typeof window.hubFor_ === 'function' && window.hubFor_() && cardMine_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
   const out = { you: {}, parent: {}, staff: {} };
   Object.keys(shown).forEach(g => {
     if (!shown[g].length) return;

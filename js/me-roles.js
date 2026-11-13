@@ -233,7 +233,7 @@ const lockedOwnCards_ = col => (OWN_SEC_OF_SET_[col] || []).map(k => meCard_(`<d
 /* EACH SETTINGS COLUMN'S CARDS FOR ITS ROLE, built the same way as for a holder (`staffPages_`, `familyPages_`, `youSettingsPages_`). */
 const LOCKED_DRAW_ = {
   staff: () => lockedOwnCards_('staff').concat([meCard_(`<div class="staff-top"><h3>Staff hub</h3>${
-    typeof hubBlock_ === 'function' ? hubBlock_() : ''}</div>`)]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
+    typeof window.hubBlock_ === 'function' ? window.hubBlock_() : ''}</div>`)]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
   family: () => lockedOwnCards_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family')),
   account: () => lockedOwnCards_('account').concat(youSettingsPages_()),
 };
@@ -264,8 +264,8 @@ function staffPages_() {
   if (!whose_()) return [signedOutCard_(title)].concat(lockedPages_('staff'));
   /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyOpts_`), then every card shut (467). */
   if (!whoseAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
-  const hub = typeof hubBlock_ === 'function' ? hubBlock_() : '';
-  const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
+  const hub = typeof window.hubBlock_ === 'function' ? window.hubBlock_() : '';
+  const warn = typeof window.hubWarn_ === 'function' ? window.hubWarn_() : '';
   const top = hub ? [meCard_(`<div class="staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`)] : [];
   const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];

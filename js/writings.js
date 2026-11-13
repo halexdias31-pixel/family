@@ -142,12 +142,12 @@ function bibleW_(x, k) {
     case 'text': return bb.text || bb.translation;
     case 'source': return writingSourceOf_(bb.text || bb.translation, bb.group === 'Deuterocanon' ? WRITING_DEUTERO : bb.testament);
     case 'section': {
-      const g = bb.group === 'Deuterocanon' ? '' : bb.group, k = typeof orthoKathisma_ === 'function' ? orthoKathisma_(x) : '';
+      const g = bb.group === 'Deuterocanon' ? '' : bb.group, k = typeof window.orthoKathisma_ === 'function' ? window.orthoKathisma_(x) : '';
       return k ? [g, k].filter(Boolean) : g;
     }
     case 'collection': {
       const col = bb.group === 'Deuterocanon' ? WRITING_DEUTERO : bb.testament;
-      const more = typeof orthoBibleTags_ === 'function' ? orthoBibleTags_(x).filter(v => v !== col) : [];
+      const more = typeof window.orthoBibleTags_ === 'function' ? window.orthoBibleTags_(x).filter(v => v !== col) : [];
       return more.length ? [col].concat(more) : col;
     }
     default: return '';

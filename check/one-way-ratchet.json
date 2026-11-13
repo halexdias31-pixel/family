@@ -1,6 +1,6 @@
 {
  "say": "Hand-built markup still left (file element: count). Only goes down: node js/check-one-way.js --lower",
- "total": 2033,
+ "total": 1896,
  "left": {
   "js/arcade.js markup": 51,
   "js/arcade.js row": 1,
@@ -41,7 +41,6 @@
   "js/flyer.js markup": 45,
   "js/form.js markup": 24,
   "js/gtasks.js markup": 3,
-  "js/hadith.js markup": 4,
   "js/help.js markup": 13,
   "js/hymns.js markup": 8,
   "js/inbox.js markup": 13,
@@ -76,7 +75,6 @@
   "js/missing.js row": 2,
   "js/offline.js markup": 9,
   "js/one-place.js markup": 28,
-  "js/orthodox.js markup": 5,
   "js/overworld.js markup": 10,
   "js/pdtexts.js markup": 7,
   "js/price-rows.js markup": 4,
@@ -90,17 +88,13 @@
   "js/shell-click.js markup": 4,
   "js/shell-go.js markup": 2,
   "js/shell-load.js markup": 6,
-  "js/staff.js markup": 102,
-  "js/staff.js style": 1,
   "js/submit-suggest.js markup": 18,
-  "js/talmud.js markup": 21,
   "js/texts.js markup": 4,
   "js/tiles.js style": 1,
   "js/words.js markup": 13,
   "js/words.js row": 1,
   "js/work-file.js markup": 31,
   "js/work-file.js row": 1,
-  "js/working.js markup": 12,
-  "js/works.js markup": 4
+  "js/working.js markup": 12
  }
 }

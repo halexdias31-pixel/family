@@ -404,7 +404,7 @@ const personTiles_ = x => { const t = (x && x.row) || {}; const name = t.title |
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
 /* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
 const CARD_EXTRAS_ = { shop: shopOpts_, tutor: tutorOpts_, subject: x => tile_(subjectOpts_(x)),
-  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + tile_(jobOpts_(x)), person: x => personTiles_(x), talmud: x => tile_(talmudOpts_(x)) };
+  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + tile_(jobOpts_(x)), person: x => personTiles_(x), talmud: x => tile_(window.talmudOpts_(x)) };
 function cardCore_(x) {
   const one = {
     share: () => tile_({ icon: 'share', label: 'Share', act: 'card-share', data: { key: x.key } }),

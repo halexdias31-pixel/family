@@ -4225,7 +4225,7 @@ function oopsTry_(where, fn, host) {
 /* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
 const TIER_CORE_WIDGETS = [];
 const TIER_LAZY_WIDGETS = [];
-const TIER_OFF_WIDGETS = ['reels', 'newspaper', 'homework', 'flyers', 'mat', 'timer', 'docket', 'notepad', 'spotify', 'speedread', 'timetable', 'typing', 'cart', 'calendar', 'countdowns', 'favlinks', 'rewrite', 'poster', 'pixel', 'console', 'wordgames'];
+const TIER_OFF_WIDGETS = ['reels', 'newspaper', 'homework', 'flyers', 'mat', 'timer', 'docket', 'notepad', 'spotify', 'speedread', 'timetable', 'typing', 'cart', 'shopfind', 'calendar', 'countdowns', 'favlinks', 'rewrite', 'poster', 'pixel', 'console', 'wordgames'];
 const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
 const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
 const TIER_RUN = { depth: 0 };
@@ -10697,7 +10697,7 @@ const lockedOwnCards_ = col => (OWN_SEC_OF_SET_[col] || []).map(k => meCard_(`<d
 /* EACH SETTINGS COLUMN'S CARDS FOR ITS ROLE, built the same way as for a holder (`staffPages_`, `familyPages_`, `youSettingsPages_`). */
 const LOCKED_DRAW_ = {
   staff: () => lockedOwnCards_('staff').concat([meCard_(`<div class="staff-top"><h3>Staff hub</h3>${
-    typeof hubBlock_ === 'function' ? hubBlock_() : ''}</div>`)]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
+    typeof window.hubBlock_ === 'function' ? window.hubBlock_() : ''}</div>`)]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
   family: () => lockedOwnCards_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family')),
   account: () => lockedOwnCards_('account').concat(youSettingsPages_()),
 };
@@ -10728,8 +10728,8 @@ function staffPages_() {
   if (!whose_()) return [signedOutCard_(title)].concat(lockedPages_('staff'));
   /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyOpts_`), then every card shut (467). */
   if (!whoseAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
-  const hub = typeof hubBlock_ === 'function' ? hubBlock_() : '';
-  const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
+  const hub = typeof window.hubBlock_ === 'function' ? window.hubBlock_() : '';
+  const warn = typeof window.hubWarn_ === 'function' ? window.hubWarn_() : '';
   const top = hub ? [meCard_(`<div class="staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`)] : [];
   const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
@@ -11026,7 +11026,7 @@ const STAFF_GROUP_NAMES_ = { 'Contact & address': 'Where you teach', 'About you'
 function settingsSplit_() {
   const shown = notLibrary_(cardSettingsGroups_(myGroups_(), ownCardFields_()));
   /* AND STAFF SET THEIR WEEK ON THE AVAILABLE CARD (487), so it is not drawn twice — but that card needs a tutor row, which a new tutor lacks. */
-  if (typeof hubFor_ === 'function' && hubFor_() && cardMine_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
+  if (typeof window.hubFor_ === 'function' && window.hubFor_() && cardMine_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
   const out = { you: {}, parent: {}, staff: {} };
   Object.keys(shown).forEach(g => {
     if (!shown[g].length) return;
@@ -17381,7 +17381,7 @@ const personTiles_ = x => { const t = (x && x.row) || {}; const name = t.title |
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
 /* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
 const CARD_EXTRAS_ = { shop: shopOpts_, tutor: tutorOpts_, subject: x => tile_(subjectOpts_(x)),
-  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + tile_(jobOpts_(x)), person: x => personTiles_(x), talmud: x => tile_(talmudOpts_(x)) };
+  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + tile_(jobOpts_(x)), person: x => personTiles_(x), talmud: x => tile_(window.talmudOpts_(x)) };
 function cardCore_(x) {
   const one = {
     share: () => tile_({ icon: 'share', label: 'Share', act: 'card-share', data: { key: x.key } }),

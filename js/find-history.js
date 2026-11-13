@@ -204,7 +204,7 @@ function histLinks_(r) {
   const out = [], seen = new Set();
   const add = (id, label) => {
     /* A WRITING IS ITS PAGES (520): a WR- link lands on the work's first unit card, never a profile row. */
-    const to = histRow_(id) || (typeof worksRowOf_ === 'function' ? worksRowOf_(id) : null);
+    const to = histRow_(id) || (typeof window.worksRowOf_ === 'function' ? window.worksRowOf_(id) : null);
     if (!to || seen.has(id) || id === r.id) return;
     seen.add(id); out.push({ id: id, label: label, row: to });
   };
@@ -419,7 +419,7 @@ function histFactsPart_(x, part) {
 }
 /* THE ESSENTIALS (498): "don't need so many" -- three links and one source, on the card's one row (`CARD_EXTRAS_`). */
 function histExtras_(x) {
-  const r = x.row || {}, read = isWriting_(x) && typeof worksFirstKey_ === 'function' ? worksFirstKey_(r.id) : '';
+  const r = x.row || {}, read = isWriting_(x) && typeof window.worksFirstKey_ === 'function' ? window.worksFirstKey_(r.id) : '';
   const icon = l => (l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'flag');
   return [read ? { icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } } : null]
     .concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => ({ icon: icon(l), label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })),
@@ -455,9 +455,9 @@ function scriptureWait_(items) {
   if (!items || !items.length || !items.every(x => x && SCRIPTURE_KINDS[x.kind])) return null;
   const books = [['the Bible', BIBLE, bibleFor_()],
     ['the Quran', typeof QURAN !== 'undefined' ? QURAN : null, typeof quranFor_ === 'function' && quranFor_()],
-    ['the Talmud', typeof TALMUD !== 'undefined' ? TALMUD : null, typeof talmudFor_ === 'function' && talmudFor_()],
-    ['the Hadith', typeof HADITH !== 'undefined' ? HADITH : null, typeof hadithFor_ === 'function' && hadithFor_()],
-    ['the other writings', typeof WORKS !== 'undefined' ? WORKS : null, true]]
+    ['the Talmud', typeof window.TALMUD !== 'undefined' ? window.TALMUD : null, typeof window.talmudFor_ === 'function' && window.talmudFor_()],
+    ['the Hadith', typeof window.HADITH !== 'undefined' ? window.HADITH : null, typeof window.hadithFor_ === 'function' && window.hadithFor_()],
+    ['the other writings', typeof window.WORKS !== 'undefined' ? window.WORKS : null, true]]
     .filter(b => b[1] && b[2]);
   if (books.some(b => b[1].asking)) return loading_();
   const gone = books.filter(b => b[1].failed).map(b => b[0]);

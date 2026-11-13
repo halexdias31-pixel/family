@@ -104,8 +104,6 @@ const EXEMPT = [
   { file: 'cards-render.js', fn: 'paperWhy_', has: 'name="why" maxlength="200"', why: 'a tutor\'s optional one-line reason for declining a request (488) — typed and sent in one press; nothing is lost but a few words' },
   { file: 'words.js', fn: 'wordsEditOn_', has: 'class="wk-ph"', why: 'a placeholder\'s words typed over in place (497) — a few words saved at once; a reload draws the saved or the code\'s wording' },
   /* THE STAFF HUB'S PRICING (405): a what-if moved and saved in one sitting; the saved rate is what a reload draws. */
-  { file: 'staff.js', fn: 'ctl', has: 'type="range" data-pv', why: 'the Staff hub\'s rate and seat sliders (405) — moved and saved in one sitting; a reload draws the saved rate' },
-  { file: 'staff.js', fn: 'ctl', has: 'class="pf-num" data-pv', why: 'the Staff hub\'s rate and seat boxes (405) — typed and saved in one sitting; a reload draws the saved rate' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-name"', why: 'the sign-in box — half a handle is not work, and none is kept after (383)' },
   { file: 'tiles.js', fn: 'searchPill_', has: 'type="search"', why: 'the one search bar (487): Reels\' videos and the People search — a word looked up, not work, retyped in a second' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-pin"', why: PIN },
@@ -128,7 +126,6 @@ const EXEMPT = [
   { file: 'me.js', fn: 'applyFormHtml_', has: 'data-app="dbsNeeded"', why: 'the application to teach (400) — a tick in the sheet sent with it' },
   { file: 'me.js', fn: 'applyFormHtml_', has: 'data-app="consent"', why: 'the application to teach (400) — a tick in the sheet sent with it' },
   { file: 'me.js', fn: 'applyFormHtml_', has: 'data-app="dbsUpdate"', why: 'the application to teach (400) — the DBS Update Service tick, sent with it' },
-  { file: 'staff.js', fn: 'agreementCard_', has: 'agree-sign', why: 'acts the moment it is ticked (`agree-sign`) — nothing waits between the tick and the server' },
   { file: 'push.js', fn: 'pushBody_', has: 'data-push-kind', why: 'a phone-notification tick is a `pushSet` the moment it is ticked and the card is redrawn from the server\'s answer — no Save to wait for, nothing half-made on the device (492)' },
   { file: 'form.js', fn: 'formToggle_', has: 'data-do="${esc(t.act)}"', why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },
   { file: 'map.js', has: 'id="dock-add"', why: 'one line, kept the moment Enter or + puts it on the docket' },
