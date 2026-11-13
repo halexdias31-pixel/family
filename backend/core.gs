@@ -873,7 +873,7 @@ function msgFace_(r) {
 function venuesPersonIs_(entry, p) {
   const k = key(entry);
   if (!k || !p) return false;
-  return [p.person_id, p.handle, S(p.first_name) + S(p.last_name)].some(v => S(v) && key(v) === k);
+  return [p.person_id, p.handle, S(p.first_name) + S(p.last_name)].concat(S(p.handle_was).split(',')).some(v => S(v) && key(v) === k);
 }
 function venuesListOf_(r) {
   return S(r && r.tutors_happy_here).split(/[,\n]/).map(x => x.trim()).filter(Boolean);

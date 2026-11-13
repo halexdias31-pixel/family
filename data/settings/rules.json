@@ -222,6 +222,15 @@
    "since": "2026-11-12"
   },
   {
+   "id": "2.9",
+   "principle": 2,
+   "text": "A handle is the first two and last two letters of the first name (overlapping on a short one) and the year joined, a counter on a clash (earliest joiner keeps the plain form), made by one maker (`handleStems_`) for sign-up, rename and backfill; the old one goes to `handle_was` and still signs in.",
+   "checks": [
+    "handle-follows"
+   ],
+   "since": "2026-11-13"
+  },
+  {
    "id": "3.1",
    "principle": 3,
    "text": "Every card, every kind, is one static centred column drawn by `findCard`: real picture if any → tags (the name is a tag) → content → one round button row; no title line, no open/closed, no 8-bit or kind icon.",
