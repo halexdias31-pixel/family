@@ -138,6 +138,8 @@
   --fs-body:  1rem;
   --fs-title: 1.125rem;
   --fs-small: max(11px, .75rem);
+  /* A FIGURE'S LABELS: user units of its viewBox, so they scale with the drawing and never with a card's text size (owner, 13 Nov). */
+  --fig-fs: var(--fs-small); --fig-font: serif;
   /* THE TAG'S SIZE, AND A CARD'S CONTENT READS AT IT (owner, 13 Nov: "body text the same size as tag text"). The dial is --tag-scale. */
   --fs-tag: calc(.78rem * var(--tag-scale));
   /* A DIAGRAM'S LINES, IN SCREEN PIXELS (bold figures, style.css): grid, thin, mid, normal, bold. */
@@ -2329,8 +2331,8 @@ textarea { touch-action: none; }
 /* `.rc-blank` WAS THE EMPTY STUB — "Nothing booked / Tap to start" — and it goes with the rest of the stub stylesheet. § */
 
 /* NO SPLASH (466): nothing covers the app while the payload comes; only a load still waiting after 30 s says so, here. */
-#boot-slow { position: fixed; left: 50%; bottom: calc(var(--bar) + var(--safe-bottom) + 1rem); transform: translateX(-50%); z-index: 30;
-             width: min(32rem, 88vw); margin: 0; text-align: center; }
+/* IN THE FLOW, ITS OWN SLOT (owner, 13 Nov): fixed, it was drawn over a card's tag and text. */
+#boot-slow { position: static; width: min(32rem, 100%); margin: 0 auto var(--s2); text-align: center; }
 #boot-slow .boot-why { font-size: var(--fs-small); word-break: break-all; }
 #boot-slow .tile-row { justify-content: center; }
 #boot-slow .boot-why > summary { list-style: none; cursor: pointer; }
@@ -3333,9 +3335,9 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* ---------- A DRAWING'S LABELS ARE SERIF, AND THAT IS MEASURED RATHER THAN PREFERRED § */
 /* `.qp-area` TOO: WHATEVER THE PEN IS ON INKS ITSELF ON THE CARD. § */
-.qsheet .lbl, .qb-stem .lbl, .gd .lbl, .qp-area .lbl, .pad-loupe .lbl { font: italic 700 var(--fs-small) serif; fill: currentColor; text-anchor: middle; }
-.qsheet .num, .qb-stem .num, .gd .num, .qp-area .num, .pad-loupe .num { font: 600 var(--fs-small) serif; fill: currentColor; text-anchor: middle; }
-.qsheet .ax, .qb-stem .ax, .gd .ax, .qp-area .ax, .pad-loupe .ax { font: italic 600 var(--fs-small) serif; fill: currentColor; }
+.qsheet .lbl, .qb-stem .lbl, .gd .lbl, .qp-area .lbl, .pad-loupe .lbl { font: italic 700 var(--fs-small) var(--fig-font); fill: currentColor; text-anchor: middle; }
+.qsheet .num, .qb-stem .num, .gd .num, .qp-area .num, .pad-loupe .num { font: 600 var(--fs-small) var(--fig-font); fill: currentColor; text-anchor: middle; }
+.qsheet .ax, .qb-stem .ax, .gd .ax, .qp-area .ax, .pad-loupe .ax { font: italic 600 var(--fs-small) var(--fig-font); fill: currentColor; }
 .qsheet .axis, .qb-stem .axis, .gd .axis, .qp-area .axis, .pad-loupe .axis { stroke: currentColor; }
 .qsheet .grid, .qb-stem .grid, .gd .grid, .qp-area .grid, .pad-loupe .grid { stroke: currentColor; opacity: .33; }
 .qsheet .pt, .qb-stem .pt, .gd .pt, .qp-area .pt, .pad-loupe .pt { stroke: currentColor; fill: none; }
@@ -3357,7 +3359,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- COINS, PRICE TAGS, AND SAYING WHO DREW THEM § */
 .qsheet .coin, .qp-area .coin, .pad-loupe .coin { fill: none; stroke: currentColor; }
 .qsheet .tag, .qp-area .tag, .pad-loupe .tag { fill: none; stroke: currentColor; }
-.qsheet .cap, .qb-stem .cap, .gd .cap, .qp-area .cap, .pad-loupe .cap { font: 600 var(--fs-small) serif; fill: currentColor; text-anchor: middle; opacity: .85; }
+.qsheet .cap, .qb-stem .cap, .gd .cap, .qp-area .cap, .pad-loupe .cap { font: 600 var(--fs-small) var(--fig-font); fill: currentColor; text-anchor: middle; opacity: .85; }
 
 /* BOXING — THE FIGHTER AND THE FIGHT `boxer-nick` AND `boxer-rec` WERE NEVER STYLED. § */
 /* ---------- A FRACTION WRITTEN THE WAY THE PAPER PRINTS ONE § */
@@ -5830,6 +5832,12 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* ONE TEXT SIZE IN A CARD'S CONTENT, THE TAG'S (rule tpl-text-size): body and small both read --fs-tag inside it, so every block follows the one token. */
 .card.kc > :is(.kc-lines, .kc-form) figure > :is(svg:not(.pp), img) { width: min(100%, var(--pic-w)); height: auto; }
 .card.kc > :is(.kc-lines, .kc-form) { --fs-body: var(--fs-tag); --fs-small: var(--fs-tag); font-size: var(--fs-tag); }
+/* A LABEL WITH NO SIZE OF ITS OWN takes the figure's, not the card's: inherited, a 25px card text overlapped the drawing (owner, 13 Nov). */
+figure { --fs-small: var(--fig-fs); }
+figure svg text:not([font-size], [font-size] *, [style*="font"]) { font-size: var(--fs-small); }
+figure svg text:not([font-family], [font-family] *, [style*="font"]) { font-family: var(--fig-font); }
+/* A LIST'S BULLET IN ITS LINE: drawn outside, a rem gutter under em-sized text put the bullet past the card (owner, 13 Nov). */
+.card.kc > :is(.kc-lines, .kc-form) :is(ul, ol):not([class*="tile"]) { list-style-position: inside; padding-left: 0; }
 .card.kc > .kc-lines > * { margin: var(--s0) 0 0; }
 .card.kc > .kc-lines :is(.qtags, .prof-tags, .tile-row, .btn-row) { justify-content: center; }
 /* LONG CONTENT READS LEFT INSIDE ITS CENTRED BLOCK: a passage, a policy, a table, a list, a form. */

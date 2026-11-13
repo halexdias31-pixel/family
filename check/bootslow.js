@@ -33,11 +33,13 @@ function serve() {
   });
 }
 
-async function visit(browser, { query, backendMs }) {
+async function visit(browser, { query, backendMs, user }) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
   const page = await ctx.newPage();
   const asked = [];
   page.on('request', r => { try { asked.push({ path: new URL(r.url()).pathname, at: Date.now() }); } catch (e) {} });
+  /* SIGNED IN, so Find draws its cards from the files while the payload is still out (owner's phone, 13 Nov). */
+  if (user) await page.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) { /* storage blocked */ } }, user);
   await page.addInitScript(([p, ms]) => {
     const real = window.fetch;
     window.fetch = function (u) {
@@ -48,7 +50,22 @@ async function visit(browser, { query, backendMs }) {
     };
   }, [FIXTURE, backendMs]);
   await page.goto(`http://localhost:${PORT}/index.html?${query}`, { waitUntil: 'commit' });
-  return { ctx, page, asked };
+  return { ctx, page, asked, t0: Date.now() };
+}
+/* IN THE PAGE: every wait on screen (the slow box, a loading_() spinner) against every card's content box, and the slow box against painted content. */
+function waitsOverContent() {
+  const out = [], vis = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden' ? r : null; };
+  const slow = document.getElementById('boot-slow');
+  const slowUp = slow && !slow.classList.contains('hidden') && vis(slow);
+  const waits = [...document.querySelectorAll('#boot-slow:not(.hidden), .loading')].map(vis).filter(Boolean);
+  /* CONTENT IS ANYTHING ON THE SCREEN WITH WORDS OF ITS OWN: a card's line, a chip, an answer row. */
+  const boxes = [...document.querySelectorAll('#screen *')].filter(n => [...n.childNodes].some(t => t.nodeType === 3 && t.textContent.trim())).filter(n => !n.closest('#boot-slow') && !n.querySelector('.loading') && !n.closest('.loading')).map(vis).filter(Boolean);
+  if (slowUp && boxes.length) out.push('the slow box is up though content has painted (' + boxes.length + ' things with words on screen)');
+  waits.forEach(w => boxes.forEach(b => {
+    if (Math.min(w.right, b.right) - Math.max(w.left, b.left) > 1 && Math.min(w.bottom, b.bottom) - Math.max(w.top, b.top) > 1)
+      out.push(`a wait at (${Math.round(w.left)},${Math.round(w.top)}) ${Math.round(w.width)}x${Math.round(w.height)} sits over content at (${Math.round(b.left)},${Math.round(b.top)})`);
+  }));
+  return [...new Set(out)].slice(0, 5);
 }
 const loaded = page => page.evaluate(() => typeof LOADED !== 'undefined' && LOADED === true);
 const boxUp = page => page.evaluate(() => { const b = document.getElementById('boot-slow'); return !!b && !b.classList.contains('hidden'); });
@@ -60,14 +77,21 @@ const boxUp = page => page.evaluate(() => { const b = document.getElementById('b
   try {
     const cold = await visit(browser, { query: 'v=cold', backendMs: 700 });
     const stuck = await visit(browser, { query: 'hang=textbooks.json&gone=practicals.json', backendMs: 700 });
-    const late = await visit(browser, { query: 'v=late', backendMs: 33000 });
+    const late = await visit(browser, { query: 'v=late', backendMs: 33000,
+      user: { name: 'Sam Student', personId: 'P9', person_id: 'P9', role: 'student', roles: ['student'], handle: 'sam_quick12', token: 't-student' } });
     await cold.page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED && FIRST_PAINT_DONE, null, { timeout: 60000 })
       .catch(() => fails.push('a cold load at 390px did not finish within 60 seconds'));
     await new Promise(r => setTimeout(r, 2000));
     const lazy = cold.asked.filter(a => LAZY.test(a.path)).map(a => a.path);
     if (lazy.length) fails.push('a cold load fetched library data before any card asked for it: ' + [...new Set(lazy)].join(', '));
+    /* A PUPIL OPENS THE LIBRARY FROM THE FILES while the payload is still out, so content fills the screen under where the box comes up. */
+    await new Promise(r => setTimeout(r, Math.max(0, late.t0 + 20000 - Date.now())));
+    await late.page.getByText('Library', { exact: true }).first().click({ timeout: 5000 }).catch(() => fails.push('at 20 s the Library chip could not be pressed'));
+    /* AT 31 SECONDS, BEFORE THE LATE PAYLOAD (owner, 13 Nov): a wait never sits over content, and none is up once content has painted. */
+    await new Promise(r => setTimeout(r, Math.max(0, late.t0 + 31500 - Date.now())));
+    (await late.page.evaluate(waitsOverContent)).forEach(f => fails.push('at 31 s with the payload still out: ' + f));
     /* PAST THE 30-SECOND WATCHDOG, with the late payload landing at 33. */
-    await new Promise(r => setTimeout(r, 38000));
+    await new Promise(r => setTimeout(r, Math.max(0, late.t0 + 38000 - Date.now())));
     if (!(await loaded(stuck.page))) fails.push('with data/textbooks.json hanging and data/practicals.json 404, the boot never finished');
     if (await boxUp(stuck.page)) fails.push('with a hung and a missing data file, the slow box came up after the code and payload had arrived');
     if (!(await loaded(late.page))) fails.push('a payload that answered at 33 seconds was never taken');

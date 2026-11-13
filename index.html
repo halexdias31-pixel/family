@@ -59,7 +59,7 @@
 
   /* ---------- AND THEN THE 230KB WAS A MEGABYTE § */
   /* THE FILES' OWN HASH (750), written by tools/build-stamp.js and held to them by its --check: it moves when a served file changes and never by the clock. */
-  var BUILD_STAMP = '8bd91ad13808';
+  var BUILD_STAMP = 'fdb52247b8c8';
   LOAD = /(?:^|[?&])dev(?:[=&]|$)/.test(location.search)
     ? String(Date.now())                        /* the publisher: nothing may be held */
     : BUILD_STAMP || String(Math.floor(LOAD_AT / 300000));     /* everybody else: the hash; the old rounded build time only if the line was emptied */
@@ -145,6 +145,17 @@
 <!-- THE HEADER WAS HERE. § -->
 
 <!-- NO SPLASH (466): the first screen paints at once from the markup and the device's copy; what still waits shows loading_() in place. -->
+
+
+<!-- A banner for the things that must interrupt: a failed save, a sheet that needs fixing, a
+     backend older than the site. -->
+<div id="banner" class="hidden"></div>
+<!-- THE ONE QUIET LINE WHILE THE APP ASKS THE BACKEND AGAIN — "Reconnecting…", and after two minutes "Can't reach the server — still trying." § -->
+<p id="reconnect" role="status" aria-live="polite"></p>
+
+<!-- THE TOP BAR (900): the brand and who is signed in; shown only with FLOW_LAYOUT (shell.js). -->
+<header id="topbar"><span class="topbar-brand">@family.</span><span id="topbar-who"></span></header>
+<!-- THE SLOW BOX, IN THE FLOW under the top bar (owner, 13 Nov): its own slot, never over content. -->
 <div id="boot-slow" class="hidden"></div>
 <script>
   /* AND IF THE CODE ARRIVED AND THE DATA NEVER DOES. § */
@@ -153,6 +164,9 @@
     if (typeof LOADED !== 'undefined' && LOADED) return;     // finished
     var codeHere = (typeof go === 'function');
     if (codeHere && window.PAYLOAD_IN) return;               // the reply came; the rest has its own deadlines
+    /* NOT OVER CONTENT (owner, 13 Nov): a screen drawn from the files is no wait; #reconnect speaks for the reply. */
+    var painted = function () { var s = document.getElementById('screen'); return !!(s && String(s.innerText || '').trim()); };
+    if (painted()) return;
     var url = (typeof API !== 'undefined') ? API : '';
     try { LOAD_SLOW = true; } catch (e) {}
     var b = document.getElementById('boot-slow');
@@ -169,19 +183,14 @@
       + (admin ? '<details class="boot-why"><summary aria-label="Details">\u22ef</summary>'
         + (codeHere ? 'Waiting for ' : 'Code missing' + (window.__gone && window.__gone.length ? ': ' + window.__gone.join(', ') : '') + '. ')
         + (url ? url.replace(/[<>&"]/g, '') : '') + '</details>' : '');
+    /* AND IT GOES the moment content paints or the load ends, so no wait outlives what it waited for (rule 7). */
+    var watch = setInterval(function () {
+      if ((typeof LOADED !== 'undefined' && LOADED) || painted()) { clearInterval(watch); b.className = 'hidden'; b.innerHTML = ''; }
+    }, 500);
     try { b.innerHTML = typeof card_ === 'function' ? card_(inner) : '<div class="card">' + inner + '</div>'; } catch (e) { b.innerHTML = '<div class="card">' + inner + '</div>'; }
   }, 30000);
 
 </script>
-
-<!-- A banner for the things that must interrupt: a failed save, a sheet that needs fixing, a
-     backend older than the site. -->
-<div id="banner" class="hidden"></div>
-<!-- THE ONE QUIET LINE WHILE THE APP ASKS THE BACKEND AGAIN — "Reconnecting…", and after two minutes "Can't reach the server — still trying." § -->
-<p id="reconnect" role="status" aria-live="polite"></p>
-
-<!-- THE TOP BAR (900): the brand and who is signed in; shown only with FLOW_LAYOUT (shell.js). -->
-<header id="topbar"><span class="topbar-brand">@family.</span><span id="topbar-who"></span></header>
 <main id="screen">
   <!-- Every screen lives here. § -->
 

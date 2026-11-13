@@ -354,6 +354,8 @@
     "check/cards.js": "core",
     "check-answerable.js": "core",
     "check/diagrams.js": "core",
+    "check/fig-labels.js": "core",
+    "check/card-text-bounds.js": "core",
     "check/deploy.js": "core",
     "check/press.js": "secondary",
     "check-api-deadline.js": "core",

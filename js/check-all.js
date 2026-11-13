@@ -260,7 +260,9 @@ const SUITE = [
   { file: 'check/press-deadline.js', what: 'a press whose request never answers is busy, takes no second press, and lets go with a sentence after a minute', slow: true },
   /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT § */
   { file: 'check/tiles.js',   what: 'every tile is tile_(), 44px with a 16px mark, no overlap, spill or orphan at four widths, and never drawn under a fingertip in any state (533)', slow: true, heavy: true },
-  { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503)', slow: true },
+  { file: 'check/fig-labels.js', what: 'every library figure in a lesson card at 390: no label overlaps another or leaves its drawing, whatever the card text size (owner, 13 Nov)', slow: true },
+  { file: 'check/card-text-bounds.js', what: 'every lesson page at 390: no glyph or list bullet outside its card (owner, 13 Nov)', slow: true },
+  { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503), never over content and gone once content paints (owner, 13 Nov)', slow: true },
   { file: 'check/chip-feel.js', what: 'at 4x CPU a tapped Find answer is lit in a frame before the funnel redraws, and three taps in a row are three answers (720)', slow: true },
   { file: 'check/kp-centred.js', what: 'Find centred above the @family. keypad, the box still as you type, centred again when it goes (720)', slow: true },
   { file: 'check/later.js', what: 'every column gone to and started while the LATER files are away reads none of their names; they arrive in one task (720)', slow: true },
