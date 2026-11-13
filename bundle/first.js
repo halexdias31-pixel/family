@@ -9497,7 +9497,11 @@ const REG_NOTE = {
 };
 /* MAKE AN ACCOUNT IS A CARD OF ITS OWN beside Sign in, its form there from the start (no sheet, owner 7 Nov). */
 function registerCard_() {
-  return card_(`<div class="reg-card"><h3>Make an account</h3><div class="reg-form">
+  return renderCard({ kind: 'panel', look: 'reg-card', name: 'Make an account', tags: ['Make an account'], body: [{ type: 'embed', tool: 'reg-form' }] });
+}
+/* THE FORM IS THE CARD'S ONE EMBED; its send (reg-send) is unchanged. */
+function regFormHtml_() {
+  return `<div class="reg-form">
     ${/* ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */''}
     <div class="reg-who" id="reg-who" data-who="">
       <p class="reg-cap" id="reg-who-cap">Both are free; teaching starts with "Apply to teach" once you are in.</p>
@@ -9523,8 +9527,9 @@ function registerCard_() {
       ${/* THREE LINES AT 320, MEASURED: § */
             ''}
       <p class="said" id="reg-note"></p>
-    </div></div></div>`);
+    </div></div>`;
 }
+CARD_EMBEDS['reg-form'] = regFormHtml_;
 /* THE SIGN-IN CARD'S TILE GOES TO THE FORM: on this column if it is drawn, else on the account column. */
 on('register', el => {
   const near = () => (el && el.closest && el.closest('.screen') || document).querySelector('.reg-card') || document.querySelector('.screen.on .reg-card');
@@ -16427,12 +16432,8 @@ function dmPages_() {
   /* THE NAME IS THE PERSON, and the unread count rides on it — so the header says who you are reading rather than "3 of 7", which is the same judgement § */
   return daivePages_().concat(threads.map(t => ({
     name: displayName_(t.name) + (t.unread ? ' (' + t.unread + ')' : ''),
-    html: card_(`<div class="dm-page${t.unread ? ' unread' : ''}">
-      <div class="dm-head">${dmFace_(t)}
-        <h3>${esc(displayName_(t.name))}${t.unread ? ` <span class="dm-new">${t.unread} new</span>` : ''}</h3></div>
-      <div class="msg-body">${messagesHtml_(t.msgs)}</div>
-      ${msgForm_(t.name, t.id)}
-    </div>`, 'msg'),
+    html: renderCard({ kind: 'msg', look: 'dm-page' + (t.unread ? ' unread' : ''), name: displayName_(t.name),
+      body: [{ type: 'embed', tool: 'dm-thread', args: { t } }] }),
   })));
 }
 
@@ -16481,20 +16482,24 @@ function asstFacts_() {
 function asstMsgs_(s) {
   return s.msgs.map(m => ({ mine: m.role === 'user', read: true, body: m.text, atMs: m.at || 0, fromName: DAIVE }));
 }
-function daiveHtml_() {
+/* A CONVERSATION'S INSIDES (head, bubbles, composer) are the card's one embed: the send path stays msgForm_'s own. */
+CARD_EMBEDS['dm-thread'] = ({ t }) => `<div class="dm-head">${dmFace_(t)}
+    <h3>${esc(displayName_(t.name))}${t.unread ? ` <span class="dm-new">${t.unread} new</span>` : ''}</h3></div>
+  <div class="msg-body">${messagesHtml_(t.msgs)}</div>
+  ${msgForm_(t.name, t.id)}`;
+CARD_EMBEDS['daive'] = () => {
   const s = asstGet_(), cap = asstCap_(), out = s.left <= 0, shut = out || ASST_BUSY;
   const said = out ? 'No questions left today — they come back tomorrow.' : s.left + ' of ' + cap + ' questions left today';
-  return card_(`<div class="daive" data-daive="1">
-    <div class="dm-head"><span class="dm-av daive-av" aria-hidden="true">D</span><h3>${DAIVE}</h3></div>
-    <div class="msg-body">${messagesHtml_(asstMsgs_(s)) }${ASST_BUSY ? loading_() : ''}</div>
+  return `<div class="dm-head"><span class="dm-av daive-av" aria-hidden="true">D</span><h3>${DAIVE}</h3></div>
+    <div class="msg-body">${messagesHtml_(asstMsgs_(s))}${ASST_BUSY ? loading_() : ''}</div>
     <div class="msg-form" data-k="daive">
       <textarea class="msg-text" rows="1" maxlength="1000" placeholder="Message…" aria-label="Message ${DAIVE}"${shut ? ' disabled' : ''}${draftAttr_('asst', '')}>${ASST_BUSY ? '' : esc(draftVal_('asst', '', ''))}</textarea>
       ${tile_({ form: true, look: 'btn msg-go', act: 'daive-send', off: shut, label: 'Send' })}
       <p class="note msg-said">${esc(ASST_SAID)}</p>
       <p class="note msg-said daive-left">${esc(said)}</p>
-    </div>
-  </div>`);
-}
+    </div>`;
+};
+const daiveHtml_ = () => renderCard({ kind: 'msg', look: 'daive', name: DAIVE, data: { daive: 1 }, body: [{ type: 'embed', tool: 'daive' }] });
 /* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. */
 const daiveItem_ = () => {
   const h = typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', 'dm', daiveHtml_()) : daiveHtml_();
