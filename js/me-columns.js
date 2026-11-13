@@ -34,7 +34,7 @@ function settingsSplit_() {
 /* ONE GROUP, ONE CARD, ITS OWN SAVE — `meSave_` posts the boxes of the card it is pressed in, whichever column.
    `col` names the column, so an admin's Split (464, layout.js) can draw a group a field a card, each with its own Save. */
 function settingsCards_(shown, moved, col) {
-  const p = USER.profile || {};
+  const p = whose_().profile || {};
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
      admin's to set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
   const readonly = (DATA.profileReadonly || []).concat(isAdmin() ? [] : ['extra_seat_cut']);
@@ -90,13 +90,14 @@ function peoplePages_(col) {
 /* ---------- YOUR CARD ON YOUR ROLE'S SETTINGS COLUMN: ONLY ITS EDITING, A CARD PER THING (468) — never a preview; the person is drawn on the profile columns. */
 function ownCardSetPage_(setCol) {
   const face = FACE_OF_SET_[setCol];
-  if (!USER || !face || typeof ownCardSections_ !== 'function') return [];
+  if (!whose_() || !face || typeof ownCardSections_ !== 'function') return [];
   const secs = ownCardSections_(face);
   if (!secs.length) return [];
-  const mine = typeof myCardRow_ === 'function' ? myCardRow_() : null;
+  const mine = typeof myCardRow_ === 'function' ? myCardRow_(whose_()) : null;
   const row = face === 'tutors' ? (cardMine_() || mine) : mine;
   if (!row || !row.personId || !cardMayEdit_(row)) return [];
-  return cardEditCards_(row, cardOwnOpen_(row), secs, setCol);
+  /* THE PICTURE AND THE VIDEO SAVE TO THE ASKER'S OWN ROW (`savePhoto`, `videoPart`), so in the lens they are shown shut. */
+  return cardEditCards_(row, cardOwnOpen_(row), secs, setCol).map(h => (lensOn_() && /data-sec="picture"|class="vid-/.test(h) ? lockCard_(h) : h));
 }
 /* ALWAYS OPEN: the edit of your own card is the settings column itself, so nothing is pressed to start it. */
 function cardOwnOpen_(t) {
@@ -104,27 +105,29 @@ function cardOwnOpen_(t) {
   if (now && now.pid === String(t.personId)) { now.col = 'settings'; return now; }
   const e = CARD_EDIT = cardEditFresh_(t.personId);
   e.pic0 = cardPicNow_(t);
-  e.fig0 = String(USER.avatar || ''); e.cr0 = Number(USER.credits || 0); e.h0 = String(USER.handle || USER.name || '');
+  e.fig0 = String(whose_().avatar || ''); e.cr0 = Number(whose_().credits || 0); e.h0 = String(whose_().handle || whose_().name || '');
   cardRemember_(e);
   return e;
 }
 /* ---------- STUDENT SETTINGS: EVERY ACCOUNT'S SIGNING IN AND OUT, PIN, ROLES, NOTIFICATIONS, AND A STUDENT'S DETAILS ---------- */
 function youSettingsPages_() {
-  if (!USER) return [];
+  if (!whose_()) return [];
   /* EVERYBODY'S DETAILS, WHATEVER THE RANK (469): a parent's or tutor's own contact is edited here, as a student's is. */
   const shown = settingsSplit_().you;
   const pages = settingsCards_(shown, '', 'account');
   /* ONE LINE A BOX, ONE Save: a PIN is never saved as you type; its boxes are forms.json's `signing-in`. */
-  pages.push(formCard_({ id: 'signing-in' }));
+  /* THEIR PIN AND ROLES ARE NOT AN ADMIN'S TO CHANGE IN THE LENS: shown shut, greyed not hidden. */
+  const shut = h => (lensOn_() ? lockCard_(h) : h);
+  pages.push(shut(formCard_({ id: 'signing-in' })));
   /* YOUR ROLES, THEN WHICH EMAILS YOU WANT — every signed-in person has both. */
-  pages.push(rolesCard_());
+  pages.push(shut(rolesCard_()));
   pages.push(notifyCard_());
   const voice = voiceCard_();
   if (voice) pages.push(voice);
   return pages;
 }
 function studentSetPages_() {
-  if (!USER) {
+  if (!whose_()) {
     /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist first. */
     if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
     /* SIGN IN AND SIGNED IN ARE ONE UNIT, `acct:signed-in` (770): the owner moved it, signed out, and it jumped back — one saved place. */
@@ -132,14 +135,16 @@ function studentSetPages_() {
     const reg = typeof registerCard_ === 'function' ? [registerCard_()] : [];
     return (typeof cardMark_ === 'function' ? cardMark_('acct:signed-in', signIn) : signIn).concat(reg, lockedPages_('account'));
   }
-  const who = nameBesideHandle_(USER.name, USER.handle) || 'you';
+  const who = nameBesideHandle_(whose_().name, whose_().handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
-  const top = card_(`<div class="signed-in"><h3>Signed in</h3>
+  let top = card_(`<div class="signed-in"><h3>Signed in</h3>
     ${tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
       + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)}
     ${/* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
       typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''}</div>`);
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
+  /* IN THE LENS, SIGN OUT IS THE ADMIN'S OWN SESSION: shut, greyed not hidden (the fixed tile rule). */
+  if (lensOn_()) top = lockCard_(top);
   /* WHAT WAS THE PROGRESS COLUMN (461, the owner: "the progress column content can all be moved to student column account settings"). */
   const all = typeof progressCards_ === 'function' ? progressCards_() : [];
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
@@ -148,7 +153,7 @@ function studentSetPages_() {
   if (typeof SETTINGS_OFF !== 'undefined' && SETTINGS_OFF) return [top];
   return [top].concat(ownCardSetPage_('account'), youSettingsPages_(),
     /* WORK ON FILE (owner, 11 Nov): a student's own scanned pages; a tutor's opens each booked student's. */
-    /^(student|staff)$/.test(rank_()) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [], soonCards_(),
+    /^(student|staff)$/.test(rank_(whose_())) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [], soonCards_(),
     prog, wait);
 }
 /* PLACEHOLDERS (562, owner notes 116, 118, 114): one card each, its title and one line, until the thing is built; each in CARD_REG so it moves and deletes. */

@@ -14,7 +14,7 @@ const PORT = Number(process.env.RULER_PORT || 22811);
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
 const SHOTS = ((process.argv.find(a => a.startsWith('--shots=')) || '').split('=')[1] || '');
 const USER = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], handle: 'testadmin' };
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2' };
+const { MIME } = require('./mime.js');
 /* A MEASURE ROW WITH A FIGURE (check/types.js pins it too), and a construction for the compass */
 const ROW = 'Q-1MA1-2406-2F-7b';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
