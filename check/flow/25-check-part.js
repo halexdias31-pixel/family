@@ -83,7 +83,7 @@ check('one box per value: a counted rule, a pair and an open list each get their
   const item = id => w.stuffItemsAll_().find(i => i.row && i.row.row_id === id);
   const host = d.createElement('div');
   d.body.appendChild(host);
-  const draw = x => { host.innerHTML = '<div class="qcard">' + w.ansBox_(x) + '</div>'; return [...host.querySelectorAll('.qp-multi .kp-in[data-do="qp-multi"]')]; };
+  const draw = x => { host.innerHTML = w.findCard(x, 0); return [...host.querySelectorAll('.qp-multi .kp-in[data-do="qp-multi"]')]; };
   const type = (el, v) => { el.value = v; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
   const say = () => (host.querySelector('.qp-verdict') || {}).textContent;
   const x1 = item('MB-1');
@@ -196,14 +196,14 @@ check('a part\'s tool row is the owner\'s one row with one padlock (8 Nov), the 
   const names = row ? [...row.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
   /* NOTHING TO DRAW ON, NO PEN (owner, 29 Oct: "a button which opens the working paper … remove that") */
   /* THE SAME ROW ON EVERY PART (owner, 7 Nov, over 1040 r12): magnifier, Read aloud and padlock are each part's. */
-  /* RULER AND PROTRACTOR ON EVERY PART, figure or not (owner, 8 Nov); Check, Message, Save and ⋯ first, the tools behind ⋯ (owner, 9 Nov) */
-  if (names.join(' | ') !== 'Check | Message | Save | More | Photo of working | Magnifier | Read aloud | Lock | Ruler | Protractor | Calculator | Share | Top | Help') bad.push('a part with no figure: the tool row reads ' + names.join(' | '));
+  /* RULER AND PROTRACTOR ON EVERY PART, figure or not (owner, 8 Nov); Check, Message and Save first, every tile shown with no ⋯ (owner, 13 Nov) */
+  if (names.join(' | ') !== 'Check | Message | Save | Photo of working | Magnifier | Read aloud | Lock | Ruler | Protractor | Calculator | Mark my working | Show the answer | Help | Share | Top') bad.push('a part with no figure: the tool row reads ' + names.join(' | '));
   const x3 = item('GR-3');
   host.innerHTML = x3 ? w.findCard(x3, 0) : '';
   const row3 = host.querySelector('.qt-row');
   const names3 = row3 ? [...row3.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
   /* UNDO AND CLEAR ARE THE PAD'S, IN THIS ONE ROW FROM THE START (1020): a tap never adds or moves a control. */
-  if (names3.join(' | ') !== 'Check | Message | Save | More | Photo of working | Magnifier | Read aloud | Lock | Ruler | Protractor | Calculator | Pen | Straight line | Compass | Undo | Clear | Share | Top | Help') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
+  if (names3.join(' | ') !== 'Check | Message | Save | Photo of working | Magnifier | Read aloud | Lock | Ruler | Protractor | Calculator | Pen | Straight line | Compass | Undo | Clear | Mark my working | Show the answer | Help | Share | Top') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
   if (d.querySelectorAll('[data-do="qt-grid"], [data-do="qt-panel"], .qcalc, .qt-table, .qt-formula').length) bad.push('a Grid, Table, Calculator or Formula sheet is still drawn on the part');
   const whole = d.createElement('div'); whole.innerHTML = x3 ? w.questionWhole_(x3, [x3], null, true) : '';
   const locks = whole.querySelectorAll('[data-do="q-lock"], [data-do="game-lock"]').length;
@@ -292,7 +292,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
   const draw = (x, strokes) => {
     try { w.localStorage.setItem(t.padKey(x), JSON.stringify(strokes)); } catch (e) {}
     host.innerHTML = w.findCard(x, 0);
-    const go = host.querySelector('.qpad-send [data-do="pad-check"]');
+    const go = host.querySelector('.qt-row [data-do="pad-check"]');
     if (!go) return null;
     A['pad-check'](go);
     return host.querySelector('.qpad-send .qp-verdict').textContent;
@@ -317,7 +317,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
     if (host.querySelector('.qpad-send .qp-verdict').textContent !== 'Not yet — have another go') bad.push('drawn again, the card does not show the drawing\'s own verdict');
     try { w.localStorage.setItem(t.padKey(x7), '[]'); } catch (e) {}
     host.innerHTML = w.findCard(x7, 0);
-    A['pad-check'](host.querySelector('.qpad-send [data-do="pad-check"]'));
+    A['pad-check'](host.querySelector('.qt-row [data-do="pad-check"]'));
     if (host.querySelector('.qpad-send .qp-verdict').textContent !== 'Draw your answer first') bad.push('Check with nothing drawn does not ask for a drawing');
   }
   /* AND EVERY ROW: its own right drawing (`example`) is full marks in the real card, and the same drawing a square to the right is not */
@@ -350,7 +350,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
     /* A PENDING ROW WITHOUT ITS WORDS HERE (a fresh clone, 411) has no drawn answer to Check yet: not this journey's subject. */
     if (/^true$/i.test(String(x.row.lib_pending || '')) && !String(x.row.draw_answers || x.row.drawAnswer || x.drawAnswer || '').trim()) continue;
     host.innerHTML = w.findCard(x, 0);
-    if (!host.querySelector('.qpad-send [data-do="pad-check"]')) { waiting++; bad.push(x.row.row_id + ': drawn, and still sent to a person'); }
+    if (!host.querySelector('.qt-row [data-do="pad-check"]')) { waiting++; bad.push(x.row.row_id + ': drawn, and still sent to a person'); }
   }
   /* AND THE DRAWINGS MADE BOXES (a Venn diagram's regions, a tree's branches, a choice of brackets): each scheme's own answer, entered, is Correct */
   const TYPED = ['Q-CBM-nets-8', 'Q-1MA1-2306-1H-5a', 'Q-1MA1-2406-3F-27a', 'Q-1MA1-1811-2H-1a', 'Q-1MA1-1911-1H-21', 'Q-1MA1-1905-1H-4', 'Q-1MA1-2406-1F-11c'];
@@ -359,7 +359,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
     if (!x) { bad.push(id + ' did not reach Find'); continue; }
     host.innerHTML = w.findCard(x, 0);
     /* ITS FIGURE MAY BE A PAD WITH THE PEN OFF (1020, owner 7 Nov: the pen is off until chosen); drawn on means a drawing Check. */
-    if (host.querySelector('.qpad-send [data-do="pad-check"], .qpad.is-drawing')) bad.push(id + ': made a box, and still drawn on');
+    if (host.querySelector('.qt-row [data-do="pad-check"], .qpad.is-drawing')) bad.push(id + ': made a box, and still drawn on');
     const cells = [...host.querySelectorAll('.qp-cell')], opts = [], one = host.querySelector('.qp-cells-box .qp-ans-in');
     if (one && !cells.length) {
       one.value = w.cellsOf_(x).filter(c => c.ways).map(c => c.ways.split('|')[0].trim()).join(' ; ');
@@ -421,7 +421,7 @@ check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'
   const draw = strokes => {
     try { w.localStorage.setItem(t.padKey(a), JSON.stringify(strokes)); } catch (e) {}
     host.innerHTML = w.findCard(a, 0);
-    const go = host.querySelector('.qpad-send [data-do="pad-check"]');
+    const go = host.querySelector('.qt-row [data-do="pad-check"]');
     if (!go) return null;
     A['pad-check'](go);
     return host.querySelector('.qpad-send .qp-verdict').textContent;
@@ -523,7 +523,7 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
   const host = d.createElement('div');
   d.body.appendChild(host);
   host.innerHTML = w.findCard(x, 0);
-  const go = host.querySelector('.qp-mark[data-rule] [data-do="qp-check"]');
+  const go = (host.querySelector('.qp-mark[data-rule]') && host.querySelector('.qt-row [data-do="qp-check"]'));
   if (!go) return ['a row with mark_words has no Check by its key words'];
   if (host.querySelector('[data-do="qp-ai"]')) bad.push('a part a rule marks still carries an AI button: one mark button per part (owner, 11 Nov)');
   const inp = host.querySelector('.qp-ans-in'), out = host.querySelector('.qp-verdict');
@@ -642,7 +642,7 @@ check('a part with photos of its working: Check sends the photos to the AI marke
   const host = d.createElement('div');
   d.body.appendChild(host);
   host.innerHTML = w.findCard(x, 0);
-  const go = host.querySelector('.qp-mark[data-rule] [data-do="qp-check"]');
+  const go = (host.querySelector('.qp-mark[data-rule]') && host.querySelector('.qt-row [data-do="qp-check"]'));
   if (!go) return ['the proof row has no Check by its key words — the fixture no longer exercises the rule'];
   const inp = host.querySelector('.qp-ans-in'), out = host.querySelector('.qp-verdict');
   const k = inp.getAttribute('data-k');

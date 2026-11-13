@@ -450,7 +450,9 @@ function myResultNew_(k) {
     document.querySelectorAll('[data-k]').forEach(b => {
       if (b.getAttribute('data-k') !== k) return;
       const own = b.closest('.qb'), pg = own || b.closest('.page');
+      /* THE ANSWER CARD UNDER A PART is the scheme's, not your result's. */
       (pg ? (own ? own.querySelectorAll(':scope > .kc-tags > .qcard-tags') : pg.querySelectorAll('.qcard-tags')) : []).forEach(row => {
+        if (row.closest('.qans-card')) return;
         row.querySelectorAll('[data-f="myResult"]').forEach(t => t.remove());
         row.insertAdjacentHTML('beforeend', tags);
       });
