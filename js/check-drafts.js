@@ -18,6 +18,8 @@ FILES.forEach(f => { SRC[f] = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8');
 SRC['find.js'] = require('../tools/find-src.js').findSrc();
 ['me', 'shell', 'keypad', 'book'].forEach(b => { SRC[b + '.js'] = require('../tools/piece-src.js').pieceSrc(b); });
 const ALL = FILES.map(f => SRC[f]).join('\n');
+/* A FILE SWITCHED OFF INTO attic/ (owner, 13 Nov) takes its entries with it: they are asked again when it comes back. */
+const ATTIC_ = f => !SRC[f] && fs.existsSync(path.join(ROOT, 'attic/js', f));
 
 /* ---------- THE LISTS § */
 const KEPT = [
@@ -39,12 +41,9 @@ const KEPT = [
   { file: 'map.js', has: 'id="notepad"',
     why: 'the notepad — on the device at every keystroke (`familyUser`), on the account 1.4 s later or as the page goes',
     proof: [['find.js', /USER\.notepad = e\.target\.value/], ['find.js', /keepDue_\('notepad', padSend_\)/]] },
-  { file: 'book-rows.js', fn: 'noteRow_', has: 'book-note',
-    why: 'the booking note — an answer in `BOOKING`, which is kept whole as it is typed (`bookKeep_`)',
-    proof: [['book.js', /closest\('\[data-do="book-note"\]'\)[\s\S]{0,120}?BOOKING\.note = el\.value \|\| '';\s*bookKeep_\(\);/]] },
-  { file: 'book-spine.js', fn: 'discountRow_', has: 'data-do="book-disc"',
-    why: 'an admin\'s discount, one percentage (29 Oct) — an answer in `BOOKING`, kept whole as it is typed (`bookKeep_`), like the booking note (docs/history/353)',
-    proof: [['book.js', /closest\('input\[data-do="book-disc"\]'\)[\s\S]{0,160}?BOOKING\.discValue = String\(el\.value \|\| ''\); bookKeep_\(\);/]] },
+  { file: 'cards-render.js', fn: 'paperInput_', has: 'class="bk-in',
+    why: 'the booking paper\'s typed box: the note and an admin\'s discount, answers in `BOOKING` kept whole as typed (`bookKeep_`); a saved booking\'s copy is disabled (docs/history/353)',
+    proof: [['book.js', /closest\('\[data-do="book-note"\]'\)[\s\S]{0,120}?BOOKING\.note = el\.value \|\| '';\s*bookKeep_\(\);/], ['book.js', /closest\('input\[data-do="book-disc"\]'\)[\s\S]{0,160}?BOOKING\.discValue = String\(el\.value \|\| ''\); bookKeep_\(\);/]] },
   { file: 'records.js', fn: 'profitControl_', has: 'data-pf=', count: 2,
     why: 'a term of the Profit card\'s sum (393) — slider and number box, kept as they move in `PROFIT.vals` on this device (`profitKeep_`), never sent',
     proof: [['records.js', /PROFIT\.vals\[el\.dataset\.pf\] = x;\s*profitKeep_\(\);/]] },
@@ -91,7 +90,6 @@ const EXEMPT = [
   { file: 'favlinks.js', fn: 'favDraw_', has: 'data-fav="url"', why: 'a favourite link\'s address (509) — pasted and Added in one press; a redraw keeps it, a reload draws the saved list' },
   { file: 'games.js', has: 'id="tt-answer"', why: 'a times-tables round — a reload is a new round, with a new question' },
   { file: 'tools.js', fn: 'ktPaint_', has: 'kt-in', why: 'touch typing — the line being typed IS the drill; the progress is kept (`kt`)' },
-  { file: 'book-spine.js', fn: 'discountSaid_', has: 'disabled aria-label="Discount', why: 'a saved booking\'s Discount box (owner, 8 Nov) is the form\'s box drawn disabled: nothing can be typed, it shows the saved figure' },
   { file: 'me.js', fn: 'ceWhere_', has: 'data-where-area', why: 'an area tick on Where you teach (owner, 8 Nov) only rewrites the hidden venues_ok box, saved by the card\'s Save; a reload draws the saved areas' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="expires_on"', why: 'a renewal\'s new expiry (10 Nov), picked and saved with Renewed in one press; a reload draws the saved expiry' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="done_on"', why: 'the Business checker\'s done-on date (1050) — picked and Marked done in one press; a reload draws the saved tick\'s date' },
@@ -103,7 +101,7 @@ const EXEMPT = [
   { file: 'lego.js', fn: '(top)', has: 'createElement(input)', why: 'the LEGO piece check\'s camera (owner, 12 Nov) — a photo taken, never typed; a half-shot batch is retaken after a reload' },
   { file: 'working.js', fn: '(top)', has: 'createElement(input)', why: 'the photo picker of 501 — a file chosen, never typed; the photos it adds live in WORK_PICS until Marked' },
   { file: 'records.js', fn: 'digestWordsCard_', has: 'data-dw=', why: 'the weekly email\'s four lines (491) — a few words edited and Saved in one sitting, with the preview beside them; a reload draws the saved words' },
-  { file: 'receipt.js', fn: '(top)', has: 'name="why" maxlength="200"', why: 'a tutor\'s optional one-line reason for declining a request (488) — typed and sent in one press; nothing is lost but a few words' },
+  { file: 'cards-render.js', fn: 'paperWhy_', has: 'name="why" maxlength="200"', why: 'a tutor\'s optional one-line reason for declining a request (488) — typed and sent in one press; nothing is lost but a few words' },
   { file: 'words.js', fn: 'wordsEditOn_', has: 'class="wk-ph"', why: 'a placeholder\'s words typed over in place (497) — a few words saved at once; a reload draws the saved or the code\'s wording' },
   /* THE STAFF HUB'S PRICING (405): a what-if moved and saved in one sitting; the saved rate is what a reload draws. */
   { file: 'staff.js', fn: 'ctl', has: 'type="range" data-pv', why: 'the Staff hub\'s rate and seat sliders (405) — moved and saved in one sitting; a reload draws the saved rate' },
@@ -138,6 +136,7 @@ const EXEMPT = [
   { file: 'map.js', has: 'id="dock-add"', why: 'one line, kept the moment Enter or + puts it on the docket' },
   { file: 'find.js', has: 'class="room-name"', why: 'a room name, a few words, prefilled and sent by the button under it' },
 ];
+[KEPT, EXEMPT].forEach(list => { for (let i = list.length - 1; i >= 0; i--) if (ATTIC_(list[i].file)) list.splice(i, 1); });
 
 /* ---------- THE BOXES ------------------------------------------------------------------------------------ */
 /* A TAG'S OWN TEXT, from `<` to its closing `>`, stepping over `${ … }` so an attribute written as an

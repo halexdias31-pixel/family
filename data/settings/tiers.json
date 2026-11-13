@@ -23,31 +23,31 @@
     "biz": "secondary"
   },
   "widgets": {
-    "reels": "secondary",
+    "reels": "off",
     "videos": "secondary",
-    "newspaper": "secondary",
+    "newspaper": "off",
     "homework": "off",
     "flyers": "off",
-    "mat": "secondary",
-    "timer": "secondary",
-    "docket": "secondary",
-    "notepad": "secondary",
-    "spotify": "secondary",
-    "speedread": "secondary",
-    "timetable": "secondary",
-    "typing": "secondary",
+    "mat": "off",
+    "timer": "off",
+    "docket": "off",
+    "notepad": "off",
+    "spotify": "off",
+    "speedread": "off",
+    "timetable": "off",
+    "typing": "off",
     "cart": "off",
     "shopfind": "secondary",
-    "calendar": "secondary",
+    "calendar": "off",
     "termdates": "secondary",
-    "countdowns": "secondary",
-    "favlinks": "secondary",
+    "countdowns": "off",
+    "favlinks": "off",
     "rewrite": "off",
     "poster": "off",
-    "pixel": "secondary",
+    "pixel": "off",
     "libcards": "secondary",
-    "console": "secondary",
-    "wordgames": "secondary"
+    "console": "off",
+    "wordgames": "off"
   },
   "kinds": {
     "question": "core",
@@ -162,10 +162,7 @@
     "book-rows": "core",
     "book-spine": "core",
     "receipt": "secondary",
-    "records": "secondary",
-    "biz-check": "secondary",
     "one-place": "secondary",
-    "mat": "secondary",
     "overworld": "secondary",
     "select": "core",
     "collections": "secondary",
@@ -186,7 +183,6 @@
     "staff": "secondary",
     "qr": "secondary",
     "flyer": "secondary",
-    "lego": "secondary",
     "help": "secondary",
     "layout": "secondary",
     "layout-moves": "secondary",
@@ -194,12 +190,6 @@
     "gtasks": "secondary",
     "push": "secondary",
     "offline": "secondary",
-    "tools": "secondary",
-    "games": "secondary",
-    "newspaper": "secondary",
-    "spotify": "secondary",
-    "favlinks": "secondary",
-    "pixel": "secondary",
     "inbox": "secondary",
     "missing": "secondary",
     "boot": "core"
@@ -312,8 +302,6 @@
     "check-accounts.js": "core",
     "check-staff.js": "secondary",
     "check-flyer.js": "secondary",
-    "check-lego.js": "secondary",
-    "check-biz.js": "secondary",
     "check-posts.js": "secondary",
     "check-suggest.js": "secondary",
     "check-library-ledger.js": "core",
@@ -410,7 +398,6 @@
     "secondary": "\\b(basket|posts?|venue|rooms?|tutors?|staff|reels?|videos?|console|games?|chess|board ?games?|widgets?|feed|shop|receipt|digest|suggest|rewrite|bible|talmud|quran|hadith|hymns?|verse|e-ink|spotify|flyer|poster|pixel|docket|notepad|timer|timetable|typing|countdowns?|racer|layout|calendar|spotlight|messages?|DMs?|chat|seats?|pay(ment)?|stripe|invoice|profit|apprentices?|whiteboard|library cards?|mat|newspaper|term dates|favourite|tasks|push|inbox|email|notifications?|saved|cheat sheet|score board|scramble|word search|films?|starred|star|progress|profiles?|stability)\\b"
   },
   "later": [
-    "mat",
     "facts",
     "keypad-keys",
     "keypad-pad",
@@ -425,13 +412,10 @@
     "working",
     "work-file",
     "receipt",
-    "records",
-    "biz-check",
     "one-place",
     "staff",
     "qr",
     "flyer",
-    "lego",
     "inbox",
     "gtasks",
     "push",
@@ -477,51 +461,13 @@
     "find-pages",
     "find-settled",
     "find-quick",
-    "find-measure",
-    "tools",
-    "games",
-    "newspaper",
-    "spotify",
-    "favlinks",
-    "pixel"
+    "find-measure"
   ],
   "lazy": [
-    "mat",
-    "records",
-    "biz-check",
     "one-place",
-    "inbox",
-    "tools",
-    "games",
-    "newspaper",
-    "spotify",
-    "favlinks",
-    "pixel"
+    "inbox"
   ],
-  "widgetFiles": {
-    "tools": [
-      "timer",
-      "calendar",
-      "timetable",
-      "typing"
-    ],
-    "games": [
-      "console",
-      "wordgames"
-    ],
-    "newspaper": [
-      "newspaper"
-    ],
-    "spotify": [
-      "spotify"
-    ],
-    "favlinks": [
-      "favlinks"
-    ],
-    "pixel": [
-      "pixel"
-    ]
-  },
+  "widgetFiles": {},
   "frozen": {
     "notes": "FROZEN (owner, 7 Nov 2026; docs/history/1090): only Find, the library, questions, settings and bookings matter for now. tools/health.js leaves these js/ file stems out of its score and worklist, beside every non-core file above. Unfreeze: take a stem off this list.",
     "files": [
@@ -539,7 +485,6 @@
       "inbox",
       "push",
       "gtasks",
-      "mat",
       "collections",
       "reader",
       "writings",

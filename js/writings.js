@@ -259,13 +259,16 @@ function readingFill_(x, tpl) {
 const readingTitle_ = x => readingFill_(x, (READING_REF[x && x.kind] || {}).title) || (x && x.name) || '';
 const readingRef_ = x => readingFill_(x, (READING_REF[x && x.kind] || {}).ref) || (x && x.name) || '';
 /* THE ONE CARD: `o.body` is the text (or its loader); `o.cls`, `o.bodyCls`, `o.data` keep each source's hooks for its redraw. */
+/* ITS TEXT IS THE READING EMBED'S (filled by its source's loader, redrawn in place); the card around it is a spec. */
+const READING_BODY = {};
+CARD_EMBEDS.reading = a => READING_BODY[a.key] || '';
 function readingCard_(x, o) {
   o = o || {};
-  const attrs = d => Object.keys(d || {}).map(n => ` data-${n}="${esc(String(d[n] == null ? '' : d[n]))}"`).join('');
   const title = readingTitle_(x), ref = readingRef_(x);
-  /* THE ONE CARD SHAPE (owner 1a, 8 Nov): its heading is the head, its tags the tags, its text the lines (`findCard`). */
-  return findCard(Object.assign({}, x, { kcOwn: { cls: 'rd ' + (o.cls || ''),
-    attrs: ` data-key="${esc(x.key)}" data-rd="${esc(x.kind || '')}"${attrs(o.cardData)}`,
-    head: `<div class="rd-head"><h3 class="rd-title">${esc(title)}</h3>${ref && ref !== title ? `<span class="rd-ref">${esc(ref)}</span>` : ''}</div>`,
-    tags: tagRow_(x), lines: `<div class="rd-body ${esc(o.bodyCls || '')}"${attrs(o.data)}>${o.body || ''}</div>` } }));
+  READING_BODY[x.key] = o.body || '';
+  return renderCard({ kind: x.kind, key: x.key, item: x, name: title, look: 'rd ' + (o.cls || ''),
+    data: Object.assign({ key: x.key, rd: x.kind || '' }, o.cardData || {}),
+    tags: [{ text: title, colour: 0 }].concat(tagList_(x)),
+    body: [ref && ref !== title ? { type: 'text', look: 'rd-ref', text: ref } : null,
+      { type: 'embed', tool: 'reading', look: 'rd-body ' + (o.bodyCls || ''), data: o.data, args: { key: x.key } }] });
 }

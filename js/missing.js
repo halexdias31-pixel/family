@@ -38,7 +38,7 @@ const missingLeadN_ = () => HEALTH_IN_FIND ? 0 : (LOGIC_SHOWN && logicFor_() ? 1
 /* ONE SCORE (890): `health` is the Optimiser; the Logic health card stays written but is off behind LOGIC_SHOWN. */
 const LOGIC_SHOWN = false;
 /* SETTINGS CARDS IN FIND BESIDE THE HEALTH ONES, drawn by their own files: the business checker (1050). */
-const HEALTH_MORE_ = { bizcheck: () => (typeof bizCheckCard_ === 'function' ? bizCheckCard_() : '') };
+const HEALTH_MORE_ = { bizcheck: () => (typeof window.bizCheckCard_ === 'function' ? window.bizCheckCard_() : '') };
 function healthCardOf_(which) {
   if (HEALTH_MORE_[which]) return HEALTH_MORE_[which]();
   /* ONE CARD (owner, 6 Nov): the Optimiser holds What's missing too, how complete Find's resources are, under its score. */

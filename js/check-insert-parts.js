@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* node js/check-insert-parts.js — ONE ITEM PER SHEET AND PER PART (4.12): no two inserts or two parts with the same content. */
-/* Every line is a part with an id from its sheet; a formula shared by sheets is one part. */
+/* Every line is a part with an id from its sheet; a formula shared by sheets is one part; no whole-sheet card is drawn (owner, 13 Nov). */
 'use strict';
 require('../check/quiet');
 const fs = require('fs');
@@ -24,5 +24,8 @@ rows.forEach(r => {
     else part[c] = l.id;
   }));
 });
+const find = ['js/find-aloud.js', 'js/find-history.js'].map(f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8')).join('\n');
+if (!/DATA\.inserts \|\| \[\]\)\.filter\(insReading_\)\.map\(insertItem_\)/.test(find)) bad.push('find-aloud.js lists whole formula sheets: only reading inserts are whole, a sheet is its parts');
+if (!/-table'/.test(find)) bad.push("find-history.js insertParts_ no longer makes a sheet's table its own part");
 if (bad.length) { console.log('FAILED — insert parts:\n  ' + bad.join('\n  ')); process.exit(1); }
 console.log('OK — ' + rows.length + ' inserts, ' + Object.keys(part).length + ' parts, each once with a parent');

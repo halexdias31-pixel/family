@@ -22,6 +22,7 @@
   "get-shop.gs",
   "dopost.gs",
   "post-account.gs",
+  "post-signin.gs",
   "post-family.gs",
   "post-content.gs",
   "post-learning.gs",
