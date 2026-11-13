@@ -274,7 +274,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       const k = t.getAttribute('data-k'), mark = t.closest('.qp-mark');
       if (!k || !mark || ![...mark.querySelectorAll('.qp-work')].some(s => s.getAttribute('data-k') === k)) bad('photo', x, 'its Photo of working tile has no strip with its key to show the photos in');
     });
-    const boxes = n('.qp-mark .qp-ans-in:not(.kp-in[data-do="qp-multi"])') + n('.qp-multi') + n('.qp-cells-box');
+    const boxes = n('.qp-mark:not(.qp-cells-box) .qp-ans-in:not(.kp-in[data-do="qp-multi"])') + n('.qp-multi') + n('.qp-cells-box');
     if (boxes !== 1) bad('box', x, boxes + ' answer boxes, wanted one');
     if (pen) count.drawn++;
     else if (DRAWN.has(type) && type !== 'label') bad('pen', x, 'a ' + type + ' part with no pen');
@@ -313,6 +313,9 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
           count.selfTested++;
           const m = w.markCells_(cells.map(c => firstWay(c.ways)), cells);
           if (m.right !== m.of) bad('self', x, 'its own cells score ' + m.right + ' of ' + m.of);
+          /* AND TYPED IN THE ONE BOX, as the stored "a ; b ; c" (owner, 13 Nov) */
+          const one = w.markCells_(asked.map(c => firstWay(c.ways)).join(' ; '), cells);
+          if (one.right !== one.of) bad('self', x, 'its own answers in one box score ' + one.right + ' of ' + one.of);
           const z = w.markCells_(cells.map(() => WRONG[0]), cells);
           if (z.right === z.of) bad('self', x, 'a nonsense answer fills every cell right');
         }

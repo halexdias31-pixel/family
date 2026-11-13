@@ -15,10 +15,10 @@ const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
 const SHOTS = ((process.argv.find(a => a.startsWith('--shots=')) || '').split('=')[1] || '');
 const USER = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], handle: 'testadmin' };
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2' };
-/* THE OWNER'S PAGES: 5a's four Venn boxes, 5b's part and the answer page above it, 6b's long part (a page in front), and a stem's page (9MA0 2024 Q6). */
-const ROWS = ['Q-1MA1-2306-1H-5a', 'Q-1MA1-2306-1H-5b', 'Q-1MA1-2306-1H-6b', 'Q-9MA0-2406-P1-6a', 'Q-STA-KS2-2024-P2-5'];
+/* THE OWNER'S PAGES: 5a's four Venn gaps, 5b's part and the answer page above it, 6b's long part (a page in front), a stem's page (9MA0 2024 Q6), a physics word bank. */
+const ROWS = ['Q-1MA1-2306-1H-5a', 'Q-1MA1-2306-1H-5b', 'Q-1MA1-2306-1H-6b', 'Q-9MA0-2406-P1-6a', 'Q-STA-KS2-2024-P2-5', 'Q-W-AT-P-energy-2a'];
 const FOOT = ['help-hand', 'fav', 'rep-box', 'find-top'];
-const WIDTHS = [390, 320];
+const WIDTHS = (process.env.BOXES_WIDTHS || '390,320').split(',').map(Number);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const fail = [];
 let looked = 0, boxed = 0;
@@ -45,6 +45,8 @@ const measure = (page, row, back) => page.evaluate(async ([r, back, FOOT]) => {
   const hit = stuffItemsAll_().find(x => x.row && x.row.row_id === r);
   if (!hit) return { err: r + ' is not in the library' };
   STUFF.filters = [{ field: 'paperId', value: hit.row.paper_id }];
+  /* THE PAPER'S CHIP STILL ASKS (1100), so its cards are shown as the reveal tile shows them */
+  findShow_();
   paintStuff(true);
   await new Promise(z => setTimeout(z, 500));
   const h2 = stuffFiltered().find(x => x.row && x.row.row_id === r) || hit;
@@ -62,8 +64,9 @@ const measure = (page, row, back) => page.evaluate(async ([r, back, FOOT]) => {
   const cr = card.getBoundingClientRect();
   const lastTile = tiles[tiles.length - 1];
   const below = lastTile ? [...card.querySelectorAll('*')].filter(e => { const b = e.getBoundingClientRect(); return b.height > 0 && b.top > lastTile.getBoundingClientRect().bottom + 2 && (e.textContent || '').trim(); }).length : 0;
-  const cells = [...card.querySelectorAll('.qp-cells .qp-cell')].map(c => { const b = c.getBoundingClientRect(); const l = c.closest('.qp-cell-l'); const s = l && l.querySelector('span'); const sb = s && s.getBoundingClientRect();
-    return { w: Math.round(b.width), top: b.top, bottom: b.bottom, label: s ? s.textContent : '', lmid: sb ? (sb.top + sb.bottom) / 2 : null, lright: sb ? sb.right : null, left: b.left }; });
+  const gapBox = card.querySelector('.qp-cells-box');
+  const cells = gapBox && !card.querySelector('table[data-cells]') ? { boxes: gapBox.querySelectorAll('.qp-ans-in').length, loose: card.querySelectorAll('.qp-cell').length,
+    hint: !!gapBox.querySelector('.qp-cells-hint'), wide: Math.round((gapBox.querySelector('.kp-field') || gapBox).getBoundingClientRect().width), inside: Math.round(gapBox.getBoundingClientRect().width) } : null;
   return { kind, lines: lines.map(l => l.acts), below, cells, inside: cr.width };
 }, [row, back, FOOT]);
 
@@ -94,17 +97,12 @@ const measure = (page, row, back) => page.evaluate(async ([r, back, FOOT]) => {
           if (last.join(' ') !== FOOT.join(' ')) fail.push(`${at}, ${m.kind} page: its last line of tiles is [${last.join(', ')}], wanted [${FOOT.join(', ')}] on a line of its own`);
           if (m.lines.slice(0, -1).some(l => l.some(a => FOOT.indexOf(a) !== -1))) fail.push(`${at}, ${m.kind} page: a foot tile sits on a line above the foot: ${JSON.stringify(m.lines)}`);
           if (m.below) fail.push(`${at}, ${m.kind} page: ${m.below} thing(s) with words stand under the foot`);
-          /* THE BOXES: one a line, one width, each beside its own name. */
-          if (m.cells.length) {
+          /* EVERY GAP IN ONE BOX (owner, 13 Nov): one box, the line saying to write them in order, no loose cells, the line's width. */
+          if (m.cells) {
             boxed++;
-            const ws = m.cells.map(c => c.w);
-            if (Math.max(...ws) - Math.min(...ws) > 1) fail.push(`${at}: its ${m.cells.length} boxes are ${ws.join(', ')}px wide — not one width`);
-            m.cells.forEach((c, i) => {
-              if (i && c.top < m.cells[i - 1].bottom - 1) fail.push(`${at}: box "${c.label}" shares a line with "${m.cells[i - 1].label}"`);
-              if (c.lmid !== null && (c.lmid < c.top || c.lmid > c.bottom)) fail.push(`${at}: the name "${c.label}" is not on its box's line`);
-              if (c.lright !== null && c.lright > c.left + 1) fail.push(`${at}: the name "${c.label}" runs under its box`);
-            });
-            if (new Set(m.cells.map(c => Math.round(c.left))).size > 1) fail.push(`${at}: the boxes do not stand in one column`);
+            if (m.cells.boxes !== 1 || m.cells.loose) fail.push(`${at}: its gaps draw ${m.cells.boxes} box(es) and ${m.cells.loose} loose cell(s) — wanted one box`);
+            if (!m.cells.hint) fail.push(`${at}: no line says to write the answers in order`);
+            if (m.cells.wide < m.cells.inside * 0.6) fail.push(`${at}: the one box is ${m.cells.wide}px of ${m.cells.inside}px — not the line's width`);
           }
         }
       }
@@ -115,5 +113,5 @@ const measure = (page, row, back) => page.evaluate(async ([r, back, FOOT]) => {
   } finally { await browser.close(); server.close(); }
   if (!boxed) fail.push('no page with boxes to type in was seen — the boxes were NOT checked');
   if (fail.length) { console.log('BOXES: ' + fail.length + ' fault(s)'); fail.forEach(f => console.log('  ' + f)); process.exit(1); }
-  console.log(`boxes: ${looked} question pages at ${WIDTHS.join(' and ')}px — every foot last and alike, ${boxed} sets of boxes one a line and one width`);
+  console.log(`boxes: ${looked} question pages at ${WIDTHS.join(' and ')}px — every foot last and alike, ${boxed} gap parts in one box with its line`);
 })().catch(e => { console.log('COULD NOT RUN — ' + e.message); process.exit(1); });

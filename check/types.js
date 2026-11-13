@@ -206,7 +206,7 @@ async function expectSay(env, ctx, want, when) {
   const v = await verdict(env);
   const s = v.says.join(' / ');
   const ok = want === 'wrong'
-    ? v.says.length && v.says.every(x => /^Not yet|^\d+ of \d+ (marks?|cells right)/.test(x) && !/^(\d+) of \1 /.test(x))
+    ? v.says.length && v.says.every(x => /^Not yet|^\d+ of \d+ (marks?|cells right|answers right)/.test(x) && !/^(\d+) of \1 /.test(x))
     : v.says.length && v.says.some(x => /^Correct|^(\d+) of \1 marks?/.test(x));
   if (!ok) fail(env.E, ctx.t, ctx.row, `${when}: the card says "${s || 'nothing'}" -- wanted ${want === 'wrong' ? '"Not yet"' : '"Correct"'}`);
   if (/see Answers/.test(s)) fail(env.E, ctx.t, ctx.row, `${when}: the verdict points at "Answers", and nothing on the card is called that`);
@@ -531,8 +531,21 @@ async function driveCells(env, ctx) {
     /* EACH CELL BY ITS OWN data-n: a `-` in `cells` is a given, drawn as no cell at all */
     const els = [...document.querySelectorAll(sel + ' .qp-cell')];
     const way = c => String((c && c.ways) || '').split('|')[0].trim();
-    return { n: els.length, right: els.map(e => way(cells[+e.getAttribute('data-n')])), raw: JSON.stringify(cells).slice(0, 200) };
+    const one = !els.length && document.querySelector(sel + ' .qp-cells-box .qp-ans-in');
+    return { n: els.length, one: !!one, all: cells.filter(c => c.ways).map(way), right: els.map(e => way(cells[+e.getAttribute('data-n')])), raw: JSON.stringify(cells).slice(0, 200) };
   }, C);
+  /* EVERY GAP IN ONE BOX (owner, 13 Nov): typed with commas, first one wrong, then right */
+  if (o.one) {
+    const BOX = C + ' .qp-cells-box .qp-ans-in', FACE = C + ' .qp-cells-box .kp-field';
+    if (o.all.some(v => !v)) return 'cannot read a right value per gap from cellsOf_: ' + o.raw;
+    await typeInto(env, ctx, BOX, 0, ['zzz9'].concat(o.all.slice(1)).join(', '), 'the gaps box', FACE);
+    await tap(env, ctx, C + ' [data-do="qp-cells-check"]', 0, 'Check', { wait: 400 });
+    await expectSay(env, ctx, 'wrong', 'after one gap wrong');
+    await typeInto(env, ctx, BOX, 0, o.all.join(', '), 'the gaps box, refilled', FACE);
+    await tap(env, ctx, C + ' [data-do="qp-cells-check"]', 0, 'Check', { wait: 400 });
+    await expectSay(env, ctx, 'right', 'after every gap right');
+    return '';
+  }
   if (!o.n) return 'no cells on the card';
   if (o.right.some(v => !v)) return 'cannot read a right value per cell from cellsOf_: ' + o.raw;
   const CELL = C + ' .qp-cell';
@@ -551,7 +564,7 @@ async function driveDrawn(env, ctx) {
   const has = await env.page.evaluate(([p, s]) => !!document.querySelector(p) && !!document.querySelector(s), [PAD, SEND]);
   if (!has) {
     /* A LABEL MAY BE CELLS OR A BOX RATHER THAN THE PEN (QTYPE_PROTOCOL.label): driven by what the card draws */
-    const k = await env.page.evaluate(sel => document.querySelector(sel + ' .qp-cell') ? 'cells' : document.querySelector(sel + ' .qp-ans-in') ? 'typed' : '', C);
+    const k = await env.page.evaluate(sel => document.querySelector(sel + ' .qp-cell, ' + sel + ' .qp-cells-box .qp-ans-in') ? 'cells' : document.querySelector(sel + ' .qp-ans-in') ? 'typed' : '', C);
     if (k === 'cells') return driveCells(env, ctx);
     if (k === 'typed') return driveTyped(env, ctx);
     return 'no pen pad, cells or box on the card';

@@ -4966,18 +4966,72 @@ function cellsOf_(x) {
     return { label: m ? m[1].trim() : String(i + 1), ways: ways === '-' ? '' : ways };
   });
 }
-/* EVERY BLANK TYPED IN THE FIRST BOX ("chemical, kinetic"): split on commas, `;` or "and", in order, when that gives one a blank. */
+/* EVERY GAP TYPED IN ONE BOX (owner, 13 Nov): read however the child parts them -- `;` `,` `/` new lines "and" "then", numbered or not -- first answer, first gap. */
 function cellsOneBox_(vals, cells) {
-  const v = vals || [], asked = cells.filter(c => c.ways).length;
-  if (asked < 2 || v.slice(1).some(s => String(s || '').trim())) return v;
-  const bits = String(v[0] || '').split(/\s*(?:[,;]|\band\b)\s*/i).map(s => s.trim()).filter(Boolean);
-  if (bits.length !== asked) return v;
+  const v = vals || [], asked = cells.filter(c => c.ways);
+  if (!asked.length || v.slice(1).some(s => String(s || '').trim()) || !String(v[0] || '').trim()) return v;
+  const got = gapsSplit_(String(v[0]), asked);
   let n = 0;
-  return cells.map(c => (c.ways ? bits[n++] : ''));
+  return cells.map(c => (c.ways ? got[n++] || '' : ''));
 }
-/* EACH CELL MARKED ON ITS OWN by `markAnswer_`: `{ right, of, each }`, `each[i]` true, false, or null for nothing typed. */
+/* NUMBERING IN FRONT ("1) x 2) y", "(a) x", "a x b y") parts answers only as a run from the start counting up; a bare number never does. */
+const GAP_RUNS = [['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'], ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x'],
+  ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']];
+function gapsUnnumber_(s) {
+  for (const run of GAP_RUNS) {
+    const bare = run[0] === 'a';
+    let at = 0, out = '', i = 0;
+    for (; i < run.length; i++) {
+      const re = new RegExp('(?:^|[\\s,;/])\\(?' + run[i] + (bare ? '(?:\\)|[.:](?=\\s)|(?=\\s))' : '(?:\\)|[.:](?=\\s))') + '\\s*', 'ig');
+      re.lastIndex = at;
+      const m = re.exec(s);
+      if (!m || (i === 0 && m.index !== 0)) break;
+      out += s.slice(at, m.index) + (i ? '\n' : '');
+      at = m.index + m[0].length;
+    }
+    if (i >= 2) return out + s.slice(at);
+  }
+  return s;
+}
+/* A GAP'S OWN NAME IN FRONT ("Top = pentagon") and stray punctuation round an answer come off. */
+const gapClean_ = (p, c) => { let s = String(p).trim();
+  if (c && c.label && !/^\d+$/.test(c.label)) s = s.replace(new RegExp('^\\(?' + c.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\)?\\s*[=:]\\s*', 'i'), '');
+  return s.replace(/^[\s,;:!?"'‘’“”]+|[\s,;:!?."'‘’“”]+$/g, ''); };
+/* THE FINEST CUT, as [start, end] spans; at a plain space too only where every way of every gap is one word. */
+function gapSpans_(s, spaces) {
+  const re = new RegExp('\\s*(?:[\\n;,/|&]|\\b(?:and\\s+then|and|then)\\b)\\s*' + (spaces ? '|\\s+' : ''), 'gi');
+  const out = [];
+  let at = 0, m;
+  while ((m = re.exec(s))) { if (!m[0]) { re.lastIndex++; continue; } if (m.index > at) out.push([at, m.index]); at = m.index + m[0].length; }
+  if (at < s.length) out.push([at, s.length]);
+  return out.filter(([a, b]) => gapClean_(s.slice(a, b)));
+}
+/* PIECES JOINED BACK where the cut fell inside one answer ("3,000", "1/2", "bread and butter"): kept in order, the grouping that marks most right. */
+function gapsFit_(s, spans, gaps) {
+  const n = gaps.length, m = spans.length, text = (a, b) => s.slice(spans[a][0], spans[b - 1][1]);
+  if (m <= n || m > 30) return gaps.map((c, j) => (j < m ? gapClean_(m > n && j === n - 1 ? text(j, m) : text(j, j + 1), c) : ''));
+  const best = [], from = [];
+  for (let i = 0; i <= m; i++) { best.push(new Array(n + 1).fill(-1)); from.push(new Array(n + 1).fill(0)); }
+  best[0][0] = 0;
+  for (let j = 1; j <= n; j++) for (let i = j; i <= m - (n - j); i++) for (let a = j - 1; a < i; a++) {
+    if (best[a][j - 1] < 0) continue;
+    const sc = best[a][j - 1] + (markAnswer_(gapClean_(text(a, i), gaps[j - 1]), gaps[j - 1].ways) === true ? 1 : 0);
+    if (sc > best[i][j]) { best[i][j] = sc; from[i][j] = a; }
+  }
+  const out = [];
+  for (let j = n, i = m; j >= 1; j--) { const a = from[i][j]; out.unshift(gapClean_(text(a, i), gaps[j - 1])); i = a; }
+  return out;
+}
+/* ONE BOX'S TEXT AS ITS GAPS' ANSWERS, in order: the separators read, then plain spaces too when every answer is one word, whichever marks more. */
+function gapsSplit_(raw, gaps) {
+  const s = gapsUnnumber_(String(raw || '').replace(/\r/g, '').trim());
+  const oneWord = gaps.every(c => String(c.ways).split('|').every(w => !/\S\s+\S/.test(w.trim())));
+  const score = v => v.filter((p, j) => markAnswer_(p, gaps[j].ways) === true).length;
+  return [false].concat(oneWord ? [true] : []).map(sp => gapsFit_(s, gapSpans_(s, sp), gaps)).reduce((a, b) => (score(b) > score(a) ? b : a));
+}
+/* EACH CELL MARKED ON ITS OWN by `markAnswer_`: `{ right, of, each }`, `each[i]` true, false, or null for nothing typed; one box's text is read as every gap. */
 function markCells_(vals, cells) {
-  vals = cellsOneBox_(vals, cells);
+  vals = cellsOneBox_(typeof vals === 'string' ? [vals] : vals, cells);
   const each = cells.map((c, i) => c.ways ? markAnswer_(vals[i] || '', c.ways) : undefined);
   const asked = each.filter(v => v !== undefined);
   return { right: asked.filter(v => v === true).length, of: asked.length, each: each };
@@ -5017,15 +5071,22 @@ const cellsCardHtml_ = x => {
   try { const c = partChunks_(x); return c.length ? chunkHtml_(c[c.length - 1], null, x) : String((x && x.html) || ''); }
   catch (e) { return String((x && x.html) || ''); }
 };
+/* THE ONE LINE OVER A SENTENCE OF GAPS: how many, in order, and their names where the question gives them. */
+function cellsHint_(cells) {
+  const asked = cells.filter(c => c.ways), named = asked.filter(c => !/^\d+$/.test(c.label)).map(c => c.label);
+  return 'Write the ' + asked.length + ' answers in order' + (named.length === asked.length ? ': ' + named.join(', ') : '');
+}
+/* EVERY GAP IN ONE BOX (owner, 13 Nov), the one answer box; a table's blanks are still filled where they stand. */
 function cellsBox_(x) {
   const cells = cellsOf_(x), k = ansKey_(x);
   /* IN THE TABLE ON THIS CARD, not merely in the part's words: a long part's table on a page in front had no box anywhere (457) */
   const inTable = !!cellsTable_(x, cellsCardHtml_(x));
-  const vals = cellsVals_(ansRead_(k));
-  const row = inTable ? '' : `<div class="qp-cells">${cells.map((c, i) => c.ways
-    ? `<label class="qp-cell-l"><span>${esc(c.label)}</span>${cellInput_(k, c, i, vals[i])}</label>` : '').join('')}</div>`;
-  const said = subBoxSay_(k, ansRead_(k));
-  return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${row}
+  const val = String(ansRead_(k) || '').replace(/(?:\s*;\s*)+$/, '');
+  const maths = cells.filter(c => c.ways).every(c => /^[-\d.,\s|£$%°/]+$/.test(c.ways));
+  const one = inTable ? '' : `<p class="qp-cells-hint">${esc(cellsHint_(cells))}</p><div class="qp-ans-row qp-bar"><label class="qp-ans${
+    maths ? ' qp-ans-maths' : ''}" aria-label="Your answers, in order">${kpField_(k, val, maths ? 'maths' : 'words', 3)}</label></div>`;
+  const said = subBoxSay_(k, val);
+  return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${one}
     ${qtRow_(x)}${workStrip_(x)}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
@@ -5049,7 +5110,9 @@ on('qp-cells-check', el => {
   const out = box && box.querySelector('.qp-verdict');
   const x = box && stuffItemsAll_().find(it => ansKey_(it) === box.getAttribute('data-k'));
   if (!x || !out) return;
-  const vals = cellsRead_(box), m = markCells_(vals, cellsOf_(x));
+  const cells = cellsOf_(x), inp = box.querySelector('.qp-ans-in');
+  let vals = inp ? [inp.value] : cellsRead_(box);
+  const m = markCells_(vals, cells);
   cellsIn_(box).forEach(c => {
     const v = m.each[+c.getAttribute('data-n')];
     c.classList.toggle('is-right', v === true);
@@ -5058,9 +5121,17 @@ on('qp-cells-check', el => {
   box.classList.remove('is-right', 'is-near');
   const notYet = partReady_('cells', m);
   if (notYet) { out.textContent = notYet; return; }
+  /* ONE BOX READ BACK AS IT WAS UNDERSTOOD, "a ; b ; c" -- the stored form every saved answer already has */
+  const got = inp ? cellsOneBox_(vals, cells) : vals;
+  if (inp && cells.every((c, i) => !c.ways || String(got[i] || '').trim())) {
+    inp.value = got.join(' ; ');
+    if (typeof kpRender_ === 'function') kpRender_(inp);
+    ansStore_(box.getAttribute('data-k'), inp.value, inp.getAttribute('data-kp') === 'words');
+    vals = [inp.value];
+  }
   const all = m.right === m.of;
   box.classList.add(all ? 'is-right' : 'is-near');
-  out.textContent = all ? 'Correct — every cell' : m.right + ' of ' + m.of + ' cells right';
+  out.textContent = all ? 'Correct — every ' + (inp ? 'answer' : 'cell') : m.right + ' of ' + m.of + (inp ? ' answers' : ' cells') + ' right';
   subRecord_(box.getAttribute('data-k'), vals.join(' ; '), all ? 'right' : 'wrong');
 });
 
