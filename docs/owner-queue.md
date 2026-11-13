@@ -76,3 +76,14 @@ One list, so nothing asked for gets lost. Claude ticks items off here when they 
 - [ ] Mathematicians as people (no theorems database)
 - [ ] Countries, with capitals, major cities and flags (cities and capitals are their own items, linked)
 - [ ] Solar system: planets and moons, with sizes and distances
+
+## Texts and history to database (owner, 13 Nov)
+- [ ] Church Fathers: as historical people, plus their writings (public domain) down to chapter and section
+- [ ] Apocrypha and Pseudepigrapha down to the verse (check what is already in; fill the rest)
+- [ ] Creeds (Nicene, Apostles', Athanasian) line by line; Westminster Shorter Catechism Q&A
+- [ ] Catechism of the Catholic Church: copyrighted, so record its structure (parts, sections, chapters, paragraph numbers and titles) plus our own short summaries; never its text
+- [ ] Plato and Aristotle as people, plus their works by Stephanus and Bekker numbers
+- [ ] Check Magna Carta and the Bill of Rights are in; add any missing clauses
+- [ ] Rulers as people: kings of Israel and Judah, English monarchs, Roman emperors, popes
+- [ ] Dead Sea Scrolls: each scroll, its contents and its find-place
+- [ ] Ancient inscriptions: Rosetta Stone, Mesha Stele, Tel Dan and so on
