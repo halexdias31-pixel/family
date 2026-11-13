@@ -105,7 +105,7 @@
     "bohr",
     "chadwick"
    ],
-   "asked": 40
+   "asked": 34
   },
   {
    "id": "4.1.1.4",
@@ -136,7 +136,7 @@
     "size atom",
     "nucleus radius"
    ],
-   "asked": 11
+   "asked": 9
   },
   {
    "id": "4.1.1.6",
@@ -232,7 +232,7 @@
     "q:Q-AQA-8462-2406-1H-026",
     "q:Q-AQA-8462-2406-1H-027"
    ],
-   "asked": 141
+   "asked": 117
   },
   {
    "id": "4.1.2.5",
@@ -245,7 +245,7 @@
     "q:Q-AQA-8462-2406-1H-026",
     "q:Q-AQA-8462-2406-1H-027"
    ],
-   "asked": 141
+   "asked": 117
   },
   {
    "id": "4.1.2.6",
@@ -258,7 +258,7 @@
     "q:Q-AQA-8462-2406-1H-026",
     "q:Q-AQA-8462-2406-1H-027"
    ],
-   "asked": 141
+   "asked": 117
   },
   {
    "id": "4.1.3",
@@ -411,7 +411,7 @@
    "figure": [
     "structure"
    ],
-   "asked": 27
+   "asked": 25
   },
   {
    "id": "4.2.2.2",
@@ -652,8 +652,8 @@
     "ct:TB-AQA-8462-36",
     "q:Q-AQA-8462-2406-1H-076",
     "q:Q-AQA-8464C-2406-1H-025",
-    "q:Q-AQA-8464B-2011-2H-064",
-    "q:S-Q-AQA-8464B-2506-1H-04"
+    "q:Q-AQA-8464C-2406-1F-075",
+    "q:Q-AQA-8464C-2506-1F-034"
    ],
    "keys": [
     "mass increase",
@@ -664,7 +664,7 @@
    "figure": [
     "apparatus"
    ],
-   "asked": 18
+   "asked": 11
   },
   {
    "id": "4.3.1.4",
@@ -673,15 +673,13 @@
    "links": [
     "ct:TB-AQA-8462-37",
     "q:Q-AQA-8462-2406-1H-045",
-    "q:Q-AQA-8464C-2111-2H-053",
-    "q:Q-AQA-8464P-1806-1H-023",
-    "q:Q-AQA-8464P-2206-1H-042"
+    "q:Q-AQA-8464C-2111-2H-053"
    ],
    "keys": [
     "uncertainty",
     "range mean"
    ],
-   "asked": 5
+   "asked": 2
   },
   {
    "id": "4.3.2",
@@ -701,7 +699,7 @@
     "q:Q-AQA-8464C-2406-1H-045"
    ],
    "ht": true,
-   "asked": 51
+   "asked": 47
   },
   {
    "id": "4.3.2.2",
@@ -720,20 +718,23 @@
     "calculate mass"
    ],
    "ht": true,
-   "asked": 183
+   "asked": 131
   },
   {
    "id": "4.3.2.3",
    "text": "Using moles to balance equations (HT only)",
    "parent": "4.3.2",
    "links": [
-    "ct:TB-AQA-8462-40"
+    "ct:TB-AQA-8462-40",
+    "q:Q-W-SP-C-moles-balance-1a",
+    "q:Q-W-SP-C-moles-balance-1b"
    ],
    "keys": [
     "balance equation moles",
     "balanced equation mass"
    ],
-   "ht": true
+   "ht": true,
+   "asked": 2
   },
   {
    "id": "4.3.2.4",
@@ -756,9 +757,9 @@
     "q:Q-AQA-8462-2406-2H-015",
     "q:Q-AQA-8462-2406-1F-036",
     "q:Q-AQA-8462-2406-2F-085",
-    "q:S-AQA-8464B-2406-1H-02"
+    "q:Q-AQA-8464C-1906-1F-065"
    ],
-   "asked": 37
+   "asked": 28
   },
   {
    "id": "4.3.3",
@@ -798,12 +799,12 @@
    "parent": "4.3",
    "links": [
     "ct:TB-AQA-8462-45",
-    "q:S-Q-AQA-8464B-1806-1H-04",
-    "q:Q-AQA-8464B-1806-1H-044",
-    "q:Q-AQA-8464B-2011-1F-052",
-    "q:Q-AQA-8464B-2011-1F-055"
+    "q:Q-AQA-8464C-1906-1F-065",
+    "q:Q-AQA-8464C-1906-1H-015",
+    "q:Q-AQA-8464C-1906-2H-042",
+    "q:Q-AQA-8464C-2011-1H-048"
    ],
-   "asked": 31
+   "asked": 25
   },
   {
    "id": "4.3.5",
@@ -814,14 +815,14 @@
     "q:Q-AQA-8462-2406-1H-076",
     "q:Q-AQA-8462-2406-2H-054",
     "q:Q-AQA-8462-2406-2H-092",
-    "q:Q-AQA-8464B-2111-1H-034"
+    "q:Q-AQA-8464C-1806-1F-046"
    ],
    "keys": [
     "volume gas",
     "dm3 gas",
     "24 dm"
    ],
-   "asked": 32
+   "asked": 30
   },
   {
    "id": "4.4.1",
@@ -936,7 +937,7 @@
     "ph",
     "indicator"
    ],
-   "asked": 56
+   "asked": 50
   },
   {
    "id": "4.4.2.5",
@@ -1121,7 +1122,7 @@
     "draw",
     "graph"
    ],
-   "asked": 97
+   "asked": 94
   },
   {
    "id": "4.6.1.2",
@@ -1360,12 +1361,12 @@
    "parent": "4.7.2",
    "links": [
     "ct:TB-AQA-8462-84",
-    "q:Q-AQA-8464P-2206-2F-052",
     "q:S-Q-OCR-J248-1806-02-25",
     "q:Q-OCR-J248-1806-02-25c",
-    "q:Q-OCR-J248-1906-04-13"
+    "q:Q-OCR-J248-1906-04-13",
+    "q:S-Q-OCR-J248-1906-04-21d"
    ],
-   "asked": 20
+   "asked": 19
   },
   {
    "id": "4.7.2.4",
@@ -1415,11 +1416,10 @@
    "parent": "4.7",
    "links": [
     "ct:TB-AQA-8462-88",
-    "q:Q-AQA-8464B-1906-2H-044",
     "q:Q-OCR-J248-2011-02-08"
    ],
    "ht": true,
-   "asked": 2
+   "asked": 1
   },
   {
    "id": "4.7.3.4",
@@ -1430,7 +1430,7 @@
     "q:Q-AQA-8462-2406-2F-047",
     "q:Q-AQA-8462-2406-2F-048",
     "q:Q-AQA-8462-2406-2F-049",
-    "q:Q-AQA-8464B-1806-2H-072"
+    "q:Q-OCR-J248-1806-02-12"
    ],
    "keys": [
     "dna",
@@ -1438,7 +1438,7 @@
     "protein polymer",
     "starch cellulose"
    ],
-   "asked": 29
+   "asked": 8
   },
   {
    "id": "4.8.1",
@@ -1682,11 +1682,9 @@
    "links": [
     "ct:TB-AQA-8462-106",
     "q:Q-AQA-8462-2406-2F-042",
-    "q:S-Q-AQA-8464B-2506-1H-03",
-    "q:Q-AQA-8464B-2506-2H-045",
     "q:Q-OCR-J248-1806-03-11"
    ],
-   "asked": 4
+   "asked": 2
   },
   {
    "id": "4.9.1.4",
@@ -1699,7 +1697,7 @@
     "q:Q-AQA-8464C-2206-2F-014",
     "q:Q-AQA-8464C-2406-2F-012"
    ],
-   "asked": 8
+   "asked": 6
   },
   {
    "id": "4.9.2",
@@ -1726,9 +1724,6 @@
    "parent": "4.9.2",
    "links": [
     "ct:TB-AQA-8462-109",
-    "q:Q-AQA-8464B-2011-2H-071",
-    "q:Q-AQA-8464B-2111-2F-051",
-    "q:Q-AQA-8464B-2506-2F-029",
     "q:Q-OCR-J248-1806-02-13"
    ],
    "keys": [
@@ -1737,7 +1732,7 @@
     "combustion fossil fuel",
     "methane cattle"
    ],
-   "asked": 4
+   "asked": 1
   },
   {
    "id": "4.9.2.3",
@@ -1746,11 +1741,11 @@
    "links": [
     "ct:TB-AQA-8462-110",
     "q:Q-AQA-8462-2406-2F-021",
-    "q:Q-AQA-8464B-1906-2H-022",
     "q:Q-AQA-8464C-1806-2H-022",
-    "q:Q-AQA-8464C-2111-2F-031"
+    "q:Q-AQA-8464C-2111-2F-031",
+    "q:S-Q-AQA-8464C-2306-2H-05"
    ],
-   "asked": 7
+   "asked": 6
   },
   {
    "id": "4.9.2.4",
@@ -1830,7 +1825,7 @@
    "figure": [
     "graph"
    ],
-   "asked": 12
+   "asked": 5
   },
   {
    "id": "4.10.1.2",
@@ -1888,15 +1883,15 @@
    "links": [
     "ct:TB-AQA-8462-119",
     "q:Q-AQA-8462-2406-2H-061",
-    "q:Q-AQA-8464B-2011-2F-033",
     "q:Q-AQA-8464C-2111-2F-052",
-    "q:Q-AQA-8464C-2111-2F-053"
+    "q:Q-AQA-8464C-2111-2F-053",
+    "q:Q-AQA-8464C-2111-2H-046"
    ],
    "keys": [
     "recycl",
     "reuse"
    ],
-   "asked": 21
+   "asked": 20
   },
   {
    "id": "4.10.3",
@@ -1939,7 +1934,7 @@
     "brass",
     "steel"
    ],
-   "asked": 43
+   "asked": 32
   },
   {
    "id": "4.10.3.3",
@@ -1984,16 +1979,16 @@
    "parent": "4.10",
    "links": [
     "ct:TB-AQA-8462-124",
-    "q:Q-AQA-8464B-2011-2H-034",
-    "q:Q-AQA-8464B-2206-2H-044",
     "q:S-Q-AQA-8464C-1806-2H-04",
-    "q:Q-AQA-8464C-1806-2H-042"
+    "q:Q-AQA-8464C-1806-2H-042",
+    "q:Q-AQA-8464C-1806-2H-043",
+    "q:Q-OCR-J248-1906-02-19b"
    ],
    "keys": [
     "npk",
     "fertiliser"
    ],
-   "asked": 30
+   "asked": 28
   }
  ],
  "note": "Spec point ids and headings as printed in the published specification; `figure` lists the words in that point's own text (diagram, graph, draw, sketch, apparatus, label, structure) that make a picture part of learning it."

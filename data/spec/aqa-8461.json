@@ -312,7 +312,7 @@
    "figure": [
     "diagram"
    ],
-   "asked": 202
+   "asked": 201
   },
   {
    "id": "4.2.2.4",
@@ -376,7 +376,7 @@
     "q:S-AQA-8464B-2406-1H-06",
     "q:Q-AQA-8464B-2406-1H-062"
    ],
-   "asked": 34
+   "asked": 31
   },
   {
    "id": "4.2.3",
@@ -817,7 +817,7 @@
     "diagram",
     "structure"
    ],
-   "asked": 38
+   "asked": 36
   },
   {
    "id": "4.5.2.4",
@@ -1238,7 +1238,7 @@
    "figure": [
     "graph"
    ],
-   "asked": 32
+   "asked": 18
   },
   {
    "id": "4.6.3.6",
@@ -1384,8 +1384,8 @@
     "ct:TB-AQA-8461-82",
     "q:Q-AQA-8464B-2506-2F-028",
     "q:Q-AQA-8464B-2506-2F-029",
-    "q:Q-AQA-8464C-2011-2F-023",
-    "q:Q-AQA-8464C-2111-2H-056"
+    "q:Q-OCR-J247-1806-02-01",
+    "q:S-Q-OCR-J247-2011-02-22"
    ],
    "keys": [
     "carbon cycle",
@@ -1395,7 +1395,7 @@
    "figure": [
     "diagram"
    ],
-   "asked": 9
+   "asked": 7
   },
   {
    "id": "4.7.2.3",
@@ -1404,28 +1404,31 @@
    "links": [
     "ct:TB-AQA-8461-83",
     "q:S-Q-AQA-8464B-2111-2F-04",
-    "q:Q-AQA-8464C-1906-1H-034",
-    "q:Q-AQA-8464C-2011-1F-08",
-    "q:Q-AQA-8464C-2011-1H-03"
+    "q:Q-OCR-J247-1806-02-01",
+    "q:Q-OCR-J247-1806-04-20c",
+    "q:Q-OCR-J247-1906-02-05"
    ],
    "figure": [
     "draw",
     "graph"
    ],
-   "asked": 18
+   "asked": 11
   },
   {
    "id": "4.7.2.4",
    "text": "Impact of environmental change",
    "parent": "4.7.2",
    "links": [
-    "ct:TB-AQA-8461-84"
+    "ct:TB-AQA-8461-84",
+    "q:Q-W-SP-B-environmental-change-1a",
+    "q:Q-W-SP-B-environmental-change-1b"
    ],
    "keys": [
     "environmental change",
     "distribution species"
    ],
-   "ht": true
+   "ht": true,
+   "asked": 2
   },
   {
    "id": "4.7.3",
@@ -1462,7 +1465,7 @@
     "waste",
     "sewage"
    ],
-   "asked": 40
+   "asked": 25
   },
   {
    "id": "4.7.3.3",
@@ -1475,7 +1478,7 @@
     "q:Q-AQA-8464B-2406-2H-055",
     "q:Q-AQA-8464B-2011-2H-034"
    ],
-   "asked": 23
+   "asked": 13
   },
   {
    "id": "4.7.3.4",
@@ -1501,7 +1504,7 @@
     "q:Q-AQA-8464B-2206-2F-013",
     "q:Q-AQA-8464B-2306-2F-037"
    ],
-   "asked": 8
+   "asked": 5
   },
   {
    "id": "4.7.3.6",
