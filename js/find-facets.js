@@ -553,44 +553,19 @@ const PRAC_TYPE = { experiment: 'Experiment', build: 'Build' };
 /* THE `required` FACET'S THREE ANSWERS, IN THE ORDER A TUTOR READS THEM: § */
 const PRAC_NEED = ['Required practical', 'Extra', 'Not for now'];
 
-function practicalCard_(x) {
-  const p = x.row;
+/* A FACTS CARD (master template): each line plain words, said in the order a tutor reads them; a refused one says why first. */
+cardKind_('practical', x => {
+  const p = x.row || {}, off = p.excluded;
   /* THE STRIP SAID "lab · needs a lab" AND A SCREENSHOT IS WHAT CAUGHT IT. § */
   const kit = /with kit/i.test(p.feasible) ? 'needs kit' : '';
-  /* ---------- AGE, HAZARD AND COST JOIN THE STRIP, AND ONLY WHERE THEY WERE ANSWERED § */
-  const money = p.costPerRun == null ? ''
-    : p.costPerRun === 0 ? 'free to run'
-    : money_(p.costPerRun) + ' a run';
-  const strip = [p.minutes ? p.minutes + ' min' : '',
-                 p.ageMin ? p.ageMin + '+' : '',
-                 p.groupSize > 1 ? p.groupSize + ' students' : '',
-                 p.venue, kit, money].filter(Boolean).join(' · ');
-
-  /* ---------- A REFUSED EXPERIMENT SAYS SO BEFORE IT SAYS ANYTHING ELSE § */
-  const off = p.excluded;
-  return `<div class="fc prac${off ? ' is-off' : ''}">
-    <div class="fc-head">
-      <h3>${esc(x.name)}</h3>
-    </div>
-    ${/* WHAT KIND OF AFTERNOON THIS IS AND WHETHER A BOARD DEMANDS IT -- `Build · Extra` -- were two pills of the § */
-          ''}
-    ${tagRow_(x)}
-    ${off ? `<p class="prac-no"><b>Why not</b> ${esc(p.excluded)}${p.reconsiderAt
-      ? ' <span class="prac-again">Worth another look at ' + p.reconsiderAt + ', in a lab.</span>'
-      : ''}</p>` : ''}
-    <p class="fc-lede">${esc(p.aim)}</p>
-    <p class="fc-meta">${esc(strip)}${p.hazard
-      ? ` <span class="prac-haz haz-${esc(p.hazard.replace(/\s+/g, '-'))}">${
-          esc(p.hazard)} hazard</span>` : ''}</p>
-    ${p.outcome ? `<p class="fc-say"><b>You end up with</b> ${esc(p.outcome)}</p>` : ''}
-    ${/* ---------- `wow` STAYS ON THE CARD, WHERE EVERYTHING ELSE MOVED INTO THE GUIDE § */
-          ''}
-    ${(!off && (p.wow === 'high' || p.wow === 'very high'))
-      ? `<p class="prac-open">Worth opening a session with.</p>` : ''}
-    ${/* ---------- FOUR CARDS NOW, AND THIS IS THE FIRST OF THEM § */
-          ''}
-  </div>`;
-}
+  const money = p.costPerRun == null ? '' : p.costPerRun === 0 ? 'free to run' : money_(p.costPerRun) + ' a run';
+  const strip = [p.minutes ? p.minutes + ' min' : '', p.ageMin ? p.ageMin + '+' : '', p.groupSize > 1 ? p.groupSize + ' students' : '',
+    p.venue, kit, money].filter(Boolean).join(' · ');
+  const lines = [off ? 'Why not ' + off + (p.reconsiderAt ? ' Worth another look at ' + p.reconsiderAt + ', in a lab.' : '') : '', p.aim,
+    [strip, p.hazard ? p.hazard + ' hazard' : ''].filter(Boolean).join(' '), p.outcome ? 'You end up with ' + p.outcome : '',
+    !off && (p.wow === 'high' || p.wow === 'very high') ? 'Worth opening a session with.' : ''];
+  return { look: 'prac kc-facts', off: !!off, tags: kcFacetTags_(x), body: [{ type: 'text', paras: lines }] };
+});
 
 /* THE GUIDE — WHAT A PRACTICAL NEEDS AROUND IT BEFORE ANYBODY RUNS ONE. § */
 
@@ -663,26 +638,15 @@ function practicalPart_(x, part) {
 const PROJ_TYPE = { project: 'Project', coursework: 'Coursework' };
 const projType_ = p => PROJ_TYPE[(p && p.projectType) || 'project'] || String(p.projectType);
 
-function projectCard_(x) {
-  const p = x.row;
+cardKind_('project', x => {
+  const p = x.row || {};
   /* AGES AS A RANGE, because "8+" on a podcast for sixteen-year-olds would be true and useless. */
-  const ages = p.ageMin && p.ageMax ? 'ages ' + p.ageMin + '–' + p.ageMax
-    : p.ageMin ? p.ageMin + '+' : '';
-  const strip = [p.sessions ? p.sessions + (p.sessions === 1 ? ' session' : ' sessions') : '',
-                 ages].filter(Boolean).join(' · ');
-  /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE -- `AQA 8552` is which qualification the work counts § */
+  const ages = p.ageMin && p.ageMax ? 'ages ' + p.ageMin + '–' + p.ageMax : p.ageMin ? p.ageMin + '+' : '';
+  const strip = [p.sessions ? p.sessions + (p.sessions === 1 ? ' session' : ' sessions') : '', ages].filter(Boolean).join(' · ');
+  /* THE BOARD AND THE SPEC (`AQA 8552`): which qualification the work counts towards. */
   const qual = [p.board, p.specRef].filter(Boolean).join('\u00a0');
-  return `<div class="fc prac proj lib-c">
-    ${tagRow_(x)}
-    <div class="fc-head">
-      <h3>${esc(x.name)}</h3>
-    </div>
-    ${qual ? `<p class="fc-meta">${esc(qual)}</p>` : ''}
-    <p class="fc-lede">${esc(p.summary)}</p>
-    ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
-    ${p.makes ? `<p class="fc-say"><b>You end up with</b> ${esc(p.makes)}</p>` : ''}
-  </div>`;
-}
+  return { look: 'prac proj lib-c kc-facts', tags: kcFacetTags_(x), body: [{ type: 'text', paras: [qual, p.summary, strip, p.makes ? 'You end up with ' + p.makes : ''] }] };
+});
 
 function projectPart_(x, part) {
   const p = x.row;
