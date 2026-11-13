@@ -348,7 +348,7 @@ function stepSelect_(st) {
   if (stepLocked_(st)) {
     const said = st.multi ? (chosen.join(', ') || fb)
       : (st.label_ && v ? st.label_(v) : v);   /* `v` already carries the fallback — see above */
-    return `<span class="bk-set">${esc(String(dash_(said)))}</span>`;
+    return cardBlock_({ type: 'paperSet', text: String(dash_(said)) });
   }
   const isOn = o => norm(o) === norm(v);
   /* ---------- THE BLANK OPTION DOES NOT REPEAT AN ANSWER ON THE LIST § */
@@ -363,26 +363,18 @@ function stepSelect_(st) {
   const noOf = o => st.off ? String(st.off(o) || '') : '';
   const words = o => said(o) + (noOf(o) ? ' · ' + noOf(o) : '');
   const blank = dup ? dash_() : dash_(fb);
-  const sel = `<select class="bk-sel" id="${bkCtl_(st.id)}" data-do="book-set" data-step="${esc(st.id)}"
-      ${off ? 'disabled' : ''} aria-label="${esc(st.label)}">
-    <option value=""${!v || !opts.some(isOn) ? ' selected' : ''}>${esc(blank)}</option>
-    ${opts.map(o => `<option value="${esc(o)}"${isOn(o) ? ' selected' : ''}${
-        noOf(o) && !isOn(o) ? ' disabled' : ''}>${esc(words(o))}</option>`).join('')}
-  </select>`;
-  /* ---------- AN ANSWER TOLD APART BY ITS END IS DRAWN IN WORDS, WITH THE SELECT LAID OVER THEM § */
-  if (!st.wrap) return sel;
   const picked = opts.filter(isOn).pop();
-  return `<span class="bk-face"><span class="bk-said" aria-hidden="true">${
-    esc(picked !== undefined ? words(picked) : blank)}</span>${sel}</span>`;
+  return cardBlock_({ type: 'paperSelect', id: bkCtl_(st.id), step: st.id, off, aria: st.label,
+    options: [{ value: '', text: blank, on: !v || !opts.some(isOn) }].concat(opts.map(o => ({ value: o, text: words(o), on: isOn(o), off: !!noOf(o) && !isOn(o) }))),
+    face: st.wrap ? (picked !== undefined ? words(picked) : blank) : null });
 }
 
 /* ---------- THE NOTE IS A ROW LIKE THE REST § */
 function noteRow_() {
   return { n: '', k: 'Note', v: '', mul: '', rate: '', total: '', step: '',
     ctl: bkCtl_('note'),
-    sel: `<input class="bk-in bk-in-l" id="${bkCtl_('note')}" type="text" data-do="book-note"
-      value="${esc(BOOKING.note || '')}" placeholder="anything else we should know"
-      aria-label="Anything else we should know">` };
+    sel: cardBlock_({ type: 'paperInput', wide: true, id: bkCtl_('note'), act: 'book-note', value: BOOKING.note || '',
+      placeholder: 'anything else we should know', aria: 'Anything else we should know' }) };
 }
 
 /* ---------- SEVERAL ANSWERS, THE SAME DROPDOWN AS ONE § */
@@ -393,11 +385,8 @@ function stepPick_(st) {
   const said = o => String(st.label_ ? st.label_(o) : o);
   const fb = st.fallback ? String(st.fallback() || '') : '';
   const face = chosen.map(said).join(', ') || fb || dash_();
-  return `<span class="bk-face${chosen.length ? ' is-set' : ''}"><span class="bk-said" aria-hidden="true">${esc(face)}</span><select class="bk-sel"
-    id="${bkCtl_(st.id)}" data-do="book-set" data-step="${esc(st.id)}" aria-label="${esc(st.label)}">
-    <option value="" selected>${esc(face)}</option>
-    ${opts.map(o => `<option value="${esc(o)}">${on(o) ? '✓ ' : ''}${esc(said(o))}</option>`).join('')}
-  </select></span>`;
+  return cardBlock_({ type: 'paperSelect', id: bkCtl_(st.id), step: st.id, aria: st.label, face, set: !!chosen.length,
+    options: [{ value: '', text: face, on: true }].concat(opts.map(o => ({ value: o, text: (on(o) ? '✓ ' : '') + said(o) }))) });
 }
 
 /* ON THE SCREEN YOU ARE ON, ON THE PAGE IN FRONT OF YOU. § */
@@ -442,15 +431,6 @@ function tickListShow_(find, still) {
 /* EVERY `<select>` IS THE PLATFORM'S OWN AGAIN THE OWNER, 9 OCTOBER: § */
 
 /* ---------- ELEVEN HOURS, SAID ONCE § */
-function slotHead_(hours) {
-  return `<div class="slot-row slot-head" aria-hidden="true">
-    <span class="slot-day"></span>
-    <div class="slot-hours">
-      ${hours.map(h => `<span class="slot-hh">${h}</span>`).join('')}
-    </div>
-  </div>`;
-}
-
 /* ---------- AND THE WEEK ROUND IT, BECAUSE THERE WERE THREE OF THESE § */
 /* ---------- THE WEEK AS SEVEN ROWS OF THE CARD, NOT ONE BLOCK UNDER ONE ROW § */
 function weekRows_(days, cell, opts) {
@@ -471,13 +451,8 @@ function weekRows_(days, cell, opts) {
     id: o.id || '',
     /* ---------- THE ANSWER IS DRAWN, NOT WRITTEN § */
     /* ---------- AND A TEN-COLUMN STRIP HAS NO ROOM TO LETTER EVERY COLUMN § */
-    strip: (i === 0 ? (o.ruler
-              ? '<span class="wk-hh wk-rule" aria-hidden="true">'
-                + esc(String(cols[0])) + ' \u2013 ' + esc(String(cols[cols.length - 1])) + '</span>'
-              : '<span class="wk-hh" aria-hidden="true">'
-                + cols.map(h => '<span class="slot-hh">' + esc(String(h)) + '</span>').join('')
-                + '</span>') : '')
-      + '<span class="slot-hours">' + d.hours.map(h => cell(h, d)).join('') + '</span>',
+    strip: cardBlock_({ type: 'paperStrip', head: i ? '' : (o.ruler ? 'ruler' : 'cols'), from: String(cols[0]), to: String(cols[cols.length - 1]),
+      cols: cols.map(String), cells: d.hours.map(h => cell(h, d)).join('') }),
     /* A DAY WITH NOTHING OPEN COLLAPSES. § */
     shut: !!d.shut,
     off: !!o.off,
@@ -489,15 +464,7 @@ function weekRows_(days, cell, opts) {
 /* A DAY IS ITS SHORT NAME, Mon to Sun, everywhere (owner, 8 Nov). */
 function weekGrid_(days, cell) {
   const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
-  return `<div class="slot-grid">
-    ${slotHead_(cols)}
-    ${/* ---------- NO DAY HERE COLLAPSES ANY MORE, SO THIS NO LONGER DRAWS ONE § */
-          ''}
-    ${days.map(d => `<div class="slot-row">
-      <span class="slot-day">${esc(day_(d.label))}</span>
-      <div class="slot-hours">${d.hours.map(h => cell(h, d)).join('')}</div>
-    </div>`).join('')}
-  </div>`;
+  return cardBlock_({ type: 'paperWeek', cols, days: days.map(d => ({ label: day_(d.label), cells: d.hours.map(h => cell(h, d)).join('') })) });
 }
 
 /* ---------- THE WAITING LIST'S WEEK, IN BLOCKS § */
