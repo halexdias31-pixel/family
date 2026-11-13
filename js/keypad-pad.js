@@ -212,10 +212,11 @@ function kpHitMaths_(inp, show, x, y) {
     + 'px;visibility:hidden;pointer-events:none;contain:layout style paint';
   let html = '';
   for (let i = 0; i <= inp.value.length; i++) {
-    html += '<span class="kp-show" style="position:absolute;left:0;top:0;width:' + sr.width + 'px">'
-      + kpTypeset_(inp.value, i) + '</span>';
+    html += '<span class="kp-show">' + kpTypeset_(inp.value, i) + '</span>';
   }
   host.innerHTML = html;
+  /* EVERY CARET'S COPY ON THE SAME SPOT, the field's width, so each caret is measured where it would stand. */
+  [...host.children].forEach(g => { g.style.cssText = 'position:absolute;left:0;top:0;width:' + sr.width + 'px'; });
   document.body.appendChild(host);
   let best = inp.value.length, bd = Infinity;
   try {

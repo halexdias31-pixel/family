@@ -860,13 +860,7 @@ function priceFrom(spec) {
 function priceMoney_(spec, knobs, p) {
   const { R, fSeats, discountFactor, promoAdj, V, splitOthers, bookedDays, sessionDates, slots,
           chargeRate, avgSubject, L, D, T, fSubjects, cUsed, bUsed, M } = p;
-  /* Hours a week, times weeks. Simpler and truer than sessions x session-length: a booking with
-     Monday 1-3 and Tuesday 10-11 has two sessions of different lengths, which the old pair of
-     numbers could not express at all. */
-  /* Weeks the booking runs for. Sessions divided by runs-per-week — a Monday-and-Tuesday booking
-     over 11 weeks has 22 sessions but runs for 11 weeks, and hours-a-week must multiply the
-     second, not the first. */
-  // Days a week, not blocks a week — for the same reason the dates are per day.
+  /* HOURS A WEEK × WEEKS RUN (sessions ÷ days a week): sessions can differ in length, and 22 Mon+Tue sessions are 11 weeks. */
   const runsPerWeek = Math.max(1, bookedDays.length || 1);
   /* ---------- BILLED BY THE SESSIONS THAT EXIST, NOT THE WEEKS THAT REMAIN § */
   const weeksBooked = sessionDates.length
@@ -881,11 +875,7 @@ function priceMoney_(spec, knobs, p) {
   const chargePerHour = (rate + V) / splitShares;
   const teachTotal = hoursTotal ? chargePerHour * hoursTotal : null;
 
-  // The three shares. They must add up to exactly what the client pays, so each is derived from
-  // the same numbers rather than computed independently:
-  //   the tutor is paid their own rate plus every teaching surcharge
-  //   your margin is the markup M(w−1)
-  //   the extra-seat money is half the tutor's, half up the manager chain (history 1217)
+  /* THE SHARES ADD UP TO WHAT THE CLIENT PAYS, so each comes from the same numbers. */
   /* TUTOR = THEIR OWN RATE FOR THE FIRST SEAT + THEIR EXTRA-SEAT RATE FOR EACH OTHER, × HOURS (owner, 8 Nov); @family. keeps the rest of the teaching. */
   const r = pence_(runningAfter('daytime', p.rows) * discountFactor * promoAdj);
   /* THE EXTRA-SEAT MONEY IS SHARED UP THE MANAGER CHAIN (`chainShares_`); the 1-to-1 rate stays the tutor's. */
@@ -897,13 +887,10 @@ function priceMoney_(spec, knobs, p) {
   const venueTotal  = V * hoursTotal;                                   // venue gets
   const cost        = tutorPay + venueTotal;                            // what the job costs us
 
-  // The tutor's effective £/hour — surfaced so you can SEE if discounts push it under minimum
-  // wage (the formula doesn't silently clamp it; this just makes the number visible).
+  /* THE TUTOR'S REAL £/HOUR, shown (never clamped) so a discount under minimum wage is seen. */
   const tutorHourly = hoursTotal ? tutorPay / hoursTotal : 0;
   const belowMinWage = M > 0 && tutorHourly > 0 && tutorHourly < M;
 
-  // The whole booking, before it's divided — what the tutor and the venue are actually paid,
-  // which is a different question from what one family hands over.
   /* ---------- WHAT THE BOOKING EARNS, AFTER EVERYTHING IT COSTS (docs/history/353) § */
   const mo = bookMoney_({
     hours: hoursTotal,

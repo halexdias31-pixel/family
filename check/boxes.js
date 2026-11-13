@@ -66,7 +66,7 @@ const measure = (page, row, back) => page.evaluate(async ([r, back, FOOT]) => {
   const below = lastTile ? [...card.querySelectorAll('*')].filter(e => { const b = e.getBoundingClientRect(); return b.height > 0 && b.top > lastTile.getBoundingClientRect().bottom + 2 && (e.textContent || '').trim(); }).length : 0;
   const gapBox = card.querySelector('.qp-cells-box');
   const cells = gapBox && !card.querySelector('table[data-cells]') ? { boxes: gapBox.querySelectorAll('.qp-ans-in').length, loose: card.querySelectorAll('.qp-cell').length,
-    hint: !!gapBox.querySelector('.qp-cells-hint'), wide: Math.round((gapBox.querySelector('.kp-field') || gapBox).getBoundingClientRect().width), inside: Math.round(gapBox.getBoundingClientRect().width) } : null;
+    hint: !!gapBox.querySelector('.qp-cells-box > .q-hint'), wide: Math.round((gapBox.querySelector('.kp-field') || gapBox).getBoundingClientRect().width), inside: Math.round(gapBox.getBoundingClientRect().width) } : null;
   return { kind, lines: lines.map(l => l.acts), below, cells, inside: cr.width };
 }, [row, back, FOOT]);
 
