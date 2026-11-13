@@ -18,6 +18,8 @@ FILES.forEach(f => { SRC[f] = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8');
 SRC['find.js'] = require('../tools/find-src.js').findSrc();
 ['me', 'shell', 'keypad', 'book'].forEach(b => { SRC[b + '.js'] = require('../tools/piece-src.js').pieceSrc(b); });
 const ALL = FILES.map(f => SRC[f]).join('\n');
+/* A FILE SWITCHED OFF INTO attic/ (owner, 13 Nov) takes its entries with it: they are asked again when it comes back. */
+const ATTIC_ = f => !SRC[f] && fs.existsSync(path.join(ROOT, 'attic/js', f));
 
 /* ---------- THE LISTS § */
 const KEPT = [
@@ -138,6 +140,7 @@ const EXEMPT = [
   { file: 'map.js', has: 'id="dock-add"', why: 'one line, kept the moment Enter or + puts it on the docket' },
   { file: 'find.js', has: 'class="room-name"', why: 'a room name, a few words, prefilled and sent by the button under it' },
 ];
+[KEPT, EXEMPT].forEach(list => { for (let i = list.length - 1; i >= 0; i--) if (ATTIC_(list[i].file)) list.splice(i, 1); });
 
 /* ---------- THE BOXES ------------------------------------------------------------------------------------ */
 /* A TAG'S OWN TEXT, from `<` to its closing `>`, stepping over `${ … }` so an attribute written as an

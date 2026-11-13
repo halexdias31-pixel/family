@@ -13,6 +13,10 @@ function cardRuns_(v) {
   if (v.sub != null) return `<sub>${cardRuns_(v.sub)}</sub>`;
   if (v.math != null) return `<span class="kc-math">${cardRuns_(v.math)}</span>`;
   if (v.mono != null) return `<span class="mono">${cardRuns_(v.mono)}</span>`;
+  /* MATHS AS TYPED (`x^2`, `a/b`): escaped first, then the typesetter raises and stacks it. */
+  if (v.typeset != null) return `<span class="kc-math">${typeof typeset_ === 'function' ? typeset_(esc(String(v.typeset))) : esc(String(v.typeset))}</span>`;
+  /* A SMALL MARK BESIDE A WORD (Higher tier's `H`, `only Foundation`): text, one fixed class. */
+  if (v.badge != null) return `<span class="kc-badge"${v.hint ? ` title="${esc(v.hint)}"` : ''}>${esc(String(v.badge))}</span>`;
   /* TEXT WITH THE SITE'S LAWS COLOURED (`mark`, which escapes first): still only text in the spec. */
   if (v.marked != null) return typeof mark === 'function' ? mark(String(v.marked)) : esc(String(v.marked));
   /* A NAMED WORD (a subject, green as a subject is everywhere): one of a fixed set, never a free class. */
@@ -86,8 +90,23 @@ function cardEmbed_(b) {
   const make = CARD_EMBEDS[b.tool];
   let inner = '';
   try { inner = make ? make(b.args || {}) : ''; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'embed:' + b.tool); }
-  return `<div class="kc-embed" data-embed="${esc(b.tool || '')}">${inner || ''}</div>`;
+  return `<div class="kc-embed${b.look ? ' ' + esc(b.look) : ''}" data-embed="${esc(b.tool || '')}"${cardAttrs_(b.data)}>${inner || ''}</div>`;
 }
+/* A TREE: headed nodes, each with its words, its tiles (`tile_` specs) and its children; `fold` folds the top level. */
+function cardTree_(nodes, fold, top) {
+  const one = n => { const head = `<span class="kc-tree-k">${cardRuns_(n.label)}</span>`;
+    const inner = (n.text != null && n.text !== '' ? `<span class="kc-tree-v">${cardRuns_(n.text)}</span>` : '')
+      + ((n.tiles || []).length ? `<div class="tile-row">${tile_(n.tiles)}</div>` : '')
+      + (n.more ? `<p class="kc-tree-more">${cardRuns_(n.more)}</p>` : '') + cardTree_(n.kids, false, false);
+    return fold && top ? `<details class="kc-tree-sec"><summary class="kc-h">${cardRuns_(n.label)}</summary>${inner}</details>`
+      : `<li class="kc-tree-n">${head}${inner}</li>`; };
+  const list = (nodes || []).map(one).join('');
+  return !list ? '' : fold && top ? list : `<ul class="kc-tree">${list}</ul>`;
+}
+/* A GRID OF CELLS AT THEIR COLUMN AND ROW (the periodic table): each cell's parts are text. */
+const cardGrid_ = b => `<div class="kc-grid-wrap"><div class="kc-grid" role="table" aria-label="${esc(b.caption || '')}">${(b.cells || []).map(c =>
+  `<div class="kc-cell kc-c${Math.min(18, Number(c.col) || 1)} kc-r${Math.min(10, Number(c.row) || 1)}">${
+    (c.parts || []).map((t, i) => `<span class="kc-cell-${i}">${esc(String(t == null ? '' : t))}</span>`).join('')}</div>`).join('')}</div></div>`;
 /* THE BODY BLOCKS, each with its one renderer. */
 const CARD_BLOCKS = {
   text: b => [].concat(b.paras || [b.text]).filter(p => p != null && p !== '').map(p => `<p class="kc-line${b.tone ? ' ' + esc('is-' + b.tone) : ''}${b.look ? ' ' + esc(b.look) : ''}">${cardRuns_(p)}</p>`).join(''),
@@ -103,7 +122,20 @@ const CARD_BLOCKS = {
   answer: cardAnswer_,
   formRow: b => `<label class="kc-form-row"><span class="k">${cardRuns_(b.label || '')}</span>${cardControl_(b.control)}</label>`,
   embed: cardEmbed_,
+  /* A HEADED SECTION: a small heading, then any blocks. */
+  section: b => `<section class="kc-sec${b.look ? ' ' + esc(b.look) : ''}">${b.head ? `<h4 class="kc-h">${cardRuns_(b.head)}</h4>` : ''}${(b.blocks || []).map(cardBlock_).join('')}</section>`,
+  tree: b => cardTree_(b.nodes, !!b.fold, true),
+  grid: cardGrid_,
+  /* A WAIT is `loading_()` and nothing else; `look` and `data` name a region its redraw finds (`.err-body`). */
+  wait: b => `<div class="kc-wait${b.look ? ' ' + esc(b.look) : ''}"${cardAttrs_(b.data)}${b.on ? ' aria-busy="true"' : ''}>${b.on && typeof loading_ === 'function' ? loading_() : ''}</div>`,
 };
+/* A CARD DRAWN AGAIN WHERE IT STANDS: the new card replaces the old element whole. */
+function cardRedraw_(el, spec) {
+  if (!el || typeof document === 'undefined') return;
+  const t = document.createElement('template');
+  t.innerHTML = renderCard(spec);
+  if (t.content.firstElementChild) el.replaceWith(t.content.firstElementChild);
+}
 function cardBlock_(b) {
   if (b == null || b === '') return '';
   if (typeof b === 'string') return CARD_BLOCKS.text({ text: b });

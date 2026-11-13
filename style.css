@@ -949,7 +949,6 @@ code   { font-family: var(--mono); font-size: var(--fs-body); color: var(--ink);
    and anything layered over them is placed against this box rather than against the card. */
 .thing-pic.art { position: relative; }
 
-
 /* ---------- ANCHORS § */
 a { color: inherit; text-decoration: none; }
 /* Except in running prose, where a link that looks like text is a link nobody finds. */
@@ -970,7 +969,6 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- TIMES TABLES AND FLAPPY --------------------------------------------------------------- */
 #tt-answer { text-align: center; font-size: var(--fs-title); }
-
 
 /* ---------- WHAT THE LAWS PAINT § */
 .w-green     { color: var(--green); }                 /* a subject */
@@ -2169,7 +2167,6 @@ label.bk-k { cursor: pointer; }
 .widget-full .cal { flex: 1 1 auto; min-height: 0; grid-auto-rows: minmax(2rem, 1fr);
                     align-content: stretch; }
 
-
 /* THE REEL STATES ITS OWN SIZE, like the board and the game either side of it. § */
 .widget-full .feed { flex: 0 0 auto; max-height: 60dvh; }   /* dvh — see `.msg-body` */
 
@@ -2241,7 +2238,6 @@ label.bk-k { cursor: pointer; }
   /* NO PADDING, and none rather than a little: § */
   padding: 0;
 }
-
 
 /* ---------- THE CALCULATOR IS AN INSTRUMENT § */
 .widget-full.solid > .card { padding: var(--s3); }
@@ -3704,9 +3700,6 @@ a.boxer-src { display: flex; align-items: center; min-height: var(--tap); text-d
 /* BATCH E: a car, car part or PC part is its tags, its 8-bit drawing and (a part) one line of what it does. */
 .mech-pic { margin: var(--s2) auto 0; width: min(100%, 12rem); background: var(--raised); border-radius: var(--r-ui); padding: var(--s2); }
 .mech-does { margin: var(--s2) 0 0; }
-.fight .fight-faces .pp { flex: 1 1 0; max-width: 10rem; background: var(--raised); border-radius: var(--r-ui); padding: var(--s2); }
-.fight-faces { display: flex; align-items: center; justify-content: center; gap: var(--s3);
-               margin: var(--fc-group) 0 0; } /* last on the card, under its tags, as a question's figure (445) */
 .boxer-pic.is-small { flex: 0 0 auto; width: 5.6rem; margin: 0; }
 .boxer-pic.is-small .boxer-frame { aspect-ratio: 1 / 1; }
 .boxer-pic.is-small.won .boxer-frame { border-color: var(--boxer-w); box-shadow: 0 0 0 1px var(--boxer-w); }
@@ -4922,7 +4915,6 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 /* CLEAR OF THE FRAME. Locked, the gold outline stands 6px outside the paper (`outline-offset: 4px`, 2px wide), and the tile row's own .5rem left it a pixel from § */
 .wb .qpad-bar { justify-content: center; margin-top: var(--s3); }
 
-
 /* ---------- ON ITS SIDE, THE BOARD TAKES THE HEIGHT AND EVERYTHING ELSE GOES BESIDE IT § */
 @media (max-height: 500px) and (min-aspect-ratio: 1/1) {
   .wb { --wb-side: calc(7px + 3.65rem); }
@@ -4955,7 +4947,6 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
             border-left: 2px solid var(--gold); border-radius: var(--r-ui); }
 .qp-guide h3 { margin: 0 0 var(--s2); font: 600 var(--fs-small)/1 var(--font); color: var(--gold);
                letter-spacing: .08em; }
-
 
 /* SHARING A BOOKING IS A PICTURE OF IT — THE ELEMENT ON THE SCREEN, DRAWN BY THE BROWSER. § */
 .rc.rc-snap :is(.rc-tiles, .rc-more):not(#no-such-id) { display: none; }
@@ -5343,11 +5334,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
   border-bottom: 1px solid var(--paper-rule); }
 .insh-sec ul { margin: 0; padding: 0; list-style: none; }
 .insh-sec li { margin: 0 0 var(--s2); break-inside: avoid; }
-.insh-fn { display: block; font-size: var(--fs-small); color: var(--paper-dim); }
-.insh-fm { display: block; font-size: var(--fs-body); line-height: 1.7; overflow-wrap: anywhere; }
-.insh-note { display: block; font-size: var(--fs-small); color: var(--paper-faint); }
 .insh-sheet .tb-h { color: var(--paper-ink); border-color: var(--paper-rule); }
-.insh-only { margin-left: var(--s1); font-size: var(--fs-small); color: var(--paper-faint); }
 .insh-rad { border-top: 1px solid currentColor; padding-top: 0; }
 .insh-check { margin: var(--s3) 0 0; font-size: var(--fs-small); line-height: 1.4; color: var(--paper-dim); }
 .insh-check b { color: var(--paper-ink); }
@@ -5362,13 +5349,42 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .insrc-ln { position: absolute; left: -2rem; width: 1.5rem; text-align: right; font: var(--fs-small)/2.2 var(--mono); color: var(--paper-faint); }
 .insrc-wait { min-height: 3rem; font-family: inherit; }
 /* THE TABLE SCROLLS SIDEWAYS INSIDE ITS OWN BOX — eighteen columns do not fit 320px, and the box says it may. */
-.insh-pt-wrap { overflow-x: auto; }
-.insh-pt { display: grid; grid-template-columns: repeat(18, minmax(2.6rem, 1fr)); gap: 2px; min-width: 48rem; }
-.insh-el { display: flex; flex-direction: column; align-items: center; padding: var(--s0) 0;
-  border: 1px solid var(--paper-rule); font-size: var(--fs-small); line-height: 1.2; text-align: center; }
-.insh-el b { font-size: var(--fs-body); }
-.insh-nm { font-size: var(--fs-small); color: var(--paper-dim); }
-.insh-ar, .insh-z { font-family: var(--mono); }
+.kc-grid-wrap { overflow-x: auto; }
+.kc-grid { display: grid; grid-template-columns: repeat(18, minmax(2.6rem, 1fr)); gap: 2px; min-width: 48rem; }
+.kc-cell { display: flex; flex-direction: column; align-items: center; padding: var(--s0) 0; border: 1px solid var(--line); font-size: var(--fs-small); }
+.kc-cell-1 { font-weight: 700; font-size: var(--fs-body); }
+.kc-c1 { grid-column: 1; }
+.kc-c2 { grid-column: 2; }
+.kc-c3 { grid-column: 3; }
+.kc-c4 { grid-column: 4; }
+.kc-c5 { grid-column: 5; }
+.kc-c6 { grid-column: 6; }
+.kc-c7 { grid-column: 7; }
+.kc-c8 { grid-column: 8; }
+.kc-c9 { grid-column: 9; }
+.kc-c10 { grid-column: 10; }
+.kc-c11 { grid-column: 11; }
+.kc-c12 { grid-column: 12; }
+.kc-c13 { grid-column: 13; }
+.kc-c14 { grid-column: 14; }
+.kc-c15 { grid-column: 15; }
+.kc-c16 { grid-column: 16; }
+.kc-c17 { grid-column: 17; }
+.kc-c18 { grid-column: 18; }
+.kc-r1 { grid-row: 1; }
+.kc-r2 { grid-row: 2; }
+.kc-r3 { grid-row: 3; }
+.kc-r4 { grid-row: 4; }
+.kc-r5 { grid-row: 5; }
+.kc-r6 { grid-row: 6; }
+.kc-r7 { grid-row: 7; }
+.kc-r8 { grid-row: 8; }
+.kc-r9 { grid-row: 9; }
+.kc-r10 { grid-row: 10; }
+.kc-tree { margin: 0; padding-left: var(--s3); }
+.kc-tree-k { font-weight: 600; margin-right: var(--s1); }
+.kc-badge { margin-left: var(--s1); font: 600 var(--fs-small)/1 var(--mono); color: var(--gold); }
+.kc-sec { margin: 0 0 var(--s2); }
 .insh-key { margin: var(--s2) 0 0; font-size: var(--fs-small); color: var(--paper-dim); }
 .insh-paper { display: none; }
 @media print {
@@ -5377,8 +5393,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
   body.printing-insh .insh-paper, body.printing-insh .insh-paper * { visibility: visible !important; }
   body.printing-insh .insh-paper { display: block; position: absolute; left: 0; top: 0; width: 190mm; margin: 10mm; }
   body.printing-insh .insh-sheet { border: 0; padding: 0; font-size: var(--fs-body); }
-  body.printing-insh .insh-pt-wrap { overflow: visible; }
-  body.printing-insh .insh-pt { min-width: 0; }
   @page { size: A4 portrait; margin: 0; }
 }
 
@@ -5490,7 +5504,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* ONE READING LAYOUT (owner, 8 Nov, `readingCard_`): title, its reference, then the text in one type for every tradition. */
 .rd-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s1) var(--s2); margin: 0 0 var(--s2); }
-.rd-title { margin: 0; font-size: var(--fs-title); font-weight: 600; line-height: 1.3; overflow-wrap: break-word; }
 .rd-ref { font: 600 var(--fs-small)/1.3 var(--mono); color: var(--gold); }
 .rd-body { margin: 0 0 var(--s2); }
 .rd-body :is(.bb-v, .wt-text, .qr-en, .tx-text p):not([dir="rtl"]) { margin: 0 0 var(--s2); font-size: var(--fs-body); line-height: 1.6; color: var(--ink); }
@@ -6013,7 +6026,6 @@ figure svg text:not([font-family], [font-family] *, [style*="font"]) { font-fami
 .np-a { color: var(--ink); font-style: italic; }
 .cal-month { margin: 0; text-align: center; }
 
-
 /* ---------- THE CONSOLE AND THE WORD GAMES (owner, 12 Nov). */
 .nes-wrap { position: relative; display: flex; flex-direction: column; align-items: center; isolation: isolate; overflow: clip; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; --nes-pad-h: 188px; --nes-room: 17rem; --nes-deco-h: 0px; --nes-flank: 0px; --nes-body: transparent; --nes-px: 0px; --nes-pt: 0px; --nes-r: 0; --nes-hi: color-mix(in srgb, var(--white) 30%, transparent); --nes-lo: color-mix(in srgb, var(--black) 32%, transparent); --nes-bezel: var(--line-soft); --nes-rim: transparent; --nes-rim-w: 0px; --nes-bz: 8px; --nes-bz-r: .35rem; --nes-ctl: transparent; --nes-well: transparent; --nes-dp: var(--line-soft); --nes-dp-hi: var(--paper-ink); --nes-key: var(--paper-ink); --nes-ink: var(--paper); --nes-mid: var(--paper-ink); --nes-mid-ink: var(--ink); --nes-sh: var(--nes-mid); --nes-sh-ink: var(--nes-mid-ink); --nes-a: var(--nes-key); --nes-b: var(--nes-key); --nes-x: var(--nes-key); --nes-y: var(--nes-key); --nes-c: var(--nes-key); --nes-c-ink: var(--nes-ink); --nes-knob: var(--tag-other); --nes-knob-lo: var(--faint); --k-dpad: 120px; --k-btn: 56px; --k-cell: 44px; --k-h: 44px; --k-gap: 8px; --k-font: 1rem; --k-small: .8rem; background: var(--nes-body); border-radius: var(--r-ui); padding: var(--nes-pt) var(--nes-px) 0; box-sizing: border-box; }
 .nes-wrap[data-sys="snes"], .nes-wrap[data-sys="gba"], .nes-wrap[data-sys="nds"] { --nes-pad-h: 252px; }
@@ -6236,10 +6248,6 @@ body.nes-on .page.soft > .pane { filter: none; }
 .tt-big { font-size: var(--fs-title); text-align: center; margin: var(--s2) 0; }
 .game-said { text-align: center; margin: var(--s2) 0 0; min-height: 1.2em; }
 /* A SPECIFICATION (owner, 12 Nov): the insert's sheet of paper, each section a fold, each point its code then its words. */
-.spec-sec > summary { cursor: pointer; }
-.spec-sec ul ul { margin-left: var(--s3); }
-.spec-say { display: block; font-size: var(--fs-small); line-height: 1.4; }
-.spec-pt > .tile-row { margin: var(--s1) 0; justify-content: flex-start; }
+
 /* ON PAPER the round tiles take the paper's ink and rule, as the sheet's words do. */
-.spec-pt .tile { color: var(--paper-ink); border-color: var(--paper-rule); background: transparent; }
-.spec-more { font-size: var(--fs-small); color: var(--paper-dim); margin: 0; }
+

@@ -492,6 +492,10 @@ function cardRuns_(v) {
   if (v.sub != null) return `<sub>${cardRuns_(v.sub)}</sub>`;
   if (v.math != null) return `<span class="kc-math">${cardRuns_(v.math)}</span>`;
   if (v.mono != null) return `<span class="mono">${cardRuns_(v.mono)}</span>`;
+  /* MATHS AS TYPED (`x^2`, `a/b`): escaped first, then the typesetter raises and stacks it. */
+  if (v.typeset != null) return `<span class="kc-math">${typeof typeset_ === 'function' ? typeset_(esc(String(v.typeset))) : esc(String(v.typeset))}</span>`;
+  /* A SMALL MARK BESIDE A WORD (Higher tier's `H`, `only Foundation`): text, one fixed class. */
+  if (v.badge != null) return `<span class="kc-badge"${v.hint ? ` title="${esc(v.hint)}"` : ''}>${esc(String(v.badge))}</span>`;
   /* TEXT WITH THE SITE'S LAWS COLOURED (`mark`, which escapes first): still only text in the spec. */
   if (v.marked != null) return typeof mark === 'function' ? mark(String(v.marked)) : esc(String(v.marked));
   /* A NAMED WORD (a subject, green as a subject is everywhere): one of a fixed set, never a free class. */
@@ -565,8 +569,23 @@ function cardEmbed_(b) {
   const make = CARD_EMBEDS[b.tool];
   let inner = '';
   try { inner = make ? make(b.args || {}) : ''; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'embed:' + b.tool); }
-  return `<div class="kc-embed" data-embed="${esc(b.tool || '')}">${inner || ''}</div>`;
+  return `<div class="kc-embed${b.look ? ' ' + esc(b.look) : ''}" data-embed="${esc(b.tool || '')}"${cardAttrs_(b.data)}>${inner || ''}</div>`;
 }
+/* A TREE: headed nodes, each with its words, its tiles (`tile_` specs) and its children; `fold` folds the top level. */
+function cardTree_(nodes, fold, top) {
+  const one = n => { const head = `<span class="kc-tree-k">${cardRuns_(n.label)}</span>`;
+    const inner = (n.text != null && n.text !== '' ? `<span class="kc-tree-v">${cardRuns_(n.text)}</span>` : '')
+      + ((n.tiles || []).length ? `<div class="tile-row">${tile_(n.tiles)}</div>` : '')
+      + (n.more ? `<p class="kc-tree-more">${cardRuns_(n.more)}</p>` : '') + cardTree_(n.kids, false, false);
+    return fold && top ? `<details class="kc-tree-sec"><summary class="kc-h">${cardRuns_(n.label)}</summary>${inner}</details>`
+      : `<li class="kc-tree-n">${head}${inner}</li>`; };
+  const list = (nodes || []).map(one).join('');
+  return !list ? '' : fold && top ? list : `<ul class="kc-tree">${list}</ul>`;
+}
+/* A GRID OF CELLS AT THEIR COLUMN AND ROW (the periodic table): each cell's parts are text. */
+const cardGrid_ = b => `<div class="kc-grid-wrap"><div class="kc-grid" role="table" aria-label="${esc(b.caption || '')}">${(b.cells || []).map(c =>
+  `<div class="kc-cell kc-c${Math.min(18, Number(c.col) || 1)} kc-r${Math.min(10, Number(c.row) || 1)}">${
+    (c.parts || []).map((t, i) => `<span class="kc-cell-${i}">${esc(String(t == null ? '' : t))}</span>`).join('')}</div>`).join('')}</div></div>`;
 /* THE BODY BLOCKS, each with its one renderer. */
 const CARD_BLOCKS = {
   text: b => [].concat(b.paras || [b.text]).filter(p => p != null && p !== '').map(p => `<p class="kc-line${b.tone ? ' ' + esc('is-' + b.tone) : ''}${b.look ? ' ' + esc(b.look) : ''}">${cardRuns_(p)}</p>`).join(''),
@@ -582,7 +601,20 @@ const CARD_BLOCKS = {
   answer: cardAnswer_,
   formRow: b => `<label class="kc-form-row"><span class="k">${cardRuns_(b.label || '')}</span>${cardControl_(b.control)}</label>`,
   embed: cardEmbed_,
+  /* A HEADED SECTION: a small heading, then any blocks. */
+  section: b => `<section class="kc-sec${b.look ? ' ' + esc(b.look) : ''}">${b.head ? `<h4 class="kc-h">${cardRuns_(b.head)}</h4>` : ''}${(b.blocks || []).map(cardBlock_).join('')}</section>`,
+  tree: b => cardTree_(b.nodes, !!b.fold, true),
+  grid: cardGrid_,
+  /* A WAIT is `loading_()` and nothing else; `look` and `data` name a region its redraw finds (`.err-body`). */
+  wait: b => `<div class="kc-wait${b.look ? ' ' + esc(b.look) : ''}"${cardAttrs_(b.data)}${b.on ? ' aria-busy="true"' : ''}>${b.on && typeof loading_ === 'function' ? loading_() : ''}</div>`,
 };
+/* A CARD DRAWN AGAIN WHERE IT STANDS: the new card replaces the old element whole. */
+function cardRedraw_(el, spec) {
+  if (!el || typeof document === 'undefined') return;
+  const t = document.createElement('template');
+  t.innerHTML = renderCard(spec);
+  if (t.content.firstElementChild) el.replaceWith(t.content.firstElementChild);
+}
 function cardBlock_(b) {
   if (b == null || b === '') return '';
   if (typeof b === 'string') return CARD_BLOCKS.text({ text: b });
@@ -1703,7 +1735,7 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Practicals&subject=Chemistry": ["topic",[["Bar Charts & Pictograms"],["Bounds & Error Intervals"],["Cell Biology"],["Chemical Analysis"],["Chemical Changes"],["Compound Measures"],["Direct Proportion"],["Electricity"],["Energy Changes"],["Inequalities"],["Mean"],["Negative Numbers"],["Ordering Numbers & Decimals"],["Organic Chemistry"],["Particle Model of Matter"],["Percentage Increase & Decrease"],["Percentage of an Amount"],["Percentages"],["Quantitative Chemistry"],["Rate of Reaction"],["Ratio Problems"],["Real-Life Graphs"],["Rounding"],["Scatter Graphs & Correlation"],["Separating Mixtures"],["Straight Line Graphs"],["Units & Measures"],["Using Resources"],["Writing & Simplifying Ratio"]],[1,1,1,8,16,3,2,1,4,1,1,1,1,1,1,1,1,2,2,6,1,3,2,1,5,1,5,1,1],31,["Bar Charts & Pictograms","Bounds & Error Intervals","Cell Biology","Chemical Analysis","Chemical Changes","Compound Measures","Direct Proportion","Electricity","Energy Changes","Inequalities","Mean","Negative Numbers","Ordering Numbers & Decimals","Organic Chemistry","Particle Model of Matter","Percentage Increase & Decrease","Percentage of an Amount","Percentages","Quantitative Chemistry","Rate of Reaction","Ratio Problems","Real-Life Graphs","Rounding","Scatter Graphs & Correlation","Separating Mixtures","Straight Line Graphs","Units & Measures","Using Resources","Writing & Simplifying Ratio"]],
   "kindLabel=Practice&kindOwn=Practicals&subject=Maths": ["level",[["A-Level"],["GCSE"],["KS3"],["SATs"]],[2,7,8,4],10,["A-Level","GCSE","KS3","SATs"]],
   "kindLabel=Practice&kindOwn=Practicals&subject=Physics": ["topic",[["Angles"],["Averages & Range"],["Bar Charts & Pictograms"],["Compound Measures"],["Direct Proportion"],["Electricity"],["Energy"],["Enlargements"],["Estimation"],["Forces"],["Inverse Proportion"],["Magnetism & Electromagnetism"],["Mean"],["Particle Model of Matter"],["Ratio Problems"],["Real-Life Graphs"],["Rearranging Formulae"],["Standard Form"],["Straight Line Graphs"],["Substitution"],["Units & Measures"],["Waves"],["Writing & Simplifying Ratio"]],[4,1,1,6,5,5,9,1,1,13,1,1,6,1,2,1,2,1,11,3,9,6,1],29,["Angles","Averages & Range","Bar Charts & Pictograms","Compound Measures","Direct Proportion","Electricity","Energy","Enlargements","Estimation","Forces","Inverse Proportion","Magnetism & Electromagnetism","Mean","Particle Model of Matter","Ratio Problems","Real-Life Graphs","Rearranging Formulae","Standard Form","Straight Line Graphs","Substitution","Units & Measures","Waves","Writing & Simplifying Ratio"]],
-  "kindLabel=Library": ["subject",[["Art and Design"],["Astronomy"],["Biology"],["Business"],["Chemistry"],["Citizenship"],["Classical Civilisation"],["Combined Science"],["Computer Science"],["Design and Technology"],["Drama"],["Economics"],["English Language"],["English Literature"],["Food Preparation and Nutrition"],["French"],["Further Maths"],["Geography"],["German"],["Greek"],["History"],["Latin"],["Maths"],["Mechanics"],["Media Studies"],["Music"],["Non-verbal Reasoning"],["Philosophy"],["Phonics"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Russian"],["Sociology"],["Spanish"],["Statistics"],["Study Skills"],["Verbal Reasoning"]],[8,14,158,37,608,10,10,2,45,11,8,29,189,5216,8,41,34,37,14,1,3619,14,165,76,10,9,14,1,12,270,262,17,31,240857,15,26,41,17,14,21],251967,["Art and Design","Astronomy","Biology","Business","Chemistry","Citizenship","Classical Civilisation","Combined Science","Computer Science","Design and Technology","Drama","Economics","English Language","English Literature","Food Preparation and Nutrition","French","Further Maths","Geography","German","Greek","History","Latin","Maths","Mechanics","Media Studies","Music","Non-verbal Reasoning","Philosophy","Phonics","Physical Education","Physics","Politics","Psychology","Religious Studies","Russian","Sociology","Spanish","Statistics","Study Skills","Verbal Reasoning"]],
+  "kindLabel=Library": ["subject",[["Art and Design"],["Astronomy"],["Biology"],["Business"],["Chemistry"],["Citizenship"],["Classical Civilisation"],["Combined Science"],["Computer Science"],["Design and Technology"],["Drama"],["Economics"],["English Language"],["English Literature"],["Food Preparation and Nutrition"],["French"],["Further Maths"],["Geography"],["German"],["Greek"],["History"],["Latin"],["Maths"],["Mechanics"],["Media Studies"],["Music"],["Non-verbal Reasoning"],["Philosophy"],["Phonics"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Russian"],["Sociology"],["Spanish"],["Statistics"],["Study Skills"],["Verbal Reasoning"]],[8,14,158,37,607,10,10,2,45,11,8,29,189,5216,8,41,34,37,14,1,3619,14,162,76,10,9,14,1,12,270,259,17,31,240857,15,26,41,17,14,21],251960,["Art and Design","Astronomy","Biology","Business","Chemistry","Citizenship","Classical Civilisation","Combined Science","Computer Science","Design and Technology","Drama","Economics","English Language","English Literature","Food Preparation and Nutrition","French","Further Maths","Geography","German","Greek","History","Latin","Maths","Mechanics","Media Studies","Music","Non-verbal Reasoning","Philosophy","Phonics","Physical Education","Physics","Politics","Psychology","Religious Studies","Russian","Sociology","Spanish","Statistics","Study Skills","Verbal Reasoning"]],
   "kindLabel=Library&subject=Astronomy": ["topic",[["Astrophysics"],["Classification of Stars"],["Cosmology"],["Space Physics"],["Telescopes"]],[1,2,2,5,1],14,["Astrophysics","Classification of Stars","Cosmology","Space Physics","Telescopes"]],
   "kindLabel=Library&subject=Biology": ["level",[["A-Level"],["GCSE"],["KS3"],["SATs"]],[22,118,11,7],158,["A-Level","GCSE","KS3","SATs"]],
   "kindLabel=Library&subject=Biology&level=A-Level": ["topic",[["Bioenergetics"],["Cell Biology"],["Ecology"],["Homeostasis & Response"],["Infection & Response"],["Inheritance & Evolution"],["Organisation"]],[2,5,2,2,1,4,4],22,["Bioenergetics","Cell Biology","Ecology","Homeostasis & Response","Infection & Response","Inheritance & Evolution","Organisation"]],
@@ -1711,7 +1743,7 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=Biology&level=KS3": ["topic",[["Bioenergetics"],["Cell Biology"],["Ecology"],["Infection & Response"],["Inheritance & Evolution"],["Organisation"]],[2,1,1,1,2,3],11,["Bioenergetics","Cell Biology","Ecology","Infection & Response","Inheritance & Evolution","Organisation"]],
   "kindLabel=Library&subject=Biology&level=SATs": ["topic",[["Bioenergetics"],["Ecology"],["Inheritance & Evolution"],["Organisation"]],[1,2,1,2],7,["Bioenergetics","Ecology","Inheritance & Evolution","Organisation"]],
   "kindLabel=Library&subject=Business": ["level",[["A-Level"],["GCSE"]],[17,20],37,["A-Level","GCSE"]],
-  "kindLabel=Library&subject=Chemistry": ["cState",[["Aqueous solution"],["Gas"],["Liquid"],["Solid"],["Unknown"]],[23,36,39,216,19],608,["Aqueous solution","Gas","Liquid","Solid","Unknown"]],
+  "kindLabel=Library&subject=Chemistry": ["cState",[["Aqueous solution"],["Gas"],["Liquid"],["Solid"],["Unknown"]],[23,36,39,216,19],607,["Aqueous solution","Gas","Liquid","Solid","Unknown"]],
   "kindLabel=Library&subject=Chemistry&cState=Aqueous solution": ["cCategory",[["Acid"],["Alkali"],["Covalent compound"],["Indicator"],["Mixture"],["Salt"]],[7,2,4,5,1,4],23,["Acid","Alkali","Covalent compound","Indicator","Mixture","Salt"]],
   "kindLabel=Library&subject=Chemistry&cState=Gas": ["mKind",[["Element"],["Substance"]],[11,25],36,["Element","Substance"]],
   "kindLabel=Library&subject=Chemistry&cState=Liquid": ["mKind",[["Element"],["Substance"]],[2,37],39,["Element","Substance"]],
@@ -1749,10 +1781,10 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=History&histKind=People": ["personFrom",[["Alexandria"],["Antioch"],["Antium"],["Arianzus, Cappadocia"],["Bethelia, near Gaza"],["Blenheim Palace, Oxfordshire"],["Boston"],["Braunau am Inn, Austria"],["Caesarea in Cappadocia"],["Caesarea Maritima"],["Carthage"],["Chur, Switzerland"],["Coma, Egypt"],["Constantinople"],["Constantinople (or Palestine)"],["Damascus"],["Denison, Texas"],["Eisleben"],["Galatia, Paphlagonia"],["Gori, Georgia"],["Hyde Park, New York"],["Imbros"],["Kiev (probably)"],["Lamar, Missouri"],["London"],["Moscow"],["Naissus"],["Naxos"],["Noyon, France"],["Predappio, Italy"],["Rome"],["Salona, Dalmatia"],["Shovsk, Tambov province"],["Syria"],["Thessalonica"],["Tokyo"],["Toropets"],["Vasiliko, Epirus"]],[2,2,1,1,1,1,1,1,2,1,1,1,1,4,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,2,1,1,1],53,["Alexandria","Antioch","Antium","Arianzus, Cappadocia","Bethelia, near Gaza","Blenheim Palace, Oxfordshire","Boston","Braunau am Inn, Austria","Caesarea in Cappadocia","Caesarea Maritima","Carthage","Chur, Switzerland","Coma, Egypt","Constantinople","Constantinople (or Palestine)","Damascus","Denison, Texas","Eisleben","Galatia, Paphlagonia","Gori, Georgia","Hyde Park, New York","Imbros","Kiev (probably)","Lamar, Missouri","London","Moscow","Naissus","Naxos","Noyon, France","Predappio, Italy","Rome","Salona, Dalmatia","Shovsk, Tambov province","Syria","Thessalonica","Tokyo","Toropets","Vasiliko, Epirus"]],
   "kindLabel=Library&subject=History&histKind=Timelines": ["histEra",[["Ancient"],["Medieval"],["Early modern"],["Modern"]],[3,2,1,4],6,["Ancient","Medieval","Early modern","Modern"]],
   "kindLabel=Library&subject=History&histKind=Writings": ["wWork",[["Bill of Rights 1689"],["Constitution of the United States","Constitution of the United…"],["Declaration of Independence"],["Fireside Chats"],["Germania and Agricola"],["Gettysburg Address"],["History of the Peloponnesian War","History of the Peloponnesian…"],["Magna Carta"],["Presidential Inaugural Addresses","Presidential Inaugural…"],["The Anglo-Saxon Chronicle"],["The Gallic War"],["The Genuine Works of Hippocrates","The Genuine Works of…"],["The Histories"],["The Lives of the Twelve Caesars","The Lives of the Twelve…"]],[52,74,33,25,92,1,26,128,55,403,384,86,1483,485],3383,["Bill of Rights 1689","Constitution of the United…","Declaration of Independence","Fireside Chats","Germania and Agricola","Gettysburg Address","History of the Peloponnesian…","Magna Carta","Presidential Inaugural…","The Anglo-Saxon Chronicle","The Gallic War","The Genuine Works of…","The Histories","The Lives of the Twelve…"]],
-  "kindLabel=Library&subject=Maths": ["level",[["A-Level"],["AS"],["GCSE"],["KS3"],["SATs"]],[56,22,48,26,39],165,["A-Level","AS","GCSE","KS3","SATs"]],
-  "kindLabel=Library&subject=Maths&level=A-Level": ["keystage",[["KS4"],["KS5"]],[1,52],56,["KS4","KS5"]],
-  "kindLabel=Library&subject=Maths&level=AS": ["keystage",[["KS4"],["KS5"]],[1,20],22,["KS4","KS5"]],
-  "kindLabel=Library&subject=Maths&level=GCSE": ["examBoard",[["AQA"],["Edexcel"],["OCR"]],[17,28,17],48,["AQA","Edexcel","OCR"]],
+  "kindLabel=Library&subject=Maths": ["level",[["A-Level"],["AS"],["GCSE"],["KS3"],["SATs"]],[55,21,46,26,39],162,["A-Level","AS","GCSE","KS3","SATs"]],
+  "kindLabel=Library&subject=Maths&level=A-Level": ["keystage",[["KS4"],["KS5"]],[1,51],55,["KS4","KS5"]],
+  "kindLabel=Library&subject=Maths&level=AS": ["keystage",[["KS4"],["KS5"]],[1,19],21,["KS4","KS5"]],
+  "kindLabel=Library&subject=Maths&level=GCSE": ["examBoard",[["AQA"],["Edexcel"],["OCR"]],[15,26,15],46,["AQA","Edexcel","OCR"]],
   "kindLabel=Library&subject=Maths&level=KS3": ["topic",[["3-D Shapes"],["Adding & Subtracting Fractions"],["Angles at a Point & on a Line"],["Angles in Parallel Lines"],["Angles in Polygons"],["Angles in Triangles & Quadrilaterals","Angles in Triangles…"],["Area & Circumference of Circles","Area & Circumference of…"],["Area of 2-D Shapes"],["Averages & Range"],["Averages from a Table"],["Bar Charts & Pictograms"],["Basic Probability"],["Bearings"],["Best Value & Unitary Method"],["Calculating with Decimals"],["Compound Measures"],["Compound Shapes"],["Coordinates"],["Cubes & Cube Roots"],["Describing a Single Transformation","Describing a Single…"],["Direct Proportion"],["Enlargements"],["Equation of a Line"],["Equivalent & Simplifying Fractions","Equivalent & Simplifying…"],["Estimation"],["Expanding Brackets"],["Factorising"],["Factors & Multiples"],["Fraction Decimal Percentage Conversion","Fraction Decimal Percentage…"],["Fractions of an Amount"],["Function Machines"],["HCF & LCM"],["Inequalities on a Number Line"],["Laws of Indices"],["Linear Equations"],["Listing Outcomes & Sample Space","Listing Outcomes & Sample…"],["Mean"],["Median"],["Mixed Numbers"],["Mode"],["Multiplication"],["Multiplying & Dividing Fractions","Multiplying & Dividing…"],["Negative Numbers"],["nth Term of a Linear Sequence","Nth Term of a Linear Sequence"],["Order of Operations"],["Ordering Numbers & Decimals"],["Parts of a Circle"],["Percentage Increase & Decrease"],["Percentage of an Amount"],["Perimeter"],["Pie Charts"],["Place Value & Ordering"],["Primes & Prime Factorisation"],["Pythagoras' Theorem"],["Range"],["Ratio Problems"],["Real-Life Graphs"],["Rearranging Formulae"],["Reflections"],["Relative Frequency & Expectation","Relative Frequency…"],["Rotations"],["Rounding"],["Scale Drawings & Maps"],["Scatter Graphs & Correlation"],["Sequences"],["Sharing in a Ratio"],["Significant Figures"],["Simplifying & Collecting Terms"],["Solving Inequalities"],["Squares & Square Roots"],["Standard Form"],["Straight Line Graphs"],["Substitution"],["Term-to-Term Rules"],["Translations"],["Types of Angle"],["Units & Measures"],["Unknowns on Both Sides"],["Venn Diagrams & Set Notation"],["Volume & Surface Area"],["Writing & Simplifying Ratio"]],[1,1,1,1,1,1,1,1,1,1,2,2,2,2,1,3,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,3,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,3,1,1,1,1],26,["3-D Shapes","Adding & Subtracting Fractions","Angles at a Point & on a Line","Angles in Parallel Lines","Angles in Polygons","Angles in Triangles…","Area & Circumference of…","Area of 2-D Shapes","Averages & Range","Averages from a Table","Bar Charts & Pictograms","Basic Probability","Bearings","Best Value & Unitary Method","Calculating with Decimals","Compound Measures","Compound Shapes","Coordinates","Cubes & Cube Roots","Describing a Single…","Direct Proportion","Enlargements","Equation of a Line","Equivalent & Simplifying…","Estimation","Expanding Brackets","Factorising","Factors & Multiples","Fraction Decimal Percentage…","Fractions of an Amount","Function Machines","HCF & LCM","Inequalities on a Number Line","Laws of Indices","Linear Equations","Listing Outcomes & Sample…","Mean","Median","Mixed Numbers","Mode","Multiplication","Multiplying & Dividing…","Negative Numbers","Nth Term of a Linear Sequence","Order of Operations","Ordering Numbers & Decimals","Parts of a Circle","Percentage Increase & Decrease","Percentage of an Amount","Perimeter","Pie Charts","Place Value & Ordering","Primes & Prime Factorisation","Pythagoras' Theorem","Range","Ratio Problems","Real-Life Graphs","Rearranging Formulae","Reflections","Relative Frequency…","Rotations","Rounding","Scale Drawings & Maps","Scatter Graphs & Correlation","Sequences","Sharing in a Ratio","Significant Figures","Simplifying & Collecting Terms","Solving Inequalities","Squares & Square Roots","Standard Form","Straight Line Graphs","Substitution","Term-to-Term Rules","Translations","Types of Angle","Units & Measures","Unknowns on Both Sides","Venn Diagrams & Set Notation","Volume & Surface Area","Writing & Simplifying Ratio"]],
   "kindLabel=Library&subject=Maths&level=SATs": ["keystage",[["KS1"],["KS2"]],[15,20],39,["KS1","KS2"]],
   "kindLabel=Library&subject=Mechanics": ["mScope",[["Car"],["Car part"]],[7,69],76,["Car","Car part"]],
@@ -1761,7 +1793,7 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=Physical Education": ["boxKind",[["Fighters"],["Fights"]],[103,157],270,["Fighters","Fights"]],
   "kindLabel=Library&subject=Physical Education&boxKind=Fighters": ["decade",[["1890s"],["1900s"],["1910s"],["1920s"],["1930s"],["1940s"],["1950s"],["1960s"],["1970s"],["1980s"],["1990s"],["2000s"],["2010s"],["2020s"]],[1,2,8,12,11,13,16,20,24,35,42,46,34,15],103,["1890s","1900s","1910s","1920s","1930s","1940s","1950s","1960s","1970s","1980s","1990s","2000s","2010s","2020s"]],
   "kindLabel=Library&subject=Physical Education&boxKind=Fights": ["boutMonth",[["January"],["February"],["March"],["April"],["May"],["June"],["July"],["August"],["September"],["October"],["November"],["December"]],[4,10,12,5,13,30,7,4,29,9,25,9],157,["January","February","March","April","May","June","July","August","September","October","November","December"]],
-  "kindLabel=Library&subject=Physics": ["topic",[["Astrophysics"],["Atomic Structure"],["Capacitors"],["Circular & Periodic Motion"],["Classification of Stars"],["Cosmology"],["Electric & Magnetic Fields"],["Electric Circuits"],["Electricity"],["Electromagnetic Waves"],["Energy"],["Forces"],["Gravitational Fields"],["Magnetism & Electromagnetism"],["Measurements & Their Errors"],["Mechanics & Materials"],["Nuclear Physics"],["Particle Model of Matter"],["Particles & Radiation"],["Progressive & Stationary Waves"],["Space Physics"],["Telescopes"],["Thermal Physics"],["Waves"]],[1,14,1,2,1,1,2,1,18,2,11,33,1,13,2,3,1,12,1,2,7,1,1,18],262,["Astrophysics","Atomic Structure","Capacitors","Circular & Periodic Motion","Classification of Stars","Cosmology","Electric & Magnetic Fields","Electric Circuits","Electricity","Electromagnetic Waves","Energy","Forces","Gravitational Fields","Magnetism & Electromagnetism","Measurements & Their Errors","Mechanics & Materials","Nuclear Physics","Particle Model of Matter","Particles & Radiation","Progressive & Stationary Waves","Space Physics","Telescopes","Thermal Physics","Waves"]],
+  "kindLabel=Library&subject=Physics": ["topic",[["Astrophysics"],["Atomic Structure"],["Capacitors"],["Circular & Periodic Motion"],["Classification of Stars"],["Cosmology"],["Electric & Magnetic Fields"],["Electric Circuits"],["Electricity"],["Electromagnetic Waves"],["Energy"],["Forces"],["Gravitational Fields"],["Magnetism & Electromagnetism"],["Measurements & Their Errors"],["Mechanics & Materials"],["Nuclear Physics"],["Particle Model of Matter"],["Particles & Radiation"],["Progressive & Stationary Waves"],["Space Physics"],["Telescopes"],["Thermal Physics"],["Waves"]],[1,14,1,2,1,1,2,1,18,2,11,33,1,13,2,3,1,12,1,2,7,1,1,18],259,["Astrophysics","Atomic Structure","Capacitors","Circular & Periodic Motion","Classification of Stars","Cosmology","Electric & Magnetic Fields","Electric Circuits","Electricity","Electromagnetic Waves","Energy","Forces","Gravitational Fields","Magnetism & Electromagnetism","Measurements & Their Errors","Mechanics & Materials","Nuclear Physics","Particle Model of Matter","Particles & Radiation","Progressive & Stationary Waves","Space Physics","Telescopes","Thermal Physics","Waves"]],
   "kindLabel=Library&subject=Physics&topic=Electricity": ["level",[["GCSE"],["KS3"],["SATs"]],[16,1,1],18,["GCSE","KS3","SATs"]],
   "kindLabel=Library&subject=Physics&topic=Energy": ["level",[["GCSE"],["KS3"]],[10,1],11,["GCSE","KS3"]],
   "kindLabel=Library&subject=Physics&topic=Forces": ["level",[["A-Level"],["GCSE"],["KS3"],["SATs"]],[1,29,1,2],33,["A-Level","GCSE","KS3","SATs"]],
@@ -1791,12 +1823,12 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31850,251967,9,2,4,5,10,45,20,2],283913,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,251960,24,2,4,5,10,31,7],283892,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[2,2,2],4,["Parent","Student","Tutor"]],
-  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,17,9,11,15,5],45,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
+  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,5,2],31,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31850,251967,9,2,1,5,10,29,20,2],283894,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,251960,24,2,1,5,10,29,7],283887,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[20,8,17,8,7],29,["Student","Parent","Staff","Apprentice","Admin"]]
 }
 }};
@@ -4099,8 +4131,8 @@ function oopsTry_(where, fn, host) {
 }
 /* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
 const TIER_CORE_WIDGETS = [];
-const TIER_LAZY_WIDGETS = ['timer', 'calendar', 'timetable', 'typing', 'console', 'wordgames', 'newspaper', 'spotify', 'favlinks', 'pixel'];
-const TIER_OFF_WIDGETS = ['homework', 'flyers', 'cart', 'rewrite', 'poster'];
+const TIER_LAZY_WIDGETS = [];
+const TIER_OFF_WIDGETS = ['reels', 'newspaper', 'homework', 'flyers', 'mat', 'timer', 'docket', 'notepad', 'spotify', 'speedread', 'timetable', 'typing', 'cart', 'calendar', 'countdowns', 'favlinks', 'rewrite', 'poster', 'pixel', 'console', 'wordgames'];
 const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
 const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
 const TIER_RUN = { depth: 0 };
@@ -4607,7 +4639,7 @@ const SCREEN_HOOKS = {
   feed: { started: [() => typeof feedCamWatch_ === 'function' && feedCamWatch_()],
     slid: n => { if (typeof feedCamWatch_ === 'function') afterSlide_(feedCamWatch_); if (n !== 0 && typeof camRest_ === 'function') camRest_(); } },
   /* an admin's business records are asked for, a POST, once (js/records.js) */
-  biz: { started: [() => typeof bizStart_ === 'function' && bizStart_()] },
+  biz: { started: [() => typeof window.bizStart_ === 'function' && window.bizStart_()] },
   /* a conversation opens at its newest message, and keeps itself up to date while it is the screen you are on (`dmPoll_`) */
   dm: { started: [() => typeof dmFoot_ === 'function' && dmFoot_(), () => typeof dmPoll_ === 'function' && dmPoll_()],
     drawn: () => { if (typeof dmFoot_ === 'function') { try { dmFoot_(); } catch (e) { oops_(e, 'shell:drawnScreen_') } } } },
@@ -10647,7 +10679,7 @@ function staffPages_() {
   const hub = typeof hubBlock_ === 'function' ? hubBlock_() : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [card_(`<div class="staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`)] : [];
-  const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof legoCards_ === 'function' ? legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
+  const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
@@ -10661,7 +10693,7 @@ screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? 
 
 /* ---------- WEB PROFILE (730): @family.'s own public card, from the brand tab, every line with its fallback ---------- */
 function webProfilePages_() {
-  const b = typeof matBrand === 'function' ? matBrand() : {};
+  const b = typeof window.matBrand === 'function' ? window.matBrand() : {};
   const name = b.name || brand('name', '@family.'), logo = brandLogo_();
   const lines = [brand('web_tagline', 'Tutoring for every age, at home and online.'), b.area ? 'Where: ' + b.area : '',
     b.phone ? 'Phone: ' + b.phone : '', b.site ? 'Online: ' + b.site : ''].filter(Boolean);
@@ -10682,12 +10714,12 @@ screen('apprentices', () => pages('apprentices', typeof cardsOf_ === 'function' 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  return (typeof bizPages_ === 'function' ? bizPages_() : []).concat(typeof deletedCard_ === 'function' ? [deletedCard_()] : []);
+  return (typeof window.bizPages_ === 'function' ? window.bizPages_() : []).concat(typeof deletedCard_ === 'function' ? [deletedCard_()] : []);
 }
 /* THE SITE COLUMN (491): what runs the site rather than the business — setup, moderation, imports, the weekly email, the build. */
 function sitePages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  return (typeof siteBizPages_ === 'function' ? siteBizPages_() : [])
+  return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
     .concat(typeof inboxCard_ === 'function' ? [inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
     .concat([card_(`<div class=""><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`)]);
@@ -19685,7 +19717,7 @@ const missingLeadN_ = () => HEALTH_IN_FIND ? 0 : (LOGIC_SHOWN && logicFor_() ? 1
 /* ONE SCORE (890): `health` is the Optimiser; the Logic health card stays written but is off behind LOGIC_SHOWN. */
 const LOGIC_SHOWN = false;
 /* SETTINGS CARDS IN FIND BESIDE THE HEALTH ONES, drawn by their own files: the business checker (1050). */
-const HEALTH_MORE_ = { bizcheck: () => (typeof bizCheckCard_ === 'function' ? bizCheckCard_() : '') };
+const HEALTH_MORE_ = { bizcheck: () => (typeof window.bizCheckCard_ === 'function' ? window.bizCheckCard_() : '') };
 function healthCardOf_(which) {
   if (HEALTH_MORE_[which]) return HEALTH_MORE_[which]();
   /* ONE CARD (owner, 6 Nov): the Optimiser holds What's missing too, how complete Find's resources are, under its score. */

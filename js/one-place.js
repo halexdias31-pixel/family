@@ -4,15 +4,8 @@ const OQ = { list: null, answers: null, error: '', asking: false, watching: fals
 const CHECK_AREAS = [['code', 'Code'], ['logic', 'Find logic'], ['ui', 'Design and UI'], ['friction', 'Friction'], ['cost', 'AI cost'], ['speed', 'Speed'], ['business', 'Business']];
 
 /* THE BUSINESS AREA, LIVE: the checker's sorted share once its ticks came, else the file's figure. */
-function checksBizLive_() {
-  try {
-    if (typeof BC === 'undefined' || !BC.list || !BC.ticks || typeof bcApplies_ !== 'function') return null;
-    const all = BC.list.filter(bcApplies_).map(i => ({ i, s: bcState_(i) })).filter(x => !x.s.info);
-    if (!all.length) return null;
-    const left = all.filter(x => !x.s.sorted);
-    return { score: Math.round(all.filter(x => x.s.sorted).length / all.length * 1000) / 10, next: left.slice(0, 3).map(x => x.i.title) };
-  } catch (e) { return null; }
-}
+/* THE BUSINESS CHECKER IS SWITCHED OFF (attic/js/biz-check.js, owner 13 Nov): the file's figure stands. */
+function checksBizLive_() { return null; }
 function checksAreas_(s) {
   const A = Object.assign({}, (s && s.areas) || {}), live = checksBizLive_();
   if (live) A.business = Object.assign({}, A.business || {}, { score: live.score, next: live.next, live: true });
@@ -67,7 +60,6 @@ function oqInbox_() {
 function checksInner_() {
   const s = typeof HEALTH !== 'undefined' ? HEALTH.got : null;
   if (typeof siteHealthCard_ === 'function' && typeof HEALTH !== 'undefined' && !HEALTH.asked) siteHealthCard_();
-  if (typeof bizCheckCard_ === 'function' && typeof BC !== 'undefined' && !BC.asking && !BC.fetched && typeof bcStart_ === 'function') setTimeout(bcStart_, 0);
   const head = '<div class="qtags">' + qtag_('Business') + qtag_('Admin only') + '</div><h3>Optimiser</h3>';
   if (!s) return head + (HEALTH && HEALTH.failed ? '<p class="me-said">The score could not be read. Run node tools/health.js and push.</p>' : (typeof loading_ === 'function' ? loading_() : '')) + oqInbox_();
   const A = checksAreas_(s);
@@ -80,7 +72,7 @@ function checksInner_() {
 function checksCard_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return '';
   let more = '';
-  try { more = (typeof healthWithMissing_ === 'function' ? healthWithMissing_(siteHealthCard_(true)) : '') + (typeof bizCheckCard_ === 'function' ? bizCheckCard_() : ''); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'checks detail'); }
+  try { more = (typeof healthWithMissing_ === 'function' ? healthWithMissing_(siteHealthCard_(true)) : '') + (typeof window.bizCheckCard_ === 'function' ? window.bizCheckCard_() : ''); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'checks detail'); }
   if (!checksBizLive_()) setTimeout(checksWatchBiz_, 0);
   return card_(`<div class="checks-card" data-checks>${checksInner_()}</div>${more}`);
 }
@@ -90,7 +82,7 @@ function checksWatchBiz_() {
   if (OQ.watching) return;
   OQ.watching = true;
   const t0 = Date.now();
-  (function tick() { if (checksBizLive_() || (typeof BC !== 'undefined' && BC.error) || Date.now() - t0 > 60000) { OQ.watching = false; checksDraw_(); } else setTimeout(tick, 500); })();
+  (function tick() { if (checksBizLive_() || Date.now() - t0 > 60000) { OQ.watching = false; checksDraw_(); } else setTimeout(tick, 500); })();
 }
 
 on('oq-answer', el => {

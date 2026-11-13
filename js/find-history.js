@@ -1,5 +1,5 @@
 
-/* ---------- AN EXAM INSERT (455): ONE CARD, THE WHOLE SHEET, TAGGED AS A PAPER IS ---------- */
+/* ---------- AN EXAM INSERT (455): EACH FORMULA, CONSTANT AND TABLE ITS OWN PART; THE SHEET IS ONLY A TAG (owner, 13 Nov) ---------- */
 function insertItem_(r) {
   return {
     kind: 'insert', name: r.name, key: 'in:' + r.id, sub: r.summary, image: '',
@@ -21,13 +21,26 @@ function insertParts_() {
     const add = (k, v) => (v || []).forEach(t => { if (p[k].indexOf(t) === -1) p[k].push(t); });
     add('levels', r.levels); add('boards', r.boards); add('tiers', r.tiers); add('forSubjects', r.forSubjects); add('forLevels', r.forLevels);
     p.parents.push(r.id);
-    p.summary = 'On the ' + p.parents.map(id => (insertSheetRow_(id) || {}).name || id).join(', the ') + '.';
   })));
-  return Object.keys(by).map(k => by[k]);
+  /* A SHEET'S TABLE (the periodic table) IS ONE TABLE PART, as a question's table is; the same table on two sheets is one part. */
+  const tables = {};
+  (DATA.inserts || []).filter(r => r.table && (r.elements || []).length).forEach(r => {
+    const sig = r.table + JSON.stringify(r.elements), p = tables[sig] || (by[r.id + '-table'] = tables[sig] = { id: r.id + '-table', name: r.table === 'periodic' ? 'Periodic table' : String(r.table),
+      summary: '', subject: r.subject, levels: [], keystage: r.keystage, boards: [], tiers: [], forSubjects: [], forLevels: [], forTiers: [], verified: r.verified, verifiedNote: r.verifiedNote,
+      official: [], sections: [], table: r.table, elements: r.elements, forPapers: [], sources: [], parents: [] });
+    (r.levels || []).concat().forEach(t => { if (p.levels.indexOf(t) === -1) p.levels.push(t); });
+    (r.boards || []).forEach(t => { if (p.boards.indexOf(t) === -1) p.boards.push(t); });
+    (r.tiers || []).forEach(t => { if (p.tiers.indexOf(t) === -1) p.tiers.push(t); });
+    p.parents.push(r.id);
+  });
+  return Object.keys(by).map(k => by[k]).map(p => Object.assign(p, { sheets: p.parents.map(id => (insertSheetRow_(id) || {}).name || id),
+    summary: 'On the ' + p.parents.map(id => (insertSheetRow_(id) || {}).name || id).join(', the ') + '.' }));
 }
 const insertSheetRow_ = id => (DATA.inserts || []).find(r => r.id === id) || null;
-const insertPartItem_ = p => Object.assign(insertItem_(p), { name: p.name + ' (' + p.sections[0].head + ')',
-  text: plainText_([p.name, p.sections[0].head, p.summary, 'insert formula equation', String(p.sections[0].lines[0].math || '').replace(/<[^>]*>/g, '')].join(' ')) });
+/* A PART'S SHEETS ARE ITS TAGS (`sheets`), as a paper's name groups its questions: Find narrows by sheet, and no sheet card is drawn. */
+const insertPartItem_ = p => { const head = (p.sections[0] || {}).head || '', line = ((p.sections[0] || {}).lines || [])[0] || {};
+  return Object.assign(insertItem_(p), { name: head ? p.name + ' (' + head + ')' : p.name, sheets: p.sheets || [],
+    text: plainText_([p.name, head, p.summary, 'insert formula equation'].concat(p.sheets || [], String(line.math || '').replace(/<[^>]*>/g, '')).join(' ')) }); };
 /* WHICH INSERTS A QUESTION'S PAPER COMES WITH: its subject, level, tier and board, read as the facets read them; a blank list is any. */
 function insertsFor_(x) {
   if (!isQ_(x) || !/paper/i.test(String(x.documentType || ''))) return [];
@@ -73,45 +86,24 @@ function insLanded_() {
 /* NO INSERT TILE ON A QUESTION (463): the owner, "they can open it in their 2nd finder" -- an insert is Library, found like any card. */
 const insertRow_ = id => insertSheetRow_(id) || insertParts_().find(r => r.id === id) || null;
 /* THE SHEET ITSELF, on paper: each line a name and its formula, typeset as a question's maths is (`typeset_`). */
-function insertSheet_(r) {
-  const mark = l => (l.higher ? '<span class="tb-h" title="Higher tier only">H</span>' : '')
-    + (l.only ? `<span class="insh-only">${esc(l.only)} only</span>` : '');
-  const body = (r.table === 'periodic' ? insertTable_(r) : '') + r.sections.map(s => `<section class="insh-sec">
-      <h4>${esc(s.head || '')}</h4>
-      <ul>${(s.lines || []).map(l => `<li><span class="insh-fn">${esc(l.name || '')}${mark(l)}</span>
-        <span class="insh-fm">${typeset_(String(l.math || ''))}</span>${l.note ? `<span class="insh-note">${esc(l.note)}</span>` : ''}</li>`).join('')}</ul>
-    </section>`).join('');
-  if (insReading_(r)) {
-    return `<div class="insh-sheet insh-reading">
-    <p class="insh-kick">${esc(['Insert'].concat(r.boards).join(' · '))}</p>
-    <h3>${esc(r.name)}</h3>
-    ${r.summary ? `<p class="insh-sum">${esc(r.summary)}</p>` : ''}
-    ${r.sourceText ? `<div class="insrc${r.lineNumbers ? ' has-lines' : ''}">${insSource_(r)}</div>`
-      : `<div class="insrc insrc-wait${r.lineNumbers ? ' has-lines' : ''}" data-ins="${esc(r.id)}">${insSay_(r)}</div>`}
-  </div>`;
-  }
-  return `<div class="insh-sheet">
-    <p class="insh-kick">${esc(['Insert'].concat(r.boards).join(' · '))}</p>
-    <h3>${esc(r.name)}</h3>
-    ${body}
-    <p class="insh-check"><b>${r.verified ? 'Checked' : 'Not yet checked'}</b> ${esc(r.verifiedNote)}</p>
-  </div>`;
+/* AN INSERT AS BLOCKS: its kicker, a reading's source (filled when its words come) or the sheet's sections, and whether it was checked. */
+function insertBody_(r) {
+  const kick = { type: 'text', look: 'insh-kick', text: ['Insert'].concat(r.boards || []).join(' · ') };
+  if (insReading_(r)) return [kick, { type: 'text', look: 'insh-sum', text: r.summary || '' },
+    { type: 'embed', tool: 'ins-source', look: 'insrc' + (r.sourceText ? '' : ' insrc-wait') + (r.lineNumbers ? ' has-lines' : ''), data: r.sourceText ? null : { ins: r.id }, args: { id: r.id } }];
+  const mark = l => [l.higher ? { badge: 'H', hint: 'Higher tier only' } : '', l.only ? { badge: l.only + ' only' } : ''];
+  return [kick].concat(r.table === 'periodic' ? [{ type: 'grid', caption: 'Periodic table',
+    cells: (r.elements || []).map(e => ({ col: e[4], row: e[5], parts: [e[3], e[1], e[2], e[0]] })) },
+    { type: 'text', look: 'insh-key', text: 'In each box: relative atomic mass, symbol, name, atomic number.' }] : [])
+    .concat((r.sections || []).map(s => ({ type: 'section', look: 'insh-sec', head: s.head || '', blocks: [{ type: 'tree',
+      nodes: (s.lines || []).map(l => ({ label: [l.name || ''].concat(mark(l)), text: [{ typeset: String(l.math || '') }].concat(l.note ? [' ', { i: l.note }] : []) })) }] })),
+    { type: 'text', look: 'insh-check', text: [{ b: r.verified ? 'Checked' : 'Not yet checked' }, ' ', r.verifiedNote || ''] });
 }
-/* THE PERIODIC TABLE: 18 columns, an element where its group and period put it. */
-function insertTable_(r) {
-  const cells = r.elements.map(e => `<div class="insh-el" style="grid-column:${Number(e[4])};grid-row:${Number(e[5])}">
-      <span class="insh-ar">${esc(String(e[3]))}</span><b>${esc(e[1])}</b><span class="insh-nm">${esc(e[2])}</span><span class="insh-z">${Number(e[0])}</span></div>`).join('');
-  return `<div class="insh-pt-wrap"><div class="insh-pt" role="table" aria-label="Periodic table">${cells}</div></div>
-    <p class="insh-key">In each box: relative atomic mass, symbol, name, atomic number.</p>`;
-}
-function insertCard_(x) {
-  const r = x.row;
-  insWant_(r);
-  return `<div class="insh">
-    ${tagRow_(x)}
-    ${insertSheet_(r)}
-  </div>`;
-}
+/* A READING INSERT'S SOURCE, drawn when its words are here; until then what it waits on (`insSay_`). */
+CARD_EMBEDS['ins-source'] = a => { const r = insertRow_(a.id); return !r ? '' : r.sourceText ? insSource_(r) : insSay_(r); };
+cardKind_('insert', x => { const r = x.row || {}; insWant_(r);
+  return { look: 'insh', name: x.name, tags: kcFacetTags_(x).concat((x.sheets || []).map(t => ({ text: t, colour: 2 }))), body: insertBody_(r) }; });
+const insertSheet_ = r => renderCard({ kind: 'insert', look: 'insh', name: r.name, tags: [{ text: r.name, colour: 0 }], body: insertBody_(r) });
 /* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies. */
 function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
   .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'file-view', data: { url: o.url, title: o.label } }))); }
@@ -126,17 +118,14 @@ function specItem_(r) {
     row: r,
   };
 }
-/* A POINT'S LESSONS AND QUESTIONS (tools/coverage.js wrote their Find keys); each tile names its card, a key Find lacks is left out. */
-function specLinks_(p, named) {
-  const tiles = (p.links || []).filter(k => named[k]).map(k => tile_({ icon: /^q:/.test(k) ? 'edit' : 'book', label: /^q:/.test(k) ? 'Question' : 'Lesson',
-    note: named[k], act: 'find-open', data: { key: String(k) } })).join('');
-  const shown = (p.links || []).filter(k => /^q:/.test(k)).length, more = (p.asked || 0) - shown;
-  return (tiles ? `<div class="tile-row">${tiles}</div>` : '') + (more > 0 ? `<p class="spec-more">and ${more} more question${more === 1 ? '' : 's'} on this point</p>` : '');
-}
-function specPoints_(r, parent, named) {
-  const kids = (r.points || []).filter(p => p.parent === parent);
-  return kids.length ? `<ul>${kids.map(p => `<li class="spec-pt"><span class="insh-fn">${esc(p.id)}</span>
-    <span class="spec-say">${esc(p.text)}</span>${specLinks_(p, named)}${specPoints_(r, p.id, named)}</li>`).join('')}</ul>` : '';
+/* A POINT'S LESSONS AND QUESTIONS (tools/coverage.js wrote their Find keys) as tree nodes; a key Find lacks is left out. */
+function specNodes_(r, parent, named) {
+  return (r.points || []).filter(p => p.parent === parent).map(p => {
+    const shown = (p.links || []).filter(k => /^q:/.test(k)).length, more = (p.asked || 0) - shown;
+    return { label: p.id, text: p.text, kids: specNodes_(r, p.id, named),
+      tiles: (p.links || []).filter(k => named[k]).map(k => ({ icon: /^q:/.test(k) ? 'edit' : 'book', label: /^q:/.test(k) ? 'Question' : 'Lesson', note: named[k], act: 'find-open', data: { key: String(k) } })),
+      more: more > 0 ? 'and ' + more + ' more question' + (more === 1 ? '' : 's') + ' on this point' : '' };
+  });
 }
 /* WHAT EACH LINKED KEY IS CALLED in Find now, looked up once per card. */
 function specNamed_(r) {
@@ -145,18 +134,11 @@ function specNamed_(r) {
   try { (stuffItemsAll_() || []).forEach(i => { if (i && want.has(i.key)) out[i.key] = /^q:/.test(i.key) && i.sub ? i.sub + ' · ' + i.name : i.name || i.key; }); } catch (e) { /* Find not ready: the card shows its tree alone */ }
   return out;
 }
-/* THE SECTION TREE, each section folded (a <details> grows where it is); the official PDF holds the full wording. */
-function specCard_(x) {
-  const r = x.row, named = specNamed_(r);
-  return `<div class="insh">
-    ${tagRow_(x)}
-    <div class="insh-sheet spec-sheet">
-      <p class="insh-kick">${esc([r.board, r.qualification, r.subject, r.code].join(' · '))}</p>
-      ${(r.sections || []).map(s => `<details class="insh-sec spec-sec"><summary class="kc-h">${esc(s.title)}</summary>${specPoints_(r, s.id, named)}</details>`).join('')}
-      <p class="insh-check">Short headings; the official specification has the full wording.</p>
-    </div>
-  </div>`;
-}
+/* THE SECTION TREE, each section folded; the official PDF holds the full wording. */
+cardKind_('spec', x => { const r = x.row || {}, named = specNamed_(r);
+  return { look: 'insh spec-sheet', name: x.name, tags: kcFacetTags_(x), body: [{ type: 'text', look: 'insh-kick', text: [r.board, r.qualification, r.subject, r.code].join(' · ') },
+    { type: 'tree', nodes: (r.sections || []).map(s => ({ label: s.title, kids: specNodes_(r, s.id, named) })) },
+    { type: 'text', look: 'insh-check', text: 'Short headings; the official specification has the full wording.' }] }; });
 const specExtras_ = x => [{ icon: 'open', label: 'Official', note: /\.pdf$/i.test(x.row.url) ? 'specification PDF' : 'the framework page', act: 'file-view', data: { url: x.row.url, title: x.row.board + ' ' + x.row.code } }];
 /* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
 on('ins-print', el => {
