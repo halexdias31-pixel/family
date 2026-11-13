@@ -263,7 +263,8 @@
     "tpl-title",
     "tpl-variety",
     "tpl-variety-kind",
-    "tpl-width"
+    "tpl-width",
+    "card-text-bounds"
    ],
    "since": "2026-11-12"
   },
@@ -275,6 +276,7 @@
     "figures",
     "diagram-png",
     "diagrams",
+    "fig-labels",
     "picture-first"
    ],
    "since": "2026-11-12"
