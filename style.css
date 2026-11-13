@@ -6254,3 +6254,7 @@ body.nes-on .page.soft > .pane { filter: none; }
 /* ON PAPER the round tiles take the paper's ink and rule, as the sheet's words do. */
 .spec-pt .tile { color: var(--paper-ink); border-color: var(--paper-rule); background: transparent; }
 .spec-more { font-size: var(--fs-small); color: var(--paper-dim); margin: 0; }
+/* THE BOOKING PAPER INSIDE A TEMPLATE CARD lays out as it did in the card's form slot: full width, left-aligned, never wider than the card. */
+.card.kc > .kc-lines > .bookform-paper { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; text-align: left;
+  --fs-body: 1rem; --fs-small: max(11px, .75rem); font-size: var(--fs-body); }
+.card.kc > .kc-lines > .bookform-paper > .rc { box-sizing: border-box; min-width: 0; max-width: 100%; }

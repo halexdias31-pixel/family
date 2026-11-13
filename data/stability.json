@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 88.4,
+ "score": 88.3,
  "verdict": "Solid: little is held together by exceptions.",
  "signals": [
   {
@@ -32,6 +32,30 @@
    }
   },
   {
+   "id": "special",
+   "label": "Per-facet and per-kind special cases",
+   "count": 40,
+   "weight": 0.05,
+   "cap": 10,
+   "off": 2,
+   "where": {
+    "js/cards-make.js": 1,
+    "js/cards-parts.js": 1,
+    "js/cards-people.js": 1,
+    "js/cards-render.js": 5,
+    "js/find-cells.js": 2,
+    "js/find-finder.js": 2,
+    "js/find-history.js": 2,
+    "js/find-pad.js": 4,
+    "js/keypad-keys.js": 1,
+    "js/me-messages.js": 2,
+    "js/predicates-marks.js": 3,
+    "js/predicates.js": 13,
+    "js/price-rows.js": 2,
+    "js/submit-suggest.js": 1
+   }
+  },
+  {
    "id": "ceilings",
    "label": "Raised ratchet ceilings (*_MAX)",
    "count": 958,
@@ -45,30 +69,6 @@
     "js/check-projects.js QTY_MAX": 12,
     "js/check-tiers.js EAGER_SECONDARY_MAX": 4,
     "check/pen.js FRAME_WRITES_MAX": 2
-   }
-  },
-  {
-   "id": "special",
-   "label": "Per-facet and per-kind special cases",
-   "count": 38,
-   "weight": 0.05,
-   "cap": 10,
-   "off": 1.9,
-   "where": {
-    "js/cards-make.js": 1,
-    "js/cards-parts.js": 1,
-    "js/cards-people.js": 1,
-    "js/cards-render.js": 3,
-    "js/find-cells.js": 2,
-    "js/find-finder.js": 2,
-    "js/find-history.js": 2,
-    "js/find-pad.js": 4,
-    "js/keypad-keys.js": 1,
-    "js/me-messages.js": 2,
-    "js/predicates-marks.js": 3,
-    "js/predicates.js": 13,
-    "js/price-rows.js": 2,
-    "js/submit-suggest.js": 1
    }
   },
   {
