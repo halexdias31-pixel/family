@@ -180,6 +180,21 @@
    "hash": "2beb8b855d884a73",
    "by": "claude-reviewed",
    "at": "2026-11-13"
+  },
+  "pupil-390--reel--screen.png": {
+   "hash": "f9da385bdfa9bd9d",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "parent-390--reel--screen.png": {
+   "hash": "a49815c29bba5013",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "pupil-820--reel--screen.png": {
+   "hash": "ebec4ec1d4523d3c",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
   }
  }
 }
