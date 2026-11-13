@@ -150,9 +150,11 @@ function gapsSplit_(raw, gaps) {
   return [false].concat(oneWord ? [true] : []).map(sp => gapsFit_(s, gapSpans_(s, sp), gaps)).reduce((a, b) => (score(b) > score(a) ? b : a));
 }
 /* EACH CELL MARKED ON ITS OWN by `markAnswer_`: `{ right, of, each }`, `each[i]` true, false, or null for nothing typed; one box's text is read as every gap. */
-function markCells_(vals, cells) {
+function markCells_(vals, cells, opt) {
   vals = cellsOneBox_(typeof vals === 'string' ? [vals] : vals, cells);
-  const each = cells.map((c, i) => c.ways ? markAnswer_(vals[i] || '', c.ways) : undefined);
+  /* a gap's typo is forgiven unless it is near another gap's answer (the word bank) */
+  const gapOpt = i => ({ strict: !!(opt && opt.strict), others: ((opt && opt.others) || []).concat(cells.filter((c, j) => j !== i && c.ways).map(c => c.ways)) });
+  const each = cells.map((c, i) => c.ways ? markAnswer_(vals[i] || '', c.ways, false, gapOpt(i)) : undefined);
   const asked = each.filter(v => v !== undefined);
   return { right: asked.filter(v => v === true).length, of: asked.length, each: each };
 }
@@ -232,7 +234,7 @@ on('qp-cells-check', el => {
   if (!x || !out) return;
   const cells = cellsOf_(x), inp = box.querySelector('.qp-ans-in');
   let vals = inp ? [inp.value] : cellsRead_(box);
-  const m = markCells_(vals, cells);
+  const m = markCells_(vals, cells, markOpt_(x));
   cellsIn_(box).forEach(c => {
     const v = m.each[+c.getAttribute('data-n')];
     c.classList.toggle('is-right', v === true);
@@ -441,7 +443,7 @@ on('qp-check', (el) => {
   if (v.ai) { if (ACTIONS['qp-ai']) ACTIONS['qp-ai'](el); return; }
   const full = v.got >= v.of;
   box.classList.add(full ? 'is-right' : 'is-near');
-  out.textContent = v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? 'Correct' : 'Not yet — have another go';
+  out.textContent = v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? 'Correct (check the spelling: ' + v.typo + ')' : 'Correct') : 'Not yet — have another go';
   /* MARKED IS A SUBMISSION, right or not yet (js/submit.js); signed out it is this visit's alone. */
   subRecord_(k, inp.value, v.words ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
 });
