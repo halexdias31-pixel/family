@@ -124,7 +124,7 @@ check('sign out, then the next child signs in: none of the last child’s messag
   if (typeof w.subAdopt_ === 'function') w.subAdopt_();
   if (typeof w.subRecord_ === 'function') w.subRecord_('ans:u:P7:q:Q-ADA-2', '16', 'wrong');
   const QADA = { kind: 'question', key: 'q:Q-ADA', name: 'Q1', marks: 1, row: { row_id: 'Q-ADA', paper_id: 'P-ADA', subject: 'Maths', name: 'Ada' }, html: '<p>Work out 3 × 5.</p>', accept: '15' };
-  const slotFor = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); return ((latestOf_(w, cardKey_(h)) || {}).textContent) || ''; };
+  const slotFor = x => { const h = d.createElement('div'); h.innerHTML = w.findCard(x, 0); return ((latestOf_(w, cardKey_(h)) || {}).textContent) || ''; };
   if (slotFor(QADA) !== 'Correct') bad.push('Ada’s latest submission was not on her card to begin with (' + JSON.stringify(slotFor(QADA)) + '), so its absence below proves nothing');
   try { w.localStorage.setItem('favs', JSON.stringify(['q:Q-ADA-STAR'])); } catch (e) {}
   t.go('dm', false, true); w.paint('dm');
@@ -774,7 +774,7 @@ check('an ordering: the real 1F Q4 is typed as letters in order, marked by its o
   if (said !== JSON.stringify({ t: 'order', c: ['0.21', '0.2', '0.03', '0.1', '0.16'], w: [[3, 4, 5, 2, 1]], e: ['smallest', 'largest'] })) bad.push('the loader made the row into ' + said);
   const host = d.createElement('div');
   d.body.appendChild(host);
-  host.innerHTML = w.questionCard_(x, 0);
+  host.innerHTML = w.findCard(x, 0);
   if (!host.querySelector('.qp-optlist') || host.querySelectorAll('.qp-ans-in').length !== 1) bad.push('the ordering does not list its options over one typed box');
   if (host.querySelector('.qp-order, .qp-item')) bad.push('the ordering still draws tap-to-place items');
   const r1 = typeChoice_(w, host, x, 'C, D, E');
@@ -783,7 +783,7 @@ check('an ordering: the real 1F Q4 is typed as letters in order, marked by its o
   if (r2.said !== 'Correct') bad.push('the right order typed as letters says ' + JSON.stringify(r2.said));
   const r3 = typeChoice_(w, host, x, '0.03, 0.1, 0.16, 0.2, 0.21');
   if (r3.said !== 'Correct') bad.push('the right order typed as the values says ' + JSON.stringify(r3.said));
-  host.innerHTML = w.questionCard_(tie, 0);
+  host.innerHTML = w.findCard(tie, 0);
   ['B, A, C', 'A, B, C'].forEach(v => { const r = typeChoice_(w, host, tie, v); if (r.said !== 'Correct') bad.push('the tie typed ' + v + ' says ' + JSON.stringify(r.said)); });
   /* TYPED AS A CHILD TYPES: the keypad's input event is what keeps a box's words (`ansStore_`); typeChoice_ only sets the value. */
   const typed = host.querySelector('.qp-ans-in');

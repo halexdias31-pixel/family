@@ -3243,21 +3243,14 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .tile-row .qcard-verdict.is-near::before { content: "\21BB"; margin-right: var(--s1); font-weight: 700; }
 /* ---------- ONE QUESTION NUMBER, NO BOX ROUND IT (1030): its parts are cards one under another, none indented (owner, 8 Nov, 1160). */
 .qwhole { background: none; border: 0; border-radius: 0; padding: var(--s3) 0; margin: 0; }
-.qwhole .qcard { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
+.qwhole .qcard:not(.card) { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
 .qwhole .qb-stem { color: var(--ink); border-bottom: 0; margin: var(--s2) 0 0; }
 .qwhole > .qb + .qb { margin-top: var(--card-gap); }
-/* A PART IS A TEMPLATE CARD (.kc-question): its form (the words, the box and the tool row) runs edge to edge. */
-.card.kc-question > .kc-form { --kc-side: 0; }
-.qp-work-slot { display: contents; }
 .qwhole .qb-part .qsheet { margin-top: var(--s2); }
 /* ---------- A QUESTION IS A CARD LIKE ANY OTHER (owner, 10-11 Nov): picture, tags, words, answer, round buttons, all on one centre line. */
 :is(.qwhole > .qb, .qcard) { text-align: center; }
 :is(.qwhole > .qb, .qcard) :is(.qtags, .tile-row, .qp-choices, .qp-multi, .qsheet-part) { justify-content: center; }
 :is(.qwhole > .qb, .qcard) :is(.qsheet, .qb-stem) { margin-left: auto; margin-right: auto; }
-.qwhole > .qb > .qb-pic { margin: 0 0 var(--s2); }
-.qb-pic figure { margin: 0 auto; text-align: center; }
-.qb-pic figure svg { width: min(100%, var(--pic-w)); height: auto; }
-.qb-pic img { max-width: 100%; height: auto; }
 .qwhole .qb-stem:empty { display: none; }
 :is(.qwhole > .qb, .qcard) .qtext :is(table, figure, p) { margin-left: auto; margin-right: auto; }
 /* TYPING READS FROM THE LEFT: the box is centred, the words inside it are not. */
@@ -4657,7 +4650,6 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 /* THE MAGNIFIER (463): a circle over a question page, its copy of the page 2.5 times bigger (`magShow_`); the page holds it while it is up. */
 /* THE ONE TOOL ROW (round 3, qtools.js): every tool on every part, in one order, all drawn from the start on a phone too (1020). */
 .qt-row { margin-top: var(--s2); }
-.qt-tools { display: contents; }
 /* THE CALCULATOR (calc.js, owner 11 Nov): the old fx-83GT CW face as the Calculator widget drew it, centred under the part's row */
 .mc-display { position: relative; min-height: 6.4rem;
               display: flex; flex-direction: column; justify-content: space-between; cursor: default;

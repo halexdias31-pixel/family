@@ -450,7 +450,7 @@ function myResultNew_(k) {
     document.querySelectorAll('[data-k]').forEach(b => {
       if (b.getAttribute('data-k') !== k) return;
       const own = b.closest('.qb'), pg = own || b.closest('.page');
-      (pg ? (own ? own.querySelectorAll(':scope > .qcard-tags') : pg.querySelectorAll('.qcard-tags')) : []).forEach(row => {
+      (pg ? (own ? own.querySelectorAll(':scope > .kc-tags > .qcard-tags') : pg.querySelectorAll('.qcard-tags')) : []).forEach(row => {
         row.querySelectorAll('[data-f="myResult"]').forEach(t => t.remove());
         row.insertAdjacentHTML('beforeend', tags);
       });

@@ -39,7 +39,7 @@ function staticPass(sample) {
       if (blocks.some(b => b.querySelectorAll('.qcard-tags:not(.qans-card .qcard-tags)').length !== 1)) out.dupTag.push(k);
       const own = b => b.querySelector('[data-do="card-share"]') || (b.nextElementSibling && b.nextElementSibling.matches('.tile-row') && b.nextElementSibling.querySelector('[data-do="card-share"]'));
       if (blocks.some(b => !own(b))) out.rows.push(k + ' a part with no tile row of its own');
-      const rank = e => e.matches('.qcard-tags') ? 0 : e.matches('.qb-stem') ? 1 : e.matches('.qb-part') ? 2 : -1;
+      const rank = e => e.matches('.kc-pic') ? 0 : e.matches('.kc-tags') ? 1 : e.matches('.kc-lines') ? 2 : e.matches('.kc-act') ? 3 : -1;
       blocks.forEach(b => {
         const r = [...b.children].map(rank).filter(n => n >= 0);
         if (r.some((n, j) => j && n < r[j - 1])) out.order.push(k + ' ' + (b.getAttribute('data-part') || 'root'));

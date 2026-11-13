@@ -123,7 +123,7 @@ on('qt-inst', el => {
 });
 /* ---------- CHECK WITH NO MARK SCHEME: nothing is sent; the verdict line says what is missing, for a missing key too. */
 on('qp-noscheme', el => {
-  const mark = el.closest('.qp-mark'), out = mark && mark.querySelector('.qp-verdict');
+  const mark = qMark_(el), out = mark && mark.querySelector('.qp-verdict');
   if (out) out.textContent = QT_NO_SCHEME;
 });
 

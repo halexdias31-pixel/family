@@ -515,7 +515,7 @@ function thingCard_(x, credits) {
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
        so it is marked as one and coloured as one, the same way a subject and a venue are. */
     /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. § */
-    if (isQ_(x)) return questionCard_(x);
+    if (isQ_(x)) return findCard(x);
 
     /* THE CARD IS NO LONGER A BUTTON. § */
     /* NOTHING ON THIS LIST IS A TAP TARGET ANY MORE. § */
@@ -5161,7 +5161,7 @@ function cellsTable_(x, html) {
 }
 /* THE BOX UNDER IT: Check marks every cell; with no table to fill, the cells stand in a row of their own. */
 const cellsHere_ = (x, html) => (cellsOf_(x).length && cellsTable_(x, html)) || html;
-/* THE WORDS THE ANSWER CARD ITSELF SHOWS -- its last chunk, as `questionCard_` draws it; the part's whole words where it has no plan */
+/* THE WORDS THE ANSWER CARD ITSELF SHOWS -- its last chunk, as the question card draws it; the part's whole words where it has no plan */
 const cellsCardHtml_ = x => {
   try { const c = partChunks_(x); return c.length ? chunkHtml_(c[c.length - 1], null, x) : String((x && x.html) || ''); }
   catch (e) { return String((x && x.html) || ''); }
@@ -5182,7 +5182,7 @@ function cellsBox_(x) {
     maths ? ' qp-ans-maths' : ''}" aria-label="Your answers, in order">${kpField_(k, val, maths ? 'maths' : 'words', 3)}</label></div>`;
   const said = subBoxSay_(k, val);
   return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${one}
-    ${qtRow_(x)}${workStrip_(x)}
+    ${workStrip_(x)}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
 }
@@ -5201,7 +5201,7 @@ document.addEventListener('input', e => {
   el.classList.remove('is-right', 'is-near');
 });
 on('qp-cells-check', el => {
-  const box = el.closest('.qp-cells-box');
+  const box = qMark_(el, '.qp-cells-box');
   const out = box && box.querySelector('.qp-verdict');
   const x = box && stuffItemsAll_().find(it => ansKey_(it) === box.getAttribute('data-k'));
   if (!x || !out) return;
@@ -5333,6 +5333,15 @@ function multiNext_(inp) {
   return i >= 0 && i < ins.length - 1 ? ins[i + 1] : null;
 }
 
+/* A TILE'S ANSWER BOX: the box is in the card's sheet and its Check in the card's one tile row (rule 3.11), so a tile asks its card. */
+function qMark_(el, sel) {
+  const s = sel || '.qp-mark', own = el && el.closest && el.closest(s);
+  if (own) return own;
+  const card = el && el.closest && el.closest('.qcard');
+  return card ? card.querySelector(s) : null;
+}
+/* AND A BOX'S TILES: its card's one row, or the box itself where it stands alone. */
+const qRowOf_ = box => { const card = box && box.closest && box.closest('.qcard'); return (card && card.querySelector(':scope > .kc-act')) || box; };
 function ansBox_(x) {
   if (cellsOf_(x).length) return cellsBox_(x);
   const opts = choiceList_(x);
@@ -5347,7 +5356,6 @@ function ansBox_(x) {
   const ai = isAiMark_(m) ? tile_(aiOpts_(x)) : '';
   const val = ansRead_(k);
   const ws = workStrip_(x);
-  const row = qtRow_(x);
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
   const drawAt = geo ? ` data-k="${esc(k)}" data-pad="${esc(padKey_(x))}" data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '';
   const isAi = isAiMark_(m) && m.ready;
@@ -5363,7 +5371,7 @@ function ansBox_(x) {
     return `<div class="${cls} qp-essay${vcls ? ' ' + vcls : ''}"${dataAt}>
     <label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, val, 'essay', 3)}</label>
     <p class="qp-words">${esc(kpWordsSay_(val))}</p>
-    ${row}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
+    ${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(vsay)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${isAi ? `<p class="qp-ai-why">${own ? esc(own.why) : ''}</p>` : ''}`;
@@ -5377,7 +5385,7 @@ function ansBox_(x) {
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
   return `<div class="${cls}${said.cls ? ' ' + said.cls : ''}"${dataAt}>
-    ${bar}${row}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
+    ${bar}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(geo ? padSaid_(said.text) : said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${isAi ? '<p class="qp-ai-why"></p>' : ''}`;
@@ -5391,7 +5399,7 @@ function subBoxSay_(k, val) {
 
 /* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `markPart_` against the scheme; a part with no rule goes to the AI from the same button. */
 on('qp-check', (el) => {
-  const box = el.closest('.qp-mark');
+  const box = qMark_(el);
   const card = el.closest('.qcard');
   /* ITS OWN BOX'S FIELD FIRST (508): a card with two boxes marked the first one's. */
   const inp = (box && box.querySelector('.qp-multi-val, .qp-ans-in')) || (card && card.querySelector('.qp-multi-val, .qp-ans-in'));
@@ -5423,7 +5431,7 @@ on('qp-check', (el) => {
 
 /* ---------- SEND, WHERE NOTHING CAN MARK IT § */
 on('qp-send', (el) => {
-  const box = el.closest('.qp-mark');
+  const box = qMark_(el);
   const inp = box && box.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
   if (!inp || !out || el.disabled) return;
@@ -5616,9 +5624,10 @@ const padAspectOf_ = pad => Number(pad && pad.getAttribute && pad.getAttribute('
 const PAD_TOOLS = ['pen', 'ruler', 'compass', 'protractor'];
 
 /* UNDO AND CLEAR, dimmed while there is nothing to take back; in a question's tool row by key (1020). The row offers a pen only where the pad is already drawn */
-const padUndoTiles_ = (x, k0) => { const k = k0 || padKey_(x), n = padRead_(k).length, data = k0 ? {} : { k };
-  return tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo', off: !n && !PAD_CLEARED.has(k), data })
-    + tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear', off: !n, data }); };
+const padUndoOpts_ = (x, k0) => { const k = k0 || padKey_(x), n = padRead_(k).length, data = k0 ? {} : { k };
+  return [{ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo', off: !n && !PAD_CLEARED.has(k), data },
+    { icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear', off: !n, data }]; };
+const padUndoTiles_ = (x, k0) => tile_(padUndoOpts_(x, k0));
 const padBar_ = k => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing"><span class="qpad-group">${padUndoTiles_(null, k)}</span></div>`;
 const padReady_ = x => padHasArt_(x) && (!!padSource_(x) || padSurface_(x) === 'text');
 
@@ -6412,7 +6421,7 @@ function padCheck_(row, pad) {
   if (typeof answersPush_ === 'function') answersPush_(true);
   return r;
 }
-on('pad-check', el => { const row = el.closest('.qpad-send'); padCheck_(row, padOfRow_(row)); });
+on('pad-check', el => { const row = qMark_(el, '.qpad-send'); padCheck_(row, padOfRow_(row)); });
 /* ---------- ARMING ONE PAD, EVERY PART OF IT TOGETHER § */
 function padArm_(pad, on) {
   if (!pad) return;
@@ -8331,24 +8340,6 @@ function qWordsOr_(x, html) {
   if (libSlim_(x)) return `<div class="lib-say">${libSay_(x)}</div>`;
   return empty_('This question’s words are missing.');
 }
-/* `was`, A CARD DRAWN AGAIN (qtools.js): a part of a whole question (960) is drawn as that part again. */
-function questionCard_(x, was) {
-  if (was && was.classList.contains('qb-part')) return qPartCard_(x, !!was.querySelector('.qans-card'));
-  return `<div class="qcard${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}">
-    ${/* THE ROW, AND NOTHING ELSE ABOVE THE QUESTION: every fact is a tag (`tagRow_`), and every tag
-          is an answer the finder offers. THE DAY YOU LAST DID IT is in the tile row, beside the star --
-          see `qtRow_`. */''}
-    ${tagRow_(x)}
-    <div class="qsheet qtext">
-      ${/* NO STEM HERE: a whole question draws its openings once, above its parts (`questionWhole_`). § */''}
-      ${qWordsOr_(x, cellsHere_(x, chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x), x)))}
-    </div>
-    ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. § */
-          ''}
-    ${qAreaWithFoot_(x)}
-  </div>`;
-}
-
 /* ---------- EVERY PART IS ITS OWN CARD, ALL AT ONE LEFT EDGE (owner, 8 Nov; history 1160) */
 /* A STEM WHOLE: its words and its figure, no page-cuts (a card scrolls). */
 function qStemWhole_(x, p, onScreen, pics) {
@@ -8369,38 +8360,45 @@ function qStemWhole_(x, p, onScreen, pics) {
   if (stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
   return `<div class="qsheet-stem qtext qb-stem kc-lines${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
 }
-/* A PART'S WORDS AND ANSWER ROW, a `.qcard` of its own so every handler's `closest('.qcard')` finds this part and no other. */
-function qPartCard_(x, ans) {
-  const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
-  const has = ans && (questionHasAns_(x) || schemeOwed_(x));
-  const a = has ? questionAnsCard_(x, true) : '';
-  /* EVERY TILE OF THE PART IN ITS ONE TOOL ROW (owner, 8 Nov): Show the answer, Help and the card's tiles handed to `qtRow_` */
-  const more = (has && !schemeOwed_(x) ? qaToggle_(ansKey_(x), ansOpen_(x)) : '') + qPartFoot_(x);
-  QT_MORE.html = more; QT_MORE.used = false;
-  const area = ansArea_(x);
-  const left = QT_MORE.used ? '' : (more ? `<div class="tile-row">${more}</div>` : '');
-  QT_MORE.html = ''; QT_MORE.used = false;
-  return `<div class="qcard qb-part kc-form" data-of="${esc((x.row && x.row.row_id) || x.key || '')}"><div class="qsheet qtext">${qWordsOr_(x, cellsHere_(x, words))}</div>${area}${left}${a}</div>`;
-}
-/* HELP (455) AND THE CARD'S TILES join the answer's tool row, behind its ⋯ (owner, 9 Nov); a box with no row keeps Help's own row. */
-function qAreaWithFoot_(x) {
-  QT_MORE.html = qPartFoot_(x); QT_MORE.used = false;
-  const area = ansArea_(x), left = QT_MORE.used || typeof helpRow_ !== 'function' ? '' : helpRow_(x, '');
-  QT_MORE.html = ''; QT_MORE.used = false;
-  return area + left;
-}
-/* THE CARD'S OWN TILES (share, star, message, top, help) as bare tiles, without the row `cardRow_` wraps them in */
-function qPartFoot_(p) {
-  const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(p, '') : null);
-  return String(cardRow_(Object.assign(Object.create(p), { lead: help }), true) || '').trim();
-}
-/* ONE PART, THE SHAPE OF ANY CARD (rules.md 3): a card of the template, its picture, tags, stem lines and the part as its form. */
-function qOneCard_(p, ctx) {
+/* ---------- A QUESTION PART IS A CARD OF THE ONE TEMPLATE (rule 3.11): its figure on top, its tags, its sheet an embed, its tiles the card's row. */
+/* WHAT A PART'S CARD DREW BESIDE ITSELF (its stems, the parts on screen, its figure on top), by key, so the card drawn again draws the same. */
+const Q_DRAWN = new Map();
+/* THE PART A CARD WAS BUILT FROM, by key, for its embed (a spec carries the key, never the part). */
+const Q_ITEM = new Map();
+const qPartOf_ = key => Q_ITEM.get(key) || (typeof qtItem_ === 'function' ? qtItem_(key) : null);
+/* THE STEMS' FIGURES, gathered for the picture box: a drawing goes on top, a photo stays among the words. */
+function qStemPic_(x, was) {
   const pics = [];
-  const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)])
-    .map(s => { ctx.drawn[stemId_(s)] = true; return qStemWhole_(p, s, ctx.shown, pics); }).join('');
-  const pic = pics.join('').trim() ? `<div class="qb-stem qb-pic kc-pic">${pics.join('')}</div>` : '';
-  return `<div class="qb favwrap ${kcCls_('question')}${isFav(p.key) ? ' is-fav' : ''}" data-part="${esc(p.key || '')}">${pic}${renderTags(tagList_(p), 'qcard-tags kc-tags')}${stems}${qPartCard_(p, ctx.ans)}</div>`;
+  was.stems.forEach(st => qStemWhole_(x, st, was.shown, pics));
+  const pic = pics.join('').trim();
+  return pic && /^\s*<(svg|figure)\b[\s\S]*<\/svg>[\s\S]*$/.test(pic) ? pic : '';
+}
+/* THE SHEET: the stems' words, the part's words and its answer box, then the answer card (`questionAnsCard_`). */
+CARD_EMBEDS.qsheet = a => {
+  const x = qPartOf_(a.key);
+  if (!x) return '';
+  const was = Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
+  const stems = was.stems.map(st => qStemWhole_(x, st, was.shown, a.pic ? [] : null)).join('');
+  const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
+  const has = was.ans && (questionHasAns_(x) || schemeOwed_(x));
+  return `${stems}<div class="qsheet qtext">${qWordsOr_(x, cellsHere_(x, words))}</div>${ansArea_(x)}${has ? questionAnsCard_(x, true) : ''}`;
+};
+cardKind_('question', x => {
+  const was = Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true }, id = (x.row && x.row.row_id) || x.key || '';
+  if (x.key) Q_ITEM.set(x.key, x.item || x);
+  const pic = was.stems.length && typeof qStemPic_ === 'function' ? qStemPic_(x, was) : '';
+  const tryOr = (f, or) => { try { return f(); } catch (e) { oops_(e, 'question:spec'); return or; } };
+  return { kind: 'question', look: 'qb favwrap qcard qb-part' + (typeof helpCls_ === 'function' ? helpCls_(x, '') : '') + (isFav(x.key) ? ' is-fav' : ''),
+    data: { part: x.key || '', of: id }, tags: tryOr(() => tagList_(x), []), tagLook: 'qcard-tags', picture: pic ? { svg: pic } : null,
+    body: [{ type: 'embed', tool: 'qsheet', look: 'qsheet-embed', args: { key: x.key || '', pic: !!pic } }],
+    tiles: tryOr(() => qtTiles_(x, was.ans && questionHasAns_(x) && !schemeOwed_(x)), []), toolRow: { key: x.key || '' } };
+});
+/* ONE PART'S CARD: the stems not drawn yet by an earlier part go with it. */
+function qOneCard_(p, ctx) {
+  const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)]);
+  stems.forEach(s => { ctx.drawn[stemId_(s)] = true; });
+  Q_DRAWN.set(p.key, { stems, shown: ctx.shown, ans: ctx.ans });
+  return findCard(p);
 }
 /* A QUESTION NUMBER: its parts the search kept, one card each, one after another; none indented under another. */
 function questionWhole_(x, parts, open, ans) {
@@ -8746,9 +8744,10 @@ function schemeOwed_(x) {
   return !['accept', 'cells', 'mark_words', 'draw_answer', 'choice_right'].some(f => libHasField_(r, f));
 }
 /* SHOW OR HIDE THE ANSWER, one tile that says which way it goes */
-const qaToggle_ = (k, open) => open
-  ? tile_({ icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } })
-  : tile_({ icon: 'show', label: 'Show the answer', note: 'one tap', act: 'qa-show', cls: 'qa-toggle', data: { k: k } });
+const qaToggleOpts_ = (k, open) => open
+  ? { icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } }
+  : { icon: 'show', label: 'Show the answer', note: 'one tap', act: 'qa-show', cls: 'qa-toggle', data: { k: k } };
+const qaToggle_ = (k, open) => tile_(qaToggleOpts_(k, open));
 /* `inRow`: a part of a whole question, whose toggle and Help are in its one tool row, so this card holds no row of its own */
 function questionAnsCard_(x, inRow) {
   const id = (x.row && x.row.row_id) || x.key || '';
@@ -10356,7 +10355,7 @@ function myResultNew_(k) {
     document.querySelectorAll('[data-k]').forEach(b => {
       if (b.getAttribute('data-k') !== k) return;
       const own = b.closest('.qb'), pg = own || b.closest('.page');
-      (pg ? (own ? own.querySelectorAll(':scope > .qcard-tags') : pg.querySelectorAll('.qcard-tags')) : []).forEach(row => {
+      (pg ? (own ? own.querySelectorAll(':scope > .kc-tags > .qcard-tags') : pg.querySelectorAll('.qcard-tags')) : []).forEach(row => {
         row.querySelectorAll('[data-f="myResult"]').forEach(t => t.remove());
         row.insertAdjacentHTML('beforeend', tags);
       });
@@ -13432,7 +13431,7 @@ let KP_ROOM = null;
 const kpBox_ = inp => {
   /* THE BOX AND ITS TOOL ROW (round 3): the row is under the box with Check last in it, so the row's foot is what stays above the pad */
   const mark = inp && inp.closest && inp.closest('.qp-mark');
-  const row = mark && mark.querySelector(':scope > .qt-row');
+  const card = mark && mark.closest('.qcard'), row = card && card.querySelector(':scope > .kc-act > .qt-row');
   if (row) return row;
   const essay = inp && inp.closest && inp.closest('.qp-essay');
   return (essay && essay.querySelector('.qp-sheet-foot')) || (inp && inp.closest && inp.closest('.qp-ans')) || inp;
@@ -13790,8 +13789,9 @@ function kpDone_(inp) {
   if (nx) return kpTake_(nx);
   const box = inp.hasAttribute('data-kp-essay') ? null : inp.closest('.qp-mark');
   /* ONE SUBMIT PATH (508): ✓ presses the box's own send tile, whatever it is called. */
-  const go = box && (box.querySelector('.tile.is-submit[data-do]:not([disabled])')
-    || box.querySelector('.qp-ai-go[data-do="qp-ai"]:not([disabled])'));
+  const row = box && qRowOf_(box);
+  const go = row && (row.querySelector('.tile.is-submit[data-do]:not([disabled])')
+    || row.querySelector('.qp-ai-go[data-do="qp-ai"]:not([disabled])'));
   const run = go && ACTIONS[go.getAttribute('data-do')];
   if (run) run(go);
   inp.blur();
@@ -14314,7 +14314,7 @@ function aiUndecided_() {
 }
 
 /* THE AI MARKS EVERY PART NO RULE CAN (`markerOf_`, qtools.js), and only those: one mark button per part (owner, 11 Nov). */
-/* an AI part with no mark scheme is not offered it (round 4): its Check says "No mark scheme yet" instead (`qtCheck_`) */
+/* an AI part with no mark scheme is not offered it (round 4): its Check says "No mark scheme yet" instead (`qtCheckOpts_`) */
 function aiWanted_(x) {
   const m = x && typeof markerOf_ === 'function' ? markerOf_(x) : null;
   return !!m && m.ready && isAiMark_(m);
@@ -14376,7 +14376,7 @@ function aiOff_(said) {
   document.querySelectorAll('.qp-ai').forEach(box => {
     box.classList.add('is-off');
     /* NEVER SWAPPED FOR A PLAIN SEND: a human never marks, so the Check waits for the AI, off */
-    box.querySelectorAll('.qp-ai-go').forEach(b => { b.disabled = true; });
+    (box.closest('.qcard') || box).querySelectorAll('.qp-ai-go').forEach(b => { b.disabled = true; });
     const out = box.querySelector('.qp-verdict');
     const say = said || 'AI marking isn\u2019t switched on';
     if (out) out.textContent = say;
@@ -14464,8 +14464,8 @@ function aiStageEnd_(st, failed) {
   st.line.innerHTML = tile_({ icon: 'again', label: 'Try again', act: 'qp-ai-again' });
 }
 on('qp-ai-again', (el) => {
-  const box = el.closest('.qp-ai');
-  const go = box && box.querySelector('[data-do="qp-ai"]');
+  const box = qMark_(el, '.qp-ai');
+  const go = box && qRowOf_(box).querySelector('[data-do="qp-ai"]');
   if (go && !go.disabled) ACTIONS['qp-ai'](go);
 });
 
@@ -14475,7 +14475,7 @@ const aiMarkSane_ = d => Number.isInteger(Number(d.awarded)) && Number.isInteger
 ;
 /* ==== js/keypad-edit.js ==== */
 on('qp-ai', (el) => {
-  const box = el.closest('.qp-ai');
+  const box = qMark_(el, '.qp-ai');
   const card = el.closest('.qcard');
   const inp = card && card.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
@@ -16557,9 +16557,10 @@ function workStripInner_(k) {
     <p class="qp-work-say" role="status" aria-live="polite"></p>`;
 }
 /* MARK MY WORKING STANDS IN THE PART'S TOOL ROW (owner, 8 Nov), once there is a photo. § */
+/* THE SAME TILE IN EVERY STATE (rule 7.4): greyed until a photo is taken. */
 function workGoOpts_(k) {
-  return (WORK_PICS[k] || []).length ? ({ icon: 'tick', label: 'Mark my working', note: 'AI reads the photos',
-    act: 'qp-work-send', cls: 'qp-work-send is-submit', data: { k } }) : null;
+  const has = (WORK_PICS[k] || []).length > 0;
+  return { icon: 'tick', label: 'Mark my working', note: 'AI reads the photos', act: 'qp-work-send', cls: 'qp-work-send' + (has ? ' is-submit' : ''), off: !has, data: { k } };
 }
 function workPaint_(k) {
   document.querySelectorAll('.qp-work').forEach(el => {
@@ -16567,7 +16568,7 @@ function workPaint_(k) {
     el.innerHTML = workStripInner_(k);
     el.hidden = !(WORK_PICS[k] || []).length;
   });
-  document.querySelectorAll('.qp-work-slot').forEach(el => { if (el.getAttribute('data-k') === k) el.innerHTML = tile_(workGoOpts_(k)); });
+  document.querySelectorAll('.qp-work-send').forEach(el => { if (el.getAttribute('data-k') === k) el.outerHTML = tile_(workGoOpts_(k)); });
 }
 function workSay_(k, text) {
   document.querySelectorAll('.qp-work').forEach(el => {
@@ -17547,7 +17548,7 @@ on('qt-inst', el => {
 });
 /* ---------- CHECK WITH NO MARK SCHEME: nothing is sent; the verdict line says what is missing, for a missing key too. */
 on('qp-noscheme', el => {
-  const mark = el.closest('.qp-mark'), out = mark && mark.querySelector('.qp-verdict');
+  const mark = qMark_(el), out = mark && mark.querySelector('.qp-verdict');
   if (out) out.textContent = QT_NO_SCHEME;
 });
 
@@ -17662,20 +17663,17 @@ function markerOf_(x) {
   return { kind, ready, how };
 }
 /* THE CHECK TILE FOR THAT MARKER, last in the row. An AI part whose marker is off says why under the row, not by vanishing. */
-function qtCheck_(x, m) {
-  const k = (m || markerOf_(x)).kind;
-  if (QT_SCHEME_KINDS[k] && (m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-check', cls: 'qp-check' });
-  if (k === 'cells') return tile_({ send: true, act: 'qp-cells-check', cls: 'qp-check' });
-  if (k === 'draw') return tile_({ send: true, act: 'pad-check', cls: 'qp-check' });
+function qtCheckOpts_(x, m) {
+  m = m || markerOf_(x);
+  if (QT_SCHEME_KINDS[m.kind] && m.ready) return { send: true, act: 'qp-check', cls: 'qp-check' };
+  if (m.kind === 'cells') return { send: true, act: 'qp-cells-check', cls: 'qp-check' };
+  if (m.kind === 'draw') return { send: true, act: 'pad-check', cls: 'qp-check' };
   /* NO SCHEME, NO AI CHECK: a request could only fail, so its Check says so under the row, as options with no key do (round 4) */
-  if (!(m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-noscheme', cls: 'qp-check', data: { key: (x && x.key) || '' } });
-  const ai = typeof aiOpts_ === 'function' ? tile_(aiOpts_(x)) : '';
-  return ai || tile_({ send: true, act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true });
+  if (!m.ready) return { send: true, act: 'qp-noscheme', cls: 'qp-check', data: { key: (x && x.key) || '' } };
+  return (typeof aiOpts_ === 'function' && aiOpts_(x)) || { send: true, act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true };
 }
 /* ---------- THE ROW. QT_ROW on every part, the pen's tiles where there is a figure, then Undo, Clear and Check (1020). */
 const PEN_OPEN = new Set();
-/* WHAT `qPartCard_` HANDS THE NEXT ROW DRAWN: its part's other tiles; `used` says a row took them */
-const QT_MORE = { html: '', used: false };      // parts whose pen was opened this visit (the surface is made on the first Pen tap)
 /* EACH TOOL'S OWN TILE, by its id in QT_TOOLS: a `tile(t, x, key)` of its own, else the one lit-by-`qtToolOn_` tile below */
 const QT_TILE = {
   mag: () => typeof magOpts_ === 'function' ? magOpts_() : null,
@@ -17722,25 +17720,23 @@ function qtLight_(root, inHand) {
     tileSet_(t, { on: lit, pressed: lit });
   });
 }
-function qtRow_(x, held) {
-  if (!x || !x.key) return '';
-  const key = x.key;
+/* A PART'S TILES AS DATA, Check first (rule 3.11): its tools, the pen's Undo and Clear, Mark my working, Show the answer, Help. */
+function qtTiles_(x, ans) {
+  if (!x || !x.key) return [];
   /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
-  if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
+  if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === x.key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
   /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
   const art = typeof padReady_ !== 'function' || padReady_(x);
   const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
-  const tools = tile_(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x))) + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
-  const m = markerOf_(x);
-  /* A PART OF A WHOLE QUESTION (owner, 8 Nov): its Show-the-answer and card tiles join this row, so the part has one row, not three */
-  const more = QT_MORE.html; QT_MORE.html = ''; QT_MORE.used = true;
   const wk = typeof ansKey_ === 'function' && isQ_(x) ? ansKey_(x) : '';
-  const work = wk && typeof workGoOpts_ === 'function' ? `<span class="qp-work-slot" data-k="${esc(wk)}">${tile_(workGoOpts_(wk))}</span>` : '';
-  /* THE FOUR (owner, 9 Nov): Send/Check, Message, Star, ⋯; the tools, help, share and suggest wait behind ⋯ (`kcFour_`). */
-  const four = kcFour_(x, `<span class="qt-tools">${tools}</span>${held || ''}${work}${more}`, qtCheck_(x, m));
-  /* NO GREY LINE UNDER IT (owner, 9 Nov): how a part is marked is said when Check is pressed, on its verdict line. */
-  return `<div class="tile-row qt-row kc-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${four}</div>`;
+  return [qtCheckOpts_(x)].concat(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x)),
+    art && typeof padUndoOpts_ === 'function' ? padUndoOpts_(x) : [],
+    [wk && typeof workGoOpts_ === 'function' ? workGoOpts_(wk) : null,
+      ans && typeof qaToggleOpts_ === 'function' ? qaToggleOpts_(ansKey_(x), ansOpen_(x)) : null,
+      typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]).filter(Boolean);
 }
+/* THE ROW ALONE (a check draws a pad with it): the card's own row maker, as `renderCard` draws it. */
+function qtRow_(x) { return x && x.key ? kcActRow_(x, '', tile_(qtTiles_(x)), { flat: true, look: 'qt-row', key: x.key }) : ''; }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
 const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';
 /* ---------- THE CARD DRAWN AGAIN, where it stands: what a pen opened needs, its plan forgotten first. */
@@ -17756,7 +17752,7 @@ function qtRedraw_(card, x) {
   qtPenSet_(x, PEN_OPEN.has(x.key));
   const t = document.createElement('div');
   /* A FIND CARD STAYS IN THE ONE CARD SHAPE when drawn again (owner 1a, 8 Nov). */
-  t.innerHTML = card.classList.contains('kc') && isQ_(x) ? findCard(x) : questionCard_(x, card);
+  t.innerHTML = findCard(x);
   const next = t.firstElementChild;
   if (!next) return null;
   card.replaceWith(next);

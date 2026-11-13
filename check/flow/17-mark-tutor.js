@@ -22,7 +22,7 @@ check('submission: before the payload lands, an essay and a worded box draw Mark
       const card = subDraw_(w, X);
       early.push([X, card]);
       const mark = card.querySelector('.qp-compose');
-      const ai = mark && mark.querySelector('.qp-ai-go');
+      const ai = mark && card.querySelector('.qt-row .qp-ai-go');
       if (!ai) bad.push(what + ': no Mark with AI tile where it will stand');
       else if (!ai.disabled) bad.push(what + ': Mark with AI can be pressed before anybody knows AI marking is on');
       if (mark && mark.querySelector('[data-do="qp-send"]')) bad.push(what + ': drawn with the plain Send — pressed, it records an unmarked "Sent"');
@@ -50,7 +50,7 @@ check('submission: before the payload lands, an essay and a worded box draw Mark
       const what = (X === ESSAY ? 'the essay' : 'the worded box') + ', ' + tag + ', the payload landed';
       const card = subDraw_(w, X);
       const mark = card.querySelector('.qp-compose');
-      const ai = mark && mark.querySelector('.qp-ai-go'), send = mark && mark.querySelector('[data-do="qp-send"]');
+      const ai = mark && (mark.closest('.qcard') || mark).querySelector('.qt-row .qp-ai-go'), send = mark && mark.querySelector('[data-do="qp-send"]');
       if (on && (!ai || ai.disabled || send)) bad.push(what + ': wanted Mark with AI, pressable, and no plain Send');
       if (!on && (send || !ai || !ai.disabled)) bad.push(what + ': wanted the AI Check, unpressable, and no plain Send — a human never marks (round 3)');
       if (!on && X === ESSAY && !/switched on yet/.test(card.parentNode.textContent)) bad.push(what + ': the sheet does not say why nothing marks it');
@@ -97,7 +97,7 @@ check('submission: after AI marking switches off, the Check waits unpressable wi
   w.stuffItemsAll_ = () => [AIQ];
   const h = w.document.createElement('div');
   w.document.body.appendChild(h);
-  h.innerHTML = w.questionCard_(AIQ, 0) + '<div class="tile-row">' + '' + '</div>';
+  h.innerHTML = w.findCard(AIQ, 0) + '<div class="tile-row">' + '' + '</div>';
   const inp = () => h.querySelector('.qp-ans-in');
   const out = () => (h.querySelector('.qp-verdict') || {}).textContent;
   const saved = () => savedWords_(h.querySelector('.qp-saved'));
@@ -398,8 +398,8 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   /* A PAGE'S CARDS, DRAWN AFRESH -- new markup, as the funnel's redraws make it. */
   const put = (n, xs) => {
     const pg = pageAt(n), pane = pg.querySelector(':scope > .pane') || pg;
-    pane.innerHTML = xs.map(x => '<div>' + w.questionCard_(x, 0) + '<div class="tile-row">' + '' + '</div></div>').join('');
-    return [...pane.querySelectorAll('.qcard')];
+    pane.innerHTML = xs.map(x => '<div>' + w.findCard(x, 0) + '<div class="tile-row">' + '' + '</div></div>').join('');
+    return [...pane.querySelectorAll('.qcard.card')];
   };
   let [card] = put(0, [AIQ]);
   if (front() !== 0) bad.push('setup: page ' + front() + ' of ' + COL + ' is in front, not the first');

@@ -24,9 +24,10 @@ function workStripInner_(k) {
     <p class="qp-work-say" role="status" aria-live="polite"></p>`;
 }
 /* MARK MY WORKING STANDS IN THE PART'S TOOL ROW (owner, 8 Nov), once there is a photo. § */
+/* THE SAME TILE IN EVERY STATE (rule 7.4): greyed until a photo is taken. */
 function workGoOpts_(k) {
-  return (WORK_PICS[k] || []).length ? ({ icon: 'tick', label: 'Mark my working', note: 'AI reads the photos',
-    act: 'qp-work-send', cls: 'qp-work-send is-submit', data: { k } }) : null;
+  const has = (WORK_PICS[k] || []).length > 0;
+  return { icon: 'tick', label: 'Mark my working', note: 'AI reads the photos', act: 'qp-work-send', cls: 'qp-work-send' + (has ? ' is-submit' : ''), off: !has, data: { k } };
 }
 function workPaint_(k) {
   document.querySelectorAll('.qp-work').forEach(el => {
@@ -34,7 +35,7 @@ function workPaint_(k) {
     el.innerHTML = workStripInner_(k);
     el.hidden = !(WORK_PICS[k] || []).length;
   });
-  document.querySelectorAll('.qp-work-slot').forEach(el => { if (el.getAttribute('data-k') === k) el.innerHTML = tile_(workGoOpts_(k)); });
+  document.querySelectorAll('.qp-work-send').forEach(el => { if (el.getAttribute('data-k') === k) el.outerHTML = tile_(workGoOpts_(k)); });
 }
 function workSay_(k, text) {
   document.querySelectorAll('.qp-work').forEach(el => {

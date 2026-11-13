@@ -116,7 +116,7 @@ const tick = ms => new Promise(r => setTimeout(r, ms));
     t.WORK_PICS[t.ansKey(x)] = [{ url: JPG }];
     const host = w.document.createElement('div');
     w.document.body.appendChild(host);
-    host.innerHTML = w.questionCard_(x, 0);
+    host.innerHTML = w.findCard(x, 0);
     const go = host.querySelector('.qt-row [data-do="qp-ai"]');
     if (!go || go.disabled) { bad.push(want + ': ' + row.row_id + ' has no pressable AI Check'); w.close(); continue; }
     t.ACTIONS['qp-ai'](go);

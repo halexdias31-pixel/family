@@ -616,7 +616,7 @@ check('after a wrong Check every answer can be deleted and checked again — typ
     w.stuffItemsAll_ = () => (held ? held() : []).concat(ALL);
     const host = d.createElement('div');
     d.body.appendChild(host);
-    host.innerHTML = ALL.map(x => w.questionCard_(x, 0)).join('');
+    host.innerHTML = ALL.map(x => w.findCard(x, 0)).join('');
     const inp = host.querySelector('.qp-ans-in[data-k="' + w.__t.ansKey(TYPED) + '"]');
     const pad = () => d.getElementById('kp');
     const press = v => { const k = pad() && pad().querySelector('.kp-key[data-v="' + v + '"]'); if (k) A['kp-key'](k); else bad.push(when + ': no key ' + v); };
@@ -643,10 +643,10 @@ check('after a wrong Check every answer can be deleted and checked again — typ
     if (!mark.classList.contains('is-right')) bad.push(when + ': 727 typed after deleting was not marked right: ' + mark.className);
     /* PICKED AND ORDERED ARE TYPED (owner, 9 Nov): a wrong letter, deleted, then the right one */
     const pc = host.querySelector('.qp-ans-in[data-k="' + w.__t.ansKey(PICK) + '"]').closest('.qcard') || host;
-    const one = d.createElement('div'); one.innerHTML = w.questionCard_(PICK, 0); host.appendChild(one);
+    const one = d.createElement('div'); one.innerHTML = w.findCard(PICK, 0); host.appendChild(one);
     if (typeChoice_(w, one, PICK, 'A').said === 'Correct') bad.push(when + ': a wrong letter was Correct');
     if (typeChoice_(w, one, PICK, 'B').said !== 'Correct') bad.push(when + ': the right letter after a wrong one was not Correct');
-    const two = d.createElement('div'); two.innerHTML = w.questionCard_(ORD, 0); host.appendChild(two);
+    const two = d.createElement('div'); two.innerHTML = w.findCard(ORD, 0); host.appendChild(two);
     if (typeChoice_(w, two, ORD, 'A, B, C').said === 'Correct') bad.push(when + ': a wrong order was Correct');
     await wait(360);   // a person's second go, not a double tap's second half (534)
     if (typeChoice_(w, two, ORD, 'B, C, A').said !== 'Correct') bad.push(when + ': the right order after a wrong one was not Correct');
@@ -656,7 +656,7 @@ check('after a wrong Check every answer can be deleted and checked again — typ
   };
   const b1 = boot();
   await wait(300);
-  if (typeof b1.w.questionCard_ !== 'function' || !b1.w.__t.ACTIONS['kp-key']) return ['questionCard_ or the keypad is not reachable — NOT checked'];
+  if (typeof b1.w.findCard !== 'function' || !b1.w.__t.ACTIONS['kp-key']) return ['findCard or the keypad is not reachable — NOT checked'];
   await run(b1, 'first visit');
   /* AND AFTER A RELOAD, the wrong answer back in the box from the device */
   const b2 = boot({ before: win => { try { win.localStorage.setItem('ans:q:Q-DEL-1', '717'); } catch (e) {} } });
