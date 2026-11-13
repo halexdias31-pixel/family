@@ -555,6 +555,8 @@ function profilePut_(r, t, fields, wanted, priceAsked, mailPlan, mailKey, availS
     if (t.headers.indexOf('name_was') !== -1 && key(before) && key(before) !== key(full)) {
       put.name_was = nameWasWith_(r.name_was, before);
     }
+    /* AND THE HANDLE FOLLOWS THE FIRST NAME (`handleFollow_`). */
+    if (fields.first_name !== undefined) Object.assign(put, handleFollow_(t, r, S(fields.first_name)));
   }
   return { put: put, renamed: renamed, full: full };
 }
