@@ -7977,8 +7977,6 @@ function ruleOn_(id) {
   const marked = !!(s && s.set && s.set[id] === 'universal');
   return r.flip ? marked : !marked;
 }
-/* WHAT THE BACKEND STORES for a choice: a `flip` rule is stored the other way round, so the backend needs no change. */
-const ruleStored_ = (r, to) => r && r.flip ? (to === 'universal' ? 'exception' : 'universal') : to;
 /* THE RULES ONLY CSS CAN APPLY, said on the root as `data-uni` (style.css reads `:root[data-uni~="…"]`). */
 function rulesMark_() {
   try {
@@ -7991,26 +7989,6 @@ function rulesMark_() {
 }
 rulesMark_();
 
-function rulesSend_(body, el) {
-  if (!USER || !(typeof isAdmin === 'function' && isAdmin())) return;
-  const card = el.closest('.rules-card');
-  send_(Object.assign({ action: 'rulesSave', name: USER.name, personId: USER.personId || '' }, body),
-    { button: el, where: (card && card.querySelector('.rules-said')) || undefined, busy: 'Saving…' })
-    .then(d => {
-      if (!d || !d.success) return;
-      try { DATA.rules = d.rules; } catch (e) { oops_(e, 'rules:rulesSend_') }
-      rulesNow_();
-      toast(body.undo ? 'The last rule change is undone' : 'Saved for everybody');
-      /* EVERY COLUMN, because a rule reaches past this one; a finder's memo catches up on the next reload. */
-      try { markStale_(TABS.map(t => t.id)); repaint(true); } catch (e) { oops_(e, 'rules:rulesSend_') }
-    });
-}
-on('rule-set', el => {
-  const id = el.getAttribute('data-rule'), to = el.getAttribute('data-to'), r = RULE_OF_(id);
-  if (!r || r.lock || (to === 'universal') === !ruleOn_(id)) return;
-  rulesSend_({ rule: id, to: ruleStored_(r, to) }, el);
-});
-on('rules-undo', el => rulesSend_({ undo: true }, el));
 
 ;
 /* ==== js/cards-people.js ==== */
@@ -8532,7 +8510,9 @@ cardKind_('venue', x => { const t = kcRow_(x), kid = childView_();
   const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? perHour_(rate) : 'free'].filter(Boolean).join(' · ');
   const one = (label, max, rate) => (say(max, rate) ? { label, value: say(max, rate) } : null);
   const rooms = (t.rooms || []).length ? t.rooms.slice(0, 4).map(r => one(r.name || 'Room', r.max, r.rate)) : [one('The room', t.maxCapacity, t.bestRate)];
-  return { look: 'venue-door', tags: kcFacetTags_(x), body: [{ type: 'list', items: rooms.filter(Boolean) }] }; });
+  /* ITS 8-BIT BUILDING (find-doors.js), which the move to specs (2c2bab5) left behind. */
+  const pix = typeof VENUE_PIX === 'object' && typeof venueShape_ === 'function' ? VENUE_PIX[venueShape_(x.row || {})] : null;
+  return { look: 'venue-door', picture: pix ? { pix, alt: x.name } : null, tags: kcFacetTags_(x), body: [{ type: 'list', items: rooms.filter(Boolean) }] }; });
 /* A WRITING AND AN EVENT: the name and the facets; a manuscript adds its own fragment, drawn where there is one. */
 cardKind_('writing', x => ({ look: 'hdb lib-c', tags: kcFacetTags_(x) }));
 cardKind_('event', x => ({ look: 'hdb lib-c', tags: kcFacetTags_(x) }));
@@ -8617,8 +8597,9 @@ on('kc-more', el => { const c = el.closest('.kc-row, .tile-row'), m = c && c.que
   m.hidden = !m.hidden; el.setAttribute('aria-expanded', m.hidden ? 'false' : 'true'); });
 /* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
 function findCard(x, credits) {
-  if (x && x.kind && CARD_KINDS[x.kind]) return cardOfKind_(x);
-  const around = x && !x.kcIn && (window.KC_AROUND || {})[x.kind];
+  /* A PANEL (card_) KEEPS ITS OWN INSIDES: a DM thread is kind `msg`, and Find's message door (KC_AROUND) drew it empty. */
+  if (x && x.kind && CARD_KINDS[x.kind] && !x.kcPanel) return cardOfKind_(x);
+  const around = x && !x.kcIn && !x.kcPanel && (window.KC_AROUND || {})[x.kind];
   if (around) return around(x, extra => findCard(Object.assign({}, x, extra || {}, { kcIn: true })));
   /* A KIND WHOSE OWN FILE STILL WRITES ITS CARD (`window.KC_OWN[kind] = (x, credits) => html`) is cut into the parts; one already in the shape is kept whole. */
   const own = x && !x.kcOwn && x.kind && (window.KC_OWN || {})[x.kind];
@@ -8634,7 +8615,7 @@ function findCard(x, credits) {
   const it = x && (x.row || x.kcOwn) ? x : { kind: 'subject', row: x || {} };
   const t = kcRow_(it), name = it.name || t.title || t.name || '';
   const one = it.name ? it : Object.assign({}, it, { name });
-  const s = it.kcOwn && kcSpec_(it.kind) === KC_BARE ? KC_OWN_SPEC : kcSpec_(it.kind);
+  const s = it.kcOwn && (it.kcPanel || kcSpec_(it.kind) === KC_BARE) ? KC_OWN_SPEC : kcSpec_(it.kind);
   const run = list => (list || []).map(k => { try { const f = kcField_(k); return f ? f(one) || '' : ''; } catch (e) { oops_(e, 'card:' + k); return ''; } }).join('');
   const parts = { pic: run(s.pic), head: run(s.title), tags: run(s.tags), lines: run(s.lines), act: '' };
   parts.pic = kcPicOr_(one, parts.pic);
@@ -12028,9 +12009,6 @@ function libCardsRedraw_() {
   });
 }
 
-/* ---------- ONE SAVE, TWO SURFACES, AND THE DOM SAYS WHICH § */
-on('me-save', el => { meSave_(el); });
-
 /* ---------- EVERY SETTINGS FIELD SAVES AS YOU TYPE (owner, 8 Nov) § */
 const AUTOSAVE_MS = 800;
 const AUTOSAVE_T = new WeakMap();
@@ -12314,7 +12292,8 @@ const CARD_SECTIONS = [
   { id: 'seat', cap: 'Rate and extra seat', fields: ['rate_per_hour', 'extra_seat_rate'] },
   { id: 'size', cap: 'Class size', fields: ['min_students', 'max_students'] },
   { id: 'headline', fields: ['headline'] },
-  { id: 'photos', cap: 'Photographs', fields: ['video'], match: /^photos_\d+$/ },
+  /* NO `video` BOX: the clip is uploaded (videoPicker_); updateProfile writes no `video` cell since 8 Nov. */
+  { id: 'photos', cap: 'Photographs', fields: [], match: /^photos_\d+$/ },
   { id: 'words', fields: ADJECTIVE_FIELDS },
   { id: 'glance', cap: 'At a glance', fields: ['years_experience', 'favourite_colour', 'age_min', 'age_max', 'min_hours', 'max_hours'] },
   { id: 'quals', cap: 'Qualifications', match: /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/ },

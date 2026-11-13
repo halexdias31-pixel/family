@@ -88,12 +88,13 @@ function world() {
   /* AN EXTRA SEAT COSTS AT MOST THE FIRST STUDENT (620): a share past 1 is refused, and 1 itself is the top. */
   const seat = save({ rate_per_hour: 24, extra_seat_rate: 1.5 });
   rule(!seat.success && /at most what the first student/.test(seat.error || '') && String(b.row('P-T1').rate_per_hour) === '20', 'an extra seat dearer than the first student (1.5 of the rate) was saved', seat);
+  /* THE PER-TUTOR CUT IS IGNORED SINCE 8 Nov (config B prices every tutor): a tutor's forced cut is never written. */
   const cut = save({ extra_seat_cut: 0.1 });
-  rule(!cut.success && /Only @family/.test(cut.error || ''), 'a tutor set the business\'s share of an extra seat', cut);
-  /* ONE REFUSED FIELD NO LONGER BLOCKS THE CARD (620): the class size is saved, the cut is named as left out. */
+  rule(!cut.writes && String(b.row('P-T1').extra_seat_cut || '') === '', 'a tutor set the business\'s share of an extra seat', cut);
+  /* ONE DROPPED FIELD NO LONGER BLOCKS THE CARD (620): the class size is saved, the cut is not. */
   const part = save({ extra_seat_cut: 0.1, max_students: 3 });
-  rule(part.success && Number(b.row('P-T1').max_students) === 3 && String(b.row('P-T1').extra_seat_cut || '') === ''
-    && (part.refused || []).length === 1 && /Not saved: Only @family/.test(part.said || ''), 'a forced cut beside a class size did not save the class size and name the cut', part);
+  rule(part.success && Number(b.row('P-T1').max_students) === 3 && String(b.row('P-T1').extra_seat_cut || '') === '',
+    'a forced cut beside a class size did not save the class size, or wrote the cut', part);
   b.ev("(() => { const t = read(TAB.people); const r = t.rows.find(x => x.person_id === 'P-T1'); setCells(t, r, { pricing_changed_at: '' }); })()");
   const ok = save({ rate_per_hour: 24, extra_seat_rate: 0.25 });
   rule(ok.success && Number(b.row('P-T1').rate_per_hour) === 24 && Number(b.row('P-T1').extra_seat_rate) === 0.25 && b.row('P-T1').pricing_changed_at,

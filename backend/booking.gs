@@ -1328,7 +1328,7 @@ const PERMISSIONS = {
   inboxList: ['admin'],
   joinWaitlist: ['member', 'admin'],
   layoutSave: ['admin'],
-  legoCount: ['member', 'admin'],
+  legoCount: ['member', 'child', 'admin'],
   libExport: ['admin'],
   libImport: ['admin'],
   libImportDrive: ['admin'],

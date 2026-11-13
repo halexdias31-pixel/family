@@ -43,6 +43,10 @@ b.ev(`Utilities.newBlob = (bytes, type, name) => ({ type: type, name: name, size
 b.seed('people', PEOPLE);
 b.seed('family', [{ link_id: 'L1', parent_id: 'P-C1', child_id: 'P-K1', child_typed: 'Kit Child', state: 'accepted' }]);
 b.seed('config', [{ key: 'posts_folder', value: 'POSTSPOSTSPOSTS' }]);
+/* ADA TEACHES PAT'S FAMILY (a booking): a parent messages only the tutors of their own bookings (`seesWhom_`, 10 Nov). */
+b.seed('jobs', [{ job_id: 'PJ1', subject: 'Maths', level: 'GCSE', weekday: 'Mon', start_time: '16:00', venue: '', max_students: 4, kind: '' }]);
+b.seed('events', [{ event_id: 'PE1', at: '01/10/2026', job_id: 'PJ1', actor: 'Pat Parent', role: 'client', action: 'Request' },
+  { event_id: 'PE2', at: '01/10/2026', job_id: 'PJ1', actor: 'Ada Tutor', role: 'tutor', action: 'Accept' }]);
 const tok = {};
 [['admin@example.org', 'P-A1'], ['ada@example.org', 'P-T1'], ['pat@example.org', 'P-C1'], ['kitchild47', 'P-K1']].forEach(([w, id]) => {
   const d = b.post({ action: 'verifyLogin', email: w, name: w, pin: '0000' });

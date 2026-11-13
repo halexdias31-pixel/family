@@ -181,21 +181,25 @@ async function screens() {
   await until(() => A.u.LOADED(), 45000);
   if (!A.u.sitePages_().some(h => /inbox-card/.test(h))) return fail('admin', 'an admin\'s Site has no Email card');
   if (A.u.widgetsOf_('tool').some(x => x.id === 'inbox')) fail('admin', 'Email is still a Tools widget; it lives on Site (500)');
-  A.u.go('site');
+  /* SITE IS IN FIND › SETTINGS NOW (screens-moved.json): the card is drawn where a page would put it, its own host. */
+  const host = A.d.createElement('div');
+  host.id = 'ib-host';
+  host.innerHTML = A.u.sitePages_().find(h => /inbox-card/.test(h)) || '';
+  A.d.body.appendChild(host);
   /* THE LAST FOUR (owner, 29 Oct): eight threads come back, four are drawn, newest first; no search, chips or More. */
-  if (!(await until(() => A.d.querySelectorAll('#s-site .ib-box .row.ib-item').length && !A.d.querySelector('#s-site .ib-list[aria-busy]'), 20000))) {
-    return fail('admin', 'the list did not draw: ' + ((A.d.querySelector('#s-site .ib-box') || {}).textContent || '(no box)').replace(/\s+/g, ' ').slice(0, 200));
+  if (!(await until(() => A.d.querySelectorAll('#ib-host .ib-box .row.ib-item').length && !A.d.querySelector('#ib-host .ib-list[aria-busy]'), 20000))) {
+    return fail('admin', 'the list did not draw: ' + ((A.d.querySelector('#ib-host .ib-box') || {}).textContent || '(no box)').replace(/\s+/g, ' ').slice(0, 200));
   }
-  const rowsDrawn = [...A.d.querySelectorAll('#s-site .ib-box .row.ib-item')];
+  const rowsDrawn = [...A.d.querySelectorAll('#ib-host .ib-box .row.ib-item')];
   if (rowsDrawn.length !== 4) fail('admin', 'the list drew ' + rowsDrawn.length + ' rows of 8 sent — it shows the last four');
   if (!rowsDrawn[3] || !/Older mail 2/.test(rowsDrawn[3].textContent)) fail('admin', 'the four drawn are not the newest four: ' + rowsDrawn.map(r => r.querySelector('.ib-subj').textContent).join(' | '));
-  const first = A.d.querySelector('#s-site .row.ib-item');
+  const first = A.d.querySelector('#ib-host .row.ib-item');
   if (!first.classList.contains('is-unread') || !/Ada Sample/.test(first.textContent) || !/Thursday lesson/.test(first.textContent)) fail('admin', 'the first row reads "' + first.textContent.replace(/\s+/g, ' ').trim() + '"');
-  if (A.d.querySelector('#s-site .ib-box .search-pill, #s-site .ib-box .chip, #s-site .ib-box [data-do="inbox-more"]')) fail('admin', 'the widget still has a search pill, chips or More');
+  if (A.d.querySelector('#ib-host .ib-box .search-pill, #ib-host .ib-box .chip, #ib-host .ib-box [data-do="inbox-more"]')) fail('admin', 'the widget still has a search pill, chips or More');
   const asks = A.sent.filter(x => x.action === 'inboxList');
   if (asks.length !== 1 || asks[0].q !== 'in:inbox' || asks[0].page) fail('admin', 'the inbox was asked for as ' + JSON.stringify(asks));
   /* NOTHING OPENS (547): no control anywhere in the widget, no open action registered, so the four rows are the whole of it. */
-  const live = A.d.querySelectorAll('#s-site .ib-box button, #s-site .ib-box a, #s-site .ib-box [data-do], #s-site .ib-box [tabindex], #s-site .ib-box input');
+  const live = A.d.querySelectorAll('#ib-host .ib-box button, #ib-host .ib-box a, #ib-host .ib-box [data-do], #ib-host .ib-box [tabindex], #ib-host .ib-box input');
   if (live.length) fail('static', 'the Email widget has ' + live.length + ' control(s): ' + [...live].map(x => x.outerHTML.slice(0, 80)).join(' | '));
   const opens = Object.keys(A.u.ACTIONS).filter(k => /^inbox-/.test(k));
   if (opens.length) fail('static', 'the app still registers ' + opens.join(', '));

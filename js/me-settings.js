@@ -191,9 +191,6 @@ function libCardsRedraw_() {
   });
 }
 
-/* ---------- ONE SAVE, TWO SURFACES, AND THE DOM SAYS WHICH § */
-on('me-save', el => { meSave_(el); });
-
 /* ---------- EVERY SETTINGS FIELD SAVES AS YOU TYPE (owner, 8 Nov) § */
 const AUTOSAVE_MS = 800;
 const AUTOSAVE_T = new WeakMap();
@@ -477,7 +474,8 @@ const CARD_SECTIONS = [
   { id: 'seat', cap: 'Rate and extra seat', fields: ['rate_per_hour', 'extra_seat_rate'] },
   { id: 'size', cap: 'Class size', fields: ['min_students', 'max_students'] },
   { id: 'headline', fields: ['headline'] },
-  { id: 'photos', cap: 'Photographs', fields: ['video'], match: /^photos_\d+$/ },
+  /* NO `video` BOX: the clip is uploaded (videoPicker_); updateProfile writes no `video` cell since 8 Nov. */
+  { id: 'photos', cap: 'Photographs', fields: [], match: /^photos_\d+$/ },
   { id: 'words', fields: ADJECTIVE_FIELDS },
   { id: 'glance', cap: 'At a glance', fields: ['years_experience', 'favourite_colour', 'age_min', 'age_max', 'min_hours', 'max_hours'] },
   { id: 'quals', cap: 'Qualifications', match: /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/ },

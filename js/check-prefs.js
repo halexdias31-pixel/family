@@ -85,7 +85,7 @@ const DIRECT = {
   linkMail_:           { essential: 'access', why: 'the confirmation link proves the address; it is how the account is reached at all' },
   moveMail_:           { essential: 'access', why: 'the link that proves a NEW address before it replaces the old one' },
   authWrong_:          { essential: 'security', why: 'too many wrong PINs, to a no-email child\'s grown-ups' },
-  'doPost:register':   { essential: 'access', why: 'a no-email child\'s grown-up confirming the account' },
+  registerMail_:       { essential: 'access', why: 'a no-email child\'s grown-up confirming the account' },
   'doPost:forgotPin':  { essential: 'access', why: 'a new PIN, or a child\'s, to the proved grown-ups' },
   /* APPLYING TO TEACH (400): the owner hears of an application, and the applicant hears the answer to it. */
   'doPost:applyTeach': { essential: 'access', why: 'the owner told an application to teach is waiting — the business, not a preference' },
@@ -97,9 +97,9 @@ const DIRECT = {
 /* ---------- AND EVERY `notify(` CALL, PINNED TO THE KIND IT WAS DECIDED TO BE § */
 const CALLS = {
   'authWrong_ · Too many sign-in attempts':                       ['security'],
-  'doPost:register · Somebody joined through you':                ['referrals'],
+  'registerThank_ · Somebody joined through you':                 ['referrals'],
   'doPost:approvePost · Your post is up':                         ['posts'],
-  'doPost:addPost · A post is waiting for you':                   ['approvals'],
+  'postAddNotify_ · A post is waiting for you':                    ['approvals'],
   'doPost:sendMessage · A message from ':                         ['messages'],
   'doPost:suggest · A message was sent to you to look at':        ['reported'],
   'doPost:claimChild · Someone has added you to their account':   ['family'],

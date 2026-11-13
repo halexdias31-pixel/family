@@ -11938,7 +11938,6 @@ function stuffQuestion() {
 /* WHILE A QUESTION IS ASKED, THE CARDS SO FAR ON ASK (`findDone_`): one tile, gone once they are shown. */
 /* NO "SHOW SO FAR" ARROW (owner, 9 Nov: "remove it"): cards come when the menus finish. */
 const findPeek_ = () => '';
-on('find-reveal', el => { const F = finderAt_(el); inFinder_(F, () => { findShow_(); paintStuff(true); }); });
 /* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): § */
 const FACET_NONE_SHOWN = false; /* owner 5 Nov: "Accuracy verified 0" read as noise; switched off, kept */
 function facetNoneHtml_(items, shown) {
@@ -19236,6 +19235,8 @@ const SPINE_EXTRA = [
   { after: '',        row: 'A seat',    only: 'wait' },
   /* `Shared by` IS THE WAITING LIST'S SEAT COUNT; a session has no split since 12 Nov (owner). */
   { after: '',        row: 'Shared by', only: 'wait' },
+  /* A SAVED BOOKING STILL SAYS WHO SHARES IT (stored splitEmails, or the free seats); the form stopped asking on 12 Nov. */
+  { after: 'Term',    row: 'Split',     only: 'receipt' },
   /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is about — which is where a receipt puts it and where the form now § */
   ...JOB_STAGES.map(st => ({ after: '', row: st.row, tick: true })),
   /* NO `Status` (owner, 29 Oct: "What is status for? … all those bits above status … tell you the status"): the four ticks are it. */

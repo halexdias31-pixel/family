@@ -340,8 +340,9 @@ PEOPLE.forEach(p => {
   const stamp = (d, label, exp) => { if (S(d.familyFor) !== exp) bad.push('family: ' + label + ' was stamped familyFor [' + S(d.familyFor) + '] — wanted [' + exp + ']'); return d; };
   const S = v => (v === undefined || v === null) ? '' : String(v);
   const sa = tok('P-SA'), pa = tok('P-PA'), pb = tok('P-PB'), sc = tok('P-SC');
-  if (sa.token) want('the student P-SA', fam(stamp(f.get({ person: 'P-SA', name: sa.name, token: sa.token }), 'P-SA', 'P-SA'), 'P-SA'), 'sibling:P-SC');
-  if (sc.token) want('the student P-SC', fam(stamp(f.get({ token: sc.token }), 'P-SC', 'P-SC'), 'P-SC'), 'sibling:P-SA');
+  /* A STUDENT SEES THEMSELF AND THEIR TUTORS, NO SIBLING (`seesWhom_`, the owner, 10 Nov), so a child's family list is empty. */
+  if (sa.token) want('the student P-SA', fam(stamp(f.get({ person: 'P-SA', name: sa.name, token: sa.token }), 'P-SA', 'P-SA'), 'P-SA'), '');
+  if (sc.token) want('the student P-SC', fam(stamp(f.get({ token: sc.token }), 'P-SC', 'P-SC'), 'P-SC'), '');
   if (pa.token) want('the parent P-PA', fam(stamp(f.get({ person: 'P-PA', name: pa.name, token: pa.token }), 'P-PA', 'P-PA'), 'P-PA'), 'child:P-SA,child:P-SC');
   if (pb.token) want('the parent P-PB', fam(stamp(f.get({ person: 'P-PB', name: pb.name, token: pb.token }), 'P-PB', 'P-PB'), 'P-PB'), 'child:P-SB');
   want('a stranger whose URL names P-SA', fam(stamp(f.get({ person: 'P-SA', name: 'Abe Child' }), 'stranger', ''), 'stranger'), '');
@@ -380,8 +381,8 @@ PEOPLE.forEach(p => {
     const yes = f.post({ action: 'answerClaim', token: sa.token, rowIndex: row, accept: true });
     if (!yes || !yes.success) bad.push('family: P-SA could not accept Bea\'s claim — ' + JSON.stringify(yes));
     const after = f.get({ token: sa.token });
-    want('P-SA after saying yes to Bea', fam(after, 'P-SA after yes'), 'sibling:P-SB,sibling:P-SC');
-    if (sb.token) want('P-SB after Abe said yes to Bea', fam(f.get({ token: sb.token }), 'P-SB after yes'), 'sibling:P-SA');
+    want('P-SA after saying yes to Bea', fam(after, 'P-SA after yes'), '');
+    if (sb.token) want('P-SB after Abe said yes to Bea', fam(f.get({ token: sb.token }), 'P-SB after yes'), '');
     want('the claims left for P-SA after answering', claimsOf(after), '');
   }
 }
@@ -567,7 +568,8 @@ let pictures = 0;
     const pupil = () => fresh({ token: tk['P-K8'].token });
     const keysOf = d => JSON.stringify((d.students || []).map(r => Object.keys(r).sort().join(',')));
     const beforeKeys = keysOf(pupil());
-    const feedFace = () => ((fresh({}).posts || []).find(p => p.id === 'PO-K7') || {});
+    /* READ AS THE CHILD'S PARENT: signed out, only staff are named on the feed (`open_`, the owner, 10 Nov). */
+  const feedFace = () => ((fresh({ token: tk['P-C7'].token }).posts || []).find(p => p.id === 'PO-K7') || {});
     /* A DRESSED CHILD'S PHOTOGRAPH NEVER REACHED THE FEED (the old line sent the wearable string in its
        place) and does not now. */
     const fp = feedFace();
@@ -907,7 +909,7 @@ let examDates = 0;
   } else bad.push('exam dates: somebody could not sign in');
 }
 
-/* 17b. THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR — AN ADMIN'S, AND BLANK IS NOT NOUGHT (docs/history/345). § */
+/* 17b. THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR — RETIRED 8 Nov, SO NO SAVE WRITES IT (docs/history/345). § */
 let cutRules = 0;
 {
   const rule = (ok, said) => { if (ok) cutRules++; else bad.push('the cut of an extra seat: ' + said); };
@@ -927,33 +929,22 @@ let cutRules = 0;
     if (at < 0 || ri < 0) bad.push('the cut of an extra seat: no pricing_changed_at column or no tutor row, so the clock was NOT checked');
     else b.tabs.people[ri][at] = OLD;
     const show = pid => JSON.stringify({ cell: cell(pid), sent: sent(pid) });
-    rule(cell('P-T1') === '' && sent('P-T1') === '', 'a tutor with no cut of their own is not stored and sent blank: ' + show('P-T1'));
-    const t1 = ask(t, 'P-T1', 'P-T1', '0.2');
-    rule(!t1.success && /Only @family/.test(String(t1.error)) && !t1.writes && cell('P-T1') === '',
-      'a tutor setting their own cut was not refused, or something was written — ' + JSON.stringify(t1) + ' ' + show('P-T1'));
-    const t0 = ask(t, 'P-T1', 'P-T1', '0');
-    rule(!t0.success && !t0.writes && cell('P-T1') === '', 'a tutor taking the cut from blank to nought was not refused — ' + JSON.stringify(t0));
-    const a2 = ask(a, 'P-A1', 'P-T1', '0.2');
-    rule(a2.success && Number(cell('P-T1')) === 0.2 && sent('P-T1') === 0.2,
-      'an admin setting a tutor\'s cut to 0.2 was refused or did not arrive — ' + (a2.error || show('P-T1')));
+    /* THE PER-TUTOR CUT IS IGNORED SINCE 8 Nov (a0f23e1): config B prices every tutor, so nobody's Save writes the cell. */
+    rule(cell('P-T1') === '' && sent('P-T1') === '', 'a tutor\'s cut is stored or sent: ' + show('P-T1'));
+    [[t, 'P-T1', 'P-T1', '0.2', 'a tutor setting their own cut'], [t, 'P-T1', 'P-T1', '0', 'a tutor setting a nought cut'],
+     [a, 'P-A1', 'P-T1', '0.2', 'an admin setting a tutor\'s cut'], [a, 'P-A1', 'P-A1', '0.15', 'an admin setting their own cut']]
+      .forEach(([who, pid, tid, v, said]) => {
+        const r = ask(who, pid, tid, v);
+        rule(!r.writes && String(cell(tid) || '') === '', said + ' wrote it — ' + JSON.stringify(r).slice(0, 200) + ' ' + show(tid));
+      });
     rule(at >= 0 && new Date(b.row('P-T1').pricing_changed_at).getTime() === OLD.getTime(),
-      'an admin moving the cut stamped the tutor\'s pricing_changed_at (' + b.row('P-T1').pricing_changed_at + ') — the tutor\'s month started over a number they cannot touch');
-    const a0 = ask(a, 'P-A1', 'P-T1', '0');
-    rule(a0.success && cell('P-T1') === 0 && sent('P-T1') === 0, 'nought is not stored and sent as nought (no cut) — ' + (a0.error || show('P-T1')));
-    const ab = ask(a, 'P-A1', 'P-T1', '');
-    rule(ab.success && cell('P-T1') === '' && sent('P-T1') === '', 'blank after nought is not stored and sent as blank (the default) — ' + (ab.error || show('P-T1')));
-    [['15', 'pounds typed into a fraction'], ['-1', 'a share below nothing']].forEach(([v, why]) => {
-      const r = ask(a, 'P-A1', 'P-T1', v);
-      rule(!r.success && !r.writes && cell('P-T1') === '', 'an admin\'s cut of ' + v + ' (' + why + ') was not refused, or was written — ' + JSON.stringify(r) + ' ' + show('P-T1'));
-    });
-    const own = ask(a, 'P-A1', 'P-A1', '0.15');
-    rule(own.success && Number(cell('P-A1')) === 0.15, 'an admin could not set their own cut — ' + (own.error || JSON.stringify(cell('P-A1'))));
-    /* THE TUTOR'S OWN RATE PAGE, SAVED WITH NOTHING TOUCHED — every box, the cut among them as it was drawn. */
+      'a cut that writes nothing stamped the tutor\'s pricing_changed_at (' + b.row('P-T1').pricing_changed_at + ')');
+    /* THE TUTOR'S OWN RATE PAGE, SAVED WITH NOTHING TOUCHED — every box as it was drawn. */
     ask(a, 'P-A1', 'P-T1', '0.1');
     const prof = b.ev(`profileOf_(read(TAB.people).rows.find(r => r.person_id === 'P-T1'))`);
     const page = formOf(b.ev('PROFILE_GROUPS')['Your rate and group size'] || [], prof);
     const same = b.post({ action: 'updateProfile', token: t.token, name: t.name, personId: 'P-T1', target: t.name, targetId: 'P-T1', fields: page });
-    rule('extra_seat_cut' in page && same.success && !same.writes,
+    rule(same.success && !same.writes,
       'a tutor\'s no-change Save of the rate page, carrying the cut as drawn, was refused or wrote — ' + (same.error || same.writes + ' cell(s)'));
   }
 }
@@ -965,7 +956,7 @@ let cardRules = 0;
   let acorn = null;
   try { acorn = require(path.join(__dirname, '..', 'node_modules', 'acorn')); } catch (e) {}
   const meSrc = require('../tools/piece-src.js').pieceSrc('me', path.join(__dirname, '..'));
-  const want = ['RETIRED_FIELDS_', 'CARD_SECTIONS', 'cardSent_', 'cardSections_', 'cardFields_', 'cardSettingsGroups_',
+  const want = ['ADJECTIVE_FIELDS', 'RETIRED_FIELDS_', 'CARD_SECTIONS', 'cardSent_', 'cardSections_', 'cardFields_', 'cardSettingsGroups_',
                 'CARD_BOOL_', 'TRUEish_', 'cardSame_', 'CARD_HOUR_', 'CARD_WHOLE_', 'cardChanged_',
                 /* docs/history/339: the library cards' fields, which Settings takes off and Tools draws. */
                 'isLibraryCard_', 'notLibrary_', 'libFieldsOf_'];
@@ -1002,7 +993,7 @@ let cardRules = 0;
     const twice = onCard.filter(f => kept.indexOf(f) !== -1);
     rule(!twice.length, twice.join(', ') + ' is on the card and on Settings — two places to edit one field');
     const gone = Object.keys(groups).filter(g => !left[g]).sort();
-    rule(JSON.stringify(gone) === JSON.stringify(['About you', 'Availability', 'Photos', 'Qualifications', 'Your rate and group size']),
+    rule(JSON.stringify(gone) === JSON.stringify(['About you', 'Availability', 'Jobs', 'Photos', 'Qualifications', 'Your rate and group size']),
       'the pages Settings stops drawing are ' + JSON.stringify(gone));
     rule(JSON.stringify(Object.keys(left)) === JSON.stringify(['Contact & address', 'Library cards'])
          && left['Contact & address'].indexOf('venues_ok') === -1 && left['Contact & address'].indexOf('email') !== -1,
@@ -1030,9 +1021,9 @@ let cardRules = 0;
         'a ' + who + '\'s library cards are ' + JSON.stringify(tools) + ' on Tools and ' + JSON.stringify(kept.filter(f => /^lib\d+_/.test(f))) + ' on Settings — wanted the server\'s fifteen on Tools and none on Settings');
       rule(onCardOwn.every(f => editable.indexOf(f) !== -1), 'a ' + who + '\'s card offers ' + onCardOwn.filter(f => editable.indexOf(f) === -1).join(', ') + ', which updateProfile lets nobody write');
       const ids = secs.map(x => x.id);
-      rule(ids.indexOf('figure') === ids.indexOf('picture') + 1 && ids.indexOf('handle') === ids.indexOf('name') + 1 && ids[0] === 'picture',
-        'a ' + who + '\'s card offers the sections ' + JSON.stringify(ids) + ' — wanted the figure straight after the picture and the handle straight after the name');
-      if (bare) rule(JSON.stringify(ids) === '["picture","figure","name","handle"]', 'a ' + who + '\'s card, which prints only a face and a name, offers ' + JSON.stringify(ids));
+      rule(ids.indexOf('handle') === ids.indexOf('name') + 1 && ids[0] === 'picture',
+        'a ' + who + '\'s card offers the sections ' + JSON.stringify(ids) + ' — wanted the picture first and the handle straight after the name');
+      if (bare) rule(ids.join(' ') === 'picture name handle', 'a ' + who + '\'s card, which prints only a face and a name, offers ' + JSON.stringify(ids));
     });
     /* SOMEBODY ELSE'S CARD — an admin on a tutor's — offers neither your figure nor your handle. */
     rule(!card.cardSections_().some(x => x.id === 'figure' || x.id === 'handle'), 'a card edited by somebody else offers the figure or the handle');
@@ -1055,7 +1046,7 @@ let cardRules = 0;
         sa14: 'TRUE', photos_2: 'https://example.org/third.jpg', qual_1_grade: 'A*' }));
       const keys = Object.keys(fields);
       rule(keys.filter(k => !/^(m|tu|w|th|f|sa|su)\d\d$|^photos_\d+$|^qual_\d+/.test(k)).sort().join(',') === 'favourite_colour,headline'
-           && keys.filter(k => /^(m|tu|w|th|f|sa|su)\d\d$/.test(k)).length === 70 && keys.filter(k => /^photos_\d+$/.test(k)).length === 8
+           && keys.filter(k => /^(m|tu|w|th|f|sa|su)\d\d$/.test(k)).length === 84 && keys.filter(k => /^photos_\d+$/.test(k)).length === 8
            && keys.filter(k => /^qual_\d+/.test(k)).length === 70,
         'cardChanged_ built ' + keys.length + ' fields — wanted the two plain ones that moved and the three packed cells whole');
       const d = b.post({ action: 'updateProfile', token: t1.token, name: t1.name, personId: 'P-T1', target: t1.name, targetId: 'P-T1', fields });

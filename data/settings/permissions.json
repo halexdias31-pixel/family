@@ -233,7 +233,7 @@
 {"kind":"action","role":"admin","action":"makeChild","allow":true},
 {"kind":"action","role":"anyone","action":"legoCount","allow":false},
 {"kind":"action","role":"member","action":"legoCount","allow":true},
-{"kind":"action","role":"child","action":"legoCount","allow":false},
+{"kind":"action","role":"child","action":"legoCount","allow":true},
 {"kind":"action","role":"admin","action":"legoCount","allow":true},
 {"kind":"action","role":"anyone","action":"markWorking","allow":false},
 {"kind":"action","role":"member","action":"markWorking","allow":true},

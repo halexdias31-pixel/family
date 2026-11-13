@@ -261,7 +261,9 @@ cardKind_('venue', x => { const t = kcRow_(x), kid = childView_();
   const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? perHour_(rate) : 'free'].filter(Boolean).join(' · ');
   const one = (label, max, rate) => (say(max, rate) ? { label, value: say(max, rate) } : null);
   const rooms = (t.rooms || []).length ? t.rooms.slice(0, 4).map(r => one(r.name || 'Room', r.max, r.rate)) : [one('The room', t.maxCapacity, t.bestRate)];
-  return { look: 'venue-door', tags: kcFacetTags_(x), body: [{ type: 'list', items: rooms.filter(Boolean) }] }; });
+  /* ITS 8-BIT BUILDING (find-doors.js), which the move to specs (2c2bab5) left behind. */
+  const pix = typeof VENUE_PIX === 'object' && typeof venueShape_ === 'function' ? VENUE_PIX[venueShape_(x.row || {})] : null;
+  return { look: 'venue-door', picture: pix ? { pix, alt: x.name } : null, tags: kcFacetTags_(x), body: [{ type: 'list', items: rooms.filter(Boolean) }] }; });
 /* A WRITING AND AN EVENT: the name and the facets; a manuscript adds its own fragment, drawn where there is one. */
 cardKind_('writing', x => ({ look: 'hdb lib-c', tags: kcFacetTags_(x) }));
 cardKind_('event', x => ({ look: 'hdb lib-c', tags: kcFacetTags_(x) }));

@@ -16,6 +16,11 @@ b.seed('people', [
   Object.assign({ person_id: 'P-S2', first_name: 'Bo', last_name: 'Pupil', handle: 'bopupil', email: 's2@example.org', role: 'student' }, base),
   Object.assign({ person_id: 'P-T1', first_name: 'Tia', last_name: 'Tutor', handle: 'tiatutor', email: 't1@example.org', role: 'tutor' }, base),
 ]);
+/* THE TUTOR TEACHES BOTH (a booking each): a tutor sees only their own students' hands (`seesWhom_`, 10 Nov). */
+b.seed('jobs', ['HJ1', 'HJ2'].map(id => ({ job_id: id, subject: 'Maths', level: 'GCSE', weekday: 'Mon', start_time: '16:00', venue: '', max_students: 4, kind: '' })));
+b.seed('events', [['HJ1', 'Ada Pupil'], ['HJ2', 'Bo Pupil']].flatMap(([job, who], i) => [
+  { event_id: 'HE' + i + 'a', at: '01/10/2026', job_id: job, actor: who, role: 'client', action: 'Request' },
+  { event_id: 'HE' + i + 'b', at: '01/10/2026', job_id: job, actor: 'Tia Tutor', role: 'tutor', action: 'Accept' }]));
 const tok = {};
 ['s1', 's2', 't1'].forEach(k => { tok[k] = b.post({ action: 'verifyLogin', email: k + '@example.org', pin: '0000' }).token; });
 const raise = (who, more) => b.post(Object.assign({ action: 'raiseHand', token: tok[who], on: true, q: 'Q1', label: 'Q1 fractions' }, more || {}));

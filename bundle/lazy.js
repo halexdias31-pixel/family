@@ -3836,6 +3836,9 @@ function initTables() {
   $('tt-over')?.classList.add('hidden');
   paintBoard_('tt-board', 'ttHighscore');
 }
+/* START, AGAIN AND GIVE UP: the sprint's buttons had no handler when games.js came back (12 Nov). */
+on('tt-begin', () => startTimesTables());
+on('tt-stop', () => endTimesTables());
 
 function endTimesTables() {
   if (!ttState) return;

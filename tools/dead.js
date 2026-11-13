@@ -3,7 +3,8 @@
 const path = require('path');
 const fs = require('fs');
 const O = path.join(__dirname, '..') + '/';
-const strip=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/(^|[^:])\/\/.*/g,'$1');
+/* A COMMENT OPENS AFTER A SPACE OR PUNCTUATION (check-doors' rule): `accept="image/*"` is not one, and swallowed biz-check.js's calls. */
+const strip=t=>t.replace(/(^|[\s;{}(),])\/\*[\s\S]*?\*\//g,'$1').replace(/(^|[^:])\/\/.*/g,'$1');
 /* REACHED FROM OUTSIDE THE CODE. Apps Script calls doGet and doPost itself; the editor calls the
    maintenance jobs by name; a person types the console tools. None of these has a caller in the
    source and all of them are alive. */
@@ -17,7 +18,14 @@ const KEEP=new Set(['doGet','doPost','missingKeys','layout',
   'testCache','checkTabs',
   /* THE CHECKS' QUESTION "is the builder done?" (docs/history/341) — asked by check-flow, swipe, reach, press
      and ui through the page, and by nothing in the app, which never needs to wait for itself. */
-  'aheadBusy_']);
+  'aheadBusy_',
+  /* READ BY THE JOURNEYS AND CHECKS THROUGH THE PAGE (w.name(...)), as aheadBusy_ is: the app's own state, asked from outside. */
+  'dropOnFront_','mondayOf_','cardSeen_','cardStartAt_','mergedNow_','ktLessonCount_','workPics_',
+  'contentPageTitle_','insertsFor_','qtFigureOf_','writingOf_',
+  /* THE SOURCE OF THE BACKEND'S COPY (tools/aliases_gs.js writes it into constants.gs, where doGet calls it). */
+  'qAliasKey_',
+  /* THE OLD RING PORTRAIT: personPic_ replaced it on 6 Nov; check-flow and check-library still prove its look tables. */
+  'boxerPic_']);
 const files=(dir,filter)=>fs.readdirSync(dir).filter(filter).map(f=>({f,p:dir+f}));
 const jsF=files(O+'js/',f=>f.endsWith('.js')&&!f.startsWith('check')&&f!=='_scope.js');
 /* THE BACKEND FILES: backend/files.json's list (tools/file-lists.js), the one the deploy pushes. */

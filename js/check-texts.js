@@ -76,7 +76,8 @@ if (!order) bad.push('index.html does not load texts right after works');
 const find = require('../tools/find-src.js').findSrc();
 if (!/\.\.\.\(typeof textsItems_ === 'function' \? textsItems_\(\) : \[\]\)/.test(find)) bad.push('Find does not list textsItems_() — the texts never reach Find');
 if (!/if \(typeof textsIndex_ === 'function'\) textsIndex_\(\);/.test(find)) bad.push('paintStuff does not ask for the texts index');
-if (!/\bwrit: \{ group: 'Learning', label: 'Library', card: x => textsCard_\(x\) \}/.test(find)) bad.push('Find has no `writ` kind drawing textsCard_');
+/* THE FIND CARD IS findCard's (the card template); textsCard_ is the `writ` reader it opens. */
+if (!/\bwrit: \{ group: 'Learning', label: 'Library'/.test(find) || !/\bwrit: x => textsCard_\(x\)/.test(find)) bad.push('Find has no `writ` kind opening textsCard_');
 fs.readdirSync(path.join(ROOT, 'backend')).filter(f => f.endsWith('.gs')).forEach(f => {
   if (/data\/texts/.test(src('backend/' + f))) bad.push('backend/' + f + ' names data/texts — the texts are never in the boot payload');
 });

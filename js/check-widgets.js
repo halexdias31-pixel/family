@@ -63,6 +63,8 @@ const noTitle = [];
 
 /* ---------- AND THE ONE THAT MEANS IT, WITH ITS REASON WRITTEN DOWN § */
 const ACCEPTED_UNTITLED = {
+  /* THE BOX ONLY (6d366d5): its host card carries the title, and a title here drew it twice. */
+  libcards: 'the host card is titled',
 };
 const seen = {};
 

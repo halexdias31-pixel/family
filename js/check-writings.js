@@ -216,8 +216,11 @@ if (WR && items.length) {
 }
 
 /* R2: histKind NEVER NAMES A SHELF but Writings, the owner's word for a writing since 7 Nov (it was Works). */
-const hk = (find.match(/histKind: kind === 'manuscript' \? [^\n]+/) || [''])[0];
-if (!hk) bad.push('find.js no longer says histKind where this check looks');
+/* THE WORDS ARE HIST_KIND_ROW's `say` (find-history.js) through labelOf_; any data/settings/labels.json row is read too. */
+const hkRow = (find.match(/const HIST_KIND_ROW = \{[\s\S]*?\n\};\nconst HIST_KIND_ELSE = [^\n]+/) || [''])[0];
+const hk = (hkRow.match(/say: '[^']*'/g) || []).join(' ')
+  + JSON.stringify(require('../data/settings/labels.json').filter(r => r && r.group === 'hist-kind'));
+if (!/say: '/.test(hk)) bad.push('find-history.js no longer says HIST_KIND_ROW where this check looks');
 if (/'Texts'/.test(hk)) bad.push('histKind names a shelf: ' + hk.trim());
 LOADERS.map(l => l[0] + '.js').concat(['writings.js']).forEach(f => {
   if (/histKind: '/.test(src('js/' + f))) bad.push('js/' + f + ' sets histKind on a card that is not a history-database row');
