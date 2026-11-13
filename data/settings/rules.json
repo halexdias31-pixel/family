@@ -127,7 +127,9 @@
     "columns",
     "rows",
     "schema",
-    "library-schema"
+    "library-schema",
+    "esc",
+    "mime"
    ],
    "since": "2026-11-12"
   },

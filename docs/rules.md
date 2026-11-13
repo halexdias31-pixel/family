@@ -15,7 +15,7 @@ Everything below derives from that core: 12 principles, each with its specific r
 - **1.6** Report only results and "safe to merge"; never idle on CI; bugs before anything new; quality first, done once. Checks: `stability`, `spread`, `how-we-work`
 
 ## 2. One source for every truth
-- **2.1** Anything that might change (wording, prices, lists, menus, switches) is data, not code; every fact has one home and everything reads from it; a copy a tool writes from the source counts once. Checks: `truth-facts`, `truth-lists`, `truth-labels`, `settings`, `tabs`, `columns`, `rows`, `schema`, `library-schema`
+- **2.1** Anything that might change (wording, prices, lists, menus, switches) is data, not code; every fact has one home and everything reads from it; a copy a tool writes from the source counts once. Checks: `truth-facts`, `truth-lists`, `truth-labels`, `settings`, `tabs`, `columns`, `rows`, `schema`, `library-schema`, `esc`, `mime`
 - **2.2** Every key the site reads, `doGet` sends; one payload, one data source, in sync. Checks: `payload`, `in-sync`, `gas-load`, `later`
 - **2.3** Switches are data: `tiers.json` marks core/secondary, `columns.json` the screens; a secondary part cannot break Find. Checks: `tiers`, `isolation`, `widgets`
 - **2.4** Private things (learners, money, staff records, library private fields) live only in the owner's Sheets; the public repo holds no real names, emails, PINs, learner data, secrets or model ids. Checks: `secrets`, `surnames`, `library`, `library-ledger`, `claude-lines`
