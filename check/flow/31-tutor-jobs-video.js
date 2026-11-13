@@ -34,9 +34,9 @@ check('Jobs: Add a job opens one line (role, where, from–to), Save posts it, a
   else Object.keys(vals).forEach(f => { if ((post.fields || {})[f] !== vals[f]) bad.push('Save posted ' + f + ' as ' + JSON.stringify((post.fields || {})[f])); });
   /* THE PUBLIC CARD: the row's jobs as pills, in the jobs colour family. */
   const row = { title: 'Ada Tutor', personId: 'P-jobs', listed: true, rate: 14, jobs: [{ role: 'Maths teacher', where: 'A secondary school', from: '2019', to: 'now' }] };
-  const html = w.eval('profJobs_')(row);
+  const html = w.eval('cardBlock_')(w.eval('profJobs_')(row));
   if (!/prof-jobs/.test(html) || !/Maths teacher · A secondary school · 2019–now/.test(html)) bad.push('the card drew the job as ' + JSON.stringify(html.slice(0, 200)));
-  if (w.eval('profJobs_')({ jobs: [] }) !== '') bad.push('a tutor with no jobs gets a Jobs caption');
+  if (w.eval('profJobs_')({ jobs: [] })) bad.push('a tutor with no jobs gets a Jobs caption');
   return bad;
 });
 

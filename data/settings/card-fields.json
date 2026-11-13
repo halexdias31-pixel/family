@@ -1,5 +1,5 @@
 [
-{"kind": "tutor", "cls": "is-widget is-prof tcard", "pic": "face", "title": "", "tags": "nameTag,teaches,facts", "lines": "listedNote,say,photos,words,quals,jobs,places,avail", "tiles": "book-with:book:Book,msg-open:chat:Message", "notes": "the compact one-screen tutor card (547): rate on the name line, subject pills, the map, day pills", "facts": false, "icon": ""},
+{"kind": "tutor", "cls": "is-widget is-prof tcard", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "book-with:book:Book,msg-open:chat:Message", "notes": "the compact one-screen tutor card (547): rate on the name line, subject pills, the map, day pills", "facts": false, "icon": ""},
 {"kind": "venue", "cls": "venue-door", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "home"},
 {"kind": "level", "cls": "is-level", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "book-with:book:Book", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "ruler"},
 {"kind": "subject", "cls": "is-subject", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "book-with:book:Book", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "book"},
@@ -32,7 +32,7 @@
 {"kind": "mech", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "compass"},
 {"kind": "chem", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "spark"},
 {"kind": "soon", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": true, "icon": "spark"},
-{"kind": "person", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: an admin's profile door", "facts": true, "icon": ""},
+{"kind": "person", "cls": "is-prof prof-door", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "a spec (cardKind_ person, find-doors.js): an admin's profile door", "facts": false, "icon": ""},
 {"kind": "setting", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: a settings door", "facts": true, "icon": "tools"},
 {"kind": "health", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: an Optimiser card", "facts": true, "icon": "tick"},
 {"kind": "offPosts", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": true, "icon": "spark"},

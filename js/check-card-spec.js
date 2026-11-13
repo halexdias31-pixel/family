@@ -18,6 +18,10 @@ const load = (src, ret) => { const own = new Set(); src.replace(/^(?:function|co
 /* THE RENDERER ESCAPES: a tag, a body text and a list item holding `<b>` come out as text. */
 const R = load(fs.readFileSync(path.join(ROOT, 'js/cards-render.js'), 'utf8'), 'return { renderCard };');
 const out = R.renderCard({ kind: 't', tags: [{ text: '<b>x</b>' }], body: [{ type: 'text', text: '<i>y</i>' }, { type: 'list', items: ['<u>z</u>'] }] });
+const more = R.renderCard({ kind: 't', tags: [{ pill: true, text: '<b>p</b>', say: '"q', title: '<t>' }], tagRows: [{ look: 'r', tags: ['<b>r</b>'] }],
+  body: [{ type: 'tags', tags: [{ text: { iso: '<b>s</b>', sup: '<b>u</b>', sub: '<b>v</b>' } }, { text: { levels: ['<b>w</b>'] } }] }, { type: 'photos', srcs: ['"><b>x'] },
+    { type: 'hours', free: ['<b>y</b>'], busy: ['<b>z</b>'], say: '"><b>' }] });
+if (/<b>[pqrstuvwxyz]|<t>/.test(more)) bad.push('renderCard let markup through a tag, iso, levels, photos or hours block: every string must be escaped');
 if (/<b>x|<i>y|<u>z/.test(out)) bad.push('renderCard let markup through a text: every string in a spec must be escaped');
 if (!/^<div class="card fc kc kc-t"/.test(out)) bad.push('renderCard no longer draws the one card head `card fc kc kc-<kind>`');
 
@@ -34,7 +38,7 @@ files.forEach(f => { const src = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8
     try { s = KINDS[k]({ kind: k, key: 'k1', row: {} }); } catch (e) { bad.push(`js/${f}: kind ${k} threw on an empty row: ${e.message}`); return; }
     if (s == null || typeof s !== 'object' || Array.isArray(s)) { bad.push(`js/${f}: kind ${k} returned ${typeof s}, not a spec object`); return; }
     const said = []; walk(s, k, said); said.forEach(a => bad.push(`js/${f}: ${a} carries markup — a spec holds text and blocks only`));
-    (s.body || []).forEach((b, i) => { if (b && typeof b === 'object' && !/^(text|figure|table|list|answer|formRow|embed|section|tree|grid|wait)$/.test(b.type)) bad.push(`js/${f}: ${k}.body[${i}] is no block type (${b.type})`); });
+    (s.body || []).forEach((b, i) => { if (b && typeof b === 'object' && !/^(text|figure|table|list|answer|formRow|embed|section|tree|grid|wait|tags|photos|hours)$/.test(b.type)) bad.push(`js/${f}: ${k}.body[${i}] is no block type (${b.type})`); });
   }); });
 if (bad.length) { bad.forEach(b => console.log('  ' + b)); console.log(`FAILED — ${bad.length} card spec problem(s).`); process.exit(1); }
 console.log(`OK — ${seen.length} card kind builder(s) return a spec (${seen.join(', ')}); renderCard escapes its text.`);
