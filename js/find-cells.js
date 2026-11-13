@@ -172,7 +172,9 @@ function cellsTable_(x, html) {
   if (!cells.length) return '';
   const k = ansKey_(x), vals = cellsVals_(ansRead_(k));
   let n = 0;
-  const out = String(html || '').replace(/<table[\s\S]*?<\/table>/, t => {
+  /* THE FIRST TABLE WHOSE BLANKS ARE THE CELLS: a part's words can show a results table before the one to complete. */
+  const out = String(html || '').replace(/<table[\s\S]*?<\/table>/g, t => {
+    if (n) return t;
     const blanks = (t.match(CELL_BLANK) || []).length;
     /* AN EMPTY TOP-LEFT CORNER heads both the rows and the columns: it is never a blank to fill. */
     const corner = blanks === cells.length + 1 && cellCorner_(t);

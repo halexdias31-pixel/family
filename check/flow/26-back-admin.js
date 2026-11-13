@@ -624,7 +624,7 @@ check('after a wrong Check every answer can be deleted and checked again — typ
     if (!inp) { bad.push(when + ': no keypad box'); return; }
     const mark = inp.closest('.qp-mark');
     if (!inp.value) { inp.focus(); press('7'); press('1'); press('7'); press('!done'); }
-    else A['qp-check'](mark.querySelector('.qp-check'));
+    else A['qp-check'](mark.closest('.qcard').querySelector('.qt-row .qp-check'));
     if (inp.value !== '717' || !mark.classList.contains('is-near')) bad.push(when + ': 717 was not marked "not yet" in the box: ' + JSON.stringify(inp.value) + ' ' + mark.className);
     inp.blur(); await wait(10);
     const show = inp.parentNode.querySelector('.kp-show');

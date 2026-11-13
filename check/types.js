@@ -338,7 +338,7 @@ const DRAWN = ['label', 'points', 'line', 'shape', 'shade', 'hand', 'graph', 'co
 const LETTER_ = n => String.fromCharCode(64 + n);
 async function typedCheck_(env, ctx, letters, say, when) {
   if (!(await typeInto(env, ctx, C + ' .qp-ans-in', 0, letters.map(LETTER_).join(', '), 'answer box', C + ' .kp-field'))) return false;
-  await tap(env, ctx, C + ' .qp-mark [data-do="qp-check"]', 0, 'Check', { wait: 400 });
+  await tap(env, ctx, C + ' .qt-row [data-do="qp-check"]', 0, 'Check', { wait: 400 });
   await expectSay(env, ctx, say, when);
   return true;
 }
@@ -406,10 +406,10 @@ async function driveTyped(env, ctx) {
     return true;
   };
   if (!(await fill(o.wrong))) return '';
-  await tap(env, ctx, C + ` .qp-mark [data-do="${o.check}"]`, 0, 'Check', { wait: 400 });
+  await tap(env, ctx, C + ` .qt-row [data-do="${o.check}"]`, 0, 'Check', { wait: 400 });
   await expectSay(env, ctx, 'wrong', 'after a wrong answer (' + o.wrong.join(', ') + ')');
   if (!(await fill(right))) return '';
-  await tap(env, ctx, C + ` .qp-mark [data-do="${o.check}"]`, 0, 'Check', { wait: 400 });
+  await tap(env, ctx, C + ` .qt-row [data-do="${o.check}"]`, 0, 'Check', { wait: 400 });
   if (process.env.TYPES_DEBUG) console.log('DEBUG', await env.page.evaluate(sel => [...document.querySelectorAll(sel + ' .qp-ans-in, ' + sel + ' .qp-multi-val')].map(e => e.className + '=' + JSON.stringify(e.value)).join(' ; ') + ' accept=' + document.querySelector(sel + ' .qp-mark').getAttribute('data-accept'), C));
   await expectSay(env, ctx, 'right', 'after the right answer (' + right.join(', ') + ')');
   return '';
@@ -513,10 +513,10 @@ async function driveMeasure(env, ctx) {
   await env.page.evaluate(h => { if (PAGE.stuff !== h) goPage('stuff', h, true); }, home);
   await sleep(300);
   await typeInto(env, ctx, C + ' .qp-ans-in', 0, '1', 'answer box 1', C + ' .kp-field');
-  await tap(env, ctx, C + ' .qp-mark [data-do="qp-check"]', 0, 'Check', { wait: 400 });
+  await tap(env, ctx, C + ' .qt-row [data-do="qp-check"]', 0, 'Check', { wait: 400 });
   await expectSay(env, ctx, 'wrong', 'after a wrong reading (1)');
   await typeInto(env, ctx, C + ' .qp-ans-in', 0, String(reading), 'answer box 1', C + ' .kp-field');
-  await tap(env, ctx, C + ' .qp-mark [data-do="qp-check"]', 0, 'Check', { wait: 400 });
+  await tap(env, ctx, C + ' .qt-row [data-do="qp-check"]', 0, 'Check', { wait: 400 });
   await expectSay(env, ctx, 'right', `after the ${tool}'s reading (${reading})`);
   await tap(env, ctx, `${C} .q-meast[data-tool="${tool}"]`, 0, 'the tile again, to put it away');
   await sleep(200);
@@ -745,7 +745,7 @@ async function vector(env) {
   steps++;
   if (s1.v !== 'Translation \u27ee5,-4\u27ef') fail(env.E, 'vector', row, `the box holds ${JSON.stringify(s1.v)}, wanted "Translation ⟮5,-4⟯"`);
   if (!s1.vec || s1.vec[0] !== '5' || !/^[-\u2212]4$/.test(s1.vec[1])) fail(env.E, 'vector', row, `the box draws the vector as ${JSON.stringify(s1.vec)}, wanted 5 over -4`);
-  await tap(env, ctx, C + ' .qp-mark [data-do="qp-check"]', 0, 'Check', { wait: 400 });
+  await tap(env, ctx, C + ' .qt-row [data-do="qp-check"]', 0, 'Check', { wait: 400 });
   await expectSay(env, ctx, 'right', 'after "Translation" and the vector');
   console.log(`  ${env.E.id} vector ${row}: ${JSON.stringify(s1.v)} drawn ${JSON.stringify(s1.vec)}`);
   await env.page.evaluate(() => { try { document.activeElement && document.activeElement.blur(); kpClose_(); } catch (e) {} });
