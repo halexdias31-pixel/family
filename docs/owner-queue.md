@@ -87,3 +87,4 @@ One list, so nothing asked for gets lost. Claude ticks items off here when they 
 - [ ] Rulers as people: kings of Israel and Judah, English monarchs, Roman emperors, popes
 - [ ] Dead Sea Scrolls: each scroll, its contents and its find-place
 - [ ] Ancient inscriptions: Rosetta Stone, Mesha Stele, Tel Dan and so on
+- [ ] Heresies and schools of thought: founder, dates, teaching, which council dealt with it; linked to councils and Church Fathers
