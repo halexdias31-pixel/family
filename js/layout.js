@@ -356,6 +356,7 @@ function ownSecReg_() {
     seat: ['Rate and extra seat', 'your rate and extra seat', 'Your rate and what each extra student adds for you.'],
     cut: ["@family.'s share", "@family.'s share of a seat", 'What @family. adds for each extra student; an admin sets it.'],
     size: ['Class size', 'your class size', 'The fewest and most students you take, and what a class pays.'], headline: ['Headline', 'your headline', 'The line under your name on your tutor card.'],
+    manager: ['Your manager', 'your manager', 'The tutor you answer to, and how your extra-seat money is split.'],
     photos: ['Photographs', 'your photographs', 'The photos and video on your tutor card.'], words: ['3 words', 'your 3 words', '3 words that describe you.'],
     glance: ['At a glance', 'your experience and ages', 'Your experience, the ages you teach and your hours.'], quals: ['Qualifications', 'your qualifications', 'What you are qualified in and teach.'],
     jobs: ['Jobs', 'your jobs', 'Your current and past jobs, shown on your tutor card.'],

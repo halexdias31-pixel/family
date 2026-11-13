@@ -395,9 +395,9 @@ function seatShare_(tutorRow, c, B) {
   const seatTop = x => Math.min(x, STAFF_SEAT_MAX);
   const seatOwn = !!tutorRow && Number(tutorRow.extraSeat) > 0;
   const cRaw = seatOwn ? Number(tutorRow.extraSeat) : c;
-  /* @FAMILY'S BLOCK IS B x THE EXTRA-SEAT RATE (8 Nov, the owner): one B for everyone, a tutor's own cut no longer read; bUsed is still a fraction of the rate. */
   const cUsed = seatTop(asFraction(cRaw, 0));
-  return { cRaw, bRaw: B, seatOwn, cutOwn: false, cUsed, bUsed: asFraction(B, 0) * cUsed };
+  /* NO PLATFORM SHARE ON TOP SINCE 13 NOV: the extra seat costs the tutor's own rate, and `chainShares_` splits that money. */
+  return { cRaw, bRaw: B, seatOwn, cutOwn: false, cUsed, bUsed: 0 };
 }
 /* ---------- A TUTOR'S OWN CUT, READ THE ONE WAY THE SERVER SENDS IT (`seatCutOut_`, people.gs) § */
 function seatCutOf_(v) {
@@ -428,12 +428,38 @@ function bookMoney_(m) {
   const tutorPayout = Math.round(tutor * scale * 100) / 100;
   const charged = Math.round((gross - discount) * 100) / 100;
   const cardFees = charged > 0 ? Math.round((charged * p + f) * 100) / 100 : 0;
-  const net = Math.round((charged - tutorPayout - venue - cardFees) * 100) / 100;
-  return {
+  /* THE MANAGERS' PART OF THE EXTRA-SEAT MONEY, after the discount like the tutor's (`chainShares_`); it comes out of @family.'s. */
+  const seatMoney = pos(m.seatMoney) * scale;
+  const managers = ((m.chain && m.chain.managers) || []).map(x => ({ id: x.id, name: x.name, share: x.share,
+    amount: Math.round(seatMoney * x.share * 100) / 100 }));
+  const managerTotal = Math.round(managers.reduce((a, x) => a + x.amount, 0) * 100) / 100;
+  const net = Math.round((charged - tutorPayout - venue - cardFees - managerTotal) * 100) / 100;
+  return { managers, managerTotal, seatMoney,
     gross, discount, discountType, discountValue, discountCode: String(d.code || ''),
     absorbedBy: discount ? 'Shared with tutor' : '',
     charged, teaching, tutorPayout, venue, cardFees, net, margin: charged > 0 ? net / charged : 0,
   };
+}
+
+/* ---------- WHO SHARES A TUTOR'S EXTRA-SEAT MONEY (history 1217): the tutor half; each manager up half of what is left; the admin the rest.
+   A blank, missing or looping `manager` ends the walk at the admin. */
+const CHAIN_GIVE = 0.5;
+function chainShares_(tutorId, people) {
+  const byId = {};
+  (people || []).forEach(p => { if (p && p.personId) byId[String(p.personId)] = p; });
+  const boss = p => !!p && String(p.role || '') === 'Admin';
+  const me = byId[String(tutorId || '')];
+  if (boss(me)) return { tutor: 1, managers: [], admin: 0 };
+  const managers = [], seen = {};
+  seen[String(tutorId || '')] = 1;
+  let left = CHAIN_GIVE, m = String((me && me.manager) || '').trim();
+  while (m && byId[m] && !boss(byId[m]) && !seen[m]) {
+    managers.push({ id: m, name: String(byId[m].title || m), share: left / 2 });
+    left -= left / 2;
+    seen[m] = 1;
+    m = String(byId[m].manager || '').trim();
+  }
+  return { tutor: 1 - CHAIN_GIVE, managers, admin: left };
 }
 
 /* THE THREE FIGURES A BOOKING ROW KEEPS, per family and after the discount, so client pays = tutor + admin + room and fees to the penny. */
@@ -442,7 +468,9 @@ function bookShares_(L) {
   if (!e || !(Number(L.total) > 0)) return null;
   const n = Math.max(1, Number(L.splitShares) || 1), p2 = x => Math.round((Number(x) || 0) / n * 100) / 100;
   const pays = p2(e.charged), tutor = p2(e.tutorPayout), fees = p2(e.venue + e.cardFees);
-  return { pays, tutor, fees, admin: Math.round((pays - tutor - fees) * 100) / 100 };
+  const managers = (e.managers || []).map(x => ({ name: x.name, share: x.share, amount: p2(x.amount) }));
+  const up = managers.reduce((a, x) => a + x.amount, 0);
+  return { pays, tutor, fees, managers, admin: Math.round((pays - tutor - fees - up) * 100) / 100 };
 }
 
 
@@ -791,7 +819,7 @@ function priceFrom(spec) {
   const { weeksBooked, hoursTotal, splitShares, chargePerHour, tutorPay, profitTotal, venueTotal,
           cost, tutorHourly, belowMinWage, mo, total, wholeTotal, shareAmount } = priceMoney_(spec, knobs,
     { R, fSeats, discountFactor, promoAdj, V, splitOthers, bookedDays, sessionDates, slots,
-      chargeRate, avgSubject, L, D, T, fSubjects, cUsed, bUsed, M,
+      chargeRate, avgSubject, L, D, T, fSubjects, cUsed, bUsed, M, tutorRow,
       rows: { chargeRate, avgSubject, fSubjectCount: fSubjects, L, D, T, fChildrenAll: fSeats, n } });
   return {
     i, total, weeks, slots, n, V, loc, day, time, level, subjects, tutor, interval, endDate, startDate, lastSun,
@@ -857,10 +885,13 @@ function priceMoney_(spec, knobs, p) {
   // the same numbers rather than computed independently:
   //   the tutor is paid their own rate plus every teaching surcharge
   //   your margin is the markup M(w−1)
-  //   the extra-seat money is split between you by the ratio of c to B
+  //   the extra-seat money is half the tutor's, half up the manager chain (history 1217)
   /* TUTOR = THEIR OWN RATE FOR THE FIRST SEAT + THEIR EXTRA-SEAT RATE FOR EACH OTHER, × HOURS (owner, 8 Nov); @family. keeps the rest of the teaching. */
   const r = pence_(runningAfter('daytime', p.rows) * discountFactor * promoAdj);
-  const tutorHour = pence_(r + r * cUsed * Math.max(0, (p.rows.n || 1) - 1));
+  /* THE EXTRA-SEAT MONEY IS SHARED UP THE MANAGER CHAIN (`chainShares_`); the 1-to-1 rate stays the tutor's. */
+  const chain = chainShares_(p.tutorRow && p.tutorRow.personId, (typeof DATA !== 'undefined' && DATA && DATA.tutors) || []);
+  const seatHour = pence_(r * cUsed * Math.max(0, (p.rows.n || 1) - 1));
+  const tutorHour = pence_(r + seatHour * chain.tutor);
   const tutorPay    = Math.min(tutorHour, rate) * hoursTotal;
   const profitTotal = rate * hoursTotal - tutorPay;
   const venueTotal  = V * hoursTotal;                                   // venue gets
@@ -877,7 +908,7 @@ function priceMoney_(spec, knobs, p) {
   const mo = bookMoney_({
     hours: hoursTotal,
     tutorPay, profit: profitTotal, venue: venueTotal,
-    discount: spec.discount || null,
+    discount: spec.discount || null, seatMoney: seatHour * hoursTotal, chain,
     feePct: knobs.cvD('card_fee_pct', 0), feeFixed: knobs.cvD('card_fee_fixed', 0),
   });
   /* THE TOTAL IS THE CHARGED FIGURE NOW, still per family. § */
@@ -11247,15 +11278,18 @@ function fieldHtml(name, value, o) {
   }
 
   /* A FIXED LIST IS A SELECT. § */
-  const opts = o.options || [];
+  /* A MANAGER IS A TUTOR, KEPT BY PERSON ID AND SHOWN BY NAME (`{ v, t }`); blank is the admin (`chainShares_`). */
+  const opts = name === 'manager'
+    ? managerOptions_(String((o.raw && o.raw.person_id) || ((typeof USER !== 'undefined' && USER) || {}).personId || '')) : (o.options || []);
+  const ov = x => String(x && typeof x === 'object' ? x.v : x), ot = x => String(x && typeof x === 'object' ? x.t : x);
   if (opts.length) {
     /* A PLACEHOLDER ON A SELECT IS ITS EMPTY OPTION, and the caption goes exactly as it does for a box below: § */
     const ph = o.placeholder || '';
     return formLine_(ph ? '' : label, formSelect_(`${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}${da}`, `
-        <option value="">${ph ? esc(ph) : NONE_LABEL}</option>
-        ${(v !== '' && v != null && !opts.some(x => String(x) === String(v)) ? [String(v)] : [])
-          .concat(opts).map(x => `<option value="${esc(x)}"${
-          String(v) === String(x) ? ' selected' : ''}>${esc(x)}</option>`).join('')}`));
+        <option value="">${ph ? esc(ph) : name === 'manager' ? esc(MANAGER_NONE) : NONE_LABEL}</option>
+        ${(v !== '' && v != null && !opts.some(x => ov(x) === String(v)) ? [String(v)] : [])
+          .concat(opts).map(x => `<option value="${esc(ov(x))}"${
+          String(v) === ov(x) ? ' selected' : ''}>${esc(ot(x))}</option>`).join('')}`));
   }
 
   /* ---------- A DAY ON A CALENDAR IS A DATE INPUT § */
@@ -11350,7 +11384,15 @@ const ROW_LABEL = {
   video: 'video link',
   travel_km: 'will travel (km)', favourite_colour: 'favourite colour',
   venues_ok: 'venues you teach at',
+  manager: 'your manager',
 };
+/* WHO MAY BE YOUR MANAGER: every other tutor the site was sent, by name; the admin is the blank line. */
+const MANAGER_NONE = '@family. (the admin)';
+function managerOptions_(self) {
+  return ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || [])
+    .filter(t => t && t.personId && String(t.personId) !== String(self || '') && t.role !== 'Admin')
+    .map(t => ({ v: String(t.personId), t: String(t.title || t.personId) }));
+}
 function fieldRows_(list, one) {
   const out = [], done = new Set();
   list.forEach(f => {
@@ -12294,6 +12336,8 @@ const CARD_SECTIONS = [
   /* THREE CARDS, EACH ONE HOME (620): the rate and the tutor's seat k; @family.'s share g, an admin's; the class size. */
   { id: 'seat', cap: 'Rate and extra seat', fields: ['rate_per_hour', 'extra_seat_rate'] },
   { id: 'size', cap: 'Class size', fields: ['min_students', 'max_students'] },
+  /* WHO MANAGES YOU (13 Nov): a tutor you choose, and the extra-seat split it makes (`chainShares_`). */
+  { id: 'manager', cap: 'Your manager', fields: ['manager'] },
   { id: 'headline', fields: ['headline'] },
   /* NO `video` BOX: the clip is uploaded (videoPicker_); updateProfile writes no `video` cell since 8 Nov. */
   { id: 'photos', cap: 'Photographs', fields: [], match: /^photos_\d+$/ },
@@ -12333,11 +12377,11 @@ function ownCardSections_(col) {
 }
 const OWN_CARD_SECTIONS_ = ['picture', 'name', 'handle'];
 /* EACH SECTION'S CARD TITLE, and which a locked settings column shows (468). */
-const OWN_SEC_TITLE_ = { picture: 'Picture', name: 'Name', handle: 'Handle', seat: 'Rate and extra seat', cut: "@family.'s share", size: 'Class size', headline: 'Headline',
+const OWN_SEC_TITLE_ = { picture: 'Picture', name: 'Name', handle: 'Handle', seat: 'Rate and extra seat', cut: "@family.'s share", size: 'Class size', manager: 'Your manager', headline: 'Headline',
   photos: 'Photographs', words: '3 words', glance: 'At a glance', quals: 'Qualifications', jobs: 'Jobs', where: 'Where you teach', week: 'Available' };
 /* EACH SECTION ON ONE COLUMN FOR EVERYONE, the lowest rank it applies to (469): the owner, "the lowest common denominator". */
 const OWN_SEC_OF_SET_ = { account: OWN_CARD_SECTIONS_, family: [],
-  staff: ['seat', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'jobs', 'where', 'week'] };
+  staff: ['seat', 'size', 'manager', 'headline', 'photos', 'words', 'glance', 'quals', 'jobs', 'where', 'week'] };
 const OWN_SET_OF_SEC_ = sec => Object.keys(OWN_SEC_OF_SET_).find(c => OWN_SEC_OF_SET_[c].indexOf(sec) !== -1) || '';
 /* THE RATE, THE SEAT AND THE CLASS SIZE HAVE ONE HOME, the Rate and class size card (620); the hub's Pricing only tries figures and points here. */
 const ownCardFields_ = () => [].concat(...ownCardSections_().map(s => s.list));
@@ -13065,8 +13109,20 @@ const CARD_SECTION = {
   quals: (L, c) => ceFold_('quals', 'Qualifications', esc(ceCount_(c.filled(/^qual_\d+$/), 'held', 'held')), qualShelf_(L, c.val)),
   week: (L, c) => availGrid_(L, c.vals, c.ro, false), seat: (L, c) => cardRateHtml_(L, c.val, c.box, c.e),
   cut: (L, c) => cardCutHtml_(L, c.val, c.box), size: (L, c) => cardSizeHtml_(L, c.val, c.box),
+  manager: (L, c) => ceFold_('manager', 'Your manager', esc(chainSay_(c.t, c.val('manager'))), fieldRows_(L, c.box)),
   glance: (L, c) => ceFold_('glance', 'At a glance', esc(ceGlanceSay_(c.val)), fieldRows_(L, c.box)), where: (L, c) => ceWhere_(L, c.val, c.box),
 };
+/* WHO GETS THE EXTRA-SEAT MONEY, in words: the split `chainShares_` makes with this manager chosen. */
+function chainSay_(t, manager) {
+  const id = String((t && t.personId) || ((typeof USER !== 'undefined' && USER) || {}).personId || 'me');
+  t = t || ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).find(x => x && String(x.personId) === id) || null;
+  const tutors = ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).filter(x => x && String(x.personId) !== id);
+  const me = { personId: id, manager: String(manager || ''), role: (t && t.role) || 'Tutor', title: 'You' };
+  const c = chainShares_(id, tutors.concat([me]));
+  const pc = x => (Math.round(x * 1000) / 10) + '%';
+  if (c.tutor === 1) return 'Your extra seats are all yours.';
+  return 'Of your extra-seat money: you ' + pc(c.tutor) + ', ' + c.managers.map(m => m.name + ' ' + pc(m.share)).concat(['@family. ' + pc(c.admin)]).join(', ') + '.';
+}
 /* THE MONEY SECTIONS, redrawn as the rate is typed (`cardSeatSync_`): the line each one says, and how. */
 const CARD_RATE_SECTION = { seat: { line: '.ce-seat', say: (rate, seat) => cardSeatSay_(rate, seat) },
   cut: { line: '.ce-cut', say: (rate, seat, cut) => cardCutSay_(rate, cut) }, size: { sizeLine: true } };
@@ -13075,7 +13131,8 @@ function cardEditForm_(t, e, vals, only) {
   const val = f => (vals[f] == null ? '' : vals[f]);
   const ro = (DATA && DATA.profileReadonly) || [];
   const box = (f, extra) => fieldHtml(f, val(f), Object.assign({ attr: 'data-me', label: ROW_LABEL[f],
-    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !isAdmin()), draft: false }, extra));
+    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !isAdmin()), draft: false,
+    raw: { person_id: (t && t.personId) || ((typeof USER !== 'undefined' && USER) || {}).personId || '' } }, extra));
   /* YOUR OWN CARD'S SECTIONS ARE YOUR ROLE'S (`ownCardSections_`), with the figure and the handle;
      somebody else's are the tutor's card, as an admin has always edited it. */
   return (only || (e.own ? ownCardSections_() : cardSections_())).map(s => {
@@ -13533,6 +13590,13 @@ document.addEventListener('input', e => {
   const v = f => { const b = form.querySelector('[data-me="' + f + '"]'); return b ? b.value : ''; };
   const cut = form.querySelector('[data-me="extra_seat_cut"]') ? v('extra_seat_cut') : bar.dataset.cut;
   bar.innerHTML = cardShareBar_(num(v('rate_per_hour')), v('extra_seat_rate'), cut);
+});
+/* THE SPLIT LINE FOLLOWS THE PICKER as it is changed, before Save. */
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('select[data-me="manager"]')) return;
+  const sec = t.closest('.ce-sec'), line = sec && sec.querySelector('details[data-fold="manager"] > summary .ce-v');
+  if (line) line.textContent = chainSay_(null, t.value);
 });
 
 ;

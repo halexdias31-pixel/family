@@ -485,7 +485,7 @@ try {
 }
 const r2 = x => Math.round(x * 100) / 100;
 const MONEY_DATA = (vars) => ({
-  /* B IS A SHARE OF THE EXTRA-SEAT RATE SINCE 8 NOV: 0.4 x c 0.5 = 0.2 of the rate, so the owner's examples keep their pennies. */
+  /* B PRICES NOTHING SINCE 13 NOV (history 1217): a seat is c of the rate, half the tutor's, half up the manager chain. */
   constants: { vars: Object.assign({ c: 0.5, B: 0.4 }, vars || {}) },
   tutors: [{ title: 'Tutor', rate: 30 }], multipliers: {},
   venues: [{ title: 'Somewhere', bestRate: 15 }, { title: 'Client House', bestRate: 0, maxCapacity: 4, takesAllSeats: true }],
@@ -507,13 +507,14 @@ if (money_) {
         if (r2(L.total) !== charged) bad.push(what + ': COST reads ' + r2(L.total) + ', wanted ' + charged);
       };
       want('tutoring, 1 child, 2h', quote({ n: 1, hours: 2, hoursPerWeek: 2 }), 60, 60, 0);
-      want('tutoring, 2 children, 2h', quote({ n: 2, hours: 2, hoursPerWeek: 2 }), 102, 90, 12);
+      /* 30 + 0.5·30 = £45/h; the tutor keeps 30 + half of 15 (history 1217), so 75 of 90 over two hours. */
+      want('tutoring, 2 children, 2h', quote({ n: 2, hours: 2, hoursPerWeek: 2 }), 90, 75, 15);
       /* AN OLD DRAFT'S `format: 'Trip'` IS IGNORED (463): it prices as the tutoring it is. */
-      want('an old draft saying Trip', quote({ n: 2, hours: 2, hoursPerWeek: 2, format: 'Trip', trip: 'x' }), 102, 90, 12);
-      /* SHARED BY THE SAME % (owner, 12 Nov): £10 of £102 is 9.80%, so the tutor's £90 falls to £81.18 and @family.'s £12 to £10.82. */
-      want('£10 off, shared', quote({ n: 2, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 10 } }), 92, 81.18, 10.82);
+      want('an old draft saying Trip', quote({ n: 2, hours: 2, hoursPerWeek: 2, format: 'Trip', trip: 'x' }), 90, 75, 15);
+      /* SHARED BY THE SAME % (owner, 12 Nov): £10 of £90 is a ninth, so the tutor's £75 falls to £66.67 and @family.'s £15 to £13.33. */
+      want('£10 off, shared', quote({ n: 2, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 10 } }), 80, 66.67, 13.33);
       want('10% off, shared with tutor', quote({ n: 2, hours: 2, hoursPerWeek: 2,
-        discount: { type: '%', value: 10, by: 'Shared with tutor' } }), 91.8, 81, 10.8);
+        discount: { type: '%', value: 10, by: 'Shared with tutor' } }), 81, 67.5, 13.5);
       /* NO MAXIMUM (owner, 12 Nov): £20 off one child's £60 is a third off the tutor, whose share it all is. */
       want('£20 off one child, shared: no cap, nothing negative', quote({ n: 1, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 20 } }), 40, 40, 0);
       want('100% off: both get nothing', quote({ n: 2, hours: 2, hoursPerWeek: 2, discount: { type: '%', value: 100 } }), 0, 0, 0);
@@ -525,8 +526,8 @@ if (money_) {
       const want5 = r2(full.total - Math.round(full.earn.teaching * 5) / 100);
       if (r2(off30.total) !== want5) bad.push('5% off the teaching of ' + r2(full.total) + ' came to ' + r2(off30.total) + ', wanted ' + want5);
       const fees = quote({ n: 2, hours: 2, hoursPerWeek: 2 }, { card_fee_pct: 1.5, card_fee_fixed: 0.2 });
-      if (r2(fees.earn.cardFees) !== 1.73 || r2(fees.earn.net) !== 10.27) {
-        bad.push('card fees 1.5% + 20p on £102 came to ' + r2(fees.earn.cardFees) + ', net ' + r2(fees.earn.net) + ', wanted 1.73 and 10.27');
+      if (r2(fees.earn.cardFees) !== 1.55 || r2(fees.earn.net) !== 13.45) {
+        bad.push('card fees 1.5% + 20p on £90 came to ' + r2(fees.earn.cardFees) + ', net ' + r2(fees.earn.net) + ', wanted 1.55 and 13.45');
       }
       return bad;
     },
@@ -570,9 +571,9 @@ if (money_) {
         const lim = money_.seatLimits(null, data.tutors[0], 'Client House');
         if (lim.max !== want || lim.min !== want) bad.push('a tutor holding ' + cap + ' at home allows ' + lim.min + '–' + lim.max + ' seats, wanted exactly ' + want);
         const L = money_.priceFrom({ subjects: [], tutor: 'Tutor', n: lim.max, hours: 2, hoursPerWeek: 4, slots: 12, day: 'Wednesday, Sunday', hosting: true });
-        const perHour = r2(12 * (1 + (0.5 + 0.2) * (want - 1)));
+        const perHour = r2(12 * (1 + 0.5 * (want - 1)));
         if (r2(L.earn.gross) !== r2(perHour * L.hoursTotal)) bad.push('at home with ' + want + ' seats the total is ' + r2(L.earn.gross) + ', wanted ' + perHour + '/h × ' + L.hoursTotal + 'h');
-        const tutorHour = r2(12 + 12 * 0.5 * (want - 1));
+        const tutorHour = r2(12 + 12 * 0.5 * 0.5 * (want - 1));
         if (r2(L.earn.tutorPayout) !== r2(tutorHour * L.hoursTotal)) bad.push('at home with ' + want + ' seats the tutor earns ' + r2(L.earn.tutorPayout) + ', wanted their own ' + tutorHour + '/h × ' + L.hoursTotal + 'h');
       });
       return bad;

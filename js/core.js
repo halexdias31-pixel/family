@@ -394,9 +394,9 @@ function seatShare_(tutorRow, c, B) {
   const seatTop = x => Math.min(x, STAFF_SEAT_MAX);
   const seatOwn = !!tutorRow && Number(tutorRow.extraSeat) > 0;
   const cRaw = seatOwn ? Number(tutorRow.extraSeat) : c;
-  /* @FAMILY'S BLOCK IS B x THE EXTRA-SEAT RATE (8 Nov, the owner): one B for everyone, a tutor's own cut no longer read; bUsed is still a fraction of the rate. */
   const cUsed = seatTop(asFraction(cRaw, 0));
-  return { cRaw, bRaw: B, seatOwn, cutOwn: false, cUsed, bUsed: asFraction(B, 0) * cUsed };
+  /* NO PLATFORM SHARE ON TOP SINCE 13 NOV: the extra seat costs the tutor's own rate, and `chainShares_` splits that money. */
+  return { cRaw, bRaw: B, seatOwn, cutOwn: false, cUsed, bUsed: 0 };
 }
 /* ---------- A TUTOR'S OWN CUT, READ THE ONE WAY THE SERVER SENDS IT (`seatCutOut_`, people.gs) § */
 function seatCutOf_(v) {
@@ -427,12 +427,38 @@ function bookMoney_(m) {
   const tutorPayout = Math.round(tutor * scale * 100) / 100;
   const charged = Math.round((gross - discount) * 100) / 100;
   const cardFees = charged > 0 ? Math.round((charged * p + f) * 100) / 100 : 0;
-  const net = Math.round((charged - tutorPayout - venue - cardFees) * 100) / 100;
-  return {
+  /* THE MANAGERS' PART OF THE EXTRA-SEAT MONEY, after the discount like the tutor's (`chainShares_`); it comes out of @family.'s. */
+  const seatMoney = pos(m.seatMoney) * scale;
+  const managers = ((m.chain && m.chain.managers) || []).map(x => ({ id: x.id, name: x.name, share: x.share,
+    amount: Math.round(seatMoney * x.share * 100) / 100 }));
+  const managerTotal = Math.round(managers.reduce((a, x) => a + x.amount, 0) * 100) / 100;
+  const net = Math.round((charged - tutorPayout - venue - cardFees - managerTotal) * 100) / 100;
+  return { managers, managerTotal, seatMoney,
     gross, discount, discountType, discountValue, discountCode: String(d.code || ''),
     absorbedBy: discount ? 'Shared with tutor' : '',
     charged, teaching, tutorPayout, venue, cardFees, net, margin: charged > 0 ? net / charged : 0,
   };
+}
+
+/* ---------- WHO SHARES A TUTOR'S EXTRA-SEAT MONEY (history 1217): the tutor half; each manager up half of what is left; the admin the rest.
+   A blank, missing or looping `manager` ends the walk at the admin. */
+const CHAIN_GIVE = 0.5;
+function chainShares_(tutorId, people) {
+  const byId = {};
+  (people || []).forEach(p => { if (p && p.personId) byId[String(p.personId)] = p; });
+  const boss = p => !!p && String(p.role || '') === 'Admin';
+  const me = byId[String(tutorId || '')];
+  if (boss(me)) return { tutor: 1, managers: [], admin: 0 };
+  const managers = [], seen = {};
+  seen[String(tutorId || '')] = 1;
+  let left = CHAIN_GIVE, m = String((me && me.manager) || '').trim();
+  while (m && byId[m] && !boss(byId[m]) && !seen[m]) {
+    managers.push({ id: m, name: String(byId[m].title || m), share: left / 2 });
+    left -= left / 2;
+    seen[m] = 1;
+    m = String(byId[m].manager || '').trim();
+  }
+  return { tutor: 1 - CHAIN_GIVE, managers, admin: left };
 }
 
 /* THE THREE FIGURES A BOOKING ROW KEEPS, per family and after the discount, so client pays = tutor + admin + room and fees to the penny. */
@@ -441,6 +467,8 @@ function bookShares_(L) {
   if (!e || !(Number(L.total) > 0)) return null;
   const n = Math.max(1, Number(L.splitShares) || 1), p2 = x => Math.round((Number(x) || 0) / n * 100) / 100;
   const pays = p2(e.charged), tutor = p2(e.tutorPayout), fees = p2(e.venue + e.cardFees);
-  return { pays, tutor, fees, admin: Math.round((pays - tutor - fees) * 100) / 100 };
+  const managers = (e.managers || []).map(x => ({ name: x.name, share: x.share, amount: p2(x.amount) }));
+  const up = managers.reduce((a, x) => a + x.amount, 0);
+  return { pays, tutor, fees, managers, admin: Math.round((pays - tutor - fees - up) * 100) / 100 };
 }
 

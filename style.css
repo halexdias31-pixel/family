@@ -5051,7 +5051,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .pf-head .pf-sum { flex-basis: 100%; color: var(--ink); font-size: var(--fs-small); }
 
 /* ---------- THE STAFF HUB (405): terms, pricing with where an hour's money goes, the monthly statement — staff.js ---------- */
-.hub { --pb-tutor: var(--gold); --pb-room: var(--dim); --pb-fees: var(--dim); --pb-business: var(--good); }
+.hub { --pb-tutor: var(--gold); --pb-room: var(--dim); --pb-fees: var(--dim); --pb-business: var(--good); --pb-managers: var(--coral); }
 .hub-tabs { margin-bottom: var(--s3); }
 .hub-body h3 { margin: 0 0 var(--s1); }
 .hub-ver, .hub-lead, .hub-note { margin: 0 0 var(--s2); font-size: var(--fs-small); }
@@ -5074,12 +5074,14 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .pb-seg.is-room { background: var(--pb-room); z-index: 2; }
 .pb-seg.is-fees { background: var(--pb-fees); z-index: 1; }
 .pb-seg.is-business { background: var(--pb-business); z-index: 1; }
+.pb-seg.is-managers { background: var(--pb-managers); z-index: 1; }
 .pb-say { margin: var(--s1) 0 0; display: flex; flex-wrap: wrap; gap: var(--s0) var(--s3); font-size: var(--fs-small); color: var(--ink); }
 .pb-k::before { content: ''; display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; margin-right: var(--s1); vertical-align: baseline; }
 .pb-k.is-tutor::before { background: var(--pb-tutor); }
 .pb-k.is-room::before { background: var(--pb-room); }
 .pb-k.is-fees::before { background: var(--pb-fees); }
 .pb-k.is-business::before { background: var(--pb-business); }
+.pb-k.is-managers::before { background: var(--pb-managers); }
 .pb-k b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .pb-note { margin: 0; font-size: var(--fs-small); }
 /* THE STATEMENT IS PAPER: the paper palette, a table that fits a phone, and the same sheet printed. */

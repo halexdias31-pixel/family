@@ -196,7 +196,7 @@ function priceFrom(spec) {
   const { weeksBooked, hoursTotal, splitShares, chargePerHour, tutorPay, profitTotal, venueTotal,
           cost, tutorHourly, belowMinWage, mo, total, wholeTotal, shareAmount } = priceMoney_(spec, knobs,
     { R, fSeats, discountFactor, promoAdj, V, splitOthers, bookedDays, sessionDates, slots,
-      chargeRate, avgSubject, L, D, T, fSubjects, cUsed, bUsed, M,
+      chargeRate, avgSubject, L, D, T, fSubjects, cUsed, bUsed, M, tutorRow,
       rows: { chargeRate, avgSubject, fSubjectCount: fSubjects, L, D, T, fChildrenAll: fSeats, n } });
   return {
     i, total, weeks, slots, n, V, loc, day, time, level, subjects, tutor, interval, endDate, startDate, lastSun,
@@ -262,10 +262,13 @@ function priceMoney_(spec, knobs, p) {
   // the same numbers rather than computed independently:
   //   the tutor is paid their own rate plus every teaching surcharge
   //   your margin is the markup M(w−1)
-  //   the extra-seat money is split between you by the ratio of c to B
+  //   the extra-seat money is half the tutor's, half up the manager chain (history 1217)
   /* TUTOR = THEIR OWN RATE FOR THE FIRST SEAT + THEIR EXTRA-SEAT RATE FOR EACH OTHER, × HOURS (owner, 8 Nov); @family. keeps the rest of the teaching. */
   const r = pence_(runningAfter('daytime', p.rows) * discountFactor * promoAdj);
-  const tutorHour = pence_(r + r * cUsed * Math.max(0, (p.rows.n || 1) - 1));
+  /* THE EXTRA-SEAT MONEY IS SHARED UP THE MANAGER CHAIN (`chainShares_`); the 1-to-1 rate stays the tutor's. */
+  const chain = chainShares_(p.tutorRow && p.tutorRow.personId, (typeof DATA !== 'undefined' && DATA && DATA.tutors) || []);
+  const seatHour = pence_(r * cUsed * Math.max(0, (p.rows.n || 1) - 1));
+  const tutorHour = pence_(r + seatHour * chain.tutor);
   const tutorPay    = Math.min(tutorHour, rate) * hoursTotal;
   const profitTotal = rate * hoursTotal - tutorPay;
   const venueTotal  = V * hoursTotal;                                   // venue gets
@@ -282,7 +285,7 @@ function priceMoney_(spec, knobs, p) {
   const mo = bookMoney_({
     hours: hoursTotal,
     tutorPay, profit: profitTotal, venue: venueTotal,
-    discount: spec.discount || null,
+    discount: spec.discount || null, seatMoney: seatHour * hoursTotal, chain,
     feePct: knobs.cvD('card_fee_pct', 0), feeFixed: knobs.cvD('card_fee_fixed', 0),
   });
   /* THE TOTAL IS THE CHARGED FIGURE NOW, still per family. § */

@@ -518,7 +518,7 @@ const cardOpen_ = async (W, who, more) => {
 };
 /* SPLIT SINCE 444: You edits the first four; the Tutor column the rest, less the rate, which the Staff hub edits; the week is Available's (487). */
 const CARD_YOU_ = ['picture', 'figure', 'name', 'handle'];
-const CARD_STAFF_ = ['seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
+const CARD_STAFF_ = ['seat', 'cut', 'size', 'manager', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
 /* A TUTOR'S CUT IS WORDS, NOT A BOX (620): the one field of theirs the cards show and do not offer. */
 const SHOWN_ONLY_RE_ = /^extra_seat_cut$/;
 /* WHAT THE CARD'S FIVE SECTIONS ARE CHANGED TO, one field or more in each, and the qualification's grade. */

@@ -19930,6 +19930,7 @@ function formMoney_(L) {
   const dash = dash_();
   return { label: 'Client pays', total: sh ? money_(sh.pays) : dash,
            more: [{ k: 'Tutor earns', t: sh ? money_(sh.tutor) : dash }]
+             .concat(sh ? sh.managers.map(m => ({ k: m.name + ' (manager, ' + (Math.round(m.share * 1000) / 10) + '% of extra seats)', t: money_(m.amount) })) : [])
              .concat(sh && sh.fees > 0 ? [{ k: 'Room and fees', t: money_(sh.fees) }] : [])
              .concat([{ k: 'Admin earns', t: sh ? money_(sh.admin) : dash }]) };
 }
@@ -23053,7 +23054,7 @@ function priceSplit_(n) {
   let p = null;
   try { p = priceFrom({ tutorRow: row, n, slots: 1, hoursPerWeek: 1, loc: PRICE.loc, format: 'Tutoring' }); } catch (e) { p = null; }
   const e = (p && p.earn) || {};
-  return { n, charged: e.charged || 0, tutor: e.tutorPayout || 0, room: e.venue || 0, fees: e.cardFees || 0, business: e.net || 0 };
+  return { n, charged: e.charged || 0, tutor: e.tutorPayout || 0, room: e.venue || 0, fees: e.cardFees || 0, managers: e.managerTotal || 0, business: e.net || 0 };
 }
 /* WHAT IS WRONG WITH THE BOXES, in the words the server would use — '' when Save may go. */
 function priceWrong_() {
@@ -23062,10 +23063,11 @@ function priceWrong_() {
   if (PRICE.seat < 0 || PRICE.seat > PRICE.rate * STAFF_SEAT_MAX) return 'An extra seat adds £0 to ' + money_(PRICE.rate * STAFF_SEAT_MAX) + ' an hour — at most what the first student pays.';
   return '';
 }
-const PRICE_SEGS = [['tutor', 'You'], ['room', 'Room'], ['fees', 'Card fees'], ['business', '@family.']];
+/* YOUR MANAGERS' PART OF THE EXTRA SEATS (`chainShares_`) has its own colour; it is nought for one student. */
+const PRICE_SEGS = [['tutor', 'You'], ['room', 'Room'], ['fees', 'Card fees'], ['managers', 'Managers'], ['business', '@family.']];
 function priceBarsHtml_() {
   const rows = [1, 2, 3].map(priceSplit_);
-  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + Math.max(0, r.business)));
+  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + r.managers + Math.max(0, r.business)));
   /* EACH PART ENDS WHERE THE SUM SO FAR ENDS: the bars are drawn on top of each other and scaled, not laid side by side (537). */
   const x = (r, i) => (PRICE_SEGS.slice(0, i + 1).reduce((a, [k]) => a + Math.max(0, r[k]), 0) / full).toFixed(4);
   return rows.map(r => `<div class="pb-row" data-n="${r.n}">
@@ -23106,7 +23108,7 @@ function priceRedraw_() {
   const box = document.querySelector('.hub .pb');
   if (!box) return;
   const rows = [1, 2, 3].map(priceSplit_);
-  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + Math.max(0, r.business)));
+  const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + r.managers + Math.max(0, r.business)));
   rows.forEach(r => {
     const row = box.querySelector('.pb-row[data-n="' + r.n + '"]');
     if (!row) return;
@@ -24306,6 +24308,7 @@ function ownSecReg_() {
     seat: ['Rate and extra seat', 'your rate and extra seat', 'Your rate and what each extra student adds for you.'],
     cut: ["@family.'s share", "@family.'s share of a seat", 'What @family. adds for each extra student; an admin sets it.'],
     size: ['Class size', 'your class size', 'The fewest and most students you take, and what a class pays.'], headline: ['Headline', 'your headline', 'The line under your name on your tutor card.'],
+    manager: ['Your manager', 'your manager', 'The tutor you answer to, and how your extra-seat money is split.'],
     photos: ['Photographs', 'your photographs', 'The photos and video on your tutor card.'], words: ['3 words', 'your 3 words', '3 words that describe you.'],
     glance: ['At a glance', 'your experience and ages', 'Your experience, the ages you teach and your hours.'], quals: ['Qualifications', 'your qualifications', 'What you are qualified in and teach.'],
     jobs: ['Jobs', 'your jobs', 'Your current and past jobs, shown on your tutor card.'],

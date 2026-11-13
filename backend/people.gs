@@ -436,6 +436,17 @@ function seatCutRefusal_(me, asked, isAdmin) {
   return '';
 }
 
+/* A MANAGER IS ANOTHER TUTOR OR THE ADMIN, BY PERSON ID, NEVER YOURSELF; blank is the admin. Loops are cut by `chainShares_`. */
+function managerRefusal_(me, asked) {
+  if (!me || !asked || !Object.prototype.hasOwnProperty.call(asked, MANAGER_FIELD)) return '';
+  const want = S(asked[MANAGER_FIELD]);
+  if (!want || want === S(me[MANAGER_FIELD])) return '';
+  if (key(want) === key(me.person_id)) return 'You cannot be your own manager. Nothing was saved.';
+  const row = read(TAB.people).rows.find(r => key(r.person_id) === key(want));
+  if (!row || !(hasRole(row, 'tutor') || hasRole(row, 'admin'))) return 'Your manager has to be one of the tutors. Nothing was saved.';
+  return '';
+}
+
 /* THE AGES A TUTOR TEACHES — ONE READER, AND A REFUSAL ASKED BEFORE ANYTHING IS WRITTEN. § */
 function ageRank_(v) {
   const s = S(v);

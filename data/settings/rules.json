@@ -470,7 +470,7 @@
   {
    "id": "4.5",
    "principle": 4,
-   "text": "Prices and tutor pay come from one formula each, never by hand; the @family share is one setting; a discount comes off teaching only and is shared by tutor and margin alike.",
+   "text": "Prices and tutor pay come from one formula each, never by hand; a discount comes off teaching only and is shared by tutor and margin alike.",
    "checks": [
     "booking",
     "spine",
@@ -564,6 +564,15 @@
     "question-ids"
    ],
    "since": "2026-11-12"
+  },
+  {
+   "id": "4.13",
+   "principle": 4,
+   "text": "Only extra-seat money is shared: every tutor keeps exactly half of theirs and the other half goes up the manager chain by halving (the direct manager a quarter, the next half the rest), the admin keeping what is left; the admin's own lessons have no cut; a tutor chooses their own manager, blank is the admin, and a loop or a missing manager stops at the admin (`chainShares_`).",
+   "checks": [
+    "manager-chain"
+   ],
+   "since": "2026-11-13"
   },
   {
    "id": "5.1",

@@ -252,6 +252,7 @@
     "check-dead.js": "secondary",
     "check-stability.js": "core",
     "check-booking.js": "core",
+    "check-manager-chain.js": "core",
     "check-terms.js": "core",
     "check-lifecycle.js": "secondary",
     "check-spine.js": "secondary",

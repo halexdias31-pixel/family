@@ -40,6 +40,8 @@ function tutorOut_(r, i, name, listed, qp, venuesTab) {
     /* AND THE BUSINESS'S CUT OF THAT SEAT, THIS TUTOR'S OWN (docs/history/345) — '' for a blank cell, which is the config tab's `B`, and nought for nought, which is § */
     /* A TUTOR'S OWN CUT IS IGNORED SINCE 8 NOV: config B is the one share, so none is sent. */
     extraSeatCut: '',
+    /* WHO MANAGES THEM, a person id ('' is the admin) — the site's `chainShares_` walks it to split the extra-seat money. */
+    manager: S(r.manager),
     /* THE VENUES THEY ARE HAPPY AT, off `venues.tutors_happy_here` — `venuesFor_` is the one
        reader, and the Settings page is the one writer. Names, in the tab's order. */
     venues: venuesFor_(r, venuesTab),
