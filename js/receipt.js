@@ -154,9 +154,7 @@ function rcPng_(rc) {
   const cw = Math.ceil(w * RC_SNAP_K), ch = Math.ceil(h * RC_SNAP_K);
   return rcFonts_().then(fonts => {
     /* `viewBox` IS THE CSS SIZE AND `width`/`height` THE PIXEL SIZE, so the browser lays the HTML out at the width it had on the screen — the same wraps, the same § */
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" `
-      + `viewBox="0 0 ${cw / RC_SNAP_K} ${ch / RC_SNAP_K}"><style>${fonts}\n${rules.join('\n')}</style>`
-      + `<foreignObject x="0" y="0" width="${w}" height="${h}">${xml}</foreignObject></svg>`;
+    const svg = cardBlock_({ type: 'paperSnap', cw, ch, k: RC_SNAP_K, w, h, css: fonts + '\n' + rules.join('\n'), xml });
     return new Promise((ok, no) => {
       const img = new Image();
       img.onload = () => {
@@ -207,13 +205,10 @@ function rcOffer_(blob, name, rc) {
   const at = rc || document.querySelector('.screen.on .rc') || document.querySelector('.rc');
   if (!at) { toast('There is no booking on screen to share'); return; }
   document.querySelectorAll('.rc-shot-box').forEach(x => x.remove());
-  at.insertAdjacentHTML('afterend', `<div class="rc-shot-box">
-    <img class="rc-shot" src="${RC_SHOT.url}" alt="This booking, as a picture" decoding="async">
-    <p class="note">${can ? 'Press Share to send it.' : 'Press and hold the picture to save it.'}</p>
-    <div class="btn-row">
-      ${can ? tile_({ form: true, label: 'Share', act: 'rc-shot-share', cls: 'primary' }) : ''}
-      ${tile_({ form: true, label: 'Save', act: 'rc-shot-save', kind: 'quiet', data: { name } })}
-    </div></div>`);
+  at.insertAdjacentHTML('afterend', renderCard({ kind: 'shot', look: 'rc-shot-box', name: 'This booking, as a picture',
+    picture: { src: RC_SHOT.url, alt: 'This booking, as a picture' },
+    body: [{ type: 'text', look: 'note', text: can ? 'Press Share to send it.' : 'Press and hold the picture to save it.' }],
+    tiles: [can ? { label: 'Share', act: 'rc-shot-share', tone: 'buy' } : null, { label: 'Save', act: 'rc-shot-save', data: { name } }].filter(Boolean) }));
 }
 
 /* SAVE IS A FORM BUTTON LIKE SHARE (one way only): the download link is made and clicked here, never written as markup. */
@@ -245,7 +240,7 @@ on('book-share', el => {
   /* THE DOCUMENT THIS CONTROL IS PART OF, asked of the DOM rather than remembered — the same move as
      `msg-send` walking up to its nearest `.msg-form`. The form and a saved session share this handler
      without either being named. */
-  const rc = el && el.closest && el.closest('.rc');
+  const rc = el && el.closest && (el.closest('.rc') || (el.closest('.card') && el.closest('.card').querySelector('.rc')));
   if (!rc) return toast('There is nothing to share on this card yet');
   /* SAID AT ONCE, because the picture takes a moment and a press that answers nothing for half a
      second gets pressed again. */
@@ -271,7 +266,8 @@ function bookerCard() {
   const out = drawBooker_();
   if (!out) return '';
   /* A CARD ON THE ONE TEMPLATE (owner, 12 Nov): name as first tag, the questions and price lines as its form, its round row last. */
-  return card_(`<div class="bookform" id="bookr"><h3>Booking form</h3>${out.html}${out.tiles}</div>`, 'bookform');
+  return renderCard({ kind: 'bookform', id: 'bookr', look: 'bookform', name: 'Booking form', tags: [{ text: 'Booking form' }],
+    body: [{ type: 'paperBox', look: 'bookform-paper', inner: out.html }], tiles: out.tiles });
 }
 
 function drawBooker_() {
@@ -292,23 +288,15 @@ function drawBooker_() {
     && !bookStep_('kids').options().length
     && rank_() !== 'staff' && rank_() !== 'student';
   const kidsNote = noKids
-    ? `<p class="note note-gap">No children are on
-         ${mine ? 'your account' : esc(forWhom) + '&rsquo;s account'}, so we cannot ask which of
-         them this is for — the seats will just say <b>Child</b>.
-         <span>${mine ? 'Ask us to add them and the next booking will name them.'
-           : 'Add them to that account and the next booking will name them.'}</span></p>`
+    ? cardBlock_({ type: 'paperNote', look: 'note-gap', text: ['No children are on ' + (mine ? 'your account' : forWhom + '’s account')
+        + ', so we cannot ask which of them this is for — the seats will just say ', { b: 'Child' }, '. '
+        + (mine ? 'Ask us to add them and the next booking will name them.' : 'Add them to that account and the next booking will name them.')] })
     : '';
 
   /* THE RUNNING BREAKDOWN. § */
   /* ---------- THE ACTIONS ARE PRINTED ON THE PAPER § */
-  const foot = `
-    ${/* ---------- TWO MARKS, NOT A BUTTON AND A MARK § */
-          ''}
-    ${/* A CHILD ASKS A PARENT, NOT THE BUSINESS (398): no price reaches her, so the parent books it. Share stays — it is how she shows them. */
-      childView_() ? `<p class="note rc-kid">${esc(KID_ASK_PARENT)}</p>` : ''}
-    ${policyLinks_('family')}
-    ${/* ---------- THE FOOTER LINE WENT § */
-          ''}`;
+  /* A CHILD ASKS A PARENT, NOT THE BUSINESS (398): no price reaches her, so the parent books it. Share stays — it is how she shows them. */
+  const foot = (childView_() ? cardBlock_({ type: 'paperNote', look: 'rc-kid', text: KID_ASK_PARENT }) : '') + policyLinks_('family');
   const money_ = bookBreakdown(L, foot);
 
   /* ---------- THE CARD IS THE FORM, FROM THE FIRST QUESTION § */
@@ -318,13 +306,11 @@ function drawBooker_() {
   /* THE PAPER IS THE WHOLE THING NOW. The note box moved into it as a row, the buttons are printed
      on it above the barcode, and what is left out here is nothing at all. */
   /* THE CARD'S ROUND ROW (owner, 12 Nov): Send leads; findCard lifts this top-level row into the card's one row. */
-  const tiles = `<div class="tile-row rc-tiles">
-      ${childView_() ? '' : tile_({ icon: 'send', label: 'Send', tone: 'buy', act: 'book-send' })}
-      ${tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })}
-      ${/* REPORT OR SUGGEST A CHANGE ON THE BOOKING FORM TOO (489). */
-        typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', 'booking', 'Booking')) : ''}
-    </div>`;
-  return { html: head || '<p class="note">Not enough answered to price it yet.</p>', tiles };
+  const tiles = [].concat(childView_() ? null : { icon: 'send', label: 'Send', tone: 'buy', act: 'book-send' },
+    { icon: 'share', label: 'Share this booking', act: 'book-share' },
+    /* REPORT OR SUGGEST A CHANGE ON THE BOOKING FORM TOO (489). */
+    typeof suggestOpts_ === 'function' ? suggestOpts_('widget', 'booking', 'Booking') : null).filter(Boolean);
+  return { html: head || cardBlock_({ type: 'paperNote', text: 'Not enough answered to price it yet.' }), tiles };
 }
 
 on('book-send', el => {
@@ -557,9 +543,7 @@ on('job-request-answer', el => {
   if (!sure_(el, 'Turn it down?')) return;
   const row = el.closest('.tile-row');
   if (!row || (row.nextElementSibling && row.nextElementSibling.classList.contains('req-why'))) return;
-  row.insertAdjacentHTML('afterend', `<form class="req-why" data-id="${esc(id)}">
-    <label>Why not? <input name="why" maxlength="200" placeholder="optional, one line" autocomplete="off"></label>
-    ${tile_({ form: true, submit: true, label: 'Decline' })}</form>`);
+  row.insertAdjacentHTML('afterend', cardBlock_({ type: 'paperWhy', id }));
   const form = row.nextElementSibling;
   form.addEventListener('submit', e => { e.preventDefault(); form.querySelector('button').disabled = true; send(form.querySelector('input').value.trim()); });
   form.querySelector('input').focus();
@@ -700,6 +684,5 @@ function policyHref_(doc) {
 function policyLinks_(who) {
   const list = (POLICY_DOCS[who] || []).filter(d => policyHref_(d[0]));
   if (!list.length) return '';
-  return `<p class="note policy-links">Policies: ${list.map(d =>
-    `<a href="${esc(policyHref_(d[0]))}" data-do="file-view" target="_blank" rel="noopener">${esc(d[1])}</a>`).join(' · ')}</p>`;
+  return cardBlock_({ type: 'paperLinks', say: 'Policies: ', links: list.map(d => ({ href: policyHref_(d[0]), text: d[1] })) });
 }

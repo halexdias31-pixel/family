@@ -155,45 +155,33 @@ function postsWaitCard_() {
    Asked with `listApplications`, admin at the gate. Approve makes the person Staff and lists them; Interview and Decline only say so, by email. */
 const APPS = { list: null, open: 0, asking: false, error: '' };
 const APP_STATUS_SAID = { new: 'New', interview: 'Interview', approved: 'Approved', declined: 'Declined' };
-function appsCard_() {
-  const wait = !APPS.list && !APPS.error && typeof loading_ === 'function';
-  return card_(`<div class="biz apps" data-apps data-need="apps">${appsInner_(wait)}</div>`);
-}
-/* THE APPLICANT'S DOCUMENTS AND CV, each an https link: the documents sit in the private folder, so only an admin it is shared with can open them. */
-function appDocs_(a) {
-  const ok = u => /^https:\/\//.test(u || '');
-  const docs = [['ID', a.id_doc], ['Right to work', a.rtw_doc]].concat(String(a.qual_docs || '').split(/\s+/).filter(ok).map((u, i) => ['Qualification ' + (i + 1), u]))
-    .concat([['CV', a.cv_link]]).filter(d => ok(d[1]));
-  return docs.length ? `<p class="app-line app-docs"><b>Documents</b> ${docs.map(d => `<a href="${esc(d[1])}" data-do="file-view" target="_blank" rel="noopener">${esc(d[0])}</a>`).join(' · ')}</p>` : '';
-}
-function appsInner_(wait) {
+const appsCard_ = () => renderCard(appsSpec_());
+/* EACH APPLICANT A SECTION OF FACTS AND ITS THREE DECISIONS; the card a spec, drawn again in place when the list comes. */
+function appsSpec_() {
+  const wait = !APPS.list && !APPS.error;
   const list = (APPS.list || []).filter(a => a.status === 'new' || a.status === 'interview');
   const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
-  const line = (k, v) => v ? `<p class="app-line"><b>${esc(k)}</b> ${esc(v)}</p>` : '';
-  const item = a => `<div class="biz-item app-item" data-id="${esc(a.id)}">
-      <p class="biz-cap"><b>${esc(a.name || a.handle)}</b> <span class="qtags biz-when">${qtag_(`${esc(APP_STATUS_SAID[a.status] || a.status)} · ${esc(when(a.at))}`)}</span></p>
-      ${line('Full name', a.full_name)}${line('Contact', [a.phone, a.email].filter(Boolean).join(' · '))}
-      ${line('Address', [a.address, a.postcode].filter(Boolean).join(', '))}${line('Born', a.dob)}
-      ${line('Teaches', a.subjects)}${line('Rate', a.rate ? perHour_(a.rate) : '')}${line('Qualifications', a.qualifications)}
-      ${line('DBS', a.dbs_needed === 'TRUE' ? 'needs one' : [a.dbs_number, a.dbs_issued].filter(Boolean).join(', issued ') + (a.dbs_update_consent === 'TRUE' ? ' · may check on the Update Service' : ''))}
-      ${line('Right to work in the UK', a.right_to_work)}${line('Experience', a.experience)}${line('Available', a.availability)}
-      ${line('Area', a.area)}${line('References', [1, 2].map(n => [a['ref' + n + '_name'], a['ref' + n + '_relationship'], a['ref' + n + '_email'] || a['ref' + n + '_contact'], a['ref' + n + '_phone']].filter(Boolean).join(', ')).join('; '))}
-      ${line('Statement', a.statement)}
-      ${appDocs_(a)}
-      <div class="tile-row">${tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'lists them as staff', act: 'app-decide', data: { id: a.id, status: 'approved' } })}${
-        a.status === 'new' ? tile_({ icon: 'chat', label: 'Interview', note: 'emails them', act: 'app-decide', data: { id: a.id, status: 'interview' } }) : ''}${
-        tile_({ icon: 'close', label: 'Decline', act: 'app-decide', data: { id: a.id, status: 'declined' } })}</div>
-    </div>`;
+  const ok = u => /^https:\/\//.test(u || '');
+  const item = a => ({ type: 'section', look: 'biz-item app-item', head: [{ b: a.name || a.handle }, ' · ', APP_STATUS_SAID[a.status] || a.status, ' · ', when(a.at)], blocks: [
+    { type: 'list', items: [['Full name', a.full_name], ['Contact', [a.phone, a.email].filter(Boolean).join(' · ')],
+      ['Address', [a.address, a.postcode].filter(Boolean).join(', ')], ['Born', a.dob], ['Teaches', a.subjects], ['Rate', a.rate ? perHour_(a.rate) : ''], ['Qualifications', a.qualifications],
+      ['DBS', a.dbs_needed === 'TRUE' ? 'needs one' : [a.dbs_number, a.dbs_issued].filter(Boolean).join(', issued ') + (a.dbs_update_consent === 'TRUE' ? ' · may check on the Update Service' : '')],
+      ['Right to work in the UK', a.right_to_work], ['Experience', a.experience], ['Available', a.availability], ['Area', a.area],
+      ['References', [1, 2].map(n => [a['ref' + n + '_name'], a['ref' + n + '_relationship'], a['ref' + n + '_email'] || a['ref' + n + '_contact'], a['ref' + n + '_phone']].filter(Boolean).join(', ')).join('; ')],
+      ['Statement', a.statement]].filter(l => l[1]).map(l => ({ label: l[0], value: l[1] })) },
+    { type: 'tree', nodes: [{ label: 'Decide', tiles: [{ icon: 'tick', label: 'Approve', tone: 'buy', note: 'lists them as staff', act: 'app-decide', data: { id: a.id, status: 'approved' } }]
+      .concat(a.status === 'new' ? [{ icon: 'chat', label: 'Interview', note: 'emails them', act: 'app-decide', data: { id: a.id, status: 'interview' } }] : [],
+        [{ icon: 'close', label: 'Decline', act: 'app-decide', data: { id: a.id, status: 'declined' } }],
+        /* THE DOCUMENTS AND CV open in the file viewer: the private folder lets only an admin it is shared with in. */
+        [['ID', a.id_doc], ['Right to work', a.rtw_doc]].concat(String(a.qual_docs || '').split(/\s+/).filter(ok).map((u, i) => ['Qualification ' + (i + 1), u]), [['CV', a.cv_link]])
+          .filter(d => ok(d[1])).map(d => ({ icon: 'open', label: d[0], note: 'document', act: 'file-view', data: { url: d[1], title: d[0] } }))) }] }] });
   const n = list.filter(a => a.status === 'new').length;
-  return `<h3>Applications to teach</h3>
-    ${bizNeed_('apps', APPS.list ? n : 0, n + ' to approve')}
-    <div class="biz-body app-body"${wait ? ' aria-busy="true"' : ''}>
-      ${APPS.list && !list.length ? empty_('None waiting.') : ''}
-      ${list.map(item).join('')}
-    ${wait ? loading_() : ''}</div>
-    <p class="note me-said app-said">${esc(APPS.error)}</p>`;
+  bizNeed_('apps', APPS.list ? n : 0, '');
+  return { kind: 'apps', name: 'Applications to teach', look: 'biz apps', data: { apps: '', need: 'apps' },
+    body: [{ type: 'text', look: 'biz-need', text: APPS.list && n ? n + ' to approve' : '' }, APPS.list && !list.length ? { type: 'text', text: 'None waiting.' } : null]
+      .concat(list.map(item), [{ type: 'wait', look: 'app-body', on: wait }, { type: 'text', look: 'note me-said app-said', text: APPS.error || '' }]) };
 }
-const appsDraw_ = () => { document.querySelectorAll('[data-apps]').forEach(c => { cardFill_(c, appsInner_(false)); }); bizNeedsPaint_(); };
+const appsDraw_ = () => { document.querySelectorAll('[data-apps]').forEach(c => cardRedraw_(c, appsSpec_())); bizNeedsPaint_(); };
 function appsStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || APPS.asking) return;
   APPS.asking = true;
@@ -223,27 +211,19 @@ on('app-decide', el => {
 /* ---------- THE ERROR LOG (O5): what broke on phones, one row per distinct error, from `listClientErrors` (admin at the gate) ---------- */
 const ERRS = { list: null, asking: false, error: '' };
 const ERRS_DRAWN = 15;
-function errsCard_() {
-  const wait = !ERRS.list && !ERRS.error && typeof loading_ === 'function';
-  return card_(`<div class="biz errs" data-errs>${errsInner_(wait)}</div>`);
-}
-function errsInner_(wait) {
+/* THE ERROR LOG: each distinct error once with its count, newest first; the card a spec, drawn again in place. */
+function errsSpec_() {
   const list = ERRS.list || [];
   const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
-  const item = r => `<div class="biz-item err-item" data-id="${esc(r.id)}">
-      <p class="biz-cap"><b>${esc(r.message)}</b> <span class="qtags biz-when">${qtag_(`${esc(r.count + '× · last ' + when(r.last))}`)}</span></p>
-    </div>`;
-  return `<h3>Error log</h3>
-    <div class="biz-body err-body"${wait ? ' aria-busy="true"' : ''}>
-      ${ERRS.list ? `<p class="err-count">${list.length ? list.length + ' distinct' : 'Nothing has broken'}</p>` : ''}
-      ${list.slice(0, ERRS_DRAWN).map(item).join('')}
-    ${wait ? loading_() : ''}</div>
-    <div class="tile-row">${tile_({ icon: 'sync', label: 'Refresh', act: 'errs-refresh' })}${
-      /* OLD SHEET ROWS INTO TODAY'S SHAPE (owner, 8 Nov): `migrateOldRows_`, safe to press twice. */
-      tile_({ icon: 'merge', label: 'Tidy old rows', act: 'tidy-old-rows' })}</div>
-    <p class="note me-said errs-said">${esc(ERRS.error)}</p>`;
+  return { kind: 'errs', name: 'Error log', look: 'biz errs', data: { errs: '' },
+    body: [{ type: 'text', look: 'err-count', text: ERRS.list ? (list.length ? list.length + ' distinct' : 'Nothing has broken') : '' },
+      { type: 'list', items: list.slice(0, ERRS_DRAWN).map(r => [{ b: r.message }, ' · ', r.count + '× · last ' + when(r.last)]) },
+      { type: 'wait', look: 'err-body', on: !ERRS.list && !ERRS.error }, { type: 'text', look: 'note me-said errs-said', text: ERRS.error || '' }],
+    /* OLD SHEET ROWS INTO TODAY'S SHAPE (owner, 8 Nov): `migrateOldRows_`, safe to press twice. */
+    tiles: [{ icon: 'sync', label: 'Refresh', act: 'errs-refresh' }, { icon: 'merge', label: 'Tidy old rows', act: 'tidy-old-rows' }] };
 }
-const errsDraw_ = () => { document.querySelectorAll('[data-errs]').forEach(c => { cardFill_(c, errsInner_(false)); }); };
+const errsCard_ = () => renderCard(errsSpec_());
+const errsDraw_ = () => { document.querySelectorAll('[data-errs]').forEach(c => cardRedraw_(c, errsSpec_())); };
 function errsStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || ERRS.asking) return;
   ERRS.asking = true;
@@ -254,7 +234,7 @@ function errsStart_() {
     }, errsDraw_)
     .catch(() => { ERRS.asking = false; ERRS.error = 'The error log could not be fetched — check the connection.'; errsDraw_(); });
 }
-on('errs-refresh', () => { ERRS.list = null; ERRS.error = ''; errsDraw_(); document.querySelectorAll('[data-errs] .err-body').forEach(waiting_); errsStart_(); });
+on('errs-refresh', () => { ERRS.list = null; ERRS.error = ''; errsDraw_(); errsStart_(); });
 
 on('tidy-old-rows', el => {
   if (!(typeof isAdmin === 'function' && isAdmin())) return;

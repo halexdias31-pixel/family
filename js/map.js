@@ -103,7 +103,7 @@ const WIDGETS = [
 
 
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker', solid: true,
-    start: () => initMat?.(),
+    start: () => window.initMat?.(),
     into: 'mat-box', what: 'The cheat sheet',
     /* NO BLURB. It said "one sheet of A4, tick what goes on it" over a list of tickboxes on a page showing a sheet of A4 — three sentences describing what is already § */
     get html() { return card_(`<div class="">

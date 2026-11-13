@@ -59,7 +59,7 @@ if (mine.length !== 1 || mine[0].id === 'web') bad.push('a tutor is offered more
 
 /* THE TAG REACHES `came_from`: the phone sends it at sign-up and the backend writes it. */
 if (!/body\.from\s*=\s*from/.test(read('js/me-account.js'))) bad.push('me-account.js register does not send the flyer tag (body.from)');
-if (!/came_from:[^\n]*body\.from/.test(read('backend/post-account.gs'))) bad.push('post-account.gs does not write body.from into came_from');
+if (!/came_from:[^\n]*body\.from/.test(read('backend/post-signin.gs'))) bad.push('post-signin.gs does not write body.from into came_from');
 
 if (bad.length) { console.log('check-flyer: ' + bad.length + ' problem(s):'); bad.forEach(b => console.log('  ' + b)); process.exit(1); }
 console.log(`check-flyer: ${sheets} sheets from ${who.length} profiles, every word and picture from the profile, every QR tagged`);

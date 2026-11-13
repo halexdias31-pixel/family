@@ -13,6 +13,10 @@ function oopsDevice_() {
 function oopsHtml_() {
   return renderCard({ kind: 'oops', look: 'oops', tags: [{ text: 'This part did not load', colour: 0 }] });
 }
+/* THE SIGN-IN KEPT ON THIS PHONE; false when storage is blocked, and the sign-in still holds for this visit. */
+function keepUser_() {
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); return true; } catch (e) { return false; }
+}
 function oops_(err, where, host, o) {
   o = o || {};
   if (err && typeof err === 'object') { if (err.__oops) return; try { err.__oops = true; } catch (e) { /* a frozen error is still reported */ } }
@@ -76,8 +80,8 @@ function oopsTry_(where, fn, host) {
 }
 /* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
 const TIER_CORE_WIDGETS = [];
-const TIER_LAZY_WIDGETS = ['timer', 'calendar', 'timetable', 'typing', 'console', 'wordgames', 'newspaper', 'spotify', 'favlinks', 'pixel'];
-const TIER_OFF_WIDGETS = ['homework', 'flyers', 'cart', 'rewrite', 'poster'];
+const TIER_LAZY_WIDGETS = [];
+const TIER_OFF_WIDGETS = ['reels', 'newspaper', 'homework', 'flyers', 'mat', 'timer', 'docket', 'notepad', 'spotify', 'speedread', 'timetable', 'typing', 'cart', 'calendar', 'countdowns', 'favlinks', 'rewrite', 'poster', 'pixel', 'console', 'wordgames'];
 const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
 const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
 const TIER_RUN = { depth: 0 };

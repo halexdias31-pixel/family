@@ -271,161 +271,33 @@ function rosterHtml(o) {
   const tutor = o.tutor || '';
   const seats = Math.max(0, Number(o.seats) || 0);
   const names = (o.names || []).filter(Boolean);
-
-  const slots = [];
-  slots.push({ role: 'Tutor', name: tutor, filled: !!tutor, tutor: true });
-  for (let i = 0; i < seats; i++) {
-    /* A SEAT SOMEBODY HAS PAID FOR IS TAKEN, whether or not it has a name on it. § */
-    /* NAMED IF WE KNOW, "Child" IF WE DO NOT. § */
-    /* "SOMEONE ELSE" IS AN ANSWER, NOT A NAME. § */
-    slots.push({ role: 'Seat ' + (i + 1),
-                 name: (names[i] && names[i] !== UNNAMED) ? names[i] : 'Child',
-                 filled: true });
-  }
-  /* Pad to four. An open slot is drawn as open rather than left off, because the empty ones are
-     the ones that say something. */
+  const slots = [{ role: 'Tutor', name: tutor, filled: !!tutor, tutor: true }];
+  for (let i = 0; i < seats; i++) slots.push({ role: 'Seat ' + (i + 1), name: (names[i] && names[i] !== UNNAMED) ? names[i] : 'Child', filled: true });
+  /* Pad to four: the empty seats are the ones that say something. */
   while (slots.length < 4) slots.push({ role: 'Open', name: '', filled: false });
-
-  return `<div class="rost">
-    ${slots.map(sl => `<div class="rost-slot${sl.filled ? ' on' : ''}${sl.tutor ? ' tut' : ''}">
-      <span class="rost-pic">${sl.filled
-        ? personFace_({ name: sl.name || sl.role }, { size: 34 })
-        : '<span class="rost-plus">+</span>'}</span>
-      ${/* ---------- AN EMPTY SEAT SAID "OPEN" TWICE § */
-            ''}
-      <span class="rost-name">${esc(sl.filled ? (sl.name ? displayName_(sl.name) : sl.role) : 'Open')}</span>
-      ${sl.filled ? `<span class="rost-role">${esc(sl.role)}</span>` : ''}
-    </div>`).join('')}
-  </div>`;
+  slots.forEach(sl => {
+    sl.face = sl.filled ? personFace_({ name: sl.name || sl.role }, { size: 34 }) : '';
+    sl.said = sl.filled ? (sl.name ? displayName_(sl.name) : sl.role) : 'Open';
+  });
+  return cardBlock_({ type: 'paperRoster', slots });
 }
 
 /* `facesFor` AND `rosterPips` WENT WITH `jobCard`. § */
 
 /* FOUR OBJECTS, NOT ONE OBJECT IN FOUR MOODS. § */
 /* ---------- WHAT EACH COLUMN IS, IN ONE SMALL ROW AT THE TOP § */
-function spineHead_(r) {
-  if (!r || !r.cols || !(r.rows || []).length) return '';
-  return `<div class="bk-row is-cols">
-    <span class="bk-n"></span>
-    <span class="bk-k"></span>
-    <span class="bk-v"></span>
-    <span class="bk-m">×</span>
-    <span class="bk-r">+/h</span>
-    <span class="bk-t">=</span>
-  </div>`;
-}
 
-function receiptHtml(r) {
-  /* ---------- `kind`, `SKIN` AND `STAGE` STOOD HERE, AND ONE OF THEM WAS ALREADY DEAD § */
-  /* `.is-done` STAYS, and it is not a skin. It marks the SAVED document so the hour grid tightens —
-     a record does not need rows you can press — which is a layout, not a colour. */
-  const done = r.done ? ' is-done' : '';
-  return `<div class="rc${done}">
-    <div class="rc-head">
-      ${/* ---------- THE SHOP NAME WAS FOR A RECEIPT, AND THIS IS NOT ONE ANY MORE § */
-            ''}
-      ${/* THE THREE LINES ON ONE LINE. § */
-           ''}
-      ${(r.lines || []).filter(Boolean).length
-        ? `<div class="qtags qcard-tags">${(r.lines || []).map((l, i) => l ? `${qtag_(`${esc(l)}`, ` data-tag="${[6, 9, 4][i] || 0}"`)}` : '').join('')}</div>` : ''}
-    </div>
-    ${/* `r.photos` WAS HERE. Nothing passes photos to a receipt any more — see `bookBreakdown`. */''}
-    ${/* ---------- AND THE RULE ABOVE THE ROWS IS THE HEADER'S OWN § */
-         ''}
-    ${spineHead_(r) ? '' : '<div class="rc-rule"></div>'}
-    ${/* THE OLD COLUMN HEADINGS ARE STILL GONE, and `spineHead_` is not them. § */
-         ''}
-    ${/* ---------- THE TOTAL IS A ROW OF THE TABLE NOW, NOT A BAR BESIDE IT § */
-         ''}
-    ${/* ---------- `r.more`: WHO GETS WHAT, FOR THE ONE PERSON ALLOWED TO KNOW § */
-         ''}
-    <div class="bk">${spineHead_(r)}${(r.rows || []).join('')}${r.before || ''}${r.noTotal ? '' : `<div class="bk-row rc-total">
-      <span class="bk-n"></span>
-      <span class="bk-k">${esc(r.totalLabel || 'Cost')}</span>
-      <span class="bk-v"></span>
-      <span class="bk-m"></span>
-      <span class="bk-r"></span>
-      <span class="bk-t">${esc(r.total || '')}</span>
-    </div>`}${(r.more || []).map(m => `<div class="bk-row rc-total rc-more${m.cls ? ' ' + esc(m.cls) : ''}">
-      <span class="bk-n"></span>
-      <span class="bk-k">${esc(m.k)}</span>
-      <span class="bk-v"></span>
-      <span class="bk-m"></span>
-      <span class="bk-r"></span>
-      <span class="bk-t">${esc(m.t)}</span>
-    </div>`).join('')}${r.moreSay ? `<p class="bk-say rc-money-say">${esc(r.moreSay)}</p>` : ''}</div>
-    ${/* THE ROSTER SLOT IS STILL HERE and nothing fills it — see the notes above. § */
-          ''}
-    ${r.roster ? `<div class="rc-rule"></div>${r.roster}` : ''}
-    <div class="rc-rule"></div>
-    ${/* ---------- WHAT YOU DO WITH IT, ON IT § */
-          ''}
-    ${r.foot || ''}
-    ${/* THE BARCODE WAS HERE. § */
-          ''}
-    ${/* THE FOOTER LINE IS DRAWN ONLY IF THERE IS ONE. § */
-          ''}
-    ${/* THE REFERENCE, WHEN THERE IS ONE. § */
-          ''}
-    ${r.ref ? `<p class="rc-ref">${esc(r.ref)}</p>` : ''}
-  </div>`;
-}
+/* THE PAPER ITSELF is drawn by the one renderer (`paperDoc` in cards-render.js). */
+const receiptHtml = r => cardBlock_(Object.assign({ type: 'paperDoc' }, r));
 
 /** One row of a receipt, from the shape `breakdownRows` and `jobRows` both produce. */
 function receiptRow(r) {
-  /* `wide` — A TITLE IS NOT A VALUE. § */
-  const cls = [r.blank ? 'is-blank' : '',
-               r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '',
-               r.wide ? 'is-wide' : '',
-               /* THE WEEK'S OWN THREE. `bk-wk` lays the strip out in the answer cell, `is-shut`
-                  collapses a day nobody works, `is-off` greys a week that cannot be answered. */
-               r.strip ? 'bk-wk' : '', r.strip && r.shut ? 'is-shut' : '',
-               r.strip && r.off ? 'is-off' : '',
-               /* AND THE LIST'S TALLY, whose bars take the empty figure tracks — see `.bk-tally`. */
-               r.tally ? 'bk-tally' : '', r.cls || '']
-    .filter(Boolean).join(' ');
-  /* A DAY SHOWS ITS HOURS, drawn rather than written — the same row of boxes the picker uses, so a day on the receipt and a day in the grid are visibly the same § */
-  /* A DROPDOWN WHERE THERE IS ONE, and it replaces the value rather than sitting beside it: § */
-  /* ---------- A DAY'S HOURS ARE ITS ANSWER § */
-  /* ---------- A STAGE IS A MARK, NOT A VALUE § */
-  /* THE BOX LAST, BECAUSE `.bk-v` IS RIGHT-ALIGNED AND FIVE BOXES HAVE TO BE ONE COLUMN. § */
-  const value = r.tick !== undefined
-    ? `${S_(r.v) ? `<span class="bk-when">${esc(r.v)}</span> ` : ''}<span
-       class="bk-tick${r.tick ? ' on' : ''}" role="img" aria-label="${
-       r.tick ? 'done' : 'not yet'}">✓</span>`
-    : r.strip ? r.strip
-    : r.sel ? r.sel
-    /* A TALLY IS MARKUP FOR `strip`'S REASON — `whenCouldHtml` draws it, and nothing else does. */
-    : r.tally ? r.tally
-    : r.hours
-    ? `<span class="bk-hrs">${((slotGrid().rows.find(x => x.prefix === r.hours.day)
-        || { hours: [] }).hours).map(h => `<span class="bk-hr${
-          (BOOKING.slots || []).indexOf(h.code) !== -1 ? ' on' : ''}">${h.h}</span>`).join('')}</span>`
-    : r.dates ? `<span class="bk-dates">${esc(r.v)}</span>`
-    : esc(r.v);
-  /* ---------- A ROW WITH NO FIGURES DOES NOT NEED THE FIGURE COLUMNS § */
-  /* ---------- A QUESTION KEEPS ITS COLUMNS WHETHER OR NOT IT HAS FIGURES § */
-  /* AND A DAY ROW NEVER COLLAPSES TO THE NARROW COLUMN EITHER, for the reason the grid row had it: § */
-  const bare = (!r.id || !!r.open || !!r.strip) && !S_(r.mul) && !S_(r.rate) && !S_(r.total);
-  /* ---------- THE ROW ABOVE A GRID IS A HEADING, NOT A FIELD § */
-  /* AND A DAY ROW LOSES ITS DASHED UNDERLINE FOR THE SAME REASON THE `When` ROW DID: § */
-  /* AND A TALLY'S BARS ARE ITS ANSWER IN THE SAME WAY — a dashed "an answer goes here" under a
-     count of answers already given is the card advertising a blank that is full. */
-  const heads = !!r.open || !!r.strip || !!r.tally;
-  return `<div class="bk-row ${cls}${bare ? ' is-bare' : ''}${heads ? ' is-head' : ''}">
-    <span class="bk-n">${esc(r.n)}</span>
-    ${/* A ROW WITH A CONTROL LABELS IT — see `bkCtl_`. `for` before `class`, so the receipt's own
-          readers that look for `class="bk-k">` find the words either way. */
-      r.ctl && r.sel ? `<label for="${esc(r.ctl)}" class="bk-k">${esc(r.k)}</label>`
-                     : `<span class="bk-k">${esc(r.k)}</span>`}
-    <span class="bk-v">${heads && String(r.v) === dash_() ? '' : value}</span>
-    <span class="bk-m">${esc(r.mul)}</span>
-    <span class="bk-r">${esc(r.rate)}</span>
-    <span class="bk-t">${esc(r.total)}</span>
-    ${/* ---------- THE WEEK IS A CELL OF THIS ROW NOW, NOT A BLOCK AFTER IT § */
-          ''}
-    ${r.open || ''}
-  </div>${r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : ''}`;
+  /* A DAY SHOWS ITS HOURS, the same boxes the picker uses. */
+  const hourCells = r.tick === undefined && !r.strip && !r.sel && !r.tally && r.hours
+    ? ((slotGrid().rows.find(x => x.prefix === r.hours.day) || { hours: [] }).hours).map(h => ({ h: h.h, on: (BOOKING.slots || []).indexOf(h.code) !== -1 }))
+    : null;
+  return cardBlock_(Object.assign({}, r, { type: 'paperRow', hourCells, dash: dash_(),
+    mul: S_(r.mul) ? r.mul : '', rate: S_(r.rate) ? r.rate : '', total: S_(r.total) ? r.total : '', v: r.v == null ? '' : r.v }));
 }
 
 /* A SAVED JOB, AS A RECEIPT OF WHAT WAS ASKED FOR. § */
@@ -625,9 +497,8 @@ function discountRow_(L) {
   return receiptRow({ n: '', k: 'Discount', v: '', mul: '', cls: 'rc-disc', ctl: bkCtl_('discValue'),
     rate: '',
     total: e.discount > 0 ? '− ' + money_(e.discount / ((L && L.splitShares) || 1)) : dash_(),
-    sel: `<input class="bk-in" id="${bkCtl_('discValue')}" data-do="book-disc" data-field="discValue" type="number"
-      inputmode="decimal" min="0" max="100" step="1" value="${admin ? esc(BOOKING.discValue) : ''}" placeholder="% off"${admin ? '' : ' disabled'}
-      aria-label="Discount, per cent off">` });
+    sel: cardBlock_({ type: 'paperInput', kind: 'number', id: bkCtl_('discValue'), act: 'book-disc', field: 'discValue',
+      value: admin ? BOOKING.discValue : '', placeholder: '% off', off: !admin, aria: 'Discount, per cent off' }) });
 }
 /* KEPT AS IT IS TYPED, REDRAWN ON A CHANGE. § */
 document.addEventListener('input', e => {
@@ -668,7 +539,7 @@ function payRow_(L) {
 function discountSaid_(j) {
   const pc = Number(j && j.discountValue) || 0;
   return receiptRow({ n: '', k: 'Discount', v: '', mul: '', rate: '', cls: 'rc-disc', total: dash_(),
-    sel: `<input class="bk-in" type="number" value="${pc > 0 ? esc(String(pc)) : ''}" placeholder="% off" disabled aria-label="Discount, per cent off">` });
+    sel: cardBlock_({ type: 'paperInput', kind: 'number', value: pc > 0 ? String(pc) : '', placeholder: '% off', off: true, aria: 'Discount, per cent off' }) });
 }
 
 /* ---------- WHAT THE CARD HOLDS, FOR A SUGGESTION ABOUT IT § */
@@ -713,11 +584,8 @@ function whenCouldHtml(j) {
   /* A COUNT OUT OF NOBODY IS NOT A BAR. `people` is the number of families who answered, so it is
      never below a slot's own count — but a payload that sent it blank would draw `Infinity%`. */
   const of = Math.max(1, Number(w.people) || 0);
-  return `<div class="wc">${w.slots.map(s => `<div class="wc-row${s.all ? ' is-all' : ''}">
-      <span class="wc-n">${esc(s.n)}/${esc(w.people)}</span>
-      <span class="wc-slot">${esc(s.slot)}</span>
-      <i style="--f:${Math.min(100, (Number(s.n) || 0) / of * 100).toFixed(0)}%"></i>
-    </div>`).join('')}</div>`;
+  return cardBlock_({ type: 'paperWhenCould', people: w.people, slots: w.slots.map(s => ({ n: s.n, slot: s.slot, all: s.all,
+    f: Math.round(Math.min(100, (Number(s.n) || 0) / of * 100) / 10) * 10 })) });
 }
 
 /* ---------- `joinBlock` STOOD HERE, UNDER THE PAPER, AND IT IS THREE PIECES OF THE PAPER NOW § */

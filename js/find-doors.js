@@ -77,19 +77,18 @@ function profileDoorItems_() {
   ((DATA && DATA.tutors) || []).forEach(t => { if (t) seen[String(t.personId || t.title || t.handle || '')] = 1; });
   if (seeMay_('find:all-people')) ((DATA && DATA.everyone) || []).filter(p => p && p.title).forEach(p => add(p, false));
   /* ADD A PERSON (add-person): one card for an admin, first among the people, drawn by `personAddCard_` (me-people.js). */
-  if (typeof personAddMay_ === 'function' && personAddMay_()) out.unshift({ kind: 'person', add: true, name: 'Add a person', key: 'person:add', sub: '',
+  if (typeof personAddMay_ === 'function' && personAddMay_()) out.unshift({ kind: 'person', add: true, ownCard: true, name: 'Add a person', key: 'person:add', sub: '',
     image: '', row: {}, profileType: ['Student', 'Parent', 'Tutor'], text: 'add a person new account student parent tutor' });
   return out;
 }
-/* PICTURE FIRST: the face fills the top of the card, the name under it; everything else is a tag. */
-function profileDoorCard_(x) {
-  if (x.add) return typeof personAddCard_ === 'function' ? personAddCard_() : '';
-  const t = x.row || {};
-  /* NO FACE, NO LETTER: the card draws its own default picture, so a lone initial would only stand beside the handle. */
-  return `<div class="is-prof prof-door">${!(t.image || t.avatar) ? '' : personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title || t.name, personId: t.personId },
-    { cls: 'prof-big', none: 'prof-none', size: 160 })}<h3>${esc(x.name)}</h3>${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
-    ${tileRow_((typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(t)) : ''), 'person-tiles')}${typeof personEdHtml_ === 'function' ? personEdHtml_(t) : ''}</div>`;
-}
+/* PICTURE FIRST: the face, the name and facets as tags, the handle; an admin's tiles, and the Edit form while it is open. */
+cardKind_('person', x => { const t = kcRow_(x), k = typeof picKind_ === 'function' ? picKind_(t.image) : '';
+  const picture = k === 'photo' ? { src: pic(t.image), alt: '' } : { svg: (k === 'basic' ? pfpArt_(pfpChoice_(t.image), 160) : '') || kcPicOr_(x, '') };
+  const open = typeof PERSON_ED_ !== 'undefined' && PERSON_ED_ && String(PERSON_ED_.id) === String(t.personId);
+  return { look: 'is-prof prof-door kc-facts', picture, tags: [{ text: x.name || '', colour: 0 }].concat(typeof tagList_ === 'function' && x.key ? tagList_(x) : []),
+    body: [t.handle ? { type: 'text', text: '@' + t.handle } : null, open ? { type: 'embed', tool: 'person-edit', args: { row: t } } : null].filter(Boolean),
+    tiles: typeof peopleOpts_ === 'function' ? peopleOpts_(t) : [] }; });
+CARD_EMBEDS['person-edit'] = a => (typeof personEdHtml_ === 'function' ? personEdHtml_(a.row) : '');
 
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */
 /* WHICH COLUMN'S CARDS ANSWER WHICH TYPE, IN THE MENU'S ORDER: setting-for.json's `type:` rows; who opens each is permissions.json's `see` rows. */
@@ -139,15 +138,17 @@ function settingDoorItems_() {
   if (!USER) return [{ kind: 'setting', name: 'Sign in or join', key: 'set:signin', sub: '', image: '', signIn: true, open: true, text: 'sign in join make an account pin' }];
   const tags = (DATA && DATA.settingFor) || {}, out = [], byName = {}, seen = {};
   /* RECORDS ARE LAZY (the weekly email's cards): until that batch lands they are missing, so Find is drawn again once it does. */
-  try { if (typeof lazyFiles_ === 'function' && !lazyFiles_.in) doorAsk_(lazyFiles_()); } catch (e) { /* drawn without them; the next paint has them */ }
+  try { if (typeof lazyFiles_ === 'function' && !lazyFiles_.in) doorAsk_(lazyFiles_()); } catch (e) { oops_(e, 'find:doorAsk'); }
   const add = (name, id, part, type, mine) => {
     const row = tags[id], fr = settingTagsOf_(id, type);
     const x = byName[norm(name)];
-    if (x) { x.parts.push(part); if (row && (row.rank || 0) < x.rank) x.rank = row.rank || 0; fr.forEach(t => { if (x.settingFor.indexOf(t) === -1) x.settingFor.push(t); }); x.mine = x.mine || mine; return; }
+    if (x) { x.parts.push(part); if (row && (row.rank || 0) < x.rank) x.rank = row.rank || 0; fr.forEach(t => { if (x.settingFor.indexOf(t) === -1) x.settingFor.push(t); }); x.mine = x.mine || mine; return x; }
     const it = { kind: 'setting', name: name, key: 'set:' + (id || part.col + ':' + part.at), sub: '', image: '', parts: [part], mine: mine, settingFor: fr.slice(), rank: row ? row.rank || 0 : 5000 + out.length };
-    byName[norm(name)] = it; out.push(it);
+    byName[norm(name)] = it; out.push(it); return it;
   };
-  if (isAdmin()) add(lensOn_() ? 'Viewing ' + (whose_().name || 'somebody') : 'View as', 'lens', { lens: true }, 'Student', true);
+  /* THE LENS LEADS (`first`): drawn open, above every type, and sorted ahead by `sortKey_`. */
+  if (isAdmin()) Object.assign(add(lensOn_() ? 'Viewing ' + (whose_().name || 'somebody') : 'View as', 'lens', { lens: true }, 'Student', true),
+    { rank: -1, open: true, first: true, settingFor: settingTypes_().map(t => t.type) });
   settingTypes_().forEach(({ type, col, peek }) => {
     /* IN THE LENS, ONLY THE PERSON'S OWN COLUMNS: Business and Site are the business's, not theirs. */
     if (!col || (lensOn_() && LENS_COLS_.indexOf(col) === -1)) return;
@@ -164,8 +165,6 @@ function settingDoorItems_() {
     });
   });
   if (settingMay_('door:notify') && !lensOn_()) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
-  const lens = out.find(x => x.key === 'set:lens');
-  if (lens) { lens.rank = -1; lens.open = true; lens.settingFor = settingTypes_().map(t => t.type); }
   /* ORDER IS DATA (setting-for.json's rows, types too); an untagged card keeps its column's place after them. */
   out.sort((a, b) => a.rank - b.rank);
   const order = settingTypes_().map(t => t.type);
@@ -200,7 +199,7 @@ function lensCard_() {
 }
 /* FIND'S MEMOS DROPPED, so the settings items are built again for whoever the lens is on now. */
 function lensRedraw_() {
-  try { FUNNEL_MEMO.from = null; ITEM_MEMO.from = null; ALL_MEMO.from = null; } catch (e) { /* no memo yet: the next paint builds them */ }
+  FUNNEL_MEMO.from = null; ITEM_MEMO.from = null; ALL_MEMO.from = null;
   try { if (typeof paintStuff === 'function') inFinder_(FINDER, () => paintStuff(true)); } catch (e) { oops_(e, 'lens:redraw'); }
 }
 /* THEIR SETTINGS, ASKED FOR: `lensOpen` is an admin's alone (permissions.json); nobody else's tap gets this far. */
@@ -216,7 +215,8 @@ on('lens-off', () => { LENS = null; lensRedraw_(); });
 
 /* WHAT THE TOP BAR'S RED DOT USED TO SAY (owner, 6 Nov): each Business or Site card that needs you, by name, with a way there. */
 function notifyDoorCard_() {
-  const needs = typeof BIZ_NEEDS !== 'undefined' ? Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0) : [];
+  /* THE BUSINESS RECORDS ARE SWITCHED OFF (attic/js/records.js, owner 13 Nov): their counts come back with them. */
+  const BIZ_NEEDS = window.BIZ_NEEDS || {}, needs = Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0);
   const waiting = ((DATA && DATA.posts) || []).filter(p => p && p.active !== false && p.waiting).length;
   const rows = needs.map(k => ({ label: k.replace(/[-_]/g, ' '), value: String(BIZ_NEEDS[k]) }))
     .concat(waiting ? [{ label: 'posts waiting for approval', value: String(waiting) }] : []);
