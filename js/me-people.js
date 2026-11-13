@@ -362,7 +362,7 @@ on('person-edit-done', () => {
 
 /* ---------- FAMILY PICKER: a typed search over the payload's people cards, its hits a tap each (add-person, edit-person) ---------- */
 /* `want` 'student' or 'client'; `scope` 'pa' (the Add card) or 'pe' (the Edit form), which names the tap a hit makes. */
-const famIs_ = (p, want) => (want === 'student' ? /student/i : /client|parent/i).test(String((p && p.role) || ''));
+const famIs_ = (p, want) => want === 'any' || (want === 'student' ? /student/i : /client|parent/i).test(String((p && p.role) || ''));
 function famHits_(q, want, skip) {
   q = String(q || '').trim().toLowerCase().replace(/^@/, '');
   if (!q) return [];
@@ -370,7 +370,7 @@ function famHits_(q, want, skip) {
     && [p.title, p.name, p.handle].filter(Boolean).join(' ').toLowerCase().indexOf(q) !== -1).slice(0, 6);
 }
 /* THE TAP A HIT MAKES, by where the picker stands. */
-const FAM_ACT_ = { pa: { act: 'pa-pick' }, pe: { act: 'pe-link' } };
+const FAM_ACT_ = { pa: { act: 'pa-pick' }, pe: { act: 'pe-link' }, lens: { act: 'lens-pick' } };
 const famPick_ = (scope, want, label) => `<div class="fam-pick">${formLine_(label, formInput_(`data-fam-q="${scope}" data-fam-want="${want}" type="search" autocomplete="off" placeholder="name or @handle"`))}
   <div class="tile-row fam-hits" data-fam-hits="${scope}"></div></div>`;
 document.addEventListener('input', e => {
@@ -379,7 +379,8 @@ document.addEventListener('input', e => {
   const scope = box.getAttribute('data-fam-q'), want = box.getAttribute('data-fam-want');
   const out = box.closest('.fam-pick') && box.closest('.fam-pick').querySelector('.fam-hits');
   if (!out) return;
-  const skip = scope === 'pa' ? ((PERSON_ADD_ && PERSON_ADD_.picked) || []).map(x => x.id) : peLinked_().concat([String((PERSON_ED_ || {}).id || '')]);
+  const skip = scope === 'pa' ? ((PERSON_ADD_ && PERSON_ADD_.picked) || []).map(x => x.id) : scope === 'lens' ? [String((USER || {}).personId || '')]
+    : peLinked_().concat([String((PERSON_ED_ || {}).id || '')]);
   out.innerHTML = famHits_(box.value, want, skip).map(p => tile_({ form: true, kind: 'quiet', label: displayName_(p) + (p.handle ? ' @' + p.handle : ''),
     act: (FAM_ACT_[scope] || FAM_ACT_.pe).act, data: { id: p.personId, name: displayName_(p), want } })).join('');
 });
