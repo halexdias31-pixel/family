@@ -568,7 +568,7 @@ const slow = took > 400;
 if (slow) console.log('  marking %j took %d ms — a unit is being read more than one way again', SLOW, took);
 
 /* ---------- BY RULE: KEY WORDS MARK A SHORT WORDED ANSWER, A MARK A POINT (docs/history/359) ---------- */
-const MW_NAMES = ['MW_STOP', 'mwStem_', 'mwToks_', 'mwNum_', 'mwShapes_', 'mwHas_', 'markWords_', 'cellsOf_', 'cellsOneBox_', 'markCells_'];
+const MW_NAMES = ['MW_STOP', 'mwStem_', 'mwToks_', 'mwNum_', 'mwShapes_', 'mwHas_', 'markWords_', 'cellsOf_', 'GAP_RUNS', 'gapsUnnumber_', 'gapClean_', 'gapSpans_', 'gapsFit_', 'gapsSplit_', 'cellsOneBox_', 'markCells_'];
 const mwSrc = MW_NAMES.map(n => cutFrom(src, n));
 let mwBad = 0;
 const MW = [
@@ -614,6 +614,22 @@ const cellsGot = markCells_(['6', '7', ''], cellsOf_({ cells: '- ; 6 ; 6 | six ;
 if (cellsGot.right !== 1 || cellsGot.of !== 3 || cellsGot.each[1] !== false || cellsGot.each[2] !== null) { mwBad++; console.log('  WRONG  markCells_ gave %j', cellsGot); }
 const cellsAll = markCells_(['x', '6', 'six', '9'], cellsOf_({ cells: '- ; 6 ; 6 | six ; 9' }));
 if (cellsAll.right !== 3 || cellsAll.of !== 3) { mwBad++; console.log('  WRONG  a full table with its corner not asked gave %j', cellsAll); }
+/* EVERY GAP IN ONE BOX (owner, 13 Nov): any way a child parts the answers marks, in order; out of order is wrong. typed, cells, right wanted. */
+const WORDS3 = 'kinetic ; thermal | heat ; sound', NUMS3 = '3,000 ; 2,5 | 2.5 ; 7', NAMED = 'Top = pentagon ; 2nd = triangle | 3 sides';
+const GAPS = [
+  ['kinetic ; thermal ; sound', WORDS3, 3], ['kinetic, heat, sound', WORDS3, 3], ['kinetic/thermal/sound', WORDS3, 3],
+  ['kinetic\nthermal\nsound', WORDS3, 3], ['kinetic, thermal and sound', WORDS3, 3], ['kinetic then thermal then sound', WORDS3, 3],
+  ['1) kinetic 2) thermal 3) sound', WORDS3, 3], ['1. Kinetic 2. Thermal 3. Sound.', WORDS3, 3], ['(a) kinetic (b) heat (c) sound', WORDS3, 3],
+  ['a kinetic b thermal c sound', WORDS3, 3], ['(i) kinetic (ii) thermal (iii) sound', WORDS3, 3], ['  KINETIC ,,  Thermal ;  sound!! ', WORDS3, 3],
+  ['kinetic thermal sound', WORDS3, 3], ['Kinetic; HEAT; Sound', WORDS3, 3], ['32 ; 7 ; 12', '32 ; 7 ; 12', 3],
+  ['3,000 ; 2,5 ; 7', NUMS3, 3], ['3,000, 2.5, 7', NUMS3, 3], ['3,000 2.5 7', NUMS3, 3], ['3000 and 2.5 and 7', NUMS3, 3],
+  ['Top = pentagon; 2nd = triangle', NAMED, 2], ['pentagon, 3 sides', NAMED, 2],
+  ['thermal, kinetic, sound', WORDS3, 1], ['sound kinetic thermal', WORDS3, 0], ['7, 3,000, 2.5', NUMS3, 0], ['kinetic, sound', WORDS3, 1],
+];
+GAPS.forEach(([typed, cells, want]) => {
+  const m = markCells_(typed, cellsOf_({ cells: cells }));
+  if (m.right !== want) { mwBad++; console.log('  WRONG  one box %j against %j: %d right, wanted %d (%j)', typed, cells, m.right, want, cellsOneBox_([typed], cellsOf_({ cells: cells }))); }
+});
 /* EVERY RULE IN THE LIBRARY GIVES FULL MARKS TO ITS OWN SCHEME'S HEADLINE -- a rule its own answer fails is a wrong rule. */
 const mwLib = require('../check/lib-full.js').rows('questions').filter(r => String(r.mark_words || '').trim());
 mwLib.forEach(r => {

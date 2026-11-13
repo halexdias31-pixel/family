@@ -521,13 +521,11 @@ function cardControl_(c) {
   return `<input type="${type}" value="${esc(c.value == null ? '' : c.value)}" placeholder="${esc(c.placeholder || '')}"${
     c.min != null ? ` min="${esc(c.min)}"` : ''}${c.max != null ? ` max="${esc(c.max)}"` : ''}${c.step != null ? ` step="${esc(c.step)}"` : ''}${more}>`;
 }
-/* THE ONE ANSWER BOX, five variants: text, cells (several short boxes), choices (one tile each), pad (a keypad below), essay. */
+/* THE ONE ANSWER BOX, four variants: text (several gaps too, one box), choices (one tile each), pad (a keypad below), essay. */
 function cardAnswer_(b) {
   const at = ` data-q="${esc(b.q || '')}"`;
   if (b.variant === 'choices') return `<div class="kc-answer is-choices"${at}>${tile_((b.choices || []).map((c, i) =>
     ({ form: true, look: 'btn quiet kc-choice', label: typeof c === 'object' ? c.text : c, act: b.act || 'answer-pick', data: { i, q: b.q || '' } })))}</div>`;
-  if (b.variant === 'cells') return `<div class="kc-answer is-cells"${at}>${(b.cells || []).map((c, i) =>
-    `<label class="kc-cell"><span>${cardRuns_(c.label || '')}</span>${cardControl_({ kind: 'text', name: 'c' + i, aria: c.aria || c.label || 'answer ' + (i + 1) })}</label>`).join('')}</div>`;
   if (b.variant === 'essay') return `<div class="kc-answer is-essay"${at}>${cardControl_({ kind: 'textarea', rows: 8, name: 'essay', placeholder: b.placeholder || '' })}</div>`;
   const box = cardControl_({ kind: 'text', name: 'answer', placeholder: b.placeholder || '', aria: 'your answer', data: b.variant === 'pad' ? { pad: '1' } : null });
   return `<div class="kc-answer is-${b.variant === 'pad' ? 'pad' : 'text'}"${at}>${box}</div>`;
@@ -3521,13 +3519,13 @@ const QTYPE_PROTOCOL = {
   order:    { label: 'Put in order', surface: 'The items, and slots between the two ends (order_ends)', tiles: ['Clear', 'Check'],
               marked: 'choice_right as the permutation', tolerance: 'none', wrong: 'Not yet', right: 'Correct',
               phone: 'Tap item, it takes the next slot', pc: 'Click', need: ['choices', 'choice_right', 'order_ends'] },
-  match:    { label: 'Match or sort into groups', surface: 'Labelled cells (Venn regions, pairs), or lines drawn on the figure in place (402)', tiles: ['Figure', 'Check'],
-              marked: 'cells, each by markAnswer_; or draw_answer `join` (a stroke from one box to its partner)', tolerance: 'a cell holding a list is a set', wrong: 'n of m cells right, each coloured', right: 'Correct — every cell',
-              phone: 'Text keyboard where a cell holds words', pc: 'Tab between cells', need: ['cells|draw_answer'] },
+  match:    { label: 'Match or sort into groups', surface: 'One box, every answer in order (owner, 13 Nov), or lines drawn on the figure in place (402)', tiles: ['Figure', 'Check'],
+              marked: 'cells, each by markAnswer_; or draw_answer `join` (a stroke from one box to its partner)', tolerance: 'a cell holding a list is a set', wrong: 'n of m answers right', right: 'Correct — every answer',
+              phone: 'The keypad, answers parted by commas, lines or "and"', pc: 'Type them in order', need: ['cells|draw_answer'] },
   table:    { label: 'Fill table cells', surface: 'The question\'s own table, its blanks as cells (359)', tiles: ['Figure', 'Check'],
               marked: 'cells, each by markAnswer_', tolerance: 'per cell, as value', wrong: 'n of m cells right', right: 'Correct — every cell',
               phone: 'Number pad where every way is a number', pc: 'Tab between cells', need: ['cells'] },
-  label:    { label: 'Label a diagram', surface: QT_PEN + ', or labelled cells', tiles: QT_PEN_TILES,
+  label:    { label: 'Label a diagram', surface: QT_PEN + ', or one box of every label in order', tiles: QT_PEN_TILES,
               marked: 'cells (a label per place) or draw_answer `inside`; written labels are not read', tolerance: 'a label inside its region',
               wrong: 'Not yet', right: 'Correct + marks', phone: QT_PEN_PHONE, pc: QT_PEN_PC, need: ['draw_answer|cells|accept'] },
   words:    { label: 'Short words (1–2 marks)', surface: QT_TYPED + ', letter keys', tiles: ['Figure', 'Check'],
