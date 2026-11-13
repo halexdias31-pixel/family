@@ -88,3 +88,9 @@ One list, so nothing asked for gets lost. Claude ticks items off here when they 
 - [ ] Dead Sea Scrolls: each scroll, its contents and its find-place
 - [ ] Ancient inscriptions: Rosetta Stone, Mesha Stele, Tel Dan and so on
 - [ ] Heresies and schools of thought: founder, dates, teaching, which council dealt with it; linked to councils and Church Fathers
+- [ ] RULE to codify (owner, 13 Nov), with a check, in data/settings/rules.json:
+  - Two kinds of tag. **Category tags** (subject, level, board, kind, year…) never have a card. **Entity tags** (a named thing: Septuagint, Augustine, Council of Nicaea, Rome…) have exactly ONE card each: the tag IS that card.
+  - In Find, picking an entity tag shows its own card first, then every card tagged with it.
+  - Never a second card for the same entity, and never an entity card without its tag.
+  - The check fails on duplicates or orphans.
+- [ ] Apply this rule before adding the new history databases: audit the existing entities (Septuagint, versions, manuscripts and so on) and merge any duplicates.
