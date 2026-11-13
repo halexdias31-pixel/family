@@ -9785,15 +9785,17 @@ function settingDoorItems_() {
   if (!USER) return [{ kind: 'setting', name: 'Sign in or join', key: 'set:signin', sub: '', image: '', signIn: true, open: true, text: 'sign in join make an account pin' }];
   const tags = (DATA && DATA.settingFor) || {}, out = [], byName = {}, seen = {};
   /* RECORDS ARE LAZY (the weekly email's cards): until that batch lands they are missing, so Find is drawn again once it does. */
-  try { if (typeof lazyFiles_ === 'function' && !lazyFiles_.in) doorAsk_(lazyFiles_()); } catch (e) { /* drawn without them; the next paint has them */ }
+  try { if (typeof lazyFiles_ === 'function' && !lazyFiles_.in) doorAsk_(lazyFiles_()); } catch (e) { oops_(e, 'find:doorAsk'); }
   const add = (name, id, part, type, mine) => {
     const row = tags[id], fr = settingTagsOf_(id, type);
     const x = byName[norm(name)];
-    if (x) { x.parts.push(part); if (row && (row.rank || 0) < x.rank) x.rank = row.rank || 0; fr.forEach(t => { if (x.settingFor.indexOf(t) === -1) x.settingFor.push(t); }); x.mine = x.mine || mine; return; }
+    if (x) { x.parts.push(part); if (row && (row.rank || 0) < x.rank) x.rank = row.rank || 0; fr.forEach(t => { if (x.settingFor.indexOf(t) === -1) x.settingFor.push(t); }); x.mine = x.mine || mine; return x; }
     const it = { kind: 'setting', name: name, key: 'set:' + (id || part.col + ':' + part.at), sub: '', image: '', parts: [part], mine: mine, settingFor: fr.slice(), rank: row ? row.rank || 0 : 5000 + out.length };
-    byName[norm(name)] = it; out.push(it);
+    byName[norm(name)] = it; out.push(it); return it;
   };
-  if (isAdmin()) add(lensOn_() ? 'Viewing ' + (whose_().name || 'somebody') : 'View as', 'lens', { lens: true }, 'Student', true);
+  /* THE LENS LEADS (`first`): drawn open, above every type, and sorted ahead by `sortKey_`. */
+  if (isAdmin()) Object.assign(add(lensOn_() ? 'Viewing ' + (whose_().name || 'somebody') : 'View as', 'lens', { lens: true }, 'Student', true),
+    { rank: -1, open: true, first: true, settingFor: settingTypes_().map(t => t.type) });
   settingTypes_().forEach(({ type, col, peek }) => {
     /* IN THE LENS, ONLY THE PERSON'S OWN COLUMNS: Business and Site are the business's, not theirs. */
     if (!col || (lensOn_() && LENS_COLS_.indexOf(col) === -1)) return;
@@ -9810,8 +9812,6 @@ function settingDoorItems_() {
     });
   });
   if (settingMay_('door:notify') && !lensOn_()) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
-  const lens = out.find(x => x.key === 'set:lens');
-  if (lens) { lens.rank = -1; lens.open = true; lens.settingFor = settingTypes_().map(t => t.type); }
   /* ORDER IS DATA (setting-for.json's rows, types too); an untagged card keeps its column's place after them. */
   out.sort((a, b) => a.rank - b.rank);
   const order = settingTypes_().map(t => t.type);
@@ -9846,7 +9846,7 @@ function lensCard_() {
 }
 /* FIND'S MEMOS DROPPED, so the settings items are built again for whoever the lens is on now. */
 function lensRedraw_() {
-  try { FUNNEL_MEMO.from = null; ITEM_MEMO.from = null; ALL_MEMO.from = null; } catch (e) { /* no memo yet: the next paint builds them */ }
+  FUNNEL_MEMO.from = null; ITEM_MEMO.from = null; ALL_MEMO.from = null;
   try { if (typeof paintStuff === 'function') inFinder_(FINDER, () => paintStuff(true)); } catch (e) { oops_(e, 'lens:redraw'); }
 }
 /* THEIR SETTINGS, ASKED FOR: `lensOpen` is an admin's alone (permissions.json); nobody else's tap gets this far. */
@@ -10228,9 +10228,9 @@ function stuffSorted_(items) {
 /* PADDED SO THE ALPHABET AGREES WITH ARITHMETIC. § */
 /* ---------- AND THE PAPER ITSELF STRAIGHT AFTER ITS NAME, THEN THE PART BY `qPartKey` § */
 /* ---------- CONTENT CARDS AFTER THE REST, IN THE ORDER THEY TEACH — AND FIRST ONLY WHEN THEY ARE ASKED FOR § */
-/* A SETTING THAT IS NOT YOURS (shut, greyed) comes after all of yours; the admin's lens (whose settings these are) before them all. */
+/* A SETTING THAT IS NOT YOURS (shut, greyed) comes after all of yours; one marked `first` (the admin's lens) before them all. */
 const sortKey_ = x => [
-  x.key === 'set:lens' ? '0' : isContent_(x) ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : x.mine === false ? '3' : '1',
+  x.first ? '0' : isContent_(x) ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : x.mine === false ? '3' : '1',
   padNums_(String(x.sub || x.name || '').toLowerCase()),
   isQ_(x) ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
   padNums_(String(x.qNumber == null ? '' : x.qNumber)),

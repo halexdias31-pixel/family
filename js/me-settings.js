@@ -277,7 +277,7 @@ function meSave_(el, auto) {
       if (d && d.pendingEmail !== undefined) { accountChanged_(); W.pendingEmail = String(d.pendingEmail || ''); }
       /* ---------- "SAVED" IS NOT THE WHOLE STORY WHEN AN ADDRESS WAS TYPED § */
       const word = (d && d.said) || 'Saved';
-      if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+      if (W === USER) keepUser_();
       if (box.closest('#sheet-body') && !auto) closeSheet();
       /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_` — unless the caret is still in it. */
       const form = el.closest('.me-form');

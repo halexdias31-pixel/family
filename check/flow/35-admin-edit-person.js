@@ -1,10 +1,14 @@
 /* EDIT ON SOMEBODY'S CARD (edit-person): an admin opens a student's card in Find › Profiles, Edit, types a first name, and the row changes; a tutor has no Edit and the server refuses. */
+/* THE PEOPLE CARDS AN ADMIN'S PAYLOAD CARRIES (`everyone`), one fixture for flows 35, 36 and 40. */
+const FLOW_EVERYONE_ = { sam: { personId: 'P-S1', title: 'Sam S.', handle: 'samstudent', role: 'Student', image: '' },
+  pat: { personId: 'P-C1', title: 'Pat P.', handle: 'patparent', role: 'Client', image: '' } };
+const flowEveryone_ = (...who) => who.map(k => Object.assign({}, FLOW_EVERYONE_[k]));
 check('an admin edits a student\'s first name from their Find card and the row changes; a tutor sees no Edit and updateProfile refuses them; the form ticks their notifications', async () => {
   const W = cardWorld_();
   const reply = b => (['updateProfile', 'personGet', 'setNotify'].indexOf(b.action) !== -1 ? W.real.post(b) : { success: true, messages: [] });
   const bad = [];
   const profiles = async c => {
-    c.t.DATA().everyone = [{ personId: 'P-S1', title: 'Sam S.', handle: 'samstudent', role: 'Student', image: '' }]; c.t.memoDrop();
+    c.t.DATA().everyone = flowEveryone_('sam'); c.t.memoDrop();
     c.t.go('stuff', false, true);
     const KS = c.t.STUFF(); KS.filters.length = 0; KS.filters.push({ field: 'kindLabel', value: 'Profiles' }, { field: 'profileType', value: 'Student' }); c.w.paintStuff(); await wait(300);
   };

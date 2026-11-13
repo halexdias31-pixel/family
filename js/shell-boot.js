@@ -13,6 +13,10 @@ function oopsDevice_() {
 function oopsHtml_() {
   return renderCard({ kind: 'oops', look: 'oops', tags: [{ text: 'This part did not load', colour: 0 }] });
 }
+/* THE SIGN-IN KEPT ON THIS PHONE; false when storage is blocked, and the sign-in still holds for this visit. */
+function keepUser_() {
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); return true; } catch (e) { return false; }
+}
 function oops_(err, where, host, o) {
   o = o || {};
   if (err && typeof err === 'object') { if (err.__oops) return; try { err.__oops = true; } catch (e) { /* a frozen error is still reported */ } }

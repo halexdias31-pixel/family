@@ -488,7 +488,7 @@ on('notify-pick', el => {
         W.profile = Object.assign({}, W.profile, { notify: Object.assign({}, held, {
           kinds: held.kinds.map(x => x.kind === kind && !x.essential ? Object.assign({}, x, { on: on }) : x) }) });
       } else if (d && d.notify) W.profile = Object.assign({}, W.profile || {}, { notify: d.notify });
-      if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+      if (W === USER) keepUser_();
       NOTIFY_SAID = { pid: String(W.personId || ''),
         text: on ? label + ' is on.' : label + ' is off — we will not email you that.' };
       /* THE CARD ON THE PAGE NOW, for the roles card's reason: a payload landing mid-request repaints the
