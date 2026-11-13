@@ -67,7 +67,7 @@
    "at": "2026-11-13"
   },
   "tutor-820--students--kc-panel.png": {
-   "hash": "0f362465d34c73f7",
+   "hash": "af0f096e2eabce88",
    "by": "claude-reviewed",
    "at": "2026-11-13"
   },
@@ -97,7 +97,7 @@
    "at": "2026-11-13"
   },
   "tutor-820--students--screen.png": {
-   "hash": "55ded41d941df087",
+   "hash": "4193e1d0bfe09d34",
    "by": "claude-reviewed",
    "at": "2026-11-13"
   },
@@ -133,6 +133,51 @@
   },
   "tutor-820--reel--screen.png": {
    "hash": "42550e5159e3f7d9",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "pupil-820--find--question.match.png": {
+   "hash": "2ff2623a4e628b29",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "parent-820--find--question.match.png": {
+   "hash": "2ff2623a4e628b29",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "tutor-820--find--question.match.png": {
+   "hash": "2ff2623a4e628b29",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "admin-820--find--question.match.png": {
+   "hash": "2ff2623a4e628b29",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "pupil-390--find--question.match.png": {
+   "hash": "b4e5d6af128b3f77",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "parent-390--find--question.match.png": {
+   "hash": "b4e5d6af128b3f77",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "tutor-390--find--question.match.png": {
+   "hash": "b4e5d6af128b3f77",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "admin-390--find--question.match.png": {
+   "hash": "b4e5d6af128b3f77",
+   "by": "claude-reviewed",
+   "at": "2026-11-13"
+  },
+  "admin-390--reel--screen.png": {
+   "hash": "2beb8b855d884a73",
    "by": "claude-reviewed",
    "at": "2026-11-13"
   }
