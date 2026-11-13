@@ -875,12 +875,9 @@ check('your exams: the big exam on the Countdowns widget on Tools (466) for a st
   const look = async () => { const was = t.whoami(); await toolBox_(w, 'countdowns', '.cd-box'); const s0 = seen(); if (!was && t.whoami()) t.USER(null); return s0; };
   const signIn = async (u, as) => {
     next = u;
-    await go('account');
-    const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
-    const btn = d.querySelector('[data-do="do-signin"]');
-    if (!name || !pin || !btn) return as + ': the sign-in card is not on the account column — NOT checked';
-    name.value = u.handle; pin.value = '0000';
-    try { t.ACTIONS['do-signin'](btn); } catch (e) { return as + ': do-signin threw: ' + e.message; }
+    /* ON FIND (owner, 13 Nov): the handle in the name tag, then four digit tags. */
+    const no = await findSign_(w, u.handle, '0000');
+    if (no) return as + ': ' + no + ' — NOT checked';
     for (let n = 0; n < 50 && !(t.whoami() && t.whoami().personId === u.personId); n++) await wait(100);
     await settle();
     return t.whoami() && t.whoami().personId === u.personId ? '' : as + ' did not sign in — NOT checked';

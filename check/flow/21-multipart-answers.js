@@ -458,6 +458,8 @@ check('multipart: inside a chosen paper the funnel goes on by the one rule — Q
   if (typeof w.stuffQuestion !== 'function' || typeof w.stuffFiltered !== 'function' || typeof w.stuffPages_ !== 'function') return ['stuffQuestion, stuffFiltered or stuffPages_ not reachable — the paper was NOT checked'];
   const lib = mpLibrary_(w, mpBank_());
   const S = w.__t.STUFF();
+  /* SIGNED OUT, FIND FIRST ASKS WHO YOU ARE (owner, 13 Nov): as a Guest, the funnel follows. */
+  if (!w.__t.whoami()) w.__t.ACTIONS['sign-guest'](w.document.createElement('button'));
   const ask = more => {
     S.filters = [{ field: 'paperId', value: 'P-MP-W' }].concat(more || []);
     const h = w.document.createElement('div');

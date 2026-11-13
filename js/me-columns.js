@@ -128,12 +128,9 @@ function youSettingsPages_() {
 }
 function studentSetPages_() {
   if (!whose_()) {
-    /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist first. */
-    if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
-    /* SIGN IN AND SIGNED IN ARE ONE UNIT, `acct:signed-in` (770): the owner moved it, signed out, and it jumped back — one saved place. */
-    const signIn = (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean);
+    /* SIGNING IN IS FIND'S FIRST MENU (`signMenu_`, owner 13 Nov); signed out this column offers Make an account. */
     const reg = typeof registerCard_ === 'function' ? [registerCard_()] : [];
-    return (typeof cardMark_ === 'function' ? cardMark_('acct:signed-in', signIn) : signIn).concat(reg, lockedPages_('account'));
+    return reg.concat(lockedPages_('account'));
   }
   const who = nameBesideHandle_(whose_().name, whose_().handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */

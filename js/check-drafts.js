@@ -108,9 +108,8 @@ const EXEMPT = [
   /* THE STAFF HUB'S PRICING (405): a what-if moved and saved in one sitting; the saved rate is what a reload draws. */
   { file: 'staff.js', fn: 'ctl', has: 'type="range" data-pv', why: 'the Staff hub\'s rate and seat sliders (405) — moved and saved in one sitting; a reload draws the saved rate' },
   { file: 'staff.js', fn: 'ctl', has: 'class="pf-num" data-pv', why: 'the Staff hub\'s rate and seat boxes (405) — typed and saved in one sitting; a reload draws the saved rate' },
-  { file: 'me.js', fn: 'signInCard_', has: 'id="in-name"', why: 'the sign-in box — half a handle is not work, and none is kept after (383)' },
+  { file: 'cards-render.js', fn: 'answerBox_', has: '<input${attrs || \'\'}>', why: 'the sign-in name tag on Find (owner, 13 Nov), its only caller — half a handle is not work, and none is kept after (383)' },
   { file: 'tiles.js', fn: 'searchPill_', has: 'type="search"', why: 'the one search bar (487): Reels\' videos and the People search — a word looked up, not work, retyped in a second' },
-  { file: 'me.js', fn: 'signInCard_', has: 'id="in-pin"', why: PIN },
   { file: 'me.js', fn: 'registerCard_', has: 'id="reg-pin"', why: PIN },
   { file: 'form.js', fn: 'formBox_', has: 'id="${esc(b.id)}"', why: PIN + ': the Signing in boxes, forms.json\'s `signing-in`' },
   { file: 'me.js', fn: 'registerCard_', has: 'id="reg-noemail"', why: 'reset by the who-is-it question above it, which is asked again on purpose (`REG_NOTE`)' },

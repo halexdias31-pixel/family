@@ -44,26 +44,27 @@ check('signing out sends the notepad typed a moment before — what waits for it
   return bad;
 });
 
-/* THE NAME IN THE TOP BAR IS A CHIP: removing it is signing out, and it goes as a removed chip does (owner, 13 Nov). */
-check('the top bar shows the name as a removable tag; removing it signs out and the tag is gone', async () => {
+/* THE NAME IS FIND'S FIRST CHIP (owner, 13 Nov), no longer the top bar's: removing it is signing out, and it goes as a removed chip does. */
+check('Find\'s first chip is the name as a removable tag, the top bar holds none; removing it signs out and the tag is gone', async () => {
   const { w, sent } = boot({ before: signedInAs_(ANS_ADA) });
   await wait(300);
   const d = w.document, bad = [];
   if (typeof w.topbarPaint_ === 'function') w.topbarPaint_();
   const bar = d.getElementById('topbar-who');
-  if (!bar) return ['#topbar-who is not on the page — nothing was checked'];
-  const tag = bar.querySelector('.chip[data-do="signout"]');
-  if (!tag) return ['signed in, the top bar has no name tag that signs out: ' + bar.innerHTML.slice(0, 200)];
+  if (bar && bar.querySelector('.chip')) bad.push('the top bar still holds a name tag');
+  w.__t.go('stuff', false, true); w.paintFinder_('stuff');
+  const tag = d.querySelector('#stuff-chips .chip');
+  if (!tag || tag.dataset.do !== 'signout') return bad.concat(['signed in, Find\'s first chip is not a name tag that signs out: ' + String(tag && tag.outerHTML).slice(0, 200)]);
   if (!/Ada/.test(tag.textContent)) bad.push('the name tag reads ' + JSON.stringify(tag.textContent));
   if (!/^Sign out /.test(tag.getAttribute('aria-label') || '')) bad.push('the name tag is labelled ' + JSON.stringify(tag.getAttribute('aria-label')));
   if (!tag.querySelector('.chip-x')) bad.push('the name tag has no ×, so it does not look removable like Find\'s chips');
-  if (bar.querySelectorAll('[data-do="signout"]:not(.chip):not(.chip-x)').length) bad.push('a separate Sign out button is still beside the name');
+  if (d.querySelectorAll('#stuff-chips [data-do="signout"]:not(.chip):not(.chip-x)').length) bad.push('a separate Sign out button is still beside the name');
   tag.click();
   await wait(200);
   if (w.__t.whoami()) bad.push('removing the name tag left somebody signed in');
   if (!sent.some(b => b.action === 'signOut')) bad.push('removing the name tag never ended the session on the server');
-  if (typeof w.topbarPaint_ === 'function') w.topbarPaint_();
-  if (bar.querySelector('.chip')) bad.push('the name tag is still in the top bar after signing out');
+  w.paintFinder_('stuff');
+  if (d.querySelector('#stuff-chips [data-do="signout"]')) bad.push('the name tag is still on Find after signing out');
   return bad;
 });
 
@@ -140,8 +141,7 @@ check('sign out, then the next child signs in: none of the last child’s messag
   t.go('account', false, true);
   await wait(50);
   const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
-  if (!fill('in-name', 'ben_bold8') || !fill('in-pin', ['5', '1', '7', '3'].join(''))) return bad.concat(['no sign-in card after signing out']);
-  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  { const no = await findSign_(w, 'ben_bold8', ['5', '1', '7', '3'].join('')); if (no) return bad.concat([no + ' after signing out']); }
   await wait(400);
   if ((t.whoami() || {}).personId !== 'P8') return bad.concat(['Ben did not sign in: ' + JSON.stringify(t.whoami())]);
   t.go('dm', false, true); w.paint('dm');
@@ -161,7 +161,7 @@ check('sign out, then the next child signs in: none of the last child’s messag
   return bad;
 });
 
-check('a wrong PIN empties the PIN box, focuses it and marks it, with one toast and the banner unchanged', async () => {
+check('a wrong PIN clears the ● chips and asks the digits again under the same name, with one toast and the banner unchanged', async () => {
   const { w } = boot({ reply: b => (b.action === 'verifyLogin'
     ? (/^@?nobody/.test(String(b.email)) ? { success: false, why: 'not-an-email', error: 'Sign in with the email on your account — or your handle, as it is on your card.' }
                                         : { success: false, why: 'wrong-pin', error: 'Wrong PIN for that handle.' })
@@ -169,73 +169,63 @@ check('a wrong PIN empties the PIN box, focuses it and marks it, with one toast 
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
   t.USER(null);
-  t.go('account', false, true);
-  await wait(80);
-  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
-  if (!name || !pin) return ['the sign-in card is not on the account column'];
   const bannerWas = (() => { const b = d.getElementById('banner'); return b && !b.classList.contains('hidden') ? String(b.textContent || '') : ''; })();
-  name.value = 'ada_kind7'; pin.value = '1239';
-  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  const no = await findSign_(w, 'ada_kind7', '1239');
+  if (no) return [no];
   await wait(300);
-  const p2 = d.getElementById('in-pin');
-  if (p2.value !== '') bad.push('after a wrong PIN the box still holds ' + JSON.stringify(p2.value) + ' — the child has to delete it before retyping');
-  if (d.activeElement !== p2) bad.push('after a wrong PIN the focus is on ' + (d.activeElement && (d.activeElement.id || d.activeElement.tagName)) + ', not the PIN box');
-  if (p2.getAttribute('aria-invalid') !== 'true') bad.push('the PIN box is not marked aria-invalid, so nothing says which box was wrong');
+  const dots = () => d.querySelectorAll('#stuff-chips .sign-dot').length;
+  /* THE PIN BOX WAS EMPTIED, FOCUSED AND MARKED; ITS DIGITS ARE ● CHIPS NOW, cleared, and the digit menu is asked again under the same name. */
+  if (dots()) bad.push('after a wrong PIN ' + dots() + ' ● chips are still there — the child has to take them off before retyping');
+  if (!d.querySelector('#stuff-groups [data-do="sign-digit"]')) bad.push('after a wrong PIN the digit menu is not asked again');
+  if (!/ada_kind7/.test((d.querySelector('#stuff-chips .chip') || {}).textContent || '')) bad.push('after a wrong PIN the name is not still the first chip');
   if (!/Wrong PIN/.test(toastOf_(d))) bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — the owner’s choice is a toast');
   const ban = d.getElementById('banner');
   if ((ban && !ban.classList.contains('hidden') ? String(ban.textContent || '') : '') !== bannerWas) bad.push('a wrong PIN changed the banner');
-  if (d.getElementById('in-name').getAttribute('aria-invalid')) bad.push('the handle box was marked for a wrong PIN');
-  p2.value = '4'; p2.dispatchEvent(new w.Event('input', { bubbles: true }));
-  if (p2.hasAttribute('aria-invalid')) bad.push('the red edge stayed after the next keystroke');
-  /* A HANDLE NOBODY HAS MARKS THE HANDLE BOX. */
-  d.getElementById('in-name').value = 'nobody_here'; d.getElementById('in-pin').value = '1234';
-  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  if (d.getElementById('in-name')) bad.push('a wrong PIN sent the child back to the name, which was not what was wrong');
+  /* THE NEXT DIGIT IS ONE ● AGAIN, the red edge of the old box. */
+  t.ACTIONS['sign-digit'](d.querySelector('#stuff-groups [data-do="sign-digit"][data-d="4"]'));
+  if (dots() !== 1) bad.push('the next digit after a wrong PIN made ' + dots() + ' ● chips');
+  /* A HANDLE NOBODY HAS MARKS THE NAME TAG, still holding what was typed to correct. */
+  t.ACTIONS['sign-restart'](d.createElement('button'));
+  const no2 = await findSign_(w, 'nobody_here', '1234');
+  if (no2) return bad.concat([no2]);
   await wait(300);
-  if (d.getElementById('in-name').getAttribute('aria-invalid') !== 'true' || d.activeElement !== d.getElementById('in-name')) bad.push('a handle nobody has did not mark and focus the handle box');
-  if (d.getElementById('in-pin').value !== '1234') bad.push('a wrong handle emptied the PIN, which was not what was wrong');
+  const nm = d.getElementById('in-name');
+  if (!nm || nm.getAttribute('aria-invalid') !== 'true' || d.activeElement !== nm) bad.push('a handle nobody has did not mark and focus the name tag');
+  if (nm && nm.value !== 'nobody_here') bad.push('a wrong handle emptied the name tag, so it cannot be corrected: ' + JSON.stringify(nm.value));
+  if (nm) { nm.value = 'nobody_her'; nm.dispatchEvent(new w.Event('input', { bubbles: true })); if (nm.hasAttribute('aria-invalid')) bad.push('the red edge stayed after the next keystroke'); }
   return bad;
 });
 
-check('the PIN box is not a password the iPad keeps, and nothing about who signed in is kept or offered on the device (383)', async () => {
+check('the PIN is no box the iPad keeps, and nothing about who signed in is kept or offered on the device (383)', async () => {
   const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, ANS_ADA) : { success: true, messages: [] };
   const bad = [];
-  /* WHERE THE BROWSER CAN DRAW DOTS ON TEXT (Safari, Chrome): a text box, so Safari has no password to keep. */
-  const { w, sent } = boot({ reply, before: win => { win.CSS = { supports: (p, v) => p === '-webkit-text-security' }; } });
+  const { w, sent } = boot({ reply });
   await wait(300);
   const t = w.__t, d = w.document;
-  t.USER(null); t.go('account', false, true); w.paint('account');
-  /* THE BINDING IS THE DRAWING'S OBSERVER (528), a microtask after it — before any finger, after this line */
-  await wait(0);
-  const pin = d.getElementById('in-pin');
-  if (!pin) return ['no PIN box on the account column'];
-  if (pin.type !== 'text' || !pin.classList.contains('pin-dots')) bad.push('where dots can be drawn the PIN box is type=' + pin.type + ' — a password field is what Safari offers to keep in the iCloud Keychain');
-  /* THE PAD'S DIGITS, NOT THE PHONE'S (528): the markup's `inputmode="numeric"` picks the pad's face (`data-kpb`), and the phone's keyboard is shut out */
-  const flow = d.documentElement.classList.contains('flow');
-  /* ONE SCROLLING PAGE (900): there the PIN keeps the phone's own digits — numeric, never bound to the pad. */
-  const want = { autocomplete: 'one-time-code', maxlength: '4', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: flow ? 'numeric' : 'none', 'data-kpb': flow ? null : 'num' };
-  Object.keys(want).forEach(a => { if (pin.getAttribute(a) !== want[a]) bad.push('the PIN box has ' + a + '=' + JSON.stringify(pin.getAttribute(a)) + ', wanted ' + JSON.stringify(want[a])); });
-  /* AND WHERE IT CANNOT, A PASSWORD BOX STILL NOT OFFERED TO THE KEYCHAIN. */
-  const b2 = boot({ reply, before: win => { win.CSS = { supports: () => false }; } });
-  await wait(300);
-  b2.w.__t.USER(null); b2.w.__t.go('account', false, true); b2.w.paint('account');
-  const pin2 = b2.w.document.getElementById('in-pin');
-  if (!pin2 || pin2.type !== 'password' || pin2.getAttribute('autocomplete') !== 'one-time-code') bad.push('without dots the PIN box is ' + (pin2 && pin2.type) + ' autocomplete=' + (pin2 && pin2.getAttribute('autocomplete')) + ' — wanted password, one-time-code');
+  t.USER(null);
+  const no = await findSign_(w, 'ada_kind7', '');
+  if (no) return [no];
+  /* THE PIN IS FOUR DIGIT TAGS (owner, 13 Nov): no field at all, so no password for Safari to offer the iCloud Keychain, and no phone keyboard. */
+  const boxes = [...d.querySelectorAll('#stuff-groups input, #stuff-chips input, #s-stuff input[type="password"], #in-pin')];
+  if (boxes.length) bad.push('the PIN step draws ' + boxes.length + ' box(es) — the PIN is tags, never a field a browser can keep');
+  const digits = [...d.querySelectorAll('#stuff-groups [data-do="sign-digit"]')];
+  if (digits.map(x => x.textContent.trim()).join('') !== '0123456789') bad.push('the PIN menu is ' + JSON.stringify(digits.map(x => x.textContent.trim()).join('')) + ', wanted the tags 0 to 9');
   /* SIGNED IN BY HANDLE AND PIN: neither is remembered, anywhere (383). */
-  d.getElementById('in-name').value = 'ada_kind7';
-  pin.value = ['4', '8', '2', '6'].join('');
-  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  ['4', '8', '2', '6'].forEach(c => t.ACTIONS['sign-digit'](d.querySelector('#stuff-groups [data-do="sign-digit"][data-d="' + c + '"]')));
   await wait(300);
   if (!sent.some(b => b.action === 'verifyLogin')) return bad.concat(['signing in posted nothing']);
   const all = []; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); all.push(k + '=' + w.localStorage.getItem(k)); }
   if (all.some(x => /4826/.test(x))) bad.push('THE PIN IS WRITTEN ON THE DEVICE: ' + all.filter(x => /4826/.test(x)).join(' | '));
   if (all.some(x => /ada_kind7/.test(x) && !/^familyUser=/.test(x))) bad.push('the handle is kept on the device for next time: ' + all.filter(x => /ada_kind7/.test(x) && !/^familyUser=/.test(x)).join(' | '));
   if (/"answers"|"submissions"|"favourites"/.test(String(w.localStorage.getItem('familyUser')))) bad.push('the sign-in reply’s per-person extras were kept in familyUser for thirty days');
-  /* SIGNED OUT, THE BOX IS EMPTY AND NO NAME IS OFFERED. */
+  /* SIGNED OUT, THE NAME TAG IS EMPTY AND NO NAME IS OFFERED. */
   t.ACTIONS.signout(d.createElement('button'));
-  t.go('account', false, true); w.paint('account');
-  if (d.querySelector('#s-account .hchips, #s-account [data-do="handle-pick"]')) bad.push('signed out, the card offers handles that signed in here');
+  const no2 = await findSign_(w, null);
+  if (no2) return bad.concat([no2]);
+  if (d.querySelector('#stuff-groups .hchips, #stuff-groups [data-do="handle-pick"]')) bad.push('signed out, Find offers handles that signed in here');
   const nm = d.getElementById('in-name');
-  if (!nm || nm.value || nm.hasAttribute('placeholder')) bad.push('signed out, the sign-in box is not empty: ' + JSON.stringify(nm && (nm.value || nm.getAttribute('placeholder'))));
+  if (!nm || nm.value || nm.hasAttribute('placeholder')) bad.push('signed out, the name tag is not empty: ' + JSON.stringify(nm && (nm.value || nm.getAttribute('placeholder'))));
   return bad;
 });
 
@@ -247,18 +237,17 @@ check('the sign-in box has no example and no remembered name, even on a device a
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
   if (w.localStorage.getItem('familyHandles') || w.localStorage.getItem('familyAdminHint')) bad.push('the old remembered names were not wiped from the device');
-  const box = () => { t.go('account', false, true); w.paint('account'); return d.getElementById('in-name'); };
+  const box = () => { t.go('stuff', false, true); w.paintFinder_('stuff'); return d.getElementById('in-name'); };
   t.USER(null);
-  if (!box()) return ['no sign-in box on the account column'];
+  if (!box()) return ['no name tag on Find'];
   const blank = when => { if (box().hasAttribute('placeholder') || box().value) bad.push(when + ' the sign-in box shows ' + JSON.stringify(box().getAttribute('placeholder') || box().value)); };
   blank('on a fresh device');
-  if (/old_one1|old@example/.test(d.getElementById('s-account').innerHTML)) bad.push('an old remembered name is on the card');
-  box().value = 'admin@example.com'; d.getElementById('in-pin').value = '4826';
-  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  if (/old_one1|old@example/.test(d.getElementById('s-stuff').innerHTML)) bad.push('an old remembered name is on Find');
+  { const no = await findSign_(w, 'admin@example.com', '4826'); if (no) return bad.concat([no]); }
   await wait(300);
   t.ACTIONS.signout(d.createElement('button'));
   blank('after an admin signed in and out,');
-  if (/test_admin1|admin@example/.test(d.getElementById('s-account').innerHTML)) bad.push('the admin\'s name is offered on the card');
+  if (/test_admin1|admin@example/.test(d.getElementById('s-stuff').innerHTML)) bad.push('the admin\'s name is offered on Find');
   return bad;
 });
 
@@ -300,8 +289,7 @@ check('signing in brings the submissions, stars, family and answers with the rep
   if (typeof w.signedIn_ !== 'function') return ['signedIn_ not reachable'];
   t.USER(null); t.go('account', false, true); w.paint('account');
   hold = true;
-  d.getElementById('in-name').value = 'ada_kind7'; d.getElementById('in-pin').value = '4826';
-  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  { const no = await findSign_(w, 'ada_kind7', '4826'); if (no) return bad.concat([no]); }
   await wait(300);
   if (!/Signed in as Ada/.test(toastOf_(d))) bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — on an iPad passed between children it has to say whose account');
   /* THE LATEST SUBMISSION, on the card and in the box, with "Signed in" — the payload never arrives here. */
@@ -319,26 +307,24 @@ check('signing in brings the submissions, stars, family and answers with the rep
   return bad;
 });
 
-check('signing in on the account column goes back where you came from — and Find, for a child with nowhere to go back to', async () => {
+check('signing in on Find (owner, 13 Nov) leaves the child on Find — after Tools, with Games in front, and opened on the account column', async () => {
   const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, ANS_ADA) : { success: true, messages: [] };
   const { w } = boot({ reply });
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
   const signIn = async () => {
-    d.getElementById('in-name').value = 'ada_kind7'; d.getElementById('in-pin').value = '4826';
-    t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+    { const no = await findSign_(w, 'ada_kind7', '4826'); if (no) bad.push(no); }
     await wait(300);
   };
   /* FIND STANDS A MEMBER IN TO LOOK (790), and the child signs in after: signed out again first. */
   t.findGroup('Tools'); t.USER(null); t.go('account', false, true); w.paint('account');
   await signIn();
-  if (t.AT() !== 'stuff') bad.push('signed in from the account column after Tools, the child is on ' + t.AT() + ' — wanted back on Tools');
+  if (t.AT() !== 'stuff') bad.push('signed in on Find after Tools, the child is on ' + t.AT() + ' — wanted Find');
   /* SIGNED IN WHILE ANOTHER COLUMN IS IN FRONT — the emailed link at start-up, Google's own button — the
      child is left where they are: only a sign-in made ON the account column goes back. */
   t.ACTIONS.signout(d.createElement('button'));
   t.findGroup('Games'); t.USER(null); w.paint('account');
-  d.getElementById('in-name').value = 'ada_kind7'; d.getElementById('in-pin').value = '4826';
-  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  { const no = await findSign_(w, 'ada_kind7', '4826'); if (no) return bad.concat([no]); }
   await wait(300);
   if (t.AT() !== 'stuff') bad.push('signed in with Games in front, the child was moved to ' + t.AT());
   /* OPENED ON THE ACCOUNT COLUMN, NOTHING BEFORE IT: a child goes to Find. */
@@ -347,8 +333,7 @@ check('signing in on the account column goes back where you came from — and Fi
   if (b2.w.__t.AT() !== 'account') return bad.concat(['the app did not open on the account column, so "nowhere to go back to" was NOT checked']);
   b2.w.__t.USER(null); b2.w.paint('account');
   const d2 = b2.w.document;
-  d2.getElementById('in-name').value = 'ada_kind7'; d2.getElementById('in-pin').value = '4826';
-  b2.w.__t.ACTIONS['do-signin'](d2.querySelector('[data-do="do-signin"]'));
+  { const no = await findSign_(b2.w, 'ada_kind7', '4826'); if (no) return bad.concat([no]); }
   await wait(300);
   if (b2.w.__t.AT() !== 'stuff') bad.push('a child signing in with nowhere to go back to is on ' + b2.w.__t.AT() + ' — wanted Find');
   return bad;
@@ -389,8 +374,8 @@ const keepWalk_ = async (w, id) => {
   }
   return said;
 };
-/* ---------- THE FINDER IS FOR MEMBERS (400) — the owner, 24 Oct: signed out, Find is one card, Sign in or Join ---------- */
-check('signed out, Find is the one front door: the search bar and the menu, whose only answer is Settings, holding Sign in and Make an account; Make an account asks Student or Client; signed in, Find answers more (C+, 1040)', async () => {
+/* ---------- THE FINDER IS FOR MEMBERS (400); SIGNED OUT, ITS FIRST MENU IS WHO YOU ARE (owner, 13 Nov) ---------- */
+check('signed out, Find is the one front door: its first menu is Guest, the name tag, Make an account and Forgot PIN; Guest\'s only answer is Settings, holding Make an account, which asks Student or Client; signed in, Find answers more (C+, 1040)', async () => {
   const { w } = boot({ payload: payload() });
   for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
   await wait(300);
@@ -399,24 +384,28 @@ check('signed out, Find is the one front door: the search bar and the menu, whos
   t.go('stuff', false, true); w.paint('stuff'); await wait(100);
   if (d.querySelector('#s-stuff .members-only')) bad.push('signed out, Find still draws the old Members only card');
   if (!d.getElementById('stuff-chips')) bad.push('signed out, Find draws no chips row (one front door: the same shape for everyone)');
+  if (!d.querySelector('#stuff-groups [data-do="sign-guest"]') || !d.getElementById('in-name') || !d.querySelector('#stuff-groups [data-do="sign-join"]')) bad.push('signed out, Find\'s first menu is not Guest, the name tag and Make an account');
   const items = w.stuffItemsBuild_();
   const own = (items || []).filter(Boolean);
   if (own.some(x => x.kind !== 'setting')) bad.push('signed out, Find holds more than Settings: ' + JSON.stringify([...new Set(own.map(x => x.kind))]));
-  const signItem = own.find(x => x.signIn);
-  if (!signItem) return bad.concat(['signed out, Settings holds no Sign in item']);
-  const host = d.createElement('div'); host.innerHTML = w.settingDoorCard_(signItem || { signIn: true }); d.body.appendChild(host);
-  const signin = host.querySelector('[data-do="do-signin"]'), join = host.querySelector('[data-do="register"]');
-  if (!signin || !join) return bad.concat(['the Settings card has no Sign in and Make an account tiles']);
-  A.register(join); await wait(50);
+  if (own.some(x => x.signIn)) bad.push('signed out, Settings still holds a separate Sign in card');
+  const joinItem = own.find(x => x.join);
+  if (!joinItem) return bad.concat(['signed out, Settings holds no Make an account item']);
+  const host = d.createElement('div'); host.innerHTML = w.settingDoorCard_(joinItem); d.body.appendChild(host);
+  if (host.querySelector('[data-do="do-signin"], #in-pin')) bad.push('the Settings card still draws the old sign-in form');
   const who = [...host.querySelectorAll('.reg-card #reg-who-in option')].map(b => b.textContent.trim());
   if (!who.some(x => /Student/.test(x)) || !who.some(x => /Client/.test(x))) bad.push('Make an account did not open the sign-up asking Student or Client: ' + JSON.stringify(who));
   host.remove();
+  /* AND FIND'S OWN Make an account TAG draws the same form in place of the menu. */
+  A['sign-join'](d.querySelector('#stuff-groups [data-do="sign-join"]'));
+  if (!d.querySelector('#stuff-groups .reg-card #reg-who-in')) bad.push('Find\'s Make an account tag drew no sign-up');
+  A['sign-restart'](d.createElement('button'));
   w.signedIn_(Object.assign({ success: true }, MEMBER_), 'momember');
   await wait(80);
   t.go('stuff', false, true); w.paint('stuff'); await wait(150);
   const after = w.stuffItemsBuild_();
   if (!d.getElementById('stuff-chips') || d.querySelector('#s-stuff .members-only')) bad.push('signed in, Find is not the finder');
-  if (after.some(x => x && x.signIn)) bad.push('signed in, Settings still offers Sign in');
+  if (after.some(x => x && (x.signIn || x.join))) bad.push('signed in, Settings still offers Sign in or Make an account');
   if (!after.some(x => x && x.kind !== 'setting')) bad.push('signed in, Find still answers only Settings');
   return bad;
 });
@@ -533,12 +522,7 @@ check('a session that ends while a child types keeps Find for them to sign in ag
     look('the session ended under the child', true);
     if (t.STUFF().whose !== 'P12') bad.push('the kept Find does not say whose it is: STUFF.whose = ' + JSON.stringify(t.STUFF().whose));
     if (w.localStorage.getItem('ans:u:P12:' + x.key) !== '80') bad.push('the session ending took the child’s answer off the device: ' + JSON.stringify(w.localStorage.getItem('ans:u:P12:' + x.key)));
-    t.go('account');
-    await wait(50);
-    const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
-    if (!name || !pin) return bad.concat(['no sign-in card on the account column after the session ended']);
-    name.value = KEEP_SOL_.handle; pin.value = '0000';
-    t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+    { const no = await findSign_(w, KEEP_SOL_.handle, '0000'); if (no) return bad.concat([no + ' after the session ended']); }
     for (let i = 0; i < 40 && !t.whoami(); i++) await wait(25);
     await wait(300);
     if ((t.whoami() || {}).personId !== 'P12') return bad.concat(['the child did not sign in again: ' + JSON.stringify(t.whoami())]);
@@ -961,10 +945,7 @@ check('a child whose handle was moved signs in with the old one on her slip, and
   await wait(300);
   t.go('account', false, true);
   await wait(120);
-  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
-  if (!name || !pin) return ['there is no sign-in card to sign in on, so the old handle was NOT typed'];
-  name.value = 'ella_kind42'; pin.value = '0000';
-  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  { const no = await findSign_(w, 'ella_kind42', '0000'); if (no) return [no + ', so the old handle was NOT typed']; }
   for (let k = 0; k < 40 && !t.whoami(); k++) await wait(100);
   await wait(200);
   const u = t.whoami();

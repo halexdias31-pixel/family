@@ -207,8 +207,10 @@ function tagScan() {
   });
   await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED && typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS !== null, null, { timeout: 90000 });
-  await page.evaluate(() => new Promise(ok => { go('account'); setTimeout(() => { document.getElementById('in-name').value = 'test@example.org'; document.getElementById('in-pin').value = '0000';
-    document.querySelector('[data-do="do-signin"]').click(); const t = setInterval(() => { if (USER) { clearInterval(t); ok(); } }, 50); }, 400); }));
+  /* SIGNED IN ON FIND (owner, 13 Nov): the name tag and Enter, then four digit tags. */
+  await page.evaluate(() => new Promise(ok => { go('stuff'); setTimeout(() => { ACTIONS['sign-restart'](document.body); const n = document.getElementById('in-name'); n.value = 'test@example.org';
+    n.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); ['0', '0', '0', '0'].forEach(c => ACTIONS['sign-digit'](document.querySelector('#stuff-groups [data-do="sign-digit"][data-d="' + c + '"]')));
+    const t = setInterval(() => { if (USER) { clearInterval(t); ok(); } }, 50); }, 400); }));
   await page.evaluate(() => go('stuff'));
   await page.waitForTimeout(1000);
   const st = await page.evaluate(staticPass, SAMPLE);

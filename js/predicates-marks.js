@@ -8,7 +8,7 @@ const isStudentsCol_ = col => col === 'students';
 /* A screen's host that is the screen you are on; the toast now on screen; a sign-in box, its name or its code (owner, 11 Nov). */
 const isAtHost_ = h => !!h && h.id === 's-' + AT;
 const isToast_ = el => !!el && el.id === 'toast';
-const SIGN_IN_BOXES = ['in-name', 'in-pin'];
+const SIGN_IN_BOXES = ['in-name'];
 const isSignInBox_ = el => !!el && SIGN_IN_BOXES.indexOf(el.id) !== -1;
 /* A tool laid on a figure (MEAS) rather than held on the pad: the ruler and the protractor. */
 const MEASURE_TOOLS = ['ruler', 'protractor'];
