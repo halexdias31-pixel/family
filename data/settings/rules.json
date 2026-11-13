@@ -724,6 +724,15 @@
    "since": "2026-11-12"
   },
   {
+   "id": "8.4",
+   "principle": 8,
+   "text": "The backend stays awake: one five-minute `keepWarm` trigger, booked by the admin-load setup and never twice, pings `?ping=1`, which answers before any sheet work; the page never depends on it.",
+   "checks": [
+    "keepwarm"
+   ],
+   "since": "2026-11-13"
+  },
+  {
    "id": "9.1",
    "principle": 9,
    "text": "Private by default: a student sees only themselves and their tutors, a parent their own children, a tutor their own students and their parents, admin everyone.",

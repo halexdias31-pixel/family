@@ -449,7 +449,13 @@ list, one written reason each. (`missingKeys()` only knows the screens you happe
 | Spreadsheet contents | Immediately, if the edit watch is installed. |
 
 Every sync route replaces the project's files wholesale: code typed only into the Apps Script editor is
-lost at the next sync. The routes, the two API switches and why `pullFromGitHub` is blocked: `docs/deploying.md`.
+lost at the next sync.
+
+**Keep-awake (rule 8.4):** the admin-load setup books one `keepWarm` trigger (every 5 minutes, never twice,
+`keepWarmKeepBooked_` in `core.gs`); it GETs the app's own URL with `?ping=1`, which `doGet` answers before any
+sheet work. The page never asks for the ping. `node js/check-keepwarm.js` proves both.
+
+The routes, the two API switches and why `pullFromGitHub` is blocked: `docs/deploying.md`.
 
 ## Checking your work
 

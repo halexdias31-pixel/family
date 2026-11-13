@@ -71,6 +71,7 @@ Everything below derives from that core: 12 principles, each with its specific r
 - **8.1** Instant on a phone: any tap answers within 1 s, the first paint is the last, no long task while someone waits, files within their size budget. Checks: `ux`, `wait`, `size`, `jank`, `load`, `arrival`, `update-continuity`
 - **8.2** Always load fresh: the build stamp is the only cache-buster, no service worker fetch handler, a new build never reloads a page on screen. Checks: `cache`, `deploy`, `offline`
 - **8.3** Cheap to read: small notes, few bytes per search, comments say why in ≤240 chars, no tombstones. Checks: `read-bytes`, `search-bytes`, `comment-ratio`, `big-notes`, `tombstones`, `comments`, `test-biggest`
+- **8.4** The backend stays awake: one five-minute `keepWarm` trigger, booked by the admin-load setup and never twice, pings `?ping=1`, which answers before any sheet work; the page never depends on it. Checks: `keepwarm`
 
 ## 9. Safe and private
 - **9.1** Private by default: a student sees only themselves and their tutors, a parent their own children, a tutor their own students and their parents, admin everyone. Checks: `visibility`, `film-shares`, `work-file`, `inbox`

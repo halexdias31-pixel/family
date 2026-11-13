@@ -310,6 +310,7 @@
     "check-posts.js": "secondary",
     "check-suggest.js": "secondary",
     "check-library-ledger.js": "core",
+    "check-keepwarm.js": "secondary",
     "check-films.js": "secondary",
     "check-hands.js": "secondary",
     "check-media.js": "secondary",
