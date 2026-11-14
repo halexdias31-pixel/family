@@ -51,22 +51,14 @@ function paintDocket() {
   const left = list.filter(l => !l.done).length;
 
   /* ---------- A ROW IS IDENTIFIED BY ITS TEXT, NOT BY WHERE IT SITS § */
-  host.innerHTML = list.map((l, i) => `
-    <label class="row dock-item${l.done ? ' done' : ''}">
-      <input type="checkbox" data-do="dock-tick" data-i="${i}" data-t="${esc(l.text)}"
-             ${l.done ? 'checked' : ''}>
-      <span class="box"></span>
-      <span class="dock-text">${mark(l.text)}</span>
-      ${/* A BUTTON, NOT A SPAN. § */
-            ''}
-      ${tile_({ icon: 'close', label: 'Remove ' + l.text, act: 'dock-drop', data: { i: i, t: l.text }, cls: 'text-drop' })}
-    </label>`).join('')
-    + `<div class="row dock-foot">
-        <span class="k">${left ? left + ' left' : 'All done'}</span>
-        ${list.length > left
-          ? '<span class="v">' + tile_({ form: true, label: 'Clear done', act: 'dock-clear', kind: 'quiet', cls: 'tiny' }) + '</span>'
-          : ''}
-      </div>`;
+  host.innerHTML = cardBlocks_(list.map((l, i) => ({ type: 'group', tag: 'label', look: 'row dock-item' + (l.done ? ' done' : ''),
+    blocks: [{ type: 'control', attrs: { type: 'checkbox', 'data-do': 'dock-tick', 'data-i': i, 'data-t': l.text, checked: !!l.done } },
+      { type: 'group', tag: 'span', look: 'box' },
+      { type: 'group', tag: 'span', look: 'dock-text', text: { marked: l.text } }],
+    /* A BUTTON, NOT A SPAN. § */
+    tiles: [{ icon: 'close', label: 'Remove ' + l.text, act: 'dock-drop', data: { i: i, t: l.text }, cls: 'text-drop' }] }))
+    .concat({ type: 'group', look: 'row dock-foot', blocks: [{ type: 'group', tag: 'span', look: 'k', text: left ? left + ' left' : 'All done' }]
+      .concat(list.length > left ? [{ type: 'group', tag: 'span', look: 'v', tiles: [{ form: true, label: 'Clear done', act: 'dock-clear', kind: 'quiet', cls: 'tiny' }] }] : []) }));
 }
 
 /* WHICH ROW THE TAP MEANT. See the note in `paintDocket`: the index is a hint, the text is the
@@ -225,26 +217,28 @@ function measDraw_(fig) {
   const vb = (svg.getAttribute('viewBox') || '0 0 340 340').split(/[\s,]+/).map(Number);
   const r = svg.getBoundingClientRect(), u = r.width ? vb[2] / r.width : 1;   // figure units per screen px
   const g = MEAS, R = g.R, T = 'translate(' + g.c[0].toFixed(2) + ' ' + g.c[1].toFixed(2) + ') rotate(' + g.rot.toFixed(2) + ')';
-  let body = '';
+  /* THE TOOL AS SHAPES (data), drawn by the one maker's `drawing` block. */
+  const body = [], P = (cls, d) => body.push({ el: 'path', a: { class: cls, d } }),
+    N = (cls, x, y, fs, t) => body.push({ el: 'text', a: { class: cls, x: x.toFixed(2), y: y.toFixed(2), 'font-size': fs.toFixed(2) }, text: String(t) });
   if (g.tool === 'protractor') {
-    body += `<path class="meas-body" d="M ${-R} 0 A ${R} ${R} 0 0 1 ${R} 0 Z"/>`;
+    P('meas-body', `M ${-R} 0 A ${R} ${R} 0 0 1 ${R} 0 Z`);
     for (let a = 0; a <= 180; a += 5) {
       const t = a * Math.PI / 180, c = Math.cos(t), s = -Math.sin(t), L = a % 10 ? 0.05 : a % 30 ? 0.08 : 0.12;
-      body += `<path class="meas-tick" d="M ${(R * c).toFixed(2)} ${(R * s).toFixed(2)} L ${(R * (1 - L) * c).toFixed(2)} ${(R * (1 - L) * s).toFixed(2)}"/>`;
+      P('meas-tick', `M ${(R * c).toFixed(2)} ${(R * s).toFixed(2)} L ${(R * (1 - L) * c).toFixed(2)} ${(R * (1 - L) * s).toFixed(2)}`);
       if (!(a % 30)) {
         const o = R * 0.8, i = R * 0.64;
-        body += `<text class="meas-num" x="${(o * c).toFixed(2)}" y="${(o * s).toFixed(2)}" font-size="${(R * 0.08).toFixed(2)}">${a}</text>`
-          + `<text class="meas-num meas-in" x="${(i * c).toFixed(2)}" y="${(i * s).toFixed(2)}" font-size="${(R * 0.07).toFixed(2)}">${180 - a}</text>`;
+        N('meas-num', o * c, o * s, R * 0.08, a);
+        N('meas-num meas-in', i * c, i * s, R * 0.07, 180 - a);
       }
     }
-    body += `<path class="meas-tick" d="M ${-R} 0 L ${R} 0 M 0 ${-R * 0.06} L 0 ${R * 0.06} M ${-R * 0.06} 0 L ${R * 0.06} 0"/>`;
+    P('meas-tick', `M ${-R} 0 L ${R} 0 M 0 ${-R * 0.06} L 0 ${R * 0.06} M ${-R * 0.06} 0 L ${R * 0.06} 0`);
   } else {
     const W = g.L, H = Math.max(8, 30 * u), cm = g.cm;
-    body += `<rect class="meas-body" x="0" y="0" width="${W.toFixed(2)}" height="${H.toFixed(2)}"/>`;
+    body.push({ el: 'rect', a: { class: 'meas-body', x: '0', y: '0', width: W.toFixed(2), height: H.toFixed(2) } });
     for (let mm = 0, x = 0; x <= W + 1e-6; mm++, x = mm * cm / 10) {
       const L = mm % 10 ? (mm % 5 ? 0.25 : 0.4) : 0.55;
-      body += `<path class="meas-tick" d="M ${x.toFixed(2)} 0 L ${x.toFixed(2)} ${(H * L).toFixed(2)}"/>`;
-      if (!(mm % 10)) body += `<text class="meas-num" x="${x.toFixed(2)}" y="${(H * 0.85).toFixed(2)}" font-size="${(H * 0.32).toFixed(2)}">${mm / 10}</text>`;
+      P('meas-tick', `M ${x.toFixed(2)} 0 L ${x.toFixed(2)} ${(H * L).toFixed(2)}`);
+      if (!(mm % 10)) N('meas-num', x, H * 0.85, H * 0.32, mm / 10);
     }
   }
   /* THE TURNING HANDLE, a fingertip wide wherever the figure is drawn small, at whichever end of the tool is on the glass */
@@ -262,8 +256,8 @@ function measDraw_(fig) {
   };
   if (!g.hold) g.h = spots.find(onGlass) || spots[spots.length - 1];
   const hx = g.h[0], hy = g.h[1];
-  body += `<circle class="meas-turn" cx="${hx.toFixed(2)}" cy="${hy.toFixed(2)}" r="${(24 * u).toFixed(2)}"/>`
-    + `<path class="meas-turn-i" d="M ${(hx - 8 * u).toFixed(2)} ${hy.toFixed(2)} A ${(8 * u).toFixed(2)} ${(8 * u).toFixed(2)} 0 1 1 ${hx.toFixed(2)} ${(hy + 8 * u).toFixed(2)}"/>`;
+  body.push({ el: 'circle', a: { class: 'meas-turn', cx: hx.toFixed(2), cy: hy.toFixed(2), r: (24 * u).toFixed(2) } });
+  P('meas-turn-i', `M ${(hx - 8 * u).toFixed(2)} ${hy.toFixed(2)} A ${(8 * u).toFixed(2)} ${(8 * u).toFixed(2)} 0 1 1 ${hx.toFixed(2)} ${(hy + 8 * u).toFixed(2)}`);
   const o = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   o.setAttribute('class', 'meas');
   o.setAttribute('viewBox', vb.join(' '));
@@ -272,7 +266,7 @@ function measDraw_(fig) {
   o.setAttribute('data-c', g.c.map(v => v.toFixed(2)).join(','));
   o.setAttribute('data-rot', g.rot.toFixed(2));
   o.setAttribute('aria-label', g.tool === 'protractor' ? 'Protractor: drag it, turn it with 2 fingers or the round handle' : 'Ruler: drag it, turn it with 2 fingers or the round handle');
-  o.innerHTML = `<g transform="${T}">${body}</g>`;
+  o.innerHTML = cardBlocks_({ type: 'drawing', node: { el: 'g', a: { transform: T }, kids: body } });
   fig.classList.add('meas-host');
   /* EXACTLY OVER THE PICTURE, not the figure's whole box: the same viewBox on the same rectangle is the same units */
   const hr = fig.getBoundingClientRect();

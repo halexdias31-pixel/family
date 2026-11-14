@@ -38,36 +38,38 @@ function oqItem_(q) {
   const a = (OQ.answers || {})[q.id] || (q.status === 'answered' ? { choice: q.answer || 'note', note: q.note || '' } : null);
   const opts = Object.keys(q.options || {}).filter(k => q.options[k]);
   const said = a ? 'Answered: ' + (a.choice === 'note' ? '' : '(' + a.choice + ') ' + ((q.options || {})[a.choice] || '')) + (a.note ? ' “' + a.note + '”' : '') : '';
-  return `<div class="oq-item" data-oq="${esc(q.id)}">
-    <p class="oq-q">${q.philosophy ? qtag_('Philosophy') + ' ' : ''}${esc(q.question)}</p>
-    <div class="tile-row">${opts.map(k => tile_({ form: true, kind: a && a.choice === k ? '' : 'quiet', label: k + ') ' + q.options[k], act: 'oq-answer', data: { id: q.id, choice: k } })).join('')}</div>
-    <label class="field"><input type="text" data-oq-note value="${esc((a && a.note) || '')}" placeholder="Something else…" maxlength="500" aria-label="${esc(q.question)} — something else" autocomplete="off"></label>
-    <div class="tile-row">${tile_({ form: true, kind: 'quiet', label: 'Send note', act: 'oq-answer', data: { id: q.id, choice: 'note' } })}</div>
-    <p class="me-said oq-said">${esc(said) || '&nbsp;'}</p>
-  </div>`;
+  return cardBlock_({ type: 'group', look: 'oq-item', attrs: { 'data-oq': q.id }, blocks: [
+    { type: 'group', tag: 'p', look: 'oq-q', inner: (q.philosophy ? qtag_('Philosophy') + ' ' : '') + esc(q.question) },
+    { type: 'tiles', tiles: opts.map(k => ({ form: true, kind: a && a.choice === k ? '' : 'quiet', label: k + ') ' + q.options[k], act: 'oq-answer', data: { id: q.id, choice: k } })) },
+    { type: 'field', blocks: [{ type: 'control', tag: 'input', attrs: { type: 'text', 'data-oq-note': true, value: (a && a.note) || '', placeholder: 'Something else…', maxlength: 500,
+      'aria-label': q.question + ' — something else', autocomplete: 'off' } }] },
+    { type: 'tiles', tiles: [{ form: true, kind: 'quiet', label: 'Send note', act: 'oq-answer', data: { id: q.id, choice: 'note' } }] },
+    { type: 'group', tag: 'p', look: 'me-said oq-said', text: said || '\u00a0' }] });
 }
 /* THE INBOX: the five open questions that settle most (philosophy first, then `settles`, then file order); answered fold away. */
 const OQ_SHOWN = 5;
 const oqDone_ = q => q.status === 'answered' || !!(OQ.answers || {})[q.id];
 const oqWeight_ = q => (q.philosophy ? 100 : 0) + (Number(q.settles) || 0);
 function oqInbox_() {
-  if (!OQ.list) { oqStart_(); return '<h4>Owner questions</h4>' + (typeof loading_ === 'function' ? loading_() : ''); }
+  if (!OQ.list) { oqStart_(); return cardBlock_({ type: 'group', tag: 'h4', text: 'Owner questions' }) + (typeof loading_ === 'function' ? loading_() : ''); }
   const open = OQ.list.filter(q => !oqDone_(q)).map((q, i) => ({ q, i })).sort((x, y) => oqWeight_(y.q) - oqWeight_(x.q) || x.i - y.i).map(x => x.q);
   const done = OQ.list.filter(oqDone_);
-  return `<h4>Owner questions · ${open.length} open${open.length > OQ_SHOWN ? ', ' + OQ_SHOWN + ' shown' : ''}</h4>${OQ.error ? `<p class="me-said">${esc(OQ.error)}</p>` : ''}${open.slice(0, OQ_SHOWN).map(oqItem_).join('')}
-    ${done.length ? `<details class="oq-done"><summary>Answered · ${done.length}</summary>${done.map(oqItem_).join('')}</details>` : ''}`;
+  return cardBlocks_([{ type: 'group', tag: 'h4', text: 'Owner questions · ' + open.length + ' open' + (open.length > OQ_SHOWN ? ', ' + OQ_SHOWN + ' shown' : '') },
+    OQ.error ? { type: 'group', tag: 'p', look: 'me-said', text: OQ.error } : null]) + open.slice(0, OQ_SHOWN).map(oqItem_).join('')
+    + (done.length ? cardBlock_({ type: 'group', tag: 'details', look: 'oq-done', blocks: [{ type: 'group', tag: 'summary', text: 'Answered · ' + done.length }], inner: done.map(oqItem_).join('') }) : '');
 }
 
 function checksInner_() {
   const s = typeof HEALTH !== 'undefined' ? HEALTH.got : null;
   if (typeof siteHealthCard_ === 'function' && typeof HEALTH !== 'undefined' && !HEALTH.asked) siteHealthCard_();
-  const head = '<div class="qtags">' + qtag_('Business') + qtag_('Admin only') + '</div><h3>Optimiser</h3>';
-  if (!s) return head + (HEALTH && HEALTH.failed ? '<p class="me-said">The score could not be read. Run node tools/health.js and push.</p>' : (typeof loading_ === 'function' ? loading_() : '')) + oqInbox_();
+  const head = cardBlocks_([{ type: 'group', look: 'qtags', inner: qtag_('Business') + qtag_('Admin only') }, { type: 'msgHead', text: 'Optimiser' }]);
+  if (!s) return head + (HEALTH && HEALTH.failed ? cardBlock_({ type: 'group', tag: 'p', look: 'me-said', text: 'The score could not be read. Run node tools/health.js and push.' }) : (typeof loading_ === 'function' ? loading_() : '')) + oqInbox_();
   const A = checksAreas_(s);
-  return `${head}<p class="stab-score">Optimiser: ${esc(String(checksTotal_(s, A)))}%</p>
-    ${CHECK_AREAS.filter(([k]) => A[k]).map(([k, n]) => `<h4>${esc(n)} ${esc(String(A[k].score))}%${(s.weights || {})[k] ? '' : ' ' + qtag_('inside the others')}</h4>
-      <ol class="stab-top">${(A[k].next || []).slice(0, 3).map(t => `<li>${esc(String(t))}</li>`).join('') || '<li>Nothing to do.</li>'}</ol>`).join('')}
-    ${oqInbox_()}`;
+  return head + cardBlock_({ type: 'group', tag: 'p', look: 'stab-score', text: 'Optimiser: ' + checksTotal_(s, A) + '%' })
+    + CHECK_AREAS.filter(([k]) => A[k]).map(([k, n]) => cardBlocks_([
+      { type: 'group', tag: 'h4', text: n + ' ' + A[k].score + '%', inner: (s.weights || {})[k] ? '' : ' ' + qtag_('inside the others') },
+      { type: 'list', ordered: true, look: 'stab-top', items: (A[k].next || []).slice(0, 3).map(t => String(t)).concat((A[k].next || []).length ? [] : ['Nothing to do.']) }])).join('')
+    + oqInbox_();
 }
 /* THE ONE CARD, then the detail it sums (the Optimiser's code worklist with What's missing, and the business checker's ticks), nothing lost. */
 function checksCard_() {
@@ -75,7 +77,7 @@ function checksCard_() {
   let more = '';
   try { more = (typeof healthWithMissing_ === 'function' ? healthWithMissing_(siteHealthCard_(true)) : '') + (typeof window.bizCheckCard_ === 'function' ? window.bizCheckCard_() : ''); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'checks detail'); }
   if (!checksBizLive_()) setTimeout(checksWatchBiz_, 0);
-  return card_(`<div class="checks-card" data-checks>${checksInner_()}</div>${more}`);
+  return card_(cardBlock_({ type: 'group', look: 'checks-card', attrs: { 'data-checks': true }, inner: checksInner_() }) + more);
 }
 const checksDraw_ = () => { document.querySelectorAll('[data-checks]').forEach(c => { cardFill_(c, checksInner_()); }); };
 /* THE LIVE BUSINESS SCORE: redraw once the checker's ticks have come (or a minute passes), without the checker knowing about this card. */

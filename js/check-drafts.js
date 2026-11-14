@@ -23,9 +23,9 @@ const ATTIC_ = f => !SRC[f] && fs.existsSync(path.join(ROOT, 'attic/js', f));
 
 /* ---------- THE LISTS § */
 const KEPT = [
-  { file: 'keypad.js', fn: 'kpField_', has: '${lock}', count: 2,
+  { file: 'keypad.js', fn: 'kpField_', has: 'Object.assign({}, lock', count: 2,
     why: 'an answer box — every kind, every card and every practical slot is drawn here, and saved on every keystroke through `ansStore_`',
-    proof: [['find.js', /closest\('\[data-do="qp-ans"\]'\)[\s\S]{0,700}?ansStore_\(/], ['keypad.js', /data-do="qp-ans"/]] },
+    proof: [['find.js', /closest\('\[data-do="qp-ans"\]'\)[\s\S]{0,700}?ansStore_\(/], ['keypad.js', /'data-do': multi \? 'qp-multi' : 'qp-ans'/]] },
   { file: 'find.js', fn: 'cellInput_', has: "class: 'qp-cell'",
     why: 'a blank of a fill-in table — every cell of the card joined and saved on each keystroke through `ansStore_`, drawn back from `ansRead_`',
     proof: [['find.js', /classList\.contains\('qp-cell'\)[\s\S]{0,400}?ansStore_\(/]] },
@@ -96,8 +96,8 @@ const EXEMPT = [
   { file: 'one-place.js', fn: 'oqItem_', has: 'data-oq-note', why: 'the owner\'s "Something else" (1060) — typed and sent at once; a reload draws the saved note from owner_answers' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="note"', why: 'the Business checker\'s one-line proof (1050) — a policy number typed and Marked done at once; a reload draws the saved note' },
   { file: 'work-file.js', fn: '(top)', has: 'createElement(input)', why: 'the Work on file picker (owner, 11 Nov) — pages chosen, never typed; they live in WF until Saved' },
-  { file: 'work-file.js', fn: 'wfBody_', has: 'class="wf-title"', why: 'a scan\'s optional title, typed and Saved with the pages in one sitting; the pages themselves would not survive a reload either' },
-  { file: 'work-file.js', fn: 'wfBody_', has: 'class="wf-subject"', why: 'a scan\'s optional subject, typed and Saved with the pages in one sitting; the pages themselves would not survive a reload either' },
+  { file: 'work-file.js', fn: 'wfBody_', has: "class: 'wf-title'", why: 'a scan\'s optional title, typed and Saved with the pages in one sitting; the pages themselves would not survive a reload either' },
+  { file: 'work-file.js', fn: 'wfBody_', has: "class: 'wf-subject'", why: 'a scan\'s optional subject, typed and Saved with the pages in one sitting; the pages themselves would not survive a reload either' },
   { file: 'lego.js', fn: '(top)', has: 'createElement(input)', why: 'the LEGO piece check\'s camera (owner, 12 Nov) — a photo taken, never typed; a half-shot batch is retaken after a reload' },
   { file: 'working.js', fn: '(top)', has: 'createElement(input)', why: 'the photo picker of 501 — a file chosen, never typed; the photos it adds live in WORK_PICS until Marked' },
   { file: 'records.js', fn: 'digestWordsCard_', has: 'data-dw=', why: 'the weekly email\'s four lines (491) — a few words edited and Saved in one sitting, with the preview beside them; a reload draws the saved words' },

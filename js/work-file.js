@@ -5,50 +5,60 @@ const WF_MAX = 6;
 const WF = {};
 const wfOf_ = pid => WF[pid] || (WF[pid] = { rows: null, asked: false, mayDelete: false, pending: [], others: [], say: '' });
 
-/* THE CARD: the same one in your own settings and under a student a parent or the admin may see; one master template (card_). */
+/* THE CARD: the same one in your own settings and under a student a parent or the admin may see; one master template (renderCard). */
 function workFileCard_(pid) {
   const of = String(pid || (USER && USER.personId) || '');
   if (!of || !USER || USER.lockedPreview) return '';
-  return card_(`<div class="workfile-card" data-of="${esc(of)}"><h3>Work on file</h3>${wfBody_(of)}</div>`);
+  return renderCard(wfSpec_(of));
 }
+/* ITS SPEC: the scan and save tiles stand in the card's own tile row; under someone else's student they sit among the lines (`wfBody_`). */
+const wfSpec_ = of => ({ kind: 'panel', look: 'workfile-card', name: 'Work on file', tags: [{ text: 'Work on file' }], data: { of },
+  body: wfBody_(of, true), tiles: wfTeach_(of) ? [] : wfTiles_(of) });
 /* A TUTOR'S OWN CARD holds no scans of theirs: it opens each booked student's file (`others`, from the backend). */
 const wfTeach_ = of => !!USER && String(of) === String(USER.personId || '') && typeof rank_ === 'function' && rank_() === 'staff';
-function wfBody_(of) {
+const wfNote_ = text => ({ type: 'group', tag: 'p', look: 'note', text });
+const wfTiles_ = of => { const s = wfOf_(of);
+  return (s.pending.length ? [{ icon: 'save', label: 'Save to file', note: s.pending.length + ' page' + (s.pending.length === 1 ? '' : 's'), act: 'wf-save', cls: 'is-submit', data: { of } }] : [])
+    .concat({ icon: 'photo', label: 'Scan a page', note: 'camera or photos', act: 'wf-pick', data: { of } }); };
+/* THE INSIDES AS BLOCKS: `inCard` leaves the scan and save tiles to the card's row. */
+function wfBody_(of, inCard) {
   const s = wfOf_(of);
   if (!s.asked) setTimeout(() => wfLoad_(of), 0);
-  if (wfTeach_(of)) return s.rows === null ? loading_() : (s.others || []).length
-    ? `<div class="tile-row">${tile_(s.others.map(o => workFileOpts_(o.id, o.name)))}</div>`
-    : '<p class="note">Your booked students\' scanned work shows here.</p>';
-  const pend = s.pending.length ? `<div class="wf-pend"><div class="qp-work-pics">${s.pending.map((p, i) => `<span class="qp-work-pic"><img src="${esc(p)}" alt="New page ${i + 1}">
-      ${tile_({ form: true, look: 'qp-work-x', act: 'wf-x', data: { of, i }, aria: 'Remove page ' + (i + 1), label: '×' })}</span>`).join('')}</div>
-    <label class="wf-line">Title <input class="wf-title" data-of="${esc(of)}" maxlength="80" placeholder="Optional"></label>
-    <label class="wf-line">Subject <input class="wf-subject" data-of="${esc(of)}" maxlength="40" placeholder="Optional"></label></div>` : '';
-  const tiles = tile_({ icon: 'photo', label: 'Scan a page', note: 'camera or photos', act: 'wf-pick', data: { of } })
-    + (s.pending.length ? tile_({ icon: 'save', label: 'Save to file', note: s.pending.length + ' page' + (s.pending.length === 1 ? '' : 's'), act: 'wf-save', cls: 'is-submit', data: { of } }) : '');
-  return `${pend}<div class="tile-row">${tiles}</div>
-    <p class="wf-say note" role="status" aria-live="polite">${esc(s.say)}</p>
-    <div class="wf-list">${wfList_(of)}</div>`;
+  if (wfTeach_(of)) return [s.rows === null ? { type: 'wait', on: true } : (s.others || []).length
+    ? { type: 'tiles', tiles: s.others.map(o => workFileOpts_(o.id, o.name)) }
+    : wfNote_('Your booked students\' scanned work shows here.')];
+  const line = (text, box) => ({ type: 'group', tag: 'label', look: 'wf-line', text: text + ' ', blocks: [box] });
+  const pend = s.pending.length ? { type: 'group', look: 'wf-pend', blocks: [{ type: 'group', look: 'qp-work-pics', blocks: s.pending.map((p, i) => ({ type: 'group', tag: 'span', look: 'qp-work-pic',
+      blocks: [{ type: 'media', kind: 'image', src: p, title: 'New page ' + (i + 1) }],
+      tiles: [{ form: true, look: 'qp-work-x', act: 'wf-x', data: { of, i }, aria: 'Remove page ' + (i + 1), label: '×' }] })) },
+    line('Title', { type: 'control', attrs: { class: 'wf-title', 'data-of': of, maxlength: 80, placeholder: 'Optional' } }),
+    line('Subject', { type: 'control', attrs: { class: 'wf-subject', 'data-of': of, maxlength: 40, placeholder: 'Optional' } })] } : null;
+  return [pend, inCard ? null : { type: 'tiles', tiles: wfTiles_(of).reverse() },
+    { type: 'group', tag: 'p', look: 'wf-say note', attrs: { role: 'status', 'aria-live': 'polite' }, text: s.say },
+    { type: 'group', look: 'wf-list', blocks: wfList_(of) }];
 }
 function wfList_(of) {
   const s = wfOf_(of);
-  if (s.rows === null) return loading_();
-  if (!s.rows.length) return '<p class="note">Nothing on file yet. Scan a page to keep it here.</p>';
-  return `<ul class="wf-rows">${s.rows.map(r => `<li class="row wf-item">
-    ${r.thumb ? `<img class="wf-thumb" src="${esc(r.thumb)}" alt="">` : '<span class="wf-thumb" aria-hidden="true"></span>'}
-    <span class="wf-what"><span class="wf-name">${esc(r.title || r.subject || 'Scanned work')}</span>
-      <span class="wf-when note">${esc(wfDate_(r.at))}${r.subject && r.title ? ' · ' + esc(r.subject) : ''} · ${esc(String(r.pages || 1))} page${r.pages === 1 ? '' : 's'}${r.by && r.by !== 'you' ? ' · by ' + esc(r.by) : ''}</span></span>
-    ${tile_({ icon: 'open', label: 'Open', note: 'see the pages', act: 'wf-open', data: { id: r.id, title: r.title || 'Scanned work' } })}
-    ${s.mayDelete ? tile_({ icon: 'bin', label: 'Delete', note: 'from your file', act: 'wf-del', data: { id: r.id, of } }) : ''}</li>`).join('')}</ul>`;
+  if (s.rows === null) return [{ type: 'wait', on: true }];
+  if (!s.rows.length) return [wfNote_('Nothing on file yet. Scan a page to keep it here.')];
+  const span = (look, text) => ({ type: 'group', tag: 'span', look, text });
+  return [{ type: 'group', look: 'wf-rows', attrs: { role: 'list' }, blocks: s.rows.map(r => ({ type: 'group', look: 'row wf-item', attrs: { role: 'listitem' },
+    blocks: [r.thumb ? { type: 'media', kind: 'image', look: 'wf-thumb', src: r.thumb } : { type: 'group', tag: 'span', look: 'wf-thumb', attrs: { 'aria-hidden': 'true' } },
+      { type: 'group', tag: 'span', look: 'wf-what', blocks: [span('wf-name', r.title || r.subject || 'Scanned work'),
+        span('wf-when note', wfDate_(r.at) + (r.subject && r.title ? ' · ' + r.subject : '') + ' · ' + String(r.pages || 1) + ' page' + (r.pages === 1 ? '' : 's') + (r.by && r.by !== 'you' ? ' · by ' + r.by : ''))] }],
+    tiles: [{ icon: 'open', label: 'Open', note: 'see the pages', act: 'wf-open', data: { id: r.id, title: r.title || 'Scanned work' } }]
+      .concat(s.mayDelete ? [{ icon: 'bin', label: 'Delete', note: 'from your file', act: 'wf-del', data: { id: r.id, of } }] : []) })) }];
 }
 const wfDate_ = ms => { try { return ms ? date_(Number(ms)) : ''; } catch (e) { return ''; } };
-/* THE CARD IS DRAWN AGAIN WHOLE (cardFill_): the template cuts its insides into its own parts, so there is no inner box to refill. */
+/* THE CARD IS DRAWN AGAIN WHOLE from its spec, kept as the same element so its place in the column stays. */
 function wfPaint_(of) {
   document.querySelectorAll('.workfile-card[data-of], .wf-seen[data-of]').forEach(el => {
     if (el.getAttribute('data-of') !== of) return;
     const keep = {};
     el.querySelectorAll('.wf-title, .wf-subject').forEach(i => { keep[i.className] = i.value; });
-    if (el.classList.contains('wf-seen')) el.innerHTML = wfBody_(of);
-    else if (typeof cardFill_ === 'function') cardFill_(el, '<h3>Work on file</h3>' + wfBody_(of));
+    if (el.classList.contains('wf-seen')) el.innerHTML = cardBlocks_(wfBody_(of));
+    else { const t = document.createElement('template'); t.innerHTML = renderCard(wfSpec_(of));
+      const fresh = t.content.firstElementChild; if (fresh) { el.className = fresh.className; el.replaceChildren(...fresh.childNodes); } }
     el.querySelectorAll('.wf-title, .wf-subject').forEach(i => { if (keep[i.className]) i.value = keep[i.className]; });
   });
 }
@@ -111,13 +121,13 @@ on('wf-save', el => {
 on('wf-open', el => {
   const id = el.getAttribute('data-id'), title = el.getAttribute('data-title') || 'Scanned work';
   if (!id || !USER || !USER.token) return;
-  openSheet(title, `<div class="wf-pages">${loading_()}</div>`);
+  openSheet(title, cardBlock_({ type: 'wait', look: 'wf-pages', on: true }));
   api({ action: 'workFileOpen', personId: USER.personId || '', id }).then(d => {
     const box = document.querySelector('.wf-pages');
     if (!box) return;
     loaded_(box);
     if (!d || !d.success) { box.textContent = (d && (d.message || d.error)) || 'Could not open it'; return; }
-    box.innerHTML = (d.pages || []).map((u, i) => `<img class="wf-page" src="${esc(u)}" alt="Page ${i + 1}">`).join('') || '<p class="note">No pages could be read.</p>';
+    box.innerHTML = cardBlocks_((d.pages || []).length ? d.pages.map((u, i) => ({ type: 'media', kind: 'image', look: 'wf-page', src: u, title: 'Page ' + (i + 1) })) : [wfNote_('No pages could be read.')]);
   }).catch(() => { const box = document.querySelector('.wf-pages'); if (box) { loaded_(box); box.textContent = 'Could not reach the server'; } });
 });
 
@@ -143,6 +153,6 @@ on('wf-see', el => {
   const box = document.createElement('div');
   box.className = 'wf-seen';
   box.setAttribute('data-of', pid);
-  box.innerHTML = wfBody_(pid);
+  box.innerHTML = cardBlocks_(wfBody_(pid));
   row.insertAdjacentElement('afterend', box);
 });
