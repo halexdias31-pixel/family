@@ -238,8 +238,26 @@ cardKind_('venue', x => { const t = kcRow_(x), kid = childView_();
   /* ITS 8-BIT BUILDING (find-doors.js), which the move to specs (2c2bab5) left behind. */
   const pix = typeof VENUE_PIX === 'object' && typeof venueShape_ === 'function' ? VENUE_PIX[venueShape_(x.row || {})] : null;
   return { look: 'venue-door', picture: pix ? { pix, alt: x.name } : null, tags: kcFacetTags_(x), body: [{ type: 'list', items: rooms.filter(Boolean) }] }; });
-/* A WRITING AND AN EVENT: the name and the facets; a manuscript adds its own fragment, drawn where there is one. */
-cardKind_('writing', x => ({ look: 'hdb lib-c', tags: kcFacetTags_(x) }));
-cardKind_('event', x => ({ look: 'hdb lib-c', tags: kcFacetTags_(x) }));
-cardKind_('manuscript', x => { const svg = typeof msFragSvg_ === 'function' ? msFragSvg_(kcRow_(x), x.msSideIx) : '';
-  return { look: 'hdb hdb-msc lib-c', picture: svg ? { svg, alt: x.name } : null, tags: kcFacetTags_(x) }; });
+/* ONE ITEM SHAPE (owner, 14 Nov, step 1; data/settings/item-shape.json, docs/item-shape.md): every item is { id, kind, name, tags, body, links }. */
+/* A migrated kind is only a mapping here: which columns are its words (`tags`) and its links, its card's look and picture. No builder of its own. */
+const ITEM_MAPS = {
+  manuscript: { look: 'hdb hdb-msc lib-c', tags: ['language', 'material', 'script'], links: ['writings'],
+    picture: (it, x) => { const svg = typeof msFragSvg_ === 'function' ? msFragSvg_(it.raw, x && x.msSideIx) : ''; return svg ? { svg, alt: it.name } : null; } },
+  writing: { look: 'hdb lib-c', tags: ['language', 'genre'], links: ['author_id', 'manuscripts'] },
+  event: { look: 'hdb lib-c', tags: ['era', 'theatre'], links: ['figures', 'writings'] },
+};
+const itemList_ = v => (Array.isArray(v) ? v : String(v == null ? '' : v).split('|')).map(t => String(t).trim()).filter(Boolean);
+/* ANY ROW → THE SHAPE. `raw` is kept beside it, for what only a kind's drawing needs (a manuscript's fragment). */
+function item_(raw, kind) {
+  const r = raw || {}, M = ITEM_MAPS[kind] || {}, words = col => (M[col] || []).flatMap(c => itemList_(r[c]));
+  const lines = typeof HIST_LINES === 'object' && HIST_LINES[kind] ? HIST_LINES[kind].map(([label, col]) => ({ label, value: String((typeof col === 'function' ? col(r) : r[col]) || '') })).filter(l => l.value.trim()) : [];
+  return { id: String(r.id || '').trim(), kind, name: String(r.title || r.name || r.title_english || r.title_original || r.id || ''),
+    tags: words('tags'), body: lines.length ? [{ type: 'list', items: lines }] : [], links: words('links'), raw: r };
+}
+/* THE SHAPE → A renderCard SPEC: its name, then Find's facets for it (`x`, the Find entry carrying it); the face shows no lines, as before. */
+function cardOfItem_(it, x) {
+  const M = ITEM_MAPS[it.kind] || {}, own = x || { kind: it.kind, key: '', name: it.name };
+  return { look: M.look || '', picture: M.picture ? M.picture(it, own) : null,
+    tags: [{ text: it.name || own.name || '', colour: 0 }].concat(typeof tagList_ === 'function' && own.key ? tagList_(own) : []) };
+}
+Object.keys(ITEM_MAPS).forEach(k => cardKind_(k, x => cardOfItem_(x.shape || item_(kcRow_(x), k), x)));

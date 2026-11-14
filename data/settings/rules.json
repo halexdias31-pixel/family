@@ -438,6 +438,15 @@
    "since": "2026-11-13"
   },
   {
+   "id": "3.14",
+   "principle": 3,
+   "text": "One item shape (owner, 14 Nov, step 1): every item of every kind is loaded as `{ id, kind, name, tags, body, links }` through `item_(raw, kind)` and drawn through `cardOfItem_(item)`, so a kind is a mapping in `ITEM_MAPS` (js/cards-parts.js), never its own builder; `data/settings/item-shape.json` is the schema and `check/item-shape-ratchet.json` lists the kinds still to move, a list that only gets shorter.",
+   "checks": [
+    "item-shape"
+   ],
+   "since": "2026-11-14"
+  },
+  {
    "id": "4.1",
    "principle": 4,
    "text": "No one-offs: no function tests a single kind, facet or id by name; front end and backend alike.",
