@@ -26,7 +26,7 @@ const KEPT = [
   { file: 'keypad.js', fn: 'kpField_', has: '${lock}', count: 2,
     why: 'an answer box — every kind, every card and every practical slot is drawn here, and saved on every keystroke through `ansStore_`',
     proof: [['find.js', /closest\('\[data-do="qp-ans"\]'\)[\s\S]{0,700}?ansStore_\(/], ['keypad.js', /data-do="qp-ans"/]] },
-  { file: 'find.js', fn: 'cellInput_', has: 'class="qp-cell"',
+  { file: 'find.js', fn: 'cellInput_', has: "class: 'qp-cell'",
     why: 'a blank of a fill-in table — every cell of the card joined and saved on each keystroke through `ansStore_`, drawn back from `ansRead_`',
     proof: [['find.js', /classList\.contains\('qp-cell'\)[\s\S]{0,400}?ansStore_\(/]] },
   { file: 'me.js', fn: 'qualSlot_', has: "'data-me': f('_board')",

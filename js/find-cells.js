@@ -163,9 +163,13 @@ function cellInput_(k, c, i, v) {
   if (!c.ways) return '';
   /* a cell holding a list (`24, 68`) needs the comma, which a phone's number pad does not have */
   const num = /^[-\d.,\s|£$%°/]+$/.test(c.ways) && !/,\s/.test(c.ways);
-  return `<input class="qp-cell" data-k="${esc(k)}" data-n="${i}" aria-label="Blank ${esc(c.label)}" autocomplete="off"
-    inputmode="${num ? 'decimal' : 'text'}" value="${esc(v || '')}">`;
+  return cardBlock_({ type: 'control', attrs: { class: 'qp-cell', 'data-k': k, 'data-n': String(i), 'aria-label': 'Blank ' + c.label, autocomplete: 'off',
+    inputmode: num ? 'decimal' : 'text', value: v || '' } });
 }
+/* A PART OF AN ANSWER BOX, drawn by renderCard's group block: its tag, class, attributes, then markup already drawn and/or text. */
+const fcG_ = (tag, look, attrs, inner, text) => cardBlock_({ type: 'group', tag, look, attrs, inner, text });
+const fcVerdict_ = t => fcG_('span', 'qp-verdict', { role: 'status', 'aria-live': 'polite' }, '', t);
+const fcSaved_ = k => fcG_('span', 'qp-saved', { 'data-k': k }, '', ansSavedSay_(k));
 /* THE QUESTION'S OWN TABLE, ITS BLANKS MADE CELLS -- or '' when it has none with as many blanks as `cells`. */
 function cellsTable_(x, html) {
   const cells = cellsOf_(x);
@@ -183,8 +187,9 @@ function cellsTable_(x, html) {
     return t.replace(CELL_BLANK, (m, tag, at) => {
       if (skip) { skip = false; return m; }
       const i = n++;
-      return `<${tag}${at} class="qp-cell-at">${cellInput_(k, cells[i], i, vals[i])}</${tag}>`;
-    }).replace(/^<table/, '<table data-cells="1"');
+      /* the question's own cell keeps its tag and attributes; only its class and its box are added */
+      return m.slice(0, 1 + tag.length + at.length) + ' class="qp-cell-at">' + cellInput_(k, cells[i], i, vals[i]) + m.slice(m.lastIndexOf('</'));
+    }).replace(/^<table/, '$& data-cells="1"');
   });
   return n ? out : '';
 }
@@ -207,13 +212,11 @@ function cellsBox_(x) {
   const inTable = !!cellsTable_(x, cellsCardHtml_(x));
   const val = String(ansRead_(k) || '').replace(/(?:\s*;\s*)+$/, '');
   const maths = cells.filter(c => c.ways).every(c => /^[-\d.,\s|£$%°/]+$/.test(c.ways));
-  const one = inTable ? '' : `<p class="q-hint">${esc(cellsHint_(cells))}</p><div class="qp-ans-row qp-bar"><label class="qp-ans${
-    maths ? ' qp-ans-maths' : ''}" aria-label="Your answers, in order">${kpField_(k, val, maths ? 'maths' : 'words', 3)}</label></div>`;
+  const one = inTable ? '' : fcG_('p', 'q-hint', null, '', cellsHint_(cells)) + fcG_('div', 'qp-ans-row qp-bar', null,
+    fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': 'Your answers, in order' }, kpField_(k, val, maths ? 'maths' : 'words', 3)));
   const said = subBoxSay_(k, val);
-  return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${one}
-    ${workStrip_(x)}
-    <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
-    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
+  return fcG_('div', 'qp-mark qp-compose qp-cells-box' + (said.cls ? ' ' + said.cls : ''), { 'data-k': k },
+    one + workStrip_(x) + fcVerdict_(said.text) + fcSaved_(k));
 }
 const cellsIn_ = el => { const card = el && el.closest('.qcard'); return card ? [].slice.call(card.querySelectorAll('.qp-cell')) : []; };
 function cellsRead_(el) {
@@ -312,14 +315,16 @@ function multiBoxes_(x, k, val, m, maths, signs) {
   const vals = multiVals_(val, m);
   const n = m.grow ? vals.filter(Boolean).length + 1 : m.n;
   const kind = m.words || !maths ? 'words' : 'maths';
-  const one = i => `<label class="qp-ans qp-multi-f">${m.labels[i] ? `<span class="qp-multi-l">${esc(m.labels[i])} =</span>` : ''}${
-    multiField_(k, i, vals[i] || '', kind, signs)}</label>`;
+  const one = i => multiLabel_(m.labels[i], multiField_(k, i, vals[i] || '', kind, signs));
   const boxes = [];
   for (let i = 0; i < n; i++) boxes.push(one(i));
   /* the joined answer, first in the box, is what Check, Send and every verdict painter read in place of `.qp-ans-in` */
-  return `<div class="qp-multi${m.wrap ? ' is-pair' : ''}" data-mk="${esc(k)}" data-m="${esc(JSON.stringify(m))}" data-kind="${kind}"${
-    signs ? ` data-signs="${+signs}"` : ''}${m.grow ? ' data-grow="1"' : ''}><input type="hidden" class="qp-multi-val" data-k="${esc(k)}" value="${esc(multiJoin_(vals, m))}">${boxes.join('')}</div>`;
+  return fcG_('div', 'qp-multi' + (m.wrap ? ' is-pair' : ''), { 'data-mk': k, 'data-m': JSON.stringify(m), 'data-kind': kind,
+    'data-signs': signs ? String(+signs) : null, 'data-grow': m.grow ? '1' : null },
+    cardBlock_({ type: 'control', attrs: { type: 'hidden', class: 'qp-multi-val', 'data-k': k, value: multiJoin_(vals, m) } }) + boxes.join(''));
 }
+/* ONE BOX OF SEVERAL, its name (`x =`) before it where the scheme gives one. */
+const multiLabel_ = (label, field) => fcG_('label', 'qp-ans qp-multi-f', null, (label ? fcG_('span', 'qp-multi-l', null, '', label + ' =') : '') + field);
 const multiIns_ = box => [].slice.call(box.querySelectorAll('.kp-in[data-do="qp-multi"]'));
 /* EVERY KEY IN A BOX: the joined answer kept under the question's own key, and a filled last box grows another where the count is open. */
 document.addEventListener('input', e => {
@@ -335,7 +340,7 @@ document.addEventListener('input', e => {
   if (box.hasAttribute('data-grow') && ins.length && ins[ins.length - 1] === el && el.value.trim()) {
     const at = document.createElement('div');
     const kind = box.getAttribute('data-kind');
-    at.innerHTML = `<label class="qp-ans qp-multi-f">${multiField_(box.getAttribute('data-mk'), ins.length, '', kind, +box.getAttribute('data-signs') || 0)}</label>`;
+    at.innerHTML = multiLabel_('', multiField_(box.getAttribute('data-mk'), ins.length, '', kind, +box.getAttribute('data-signs') || 0));
     box.appendChild(at.firstChild);
   }
   const mark = box.closest('.qp-mark');
@@ -386,10 +391,10 @@ function ansBox_(x) {
   const val = ansRead_(k);
   const ws = workStrip_(x);
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
-  const drawAt = geo ? ` data-k="${esc(k)}" data-pad="${esc(padKey_(x))}" data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '';
+  const drawAt = geo ? { 'data-k': k, 'data-pad': padKey_(x), 'data-draw': geo, 'data-marks': String(Number(x.marks) || '') } : {};
   const isAi = isAiMark_(m) && m.ready;
   const cls = 'qp-mark qp-compose' + (isAi ? ' qp-ai' : '') + (geo ? ' qpad-send' : '');
-  const dataAt = (can ? ` data-accept="${esc(can)}"` : '') + (rule ? ` data-rule="${esc(rule)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '') + drawAt;
+  const dataAt = Object.assign(can ? { 'data-accept': can } : {}, rule ? { 'data-rule': rule, 'data-marks': String(Number(x.marks) || '') } : {}, drawAt);
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET: the same one box, bigger § */
   if (ansEssay_(x)) {
     const note = isAiMark_(m) && !ai ? aiWhyNot_(x) : '';
@@ -397,27 +402,20 @@ function ansBox_(x) {
     const said = subBoxSay_(k, val);
     const own = kept && (kept.fresh || !said.text) ? kept : null;
     const vcls = own ? own.cls : said.cls, vsay = own ? own.verdict : said.text;
-    return `<div class="${cls} qp-essay${vcls ? ' ' + vcls : ''}"${dataAt}>
-    <label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, val, 'essay', 3)}</label>
-    <p class="qp-words">${esc(kpWordsSay_(val))}</p>
-    ${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
-    <span class="qp-verdict" role="status" aria-live="polite">${esc(vsay)}</span>
-    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
-  </div>${isAi ? `<p class="qp-ai-why">${own ? esc(own.why) : ''}</p>` : ''}`;
+    return fcG_('div', cls + ' qp-essay' + (vcls ? ' ' + vcls : ''), dataAt,
+      fcG_('label', 'qp-ans qp-sheet', { 'aria-label': 'Your answer' }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
+      + ws + (note ? fcG_('p', 'qp-ai-note', null, '', note) : '') + fcVerdict_(vsay) + fcSaved_(k))
+      + (isAi ? fcG_('p', 'qp-ai-why', null, '', own ? own.why : '') : '');
   }
   const many = can ? multiOf_(x) : null;
-  const bar = opts + (many ? `<div class="qp-ans-row qp-bar qp-multi-bar">${multiBoxes_(x, k, val, many, maths, 3)}</div>`
-    : `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
-    ${kpField_(k, val, maths ? 'maths' : 'words', 3)}
-  </label></div>`);
+  const bar = opts + (many ? fcG_('div', 'qp-ans-row qp-bar qp-multi-bar', null, multiBoxes_(x, k, val, many, maths, 3))
+    : fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': 'Your answer' }, kpField_(k, val, maths ? 'maths' : 'words', 3))));
   const note = isAiMark_(m) && !ai ? aiWhyNot_(x) : '';
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
-  return `<div class="${cls}${said.cls ? ' ' + said.cls : ''}"${dataAt}>
-    ${bar}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
-    <span class="qp-verdict" role="status" aria-live="polite">${esc(geo ? padSaid_(said.text) : said.text)}</span>
-    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
-  </div>${isAi ? '<p class="qp-ai-why"></p>' : ''}`;
+  return fcG_('div', cls + (said.cls ? ' ' + said.cls : ''), dataAt,
+    bar + ws + (note ? fcG_('p', 'qp-ai-note', null, '', note) : '') + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k))
+    + (isAi ? fcG_('p', 'qp-ai-why', null, '', '') : '');
 }
 /* WHAT A BOX'S VERDICT LINE SAYS AS IT IS DRAWN: the latest submission's verdict, if the box holds it. */
 function subBoxSay_(k, val) {
@@ -657,7 +655,10 @@ const padUndoOpts_ = (x, k0) => { const k = k0 || padKey_(x), n = padRead_(k).le
   return [{ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo', off: !n && !PAD_CLEARED.has(k), data },
     { icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear', off: !n, data }]; };
 const padUndoTiles_ = (x, k0) => tile_(padUndoOpts_(x, k0));
-const padBar_ = k => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing"><span class="qpad-group">${padUndoTiles_(null, k)}</span></div>`;
+const padBar_ = k => fcG_('div', 'qpad-bar tile-row', { role: 'toolbar', 'aria-label': 'Drawing' }, fcG_('span', 'qpad-group', null, padUndoTiles_(null, k)));
+/* A PAD'S INK AS A DRAWING: one group of strokes, each a path at the pad's shape. */
+const padInk_ = (cls, strokes, ka) => ({ el: 'g', a: { class: cls, 'vector-effect': 'non-scaling-stroke' },
+  kids: (strokes || []).map(st => ({ el: 'path', a: { 'vector-effect': 'non-scaling-stroke', d: padPath_(st, ka) } })) });
 const padReady_ = x => padHasArt_(x) && (!!padSource_(x) || padSurface_(x) === 'text');
 
 /* A PICTURE TOO THIN TO DRAW ON IS GIVEN ROOM ABOVE AND BELOW (385): a number line 340x35 was a 31px strip at 390, and its circles go above the line */
@@ -689,22 +690,15 @@ function padWrap_(x, svg, foot) {
   const ka = padAspect_(x, svg);
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather than by parsing a viewBox out of the drawing's markup. § */
   const zm = pen && PAD_ZOOM.has(k) ? PAD_ZOOM.get(k) : null;
-  return `<div class="qpad${pen ? ' is-drawing' : ''}${zm ? ' is-zoomed' : ''}" data-k="${esc(k)}" data-aspect="${ka}"${
-    under.length ? ` data-under="${esc(under.map(padKey_).join(' '))}"` : ''}${zm ? ` style="--pad-zoom: ${padZoomVar_(zm)}; --pad-zoom-s: ${zm.s.toFixed(4)}"` : ''}>
-    <div class="qpad-art">${svg}
-      <svg class="qpad-ink" data-noswipe viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
-        ${under.length ? usesInk_(was, ka) : ''}
-        <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
-          `<path vector-effect="non-scaling-stroke" d="${padPath_(st, ka)}"/>`).join('')}</g>
-        <g class="qpad-aid"></g>
-      </svg>
-      ${padProtOn_(k) ? padProtHtml_(k) : ''}
-    </div>
-    ${foot === 'row' ? '' : padBar_(k)}
-    ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: § */
-          ''}
-    <p class="qpad-note" data-kept-k="${esc(k)}">${esc(padNoteSay_(k))}</p>
-  </div>`;
+  const ink = cardBlock_({ type: 'drawing', node: { el: 'svg', a: { class: 'qpad-ink', 'data-noswipe': '1', viewBox: '0 0 340 340', preserveAspectRatio: 'none', 'aria-hidden': 'true' },
+    kids: [under.length ? padInk_('qpad-was', was, ka) : null, padInk_('qpad-g', marks, ka), { el: 'g', a: { class: 'qpad-aid' } }].filter(Boolean) } });
+  /* the zoom is two numbers set as the pad is drawn, not a look a class could hold */
+  return fcG_('div', 'qpad' + (pen ? ' is-drawing' : '') + (zm ? ' is-zoomed' : ''), { 'data-k': k, 'data-aspect': String(ka),
+    'data-under': under.length ? under.map(padKey_).join(' ') : null, style: zm ? '--pad-zoom: ' + padZoomVar_(zm) + '; --pad-zoom-s: ' + zm.s.toFixed(4) : null },
+    fcG_('div', 'qpad-art', null, svg + ink + (padProtOn_(k) ? padProtHtml_(k) : ''))
+    + (foot === 'row' ? '' : padBar_(k))
+    /* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: § */
+    + fcG_('p', 'qpad-note', { 'data-kept-k': k }, '', padNoteSay_(k)));
 }
 
 /* ---------- A DRAWN ANSWER IS SENT LIKE A TYPED ONE (362) */
