@@ -375,8 +375,6 @@
     "pdtexts",
     "bible",
     "hymns",
-    "talmud",
-    "talpage",
     "textbooks"
    ],
    "since": "2026-11-12"
@@ -667,7 +665,6 @@
    "text": "Content in is our own, public domain or licensed; copyrighted papers stay private.",
    "checks": [
     "library",
-    "talmud",
     "hymns"
    ],
    "since": "2026-11-12"
@@ -838,7 +835,6 @@
    "text": "Check, then trust: actions gated until approval, ID and DBS; staff only by application; one rank per account; three roles (admin, tutor, family).",
    "checks": [
     "accounts",
-    "staff",
     "signin",
     "pin-show"
    ],
@@ -871,7 +867,6 @@
    "principle": 9,
    "text": "Posts and photos wait for approval and are kept as files.",
    "checks": [
-    "posts",
     "uploads",
     "choice",
     "hands",
