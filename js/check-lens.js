@@ -75,5 +75,57 @@ else {
   if (log.some(r => String(r).indexOf('Leeds') !== -1)) bad.push('lens_log holds a value, not only the field name');
 }
 
+/* ---------- 4. ONE WAY TO THE SERVER (step 2, slice 2): readItems reads people, answers and messages as the old doors did, and no further ---------- */
+{
+  const r2 = require('./check-gas-load.js').backend();
+  const Q = (id, first, role, email, more) => Object.assign(P(id, first, role, email), more || {});
+  r2.seed('people', [Q('P-A1', 'Hal', 'admin', 'admin@example.org'), Q('P-C1', 'Pat', 'client', 'parent@example.org'),
+    Q('P-C2', 'Rae', 'client', 'other@example.org'), Q('P-K1', 'Kit', 'student', 'kit@example.org', { date_of_birth: '01/03/2014' }),
+    Q('P-K2', 'Lou', 'student', 'lou@example.org', { date_of_birth: '01/03/2014' })]);
+  r2.seed('family', [{ link_id: 'L1', parent_id: 'P-C1', child_id: 'P-K1', state: 'accepted' }, { link_id: 'L2', parent_id: 'P-C2', child_id: 'P-K2', state: 'accepted' }]);
+  const in2 = email => r2.post({ action: 'verifyLogin', email, pin: '0000' });
+  const ad = in2('admin@example.org'), pa = in2('parent@example.org'), ki = in2('kit@example.org');
+  const ask = (who, o) => r2.post(Object.assign({ action: 'readItems', token: who.token, name: who.name, personId: who.personId }, o));
+  const old = (who, o) => r2.post(Object.assign({ token: who.token, name: who.name, personId: who.personId }, o));
+  const strip = d => JSON.stringify(d, (k, v) => (k === 'gapMs' ? undefined : v));
+  if (!ad.success || !pa.success || !ki.success) bad.push('readItems: the seeded admin, parent or child could not sign in: ' + [ad, pa, ki].map(x => x.error || 'ok').join(' / '));
+  else {
+    /* SIGNED OUT: refused, every kind. */
+    ['profile', 'answer', 'message', 'person', 'card'].forEach(k => {
+      const d = r2.post({ action: 'readItems', kind: k, personId: 'P-K1', ids: ['P-K1'] });
+      if (d.success || !d.error) bad.push('readItems ' + k + ' answered somebody signed out: ' + JSON.stringify(d).slice(0, 120));
+    });
+    /* YOUR OWN: exactly the old door's reply. */
+    [[pa, 'profile', 'myProfile'], [ki, 'profile', 'myProfile'], [ki, 'answer', 'myAnswers'], [pa, 'message', 'messages']].forEach(([w, k, o]) => {
+      const n = ask(w, { kind: k }), b = old(w, { action: o });
+      if (!n.success || strip(n) !== strip(b)) bad.push('readItems ' + k + ' for ' + w.personId + ' is not what ' + o + ' sends: ' + JSON.stringify(n).slice(0, 160));
+    });
+    /* A CHILD READS NOBODY ELSE, by any kind. */
+    [['profile', 'P-K2'], ['profile', 'P-C1'], ['answer', 'P-K2'], ['message', 'P-C1'], ['person', 'P-K2'], ['card', 'P-K2']].forEach(([k, id]) => {
+      const d = ask(ki, { kind: k, ids: [id] });
+      if (d.success || /"(profile|person|answers|messages)"\s*:/.test(JSON.stringify(d))) bad.push('a child read ' + id + '\'s ' + k + ' through readItems: ' + JSON.stringify(d).slice(0, 140));
+    });
+    /* A PARENT, AS BEFORE: no old read door gave a parent a person's row — not her own child's, not another's — and readItems gives none. */
+    [['profile', 'P-K1'], ['profile', 'P-K2'], ['card', 'P-K1'], ['person', 'P-K1'], ['answer', 'P-K1'], ['message', 'P-K2']].forEach(([k, id]) => {
+      const d = ask(pa, { kind: k, ids: [id] });
+      if (d.success) bad.push('a parent read ' + id + '\'s ' + k + ' through readItems: ' + JSON.stringify(d).slice(0, 140));
+    });
+    ['lensOpen', 'getProfile', 'personGet'].forEach(o => { if (old(pa, { action: o, targetId: 'P-K1', target: 'P-K1' }).success) bad.push('the old ' + o + ' answered a parent — the "as before" this check holds readItems to has moved'); });
+    /* THE ADMIN: somebody else's settings as lensOpen sends them, no secrets, and logged by id. */
+    const before = (r2.tabs.lens_log || [[]]).length;
+    const lens = ask(ad, { kind: 'profile', ids: ['P-K1'] }), was = old(ad, { action: 'lensOpen', targetId: 'P-K1' });
+    if (!lens.success || lens.personId !== 'P-K1' || strip(lens) !== strip(was)) bad.push('an admin\'s readItems profile for P-K1 is not lensOpen\'s reply: ' + JSON.stringify(lens).slice(0, 160));
+    if (/"(pin|pin_hash|token)"\s*:/.test(JSON.stringify(lens))) bad.push('readItems profile sent a PIN or a token');
+    const lh = (r2.tabs.lens_log || [[]])[0], lr = (r2.tabs.lens_log || []).slice(Math.max(1, before));
+    if (!lr.some(r => r[lh.indexOf('by_id')] === 'P-A1' && r[lh.indexOf('for_id')] === 'P-K1')) bad.push('an admin\'s readItems lens on P-K1 left no lens_log row by id: ' + JSON.stringify(r2.tabs.lens_log || []).slice(0, 200));
+    const pg = ask(ad, { kind: 'person', ids: ['P-K1'] }), pgo = old(ad, { action: 'personGet', targetId: 'P-K1' });
+    if (!pg.success || strip(pg) !== strip(pgo)) bad.push('an admin\'s readItems person is not personGet\'s reply');
+    const cd = ask(ad, { kind: 'card', ids: ['P-K1'] }), cdo = old(ad, { action: 'getProfile', target: 'P-K1' });
+    if (!cd.success || strip(cd) !== strip(cdo)) bad.push('an admin\'s readItems card is not getProfile\'s reply');
+    if (ask(ad, { kind: 'answer', ids: ['P-K1'] }).success) bad.push('readItems gave an admin somebody else\'s answers, which myAnswers never did');
+    if (ask(ad, { kind: 'profile', ids: ['P-K1', 'P-K2'] }).success) bad.push('readItems read two people in one call');
+  }
+}
+
 if (bad.length) { console.log('FAILED — the settings lens:'); bad.forEach(b => console.log('  ' + b)); process.exit(1); }
-console.log('OK — ' + seen.size + ' settings functions read whose_(), lensOpen is an admin\'s alone, and a change is logged by id.');
+console.log('OK — ' + seen.size + ' settings functions read whose_(), lensOpen is an admin\'s alone, a change is logged by id, and readItems reads people, answers and messages no wider than the old doors.');

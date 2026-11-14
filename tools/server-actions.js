@@ -45,12 +45,22 @@ function reach(fns, start) {
   return [...seen];
 }
 
-/* THE CALLERS: a quoted name in the site or tools/, as check-actions counts them. */
+/* THE CALLERS: a quoted name in the site or tools/, as check-actions counts them — except `old: '<action>'`. */
+/* That is the door a `readItems` read falls back to on a backend not yet redeployed (`apiItems_`): a FALLBACK, listed apart. */
+const OLD_RE = /\bold:\s*['"](\w+)['"]/g;
+function fallbacksOf() {
+  const c = {};
+  siteFiles().forEach(p => { for (const m of strip(read(p)).matchAll(OLD_RE)) (c[m[1]] = c[m[1]] || new Set()).add(p); });
+  return c;
+}
+function siteFiles() {
+  return fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js') && !/^check/.test(f) && f !== '_scope.js').map(f => 'js/' + f).concat(['index.html', 'sw.js']);
+}
 function callersOf() {
   const site = fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js') && !/^check/.test(f) && f !== '_scope.js').map(f => 'js/' + f).concat(['index.html', 'sw.js']);
   const tools = fs.readdirSync(path.join(ROOT, 'tools')).filter(f => /\.(js|py|sh)$/.test(f) && f !== 'server-actions.js').map(f => 'tools/' + f);
   const c = {};
-  site.concat(tools).forEach(p => { for (const m of strip(read(p)).matchAll(/['"`](\w+)['"`]/g)) (c[m[1]] = c[m[1]] || new Set()).add(p); });
+  site.concat(tools).forEach(p => { for (const m of strip(read(p)).replace(OLD_RE, '').matchAll(/['"`](\w+)['"`]/g)) (c[m[1]] = c[m[1]] || new Set()).add(p); });
   return c;
 }
 
@@ -59,7 +69,7 @@ const VERBS = ['read', 'save', 'delete'];
 
 function computed() {
   const fns = backendFns(), src = strip(pa.postSrc(ROOT)), table = pa.postTable(src);
-  const { access, kid } = P.backendRules(), callers = callersOf();
+  const { access, kid } = P.backendRules(), callers = callersOf(), fallbacks = fallbacksOf();
   const out = {};
   table.forEach(({ action, fn }) => {
     const r = reach(fns, fn), tabs = new Set(), eff = new Set();
@@ -75,6 +85,7 @@ function computed() {
       access: access[action] || '', childRefused: kid.indexOf(action) !== -1,
       handler: fn, file: fns[fn] ? 'backend/' + fns[fn].file : '',
       callers: [...(callers[action] || [])].sort(),
+      fallbacks: [...(fallbacks[action] || [])].sort(),
       tabs: [...tabs].sort(), effects: [...eff].sort(),
     };
   });

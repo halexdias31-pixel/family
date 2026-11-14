@@ -3574,12 +3574,18 @@ function libPump_() {
   libFromDisk_();
   if (!LIB.pending.size) return;
   /* EVERY CHUNK AT ONCE: one after another, a batch over the cap reached the reader a whole round trip late. */
-  while (LIB.pending.size) libSend_([...LIB.pending].slice(0, LIB_PER_ASK));
+  /* ONE KIND A CALL: `readItems` reads one kind at a time (q, ct, pr, pj). */
+  while (LIB.pending.size) {
+    const all = [...LIB.pending], pre = String(all[0]).split(':')[0] + ':';
+    libSend_(all.filter(t => String(t).indexOf(pre) === 0).slice(0, LIB_PER_ASK));
+  }
 }
+/* THE KIND EACH WIRE ID IS, for `readItems`: READ_ITEMS_LIB the other way round; one it does not serve yet (an insert) falls back to libItems. */
+const LIB_KIND_ = { q: 'question', ct: 'content', pr: 'practical', pj: 'project', in: 'insert' };
 function libSend_(ids) {
   ids.forEach(t => { LIB.pending.delete(t); LIB.flying.add(t); });
   const who = USER.token;
-  send({ action: 'libItems', personId: USER.personId || '', ids: ids })
+  send({ action: 'readItems', kind: LIB_KIND_[String(ids[0]).split(':')[0]], old: 'libItems', personId: USER.personId || '', ids: ids })
     .then(d => {
       if (!USER || USER.token !== who) return;
       libMerge_((d && d.items) || {});
@@ -3686,7 +3692,7 @@ function libDiskClear_() {
 /* WHY THE WORDS DID NOT COME, said plainly (432): a live backend older than `libItems` is a deploy for an admin, a wait for anyone else. */
 function libWhyNot_(err) {
   const why = String((err && err.message) || err || '');
-  if (/does not have `libItems`|unknown action/i.test(why)) {
+  if (/does not have `\w+`|unknown action/i.test(why)) {
     return (isAdmin())
       ? 'The library needs the latest backend — deploy it.' : 'The library is being updated — try again later.';
   }
@@ -7015,7 +7021,22 @@ function why_(err) {
 
 /* `opts.keepalive` — a request the browser finishes after the page has gone, for the last answers sent as
    an iPad's cover closes (`answersPush_` in js/answers.js). Nothing else passes it. */
+/* ONE WAY TO THE SERVER (step 2): a `readItems` read names the old door it replaces in `old`. */
+/* A backend not yet redeployed answers "unknown action" or "cannot be read here yet": the old door is asked instead. */
+const itemsOld_ = d => !!(d && d.error && (/unknown action|not recognis/i.test(String(d.error))
+  || (d.why === 'kind' && /cannot be read here yet/i.test(String(d.error)))));
+function apiItems_(body, opts) {
+  const b = Object.assign({}, body), old = String(b.old);
+  delete b.old;
+  return api(b, opts).then(d => {
+    if (!itemsOld_(d)) return d;
+    const o = Object.assign({}, b, { action: old });
+    delete o.kind;
+    return api(o, opts);
+  });
+}
 function api(body, opts) {
+  if (body && body.action === 'readItems' && body.old) return apiItems_(body, opts);
   /* ---------- THE TOKEN GOES ON EVERY REQUEST, FROM ONE PLACE § */
   const b = Object.assign({}, body);
   if (!b.token && typeof USER === 'object' && USER && USER.token) b.token = USER.token;
@@ -10024,7 +10045,7 @@ function loadMessages() {
   const still = () => !!USER && String(USER.personId || USER.name || '') === who;
   /* `send` FOR THE SAME REASON, and the comment below was written as though it already did. § */
   const asking = { who: who, p: null };
-  asking.p = send({ action: 'messages', name: USER.name, personId: USER.personId })
+  asking.p = send({ action: 'readItems', kind: 'message', old: 'messages', name: USER.name, personId: USER.personId })
     .then(d => {
       if (!still()) return [];
       MSG_FAILED = false;
@@ -12419,7 +12440,7 @@ function profileRefresh_(loud, onOld) {
   PROFILE_ASKING = true;
   const askedAt = Date.now();
   /* RETURNED, so a caller waiting on a copy it can trust (the card editor, `cardFetch_`) knows when the question has been answered either way — every § */
-  return api({ action: 'myProfile', name: USER.name, personId: USER.personId || '' })
+  return api({ action: 'readItems', kind: 'profile', old: 'myProfile', name: USER.name, personId: USER.personId || '' })
     .then(d => {
       PROFILE_ASKING = false;
       /* ---------- AN ANSWER OLDER THAN WHAT THE PHONE NOW KNOWS IS NOT PAINTED § */
@@ -13161,7 +13182,7 @@ function cardFetch_(e) {
     return;
   }
   e.asking = true;
-  api({ action: 'getProfile', name: USER.name, personId: USER.personId || '', target: e.pid })
+  api({ action: 'readItems', kind: 'card', ids: [e.pid], old: 'getProfile', name: USER.name, personId: USER.personId || '', target: e.pid })
     .then(d => {
       e.asking = false;
       if (CARD_EDIT !== e) return;
@@ -13949,7 +13970,7 @@ function peopleRedraw_() {
   PEOPLE_COLS_.forEach(c => { if (typeof AT !== 'undefined' && AT === c) repaint(true); else markStale_(c); });
 }
 function personFetch_(F) {
-  send_({ action: 'personGet', personId: (USER && USER.personId) || '', targetId: F.id })
+  send_({ action: 'readItems', kind: 'person', ids: F.id ? [F.id] : [], old: 'personGet', personId: (USER && USER.personId) || '', targetId: F.id })
     .then(d => { if (PEOPLE_FORM_ !== F) return; F.data = { person: d.person || null, parents: d.parents || [] }; peopleRedraw_(); })
     .catch(e => { if (PEOPLE_FORM_ !== F) return; F.err = (e && e.message) || 'That could not be opened.'; peopleRedraw_(); });
 }
@@ -14143,7 +14164,7 @@ on('person-edit', el => {
   if (!id) return;
   const F = PERSON_ED_ = { id, name: el.getAttribute('data-name') || '', data: null };
   peRedraw_();
-  send_({ action: 'personGet', personId: USER.personId || '', targetId: id })
+  send_({ action: 'readItems', kind: 'person', ids: [id], old: 'personGet', personId: USER.personId || '', targetId: id })
     .then(d => { if (PERSON_ED_ !== F) return; F.data = { person: d.person || {}, parents: d.parents || [], notify: d.notify || null }; peRedraw_(); })
     .catch(e => { if (PERSON_ED_ !== F) return; F.err = (e && e.message) || 'Their details could not be opened.'; peRedraw_(); });
 });

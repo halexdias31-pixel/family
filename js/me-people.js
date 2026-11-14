@@ -153,7 +153,7 @@ function peopleRedraw_() {
   PEOPLE_COLS_.forEach(c => { if (typeof AT !== 'undefined' && AT === c) repaint(true); else markStale_(c); });
 }
 function personFetch_(F) {
-  send_({ action: 'personGet', personId: (USER && USER.personId) || '', targetId: F.id })
+  send_({ action: 'readItems', kind: 'person', ids: F.id ? [F.id] : [], old: 'personGet', personId: (USER && USER.personId) || '', targetId: F.id })
     .then(d => { if (PEOPLE_FORM_ !== F) return; F.data = { person: d.person || null, parents: d.parents || [] }; peopleRedraw_(); })
     .catch(e => { if (PEOPLE_FORM_ !== F) return; F.err = (e && e.message) || 'That could not be opened.'; peopleRedraw_(); });
 }
@@ -347,7 +347,7 @@ on('person-edit', el => {
   if (!id) return;
   const F = PERSON_ED_ = { id, name: el.getAttribute('data-name') || '', data: null };
   peRedraw_();
-  send_({ action: 'personGet', personId: USER.personId || '', targetId: id })
+  send_({ action: 'readItems', kind: 'person', ids: [id], old: 'personGet', personId: USER.personId || '', targetId: id })
     .then(d => { if (PERSON_ED_ !== F) return; F.data = { person: d.person || {}, parents: d.parents || [], notify: d.notify || null }; peRedraw_(); })
     .catch(e => { if (PERSON_ED_ !== F) return; F.err = (e && e.message) || 'Their details could not be opened.'; peRedraw_(); });
 });

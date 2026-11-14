@@ -255,7 +255,7 @@ function answersPull_(force) {
   if (ANS_PULLING && ANS_PULLING.pid === pid) return ANS_PULLING.p;
   ANS_PULLED = pid;
   ANS_PULL_AT = Date.now();
-  const p = Promise.resolve(api({ action: 'myAnswers', personId: pid }))
+  const p = Promise.resolve(api({ action: 'readItems', kind: 'answer', old: 'myAnswers', personId: pid }))
     .then(d => {
       ANS_PULLING = null;
       if (!d || !d.success || !d.answers || typeof d.answers !== 'object') { ANS_PULLED = ''; return false; }

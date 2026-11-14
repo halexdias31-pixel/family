@@ -208,7 +208,7 @@ on('lens-pick', el => {
   const id = (el && el.getAttribute('data-id')) || '';
   if (!isAdmin() || !id) return;
   const card = el.closest('.lens-card'), said = card && card.querySelector('.lens-said');
-  send_({ action: 'lensOpen', name: USER.name, personId: USER.personId || '', targetId: id }, { button: el, where: said || undefined })
+  send_({ action: 'readItems', kind: 'profile', ids: [id], old: 'lensOpen', name: USER.name, personId: USER.personId || '', targetId: id }, { button: el, where: said || undefined })
     .then(d => { if (!isAdmin() || !d || !d.personId) return; LENS = Object.assign({ lens: true }, d); lensRedraw_(); })
     .catch(() => {});
 });

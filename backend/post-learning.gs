@@ -374,8 +374,40 @@ function readItemsRole_(me) {
   if (hasRole(me, 'admin')) return 'admin';
   return netViewerIsChild_() ? 'child' : 'member';
 }
+/* ONE WAY TO THE SERVER (step 2, slice 2): people, answers and messages, each answered by its old door's own handler, so the fields and refusals are that door's. */
+/* `self` is your own only (myProfile, myAnswers, messages); `other` is somebody else's, admin only as the old door was; `logged` leaves a lens_log row of ids; `blank` lets an admin ask for none (a new person's form). */
+function readItemsOld_() {
+  return {
+    profile: { self: postMyProfile_, other: postLensOpen_, logged: true },
+    answer: { self: postMyAnswers_ },
+    message: { self: postMessages_ },
+    person: { other: postPersonGet_, blank: true },
+    card: { other: postGetProfile_ },
+  };
+}
+function readItemsOwn_(kind, how, body, began) {
+  const me = findPerson('', S(body.personId));
+  const role = readItemsRole_(me);
+  if (!me || !S(me.person_id) || !itemMay_(kind, 'read', role)) return jsonOut({ error: 'Not authorised.', why: 'refused' });
+  const ids = Array.isArray(body.ids) ? body.ids.map(S).filter(Boolean) : [];
+  if (ids.length > 1) return jsonOut({ error: 'One at a time.' });
+  const self = S(me.person_id), want = ids[0] || '';
+  const b = { token: body.token, name: personDisplayName(me), personId: self };
+  if (how.self && (!want || want === self)) return how.self(b, 'readItems', began);
+  /* SOMEBODY ELSE'S: an admin's alone, asked of the row the token resolved to — as the gate asked it of lensOpen, personGet and getProfile. */
+  if (!how.other || role !== 'admin' || !hasRole(me, 'admin')) return jsonOut({ error: 'Only your own.', why: 'refused' });
+  if (!want && !how.blank) return jsonOut({ error: 'Whose? Nobody was asked for.' });
+  b.targetId = want; b.target = want;
+  if (how.logged && want !== self) {
+    const r = read(TAB.people).rows.find(x => S(x.person_id) === want);
+    if (r) lensLog_(me, r, 'readItems:' + kind, ['(opened)']);
+  }
+  return how.other(b, 'readItems', began);
+}
 function postReadItems_(body, action, began) {
   const kind = S(body.kind);
+  const own = readItemsOld_();
+  if (Object.prototype.hasOwnProperty.call(own, kind)) return readItemsOwn_(kind, own[kind], body, began);
   if (!Object.prototype.hasOwnProperty.call(READ_ITEMS_LIB, kind)) return jsonOut({ error: 'That kind cannot be read here yet.', why: 'kind' });
   const me = findPerson('', S(body.personId));
   const hide = itemMay_(kind, 'read', readItemsRole_(me));

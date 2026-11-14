@@ -2,7 +2,7 @@
  "say": "ONE WAY TO THE SERVER (owner, 14 Nov, step 2, phase 1): every doPost action and its fate: general (folds into one of generalActions), special (stays its own door, and why) or dead (no caller today, kept only until a redeploy removes it). access/childRefused are ACTION_ACCESS and KID_MONEY_ACTIONS; tabs/effects are every Ledger tab and side effect the handler can reach through backend calls, so they over-say, never under-say. Read as docs/server-path.md; refreshed by node tools/server-actions.js --write; held by js/check-server-path.js.",
  "generalActions": {
   "readItems": {
-   "status": "live (slice 1)",
+   "status": "live (slices 1-2)",
    "say": "Read items of one kind by id. Who may read which kind, and which fields are taken out, is permissions.json's `item` rows."
   },
   "saveItem": {
@@ -24,6 +24,7 @@
    "handler": "postAddComment_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "post_comments",
     "posts",
@@ -43,6 +44,7 @@
    "handler": "postAddPost_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -67,6 +69,7 @@
    "callers": [
     "js/me-people.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family"
    ],
@@ -87,6 +90,7 @@
     "js/keypad-pad.js",
     "tools/ai-draw-accuracy.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config"
    ],
@@ -107,6 +111,7 @@
    "callers": [
     "js/me-roles.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -128,6 +133,7 @@
    "callers": [
     "js/receipt.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "events",
@@ -157,6 +163,7 @@
    "callers": [
     "js/me-account.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "applications",
     "config",
@@ -178,6 +185,7 @@
    "handler": "postApprovePost_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -200,6 +208,7 @@
    "callers": [
     "js/messages.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config"
    ],
@@ -218,6 +227,7 @@
    "handler": "postBusinessSettingSave_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -238,6 +248,7 @@
    "callers": [
     "js/me-settings.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -259,6 +270,7 @@
    "callers": [
     "js/me-messages.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "messages"
@@ -279,6 +291,7 @@
    "callers": [
     "js/me-people.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -298,6 +311,7 @@
    "handler": "postClaudeNoteAdd_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "claude_notes",
     "family",
@@ -317,6 +331,7 @@
    "handler": "postClaudeNoteAdd_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "claude_notes",
     "family",
@@ -338,6 +353,7 @@
    "callers": [
     "js/shell-boot.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "claude_notes",
     "client_errors",
@@ -358,6 +374,7 @@
    "handler": "postConsoleLoad_",
    "file": "backend/post-learning.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [],
    "effects": [
     "drive",
@@ -373,6 +390,7 @@
    "handler": "postConsoleSave_",
    "file": "backend/post-learning.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [],
    "effects": [
     "drive",
@@ -390,6 +408,7 @@
    "callers": [
     "js/receipt.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "events",
@@ -418,6 +437,7 @@
    "callers": [
     "js/receipt.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "events",
@@ -449,6 +469,7 @@
    "handler": "postDecideApplication_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "applications",
     "config",
@@ -469,6 +490,7 @@
    "handler": "postDecideSuggestion_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "claude_notes",
     "family",
@@ -489,6 +511,7 @@
    "handler": "postDeleteComment_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -509,6 +532,7 @@
    "callers": [
     "js/receipt.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "events",
@@ -536,6 +560,7 @@
    "callers": [
     "js/shell-load.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -554,6 +579,7 @@
    "handler": "postDigestPreview_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -575,6 +601,7 @@
    "callers": [
     "js/me-people.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "digest_log",
@@ -597,6 +624,7 @@
    "handler": "postDigestWordsSave_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -617,6 +645,7 @@
    "callers": [
     "js/shell-load.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -636,6 +665,7 @@
    "handler": "postFavLinksSave_",
    "file": "backend/post-learning.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "fav_links",
@@ -657,6 +687,7 @@
     "js/find-bundles.js",
     "tools/complete-sats.py"
    ],
+   "fallbacks": [],
    "tabs": [
     "favourites"
    ],
@@ -673,6 +704,7 @@
    "handler": "postFilmsSync_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -695,6 +727,7 @@
    "callers": [
     "js/me-messages.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "events",
@@ -723,6 +756,7 @@
    "callers": [
     "js/me-people.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "people"
    ],
@@ -737,6 +771,7 @@
    "handler": "postFlagMessage_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "claude_notes",
     "config",
@@ -761,6 +796,7 @@
    "callers": [
     "js/me-account.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -779,7 +815,8 @@
    "childRefused": false,
    "handler": "postGetProfile_",
    "file": "backend/post-account.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/me-card.js"
    ],
    "tabs": [
@@ -803,6 +840,7 @@
    "callers": [
     "js/me-account.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "answers",
     "applications",
@@ -837,6 +875,7 @@
    "callers": [
     "js/help.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "events",
     "family",
@@ -859,6 +898,7 @@
    "callers": [
     "js/shell-boot.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "health_log"
    ],
@@ -875,6 +915,7 @@
    "handler": "postImageData_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [],
    "effects": [
     "outside"
@@ -889,6 +930,7 @@
    "handler": "postInboxList_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [],
    "effects": [
     "outside"
@@ -905,6 +947,7 @@
    "callers": [
     "js/receipt.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "events",
@@ -935,6 +978,7 @@
    "callers": [
     "js/layout-moves.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -953,6 +997,7 @@
    "handler": "postLegoCount_",
    "file": "backend/post-learning.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config"
    ],
@@ -970,7 +1015,8 @@
    "childRefused": false,
    "handler": "postLensOpen_",
    "file": "backend/post-account.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/find-doors.js"
    ],
    "tabs": [
@@ -1000,6 +1046,7 @@
    "callers": [
     "tools/lib-private.js"
    ],
+   "fallbacks": [],
    "tabs": [],
    "effects": []
   },
@@ -1014,6 +1061,7 @@
    "callers": [
     "tools/lib-private.js"
    ],
+   "fallbacks": [],
    "tabs": [],
    "effects": [
     "writes"
@@ -1028,6 +1076,7 @@
    "handler": "postLibImportDrive_",
    "file": "backend/post-learning.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "libLog"
    ],
@@ -1047,6 +1096,7 @@
    "handler": "postLibImportList_",
    "file": "backend/post-learning.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [],
    "effects": [
     "drive"
@@ -1060,7 +1110,8 @@
    "childRefused": false,
    "handler": "postLibItems_",
    "file": "backend/post-learning.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/library.js"
    ],
    "tabs": [
@@ -1085,6 +1136,7 @@
    "callers": [
     "js/me-people.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -1102,6 +1154,7 @@
    "handler": "postListApplications_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "applications",
     "people"
@@ -1117,6 +1170,7 @@
    "handler": "postListBizChecks_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "biz_checks",
     "family",
@@ -1136,6 +1190,7 @@
    "handler": "postListClientErrors_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "client_errors"
    ],
@@ -1152,6 +1207,7 @@
    "callers": [
     "js/one-place.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "owner_answers",
@@ -1170,6 +1226,7 @@
    "handler": "postListRecords_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -1188,6 +1245,7 @@
    "handler": "postListStaff_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "people"
    ],
@@ -1202,6 +1260,7 @@
    "handler": "postListSuggestions_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "claude_notes",
     "messages"
@@ -1217,6 +1276,7 @@
    "handler": "postMakeChild_",
    "file": "backend/post-family.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [],
    "effects": []
   },
@@ -1231,6 +1291,7 @@
    "callers": [
     "js/working.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "submissions"
@@ -1251,6 +1312,7 @@
    "handler": "postMediaSave_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -1271,6 +1333,7 @@
    "handler": "postMediaSave_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -1291,6 +1354,7 @@
    "handler": "postMediaSave_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -1311,6 +1375,7 @@
    "handler": "postMediaSave_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -1332,8 +1397,10 @@
    "file": "backend/post-content.gs",
    "callers": [
     "index.html",
-    "js/me-messages.js",
     "js/messages.js"
+   ],
+   "fallbacks": [
+    "js/me-messages.js"
    ],
    "tabs": [
     "events",
@@ -1364,6 +1431,7 @@
     "tools/mxc.py",
     "tools/refine-sats2024.py"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "events",
@@ -1393,6 +1461,9 @@
    "callers": [
     "js/answers.js"
    ],
+   "fallbacks": [
+    "js/answers.js"
+   ],
    "tabs": [
     "answers"
    ],
@@ -1406,7 +1477,8 @@
    "childRefused": false,
    "handler": "postMyProfile_",
    "file": "backend/post-account.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/me-settings.js"
    ],
    "tabs": [
@@ -1436,6 +1508,7 @@
    "callers": [
     "js/receipt.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "events",
@@ -1462,6 +1535,7 @@
    "handler": "postPayStatement_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config",
     "events",
@@ -1483,6 +1557,7 @@
    "callers": [
     "js/me-people.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -1499,7 +1574,8 @@
    "childRefused": false,
    "handler": "postPersonGet_",
    "file": "backend/post-family.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/me-people.js"
    ],
    "tabs": [
@@ -1520,6 +1596,7 @@
    "callers": [
     "js/me-people.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -1541,6 +1618,7 @@
    "callers": [
     "js/me-fields.js"
    ],
+   "fallbacks": [],
    "tabs": [],
    "effects": [
     "drive",
@@ -1559,6 +1637,7 @@
    "callers": [
     "js/me-messages.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "answers",
     "applications",
@@ -1592,6 +1671,7 @@
    "callers": [
     "js/me-people.js"
    ],
+   "fallbacks": [],
    "tabs": [],
    "effects": []
   },
@@ -1604,6 +1684,7 @@
    "handler": "postPushState_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -1622,6 +1703,7 @@
    "handler": "postPushState_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -1640,6 +1722,7 @@
    "handler": "postPushState_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -1658,6 +1741,7 @@
    "handler": "postPushState_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -1676,6 +1760,7 @@
    "handler": "postRaceBuild_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [],
    "effects": [
     "drive",
@@ -1694,6 +1779,7 @@
    "callers": [
     "js/help.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "events",
     "family",
@@ -1714,6 +1800,7 @@
    "handler": "postReactPost_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -1732,10 +1819,21 @@
    "childRefused": false,
    "handler": "postReadItems_",
    "file": "backend/post-learning.gs",
-   "callers": [],
+   "callers": [
+    "js/answers.js",
+    "js/find-doors.js",
+    "js/library.js",
+    "js/me-card.js",
+    "js/me-messages.js",
+    "js/me-people.js",
+    "js/me-settings.js",
+    "js/shell-click.js"
+   ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
+    "lens_log",
     "libLog",
     "people"
    ],
@@ -1755,6 +1853,7 @@
    "callers": [
     "js/me-messages.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "messages",
@@ -1775,6 +1874,7 @@
    "callers": [
     "js/me-account.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -1794,6 +1894,7 @@
    "handler": "postReport_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "claude_notes",
     "config",
@@ -1816,6 +1917,7 @@
    "handler": "postReportQuestion_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "claude_notes",
     "config",
@@ -1840,6 +1942,7 @@
    "callers": [
     "js/me-roles.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -1861,6 +1964,7 @@
    "callers": [
     "js/me-roles.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -1880,6 +1984,7 @@
    "handler": "postRewriteIdeas_",
    "file": "backend/post-learning.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config"
    ],
@@ -1898,6 +2003,7 @@
    "handler": "postRewriteIdeas_",
    "file": "backend/post-learning.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config"
    ],
@@ -1916,6 +2022,7 @@
    "handler": "postRulesSave_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -1936,6 +2043,7 @@
    "callers": [
     "js/answers.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "answers",
     "family",
@@ -1954,6 +2062,7 @@
    "handler": "postSaveAvatar_",
    "file": "backend/post-account.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -1972,6 +2081,7 @@
    "handler": "postListBizChecks_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "biz_checks",
     "family",
@@ -1993,6 +2103,7 @@
    "callers": [
     "js/find-measure.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2012,6 +2123,7 @@
    "callers": [
     "js/one-place.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "owner_answers",
@@ -2032,6 +2144,7 @@
    "callers": [
     "js/me-fields.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -2052,6 +2165,7 @@
    "handler": "postListRecords_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -2070,6 +2184,7 @@
    "handler": "postSaveScore_",
    "file": "backend/post-account.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2087,6 +2202,7 @@
    "handler": "postSaveTimetable_",
    "file": "backend/post-account.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2106,6 +2222,7 @@
    "callers": [
     "js/find-measure.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2123,6 +2240,7 @@
    "handler": "postSaveScore_",
    "file": "backend/post-account.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2143,6 +2261,7 @@
     "js/me-messages.js",
     "js/resource.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "events",
@@ -2172,6 +2291,7 @@
    "callers": [
     "js/cards-make.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2191,6 +2311,7 @@
    "callers": [
     "js/me-roles.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "events",
@@ -2216,6 +2337,7 @@
     "js/me-people.js",
     "js/me-roles.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -2237,6 +2359,7 @@
    "callers": [
     "js/find-account.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "events",
@@ -2261,6 +2384,7 @@
    "handler": "postSignAgreement_",
    "file": "backend/post-signin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2280,6 +2404,7 @@
    "callers": [
     "js/me-account.js"
    ],
+   "fallbacks": [],
    "tabs": [],
    "effects": [
     "writes"
@@ -2300,6 +2425,7 @@
     "js/shell-boot.js",
     "js/shell-pages.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -2322,6 +2448,7 @@
     "js/me-account.js",
     "js/submit.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "submissions"
    ],
@@ -2342,6 +2469,7 @@
     "js/tiles.js",
     "tools/health.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "claude_notes",
     "config",
@@ -2366,6 +2494,7 @@
    "callers": [
     "js/submit-suggest.js"
    ],
+   "fallbacks": [],
    "tabs": [],
    "effects": [
     "drive",
@@ -2381,6 +2510,7 @@
    "handler": "postTidyOldRows_",
    "file": "backend/migrate.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -2400,6 +2530,7 @@
    "handler": "postTutorDbsChecked_",
    "file": "backend/post-admin.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2421,6 +2552,7 @@
     "js/me-people.js",
     "js/me-settings.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -2446,6 +2578,7 @@
    "callers": [
     "js/me-messages.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2466,6 +2599,7 @@
     "js/find-account.js",
     "tools/ai-draw-accuracy.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "answers",
     "applications",
@@ -2499,6 +2633,7 @@
    "callers": [
     "js/me-settings.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2518,6 +2653,7 @@
    "handler": "postVotePoll_",
    "file": "backend/post-content.gs",
    "callers": [],
+   "fallbacks": [],
    "tabs": [
     "family",
     "people",
@@ -2539,6 +2675,7 @@
    "callers": [
     "js/words.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -2559,6 +2696,7 @@
    "callers": [
     "js/work-file.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "events",
     "family",
@@ -2584,6 +2722,7 @@
    "callers": [
     "js/work-file.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "events",
     "family",
@@ -2609,6 +2748,7 @@
    "callers": [
     "js/work-file.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "events",
     "family",
@@ -2634,6 +2774,7 @@
    "callers": [
     "js/work-file.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "events",
     "family",
@@ -2659,6 +2800,7 @@
    "callers": [
     "js/working.js"
    ],
+   "fallbacks": [],
    "tabs": [
     "family",
     "submissions"

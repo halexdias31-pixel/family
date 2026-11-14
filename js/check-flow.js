@@ -122,6 +122,16 @@ function boot(opts) {
   const data = opts.payload || payload();
   /* ---------- EVERY GET IS WRITTEN DOWN, AND A JOURNEY MAY ANSWER ONE ITSELF § */
   const gets = [];
+  /* ONE WAY TO THE SERVER (step 2): `readItems` answers through the old door's own handler (readItemsOld_; check-lens holds it). */
+  /* So a journey's stub of that door answers it, and the request is written down under the door's name, marked `via`. */
+  const READ_AS_ = { answer: 'myAnswers', message: 'messages', person: 'personGet', card: 'getProfile',
+    question: 'libItems', content: 'libItems', practical: 'libItems', project: 'libItems', insert: 'libItems' };
+  const readItemsAs_ = b => {
+    if (!b || b.action !== 'readItems') return b;
+    const ids = Array.isArray(b.ids) ? b.ids : [];
+    const door = b.kind === 'profile' ? (ids[0] && ids[0] !== b.personId ? 'lensOpen' : 'myProfile') : READ_AS_[b.kind];
+    return door ? Object.assign({}, b, { action: door, via: 'readItems' }) : b;
+  };
   w.fetch = (url, o) => {
     if (!(o && o.body)) {
       gets.push(String(url));
@@ -138,7 +148,7 @@ function boot(opts) {
       text: () => Promise.resolve(JSON.stringify(txt)),
       json: () => Promise.resolve(txt) });
     if (o && o.body) {                       // a POST — record it and answer plausibly
-      const body = JSON.parse(o.body);
+      const body = readItemsAs_(JSON.parse(o.body));
       sent.push(body);
       /* A FUNCTION MAY ANSWER PER ACTION, so a journey can play an older server that knows some
          actions and not others. */
