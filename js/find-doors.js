@@ -276,5 +276,7 @@ function screenGone_(id) {
   const to = String(screenMoved_()[id] || '').split(':');
   if (to[0] !== 'find' || !to[1] || TABS.some(t => t.id === id)) return false;
   if (to[1] === 'Settings') { findSettings_(to[2] || ''); return true; }
-  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: to[1] }], show: true }); go('stuff'); return true;
+  /* `find:<door>:<field>=<value>` opens the door with that tag already chosen (find-only.json): Profiles › Apprentice. */
+  const pick = /^(\w+)=(.+)$/.exec(to.slice(2).join(':')), filters = [{ field: DOOR_FIELD, value: to[1] }].concat(pick ? [{ field: pick[1], value: pick[2] }] : []);
+  finderSet_(FINDERS.stuff, { filters, show: true }); go('stuff'); return true;
 }

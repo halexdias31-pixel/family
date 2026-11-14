@@ -332,7 +332,6 @@ const CARD_REG = [
   /* NO `say` ON THE TWO PUBLIC FACES (730): the web card and the window are read by everybody, and a line about the card is for an admin. */
   { id: 'web:card', col: 'web', label: 'Web profile', re: /^<div class="card web-card/, say: '' },
   { id: 'spot:list', col: 'spotlight', label: 'Spotlight', say: '' },
-  { id: 'ppl:apprentices:all', col: 'apprentices', label: 'Apprentices', re: /^<div class="card appr-card/, say: 'A card per apprentice.' },
   { id: 'appr:blurb', col: 'apprentice', label: 'Apprentice settings', re: /^<div class="card appr-set/, say: 'Work experience with us: a placeholder until it is built.' },
   { id: 'biz:profit-sum', col: 'biz', label: 'Profit', re: /data-profit="sum"/, say: 'What came in and went out, and what is left.' },
   { id: 'biz:posts', col: 'site', label: 'Posts waiting', re: /^<div class="card biz posts-wait/, say: 'Posts waiting for you to approve.' },
@@ -459,7 +458,7 @@ const CARD_BUILD = {
   family: () => familyPages_(), staff: () => staffPages_(), account: () => studentSetPages_(),
   tutors: () => peoplePages_('tutors'), students: () => peoplePages_('students'), parents: () => peoplePages_('parents'),
   biz: () => adminPages_(), site: () => sitePages_(),
-  web: () => webProfilePages_(), spotlight: () => cardMark_('spot:list', spotlightCards_()), apprentices: () => apprenticeProfilePages_(), apprentice: () => apprenticePages_(),
+  web: () => webProfilePages_(), spotlight: () => cardMark_('spot:list', spotlightCards_()), apprentice: () => apprenticePages_(),
 };
 /* THE CARD COLUMNS LEFT TO RIGHT; Business only for its own cards — anything else moved there would vanish for everyone but an admin. */
 function cardColsFor_(id) {

@@ -322,7 +322,6 @@ const PAGER = {
   staff: () => cardCount_('staff', () => staffPages_().length),
   apprentice: () => cardCount_('apprentice', () => apprenticePages_().length),
   web: () => cardCount_('web', () => webProfilePages_().length),
-  apprentices: () => cardCount_('apprentices', () => apprenticeProfilePages_().length),
   tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
   students: () => cardCount_('students', () => peoplePages_('students').length),
   parents: () => cardCount_('parents', () => peoplePages_('parents').length),

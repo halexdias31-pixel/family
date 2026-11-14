@@ -2063,12 +2063,12 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,189088,27,2,4,5,10,30,6],221021,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,189088,26,2,4,5,10,30,6],221020,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[2,2,2],4,["Parent","Student","Tutor"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,4,2],30,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,189088,27,2,1,5,10,29,6],221017,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,189088,26,2,1,5,10,29,6],221016,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[20,8,17,8,7],29,["Student","Parent","Staff","Apprentice","Admin"]]
 }
 }};
@@ -4501,7 +4501,6 @@ const TABS = [
   { id: 'tutors',   icon: '🎓', label: 'Tutor profile',      title: 'Tutor profile', cards: true },
   { id: 'students', icon: '👤', label: 'Student profile',    title: 'Student profile', cards: true },
   { id: 'parents',  icon: '👪', label: 'Parent profile',     title: 'Parent profile', cards: true },
-  { id: 'apprentices', icon: '🧰', label: 'Apprentice profile', title: 'Apprentice profile', cards: true },
   { id: 'family',  icon: '🔧', label: 'Parent settings',  title: 'Parent settings', cards: true },
   { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings', cards: true },
   /* APPRENTICE: work experience, a placeholder column beside Tutor settings until it is built (docs/history/570). */
@@ -4520,7 +4519,7 @@ const TABS = [
 const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FIRST, for everyone (1070): the one front door; Tools and Games are Find cards (790) */
                    'spotlight', 'feed', 'reel', 'dm',                 /* social (392), below Find; Spotlight left of the posts (461) */
                    'booking', 'shop',                                 /* business */
-                   'web', 'tutors', 'students', 'parents', 'apprentices', /* the five profiles (730) */
+                   'web', 'tutors', 'students', 'parents',                /* the profiles (730); Apprentice profile is Find › Profiles › Apprentice (find-only.json) */
                    'staff', 'site', 'account', 'family', 'apprentice', 'biz']; /* the six settings, the owner's order (730); site and biz admin-only */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
@@ -6209,7 +6208,6 @@ const PAGER = {
   staff: () => cardCount_('staff', () => staffPages_().length),
   apprentice: () => cardCount_('apprentice', () => apprenticePages_().length),
   web: () => cardCount_('web', () => webProfilePages_().length),
-  apprentices: () => cardCount_('apprentices', () => apprenticeProfilePages_().length),
   tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
   students: () => cardCount_('students', () => peoplePages_('students').length),
   parents: () => cardCount_('parents', () => peoplePages_('parents').length),
@@ -10967,13 +10965,7 @@ function webProfilePages_() {
 }
 screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web') : webProfilePages_()));
 
-/* ---------- APPRENTICE PROFILE (730): a card per apprentice an admin is sent (`everyone`, role Apprentice); none yet is a line from brand() ---------- */
-function apprenticeProfilePages_() {
-  const all = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title && /apprentice/i.test(String(p.role || '')));
-  if (all.length) return all.map(p => rolesSet_('appr-card', p.title, p.handle ? [{ type: 'tags', tags: [{ text: '@' + p.handle, look: 'prof-handle' }] }] : []));
-  return [rolesSet_('appr-card people-none', '', [{ type: 'text', look: 'empty', text: brand('apprentices_none', 'No apprentices yet.') }])];
-}
-screen('apprentices', () => pages('apprentices', typeof cardsOf_ === 'function' ? cardsOf_('apprentices') : apprenticeProfilePages_()));
+/* APPRENTICE PROFILE WAS A COLUMN (730); it is Find › Profiles › Apprentice now (find-only.json, `profileTypes_`). */
 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {

@@ -713,6 +713,15 @@
    "since": "2026-11-13"
   },
   {
+   "id": "5.8",
+   "principle": 5,
+   "text": "Find is the only way around (owner, 14 Nov, step 3): every screen becomes a Find branch whose menu is tags and whose leaves are cards, seen by the same permission rows; a moved screen keeps no column, screen code or <section>, and its old name opens its branch (`data/settings/screens-moved.json`). `data/settings/find-only.json` surveys every screen and `check/find-only-ratchet.json` lists the columns still standing, a list that only gets shorter.",
+   "checks": [
+    "find-only"
+   ],
+   "since": "2026-11-14"
+  },
+  {
    "id": "6.1",
    "principle": 6,
    "text": "Icons and one-word labels, no grey clutter, information as a tag; a failure is said in words through `why_()`.",
