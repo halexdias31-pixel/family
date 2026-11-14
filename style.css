@@ -5312,8 +5312,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* ================= PROGRESS (435): one line per thing on the black and gold; a paper opens in place ================= */
 .prog-topic .row { border-bottom: 0; padding-bottom: var(--s1); }
-.prog-bar { height: .3rem; margin-bottom: var(--s2); border-radius: var(--r-ui); background: var(--line); overflow: hidden; }
-.prog-bar > span { display: block; height: 100%; background: var(--gold); }
+.prog-bar { display: block; width: 100%; height: .3rem; margin-bottom: var(--s2); border-radius: var(--r-ui); background: var(--line); overflow: hidden; }
+.prog-bar > rect { fill: var(--gold); }
 .prog-tot .v { color: var(--gold); font-weight: 620; }
 .prog-v.is-good { color: var(--good); }
 .prog-v.is-bad { color: var(--bad); }
