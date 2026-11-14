@@ -72,57 +72,63 @@ function flyerUrl_(src, layout) {
   return 'https://' + src.site + (/[/?]/.test(src.site.slice(-1)) ? '' : '/') + '?' + q;
 }
 
-/* ONE FIELD, drawn from the source only; an empty value draws nothing. */
+/* ONE FIELD, drawn from the source only, as a block for the one card maker (`cardBlock_`); an empty value draws nothing. */
+const flyLine_ = (look, text) => (text ? { type: 'group', tag: 'p', look, text } : null);
 const FLY_DRAW = {
-  logo: s => (s.logo ? `<img class="fl-logo" alt="" src="${esc(s.logo)}">` : ''),
-  name: s => (s.name ? `<h2 class="fl-name">${esc(s.name)}</h2>` : ''),
-  head: s => ((s.head || []).length ? `<p class="fl-head">${s.head.map(l => `<span>${esc(l)}</span>`).join('')}</p>` : ''),
-  slogan: s => (s.slogan ? `<p class="fl-slogan">${esc(s.slogan)}</p>` : ''),
-  say: s => (s.say ? `<p class="fl-say">${esc(s.say)}</p>` : ''),
-  tagline: s => (s.tagline ? `<p class="fl-tag">${esc(s.tagline)}</p>` : ''),
-  photo: s => (s.photo ? `<img class="fl-photo" alt="" src="${esc(s.photo)}">` : ''),
-  subjects: (s, o) => { const l = flyPicked_(s, o.subj); return l.length ? `<ul class="fl-subj">${l.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''; },
-  price: s => (s.price ? `<p class="fl-price">${esc(s.price)}</p>` : ''),
-  area: s => (s.area ? `<p class="fl-area">${esc(s.area)}</p>` : ''),
-  phone: s => (s.phone ? `<p class="fl-phone">${esc(s.phone)}</p>` : ''),
-  site: s => (s.site ? `<p class="fl-site">${esc(s.site)}</p>` : ''),
-  cta: s => (s.cta ? `<p class="fl-cta">${esc(s.cta)}</p>` : ''),
-  qr: (s, o) => { const u = flyerUrl_(s, o.layout); return u ? `<div class="fl-qr" data-url="${esc(u)}">${typeof qrSvg_ === 'function' ? qrSvg_(u, 'fl-qrsvg') : ''}</div>` : ''; },
+  logo: s => (s.logo ? { type: 'media', kind: 'image', look: 'fl-logo', src: s.logo } : null),
+  /* A LINE THAT IS A HEADING, not an <h2>: inside a screen an h2 is a section rule (`.screen h2`). */
+  name: s => (s.name ? { type: 'group', tag: 'p', look: 'fl-name', attrs: { role: 'heading', 'aria-level': '2' }, text: s.name } : null),
+  head: s => ((s.head || []).length ? { type: 'group', tag: 'p', look: 'fl-head', blocks: s.head.map(l => ({ type: 'group', tag: 'span', text: l })) } : null),
+  slogan: s => flyLine_('fl-slogan', s.slogan),
+  say: s => flyLine_('fl-say', s.say),
+  tagline: s => flyLine_('fl-tag', s.tagline),
+  photo: s => (s.photo ? { type: 'media', kind: 'image', look: 'fl-photo', src: s.photo } : null),
+  subjects: (s, o) => { const l = flyPicked_(s, o.subj); return l.length ? { type: 'list', look: 'fl-subj', items: l } : null; },
+  price: s => flyLine_('fl-price', s.price),
+  area: s => flyLine_('fl-area', s.area),
+  phone: s => flyLine_('fl-phone', s.phone),
+  site: s => flyLine_('fl-site', s.site),
+  cta: s => flyLine_('fl-cta', s.cta),
+  /* THE QR is the QR maker's drawing, laid in as it is (`inner`). */
+  qr: (s, o) => { const u = flyerUrl_(s, o.layout); return u ? { type: 'group', look: 'fl-qr', attrs: { 'data-url': u }, inner: typeof qrSvg_ === 'function' ? qrSvg_(u, 'fl-qrsvg') : '' } : null; },
 };
 const flyPicked_ = (s, subj) => (s.subjects || []).filter(x => !subj || subj.indexOf(x) !== -1).slice(0, FLY_SUBJECTS_MAX);
 
-/* THE SHEET: the layout's fields from the source, nothing else; QR slips are one slip ten times. */
-function flyerSheet_(src, layout, subj) {
+/* THE SHEET: the layout's fields from the source, nothing else; QR slips are one slip ten times. A spec; `flyerSheet_` draws it. */
+function flyerSheetSpec_(src, layout, subj) {
   const L = FLY_LAYOUTS.find(x => x.id === layout) || FLY_LAYOUTS[0], o = { layout: L.id, subj };
-  if (!src) return '';
-  const one = L.fields.filter(f => flyKeeps_(src, f)).map(f => { try { return FLY_DRAW[f](src, o); } catch (e) { return ''; } }).join('');
-  const body = L.many ? Array.from({ length: L.many }, () => `<div class="fl-slip">${one}</div>`).join('') : one;
-  return `<div class="fl-sheet fl-${L.id} fl-st-${esc(src.style || 'minimal')}">${body}</div>`;
+  if (!src) return null;
+  const one = L.fields.filter(f => flyKeeps_(src, f)).map(f => { try { return FLY_DRAW[f](src, o); } catch (e) { return null; } }).filter(Boolean);
+  const blocks = L.many ? Array.from({ length: L.many }, () => ({ type: 'group', look: 'fl-slip', blocks: one })) : one;
+  return { type: 'group', look: `fl-sheet fl-${L.id} fl-st-${src.style || 'minimal'}`, blocks };
 }
+const flyerSheet_ = (src, layout, subj) => cardBlock_(flyerSheetSpec_(src, layout, subj));
 
 /* ---------- THE CARD: three choices, a live preview, Download PDF ---------- */
 function flyerBody_() {
   const who = flyWhoList_();
-  if (!who.length) return `<div class="fl-body">${empty_(brand('flyer_none', 'Your flyer comes from your tutor card; fill that in first.'))}</div>`;
+  if (!who.length) return { type: 'group', look: 'fl-body', blocks: [{ type: 'text', look: 'empty', text: brand('flyer_none', 'Your flyer comes from your tutor card; fill that in first.') }] };
   if (!who.some(w => w.id === FLY.who)) FLY.who = who[0].id;
   if (FLY.camp && !flyCampaign_(FLY.camp)) FLY.camp = '';
   const src = flyerWith_(flyerSource_(FLY.who), FLY.camp);
   const subs = (src && src.subjects) || [];
-  const row = (items, act, on) => `<div class="fl-row">${items.map(i => tile_({ form: true, kind: on(i) ? '' : 'quiet', label: i.label, act, data: { v: i.id }, pressed: on(i) })).join('')}</div>`;
-  return `<div class="fl-body">
-    ${who.length > 1 ? row(who, 'fly-who', i => i.id === FLY.who) : ''}
-    ${flyCampaigns_().length ? row([{ id: '', label: 'No campaign' }].concat(flyCampaigns_().map(c => ({ id: c.id, label: c.name }))), 'fly-camp', i => i.id === FLY.camp) : ''}
-    ${row(FLY_LAYOUTS.map(l => ({ id: l.id, label: l.name })), 'fly-layout', i => i.id === FLY.layout)}
-    ${subs.length ? row(subs.map(s => ({ id: s, label: s })), 'fly-subj', i => !FLY.subj || FLY.subj.indexOf(i.id) !== -1) : ''}
-    <div class="fl-prev">${flyerSheet_(src, FLY.layout, FLY.subj)}</div>
-    <div class="fl-row">${tile_({ form: true, label: 'Download PDF', act: 'fly-print' })}</div>
-  </div>`;
+  const row = (items, act, on) => ({ type: 'group', look: 'fl-row', tiles: items.map(i => ({ form: true, kind: on(i) ? '' : 'quiet', label: i.label, act, data: { v: i.id }, pressed: on(i) })) });
+  return { type: 'group', look: 'fl-body', blocks: [
+    who.length > 1 ? row(who, 'fly-who', i => i.id === FLY.who) : null,
+    flyCampaigns_().length ? row([{ id: '', label: 'No campaign' }].concat(flyCampaigns_().map(c => ({ id: c.id, label: c.name }))), 'fly-camp', i => i.id === FLY.camp) : null,
+    row(FLY_LAYOUTS.map(l => ({ id: l.id, label: l.name })), 'fly-layout', i => i.id === FLY.layout),
+    subs.length ? row(subs.map(s => ({ id: s, label: s })), 'fly-subj', i => !FLY.subj || FLY.subj.indexOf(i.id) !== -1) : null,
+    { type: 'group', look: 'fl-prev', blocks: [flyerSheetSpec_(src, FLY.layout, FLY.subj)] },
+    { type: 'group', look: 'fl-row', tiles: [{ form: true, label: 'Download PDF', act: 'fly-print' }] },
+  ] };
 }
+/* THE CARD'S SPEC: its name the tag, the maker its one body block; `fl-maker` is how a redraw finds every copy. */
+const flyerCardSpec_ = () => ({ kind: 'panel', look: 'fl-maker', name: 'Flyer maker', tags: ['Flyer maker'], data: { 'lay-card': 'staff:flyer' }, body: [flyerBody_()] });
 function flyerCards_() {
   if (!USER || !rankAtLeast_('staff')) return [];
   /* FITTED ONCE IT IS ON THE PAGE: a card is drawn as a string before it has a width. */
   try { setTimeout(flyerFit_, 0); setTimeout(flyerFit_, 400); } catch (e) { /* drawn unfitted */ }
-  return [card_(`<div class="fl-maker" data-lay-card="staff:flyer"><h3>Flyer maker</h3>${flyerBody_()}</div>`)];
+  return [renderCard(flyerCardSpec_())];
 }
 
 /* THE PREVIEW IS THE PRINTED SHEET, scaled to the card's width (its sizes are in mm, as printed). */
@@ -136,7 +142,9 @@ function flyerFit_() {
 }
 /* EVERY COPY ON THE PAGE (both finders) drawn again round the new choice, as the same element (`cardFill_`). */
 function flyerRedraw_() {
-  document.querySelectorAll('.card.fl-maker').forEach(c => cardFill_(c, '<h3>Flyer maker</h3>' + flyerBody_()));
+  /* The card's insides drawn again, the element kept (its place and listeners stay). */
+  document.querySelectorAll('.card.fl-maker').forEach(c => { const t = document.createElement('template'); t.innerHTML = renderCard(flyerCardSpec_());
+    const fresh = t.content.firstElementChild; if (fresh) c.replaceChildren(...fresh.childNodes); });
   flyerFit_();
 }
 on('fly-who', el => { FLY.who = el.dataset.v || ''; FLY.subj = null; flyerRedraw_(el); });

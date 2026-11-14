@@ -5149,7 +5149,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .fl-logo { width: 34mm; height: 34mm; object-fit: contain; }
 .fl-a5 .fl-logo { width: 24mm; height: 24mm; }
 .fl-photo { width: 60mm; height: 60mm; object-fit: cover; border-radius: 50%; }
-.fl-name { font-size: 15mm; line-height: 1.1; color: var(--paper-ink); }
+.fl-name { font-size: 15mm; line-height: 1.1; font-weight: 700; color: var(--paper-ink); }
 .fl-a5 .fl-name { font-size: 11mm; }
 .fl-tag { font-size: 7mm; color: var(--paper-dim); max-width: 160mm; }
 .fl-a5 .fl-tag { font-size: 5.2mm; }
