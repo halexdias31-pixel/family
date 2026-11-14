@@ -25,12 +25,19 @@ const isStrs = v => Array.isArray(v) && v.every(s => typeof s === 'string' && s.
 let n = 0;
 migrated.forEach(k => {
   /* A SOURCE IS ONE FILE OR A FOLDER'S FILES (`data/chemistry/*.json`); a file is a list of rows, or an object of lists. */
-  const want = String(SHAPE.kinds[k] && SHAPE.kinds[k].source || '').split(' ')[0], dir = path.join(ROOT, path.dirname(want));
+  /* A KIND MADE LIVE FROM THE PAYLOAD (a subject, a venue) has no file of its own: its `sample` (`file key`) is checked if it names one, */
+  /* and the sample row below checks it either way. */
+  const K = SHAPE.kinds[k] || {}, live = !/^data\//.test(String(K.source || ''));
+  if (live && !K.sample) return;
+  const [want, key] = String(live ? K.sample : K.source || '').split(' '), dir = path.join(ROOT, path.dirname(want));
   const files = /\*/.test(want) ? (fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => /\.json$/.test(f)).map(f => path.join(dir, f)) : []) : [path.join(ROOT, want)];
   if (!files.length || !files.every(f => fs.existsSync(f))) { bad.push(`${k}: source ${want} missing`); return; }
-  const rows = [].concat(...files.map(f => { const d = JSON.parse(fs.readFileSync(f, 'utf8')); return Array.isArray(d) ? d : [].concat(...Object.values(d).filter(Array.isArray)); }));
-  const M = P.ITEM_MAPS[k];
-  rows.forEach(r => { const it = P.item_(r, k), at = `${k} ${r && r.id}`; n++;
+  const rows = [].concat(...files.map(f => { const d = JSON.parse(fs.readFileSync(f, 'utf8')); return Array.isArray(d) ? d : live ? d[key] || [] : [].concat(...Object.values(d).filter(Array.isArray)); }));
+  if (live && !rows.length) bad.push(`${k}: no rows in ${K.sample}`);
+  rows.forEach(r => { valid_(r, k); n++; });
+});
+function valid_(r, k) {
+  const M = P.ITEM_MAPS[k], it = P.item_(r, k), at = `${k} ${r && r.id}`;
     Object.keys(SHAPE.shape).forEach(f => { if (!(f in it)) bad.push(`${at}: no ${f}`); });
     if (typeof it.id !== 'string' || !it.id) bad.push(`${at}: id must be a non-empty string`);
     if (it.kind !== k) bad.push(`${at}: kind is ${it.kind}`);
@@ -42,12 +49,11 @@ migrated.forEach(k => {
     /* A CARD LEADS WITH ITS NAME TAG, or (`nameTag: false`, its tags its facets alone) carries the name as its own. */
     if (!spec || !Array.isArray(spec.tags) || spec.name !== it.name || (M.nameTag !== false && (!spec.tags[0] || spec.tags[0].text !== it.name))) bad.push(`${at}: cardOfItem_ does not lead with the name`);
     if (M.lines && spec.body !== it.body) bad.push(`${at}: its map says lines but the card does not draw its body`);
-  });
-});
+}
 /* A sample row with every column its map names filled (two words apart) proves the mapping reads lists (the repo's writings file may be empty). */
 migrated.forEach(k => { const M = P.ITEM_MAPS[k], row = { id: 'X-1', name: 'Sample' };
   ['tags', 'links'].forEach(f => (M[f] || []).forEach(c => { row[c] = 'A-' + c + ' | B-' + c; }));
-  const it = P.item_(row, k);
+  const it = P.item_(row, k); valid_(row, k);
   if (!(M.tags || []).length) bad.push(`${k}: its map names no tag columns`);
   if (it.tags.length < 2 * (M.tags || []).length || it.links.length < 2 * (M.links || []).length) bad.push(`${k}: its map does not read every tag and link column as a list`); });
 

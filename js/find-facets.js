@@ -550,9 +550,9 @@ const PRAC_TYPE = { experiment: 'Experiment', build: 'Build' };
 /* THE `required` FACET'S THREE ANSWERS, IN THE ORDER A TUTOR READS THEM: § */
 const PRAC_NEED = ['Required practical', 'Extra', 'Not for now'];
 
-/* A FACTS CARD (master template): each line plain words, said in the order a tutor reads them; a refused one says why first. */
-cardKind_('practical', x => {
-  const p = x.row || {}, off = p.excluded;
+/* A FACTS CARD (master template): each line plain words, said in the order a tutor reads them; a refused one says why first. Drawn by its item map (cards-parts.js). */
+function practicalBody_(p) {
+  const off = p.excluded;
   /* THE STRIP SAID "lab · needs a lab" AND A SCREENSHOT IS WHAT CAUGHT IT. § */
   const kit = /with kit/i.test(p.feasible) ? 'needs kit' : '';
   const money = p.costPerRun == null ? '' : p.costPerRun === 0 ? 'free to run' : money_(p.costPerRun) + ' a run';
@@ -561,8 +561,8 @@ cardKind_('practical', x => {
   const lines = [off ? 'Why not ' + off + (p.reconsiderAt ? ' Worth another look at ' + p.reconsiderAt + ', in a lab.' : '') : '', p.aim,
     [strip, p.hazard ? p.hazard + ' hazard' : ''].filter(Boolean).join(' '), p.outcome ? 'You end up with ' + p.outcome : '',
     !off && (p.wow === 'high' || p.wow === 'very high') ? 'Worth opening a session with.' : ''];
-  return { look: 'prac kc-facts', off: !!off, tags: kcFacetTags_(x), body: [{ type: 'text', paras: lines }] };
-});
+  return [{ type: 'text', paras: lines }];
+}
 
 /* THE GUIDE — WHAT A PRACTICAL NEEDS AROUND IT BEFORE ANYBODY RUNS ONE. § */
 
@@ -619,15 +619,15 @@ function practicalPart_(x, part) {
 const PROJ_TYPE = { project: 'Project', coursework: 'Coursework' };
 const projType_ = p => PROJ_TYPE[(p && p.projectType) || 'project'] || String(p.projectType);
 
-cardKind_('project', x => {
-  const p = x.row || {};
+/* Drawn by its item map (cards-parts.js). */
+function projectBody_(p) {
   /* AGES AS A RANGE, because "8+" on a podcast for sixteen-year-olds would be true and useless. */
   const ages = p.ageMin && p.ageMax ? 'ages ' + p.ageMin + '–' + p.ageMax : p.ageMin ? p.ageMin + '+' : '';
   const strip = [p.sessions ? p.sessions + (p.sessions === 1 ? ' session' : ' sessions') : '', ages].filter(Boolean).join(' · ');
   /* THE BOARD AND THE SPEC (`AQA 8552`): which qualification the work counts towards. */
   const qual = [p.board, p.specRef].filter(Boolean).join('\u00a0');
-  return { look: 'prac proj lib-c kc-facts', tags: kcFacetTags_(x), body: [{ type: 'text', paras: [qual, p.summary, strip, p.makes ? 'You end up with ' + p.makes : ''] }] };
-});
+  return [{ type: 'text', paras: [qual, p.summary, strip, p.makes ? 'You end up with ' + p.makes : ''] }];
+}
 
 function projectPart_(x, part) {
   const p = x.row;
@@ -663,11 +663,13 @@ const tbSub_ = s => String(s).split(/([₀-₉ₐₑₒₓₙₛₜ]+)/).map((ru
 /* ---------- A CONTENT CARD: ONE CHAPTER, WHOLE, WITH THE QUESTIONS' TAGS ON IT § */
 /* ONE WIDGET PER THING (408): § */
 const tbMark_ = on => (on ? [' ', { badge: 'H', hint: 'Higher tier only' }] : []);
-cardKind_('content', x => { const c = x.row || {};
-  const words = c.words || [];
-  return { look: 'prac tb ct lib-c', name: x.name, tags: kcFacetTags_(x), body: [
+/* Drawn by its item map (cards-parts.js). */
+function contentBody_(c) {
+  const words = Array.isArray(c.words) ? c.words : [];
+  return [
     words.length ? { type: 'section', look: 'tb-words', head: 'Key words', blocks: [{ type: 'list', items: words.map(w => [{ b: w.name }, ' — ', w.text].concat(tbMark_(w.higher))) }] } : null,
-  ].filter(Boolean) }; });
+  ].filter(Boolean);
+}
 
 /* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): § */
 const CONTENT_PAGE = { fig: 'Diagram', formulas: 'Formulas', worked: 'Worked examples' };
