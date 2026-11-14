@@ -227,6 +227,49 @@ for (const [f, { src, ast }] of Object.entries(asts)) walkInside(ast, [], at => 
   const html = read('index.html').replace(/<!--[\s\S]*?-->/g, '');
   tagsThrough(html, [], (st, none) => seenWrap('index.html', st, none));
 }
+/* ---------- AND A SELECT ASKED FOR AS A CARD-MAKER SPEC — `{ type: 'control', tag: 'select' }`, `{ kind: 'select' }`. § */
+let specSelects = 0;
+{
+  const rsrc = (asts['cards-render.js'] || {}).src || '';
+  const shell = {};                  /* block type -> { tag, classes } its renderer opens with */
+  const fnSrc = name => tops[name] || '';
+  for (const m of rsrc.matchAll(/\b(\w+): (\w+_)\b/g)) {
+    const first = /<([a-z][\w-]*)\b([^>]*)>/.exec(fnSrc(m[2]));
+    if (first && !shell[m[1]]) shell[m[1]] = { tag: first[1], classes: classesIn(first[2]) };
+  }
+  for (const m of rsrc.matchAll(/^\s+(\w+): b => `<([a-z][\w-]*)\b([^>]*)>/gm)) shell[m[1]] = { tag: m[2], classes: classesIn(m[3]) };
+  const prop = (o, k) => (o.properties || []).find(p => p.key && (p.key.name === k || p.key.value === k));
+  const str = n => (n && n.type === 'Literal' && typeof n.value === 'string' ? n.value : '');
+  const looks = n => str(n).split(/\s+/).filter(c => /^[\w-]+$/.test(c));
+  function specWalk(node, stack, where) {
+    if (!node || typeof node.type !== 'string') return;
+    if (node.type === 'ObjectExpression') {
+      const tag = str((prop(node, 'tag') || {}).value), kind = str((prop(node, 'kind') || {}).value), type = str((prop(node, 'type') || {}).value);
+      const look = looks((prop(node, 'look') || {}).value);
+      const attrs = (prop(node, 'attrs') || {}).value;
+      const aCls = attrs && attrs.type === 'ObjectExpression' ? looks((prop(attrs, 'class') || {}).value) : [];
+      const aId = attrs && attrs.type === 'ObjectExpression' ? str((prop(attrs, 'id') || {}).value) : str((prop(node, 'id') || {}).value);
+      if (tag === 'select' || kind === 'select') {
+        specSelects++;
+        look.concat(aCls).forEach(c => selClasses.add(c));
+        if (aId) selIds.add(aId);
+        seenWrap(where(node.start), stack, false);
+        return;
+      }
+      if (type && (tag || shell[type])) {
+        const sh = shell[type] || { tag, classes: [] };
+        stack = stack.concat([{ tag: tag || sh.tag, classes: sh.classes.concat(look, aCls), id: aId, none: false }]);
+      }
+    }
+    for (const k of Object.keys(node)) {
+      if (k === 'type' || k === 'start' || k === 'end') continue;
+      const v = node[k];
+      if (Array.isArray(v)) v.forEach(x => specWalk(x, stack, where));
+      else if (v && typeof v.type === 'string') specWalk(v, stack, where);
+    }
+  }
+  for (const [f, { src, ast }] of Object.entries(asts)) specWalk(ast, [], at => `js/${f}:${lineOf(src, at)}`);
+}
 /* AND A CLASS HANDED TO A SELECT THROUGH AN ARGUMENT — `<select ${attrs}>` in a function, and the `class="…"` in what its callers pass for `attrs`. § */
 for (const [f, { src, ast }] of Object.entries(asts)) {
   walk(ast, n => {
@@ -317,7 +360,7 @@ if (!guardsSeen) blind.push('the swipe guard\'s `closest(FIELD_ACTS_)` statement
 if (pickerFilesRead < 10) blind.push(`only ${pickerFilesRead} files read for list pickers — js/ was NOT read`);
 if (!wrappers.length) blind.push('no element was found around any select — the wrapper half of section 1 read nothing');
 if (blind.length) say('COULD NOT REACH ITS SUBJECT', blind);
-console.log(`\nread ${rulesRead} rules, ${selectsSeen} <select>s drawn with ${selClasses.size} class(es) and ${selIds.size} id(s) `
+console.log(`\nread ${rulesRead} rules, ${selectsSeen} <select>s and ${specSelects} select specs drawn with ${selClasses.size} class(es) and ${selIds.size} id(s) `
           + `inside ${new Set(wrappers.map(w => w.tag + '.' + w.classes.join('.'))).size} kinds of wrapper, `
           + `and ${listenersRead} press/focus listeners in ${Object.keys(asts).length} files (${guardsSeen} swipe-guard statements taken out)`);
 const n = bad.css.length + bad.markup.length + bad.listeners.length + bad.pickers.length + blind.length;

@@ -1655,7 +1655,7 @@ function practicalPart_(x, part) {
     p.log.length ? { type: 'section', look: 'prac-tab', head: 'Things you could measure', blocks: [{ type: 'list', items: p.log }] } : null,
     guideSlot_(x, 'iv', 'Independent variable — the one thing you will change', 'One only. Everything else has to stay still, or you will not know which of them did it.'),
     guideSlot_(x, 'dv', 'Dependent variable — what you will measure', 'How will you measure it, and in what units?'),
-    guideSlot_(x, 'cv', 'Control variables — what you must keep the same', 'Usually the longest of the three. Everything you are NOT changing.'),
+    guideSlot_(x, 'cv', 'Control variables — what you must keep the same', 'Usually the longest of the 3. Everything you are NOT changing.'),
   ].filter(Boolean))]);
   return '';
 }
