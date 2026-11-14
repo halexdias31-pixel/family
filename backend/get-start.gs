@@ -226,7 +226,7 @@ function payloadFeatures_() {
   return [/* ---------- THE NEW ONES, DECLARED SO THE SITE CAN TELL YOU § */
                'openWaitlist', 'claimChild', 'answerClaim', 'joinWaitlist', 'findChild',
                'move', 'events', 'tabs', 'getProfile', 'myProfile', 'createJob',
-               'saveTodo', 'saveAvatar', 'register', 'verifyEmail',
+               'saveTodo', 'saveAvatar', 'saveItem', 'deleteItem', 'register', 'verifyEmail',
                /* The Timetable widget's week, kept on the account. */
                'saveTimetable',
                /* The admin's layout (462, 463): the order of widgets and which are deleted. */

@@ -126,7 +126,12 @@ function boot(opts) {
   /* So a journey's stub of that door answers it, and the request is written down under the door's name, marked `via`. */
   const READ_AS_ = { answer: 'myAnswers', message: 'messages', person: 'personGet', card: 'getProfile',
     question: 'libItems', content: 'libItems', practical: 'libItems', project: 'libItems', insert: 'libItems' };
+  /* AND (slice 3) saveItem/deleteItem: the old door's own request, `item` taken off, marked `via` (itemsWrite_ in post-learning.gs; check-lens holds it). */
+  const WRITE_AS_ = { saveItem: { profile: 'updateProfile', notepad: 'saveNotepad', todo: 'saveTodo', notify: 'setNotify', answer: 'saveAnswers',
+    favourite: 'favourite', message: 'readMessage', post: 'editPost', layout: 'layoutSave', words: 'wordsSave', listed: 'setListed',
+    person: 'personSave', spotlight: 'spotlight', ownerAnswer: 'saveOwnerAnswer' }, deleteItem: { post: 'deletePost', person: 'personDelete' } };
   const readItemsAs_ = b => {
+    if (b && WRITE_AS_[b.action] && WRITE_AS_[b.action][b.item]) { const o = Object.assign({}, b, { action: WRITE_AS_[b.action][b.item], via: b.action }); delete o.item; return o; }
     if (!b || b.action !== 'readItems') return b;
     const ids = Array.isArray(b.ids) ? b.ids : [];
     const door = b.kind === 'profile' ? (ids[0] && ids[0] !== b.personId ? 'lensOpen' : 'myProfile') : READ_AS_[b.kind];

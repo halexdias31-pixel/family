@@ -114,7 +114,7 @@ function wordsSend_(set, reset) {
   reset.forEach(k => { delete next[k]; });
   const put = v => { try { DATA.words = v; } catch (e) {} wordsEditSet_(WORDS_EDIT); };
   put(next);
-  return send({ action: 'wordsSave', personId: (USER && USER.personId) || '', set: set, reset: reset })
+  return send({ action: 'saveItem', item: 'words', old: 'wordsSave', personId: (USER && USER.personId) || '', set: set, reset: reset })
     .then(d => { if (d && d.words && typeof d.words === 'object') { try { DATA.words = d.words; } catch (e) {} } toast('Saved for everyone'); return true; })
     .catch(err => { put(was); toast(why_(err)); return false; });
 }

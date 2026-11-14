@@ -260,7 +260,7 @@ function meSave_(el, auto) {
   /* `send_`, NOT `api()`. § */
   /* YOU ASK; `whose_()` IS WHOSE ROW — yours, or the person an admin's lens is on (the backend lets only an admin name another). */
   const W = whose_();
-  send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '',
+  send_({ action: 'saveItem', item: 'profile', old: 'updateProfile', name: USER.name, personId: USER.personId || '',
           target: W.name, targetId: W.personId || '', fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said })
     .then(d => {

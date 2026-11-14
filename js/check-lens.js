@@ -127,5 +127,106 @@ else {
   }
 }
 
+/* ---------- 5. ONE WAY TO THE SERVER (step 2, slice 3): saveItem and deleteItem write what the old doors wrote, and no further ---------- */
+/* Two backends seeded alike: the old door in one, the general door in the other; every tab must come out the same (times and tokens aside). */
+const W5 = (() => {
+  const Q = (id, first, role, email, more) => Object.assign(P(id, first, role, email), more || {});
+  const fresh = () => {
+    const r = require('./check-gas-load.js').backend();
+    r.seed('people', [Q('P-A1', 'Hal', 'admin', 'admin@example.org'), Q('P-C1', 'Pat', 'client', 'parent@example.org'),
+      Q('P-C2', 'Rae', 'client', 'other@example.org'), Q('P-K1', 'Kit', 'student', 'kit@example.org', { date_of_birth: '01/03/2014' }),
+      Q('P-K2', 'Lou', 'student', 'lou@example.org', { date_of_birth: '01/03/2014' })]);
+    r.seed('family', [{ link_id: 'L1', parent_id: 'P-C1', child_id: 'P-K1', state: 'accepted' }, { link_id: 'L2', parent_id: 'P-C2', child_id: 'P-K2', state: 'accepted' }]);
+    r.seed('messages', [{ message_id: 'M-1', from_id: 'P-A1', to_id: 'P-K1', body: 'hello' }, { message_id: 'M-2', from_id: 'P-A1', to_id: 'P-K2', body: 'hi' }]);
+    const who = {};
+    [['ad', 'admin@example.org'], ['pa', 'parent@example.org'], ['ki', 'kit@example.org']].forEach(([k, e]) => { who[k] = r.post({ action: 'verifyLogin', email: e, pin: '0000' }); });
+    return { r, who };
+  };
+  /* THE TABS, with each backend's tokens, hashes and clock taken out: what is left is what the request wrote. */
+  const sheet = b => {
+    let s = JSON.stringify(b.r.tabs);
+    Object.values(b.who).forEach(w => { if (w && w.token) s = s.split(w.token).join('TOKEN'); });
+    return s.replace(/"\d{4}-\d\d-\d\dT[\d:.]+Z"/g, '"T"').replace(/\b1\d{12}(-\d{1,6}\b)?/g, 'N').replace(/"[0-9a-f]{32,}"/g, '"H"');
+  };
+  const reply = d => JSON.stringify(d, (k, v) => (k === 'gapMs' ? undefined : v)).replace(/"\d{4}-\d\d-\d\dT[\d:.]+Z"/g, '"T"').replace(/\b1\d{12}\b/g, 'N');
+  return { fresh, sheet, reply };
+})();
+{
+  const SAVE = { profile: 'updateProfile', notepad: 'saveNotepad', todo: 'saveTodo', notify: 'setNotify', answer: 'saveAnswers',
+    favourite: 'favourite', message: 'readMessage', post: 'editPost', layout: 'layoutSave', words: 'wordsSave',
+    listed: 'setListed', person: 'personSave', spotlight: 'spotlight', ownerAnswer: 'saveOwnerAnswer' };
+  const DEL = { post: 'deletePost', person: 'personDelete' };
+  const ADMIN_ONLY = ['layout', 'words', 'listed', 'person', 'spotlight', 'ownerAnswer'];
+  /* ONE REQUEST PER KIND, as the site sends it; the third field says who signs it. */
+  const CASES = [
+    ['save', 'profile', 'ki', w => ({ target: w.name, targetId: w.personId, fields: { city: 'York' } })],
+    ['save', 'notepad', 'ki', () => ({ notepad: 'my note' })],
+    ['save', 'todo', 'pa', () => ({ todo: JSON.stringify([{ t: 'milk' }]) })],
+    ['save', 'notify', 'pa', () => ({ kind: 'messages', on: false })],
+    ['save', 'answer', 'ki', () => ({ items: [{ key: 'q:Q-1|a', v: 'forty-two', at: 1760000000000 }, { key: 'pad:Q-2', v: 'x = 3', at: 1760000000001 }] })],
+    ['save', 'favourite', 'ki', () => ({ kind: 'item', itemId: 'q:Q-1', on: 'TRUE' })],
+    ['save', 'message', 'ki', () => ({ messageId: 'M-1' })],
+    ['save', 'layout', 'ad', () => ({ layout: JSON.stringify({ order: ['a', 'b'] }) })],
+    ['save', 'words', 'ad', () => ({ set: { 'hello.title': 'Hi' }, reset: [] })],
+    ['save', 'listed', 'ad', () => ({ who: 'Pat Lens', whoId: 'P-C1', on: false })],
+    ['save', 'person', 'ad', () => ({ targetId: 'P-K2', firstName: 'Louise', lastName: 'Lens' })],
+    ['save', 'spotlight', 'ad', () => ({ kind: 'item', itemId: 'q:Q-1', on: 'TRUE' })],
+    ['save', 'ownerAnswer', 'ad', () => ({ id: 'q-one', choice: 'a', note: '' })],
+    ['save', 'post', 'ki', () => ({ id: 'X-1', fields: { title: 't' } })],
+    ['delete', 'post', 'ki', () => ({ id: 'X-1' })],
+    ['delete', 'person', 'ad', () => ({ targetId: 'P-K2' })],
+  ];
+  const gen = { save: 'saveItem', delete: 'deleteItem' };
+  const base = w => ({ token: w.token, name: w.name, personId: w.personId });
+  let wrote = 0;
+  CASES.forEach(([verb, item, as, f]) => {
+    const old = (verb === 'save' ? SAVE : DEL)[item];
+    const A = W5.fresh(), B = W5.fresh(), C = W5.fresh();
+    const wa = A.who[as], wb = B.who[as], wc = C.who[as];
+    if (!wa.success || !wb.success || !wc.success) { bad.push(gen[verb] + ' ' + item + ': ' + as + ' could not sign in'); return; }
+    const pre = W5.sheet(A);
+    const da = A.r.post(Object.assign(base(wa), f(wa), { action: old }));
+    const db = B.r.post(Object.assign(base(wb), f(wb), { action: gen[verb], item }));
+    C.r.post(Object.assign(base(wc), f(wc), { action: old }));
+    /* THE COMPARISON ITSELF IS HONEST: the old door twice gives the same tabs, or this kind cannot be compared. */
+    if (W5.sheet(A) !== W5.sheet(C)) { bad.push(gen[verb] + ' ' + item + ': the old door twice does not give the same tabs — the comparison is noise'); return; }
+    if (W5.reply(da) !== W5.reply(db)) bad.push(gen[verb] + ' ' + item + ' replied ' + W5.reply(db).slice(0, 140) + ', and ' + old + ' ' + W5.reply(da).slice(0, 140));
+    if (W5.sheet(A) !== W5.sheet(B)) bad.push(gen[verb] + ' ' + item + ' wrote other cells than ' + old + ' did');
+    if (W5.sheet(A) !== pre) wrote++;
+    /* A LEARNER'S ANSWERS: the case must really write, or it proves nothing. */
+    if (item === 'answer' && (!da.success || W5.sheet(A) === pre)) bad.push('saveAnswers did not write the test answers — the answer case proves nothing: ' + JSON.stringify(da).slice(0, 140));
+  });
+  if (wrote < 10) bad.push('only ' + wrote + ' of ' + CASES.length + ' saveItem/deleteItem cases wrote anything — the requests are wrong, so the comparison proves little');
+  /* SIGNED OUT, WRONG ROLE: refused, and nothing written. */
+  const T = W5.fresh(), { ad, pa, ki } = T.who;
+  const ask = (w, o) => T.r.post(Object.assign(w ? base(w) : { personId: 'P-K1', name: 'Kit Lens' }, o));
+  const before = W5.sheet(T);
+  CASES.forEach(([verb, item, as, f]) => {
+    const d = ask(null, Object.assign(f(T.who[as]), { action: gen[verb], item }));
+    if (d.success || d.why !== 'signed-out') bad.push(gen[verb] + ' ' + item + ' answered somebody signed out: ' + JSON.stringify(d).slice(0, 120));
+  });
+  [['save', ADMIN_ONLY], ['delete', ['person']]].forEach(([verb, kinds]) => kinds.forEach(item => [pa, ki].forEach(w => {
+    const c = CASES.find(x => x[0] === verb && x[1] === item);
+    const d = ask(w, Object.assign(c[3](w), { action: gen[verb], item }));
+    if (d.success || !/Not authorised/.test(d.error || '')) bad.push(w.personId + ' ' + gen[verb] + ' ' + item + ' (an admin\'s alone) was not refused: ' + JSON.stringify(d).slice(0, 120));
+  })));
+  if (W5.sheet(T) !== before) bad.push('a refused saveItem/deleteItem wrote something');
+  /* A CHILD WRITES ONLY HER OWN: another's profile, email choice, message, and answers under another's id. */
+  const kp = ask(ki, { action: 'saveItem', item: 'profile', target: 'Lou Lens', targetId: 'P-K2', fields: { city: 'Nope' } });
+  if (kp.success || T.r.row('P-K2').city === 'Nope') bad.push('a child saved another child\'s profile through saveItem');
+  const pp = ask(pa, { action: 'saveItem', item: 'profile', target: 'Lou Lens', targetId: 'P-K2', fields: { city: 'Nope' } });
+  if (pp.success || T.r.row('P-K2').city === 'Nope') bad.push('a parent saved another family\'s child\'s profile through saveItem');
+  const kn = ask(ki, { action: 'saveItem', item: 'notify', targetId: 'P-K2', kind: 'messages', on: false });
+  if (kn.success) bad.push('a child changed another child\'s email choices through saveItem');
+  const km = ask(ki, { action: 'saveItem', item: 'message', messageId: 'M-2' });
+  if (km.success) bad.push('a child marked another\'s message read through saveItem');
+  if (W5.sheet(T) !== before) bad.push('a child\'s or parent\'s refused write to somebody else\'s row wrote something');
+  const ka = ask(ki, { action: 'saveItem', item: 'answer', personId: 'P-K2', items: [{ key: 'q:Q-9|a', v: 'theirs', at: 1760000000000 }] });
+  if (JSON.stringify(T.r.tabs.answers || []).indexOf('P-K2') !== -1 || (ka.for && ka.for !== 'P-K1')) bad.push('a child wrote answers under another child\'s id through saveItem');
+  /* A KIND THE GENERAL DOORS DO NOT SERVE (the library's own save, any made-up one) is refused by name. */
+  ['question', 'nonsense', ''].forEach(k => { const d = ask(ad, { action: 'saveItem', item: k }); if (d.success || d.why !== 'kind') bad.push('saveItem item "' + k + '" was not refused as a kind'); });
+  if (ask(ad, { action: 'deleteItem', item: 'profile' }).why !== 'kind') bad.push('deleteItem deleted a profile, which no old door did');
+}
+
 if (bad.length) { console.log('FAILED — the settings lens:'); bad.forEach(b => console.log('  ' + b)); process.exit(1); }
-console.log('OK — ' + seen.size + ' settings functions read whose_(), lensOpen is an admin\'s alone, a change is logged by id, and readItems reads people, answers and messages no wider than the old doors.');
+console.log('OK — ' + seen.size + ' settings functions read whose_(), lensOpen is an admin\'s alone, a change is logged by id, readItems reads people, answers and messages no wider than the old doors, and saveItem/deleteItem write what the old doors wrote.');

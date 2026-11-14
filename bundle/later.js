@@ -11162,7 +11162,7 @@ function toggleFav(k, kind) {
     /* THE KEY IS NOT SPLITTABLE, so it is not split. § */
     /* ---------- AND IT WAS STILL CALLING `send` WITH TWO ARGUMENTS § */
     send({
-      action: 'favourite',
+      action: 'saveItem', item: 'favourite', old: 'favourite',
       name: USER.name, personId: (USER && USER.personId) || '',
       kind: kind || 'item', itemId: key,
       on: FAVS.has(key) ? 'TRUE' : '',
@@ -12541,7 +12541,7 @@ function docketSave(list) {
     clearTimeout(dockTimer);
     keepDue_('docket', null);
     if (!USER) return;
-    return api({ action: 'saveTodo',
+    return api({ action: 'saveItem', item: 'todo', old: 'saveTodo',
       name: USER.name, personId: USER.personId, todo: USER.todo }, keepalive ? { keepalive: true } : undefined)
       .then(d => {
         if (d && d.error) throw new Error(d.error);
@@ -12689,7 +12689,7 @@ function padSend_(keepalive) {
   clearTimeout(padTimer);
   keepDue_('notepad', null);
   if (!USER) return;
-  return api({ action: 'saveNotepad',
+  return api({ action: 'saveItem', item: 'notepad', old: 'saveNotepad',
     name: USER.name, personId: USER.personId, notepad: USER.notepad }, keepalive ? { keepalive: true } : undefined)
     .then(d => {
       if (d && d.error) throw new Error(d.error);
@@ -15011,7 +15011,7 @@ function answersPush_(now, keepalive) {
   ansDirtyKeep_(who);
   if (!items.length) { ansSavedPaint_(); return Promise.resolve(true); }
   /* `personId` AS WELL AS THE TOKEN — the gate overwrites it with the token's person, and `check-post.js` § */
-  const req = api({ action: 'saveAnswers', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
+  const req = api({ action: 'saveItem', item: 'answer', old: 'saveAnswers', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
   ANS_BUSY = Promise.resolve(req)
     .then(d => ansSavedTake_(d, sent, dirty, who))
     .catch(() => {
@@ -20710,7 +20710,7 @@ function toggleSpot(k, kind) {
 
   /* ---------- THIS CALLED `send` WITH TWO ARGUMENTS AND `send` TAKES ONE § */
   send({
-    action: 'spotlight',
+    action: 'saveItem', item: 'spotlight', old: 'spotlight',
     name: USER.name,
     /* ---------- AND THE ID, BECAUSE A NAME IS A CELL SOMEBODY CAN EDIT § */
     personId: (USER && USER.personId) || '',
@@ -23581,7 +23581,7 @@ function layoutSave_(next) {
   const set = v => { try { DATA.layout = v; } catch (e) { /* no payload yet: the device's copy below still holds it */ } layoutKeep_(v); layoutRelayout_(); };
   const val = layoutSane_(next);
   set(val);
-  return send({ action: 'layoutSave', personId: (USER && USER.personId) || '', layout: val })
+  return send({ action: 'saveItem', item: 'layout', old: 'layoutSave', personId: (USER && USER.personId) || '', layout: val })
     .then(() => true)
     .catch(err => { set(was); toast(why_(err)); return false; });
 }
@@ -23704,7 +23704,7 @@ function wordsSend_(set, reset) {
   reset.forEach(k => { delete next[k]; });
   const put = v => { try { DATA.words = v; } catch (e) {} wordsEditSet_(WORDS_EDIT); };
   put(next);
-  return send({ action: 'wordsSave', personId: (USER && USER.personId) || '', set: set, reset: reset })
+  return send({ action: 'saveItem', item: 'words', old: 'wordsSave', personId: (USER && USER.personId) || '', set: set, reset: reset })
     .then(d => { if (d && d.words && typeof d.words === 'object') { try { DATA.words = d.words; } catch (e) {} } toast('Saved for everyone'); return true; })
     .catch(err => { put(was); toast(why_(err)); return false; });
 }

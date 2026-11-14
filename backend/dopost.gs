@@ -297,6 +297,8 @@ function postActionsAdmin_() {
     deleteJob: postDeleteJob_,
     libItems: postLibItems_,
     readItems: postReadItems_,
+    saveItem: postSaveItem_,
+    deleteItem: postDeleteItem_,
     libExport: postLibExport_,
     libImport: postLibImport_,
     libImportList: postLibImportList_,
