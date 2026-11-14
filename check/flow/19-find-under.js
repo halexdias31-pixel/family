@@ -361,7 +361,7 @@ check('a manuscript card (owner, 7 Nov): Papyrus 52 leads with a drawing of the 
   return bad;
 });
 
-check('the history database: a manuscript and a historical figure are each found, a writing is its pages (520), under Learning, Content, History, open as a card of label and value lines, and a link tile lands on the linked row\'s card in the same finder', async () => {
+check('the history database: a manuscript and a historical figure are each found under Learning, Content, History, open as a card of label and value lines, and the manuscript opens on its own card in the same finder (works.js, a writing as its pages, is switched off in attic/, 13 Nov)', async () => {
   /* THE REAL FILES, through the app's own `libraryExtras_`, on the resources payload. */
   const p = await resPayload_();
   if (!p) return ['the app did not load — NOT checked'];
@@ -376,24 +376,18 @@ check('the history database: a manuscript and a historical figure are each found
   await wait(250);
   const youngHas = young.w.__t ? young.w.stuffItemsAll_().map(x => x.key) : [];
   const youngLacks = ['hdb:MS-0001', 'hdb:MS-0002', 'hdb:FIG-0003'].filter(k => youngHas.indexOf(k) < 0);
-  /* THE WORKS' PAGES SERVED (520): a writing is its pages, so a link to WR-0001 lands on First Clement's first page. */
-  const serveWorks = url => {
-    const m = /(?:^|\/)data\/works\/([A-Za-z0-9-]+\.json)(?:\?|$)/.exec(url);
-    return m ? JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'works', m[1]), 'utf8')) : undefined;
-  };
-  const b = boot({ payload: hp, serve: serveWorks, before: signedInAs_(Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(new Date().getFullYear() - 30) } })) });
+  const b = boot({ payload: hp, before: signedInAs_(Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(new Date().getFullYear() - 30) } })) });
   for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
   await wait(250);
   if (!b.w.__t) return ['the app did not boot — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
   t.go('stuff'); w.paintStuff();
-  for (let i = 0; i < 80 && !w.stuffItemsAll_().some(x => x.key === 'wt:WR-0001:English:0'); i++) await wait(25);
+  for (let i = 0; i < 80 && !w.stuffItemsAll_().some(x => x.key === 'hdb:FIG-0003'); i++) await wait(25);
   if (youngLacks.length) bad.push('a member of no known age is not given ' + youngLacks.join(', ') + ' — there are no age gates (1040)');
   const all = w.stuffItemsAll_();
   const get = id => all.find(x => x.key === 'hdb:' + id);
-  const ms = get('MS-0002'), fig = get('FIG-0003'), wr = all.find(x => x.key === 'wt:WR-0001:English:0');
-  if (!ms || !fig || !wr) return ['MS-0002, FIG-0003 or First Clement\'s first page is not in the list — data/manuscripts|figures.json or data/works did not load, NOT checked'];
-  if (get('WR-0001')) bad.push('First Clement is still a profile row beside its pages (520)');
+  const ms = get('MS-0002'), fig = get('FIG-0003');
+  if (!ms || !fig) return ['MS-0002 or FIG-0003 is not in the list — data/manuscripts|figures.json did not load, NOT checked'];
   const onCard = (x, when) => {
     const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
     if (!pg || pg.x !== x || pg.part) bad.push(when + ': Find is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not ' + x.name + '\'s card');
@@ -435,23 +429,10 @@ check('the history database: a manuscript and a historical figure are each found
   if (JSON.stringify(eras(400, 500)) !== '["Ancient"]' || JSON.stringify(eras(-100, -44)) !== '["Ancient"]'
       || JSON.stringify(eras(1874, 1965)) !== '["Modern"]' || JSON.stringify(eras(null, 99)) !== '["Ancient"]'
       || JSON.stringify(eras(1400, 1600)) !== '["Medieval","Early modern"]') bad.push('histEras_ puts years in the wrong eras');
-  /* OPEN THE WRITING, THEN FOLLOW ITS TILES: to its manuscript, from there back to it, and on to its author. */
-  const press = (x, toId) => {
-    const s = d.getElementById('s-stuff');
-    const box = d.createElement('div'); box.innerHTML = w.stuffCard(x); s.appendChild(box);
-    const to = toId === 'WR-0001' ? wr.key : 'hdb:' + toId;
-    const tile = [...box.querySelectorAll('[data-do="find-open"]')].find(e => e.getAttribute('data-key') === to);
-    if (!tile) { bad.push(x.name + '\'s card has no tile to ' + toId); box.remove(); return false; }
-    A['find-open'](tile); box.remove(); return true;
-  };
-  /* THE PAGE CARRIES THE WORK'S FACTS (520): its author and its era are tags. */
-  const wel = d.createElement('div'); wel.innerHTML = w.stuffCard(wr);
-  if (!wel.querySelector('.qtag[data-f="histEra"]')) bad.push('First Clement\'s page carries no era tag');
-  if (!wel.querySelector('.qtag[data-f="wAuthor"]')) bad.push('First Clement\'s page carries no author tag');
+  /* OPEN THE MANUSCRIPT: it lands on its own card. (Its Writing tile to First Clement's pages went with works.js to attic/, 13 Nov.) */
   const opener = d.createElement('button'); opener.setAttribute('data-key', ms.key); d.getElementById('s-stuff').appendChild(opener);
   A['find-open'](opener); await wait(120);
   onCard(ms, 'the manuscript opened');
-  if (press(ms, 'WR-0001')) { await wait(120); onCard(wr, 'the manuscript\'s Writing tile'); }
   if (t.AT() !== 'stuff') bad.push('following links left Find for ' + t.AT());
   return bad;
 });
