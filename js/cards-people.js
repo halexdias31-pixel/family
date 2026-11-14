@@ -213,32 +213,36 @@ function rateRange_(t) {
 }
 
 /* ---------- THE TUTOR CARD AS A SPEC (master template): face, the name line's pills, subjects and facts, then its lines. */
-function profFace_(x) {
+/* A PERSON'S FACE (a tutor's at 96, a person's door at 160): their photo, else their avatar, else the kind's picture. */
+function profFace_(x, size) {
   const t = kcRow_(x), k = typeof picKind_ === 'function' ? picKind_(t.image) : (t.image ? 'photo' : '');
   if (k === 'photo') return { src: pic(t.image), alt: '' };
-  const svg = k === 'basic' && typeof pfpArt_ === 'function' ? pfpArt_(pfpChoice_(t.image), 96) : '';
+  const svg = k === 'basic' && typeof pfpArt_ === 'function' ? pfpArt_(pfpChoice_(t.image), size || 96) : '';
   return { svg: svg || (typeof kcPicOr_ === 'function' ? kcPicOr_(x, '') : '') };
 }
-cardKind_('tutor', x => {
-  const t = kcRow_(x), pill = (text, colour, look) => ({ pill: true, text, colour, look });
-  const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v)), facts = profFacts_(t);
-  const admin = typeof isAdmin === 'function' && isAdmin();
-  const note = t.listed === false && admin ? (t.pending ? 'They ticked Tutor in their settings. Until you list them they are not on the site, cannot be booked and cannot take a session — the crossed-out eye below approves them.'
-    : 'Clients cannot see them. The crossed-out eye below puts them back on the site.') : '';
-  const words = profList_(t.tags).slice(0, 3);
-  return {
-    name: t.title || x.name || '', look: 'is-widget is-prof tcard', off: t.listed === false, picture: profFace_(x),
-    tagLook: 'prof-tags prof-who-tags',
-    tags: [pill(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')].concat([t.role || 'Tutor'].concat(profList_(t.titles)).map(v => pill(v, 1)),
-      t.rate && !childView_() ? [pill(rateRange_(t), 4, 'prof-tag-rate')] : [], t.activity ? [pill(t.activity, 3, 'prof-act')] : [],
-      t.listed === false ? [pill(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off')] : []),
-    tagRows: [main.length ? { look: 'prof-tags prof-teach', tags: PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 3) } : null,
-      also.length ? { look: 'prof-tags prof-teach', tags: PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 2) } : null,
-      profTagRow_('prof-facts', facts.map(text => ({ pill: true, text })))].filter(Boolean),
-    body: [note ? { type: 'text', look: 'prof-say prof-hid', text: note } : null,
-      t.description ? { type: 'text', look: 'prof-say cut2', act: 'cut-open', text: t.description } : null,
-      Array.isArray(t.photos) && t.photos.length ? { type: 'photos', srcs: t.photos.map(u => pic(u)), more: 4 } : null,
-      words.length ? { type: 'text', look: 'prof-words', text: words.map((v, i) => (i ? [{ i: '·' }, { b: v }] : [{ b: v }])) } : null,
-      profQuals_(t), profJobs_(t), profPlaces_(profList_(t.venues)), profAvail_(t)].filter(Boolean),
-  };
-});
+/* THE TUTOR CARD'S PIECES (one item shape): its map is ITEM_MAPS.tutor (cards-parts.js). Who sees the rate and the admin's note is the map's */
+/* `childHides` and `adminOnly`, decided once as the item loads (`it.live`), never here. */
+const profPill_ = (text, colour, look) => ({ pill: true, text, colour, look });
+/* WHY AN UNLISTED TUTOR IS OFF THE SITE, said to an admin (the map's `adminOnly` keeps it from everyone else). */
+const profNote_ = t => (t.listed === false ? (t.pending ? 'They ticked Tutor in their settings. Until you list them they are not on the site, cannot be booked and cannot take a session — the crossed-out eye below approves them.'
+  : 'Clients cannot see them. The crossed-out eye below puts them back on the site.') : '');
+/* THE NAME LINE'S PILLS: their name, role and titles, the rate where `it.live` still has it, what they are doing, and why they are off. */
+const profPills_ = (it, t) => [profPill_(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')].concat([t.role || 'Tutor'].concat(profList_(t.titles)).map(v => profPill_(v, 1)),
+  'rate' in ((it.live || {}).money || {}) ? [profPill_(it.live.money.rate, 4, 'prof-tag-rate')] : [], t.activity ? [profPill_(t.activity, 3, 'prof-act')] : [],
+  t.listed === false ? [profPill_(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off')] : []);
+/* SUBJECTS (main, then also) AND FACTS, a row each. */
+function profTagRows_(t) {
+  const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
+  return [main.length ? { look: 'prof-tags prof-teach', tags: PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 3) } : null,
+    also.length ? { look: 'prof-tags prof-teach', tags: PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 2) } : null,
+    profTagRow_('prof-facts', profFacts_(t).map(text => ({ pill: true, text })))].filter(Boolean);
+}
+/* ITS LINES: the note (if `it.live` kept it), the description, photos, words, qualifications, jobs, places, hours. */
+function profBody_(t, L) {
+  const note = ((L || {}).say || {}).note || '', words = profList_(t.tags).slice(0, 3);
+  return [note ? { type: 'text', look: 'prof-say prof-hid', text: note } : null,
+    t.description ? { type: 'text', look: 'prof-say cut2', act: 'cut-open', text: t.description } : null,
+    Array.isArray(t.photos) && t.photos.length ? { type: 'photos', srcs: t.photos.map(u => pic(u)), more: 4 } : null,
+    words.length ? { type: 'text', look: 'prof-words', text: words.map((v, i) => (i ? [{ i: '·' }, { b: v }] : [{ b: v }])) } : null,
+    profQuals_(t), profJobs_(t), profPlaces_(profList_(t.venues)), profAvail_(t)].filter(Boolean);
+}

@@ -26,11 +26,11 @@
     "subject": { "source": "payload (Ledger people/pricing)", "loader": "subjectRows() -> find-aloud.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "level": { "source": "payload (Ledger people/pricing)", "loader": "find-aloud.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "venue": { "source": "Ledger venues + rooms tabs (data/settings/venues.json)", "loader": "payload -> find-aloud.js", "sample": "check/fixture.json venues", "builder": "item map (cards-parts.js ITEM_MAPS)" },
-    "tutor": { "source": "Ledger people tab (role tutor)", "loader": "payload -> find-aloud.js", "builder": "cards-people.js cardKind_('tutor')" },
-    "person": { "source": "Ledger people tab", "loader": "payload -> find-doors.js", "builder": "find-doors.js cardKind_('person')" },
+    "tutor": { "source": "Ledger people tab (role tutor)", "loader": "payload -> find-aloud.js", "sample": "check/fixture.json tutors", "builder": "item map (cards-parts.js ITEM_MAPS)" },
+    "person": { "source": "Ledger people tab", "loader": "payload -> find-doors.js", "sample": "check/fixture.json everyone", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "booking": { "source": "Ledger events + receipts tabs", "loader": "backend booking.gs -> book-*.js", "builder": "cards-render.js paperRow_ (booking paper)" },
     "product": { "source": "Ledger shop tab (data/settings/shop.json, data/shop-additions.json)", "loader": "backend get-shop.gs -> find-aloud.js", "builder": "widget cards (find-aloud.js)" },
-    "post": { "source": "Ledger posts tabs", "loader": "backend get-posts.gs -> find-doors.js", "builder": "me-shelves.js / find-finder.js" }
+    "post": { "source": "Ledger posts tabs", "loader": "backend get-posts.gs -> find-doors.js", "sample": "check/fixture.json posts", "builder": "item map (cards-parts.js ITEM_MAPS)" }
   },
-  "migrated": ["manuscript", "writing", "event", "insert", "spec", "chem", "mech", "figure", "boxer", "fight", "practical", "project", "content", "subject", "level", "venue", "question"]
+  "migrated": ["manuscript", "writing", "event", "insert", "spec", "chem", "mech", "figure", "boxer", "fight", "practical", "project", "content", "subject", "level", "venue", "question", "tutor", "person", "post"]
 }

@@ -82,13 +82,10 @@ function profileDoorItems_() {
     image: '', row: {}, profileType: ['Student', 'Parent', 'Tutor'], text: 'add a person new account student parent tutor' });
   return out;
 }
-/* PICTURE FIRST: the face, the name and facets as tags, the handle; an admin's tiles, and the Edit form while it is open. */
-cardKind_('person', x => { const t = kcRow_(x), k = typeof picKind_ === 'function' ? picKind_(t.image) : '';
-  const picture = k === 'photo' ? { src: pic(t.image), alt: '' } : { svg: (k === 'basic' ? pfpArt_(pfpChoice_(t.image), 160) : '') || kcPicOr_(x, '') };
-  const open = typeof PERSON_ED_ !== 'undefined' && PERSON_ED_ && String(PERSON_ED_.id) === String(t.personId);
-  return { look: 'is-prof prof-door kc-facts', picture, tags: [{ text: x.name || '', colour: 0 }].concat(typeof tagList_ === 'function' && x.key ? tagList_(x) : []),
-    body: [t.handle ? { type: 'text', text: '@' + t.handle } : null, open ? { type: 'embed', tool: 'person-edit', args: { row: t } } : null].filter(Boolean),
-    tiles: typeof peopleOpts_ === 'function' ? peopleOpts_(t) : [] }; });
+/* A PERSON'S DOOR IS ITS ITEM MAP (ITEM_MAPS.person, cards-parts.js): the face, the name and facets as tags, the handle; an admin's tiles, */
+/* and the Edit form while it is open (`personDoorBody_`). */
+const personDoorBody_ = t => [t.handle ? { type: 'text', text: '@' + t.handle } : null,
+  typeof PERSON_ED_ !== 'undefined' && PERSON_ED_ && String(PERSON_ED_.id) === String(t.personId) ? { type: 'embed', tool: 'person-edit', args: { row: t } } : null].filter(Boolean);
 CARD_EMBEDS['person-edit'] = a => (typeof personEdHtml_ === 'function' ? personEdHtml_(a.row) : '');
 
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */
