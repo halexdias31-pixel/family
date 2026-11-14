@@ -839,7 +839,7 @@ const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.la
   + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
 /* A GROUP: a div (or a span, a line, a label, a heading between cards, a fold and its summary, or a column's page section) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
-const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4|section)$/.test(b.tag) ? b.tag : 'div';
+const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4|section|mark)$/.test(b.tag) ? b.tag : 'div';
   return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
