@@ -163,10 +163,7 @@ const FORM_BOX_ = {
 const MAKER_FILE_ = { meBox_: 'me-shelves.js' };
 FORM_BOX_.meBox_ = a => [['input', '<input ' + a(1) + '>']];
 const isMaker_ = (f, name) => !!FORM_BOX_[name] && (MAKER_FILE_[name] || 'form.js') === f;
-/* THE GENERIC CARD BLOCKS (cards-render.js, owner 14 Nov): `{ type: 'control' | 'tick' | 'msgForm' | 'many' }` draws a box from
-   attributes its CALLER gives, so the box is judged at the caller: the spec object as the tag's text (its `attrs`, `drafted`
-   and `value` are the draft, or not). The blocks themselves pass those attributes through untouched — PASS_THROUGH below
-   proves it, and fails if a block stops writing them. */
+/* THE GENERIC CARD BLOCKS (cards-render.js, owner 14 Nov): § */
 const GENERIC_ = {
   control: o => (/\btag:\s*'select'/.test(o) ? null : 'input'),
   tick: () => 'input',
