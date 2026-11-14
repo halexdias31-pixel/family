@@ -2447,7 +2447,18 @@ function laterFiles_() {
   const lazy = (typeof window !== 'undefined' && Array.isArray(window.LAZY)) ? window.LAZY : [];
   const later = (typeof window !== 'undefined' && Array.isArray(window.LATER)) ? window.LATER.filter(f => lazy.indexOf(f) === -1) : [];
   /* ALL AT ONCE (720): fetched side by side, then run in one task, so no screen ever sees one LATER file § */
-  LATER_ASK = batchFiles_(later, 'later').then(() => { LATER_IN = true; });
+  /* ONLY WHEN IT RAN (live, 14 Nov): a batch the network dropped is not "in" — the columns wait, and it is asked for again
+     until it lands; then the marks the payload brought are adopted and the waiting columns drawn. check/later-gone.js. */
+  LATER_ASK = batchFiles_(later, 'later').then(ok => {
+    if (ok) { LATER_IN = true; return; }
+    LATER_ASK = null;
+    laterFiles_.tries = (laterFiles_.tries || 0) + 1;
+    setTimeout(() => laterFiles_().then(() => {
+      if (!LATER_IN || typeof LOADED === 'undefined' || !LOADED) return;
+      try { adoptMarks_(); } catch (e) { oops_(e, 'data:laterIn'); }
+      try { repaint(); } catch (e) { oops_(e, 'data:laterIn'); }
+    }), Math.min(30000, 1000 * Math.pow(2, laterFiles_.tries - 1)));
+  });
   return LATER_ASK;
 }
 /* THE SECOND BATCH (1080): § */
@@ -2455,7 +2466,8 @@ let LAZY_ASK = null;
 function lazyFiles_() {
   if (LAZY_ASK) return LAZY_ASK;
   const lazy = (typeof window !== 'undefined' && Array.isArray(window.LAZY)) ? window.LAZY : [];
-  LAZY_ASK = laterFiles_().then(() => batchFiles_(lazy, 'lazy')).then(() => {
+  LAZY_ASK = laterFiles_().then(() => (LATER_IN ? batchFiles_(lazy, 'lazy') : false)).then(ok => {
+    if (!ok) { LAZY_ASK = null; return; }
     lazyFiles_.in = true;
     /* A column that waited for them (`paint`'s ReferenceError) is drawn now, if the payload is here to draw it. */
     try { if (typeof STALE !== 'undefined' && STALE[AT] && LOADED) repaint(); } catch (e) { oops_(e, 'data:lazyIn'); }
@@ -2464,11 +2476,11 @@ function lazyFiles_() {
 }
 /* EVERY BATCH IN: until then a column whose code is missing waits instead of saying it did not draw. */
 function filesIn_() { return LATER_IN && (!(Array.isArray(window.LAZY) && window.LAZY.length) || !!lazyFiles_.in); }
-/* IN window.FILES' ORDER, whatever order the list is written in: that list is the load order. Never rejects. */
+/* IN window.FILES' ORDER, whatever order the list is written in: that list is the load order. Never rejects; true when every file ran. */
 function batchFiles_(want, bundle) {
   const off = Array.isArray(window.OFF) ? window.OFF : [];
   const list = (Array.isArray(window.FILES) ? window.FILES : want).filter(f => want.indexOf(f) !== -1 && off.indexOf(f) === -1);
-  if (!list.length || typeof document === 'undefined' || typeof fetch !== 'function') return Promise.resolve();
+  if (!list.length || typeof document === 'undefined' || typeof fetch !== 'function') return Promise.resolve(true);
   /* ONE URL FOR THE BATCH (1211): § */
   if (bundle && window.BUNDLE) {
     return fetch('bundle/' + bundle + '.js' + deployStamp_()).then(r => (r.ok ? r.text() : null)).catch(() => null).then(src => {
@@ -2476,15 +2488,21 @@ function batchFiles_(want, bundle) {
       const s = document.createElement('script');
       s.text = src + '\n//# sourceURL=bundle/' + bundle + '.js';
       document.head.appendChild(s);
+      return true;
     });
   }
   return Promise.all(list.map(f => fetch('js/' + f + '.js' + deployStamp_()).then(r => (r.ok ? r.text() : null)).catch(() => null)))
-    .then(texts => texts.forEach((src, i) => {
-      if (src === null) { try { window.__missing(list[i]); } catch (e) { /* no list to name it in */ } return; }
-      const s = document.createElement('script');
-      s.text = src + '\n//# sourceURL=js/' + list[i] + '.js';
-      document.head.appendChild(s);
-    }));
+    .then(texts => {
+      /* ALL OR NONE: a batch with a hole in it is not run, so no screen reads half of it (720). */
+      const gone = list.filter((f, i) => texts[i] === null);
+      if (gone.length) { try { gone.forEach(f => window.__missing(f)); } catch (e) { /* no list to name it in */ } return false; }
+      texts.forEach((src, i) => {
+        const s = document.createElement('script');
+        s.text = src + '\n//# sourceURL=js/' + list[i] + '.js';
+        document.head.appendChild(s);
+      });
+      return true;
+    });
 }
 
 /* THE KEYS THE SITE ASKS FOR AND THE BACKEND DOES NOT SEND. § */
@@ -6628,8 +6646,9 @@ function goPageHere_(id, to, instant, F) {
 /* THE CELL AND THE GLASS ARE TWO THINGS. § */
 /* ---------- THE MARKS, ADOPTED FROM THE PAYLOAD JUST LANDED § */
 function adoptMarks_() {
-  try { adoptFavourites_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
-  try { adoptSpotlight_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
+  /* LATER FILES (find-bundles, collections): not here when the second batch has not landed; `laterFiles_` adopts again once it does. */
+  try { if (typeof adoptFavourites_ === 'function') adoptFavourites_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
+  try { if (typeof adoptSpotlight_ === 'function') adoptSpotlight_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
   /* AND THE LATEST ANSWER SENT FOR EACH QUESTION, from the account — onto the cards and into the boxes — and whatever this device has waiting to send goes up. § */
   try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
   /* AND A MARK WITH AI TILE DRAWN WAITING FOR THIS PAYLOAD (`aiDecided_`, keypad.js) — let go where it stands,

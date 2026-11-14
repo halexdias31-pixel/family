@@ -139,7 +139,8 @@
     "payload",
     "in-sync",
     "gas-load",
-    "later"
+    "later",
+    "later-gone"
    ],
    "since": "2026-11-12"
   },
