@@ -212,10 +212,10 @@ const CARD_BLOCKS = {
   tickCell: b => `<label class="${esc(b.look || '')}"${b.label ? ` aria-label="${esc(b.label)}"` : ''}>${cardControl_(Object.assign({ kind: 'check' }, b.control || {}))}</label>`,
   /* A FILE SHOWN IN PLACE: a page framed, a clip with its controls, or a picture; `look` names its size. */
   media: b => { const u = String(b.src || ''), look = b.look ? ` class="${esc(b.look)}"` : '', name = esc(b.title || '');
-    /* A PICTURE MAY ALSO BE ONE HELD IN THE PAGE (`data:image/`, a scan not yet saved, a page read back). */
-    if (!/^(https:|data\/|docs\/|[\w-]+\.(png|jpe?g|svg|webp|gif)$)/i.test(u) && !(b.kind === 'image' && /^data:image\//i.test(u))) return '';
+    /* A PICTURE MAY ALSO BE A TYPED http LINK OR ONE THIS PHONE JUST CROPPED (`data:image/`). */
+    if (!/^(https:|data\/|docs\/|[\w-]+\.(png|jpe?g|svg|webp|gif)$)/i.test(u) && !(b.kind === 'image' && /^(http:|data:image\/)/i.test(u))) return '';
     if (b.kind === 'video') return `<video${look} src="${esc(u)}" controls playsinline preload="metadata"></video>`;
-    if (b.kind === 'image') return `<img${look} src="${esc(u)}" alt="${name}">`;
+    if (b.kind === 'image') return `<img${look} src="${esc(u)}" alt="${name}"${b.async ? ' decoding="async"' : ''}>`;
     return `<iframe${look} src="${esc(u)}" title="${name}" loading="lazy" allow="${esc(b.allow || 'encrypted-media; picture-in-picture')}"${b.full ? ' allowfullscreen' : ''}></iframe>`; },
   /* A DRAWING AS DATA: shapes `{ el, a: { attrs }, text, kids }`, each a vector element of a fixed set, every value escaped. */
   drawing: b => cardDraw_(b.node),
@@ -348,6 +348,17 @@ Object.assign(CARD_BLOCKS, { paperSnap: paperSnap_, paperWhy: paperWhy_ });
 /* ATTRIBUTES ARE DATA: { name: value | true }, each escaped; an `on…` handler is never written. */
 const kcfAttrs_ = a => Object.keys(a || {}).filter(k => /^[a-z][\w:-]*$/i.test(k) && !/^on/i.test(k) && a[k] != null && a[k] !== false)
   .map(k => (a[k] === true ? ` ${k}` : ` ${k}="${esc(String(a[k]))}"`)).join('');
+/* ATTRIBUTE TEXT AS DATA (form.js's makers take `type="x" data-me="k" checked`): each name once, the first kept as a tag keeps it, its value unescaped so kcfAttrs_ escapes it once. */
+const CARD_UNESC_ = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+const cardUnesc_ = v => String(v).replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (m, e) => (e[0] === '#'
+  ? String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : Number(e.slice(1))) : CARD_UNESC_[e.toLowerCase()]));
+function cardAttrsOf_(s) {
+  if (s && typeof s === 'object') return s;
+  const a = {}, re = /([^\s"'=<>\/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g; let m;
+  while ((m = re.exec(String(s || '')))) { if (Object.prototype.hasOwnProperty.call(a, m[1])) continue;
+    const v = m[2] != null ? m[2] : m[3] != null ? m[3] : m[4]; a[m[1]] = v == null ? true : cardUnesc_(v); }
+  return a;
+}
 const kcfOpts_ = opts => (opts || []).map(o => (o && o.group != null ? `<optgroup label="${esc(o.group)}">${kcfOpts_(o.options)}</optgroup>`
   : `<option value="${esc(o.value == null ? '' : o.value)}"${cardAttrs_(o.data)}${o.on ? ' selected' : ''}${o.off ? ' disabled' : ''}>${esc(o.text == null ? (o.value == null ? '' : o.value) : o.text)}</option>`)).join('');
 /* `textarea` holds its `value` as text; a select's `inner` is options another maker drew already (a game picker's). */
@@ -360,7 +371,7 @@ const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.la
   + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
 /* A GROUP: a div (or a span, a line, a label, a heading between cards, a fold and its summary, or a column's page section) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
-const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4|section|mark)$/.test(b.tag) ? b.tag : 'div';
+const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4|section|mark|b|i|small|sup)$/.test(b.tag) ? b.tag : 'div';
   return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });

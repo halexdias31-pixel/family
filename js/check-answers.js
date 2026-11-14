@@ -30,6 +30,8 @@ const typeset_ = require('../tools/typeset-src.js').typesetFn(src, cutFrom);
    this measures. */
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
   .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+/* It draws through the one card maker, the real one. */
+const { cardBlock_ } = require('../tools/typeset-src.js').maker();
 const answerBlock_ = eval('(' + cutFrom(src, 'answerBlock_') + ')');
 
 const ENT = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"' };

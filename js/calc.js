@@ -8,23 +8,22 @@ const calcOf_ = key => { if (!CALC_ST.has(key)) CALC_ST.set(key, calcNew()); ret
 
 /* THE LCD: the status row (S while SHIFT is held, D degrees, Math the natural display), the sum, the answer. Drawn by CSS, never the sum's text. */
 function calcScreen_(st) {
-  const h = calcHtml(st);
-  return '<div class="mc-stat" aria-hidden="true"><b data-i="S"' + (st.shift ? ' class="on"' : '') + '></b><b data-i="D" class="on"></b><b data-i="Math" class="on"></b>'
-    + (st.past.length ? '<b data-i="▲" class="on"></b>' : '') + '</div><div class="mc-in">' + h.input + '</div><div class="mc-out">'
-    + (h.output || (st.root.length ? '' : '0')) + '</div>';
+  const h = calcHtml(st), mark = (i, on) => ({ type: 'group', tag: 'b', look: on ? 'on' : null, attrs: { 'data-i': i } });
+  return cardBlocks_([{ type: 'group', look: 'mc-stat', attrs: { 'aria-hidden': 'true' }, blocks: [mark('S', st.shift), mark('D', true), mark('Math', true)].concat(st.past.length ? [mark('▲', true)] : []) },
+    { type: 'group', look: 'mc-in', inner: h.input }, { type: 'group', look: 'mc-out', inner: h.output || (st.root.length ? '' : '0') }]);
 }
 /* A KEY'S PRINTED FACE IS DATA (calc-engine.js): runs drawn by renderCard's runs, line drawings by its drawing block. */
 const calcFace_ = v => [].concat(v == null ? [] : v).map(x => x && x.el ? cardDraw_(x) : cardRuns_(x)).join('');
 /* THE FACE, as it was in the Calculator widget: bezel and LCD, the top keys round the pad, the function keys, the number keys */
 function calcFaceHtml_(key) {
-  const st = calcOf_(key);
-  const keys = ([[ 'top', 'calc-top', '<i class="calc-pad" aria-hidden="true"></i><i class="calc-pad calc-pad-v" aria-hidden="true"></i>'], ['fn', 'calc-fn', ''], ['num', 'calc-num', '']]).map(([part, cls, extra]) =>
-    `<div class="${cls}">${extra}${CALC_KEYS.filter(k => k[2].split(' ')[0] === part).map(([v, label, kc, legend, name]) =>
+  const st = calcOf_(key), pad = look => ({ type: 'group', tag: 'i', look, attrs: { 'aria-hidden': 'true' } });
+  const keys = ([['top', 'calc-top', [pad('calc-pad'), pad('calc-pad calc-pad-v')]], ['fn', 'calc-fn', []], ['num', 'calc-num', []]]).map(([part, cls, extra]) =>
+    ({ type: 'group', look: cls, blocks: extra, inner: CALC_KEYS.filter(k => k[2].split(' ')[0] === part).map(([v, label, kc, legend, name]) =>
       tile_({ form: true, look: 'mc-btn ' + kc + (/^\w+$/.test(v) ? ' mc-k-' + v : ''), act: 'qcalc-key', data: { mc: v }, aria: name || v,
-        html: (/pad|pg/.test(kc) ? '' : `<small class="mc-alt">${calcFace_(legend)}</small>`) + `<span class="mc-lab">${calcFace_(label)}</span>` })).join('')}</div>`).join('');
-  return `<div class="calc${st.shift ? ' mc-shifted' : ''}" data-key="${esc(key)}" role="group" aria-label="Calculator">
-    <div class="calc-bezel"><div class="mc-display" tabindex="0" aria-live="polite" aria-label="Calculator display">${calcScreen_(st)}</div>
-    <div class="calc-label">${esc(brand('name', '@family.'))}</div></div>${keys}</div>`;
+        html: cardBlocks_((/pad|pg/.test(kc) ? [] : [{ type: 'group', tag: 'small', look: 'mc-alt', inner: calcFace_(legend) }]).concat({ type: 'group', tag: 'span', look: 'mc-lab', inner: calcFace_(label) })) })).join('') }));
+  return cardBlock_({ type: 'group', look: 'calc' + (st.shift ? ' mc-shifted' : ''), attrs: { 'data-key': key, role: 'group', 'aria-label': 'Calculator' }, blocks: [
+    { type: 'group', look: 'calc-bezel', blocks: [{ type: 'group', look: 'mc-display', attrs: { tabindex: '0', 'aria-live': 'polite', 'aria-label': 'Calculator display' }, inner: calcScreen_(st) },
+      { type: 'group', look: 'calc-label', text: brand('name', '@family.') }] }].concat(keys) });
 }
 /* THE LCD DRAWN AGAIN after a key; a long sum scrolls to where you are typing */
 function calcPaint_(box) {

@@ -254,7 +254,7 @@ const finder_ = o => Object.assign({
 const FINDER_EMPTY = 'Nothing in the shop or the library yet.';
 const FINDERS = {
   stuff: finder_({ id: 'stuff', st: STUFF, place: 'find', widgets: true,
-                   front: () => [].concat(typeof offlinePages_ === 'function' ? offlinePages_() : [], bookingPages_(), feedPages_(), bundlePages_()),
+                   front: () => [].concat(typeof window.offlinePages_ === 'function' ? window.offlinePages_() : [], bookingPages_(), feedPages_(), bundlePages_()),
                    lead: () => (typeof missingLead_ === 'function' ? missingLead_() : []),
                    leadN: () => (typeof missingLeadN_ === 'function' ? missingLeadN_() : 0),
                    empty: FINDER_EMPTY }),
@@ -437,9 +437,9 @@ const KINDS = {
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   receipt: x => jobPage_(x.row), question: thingCard_, answer: thingCard_, shop: thingCard_,
-  bible: x => bibleCard_(x), talmud: x => window.talmudCard_(x), quran: x => quranCard_(x),
+  bible: x => bibleCard_(x), talmud: x => window.talmudCard_(x), quran: x => window.quranCard_(x),
   worktext: x => window.worksCard_(x), hadith: x => window.hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => window.orthoCard_(x),
-  hymn: x => hymnsCard_(x), person: x => (x.add && typeof personAddCard_ === 'function' ? personAddCard_() : ''), tool: x => widgetCard_(x), game: x => widgetCard_(x),
+  hymn: x => window.hymnsCard_(x), person: x => (x.add && typeof personAddCard_ === 'function' ? personAddCard_() : ''), tool: x => widgetCard_(x), game: x => widgetCard_(x),
   setting: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)), health: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : ''),
 });
 
@@ -2238,7 +2238,7 @@ const SCRIPTURE_KINDS = { bible: 1, quran: 1, talmud: 1, hadith: 1, worktext: 1 
 function scriptureWait_(items) {
   if (!items || !items.length || !items.every(x => x && SCRIPTURE_KINDS[x.kind])) return null;
   const books = [['the Bible', BIBLE, bibleFor_()],
-    ['the Quran', typeof QURAN !== 'undefined' ? QURAN : null, typeof quranFor_ === 'function' && quranFor_()],
+    ['the Quran', window.QURAN || null, typeof window.quranFor_ === 'function' && window.quranFor_()],
     ['the Talmud', typeof window.TALMUD !== 'undefined' ? window.TALMUD : null, typeof window.talmudFor_ === 'function' && window.talmudFor_()],
     ['the Hadith', typeof window.HADITH !== 'undefined' ? window.HADITH : null, typeof window.hadithFor_ === 'function' && window.hadithFor_()],
     ['the other writings', typeof window.WORKS !== 'undefined' ? window.WORKS : null, true]]
@@ -2594,155 +2594,6 @@ on('file-view', (el, e) => {
   if (fileView_(u, host, el.getAttribute('data-title') || el.getAttribute('aria-label')) && e && e.preventDefault) e.preventDefault();
 });
 on('file-view-close', el => { const v = el.closest('.file-view'); if (v) v.remove(); });
-
-;
-/* ==== js/find-timelines.js ==== */
-/* @family. — js/find-timelines.js THE TIMELINES (1040 batch F): each one an animation panning from event to event; after find-history.js. */
-/* THE TIMELINES (batch F): one item per row of data/timelines.json (tools/timelines.py), its events by id from data/timeline.json. */
-const histTimelineKey_ = id => 'hdb:tl:' + String(id).toLowerCase().replace(/^tl-/, '').replace(/[^a-z0-9]+/g, '-');
-/* A ROW'S EVENTS BY ID ONLY (owner, 11 Nov: a compilation of the event items): caption and scene are the event row's own. */
-const tlStops_ = t => (t.events || []).map(s => histRow_(typeof s === 'string' ? s : (s || {}).id)).filter(Boolean)
-  .map(ev => ({ ev: ev, label: String(ev.label || ev.name || ''), px: Array.isArray(ev.px) ? ev.px : [] }));
-let TL_MEMO = { rows: null, items: [] };
-function histTimelines_() {
-  const rows = (typeof DATA !== 'undefined' && DATA && DATA.timelines) || [];
-  if (TL_MEMO.rows === rows && TL_MEMO.ev === DATA.timeline) return TL_MEMO.items;
-  const items = rows.map(t => {
-    const stops = tlStops_(t), evs = stops.map(s => s.ev);
-    if (!evs.length) return null;
-    const ys = evs.flatMap(e => [e.date_from, e.date_to]).filter(n => n != null && isFinite(n));
-    const row = { id: t.id, name: t.name, date_from: Math.min(...ys), date_to: Math.max(...ys),
-      theatre: [...new Set(evs.flatMap(e => histList_(e.theatre)))].join(' | '), events: evs, tl: t, stops: stops };
-    return { kind: 'timeline', hdb: true, name: t.name, key: histTimelineKey_(t.id), image: '', sub: '', histKind: 'Timelines',
-      shelf: 'History', subject: 'History', text: plainText_(t.name + ' ' + evs.map(e => e.name).join(' ')), row: row, era: t.era || '' };
-  }).filter(Boolean);
-  TL_MEMO = { rows: rows, ev: DATA.timeline, items: items };
-  return items;
-}
-/* A DAY AS A LINE OF THE TIMELINE SAYS IT: 1939-09-01 → 1 Sep 1939; anything else as written. */
-const histDay_ = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? +m[3] + ' ' + MONTH_NAMES[+m[2] - 1].slice(0, 3) + ' ' + m[1] : String(iso || ''); };
-/* AN EVENT AS A POINT ON THE AXIS, in years: its year plus how far through it its first day is (BC years are negative). */
-function tlAt_(e) {
-  const m = /^-?\d+-(\d{2})-(\d{2})$/.exec(e.date_iso || '');
-  return Number(e.date_from) + (m ? ((+m[1] - 1) * 30.4 + (+m[2] - 1)) / 365 : 0);
-}
-/* THE AXIS'S TICKS: a step that puts four or so in the window, said as the timeline's unit counts (a month, a year, a century). */
-const TL_STEPS = [1 / 12, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100, 200, 500, 1000];
-function tlTicks_(from, to, win, unit) {
-  const step = TL_STEPS.find(s => win / s <= 5) || 1000, out = [];
-  for (let v = Math.ceil(from / step) * step; v <= to && out.length < 400; v += step) {
-    const y = Math.floor(v + 1e-9), mo = Math.round((v - y) * 12);
-    const say = !y && step >= 1 ? 'AD 1' : step < 1 ? (mo ? MONTH_NAMES[mo].slice(0, 3) : 'Jan') + ' ' + y : unit === 'century' || y < 0 ? histYear_(y) : String(y);
-    out.push({ v: v, say: say });
-  }
-  return out;
-}
-/* THE SCENE: the event's 16x16 drawing, its date and its caption — swapped whole so it pops in each time. */
-function tlScene_(s) {
-  return `<figure class="tl-pic">${pixSvg_(s.px, s.label, false, ' tl-big')}</figure>
-    <div class="tl-year">${esc(s.ev.date_text || histDay_(s.ev.date_iso))}</div><div class="tl-label">${esc(s.label)}</div>`;
-}
-/* THE GEOMETRY: the track is span ÷ window views wide, so a short window is zoomed in; it is moved to centre the event shown. */
-function tlGeom_(x) {
-  const r = x.row, at = r.stops.map(s => tlAt_(s.ev)), t = r.tl || {};
-  const from = Math.min(...at), to = Math.max(...at), span = Math.max(to - from, 1e-3);
-  const win = Math.max(Number(t.window) || span / 4, span / 400), pad = win / 2;
-  const lo = from - pad, hi = to + pad, wide = (hi - lo) / win;
-  return { at: at, lo: lo, hi: hi, wide: wide, pct: v => (v - lo) / (hi - lo) * 100, unit: t.unit || 'year', win: win };
-}
-const tlShift_ = (g, i) => (50 / g.wide - g.pct(g.at[i])).toFixed(3);
-/* THE CARD'S OWN BUTTONS (one template): Play leads its row, Back and Next wait behind ⋯; the same tiles whatever is shown. */
-function tlOpts_(key, i, n) {
-  const playing = TL_PLAY.key === key && !!TL_PLAY.timer;
-  return [{ icon: playing ? 'pause' : 'play', label: playing ? 'Pause' : 'Play', act: 'tl-play', data: { key }, pressed: playing },
-    { icon: 'left', label: 'Back', act: 'tl-step', data: { key, by: -1 }, off: i === 0 },
-    { icon: 'right', label: 'Next', act: 'tl-step', data: { key, by: 1 }, off: i === n - 1 }];
-}
-/* THE STAGE, drawn when the card is: the scene over the panning axis of small scenes, the card's picture (kc-pic) like an image card's. */
-function tlStage_(x) {
-  const stops = x.row.stops, n = stops.length;
-  if (!n) return '';
-  const key = x.key, i = Math.min(TL_AT[key] || 0, n - 1), g = tlGeom_(x);
-  const ticks = tlTicks_(g.lo, g.hi, g.win, g.unit).map(k => `<span class="tl-tick" style="left:${g.pct(k.v).toFixed(3)}%"><i>${esc(k.say)}</i></span>`).join('');
-  const dots = stops.map((s, k) => `<span class="tl-ev${k === i ? ' on' : k < i ? ' past' : ''}" style="left:${g.pct(g.at[k]).toFixed(3)}%">${pixSvg_(s.px, '', false, ' tl-mini')}</span>`).join('');
-  return `<div class="tl-scene" aria-live="polite">${tlScene_(stops[i])}</div>
-    <div class="tl-view"><div class="tl-track" style="width:${(g.wide * 100).toFixed(2)}%;transform:translateX(${tlShift_(g, i)}%)">${ticks}${dots}</div><span class="tl-pin"></span></div>`;
-}
-/* THE ANIMATION IS THE PICTURE (owner, 11 Nov): its stage is the timeline tool's embed; its controls join the card's one row. */
-CARD_EMBEDS.timeline = a => { const x = tlItem_(a.key); return x ? tlStage_(x) : ''; };
-cardKind_('timeline', x => { setTimeout(() => tlAuto_(x.key), 700);
-  const stops = (x.row && x.row.stops) || [], n = stops.length;
-  return { look: 'hdb hdb-tl lib-c', name: x.name, tags: kcFacetTags_(x), body: [{ type: 'embed', tool: 'timeline', look: 'tl-anim tl-art', data: { tl: x.key }, args: { key: x.key } },
-    { type: 'text', look: 'tl-say', text: n + ' event' + (n === 1 ? '' : 's') + ', one at a time' }],
-    tiles: n ? tlOpts_(x.key, Math.min(TL_AT[x.key] || 0, n - 1), n) : [] }; });
-
-/* ONE PLAYER FOR EVERY TIMELINE: a step moves the track (a CSS transition pans it) and swaps the scene; the tiles never move. */
-const TL_AT = {}, TL_PLAY = { key: '', timer: null }, TL_STEP_MS = 2600;
-const tlItem_ = key => histTimelines_().find(y => y.key === key) || null;
-function tlPaint_(key) {
-  const x = tlItem_(key);
-  if (!x) return;
-  const stops = x.row.stops, n = stops.length, i = Math.min(TL_AT[key] || 0, n - 1), g = tlGeom_(x);
-  document.querySelectorAll('.tl-anim').forEach(s => {
-    if (s.getAttribute('data-tl') !== key) return;
-    const tr = s.querySelector('.tl-track'), sc = s.querySelector('.tl-scene'), ctl = s.closest('.card') || s;
-    if (!tr || !sc) { s.innerHTML = tlStage_(x); return; }
-    tr.style.transform = 'translateX(' + tlShift_(g, i) + '%)';
-    tr.querySelectorAll('.tl-ev').forEach((d, k) => { d.classList.toggle('on', k === i); d.classList.toggle('past', k < i); });
-    if (sc.getAttribute('data-i') !== String(i)) { sc.setAttribute('data-i', i); sc.innerHTML = tlScene_(stops[i]); }
-    /* IN PLACE, NOT REDRAWN: the card's own row holds these tiles, and a tile that is not swapped cannot move. */
-    const tmp = document.createElement('div'); tmp.innerHTML = tile_(tlOpts_(key, i, n));
-    [...tmp.querySelectorAll('button')].forEach(b => {
-      const same = [...ctl.querySelectorAll('[data-do="' + b.getAttribute('data-do') + '"][data-key="' + key + '"]')].find(o => o.getAttribute('data-by') === b.getAttribute('data-by'));
-      if (same && same.outerHTML !== b.outerHTML) same.replaceWith(b);
-    });
-  });
-}
-function tlStop_() {
-  if (TL_PLAY.timer) clearInterval(TL_PLAY.timer);
-  const k = TL_PLAY.key;
-  TL_PLAY.timer = null; TL_PLAY.key = '';
-  if (k) tlPaint_(k);
-}
-function tlMove_(key, by) {
-  const x = tlItem_(key), n = x ? x.row.stops.length : 0;
-  TL_AT[key] = Math.max(0, Math.min(n - 1, (TL_AT[key] || 0) + by));
-  if (TL_AT[key] >= n - 1 && TL_PLAY.key === key) return tlStop_();
-  tlPaint_(key);
-}
-on('tl-step', el => {
-  const key = el.getAttribute('data-key');
-  if (TL_PLAY.key === key) tlStop_();
-  tlMove_(key, +el.getAttribute('data-by'));
-});
-/* PLAY ADVANCES ON A TIMER that holds its own timeline's key, and stops at the last event or once the card is gone. */
-const TL_HELD = new Set();
-function tlStart_(key) {
-  tlStop_();
-  const x = tlItem_(key);
-  if (!x) return;
-  /* STEP MODE when stillness is asked for: Play moves one event and nothing advances by itself. */
-  if (typeof motionOK_ === 'function' && !motionOK_()) return tlMove_(key, 1);
-  if ((TL_AT[key] || 0) >= x.row.stops.length - 1) TL_AT[key] = 0;
-  TL_PLAY.key = key;
-  TL_PLAY.timer = setInterval(() => {
-    if (![...document.querySelectorAll('.tl-anim')].some(s => s.getAttribute('data-tl') === key && s.isConnected)) return tlStop_();
-    tlMove_(key, 1);
-  }, TL_STEP_MS);
-  tlPaint_(key);
-}
-on('tl-play', el => {
-  const key = el.getAttribute('data-key');
-  if (TL_PLAY.key === key) { TL_HELD.add(key); return tlStop_(); }
-  tlStart_(key);
-});
-/* IT PLAYS BY ITSELF once its card is on screen (the owner: "auto-advancing"), unless another plays or this one was paused. */
-function tlAuto_(key) {
-  if (TL_PLAY.key || TL_HELD.has(key) || (TL_AT[key] || 0) > 0 || (typeof motionOK_ === 'function' && !motionOK_())) return;
-  const el = [...document.querySelectorAll('.tl-anim')].find(s => s.getAttribute('data-tl') === key);
-  const r = el && el.isConnected ? el.getBoundingClientRect() : null;
-  if (r && r.height && r.top < innerHeight && r.bottom > 0) tlStart_(key);
-}
 
 ;
 /* ==== js/find-boxers.js ==== */
@@ -3391,8 +3242,8 @@ function typesetTerms_(k) {
     const u = t.replace(/^(?:\s|&nbsp;)+|(?:\s|&nbsp;)+$/g, '');
     return u[0] === '(' && brFwd(u, 0) === u.length - 1 ? u.slice(1, -1) : u;
   };
-  const stack = (n, d) => '<span class="frac"><span class="frac-n">' + bare(n)
-    + '</span><span class="frac-s">/</span><span class="frac-d">' + bare(d) + '</span></span>';
+  const stack = (n, d) => cardBlock_({ type: 'group', tag: 'span', look: 'frac', blocks: [{ type: 'group', tag: 'span', look: 'frac-n', inner: bare(n) },
+    { type: 'group', tag: 'span', look: 'frac-s', inner: '/' }, { type: 'group', tag: 'span', look: 'frac-d', inner: bare(d) }] });
   Object.assign(k, { termBack, termFwd, GAP, gapBack, bare, stack });
 }
 
@@ -3420,7 +3271,7 @@ function typesetPowers_(k) {
     }
     if (!exp.trim()) continue;
     /* A HYPHEN IN AN INDEX IS A MINUS SIGN, and set as one: 4<sup>−2</sup>, not 4<sup>-2</sup>. */
-    k.s = k.s.slice(0, p) + '<sup>' + exp.replace(/^-/, '&minus;') + '</sup>' + k.s.slice(end);
+    k.s = k.s.slice(0, p) + cardBlock_({ type: 'group', tag: 'sup', inner: exp.replace(/^-/, '&minus;') }) + k.s.slice(end);
     from = p;
   }
 }
@@ -3441,7 +3292,8 @@ function typesetFracs_(k) {
     if (w.deep) {
       const a = /\d+$/.exec(k.s.slice(Math.max(0, p - 12), p)), b = /^\d+/.exec(k.s.slice(q, q + 12));
       if (!a || !b) continue;
-      const ix = '<span class="frac-ix"><span class="frac-ix-n">' + a[0] + '</span>&#x2044;<span class="frac-ix-d">' + b[0] + '</span></span>';
+      const ix = cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix', inner: cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix-n', text: a[0] })
+        + '&#x2044;' + cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix-d', text: b[0] }) });
       k.s = k.s.slice(0, p - a[0].length) + ix + k.s.slice(q + b[0].length);
       from = p - a[0].length + ix.length;
       continue;
@@ -3450,7 +3302,7 @@ function typesetFracs_(k) {
     const le = gapBack(p);
     let ls = termBack(le), whole = '', num;
     if (ls === le) continue;
-    if (k.s.slice(le - 6, le) === '</sup>') {
+    if (/^<\/sup>$/.test(k.s.slice(le - 6, le))) {
       const o = openOf(le, 'sup');
       const pre = k.s.slice(ls, o), inner = k.s.slice(k.s.indexOf('>', o) + 1, le - 6);
       if (!pre) num = inner;
@@ -3479,7 +3331,7 @@ function typesetFracs_(k) {
       }
       den = k.s.slice(rs, re);
     }
-    const out = whole ? '<span class="frac-mixed">' + whole + stack(num, den) + '</span>' : stack(num, den);
+    const out = whole ? cardBlock_({ type: 'group', tag: 'span', look: 'frac-mixed', inner: whole + stack(num, den) }) : stack(num, den);
     k.s = k.s.slice(0, ls) + out + k.s.slice(re);
     /* FROM WHERE THIS ONE STARTED, not after it: a fraction inside its numerator was inside a
        <sup> a moment ago and skipped as an index, and it is in a span now and should be drawn. */
@@ -3495,8 +3347,9 @@ function answerParts_(raw) {
   const VOID = /^(?:br|img|hr|wbr|input)$/i;
   const BLOCK = /^(?:table|thead|tbody|tfoot|tr|td|th|ul|ol|li|dl|dt|dd|div|figure)$/i;
   const CODE = '(?:[BMAPC][1-5]|SC[1-5]?|cao|oe|ft|isw|awrt)';
-  const RUN = new RegExp('(?:<b>)?\\(?\\b' + CODE + '\\b\\)?(?:</b>)?(?:[\\s,]+(?:<b>)?\\(?\\b' + CODE
-    + '\\b\\)?(?:</b>)?)*', 'g');
+  /* A READER, not a maker: the pattern's pieces are regex literals. */
+  const OPEN = /(?:<b>)?\(?\b/.source, SHUT = /\b\)?(?:<\/b>)?/.source;
+  const RUN = new RegExp(OPEN + CODE + SHUT + '(?:[\\s,]+' + OPEN + CODE + SHUT + ')*', 'g');
   const seen = t => String(t).replace(/<[^>]*>/g, '').replace(/&nbsp;|&#160;/g, ' ').trim();
   let head = s, why = '', m;
   while ((m = DASH.exec(s))) {
@@ -3561,10 +3414,8 @@ function answerBlock_(x) {
   const kind = String(x.answerType || '').trim();
   /* ---------- THE ANSWER, AND NOTHING ELSE § */
   const p = answerParts_(x.answer);
-  return `<div class="qans">
-    <span class="qans-head">Answer${kind ? ` &middot; ${esc(kind)}` : ''}</span>
-    <div class="qans-body qtext">${typeset_(p.head)}</div>
-  </div>`;
+  return cardBlock_({ type: 'group', look: 'qans', blocks: [{ type: 'group', tag: 'span', look: 'qans-head', text: 'Answer' + (kind ? ' · ' + kind : '') },
+    { type: 'group', look: 'qans-body qtext', inner: typeset_(p.head) }] });
 }
 
 /* OPENING ONE SHOWS THE STEM, THE LEAD AND THE PART — in that order, because that is the order it is printed and because a part without them cannot be answered. § */
@@ -3951,7 +3802,7 @@ function libItemByKey_(k) {
 /* WHAT A WAITING CARD SAYS UNDER ITS TAGS: sign in, the dots, or why it did not come and Try again. */
 function libSay_(x) {
   if (typeof USER === 'undefined' || !USER || !USER.token) {
-    return '<p class="note lib-sign">Sign in to see this — your account is a few screens to the right.</p>';
+    return cardBlock_({ type: 'paperNote', look: 'lib-sign', text: 'Sign in to see this — your account is a few screens to the right.' });
   }
   /* A CARD NEWER THAN ITS WORDS (`lib_pending`, docs/library.md): the Ledger has not had them imported yet. */
   if (libIdsFor_(x).some(t => LIB.gone.has(t))) return empty_(x && x.row && (x.row.pending === true || libTrue(x.row.lib_pending)) ? 'Coming soon.' : 'Not in the library yet.');
@@ -3966,7 +3817,7 @@ function libWaitHtml_(x) {
   const q = isQ_(x);
   /* THE ONE ANATOMY (owner, 10 Nov): no picture yet, its tags, its name as a line (not a heading), then what it waits for. */
   return findCard({ kind: 'libwait', name: (x && x.name) || '', kcOwn: { cls: 'lib-wait' + (q ? ' qcard' : ''), attrs: ` data-lib="${esc((x && x.key) || '')}"`,
-    tags: tagRow_(x), lines: `${q ? '' : `<p class="kc-line">${esc((x && x.name) || '')}</p>`}<div class="lib-say">${libSay_(x)}</div>` } });
+    tags: tagRow_(x), lines: cardBlocks_((q ? [] : [{ type: 'group', tag: 'p', look: 'kc-line', text: (x && x.name) || '' }]).concat({ type: 'group', look: 'lib-say', inner: libSay_(x) })) } });
 }
 /* THE PAGES ARE COUNTED AGAIN ONLY WHERE THEY ARE DRAWN AGAIN — counting them anywhere else would move every page under a column already drawn. */
 function libPagesFresh_() {
@@ -7299,7 +7150,7 @@ function padLoupe_(g) {
     el = document.createElement('div');
     el.className = 'pad-loupe';
     el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = '<div class="pad-loupe-in"></div><i class="pad-loupe-x"></i>';
+    el.innerHTML = cardBlocks_([{ type: 'group', look: 'pad-loupe-in' }, { type: 'group', tag: 'i', look: 'pad-loupe-x' }]);
     document.body.appendChild(el);
   }
   const box = g.box, inner = el.firstChild;
@@ -7684,7 +7535,7 @@ function padUnderRepaint_(k) {
     const g = keys.indexOf(k) >= 0 && p.querySelector('.qpad-was');
     if (!g) return;
     const ka = padAspectOf_(p);
-    g.innerHTML = [].concat(...keys.map(padRead_)).map(st => `<path vector-effect="non-scaling-stroke" d="${padPath_(st, ka)}"/>`).join('');
+    g.innerHTML = padInkPaths_([].concat(...keys.map(padRead_)).map(st => padPath_(st, ka)));
   });
 }
 /* ---------- AND EVERY OTHER COPY OF THE SAME PAD, FROM THE STORE § */
@@ -7753,30 +7604,30 @@ let PROT_SVG = '';
 function padProtSvg_() {
   if (PROT_SVG) return PROT_SVG;
   const R = 100, cx = 100, cy = 100, P = (r, d) => { const t = (180 - d) * Math.PI / 180; return [(cx + r * Math.cos(t)).toFixed(2), (cy - r * Math.sin(t)).toFixed(2)]; };
-  let ticks = '', nums = '';
+  let ticks = '';
+  const nums = [];
   for (let d = 0; d <= 180; d++) {
     const len = d % 10 === 0 ? 12 : d % 5 === 0 ? 8 : 4, a = P(R, d), b = P(R - len, d);
     ticks += `M${a[0]} ${a[1]}L${b[0]} ${b[1]}`;
     if (d % 10 === 0) {
       const o = P(R - 19, d), i = P(R - 31, d);
-      nums += `<text x="${o[0]}" y="${o[1]}">${d}</text><text class="qprot-in" x="${i[0]}" y="${i[1]}">${180 - d}</text>`;
+      nums.push({ el: 'text', a: { x: o[0], y: o[1] }, text: d }, { el: 'text', a: { class: 'qprot-in', x: i[0], y: i[1] }, text: 180 - d });
     }
   }
-  PROT_SVG = `<svg viewBox="-8 -26 216 134" aria-hidden="true">
-    <path class="qprot-body" d="M0 100A100 100 0 0 1 200 100Z"/>
-    <path class="qprot-ticks" d="${ticks}M${cx} ${cy}L${cx} ${cy - 40}M${cx - 6} ${cy}L${cx + 6} ${cy}"/>
-    <g class="qprot-nums">${nums}</g>
-    <circle class="qprot-pin" cx="${cx}" cy="${cy}" r="2.5"/>
-    <line class="qprot-stem" x1="${cx}" y1="0" x2="${cx}" y2="-14"/>
-    <circle class="qprot-knob" data-prot="turn" cx="${cx}" cy="-16" r="9"/>
-    <circle class="qprot-hit" data-prot="turn" cx="${cx}" cy="-16" r="22"/>
-  </svg>`;
+  PROT_SVG = cardBlock_({ type: 'drawing', node: { el: 'svg', a: { viewBox: '-8 -26 216 134', 'aria-hidden': 'true' }, kids: [
+    { el: 'path', a: { class: 'qprot-body', d: 'M0 100A100 100 0 0 1 200 100Z' } },
+    { el: 'path', a: { class: 'qprot-ticks', d: `${ticks}M${cx} ${cy}L${cx} ${cy - 40}M${cx - 6} ${cy}L${cx + 6} ${cy}` } },
+    { el: 'g', a: { class: 'qprot-nums' }, kids: nums },
+    { el: 'circle', a: { class: 'qprot-pin', cx, cy, r: '2.5' } },
+    { el: 'line', a: { class: 'qprot-stem', x1: cx, y1: '0', x2: cx, y2: '-14' } },
+    { el: 'circle', a: { class: 'qprot-knob', 'data-prot': 'turn', cx, cy: '-16', r: '9' } },
+    { el: 'circle', a: { class: 'qprot-hit', 'data-prot': 'turn', cx, cy: '-16', r: '22' } }] } });
   return PROT_SVG;
 }
 function padProtHtml_(k) {
   const st = padProtOf_(k);
-  return `<div class="qpad-prot" data-noswipe data-prot-k="${esc(k)}" role="img" aria-label="Protractor, turned ${Math.round(st.a)} degrees"
-    style="left:${st.x.toFixed(2)}%;top:${st.y.toFixed(2)}%;transform:translate(-${PROT_PX}%,-${PROT_PY.toFixed(3)}%) rotate(${st.a}deg);transform-origin:${PROT_PX}% ${PROT_PY.toFixed(3)}%">${padProtSvg_()}</div>`;
+  return cardBlock_({ type: 'group', look: 'qpad-prot', attrs: { 'data-noswipe': true, 'data-prot-k': k, role: 'img', 'aria-label': `Protractor, turned ${Math.round(st.a)} degrees`,
+    style: `left:${st.x.toFixed(2)}%;top:${st.y.toFixed(2)}%;transform:translate(-${PROT_PX}%,-${PROT_PY.toFixed(3)}%) rotate(${st.a}deg);transform-origin:${PROT_PX}% ${PROT_PY.toFixed(3)}%` }, inner: padProtSvg_() });
 }
 /* EVERY COPY OF THIS PAD ON THE PAGE, with the protractor down or up as its state says, and the tile lit to match -- in place, no repaint */
 function padProtSync_(k) {
@@ -7895,7 +7746,7 @@ function padRepaint_(pad, all) {
         || p.getAttribute('vector-effect') !== 'non-scaling-stroke' || p.getAttribute('d') !== want[i]) break;
     i++;
   }
-  if (!i) { g.innerHTML = want.map(d => `<path vector-effect="non-scaling-stroke" d="${d}"/>`).join(''); return; }
+  if (!i) { g.innerHTML = padInkPaths_(want); return; }
   while (have.length > i) g.removeChild(have[have.length - 1]);
   for (; i < want.length; i++) {
     const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -7990,8 +7841,10 @@ function padUnderParts_(x, svg) {
 }
 /* THE EARLIER MARKS AS AN INK GROUP, beside the pad's own and never inside it: `padRepaint_` rewrites
    `.qpad-g` from this part's storage, so nothing it does can reach these. */
-const usesInk_ = (all, k) => `<g class="qpad-was" vector-effect="non-scaling-stroke">${all.map(st =>
-  `<path vector-effect="non-scaling-stroke" d="${padPath_(st, k)}"/>`).join('')}</g>`;
+/* INK AS DATA: each stroke a path the drawing block writes, its width kept at any zoom. */
+const padInkNodes_ = ds => ds.map(d => ({ el: 'path', a: { 'vector-effect': 'non-scaling-stroke', d } }));
+const padInkPaths_ = ds => cardBlock_({ type: 'drawing', node: padInkNodes_(ds) });
+const usesInk_ = (all, k) => cardBlock_({ type: 'drawing', node: { el: 'g', a: { class: 'qpad-was', 'vector-effect': 'non-scaling-stroke' }, kids: padInkNodes_(all.map(st => padPath_(st, k))) } });
 
 ;
 /* ==== js/find-figures.js ==== */
@@ -9511,7 +9364,7 @@ function stuffItemsRaw_() {
 
     /* ---------- THE HISTORY DATABASE (459) */
     ...(typeof HIST_DB === 'undefined' ? [] : HIST_DB).flatMap(t => (DATA[t.file] || []).flatMap(r => histItems_(t.kind, r))),
-    ...histTimelines_(),
+    ...(typeof window.histTimelines_ === 'function' ? window.histTimelines_() : []),
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE § */
     ...bibleItems_(),
@@ -9520,13 +9373,13 @@ function stuffItemsRaw_() {
     ...(typeof window.talmudItems_ === 'function' ? window.talmudItems_() : []),
 
     /* ---------- THE QURAN (490), one item a verse, once its index has come */
-    ...(typeof quranItems_ === 'function' ? quranItems_() : []),
+    ...(typeof window.quranItems_ === 'function' ? window.quranItems_() : []),
     ...(typeof window.hadithItems_ === 'function' ? window.hadithItems_() : []),
     ...(typeof window.worksItems_ === 'function' ? window.worksItems_() : []),
     ...(typeof textsItems_ === 'function' ? textsItems_() : []),
     ...(typeof pdtextsItems_ === 'function' ? pdtextsItems_() : []),
     ...(typeof window.orthoItems_ === 'function' ? window.orthoItems_() : []),
-    ...(typeof hymnsItems_ === 'function' ? hymnsItems_() : []),
+    ...(typeof window.hymnsItems_ === 'function' ? window.hymnsItems_() : []),
     ...(typeof mechItems_ === 'function' ? mechItems_() : []),
     ...(typeof chemItems_ === 'function' ? chemItems_() : []),
 
@@ -11600,13 +11453,13 @@ function stuffKeepPlace_(host, d) {
 function stuffIndexesAsk_() {
   if (USER || !ruleOn_('finder-members')) {
   if (typeof window.talmudIndex_ === 'function') window.talmudIndex_();
-  if (typeof quranIndex_ === 'function') quranIndex_();
+  if (typeof window.quranIndex_ === 'function') window.quranIndex_();
   if (typeof window.hadithIndex_ === 'function') window.hadithIndex_();
   if (typeof window.worksIndex_ === 'function') window.worksIndex_();
   if (typeof textsIndex_ === 'function') textsIndex_();
   if (typeof pdtextsIndex_ === 'function') pdtextsIndex_();
   if (typeof window.orthoIndex_ === 'function') window.orthoIndex_();
-  if (typeof hymnsIndex_ === 'function') hymnsIndex_();
+  if (typeof window.hymnsIndex_ === 'function') window.hymnsIndex_();
   if (typeof mechIndex_ === 'function') mechIndex_();
   if (typeof chemIndex_ === 'function') chemIndex_(); }
 }
@@ -12496,7 +12349,7 @@ let dockTimer = null;
 /* ==== js/find-settled.js ==== */
 /* @family. — js/find-settled.js THE FIRST PAINT IS THE LAST (546): whether every source has come, and the build's answer for where the finder stands (cut from find-pages.js). */
 /* WHETHER ANY SOURCE'S INDEX IS STILL ON ITS WAY (546) — every loader keeps `asking` on its own state, read here as one list. */
-const writingAsking_ = () => [BIBLE, window.TALMUD, QURAN, window.HADITH, window.WORKS, TEXTS, PDTEXTS, window.ORTHO, HYMNS].some(S => S && S.asking);
+const writingAsking_ = () => [BIBLE, window.TALMUD, window.QURAN, window.HADITH, window.WORKS, TEXTS, PDTEXTS, window.ORTHO, window.HYMNS].some(S => S && S.asking);
 
 /* ---------- THE FIRST PAINT IS THE LAST (546): a question the build already answered (FINDER_TAGS, tools/finder-tags.js) is painted whole while the finder's files still arrive, so no list of answers grows or changes in front of you. */
 const finderSettled_ = () => {
@@ -12550,7 +12403,7 @@ function finderTagsSame_(view, first) {
     if (!T || T.facets !== facetList().map(f => f.field).join(',')) return false;
     const m = myResults_();
     if (m && m.size) return false;
-    if ([BIBLE, window.TALMUD, QURAN, window.HADITH, window.WORKS, TEXTS, PDTEXTS, window.ORTHO, HYMNS].some(b => b && b.failed)) return false;
+    if ([BIBLE, window.TALMUD, window.QURAN, window.HADITH, window.WORKS, TEXTS, PDTEXTS, window.ORTHO, window.HYMNS].some(b => b && b.failed)) return false;
     if (TAGS_SAME.all !== all || TAGS_SAME.gen !== gen) { TAGS_SAME.all = all; TAGS_SAME.gen = gen; TAGS_SAME.by = {}; }
     const k = first.field + '=' + first.value;
     if (k in TAGS_SAME.by) return TAGS_SAME.by[k];
@@ -12732,7 +12585,7 @@ function paintDocket() {
   if (!USER) { host.innerHTML = empty_('Sign in to keep a docket.'); return; }
   /* Google Tasks lives with the tasks it copies, not in Student settings (491). */
   const gt = $('docket-gtasks');
-  if (gt) gt.innerHTML = typeof gtasksCard_ === 'function' ? gtasksCard_() : '';
+  if (gt) gt.innerHTML = typeof window.gtasksCard_ === 'function' ? window.gtasksCard_() : '';
 
   const list = docketLines();
   if (!list.length) {
@@ -14529,7 +14382,7 @@ function aiDecided_() {
     b.disabled = false;
   });
   /* AND A PART PRESSED WITH NO CONNECTION is marked now its card is drawn again online (offline.js). */
-  if (typeof offAiFlush_ === 'function') offAiFlush_();
+  if (typeof window.offAiFlush_ === 'function') window.offAiFlush_();
 }
 
 /* THE QUESTION AS WORDS. § */
@@ -14705,7 +14558,7 @@ on('qp-ai', (el) => {
   /* THE SOUND IS WOKEN NOW, INSIDE THE TAP, and held awake until the reply, because the verdict lands after the network and an iPad lets a page start sound only § */
   const k = inp.getAttribute('data-k');
   /* NO CONNECTION: the press is queued and the mark asked once online (offline.js), never a failed request. */
-  if (typeof offAiHold_ === 'function' && offAiHold_(k, sent, out)) return;
+  if (typeof window.offAiHold_ === 'function' && window.offAiHold_(k, sent, out)) return;
   const letGo = typeof markWait_ === 'function' ? markWait_() : null;
   const here = typeof markWhere_ === 'function' && markWhere_(k);
   el.disabled = true;
@@ -15848,7 +15701,7 @@ function subApply_(who, items, d) {
                       : { a: cur.a, v: cur.v, at: cur.at, id: ev.id, far: 1 };
   });
   subAllKeep_(who, all);
-  if (typeof offSynced_ === 'function') offSynced_(who);
+  if (typeof window.offSynced_ === 'function') window.offSynced_(who);
 }
 function subPush_(now, keepalive) {
   /* THE DEVICE'S OWN QUEUE, not the press that woke it: the card has already changed, so this request holds no control (534). */
@@ -16304,7 +16157,7 @@ function subPaint_(k) {
 }
 function subPaintAll_() {
   if (typeof ansSavedPaint_ === 'function') ansSavedPaint_();
-  if (typeof offFrontPaint_ === 'function') offFrontPaint_();
+  if (typeof window.offFrontPaint_ === 'function') window.offFrontPaint_();
 }
 /* A BOX'S VERDICT LINE, FROM THE STORE: § */
 function subVerdictPaint_(mark, inp) {
@@ -17576,23 +17429,22 @@ const calcOf_ = key => { if (!CALC_ST.has(key)) CALC_ST.set(key, calcNew()); ret
 
 /* THE LCD: the status row (S while SHIFT is held, D degrees, Math the natural display), the sum, the answer. Drawn by CSS, never the sum's text. */
 function calcScreen_(st) {
-  const h = calcHtml(st);
-  return '<div class="mc-stat" aria-hidden="true"><b data-i="S"' + (st.shift ? ' class="on"' : '') + '></b><b data-i="D" class="on"></b><b data-i="Math" class="on"></b>'
-    + (st.past.length ? '<b data-i="▲" class="on"></b>' : '') + '</div><div class="mc-in">' + h.input + '</div><div class="mc-out">'
-    + (h.output || (st.root.length ? '' : '0')) + '</div>';
+  const h = calcHtml(st), mark = (i, on) => ({ type: 'group', tag: 'b', look: on ? 'on' : null, attrs: { 'data-i': i } });
+  return cardBlocks_([{ type: 'group', look: 'mc-stat', attrs: { 'aria-hidden': 'true' }, blocks: [mark('S', st.shift), mark('D', true), mark('Math', true)].concat(st.past.length ? [mark('▲', true)] : []) },
+    { type: 'group', look: 'mc-in', inner: h.input }, { type: 'group', look: 'mc-out', inner: h.output || (st.root.length ? '' : '0') }]);
 }
 /* A KEY'S PRINTED FACE IS DATA (calc-engine.js): runs drawn by renderCard's runs, line drawings by its drawing block. */
 const calcFace_ = v => [].concat(v == null ? [] : v).map(x => x && x.el ? cardDraw_(x) : cardRuns_(x)).join('');
 /* THE FACE, as it was in the Calculator widget: bezel and LCD, the top keys round the pad, the function keys, the number keys */
 function calcFaceHtml_(key) {
-  const st = calcOf_(key);
-  const keys = ([[ 'top', 'calc-top', '<i class="calc-pad" aria-hidden="true"></i><i class="calc-pad calc-pad-v" aria-hidden="true"></i>'], ['fn', 'calc-fn', ''], ['num', 'calc-num', '']]).map(([part, cls, extra]) =>
-    `<div class="${cls}">${extra}${CALC_KEYS.filter(k => k[2].split(' ')[0] === part).map(([v, label, kc, legend, name]) =>
+  const st = calcOf_(key), pad = look => ({ type: 'group', tag: 'i', look, attrs: { 'aria-hidden': 'true' } });
+  const keys = ([['top', 'calc-top', [pad('calc-pad'), pad('calc-pad calc-pad-v')]], ['fn', 'calc-fn', []], ['num', 'calc-num', []]]).map(([part, cls, extra]) =>
+    ({ type: 'group', look: cls, blocks: extra, inner: CALC_KEYS.filter(k => k[2].split(' ')[0] === part).map(([v, label, kc, legend, name]) =>
       tile_({ form: true, look: 'mc-btn ' + kc + (/^\w+$/.test(v) ? ' mc-k-' + v : ''), act: 'qcalc-key', data: { mc: v }, aria: name || v,
-        html: (/pad|pg/.test(kc) ? '' : `<small class="mc-alt">${calcFace_(legend)}</small>`) + `<span class="mc-lab">${calcFace_(label)}</span>` })).join('')}</div>`).join('');
-  return `<div class="calc${st.shift ? ' mc-shifted' : ''}" data-key="${esc(key)}" role="group" aria-label="Calculator">
-    <div class="calc-bezel"><div class="mc-display" tabindex="0" aria-live="polite" aria-label="Calculator display">${calcScreen_(st)}</div>
-    <div class="calc-label">${esc(brand('name', '@family.'))}</div></div>${keys}</div>`;
+        html: cardBlocks_((/pad|pg/.test(kc) ? [] : [{ type: 'group', tag: 'small', look: 'mc-alt', inner: calcFace_(legend) }]).concat({ type: 'group', tag: 'span', look: 'mc-lab', inner: calcFace_(label) })) })).join('') }));
+  return cardBlock_({ type: 'group', look: 'calc' + (st.shift ? ' mc-shifted' : ''), attrs: { 'data-key': key, role: 'group', 'aria-label': 'Calculator' }, blocks: [
+    { type: 'group', look: 'calc-bezel', blocks: [{ type: 'group', look: 'mc-display', attrs: { tabindex: '0', 'aria-live': 'polite', 'aria-label': 'Calculator display' }, inner: calcScreen_(st) },
+      { type: 'group', look: 'calc-label', text: brand('name', '@family.') }] }].concat(keys) });
 }
 /* THE LCD DRAWN AGAIN after a key; a long sum scrolls to where you are typing */
 function calcPaint_(box) {
@@ -17905,7 +17757,7 @@ const QT_TILE = {
   /* ONLY WHERE A CALCULATOR IS ALLOWED: a Non-calculator paper never shows it; unknown shows it (owner, 11 Nov) */
   calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
   /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
-  offline: (t, x) => (typeof offOpts_ === 'function' ? offOpts_(x) : null),
+  offline: (t, x) => (typeof window.offOpts_ === 'function' ? window.offOpts_(x) : null),
   photo: (t, x) => ({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } }),
 };
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
@@ -21732,127 +21584,6 @@ function readingCard_(x, o) {
 }
 
 ;
-/* ==== js/quran.js ==== */
-/* ================= THE QURAN (490): ONE CARD A VERSE, FOUND IN FIND ================= */
-/* The owner: "each verse can be a widget ... all tags like everything else". Ordinary facets; the index when a finder paints, a surah's text
-   only when one of its cards is drawn. */
-
-const QURAN_NAME = () => brand('quran_name', 'The Quran');
-/* WHAT A SEARCH FINDS IT BY that a verse's own name does not say. */
-const QURAN_WORDS = 'Quran Koran Qur\'an surah sura ayah aya verse Pickthall Tanzil';
-const QURAN = { index: null, asking: null, failed: false, surahs: {}, loading: {}, missed: {}, items: null, from: null };
-/* THE SURAHS IN THE MUSHAF'S ORDER, not the alphabet's — `answerCmp_` reads `ANSWER_ORDERS`. */
-const QURAN_ORDER = [];
-ANSWER_ORDERS.push(QURAN_ORDER);
-/* ONLY FOR A VIEWER OF AGE (490), like the Bible and the Talmud: under it, or signed out, nothing is fetched. */
-const quranFor_ = () => writingFor_(writingWork_('quran'));
-
-function quranGet_(file) {
-  return scriptureFetch_(o => fetch('data/quran/' + file + deployStamp_(), o));
-}
-
-function quranIndex_() {
-  if (QURAN.index) return QURAN.index;
-  if (!quranFor_() || QURAN.asking || QURAN.failed || typeof fetch !== 'function') return null;
-  QURAN.asking = quranGet_('index.json').then(d => {
-    const ok = !!d && Array.isArray(d.surahs) && d.surahs.length === 114
-      && d.surahs.every((s, i) => s && s.n === i + 1 && s.name && s.ayahs > 0 && Array.isArray(s.juz) && s.juz.length > 0);
-    QURAN.asking = null;
-    /* A MISS IS REDRAWN TOO (504), so the dots under its question end in words. */
-    if (!ok) { QURAN.failed = true; if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); }); return null; }
-    QURAN.index = d;
-    QURAN_ORDER.push(...d.surahs.map(quranSurahSay_));
-    writingCame_('quran');
-    return d;
-  });
-  return null;
-}
-const quranSurahSay_ = s => s.n + ' · ' + s.name;
-function quranJuzOf_(s, a) {
-  let j = s.juz[0][0];
-  s.juz.forEach(r => { if (r[1] <= a) j = r[0]; });
-  return j;
-}
-
-/* ONE CARD, ONE LANGUAGE (504): the owner, "1 widget is one verse ... the translation is a tag". The Arabic keeps the old key `qr:s:a`, so a
-   star from before is the Arabic card; Pickthall's English is `qr:en:s:a`. */
-const QURAN_TRS = [{ id: '', say: 'Arabic (Tanzil)', lang: 'ar' }, { id: 'en', say: 'English (Pickthall)', lang: 'en' }];
-
-/* ---------- ONE ITEM A VERSE IN ONE LANGUAGE, built once the index has come. */
-function quranItems_() {
-  const ix = QURAN.index;
-  if (!ix || !quranFor_()) return [];
-  if (QURAN.items && QURAN.from === ix) return QURAN.items;
-  const list = [], reg = writingWork_('quran');
-  QURAN_TRS.forEach(t => ix.surahs.forEach(s => {
-    const text = writingText_(writingTextOf_(t.say));
-    const say = quranSurahSay_(s), words = [QURAN_NAME(), QURAN_WORDS, s.name, s.meaning, s.ar, s.place, t.say].join(' ');
-    for (let a = 1; a <= s.ayahs; a++) {
-      /* ONE SHAPE (520): the surah is the Chapter, its juz the Section, the ayah the Unit. */
-      list.push(writingUnit_('quran', reg, {
-        kind: 'quran', key: 'qr:' + (t.id ? t.id + ':' : '') + s.n + ':' + a, name: s.name + ' ' + s.n + ':' + a, sub: s.meaning, text: words,
-        w: { chapter: say, section: 'Juz ' + quranJuzOf_(s, a), unit: String(a), text: text },
-        qr: { s: s.n, a: a, lang: t.lang },
-      }));
-    }
-  }));
-  QURAN.items = list; QURAN.from = ix;
-  return list;
-}
-
-/* ONE SURAH'S TEXT, held to the index's count of its verses. */
-function quranLoad_(n) {
-  if (QURAN.surahs[n]) return Promise.resolve(QURAN.surahs[n]);
-  if (QURAN.loading[n]) return QURAN.loading[n];
-  const s = QURAN.index && QURAN.index.surahs[n - 1];
-  if (!s || !quranFor_()) return Promise.resolve(null);
-  QURAN.loading[n] = quranGet_(String(n).padStart(3, '0') + '.json').then(d => {
-    QURAN.loading[n] = null;
-    const ok = !!d && Array.isArray(d.ar) && Array.isArray(d.en) && d.ar.length === s.ayahs && d.en.length === s.ayahs;
-    QURAN.missed[n] = !ok;
-    if (ok) QURAN.surahs[n] = d;
-    return ok ? d : null;
-  });
-  return QURAN.loading[n];
-}
-
-/* THE VERSE ITSELF, in the card's one language, and whose words they are. */
-function quranBody_(x) {
-  const n = x.qr.s, d = QURAN.surahs[n];
-  if (d) {
-    return x.qr.lang === 'en'
-      ? `<p class="qr-en">${esc(d.en[x.qr.a - 1])}</p>
-      <p class="qr-credit">Pickthall (1930), public domain</p>`
-      : `<p class="qr-ar" dir="rtl" lang="ar">${esc(d.ar[x.qr.a - 1])} <span class="qr-no">﴿${x.qr.a}﴾</span></p>
-      <p class="qr-credit">Tanzil Quran Text (Simple 1.1), CC BY 3.0, tanzil.net</p>`;
-  }
-  if (QURAN.missed[n] && !QURAN.loading[n]) {
-    return `<p class="fc-note">This surah did not arrive. ${tile_({ form: true, act: 'qr-retry', data: { s: n }, label: 'Try again' })}</p>`;
-  }
-  if (!QURAN.loading[n]) quranLoad_(n).then(() => quranRedraw_(n));
-  return loading_();
-}
-function quranCard_(x) {
-  return readingCard_(x, { cls: 'qr', bodyCls: 'qr-body', body: x.qr ? quranBody_(x) : '',
-    data: { qs: x.qr ? x.qr.s : 0, qa: x.qr ? x.qr.a : 0, ql: x.qr && x.qr.lang === 'en' ? 'en' : 'ar' } });
-}
-/* ITS TEXT CAME: every card of that surah on screen is filled where it stands. */
-function quranRedraw_(n) {
-  if (typeof document === 'undefined') return;
-  document.querySelectorAll('.qr-body[data-qs="' + Number(n) + '"]').forEach(el => {
-    el.innerHTML = quranBody_({ qr: { s: Number(n), a: Number(el.getAttribute('data-qa')), lang: el.getAttribute('data-ql') } });
-    const pane = el.closest('.pane');
-    if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
-  });
-}
-on('qr-retry', el => {
-  const n = Number(el && el.getAttribute('data-s')) || 0;
-  if (!n) return;
-  QURAN.missed[n] = false;
-  quranRedraw_(n);
-});
-
-;
 /* ==== js/texts.js ==== */
 /* ================= MORE WRITINGS (513): THE APOCRYPHA, ENOCH, JUBILEES, JOSEPHUS, THE MISHNAH, THE FATHERS, GILGAMESH ================= */
 /* A card a verse, section or mishnah where the text is cited so, else a chapter; one text a card (504).
@@ -22048,99 +21779,6 @@ function pdtextsRedraw_(id) {
     const x = (PDTEXTS.items || []).find(i => i.key === el.getAttribute('data-k'));
     if (!x) return;
     el.innerHTML = pdtextsBody_(x);
-    const pane = el.closest('.pane');
-    if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
-  });
-}
-
-;
-/* ==== js/hymns.js ==== */
-/* ================= THE HYMNS SHELF (517): ONE CARD A HYMN, ITS WORDS FETCHED WHEN IT IS DRAWN ================= */
-/* The owner: "database church hymns ... linked to Spotify" (517).
-   data/hymns/: index when a finder paints, words in chunks when a card is drawn; never boot payload, no audio. */
-
-const HYMNS = { index: null, asking: null, failed: false, chunks: {}, loading: {}, missed: {}, items: null, from: null };
-const hymnsGet_ = file => {
-  const stamp = deployStamp_();
-  return Promise.resolve()
-    .then(() => fetch('data/hymns/' + file + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null)
-    .catch(() => null);
-};
-
-/* A RELIGIOUS WORK IS FOR A VIEWER OF AGE (490), as the other writings are. */
-function hymnsIndex_() {
-  if (HYMNS.index) return HYMNS.index;
-  if (HYMNS.asking || HYMNS.failed || typeof fetch !== 'function' || !writingFor_(WRITING_WORKS.hymns)) return null;
-  HYMNS.asking = hymnsGet_('index.json').then(d => {
-    const ok = !!d && Array.isArray(d.hymns) && d.hymns.every(h => h && /^HY-\d{4}$/.test(h.id) && /^w-\d{2}\.json$/.test(h.file) && h.title);
-    HYMNS.asking = null;
-    if (!ok) { HYMNS.failed = true; return null; }
-    HYMNS.index = d;
-    writingCame_('hymns');
-    return d;
-  });
-  return null;
-}
-
-/* ---------- ONE ITEM A HYMN (520): a `writingUnit_` on the Writings shelf, its hymnal the Work, its section the Section. */
-const hymnalOf_ = h => String(h.source || '').split(',')[0].trim();
-function hymnsItems_() {
-  const ix = HYMNS.index;
-  if (!ix) return [];
-  if (HYMNS.items && HYMNS.from === ix) return HYMNS.items;
-  const reg = writingWork_('hymns');
-  HYMNS.items = ix.hymns.map(h => writingUnit_('hymns', reg, {
-    kind: 'hymn', key: 'hy:' + h.id, name: h.title, sub: h.author,
-    text: [h.title, h.first, h.author, h.tune, h.tradition, h.season, h.theme, h.id].join(' '),
-    w: { work: hymnalOf_(h), section: h.theme || '', unit: h.title, text: writingText_(writingTextOf_(h.language || 'English')),
-         tradition: h.tradition || '', author: h.author || '', form: 'Hymn' },
-    hy: h,
-  }));
-  HYMNS.from = ix;
-  return HYMNS.items;
-}
-
-function hymnsLoad_(file) {
-  if (HYMNS.chunks[file]) return Promise.resolve(HYMNS.chunks[file]);
-  if (!HYMNS.loading[file]) {
-    HYMNS.loading[file] = hymnsGet_(file).then(d => {
-      HYMNS.loading[file] = null;
-      const ok = !!d && d.file === file && d.hymns && typeof d.hymns === 'object';
-      HYMNS.missed[file] = !ok;
-      if (ok) HYMNS.chunks[file] = d;
-      return ok ? d : null;
-    });
-  }
-  return HYMNS.loading[file];
-}
-
-/* THE AUDIO IS SPOTIFY'S, never ours: a search for the hymn by its title and author, opened in a new tab. */
-const hymnSpotify_ = h => 'https://open.spotify.com/search/' + encodeURIComponent([h.title, String(h.author || '').replace(/,? ?tr\..*$/, '')]
-  .filter(s => s && s !== 'Anonymous').join(' ') + ' hymn');
-function hymnsBody_(x) {
-  const h = x.hy, d = HYMNS.chunks[h.file], words = d && d.hymns[h.id];
-  const facts = [h.author, h.year, h.tune ? 'tune ' + h.tune + (h.meter ? ' (' + h.meter + ')' : '') : ''].filter(Boolean).join(' · ');
-  const top = `<p class="hy-facts">${esc(facts)}</p>`;
-  const credit = `<p class="wt-credit">${esc(h.source || '')} · ${esc(h.licence || '')}</p>`;
-  if (words) return top + words.map(s => `<p class="wt-text hy-verse">${esc(s).replace(/\n/g, '<br>')}</p>`).join('') + credit;
-  if (HYMNS.missed[h.file] && !HYMNS.loading[h.file]) return top + '<p class="fc-note">These words did not arrive.</p>';
-  if (!HYMNS.loading[h.file]) hymnsLoad_(h.file).then(() => hymnsRedraw_(h.file));
-  return top + loading_();
-}
-function hymnsCard_(x) {
-  return readingCard_(x, { cls: 'hy', bodyCls: 'hy-body', body: x.hy ? hymnsBody_(x) : '', data: { hy: x.hy ? x.hy.file : '', k: x.key } });
-}
-/* LISTEN, on the card's one row (`CARD_EXTRAS_`). */
-function hymnExtras_(x) { return x.hy ? { icon: 'play', label: 'Listen on Spotify', note: 'a search, in a new tab', href: hymnSpotify_(x.hy) } : null; }
-window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { hymn: hymnExtras_ });
-/* ITS CHUNK CAME: every hymn card of that chunk on screen is filled where it stands. */
-function hymnsRedraw_(file) {
-  if (typeof document === 'undefined') return;
-  document.querySelectorAll('.hy-body[data-hy="' + file + '"]').forEach(el => {
-    const x = (HYMNS.items || []).find(i => i.key === el.getAttribute('data-k'));
-    if (!x) return;
-    el.innerHTML = hymnsBody_(x);
     const pane = el.closest('.pane');
     if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
   });
@@ -24162,516 +23800,5 @@ on('seen-set', el => {
   if (!Object.keys(D.seen).length) delete D.seen;
   layoutSave_(D);
 });
-
-;
-/* ==== js/gtasks.js ==== */
-/* ---------- GOOGLE TASKS (475): your own sessions and exam dates, copied into your own Google Tasks ---------- */
-/* No backend: Google's token client in this browser, the token in memory and this tab only, never sent to us. One way, site → Google. */
-const GT_SCOPE = 'https://www.googleapis.com/auth/tasks';
-const GT_API = 'https://tasks.googleapis.com/tasks/v1';
-const GT_LIST = '@family.';
-const GT = { token: '', exp: 0, busy: false, err: '', last: '', client: null, gsi: null };
-/* THE SITE'S ONE OAUTH CLIENT ID — public, not a secret; the same one Google sign-in uses (config), else the brand tab. */
-const gtClientId_ = () => String((DATA && DATA.googleClientId) || brand('google_client_id', '') || '').trim();
-
-/* THE TOKEN LIVES FOR THE TAB (sessionStorage) and no longer; a blocked storage leaves it in memory alone. */
-function gtToken_() {
-  if (GT.token && Date.now() < GT.exp) return GT.token;
-  try {
-    const s = JSON.parse(sessionStorage.getItem('gtasksTok') || 'null');
-    if (s && s.t && Date.now() < s.e) { GT.token = s.t; GT.exp = s.e; return s.t; }
-  } catch (e) {}
-  return '';
-}
-function gtKeep_(t, secs) {
-  GT.token = t || ''; GT.exp = t ? Date.now() + Math.max(60, (+secs || 3600) - 60) * 1000 : 0;
-  try { t ? sessionStorage.setItem('gtasksTok', JSON.stringify({ t: GT.token, e: GT.exp })) : sessionStorage.removeItem('gtasksTok'); } catch (e) {}
-}
-const gtLast_ = () => { if (GT.last) return GT.last; try { return localStorage.getItem('gtasksLast') || ''; } catch (e) { return ''; } };
-
-/* WHAT GOES ACROSS: the next four weeks of your sessions (`myJobs_`) and your exam dates. `key` is our id, kept in the task's notes. */
-function gtItems_() {
-  const out = [], link = location.origin + location.pathname;
-  const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  const t0 = new Date(); t0.setHours(0, 0, 0, 0);
-  try {
-    (typeof myJobs_ === 'function' ? myJobs_() : []).forEach(j => {
-      if (/cancel/i.test(String(j.status || '')) || typeof jobOn_ !== 'function') return;
-      const id = String(j.id || j.jobId || [j.subject, j.client, j.time].join('-'));
-      for (let i = 0; i <= 28; i++) {
-        const d = new Date(t0.getTime()); d.setDate(d.getDate() + i);
-        let on = false;
-        try { on = jobOn_(j, d); } catch (e) { on = false; }
-        if (!on) continue;
-        const what = [j.subject, j.level].filter(Boolean).join(' · ') || 'Session';
-        out.push({ key: 'job:' + id + ':' + ymd(d), title: what + (j.time ? ' · ' + j.time : ''), due: ymd(d),
-          notes: [j.tutor ? 'With ' + j.tutor : '', 'Booking: ' + link + '#booking'].filter(Boolean).join('\n') });
-      }
-    });
-  } catch (e) {}
-  try {
-    (typeof progressCountdownRows_ === 'function' ? progressCountdownRows_() : []).forEach(([name, days]) => {
-      if (!/exam/i.test(String(name))) return;
-      const d = new Date(t0.getTime()); d.setDate(d.getDate() + (+days || 0));
-      out.push({ key: 'exam:' + String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-'), title: String(name), due: ymd(d), notes: 'Progress: ' + link + '#account' });
-    });
-  } catch (e) {}
-  return out;
-}
-const gtMark_ = k => '[family:' + k + ']';
-const gtKeyOf_ = notes => ((/\[family:([^\]]+)\]/.exec(String(notes || '')) || [])[1]) || '';
-
-async function gtCall_(path, opt) {
-  const o = opt || {};
-  const r = await fetch(GT_API + path, { method: o.method || 'GET',
-    headers: Object.assign({ Authorization: 'Bearer ' + gtToken_() }, o.body ? { 'Content-Type': 'application/json' } : {}),
-    body: o.body ? JSON.stringify(o.body) : undefined });
-  if (r.status === 401) { gtKeep_(''); throw new Error('Google asked you to connect again.'); }
-  if (!r.ok) throw new Error('Google Tasks said ' + r.status + '.');
-  return r.status === 204 ? {} : r.json();
-}
-/* IDEMPOTENT: our key in each task's notes, so a second sync updates the same task and never makes another; a tick in Google is left alone. */
-async function gtSync_() {
-  if (GT.busy || !gtToken_()) return;
-  GT.busy = true; GT.err = ''; gtPaint_();
-  try {
-    const lists = (await gtCall_('/users/@me/lists?maxResults=100')).items || [];
-    let list = lists.find(l => l.title === GT_LIST);
-    if (!list) list = await gtCall_('/users/@me/lists', { method: 'POST', body: { title: GT_LIST } });
-    const have = {};
-    let page = '';
-    do {
-      const r = await gtCall_('/lists/' + encodeURIComponent(list.id) + '/tasks?showCompleted=true&showHidden=true&maxResults=100' + (page ? '&pageToken=' + encodeURIComponent(page) : ''));
-      (r.items || []).forEach(t => { const k = gtKeyOf_(t.notes); if (k) have[k] = t; });
-      page = r.nextPageToken || '';
-    } while (page);
-    let made = 0, kept = 0, done = 0;
-    for (const it of gtItems_()) {
-      const body = { title: it.title, notes: it.notes + '\n' + gtMark_(it.key), due: it.due + 'T00:00:00.000Z' };
-      const t = have[it.key];
-      if (t) { if (t.status === 'completed') done++; await gtCall_('/lists/' + encodeURIComponent(list.id) + '/tasks/' + encodeURIComponent(t.id), { method: 'PATCH', body }); kept++; }
-      else { await gtCall_('/lists/' + encodeURIComponent(list.id) + '/tasks', { method: 'POST', body }); made++; }
-    }
-    const at = day_(new Date()) + ' ' + time_(new Date());
-    GT.last = 'Synced ' + at + ' · ' + (made + kept) + ' tasks' + (made ? ', ' + made + ' new' : '') + (done ? ', ' + done + ' ticked off in Google' : '');
-    try { localStorage.setItem('gtasksLast', GT.last); } catch (e) {}
-  } catch (e) { GT.err = (e && e.message) || 'Sync failed.'; }
-  GT.busy = false; gtPaint_();
-}
-
-/* GOOGLE'S SCRIPT ONLY WHEN CONNECT IS TAPPED; sign-in may have loaded it already. */
-function gtGsi_() {
-  if (window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
-  if (GT.gsi) return GT.gsi;
-  GT.gsi = new Promise((ok, no) => {
-    const s = document.createElement('script');
-    s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
-    s.onload = () => ok(); s.onerror = () => { GT.gsi = null; no(new Error('Google could not load.')); };
-    document.head.appendChild(s);
-  });
-  return GT.gsi;
-}
-async function gtConnect_() {
-  const id = gtClientId_();
-  if (!id) return;
-  GT.err = '';
-  try { await gtGsi_(); } catch (e) { GT.err = e.message; gtPaint_(); return; }
-  try {
-    GT.client = google.accounts.oauth2.initTokenClient({ client_id: id, scope: GT_SCOPE,
-      callback: r => {
-        if (!r || r.error || !r.access_token) { GT.err = 'Google did not connect.'; gtPaint_(); return; }
-        gtKeep_(r.access_token, r.expires_in); gtSync_();
-      },
-      error_callback: () => { GT.err = 'Google did not connect.'; gtPaint_(); } });
-    GT.client.requestAccessToken();
-  } catch (e) { GT.err = 'Google did not connect.'; gtPaint_(); }
-}
-function gtDisconnect_() {
-  const t = gtToken_();
-  try { if (t && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(t, () => {}); } catch (e) {}
-  gtKeep_(''); GT.last = ''; GT.err = '';
-  try { localStorage.removeItem('gtasksLast'); } catch (e) {}
-  gtPaint_();
-}
-
-/* THE CARD: one line per thing, tiles under it. */
-function gtasksCard_() {
-  if (typeof USER === 'undefined' || !USER) return '';
-  const row = h => ``;
-  let body;
-  if (!gtClientId_()) {
-    body = row('Not switched on yet — the site\'s admin turns it on.')
-      + (isAdmin() ? row('Admin: put the OAuth Client ID in the brand tab as <b>google_client_id</b> (docs/google-tasks.md).') : '');
-  } else if (!gtToken_()) {
-    body = tileRow_(tile_({ icon: 'in', label: 'Connect', note: 'your Google account', act: 'gtasks-connect' }), '', true);
-  } else {
-    body = row(GT.busy ? 'Syncing…' : esc(gtLast_() || 'Connected. Not synced yet.'))
-      + row('One way: changes here reach Google; a tick in Google stays in Google.')
-      + tileRow_(tile_({ icon: 'sync', label: 'Sync now', act: 'gtasks-sync' }) + tile_({ icon: 'out', label: 'Disconnect', act: 'gtasks-off' }), '', true);
-  }
-  return `<div class="gtasks-card"><p class="k">Google Tasks</p>${body}</div>`;
-}
-/* The block sits under the Docket widget's list (491), so a change redraws the docket. */
-function gtPaint_() { try { if (typeof paintDocket === 'function') paintDocket(); } catch (e) {} }
-on('gtasks-connect', () => gtConnect_());
-on('gtasks-sync', () => gtSync_());
-on('gtasks-off', () => gtDisconnect_());
-
-;
-/* ==== js/push.js ==== */
-/* ---------- PHONE NOTIFICATIONS (492): opt in once on Student settings; Firebase Cloud Messaging, free. docs/push-notifications.md ---------- */
-/* Firebase's scripts load only when Turn on is tapped. Pinned, from Google's own CDN — the one place the FCM web SDK is published. */
-const PUSH_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
-const PUSH = { state: null, asked: false, busy: false, err: '', sdk: null };
-
-/* THE PUBLIC WEB CONFIG (apiKey, projectId, messagingSenderId, appId, vapidKey) — not a secret; brand `fcm_web_config`, JSON. */
-function pushWebConfig_() {
-  try {
-    const raw = brand('fcm_web_config', '');
-    const c = typeof raw === 'object' ? raw : JSON.parse(String(raw || '').trim() || 'null');
-    return c && c.apiKey && c.projectId && c.messagingSenderId && c.appId && c.vapidKey ? c : null;
-  } catch (e) { return null; }
-}
-/* AN IPHONE IN SAFARI CAN ONLY BE TOLD OF THINGS ONCE THE SITE IS ON ITS HOME SCREEN (iOS 16.4+). */
-const pushIos_ = () => /iPad|iPhone|iPod/.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const pushStandalone_ = () => navigator.standalone === true || (!!window.matchMedia && matchMedia('(display-mode: standalone)').matches);
-const pushCan_ = () => 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
-const pushTokenHere_ = () => { try { return localStorage.getItem('pushToken') || ''; } catch (e) { return ''; } };
-const pushKeep_ = t => { try { t ? localStorage.setItem('pushToken', t) : localStorage.removeItem('pushToken'); } catch (e) {} };
-
-function pushPaint_() {
-  try { markStale_('account'); if (typeof AT !== 'undefined' && AT === 'account') paint('account'); } catch (e) {}
-  /* THE CARD ALSO SITS IN FIND › SETTINGS › NOTIFICATIONS (owner, 12 Nov). */
-  try { if (typeof AT !== 'undefined' && AT === 'stuff') paint('stuff'); } catch (e) {}
-}
-function pushAsk_(body) {
-  return send_(Object.assign({ name: USER.name, personId: USER.personId || '' }, body))
-    .then(d => { PUSH.state = d; PUSH.err = ''; return d; });
-}
-/* ONCE A VISIT, on the first draw while signed in: whether the backend has its keys, and this person's choices. */
-function pushLoad_() {
-  if (PUSH.asked || !USER) return;
-  PUSH.asked = true;
-  pushAsk_({ action: 'pushState' }).catch(e => { PUSH.err = (e && e.message) || ''; }).then(pushPaint_);
-}
-
-function pushScript_(src) {
-  return new Promise((ok, no) => {
-    const s = document.createElement('script');
-    s.src = src; s.async = true; s.onload = () => ok(); s.onerror = () => no(new Error('Firebase could not load.'));
-    document.head.appendChild(s);
-  });
-}
-function pushSdk_() {
-  if (window.firebase && window.firebase.messaging) return Promise.resolve();
-  if (!PUSH.sdk) PUSH.sdk = pushScript_(PUSH_SDK + 'firebase-app-compat.js')
-    .then(() => pushScript_(PUSH_SDK + 'firebase-messaging-compat.js'))
-    .catch(e => { PUSH.sdk = null; throw e; });
-  return PUSH.sdk;
-}
-
-async function pushOn_() {
-  const cfg = pushWebConfig_();
-  if (!cfg || PUSH.busy) return;
-  PUSH.busy = true; PUSH.err = ''; pushPaint_();
-  try {
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') throw new Error(perm === 'denied' ? 'Notifications are blocked for this site — allow them in the browser\'s settings.' : 'Not turned on.');
-    /* OUR OWN sw.js, so Firebase does not register a second worker of its own. */
-    const reg = await swReg_();
-    await pushSdk_();
-    if (!window.firebase.apps.length) window.firebase.initializeApp(cfg);
-    const token = await window.firebase.messaging().getToken({ vapidKey: cfg.vapidKey, serviceWorkerRegistration: reg });
-    if (!token) throw new Error('This browser gave no address to send to.');
-    await pushAsk_({ action: 'pushSubscribe', fcmToken: token, device: pushIos_() ? 'iPhone' : String(navigator.platform || 'browser').slice(0, 60) });
-    pushKeep_(token);
-  } catch (e) { if (!e.handled) PUSH.err = (e && e.message) || 'Not turned on.'; }
-  PUSH.busy = false; pushPaint_();
-}
-async function pushOff_() {
-  if (PUSH.busy) return;
-  PUSH.busy = true; PUSH.err = ''; pushPaint_();
-  const token = pushTokenHere_();
-  try {
-    await pushAsk_({ action: 'pushUnsubscribe', fcmToken: token });
-    pushKeep_('');
-    try { if (token && window.firebase && window.firebase.apps.length) await window.firebase.messaging().deleteToken(); } catch (e) {}
-  } catch (e) { if (!e.handled) PUSH.err = (e && e.message) || 'Not turned off.'; }
-  PUSH.busy = false; pushPaint_();
-}
-
-/* THE PHONE'S PART OF THE ONE NOTIFICATIONS CARD (owner, 12 Nov: one item, one template): the tile, or the one thing to do first. */
-function pushBody_() {
-  if (typeof USER === 'undefined' || !USER) return '';
-  pushLoad_();
-  const row = h => ``;
-  const S0 = PUSH.state, admin = isAdmin();
-  /* THE ONE LINE SAYING WHAT IT IS is the card's `say` below, drawn by the layout. */
-  let body = '';
-  if (!S0 && !PUSH.err) body += loading_();
-  else if (!pushWebConfig_() || !S0 || !S0.ready) {
-    body += row('Not switched on yet — the site\'s admin turns it on.');
-    if (admin) {
-      const miss = (S0 && S0.missing) || [];
-      body += row('Admin: ' + [!pushWebConfig_() ? 'put the web config in the brand tab as <b>fcm_web_config</b>' : '',
-        miss.length ? 'fill Script Properties ' + miss.map(k => '<b>' + esc(k) + '</b>').join(', ') : ''].filter(Boolean).join('; ') + ' (docs/push-notifications.md).');
-    }
-  } else if (pushIos_() && !pushStandalone_()) {
-    body += row('On iPhone: in Safari tap Share, then <b>Add to Home Screen</b>, open @family. from that icon and come back here.');
-  } else if (!pushCan_()) {
-    body += row('This browser cannot show notifications.');
-  } else if (!pushTokenHere_()) {
-    body += tileRow_(tile_({ icon: 'spark', label: 'Turn on', note: 'on this device', act: 'push-on' }), '', true);
-    if (S0.devices) body += row('On for ' + S0.devices + ' other device' + (S0.devices === 1 ? '' : 's') + '.');
-  } else {
-    const off = S0.off || [];
-    /* THE EMAIL CARD'S OWN ROW (`notify-pick`), so a choice looks the same wherever it is made. */
-    body += (S0.kinds || []).map(k => `<label class="check role-pick notify-pick push-pick">
-      <input type="checkbox" data-push-kind="${esc(k.kind)}"${off.indexOf(k.kind) === -1 ? ' checked' : ''}${PUSH.busy ? ' disabled' : ''}>
-      <span class="box"></span><span class="role-pick-say"><b>${esc(k.label)}</b></span></label>`).join('')
-      + tileRow_(tile_({ icon: 'mute', label: 'Turn off', note: 'on this device', act: 'push-off' }), '', true);
-  }
-  if (PUSH.busy) body += loading_();
-  return `<div class="push-card">${body}</div>`;
-}
-on('push-on', () => pushOn_());
-on('push-off', () => pushOff_());
-document.addEventListener('change', e => {
-  const el = e.target && e.target.closest && e.target.closest('[data-push-kind]');
-  if (!el || PUSH.busy) return;
-  PUSH.busy = true;
-  pushAsk_({ action: 'pushSet', kind: el.dataset.pushKind, on: el.checked })
-    .catch(err => { if (!err.handled) PUSH.err = err.message; })
-    .then(() => { PUSH.busy = false; pushPaint_(); });
-});
-
-/* ---------- A TAPPED NOTIFICATION: `?push=dm:<id>|job:<id>|post:<id>` on arrival, or a word from sw.js to a window already open. */
-let PUSH_LANDED = false;
-function pushGo_(what) {
-  const m = /^(dm|job|post):(.*)$/.exec(String(what || ''));
-  if (!m) return;
-  try {
-    if (m[1] === 'job' && typeof openJob_ === 'function') openJob_(m[2]);
-    else if (m[1] === 'post' && typeof window.postGo_ === 'function') window.postGo_(m[2]);
-    else go('dm');
-  } catch (e) {}
-}
-function pushLanding_() {
-  if (PUSH_LANDED) return;
-  PUSH_LANDED = true;
-  let w = '';
-  try { w = new URLSearchParams(location.search).get('push') || ''; } catch (e) {}
-  if (!w) return;
-  try { const q = new URLSearchParams(location.search); q.delete('push'); history.replaceState(null, '', location.pathname + (String(q) ? '?' + q : '') + location.hash); } catch (e) {}
-  pushGo_(w);
-}
-try {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => {
-    const u = e.data && e.data.pushOpen;
-    if (!u) return;
-    try { pushGo_(new URL(u, location.href).searchParams.get('push')); } catch (err) {}
-  });
-} catch (e) {}
-
-;
-/* ==== js/offline.js ==== */
-/* @family. — offline.js A PAPER ON THE DEVICE (owner, 11 Nov): its words in the library's own copy (library.js), the app in the worker's store (sw.js). */
-/* Every press is the queue submit.js already keeps; an AI part waits here for a connection. Nothing of this outlives sign-out (`keptForget_`, `libDiskClear_`). */
-
-const OFF_CACHE = 'family-offline';
-/* HOW LONG A DOWNLOAD WAITS FOR ITS WORDS, and how often a waiting AI part looks for its card once online. */
-const OFF_WAIT_MS = 60000, OFF_AI_EVERY_MS = 10000;
-const OFF_BUSY = new Set();
-
-/* ---------- THE THREE RECORDS, in the kept store under the signed-in person: papers, AI parts waiting, the last sync. */
-const offKey_ = what => KEPT_PREFIX + payloadFor_().who + ':offline:' + what;
-const offRead_ = what => (payloadFor_().who && keptGet_(offKey_(what), true)) || {};
-function offWrite_(what, o) { if (payloadFor_().who) keptPut_(offKey_(what), JSON.stringify(o || {})); }
-const offIsOff_ = () => typeof navigator !== 'undefined' && navigator.onLine === false;
-
-/* ---------- A PAPER'S QUESTIONS AND THE WIRE IDS OF EVERY ROW THAT HAS WORDS, read off Find's own list. */
-function offPaperItems_(pid) {
-  try { return stuffItemsAll_().filter(x => isQ_(x) && String(paperIdOf_(x.row || x)) === String(pid)); } catch (e) { return []; }
-}
-const offWireIds_ = pid => [...new Set([].concat(...offPaperItems_(pid).map(x => libIdsFor_(x, true))))];
-const offName_ = (pid, items) => { const r = ((items || offPaperItems_(pid))[0] || {}).row || {}; return String(r.name || r.paper || pid); };
-/* EVERY ID A DOWNLOADED PAPER HOLDS: the library's copy never lets these go to make room (`libDiskPut_`). */
-function offPinned_() {
-  const s = new Set();
-  try { Object.values(offRead_('papers')).forEach(p => (p.ids || []).forEach(t => s.add(t))); } catch (e) { s.clear(); }
-  return s;
-}
-const offHas_ = pid => !!(offRead_('papers')[pid] || {}).at;
-
-/* ---------- THE ONE TILE, on every question part's row behind ⋯ (qtools.js QT_TILE.offline). */
-function offOpts_(x) {
-  const pid = x && String(paperIdOf_(x.row || x) || '');
-  if (!pid || typeof USER === 'undefined' || !USER || !USER.token) return null;
-  const busy = OFF_BUSY.has(pid), has = offHas_(pid);
-  return { icon: has ? 'tick' : 'down', label: busy ? 'Downloading…' : has ? 'Available offline' : 'Make available offline',
-    note: has ? 'tap to remove from this device' : 'this paper, on this device', act: 'offline-get', cls: 'qt-t off-get', on: has, pressed: has, off: busy, data: { pid } };
-}
-function offTilePaint_(pid) {
-  document.querySelectorAll('.off-get[data-pid="' + CSS.escape(pid) + '"]').forEach(el => {
-    const o = offOpts_({ row: { paper_id: pid } });
-    if (o) tileSet_(el, o);
-  });
-  offFrontPaint_();
-}
-on('offline-get', el => {
-  const pid = el.getAttribute('data-pid') || '';
-  if (!pid || OFF_BUSY.has(pid)) return;
-  if (offHas_(pid)) offDrop_(pid); else offGet_(pid);
-});
-
-/* ---------- DOWNLOAD: pin the ids, ask for the missing words, keep the app and the figures, then say so. */
-async function offGet_(pid) {
-  if (offIsOff_()) { toast('No connection — make it available offline when you are back online.'); return false; }
-  OFF_BUSY.add(pid); offTilePaint_(pid);
-  let ok = false;
-  try {
-    const items = offPaperItems_(pid), ids = offWireIds_(pid);
-    const papers = offRead_('papers');
-    papers[pid] = { at: 0, ids, name: offName_(pid, items) };
-    offWrite_('papers', papers);
-    if (!LIB.disk) await (LIB.diskP || (LIB.diskP = libDiskLoad_()));
-    libAsk_(ids.filter(t => !LIB.disk.has(t)));
-    const t0 = Date.now();
-    const settled = () => ids.every(t => (LIB.disk && LIB.disk.has(t)) || LIB.gone.has(t) || LIB.refused.has(t));
-    while (!settled() && !LIB.failed && Date.now() - t0 < OFF_WAIT_MS) await new Promise(r => setTimeout(r, 200));
-    if (!settled()) throw new Error(LIB.failed || 'the words did not all come');
-    await offShell_(items);
-    const now = offRead_('papers');
-    now[pid] = Object.assign({}, papers[pid], { at: Date.now() });
-    offWrite_('papers', now);
-    ok = true;
-    toast('Available offline: ' + papers[pid].name);
-  } catch (e) {
-    const p = offRead_('papers'); delete p[pid]; offWrite_('papers', p);
-    toast('Not downloaded — ' + why_(e));
-  }
-  OFF_BUSY.delete(pid); offTilePaint_(pid);
-  return ok;
-}
-/* SIGN-OUT: the worker's store goes too (me-account.js), so nothing is kept for the next person. */
-function offForget_() {
-  if (typeof caches !== 'undefined') caches.delete(OFF_CACHE).catch(() => false);
-}
-function offDrop_(pid) {
-  const p = offRead_('papers'); delete p[pid]; offWrite_('papers', p);
-  offTilePaint_(pid);
-}
-
-/* ---------- THE APP'S OWN FILES, kept by the worker: every code file of this build, what this visit loaded, and the paper's figures. */
-function swReg_() {
-  if (!('serviceWorker' in navigator)) return Promise.resolve(null);
-  return navigator.serviceWorker.getRegistration().then(r => r || navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }));
-}
-async function offShell_(items) {
-  if (typeof caches === 'undefined') return;
-  await swReg_().catch(() => null);
-  const t = deployStamp_(), urls = new Set(['index.html', 'style.css' + t, 'fonts/family-code.woff2', 'icon.png', 'favicon.png', 'manifest.webmanifest']);
-  (window.FILES || []).filter(f => (window.OFF || []).indexOf(f) === -1).forEach(f => urls.add('js/' + f + '.js' + t));
-  /* THE BUILD'S BUNDLES TOO (1211): an offline open asks for these, not js/, unless the page was opened with ?nobundle. */
-  ['first', 'later', 'lazy'].forEach(b => urls.add('bundle/' + b + '.js' + t));
-  try { performance.getEntriesByType('resource').forEach(e => { const u = new URL(e.name); if (u.origin === location.origin && u.pathname.indexOf('/sw.js') === -1) urls.add(u.pathname.replace(/^\//, '') + u.search); }); } catch (e) { oops_(e, 'offline:timings'); }
-  (items || []).forEach(x => [x.row].concat(x.stems || [], (questionParts_()[qId_(x)] || [])).forEach(r => { const h = libS(r && (r.row || r).diagram_twin).trim(); if (/^[0-9a-f]{12}$/.test(h)) urls.add('data/diagrams/' + h + '.png'); }));
-  const c = await caches.open(OFF_CACHE);
-  await Promise.all([...urls].map(u => fetch(u, { cache: 'no-cache' }).then(r => (r.ok ? c.put(u, r) : null)).catch(() => null)));
-  if ('serviceWorker' in navigator) await navigator.serviceWorker.ready;
-}
-
-/* ---------- AN AI PART PRESSED WITH NO CONNECTION: the press is queued now, the mark is asked once online. */
-function offAiHold_(k, answer, out) {
-  if (!offIsOff_()) return false;
-  const w = offRead_('ai');
-  w[k] = { a: answer, at: Date.now() };
-  offWrite_('ai', w);
-  try { subRecord_(k, answer, 'sent'); } catch (e) { oops_(e, 'offline:aiHold'); }
-  if (out) out.textContent = 'Will mark when online';
-  offAiWatch_();
-  offFrontPaint_();
-  return true;
-}
-/* ONCE ONLINE, each waiting part on the glass is pressed again for real; one not drawn waits for its card. */
-function offAiFlush_() {
-  if (offIsOff_()) return;
-  const w = offRead_('ai');
-  let moved = false;
-  Object.keys(w).forEach(k => {
-    const inp = [...document.querySelectorAll('.qp-multi-val, .qp-ans-in')].find(i => i.getAttribute('data-k') === k);
-    const card = inp && inp.closest('.qcard'), btn = card && card.querySelector('[data-do="qp-ai"]');
-    if (!btn || btn.disabled) return;
-    if (inp.value !== w[k].a) { delete w[k]; moved = true; return; }
-    delete w[k]; moved = true;
-    if (typeof ACTIONS === 'object' && ACTIONS['qp-ai']) ACTIONS['qp-ai'](btn); else btn.click();
-  });
-  if (moved) { offWrite_('ai', w); offFrontPaint_(); }
-}
-
-/* ---------- WHAT IS ON THE DEVICE AND WHAT IS STILL TO GO, one line. */
-function offSynced_(who) {
-  if (typeof USER === 'undefined' || !USER || 'u:' + String(USER.personId) !== who) return;
-  offWrite_('synced', { at: Date.now() });
-}
-function offSyncLine_() {
-  if (typeof USER === 'undefined' || !USER || !USER.personId) return '';
-  let n = 0;
-  try { n = subQueue_('u:' + USER.personId).length + Object.keys(offRead_('ai')).length; } catch (e) { n = 0; }
-  const at = offRead_('synced').at;
-  const last = at ? 'Last synced ' + ago(at) : 'Not synced yet';
-  return (offIsOff_() ? 'Offline · ' : '') + last + (n ? ' · ' + n + ' waiting to sync' : '');
-}
-function offFrontPaint_() {
-  const line = offSyncLine_();
-  document.querySelectorAll('.off-sync').forEach(el => { el.textContent = line; });
-  if (typeof STALE !== 'undefined' && typeof FINDER !== 'undefined' && FINDER) STALE[FINDER.id] = 1;
-}
-
-/* ---------- FIND'S FRONT CARD: the papers on this device, each one tap from its questions, and the sync line. */
-function offlinePages_() {
-  if (typeof USER === 'undefined' || !USER || !USER.personId) return [];
-  const papers = offRead_('papers'), ids = Object.keys(papers).filter(id => papers[id].at);
-  const line = offSyncLine_();
-  if (!ids.length && !/waiting/.test(line)) return [];
-  const rows = ids.map(id => `<li><span class="bundle-name">${esc(papers[id].name || id)}</span>${
-    tile_({ icon: 'open', label: 'Open', note: papers[id].name || id, act: 'offline-open', data: { pid: id } })}</li>`).join('');
-  const lines = `<p class="off-sync">${esc(line)}</p>` + (rows ? `<ol class="bundle-list">${rows}</ol>` : '');
-  const x = { kind: 'offline', name: 'On this device', key: 'offline:' + ids.join(',') };
-  return [findCard(Object.assign(x, { kcOwn: { cls: 'offline', attrs: '', pic: '', head: '<h3>On this device</h3>', tags: '<div class="qtags qcard-tags"></div>', lines } }))];
-}
-on('offline-open', el => {
-  const pid = el.getAttribute('data-pid') || '';
-  if (pid) finderSet_(FINDERS.stuff, { filters: [{ field: 'paperId', value: pid }], show: true });
-});
-
-/* ---------- BACK ONLINE: the queue goes up (idempotent by event id, submit.js), AI parts are marked, the line is redrawn. */
-function offOnline_() {
-  try { if (typeof subPush_ === 'function') subPush_(true); } catch (e) { oops_(e, 'offline:online'); }
-  offAiFlush_();
-  offFrontPaint_();
-}
-addEventListener('online', offOnline_);
-addEventListener('offline', offFrontPaint_);
-/* A TIMER ONLY WHILE AN AI PART WAITS: it looks for the part's card every few seconds and stops when none is left. */
-let OFF_AI_TIMER = 0;
-function offAiWatch_() {
-  if (OFF_AI_TIMER) return;
-  OFF_AI_TIMER = setInterval(() => {
-    if (!Object.keys(offRead_('ai')).length) { clearInterval(OFF_AI_TIMER); OFF_AI_TIMER = 0; return; }
-    offAiFlush_();
-  }, OFF_AI_EVERY_MS);
-}
-
-/* ---------- EACH VISIT ONLINE, a downloaded paper is made whole again: words a new Ledger dropped, and this build's files. */
-function offTopUp_(tries) {
-  const papers = offRead_('papers'), ids = Object.keys(papers).filter(id => papers[id].at);
-  if (!ids.length || offIsOff_()) return;
-  if (!LIB.disk && !LIB.diskP) LIB.diskP = libDiskLoad_();
-  if (typeof LIBRARY_ROWS === 'undefined' || !LIBRARY_ROWS || !LIB.disk) { if ((tries || 0) < 30) setTimeout(() => offTopUp_((tries || 0) + 1), 2000); return; }
-  ids.forEach(pid => libAsk_((papers[pid].ids || []).filter(t => !LIB.disk.has(t))));
-  offShell_([].concat(...ids.map(offPaperItems_))).catch(() => {});
-}
-addEventListener('load', () => setTimeout(offTopUp_, 5000));
 
 ;

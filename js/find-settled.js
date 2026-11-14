@@ -1,6 +1,6 @@
 /* @family. — js/find-settled.js THE FIRST PAINT IS THE LAST (546): whether every source has come, and the build's answer for where the finder stands (cut from find-pages.js). */
 /* WHETHER ANY SOURCE'S INDEX IS STILL ON ITS WAY (546) — every loader keeps `asking` on its own state, read here as one list. */
-const writingAsking_ = () => [BIBLE, window.TALMUD, QURAN, window.HADITH, window.WORKS, TEXTS, PDTEXTS, window.ORTHO, HYMNS].some(S => S && S.asking);
+const writingAsking_ = () => [BIBLE, window.TALMUD, window.QURAN, window.HADITH, window.WORKS, TEXTS, PDTEXTS, window.ORTHO, window.HYMNS].some(S => S && S.asking);
 
 /* ---------- THE FIRST PAINT IS THE LAST (546): a question the build already answered (FINDER_TAGS, tools/finder-tags.js) is painted whole while the finder's files still arrive, so no list of answers grows or changes in front of you. */
 const finderSettled_ = () => {

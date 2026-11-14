@@ -361,7 +361,7 @@ function signedOut_(opts) {
   USER = null; LENS = null;   /* and the lens: the next admin opens their own settings */
   try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ }
   payloadForget_();   /* the device's copy of their payload goes with them (1070) */
-  if (typeof offForget_ === 'function') offForget_();   /* and the app's offline copy; the words go with libDiskClear_ */
+  if (typeof window.offForget_ === 'function') window.offForget_();   /* and the app's offline copy; the words go with libDiskClear_ */
   /* ---------- AND WHAT THEY HAD ASKED FIND FOR GOES WITH THEM § */
   try {
     const states = typeof finderStates_ === 'function' ? finderStates_()

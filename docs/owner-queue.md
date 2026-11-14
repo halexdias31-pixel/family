@@ -15,6 +15,7 @@ One list, so nothing asked for gets lost. Claude ticks items off here when they 
 - [ ] Name at the top right as a tag; removing it signs out (replaces the sign-out button)
 
 ## Queued (owner asked, not started)
+- Flaky journey: "a session that ends while a child types…" (check/flow/23-child-sign.js ~505) uses fixed waits (40×25ms, 300/600/1700ms) and failed twice under machine load on 14 Nov, passing 9 times quiet. Replace the fixed waits with polling so it cannot fail on timing.
 - STANDING GOAL (owner, 14 Nov): first principles so clean that checks are not needed. Method, one check at a time: ask "what structure would make this mistake impossible?", build that structure (one renderer, one item shape, one server path, one permission table, Find only, data not code), then retire the check because the mistake can no longer be written. Track it as a number: checks left (now ~365), only going down. Data-safety guards (sign-in, PIN, answers, money, privacy) are the last to go, only once the structure truly prevents the mistake.
 - Owner, 14 Nov: AFTER the approved three: (a) one style sheet per building block (most of style.css goes); (b) tests per building block, not per screen; (c) retire checks that only guard old hand-built code. Goal (owner): first principles so clean that checks are hardly needed; keep only the data-safety guards (sign-in, PIN, answers, money, privacy) until the structure makes them impossible to break.
 - BRING BACK LATER (switched off 14 Nov, in the attic as they were): the inbox (Gmail widget), hymns, the Quran, timelines, word lists, push notifications, offline mode, the Google Tasks link, and the avatar maker (a child choosing or making their avatar; faces fall back to a default profile picture). Offline mode, if brought back, needs a clearer design: owner disliked that it saved one question, or everything, on one tap.
@@ -107,3 +108,15 @@ One list, so nothing asked for gets lost. Claude ticks items off here when they 
   - Never a second card for the same entity, and never an entity card without its tag.
   - The check fails on duplicates or orphans.
 - [ ] Apply this rule before adding the new history databases: audit the existing entities (Septuagint, versions, manuscripts and so on) and merge any duplicates.
+
+## BRING BACK LATER (switched off 14 Nov, code kept in attic/, data kept)
+
+Bring one back the way attic/README.md says: `git mv` it back, re-add it to `window.FILES` in index.html and to `files`/`later` in data/settings/tiers.json, then `node tools/tiers.js`, `node tools/bundle.js`, `node js/check.js`. The checks go back into js/check-all.js's SUITE and rules.json.
+- [ ] Email widget: attic/js/inbox.js, attic/js/check-inbox.js (backend/inbox.gs stayed live; `inboxList` kept in check-actions REASONS)
+- [ ] Hymns: attic/js/hymns.js, attic/js/check-hymns.js (data/hymns/ kept)
+- [ ] The Quran: attic/js/quran.js (data/quran/ kept); journey block in attic/check/flow/19-find-under.js
+- [ ] Timelines: attic/js/find-timelines.js, attic/check/timelines.js (data/timelines.json kept); journey in attic/check/flow/19-find-under.js
+- [ ] Phone notifications: attic/js/push.js, attic/js/check-push.js; the worker is attic/sw.js (sw.js is now a self-unregistering stub — put attic/sw.js back over it)
+- [ ] Offline mode: attic/js/offline.js, attic/check/offline.js (same worker as above)
+- [ ] Google Tasks link: attic/js/gtasks.js
+- [ ] Avatar maker (a person choosing one of the ten pictures): the grid line in js/me-fields.js `photoPicker_` (`<div class="pfp-grid" …>${Object.keys(PFP_ART).map(opt).join('')}</div>`, see git history 14 Nov); PFP_ART stays in js/links.js as the default pictures; journeys in attic/check/flow/17-mark-tutor.js and 03-tutor-admin.js

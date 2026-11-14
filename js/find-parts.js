@@ -156,8 +156,8 @@ function typesetTerms_(k) {
     const u = t.replace(/^(?:\s|&nbsp;)+|(?:\s|&nbsp;)+$/g, '');
     return u[0] === '(' && brFwd(u, 0) === u.length - 1 ? u.slice(1, -1) : u;
   };
-  const stack = (n, d) => '<span class="frac"><span class="frac-n">' + bare(n)
-    + '</span><span class="frac-s">/</span><span class="frac-d">' + bare(d) + '</span></span>';
+  const stack = (n, d) => cardBlock_({ type: 'group', tag: 'span', look: 'frac', blocks: [{ type: 'group', tag: 'span', look: 'frac-n', inner: bare(n) },
+    { type: 'group', tag: 'span', look: 'frac-s', inner: '/' }, { type: 'group', tag: 'span', look: 'frac-d', inner: bare(d) }] });
   Object.assign(k, { termBack, termFwd, GAP, gapBack, bare, stack });
 }
 
@@ -185,7 +185,7 @@ function typesetPowers_(k) {
     }
     if (!exp.trim()) continue;
     /* A HYPHEN IN AN INDEX IS A MINUS SIGN, and set as one: 4<sup>−2</sup>, not 4<sup>-2</sup>. */
-    k.s = k.s.slice(0, p) + '<sup>' + exp.replace(/^-/, '&minus;') + '</sup>' + k.s.slice(end);
+    k.s = k.s.slice(0, p) + cardBlock_({ type: 'group', tag: 'sup', inner: exp.replace(/^-/, '&minus;') }) + k.s.slice(end);
     from = p;
   }
 }
@@ -206,7 +206,8 @@ function typesetFracs_(k) {
     if (w.deep) {
       const a = /\d+$/.exec(k.s.slice(Math.max(0, p - 12), p)), b = /^\d+/.exec(k.s.slice(q, q + 12));
       if (!a || !b) continue;
-      const ix = '<span class="frac-ix"><span class="frac-ix-n">' + a[0] + '</span>&#x2044;<span class="frac-ix-d">' + b[0] + '</span></span>';
+      const ix = cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix', inner: cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix-n', text: a[0] })
+        + '&#x2044;' + cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix-d', text: b[0] }) });
       k.s = k.s.slice(0, p - a[0].length) + ix + k.s.slice(q + b[0].length);
       from = p - a[0].length + ix.length;
       continue;
@@ -215,7 +216,7 @@ function typesetFracs_(k) {
     const le = gapBack(p);
     let ls = termBack(le), whole = '', num;
     if (ls === le) continue;
-    if (k.s.slice(le - 6, le) === '</sup>') {
+    if (/^<\/sup>$/.test(k.s.slice(le - 6, le))) {
       const o = openOf(le, 'sup');
       const pre = k.s.slice(ls, o), inner = k.s.slice(k.s.indexOf('>', o) + 1, le - 6);
       if (!pre) num = inner;
@@ -244,7 +245,7 @@ function typesetFracs_(k) {
       }
       den = k.s.slice(rs, re);
     }
-    const out = whole ? '<span class="frac-mixed">' + whole + stack(num, den) + '</span>' : stack(num, den);
+    const out = whole ? cardBlock_({ type: 'group', tag: 'span', look: 'frac-mixed', inner: whole + stack(num, den) }) : stack(num, den);
     k.s = k.s.slice(0, ls) + out + k.s.slice(re);
     /* FROM WHERE THIS ONE STARTED, not after it: a fraction inside its numerator was inside a
        <sup> a moment ago and skipped as an index, and it is in a span now and should be drawn. */
@@ -260,8 +261,9 @@ function answerParts_(raw) {
   const VOID = /^(?:br|img|hr|wbr|input)$/i;
   const BLOCK = /^(?:table|thead|tbody|tfoot|tr|td|th|ul|ol|li|dl|dt|dd|div|figure)$/i;
   const CODE = '(?:[BMAPC][1-5]|SC[1-5]?|cao|oe|ft|isw|awrt)';
-  const RUN = new RegExp('(?:<b>)?\\(?\\b' + CODE + '\\b\\)?(?:</b>)?(?:[\\s,]+(?:<b>)?\\(?\\b' + CODE
-    + '\\b\\)?(?:</b>)?)*', 'g');
+  /* A READER, not a maker: the pattern's pieces are regex literals. */
+  const OPEN = /(?:<b>)?\(?\b/.source, SHUT = /\b\)?(?:<\/b>)?/.source;
+  const RUN = new RegExp(OPEN + CODE + SHUT + '(?:[\\s,]+' + OPEN + CODE + SHUT + ')*', 'g');
   const seen = t => String(t).replace(/<[^>]*>/g, '').replace(/&nbsp;|&#160;/g, ' ').trim();
   let head = s, why = '', m;
   while ((m = DASH.exec(s))) {
@@ -326,10 +328,8 @@ function answerBlock_(x) {
   const kind = String(x.answerType || '').trim();
   /* ---------- THE ANSWER, AND NOTHING ELSE § */
   const p = answerParts_(x.answer);
-  return `<div class="qans">
-    <span class="qans-head">Answer${kind ? ` &middot; ${esc(kind)}` : ''}</span>
-    <div class="qans-body qtext">${typeset_(p.head)}</div>
-  </div>`;
+  return cardBlock_({ type: 'group', look: 'qans', blocks: [{ type: 'group', tag: 'span', look: 'qans-head', text: 'Answer' + (kind ? ' · ' + kind : '') },
+    { type: 'group', look: 'qans-body qtext', inner: typeset_(p.head) }] });
 }
 
 /* OPENING ONE SHOWS THE STEM, THE LEAD AND THE PART — in that order, because that is the order it is printed and because a part without them cannot be answered. § */
@@ -716,7 +716,7 @@ function libItemByKey_(k) {
 /* WHAT A WAITING CARD SAYS UNDER ITS TAGS: sign in, the dots, or why it did not come and Try again. */
 function libSay_(x) {
   if (typeof USER === 'undefined' || !USER || !USER.token) {
-    return '<p class="note lib-sign">Sign in to see this — your account is a few screens to the right.</p>';
+    return cardBlock_({ type: 'paperNote', look: 'lib-sign', text: 'Sign in to see this — your account is a few screens to the right.' });
   }
   /* A CARD NEWER THAN ITS WORDS (`lib_pending`, docs/library.md): the Ledger has not had them imported yet. */
   if (libIdsFor_(x).some(t => LIB.gone.has(t))) return empty_(x && x.row && (x.row.pending === true || libTrue(x.row.lib_pending)) ? 'Coming soon.' : 'Not in the library yet.');
@@ -731,7 +731,7 @@ function libWaitHtml_(x) {
   const q = isQ_(x);
   /* THE ONE ANATOMY (owner, 10 Nov): no picture yet, its tags, its name as a line (not a heading), then what it waits for. */
   return findCard({ kind: 'libwait', name: (x && x.name) || '', kcOwn: { cls: 'lib-wait' + (q ? ' qcard' : ''), attrs: ` data-lib="${esc((x && x.key) || '')}"`,
-    tags: tagRow_(x), lines: `${q ? '' : `<p class="kc-line">${esc((x && x.name) || '')}</p>`}<div class="lib-say">${libSay_(x)}</div>` } });
+    tags: tagRow_(x), lines: cardBlocks_((q ? [] : [{ type: 'group', tag: 'p', look: 'kc-line', text: (x && x.name) || '' }]).concat({ type: 'group', look: 'lib-say', inner: libSay_(x) })) } });
 }
 /* THE PAGES ARE COUNTED AGAIN ONLY WHERE THEY ARE DRAWN AGAIN — counting them anywhere else would move every page under a column already drawn. */
 function libPagesFresh_() {

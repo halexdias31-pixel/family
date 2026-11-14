@@ -132,6 +132,15 @@ function pfpArt_(name, size) {
   return p ? artSvg_(p.art, p.ground, size || 40) : '';
 }
 
+/* THE DEFAULT PICTURE FOR A PERSON WITH NONE: the payload's `defaultPictures` if named, else any of the ten, by a stable hash of the key. */
+function pfpDefault_(key) {
+  const k = String(key || ''); if (!k) return '';
+  const named = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.defaultPictures) ? DATA.defaultPictures : []).filter(n => PFP_ART[n]);
+  const list = named.length ? named : Object.keys(PFP_ART);
+  let h = 0; for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) >>> 0;
+  return list.length ? list[h % list.length] : '';
+}
+
 /* EACH KIND OF STORED PICTURE: how it is drawn, the sentence that names it, and the art chosen (a basic picture's only). */
 const PIC_KINDS = {
   photo: { face: (v, cls, size, o) => renderFace_({ cls, src: pic(v), alt: o.alt, eager: o.eager }),
@@ -152,6 +161,9 @@ function personFace_(who, o) {
   const mine = typeof USER !== 'undefined' && USER && USER.personId && who.personId
     && String(who.personId) === String(USER.personId);
   if (Object.prototype.hasOwnProperty.call(PIC_KINDS, kind)) return PIC_KINDS[kind].face(v, cls, size, o);
+  /* NO PICTURE: one of the ten, picked by a stable hash of the person (owner, 14 Nov: the avatar maker is off; nobody chooses one now). */
+  const d = pfpDefault_(who.personId || name);
+  if (d) return renderFace_({ cls: cls + (o.none ? ' ' + o.none : ''), art: PFP_ART[d].art, ground: PFP_ART[d].ground, size });
   return renderFace_({ cls: cls + (o.none ? ' ' + o.none : ''), text: initial(name) });
 }
 

@@ -289,7 +289,7 @@ function adminPages_() {
 function sitePages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
-    .concat(typeof inboxCard_ === 'function' ? [inboxCard_()] : [])
+    .concat(typeof window.inboxCard_ === 'function' ? [window.inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
     .concat([rolesSet_('', 'Build', [rolesDrawn_(versionSaid_, 'me-build')])]);
 }
@@ -430,7 +430,7 @@ function notifyCard_() {
   }
   /* THE ONE FORM MAKER WITHOUT A Save: each tick is saved the moment it is ticked (`notify-pick`). */
   /* PHONE NOTIFICATIONS (492, push.js) ARE PART OF THIS ONE CARD (owner, 12 Nov). */
-  if (typeof pushBody_ === 'function') tail += pushBody_();
+  if (typeof window.pushBody_ === 'function') tail += window.pushBody_();
   return formCard_({ title: 'Notifications', cls: 'notify-card', body: inner, toggles: toggles, tail: tail, save: false });
 }
 

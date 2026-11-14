@@ -9,6 +9,11 @@ const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$
 
 /* ---------- A HANDLER NO CODE CALLS, KEPT ON PURPOSE. One sentence each: who reaches it, and why it stays. */
 const REASONS = {
+  inboxList: 'its front end (the Email widget, inbox.js) was switched off into attic/js (owner, 14 Nov); backend/inbox.gs stays for when it comes back.',
+  pushSet: 'its front end (phone notifications, push.js) was switched off into attic/js (owner, 14 Nov); the handler stays for when it comes back.',
+  pushState: 'its front end (phone notifications, push.js) was switched off into attic/js (owner, 14 Nov); the handler stays for when it comes back.',
+  pushSubscribe: 'its front end (phone notifications, push.js) was switched off into attic/js (owner, 14 Nov); the handler stays for when it comes back.',
+  pushUnsubscribe: 'its front end (phone notifications, push.js) was switched off into attic/js (owner, 14 Nov); the handler stays for when it comes back.',
   businessSettingSave: 'its front end was switched off into attic/js (games, tools, favlinks, lego, records, biz-check; owner, 13 Nov); the handler stays for when it comes back.',
   consoleLoad: 'its front end was switched off into attic/js (games, tools, favlinks, lego, records, biz-check; owner, 13 Nov); the handler stays for when it comes back.',
   consoleSave: 'its front end was switched off into attic/js (games, tools, favlinks, lego, records, biz-check; owner, 13 Nov); the handler stays for when it comes back.',

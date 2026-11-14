@@ -691,10 +691,10 @@ const CARD_BLOCKS = {
   tickCell: b => `<label class="${esc(b.look || '')}"${b.label ? ` aria-label="${esc(b.label)}"` : ''}>${cardControl_(Object.assign({ kind: 'check' }, b.control || {}))}</label>`,
   /* A FILE SHOWN IN PLACE: a page framed, a clip with its controls, or a picture; `look` names its size. */
   media: b => { const u = String(b.src || ''), look = b.look ? ` class="${esc(b.look)}"` : '', name = esc(b.title || '');
-    /* A PICTURE MAY ALSO BE ONE HELD IN THE PAGE (`data:image/`, a scan not yet saved, a page read back). */
-    if (!/^(https:|data\/|docs\/|[\w-]+\.(png|jpe?g|svg|webp|gif)$)/i.test(u) && !(b.kind === 'image' && /^data:image\//i.test(u))) return '';
+    /* A PICTURE MAY ALSO BE A TYPED http LINK OR ONE THIS PHONE JUST CROPPED (`data:image/`). */
+    if (!/^(https:|data\/|docs\/|[\w-]+\.(png|jpe?g|svg|webp|gif)$)/i.test(u) && !(b.kind === 'image' && /^(http:|data:image\/)/i.test(u))) return '';
     if (b.kind === 'video') return `<video${look} src="${esc(u)}" controls playsinline preload="metadata"></video>`;
-    if (b.kind === 'image') return `<img${look} src="${esc(u)}" alt="${name}">`;
+    if (b.kind === 'image') return `<img${look} src="${esc(u)}" alt="${name}"${b.async ? ' decoding="async"' : ''}>`;
     return `<iframe${look} src="${esc(u)}" title="${name}" loading="lazy" allow="${esc(b.allow || 'encrypted-media; picture-in-picture')}"${b.full ? ' allowfullscreen' : ''}></iframe>`; },
   /* A DRAWING AS DATA: shapes `{ el, a: { attrs }, text, kids }`, each a vector element of a fixed set, every value escaped. */
   drawing: b => cardDraw_(b.node),
@@ -827,6 +827,17 @@ Object.assign(CARD_BLOCKS, { paperSnap: paperSnap_, paperWhy: paperWhy_ });
 /* ATTRIBUTES ARE DATA: { name: value | true }, each escaped; an `on…` handler is never written. */
 const kcfAttrs_ = a => Object.keys(a || {}).filter(k => /^[a-z][\w:-]*$/i.test(k) && !/^on/i.test(k) && a[k] != null && a[k] !== false)
   .map(k => (a[k] === true ? ` ${k}` : ` ${k}="${esc(String(a[k]))}"`)).join('');
+/* ATTRIBUTE TEXT AS DATA (form.js's makers take `type="x" data-me="k" checked`): each name once, the first kept as a tag keeps it, its value unescaped so kcfAttrs_ escapes it once. */
+const CARD_UNESC_ = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+const cardUnesc_ = v => String(v).replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (m, e) => (e[0] === '#'
+  ? String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : Number(e.slice(1))) : CARD_UNESC_[e.toLowerCase()]));
+function cardAttrsOf_(s) {
+  if (s && typeof s === 'object') return s;
+  const a = {}, re = /([^\s"'=<>\/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g; let m;
+  while ((m = re.exec(String(s || '')))) { if (Object.prototype.hasOwnProperty.call(a, m[1])) continue;
+    const v = m[2] != null ? m[2] : m[3] != null ? m[3] : m[4]; a[m[1]] = v == null ? true : cardUnesc_(v); }
+  return a;
+}
 const kcfOpts_ = opts => (opts || []).map(o => (o && o.group != null ? `<optgroup label="${esc(o.group)}">${kcfOpts_(o.options)}</optgroup>`
   : `<option value="${esc(o.value == null ? '' : o.value)}"${cardAttrs_(o.data)}${o.on ? ' selected' : ''}${o.off ? ' disabled' : ''}>${esc(o.text == null ? (o.value == null ? '' : o.value) : o.text)}</option>`)).join('');
 /* `textarea` holds its `value` as text; a select's `inner` is options another maker drew already (a game picker's). */
@@ -839,7 +850,7 @@ const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.la
   + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
 /* A GROUP: a div (or a span, a line, a label, a heading between cards, a fold and its summary, or a column's page section) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
-const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4|section|mark)$/.test(b.tag) ? b.tag : 'div';
+const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4|section|mark|b|i|small|sup)$/.test(b.tag) ? b.tag : 'div';
   return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
@@ -1958,7 +1969,7 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Practicals&subject=Chemistry": ["topic",[["Bar Charts & Pictograms"],["Bounds & Error Intervals"],["Cell Biology"],["Chemical Analysis"],["Chemical Changes"],["Compound Measures"],["Direct Proportion"],["Electricity"],["Energy Changes"],["Inequalities"],["Mean"],["Negative Numbers"],["Ordering Numbers & Decimals"],["Organic Chemistry"],["Particle Model of Matter"],["Percentage Increase & Decrease"],["Percentage of an Amount"],["Percentages"],["Quantitative Chemistry"],["Rate of Reaction"],["Ratio Problems"],["Real-Life Graphs"],["Rounding"],["Scatter Graphs & Correlation"],["Separating Mixtures"],["Straight Line Graphs"],["Units & Measures"],["Using Resources"],["Writing & Simplifying Ratio"]],[1,1,1,8,16,3,2,1,4,1,1,1,1,1,1,1,1,2,2,6,1,3,2,1,5,1,5,1,1],31,["Bar Charts & Pictograms","Bounds & Error Intervals","Cell Biology","Chemical Analysis","Chemical Changes","Compound Measures","Direct Proportion","Electricity","Energy Changes","Inequalities","Mean","Negative Numbers","Ordering Numbers & Decimals","Organic Chemistry","Particle Model of Matter","Percentage Increase & Decrease","Percentage of an Amount","Percentages","Quantitative Chemistry","Rate of Reaction","Ratio Problems","Real-Life Graphs","Rounding","Scatter Graphs & Correlation","Separating Mixtures","Straight Line Graphs","Units & Measures","Using Resources","Writing & Simplifying Ratio"]],
   "kindLabel=Practice&kindOwn=Practicals&subject=Maths": ["level",[["A-Level"],["GCSE"],["KS3"],["SATs"]],[2,7,8,4],10,["A-Level","GCSE","KS3","SATs"]],
   "kindLabel=Practice&kindOwn=Practicals&subject=Physics": ["topic",[["Angles"],["Averages & Range"],["Bar Charts & Pictograms"],["Compound Measures"],["Direct Proportion"],["Electricity"],["Energy"],["Enlargements"],["Estimation"],["Forces"],["Inverse Proportion"],["Magnetism & Electromagnetism"],["Mean"],["Particle Model of Matter"],["Ratio Problems"],["Real-Life Graphs"],["Rearranging Formulae"],["Standard Form"],["Straight Line Graphs"],["Substitution"],["Units & Measures"],["Waves"],["Writing & Simplifying Ratio"]],[4,1,1,6,5,5,9,1,1,13,1,1,6,1,2,1,2,1,11,3,9,6,1],29,["Angles","Averages & Range","Bar Charts & Pictograms","Compound Measures","Direct Proportion","Electricity","Energy","Enlargements","Estimation","Forces","Inverse Proportion","Magnetism & Electromagnetism","Mean","Particle Model of Matter","Ratio Problems","Real-Life Graphs","Rearranging Formulae","Standard Form","Straight Line Graphs","Substitution","Units & Measures","Waves","Writing & Simplifying Ratio"]],
-  "kindLabel=Library": ["subject",[["Art and Design"],["Astronomy"],["Biology"],["Business"],["Chemistry"],["Citizenship"],["Classical Civilisation"],["Combined Science"],["Computer Science"],["Design and Technology"],["Drama"],["Economics"],["English Language"],["English Literature"],["Food Preparation and Nutrition"],["French"],["Further Maths"],["Geography"],["German"],["Greek"],["History"],["Latin"],["Maths"],["Mechanics"],["Media Studies"],["Music"],["Non-verbal Reasoning"],["Philosophy"],["Phonics"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Russian"],["Sociology"],["Spanish"],["Statistics"],["Study Skills"],["Verbal Reasoning"]],[8,14,158,37,607,10,10,2,45,11,8,29,189,5216,8,41,34,37,14,1,3619,14,162,76,10,9,14,1,12,270,259,17,31,191229,15,26,41,17,14,21],202332,["Art and Design","Astronomy","Biology","Business","Chemistry","Citizenship","Classical Civilisation","Combined Science","Computer Science","Design and Technology","Drama","Economics","English Language","English Literature","Food Preparation and Nutrition","French","Further Maths","Geography","German","Greek","History","Latin","Maths","Mechanics","Media Studies","Music","Non-verbal Reasoning","Philosophy","Phonics","Physical Education","Physics","Politics","Psychology","Religious Studies","Russian","Sociology","Spanish","Statistics","Study Skills","Verbal Reasoning"]],
+  "kindLabel=Library": ["subject",[["Art and Design"],["Astronomy"],["Biology"],["Business"],["Chemistry"],["Citizenship"],["Classical Civilisation"],["Combined Science"],["Computer Science"],["Design and Technology"],["Drama"],["Economics"],["English Language"],["English Literature"],["Food Preparation and Nutrition"],["French"],["Further Maths"],["Geography"],["German"],["Greek"],["History"],["Latin"],["Maths"],["Mechanics"],["Media Studies"],["Music"],["Non-verbal Reasoning"],["Philosophy"],["Phonics"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Russian"],["Sociology"],["Spanish"],["Statistics"],["Study Skills"],["Verbal Reasoning"]],[8,14,158,37,607,10,10,2,45,11,8,29,189,5216,8,41,34,37,14,1,3613,14,162,76,10,9,14,1,12,270,259,17,31,177991,15,26,41,17,14,21],189088,["Art and Design","Astronomy","Biology","Business","Chemistry","Citizenship","Classical Civilisation","Combined Science","Computer Science","Design and Technology","Drama","Economics","English Language","English Literature","Food Preparation and Nutrition","French","Further Maths","Geography","German","Greek","History","Latin","Maths","Mechanics","Media Studies","Music","Non-verbal Reasoning","Philosophy","Phonics","Physical Education","Physics","Politics","Psychology","Religious Studies","Russian","Sociology","Spanish","Statistics","Study Skills","Verbal Reasoning"]],
   "kindLabel=Library&subject=Astronomy": ["topic",[["Astrophysics"],["Classification of Stars"],["Cosmology"],["Space Physics"],["Telescopes"]],[1,2,2,5,1],14,["Astrophysics","Classification of Stars","Cosmology","Space Physics","Telescopes"]],
   "kindLabel=Library&subject=Biology": ["level",[["A-Level"],["GCSE"],["KS3"],["SATs"]],[22,118,11,7],158,["A-Level","GCSE","KS3","SATs"]],
   "kindLabel=Library&subject=Biology&level=A-Level": ["topic",[["Bioenergetics"],["Cell Biology"],["Ecology"],["Homeostasis & Response"],["Infection & Response"],["Inheritance & Evolution"],["Organisation"]],[2,5,2,2,1,4,4],22,["Bioenergetics","Cell Biology","Ecology","Homeostasis & Response","Infection & Response","Inheritance & Evolution","Organisation"]],
@@ -1998,11 +2009,10 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=Further Maths&level=A-Level": ["topic",[["Area Under a Curve by Integration","Area Under a Curve by…"],["Binomial Expansion"],["Circular & Periodic Motion"],["Constructions & Loci"],["Coordinate Geometry (A-Level)","Coordinate Geometry"],["Describing a Single Transformation","Describing a Single…"],["Differential Equations"],["Discriminant & Roots"],["Exponentials & Logarithms"],["Factor Theorem"],["Integration"],["Integration by Parts"],["Integration by Substitution"],["Laws of Logarithms"],["Mechanics & Materials"],["Partial Fractions"],["Proof"],["Radians"],["Relative Frequency & Expectation","Relative Frequency…"],["Sequences & Series"],["Simultaneous Equations"],["Solving Quadratics"],["Standard Integrals"],["Statistics"],["Transformations"],["Trigonometric Identities"],["Vectors (A-Level)","Vectors"]],[2,2,2,1,1,1,2,2,1,1,1,1,1,1,1,1,1,1,1,3,1,1,1,1,1,1,1],18,["Area Under a Curve by…","Binomial Expansion","Circular & Periodic Motion","Constructions & Loci","Coordinate Geometry (A-Level)","Describing a Single…","Differential Equations","Discriminant & Roots","Exponentials & Logarithms","Factor Theorem","Integration","Integration by Parts","Integration by Substitution","Laws of Logarithms","Mechanics & Materials","Partial Fractions","Proof","Radians","Relative Frequency…","Sequences & Series","Simultaneous Equations","Solving Quadratics","Standard Integrals","Statistics","Transformations","Trigonometric Identities","Vectors (A-Level)"]],
   "kindLabel=Library&subject=Further Maths&level=Level 2 Certificate": ["topic",[["3-D Pythagoras & Trigonometry"],["Algebraic Fractions"],["Algebraic Proof"],["Angles"],["Circle Theorems"],["Completing the Square"],["Composite Functions"],["Congruent Triangles"],["Coordinates"],["Differentiation"],["Enlargements"],["Equation of a Circle"],["Equation of a Line"],["Equation of a Tangent"],["Exact Trig Values"],["Expanding Brackets"],["Factor Theorem"],["Factorising"],["Fractional & Negative Indices"],["Function Notation"],["Gradient of a Curve"],["Inverse Functions"],["Laws of Indices"],["Parallel & Perpendicular Lines"],["Quadratic Inequalities"],["Quadratic nth Term"],["Ratio & Proportion"],["Rationalising the Denominator"],["Reflections"],["Rotations"],["Sequences"],["Similar Shapes"],["Simplifying Surds"],["Simultaneous Equations"],["Solving Quadratics"],["Straight Line Graphs"],["Surds"],["The Cosine Rule"],["The Sine Rule"],["Transformations"],["Trigonometric Graphs & Equations","Trigonometric Graphs…"],["Trigonometric Identities"],["Trigonometry"],["Turning Points"]],[1,1,1,1,1,2,1,1,1,2,1,1,1,2,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1],16,["3-D Pythagoras & Trigonometry","Algebraic Fractions","Algebraic Proof","Angles","Circle Theorems","Completing the Square","Composite Functions","Congruent Triangles","Coordinates","Differentiation","Enlargements","Equation of a Circle","Equation of a Line","Equation of a Tangent","Exact Trig Values","Expanding Brackets","Factor Theorem","Factorising","Fractional & Negative Indices","Function Notation","Gradient of a Curve","Inverse Functions","Laws of Indices","Parallel & Perpendicular Lines","Quadratic Inequalities","Quadratic nth Term","Ratio & Proportion","Rationalising the Denominator","Reflections","Rotations","Sequences","Similar Shapes","Simplifying Surds","Simultaneous Equations","Solving Quadratics","Straight Line Graphs","Surds","The Cosine Rule","The Sine Rule","Transformations","Trigonometric Graphs…","Trigonometric Identities","Trigonometry","Turning Points"]],
   "kindLabel=Library&subject=Geography": ["level",[["A-Level"],["GCSE"]],[18,19],37,["A-Level","GCSE"]],
-  "kindLabel=Library&subject=History": ["histKind",[["Events"],["Manuscripts"],["People"],["Timelines"],["Writings"]],[163,12,53,6,3383],3619,["Events","Manuscripts","People","Timelines","Writings"]],
+  "kindLabel=Library&subject=History": ["histKind",[["Events"],["Manuscripts"],["People"],["Writings"]],[163,12,53,3383],3613,["Events","Manuscripts","People","Writings"]],
   "kindLabel=Library&subject=History&histKind=Events": ["histTheatre",[["Africa"],["At sea"],["Atlantic"],["Autocephaly"],["Balkans"],["Conquest"],["Cooperation"],["Councils"],["Diaspora"],["Diplomacy"],["Divided kingdom"],["East"],["Eastern Front"],["Empire"],["Europe"],["Exile"],["Exodus"],["Frontiers"],["Gallipoli"],["Home front"],["Italy"],["Kingdom"],["Mission"],["Monasticism"],["Ottoman era"],["Pacific"],["Patriarchs"],["Peace"],["Persecution"],["Reformation"],["Return"],["Rome"],["Schism"],["Soviet Union"],["United States"],["West"],["Western Front"],["Writings"]],[1,2,1,9,2,1,1,12,4,5,2,12,2,3,12,1,2,4,1,2,2,3,7,5,2,5,2,1,7,2,3,4,8,5,5,3,11,9],163,["Africa","At sea","Atlantic","Autocephaly","Balkans","Conquest","Cooperation","Councils","Diaspora","Diplomacy","Divided kingdom","East","Eastern Front","Empire","Europe","Exile","Exodus","Frontiers","Gallipoli","Home front","Italy","Kingdom","Mission","Monasticism","Ottoman era","Pacific","Patriarchs","Peace","Persecution","Reformation","Return","Rome","Schism","Soviet Union","United States","West","Western Front","Writings"]],
   "kindLabel=Library&subject=History&histKind=Manuscripts": ["wLanguage",[["Egyptian"],["Greek"],["Hebrew"]],[2,7,3],12,["Egyptian","Greek","Hebrew"]],
   "kindLabel=Library&subject=History&histKind=People": ["personFrom",[["Alexandria"],["Antioch"],["Antium"],["Arianzus, Cappadocia"],["Bethelia, near Gaza"],["Blenheim Palace, Oxfordshire"],["Boston"],["Braunau am Inn, Austria"],["Caesarea in Cappadocia"],["Caesarea Maritima"],["Carthage"],["Chur, Switzerland"],["Coma, Egypt"],["Constantinople"],["Constantinople (or Palestine)"],["Damascus"],["Denison, Texas"],["Eisleben"],["Galatia, Paphlagonia"],["Gori, Georgia"],["Hyde Park, New York"],["Imbros"],["Kiev (probably)"],["Lamar, Missouri"],["London"],["Moscow"],["Naissus"],["Naxos"],["Noyon, France"],["Predappio, Italy"],["Rome"],["Salona, Dalmatia"],["Shovsk, Tambov province"],["Syria"],["Thessalonica"],["Tokyo"],["Toropets"],["Vasiliko, Epirus"]],[2,2,1,1,1,1,1,1,2,1,1,1,1,4,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,2,1,1,1],53,["Alexandria","Antioch","Antium","Arianzus, Cappadocia","Bethelia, near Gaza","Blenheim Palace, Oxfordshire","Boston","Braunau am Inn, Austria","Caesarea in Cappadocia","Caesarea Maritima","Carthage","Chur, Switzerland","Coma, Egypt","Constantinople","Constantinople (or Palestine)","Damascus","Denison, Texas","Eisleben","Galatia, Paphlagonia","Gori, Georgia","Hyde Park, New York","Imbros","Kiev (probably)","Lamar, Missouri","London","Moscow","Naissus","Naxos","Noyon, France","Predappio, Italy","Rome","Salona, Dalmatia","Shovsk, Tambov province","Syria","Thessalonica","Tokyo","Toropets","Vasiliko, Epirus"]],
-  "kindLabel=Library&subject=History&histKind=Timelines": ["histEra",[["Ancient"],["Medieval"],["Early modern"],["Modern"]],[3,2,1,4],6,["Ancient","Medieval","Early modern","Modern"]],
   "kindLabel=Library&subject=History&histKind=Writings": ["wWork",[["Bill of Rights 1689"],["Constitution of the United States","Constitution of the United…"],["Declaration of Independence"],["Fireside Chats"],["Germania and Agricola"],["Gettysburg Address"],["History of the Peloponnesian War","History of the Peloponnesian…"],["Magna Carta"],["Presidential Inaugural Addresses","Presidential Inaugural…"],["The Anglo-Saxon Chronicle"],["The Gallic War"],["The Genuine Works of Hippocrates","The Genuine Works of…"],["The Histories"],["The Lives of the Twelve Caesars","The Lives of the Twelve…"]],[52,74,33,25,92,1,26,128,55,403,384,86,1483,485],3383,["Bill of Rights 1689","Constitution of the United…","Declaration of Independence","Fireside Chats","Germania and Agricola","Gettysburg Address","History of the Peloponnesian…","Magna Carta","Presidential Inaugural…","The Anglo-Saxon Chronicle","The Gallic War","The Genuine Works of…","The Histories","The Lives of the Twelve…"]],
   "kindLabel=Library&subject=Maths": ["level",[["A-Level"],["AS"],["GCSE"],["KS3"],["SATs"]],[55,21,46,26,39],162,["A-Level","AS","GCSE","KS3","SATs"]],
   "kindLabel=Library&subject=Maths&level=A-Level": ["keystage",[["KS4"],["KS5"]],[1,51],55,["KS4","KS5"]],
@@ -2025,10 +2035,9 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=Physics&topic=Space Physics": ["level",[["GCSE"],["KS3"],["SATs"]],[5,1,1],7,["GCSE","KS3","SATs"]],
   "kindLabel=Library&subject=Physics&topic=Waves": ["level",[["GCSE"],["KS3"],["SATs"]],[15,1,2],18,["GCSE","KS3","SATs"]],
   "kindLabel=Library&subject=Psychology": ["level",[["A-Level"],["GCSE"]],[19,12],31,["A-Level","GCSE"]],
-  "kindLabel=Library&subject=Religious Studies": ["wReligion",[["Ancient Egyptian religion"],["Christianity"],["Islam"],["Judaism"],["Mesopotamian religion"]],[37,161042,12472,40856,12],191229,["Ancient Egyptian religion","Christianity","Islam","Judaism","Mesopotamian religion"]],
+  "kindLabel=Library&subject=Religious Studies": ["wReligion",[["Ancient Egyptian religion"],["Christianity"],["Judaism"],["Mesopotamian religion"]],[37,160276,40856,12],177991,["Ancient Egyptian religion","Christianity","Judaism","Mesopotamian religion"]],
   "kindLabel=Library&subject=Religious Studies&wReligion=Ancient Egyptian religion": ["wWork",[["Isis and Osiris"],["Legends of the Gods"]],[24,13],37,["Isis and Osiris","Legends of the Gods"]],
-  "kindLabel=Library&subject=Religious Studies&wReligion=Christianity": ["wWork",[["Apostolic Fathers"],["Bible"],["Confessions"],["Desert Fathers"],["John Brownlie"],["Justin Martyr"],["The Otterbein Hymnal"],["The St. Gregory Hymnal and Catholic Choir Book","The St. Gregory Hymnal and…"]],[2105,156723,273,882,64,293,541,161],161042,["Apostolic Fathers","Bible","Confessions","Desert Fathers","John Brownlie","Justin Martyr","The Otterbein Hymnal","The St. Gregory Hymnal and…"]],
-  "kindLabel=Library&subject=Religious Studies&wReligion=Islam": ["wSection",[["Juz 1"],["Juz 2"],["Juz 3"],["Juz 4"],["Juz 5"],["Juz 6"],["Juz 7"],["Juz 8"],["Juz 9"],["Juz 10"],["Juz 11"],["Juz 12"],["Juz 13"],["Juz 14"],["Juz 15"],["Juz 16"],["Juz 17"],["Juz 18"],["Juz 19"],["Juz 20"],["Juz 21"],["Juz 22"],["Juz 23"],["Juz 24"],["Juz 25"],["Juz 26"],["Juz 27"],["Juz 28"],["Juz 29"],["Juz 30"]],[296,222,252,262,248,220,298,284,318,254,302,340,308,454,370,538,380,404,678,342,356,338,714,350,492,390,798,274,862,1128],12472,["Juz 1","Juz 2","Juz 3","Juz 4","Juz 5","Juz 6","Juz 7","Juz 8","Juz 9","Juz 10","Juz 11","Juz 12","Juz 13","Juz 14","Juz 15","Juz 16","Juz 17","Juz 18","Juz 19","Juz 20","Juz 21","Juz 22","Juz 23","Juz 24","Juz 25","Juz 26","Juz 27","Juz 28","Juz 29","Juz 30"]],
+  "kindLabel=Library&subject=Religious Studies&wReligion=Christianity": ["wCollection",[["Apostolic Fathers"],["Church Fathers"],["Desert Fathers"],["Deuterocanon / Apocrypha / Anagignoskomena","Deuterocanon"],["New Testament"],["Old Testament"]],[2105,566,882,16488,23872,116363],160276,["Apostolic Fathers","Church Fathers","Desert Fathers","Deuterocanon","New Testament","Old Testament"]],
   "kindLabel=Library&subject=Religious Studies&wReligion=Judaism": ["wCollection",[["Kabbalah"],["Rabbinic"],["Second Temple"],["Tanakh"]],[7754,4756,5133,23213],40856,["Kabbalah","Rabbinic","Second Temple","Tanakh"]],
   "kindLabel=Library&subject=Religious Studies&wReligion=Mesopotamian religion": ["wChapter",[["Column I"],["Column II"],["Column III"],["Column IV"],["Column V"],["Column VI"]],[2,2,2,2,2,2],12,["Column I","Column II","Column III","Column IV","Column V","Column VI"]],
   "kindLabel=Library&subject=Sociology": ["level",[["A-Level"],["GCSE"]],[16,10],26,["A-Level","GCSE"]],
@@ -2042,16 +2051,16 @@ const FINDER_TAGS = {
   "kindLabel=Shop&shopKind=Consumable": ["shopHow",[["Buy"],["Earn with ticks"],["Given out"]],[1,1,1],3,["Buy","Earn with ticks","Given out"]],
   "kindLabel=Shop&shopKind=Equipment": ["shopHow",[["Borrow"],["Buy"]],[1,2],3,["Borrow","Buy"]],
   "kindLabel=Shop&shopKind=Equipment&shopHow=Buy": ["shopPrice",[["£5 to £20"],["Over £20"]],[1,1],2,["£5 to £20","Over £20"]],
-  "#says": {"wChapter":{"Extract from The Prelude: Stealing the Boat":"Extract from The… the Boat","Fragment: 'alas! This Is Not What I Thought Life Was'":"Fragment: 'alas! This Is Not…","Fragment: 'and That I Walk Thus Proudly Crowned'":"Fragment: 'and That I Walk…","Fragment: 'follow to the Deep Wood's Weeds'":"Fragment: 'follow to the…","Fragment: 'i Faint, I Perish with My Love!'":"Fragment: 'i Faint, I Perish…","Fragment: 'i Stood upon a Heaven-cleaving Turret'":"Fragment: 'i Stood upon a…","Fragment: 'i Would Not Be a King'":"Fragment: 'i Would Not Be a…","Fragment: 'is It That in Some Brighter Sphere'":"Fragment: 'is It That in…","Fragment: 'methought I Was a Billow in the Crowd'":"Fragment: 'methought I Was a…","Fragment: 'my Head Is Wild with Weeping'":"Fragment: 'my Head Is Wild…","Fragment: 'o Thou Immortal Deity'":"Fragment: 'o Thou Immortal…","Fragment: 'such Hope, as Is the Sick Despair of Good'":"Fragment: 'such Hope, as Is…","Fragment: 'the Death Knell Is Ringing'":"Fragment: 'the Death Knell…","Fragment: 'the Rude Wind Is Singing'":"Fragment: 'the Rude Wind Is…","Fragment: 'the Viewless and Invisible Consequence'":"Fragment: 'the Viewless and…","Fragment: 'unrisen Splendour of the Brightest Sun'":"Fragment: 'unrisen Splendour…","Fragment: 'wake the Serpent Not'":"Fragment: 'wake the Serpent…","Fragment: 'what Men Gain Fairly'":"Fragment: 'what Men Gain…","Fragment: 'when a Lover Clasps His Fairest'":"Fragment: 'when a Lover…","Fragment: 'when Soft Winds and Sunny Skies'":"Fragment: 'when Soft Winds…","Fragment: 'ye Gentle Visitations of Calm Thought'":"Fragment: 'ye Gentle…","Fragment: \"igniculus Desiderii\"":"Fragment: \"igniculus…","Fragment: Apostrophe to Silence":"Fragment: Apostrophe to…","Fragment: Life Rounded with Sleep":"Fragment: Life Rounded with…","Fragment: Love the Universe To-day":"Fragment: Love the Universe…","Fragment: Love's Tender Atmosphere":"Fragment: Love's Tender…","Fragment: Music and Sweet Poetry":"Fragment: Music and Sweet…","Fragment: Sufficient Unto the Day":"Fragment: Sufficient Unto…","Fragment: the Deserts of Dim Sleep":"Fragment: the Deserts of Dim…","Fragment: the False Laurel and the True":"Fragment: the False Laurel…","Fragment: the Lady of the South":"Fragment: the Lady of the…","Fragment: the Sepulchre of Memory":"Fragment: the Sepulchre of…","Fragment: Thoughts Come and Go in Solitude":"Fragment: Thoughts Come and…","Fragment: to a Friend Released from Prison":"Fragment: to a Friend…","Fragment: to the People of England":"Fragment: to the People of…","Fragment: Zephyrus the Awakener":"Fragment: Zephyrus the…","Her Dilemma (in — Church)":"Her Dilemma — Church)","Lines: 'we Meet Not as We Parted'":"Lines: 'we Meet Not as We…","Lines: 'when the Lamp Is Shattered'":"Lines: 'when the Lamp Is…","William Jefferson Clinton Second Inaugural Address":"William Jefferson… Address"},"wAuthor":{"Francis Baker (?)":"Francis Baker","Martin Madan (?)":"Martin Madan","Rt. Rev. Msgr. H. T. Henry, Litt. D.":"Rt. Rev. Msgr. H… Litt. D."},"mPart":{"Auxiliary (drive) belt":"Auxiliary","Cabin (pollen) filter":"Cabin","Coolant (antifreeze)":"Coolant","Lambda (oxygen) sensor":"Lambda","Wishbones (control arms)":"Wishbones"},"boutEvent":{"Lewis-Tyson: Is On":"Lewis-Tyson"},"histSide":{"Back (verso)":"Back","Front (recto)":"Front"},"paperId":{"P-CBM-5AD-F-1101":"5-a-day… 1 November","P-CBM-5AD-F-0901":"5-a-day… 1 September","P-CBM-5AD-F-1102":"5-a-day… 2 November","P-CBM-5AD-F-0902":"5-a-day… 2 September","P-CBM-5AD-F-1103":"5-a-day… 3 November","P-CBM-5AD-F-0903":"5-a-day… 3 September","P-CBM-5AD-F-1104":"5-a-day… 4 November","P-CBM-5AD-F-0904":"5-a-day… 4 September","P-CBM-5AD-F-1105":"5-a-day… 5 November","P-CBM-5AD-F-0905":"5-a-day… 5 September","P-CBM-5AD-F-1106":"5-a-day… 6 November","P-CBM-5AD-F-0906":"5-a-day… 6 September","P-CBM-5AD-F-1107":"5-a-day… 7 November","P-CBM-5AD-F-0907":"5-a-day… 7 September","P-CBM-5AD-F-1108":"5-a-day… 8 November","P-CBM-5AD-F-0908":"5-a-day… 8 September","P-CBM-5AD-F-1109":"5-a-day… 9 November","P-CBM-5AD-F-0909":"5-a-day… 9 September","P-CBM-5AD-F-1110":"5-a-day… 10 November","P-CBM-5AD-F-1010":"5-a-day… 10 October","P-CBM-5AD-F-0910":"5-a-day Foundation… September","P-CBM-5AD-F-1111":"5-a-day… 11 November","P-CBM-5AD-F-1011":"5-a-day… 11 October","P-CBM-5AD-F-0911":"5-a-day Foundation — 11 Septe…","P-CBM-5AD-F-1112":"5-a-day… 12 November","P-CBM-5AD-F-1012":"5-a-day… 12 October","P-CBM-5AD-F-0912":"5-a-day Foundation — 12 Septe…","P-CBM-5AD-F-1113":"5-a-day… 13 November","P-CBM-5AD-F-1013":"5-a-day… 13 October","P-CBM-5AD-F-0913":"5-a-day Foundation — 13 Septe…","P-CBM-5AD-F-1114":"5-a-day… 14 November","P-CBM-5AD-F-1014":"5-a-day… 14 October","P-CBM-5AD-F-0914":"5-a-day Foundation — 14 Septe…","P-CBM-5AD-F-1115":"5-a-day… 15 November","P-CBM-5AD-F-1015":"5-a-day… 15 October","P-CBM-5AD-F-0915":"5-a-day Foundation — 15 Septe…","P-CBM-5AD-F-1116":"5-a-day… 16 November","P-CBM-5AD-F-1016":"5-a-day… 16 October","P-CBM-5AD-F-0916":"5-a-day Foundation — 16 Septe…","P-CBM-5AD-F-1117":"5-a-day… 17 November","P-CBM-5AD-F-1017":"5-a-day… 17 October","P-CBM-5AD-F-0917":"5-a-day Foundation — 17 Septe…","P-CBM-5AD-F-1118":"5-a-day… 18 November","P-CBM-5AD-F-1018":"5-a-day… 18 October","P-CBM-5AD-F-0918":"5-a-day Foundation — 18 Septe…","P-CBM-5AD-F-1119":"5-a-day… 19 November","P-CBM-5AD-F-1019":"5-a-day… 19 October","P-CBM-5AD-F-0919":"5-a-day Foundation — 19 Septe…","P-CBM-5AD-F-1120":"5-a-day… 20 November","P-CBM-5AD-F-1020":"5-a-day… 20 October","P-CBM-5AD-F-0920":"5-a-day Foundation — 20 Septe…","P-CBM-5AD-F-1121":"5-a-day… 21 November","P-CBM-5AD-F-1021":"5-a-day… 21 October","P-CBM-5AD-F-0921":"5-a-day Foundation — 21 Septe…","P-CBM-5AD-F-1122":"5-a-day… 22 November","P-CBM-5AD-F-1022":"5-a-day… 22 October","P-CBM-5AD-F-0922":"5-a-day Foundation — 22 Septe…","P-CBM-5AD-F-1123":"5-a-day… 23 November","P-CBM-5AD-F-1023":"5-a-day… 23 October","P-CBM-5AD-F-0923":"5-a-day Foundation — 23 Septe…","P-CBM-5AD-F-1124":"5-a-day… 24 November","P-CBM-5AD-F-1024":"5-a-day… 24 October","P-CBM-5AD-F-0924":"5-a-day Foundation — 24 Septe…","P-CBM-5AD-F-1125":"5-a-day… 25 November","P-CBM-5AD-F-1025":"5-a-day… 25 October","P-CBM-5AD-F-0925":"5-a-day Foundation — 25 Septe…","P-CBM-5AD-F-1126":"5-a-day… 26 November","P-CBM-5AD-F-1026":"5-a-day… 26 October","P-CBM-5AD-F-0926":"5-a-day Foundation — 26 Septe…","P-CBM-5AD-F-1127":"5-a-day… 27 November","P-CBM-5AD-F-1027":"5-a-day… 27 October","P-CBM-5AD-F-0927":"5-a-day Foundation — 27 Septe…","P-CBM-5AD-F-1128":"5-a-day… 28 November","P-CBM-5AD-F-1028":"5-a-day… 28 October","P-CBM-5AD-F-0928":"5-a-day Foundation — 28 Septe…","P-CBM-5AD-F-1129":"5-a-day… 29 November","P-CBM-5AD-F-1029":"5-a-day… 29 October","P-CBM-5AD-F-0929":"5-a-day Foundation — 29 Septe…","P-CBM-5AD-F-1130":"5-a-day… 30 November","P-CBM-5AD-F-1030":"5-a-day… 30 October","P-CBM-5AD-F-0930":"5-a-day Foundation — 30 Septe…","P-CBM-5AD-F-1031":"5-a-day… 31 October","W-CBM-adding-fractions-different-denominators":"Adding Fractions: Different…","W-CBM-adding-fractions-same-denominators":"Adding Fractions: Same…","T-AT-P-energy":"Energy (Separate… Trilogy)","W-CBM-equivalent-fractions-simplifying-fractions":"Equivalent Fractions Simplify…","W-AT-P-density":"Particle Model of… Density","W-AT-P-gas-pressure":"Particle Model of… Pressure","W-1CM-volume-and-surface-area-cylinders":"Volume and Surface… Cylinders","W-1CM-volume-and-surface-area-of-prisms":"Volume and Surface… of Prisms","W-1CM-volume-and-surface-area-of-pyramids":"Volume and… of Pyramids","W-1CM-volume-and-surface-area-of-spheres":"Volume and… of Spheres"},"paperSection":{"Section A: Modern prose or drama":"Section A: Modern prose or…"}}
+  "#says": {"wChapter":{"Extract from The Prelude: Stealing the Boat":"Extract from The… the Boat","Fragment: 'alas! This Is Not What I Thought Life Was'":"Fragment: 'alas! This Is Not…","Fragment: 'and That I Walk Thus Proudly Crowned'":"Fragment: 'and That I Walk…","Fragment: 'follow to the Deep Wood's Weeds'":"Fragment: 'follow to the…","Fragment: 'i Faint, I Perish with My Love!'":"Fragment: 'i Faint, I Perish…","Fragment: 'i Stood upon a Heaven-cleaving Turret'":"Fragment: 'i Stood upon a…","Fragment: 'i Would Not Be a King'":"Fragment: 'i Would Not Be a…","Fragment: 'is It That in Some Brighter Sphere'":"Fragment: 'is It That in…","Fragment: 'methought I Was a Billow in the Crowd'":"Fragment: 'methought I Was a…","Fragment: 'my Head Is Wild with Weeping'":"Fragment: 'my Head Is Wild…","Fragment: 'o Thou Immortal Deity'":"Fragment: 'o Thou Immortal…","Fragment: 'such Hope, as Is the Sick Despair of Good'":"Fragment: 'such Hope, as Is…","Fragment: 'the Death Knell Is Ringing'":"Fragment: 'the Death Knell…","Fragment: 'the Rude Wind Is Singing'":"Fragment: 'the Rude Wind Is…","Fragment: 'the Viewless and Invisible Consequence'":"Fragment: 'the Viewless and…","Fragment: 'unrisen Splendour of the Brightest Sun'":"Fragment: 'unrisen Splendour…","Fragment: 'wake the Serpent Not'":"Fragment: 'wake the Serpent…","Fragment: 'what Men Gain Fairly'":"Fragment: 'what Men Gain…","Fragment: 'when a Lover Clasps His Fairest'":"Fragment: 'when a Lover…","Fragment: 'when Soft Winds and Sunny Skies'":"Fragment: 'when Soft Winds…","Fragment: 'ye Gentle Visitations of Calm Thought'":"Fragment: 'ye Gentle…","Fragment: \"igniculus Desiderii\"":"Fragment: \"igniculus…","Fragment: Apostrophe to Silence":"Fragment: Apostrophe to…","Fragment: Life Rounded with Sleep":"Fragment: Life Rounded with…","Fragment: Love the Universe To-day":"Fragment: Love the Universe…","Fragment: Love's Tender Atmosphere":"Fragment: Love's Tender…","Fragment: Music and Sweet Poetry":"Fragment: Music and Sweet…","Fragment: Sufficient Unto the Day":"Fragment: Sufficient Unto…","Fragment: the Deserts of Dim Sleep":"Fragment: the Deserts of Dim…","Fragment: the False Laurel and the True":"Fragment: the False Laurel…","Fragment: the Lady of the South":"Fragment: the Lady of the…","Fragment: the Sepulchre of Memory":"Fragment: the Sepulchre of…","Fragment: Thoughts Come and Go in Solitude":"Fragment: Thoughts Come and…","Fragment: to a Friend Released from Prison":"Fragment: to a Friend…","Fragment: to the People of England":"Fragment: to the People of…","Fragment: Zephyrus the Awakener":"Fragment: Zephyrus the…","Her Dilemma (in — Church)":"Her Dilemma — Church)","Lines: 'we Meet Not as We Parted'":"Lines: 'we Meet Not as We…","Lines: 'when the Lamp Is Shattered'":"Lines: 'when the Lamp Is…","William Jefferson Clinton Second Inaugural Address":"William Jefferson… Address"},"mPart":{"Auxiliary (drive) belt":"Auxiliary","Cabin (pollen) filter":"Cabin","Coolant (antifreeze)":"Coolant","Lambda (oxygen) sensor":"Lambda","Wishbones (control arms)":"Wishbones"},"boutEvent":{"Lewis-Tyson: Is On":"Lewis-Tyson"},"histSide":{"Back (verso)":"Back","Front (recto)":"Front"},"paperId":{"P-CBM-5AD-F-1101":"5-a-day… 1 November","P-CBM-5AD-F-0901":"5-a-day… 1 September","P-CBM-5AD-F-1102":"5-a-day… 2 November","P-CBM-5AD-F-0902":"5-a-day… 2 September","P-CBM-5AD-F-1103":"5-a-day… 3 November","P-CBM-5AD-F-0903":"5-a-day… 3 September","P-CBM-5AD-F-1104":"5-a-day… 4 November","P-CBM-5AD-F-0904":"5-a-day… 4 September","P-CBM-5AD-F-1105":"5-a-day… 5 November","P-CBM-5AD-F-0905":"5-a-day… 5 September","P-CBM-5AD-F-1106":"5-a-day… 6 November","P-CBM-5AD-F-0906":"5-a-day… 6 September","P-CBM-5AD-F-1107":"5-a-day… 7 November","P-CBM-5AD-F-0907":"5-a-day… 7 September","P-CBM-5AD-F-1108":"5-a-day… 8 November","P-CBM-5AD-F-0908":"5-a-day… 8 September","P-CBM-5AD-F-1109":"5-a-day… 9 November","P-CBM-5AD-F-0909":"5-a-day… 9 September","P-CBM-5AD-F-1110":"5-a-day… 10 November","P-CBM-5AD-F-1010":"5-a-day… 10 October","P-CBM-5AD-F-0910":"5-a-day Foundation… September","P-CBM-5AD-F-1111":"5-a-day… 11 November","P-CBM-5AD-F-1011":"5-a-day… 11 October","P-CBM-5AD-F-0911":"5-a-day Foundation — 11 Septe…","P-CBM-5AD-F-1112":"5-a-day… 12 November","P-CBM-5AD-F-1012":"5-a-day… 12 October","P-CBM-5AD-F-0912":"5-a-day Foundation — 12 Septe…","P-CBM-5AD-F-1113":"5-a-day… 13 November","P-CBM-5AD-F-1013":"5-a-day… 13 October","P-CBM-5AD-F-0913":"5-a-day Foundation — 13 Septe…","P-CBM-5AD-F-1114":"5-a-day… 14 November","P-CBM-5AD-F-1014":"5-a-day… 14 October","P-CBM-5AD-F-0914":"5-a-day Foundation — 14 Septe…","P-CBM-5AD-F-1115":"5-a-day… 15 November","P-CBM-5AD-F-1015":"5-a-day… 15 October","P-CBM-5AD-F-0915":"5-a-day Foundation — 15 Septe…","P-CBM-5AD-F-1116":"5-a-day… 16 November","P-CBM-5AD-F-1016":"5-a-day… 16 October","P-CBM-5AD-F-0916":"5-a-day Foundation — 16 Septe…","P-CBM-5AD-F-1117":"5-a-day… 17 November","P-CBM-5AD-F-1017":"5-a-day… 17 October","P-CBM-5AD-F-0917":"5-a-day Foundation — 17 Septe…","P-CBM-5AD-F-1118":"5-a-day… 18 November","P-CBM-5AD-F-1018":"5-a-day… 18 October","P-CBM-5AD-F-0918":"5-a-day Foundation — 18 Septe…","P-CBM-5AD-F-1119":"5-a-day… 19 November","P-CBM-5AD-F-1019":"5-a-day… 19 October","P-CBM-5AD-F-0919":"5-a-day Foundation — 19 Septe…","P-CBM-5AD-F-1120":"5-a-day… 20 November","P-CBM-5AD-F-1020":"5-a-day… 20 October","P-CBM-5AD-F-0920":"5-a-day Foundation — 20 Septe…","P-CBM-5AD-F-1121":"5-a-day… 21 November","P-CBM-5AD-F-1021":"5-a-day… 21 October","P-CBM-5AD-F-0921":"5-a-day Foundation — 21 Septe…","P-CBM-5AD-F-1122":"5-a-day… 22 November","P-CBM-5AD-F-1022":"5-a-day… 22 October","P-CBM-5AD-F-0922":"5-a-day Foundation — 22 Septe…","P-CBM-5AD-F-1123":"5-a-day… 23 November","P-CBM-5AD-F-1023":"5-a-day… 23 October","P-CBM-5AD-F-0923":"5-a-day Foundation — 23 Septe…","P-CBM-5AD-F-1124":"5-a-day… 24 November","P-CBM-5AD-F-1024":"5-a-day… 24 October","P-CBM-5AD-F-0924":"5-a-day Foundation — 24 Septe…","P-CBM-5AD-F-1125":"5-a-day… 25 November","P-CBM-5AD-F-1025":"5-a-day… 25 October","P-CBM-5AD-F-0925":"5-a-day Foundation — 25 Septe…","P-CBM-5AD-F-1126":"5-a-day… 26 November","P-CBM-5AD-F-1026":"5-a-day… 26 October","P-CBM-5AD-F-0926":"5-a-day Foundation — 26 Septe…","P-CBM-5AD-F-1127":"5-a-day… 27 November","P-CBM-5AD-F-1027":"5-a-day… 27 October","P-CBM-5AD-F-0927":"5-a-day Foundation — 27 Septe…","P-CBM-5AD-F-1128":"5-a-day… 28 November","P-CBM-5AD-F-1028":"5-a-day… 28 October","P-CBM-5AD-F-0928":"5-a-day Foundation — 28 Septe…","P-CBM-5AD-F-1129":"5-a-day… 29 November","P-CBM-5AD-F-1029":"5-a-day… 29 October","P-CBM-5AD-F-0929":"5-a-day Foundation — 29 Septe…","P-CBM-5AD-F-1130":"5-a-day… 30 November","P-CBM-5AD-F-1030":"5-a-day… 30 October","P-CBM-5AD-F-0930":"5-a-day Foundation — 30 Septe…","P-CBM-5AD-F-1031":"5-a-day… 31 October","W-CBM-adding-fractions-different-denominators":"Adding Fractions: Different…","W-CBM-adding-fractions-same-denominators":"Adding Fractions: Same…","T-AT-P-energy":"Energy (Separate… Trilogy)","W-CBM-equivalent-fractions-simplifying-fractions":"Equivalent Fractions Simplify…","W-AT-P-density":"Particle Model of… Density","W-AT-P-gas-pressure":"Particle Model of… Pressure","W-1CM-volume-and-surface-area-cylinders":"Volume and Surface… Cylinders","W-1CM-volume-and-surface-area-of-prisms":"Volume and Surface… of Prisms","W-1CM-volume-and-surface-area-of-pyramids":"Volume and… of Pyramids","W-1CM-volume-and-surface-area-of-spheres":"Volume and… of Spheres"},"paperSection":{"Section A: Modern prose or drama":"Section A: Modern prose or…"}}
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,202332,27,2,4,5,10,31,6],234266,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,189088,27,2,4,5,10,30,6],221021,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[2,2,2],4,["Parent","Student","Tutor"]],
-  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,5,2],31,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
+  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,4,2],30,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,202332,27,2,1,5,10,29,6],234261,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,189088,27,2,1,5,10,29,6],221017,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[20,8,17,8,7],29,["Student","Parent","Staff","Apprentice","Admin"]]
 }
 }};
@@ -3638,7 +3647,7 @@ function libDiskPut_(items, gen) {
     let drop = [];
     if (LIB.disk.size > LIB_DISK_MAX) {
       /* A PAPER MADE AVAILABLE OFFLINE never gives way (offline.js `offPinned_`). */
-      const pin = typeof offPinned_ === 'function' ? offPinned_() : new Set();
+      const pin = typeof window.offPinned_ === 'function' ? window.offPinned_() : new Set();
       drop = [...LIB.disk.values()].filter(r => !pin.has(r.id)).sort((a, b) => a.at - b.at).slice(0, LIB.disk.size - LIB_DISK_MAX).map(r => r.id);
       drop.forEach(id => LIB.disk.delete(id));
     }
@@ -8118,7 +8127,7 @@ function loadFinish_(kept) {
   }
   if (typeof window.openSharedPost === 'function') window.openSharedPost();     // if the app was opened on a shared link, go to that post
   try { openSharedTutor(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // or on a tutor's own link (400)
-  try { if (typeof pushLanding_ === 'function') pushLanding_(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // or on a tapped notification (492, push.js)
+  try { if (typeof window.pushLanding_ === 'function') window.pushLanding_(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // or on a tapped notification (492, push.js)
   /* AND BACK TO THE QUESTION A RELOAD TOOK YOU AWAY FROM — once a visit, on the first payload that
      arrived, when the column came back too. See `findPlaceBack_` in find.js and docs/history/317. */
   if (!LOAD_FAILED && !LIBRARY_LATE && typeof findPlaceBack_ === 'function') findPlaceBack_();
@@ -8779,6 +8788,9 @@ const KC_LOOK_DEFAULT = Object.fromEntries(Object.entries({ receipt: 'pound', sh
 const KC_PERSON_KINDS = ['tutor', 'person', 'people', 'msg'];
 const kcLook_ = kind => ((typeof DATA !== 'undefined' && DATA && DATA.cardLook) || KC_LOOK_DEFAULT)[kind] || {};
 const kcEmpty_ = () => (typeof NOTHING_YET === 'string' ? NOTHING_YET : '');
+/* THE EMPTY LINE, and THE HIDDEN ORIGINAL a late filler writes into: both blocks of the one card maker. */
+const kcEmptyLine_ = () => cardBlock_({ type: 'text', look: 'kc-empty', text: kcEmpty_() });
+const kcSrc_ = src => cardBlock_({ type: 'group', look: 'kc-src', attrs: { hidden: true }, inner: src });
 /* A FORM STAYS A FORM: its own maker draws it, whole and unclamped, as the card's open content. */
 /* A LIST OF THINGS EACH WITH ITS OWN TILES (`.kc-items` of `.kc-item`s, the checklist's) holds controls too, so it is drawn open and whole. */
 const KC_FORM_SEL = 'input:not([type="hidden"]), select, textarea, form, .kc-items';
@@ -8811,7 +8823,7 @@ function kcFacts_(html) {
     flush();
   };
   walk(t.content);
-  out.lines = said.length ? said.map(s => `<p class="kc-line">${esc(s)}</p>`).join('') : wait ? wait.outerHTML : '';
+  out.lines = said.length ? cardBlock_({ type: 'text', paras: said }) : wait ? wait.outerHTML : '';
   out.src = t.innerHTML;
   return out;
 }
@@ -8825,7 +8837,7 @@ function kcFactsWatch_() {
     t.content.querySelectorAll('[data-do]').forEach(n => { const old = card.querySelector(`:scope > .kc-act [data-do="${n.getAttribute('data-do')}"]`); if (old) old.replaceWith(n); }); };
   const redo = src => { const card = src.closest('.card.kc'), box = card && card.querySelector(':scope > .kc-lines'); if (!box) return;
     const f = kcFacts_(src.innerHTML); box.firstChild && [...box.children].filter(k => k !== src).forEach(k => k.remove());
-    box.insertAdjacentHTML('afterbegin', f.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`);
+    box.insertAdjacentHTML('afterbegin', f.lines || kcEmptyLine_());
     if (f.tiles) { src.innerHTML = f.src; sync(card, f.tiles); } };
   /* AN OLD MAKER THAT REDRAWS ITS WHOLE CARD (`[data-libimp]`) has its new insides read as facts into the parts it pushed out. */
   const rewrap = (card, gone) => { const parts = gone.filter(n => n.nodeType === 1 && /^kc-(pic|head|tags|lines|form|act)$/.test(n.className)); if (!parts.length) return;
@@ -8833,7 +8845,7 @@ function kcFactsWatch_() {
     /* CONTROLS THAT ARRIVE LATE (a list loaded after the first draw) take a form part, open, in place of the lines. */
     if (f.form && !form && lines) { lines.className = 'kc-form'; lines.innerHTML = f.form; }
     else if (f.form && form) form.innerHTML = f.form;
-    else if (lines) lines.innerHTML = (f.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`) + (f.src ? `<div class="kc-src" hidden>${f.src}</div>` : '');
+    else if (lines) lines.innerHTML = (f.lines || kcEmptyLine_()) + (f.src ? kcSrc_(f.src) : '');
     card.replaceChildren(...parts); if (f.tiles) sync(card, f.tiles); };
   new MutationObserver(list => { if (busy) return; busy = true; const seen = new Set();
     try {
@@ -8871,7 +8883,7 @@ function findCard(x, credits) {
   /* A PANEL (card_) IS DRAWN WHILE FIND'S OWN LIST IS BEING MADE, so it never reads Find's chips back (that would build the list inside itself). */
   parts.tags = it.kcPanel ? parts.tags : kcUnpicked_(parts.tags);
   /* A CARD WITH NO TAGS OF ITS OWN STILL HAS ONE: its name (owner, 9 Nov: the name is a tag). */
-  if (!parts.tags.trim() && name) parts.tags = `<div class="qtags">${qtag_(`${esc(name)}`, ` data-tag="0"`)}</div>`;
+  if (!parts.tags.trim() && name) parts.tags = cardBlock_({ type: 'tags', tags: [String(name)] });
   /* NO TITLE LINE ON ANY CARD (owner, 9 Nov): the name is a tag, put first when the tags do not already say it. */
   if (name && parts.head && !kcSays_(parts.tags, name)) parts.tags = kcTagFirst_(parts.tags, name);
   parts.head = '';
@@ -8884,23 +8896,26 @@ function findCard(x, credits) {
   if (kcLook_(it.kind).facts || (it.kcPanel && KC_FORMY.test(parts.lines))) {
     facts = kcFacts_(parts.lines);
     if (facts.form) { parts.lines = ''; parts.form = facts.form; kcFactsWatch_(); }
-    else { parts.lines = (facts.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`) + (facts.src ? `<div class="kc-src" hidden>${facts.src}</div>` : ''); kcFactsWatch_(); }
+    else { parts.lines = (facts.lines || kcEmptyLine_()) + (facts.src ? kcSrc_(facts.src) : ''); kcFactsWatch_(); }
     if (facts.tiles) parts.act = kcActRow_(one, '', hoist.tiles + facts.tiles);
     parts.tags = kcTidy_(parts.tags, '', name).tags;
   }
   if (!facts && KC_WHOLE_KINDS.indexOf(it.kind) < 0) { const tidy = kcTidy_(parts.tags, parts.lines, name); parts.tags = tidy.tags; parts.lines = tidy.lines; }
   const off = (facts ? ' kc-facts' : '') + (it.kind === 'tutor' && t.listed === false ? ' is-off' : '') + (it.cardCls ? ' ' + esc(it.cardCls) : '');
   /* `cardData` BECOMES data-* ATTRIBUTES, so a card can be found again where it stands (a post's sheet, a conversation's redraw). */
-  const data = Object.keys(it.cardData || {}).map(k => ` data-${k}="${esc(it.cardData[k])}"`).join('');
+  const attrs = {};
+  Object.keys(it.cardData || {}).forEach(k => { attrs['data-' + k] = it.cardData[k] == null ? '' : String(it.cardData[k]); });
   /* ITS OWN MAKER'S CLASSES AND ATTRIBUTES STAY ON IT, so every handler's `closest('.qcard')` or `[data-key]` still finds it. */
   const mine = it.kcOwn || {}, ownCls = String(mine.cls || '').split(/\s+/).filter(c => c && !/^(card|fc|kc)$/.test(c)).join(' ');
-  const label = /\saria-label=/.test(mine.attrs || '') ? '' : ` aria-label="${esc(name)}"`;
-  return `<div class="card fc kc kc-${esc(it.kind || 'thing')}${s.cls ? ' ' + esc(s.cls) : ''}${ownCls ? ' ' + ownCls : ''}${off}"${data}${mine.attrs || ''}${label}>${
-    (parts.form ? ['pic', 'head', 'tags', 'lines', 'form', 'act'] : KC_PARTS).map(p => `<div class="kc-${p}">${parts[p]}</div>`).join('')}</div>`;
+  const ownAttrs = cardAttrsOf_(mine.attrs || '');
+  Object.keys(ownAttrs).forEach(k => { if (!(k in attrs)) attrs[k] = ownAttrs[k]; });
+  if (!('aria-label' in ownAttrs) && !('aria-label' in attrs)) attrs['aria-label'] = String(name);
+  return cardBlock_({ type: 'group', look: `card fc kc kc-${it.kind || 'thing'}${s.cls ? ' ' + s.cls : ''}${ownCls ? ' ' + ownCls : ''}${off}`, attrs,
+    blocks: (parts.form ? ['pic', 'head', 'tags', 'lines', 'form', 'act'] : KC_PARTS).map(p => ({ type: 'group', look: 'kc-' + p, inner: parts[p] })) });
 }
 
 /* THE ONE TAG MAKER (one way only): `inner` is HTML the caller escaped, `attrs` its attributes, `cls` extra classes; `base` a tutor pill or a filter chip. */
-function qtag_(inner, attrs, cls, base) { return `<span class="${base || 'qtag'}${cls ? ' ' + cls : ''}"${attrs || ''}>${inner}</span>`; }
+function qtag_(inner, attrs, cls, base) { return cardBlock_({ type: 'group', tag: 'span', look: (base || 'qtag') + (cls ? ' ' + cls : ''), attrs: cardAttrsOf_(attrs), inner }); }
 /* EVERY OTHER CARD COMES HERE TOO (owner, 11 Nov: one template): its maker writes a plain `<div class="x">…</div>`; a form inside stays whole, the booking form's too. */
 const KC_FORMY = /<(input(?![^>]*type="hidden")|select|textarea|form)\b|\bkc-items\b/;
 function card_(html, kind, called) {
@@ -8920,7 +8935,7 @@ function cardFill_(el, inner, kind) {
   if (!el || typeof document === 'undefined') return;
   const cls = [...el.classList].filter(c => !/^(card|fc|kc|kc-[\w-]+)$/.test(c)).join(' ');
   const t = document.createElement('template');
-  t.innerHTML = card_(`<div class="${cls}">${inner || ''}</div>`, kind);
+  t.innerHTML = card_(cardBlock_({ type: 'group', look: cls, inner: inner || '' }), kind);
   const fresh = t.content.firstElementChild;
   if (!fresh) return;
   el.className = fresh.className;
@@ -9068,18 +9083,19 @@ function formField_(f, value, o) {
   return fieldHtml(f, value, o);
 }
 /* A BOX WITH NO COLUMN BEHIND IT (a PIN): its id is what its handler reads, and it is never saved as you type. */
-const FORM_BOX_ATTRS_ = { pin: ' type="password" inputmode="numeric" autocomplete="one-time-code"' };
+const FORM_BOX_ATTRS_ = { pin: { type: 'password', inputmode: 'numeric', autocomplete: 'one-time-code' } };
 function formBox_(b) {
-  return `<label class="field"><input id="${esc(b.id)}" aria-label="${esc(b.label || b.ph || '')}"${
-    b.ph ? ` placeholder="${esc(b.ph)}"` : ''}${FORM_BOX_ATTRS_[b.kind] || ''}></label>`;
+  return cardBlock_({ type: 'field', blocks: [{ type: 'control', attrs: Object.assign({ id: b.id, 'aria-label': b.label || b.ph || '',
+    placeholder: b.ph || null }, FORM_BOX_ATTRS_[b.kind] || {}) }] });
 }
 /* A TICK THAT SAVES THE MOMENT IT IS TICKED, with a bold name and a faint note: `t.act` is its handler, `t.data` its data- attributes. */
 function formToggle_(t) {
-  const data = Object.keys(t.data || {}).map(k => ` data-${k}="${esc(t.data[k])}"`).join('');
-  return `<label class="check role-pick${t.cls ? ' ' + t.cls : ''}">
-        <input type="checkbox" data-do="${esc(t.act)}"${data}${t.on ? ' checked' : ''}>
-        <span class="box"></span><span class="role-pick-say"><b>${esc(t.label)}</b>
-          ${qtag_(`${esc(t.note || '')}`)}</span></label>`;
+  const attrs = { type: 'checkbox', 'data-do': t.act == null ? '' : String(t.act) };
+  Object.keys(t.data || {}).forEach(k => { attrs['data-' + k] = String(t.data[k] == null ? '' : t.data[k]); });
+  attrs.checked = !!t.on;
+  return cardBlock_({ type: 'group', tag: 'label', look: 'check role-pick' + (t.cls ? ' ' + t.cls : ''), blocks: [{ type: 'control', attrs },
+    { type: 'group', tag: 'span', look: 'box' },
+    { type: 'group', tag: 'span', look: 'role-pick-say', text: [{ b: t.label }, ' ', { span: 'qtag', text: t.note || '' }] }] });
 }
 
 /* THE CARD: a title, then `groups` (backend field lists via `fieldsHtml`), `boxes` or `toggles`; `spec.id` fills it from FORM_SPECS.cards. */
@@ -9090,22 +9106,24 @@ function formCard_(spec) {
   const boxes = (s.boxes || []).map(formBox_).join('');
   const ticks = (s.toggles || []).map(formToggle_).join('');
   const save = s.save && s.save.act ? tile_(s.save) : s.save;
-  const after = (s.said ? `<p class="note" id="${esc(s.said)}"></p>` : '') + (s.after || '');
+  const after = (s.said ? cardBlock_({ type: 'group', tag: 'p', look: 'note', id: s.said }) : '') + (s.after || '');
   const card = { title: s.title, cls: s.cls, attrs: s.attrs, lead: s.lead, save: save, after: after };
   if (s.groups) return setCard_(Object.assign(card, { form: fields, formAttrs: s.formAttrs, foot: s.foot }));
   return setCard_(Object.assign(card, { body: (s.body || '') + boxes + ticks + (s.tail || '') }));
 }
 
 /* THE RAW BOXES: every input, menu and text area on a Settings screen is written by these, so a box has one shape everywhere. `a` is its attribute text. */
-const formInput_ = a => `<input ${a}>`;
-const formSelect_ = (a, opts) => `<select ${a}>${opts}</select>`;
-const formArea_ = (a, text) => `<textarea ${a}>${esc(text == null ? '' : String(text))}</textarea>`;
+/* Each is a `control` block, its attribute text read into data by `cardAttrsOf_` (cards-render.js). */
+const formInput_ = a => cardBlock_({ type: 'control', attrs: cardAttrsOf_(a) });
+const formSelect_ = (a, opts) => cardBlock_({ type: 'control', tag: 'select', attrs: cardAttrsOf_(a), inner: opts });
+const formArea_ = (a, text) => cardBlock_({ type: 'control', tag: 'textarea', attrs: cardAttrsOf_(a), value: text == null ? '' : String(text) });
 const formHidden_ = (a, v, more) => formInput_(`type="hidden" ${a} value="${esc(v == null ? '' : String(v))}"${more || ''}`);
 const formFile_ = (cls, accept) => formInput_(`type="file" class="${cls}" accept="${accept}" hidden`);
 /* A LABELLED LINE: a faint name over its box; `cls` adds to class="field". */
-const formLine_ = (label, box, cls) => `<label class="field${cls ? ' ' + cls : ''}">${label != null && label !== '' ? `<span>${esc(label)}</span>` : ''}${box}</label>`;
+const formLine_ = (label, box, cls) => cardBlock_({ type: 'field', look: cls || '', cap: label, inner: box });
 /* A TICK: `a` is the checkbox's attributes, `say` the html beside the box. */
-const formTick_ = (a, say, cls, la) => `<label class="check${cls ? ' ' + cls : ''}"${la ? ' ' + la : ''}>${formInput_('type="checkbox" ' + a)}<span class="box"></span>${say}</label>`;
+const formTick_ = (a, say, cls, la) => cardBlock_({ type: 'group', tag: 'label', look: 'check' + (cls ? ' ' + cls : ''), attrs: cardAttrsOf_(la),
+  blocks: [{ type: 'control', attrs: cardAttrsOf_('type="checkbox" ' + a) }, { type: 'group', tag: 'span', look: 'box' }], inner: say });
 /* A SLIDER WITH ITS TYPED TWIN: both carry `a` (their data- key), so dragging and typing write the same value. */
 function formSlider_(a, o) {
   return formInput_(`type="range" ${a} data-noswipe min="${o.min}" max="${o.max}" step="${o.step}" value="${o.value}" aria-label="${esc(o.label)}"${o.id ? ` id="${o.id}"` : ''}`)
@@ -9113,8 +9131,8 @@ function formSlider_(a, o) {
 }
 /* A PHONE: the country-code menu and the number, side by side, saved as you type under `cc` and `no`. */
 function formPhone_(cc, no, ccOpts, noAttrs) {
-  return `<label class="field">${formSelect_(`data-me="${cc}" aria-label="Country code"`, ccOpts)}</label>
-      <label class="field">${formInput_(`type="tel" data-me="${no}" inputmode="tel" autocomplete="off" ${noAttrs || ''}`)}</label>`;
+  return formLine_('', formSelect_(`data-me="${cc}" aria-label="Country code"`, ccOpts))
+    + formLine_('', formInput_(`type="tel" data-me="${no}" inputmode="tel" autocomplete="off" ${noAttrs || ''}`));
 }
 
 ;
@@ -9482,7 +9500,7 @@ function signedOut_(opts) {
   USER = null; LENS = null;   /* and the lens: the next admin opens their own settings */
   try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ }
   payloadForget_();   /* the device's copy of their payload goes with them (1070) */
-  if (typeof offForget_ === 'function') offForget_();   /* and the app's offline copy; the words go with libDiskClear_ */
+  if (typeof window.offForget_ === 'function') window.offForget_();   /* and the app's offline copy; the words go with libDiskClear_ */
   /* ---------- AND WHAT THEY HAD ASKED FIND FOR GOES WITH THEM § */
   try {
     const states = typeof finderStates_ === 'function' ? finderStates_()
@@ -10750,7 +10768,7 @@ function adminPages_() {
 function sitePages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
-    .concat(typeof inboxCard_ === 'function' ? [inboxCard_()] : [])
+    .concat(typeof window.inboxCard_ === 'function' ? [window.inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
     .concat([rolesSet_('', 'Build', [rolesDrawn_(versionSaid_, 'me-build')])]);
 }
@@ -10891,7 +10909,7 @@ function notifyCard_() {
   }
   /* THE ONE FORM MAKER WITHOUT A Save: each tick is saved the moment it is ticked (`notify-pick`). */
   /* PHONE NOTIFICATIONS (492, push.js) ARE PART OF THIS ONE CARD (owner, 12 Nov). */
-  if (typeof pushBody_ === 'function') tail += pushBody_();
+  if (typeof window.pushBody_ === 'function') tail += window.pushBody_();
   return formCard_({ title: 'Notifications', cls: 'notify-card', body: inner, toggles: toggles, tail: tail, save: false });
 }
 
@@ -12564,18 +12582,19 @@ const isPhotos_ = list => (list || []).some(isPhotoField_);
 /* `o.draft` IS PASSED THROUGH TO THE BOXES — the card editor keeps its own draft (`fieldHtml`'s note). § */
 function photoShelf_(list, value, o) {
   const nums = (list || []).filter(isPhotoField_).map(f => String(f).match(/^photos_(\d+)$/)[1]);
-  return `<div class="lib-shelf ph-shelf" data-noun="photo">${shelfSlots_(nums,
+  return cardBlock_({ type: 'group', look: 'lib-shelf ph-shelf', attrs: { 'data-noun': 'photo' }, inner: shelfSlots_(nums,
     i => shelfFilled_(value, ['photos_' + i]),
     (i, hide) => {
       const v = String(value('photos_' + i) || '').trim();
-      return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
-        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : ''}</span>
-        ${fieldHtml('photos_' + i, v, { placeholder: 'Photo', draft: (o || {}).draft, extra: 'type="hidden"' })}
-        <div class="tile-row">${tile_({ icon: 'plus', label: v ? 'Change photo' : 'Choose photo', act: 'ph-pick' })}${shelfDrop_('photo')}</div>
-        <p class="note ph-said"></p>${formFile_('ph-in', 'image/*')}
-      </div>`;
-    }, 'photo')}</div>`;
+      return cardBlock_({ type: 'group', look: 'lib-card ph-slot', attrs: { hidden: !!hide },
+        inner: cardBlock_({ type: 'group', tag: 'span', look: 'ph-thumb', blocks: [v ? phThumb_(v) : null] })
+        + fieldHtml('photos_' + i, v, { placeholder: 'Photo', draft: (o || {}).draft, extra: 'type="hidden"' })
+        + cardBlock_({ type: 'group', look: 'tile-row', inner: tile_({ icon: 'plus', label: v ? 'Change photo' : 'Choose photo', act: 'ph-pick' }) + shelfDrop_('photo') })
+        + cardBlock_({ type: 'group', tag: 'p', look: 'note ph-said' }) + formFile_('ph-in', 'image/*') });
+    }, 'photo') });
 }
+/* A SLOT'S THUMBNAIL: the photo as a `media` picture block. */
+const phThumb_ = v => ({ type: 'media', kind: 'image', src: pic(v), title: '', async: true });
 /* THE PREVIEW FOLLOWS THE BOX as it is typed into, so the check above does not wait for a Save. One
    listener for the document, which is how every other input here is heard. */
 document.addEventListener('input', e => {
@@ -12583,7 +12602,7 @@ document.addEventListener('input', e => {
   if (!t || !t.matches || !t.matches('.ph-slot input')) return;
   const thumb = t.closest('.ph-slot').querySelector('.ph-thumb');
   const v = String(t.value || '').trim();
-  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : '';
+  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? cardBlock_(phThumb_(v)) : '';
 });
 /* ---------- AN EXTRA PHOTO IS UPLOADED, NOT LINKED (owner, 8 Nov): redrawn here at 1200px JPEG, kept in Drive by
    `photoFile`, and its link put in the slot's box so Save keeps it with the rest of the card. */
@@ -12637,21 +12656,18 @@ function photoPicker_(value, said, o) {
     return tile_({ label: label, act: 'pfp-choose', data: { pic: n }, on: chosen === n, pressed: chosen === n, cls: 'pfp-opt',
       face: pfpArt_(n, 40) });
   };
-  const face = `<span class="pfp-face">${pfpFace_(v)}</span>`;
+  const face = { type: 'group', tag: 'span', look: 'pfp-face', inner: pfpFace_(v) };
   const fold = !!(o && o.fold);
-  return `${fold ? `<details class="pfp ce-fold" data-fold="picture" open>
-    <summary class="ce-line"><span class="ce-k">Picture</span>${face}</summary>` : `<div class="pfp">${face}`}
-    <div class="pfp-side">
-      <div class="tile-row">
-        ${/* A CHILD CHOOSES FROM THE GRID, NEVER A FILE (413) — `savePhoto` refuses one too. */
-          uiMay_('upload-photo') ? tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' }) : ''}
-        ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
-      </div>
-    </div>
-    <div class="pfp-grid" role="group" aria-label="Or choose a picture">${Object.keys(PFP_ART).map(opt).join('')}</div>
-    <p class="note pfp-said">${esc(said || pfpSaid_(v))}</p>
-    ${uiMay_('upload-photo') ? formFile_('pfp-in', 'image/*') : ''}
-  ${fold ? '</details>' : '</div>'}`;
+  /* A CHILD CHOOSES FROM THE GRID, NEVER A FILE (413) — `savePhoto` refuses one too. */
+  const rest = [{ type: 'group', look: 'pfp-side', blocks: [{ type: 'group', look: 'tile-row', tiles: [
+      uiMay_('upload-photo') ? { icon: 'photo', label: 'Choose photo', act: 'pfp-pick' } : null,
+      { icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v }].filter(Boolean) }] },
+    { type: 'group', tag: 'p', look: 'note pfp-said', text: said || pfpSaid_(v) }];
+  const file = uiMay_('upload-photo') ? formFile_('pfp-in', 'image/*') : '';
+  return fold
+    ? cardBlock_({ type: 'group', tag: 'details', look: 'pfp ce-fold', attrs: { 'data-fold': 'picture', open: true }, blocks: [
+      { type: 'group', tag: 'summary', look: 'ce-line', blocks: [{ type: 'group', tag: 'span', look: 'ce-k', text: 'Picture' }, face] }].concat(rest), inner: file })
+    : cardBlock_({ type: 'group', look: 'pfp', blocks: [face].concat(rest), inner: file });
 }
 /* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */
 function pfpSaid_(v) {
@@ -12778,7 +12794,7 @@ document.addEventListener('change', e => {
     if (!data) { if (said) said.textContent = 'That file is not a picture this phone can read. Try another.'; return; }
     /* THE PREVIEW CHANGES BEFORE THE UPLOAD, so the crop is seen while it travels; if the server refuses, the line says why and the old picture comes back. § */
     const face = box.querySelector('.pfp-face');
-    if (face) face.innerHTML = `<img class="pfp-pic" src="${esc(data)}" alt="Your profile picture" decoding="async">`;
+    if (face) face.innerHTML = cardBlock_({ type: 'media', kind: 'image', look: 'pfp-pic', src: data, title: 'Your profile picture', async: true });
     pfpRing_(box, '');
     return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
                  { button: btn, where: said, saying: 'Saving…', lock: box })
@@ -12838,7 +12854,7 @@ function fieldsHtml(groups, o) {
       + (wantsDob ? dobBoxes_(value) : '')
       + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneField_(value) : plain(f, extra))
       + (photos ? videoPicker_(value) + photoShelf_(list, value) : '');
-    return (head ? `<${head}><span>${esc(g)}</span></${head}>` : '') + body;
+    return (head ? cardBlock_({ type: 'group', tag: head, look: null, blocks: [{ type: 'group', tag: 'span', look: null, text: g }] }) : '') + body;
   }).join('');
 }
 /* The sheet writes TRUE/FALSE as text and the payload sends real booleans; rows written by older
@@ -14763,6 +14779,15 @@ function pfpArt_(name, size) {
   return p ? artSvg_(p.art, p.ground, size || 40) : '';
 }
 
+/* THE DEFAULT PICTURE FOR A PERSON WITH NONE: the payload's `defaultPictures` if named, else any of the ten, by a stable hash of the key. */
+function pfpDefault_(key) {
+  const k = String(key || ''); if (!k) return '';
+  const named = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.defaultPictures) ? DATA.defaultPictures : []).filter(n => PFP_ART[n]);
+  const list = named.length ? named : Object.keys(PFP_ART);
+  let h = 0; for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) >>> 0;
+  return list.length ? list[h % list.length] : '';
+}
+
 /* EACH KIND OF STORED PICTURE: how it is drawn, the sentence that names it, and the art chosen (a basic picture's only). */
 const PIC_KINDS = {
   photo: { face: (v, cls, size, o) => renderFace_({ cls, src: pic(v), alt: o.alt, eager: o.eager }),
@@ -14783,6 +14808,9 @@ function personFace_(who, o) {
   const mine = typeof USER !== 'undefined' && USER && USER.personId && who.personId
     && String(who.personId) === String(USER.personId);
   if (Object.prototype.hasOwnProperty.call(PIC_KINDS, kind)) return PIC_KINDS[kind].face(v, cls, size, o);
+  /* NO PICTURE: one of the ten, picked by a stable hash of the person (owner, 14 Nov: the avatar maker is off; nobody chooses one now). */
+  const d = pfpDefault_(who.personId || name);
+  if (d) return renderFace_({ cls: cls + (o.none ? ' ' + o.none : ''), art: PFP_ART[d].art, ground: PFP_ART[d].ground, size });
   return renderFace_({ cls: cls + (o.none ? ' ' + o.none : ''), text: initial(name) });
 }
 

@@ -717,7 +717,7 @@ function stuffItemsRaw_() {
 
     /* ---------- THE HISTORY DATABASE (459) */
     ...(typeof HIST_DB === 'undefined' ? [] : HIST_DB).flatMap(t => (DATA[t.file] || []).flatMap(r => histItems_(t.kind, r))),
-    ...histTimelines_(),
+    ...(typeof window.histTimelines_ === 'function' ? window.histTimelines_() : []),
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE § */
     ...bibleItems_(),
@@ -726,13 +726,13 @@ function stuffItemsRaw_() {
     ...(typeof window.talmudItems_ === 'function' ? window.talmudItems_() : []),
 
     /* ---------- THE QURAN (490), one item a verse, once its index has come */
-    ...(typeof quranItems_ === 'function' ? quranItems_() : []),
+    ...(typeof window.quranItems_ === 'function' ? window.quranItems_() : []),
     ...(typeof window.hadithItems_ === 'function' ? window.hadithItems_() : []),
     ...(typeof window.worksItems_ === 'function' ? window.worksItems_() : []),
     ...(typeof textsItems_ === 'function' ? textsItems_() : []),
     ...(typeof pdtextsItems_ === 'function' ? pdtextsItems_() : []),
     ...(typeof window.orthoItems_ === 'function' ? window.orthoItems_() : []),
-    ...(typeof hymnsItems_ === 'function' ? hymnsItems_() : []),
+    ...(typeof window.hymnsItems_ === 'function' ? window.hymnsItems_() : []),
     ...(typeof mechItems_ === 'function' ? mechItems_() : []),
     ...(typeof chemItems_ === 'function' ? chemItems_() : []),
 

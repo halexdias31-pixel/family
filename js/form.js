@@ -37,18 +37,19 @@ function formField_(f, value, o) {
   return fieldHtml(f, value, o);
 }
 /* A BOX WITH NO COLUMN BEHIND IT (a PIN): its id is what its handler reads, and it is never saved as you type. */
-const FORM_BOX_ATTRS_ = { pin: ' type="password" inputmode="numeric" autocomplete="one-time-code"' };
+const FORM_BOX_ATTRS_ = { pin: { type: 'password', inputmode: 'numeric', autocomplete: 'one-time-code' } };
 function formBox_(b) {
-  return `<label class="field"><input id="${esc(b.id)}" aria-label="${esc(b.label || b.ph || '')}"${
-    b.ph ? ` placeholder="${esc(b.ph)}"` : ''}${FORM_BOX_ATTRS_[b.kind] || ''}></label>`;
+  return cardBlock_({ type: 'field', blocks: [{ type: 'control', attrs: Object.assign({ id: b.id, 'aria-label': b.label || b.ph || '',
+    placeholder: b.ph || null }, FORM_BOX_ATTRS_[b.kind] || {}) }] });
 }
 /* A TICK THAT SAVES THE MOMENT IT IS TICKED, with a bold name and a faint note: `t.act` is its handler, `t.data` its data- attributes. */
 function formToggle_(t) {
-  const data = Object.keys(t.data || {}).map(k => ` data-${k}="${esc(t.data[k])}"`).join('');
-  return `<label class="check role-pick${t.cls ? ' ' + t.cls : ''}">
-        <input type="checkbox" data-do="${esc(t.act)}"${data}${t.on ? ' checked' : ''}>
-        <span class="box"></span><span class="role-pick-say"><b>${esc(t.label)}</b>
-          ${qtag_(`${esc(t.note || '')}`)}</span></label>`;
+  const attrs = { type: 'checkbox', 'data-do': t.act == null ? '' : String(t.act) };
+  Object.keys(t.data || {}).forEach(k => { attrs['data-' + k] = String(t.data[k] == null ? '' : t.data[k]); });
+  attrs.checked = !!t.on;
+  return cardBlock_({ type: 'group', tag: 'label', look: 'check role-pick' + (t.cls ? ' ' + t.cls : ''), blocks: [{ type: 'control', attrs },
+    { type: 'group', tag: 'span', look: 'box' },
+    { type: 'group', tag: 'span', look: 'role-pick-say', text: [{ b: t.label }, ' ', { span: 'qtag', text: t.note || '' }] }] });
 }
 
 /* THE CARD: a title, then `groups` (backend field lists via `fieldsHtml`), `boxes` or `toggles`; `spec.id` fills it from FORM_SPECS.cards. */
@@ -59,22 +60,24 @@ function formCard_(spec) {
   const boxes = (s.boxes || []).map(formBox_).join('');
   const ticks = (s.toggles || []).map(formToggle_).join('');
   const save = s.save && s.save.act ? tile_(s.save) : s.save;
-  const after = (s.said ? `<p class="note" id="${esc(s.said)}"></p>` : '') + (s.after || '');
+  const after = (s.said ? cardBlock_({ type: 'group', tag: 'p', look: 'note', id: s.said }) : '') + (s.after || '');
   const card = { title: s.title, cls: s.cls, attrs: s.attrs, lead: s.lead, save: save, after: after };
   if (s.groups) return setCard_(Object.assign(card, { form: fields, formAttrs: s.formAttrs, foot: s.foot }));
   return setCard_(Object.assign(card, { body: (s.body || '') + boxes + ticks + (s.tail || '') }));
 }
 
 /* THE RAW BOXES: every input, menu and text area on a Settings screen is written by these, so a box has one shape everywhere. `a` is its attribute text. */
-const formInput_ = a => `<input ${a}>`;
-const formSelect_ = (a, opts) => `<select ${a}>${opts}</select>`;
-const formArea_ = (a, text) => `<textarea ${a}>${esc(text == null ? '' : String(text))}</textarea>`;
+/* Each is a `control` block, its attribute text read into data by `cardAttrsOf_` (cards-render.js). */
+const formInput_ = a => cardBlock_({ type: 'control', attrs: cardAttrsOf_(a) });
+const formSelect_ = (a, opts) => cardBlock_({ type: 'control', tag: 'select', attrs: cardAttrsOf_(a), inner: opts });
+const formArea_ = (a, text) => cardBlock_({ type: 'control', tag: 'textarea', attrs: cardAttrsOf_(a), value: text == null ? '' : String(text) });
 const formHidden_ = (a, v, more) => formInput_(`type="hidden" ${a} value="${esc(v == null ? '' : String(v))}"${more || ''}`);
 const formFile_ = (cls, accept) => formInput_(`type="file" class="${cls}" accept="${accept}" hidden`);
 /* A LABELLED LINE: a faint name over its box; `cls` adds to class="field". */
-const formLine_ = (label, box, cls) => `<label class="field${cls ? ' ' + cls : ''}">${label != null && label !== '' ? `<span>${esc(label)}</span>` : ''}${box}</label>`;
+const formLine_ = (label, box, cls) => cardBlock_({ type: 'field', look: cls || '', cap: label, inner: box });
 /* A TICK: `a` is the checkbox's attributes, `say` the html beside the box. */
-const formTick_ = (a, say, cls, la) => `<label class="check${cls ? ' ' + cls : ''}"${la ? ' ' + la : ''}>${formInput_('type="checkbox" ' + a)}<span class="box"></span>${say}</label>`;
+const formTick_ = (a, say, cls, la) => cardBlock_({ type: 'group', tag: 'label', look: 'check' + (cls ? ' ' + cls : ''), attrs: cardAttrsOf_(la),
+  blocks: [{ type: 'control', attrs: cardAttrsOf_('type="checkbox" ' + a) }, { type: 'group', tag: 'span', look: 'box' }], inner: say });
 /* A SLIDER WITH ITS TYPED TWIN: both carry `a` (their data- key), so dragging and typing write the same value. */
 function formSlider_(a, o) {
   return formInput_(`type="range" ${a} data-noswipe min="${o.min}" max="${o.max}" step="${o.step}" value="${o.value}" aria-label="${esc(o.label)}"${o.id ? ` id="${o.id}"` : ''}`)
@@ -82,6 +85,6 @@ function formSlider_(a, o) {
 }
 /* A PHONE: the country-code menu and the number, side by side, saved as you type under `cc` and `no`. */
 function formPhone_(cc, no, ccOpts, noAttrs) {
-  return `<label class="field">${formSelect_(`data-me="${cc}" aria-label="Country code"`, ccOpts)}</label>
-      <label class="field">${formInput_(`type="tel" data-me="${no}" inputmode="tel" autocomplete="off" ${noAttrs || ''}`)}</label>`;
+  return formLine_('', formSelect_(`data-me="${cc}" aria-label="Country code"`, ccOpts))
+    + formLine_('', formInput_(`type="tel" data-me="${no}" inputmode="tel" autocomplete="off" ${noAttrs || ''}`));
 }
