@@ -146,7 +146,7 @@ labels.filter((l, i) => labels.indexOf(l) !== i).forEach(l => bad.push('expected
 
 /* ---------- THE CARD: empty or absent list says so; a list draws a fold per qualification ---------- */
 M.MISSING.list = [];
-if (!/Nothing listed to expect yet/.test(M.body())) bad.push('an empty list does not say "Nothing listed to expect yet"');
+if (!/Nothing listed to expect yet/.test(JSON.stringify(M.body()))) bad.push('an empty list does not say "Nothing listed to expect yet"');
 
 if (require('../check/quiet').VERBOSE) {
   console.log('today: ' + real.waiting + ' papers waiting for their words');

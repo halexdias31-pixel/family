@@ -833,8 +833,8 @@ const kcfTickB_ = b => `<label class="check${b.look ? ' ' + esc(b.look) : ''}"${
 const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.label)}</span>${kcfControl_(b.hidden || {})}<details class="many-d" data-many="${esc(b.key)}"${b.open ? ' open' : ''}>`
   + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
-/* A GROUP: a div (or a span, or a line) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
-const kcfGroup_ = b => { const tag = /^(span|p)$/.test(b.tag) ? b.tag : 'div';
+/* A GROUP: a div (or a span, a line, or a fold and its summary) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
+const kcfGroup_ = b => { const tag = /^(span|p|details|summary)$/.test(b.tag) ? b.tag : 'div';
   return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
@@ -13673,16 +13673,22 @@ document.addEventListener('change', e => {
 
 ;
 /* ==== js/me-people.js ==== */
+/* THE PEOPLE CARDS ARE DATA (owner, 14 Nov: one card maker): a part is a `group` block, a line a `p` group, drawn by cards-render. */
+const pplG_ = (look, inner, more) => cardBlock_(Object.assign({ type: 'group', look, inner: [].concat(inner == null ? [] : inner).join('') }, more || {}));
+const pplP_ = (look, text, more) => cardBlock_(Object.assign({ type: 'group', tag: 'p', look, text }, more || {}));
+/* A HEADED PEOPLE CARD: its heading the name and one tag, its look and data on the card, its parts the one embed. */
+const pplCard_ = (look, name, parts, data) => renderCard({ kind: 'setting', look, name, tags: name ? [name] : [], data: data || {},
+  body: [{ type: 'embed', tool: 'me-form', args: { draw: () => [].concat(parts).join('') } }] });
+const pplSelect_ = (attrs, options) => cardBlock_({ type: 'control', tag: 'select', attrs, options });
 function peopleAddPage_(col) {
   if (!peopleMay_()) return '';
   col = PEOPLE_ADD_[col] ? col : 'students';
   const F = PEOPLE_FORM_, plus = addCard_({ act: 'person-add', label: PEOPLE_ADD_[col].say, data: { col } });
   if (F && !F.id && (F.col || 'students') !== col) return plus;
   if (F && !F.id && F.made) {
-    return meCard_(`<div class="person-made"><h3>${esc(F.made.first)} is on the people tab</h3>
-      ${pinSlip_(F.made.first, F.made.handle, F.made.pin)}
-      <p class="note">Write it down or read it to them — the PIN is not shown again.</p>
-      ${tile_({ form: true, label: 'Done', act: 'person-cancel', kind: 'quiet' })}</div>`);
+    return pplCard_('person-made', F.made.first + ' is on the people tab', [pinSlip_(F.made.first, F.made.handle, F.made.pin),
+      pplP_('note', 'Write it down or read it to them — the PIN is not shown again.'),
+      tile_({ form: true, label: 'Done', act: 'person-cancel', kind: 'quiet' })]);
   }
   if (F && !F.id) return personFormHtml_(F);
   return plus;
@@ -13704,12 +13710,10 @@ function psPublic_() {
 }
 function psCard_(who, tiles) {
   const first = String(nameBesideHandle_(who.title, who.handle) || who.title || '').trim();
-  return `<div class="ps-hit">
-    ${personFace_({ pic: who.image, avatar: who.avatar, handle: who.handle, name: first, personId: who.personId },
-                  { cls: 'kid-face', none: 'prof-none', size: 36 })}
-    <p class="kid-who"><b>${esc(first)}</b><span class="prof-handle">@${esc(who.handle)}</span>${who.role ? `${qtag_(`${esc(who.role)}`, '', `ps-role`)}` : ''}</p>
-    ${tiles ? `<div class="tile-row">${tiles}</div>` : ''}
-  </div>`;
+  return pplG_('ps-hit', [personFace_({ pic: who.image, avatar: who.avatar, handle: who.handle, name: first, personId: who.personId },
+                  { cls: 'kid-face', none: 'prof-none', size: 36 }),
+    pplP_('kid-who', [{ b: first }, { span: 'prof-handle', text: '@' + who.handle }], { inner: who.role ? qtag_(esc(who.role), '', 'ps-role') : '' }),
+    tiles ? pplG_('tile-row', tiles) : '']);
 }
 /* WHO MAY LOOK UP A CHILD — Client and up (400); the server asks the same. Only on Students: the lookup's one use is Add as my child. */
 const psMayChild_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('client');
@@ -13728,17 +13732,16 @@ function psResults_(col) {
       linked ? '' : tile_({ icon: 'join', label: 'Add as my child', note: 'they say yes first', act: 'ps-add-child',
                             data: { handle: c.handle } })));
   }
-  if (!out.length) out.push(`<p class="note ps-none">${exact ? 'Nobody has that handle.' : 'Nobody’s handle starts with that.'}</p>`);
+  if (!out.length) out.push(pplP_('note ps-none', exact ? 'Nobody has that handle.' : 'Nobody’s handle starts with that.'));
   return out.join('');
 }
 /* ONE SEARCH BAR AND NOTHING ELSE (469, 770): the owner, "remove find button" — Return asks, on Students, for a child's exact handle. */
 function peopleSearchPage_(col) {
   if (!USER) return '';
   const c = col || 'students', S = psState_(c);
-  return meCard_(`<div class="ps-card" data-ps-col="${esc(c)}">
-    <div class="ps-bar">${searchPill_(`data-psearch aria-label="Find someone by handle" placeholder="@handle" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(S.q)}"`)}</div>
-    <div class="ps-out" aria-live="polite">${psResults_(c)}</div>
-  </div>`);
+  return meCard_(pplG_('ps-card', [
+    pplG_('ps-bar', searchPill_(`data-psearch aria-label="Find someone by handle" placeholder="@handle" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(S.q)}"`)),
+    pplG_('ps-out', psResults_(c), { attrs: { 'aria-live': 'polite' } })], { attrs: { 'data-ps-col': c } }));
 }
 const psColOf_ = el => { const card = el && el.closest ? el.closest('.ps-card') : null; return (card && card.getAttribute('data-ps-col')) || 'students'; };
 /* ITS OWN CARD'S RESULTS, AND ONE RELAYOUT WHEN THE TYPING STOPS (770): re-placing every column on each key was the jump the owner saw. */
@@ -13793,11 +13796,10 @@ function personFormFor_(p, col) {
 }
 
 function personFormHtml_(F) {
-  const head = `<h3>${F.id ? 'Edit ' + esc((F.data && F.data.person && F.data.person.firstName) || 'them') : 'A new person'}</h3>`;
+  const head = F.id ? 'Edit ' + ((F.data && F.data.person && F.data.person.firstName) || 'them') : 'A new person', pid = { pid: F.id };
   if (!F.data) {
     if (!F.asked && !F.err) { F.asked = true; setTimeout(() => personFetch_(F), 0); }
-    return meCard_(`<div class="person-form" data-pid="${esc(F.id)}">${head}${F.err
-      ? `${tile_({ form: true, label: 'Close', act: 'person-cancel', kind: 'quiet' })}` : loading_()}</div>`);
+    return pplCard_('person-form', head, F.err ? tile_({ form: true, label: 'Close', act: 'person-cancel', kind: 'quiet' }) : loading_(), pid);
   }
   const p = F.data.person || { firstName: '', lastName: '', roles: [F.role || 'student'], email: '', dob: '', parentIds: [] };
   const choices = Array.isArray(F.data.parents) ? F.data.parents : [];
@@ -13806,21 +13808,19 @@ function personFormHtml_(F) {
   const kid = (p.roles || []).indexOf('student') !== -1;
   const box = (k, ph, v, type) => formLine_('', formInput_(`data-pf="${k}" placeholder="${esc(ph)}"
     autocomplete="off"${type ? ` type="${type}"` : ''} value="${esc(v || '')}"`));
-  return meCard_(`<div class="person-form" data-pid="${esc(F.id)}">${head}
-    <div class="f-row" style="--n:2">${box('first', 'First name', p.firstName)}${box('last', 'Last name', p.lastName)}</div>
-    <div class="pf-roles" role="group" aria-label="Role">${peopleRolePicks_().map(([r, label]) => formTick_(`data-pf-role="${r}"${(p.roles || []).indexOf(r) !== -1 ? ' checked' : ''}`, `<span>${label}</span>`)).join('')}</div>
-    ${box('email', 'Email (optional)', p.email, 'email')}
-    ${formLine_('Date of birth (optional)', formInput_(`type="date" data-pf="dob" value="${esc(p.dob || '')}"`))}
-    <div class="pf-parents"${kid ? '' : ' hidden'}>
-      ${has.map(id => formTick_(`data-pf-parent="${esc(id)}" checked`, `<span>${esc(nameOf(id))}</span>`)).join('')}
-      ${formLine_(has.length ? 'Another parent' : 'Their parent (optional)', formSelect_('data-pf="parent"', `
-        <option value="">None</option>${choices.filter(c => has.indexOf(c.personId) === -1).map(c =>
-          `<option value="${esc(c.personId)}">${esc(c.name)}</option>`).join('')}`))}
-    </div>
-    <p class="note pf-said" aria-live="polite"></p>
-    <div class="pf-go">${tile_({ form: true, label: F.id ? 'Save' : 'Add them', act: 'person-save' })}
-      ${tile_({ form: true, label: 'Cancel', act: 'person-cancel', kind: 'quiet' })}</div>
-  </div>`);
+  const said = t => cardRuns_({ span: '', text: t });
+  return pplCard_('person-form', head, [
+    pplG_('f-row', [box('first', 'First name', p.firstName), box('last', 'Last name', p.lastName)], { attrs: { style: '--n:2' } }),
+    pplG_('pf-roles', peopleRolePicks_().map(([r, label]) => formTick_(`data-pf-role="${r}"${(p.roles || []).indexOf(r) !== -1 ? ' checked' : ''}`, said(label))),
+      { attrs: { role: 'group', 'aria-label': 'Role' } }),
+    box('email', 'Email (optional)', p.email, 'email'),
+    formLine_('Date of birth (optional)', formInput_(`type="date" data-pf="dob" value="${esc(p.dob || '')}"`)),
+    pplG_('pf-parents', [has.map(id => formTick_(`data-pf-parent="${esc(id)}" checked`, said(nameOf(id)))).join(''),
+      formLine_(has.length ? 'Another parent' : 'Their parent (optional)', pplSelect_({ 'data-pf': 'parent' }, [{ value: '', text: 'None' }]
+        .concat(choices.filter(c => has.indexOf(c.personId) === -1).map(c => ({ value: c.personId, text: c.name })))))], { attrs: { hidden: !kid } }),
+    pplP_('note pf-said', '', { attrs: { 'aria-live': 'polite' } }),
+    pplG_('pf-go', [tile_({ form: true, label: F.id ? 'Save' : 'Add them', act: 'person-save' }),
+      tile_({ form: true, label: 'Cancel', act: 'person-cancel', kind: 'quiet' })])], pid);
 }
 
 function peopleRedraw_() {
@@ -13913,7 +13913,7 @@ on('pin-show', el => {
       const line = document.createElement('p');
       line.className = 'note person-pin';
       line.setAttribute('data-id', id);
-      line.innerHTML = d.pin ? 'PIN <b>' + esc(d.pin) + '</b>' : esc(d.said || 'No PIN');
+      line.innerHTML = cardRuns_(d.pin ? ['PIN ', { b: String(d.pin) }] : String(d.said || 'No PIN'));
       row.after(line);
     })
     .catch(() => {});
@@ -13948,27 +13948,26 @@ function personEdHtml_(p) {
   const F = PERSON_ED_;
   if (!F || !p || !p.personId || String(p.personId) !== F.id || !personEdMay_()) return '';
   const done = tile_({ form: true, label: 'Done', act: 'person-edit-done', kind: 'quiet' });
-  if (!F.data) return `<div class="pe-form" data-pid="${esc(F.id)}">${F.err ? `<p class="note pe-said">${esc(F.err)}</p>` + done : loading_()}</div>`;
+  const at = { attrs: { 'data-pid': F.id } };
+  if (!F.data) return pplG_('pe-form', F.err ? [pplP_('note pe-said', F.err), done] : loading_(), at);
   const q = F.data.person || {};
   const box = (f, k) => formField_(f, q[k] || '', { attr: 'data-pe', draft: false,
     extra: f === 'email' ? 'type="email" autocomplete="off"' : f === 'phone' ? 'type="tel"' : 'autocomplete="off"' });
   const tutor = (q.roles || []).indexOf('tutor') !== -1;
-  return `<div class="pe-form" data-pid="${esc(F.id)}">
-    ${PE_BOXES_.slice(0, 2).map(([f, k]) => box(f, k)).join('')}
-    ${formField_('handle', q.handle ? '@' + q.handle : '', { attr: 'data-pe', draft: false, readonly: true, label: 'handle (theirs to change)' })}
-    ${formLine_('date of birth', formInput_(`type="date" data-pe="dob" value="${esc(q.dob || '')}"`))}
-    ${PE_BOXES_.slice(2).map(([f, k]) => box(f, k)).join('')}
-    ${peFamHtml_(F)}
-    ${peNotifyHtml_(F)}
-    ${tutor ? `<p class="note pe-fam">${q.listed === '' || TRUEish_(q.listed) ? 'Listed' : 'Not listed'}: the eye on their tutor card changes it</p>` : ''}
-    <p class="note pe-said" aria-live="polite"></p>${done}</div>`;
+  return pplG_('pe-form', [PE_BOXES_.slice(0, 2).map(([f, k]) => box(f, k)).join(''),
+    formField_('handle', q.handle ? '@' + q.handle : '', { attr: 'data-pe', draft: false, readonly: true, label: 'handle (theirs to change)' }),
+    formLine_('date of birth', formInput_(`type="date" data-pe="dob" value="${esc(q.dob || '')}"`)),
+    PE_BOXES_.slice(2).map(([f, k]) => box(f, k)).join(''),
+    peFamHtml_(F), peNotifyHtml_(F),
+    tutor ? pplP_('note pe-fam', (q.listed === '' || TRUEish_(q.listed) ? 'Listed' : 'Not listed') + ': the eye on their tutor card changes it') : '',
+    pplP_('note pe-said', '', { attrs: { 'aria-live': 'polite' } }), done], at);
 }
 /* THEIR NOTIFICATIONS: the kinds their own card shows, ticked as the sheet says; each tick is `setNotify` with targetId (admin-checked there). */
 function peNotifyHtml_(F) {
   const n = F.data && F.data.notify, opt = ((n && n.kinds) || []).filter(k => k && !k.essential);
   if (!opt.length) return '';
-  return `<div class="pe-notify"><p class="note pe-fam">Notifications they get</p>${opt.map(k => formToggle_({ act: 'pe-notify', data: { kind: k.kind },
-    on: !!k.on, label: k.label, note: k.note || '' })).join('')}</div>`;
+  return pplG_('pe-notify', [pplP_('note pe-fam', 'Notifications they get')].concat(opt.map(k => formToggle_({ act: 'pe-notify', data: { kind: k.kind },
+    on: !!k.on, label: k.label, note: k.note || '' }))));
 }
 on('pe-notify', el => {
   const F = PERSON_ED_, kind = String((el && el.dataset.kind) || ''), want = !!(el && el.checked);
@@ -14049,8 +14048,8 @@ function famHits_(q, want, skip) {
 const FAM_ACT_ = { pa: { act: 'pa-pick', skip: () => ((PERSON_ADD_ && PERSON_ADD_.picked) || []).map(x => x.id) },
   pe: { act: 'pe-link', skip: () => peLinked_().concat([String((PERSON_ED_ || {}).id || '')]) },
   lens: { act: 'lens-pick', skip: () => [String((USER || {}).personId || '')] } };
-const famPick_ = (scope, want, label) => `<div class="fam-pick">${formLine_(label, formInput_(`data-fam-q="${scope}" data-fam-want="${want}" type="search" autocomplete="off" placeholder="name or @handle"`))}
-  <div class="tile-row fam-hits" data-fam-hits="${scope}"></div></div>`;
+const famPick_ = (scope, want, label) => pplG_('fam-pick', [formLine_(label, formInput_(`data-fam-q="${scope}" data-fam-want="${want}" type="search" autocomplete="off" placeholder="name or @handle"`)),
+  pplG_('tile-row fam-hits', '', { attrs: { 'data-fam-hits': scope } })]);
 document.addEventListener('input', e => {
   const box = e.target;
   if (!box || !box.matches || !box.matches('[data-fam-q]')) return;
@@ -14069,29 +14068,28 @@ const personAddMay_ = () => peopleMay_() && typeof uiMay_ === 'function' && uiMa
 const PA_ROLES_ = [['student', 'Student'], ['client', 'Parent'], ['tutor', 'Tutor']];
 const paState_ = () => PERSON_ADD_ || (PERSON_ADD_ = { role: 'student', v: {}, picked: [] });
 function paPickedHtml_(F) {
-  return `<div class="pa-picked">${F.picked.map(x => `<div class="tile-row"><span class="note">${esc(x.name)}</span>${
-    tile_({ form: true, kind: 'quiet', label: 'Remove', act: 'pa-unpick', data: { id: x.id } })}</div>`).join('')}</div>`;
+  return pplG_('pa-picked', F.picked.map(x => pplG_('tile-row', [cardBlock_({ type: 'group', tag: 'span', look: 'note', text: x.name }),
+    tile_({ form: true, kind: 'quiet', label: 'Remove', act: 'pa-unpick', data: { id: x.id } })])));
 }
 function personAddCard_() {
   if (!personAddMay_()) return '';
   const F = paState_(), v = k => esc(F.v[k] || '');
   if (F.made) {
-    return meCard_(`<div class="is-prof prof-door pa-card"><h3>${esc(F.made.first)} is added</h3>
-      ${F.made.pin ? pinSlip_(F.made.first, F.made.handle, F.made.pin) + '<p class="note">Write it down or read it to them — the PIN is not shown again.</p>'
-        : `<p class="note">The PIN went to ${esc(F.made.email)}, with the handle @${esc(F.made.handle)}.</p>`}
-      ${F.made.said ? `<p class="note">${esc(F.made.said)}</p>` : ''}
-      ${tile_({ form: true, label: 'Add another', act: 'pa-again', kind: 'quiet' })}</div>`);
+    return pplCard_('is-prof prof-door pa-card', F.made.first + ' is added', [
+      F.made.pin ? pinSlip_(F.made.first, F.made.handle, F.made.pin) + pplP_('note', 'Write it down or read it to them — the PIN is not shown again.')
+        : pplP_('note', `The PIN went to ${F.made.email}, with the handle @${F.made.handle}.`),
+      F.made.said ? pplP_('note', F.made.said) : '',
+      tile_({ form: true, label: 'Add another', act: 'pa-again', kind: 'quiet' })]);
   }
   const kid = F.role === 'student', tutor = F.role === 'tutor';
   const box = (k, ph, type) => formLine_('', formInput_(`data-pa="${k}" placeholder="${esc(ph)}" autocomplete="off"${type ? ` type="${type}"` : ''} value="${v(k)}"`));
-  return meCard_(`<div class="is-prof prof-door pa-card"><h3>Add a person</h3>
-    ${box('first', 'First name')}${box('last', 'Last name')}
-    ${formLine_('Role', formSelect_('data-pa="role"', PA_ROLES_.map(([r, l]) => `<option value="${r}"${r === F.role ? ' selected' : ''}>${l}</option>`).join('')))}
-    ${box('email', kid ? 'Email (optional)' : 'Email', 'email')}
-    ${formLine_('Date of birth (optional)', formInput_(`type="date" data-pa="dob" value="${v('dob')}"`))}
-    ${tutor ? '' : famPick_('pa', kid ? 'client' : 'student', kid ? 'Their parent' : 'Their child') + paPickedHtml_(F)}
-    <p class="note pa-said" aria-live="polite"></p>
-    <div class="pf-go">${tile_({ form: true, label: 'Add them', act: 'pa-save' })}</div></div>`);
+  return pplCard_('is-prof prof-door pa-card', 'Add a person', [box('first', 'First name'), box('last', 'Last name'),
+    formLine_('Role', pplSelect_({ 'data-pa': 'role' }, PA_ROLES_.map(([r, l]) => ({ value: r, text: l, on: r === F.role })))),
+    box('email', kid ? 'Email (optional)' : 'Email', 'email'),
+    formLine_('Date of birth (optional)', formInput_(`type="date" data-pa="dob" value="${v('dob')}"`)),
+    tutor ? '' : famPick_('pa', kid ? 'client' : 'student', kid ? 'Their parent' : 'Their child') + paPickedHtml_(F),
+    pplP_('note pa-said', '', { attrs: { 'aria-live': 'polite' } }),
+    pplG_('pf-go', tile_({ form: true, label: 'Add them', act: 'pa-save' }))]);
 }
 const paRedraw_ = () => { try { if (typeof paintStuff === 'function' && typeof FINDER !== 'undefined') inFinder_(FINDER, () => paintStuff(true)); } catch (e) { oops_(e, 'add-person:redraw'); } };
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
@@ -14151,10 +14149,10 @@ function peFamHtml_(F) {
   const side = (say, key, want, mine, add) => {
     const ids = (q[key] || []).filter(Boolean);
     if (!ids.length && roles.indexOf(mine) === -1) return '';
-    return `<p class="note pe-fam">${esc(say)}</p>${ids.map(id => `<div class="tile-row"><span class="note">${esc(displayName_(peNameOf_(id, F.data)))}</span>${
-      tile_({ form: true, kind: 'quiet', label: 'Remove', act: 'pe-unlink', data: { id, side: key } })}</div>`).join('')}${famPick_('pe', want, add)}`;
+    return pplP_('note pe-fam', say) + ids.map(id => pplG_('tile-row', [cardBlock_({ type: 'group', tag: 'span', look: 'note', text: displayName_(peNameOf_(id, F.data)) }),
+      tile_({ form: true, kind: 'quiet', label: 'Remove', act: 'pe-unlink', data: { id, side: key } })])).join('') + famPick_('pe', want, add);
   };
-  return `<div class="pe-fambox">${side('Linked parents', 'parentIds', 'client', 'student', 'Add a parent')}${side('Linked children', 'childIds', 'student', 'client', 'Add a child')}</div>`;
+  return pplG_('pe-fambox', [side('Linked parents', 'parentIds', 'client', 'student', 'Add a parent'), side('Linked children', 'childIds', 'student', 'client', 'Add a child')]);
 }
 const peFamPaint_ = form => { const at = form && form.querySelector('.pe-fambox'); if (at && PERSON_ED_) at.outerHTML = peFamHtml_(PERSON_ED_); };
 /* WHICH WAY ROUND: a hit under "Add a parent" is the parent of the card's person; a Remove names its own side. */
@@ -17630,14 +17628,14 @@ function healthCardOf_(which) {
   if (which === 'health') { try { return healthWithMissing_(siteHealthCard_(true)); } catch (e) { oops_(e, 'site health'); return ''; } }
   const all = (() => { try { return missingLeadCards_(); } catch (e) { oops_(e, 'health card'); return []; } })();
   const l = LOGIC_SHOWN && logicFor_() ? 1 : 0;
-  return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || card_('<div>' + empty_() + '</div>');
+  return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || renderCard({ kind: 'panel', body: [{ type: 'text', look: 'empty', text: typeof NOTHING_YET === 'string' ? NOTHING_YET : 'Nothing yet' }] });
 }
 
 /* ---------- SITE HEALTH (890): data/health.json, written by tools/health.js — code 40%, Find logic 35%, UI 25%, mechanical ---------- */
 const HEALTH = { got: null, failed: false, asked: false, all: false };
 function siteHealthCard_(raw) {
-  /* `raw`: its plain html, for What’s missing to join before it is built. */
-  const out = h => (raw ? h : card_(h));
+  /* `raw`: its blocks, for What’s missing to join before the card is drawn. */
+  const out = b => (raw ? b : healthCardSpec_(b));
   if (!HEALTH.asked && typeof fetch === 'function') {
     HEALTH.asked = true;
     Promise.resolve()
@@ -17647,32 +17645,36 @@ function siteHealthCard_(raw) {
       .catch(() => { HEALTH.failed = true; })
       .then(() => { try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
   }
-  const s = HEALTH.got, head = '<h3>Optimiser worklist</h3>';
-  if (!s) return out(`<div class="logic-card">${head}${HEALTH.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/health.js and push.</p>' : loading_()}</div>`);
-  const p = s.parts || {}, list = (HEALTH.all ? s.all : s.top) || [];
+  const s = HEALTH.got;
+  if (!s) return out([HEALTH.failed ? healthSaid_('The score could not be read. Run node tools/health.js and push.') : { type: 'wait', on: true }]);
+  const list = (HEALTH.all ? s.all : s.top) || [];
   const said = { code: 'Code', logic: 'Find logic', ui: 'UI' };
-  return out(`<div class="logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
-    ${s.next ? `<p><b>${esc(String(s.next))}</b></p>` : ''}${healthTrend_(s.trend)}
-    <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} ${qtag_(`${esc(said[t.part] || t.part)}, −${esc(String(t.cost))}`)}</li>`).join('')}</ol>
-    ${healthWork_(s.worklist)}
-    ${(s.all || []).length > 5 ? tileRow_(tile_({ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top 5' : 'Show the full list', act: 'health-all' }), '', true) : ''}</div>`);
+  return out([{ type: 'group', tag: 'p', look: 'stab-score', text: String(s.score) + '%' },
+    s.next ? { type: 'group', tag: 'p', text: { b: String(s.next) } } : null, healthTrend_(s.trend),
+    { type: 'list', ordered: true, look: 'stab-top', items: list.map(t => [String(t.say) + ' ', { span: 'qtag', text: `${said[t.part] || t.part}, −${t.cost}` }]) },
+    healthWork_(s.worklist),
+    (s.all || []).length > 5 ? { type: 'tiles', tiles: [{ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top 5' : 'Show the full list', act: 'health-all' }] } : null].filter(Boolean));
 }
+/* A HEALTH CARD FROM ITS BLOCKS, through the one card maker; its name is its first tag. */
+const healthCardSpec_ = (body, look, name) => renderCard({ kind: 'panel', look: look || 'logic-card', name, tags: [name || 'Optimiser worklist'], body });
+/* A LINE SAID ALOUD WHEN A SCORE COULD NOT BE READ. */
+const healthSaid_ = text => ({ type: 'group', tag: 'p', look: 'note', attrs: { role: 'alert' }, text });
 /* THE TREND (920): the last thirty full runs as one thin line in the text colour, and the commit of the worst drop. */
 function healthTrend_(t) {
   const v = (t && Array.isArray(t.last) ? t.last : []).map(Number).filter(n => isFinite(n));
-  if (v.length < 2) return '';
+  if (v.length < 2) return null;
   const lo = Math.min(...v), hi = Math.max(...v), span = hi - lo || 1;
   const pts = v.map((n, i) => (i * 100 / (v.length - 1)).toFixed(1) + ',' + (22 - (n - lo) / span * 20).toFixed(1)).join(' ');
-  const d = t.worstDrop;
-  return `<svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none" role="img" aria-label="Score over the last ${v.length} runs"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`;
+  return { type: 'drawing', node: { el: 'svg', a: { viewBox: '0 0 100 24', width: '100%', height: '24', preserveAspectRatio: 'none', role: 'img', 'aria-label': `Score over the last ${v.length} runs` },
+    kids: [{ el: 'polyline', a: { points: pts, fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5', 'vector-effect': 'non-scaling-stroke' } }] } };
 }
 /* THE FIXER'S FIRST FIVE (920): the dearest findings of tools/health.js's worklist, each where it is and what it is, in plain words. */
 const HEALTH_SAY = { 'one-off': 'A special case for one name', 'long-fn': 'A long function', 'big-file': 'A very big file',
   dup: 'A copied block', nest: 'Code nested too deep', catch: 'An error swallowed silently' };
 function healthWork_(w) {
   const top = (Array.isArray(w) ? w : []).slice(0, 5);
-  if (!top.length) return '';
-  return `<ol class="stab-top">${top.map(f => `<li><b>${esc(String(f.file))}:${esc(String(f.line))}</b> · ${esc(HEALTH_SAY[f.kind] || String(f.kind))}<br>${qtag_(`${esc(String(f.text || ''))}`)}</li>`).join('')}</ol>`;
+  if (!top.length) return null;
+  return { type: 'list', ordered: true, look: 'stab-top', items: top.map(f => [{ b: `${f.file}:${f.line}` }, ' · ' + (HEALTH_SAY[f.kind] || String(f.kind)) + ' ', { span: 'qtag', text: String(f.text || '') }]) };
 }
 on('health-all', () => { HEALTH.all = !HEALTH.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 
@@ -17695,14 +17697,13 @@ function logicCard_() {
       .catch(() => { LOGIC.failed = true; })
       .then(() => { try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
   }
-  const s = LOGIC.got, head = '<h3>Logic health</h3>';
-  if (!s) return card_(`<div class="logic-card">${head}${LOGIC.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/logic-health.js and push.</p>' : loading_()}</div>`);
-  const rules = (s.rules || []).filter(r => r.count > 0).sort((a, b) => b.count - a.count);
+  const s = LOGIC.got;
+  if (!s) return healthCardSpec_([LOGIC.failed ? healthSaid_('The score could not be read. Run node tools/logic-health.js and push.') : { type: 'wait', on: true }], '', 'Logic health');
   const top = (s.top || []).slice(0, LOGIC.all ? 25 : 3);
-  const line = t => `<li><b>${esc(t.where)}</b> · ${esc(t.asks || '')}<br>${qtag_(`${esc((t.why || []).join(' · '))}`)}</li>`;
-  return card_(`<div class="logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
-    <ol class="stab-top">${top.map(line).join('')}</ol>
-    ${(s.top || []).length > 3 ? tileRow_(tile_({ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top 3' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }), '', true) : ''}</div>`);
+  const line = t => [{ b: t.where }, ' · ' + (t.asks || '') + ' ', { span: 'qtag', text: (t.why || []).join(' · ') }];
+  return healthCardSpec_([{ type: 'group', tag: 'p', look: 'stab-score', text: String(s.score) + '%' },
+    { type: 'list', ordered: true, look: 'stab-top', items: top.map(line) },
+    (s.top || []).length > 3 ? { type: 'tiles', tiles: [{ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top 3' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }] } : null].filter(Boolean), '', 'Logic health');
 }
 on('logic-all', () => { LOGIC.all = !LOGIC.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 
@@ -17724,7 +17725,7 @@ function missingAsk_() {
 function missingRepaint_() {
   const el = document.getElementById('miss-body');
   if (!el) return;
-  const html = missingBody_();
+  const html = cardBlocks_(missingBody_());
   if (missingWaits_()) return;
   /* THE CARD'S OWN TILES JOINED INTO THE LIST'S ROW (tileRowsJoin_, 489) are kept, so The list never takes Delete away (660). */
   const kept = [...el.querySelectorAll('.tile-group')];
@@ -17822,48 +17823,42 @@ function missingNow_() {
 
 /* ---------- THE CARD ---------- */
 const missingPapers_ = codes => (codes.length > 1 ? 'Papers ' : 'Paper ') + codes.join(', ');
+const missingKV_ = (k, v) => [{ type: 'group', tag: 'span', look: 'k', text: k }, { type: 'group', tag: 'span', look: 'v', text: v }];
 function missingQual_(g) {
-  const k = `<span class="k">${esc(g.q.label)}</span>`;
-  if (!g.missing) {
-    return `<div class="row miss-done">${k}<span class="v">complete${g.waiting ? ' · ' + g.waiting + ' waiting' : ''}</span></div>`;
-  }
+  if (!g.missing) return { type: 'group', look: 'miss-done', blocks: [{ type: 'list', items: [{ label: g.q.label, value: 'complete' + (g.waiting ? ' · ' + g.waiting + ' waiting' : '') }] }] };
   const say = g.missing === g.want ? 'none yet' : g.missing + ' missing';
-  const lines = g.gaps.map(x => rowHtml(x.sitting, esc(missingPapers_(x.papers)))).join('');
-  const wait = g.waiting ? rowHtml('Waiting for their words', g.waiting) : '';
+  const lines = g.gaps.map(x => ({ label: x.sitting, value: missingPapers_(x.papers) }));
+  if (g.waiting) lines.push({ label: 'Waiting for their words', value: String(g.waiting) });
   const id = g.q.label;
-  return `<details class="miss-q" data-q="${esc(id)}"${MISSING_OPEN.has(id) ? ' open' : ''}>
-      <summary class="row">${k}<span class="v">${esc(say)}</span></summary>
-      <div class="miss-gaps">${lines}${wait}</div>
-    </details>`;
+  return { type: 'group', tag: 'details', look: 'miss-q', attrs: { 'data-q': id, open: MISSING_OPEN.has(id) }, blocks: [
+    { type: 'group', tag: 'summary', look: 'row', blocks: missingKV_(g.q.label, say) },
+    { type: 'group', look: 'miss-gaps', blocks: [{ type: 'list', items: lines }] }] };
 }
 /* IS THE LIST STILL COMING: asked of the waits, never of the HTML drawn for them. */
 const missingWaits_ = () => MISSING.list === null || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null);
 function missingBody_() {
   missingAsk_();
-  if (missingWaits_()) return loading_();
+  if (missingWaits_()) return [{ type: 'wait', on: true }];
   const r = missingNow_();
-  const unread = r.unread ? `<p class="note">${r.unread} ${r.unread === 1 ? 'line' : 'lines'} of expected-papers.json not understood.</p>` : '';
-  if (!r.quals.length) return '<p class="note">Nothing listed to expect yet.</p>' + unread;
+  const unread = r.unread ? { type: 'group', tag: 'p', look: 'note', text: `${r.unread} ${r.unread === 1 ? 'line' : 'lines'} of expected-papers.json not understood.` } : null;
+  if (!r.quals.length) return [{ type: 'group', tag: 'p', look: 'note', text: 'Nothing listed to expect yet.' }, unread].filter(Boolean);
   /* ONE LINE, THEN THE LIST ON A TILE (660): "needs to be smaller". The summary counts; the tile opens what it counted. */
   const papers = r.quals.reduce((n, g) => n + g.missing, 0), gaps = r.quals.filter(g => g.missing).length;
   const say = (papers ? papers + ' ' + (papers === 1 ? 'paper' : 'papers') + ' missing in ' + gaps + ' of ' + r.quals.length
     : 'All ' + r.quals.length + ' complete') + (r.waiting ? ' · ' + r.waiting + ' waiting for words' : '');
-  const tile = typeof tile_ === 'function'
-    ? `<div class="tile-row">${tile_({ icon: MISSING.all ? 'up' : 'down', label: MISSING.all ? 'Fewer' : 'The list', act: 'miss-all' })}</div>` : '';
-  return `<p class="miss-sum">${esc(say)}</p>` + (MISSING.all ? r.quals.map(missingQual_).join('') : '') + tile + unread;
+  return [{ type: 'group', tag: 'p', look: 'miss-sum', text: say }].concat(MISSING.all ? r.quals.map(missingQual_) : [],
+    [{ type: 'tiles', tiles: [{ icon: MISSING.all ? 'up' : 'down', label: MISSING.all ? 'Fewer' : 'The list', act: 'miss-all' }] }, unread]).filter(Boolean);
 }
 if (typeof on === 'function') on('miss-all', () => { MISSING.all = !MISSING.all; missingRepaint_(); });
-function healthWithMissing_(card) {
-  if (!missingFor_()) return card_(card);
-  const body = missingBody_(), waits = missingWaits_();
-  const part = `<h3 class="miss-head">What’s missing</h3><div id="miss-body"${waits ? ' aria-busy="true"' : ''}>${body}</div>`;
-  return /<\/div>\s*$/.test(card) ? card_(card.replace(/^<div class="logic-card"/, '<div class="logic-card miss-card"').replace(/<\/div>\s*$/, part + '</div>')) : card_(card) + card_(`<div class="miss-card">${part}</div>`);
+/* THE OPTIMISER'S BLOCKS WITH WHAT'S MISSING UNDER THEM (one card); `#miss-body` is what the list's arrival fills again. */
+const missingBox_ = () => { const body = missingBody_(); return { type: 'group', id: 'miss-body', attrs: { 'aria-busy': missingWaits_() ? 'true' : null }, blocks: body }; };
+const missingHead_ = look => ({ type: 'msgHead', look, text: 'What’s missing' });
+function healthWithMissing_(blocks) {
+  if (!missingFor_()) return healthCardSpec_(blocks);
+  return healthCardSpec_([].concat(blocks || [], [missingHead_('miss-head'), missingBox_()]), 'logic-card miss-card');
 }
 function missingCard_() {
-  const body = missingBody_();
-  const waits = missingWaits_();
-  return card_(`<div class="miss-card"><h3>What’s missing</h3>
-    <div id="miss-body"${waits ? ' aria-busy="true"' : ''}>${body}</div></div>`);
+  return healthCardSpec_([missingBox_()], 'miss-card', 'What’s missing');
 }
 
 ;
