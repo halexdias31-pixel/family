@@ -13063,21 +13063,23 @@ function cardFetch_(e) {
 function cardRepaint_() { PEOPLE_COLS_.concat(Object.keys(FACE_OF_SET_)).forEach(c => { try { paint(c); } catch (x) { oops_(x, 'me:cardRepaint_') } }); }
 
 /* ---------- THE CARD, AS ITS OWN FORM § */
+/* ONE MAKER (owner, 12 Nov): every part here is a `group` block drawn by renderCard's blocks; `inner` is markup they drew already. */
+const mcG_ = (tag, look, o) => cardBlock_(Object.assign({ type: 'group', tag, look }, o || {}));
+const mcNote_ = (look, text) => cardBlock_({ type: 'msgText', look: 'note ' + look, text: text || '' });
 function cardEditHtml_(t) {
   const e = cardEditNow_();
   const pid = String(t.personId);
-  const head = `<h3>${esc([t.role || 'Tutor'].concat(profList_(t.titles)).join(' · '))} <span class="ce-what">· editing</span></h3>`;
+  const head = cardBlock_({ type: 'msgHead', text: [[t.role || 'Tutor'].concat(profList_(t.titles)).join(' · ') + ' ', { span: 'ce-what', text: '· editing' }] });
   const base = cardBaseNow_(e);
   if (!base) {
     if (!e.err) setTimeout(() => cardFetch_(e), 0);
-    return meCard_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}${
-      e.err ? `<p class="note me-said">${esc(e.err)}</p>` : loading_()}</div><div class="tile-row ce-tiles">${tile_(cardSaveOpts_(pid, true))}</div>`);
+    return meCard_(mcG_('div', 'is-widget is-prof card-ed', { attrs: { 'data-pid': pid }, inner: head + (e.err ? mcNote_('me-said', e.err) : loading_()) })
+      + cardBlock_({ type: 'tiles', look: 'ce-tiles', tiles: cardSaveOpts_(pid, true) }));
   }
   const { vals, held } = cardValues_(e, base);
-  return meCard_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}
-    <div class="me-form" data-draw="${cardDrawn_(base)}">${cardEditForm_(t, e, vals)}
-      <p class="note me-said">${held ? esc(SET_HELD_SAY) : ''}</p></div>
-  </div><div class="tile-row ce-tiles">${tile_(cardSaveOpts_(pid, false))}</div>`);
+  return meCard_(mcG_('div', 'is-widget is-prof card-ed', { attrs: { 'data-pid': pid }, inner: head
+    + mcG_('div', 'me-form', { attrs: { 'data-draw': cardDrawn_(base) }, inner: cardEditForm_(t, e, vals) + mcNote_('me-said', held ? SET_HELD_SAY : '') }) })
+    + cardBlock_({ type: 'tiles', look: 'ce-tiles', tiles: cardSaveOpts_(pid, false) }));
 }
 /* YOUR OWN CARD'S EDIT, ONE CARD PER SECTION (468): each its own form, draft, Save and layout id — the owner, "settings is purely editing". */
 function cardEditCards_(t, e, secs, setCol) {
@@ -13089,10 +13091,10 @@ function cardEditCards_(t, e, secs, setCol) {
     const title = OWN_SEC_TITLE_[s.id] || s.cap || s.id;
     const card = { title, cls: 'is-prof card-ed own-sec',
       attrs: ` data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}" aria-label="${esc(title)}"` };
-    if (!base) return setCard_(Object.assign(card, { body: e.err ? `<p class="note me-said">${esc(e.err)}</p>` : loading_(), save: cardCancelTile_(pid) }));
+    if (!base) return setCard_(Object.assign(card, { body: e.err ? mcNote_('me-said', e.err) : loading_(), save: cardCancelTile_(pid) }));
     const { vals, held } = cardValues_(e, base, s.id);
     return setCard_(Object.assign(card, { form: cardEditForm_(t, e, vals, [s]), formAttrs: ` data-draw="${cardDrawn_(base)}"`,
-      save: cardCancelTile_(pid), foot: `<p class="note me-said">${held ? esc(SET_HELD_SAY) : ''}</p>` }));
+      save: cardCancelTile_(pid), foot: mcNote_('me-said', held ? SET_HELD_SAY : '') }));
   });
 }
 function cardSaveOpts_(pid, saveOff) {
@@ -13116,9 +13118,8 @@ document.addEventListener('click', e => {
 }, true);
 /* `val` IS MARKUP (a face, a live line); the label is text. */
 /* ALWAYS OPEN (487): "it's literally just a widget of one thing so does not need to be opened" -- the line is a heading, and a tap on it does nothing. */
-const ceFold_ = (key, label, val, body) => `<details class="ce-fold" data-fold="${esc(key)}" open>
-  <summary class="ce-line"><span class="ce-k">${esc(label)}</span><span class="ce-v">${val}</span></summary>
-  <div class="ce-body">${body}</div></details>`;
+const ceFold_ = (key, label, val, body) => mcG_('details', 'ce-fold', { attrs: { 'data-fold': key, open: true },
+  inner: mcG_('summary', 'ce-line', { inner: mcG_('span', 'ce-k', { text: label }) + mcG_('span', 'ce-v', { inner: val }) }) + mcG_('div', 'ce-body', { inner: body }) });
 /* HOW MANY, for a fold's line — photographs filled, venues ticked, qualifications held. */
 const ceCount_ = (n, one, many) => n ? n + ' ' + (n === 1 ? one : many) : 'none';
 function ceSums_(form) {
@@ -13152,9 +13153,9 @@ function ceAreas_() {
 function ceWhere_(L, val, box) {
   const got = profList_(val('venues_ok')), by = ceAreas_(), has = t => got.some(g => norm(g) === norm(t));
   const ro = (((typeof DATA !== 'undefined' && DATA && DATA.profileReadonly) || []).indexOf('venues_ok') !== -1);
-  const ticks = L.indexOf('venues_ok') === -1 ? '' : formHidden_('data-me="venues_ok"', got.join(', ')) + `
-    <div class="many-list where-areas" role="group" aria-label="Areas you teach in">${Object.keys(by).sort().map(a => formTick_(`data-where-area="${esc(a)}"${by[a].some(has) ? ' checked' : ''}${ro ? ' disabled' : ''}`, `<span>${esc(a)}</span>
-      ${qtag_(`${esc(ceCount_(by[a].length, 'venue', 'venues'))}`)}`, 'many-opt')).join('')}</div>`;
+  const ticks = L.indexOf('venues_ok') === -1 ? '' : formHidden_('data-me="venues_ok"', got.join(', '))
+    + mcG_('div', 'many-list where-areas', { attrs: { role: 'group', 'aria-label': 'Areas you teach in' }, inner: Object.keys(by).sort().map(a => formTick_(`data-where-area="${esc(a)}"${by[a].some(has) ? ' checked' : ''}${ro ? ' disabled' : ''}`,
+      mcG_('span', null, { text: a }) + ' ' + qtag_(esc(ceCount_(by[a].length, 'venue', 'venues'))), 'many-opt')).join('') });
   return ceFold_('where', 'Areas', esc(ceCount_(got.length, 'venue', 'venues')), ticks)
     + fieldRows_(L.filter(f => f !== 'venues_ok'), box);
 }
@@ -13212,7 +13213,7 @@ function cardEditForm_(t, e, vals, only) {
     const draw = Object.prototype.hasOwnProperty.call(CARD_SECTION, s.id) ? CARD_SECTION[s.id] : null;
     const body = draw ? draw(L, { t, e, val, vals, ro, box, filled }) : fieldRows_(L, box);
     /* NO CAPTION OVER A SECTION: every line names itself, and the week's days and hours name it (425). */
-    return `<div class="ce-sec" data-sec="${esc(s.id)}">${body}</div>`;
+    return mcG_('div', 'ce-sec', { attrs: { 'data-sec': s.id }, inner: body });
   }).join('');
 }
 /* ---------- THE RATE, AND WHAT AN EXTRA SEAT ADDS IN POUNDS BESIDE IT (docs/history/345) § */
@@ -13259,21 +13260,26 @@ function cardSeatSay_(rate, seat) {
   if (!(rate > 0)) return 'An extra seat is priced from the rate — set it first.';
   if (cardSeatOff_('extra_seat_rate', seat)) return esc(cardSeatOffSay_(rate, 'extra_seat_rate'));
   const p = cardSeatParts_(rate, seat, '');
-  return `<span class="prof-seat">+${esc(money_(p.kx))}/h</span> a seat${p.kOwn ? '' : ', usual'}`;
+  return mcG_('span', 'prof-seat', { text: '+' + money_(p.kx) + '/h' }) + ' a seat' + (p.kOwn ? '' : ', usual');
 }
 /* THE @FAMILY SHARE BAR (8 Nov): first seat + the tutor's extra seat + @family's block, from `cardSeatParts_`, the formula's own numbers. */
 function cardShareBar_(rate, seat, cut) {
   if (!(rate > 0)) return '';
   const p = cardSeatParts_(rate, seat, cut), blocks = [['shb-first', rate, 'first seat'], ['shb-seat', p.kx, 'another seat'], ['shb-fam', p.gx, '@family.']];
   const all = blocks.reduce((t, b) => t + b[1], 0) || 1;
-  return blocks.map(([k, v, say], i) => `${i ? '<span class="shb-plus" aria-hidden="true">+</span>' : ''}<span class="shb-blk ${k}" style="flex-grow:${(v / all).toFixed(4)}"><b>${esc(money_(v))}</b><small>${esc(say)}</small></span>`).join('');
+  /* ITS SHARE OF THE BAR is a number, so it rides as the block's own flex-grow attribute (no class can hold every number). */
+  return blocks.map(([k, v, say], i) => (i ? mcG_('span', 'shb-plus', { attrs: { 'aria-hidden': 'true' }, text: '+' }) : '')
+    + mcG_('span', 'shb-blk ' + k, { attrs: { style: 'flex-grow:' + (v / all).toFixed(4) }, text: [{ b: money_(v) }, { span: 'shb-say', text: say }] })).join('');
 }
+/* THE BAR'S BOX, and a line read aloud as it changes. */
+const shareBarBox_ = (cut, inner) => mcG_('div', 'share-bar', { attrs: { role: 'img', 'aria-label': 'Who gets what for a second student', 'aria-live': 'polite', 'data-cut': String(cut || '') }, inner });
+const mcLive_ = (look, inner) => mcG_('span', look, { attrs: { 'aria-live': 'polite' }, inner });
 /* @FAMILY.'S CARD'S LINE: its part of each extra student, in pounds. */
 function cardCutSay_(rate, cut) {
   if (!(rate > 0)) return "@family.'s part is priced from the rate — set it first.";
   if (cardSeatOff_('extra_seat_cut', cut)) return esc(cardSeatOffSay_(rate, 'extra_seat_cut'));
   const p = cardSeatParts_(rate, '', cut);
-  return `<span class="prof-seat">+${esc(perHour_(p.gx))}</span> a seat${p.gOwn ? '' : ', usual'}`;
+  return mcG_('span', 'prof-seat', { text: '+' + perHour_(p.gx) }) + ' a seat' + (p.gOwn ? '' : ', usual');
 }
 /* THE CLASS SIZE CARD'S LINE: one student and a full class, by the formula. */
 function cardSizeSay_(rate, seat, cut, lo, hi) {
@@ -13294,11 +13300,10 @@ function cardRateHtml_(L, val, box, e) {
     label: own ? 'yours, £/h' : 'theirs, £/h', readonly: !live, draft: false,
     extra: `type="number" min="0" max="${live ? pounds2_(rate * STAFF_SEAT_MAX) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` });
   const bar = own || (typeof isAdmin === 'function' && isAdmin())
-    ? `<div class="share-bar" role="img" aria-label="Who gets what for a second student" aria-live="polite" data-cut="${esc(String(val('extra_seat_cut') || ''))}">${cardShareBar_(rate, val('extra_seat_rate'), val('extra_seat_cut'))}</div>` : '';
+    ? shareBarBox_(val('extra_seat_cut'), cardShareBar_(rate, val('extra_seat_rate'), val('extra_seat_cut'))) : '';
   return box('rate_per_hour', {}) + bar
-    + ceFold_('seat', 'Extra seat', `<span class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'))}</span>`,
-      `${pound}${formHidden_('data-me="extra_seat_rate"', val('extra_seat_rate'))}
-       `)
+    + ceFold_('seat', 'Extra seat', mcLive_('ce-seat', cardSeatSay_(rate, val('extra_seat_rate'))),
+      pound + formHidden_('data-me="extra_seat_rate"', val('extra_seat_rate')))
     + fieldRows_(L.filter(f => f !== 'rate_per_hour' && f !== 'extra_seat_rate'), box);
 }
 /* ---------- @FAMILY.'S SHARE OF AN EXTRA SEAT, ITS OWN CARD (620): a box for an admin (`seatCutRefusal_`'s rule), words for anybody else ---------- */
@@ -13313,15 +13318,15 @@ function cardCutHtml_(L, val, box) {
         readonly: !live, draft: false, extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` })
       + formHidden_('data-me="extra_seat_cut"', val('extra_seat_cut'))
     : '';
-  return `<span class="ce-rate" hidden data-rate="${esc(String(rate || 0))}"></span>`
-    + ceFold_('cut', "@family.'s share", `<span class="ce-cut" aria-live="polite">${cardCutSay_(rate, val('extra_seat_cut'))}</span>`, body)
+  return mcG_('span', 'ce-rate', { attrs: { hidden: true, 'data-rate': String(rate || 0) } })
+    + ceFold_('cut', "@family.'s share", mcLive_('ce-cut', cardCutSay_(rate, val('extra_seat_cut'))), body)
     + fieldRows_(L.filter(f => f !== 'extra_seat_cut'), box);
 }
 /* ---------- THE CLASS SIZE, ITS OWN CARD (620), with what one student and a full class pay an hour ---------- */
 function cardSizeHtml_(L, val, box) {
   const rate = num(val('rate_per_hour'));
-  return `<span class="ce-rate" hidden data-rate="${esc(String(rate || 0))}" data-seat="${esc(String(val('extra_seat_rate')))}" data-cut="${esc(String(val('extra_seat_cut')))}"></span>`
-    + ceFold_('size', 'Class size', `<span class="ce-size" aria-live="polite">${cardSizeSay_(rate, val('extra_seat_rate'), val('extra_seat_cut'), val('min_students'), val('max_students'))}</span>`,
+  return mcG_('span', 'ce-rate', { attrs: { hidden: true, 'data-rate': String(rate || 0), 'data-seat': String(val('extra_seat_rate')), 'data-cut': String(val('extra_seat_cut')) } })
+    + ceFold_('size', 'Class size', mcLive_('ce-size', cardSizeSay_(rate, val('extra_seat_rate'), val('extra_seat_cut'), val('min_students'), val('max_students'))),
       fieldRows_(L, box));
 }
 /* ---------- AND AS IT IS TYPED: POUNDS INTO THE HIDDEN SHARE, EACH CARD'S LINE REDRAWN § */
@@ -13386,15 +13391,14 @@ function cardHandleHtml_() {
     || 'Your handle is the first and last letter of your first name and the year you joined. If somebody '
      + 'had it already, more letters of your first name were added, and then a number.';
   /* ONE LINE, AND THE RULE ONE TAP UNDER IT (425) — the handle is read here, never typed. */
-  return ceFold_('handle', 'Handle', `<span class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
-      esc((whose_() && whose_().handle) || '')}</span></span>`, `<p class="note handle-said">${esc(said)}</p>`);
+  return ceFold_('handle', 'Handle', mcLive_('handle-now', mcG_('span', 'handle-at', { attrs: { 'aria-hidden': 'true' }, text: '@' })
+    + mcG_('span', 'handle-shown', { text: (whose_() && whose_().handle) || '' })), mcNote_('handle-said', said));
 }
 /* SOMEBODY ELSE'S PICTURE, SHOWN AND NOT OFFERED — `savePhoto` writes the asker's own row. § */
 function cardFaceOnly_(t) {
   const first = String(t.title || '').trim().split(/\s+/)[0] || 'They';
-  return `<div class="ce-pic">${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title,
-    personId: t.personId }, { cls: 'prof-pic', none: 'prof-none', size: 52, eager: true })}
-    </div>`;
+  return mcG_('div', 'ce-pic', { inner: personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title,
+    personId: t.personId }, { cls: 'prof-pic', none: 'prof-none', size: 52, eager: true }) });
 }
 /* ---------- WHAT IS ON THE CARD THE MOMENT IT IS SAVED § */
 function cardPatchTutor_(pid, all, sent) {
@@ -13653,8 +13657,7 @@ function shareBarFor_(list, p) {
   const has = f => (list || []).indexOf(f) !== -1;
   if (!has('rate_per_hour') || !has('extra_seat_rate')) return '';
   p = p || {};
-  return `<div class="share-bar" role="img" aria-label="Who gets what for a second student" aria-live="polite" data-cut="${esc(String(p.extra_seat_cut || ''))}">${
-    cardShareBar_(num(p.rate_per_hour), p.extra_seat_rate, p.extra_seat_cut)}</div>`;
+  return shareBarBox_(p.extra_seat_cut, cardShareBar_(num(p.rate_per_hour), p.extra_seat_rate, p.extra_seat_cut));
 }
 document.addEventListener('input', e => {
   const form = e.target && e.target.closest && e.target.closest('.set-shape');

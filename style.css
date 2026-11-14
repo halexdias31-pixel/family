@@ -585,7 +585,7 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
   display: flex; align-items: baseline; gap: var(--s0); margin: 0 0 var(--s2);
   font-size: var(--fs-body); color: var(--ink); overflow-wrap: anywhere; min-width: 0;
 }
-.handle-now > b { color: var(--gold); font-weight: 600; }
+.handle-now > b, .handle-now > .handle-at { color: var(--gold); font-weight: 600; }
 .handle-said { margin: var(--s2) 0 0; }
 
 /* ---------- THE SIGN-IN SLIP: A HANDLE AND A PIN, HANDED TO SOMEBODY ON PAPER § */
@@ -2624,9 +2624,10 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .ce-seat { margin: -.35rem 0 0; font: 400 var(--fs-small)/1.35 var(--mono); color: var(--ink); }
 .ce-seat .prof-seat { font-family: var(--mono); font-size: inherit; line-height: inherit; }
 /* THE @FAMILY SHARE BAR (8 Nov): the tutor's money green, @family's gold — colour by meaning. */
-.share-bar { display: flex; align-items: stretch; gap: var(--s1); margin: var(--s2) 0; font: 400 var(--fs-small)/1.2 var(--mono); }
+.share-bar { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--s1); margin: var(--s2) 0; font: 400 var(--fs-small)/1.2 var(--mono); }
 .share-bar .shb-blk { flex-basis: 0; min-width: 3.4rem; display: flex; flex-direction: column; justify-content: center; padding: var(--s1) var(--s2); border-radius: var(--r-ui); color: var(--bg); }
 .share-bar .shb-blk b { font-weight: 600; font-size: var(--fs-small); }
+.share-bar .shb-say { font-size: smaller; }
 .share-bar .shb-first { background: var(--green); }
 .share-bar .shb-seat { background: color-mix(in srgb, var(--green) 70%, var(--bg)); }
 .share-bar .shb-fam { background: var(--gold); }
