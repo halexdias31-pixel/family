@@ -29,7 +29,7 @@ const KEPT = [
   { file: 'find.js', fn: 'cellInput_', has: 'class="qp-cell"',
     why: 'a blank of a fill-in table — every cell of the card joined and saved on each keystroke through `ansStore_`, drawn back from `ansRead_`',
     proof: [['find.js', /classList\.contains\('qp-cell'\)[\s\S]{0,400}?ansStore_\(/]] },
-  { file: 'me.js', fn: 'qualSlot_', has: "f('_board')",
+  { file: 'me.js', fn: 'qualSlot_', has: "'data-me': f('_board')",
     why: 'a qualification\'s board — the shelf saves each answer on its `change` (`qualCommit_`)',
     proof: [['me.js', /qualCommit_\(slot\);/]] },
   { file: 'me.js', has: 'createElement(input)',
@@ -64,7 +64,7 @@ const KEPT = [
     proof: [['mat.js', /function matRemember\(/]] },
   { file: 'me.js', fn: 'fieldHtml', has: 'data-many-of',
     why: 'a settings several-of-a-list tick (the venues you teach at) — its `change` writes the hidden answer and keeps it as the field\'s draft (315 met 317)',
-    proof: [['me.js', /matches\('input\[type="checkbox"\]\[data-many-of\]'\)[\s\S]{0,1500}?draftKeep_\(surface, id, box\.value/], ['me.js', /formHidden_\(`\$\{attr\}="\$\{esc\(name\)\}"`, said, da\)/]] },
+    proof: [['me.js', /matches\('input\[type="checkbox"\]\[data-many-of\]'\)[\s\S]{0,1500}?draftKeep_\(surface, id, box\.value/], ['me.js', /hidden: \{ attrs: meAttrs_\(`type="hidden" \$\{attr\}="\$\{esc\(name\)\}" value="\$\{esc\(said\)\}"\$\{da\}`\) \}/]] },
   { file: 'lego.js', fn: 'legoPick_', has: 'class="lego-num"',
     why: 'the LEGO piece check\'s set number (owner, 12 Nov) — kept in the kept store as it is typed (`legoWrite_`)',
     proof: [['lego.js', /legoNow_\(\)\.typed\[k\] = String\(t\.value \|\| ''\); legoWrite_\(\);/]] },
@@ -159,6 +159,27 @@ const FORM_BOX_ = {
   formSlider_: a => [['input', '<input type="range" ' + a(0) + '>'], ['input', '<input type="number" class="pf-num" ' + a(0) + '>']],
   formPhone_: a => [['input', '<input type="tel" data-me="' + a(1) + '" ' + a(3) + '>']],
 };
+/* A MAKER OUTSIDE form.js: its call is the box, judged where the attributes are written; its own body is skipped. */
+const MAKER_FILE_ = { meBox_: 'me-shelves.js' };
+FORM_BOX_.meBox_ = a => [['input', '<input ' + a(1) + '>']];
+const isMaker_ = (f, name) => !!FORM_BOX_[name] && (MAKER_FILE_[name] || 'form.js') === f;
+/* THE GENERIC CARD BLOCKS (cards-render.js, owner 14 Nov): `{ type: 'control' | 'tick' | 'msgForm' | 'many' }` draws a box from
+   attributes its CALLER gives, so the box is judged at the caller: the spec object as the tag's text (its `attrs`, `drafted`
+   and `value` are the draft, or not). The blocks themselves pass those attributes through untouched — PASS_THROUGH below
+   proves it, and fails if a block stops writing them. */
+const GENERIC_ = {
+  control: o => (/\btag:\s*'select'/.test(o) ? null : 'input'),
+  tick: () => 'input',
+  msgForm: () => 'textarea',
+  many: () => 'input',   // the ticks of a several-of-a-list (the hidden answer it holds is a draft or kept by the tick's change)
+};
+const PASS_THROUGH = [
+  { fn: 'kcfControl_', re: /const kcfControl_ = b => \(b\.tag === 'select' \? [^\n]*`<input\$\{kcfAttrs_\(b\.attrs\)\}>`\);/ },
+  { fn: 'kcfTickB_', re: /const kcfTickB_ = b => [^\n]*<input\$\{kcfAttrs_\(Object\.assign\(\{ type: 'checkbox' \}, b\.attrs\)\)\}>/ },
+  { fn: 'msgFormBlock_', re: /<textarea class="msg-text"[^\n]*\$\{b\.drafted \|\| ''\}>\$\{esc\(b\.value \|\| ''\)\}<\/textarea>/ },
+  /* and every attribute name a draft uses gets through the filter, written as given */
+  { fn: 'kcfAttrs_', re: /const kcfAttrs_ = a => Object\.keys\(a \|\| \{\}\)\.filter\(k => \/\^\[a-z\]\[\\w:-\]\*\$\/i\.test\(k\)/ },
+];
 for (const f of FILES) {
   const src = SRC[f];
   let ast;
@@ -176,7 +197,7 @@ for (const f of FILES) {
     const spans = [];
     if (n.type === 'Literal' && typeof n.value === 'string') spans.push([n.start, n.end]);
     if (n.type === 'TemplateElement') spans.push([n.start, n.end]);
-    for (const [a, b] of (f === 'form.js' && FORM_BOX_[name] ? [] : spans)) {
+    for (const [a, b] of (isMaker_(f, name) || (f === 'cards-render.js' && PASS_THROUGH.some(p => p.fn === name)) ? [] : spans)) {
       const seg = src.slice(a, b);
       const re = /<([a-z][\w-]*)\b/gi;
       let t;
@@ -191,10 +212,24 @@ for (const f of FILES) {
       }
     }
     /* THE FORM MAKER'S BOXES (js/form.js): a call is the tag it draws, its attribute text in the tag, so a box drawn by the maker answers as if written out. */
-    if (n.type === 'CallExpression' && n.callee && n.callee.type === 'Identifier' && FORM_BOX_[n.callee.name] && !(f === 'form.js' && FORM_BOX_[name])) {
+    if (n.type === 'CallExpression' && n.callee && n.callee.type === 'Identifier' && FORM_BOX_[n.callee.name] && !isMaker_(f, name)) {
       const arg = i => { const x = n.arguments[i]; return x ? src.slice(x.start, x.end).replace(/^[`'"]|[`'"]$/g, '') : ''; };
       FORM_BOX_[n.callee.name](arg).forEach(([tag, text, body]) =>
         sites.push({ file: f, fn: name, line: n.loc.start.line, tag, text: text.replace(/\s+/g, ' '), body: body || '' }));
+    }
+    /* A GENERIC BLOCK'S SPEC, AT ITS CALLER: the object's own source is the tag's text (a `many`'s, its ticks'). */
+    if (n.type === 'ObjectExpression' && f !== 'cards-render.js' && !isMaker_(f, name)) {
+      const tp = n.properties.find(p => p.key && (p.key.name || p.key.value) === 'type' && p.value && p.value.type === 'Literal');
+      const g = tp && GENERIC_[tp.value.value];
+      if (g) {
+        let o = src.slice(n.start, n.end);
+        if (tp.value.value === 'many') { const t = n.properties.find(p => p.key && p.key.name === 'ticks'); o = t ? src.slice(t.start, t.end) : ''; }
+        const tag = o && g(o);
+        if (tag) {
+          const ty = (/\btype:\s*'([a-z]+)'/.exec(o.replace(/^\{\s*type:\s*'\w+'/, '{')) || [])[1];
+          sites.push({ file: f, fn: name, line: n.loc.start.line, tag, text: ('<' + tag + (ty ? ' type="' + ty + '"' : '') + ' ' + o + '>').replace(/\s+/g, ' '), body: '' });
+        }
+      }
     }
     if (n.type === 'CallExpression' && n.callee && n.callee.property && n.callee.property.name === 'createElement'
         && n.arguments[0] && /^(input|textarea)$/.test(n.arguments[0].value)) {
@@ -272,6 +307,7 @@ for (const s of sites) {
 KEPT.forEach(e => (e.proof || []).forEach(([f, re]) => {
   if (!SRC[f] || !re.test(SRC[f])) bad.push(e.file + ' "' + e.has + '" is listed as kept by its own code, and the code that keeps it is gone from ' + f + ': ' + re);
 }));
+PASS_THROUGH.forEach(p => { if (!p.re.test(SRC['cards-render.js'] || '')) bad.push('cards-render.js ' + p.fn + ' no longer passes its caller\'s attributes through as written — the boxes judged at their callers above may lose their drafts in it: ' + p.re); });
 /* EVERY DRAFTED SURFACE IS DROPPED SOMEWHERE — sent, saved or started again. */
 surfaces.forEach(sf => {
   if (sf === '?') { bad.push('a draft is drawn with a surface name that is not a plain string — it cannot be checked'); return; }
