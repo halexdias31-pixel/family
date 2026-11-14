@@ -17,12 +17,12 @@ The schema itself is `data/settings/item-shape.json`, which also lists every kin
 
 ## How a kind joins
 
-A kind needs only a **mapping** (in `ITEM_MAPS`, `js/cards-parts.js`): which columns are its tags, which are its links, its card's look and picture. The same few options serve every kind: where its id and name come from, which card draws it (a figure and a boxer share the person card), what its body says and whether the card shows it (`lines`), and whether its card leads with its name. Two shared functions do the rest:
+A kind needs only a **mapping** (in `ITEM_MAPS`, `js/cards-parts.js`): which columns are its tags, which are its links, its card's look and picture. The same few options serve every kind: where its id and name come from, which card draws it (a figure and a boxer share the person card), what its body says and whether the card shows it (`lines`), whether its card leads with its name, and whether it is greyed out (`off`). A kind made live from the payload (a subject, a level, a venue) also names its **computed fields** (`live`: a subject's tutors, a room's seats and rate), worked out as the item loads; `liveTags` puts some of them on the card, and `childHides` takes fields out for a child — so a child sees a room's seats but not its price, decided in one place for every kind. Two shared functions do the rest:
 
 - `item_(row, kind)` turns any stored row into the shape.
 - `cardOfItem_(item)` turns the shape into a card for the one card template.
 
 ## Where we are
 
-- Moved: **manuscripts, writings, timeline events** (the history database); then **exam inserts, specifications, chemistry, mechanics, historical figures, boxers and fights**. Their cards look exactly as before (a car part's card is now labelled for screen readers by its name, not by its first tag).
+- Moved: **manuscripts, writings, timeline events** (the history database); then **exam inserts, specifications, chemistry, mechanics, historical figures, boxers and fights**; then **practicals, projects, textbook chapters, subjects, levels and venues**. Their cards look exactly as before (a car part's card is now labelled for screen readers by its name, not by its first tag).
 - Still to move: the list in `check/item-shape-ratchet.json`. The check (`node js/check-item-shape.js`) fails if that list ever grows, or if a moved kind gets its own builder back.

@@ -215,29 +215,20 @@ function kcPicOr_(x, html) {
 }
 /* A REAL PICTURE: a photo, a clip, or a drawing of this very thing (a manuscript, a car part, a timeline stop); a kind sign or icon is not one. */
 const kcRealPic_ = h => /<(img|video|picture)\b|mfrclip-|class="(mech|tl)-pic"/.test(String(h || ''));
-/* ---------- THE BOOKING KINDS AS SPECS (master template): a subject and a level are facts and their tutors' names as tags. ---------- */
-const kcSurcharge_ = x => { const t = kcRow_(x); if (x.kind === 'level' && !t.priced) return { label: 'Surcharge', value: 'Not priced yet', tone: 'bad' };
+/* ---------- THE BOOKING KINDS (subject, level, venue) ARE ITEM MAPS (slice 3): their lines read the fields the payload computed live (`live`). ---------- */
+const kcSurcharge_ = (t, kind) => { if (kind === 'level' && !t.priced) return { label: 'Surcharge', value: 'Not priced yet', tone: 'bad' };
   return kcPct_(t.mult) || t.mult === 1 ? { label: t.mult === 1 ? 'No surcharge' : 'Surcharge', value: kcPct_(t.mult) } : null; };
-const kcTutorTags_ = x => (kcRow_(x).tutors || []).map(y => ({ text: y.title, colour: 3 }));
-const kcName_ = x => ({ text: kcRow_(x).title || kcRow_(x).name || x.name || '', colour: 0 });
-cardKind_('subject', x => { const t = kcRow_(x), lv = (t.levels || []).filter(Boolean), tut = kcTutorTags_(x);
-  return { look: 'is-subject', tags: [kcName_(x)].concat(typeof tagList_ === 'function' && x.key ? tagList_(x) : [], tut),
-    body: [{ type: 'list', items: [kcSurcharge_(x), lv.length ? { label: 'Levels', value: lv.join(', ') } : null,
-      tut.length ? null : { label: 'Tutors', value: 'None yet', tone: 'bad' }].filter(Boolean) }] }; });
-cardKind_('level', x => { const t = kcRow_(x), s = t.subjects || [], n = (t.tutors || []).length;
-  return { look: 'is-level', tags: [kcName_(x)].concat(typeof tagList_ === 'function' && x.key ? tagList_(x) : [], kcTutorTags_(x)),
-    body: [{ type: 'list', items: [kcSurcharge_(x), s.length ? { label: 'Subjects', value: s.map((v, i) => [i ? ', ' : '', { word: 'subject', text: v }]) } : { label: 'Subjects', value: 'None yet', tone: 'bad' },
-      { label: 'Tutors', value: n ? String(n) : (typeof NO_TUTOR === 'string' ? NO_TUTOR : 'None yet'), tone: n ? '' : 'bad' },
-      t.listed ? null : { label: 'Booking form', value: 'Not offered', tone: 'bad' }].filter(Boolean) }] }; });
-/* A VENUE: its name and facets (its 8-bit building is no picture of it), its rooms as facts. A child is told the seats and not the price (398). */
-const kcFacetTags_ = x => [kcName_(x)].concat(typeof tagList_ === 'function' && x.key ? tagList_(x) : []);
-cardKind_('venue', x => { const t = kcRow_(x), kid = childView_();
-  const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? perHour_(rate) : 'free'].filter(Boolean).join(' · ');
-  const one = (label, max, rate) => (say(max, rate) ? { label, value: say(max, rate) } : null);
-  const rooms = (t.rooms || []).length ? t.rooms.slice(0, 4).map(r => one(r.name || 'Room', r.max, r.rate)) : [one('The room', t.maxCapacity, t.bestRate)];
-  /* ITS 8-BIT BUILDING (find-doors.js), which the move to specs (2c2bab5) left behind. */
-  const pix = typeof VENUE_PIX === 'object' && typeof venueShape_ === 'function' ? VENUE_PIX[venueShape_(x.row || {})] : null;
-  return { look: 'venue-door', picture: pix ? { pix, alt: x.name } : null, tags: kcFacetTags_(x), body: [{ type: 'list', items: rooms.filter(Boolean) }] }; });
+const kcSubjectBody_ = (t, L) => [{ type: 'list', items: [kcSurcharge_(t, 'subject'), L.levels.length ? { label: 'Levels', value: L.levels.join(', ') } : null,
+  L.tutors.length ? null : { label: 'Tutors', value: 'None yet', tone: 'bad' }].filter(Boolean) }];
+const kcLevelBody_ = (t, L) => { const s = L.subjects, n = L.tutors.length;
+  return [{ type: 'list', items: [kcSurcharge_(t, 'level'), s.length ? { label: 'Subjects', value: s.map((v, i) => [i ? ', ' : '', { word: 'subject', text: v }]) } : { label: 'Subjects', value: 'None yet', tone: 'bad' },
+    { label: 'Tutors', value: n ? String(n) : (typeof NO_TUTOR === 'string' ? NO_TUTOR : 'None yet'), tone: n ? '' : 'bad' },
+    t.listed ? null : { label: 'Booking form', value: 'Not offered', tone: 'bad' }].filter(Boolean) }]; };
+/* A VENUE'S ROOMS AS FACTS: seats, and the price unless the map's `childHides` took it (a child is told the seats and not the price, 398). */
+const kcVenueBody_ = (t, L) => [{ type: 'list', items: L.rooms.map(o => { const say = [o.seats ? 'up to ' + o.seats : '', 'price' in o ? (o.price ? perHour_(o.price) : 'free') : ''].filter(Boolean).join(' · ');
+  return say ? { label: o.label, value: say } : null; }).filter(Boolean) }];
+const kcTutorNames_ = t => (Array.isArray(t.tutors) ? t.tutors : []).map(y => y && y.title).filter(Boolean);
+const kcListOf_ = v => (Array.isArray(v) ? v : []).filter(Boolean);
 /* ONE ITEM SHAPE (owner, 14 Nov, step 1; data/settings/item-shape.json, docs/item-shape.md): every item is { id, kind, name, tags, body, links }. */
 /* A migrated kind is only a mapping here: which columns are its words (`tags`) and its links, its card's look and picture. No builder of its own. */
 const ITEM_MAPS = {
@@ -257,10 +248,32 @@ const ITEM_MAPS = {
   boxer: { look: 'person lib-c', card: 'people', id: ['id', 'boxer_id'], tags: ['country', 'bestDivision', 'best_division', 'stance'], picture: it => kcPersonPic_(it) },
   fight: { look: 'fight', id: ['id', 'fight_id'], name: r => [r.a || r.boxer_a, r.b || r.boxer_b].filter(Boolean).join(' and '), nameTag: false, lines: true,
     tags: ['division'], links: ['aId', 'bId', 'boxer_a_id', 'boxer_b_id'], body: r => (typeof fightBody_ === 'function' ? fightBody_(r) : []) },
+  practical: { look: 'prac kc-facts', id: ['id', 'practical_id'], tags: ['subject', 'level', 'board', 'exam_board', 'practicalType', 'practical_type'], lines: true,
+    off: r => !!r.excluded, body: r => (typeof practicalBody_ === 'function' ? practicalBody_(r) : []) },
+  project: { look: 'prac proj lib-c kc-facts', id: ['id', 'project_id'], tags: ['subject', 'level', 'board', 'exam_board', 'projectType', 'project_type'], lines: true,
+    body: r => (typeof projectBody_ === 'function' ? projectBody_(r) : []) },
+  content: { look: 'prac tb ct lib-c', id: r => r.id || [r.bookId || r.book_id, r.n == null ? r.chapter : r.n].filter(v => v != null && v !== '').join('-'),
+    tags: ['subject', 'level', 'keystage', 'board', 'tier'], lines: true, body: r => (typeof contentBody_ === 'function' ? contentBody_(r) : []) },
+  subject: { look: 'is-subject', tags: ['levels', 'focus'], lines: true, liveTags: { tutors: 3 }, body: kcSubjectBody_,
+    live: { levels: r => kcListOf_(r.levels), tutors: r => (Array.isArray(r.tutors) ? r.tutors : []).map(y => y.title) } },
+  level: { look: 'is-level', tags: ['subjects', 'focus'], lines: true, liveTags: { tutors: 3 }, body: kcLevelBody_,
+    live: { subjects: r => (Array.isArray(r.subjects) ? r.subjects : []), tutors: r => (Array.isArray(r.tutors) ? r.tutors : []).map(y => y.title) } },
+  venue: { look: 'venue-door', tags: ['focus', 'borough', 'city', 'tags'], lines: true, body: kcVenueBody_, childHides: ['price'],
+    live: { rooms: r => (Array.isArray(r.rooms) && r.rooms.length ? r.rooms.slice(0, 4).map(o => ({ label: o.name || 'Room', seats: o.max, price: o.rate }))
+      : [{ label: 'The room', seats: r.maxCapacity, price: r.bestRate }]) },
+    /* ITS 8-BIT BUILDING (find-doors.js), picked off its name. */
+    picture: (it, x) => { const pix = typeof VENUE_PIX === 'object' && typeof venueShape_ === 'function' ? VENUE_PIX[venueShape_(it.raw)] : null; return pix ? { pix, alt: x.name } : null; } },
 };
 /* THE SAME OPTIONS FOR EVERY KIND (slice 2): `id` its id columns; `name` (row → name); `from` the Find entry's field holding its row (else `row`); */
 /* `card` the card kind drawing it (else its own) and `when` (entry → true) which map that card picks; `body` (row → blocks) and `lines: true` */
-/* to draw them; `nameTag: false` for a card whose tags are its facets alone; `entryTags` { entry field: colour } after the facets. */
+/* to draw them; `nameTag: false` for a card whose tags are its facets alone; `entryTags` { entry field: colour } after the facets; `off` (row → true) greys it. */
+/* COMPUTED FIELDS (slice 3): `live` { field: row → value } are worked out from the payload as the item loads (a subject's tutors, a room's rate), */
+/* kept as `it.live` and handed to `body` (row, live); `liveTags` { live field: colour } after the facets; `childHides` [keys] are taken out of every */
+/* live value for a child (childView_), in this one place, so no kind's drawing decides who may see a price (398). */
+const itemLive_ = (r, M) => { const v = {}; Object.keys(M.live || {}).forEach(f => { v[f] = M.live[f](r); });
+  const hide = M.childHides || [], strip = o => { if (Array.isArray(o)) o.forEach(strip); else if (o && typeof o === 'object') hide.forEach(k => { delete o[k]; }); };
+  if (hide.length && typeof childView_ === 'function' && childView_()) Object.keys(v).forEach(f => strip(v[f]));
+  return v; };
 /* A PERSON'S 8-BIT PORTRAIT (find-boxers.js), by their id. */
 const kcPersonPic_ = it => (typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null);
 const itemList_ = v => (Array.isArray(v) ? v : String(v == null ? '' : v).split('|')).map(t => String(t).trim()).filter(Boolean);
@@ -268,18 +281,19 @@ const itemList_ = v => (Array.isArray(v) ? v : String(v == null ? '' : v).split(
 function item_(raw, kind) {
   const r = raw || {}, M = ITEM_MAPS[kind] || {}, words = col => [...new Set((M[col] || []).flatMap(c => itemList_(r[c])))];
   const lines = typeof HIST_LINES === 'object' && HIST_LINES[kind] ? HIST_LINES[kind].map(([label, col]) => ({ label, value: String((typeof col === 'function' ? col(r) : r[col]) || '') })).filter(l => l.value.trim()) : [];
-  const own = M.body ? M.body(r) : null, body = Array.isArray(own) ? own : lines.length ? [{ type: 'list', items: lines }] : [];
-  const id = (M.id || ['id']).map(c => String(r[c] == null ? '' : r[c]).trim()).find(Boolean) || '';
+  const live = itemLive_(r, M), own = M.body ? M.body(r, live) : null, body = Array.isArray(own) ? own : lines.length ? [{ type: 'list', items: lines }] : [];
+  const id = typeof M.id === 'function' ? String(M.id(r) || '') : (M.id || ['id']).map(c => String(r[c] == null ? '' : r[c]).trim()).find(Boolean) || '';
   return { id, kind, name: String((M.name && M.name(r)) || r.title || r.name || r.title_english || r.title_original || id || ''),
-    tags: words('tags'), body, links: words('links'), raw: r };
+    tags: words('tags'), body, links: words('links'), raw: r, live };
 }
 /* THE SHAPE → A renderCard SPEC: its name, then Find's facets for it (`x`, the Find entry carrying it); its body drawn only where its map says `lines`. */
 function cardOfItem_(it, x) {
   const M = ITEM_MAPS[it.kind] || {}, own = x || { kind: it.kind, key: '', name: it.name };
   const f0 = typeof tagList_ === 'function' && own.key ? tagList_(own) : [], facets = Array.isArray(f0) ? f0 : [];
-  const more = Object.keys(M.entryTags || {}).flatMap(f => (own[f] || []).map(t => ({ text: t, colour: M.entryTags[f] })));
+  const more = Object.keys(M.entryTags || {}).flatMap(f => (own[f] || []).map(t => ({ text: t, colour: M.entryTags[f] })))
+    .concat(Object.keys(M.liveTags || {}).flatMap(f => ((it.live || {})[f] || []).map(t => ({ text: t, colour: M.liveTags[f] }))));
   /* `nameTag: false` still leads with the name when it has no facets at all: a card is never without a tag. */
-  return { look: M.look || '', name: it.name || own.name || '', picture: M.picture ? M.picture(it, own) : null, body: M.lines ? it.body : [],
+  return { look: M.look || '', name: it.name || own.name || '', ...(M.off ? { off: !!M.off(it.raw || {}) } : {}), picture: M.picture ? M.picture(it, own) : null, body: M.lines ? it.body : [],
     tags: (M.nameTag === false && facets.length ? [] : [{ text: it.name || own.name || '', colour: 0 }]).concat(facets, more) };
 }
 /* EACH CARD KIND DRAWN FROM MAPS: the map whose `when` the entry answers (else the first without one), its row from the entry's `from`. */

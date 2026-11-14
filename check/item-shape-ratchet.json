@@ -1,18 +1,12 @@
 {
  "say": "Kinds not yet loaded through the one item shape (item_ / cardOfItem_). Only goes down: node js/check-item-shape.js --lower",
- "total": 12,
+ "total": 6,
  "left": [
   "booking",
-  "content",
-  "level",
   "person",
   "post",
-  "practical",
   "product",
-  "project",
   "question",
-  "subject",
-  "tutor",
-  "venue"
+  "tutor"
  ]
 }
