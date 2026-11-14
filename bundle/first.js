@@ -826,7 +826,8 @@ const kcfAttrs_ = a => Object.keys(a || {}).filter(k => /^[a-z][\w:-]*$/i.test(k
   .map(k => (a[k] === true ? ` ${k}` : ` ${k}="${esc(String(a[k]))}"`)).join('');
 const kcfOpts_ = opts => (opts || []).map(o => (o && o.group != null ? `<optgroup label="${esc(o.group)}">${kcfOpts_(o.options)}</optgroup>`
   : `<option value="${esc(o.value == null ? '' : o.value)}"${o.on ? ' selected' : ''}${o.off ? ' disabled' : ''}>${esc(o.text == null ? (o.value == null ? '' : o.value) : o.text)}</option>`)).join('');
-const kcfControl_ = b => (b.tag === 'select' ? `<select${kcfAttrs_(b.attrs)}>${kcfOpts_(b.options)}</select>` : `<input${kcfAttrs_(b.attrs)}>`);
+/* `textarea` holds its `value` as text; a select's `inner` is options another maker drew already (a game picker's). */
+const kcfControl_ = b => (b.tag === 'select' ? `<select${kcfAttrs_(b.attrs)}>${b.options ? kcfOpts_(b.options) : (b.inner || '')}</select>` : b.tag === 'textarea' ? `<textarea${kcfAttrs_(b.attrs)}>${esc(b.value == null ? '' : b.value)}</textarea>` : `<input${kcfAttrs_(b.attrs)}>`);
 const kcfKids_ = b => (b.text != null ? cardRuns_(b.text) : '') + cardBlocks_(b.blocks) + (b.inner || '');
 const kcfField_ = b => `<label class="field${b.look ? ' ' + esc(b.look) : ''}"${kcfAttrs_(b.attrs)}>${
   b.caps ? b.caps.map((c, i) => `<span class="${i ? 'q-cap-cert' : 'q-cap-std'}">${esc(c)}</span>`).join('') : b.cap != null && b.cap !== '' ? `<span>${esc(b.cap)}</span>` : ''}${kcfKids_(b)}</label>`;
@@ -834,8 +835,8 @@ const kcfTickB_ = b => `<label class="check${b.look ? ' ' + esc(b.look) : ''}"${
 const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.label)}</span>${kcfControl_(b.hidden || {})}<details class="many-d" data-many="${esc(b.key)}"${b.open ? ' open' : ''}>`
   + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
-/* A GROUP: a div (or a span, a line, or a fold and its summary) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
-const kcfGroup_ = b => { const tag = /^(span|p|details|summary)$/.test(b.tag) ? b.tag : 'div';
+/* A GROUP: a div (or a span, a line, a label, or a fold and its summary) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
+const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label)$/.test(b.tag) ? b.tag : 'div';
   return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
