@@ -511,8 +511,8 @@ function libTwinSvg_(r) {
   const h = libS(r && r.diagram_twin).trim();
   if (!/^[0-9a-f]{12}$/.test(h)) return '';
   const m = /^(\d+)x(\d+)$/.exec(libS(r.diagram_twin_wh).trim()), w = m ? +m[1] : 340, ht = m ? +m[2] : 255;
-  return `<svg class="qtwin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${ht}" width="${w}" role="img" aria-label="Figure">`
-    + `<image href="data/diagrams/${h}.png" width="${w}" height="${ht}"/></svg>`;
+  return cardBlock_({ type: 'drawing', node: { el: 'svg', a: { class: 'qtwin', xmlns: 'http://www.w3.org/2000/svg', viewBox: `0 0 ${w} ${ht}`, width: w, role: 'img', 'aria-label': 'Figure' },
+    kids: { el: 'image', a: { href: `data/diagrams/${h}.png`, width: w, height: ht } } } });
 }
 /* A ROW'S ID ON THE WIRE (backend LIB_FILES): `q:` a question row, `ct:` a content card, `pr:` a practical, `pj:` a project. */
 const libWireQ_ = r => 'q:' + libS(r && (r.row_id || r.id)).trim();

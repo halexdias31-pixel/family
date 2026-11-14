@@ -213,7 +213,7 @@ function kpHitMaths_(inp, show, x, y) {
     + 'px;visibility:hidden;pointer-events:none;contain:layout style paint';
   let html = '';
   for (let i = 0; i <= inp.value.length; i++) {
-    html += '<span class="kp-show">' + kpTypeset_(inp.value, i) + '</span>';
+    html += cardBlock_({ type: 'group', tag: 'span', look: 'kp-show', inner: kpTypeset_(inp.value, i) });
   }
   host.innerHTML = html;
   /* EVERY CARET'S COPY ON THE SAME SPOT, the field's width, so each caret is measured where it would stand. */
@@ -698,7 +698,7 @@ function aiStageStart_(box, out) {
   }
   line.className = 'qp-ai-stage';
   /* WORDS ONLY: the pressed tile's ring is the press's one wait (owner, 12 Nov: two rings at once). */
-  line.innerHTML = '<span class="qp-ai-stage-say"></span>';
+  line.innerHTML = cardBlock_({ type: 'group', tag: 'span', look: 'qp-ai-stage-say' });
   line.setAttribute('role', 'status');
   const say = line.querySelector('.qp-ai-stage-say');
   const began = Date.now();

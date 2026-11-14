@@ -72,12 +72,12 @@ function pdtextsBody_(x) {
   const d = PDTEXTS.files[x.tx.id];
   if (d) {
     const words = String(((d.cards[x.tx.i] || [])[x.tx.t]) || '');
-    const src = (d.sources || []).map(s => esc(s.text || '') + ' · ' + esc(s.licence || '')).join('<br>');
+    const src = [].concat(...(d.sources || []).map((s, i) => [i ? { br: true } : '', (s.text || '') + ' · ' + (s.licence || '')]));
     const lang = /^Latin$/.test((d.texts || [])[x.tx.t] || '') ? 'la' : 'en';
-    return `<div class="tx-text" lang="${lang}">${words.split(/\n\s*\n/).map(p => '<p>' + esc(p) + '</p>').join('')}</div>
-      <p class="wt-credit">${src}</p>`;
+    return cardBlocks_([{ type: 'group', look: 'tx-text', attrs: { lang }, blocks: words.split(/\n\s*\n/).map(p => ({ type: 'group', tag: 'p', text: p })) },
+      { type: 'group', tag: 'p', look: 'wt-credit', text: src }]);
   }
-  if (PDTEXTS.missed[x.tx.id] && !PDTEXTS.loading[x.tx.id]) return '<p class="fc-note">This text did not arrive.</p>';
+  if (PDTEXTS.missed[x.tx.id] && !PDTEXTS.loading[x.tx.id]) return cardBlock_({ type: 'group', tag: 'p', look: 'fc-note', text: 'This text did not arrive.' });
   if (!PDTEXTS.loading[x.tx.id]) pdtextsLoad_(x.tx.id, x.tx.file).then(() => pdtextsRedraw_(x.tx.id));
   return loading_();
 }

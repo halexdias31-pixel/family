@@ -18,9 +18,9 @@ function cardRuns_(v) {
   if (v.sub != null) return `<sub>${cardRuns_(v.sub)}</sub>`;
   if (v.math != null) return `<span class="kc-math">${cardRuns_(v.math)}</span>`;
   if (v.mono != null) return `<span class="mono">${cardRuns_(v.mono)}</span>`;
-  /* A LINK: an https, mailto: or tel: address, or a site path; `act` (file-view) opens it in place, the href its fallback. */
+  /* A LINK: an https, mailto: or tel: address, or a site path; `act` (file-view) opens it in place, the href its fallback; `look: 'link'` its one class, `out` a new tab. */
   if (v.link != null) { const h = String(v.href || ''); if (!/^(https:|mailto:|tel:|docs\/|data\/)/i.test(h)) return cardRuns_(v.link);
-    return `<a href="${esc(h)}"${v.act ? ` data-do="${esc(v.act)}"` : ''}>${cardRuns_(v.link)}</a>`; }
+    return `<a${v.look === 'link' ? ' class="link"' : ''} href="${esc(h)}"${v.out ? ' target="_blank" rel="noopener"' : ''}${v.act ? ` data-do="${esc(v.act)}"` : ''}>${cardRuns_(v.link)}</a>`; }
   /* A LINE BREAK inside one line's words (the build stamp's three lines). */
   if (v.br) return '<br>';
   /* A LINE NUMBER in a margin, as a printed text numbers its lines: read aloud as `line n`. */
@@ -80,10 +80,12 @@ function pixSvg_(rows, name, flip, cls) {
 
 /* A DRAWN PICTURE FROM DATA: shapes `{ t, ...attrs, kids }` on a round `ground`, at `size` pixels (links.js's ten pictures). */
 const ART_TAGS = /^(path|circle|ellipse|rect|g)$/;
+/* A PAINT NAMED BY TOKEN (`--pfp-fox`) is that token from style.css's :root; anything else ('none') is as written. */
+const artPaint_ = v => (/^--pfp-[a-z-]+$/.test(String(v)) ? `var(${v})` : v);
 const artShapes_ = list => (list || []).filter(o => o && ART_TAGS.test(o.t)).map(o => `<${o.t}${Object.keys(o).filter(k => k !== 't' && k !== 'kids')
-  .map(k => ` ${esc(k)}="${esc(o[k])}"`).join('')}${o.kids ? `>${artShapes_(o.kids)}</${o.t}>` : '/>'}`).join('');
+  .map(k => ` ${esc(k)}="${esc(k === 'fill' || k === 'stroke' ? artPaint_(o[k]) : o[k])}"`).join('')}${o.kids ? `>${artShapes_(o.kids)}</${o.t}>` : '/>'}`).join('');
 const artSvg_ = (art, ground, size) => `<svg class="pfp-art" viewBox="0 0 48 48" width="${esc(size)}" height="${esc(size)}" aria-hidden="true">`
-  + `<circle cx="24" cy="24" r="24" fill="${esc(ground)}"/>${artShapes_(art)}</svg>`;
+  + `<circle cx="24" cy="24" r="24" fill="${esc(artPaint_(ground))}"/>${artShapes_(art)}</svg>`;
 /* A PERSON'S FACE FROM DATA: a photo (`src`), a drawing (`art`), or an initial (`text`), in the one class `cls`. */
 function renderFace_(f) {
   if (f.src != null) return `<img class="${esc(f.cls)}" src="${esc(f.src)}" alt="${esc(f.alt || '')}"${f.eager ? '' : ' loading="lazy"'} decoding="async">`;
@@ -223,7 +225,7 @@ const CARD_BLOCKS = {
 };
 /* THE PADLOCK a shut card wears, first inside it. */
 const cardLockMark_ = () => `<span class="card-lock" title="Locked" aria-label="Locked">${typeof tileIcon_ === 'function' ? tileIcon_('lock') : ''}</span>`;
-const CARD_DRAW_ELS = /^(svg|g|defs|clipPath|path|rect|line|circle|ellipse|polygon|polyline|text|figure|div)$/;
+const CARD_DRAW_ELS = /^(svg|g|defs|clipPath|path|rect|line|circle|ellipse|polygon|polyline|text|figure|div|image)$/;
 function cardDraw_(n) {
   if (n == null) return '';
   if (Array.isArray(n)) return n.map(cardDraw_).join('');
@@ -370,9 +372,13 @@ const kcfTickB_ = b => `<label class="check${b.look ? ' ' + esc(b.look) : ''}"${
 const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.label)}</span>${kcfControl_(b.hidden || {})}<details class="many-d" data-many="${esc(b.key)}"${b.open ? ' open' : ''}>`
   + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
-/* A GROUP: a div (or a span, a line, a label, a heading between cards, a fold and its summary, or a column's page section) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
-const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4|section|mark|b|i|small|sup)$/.test(b.tag) ? b.tag : 'div';
-  return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
+/* A GROUP: a div (or a span, a line, a label, a heading between cards, or a fold and its summary) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
+/* `img` is void (its attrs only); an `a` or `img` whose href or src is a script is not written at all. */
+const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h3|h4|section|b|i|small|sup|mark|ol|ul|li|a|img)$/.test(b.tag) ? b.tag : 'div';
+  if (/^\s*(javascript|vbscript):/i.test(String((b.attrs || {}).href || (b.attrs || {}).src || ''))) return '';
+  const open = `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>`;
+  if (tag === 'img') return open;
+  return `${open}${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
 /* THE ONE TAG MAKER for a finder's menu (owner, 13 Nov): every answer, Doesn't matter, and the sign-in step's tags. `inner` is markup, escaped already. */

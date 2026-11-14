@@ -374,7 +374,7 @@ top level, before `rgbKey`
      tomorrow is covered tomorrow. */
 ```
 
-### ---------- 7c. THE PICTURES' COLOURS ARE THE PICTURES' OWN
+### ---------- 7c. THE PICTURES PAINT ONLY THEIR OWN PALETTE
 
 top level, before `pfpTone`
 
@@ -393,6 +393,14 @@ top level, before `pfpTone`
    READ FROM THE FILE, and a file with no drawings in it is a failure rather than a pass: a check that
    cannot find its subject must not be green. */
 ```
+
+**14 Nov — the palette moved into `:root` (owner approved, "everything on one template").** The first
+rule above is reversed: the drawings' colours are now `--pfp-*` tokens in style.css's `:root`, and
+`PFP_ART` names them (`fill: '--pfp-fox'`), which `artPaint_` in js/cards-render.js turns into
+`var(--pfp-fox)`. The purpose holds, checked now as: no hex or rgb() by hand in `PFP_ART`; every name
+it paints is a declared `--pfp-*` plain hex; every `--pfp-*` is painted by some picture; no `--pfp-*`
+shares a hex with an app token; and no style.css rule reads a `--pfp-*` token, so the palette is
+still the pictures' alone. The ten rendered byte-identically before and after (390 wide, dsf 1).
 
 ### FIRST, because everything below it reads a file it assumes is well formed.
 

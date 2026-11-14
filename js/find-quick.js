@@ -152,5 +152,5 @@ function bundleTags_(b) {
       if (now === b) document.querySelectorAll('#s-stuff .card.bundle > .kc-tags').forEach(el => { el.innerHTML = html; });
     });
   }
-  return String(tagRow_(BUNDLE_ITEM) || '<div class="qtags qcard-tags"></div>');
+  return String(tagRow_(BUNDLE_ITEM) || cardBlock_({ type: 'group', look: 'qtags qcard-tags' }));
 }

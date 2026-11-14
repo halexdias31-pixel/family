@@ -581,12 +581,12 @@ function jobPage_(j) {
   const roomOk = j && j.id && (admin || (USER && norm(j.tutor || '') === norm(USER.name)));
   const forms = roomOk ? jobRoomForm_(j) : '';
   const foot = (tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '') + forms
-    + (said ? '<p class="note rc-request" role="status">' + esc(said) + '</p>' : '');
+    + (said ? cardBlock_({ type: 'group', tag: 'p', look: 'note rc-request', attrs: { role: 'status' }, text: said }) : '');
   return typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '';
 }
 
 /* A BOOKING CLOSED (owner, 9 Nov): tags say what, who, when, the rate and whether it is paid; one line says who and how much in all. */
-const rcpTag_ = (t, cls) => (t ? `<span class="qtag${cls ? ' ' + cls : ''}">${esc(t)}</span>` : '');
+const rcpTag_ = (t, cls) => (t ? cardBlock_({ type: 'group', tag: 'span', look: 'qtag' + (cls ? ' ' + cls : ''), text: t }) : '');
 function rcpWhen_(j) {
   const days = typeof jobDays_ === 'function' ? jobDays_(j).map(i => (typeof DAY3_ !== 'undefined' ? DAY3_[i] : '')).filter(Boolean) : [];
   const t = String(j.time || j.startTime || '').trim(), e = String(j.endTime || j.end || '').trim();

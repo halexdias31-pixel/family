@@ -11,7 +11,7 @@ const kcPct_ = m => (typeof m !== 'number' || !isFinite(m) ? '' : m === 1 ? dash
 /* EACH FIELD A CARD CAN SHOW, BY NAME: the settings file picks, and a field with nothing to say says ''. */
 const KC_FIELDS = {
   kindPic: () => '',
-  name: x => `<h3>${esc(x.name || '')}</h3>`,
+  name: x => cardBlock_({ type: 'group', tag: 'h3', text: x.name || '' }),
   /* A KIND WHOSE OWN FILE WRITES ITS INSIDES (`KC_OWN`) hands them over cut into the four parts (`kcSplit_`); no tag line of its own gets its facets. */
   ownPic: x => (x.kcOwn || {}).pic || '',
   ownHead: x => (x.kcOwn || {}).head || '',
@@ -108,7 +108,7 @@ function kcSplit_(html) {
     if (!parts.pic && (/^(img|svg|figure|canvas)$/.test(k.tag) || /[ -](pic|art) /.test(c))) parts.pic = k.html;
     else if (!parts.head && (/^h[1-4]$/.test(k.tag) || / ([\w-]+-)?(head|title) /.test(c))) parts.head = k.html;
     /* A SECOND TAG LINE (a verse's translation) joins the first: one tag part, never a tag line among the lines. */
-    else if (/ [\w-]*tags /.test(c)) parts.tags = !parts.tags ? k.html : /<\/div>\s*$/.test(parts.tags) ? parts.tags.replace(/<\/div>\s*$/, k.inner + '</div>') : parts.tags + k.html;
+    else if (/ [\w-]*tags /.test(c)) parts.tags = !parts.tags ? k.html : /<\/div>\s*$/.test(parts.tags) ? parts.tags.replace(/<\/div>\s*$/, m => k.inner + m) : parts.tags + k.html;
     else parts.lines += k.html;
   });
   walk(kcKids_(card.inner));
@@ -138,7 +138,8 @@ function kcFour_(x, rest, main, flat) {
   const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
   const rest2 = all.join('') + left;
   /* `flat` (a question): every tile in its one row; otherwise the rest wrap visibly under the fixed three. */
-  return `<span class="kc-four">${lead}${msg}${star}${flat ? rest2 : ''}</span>${flat ? '' : `<span class="kc-more">${rest2}</span>`}`;
+  return cardBlocks_([{ type: 'group', tag: 'span', look: 'kc-four', inner: lead + msg + star + (flat ? rest2 : '') },
+    flat ? null : { type: 'group', tag: 'span', look: 'kc-more', inner: rest2 }]);
 }
 /* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
 /* `o`: { flat, look, key } -- a question's row is its tool row (`.qt-row`, its key on it) with every tile shown. */
@@ -150,7 +151,8 @@ function kcActRow_(x, html, own, o) {
   /* A KIND'S TILE GREYED FOR WANT OF ONE goes when its own maker's row brought the real one. */
   const real = (String(own || '').match(KC_TILE_RE) || []).map(kcAct_);
   rest = rest.replace(KC_TILE_RE, t => (/\bkc-off\b/.test(t) && real.indexOf(kcAct_(t)) >= 0 ? '' : t));
-  return `<div class="tile-row kc-row${o.look ? ' ' + esc(o.look) : ''}"${o.look ? cardAttrs_({ key: o.key || '' }) : ''}>${kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main, o.flat)}</div>`;
+  return cardBlock_({ type: 'group', look: 'tile-row kc-row' + (o.look ? ' ' + o.look : ''), attrs: { 'data-key': o.look ? String(o.key || '') : null },
+    inner: kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main, o.flat) });
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {
@@ -167,21 +169,25 @@ function kcHoist_(html, panel) {
 const kcSays_ = (tags, name) => norm(String(tags || '').replace(/<[^>]+>/g, ' ').replace(/&#0*39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&')).indexOf(norm(name)) >= 0;
 function kcTagFirst_(tags, name) {
   const tag = `${qtag_(`${esc(name)}`, ` data-tag="0"`)}`;
-  return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, '$1' + tag) : `<div class="qtags">${tag}</div>` + (tags || '');
+  return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, m => m + tag) : cardBlock_({ type: 'group', look: 'qtags', inner: tag }) + (tags || '');
 }
 /* TAGS ARE SHORT FACTS, LINES HAVE NO HEADINGS (owner, 9 Nov): a longer tag (a credit) becomes a later line, open-only; a heading in the lines a plain line. */
 const KC_TAG_MAX = 30;
 /* A QUESTION, AN ANSWER, A SETTING AND SITE HEALTH hold a whole screen whose own checks read its headings: kept as drawn. */
 const KC_WHOLE_KINDS = ['question', 'answer', 'setting', 'health'];
+/* A TAG'S ATTRIBUTES READ BACK AS DATA (`k="v"` or a bare `k`, the first of a name winning), unescaped, for the group block to write again. */
+const kcAttrsOf_ = at => { const a = {};
+  String(at || '').replace(/([\w:-]+)(?:="([^"]*)")?/g, (m, k, v) => { if (!(k in a)) a[k] = v == null ? true
+    : v.replace(/&quot;/g, '"').replace(/&#0*39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); return m; }); return a; };
 function kcTidy_(tags, lines, name) {
   const words = h => String(h || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&[a-z#0-9]+;/g, ' ').trim();
   const moved = [];
   tags = String(tags || '').replace(/<span class="qtag\b[^"]*"([^>]*)>((?:(?!<\/?span\b)[\s\S])*)<\/span>/g, (m, at, inner) =>
-    (/data-tag="0"/.test(at) || words(inner).length <= KC_TAG_MAX ? m : (moved.push(`<p class="kc-credit">${inner}</p>`), '')));
+    (/data-tag="0"/.test(at) || words(inner).length <= KC_TAG_MAX ? m : (moved.push(cardBlock_({ type: 'group', tag: 'p', look: 'kc-credit', inner })), '')));
   lines = String(lines || '').replace(/<h([1-4])\b([^>]*)>([\s\S]*?)<\/h\1>/g, (m, n, at, inner) => {
     if (name && norm(words(inner)) === norm(name)) return '';
-    const a = /\sclass="/.test(at) ? at.replace(/\sclass="/, ' class="kc-h ') : ' class="kc-h"' + at;
-    return `<p${a} role="heading" aria-level="${n}">${inner}</p>`;
+    const a = kcAttrsOf_(at);
+    return cardBlock_({ type: 'group', tag: 'p', look: 'kc-h' + (a.class ? ' ' + a.class : ''), attrs: Object.assign(a, { class: null, role: 'heading', 'aria-level': n }), inner });
   });
   return { tags, lines: lines + moved.join('') };
 }

@@ -50,7 +50,7 @@ const KEPT = [
   { file: 'map.js', has: "id: 'sr-text'",
     why: 'the speed reader\'s pasted text (403) — kept on the device as it is typed (`speedDraft`), never sent',
     proof: [['reader.js', /localStorage\.setItem\('speedDraft', e\.target\.value\)/]] },
-  { file: 'reader.js', fn: 'speedSheet_', has: 'id="rsvp-wpm"',
+  { file: 'reader.js', fn: 'speedSheet_', has: "id: 'rsvp-wpm'",
     why: 'the speed reader\'s words a minute (403) — kept on the device as it moves (`speedWpm`)',
     proof: [['reader.js', /localStorage\.setItem\('speedWpm', String\(SPEED\.wpm\)\)/]] },
   { file: 'mat.js', has: 'id="mat-text"',
@@ -102,7 +102,7 @@ const EXEMPT = [
   { file: 'working.js', fn: '(top)', has: 'createElement(input)', why: 'the photo picker of 501 — a file chosen, never typed; the photos it adds live in WORK_PICS until Marked' },
   { file: 'records.js', fn: 'digestWordsCard_', has: 'data-dw=', why: 'the weekly email\'s four lines (491) — a few words edited and Saved in one sitting, with the preview beside them; a reload draws the saved words' },
   { file: 'cards-render.js', fn: 'paperWhy_', has: 'name="why" maxlength="200"', why: 'a tutor\'s optional one-line reason for declining a request (488) — typed and sent in one press; nothing is lost but a few words' },
-  { file: 'words.js', fn: 'wordsEditOn_', has: 'class="wk-ph"', why: 'a placeholder\'s words typed over in place (497) — a few words saved at once; a reload draws the saved or the code\'s wording' },
+  { file: 'words.js', fn: 'wordsEditOn_', has: "look: 'wk-ph'", why: 'a placeholder\'s words typed over in place (497) — a few words saved at once; a reload draws the saved or the code\'s wording' },
   /* THE STAFF HUB'S PRICING (405): a what-if moved and saved in one sitting; the saved rate is what a reload draws. */
   { file: 'cards-render.js', fn: 'answerBox_', has: '<input${attrs || \'\'}>', why: 'the sign-in name tag on Find (owner, 13 Nov), its only caller — half a handle is not work, and none is kept after (383)' },
   { file: 'tiles.js', fn: 'searchPill_', has: 'type="search"', why: 'the one search bar (487): Reels\' videos and the People search — a word looked up, not work, retyped in a second' },
@@ -125,7 +125,7 @@ const EXEMPT = [
   { file: 'me.js', fn: 'tick', has: "attrs: { 'data-app': k }", why: 'the application to teach (400) — its three ticks (DBS Update Service, DBS needed, consent), sent with it' },
   { file: 'form.js', fn: 'formToggle_', has: "type: 'control', attrs }", why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },
   { file: 'map.js', has: "id: 'dock-add'", why: 'one line, kept the moment Enter or + puts it on the docket' },
-  { file: 'find.js', has: 'class="room-name"', why: 'a room name, a few words, prefilled and sent by the button under it' },
+  { file: 'find.js', has: "class: 'room-name'", why: 'a room name, a few words, prefilled and sent by the button under it' },
 ];
 [KEPT, EXEMPT].forEach(list => { for (let i = list.length - 1; i >= 0; i--) if (ATTIC_(list[i].file)) list.splice(i, 1); });
 
@@ -166,6 +166,7 @@ const GENERIC_ = {
   tick: () => 'input',
   msgForm: () => 'textarea',
   many: () => 'input',   // the ticks of a several-of-a-list (the hidden answer it holds is a draft or kept by the tick's change)
+  group: o => (/\bcontenteditable:/.test(o) ? 'span' : null),   // a group typed into in place (words.js's placeholder)
 };
 const PASS_THROUGH = [
   { fn: 'kcfControl_', re: /const kcfControl_ = b => \(b\.tag === 'select' \? [^\n]*`<input\$\{kcfAttrs_\(b\.attrs\)\}>`\);/ },

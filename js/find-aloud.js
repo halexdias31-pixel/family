@@ -100,7 +100,7 @@ function figsBefore_(x) {
   const pic = (p, label, onlyMarked) => {
     const marked = p.diagram ? seen(p.diagram) : '';
     if (onlyMarked && !marked) return;
-    const html = (marked || (p.diagram ? `<figure>${p.diagram}</figure>` : '')) + pics_(figImgs_(p.images));
+    const html = (marked || (p.diagram ? cardBlock_({ type: 'drawing', node: { el: 'figure', inner: p.diagram } }) : '')) + pics_(figImgs_(p.images));
     if (html) out.push({ label: label, html: html });
   };
   /* NOT THE STEM'S PICTURE THIS PART DRAWS ON: it is under the pen on this very card (356). */

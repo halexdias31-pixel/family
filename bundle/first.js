@@ -20,26 +20,26 @@ const row = (label, value, extra) => {
   /* MONEY, A COUNT, A DATE, A PERCENTAGE — anything whose characters want to line up under one another. § */
   const looksNumeric = /^[£$€]?[\d.,\s—–-]+%?$/.test(v.trim()) || /^\d/.test(v.trim());
   const cls = ['v', looksNumeric ? 'mono' : '', extra || ''].filter(Boolean).join(' ');
-  return `<div class="row"><span class="k">${esc(label)}</span>` +
-         `<span class="${cls}">${esc(v)}</span></div>`;
+  return rowOf_('row', label, { look: cls, text: v });
 };
+/* THE ROW'S PARTS AS DATA, drawn by the one card maker's group block: a label span (none when `label` is false), then the value span. */
+const rowOf_ = (rowCls, label, v) => cardBlock_({ type: 'group', look: rowCls, blocks: [
+  label === false ? null : { type: 'group', tag: 'span', look: 'k', text: label == null ? '' : String(label) },
+  Object.assign({ type: 'group', tag: 'span' }, v)] });
 
 /* THE SAME ROW, WITH THE VALUE ALREADY MARKED UP — a link, a coloured word, a small drawing. § */
 const rowHtml = (label, html, extra, rowCls) =>
-  `<div class="row${rowCls ? ' ' + rowCls : ''}"><span class="k">${esc(label)}</span>` +
-  `<span class="${['v', extra || ''].filter(Boolean).join(' ')}">${html}</span></div>`;
+  rowOf_('row' + (rowCls ? ' ' + rowCls : ''), label, { look: ['v', extra || ''].filter(Boolean).join(' '), inner: html });
 
 /* ---------- THE TWO SHAPES THE FIRST TWO COULD NOT MAKE § */
 
 /* A VALUE THAT CHANGES WHILE YOU WATCH — a clock ticking down, a score going up. § */
 const rowLive = (label, value, id, extra) =>
-  `<div class="row"><span class="k">${esc(label)}</span>` +
-  `<span class="${['v', 'mono', extra || ''].filter(Boolean).join(' ')}"` +
-  ` id="${esc(id)}">${esc(String(value == null ? '' : value))}</span></div>`;
+  rowOf_('row', label, { look: ['v', 'mono', extra || ''].filter(Boolean).join(' '), id: String(id), text: String(value == null ? '' : value) });
 
 /* A ROW WITH NO LABEL — a name in a list, a line of a basket. § */
 const rowValue = (html, extra) =>
-  `<div class="row"><span class="${['v', extra || ''].filter(Boolean).join(' ')}">${html}</span></div>`;
+  rowOf_('row', false, { look: ['v', extra || ''].filter(Boolean).join(' '), inner: html });
 
 
 function bookableSpaces() {
@@ -497,9 +497,9 @@ function cardRuns_(v) {
   if (v.sub != null) return `<sub>${cardRuns_(v.sub)}</sub>`;
   if (v.math != null) return `<span class="kc-math">${cardRuns_(v.math)}</span>`;
   if (v.mono != null) return `<span class="mono">${cardRuns_(v.mono)}</span>`;
-  /* A LINK: an https, mailto: or tel: address, or a site path; `act` (file-view) opens it in place, the href its fallback. */
+  /* A LINK: an https, mailto: or tel: address, or a site path; `act` (file-view) opens it in place, the href its fallback; `look: 'link'` its one class, `out` a new tab. */
   if (v.link != null) { const h = String(v.href || ''); if (!/^(https:|mailto:|tel:|docs\/|data\/)/i.test(h)) return cardRuns_(v.link);
-    return `<a href="${esc(h)}"${v.act ? ` data-do="${esc(v.act)}"` : ''}>${cardRuns_(v.link)}</a>`; }
+    return `<a${v.look === 'link' ? ' class="link"' : ''} href="${esc(h)}"${v.out ? ' target="_blank" rel="noopener"' : ''}${v.act ? ` data-do="${esc(v.act)}"` : ''}>${cardRuns_(v.link)}</a>`; }
   /* A LINE BREAK inside one line's words (the build stamp's three lines). */
   if (v.br) return '<br>';
   /* A LINE NUMBER in a margin, as a printed text numbers its lines: read aloud as `line n`. */
@@ -559,10 +559,12 @@ function pixSvg_(rows, name, flip, cls) {
 
 /* A DRAWN PICTURE FROM DATA: shapes `{ t, ...attrs, kids }` on a round `ground`, at `size` pixels (links.js's ten pictures). */
 const ART_TAGS = /^(path|circle|ellipse|rect|g)$/;
+/* A PAINT NAMED BY TOKEN (`--pfp-fox`) is that token from style.css's :root; anything else ('none') is as written. */
+const artPaint_ = v => (/^--pfp-[a-z-]+$/.test(String(v)) ? `var(${v})` : v);
 const artShapes_ = list => (list || []).filter(o => o && ART_TAGS.test(o.t)).map(o => `<${o.t}${Object.keys(o).filter(k => k !== 't' && k !== 'kids')
-  .map(k => ` ${esc(k)}="${esc(o[k])}"`).join('')}${o.kids ? `>${artShapes_(o.kids)}</${o.t}>` : '/>'}`).join('');
+  .map(k => ` ${esc(k)}="${esc(k === 'fill' || k === 'stroke' ? artPaint_(o[k]) : o[k])}"`).join('')}${o.kids ? `>${artShapes_(o.kids)}</${o.t}>` : '/>'}`).join('');
 const artSvg_ = (art, ground, size) => `<svg class="pfp-art" viewBox="0 0 48 48" width="${esc(size)}" height="${esc(size)}" aria-hidden="true">`
-  + `<circle cx="24" cy="24" r="24" fill="${esc(ground)}"/>${artShapes_(art)}</svg>`;
+  + `<circle cx="24" cy="24" r="24" fill="${esc(artPaint_(ground))}"/>${artShapes_(art)}</svg>`;
 /* A PERSON'S FACE FROM DATA: a photo (`src`), a drawing (`art`), or an initial (`text`), in the one class `cls`. */
 function renderFace_(f) {
   if (f.src != null) return `<img class="${esc(f.cls)}" src="${esc(f.src)}" alt="${esc(f.alt || '')}"${f.eager ? '' : ' loading="lazy"'} decoding="async">`;
@@ -702,7 +704,7 @@ const CARD_BLOCKS = {
 };
 /* THE PADLOCK a shut card wears, first inside it. */
 const cardLockMark_ = () => `<span class="card-lock" title="Locked" aria-label="Locked">${typeof tileIcon_ === 'function' ? tileIcon_('lock') : ''}</span>`;
-const CARD_DRAW_ELS = /^(svg|g|defs|clipPath|path|rect|line|circle|ellipse|polygon|polyline|text|figure|div)$/;
+const CARD_DRAW_ELS = /^(svg|g|defs|clipPath|path|rect|line|circle|ellipse|polygon|polyline|text|figure|div|image)$/;
 function cardDraw_(n) {
   if (n == null) return '';
   if (Array.isArray(n)) return n.map(cardDraw_).join('');
@@ -849,9 +851,13 @@ const kcfTickB_ = b => `<label class="check${b.look ? ' ' + esc(b.look) : ''}"${
 const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.label)}</span>${kcfControl_(b.hidden || {})}<details class="many-d" data-many="${esc(b.key)}"${b.open ? ' open' : ''}>`
   + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
-/* A GROUP: a div (or a span, a line, a label, a heading between cards, a fold and its summary, or a column's page section) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
-const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4|section|mark|b|i|small|sup)$/.test(b.tag) ? b.tag : 'div';
-  return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
+/* A GROUP: a div (or a span, a line, a label, a heading between cards, or a fold and its summary) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
+/* `img` is void (its attrs only); an `a` or `img` whose href or src is a script is not written at all. */
+const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h3|h4|section|b|i|small|sup|mark|ol|ul|li|a|img)$/.test(b.tag) ? b.tag : 'div';
+  if (/^\s*(javascript|vbscript):/i.test(String((b.attrs || {}).href || (b.attrs || {}).src || ''))) return '';
+  const open = `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>`;
+  if (tag === 'img') return open;
+  return `${open}${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
 /* THE ONE TAG MAKER for a finder's menu (owner, 13 Nov): every answer, Doesn't matter, and the sign-in step's tags. `inner` is markup, escaped already. */
@@ -2129,7 +2135,7 @@ const PRICE_ROWS = [
     control: 'l-qty',
     /* Says WHERE the fraction came from, for an admin. § */
     value: L => String(Math.max(0, (L.n || 1) - 1))
-      + (isAdmin() && L.seatSource ? ` <span class="note">${esc(L.seatSource)}</span>` : ''),
+      + (isAdmin() && L.seatSource ? ' ' + cardBlock_({ type: 'group', tag: 'span', look: 'note', text: L.seatSource }) : ''),
     mult:  L => L.fChildrenAll,
     of:    L => rateBase(L, 'students') },
 
@@ -2193,7 +2199,7 @@ function priceCells(row, L, fmt) {
     const why = !L.hoursPerWeek ? 'tick some hours'
               : !L.weeksBooked  ? 'pick a time interval'
               : '';
-    return { total: (row.key === 'hoursweek' && why) ? `<span class="note">${why}</span>` : dash_() };
+    return { total: (row.key === 'hoursweek' && why) ? cardBlock_({ type: 'group', tag: 'span', look: 'note', text: why }) : dash_() };
   };
 
   /* --- a multiplier on the finished total: length, term, split, bulk, advance --------------- */
@@ -2863,7 +2869,7 @@ function mark(text) {
   laws.forEach(law => {
     const cls = LAW_CLASS[norm(law.colour)];
     if (cls === undefined) return;                 // a colour nobody has defined: left alone
-    const wrap = m => park(`<span class="${cls}">${m}</span>`);
+    const wrap = m => park(cardBlock_({ type: 'group', tag: 'span', look: cls, inner: m }));
 
     const how = Object.prototype.hasOwnProperty.call(LAW_KINDS, law.kind) ? LAW_KINDS[law.kind] : null;
     if (how) out = how(out, law, wrap);
@@ -3518,8 +3524,8 @@ function libTwinSvg_(r) {
   const h = libS(r && r.diagram_twin).trim();
   if (!/^[0-9a-f]{12}$/.test(h)) return '';
   const m = /^(\d+)x(\d+)$/.exec(libS(r.diagram_twin_wh).trim()), w = m ? +m[1] : 340, ht = m ? +m[2] : 255;
-  return `<svg class="qtwin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${ht}" width="${w}" role="img" aria-label="Figure">`
-    + `<image href="data/diagrams/${h}.png" width="${w}" height="${ht}"/></svg>`;
+  return cardBlock_({ type: 'drawing', node: { el: 'svg', a: { class: 'qtwin', xmlns: 'http://www.w3.org/2000/svg', viewBox: `0 0 ${w} ${ht}`, width: w, role: 'img', 'aria-label': 'Figure' },
+    kids: { el: 'image', a: { href: `data/diagrams/${h}.png`, width: w, height: ht } } } });
 }
 /* A ROW'S ID ON THE WIRE (backend LIB_FILES): `q:` a question row, `ct:` a content card, `pr:` a practical, `pj:` a project. */
 const libWireQ_ = r => 'q:' + libS(r && (r.row_id || r.id)).trim();
@@ -4400,7 +4406,7 @@ function tierOff_(w) {
   Object.defineProperty(w, 'html', { configurable: true, enumerable: true, get() {
     const say = typeof brand === 'function' ? brand('widgetOff', 'Coming soon') : 'Coming soon';
     /* ITS WORDS ONLY: every host wraps a widget in its card, name and Suggest already, so a card here was a card in a card. */
-    return `<p class="note widget-off">${esc(say)}</p>`;
+    return cardBlock_({ type: 'group', tag: 'p', look: 'note widget-off', text: say });
   } });
   try { Object.defineProperty(w, '__tier', { value: 'off' }); } catch (e) { /* a frozen widget is still off */ }
 }
@@ -4647,8 +4653,7 @@ function nothingHere(whenEmpty, needsLibrary) {
 /* WAITING — ONE LOADER FOR EVERY CARD, AND THIS IS THE ONLY PLACE IT IS WRITTEN § */
 /* A SPINNING RING (owner, 12 Nov): one ring with a gap, turning forever; style.css draws it. */
 function loading_() {
-  return '<div class="loading" role="status" aria-label="Loading">'
-    + '<span></span></div>';
+  return cardBlock_({ type: 'group', look: 'loading', attrs: { role: 'status', 'aria-label': 'Loading' }, blocks: [{ type: 'group', tag: 'span' }] });
 }
 
 /* EACH COLUMN'S SHAPE, KEPT ON THE DEVICE (700): page heights in px, no data, so a column waiting next visit holds its final size. */
@@ -4660,7 +4665,8 @@ function shapeOf_(id) { const w = shapeWidth_(), all = shapeAll_(), hs = all.at 
 /* A COLUMN WITH NO DRAWER YET: its remembered pages, each a quiet surface round the one loader; one page when it was never seen. */
 function waitShape_(id) {
   const hs = shapeOf_(id) || [0];
-  return hs.map(h => `<section class="page"><div class="pane"${h ? ` data-keep style="--keep-h:${h}px"` : ''}>${loading_()}</div></section>`).join('');
+  return hs.map(h => cardBlock_({ type: 'group', tag: 'section', look: 'page',
+    blocks: [{ type: 'group', look: 'pane', attrs: h ? { 'data-keep': true, style: '--keep-h:' + h + 'px' } : null, inner: loading_() }] })).join('');
 }
 /* AND A PANE A DRAWER LEFT WAITING gets the height its page had last time. */
 function shapeHold_(el, id) {
@@ -5009,7 +5015,7 @@ function paint(id, fresh, o) {
     /* ITS CODE NOT IN YET (670, `LATER`): the column waits, and is drawn again when the payload lands. */
     if (!filesIn_() && err instanceof ReferenceError) { el.innerHTML = waitShape_(id); STALE[id] = 1; return; }
     oops_(err, 'draw:' + id);
-    el.innerHTML = `<div class="pane">${renderCard({ kind: 'oops', look: 'draw-oops', tags: [{ text: 'This screen did not draw', colour: 0 }] })}</div>`;
+    el.innerHTML = cardBlock_({ type: 'group', look: 'pane', inner: renderCard({ kind: 'oops', look: 'draw-oops', tags: [{ text: 'This screen did not draw', colour: 0 }] }) });
     return;
   }
   /* ---------- AND A WIDGET RUNNING ON THIS COLUMN KEEPS THE SLOT IT IS RUNNING IN § */
@@ -6637,7 +6643,7 @@ function adoptMarks_() {
 /* ONE TILE ROW PER THING (489): rows that stood one under another are joined (`tileRowsJoin_`, tiles.js). */
 const rowsOne_ = c => (typeof tileRowsJoin_ === 'function' ? tileRowsJoin_(c) : c);
 const pages = (id, cards) =>
-  cards.map(c => `<section class="page"><div class="pane">${rowsOne_(c)}</div></section>`).join('');
+  cards.map(c => cardBlock_({ type: 'group', tag: 'section', look: 'page', blocks: [{ type: 'group', look: 'pane', inner: rowsOne_(c) }] })).join('');
 
 /* ---------- AN EMPTY WIDGET IS ITS TITLE AND NOTHING ELSE (414) ---------- */
 /* One empty state for every list with nothing in it — Spotlight, Saved, the shop, the reels: no sentence explaining the emptiness, the owner's ask. */
@@ -6649,7 +6655,7 @@ const emptyCard_ = title => {
 
 /* ---------- ALL OF THEM ON ONE, WHICH IS WHAT A LIST IS § */
 const stack = (id, cards) =>
-  `<section class="page"><div class="pane">${rowsOne_(cards.join(''))}</div></section>`;
+  cardBlock_({ type: 'group', tag: 'section', look: 'page', blocks: [{ type: 'group', look: 'pane', inner: rowsOne_(cards.join('')) }] });
 
 /** The glass inside a page — where content actually goes. */
 /* THE PANE INSIDE A PAGE — AND ONE IS MADE IF THERE IS NOT ONE. § */
@@ -8091,12 +8097,10 @@ function loadFailBanner_(err, reached) {
           + 'built cold (after clearPayloadCache) and the next ask gets the copy it kept; minutes of '
           + 'them is the script itself — open it in a tab and see how long it takes.'
         : 'Something else went wrong on the way.';
-      el.innerHTML = 'Could not reach the backend.' + (reached ? '' : ' Still trying by itself.') + '<br>'
-        + qtag_(esc(why)) + '<br>'
-        + '<a class="link" href="' + esc(API) + '" target="_blank" rel="noopener">Open it in a '
-        + 'tab</a> — the page itself will say which it is.<br>'
-        + '<span>' + esc(msg)
-        + ' · site ' + esc(SITE_VERSION) + ' · css ' + esc(cssVersion()) + '</span>';
+      el.innerHTML = cardRuns_(['Could not reach the backend.' + (reached ? '' : ' Still trying by itself.'), { br: 1 }])
+        + qtag_(esc(why))
+        + cardRuns_([{ br: 1 }, { link: 'Open it in a tab', href: API, look: 'link', out: true }, ' — the page itself will say which it is.', { br: 1 },
+          { span: '', text: msg + ' · site ' + SITE_VERSION + ' · css ' + cssVersion() }]);
     }
 }
 /* A LOAD FINISHED, whether it succeeded or failed: the loader goes and every screen is drawn. */
@@ -8552,7 +8556,7 @@ const kcPct_ = m => (typeof m !== 'number' || !isFinite(m) ? '' : m === 1 ? dash
 /* EACH FIELD A CARD CAN SHOW, BY NAME: the settings file picks, and a field with nothing to say says ''. */
 const KC_FIELDS = {
   kindPic: () => '',
-  name: x => `<h3>${esc(x.name || '')}</h3>`,
+  name: x => cardBlock_({ type: 'group', tag: 'h3', text: x.name || '' }),
   /* A KIND WHOSE OWN FILE WRITES ITS INSIDES (`KC_OWN`) hands them over cut into the four parts (`kcSplit_`); no tag line of its own gets its facets. */
   ownPic: x => (x.kcOwn || {}).pic || '',
   ownHead: x => (x.kcOwn || {}).head || '',
@@ -8649,7 +8653,7 @@ function kcSplit_(html) {
     if (!parts.pic && (/^(img|svg|figure|canvas)$/.test(k.tag) || /[ -](pic|art) /.test(c))) parts.pic = k.html;
     else if (!parts.head && (/^h[1-4]$/.test(k.tag) || / ([\w-]+-)?(head|title) /.test(c))) parts.head = k.html;
     /* A SECOND TAG LINE (a verse's translation) joins the first: one tag part, never a tag line among the lines. */
-    else if (/ [\w-]*tags /.test(c)) parts.tags = !parts.tags ? k.html : /<\/div>\s*$/.test(parts.tags) ? parts.tags.replace(/<\/div>\s*$/, k.inner + '</div>') : parts.tags + k.html;
+    else if (/ [\w-]*tags /.test(c)) parts.tags = !parts.tags ? k.html : /<\/div>\s*$/.test(parts.tags) ? parts.tags.replace(/<\/div>\s*$/, m => k.inner + m) : parts.tags + k.html;
     else parts.lines += k.html;
   });
   walk(kcKids_(card.inner));
@@ -8679,7 +8683,8 @@ function kcFour_(x, rest, main, flat) {
   const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
   const rest2 = all.join('') + left;
   /* `flat` (a question): every tile in its one row; otherwise the rest wrap visibly under the fixed three. */
-  return `<span class="kc-four">${lead}${msg}${star}${flat ? rest2 : ''}</span>${flat ? '' : `<span class="kc-more">${rest2}</span>`}`;
+  return cardBlocks_([{ type: 'group', tag: 'span', look: 'kc-four', inner: lead + msg + star + (flat ? rest2 : '') },
+    flat ? null : { type: 'group', tag: 'span', look: 'kc-more', inner: rest2 }]);
 }
 /* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
 /* `o`: { flat, look, key } -- a question's row is its tool row (`.qt-row`, its key on it) with every tile shown. */
@@ -8691,7 +8696,8 @@ function kcActRow_(x, html, own, o) {
   /* A KIND'S TILE GREYED FOR WANT OF ONE goes when its own maker's row brought the real one. */
   const real = (String(own || '').match(KC_TILE_RE) || []).map(kcAct_);
   rest = rest.replace(KC_TILE_RE, t => (/\bkc-off\b/.test(t) && real.indexOf(kcAct_(t)) >= 0 ? '' : t));
-  return `<div class="tile-row kc-row${o.look ? ' ' + esc(o.look) : ''}"${o.look ? cardAttrs_({ key: o.key || '' }) : ''}>${kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main, o.flat)}</div>`;
+  return cardBlock_({ type: 'group', look: 'tile-row kc-row' + (o.look ? ' ' + o.look : ''), attrs: { 'data-key': o.look ? String(o.key || '') : null },
+    inner: kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main, o.flat) });
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {
@@ -8708,21 +8714,25 @@ function kcHoist_(html, panel) {
 const kcSays_ = (tags, name) => norm(String(tags || '').replace(/<[^>]+>/g, ' ').replace(/&#0*39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&')).indexOf(norm(name)) >= 0;
 function kcTagFirst_(tags, name) {
   const tag = `${qtag_(`${esc(name)}`, ` data-tag="0"`)}`;
-  return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, '$1' + tag) : `<div class="qtags">${tag}</div>` + (tags || '');
+  return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, m => m + tag) : cardBlock_({ type: 'group', look: 'qtags', inner: tag }) + (tags || '');
 }
 /* TAGS ARE SHORT FACTS, LINES HAVE NO HEADINGS (owner, 9 Nov): a longer tag (a credit) becomes a later line, open-only; a heading in the lines a plain line. */
 const KC_TAG_MAX = 30;
 /* A QUESTION, AN ANSWER, A SETTING AND SITE HEALTH hold a whole screen whose own checks read its headings: kept as drawn. */
 const KC_WHOLE_KINDS = ['question', 'answer', 'setting', 'health'];
+/* A TAG'S ATTRIBUTES READ BACK AS DATA (`k="v"` or a bare `k`, the first of a name winning), unescaped, for the group block to write again. */
+const kcAttrsOf_ = at => { const a = {};
+  String(at || '').replace(/([\w:-]+)(?:="([^"]*)")?/g, (m, k, v) => { if (!(k in a)) a[k] = v == null ? true
+    : v.replace(/&quot;/g, '"').replace(/&#0*39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); return m; }); return a; };
 function kcTidy_(tags, lines, name) {
   const words = h => String(h || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&[a-z#0-9]+;/g, ' ').trim();
   const moved = [];
   tags = String(tags || '').replace(/<span class="qtag\b[^"]*"([^>]*)>((?:(?!<\/?span\b)[\s\S])*)<\/span>/g, (m, at, inner) =>
-    (/data-tag="0"/.test(at) || words(inner).length <= KC_TAG_MAX ? m : (moved.push(`<p class="kc-credit">${inner}</p>`), '')));
+    (/data-tag="0"/.test(at) || words(inner).length <= KC_TAG_MAX ? m : (moved.push(cardBlock_({ type: 'group', tag: 'p', look: 'kc-credit', inner })), '')));
   lines = String(lines || '').replace(/<h([1-4])\b([^>]*)>([\s\S]*?)<\/h\1>/g, (m, n, at, inner) => {
     if (name && norm(words(inner)) === norm(name)) return '';
-    const a = /\sclass="/.test(at) ? at.replace(/\sclass="/, ' class="kc-h ') : ' class="kc-h"' + at;
-    return `<p${a} role="heading" aria-level="${n}">${inner}</p>`;
+    const a = kcAttrsOf_(at);
+    return cardBlock_({ type: 'group', tag: 'p', look: 'kc-h' + (a.class ? ' ' + a.class : ''), attrs: Object.assign(a, { class: null, role: 'heading', 'aria-level': n }), inner });
   });
   return { tags, lines: lines + moved.join('') };
 }
@@ -11043,7 +11053,7 @@ function settingsCards_(shown, moved, col) {
       options: fieldOptions_,
     },
     save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
-    foot: (mail(list) ? movingNote_(p) : '') + '<p class="note me-said"></p>',
+    foot: (mail(list) ? movingNote_(p) : '') + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said' }),
     after: id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '' }));
   const out = [];
   Object.keys(shown).forEach((g, k) => {
@@ -11126,11 +11136,10 @@ function studentSetPages_() {
   }
   const who = nameBesideHandle_(whose_().name, whose_().handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
-  let top = meCard_(`<div class="signed-in"><h3>Signed in</h3>
-    ${tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
-      + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)}
-    ${/* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
-      typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''}</div>`);
+  let top = meCard_(cardBlock_({ type: 'group', look: 'signed-in', blocks: [{ type: 'msgHead', text: 'Signed in' }], inner: tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
+      + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)
+    /* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
+    + (typeof mailHeldNote_ === 'function' ? mailHeldNote_() : '') }));
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
   /* IN THE LENS, SIGN OUT IS THE ADMIN'S OWN SESSION: shut, greyed not hidden (the fixed tile rule). */
   if (lensOn_()) top = lockCard_(top);
@@ -14657,102 +14666,102 @@ function openSharedTutor() {
 /* A PERSON'S PICTURE — TEN OF OURS, A PHOTOGRAPH, OR THEIR INITIAL (the figure went, 9 Nov: a stored `pfp:avatar` is no choice). */
 const PFP_PREFIX = 'pfp:';
 const PFP_ART = {
-  fox: { name: 'Fox', ground: '#3c6fd1', art: [
-     { t: 'path', d: 'M11 9l9 9-6 7z', fill: '#e8742c' },
-     { t: 'path', d: 'M37 9l-9 9 6 7z', fill: '#e8742c' },
-     { t: 'path', d: 'M13.5 13l4.5 5-3 3.5z', fill: '#6b2f12' },
-     { t: 'path', d: 'M34.5 13L30 18l3 3.5z', fill: '#6b2f12' },
-     { t: 'path', d: 'M10 20q14-8 28 0l-3 12-11 8-11-8z', fill: '#e8742c' },
-     { t: 'path', d: 'M15 29l9 11 9-11q-9 4-18 0z', fill: '#fff' },
-     { t: 'circle', cx: '18.5', cy: '25', r: '2', fill: '#1f2328' },
-     { t: 'circle', cx: '29.5', cy: '25', r: '2', fill: '#1f2328' },
-     { t: 'circle', cx: '24', cy: '37', r: '2', fill: '#1f2328' }] },
-  owl: { name: 'Owl', ground: '#2e8b7a', art: [
-     { t: 'path', d: 'M12 18l2-9 6 6z', fill: '#8b5a2b' },
-     { t: 'path', d: 'M36 18l-2-9-6 6z', fill: '#8b5a2b' },
-     { t: 'ellipse', cx: '24', cy: '27', rx: '13', ry: '14', fill: '#8b5a2b' },
-     { t: 'ellipse', cx: '24', cy: '33', rx: '7.5', ry: '7', fill: '#e3c08f' },
-     { t: 'circle', cx: '18.5', cy: '22', r: '5.2', fill: '#fff' },
-     { t: 'circle', cx: '29.5', cy: '22', r: '5.2', fill: '#fff' },
-     { t: 'circle', cx: '18.5', cy: '22.5', r: '2.6', fill: '#1f2328' },
-     { t: 'circle', cx: '29.5', cy: '22.5', r: '2.6', fill: '#1f2328' },
-     { t: 'path', d: 'M21.5 27h5L24 31z', fill: '#f2a516' }] },
-  cat: { name: 'Cat', ground: '#ef8fae', art: [
-     { t: 'path', d: 'M11 22l2-13 9 6z', fill: '#5b6270' },
-     { t: 'path', d: 'M37 22l-2-13-9 6z', fill: '#5b6270' },
-     { t: 'path', d: 'M14 18l1-5 4 3z', fill: '#f4b6c8' },
-     { t: 'path', d: 'M34 18l-1-5-4 3z', fill: '#f4b6c8' },
-     { t: 'ellipse', cx: '24', cy: '27', rx: '14', ry: '12', fill: '#5b6270' },
-     { t: 'ellipse', cx: '18.5', cy: '25', rx: '2.2', ry: '3', fill: '#b6e36b' },
-     { t: 'ellipse', cx: '29.5', cy: '25', rx: '2.2', ry: '3', fill: '#b6e36b' },
-     { t: 'ellipse', cx: '18.5', cy: '25.3', rx: '.9', ry: '2.3', fill: '#1f2328' },
-     { t: 'ellipse', cx: '29.5', cy: '25.3', rx: '.9', ry: '2.3', fill: '#1f2328' },
-     { t: 'path', d: 'M22 30h4l-2 2.4z', fill: '#f4b6c8' },
-     { t: 'path', d: 'M8 30l9 1M8 34l9-1.5M40 30l-9 1M40 34l-9-1.5', stroke: '#fff', 'stroke-width': '1.3', 'stroke-linecap': 'round' }] },
-  dino: { name: 'Dinosaur', ground: '#f5c542', art: [
-     { t: 'path', d: 'M15 23l2-4 2 4zM20 20l2-4.5 2 4.5zM25 19.5l2-4 2 4z', fill: '#2c7a3a' },
-     { t: 'path', d: 'M7 26q4 6 9 2', stroke: '#3fa34d', 'stroke-width': '4.5', fill: 'none', 'stroke-linecap': 'round' },
-     { t: 'ellipse', cx: '22', cy: '29', rx: '11', ry: '8', fill: '#3fa34d' },
-     { t: 'path', d: 'M26 25q2-11 10-12 6 0 5.5 5.5-.5 3.5-6.5 3.5L31 29z', fill: '#3fa34d' },
-     { t: 'rect', x: '15', y: '34', width: '4.5', height: '7', rx: '2', fill: '#2c7a3a' },
-     { t: 'rect', x: '24', y: '34', width: '4.5', height: '7', rx: '2', fill: '#2c7a3a' },
-     { t: 'circle', cx: '36.5', cy: '16.5', r: '1.7', fill: '#1f2328' },
-     { t: 'path', d: 'M37 20.5h3', stroke: '#1f2328', 'stroke-width': '1.2', 'stroke-linecap': 'round' }] },
-  robot: { name: 'Robot', ground: '#f07f4f', art: [
-     { t: 'path', d: 'M24 13V9', stroke: '#5b6574', 'stroke-width': '2' },
-     { t: 'circle', cx: '24', cy: '8', r: '2.4', fill: '#e5484d' },
-     { t: 'rect', x: '9', y: '19', width: '3.5', height: '9', rx: '1.5', fill: '#8a96a5' },
-     { t: 'rect', x: '35.5', y: '19', width: '3.5', height: '9', rx: '1.5', fill: '#8a96a5' },
-     { t: 'rect', x: '12', y: '13', width: '24', height: '21', rx: '5', fill: '#d3dbe3' },
-     { t: 'circle', cx: '18.5', cy: '22', r: '3.6', fill: '#1f2328' },
-     { t: 'circle', cx: '29.5', cy: '22', r: '3.6', fill: '#1f2328' },
-     { t: 'circle', cx: '18.5', cy: '22', r: '2.2', fill: '#3cc4f0' },
-     { t: 'circle', cx: '29.5', cy: '22', r: '2.2', fill: '#3cc4f0' },
-     { t: 'rect', x: '17', y: '27.5', width: '14', height: '3.6', rx: '1.6', fill: '#1f2328' },
-     { t: 'path', d: 'M20.5 27.5v3.6M24 27.5v3.6M27.5 27.5v3.6', stroke: '#d3dbe3', 'stroke-width': '1' },
-     { t: 'rect', x: '16', y: '35', width: '16', height: '7', rx: '2', fill: '#8a96a5' }] },
-  rocket: { name: 'Rocket', ground: '#24366e', art: [
-     { t: 'circle', cx: '11', cy: '14', r: '1.2', fill: '#fff' },
-     { t: 'circle', cx: '37.5', cy: '12', r: '1', fill: '#fff' },
-     { t: 'circle', cx: '38', cy: '33', r: '1.2', fill: '#fff' },
-     { t: 'circle', cx: '9.5', cy: '31', r: '1', fill: '#fff' },
-     { t: 'path', d: 'M19.5 33q4.5 12 9 0z', fill: '#ffb020' },
-     { t: 'path', d: 'M21.8 33q2.2 6.5 4.4 0z', fill: '#ff6b2c' },
-     { t: 'path', d: 'M17.5 25L11 34l6.5-1.5zM30.5 25L37 34l-6.5-1.5z', fill: '#e5484d' },
-     { t: 'path', d: 'M24 6q7 7 7 19v8H17v-8q0-12 7-19z', fill: '#eef2f5' },
-     { t: 'path', d: 'M24 6q5 4.5 6.3 10H17.7Q19 10.5 24 6z', fill: '#e5484d' },
-     { t: 'circle', cx: '24', cy: '22.5', r: '3.6', fill: '#5ec8f2', stroke: '#34495e', 'stroke-width': '1.4' }] },
-  planet: { name: 'Planet', ground: '#5b3d8f', art: [
-     { t: 'circle', cx: '10', cy: '12', r: '1.1', fill: '#fff' },
-     { t: 'circle', cx: '38', cy: '38', r: '1.1', fill: '#fff' },
-     { t: 'circle', cx: '36', cy: '10', r: '.9', fill: '#fff' },
-     { t: 'ellipse', cx: '24', cy: '25', rx: '17', ry: '5.5', transform: 'rotate(-18 24 25)', fill: 'none', stroke: '#f5c542', 'stroke-width': '2.6' },
-     { t: 'circle', cx: '24', cy: '24', r: '10', fill: '#f08a4b' },
-     { t: 'path', d: 'M15 21q9 3 18-1M14.5 27q9 3 19-1', stroke: '#c9602a', 'stroke-width': '2', fill: 'none', 'stroke-linecap': 'round' },
-     { t: 'path', d: 'M7.83 30.25A17 5.5-18 0 0 40.17 19.75', fill: 'none', stroke: '#f5c542', 'stroke-width': '2.6' }] },
-  football: { name: 'Football', ground: '#3a9d5d', art: [
-     { t: 'circle', cx: '24', cy: '24', r: '14', fill: '#fff', stroke: '#1f2328', 'stroke-width': '1.6' },
-     { t: 'path', d: 'M24 18.5l5.2 3.8-2 6.1h-6.4l-2-6.1z', fill: '#1f2328' },
-     { t: 'path', d: 'M24 18.5V11M29.2 22.3l7-2.3M27.2 28.4l4.3 6M20.8 28.4l-4.3 6M18.8 22.3l-7-2.3', stroke: '#1f2328', 'stroke-width': '1.4' },
-     { t: 'path', d: 'M20.5 10.6L24 11l3.5-.4L24 10z', fill: '#1f2328' },
-     { t: 'path', d: 'M36.6 17.7l-.4 4.5 1.6 1.1q.4-3-1.2-5.6zM34.4 33.6l-2.9-.7-1.6 2.6q2.8-.3 4.5-1.9zM13.6 33.6l2.9-.7 1.6 2.6q-2.8-.3-4.5-1.9zM11.4 17.7l.4 4.5-1.6 1.1q-.4-3 1.2-5.6z', fill: '#1f2328' }] },
-  guitar: { name: 'Guitar', ground: '#d9534f', art: [
+  fox: { name: 'Fox', ground: '--pfp-blue', art: [
+     { t: 'path', d: 'M11 9l9 9-6 7z', fill: '--pfp-fox' },
+     { t: 'path', d: 'M37 9l-9 9 6 7z', fill: '--pfp-fox' },
+     { t: 'path', d: 'M13.5 13l4.5 5-3 3.5z', fill: '--pfp-fox-dark' },
+     { t: 'path', d: 'M34.5 13L30 18l3 3.5z', fill: '--pfp-fox-dark' },
+     { t: 'path', d: 'M10 20q14-8 28 0l-3 12-11 8-11-8z', fill: '--pfp-fox' },
+     { t: 'path', d: 'M15 29l9 11 9-11q-9 4-18 0z', fill: '--pfp-white' },
+     { t: 'circle', cx: '18.5', cy: '25', r: '2', fill: '--pfp-ink' },
+     { t: 'circle', cx: '29.5', cy: '25', r: '2', fill: '--pfp-ink' },
+     { t: 'circle', cx: '24', cy: '37', r: '2', fill: '--pfp-ink' }] },
+  owl: { name: 'Owl', ground: '--pfp-teal', art: [
+     { t: 'path', d: 'M12 18l2-9 6 6z', fill: '--pfp-owl' },
+     { t: 'path', d: 'M36 18l-2-9-6 6z', fill: '--pfp-owl' },
+     { t: 'ellipse', cx: '24', cy: '27', rx: '13', ry: '14', fill: '--pfp-owl' },
+     { t: 'ellipse', cx: '24', cy: '33', rx: '7.5', ry: '7', fill: '--pfp-owl-pale' },
+     { t: 'circle', cx: '18.5', cy: '22', r: '5.2', fill: '--pfp-white' },
+     { t: 'circle', cx: '29.5', cy: '22', r: '5.2', fill: '--pfp-white' },
+     { t: 'circle', cx: '18.5', cy: '22.5', r: '2.6', fill: '--pfp-ink' },
+     { t: 'circle', cx: '29.5', cy: '22.5', r: '2.6', fill: '--pfp-ink' },
+     { t: 'path', d: 'M21.5 27h5L24 31z', fill: '--pfp-beak' }] },
+  cat: { name: 'Cat', ground: '--pfp-pink', art: [
+     { t: 'path', d: 'M11 22l2-13 9 6z', fill: '--pfp-slate' },
+     { t: 'path', d: 'M37 22l-2-13-9 6z', fill: '--pfp-slate' },
+     { t: 'path', d: 'M14 18l1-5 4 3z', fill: '--pfp-pink-pale' },
+     { t: 'path', d: 'M34 18l-1-5-4 3z', fill: '--pfp-pink-pale' },
+     { t: 'ellipse', cx: '24', cy: '27', rx: '14', ry: '12', fill: '--pfp-slate' },
+     { t: 'ellipse', cx: '18.5', cy: '25', rx: '2.2', ry: '3', fill: '--pfp-lime' },
+     { t: 'ellipse', cx: '29.5', cy: '25', rx: '2.2', ry: '3', fill: '--pfp-lime' },
+     { t: 'ellipse', cx: '18.5', cy: '25.3', rx: '.9', ry: '2.3', fill: '--pfp-ink' },
+     { t: 'ellipse', cx: '29.5', cy: '25.3', rx: '.9', ry: '2.3', fill: '--pfp-ink' },
+     { t: 'path', d: 'M22 30h4l-2 2.4z', fill: '--pfp-pink-pale' },
+     { t: 'path', d: 'M8 30l9 1M8 34l9-1.5M40 30l-9 1M40 34l-9-1.5', stroke: '--pfp-white', 'stroke-width': '1.3', 'stroke-linecap': 'round' }] },
+  dino: { name: 'Dinosaur', ground: '--pfp-yellow', art: [
+     { t: 'path', d: 'M15 23l2-4 2 4zM20 20l2-4.5 2 4.5zM25 19.5l2-4 2 4z', fill: '--pfp-green-dark' },
+     { t: 'path', d: 'M7 26q4 6 9 2', stroke: '--pfp-green', 'stroke-width': '4.5', fill: 'none', 'stroke-linecap': 'round' },
+     { t: 'ellipse', cx: '22', cy: '29', rx: '11', ry: '8', fill: '--pfp-green' },
+     { t: 'path', d: 'M26 25q2-11 10-12 6 0 5.5 5.5-.5 3.5-6.5 3.5L31 29z', fill: '--pfp-green' },
+     { t: 'rect', x: '15', y: '34', width: '4.5', height: '7', rx: '2', fill: '--pfp-green-dark' },
+     { t: 'rect', x: '24', y: '34', width: '4.5', height: '7', rx: '2', fill: '--pfp-green-dark' },
+     { t: 'circle', cx: '36.5', cy: '16.5', r: '1.7', fill: '--pfp-ink' },
+     { t: 'path', d: 'M37 20.5h3', stroke: '--pfp-ink', 'stroke-width': '1.2', 'stroke-linecap': 'round' }] },
+  robot: { name: 'Robot', ground: '--pfp-coral', art: [
+     { t: 'path', d: 'M24 13V9', stroke: '--pfp-aerial', 'stroke-width': '2' },
+     { t: 'circle', cx: '24', cy: '8', r: '2.4', fill: '--pfp-red' },
+     { t: 'rect', x: '9', y: '19', width: '3.5', height: '9', rx: '1.5', fill: '--pfp-steel' },
+     { t: 'rect', x: '35.5', y: '19', width: '3.5', height: '9', rx: '1.5', fill: '--pfp-steel' },
+     { t: 'rect', x: '12', y: '13', width: '24', height: '21', rx: '5', fill: '--pfp-steel-pale' },
+     { t: 'circle', cx: '18.5', cy: '22', r: '3.6', fill: '--pfp-ink' },
+     { t: 'circle', cx: '29.5', cy: '22', r: '3.6', fill: '--pfp-ink' },
+     { t: 'circle', cx: '18.5', cy: '22', r: '2.2', fill: '--pfp-cyan' },
+     { t: 'circle', cx: '29.5', cy: '22', r: '2.2', fill: '--pfp-cyan' },
+     { t: 'rect', x: '17', y: '27.5', width: '14', height: '3.6', rx: '1.6', fill: '--pfp-ink' },
+     { t: 'path', d: 'M20.5 27.5v3.6M24 27.5v3.6M27.5 27.5v3.6', stroke: '--pfp-steel-pale', 'stroke-width': '1' },
+     { t: 'rect', x: '16', y: '35', width: '16', height: '7', rx: '2', fill: '--pfp-steel' }] },
+  rocket: { name: 'Rocket', ground: '--pfp-night', art: [
+     { t: 'circle', cx: '11', cy: '14', r: '1.2', fill: '--pfp-white' },
+     { t: 'circle', cx: '37.5', cy: '12', r: '1', fill: '--pfp-white' },
+     { t: 'circle', cx: '38', cy: '33', r: '1.2', fill: '--pfp-white' },
+     { t: 'circle', cx: '9.5', cy: '31', r: '1', fill: '--pfp-white' },
+     { t: 'path', d: 'M19.5 33q4.5 12 9 0z', fill: '--pfp-flame' },
+     { t: 'path', d: 'M21.8 33q2.2 6.5 4.4 0z', fill: '--pfp-flame-hot' },
+     { t: 'path', d: 'M17.5 25L11 34l6.5-1.5zM30.5 25L37 34l-6.5-1.5z', fill: '--pfp-red' },
+     { t: 'path', d: 'M24 6q7 7 7 19v8H17v-8q0-12 7-19z', fill: '--pfp-hull' },
+     { t: 'path', d: 'M24 6q5 4.5 6.3 10H17.7Q19 10.5 24 6z', fill: '--pfp-red' },
+     { t: 'circle', cx: '24', cy: '22.5', r: '3.6', fill: '--pfp-window', stroke: '--pfp-rim', 'stroke-width': '1.4' }] },
+  planet: { name: 'Planet', ground: '--pfp-violet', art: [
+     { t: 'circle', cx: '10', cy: '12', r: '1.1', fill: '--pfp-white' },
+     { t: 'circle', cx: '38', cy: '38', r: '1.1', fill: '--pfp-white' },
+     { t: 'circle', cx: '36', cy: '10', r: '.9', fill: '--pfp-white' },
+     { t: 'ellipse', cx: '24', cy: '25', rx: '17', ry: '5.5', transform: 'rotate(-18 24 25)', fill: 'none', stroke: '--pfp-yellow', 'stroke-width': '2.6' },
+     { t: 'circle', cx: '24', cy: '24', r: '10', fill: '--pfp-planet' },
+     { t: 'path', d: 'M15 21q9 3 18-1M14.5 27q9 3 19-1', stroke: '--pfp-planet-band', 'stroke-width': '2', fill: 'none', 'stroke-linecap': 'round' },
+     { t: 'path', d: 'M7.83 30.25A17 5.5-18 0 0 40.17 19.75', fill: 'none', stroke: '--pfp-yellow', 'stroke-width': '2.6' }] },
+  football: { name: 'Football', ground: '--pfp-pitch', art: [
+     { t: 'circle', cx: '24', cy: '24', r: '14', fill: '--pfp-white', stroke: '--pfp-ink', 'stroke-width': '1.6' },
+     { t: 'path', d: 'M24 18.5l5.2 3.8-2 6.1h-6.4l-2-6.1z', fill: '--pfp-ink' },
+     { t: 'path', d: 'M24 18.5V11M29.2 22.3l7-2.3M27.2 28.4l4.3 6M20.8 28.4l-4.3 6M18.8 22.3l-7-2.3', stroke: '--pfp-ink', 'stroke-width': '1.4' },
+     { t: 'path', d: 'M20.5 10.6L24 11l3.5-.4L24 10z', fill: '--pfp-ink' },
+     { t: 'path', d: 'M36.6 17.7l-.4 4.5 1.6 1.1q.4-3-1.2-5.6zM34.4 33.6l-2.9-.7-1.6 2.6q2.8-.3 4.5-1.9zM13.6 33.6l2.9-.7 1.6 2.6q-2.8-.3-4.5-1.9zM11.4 17.7l.4 4.5-1.6 1.1q-.4-3 1.2-5.6z', fill: '--pfp-ink' }] },
+  guitar: { name: 'Guitar', ground: '--pfp-brick', art: [
      { t: 'g', transform: 'rotate(35 24 24)', kids: [
-       { t: 'rect', x: '22.4', y: '5', width: '3.2', height: '18', fill: '#6b3f1d' },
-       { t: 'rect', x: '21', y: '2.5', width: '6', height: '5.5', rx: '1.2', fill: '#3d2412' },
-       { t: 'circle', cx: '24', cy: '23', r: '6.4', fill: '#f2a65a' },
-       { t: 'circle', cx: '24', cy: '32', r: '8.2', fill: '#f2a65a' },
-       { t: 'circle', cx: '24', cy: '26.5', r: '2.6', fill: '#3d2412' },
-       { t: 'rect', x: '20.5', y: '33.5', width: '7', height: '2', rx: '1', fill: '#3d2412' },
-       { t: 'path', d: 'M23.2 6v28M24.8 6v28', stroke: '#fde6c4', 'stroke-width': '.6' }] }] },
-  palette: { name: 'Paint palette', ground: '#6cc6e6', art: [
-     { t: 'path', d: 'M24 9c11 0 18 7 17 15-1 6-7 5-9 9-2 5-6 7-10 6C13 38 7 31 8 23 9 15 15 9 24 9z', fill: '#e2b77a' },
-     { t: 'ellipse', cx: '27', cy: '32', rx: '3', ry: '2.4', fill: '#6cc6e6' },
-     { t: 'circle', cx: '16', cy: '19.5', r: '3.2', fill: '#e5484d' },
-     { t: 'circle', cx: '22.5', cy: '14.5', r: '3.2', fill: '#f5c542' },
-     { t: 'circle', cx: '30.5', cy: '15', r: '3.2', fill: '#3fa34d' },
-     { t: 'circle', cx: '35.5', cy: '21.5', r: '3.2', fill: '#3b6fd8' },
-     { t: 'circle', cx: '14', cy: '27.5', r: '3.2', fill: '#8e44ad' }] },
+       { t: 'rect', x: '22.4', y: '5', width: '3.2', height: '18', fill: '--pfp-wood' },
+       { t: 'rect', x: '21', y: '2.5', width: '6', height: '5.5', rx: '1.2', fill: '--pfp-wood-dark' },
+       { t: 'circle', cx: '24', cy: '23', r: '6.4', fill: '--pfp-wood-pale' },
+       { t: 'circle', cx: '24', cy: '32', r: '8.2', fill: '--pfp-wood-pale' },
+       { t: 'circle', cx: '24', cy: '26.5', r: '2.6', fill: '--pfp-wood-dark' },
+       { t: 'rect', x: '20.5', y: '33.5', width: '7', height: '2', rx: '1', fill: '--pfp-wood-dark' },
+       { t: 'path', d: 'M23.2 6v28M24.8 6v28', stroke: '--pfp-string', 'stroke-width': '.6' }] }] },
+  palette: { name: 'Paint palette', ground: '--pfp-sky', art: [
+     { t: 'path', d: 'M24 9c11 0 18 7 17 15-1 6-7 5-9 9-2 5-6 7-10 6C13 38 7 31 8 23 9 15 15 9 24 9z', fill: '--pfp-board' },
+     { t: 'ellipse', cx: '27', cy: '32', rx: '3', ry: '2.4', fill: '--pfp-sky' },
+     { t: 'circle', cx: '16', cy: '19.5', r: '3.2', fill: '--pfp-red' },
+     { t: 'circle', cx: '22.5', cy: '14.5', r: '3.2', fill: '--pfp-yellow' },
+     { t: 'circle', cx: '30.5', cy: '15', r: '3.2', fill: '--pfp-green' },
+     { t: 'circle', cx: '35.5', cy: '21.5', r: '3.2', fill: '--pfp-paint-blue' },
+     { t: 'circle', cx: '14', cy: '27.5', r: '3.2', fill: '--pfp-purple' }] },
 };
 
 /* THE TOKEN'S NAME, OR NOTHING: § */
@@ -16758,18 +16767,13 @@ function bootFailed(err, when) {
 
   try {
     const box = document.getElementById('screen') || document.body;
-    box.innerHTML = ''
-      + '<div class="boot-fail">'
-      + '<p class="boot-fail-head">'
-      + 'The app stopped while ' + String(when) + '.</p>'
-      + '<p class="boot-fail-why">'
-      + why_(err) + '</p>'
-      + (err && err.stack
-          ? '<p class="boot-fail-why boot-fail-stack">'
-            + String(err.stack).split('\n').slice(0, 4).join('\n') + '</p>'
-          : '')
-      + '<p class="boot-fail-ver">site ' + SITE_VERSION + ' · css ' + cssVersion() + '</p>'
-      + '</div>';
+    const line = (look, text) => ({ type: 'group', tag: 'p', look, text });
+    const said = [line('boot-fail-head', 'The app stopped while ' + String(when) + '.'), line('boot-fail-why', why_(err)),
+      err && err.stack ? line('boot-fail-why boot-fail-stack', String(err.stack).split('\n').slice(0, 4).join('\n')) : null,
+      line('boot-fail-ver', 'site ' + SITE_VERSION + ' · css ' + cssVersion())].filter(Boolean);
+    /* THROUGH THE ONE CARD MAKER; if even that is missing, the same words as plain text. */
+    if (typeof cardBlock_ === 'function') box.innerHTML = cardBlock_({ type: 'group', look: 'boot-fail', blocks: said });
+    else box.textContent = said.map(p => p.text).join('\n');
   } catch (e2) {
     /* Even that failed — the document is not there to write to. Nothing left but the console. */
   }
@@ -17144,8 +17148,7 @@ function tile_(o) {
   /* ONLY AN ADMIN SEES AN ADMIN'S TILE (owner, 8 Nov, 11a), and it looks like any other tile. */
   if (o.tone === 'admin' && !(typeof isAdmin === 'function' && isAdmin())) return '';
   const barred = '';
-  const style = o.style ? ` style="${esc(o.style)}"` : '';
-  return `<button type="button" class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${style}${pressed}${barred}${o.off ? ' disabled' : ''}
+  return `<button type="button" class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${pressed}${barred}${o.off ? ' disabled' : ''}
     >${body}</button>`;
 }
 

@@ -2,14 +2,14 @@
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
   receiptTags: x => { const j = x.row || {}, paid = rcpPaid_(j);
     const rate = Number(j.rate) || (/hour/i.test(String(j.unit || '')) ? Number(j.price) : 0) || 0;
-    return `<div class="qtags">${rcpTag_('Booking')}${rcpTag_(j.subject)}${rcpTag_(j.tutor ? displayName_(j.tutor) : '')}${rcpTag_(rcpWhen_(j))}${
-      rcpTag_(rate > 0 ? perHour_(rate) : '')}${rcpTag_(paid, paid === 'Unpaid' ? 'is-new' : '')}</div>`; },
+    return cardBlock_({ type: 'group', look: 'qtags', inner: rcpTag_('Booking') + rcpTag_(j.subject) + rcpTag_(j.tutor ? displayName_(j.tutor) : '') + rcpTag_(rcpWhen_(j))
+      + rcpTag_(rate > 0 ? perHour_(rate) : '') + rcpTag_(paid, paid === 'Unpaid' ? 'is-new' : '') }); },
   receiptSum: x => { const j = x.row || {};
     const who = (j.slots || []).map(sl => sl && sl.client).filter(Boolean).map(n => displayName_(n)).join(', ') || (j.client ? displayName_(j.client) : '');
     const weeks = Number(j.weeks || (typeof jobDates_ === 'function' ? jobDates_(j).length : 0)) || 0;
     const total = j.price !== '' && j.price != null && isFinite(Number(j.price)) ? money_(Number(j.price)) + ' in all' : '';
     const said = [who, weeks ? weeks + (weeks === 1 ? ' week' : ' weeks') : '', total].filter(Boolean).join(' · ');
-    return said ? `<p class="rc-sum">${esc(said)}</p>` : ''; },
+    return said ? cardBlock_({ type: 'group', tag: 'p', look: 'rc-sum', text: said }) : ''; },
 });
 /* THE FRONT MENU'S ANSWER, read through `DOOR_FIELD` (find-finder.js) — the one name every writer and reader of it uses (1040 friction). */
 const forIs_ = want => (STUFF.filters || [])
@@ -187,11 +187,10 @@ function bookFindBack_(id) {
 }
 on('book-back', el => bookFindBack_(el.dataset.step));
 /* SET THE ROOM, A FORM ON THE RECEIPT from the start (no sheet, owner 7 Nov). */
-const jobRoomForm_ = j => `<div class="rc-form room-form">
-    <label class="field"><span>the room in the venue — the family sees it</span>
-      <input class="room-name" value="${esc(j.room || '')}" autocomplete="off"></label>
-    <div class="btn-row">${tile_({ form: true, label: 'Save the room', act: 'job-room', data: { id: String(j.id) } })}</div>
-    <p class="note room-said" aria-live="polite"></p></div>`;
+const jobRoomForm_ = j => cardBlock_({ type: 'group', look: 'rc-form room-form', blocks: [
+  { type: 'field', cap: 'the room in the venue — the family sees it', blocks: [{ type: 'control', attrs: { class: 'room-name', value: j.room || '', autocomplete: 'off' } }] },
+  { type: 'group', look: 'btn-row', tiles: [{ form: true, label: 'Save the room', act: 'job-room', data: { id: String(j.id) } }] },
+  { type: 'group', tag: 'p', look: 'note room-said', attrs: { 'aria-live': 'polite' } }] });
 on('job-room', el => {
   const f = el.closest('.room-form');
   const room = ((f && (f.querySelector('.room-name') || {}).value) || '').trim();

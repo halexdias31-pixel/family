@@ -42,8 +42,8 @@ function msgDoorItems_() {
 /* A CONVERSATION'S CARD, around the one card maker: somebody not yet written to gets the form, a thread gets `msgFindCard_`. */
 function msgDoorCard_(x, draw) {
   const t = (typeof messageThreads_ === 'function' ? messageThreads_() : []).find(t2 => t2.id === x.thread);
-  if (!t && x.to) return card_(`<div class="dm-card"><div class="dm-head"><h3>${esc(x.name)}</h3></div>
-    ${msgForm_(x.to.name, x.to.id)}</div>`);
+  if (!t && x.to) return card_(cardBlock_({ type: 'group', look: 'dm-card', blocks: [{ type: 'group', look: 'dm-head', blocks: [{ type: 'msgHead', text: x.name }] }],
+    inner: msgForm_(x.to.name, x.to.id) }));
   if (!t) return renderCard({ kind: 'msg', tags: [{ text: x.name, colour: 0 }] });
   return msgFindCard_(x, t, draw);
 }

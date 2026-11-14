@@ -334,7 +334,7 @@ const paperTone = [], goldInk = [], pairLow = [], dimText = [];
   });
 }
 
-/* ---------- 7c. THE PICTURES' COLOURS ARE THE PICTURES' OWN § */
+/* ---------- 7c. THE PICTURES PAINT ONLY THEIR OWN PALETTE § */
 const pfpTone = [];
 {
   const linksSrc = (() => { try { return fs.readFileSync(path.join(dir, 'js', 'links.js'), 'utf8'); } catch (e) { return ''; } })();
@@ -344,18 +344,26 @@ const pfpTone = [];
   else {
     const art = linksSrc.slice(start, end);
     const root = rules.find(r => r.sel === ':root' && !r.cond);
-    const tok = {};
+    /* THE PALETTE (owner, 14 Nov): the drawings' colours are --pfp-* tokens in :root; PFP_ART names them and paints nothing by hand. */
+    const pfp = {}, app = {};
     (root ? root.decls : []).forEach(d => {
-      if (/^--pfp/i.test(d.prop)) pfpTone.push('style.css line ' + root.line + '  :root declares ' + d.prop + ' — a picture\'s colour offered to the whole app; it belongs in PFP_ART');
       const m = /^--[\w-]+$/.test(d.prop) && /^#([0-9a-f]{6})\b/i.exec(d.val);
-      if (m) (tok[m[1].toLowerCase()] = tok[m[1].toLowerCase()] || []).push(d.prop);
+      if (/^--pfp-/i.test(d.prop)) { if (m) pfp[d.prop] = m[1].toLowerCase(); else pfpTone.push('style.css :root ' + d.prop + ' is "' + d.val + '" — a picture\'s colour is a plain #rrggbb'); }
+      else if (m) (app[m[1].toLowerCase()] = app[m[1].toLowerCase()] || []).push(d.prop);
     });
-    if (!Object.keys(tok).length) pfpTone.push(':root holds no hex colour tokens this check can read — the pictures were NOT checked');
-    const hexes = [...art.matchAll(/#([0-9a-f]{6})\b/gi)].map(m => m[1].toLowerCase());
-    if (hexes.length < 20) pfpTone.push('only ' + hexes.length + ' colours found in PFP_ART — the drawings were not read');
-    [...new Set(hexes)].forEach(h => {
-      if (tok[h]) pfpTone.push('js/links.js PFP_ART paints #' + h + ', which is ' + tok[h].join(' / ') + ' — a picture\'s colours are its own, never the app\'s or the paper\'s');
+    if (!Object.keys(app).length) pfpTone.push(':root holds no hex colour tokens this check can read — the pictures were NOT checked');
+    for (const m of art.matchAll(/#[0-9a-f]{3,8}\b|rgba?\(/gi)) pfpTone.push('js/links.js PFP_ART paints ' + m[0] + ' by hand — name a --pfp-* token from style.css :root');
+    const named = [...art.matchAll(/'(--[\w-]+)'/g)].map(m => m[1]);
+    if (named.length < 20) pfpTone.push('only ' + named.length + ' colours found in PFP_ART — the drawings were not read');
+    named.forEach(n => { if (!pfp[n]) pfpTone.push('js/links.js PFP_ART paints ' + n + ', which style.css :root does not declare as a --pfp-* colour'); });
+    const painted = new Set(named);
+    Object.keys(pfp).forEach(n => {
+      if (!painted.has(n)) pfpTone.push('style.css :root declares ' + n + ', which no picture paints — drop it');
+      /* Plain white is no one's colour: the drawings' highlights were `#fff` beside the app's `--white` all along. */
+      if (app[pfp[n]] && pfp[n] !== 'ffffff') pfpTone.push(n + ' is #' + pfp[n] + ', which is ' + app[pfp[n]].join(' / ') + ' — a picture\'s colours are its own, never the app\'s or the paper\'s');
     });
+    /* AND THE PALETTE PAINTS NOTHING ELSE: no rule in style.css reads a --pfp-* token. */
+    rules.forEach(r => (r.decls || []).forEach(d => { if (/var\(\s*--pfp-/i.test(d.val)) pfpTone.push('style.css line ' + r.line + ' ' + r.sel + ' reads ' + d.val + ' — the pictures\' palette is theirs alone'); }));
   }
 }
 
@@ -405,7 +413,7 @@ say('INK ON THE ACCENT THAT IS NOT --on-gold — one token, never four spellings
 say('A TOKEN PAIR THAT CARRIES WORDS UNDER 4.5:1', pairLow);
 DIM_OK.filter(a => !dimSeen.has(a)).forEach(a => dimText.push('DIM_OK ' + a[0] + ' matches no rule — delete the line'));
 say('TEXT DIMMED BY OPACITY — its contrast is then a sum nobody did', dimText);
-say('A PROFILE PICTURE PAINTED IN THE APP\'S OWN COLOURS, OR ONE OFFERED TO IT — the ten are their own', pfpTone);
+say('A PROFILE PICTURE PAINTED OUTSIDE ITS --pfp-* PALETTE, OR THE PALETTE LENT TO THE APP — the ten are their own', pfpTone);
 /* SOFT: this is the one section that cannot prove its own findings — see `say` above. */
 say('CLASSES STYLED AND NOWHERE PRODUCED — no literal in the code could assemble these', dead, true);
 say('CLASSES A LITERAL COULD BE ASSEMBLING — ' + [...builtPrefix].sort().join(' ')

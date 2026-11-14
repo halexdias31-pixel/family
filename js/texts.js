@@ -74,11 +74,10 @@ function textsBody_(x) {
   if (d) {
     const t = (TEXTS.index && TEXTS.index.texts.find(v => v.id === x.tx.t)) || {};
     const words = ((d.chapters[x.tx.p] || [])[x.tx.u]) || '';
-    const dir = x.tx.lang === 'he' ? ' dir="rtl"' : '';
-    return `<p class="wt-text" lang="${esc(x.tx.lang || 'en')}"${dir}>${esc(words)}</p>
-      <p class="wt-credit">${esc(t.source || '')} · ${esc(t.licence || '')}</p>`;
+    return cardBlocks_([{ type: 'group', tag: 'p', look: 'wt-text', attrs: { lang: x.tx.lang || 'en', dir: x.tx.lang === 'he' ? 'rtl' : null }, text: words },
+      { type: 'group', tag: 'p', look: 'wt-credit', text: (t.source || '') + ' · ' + (t.licence || '') }]);
   }
-  if (TEXTS.missed[x.tx.file] && !TEXTS.loading[x.tx.file]) return '<p class="fc-note">This text did not arrive.</p>';
+  if (TEXTS.missed[x.tx.file] && !TEXTS.loading[x.tx.file]) return cardBlock_({ type: 'group', tag: 'p', look: 'fc-note', text: 'This text did not arrive.' });
   if (!TEXTS.loading[x.tx.file]) textsLoad_(x.tx.file).then(() => textsRedraw_(x.tx.file));
   return loading_();
 }
