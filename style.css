@@ -3479,7 +3479,7 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: var(--s6); }
    The verse waits under the one loader now, as every card does (`loading_`, shell.js). */
 /* THE 1611 PILCROW, where a paragraph starts — printed in front of the verse, quietly, as the
    printers set it, because one verse to a card leaves no paragraph to space. */
-.bb-para { color: var(--ink); }
+.bb-para, .bb-v .is-bb-para { color: var(--ink); }
 /* THE WORDS THE TRANSLATORS SUPPLIED, as the King James prints them: italic, and nothing else — not
    dimmer, which would say they matter less, and not coloured, which would say they are a link. */
 .bb-v i { font-style: italic; }
@@ -5376,7 +5376,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .insrc-h:first-child { margin-top: 0; }
 .insrc-note { margin: 0 0 var(--s2); font-style: italic; font-size: var(--fs-small); color: var(--paper-dim); }
 .insrc-p { position: relative; margin: 0 0 var(--s3); }
-.insrc-ln { position: absolute; left: -2rem; width: 1.5rem; text-align: right; font: var(--fs-small)/2.2 var(--mono); color: var(--paper-faint); }
+.insrc-p .kc-ln { position: absolute; left: -2rem; width: 1.5rem; text-align: right; font: var(--fs-small)/2.2 var(--mono); color: var(--paper-faint); }
 .insrc-wait { min-height: 3rem; font-family: inherit; }
 /* THE TABLE SCROLLS SIDEWAYS INSIDE ITS OWN BOX — eighteen columns do not fit 320px, and the box says it may. */
 .kc-grid-wrap { overflow-x: auto; }
@@ -5839,9 +5839,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .file-view-f { height: 70vh; }
 .file-view-youtube .file-view-f, .file-view-v { height: auto; aspect-ratio: 16 / 9; }
 .policy-page { padding: var(--s4); border: 1px solid var(--line); border-radius: var(--r-ui); background: var(--bg); color: var(--ink); line-height: 1.5; overflow-wrap: anywhere; }
-.policy-page h2 { margin: 0 0 var(--s2); font-size: var(--fs-title); color: var(--gold); }
-.policy-page h3 { margin: var(--s4) 0 var(--s1); font-size: var(--fs-body); }
-.policy-page h4, .policy-page h5 { margin: var(--s3) 0 var(--s1); font-size: var(--fs-body); }
+.policy-page .policy-h2 .kc-h { margin: 0 0 var(--s2); font-size: var(--fs-title); color: var(--gold); }
+.policy-page .policy-h3 .kc-h { margin: var(--s4) 0 var(--s1); font-size: var(--fs-body); }
+.policy-page :is(.policy-h4, .policy-h5) .kc-h { margin: var(--s3) 0 var(--s1); font-size: var(--fs-body); }
 .policy-page p, .policy-page ul, .policy-page ol { margin: 0 0 var(--s2); }
 .policy-page ul, .policy-page ol { padding-left: var(--s4); }
 .policy-page a { color: var(--gold); }

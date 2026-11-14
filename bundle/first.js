@@ -497,8 +497,13 @@ function cardRuns_(v) {
   if (v.sub != null) return `<sub>${cardRuns_(v.sub)}</sub>`;
   if (v.math != null) return `<span class="kc-math">${cardRuns_(v.math)}</span>`;
   if (v.mono != null) return `<span class="mono">${cardRuns_(v.mono)}</span>`;
+  /* A LINK: an https, mailto: or tel: address, or a site path; `act` (file-view) opens it in place, the href its fallback. */
+  if (v.link != null) { const h = String(v.href || ''); if (!/^(https:|mailto:|tel:|docs\/|data\/)/i.test(h)) return cardRuns_(v.link);
+    return `<a href="${esc(h)}"${v.act ? ` data-do="${esc(v.act)}"` : ''}>${cardRuns_(v.link)}</a>`; }
+  /* A LINE NUMBER in a margin, as a printed text numbers its lines: read aloud as `line n`. */
+  if (v.ln != null) return `<span class="kc-ln" aria-label="line ${esc(String(v.ln))}">${esc(String(v.ln))}</span>`;
   /* MATHS AS TYPED (`x^2`, `a/b`): escaped first, then the typesetter raises and stacks it. */
-  if (v.typeset != null) return `<span class="kc-math">${typeof typeset_ === 'function' ? typeset_(esc(String(v.typeset))) : esc(String(v.typeset))}</span>`;
+  if (v.typeset != null) return `<span class="kc-math">${v.frac ? cardFrac_(String(v.typeset)) : typeof typeset_ === 'function' ? typeset_(esc(String(v.typeset))) : esc(String(v.typeset))}</span>`;
   /* A SMALL MARK BESIDE A WORD (Higher tier's `H`, `only Foundation`): text, one fixed class. */
   if (v.badge != null) return `<span class="kc-badge"${v.hint ? ` title="${esc(v.hint)}"` : ''}>${esc(String(v.badge))}</span>`;
   /* TEXT WITH THE SITE'S LAWS COLOURED (`mark`, which escapes first): still only text in the spec. */
@@ -510,6 +515,10 @@ function cardRuns_(v) {
   if (v.tone) return `<span class="${esc('is-' + v.tone)}">${cardRuns_(v.text)}</span>`;
   return cardRuns_(v.text);
 }
+/* A FORMULA (`frac`, a textbook's): its slashes stacked as fractions, and a Unicode subscript drawn as a real one. */
+const CARD_SUB = '₀₁₂₃₄₅₆₇₈₉ₐₑₒₓₙₛₜ', CARD_SUB_AS = '0123456789aeoxnst';
+const cardSub_ = html => String(html).replace(/[₀-₉ₐₑₒₓₙₛₜ]+/g, run => '<sub>' + [...run].map(c => CARD_SUB_AS[CARD_SUB.indexOf(c)]).join('') + '</sub>');
+const cardFrac_ = s => cardSub_(typeof typeset_ === 'function' ? typeset_(esc(s).replace(/\//g, '&frasl;')) : esc(s));
 /* THE LAST SPACE IN SOME HTML THAT IS NEITHER INSIDE A TAG NOR INSIDE A COLOURED SPAN, or -1 (an isotope's subject breaks there). */
 function cardLastGap_(html) {
   let depth = 0, at = -1;
@@ -678,10 +687,27 @@ const CARD_BLOCKS = {
     b.handle ? `<span class="prof-handle">@${esc(b.handle)}</span>` : ''}</p>${(b.tiles || []).length ? `<div class="tile-row">${tile_(b.tiles)}</div>` : ''}</div>`,
   /* ONE TICK BOX in a labelled cell (an hour on a week you tick): `control` is `cardControl_`'s. */
   tickCell: b => `<label class="${esc(b.look || '')}"${b.label ? ` aria-label="${esc(b.label)}"` : ''}>${cardControl_(Object.assign({ kind: 'check' }, b.control || {}))}</label>`,
+  /* A FILE SHOWN IN PLACE: a page framed, a clip with its controls, or a picture; `look` names its size. */
+  media: b => { const u = String(b.src || ''), look = b.look ? ` class="${esc(b.look)}"` : '', name = esc(b.title || '');
+    if (!/^(https:|data\/|docs\/)/i.test(u)) return '';
+    if (b.kind === 'video') return `<video${look} src="${esc(u)}" controls playsinline preload="metadata"></video>`;
+    if (b.kind === 'image') return `<img${look} src="${esc(u)}" alt="${name}">`;
+    return `<iframe${look} src="${esc(u)}" title="${name}" loading="lazy" allow="encrypted-media; picture-in-picture"></iframe>`; },
+  /* A DRAWING AS DATA: shapes `{ el, a: { attrs }, text, kids }`, each a vector element of a fixed set, every value escaped. */
+  drawing: b => cardDraw_(b.node),
   wait: b => `<div class="kc-wait${b.look ? ' ' + esc(b.look) : ''}"${cardAttrs_(b.data)}${b.on ? ' aria-busy="true"' : ''}>${b.on && typeof loading_ === 'function' ? loading_() : ''}</div>`,
 };
 /* THE PADLOCK a shut card wears, first inside it. */
 const cardLockMark_ = () => `<span class="card-lock" title="Locked" aria-label="Locked">${typeof tileIcon_ === 'function' ? tileIcon_('lock') : ''}</span>`;
+const CARD_DRAW_ELS = /^(svg|g|defs|clipPath|path|rect|line|circle|ellipse|polygon|polyline|text|figure|div)$/;
+function cardDraw_(n) {
+  if (n == null) return '';
+  if (Array.isArray(n)) return n.map(cardDraw_).join('');
+  if (typeof n !== 'object' || !CARD_DRAW_ELS.test(n.el)) return '';
+  const a = n.a || {}, attrs = Object.keys(a).filter(k => /^[a-zA-Z][\w:-]*$/.test(k) && !/^on/i.test(k) && a[k] != null && a[k] !== '')
+    .map(k => ` ${k}="${esc(String(a[k]))}"`).join('');
+  return `<${n.el}${attrs}>${n.text != null ? esc(String(n.text)) : ''}${cardDraw_(n.kids)}</${n.el}>`;
+}
 /* A CARD DRAWN AGAIN WHERE IT STANDS: the new card replaces the old element whole. */
 function cardRedraw_(el, spec) {
   if (!el || typeof document === 'undefined') return;

@@ -568,67 +568,49 @@ cardKind_('practical', x => {
 /* THE GUIDE — WHAT A PRACTICAL NEEDS AROUND IT BEFORE ANYBODY RUNS ONE. § */
 
 /* ---------- ONE BOX, ONE SLOT § */
+/* THE BOX IS A TOOL (the keypad's field, its Send and its verdict), so the page carries it as an embed block. */
 function guideBox_(x, slot, ask, hint) {
-  const k = ansKey_(x) + '#' + slot;
-  /* ---------- THE BOX IS `ansBox_`'S BOX, DOWN TO THE CLASS NAMES § */
-  const val = ansRead_(k);
-  const field = `<label class="qp-ans gd-box">
-    <span class="gd-ask">${esc(ask)}</span>
-    ${hint ? `<span class="gd-hint">${esc(hint)}</span>` : ''}
-    ${kpField_(k, val, 'words', false, ask)}
-  </label>`;
+  const k = ansKey_(x) + '#' + slot, val = ansRead_(k);
+  const say = hint ? `<span class="gd-hint">${esc(hint)}</span>` : '';
+  const field = `<label class="qp-ans gd-box"><span class="gd-ask">${esc(ask)}</span>${say}${kpField_(k, val, 'words', false, ask)}</label>`;
   /* ---------- AND A SEND UNDER EACH, SIGNED IN § */
   const send = typeof whoIs_ === 'function' && whoIs_() ? tile_({ send: true, act: 'qp-send', cls: 'qp-send' }) : '';
   if (!send) return field;
   const said = subBoxSay_(k, val);
-  return `<div class="qp-mark gd-mark${said.cls ? ' ' + said.cls : ''}">${field}${send}
-    <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
-    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
-  </div>`;
+  return `<div class="qp-mark gd-mark${said.cls ? ' ' + said.cls : ''}">${field}${send}<span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span><span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
 }
+CARD_EMBEDS['guide-box'] = a => (a.x ? guideBox_(a.x, a.slot, a.ask, a.hint) : '');
 
+/* A PART IS A PAGE: its title the tag, whose page it is the first line, then its blocks (the master template). */
+const partPage_ = (look, part, kick, what, body, tiles) => renderCard({ kind: 'part', look: look + ' prac-part is-' + part, name: what,
+  tags: [{ text: what }], body: [{ type: 'text', look: 'fc-kick', text: kick }].concat(body.filter(Boolean)), tiles: tiles || [] });
 /* ---------- THE KIT, AS A LIST AGAIN § */
-function kitList_(list) {
-  return `<ul class="fc-list">${list.map(e => `<li>${esc(e.name)}${
-    e.qty ? ': ' + esc(e.qty) : ''}</li>`).join('')}</ul>`;
-}
+const kitList_ = list => ({ type: 'list', items: (list || []).map(e => e.name + (e.qty ? ': ' + e.qty : '')) });
+const gdSec_ = (look, blocks) => ({ type: 'section', look: 'gd' + (look ? ' ' + look : ''), blocks });
+const figPage_ = svg => gdSec_('', [{ type: 'figure', svg }]);
+const stepsList_ = steps => gdSec_('prac-steps', [{ type: 'list', ordered: true, items: steps || [] }]);
+const guideSlot_ = (x, slot, ask, hint) => ({ type: 'embed', tool: 'guide-box', args: { x, slot, ask, hint } });
 
 function practicalPart_(x, part) {
   const p = x.row;
   /* ---------- FIVE THINGS, IN THIS ORDER, AND NOTHING ELSE FOR NOW § */
   /* ---------- ONE PAGE EACH, HEADED WITH WHOSE PAGE IT IS § */
-  const head = what => `<p class="fc-kick">${esc(x.name)}</p><h3>${what}</h3>`;
-  let inner = '';
-  if (part === 'fig') {
-    /* THE DRAWING, ON A PAGE OF ITS OWN. `.gd` round it so every `.gd figure` rule applies. */
-    inner = `${head('Diagram')}<div class="gd"><figure>${p.diagram}</figure></div>`;
-  } else if (part === 'kit') {
-    inner = `${head('Equipment')}<div class="gd"><section class="prac-kit">
-      ${kitList_(p.equipment)}</section></div>
-      ${/* The one-off cost is about the KIT, so it is on the kit's page rather than the first. */''}
-      ${p.setupCost ? `<p class="prac-cost">About ${money_(p.setupCost)} of kit to set up,
-        and it is bought once.</p>` : ''}`;
-  } else if (part === 'steps') {
-    inner = `${head('Steps')}<div class="gd"><section class="prac-steps">
-      <ol class="fc-list">${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section></div>`;
-  } else if (part === 'work') {
-    /* ---------- THE WORKSHEET, AND THE CANDIDATE LISTS ARE PART OF IT § */
-    inner = `${head('Worksheet')}<div class="gd"><section class="fc-sec">
-      ${(p.variables.length || p.log.length) ? `<div class="prac-tab">
-        ${p.variables.length ? renderTags(['Things you could change']) + `<ul class="fc-list">${
-          p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}
-        ${p.log.length ? renderTags(['Things you could measure']) + `<ul class="fc-list">${
-          p.log.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}
-      </div>` : ''}
-      ${guideBox_(x, 'iv', 'Independent variable — the one thing you will change',
-        'One only. Everything else has to stay still, or you will not know which of them did it.')}
-      ${guideBox_(x, 'dv', 'Dependent variable — what you will measure',
-        'How will you measure it, and in what units?')}
-      ${guideBox_(x, 'cv', 'Control variables — what you must keep the same',
-        'Usually the longest of the three. Everything you are NOT changing.')}
-    </section></div>`;
-  }
-  return inner ? `<div class="fc prac prac-part is-${part}">${inner}</div>` : '';
+  const page = (what, body) => partPage_('prac', part, x.name, what, body);
+  /* THE DRAWING, ON A PAGE OF ITS OWN. `.gd` round it so every `.gd figure` rule applies. */
+  if (part === 'fig') return page('Diagram', [figPage_(p.diagram)]);
+  /* The one-off cost is about the KIT, so it is on the kit's page rather than the first. */
+  if (part === 'kit') return page('Equipment', [gdSec_('prac-kit', [kitList_(p.equipment)]),
+    p.setupCost ? { type: 'text', look: 'prac-cost', text: 'About ' + money_(p.setupCost) + ' of kit to set up, and it is bought once.' } : null]);
+  if (part === 'steps') return page('Steps', [stepsList_(p.steps)]);
+  /* ---------- THE WORKSHEET, AND THE CANDIDATE LISTS ARE PART OF IT § */
+  if (part === 'work') return page('Worksheet', [gdSec_('fc-sec', [
+    p.variables.length ? { type: 'section', look: 'prac-tab', head: 'Things you could change', blocks: [{ type: 'list', items: p.variables }] } : null,
+    p.log.length ? { type: 'section', look: 'prac-tab', head: 'Things you could measure', blocks: [{ type: 'list', items: p.log }] } : null,
+    guideSlot_(x, 'iv', 'Independent variable — the one thing you will change', 'One only. Everything else has to stay still, or you will not know which of them did it.'),
+    guideSlot_(x, 'dv', 'Dependent variable — what you will measure', 'How will you measure it, and in what units?'),
+    guideSlot_(x, 'cv', 'Control variables — what you must keep the same', 'Usually the longest of the three. Everything you are NOT changing.'),
+  ].filter(Boolean))]);
+  return '';
 }
 
 /* A PROJECT — THREE OR FOUR SESSIONS THAT END IN SOMETHING A CHILD MADE. § */
@@ -649,47 +631,33 @@ cardKind_('project', x => {
 function projectPart_(x, part) {
   const p = x.row;
   /* THE PRACTICAL'S PAGE HEADING, for its reason: § */
-  const head = what => `<p class="fc-kick">${esc(x.name)}</p><h3>${what}</h3>`;
-  let inner = '';
-  if (part === 'kit') {
-    inner = `${head('Materials')}<div class="gd"><section class="prac-kit">
-      ${kitList_(p.materials)}</section></div>`;
-  } else if (part === 'steps') {
-    /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminOpts_`'s rule. § */
-    /* A COURSEWORK'S STEPS ARE ITS STAGES -- brief, research, specification, ideas, development, models § */
-    inner = `${head(p.projectType === 'coursework' ? 'Stages' : 'Steps')}<div class="gd"><section class="prac-steps">
-      <ol class="fc-list">${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section></div>
-      ${p.safety ? `<p class="fc-note"><b>Before you start</b> ${esc(p.safety)}</p>` : ''}`;
-  } else if (part === 'share') {
-    /* A THING HAS TILES: the one action on this page is going to Messages, so it is a tile in a `.tile-row` § */
-    /* "SEND IT IN MESSAGES", NOT "TO YOUR TUTOR". § */
-    /* ---------- AND ON A COURSEWORK, WHOSE WORK IT IS § */
-    const own = p.projectType === 'coursework'
-      ? `<p class="fc-note"><b>Your real coursework</b> This brief is practice. The one you hand in
-          starts from the context your exam board sets, and it must be your own work: a tutor can
-          teach the stages on this brief, but must not comment on, correct or improve work that
-          will be handed in. Tell your teacher about any help you have outside school.</p>`
-      : '';
-    inner = `${head('Share it')}
-      <p class="fc-lede">When it is finished, send it in Messages.</p>
-      ${p.share ? `<p class="fc-say"><b>What to send</b> ${esc(p.share)}</p>` : ''}
-      <div class="tile-row">${tile_({ icon: 'chat', label: 'Messages', note: 'send it',
-        act: 'proj-share' })}</div>${own}`;
-  }
-  return inner ? `<div class="fc prac prac-part proj is-${part}">${inner}</div>` : '';
+  const page = (what, body, tiles) => partPage_('prac proj', part, x.name, what, body, tiles);
+  if (part === 'kit') return page('Materials', [gdSec_('prac-kit', [kitList_(p.materials)])]);
+  /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminOpts_`'s rule. § */
+  /* A COURSEWORK'S STEPS ARE ITS STAGES -- brief, research, specification, ideas, development, models § */
+  if (part === 'steps') return page(p.projectType === 'coursework' ? 'Stages' : 'Steps', [stepsList_(p.steps),
+    p.safety ? { type: 'text', look: 'fc-note', text: [{ b: 'Before you start' }, ' ', p.safety] } : null]);
+  if (part !== 'share') return '';
+  /* A THING HAS TILES: the one action on this page is going to Messages, so it is a tile in a `.tile-row` § */
+  /* "SEND IT IN MESSAGES", NOT "TO YOUR TUTOR". § */
+  /* ---------- AND ON A COURSEWORK, WHOSE WORK IT IS § */
+  const own = p.projectType === 'coursework' ? { type: 'text', look: 'fc-note', text: [{ b: 'Your real coursework' }, ' This brief is practice. The one you hand in '
+    + 'starts from the context your exam board sets, and it must be your own work: a tutor can teach the stages on this brief, but must not comment on, '
+    + 'correct or improve work that will be handed in. Tell your teacher about any help you have outside school.'] } : null;
+  return page('Share it', [{ type: 'text', look: 'fc-lede', text: 'When it is finished, send it in Messages.' },
+    p.share ? { type: 'text', look: 'fc-say', text: [{ b: 'What to send' }, ' ', p.share] } : null, own],
+  [{ icon: 'chat', label: 'Messages', note: 'send it', act: 'proj-share' }]);
 }
 
 /* TO MESSAGES, AND NOTHING ELSE. § */
 on('proj-share', () => go('dm'));
 
 /* THE @family. TEXTBOOK — A CONTENTS CARD, THEN ONE PAGE PER CHAPTER. § */
-const tbMath_ = s => tbSub_(typeset_(esc(s).replace(/\//g, '&frasl;')));
+/* A FORMULA IS TYPESET BY THE RENDERER (`{ typeset, frac }`, cardFrac_ in cards-render.js): its slashes stacked, its subscripts drawn as such. */
+const tbMath_ = s => ({ typeset: s, frac: true });
 /* A SUBSCRIPT IS DRAWN AS ONE, NOT AS THE FONT'S OWN GLYPH. § */
 const TB_SUB = '₀₁₂₃₄₅₆₇₈₉ₐₑₒₓₙₛₜ', TB_SUB_AS = '0123456789aeoxnst';
-const tbSub_ = html => String(html).replace(/[₀-₉ₐₑₒₓₙₛₜ]+/g,
-  run => '<sub>' + [...run].map(c => TB_SUB_AS[TB_SUB.indexOf(c)]).join('') + '</sub>');
-/* THE MARK ITSELF. A letter rather than a colour, because the tier is a fact somebody has to read in a § */
-const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</span>' : '';
+const tbSub_ = s => String(s).split(/([₀-₉ₐₑₒₓₙₛₜ]+)/).map((run, i) => (i % 2 ? { sub: [...run].map(c => TB_SUB_AS[TB_SUB.indexOf(c)]).join('') } : run)).filter(r => r !== '');
 
 /* ---------- A CONTENT CARD: ONE CHAPTER, WHOLE, WITH THE QUESTIONS' TAGS ON IT § */
 /* ONE WIDGET PER THING (408): § */
@@ -709,11 +677,9 @@ function contentPageTitle_(x, part) {
 function contentPart_(x, part) {
   if (!CONTENT_PAGE[part]) return '';
   const c = x.row;
-  return `<div class="fc prac prac-part tb tb-page is-${part}">
-    <p class="fc-kick">${esc([c.subject, c.title].filter(Boolean).join(' · '))}${tbHigher_(c.higher)}</p>
-    <h3>${esc(CONTENT_PAGE[part])}</h3>
-    ${part === 'fig' ? `<div class="gd"><figure>${c.diagram}</figure></div>` : tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })}
-  </div>`;
+  return renderCard({ kind: 'part', look: 'prac prac-part tb tb-page is-' + part, name: CONTENT_PAGE[part], tags: [{ text: CONTENT_PAGE[part] }],
+    body: [{ type: 'text', look: 'fc-kick', text: [[c.subject, c.title].filter(Boolean).join(' · ')].concat(tbMark_(c.higher)) }]
+      .concat(part === 'fig' ? [figPage_(c.diagram)] : tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })) });
 }
 
 /* ---------- A CHAPTER'S KEY WORDS, FORMULAS AND WORKED LINES — ALL OF THEM, OR THE ONES ASKED FOR § */
@@ -721,22 +687,16 @@ function contentPart_(x, part) {
 function tbSections_(c, keep, opt) {
   opt = opt || {};
   const want = s => !opt.only || opt.only === s;
-  const h4 = t => (opt.bare ? '' : `<h4>${t}</h4>`);
-  const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
+  const sec = (look, head, items) => (items.length ? { type: 'section', look: 'fc-sec ' + look, head: opt.bare ? '' : head, blocks: [{ type: 'list', items }] } : null);
   const named = i => !keep || keep.indexOf(i.name) !== -1;
   /* A WORKED LINE IS NAMED BY HOW IT OPENS — "Exact values: sin 30° …" is about Exact values — and the next § */
   const opens = p => !keep || keep.some(k => p.text.indexOf(k) === 0 && !/[A-Za-z0-9]/.test(p.text.charAt(k.length)));
   const words = want('words') ? c.words.filter(named) : [], formulas = want('formulas') ? c.formulas.filter(named) : [];
   const points = want('points') ? c.points.filter(opens) : [];
-  return `${words.length ? `<section class="fc-sec tb-words">${h4('Key words')}<ul class="fc-list">${
-      words.map(w => line(w, `<b>${esc(w.name)}</b> — ${tbSub_(esc(w.text))}`)).join('')}</ul></section>` : ''}
-    ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: § */
-         ''}
-    ${formulas.length ? `<section class="fc-sec tb-math">${h4('Formulas')}<ul>${
-      formulas.map(f => `<li><span class="tb-fn">${esc(f.name)}${tbHigher_(f.higher)}</span><span class="tb-fm">${
-        tbMath_(f.text)}</span></li>`).join('')}</ul></section>` : ''}
-    ${points.length ? `<section class="fc-sec tb-points">${h4('Worked')}<ul class="fc-list">${
-      points.map(p => line(p, tbMath_(p.text))).join('')}</ul></section>` : ''}`;
+  /* THE MARK ON THE FORMULA'S NAME, not after the formula: § */
+  return [sec('tb-words', 'Key words', words.map(w => [{ b: w.name }, ' — '].concat(tbSub_(w.text), tbMark_(w.higher)))),
+    sec('tb-math', 'Formulas', formulas.map(f => [{ b: f.name }].concat(tbMark_(f.higher), ' ', tbMath_(f.text)))),
+    sec('tb-points', 'Worked', points.map(p => [tbMath_(p.text)].concat(tbMark_(p.higher))))].filter(Boolean);
 }
 
 /* ---------- ONE CHAPTER, AS AN ITEM THE FUNNEL ASKS THE QUESTIONS' QUESTIONS OF § */
