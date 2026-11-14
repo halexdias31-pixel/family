@@ -1,8 +1,8 @@
 {
  "v": 2,
  "tier": "core",
- "score": 85.3,
- "verdict": "Solid: little is held together by exceptions.",
+ "score": 84.7,
+ "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
    "id": "exceptions",
@@ -34,12 +34,12 @@
   {
    "id": "dead",
    "label": "Code nothing calls",
-   "count": 9,
+   "count": 11,
    "weight": 0.3,
    "cap": 10,
-   "off": 2.7,
+   "off": 3.3,
    "where": {
-    "check-dead": "cardRedraw_ (cards-render.js), clipsNow_ (facts.js), formSlider_ (form.js), paintBoard_ (map.js), paintTimer (overworld.js), qtRow_ (qtools-row.js), sheetHere_ (shell-click.js), shareCanvasPng_ (shell-click.js), postRow_ (tiles-jobs.js)"
+    "check-dead": "cardRedraw_ (cards-render.js), clipsNow_ (facts.js), filterChips (find-bundles.js), facetAnswersHtml_ (find-pages.js), formSlider_ (form.js), paintBoard_ (map.js), paintTimer (overworld.js), qtRow_ (qtools-row.js), sheetHere_ (shell-click.js), shareCanvasPng_ (shell-click.js), postRow_ (tiles-jobs.js)"
    }
   },
   {
