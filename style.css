@@ -617,6 +617,23 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
 .q-list:empty { display: none; }
 /* A HAIRLINE BETWEEN SUBJECTS AND NONE BETWEEN ONE SUBJECT'S LINES — the grouping is said once. */
 .q-subj + .q-subj { border-top: 1px dashed var(--line); }
+/* A SUBJECT'S COLUMN WIDTH in ch is the group's data-qw (me-shelves qualShelf_). */
+.q-subj[data-qw="4"] { --q-w: 4ch; }
+.q-subj[data-qw="5"] { --q-w: 5ch; }
+.q-subj[data-qw="6"] { --q-w: 6ch; }
+.q-subj[data-qw="7"] { --q-w: 7ch; }
+.q-subj[data-qw="8"] { --q-w: 8ch; }
+.q-subj[data-qw="9"] { --q-w: 9ch; }
+.q-subj[data-qw="10"] { --q-w: 10ch; }
+.q-subj[data-qw="11"] { --q-w: 11ch; }
+.q-subj[data-qw="12"] { --q-w: 12ch; }
+.q-subj[data-qw="13"] { --q-w: 13ch; }
+.q-subj[data-qw="14"] { --q-w: 14ch; }
+.q-subj[data-qw="15"] { --q-w: 15ch; }
+.q-subj[data-qw="16"] { --q-w: 16ch; }
+.q-subj[data-qw="17"] { --q-w: 17ch; }
+.q-subj[data-qw="18"] { --q-w: 18ch; }
+.q-subj[data-qw="19"] { --q-w: 19ch; }
 .q-line {
   display: grid; grid-template-columns: min(var(--q-w, 10ch), 42%) minmax(0, 1fr) auto;
   align-items: center; column-gap: var(--s2);
@@ -714,6 +731,13 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
 /* ---------- A PAIR OR A TRIPLE ON ONE LINE — see `FIELD_ROWS` in me.js § */
 .f-row { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: var(--s2); }
 .f-row label.field, .f-row input, .f-row select { min-width: 0; }
+/* HOW MANY BOXES SHARE THE LINE is the row's data-n, a class rule here rather than a style written in js. */
+.f-row[data-n="1"] { --n: 1; }
+.f-row[data-n="2"] { --n: 2; }
+.f-row[data-n="3"] { --n: 3; }
+.f-row[data-n="4"] { --n: 4; }
+.f-row[data-n="5"] { --n: 5; }
+.f-row[data-n="6"] { --n: 6; }
 .f-rowwrap .f-row label.field { margin-bottom: var(--s3); }
 /* A RANGE — `[min] – [max]` — is two boxes and a dash, so its own three tracks rather than `--n`. */
 /* The code is five characters and the number is the rest of the line. */

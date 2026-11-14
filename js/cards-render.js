@@ -26,6 +26,8 @@ function cardRuns_(v) {
   if (v.marked != null) return typeof mark === 'function' ? mark(String(v.marked)) : esc(String(v.marked));
   /* A NAMED WORD (a subject, green as a subject is everywhere): one of a fixed set, never a free class. */
   if (v.word && /^(subject|venue|level)$/.test(v.word)) return `<span class="${v.word}">${cardRuns_(v.text)}</span>`;
+  /* A NAMED PART OF A LINE (a qualification's subject, notation, mark): a span with a plain class, its text escaped; `span: ''` is a bare span. */
+  if (v.span != null && /^[a-z][\w -]*$|^$/.test(String(v.span))) return `<span${v.span ? ` class="${esc(v.span)}"` : ''}>${cardRuns_(v.text)}</span>`;
   if (v.tone) return `<span class="${esc('is-' + v.tone)}">${cardRuns_(v.text)}</span>`;
   return cardRuns_(v.text);
 }
@@ -303,6 +305,25 @@ const paperSnap_ = b => `<svg xmlns="http://www.w3.org/2000/svg" width="${Number
 /* TURNING A REQUEST DOWN asks why, in one optional line. */
 const paperWhy_ = b => `<form class="req-why" data-id="${esc(b.id)}"><label>Why not? <input name="why" maxlength="200" placeholder="optional, one line" autocomplete="off"></label>${tile_({ form: true, submit: true, label: 'Decline' })}</form>`;
 Object.assign(CARD_BLOCKS, { paperSnap: paperSnap_, paperWhy: paperWhy_ });
+/* A SETTINGS FORM'S PARTS (me-shelves): a control, a captioned field, a tick, a several-of-a-list and a plain group, all from data. */
+/* ATTRIBUTES ARE DATA: { name: value | true }, each escaped; an `on…` handler is never written. */
+const kcfAttrs_ = a => Object.keys(a || {}).filter(k => /^[a-z][\w:-]*$/i.test(k) && !/^on/i.test(k) && a[k] != null && a[k] !== false)
+  .map(k => (a[k] === true ? ` ${k}` : ` ${k}="${esc(String(a[k]))}"`)).join('');
+const kcfOpts_ = opts => (opts || []).map(o => (o && o.group != null ? `<optgroup label="${esc(o.group)}">${kcfOpts_(o.options)}</optgroup>`
+  : `<option value="${esc(o.value == null ? '' : o.value)}"${o.on ? ' selected' : ''}${o.off ? ' disabled' : ''}>${esc(o.text == null ? (o.value == null ? '' : o.value) : o.text)}</option>`)).join('');
+const kcfControl_ = b => (b.tag === 'select' ? `<select${kcfAttrs_(b.attrs)}>${kcfOpts_(b.options)}</select>` : `<input${kcfAttrs_(b.attrs)}>`);
+const kcfKids_ = b => (b.text != null ? cardRuns_(b.text) : '') + cardBlocks_(b.blocks) + (b.inner || '');
+const kcfField_ = b => `<label class="field${b.look ? ' ' + esc(b.look) : ''}"${kcfAttrs_(b.attrs)}>${
+  b.caps ? b.caps.map((c, i) => `<span class="${i ? 'q-cap-cert' : 'q-cap-std'}">${esc(c)}</span>`).join('') : b.cap != null && b.cap !== '' ? `<span>${esc(b.cap)}</span>` : ''}${kcfKids_(b)}</label>`;
+const kcfTickB_ = b => `<label class="check${b.look ? ' ' + esc(b.look) : ''}"${kcfAttrs_(b.labelAttrs)}><input${kcfAttrs_(Object.assign({ type: 'checkbox' }, b.attrs))}><span class="box"></span><span>${cardRuns_(b.text)}</span></label>`;
+const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.label)}</span>${kcfControl_(b.hidden || {})}<details class="many-d" data-many="${esc(b.key)}"${b.open ? ' open' : ''}>`
+  + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
+  + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
+/* A GROUP: a div (or a span, or a line) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
+const kcfGroup_ = b => { const tag = /^(span|p)$/.test(b.tag) ? b.tag : 'div';
+  return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
+    (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
+Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
 /* THE ONE TAG MAKER for a finder's menu (owner, 13 Nov): every answer, Doesn't matter, and the sign-in step's tags. `inner` is markup, escaped already. */
 const answerTag_ = (inner, attrs, cls) => `<div class="counted row tap${cls ? ' ' + cls : ''}" role="button" tabindex="0"${attrs || ''}><span class="k">${inner}</span></div>`;
 /* A MENU'S ROW OF TAGS, and the blank tag typed on (the sign-in name); `id` names a slot something else fills, Google's button. */

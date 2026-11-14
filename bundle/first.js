@@ -505,6 +505,8 @@ function cardRuns_(v) {
   if (v.marked != null) return typeof mark === 'function' ? mark(String(v.marked)) : esc(String(v.marked));
   /* A NAMED WORD (a subject, green as a subject is everywhere): one of a fixed set, never a free class. */
   if (v.word && /^(subject|venue|level)$/.test(v.word)) return `<span class="${v.word}">${cardRuns_(v.text)}</span>`;
+  /* A NAMED PART OF A LINE (a qualification's subject, notation, mark): a span with a plain class, its text escaped; `span: ''` is a bare span. */
+  if (v.span != null && /^[a-z][\w -]*$|^$/.test(String(v.span))) return `<span${v.span ? ` class="${esc(v.span)}"` : ''}>${cardRuns_(v.text)}</span>`;
   if (v.tone) return `<span class="${esc('is-' + v.tone)}">${cardRuns_(v.text)}</span>`;
   return cardRuns_(v.text);
 }
@@ -782,6 +784,25 @@ const paperSnap_ = b => `<svg xmlns="http://www.w3.org/2000/svg" width="${Number
 /* TURNING A REQUEST DOWN asks why, in one optional line. */
 const paperWhy_ = b => `<form class="req-why" data-id="${esc(b.id)}"><label>Why not? <input name="why" maxlength="200" placeholder="optional, one line" autocomplete="off"></label>${tile_({ form: true, submit: true, label: 'Decline' })}</form>`;
 Object.assign(CARD_BLOCKS, { paperSnap: paperSnap_, paperWhy: paperWhy_ });
+/* A SETTINGS FORM'S PARTS (me-shelves): a control, a captioned field, a tick, a several-of-a-list and a plain group, all from data. */
+/* ATTRIBUTES ARE DATA: { name: value | true }, each escaped; an `on…` handler is never written. */
+const kcfAttrs_ = a => Object.keys(a || {}).filter(k => /^[a-z][\w:-]*$/i.test(k) && !/^on/i.test(k) && a[k] != null && a[k] !== false)
+  .map(k => (a[k] === true ? ` ${k}` : ` ${k}="${esc(String(a[k]))}"`)).join('');
+const kcfOpts_ = opts => (opts || []).map(o => (o && o.group != null ? `<optgroup label="${esc(o.group)}">${kcfOpts_(o.options)}</optgroup>`
+  : `<option value="${esc(o.value == null ? '' : o.value)}"${o.on ? ' selected' : ''}${o.off ? ' disabled' : ''}>${esc(o.text == null ? (o.value == null ? '' : o.value) : o.text)}</option>`)).join('');
+const kcfControl_ = b => (b.tag === 'select' ? `<select${kcfAttrs_(b.attrs)}>${kcfOpts_(b.options)}</select>` : `<input${kcfAttrs_(b.attrs)}>`);
+const kcfKids_ = b => (b.text != null ? cardRuns_(b.text) : '') + cardBlocks_(b.blocks) + (b.inner || '');
+const kcfField_ = b => `<label class="field${b.look ? ' ' + esc(b.look) : ''}"${kcfAttrs_(b.attrs)}>${
+  b.caps ? b.caps.map((c, i) => `<span class="${i ? 'q-cap-cert' : 'q-cap-std'}">${esc(c)}</span>`).join('') : b.cap != null && b.cap !== '' ? `<span>${esc(b.cap)}</span>` : ''}${kcfKids_(b)}</label>`;
+const kcfTickB_ = b => `<label class="check${b.look ? ' ' + esc(b.look) : ''}"${kcfAttrs_(b.labelAttrs)}><input${kcfAttrs_(Object.assign({ type: 'checkbox' }, b.attrs))}><span class="box"></span><span>${cardRuns_(b.text)}</span></label>`;
+const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.label)}</span>${kcfControl_(b.hidden || {})}<details class="many-d" data-many="${esc(b.key)}"${b.open ? ' open' : ''}>`
+  + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
+  + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
+/* A GROUP: a div (or a span, or a line) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
+const kcfGroup_ = b => { const tag = /^(span|p)$/.test(b.tag) ? b.tag : 'div';
+  return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
+    (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
+Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
 /* THE ONE TAG MAKER for a finder's menu (owner, 13 Nov): every answer, Doesn't matter, and the sign-in step's tags. `inner` is markup, escaped already. */
 const answerTag_ = (inner, attrs, cls) => `<div class="counted row tap${cls ? ' ' + cls : ''}" role="button" tabindex="0"${attrs || ''}><span class="k">${inner}</span></div>`;
 /* A MENU'S ROW OF TAGS, and the blank tag typed on (the sign-in name); `id` names a slot something else fills, Google's button. */
@@ -11264,9 +11285,12 @@ const setDraftOk_ = name => typeof draftAttr_ === 'function'
   && !/pin/i.test(String(name)) && !/^(lib\d+_|qual_)/.test(String(name));
 /* ---------- AND A CARD DRAWN HOLDING ONE SAYS SO § */
 const SET_HELD_SAY = 'Not saved yet — what you typed here before is still in its box. Save keeps it.';
+/* AN ATTRIBUTE STRING (a caller's `extra`, a draft's `data-draft…`) AS DATA for the form blocks: `k="v"` or a bare `k`; the first of a name wins, as in HTML. */
+const meAttrs_ = (...parts) => { const a = {};
+  parts.join(' ').replace(/([\w:-]+)(?:="([^"]*)")?/g, (m, k, v) => { if (!(k in a)) a[k] = v == null ? true : meUnesc_(v); return m; }); return a; };
+const meSaid_ = text => cardBlock_({ type: 'paperNote', look: 'me-said', text });
 function setHeldSay_(html) {
-  return /\sdata-draft-held\b/.test(html)
-    ? html.replace('<p class="note me-said"></p>', '<p class="note me-said">' + esc(SET_HELD_SAY) + '</p>') : html;
+  return /\sdata-draft-held\b/.test(html) ? html.replace(meSaid_(''), meSaid_(SET_HELD_SAY)) : html;
 }
 function fieldHtml(name, value, o) {
   o = o || {};
@@ -11293,8 +11317,8 @@ function fieldHtml(name, value, o) {
   const v = keep && !FIELD_IS_BOOL.test(name) ? dv : v0;
 
   if (FIELD_IS_BOOL.test(name)) {
-    return formTick_(`${attr}="${esc(name)}" ${(keep ? dv === '1' : TRUEish_(v)) ? 'checked' : ''}
-             ${ro ? 'disabled' : ''}${da}`, `<span>${esc(label)}</span>`);
+    return cardBlock_({ type: 'tick', text: label, attrs: meAttrs_(`${attr}="${esc(name)}" ${(keep ? dv === '1' : TRUEish_(v)) ? 'checked' : ''}
+             ${ro ? 'disabled' : ''}${da}`) });
   }
 
   /* ---------- SEVERAL OF A LIST IS A LIST OF CHECKBOXES, OPENED UNDER ITS FIELD § */
@@ -11305,13 +11329,9 @@ function fieldHtml(name, value, o) {
     got.forEach(g => { if (!opts.some(x => norm(x) === norm(g))) opts.push(g); });
     const said = got.join(', ');
     const key = attr + ':' + name;
-    return `<div class="field many"><span class="many-cap">${esc(label)}</span>
-      ${formHidden_(`${attr}="${esc(name)}"`, said, da)}
-      <details class="many-d" data-many="${esc(key)}"${MANY_OPEN_ === key ? ' open' : ''}><summary class="many-sum${said ? '' : ' is-unset'}"
-        aria-label="${esc(label + ': ' + (said || 'nothing chosen'))}">${esc(said || 'Tap to choose')}</summary>
-        <div class="many-list" role="group" aria-label="${esc(label)}">${opts.map(x => formTick_(`data-many-of="${esc(name)}" value="${esc(x)}"${on(x) ? ' checked' : ''}${
-          ro ? ' disabled' : ''}`, `<span>${esc(x)}</span>`, 'many-opt')).join('')}</div>
-      </details></div>`;
+    return cardBlock_({ type: 'many', label, key, said, open: MANY_OPEN_ === key,
+      hidden: { attrs: meAttrs_(`type="hidden" ${attr}="${esc(name)}" value="${esc(said)}"${da}`) },
+      ticks: opts.map(x => ({ look: 'many-opt', text: x, attrs: { 'data-many-of': name, value: x, checked: on(x), disabled: ro } })) });
   }
 
   /* A FIXED LIST IS A SELECT. § */
@@ -11322,17 +11342,17 @@ function fieldHtml(name, value, o) {
   if (opts.length) {
     /* A PLACEHOLDER ON A SELECT IS ITS EMPTY OPTION, and the caption goes exactly as it does for a box below: § */
     const ph = o.placeholder || '';
-    return formLine_(ph ? '' : label, formSelect_(`${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}${da}`, `
-        <option value="">${ph ? esc(ph) : name === 'manager' ? esc(MANAGER_NONE) : NONE_LABEL}</option>
-        ${(v !== '' && v != null && !opts.some(x => ov(x) === String(v)) ? [String(v)] : [])
-          .concat(opts).map(x => `<option value="${esc(ov(x))}"${
-          String(v) === ov(x) ? ' selected' : ''}>${esc(ot(x))}</option>`).join('')}`));
+    return cardBlock_({ type: 'field', cap: ph ? '' : label, blocks: [{ type: 'control', tag: 'select',
+      attrs: meAttrs_(`${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}${da}`),
+      options: [{ value: '', text: ph || (name === 'manager' ? MANAGER_NONE : NONE_LABEL) }].concat(
+        (v !== '' && v != null && !opts.some(x => ov(x) === String(v)) ? [String(v)] : [])
+          .concat(opts).map(x => ({ value: ov(x), text: ot(x), on: String(v) === ov(x) }))) }] });
   }
 
   /* ---------- A DAY ON A CALENDAR IS A DATE INPUT § */
   if (FIELD_IS_DATE.test(name)) {
-    return formLine_(label, formInput_(`type="date" ${attr}="${esc(name)}" value="${esc(String(v))}"
-             ${ro ? 'disabled' : ''} ${o.extra || ''}${da}`));
+    return meBox_(label, `type="date" ${attr}="${esc(name)}" value="${esc(String(v))}"
+             ${ro ? 'disabled' : ''} ${o.extra || ''}${da}`);
   }
 
   /* A WHOLE-NUMBER FIELD (years teaching, pages, students…) takes digits only (owner, 8 Nov): a number box, never letters. */
@@ -11344,10 +11364,12 @@ function fieldHtml(name, value, o) {
   const hint = o.placeholder || '';
 
   /* EXTRA ATTRIBUTES, FOR THE CALLERS THAT NEED ONE THE NAME CANNOT IMPLY. § */
-  return formLine_(hint ? '' : label, formInput_(`${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
+  return meBox_(hint ? '' : label, `${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
            ${hint ? `placeholder="${esc(hint)}"` : ''} ${o.extra || ''}
-           ${pad ? `inputmode="${pad}"` : ''}${pad === 'numeric' && !/\btype=/.test(o.extra || '') ? ' type="number" min="0" step="1"' : ''}${da}`));
+           ${pad ? `inputmode="${pad}"` : ''}${pad === 'numeric' && !/\btype=/.test(o.extra || '') ? ' type="number" min="0" step="1"' : ''}${da}`);
 }
+/* ONE CAPTIONED BOX: the field block holding an input whose attributes are `attrs`. */
+const meBox_ = (cap, attrs, look) => cardBlock_({ type: 'field', cap, look, blocks: [{ type: 'control', attrs: meAttrs_(attrs) }] });
 
 /* ---------- WHICH SEVERAL-OF-A-LIST FIELD IS OPEN, KEPT AS STATE RATHER THAN IN THE DOM § */
 let MANY_OPEN_ = '';
@@ -11439,15 +11461,15 @@ function fieldRows_(list, one) {
     if (!row) { out.push(one(f, {})); return; }
     row.fields.forEach(x => done.add(x));
     const boxes = row.fields.map((x, i) => one(x, row.cap ? { placeholder: row.ph[i] } : {}))
-      .join(row.dash ? '<span class="f-dash" aria-hidden="true">–</span>' : '');
+      .join(row.dash ? cardBlock_({ type: 'group', tag: 'span', look: 'f-dash', attrs: { 'aria-hidden': 'true' }, text: '–' }) : '');
     out.push(row.cap ? fieldCap_(row.cap, boxes, row.dash ? ' is-range' : '', row.fields.length)
-      : `<div class="f-row" style="--n:${row.fields.length}">${boxes}</div>`);
+      : cardBlock_({ type: 'group', look: 'f-row', attrs: { 'data-n': row.fields.length }, inner: boxes }));
   });
   return out.join('');
 }
 /* THE ONE CAPTIONED SETTINGS ROW: a small caption over its boxes, for a paired row and for the phone alike. */
-const fieldCap_ = (cap, boxes, cls, n) => `<div class="f-rowwrap"><span class="dob-cap">${esc(cap)}</span>
-           <div class="f-row${cls || ''}" style="--n:${n || 1}">${boxes}</div></div>`;
+const fieldCap_ = (cap, boxes, cls, n) => cardBlock_({ type: 'group', look: 'f-rowwrap', blocks: [{ type: 'group', tag: 'span', look: 'dob-cap', text: cap },
+  { type: 'group', look: 'f-row' + (cls || ''), attrs: { 'data-n': n || 1 }, inner: boxes }] });
 
 /* A WHOLE FORM, from a group table. § */
 /* A GROUP OF HOUR CODES IS A TIMETABLE. § */
@@ -11470,14 +11492,9 @@ function dobBoxes_(value) {
     placeholder: hint,
     extra: `inputmode="numeric" maxlength="${len}" autocomplete="off" size="${len}"`,
   });
-  return `<div class="dob-row" role="group" aria-label="Date of birth">
-    <span class="dob-cap">date of birth</span>
-    <div class="dob-boxes">
-      ${box('dob_d', 'DD', 2)}
-      ${box('dob_m', 'MM', 2)}
-      ${box('dob_y', 'YYYY', 4)}
-    </div>
-  </div>`;
+  return cardBlock_({ type: 'group', look: 'dob-row', attrs: { role: 'group', 'aria-label': 'Date of birth' }, blocks: [
+    { type: 'group', tag: 'span', look: 'dob-cap', text: 'date of birth' },
+    { type: 'group', look: 'dob-boxes', inner: box('dob_d', 'DD', 2) + box('dob_m', 'MM', 2) + box('dob_y', 'YYYY', 4) }] });
 }
 const isLibrary_ = list => (list || []).some(isLibraryCard_);
 
@@ -11490,14 +11507,14 @@ function shelfSlots_(nums, filled, draw, noun) {
   return nums.map((n, i) => draw(n, i >= show)).join('') + (show < nums.length ? shelfAdd_(noun || 'another') : '');
 }
 /* ONE SETTINGS-CARD SHAPE (8 Nov): every list's "Add a …" tile and every line's bin are these two, whatever the list. */
-const shelfAdd_ = (noun, act, o, row) => `<div class="tile-row set-adds${row ? ' ' + row : ''}">${tile_(Object.assign({ icon: 'plus', label: 'Add ' + (/^an? |^another$/.test(noun) ? noun : 'a ' + noun),
-  act: act || 'shelf-more', cls: act ? '' : 'shelf-more' }, o || {}))}</div>`;
+const shelfAdd_ = (noun, act, o, row) => cardBlock_({ type: 'group', look: 'tile-row set-adds' + (row ? ' ' + row : ''), tiles: [Object.assign({ icon: 'plus', label: 'Add ' + (/^an? |^another$/.test(noun) ? noun : 'a ' + noun),
+  act: act || 'shelf-more', cls: act ? '' : 'shelf-more' }, o || {})] });
 const shelfDrop_ = (noun, act) => tile_({ icon: 'bin', label: 'Remove ' + noun, act: act || 'shelf-drop', cls: 'set-drop' });
 /* A CARD: its title and one line per field, saving as you type (owner, 8 Nov: no Save button, `autosaveHear_`). `o.save` is any other tile for the foot. */
 function setCard_(o) {
-  const save = o.save ? `<div class="tile-row set-save">${o.save}</div>` : '';
+  const save = o.save ? cardBlock_({ type: 'group', look: 'tile-row set-save', inner: o.save }) : '';
   const body = o.form == null ? (o.body || '') + save
-    : `<div class="me-form"${o.formAttrs || ''}>${o.form}${save}${o.foot == null ? '<p class="note me-said"></p>' : o.foot}</div>`;
+    : cardBlock_({ type: 'group', look: 'me-form', attrs: meAttrs_(o.formAttrs || ''), inner: o.form + save + (o.foot == null ? meSaid_('') : o.foot) });
   return renderCard({ kind: 'setting', look: 'set-shape' + (o.cls ? ' ' + o.cls : ''), name: o.title || '', tags: [o.title || ''], data: meData_(o.attrs),
     body: [{ type: 'embed', tool: 'me-form', args: { draw: () => (o.lead || '') + body + (o.after || '') } }] });
 }
@@ -11572,15 +11589,13 @@ function qualShelf_(list, value) {
   /* A SUBJECT'S COLUMN IS AS WIDE AS ITS OWN NAME, in `ch` because the face is monospaced — so its notation sits right after it, as on the profile chip, and its § */
   const wide = g => Math.min(18, Math.max(3, String(g.subject || '').length)) + 1;
   const empty = !groups.length;
-  return `<div class="q-shelf${empty ? ' is-empty' : ''}">
-    ${empty ? `<p class="q-hint">Add what you studied and the certificates you hold — the subject, then the level.</p>` : ''}
-    <div class="q-list">${groups.map(g => `<div class="q-subj" style="--q-w:${wide(g)}ch">${
-      g.slots.map((i, n) => qualSlot_(i, value, { first: n === 0, mine })).join('')}</div>`).join('')}</div>
-    <div class="q-pool" hidden>${pool.map(i => qualSlot_(i, value, { mine })).join('')}</div>
-    ${shelfAdd_('qualification', 'qual-add', { off: !pool.length, data: { unlocked: '' },
-      note: pool.length ? pool.length + ' more fit' : '10 is the most' }, 'q-adds')}
-    
-  </div>`;
+  return cardBlock_({ type: 'group', look: 'q-shelf' + (empty ? ' is-empty' : ''), blocks: [
+    empty ? { type: 'group', tag: 'p', look: 'q-hint', text: 'Add what you studied and the certificates you hold — the subject, then the level.' } : null,
+    { type: 'group', look: 'q-list', inner: groups.map(g => cardBlock_({ type: 'group', look: 'q-subj', attrs: { 'data-qw': wide(g) },
+      inner: g.slots.map((i, n) => qualSlot_(i, value, { first: n === 0, mine })).join('') })).join('') },
+    { type: 'group', look: 'q-pool', attrs: { hidden: true }, inner: pool.map(i => qualSlot_(i, value, { mine })).join('') }],
+    inner: shelfAdd_('qualification', 'qual-add', { off: !pool.length, data: { unlocked: '' },
+      note: pool.length ? pool.length + ' more fit' : '10 is the most' }, 'q-adds') });
 }
 /* ---------- ONE QUALIFICATION: ITS LINE, AND ITS EDITOR UNDER IT § */
 function qualSlot_(i, value, o) {
@@ -11594,52 +11609,44 @@ function qualSlot_(i, value, o) {
   /* ONE CONTROL THAT CYCLES (440): each tap moves Not teaching → Can teach → Teaches → Not teaching. */
   /* TEACHING IS ONE ROW WITH THE PHONE'S OWN PICKER; the line's mark (`q-mark-b`) still cycles without opening it. */
   const tv = qualTeachKey_(q);
-  const cyc = formLine_('Teaching', formSelect_('class="q-teach" data-unlocked aria-label="Teaching"',
-      QUAL_TEACH_OPTS_.map(([k, say]) => `<option value="${k}"${k === tv ? ' selected' : ''}>${say}</option>`).join('')), 'q-f q-cyc');
+  const cyc = { type: 'field', cap: 'Teaching', look: 'q-f q-cyc', blocks: [{ type: 'control', tag: 'select', attrs: { class: 'q-teach', 'data-unlocked': true, 'aria-label': 'Teaching' },
+      options: QUAL_TEACH_OPTS_.map(([k, say]) => ({ value: k, text: say, on: k === tv })) }] };
   const said = qualSay_(q);
   /* EACH CAPTION IN TWO WORDINGS, a subject's and a certificate's, and the slot's `is-cert` says which is shown — so a line that becomes a DBS by a pick changes § */
-  const cap = (std, cert) => `<span class="q-cap-std">${esc(std)}</span><span class="q-cap-cert">${esc(cert)}</span>`;
-  return `<div class="q-slot${qualIsCert_(q) ? ' is-cert' : ''}" data-slot="${esc(i)}"${q.first ? ' data-first="1"' : ''}>
-    ${formHidden_(`data-me="${esc(f('_spec'))}"`, q.spec ? 'TRUE' : 'FALSE')}
-    ${formHidden_(`data-me="${esc(f('_teach'))}"`, q.teach ? 'TRUE' : 'FALSE')}
-    ${tile_({ form: true, look: 'q-line', act: 'qual-open', data: { at: i }, attrs: 'data-unlocked aria-expanded="false"', aria: said, title: said, html: qualFace_(q) })}
-    ${tile_({ form: true, look: 'q-mark-b', act: 'qual-teach', data: { face: 1, at: i }, attrs: 'data-unlocked', aria: 'Teaching: ' + qualTeachWord_(q) + ', tap to change', html: qualTeachVal_(q) })}
-    <div class="q-ed">
-      <div class="q-row">
-        ${qualPick_(`data-me="${esc(f(''))}" class="q-name"`, q.subject, QUAL_SUBJECTS, 'Subject', 'Choose', o.mine)}
-        ${qualPick_(`data-me="${esc(f('_level'))}"`, q.level, QUAL_LEVELS, 'Level', 'Choose')}
-      </div>
-      <div class="q-row">
-        ${qualPick_(`data-me="${esc(f('_grade'))}"`, q.grade, QUAL_GRADES, 'Grade', 'None yet').replace('class="field q-f"', 'class="field q-f q-grade"')}
-        <label class="field q-f">${cap('Finished', 'Year')}
-          ${formSelect_(`data-me="${esc(f('_received'))}"`, qualYears_(q.received).map(y => `<option value="${esc(y)}"${
-            y === q.received ? ' selected' : ''}>${esc(y === 'Present' ? 'Still studying' : y)}</option>`).join('') + `
-            <option value=""${q.received ? '' : ' selected'}>Not sure</option>`)}</label>
-        <label class="field q-f q-school">${cap('School, college or uni', 'Issued by')}
-          ${formInput_(`type="text" data-me="${esc(f('_board'))}" value="${esc(q.board)}" autocomplete="off"`)}</label>
-      </div>
-      ${cyc}
-      <div class="tile-row q-tiles">${tile_({ icon: 'save', label: 'Done', act: 'qual-done', data: { unlocked: '', at: i } })}${
-        tile_({ icon: 'bin', label: 'Remove', note: [q.subject, q.level].filter(Boolean).join(' ') || 'this one', act: 'qual-drop',
-                data: { unlocked: '', at: i } })}</div>
-    </div>
-  </div>`;
+  const hide = (k, on) => ({ type: 'control', attrs: { type: 'hidden', 'data-me': f(k), value: on ? 'TRUE' : 'FALSE' } });
+  return cardBlock_({ type: 'group', look: 'q-slot' + (qualIsCert_(q) ? ' is-cert' : ''), attrs: { 'data-slot': i, 'data-first': q.first ? '1' : null }, blocks: [
+    hide('_spec', q.spec), hide('_teach', q.teach)], inner:
+    tile_({ form: true, look: 'q-line', act: 'qual-open', data: { at: i }, attrs: 'data-unlocked aria-expanded="false"', aria: said, title: said, html: qualFace_(q) })
+    + tile_({ form: true, look: 'q-mark-b', act: 'qual-teach', data: { face: 1, at: i }, attrs: 'data-unlocked', aria: 'Teaching: ' + qualTeachWord_(q) + ', tap to change', html: qualTeachVal_(q) })
+    + cardBlock_({ type: 'group', look: 'q-ed', blocks: [
+      { type: 'group', look: 'q-row', blocks: [
+        qualPick_({ 'data-me': f(''), class: 'q-name' }, q.subject, QUAL_SUBJECTS, 'Subject', 'Choose', o.mine),
+        qualPick_({ 'data-me': f('_level') }, q.level, QUAL_LEVELS, 'Level', 'Choose')] },
+      { type: 'group', look: 'q-row', blocks: [
+        qualPick_({ 'data-me': f('_grade') }, q.grade, QUAL_GRADES, 'Grade', 'None yet', null, 'q-f q-grade'),
+        { type: 'field', look: 'q-f', caps: ['Finished', 'Year'], blocks: [{ type: 'control', tag: 'select', attrs: { 'data-me': f('_received') },
+          options: qualYears_(q.received).map(y => ({ value: y, text: y === 'Present' ? 'Still studying' : y, on: y === q.received }))
+            .concat([{ value: '', text: 'Not sure', on: !q.received }]) }] },
+        { type: 'field', look: 'q-f q-school', caps: ['School, college or uni', 'Issued by'], blocks: [{ type: 'control',
+          attrs: { type: 'text', 'data-me': f('_board'), value: q.board, autocomplete: 'off' } }] }] },
+      cyc,
+      { type: 'group', look: 'tile-row q-tiles', tiles: [{ icon: 'save', label: 'Done', act: 'qual-done', data: { unlocked: '', at: i } },
+        { icon: 'bin', label: 'Remove', note: [q.subject, q.level].filter(Boolean).join(' ') || 'this one', act: 'qual-drop',
+          data: { unlocked: '', at: i } }] }] }) });
 }
 /* THE FACE OF A LINE: the subject (on a subject's first line only), the notation, the teaching mark — none on a certificate, which is held and not taught § */
 function qualFace_(q) {
   const who = q.first || q.fresh ? (q.subject || (q.fresh ? 'New qualification' : '')) : '';
   const cert = qualIsCert_(q);
-  return `<span class="q-who${q.subject ? '' : ' is-none'}">${esc(who)}</span>`
-    + `<span class="q-note">${qualIso_(q)}</span>`
-    + `<span class="q-mark">${cert ? '' : q.spec ? '<span class="q-chip">Teach</span>'
-      : q.teach ? '<span class="q-can">Can teach</span>' : ''}</span>`;
+  return cardRuns_([{ span: 'q-who' + (q.subject ? '' : ' is-none'), text: who }, { span: 'q-note', text: qualIso_(q) },
+    { span: 'q-mark', text: cert ? '' : q.spec ? { span: 'q-chip', text: 'Teach' } : q.teach ? { span: 'q-can', text: 'Can teach' } : '' }]);
 }
 /* THE TEACHING STATE IN WORDS, and drawn: gold for Teaches, plain for Can teach, faint for Not teaching. */
 const qualTeachKey_ = q => q.spec ? 'spec' : q.teach ? 'teach' : 'no';
 const QUAL_TEACH_OPTS_ = [['teach', 'Can teach'], ['spec', 'Teaches'], ['no', 'Not teaching']];
 function qualTeachWord_(q) { return q.spec ? 'Teaches' : q.teach ? 'Can teach' : 'Not teaching'; }
 function qualTeachVal_(q) {
-  return `<span class="q-cyc-v is-${q.spec ? 'spec' : q.teach ? 'teach' : 'no'}">${qualTeachWord_(q)}</span>`;
+  return cardRuns_({ span: 'q-cyc-v is-' + qualTeachKey_(q), text: qualTeachWord_(q) });
 }
 /* ---------- A CERTIFICATE IS HELD, NOT STUDIED AND NOT TAUGHT § */
 function qualIsCert_(q) {
@@ -11649,11 +11656,10 @@ function qualIsCert_(q) {
 /* ---------- THE NOTATION, BY THE PROFILE CHIP'S RULES § */
 function qualIso_(q) {
   const level = norm(q.level) === norm(q.subject) ? '' : (q.level || '');
-  const low = q.grade ? esc(q.grade) : /^present$/i.test(q.received || '') ? '<i>studying</i>' : '';
-  if (qualIsCert_(q) || !(level || low)) {
-    return `<span class="q-plain">${esc([level, q.grade].filter(Boolean).join(' '))}</span>`;
-  }
-  return `<span class="prof-iso">${level ? `<sup>${esc(level)}</sup>` : ''}${low ? `<sub>${low}</sub>` : ''}</span>`;
+  /* RUNS, not markup: qualFace_ draws them through cardRuns_. */
+  const low = q.grade ? q.grade : /^present$/i.test(q.received || '') ? { i: 'studying' } : '';
+  if (qualIsCert_(q) || !(level || low)) return { span: 'q-plain', text: [level, q.grade].filter(Boolean).join(' ') };
+  return { span: 'prof-iso', text: [level ? { sup: level } : '', low ? { sub: low } : ''] };
 }
 /* THE LINE'S NAME: the profile chip's own sentence (`profQualSay_`) and the teaching word — so a screen
    reader and a pointer get the place and the year the face leaves off. */
@@ -11664,7 +11670,7 @@ function qualSay_(q) {
 }
 /* ---------- A DROP-DOWN WITH A CAPTION, AND `Something else…` AT THE FOOT § */
 const QUAL_OTHER = '__other';
-function qualPick_(attrs, v, list, cap, none, mine) {
+function qualPick_(attrs, v, list, cap, none, mine, look) {
   v = String(v ?? '');
   const has = x => !!v && norm(x) === norm(v);
   const yours = [...new Set((mine || []).filter(Boolean))];
@@ -11673,15 +11679,13 @@ function qualPick_(attrs, v, list, cap, none, mine) {
   const opt = x => {
     const on = !chosen && has(x);
     if (on) chosen = true;
-    return `<option value="${esc(x)}"${on ? ' selected' : ''}>${esc(x)}</option>`;
+    return { value: x, on };
   };
   const body = yours.length
-    ? `<optgroup label="Your subjects">${yours.map(opt).join('')}</optgroup><optgroup label="Every subject">${opts.map(opt).join('')}</optgroup>`
-    : opts.map(opt).join('');
-  return formLine_(cap, formSelect_(attrs, `
-      <option value="">${esc(none)}</option>
-      ${body}
-      <option value="${QUAL_OTHER}">Something else…</option>`), 'q-f');
+    ? [{ group: 'Your subjects', options: yours.map(opt) }, { group: 'Every subject', options: opts.map(opt) }]
+    : opts.map(opt);
+  return { type: 'field', cap, look: look || 'q-f', blocks: [{ type: 'control', tag: 'select', attrs,
+    options: [{ value: '', text: none }].concat(body, [{ value: QUAL_OTHER, text: 'Something else…' }]) }] };
 }
 /* `Something else…` swaps the select for a box carrying the same attributes, so a save reads it exactly as it read the select — and it saves on the box's own § */
 document.addEventListener('change', e => {
