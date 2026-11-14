@@ -55,9 +55,10 @@ if (!tsBody) fail.push('typeset_ is not in js/find.js — the formulas were NOT 
 else typeset_ = require('../tools/typeset-src.js').typesetFn(findSrc, cutFrom);
 /* `tbSub_` around it only turns Unicode subscript digits into `<sub>`, which can neither make nor
    unmake a fraction, so the drawing below leaves it out and the recipe names it. */
-const RECIPE = "const tbMath_ = s => tbSub_(typeset_(esc(s).replace(/\\//g, '&frasl;')));";
-if (findSrc.indexOf(RECIPE) < 0) {
-  fail.push('`tbMath_` in js/find.js is not `' + RECIPE + '` — this check draws the formulas the way '
+const RECIPE = "typeset_(esc(s).replace(/\\//g, '&frasl;'))";
+const renderSrc = fs.readFileSync(path.join(root, 'js', 'cards-render.js'), 'utf8');
+if (!/const cardFrac_ = s => cardSub_\(/.test(renderSrc) || renderSrc.indexOf(RECIPE) < 0 || findSrc.indexOf("const tbMath_ = s => ({ typeset: s, frac: true });") < 0) {
+  fail.push('`cardFrac_` in js/cards-render.js (what `tbMath_` hands a formula to) is not `' + RECIPE + '` — this check draws the formulas the way '
     + 'that line did, so it would be checking a recipe the app no longer uses');
 }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>

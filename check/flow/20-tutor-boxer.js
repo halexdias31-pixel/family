@@ -48,15 +48,17 @@ check('every Find kind that is not a question is made of the shared parts: head,
       pages.forEach(({ part, el }) => {
         if (!el) { bad.push(name + ' page ' + part + ' drew nothing'); return; }
         if (!el.classList.contains('fc')) bad.push(name + ' page ' + part + ' is not a `.card.fc`');
-        const k = el.firstElementChild, h = k && k.nextElementSibling;
-        if (!k || !k.classList.contains('fc-kick') || !h || h.tagName !== 'H3') {
-          bad.push(name + ' page ' + part + ' does not open on its kicker and then its title');
+        /* A PAGE IS A CARD TOO (renderCard, owner 14 Nov): the five parts, its title its tag, its kicker the first line. */
+        const kids = [...el.children].map(e => e.className).join(' ');
+        const k = el.querySelector(':scope > .kc-lines > :first-child'), t = el.querySelector(':scope > .kc-tags .qtag');
+        if (kids !== 'kc-pic kc-head kc-tags kc-lines kc-act' || !k || !k.classList.contains('fc-kick') || !t || !t.textContent.trim()) {
+          bad.push(name + ' page ' + part + ' does not open on its title tag and then its kicker');
         }
         if ([...el.querySelectorAll('[style], p.note, .thing')].some(onCard)) bad.push(name + ' page ' + part + ' carries a stray shape');
       });
       [card].concat(pages.map(pg => pg.el).filter(Boolean)).forEach(el => {
         el.querySelectorAll('ol').forEach(ol => {
-          if (!ol.classList.contains('fc-list')) bad.push(name + ' has a numbered list that is not an `.fc-list`');
+          if (!ol.classList.contains('fc-list') && !ol.classList.contains('kc-list')) bad.push(name + ' has a numbered list that is not an `.fc-list` or the card\'s `.kc-list`');
         });
       });
     });
