@@ -440,7 +440,7 @@ function boot(opts) {
 const checks = [];
 /* `FLOW_ONLY=words node js/check-flow.js` runs the journeys whose names contain those words — for working on one; the suite always runs the lot, and says how § */
 /* `FLOW_SLICE=1/3` RUNS EVERY THIRD JOURNEY, starting from the second — the suite in pieces, for a machine too busy to run all of it inside one ten-minute window. § */
-const FLOW_RE_ = process.env.FLOW_RE ? new RegExp(process.env.FLOW_RE) : null;
+const FLOW_RE_ = process.env.FLOW_RE ? new RegExp(process.env.FLOW_RE, 'i') : null;
 const FLOW_SLICE = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_SLICE || '');
 let flowSeen = 0;
 /* TIERS (860): core by tiers.json; FLOW_TIER=all|secondary adds the rest; FLOW_ONLY/FLOW_RE ask any. */
