@@ -23660,17 +23660,18 @@ function wordsEditOn_(root) {
   root.querySelectorAll('[data-wkp]').forEach(inp => {
     if (inp.nextElementSibling && inp.nextElementSibling.classList.contains('wk-ph-row')) return;
     const k = inp.getAttribute('data-wkp'), set = Object.prototype.hasOwnProperty.call(wordsNow_(), k);
-    inp.insertAdjacentHTML('afterend', `<span class="wk-ph-row">${qtag_(`Placeholder`)} <span class="wk-ph" contenteditable="plaintext-only" data-wk="${esc(k)}" data-wko="${esc(inp.getAttribute('data-wko') || '')}"${
-      set ? ' data-wk-set=""' : ''}>${esc(inp.getAttribute('placeholder') || '')}</span></span>`);
+    const ph = cardBlock_({ type: 'group', tag: 'span', look: 'wk-ph', text: inp.getAttribute('placeholder') || '',
+      attrs: { contenteditable: 'plaintext-only', 'data-wk': k, 'data-wko': inp.getAttribute('data-wko') || '', 'data-wk-set': set ? '' : null } });
+    inp.insertAdjacentHTML('afterend', cardBlock_({ type: 'group', tag: 'span', look: 'wk-ph-row', inner: qtag_('Placeholder') + ' ' + ph }));
   });
   const all = [...root.querySelectorAll('[data-wk]')];
   all.forEach(p => {
-    if (p.hasAttribute('data-wk-set')) p.insertAdjacentHTML('afterend', `<span class="tile-row wk-reset">${
-      tile_({ icon: 'undo', label: 'Reset this text', note: 'back to the code\'s wording', act: 'words-reset', tone: 'admin', data: { wk: p.getAttribute('data-wk') } })}</span>`);
+    if (p.hasAttribute('data-wk-set')) p.insertAdjacentHTML('afterend', cardBlock_({ type: 'group', tag: 'span', look: 'tile-row wk-reset',
+      tiles: [{ icon: 'undo', label: 'Reset this text', note: 'back to the code\'s wording', act: 'words-reset', tone: 'admin', data: { wk: p.getAttribute('data-wk') } }] }));
   });
-  root.insertAdjacentHTML('beforeend', `<div class="wk-bar"><div class="tile-row">${
-    all.length ? tile_({ icon: 'save', label: 'Save words', act: 'words-save', tone: 'admin' }) : ''}${
-    tile_({ icon: 'close', label: 'Done', note: 'stop editing words', act: 'words-done', tone: 'admin' })}</div></div>`);
+  root.insertAdjacentHTML('beforeend', cardBlock_({ type: 'group', look: 'wk-bar', blocks: [{ type: 'tiles', tiles: [
+    all.length ? { icon: 'save', label: 'Save words', act: 'words-save', tone: 'admin' } : null,
+    { icon: 'close', label: 'Done', note: 'stop editing words', act: 'words-done', tone: 'admin' }].filter(Boolean) }] }));
   if (all[0]) try { all[0].focus(); } catch (e) {}
 }
 /* REDRAWN EDITABLE (or not), then the bar put on the card found again by its tile. */
@@ -23753,12 +23754,12 @@ function seenOk_(id) {
 const seenWider_ = (lvl, gate) => !!gate && lvl !== '' && (lvl === 'out' || SEEN_ORDER.indexOf(lvl) < SEEN_ORDER.indexOf(gate));
 function seenBox_(id) {
   const now = seenOf_(id), gate = seenGate_(id);
-  const opt = (v, say) => `<option value="${v}"${v === now ? ' selected' : ''}${seenWider_(v, gate) && v !== now ? ' disabled' : ''}>${esc(say)}</option>`;
-  return `<div class="seen-box" data-seen-for="${esc(id)}">
-    <label class="row seen-item"><span class="seen-l">Who sees this</span><select data-do="seen-set" data-lc="${esc(id)}" aria-label="Who sees this">${
-      opt('', 'Everyone')}${SEEN_ORDER.map(v => opt(v, SEEN_SAY[v])).join('')}</select></label>
-    <div class="tile-row">${tile_({ icon: 'close', label: 'Close', act: 'seen-close', tone: 'admin' })}</div>
-  </div>`;
+  const opt = (v, say) => ({ value: v, text: say, on: v === now, off: seenWider_(v, gate) && v !== now });
+  return cardBlock_({ type: 'group', look: 'seen-box', attrs: { 'data-seen-for': id }, blocks: [
+    { type: 'group', tag: 'label', look: 'row seen-item', blocks: [{ type: 'group', tag: 'span', look: 'seen-l', text: 'Who sees this' },
+      { type: 'control', tag: 'select', attrs: { 'data-do': 'seen-set', 'data-lc': id, 'aria-label': 'Who sees this' },
+        options: [opt('', 'Everyone')].concat(SEEN_ORDER.map(v => opt(v, SEEN_SAY[v]))) }] },
+    { type: 'tiles', tiles: [{ icon: 'close', label: 'Close', act: 'seen-close', tone: 'admin' }] }] });
 }
 on('seen-open', el => {
   if (!isAdmin()) return;

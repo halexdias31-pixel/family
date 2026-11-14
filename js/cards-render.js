@@ -80,10 +80,12 @@ function pixSvg_(rows, name, flip, cls) {
 
 /* A DRAWN PICTURE FROM DATA: shapes `{ t, ...attrs, kids }` on a round `ground`, at `size` pixels (links.js's ten pictures). */
 const ART_TAGS = /^(path|circle|ellipse|rect|g)$/;
+/* A PAINT NAMED BY TOKEN (`--pfp-fox`) is that token from style.css's :root; anything else ('none') is as written. */
+const artPaint_ = v => (/^--pfp-[a-z-]+$/.test(String(v)) ? `var(${v})` : v);
 const artShapes_ = list => (list || []).filter(o => o && ART_TAGS.test(o.t)).map(o => `<${o.t}${Object.keys(o).filter(k => k !== 't' && k !== 'kids')
-  .map(k => ` ${esc(k)}="${esc(o[k])}"`).join('')}${o.kids ? `>${artShapes_(o.kids)}</${o.t}>` : '/>'}`).join('');
+  .map(k => ` ${esc(k)}="${esc(k === 'fill' || k === 'stroke' ? artPaint_(o[k]) : o[k])}"`).join('')}${o.kids ? `>${artShapes_(o.kids)}</${o.t}>` : '/>'}`).join('');
 const artSvg_ = (art, ground, size) => `<svg class="pfp-art" viewBox="0 0 48 48" width="${esc(size)}" height="${esc(size)}" aria-hidden="true">`
-  + `<circle cx="24" cy="24" r="24" fill="${esc(ground)}"/>${artShapes_(art)}</svg>`;
+  + `<circle cx="24" cy="24" r="24" fill="${esc(artPaint_(ground))}"/>${artShapes_(art)}</svg>`;
 /* A PERSON'S FACE FROM DATA: a photo (`src`), a drawing (`art`), or an initial (`text`), in the one class `cls`. */
 function renderFace_(f) {
   if (f.src != null) return `<img class="${esc(f.cls)}" src="${esc(f.src)}" alt="${esc(f.alt || '')}"${f.eager ? '' : ' loading="lazy"'} decoding="async">`;

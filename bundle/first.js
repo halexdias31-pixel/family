@@ -559,10 +559,12 @@ function pixSvg_(rows, name, flip, cls) {
 
 /* A DRAWN PICTURE FROM DATA: shapes `{ t, ...attrs, kids }` on a round `ground`, at `size` pixels (links.js's ten pictures). */
 const ART_TAGS = /^(path|circle|ellipse|rect|g)$/;
+/* A PAINT NAMED BY TOKEN (`--pfp-fox`) is that token from style.css's :root; anything else ('none') is as written. */
+const artPaint_ = v => (/^--pfp-[a-z-]+$/.test(String(v)) ? `var(${v})` : v);
 const artShapes_ = list => (list || []).filter(o => o && ART_TAGS.test(o.t)).map(o => `<${o.t}${Object.keys(o).filter(k => k !== 't' && k !== 'kids')
-  .map(k => ` ${esc(k)}="${esc(o[k])}"`).join('')}${o.kids ? `>${artShapes_(o.kids)}</${o.t}>` : '/>'}`).join('');
+  .map(k => ` ${esc(k)}="${esc(k === 'fill' || k === 'stroke' ? artPaint_(o[k]) : o[k])}"`).join('')}${o.kids ? `>${artShapes_(o.kids)}</${o.t}>` : '/>'}`).join('');
 const artSvg_ = (art, ground, size) => `<svg class="pfp-art" viewBox="0 0 48 48" width="${esc(size)}" height="${esc(size)}" aria-hidden="true">`
-  + `<circle cx="24" cy="24" r="24" fill="${esc(ground)}"/>${artShapes_(art)}</svg>`;
+  + `<circle cx="24" cy="24" r="24" fill="${esc(artPaint_(ground))}"/>${artShapes_(art)}</svg>`;
 /* A PERSON'S FACE FROM DATA: a photo (`src`), a drawing (`art`), or an initial (`text`), in the one class `cls`. */
 function renderFace_(f) {
   if (f.src != null) return `<img class="${esc(f.cls)}" src="${esc(f.src)}" alt="${esc(f.alt || '')}"${f.eager ? '' : ' loading="lazy"'} decoding="async">`;
@@ -14664,102 +14666,102 @@ function openSharedTutor() {
 /* A PERSON'S PICTURE — TEN OF OURS, A PHOTOGRAPH, OR THEIR INITIAL (the figure went, 9 Nov: a stored `pfp:avatar` is no choice). */
 const PFP_PREFIX = 'pfp:';
 const PFP_ART = {
-  fox: { name: 'Fox', ground: '#3c6fd1', art: [
-     { t: 'path', d: 'M11 9l9 9-6 7z', fill: '#e8742c' },
-     { t: 'path', d: 'M37 9l-9 9 6 7z', fill: '#e8742c' },
-     { t: 'path', d: 'M13.5 13l4.5 5-3 3.5z', fill: '#6b2f12' },
-     { t: 'path', d: 'M34.5 13L30 18l3 3.5z', fill: '#6b2f12' },
-     { t: 'path', d: 'M10 20q14-8 28 0l-3 12-11 8-11-8z', fill: '#e8742c' },
-     { t: 'path', d: 'M15 29l9 11 9-11q-9 4-18 0z', fill: '#fff' },
-     { t: 'circle', cx: '18.5', cy: '25', r: '2', fill: '#1f2328' },
-     { t: 'circle', cx: '29.5', cy: '25', r: '2', fill: '#1f2328' },
-     { t: 'circle', cx: '24', cy: '37', r: '2', fill: '#1f2328' }] },
-  owl: { name: 'Owl', ground: '#2e8b7a', art: [
-     { t: 'path', d: 'M12 18l2-9 6 6z', fill: '#8b5a2b' },
-     { t: 'path', d: 'M36 18l-2-9-6 6z', fill: '#8b5a2b' },
-     { t: 'ellipse', cx: '24', cy: '27', rx: '13', ry: '14', fill: '#8b5a2b' },
-     { t: 'ellipse', cx: '24', cy: '33', rx: '7.5', ry: '7', fill: '#e3c08f' },
-     { t: 'circle', cx: '18.5', cy: '22', r: '5.2', fill: '#fff' },
-     { t: 'circle', cx: '29.5', cy: '22', r: '5.2', fill: '#fff' },
-     { t: 'circle', cx: '18.5', cy: '22.5', r: '2.6', fill: '#1f2328' },
-     { t: 'circle', cx: '29.5', cy: '22.5', r: '2.6', fill: '#1f2328' },
-     { t: 'path', d: 'M21.5 27h5L24 31z', fill: '#f2a516' }] },
-  cat: { name: 'Cat', ground: '#ef8fae', art: [
-     { t: 'path', d: 'M11 22l2-13 9 6z', fill: '#5b6270' },
-     { t: 'path', d: 'M37 22l-2-13-9 6z', fill: '#5b6270' },
-     { t: 'path', d: 'M14 18l1-5 4 3z', fill: '#f4b6c8' },
-     { t: 'path', d: 'M34 18l-1-5-4 3z', fill: '#f4b6c8' },
-     { t: 'ellipse', cx: '24', cy: '27', rx: '14', ry: '12', fill: '#5b6270' },
-     { t: 'ellipse', cx: '18.5', cy: '25', rx: '2.2', ry: '3', fill: '#b6e36b' },
-     { t: 'ellipse', cx: '29.5', cy: '25', rx: '2.2', ry: '3', fill: '#b6e36b' },
-     { t: 'ellipse', cx: '18.5', cy: '25.3', rx: '.9', ry: '2.3', fill: '#1f2328' },
-     { t: 'ellipse', cx: '29.5', cy: '25.3', rx: '.9', ry: '2.3', fill: '#1f2328' },
-     { t: 'path', d: 'M22 30h4l-2 2.4z', fill: '#f4b6c8' },
-     { t: 'path', d: 'M8 30l9 1M8 34l9-1.5M40 30l-9 1M40 34l-9-1.5', stroke: '#fff', 'stroke-width': '1.3', 'stroke-linecap': 'round' }] },
-  dino: { name: 'Dinosaur', ground: '#f5c542', art: [
-     { t: 'path', d: 'M15 23l2-4 2 4zM20 20l2-4.5 2 4.5zM25 19.5l2-4 2 4z', fill: '#2c7a3a' },
-     { t: 'path', d: 'M7 26q4 6 9 2', stroke: '#3fa34d', 'stroke-width': '4.5', fill: 'none', 'stroke-linecap': 'round' },
-     { t: 'ellipse', cx: '22', cy: '29', rx: '11', ry: '8', fill: '#3fa34d' },
-     { t: 'path', d: 'M26 25q2-11 10-12 6 0 5.5 5.5-.5 3.5-6.5 3.5L31 29z', fill: '#3fa34d' },
-     { t: 'rect', x: '15', y: '34', width: '4.5', height: '7', rx: '2', fill: '#2c7a3a' },
-     { t: 'rect', x: '24', y: '34', width: '4.5', height: '7', rx: '2', fill: '#2c7a3a' },
-     { t: 'circle', cx: '36.5', cy: '16.5', r: '1.7', fill: '#1f2328' },
-     { t: 'path', d: 'M37 20.5h3', stroke: '#1f2328', 'stroke-width': '1.2', 'stroke-linecap': 'round' }] },
-  robot: { name: 'Robot', ground: '#f07f4f', art: [
-     { t: 'path', d: 'M24 13V9', stroke: '#5b6574', 'stroke-width': '2' },
-     { t: 'circle', cx: '24', cy: '8', r: '2.4', fill: '#e5484d' },
-     { t: 'rect', x: '9', y: '19', width: '3.5', height: '9', rx: '1.5', fill: '#8a96a5' },
-     { t: 'rect', x: '35.5', y: '19', width: '3.5', height: '9', rx: '1.5', fill: '#8a96a5' },
-     { t: 'rect', x: '12', y: '13', width: '24', height: '21', rx: '5', fill: '#d3dbe3' },
-     { t: 'circle', cx: '18.5', cy: '22', r: '3.6', fill: '#1f2328' },
-     { t: 'circle', cx: '29.5', cy: '22', r: '3.6', fill: '#1f2328' },
-     { t: 'circle', cx: '18.5', cy: '22', r: '2.2', fill: '#3cc4f0' },
-     { t: 'circle', cx: '29.5', cy: '22', r: '2.2', fill: '#3cc4f0' },
-     { t: 'rect', x: '17', y: '27.5', width: '14', height: '3.6', rx: '1.6', fill: '#1f2328' },
-     { t: 'path', d: 'M20.5 27.5v3.6M24 27.5v3.6M27.5 27.5v3.6', stroke: '#d3dbe3', 'stroke-width': '1' },
-     { t: 'rect', x: '16', y: '35', width: '16', height: '7', rx: '2', fill: '#8a96a5' }] },
-  rocket: { name: 'Rocket', ground: '#24366e', art: [
-     { t: 'circle', cx: '11', cy: '14', r: '1.2', fill: '#fff' },
-     { t: 'circle', cx: '37.5', cy: '12', r: '1', fill: '#fff' },
-     { t: 'circle', cx: '38', cy: '33', r: '1.2', fill: '#fff' },
-     { t: 'circle', cx: '9.5', cy: '31', r: '1', fill: '#fff' },
-     { t: 'path', d: 'M19.5 33q4.5 12 9 0z', fill: '#ffb020' },
-     { t: 'path', d: 'M21.8 33q2.2 6.5 4.4 0z', fill: '#ff6b2c' },
-     { t: 'path', d: 'M17.5 25L11 34l6.5-1.5zM30.5 25L37 34l-6.5-1.5z', fill: '#e5484d' },
-     { t: 'path', d: 'M24 6q7 7 7 19v8H17v-8q0-12 7-19z', fill: '#eef2f5' },
-     { t: 'path', d: 'M24 6q5 4.5 6.3 10H17.7Q19 10.5 24 6z', fill: '#e5484d' },
-     { t: 'circle', cx: '24', cy: '22.5', r: '3.6', fill: '#5ec8f2', stroke: '#34495e', 'stroke-width': '1.4' }] },
-  planet: { name: 'Planet', ground: '#5b3d8f', art: [
-     { t: 'circle', cx: '10', cy: '12', r: '1.1', fill: '#fff' },
-     { t: 'circle', cx: '38', cy: '38', r: '1.1', fill: '#fff' },
-     { t: 'circle', cx: '36', cy: '10', r: '.9', fill: '#fff' },
-     { t: 'ellipse', cx: '24', cy: '25', rx: '17', ry: '5.5', transform: 'rotate(-18 24 25)', fill: 'none', stroke: '#f5c542', 'stroke-width': '2.6' },
-     { t: 'circle', cx: '24', cy: '24', r: '10', fill: '#f08a4b' },
-     { t: 'path', d: 'M15 21q9 3 18-1M14.5 27q9 3 19-1', stroke: '#c9602a', 'stroke-width': '2', fill: 'none', 'stroke-linecap': 'round' },
-     { t: 'path', d: 'M7.83 30.25A17 5.5-18 0 0 40.17 19.75', fill: 'none', stroke: '#f5c542', 'stroke-width': '2.6' }] },
-  football: { name: 'Football', ground: '#3a9d5d', art: [
-     { t: 'circle', cx: '24', cy: '24', r: '14', fill: '#fff', stroke: '#1f2328', 'stroke-width': '1.6' },
-     { t: 'path', d: 'M24 18.5l5.2 3.8-2 6.1h-6.4l-2-6.1z', fill: '#1f2328' },
-     { t: 'path', d: 'M24 18.5V11M29.2 22.3l7-2.3M27.2 28.4l4.3 6M20.8 28.4l-4.3 6M18.8 22.3l-7-2.3', stroke: '#1f2328', 'stroke-width': '1.4' },
-     { t: 'path', d: 'M20.5 10.6L24 11l3.5-.4L24 10z', fill: '#1f2328' },
-     { t: 'path', d: 'M36.6 17.7l-.4 4.5 1.6 1.1q.4-3-1.2-5.6zM34.4 33.6l-2.9-.7-1.6 2.6q2.8-.3 4.5-1.9zM13.6 33.6l2.9-.7 1.6 2.6q-2.8-.3-4.5-1.9zM11.4 17.7l.4 4.5-1.6 1.1q-.4-3 1.2-5.6z', fill: '#1f2328' }] },
-  guitar: { name: 'Guitar', ground: '#d9534f', art: [
+  fox: { name: 'Fox', ground: '--pfp-blue', art: [
+     { t: 'path', d: 'M11 9l9 9-6 7z', fill: '--pfp-fox' },
+     { t: 'path', d: 'M37 9l-9 9 6 7z', fill: '--pfp-fox' },
+     { t: 'path', d: 'M13.5 13l4.5 5-3 3.5z', fill: '--pfp-fox-dark' },
+     { t: 'path', d: 'M34.5 13L30 18l3 3.5z', fill: '--pfp-fox-dark' },
+     { t: 'path', d: 'M10 20q14-8 28 0l-3 12-11 8-11-8z', fill: '--pfp-fox' },
+     { t: 'path', d: 'M15 29l9 11 9-11q-9 4-18 0z', fill: '--pfp-white' },
+     { t: 'circle', cx: '18.5', cy: '25', r: '2', fill: '--pfp-ink' },
+     { t: 'circle', cx: '29.5', cy: '25', r: '2', fill: '--pfp-ink' },
+     { t: 'circle', cx: '24', cy: '37', r: '2', fill: '--pfp-ink' }] },
+  owl: { name: 'Owl', ground: '--pfp-teal', art: [
+     { t: 'path', d: 'M12 18l2-9 6 6z', fill: '--pfp-owl' },
+     { t: 'path', d: 'M36 18l-2-9-6 6z', fill: '--pfp-owl' },
+     { t: 'ellipse', cx: '24', cy: '27', rx: '13', ry: '14', fill: '--pfp-owl' },
+     { t: 'ellipse', cx: '24', cy: '33', rx: '7.5', ry: '7', fill: '--pfp-owl-pale' },
+     { t: 'circle', cx: '18.5', cy: '22', r: '5.2', fill: '--pfp-white' },
+     { t: 'circle', cx: '29.5', cy: '22', r: '5.2', fill: '--pfp-white' },
+     { t: 'circle', cx: '18.5', cy: '22.5', r: '2.6', fill: '--pfp-ink' },
+     { t: 'circle', cx: '29.5', cy: '22.5', r: '2.6', fill: '--pfp-ink' },
+     { t: 'path', d: 'M21.5 27h5L24 31z', fill: '--pfp-beak' }] },
+  cat: { name: 'Cat', ground: '--pfp-pink', art: [
+     { t: 'path', d: 'M11 22l2-13 9 6z', fill: '--pfp-slate' },
+     { t: 'path', d: 'M37 22l-2-13-9 6z', fill: '--pfp-slate' },
+     { t: 'path', d: 'M14 18l1-5 4 3z', fill: '--pfp-pink-pale' },
+     { t: 'path', d: 'M34 18l-1-5-4 3z', fill: '--pfp-pink-pale' },
+     { t: 'ellipse', cx: '24', cy: '27', rx: '14', ry: '12', fill: '--pfp-slate' },
+     { t: 'ellipse', cx: '18.5', cy: '25', rx: '2.2', ry: '3', fill: '--pfp-lime' },
+     { t: 'ellipse', cx: '29.5', cy: '25', rx: '2.2', ry: '3', fill: '--pfp-lime' },
+     { t: 'ellipse', cx: '18.5', cy: '25.3', rx: '.9', ry: '2.3', fill: '--pfp-ink' },
+     { t: 'ellipse', cx: '29.5', cy: '25.3', rx: '.9', ry: '2.3', fill: '--pfp-ink' },
+     { t: 'path', d: 'M22 30h4l-2 2.4z', fill: '--pfp-pink-pale' },
+     { t: 'path', d: 'M8 30l9 1M8 34l9-1.5M40 30l-9 1M40 34l-9-1.5', stroke: '--pfp-white', 'stroke-width': '1.3', 'stroke-linecap': 'round' }] },
+  dino: { name: 'Dinosaur', ground: '--pfp-yellow', art: [
+     { t: 'path', d: 'M15 23l2-4 2 4zM20 20l2-4.5 2 4.5zM25 19.5l2-4 2 4z', fill: '--pfp-green-dark' },
+     { t: 'path', d: 'M7 26q4 6 9 2', stroke: '--pfp-green', 'stroke-width': '4.5', fill: 'none', 'stroke-linecap': 'round' },
+     { t: 'ellipse', cx: '22', cy: '29', rx: '11', ry: '8', fill: '--pfp-green' },
+     { t: 'path', d: 'M26 25q2-11 10-12 6 0 5.5 5.5-.5 3.5-6.5 3.5L31 29z', fill: '--pfp-green' },
+     { t: 'rect', x: '15', y: '34', width: '4.5', height: '7', rx: '2', fill: '--pfp-green-dark' },
+     { t: 'rect', x: '24', y: '34', width: '4.5', height: '7', rx: '2', fill: '--pfp-green-dark' },
+     { t: 'circle', cx: '36.5', cy: '16.5', r: '1.7', fill: '--pfp-ink' },
+     { t: 'path', d: 'M37 20.5h3', stroke: '--pfp-ink', 'stroke-width': '1.2', 'stroke-linecap': 'round' }] },
+  robot: { name: 'Robot', ground: '--pfp-coral', art: [
+     { t: 'path', d: 'M24 13V9', stroke: '--pfp-aerial', 'stroke-width': '2' },
+     { t: 'circle', cx: '24', cy: '8', r: '2.4', fill: '--pfp-red' },
+     { t: 'rect', x: '9', y: '19', width: '3.5', height: '9', rx: '1.5', fill: '--pfp-steel' },
+     { t: 'rect', x: '35.5', y: '19', width: '3.5', height: '9', rx: '1.5', fill: '--pfp-steel' },
+     { t: 'rect', x: '12', y: '13', width: '24', height: '21', rx: '5', fill: '--pfp-steel-pale' },
+     { t: 'circle', cx: '18.5', cy: '22', r: '3.6', fill: '--pfp-ink' },
+     { t: 'circle', cx: '29.5', cy: '22', r: '3.6', fill: '--pfp-ink' },
+     { t: 'circle', cx: '18.5', cy: '22', r: '2.2', fill: '--pfp-cyan' },
+     { t: 'circle', cx: '29.5', cy: '22', r: '2.2', fill: '--pfp-cyan' },
+     { t: 'rect', x: '17', y: '27.5', width: '14', height: '3.6', rx: '1.6', fill: '--pfp-ink' },
+     { t: 'path', d: 'M20.5 27.5v3.6M24 27.5v3.6M27.5 27.5v3.6', stroke: '--pfp-steel-pale', 'stroke-width': '1' },
+     { t: 'rect', x: '16', y: '35', width: '16', height: '7', rx: '2', fill: '--pfp-steel' }] },
+  rocket: { name: 'Rocket', ground: '--pfp-night', art: [
+     { t: 'circle', cx: '11', cy: '14', r: '1.2', fill: '--pfp-white' },
+     { t: 'circle', cx: '37.5', cy: '12', r: '1', fill: '--pfp-white' },
+     { t: 'circle', cx: '38', cy: '33', r: '1.2', fill: '--pfp-white' },
+     { t: 'circle', cx: '9.5', cy: '31', r: '1', fill: '--pfp-white' },
+     { t: 'path', d: 'M19.5 33q4.5 12 9 0z', fill: '--pfp-flame' },
+     { t: 'path', d: 'M21.8 33q2.2 6.5 4.4 0z', fill: '--pfp-flame-hot' },
+     { t: 'path', d: 'M17.5 25L11 34l6.5-1.5zM30.5 25L37 34l-6.5-1.5z', fill: '--pfp-red' },
+     { t: 'path', d: 'M24 6q7 7 7 19v8H17v-8q0-12 7-19z', fill: '--pfp-hull' },
+     { t: 'path', d: 'M24 6q5 4.5 6.3 10H17.7Q19 10.5 24 6z', fill: '--pfp-red' },
+     { t: 'circle', cx: '24', cy: '22.5', r: '3.6', fill: '--pfp-window', stroke: '--pfp-rim', 'stroke-width': '1.4' }] },
+  planet: { name: 'Planet', ground: '--pfp-violet', art: [
+     { t: 'circle', cx: '10', cy: '12', r: '1.1', fill: '--pfp-white' },
+     { t: 'circle', cx: '38', cy: '38', r: '1.1', fill: '--pfp-white' },
+     { t: 'circle', cx: '36', cy: '10', r: '.9', fill: '--pfp-white' },
+     { t: 'ellipse', cx: '24', cy: '25', rx: '17', ry: '5.5', transform: 'rotate(-18 24 25)', fill: 'none', stroke: '--pfp-yellow', 'stroke-width': '2.6' },
+     { t: 'circle', cx: '24', cy: '24', r: '10', fill: '--pfp-planet' },
+     { t: 'path', d: 'M15 21q9 3 18-1M14.5 27q9 3 19-1', stroke: '--pfp-planet-band', 'stroke-width': '2', fill: 'none', 'stroke-linecap': 'round' },
+     { t: 'path', d: 'M7.83 30.25A17 5.5-18 0 0 40.17 19.75', fill: 'none', stroke: '--pfp-yellow', 'stroke-width': '2.6' }] },
+  football: { name: 'Football', ground: '--pfp-pitch', art: [
+     { t: 'circle', cx: '24', cy: '24', r: '14', fill: '--pfp-white', stroke: '--pfp-ink', 'stroke-width': '1.6' },
+     { t: 'path', d: 'M24 18.5l5.2 3.8-2 6.1h-6.4l-2-6.1z', fill: '--pfp-ink' },
+     { t: 'path', d: 'M24 18.5V11M29.2 22.3l7-2.3M27.2 28.4l4.3 6M20.8 28.4l-4.3 6M18.8 22.3l-7-2.3', stroke: '--pfp-ink', 'stroke-width': '1.4' },
+     { t: 'path', d: 'M20.5 10.6L24 11l3.5-.4L24 10z', fill: '--pfp-ink' },
+     { t: 'path', d: 'M36.6 17.7l-.4 4.5 1.6 1.1q.4-3-1.2-5.6zM34.4 33.6l-2.9-.7-1.6 2.6q2.8-.3 4.5-1.9zM13.6 33.6l2.9-.7 1.6 2.6q-2.8-.3-4.5-1.9zM11.4 17.7l.4 4.5-1.6 1.1q-.4-3 1.2-5.6z', fill: '--pfp-ink' }] },
+  guitar: { name: 'Guitar', ground: '--pfp-brick', art: [
      { t: 'g', transform: 'rotate(35 24 24)', kids: [
-       { t: 'rect', x: '22.4', y: '5', width: '3.2', height: '18', fill: '#6b3f1d' },
-       { t: 'rect', x: '21', y: '2.5', width: '6', height: '5.5', rx: '1.2', fill: '#3d2412' },
-       { t: 'circle', cx: '24', cy: '23', r: '6.4', fill: '#f2a65a' },
-       { t: 'circle', cx: '24', cy: '32', r: '8.2', fill: '#f2a65a' },
-       { t: 'circle', cx: '24', cy: '26.5', r: '2.6', fill: '#3d2412' },
-       { t: 'rect', x: '20.5', y: '33.5', width: '7', height: '2', rx: '1', fill: '#3d2412' },
-       { t: 'path', d: 'M23.2 6v28M24.8 6v28', stroke: '#fde6c4', 'stroke-width': '.6' }] }] },
-  palette: { name: 'Paint palette', ground: '#6cc6e6', art: [
-     { t: 'path', d: 'M24 9c11 0 18 7 17 15-1 6-7 5-9 9-2 5-6 7-10 6C13 38 7 31 8 23 9 15 15 9 24 9z', fill: '#e2b77a' },
-     { t: 'ellipse', cx: '27', cy: '32', rx: '3', ry: '2.4', fill: '#6cc6e6' },
-     { t: 'circle', cx: '16', cy: '19.5', r: '3.2', fill: '#e5484d' },
-     { t: 'circle', cx: '22.5', cy: '14.5', r: '3.2', fill: '#f5c542' },
-     { t: 'circle', cx: '30.5', cy: '15', r: '3.2', fill: '#3fa34d' },
-     { t: 'circle', cx: '35.5', cy: '21.5', r: '3.2', fill: '#3b6fd8' },
-     { t: 'circle', cx: '14', cy: '27.5', r: '3.2', fill: '#8e44ad' }] },
+       { t: 'rect', x: '22.4', y: '5', width: '3.2', height: '18', fill: '--pfp-wood' },
+       { t: 'rect', x: '21', y: '2.5', width: '6', height: '5.5', rx: '1.2', fill: '--pfp-wood-dark' },
+       { t: 'circle', cx: '24', cy: '23', r: '6.4', fill: '--pfp-wood-pale' },
+       { t: 'circle', cx: '24', cy: '32', r: '8.2', fill: '--pfp-wood-pale' },
+       { t: 'circle', cx: '24', cy: '26.5', r: '2.6', fill: '--pfp-wood-dark' },
+       { t: 'rect', x: '20.5', y: '33.5', width: '7', height: '2', rx: '1', fill: '--pfp-wood-dark' },
+       { t: 'path', d: 'M23.2 6v28M24.8 6v28', stroke: '--pfp-string', 'stroke-width': '.6' }] }] },
+  palette: { name: 'Paint palette', ground: '--pfp-sky', art: [
+     { t: 'path', d: 'M24 9c11 0 18 7 17 15-1 6-7 5-9 9-2 5-6 7-10 6C13 38 7 31 8 23 9 15 15 9 24 9z', fill: '--pfp-board' },
+     { t: 'ellipse', cx: '27', cy: '32', rx: '3', ry: '2.4', fill: '--pfp-sky' },
+     { t: 'circle', cx: '16', cy: '19.5', r: '3.2', fill: '--pfp-red' },
+     { t: 'circle', cx: '22.5', cy: '14.5', r: '3.2', fill: '--pfp-yellow' },
+     { t: 'circle', cx: '30.5', cy: '15', r: '3.2', fill: '--pfp-green' },
+     { t: 'circle', cx: '35.5', cy: '21.5', r: '3.2', fill: '--pfp-paint-blue' },
+     { t: 'circle', cx: '14', cy: '27.5', r: '3.2', fill: '--pfp-purple' }] },
 };
 
 /* THE TOKEN'S NAME, OR NOTHING: § */
@@ -16765,18 +16767,13 @@ function bootFailed(err, when) {
 
   try {
     const box = document.getElementById('screen') || document.body;
-    box.innerHTML = ''
-      + '<div class="boot-fail">'
-      + '<p class="boot-fail-head">'
-      + 'The app stopped while ' + String(when) + '.</p>'
-      + '<p class="boot-fail-why">'
-      + why_(err) + '</p>'
-      + (err && err.stack
-          ? '<p class="boot-fail-why boot-fail-stack">'
-            + String(err.stack).split('\n').slice(0, 4).join('\n') + '</p>'
-          : '')
-      + '<p class="boot-fail-ver">site ' + SITE_VERSION + ' · css ' + cssVersion() + '</p>'
-      + '</div>';
+    const line = (look, text) => ({ type: 'group', tag: 'p', look, text });
+    const said = [line('boot-fail-head', 'The app stopped while ' + String(when) + '.'), line('boot-fail-why', why_(err)),
+      err && err.stack ? line('boot-fail-why boot-fail-stack', String(err.stack).split('\n').slice(0, 4).join('\n')) : null,
+      line('boot-fail-ver', 'site ' + SITE_VERSION + ' · css ' + cssVersion())].filter(Boolean);
+    /* THROUGH THE ONE CARD MAKER; if even that is missing, the same words as plain text. */
+    if (typeof cardBlock_ === 'function') box.innerHTML = cardBlock_({ type: 'group', look: 'boot-fail', blocks: said });
+    else box.textContent = said.map(p => p.text).join('\n');
   } catch (e2) {
     /* Even that failed — the document is not there to write to. Nothing left but the console. */
   }

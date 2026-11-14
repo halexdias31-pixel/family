@@ -208,6 +208,49 @@
   --over-wash: rgb(0 0 0 / .55);
   --over-edge: rgb(255 255 255 / .28);
   --over-ink:  #fff;
+
+  /* ---------- THE TEN DEFAULT PICTURES' PALETTE (js/links.js PFP_ART names these; they paint nothing else). The site is dark-only: one set. */
+  --pfp-aerial:       #5b6574;
+  --pfp-beak:         #f2a516;
+  --pfp-blue:         #3c6fd1;
+  --pfp-board:        #e2b77a;
+  --pfp-brick:        #d9534f;
+  --pfp-coral:        #f07f4f;
+  --pfp-cyan:         #3cc4f0;
+  --pfp-flame:        #ffb020;
+  --pfp-flame-hot:    #ff6b2c;
+  --pfp-fox:          #e8742c;
+  --pfp-fox-dark:     #6b2f12;
+  --pfp-green:        #3fa34d;
+  --pfp-green-dark:   #2c7a3a;
+  --pfp-hull:         #eef2f5;
+  --pfp-ink:          #1f2328;
+  --pfp-lime:         #b6e36b;
+  --pfp-night:        #24366e;
+  --pfp-owl:          #8b5a2b;
+  --pfp-owl-pale:     #e3c08f;
+  --pfp-paint-blue:   #3b6fd8;
+  --pfp-pink:         #ef8fae;
+  --pfp-pink-pale:    #f4b6c8;
+  --pfp-pitch:        #3a9d5d;
+  --pfp-planet:       #f08a4b;
+  --pfp-planet-band:  #c9602a;
+  --pfp-purple:       #8e44ad;
+  --pfp-red:          #e5484d;
+  --pfp-rim:          #34495e;
+  --pfp-sky:          #6cc6e6;
+  --pfp-slate:        #5b6270;
+  --pfp-steel:        #8a96a5;
+  --pfp-steel-pale:   #d3dbe3;
+  --pfp-string:       #fde6c4;
+  --pfp-teal:         #2e8b7a;
+  --pfp-violet:       #5b3d8f;
+  --pfp-white:        #ffffff;
+  --pfp-window:       #5ec8f2;
+  --pfp-wood:         #6b3f1d;
+  --pfp-wood-dark:    #3d2412;
+  --pfp-wood-pale:    #f2a65a;
+  --pfp-yellow:       #f5c542;
 }
 /* LESS MOTION ASKED FOR: movement takes no time, but a highlight that says where something is (`--dur-mark`) stays (D14). */
 @media (prefers-reduced-motion: reduce) {

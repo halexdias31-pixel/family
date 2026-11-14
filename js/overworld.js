@@ -619,18 +619,13 @@ function bootFailed(err, when) {
 
   try {
     const box = document.getElementById('screen') || document.body;
-    box.innerHTML = ''
-      + '<div class="boot-fail">'
-      + '<p class="boot-fail-head">'
-      + 'The app stopped while ' + String(when) + '.</p>'
-      + '<p class="boot-fail-why">'
-      + why_(err) + '</p>'
-      + (err && err.stack
-          ? '<p class="boot-fail-why boot-fail-stack">'
-            + String(err.stack).split('\n').slice(0, 4).join('\n') + '</p>'
-          : '')
-      + '<p class="boot-fail-ver">site ' + SITE_VERSION + ' · css ' + cssVersion() + '</p>'
-      + '</div>';
+    const line = (look, text) => ({ type: 'group', tag: 'p', look, text });
+    const said = [line('boot-fail-head', 'The app stopped while ' + String(when) + '.'), line('boot-fail-why', why_(err)),
+      err && err.stack ? line('boot-fail-why boot-fail-stack', String(err.stack).split('\n').slice(0, 4).join('\n')) : null,
+      line('boot-fail-ver', 'site ' + SITE_VERSION + ' · css ' + cssVersion())].filter(Boolean);
+    /* THROUGH THE ONE CARD MAKER; if even that is missing, the same words as plain text. */
+    if (typeof cardBlock_ === 'function') box.innerHTML = cardBlock_({ type: 'group', look: 'boot-fail', blocks: said });
+    else box.textContent = said.map(p => p.text).join('\n');
   } catch (e2) {
     /* Even that failed — the document is not there to write to. Nothing left but the console. */
   }
