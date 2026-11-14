@@ -19,7 +19,7 @@ function cardRuns_(v) {
   if (v.math != null) return `<span class="kc-math">${cardRuns_(v.math)}</span>`;
   if (v.mono != null) return `<span class="mono">${cardRuns_(v.mono)}</span>`;
   /* MATHS AS TYPED (`x^2`, `a/b`): escaped first, then the typesetter raises and stacks it. */
-  if (v.typeset != null) return `<span class="kc-math">${typeof typeset_ === 'function' ? typeset_(esc(String(v.typeset))) : esc(String(v.typeset))}</span>`;
+  if (v.typeset != null) return `<span class="kc-math">${v.frac ? cardFrac_(String(v.typeset)) : typeof typeset_ === 'function' ? typeset_(esc(String(v.typeset))) : esc(String(v.typeset))}</span>`;
   /* A SMALL MARK BESIDE A WORD (Higher tier's `H`, `only Foundation`): text, one fixed class. */
   if (v.badge != null) return `<span class="kc-badge"${v.hint ? ` title="${esc(v.hint)}"` : ''}>${esc(String(v.badge))}</span>`;
   /* TEXT WITH THE SITE'S LAWS COLOURED (`mark`, which escapes first): still only text in the spec. */
@@ -29,6 +29,10 @@ function cardRuns_(v) {
   if (v.tone) return `<span class="${esc('is-' + v.tone)}">${cardRuns_(v.text)}</span>`;
   return cardRuns_(v.text);
 }
+/* A FORMULA (`frac`, a textbook's): its slashes stacked as fractions, and a Unicode subscript drawn as a real one. */
+const CARD_SUB = '₀₁₂₃₄₅₆₇₈₉ₐₑₒₓₙₛₜ', CARD_SUB_AS = '0123456789aeoxnst';
+const cardSub_ = html => String(html).replace(/[₀-₉ₐₑₒₓₙₛₜ]+/g, run => '<sub>' + [...run].map(c => CARD_SUB_AS[CARD_SUB.indexOf(c)]).join('') + '</sub>');
+const cardFrac_ = s => cardSub_(typeof typeset_ === 'function' ? typeset_(esc(s).replace(/\//g, '&frasl;')) : esc(s));
 /* THE LAST SPACE IN SOME HTML THAT IS NEITHER INSIDE A TAG NOR INSIDE A COLOURED SPAN, or -1 (an isotope's subject breaks there). */
 function cardLastGap_(html) {
   let depth = 0, at = -1;
