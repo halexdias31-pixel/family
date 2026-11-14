@@ -20976,9 +20976,10 @@ function cartRow_(c, i, under) {
       const pp = c.kind === 'print'
         ? `${qtag_(`${c.pages ? esc(c.pages) + 'pp' : '? pp'}`, '', `cart-pp`)}` : '';
       const drop = tile_({ icon: 'close', label: 'Take this out', act: 'cart-drop', cls: 'text-drop', data: { key: c.key, kind: c.kind } });
-      return `<span class="cart-ln"><span class="cart-nm">${esc(under && c.short ? c.short : c.name)}</span>${
-        lam ? '' : pp}<i class="cart-lead" aria-hidden="true"></i>${lam ? '' : drop}</span>${
-        lam ? `<span class="cart-ctl">${pp}${lam}${drop}</span>` : ''}`;
+      /* THROUGH THE ONE CARD MAKER: spans as data, the tag and tiles their own makers' (`inner`). */
+      return cardBlocks_([{ type: 'group', tag: 'span', look: 'cart-ln', blocks: [{ type: 'group', tag: 'span', look: 'cart-nm', text: under && c.short ? c.short : c.name }],
+        inner: (lam ? '' : pp) + cardBlock_({ type: 'group', tag: 'span', look: 'cart-lead', attrs: { 'aria-hidden': 'true' } }) + (lam ? '' : drop) },
+        lam ? { type: 'group', tag: 'span', look: 'cart-ctl', inner: pp + lam + drop } : null]);
     })(),
     mul: '',
     rate: '',
@@ -21027,7 +21028,7 @@ function cartCard_() {
   cartGroups_(CART).forEach(g => {
     if (g.from) {
       rows.push(receiptRow({ wide: true, n: '', k: '', v: '', mul: '', rate: '', total: '',
-                             sel: `<span class="cart-from">${esc(g.from)}</span>` }));
+                             sel: cardBlock_({ type: 'group', tag: 'span', look: 'cart-from', text: g.from }) }));
     }
     g.lines.forEach(c => rows.push(cartRow_(c, at++, !!g.from)));
   });
@@ -21036,13 +21037,12 @@ function cartCard_() {
   /* THE WORDING OFF THE SHEET THAT USED TO DUPLICATE THIS. § */
   /* ---------- "SEND ORDER", NOT "PAY" — NOTHING IS PAID HERE § */
   const paper = cash || tbc;
-  const foot = `
-    ${tile_({ form: true, cls: 'rc-do', act: 'cart-send', off: short, label: short ? (due - credits) + ' more credits needed'
-      : 'Send order' + (cash ? ' · ' + money_(cash) + (tbc ? ' + tbc' : '') : '') })}
-    <p class="rc-terms">${paper
+  const foot = tile_({ form: true, cls: 'rc-do', act: 'cart-send', off: short, label: short ? (due - credits) + ' more credits needed'
+      : 'Send order' + (cash ? ' · ' + money_(cash) + (tbc ? ' + tbc' : '') : '') })
+    + cardBlock_({ type: 'group', tag: 'p', look: 'rc-terms', text: paper
       ? 'Printing is at cost — paper only — posted or kept for you to collect. Anything marked tbc '
         + 'is priced before you are charged for it.'
-      : 'Nothing leaves your basket until you send it.'}</p>`;
+      : 'Nothing leaves your basket until you send it.' });
 
   return receiptHtml({
     /* ---------- THE BASKET WORE THE GREEN TERMINAL, AND IT WAS THE LAST ONE WEARING ANYTHING § */
@@ -21125,23 +21125,24 @@ function shopGroups_() {
 
 /* ---------- AN ICON FOR EVERY ITEM (491, the owner: "easy to navigate, while also nice to look at") § */
 /* Line drawings in the tiles' 18x17 frame and weight; the first word that names the thing wins, else its group's. */
+/* EACH ICON IS DATA: its shapes `{ el, a }`, drawn by the one card maker (`drawing`). */
 const SHOP_ICONS = {
-  pencil: '<path d="M3 14l1-4 8.5-8.5 3 3L7 13z"/><path d="M11 3l3 3M3 14l3-1"/>',
-  pen: '<path d="M4 13l1.5-4.5L12 2l3 3-6.5 6.5z"/><path d="M3 15h5"/>',
-  ruler: '<rect x="1.5" y="5.5" width="15" height="6" rx=".8"/><path d="M4 5.5v2.5M6.5 5.5v1.6M9 5.5v2.5M11.5 5.5v1.6M14 5.5v2.5"/>',
-  calc: '<rect x="4" y="1.5" width="10" height="14" rx="1.2"/><rect x="6" y="3.5" width="6" height="3"/><path d="M6.5 9h.1M9 9h.1M11.5 9h.1M6.5 11.5h.1M9 11.5h.1M11.5 11.5h.1M6.5 14h.1M9 14h.1M11.5 14h.1"/>',
-  sticker: '<path d="M3 2.5h12v7l-5 5H3z"/><path d="M15 9.5h-5v5"/><path d="M6.5 6.5h.1M10.5 6.5h.1M6.5 9.5c.8.8 2 .8 2.8 0"/>',
-  papers: '<path d="M5 1.5h7l3 3v10H5z"/><path d="M12 1.5v3h3M7.5 8h5M7.5 10.5h5M7.5 13h3"/><path d="M5 4H3v11.5h10"/>',
-  game: '<rect x="2.5" y="2.5" width="12" height="12" rx="2"/><path d="M6 6h.1M11 6h.1M8.5 8.5h.1M6 11h.1M11 11h.1"/>',
-  print3d: '<path d="M2.5 15.5h13M4 15.5V3h10v12.5"/><path d="M4 5.5h10M9 5.5v3"/><path d="M7 12.5h4l-1-2.5H8z"/>',
-  wheel: '<circle cx="9" cy="11" r="4.5"/><circle cx="9" cy="11" r=".6"/><path d="M9 11L14.5 1.5M13 1.5h3"/>',
-  ink: '<path d="M9 2C6.5 6 5 8.3 5 10.5a4 4 0 008 0C13 8.3 11.5 6 9 2z"/>',
-  bike: '<circle cx="4" cy="11.5" r="3"/><circle cx="14" cy="11.5" r="3"/><path d="M4 11.5l3-6h5l2 6M7 5.5l2.5 6H4M11 3.5h2"/>',
-  book: '<path d="M2 3.5c2.5-1 5-1 7 .5v11c-2-1.5-4.5-1.5-7-.5zM16 3.5c-2.5-1-5-1-7 .5v11c2-1.5 4.5-1.5 7-.5z"/>',
-  kit: '<path d="M2 6.5h14v8.5H2z"/><path d="M6.5 6.5V4.5h5v2M2 10h14M8 10v1.5h2V10"/>',
-  tool: '<path d="M10.5 2.5a3.5 3.5 0 004 4.5L8 13.5a1.8 1.8 0 01-2.5-2.5L12 4.5a3.5 3.5 0 01-1.5-2z"/>',
-  bag: '<path d="M3 6h12l-1 9.5H4z"/><path d="M6.5 6V4.5a2.5 2.5 0 015 0V6"/>',
-  spark: '<path d="M9 1.5l1.6 5 5 1.6-5 1.6L9 15l-1.6-5.3-5-1.6 5-1.6z"/>',
+  pencil: [{ el: 'path', a: { d: 'M3 14l1-4 8.5-8.5 3 3L7 13z' } }, { el: 'path', a: { d: 'M11 3l3 3M3 14l3-1' } }],
+  pen: [{ el: 'path', a: { d: 'M4 13l1.5-4.5L12 2l3 3-6.5 6.5z' } }, { el: 'path', a: { d: 'M3 15h5' } }],
+  ruler: [{ el: 'rect', a: { x: '1.5', y: '5.5', width: '15', height: '6', rx: '.8' } }, { el: 'path', a: { d: 'M4 5.5v2.5M6.5 5.5v1.6M9 5.5v2.5M11.5 5.5v1.6M14 5.5v2.5' } }],
+  calc: [{ el: 'rect', a: { x: '4', y: '1.5', width: '10', height: '14', rx: '1.2' } }, { el: 'rect', a: { x: '6', y: '3.5', width: '6', height: '3' } }, { el: 'path', a: { d: 'M6.5 9h.1M9 9h.1M11.5 9h.1M6.5 11.5h.1M9 11.5h.1M11.5 11.5h.1M6.5 14h.1M9 14h.1M11.5 14h.1' } }],
+  sticker: [{ el: 'path', a: { d: 'M3 2.5h12v7l-5 5H3z' } }, { el: 'path', a: { d: 'M15 9.5h-5v5' } }, { el: 'path', a: { d: 'M6.5 6.5h.1M10.5 6.5h.1M6.5 9.5c.8.8 2 .8 2.8 0' } }],
+  papers: [{ el: 'path', a: { d: 'M5 1.5h7l3 3v10H5z' } }, { el: 'path', a: { d: 'M12 1.5v3h3M7.5 8h5M7.5 10.5h5M7.5 13h3' } }, { el: 'path', a: { d: 'M5 4H3v11.5h10' } }],
+  game: [{ el: 'rect', a: { x: '2.5', y: '2.5', width: '12', height: '12', rx: '2' } }, { el: 'path', a: { d: 'M6 6h.1M11 6h.1M8.5 8.5h.1M6 11h.1M11 11h.1' } }],
+  print3d: [{ el: 'path', a: { d: 'M2.5 15.5h13M4 15.5V3h10v12.5' } }, { el: 'path', a: { d: 'M4 5.5h10M9 5.5v3' } }, { el: 'path', a: { d: 'M7 12.5h4l-1-2.5H8z' } }],
+  wheel: [{ el: 'circle', a: { cx: '9', cy: '11', r: '4.5' } }, { el: 'circle', a: { cx: '9', cy: '11', r: '.6' } }, { el: 'path', a: { d: 'M9 11L14.5 1.5M13 1.5h3' } }],
+  ink: [{ el: 'path', a: { d: 'M9 2C6.5 6 5 8.3 5 10.5a4 4 0 008 0C13 8.3 11.5 6 9 2z' } }],
+  bike: [{ el: 'circle', a: { cx: '4', cy: '11.5', r: '3' } }, { el: 'circle', a: { cx: '14', cy: '11.5', r: '3' } }, { el: 'path', a: { d: 'M4 11.5l3-6h5l2 6M7 5.5l2.5 6H4M11 3.5h2' } }],
+  book: [{ el: 'path', a: { d: 'M2 3.5c2.5-1 5-1 7 .5v11c-2-1.5-4.5-1.5-7-.5zM16 3.5c-2.5-1-5-1-7 .5v11c2-1.5 4.5-1.5 7-.5z' } }],
+  kit: [{ el: 'path', a: { d: 'M2 6.5h14v8.5H2z' } }, { el: 'path', a: { d: 'M6.5 6.5V4.5h5v2M2 10h14M8 10v1.5h2V10' } }],
+  tool: [{ el: 'path', a: { d: 'M10.5 2.5a3.5 3.5 0 004 4.5L8 13.5a1.8 1.8 0 01-2.5-2.5L12 4.5a3.5 3.5 0 01-1.5-2z' } }],
+  bag: [{ el: 'path', a: { d: 'M3 6h12l-1 9.5H4z' } }, { el: 'path', a: { d: 'M6.5 6V4.5a2.5 2.5 0 015 0V6' } }],
+  spark: [{ el: 'path', a: { d: 'M9 1.5l1.6 5 5 1.6-5 1.6L9 15l-1.6-5.3-5-1.6 5-1.6z' } }],
 };
 const SHOP_ICON_WORDS = [[/pencil|crayon/i, 'pencil'], [/\bpens?\b|marker|highlighter/i, 'pen'], [/ruler|protractor|set square/i, 'ruler'],
   [/calculat/i, 'calc'], [/sticker|label/i, 'sticker'], [/3d|print(ed|ing)?\b/i, 'print3d'], [/wheel|trundle|tape measure/i, 'wheel'],
@@ -21152,9 +21153,12 @@ function shopIconName_(name, group) {
   const w = SHOP_ICON_WORDS.find(([re]) => re.test(String(name || '')));
   return w ? w[1] : SHOP_ICON_OF_GROUP[group] || 'bag';
 }
-const shopIcon_ = (name, group) => `<svg class="shop-ic shop-ic-${shopIconName_(name, group)}" viewBox="0 0 18 17" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${SHOP_ICONS[shopIconName_(name, group)]}</svg>`;
+const shopIconSpec_ = (name, group) => { const n = shopIconName_(name, group);
+  return { type: 'drawing', node: { el: 'svg', a: { class: 'shop-ic shop-ic-' + n, viewBox: '0 0 18 17', 'aria-hidden': 'true', focusable: 'false', fill: 'none',
+    stroke: 'currentColor', 'stroke-width': '1.3', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, kids: SHOP_ICONS[n] || [] } }; };
+const shopIcon_ = (name, group) => cardBlock_(shopIconSpec_(name, group));
 /* THE ICON GOES IN FRONT OF THE CARD'S BODY, so stuffCard (find.js) stays the one drawing of a thing. */
-const shopWithIcon_ = (html, x, group) => String(html).replace('<div class="thing">', '<div class="thing shop-thing">' + shopIcon_(x.title || x.name || x.key, group));
+const shopWithIcon_ = (html, x, group) => String(html).replace(/(<div class="thing)(">)/, (m, a, b) => a + ' shop-thing' + b + shopIcon_(x.title || x.name || x.key, group));
 
 /* ---------- SEARCH THE SHOP (491): the shared pill at the top; a list of what matches under it, a tap going to the item's page ---------- */
 let SHOP_FIND = { q: '', at: [], all: false };
@@ -21162,22 +21166,24 @@ let SHOP_FIND = { q: '', at: [], all: false };
 function paintShopFind_() {
   if (!SHOP_FIND.at.length) try { shopCards_(); } catch (e) {}
   document.querySelectorAll('.shop-find').forEach(box => {
-    if (!box.querySelector('.shop-q')) box.innerHTML = searchPill_(`class="shop-q" placeholder="Search the shop" aria-label="Search the shop" value="${esc(SHOP_FIND.q)}"`, 'shop-search') + '<div class="shop-hits" aria-live="polite"></div>';
+    if (!box.querySelector('.shop-q')) box.innerHTML = searchPill_(`class="shop-q" placeholder="Search the shop" aria-label="Search the shop" value="${esc(SHOP_FIND.q)}"`, 'shop-search')
+      + cardBlock_({ type: 'group', look: 'shop-hits', attrs: { 'aria-live': 'polite' } });
     const h = box.querySelector('.shop-hits'); if (h) h.innerHTML = shopHits_();
   });
 }
 /* AN EMPTY BOX OFFERS EVERYTHING: one tile lists the whole shop, the other puts it away (a safe press, owner 12 Nov). */
 function shopHits_() {
   const q = SHOP_FIND.q.trim().toLowerCase();
-  const all = tile_({ icon: SHOP_FIND.all ? 'up' : 'grid', label: SHOP_FIND.all ? 'Fewer' : 'Everything', note: SHOP_FIND.all ? 'put the list away' : 'in the shop', act: 'shop-all', pressed: !!SHOP_FIND.all });
-  if (!q && !SHOP_FIND.all) return `<div class="tile-row">${all}</div>`;
+  const all = cardBlock_({ type: 'tiles', tiles: [{ icon: SHOP_FIND.all ? 'up' : 'grid', label: SHOP_FIND.all ? 'Fewer' : 'Everything', note: SHOP_FIND.all ? 'put the list away' : 'in the shop', act: 'shop-all', pressed: !!SHOP_FIND.all }] });
+  if (!q && !SHOP_FIND.all) return all;
   const hits = SHOP_FIND.at.filter(h => !q || h.say.indexOf(q) !== -1).slice(0, q ? 8 : 40);
-  if (!q) return (hits.length ? shopHitRows_(hits) : empty_('The shop is empty.')) + `<div class="tile-row">${all}</div>`;
+  if (!q) return (hits.length ? shopHitRows_(hits) : empty_('The shop is empty.')) + all;
   if (!hits.length) return empty_('Nothing in the shop matches.');
   /* A HIT IS A THING (rule 8): its name on the line, and the tile that opens it. */
   return shopHitRows_(hits);
 }
-const shopHitRows_ = hits => hits.map(h => `<div class="shop-hit">${shopIcon_(h.name, h.group)}<span>${esc(h.name)}</span><div class="tile-row">${tile_({ icon: 'open', label: 'Open ' + h.name, act: 'shop-go', data: { page: h.page } })}</div></div>`).join('');
+const shopHitRows_ = hits => cardBlocks_(hits.map(h => ({ type: 'group', look: 'shop-hit',
+  blocks: [shopIconSpec_(h.name, h.group), { type: 'group', tag: 'span', text: h.name }, { type: 'tiles', tiles: [{ icon: 'open', label: 'Open ' + h.name, act: 'shop-go', data: { page: h.page } }] }] })));
 on('shop-all', () => { SHOP_FIND.all = !SHOP_FIND.all; document.querySelectorAll('.shop-find .shop-hits').forEach(b => { b.innerHTML = shopHits_(); }); });
 document.addEventListener('input', e => {
   const el = e.target;
@@ -21211,7 +21217,7 @@ function shopCards_() {
       g.items.slice(i, i + SHOP_PER).forEach(x => at.push({ name: x.title || x.name || x.key || '', group: g.kind, page: out.length,
         say: [x.title, x.name, x.key, x.sub, x.description, x.desc, g.label].filter(Boolean).join(' ').toLowerCase() }));
       /* AN `<h2>` BETWEEN CARDS, NOT INSIDE ONE — the rule `check-dead.js` states and `split_` cuts on. § */
-      out.push(`<h2><span>${esc(g.label)}</span>${qtag_(`${g.items.length}`)}</h2>`
+      out.push(cardBlock_({ type: 'group', tag: 'h2', look: null, blocks: [{ type: 'group', tag: 'span', text: g.label }], inner: qtag_(`${g.items.length}`) })
         + g.items.slice(i, i + SHOP_PER).map(x => shopWithIcon_(stuffCard(x, credits), x, g.kind)).join(''));
     }
   });
@@ -22508,57 +22514,63 @@ function flyerUrl_(src, layout) {
   return 'https://' + src.site + (/[/?]/.test(src.site.slice(-1)) ? '' : '/') + '?' + q;
 }
 
-/* ONE FIELD, drawn from the source only; an empty value draws nothing. */
+/* ONE FIELD, drawn from the source only, as a block for the one card maker (`cardBlock_`); an empty value draws nothing. */
+const flyLine_ = (look, text) => (text ? { type: 'group', tag: 'p', look, text } : null);
 const FLY_DRAW = {
-  logo: s => (s.logo ? `<img class="fl-logo" alt="" src="${esc(s.logo)}">` : ''),
-  name: s => (s.name ? `<h2 class="fl-name">${esc(s.name)}</h2>` : ''),
-  head: s => ((s.head || []).length ? `<p class="fl-head">${s.head.map(l => `<span>${esc(l)}</span>`).join('')}</p>` : ''),
-  slogan: s => (s.slogan ? `<p class="fl-slogan">${esc(s.slogan)}</p>` : ''),
-  say: s => (s.say ? `<p class="fl-say">${esc(s.say)}</p>` : ''),
-  tagline: s => (s.tagline ? `<p class="fl-tag">${esc(s.tagline)}</p>` : ''),
-  photo: s => (s.photo ? `<img class="fl-photo" alt="" src="${esc(s.photo)}">` : ''),
-  subjects: (s, o) => { const l = flyPicked_(s, o.subj); return l.length ? `<ul class="fl-subj">${l.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''; },
-  price: s => (s.price ? `<p class="fl-price">${esc(s.price)}</p>` : ''),
-  area: s => (s.area ? `<p class="fl-area">${esc(s.area)}</p>` : ''),
-  phone: s => (s.phone ? `<p class="fl-phone">${esc(s.phone)}</p>` : ''),
-  site: s => (s.site ? `<p class="fl-site">${esc(s.site)}</p>` : ''),
-  cta: s => (s.cta ? `<p class="fl-cta">${esc(s.cta)}</p>` : ''),
-  qr: (s, o) => { const u = flyerUrl_(s, o.layout); return u ? `<div class="fl-qr" data-url="${esc(u)}">${typeof qrSvg_ === 'function' ? qrSvg_(u, 'fl-qrsvg') : ''}</div>` : ''; },
+  logo: s => (s.logo ? { type: 'media', kind: 'image', look: 'fl-logo', src: s.logo } : null),
+  /* A LINE THAT IS A HEADING, not an <h2>: inside a screen an h2 is a section rule (`.screen h2`). */
+  name: s => (s.name ? { type: 'group', tag: 'p', look: 'fl-name', attrs: { role: 'heading', 'aria-level': '2' }, text: s.name } : null),
+  head: s => ((s.head || []).length ? { type: 'group', tag: 'p', look: 'fl-head', blocks: s.head.map(l => ({ type: 'group', tag: 'span', text: l })) } : null),
+  slogan: s => flyLine_('fl-slogan', s.slogan),
+  say: s => flyLine_('fl-say', s.say),
+  tagline: s => flyLine_('fl-tag', s.tagline),
+  photo: s => (s.photo ? { type: 'media', kind: 'image', look: 'fl-photo', src: s.photo } : null),
+  subjects: (s, o) => { const l = flyPicked_(s, o.subj); return l.length ? { type: 'list', look: 'fl-subj', items: l } : null; },
+  price: s => flyLine_('fl-price', s.price),
+  area: s => flyLine_('fl-area', s.area),
+  phone: s => flyLine_('fl-phone', s.phone),
+  site: s => flyLine_('fl-site', s.site),
+  cta: s => flyLine_('fl-cta', s.cta),
+  /* THE QR is the QR maker's drawing, laid in as it is (`inner`). */
+  qr: (s, o) => { const u = flyerUrl_(s, o.layout); return u ? { type: 'group', look: 'fl-qr', attrs: { 'data-url': u }, inner: typeof qrSvg_ === 'function' ? qrSvg_(u, 'fl-qrsvg') : '' } : null; },
 };
 const flyPicked_ = (s, subj) => (s.subjects || []).filter(x => !subj || subj.indexOf(x) !== -1).slice(0, FLY_SUBJECTS_MAX);
 
-/* THE SHEET: the layout's fields from the source, nothing else; QR slips are one slip ten times. */
-function flyerSheet_(src, layout, subj) {
+/* THE SHEET: the layout's fields from the source, nothing else; QR slips are one slip ten times. A spec; `flyerSheet_` draws it. */
+function flyerSheetSpec_(src, layout, subj) {
   const L = FLY_LAYOUTS.find(x => x.id === layout) || FLY_LAYOUTS[0], o = { layout: L.id, subj };
-  if (!src) return '';
-  const one = L.fields.filter(f => flyKeeps_(src, f)).map(f => { try { return FLY_DRAW[f](src, o); } catch (e) { return ''; } }).join('');
-  const body = L.many ? Array.from({ length: L.many }, () => `<div class="fl-slip">${one}</div>`).join('') : one;
-  return `<div class="fl-sheet fl-${L.id} fl-st-${esc(src.style || 'minimal')}">${body}</div>`;
+  if (!src) return null;
+  const one = L.fields.filter(f => flyKeeps_(src, f)).map(f => { try { return FLY_DRAW[f](src, o); } catch (e) { return null; } }).filter(Boolean);
+  const blocks = L.many ? Array.from({ length: L.many }, () => ({ type: 'group', look: 'fl-slip', blocks: one })) : one;
+  return { type: 'group', look: `fl-sheet fl-${L.id} fl-st-${src.style || 'minimal'}`, blocks };
 }
+const flyerSheet_ = (src, layout, subj) => cardBlock_(flyerSheetSpec_(src, layout, subj));
 
 /* ---------- THE CARD: three choices, a live preview, Download PDF ---------- */
 function flyerBody_() {
   const who = flyWhoList_();
-  if (!who.length) return `<div class="fl-body">${empty_(brand('flyer_none', 'Your flyer comes from your tutor card; fill that in first.'))}</div>`;
+  if (!who.length) return { type: 'group', look: 'fl-body', blocks: [{ type: 'text', look: 'empty', text: brand('flyer_none', 'Your flyer comes from your tutor card; fill that in first.') }] };
   if (!who.some(w => w.id === FLY.who)) FLY.who = who[0].id;
   if (FLY.camp && !flyCampaign_(FLY.camp)) FLY.camp = '';
   const src = flyerWith_(flyerSource_(FLY.who), FLY.camp);
   const subs = (src && src.subjects) || [];
-  const row = (items, act, on) => `<div class="fl-row">${items.map(i => tile_({ form: true, kind: on(i) ? '' : 'quiet', label: i.label, act, data: { v: i.id }, pressed: on(i) })).join('')}</div>`;
-  return `<div class="fl-body">
-    ${who.length > 1 ? row(who, 'fly-who', i => i.id === FLY.who) : ''}
-    ${flyCampaigns_().length ? row([{ id: '', label: 'No campaign' }].concat(flyCampaigns_().map(c => ({ id: c.id, label: c.name }))), 'fly-camp', i => i.id === FLY.camp) : ''}
-    ${row(FLY_LAYOUTS.map(l => ({ id: l.id, label: l.name })), 'fly-layout', i => i.id === FLY.layout)}
-    ${subs.length ? row(subs.map(s => ({ id: s, label: s })), 'fly-subj', i => !FLY.subj || FLY.subj.indexOf(i.id) !== -1) : ''}
-    <div class="fl-prev">${flyerSheet_(src, FLY.layout, FLY.subj)}</div>
-    <div class="fl-row">${tile_({ form: true, label: 'Download PDF', act: 'fly-print' })}</div>
-  </div>`;
+  const row = (items, act, on) => ({ type: 'group', look: 'fl-row', tiles: items.map(i => ({ form: true, kind: on(i) ? '' : 'quiet', label: i.label, act, data: { v: i.id }, pressed: on(i) })) });
+  return { type: 'group', look: 'fl-body', blocks: [
+    who.length > 1 ? row(who, 'fly-who', i => i.id === FLY.who) : null,
+    flyCampaigns_().length ? row([{ id: '', label: 'No campaign' }].concat(flyCampaigns_().map(c => ({ id: c.id, label: c.name }))), 'fly-camp', i => i.id === FLY.camp) : null,
+    row(FLY_LAYOUTS.map(l => ({ id: l.id, label: l.name })), 'fly-layout', i => i.id === FLY.layout),
+    subs.length ? row(subs.map(s => ({ id: s, label: s })), 'fly-subj', i => !FLY.subj || FLY.subj.indexOf(i.id) !== -1) : null,
+    { type: 'group', look: 'fl-prev', blocks: [flyerSheetSpec_(src, FLY.layout, FLY.subj)] },
+    { type: 'group', look: 'fl-row', tiles: [{ form: true, label: 'Download PDF', act: 'fly-print' }] },
+  ] };
 }
+/* THE CARD'S SPEC: its name the tag, the maker its one body block; `fl-maker` is how a redraw finds every copy. */
+const flyerCardSpec_ = () => ({ kind: 'panel', look: 'fl-maker', name: 'Flyer maker', tags: ['Flyer maker'], data: { 'lay-card': 'staff:flyer' }, body: [flyerBody_()] });
 function flyerCards_() {
   if (!USER || !rankAtLeast_('staff')) return [];
   /* FITTED ONCE IT IS ON THE PAGE: a card is drawn as a string before it has a width. */
   try { setTimeout(flyerFit_, 0); setTimeout(flyerFit_, 400); } catch (e) { /* drawn unfitted */ }
-  return [card_(`<div class="fl-maker" data-lay-card="staff:flyer"><h3>Flyer maker</h3>${flyerBody_()}</div>`)];
+  return [renderCard(flyerCardSpec_())];
 }
 
 /* THE PREVIEW IS THE PRINTED SHEET, scaled to the card's width (its sizes are in mm, as printed). */
@@ -22572,7 +22584,9 @@ function flyerFit_() {
 }
 /* EVERY COPY ON THE PAGE (both finders) drawn again round the new choice, as the same element (`cardFill_`). */
 function flyerRedraw_() {
-  document.querySelectorAll('.card.fl-maker').forEach(c => cardFill_(c, '<h3>Flyer maker</h3>' + flyerBody_()));
+  /* The card's insides drawn again, the element kept (its place and listeners stay). */
+  document.querySelectorAll('.card.fl-maker').forEach(c => { const t = document.createElement('template'); t.innerHTML = renderCard(flyerCardSpec_());
+    const fresh = t.content.firstElementChild; if (fresh) c.replaceChildren(...fresh.childNodes); });
   flyerFit_();
 }
 on('fly-who', el => { FLY.who = el.dataset.v || ''; FLY.subj = null; flyerRedraw_(el); });

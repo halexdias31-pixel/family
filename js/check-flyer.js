@@ -22,7 +22,7 @@ box.isAdmin = () => box.admin;
 box.passFor_ = () => (fx.tutors || [])[0] || null;
 vm.createContext(box);
 box.DATA.campaigns = [{ id: 'C001', name: 'Camp', style: 'loud', blocks: 'head say facts foot', copy: { head: [{ text: 'Line one|line two' }], say: [{ text: 'A paragraph.' }] } }];
-vm.runInContext(read('js/qr.js') + '\n' + src + '\nthis.T = { flyerWith_, FLY_LAYOUTS, FLY_DRAW, flyerSource_, flyerSheet_, flyerUrl_, flyWhoList_, qrMatrix_ };', box);
+vm.runInContext(read('js/cards-render.js') + '\n' + read('js/qr.js') + '\n' + src + '\nthis.T = { flyerWith_, FLY_LAYOUTS, FLY_DRAW, flyerSource_, flyerSheet_, flyerUrl_, flyWhoList_, qrMatrix_ };', box);
 const T = box.T;
 const unesc = s => s.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 
