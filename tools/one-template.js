@@ -26,6 +26,11 @@ function oneTemplate() {
       if (n.type === 'AssignmentExpression' && n.left && n.left.property && n.left.property.name === 'className' && n.right && typeof n.right.value === 'string' && /^card\b/.test(n.right.value)) say('sets className card itself');
       if (n.type === 'CallExpression' && n.callee && n.callee.property && n.callee.property.name === 'add' && n.callee.object && n.callee.object.property && n.callee.object.property.name === 'classList'
         && n.arguments.some(a => a.type === 'Literal' && a.value === 'card')) say("adds the class 'card' itself");
+      /* A CARD-MAKER SPEC THAT NAMES THE CLASS: `{ look: 'card …' }` (a group block draws its look as the class). */
+      if (n.type === 'Property' && n.key && (n.key.name === 'look' || n.key.value === 'look') && n.value) {
+        const v = n.value.type === 'Literal' ? n.value.value : n.value.type === 'TemplateLiteral' ? n.value.quasis[0].value.cooked : '';
+        if (typeof v === 'string' && /^card(?:\s|$)/.test(v)) say("hands a spec look: 'card…' itself; hand card_() a plain div");
+      }
       for (const k in n) { if (k === 'type' || k === 'start' || k === 'end') continue; const v = n[k];
         if (Array.isArray(v)) v.forEach(c => walk(c, inBuilder)); else if (v && typeof v.type === 'string') walk(v, inBuilder); }
     };

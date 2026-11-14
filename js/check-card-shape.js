@@ -86,7 +86,8 @@ function fourOf(html) {
   }
   return '';
 }
-scope.tile_ = o => (o ? '<button class="tile" data-do="' + o.act + '"' + (o.off ? ' disabled' : '') + '><svg class="tile-i tile-i-' + o.icon + '"></svg></button>' : '');
+/* LIKE THE REAL tile_ (tiles.js): an array is its tiles in a row — the card maker's `tiles` block hands one. */
+scope.tile_ = o => Array.isArray(o) ? o.map(scope.tile_).join('') : (o ? '<button class="tile" data-do="' + o.act + '"' + (o.off ? ' disabled' : '') + '><svg class="tile-i tile-i-' + o.icon + '"></svg></button>' : '');
 const ROW = { title: 'Ada Tutor', name: 'Ada Tutor', handle: 'ada', rate: 30, role: 'Tutor', listed: true, mult: 1, levels: ['GCSE'], tutors: [{ title: 'Ada Tutor' }] };
 rows.map(r => r.kind).concat(['some-new-kind']).forEach(kind => {
   let html = '';

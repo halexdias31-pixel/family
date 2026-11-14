@@ -391,8 +391,8 @@ function cardSeatShare_(f, typed, rate, was) {
 const cardSeatTop_ = f => f === 'extra_seat_cut' ? 2 : STAFF_SEAT_MAX;
 const cardSeatOff_ = (f, v) => { const x = num(v); return !isNaN(x) && (x < 0 || x > cardSeatTop_(f)); };
 const cardSeatOffSay_ = (rate, f) => f === 'extra_seat_cut'
-  ? "@family.'s part is £0 to " + money_(pounds2_(rate * 2)) + '/h — twice the rate.'
-  : 'An extra seat adds £0 to ' + money_(pounds2_(rate * STAFF_SEAT_MAX)) + '/h — at most what the first student pays.';
+  ? "@family.'s part is £0 to " + perHour_(pounds2_(rate * 2)) + ' — twice the rate.'
+  : 'An extra seat adds £0 to ' + perHour_(pounds2_(rate * STAFF_SEAT_MAX)) + ' — at most what the first student pays.';
 /* ---------- THREE CARDS, ONE PRICE (620): n students pay x + k·x·(n−1) + g·x·(n−1) an hour — x the rate, k the tutor's share, g @family.'s ---------- */
 /* THE PARTS AS PRICED, through `seatShare_` (the booking's own reader): a blank is the config's usual. */
 function cardSeatParts_(rate, seat, cut) {
@@ -406,7 +406,7 @@ function cardSeatSay_(rate, seat) {
   if (!(rate > 0)) return 'An extra seat is priced from the rate — set it first.';
   if (cardSeatOff_('extra_seat_rate', seat)) return esc(cardSeatOffSay_(rate, 'extra_seat_rate'));
   const p = cardSeatParts_(rate, seat, '');
-  return mcG_('span', 'prof-seat', { text: '+' + money_(p.kx) + '/h' }) + ' a seat' + (p.kOwn ? '' : ', usual');
+  return mcG_('span', 'prof-seat', { text: '+' + perHour_(p.kx) }) + ' a seat' + (p.kOwn ? '' : ', usual');
 }
 /* THE @FAMILY SHARE BAR (8 Nov): first seat + the tutor's extra seat + @family's block, from `cardSeatParts_`, the formula's own numbers. */
 function cardShareBar_(rate, seat, cut) {

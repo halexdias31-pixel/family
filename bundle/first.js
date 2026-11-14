@@ -2447,8 +2447,7 @@ function laterFiles_() {
   const lazy = (typeof window !== 'undefined' && Array.isArray(window.LAZY)) ? window.LAZY : [];
   const later = (typeof window !== 'undefined' && Array.isArray(window.LATER)) ? window.LATER.filter(f => lazy.indexOf(f) === -1) : [];
   /* ALL AT ONCE (720): fetched side by side, then run in one task, so no screen ever sees one LATER file § */
-  /* ONLY WHEN IT RAN (live, 14 Nov): a batch the network dropped is not "in" — the columns wait, and it is asked for again
-     until it lands; then the marks the payload brought are adopted and the waiting columns drawn. check/later-gone.js. */
+  /* ONLY WHEN IT RAN (live, 14 Nov): § */
   LATER_ASK = batchFiles_(later, 'later').then(ok => {
     if (ok) { LATER_IN = true; return; }
     LATER_ASK = null;
@@ -13284,8 +13283,8 @@ function cardSeatShare_(f, typed, rate, was) {
 const cardSeatTop_ = f => f === 'extra_seat_cut' ? 2 : STAFF_SEAT_MAX;
 const cardSeatOff_ = (f, v) => { const x = num(v); return !isNaN(x) && (x < 0 || x > cardSeatTop_(f)); };
 const cardSeatOffSay_ = (rate, f) => f === 'extra_seat_cut'
-  ? "@family.'s part is £0 to " + money_(pounds2_(rate * 2)) + '/h — twice the rate.'
-  : 'An extra seat adds £0 to ' + money_(pounds2_(rate * STAFF_SEAT_MAX)) + '/h — at most what the first student pays.';
+  ? "@family.'s part is £0 to " + perHour_(pounds2_(rate * 2)) + ' — twice the rate.'
+  : 'An extra seat adds £0 to ' + perHour_(pounds2_(rate * STAFF_SEAT_MAX)) + ' — at most what the first student pays.';
 /* ---------- THREE CARDS, ONE PRICE (620): n students pay x + k·x·(n−1) + g·x·(n−1) an hour — x the rate, k the tutor's share, g @family.'s ---------- */
 /* THE PARTS AS PRICED, through `seatShare_` (the booking's own reader): a blank is the config's usual. */
 function cardSeatParts_(rate, seat, cut) {
@@ -13299,7 +13298,7 @@ function cardSeatSay_(rate, seat) {
   if (!(rate > 0)) return 'An extra seat is priced from the rate — set it first.';
   if (cardSeatOff_('extra_seat_rate', seat)) return esc(cardSeatOffSay_(rate, 'extra_seat_rate'));
   const p = cardSeatParts_(rate, seat, '');
-  return mcG_('span', 'prof-seat', { text: '+' + money_(p.kx) + '/h' }) + ' a seat' + (p.kOwn ? '' : ', usual');
+  return mcG_('span', 'prof-seat', { text: '+' + perHour_(p.kx) }) + ' a seat' + (p.kOwn ? '' : ', usual');
 }
 /* THE @FAMILY SHARE BAR (8 Nov): first seat + the tutor's extra seat + @family's block, from `cardSeatParts_`, the formula's own numbers. */
 function cardShareBar_(rate, seat, cut) {

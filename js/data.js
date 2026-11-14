@@ -56,8 +56,7 @@ function laterFiles_() {
   const lazy = (typeof window !== 'undefined' && Array.isArray(window.LAZY)) ? window.LAZY : [];
   const later = (typeof window !== 'undefined' && Array.isArray(window.LATER)) ? window.LATER.filter(f => lazy.indexOf(f) === -1) : [];
   /* ALL AT ONCE (720): fetched side by side, then run in one task, so no screen ever sees one LATER file § */
-  /* ONLY WHEN IT RAN (live, 14 Nov): a batch the network dropped is not "in" — the columns wait, and it is asked for again
-     until it lands; then the marks the payload brought are adopted and the waiting columns drawn. check/later-gone.js. */
+  /* ONLY WHEN IT RAN (live, 14 Nov): § */
   LATER_ASK = batchFiles_(later, 'later').then(ok => {
     if (ok) { LATER_IN = true; return; }
     LATER_ASK = null;
