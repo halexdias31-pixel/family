@@ -19,26 +19,26 @@ const row = (label, value, extra) => {
   /* MONEY, A COUNT, A DATE, A PERCENTAGE — anything whose characters want to line up under one another. § */
   const looksNumeric = /^[£$€]?[\d.,\s—–-]+%?$/.test(v.trim()) || /^\d/.test(v.trim());
   const cls = ['v', looksNumeric ? 'mono' : '', extra || ''].filter(Boolean).join(' ');
-  return `<div class="row"><span class="k">${esc(label)}</span>` +
-         `<span class="${cls}">${esc(v)}</span></div>`;
+  return rowOf_('row', label, { look: cls, text: v });
 };
+/* THE ROW'S PARTS AS DATA, drawn by the one card maker's group block: a label span (none when `label` is false), then the value span. */
+const rowOf_ = (rowCls, label, v) => cardBlock_({ type: 'group', look: rowCls, blocks: [
+  label === false ? null : { type: 'group', tag: 'span', look: 'k', text: label == null ? '' : String(label) },
+  Object.assign({ type: 'group', tag: 'span' }, v)] });
 
 /* THE SAME ROW, WITH THE VALUE ALREADY MARKED UP — a link, a coloured word, a small drawing. § */
 const rowHtml = (label, html, extra, rowCls) =>
-  `<div class="row${rowCls ? ' ' + rowCls : ''}"><span class="k">${esc(label)}</span>` +
-  `<span class="${['v', extra || ''].filter(Boolean).join(' ')}">${html}</span></div>`;
+  rowOf_('row' + (rowCls ? ' ' + rowCls : ''), label, { look: ['v', extra || ''].filter(Boolean).join(' '), inner: html });
 
 /* ---------- THE TWO SHAPES THE FIRST TWO COULD NOT MAKE § */
 
 /* A VALUE THAT CHANGES WHILE YOU WATCH — a clock ticking down, a score going up. § */
 const rowLive = (label, value, id, extra) =>
-  `<div class="row"><span class="k">${esc(label)}</span>` +
-  `<span class="${['v', 'mono', extra || ''].filter(Boolean).join(' ')}"` +
-  ` id="${esc(id)}">${esc(String(value == null ? '' : value))}</span></div>`;
+  rowOf_('row', label, { look: ['v', 'mono', extra || ''].filter(Boolean).join(' '), id: String(id), text: String(value == null ? '' : value) });
 
 /* A ROW WITH NO LABEL — a name in a list, a line of a basket. § */
 const rowValue = (html, extra) =>
-  `<div class="row"><span class="${['v', extra || ''].filter(Boolean).join(' ')}">${html}</span></div>`;
+  rowOf_('row', false, { look: ['v', extra || ''].filter(Boolean).join(' '), inner: html });
 
 
 function bookableSpaces() {

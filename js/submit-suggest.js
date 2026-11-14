@@ -16,7 +16,7 @@ function suggestOpts_(kind, id, label, cls) {
 /* A CARD WITH NO TILE ROW OF ITS OWN takes the tile in one of its own, put inside the card by `cardRowIn_`. */
 function suggestRowIn_(html, kind, id, label) {
   const t = tile_(suggestOpts_(kind, id, label));
-  return t && typeof cardRowIn_ === 'function' ? cardRowIn_(html, `<div class="tile-row rep-row">${t}</div>`) : html;
+  return t && typeof cardRowIn_ === 'function' ? cardRowIn_(html, cardBlock_({ type: 'group', look: 'tile-row rep-row', inner: t })) : html;
 }
 /* A FIND CARD'S KIND AND ID: a question by its key (`q:…`); a coming-soon card by what is coming. */
 function suggestOptsFor_(x) {
@@ -36,25 +36,26 @@ function reportDevice_() {
 function reportBoxHtml_(kind, id, label, finder, path) {
   const admin = isAdmin();
   const dk = kind + '|' + id, people = suggestPeople_(kind), files = admin && !people;
-  return `<div class="me-form rep-form rep-box" data-rk="${esc(kind)}" data-ri="${esc(id)}" data-rl="${esc(label)}" data-finder="${esc(finder || '')}" data-path="${esc(path || '')}">
-    <textarea class="rep-note-in" rows="3" maxlength="${SUGGEST_NOTE_MAX}" autocomplete="off"
-      placeholder="${people ? 'What is wrong? (you can leave this empty)' : 'What should change here?'}" aria-label="${suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change'}"${draftAttr_('rep', dk)}>${esc(draftVal_('rep', dk))}</textarea>
-    <input type="file" accept="${files ? 'image/*,video/*' : 'image/*'}" class="rep-pic-in" hidden aria-hidden="true" tabindex="-1">
-    <img class="rep-pic-show" alt="The picture going with it" hidden>${files ? `
-    <div class="rep-vids" hidden></div>
-    <input type="file" multiple class="rep-files-in" hidden aria-hidden="true" tabindex="-1">
-    <input type="file" multiple webkitdirectory directory class="rep-dir-in" hidden aria-hidden="true" tabindex="-1">
-    <ol class="note rep-file-list" hidden></ol><p class="note rep-file-total" aria-live="polite" hidden></p>
-    ` : ''}
-    <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: admin ? 'to Claude' : 'to the admin', act: 'rep-send', cls: 'rep-send is-submit' })}${
-      people ? '' : tile_({ icon: 'photo', label: files ? 'Add a picture or video' : 'Add a picture', note: 'camera or library', act: 'rep-pic', cls: 'rep-pic' })}${
-      files ? tile_({ icon: 'doc', label: 'Add files', note: 'PDFs, pictures, docx, zip', act: 'rep-files', cls: 'rep-files-t' }) : ''}${
-      files && !repNoDir_() ? tile_({ icon: 'plus', label: 'Add a folder', note: 'keeps its subfolders', act: 'rep-dir', cls: 'rep-dir-t' }) : ''}${
-      tile_({ icon: 'close', label: 'Cancel', act: 'rep-cancel' })}</div>
-    <p class="note me-said rep-said" aria-live="polite">${admin
+  const fileIn = attrs => ({ type: 'control', attrs: Object.assign({ type: 'file' }, attrs, { hidden: true, 'aria-hidden': 'true', tabindex: '-1' }) });
+  return cardBlock_({ type: 'group', look: 'me-form rep-form rep-box', attrs: { 'data-rk': kind, 'data-ri': id, 'data-rl': label, 'data-finder': finder || '', 'data-path': path || '' }, blocks: [
+    { type: 'control', tag: 'textarea', value: draftVal_('rep', dk), attrs: Object.assign({ class: 'rep-note-in', rows: '3', maxlength: String(SUGGEST_NOTE_MAX), autocomplete: 'off',
+      placeholder: people ? 'What is wrong? (you can leave this empty)' : 'What should change here?', 'aria-label': suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change' },
+      kcAttrsOf_(draftAttr_('rep', dk))) },
+    fileIn({ accept: files ? 'image/*,video/*' : 'image/*', class: 'rep-pic-in' }),
+    { type: 'group', tag: 'img', look: 'rep-pic-show', attrs: { alt: 'The picture going with it', hidden: true } },
+    files ? { type: 'group', look: 'rep-vids', attrs: { hidden: true } } : null,
+    files ? fileIn({ multiple: true, class: 'rep-files-in' }) : null,
+    files ? fileIn({ multiple: true, webkitdirectory: true, directory: true, class: 'rep-dir-in' }) : null,
+    files ? { type: 'group', tag: 'ol', look: 'note rep-file-list', attrs: { hidden: true } } : null,
+    files ? { type: 'group', tag: 'p', look: 'note rep-file-total', attrs: { 'aria-live': 'polite', hidden: true } } : null,
+    { type: 'tiles', tiles: [{ icon: 'send', label: 'Send', note: admin ? 'to Claude' : 'to the admin', act: 'rep-send', cls: 'rep-send is-submit' },
+      people ? null : { icon: 'photo', label: files ? 'Add a picture or video' : 'Add a picture', note: 'camera or library', act: 'rep-pic', cls: 'rep-pic' },
+      files ? { icon: 'doc', label: 'Add files', note: 'PDFs, pictures, docx, zip', act: 'rep-files', cls: 'rep-files-t' } : null,
+      files && !repNoDir_() ? { icon: 'plus', label: 'Add a folder', note: 'keeps its subfolders', act: 'rep-dir', cls: 'rep-dir-t' } : null,
+      { icon: 'close', label: 'Cancel', act: 'rep-cancel' }].filter(Boolean) },
+    { type: 'group', tag: 'p', look: 'note me-said rep-said', attrs: { 'aria-live': 'polite' }, text: admin
       ? 'Yours goes straight to Notes for Claude.'
-      : people ? 'Only the admin sees this, and they are told at once.' : 'The admin reads it first; nothing changes until they do.'}</p>
-  </div>`;
+      : people ? 'Only the admin sees this, and they are told at once.' : 'The admin reads it first; nothing changes until they do.' }] });
 }
 /* THE FUNNEL PATH (498): a suggestion made on Find says which answers and words led there, in the chips' own words (660), never a field name. */
 function reportPath_(el) {
@@ -128,9 +129,9 @@ function repFilesDraw_(form) {
   if (!ol || !tot) return;
   repVidsDraw_(form, list);
   ol.hidden = tot.hidden = !list.length;
-  ol.innerHTML = list.slice(0, 50).map(x => `<li class="rep-file is-${x.state}">${esc(x.rel)} · ${
-    x.state === 'done' ? 'sent' : x.state === 'failed' ? 'failed — Send tries it again' : x.state === 'sending' ? Math.floor(100 * x.sent / Math.max(1, x.file.size)) + '%' : repMb_(x.file.size)}</li>`).join('')
-    + (list.length > 50 ? `<li>… and ${list.length - 50} more</li>` : '');
+  ol.innerHTML = cardBlocks_(list.slice(0, 50).map(x => ({ type: 'group', tag: 'li', look: 'rep-file is-' + x.state, text: `${x.rel} · ${
+    x.state === 'done' ? 'sent' : x.state === 'failed' ? 'failed — Send tries it again' : x.state === 'sending' ? Math.floor(100 * x.sent / Math.max(1, x.file.size)) + '%' : repMb_(x.file.size)}` }))
+    .concat(list.length > 50 ? [{ type: 'group', tag: 'li', text: `… and ${list.length - 50} more` }] : []));
   const all = list.reduce((a, x) => a + x.file.size, 0), sent = list.reduce((a, x) => a + (x.state === 'done' ? x.file.size : x.sent || 0), 0);
   const done = list.filter(x => x.state === 'done').length;
   tot.textContent = `${done} of ${list.length} file${list.length === 1 ? '' : 's'} sent · ${repMb_(sent)} of ${repMb_(all)}`;
@@ -219,9 +220,9 @@ function repVidsDraw_(form, list) {
     const note = x.frames === 'making' ? 'video attached · making its frames'
       : Array.isArray(x.frames) ? `video attached · ${x.frameCount} frames on ${x.frames.length} sheet${x.frames.length === 1 ? '' : 's'}`
       : 'video attached · no frames: ' + (x.framesError || 'this browser could not read it') + '. The video still goes.';
-    return `<div class="tile-row rep-vid${x.frames === 'making' ? ' is-making' : ''}"${x.frames === 'making' ? ' aria-busy="true"' : ''}>${
-      tile_({ icon: 'play', label: x.rel.split('/').pop(), note, act: 'rep-pic', cls: 'rep-vid-t' })}${x.frames === 'making' ? loading_() : ''}</div>`
-      + `<p class="note rep-vid-said">${esc(x.rel.split('/').pop())} · ${esc(note)}</p>`;
+    return cardBlocks_([{ type: 'group', look: 'tile-row rep-vid' + (x.frames === 'making' ? ' is-making' : ''), attrs: { 'aria-busy': x.frames === 'making' ? 'true' : null },
+      inner: tile_({ icon: 'play', label: x.rel.split('/').pop(), note, act: 'rep-pic', cls: 'rep-vid-t' }) + (x.frames === 'making' ? loading_() : '') },
+      { type: 'group', tag: 'p', look: 'note rep-vid-said', text: `${x.rel.split('/').pop()} · ${note}` }]);
   }).join('');
 }
 const repSeek_ = (v, t) => new Promise((ok, no) => {

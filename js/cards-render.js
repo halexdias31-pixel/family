@@ -370,9 +370,13 @@ const kcfTickB_ = b => `<label class="check${b.look ? ' ' + esc(b.look) : ''}"${
 const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.label)}</span>${kcfControl_(b.hidden || {})}<details class="many-d" data-many="${esc(b.key)}"${b.open ? ' open' : ''}>`
   + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
-/* A GROUP: a div (or a span, a line, a label, a heading between cards, a fold and its summary, or a column's page section) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
-const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4|section|mark|b|i|small|sup)$/.test(b.tag) ? b.tag : 'div';
-  return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
+/* A GROUP: a div (or a span, a line, a label, a heading between cards, or a fold and its summary) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
+/* `img` is void (its attrs only); an `a` or `img` whose href or src is a script is not written at all. */
+const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h3|h4|section|b|i|small|sup|mark|ol|ul|li|a|img)$/.test(b.tag) ? b.tag : 'div';
+  if (/^\s*(javascript|vbscript):/i.test(String((b.attrs || {}).href || (b.attrs || {}).src || ''))) return '';
+  const open = `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>`;
+  if (tag === 'img') return open;
+  return `${open}${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
 /* THE ONE TAG MAKER for a finder's menu (owner, 13 Nov): every answer, Doesn't matter, and the sign-in step's tags. `inner` is markup, escaped already. */
