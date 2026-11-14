@@ -60,21 +60,14 @@ function meRest_() {
 /* ---------- THE BUILD STAMPS, FOR WHEN SOMETHING HAS CHANGED AND HAS NOT § */
 /* THE BUILD CARD IS ITS LINES, so they are no grey clutter (A+): `build-said` keeps them past the rule that hides a card's grey lines. */
 function versionSaid_() {
-  return `<p class="build-said">@family. · Merton &amp; Wandsworth<br>
-      site ${esc(SITE_VERSION)} · css ${esc(cssVersion())}<br>
-      backend ${esc(dash_(DATA.version))}</p>
-      ${(() => {
-        const f = DATA.fileVersions || {};
-        const names = Object.keys(f);
-        if (names.length < 2) return '';
-        const newest = names.map(k => f[k]).sort().pop();
-        const stale = names.filter(k => f[k] !== newest);
-        return stale.length
-          ? `<p class="build-said is-warn">Not deployed: ${stale
-              .map(k => esc(k) + '.gs (' + esc(f[k]) + ')').join(', ')}. Paste ${stale.length === 1
-              ? 'that file' : 'those files'} into Apps Script.</p>`
-          : '';
-      })()}`;
+  const f = DATA.fileVersions || {};
+  const names = Object.keys(f);
+  const newest = names.map(k => f[k]).sort().pop();
+  const stale = names.length < 2 ? [] : names.filter(k => f[k] !== newest);
+  return cardBlocks_([{ type: 'group', tag: 'p', look: 'build-said', text: ['@family. · Merton & Wandsworth', { br: true },
+      'site ' + SITE_VERSION + ' · css ' + cssVersion(), { br: true }, 'backend ' + dash_(DATA.version)] },
+    stale.length ? { type: 'group', tag: 'p', look: 'build-said is-warn', text: 'Not deployed: ' + stale.map(k => k + '.gs (' + f[k] + ')').join(', ')
+      + '. Paste ' + (stale.length === 1 ? 'that file' : 'those files') + ' into Apps Script.' } : null]);
 }
 
 /* ---------- APPLY TO TEACH (400): Staff only by application and an admin's yes ----------
@@ -122,55 +115,61 @@ function applyKnown_() {
   const dob = Number(q.dob_y) > 1900 ? q.dob_y + '-' + pad(Number(q.dob_m) || 1) + '-' + pad(Number(q.dob_d) || 1) : '';
   return { fullName: [q.first_name, q.last_name].filter(Boolean).join(' '), email: q.email || '', phone: q.phone || '', dob };
 }
-function applyFormHtml_() {
+function applyFormHtml_() { return cardBlock_(applyFormSpec_()); }
+/* THE FORM AS ONE SPEC (owner, 14 Nov: one card maker): every box a field block, every heading an h4 group. */
+function applyFormSpec_() {
   /* `qualPick_` returns a field block (me-shelves); here it is drawn without its Something else… option. */
-  const noOther = b => { b.blocks[0].options = b.blocks[0].options.filter(o => o.value !== QUAL_OTHER); return cardBlock_(b); };
-  const rows = Array.from({ length: APP_SUBJECT_ROWS }, (_, i) => `<div class="q-row">
-      ${noOther(qualPick_({ 'data-app-subj': String(i) }, '', QUAL_SUBJECTS, i ? 'Another subject' : 'Subject', 'Choose'))}
-      ${noOther(qualPick_({ 'data-app-level': String(i) }, '', QUAL_LEVELS, 'Level', 'Choose'))}</div>`).join('');
+  const noOther = b => { b.blocks[0].options = b.blocks[0].options.filter(o => o.value !== QUAL_OTHER); return b; };
+  const rows = Array.from({ length: APP_SUBJECT_ROWS }, (_, i) => ({ type: 'group', look: 'q-row', blocks: [
+    noOther(qualPick_({ 'data-app-subj': String(i) }, '', QUAL_SUBJECTS, i ? 'Another subject' : 'Subject', 'Choose')),
+    noOther(qualPick_({ 'data-app-level': String(i) }, '', QUAL_LEVELS, 'Level', 'Choose'))] }));
   const codes = typeof availCodes_ === 'function' ? availCodes_() : [];
   const week = codes.length ? availGrid_(codes, {}, [], false) : '';
   const known = applyKnown_();
-  const box = (k, label, o) => formLine_(label, formInput_(`data-app="${k}" autocomplete="off"${(o && o.type) ? ` type="${o.type}"` : ''}${
-    (o && o.ph) ? ` placeholder="${esc(o.ph)}"` : ''}${known[k] ? ` value="${esc(known[k])}"` : ''}${(o && o.more) ? ' ' + o.more : ''}`));
-  const area = (k, label) => formLine_(label, formArea_(`data-app="${k}" rows="3"`));
+  const box = (k, cap, o) => ({ type: 'field', cap, blocks: [{ type: 'control', attrs: Object.assign({ 'data-app': k, autocomplete: 'off', type: (o && o.type) || null,
+    placeholder: (o && o.ph) || null, value: known[k] || null }, (o && o.more) || {}) }] });
+  const area = (k, cap) => ({ type: 'field', cap, blocks: [{ type: 'control', tag: 'textarea', attrs: { 'data-app': k, rows: '3' } }] });
+  const row = (...blocks) => ({ type: 'group', look: 'f-row', blocks });
+  const head = text => ({ type: 'group', tag: 'h4', look: null, text });
   /* ONE LINE PER DOCUMENT: its name, a Choose photo button, and what was picked. */
-  const doc = (k, label) => `<div class="field apply-doc" data-doc="${k}"><span>${esc(label)}</span>
-      <div class="btn-row">${tile_({ form: true, kind: 'quiet', label: APPLY_DOCS[k] ? 'Change photo' : 'Choose photo', act: 'apply-pick' })}</div>
-      <p class="note apply-doc-said">${APPLY_DOCS[k] ? 'Photo ready.' : ''}</p>${formFile_('apply-in', 'image/*')}</div>`;
-  const ref = n => `<div class="f-row">${box(`ref${n}Name`, 'name')}${box(`ref${n}Relationship`, 'relationship to you')}</div>
-    <div class="f-row">${box(`ref${n}Email`, 'email', { type: 'email' })}${box(`ref${n}Phone`, 'phone', { type: 'tel' })}</div>`;
-  return `<div class="me-form app-form">
-    <h4>You</h4>
-    ${box('fullName', 'full name')}
-    <div class="f-row">${box('phone', 'phone', { type: 'tel' })}${box('email', 'email', { type: 'email' })}</div>
-    ${area('address', 'home address')}
-    <div class="f-row">${box('postcode', 'postcode', { more: 'autocapitalize="characters"' })}${box('dob', 'date of birth', { type: 'date' })}</div>
-    <h4>Documents</h4>
-    ${doc('idDoc', 'photo ID — passport or driving licence')}
-    ${formLine_('right to work in the UK', formSelect_('data-app="rightToWork"', '<option value="">Choose</option><option value="yes">Yes</option><option value="no">No</option>'))}
-    ${doc('rtwDoc', 'right-to-work document — passport, share code or visa')}
-    <h4>What you teach</h4>${rows}
-    ${area('qualifications', 'qualifications — degrees, teaching qualifications, anything relevant')}
-    ${Array.from({ length: APPLY_QUAL_SLOTS }, (_, i) => doc('qual' + i, i ? 'another qualification certificate (optional)' : 'a qualification certificate')).join('')}
-    ${box('rate', 'hourly rate (£)', { type: 'number', more: 'min="1" step="0.5" inputmode="decimal"' })}
-    <h4>Checks</h4>
-    <div class="f-row">${box('dbsNumber', 'enhanced DBS certificate number')}${box('dbsIssued', 'issued on', { type: 'date' })}</div>
-    ${formTick_('data-app="dbsUpdate"', '<span>I consent to you checking it on the DBS Update Service</span>')}
-    ${formTick_('data-app="dbsNeeded"', '<span>I need a DBS check</span>')}
-    <h4>When and where</h4>
-    ${week ? `<div class="app-week">${week}</div>` : area('availability', 'when you can teach')}
-    ${box('area', 'area and venues you can reach')}
-    ${area('experience', 'experience')}
-    <h4>2 references</h4>
-    ${ref(1)}
-    ${ref(2)}
-    ${area('statement', 'a short statement — why you want to teach')}
-    ${box('cvLink', 'CV link (optional)', { ph: 'https://…', type: 'url' })}
-    ${formTick_('data-app="consent"', '<span>I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS.</span>')}
-    <div class="btn-row">${tile_({ form: true, label: 'Send my application', act: 'apply-send' })}</div>
-    <p class="note me-said apply-said" aria-live="polite"></p>
-  </div>`;
+  const doc = (k, label) => ({ type: 'group', look: 'field apply-doc', attrs: { 'data-doc': k }, blocks: [
+    { type: 'group', tag: 'span', look: null, text: label },
+    { type: 'group', look: 'btn-row', tiles: [{ form: true, kind: 'quiet', label: APPLY_DOCS[k] ? 'Change photo' : 'Choose photo', act: 'apply-pick' }] },
+    { type: 'group', tag: 'p', look: 'note apply-doc-said', text: APPLY_DOCS[k] ? 'Photo ready.' : '' },
+    { type: 'control', attrs: { type: 'file', class: 'apply-in', accept: 'image/*', hidden: true } }] });
+  const ref = n => [row(box(`ref${n}Name`, 'name'), box(`ref${n}Relationship`, 'relationship to you')),
+    row(box(`ref${n}Email`, 'email', { type: 'email' }), box(`ref${n}Phone`, 'phone', { type: 'tel' }))];
+  const tick = (k, text) => ({ type: 'tick', attrs: { 'data-app': k }, text });
+  return { type: 'group', look: 'me-form app-form', blocks: [
+    head('You'),
+    box('fullName', 'full name'),
+    row(box('phone', 'phone', { type: 'tel' }), box('email', 'email', { type: 'email' })),
+    area('address', 'home address'),
+    row(box('postcode', 'postcode', { more: { autocapitalize: 'characters' } }), box('dob', 'date of birth', { type: 'date' })),
+    head('Documents'),
+    doc('idDoc', 'photo ID — passport or driving licence'),
+    { type: 'field', cap: 'right to work in the UK', blocks: [{ type: 'control', tag: 'select', attrs: { 'data-app': 'rightToWork' },
+      options: [{ value: '', text: 'Choose' }, { value: 'yes', text: 'Yes' }, { value: 'no', text: 'No' }] }] },
+    doc('rtwDoc', 'right-to-work document — passport, share code or visa'),
+    head('What you teach'), ...rows,
+    area('qualifications', 'qualifications — degrees, teaching qualifications, anything relevant'),
+    ...Array.from({ length: APPLY_QUAL_SLOTS }, (_, i) => doc('qual' + i, i ? 'another qualification certificate (optional)' : 'a qualification certificate')),
+    box('rate', 'hourly rate (£)', { type: 'number', more: { min: '1', step: '0.5', inputmode: 'decimal' } }),
+    head('Checks'),
+    row(box('dbsNumber', 'enhanced DBS certificate number'), box('dbsIssued', 'issued on', { type: 'date' })),
+    tick('dbsUpdate', 'I consent to you checking it on the DBS Update Service'),
+    tick('dbsNeeded', 'I need a DBS check'),
+    head('When and where'),
+    week ? { type: 'group', look: 'app-week', inner: week } : area('availability', 'when you can teach'),
+    box('area', 'area and venues you can reach'),
+    area('experience', 'experience'),
+    head('2 references'),
+    ...ref(1), ...ref(2),
+    area('statement', 'a short statement — why you want to teach'),
+    box('cvLink', 'CV link (optional)', { ph: 'https://…', type: 'url' }),
+    tick('consent', 'I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS.'),
+    { type: 'group', look: 'btn-row', tiles: [{ form: true, label: 'Send my application', act: 'apply-send' }] },
+    { type: 'group', tag: 'p', look: 'note me-said apply-said', attrs: { 'aria-live': 'polite' } }] };
 }
 /* WHAT IS STILL MISSING, in the backend's words (`postApplyTeach_` asks the same), so the phone says it before anything is sent. */
 function applyMissing_(b) {
@@ -511,34 +510,28 @@ const REG_NOTE = {
 const registerSpec_ = () => ({ kind: 'panel', look: 'reg-card', name: 'Make an account', tags: ['Make an account'], body: [{ type: 'embed', tool: 'reg-form' }] });
 function registerCard_() { return renderCard(registerSpec_()); }
 /* THE FORM IS THE CARD'S ONE EMBED; its send (reg-send) is unchanged. */
+/* THE FORM AS ONE SPEC (owner, 14 Nov: one card maker). ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */
+/* THE TWO NAMES SHARE A ROW, as on "Make your child's account" — measured: § */
+/* THE NAMES AND THE ADDRESS ARE DRAFTS (data.js; docs/history/317) — the sheet closed by a tap outside, or the page reloaded, and they were gone. § */
+/* THREE LINES AT 320, MEASURED: § */
 function regFormHtml_() {
-  return `<div class="reg-form">
-    ${/* ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */''}
-    <div class="reg-who" id="reg-who" data-who="">
-      <p class="reg-cap" id="reg-who-cap">Both are free; teaching starts with "Apply to teach" once you are in.</p>
-      ${formLine_('who is the account for?', formSelect_('id="reg-who-in" data-do="reg-who" aria-describedby="reg-who-cap"', `
-        <option value="" selected disabled>Choose</option>
-        <option value="parent" data-who="parent">Client — I book and pay</option>
-        <option value="student" data-who="student">Student — I'm learning</option>`))}
-    </div>
-    <div id="reg-rest" hidden>
-      ${/* THE TWO NAMES SHARE A ROW, as on "Make your child's account" — measured: § */
-            ''}
-      ${/* THE NAMES AND THE ADDRESS ARE DRAFTS (data.js; docs/history/317) — the sheet closed by a tap outside, or the page reloaded, and they were gone. § */
-            ''}
-      <div class="f-row">
-        ${formLine_('first name', formInput_(`id="reg-first" autocomplete="off"${draftAttr_('reg', 'first')} value="${esc(draftVal_('reg', 'first'))}"`))}
-        ${formLine_('last name', formInput_(`id="reg-last" autocomplete="off"${draftAttr_('reg', 'last')} value="${esc(draftVal_('reg', 'last'))}"`))}
-      </div>
-      ${formLine_('email', formInput_(`id="reg-email" type="email" inputmode="email" autocomplete="off" autocapitalize="off"
-               spellcheck="false" placeholder="you@example.com"${draftAttr_('reg', 'email')} value="${esc(draftVal_('reg', 'email'))}"`))}
-      ${formTick_('id="reg-noemail"', "<span>It's a grown-up's email</span>", 'reg-kid', 'hidden')}
-      ${formLine_('PIN — 4 digits', formInput_('id="reg-pin" type="password" inputmode="numeric" autocomplete="one-time-code"'))}
-      ${tile_({ form: true, label: 'Make my account', act: 'reg-send' })}
-      ${/* THREE LINES AT 320, MEASURED: § */
-            ''}
-      <p class="said" id="reg-note"></p>
-    </div></div>`;
+  const kept = (id, more) => ({ type: 'control', attrs: Object.assign({ id: 'reg-' + id, autocomplete: 'off' }, more || {},
+    meAttrs_(draftAttr_('reg', id)), { value: draftVal_('reg', id) }) });
+  const field = (cap, control) => ({ type: 'field', cap, blocks: [control] });
+  return cardBlock_({ type: 'group', look: 'reg-form', blocks: [
+    { type: 'group', look: 'reg-who', id: 'reg-who', attrs: { 'data-who': '' }, blocks: [
+      { type: 'group', tag: 'p', look: 'reg-cap', id: 'reg-who-cap', text: 'Both are free; teaching starts with "Apply to teach" once you are in.' },
+      field('who is the account for?', { type: 'control', tag: 'select', attrs: { id: 'reg-who-in', 'data-do': 'reg-who', 'aria-describedby': 'reg-who-cap' }, options: [
+        { value: '', text: 'Choose', on: true, off: true },
+        { value: 'parent', text: 'Client — I book and pay', data: { who: 'parent' } },
+        { value: 'student', text: 'Student — I\'m learning', data: { who: 'student' } }] })] },
+    { type: 'group', look: null, id: 'reg-rest', attrs: { hidden: true }, blocks: [
+      { type: 'group', look: 'f-row', blocks: [field('first name', kept('first')), field('last name', kept('last'))] },
+      field('email', kept('email', { type: 'email', inputmode: 'email', autocapitalize: 'off', spellcheck: 'false', placeholder: 'you@example.com' })),
+      { type: 'tick', look: 'reg-kid', labelAttrs: { hidden: true }, attrs: { id: 'reg-noemail' }, text: 'It\'s a grown-up\'s email' },
+      field('PIN — 4 digits', { type: 'control', attrs: { id: 'reg-pin', type: 'password', inputmode: 'numeric', autocomplete: 'one-time-code' } })],
+      /* the send stands loose in the form, the note under it, as before */
+      inner: tile_({ form: true, label: 'Make my account', act: 'reg-send' }) + cardBlock_({ type: 'group', tag: 'p', look: 'said', id: 'reg-note' }) }] });
 }
 CARD_EMBEDS['reg-form'] = regFormHtml_;
 
