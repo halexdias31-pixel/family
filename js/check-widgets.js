@@ -102,7 +102,8 @@ widgets.forEach(w => {
   if (seen[id]) dupes.push(id); else seen[id] = 1;
 
   /* ---------- THE WIDGET'S OWN MARKUP CARRIES ITS TITLE § */
-  if (w.html && !/<h3[\s>]/.test(w.html) && !ACCEPTED_UNTITLED[id]) {
+  /* As data now (map.js): `mapHtml_('Name', …)` or `mapHead_('Name')` is the <h3> renderCard's blocks draw. */
+  if (w.html && !/<h3[\s>]|\bmap(?:Html|Head)_\(\s*'[^']+'/.test(w.html) && !ACCEPTED_UNTITLED[id]) {
     noTitle.push(id + ' has no <h3> in its html. `widgetColumn_` draws the widget\'s own markup and '
                + 'nothing else, so this one appears on the column with no title on it.');
   }
