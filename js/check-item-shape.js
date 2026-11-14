@@ -10,7 +10,8 @@ const stub = new Proxy(function () { return ''; }, { get: (f, k) => (k === Symbo
 const src = fs.readFileSync(path.join(ROOT, 'js/cards-parts.js'), 'utf8').replace(/^(const|let) /gm, 'var ');
 const own = new Set(); src.replace(/^(?:function|var|class)\s+([A-Za-z_$][\w$]*)/gm, (m, n) => own.add(n));
 const KINDS = {};
-const base = { console, Object, Array, String, Number, JSON, Math, Set, Map, Symbol, Boolean, RegExp, Date, cardKind_: (k, fn) => { KINDS[k] = fn; } };
+const base = { console, Object, Array, String, Number, JSON, Math, Set, Map, Symbol, Boolean, RegExp, Date, cardKind_: (k, fn) => { KINDS[k] = fn; },
+  norm: s => String(s || '').toLowerCase().trim() /* core.js's own, so a facts card's name rule (kcSays_) is read for real */ };
 const scope = new Proxy(base, { has: (o, k) => !own.has(k), get: (o, k) => (k in o ? o[k] : k === Symbol.unscopables ? undefined : stub), set: (o, k, v) => { o[k] = v; return true; } });
 // eslint-disable-next-line no-new-func
 const P = new Function('scope', 'with (scope) {\n' + src + '\n}\nreturn { ITEM_MAPS, item_, cardOfItem_ };')(scope);
@@ -46,8 +47,10 @@ function valid_(r, k) {
     if (!isStrs(it.links)) bad.push(`${at}: links must be a list of ids`);
     if (!Array.isArray(it.body) || !it.body.every(b => b && typeof b === 'object' && typeof b.type === 'string')) bad.push(`${at}: body must be a list of blocks`);
     const spec = P.cardOfItem_(it, { kind: k, key: 'k', name: it.name });
-    /* A CARD LEADS WITH ITS NAME TAG, or (`nameTag: false`, its tags its facets alone) carries the name as its own. */
-    if (!spec || !Array.isArray(spec.tags) || spec.name !== it.name || (M.nameTag !== false && (!spec.tags[0] || spec.tags[0].text !== it.name))) bad.push(`${at}: cardOfItem_ does not lead with the name`);
+    /* A CARD LEADS WITH ITS NAME TAG, or (`nameTag: false`, its tags its facets alone) carries the name as its own; a facts card (`facts: true`) */
+    /* leads with it unless one of its tags already says it (findCard's rule, kcSays_). */
+    const says = M.facts && spec && Array.isArray(spec.tags) && spec.tags.some(t => String(t.text).toLowerCase().indexOf(String(it.name).toLowerCase()) >= 0);
+    if (!spec || !Array.isArray(spec.tags) || spec.name !== it.name || (M.nameTag !== false && !says && (!spec.tags[0] || spec.tags[0].text !== it.name))) bad.push(`${at}: cardOfItem_ does not lead with the name`);
     if (M.lines && spec.body !== it.body) bad.push(`${at}: its map says lines but the card does not draw its body`);
 }
 /* A sample row with every column its map names filled (two words apart) proves the mapping reads lists (the repo's writings file may be empty). */

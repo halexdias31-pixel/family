@@ -202,7 +202,7 @@ const KINDS = {
 
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
-  receipt: x => jobPage_(x.row), question: thingCard_, answer: thingCard_, shop: thingCard_,
+  question: thingCard_, answer: thingCard_,
   bible: x => bibleCard_(x), talmud: x => window.talmudCard_(x), quran: x => window.quranCard_(x),
   worktext: x => window.worksCard_(x), hadith: x => window.hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => window.orthoCard_(x),
   hymn: x => window.hymnsCard_(x), person: x => (x.add && typeof personAddCard_ === 'function' ? personAddCard_() : ''), tool: x => widgetCard_(x), game: x => widgetCard_(x),
@@ -261,23 +261,8 @@ const soonCard_ = x => renderCard(Object.assign({ kind: x.kind || 'soon', key: x
 /* The card a resource and a shop row share. Named rather than written twice, because the two
    entries above genuinely want the same thing and a copy each is a copy to keep in step. */
 function thingCard_(x, credits) {
-  /* One card shape for both, because they are the same kind of thing to a person looking for one: § */
+  /* A SHOP THING IS NOT DRAWN HERE ANY MORE: its card is its item map (ITEM_MAPS.product, cards-parts.js), its price tag `shopPriceTag_`. */
   {
-    const free = x.cost === 0;
-    const afford = isShop_(x) && !free && !x.pence && credits >= x.cost;
-    /* WHAT IT TAKES TO HAVE IT. § */
-    const myLevel = Math.floor((Number(USER && USER.xp) || 0) / 10);
-    /* ---------- AND A FOURTH ANSWER: NOBODY HAS PRICED IT § */
-    const price = !isShop_(x) ? ''
-      : x.level > 0
-        ? cardBlock_({ type: 'group', tag: 'span', look: 'qtags', inner: qtag_(`${
-            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}`, '', `price ${myLevel >= x.level ? 'can' : ''}`) })
-      : x.cost === undefined
-        ? ''   /* "Not priced yet" is its Price tag now (499) */
-      : cardBlock_({ type: 'group', tag: 'span', look: 'qtags', inner: qtag_(`${
-          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}`, '', `price ${free ? 'free' : afford ? 'can' : ''}`) });
-    /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
-       so it is marked as one and coloured as one, the same way a subject and a venue are. */
     /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. § */
     if (isQ_(x)) return findCard(x);
 
@@ -292,12 +277,12 @@ function thingCard_(x, credits) {
     return cardBlock_({ type: 'group', look: 'fc' + (x.wearable ? ' is-wear' : x.kind === 'topic' ? ' is-subject' : '') + (x.off ? ' is-off' : ''), blocks: [
       { type: 'group', look: 'thing', blocks: [
         x.image ? { type: 'group', tag: 'img', look: 'thing-pic', attrs: { src: pic(x.image), alt: '', loading: 'lazy', decoding: 'async' } } : null,
-        { type: 'group', look: 'thing-body', inner: (isShop_(x) ? tagRow_(x) : cardBlock_({ type: 'group', tag: 'p', look: 'crumb', text: [x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
+        { type: 'group', look: 'thing-body', inner: (cardBlock_({ type: 'group', tag: 'p', look: 'crumb', text: [x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
               x.bandType === 'year' ? (x.bandValue && 'Year ' + x.bandValue)
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
             : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)])
             .filter(Boolean).map(v => String(v)).join('  ') }))
-          + cardBlock_({ type: 'group', tag: 'h3', text: x.name, inner: x.off ? ' ' + qtag_('deleted') : '' }) + price }] }] });
+          + cardBlock_({ type: 'group', tag: 'h3', text: x.name, inner: x.off ? ' ' + qtag_('deleted') : '' }) }] }] });
   }
 }
 
