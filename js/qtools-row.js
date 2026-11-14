@@ -33,7 +33,7 @@ const QT_TILE = {
   /* ONLY WHERE A CALCULATOR IS ALLOWED: a Non-calculator paper never shows it; unknown shows it (owner, 11 Nov) */
   calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
   /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
-  offline: (t, x) => (typeof offOpts_ === 'function' ? offOpts_(x) : null),
+  offline: (t, x) => (typeof window.offOpts_ === 'function' ? window.offOpts_(x) : null),
   photo: (t, x) => ({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } }),
 };
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */

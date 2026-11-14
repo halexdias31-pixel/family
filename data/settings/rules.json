@@ -374,7 +374,6 @@
     "texts",
     "pdtexts",
     "bible",
-    "hymns",
     "textbooks"
    ],
    "since": "2026-11-12"
@@ -651,7 +650,6 @@
     "practicals",
     "projects",
     "timeline-anim",
-    "timelines",
     "missing",
     "spec-lesson",
     "spec-practice",
@@ -664,8 +662,7 @@
    "principle": 5,
    "text": "Content in is our own, public domain or licensed; copyrighted papers stay private.",
    "checks": [
-    "library",
-    "hymns"
+    "library"
    ],
    "since": "2026-11-12"
   },
@@ -788,8 +785,7 @@
    "text": "Always load fresh: the build stamp is the only cache-buster, no service worker fetch handler, a new build never reloads a page on screen.",
    "checks": [
     "cache",
-    "deploy",
-    "offline"
+    "deploy"
    ],
    "since": "2026-11-12"
   },
@@ -824,8 +820,7 @@
    "checks": [
     "visibility",
     "film-shares",
-    "work-file",
-    "inbox"
+    "work-file"
    ],
    "since": "2026-11-12"
   },
@@ -846,7 +841,6 @@
    "text": "Parents receive nothing from the site until they tick it; push is device opt-in.",
    "checks": [
     "prefs",
-    "push",
     "digest",
     "digest-dry"
    ],

@@ -35,7 +35,7 @@ on('qp-ai', (el) => {
   /* THE SOUND IS WOKEN NOW, INSIDE THE TAP, and held awake until the reply, because the verdict lands after the network and an iPad lets a page start sound only § */
   const k = inp.getAttribute('data-k');
   /* NO CONNECTION: the press is queued and the mark asked once online (offline.js), never a failed request. */
-  if (typeof offAiHold_ === 'function' && offAiHold_(k, sent, out)) return;
+  if (typeof window.offAiHold_ === 'function' && window.offAiHold_(k, sent, out)) return;
   const letGo = typeof markWait_ === 'function' ? markWait_() : null;
   const here = typeof markWhere_ === 'function' && markWhere_(k);
   el.disabled = true;

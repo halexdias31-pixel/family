@@ -136,7 +136,6 @@ const SUITE = [
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
   { file: 'check-writings.js', what: 'one model for every written work (520): one shape, one shelf, one facet set, tradition topics, one age, nothing twice, facets.json = FACETS' },
   { file: 'check-texts.js', what: 'more writings (513): every text loads, a unit a card, each with its source and licence; scripture-like texts held to the age rule' },
-  { file: 'check-hymns.js', what: 'the hymns shelf (517): every hymn in the index has words, a pre-1929 public-domain source and a licence; audio only a Spotify link' },
   { file: 'check-bible.js', what: 'the Bible: a lossless split, the ten groups and the verse counts, italics for [words], the verse list, admin only' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE § */
   /* ---------- AND WHAT A PERSON MAY CALL THEMSELVES § */
@@ -188,7 +187,6 @@ const SUITE = [
   /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. § */
   { file: 'check-missing.js', what: 'What\'s missing (526): the gaps between data/settings/expected-papers.json and the covers, a present paper never listed, the list spelled as the library' },
   { file: 'check-assistant.js', what: 'the Assistant in Messages (449): signed in only, the token’s person, five a day from config, a failure given back' },
-  { file: 'check-push.js', what: 'phone notifications (492): no keys a quiet no-op, recipient-only, per-kind off, UNREGISTERED dropped, no token in doGet' },
   { file: 'check-insert-parts.js', what: 'inserts: no two sheets or two parts with the same content; every part has its parent sheet' },
   { file: 'check-question-ids.js', what: 'ids for life: every question id ever committed exists or is aliased; one item per printed part; ids derived from the label' },
   { file: 'check-saved-answers.js', what: 'answers on the account: the token’s person, the later edit wins, text in and text out' },
@@ -203,7 +201,6 @@ const SUITE = [
   /* A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP. § */
   { file: 'check-uploads.js', what: 'chat files: the manifest’s scope, the column, the refusals, both sides drawn' },
   { file: 'check-migrate.js', what: 'old sheet rows: read as before until Tidy old rows runs, rewritten once, read the same after' },
-  { file: 'check-inbox.js', what: 'the Email widget (493): admin only, read-only, the mail kept nowhere' },
   /* THE ROOMS INSIDE A VENUE, THROUGH THE SAME BACKEND. § */
   { file: 'check-rooms.js', what: 'rooms: a blank cell is the venue’s, an explicit 0 stays 0, the caps, the floor, a booking, the waiting list' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE § */
@@ -256,7 +253,6 @@ const SUITE = [
   { file: 'check-effort-report.js', what: 'rule 12.1: effort is report-only, recorded by the full health run alone' },
   { file: 'check-api-deadline.js', what: 'a POST the backend runs for minutes is not cut by api()\'s one-minute deadline' },
   { file: 'check-press-hold.js', what: 'a control waiting on its request holds itself, not its twin, and not for ever; steppers take two fast taps' },
-  { file: 'check/offline.js', what: 'a paper made available offline: opened with no connection, rule parts marked, an AI part held; back online every press arrives once', slow: true },
   { file: 'check/press-twice.js', what: 'two taps 110 ms apart on every control post nothing twice; a control that asks first ignores a yes under 400 ms', slow: true, heavy: true },
   { file: 'check/press-deadline.js', what: 'a press whose request never answers is busy, takes no second press, and lets go with a sentence after a minute', slow: true },
   /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT § */

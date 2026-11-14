@@ -587,7 +587,7 @@ function aiDecided_() {
     b.disabled = false;
   });
   /* AND A PART PRESSED WITH NO CONNECTION is marked now its card is drawn again online (offline.js). */
-  if (typeof offAiFlush_ === 'function') offAiFlush_();
+  if (typeof window.offAiFlush_ === 'function') window.offAiFlush_();
 }
 
 /* THE QUESTION AS WORDS. § */

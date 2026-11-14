@@ -631,13 +631,13 @@ function stuffKeepPlace_(host, d) {
 function stuffIndexesAsk_() {
   if (USER || !ruleOn_('finder-members')) {
   if (typeof window.talmudIndex_ === 'function') window.talmudIndex_();
-  if (typeof quranIndex_ === 'function') quranIndex_();
+  if (typeof window.quranIndex_ === 'function') window.quranIndex_();
   if (typeof window.hadithIndex_ === 'function') window.hadithIndex_();
   if (typeof window.worksIndex_ === 'function') window.worksIndex_();
   if (typeof textsIndex_ === 'function') textsIndex_();
   if (typeof pdtextsIndex_ === 'function') pdtextsIndex_();
   if (typeof window.orthoIndex_ === 'function') window.orthoIndex_();
-  if (typeof hymnsIndex_ === 'function') hymnsIndex_();
+  if (typeof window.hymnsIndex_ === 'function') window.hymnsIndex_();
   if (typeof mechIndex_ === 'function') mechIndex_();
   if (typeof chemIndex_ === 'function') chemIndex_(); }
 }

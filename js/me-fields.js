@@ -89,7 +89,6 @@ function photoPicker_(value, said, o) {
         ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
       </div>
     </div>
-    <div class="pfp-grid" role="group" aria-label="Or choose a picture">${Object.keys(PFP_ART).map(opt).join('')}</div>
     <p class="note pfp-said">${esc(said || pfpSaid_(v))}</p>
     ${uiMay_('upload-photo') ? formFile_('pfp-in', 'image/*') : ''}
   ${fold ? '</details>' : '</div>'}`;

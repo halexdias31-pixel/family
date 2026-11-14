@@ -640,7 +640,7 @@ function libDiskPut_(items, gen) {
     let drop = [];
     if (LIB.disk.size > LIB_DISK_MAX) {
       /* A PAPER MADE AVAILABLE OFFLINE never gives way (offline.js `offPinned_`). */
-      const pin = typeof offPinned_ === 'function' ? offPinned_() : new Set();
+      const pin = typeof window.offPinned_ === 'function' ? window.offPinned_() : new Set();
       drop = [...LIB.disk.values()].filter(r => !pin.has(r.id)).sort((a, b) => a.at - b.at).slice(0, LIB.disk.size - LIB_DISK_MAX).map(r => r.id);
       drop.forEach(id => LIB.disk.delete(id));
     }

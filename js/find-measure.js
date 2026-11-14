@@ -41,7 +41,7 @@ function paintDocket() {
   if (!USER) { host.innerHTML = empty_('Sign in to keep a docket.'); return; }
   /* Google Tasks lives with the tasks it copies, not in Student settings (491). */
   const gt = $('docket-gtasks');
-  if (gt) gt.innerHTML = typeof gtasksCard_ === 'function' ? gtasksCard_() : '';
+  if (gt) gt.innerHTML = typeof window.gtasksCard_ === 'function' ? window.gtasksCard_() : '';
 
   const list = docketLines();
   if (!list.length) {
