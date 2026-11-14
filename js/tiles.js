@@ -207,8 +207,7 @@ function tile_(o) {
   /* ONLY AN ADMIN SEES AN ADMIN'S TILE (owner, 8 Nov, 11a), and it looks like any other tile. */
   if (o.tone === 'admin' && !(typeof isAdmin === 'function' && isAdmin())) return '';
   const barred = '';
-  const style = o.style ? ` style="${esc(o.style)}"` : '';
-  return `<button type="button" class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${style}${pressed}${barred}${o.off ? ' disabled' : ''}
+  return `<button type="button" class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${pressed}${barred}${o.off ? ' disabled' : ''}
     >${body}</button>`;
 }
 

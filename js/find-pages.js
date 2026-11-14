@@ -635,17 +635,12 @@ function finderScreen_() {
      is a fact about you and belongs beside the thing it is spent on; a button is a control and has
      earned a page of its own. */
   /* FIND IS CHIPS ONLY (owner, 8 Nov): no search box. `#stuff-clear` is the slot `paintStuff` rewrites with Clear-all. */
-  const controls = `<div id="${F.id}-controls">`
-    + `<div id="${F.id}-clear">${filterClear_()}</div>
-    ${/* THE SORT WAS HERE — a dropdown offering A–Z and, when anything had a price, cheapest first. § */
-          ''}
-    ${/* THE MENU IS A CARD (owner, 14 Nov: one template): its tags the path chosen, its body the choices (`#…-chips`, `#…-groups` are the slots a repaint fills). */
-      renderCard(findMenuSpec_(F))}
-    ${/* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */''}
-    ${/* THE FINDER ITSELF TAKES A SUGGESTION TOO (494): "should be on finder widget too". */
-      typeof suggestOpts_ === 'function' && tile_(suggestOpts_('finder', F.id, 'Find'))
-        ? `<div class="tile-row rep-row find-sg">${tile_(suggestOpts_('finder', F.id, 'Find'))}</div>` : ''}
-  </div>`;
+  /* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */
+  const controls = cardBlock_({ type: 'group', id: F.id + '-controls', blocks: [{ type: 'group', id: F.id + '-clear', inner: filterClear_() },
+    /* THE MENU IS A CARD (owner, 14 Nov: one template): its tags the path chosen, its body the choices (`#…-chips`, `#…-groups` are the slots a repaint fills). */
+    { type: 'card', spec: findMenuSpec_(F) },
+    /* THE FINDER ITSELF TAKES A SUGGESTION TOO (494): "should be on finder widget too". */
+    typeof suggestOpts_ === 'function' && tile_(suggestOpts_('finder', F.id, 'Find')) ? { type: 'tiles', look: 'rep-row find-sg', tiles: [suggestOpts_('finder', F.id, 'Find')] } : ''] });
 
   /* THE CONTROLS ARE A PAGE, and the results are the pages after it. § */
   /* Empty pages. `fillStuffPages` puts markup in the ones you can reach, after the screen exists
@@ -682,7 +677,7 @@ function finderScreen_() {
   }
   /* `is-res` IS "A PAGE OF RESULTS". */
   return finderLeadHtml_(lead) + pages(F.id, [controls].concat(front))
-    + '<section class="page is-res"><div class="pane"></div></section>'.repeat(Math.min(want, STUFF_WIN));
+    + cardBlock_({ type: 'group', tag: 'section', look: 'page is-res', blocks: [{ type: 'group', look: 'pane' }] }).repeat(Math.min(want, STUFF_WIN));
 }
 screen('stuff', () => inFinder_(FINDERS.stuff, finderScreen_));
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one

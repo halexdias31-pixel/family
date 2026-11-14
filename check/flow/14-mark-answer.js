@@ -915,7 +915,7 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   else {
     if (!ret.querySelector('.kp-ret-i')) bad.push('the return key has no ↵ mark: ' + ret.outerHTML.slice(0, 200));
     const space = pad.querySelector('.kp-key.kp-space');
-    if (!space || !/span 18/.test(space.getAttribute('style') || '')) bad.push('the essay\'s space bar is not 18 columns, the room left beside return and done (562)');
+    if (!space || !space.classList.contains('kp-s18')) bad.push('the essay\'s space bar is not 18 columns, the room left beside return and done (562)');
   }
   const bottom = keys.slice(-8).map(b => b.getAttribute('data-v'));
   if (bottom.join('|') !== '!123|!sym|!mic| |\'|.|!nl|!done') bad.push('the essay\'s bottom row is ' + JSON.stringify(bottom) + ', wanted 123 αβ mic space \' . return done (562)');

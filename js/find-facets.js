@@ -571,13 +571,15 @@ cardKind_('practical', x => {
 /* THE BOX IS A TOOL (the keypad's field, its Send and its verdict), so the page carries it as an embed block. */
 function guideBox_(x, slot, ask, hint) {
   const k = ansKey_(x) + '#' + slot, val = ansRead_(k);
-  const say = hint ? `<span class="gd-hint">${esc(hint)}</span>` : '';
-  const field = `<label class="qp-ans gd-box"><span class="gd-ask">${esc(ask)}</span>${say}${kpField_(k, val, 'words', false, ask)}</label>`;
+  const field = cardBlock_({ type: 'group', tag: 'label', look: 'qp-ans gd-box', blocks: [{ type: 'group', tag: 'span', look: 'gd-ask', text: ask },
+    hint ? { type: 'group', tag: 'span', look: 'gd-hint', text: hint } : ''], inner: kpField_(k, val, 'words', false, ask) });
   /* ---------- AND A SEND UNDER EACH, SIGNED IN § */
   const send = typeof whoIs_ === 'function' && whoIs_() ? tile_({ send: true, act: 'qp-send', cls: 'qp-send' }) : '';
   if (!send) return field;
   const said = subBoxSay_(k, val);
-  return `<div class="qp-mark gd-mark${said.cls ? ' ' + said.cls : ''}">${field}${send}<span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span><span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
+  return cardBlock_({ type: 'group', look: 'qp-mark gd-mark' + (said.cls ? ' ' + said.cls : ''), inner: field + send + cardBlocks_([
+    { type: 'group', tag: 'span', look: 'qp-verdict', attrs: { role: 'status', 'aria-live': 'polite' }, text: said.text },
+    { type: 'group', tag: 'span', look: 'qp-saved', attrs: { 'data-k': k }, text: ansSavedSay_(k) }]) });
 }
 CARD_EMBEDS['guide-box'] = a => (a.x ? guideBox_(a.x, a.slot, a.ask, a.hint) : '');
 

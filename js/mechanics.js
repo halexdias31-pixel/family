@@ -81,7 +81,7 @@ function mechScope_(x) { return !x || x.kind !== 'mech' || x.mFile === 'pc' ? ''
 const mechOwn_ = (x, file, k) => (x && x.kind === 'mech' && x.mFile === file && x.mech[k]) || '';
 
 /* A CARD IS ITS TAGS AND ITS DRAWING; a part adds one line of what it does. No title: the name is a tag. */
-function mechPic_(x) { return `<figure class="mech-pic">${pixSvg_(x.mech.px, x.name, false, ' mech-px')}</figure>`; }
+function mechPic_(x) { return cardBlock_({ type: 'drawing', node: { el: 'figure', a: { class: 'mech-pic' }, inner: pixSvg_(x.mech.px, x.name, false, ' mech-px') } }); }
 cardKind_('mech', x => { const r = x.mech || {};
   return { look: 'mech', picture: Array.isArray(r.px) ? { svg: mechPic_(x), alt: x.name } : null, tags: typeof tagList_ === 'function' && x.key ? tagList_(x) : [], body: r.does ? [{ type: 'text', text: r.does, look: 'mech-does' }] : [] }; });
 /* A CAR'S PARTS ARE A FIND (650): its every part, Car part chosen and the car's make, model and engine (`CARD_EXTRAS_`). */

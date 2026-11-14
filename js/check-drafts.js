@@ -50,7 +50,7 @@ const KEPT = [
   { file: 'map.js', has: "id: 'sr-text'",
     why: 'the speed reader\'s pasted text (403) — kept on the device as it is typed (`speedDraft`), never sent',
     proof: [['reader.js', /localStorage\.setItem\('speedDraft', e\.target\.value\)/]] },
-  { file: 'reader.js', fn: 'speedSheet_', has: 'id="rsvp-wpm"',
+  { file: 'reader.js', fn: 'speedSheet_', has: "id: 'rsvp-wpm'",
     why: 'the speed reader\'s words a minute (403) — kept on the device as it moves (`speedWpm`)',
     proof: [['reader.js', /localStorage\.setItem\('speedWpm', String\(SPEED\.wpm\)\)/]] },
   { file: 'mat.js', has: 'id="mat-text"',
@@ -125,7 +125,7 @@ const EXEMPT = [
   { file: 'me.js', fn: 'tick', has: "attrs: { 'data-app': k }", why: 'the application to teach (400) — its three ticks (DBS Update Service, DBS needed, consent), sent with it' },
   { file: 'form.js', fn: 'formToggle_', has: "type: 'control', attrs }", why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },
   { file: 'map.js', has: "id: 'dock-add'", why: 'one line, kept the moment Enter or + puts it on the docket' },
-  { file: 'find.js', has: 'class="room-name"', why: 'a room name, a few words, prefilled and sent by the button under it' },
+  { file: 'find.js', has: "class: 'room-name'", why: 'a room name, a few words, prefilled and sent by the button under it' },
 ];
 [KEPT, EXEMPT].forEach(list => { for (let i = list.length - 1; i >= 0; i--) if (ATTIC_(list[i].file)) list.splice(i, 1); });
 

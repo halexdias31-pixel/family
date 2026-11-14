@@ -223,7 +223,7 @@ const CARD_BLOCKS = {
 };
 /* THE PADLOCK a shut card wears, first inside it. */
 const cardLockMark_ = () => `<span class="card-lock" title="Locked" aria-label="Locked">${typeof tileIcon_ === 'function' ? tileIcon_('lock') : ''}</span>`;
-const CARD_DRAW_ELS = /^(svg|g|defs|clipPath|path|rect|line|circle|ellipse|polygon|polyline|text|figure|div)$/;
+const CARD_DRAW_ELS = /^(svg|g|defs|clipPath|path|rect|line|circle|ellipse|polygon|polyline|text|figure|div|image)$/;
 function cardDraw_(n) {
   if (n == null) return '';
   if (Array.isArray(n)) return n.map(cardDraw_).join('');

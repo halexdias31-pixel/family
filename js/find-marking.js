@@ -771,9 +771,9 @@ function choiceList_(x) {
   if (!x || !Array.isArray(x.choices) || x.choices.length < 2) return '';
   const need = Math.max(1, (x.choiceRight || []).length);
   const say = orderIs_(x) ? 'Type the letters in order, e.g. B, A, C' : need > 1 ? 'Type ' + need + ' letters, e.g. A, C' : 'Type the letter';
-  return `<ol class="qp-optlist" type="A">${x.choices.map((c, i) =>
-    `<li class="qp-optline"><b class="qp-optl">${CHOICE_LETTERS[i] || i + 1}</b> ${typeset_(c)}</li>`).join('')}</ol>
-  <span class="qp-ans-k">${esc(say)}</span>`;
+  return cardBlocks_([{ type: 'group', tag: 'ol', look: 'qp-optlist', attrs: { type: 'A' }, blocks: x.choices.map((c, i) => ({ type: 'group', tag: 'li', look: 'qp-optline',
+    blocks: [{ type: 'group', tag: 'b', look: 'qp-optl', text: CHOICE_LETTERS[i] || String(i + 1) }], inner: ' ' + typeset_(c) })) },
+    { type: 'group', tag: 'span', look: 'qp-ans-k', text: say }]);
 }
 /* WHAT WAS TYPED, AS OPTION NUMBERS (1-based): a letter, a number or an option's own words; null for nothing, [] for something that is no option. */
 function choicePicks_(x, typed) {

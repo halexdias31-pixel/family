@@ -50,17 +50,18 @@ function padAid_(g) {
   const c = g.from;
   /* AND A HALO ROUND A SNAP THAT IS HOLDING (357): § */
   const h = g.hold;
-  const halo = h ? `<ellipse class="qpad-halo" vector-effect="non-scaling-stroke" cx="${h.u[0]}" cy="${h.u[1]}" rx="${30 / g.sx}" ry="${30 / g.sy}"/>` : '';
+  const line = (cls, d) => cardBlock_({ type: 'drawing', node: { el: 'path', a: { class: cls, 'vector-effect': 'non-scaling-stroke', d } } });
+  const halo = h ? cardBlock_({ type: 'drawing', node: { el: 'ellipse', a: { class: 'qpad-halo', 'vector-effect': 'non-scaling-stroke', cx: h.u[0], cy: h.u[1], rx: 30 / g.sx, ry: 30 / g.sy } } }) : '';
   if (g.tool === 'pen') {
     /* AND WHERE THE FINGER IS ABOUT TO BE (374): § */
     const n = PAD_ST ? PAD_ST.length : 0, q = g.pred;
-    const html = halo + (q && n >= 2 ? `<path class="qpad-pred" vector-effect="non-scaling-stroke" d="M${PAD_ST[n - 2]} ${PAD_ST[n - 1]}L${q[0]} ${q[1]}"/>` : '');
+    const html = halo + (q && n >= 2 ? line('qpad-pred', `M${PAD_ST[n - 2]} ${PAD_ST[n - 1]}L${q[0]} ${q[1]}`) : '');
     if (aid.innerHTML !== html) aid.innerHTML = html;
     return;
   }
-  const pin = `<path class="qpad-pin" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${c[0]} ${c[1]}"/>`;
+  const pin = line('qpad-pin', `M${c[0]} ${c[1]}L${c[0]} ${c[1]}`);
   const rad = g.tool === 'compass' && g.tip && g.r >= padMinOf_(g)
-    ? `<path class="qpad-rad" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${Math.round(g.tip[0])} ${Math.round(g.tip[1])}"/>`
+    ? line('qpad-rad', `M${c[0]} ${c[1]}L${Math.round(g.tip[0])} ${Math.round(g.tip[1])}`)
     : '';
   aid.innerHTML = pin + rad + halo;
 }

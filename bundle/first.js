@@ -702,7 +702,7 @@ const CARD_BLOCKS = {
 };
 /* THE PADLOCK a shut card wears, first inside it. */
 const cardLockMark_ = () => `<span class="card-lock" title="Locked" aria-label="Locked">${typeof tileIcon_ === 'function' ? tileIcon_('lock') : ''}</span>`;
-const CARD_DRAW_ELS = /^(svg|g|defs|clipPath|path|rect|line|circle|ellipse|polygon|polyline|text|figure|div)$/;
+const CARD_DRAW_ELS = /^(svg|g|defs|clipPath|path|rect|line|circle|ellipse|polygon|polyline|text|figure|div|image)$/;
 function cardDraw_(n) {
   if (n == null) return '';
   if (Array.isArray(n)) return n.map(cardDraw_).join('');
@@ -2133,7 +2133,7 @@ const PRICE_ROWS = [
     control: 'l-qty',
     /* Says WHERE the fraction came from, for an admin. § */
     value: L => String(Math.max(0, (L.n || 1) - 1))
-      + (isAdmin() && L.seatSource ? ` <span class="note">${esc(L.seatSource)}</span>` : ''),
+      + (isAdmin() && L.seatSource ? ' ' + cardBlock_({ type: 'group', tag: 'span', look: 'note', text: L.seatSource }) : ''),
     mult:  L => L.fChildrenAll,
     of:    L => rateBase(L, 'students') },
 
@@ -2197,7 +2197,7 @@ function priceCells(row, L, fmt) {
     const why = !L.hoursPerWeek ? 'tick some hours'
               : !L.weeksBooked  ? 'pick a time interval'
               : '';
-    return { total: (row.key === 'hoursweek' && why) ? `<span class="note">${why}</span>` : dash_() };
+    return { total: (row.key === 'hoursweek' && why) ? cardBlock_({ type: 'group', tag: 'span', look: 'note', text: why }) : dash_() };
   };
 
   /* --- a multiplier on the finished total: length, term, split, bulk, advance --------------- */
@@ -2867,7 +2867,7 @@ function mark(text) {
   laws.forEach(law => {
     const cls = LAW_CLASS[norm(law.colour)];
     if (cls === undefined) return;                 // a colour nobody has defined: left alone
-    const wrap = m => park(`<span class="${cls}">${m}</span>`);
+    const wrap = m => park(cardBlock_({ type: 'group', tag: 'span', look: cls, inner: m }));
 
     const how = Object.prototype.hasOwnProperty.call(LAW_KINDS, law.kind) ? LAW_KINDS[law.kind] : null;
     if (how) out = how(out, law, wrap);
@@ -3522,8 +3522,8 @@ function libTwinSvg_(r) {
   const h = libS(r && r.diagram_twin).trim();
   if (!/^[0-9a-f]{12}$/.test(h)) return '';
   const m = /^(\d+)x(\d+)$/.exec(libS(r.diagram_twin_wh).trim()), w = m ? +m[1] : 340, ht = m ? +m[2] : 255;
-  return `<svg class="qtwin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${ht}" width="${w}" role="img" aria-label="Figure">`
-    + `<image href="data/diagrams/${h}.png" width="${w}" height="${ht}"/></svg>`;
+  return cardBlock_({ type: 'drawing', node: { el: 'svg', a: { class: 'qtwin', xmlns: 'http://www.w3.org/2000/svg', viewBox: `0 0 ${w} ${ht}`, width: w, role: 'img', 'aria-label': 'Figure' },
+    kids: { el: 'image', a: { href: `data/diagrams/${h}.png`, width: w, height: ht } } } });
 }
 /* A ROW'S ID ON THE WIRE (backend LIB_FILES): `q:` a question row, `ct:` a content card, `pr:` a practical, `pj:` a project. */
 const libWireQ_ = r => 'q:' + libS(r && (r.row_id || r.id)).trim();
@@ -11051,7 +11051,7 @@ function settingsCards_(shown, moved, col) {
       options: fieldOptions_,
     },
     save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
-    foot: (mail(list) ? movingNote_(p) : '') + '<p class="note me-said"></p>',
+    foot: (mail(list) ? movingNote_(p) : '') + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said' }),
     after: id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '' }));
   const out = [];
   Object.keys(shown).forEach((g, k) => {
@@ -11134,11 +11134,10 @@ function studentSetPages_() {
   }
   const who = nameBesideHandle_(whose_().name, whose_().handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
-  let top = meCard_(`<div class="signed-in"><h3>Signed in</h3>
-    ${tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
-      + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)}
-    ${/* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
-      typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''}</div>`);
+  let top = meCard_(cardBlock_({ type: 'group', look: 'signed-in', blocks: [{ type: 'msgHead', text: 'Signed in' }], inner: tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
+      + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)
+    /* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
+    + (typeof mailHeldNote_ === 'function' ? mailHeldNote_() : '') }));
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
   /* IN THE LENS, SIGN OUT IS THE ADMIN'S OWN SESSION: shut, greyed not hidden (the fixed tile rule). */
   if (lensOn_()) top = lockCard_(top);
@@ -17152,8 +17151,7 @@ function tile_(o) {
   /* ONLY AN ADMIN SEES AN ADMIN'S TILE (owner, 8 Nov, 11a), and it looks like any other tile. */
   if (o.tone === 'admin' && !(typeof isAdmin === 'function' && isAdmin())) return '';
   const barred = '';
-  const style = o.style ? ` style="${esc(o.style)}"` : '';
-  return `<button type="button" class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${style}${pressed}${barred}${o.off ? ' disabled' : ''}
+  return `<button type="button" class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${pressed}${barred}${o.off ? ' disabled' : ''}
     >${body}</button>`;
 }
 

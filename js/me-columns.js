@@ -51,7 +51,7 @@ function settingsCards_(shown, moved, col) {
       options: fieldOptions_,
     },
     save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
-    foot: (mail(list) ? movingNote_(p) : '') + '<p class="note me-said"></p>',
+    foot: (mail(list) ? movingNote_(p) : '') + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said' }),
     after: id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '' }));
   const out = [];
   Object.keys(shown).forEach((g, k) => {
@@ -134,11 +134,10 @@ function studentSetPages_() {
   }
   const who = nameBesideHandle_(whose_().name, whose_().handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
-  let top = meCard_(`<div class="signed-in"><h3>Signed in</h3>
-    ${tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
-      + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)}
-    ${/* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
-      typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''}</div>`);
+  let top = meCard_(cardBlock_({ type: 'group', look: 'signed-in', blocks: [{ type: 'msgHead', text: 'Signed in' }], inner: tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
+      + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)
+    /* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
+    + (typeof mailHeldNote_ === 'function' ? mailHeldNote_() : '') }));
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
   /* IN THE LENS, SIGN OUT IS THE ADMIN'S OWN SESSION: shut, greyed not hidden (the fixed tile rule). */
   if (lensOn_()) top = lockCard_(top);
