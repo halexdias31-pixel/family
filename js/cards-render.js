@@ -18,9 +18,9 @@ function cardRuns_(v) {
   if (v.sub != null) return `<sub>${cardRuns_(v.sub)}</sub>`;
   if (v.math != null) return `<span class="kc-math">${cardRuns_(v.math)}</span>`;
   if (v.mono != null) return `<span class="mono">${cardRuns_(v.mono)}</span>`;
-  /* A LINK: an https, mailto: or tel: address, or a site path; `act` (file-view) opens it in place, the href its fallback. */
+  /* A LINK: an https, mailto: or tel: address, or a site path; `act` (file-view) opens it in place, the href its fallback; `look: 'link'` its one class, `out` a new tab. */
   if (v.link != null) { const h = String(v.href || ''); if (!/^(https:|mailto:|tel:|docs\/|data\/)/i.test(h)) return cardRuns_(v.link);
-    return `<a href="${esc(h)}"${v.act ? ` data-do="${esc(v.act)}"` : ''}>${cardRuns_(v.link)}</a>`; }
+    return `<a${v.look === 'link' ? ' class="link"' : ''} href="${esc(h)}"${v.out ? ' target="_blank" rel="noopener"' : ''}${v.act ? ` data-do="${esc(v.act)}"` : ''}>${cardRuns_(v.link)}</a>`; }
   /* A LINE BREAK inside one line's words (the build stamp's three lines). */
   if (v.br) return '<br>';
   /* A LINE NUMBER in a margin, as a printed text numbers its lines: read aloud as `line n`. */

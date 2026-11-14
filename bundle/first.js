@@ -497,9 +497,9 @@ function cardRuns_(v) {
   if (v.sub != null) return `<sub>${cardRuns_(v.sub)}</sub>`;
   if (v.math != null) return `<span class="kc-math">${cardRuns_(v.math)}</span>`;
   if (v.mono != null) return `<span class="mono">${cardRuns_(v.mono)}</span>`;
-  /* A LINK: an https, mailto: or tel: address, or a site path; `act` (file-view) opens it in place, the href its fallback. */
+  /* A LINK: an https, mailto: or tel: address, or a site path; `act` (file-view) opens it in place, the href its fallback; `look: 'link'` its one class, `out` a new tab. */
   if (v.link != null) { const h = String(v.href || ''); if (!/^(https:|mailto:|tel:|docs\/|data\/)/i.test(h)) return cardRuns_(v.link);
-    return `<a href="${esc(h)}"${v.act ? ` data-do="${esc(v.act)}"` : ''}>${cardRuns_(v.link)}</a>`; }
+    return `<a${v.look === 'link' ? ' class="link"' : ''} href="${esc(h)}"${v.out ? ' target="_blank" rel="noopener"' : ''}${v.act ? ` data-do="${esc(v.act)}"` : ''}>${cardRuns_(v.link)}</a>`; }
   /* A LINE BREAK inside one line's words (the build stamp's three lines). */
   if (v.br) return '<br>';
   /* A LINE NUMBER in a margin, as a printed text numbers its lines: read aloud as `line n`. */
@@ -4391,7 +4391,7 @@ function tierOff_(w) {
   Object.defineProperty(w, 'html', { configurable: true, enumerable: true, get() {
     const say = typeof brand === 'function' ? brand('widgetOff', 'Coming soon') : 'Coming soon';
     /* ITS WORDS ONLY: every host wraps a widget in its card, name and Suggest already, so a card here was a card in a card. */
-    return `<p class="note widget-off">${esc(say)}</p>`;
+    return cardBlock_({ type: 'group', tag: 'p', look: 'note widget-off', text: say });
   } });
   try { Object.defineProperty(w, '__tier', { value: 'off' }); } catch (e) { /* a frozen widget is still off */ }
 }
@@ -4638,8 +4638,7 @@ function nothingHere(whenEmpty, needsLibrary) {
 /* WAITING — ONE LOADER FOR EVERY CARD, AND THIS IS THE ONLY PLACE IT IS WRITTEN § */
 /* A SPINNING RING (owner, 12 Nov): one ring with a gap, turning forever; style.css draws it. */
 function loading_() {
-  return '<div class="loading" role="status" aria-label="Loading">'
-    + '<span></span></div>';
+  return cardBlock_({ type: 'group', look: 'loading', attrs: { role: 'status', 'aria-label': 'Loading' }, blocks: [{ type: 'group', tag: 'span' }] });
 }
 
 /* EACH COLUMN'S SHAPE, KEPT ON THE DEVICE (700): page heights in px, no data, so a column waiting next visit holds its final size. */
@@ -4651,7 +4650,8 @@ function shapeOf_(id) { const w = shapeWidth_(), all = shapeAll_(), hs = all.at 
 /* A COLUMN WITH NO DRAWER YET: its remembered pages, each a quiet surface round the one loader; one page when it was never seen. */
 function waitShape_(id) {
   const hs = shapeOf_(id) || [0];
-  return hs.map(h => `<section class="page"><div class="pane"${h ? ` data-keep style="--keep-h:${h}px"` : ''}>${loading_()}</div></section>`).join('');
+  return hs.map(h => cardBlock_({ type: 'group', tag: 'section', look: 'page',
+    blocks: [{ type: 'group', look: 'pane', attrs: h ? { 'data-keep': true, style: '--keep-h:' + h + 'px' } : null, inner: loading_() }] })).join('');
 }
 /* AND A PANE A DRAWER LEFT WAITING gets the height its page had last time. */
 function shapeHold_(el, id) {
@@ -5000,7 +5000,7 @@ function paint(id, fresh, o) {
     /* ITS CODE NOT IN YET (670, `LATER`): the column waits, and is drawn again when the payload lands. */
     if (!filesIn_() && err instanceof ReferenceError) { el.innerHTML = waitShape_(id); STALE[id] = 1; return; }
     oops_(err, 'draw:' + id);
-    el.innerHTML = `<div class="pane">${renderCard({ kind: 'oops', look: 'draw-oops', tags: [{ text: 'This screen did not draw', colour: 0 }] })}</div>`;
+    el.innerHTML = cardBlock_({ type: 'group', look: 'pane', inner: renderCard({ kind: 'oops', look: 'draw-oops', tags: [{ text: 'This screen did not draw', colour: 0 }] }) });
     return;
   }
   /* ---------- AND A WIDGET RUNNING ON THIS COLUMN KEEPS THE SLOT IT IS RUNNING IN § */
@@ -6628,7 +6628,7 @@ function adoptMarks_() {
 /* ONE TILE ROW PER THING (489): rows that stood one under another are joined (`tileRowsJoin_`, tiles.js). */
 const rowsOne_ = c => (typeof tileRowsJoin_ === 'function' ? tileRowsJoin_(c) : c);
 const pages = (id, cards) =>
-  cards.map(c => `<section class="page"><div class="pane">${rowsOne_(c)}</div></section>`).join('');
+  cards.map(c => cardBlock_({ type: 'group', tag: 'section', look: 'page', blocks: [{ type: 'group', look: 'pane', inner: rowsOne_(c) }] })).join('');
 
 /* ---------- AN EMPTY WIDGET IS ITS TITLE AND NOTHING ELSE (414) ---------- */
 /* One empty state for every list with nothing in it — Spotlight, Saved, the shop, the reels: no sentence explaining the emptiness, the owner's ask. */
@@ -6640,7 +6640,7 @@ const emptyCard_ = title => {
 
 /* ---------- ALL OF THEM ON ONE, WHICH IS WHAT A LIST IS § */
 const stack = (id, cards) =>
-  `<section class="page"><div class="pane">${rowsOne_(cards.join(''))}</div></section>`;
+  cardBlock_({ type: 'group', tag: 'section', look: 'page', blocks: [{ type: 'group', look: 'pane', inner: rowsOne_(cards.join('')) }] });
 
 /** The glass inside a page — where content actually goes. */
 /* THE PANE INSIDE A PAGE — AND ONE IS MADE IF THERE IS NOT ONE. § */
@@ -8082,12 +8082,10 @@ function loadFailBanner_(err, reached) {
           + 'built cold (after clearPayloadCache) and the next ask gets the copy it kept; minutes of '
           + 'them is the script itself — open it in a tab and see how long it takes.'
         : 'Something else went wrong on the way.';
-      el.innerHTML = 'Could not reach the backend.' + (reached ? '' : ' Still trying by itself.') + '<br>'
-        + qtag_(esc(why)) + '<br>'
-        + '<a class="link" href="' + esc(API) + '" target="_blank" rel="noopener">Open it in a '
-        + 'tab</a> — the page itself will say which it is.<br>'
-        + '<span>' + esc(msg)
-        + ' · site ' + esc(SITE_VERSION) + ' · css ' + esc(cssVersion()) + '</span>';
+      el.innerHTML = cardRuns_(['Could not reach the backend.' + (reached ? '' : ' Still trying by itself.'), { br: 1 }])
+        + qtag_(esc(why))
+        + cardRuns_([{ br: 1 }, { link: 'Open it in a tab', href: API, look: 'link', out: true }, ' — the page itself will say which it is.', { br: 1 },
+          { span: '', text: msg + ' · site ' + SITE_VERSION + ' · css ' + cssVersion() }]);
     }
 }
 /* A LOAD FINISHED, whether it succeeded or failed: the loader goes and every screen is drawn. */

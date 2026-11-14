@@ -113,7 +113,7 @@ function tierOff_(w) {
   Object.defineProperty(w, 'html', { configurable: true, enumerable: true, get() {
     const say = typeof brand === 'function' ? brand('widgetOff', 'Coming soon') : 'Coming soon';
     /* ITS WORDS ONLY: every host wraps a widget in its card, name and Suggest already, so a card here was a card in a card. */
-    return `<p class="note widget-off">${esc(say)}</p>`;
+    return cardBlock_({ type: 'group', tag: 'p', look: 'note widget-off', text: say });
   } });
   try { Object.defineProperty(w, '__tier', { value: 'off' }); } catch (e) { /* a frozen widget is still off */ }
 }
@@ -360,8 +360,7 @@ function nothingHere(whenEmpty, needsLibrary) {
 /* WAITING — ONE LOADER FOR EVERY CARD, AND THIS IS THE ONLY PLACE IT IS WRITTEN § */
 /* A SPINNING RING (owner, 12 Nov): one ring with a gap, turning forever; style.css draws it. */
 function loading_() {
-  return '<div class="loading" role="status" aria-label="Loading">'
-    + '<span></span></div>';
+  return cardBlock_({ type: 'group', look: 'loading', attrs: { role: 'status', 'aria-label': 'Loading' }, blocks: [{ type: 'group', tag: 'span' }] });
 }
 
 /* EACH COLUMN'S SHAPE, KEPT ON THE DEVICE (700): page heights in px, no data, so a column waiting next visit holds its final size. */
@@ -373,7 +372,8 @@ function shapeOf_(id) { const w = shapeWidth_(), all = shapeAll_(), hs = all.at 
 /* A COLUMN WITH NO DRAWER YET: its remembered pages, each a quiet surface round the one loader; one page when it was never seen. */
 function waitShape_(id) {
   const hs = shapeOf_(id) || [0];
-  return hs.map(h => `<section class="page"><div class="pane"${h ? ` data-keep style="--keep-h:${h}px"` : ''}>${loading_()}</div></section>`).join('');
+  return hs.map(h => cardBlock_({ type: 'group', tag: 'section', look: 'page',
+    blocks: [{ type: 'group', look: 'pane', attrs: h ? { 'data-keep': true, style: '--keep-h:' + h + 'px' } : null, inner: loading_() }] })).join('');
 }
 /* AND A PANE A DRAWER LEFT WAITING gets the height its page had last time. */
 function shapeHold_(el, id) {

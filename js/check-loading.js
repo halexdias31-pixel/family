@@ -103,9 +103,10 @@ for (const f of appFiles_()) {
     if (fn) {
       const body = src.slice(fn[0], fn[1]);
       loaderSrc = body;
-      if (!/role="status"/.test(body)) bad.push('loading_() does not say role="status" — a screen reader hears nothing while it waits');
-      if (!/aria-label="Loading"/.test(body)) bad.push('loading_() has no aria-label="Loading" — the ring says nothing out loud');
-      if ((body.match(/<span><\/span>/g) || []).length !== 1) bad.push('loading_() does not draw its one bar');
+      /* WRITTEN AS DATA FOR THE ONE MAKER (a group block) or as markup: either says the same three things. */
+      if (!/role="status"|role: 'status'/.test(body)) bad.push('loading_() does not say role="status" — a screen reader hears nothing while it waits');
+      if (!/aria-label="Loading"|'aria-label': 'Loading'/.test(body)) bad.push('loading_() has no aria-label="Loading" — the ring says nothing out loud');
+      if ((body.match(/<span><\/span>|\{ type: 'group', tag: 'span' \}/g) || []).length !== 1) bad.push('loading_() does not draw its one bar');
     }
   }
   const inOwn = at => own.some(o => at >= o[0] && at < o[1]);
