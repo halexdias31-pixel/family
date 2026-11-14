@@ -8873,7 +8873,8 @@ function cardOfItem_(it, x) {
     .concat(Object.keys(M.liveTags || {}).flatMap(f => ((it.live || {})[f] || []).map(t => ({ text: t, colour: M.liveTags[f] }))));
   /* `nameTag: false` still leads with the name when it has no facets at all: a card is never without a tag. */
   const pic = M.picture ? M.picture(it, own) : null;
-  return { look: (typeof M.look === 'function' ? M.look(it, own) : M.look) || '', name: it.name || own.name || '', ...(M.off ? { off: !!M.off(it.raw || {}) } : {}), picture: pic,
+  /* ITS ROW IS ITS ENTRY'S OWN, never one made of its name: a card whose name is not a tag (`nameTag: false`) must not draw it elsewhere (the Message tile's `to`). */
+  return { look: (typeof M.look === 'function' ? M.look(it, own) : M.look) || '', name: it.name || own.name || '', row: own.row || {}, ...(M.off ? { off: !!M.off(it.raw || {}) } : {}), picture: pic,
     body: M.sheet ? M.sheet(it, own, pic) : M.lines ? it.body : [],
     ...(M.data ? { data: M.data(it, own) } : {}), ...(M.tagLook ? { tagLook: M.tagLook } : {}),
     ...(M.tiles ? { tiles: M.tiles(it, own) } : {}), ...(M.toolRow ? { toolRow: { key: own.key || '' } } : {}),
