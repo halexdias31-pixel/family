@@ -548,13 +548,16 @@ function pixSvg_(rows, name, flip, cls) {
 /* A `pill` is a profile's pill (`prof-tag`), coloured by its row unless it names a colour; `say` reads it aloud whole, `title` names what a "+N" hides. */
 function cardTag_(t, i) {
   t = typeof t === 'string' ? { text: t } : (t || {});
-  const n = t.colour != null ? t.colour : t.pill ? null : i ? 1 : 0;
-  return `<span class="${t.pill ? 'prof-tag' : 'qtag'}${t.look ? ' ' + esc(t.look) : ''}"${n != null ? ` data-tag="${esc(n)}"` : ''}${
+  /* `base` names a chip (`chip`); `colour: false` wears none; `x` is the chip's always-shown ✕ (a Find menu's chosen path); `hidden` is read by no one (a PIN's ●). */
+  const n = t.colour === false ? null : t.colour != null ? t.colour : t.pill ? null : i ? 1 : 0;
+  return `<span class="${t.base ? esc(t.base) : t.pill ? 'prof-tag' : 'qtag'}${t.look ? ' ' + esc(t.look) : ''}"${n != null ? ` data-tag="${esc(n)}"` : ''}${
     t.say ? ` role="img" aria-label="${esc(t.say)}" title="${esc(t.say)}"` : t.title ? ` title="${esc(t.title)}"` : ''}${
-    t.act ? ` data-do="${esc(t.act)}" role="button" tabindex="0"` : ''}${cardAttrs_(t.data)}>${cardRuns_(t.text)}</span>`;
+    t.act ? ` data-do="${esc(t.act)}" role="button" tabindex="0"` : ''}${t.label ? ` aria-label="${esc(t.label)}"` : ''}${t.hidden ? ' aria-hidden="true"' : ''}${cardAttrs_(t.data)}>${cardRuns_(t.text)}${
+    t.x && typeof tile_ === 'function' ? tile_({ icon: 'close', label: t.x.label || '', act: t.x.act || t.act, data: t.x.data || t.data, cls: 'chip-x' }) : ''}</span>`;
 }
 /* A ROW OF TAGS on its own (a Find line, a list beside a card): the same tag maker. */
-const renderTags = (tags, look) => ((tags || []).length ? `<div class="qtags${look ? ' ' + esc(look) : ''}">${tags.map(cardTag_).join('')}</div>` : '');
+/* `keep`: a menu's row of chips, drawn even empty, its chips apart as words (a reader's textContent never runs two together). */
+const renderTags = (tags, look, keep) => ((tags || []).length || keep ? `<div class="qtags${look ? ' ' + esc(look) : ''}">${(tags || []).map(cardTag_).join(keep ? ' ' : '')}</div>` : '');
 /* A FORM'S ONE CONTROL: input, number, date, select, textarea or check; the label is its row's left side. */
 /* `draft: { surface, id }` keeps what is typed over a reload (draftAttr_/draftVal_); without it, its builder keeps it or says why (check-drafts). */
 function cardControl_(c) {
@@ -602,6 +605,26 @@ function cardTree_(nodes, fold, top) {
 const cardGrid_ = b => `<div class="kc-grid-wrap"><div class="kc-grid" role="table" aria-label="${esc(b.caption || '')}">${(b.cells || []).map(c =>
   `<div class="kc-cell kc-c${Math.min(18, Number(c.col) || 1)} kc-r${Math.min(10, Number(c.row) || 1)}">${
     (c.parts || []).map((t, i) => `<span class="kc-cell-${i}">${esc(String(t == null ? '' : t))}</span>`).join('')}</div>`).join('')}</div></div>`;
+/* A MENU'S CHOICES (owner, 14 Nov: one template for everything): a Find menu is a card whose tags are the path chosen and whose body is this.
+   `{ type: 'choices', id?, ask?, rows: [{ look?, id?, options: [opt] }], wait?, after? }`; an opt is `{ text, marked?, act, data?, look?, label?, pressed?, disabled? }`
+   or the blank tag typed on, `{ box: { id?, cls, value, label, inputmode?, enterkeyhint? } }`. Every tag is shown; nothing hides behind ⋯.
+   `after` is markup another maker made (a card, the none line) that follows the menu; `wait` is the loader. */
+function cardChoice_(o) {
+  if (o.box) { const b = o.box;
+    return answerBox_(`${b.id ? ` id="${esc(b.id)}"` : ''} class="${esc(b.cls || '')}" type="text" inputmode="${esc(b.inputmode || 'text')}" autocomplete="off"
+  autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="${esc(b.enterkeyhint || 'next')}" data-1p-ignore data-lpignore="true" aria-label="${esc(b.label || '')}"
+  value="${esc(b.value || '')}"`, o.look || ''); }
+  const d = o.data || {};
+  const attrs = (o.act ? ` data-do="${esc(o.act)}"` : '') + Object.keys(d).map(k => d[k] === true ? ` data-${esc(k)}` : ` data-${esc(k)}="${esc(String(d[k]))}"`).join('')
+    + (o.label ? ` aria-label="${esc(o.label)}"` : '') + (o.pressed ? ' aria-pressed="true"' : '') + (o.disabled ? ' aria-disabled="true"' : '');
+  return answerTag_(o.marked && typeof mark === 'function' ? mark(o.text) : esc(String(o.text == null ? '' : o.text)), attrs, o.look || '');
+}
+function cardChoices_(b) {
+  const inner = (b.ask ? `<p class="book-ask">${esc(b.ask)}</p>` : '')
+    + (b.rows || []).map(r => answersRow_((r.options || []).map(cardChoice_).join(''), r.look ? esc(r.look) : '', r.id ? esc(r.id) : '')).join('')
+    + (b.wait && typeof loading_ === 'function' ? loading_() : '') + (b.after || '');
+  return b.id ? `<div id="${esc(b.id)}" class="kc-choices">${inner}</div>` : inner;
+}
 /* THE BODY BLOCKS, each with its one renderer. */
 const CARD_BLOCKS = {
   text: b => [].concat(b.paras || [b.text]).filter(p => p != null && p !== '').map(p => `<p class="kc-line${b.tone ? ' ' + esc('is-' + b.tone) : ''}${b.look ? ' ' + esc(b.look) : ''}"${
@@ -633,6 +656,7 @@ const CARD_BLOCKS = {
   tree: b => cardTree_(b.nodes, !!b.fold, true),
   grid: cardGrid_,
   /* A WAIT is `loading_()` and nothing else; `look` and `data` name a region its redraw finds (`.err-body`). */
+  choices: cardChoices_,
   wait: b => `<div class="kc-wait${b.look ? ' ' + esc(b.look) : ''}"${cardAttrs_(b.data)}${b.on ? ' aria-busy="true"' : ''}>${b.on && typeof loading_ === 'function' ? loading_() : ''}</div>`,
 };
 /* A CARD DRAWN AGAIN WHERE IT STANDS: the new card replaces the old element whole. */
@@ -666,7 +690,7 @@ function renderCard(spec) {
   const cls = 'card fc kc kc-' + kind + (spec.look ? ' ' + spec.look : '') + (spec.off ? ' is-off' : '');
   return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
     + `<div class="kc-pic">${cardPic_(spec.picture)}</div><div class="kc-head"></div>`
-    + `<div class="kc-tags">${renderTags(tags, spec.tagLook)}${(spec.tagRows || []).map(CARD_BLOCKS.tags).join('')}</div>`
+    + `<div class="kc-tags"${spec.tagsId ? ` id="${esc(spec.tagsId)}"` : ''}>${renderTags(tags, spec.tagLook, spec.tagsKeep)}${(spec.tagRows || []).map(CARD_BLOCKS.tags).join('')}</div>`
     + `<div class="kc-lines">${body || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>`
     + `<div class="kc-act">${row}</div></div>`;
 }
