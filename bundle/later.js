@@ -2755,13 +2755,13 @@ function bibleVerseCard_(x) {
   if (d) {
     const w = bibleText_(x), he = bb.lang === 'he';
     /* ITS TRANSLATION IS ITS CREDIT, a later line (open-only), not a tag among the verse's lines. */
-    body = (!w ? '<p class="fc-note">This text has no verse with this number.</p>'
-        : he || bb.lang === 'grc' ? `<p class="bb-v bb-${he ? 'he' : 'grc'}"${he ? ' dir="rtl"' : ''} lang="${he ? 'he' : 'grc'}">${esc(w)}</p>`
+    body = (!w ? cardBlock_({ type: 'group', tag: 'p', look: 'fc-note', text: 'This text has no verse with this number.' })
+        : he || bb.lang === 'grc' ? cardBlock_({ type: 'group', tag: 'p', look: 'bb-v bb-' + (he ? 'he' : 'grc'), attrs: { dir: he ? 'rtl' : null, lang: he ? 'he' : 'grc' }, text: w })
         : bibleV_(w))
-      + '<p class="bb-credit">' + (also ? esc(also.name || also.translation) : esc(bb.translation || 'King James Version (1611)')) + ': public domain</p>'
+      + cardBlock_({ type: 'group', tag: 'p', look: 'bb-credit', text: (also ? also.name || also.translation : bb.translation || 'King James Version (1611)') + ': public domain' })
       + writingRefs_('bible:' + bb.dir);
   }
-  else if (BIBLE.missed[k] && !BIBLE.loading[k]) body = `<p class="fc-note bb-miss">${esc(bb.book)} did not arrive.</p>`;
+  else if (BIBLE.missed[k] && !BIBLE.loading[k]) body = cardBlock_({ type: 'group', tag: 'p', look: 'fc-note bb-miss', text: bb.book + ' did not arrive.' });
   else {
     /* WAITING FOR ITS BOOK: the one loader, where the verse will be. */
     body = loading_();
@@ -3111,42 +3111,35 @@ function boxerFigure_(look, trunks, blue, sex) {
     if (t.trim) cls.push('bf-tt-' + t.trim);
     vars.push('--bf-main:var(--bf-tk-' + t.main + ')', '--bf-trim:var(--bf-tk-' + (t.trim || t.main) + ')');
   }
-  const p = (c, spec) => (spec ? `<path class="${c}" d="${boxerRuns_(spec)}"/>` : '');
-  return `<g class="${cls.join(' ')}" transform="${blue ? 'translate(29 21) scale(-1 1)' : 'translate(11 21)'}"${
-      vars.length ? ` style="${vars.join(';')}"` : ''}>`
-    + p('bf-skin', BOXER_BODY.head + ' ' + BOXER_BODY.body)
-    + p('bf-hair', hair ? BOXER_HAIR[hair] : BOXER_HAIR_UNSAID[woman ? 'F' : 'M'])
-    + p('bf-face' + (face === 'stubble' ? ' bf-stubble' : ''), BOXER_FACE[face])
-    + p('bf-eye', BOXER_BODY.eye)
+  const p = (c, spec) => (spec ? [{ el: 'path', a: { class: c, d: boxerRuns_(spec) } }] : []);
+  return { el: 'g', a: { class: cls.join(' '), transform: blue ? 'translate(29 21) scale(-1 1)' : 'translate(11 21)', style: vars.join(';') }, kids: [].concat(
+    p('bf-skin', BOXER_BODY.head + ' ' + BOXER_BODY.body),
+    p('bf-hair', hair ? BOXER_HAIR[hair] : BOXER_HAIR_UNSAID[woman ? 'F' : 'M']),
+    p('bf-face' + (face === 'stubble' ? ' bf-stubble' : ''), BOXER_FACE[face]),
+    p('bf-eye', BOXER_BODY.eye),
     /* HER TOP IS IN HER TRUNKS' COLOUR — a fighter's kit — and in the same muted corner colour as
        the trunks when those are not on file; painted before the gloves, which are held over it. */
-    + (woman ? p('bf-top', BOXER_BODY.top) : '')
-    + p('bf-glove', BOXER_BODY.glove)
-    + p('bf-band', BOXER_BODY.band)
-    + p('bf-trunks', BOXER_BODY.trunks)
+    (woman ? p('bf-top', BOXER_BODY.top) : []),
+    p('bf-glove', BOXER_BODY.glove),
+    p('bf-band', BOXER_BODY.band),
+    p('bf-trunks', BOXER_BODY.trunks),
     /* LEOPARD IS TWO TONES, the spots painted over the trunks — or over the waistband, when it is
        the trim — in the figure's own dark brown. */
-    + (t && t.main === 'leopard' ? p('bf-spot', BOXER_BODY.spots) : '')
-    + (t && t.trim === 'leopard' ? p('bf-spot', '13:5,8') : '')
-    + (t && t.trim ? p('bf-stripe', BOXER_BODY.stripe) : '')
-    + p('bf-boot', BOXER_BODY.boot)
-    + '</g>';
+    (t && t.main === 'leopard' ? p('bf-spot', BOXER_BODY.spots) : []),
+    (t && t.trim === 'leopard' ? p('bf-spot', '13:5,8') : []),
+    (t && t.trim ? p('bf-stripe', BOXER_BODY.stripe) : []),
+    p('bf-boot', BOXER_BODY.boot)) };
 }
 
-/* THE RING, SIDE ON: two posts, three ropes, the pads in each corner's colour, the mat and the apron, and his initials over the top rope like the name on a § */
+/* THE RING, SIDE ON (a drawing block): two posts, three ropes, the pads in each corner's colour, the mat and the apron, and his initials over the top rope like the name on a § */
 function boxerRing_(name, blue, look, trunks, sex) {
-  const ropes = [23, 29, 35].map((y, i) =>
-    `<rect class="${i === 1 ? 'bf-rope-mid' : 'bf-rope'}" x="3" y="${y}" width="34" height="1"/>`
-    + `<rect class="bf-pad-l" x="0" y="${y - 1}" width="3" height="3"/>`
-    + `<rect class="bf-pad-r" x="37" y="${y - 1}" width="3" height="3"/>`).join('');
-  return `<svg class="boxer-ring" viewBox="0 0 40 50" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges" aria-hidden="true">`
-    + `<rect class="bf-stage" x="0" y="17" width="40" height="26"/>`
-    + `<rect class="bf-post" x="1" y="18" width="2" height="25"/><rect class="bf-post" x="37" y="18" width="2" height="25"/>`
-    + ropes
-    + `<rect class="bf-mat" x="0" y="43" width="40" height="2"/><rect class="bf-mat-edge" x="0" y="43" width="40" height="1"/>`
-    + `<rect class="bf-apron" x="0" y="45" width="40" height="5"/><rect class="bf-apron-band" x="0" y="46" width="40" height="1"/>`
-    + boxerFigure_(look, trunks, blue, sex)
-    + `<text class="boxer-ini" x="20" y="15" font-size="10" text-anchor="middle">${esc(boxerInitials_(name))}</text></svg>`;
+  const r = (cls, x, y, width, height) => ({ el: 'rect', a: { class: cls, x, y, width, height } });
+  const ropes = [].concat(...[23, 29, 35].map((y, i) => [r(i === 1 ? 'bf-rope-mid' : 'bf-rope', 3, y, 34, 1), r('bf-pad-l', 0, y - 1, 3, 3), r('bf-pad-r', 37, y - 1, 3, 3)]));
+  return { type: 'drawing', node: { el: 'svg', a: { class: 'boxer-ring', viewBox: '0 0 40 50', preserveAspectRatio: 'xMidYMid slice', 'shape-rendering': 'crispEdges', 'aria-hidden': 'true' },
+    kids: [r('bf-stage', 0, 17, 40, 26), r('bf-post', 1, 18, 2, 25), r('bf-post', 37, 18, 2, 25)].concat(ropes,
+      [r('bf-mat', 0, 43, 40, 2), r('bf-mat-edge', 0, 43, 40, 1), r('bf-apron', 0, 45, 40, 5), r('bf-apron-band', 0, 46, 40, 1),
+        boxerFigure_(look, trunks, blue, sex),
+        { el: 'text', a: { class: 'boxer-ini', x: 20, y: 15, 'font-size': 10, 'text-anchor': 'middle' }, text: boxerInitials_(name) }]) } };
 }
 
 /* AN ADDRESS THAT ALREADY FAILED ON THIS PHONE IS NOT ASKED FOR AGAIN. § */
@@ -3161,12 +3154,12 @@ function boxerPicSrc_(b) {
 /* `corner` IS THE FIGHT CARD'S: § */
 function boxerPic_(b, corner, won, trunks) {
   const src = boxerPicSrc_(b);
-  const frame = `<span class="boxer-frame">${boxerRing_(b.name, corner === 'b', b.look, corner ? trunks : b.trunks, b.sex)}${src
-    ? `<img class="boxer-img" src="${esc(src)}" alt="${esc(b.name)}" loading="lazy" decoding="async">` : ''}</span>`;
-  if (corner) return `<span class="boxer-pic is-small${src ? '' : ' is-none'}${won ? ' won' : ''}">${frame}</span>`;
+  const frame = { type: 'group', tag: 'span', look: 'boxer-frame',
+    blocks: [boxerRing_(b.name, corner === 'b', b.look, corner ? trunks : b.trunks, b.sex)].concat(src ? [{ type: 'media', kind: 'image', look: 'boxer-img', src, title: b.name }] : []) };
+  if (corner) return cardBlock_({ type: 'group', tag: 'span', look: 'boxer-pic is-small' + (src ? '' : ' is-none') + (won ? ' won' : ''), blocks: [frame] });
   /* THE CREDIT IS A LINE OF ITS OWN UNDER THE PHOTO AND THE NAME, NOT A CAPTION IN THE PHOTO'S COLUMN. § */
-  return `<figure class="boxer-pic${src ? '' : ' is-none'}">${frame}</figure>${src
-    ? `<p class="boxer-credit">${boxerCredit_(b, b.imageCredit)}</p>` : ''}`;
+  return cardBlock_({ type: 'drawing', node: { el: 'figure', a: { class: 'boxer-pic' + (src ? '' : ' is-none') }, inner: cardBlock_(frame) } })
+    + (src ? cardBlock_({ type: 'group', tag: 'p', look: 'boxer-credit', inner: boxerCredit_(b, b.imageCredit) }) : '');
 }
 
 /* ---------- THE CREDIT LINKS TO THE PHOTO'S FILE PAGE § */
@@ -3179,9 +3172,9 @@ function boxerCommons_(src) {
    and leaves another's — the fight card has two (`boxerPicFail_`). */
 function boxerCredit_(b, text) {
   const src = boxerPicSrc_(b), page = boxerCommons_(src);
-  return /^https:\/\/commons\.wikimedia\.org\//.test(page)
-    ? `<a class="boxer-src" data-src="${esc(src)}" href="${esc(page)}" target="_blank" rel="noopener">${esc(text)}</a>`
-    : `<span class="boxer-src" data-src="${esc(src)}">${esc(text)}</span>`;
+  /* The link, where there is a file page, is a run inside the one credit span the failing picture finds. */
+  return cardBlock_({ type: 'group', tag: 'span', look: 'boxer-src', attrs: { 'data-src': src },
+    text: /^https:\/\/commons\.wikimedia\.org\//.test(page) ? { link: text, href: page } : text });
 }
 
 /* A PICTURE THAT DID NOT COME LEAVES THE RING. § */
@@ -3230,7 +3223,7 @@ function personPic_(id, name, flip) {
 /* A COLUMN VECTOR AS TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) DRAWN TOP OVER BOTTOM in one pair of brackets -- the box, the card, Saved */
 function vecHtml_(html) {
   return String(html == null ? '' : html).replace(/\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g,
-    '<span class="vec"><span class="vec-a">$1</span><span class="vec-b">$2</span></span>');
+    (m, a, b) => cardBlock_({ type: 'group', tag: 'span', look: 'vec', blocks: [{ type: 'group', tag: 'span', look: 'vec-a', inner: a }, { type: 'group', tag: 'span', look: 'vec-b', inner: b }] }));
 }
 window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, spec: specExtras_, manuscript: histExtras_, writing: histExtras_, event: histExtras_ });
 /* A BOXER'S OR FIGURE'S PIXEL PORTRAIT AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
@@ -16914,50 +16907,60 @@ const WF_MAX = 6;
 const WF = {};
 const wfOf_ = pid => WF[pid] || (WF[pid] = { rows: null, asked: false, mayDelete: false, pending: [], others: [], say: '' });
 
-/* THE CARD: the same one in your own settings and under a student a parent or the admin may see; one master template (card_). */
+/* THE CARD: the same one in your own settings and under a student a parent or the admin may see; one master template (renderCard). */
 function workFileCard_(pid) {
   const of = String(pid || (USER && USER.personId) || '');
   if (!of || !USER || USER.lockedPreview) return '';
-  return card_(`<div class="workfile-card" data-of="${esc(of)}"><h3>Work on file</h3>${wfBody_(of)}</div>`);
+  return renderCard(wfSpec_(of));
 }
+/* ITS SPEC: the scan and save tiles stand in the card's own tile row; under someone else's student they sit among the lines (`wfBody_`). */
+const wfSpec_ = of => ({ kind: 'panel', look: 'workfile-card', name: 'Work on file', tags: [{ text: 'Work on file' }], data: { of },
+  body: wfBody_(of, true), tiles: wfTeach_(of) ? [] : wfTiles_(of) });
 /* A TUTOR'S OWN CARD holds no scans of theirs: it opens each booked student's file (`others`, from the backend). */
 const wfTeach_ = of => !!USER && String(of) === String(USER.personId || '') && typeof rank_ === 'function' && rank_() === 'staff';
-function wfBody_(of) {
+const wfNote_ = text => ({ type: 'group', tag: 'p', look: 'note', text });
+const wfTiles_ = of => { const s = wfOf_(of);
+  return (s.pending.length ? [{ icon: 'save', label: 'Save to file', note: s.pending.length + ' page' + (s.pending.length === 1 ? '' : 's'), act: 'wf-save', cls: 'is-submit', data: { of } }] : [])
+    .concat({ icon: 'photo', label: 'Scan a page', note: 'camera or photos', act: 'wf-pick', data: { of } }); };
+/* THE INSIDES AS BLOCKS: `inCard` leaves the scan and save tiles to the card's row. */
+function wfBody_(of, inCard) {
   const s = wfOf_(of);
   if (!s.asked) setTimeout(() => wfLoad_(of), 0);
-  if (wfTeach_(of)) return s.rows === null ? loading_() : (s.others || []).length
-    ? `<div class="tile-row">${tile_(s.others.map(o => workFileOpts_(o.id, o.name)))}</div>`
-    : '<p class="note">Your booked students\' scanned work shows here.</p>';
-  const pend = s.pending.length ? `<div class="wf-pend"><div class="qp-work-pics">${s.pending.map((p, i) => `<span class="qp-work-pic"><img src="${esc(p)}" alt="New page ${i + 1}">
-      ${tile_({ form: true, look: 'qp-work-x', act: 'wf-x', data: { of, i }, aria: 'Remove page ' + (i + 1), label: '×' })}</span>`).join('')}</div>
-    <label class="wf-line">Title <input class="wf-title" data-of="${esc(of)}" maxlength="80" placeholder="Optional"></label>
-    <label class="wf-line">Subject <input class="wf-subject" data-of="${esc(of)}" maxlength="40" placeholder="Optional"></label></div>` : '';
-  const tiles = tile_({ icon: 'photo', label: 'Scan a page', note: 'camera or photos', act: 'wf-pick', data: { of } })
-    + (s.pending.length ? tile_({ icon: 'save', label: 'Save to file', note: s.pending.length + ' page' + (s.pending.length === 1 ? '' : 's'), act: 'wf-save', cls: 'is-submit', data: { of } }) : '');
-  return `${pend}<div class="tile-row">${tiles}</div>
-    <p class="wf-say note" role="status" aria-live="polite">${esc(s.say)}</p>
-    <div class="wf-list">${wfList_(of)}</div>`;
+  if (wfTeach_(of)) return [s.rows === null ? { type: 'wait', on: true } : (s.others || []).length
+    ? { type: 'tiles', tiles: s.others.map(o => workFileOpts_(o.id, o.name)) }
+    : wfNote_('Your booked students\' scanned work shows here.')];
+  const line = (text, box) => ({ type: 'group', tag: 'label', look: 'wf-line', text: text + ' ', blocks: [box] });
+  const pend = s.pending.length ? { type: 'group', look: 'wf-pend', blocks: [{ type: 'group', look: 'qp-work-pics', blocks: s.pending.map((p, i) => ({ type: 'group', tag: 'span', look: 'qp-work-pic',
+      blocks: [{ type: 'media', kind: 'image', src: p, title: 'New page ' + (i + 1) }],
+      tiles: [{ form: true, look: 'qp-work-x', act: 'wf-x', data: { of, i }, aria: 'Remove page ' + (i + 1), label: '×' }] })) },
+    line('Title', { type: 'control', attrs: { class: 'wf-title', 'data-of': of, maxlength: 80, placeholder: 'Optional' } }),
+    line('Subject', { type: 'control', attrs: { class: 'wf-subject', 'data-of': of, maxlength: 40, placeholder: 'Optional' } })] } : null;
+  return [pend, inCard ? null : { type: 'tiles', tiles: wfTiles_(of).reverse() },
+    { type: 'group', tag: 'p', look: 'wf-say note', attrs: { role: 'status', 'aria-live': 'polite' }, text: s.say },
+    { type: 'group', look: 'wf-list', blocks: wfList_(of) }];
 }
 function wfList_(of) {
   const s = wfOf_(of);
-  if (s.rows === null) return loading_();
-  if (!s.rows.length) return '<p class="note">Nothing on file yet. Scan a page to keep it here.</p>';
-  return `<ul class="wf-rows">${s.rows.map(r => `<li class="row wf-item">
-    ${r.thumb ? `<img class="wf-thumb" src="${esc(r.thumb)}" alt="">` : '<span class="wf-thumb" aria-hidden="true"></span>'}
-    <span class="wf-what"><span class="wf-name">${esc(r.title || r.subject || 'Scanned work')}</span>
-      <span class="wf-when note">${esc(wfDate_(r.at))}${r.subject && r.title ? ' · ' + esc(r.subject) : ''} · ${esc(String(r.pages || 1))} page${r.pages === 1 ? '' : 's'}${r.by && r.by !== 'you' ? ' · by ' + esc(r.by) : ''}</span></span>
-    ${tile_({ icon: 'open', label: 'Open', note: 'see the pages', act: 'wf-open', data: { id: r.id, title: r.title || 'Scanned work' } })}
-    ${s.mayDelete ? tile_({ icon: 'bin', label: 'Delete', note: 'from your file', act: 'wf-del', data: { id: r.id, of } }) : ''}</li>`).join('')}</ul>`;
+  if (s.rows === null) return [{ type: 'wait', on: true }];
+  if (!s.rows.length) return [wfNote_('Nothing on file yet. Scan a page to keep it here.')];
+  const span = (look, text) => ({ type: 'group', tag: 'span', look, text });
+  return [{ type: 'group', look: 'wf-rows', attrs: { role: 'list' }, blocks: s.rows.map(r => ({ type: 'group', look: 'row wf-item', attrs: { role: 'listitem' },
+    blocks: [r.thumb ? { type: 'media', kind: 'image', look: 'wf-thumb', src: r.thumb } : { type: 'group', tag: 'span', look: 'wf-thumb', attrs: { 'aria-hidden': 'true' } },
+      { type: 'group', tag: 'span', look: 'wf-what', blocks: [span('wf-name', r.title || r.subject || 'Scanned work'),
+        span('wf-when note', wfDate_(r.at) + (r.subject && r.title ? ' · ' + r.subject : '') + ' · ' + String(r.pages || 1) + ' page' + (r.pages === 1 ? '' : 's') + (r.by && r.by !== 'you' ? ' · by ' + r.by : ''))] }],
+    tiles: [{ icon: 'open', label: 'Open', note: 'see the pages', act: 'wf-open', data: { id: r.id, title: r.title || 'Scanned work' } }]
+      .concat(s.mayDelete ? [{ icon: 'bin', label: 'Delete', note: 'from your file', act: 'wf-del', data: { id: r.id, of } }] : []) })) }];
 }
 const wfDate_ = ms => { try { return ms ? date_(Number(ms)) : ''; } catch (e) { return ''; } };
-/* THE CARD IS DRAWN AGAIN WHOLE (cardFill_): the template cuts its insides into its own parts, so there is no inner box to refill. */
+/* THE CARD IS DRAWN AGAIN WHOLE from its spec, kept as the same element so its place in the column stays. */
 function wfPaint_(of) {
   document.querySelectorAll('.workfile-card[data-of], .wf-seen[data-of]').forEach(el => {
     if (el.getAttribute('data-of') !== of) return;
     const keep = {};
     el.querySelectorAll('.wf-title, .wf-subject').forEach(i => { keep[i.className] = i.value; });
-    if (el.classList.contains('wf-seen')) el.innerHTML = wfBody_(of);
-    else if (typeof cardFill_ === 'function') cardFill_(el, '<h3>Work on file</h3>' + wfBody_(of));
+    if (el.classList.contains('wf-seen')) el.innerHTML = cardBlocks_(wfBody_(of));
+    else { const t = document.createElement('template'); t.innerHTML = renderCard(wfSpec_(of));
+      const fresh = t.content.firstElementChild; if (fresh) { el.className = fresh.className; el.replaceChildren(...fresh.childNodes); } }
     el.querySelectorAll('.wf-title, .wf-subject').forEach(i => { if (keep[i.className]) i.value = keep[i.className]; });
   });
 }
@@ -17020,13 +17023,13 @@ on('wf-save', el => {
 on('wf-open', el => {
   const id = el.getAttribute('data-id'), title = el.getAttribute('data-title') || 'Scanned work';
   if (!id || !USER || !USER.token) return;
-  openSheet(title, `<div class="wf-pages">${loading_()}</div>`);
+  openSheet(title, cardBlock_({ type: 'wait', look: 'wf-pages', on: true }));
   api({ action: 'workFileOpen', personId: USER.personId || '', id }).then(d => {
     const box = document.querySelector('.wf-pages');
     if (!box) return;
     loaded_(box);
     if (!d || !d.success) { box.textContent = (d && (d.message || d.error)) || 'Could not open it'; return; }
-    box.innerHTML = (d.pages || []).map((u, i) => `<img class="wf-page" src="${esc(u)}" alt="Page ${i + 1}">`).join('') || '<p class="note">No pages could be read.</p>';
+    box.innerHTML = cardBlocks_((d.pages || []).length ? d.pages.map((u, i) => ({ type: 'media', kind: 'image', look: 'wf-page', src: u, title: 'Page ' + (i + 1) })) : [wfNote_('No pages could be read.')]);
   }).catch(() => { const box = document.querySelector('.wf-pages'); if (box) { loaded_(box); box.textContent = 'Could not reach the server'; } });
 });
 
@@ -17052,7 +17055,7 @@ on('wf-see', el => {
   const box = document.createElement('div');
   box.className = 'wf-seen';
   box.setAttribute('data-of', pid);
-  box.innerHTML = wfBody_(pid);
+  box.innerHTML = cardBlocks_(wfBody_(pid));
   row.insertAdjacentElement('afterend', box);
 });
 
