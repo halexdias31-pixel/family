@@ -123,10 +123,11 @@ function applyKnown_() {
   return { fullName: [q.first_name, q.last_name].filter(Boolean).join(' '), email: q.email || '', phone: q.phone || '', dob };
 }
 function applyFormHtml_() {
-  const noOther = h => h.replace(`<option value="${QUAL_OTHER}">Something else…</option>`, '');
+  /* `qualPick_` returns a field block (me-shelves); here it is drawn without its Something else… option. */
+  const noOther = b => { b.blocks[0].options = b.blocks[0].options.filter(o => o.value !== QUAL_OTHER); return cardBlock_(b); };
   const rows = Array.from({ length: APP_SUBJECT_ROWS }, (_, i) => `<div class="q-row">
-      ${noOther(qualPick_(`data-app-subj="${i}"`, '', QUAL_SUBJECTS, i ? 'Another subject' : 'Subject', 'Choose'))}
-      ${noOther(qualPick_(`data-app-level="${i}"`, '', QUAL_LEVELS, 'Level', 'Choose'))}</div>`).join('');
+      ${noOther(qualPick_({ 'data-app-subj': String(i) }, '', QUAL_SUBJECTS, i ? 'Another subject' : 'Subject', 'Choose'))}
+      ${noOther(qualPick_({ 'data-app-level': String(i) }, '', QUAL_LEVELS, 'Level', 'Choose'))}</div>`).join('');
   const codes = typeof availCodes_ === 'function' ? availCodes_() : [];
   const week = codes.length ? availGrid_(codes, {}, [], false) : '';
   const known = applyKnown_();
