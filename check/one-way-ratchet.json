@@ -1,6 +1,6 @@
 {
  "say": "Hand-built markup still left (file element: count). Only goes down: node js/check-one-way.js --lower",
- "total": 821,
+ "total": 762,
  "left": {
   "js/calc.js markup": 18,
   "js/cards-make.js markup": 22,
@@ -11,7 +11,6 @@
   "js/find-aloud.js markup": 2,
   "js/find-boxers.js markup": 34,
   "js/find-boxers.js style": 1,
-  "js/find-bundles.js markup": 30,
   "js/find-doors.js markup": 3,
   "js/find-facets.js markup": 9,
   "js/find-finder.js markup": 17,
@@ -45,7 +44,6 @@
   "js/me-fields.js markup": 24,
   "js/me-settings.js markup": 35,
   "js/mechanics.js markup": 2,
-  "js/messages.js markup": 29,
   "js/offline.js markup": 9,
   "js/one-place.js markup": 28,
   "js/overworld.js markup": 10,
