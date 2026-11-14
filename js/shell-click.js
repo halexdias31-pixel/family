@@ -374,7 +374,22 @@ function why_(err) {
 
 /* `opts.keepalive` — a request the browser finishes after the page has gone, for the last answers sent as
    an iPad's cover closes (`answersPush_` in js/answers.js). Nothing else passes it. */
+/* ONE WAY TO THE SERVER (step 2): a `readItems` read names the old door it replaces in `old`. */
+/* A backend not yet redeployed answers "unknown action" or "cannot be read here yet": the old door is asked instead. */
+const itemsOld_ = d => !!(d && d.error && (/unknown action|not recognis/i.test(String(d.error))
+  || (d.why === 'kind' && /cannot be read here yet/i.test(String(d.error)))));
+function apiItems_(body, opts) {
+  const b = Object.assign({}, body), old = String(b.old);
+  delete b.old;
+  return api(b, opts).then(d => {
+    if (!itemsOld_(d)) return d;
+    const o = Object.assign({}, b, { action: old });
+    delete o.kind;
+    return api(o, opts);
+  });
+}
 function api(body, opts) {
+  if (body && body.action === 'readItems' && body.old) return apiItems_(body, opts);
   /* ---------- THE TOKEN GOES ON EVERY REQUEST, FROM ONE PLACE § */
   const b = Object.assign({}, body);
   if (!b.token && typeof USER === 'object' && USER && USER.token) b.token = USER.token;

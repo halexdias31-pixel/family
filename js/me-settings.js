@@ -366,7 +366,7 @@ function profileRefresh_(loud, onOld) {
   PROFILE_ASKING = true;
   const askedAt = Date.now();
   /* RETURNED, so a caller waiting on a copy it can trust (the card editor, `cardFetch_`) knows when the question has been answered either way — every § */
-  return api({ action: 'myProfile', name: USER.name, personId: USER.personId || '' })
+  return api({ action: 'readItems', kind: 'profile', old: 'myProfile', name: USER.name, personId: USER.personId || '' })
     .then(d => {
       PROFILE_ASKING = false;
       /* ---------- AN ANSWER OLDER THAN WHAT THE PHONE NOW KNOWS IS NOT PAINTED § */

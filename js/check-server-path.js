@@ -7,6 +7,7 @@ const O = path.join(__dirname, '..');
 const SA = require('../tools/server-actions.js'), P = require('../tools/permissions.js');
 const RATCHET = path.join(O, 'check', 'server-path-ratchet.json');
 const bad = [];
+let FALLS = Promise.resolve();
 let j = null, rows = [];
 try { j = JSON.parse(fs.readFileSync(SA.JSON_PATH, 'utf8')); rows = JSON.parse(fs.readFileSync(path.join(O, 'data/settings/permissions.json'), 'utf8')); } catch (e) {
   console.log('check-server-path: server-actions.json or permissions.json not read (' + e.message + ') — nothing was checked'); process.exit(1);
@@ -65,6 +66,53 @@ if ('readItems' in access) {
     if (!row) bad.push('readItems serves ' + k + ' and the table has no ' + role + ' row for it');
     else if (row.allow && row.via !== 'libItems') bad.push('readItems serves ' + k + ' through libItems, and the table says ' + role + '\'s door was ' + row.via);
   }));
+  /* SLICE 2: PEOPLE, ANSWERS, MESSAGES — each kind answered by its old door's own handler; a non-admin only through the `self` one, somebody else's only an admin's. */
+  const own = (/function readItemsOld_\(\) \{([\s\S]*?)\n\}\n/.exec(gsAll) || ['', ''])[1];
+  const byFn = {}; Object.keys(acts).forEach(a => { byFn[acts[a].handler] = a; });
+  const ow = (/function readItemsOwn_\(kind, how, body, began\) \{[\s\S]*?\n\}\n/.exec(gsAll) || [''])[0];
+  if (own && !/if \(!h\.other|if \(!how\.other \|\| role !== 'admin' \|\| !hasRole\(me, 'admin'\)\)/.test(ow)) bad.push('readItemsOwn_ no longer refuses somebody else\'s item to all but an admin');
+  if (own && !/itemMay_\(kind, 'read', role\)/.test(ow)) bad.push('readItemsOwn_ does not ask ITEM_PERMISSIONS (itemMay_)');
+  if (own && !/how\.self && \(!want \|\| want === self\)/.test(ow)) bad.push('readItemsOwn_ reaches a `self` door for somebody else\'s id');
+  [...own.matchAll(/(\w+): \{([^}]*)\}/g)].forEach(m => {
+    const k = m[1], self = (/self: (\w+)/.exec(m[2]) || [])[1], other = (/other: (\w+)/.exec(m[2]) || [])[1];
+    const sa = self && byFn[self], oa = other && byFn[other];
+    if (self && !sa) bad.push('readItems ' + k + ': self handler ' + self + ' is no action\'s');
+    if (other && !oa) bad.push('readItems ' + k + ': other handler ' + other + ' is no action\'s');
+    if (oa && P.ROLES.some(r => r !== 'admin' && may(oa, r))) bad.push('readItems ' + k + ': somebody else\'s goes through ' + oa + ', which is not an admin\'s alone');
+    if (oa === 'lensOpen' && !/logged: true/.test(m[2])) bad.push('readItems ' + k + ': the lens view through readItems is not logged');
+    if (oa === 'lensOpen' && !/how\.logged && want !== self\)[\s\S]*?lensLog_\(me, r,/.test(ow)) bad.push('readItemsOwn_ no longer writes the lens_log row');
+    P.ROLES.forEach(role => {
+      const row = rows.find(r => r && r.kind === 'item' && r.role === role && r.action === k + ':read');
+      if (!row) { bad.push('readItems serves ' + k + ' and the table has no ' + role + ' row for it'); return; }
+      if (!row.allow) return;
+      const ok = role === 'admin' ? [sa, oa] : [sa];
+      if (ok.indexOf(row.via) === -1) bad.push('readItems ' + k + ': ' + role + '\'s row says via ' + row.via + ', and its doors are ' + ok.filter(Boolean).join(', '));
+      if (!(sa ? may(sa, role) : false) && !(role === 'admin' && oa && may(oa, role))) bad.push('readItems lets ' + role + ' read ' + k + ' that no old door gave it');
+    });
+  });
+}
+/* A FALLBACK (`old:` in the site) IS ONLY TO A DOOR readItems REPLACES — the bridge until the backend is redeployed. */
+Object.keys(acts).forEach(a => { if ((acts[a].fallbacks || []).length && !(acts[a].fate === 'general' && acts[a].into === 'readItems')) bad.push(a + ': the site falls back to it, and it does not fold into readItems'); });
+/* AND THE SITE'S FALLBACK WORKS: readItems first; the old door, with the same request, only when the live backend does not know readItems or the kind. */
+{
+  const sc = fs.readFileSync(path.join(O, 'js', 'shell-click.js'), 'utf8'), at = sc.indexOf('const itemsOld_'), end = sc.indexOf('\nfunction api(');
+  if (at < 0 || end < at) bad.push('js/shell-click.js has no itemsOld_/apiItems_ before api() — the readItems fallback is gone');
+  else {
+    const run = reply => { const sent = [];
+      const ctx = { Object, String, Promise, api: b => { sent.push(b); return Promise.resolve(b.action === 'readItems' ? reply : { success: true, from: b.action }); } };
+      require('vm').runInNewContext(sc.slice(at, end) + '\nthis.apiItems_ = apiItems_;', ctx);
+      return ctx.apiItems_({ action: 'readItems', kind: 'profile', ids: ['P-1'], old: 'lensOpen', targetId: 'P-1' }).then(d => ({ d, sent })); };
+    const cases = [
+      [{ error: 'Unknown action: readItems' }, 'lensOpen'], [{ error: 'That action is not recognised.' }, 'lensOpen'],
+      [{ error: 'That kind cannot be read here yet.', why: 'kind' }, 'lensOpen'], [{ success: true }, null],
+      [{ error: 'Not authorised.', why: 'refused' }, null], [{ error: 'Only your own.', why: 'refused' }, null]];
+    FALLS = Promise.all(cases.map(([reply, want]) => run(reply).then(({ d, sent }) => {
+      if ('old' in sent[0]) bad.push('apiItems_ sent `old` to the server');
+      const fell = sent.length > 1 ? sent[1].action : null;
+      if (fell !== want) bad.push('apiItems_ on ' + JSON.stringify(reply) + ' fell back to ' + fell + ', not ' + want);
+      if (fell && (sent[1].targetId !== 'P-1' || 'kind' in sent[1])) bad.push('apiItems_ changed the old door\'s request: ' + JSON.stringify(sent[1]));
+    })));
+  }
 }
 
 /* 3. THE OLD DOORS STILL CALLED ONLY GET FEWER. */
@@ -76,7 +124,9 @@ if (rat) {
   else if (inUse.length < rat.oldInUse) bad.push(inUse.length + ' old actions are called, fewer than ' + rat.oldInUse + ': lower oldInUse in check/server-path-ratchet.json to ' + inUse.length);
 }
 
+FALLS.then(() => {
 const n = {}; Object.keys(acts).forEach(a => { n[acts[a].fate] = (n[acts[a].fate] || 0) + 1; });
 if (bad.length) { console.log(bad.map(b => '  ' + b).join('\n')); console.log('FAILED — ' + bad.length + ' problem(s) on the one way to the server.'); process.exit(1); }
 console.log('OK — ' + Object.keys(acts).length + ' actions surveyed (' + (n.general || 0) + ' general, ' + (n.special || 0) + ' special, ' + (n.dead || 0) + ' dead); '
   + items + ' item rows, none wider than the old doors; ' + inUse.length + ' old actions still called (ratchet).');
+});

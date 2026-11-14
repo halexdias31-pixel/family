@@ -190,7 +190,7 @@ function cardFetch_(e) {
     return;
   }
   e.asking = true;
-  api({ action: 'getProfile', name: USER.name, personId: USER.personId || '', target: e.pid })
+  api({ action: 'readItems', kind: 'card', ids: [e.pid], old: 'getProfile', name: USER.name, personId: USER.personId || '', target: e.pid })
     .then(d => {
       e.asking = false;
       if (CARD_EDIT !== e) return;

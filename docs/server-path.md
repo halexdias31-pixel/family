@@ -8,7 +8,7 @@ The full list, door by door, is `data/settings/server-actions.json` (refreshed b
 
 | Door | What it does | Status |
 |---|---|---|
-| `readItems` | Read items of one kind (questions, a person, messages …) | **Built (slice 1)**, for the library: questions, textbook content, practicals, projects |
+| `readItems` | Read items of one kind (questions, a person, messages …) | **Built (slices 1–2)**: the library (questions, textbook content, practicals, projects); your own profile, answers and messages; an admin's lens, person form and card |
 | `saveItem` | Save one item | Planned |
 | `deleteItem` | Delete one item | Planned |
 
@@ -41,6 +41,11 @@ One row per **role × kind × verb**. Roles: *anyone* (signed out), *member* (si
 |---|---|---|---|
 | question, content, practical, project | member, child, admin (via libItems: signed in, a day's cap) | admin (via libImport) | nobody |
 | venue | everybody; **a child without the price** (rate, concession, cost per hour) | not in the table yet | not in the table yet |
+| profile | your own: member, child (via myProfile); somebody else's: **admin only** (via lensOpen), logged by id in lens_log | — | — |
+| answer | your own only: member, child, admin (via myAnswers) | — | — |
+| message | your own only: member, child, admin (via messages) | — | — |
+| person (admin's edit form) | admin only (via personGet) | — | — |
+| card (admin's card editor) | admin only (via getProfile) | — | — |
 
 On top of the table, every reply to a child still has prices stripped by the server (`kidPricesOff_`), as before.
 
@@ -55,9 +60,16 @@ On top of the table, every reply to a child still has prices stripped by the ser
 
 `readItems` exists in the backend **beside** `libItems`, not instead of it. It asks the table, then reads through the very same steps as `libItems` (same sign-in, same daily cap, same count), so nobody gets more than before. The site does not call it yet, so **nothing visible changes and no redeploy is needed**; the next backend redeploy simply carries it along.
 
+## Slice 2 (now)
+
+`readItems` also reads `profile`, `answer`, `message`, `person` and `card`. Each is answered **by the old door's own handler** (`readItemsOld_` in post-learning.gs), so the fields, the refusals and the child price strip are that door's. Your own goes through myProfile, myAnswers or messages; anybody else's is an admin's alone (lensOpen, personGet, getProfile), one id a call, and an admin's lens leaves a lens_log row of ids.
+
+The site now asks `readItems` for the library, your settings, answers and messages, the lens, the people form and the card editor. Each request names its old door as `old:` (`apiItems_`, js/shell-click.js): **a backend not yet redeployed** answers "unknown action" (or "cannot be read here yet"), and the same request goes through the old door instead. So the site works before and after the redeploy. The survey lists such names as `fallbacks`, not callers; check-server-path allows a fallback only to a door that folds into readItems.
+
+The old doors stay in the backend until a later redeploy removes them (old phones).
+
 ## Next slices
-1. Point the library reader (`js/find-parts.js`) at `readItems`; remove `libItems` at the following redeploy.
-2. Add person, answer and message reads to `readItems` (self-only rows), retiring myProfile, myAnswers, personGet, getProfile, lensOpen.
-3. Build `saveItem` with per-field write rows, starting with the notepad, to-do and email choices.
-4. `deleteItem` for posts and people.
-5. Remove the dead doors at a redeploy.
+1. Once the backend is redeployed and old phones have gone, remove libItems, myProfile, myAnswers, messages, getProfile, personGet and lensOpen, and the `old:` fallbacks.
+2. Build `saveItem` with per-field write rows, starting with the notepad, to-do and email choices.
+3. `deleteItem` for posts and people.
+4. Remove the dead doors at a redeploy.

@@ -1433,10 +1433,15 @@ function permChildDenied_(action) {
 
 /* Each item kind:verb → the roles allowed, each with the fields it is not sent. Not listed → refused. */
 const ITEM_PERMISSIONS = {
+  'answer:read': { member: [], child: [], admin: [] },
+  'card:read': { admin: [] },
   'content:read': { member: [], child: [], admin: [] },
   'content:save': { admin: [] },
+  'message:read': { member: [], child: [], admin: [] },
+  'person:read': { admin: [] },
   'practical:read': { member: [], child: [], admin: [] },
   'practical:save': { admin: [] },
+  'profile:read': { member: [], child: [], admin: [] },
   'project:read': { member: [], child: [], admin: [] },
   'project:save': { admin: [] },
   'question:read': { member: [], child: [], admin: [] },
