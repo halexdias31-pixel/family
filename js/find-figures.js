@@ -1,9 +1,11 @@
 /* A PICTURE WITH MARKS ON IT AND NO PEN: § */
-const usesSeen_ = (svg, all) => `<div class="qseen">
-    <div class="qpad-art">${svg}
-      <svg class="qpad-ink" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">${usesInk_(all, padAspect_(null, svg))}</svg>
-    </div>
-  </div>`;
+/* A FIGURE'S PARTS ARE DRAWN BY THE ONE MAKER: a box (`group`) or a vector shape (`drawing`), from data; `inner` is a drawing already made. */
+const figBox_ = o => cardBlock_(Object.assign({ type: 'group' }, o));
+const figDraw_ = n => cardBlock_({ type: 'drawing', node: n });
+const figWrap_ = svg => figDraw_({ el: 'figure', inner: svg });
+const figNotDrawn_ = () => figBox_({ tag: 'p', look: 'qfig-missing', text: 'Figure not drawn yet.' });
+const usesSeen_ = (svg, all) => figBox_({ look: 'qseen', inner: figBox_({ look: 'qpad-art', inner: svg + figDraw_({ el: 'svg',
+  a: { class: 'qpad-ink', viewBox: '0 0 340 340', preserveAspectRatio: 'none', 'aria-hidden': 'true' }, inner: usesInk_(all, padAspect_(null, svg)) }) }) });
 /* A PART THAT ONLY LOOKS AT THE PICTURE AN EARLIER PART DREW ON: its own copy, with those marks. */
 function usesFig_(x) {
   const was = x && x.diagram ? usesUnder_(x, x.diagram) : [];
@@ -44,24 +46,24 @@ const SURFACE_LAYERS = { grid: ['squares'], coord: ['squares', 'axes'], blank: [
 const SURFACE_DRAW = {
   squares: (out, S, A, B) => {
     for (let v = A; v <= B; v += S) {
-      out.push(`<line class="grid" x1="${v}" y1="${A}" x2="${v}" y2="${B}"/>`,
-               `<line class="grid" x1="${A}" y1="${v}" x2="${B}" y2="${v}"/>`);
+      out.push({ el: 'line', a: { class: 'grid', x1: v, y1: A, x2: v, y2: B } },
+               { el: 'line', a: { class: 'grid', x1: A, y1: v, x2: B, y2: v } });
     }
   },
   axes: (out, S, A, B) => {
-    out.push(`<line class="axis" x1="${A}" y1="170" x2="${B}" y2="170"/>`,
-             `<line class="axis" x1="170" y1="${A}" x2="170" y2="${B}"/>`,
-             `<text class="ax" x="${B - 2}" y="164" text-anchor="end">x</text>`,
-             `<text class="ax" x="176" y="${A + 8}">y</text>`);
+    const ax = (x, y, text, end) => ({ el: 'text', a: { class: 'ax', x, y, 'text-anchor': end }, text });
+    out.push({ el: 'line', a: { class: 'axis', x1: A, y1: 170, x2: B, y2: 170 } },
+             { el: 'line', a: { class: 'axis', x1: 170, y1: A, x2: 170, y2: B } },
+             ax(B - 2, 164, 'x', 'end'), ax(176, A + 8, 'y'));
     for (let n = -8; n <= 8; n += 2) {
       if (!n) continue;
       const at = 170 + n * S;
-      out.push(`<text class="ax" x="${at}" y="182" text-anchor="middle">${n < 0 ? '&minus;' + (-n) : n}</text>`,
-               `<text class="ax" x="164" y="${340 - at + 3}" text-anchor="end">${n < 0 ? '&minus;' + (-n) : n}</text>`);
+      const said = n < 0 ? '\u2212' + (-n) : String(n);
+      out.push(ax(at, 182, said, 'middle'), ax(164, 340 - at + 3, said, 'end'));
     }
-    out.push('<text class="ax" x="164" y="182" text-anchor="end">0</text>');
+    out.push(ax(164, 182, '0', 'end'));
   },
-  frame: (out, S, A, B) => out.push(`<rect class="axis" x="${A}" y="${A}" width="${B - A}" height="${B - A}" rx="8" fill="none" stroke-dasharray="6 6"/>`),
+  frame: (out, S, A, B) => out.push({ el: 'rect', a: { class: 'axis', x: A, y: A, width: B - A, height: B - A, rx: 8, fill: 'none', 'stroke-dasharray': '6 6' } }),
 };
 
 /* ---------- THE SURFACE ITSELF § */
@@ -70,14 +72,14 @@ function surfaceSvg_(kind) {
   const out = [];
   const layers = Object.prototype.hasOwnProperty.call(SURFACE_LAYERS, kind) ? SURFACE_LAYERS[kind] : [];
   layers.forEach(l => SURFACE_DRAW[l](out, S, A, B));
-  return `<svg class="qsurf is-${kind}" viewBox="0 0 340 340" role="img" aria-label="${SURFACE_NAME[kind] || 'Space to draw'}">${out.join('')}</svg>`;
+  return figDraw_({ el: 'svg', a: { class: 'qsurf is-' + kind, viewBox: '0 0 340 340', role: 'img', 'aria-label': SURFACE_NAME[kind] || 'Space to draw' }, kids: out });
 }
 
 /* ---------- THE ANSWER AREA AT THE CARD'S FOOT § */
 function ansArea_(x) {
   /* ONE PAGE FOR EVERY PART (round 3): a made-up surface above the one answer box; a figure among the words is the pen in place */
   const p = x && x.key ? padSource_(x) : null;
-  const pad = p && p.from === 'surface' ? `<div class="qp-area" data-q="${esc(x.key)}">${padWrap_(x, p.svg, 'row')}</div>` : '';
+  const pad = p && p.from === 'surface' ? figBox_({ look: 'qp-area', attrs: { 'data-q': x.key }, inner: padWrap_(x, p.svg, 'row') }) : '';
   return pad + ansBox_(x);
 }
 
@@ -162,7 +164,7 @@ function circWords_(html, block, on) {
       if (!word) return w;
       const k = block + '.' + (n++);
       const lit = on && on.indexOf(k) !== -1;
-      return `<span class="qw${lit ? ' is-circled' : ''}" data-do="qw-tap" data-w="${k}" role="button" tabindex="0" aria-pressed="${lit}">${word}</span>`;
+      return figBox_({ tag: 'span', look: 'qw' + (lit ? ' is-circled' : ''), attrs: { 'data-do': 'qw-tap', 'data-w': k, role: 'button', tabindex: '0', 'aria-pressed': String(lit) }, inner: word });
     });
   });
 }
@@ -192,8 +194,7 @@ on('qw-tap', (el) => {
 
 /* ---------- A PICTURE THE QUESTION CAME WITH § */
 const pics_ = list => (list || []).map(src =>
-  `<figure class="qpic"><img src="${esc(src)}" alt="Picture printed with this question"
-     loading="lazy" decoding="async"></figure>`).join('');
+  figDraw_({ el: 'figure', a: { class: 'qpic' }, inner: cardPic_({ src, alt: 'Picture printed with this question' }) })).join('');
 
 /* EVERY TAG ON A CARD IS AN ANSWER YOU CAN PICK IN THE FINDER: § */
 const TAG_NAME = /[A-Za-z]/;
@@ -303,7 +304,7 @@ function qPageAt_(x, page) {
 /* A QUESTION'S BODY IS NEVER BLANK (432): no words, figure or picture in it says why — the library's reason, or that it is missing. */
 function qWordsOr_(x, html) {
   if (/<(img|svg|figure|canvas|input|table)\b/i.test(html) || String(html).replace(/<[^>]*>|&nbsp;|\s/g, '')) return html;
-  if (libSlim_(x)) return `<div class="lib-say">${libSay_(x)}</div>`;
+  if (libSlim_(x)) return figBox_({ look: 'lib-say', inner: libSay_(x) });
   return empty_('This question’s words are missing.');
 }
 /* ---------- EVERY PART IS ITS OWN CARD, ALL AT ONE LEFT EDGE (owner, 8 Nov; history 1160) */
@@ -317,14 +318,15 @@ function qStemWhole_(x, p, onScreen, pics) {
     ch.forEach(b => {
       if (b.k === 'pb') { run.push(b.h); return; }
       flush();
-      fig((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
+      fig((p.diagram ? figWrap_(p.diagram) : '') + pics_(figImgs_(p.images)));
     });
     flush();
   });
   /* A FIGURE LEFT FOR THE PART THAT PENS ON IT, when that part is not on screen: drawn here, under the stem's words. */
-  if (stemHasFig_(p) && stemPenned_(p) && !(onScreen || []).some(y => { const s = isQ_(y) ? padSource_(y) : null; return s && s.svg === p.diagram; })) fig((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
-  if (stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
-  return `<div class="qsheet-stem qtext qb-stem kc-lines${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
+  if (stemHasFig_(p) && stemPenned_(p) && !(onScreen || []).some(y => { const s = isQ_(y) ? padSource_(y) : null; return s && s.svg === p.diagram; })) fig((p.diagram ? figWrap_(p.diagram) : '') + pics_(figImgs_(p.images)));
+  if (stemFigOwed_(x, p)) html.push(figNotDrawn_());
+  return figBox_({ look: 'qsheet-stem qtext qb-stem kc-lines' + (p.placeholder ? ' is-standin' : ''), attrs: { 'data-of': stemId_(p) },
+    inner: (p.lines ? figBox_({ tag: 'p', look: 'qsheet-lines', text: p.lines }) : '') + html.join('') });
 }
 /* ---------- A QUESTION PART IS A CARD OF THE ONE TEMPLATE (rule 3.11): its figure on top, its tags, its sheet an embed, its tiles the card's row. */
 /* WHAT A PART'S CARD DREW BESIDE ITSELF (its stems, the parts on screen, its figure on top), by key, so the card drawn again draws the same. */
@@ -347,7 +349,7 @@ CARD_EMBEDS.qsheet = a => {
   const stems = was.stems.map(st => qStemWhole_(x, st, was.shown, a.pic ? [] : null)).join('');
   const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
   const has = was.ans && (questionHasAns_(x) || schemeOwed_(x));
-  return `${stems}<div class="qsheet qtext">${qWordsOr_(x, cellsHere_(x, words))}</div>${ansArea_(x)}${has ? questionAnsCard_(x, true) : ''}`;
+  return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, cellsHere_(x, words)) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
 };
 cardKind_('question', x => {
   const was = Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true }, id = (x.row && x.row.row_id) || x.key || '';
@@ -372,7 +374,7 @@ function questionWhole_(x, parts, open, ans) {
   const shown = list.filter(p => !open || !open.size || open.has(p));
   /* CARRIED ONLY BY A PART ON SCREEN (owner, 10 Nov): part (a) carried Q8's garden, so (b) found alone drew no stem and no 7.5 m. */
   const ctx = { ans: ans !== false, drawn: {}, shown: shown, carried: new Set(shown.map(stemCarried_).filter(Boolean)) };
-  return `<div class="qwhole${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}" data-q="${esc(qId_(x) || x.key || '')}">${shown.map(p => qOneCard_(p, ctx)).join('')}</div>`;
+  return figBox_({ look: 'qwhole' + (typeof helpCls_ === 'function' ? helpCls_(x, '') : ''), attrs: { 'data-q': qId_(x) || x.key || '' }, inner: shown.map(p => qOneCard_(p, ctx)).join('') });
 }
 
 /* ---------- THE STEM, ITS OWN PAGE IN FRONT OF ITS PARTS § */
@@ -606,19 +608,18 @@ function chunkHtml_(chunk, circ, x) {
   flush();
   /* A CARRIED STEM'S WORDS (`sb`) ARE TYPESET A RUN AT A TIME in the stem's own wrapper, between its figures */
   let top = '', sbs = [];
-  const sbFlush = () => { if (sbs.length) top += `<div class="qsheet-stem qtext is-over">${qTables_(typeset_(sbs.join('')))}</div>`; sbs = []; };
+  const sbFlush = () => { if (sbs.length) top += figBox_({ look: 'qsheet-stem qtext is-over', inner: qTables_(typeset_(sbs.join(''))) }); sbs = []; };
   head.forEach(b => { if (b.k === 'sb') sbs.push(b.h); else { sbFlush(); top += figHtml_(x, b); } });
   sbFlush();
-  return `${top}${lead ? `<div class="qsheet-lead">${qTables_(typeset_(lead))}</div>` : ''}
-      <div class="qsheet-part${circ ? ' is-text' : ''}"${circ ? ` data-circ="${esc(circ.k)}"` : ''}>
-        <div class="qsheet-pb">${pb}</div>
-      </div>${circ && words.length ? `<p class="qpad-note qw-note">Tap a word to ring it, and again to take
-        the ring off. <span data-kept-k="${esc(circ.k)}">${esc(padNoteSay_(circ.k))}</span></p>` : ''}`;
+  return top + (lead ? figBox_({ look: 'qsheet-lead', inner: qTables_(typeset_(lead)) }) : '')
+    + figBox_({ look: 'qsheet-part' + (circ ? ' is-text' : ''), attrs: circ ? { 'data-circ': circ.k } : null, inner: figBox_({ look: 'qsheet-pb', inner: pb }) })
+    + (circ && words.length ? figBox_({ tag: 'p', look: 'qpad-note qw-note', text: 'Tap a word to ring it, and again to take the ring off. ',
+      blocks: [{ type: 'group', tag: 'span', attrs: { 'data-kept-k': circ.k }, text: padNoteSay_(circ.k) }] }) : '');
 }
 /* ---------- A FIGURE BLOCK, DRAWN § */
 function figHtml_(x, b) {
   if (!x || !b) return '';
-  if (b.k === 'nofig') return '<p class="qfig-missing">Figure not drawn yet.</p>';
+  if (b.k === 'nofig') return figNotDrawn_();
   if (b.k === 'use') {
     const y = usesOf_(x);
     const p = y && padSource_(y);
@@ -627,7 +628,7 @@ function figHtml_(x, b) {
   const p = padSource_(x);
   const pics = pics_(figImgs_(x.images));
   if (p && p.from !== 'surface') return padWrap_(x, p.svg, 'row') + pics;
-  return (x.diagram ? usesFig_(x) || `<figure>${x.diagram}</figure>` : '') + pics;
+  return (x.diagram ? usesFig_(x) || figWrap_(x.diagram) : '') + pics;
 }
 /* THE PHONE'S OLD RINGS MOVE TO THE FIRST PERSON WHO OPENS THEM, as the pen's do in `padWrap_` -- and
    so do the visit's (`CIRC_HELD`), which are the only copy when storage throws. */
@@ -717,19 +718,18 @@ const qaToggle_ = (k, open) => tile_(qaToggleOpts_(k, open));
 /* `inRow`: a part of a whole question, whose toggle and Help are in its one tool row, so this card holds no row of its own */
 function questionAnsCard_(x, inRow) {
   const id = (x.row && x.row.row_id) || x.key || '';
-  if (schemeOwed_(x)) return `<div class="qcard qans-card" data-of="${esc(id)}">${tagRow_(x, 'ans')}
-    <p class="qans-none">No checked answer yet: this paper's mark scheme has not been added.</p></div>`;
+  if (schemeOwed_(x)) return figBox_({ look: 'qcard qans-card', attrs: { 'data-of': id }, inner: tagRow_(x, 'ans')
+    + figBox_({ tag: 'p', look: 'qans-none', text: 'No checked answer yet: this paper\'s mark scheme has not been added.' }) });
   const k = ansKey_(x);
   const open = ansOpen_(x);
   /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES § */
-  return `<div class="qcard qans-card${open ? '' : ' is-hidden'}${typeof helpCls_ === 'function' ? helpCls_(x, 'ans') : ''}" data-of="${esc(id)}" data-k="${esc(k)}">
-    ${tagRow_(x, 'ans')}
-    ${inRow ? '' : `<div class="tile-row qans-tiles">${qaToggle_(k, open)}${
-      /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". § */
-      open ? '' : '<span class="qans-wait-k">Answer hidden</span>'}</div>`}
-    ${open ? answerBlock_(x) : ''}
-    ${!inRow && typeof helpRow_ === 'function' ? helpRow_(x, 'ans') : ''}
-  </div>`;
+  return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden') + (typeof helpCls_ === 'function' ? helpCls_(x, 'ans') : ''), attrs: { 'data-of': id, 'data-k': k },
+    inner: tagRow_(x, 'ans')
+      + (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open)
+        /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". § */
+        + (open ? '' : figBox_({ tag: 'span', look: 'qans-wait-k', text: 'Answer hidden' })) }))
+      + (open ? answerBlock_(x) : '')
+      + (!inRow && typeof helpRow_ === 'function' ? helpRow_(x, 'ans') : '') });
 }
 
 /* THE QUESTION A KEY BELONGS TO, by the same lookup `qp-choose` makes. */
