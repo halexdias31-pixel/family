@@ -7,13 +7,13 @@ function bibleVerseCard_(x) {
   if (d) {
     const w = bibleText_(x), he = bb.lang === 'he';
     /* ITS TRANSLATION IS ITS CREDIT, a later line (open-only), not a tag among the verse's lines. */
-    body = (!w ? '<p class="fc-note">This text has no verse with this number.</p>'
-        : he || bb.lang === 'grc' ? `<p class="bb-v bb-${he ? 'he' : 'grc'}"${he ? ' dir="rtl"' : ''} lang="${he ? 'he' : 'grc'}">${esc(w)}</p>`
+    body = (!w ? cardBlock_({ type: 'group', tag: 'p', look: 'fc-note', text: 'This text has no verse with this number.' })
+        : he || bb.lang === 'grc' ? cardBlock_({ type: 'group', tag: 'p', look: 'bb-v bb-' + (he ? 'he' : 'grc'), attrs: { dir: he ? 'rtl' : null, lang: he ? 'he' : 'grc' }, text: w })
         : bibleV_(w))
-      + '<p class="bb-credit">' + (also ? esc(also.name || also.translation) : esc(bb.translation || 'King James Version (1611)')) + ': public domain</p>'
+      + cardBlock_({ type: 'group', tag: 'p', look: 'bb-credit', text: (also ? also.name || also.translation : bb.translation || 'King James Version (1611)') + ': public domain' })
       + writingRefs_('bible:' + bb.dir);
   }
-  else if (BIBLE.missed[k] && !BIBLE.loading[k]) body = `<p class="fc-note bb-miss">${esc(bb.book)} did not arrive.</p>`;
+  else if (BIBLE.missed[k] && !BIBLE.loading[k]) body = cardBlock_({ type: 'group', tag: 'p', look: 'fc-note bb-miss', text: bb.book + ' did not arrive.' });
   else {
     /* WAITING FOR ITS BOOK: the one loader, where the verse will be. */
     body = loading_();
@@ -363,42 +363,35 @@ function boxerFigure_(look, trunks, blue, sex) {
     if (t.trim) cls.push('bf-tt-' + t.trim);
     vars.push('--bf-main:var(--bf-tk-' + t.main + ')', '--bf-trim:var(--bf-tk-' + (t.trim || t.main) + ')');
   }
-  const p = (c, spec) => (spec ? `<path class="${c}" d="${boxerRuns_(spec)}"/>` : '');
-  return `<g class="${cls.join(' ')}" transform="${blue ? 'translate(29 21) scale(-1 1)' : 'translate(11 21)'}"${
-      vars.length ? ` style="${vars.join(';')}"` : ''}>`
-    + p('bf-skin', BOXER_BODY.head + ' ' + BOXER_BODY.body)
-    + p('bf-hair', hair ? BOXER_HAIR[hair] : BOXER_HAIR_UNSAID[woman ? 'F' : 'M'])
-    + p('bf-face' + (face === 'stubble' ? ' bf-stubble' : ''), BOXER_FACE[face])
-    + p('bf-eye', BOXER_BODY.eye)
+  const p = (c, spec) => (spec ? [{ el: 'path', a: { class: c, d: boxerRuns_(spec) } }] : []);
+  return { el: 'g', a: { class: cls.join(' '), transform: blue ? 'translate(29 21) scale(-1 1)' : 'translate(11 21)', style: vars.join(';') }, kids: [].concat(
+    p('bf-skin', BOXER_BODY.head + ' ' + BOXER_BODY.body),
+    p('bf-hair', hair ? BOXER_HAIR[hair] : BOXER_HAIR_UNSAID[woman ? 'F' : 'M']),
+    p('bf-face' + (face === 'stubble' ? ' bf-stubble' : ''), BOXER_FACE[face]),
+    p('bf-eye', BOXER_BODY.eye),
     /* HER TOP IS IN HER TRUNKS' COLOUR — a fighter's kit — and in the same muted corner colour as
        the trunks when those are not on file; painted before the gloves, which are held over it. */
-    + (woman ? p('bf-top', BOXER_BODY.top) : '')
-    + p('bf-glove', BOXER_BODY.glove)
-    + p('bf-band', BOXER_BODY.band)
-    + p('bf-trunks', BOXER_BODY.trunks)
+    (woman ? p('bf-top', BOXER_BODY.top) : []),
+    p('bf-glove', BOXER_BODY.glove),
+    p('bf-band', BOXER_BODY.band),
+    p('bf-trunks', BOXER_BODY.trunks),
     /* LEOPARD IS TWO TONES, the spots painted over the trunks — or over the waistband, when it is
        the trim — in the figure's own dark brown. */
-    + (t && t.main === 'leopard' ? p('bf-spot', BOXER_BODY.spots) : '')
-    + (t && t.trim === 'leopard' ? p('bf-spot', '13:5,8') : '')
-    + (t && t.trim ? p('bf-stripe', BOXER_BODY.stripe) : '')
-    + p('bf-boot', BOXER_BODY.boot)
-    + '</g>';
+    (t && t.main === 'leopard' ? p('bf-spot', BOXER_BODY.spots) : []),
+    (t && t.trim === 'leopard' ? p('bf-spot', '13:5,8') : []),
+    (t && t.trim ? p('bf-stripe', BOXER_BODY.stripe) : []),
+    p('bf-boot', BOXER_BODY.boot)) };
 }
 
-/* THE RING, SIDE ON: two posts, three ropes, the pads in each corner's colour, the mat and the apron, and his initials over the top rope like the name on a § */
+/* THE RING, SIDE ON (a drawing block): two posts, three ropes, the pads in each corner's colour, the mat and the apron, and his initials over the top rope like the name on a § */
 function boxerRing_(name, blue, look, trunks, sex) {
-  const ropes = [23, 29, 35].map((y, i) =>
-    `<rect class="${i === 1 ? 'bf-rope-mid' : 'bf-rope'}" x="3" y="${y}" width="34" height="1"/>`
-    + `<rect class="bf-pad-l" x="0" y="${y - 1}" width="3" height="3"/>`
-    + `<rect class="bf-pad-r" x="37" y="${y - 1}" width="3" height="3"/>`).join('');
-  return `<svg class="boxer-ring" viewBox="0 0 40 50" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges" aria-hidden="true">`
-    + `<rect class="bf-stage" x="0" y="17" width="40" height="26"/>`
-    + `<rect class="bf-post" x="1" y="18" width="2" height="25"/><rect class="bf-post" x="37" y="18" width="2" height="25"/>`
-    + ropes
-    + `<rect class="bf-mat" x="0" y="43" width="40" height="2"/><rect class="bf-mat-edge" x="0" y="43" width="40" height="1"/>`
-    + `<rect class="bf-apron" x="0" y="45" width="40" height="5"/><rect class="bf-apron-band" x="0" y="46" width="40" height="1"/>`
-    + boxerFigure_(look, trunks, blue, sex)
-    + `<text class="boxer-ini" x="20" y="15" font-size="10" text-anchor="middle">${esc(boxerInitials_(name))}</text></svg>`;
+  const r = (cls, x, y, width, height) => ({ el: 'rect', a: { class: cls, x, y, width, height } });
+  const ropes = [].concat(...[23, 29, 35].map((y, i) => [r(i === 1 ? 'bf-rope-mid' : 'bf-rope', 3, y, 34, 1), r('bf-pad-l', 0, y - 1, 3, 3), r('bf-pad-r', 37, y - 1, 3, 3)]));
+  return { type: 'drawing', node: { el: 'svg', a: { class: 'boxer-ring', viewBox: '0 0 40 50', preserveAspectRatio: 'xMidYMid slice', 'shape-rendering': 'crispEdges', 'aria-hidden': 'true' },
+    kids: [r('bf-stage', 0, 17, 40, 26), r('bf-post', 1, 18, 2, 25), r('bf-post', 37, 18, 2, 25)].concat(ropes,
+      [r('bf-mat', 0, 43, 40, 2), r('bf-mat-edge', 0, 43, 40, 1), r('bf-apron', 0, 45, 40, 5), r('bf-apron-band', 0, 46, 40, 1),
+        boxerFigure_(look, trunks, blue, sex),
+        { el: 'text', a: { class: 'boxer-ini', x: 20, y: 15, 'font-size': 10, 'text-anchor': 'middle' }, text: boxerInitials_(name) }]) } };
 }
 
 /* AN ADDRESS THAT ALREADY FAILED ON THIS PHONE IS NOT ASKED FOR AGAIN. § */
@@ -413,12 +406,12 @@ function boxerPicSrc_(b) {
 /* `corner` IS THE FIGHT CARD'S: § */
 function boxerPic_(b, corner, won, trunks) {
   const src = boxerPicSrc_(b);
-  const frame = `<span class="boxer-frame">${boxerRing_(b.name, corner === 'b', b.look, corner ? trunks : b.trunks, b.sex)}${src
-    ? `<img class="boxer-img" src="${esc(src)}" alt="${esc(b.name)}" loading="lazy" decoding="async">` : ''}</span>`;
-  if (corner) return `<span class="boxer-pic is-small${src ? '' : ' is-none'}${won ? ' won' : ''}">${frame}</span>`;
+  const frame = { type: 'group', tag: 'span', look: 'boxer-frame',
+    blocks: [boxerRing_(b.name, corner === 'b', b.look, corner ? trunks : b.trunks, b.sex)].concat(src ? [{ type: 'media', kind: 'image', look: 'boxer-img', src, title: b.name }] : []) };
+  if (corner) return cardBlock_({ type: 'group', tag: 'span', look: 'boxer-pic is-small' + (src ? '' : ' is-none') + (won ? ' won' : ''), blocks: [frame] });
   /* THE CREDIT IS A LINE OF ITS OWN UNDER THE PHOTO AND THE NAME, NOT A CAPTION IN THE PHOTO'S COLUMN. § */
-  return `<figure class="boxer-pic${src ? '' : ' is-none'}">${frame}</figure>${src
-    ? `<p class="boxer-credit">${boxerCredit_(b, b.imageCredit)}</p>` : ''}`;
+  return cardBlock_({ type: 'drawing', node: { el: 'figure', a: { class: 'boxer-pic' + (src ? '' : ' is-none') }, inner: cardBlock_(frame) } })
+    + (src ? cardBlock_({ type: 'group', tag: 'p', look: 'boxer-credit', inner: boxerCredit_(b, b.imageCredit) }) : '');
 }
 
 /* ---------- THE CREDIT LINKS TO THE PHOTO'S FILE PAGE § */
@@ -431,9 +424,9 @@ function boxerCommons_(src) {
    and leaves another's — the fight card has two (`boxerPicFail_`). */
 function boxerCredit_(b, text) {
   const src = boxerPicSrc_(b), page = boxerCommons_(src);
-  return /^https:\/\/commons\.wikimedia\.org\//.test(page)
-    ? `<a class="boxer-src" data-src="${esc(src)}" href="${esc(page)}" target="_blank" rel="noopener">${esc(text)}</a>`
-    : `<span class="boxer-src" data-src="${esc(src)}">${esc(text)}</span>`;
+  /* The link, where there is a file page, is a run inside the one credit span the failing picture finds. */
+  return cardBlock_({ type: 'group', tag: 'span', look: 'boxer-src', attrs: { 'data-src': src },
+    text: /^https:\/\/commons\.wikimedia\.org\//.test(page) ? { link: text, href: page } : text });
 }
 
 /* A PICTURE THAT DID NOT COME LEAVES THE RING. § */
@@ -482,7 +475,7 @@ function personPic_(id, name, flip) {
 /* A COLUMN VECTOR AS TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) DRAWN TOP OVER BOTTOM in one pair of brackets -- the box, the card, Saved */
 function vecHtml_(html) {
   return String(html == null ? '' : html).replace(/\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g,
-    '<span class="vec"><span class="vec-a">$1</span><span class="vec-b">$2</span></span>');
+    (m, a, b) => cardBlock_({ type: 'group', tag: 'span', look: 'vec', blocks: [{ type: 'group', tag: 'span', look: 'vec-a', inner: a }, { type: 'group', tag: 'span', look: 'vec-b', inner: b }] }));
 }
 window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, spec: specExtras_, manuscript: histExtras_, writing: histExtras_, event: histExtras_ });
 /* A BOXER'S OR FIGURE'S PIXEL PORTRAIT AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */

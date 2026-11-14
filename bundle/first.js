@@ -689,7 +689,8 @@ const CARD_BLOCKS = {
   tickCell: b => `<label class="${esc(b.look || '')}"${b.label ? ` aria-label="${esc(b.label)}"` : ''}>${cardControl_(Object.assign({ kind: 'check' }, b.control || {}))}</label>`,
   /* A FILE SHOWN IN PLACE: a page framed, a clip with its controls, or a picture; `look` names its size. */
   media: b => { const u = String(b.src || ''), look = b.look ? ` class="${esc(b.look)}"` : '', name = esc(b.title || '');
-    if (!/^(https:|data\/|docs\/)/i.test(u)) return '';
+    /* A PICTURE MAY ALSO BE ONE HELD IN THE PAGE (`data:image/`, a scan not yet saved, a page read back). */
+    if (!/^(https:|data\/|docs\/)/i.test(u) && !(b.kind === 'image' && /^data:image\//i.test(u))) return '';
     if (b.kind === 'video') return `<video${look} src="${esc(u)}" controls playsinline preload="metadata"></video>`;
     if (b.kind === 'image') return `<img${look} src="${esc(u)}" alt="${name}">`;
     return `<iframe${look} src="${esc(u)}" title="${name}" loading="lazy" allow="encrypted-media; picture-in-picture"></iframe>`; },

@@ -4667,7 +4667,7 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .wf-rows { list-style: none; margin: var(--s2) 0 0; padding: 0; }
 .row.wf-item { flex-direction: row; align-items: center; justify-content: flex-start; gap: var(--s2); text-align: left; }
 .wf-thumb { flex: none; width: 3rem; height: 4rem; object-fit: cover; border: 1px solid var(--line); border-radius: var(--r-ui); }
-.wf-what { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.wf-what { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: center; }
 .wf-name { overflow-wrap: anywhere; }
 .wf-page { display: block; max-width: 100%; margin: 0 auto var(--s2); border: 1px solid var(--line); }
 
