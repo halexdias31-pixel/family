@@ -351,16 +351,15 @@ CARD_EMBEDS.qsheet = a => {
   const has = was.ans && (questionHasAns_(x) || schemeOwed_(x));
   return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, cellsHere_(x, words)) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
 };
-cardKind_('question', x => {
-  const was = Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true }, id = (x.row && x.row.row_id) || x.key || '';
-  if (x.key) Q_ITEM.set(x.key, x.item || x);
-  const pic = was.stems.length && typeof qStemPic_ === 'function' ? qStemPic_(x, was) : '';
-  const tryOr = (f, or) => { try { return f(); } catch (e) { oops_(e, 'question:spec'); return or; } };
-  return { kind: 'question', look: 'qb favwrap qcard qb-part' + (typeof helpCls_ === 'function' ? helpCls_(x, '') : '') + (isFav(x.key) ? ' is-fav' : ''),
-    data: { part: x.key || '', of: id }, tags: tryOr(() => tagList_(x), []), tagLook: 'qcard-tags', picture: pic ? { svg: pic } : null,
-    body: [{ type: 'embed', tool: 'qsheet', look: 'qsheet-embed', args: { key: x.key || '', pic: !!pic } }],
-    tiles: tryOr(() => qtTiles_(x, was.ans && questionHasAns_(x) && !schemeOwed_(x)), []), toolRow: { key: x.key || '' } };
-});
+/* A QUESTION IS AN ITEM (one item shape, slice 4): its card is its map in ITEM_MAPS (cards-parts.js); these are the map's pieces, */
+/* each reading the Find entry (`x`) the card is drawn from. The answer box, the marking and the tiles are called exactly as before. */
+const qWas_ = x => Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
+/* THE ENTRY, KEPT BY KEY, for its sheet (the embed reads it back). */
+const qCardKeep_ = x => { if (x.key) Q_ITEM.set(x.key, x.item || x); };
+const qCardPic_ = x => { const was = qWas_(x), pic = was.stems.length ? qStemPic_(x, was) : ''; return pic ? { svg: pic } : null; };
+const qCardLook_ = x => 'qb favwrap qcard qb-part' + (typeof helpCls_ === 'function' ? helpCls_(x, '') : '') + (isFav(x.key) ? ' is-fav' : '');
+const qCardSheet_ = (x, pic) => [{ type: 'embed', tool: 'qsheet', look: 'qsheet-embed', args: { key: x.key || '', pic: !!pic } }];
+const qCardTiles_ = x => { const was = qWas_(x); try { return qtTiles_(x, was.ans && questionHasAns_(x) && !schemeOwed_(x)); } catch (e) { oops_(e, 'question:spec'); return []; } };
 /* ONE PART'S CARD: the stems not drawn yet by an earlier part go with it. */
 function qOneCard_(p, ctx) {
   const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)]);

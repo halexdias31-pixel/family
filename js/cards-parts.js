@@ -263,6 +263,16 @@ const ITEM_MAPS = {
       : [{ label: 'The room', seats: r.maxCapacity, price: r.bestRate }]) },
     /* ITS 8-BIT BUILDING (find-doors.js), picked off its name. */
     picture: (it, x) => { const pix = typeof VENUE_PIX === 'object' && typeof venueShape_ === 'function' ? VENUE_PIX[venueShape_(it.raw)] : null; return pix ? { pix, alt: x.name } : null; } },
+  /* A QUESTION PART (slice 4): named "Q5b", its tags its facets alone; its picture the stems' figure, its body the sheet (words, answer box, */
+  /* mark scheme: find-figures.js, unchanged), its tiles its tool row. Loading and marking are not here. */
+  question: { look: (it, x) => (typeof qCardLook_ === 'function' ? qCardLook_(x) : 'qb'), id: ['row_id', 'id'], nameTag: false, tagLook: 'qcard-tags',
+    name: r => (r.question != null && String(r.question) !== '' ? 'Q' + r.question + (typeof qPartName_ === 'function' ? qPartName_(r.part) : '') : ''),
+    tags: ['subject', 'exam_board', 'level', 'key_stage', 'year', 'document_type'], links: ['paper_id'],
+    keep: (it, x) => (typeof qCardKeep_ === 'function' ? qCardKeep_(x) : null),
+    data: (it, x) => ({ part: x.key || '', of: it.id || x.key || '' }),
+    picture: (it, x) => (typeof qCardPic_ === 'function' ? qCardPic_(x) : null),
+    sheet: (it, x, pic) => (typeof qCardSheet_ === 'function' ? qCardSheet_(x, pic) : []),
+    tiles: (it, x) => (typeof qCardTiles_ === 'function' ? qCardTiles_(x) : []), toolRow: true },
 };
 /* THE SAME OPTIONS FOR EVERY KIND (slice 2): `id` its id columns; `name` (row → name); `from` the Find entry's field holding its row (else `row`); */
 /* `card` the card kind drawing it (else its own) and `when` (entry → true) which map that card picks; `body` (row → blocks) and `lines: true` */
@@ -270,6 +280,9 @@ const ITEM_MAPS = {
 /* COMPUTED FIELDS (slice 3): `live` { field: row → value } are worked out from the payload as the item loads (a subject's tutors, a room's rate), */
 /* kept as `it.live` and handed to `body` (row, live); `liveTags` { live field: colour } after the facets; `childHides` [keys] are taken out of every */
 /* live value for a child (childView_), in this one place, so no kind's drawing decides who may see a price (398). */
+/* A CARD THAT IS A TOOL (slice 4, a question): `look` may be (item, entry) → class; `keep` (item, entry) remembers the entry for an embed; */
+/* `data` (item, entry) → its data- attributes; `sheet` (item, entry, picture) → blocks drawn in place of `body`; `tiles` (item, entry) → its */
+/* tiles and `toolRow: true` its tool row; `tagLook` its tags' class. */
 const itemLive_ = (r, M) => { const v = {}; Object.keys(M.live || {}).forEach(f => { v[f] = M.live[f](r); });
   const hide = M.childHides || [], strip = o => { if (Array.isArray(o)) o.forEach(strip); else if (o && typeof o === 'object') hide.forEach(k => { delete o[k]; }); };
   if (hide.length && typeof childView_ === 'function' && childView_()) Object.keys(v).forEach(f => strip(v[f]));
@@ -289,11 +302,18 @@ function item_(raw, kind) {
 /* THE SHAPE → A renderCard SPEC: its name, then Find's facets for it (`x`, the Find entry carrying it); its body drawn only where its map says `lines`. */
 function cardOfItem_(it, x) {
   const M = ITEM_MAPS[it.kind] || {}, own = x || { kind: it.kind, key: '', name: it.name };
-  const f0 = typeof tagList_ === 'function' && own.key ? tagList_(own) : [], facets = Array.isArray(f0) ? f0 : [];
+  if (M.keep) M.keep(it, own);
+  let f0 = [];
+  try { f0 = typeof tagList_ === 'function' && own.key ? tagList_(own) : []; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'item:tags'); }
+  const facets = Array.isArray(f0) ? f0 : [];
   const more = Object.keys(M.entryTags || {}).flatMap(f => (own[f] || []).map(t => ({ text: t, colour: M.entryTags[f] })))
     .concat(Object.keys(M.liveTags || {}).flatMap(f => ((it.live || {})[f] || []).map(t => ({ text: t, colour: M.liveTags[f] }))));
   /* `nameTag: false` still leads with the name when it has no facets at all: a card is never without a tag. */
-  return { look: M.look || '', name: it.name || own.name || '', ...(M.off ? { off: !!M.off(it.raw || {}) } : {}), picture: M.picture ? M.picture(it, own) : null, body: M.lines ? it.body : [],
+  const pic = M.picture ? M.picture(it, own) : null;
+  return { look: (typeof M.look === 'function' ? M.look(it, own) : M.look) || '', name: it.name || own.name || '', ...(M.off ? { off: !!M.off(it.raw || {}) } : {}), picture: pic,
+    body: M.sheet ? M.sheet(it, own, pic) : M.lines ? it.body : [],
+    ...(M.data ? { data: M.data(it, own) } : {}), ...(M.tagLook ? { tagLook: M.tagLook } : {}),
+    ...(M.tiles ? { tiles: M.tiles(it, own) } : {}), ...(M.toolRow ? { toolRow: { key: own.key || '' } } : {}),
     tags: (M.nameTag === false && facets.length ? [] : [{ text: it.name || own.name || '', colour: 0 }]).concat(facets, more) };
 }
 /* EACH CARD KIND DRAWN FROM MAPS: the map whose `when` the entry answers (else the first without one), its row from the entry's `from`. */
