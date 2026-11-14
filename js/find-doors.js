@@ -27,7 +27,8 @@ function postDoorItems_() {
 /* ---------- MESSAGES: one item a person you have messages with; the card is the conversation ---------- */
 function msgDoorItems_() {
   if (!USER || typeof messageThreads_ !== 'function') return [];
-  if (typeof MESSAGES === 'undefined' || !MESSAGES) doorAsk_(typeof loadMessages === 'function' ? loadMessages() : null);
+  /* A FAILED ASK IS NOT ASKED AGAIN FROM HERE: its repaint would ask again, for ever (a hang, or a request storm). */
+  if ((typeof MESSAGES === 'undefined' || !MESSAGES) && !(typeof MSG_FAILED !== 'undefined' && MSG_FAILED)) doorAsk_(typeof loadMessages === 'function' ? loadMessages() : null);
   const threads = messageThreads_(), had = {};
   threads.forEach(t => { had[norm(t.name)] = 1; });
   /* AND EVERYONE YOU MAY WRITE TO FROM YOUR SESSIONS, with no conversation yet (1040 friction): the card opens on an empty one. */
