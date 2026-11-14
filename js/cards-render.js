@@ -44,7 +44,7 @@ const cardAttrs_ = d => Object.keys(d || {}).map(k => ` data-${esc(k)}="${esc(St
 /* A PICTURE: a photo (`src`), a clip (`video`), an 8-bit drawing (`pix`: 16 rows of palette letters), or a drawing a picture maker drew (`svg`). */
 function cardPic_(p) {
   if (!p) return '';
-  if (p.src) return `<img src="${esc(p.src)}" alt="${esc(p.alt || '')}" loading="lazy" decoding="async">`;
+  if (p.src) return `<img${p.look ? ` class="${esc(p.look)}"` : ''} src="${esc(p.src)}" alt="${esc(p.alt || '')}" loading="lazy" decoding="async">`;
   if (p.video) return `<video src="${esc(p.video)}" muted playsinline loop aria-label="${esc(p.alt || '')}"></video>`;
   if (Array.isArray(p.pix)) return `<figure class="person-pic">${pixSvg_(p.pix, p.alt, p.flip, p.none ? ' is-none' : '')}</figure>`;
   if (p.svg && /^\s*<(svg|figure)\b[\s\S]*<\/svg>[\s\S]*$/.test(String(p.svg))) return String(p.svg);
@@ -100,9 +100,9 @@ function cardControl_(c) {
   c = Object.assign({}, c || {});
   if (c.draft && typeof draftVal_ === 'function') { c.drafted = draftAttr_(c.draft.surface, c.draft.id, c.value); c.value = draftVal_(c.draft.surface, c.draft.id, c.value); }
   const id = c.id ? ` id="${esc(c.id)}"` : '', name = c.name ? ` name="${esc(c.name)}"` : '', act = c.act ? ` data-do="${esc(c.act)}"` : '';
-  const more = id + name + act + cardAttrs_(c.data) + (c.off ? ' disabled' : '') + (c.required ? ' required' : '') + (c.aria ? ` aria-label="${esc(c.aria)}"` : '') + (c.drafted ? ' ' + c.drafted : '');
+  const more = id + name + act + (c.look ? ` class="${esc(c.look)}"` : '') + cardAttrs_(c.data) + (c.off ? ' disabled' : '') + (c.required ? ' required' : '') + (c.aria ? ` aria-label="${esc(c.aria)}"` : '') + (c.drafted ? ' ' + c.drafted : '');
   if (c.kind === 'select') return `<select${more}>${(c.options || []).map(o => { o = typeof o === 'object' ? o : { value: o, text: o };
-    return `<option value="${esc(o.value)}"${String(o.value) === String(c.value) ? ' selected' : ''}>${esc(o.text == null ? o.value : o.text)}</option>`; }).join('')}</select>`;
+    return `<option value="${esc(o.value)}"${cardAttrs_(o.data)}${String(o.value) === String(c.value) ? ' selected' : ''}>${esc(o.text == null ? o.value : o.text)}</option>`; }).join('')}</select>`;
   if (c.kind === 'textarea') return `<textarea rows="${Number(c.rows) || 3}" placeholder="${esc(c.placeholder || '')}"${more}>${esc(c.value || '')}</textarea>`;
   if (c.kind === 'check') return `<input type="checkbox"${c.value ? ' checked' : ''}${more}>`;
   const type = /^(number|date|time|email|tel|password|search|file)$/.test(c.kind) ? c.kind : 'text';
@@ -180,20 +180,29 @@ const CARD_BLOCKS = {
     if (items.some(x => x && typeof x === 'object' && 'label' in x)) return items.map(x =>
       `<div class="row"><span class="k">${esc(x.label)}</span><span class="v${x.tone ? ' ' + esc(x.tone) : ''}">${cardRuns_(x.value)}</span></div>`).join('');
     const tag = b.ordered ? 'ol' : 'ul';
-    return items.length ? `<${tag} class="kc-list">${items.map(x => `<li>${cardRuns_(x)}</li>`).join('')}</${tag}>` : ''; },
+    return items.length ? `<${tag} class="kc-list${b.look ? ' ' + esc(b.look) : ''}">${items.map(x => `<li>${cardRuns_(x)}</li>`).join('')}</${tag}>` : ''; },
   answer: cardAnswer_,
   formRow: b => `<label class="kc-form-row"><span class="k">${cardRuns_(b.label || '')}</span>${cardControl_(b.control)}</label>`,
   embed: cardEmbed_,
   /* A HEADED SECTION: a small heading, then any blocks. */
-  section: b => `<section class="kc-sec${b.look ? ' ' + esc(b.look) : ''}">${b.head ? `<h4 class="kc-h">${cardRuns_(b.head)}</h4>` : ''}${(b.blocks || []).map(cardBlock_).join('')}</section>`,
+  section: b => `<section class="kc-sec${b.look ? ' ' + esc(b.look) : ''}"${b.live ? ' aria-live="polite"' : ''}>${b.head ? `<h4 class="kc-h${b.headLook ? ' ' + esc(b.headLook) : ''}">${cardRuns_(b.head)}</h4>` : ''}${(b.blocks || []).map(cardBlock_).join('')}</section>`,
   tree: b => cardTree_(b.nodes, !!b.fold, true),
   grid: cardGrid_,
   /* A WAIT is `loading_()` and nothing else; `look` and `data` name a region its redraw finds (`.err-body`). */
   choices: cardChoices_,
   /* A WHOLE CARD AMONG THE BLOCKS (Make an account inside Find's menu): its spec, drawn by `renderCard`. */
   card: b => (b.spec ? renderCard(b.spec) : ''),
+  /* A ROW OF TILES among the lines (`tile_` specs), its look added to `tile-row`. */
+  tiles: b => ((b.tiles || []).length ? `<div class="tile-row${b.look ? ' ' + esc(b.look) : ''}">${tile_(b.tiles)}</div>` : ''),
+  /* A PERSON ON ONE LINE: their face (`personFace_`'s who and options), name, @handle, then their tiles. */
+  who: b => `<div class="row${b.look ? ' ' + esc(b.look) : ''}">${b.face && typeof personFace_ === 'function' ? personFace_(b.face.who || {}, b.face.o || {}) : ''}<p class="${esc(b.whoLook || 'who')}"><b>${cardRuns_(b.name)}</b>${
+    b.handle ? `<span class="prof-handle">@${esc(b.handle)}</span>` : ''}</p>${(b.tiles || []).length ? `<div class="tile-row">${tile_(b.tiles)}</div>` : ''}</div>`,
+  /* ONE TICK BOX in a labelled cell (an hour on a week you tick): `control` is `cardControl_`'s. */
+  tickCell: b => `<label class="${esc(b.look || '')}"${b.label ? ` aria-label="${esc(b.label)}"` : ''}>${cardControl_(Object.assign({ kind: 'check' }, b.control || {}))}</label>`,
   wait: b => `<div class="kc-wait${b.look ? ' ' + esc(b.look) : ''}"${cardAttrs_(b.data)}${b.on ? ' aria-busy="true"' : ''}>${b.on && typeof loading_ === 'function' ? loading_() : ''}</div>`,
 };
+/* THE PADLOCK a shut card wears, first inside it. */
+const cardLockMark_ = () => `<span class="card-lock" title="Locked" aria-label="Locked">${typeof tileIcon_ === 'function' ? tileIcon_('lock') : ''}</span>`;
 /* A CARD DRAWN AGAIN WHERE IT STANDS: the new card replaces the old element whole. */
 function cardRedraw_(el, spec) {
   if (!el || typeof document === 'undefined') return;
@@ -294,7 +303,7 @@ function paperSelect_(b) {
 const paperSet_ = b => `<span class="bk-set">${esc(b.text)}</span>`;
 const paperInput_ = b => `<input class="bk-in${b.wide ? ' bk-in-l' : ''}"${b.id ? ` id="${esc(b.id)}"` : ''}${b.act ? ` data-do="${esc(b.act)}"` : ''}${b.field ? ` data-field="${esc(b.field)}"` : ''} type="${b.kind === 'number' ? 'number' : 'text'}"`
   + `${b.kind === 'number' ? ' inputmode="decimal" min="0" max="100" step="1"' : ''} value="${esc(b.value == null ? '' : b.value)}" placeholder="${esc(b.placeholder || '')}"${b.off ? ' disabled' : ''} aria-label="${esc(b.aria || '')}">`;
-const paperNote_ = b => `<p class="note${b.look ? ' ' + esc(b.look) : ''}">${cardRuns_(b.text)}</p>`;
+const paperNote_ = b => `<p class="note${b.look ? ' ' + esc(b.look) : ''}"${b.live ? ' aria-live="polite"' : ''}${b.alert ? ' role="alert"' : ''}>${cardRuns_(b.text)}</p>`;
 const paperLinks_ = b => `<p class="note policy-links">${esc(b.say || '')}${(b.links || []).map(l => `<a href="${esc(l.href)}" data-do="file-view" target="_blank" rel="noopener">${esc(l.text)}</a>`).join(' · ')}</p>`;
 const paperBox_ = b => `<div${b.id ? ` id="${esc(b.id)}"` : ''} class="${esc(b.look || '')}">${b.inner || ''}</div>`;
 Object.assign(CARD_BLOCKS, { paperRow: paperRow_, paperDoc: paperDoc_, paperRoster: paperRoster_, paperWhenCould: paperWhenCould_, paperWeek: paperWeek_,

@@ -2211,7 +2211,7 @@ label.bk-k { cursor: pointer; }
 .me-week .slot-row { display: grid; grid-template-columns: 2.1rem minmax(0, 1fr);
                      gap: var(--s1); align-items: center; }
 .me-week .slot-day { font-size: var(--fs-small); text-transform: none; letter-spacing: 0; color: var(--ink); }
-.me-week .slot-hours { display: grid; grid-template-columns: repeat(var(--hours, 10), minmax(0, 1fr));
+.me-week .slot-hours { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
                        gap: var(--s0); }
 .me-week .slot-hh { font-size: var(--fs-small); }
 .me-week .hr { aspect-ratio: 1; min-height: 0; border-radius: var(--r-ui); }
@@ -2542,7 +2542,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 /* ---------- A CARD BEING EDITED — `cardEditHtml_` in me.js (docs/history/330) § */
 .card-ed .ce-what { color: var(--gold); }
 /* `.kid-sec` IS "MANAGE YOUR CHILD"'S SECTION (docs/history/339) — the children linked to you, then making an account, then linking one — and it is drawn as the § */
-.ce-sec + .ce-sec, .kid-sec + .kid-sec { margin-top: var(--s3); padding-top: var(--s2); border-top: 1px solid var(--line-soft); }
+.ce-sec + .ce-sec, .kid-sec + .kid-sec, .kid-sec + .kc-embed > .kid-sec:first-child { margin-top: var(--s3); padding-top: var(--s2); border-top: 1px solid var(--line-soft); }
 .ce-sec > .prof-cap:first-child { margin-top: 0; }
 /* ITS TWO FORMS ARE HEADED, NOT CAPTIONED (the review of docs/history/339). § */
 .kid-sec > .kid-h { margin: 0 0 var(--s2); font-size: var(--fs-body); font-weight: 600; letter-spacing: -.005em; color: var(--ink); }
