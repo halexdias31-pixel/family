@@ -23002,9 +23002,10 @@ function layoutDeletedName_(id) {
 function deletedCard_() {
   if (!isAdmin()) return '';
   const del = ((layoutNow_() || {}).deleted || []);
-  const rows = del.map(id => `<div class="lay-deleted-row" data-deleted="${esc(id)}"><p><strong>${esc(layoutDeletedName_(id))}</strong> · ${anyWidgetOf_(id) ? 'widget' : 'card'}</p>
-<div class="tile-row">${tile_({ icon: 'undo', label: 'Put back', act: 'lay-putback', tone: 'admin', data: { del: id } })}</div></div>`).join('');
-  return '<!--card:biz:deleted-->' + card_('<div class="biz deleted-card"><h3>Deleted</h3>' + (rows || empty_('Nothing deleted.')) + '</div>');
+  const rows = del.map(id => cardBlock_({ type: 'group', look: 'lay-deleted-row', attrs: { 'data-deleted': id }, blocks: [
+    { type: 'group', tag: 'p', text: [{ b: layoutDeletedName_(id) }, ' · ' + (anyWidgetOf_(id) ? 'widget' : 'card')] },
+    { type: 'tiles', tiles: [{ icon: 'undo', label: 'Put back', act: 'lay-putback', tone: 'admin', data: { del: id } }] }] })).join('');
+  return '<!--card:biz:deleted-->' + card_(cardBlock_({ type: 'group', look: 'biz deleted-card', blocks: [{ type: 'msgHead', text: 'Deleted' }], inner: rows || empty_('Nothing deleted.') }));
 }
 /* CARDS THAT MOVE BUT ARE NEVER DELETED, each with its reason. */
 const CARD_KEEP = {
@@ -23031,7 +23032,7 @@ function splitOpts_(id, n) {
     : { icon: 'split', label: 'Split', note: 'a card a field', act: 'lay-split', tone: 'admin', data: { card: id } };
 }
 /* ITS ROW UNDER THE CARD, or '' for anybody but an admin. */
-function splitRow_(id, n) { const h = tile_(splitOpts_(id, n)); return h ? `<div class="tile-row wgt-admin split-tiles">${h}</div>` : ''; }
+function splitRow_(id, n) { const o = splitOpts_(id, n); return o ? cardBlock_({ type: 'tiles', look: 'wgt-admin split-tiles', tiles: [o] }) : ''; }
 function splitSet_(id, on) {
   if (!isAdmin() || !LAYOUT_SPLIT_ID.test(id)) return;
   const D = layoutDraftOf_(layoutNow_());
@@ -23160,9 +23161,10 @@ function cardSayIn0_(h, id) {
   /* NOR ON A SEARCH BAR, whose placeholder is its label (469, 770). */
   if (/\bdata-psearch\b/.test(h)) return h;
   const head = (/^\s*(?:<!--[^>]*-->)*/.exec(h) || [''])[0], body = h.slice(head.length);
-  if (/^\s*<button\b/.test(body)) return head + body.replace(/<\/button>(\s*(?:<div class="tile-row rep-row">[\s\S]*<\/div>)?\s*)$/, `<span class="note card-say">${esc(say)}</span></button>$1`);
-  const p = `<p class="note card-say">${esc(say)}</p>`;
-  if (/<\/h3>/.test(body)) return head + body.replace(/<\/h3>/, '</h3>' + p);
+  if (/^\s*<button\b/.test(body)) return head + body.replace(/<\/button>(\s*(?:<div class="tile-row rep-row">[\s\S]*<\/div>)?\s*)$/,
+    (m, rest) => cardBlock_({ type: 'group', tag: 'span', look: 'note card-say', text: say }) + m.slice(0, m.length - rest.length) + rest);
+  const p = cardBlock_({ type: 'group', tag: 'p', look: 'note card-say', text: say });
+  if (/<\/h3>/.test(body)) return head + body.replace(/<\/h3>/, m => m + p);
   return head + body.replace(/^(\s*<div\b[^>]*>)/, '$1' + p);
 }
 const PROG_EMPTY_ = { 'Questions': 'acct:prog-answered', 'Recent activity': 'acct:prog-activity', 'Work on next': 'acct:prog-weakest',
@@ -23214,7 +23216,7 @@ function cardIdOf_(html) {
   m = /\sdata-lay-card="([^"]+)"/.exec(tag) || /\sdata-split="([^"]+)"/.exec(tag);
   if (m && cardIs_(m[1])) return m[1];
   /* A CARD BUILT BY THE ONE TEMPLATE (card_) IS READ BY ITS OWN MAKER'S CLASSES, in the order the registry names them. */
-  const t = h.trim().replace(/^<div class="([^"]*)"/, (x, c) => '<div class="' + ['card'].concat(c.split(/\s+/).filter(k => k && !/^(card|fc|kc|kc-[\w-]+)$/.test(k))).join(' ') + '"');
+  const t = h.trim().replace(/^(<div class=")([^"]*)"/, (x, open, c) => open + ['card'].concat(c.split(/\s+/).filter(k => k && !/^(card|fc|kc|kc-[\w-]+)$/.test(k))).join(' ') + '"');
   /* AN EMPTY PROGRESS WIDGET IS ITS TITLE ALONE (414), so its title says which it is. */
   m = /^<div class="card prog-w is-empty"[^>]*aria-label="([^"]*)"/.exec(t) || /^<div class="card prog-w is-empty"><h3>([^<]*)<\/h3>/.exec(t);
   if (m && PROG_EMPTY_[m[1]]) return PROG_EMPTY_[m[1]];
@@ -23325,8 +23327,8 @@ function cardsOf_(col) {
     const row = admin && g.id ? cardAdminRow_(g.id, col, one(g) && one(above)) : '';
     if (g.parts) {
       if (start && g.merged.indexOf(start) !== -1) CARD_START_AT[col] = out.length;
-      const body = g.parts.map(p => `<div class="merged-part" data-part="${esc(p.id)}">${p.pages.map((h, i) => strip(i === 0 ? cardSayIn_(h, p.id) : h)).join('')}</div>`).join('');
-      out.push(card_(`<div class="is-merged" data-lay-card="${esc(g.id)}">${body}${row}</div>`));
+      const body = g.parts.map(p => cardBlock_({ type: 'group', look: 'merged-part', attrs: { 'data-part': p.id }, inner: p.pages.map((h, i) => strip(i === 0 ? cardSayIn_(h, p.id) : h)).join('') })).join('');
+      out.push(card_(cardBlock_({ type: 'group', look: 'is-merged', attrs: { 'data-lay-card': g.id }, inner: body + row })));
       return;
     }
     const each = g.pages.length > 1 && /^(set|biz):/.test(g.id);
@@ -23339,7 +23341,7 @@ function cardsOf_(col) {
       /* AN EMPTY CARD CARRIES ITS OWN Suggest a change (`emptyCard_`), so the admin's row does not add a second. */
       const row1 = /data-do="rep-box"/.test(page) ? row.replace(/<button[^>]*data-do="rep-box"[\s\S]*?<\/button>/, '') : row;
       if (row && (each || i === g.pages.length - 1)) page = cardRowIn_(page, pid ? row1.replace(/<button[^>]*data-do="lay-start"[\s\S]*?<\/button>/, '') : row1);
-      if (admin && pid) page = cardRowIn_(page, `<div class="tile-row wgt-admin start-tiles">${tile_(startOpts_(col, 'person:' + pid, start))}</div>`);
+      if (admin && pid) page = cardRowIn_(page, cardBlock_({ type: 'tiles', look: 'wgt-admin start-tiles', tiles: [startOpts_(col, 'person:' + pid, start)] }));
       out.push(page);
     });
   });
@@ -23360,7 +23362,7 @@ function cardRowIn_(h, row) {
     let depth = 0, end = -1;
     const re = /<(\/?)div\b[^>]*>/g;
     for (let m; (m = re.exec(t));) { depth += m[1] ? -1 : 1; if (!depth) { end = re.lastIndex; break; } }
-    if (end === t.length) return t.slice(0, -6) + row + '</div>';
+    if (end === t.length) return t.slice(0, -6) + row + t.slice(-6);
   }
   return h + row;
 }
@@ -23369,7 +23371,7 @@ function cardAdminRow_(id, col, mergeable) {
   const L = layoutNow_(), seen = mergeUnits_(CARD_SEEN[col] || [], L), i = seen.findIndex(u => u.indexOf(id) !== -1);
   const grp = mergedOf_(id, L);
   const start = cardStartOf_(col, layoutNow_());
-  return `<div class="tile-row wgt-admin card-admin" data-lay-for="${esc(id)}">${
+  return cardBlock_({ type: 'group', look: 'tile-row wgt-admin card-admin', attrs: { 'data-lay-for': id }, inner: `${
     tile_({ icon: 'up', label: 'Move up', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: i <= 0 })}${
     tile_({ icon: 'down', label: 'Move down', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: 1 }, off: i === -1 || i >= seen.length - 1 })}${
     tile_([acrossOpts_(id, col, false, { lc: id }), ...colOpts_(col, id)])}${
@@ -23380,14 +23382,14 @@ function cardAdminRow_(id, col, mergeable) {
     tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('k:' + id) : null)}${
     CARD_KEEP[id] ? (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('card', id, CARD_TITLE[id] || id)) : '')
       : notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
-      typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('card', id, CARD_TITLE[id] || id)) : '')}</div>`;
+      typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('card', id, CARD_TITLE[id] || id)) : '')}` });
 }
 /* A CARD'S REPORT ROW FOR SOMEBODY WHO DOES NOT ARRANGE CARDS (486); an admin's is in `cardAdminRow_`. */
 function cardReportRow_(id, page) {
   /* NOT ON A LOCKED CARD (467: nothing pressable) NOR ONE CARRYING ITS OWN (an empty card's, `emptyCard_`). */
   if (/^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-locked\b/.test(page) || /data-do="rep-box"/.test(page)) return '';
   const t = typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^>]*\saria-label="([^"]{1,80})"/.exec(page) || [])[1] || id).trim())) : '';
-  return t ? `<div class="tile-row card-rep">${tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('k:' + id) : null)}${t}</div>` : '';
+  return t ? cardBlock_({ type: 'group', look: 'tile-row card-rep', inner: tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('k:' + id) : null) + t }) : '';
 }
 
 /* A THING OFF THE CARD COLUMNS (487), `item:<col>:<name>`: Delete and Note for an admin, gone for everyone once deleted (477). No move: its column's code draws it. */
@@ -23399,8 +23401,8 @@ function itemMark_(id, col, html) {
   if (!isAdmin()) return h;
   /* A RULE (496), locked: `items-no-move` — Delete and the door only, marked `no-move`. */
   const still = typeof ruleOn_ !== 'function' || ruleOn_('items-no-move');
-  return cardRowIn_(h, `<div class="tile-row wgt-admin card-admin item-admin${still ? ' no-move' : ''}" data-lay-for="${esc(id)}">${
-    LAYOUT_EDIT ? tile_(frontOpts_(col, id)) : ''}${tile_(wordsOpts_(id, id))}${tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}</div>`);
+  return cardRowIn_(h, cardBlock_({ type: 'group', look: 'tile-row wgt-admin card-admin item-admin' + (still ? ' no-move' : ''), attrs: { 'data-lay-for': id }, inner:
+    (LAYOUT_EDIT ? tile_(frontOpts_(col, id)) : '') + tile_(wordsOpts_(id, id)) + tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }) }));
 }
 
 /* ---------- FRONT DOOR (489): `front: {col, id}`, one for the site; the door tile on every widget, card and item sets it, again clears it ---------- */
