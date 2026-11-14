@@ -239,8 +239,8 @@ function doorAsk_(p) {
 function doorItems_() {
   return [].concat(postDoorItems_(), msgDoorItems_(), profileDoorItems_(), settingDoorItems_());
 }
-/* SETTINGS ONLY (owner, 7 Nov): no Venues or Booking on the signed-out front. */
-function findSignedOut_(x) { return kindTop_(x) === 'Settings'; }
+/* SETTINGS AND BOOKING (owner, 13 Nov: a guest books through Find's steps and signs in to Send); no Venues on the signed-out front. */
+function findSignedOut_(x) { return kindTop_(x) === 'Settings' || x.kind === 'bookform'; }
 
 /* ---------- VENUES: every building the booking form offers (items: stuffItemsRaw_), the facts as tags on top, as on a person card, then the picture ---------- */
 /* 8-BIT BUILDINGS, drawn by pixSvg_ (find-boxers.js): a shape per kind of building, picked off the venue's name. */
@@ -278,6 +278,5 @@ function screenGone_(id) {
   const to = String(screenMoved_()[id] || '').split(':');
   if (to[0] !== 'find' || !to[1] || TABS.some(t => t.id === id)) return false;
   if (to[1] === 'Settings') { findSettings_(to[2] || ''); return true; }
-  try { if (typeof OPEN_JOB !== 'undefined' && OPEN_JOB) BOOK_OPEN = false; } catch (e) { oops_(e, 'doors:gone'); }
   finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: to[1] }], show: true }); go('stuff'); return true;
 }

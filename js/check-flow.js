@@ -456,6 +456,46 @@ const check = (name, fn) => {
 };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 /* A PAD'S UNDO OR CLEAR (1020): on a question they stand in the part's tool row, paired to the pad by data-k; the whiteboard keeps them in the pad's bar. */
+/* BOOKING'S FIND STEPS (owner, 13 Nov): Find › Booking opened, a step answered by tapping its tag in Find's menu; steps above it pass as they stand. */
+async function bookFind_(w) {
+  const d = w.document, t = w.__t, ev = s => t.inApp(s);
+  ev("finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true })");
+  try { t.go('stuff', false, true); } catch (e) { /* a journey without the screen still reads the menu off bookMenu_ */ }
+  const paint = async () => { ev('finderEach_(() => paintStuff(true))'); await wait(40); };
+  await paint();
+  const order = ev('BOOK_FIND_ORDER');
+  const at = () => ev('inFinder_(FINDERS.stuff, bookFindAt_)');
+  const reach = async id => {
+    const F = ev('BOOK_FIND'), i = order.indexOf(id);
+    order.slice(0, i).forEach(k => { F.done[k] = true; });
+    delete F.done[id];
+    if (ev('BOOK_FIND_GIVEN').indexOf(id) !== -1 && at() !== id) t.BOOKING[id] = '';
+    await paint();
+  };
+  const menu = () => d.querySelector('#s-stuff .page.on .book-step') || d.querySelector('#s-stuff .book-step');
+  const tags = async id => { await reach(id); const m = menu(); return at() === id && m ? [...m.querySelectorAll('[data-do]')].filter(x => x.dataset.do !== 'book-next') : []; };
+  const offers = async id => (await tags(id)).map(x => x.dataset.v || x.dataset.code || x.dataset.when);
+  const tap = async el => { t.ACTIONS[el.dataset.do](el); await wait(30); };
+  const pick = async (id, v) => {
+    const all = await tags(id);
+    const el = all.find(x => (x.dataset.v || x.dataset.code || x.dataset.when) === v);
+    if (!el) return 'the ' + id + ' step does not offer ' + JSON.stringify(v) + ' (offers ' + all.map(x => x.dataset.v || x.dataset.code).join(' | ') + (at() === id ? '' : '; asked: ' + at()) + ')';
+    if (el.getAttribute('aria-disabled') === 'true') return id + ' ' + v + ' is greyed';
+    await tap(el);
+    return '';
+  };
+  const next = async id => { const el = (menu() || d).querySelector('[data-do="book-next"][data-step="' + id + '"]'); if (el) await tap(el); return !!el; };
+  /* AN HOUR BY ITS CODE (`m16`): its day picked on Days if it was not, then its tag on Times. */
+  const hour = async code => {
+    const day = (ev('SLOT_DAYS').filter(x => code.indexOf(x[0]) === 0 && /^\d+$/.test(code.slice(x[0].length)))[0] || [])[1];
+    const F = ev('BOOK_FIND');
+    if (day && F.days.indexOf(day) === -1) F.days.push(day);
+    return pick('slots', code);
+  };
+  const back = async id => { t.ACTIONS['book-back']({ dataset: { step: id } }); await wait(30); };
+  const done = async () => { order.forEach(k => { ev('BOOK_FIND').done[k] = true; }); await paint(); return d.querySelector('#s-stuff #bookr'); };
+  return { at, reach, tags, offers, pick, next, back, done, paint, menu, hour };
+}
 const padTile_ = (pad, cls) => pad && (pad.querySelector(cls) || [...((pad.closest('.qcard') || pad.parentNode || pad).querySelectorAll('.qt-row ' + cls))]
   .find(b => b.getAttribute('data-k') === pad.getAttribute('data-k')) || null);
 /* THE JOURNEYS LIVE IN check/flow/ (1040), one file a feature, read in name order as one text so they share this scope and FLOW_PART deals the same roster. */

@@ -4008,6 +4008,9 @@ a.boxer-src { display: flex; align-items: center; min-height: var(--tap); text-d
 .sign-type .sign-box { width: 100%; min-height: var(--tap); border: 0; background: none; color: var(--ink); font: inherit; font-size: var(--tp-fs); text-align: center; outline: none; padding: 0; }
 .sign-type:focus-within, .sign-type:has(.sign-box[aria-invalid]) { border-bottom-color: var(--gold); }
 .answers.sign-more { margin-top: var(--s2); }
+/* BOOKING'S STEPS ON FIND (owner, 13 Nov): the question over its tags, and a chosen or ticked tag held lit. */
+.book-ask { margin: 0 0 var(--s2); text-align: center; color: var(--ink); font-size: var(--tp-fs); }
+.answers > .row.tap.counted.is-on { background: var(--press-wash); border-color: var(--gold); }
 
 /* REELS — one reel per widget, one widget per page § */
 .reel {

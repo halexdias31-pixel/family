@@ -387,7 +387,8 @@ check('signed out, Find is the one front door: its first menu is Guest, the name
   if (!d.querySelector('#stuff-groups [data-do="sign-guest"]') || !d.getElementById('in-name') || !d.querySelector('#stuff-groups [data-do="sign-join"]')) bad.push('signed out, Find\'s first menu is not Guest, the name tag and Make an account');
   const items = w.stuffItemsBuild_();
   const own = (items || []).filter(Boolean);
-  if (own.some(x => x.kind !== 'setting')) bad.push('signed out, Find holds more than Settings: ' + JSON.stringify([...new Set(own.map(x => x.kind))]));
+  /* AND BOOKING (owner, 13 Nov): a guest books through Find's steps and is asked to sign in at Send. */
+  if (own.some(x => x.kind !== 'setting' && x.kind !== 'bookform')) bad.push('signed out, Find holds more than Settings and Booking: ' + JSON.stringify([...new Set(own.map(x => x.kind))]));
   if (own.some(x => x.signIn)) bad.push('signed out, Settings still holds a separate Sign in card');
   const joinItem = own.find(x => x.join);
   if (!joinItem) return bad.concat(['signed out, Settings holds no Make an account item']);

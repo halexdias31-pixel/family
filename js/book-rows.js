@@ -144,31 +144,6 @@ function bookToggle_(step, v) {
   }
 }
 
-document.addEventListener('change', e => {
-  const el = e.target && e.target.closest && e.target.closest('[data-do="book-set"]');
-  if (!el) return;
-  const step = bookStep_(el.dataset.step);
-  if (!step) return;
-
-  /* SEVERAL ANSWERS, ONE DROPDOWN LIKE THE REST (29 Oct): a pick adds the answer, a pick of a ticked one takes it off — `stepPick_`. */
-  if (step.multi) {
-    if (el.value && !stepLocked_(step)) bookToggle_(step, el.value);
-    drawBooker();
-    return;
-  }
-  /* AN OPTION THE LIST DREW DISABLED IS NOT TAKEN HOWEVER IT ARRIVES — a keyboard, an old browser
-     that lets a disabled option through, a hand-built event. Said, and the row redrawn on what it
-     held. */
-  if (step.lock && step.lock()) { drawBooker(); return; }
-  const no = step.off && el.value ? String(step.off(el.value) || '') : '';
-  if (no) { toast(el.value + ' ' + no); drawBooker(); return; }
-  BOOKING[step.id] = el.value || '';
-
-  /* WHAT THIS ANSWER DOES TO THE OTHERS IS THE STEP'S OWN `set` (book-steps.js), never a branch here. */
-  if (step.set) step.set(BOOKING[step.id]);
-
-  drawBooker();
-});
 /* ---------- CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS (the `joining` step's `set`) § */
 function joiningSet_() {
   const j = joinedJob_();
@@ -306,9 +281,8 @@ function breakdownRows(L) {
       const asked = { base: 'tutor', subject: 'subjects', level: 'level', students: 'n',
                       venue: 'loc', host: 'hosting', term: 'interval' }[r.key];
       /* AN UNANSWERED ROW SHOWS A DASH, the same as one on the unpriced card — see `stepRows_`. § */
-      /* THE SAME DROPDOWN THE UNPRICED CARD USES. § */
-      const st = asked ? bookStep_(asked) : null;
-      const sel = st ? stepControl_(st) : '';
+      /* NO CONTROL ON A PRICED ROW: its answer is a Find step (find-account.js). */
+      const sel = '';
       push(r.row || r.label, plain || (asked ? dash_() : ''), c.mul, c.rate, c.total,
         /* ---------- `step` IS ALWAYS THE STEP, EVEN WHEN THE ROW HAS A CONTROL § */
         /* ---------- NO WEEK HANGS OFF A PRICED ROW ANY MORE § */
@@ -332,43 +306,6 @@ function breakdownRows(L) {
   return rows;
 }
 
-/* ---------- A ROW IS ITS OWN QUESTION § */
-function stepSelect_(st) {
-  const opts = st.options().filter(Boolean);
-  /* WHAT A LOCKED MULTI HAS TICKED — the one reason a multi reaches this function. */
-  const chosen = st.multi ? (BOOKING[st.id] || []) : [];
-  /* ---------- A FALLBACK HAS TO REACH THE CONTROL, NOT ONLY THE TEXT § */
-  /* READ ONCE, BECAUSE TWO PLACES IN THIS FUNCTION WANT IT: the value a single-answer control opens
-     on and the text a LOCKED row prints. It was inlined into the first alone, so a locked multi never
-     saw it — see the note below. */
-  const fb = st.fallback ? String(st.fallback() || '') : '';
-  const v = st.multi ? '' : (BOOKING[st.id] || fb);
-
-  /* ---------- A SETTLED ANSWER IS TEXT, NOT A CONTROL § */
-  if (stepLocked_(st)) {
-    const said = st.multi ? (chosen.join(', ') || fb)
-      : (st.label_ && v ? st.label_(v) : v);   /* `v` already carries the fallback — see above */
-    return cardBlock_({ type: 'paperSet', text: String(dash_(said)) });
-  }
-  const isOn = o => norm(o) === norm(v);
-  /* ---------- THE BLANK OPTION DOES NOT REPEAT AN ANSWER ON THE LIST § */
-  const said = o => String(st.label_ ? st.label_(o) : o);
-  const dup = !!fb && opts.some(o => norm(said(o)) === norm(fb));
-  /* DISABLED, NOT ABSENT. The row keeps its height, its label and its answer; only the pointer
-     changes. A form whose rows come and go cannot be learnt. */
-  /* A `lock` (the home seat count) greys the select but keeps it, so the fixed value still shows. */
-  const off = stepLocked_(st) || !!(st.lock && st.lock());
-  /* AN OPTION THAT CANNOT BE TAKEN IS DRAWN AND DISABLED, its reason beside its name — see `off` on
-     the tutor step. The one already chosen is left pressable, so the row can show it. */
-  const noOf = o => st.off ? String(st.off(o) || '') : '';
-  const words = o => said(o) + (noOf(o) ? ' · ' + noOf(o) : '');
-  const blank = dup ? dash_() : dash_(fb);
-  const picked = opts.filter(isOn).pop();
-  return cardBlock_({ type: 'paperSelect', id: bkCtl_(st.id), step: st.id, off, aria: st.label,
-    options: [{ value: '', text: blank, on: !v || !opts.some(isOn) }].concat(opts.map(o => ({ value: o, text: words(o), on: isOn(o), off: !!noOf(o) && !isOn(o) }))),
-    face: st.wrap ? (picked !== undefined ? words(picked) : blank) : null });
-}
-
 /* ---------- THE NOTE IS A ROW LIKE THE REST § */
 function noteRow_() {
   return { n: '', k: 'Note', v: '', mul: '', rate: '', total: '', step: '',
@@ -377,43 +314,8 @@ function noteRow_() {
       placeholder: 'anything else we should know', aria: 'Anything else we should know' }) };
 }
 
-/* ---------- SEVERAL ANSWERS, THE SAME DROPDOWN AS ONE § */
-function stepPick_(st) {
-  let opts = [];
-  try { opts = (st.options() || []).filter(Boolean); } catch (e) { /* no option list means any value is accepted */ }
-  const chosen = BOOKING[st.id] || [], on = o => chosen.some(c => norm(c) === norm(o));
-  const said = o => String(st.label_ ? st.label_(o) : o);
-  const fb = st.fallback ? String(st.fallback() || '') : '';
-  const face = chosen.map(said).join(', ') || fb || dash_();
-  return cardBlock_({ type: 'paperSelect', id: bkCtl_(st.id), step: st.id, aria: st.label, face, set: !!chosen.length,
-    options: [{ value: '', text: face, on: true }].concat(opts.map(o => ({ value: o, text: (on(o) ? '✓ ' : '') + said(o) }))) });
-}
-
-/* ON THE SCREEN YOU ARE ON, ON THE PAGE IN FRONT OF YOU. § */
-function dropOnFront_(row) {
-  const host = row.closest('.screen');
-  if (!host || host.id !== 's-' + AT) return false;
-  /* WHICH PAGE, OFF `PAGE` RATHER THAN OFF `.page.on`. § */
-  const page = row.closest('.page');
-  if (page) {
-    const kids = host.querySelectorAll(':scope > .page');
-    const pos = Array.prototype.indexOf.call(kids, page);
-    const p = typeof logIndex_ === 'function' ? logIndex_(AT, pos) : pos;
-    if (p !== (PAGE[AT] || 0)) return false;
-  }
-  return true;
-}
-
 /* ---------- THE ROW'S LABEL IS THE ROW'S CONTROL'S LABEL § */
 const bkCtl_ = id => 'bk-ctl-' + String(id || '').replace(/[^\w-]/g, '');
-document.addEventListener('click', e => {
-  if (e.defaultPrevented) return;
-  const lab = e.target && e.target.closest && e.target.closest('label.bk-k[for]');
-  const sel = lab && lab.control;
-  if (!sel || sel.tagName !== 'SELECT' || sel.disabled || typeof sel.showPicker !== 'function') return;
-  try { sel.showPicker(); } catch (err) { /* not rendered, or no activation: the label's focus stands */ }
-});
-
 /* ---------- AND THE LIST JUST OPENED IS BROUGHT ONTO THE SCREEN § */
 function tickListShow_(find, still) {
   const fit = () => {
@@ -481,7 +383,7 @@ function blockWeekRows_() {
     (c) => {
       const phrase = blockPhrase_(c.day, c.block);
       /* THE PHRASE ITSELF, not a code. § */
-      return tile_({ form: true, look: 'hr blk' + (on.indexOf(phrase) !== -1 ? ' on' : ''), title: phrase, aria: phrase, act: 'book-block', data: { when: phrase }, html: '' });
+      return tile_({ form: true, look: 'hr blk' + (on.indexOf(phrase) !== -1 ? ' on' : ''), off: true, title: phrase, aria: phrase, act: 'book-block', data: { when: phrase }, html: '' });
     },
     { id: 'avail' });
 }
@@ -497,17 +399,16 @@ function stepWeekRows_(st) {
 
   const g = slotGrid();
   const on = BOOKING.slots || [];
-  const off = stepLocked_(st);
   /* `g.days`, NOT `g.rows`: § */
   return weekRows_(
     g.days.map(r => ({ label: r.label, hours: r.hours, shut: !r.hours.some(h => h.open),
                        /* THE TICKS THEMSELVES, counted where they are read. */
                        mul: r.hours.filter(h => on.indexOf(h.code) !== -1).length })),
     /* THE REASON, not just "not available": an hour never worked and an hour already taught are the same grey box; only the second is worth another week. */
-    (h, d) => tile_({ form: true, look: 'hr' + (on.indexOf(h.code) !== -1 ? ' on' : '') + ((h.open && !off) ? '' : ' shut'), off: !(h.open && !off),
+    (h, d) => tile_({ form: true, look: 'hr' + (on.indexOf(h.code) !== -1 ? ' on' : '') + (h.open ? '' : ' shut'), off: true,
       title: h.h + ':00' + (h.why ? ' — ' + h.why : h.open ? '' : ' — not available'),
       aria: d.label + ' ' + h.h + ':00' + (h.open ? '' : ', ' + (h.why || 'not available')), act: 'book-slot', data: { code: h.code }, html: '' }),
-    { id: st.id, off: off, ruler: true,
+    { id: st.id, ruler: true,
       /* ---------- A WEEK NOBODY IS FREE FOR IS STILL DRAWN § */
       /* NO SENTENCE WHILE ANY HOUR IS OPEN (owner, 8 Nov): the grey cells say it; only an empty grid needs words. */
       say: g.why,
@@ -532,15 +433,6 @@ function stepLocked_(st) {
   if (joinedJob_() && FIXED_BY_CLASS.indexOf(st.id) !== -1) return true;
   try { return !(st.grid || st.options().filter(Boolean).length); }
   catch (e) { return true; }
-}
-
-/* The control a row carries. § */
-function stepControl_(st) {
-  if (st.grid) return '';
-  /* A QUESTION TAKING SEVERAL ANSWERS IS THE SAME DROPDOWN — see `stepPick_`. A locked one falls through to the text
-     `stepSelect_` draws for a settled answer. */
-  if (st.multi && !stepLocked_(st)) return stepPick_(st);
-  return stepSelect_(st);
 }
 
 /* ---------- EVERY QUESTION AS A ROW, ANSWERED OR NOT § */
@@ -578,10 +470,8 @@ function stepRows_() {
                mul: '', rate: '', total: '',
                /* THE STEP THIS ROW STANDS FOR. § */
                id: st.id,
-               sel: stepControl_(st),
-               /* THE CONTROL THE ROW'S LABEL IS FOR — see `bkCtl_`. Only when one was drawn: a locked
-                  row is text and a grid row has none, and a `for` naming nothing is a label that lies. */
-               ctl: st.grid ? '' : !stepLocked_(st) ? bkCtl_(st.id) : '',
+               /* NO CONTROL: the answer is picked on Find's step menus (find-account.js), so the paper only reads it. */
+               sel: '', ctl: '',
                /* ---------- `why` WAS WRITTEN OUT ON FOUR STEPS AND DRAWN NOWHERE § */
                say: (() => {
                  /* ---------- NOTHING IS SAID ABOUT AN ANSWER NOBODY HAS GIVEN § */
