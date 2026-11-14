@@ -15,6 +15,7 @@ One list, so nothing asked for gets lost. Claude ticks items off here when they 
 - [ ] Name at the top right as a tag; removing it signs out (replaces the sign-out button)
 
 ## Queued (owner asked, not started)
+- AFTER the template conversion (owner, 14 Nov): tune the one card layout so it suits every kind of card. Measure, do not guess: tap targets at least 44px, one reading order (picture, tags, body, tiles), no sideways scroll at 390px, text never cut, the fewest taps to the main action, same spacing everywhere. Try 2–3 layouts on a sample of every card kind, show the owner screenshots, keep the one that scores best. Since every card uses one renderer, a change is one edit.
 
 - [ ] NEXT after template: sign-in becomes the Finder's first tag (Guest tag, or an underlined blank for name/username, then the PIN as 4 Finder menus of tags 0–9, one per digit, each chosen digit shown as a ● tag, never the digit, and never in the URL or history; the server's attempt limit stays; the name tag's × signs out; no separate sign-in screen)
 - [ ] NEXT after sign-in: booking becomes a Finder branch (owner, 13 Nov). Signed in or Guest → Booking → Subject → Level → Tutor (who teaches it at that level) → Where (borough or venue) → Term → Days → Times → Seats → a summary card with the price and Send. Each step is a menu of tags, in dependency order (an earlier owner rule). Reuse the existing booking maths and save paths unchanged. The old booking form card goes.
