@@ -774,6 +774,34 @@ const answerTag_ = (inner, attrs, cls) => `<div class="counted row tap${cls ? ' 
 /* A MENU'S ROW OF TAGS, and the blank tag typed on (the sign-in name); `id` names a slot something else fills, Google's button. */
 const answersRow_ = (tags, cls, id) => `<div${id ? ` id="${id}"` : ''} class="answers${cls ? ' ' + cls : ''}">${tags || ''}</div>`;
 const answerBox_ = (attrs, cls) => `<label class="counted row${cls ? ' ' + cls : ''}"><input${attrs || ''}></label>`;
+/* THE MESSAGE BLOCKS (owner, 14 Nov: one template for everything): a conversation's chips, attachments, bubbles and composer, and Check uploads' report, drawn from data. */
+const msgAtt_ = b => ((b.items || []).length ? `<div class="msg-att">${b.items.map(a => a.kind === 'image'
+  ? `<a class="msg-pic" href="${esc(a.href)}" data-do="file-view" target="_blank" rel="noopener" aria-label="Open ${esc(a.name || 'the photo')}"><img src="${esc(a.src)}" alt="${esc(a.name || 'photo')}" loading="lazy" decoding="async"></a>`
+  : a.kind === 'video' ? `<video class="msg-vid post-vid" src="${esc(a.src)}" data-open="${esc(a.href)}" controls playsinline preload="metadata"></video>`
+  : `<a class="msg-file" href="${esc(a.href)}" data-do="file-view" target="_blank" rel="noopener"><b>${esc(a.mark)}</b><span>${esc(a.name || 'a file')}</span></a>`).join('')}</div>` : '');
+const msgLinks_ = b => (b.links || []).map(l => `<a class="msg-act" href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.text)}</a>`).join('');
+const msgChips_ = b => (b.chips || []).map(c => `<span class="msg-chip">${c.img ? `<img src="${esc(c.img)}" alt="" decoding="async">` : `<b>${esc(c.mark)}</b>`}`
+  + ` <span class="msg-chip-name">${esc(c.name)}</span> ${tile_(c.x)}</span>`).join('');
+function msgBubble_(b) {
+  const fail = b.fail ? `<p class="msg-when msg-fail"><span class="msg-fail-why">${esc(b.fail.said)}</span>${msgLinks_(b.fail)}</p>${tileRow_(tile_(b.fail.tiles), 'msg-acts')}` : '';
+  const bub = `<div class="msg-bub${b.words ? '' : ' is-bare'}">${msgAtt_({ items: b.att })}${b.words ? `<p class="msg-body-text">${cardRuns_({ marked: b.words })}</p>` : ''}</div>`;
+  return `${b.day ? `<p class="msg-day"><span>${esc(b.day)}</span></p>` : ''}<div class="msg${b.look ? ' ' + esc(b.look) : ''}">`
+    + (b.flag ? `<div class="msg-line">${bub}${tile_(b.flag)}</div>` : bub) + `${fail}</div>`;
+}
+const msgFormBlock_ = b => `<div class="msg-form" data-k="${esc(b.k)}"><div class="msg-queue">${msgChips_(b)}</div>`
+  + (b.clip ? `${tile_({ icon: 'plus', label: 'Attach a photo, video or file', act: 'msg-attach', cls: 'msg-clip' })}<input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : '')
+  + `<textarea class="msg-text" rows="${Number(b.rows) || 1}" maxlength="2000" placeholder="Message…" aria-label="Message ${esc(b.to)}"${b.drafted || ''}>${esc(b.value || '')}</textarea>`
+  + `${tile_(b.send)}<p class="note msg-said">${esc(b.note || '')}</p></div>`;
+/* A BOX ROUND PARTS THESE BLOCKS ALREADY DREW (a message's card, a claim, a section), its look and data its own. */
+const msgBox_ = b => `<div class="${esc(b.look || '')}"${cardAttrs_(b.data)}>${(b.parts || []).join('')}</div>`;
+const msgHead_ = b => { const h = b.h === 4 ? 'h4' : 'h3'; return `<${h}${b.look ? ` class="${esc(b.look)}"` : ''}>${cardRuns_(b.text)}</${h}>`; };
+const msgText_ = b => `<p class="${esc(b.look || '')}">${b.marked ? cardRuns_({ marked: b.text }) : cardRuns_(b.text)}</p>`;
+const msgPic_ = b => `<figure class="msg-fc-pic">${b.face || ''}</figure>`;
+const upReport_ = b => `<ul class="up-list">${(b.checks || []).map(c => `<li class="row up-item ${c.ok ? 'is-ok' : 'is-bad'}"><b class="up-mark" role="img" aria-label="${c.ok ? 'yes' : 'no'}">${c.ok ? '✓' : '✗'}</b>`
+  + `<span><span class="up-k">${esc(c.label)}</span> <span class="up-v">${esc(c.said)}</span></span></li>`).join('')}</ul>`
+  + `<p class="up-said ${b.ok ? 'up-good' : 'up-bad'}">${esc(b.said)}</p>${(b.steps || []).length ? `<ol class="up-steps">${b.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>` : ''}`;
+Object.assign(CARD_BLOCKS, { msgAtt: msgAtt_, msgLinks: msgLinks_, msgChips: msgChips_, msgBubble: msgBubble_, msgForm: msgFormBlock_, msgBox: msgBox_, msgHead: msgHead_,
+  msgText: msgText_, msgPic: msgPic_, upReport: upReport_ });
 
 ;
 /* ==== js/core-price.js ==== */
@@ -9657,17 +9685,14 @@ function verifyFromLink_(again) {
       if (d && d.noEmail && d.parentPending) {
         /* ---------- `parentPending`: A SHEET THEY CLOSE, NOT A TOAST THAT CLOSES ITSELF § */
         const who = first || 'They';
-        openSheet('Confirmed — one more step', `
-          <p class="note">${esc(who)} can sign in now${d.handle ? ` as <b>@${esc(d.handle)}</b>` : ''} with
-            their PIN.</p>
-          <p class="note"><b>They are not on your account yet.</b> The @family. account on your email has not
-            been confirmed, so we did not put ${esc(first || 'them')} on it.</p>
-          <p class="note">Open the "Confirm your @family. account" email we sent you — or sign in and press
-            "Send the link again" — then add ${esc(first || 'them')} with "Add your child" on Students.
-            They say yes, and they are on your account.</p>
-          <p class="note">Did you never make an account here? Then somebody else did, with your email. Use
-            "Forgotten your PIN?" with your email to take it back — it signs them out.</p>
-          ${tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' })}`);
+        openSheet('Confirmed — one more step', cardBlock_({ type: 'text', look: 'note', paras: [
+          [who + ' can sign in now', d.handle ? [' as ', { b: '@' + d.handle }] : '', ' with their PIN.'],
+          [{ b: 'They are not on your account yet.' }, ' The @family. account on your email has not been confirmed, so we did not put '
+            + (first || 'them') + ' on it.'],
+          'Open the "Confirm your @family. account" email we sent you — or sign in and press "Send the link again" — then add '
+            + (first || 'them') + ' with "Add your child" on Students. They say yes, and they are on your account.',
+          'Did you never make an account here? Then somebody else did, with your email. Use "Forgotten your PIN?" with your email to take it back — it signs them out.'] })
+          + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }));
         try { if (USER) load(); } catch (e) { oops_(e, 'me:verifyFromLink_') }
       } else if (d && d.noEmail) {
         toast('Confirmed — ' + (first || 'they') + ' can sign in now'
@@ -9710,8 +9735,7 @@ function afterSignIn_(d) {
   if (d && (d.childrenHeld || d.pinCleared || d.pinLink || d.moveDropped || d.handleMoved) && d.message) {
     openSheet(d.pinCleared ? 'Your PIN has changed' : d.childrenHeld ? 'Signed in — one thing to know'
               : d.handleMoved ? 'Your handle has changed' : 'Signed in',
-      `<p class="note">${esc(d.message)}</p>
-       ${tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' })}`);
+      cardBlock_({ type: 'text', look: 'note', text: d.message }) + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }));
   }
   let waiting = '';
   try { waiting = sessionStorage.getItem('familyVerify') || ''; sessionStorage.removeItem('familyVerify'); } catch (e) { /* storage can be blocked; the app runs without it */ }
@@ -9863,11 +9887,11 @@ function msgRead_(q) {
 }
 
 function msgQueueHtml_(key) {
-  const q = MSG_QUEUE[key] || [];
-  return q.map((a, i) => `<span class="msg-chip">${
-      /^image\//.test(a.type) ? `<img src="${esc(a.url)}" alt="" decoding="async">` : `<b>${esc(msgFileMark_(a))}</b>`}
-    <span class="msg-chip-name">${esc(a.name)}</span>
-    ${tile_({ icon: 'close', label: 'Remove ' + a.name, act: 'msg-unqueue', data: { k: key, i: i }, cls: 'msg-chip-x' })}</span>`).join('');
+  return cardBlock_({ type: 'msgChips', chips: msgChipSpecs_(key) });
+}
+function msgChipSpecs_(key) {
+  return (MSG_QUEUE[key] || []).map((a, i) => ({ img: /^image\//.test(a.type) ? a.url : '', mark: msgFileMark_(a), name: a.name,
+    x: { icon: 'close', label: 'Remove ' + a.name, act: 'msg-unqueue', data: { k: key, i: i }, cls: 'msg-chip-x' } }));
 }
 function msgQueueDraw_(form) {
   const key = form && form.dataset.k;
@@ -10130,21 +10154,14 @@ function msgFileMark_(a) {
 /* ---------- WHAT WAS SENT WITH IT § */
 function msgAttachHtml_(list) {
   if (!Array.isArray(list) || !list.length) return '';
-  return `<div class="msg-att">${list.map(a => {
-    const url = String(a.url || '');
-    const kind = msgKind_(a);
-    if (kind === 'image') {
-      return `<a class="msg-pic" href="${esc(url)}" data-do="file-view" target="_blank" rel="noopener"
-        aria-label="Open ${esc(a.name || 'the photo')}">
-        <img src="${esc(pic(url))}" alt="${esc(a.name || 'photo')}" loading="lazy" decoding="async"></a>`;
-    }
-    if (kind === 'video') {
-      return `<video class="msg-vid post-vid" src="${esc(/^blob:/.test(url) ? url : postVidSrc_(url))}"
-        data-open="${esc(url)}" controls playsinline preload="metadata"></video>`;
-    }
-    return `<a class="msg-file" href="${esc(url)}" data-do="file-view" target="_blank" rel="noopener">
-      <b>${esc(msgFileMark_(a))}</b><span>${esc(a.name || 'a file')}</span></a>`;
-  }).join('')}</div>`;
+  return cardBlock_({ type: 'msgAtt', items: msgAttItems_(list) });
+}
+function msgAttItems_(list) {
+  return (Array.isArray(list) ? list : []).map(a => {
+    const url = String(a.url || ''), kind = msgKind_(a);
+    return { kind: kind === 'image' || kind === 'video' ? kind : 'file', href: url, name: a.name || '', mark: msgFileMark_(a),
+      src: kind === 'image' ? pic(url) : kind === 'video' ? (/^blob:/.test(url) ? url : postVidSrc_(url)) : '' };
+  });
 }
 
 /* ---------- AN ADMIN'S REFUSAL CARRIES THE FIX, AND THE FIX IS AN ADDRESS § */
@@ -10157,10 +10174,11 @@ function msgFixUrls_(text) {
     .slice(0, 2);
 }
 function msgFixLinks_(text) {
-  return msgFixUrls_(text).map(u => `<a class="msg-act" href="${esc(u)}" target="_blank" rel="noopener">${
-    /\?setup=1/.test(u) ? 'Open ?setup=1' : /accounts\.google\.com/.test(u) ? 'Allow it' : 'Open the link'}</a>`)
-    .join('');
+  return cardBlock_({ type: 'msgLinks', links: msgFixLinkSpecs_(text) });
 }
+const msgFixLinkSpecs_ = text => msgFixUrls_(text).map(u => ({ href: u,
+  text: /\?setup=1/.test(u) ? 'Open ?setup=1' : /accounts\.google\.com/.test(u) ? 'Allow it' : 'Open the link' }));
+
 /* AND THE SENTENCE WITHOUT THEM. § */
 function msgFailSaid_(text) {
   let t = String(text || '');
@@ -10188,24 +10206,15 @@ const messagesHtml_ = ms => {
     const runEnd = !next || !!next.mine !== mine || (nextDay && nextDay !== dayWord)
                 || !!m.tmp !== !!next.tmp;
     const words = String(m.body || '').trim();
-    const state = m.state === 'failed'
-      ? `<p class="msg-when msg-fail"><span class="msg-fail-why">Not sent — ${esc(msgFailSaid_(m.err) || 'try again')}</span>${
-           msgFixLinks_(m.err)}</p>${tileRow_(tile_([
-             { icon: 'again', label: 'Retry', act: 'msg-retry', data: { k: m.tmp }, cls: 'msg-act' },
-             m.why === 'files' && words && (m.queue || []).length
-               ? { icon: 'doc', label: 'Words only', act: 'msg-words', data: { k: m.tmp }, cls: 'msg-act' } : null,
-             { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp }, cls: 'msg-act' }]), 'msg-acts')}`
-      : '';
-    return `${newDay ? `<p class="msg-day"><span>${esc(dayWord)}</span></p>` : ''}
-      <div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
-        runEnd ? ' run-end' : ''}${!mine && (!m.read || m.fresh) ? ' unread' : ''}${
-        m.state ? ' is-' + m.state : ''}">
-      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestOpts_`, 486). */''}
-      ${!mine && m.id && !m.tmp ? '<div class="msg-line">' : ''}<div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
-        words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>${!mine && m.id && !m.tmp
-        ? tile_(suggestOpts_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag')) + '</div>' : ''}
-      ${state}
-    </div>`;
+    const flag = !mine && m.id && !m.tmp ? suggestOpts_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag') : null;
+    /* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestOpts_`, 486). */
+    return cardBlock_({ type: 'msgBubble', day: newDay ? dayWord : '', words, att: msgAttItems_(m.attachments), flag,
+      look: [mine ? 'mine' : '', runTop ? 'run-top' : '', runEnd ? 'run-end' : '', !mine && (!m.read || m.fresh) ? 'unread' : '', m.state ? 'is-' + m.state : ''].filter(Boolean).join(' '),
+      fail: m.state === 'failed' ? { said: 'Not sent — ' + (msgFailSaid_(m.err) || 'try again'), links: msgFixLinkSpecs_(m.err), tiles: [
+        { icon: 'again', label: 'Retry', act: 'msg-retry', data: { k: m.tmp }, cls: 'msg-act' },
+        m.why === 'files' && words && (m.queue || []).length
+          ? { icon: 'doc', label: 'Words only', act: 'msg-words', data: { k: m.tmp }, cls: 'msg-act' } : null,
+        { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp }, cls: 'msg-act' }] } : null });
   }).join('');
 };
 
@@ -10218,48 +10227,30 @@ function msgDraft_(k) {
 }
 function msgForm_(to, toId, note, rows) {
   const k = msgKey_(to, toId);
-  return `<div class="msg-form" data-k="${esc(k)}">
-    <div class="msg-queue">${msgQueueHtml_(k)}</div>
-    ${/* A CHILD SENDS WORDS ONLY (413) — no picker, and `sendMessage` refuses their files too. */
-      rankAtLeast_('client') ? `${tile_({ icon: 'plus', label: 'Attach a photo, video or file', act: 'msg-attach', cls: 'msg-clip' })}
-    <input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : ''}
-    <textarea class="msg-text" rows="${rows || 1}" maxlength="2000"
-      placeholder="Message…" aria-label="Message ${esc(to)}"${draftAttr_('msg', k)}>${esc(msgDraft_(k))}</textarea>
-    ${tile_({ form: true, label: 'Send', act: 'msg-send', data: { to: to, id: toId || '' }, cls: 'msg-go' })}
-    <p class="note msg-said">${esc(note || '')}</p>
-  </div>`;
+  /* A CHILD SENDS WORDS ONLY (413) — no picker, and `sendMessage` refuses their files too. */
+  return cardBlock_({ type: 'msgForm', k, chips: msgChipSpecs_(k), clip: rankAtLeast_('client'), to, rows, drafted: draftAttr_('msg', k), value: msgDraft_(k),
+    send: { form: true, label: 'Send', act: 'msg-send', data: { to: to, id: toId || '' }, cls: 'msg-go' }, note });
 }
 
 /* ---------- CHECK UPLOADS: THE ADMIN'S ANSWER TO "CAN A PHOTO BE SENT YET" § */
 let UPLOADS_SAID = null;
 
 function uploadsHtml_(d) {
-  const tile = `<div class="tile-row">${tile_({ icon: 'tick', label: 'Check uploads', note: 'nothing kept',
-    act: 'uploads-check', tone: 'admin' })}</div>`;
+  const tile = tileRow_(tile_({ icon: 'tick', label: 'Check uploads', note: 'nothing kept', act: 'uploads-check', tone: 'admin' }));
   if (!d) {
-    return tile + `<p class="note up-said">Whether a photo or a clip sent in a message can be kept:
-      the Ledger's column, the Drive folder and what this deployment may do. One test file is made,
-      shared and binned.</p>`;
+    return tile + cardBlock_({ type: 'msgText', look: 'note up-said', text: 'Whether a photo or a clip sent in a message can be kept: '
+      + 'the Ledger\'s column, the Drive folder and what this deployment may do. One test file is made, shared and binned.' });
   }
-  if (d.error) return tile + `<p class="up-said up-bad">${esc(d.error)}</p>`;
-  const rows = (d.checks || []).map(c => `<li class="row up-item ${c.ok ? 'is-ok' : 'is-bad'}">
-      <b class="up-mark" role="img" aria-label="${c.ok ? 'yes' : 'no'}">${c.ok ? '✓' : '✗'}</b>
-      <span><span class="up-k">${esc(c.label)}</span>
-      <span class="up-v">${esc(c.said)}</span></span></li>`).join('');
-  const steps = (d.steps || []).map(st => `<li>${esc(st.text)}</li>`).join('');
+  if (d.error) return tile + cardBlock_({ type: 'msgText', look: 'up-said up-bad', text: d.error });
   /* THE ADDRESSES A STEP NEEDS ARE TILES UNDER THE LIST, not links in its sentence — a link in a line of 0.78rem type is a 14px target, and a tile is 44px from the § */
   const go = (d.steps || []).map(st => {
     const href = String(st.href || (st.setup && typeof API === 'string' ? API + '?setup=1' : ''));
-    return href ? tile_({ icon: 'open', href: href, leave: true,
-      label: st.setup ? 'Open ?setup=1' : 'Allow it', note: st.setup ? 'adds the column' : 'consent' }) : '';
-  }).filter(Boolean).join('');
-  return tile + `<ul class="up-list">${rows}</ul>
-    <p class="up-said ${d.ok ? 'up-good' : 'up-bad'}">${d.ok
-      ? 'Ready — photos, videos and files can be sent in messages.'
-      : 'Not yet. In this order:'}</p>
-    ${steps ? `<ol class="up-steps">${steps}</ol>` : ''}
-    ${go ? `<div class="tile-row">${go}</div>` : ''}
-    `;
+    return href ? { icon: 'open', href: href, leave: true,
+      label: st.setup ? 'Open ?setup=1' : 'Allow it', note: st.setup ? 'adds the column' : 'consent' } : null;
+  }).filter(Boolean);
+  return tile + cardBlock_({ type: 'upReport', checks: d.checks || [], ok: !!d.ok, steps: (d.steps || []).map(st => st.text),
+    said: d.ok ? 'Ready — photos, videos and files can be sent in messages.' : 'Not yet. In this order:' })
+    + (go.length ? tileRow_(tile_(go)) : '');
 }
 
 /* EVERY `.up-box` ON THE PAGE — a class rather than the id alone, for the reason `cart-box` gives:
@@ -10295,13 +10286,9 @@ on('uploads-check', el => {
 /* ---------- ADDING A CHILD, AND ANSWERING WHEN SOMEBODY ADDS YOU § */
 /* ---------- THE ANSWER HALF HAD NO DOOR EITHER, UNTIL THE ACCOUNT COLUMN DREW IT § */
 function claimCard_(c) {
-  return card_(`<div class="">
-    <h3>${esc(c.from)} says they are your parent</h3>
-    <div class="btn-row">
-      ${tile_({ form: true, label: 'Yes', act: 'claim-yes', data: { row: c.rowIndex } })}
-      ${tile_({ form: true, label: 'No', act: 'claim-no', data: { row: c.rowIndex }, kind: 'quiet' })}
-    </div>
-  </div>`);
+  return card_(cardBlock_({ type: 'msgBox', parts: [cardBlock_({ type: 'msgHead', text: c.from + ' says they are your parent' }),
+    tileRow_(tile_([{ form: true, label: 'Yes', act: 'claim-yes', data: { row: c.rowIndex } },
+      { form: true, label: 'No', act: 'claim-no', data: { row: c.rowIndex }, kind: 'quiet' }]), 'btn-row')] }));
 }
 
 /* WHO MAY ASK — the same test the tile carried, kept in one place so the card and its handler
@@ -10314,11 +10301,9 @@ function mayAddChild_() {
 /* LINKING A CHILD WHO HAS AN ACCOUNT moved to the People column (442): search their handle, then the
    card's "Add as my child" tile. This section only points there. */
 function kidAddSec_() {
-  return `<div class="kid-sec kid-add">
-    <h4 class="kid-h">Add your child</h4>
-    <p class="note">Your child makes their own account (Make an account). Then search their handle at the top of
-      ${esc(tabLabel_('students', 'Student profile'))} and tap Add as my child on their card. They say yes before anything is linked.</p>
-  </div>`;
+  return cardBlock_({ type: 'msgBox', look: 'kid-sec kid-add', parts: [cardBlock_({ type: 'msgHead', h: 4, look: 'kid-h', text: 'Add your child' }),
+    cardBlock_({ type: 'msgText', look: 'note', text: 'Your child makes their own account (Make an account). Then search their handle at the top of '
+      + tabLabel_('students', 'Student profile') + ' and tap Add as my child on their card. They say yes before anything is linked.' })] });
 }
 
 /* ---------- MESSAGES AS FIND CARDS (owner, 8 Nov, 36a): picture, title, tags, two lines, tiles, the shape every Find card has. */
@@ -10333,13 +10318,13 @@ function msgFacePic_(t, mine) {
     else face = typeof dmFace_ === 'function' ? dmFace_(t) : '';
   } catch (e) { face = ''; }
   if (!/has-pic|<img|<svg/.test(face) && typeof personPic_ === 'function') face = personPic_(mine ? (USER || {}).personId : t.id, mine ? 'you' : t.name);
-  return `<figure class="msg-fc-pic">${face}</figure>`;
+  return cardBlock_({ type: 'msgPic', face });
 }
 /* THE SHARED TAG LINE, with what no facet says (when, unread, kind) added to its end. */
 function msgTags_(x, extra) {
   const row = typeof tagRow_ === 'function' && x ? String(tagRow_(x) || '') : '';
-  const more = extra.filter(Boolean).map(t => `${qtag_(`${esc(t.text)}`, '', `msg-tag${t.cls ? ' ' + t.cls : ''}`)}`).join('');
-  return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, more + '</div>') : `<div class="qtags qcard-tags">${more}</div>`;
+  const more = renderTags(extra.filter(Boolean).map(t => ({ text: t.text, look: 'msg-tag' + (t.cls ? ' ' + t.cls : ''), colour: false })), 'qcard-tags', true);
+  return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, more.replace(/^<div[^>]*>/, '')) : more;
 }
 function msgKindWord_(m) {
   const a = (m && m.attachments) || [];
@@ -10354,14 +10339,14 @@ function msgFindCard_(x, t, draw) {
   if (!open) return head;
   try { markRead_(t.msgs); } catch (e) { oops_(e, 'msg:find-read'); }
   return head + t.msgs.map(m => msgFindOne_(t, m)).join('')
-    + card_(`<div class="fc msg-fc msg-fc-form" data-thread="${esc(t.id)}">${msgForm_(t.name, t.id)}</div>`);
+    + card_(cardBlock_({ type: 'msgBox', look: 'fc msg-fc msg-fc-form', data: { thread: t.id }, parts: [msgForm_(t.name, t.id)] }));
 }
 /* THE CLOSED CONVERSATION'S FIELDS for the one card maker; `x.row` is the thread. */
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
   msgPic: x => msgFacePic_(x.row),
-  msgWho: x => `<h3>${esc(x.row.name)}</h3>`,
+  msgWho: x => cardBlock_({ type: 'msgHead', text: x.row.name }),
   msgTags: x => { const t = x.row, last = t.last || {}; return msgTags_(x, [{ text: msgDate_(msgTime_(last)) }, t.unread ? { text: t.unread + ' unread', cls: 'is-new' } : null, { text: 'Conversation' }]); },
-  msgBody: x => { const last = x.row.last || {}; return `<p class="msg-fc-body">${esc((last.mine ? 'You: ' : '') + (String(last.body || '').trim() || msgKindWord_(last)))}</p>`; },
+  msgBody: x => { const last = x.row.last || {}; return cardBlock_({ type: 'msgText', look: 'msg-fc-body', text: (last.mine ? 'You: ' : '') + (String(last.body || '').trim() || msgKindWord_(last)) }); },
   msgTiles: x => { const t = x.row, open = !!MSG_OPEN[t.id]; return tileRow_(tile_([
     { icon: open ? 'close' : 'open', label: open ? 'Close' : 'Open', note: 'the conversation', act: 'msg-open', data: { k: t.id } },
     { icon: 'send', label: 'Reply', note: t.name, act: 'msg-reply', data: { k: t.id } }])); },
@@ -10375,12 +10360,12 @@ function msgFindOne_(t, m) {
     { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp } }]) + msgFixLinks_(m.err)
     : !mine && m.id && !m.tmp && typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('message', m.id, 'Message from ' + (m.fromName || t.name))) : '';
   const words = String(m.body || '').trim();
-  return card_(`<div class="fc msg-fc is-one${mine ? ' mine' : ''}${fresh ? ' unread' : ''}" data-thread="${esc(t.id)}">
-    ${msgTags_(null, [{ text: msgDate_(ms) + ' ' + msgClock_(ms, m.at) }, fresh ? { text: 'unread', cls: 'is-new' } : null,
-      { text: msgKindWord_(m) }, m.state === 'sending' ? { text: 'sending…' } : m.tmp && m.state !== 'failed' ? { text: 'sent' } : null])}
-    ${msgFacePic_(t, mine)}<h3>${esc(mine ? 'You' : (m.fromName || t.name))}</h3>
-    ${words ? `<p class="msg-fc-body">${mark(words)}</p>` : ''}${msgAttachHtml_(m.attachments)}
-    ${tiles ? tileRow_(tiles) : ''}</div>`);
+  return card_(cardBlock_({ type: 'msgBox', look: 'fc msg-fc is-one' + (mine ? ' mine' : '') + (fresh ? ' unread' : ''), data: { thread: t.id }, parts: [
+    msgTags_(null, [{ text: msgDate_(ms) + ' ' + msgClock_(ms, m.at) }, fresh ? { text: 'unread', cls: 'is-new' } : null,
+      { text: msgKindWord_(m) }, m.state === 'sending' ? { text: 'sending…' } : m.tmp && m.state !== 'failed' ? { text: 'sent' } : null]),
+    msgFacePic_(t, mine), cardBlock_({ type: 'msgHead', text: mine ? 'You' : (m.fromName || t.name) }),
+    words ? cardBlock_({ type: 'msgText', look: 'msg-fc-body', marked: true, text: words }) : '', msgAttachHtml_(m.attachments),
+    tiles ? tileRow_(tiles) : ''] }));
 }
 /* REDRAWN WHERE IT STANDS in Find: that conversation's cards go, its new set takes the first one's place. */
 function msgFindRedraw_(key) {

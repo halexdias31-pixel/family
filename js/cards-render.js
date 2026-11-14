@@ -295,3 +295,31 @@ const answerTag_ = (inner, attrs, cls) => `<div class="counted row tap${cls ? ' 
 /* A MENU'S ROW OF TAGS, and the blank tag typed on (the sign-in name); `id` names a slot something else fills, Google's button. */
 const answersRow_ = (tags, cls, id) => `<div${id ? ` id="${id}"` : ''} class="answers${cls ? ' ' + cls : ''}">${tags || ''}</div>`;
 const answerBox_ = (attrs, cls) => `<label class="counted row${cls ? ' ' + cls : ''}"><input${attrs || ''}></label>`;
+/* THE MESSAGE BLOCKS (owner, 14 Nov: one template for everything): a conversation's chips, attachments, bubbles and composer, and Check uploads' report, drawn from data. */
+const msgAtt_ = b => ((b.items || []).length ? `<div class="msg-att">${b.items.map(a => a.kind === 'image'
+  ? `<a class="msg-pic" href="${esc(a.href)}" data-do="file-view" target="_blank" rel="noopener" aria-label="Open ${esc(a.name || 'the photo')}"><img src="${esc(a.src)}" alt="${esc(a.name || 'photo')}" loading="lazy" decoding="async"></a>`
+  : a.kind === 'video' ? `<video class="msg-vid post-vid" src="${esc(a.src)}" data-open="${esc(a.href)}" controls playsinline preload="metadata"></video>`
+  : `<a class="msg-file" href="${esc(a.href)}" data-do="file-view" target="_blank" rel="noopener"><b>${esc(a.mark)}</b><span>${esc(a.name || 'a file')}</span></a>`).join('')}</div>` : '');
+const msgLinks_ = b => (b.links || []).map(l => `<a class="msg-act" href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.text)}</a>`).join('');
+const msgChips_ = b => (b.chips || []).map(c => `<span class="msg-chip">${c.img ? `<img src="${esc(c.img)}" alt="" decoding="async">` : `<b>${esc(c.mark)}</b>`}`
+  + ` <span class="msg-chip-name">${esc(c.name)}</span> ${tile_(c.x)}</span>`).join('');
+function msgBubble_(b) {
+  const fail = b.fail ? `<p class="msg-when msg-fail"><span class="msg-fail-why">${esc(b.fail.said)}</span>${msgLinks_(b.fail)}</p>${tileRow_(tile_(b.fail.tiles), 'msg-acts')}` : '';
+  const bub = `<div class="msg-bub${b.words ? '' : ' is-bare'}">${msgAtt_({ items: b.att })}${b.words ? `<p class="msg-body-text">${cardRuns_({ marked: b.words })}</p>` : ''}</div>`;
+  return `${b.day ? `<p class="msg-day"><span>${esc(b.day)}</span></p>` : ''}<div class="msg${b.look ? ' ' + esc(b.look) : ''}">`
+    + (b.flag ? `<div class="msg-line">${bub}${tile_(b.flag)}</div>` : bub) + `${fail}</div>`;
+}
+const msgFormBlock_ = b => `<div class="msg-form" data-k="${esc(b.k)}"><div class="msg-queue">${msgChips_(b)}</div>`
+  + (b.clip ? `${tile_({ icon: 'plus', label: 'Attach a photo, video or file', act: 'msg-attach', cls: 'msg-clip' })}<input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : '')
+  + `<textarea class="msg-text" rows="${Number(b.rows) || 1}" maxlength="2000" placeholder="Message…" aria-label="Message ${esc(b.to)}"${b.drafted || ''}>${esc(b.value || '')}</textarea>`
+  + `${tile_(b.send)}<p class="note msg-said">${esc(b.note || '')}</p></div>`;
+/* A BOX ROUND PARTS THESE BLOCKS ALREADY DREW (a message's card, a claim, a section), its look and data its own. */
+const msgBox_ = b => `<div class="${esc(b.look || '')}"${cardAttrs_(b.data)}>${(b.parts || []).join('')}</div>`;
+const msgHead_ = b => { const h = b.h === 4 ? 'h4' : 'h3'; return `<${h}${b.look ? ` class="${esc(b.look)}"` : ''}>${cardRuns_(b.text)}</${h}>`; };
+const msgText_ = b => `<p class="${esc(b.look || '')}">${b.marked ? cardRuns_({ marked: b.text }) : cardRuns_(b.text)}</p>`;
+const msgPic_ = b => `<figure class="msg-fc-pic">${b.face || ''}</figure>`;
+const upReport_ = b => `<ul class="up-list">${(b.checks || []).map(c => `<li class="row up-item ${c.ok ? 'is-ok' : 'is-bad'}"><b class="up-mark" role="img" aria-label="${c.ok ? 'yes' : 'no'}">${c.ok ? '✓' : '✗'}</b>`
+  + `<span><span class="up-k">${esc(c.label)}</span> <span class="up-v">${esc(c.said)}</span></span></li>`).join('')}</ul>`
+  + `<p class="up-said ${b.ok ? 'up-good' : 'up-bad'}">${esc(b.said)}</p>${(b.steps || []).length ? `<ol class="up-steps">${b.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>` : ''}`;
+Object.assign(CARD_BLOCKS, { msgAtt: msgAtt_, msgLinks: msgLinks_, msgChips: msgChips_, msgBubble: msgBubble_, msgForm: msgFormBlock_, msgBox: msgBox_, msgHead: msgHead_,
+  msgText: msgText_, msgPic: msgPic_, upReport: upReport_ });
