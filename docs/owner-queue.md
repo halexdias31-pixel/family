@@ -15,6 +15,7 @@ One list, so nothing asked for gets lost. Claude ticks items off here when they 
 - [ ] Name at the top right as a tag; removing it signs out (replaces the sign-out button)
 
 ## Queued (owner asked, not started)
+- AFTER the template conversion (owner, 14 Nov; owner wants an objective measure, not an arbitrary one): score layouts by predicted time to do the real tasks (answer a question, book, sign in, find a topic, send a message), using the published Keystroke-Level Model and Fitts's law (bigger, nearer buttons are faster to hit), with WCAG 2.2 AA as a pass/fail floor (contrast, target size, nothing cut, no sideways scroll). Lowest total task time wins. Build it as a check so every later change is scored the same way; show the owner the numbers and screenshots.
 
 - [ ] NEXT after template: sign-in becomes the Finder's first tag (Guest tag, or an underlined blank for name/username, then the PIN as 4 Finder menus of tags 0–9, one per digit, each chosen digit shown as a ● tag, never the digit, and never in the URL or history; the server's attempt limit stays; the name tag's × signs out; no separate sign-in screen)
 - [ ] NEXT after sign-in: booking becomes a Finder branch (owner, 13 Nov). Signed in or Guest → Booking → Subject → Level → Tutor (who teaches it at that level) → Where (borough or venue) → Term → Days → Times → Seats → a summary card with the price and Send. Each step is a menu of tags, in dependency order (an earlier owner rule). Reuse the existing booking maths and save paths unchanged. The old booking form card goes.
@@ -61,6 +62,7 @@ One list, so nothing asked for gets lost. Claude ticks items off here when they 
 - [ ] Tidy the science Find menus (Chemistry, Biology, Physics). Spec topics (AQA, Edexcel and so on) must not be mixed with reference databases such as the element-per-element data (keep it). Put the databases in their own clearly separate branch, e.g. Chemistry › Reference › Elements, apart from Chemistry › <board> › <spec topic>. Re-parent branches logically: parent above child, no parent beside its own child, no umbrella duplicates. Make it a rule plus a check (spec topics vs reference data never share a menu), applied to every subject, not just science.
 
 ## New subjects (owner, 13 Nov): for each, the spec card, then topic cards in the one template, plus some past papers where available
+- University Mathematics, Statistics and Operational Research (owner, 14 Nov): the QAA Subject Benchmark Statement for MSOR (one benchmark covers maths and statistics) plus FHEQ levels 4–7. Start with probability: Bayes' theorem (conditional probability, total probability, Bayes, priors and posteriors, worked examples), then the rest of the benchmark. Spec cards first, then topic pages in the one template.
 - [ ] Biblical Hebrew: the QAA Theology and Religious Studies benchmark (Hebrew Bible strand)
 - [ ] Koine (New Testament) Greek: OCR GCSE and A-Level Classical Greek (AQA has no Greek GCSE)
 - [ ] Philosophy: AQA A-Level, plus the QAA Philosophy benchmark (university level, includes logic)
