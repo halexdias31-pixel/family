@@ -8,6 +8,10 @@
   "to": "find:Settings:Apprentice"
  },
  {
+  "screen": "apprentices",
+  "to": "find:Profiles:profileType=Apprentice"
+ },
+ {
   "screen": "biz",
   "to": "find:Settings:Business"
  },

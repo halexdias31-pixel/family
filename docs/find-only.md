@@ -1,0 +1,97 @@
+# Find is the only way around (step 3)
+
+The owner approved this on 14 Nov: **settings, messages and tools become parts of Find.** No separate
+screens, no special flows. You get everywhere by choosing tags in Find, and what you arrive at is cards.
+
+The machine copy of this page is `data/settings/find-only.json`. The check `js/check-find-only.js` (rule 5.8)
+keeps the two honest, and `check/find-only-ratchet.json` counts the screens still standing outside Find.
+That count can only go down.
+
+## What is outside Find today (14 Nov)
+
+There are **18 columns** in the app: Find itself, and **17 others**. Before this slice there were 19
+columns, 18 of them outside Find. Only three are switched on (Find, DMs and Tutor profile). The rest are switched off, and most of
+them already have a Find branch.
+
+| Status | How many | What it means |
+|---|---|---|
+| Moved | 1 | Gone as a screen. Only a Find branch now. The old name opens the branch. |
+| Redirect | 7 | A Find branch already exists and the old name opens it, but the old column's code is still there (switched off). These are the easiest to finish next. |
+| Column | 2 | Still a column of its own, switched on. |
+| Off | 8 | Switched off. Find shows a "Coming soon" card for each. The code is still there. |
+| Flows | 10 | Not columns: pop-over sheets and links that open something outside Find. |
+
+### Moved (done)
+
+- **Apprentice profile**: a card per apprentice. Now **Find › Profiles › Apprentice**. An admin sees it, because the
+  "see everyone" permission (`find:all-people`) is the admin's. The column was switched off, so nobody could
+  see it before.
+
+### Redirect: a Find branch exists, old code still to delete
+
+| Screen | What it shows | Who sees it | Find branch |
+|---|---|---|---|
+| Kids settings (Student settings) | your picture, name, contact, password, PIN, sign out | everyone | Settings › Student |
+| Parent settings | a parent's own settings | parents and payers | Settings › Parent |
+| Tutor settings | staff hub, flyers, teaching settings, Apply to teach | tutors, admin | Settings › Staff |
+| Apprentice settings | one "coming soon" line | tutors, admin | Settings › Apprentice |
+| Web settings | setup, moderation, imports, weekly email, build | admin | Settings › Site |
+| Biz settings | insurance, tax, legal, safeguarding, money | admin | Settings › Business (the Optimiser is already here) |
+| Book | sessions, seats, payment | everyone | Booking |
+
+### Columns still switched on
+
+| Screen | What it shows | Who sees it | What is in Find already |
+|---|---|---|---|
+| DMs | one conversation per page | signed-in people | Find › Messages is a Coming soon card |
+| Tutor profile | a card per tutor | everyone | the same tutors are Booking cards, tagged Profiles |
+
+### Switched off, a Coming soon card in Find
+
+Saved (what you starred), Spotlight (the shop window), Feed (posts), Reels (each video is already a Find
+card), Shop (the Basket is already a Find card), Web profile (the business card), Student profile and Parent
+profile (Find › Profiles › Student / Parent already list the same people).
+
+### Flows that are not columns
+
+- **Pop-over sheets**: Message someone, Speed read, Work file pages, a tutor's shared link (`?tutor=`).
+- **Sign-in links**: the email confirmation link (`?verify=`) and the sign-in link (`?signin=`). These touch
+  sign-in, so they wait for their own slice.
+- **Back from paying** (`?paid=`), which opens Student settings. This touches money, so it waits too.
+- Links that are already Find: a shared card (`?card=`). Links that only record something: a flyer's `?from=`.
+  Developer switches: `?dev`, `?nobundle`, `?pen=sizes`.
+
+## The design
+
+1. **Each screen becomes a Find branch.** Its menu is tags (the choices block), and what you arrive at is cards. Settings
+   already work this way: Find › Settings › your account type.
+2. **The same permission rules decide who sees each branch.** These are the rows in
+   `data/settings/permissions.json` (`see` rows such as `type:Staff` and `find:all-people`) and the lens.
+   No new rule is written per screen.
+3. **Old addresses keep working.** `data/settings/screens-moved.json` says where each old screen lives now:
+   `find:<door>`, `find:Settings:<type>`, or `find:<door>:<tag>=<value>`, which opens a door with a tag already
+   picked (new in this slice). This covers a link, a button that calls the old name, and a tab remembered on the
+   phone.
+4. **One screen at a time.** For each screen: move it, delete its column code, update the journeys honestly,
+   and lower the ratchet.
+
+## Order, easiest first
+
+1. The 7 redirects: delete each column's code, since the branch already exists. Settings come first, one per
+   slice. Book is later, because it touches money.
+2. The switched-off profiles: Web, Student and Parent profile.
+3. Saved, Spotlight, Feed, Reels and Shop: each one becomes a door or tag.
+4. Tutor profile, then DMs: these are switched on, so each needs its journeys moved first.
+5. Pop-over sheets become cards. The sign-in and payment links go last, with the data-safety journeys.
+
+## Sign-in items that touch the same Find code (listed, not done in this slice)
+
+These are already in `docs/owner-queue.md`:
+- The site keypad on the sign-in name box.
+- The sign-in tags stay after you sign in.
+- Remove "Signed in as…".
+- Forgot PIN shows only on the first PIN step.
+- Each ● tag can be removed.
+- A wrong PIN shows nothing.
+
+This slice does not touch sign-in or PIN.

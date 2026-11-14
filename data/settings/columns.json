@@ -103,15 +103,6 @@
   "notes": "a card per parent or client you may see — your own first when you are one, your parents, a parent's claim waiting for your yes. An admin sees every client, with Send last week (docs/history/461)."
  },
  {
-  "screen": "apprentices",
-  "label": "Apprentice profile",
-  "icon": "🧰",
-  "active": "FALSE",
-  "sort_order": 15,
-  "cards": "TRUE",
-  "notes": "a card per apprentice an admin is sent; none yet says so in a line from brand() (docs/history/730)."
- },
- {
   "screen": "staff",
   "label": "Tutor settings",
   "icon": "🛠",

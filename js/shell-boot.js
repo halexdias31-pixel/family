@@ -183,7 +183,6 @@ const TABS = [
   { id: 'tutors',   icon: '🎓', label: 'Tutor profile',      title: 'Tutor profile', cards: true },
   { id: 'students', icon: '👤', label: 'Student profile',    title: 'Student profile', cards: true },
   { id: 'parents',  icon: '👪', label: 'Parent profile',     title: 'Parent profile', cards: true },
-  { id: 'apprentices', icon: '🧰', label: 'Apprentice profile', title: 'Apprentice profile', cards: true },
   { id: 'family',  icon: '🔧', label: 'Parent settings',  title: 'Parent settings', cards: true },
   { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings', cards: true },
   /* APPRENTICE: work experience, a placeholder column beside Tutor settings until it is built (docs/history/570). */
@@ -202,7 +201,7 @@ const TABS = [
 const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FIRST, for everyone (1070): the one front door; Tools and Games are Find cards (790) */
                    'spotlight', 'feed', 'reel', 'dm',                 /* social (392), below Find; Spotlight left of the posts (461) */
                    'booking', 'shop',                                 /* business */
-                   'web', 'tutors', 'students', 'parents', 'apprentices', /* the five profiles (730) */
+                   'web', 'tutors', 'students', 'parents',                /* the profiles (730); Apprentice profile is Find › Profiles › Apprentice (find-only.json) */
                    'staff', 'site', 'account', 'family', 'apprentice', 'biz']; /* the six settings, the owner's order (730); site and biz admin-only */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 

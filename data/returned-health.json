@@ -8,93 +8,68 @@
   "Booking",
   "Shop",
   "Settings",
-  "Tools",
-  "Games"
+  "Tools"
  ],
  "each": [
   {
    "feature": "timer",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 24,
-    "sample": "25:00 ▶ Reset 5 15 25 45",
-    "pics": 0,
-    "controls": 6,
-    "pressed": "timer-toggle",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "notepad",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 18,
-    "sample": "Saves as you type.",
-    "pics": 1,
-    "controls": 2,
-    "pressed": "pad-copy",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "typing",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 288,
-    "sample": "1 2 3 4 5 Home row · 3 more at 90% opens Top row ask falls had flask flag had gl",
-    "pics": 0,
-    "controls": 3,
-    "pressed": "kt-lesson",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "speedread",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 0,
-    "sample": "",
-    "pics": 1,
-    "controls": 2,
-    "pressed": "sr-read",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "countdowns",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 26,
-    "sample": "Christmas holidays 37 days",
-    "pics": 1,
-    "controls": 1,
-    "pressed": "cd-dates",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "calendar",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 108,
-    "sample": "November 2026 M T W T F S S 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 2",
-    "pics": 2,
-    "controls": 2,
-    "pressed": "cal-back",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "termdates",
@@ -114,85 +89,61 @@
    "feature": "timetable",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 61,
-    "sample": "Mon Tue Wed Thu Fri Nothing on Thursday. Add a lesson Weekend",
-    "pics": 0,
-    "controls": 7,
-    "pressed": "tmt-day",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "docket",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 33,
-    "sample": "Nothing on it yet. ＋ Google Tasks",
-    "pics": 1,
-    "controls": 3,
-    "pressed": "dock-add",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "mat",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 498,
-    "sample": "Cheat sheet maker Maths English Science Every subject Handwriting Lined paper Sq",
-    "pics": 5,
-    "controls": 13,
-    "pressed": "kc-more",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "favlinks",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 63,
-    "sample": "No links yet. Add the sites you use most. Title Address 0 of 10",
-    "pics": 1,
-    "controls": 3,
-    "pressed": "fav-add",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "spotify",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 51,
-    "sample": "Not switched on yet — the site's admin turns it on.",
-    "pics": 2,
-    "controls": 1,
-    "pressed": "sp-how",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "pixel",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 33,
-    "sample": "Grid 8 × 8 16 × 16 32 × 32 Colour",
-    "pics": 3,
-    "controls": 5,
-    "pressed": "pxe-tool",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "libcards",
@@ -214,74 +165,50 @@
    "feature": "reels",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 212,
-    "sample": "B Body You replace your skeleton about every ten years Osteoclasts dissolve old ",
-    "pics": 0,
-    "controls": 1,
-    "pressed": "feed-tap",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "newspaper",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 347,
-    "sample": "Joke Why did the maths book look sad? Riddle The more of me you take, the more y",
-    "pics": 1,
-    "controls": 1,
-    "pressed": "np-answers",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "shopfind",
    "where": "Find › Tools",
    "r": {
-    "loads": true,
-    "words": 0,
-    "sample": "",
-    "pics": 2,
-    "controls": 2,
-    "pressed": "shop-all",
-    "responds": true
+    "loads": false
    },
-   "findings": []
+   "findings": [
+    "does not load: nothing drawn where it lives"
+   ]
   },
   {
    "feature": "console",
    "where": "Find › Games",
    "r": {
-    "loads": true,
-    "words": 106,
-    "sample": "Game files Linked pictures I can guess NES to DS games you own; they stay on thi",
-    "pics": 4,
-    "controls": 7,
-    "pressed": "B",
-    "responds": false
+    "loads": false
    },
    "findings": [
-    "pressed \"B\" and nothing changed"
+    "no \"Games\" answer on Find's front menu"
    ]
   },
   {
    "feature": "wordgames",
    "where": "Find › Games",
    "r": {
-    "loads": true,
-    "words": 289,
-    "sample": "Articulate Charades Taboo Hot Seat Just a Minute 20 Questions Imposter Herd Ment",
-    "pics": 0,
-    "controls": 5,
-    "pressed": "rg-again",
-    "responds": false
+    "loads": false
    },
    "findings": [
-    "pressed \"rg-again\" and nothing changed"
+    "no \"Games\" answer on Find's front menu"
    ]
   },
   {
@@ -323,11 +250,11 @@
    "where": "column",
    "r": {
     "loads": true,
-    "words": 64,
-    "sample": "Daive Send 5 of 5 questions left today Messages No messages yet.",
-    "pics": 13,
-    "controls": 9,
-    "pressed": "kc-more",
+    "words": 66,
+    "sample": "D Daive Send 5 of 5 questions left today Messages No messages yet.",
+    "pics": 11,
+    "controls": 7,
+    "pressed": "seen-open",
     "responds": true
    },
    "findings": []
@@ -390,7 +317,7 @@
     "loads": true,
     "words": 8,
     "sample": "@family.",
-    "pics": 5,
+    "pics": 4,
     "controls": 0,
     "pressed": "",
     "responds": null
@@ -406,8 +333,8 @@
     "loads": true,
     "words": 441,
     "sample": "Add a tutor Test A. admin Ada T. Tutor Head of Boxing £30.00–75.00/h Maths GCSE ",
-    "pics": 34,
-    "controls": 22,
+    "pics": 31,
+    "controls": 19,
     "pressed": "person-add",
     "responds": true
    },
@@ -418,37 +345,25 @@
    "where": "column",
    "r": {
     "loads": true,
-    "words": 308,
-    "sample": "Needs help Add a student Manage your child No child linked yet. Add your child Y",
-    "pics": 31,
-    "controls": 16,
-    "pressed": "kc-more",
-    "responds": true
+    "words": 458,
+    "sample": "Students who have asked for help with a question.Needs helpMake an account for a",
+    "pics": 26,
+    "controls": 0,
+    "pressed": "",
+    "responds": null
    },
-   "findings": []
+   "findings": [
+    "no controls to press"
+   ]
   },
   {
    "feature": "parents",
    "where": "column",
    "r": {
     "loads": true,
-    "words": 27,
-    "sample": "Add a parent Carl E. Client",
-    "pics": 17,
-    "controls": 11,
-    "pressed": "person-add",
-    "responds": true
-   },
-   "findings": []
-  },
-  {
-   "feature": "apprentices",
-   "where": "column",
-   "r": {
-    "loads": true,
-    "words": 19,
-    "sample": "No apprentices yet.",
-    "pics": 4,
+    "words": 79,
+    "sample": "Make an account for a new parent.Add a parentEvery parent account.Carl E.Client",
+    "pics": 15,
     "controls": 0,
     "pressed": "",
     "responds": null
@@ -461,18 +376,93 @@
  "work": [
   {
    "kind": "returned-features",
+   "where": "timer (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
+   "where": "notepad (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
+   "where": "typing (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
+   "where": "speedread (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
+   "where": "countdowns (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
+   "where": "calendar (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
+   "where": "timetable (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
+   "where": "docket (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
+   "where": "mat (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
+   "where": "favlinks (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
+   "where": "spotify (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
+   "where": "pixel (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
    "where": "libcards (Find › Tools)",
    "say": "3 controls, none a safe press (only the card's own extras or text boxes)"
   },
   {
    "kind": "returned-features",
+   "where": "reels (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
+   "where": "newspaper (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
+   "where": "shopfind (Find › Tools)",
+   "say": "does not load: nothing drawn where it lives"
+  },
+  {
+   "kind": "returned-features",
    "where": "console (Find › Games)",
-   "say": "pressed \"B\" and nothing changed"
+   "say": "no \"Games\" answer on Find's front menu"
   },
   {
    "kind": "returned-features",
    "where": "wordgames (Find › Games)",
-   "say": "pressed \"rg-again\" and nothing changed"
+   "say": "no \"Games\" answer on Find's front menu"
   },
   {
    "kind": "returned-features",
@@ -531,15 +521,25 @@
   },
   {
    "kind": "returned-features",
-   "where": "apprentices (column)",
+   "where": "students (column)",
    "say": "no controls to press"
+  },
+  {
+   "kind": "returned-features",
+   "where": "parents (column)",
+   "say": "no controls to press"
+  },
+  {
+   "kind": "front-door",
+   "where": "Find, out",
+   "say": "first screen is not Find's controls and the menu ({\"search\":true,\"menu\":false,\"signInCard\":false})"
   }
  ],
  "clutter": [],
  "shapes": {
   "out": {
    "search": true,
-   "menu": true,
+   "menu": false,
    "signInCard": false
   },
   "student": {

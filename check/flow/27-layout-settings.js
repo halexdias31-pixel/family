@@ -557,8 +557,8 @@ check('layout engine (710): any unit anywhere — a settings card moves into Ree
 
 /* ---------- THE OWNER'S COLUMNS AND WHOLE-COLUMN MOVES (730) ---------- */
 const COLS730_ = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8'));
-check('columns (730): the owner\'s eleven — five profiles then six settings, named as asked, in that order; Web profile is the business card, Apprentice profile says none yet; Web and Biz settings an admin\'s alone', async () => {
-  const want = ['Web profile', 'Tutor profile', 'Student profile', 'Parent profile', 'Apprentice profile', 'Tutor settings', 'Web settings',
+check('columns (730): the owner\'s ten — four profiles then six settings, named as asked, in that order; Web profile is the business card; Apprentice profile is Find › Profiles › Apprentice now (find-only, 14 Nov); Web and Biz settings an admin\'s alone', async () => {
+  const want = ['Web profile', 'Tutor profile', 'Student profile', 'Parent profile', 'Tutor settings', 'Web settings',
     'Kids settings', 'Parent settings', 'Apprentice settings', 'Biz settings'];
   const bad = [];
   const { w } = layBoot_();
@@ -567,15 +567,18 @@ check('columns (730): the owner\'s eleven — five profiles then six settings, n
   const labels = t.TABS.map(x => x.label), got = labels.filter(l => want.indexOf(l) !== -1);
   if (got.join('|') !== want.join('|')) bad.push('an admin\'s columns: ' + got.join(', '));
   const at = labels.indexOf('Web profile');
-  if (labels.slice(at, at + want.length).join('|') !== want.join('|')) bad.push('the eleven are not side by side: ' + labels.slice(at).join(', '));
+  if (labels.slice(at, at + want.length).join('|') !== want.join('|')) bad.push('the ten are not side by side: ' + labels.slice(at).join(', '));
   const fileLabels = COLS730_.map(r => r.label).filter(l => want.indexOf(l) !== -1);
   if (fileLabels.join('|') !== want.join('|')) bad.push('columns.json says ' + fileLabels.join(', '));
   t.go('web', false, true); await wait(200); try { w.paint('web'); } catch (e) {}
   const web = d.querySelector('#s-web .web-card');
   if (!web) bad.push('Web profile draws no business card');
   else if (!/@family\.|\w/.test(web.querySelector('h3')?.textContent || '')) bad.push('the business card has no name');
-  try { w.paint('apprentices'); } catch (e) {}
-  if (!d.querySelector('#s-apprentices .appr-card')) bad.push('Apprentice profile draws nothing');
+  /* APPRENTICE PROFILE IS A FIND BRANCH (find-only.json): no column, and the old name opens Find › Profiles › Apprentice. */
+  if (t.TABS.some(x => x.id === 'apprentices') || d.getElementById('s-apprentices')) bad.push('Apprentice profile is still a column');
+  t.go('apprentices', false, true); await wait(200);
+  const fl = JSON.stringify(t.STUFF().filters);
+  if (t.AT() !== 'stuff' || !/"Profiles"/.test(fl) || !/"Apprentice"/.test(fl)) bad.push('go("apprentices") opened ' + t.AT() + ' with ' + fl + ', wanted Find › Profiles › Apprentice');
   try { w.paint('site'); w.paint('biz'); } catch (e) {}
   ['site:inbox', 'biz:build'].forEach(id => { if (w.cardHome0_(id) !== 'site') bad.push(id + ' is not a Web settings card'); });
   ['biz:apps', 'biz:staff', 'biz:profit-sum'].forEach(id => { if (w.cardHome0_(id) !== 'biz') bad.push(id + ' left Biz settings'); });
@@ -583,7 +586,7 @@ check('columns (730): the owner\'s eleven — five profiles then six settings, n
   await wait(300);
   const ids = s.w.__t.TABS.map(x => x.id);
   ['site', 'biz'].forEach(c => { if (ids.indexOf(c) !== -1) bad.push(c + ' is a student\'s column'); });
-  ['web', 'apprentices', 'apprentice', 'account'].forEach(c => { if (ids.indexOf(c) === -1) bad.push(c + ' is not a student\'s column'); });
+  ['web', 'apprentice', 'account'].forEach(c => { if (ids.indexOf(c) === -1) bad.push(c + ' is not a student\'s column'); });
   return bad;
 });
 
