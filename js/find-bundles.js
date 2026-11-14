@@ -647,13 +647,11 @@ function paintStuff(keepPage) {
   stuffIndexesAsk_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
-  const chips = $(FINDER.id + '-chips');
-  if (chips) chips.innerHTML = filterChips();
   /* THE BIN, in its own slot above the chips — see `filterClear_`. */
   const clear = $(FINDER.id + '-clear');
   if (clear) clear.innerHTML = filterClear_();
-  const groups = $(FINDER.id + '-groups');
-  if (groups) groups.innerHTML = stuffQuestion();
+  /* THE MENU CARD'S SLOTS, from its spec (`findMenuFill_`). */
+  const groups = findMenuFill_(FINDER);
   try { frontWarm_(); } catch (e) { /* only ever a head start */ }
   /* ---------- A NEW QUESTION IS READ FROM THE TOP OF ITS PANE § */
   if (groups && !keepPage) {

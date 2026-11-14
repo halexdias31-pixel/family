@@ -2285,9 +2285,9 @@ function scriptureWait_(items) {
     ['the Hadith', typeof window.HADITH !== 'undefined' ? window.HADITH : null, typeof window.hadithFor_ === 'function' && window.hadithFor_()],
     ['the other writings', typeof window.WORKS !== 'undefined' ? window.WORKS : null, true]]
     .filter(b => b[1] && b[2]);
-  if (books.some(b => b[1].asking)) return loading_();
+  if (books.some(b => b[1].asking)) return { type: 'wait', on: true };
   const gone = books.filter(b => b[1].failed).map(b => b[0]);
-  return gone.length ? '<p class="find-end">The list of ' + esc(gone.join(' and ')) + ' did not arrive. <b>Pull down to try again.</b></p>' : '';
+  return gone.length ? { type: 'text', look: 'find-end', text: ['The list of ' + gone.join(' and ') + ' did not arrive. ', { b: 'Pull down to try again.' }] } : '';
 }
 
 /* ONE FETCH FOR EVERY FILE OF IT, stamped with the deploy so the service worker's exact-URL cache hands back a fresh copy after one — `videosAsk_`'s reasoning § */
@@ -2493,18 +2493,16 @@ function bibleByKey_(k) {
 
 /* ---------- THE LAST LINE UNDER THE QUESTION, ONCE NOTHING IS LEFT TO ASK § */
 function bibleEnd_(items) {
-  if (!items.length || !items.every(x => x && isBible_(x))) return '';
+  if (!items.length || !items.every(x => x && isBible_(x))) return null;
   const first = items[0], last = items[items.length - 1];
+  const end = text => ({ type: 'text', look: 'find-end', text });
   if (!first.bb) {
-    if (BIBLE.index) return '';
-    return BIBLE.failed
-      ? '<p class="find-end">The list of the Bible&rsquo;s books did not arrive. <b>Try again is under the cover.</b></p>'
-      : loading_();
+    if (BIBLE.index) return null;
+    return BIBLE.failed ? end(['The list of the Bible\u2019s books did not arrive. ', { b: 'Try again is under the cover.' }]) : { type: 'wait', on: true };
   }
-  if (items.length === 1) return `<p class="find-end">${esc(first.name)}. <b>${SWIPE_UP} for it.</b></p>`;
+  if (items.length === 1) return end([first.name + '. ', { b: SWIPE_UP + ' for it.' }]);
   const to = first.bb === last.bb ? last.ch + ':' + last.v : last.name;
-  return `<p class="find-end">${esc(first.name)} to ${esc(to)}.
-      <b>${SWIPE_UP} for the ${items.length.toLocaleString('en-GB')} verses.</b></p>`;
+  return end([first.name + ' to ' + to + '. ', { b: `${SWIPE_UP} for the ${items.length.toLocaleString('en-GB')} verses.` }]);
 }
 
 /* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: § */
@@ -2956,11 +2954,13 @@ on('find-open', el => {
 
 /* THE ONE EMPTY ANSWER, for the question page and a results page alike — they were two copies of the
    same three sentences. */
-function stuffNoneHtml_() {
-  if (!FIND_MEMO.total) return nothingHere(FINDER.empty, true);
-  const why = STUFF.filters.length ? 'Nothing matches all of those together.' : '';
-  return empty_(why ? 'Nothing matches. ' + why : 'Nothing matches.');
+/* AS BLOCKS for the menu card; nothing loaded at all is the column's own answer (`nothingHere`), drawn as its embed. */
+function stuffNoneBlocks_() {
+  if (!FIND_MEMO.total) return [{ type: 'embed', tool: 'nothing-here', args: { empty: FINDER.empty } }];
+  return [{ type: 'text', look: 'empty', text: STUFF.filters.length ? 'Nothing matches all of those together.' : 'Nothing matches.' }];
 }
+CARD_EMBEDS['nothing-here'] = a => nothingHere(a.empty, true);
+function stuffNoneHtml_() { return cardBlocks_(stuffNoneBlocks_()); }
 
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS § */
 function pageParts_(x, prev) {
@@ -10643,14 +10643,15 @@ const BOOK_FIND_ASK = { days: 'Which days?', slots: 'What times? Each tag is one
 function bookMenu_() {
   bookFindStart_();
   const id = bookFindAt_();
-  if (!id) return '';
+  if (!id) return null;
   const many = BOOK_FIND_MANY.indexOf(id) !== -1;
   const opts = bookFindOpts_(id).map(o => ({ text: (many && o.on ? '✓ ' : '') + o.text + (o.off ? ' · ' + o.off : o.note ? ' · ' + o.note : ''),
     act: o.act, data: o.data, pressed: !!o.on, disabled: !!o.off, look: ((o.on ? 'is-on' : '') + (o.off ? ' is-off' : '')).trim() }));
   if (many) opts.push({ text: 'Next', act: 'book-next', data: { step: id }, look: 'is-skip' });
-  return CARD_BLOCKS.choices({ ask: BOOK_FIND_ASK[id] || (bookStep_(id) || {}).label || '',
+  return ({ type: 'choices', ask: BOOK_FIND_ASK[id] || (bookStep_(id) || {}).label || '',
     rows: [{ look: 'book-step' + (id === 'slots' || id === 'avail' ? ' is-grid' : ''), options: opts }] });
 }
+/* (Both menus below are blocks for Find's menu card, drawn by `renderCard`, never markup.) */
 /* WHAT A STEP'S CHIP SAYS: its answer as the summary says it; a bare number names what it counts. */
 function bookSaid_(id) {
   if (id === 'days') return BOOK_FIND.days.map(day_).join(', ');
@@ -10674,14 +10675,14 @@ function bookChips_() {
 }
 /* BEFORE ANY STEP IS ANSWERED, Booking's other answers (your sessions, tutors, venues) follow the first step's tags. */
 function bookFindQuestion_() {
-  if (typeof bookStep_ !== 'function') return loading_();
-  const menu = bookMenu_();
-  if (!menu || Object.keys(BOOK_FIND.done).length) return menu;
+  if (typeof bookStep_ !== 'function') return [{ type: 'wait', on: true }];
+  const menu = [].concat(bookMenu_() || []);
+  if (!menu.length || Object.keys(BOOK_FIND.done).length) return menu;
   const items = stuffFiltered().filter(x => x.kind !== 'bookform');
   const facet = items.length > 1 ? nextFacet(items) : null;
   if (!facet) return menu;
   const values = facetValues(items, facet).filter(v => spellKey_(v.value) !== spellKey_(KINDS.bookform.label));
-  return values.length ? menu + facetAnswersHtml_(facet, values, '') : menu;
+  return values.length ? menu.concat(facetAnswersSpec_(facet, values)) : menu;
 }
 /* EVERY STEP CHANGE REPAINTS FIND, and the draft is kept as the form's was (`bookKeep_`). */
 function bookFindPaint_() {
@@ -10920,19 +10921,19 @@ const SIGN_DIGITS = '0123456789'.split('');
 const signAsking_ = () => !USER && SIGN.step !== 'guest';
 const signPaint_ = () => finderEach_(() => paintStuff());
 function signMenu_() {
-  if (!signAsking_()) return '';
-  if (SIGN.busy) return loading_();
-  if (SIGN.step === 'join') return typeof registerCard_ === 'function' ? registerCard_() : '';
-  if (SIGN.step === 'pin') return CARD_BLOCKS.choices({ rows: [
+  if (!signAsking_()) return null;
+  if (SIGN.busy) return [{ type: 'wait', on: true }];
+  if (SIGN.step === 'join') return [typeof registerSpec_ === 'function' ? { type: 'card', spec: registerSpec_() } : ''];
+  if (SIGN.step === 'pin') return [{ type: 'choices', rows: [
     { look: 'is-grid sign-pin', options: SIGN_DIGITS.map(d => ({ text: d, act: 'sign-digit', data: { d: d, repeat: true } })) },
-    { look: 'sign-more', options: [{ text: 'Forgot PIN', act: 'forgot-pin' }] }] });
+    { look: 'sign-more', options: [{ text: 'Forgot PIN', act: 'forgot-pin' }] }] }];
   /* ONE BOX ON ONE FINDER: Find's carries the id the forgotten-PIN tag and the checks read. */
   const mine = FINDER === FINDERS.stuff, google = mine && !!(DATA.googleClientId || '');
   if (google && typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
   /* THE BLANK TAG YOU TYPE YOUR NAME ON: no example and nothing remembered (383); `mine` gives it the id. */
   const box = signBoxOpt_(mine);
-  return CARD_BLOCKS.choices({ rows: [{ look: 'sign-who', options: [{ text: 'Guest', act: 'sign-guest' }, box,
-    { text: 'Make an account', act: 'sign-join' }, { text: 'Forgot PIN', act: 'forgot-pin' }] }].concat(google ? [{ look: 'g-row', id: 'g-btn', options: [] }] : []) });
+  return [{ type: 'choices', rows: [{ look: 'sign-who', options: [{ text: 'Guest', act: 'sign-guest' }, box,
+    { text: 'Make an account', act: 'sign-join' }, { text: 'Forgot PIN', act: 'forgot-pin' }] }].concat(google ? [{ look: 'g-row', id: 'g-btn', options: [] }] : []) }];
 }
 /* THE BLANK TAG AS DATA (the checks draw it alone through `signBox_`). */
 const signBoxOpt_ = mine => ({ box: { id: mine ? 'in-name' : '', cls: 'sign-box', inputmode: 'email', value: SIGN.who, label: 'Your name, @username or email' }, look: 'sign-type' });
@@ -11652,13 +11653,11 @@ function paintStuff(keepPage) {
   stuffIndexesAsk_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
-  const chips = $(FINDER.id + '-chips');
-  if (chips) chips.innerHTML = filterChips();
   /* THE BIN, in its own slot above the chips — see `filterClear_`. */
   const clear = $(FINDER.id + '-clear');
   if (clear) clear.innerHTML = filterClear_();
-  const groups = $(FINDER.id + '-groups');
-  if (groups) groups.innerHTML = stuffQuestion();
+  /* THE MENU CARD'S SLOTS, from its spec (`findMenuFill_`). */
+  const groups = findMenuFill_(FINDER);
   try { frontWarm_(); } catch (e) { /* only ever a head start */ }
   /* ---------- A NEW QUESTION IS READ FROM THE TOP OF ITS PANE § */
   if (groups && !keepPage) {
@@ -12353,18 +12352,20 @@ function finderWake_(id) {
 
 /* THE QUESTION, ON THE PAGE. § */
 /* NAMED FOR WHAT IT WAS, not what it is. § */
-function stuffQuestion() {
+/* BLOCKS FOR THE MENU CARD (`stuffQuestionBlocks_`), drawn by `renderCard`'s own block renderers; `stuffQuestion` is them as markup. */
+function stuffQuestion() { return cardBlocks_(stuffQuestionBlocks_()); }
+function stuffQuestionBlocks_() {
   /* SIGNED OUT, THE FIRST MENU IS WHO YOU ARE (`signMenu_`, find-account.js); Guest or a name lets the ordinary menus follow. */
   const sign = signMenu_();
   if (sign) return sign;
   /* UNDER Booking ALONE, THE MENU IS THE BOOKING STEP BEING ASKED (`bookMenu_`, find-account.js), and nothing once the summary card is the answer. */
   if (bookFindOn_()) return bookFindQuestion_();
   const pre = finderTagsAt_() || finderTagsLook_();
-  if (pre) return facetAnswersHtml_(pre.facet, pre.values, '') + findPeek_();
+  if (pre) return [facetAnswersSpec_(pre.facet, pre.values)];
   const items = stuffFiltered();
   /* ---------- AN EMPTY FUNNEL SAID NOTHING AT ALL, WHICH IS THE WORST OF THE THREE ANSWERS § */
   /* AND WHEN THE WORDS ARE IN THE OTHER FINDER, SAYS SO — `stuffNoneHtml_`, one copy for both. */
-  if (!items.length) return stuffNoneHtml_();
+  if (!items.length) return stuffNoneBlocks_();
 
   /* ---------- THE ORDINARY QUESTION FIRST, AND THE LAST RESORT BEHIND IT § */
   /* THE FRONT MENU IS ALWAYS ASKED (C+): one front answer (Settings, signed out) is still a menu, so every first screen is the same shape. */
@@ -12374,10 +12375,8 @@ function stuffQuestion() {
     /* AND WHEN A PAPER ENDED IT, IT SAYS SO. § */
     /* ---------- ONE CLASS FOR THE LAST LINE, NOT AN INLINE MARGIN ON EACH § */
     /* AND OVER THE BIBLE, WHICH VERSES — or why there is no question over its cover yet. */
-    const be = bibleEnd_(items);
-    if (be) return be;
-    /* NO END LINE (owner, 9 Nov: "remove that text"): the cards under the chips say it. */
-    return '';
+    /* NO END LINE otherwise (owner, 9 Nov: "remove that text"): the cards under the chips say it. */
+    return [bibleEnd_(items)].filter(Boolean);
   }
 
   /* ---------- EVERY ANSWER, IN THE ORDER EVERY OTHER QUESTION USES § */
@@ -12385,31 +12384,13 @@ function stuffQuestion() {
   const values = facetValues(items, facet);
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, MORE ANSWERS ARE COMING § */
   const sw = scriptureWait_(items);
-  return facetAnswersHtml_(facet, values, (sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '') + facetNoneHtml_(items, facet)) + findPeek_();
+  return [facetAnswersSpec_(facet, values, [sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? { type: 'wait', on: true } : ''])];
 }
-/* WHILE A QUESTION IS ASKED, THE CARDS SO FAR ON ASK (`findDone_`): one tile, gone once they are shown. */
-/* NO "SHOW SO FAR" ARROW (owner, 9 Nov: "remove it"): cards come when the menus finish. */
-const findPeek_ = () => '';
-/* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): § */
-const FACET_NONE_SHOWN = false; /* owner 5 Nov: "Accuracy verified 0" read as noise; switched off, kept */
-function facetNoneHtml_(items, shown) {
-  if (!FACET_NONE_SHOWN) return '';
-  try {
-    const asked = (STUFF.filters || []).map(f => f.field), all = stuffItems(), out = [];
-    facetList().forEach(facet => {
-      if (facet === shown || asked.indexOf(facet.field) !== -1) return;
-      const here = facetValues(items, facet);
-      if (here.length !== 1 || facetCoverage(items, facet) < 1) return;
-      const every = facetValues(all, facet);
-      if (every.length !== 2) return;
-      const other = every.find(v => spellKey_(v.value) !== spellKey_(here[0].value));
-      if (other) out.push(`<span class="none-chip" aria-disabled="true">${esc(answerSay_(facet, other.value))} <b>0</b></span>`);
-    });
-    return out.length ? `<p class="facet-none" aria-label="answers none of these have">${out.join('')}</p>` : '';
-  } catch (e) { return ''; }
-}
-/* ONE QUESTION'S ANSWERS AS CHIPS, whether counted now or by the build (`finderTagsAt_`); `more` is what follows them. */
-function facetAnswersHtml_(facet, values, more) {
+/* NO "SHOW SO FAR" ARROW (owner, 9 Nov: "remove it"): cards come when the menus finish (`findPeek_` went). */
+/* THE OTHER HALF OF A YES-OR-NO, AT 0 (770), `facetNoneHtml_`, went: switched off since 5 Nov ("Accuracy verified 0" read as noise). */
+/* ONE QUESTION'S ANSWERS AS CHIPS, whether counted now or by the build (`finderTagsAt_`): a choices block; `then` is the blocks after them. */
+function facetAnswersHtml_(facet, values) { return cardBlock_(facetAnswersSpec_(facet, values)); }
+function facetAnswersSpec_(facet, values, then) {
   /* `counted` TAKES THE CHEVRON OFF. § */
   /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION § */
   /* `counted` WITHOUT A COUNT, which is not a contradiction: § */
@@ -12423,7 +12404,7 @@ function facetAnswersHtml_(facet, values, more) {
   const opts = values.map(v => ({ text: v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value), marked: true, act: 'facet-pick',
     data: Object.assign({ tag: tagOf_(facet.field), field: facet.field, value: v.value }, v.also && v.also.length ? { also: JSON.stringify(v.also) } : {}),
     label: grid ? facet.label + ' ' + runNumber_(v)[2] : '', look: facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? 'is-off' : '' }));
-  return CARD_BLOCKS.choices({ rows: [{ look: grid ? 'is-grid' : '', options: opts.concat([skip]) }], after: more });
+  return { type: 'choices', rows: [{ look: grid ? 'is-grid' : '', options: opts.concat([skip]) }], then: then || [] };
 }
 
 /* `stuff-jump` went with the group list. § */
@@ -12440,6 +12421,16 @@ function facetAnswersHtml_(facet, values, more) {
 /* ---------- ONE DRAW FOR BOTH FINDERS § */
 /* FIND'S MENU BEFORE THE PAYLOAD (1000): the build's own (FINDER_TAGS). */
 setTimeout(() => { try { if (awaiting_() && SCREENS[FINDER.id]) paint(FINDER.id); } catch (e) { oops_(e, 'find:early'); } }, 0);
+/* FIND'S MENU CARD AS DATA: drawn whole here, and its two slots (`#…-chips`, `#…-groups`) redrawn from the same spec by `findMenuFill_`. */
+const findMenuSpec_ = (F, then) => ({ kind: 'menu', look: 'find-menu', name: 'Find', tags: filterChipTags_(), tagLook: 'chips', tagsKeep: true, tagsId: F.id + '-chips',
+  body: [{ type: 'choices', id: F.id + '-groups', then: then || stuffQuestionBlocks_() }] });
+/* A REPAINT FILLS THE SLOTS IN PLACE (the card is kept, so the pane's scroll and the name box stay): `then` is the menu's blocks, a wait while it is counted. */
+function findMenuFill_(F, then) {
+  const spec = findMenuSpec_(F, then), chips = $(spec.tagsId), groups = $(spec.body[0].id);
+  if (chips) chips.innerHTML = renderTags(spec.tags, spec.tagLook, spec.tagsKeep);
+  if (groups) groups.innerHTML = cardBlocks_(spec.body[0].then);
+  return groups;
+}
 function finderScreen_() {
   const F = FINDER;
   /* THE LIBRARY STILL COMING (670): one wait, and no menu until every card is in, so the first answers shown are the last (546). */
@@ -12458,8 +12449,7 @@ function finderScreen_() {
     ${/* THE SORT WAS HERE — a dropdown offering A–Z and, when anything had a price, cheapest first. § */
           ''}
     ${/* THE MENU IS A CARD (owner, 14 Nov: one template): its tags the path chosen, its body the choices (`#…-chips`, `#…-groups` are the slots a repaint fills). */
-      renderCard({ kind: 'menu', look: 'find-menu', name: 'Find', tags: filterChipTags_(), tagLook: 'chips', tagsKeep: true, tagsId: F.id + '-chips',
-        body: [{ type: 'choices', id: F.id + '-groups', after: stuffQuestion() }] })}
+      renderCard(findMenuSpec_(F))}
     ${/* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */''}
     ${/* THE FINDER ITSELF TAKES A SUGGESTION TOO (494): "should be on finder widget too". */
       typeof suggestOpts_ === 'function' && tile_(suggestOpts_('finder', F.id, 'Find'))
@@ -12697,9 +12687,7 @@ function paintStuffSoon_() {
   let now = true;
   try { now = !!(finderTagsAt_() || finderTagsLook_() || stuffSeen_()); } catch (e) { now = true; }
   if (now || typeof requestAnimationFrame !== 'function') return paintStuff();
-  const chips = $(F.id + '-chips'), groups = $(F.id + '-groups');
-  if (chips) chips.innerHTML = filterChips();
-  if (groups) groups.innerHTML = loading_();
+  findMenuFill_(F, [{ type: 'wait', on: true }]);
   const want = JSON.stringify(STUFF.filters), at = PAGE[F.id] || 0;
   /* A PAGE TURNED BEFORE THE LATE PAINT LANDS is kept: painting "fresh" threw the child back to the question. */
   requestAnimationFrame(() => setTimeout(() => inFinder_(F, () => { if (JSON.stringify(STUFF.filters) === want) paintStuff((PAGE[F.id] || 0) !== at); }), 0));
