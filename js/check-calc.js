@@ -6,6 +6,9 @@ const a = src.indexOf('/* ---------- THE CALCULATOR: KEYS AND ENGINE'), b = src.
 if (a < 0 || b < 0) { console.log('FAILED: could not find the calculator engine in js/calc-engine.js — nothing was checked, not a pass'); process.exit(1); }
 const ctx = {};
 vm.createContext(ctx);
+/* The engine hands over runs; renderCard's run drawer (cards-render.js) turns them to markup, as on the page. */
+const rsrc = fs.readFileSync(path.join(__dirname, 'cards-render.js'), 'utf8');
+vm.runInContext('const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");\n' + rsrc.slice(0, rsrc.indexOf('/* A FORMULA')) + '\nthis.cardRuns_ = cardRuns_;', ctx);
 vm.runInContext(src.slice(a, b) + '\nthis.api = { calcNew, calcKey, calcHtml, calcText, CALC_KEYS, CALC_SHIFT };', ctx);
 const { calcNew, calcKey, calcHtml, calcText, CALC_KEYS, CALC_SHIFT } = ctx.api;
 
@@ -111,7 +114,7 @@ n++;
   if (!/class="mc-sqrt"/.test(h) || /sqrt\(/.test(h)) bad.push('√ is not drawn as a radical: ' + h); }
 n++;
 { const h = calcHtml(press(['3', 'sq'])).input;
-  if (!/<sup class="mc-sup">2<\/sup>/.test(h) || /\^/.test(h)) bad.push('x² is not drawn as a superscript: ' + h); }
+  if (!/<span class="mc-sup">2<\/span>/.test(h) || /\^/.test(h)) bad.push('x² is not drawn as a superscript: ' + h); }
 n++;
 { const h = calcHtml(press(['frac', '1', 'down', '2'])).input;
   if (!/mc-num">1<\/span><span class="mc-den">2<span class="mc-caret">/.test(h)) bad.push('the fraction is not stacked with the cursor in its denominator: ' + h); }
