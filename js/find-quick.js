@@ -118,9 +118,7 @@ function paintStuffSoon_() {
   let now = true;
   try { now = !!(finderTagsAt_() || finderTagsLook_() || stuffSeen_()); } catch (e) { now = true; }
   if (now || typeof requestAnimationFrame !== 'function') return paintStuff();
-  const chips = $(F.id + '-chips'), groups = $(F.id + '-groups');
-  if (chips) chips.innerHTML = filterChips();
-  if (groups) groups.innerHTML = loading_();
+  findMenuFill_(F, [{ type: 'wait', on: true }]);
   const want = JSON.stringify(STUFF.filters), at = PAGE[F.id] || 0;
   /* A PAGE TURNED BEFORE THE LATE PAINT LANDS is kept: painting "fresh" threw the child back to the question. */
   requestAnimationFrame(() => setTimeout(() => inFinder_(F, () => { if (JSON.stringify(STUFF.filters) === want) paintStuff((PAGE[F.id] || 0) !== at); }), 0));

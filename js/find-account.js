@@ -100,14 +100,15 @@ const BOOK_FIND_ASK = { days: 'Which days?', slots: 'What times? Each tag is one
 function bookMenu_() {
   bookFindStart_();
   const id = bookFindAt_();
-  if (!id) return '';
+  if (!id) return null;
   const many = BOOK_FIND_MANY.indexOf(id) !== -1;
   const opts = bookFindOpts_(id).map(o => ({ text: (many && o.on ? '✓ ' : '') + o.text + (o.off ? ' · ' + o.off : o.note ? ' · ' + o.note : ''),
     act: o.act, data: o.data, pressed: !!o.on, disabled: !!o.off, look: ((o.on ? 'is-on' : '') + (o.off ? ' is-off' : '')).trim() }));
   if (many) opts.push({ text: 'Next', act: 'book-next', data: { step: id }, look: 'is-skip' });
-  return CARD_BLOCKS.choices({ ask: BOOK_FIND_ASK[id] || (bookStep_(id) || {}).label || '',
+  return ({ type: 'choices', ask: BOOK_FIND_ASK[id] || (bookStep_(id) || {}).label || '',
     rows: [{ look: 'book-step' + (id === 'slots' || id === 'avail' ? ' is-grid' : ''), options: opts }] });
 }
+/* (Both menus below are blocks for Find's menu card, drawn by `renderCard`, never markup.) */
 /* WHAT A STEP'S CHIP SAYS: its answer as the summary says it; a bare number names what it counts. */
 function bookSaid_(id) {
   if (id === 'days') return BOOK_FIND.days.map(day_).join(', ');
@@ -131,14 +132,14 @@ function bookChips_() {
 }
 /* BEFORE ANY STEP IS ANSWERED, Booking's other answers (your sessions, tutors, venues) follow the first step's tags. */
 function bookFindQuestion_() {
-  if (typeof bookStep_ !== 'function') return loading_();
-  const menu = bookMenu_();
-  if (!menu || Object.keys(BOOK_FIND.done).length) return menu;
+  if (typeof bookStep_ !== 'function') return [{ type: 'wait', on: true }];
+  const menu = [].concat(bookMenu_() || []);
+  if (!menu.length || Object.keys(BOOK_FIND.done).length) return menu;
   const items = stuffFiltered().filter(x => x.kind !== 'bookform');
   const facet = items.length > 1 ? nextFacet(items) : null;
   if (!facet) return menu;
   const values = facetValues(items, facet).filter(v => spellKey_(v.value) !== spellKey_(KINDS.bookform.label));
-  return values.length ? menu + facetAnswersHtml_(facet, values, '') : menu;
+  return values.length ? menu.concat(facetAnswersSpec_(facet, values)) : menu;
 }
 /* EVERY STEP CHANGE REPAINTS FIND, and the draft is kept as the form's was (`bookKeep_`). */
 function bookFindPaint_() {
@@ -377,19 +378,19 @@ const SIGN_DIGITS = '0123456789'.split('');
 const signAsking_ = () => !USER && SIGN.step !== 'guest';
 const signPaint_ = () => finderEach_(() => paintStuff());
 function signMenu_() {
-  if (!signAsking_()) return '';
-  if (SIGN.busy) return loading_();
-  if (SIGN.step === 'join') return typeof registerCard_ === 'function' ? registerCard_() : '';
-  if (SIGN.step === 'pin') return CARD_BLOCKS.choices({ rows: [
+  if (!signAsking_()) return null;
+  if (SIGN.busy) return [{ type: 'wait', on: true }];
+  if (SIGN.step === 'join') return [typeof registerSpec_ === 'function' ? { type: 'card', spec: registerSpec_() } : ''];
+  if (SIGN.step === 'pin') return [{ type: 'choices', rows: [
     { look: 'is-grid sign-pin', options: SIGN_DIGITS.map(d => ({ text: d, act: 'sign-digit', data: { d: d, repeat: true } })) },
-    { look: 'sign-more', options: [{ text: 'Forgot PIN', act: 'forgot-pin' }] }] });
+    { look: 'sign-more', options: [{ text: 'Forgot PIN', act: 'forgot-pin' }] }] }];
   /* ONE BOX ON ONE FINDER: Find's carries the id the forgotten-PIN tag and the checks read. */
   const mine = FINDER === FINDERS.stuff, google = mine && !!(DATA.googleClientId || '');
   if (google && typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
   /* THE BLANK TAG YOU TYPE YOUR NAME ON: no example and nothing remembered (383); `mine` gives it the id. */
   const box = signBoxOpt_(mine);
-  return CARD_BLOCKS.choices({ rows: [{ look: 'sign-who', options: [{ text: 'Guest', act: 'sign-guest' }, box,
-    { text: 'Make an account', act: 'sign-join' }, { text: 'Forgot PIN', act: 'forgot-pin' }] }].concat(google ? [{ look: 'g-row', id: 'g-btn', options: [] }] : []) });
+  return [{ type: 'choices', rows: [{ look: 'sign-who', options: [{ text: 'Guest', act: 'sign-guest' }, box,
+    { text: 'Make an account', act: 'sign-join' }, { text: 'Forgot PIN', act: 'forgot-pin' }] }].concat(google ? [{ look: 'g-row', id: 'g-btn', options: [] }] : []) }];
 }
 /* THE BLANK TAG AS DATA (the checks draw it alone through `signBox_`). */
 const signBoxOpt_ = mine => ({ box: { id: mine ? 'in-name' : '', cls: 'sign-box', inputmode: 'email', value: SIGN.who, label: 'Your name, @username or email' }, look: 'sign-type' });

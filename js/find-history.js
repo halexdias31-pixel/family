@@ -459,9 +459,9 @@ function scriptureWait_(items) {
     ['the Hadith', typeof window.HADITH !== 'undefined' ? window.HADITH : null, typeof window.hadithFor_ === 'function' && window.hadithFor_()],
     ['the other writings', typeof window.WORKS !== 'undefined' ? window.WORKS : null, true]]
     .filter(b => b[1] && b[2]);
-  if (books.some(b => b[1].asking)) return loading_();
+  if (books.some(b => b[1].asking)) return { type: 'wait', on: true };
   const gone = books.filter(b => b[1].failed).map(b => b[0]);
-  return gone.length ? '<p class="find-end">The list of ' + esc(gone.join(' and ')) + ' did not arrive. <b>Pull down to try again.</b></p>' : '';
+  return gone.length ? { type: 'text', look: 'find-end', text: ['The list of ' + gone.join(' and ') + ' did not arrive. ', { b: 'Pull down to try again.' }] } : '';
 }
 
 /* ONE FETCH FOR EVERY FILE OF IT, stamped with the deploy so the service worker's exact-URL cache hands back a fresh copy after one — `videosAsk_`'s reasoning § */
@@ -667,18 +667,16 @@ function bibleByKey_(k) {
 
 /* ---------- THE LAST LINE UNDER THE QUESTION, ONCE NOTHING IS LEFT TO ASK § */
 function bibleEnd_(items) {
-  if (!items.length || !items.every(x => x && isBible_(x))) return '';
+  if (!items.length || !items.every(x => x && isBible_(x))) return null;
   const first = items[0], last = items[items.length - 1];
+  const end = text => ({ type: 'text', look: 'find-end', text });
   if (!first.bb) {
-    if (BIBLE.index) return '';
-    return BIBLE.failed
-      ? '<p class="find-end">The list of the Bible&rsquo;s books did not arrive. <b>Try again is under the cover.</b></p>'
-      : loading_();
+    if (BIBLE.index) return null;
+    return BIBLE.failed ? end(['The list of the Bible\u2019s books did not arrive. ', { b: 'Try again is under the cover.' }]) : { type: 'wait', on: true };
   }
-  if (items.length === 1) return `<p class="find-end">${esc(first.name)}. <b>${SWIPE_UP} for it.</b></p>`;
+  if (items.length === 1) return end([first.name + '. ', { b: SWIPE_UP + ' for it.' }]);
   const to = first.bb === last.bb ? last.ch + ':' + last.v : last.name;
-  return `<p class="find-end">${esc(first.name)} to ${esc(to)}.
-      <b>${SWIPE_UP} for the ${items.length.toLocaleString('en-GB')} verses.</b></p>`;
+  return end([first.name + ' to ' + to + '. ', { b: `${SWIPE_UP} for the ${items.length.toLocaleString('en-GB')} verses.` }]);
 }
 
 /* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: § */

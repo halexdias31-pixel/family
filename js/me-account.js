@@ -507,9 +507,8 @@ const REG_NOTE = {
          + 'can also make your account, on Students.',
 };
 /* MAKE AN ACCOUNT IS A CARD OF ITS OWN beside Sign in, its form there from the start (no sheet, owner 7 Nov). */
-function registerCard_() {
-  return renderCard({ kind: 'panel', look: 'reg-card', name: 'Make an account', tags: ['Make an account'], body: [{ type: 'embed', tool: 'reg-form' }] });
-}
+const registerSpec_ = () => ({ kind: 'panel', look: 'reg-card', name: 'Make an account', tags: ['Make an account'], body: [{ type: 'embed', tool: 'reg-form' }] });
+function registerCard_() { return renderCard(registerSpec_()); }
 /* THE FORM IS THE CARD'S ONE EMBED; its send (reg-send) is unchanged. */
 function regFormHtml_() {
   return `<div class="reg-form">

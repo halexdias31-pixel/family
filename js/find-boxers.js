@@ -178,11 +178,13 @@ on('find-open', el => {
 
 /* THE ONE EMPTY ANSWER, for the question page and a results page alike — they were two copies of the
    same three sentences. */
-function stuffNoneHtml_() {
-  if (!FIND_MEMO.total) return nothingHere(FINDER.empty, true);
-  const why = STUFF.filters.length ? 'Nothing matches all of those together.' : '';
-  return empty_(why ? 'Nothing matches. ' + why : 'Nothing matches.');
+/* AS BLOCKS for the menu card; nothing loaded at all is the column's own answer (`nothingHere`), drawn as its embed. */
+function stuffNoneBlocks_() {
+  if (!FIND_MEMO.total) return [{ type: 'embed', tool: 'nothing-here', args: { empty: FINDER.empty } }];
+  return [{ type: 'text', look: 'empty', text: STUFF.filters.length ? 'Nothing matches. Nothing matches all of those together.' : 'Nothing matches.' }];
 }
+CARD_EMBEDS['nothing-here'] = a => nothingHere(a.empty, true);
+function stuffNoneHtml_() { return cardBlocks_(stuffNoneBlocks_()); }
 
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS § */
 function pageParts_(x, prev) {

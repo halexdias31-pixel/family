@@ -619,7 +619,7 @@ function cardChoice_(o) {
 function cardChoices_(b) {
   const inner = (b.ask ? `<p class="book-ask">${esc(b.ask)}</p>` : '')
     + (b.rows || []).map(r => answersRow_((r.options || []).map(cardChoice_).join(''), r.look ? esc(r.look) : '', r.id ? esc(r.id) : '')).join('')
-    + (b.wait && typeof loading_ === 'function' ? loading_() : '') + (b.after || '');
+    + (b.wait && typeof loading_ === 'function' ? loading_() : '') + cardBlocks_(b.then);
   return b.id ? `<div id="${esc(b.id)}" class="kc-choices">${inner}</div>` : inner;
 }
 /* THE BODY BLOCKS, each with its one renderer. */
@@ -654,6 +654,8 @@ const CARD_BLOCKS = {
   grid: cardGrid_,
   /* A WAIT is `loading_()` and nothing else; `look` and `data` name a region its redraw finds (`.err-body`). */
   choices: cardChoices_,
+  /* A WHOLE CARD AMONG THE BLOCKS (Make an account inside Find's menu): its spec, drawn by `renderCard`. */
+  card: b => (b.spec ? renderCard(b.spec) : ''),
   wait: b => `<div class="kc-wait${b.look ? ' ' + esc(b.look) : ''}"${cardAttrs_(b.data)}${b.on ? ' aria-busy="true"' : ''}>${b.on && typeof loading_ === 'function' ? loading_() : ''}</div>`,
 };
 /* A CARD DRAWN AGAIN WHERE IT STANDS: the new card replaces the old element whole. */
@@ -669,6 +671,8 @@ function cardBlock_(b) {
   const r = CARD_BLOCKS[b.type];
   try { return r ? r(b) : ''; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'block:' + b.type); return ''; }
 }
+/* BLOCKS IN A ROW (a choices block's `then`, a menu's repaint): each through `cardBlock_`. */
+const cardBlocks_ = bs => [].concat(bs == null ? [] : bs).map(cardBlock_).join('');
 /* THE CARD. Its tile row is the one round row: the first tile leads, Message and Save stand beside it, the rest behind ⋯ (a question's all shown). */
 function renderCard(spec) {
   spec = spec || {};
@@ -9522,9 +9526,8 @@ const REG_NOTE = {
          + 'can also make your account, on Students.',
 };
 /* MAKE AN ACCOUNT IS A CARD OF ITS OWN beside Sign in, its form there from the start (no sheet, owner 7 Nov). */
-function registerCard_() {
-  return renderCard({ kind: 'panel', look: 'reg-card', name: 'Make an account', tags: ['Make an account'], body: [{ type: 'embed', tool: 'reg-form' }] });
-}
+const registerSpec_ = () => ({ kind: 'panel', look: 'reg-card', name: 'Make an account', tags: ['Make an account'], body: [{ type: 'embed', tool: 'reg-form' }] });
+function registerCard_() { return renderCard(registerSpec_()); }
 /* THE FORM IS THE CARD'S ONE EMBED; its send (reg-send) is unchanged. */
 function regFormHtml_() {
   return `<div class="reg-form">
