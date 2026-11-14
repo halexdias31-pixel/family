@@ -691,10 +691,10 @@ const CARD_BLOCKS = {
   tickCell: b => `<label class="${esc(b.look || '')}"${b.label ? ` aria-label="${esc(b.label)}"` : ''}>${cardControl_(Object.assign({ kind: 'check' }, b.control || {}))}</label>`,
   /* A FILE SHOWN IN PLACE: a page framed, a clip with its controls, or a picture; `look` names its size. */
   media: b => { const u = String(b.src || ''), look = b.look ? ` class="${esc(b.look)}"` : '', name = esc(b.title || '');
-    /* A PICTURE MAY ALSO BE ONE HELD IN THE PAGE (`data:image/`, a scan not yet saved, a page read back). */
-    if (!/^(https:|data\/|docs\/|[\w-]+\.(png|jpe?g|svg|webp|gif)$)/i.test(u) && !(b.kind === 'image' && /^data:image\//i.test(u))) return '';
+    /* A PICTURE MAY ALSO BE A TYPED http LINK OR ONE THIS PHONE JUST CROPPED (`data:image/`). */
+    if (!/^(https:|data\/|docs\/|[\w-]+\.(png|jpe?g|svg|webp|gif)$)/i.test(u) && !(b.kind === 'image' && /^(http:|data:image\/)/i.test(u))) return '';
     if (b.kind === 'video') return `<video${look} src="${esc(u)}" controls playsinline preload="metadata"></video>`;
-    if (b.kind === 'image') return `<img${look} src="${esc(u)}" alt="${name}">`;
+    if (b.kind === 'image') return `<img${look} src="${esc(u)}" alt="${name}"${b.async ? ' decoding="async"' : ''}>`;
     return `<iframe${look} src="${esc(u)}" title="${name}" loading="lazy" allow="${esc(b.allow || 'encrypted-media; picture-in-picture')}"${b.full ? ' allowfullscreen' : ''}></iframe>`; },
   /* A DRAWING AS DATA: shapes `{ el, a: { attrs }, text, kids }`, each a vector element of a fixed set, every value escaped. */
   drawing: b => cardDraw_(b.node),
@@ -827,6 +827,17 @@ Object.assign(CARD_BLOCKS, { paperSnap: paperSnap_, paperWhy: paperWhy_ });
 /* ATTRIBUTES ARE DATA: { name: value | true }, each escaped; an `on…` handler is never written. */
 const kcfAttrs_ = a => Object.keys(a || {}).filter(k => /^[a-z][\w:-]*$/i.test(k) && !/^on/i.test(k) && a[k] != null && a[k] !== false)
   .map(k => (a[k] === true ? ` ${k}` : ` ${k}="${esc(String(a[k]))}"`)).join('');
+/* ATTRIBUTE TEXT AS DATA (form.js's makers take `type="x" data-me="k" checked`): each name once, the first kept as a tag keeps it, its value unescaped so kcfAttrs_ escapes it once. */
+const CARD_UNESC_ = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+const cardUnesc_ = v => String(v).replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (m, e) => (e[0] === '#'
+  ? String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : Number(e.slice(1))) : CARD_UNESC_[e.toLowerCase()]));
+function cardAttrsOf_(s) {
+  if (s && typeof s === 'object') return s;
+  const a = {}, re = /([^\s"'=<>\/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g; let m;
+  while ((m = re.exec(String(s || '')))) { if (Object.prototype.hasOwnProperty.call(a, m[1])) continue;
+    const v = m[2] != null ? m[2] : m[3] != null ? m[3] : m[4]; a[m[1]] = v == null ? true : cardUnesc_(v); }
+  return a;
+}
 const kcfOpts_ = opts => (opts || []).map(o => (o && o.group != null ? `<optgroup label="${esc(o.group)}">${kcfOpts_(o.options)}</optgroup>`
   : `<option value="${esc(o.value == null ? '' : o.value)}"${cardAttrs_(o.data)}${o.on ? ' selected' : ''}${o.off ? ' disabled' : ''}>${esc(o.text == null ? (o.value == null ? '' : o.value) : o.text)}</option>`)).join('');
 /* `textarea` holds its `value` as text; a select's `inner` is options another maker drew already (a game picker's). */
@@ -8779,6 +8790,9 @@ const KC_LOOK_DEFAULT = Object.fromEntries(Object.entries({ receipt: 'pound', sh
 const KC_PERSON_KINDS = ['tutor', 'person', 'people', 'msg'];
 const kcLook_ = kind => ((typeof DATA !== 'undefined' && DATA && DATA.cardLook) || KC_LOOK_DEFAULT)[kind] || {};
 const kcEmpty_ = () => (typeof NOTHING_YET === 'string' ? NOTHING_YET : '');
+/* THE EMPTY LINE, and THE HIDDEN ORIGINAL a late filler writes into: both blocks of the one card maker. */
+const kcEmptyLine_ = () => cardBlock_({ type: 'text', look: 'kc-empty', text: kcEmpty_() });
+const kcSrc_ = src => cardBlock_({ type: 'group', look: 'kc-src', attrs: { hidden: true }, inner: src });
 /* A FORM STAYS A FORM: its own maker draws it, whole and unclamped, as the card's open content. */
 /* A LIST OF THINGS EACH WITH ITS OWN TILES (`.kc-items` of `.kc-item`s, the checklist's) holds controls too, so it is drawn open and whole. */
 const KC_FORM_SEL = 'input:not([type="hidden"]), select, textarea, form, .kc-items';
@@ -8811,7 +8825,7 @@ function kcFacts_(html) {
     flush();
   };
   walk(t.content);
-  out.lines = said.length ? said.map(s => `<p class="kc-line">${esc(s)}</p>`).join('') : wait ? wait.outerHTML : '';
+  out.lines = said.length ? cardBlock_({ type: 'text', paras: said }) : wait ? wait.outerHTML : '';
   out.src = t.innerHTML;
   return out;
 }
@@ -8825,7 +8839,7 @@ function kcFactsWatch_() {
     t.content.querySelectorAll('[data-do]').forEach(n => { const old = card.querySelector(`:scope > .kc-act [data-do="${n.getAttribute('data-do')}"]`); if (old) old.replaceWith(n); }); };
   const redo = src => { const card = src.closest('.card.kc'), box = card && card.querySelector(':scope > .kc-lines'); if (!box) return;
     const f = kcFacts_(src.innerHTML); box.firstChild && [...box.children].filter(k => k !== src).forEach(k => k.remove());
-    box.insertAdjacentHTML('afterbegin', f.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`);
+    box.insertAdjacentHTML('afterbegin', f.lines || kcEmptyLine_());
     if (f.tiles) { src.innerHTML = f.src; sync(card, f.tiles); } };
   /* AN OLD MAKER THAT REDRAWS ITS WHOLE CARD (`[data-libimp]`) has its new insides read as facts into the parts it pushed out. */
   const rewrap = (card, gone) => { const parts = gone.filter(n => n.nodeType === 1 && /^kc-(pic|head|tags|lines|form|act)$/.test(n.className)); if (!parts.length) return;
@@ -8833,7 +8847,7 @@ function kcFactsWatch_() {
     /* CONTROLS THAT ARRIVE LATE (a list loaded after the first draw) take a form part, open, in place of the lines. */
     if (f.form && !form && lines) { lines.className = 'kc-form'; lines.innerHTML = f.form; }
     else if (f.form && form) form.innerHTML = f.form;
-    else if (lines) lines.innerHTML = (f.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`) + (f.src ? `<div class="kc-src" hidden>${f.src}</div>` : '');
+    else if (lines) lines.innerHTML = (f.lines || kcEmptyLine_()) + (f.src ? kcSrc_(f.src) : '');
     card.replaceChildren(...parts); if (f.tiles) sync(card, f.tiles); };
   new MutationObserver(list => { if (busy) return; busy = true; const seen = new Set();
     try {
@@ -8871,7 +8885,7 @@ function findCard(x, credits) {
   /* A PANEL (card_) IS DRAWN WHILE FIND'S OWN LIST IS BEING MADE, so it never reads Find's chips back (that would build the list inside itself). */
   parts.tags = it.kcPanel ? parts.tags : kcUnpicked_(parts.tags);
   /* A CARD WITH NO TAGS OF ITS OWN STILL HAS ONE: its name (owner, 9 Nov: the name is a tag). */
-  if (!parts.tags.trim() && name) parts.tags = `<div class="qtags">${qtag_(`${esc(name)}`, ` data-tag="0"`)}</div>`;
+  if (!parts.tags.trim() && name) parts.tags = cardBlock_({ type: 'tags', tags: [String(name)] });
   /* NO TITLE LINE ON ANY CARD (owner, 9 Nov): the name is a tag, put first when the tags do not already say it. */
   if (name && parts.head && !kcSays_(parts.tags, name)) parts.tags = kcTagFirst_(parts.tags, name);
   parts.head = '';
@@ -8884,23 +8898,26 @@ function findCard(x, credits) {
   if (kcLook_(it.kind).facts || (it.kcPanel && KC_FORMY.test(parts.lines))) {
     facts = kcFacts_(parts.lines);
     if (facts.form) { parts.lines = ''; parts.form = facts.form; kcFactsWatch_(); }
-    else { parts.lines = (facts.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`) + (facts.src ? `<div class="kc-src" hidden>${facts.src}</div>` : ''); kcFactsWatch_(); }
+    else { parts.lines = (facts.lines || kcEmptyLine_()) + (facts.src ? kcSrc_(facts.src) : ''); kcFactsWatch_(); }
     if (facts.tiles) parts.act = kcActRow_(one, '', hoist.tiles + facts.tiles);
     parts.tags = kcTidy_(parts.tags, '', name).tags;
   }
   if (!facts && KC_WHOLE_KINDS.indexOf(it.kind) < 0) { const tidy = kcTidy_(parts.tags, parts.lines, name); parts.tags = tidy.tags; parts.lines = tidy.lines; }
   const off = (facts ? ' kc-facts' : '') + (it.kind === 'tutor' && t.listed === false ? ' is-off' : '') + (it.cardCls ? ' ' + esc(it.cardCls) : '');
   /* `cardData` BECOMES data-* ATTRIBUTES, so a card can be found again where it stands (a post's sheet, a conversation's redraw). */
-  const data = Object.keys(it.cardData || {}).map(k => ` data-${k}="${esc(it.cardData[k])}"`).join('');
+  const attrs = {};
+  Object.keys(it.cardData || {}).forEach(k => { attrs['data-' + k] = it.cardData[k] == null ? '' : String(it.cardData[k]); });
   /* ITS OWN MAKER'S CLASSES AND ATTRIBUTES STAY ON IT, so every handler's `closest('.qcard')` or `[data-key]` still finds it. */
   const mine = it.kcOwn || {}, ownCls = String(mine.cls || '').split(/\s+/).filter(c => c && !/^(card|fc|kc)$/.test(c)).join(' ');
-  const label = /\saria-label=/.test(mine.attrs || '') ? '' : ` aria-label="${esc(name)}"`;
-  return `<div class="card fc kc kc-${esc(it.kind || 'thing')}${s.cls ? ' ' + esc(s.cls) : ''}${ownCls ? ' ' + ownCls : ''}${off}"${data}${mine.attrs || ''}${label}>${
-    (parts.form ? ['pic', 'head', 'tags', 'lines', 'form', 'act'] : KC_PARTS).map(p => `<div class="kc-${p}">${parts[p]}</div>`).join('')}</div>`;
+  const ownAttrs = cardAttrsOf_(mine.attrs || '');
+  Object.keys(ownAttrs).forEach(k => { if (!(k in attrs)) attrs[k] = ownAttrs[k]; });
+  if (!('aria-label' in ownAttrs) && !('aria-label' in attrs)) attrs['aria-label'] = String(name);
+  return cardBlock_({ type: 'group', look: `card fc kc kc-${it.kind || 'thing'}${s.cls ? ' ' + s.cls : ''}${ownCls ? ' ' + ownCls : ''}${off}`, attrs,
+    blocks: (parts.form ? ['pic', 'head', 'tags', 'lines', 'form', 'act'] : KC_PARTS).map(p => ({ type: 'group', look: 'kc-' + p, inner: parts[p] })) });
 }
 
 /* THE ONE TAG MAKER (one way only): `inner` is HTML the caller escaped, `attrs` its attributes, `cls` extra classes; `base` a tutor pill or a filter chip. */
-function qtag_(inner, attrs, cls, base) { return `<span class="${base || 'qtag'}${cls ? ' ' + cls : ''}"${attrs || ''}>${inner}</span>`; }
+function qtag_(inner, attrs, cls, base) { return cardBlock_({ type: 'group', tag: 'span', look: (base || 'qtag') + (cls ? ' ' + cls : ''), attrs: cardAttrsOf_(attrs), inner }); }
 /* EVERY OTHER CARD COMES HERE TOO (owner, 11 Nov: one template): its maker writes a plain `<div class="x">…</div>`; a form inside stays whole, the booking form's too. */
 const KC_FORMY = /<(input(?![^>]*type="hidden")|select|textarea|form)\b|\bkc-items\b/;
 function card_(html, kind, called) {
@@ -8920,7 +8937,7 @@ function cardFill_(el, inner, kind) {
   if (!el || typeof document === 'undefined') return;
   const cls = [...el.classList].filter(c => !/^(card|fc|kc|kc-[\w-]+)$/.test(c)).join(' ');
   const t = document.createElement('template');
-  t.innerHTML = card_(`<div class="${cls}">${inner || ''}</div>`, kind);
+  t.innerHTML = card_(cardBlock_({ type: 'group', look: cls, inner: inner || '' }), kind);
   const fresh = t.content.firstElementChild;
   if (!fresh) return;
   el.className = fresh.className;
@@ -9068,18 +9085,19 @@ function formField_(f, value, o) {
   return fieldHtml(f, value, o);
 }
 /* A BOX WITH NO COLUMN BEHIND IT (a PIN): its id is what its handler reads, and it is never saved as you type. */
-const FORM_BOX_ATTRS_ = { pin: ' type="password" inputmode="numeric" autocomplete="one-time-code"' };
+const FORM_BOX_ATTRS_ = { pin: { type: 'password', inputmode: 'numeric', autocomplete: 'one-time-code' } };
 function formBox_(b) {
-  return `<label class="field"><input id="${esc(b.id)}" aria-label="${esc(b.label || b.ph || '')}"${
-    b.ph ? ` placeholder="${esc(b.ph)}"` : ''}${FORM_BOX_ATTRS_[b.kind] || ''}></label>`;
+  return cardBlock_({ type: 'field', blocks: [{ type: 'control', attrs: Object.assign({ id: b.id, 'aria-label': b.label || b.ph || '',
+    placeholder: b.ph || null }, FORM_BOX_ATTRS_[b.kind] || {}) }] });
 }
 /* A TICK THAT SAVES THE MOMENT IT IS TICKED, with a bold name and a faint note: `t.act` is its handler, `t.data` its data- attributes. */
 function formToggle_(t) {
-  const data = Object.keys(t.data || {}).map(k => ` data-${k}="${esc(t.data[k])}"`).join('');
-  return `<label class="check role-pick${t.cls ? ' ' + t.cls : ''}">
-        <input type="checkbox" data-do="${esc(t.act)}"${data}${t.on ? ' checked' : ''}>
-        <span class="box"></span><span class="role-pick-say"><b>${esc(t.label)}</b>
-          ${qtag_(`${esc(t.note || '')}`)}</span></label>`;
+  const attrs = { type: 'checkbox', 'data-do': t.act == null ? '' : String(t.act) };
+  Object.keys(t.data || {}).forEach(k => { attrs['data-' + k] = String(t.data[k] == null ? '' : t.data[k]); });
+  attrs.checked = !!t.on;
+  return cardBlock_({ type: 'group', tag: 'label', look: 'check role-pick' + (t.cls ? ' ' + t.cls : ''), blocks: [{ type: 'control', attrs },
+    { type: 'group', tag: 'span', look: 'box' },
+    { type: 'group', tag: 'span', look: 'role-pick-say', text: [{ b: t.label }, ' ', { span: 'qtag', text: t.note || '' }] }] });
 }
 
 /* THE CARD: a title, then `groups` (backend field lists via `fieldsHtml`), `boxes` or `toggles`; `spec.id` fills it from FORM_SPECS.cards. */
@@ -9090,22 +9108,24 @@ function formCard_(spec) {
   const boxes = (s.boxes || []).map(formBox_).join('');
   const ticks = (s.toggles || []).map(formToggle_).join('');
   const save = s.save && s.save.act ? tile_(s.save) : s.save;
-  const after = (s.said ? `<p class="note" id="${esc(s.said)}"></p>` : '') + (s.after || '');
+  const after = (s.said ? cardBlock_({ type: 'group', tag: 'p', look: 'note', id: s.said }) : '') + (s.after || '');
   const card = { title: s.title, cls: s.cls, attrs: s.attrs, lead: s.lead, save: save, after: after };
   if (s.groups) return setCard_(Object.assign(card, { form: fields, formAttrs: s.formAttrs, foot: s.foot }));
   return setCard_(Object.assign(card, { body: (s.body || '') + boxes + ticks + (s.tail || '') }));
 }
 
 /* THE RAW BOXES: every input, menu and text area on a Settings screen is written by these, so a box has one shape everywhere. `a` is its attribute text. */
-const formInput_ = a => `<input ${a}>`;
-const formSelect_ = (a, opts) => `<select ${a}>${opts}</select>`;
-const formArea_ = (a, text) => `<textarea ${a}>${esc(text == null ? '' : String(text))}</textarea>`;
+/* Each is a `control` block, its attribute text read into data by `cardAttrsOf_` (cards-render.js). */
+const formInput_ = a => cardBlock_({ type: 'control', attrs: cardAttrsOf_(a) });
+const formSelect_ = (a, opts) => cardBlock_({ type: 'control', tag: 'select', attrs: cardAttrsOf_(a), inner: opts });
+const formArea_ = (a, text) => cardBlock_({ type: 'control', tag: 'textarea', attrs: cardAttrsOf_(a), value: text == null ? '' : String(text) });
 const formHidden_ = (a, v, more) => formInput_(`type="hidden" ${a} value="${esc(v == null ? '' : String(v))}"${more || ''}`);
 const formFile_ = (cls, accept) => formInput_(`type="file" class="${cls}" accept="${accept}" hidden`);
 /* A LABELLED LINE: a faint name over its box; `cls` adds to class="field". */
-const formLine_ = (label, box, cls) => `<label class="field${cls ? ' ' + cls : ''}">${label != null && label !== '' ? `<span>${esc(label)}</span>` : ''}${box}</label>`;
+const formLine_ = (label, box, cls) => cardBlock_({ type: 'field', look: cls || '', cap: label, inner: box });
 /* A TICK: `a` is the checkbox's attributes, `say` the html beside the box. */
-const formTick_ = (a, say, cls, la) => `<label class="check${cls ? ' ' + cls : ''}"${la ? ' ' + la : ''}>${formInput_('type="checkbox" ' + a)}<span class="box"></span>${say}</label>`;
+const formTick_ = (a, say, cls, la) => cardBlock_({ type: 'group', tag: 'label', look: 'check' + (cls ? ' ' + cls : ''), attrs: cardAttrsOf_(la),
+  blocks: [{ type: 'control', attrs: cardAttrsOf_('type="checkbox" ' + a) }, { type: 'group', tag: 'span', look: 'box' }], inner: say });
 /* A SLIDER WITH ITS TYPED TWIN: both carry `a` (their data- key), so dragging and typing write the same value. */
 function formSlider_(a, o) {
   return formInput_(`type="range" ${a} data-noswipe min="${o.min}" max="${o.max}" step="${o.step}" value="${o.value}" aria-label="${esc(o.label)}"${o.id ? ` id="${o.id}"` : ''}`)
@@ -9113,8 +9133,8 @@ function formSlider_(a, o) {
 }
 /* A PHONE: the country-code menu and the number, side by side, saved as you type under `cc` and `no`. */
 function formPhone_(cc, no, ccOpts, noAttrs) {
-  return `<label class="field">${formSelect_(`data-me="${cc}" aria-label="Country code"`, ccOpts)}</label>
-      <label class="field">${formInput_(`type="tel" data-me="${no}" inputmode="tel" autocomplete="off" ${noAttrs || ''}`)}</label>`;
+  return formLine_('', formSelect_(`data-me="${cc}" aria-label="Country code"`, ccOpts))
+    + formLine_('', formInput_(`type="tel" data-me="${no}" inputmode="tel" autocomplete="off" ${noAttrs || ''}`));
 }
 
 ;
@@ -12564,18 +12584,19 @@ const isPhotos_ = list => (list || []).some(isPhotoField_);
 /* `o.draft` IS PASSED THROUGH TO THE BOXES — the card editor keeps its own draft (`fieldHtml`'s note). § */
 function photoShelf_(list, value, o) {
   const nums = (list || []).filter(isPhotoField_).map(f => String(f).match(/^photos_(\d+)$/)[1]);
-  return `<div class="lib-shelf ph-shelf" data-noun="photo">${shelfSlots_(nums,
+  return cardBlock_({ type: 'group', look: 'lib-shelf ph-shelf', attrs: { 'data-noun': 'photo' }, inner: shelfSlots_(nums,
     i => shelfFilled_(value, ['photos_' + i]),
     (i, hide) => {
       const v = String(value('photos_' + i) || '').trim();
-      return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
-        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : ''}</span>
-        ${fieldHtml('photos_' + i, v, { placeholder: 'Photo', draft: (o || {}).draft, extra: 'type="hidden"' })}
-        <div class="tile-row">${tile_({ icon: 'plus', label: v ? 'Change photo' : 'Choose photo', act: 'ph-pick' })}${shelfDrop_('photo')}</div>
-        <p class="note ph-said"></p>${formFile_('ph-in', 'image/*')}
-      </div>`;
-    }, 'photo')}</div>`;
+      return cardBlock_({ type: 'group', look: 'lib-card ph-slot', attrs: { hidden: !!hide },
+        inner: cardBlock_({ type: 'group', tag: 'span', look: 'ph-thumb', blocks: [v ? phThumb_(v) : null] })
+        + fieldHtml('photos_' + i, v, { placeholder: 'Photo', draft: (o || {}).draft, extra: 'type="hidden"' })
+        + cardBlock_({ type: 'group', look: 'tile-row', inner: tile_({ icon: 'plus', label: v ? 'Change photo' : 'Choose photo', act: 'ph-pick' }) + shelfDrop_('photo') })
+        + cardBlock_({ type: 'group', tag: 'p', look: 'note ph-said' }) + formFile_('ph-in', 'image/*') });
+    }, 'photo') });
 }
+/* A SLOT'S THUMBNAIL: the photo as a `media` picture block. */
+const phThumb_ = v => ({ type: 'media', kind: 'image', src: pic(v), title: '', async: true });
 /* THE PREVIEW FOLLOWS THE BOX as it is typed into, so the check above does not wait for a Save. One
    listener for the document, which is how every other input here is heard. */
 document.addEventListener('input', e => {
@@ -12583,7 +12604,7 @@ document.addEventListener('input', e => {
   if (!t || !t.matches || !t.matches('.ph-slot input')) return;
   const thumb = t.closest('.ph-slot').querySelector('.ph-thumb');
   const v = String(t.value || '').trim();
-  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : '';
+  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? cardBlock_(phThumb_(v)) : '';
 });
 /* ---------- AN EXTRA PHOTO IS UPLOADED, NOT LINKED (owner, 8 Nov): redrawn here at 1200px JPEG, kept in Drive by
    `photoFile`, and its link put in the slot's box so Save keeps it with the rest of the card. */
@@ -12637,21 +12658,19 @@ function photoPicker_(value, said, o) {
     return tile_({ label: label, act: 'pfp-choose', data: { pic: n }, on: chosen === n, pressed: chosen === n, cls: 'pfp-opt',
       face: pfpArt_(n, 40) });
   };
-  const face = `<span class="pfp-face">${pfpFace_(v)}</span>`;
+  const face = { type: 'group', tag: 'span', look: 'pfp-face', inner: pfpFace_(v) };
   const fold = !!(o && o.fold);
-  return `${fold ? `<details class="pfp ce-fold" data-fold="picture" open>
-    <summary class="ce-line"><span class="ce-k">Picture</span>${face}</summary>` : `<div class="pfp">${face}`}
-    <div class="pfp-side">
-      <div class="tile-row">
-        ${/* A CHILD CHOOSES FROM THE GRID, NEVER A FILE (413) — `savePhoto` refuses one too. */
-          uiMay_('upload-photo') ? tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' }) : ''}
-        ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
-      </div>
-    </div>
-    <div class="pfp-grid" role="group" aria-label="Or choose a picture">${Object.keys(PFP_ART).map(opt).join('')}</div>
-    <p class="note pfp-said">${esc(said || pfpSaid_(v))}</p>
-    ${uiMay_('upload-photo') ? formFile_('pfp-in', 'image/*') : ''}
-  ${fold ? '</details>' : '</div>'}`;
+  /* A CHILD CHOOSES FROM THE GRID, NEVER A FILE (413) — `savePhoto` refuses one too. */
+  const rest = [{ type: 'group', look: 'pfp-side', blocks: [{ type: 'group', look: 'tile-row', tiles: [
+      uiMay_('upload-photo') ? { icon: 'photo', label: 'Choose photo', act: 'pfp-pick' } : null,
+      { icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v }].filter(Boolean) }] },
+    { type: 'group', look: 'pfp-grid', attrs: { role: 'group', 'aria-label': 'Or choose a picture' }, inner: Object.keys(PFP_ART).map(opt).join('') },
+    { type: 'group', tag: 'p', look: 'note pfp-said', text: said || pfpSaid_(v) }];
+  const file = uiMay_('upload-photo') ? formFile_('pfp-in', 'image/*') : '';
+  return fold
+    ? cardBlock_({ type: 'group', tag: 'details', look: 'pfp ce-fold', attrs: { 'data-fold': 'picture', open: true }, blocks: [
+      { type: 'group', tag: 'summary', look: 'ce-line', blocks: [{ type: 'group', tag: 'span', look: 'ce-k', text: 'Picture' }, face] }].concat(rest), inner: file })
+    : cardBlock_({ type: 'group', look: 'pfp', blocks: [face].concat(rest), inner: file });
 }
 /* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */
 function pfpSaid_(v) {
@@ -12778,7 +12797,7 @@ document.addEventListener('change', e => {
     if (!data) { if (said) said.textContent = 'That file is not a picture this phone can read. Try another.'; return; }
     /* THE PREVIEW CHANGES BEFORE THE UPLOAD, so the crop is seen while it travels; if the server refuses, the line says why and the old picture comes back. § */
     const face = box.querySelector('.pfp-face');
-    if (face) face.innerHTML = `<img class="pfp-pic" src="${esc(data)}" alt="Your profile picture" decoding="async">`;
+    if (face) face.innerHTML = cardBlock_({ type: 'media', kind: 'image', look: 'pfp-pic', src: data, title: 'Your profile picture', async: true });
     pfpRing_(box, '');
     return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
                  { button: btn, where: said, saying: 'Saving…', lock: box })
@@ -12838,7 +12857,7 @@ function fieldsHtml(groups, o) {
       + (wantsDob ? dobBoxes_(value) : '')
       + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneField_(value) : plain(f, extra))
       + (photos ? videoPicker_(value) + photoShelf_(list, value) : '');
-    return (head ? `<${head}><span>${esc(g)}</span></${head}>` : '') + body;
+    return (head ? cardBlock_({ type: 'group', tag: head, look: null, blocks: [{ type: 'group', tag: 'span', look: null, text: g }] }) : '') + body;
   }).join('');
 }
 /* The sheet writes TRUE/FALSE as text and the payload sends real booleans; rows written by older
