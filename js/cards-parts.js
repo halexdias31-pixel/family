@@ -273,19 +273,36 @@ const ITEM_MAPS = {
     picture: (it, x) => (typeof qCardPic_ === 'function' ? qCardPic_(x) : null),
     sheet: (it, x, pic) => (typeof qCardSheet_ === 'function' ? qCardSheet_(x, pic) : []),
     tiles: (it, x) => (typeof qCardTiles_ === 'function' ? qCardTiles_(x) : []), toolRow: true },
+  /* PEOPLE (slice 5). A TUTOR: the name line's pills, subjects and facts rows, then its lines (cards-people.js); a child is not told the rate and */
+  /* only an admin the note on why they are unlisted — both decided by `childHides` / `adminOnly` as the item loads, not by the drawing. */
+  tutor: { look: 'is-widget is-prof tcard', id: ['personId', 'id'], name: r => r.title, nameTag: false, tags: ['tags', 'titles'], links: ['venues'], lines: true, off: r => r.listed === false,
+    live: { money: r => (r.rate ? { rate: typeof rateRange_ === 'function' ? rateRange_(r) : '' } : {}), say: r => ({ note: typeof profNote_ === 'function' ? profNote_(r) : '' }) },
+    childHides: ['rate'], adminOnly: ['note'], body: (r, L) => (typeof profBody_ === 'function' ? profBody_(r, L) : []),
+    picture: (it, x) => (typeof profFace_ === 'function' ? profFace_(x, 96) : null), tagLook: 'prof-tags prof-who-tags',
+    pills: (it, x) => (typeof profPills_ === 'function' ? profPills_(it, kcRow_(x)) : []), tagRows: it => (typeof profTagRows_ === 'function' ? profTagRows_(it.raw) : []) },
+  /* A PERSON'S DOOR (find-doors.js): face, name and facets, the handle (and the Edit form while an admin has it open); its tiles are */
+  /* `peopleOpts_`, whose every button the permissions table already gates. */
+  person: { look: 'is-prof prof-door kc-facts', id: ['personId', 'id'], name: r => (typeof displayName_ === 'function' && displayName_(r)) || r.handle,
+    tags: ['role', 'handle'], lines: true, body: r => (typeof personDoorBody_ === 'function' ? personDoorBody_(r) : []),
+    picture: (it, x) => (typeof profFace_ === 'function' ? profFace_(x, 160) : null), tiles: it => (typeof peopleOpts_ === 'function' ? peopleOpts_(it.raw) : []) },
+  /* A POST: its words its name, and nothing else on the tag line (`facets: false`); its Like tile is its kind's. */
+  post: { look: 'post-fc', name: r => String(r.text || r.caption || r.title || 'Post').slice(0, 80), tags: ['location'], links: ['authorId'], facets: false },
 };
 /* THE SAME OPTIONS FOR EVERY KIND (slice 2): `id` its id columns; `name` (row → name); `from` the Find entry's field holding its row (else `row`); */
 /* `card` the card kind drawing it (else its own) and `when` (entry → true) which map that card picks; `body` (row → blocks) and `lines: true` */
 /* to draw them; `nameTag: false` for a card whose tags are its facets alone; `entryTags` { entry field: colour } after the facets; `off` (row → true) greys it. */
 /* COMPUTED FIELDS (slice 3): `live` { field: row → value } are worked out from the payload as the item loads (a subject's tutors, a room's rate), */
 /* kept as `it.live` and handed to `body` (row, live); `liveTags` { live field: colour } after the facets; `childHides` [keys] are taken out of every */
-/* live value for a child (childView_), in this one place, so no kind's drawing decides who may see a price (398). */
+/* live value for a child (childView_), and `adminOnly` [keys] for anyone not an admin, in this one place, so no kind's drawing decides */
+/* who may see a price or an admin's note (398). PEOPLE (slice 5): `pills` (item, entry) → the whole tag line, in place of name and facets; */
+/* `tagRows` (item, entry) → rows of tags under it; `facets: false` leaves Find's facets off the tag line. */
 /* A CARD THAT IS A TOOL (slice 4, a question): `look` may be (item, entry) → class; `keep` (item, entry) remembers the entry for an embed; */
 /* `data` (item, entry) → its data- attributes; `sheet` (item, entry, picture) → blocks drawn in place of `body`; `tiles` (item, entry) → its */
 /* tiles and `toolRow: true` its tool row; `tagLook` its tags' class. */
 const itemLive_ = (r, M) => { const v = {}; Object.keys(M.live || {}).forEach(f => { v[f] = M.live[f](r); });
-  const hide = M.childHides || [], strip = o => { if (Array.isArray(o)) o.forEach(strip); else if (o && typeof o === 'object') hide.forEach(k => { delete o[k]; }); };
-  if (hide.length && typeof childView_ === 'function' && childView_()) Object.keys(v).forEach(f => strip(v[f]));
+  const hide = (typeof childView_ === 'function' && childView_() ? M.childHides || [] : []).concat(typeof isAdmin === 'function' && isAdmin() ? [] : M.adminOnly || []);
+  const strip = o => { if (Array.isArray(o)) o.forEach(strip); else if (o && typeof o === 'object') hide.forEach(k => { delete o[k]; }); };
+  if (hide.length) Object.keys(v).forEach(f => strip(v[f]));
   return v; };
 /* A PERSON'S 8-BIT PORTRAIT (find-boxers.js), by their id. */
 const kcPersonPic_ = it => (typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null);
@@ -304,18 +321,19 @@ function cardOfItem_(it, x) {
   const M = ITEM_MAPS[it.kind] || {}, own = x || { kind: it.kind, key: '', name: it.name };
   if (M.keep) M.keep(it, own);
   let f0 = [];
-  try { f0 = typeof tagList_ === 'function' && own.key ? tagList_(own) : []; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'item:tags'); }
+  try { f0 = M.facets !== false && typeof tagList_ === 'function' && own.key ? tagList_(own) : []; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'item:tags'); }
   const facets = Array.isArray(f0) ? f0 : [];
   const more = Object.keys(M.entryTags || {}).flatMap(f => (own[f] || []).map(t => ({ text: t, colour: M.entryTags[f] })))
     .concat(Object.keys(M.liveTags || {}).flatMap(f => ((it.live || {})[f] || []).map(t => ({ text: t, colour: M.liveTags[f] }))));
   /* `nameTag: false` still leads with the name when it has no facets at all: a card is never without a tag. */
-  const pic = M.picture ? M.picture(it, own) : null;
+  const pic = M.picture ? M.picture(it, own) : null, pills = M.pills ? M.pills(it, own) : null;
   /* ITS ROW IS ITS ENTRY'S OWN, never one made of its name: a card whose name is not a tag (`nameTag: false`) must not draw it elsewhere (the Message tile's `to`). */
   return { look: (typeof M.look === 'function' ? M.look(it, own) : M.look) || '', name: it.name || own.name || '', row: own.row || {}, ...(M.off ? { off: !!M.off(it.raw || {}) } : {}), picture: pic,
     body: M.sheet ? M.sheet(it, own, pic) : M.lines ? it.body : [],
     ...(M.data ? { data: M.data(it, own) } : {}), ...(M.tagLook ? { tagLook: M.tagLook } : {}),
     ...(M.tiles ? { tiles: M.tiles(it, own) } : {}), ...(M.toolRow ? { toolRow: { key: own.key || '' } } : {}),
-    tags: (M.nameTag === false && facets.length ? [] : [{ text: it.name || own.name || '', colour: 0 }]).concat(facets, more) };
+    ...(M.tagRows ? { tagRows: M.tagRows(it, own) } : {}),
+    tags: Array.isArray(pills) ? pills : (M.nameTag === false && facets.length ? [] : [{ text: it.name || own.name || '', colour: 0 }]).concat(facets, more) };
 }
 /* EACH CARD KIND DRAWN FROM MAPS: the map whose `when` the entry answers (else the first without one), its row from the entry's `from`. */
 const itemMapOf_ = x => { const ks = Object.keys(ITEM_MAPS).filter(k => (ITEM_MAPS[k].card || k) === x.kind);
