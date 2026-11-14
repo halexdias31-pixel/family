@@ -53,34 +53,27 @@ const WIDGET_KEY = w => 'w:' + String(w.id);
 /* `own` is its own column (not Saved): only there does an admin get the layout row (463, `layoutOpts_` in layout.js). */
 function widgetOnColumn_(w, own) {
   if (w && w.parts) return widgetMergedOn_(w, own);
+  const held = typeof gameLocked_ === 'function' && gameLocked_(w.id), name = w.name || w.title || w.label || '';
+  return renderCard({ kind: 'panel', look: 'is-widget' + (held ? ' is-locked' : ''), name, tags: name ? [name] : [],
+    body: [widgetSlot_(w, name)], tiles: widgetTiles_(w, own) });
+}
+/* ONE PLACE FOR A WIDGET'S TILES (472): the star, the padlock, Suggest, then the admin's layout tiles — the card's one row. */
+const widgetTiles_ = (w, own) => [].concat(typeof favOpts_ === 'function' ? [favOpts_({ key: WIDGET_KEY(w), kind: 'widget' }),
+  typeof gameLockOpts_ === 'function' ? gameLockOpts_(w.id) : null, typeof suggestOpts_ === 'function' ? suggestOpts_('widget', String(w.id), w.name || w.title || w.label || '') : null] : [],
+  own === true && typeof layoutOpts_ === 'function' ? layoutOpts_(w) || [] : []).filter(Boolean);
+/* A WIDGET'S SLOT, its own maker's drawing inside (a heading saying the card's name goes: the name tag says it); waiting until it has started. */
+function widgetSlot_(w, name) {
   const waits = typeof w.start === 'function' && typeof loading_ === 'function';
-  const held = typeof gameLocked_ === 'function' && gameLocked_(w.id);
-  /* ONE PLACE FOR A WIDGET'S TILES (472): title, content (its own tiles last), then one row — the star, the padlock, then the admin's layout tiles. */
-  const keep = typeof favOpts_ === 'function'
-    ? `<span class="tile-group wgt-keep">${tile_([favOpts_({ key: WIDGET_KEY(w), kind: 'widget' }),
-      typeof gameLockOpts_ === 'function' ? gameLockOpts_(w.id) : null])}${
-      typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', String(w.id), w.name || w.title || w.label || '')) : ''}</span>` : '';
-  const lay = own === true && typeof layoutOpts_ === 'function' ? tileGroup_(layoutOpts_(w), 'is-admin wgt-admin') : '';
-  return card_(`<div class="is-widget${held ? ' is-locked' : ''}">
-      <div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${
-        typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div>
-      ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}
-    </div>`, '', w.name || w.title || w.label || '');
+  const html = typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html;
+  return { type: 'group', id: 'wgt-' + String(w.id), look: 'widget-slot', attrs: { role: 'region', 'aria-label': String(w.name || w.id), 'aria-busy': waits ? 'true' : null },
+    inner: (typeof kcTidy_ === 'function' ? kcTidy_('', html, name).lines : String(html || '')) + (waits ? loading_() : '') };
 }
 
 /* A MERGED CARD (480): one frame, each part's own slot (started by its own widget), the lower titles as subheadings, one tile row — the top part's. */
 function widgetMergedOn_(m, own) {
-  const top = m.parts[0];
-  const keep = typeof favOpts_ === 'function' ? `<span class="tile-group wgt-keep">${tile_([favOpts_({ key: WIDGET_KEY(top), kind: 'widget' }),
-    typeof gameLockOpts_ === 'function' ? gameLockOpts_(top.id) : null])}${typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', String(top.id), top.name || top.title || top.label || '')) : ''}</span>` : '';
-  const lay = own === true && typeof layoutOpts_ === 'function' ? tileGroup_(layoutOpts_(top), 'is-admin wgt-admin') : '';
-  const parts = m.parts.map(w => {
-    const waits = typeof w.start === 'function' && typeof loading_ === 'function';
-    return `<div class="merged-part"><div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div></div>`;
-  }).join('');
-  return card_(`<div class="is-widget is-merged" data-merged="${esc(m.parts.map(w => String(w.id)).join(' '))}">${parts}
-      ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}
-    </div>`, '', top.name || top.title || top.label || '');
+  const top = m.parts[0], name = top.name || top.title || top.label || '';
+  return renderCard({ kind: 'panel', look: 'is-widget is-merged', data: { merged: m.parts.map(w => String(w.id)).join(' ') }, name, tags: name ? [name] : [],
+    body: m.parts.map(w => ({ type: 'group', look: 'merged-part', blocks: [widgetSlot_(w, name)] })), tiles: widgetTiles_(top, own) });
 }
 
 /* ---------- THE SAVED COLUMN, WHICH THIS APP HAS HAD BEFORE § */
@@ -630,12 +623,11 @@ function progressCountdownRows_() {
 let CD_DATES = false;
 function paintCountdowns_() {
   const rows = progressCountdownRows_();
-  const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return esc(day_(d) + ' ' + date_(d)); };
-  document.querySelectorAll('.cd-box').forEach(box => {
-    box.innerHTML = (rows.length ? rows.map(([k, n]) => rowHtml(k, CD_DATES ? when(n) : progressDaysSaid_(n))).join('')
-      : '<p class="note">Nothing to count down to yet.</p>')
-      + (rows.length ? `<div class="tile-row">${tile_({ icon: CD_DATES ? 'speed' : 'table', label: CD_DATES ? 'Days' : 'Dates', note: CD_DATES ? 'how many to go' : 'the day itself', act: 'cd-dates', pressed: CD_DATES })}</div>` : '');
-  });
+  const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return day_(d) + ' ' + date_(d); };
+  const blocks = rows.length ? rows.map(([k, n]) => progRow_(k, CD_DATES ? when(n) : progressDaysSaid_(n))).concat({ type: 'tiles',
+    tiles: [{ icon: CD_DATES ? 'speed' : 'table', label: CD_DATES ? 'Days' : 'Dates', note: CD_DATES ? 'how many to go' : 'the day itself', act: 'cd-dates', pressed: CD_DATES }] })
+    : [{ type: 'group', tag: 'p', look: 'note', text: 'Nothing to count down to yet.' }];
+  document.querySelectorAll('.cd-box').forEach(box => { box.innerHTML = cardBlocks_(blocks); });
 }
 on('cd-dates', () => { CD_DATES = !CD_DATES; paintCountdowns_(); });
 
@@ -702,19 +694,22 @@ function tdLine_(x) {
   const back = new Date(x.to.getFullYear(), x.to.getMonth(), x.to.getDate() + 1);
   while (back.getDay() % 6 === 0) back.setDate(back.getDate() + 1);
   const v = x.kind === 'term' ? `${tdDay_(x.from)} – last day of term ${tdDay_(x.to)}` : `from ${tdDay_(x.from)} · first day back ${tdDay_(back)}`;
-  return rowHtml((x.now ? 'Now: ' : '') + x.name, esc(v), '', `td-${x.kind}${x.now ? ' td-now' : ''}`);
+  return progRow_((x.now ? 'Now: ' : '') + x.name, v, '', `td-${x.kind}${x.now ? ' td-now' : ''}`);
 }
+/* ONE LABEL–VALUE ROW (the one `.row` look) as a block: `v` a text, or a block (a control) in the value's place. */
+const progRow_ = (k, v, vLook, rowLook) => ({ type: 'group', look: 'row' + (rowLook ? ' ' + rowLook : ''), blocks: [{ type: 'group', tag: 'span', look: 'k', text: String(k) },
+  Object.assign({ type: 'group', tag: 'span', look: 'v' + (vLook ? ' ' + vLook : '') }, v && typeof v === 'object' && v.type ? { blocks: [v] } : { text: String(v) })] });
 /* THE NEXT FOUR BY DEFAULT; one tile shows the rest of the year ahead too (owner, 12 Nov: a safe press on every tool). */
 let TD_MORE = false;
 function paintTermDates_() {
   const rows = termDatesRows_(), sh = tdShift_();
-  const adj = (id, v, label) => rowHtml(label, `<select class="td-adj" data-td="${id}" aria-label="${label}">${
-    [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map(n => `<option value="${n}"${n === v ? ' selected' : ''}>${n ? (n > 0 ? n + ' later' : -n + ' earlier') : 'as usual'}</option>`).join('')}</select>`);
+  const adj = (id, v, label) => progRow_(label, { type: 'control', tag: 'select', attrs: { class: 'td-adj', 'data-td': id, 'aria-label': label },
+    options: [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map(n => ({ value: String(n), on: n === v, text: n ? (n > 0 ? n + ' later' : -n + ' earlier') : 'as usual' })) });
+  const blocks = rows.map(tdLine_).concat(adj('s', sh.s, 'My school starts'), adj('e', sh.e, 'My school ends'),
+    { type: 'tiles', tiles: [{ icon: TD_MORE ? 'up' : 'down', label: TD_MORE ? 'Fewer' : 'Later', note: TD_MORE ? 'the next four' : 'the year ahead', act: 'td-more' }] });
   document.querySelectorAll('.td-box').forEach(box => {
     box.removeAttribute('aria-busy');
-    box.innerHTML = rows.map(tdLine_).join('')
-      + adj('s', sh.s, 'My school starts') + adj('e', sh.e, 'My school ends')
-      + `<div class="tile-row">${tile_({ icon: TD_MORE ? 'up' : 'down', label: TD_MORE ? 'Fewer' : 'Later', note: TD_MORE ? 'the next four' : 'the year ahead', act: 'td-more' })}</div>`;
+    box.innerHTML = cardBlocks_(blocks);
   });
 }
 on('td-more', () => { TD_MORE = !TD_MORE; paintTermDates_(); });
@@ -848,41 +843,28 @@ function progressStats_() {
 const progressPct_ = (a, b) => (b > 0 ? Math.round(100 * a / b) : 0);
 function progressAnsweredCard_(st) {
   if (!st.n) return emptyCard_('Questions');
-  const rows = st.topics.slice(0, 12).map(o => `<div class="prog-topic">
-      ${rowHtml(o.topic, o.marked ? o.right + ' of ' + o.marked + ' right' : o.n + ' tried')}
-      <div class="prog-bar" aria-hidden="true"><span style="width:${o.marked ? progressPct_(o.right, o.marked) : 0}%"></span></div>
-    </div>`).join('');
-  return card_(`<div class="prog-answered">
-    <h3>Questions</h3>
-    ${rowHtml('Answered', st.n, '', 'prog-tot')}
-    ${rowHtml('Right', st.right, '', 'prog-tot')}
-    ${rowHtml('Marks', st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet', '', 'prog-tot')}
-    ${rows}
-  </div>`);
+  /* A TOPIC'S BAR: a drawing as wide as the share it got right, its colour the stylesheet's. */
+  const bar = pct => ({ type: 'drawing', node: { el: 'svg', a: { class: 'prog-bar', viewBox: '0 0 100 1', preserveAspectRatio: 'none', 'aria-hidden': 'true' },
+    kids: [{ el: 'rect', a: { width: String(pct), height: '1' } }] } });
+  const rows = st.topics.slice(0, 12).map(o => ({ type: 'group', look: 'prog-topic', blocks: [progRow_(o.topic, o.marked ? o.right + ' of ' + o.marked + ' right' : o.n + ' tried'),
+    bar(o.marked ? progressPct_(o.right, o.marked) : 0)] }));
+  return progressCard_('prog-answered', 'Questions', [progRow_('Answered', st.n, '', 'prog-tot'), progRow_('Right', st.right, '', 'prog-tot'),
+    progRow_('Marks', st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet', '', 'prog-tot')].concat(rows));
 }
+/* A PROGRESS CARD from its blocks, through the one card maker; its name is its first tag. */
+const progressCard_ = (look, name, body, more) => renderCard(Object.assign({ kind: 'panel', look, name, tags: [name], body }, more || {}));
 function progressActivityCard_(st) {
   if (!st.n) return emptyCard_('Recent activity');
   const said = p => !p.sc ? 'sent' : p.ok ? 'right' : p.sc.of > 1 ? p.sc.got + '/' + p.sc.of : 'wrong';
-  const last = st.recent.map(r => rowHtml((r.x && (r.x.sub ? r.x.sub + ' · ' : '') + (r.x.name || '')) || 'A question',
-      esc(said(r)), `prog-v${r.ok ? ' is-good' : r.sc ? ' is-bad' : ''}`)).join('');
-  return card_(`<div class="prog-activity">
-    <h3>Recent activity</h3>
-    ${rowHtml('Streak', st.streak ? progressDaysSaid_(st.streak) : 'none yet')}
-    ${rowHtml('Last 7 days', `${st.week} on ${progressDaysSaid_(st.weekDays)}`)}
-    ${last}
-  </div>`);
+  const last = st.recent.map(r => progRow_((r.x && (r.x.sub ? r.x.sub + ' · ' : '') + (r.x.name || '')) || 'A question',
+    said(r), `prog-v${r.ok ? ' is-good' : r.sc ? ' is-bad' : ''}`));
+  return progressCard_('prog-activity', 'Recent activity', [progRow_('Streak', st.streak ? progressDaysSaid_(st.streak) : 'none yet'),
+    progRow_('Last 7 days', `${st.week} on ${progressDaysSaid_(st.weekDays)}`)].concat(last));
 }
 function progressWeakCard_(st) {
   if (!st.weak.length) return emptyCard_('Work on next');
-  const items = st.weak.map(o => `<div class="prog-weak">
-      ${rowHtml(o.topic, `${progressPct_(o.got, o.of)}% of marks`)}
-      <div class="tile-row">${tile_({ icon: 'search', label: 'Practise', note: o.topic + ' in Find', act: 'prog-practise',
-        data: { topic: o.topic, key: (o.miss && o.miss.key) || '' } })}</div>
-    </div>`).join('');
-  return card_(`<div class="prog-weakest">
-    <h3>Work on next</h3>
-    ${items}
-  </div>`);
+  return progressCard_('prog-weakest', 'Work on next', st.weak.map(o => ({ type: 'group', look: 'prog-weak', blocks: [progRow_(o.topic, `${progressPct_(o.got, o.of)}% of marks`),
+    { type: 'tiles', tiles: [{ icon: 'search', label: 'Practise', note: o.topic + ' in Find', act: 'prog-practise', data: { topic: o.topic, key: (o.miss && o.miss.key) || '' } }] }] })));
 }
 
 /* ---------- PROGRESS IN A FIELD: ONE CARD PER SERIES, ONE LINE PER PAPER, OPENED IN PLACE ---------- */
@@ -905,20 +887,16 @@ function progressSeriesCard_(sr) {
       const k = String(q.key || q.name), sc = pp.done[k];
       const v = !sc ? 'not done' : sc.sent ? 'sent' : sc.of > 1 ? sc.got + '/' + sc.of : sc.got ? 'right' : 'wrong';
       const tone = !sc || sc.sent ? '' : sc.got === sc.of ? ' is-good' : ' is-bad';
-      return rowHtml('Q' + (q.qNumber != null && q.qNumber !== '' ? q.qNumber + (q.qPart || '') : q.name), esc(v), `prog-v${tone}`);
-    }).join('');
-    return `<details class="prog-paper" data-paper="${esc(pp.id)}"${PROG_OPEN.has(pp.id) ? ' open' : ''}>
-      <summary class="row"><span class="k">${esc(progressPaperName_(pp.x))}</span><span class="v">${esc(sums)}</span></summary>
-      <div class="prog-qs">${qs}</div>
-    </details>`;
-  }).join('');
-  const untouched = sr.untouched ? rowHtml('Not started', sr.untouched) : '';
+      return progRow_('Q' + (q.qNumber != null && q.qNumber !== '' ? q.qNumber + (q.qPart || '') : q.name), v, `prog-v${tone}`);
+    });
+    const sum = progRow_(progressPaperName_(pp.x), sums);
+    return { type: 'group', tag: 'details', look: 'prog-paper', attrs: { 'data-paper': String(pp.id), open: PROG_OPEN.has(pp.id) },
+      blocks: [Object.assign(sum, { tag: 'summary' }), { type: 'group', look: 'prog-qs', blocks: qs }] };
+  });
+  const untouched = sr.untouched ? [progRow_('Not started', sr.untouched)] : [];
   /* ITS OWN CARD ID (466), so one series — past papers, Religious Studies — moves or goes alone. */
   const lid = 'prog:series:' + String(sr.name || 'x').toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
-  return card_(`<div class="prog-series" data-lay-card="${esc(lid)}">
-    <h3>${esc(sr.name.charAt(0).toUpperCase() + sr.name.slice(1))}</h3>
-    ${lines}${untouched}
-  </div>`);
+  return progressCard_('prog-series', sr.name.charAt(0).toUpperCase() + sr.name.slice(1), lines.concat(untouched), { data: { 'lay-card': lid } });
 }
 
 /* ---------- GRADE ESTIMATE ---------- */
@@ -961,13 +939,10 @@ function progressGradeCard_(st) {
       : o.lv === 'sats' ? progressGrade_(PROG_SATS_STEPS, pct, 'working towards')
       : 'working at grade ' + o.best;
     const label = o.subj + (o.lv === 'gcse' ? ' GCSE' : o.lv === 'alevel' ? ' A-level' : o.lv === 'sats' ? ' SATs' : ' worksheets');
-    return rowHtml(label, esc(g));
-  }).join('');
-  if (!rows) return emptyCard_('Grade estimate');
-  return card_(`<div class="prog-grade">
-    <h3>Grade estimate</h3>
-    ${rows}
-  </div>`);
+    return progRow_(label, g);
+  });
+  if (!rows.length) return emptyCard_('Grade estimate');
+  return progressCard_('prog-grade', 'Grade estimate', rows);
 }
 
 /* ---------- SESSIONS ---------- */
@@ -991,13 +966,9 @@ function progressSessions_() {
 function progressSessionsCard_(ss) {
   if (!ss.ahead.length && !ss.past.length) return emptyCard_('Sessions');
   const when = s => day_(s.d) + ' ' + date_(s.d) + (s.j.time ? ' · ' + time_(s.j.time) : '');
-  const row = s => rowHtml(when(s), esc(s.j.title || s.j.subject || 'Session'));
-  return card_(`<div class="prog-sessions">
-    <h3>Sessions</h3>
-    ${ss.ahead.map(row).join('')}
-    ${ss.past.map(row).join('')}
-    <div class="tile-row">${tile_({ icon: 'book', label: 'Sessions', note: 'on Book', act: 'prog-sessions' })}</div>
-  </div>`);
+  const row = s => progRow_(when(s), s.j.title || s.j.subject || 'Session');
+  return progressCard_('prog-sessions', 'Sessions', ss.ahead.map(row).concat(ss.past.map(row)),
+    { tiles: [{ icon: 'book', label: 'Sessions', note: 'on Book', act: 'prog-sessions' }] });
 }
 
 /* ---------- THE COLUMN: every widget, always, so each is where it was; one with nothing to say is its title alone (414). ---------- */

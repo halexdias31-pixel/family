@@ -97,3 +97,14 @@ top level, before `me`
    loses the card — the essay of 9 Oct, one widget along. */
 ```
 
+### THE GENERIC CARD BLOCKS (cards-render.js, owner 14 Nov):
+
+top level, before `GENERIC_`
+
+```
+/* THE GENERIC CARD BLOCKS (cards-render.js, owner 14 Nov): `{ type: 'control' | 'tick' | 'msgForm' | 'many' }` draws a box from
+   attributes its CALLER gives, so the box is judged at the caller: the spec object as the tag's text (its `attrs`, `drafted`
+   and `value` are the draft, or not). The blocks themselves pass those attributes through untouched — PASS_THROUGH below
+   proves it, and fails if a block stops writing them. */
+```
+

@@ -835,7 +835,7 @@ const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.la
   + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
 /* A GROUP: a div (or a span, a line, or a fold and its summary) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
-const kcfGroup_ = b => { const tag = /^(span|p|details|summary)$/.test(b.tag) ? b.tag : 'div';
+const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label)$/.test(b.tag) ? b.tag : 'div';
   return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
@@ -13063,21 +13063,23 @@ function cardFetch_(e) {
 function cardRepaint_() { PEOPLE_COLS_.concat(Object.keys(FACE_OF_SET_)).forEach(c => { try { paint(c); } catch (x) { oops_(x, 'me:cardRepaint_') } }); }
 
 /* ---------- THE CARD, AS ITS OWN FORM § */
+/* ONE MAKER (owner, 12 Nov): every part here is a `group` block drawn by renderCard's blocks; `inner` is markup they drew already. */
+const mcG_ = (tag, look, o) => cardBlock_(Object.assign({ type: 'group', tag, look }, o || {}));
+const mcNote_ = (look, text) => cardBlock_({ type: 'msgText', look: 'note ' + look, text: text || '' });
 function cardEditHtml_(t) {
   const e = cardEditNow_();
   const pid = String(t.personId);
-  const head = `<h3>${esc([t.role || 'Tutor'].concat(profList_(t.titles)).join(' · '))} <span class="ce-what">· editing</span></h3>`;
+  const head = cardBlock_({ type: 'msgHead', text: [[t.role || 'Tutor'].concat(profList_(t.titles)).join(' · ') + ' ', { span: 'ce-what', text: '· editing' }] });
   const base = cardBaseNow_(e);
   if (!base) {
     if (!e.err) setTimeout(() => cardFetch_(e), 0);
-    return meCard_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}${
-      e.err ? `<p class="note me-said">${esc(e.err)}</p>` : loading_()}</div><div class="tile-row ce-tiles">${tile_(cardSaveOpts_(pid, true))}</div>`);
+    return meCard_(mcG_('div', 'is-widget is-prof card-ed', { attrs: { 'data-pid': pid }, inner: head + (e.err ? mcNote_('me-said', e.err) : loading_()) })
+      + cardBlock_({ type: 'tiles', look: 'ce-tiles', tiles: cardSaveOpts_(pid, true) }));
   }
   const { vals, held } = cardValues_(e, base);
-  return meCard_(`<div class="is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}
-    <div class="me-form" data-draw="${cardDrawn_(base)}">${cardEditForm_(t, e, vals)}
-      <p class="note me-said">${held ? esc(SET_HELD_SAY) : ''}</p></div>
-  </div><div class="tile-row ce-tiles">${tile_(cardSaveOpts_(pid, false))}</div>`);
+  return meCard_(mcG_('div', 'is-widget is-prof card-ed', { attrs: { 'data-pid': pid }, inner: head
+    + mcG_('div', 'me-form', { attrs: { 'data-draw': cardDrawn_(base) }, inner: cardEditForm_(t, e, vals) + mcNote_('me-said', held ? SET_HELD_SAY : '') }) })
+    + cardBlock_({ type: 'tiles', look: 'ce-tiles', tiles: cardSaveOpts_(pid, false) }));
 }
 /* YOUR OWN CARD'S EDIT, ONE CARD PER SECTION (468): each its own form, draft, Save and layout id — the owner, "settings is purely editing". */
 function cardEditCards_(t, e, secs, setCol) {
@@ -13089,10 +13091,10 @@ function cardEditCards_(t, e, secs, setCol) {
     const title = OWN_SEC_TITLE_[s.id] || s.cap || s.id;
     const card = { title, cls: 'is-prof card-ed own-sec',
       attrs: ` data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}" aria-label="${esc(title)}"` };
-    if (!base) return setCard_(Object.assign(card, { body: e.err ? `<p class="note me-said">${esc(e.err)}</p>` : loading_(), save: cardCancelTile_(pid) }));
+    if (!base) return setCard_(Object.assign(card, { body: e.err ? mcNote_('me-said', e.err) : loading_(), save: cardCancelTile_(pid) }));
     const { vals, held } = cardValues_(e, base, s.id);
     return setCard_(Object.assign(card, { form: cardEditForm_(t, e, vals, [s]), formAttrs: ` data-draw="${cardDrawn_(base)}"`,
-      save: cardCancelTile_(pid), foot: `<p class="note me-said">${held ? esc(SET_HELD_SAY) : ''}</p>` }));
+      save: cardCancelTile_(pid), foot: mcNote_('me-said', held ? SET_HELD_SAY : '') }));
   });
 }
 function cardSaveOpts_(pid, saveOff) {
@@ -13116,9 +13118,8 @@ document.addEventListener('click', e => {
 }, true);
 /* `val` IS MARKUP (a face, a live line); the label is text. */
 /* ALWAYS OPEN (487): "it's literally just a widget of one thing so does not need to be opened" -- the line is a heading, and a tap on it does nothing. */
-const ceFold_ = (key, label, val, body) => `<details class="ce-fold" data-fold="${esc(key)}" open>
-  <summary class="ce-line"><span class="ce-k">${esc(label)}</span><span class="ce-v">${val}</span></summary>
-  <div class="ce-body">${body}</div></details>`;
+const ceFold_ = (key, label, val, body) => mcG_('details', 'ce-fold', { attrs: { 'data-fold': key, open: true },
+  inner: mcG_('summary', 'ce-line', { inner: mcG_('span', 'ce-k', { text: label }) + mcG_('span', 'ce-v', { inner: val }) }) + mcG_('div', 'ce-body', { inner: body }) });
 /* HOW MANY, for a fold's line — photographs filled, venues ticked, qualifications held. */
 const ceCount_ = (n, one, many) => n ? n + ' ' + (n === 1 ? one : many) : 'none';
 function ceSums_(form) {
@@ -13152,9 +13153,9 @@ function ceAreas_() {
 function ceWhere_(L, val, box) {
   const got = profList_(val('venues_ok')), by = ceAreas_(), has = t => got.some(g => norm(g) === norm(t));
   const ro = (((typeof DATA !== 'undefined' && DATA && DATA.profileReadonly) || []).indexOf('venues_ok') !== -1);
-  const ticks = L.indexOf('venues_ok') === -1 ? '' : formHidden_('data-me="venues_ok"', got.join(', ')) + `
-    <div class="many-list where-areas" role="group" aria-label="Areas you teach in">${Object.keys(by).sort().map(a => formTick_(`data-where-area="${esc(a)}"${by[a].some(has) ? ' checked' : ''}${ro ? ' disabled' : ''}`, `<span>${esc(a)}</span>
-      ${qtag_(`${esc(ceCount_(by[a].length, 'venue', 'venues'))}`)}`, 'many-opt')).join('')}</div>`;
+  const ticks = L.indexOf('venues_ok') === -1 ? '' : formHidden_('data-me="venues_ok"', got.join(', '))
+    + mcG_('div', 'many-list where-areas', { attrs: { role: 'group', 'aria-label': 'Areas you teach in' }, inner: Object.keys(by).sort().map(a => formTick_(`data-where-area="${esc(a)}"${by[a].some(has) ? ' checked' : ''}${ro ? ' disabled' : ''}`,
+      mcG_('span', null, { text: a }) + ' ' + qtag_(esc(ceCount_(by[a].length, 'venue', 'venues'))), 'many-opt')).join('') });
   return ceFold_('where', 'Areas', esc(ceCount_(got.length, 'venue', 'venues')), ticks)
     + fieldRows_(L.filter(f => f !== 'venues_ok'), box);
 }
@@ -13212,7 +13213,7 @@ function cardEditForm_(t, e, vals, only) {
     const draw = Object.prototype.hasOwnProperty.call(CARD_SECTION, s.id) ? CARD_SECTION[s.id] : null;
     const body = draw ? draw(L, { t, e, val, vals, ro, box, filled }) : fieldRows_(L, box);
     /* NO CAPTION OVER A SECTION: every line names itself, and the week's days and hours name it (425). */
-    return `<div class="ce-sec" data-sec="${esc(s.id)}">${body}</div>`;
+    return mcG_('div', 'ce-sec', { attrs: { 'data-sec': s.id }, inner: body });
   }).join('');
 }
 /* ---------- THE RATE, AND WHAT AN EXTRA SEAT ADDS IN POUNDS BESIDE IT (docs/history/345) § */
@@ -13259,21 +13260,26 @@ function cardSeatSay_(rate, seat) {
   if (!(rate > 0)) return 'An extra seat is priced from the rate — set it first.';
   if (cardSeatOff_('extra_seat_rate', seat)) return esc(cardSeatOffSay_(rate, 'extra_seat_rate'));
   const p = cardSeatParts_(rate, seat, '');
-  return `<span class="prof-seat">+${esc(money_(p.kx))}/h</span> a seat${p.kOwn ? '' : ', usual'}`;
+  return mcG_('span', 'prof-seat', { text: '+' + money_(p.kx) + '/h' }) + ' a seat' + (p.kOwn ? '' : ', usual');
 }
 /* THE @FAMILY SHARE BAR (8 Nov): first seat + the tutor's extra seat + @family's block, from `cardSeatParts_`, the formula's own numbers. */
 function cardShareBar_(rate, seat, cut) {
   if (!(rate > 0)) return '';
   const p = cardSeatParts_(rate, seat, cut), blocks = [['shb-first', rate, 'first seat'], ['shb-seat', p.kx, 'another seat'], ['shb-fam', p.gx, '@family.']];
   const all = blocks.reduce((t, b) => t + b[1], 0) || 1;
-  return blocks.map(([k, v, say], i) => `${i ? '<span class="shb-plus" aria-hidden="true">+</span>' : ''}<span class="shb-blk ${k}" style="flex-grow:${(v / all).toFixed(4)}"><b>${esc(money_(v))}</b><small>${esc(say)}</small></span>`).join('');
+  /* ITS SHARE OF THE BAR is a number, so it rides as the block's own flex-grow attribute (no class can hold every number). */
+  return blocks.map(([k, v, say], i) => (i ? mcG_('span', 'shb-plus', { attrs: { 'aria-hidden': 'true' }, text: '+' }) : '')
+    + mcG_('span', 'shb-blk ' + k, { attrs: { style: 'flex-grow:' + (v / all).toFixed(4) }, text: [{ b: money_(v) }, { span: 'shb-say', text: say }] })).join('');
 }
+/* THE BAR'S BOX, and a line read aloud as it changes. */
+const shareBarBox_ = (cut, inner) => mcG_('div', 'share-bar', { attrs: { role: 'img', 'aria-label': 'Who gets what for a second student', 'aria-live': 'polite', 'data-cut': String(cut || '') }, inner });
+const mcLive_ = (look, inner) => mcG_('span', look, { attrs: { 'aria-live': 'polite' }, inner });
 /* @FAMILY.'S CARD'S LINE: its part of each extra student, in pounds. */
 function cardCutSay_(rate, cut) {
   if (!(rate > 0)) return "@family.'s part is priced from the rate — set it first.";
   if (cardSeatOff_('extra_seat_cut', cut)) return esc(cardSeatOffSay_(rate, 'extra_seat_cut'));
   const p = cardSeatParts_(rate, '', cut);
-  return `<span class="prof-seat">+${esc(perHour_(p.gx))}</span> a seat${p.gOwn ? '' : ', usual'}`;
+  return mcG_('span', 'prof-seat', { text: '+' + perHour_(p.gx) }) + ' a seat' + (p.gOwn ? '' : ', usual');
 }
 /* THE CLASS SIZE CARD'S LINE: one student and a full class, by the formula. */
 function cardSizeSay_(rate, seat, cut, lo, hi) {
@@ -13294,11 +13300,10 @@ function cardRateHtml_(L, val, box, e) {
     label: own ? 'yours, £/h' : 'theirs, £/h', readonly: !live, draft: false,
     extra: `type="number" min="0" max="${live ? pounds2_(rate * STAFF_SEAT_MAX) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` });
   const bar = own || (typeof isAdmin === 'function' && isAdmin())
-    ? `<div class="share-bar" role="img" aria-label="Who gets what for a second student" aria-live="polite" data-cut="${esc(String(val('extra_seat_cut') || ''))}">${cardShareBar_(rate, val('extra_seat_rate'), val('extra_seat_cut'))}</div>` : '';
+    ? shareBarBox_(val('extra_seat_cut'), cardShareBar_(rate, val('extra_seat_rate'), val('extra_seat_cut'))) : '';
   return box('rate_per_hour', {}) + bar
-    + ceFold_('seat', 'Extra seat', `<span class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'))}</span>`,
-      `${pound}${formHidden_('data-me="extra_seat_rate"', val('extra_seat_rate'))}
-       `)
+    + ceFold_('seat', 'Extra seat', mcLive_('ce-seat', cardSeatSay_(rate, val('extra_seat_rate'))),
+      pound + formHidden_('data-me="extra_seat_rate"', val('extra_seat_rate')))
     + fieldRows_(L.filter(f => f !== 'rate_per_hour' && f !== 'extra_seat_rate'), box);
 }
 /* ---------- @FAMILY.'S SHARE OF AN EXTRA SEAT, ITS OWN CARD (620): a box for an admin (`seatCutRefusal_`'s rule), words for anybody else ---------- */
@@ -13313,15 +13318,15 @@ function cardCutHtml_(L, val, box) {
         readonly: !live, draft: false, extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` })
       + formHidden_('data-me="extra_seat_cut"', val('extra_seat_cut'))
     : '';
-  return `<span class="ce-rate" hidden data-rate="${esc(String(rate || 0))}"></span>`
-    + ceFold_('cut', "@family.'s share", `<span class="ce-cut" aria-live="polite">${cardCutSay_(rate, val('extra_seat_cut'))}</span>`, body)
+  return mcG_('span', 'ce-rate', { attrs: { hidden: true, 'data-rate': String(rate || 0) } })
+    + ceFold_('cut', "@family.'s share", mcLive_('ce-cut', cardCutSay_(rate, val('extra_seat_cut'))), body)
     + fieldRows_(L.filter(f => f !== 'extra_seat_cut'), box);
 }
 /* ---------- THE CLASS SIZE, ITS OWN CARD (620), with what one student and a full class pay an hour ---------- */
 function cardSizeHtml_(L, val, box) {
   const rate = num(val('rate_per_hour'));
-  return `<span class="ce-rate" hidden data-rate="${esc(String(rate || 0))}" data-seat="${esc(String(val('extra_seat_rate')))}" data-cut="${esc(String(val('extra_seat_cut')))}"></span>`
-    + ceFold_('size', 'Class size', `<span class="ce-size" aria-live="polite">${cardSizeSay_(rate, val('extra_seat_rate'), val('extra_seat_cut'), val('min_students'), val('max_students'))}</span>`,
+  return mcG_('span', 'ce-rate', { attrs: { hidden: true, 'data-rate': String(rate || 0), 'data-seat': String(val('extra_seat_rate')), 'data-cut': String(val('extra_seat_cut')) } })
+    + ceFold_('size', 'Class size', mcLive_('ce-size', cardSizeSay_(rate, val('extra_seat_rate'), val('extra_seat_cut'), val('min_students'), val('max_students'))),
       fieldRows_(L, box));
 }
 /* ---------- AND AS IT IS TYPED: POUNDS INTO THE HIDDEN SHARE, EACH CARD'S LINE REDRAWN § */
@@ -13386,15 +13391,14 @@ function cardHandleHtml_() {
     || 'Your handle is the first and last letter of your first name and the year you joined. If somebody '
      + 'had it already, more letters of your first name were added, and then a number.';
   /* ONE LINE, AND THE RULE ONE TAP UNDER IT (425) — the handle is read here, never typed. */
-  return ceFold_('handle', 'Handle', `<span class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
-      esc((whose_() && whose_().handle) || '')}</span></span>`, `<p class="note handle-said">${esc(said)}</p>`);
+  return ceFold_('handle', 'Handle', mcLive_('handle-now', mcG_('span', 'handle-at', { attrs: { 'aria-hidden': 'true' }, text: '@' })
+    + mcG_('span', 'handle-shown', { text: (whose_() && whose_().handle) || '' })), mcNote_('handle-said', said));
 }
 /* SOMEBODY ELSE'S PICTURE, SHOWN AND NOT OFFERED — `savePhoto` writes the asker's own row. § */
 function cardFaceOnly_(t) {
   const first = String(t.title || '').trim().split(/\s+/)[0] || 'They';
-  return `<div class="ce-pic">${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title,
-    personId: t.personId }, { cls: 'prof-pic', none: 'prof-none', size: 52, eager: true })}
-    </div>`;
+  return mcG_('div', 'ce-pic', { inner: personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title,
+    personId: t.personId }, { cls: 'prof-pic', none: 'prof-none', size: 52, eager: true }) });
 }
 /* ---------- WHAT IS ON THE CARD THE MOMENT IT IS SAVED § */
 function cardPatchTutor_(pid, all, sent) {
@@ -13653,8 +13657,7 @@ function shareBarFor_(list, p) {
   const has = f => (list || []).indexOf(f) !== -1;
   if (!has('rate_per_hour') || !has('extra_seat_rate')) return '';
   p = p || {};
-  return `<div class="share-bar" role="img" aria-label="Who gets what for a second student" aria-live="polite" data-cut="${esc(String(p.extra_seat_cut || ''))}">${
-    cardShareBar_(num(p.rate_per_hour), p.extra_seat_rate, p.extra_seat_cut)}</div>`;
+  return shareBarBox_(p.extra_seat_cut, cardShareBar_(num(p.rate_per_hour), p.extra_seat_rate, p.extra_seat_cut));
 }
 document.addEventListener('input', e => {
   const form = e.target && e.target.closest && e.target.closest('.set-shape');
@@ -15158,34 +15161,27 @@ const WIDGET_KEY = w => 'w:' + String(w.id);
 /* `own` is its own column (not Saved): only there does an admin get the layout row (463, `layoutOpts_` in layout.js). */
 function widgetOnColumn_(w, own) {
   if (w && w.parts) return widgetMergedOn_(w, own);
+  const held = typeof gameLocked_ === 'function' && gameLocked_(w.id), name = w.name || w.title || w.label || '';
+  return renderCard({ kind: 'panel', look: 'is-widget' + (held ? ' is-locked' : ''), name, tags: name ? [name] : [],
+    body: [widgetSlot_(w, name)], tiles: widgetTiles_(w, own) });
+}
+/* ONE PLACE FOR A WIDGET'S TILES (472): the star, the padlock, Suggest, then the admin's layout tiles — the card's one row. */
+const widgetTiles_ = (w, own) => [].concat(typeof favOpts_ === 'function' ? [favOpts_({ key: WIDGET_KEY(w), kind: 'widget' }),
+  typeof gameLockOpts_ === 'function' ? gameLockOpts_(w.id) : null, typeof suggestOpts_ === 'function' ? suggestOpts_('widget', String(w.id), w.name || w.title || w.label || '') : null] : [],
+  own === true && typeof layoutOpts_ === 'function' ? layoutOpts_(w) || [] : []).filter(Boolean);
+/* A WIDGET'S SLOT, its own maker's drawing inside (a heading saying the card's name goes: the name tag says it); waiting until it has started. */
+function widgetSlot_(w, name) {
   const waits = typeof w.start === 'function' && typeof loading_ === 'function';
-  const held = typeof gameLocked_ === 'function' && gameLocked_(w.id);
-  /* ONE PLACE FOR A WIDGET'S TILES (472): title, content (its own tiles last), then one row — the star, the padlock, then the admin's layout tiles. */
-  const keep = typeof favOpts_ === 'function'
-    ? `<span class="tile-group wgt-keep">${tile_([favOpts_({ key: WIDGET_KEY(w), kind: 'widget' }),
-      typeof gameLockOpts_ === 'function' ? gameLockOpts_(w.id) : null])}${
-      typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', String(w.id), w.name || w.title || w.label || '')) : ''}</span>` : '';
-  const lay = own === true && typeof layoutOpts_ === 'function' ? tileGroup_(layoutOpts_(w), 'is-admin wgt-admin') : '';
-  return card_(`<div class="is-widget${held ? ' is-locked' : ''}">
-      <div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${
-        typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div>
-      ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}
-    </div>`, '', w.name || w.title || w.label || '');
+  const html = typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html;
+  return { type: 'group', id: 'wgt-' + String(w.id), look: 'widget-slot', attrs: { role: 'region', 'aria-label': String(w.name || w.id), 'aria-busy': waits ? 'true' : null },
+    inner: (typeof kcTidy_ === 'function' ? kcTidy_('', html, name).lines : String(html || '')) + (waits ? loading_() : '') };
 }
 
 /* A MERGED CARD (480): one frame, each part's own slot (started by its own widget), the lower titles as subheadings, one tile row — the top part's. */
 function widgetMergedOn_(m, own) {
-  const top = m.parts[0];
-  const keep = typeof favOpts_ === 'function' ? `<span class="tile-group wgt-keep">${tile_([favOpts_({ key: WIDGET_KEY(top), kind: 'widget' }),
-    typeof gameLockOpts_ === 'function' ? gameLockOpts_(top.id) : null])}${typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('widget', String(top.id), top.name || top.title || top.label || '')) : ''}</span>` : '';
-  const lay = own === true && typeof layoutOpts_ === 'function' ? tileGroup_(layoutOpts_(top), 'is-admin wgt-admin') : '';
-  const parts = m.parts.map(w => {
-    const waits = typeof w.start === 'function' && typeof loading_ === 'function';
-    return `<div class="merged-part"><div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div></div>`;
-  }).join('');
-  return card_(`<div class="is-widget is-merged" data-merged="${esc(m.parts.map(w => String(w.id)).join(' '))}">${parts}
-      ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}
-    </div>`, '', top.name || top.title || top.label || '');
+  const top = m.parts[0], name = top.name || top.title || top.label || '';
+  return renderCard({ kind: 'panel', look: 'is-widget is-merged', data: { merged: m.parts.map(w => String(w.id)).join(' ') }, name, tags: name ? [name] : [],
+    body: m.parts.map(w => ({ type: 'group', look: 'merged-part', blocks: [widgetSlot_(w, name)] })), tiles: widgetTiles_(top, own) });
 }
 
 /* ---------- THE SAVED COLUMN, WHICH THIS APP HAS HAD BEFORE § */
@@ -15735,12 +15731,11 @@ function progressCountdownRows_() {
 let CD_DATES = false;
 function paintCountdowns_() {
   const rows = progressCountdownRows_();
-  const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return esc(day_(d) + ' ' + date_(d)); };
-  document.querySelectorAll('.cd-box').forEach(box => {
-    box.innerHTML = (rows.length ? rows.map(([k, n]) => rowHtml(k, CD_DATES ? when(n) : progressDaysSaid_(n))).join('')
-      : '<p class="note">Nothing to count down to yet.</p>')
-      + (rows.length ? `<div class="tile-row">${tile_({ icon: CD_DATES ? 'speed' : 'table', label: CD_DATES ? 'Days' : 'Dates', note: CD_DATES ? 'how many to go' : 'the day itself', act: 'cd-dates', pressed: CD_DATES })}</div>` : '');
-  });
+  const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return day_(d) + ' ' + date_(d); };
+  const blocks = rows.length ? rows.map(([k, n]) => progRow_(k, CD_DATES ? when(n) : progressDaysSaid_(n))).concat({ type: 'tiles',
+    tiles: [{ icon: CD_DATES ? 'speed' : 'table', label: CD_DATES ? 'Days' : 'Dates', note: CD_DATES ? 'how many to go' : 'the day itself', act: 'cd-dates', pressed: CD_DATES }] })
+    : [{ type: 'group', tag: 'p', look: 'note', text: 'Nothing to count down to yet.' }];
+  document.querySelectorAll('.cd-box').forEach(box => { box.innerHTML = cardBlocks_(blocks); });
 }
 on('cd-dates', () => { CD_DATES = !CD_DATES; paintCountdowns_(); });
 
@@ -15807,19 +15802,22 @@ function tdLine_(x) {
   const back = new Date(x.to.getFullYear(), x.to.getMonth(), x.to.getDate() + 1);
   while (back.getDay() % 6 === 0) back.setDate(back.getDate() + 1);
   const v = x.kind === 'term' ? `${tdDay_(x.from)} – last day of term ${tdDay_(x.to)}` : `from ${tdDay_(x.from)} · first day back ${tdDay_(back)}`;
-  return rowHtml((x.now ? 'Now: ' : '') + x.name, esc(v), '', `td-${x.kind}${x.now ? ' td-now' : ''}`);
+  return progRow_((x.now ? 'Now: ' : '') + x.name, v, '', `td-${x.kind}${x.now ? ' td-now' : ''}`);
 }
+/* ONE LABEL–VALUE ROW (the one `.row` look) as a block: `v` a text, or a block (a control) in the value's place. */
+const progRow_ = (k, v, vLook, rowLook) => ({ type: 'group', look: 'row' + (rowLook ? ' ' + rowLook : ''), blocks: [{ type: 'group', tag: 'span', look: 'k', text: String(k) },
+  Object.assign({ type: 'group', tag: 'span', look: 'v' + (vLook ? ' ' + vLook : '') }, v && typeof v === 'object' && v.type ? { blocks: [v] } : { text: String(v) })] });
 /* THE NEXT FOUR BY DEFAULT; one tile shows the rest of the year ahead too (owner, 12 Nov: a safe press on every tool). */
 let TD_MORE = false;
 function paintTermDates_() {
   const rows = termDatesRows_(), sh = tdShift_();
-  const adj = (id, v, label) => rowHtml(label, `<select class="td-adj" data-td="${id}" aria-label="${label}">${
-    [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map(n => `<option value="${n}"${n === v ? ' selected' : ''}>${n ? (n > 0 ? n + ' later' : -n + ' earlier') : 'as usual'}</option>`).join('')}</select>`);
+  const adj = (id, v, label) => progRow_(label, { type: 'control', tag: 'select', attrs: { class: 'td-adj', 'data-td': id, 'aria-label': label },
+    options: [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map(n => ({ value: String(n), on: n === v, text: n ? (n > 0 ? n + ' later' : -n + ' earlier') : 'as usual' })) });
+  const blocks = rows.map(tdLine_).concat(adj('s', sh.s, 'My school starts'), adj('e', sh.e, 'My school ends'),
+    { type: 'tiles', tiles: [{ icon: TD_MORE ? 'up' : 'down', label: TD_MORE ? 'Fewer' : 'Later', note: TD_MORE ? 'the next four' : 'the year ahead', act: 'td-more' }] });
   document.querySelectorAll('.td-box').forEach(box => {
     box.removeAttribute('aria-busy');
-    box.innerHTML = rows.map(tdLine_).join('')
-      + adj('s', sh.s, 'My school starts') + adj('e', sh.e, 'My school ends')
-      + `<div class="tile-row">${tile_({ icon: TD_MORE ? 'up' : 'down', label: TD_MORE ? 'Fewer' : 'Later', note: TD_MORE ? 'the next four' : 'the year ahead', act: 'td-more' })}</div>`;
+    box.innerHTML = cardBlocks_(blocks);
   });
 }
 on('td-more', () => { TD_MORE = !TD_MORE; paintTermDates_(); });
@@ -15953,41 +15951,28 @@ function progressStats_() {
 const progressPct_ = (a, b) => (b > 0 ? Math.round(100 * a / b) : 0);
 function progressAnsweredCard_(st) {
   if (!st.n) return emptyCard_('Questions');
-  const rows = st.topics.slice(0, 12).map(o => `<div class="prog-topic">
-      ${rowHtml(o.topic, o.marked ? o.right + ' of ' + o.marked + ' right' : o.n + ' tried')}
-      <div class="prog-bar" aria-hidden="true"><span style="width:${o.marked ? progressPct_(o.right, o.marked) : 0}%"></span></div>
-    </div>`).join('');
-  return card_(`<div class="prog-answered">
-    <h3>Questions</h3>
-    ${rowHtml('Answered', st.n, '', 'prog-tot')}
-    ${rowHtml('Right', st.right, '', 'prog-tot')}
-    ${rowHtml('Marks', st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet', '', 'prog-tot')}
-    ${rows}
-  </div>`);
+  /* A TOPIC'S BAR: a drawing as wide as the share it got right, its colour the stylesheet's. */
+  const bar = pct => ({ type: 'drawing', node: { el: 'svg', a: { class: 'prog-bar', viewBox: '0 0 100 1', preserveAspectRatio: 'none', 'aria-hidden': 'true' },
+    kids: [{ el: 'rect', a: { width: String(pct), height: '1' } }] } });
+  const rows = st.topics.slice(0, 12).map(o => ({ type: 'group', look: 'prog-topic', blocks: [progRow_(o.topic, o.marked ? o.right + ' of ' + o.marked + ' right' : o.n + ' tried'),
+    bar(o.marked ? progressPct_(o.right, o.marked) : 0)] }));
+  return progressCard_('prog-answered', 'Questions', [progRow_('Answered', st.n, '', 'prog-tot'), progRow_('Right', st.right, '', 'prog-tot'),
+    progRow_('Marks', st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet', '', 'prog-tot')].concat(rows));
 }
+/* A PROGRESS CARD from its blocks, through the one card maker; its name is its first tag. */
+const progressCard_ = (look, name, body, more) => renderCard(Object.assign({ kind: 'panel', look, name, tags: [name], body }, more || {}));
 function progressActivityCard_(st) {
   if (!st.n) return emptyCard_('Recent activity');
   const said = p => !p.sc ? 'sent' : p.ok ? 'right' : p.sc.of > 1 ? p.sc.got + '/' + p.sc.of : 'wrong';
-  const last = st.recent.map(r => rowHtml((r.x && (r.x.sub ? r.x.sub + ' · ' : '') + (r.x.name || '')) || 'A question',
-      esc(said(r)), `prog-v${r.ok ? ' is-good' : r.sc ? ' is-bad' : ''}`)).join('');
-  return card_(`<div class="prog-activity">
-    <h3>Recent activity</h3>
-    ${rowHtml('Streak', st.streak ? progressDaysSaid_(st.streak) : 'none yet')}
-    ${rowHtml('Last 7 days', `${st.week} on ${progressDaysSaid_(st.weekDays)}`)}
-    ${last}
-  </div>`);
+  const last = st.recent.map(r => progRow_((r.x && (r.x.sub ? r.x.sub + ' · ' : '') + (r.x.name || '')) || 'A question',
+    said(r), `prog-v${r.ok ? ' is-good' : r.sc ? ' is-bad' : ''}`));
+  return progressCard_('prog-activity', 'Recent activity', [progRow_('Streak', st.streak ? progressDaysSaid_(st.streak) : 'none yet'),
+    progRow_('Last 7 days', `${st.week} on ${progressDaysSaid_(st.weekDays)}`)].concat(last));
 }
 function progressWeakCard_(st) {
   if (!st.weak.length) return emptyCard_('Work on next');
-  const items = st.weak.map(o => `<div class="prog-weak">
-      ${rowHtml(o.topic, `${progressPct_(o.got, o.of)}% of marks`)}
-      <div class="tile-row">${tile_({ icon: 'search', label: 'Practise', note: o.topic + ' in Find', act: 'prog-practise',
-        data: { topic: o.topic, key: (o.miss && o.miss.key) || '' } })}</div>
-    </div>`).join('');
-  return card_(`<div class="prog-weakest">
-    <h3>Work on next</h3>
-    ${items}
-  </div>`);
+  return progressCard_('prog-weakest', 'Work on next', st.weak.map(o => ({ type: 'group', look: 'prog-weak', blocks: [progRow_(o.topic, `${progressPct_(o.got, o.of)}% of marks`),
+    { type: 'tiles', tiles: [{ icon: 'search', label: 'Practise', note: o.topic + ' in Find', act: 'prog-practise', data: { topic: o.topic, key: (o.miss && o.miss.key) || '' } }] }] })));
 }
 
 /* ---------- PROGRESS IN A FIELD: ONE CARD PER SERIES, ONE LINE PER PAPER, OPENED IN PLACE ---------- */
@@ -16010,20 +15995,16 @@ function progressSeriesCard_(sr) {
       const k = String(q.key || q.name), sc = pp.done[k];
       const v = !sc ? 'not done' : sc.sent ? 'sent' : sc.of > 1 ? sc.got + '/' + sc.of : sc.got ? 'right' : 'wrong';
       const tone = !sc || sc.sent ? '' : sc.got === sc.of ? ' is-good' : ' is-bad';
-      return rowHtml('Q' + (q.qNumber != null && q.qNumber !== '' ? q.qNumber + (q.qPart || '') : q.name), esc(v), `prog-v${tone}`);
-    }).join('');
-    return `<details class="prog-paper" data-paper="${esc(pp.id)}"${PROG_OPEN.has(pp.id) ? ' open' : ''}>
-      <summary class="row"><span class="k">${esc(progressPaperName_(pp.x))}</span><span class="v">${esc(sums)}</span></summary>
-      <div class="prog-qs">${qs}</div>
-    </details>`;
-  }).join('');
-  const untouched = sr.untouched ? rowHtml('Not started', sr.untouched) : '';
+      return progRow_('Q' + (q.qNumber != null && q.qNumber !== '' ? q.qNumber + (q.qPart || '') : q.name), v, `prog-v${tone}`);
+    });
+    const sum = progRow_(progressPaperName_(pp.x), sums);
+    return { type: 'group', tag: 'details', look: 'prog-paper', attrs: { 'data-paper': String(pp.id), open: PROG_OPEN.has(pp.id) },
+      blocks: [Object.assign(sum, { tag: 'summary' }), { type: 'group', look: 'prog-qs', blocks: qs }] };
+  });
+  const untouched = sr.untouched ? [progRow_('Not started', sr.untouched)] : [];
   /* ITS OWN CARD ID (466), so one series — past papers, Religious Studies — moves or goes alone. */
   const lid = 'prog:series:' + String(sr.name || 'x').toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
-  return card_(`<div class="prog-series" data-lay-card="${esc(lid)}">
-    <h3>${esc(sr.name.charAt(0).toUpperCase() + sr.name.slice(1))}</h3>
-    ${lines}${untouched}
-  </div>`);
+  return progressCard_('prog-series', sr.name.charAt(0).toUpperCase() + sr.name.slice(1), lines.concat(untouched), { data: { 'lay-card': lid } });
 }
 
 /* ---------- GRADE ESTIMATE ---------- */
@@ -16066,13 +16047,10 @@ function progressGradeCard_(st) {
       : o.lv === 'sats' ? progressGrade_(PROG_SATS_STEPS, pct, 'working towards')
       : 'working at grade ' + o.best;
     const label = o.subj + (o.lv === 'gcse' ? ' GCSE' : o.lv === 'alevel' ? ' A-level' : o.lv === 'sats' ? ' SATs' : ' worksheets');
-    return rowHtml(label, esc(g));
-  }).join('');
-  if (!rows) return emptyCard_('Grade estimate');
-  return card_(`<div class="prog-grade">
-    <h3>Grade estimate</h3>
-    ${rows}
-  </div>`);
+    return progRow_(label, g);
+  });
+  if (!rows.length) return emptyCard_('Grade estimate');
+  return progressCard_('prog-grade', 'Grade estimate', rows);
 }
 
 /* ---------- SESSIONS ---------- */
@@ -16096,13 +16074,9 @@ function progressSessions_() {
 function progressSessionsCard_(ss) {
   if (!ss.ahead.length && !ss.past.length) return emptyCard_('Sessions');
   const when = s => day_(s.d) + ' ' + date_(s.d) + (s.j.time ? ' · ' + time_(s.j.time) : '');
-  const row = s => rowHtml(when(s), esc(s.j.title || s.j.subject || 'Session'));
-  return card_(`<div class="prog-sessions">
-    <h3>Sessions</h3>
-    ${ss.ahead.map(row).join('')}
-    ${ss.past.map(row).join('')}
-    <div class="tile-row">${tile_({ icon: 'book', label: 'Sessions', note: 'on Book', act: 'prog-sessions' })}</div>
-  </div>`);
+  const row = s => progRow_(when(s), s.j.title || s.j.subject || 'Session');
+  return progressCard_('prog-sessions', 'Sessions', ss.ahead.map(row).concat(ss.past.map(row)),
+    { tiles: [{ icon: 'book', label: 'Sessions', note: 'on Book', act: 'prog-sessions' }] });
 }
 
 /* ---------- THE COLUMN: every widget, always, so each is where it was; one with nothing to say is its title alone (414). ---------- */
