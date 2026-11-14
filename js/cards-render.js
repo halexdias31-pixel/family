@@ -65,6 +65,19 @@ function pixSvg_(rows, name, flip, cls) {
     flip ? `<g transform="translate(16 0) scale(-1 1)">${paths}</g>` : paths}</svg>`;
 }
 
+/* A DRAWN PICTURE FROM DATA: shapes `{ t, ...attrs, kids }` on a round `ground`, at `size` pixels (links.js's ten pictures). */
+const ART_TAGS = /^(path|circle|ellipse|rect|g)$/;
+const artShapes_ = list => (list || []).filter(o => o && ART_TAGS.test(o.t)).map(o => `<${o.t}${Object.keys(o).filter(k => k !== 't' && k !== 'kids')
+  .map(k => ` ${esc(k)}="${esc(o[k])}"`).join('')}${o.kids ? `>${artShapes_(o.kids)}</${o.t}>` : '/>'}`).join('');
+const artSvg_ = (art, ground, size) => `<svg class="pfp-art" viewBox="0 0 48 48" width="${esc(size)}" height="${esc(size)}" aria-hidden="true">`
+  + `<circle cx="24" cy="24" r="24" fill="${esc(ground)}"/>${artShapes_(art)}</svg>`;
+/* A PERSON'S FACE FROM DATA: a photo (`src`), a drawing (`art`), or an initial (`text`), in the one class `cls`. */
+function renderFace_(f) {
+  if (f.src != null) return `<img class="${esc(f.cls)}" src="${esc(f.src)}" alt="${esc(f.alt || '')}"${f.eager ? '' : ' loading="lazy"'} decoding="async">`;
+  if (f.art) return `<span class="${esc(f.cls)} face-pic">${artSvg_(f.art, f.ground, f.size)}</span>`;
+  return `<span class="${esc(f.cls)}">${esc(f.text || '')}</span>`;
+}
+
 /* ONE TAG, ONE SIZE: `colour` is the palette's tag number (data-tag; the name 0, the rest 1 unless said), never a literal. */
 /* A `pill` is a profile's pill (`prof-tag`), coloured by its row unless it names a colour; `say` reads it aloud whole, `title` names what a "+N" hides. */
 function cardTag_(t, i) {
