@@ -14,14 +14,14 @@ function workRow_(x) {
 function workStrip_(x) {
   if (!x || !isQ_(x)) return '';
   const k = ansKey_(x);
-  return `<div class="qp-work" data-k="${esc(k)}"${(WORK_PICS[k] || []).length ? '' : ' hidden'}>${workStripInner_(k)}</div>`;
+  return cardBlock_({ type: 'group', look: 'qp-work', attrs: { 'data-k': k, hidden: !(WORK_PICS[k] || []).length }, inner: workStripInner_(k) });
 }
 function workStripInner_(k) {
   const pics = WORK_PICS[k] || [];
-  const thumbs = pics.map((p, i) => `<span class="qp-work-pic"><img src="${esc(p.url)}" alt="Page ${i + 1} of your working">
-    ${tile_({ form: true, look: 'qp-work-x', act: 'qp-work-x', data: { k: k, i: i }, aria: 'Remove page ' + (i + 1), label: '×' })}</span>`).join('');
-  return `<div class="qp-work-pics">${thumbs}</div>
-    <p class="qp-work-say" role="status" aria-live="polite"></p>`;
+  return cardBlocks_([{ type: 'group', look: 'qp-work-pics', blocks: pics.map((p, i) => ({ type: 'group', tag: 'span', look: 'qp-work-pic',
+    blocks: [{ type: 'group', tag: 'img', attrs: { src: p.url, alt: `Page ${i + 1} of your working` } }],
+    tiles: [{ form: true, look: 'qp-work-x', act: 'qp-work-x', data: { k: k, i: i }, aria: 'Remove page ' + (i + 1), label: '×' }] })) },
+  { type: 'group', tag: 'p', look: 'qp-work-say', attrs: { role: 'status', 'aria-live': 'polite' } }]);
 }
 /* MARK MY WORKING STANDS IN THE PART'S TOOL ROW (owner, 8 Nov), once there is a photo. § */
 /* THE SAME TILE IN EVERY STATE (rule 7.4): greyed until a photo is taken. */
@@ -164,8 +164,10 @@ on('work-see', el => {
     if (!d || !d.success) { box.textContent = (d && (d.message || d.error)) || 'Could not load their working'; return; }
     const rows = Array.isArray(d.work) ? d.work : [];
     if (!rows.length) { box.textContent = 'No photographed working yet'; return; }
-    box.innerHTML = rows.map(r => `<div class="work-seen-row"><p class="work-seen-say">${esc(r.label || r.key)} · ${esc(workVerdictSay_(r.verdict))}</p>
-      <div class="qp-work-pics">${(r.photos || []).map((u, i) => `<a class="qp-work-pic" href="${esc(u)}" data-do="file-view" target="_blank" rel="noopener"><img src="${esc(u)}" alt="Page ${i + 1}"></a>`).join('')}</div></div>`).join('');
+    box.innerHTML = cardBlocks_(rows.map(r => ({ type: 'group', look: 'work-seen-row', blocks: [
+      { type: 'group', tag: 'p', look: 'work-seen-say', text: `${r.label || r.key} · ${workVerdictSay_(r.verdict)}` },
+      { type: 'group', look: 'qp-work-pics', blocks: (r.photos || []).map((u, i) => ({ type: 'group', tag: 'a', look: 'qp-work-pic',
+        attrs: { href: u, 'data-do': 'file-view', target: '_blank', rel: 'noopener' }, blocks: [{ type: 'group', tag: 'img', attrs: { src: u, alt: `Page ${i + 1}` } }] })) }] })));
   }).catch(() => { loaded_(box); box.textContent = 'Could not reach the server'; });
 });
 function workVerdictSay_(v) {

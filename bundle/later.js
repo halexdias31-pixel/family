@@ -312,7 +312,7 @@ function finderLeadShift_(F, n) {
   if (n !== was) PAGE[F.id] = Math.max(0, (PAGE[F.id] || 0) + n - was);
 }
 /* `is-lead` is what `paintStuff` keeps: it redraws only what is below the question. One tile row per thing, as `pages` draws (489). */
-const finderLeadHtml_ = lead => lead.map(c => `<section class="page is-lead"><div class="pane">${rowsOne_(c)}</div></section>`).join('');
+const finderLeadHtml_ = lead => cardBlocks_(lead.map(c => ({ type: 'group', tag: 'section', look: 'page is-lead', blocks: [{ type: 'group', look: 'pane', inner: rowsOne_(c) }] })));
 
 /* The fields a filter can be ON, what each is called, and where its values come from. One table,
    so adding a way to filter is a row here and nothing else — the picker, the matching and the
@@ -449,9 +449,7 @@ const ansKind_ = () => (kindMap_().answer || {}).label || 'Answers';
 /* A WIDGET'S FIND CARD (790) IS THE CARD ITS COLUMN DREW — slot, star, padlock, Suggest — started and stopped by arcade.js as a column's are (`finderWidgets_`). */
 function widgetCard_(x) {
   if (x.widget && typeof widgetOnColumn_ === 'function') return widgetOnColumn_(x.widget, true);   /* `true`: with the admin's group, which a Find card keeps short (`layoutOpts_`) */
-  return `<div class="tool-name">
-    <h3>${esc(x.name)}</h3>
-  </div>`;
+  return cardBlock_({ type: 'group', look: 'tool-name', blocks: [{ type: 'group', tag: 'h3', text: x.name }] });
 }
 
 /* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched: written by tools/tiers.js from map.js's WIDGETS, never by hand. */
@@ -506,12 +504,12 @@ function thingCard_(x, credits) {
     /* ---------- AND A FOURTH ANSWER: NOBODY HAS PRICED IT § */
     const price = !isShop_(x) ? ''
       : x.level > 0
-        ? `<span class="qtags">${qtag_(`${
-            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}`, '', `price ${myLevel >= x.level ? 'can' : ''}`)}</span>`
+        ? cardBlock_({ type: 'group', tag: 'span', look: 'qtags', inner: qtag_(`${
+            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}`, '', `price ${myLevel >= x.level ? 'can' : ''}`) })
       : x.cost === undefined
         ? ''   /* "Not priced yet" is its Price tag now (499) */
-      : `<span class="qtags">${qtag_(`${
-          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}`, '', `price ${free ? 'free' : afford ? 'can' : ''}`)}</span>`;
+      : cardBlock_({ type: 'group', tag: 'span', look: 'qtags', inner: qtag_(`${
+          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}`, '', `price ${free ? 'free' : afford ? 'can' : ''}`) });
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
        so it is marked as one and coloured as one, the same way a subject and a venue are. */
     /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. § */
@@ -519,34 +517,21 @@ function thingCard_(x, credits) {
 
     /* THE CARD IS NO LONGER A BUTTON. § */
     /* NOTHING ON THIS LIST IS A TAP TARGET ANY MORE. § */
-    return `<div class="fc${x.wearable ? ' is-wear'
-             : x.kind === 'topic' ? ' is-subject' : ''}${x.off ? ' is-off' : ''}">
-      <div class="thing">
-        ${/* A WEARABLE DRAWS ITSELF. § */
-              ''}
-        ${x.image ? `<img class="thing-pic" src="${esc(pic(x.image))}" alt="" loading="lazy" decoding="async">` : ''}
-        <div class="thing-body">
-          ${/* ---------- A RESULT IS READ LIKE A SEARCH RESULT § */
-                ''}
-          ${/* THE LEVEL, NOT THE KEY STAGE — `KS3, KS4` on a crumb is the grey area the owner asked to stop seeing; `levelOf_` says GCSE. § */
-                ''}
-          ${isShop_(x) ? tagRow_(x) : `<p class="crumb">${[x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
+    /* A WEARABLE DRAWS ITSELF. § */
+    /* ---------- A RESULT IS READ LIKE A SEARCH RESULT § */
+    /* THE LEVEL, NOT THE KEY STAGE — `KS3, KS4` on a crumb is the grey area the owner asked to stop seeing; `levelOf_` says GCSE. § */
+    /* Its own second line: § */
+    /* THE YEAR, ON THE CARD. § */
+    /* WHO IT IS FROM, FIRST. § */
+    return cardBlock_({ type: 'group', look: 'fc' + (x.wearable ? ' is-wear' : x.kind === 'topic' ? ' is-subject' : '') + (x.off ? ' is-off' : ''), blocks: [
+      { type: 'group', look: 'thing', blocks: [
+        x.image ? { type: 'group', tag: 'img', look: 'thing-pic', attrs: { src: pic(x.image), alt: '', loading: 'lazy', decoding: 'async' } } : null,
+        { type: 'group', look: 'thing-body', inner: (isShop_(x) ? tagRow_(x) : cardBlock_({ type: 'group', tag: 'p', look: 'crumb', text: [x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
               x.bandType === 'year' ? (x.bandValue && 'Year ' + x.bandValue)
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
             : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)])
-            .filter(Boolean).map(v => esc(String(v))).join('  ')}</p>`}
-          <h3>${esc(x.name)}${x.off ? ' ' + qtag_('deleted') : ''}</h3>
-          ${/* Its own second line: § */
-                ''}
-          ${/* THE YEAR, ON THE CARD. § */
-                ''}
-          ${/* WHO IT IS FROM, FIRST. § */
-                ''}
-          
-          ${price}
-        </div>
-      </div>
-      </div>`;
+            .filter(Boolean).map(v => String(v)).join('  ') }))
+          + cardBlock_({ type: 'group', tag: 'h3', text: x.name, inner: x.off ? ' ' + qtag_('deleted') : '' }) + price }] }] });
   }
 }
 
@@ -16374,7 +16359,7 @@ function suggestOpts_(kind, id, label, cls) {
 /* A CARD WITH NO TILE ROW OF ITS OWN takes the tile in one of its own, put inside the card by `cardRowIn_`. */
 function suggestRowIn_(html, kind, id, label) {
   const t = tile_(suggestOpts_(kind, id, label));
-  return t && typeof cardRowIn_ === 'function' ? cardRowIn_(html, `<div class="tile-row rep-row">${t}</div>`) : html;
+  return t && typeof cardRowIn_ === 'function' ? cardRowIn_(html, cardBlock_({ type: 'group', look: 'tile-row rep-row', inner: t })) : html;
 }
 /* A FIND CARD'S KIND AND ID: a question by its key (`q:…`); a coming-soon card by what is coming. */
 function suggestOptsFor_(x) {
@@ -16394,25 +16379,26 @@ function reportDevice_() {
 function reportBoxHtml_(kind, id, label, finder, path) {
   const admin = isAdmin();
   const dk = kind + '|' + id, people = suggestPeople_(kind), files = admin && !people;
-  return `<div class="me-form rep-form rep-box" data-rk="${esc(kind)}" data-ri="${esc(id)}" data-rl="${esc(label)}" data-finder="${esc(finder || '')}" data-path="${esc(path || '')}">
-    <textarea class="rep-note-in" rows="3" maxlength="${SUGGEST_NOTE_MAX}" autocomplete="off"
-      placeholder="${people ? 'What is wrong? (you can leave this empty)' : 'What should change here?'}" aria-label="${suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change'}"${draftAttr_('rep', dk)}>${esc(draftVal_('rep', dk))}</textarea>
-    <input type="file" accept="${files ? 'image/*,video/*' : 'image/*'}" class="rep-pic-in" hidden aria-hidden="true" tabindex="-1">
-    <img class="rep-pic-show" alt="The picture going with it" hidden>${files ? `
-    <div class="rep-vids" hidden></div>
-    <input type="file" multiple class="rep-files-in" hidden aria-hidden="true" tabindex="-1">
-    <input type="file" multiple webkitdirectory directory class="rep-dir-in" hidden aria-hidden="true" tabindex="-1">
-    <ol class="note rep-file-list" hidden></ol><p class="note rep-file-total" aria-live="polite" hidden></p>
-    ` : ''}
-    <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: admin ? 'to Claude' : 'to the admin', act: 'rep-send', cls: 'rep-send is-submit' })}${
-      people ? '' : tile_({ icon: 'photo', label: files ? 'Add a picture or video' : 'Add a picture', note: 'camera or library', act: 'rep-pic', cls: 'rep-pic' })}${
-      files ? tile_({ icon: 'doc', label: 'Add files', note: 'PDFs, pictures, docx, zip', act: 'rep-files', cls: 'rep-files-t' }) : ''}${
-      files && !repNoDir_() ? tile_({ icon: 'plus', label: 'Add a folder', note: 'keeps its subfolders', act: 'rep-dir', cls: 'rep-dir-t' }) : ''}${
-      tile_({ icon: 'close', label: 'Cancel', act: 'rep-cancel' })}</div>
-    <p class="note me-said rep-said" aria-live="polite">${admin
+  const fileIn = attrs => ({ type: 'control', attrs: Object.assign({ type: 'file' }, attrs, { hidden: true, 'aria-hidden': 'true', tabindex: '-1' }) });
+  return cardBlock_({ type: 'group', look: 'me-form rep-form rep-box', attrs: { 'data-rk': kind, 'data-ri': id, 'data-rl': label, 'data-finder': finder || '', 'data-path': path || '' }, blocks: [
+    { type: 'control', tag: 'textarea', value: draftVal_('rep', dk), attrs: Object.assign({ class: 'rep-note-in', rows: '3', maxlength: String(SUGGEST_NOTE_MAX), autocomplete: 'off',
+      placeholder: people ? 'What is wrong? (you can leave this empty)' : 'What should change here?', 'aria-label': suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change' },
+      kcAttrsOf_(draftAttr_('rep', dk))) },
+    fileIn({ accept: files ? 'image/*,video/*' : 'image/*', class: 'rep-pic-in' }),
+    { type: 'group', tag: 'img', look: 'rep-pic-show', attrs: { alt: 'The picture going with it', hidden: true } },
+    files ? { type: 'group', look: 'rep-vids', attrs: { hidden: true } } : null,
+    files ? fileIn({ multiple: true, class: 'rep-files-in' }) : null,
+    files ? fileIn({ multiple: true, webkitdirectory: true, directory: true, class: 'rep-dir-in' }) : null,
+    files ? { type: 'group', tag: 'ol', look: 'note rep-file-list', attrs: { hidden: true } } : null,
+    files ? { type: 'group', tag: 'p', look: 'note rep-file-total', attrs: { 'aria-live': 'polite', hidden: true } } : null,
+    { type: 'tiles', tiles: [{ icon: 'send', label: 'Send', note: admin ? 'to Claude' : 'to the admin', act: 'rep-send', cls: 'rep-send is-submit' },
+      people ? null : { icon: 'photo', label: files ? 'Add a picture or video' : 'Add a picture', note: 'camera or library', act: 'rep-pic', cls: 'rep-pic' },
+      files ? { icon: 'doc', label: 'Add files', note: 'PDFs, pictures, docx, zip', act: 'rep-files', cls: 'rep-files-t' } : null,
+      files && !repNoDir_() ? { icon: 'plus', label: 'Add a folder', note: 'keeps its subfolders', act: 'rep-dir', cls: 'rep-dir-t' } : null,
+      { icon: 'close', label: 'Cancel', act: 'rep-cancel' }].filter(Boolean) },
+    { type: 'group', tag: 'p', look: 'note me-said rep-said', attrs: { 'aria-live': 'polite' }, text: admin
       ? 'Yours goes straight to Notes for Claude.'
-      : people ? 'Only the admin sees this, and they are told at once.' : 'The admin reads it first; nothing changes until they do.'}</p>
-  </div>`;
+      : people ? 'Only the admin sees this, and they are told at once.' : 'The admin reads it first; nothing changes until they do.' }] });
 }
 /* THE FUNNEL PATH (498): a suggestion made on Find says which answers and words led there, in the chips' own words (660), never a field name. */
 function reportPath_(el) {
@@ -16486,9 +16472,9 @@ function repFilesDraw_(form) {
   if (!ol || !tot) return;
   repVidsDraw_(form, list);
   ol.hidden = tot.hidden = !list.length;
-  ol.innerHTML = list.slice(0, 50).map(x => `<li class="rep-file is-${x.state}">${esc(x.rel)} · ${
-    x.state === 'done' ? 'sent' : x.state === 'failed' ? 'failed — Send tries it again' : x.state === 'sending' ? Math.floor(100 * x.sent / Math.max(1, x.file.size)) + '%' : repMb_(x.file.size)}</li>`).join('')
-    + (list.length > 50 ? `<li>… and ${list.length - 50} more</li>` : '');
+  ol.innerHTML = cardBlocks_(list.slice(0, 50).map(x => ({ type: 'group', tag: 'li', look: 'rep-file is-' + x.state, text: `${x.rel} · ${
+    x.state === 'done' ? 'sent' : x.state === 'failed' ? 'failed — Send tries it again' : x.state === 'sending' ? Math.floor(100 * x.sent / Math.max(1, x.file.size)) + '%' : repMb_(x.file.size)}` }))
+    .concat(list.length > 50 ? [{ type: 'group', tag: 'li', text: `… and ${list.length - 50} more` }] : []));
   const all = list.reduce((a, x) => a + x.file.size, 0), sent = list.reduce((a, x) => a + (x.state === 'done' ? x.file.size : x.sent || 0), 0);
   const done = list.filter(x => x.state === 'done').length;
   tot.textContent = `${done} of ${list.length} file${list.length === 1 ? '' : 's'} sent · ${repMb_(sent)} of ${repMb_(all)}`;
@@ -16577,9 +16563,9 @@ function repVidsDraw_(form, list) {
     const note = x.frames === 'making' ? 'video attached · making its frames'
       : Array.isArray(x.frames) ? `video attached · ${x.frameCount} frames on ${x.frames.length} sheet${x.frames.length === 1 ? '' : 's'}`
       : 'video attached · no frames: ' + (x.framesError || 'this browser could not read it') + '. The video still goes.';
-    return `<div class="tile-row rep-vid${x.frames === 'making' ? ' is-making' : ''}"${x.frames === 'making' ? ' aria-busy="true"' : ''}>${
-      tile_({ icon: 'play', label: x.rel.split('/').pop(), note, act: 'rep-pic', cls: 'rep-vid-t' })}${x.frames === 'making' ? loading_() : ''}</div>`
-      + `<p class="note rep-vid-said">${esc(x.rel.split('/').pop())} · ${esc(note)}</p>`;
+    return cardBlocks_([{ type: 'group', look: 'tile-row rep-vid' + (x.frames === 'making' ? ' is-making' : ''), attrs: { 'aria-busy': x.frames === 'making' ? 'true' : null },
+      inner: tile_({ icon: 'play', label: x.rel.split('/').pop(), note, act: 'rep-pic', cls: 'rep-vid-t' }) + (x.frames === 'making' ? loading_() : '') },
+      { type: 'group', tag: 'p', look: 'note rep-vid-said', text: `${x.rel.split('/').pop()} · ${note}` }]);
   }).join('');
 }
 const repSeek_ = (v, t) => new Promise((ok, no) => {
@@ -16744,14 +16730,14 @@ function workRow_(x) {
 function workStrip_(x) {
   if (!x || !isQ_(x)) return '';
   const k = ansKey_(x);
-  return `<div class="qp-work" data-k="${esc(k)}"${(WORK_PICS[k] || []).length ? '' : ' hidden'}>${workStripInner_(k)}</div>`;
+  return cardBlock_({ type: 'group', look: 'qp-work', attrs: { 'data-k': k, hidden: !(WORK_PICS[k] || []).length }, inner: workStripInner_(k) });
 }
 function workStripInner_(k) {
   const pics = WORK_PICS[k] || [];
-  const thumbs = pics.map((p, i) => `<span class="qp-work-pic"><img src="${esc(p.url)}" alt="Page ${i + 1} of your working">
-    ${tile_({ form: true, look: 'qp-work-x', act: 'qp-work-x', data: { k: k, i: i }, aria: 'Remove page ' + (i + 1), label: '×' })}</span>`).join('');
-  return `<div class="qp-work-pics">${thumbs}</div>
-    <p class="qp-work-say" role="status" aria-live="polite"></p>`;
+  return cardBlocks_([{ type: 'group', look: 'qp-work-pics', blocks: pics.map((p, i) => ({ type: 'group', tag: 'span', look: 'qp-work-pic',
+    blocks: [{ type: 'group', tag: 'img', attrs: { src: p.url, alt: `Page ${i + 1} of your working` } }],
+    tiles: [{ form: true, look: 'qp-work-x', act: 'qp-work-x', data: { k: k, i: i }, aria: 'Remove page ' + (i + 1), label: '×' }] })) },
+  { type: 'group', tag: 'p', look: 'qp-work-say', attrs: { role: 'status', 'aria-live': 'polite' } }]);
 }
 /* MARK MY WORKING STANDS IN THE PART'S TOOL ROW (owner, 8 Nov), once there is a photo. § */
 /* THE SAME TILE IN EVERY STATE (rule 7.4): greyed until a photo is taken. */
@@ -16894,8 +16880,10 @@ on('work-see', el => {
     if (!d || !d.success) { box.textContent = (d && (d.message || d.error)) || 'Could not load their working'; return; }
     const rows = Array.isArray(d.work) ? d.work : [];
     if (!rows.length) { box.textContent = 'No photographed working yet'; return; }
-    box.innerHTML = rows.map(r => `<div class="work-seen-row"><p class="work-seen-say">${esc(r.label || r.key)} · ${esc(workVerdictSay_(r.verdict))}</p>
-      <div class="qp-work-pics">${(r.photos || []).map((u, i) => `<a class="qp-work-pic" href="${esc(u)}" data-do="file-view" target="_blank" rel="noopener"><img src="${esc(u)}" alt="Page ${i + 1}"></a>`).join('')}</div></div>`).join('');
+    box.innerHTML = cardBlocks_(rows.map(r => ({ type: 'group', look: 'work-seen-row', blocks: [
+      { type: 'group', tag: 'p', look: 'work-seen-say', text: `${r.label || r.key} · ${workVerdictSay_(r.verdict)}` },
+      { type: 'group', look: 'qp-work-pics', blocks: (r.photos || []).map((u, i) => ({ type: 'group', tag: 'a', look: 'qp-work-pic',
+        attrs: { href: u, 'data-do': 'file-view', target: '_blank', rel: 'noopener' }, blocks: [{ type: 'group', tag: 'img', attrs: { src: u, alt: `Page ${i + 1}` } }] })) }] })));
   }).catch(() => { loaded_(box); box.textContent = 'Could not reach the server'; });
 });
 function workVerdictSay_(v) {
@@ -22670,9 +22658,11 @@ function helpOpts_(x, pg) {
     ? { icon: 'hand', label: 'I’m OK now', note: 'put my hand down', act: 'help-hand', cls: 'help-hand', on: true, data: data }
     : { icon: 'hand', label: 'Help', note: 'ask the tutor over', act: 'help-hand', cls: 'help-hand', data: data };
 }
+/* THE WORDS A ROOM CAN READ WHILE A HAND IS UP, one span from the card maker's group block. */
+const helpSay_ = () => cardBlock_({ type: 'group', tag: 'span', look: 'qhelp-say', text: 'Waiting for help' });
 /* THE ROW ON EVERY QUESTION'S PAGES, and the words a room can read while it is up. */
 function helpRow_(x, pg) {
-  return `<div class="tile-row qhelp-tiles">${tile_(helpOpts_(x, pg))}${helpHere_(x, pg) ? '<span class="qhelp-say">Waiting for help</span>' : ''}</div>`;
+  return cardBlock_({ type: 'group', look: 'tile-row qhelp-tiles', inner: tile_(helpOpts_(x, pg)) + (helpHere_(x, pg) ? helpSay_() : '') });
 }
 
 /* REDRAWN WHERE IT STANDS: the tile and its words only, so the star and Suggest joined into its row stay (`tileRowsJoin_`). */
@@ -22685,7 +22675,7 @@ function helpPaint_() {
     if (card) card.classList.toggle('is-help', here);
     const say = t.parentElement && t.parentElement.querySelector('.qhelp-say');
     if (say && !here) say.remove();
-    if (!say && here) t.insertAdjacentHTML('afterend', '<span class="qhelp-say">Waiting for help</span>');
+    if (!say && here) t.insertAdjacentHTML('afterend', helpSay_());
     t.outerHTML = tile_(helpOpts_(x, pg));
   });
 }
@@ -22714,12 +22704,11 @@ function helpListCard_() {
   helpPoll_();
   const list = HELP_LIST;
   const rows = list === null ? loading_()
-    : !list.length ? '<p class="help-none">Nobody has a hand up.</p>'
-    : list.map(h => `<div class="help-who" data-id="${esc(h.personId)}">
-        <p class="help-line"><b>${esc(h.name || h.handle || 'Someone')}</b> · ${esc(h.label || h.q || 'a question')} · ${esc(helpAgo_(h.at))}</p>
-        <div class="tile-row">${tile_({ icon: 'tick', label: 'Done', note: 'helped ' + (h.name || ''), act: 'help-done', data: { id: h.personId } })}</div>
-      </div>`).join('');
-  return card_(`<div class="help-list"${list === null ? ' aria-busy="true"' : ''}><h3>Needs help</h3>${rows}</div>`);
+    : !list.length ? cardBlock_({ type: 'group', tag: 'p', look: 'help-none', text: 'Nobody has a hand up.' })
+    : cardBlocks_(list.map(h => ({ type: 'group', look: 'help-who', attrs: { 'data-id': h.personId }, blocks: [
+      { type: 'group', tag: 'p', look: 'help-line', text: [{ b: h.name || h.handle || 'Someone' }, ` · ${h.label || h.q || 'a question'} · ${helpAgo_(h.at)}`] },
+      { type: 'tiles', tiles: [{ icon: 'tick', label: 'Done', note: 'helped ' + (h.name || ''), act: 'help-done', data: { id: h.personId } }] }] })));
+  return card_(cardBlock_({ type: 'group', look: 'help-list', attrs: { 'aria-busy': list === null ? 'true' : null }, blocks: [{ type: 'group', tag: 'h3', text: 'Needs help' }], inner: rows }));
 }
 function helpListPaint_() {
   const el = document.querySelector('.help-list');

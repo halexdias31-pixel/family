@@ -38,9 +38,11 @@ function helpOpts_(x, pg) {
     ? { icon: 'hand', label: 'I’m OK now', note: 'put my hand down', act: 'help-hand', cls: 'help-hand', on: true, data: data }
     : { icon: 'hand', label: 'Help', note: 'ask the tutor over', act: 'help-hand', cls: 'help-hand', data: data };
 }
+/* THE WORDS A ROOM CAN READ WHILE A HAND IS UP, one span from the card maker's group block. */
+const helpSay_ = () => cardBlock_({ type: 'group', tag: 'span', look: 'qhelp-say', text: 'Waiting for help' });
 /* THE ROW ON EVERY QUESTION'S PAGES, and the words a room can read while it is up. */
 function helpRow_(x, pg) {
-  return `<div class="tile-row qhelp-tiles">${tile_(helpOpts_(x, pg))}${helpHere_(x, pg) ? '<span class="qhelp-say">Waiting for help</span>' : ''}</div>`;
+  return cardBlock_({ type: 'group', look: 'tile-row qhelp-tiles', inner: tile_(helpOpts_(x, pg)) + (helpHere_(x, pg) ? helpSay_() : '') });
 }
 
 /* REDRAWN WHERE IT STANDS: the tile and its words only, so the star and Suggest joined into its row stay (`tileRowsJoin_`). */
@@ -53,7 +55,7 @@ function helpPaint_() {
     if (card) card.classList.toggle('is-help', here);
     const say = t.parentElement && t.parentElement.querySelector('.qhelp-say');
     if (say && !here) say.remove();
-    if (!say && here) t.insertAdjacentHTML('afterend', '<span class="qhelp-say">Waiting for help</span>');
+    if (!say && here) t.insertAdjacentHTML('afterend', helpSay_());
     t.outerHTML = tile_(helpOpts_(x, pg));
   });
 }
@@ -82,12 +84,11 @@ function helpListCard_() {
   helpPoll_();
   const list = HELP_LIST;
   const rows = list === null ? loading_()
-    : !list.length ? '<p class="help-none">Nobody has a hand up.</p>'
-    : list.map(h => `<div class="help-who" data-id="${esc(h.personId)}">
-        <p class="help-line"><b>${esc(h.name || h.handle || 'Someone')}</b> · ${esc(h.label || h.q || 'a question')} · ${esc(helpAgo_(h.at))}</p>
-        <div class="tile-row">${tile_({ icon: 'tick', label: 'Done', note: 'helped ' + (h.name || ''), act: 'help-done', data: { id: h.personId } })}</div>
-      </div>`).join('');
-  return card_(`<div class="help-list"${list === null ? ' aria-busy="true"' : ''}><h3>Needs help</h3>${rows}</div>`);
+    : !list.length ? cardBlock_({ type: 'group', tag: 'p', look: 'help-none', text: 'Nobody has a hand up.' })
+    : cardBlocks_(list.map(h => ({ type: 'group', look: 'help-who', attrs: { 'data-id': h.personId }, blocks: [
+      { type: 'group', tag: 'p', look: 'help-line', text: [{ b: h.name || h.handle || 'Someone' }, ` · ${h.label || h.q || 'a question'} · ${helpAgo_(h.at)}`] },
+      { type: 'tiles', tiles: [{ icon: 'tick', label: 'Done', note: 'helped ' + (h.name || ''), act: 'help-done', data: { id: h.personId } }] }] })));
+  return card_(cardBlock_({ type: 'group', look: 'help-list', attrs: { 'aria-busy': list === null ? 'true' : null }, blocks: [{ type: 'group', tag: 'h3', text: 'Needs help' }], inner: rows }));
 }
 function helpListPaint_() {
   const el = document.querySelector('.help-list');

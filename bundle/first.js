@@ -20,26 +20,26 @@ const row = (label, value, extra) => {
   /* MONEY, A COUNT, A DATE, A PERCENTAGE — anything whose characters want to line up under one another. § */
   const looksNumeric = /^[£$€]?[\d.,\s—–-]+%?$/.test(v.trim()) || /^\d/.test(v.trim());
   const cls = ['v', looksNumeric ? 'mono' : '', extra || ''].filter(Boolean).join(' ');
-  return `<div class="row"><span class="k">${esc(label)}</span>` +
-         `<span class="${cls}">${esc(v)}</span></div>`;
+  return rowOf_('row', label, { look: cls, text: v });
 };
+/* THE ROW'S PARTS AS DATA, drawn by the one card maker's group block: a label span (none when `label` is false), then the value span. */
+const rowOf_ = (rowCls, label, v) => cardBlock_({ type: 'group', look: rowCls, blocks: [
+  label === false ? null : { type: 'group', tag: 'span', look: 'k', text: label == null ? '' : String(label) },
+  Object.assign({ type: 'group', tag: 'span' }, v)] });
 
 /* THE SAME ROW, WITH THE VALUE ALREADY MARKED UP — a link, a coloured word, a small drawing. § */
 const rowHtml = (label, html, extra, rowCls) =>
-  `<div class="row${rowCls ? ' ' + rowCls : ''}"><span class="k">${esc(label)}</span>` +
-  `<span class="${['v', extra || ''].filter(Boolean).join(' ')}">${html}</span></div>`;
+  rowOf_('row' + (rowCls ? ' ' + rowCls : ''), label, { look: ['v', extra || ''].filter(Boolean).join(' '), inner: html });
 
 /* ---------- THE TWO SHAPES THE FIRST TWO COULD NOT MAKE § */
 
 /* A VALUE THAT CHANGES WHILE YOU WATCH — a clock ticking down, a score going up. § */
 const rowLive = (label, value, id, extra) =>
-  `<div class="row"><span class="k">${esc(label)}</span>` +
-  `<span class="${['v', 'mono', extra || ''].filter(Boolean).join(' ')}"` +
-  ` id="${esc(id)}">${esc(String(value == null ? '' : value))}</span></div>`;
+  rowOf_('row', label, { look: ['v', 'mono', extra || ''].filter(Boolean).join(' '), id: String(id), text: String(value == null ? '' : value) });
 
 /* A ROW WITH NO LABEL — a name in a list, a line of a basket. § */
 const rowValue = (html, extra) =>
-  `<div class="row"><span class="${['v', extra || ''].filter(Boolean).join(' ')}">${html}</span></div>`;
+  rowOf_('row', false, { look: ['v', extra || ''].filter(Boolean).join(' '), inner: html });
 
 
 function bookableSpaces() {
@@ -838,8 +838,12 @@ const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.la
   + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
 /* A GROUP: a div (or a span, a line, a label, a heading between cards, or a fold and its summary) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
-const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4)$/.test(b.tag) ? b.tag : 'div';
-  return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
+/* `img` is void (its attrs only); an `a` or `img` whose href or src is a script is not written at all. */
+const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h3|h4|section|b|i|small|sup|mark|ol|ul|li|a|img)$/.test(b.tag) ? b.tag : 'div';
+  if (/^\s*(javascript|vbscript):/i.test(String((b.attrs || {}).href || (b.attrs || {}).src || ''))) return '';
+  const open = `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>`;
+  if (tag === 'img') return open;
+  return `${open}${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
 /* THE ONE TAG MAKER for a finder's menu (owner, 13 Nov): every answer, Doesn't matter, and the sign-in step's tags. `inner` is markup, escaped already. */
@@ -8542,7 +8546,7 @@ const kcPct_ = m => (typeof m !== 'number' || !isFinite(m) ? '' : m === 1 ? dash
 /* EACH FIELD A CARD CAN SHOW, BY NAME: the settings file picks, and a field with nothing to say says ''. */
 const KC_FIELDS = {
   kindPic: () => '',
-  name: x => `<h3>${esc(x.name || '')}</h3>`,
+  name: x => cardBlock_({ type: 'group', tag: 'h3', text: x.name || '' }),
   /* A KIND WHOSE OWN FILE WRITES ITS INSIDES (`KC_OWN`) hands them over cut into the four parts (`kcSplit_`); no tag line of its own gets its facets. */
   ownPic: x => (x.kcOwn || {}).pic || '',
   ownHead: x => (x.kcOwn || {}).head || '',
@@ -8639,7 +8643,7 @@ function kcSplit_(html) {
     if (!parts.pic && (/^(img|svg|figure|canvas)$/.test(k.tag) || /[ -](pic|art) /.test(c))) parts.pic = k.html;
     else if (!parts.head && (/^h[1-4]$/.test(k.tag) || / ([\w-]+-)?(head|title) /.test(c))) parts.head = k.html;
     /* A SECOND TAG LINE (a verse's translation) joins the first: one tag part, never a tag line among the lines. */
-    else if (/ [\w-]*tags /.test(c)) parts.tags = !parts.tags ? k.html : /<\/div>\s*$/.test(parts.tags) ? parts.tags.replace(/<\/div>\s*$/, k.inner + '</div>') : parts.tags + k.html;
+    else if (/ [\w-]*tags /.test(c)) parts.tags = !parts.tags ? k.html : /<\/div>\s*$/.test(parts.tags) ? parts.tags.replace(/<\/div>\s*$/, m => k.inner + m) : parts.tags + k.html;
     else parts.lines += k.html;
   });
   walk(kcKids_(card.inner));
@@ -8669,7 +8673,8 @@ function kcFour_(x, rest, main, flat) {
   const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
   const rest2 = all.join('') + left;
   /* `flat` (a question): every tile in its one row; otherwise the rest wrap visibly under the fixed three. */
-  return `<span class="kc-four">${lead}${msg}${star}${flat ? rest2 : ''}</span>${flat ? '' : `<span class="kc-more">${rest2}</span>`}`;
+  return cardBlocks_([{ type: 'group', tag: 'span', look: 'kc-four', inner: lead + msg + star + (flat ? rest2 : '') },
+    flat ? null : { type: 'group', tag: 'span', look: 'kc-more', inner: rest2 }]);
 }
 /* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
 /* `o`: { flat, look, key } -- a question's row is its tool row (`.qt-row`, its key on it) with every tile shown. */
@@ -8681,7 +8686,8 @@ function kcActRow_(x, html, own, o) {
   /* A KIND'S TILE GREYED FOR WANT OF ONE goes when its own maker's row brought the real one. */
   const real = (String(own || '').match(KC_TILE_RE) || []).map(kcAct_);
   rest = rest.replace(KC_TILE_RE, t => (/\bkc-off\b/.test(t) && real.indexOf(kcAct_(t)) >= 0 ? '' : t));
-  return `<div class="tile-row kc-row${o.look ? ' ' + esc(o.look) : ''}"${o.look ? cardAttrs_({ key: o.key || '' }) : ''}>${kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main, o.flat)}</div>`;
+  return cardBlock_({ type: 'group', look: 'tile-row kc-row' + (o.look ? ' ' + o.look : ''), attrs: { 'data-key': o.look ? String(o.key || '') : null },
+    inner: kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main, o.flat) });
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {
@@ -8698,21 +8704,25 @@ function kcHoist_(html, panel) {
 const kcSays_ = (tags, name) => norm(String(tags || '').replace(/<[^>]+>/g, ' ').replace(/&#0*39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&')).indexOf(norm(name)) >= 0;
 function kcTagFirst_(tags, name) {
   const tag = `${qtag_(`${esc(name)}`, ` data-tag="0"`)}`;
-  return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, '$1' + tag) : `<div class="qtags">${tag}</div>` + (tags || '');
+  return /^\s*<(div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>/.test(tags || '') ? String(tags).replace(/^(\s*<(?:div|span) class="[^"]*\bqtags\b[^"]*"[^>]*>)/, m => m + tag) : cardBlock_({ type: 'group', look: 'qtags', inner: tag }) + (tags || '');
 }
 /* TAGS ARE SHORT FACTS, LINES HAVE NO HEADINGS (owner, 9 Nov): a longer tag (a credit) becomes a later line, open-only; a heading in the lines a plain line. */
 const KC_TAG_MAX = 30;
 /* A QUESTION, AN ANSWER, A SETTING AND SITE HEALTH hold a whole screen whose own checks read its headings: kept as drawn. */
 const KC_WHOLE_KINDS = ['question', 'answer', 'setting', 'health'];
+/* A TAG'S ATTRIBUTES READ BACK AS DATA (`k="v"` or a bare `k`, the first of a name winning), unescaped, for the group block to write again. */
+const kcAttrsOf_ = at => { const a = {};
+  String(at || '').replace(/([\w:-]+)(?:="([^"]*)")?/g, (m, k, v) => { if (!(k in a)) a[k] = v == null ? true
+    : v.replace(/&quot;/g, '"').replace(/&#0*39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); return m; }); return a; };
 function kcTidy_(tags, lines, name) {
   const words = h => String(h || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&[a-z#0-9]+;/g, ' ').trim();
   const moved = [];
   tags = String(tags || '').replace(/<span class="qtag\b[^"]*"([^>]*)>((?:(?!<\/?span\b)[\s\S])*)<\/span>/g, (m, at, inner) =>
-    (/data-tag="0"/.test(at) || words(inner).length <= KC_TAG_MAX ? m : (moved.push(`<p class="kc-credit">${inner}</p>`), '')));
+    (/data-tag="0"/.test(at) || words(inner).length <= KC_TAG_MAX ? m : (moved.push(cardBlock_({ type: 'group', tag: 'p', look: 'kc-credit', inner })), '')));
   lines = String(lines || '').replace(/<h([1-4])\b([^>]*)>([\s\S]*?)<\/h\1>/g, (m, n, at, inner) => {
     if (name && norm(words(inner)) === norm(name)) return '';
-    const a = /\sclass="/.test(at) ? at.replace(/\sclass="/, ' class="kc-h ') : ' class="kc-h"' + at;
-    return `<p${a} role="heading" aria-level="${n}">${inner}</p>`;
+    const a = kcAttrsOf_(at);
+    return cardBlock_({ type: 'group', tag: 'p', look: 'kc-h' + (a.class ? ' ' + a.class : ''), attrs: Object.assign(a, { class: null, role: 'heading', 'aria-level': n }), inner });
   });
   return { tags, lines: lines + moved.join('') };
 }

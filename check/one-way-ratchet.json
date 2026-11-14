@@ -1,11 +1,9 @@
 {
  "say": "Hand-built markup still left (file element: count). Only goes down: node js/check-one-way.js --lower",
- "total": 744,
+ "total": 655,
  "left": {
   "js/calc.js markup": 18,
   "js/cards-make.js markup": 22,
-  "js/cards-parts.js markup": 14,
-  "js/core.js markup": 15,
   "js/data-text.js markup": 2,
   "js/find-account.js markup": 7,
   "js/find-aloud.js markup": 2,
@@ -14,7 +12,6 @@
   "js/find-bundles.js markup": 30,
   "js/find-doors.js markup": 3,
   "js/find-facets.js markup": 9,
-  "js/find-finder.js markup": 17,
   "js/find-levels.js markup": 4,
   "js/find-loupe.js markup": 18,
   "js/find-loupe.js style": 1,
@@ -29,7 +26,6 @@
   "js/find-timelines.js style": 3,
   "js/form.js markup": 24,
   "js/gtasks.js markup": 3,
-  "js/help.js markup": 13,
   "js/hymns.js markup": 8,
   "js/inbox.js markup": 13,
   "js/inbox.js row": 1,
@@ -58,13 +54,11 @@
   "js/shell-click.js markup": 4,
   "js/shell-go.js markup": 2,
   "js/shell-load.js markup": 6,
-  "js/submit-suggest.js markup": 18,
   "js/texts.js markup": 4,
   "js/tiles.js style": 1,
   "js/words.js markup": 13,
   "js/words.js row": 1,
   "js/work-file.js markup": 31,
-  "js/work-file.js row": 1,
-  "js/working.js markup": 12
+  "js/work-file.js row": 1
  }
 }

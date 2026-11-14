@@ -78,7 +78,7 @@ function finderLeadShift_(F, n) {
   if (n !== was) PAGE[F.id] = Math.max(0, (PAGE[F.id] || 0) + n - was);
 }
 /* `is-lead` is what `paintStuff` keeps: it redraws only what is below the question. One tile row per thing, as `pages` draws (489). */
-const finderLeadHtml_ = lead => lead.map(c => `<section class="page is-lead"><div class="pane">${rowsOne_(c)}</div></section>`).join('');
+const finderLeadHtml_ = lead => cardBlocks_(lead.map(c => ({ type: 'group', tag: 'section', look: 'page is-lead', blocks: [{ type: 'group', look: 'pane', inner: rowsOne_(c) }] })));
 
 /* The fields a filter can be ON, what each is called, and where its values come from. One table,
    so adding a way to filter is a row here and nothing else — the picker, the matching and the
@@ -215,9 +215,7 @@ const ansKind_ = () => (kindMap_().answer || {}).label || 'Answers';
 /* A WIDGET'S FIND CARD (790) IS THE CARD ITS COLUMN DREW — slot, star, padlock, Suggest — started and stopped by arcade.js as a column's are (`finderWidgets_`). */
 function widgetCard_(x) {
   if (x.widget && typeof widgetOnColumn_ === 'function') return widgetOnColumn_(x.widget, true);   /* `true`: with the admin's group, which a Find card keeps short (`layoutOpts_`) */
-  return `<div class="tool-name">
-    <h3>${esc(x.name)}</h3>
-  </div>`;
+  return cardBlock_({ type: 'group', look: 'tool-name', blocks: [{ type: 'group', tag: 'h3', text: x.name }] });
 }
 
 /* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched: written by tools/tiers.js from map.js's WIDGETS, never by hand. */
@@ -272,12 +270,12 @@ function thingCard_(x, credits) {
     /* ---------- AND A FOURTH ANSWER: NOBODY HAS PRICED IT § */
     const price = !isShop_(x) ? ''
       : x.level > 0
-        ? `<span class="qtags">${qtag_(`${
-            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}`, '', `price ${myLevel >= x.level ? 'can' : ''}`)}</span>`
+        ? cardBlock_({ type: 'group', tag: 'span', look: 'qtags', inner: qtag_(`${
+            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}`, '', `price ${myLevel >= x.level ? 'can' : ''}`) })
       : x.cost === undefined
         ? ''   /* "Not priced yet" is its Price tag now (499) */
-      : `<span class="qtags">${qtag_(`${
-          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}`, '', `price ${free ? 'free' : afford ? 'can' : ''}`)}</span>`;
+      : cardBlock_({ type: 'group', tag: 'span', look: 'qtags', inner: qtag_(`${
+          free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits'}`, '', `price ${free ? 'free' : afford ? 'can' : ''}`) });
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
        so it is marked as one and coloured as one, the same way a subject and a venue are. */
     /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. § */
@@ -285,34 +283,21 @@ function thingCard_(x, credits) {
 
     /* THE CARD IS NO LONGER A BUTTON. § */
     /* NOTHING ON THIS LIST IS A TAP TARGET ANY MORE. § */
-    return `<div class="fc${x.wearable ? ' is-wear'
-             : x.kind === 'topic' ? ' is-subject' : ''}${x.off ? ' is-off' : ''}">
-      <div class="thing">
-        ${/* A WEARABLE DRAWS ITSELF. § */
-              ''}
-        ${x.image ? `<img class="thing-pic" src="${esc(pic(x.image))}" alt="" loading="lazy" decoding="async">` : ''}
-        <div class="thing-body">
-          ${/* ---------- A RESULT IS READ LIKE A SEARCH RESULT § */
-                ''}
-          ${/* THE LEVEL, NOT THE KEY STAGE — `KS3, KS4` on a crumb is the grey area the owner asked to stop seeing; `levelOf_` says GCSE. § */
-                ''}
-          ${isShop_(x) ? tagRow_(x) : `<p class="crumb">${[x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
+    /* A WEARABLE DRAWS ITSELF. § */
+    /* ---------- A RESULT IS READ LIKE A SEARCH RESULT § */
+    /* THE LEVEL, NOT THE KEY STAGE — `KS3, KS4` on a crumb is the grey area the owner asked to stop seeing; `levelOf_` says GCSE. § */
+    /* Its own second line: § */
+    /* THE YEAR, ON THE CARD. § */
+    /* WHO IT IS FROM, FIRST. § */
+    return cardBlock_({ type: 'group', look: 'fc' + (x.wearable ? ' is-wear' : x.kind === 'topic' ? ' is-subject' : '') + (x.off ? ' is-off' : ''), blocks: [
+      { type: 'group', look: 'thing', blocks: [
+        x.image ? { type: 'group', tag: 'img', look: 'thing-pic', attrs: { src: pic(x.image), alt: '', loading: 'lazy', decoding: 'async' } } : null,
+        { type: 'group', look: 'thing-body', inner: (isShop_(x) ? tagRow_(x) : cardBlock_({ type: 'group', tag: 'p', look: 'crumb', text: [x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
               x.bandType === 'year' ? (x.bandValue && 'Year ' + x.bandValue)
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
             : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)])
-            .filter(Boolean).map(v => esc(String(v))).join('  ')}</p>`}
-          <h3>${esc(x.name)}${x.off ? ' ' + qtag_('deleted') : ''}</h3>
-          ${/* Its own second line: § */
-                ''}
-          ${/* THE YEAR, ON THE CARD. § */
-                ''}
-          ${/* WHO IT IS FROM, FIRST. § */
-                ''}
-          
-          ${price}
-        </div>
-      </div>
-      </div>`;
+            .filter(Boolean).map(v => String(v)).join('  ') }))
+          + cardBlock_({ type: 'group', tag: 'h3', text: x.name, inner: x.off ? ' ' + qtag_('deleted') : '' }) + price }] }] });
   }
 }
 
