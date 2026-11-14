@@ -585,8 +585,7 @@ function jobPage_(j) {
   return typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '';
 }
 
-/* A BOOKING CLOSED (owner, 9 Nov): tags say what, who, when, the rate and whether it is paid; one line says who and how much in all. */
-const rcpTag_ = (t, cls) => (t ? cardBlock_({ type: 'group', tag: 'span', look: 'qtag' + (cls ? ' ' + cls : ''), text: t }) : '');
+/* A BOOKING CLOSED (owner, 9 Nov): its card is its item map (ITEM_MAPS.booking, cards-parts.js); these say when it runs and whether it is paid. */
 function rcpWhen_(j) {
   const days = typeof jobDays_ === 'function' ? jobDays_(j).map(i => (typeof DAY3_ !== 'undefined' ? DAY3_[i] : '')).filter(Boolean) : [];
   const t = String(j.time || j.startTime || '').trim(), e = String(j.endTime || j.end || '').trim();

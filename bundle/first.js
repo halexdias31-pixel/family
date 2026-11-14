@@ -743,12 +743,14 @@ function renderCard(spec) {
   let row = '';
   /* `toolRow: { key }` (a question): every tile shown, nothing behind ⋯, the row its part's tool row (`.qt-row`). */
   const tr = spec.toolRow ? { flat: true, look: 'qt-row', key: spec.toolRow.key || '' } : null;
-  try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || []), tr) : `<div class="tile-row kc-row">${tile_(spec.tiles || [])}</div>`; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
+  /* `cut` (a card holding a tool, cardOfItem_'s `tool`): its laid-out lines after the body, its open form (`kc-form`), its lifted tiles in the row. */
+  const cut = spec.cut || {}, lines = body + (cut.lines || '');
+  try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || []) + (cut.tiles || ''), tr) : `<div class="tile-row kc-row">${tile_(spec.tiles || [])}</div>`; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
   const cls = 'card fc kc kc-' + kind + (spec.look ? ' ' + spec.look : '') + (spec.off ? ' is-off' : '');
   return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
     + `<div class="kc-pic">${cardPic_(spec.picture)}</div><div class="kc-head"></div>`
     + `<div class="kc-tags"${spec.tagsId ? ` id="${esc(spec.tagsId)}"` : ''}>${renderTags(tags, spec.tagLook, spec.tagsKeep)}${(spec.tagRows || []).map(CARD_BLOCKS.tags).join('')}</div>`
-    + `<div class="kc-lines">${body || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>`
+    + `<div class="kc-lines">${lines || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>${cut.form ? `<div class="kc-form">${cut.form}</div>` : ''}`
     + `<div class="kc-act">${row}</div></div>`;
 }
 /* SEVERAL CARDS, or a message where there are none (the one empty card). */
@@ -8620,10 +8622,10 @@ const KC_DEFAULT = {
   people: { cls: 'person lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
   msg: { cls: 'msg-fc', pic: ['msgPic'], title: ['msgWho'], tags: ['msgTags'], lines: ['msgBody', 'msgTiles'], tiles: ['msg-reply:send:Reply'] },
   post: { cls: 'post-fc', pic: [], title: [], tags: [], lines: [], tiles: ['react:heart:Like'] },
-  receipt: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['receiptTags'], lines: ['receiptSum', 'ownLines'], tiles: ['job-pay:pound:Pay'] },
+  receipt: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: ['job-pay:pound:Pay'] },
   question: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   answer: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
-  shop: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: ['cart-add:cart:Buy'] },
+  shop: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: ['cart-add:cart:Buy'] },
   practical: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   project: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   content: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
@@ -8780,11 +8782,15 @@ function kcTidy_(tags, lines, name) {
   return { tags, lines: lines + moved.join('') };
 }
 /* A TAG SAYS ONLY WHAT THE MENUS ABOVE HAVE NOT (owner, 6 Nov), on every kind: a tag whose words a picked chip already says goes. */
-function kcUnpicked_(html) {
+function kcPicked_() {
   const f0 = typeof STUFF !== 'undefined' && STUFF && STUFF.filters, f = Array.isArray(f0) ? f0 : [];
   const said = new Set();
   f.filter(c => c && !c.any).forEach(c => { said.add(norm(String(c.value))); try { if (typeof chipShow_ === 'function') said.add(norm(String(chipShow_(c) || ''))); } catch (e) { oops_(e, 'card:chip'); } });
   said.delete('');
+  return said;
+}
+function kcUnpicked_(html) {
+  const said = kcPicked_();
   if (!said.size) return html;
   return String(html || '').replace(/<span class="(?:qtag|prof-tag)(?![^"]*prof-tag-name)[^"]*"[^>]*>([^<]*)<\/span>/g, (m, t) => (said.has(norm(t.replace(/&amp;/g, '&'))) ? '' : m));
 }
@@ -8875,7 +8881,33 @@ const ITEM_MAPS = {
     picture: (it, x) => (typeof profFace_ === 'function' ? profFace_(x, 160) : null), tiles: it => (typeof peopleOpts_ === 'function' ? peopleOpts_(it.raw) : []) },
   /* A POST: its words its name, and nothing else on the tag line (`facets: false`); its Like tile is its kind's. */
   post: { look: 'post-fc', name: r => String(r.text || r.caption || r.title || 'Post').slice(0, 80), tags: ['location'], links: ['authorId'], facets: false },
+  /* A SHOP THING (slice 6), drawn as kind `shop`: its row is its Find entry (the shop mapper read the Ledger row into it); its name, facets and */
+  /* price tag, its photo. The price is `shopPriceTag_` (the words thingCard_ wrote); its Buy tile and the basket are tiles.js's and collections.js's, untouched. */
+  product: { card: 'shop', from: x => x, id: ['key', 'name'], tags: ['shopKind', 'shopHow', 'shopPrice', 'shopBrand', 'shopTheme', 'shopFor'], facts: true, tagLook: 'qcard-tags',
+    look: (it, x) => [x.wearable ? 'is-wear' : '', x.off ? 'is-off' : ''].filter(Boolean).join(' '),
+    picture: (it, x) => (x.image && typeof pic === 'function' ? { src: pic(x.image), look: 'thing-pic', alt: '' } : null),
+    pills: (it, x) => itemFacets_(ITEM_MAPS.product, x).concat(shopPriceTag_(x) || []) },
+  /* A BOOKING (slice 6), drawn as kind `receipt`: its tags say what, who, when, the rate and whether it is paid; one line says who and how much */
+  /* in all; then the receipt paper itself (`jobPage_` -> bookingDoc_), the booking's TOOL (the same paper the booking form fills), drawn by its */
+  /* own maker exactly as before and laid out by `tool`. A child is told neither the rate nor the total (`childHides`, 398). */
+  booking: { card: 'receipt', id: ['id', 'jobId', 'job_id'], name: r => [r.subject || 'Session', r.level].filter(Boolean).join(' · '), facts: true,
+    tags: ['subject', 'level', 'tutor', 'venue'], childHides: ['rate', 'total'],
+    live: { money: r => { const rate = Number(r.rate) || (/hour/i.test(String(r.unit || '')) ? Number(r.price) : 0) || 0;
+      return { rate: rate > 0 ? perHour_(rate) : '', total: r.price !== '' && r.price != null && isFinite(Number(r.price)) ? money_(Number(r.price)) + ' in all' : '' }; } },
+    pills: it => { const j = it.raw, m = it.live.money || {}, paid = typeof rcpPaid_ === 'function' ? rcpPaid_(j) : '';
+      return ['Booking', j.subject, j.tutor ? displayName_(j.tutor) : '', typeof rcpWhen_ === 'function' ? rcpWhen_(j) : '', m.rate]
+        .map(t => ({ text: t, colour: false })).concat([{ text: paid, colour: false, look: paid === 'Unpaid' ? 'is-new' : '' }]).filter(t => t.text); },
+    body: (r, L) => { const who = (r.slots || []).map(sl => sl && sl.client).filter(Boolean).map(n => displayName_(n)).join(', ') || (r.client ? displayName_(r.client) : '');
+      const weeks = Number(r.weeks || (typeof jobDates_ === 'function' ? jobDates_(r).length : 0)) || 0;
+      const said = [who, weeks ? weeks + (weeks === 1 ? ' week' : ' weeks') : '', (L.money || {}).total].filter(Boolean).join(' · ');
+      return said ? [{ type: 'group', tag: 'p', look: 'rc-sum', text: said }] : []; },
+    tool: it => (typeof jobPage_ === 'function' ? jobPage_(it.raw) : '') },
 };
+/* A SHOP THING'S PRICE TAG: its level, or free, pence as pounds, else credits; `can` when you have the level or the credits (your own, collCredits_). */
+const shopPriceTag_ = x => { const myLevel = Math.floor((Number(typeof USER !== 'undefined' && USER && USER.xp) || 0) / 10), free = x.cost === 0;
+  const credits = typeof collCredits_ === 'function' ? collCredits_() : 0, afford = !free && !x.pence && credits >= x.cost;
+  if (x.level > 0) return { text: myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level, look: 'price ' + (myLevel >= x.level ? 'can' : ''), colour: false };
+  return x.cost === undefined ? null : { text: free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits', look: 'price ' + (free ? 'free' : afford ? 'can' : ''), colour: false }; };
 /* THE SAME OPTIONS FOR EVERY KIND (slice 2): `id` its id columns; `name` (row → name); `from` the Find entry's field holding its row (else `row`); */
 /* `card` the card kind drawing it (else its own) and `when` (entry → true) which map that card picks; `body` (row → blocks) and `lines: true` */
 /* to draw them; `nameTag: false` for a card whose tags are its facets alone; `entryTags` { entry field: colour } after the facets; `off` (row → true) greys it. */
@@ -8887,6 +8919,11 @@ const ITEM_MAPS = {
 /* A CARD THAT IS A TOOL (slice 4, a question): `look` may be (item, entry) → class; `keep` (item, entry) remembers the entry for an embed; */
 /* `data` (item, entry) → its data- attributes; `sheet` (item, entry, picture) → blocks drawn in place of `body`; `tiles` (item, entry) → its */
 /* tiles and `toolRow: true` its tool row; `tagLook` its tags' class. */
+/* SLICE 6 (a shop thing, a booking): `from` may be (entry → row); `facts: true` lays the card out as findCard lays out a facts card: its tags */
+/* tidied (a tag a picked chip says goes, the name leads only when no tag says it already, a tag over KC_TAG_MAX letters goes), an empty body */
+/* says so, `kc-facts` on it. `tool` (item) → the HTML of a shared TOOL the card holds (the booking paper), drawn by its own maker and laid out */
+/* the one way (`itemTool_`): its classes kept, its heading dropped, its tile rows joined to the card's row, a form open and whole (`kc-form`), */
+/* else its words as lines with the original kept hidden; the card's `body` leads it. */
 const itemLive_ = (r, M) => { const v = {}; Object.keys(M.live || {}).forEach(f => { v[f] = M.live[f](r); });
   const hide = (typeof childView_ === 'function' && childView_() ? M.childHides || [] : []).concat(typeof isAdmin === 'function' && isAdmin() ? [] : M.adminOnly || []);
   const strip = o => { if (Array.isArray(o)) o.forEach(strip); else if (o && typeof o === 'object') hide.forEach(k => { delete o[k]; }); };
@@ -8908,25 +8945,54 @@ function item_(raw, kind) {
 function cardOfItem_(it, x) {
   const M = ITEM_MAPS[it.kind] || {}, own = x || { kind: it.kind, key: '', name: it.name };
   if (M.keep) M.keep(it, own);
-  let f0 = [];
-  try { f0 = M.facets !== false && typeof tagList_ === 'function' && own.key ? tagList_(own) : []; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'item:tags'); }
-  const facets = Array.isArray(f0) ? f0 : [];
+  const facets = itemFacets_(M, own);
   const more = Object.keys(M.entryTags || {}).flatMap(f => (own[f] || []).map(t => ({ text: t, colour: M.entryTags[f] })))
     .concat(Object.keys(M.liveTags || {}).flatMap(f => ((it.live || {})[f] || []).map(t => ({ text: t, colour: M.liveTags[f] }))));
   /* `nameTag: false` still leads with the name when it has no facets at all: a card is never without a tag. */
   const pic = M.picture ? M.picture(it, own) : null, pills = M.pills ? M.pills(it, own) : null;
   /* ITS ROW IS ITS ENTRY'S OWN, never one made of its name: a card whose name is not a tag (`nameTag: false`) must not draw it elsewhere (the Message tile's `to`). */
-  return { look: (typeof M.look === 'function' ? M.look(it, own) : M.look) || '', name: it.name || own.name || '', row: own.row || {}, ...(M.off ? { off: !!M.off(it.raw || {}) } : {}), picture: pic,
-    body: M.sheet ? M.sheet(it, own, pic) : M.lines ? it.body : [],
+  const tool = M.tool ? itemTool_(M.tool(it, own), cardBlocks_(it.body), !!M.facts) : null, name = it.name || own.name || '';
+  const look = [(typeof M.look === 'function' ? M.look(it, own) : M.look) || '', tool ? tool.cls : '', M.facts ? 'kc-facts' : ''].filter(Boolean).join(' ');
+  const tags = Array.isArray(pills) ? pills : (M.nameTag === false && facets.length ? [] : [{ text: name, colour: 0 }]).concat(facets, more);
+  const body = tool ? [] : M.sheet ? M.sheet(it, own, pic) : M.lines ? it.body : [];
+  return { look, name, row: own.row || {}, ...(M.off ? { off: !!M.off(it.raw || {}) } : {}), picture: pic,
+    body, ...(tool ? { cut: tool } : {}), ...(M.facts && !tool && !body.length ? { empty: kcEmpty_() } : {}),
     ...(M.data ? { data: M.data(it, own) } : {}), ...(M.tagLook ? { tagLook: M.tagLook } : {}),
     ...(M.tiles ? { tiles: M.tiles(it, own) } : {}), ...(M.toolRow ? { toolRow: { key: own.key || '' } } : {}),
     ...(M.tagRows ? { tagRows: M.tagRows(it, own) } : {}),
-    tags: Array.isArray(pills) ? pills : (M.nameTag === false && facets.length ? [] : [{ text: it.name || own.name || '', colour: 0 }]).concat(facets, more) };
+    tags: M.facts ? itemFactsTags_(tags, name) : tags };
+}
+/* FIND'S FACETS FOR AN ENTRY, unless its map leaves them off (`facets: false`). */
+function itemFacets_(M, own) {
+  let f0 = [];
+  try { f0 = M.facets !== false && typeof tagList_ === 'function' && own.key ? tagList_(own) : []; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'item:tags'); }
+  return Array.isArray(f0) ? f0 : [];
+}
+/* A FACTS CARD'S TAG LINE (`facts: true`), as findCard tidies one: a tag a picked chip already says goes (kcPicked_); the name leads unless a */
+/* tag says it already (kcSays_); a tag longer than KC_TAG_MAX goes, unless it wears the name's colour. */
+function itemFactsTags_(tags, name) {
+  const said = kcPicked_(), lead = tags.length && tags[0].colour === 0 && String(tags[0].text) === name;
+  const rest = (lead ? tags.slice(1) : tags).filter(t => !said.has(norm(String(t.text))));
+  return (name && !kcSays_(rest.map(t => esc(String(t.text))).join('  '), name) ? [{ text: name, colour: 0 }] : []).concat(rest)
+    .filter(t => t.colour === 0 || String(t.text).trim().length <= KC_TAG_MAX);
+}
+/* A TOOL'S HTML ON A CARD (`tool`): cut into the parts (kcSplit_), `lead` (the card's body) before its lines, its tile rows lifted (kcHoist_), */
+/* then (a facts card) a form kept open and whole, else its words as lines and the original hidden for a late filler (kcFacts_). */
+function itemTool_(html, lead, facts) {
+  const cut = kcSplit_(String(html || '').trim()) || { cls: '', lines: String(html || '') };
+  const hoist = kcHoist_(lead + cut.lines);
+  const out = { cls: String(cut.cls || '').split(/\s+/).filter(c => c && !/^(card|fc|kc)$/.test(c)).join(' '), lines: hoist.lines, form: '', tiles: hoist.tiles };
+  if (!facts) { out.lines = kcTidy_('', out.lines, '').lines; return out; }
+  const f = kcFacts_(out.lines);
+  if (f.form) { out.lines = ''; out.form = f.form; } else out.lines = (f.lines || kcEmptyLine_()) + (f.src ? kcSrc_(f.src) : '');
+  out.tiles += f.tiles;
+  kcFactsWatch_();
+  return out;
 }
 /* EACH CARD KIND DRAWN FROM MAPS: the map whose `when` the entry answers (else the first without one), its row from the entry's `from`. */
 const itemMapOf_ = x => { const ks = Object.keys(ITEM_MAPS).filter(k => (ITEM_MAPS[k].card || k) === x.kind);
   return ks.find(k => ITEM_MAPS[k].when && ITEM_MAPS[k].when(x)) || ks.find(k => !ITEM_MAPS[k].when) || ks[0]; };
-const itemOfEntry_ = x => { const k = itemMapOf_(x); return x.shape || item_(x[ITEM_MAPS[k].from || 'row'] || {}, k); };
+const itemOfEntry_ = x => { const k = itemMapOf_(x), f = ITEM_MAPS[k].from; return x.shape || item_((typeof f === 'function' ? f(x) : x[f || 'row']) || {}, k); };
 [...new Set(Object.keys(ITEM_MAPS).map(k => ITEM_MAPS[k].card || k))].forEach(c => cardKind_(c, x => cardOfItem_(itemOfEntry_(x), x)));
 
 ;

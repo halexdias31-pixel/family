@@ -264,12 +264,14 @@ function renderCard(spec) {
   let row = '';
   /* `toolRow: { key }` (a question): every tile shown, nothing behind ⋯, the row its part's tool row (`.qt-row`). */
   const tr = spec.toolRow ? { flat: true, look: 'qt-row', key: spec.toolRow.key || '' } : null;
-  try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || []), tr) : `<div class="tile-row kc-row">${tile_(spec.tiles || [])}</div>`; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
+  /* `cut` (a card holding a tool, cardOfItem_'s `tool`): its laid-out lines after the body, its open form (`kc-form`), its lifted tiles in the row. */
+  const cut = spec.cut || {}, lines = body + (cut.lines || '');
+  try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || []) + (cut.tiles || ''), tr) : `<div class="tile-row kc-row">${tile_(spec.tiles || [])}</div>`; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
   const cls = 'card fc kc kc-' + kind + (spec.look ? ' ' + spec.look : '') + (spec.off ? ' is-off' : '');
   return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
     + `<div class="kc-pic">${cardPic_(spec.picture)}</div><div class="kc-head"></div>`
     + `<div class="kc-tags"${spec.tagsId ? ` id="${esc(spec.tagsId)}"` : ''}>${renderTags(tags, spec.tagLook, spec.tagsKeep)}${(spec.tagRows || []).map(CARD_BLOCKS.tags).join('')}</div>`
-    + `<div class="kc-lines">${body || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>`
+    + `<div class="kc-lines">${lines || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>${cut.form ? `<div class="kc-form">${cut.form}</div>` : ''}`
     + `<div class="kc-act">${row}</div></div>`;
 }
 /* SEVERAL CARDS, or a message where there are none (the one empty card). */

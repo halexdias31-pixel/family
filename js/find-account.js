@@ -1,16 +1,4 @@
 /* @family. — js/find-account.js BOOKINGS, THE FEED AND YOUR ACCOUNT AS PAGES (cut from find-levels.js; Find is read as one by tools/find-src.js). */
-window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
-  receiptTags: x => { const j = x.row || {}, paid = rcpPaid_(j);
-    const rate = Number(j.rate) || (/hour/i.test(String(j.unit || '')) ? Number(j.price) : 0) || 0;
-    return cardBlock_({ type: 'group', look: 'qtags', inner: rcpTag_('Booking') + rcpTag_(j.subject) + rcpTag_(j.tutor ? displayName_(j.tutor) : '') + rcpTag_(rcpWhen_(j))
-      + rcpTag_(rate > 0 ? perHour_(rate) : '') + rcpTag_(paid, paid === 'Unpaid' ? 'is-new' : '') }); },
-  receiptSum: x => { const j = x.row || {};
-    const who = (j.slots || []).map(sl => sl && sl.client).filter(Boolean).map(n => displayName_(n)).join(', ') || (j.client ? displayName_(j.client) : '');
-    const weeks = Number(j.weeks || (typeof jobDates_ === 'function' ? jobDates_(j).length : 0)) || 0;
-    const total = j.price !== '' && j.price != null && isFinite(Number(j.price)) ? money_(Number(j.price)) + ' in all' : '';
-    const said = [who, weeks ? weeks + (weeks === 1 ? ' week' : ' weeks') : '', total].filter(Boolean).join(' · ');
-    return said ? cardBlock_({ type: 'group', tag: 'p', look: 'rc-sum', text: said }) : ''; },
-});
 /* THE FRONT MENU'S ANSWER, read through `DOOR_FIELD` (find-finder.js) — the one name every writer and reader of it uses (1040 friction). */
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === DOOR_FIELD && norm(f.value) === want);

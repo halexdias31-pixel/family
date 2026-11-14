@@ -28,9 +28,9 @@
     "venue": { "source": "Ledger venues + rooms tabs (data/settings/venues.json)", "loader": "payload -> find-aloud.js", "sample": "check/fixture.json venues", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "tutor": { "source": "Ledger people tab (role tutor)", "loader": "payload -> find-aloud.js", "sample": "check/fixture.json tutors", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "person": { "source": "Ledger people tab", "loader": "payload -> find-doors.js", "sample": "check/fixture.json everyone", "builder": "item map (cards-parts.js ITEM_MAPS)" },
-    "booking": { "source": "Ledger events + receipts tabs", "loader": "backend booking.gs -> book-*.js", "builder": "cards-render.js paperRow_ (booking paper)" },
-    "product": { "source": "Ledger shop tab (data/settings/shop.json, data/shop-additions.json)", "loader": "backend get-shop.gs -> find-aloud.js", "builder": "widget cards (find-aloud.js)" },
+    "booking": { "source": "Ledger events + receipts tabs", "loader": "backend booking.gs -> book-*.js (myJobs_ -> findMineItems_)", "sample": "check/fixture.json liveJobs", "builder": "item map (cards-parts.js ITEM_MAPS.booking, drawn as kind receipt); its receipt paper stays a tool (book-spine.js bookingDoc_)" },
+    "product": { "source": "Ledger shop tab (data/settings/shop.json, data/shop-additions.json)", "loader": "backend get-shop.gs -> find-aloud.js findMineItems_ (its Find entry is its row)", "sample": "check/fixture.json shop", "builder": "item map (cards-parts.js ITEM_MAPS.product, drawn as kind shop)" },
     "post": { "source": "Ledger posts tabs", "loader": "backend get-posts.gs -> find-doors.js", "sample": "check/fixture.json posts", "builder": "item map (cards-parts.js ITEM_MAPS)" }
   },
-  "migrated": ["manuscript", "writing", "event", "insert", "spec", "chem", "mech", "figure", "boxer", "fight", "practical", "project", "content", "subject", "level", "venue", "question", "tutor", "person", "post"]
+  "migrated": ["manuscript", "writing", "event", "insert", "spec", "chem", "mech", "figure", "boxer", "fight", "practical", "project", "content", "subject", "level", "venue", "question", "tutor", "person", "post", "product", "booking"]
 }
