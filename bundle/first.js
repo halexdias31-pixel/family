@@ -605,10 +605,7 @@ function cardTree_(nodes, fold, top) {
 const cardGrid_ = b => `<div class="kc-grid-wrap"><div class="kc-grid" role="table" aria-label="${esc(b.caption || '')}">${(b.cells || []).map(c =>
   `<div class="kc-cell kc-c${Math.min(18, Number(c.col) || 1)} kc-r${Math.min(10, Number(c.row) || 1)}">${
     (c.parts || []).map((t, i) => `<span class="kc-cell-${i}">${esc(String(t == null ? '' : t))}</span>`).join('')}</div>`).join('')}</div></div>`;
-/* A MENU'S CHOICES (owner, 14 Nov: one template for everything): a Find menu is a card whose tags are the path chosen and whose body is this.
-   `{ type: 'choices', id?, ask?, rows: [{ look?, id?, options: [opt] }], wait?, after? }`; an opt is `{ text, marked?, act, data?, look?, label?, pressed?, disabled? }`
-   or the blank tag typed on, `{ box: { id?, cls, value, label, inputmode?, enterkeyhint? } }`. Every tag is shown; nothing hides behind ⋯.
-   `after` is markup another maker made (a card, the none line) that follows the menu; `wait` is the loader. */
+/* A MENU'S CHOICES (owner, 14 Nov: one template for everything): § */
 function cardChoice_(o) {
   if (o.box) { const b = o.box;
     return answerBox_(`${b.id ? ` id="${esc(b.id)}"` : ''} class="${esc(b.cls || '')}" type="text" inputmode="${esc(b.inputmode || 'text')}" autocomplete="off"
