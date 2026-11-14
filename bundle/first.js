@@ -838,8 +838,8 @@ const kcfTickB_ = b => `<label class="check${b.look ? ' ' + esc(b.look) : ''}"${
 const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.label)}</span>${kcfControl_(b.hidden || {})}<details class="many-d" data-many="${esc(b.key)}"${b.open ? ' open' : ''}>`
   + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
-/* A GROUP: a div (or a span, a line, a label, a heading between cards, or a fold and its summary) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
-const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4)$/.test(b.tag) ? b.tag : 'div';
+/* A GROUP: a div (or a span, a line, a label, a heading between cards, a fold and its summary, or a column's page section) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
+const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4|section)$/.test(b.tag) ? b.tag : 'div';
   return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
@@ -864,8 +864,8 @@ function msgBubble_(b) {
 }
 const msgFormBlock_ = b => `<div class="msg-form" data-k="${esc(b.k)}"><div class="msg-queue">${msgChips_(b)}</div>`
   + (b.clip ? `${tile_({ icon: 'plus', label: 'Attach a photo, video or file', act: 'msg-attach', cls: 'msg-clip' })}<input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : '')
-  + `<textarea class="msg-text" rows="${Number(b.rows) || 1}" maxlength="2000" placeholder="Message…" aria-label="Message ${esc(b.to)}"${b.drafted || ''}>${esc(b.value || '')}</textarea>`
-  + `${tile_(b.send)}<p class="note msg-said">${esc(b.note || '')}</p></div>`;
+  + `<textarea class="msg-text" rows="${Number(b.rows) || 1}" maxlength="${Number(b.max) || 2000}" placeholder="Message…" aria-label="Message ${esc(b.to)}"${b.off ? ' disabled' : ''}${b.drafted || ''}>${esc(b.value || '')}</textarea>`
+  + `${tile_(b.send)}<p class="note msg-said">${esc(b.note || '')}</p>${(b.also || []).map(a => `<p class="note msg-said${a.look ? ' ' + esc(a.look) : ''}">${esc(a.text || '')}</p>`).join('')}</div>`;
 /* A BOX ROUND PARTS THESE BLOCKS ALREADY DREW (a message's card, a claim, a section), its look and data its own. */
 const msgBox_ = b => `<div class="${esc(b.look || '')}"${cardAttrs_(b.data)}>${(b.parts || []).join('')}</div>`;
 const msgHead_ = b => { const h = b.h === 4 ? 'h4' : 'h3'; return `<${h}${b.look ? ` class="${esc(b.look)}"` : ''}>${cardRuns_(b.text)}</${h}>`; };
@@ -14257,7 +14257,7 @@ document.addEventListener('visibilitychange', () => {
 /* ---------- THE FACE IN A CONVERSATION'S HEAD IS THE ONE ON THEIR PROFILE § */
 /* ---------- AND IT IS `personFace_`, LIKE EVERY OTHER FACE § */
 function dmFace_(t) {
-  const letter = initial(t.name);   // letters and digits only, so it is safe inside the onerror below
+  const letter = initial(t.name);   // letters and digits only; the ring's data-letter, for the error listener below
   const famMine = !!(USER && USER.personId && DATA && DATA.familyFor && String(DATA.familyFor) === String(USER.personId));
   const rows = ((DATA && DATA.tutors) || [])
     .concat(famMine && Array.isArray(DATA.family) ? DATA.family : [])
@@ -14269,20 +14269,23 @@ function dmFace_(t) {
     || rows.find(r => r && t.name && norm(r.title || '') === norm(t.name));
   const who = sent ? { image: String(sent.pic || ''), avatar: typeof sent.avatar === 'string' ? sent.avatar : (listed || {}).avatar,
                        handle: (listed || {}).handle || t.name, title: t.name, personId: id } : listed;
-  if (!who) return `<span class="dm-av" aria-hidden="true">${letter}</span>`;
+  /* THE INITIAL IN ITS RING, and a photo over it that gives way to the initial when it will not load (the listener below). */
+  const av = (inner, pic) => cardBlock_({ type: 'group', tag: 'span', look: 'dm-av' + (pic ? ' has-pic' : ''), attrs: { 'aria-hidden': 'true', 'data-letter': letter },
+    text: inner == null ? letter : null, inner: inner || '' });
+  if (!who) return av();
   const face = personFace_({ pic: who.image, avatar: who.avatar, handle: who.handle, name: t.name || who.title,
                              personId: who.personId }, { cls: 'dm-pic', size: 32 });
-  if (picKind_(who.image) === 'photo') {
-    return `<span class="dm-av has-pic" aria-hidden="true">${face.replace('<img ', `<img onerror="this.parentNode.classList.remove('has-pic');this.parentNode.textContent='${letter}'" `)}</span>`;
-  }
-  return /^<span class="dm-pic face-pic"/.test(face)
-    ? `<span class="dm-av has-pic" aria-hidden="true">${face}</span>`
-    : `<span class="dm-av" aria-hidden="true">${letter}</span>`;
+  if (picKind_(who.image) === 'photo') return av(face, true);
+  return /^<span class="dm-pic face-pic"/.test(face) ? av(face, true) : av();
 }
+/* A PHOTO THAT WILL NOT LOAD gives its ring back to the initial (it was an inline onerror; one listener now, as a boxer's picture has). */
+document.addEventListener('error', e => {
+  const img = e.target, ring = img && img.matches && img.matches('.dm-av.has-pic img') ? img.parentNode : null;
+  if (ring) { ring.classList.remove('has-pic'); ring.textContent = ring.getAttribute('data-letter') || ''; }
+}, true);
 
 function dmPages_() {
-  if (!USER) return [{ name: '', html: card_(`<div class=""><h3>Messages</h3>
-    </div>`) }];
+  if (!USER) return [{ name: '', html: card_(cardBlock_({ type: 'group', look: '', blocks: [{ type: 'msgHead', text: 'Messages' }] })) }];
   /* THE PAYLOAD AND THE FIRST ANSWER FOR MESSAGES — `loading_()` until both, as every column waits. */
   if (!LOADED || !DM_DONE) return [{ name: '', html: loading_() }];
 
@@ -14290,11 +14293,9 @@ function dmPages_() {
   /* ---------- THE HEAD CARD WAS A PAGE WITH NO MESSAGE ON IT § */
 
   /* ---------- AND AN EMPTY INBOX SAYS WHICH EMPTY IT IS § */
-  if (!threads.length) return daivePages_().concat([{ name: '', html: suggestRowIn_(card_(`<div class=""><h3>Messages</h3>
-    ${MSG_FAILED
-      ? `${empty_('Messages did not load.')}
-         ${tile_({ form: true, label: 'Try again', act: 'dm-refresh', kind: 'quiet' })}`
-      : emptyMessages_()}</div>`), 'widget', 'messages', 'Messages') }]);
+  if (!threads.length) return daivePages_().concat([{ name: '', html: suggestRowIn_(card_(cardBlock_({ type: 'group', look: '',
+    blocks: [{ type: 'msgHead', text: 'Messages' }], inner: MSG_FAILED ? empty_('Messages did not load.') : emptyMessages_(),
+    tiles: MSG_FAILED ? [{ form: true, label: 'Try again', act: 'dm-refresh', kind: 'quiet' }] : [] })), 'widget', 'messages', 'Messages') }]);
 
   /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
      doing it again here is a second copy of the ordering rule to get wrong later. */
@@ -14355,21 +14356,17 @@ function asstMsgs_(s) {
   return s.msgs.map(m => ({ mine: m.role === 'user', read: true, body: m.text, atMs: m.at || 0, fromName: DAIVE }));
 }
 /* A CONVERSATION'S INSIDES (head, bubbles, composer) are the card's one embed: the send path stays msgForm_'s own. */
-CARD_EMBEDS['dm-thread'] = ({ t }) => `<div class="dm-head">${dmFace_(t)}
-    <h3>${esc(displayName_(t.name))}${t.unread ? ` <span class="dm-new">${t.unread} new</span>` : ''}</h3></div>
-  <div class="msg-body">${messagesHtml_(t.msgs)}</div>
-  ${msgForm_(t.name, t.id)}`;
+CARD_EMBEDS['dm-thread'] = ({ t }) => cardBlocks_([
+  { type: 'group', look: 'dm-head', inner: dmFace_(t) + cardBlock_({ type: 'msgHead', text: [displayName_(t.name)].concat(t.unread ? [' ', { span: 'dm-new', text: t.unread + ' new' }] : []) }) },
+  { type: 'group', look: 'msg-body', inner: messagesHtml_(t.msgs) }]) + msgForm_(t.name, t.id);
 CARD_EMBEDS['daive'] = () => {
   const s = asstGet_(), cap = asstCap_(), out = s.left <= 0, shut = out || ASST_BUSY;
   const said = out ? 'No questions left today — they come back tomorrow.' : s.left + ' of ' + cap + ' questions left today';
-  return `<div class="dm-head"><span class="dm-av daive-av" aria-hidden="true">D</span><h3>${DAIVE}</h3></div>
-    <div class="msg-body">${messagesHtml_(asstMsgs_(s))}${ASST_BUSY ? loading_() : ''}</div>
-    <div class="msg-form" data-k="daive">
-      <textarea class="msg-text" rows="1" maxlength="1000" placeholder="Message…" aria-label="Message ${DAIVE}"${shut ? ' disabled' : ''}${draftAttr_('asst', '')}>${ASST_BUSY ? '' : esc(draftVal_('asst', '', ''))}</textarea>
-      ${tile_({ form: true, look: 'btn msg-go', act: 'daive-send', off: shut, label: 'Send' })}
-      <p class="note msg-said">${esc(ASST_SAID)}</p>
-      <p class="note msg-said daive-left">${esc(said)}</p>
-    </div>`;
+  return cardBlocks_([
+    { type: 'group', look: 'dm-head', blocks: [{ type: 'group', tag: 'span', look: 'dm-av daive-av', attrs: { 'aria-hidden': 'true' }, text: 'D' }, { type: 'msgHead', text: DAIVE }] },
+    { type: 'group', look: 'msg-body', inner: messagesHtml_(asstMsgs_(s)) + (ASST_BUSY ? loading_() : '') },
+    { type: 'msgForm', k: 'daive', to: DAIVE, rows: 1, max: 1000, off: shut, drafted: draftAttr_('asst', ''), value: ASST_BUSY ? '' : draftVal_('asst', '', ''),
+      send: { form: true, look: 'btn msg-go', act: 'daive-send', off: shut, label: 'Send' }, note: ASST_SAID, also: [{ look: 'daive-left', text: said }] }]);
 };
 const daiveHtml_ = () => renderCard({ kind: 'msg', look: 'daive', name: DAIVE, data: { daive: 1 }, body: [{ type: 'embed', tool: 'daive' }] });
 /* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. */
@@ -14383,7 +14380,7 @@ const daivePages_ = () => [daivePage_()].filter(p => p.html);
 function asstRedraw_() {
   const col = $('s-dm'), card = col && col.querySelector('[data-daive]');
   if (!card) return;
-  card.outerHTML = daiveItem_() || '<span hidden></span>';
+  card.outerHTML = daiveItem_() || cardBlock_({ type: 'group', tag: 'span', attrs: { hidden: true } });
   const body = col.querySelector('[data-daive] .msg-body');
   if (body) body.scrollTop = body.scrollHeight;
   try { col.DRAWN = null; } catch (e) {}
@@ -14627,8 +14624,7 @@ function openSharedTutor() {
   if (!t) return;
   TUTOR_LINK_DONE = true;
   const item = { kind: 'tutor', name: t.title, key: t.title, row: t };
-  openSheet(t.title, `<div class="tutor-link">${typeof findCard === 'function' ? findCard(item) : ''}
-    ${tileRow_(tile_(tutorOpts_(item)))}</div>`);
+  openSheet(t.title, cardBlock_({ type: 'group', look: 'tutor-link', inner: (typeof findCard === 'function' ? findCard(item) : '') + tileRow_(tile_(tutorOpts_(item))) }));
 }
 
 ;

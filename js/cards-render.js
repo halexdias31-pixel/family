@@ -359,8 +359,8 @@ const kcfTickB_ = b => `<label class="check${b.look ? ' ' + esc(b.look) : ''}"${
 const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.label)}</span>${kcfControl_(b.hidden || {})}<details class="many-d" data-many="${esc(b.key)}"${b.open ? ' open' : ''}>`
   + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
-/* A GROUP: a div (or a span, a line, a label, a heading between cards, or a fold and its summary) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
-const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4)$/.test(b.tag) ? b.tag : 'div';
+/* A GROUP: a div (or a span, a line, a label, a heading between cards, a fold and its summary, or a column's page section) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
+const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h4|section)$/.test(b.tag) ? b.tag : 'div';
   return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
@@ -385,8 +385,8 @@ function msgBubble_(b) {
 }
 const msgFormBlock_ = b => `<div class="msg-form" data-k="${esc(b.k)}"><div class="msg-queue">${msgChips_(b)}</div>`
   + (b.clip ? `${tile_({ icon: 'plus', label: 'Attach a photo, video or file', act: 'msg-attach', cls: 'msg-clip' })}<input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : '')
-  + `<textarea class="msg-text" rows="${Number(b.rows) || 1}" maxlength="2000" placeholder="Message…" aria-label="Message ${esc(b.to)}"${b.drafted || ''}>${esc(b.value || '')}</textarea>`
-  + `${tile_(b.send)}<p class="note msg-said">${esc(b.note || '')}</p></div>`;
+  + `<textarea class="msg-text" rows="${Number(b.rows) || 1}" maxlength="${Number(b.max) || 2000}" placeholder="Message…" aria-label="Message ${esc(b.to)}"${b.off ? ' disabled' : ''}${b.drafted || ''}>${esc(b.value || '')}</textarea>`
+  + `${tile_(b.send)}<p class="note msg-said">${esc(b.note || '')}</p>${(b.also || []).map(a => `<p class="note msg-said${a.look ? ' ' + esc(a.look) : ''}">${esc(a.text || '')}</p>`).join('')}</div>`;
 /* A BOX ROUND PARTS THESE BLOCKS ALREADY DREW (a message's card, a claim, a section), its look and data its own. */
 const msgBox_ = b => `<div class="${esc(b.look || '')}"${cardAttrs_(b.data)}>${(b.parts || []).join('')}</div>`;
 const msgHead_ = b => { const h = b.h === 4 ? 'h4' : 'h3'; return `<${h}${b.look ? ` class="${esc(b.look)}"` : ''}>${cardRuns_(b.text)}</${h}>`; };

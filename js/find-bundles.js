@@ -224,15 +224,18 @@ function bundleStrayLine_(b) {
 const BUNDLE_ITEM = { kind: 'bundle', kindLabel: 'Bundles' };
 /* A BUNDLE CARRIES EVERY TAG ITS PAPERS SHARE (owner, 6 Nov: "the same tags the sections have"), after its own Bundles tag. */
 function bundleTagsOf_(b) {
-  const own = String(tagRow_(BUNDLE_ITEM) || '<div class="qtags qcard-tags"></div>'), RE = /<span class="qtag"[^>]*data-f="([^"]*)"[^>]*>[\s\S]*?<\/span>/g, skip = /^(kindLabel|kindOwn|qNumber|qPart|qSub|marks|myResult)$/;
-  const sets = (b.firsts || []).map(x => { const m = {}; String(tagRow_(x) || '').replace(RE, (t, f) => { if (!skip.test(f)) m[t] = 1; return t; }); return m; });
-  return sets.length ? own.replace(/<\/div>\s*$/, Object.keys(sets[0]).filter(t => sets.every(m => m[t])).join('') + '</div>') : own;
+  /* Tags as DATA (one template): a paper's tag is the same tag when it draws the same; the row is drawn once, by `renderTags`. */
+  const skip = /^(kindLabel|kindOwn|qNumber|qPart|qSub|marks|myResult)$/, same = t => cardTag_(t, 1);
+  const sets = ((b && b.firsts) || []).map(x => { const m = new Map(); tagList_(x).forEach(t => { if (!skip.test(String((t.data || {}).f || ''))) m.set(same(t), t); }); return m; });
+  const all = tagList_(BUNDLE_ITEM).concat(sets.length ? [...sets[0].keys()].filter(k => sets.every(m => m.has(k))).map(k => sets[0].get(k)) : []);
+  return renderTags(all, 'qcard-tags', !all.length);
 }
 function bundleCard_(b) {
   const inCart = bundleInCart_(b);
   const off = b.papers.filter(p => !p.ok);
   const note = b.noun + ' · ' + bundlePriceLine_(b);
-  const pp = p => p.pages ? ' ' + qtag_(p.pages + 'pp', '', 'mono') : '';
+  const pp = p => p.pages ? [' ', { span: 'qtag mono', text: p.pages + 'pp' }] : [];
+  const named = p => [{ span: 'bundle-name', text: p.label }].concat(pp(p));
   /* ONE LINE PER GROUP WHEN IT IS GROUPED — a sitting, a tier, or both — one per paper when it is
      not. Numbered either way: the count down the edge is how many LINES, and the title already says
      how many papers. */
@@ -244,23 +247,23 @@ function bundleCard_(b) {
           if (!g) groups.push(g = { group: p.group, papers: [] });
           g.papers.push(p);
         });
-        return groups.map(g => `<li><span class="bundle-when">${esc(g.group)}</span> ${
-          g.papers.map(p => `<span class="bundle-name">${esc(p.label)}</span>${pp(p)}`)
-            .join('')}</li>`).join('');
+        return groups.map(g => [{ span: 'bundle-when', text: g.group }, ' '].concat(...g.papers.map(named)));
       })()
-    : b.printable.map(p => `<li><span class="bundle-name">${esc(p.label)}</span>${pp(p)}</li>`).join('');
+    : b.printable.map(named);
   const stray = bundleStrayLine_(b);
   /* THE ONE CARD (owner, 9 Nov): picture, name as a tag, two lines closed, Add to basket / Message / Star / ⋯; the papers show open. */
-  const lines = `<p>Printed and sent &middot; ${esc(b.noun)} &middot; ${esc(bundlePriceLine_(b))}</p>`
-    + `<ol class="bundle-list">${list}</ol>`
-    + (off.length ? `<p class="bundle-off">Not in the bundle, marked not printable: ${off.map(p => esc(p.label)).join(', ')}</p>` : '')
-    + (stray ? `<p class="bundle-off">${esc(stray)}</p>` : '');
-  const tiles = tile_({ icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket', note: note, act: 'cart-add', on: inCart, off: inCart, tone: 'buy',
-      data: { kind: 'bundle', ids: b.ids.join(','), key: b.title || '' } })
-    + tile_({ icon: 'open', label: 'See your basket', act: 'cart-open' })
-    + (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('bundle', 'b:' + String(b.ids[0] || 'x').replace(/[^A-Za-z0-9_.:-]/g, '') + ':' + b.ids.length, b.title || 'Bundle')) : '');
+  const tiles = [{ icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket', note: note, act: 'cart-add', on: inCart, off: inCart, tone: 'buy',
+      data: { kind: 'bundle', ids: b.ids.join(','), key: b.title || '' } },
+    { icon: 'open', label: 'See your basket', act: 'cart-open' }]
+    .concat(typeof suggestOpts_ === 'function' ? [suggestOpts_('bundle', 'b:' + String(b.ids[0] || 'x').replace(/[^A-Za-z0-9_.:-]/g, '') + ':' + b.ids.length, b.title || 'Bundle')] : []);
+  const lines = cardBlocks_([
+    { type: 'group', tag: 'p', text: 'Printed and sent \u00b7 ' + b.noun + ' \u00b7 ' + bundlePriceLine_(b) },
+    { type: 'list', ordered: true, look: 'bundle-list', items: list },
+    off.length ? { type: 'group', tag: 'p', look: 'bundle-off', text: 'Not in the bundle, marked not printable: ' + off.map(p => p.label).join(', ') } : null,
+    stray ? { type: 'group', tag: 'p', look: 'bundle-off', text: stray } : null,
+    { type: 'tiles', tiles: tiles }]);
   const name = b.title || 'These papers', x = { kind: 'bundle', name: name, key: 'bundle:' + b.ids.join(',') };
-  return findCard(Object.assign(x, { kcOwn: { cls: 'bundle', attrs: '', pic: '', head: `<h3>${esc(name)}</h3>`, tags: bundleTags_(b), lines: lines + `<div class="tile-row">${tiles}</div>` } }));
+  return findCard(Object.assign(x, { kcOwn: { cls: 'bundle', attrs: '', pic: '', head: cardBlock_({ type: 'msgHead', text: name }), tags: bundleTags_(b), lines: lines } }));
 }
 
 /* THE ONE BUNDLE A LIST OF WHOLE PAPERS OFFERS, in front of its questions. `Bundles` is not a kind to ask for (396). */
@@ -318,7 +321,7 @@ function stuffPageHtml(n) {
   return rowsOne_(html + (/data-do="find-top"/.test(html) ? '' : findTopRow_()));
 }
 /* BACK TO TOP (463): "a button to scroll back to the top of the finder"; on a kept card outside one, its column scrolls up. */
-const findTopRow_ = () => `<div class="tile-row find-top">${tile_({ icon: 'up', label: 'Back to top', note: 'the first page of this finder', act: 'find-top' })}</div>`;
+const findTopRow_ = () => cardBlock_({ type: 'tiles', look: 'find-top', tiles: [{ icon: 'up', label: 'Back to top', note: 'the first page of this finder', act: 'find-top' }] });
 on('find-top', el => { const F = finderAt_(el), p = el.closest('.pane'); if (F) inFinder_(F, () => goPage(F.id, stuffQuestionPage_())); else if (p) p.scrollTop = 0; });
 
 /* One card. Lifted out of the list so the pager and anything else can build one without rebuilding
@@ -416,7 +419,7 @@ function tagsAreTitle_(x, html) {
   if (!x || !x.name || typeof html !== 'string') return html;
   const h = /<h3>([\s\S]*?)<\/h3>/.exec(html);
   const named = out => (/^\s*<div class="[^"]*\bcard\b[^"]*"[^>]*\baria-label=/.test(out) ? out
-    : out.replace(/<div class="([^"]*\bcard\b[^"]*)"/, (m, c) => `<div class="${c}" role="group" aria-label="${esc(x.name)}"`));
+    : out.replace(/(<div class="[^"]*\bcard\b[^"]*")/, (m, open) => open + ' role="group" aria-label="' + esc(x.name) + '"'));
   /* A CARD THAT NEVER HAD A HEADING (a verse, a daf, a bout) is named the same way. */
   if (!h) return /qtag/.test(html) ? named(html) : html;
   if (TITLE_WORDS_(h[1]).join(' ') !== TITLE_WORDS_(esc(x.name)).join(' ')) return html;
@@ -437,7 +440,7 @@ function stuffCard(x, credits) {
   const shown = html;
   if (!x.key) return shown;
   /* A ONE-MAKER CARD CARRIES ITS OWN FOUR BUTTONS (`kcFour_`); only a widget kind still gets the row under it. */
-  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${shown}</div>${/\bkc-four\b/.test(shown) ? '' : cardRow_(x)}`;
+  return cardBlock_({ type: 'group', look: 'favwrap' + (isFav(x.key) ? ' is-fav' : ''), inner: shown }) + (/\bkc-four\b/.test(shown) ? '' : cardRow_(x));
 }
 
 /* LONG CARD TEXT IS CUT TO TWO LINES (owner 8 Nov, 29a); a tap on it shows the rest, a second tap cuts it again. */
@@ -592,7 +595,7 @@ function stuffWindow_(mode) {
     for (let i = res.length - 1; i >= size; i--) res[i].remove();
   } else if (res.length < size) {
     host.insertAdjacentHTML('beforeend',
-      '<section class="page is-res"><div class="pane"></div></section>'.repeat(size - res.length));
+      cardBlock_({ type: 'group', tag: 'section', look: 'page is-res', blocks: [{ type: 'group', look: 'pane' }] }).repeat(size - res.length));
   }
 
   PAGE_LO[FINDER.id] = lo;
@@ -687,7 +690,7 @@ function paintStuff(keepPage) {
   /* ---------- ONE INSERT, IN THE ORDER `screen('stuff')` BUILDS § */
   /* ---------- SAVED IS A COLUMN AGAIN, SO IT IS NOT A PAGE HERE § */
   const lead = frontPages_()
-    .map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
+    .map(c => cardBlock_({ type: 'group', tag: 'section', look: 'page', blocks: [{ type: 'group', look: 'pane', inner: c }] })).join('');
   if (lead) first.insertAdjacentHTML('afterend', lead);
 
   /* ---------- AND THE BLANKS, BY DIFFERENCE § */
