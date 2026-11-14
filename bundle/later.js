@@ -10645,13 +10645,11 @@ function bookMenu_() {
   const id = bookFindAt_();
   if (!id) return '';
   const many = BOOK_FIND_MANY.indexOf(id) !== -1;
-  const attrs = o => Object.keys(o.data).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
-  const tags = bookFindOpts_(id).map(o => answerTag_(esc((many && o.on ? '✓ ' : '') + o.text + (o.off ? ' · ' + o.off : o.note ? ' · ' + o.note : '')),
-    ` data-do="${o.act}"${attrs(o)}${o.on ? ' aria-pressed="true"' : ''}${o.off ? ' aria-disabled="true"' : ''}`,
-    (o.on ? 'is-on' : '') + (o.off ? ' is-off' : ''))).join('');
-  const next = many ? answerTag_('Next', ` data-do="book-next" data-step="${id}"`, 'is-skip') : '';
-  return `<p class="book-ask">${esc(BOOK_FIND_ASK[id] || (bookStep_(id) || {}).label || '')}</p>`
-    + answersRow_(tags + next, 'book-step' + (id === 'slots' || id === 'avail' ? ' is-grid' : ''));
+  const opts = bookFindOpts_(id).map(o => ({ text: (many && o.on ? '✓ ' : '') + o.text + (o.off ? ' · ' + o.off : o.note ? ' · ' + o.note : ''),
+    act: o.act, data: o.data, pressed: !!o.on, disabled: !!o.off, look: ((o.on ? 'is-on' : '') + (o.off ? ' is-off' : '')).trim() }));
+  if (many) opts.push({ text: 'Next', act: 'book-next', data: { step: id }, look: 'is-skip' });
+  return CARD_BLOCKS.choices({ ask: BOOK_FIND_ASK[id] || (bookStep_(id) || {}).label || '',
+    rows: [{ look: 'book-step' + (id === 'slots' || id === 'avail' ? ' is-grid' : ''), options: opts }] });
 }
 /* WHAT A STEP'S CHIP SAYS: its answer as the summary says it; a bare number names what it counts. */
 function bookSaid_(id) {
@@ -10665,15 +10663,14 @@ function bookSaid_(id) {
 }
 /* THE STEPS ANSWERED, AS CHIPS AFTER Booking's: tapping one (or its ×) asks that step again and every step after it. */
 function bookChips_() {
-  if (!bookFindOn_() || typeof bookStep_ !== 'function') return '';
+  if (!bookFindOn_() || typeof bookStep_ !== 'function') return [];
   try {
     bookFindStart_();
     return BOOK_FIND_ORDER.filter(id => bookFindAsks_(id) && bookFindPassed_(id)).map(id => {
       const text = bookSaid_(id) || 'None', label = 'Change ' + text;
-      return qtag_(`${esc(text)}${tile_({ icon: 'close', label: label, act: 'book-back', data: { step: id }, cls: 'chip-x' })}`,
-        ` data-do="book-back" data-step="${id}" role="button" tabindex="0" aria-label="${esc(label)}"`, 'sm book-chip', 'chip');
-    }).join('');
-  } catch (e) { oops_(e, 'book:chips'); return ''; }
+      return { base: 'chip', look: 'sm book-chip', text: text, act: 'book-back', data: { step: id }, label: label, x: { label: label }, colour: false };
+    });
+  } catch (e) { oops_(e, 'book:chips'); return []; }
 }
 /* BEFORE ANY STEP IS ANSWERED, Booking's other answers (your sessions, tutors, venues) follow the first step's tags. */
 function bookFindQuestion_() {
@@ -10926,29 +10923,30 @@ function signMenu_() {
   if (!signAsking_()) return '';
   if (SIGN.busy) return loading_();
   if (SIGN.step === 'join') return typeof registerCard_ === 'function' ? registerCard_() : '';
-  if (SIGN.step === 'pin') return answersRow_(SIGN_DIGITS.map(d => answerTag_(d, ` data-do="sign-digit" data-d="${d}" data-repeat`)).join(''), 'is-grid sign-pin')
-    + answersRow_(answerTag_('Forgot PIN', ' data-do="forgot-pin"'), 'sign-more');
+  if (SIGN.step === 'pin') return CARD_BLOCKS.choices({ rows: [
+    { look: 'is-grid sign-pin', options: SIGN_DIGITS.map(d => ({ text: d, act: 'sign-digit', data: { d: d, repeat: true } })) },
+    { look: 'sign-more', options: [{ text: 'Forgot PIN', act: 'forgot-pin' }] }] });
   /* ONE BOX ON ONE FINDER: Find's carries the id the forgotten-PIN tag and the checks read. */
   const mine = FINDER === FINDERS.stuff, google = mine && !!(DATA.googleClientId || '');
   if (google && typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
-  return answersRow_(answerTag_('Guest', ' data-do="sign-guest"') + signBox_(mine)
-    + answerTag_('Make an account', ' data-do="sign-join"') + answerTag_('Forgot PIN', ' data-do="forgot-pin"'), 'sign-who')
-    + (google ? answersRow_('', 'g-row', 'g-btn') : '');
+  /* THE BLANK TAG YOU TYPE YOUR NAME ON: no example and nothing remembered (383); `mine` gives it the id. */
+  const box = signBoxOpt_(mine);
+  return CARD_BLOCKS.choices({ rows: [{ look: 'sign-who', options: [{ text: 'Guest', act: 'sign-guest' }, box,
+    { text: 'Make an account', act: 'sign-join' }, { text: 'Forgot PIN', act: 'forgot-pin' }] }].concat(google ? [{ look: 'g-row', id: 'g-btn', options: [] }] : []) });
 }
-/* THE BLANK TAG YOU TYPE YOUR NAME ON: no example and nothing remembered (383); `mine` gives it the id. */
-const signBox_ = mine => answerBox_(`${mine ? ' id="in-name"' : ''} class="sign-box" type="text" inputmode="email" autocomplete="off"
-  autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" data-1p-ignore data-lpignore="true" aria-label="Your name, @username or email"
-  value="${esc(SIGN.who)}"`, 'sign-type');
+/* THE BLANK TAG AS DATA (the checks draw it alone through `signBox_`). */
+const signBoxOpt_ = mine => ({ box: { id: mine ? 'in-name' : '', cls: 'sign-box', inputmode: 'email', value: SIGN.who, label: 'Your name, @username or email' }, look: 'sign-type' });
+const signBox_ = mine => cardChoice_(signBoxOpt_(mine));
 /* THE STEP'S CHIPS, first in the row: your name signed in (its × signs out), Guest, or the name and a ● per digit. */
 function signChips_() {
-  const chip = (text, act, label) => qtag_(`${esc(text)}${tile_({ icon: 'close', label: label, act: act, cls: 'chip-x' })}`,
-    ` data-do="${act}" role="button" tabindex="0" aria-label="${esc(label)}"`, 'sm sign-chip', 'chip');
-  if (USER) { const who = String(USER.name || USER.handle || '').trim(); return chip(who, 'signout', 'Sign out ' + who); }
-  if (SIGN.step === 'guest') return chip('Guest', 'sign-restart', 'Sign in instead');
-  if (SIGN.step === 'join') return chip('Make an account', 'sign-restart', 'Back to sign in');
-  if (SIGN.step !== 'pin') return '';
+  /* DATA FOR THE MENU CARD'S TAGS: a ● says only how many digits, never which. */
+  const chip = (text, act, label) => ({ base: 'chip', look: 'sm sign-chip', text: text, act: act, label: label, x: { label: label }, colour: false });
+  if (USER) { const who = String(USER.name || USER.handle || '').trim(); return [chip(who, 'signout', 'Sign out ' + who)]; }
+  if (SIGN.step === 'guest') return [chip('Guest', 'sign-restart', 'Sign in instead')];
+  if (SIGN.step === 'join') return [chip('Make an account', 'sign-restart', 'Back to sign in')];
+  if (SIGN.step !== 'pin') return [];
   const dots = SIGN.busy ? SIGN_PIN_LEN : SIGN.pin.length;
-  return chip(SIGN.who, 'sign-restart', 'Not ' + SIGN.who) + qtag_('●', ' aria-hidden="true"', 'sm sign-dot', 'chip').repeat(dots);
+  return [chip(SIGN.who, 'sign-restart', 'Not ' + SIGN.who)].concat(Array.from({ length: dots }, () => ({ base: 'chip', look: 'sm sign-dot', text: '●', hidden: true, colour: false })));
 }
 on('sign-guest', () => { SIGN.step = 'guest'; SIGN.pin = []; signPaint_(); });
 on('sign-join', () => { SIGN.step = 'join'; SIGN.pin = []; signPaint_(); });
@@ -11482,20 +11480,19 @@ function chipText_(f, i) {
 /* THE CHIPS YOU HAVE CHOSEN, drawn with the list because this row grows and shrinks. Clear is not
    one of them — see `filterClear_`. */
 /* 680: THE ROW NEVER SAYS THE SAME THING TWICE — a second chip with the same words is left out (its filter stays). */
-function filterChips() {
+/* THE MENU CARD'S TAGS (owner, 14 Nov: one template): sign-in's, the answers chosen, Booking's steps, each a chip with its ✕. */
+function filterChipTags_() {
   const said = {};
-  return `<div class="chips">${signChips_()}
-    ${STUFF.filters.map((f, i) => {
-      const show = chipText_(f, i), key = spellKey_(show);
-      if (said[key]) return '';
-      said[key] = 1;
-      /* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it; a skip is a chip like any other. */
-      return qtag_(`${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}`,
-        ` data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}`, 'sm', 'chip');
-    }).join('')}
-    ${bookChips_()}
-  </div>`;
+  return signChips_().concat(STUFF.filters.map((f, i) => {
+    const show = chipText_(f, i), key = spellKey_(show);
+    if (said[key]) return null;
+    said[key] = 1;
+    /* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it; a skip is a chip like any other. */
+    return { base: 'chip', look: 'sm', text: show, act: 'filter-drop', data: { i: i }, label: 'Remove ' + show, x: { label: 'Remove ' + show },
+      colour: f.any ? false : tagOf_(f.field) };
+  }).filter(Boolean), bookChips_());
 }
+function filterChips() { return renderTags(filterChipTags_(), 'chips', true); }
 
 /* CLEAR-ALL IS A TILE ABOVE THE CHIPS, not a chip at the end of the row: it empties every answer at once. */
 function filterClear_() {
@@ -12416,16 +12413,17 @@ function facetAnswersHtml_(facet, values, more) {
   /* `counted` TAKES THE CHEVRON OFF. § */
   /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION § */
   /* `counted` WITHOUT A COUNT, which is not a contradiction: § */
-  const skip = answerTag_('Doesn\'t matter', ` data-do="facet-skip" data-field="${esc(facet.field)}"`, 'is-skip');
+  const skip = { text: 'Doesn\'t matter', act: 'facet-skip', data: { field: facet.field }, look: 'is-skip' };
   /* THE "and N more" LINE WENT WITH THE TRIM. § */
   /* `data-value` IS THE FULL NAME (`filterHit` matches it); THE TEXT IS `show`, what tells it apart from the answers beside it, as
      its chip says it (1180: SATs said `Paper 1 · Maths · SATs · KS2`). */
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
   const grid = numberedRun_(values);
-  return answersRow_(values.map(v => answerTag_(mark(v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value)),
-    ` data-do="facet-pick"${tagAttr_(facet.field)} data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.also && v.also.length ? ` data-also="${esc(JSON.stringify(v.also))}"` : ''}${
-      grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}`, facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? 'is-off' : '')).join('') + skip, grid ? 'is-grid' : '') + more;
+  const opts = values.map(v => ({ text: v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value), marked: true, act: 'facet-pick',
+    data: Object.assign({ tag: tagOf_(facet.field), field: facet.field, value: v.value }, v.also && v.also.length ? { also: JSON.stringify(v.also) } : {}),
+    label: grid ? facet.label + ' ' + runNumber_(v)[2] : '', look: facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? 'is-off' : '' }));
+  return CARD_BLOCKS.choices({ rows: [{ look: grid ? 'is-grid' : '', options: opts.concat([skip]) }], after: more });
 }
 
 /* `stuff-jump` went with the group list. § */
@@ -12459,10 +12457,9 @@ function finderScreen_() {
     + `<div id="${F.id}-clear">${filterClear_()}</div>
     ${/* THE SORT WAS HERE — a dropdown offering A–Z and, when anything had a price, cheapest first. § */
           ''}
-    <div id="${F.id}-chips">${filterChips()}</div>
-    ${/* THE COUNT LINE WAS HERE — "565 of 565 · 27 pages". § */
-          ''}
-    <div id="${F.id}-groups">${stuffQuestion()}</div>
+    ${/* THE MENU IS A CARD (owner, 14 Nov: one template): its tags the path chosen, its body the choices (`#…-chips`, `#…-groups` are the slots a repaint fills). */
+      renderCard({ kind: 'menu', look: 'find-menu', name: 'Find', tags: filterChipTags_(), tagLook: 'chips', tagsKeep: true, tagsId: F.id + '-chips',
+        body: [{ type: 'choices', id: F.id + '-groups', after: stuffQuestion() }] })}
     ${/* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */''}
     ${/* THE FINDER ITSELF TAKES A SUGGESTION TOO (494): "should be on finder widget too". */
       typeof suggestOpts_ === 'function' && tile_(suggestOpts_('finder', F.id, 'Find'))

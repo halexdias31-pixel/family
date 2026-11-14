@@ -475,20 +475,19 @@ function chipText_(f, i) {
 /* THE CHIPS YOU HAVE CHOSEN, drawn with the list because this row grows and shrinks. Clear is not
    one of them — see `filterClear_`. */
 /* 680: THE ROW NEVER SAYS THE SAME THING TWICE — a second chip with the same words is left out (its filter stays). */
-function filterChips() {
+/* THE MENU CARD'S TAGS (owner, 14 Nov: one template): sign-in's, the answers chosen, Booking's steps, each a chip with its ✕. */
+function filterChipTags_() {
   const said = {};
-  return `<div class="chips">${signChips_()}
-    ${STUFF.filters.map((f, i) => {
-      const show = chipText_(f, i), key = spellKey_(show);
-      if (said[key]) return '';
-      said[key] = 1;
-      /* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it; a skip is a chip like any other. */
-      return qtag_(`${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}`,
-        ` data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}`, 'sm', 'chip');
-    }).join('')}
-    ${bookChips_()}
-  </div>`;
+  return signChips_().concat(STUFF.filters.map((f, i) => {
+    const show = chipText_(f, i), key = spellKey_(show);
+    if (said[key]) return null;
+    said[key] = 1;
+    /* TAP THE CHIP ANYWHERE TO TAKE IT OFF (owner, 9 Nov): the whole chip is the button, the ✕ only shows it; a skip is a chip like any other. */
+    return { base: 'chip', look: 'sm', text: show, act: 'filter-drop', data: { i: i }, label: 'Remove ' + show, x: { label: 'Remove ' + show },
+      colour: f.any ? false : tagOf_(f.field) };
+  }).filter(Boolean), bookChips_());
 }
+function filterChips() { return renderTags(filterChipTags_(), 'chips', true); }
 
 /* CLEAR-ALL IS A TILE ABOVE THE CHIPS, not a chip at the end of the row: it empties every answer at once. */
 function filterClear_() {

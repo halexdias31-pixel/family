@@ -603,16 +603,17 @@ function facetAnswersHtml_(facet, values, more) {
   /* `counted` TAKES THE CHEVRON OFF. § */
   /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION § */
   /* `counted` WITHOUT A COUNT, which is not a contradiction: § */
-  const skip = answerTag_('Doesn\'t matter', ` data-do="facet-skip" data-field="${esc(facet.field)}"`, 'is-skip');
+  const skip = { text: 'Doesn\'t matter', act: 'facet-skip', data: { field: facet.field }, look: 'is-skip' };
   /* THE "and N more" LINE WENT WITH THE TRIM. § */
   /* `data-value` IS THE FULL NAME (`filterHit` matches it); THE TEXT IS `show`, what tells it apart from the answers beside it, as
      its chip says it (1180: SATs said `Paper 1 · Maths · SATs · KS2`). */
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
   const grid = numberedRun_(values);
-  return answersRow_(values.map(v => answerTag_(mark(v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value)),
-    ` data-do="facet-pick"${tagAttr_(facet.field)} data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.also && v.also.length ? ` data-also="${esc(JSON.stringify(v.also))}"` : ''}${
-      grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}`, facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? 'is-off' : '')).join('') + skip, grid ? 'is-grid' : '') + more;
+  const opts = values.map(v => ({ text: v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value), marked: true, act: 'facet-pick',
+    data: Object.assign({ tag: tagOf_(facet.field), field: facet.field, value: v.value }, v.also && v.also.length ? { also: JSON.stringify(v.also) } : {}),
+    label: grid ? facet.label + ' ' + runNumber_(v)[2] : '', look: facet.field === 'kindLabel' && frontSoonOnly_(v.value) ? 'is-off' : '' }));
+  return CARD_BLOCKS.choices({ rows: [{ look: grid ? 'is-grid' : '', options: opts.concat([skip]) }], after: more });
 }
 
 /* `stuff-jump` went with the group list. § */
@@ -646,10 +647,9 @@ function finderScreen_() {
     + `<div id="${F.id}-clear">${filterClear_()}</div>
     ${/* THE SORT WAS HERE — a dropdown offering A–Z and, when anything had a price, cheapest first. § */
           ''}
-    <div id="${F.id}-chips">${filterChips()}</div>
-    ${/* THE COUNT LINE WAS HERE — "565 of 565 · 27 pages". § */
-          ''}
-    <div id="${F.id}-groups">${stuffQuestion()}</div>
+    ${/* THE MENU IS A CARD (owner, 14 Nov: one template): its tags the path chosen, its body the choices (`#…-chips`, `#…-groups` are the slots a repaint fills). */
+      renderCard({ kind: 'menu', look: 'find-menu', name: 'Find', tags: filterChipTags_(), tagLook: 'chips', tagsKeep: true, tagsId: F.id + '-chips',
+        body: [{ type: 'choices', id: F.id + '-groups', after: stuffQuestion() }] })}
     ${/* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */''}
     ${/* THE FINDER ITSELF TAKES A SUGGESTION TOO (494): "should be on finder widget too". */
       typeof suggestOpts_ === 'function' && tile_(suggestOpts_('finder', F.id, 'Find'))
