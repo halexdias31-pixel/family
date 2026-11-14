@@ -1,5 +1,18 @@
 {
-  "say": "Kinds not yet loaded through the one item shape (item_ / cardOfItem_). Only goes down: node js/check-item-shape.js --lower",
-  "total": 19,
-  "left": ["boxer", "booking", "chem", "content", "fight", "figure", "insert", "level", "mech", "person", "post", "practical", "product", "project", "question", "spec", "subject", "tutor", "venue"]
+ "say": "Kinds not yet loaded through the one item shape (item_ / cardOfItem_). Only goes down: node js/check-item-shape.js --lower",
+ "total": 12,
+ "left": [
+  "booking",
+  "content",
+  "level",
+  "person",
+  "post",
+  "practical",
+  "product",
+  "project",
+  "question",
+  "subject",
+  "tutor",
+  "venue"
+ ]
 }

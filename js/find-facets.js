@@ -497,9 +497,8 @@ function overFacet_(items) {
 /* THE CARD. Small — a reference, the marks, and the first line of the question, because a list of ninety § */
 /* THE RECORD IS THE FACE OF IT. § */
 /* ---------- ONE BOUT (batch D): the two fighters' portraits facing each other under the tags, and nothing else § */
-cardKind_('fight', x => { const f = x.row || {};
-  return { look: 'fight', name: [f.a, f.b].filter(Boolean).join(' and '), tags: tagList_(x),
-    body: [{ type: 'figure', ...personPicSpec_(f.aId, f.a) }, { type: 'figure', ...personPicSpec_(f.bId, f.b, true) }] }; });
+/* Its card is its item map (ITEM_MAPS.fight, cards-parts.js); these portraits are its body. */
+const fightBody_ = f => [{ type: 'figure', ...personPicSpec_(f.aId, f.a) }, { type: 'figure', ...personPicSpec_(f.bId, f.b, true) }];
 
 /* WHO WON A BOUT, by id where there is one (as the card frames the face), else by the name the row gives. */
 function boutWinner_(x) {
