@@ -521,7 +521,7 @@ const cardAttrs_ = d => Object.keys(d || {}).map(k => ` data-${esc(k)}="${esc(St
 /* A PICTURE: a photo (`src`), a clip (`video`), an 8-bit drawing (`pix`: 16 rows of palette letters), or a drawing a picture maker drew (`svg`). */
 function cardPic_(p) {
   if (!p) return '';
-  if (p.src) return `<img src="${esc(p.src)}" alt="${esc(p.alt || '')}" loading="lazy" decoding="async">`;
+  if (p.src) return `<img${p.look ? ` class="${esc(p.look)}"` : ''} src="${esc(p.src)}" alt="${esc(p.alt || '')}" loading="lazy" decoding="async">`;
   if (p.video) return `<video src="${esc(p.video)}" muted playsinline loop aria-label="${esc(p.alt || '')}"></video>`;
   if (Array.isArray(p.pix)) return `<figure class="person-pic">${pixSvg_(p.pix, p.alt, p.flip, p.none ? ' is-none' : '')}</figure>`;
   if (p.svg && /^\s*<(svg|figure)\b[\s\S]*<\/svg>[\s\S]*$/.test(String(p.svg))) return String(p.svg);
@@ -564,9 +564,9 @@ function cardControl_(c) {
   c = Object.assign({}, c || {});
   if (c.draft && typeof draftVal_ === 'function') { c.drafted = draftAttr_(c.draft.surface, c.draft.id, c.value); c.value = draftVal_(c.draft.surface, c.draft.id, c.value); }
   const id = c.id ? ` id="${esc(c.id)}"` : '', name = c.name ? ` name="${esc(c.name)}"` : '', act = c.act ? ` data-do="${esc(c.act)}"` : '';
-  const more = id + name + act + cardAttrs_(c.data) + (c.off ? ' disabled' : '') + (c.required ? ' required' : '') + (c.aria ? ` aria-label="${esc(c.aria)}"` : '') + (c.drafted ? ' ' + c.drafted : '');
+  const more = id + name + act + (c.look ? ` class="${esc(c.look)}"` : '') + cardAttrs_(c.data) + (c.off ? ' disabled' : '') + (c.required ? ' required' : '') + (c.aria ? ` aria-label="${esc(c.aria)}"` : '') + (c.drafted ? ' ' + c.drafted : '');
   if (c.kind === 'select') return `<select${more}>${(c.options || []).map(o => { o = typeof o === 'object' ? o : { value: o, text: o };
-    return `<option value="${esc(o.value)}"${String(o.value) === String(c.value) ? ' selected' : ''}>${esc(o.text == null ? o.value : o.text)}</option>`; }).join('')}</select>`;
+    return `<option value="${esc(o.value)}"${cardAttrs_(o.data)}${String(o.value) === String(c.value) ? ' selected' : ''}>${esc(o.text == null ? o.value : o.text)}</option>`; }).join('')}</select>`;
   if (c.kind === 'textarea') return `<textarea rows="${Number(c.rows) || 3}" placeholder="${esc(c.placeholder || '')}"${more}>${esc(c.value || '')}</textarea>`;
   if (c.kind === 'check') return `<input type="checkbox"${c.value ? ' checked' : ''}${more}>`;
   const type = /^(number|date|time|email|tel|password|search|file)$/.test(c.kind) ? c.kind : 'text';
@@ -644,20 +644,29 @@ const CARD_BLOCKS = {
     if (items.some(x => x && typeof x === 'object' && 'label' in x)) return items.map(x =>
       `<div class="row"><span class="k">${esc(x.label)}</span><span class="v${x.tone ? ' ' + esc(x.tone) : ''}">${cardRuns_(x.value)}</span></div>`).join('');
     const tag = b.ordered ? 'ol' : 'ul';
-    return items.length ? `<${tag} class="kc-list">${items.map(x => `<li>${cardRuns_(x)}</li>`).join('')}</${tag}>` : ''; },
+    return items.length ? `<${tag} class="kc-list${b.look ? ' ' + esc(b.look) : ''}">${items.map(x => `<li>${cardRuns_(x)}</li>`).join('')}</${tag}>` : ''; },
   answer: cardAnswer_,
   formRow: b => `<label class="kc-form-row"><span class="k">${cardRuns_(b.label || '')}</span>${cardControl_(b.control)}</label>`,
   embed: cardEmbed_,
   /* A HEADED SECTION: a small heading, then any blocks. */
-  section: b => `<section class="kc-sec${b.look ? ' ' + esc(b.look) : ''}">${b.head ? `<h4 class="kc-h">${cardRuns_(b.head)}</h4>` : ''}${(b.blocks || []).map(cardBlock_).join('')}</section>`,
+  section: b => `<section class="kc-sec${b.look ? ' ' + esc(b.look) : ''}"${b.live ? ' aria-live="polite"' : ''}>${b.head ? `<h4 class="kc-h${b.headLook ? ' ' + esc(b.headLook) : ''}">${cardRuns_(b.head)}</h4>` : ''}${(b.blocks || []).map(cardBlock_).join('')}</section>`,
   tree: b => cardTree_(b.nodes, !!b.fold, true),
   grid: cardGrid_,
   /* A WAIT is `loading_()` and nothing else; `look` and `data` name a region its redraw finds (`.err-body`). */
   choices: cardChoices_,
   /* A WHOLE CARD AMONG THE BLOCKS (Make an account inside Find's menu): its spec, drawn by `renderCard`. */
   card: b => (b.spec ? renderCard(b.spec) : ''),
+  /* A ROW OF TILES among the lines (`tile_` specs), its look added to `tile-row`. */
+  tiles: b => ((b.tiles || []).length ? `<div class="tile-row${b.look ? ' ' + esc(b.look) : ''}">${tile_(b.tiles)}</div>` : ''),
+  /* A PERSON ON ONE LINE: their face (`personFace_`'s who and options), name, @handle, then their tiles. */
+  who: b => `<div class="row${b.look ? ' ' + esc(b.look) : ''}">${b.face && typeof personFace_ === 'function' ? personFace_(b.face.who || {}, b.face.o || {}) : ''}<p class="${esc(b.whoLook || 'who')}"><b>${cardRuns_(b.name)}</b>${
+    b.handle ? `<span class="prof-handle">@${esc(b.handle)}</span>` : ''}</p>${(b.tiles || []).length ? `<div class="tile-row">${tile_(b.tiles)}</div>` : ''}</div>`,
+  /* ONE TICK BOX in a labelled cell (an hour on a week you tick): `control` is `cardControl_`'s. */
+  tick: b => `<label class="${esc(b.look || '')}"${b.label ? ` aria-label="${esc(b.label)}"` : ''}>${cardControl_(Object.assign({ kind: 'check' }, b.control || {}))}</label>`,
   wait: b => `<div class="kc-wait${b.look ? ' ' + esc(b.look) : ''}"${cardAttrs_(b.data)}${b.on ? ' aria-busy="true"' : ''}>${b.on && typeof loading_ === 'function' ? loading_() : ''}</div>`,
 };
+/* THE PADLOCK a shut card wears, first inside it. */
+const cardLockMark_ = () => `<span class="card-lock" title="Locked" aria-label="Locked">${typeof tileIcon_ === 'function' ? tileIcon_('lock') : ''}</span>`;
 /* A CARD DRAWN AGAIN WHERE IT STANDS: the new card replaces the old element whole. */
 function cardRedraw_(el, spec) {
   if (!el || typeof document === 'undefined') return;
@@ -758,7 +767,7 @@ function paperSelect_(b) {
 const paperSet_ = b => `<span class="bk-set">${esc(b.text)}</span>`;
 const paperInput_ = b => `<input class="bk-in${b.wide ? ' bk-in-l' : ''}"${b.id ? ` id="${esc(b.id)}"` : ''}${b.act ? ` data-do="${esc(b.act)}"` : ''}${b.field ? ` data-field="${esc(b.field)}"` : ''} type="${b.kind === 'number' ? 'number' : 'text'}"`
   + `${b.kind === 'number' ? ' inputmode="decimal" min="0" max="100" step="1"' : ''} value="${esc(b.value == null ? '' : b.value)}" placeholder="${esc(b.placeholder || '')}"${b.off ? ' disabled' : ''} aria-label="${esc(b.aria || '')}">`;
-const paperNote_ = b => `<p class="note${b.look ? ' ' + esc(b.look) : ''}">${cardRuns_(b.text)}</p>`;
+const paperNote_ = b => `<p class="note${b.look ? ' ' + esc(b.look) : ''}"${b.live ? ' aria-live="polite"' : ''}${b.alert ? ' role="alert"' : ''}>${cardRuns_(b.text)}</p>`;
 const paperLinks_ = b => `<p class="note policy-links">${esc(b.say || '')}${(b.links || []).map(l => `<a href="${esc(l.href)}" data-do="file-view" target="_blank" rel="noopener">${esc(l.text)}</a>`).join(' · ')}</p>`;
 const paperBox_ = b => `<div${b.id ? ` id="${esc(b.id)}"` : ''} class="${esc(b.look || '')}">${b.inner || ''}</div>`;
 Object.assign(CARD_BLOCKS, { paperRow: paperRow_, paperDoc: paperDoc_, paperRoster: paperRoster_, paperWhenCould: paperWhenCould_, paperWeek: paperWeek_,
@@ -10410,13 +10419,14 @@ on('msg-reply', el => {
 /* THE SIGN-IN SLIP — the same paper wherever a handle and a PIN are handed to somebody: here, and in
    the New PIN sheet. Paper, so `--paper` and `--paper-ink`, never a literal. */
 function pinSlip_(first, handle, pin) {
-  return `<div class="pin-slip" aria-live="polite">
-    <p class="pin-slip-k">${esc(first || 'They')} signs in with</p>
-    <p class="pin-slip-v">@${esc(handle)}</p>
-    <p class="pin-slip-k">and the PIN</p>
-    <p class="pin-slip-v">${esc(pin)}</p>
-  </div>`;
+  return cardBlock_({ type: 'section', look: 'pin-slip', live: true, blocks: [
+    { type: 'text', look: 'pin-slip-k', text: (first || 'They') + ' signs in with' }, { type: 'text', look: 'pin-slip-v', text: '@' + handle },
+    { type: 'text', look: 'pin-slip-k', text: 'and the PIN' }, { type: 'text', look: 'pin-slip-v', text: String(pin) }] });
 }
+/* A SETTINGS CARD AS A SPEC (owner, 13 Nov: one template): its name the one tag, its look its old class, its body blocks. */
+const rolesSet_ = (look, name, body, more) => renderCard(Object.assign({ kind: 'setting', look: look || '', name: name || '', tags: name ? [name] : [], body: body || [] }, more || {}));
+/* MARKUP ANOTHER MAKER DREW (a hub, a form, the build line), carried as the one embed. */
+const rolesDrawn_ = (draw, look) => ({ type: 'embed', tool: 'me-form', look: look || '', args: { draw } });
 
 /* ---------- AN ADDRESS NOBODY HAS PROVED: THE MAIL IT IS NOT SENT, AND THE CHILD IT CANNOT HOLD YET § */
 function pendingAddr_() { return (whose_() && whose_().pendingEmail) ? String(whose_().pendingEmail) : ''; }
@@ -10431,8 +10441,7 @@ function mailHeldNote_() {
   const at = pendingAddr_();
   /* `overflow-wrap:anywhere` ON THE ADDRESS: it is one word with no space in it, and a long one at 320
      took the card sideways — the fault the dotted answer line paid for (check/states.js). */
-  return at ? `<p class="said mail-held">We will email you once you open the link
-    we sent to <b class="wrap-any">${esc(at)}</b>.</p>` : '';
+  return at ? cardBlock_({ type: 'text', look: 'said mail-held wrap-any', text: ['We will email you once you open the link we sent to ', { b: at }, '.'] }) : '';
 }
 
 /* ---------- A NEW ADDRESS WAITING TO BE PROVED, ON THE CARD IT WAS TYPED ON § */
@@ -10440,20 +10449,16 @@ function movingNote_(p) {
   const to = p && p.email_moving ? String(p.email_moving) : '';
   if (!to) return '';
   const was = String((p && p.email) || '');
-  return `<p class="said mail-moving">Your email changes to
-    <b class="wrap-any">${esc(to)}</b> once you open the link we sent there, on a phone where you
-    are signed in.${was ? ` Until then it is still <b class="wrap-any">${esc(was)}</b> — sign in
-    with that, or your handle. Type it back here to keep it.` : ''}</p>`;
+  return cardBlock_({ type: 'text', look: 'said mail-moving wrap-any', text: ['Your email changes to ', { b: to },
+    ' once you open the link we sent there, on a phone where you are signed in.'].concat(was ? [' Until then it is still ', { b: was },
+    ' — sign in with that, or your handle. Type it back here to keep it.'] : []) });
 }
 
 /* WHERE THE TWO FORMS WOULD BE, for a parent whose address is still PENDING. § */
 function kidHeldSec_() {
-  return `<div class="kid-sec kid-held">
-    <h4 class="kid-h">Add your child</h4>
-    <p class="note">Open the link we emailed to <b class="wrap-any">${esc(pendingAddr_())}</b>
-      first, then you can add your child.</p>
-    <div class="tile-row">${tile_(RESEND_LINK)}</div>
-  </div>`;
+  return { type: 'section', look: 'kid-sec kid-held', head: 'Add your child', headLook: 'kid-h', blocks: [
+    { type: 'text', look: 'note wrap-any', text: ['Open the link we emailed to ', { b: pendingAddr_() }, ' first, then you can add your child.'] },
+    { type: 'tiles', tiles: [RESEND_LINK] }] };
 }
 
 /* ---------- MANAGE YOUR CHILD: ONE CARD (docs/history/339) § */
@@ -10468,29 +10473,21 @@ function kidListSec_(held) {
   /* NOT "NONE" WHILE THE PAYLOAD IS COMING — the family arrives with it, and "no child is linked" over a
      list that is a moment away is the `nothingHere` fault. The one loader (`loading_`) until it lands. */
   if (!kids.length) {
-    return `<div class="kid-sec kid-list">${typeof awaiting_ === 'function' && awaiting_() ? loading_()
-      : empty_('No child linked yet.')}</div>`;
+    return { type: 'section', look: 'kid-sec kid-list', blocks: [typeof awaiting_ === 'function' && awaiting_() ? { type: 'wait', on: true }
+      : { type: 'text', look: 'empty', text: 'No child linked yet.' }] };
   }
-  return `<div class="kid-sec kid-list">${kids.map(f => {
+  return { type: 'section', look: 'kid-sec kid-list', blocks: kids.map(f => {
     /* THEIR FIRST NAME, as the server calls a child (docs/history/333), without the `(@handle)` it adds
        when two children share one — the handle is printed beside it. */
     const first = String(nameBesideHandle_(f.title, f.handle) || f.title).trim();
-    return `<div class="row kid-item">
-      ${personFace_({ pic: f.image, avatar: f.avatar, handle: f.handle, name: first, personId: f.personId },
-                    { cls: 'kid-face', none: 'prof-none', size: 36 })}
-      <p class="kid-who"><b>${esc(first)}</b>${f.handle ? `<span class="prof-handle">@${esc(f.handle)}</span>` : ''}</p>
-      ${held ? '' : `<div class="tile-row">${tile_({ icon: 'key', label: 'New PIN', note: 'to sign in with',
-          act: 'kid-pin', data: { id: f.personId, name: first.split(' ')[0] } })}</div>`}
-    </div>`;
-  }).join('')}</div>`;
+    return { type: 'who', look: 'kid-item', whoLook: 'kid-who', name: first, handle: f.handle || '',
+      face: { who: { pic: f.image, avatar: f.avatar, handle: f.handle, name: first, personId: f.personId }, o: { cls: 'kid-face', none: 'prof-none', size: 36 } },
+      tiles: held ? [] : [{ icon: 'key', label: 'New PIN', note: 'to sign in with', act: 'kid-pin', data: { id: f.personId, name: first.split(' ')[0] } }] };
+  }) };
 }
 function childManageCard_() {
   const held = !!pendingAddr_();
-  return meCard_(`<div class="kid-card kid-manage">
-    <h3>Manage your child</h3>
-    ${kidListSec_(held)}
-    ${held ? kidHeldSec_() : kidAddSec_()}
-  </div>`);
+  return rolesSet_('kid-card kid-manage', 'Manage your child', [kidListSec_(held), held ? kidHeldSec_() : rolesDrawn_(kidAddSec_)]);
 }
 
 /* A REFUSAL THAT SAYS THE ADDRESS IS WAITING corrects the phone: § */
@@ -10526,10 +10523,9 @@ on('kid-pin', el => {
   if (!id) { toast('That account has no id yet — ask us.'); return; }
   const row = el.closest('.tile-row') || el;
   document.querySelectorAll('.kid-pin-ask').forEach(x => x.remove());
-  row.insertAdjacentHTML('afterend', `<div class="kid-pin-ask">
-    <p class="note">A new PIN for ${esc(who)}: their old PIN stops working, and they are signed out everywhere. You will see the
-      new one once, to give them.</p>
-    ${tile_({ form: true, label: 'Make a new PIN', act: 'kid-pin-go', data: { id: id, name: who } })}</div>`);
+  row.insertAdjacentHTML('afterend', cardBlock_({ type: 'section', look: 'kid-pin-ask', blocks: [
+    { type: 'text', look: 'note', text: 'A new PIN for ' + who + ': their old PIN stops working, and they are signed out everywhere. You will see the new one once, to give them.' },
+    { type: 'tiles', tiles: [{ form: true, label: 'Make a new PIN', act: 'kid-pin-go', data: { id: id, name: who } }] }] }));
 });
 
 on('kid-pin-go', el => {
@@ -10540,8 +10536,7 @@ on('kid-pin-go', el => {
     .then(d => {
       const body = el.closest('.kid-pin-ask');
       if (body) body.innerHTML = pinSlip_(d.first || el.getAttribute('data-name'), d.handle, d.pin)
-        + '<p class="note">Write it down or read it to them — it is not shown again. They can change it '
-        + 'under Kids settings once they are in.</p>';
+        + cardBlock_({ type: 'text', look: 'note', text: 'Write it down or read it to them — it is not shown again. They can change it under Kids settings once they are in.' });
     })
     .catch(() => {});
 });
@@ -10602,8 +10597,7 @@ const libFieldsOf_ = groups => [].concat(...Object.keys(groups || {}).map(g => g
 /* ---------- READING ALOUD (453, 463) — no choice: the device's calmest natural voice, free; a sample is all there is to do ---------- */
 function voiceCard_() {
   if (!canSay_()) return '';
-  return meCard_(`<div class="voice-card"><h3>Reading aloud</h3>
-    <div class="tile-row">${tile_({ icon: 'speak', label: 'Hear a sample', note: 'the reading voice', act: 'voice-try' })}</div></div>`);
+  return rolesSet_('voice-card', 'Reading aloud', [{ type: 'tiles', tiles: [{ icon: 'speak', label: 'Hear a sample', note: 'the reading voice', act: 'voice-try' }] }]);
 }
 const VOICE_SAMPLE = 'Hello. This is how your questions will be read. For example: x² ÷ 4 is less than 3/4.';
 on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
@@ -10630,18 +10624,17 @@ function lockedAs_(col, draw) {
 /* SHUT: the padlock on the card, every box and tile disabled, a link made inert — what it is stays readable. */
 function lockCard_(h) {
   return String(h).replace(/^(\s*<div\b[^>]*\bclass="(?:card|own-set)\b[^"]*)"/, '$1 is-locked"')
-    .replace(/^(\s*<div\b[^>]*>)/, `$1<span class="card-lock" title="Locked" aria-label="Locked">${tileIcon_('lock')}</span>`)
+    .replace(/^(\s*<div\b[^>]*>)/, (m, open) => open + cardLockMark_())
     .replace(/<(input|select|textarea|button)\b(?![^>]*\sdisabled\b)/g, '<$1 disabled')
     .replace(/<a\b([^>]*)\shref="[^"]*"/g, '<a$1 aria-disabled="true"')
     /* NO ID OF ITS OWN — a shut copy must never be the box a real card's code finds (`pin-now`). */
     .replace(/(<[a-z]+\b[^>]*?)\sid="/g, '$1 data-lock-id="');
 }
 /* YOUR CARD'S PLACE ON A LOCKED COLUMN: its title only — a placeholder has no card to draw. */
-const lockedOwnCards_ = col => (OWN_SEC_OF_SET_[col] || []).map(k => meCard_(`<div class="own-lock" data-lay-card="own:${col}:${k}"><h3>${esc(OWN_SEC_TITLE_[k] || k)}</h3></div>`));
+const lockedOwnCards_ = col => (OWN_SEC_OF_SET_[col] || []).map(k => rolesSet_('own-lock', OWN_SEC_TITLE_[k] || k, [], { data: { 'lay-card': 'own:' + col + ':' + k } }));
 /* EACH SETTINGS COLUMN'S CARDS FOR ITS ROLE, built the same way as for a holder (`staffPages_`, `familyPages_`, `youSettingsPages_`). */
 const LOCKED_DRAW_ = {
-  staff: () => lockedOwnCards_('staff').concat([meCard_(`<div class="staff-top"><h3>Staff hub</h3>${
-    typeof window.hubBlock_ === 'function' ? window.hubBlock_() : ''}</div>`)]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
+  staff: () => lockedOwnCards_('staff').concat([rolesSet_('staff-top', 'Staff hub', [rolesDrawn_(() => (typeof window.hubBlock_ === 'function' ? window.hubBlock_() : ''))])]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
   family: () => lockedOwnCards_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family')),
   account: () => lockedOwnCards_('account').concat(youSettingsPages_()),
 };
@@ -10662,7 +10655,7 @@ screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_
 function applyCard_() {
   const open = typeof applyFormOpen_ === 'function' && applyFormOpen_();
   const body = open ? applyFormHtml_() : typeof applyOpts_ === 'function' && applyOpts_() ? tileRow_(tile_(applyOpts_()), 'apply-tiles') : '';
-  const h = body ? meCard_(`<div class="apply-card" data-yours="1"><h3>Apply to teach</h3><p class="note">Teach with us: tell us what you teach, and we will be in touch.</p>${body}</div>`) : '';
+  const h = body ? rolesSet_('apply-card', 'Apply to teach', [{ type: 'text', look: 'note', text: 'Teach with us: tell us what you teach, and we will be in touch.' }, rolesDrawn_(() => body)], { data: { yours: '1' } }) : '';
   /* AN APPLICATION IS THE ASKER'S OWN (`applyTeach`), so in the lens it is shown shut. */
   return h ? [lensOn_() ? lockCard_(h) : h] : [];
 }
@@ -10674,7 +10667,7 @@ function staffPages_() {
   if (!whoseAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
   const hub = typeof window.hubBlock_ === 'function' ? window.hubBlock_() : '';
   const warn = typeof window.hubWarn_ === 'function' ? window.hubWarn_() : '';
-  const top = hub ? [meCard_(`<div class="staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`)] : [];
+  const top = hub ? [rolesSet_('staff-top', 'Staff hub', [rolesDrawn_(() => warn + hub)])] : [];
   const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
@@ -10682,8 +10675,7 @@ screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('
 
 /* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
 function apprenticePages_() {
-  return [meCard_(`<div class="appr-set"><p class="note">${
-    esc(brand('apprentice_blurb', 'Work experience with us. Coming soon.'))}</p></div>`)];
+  return [rolesSet_('appr-set', '', [{ type: 'text', look: 'note', text: brand('apprentice_blurb', 'Work experience with us. Coming soon.') }])];
 }
 screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? cardsOf_('apprentice') : apprenticePages_()));
 
@@ -10693,17 +10685,15 @@ function webProfilePages_() {
   const name = b.name || brand('name', '@family.'), logo = brandLogo_();
   const lines = [brand('web_tagline', 'Tutoring for every age, at home and online.'), b.area ? 'Where: ' + b.area : '',
     b.phone ? 'Phone: ' + b.phone : '', b.site ? 'Online: ' + b.site : ''].filter(Boolean);
-  return [meCard_(`<div class="web-card"><h3>${esc(name)}</h3>${logo ? `<img class="web-logo" alt="" src="${esc(logo)}">` : ''}${
-    ''}</div>`)];
+  return [rolesSet_('web-card', name, logo ? [{ type: 'figure', src: logo, alt: '', look: 'web-logo' }] : [])];
 }
 screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web') : webProfilePages_()));
 
 /* ---------- APPRENTICE PROFILE (730): a card per apprentice an admin is sent (`everyone`, role Apprentice); none yet is a line from brand() ---------- */
 function apprenticeProfilePages_() {
   const all = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title && /apprentice/i.test(String(p.role || '')));
-  if (all.length) return all.map(p => meCard_(`<div class="appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="qtags">${qtag_(`@${esc(p.handle)}`, '', `prof-handle`)}</p>` : ''}</div>`));
-  return [meCard_(`<div class="appr-card people-none">${
-    empty_(brand('apprentices_none', 'No apprentices yet.'))}</div>`)];
+  if (all.length) return all.map(p => rolesSet_('appr-card', p.title, p.handle ? [{ type: 'tags', tags: [{ text: '@' + p.handle, look: 'prof-handle' }] }] : []));
+  return [rolesSet_('appr-card people-none', '', [{ type: 'text', look: 'empty', text: brand('apprentices_none', 'No apprentices yet.') }])];
 }
 screen('apprentices', () => pages('apprentices', typeof cardsOf_ === 'function' ? cardsOf_('apprentices') : apprenticeProfilePages_()));
 
@@ -10718,7 +10708,7 @@ function sitePages_() {
   return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
     .concat(typeof inboxCard_ === 'function' ? [inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
-    .concat([meCard_(`<div class=""><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`)]);
+    .concat([rolesSet_('', 'Build', [rolesDrawn_(versionSaid_, 'me-build')])]);
 }
 
 /* ---------- STABILITY (730): data/stability.json, written by tools/stability.js, read the first time the card is drawn ---------- */
@@ -10736,13 +10726,12 @@ function stabilityCard_() {
         .then(() => { try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
     } catch (e) { STAB.failed = true; }
   }
-  const s = STAB.got, head = '<h3>Stability</h3>';
-  if (!s) return meCard_(`<div class="biz stability-card">${head}${STAB.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`);
+  const s = STAB.got;
+  if (!s) return rolesSet_('biz stability-card', 'Stability', [STAB.failed ? { type: 'paperNote', alert: true, text: 'The score could not be read. Run node tools/stability.js and push.' } : { type: 'wait', on: true }]);
   const sig = (s.signals || []).filter(x => x.off > 0);
-  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} ${qtag_(`−${esc(String(x.off))}`)}</li>`;
-  return meCard_(`<div class="biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
-    <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
-    ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`);
+  return rolesSet_('biz stability-card', 'Stability', [{ type: 'text', look: 'stab-score', text: String(s.score) + '%' },
+    { type: 'list', ordered: true, look: 'stab-top', items: (STAB.all ? sig : sig.slice(0, 3)).map(x => x.label + ': ' + x.count + ' −' + x.off) },
+    sig.length > 3 ? { type: 'tiles', tiles: [{ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }] } : null]);
 }
 on('stab-all', () => { STAB.all = !STAB.all; try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
 
@@ -10770,16 +10759,11 @@ function rolesCard_() {
   const name = brand('name', '@family.');
   /* ONE ROW, THE PHONE'S OWN PICKER, and no notes under it (469: the owner, "so much filler space"). */
   const can = rolesPickable_() ? ROLE_PICKS.filter(([r]) => r !== 'tutor') : [];
-  const picks = can.length ? formLine_('You are', formSelect_('class="role-pick-in" aria-label="Your role"',
-      can.map(([r, label]) => `<option value="${r}" data-role-pick="${r}"${r === 'client' ? ' selected' : ''}>${esc(label)}</option>`).join('')), 'role-pick-row') + `
-`
-    + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'roles-save' })}</div>` : '';
+  const picks = can.length ? [{ type: 'formRow', label: 'You are', control: { kind: 'select', look: 'role-pick-in', aria: 'Your role', value: 'client',
+      options: can.map(([r, label]) => ({ value: r, text: label, data: { 'role-pick': r } })) } },
+    { type: 'tiles', tiles: [{ icon: 'save', label: 'Save', act: 'roles-save' }] }] : [];
   const said = rolesSaid_();
-  return meCard_(`<div class="roles-card">
-    <h3>Your roles</h3>
-    ${picks}
-    ${picks || said ? `<p class="note roles-said" aria-live="polite">${esc(said)}</p>` : ''}
-  </div>`);
+  return rolesSet_('roles-card', 'Your roles', picks.concat(picks.length || said ? [{ type: 'paperNote', look: 'roles-said', live: true, text: said }] : []));
 }
 /* WHAT A SAVE POSTS: the one choice, and a waiting Tutor's `tutor`, which is kept, not added (the server refuses adding it). */
 const rolesPicked_ = card => {
@@ -10835,7 +10819,7 @@ const notifyList_ = () => {
 function notifyCard_() {
   const f = (DATA && Array.isArray(DATA.features)) ? DATA.features : [];
   const n = notifyList_();
-  const said = t => `<p class="note notify-said" aria-live="polite">${esc(t)}</p>`;
+  const said = t => cardBlock_({ type: 'paperNote', look: 'notify-said', live: true, text: t });
   let inner, toggles = [], tail = '';
   /* AN EMPTY LIST BEFORE THE PAYLOAD HAS LANDED IS "NOT KNOWN YET", NOT "OLD" — `LOADED` says which. */
   if (f.indexOf('setNotify') === -1 && (f.length || LOADED)) {
@@ -10846,11 +10830,11 @@ function notifyCard_() {
     /* NO ADDRESS OF THEIR OWN — `notify` writes to the row's own address and nowhere else, so nothing at
        all is sent to them; a child's forgotten PIN goes to their grown-ups (`authGrownUps_`). */
     const kid = heldRoles(whose_()).map(roleOf).indexOf('student') !== -1;
-    inner = empty_(kid ? 'No email address, so no emails.' : 'No email address yet — add one on your Contact card.');
+    inner = cardBlock_({ type: 'text', look: 'empty', text: kid ? 'No email address, so no emails.' : 'No email address yet — add one on your Contact card.' });
   }
   /* A LIST WITH NOTHING IN IT. § */
   else if (!n.kinds.length) {
-    inner = empty_('No email choices yet.');
+    inner = cardBlock_({ type: 'text', look: 'empty', text: 'No email choices yet.' });
   } else {
     const opt = n.kinds.filter(k => !k.essential), must = n.kinds.filter(k => k.essential);
     const mine = NOTIFY_SAID.pid && NOTIFY_SAID.pid === String(whose_().personId || '') ? NOTIFY_SAID.text : '';
@@ -10858,9 +10842,8 @@ function notifyCard_() {
     inner = '';
     toggles = opt.map(k => ({ act: 'notify-pick', cls: 'notify-pick', data: { kind: k.kind }, on: k.on, label: k.label,
       note: (k.note || '') + (k.idle ? ' — ' + String(k.idle).toLowerCase() : '') }));
-    tail = `${must.length ? `<p class="notify-cap">Always sent</p>
-      <ul class="notify-always">${must.map(k => `<li title="${esc(k.note)}">${esc(k.label)}</li>`).join('')}</ul>` : ''}
-      ${said(mine)}`;
+    tail = cardBlocks_(must.length ? [{ type: 'text', look: 'notify-cap', text: 'Always sent' }, { type: 'list', look: 'notify-always', items: must.map(k => k.label) }] : [])
+      + said(mine);
   }
   /* THE ONE FORM MAKER WITHOUT A Save: each tick is saved the moment it is ticked (`notify-pick`). */
   /* PHONE NOTIFICATIONS (492, push.js) ARE PART OF THIS ONE CARD (owner, 12 Nov). */
@@ -10939,12 +10922,8 @@ function availGrid_(codes, p, readonly, mine) {
 
   if (!days.length) return '';
   /* ---------- `.me-week`, BECAUSE THIS WEEK IS READ AT LEISURE AND THE BOOKING ONE IS NOT § */
-  return `<div class="me-week" style="--hours:${days[0].hours.length}">
-    ${weekGrid_(days, (h, d) => `<label class="hr${on(h.code) ? ' on' : ''}${
-      ro(h.code) ? ' shut' : ''}" aria-label="${esc(d.label)} ${h.h}:00">
-      ${formInput_(`type="checkbox" data-me="${esc(h.code)}" ${on(h.code) ? 'checked' : ''}
-             ${ro(h.code) ? 'disabled' : ''}${keep(h.code) ? draftAttr_('set', h.code, was(h.code)) : ''}`)}
-    </label>`)}</div>`;
+  return cardBlock_({ type: 'paperBox', look: 'me-week', inner: weekGrid_(days, (h, d) => cardBlock_({ type: 'tick', look: 'hr' + (on(h.code) ? ' on' : '') + (ro(h.code) ? ' shut' : ''),
+    label: d.label + ' ' + h.h + ':00', control: { value: on(h.code), off: ro(h.code), data: { me: h.code }, drafted: keep(h.code) ? draftAttr_('set', h.code, was(h.code)) : '' } })) });
 }
 
 ;
