@@ -162,7 +162,7 @@ function subApply_(who, items, d) {
                       : { a: cur.a, v: cur.v, at: cur.at, id: ev.id, far: 1 };
   });
   subAllKeep_(who, all);
-  if (typeof offSynced_ === 'function') offSynced_(who);
+  if (typeof window.offSynced_ === 'function') window.offSynced_(who);
 }
 function subPush_(now, keepalive) {
   /* THE DEVICE'S OWN QUEUE, not the press that woke it: the card has already changed, so this request holds no control (534). */
@@ -618,7 +618,7 @@ function subPaint_(k) {
 }
 function subPaintAll_() {
   if (typeof ansSavedPaint_ === 'function') ansSavedPaint_();
-  if (typeof offFrontPaint_ === 'function') offFrontPaint_();
+  if (typeof window.offFrontPaint_ === 'function') window.offFrontPaint_();
 }
 /* A BOX'S VERDICT LINE, FROM THE STORE: § */
 function subVerdictPaint_(mark, inp) {

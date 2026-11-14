@@ -107,3 +107,15 @@ One list, so nothing asked for gets lost. Claude ticks items off here when they 
   - Never a second card for the same entity, and never an entity card without its tag.
   - The check fails on duplicates or orphans.
 - [ ] Apply this rule before adding the new history databases: audit the existing entities (Septuagint, versions, manuscripts and so on) and merge any duplicates.
+
+## BRING BACK LATER (switched off 14 Nov, code kept in attic/, data kept)
+
+Bring one back the way attic/README.md says: `git mv` it back, re-add it to `window.FILES` in index.html and to `files`/`later` in data/settings/tiers.json, then `node tools/tiers.js`, `node tools/bundle.js`, `node js/check.js`. The checks go back into js/check-all.js's SUITE and rules.json.
+- [ ] Email widget: attic/js/inbox.js, attic/js/check-inbox.js (backend/inbox.gs stayed live; `inboxList` kept in check-actions REASONS)
+- [ ] Hymns: attic/js/hymns.js, attic/js/check-hymns.js (data/hymns/ kept)
+- [ ] The Quran: attic/js/quran.js (data/quran/ kept); journey block in attic/check/flow/19-find-under.js
+- [ ] Timelines: attic/js/find-timelines.js, attic/check/timelines.js (data/timelines.json kept); journey in attic/check/flow/19-find-under.js
+- [ ] Phone notifications: attic/js/push.js, attic/js/check-push.js; the worker is attic/sw.js (sw.js is now a self-unregistering stub — put attic/sw.js back over it)
+- [ ] Offline mode: attic/js/offline.js, attic/check/offline.js (same worker as above)
+- [ ] Google Tasks link: attic/js/gtasks.js
+- [ ] Avatar maker (a person choosing one of the ten pictures): the grid line in js/me-fields.js `photoPicker_` (`<div class="pfp-grid" …>${Object.keys(PFP_ART).map(opt).join('')}</div>`, see git history 14 Nov); PFP_ART stays in js/links.js as the default pictures; journeys in attic/check/flow/17-mark-tutor.js and 03-tutor-admin.js

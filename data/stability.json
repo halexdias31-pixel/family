@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 84.7,
+ "score": 84.4,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -45,22 +45,22 @@
   {
    "id": "special",
    "label": "Per-facet and per-kind special cases",
-   "count": 43,
+   "count": 50,
    "weight": 0.05,
    "cap": 10,
-   "off": 2.2,
+   "off": 2.5,
    "where": {
     "js/cards-make.js": 1,
     "js/cards-parts.js": 1,
     "js/cards-people.js": 1,
-    "js/cards-render.js": 5,
+    "js/cards-render.js": 10,
     "js/find-cells.js": 2,
     "js/find-doors.js": 1,
     "js/find-finder.js": 2,
     "js/find-history.js": 2,
     "js/find-pad.js": 4,
     "js/keypad-keys.js": 1,
-    "js/me-messages.js": 2,
+    "js/me-messages.js": 4,
     "js/predicates-marks.js": 3,
     "js/predicates.js": 13,
     "js/price-rows.js": 2,
@@ -87,12 +87,12 @@
   {
    "id": "duplicates",
    "label": "Repeated long lines",
-   "count": 40,
+   "count": 38,
    "weight": 0.02,
    "cap": 10,
    "off": 0.8,
    "where": {
-    "lines": 15
+    "lines": 14
    }
   },
   {
@@ -133,7 +133,7 @@
   }
  ],
  "secondary": {
-  "score": 89,
+  "score": 89.5,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
@@ -173,21 +173,21 @@
    {
     "id": "catches",
     "label": "Empty catches (tools/catches.js)",
-    "count": 55,
+    "count": 35,
     "weight": 0.02,
     "cap": 15,
-    "off": 1.1,
+    "off": 0.7,
     "where": {}
    },
    {
     "id": "duplicates",
     "label": "Repeated long lines",
-    "count": 9,
+    "count": 6,
     "weight": 0.02,
     "cap": 10,
-    "off": 0.2,
+    "off": 0.1,
     "where": {
-     "lines": 4
+     "lines": 3
     }
    },
    {

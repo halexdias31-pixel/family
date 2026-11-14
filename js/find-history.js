@@ -452,7 +452,7 @@ const SCRIPTURE_KINDS = { bible: 1, quran: 1, talmud: 1, hadith: 1, worktext: 1 
 function scriptureWait_(items) {
   if (!items || !items.length || !items.every(x => x && SCRIPTURE_KINDS[x.kind])) return null;
   const books = [['the Bible', BIBLE, bibleFor_()],
-    ['the Quran', typeof QURAN !== 'undefined' ? QURAN : null, typeof quranFor_ === 'function' && quranFor_()],
+    ['the Quran', window.QURAN || null, typeof window.quranFor_ === 'function' && window.quranFor_()],
     ['the Talmud', typeof window.TALMUD !== 'undefined' ? window.TALMUD : null, typeof window.talmudFor_ === 'function' && window.talmudFor_()],
     ['the Hadith', typeof window.HADITH !== 'undefined' ? window.HADITH : null, typeof window.hadithFor_ === 'function' && window.hadithFor_()],
     ['the other writings', typeof window.WORKS !== 'undefined' ? window.WORKS : null, true]]

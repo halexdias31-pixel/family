@@ -307,7 +307,7 @@ function loadFinish_(kept) {
   }
   if (typeof window.openSharedPost === 'function') window.openSharedPost();     // if the app was opened on a shared link, go to that post
   try { openSharedTutor(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // or on a tutor's own link (400)
-  try { if (typeof pushLanding_ === 'function') pushLanding_(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // or on a tapped notification (492, push.js)
+  try { if (typeof window.pushLanding_ === 'function') window.pushLanding_(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // or on a tapped notification (492, push.js)
   /* AND BACK TO THE QUESTION A RELOAD TOOK YOU AWAY FROM — once a visit, on the first payload that
      arrived, when the column came back too. See `findPlaceBack_` in find.js and docs/history/317. */
   if (!LOAD_FAILED && !LIBRARY_LATE && typeof findPlaceBack_ === 'function') findPlaceBack_();

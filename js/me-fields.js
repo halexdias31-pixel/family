@@ -85,7 +85,6 @@ function photoPicker_(value, said, o) {
   const rest = [{ type: 'group', look: 'pfp-side', blocks: [{ type: 'group', look: 'tile-row', tiles: [
       uiMay_('upload-photo') ? { icon: 'photo', label: 'Choose photo', act: 'pfp-pick' } : null,
       { icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v }].filter(Boolean) }] },
-    { type: 'group', look: 'pfp-grid', attrs: { role: 'group', 'aria-label': 'Or choose a picture' }, inner: Object.keys(PFP_ART).map(opt).join('') },
     { type: 'group', tag: 'p', look: 'note pfp-said', text: said || pfpSaid_(v) }];
   const file = uiMay_('upload-photo') ? formFile_('pfp-in', 'image/*') : '';
   return fold
