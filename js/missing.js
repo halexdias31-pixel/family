@@ -45,14 +45,14 @@ function healthCardOf_(which) {
   if (which === 'health') { try { return healthWithMissing_(siteHealthCard_(true)); } catch (e) { oops_(e, 'site health'); return ''; } }
   const all = (() => { try { return missingLeadCards_(); } catch (e) { oops_(e, 'health card'); return []; } })();
   const l = LOGIC_SHOWN && logicFor_() ? 1 : 0;
-  return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || card_('<div>' + empty_() + '</div>');
+  return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || renderCard({ kind: 'panel', body: [{ type: 'text', look: 'empty', text: typeof NOTHING_YET === 'string' ? NOTHING_YET : 'Nothing yet' }] });
 }
 
 /* ---------- SITE HEALTH (890): data/health.json, written by tools/health.js — code 40%, Find logic 35%, UI 25%, mechanical ---------- */
 const HEALTH = { got: null, failed: false, asked: false, all: false };
 function siteHealthCard_(raw) {
-  /* `raw`: its plain html, for What’s missing to join before it is built. */
-  const out = h => (raw ? h : card_(h));
+  /* `raw`: its blocks, for What’s missing to join before the card is drawn. */
+  const out = b => (raw ? b : healthCardSpec_(b));
   if (!HEALTH.asked && typeof fetch === 'function') {
     HEALTH.asked = true;
     Promise.resolve()
@@ -62,32 +62,36 @@ function siteHealthCard_(raw) {
       .catch(() => { HEALTH.failed = true; })
       .then(() => { try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
   }
-  const s = HEALTH.got, head = '<h3>Optimiser worklist</h3>';
-  if (!s) return out(`<div class="logic-card">${head}${HEALTH.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/health.js and push.</p>' : loading_()}</div>`);
-  const p = s.parts || {}, list = (HEALTH.all ? s.all : s.top) || [];
+  const s = HEALTH.got;
+  if (!s) return out([HEALTH.failed ? healthSaid_('The score could not be read. Run node tools/health.js and push.') : { type: 'wait', on: true }]);
+  const list = (HEALTH.all ? s.all : s.top) || [];
   const said = { code: 'Code', logic: 'Find logic', ui: 'UI' };
-  return out(`<div class="logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
-    ${s.next ? `<p><b>${esc(String(s.next))}</b></p>` : ''}${healthTrend_(s.trend)}
-    <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} ${qtag_(`${esc(said[t.part] || t.part)}, −${esc(String(t.cost))}`)}</li>`).join('')}</ol>
-    ${healthWork_(s.worklist)}
-    ${(s.all || []).length > 5 ? tileRow_(tile_({ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top 5' : 'Show the full list', act: 'health-all' }), '', true) : ''}</div>`);
+  return out([{ type: 'group', tag: 'p', look: 'stab-score', text: String(s.score) + '%' },
+    s.next ? { type: 'group', tag: 'p', text: { b: String(s.next) } } : null, healthTrend_(s.trend),
+    { type: 'list', ordered: true, look: 'stab-top', items: list.map(t => [String(t.say) + ' ', { span: 'qtag', text: `${said[t.part] || t.part}, −${t.cost}` }]) },
+    healthWork_(s.worklist),
+    (s.all || []).length > 5 ? { type: 'tiles', tiles: [{ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top 5' : 'Show the full list', act: 'health-all' }] } : null].filter(Boolean));
 }
+/* A HEALTH CARD FROM ITS BLOCKS, through the one card maker; its name is its first tag. */
+const healthCardSpec_ = (body, look, name) => renderCard({ kind: 'panel', look: look || 'logic-card', name, tags: [name || 'Optimiser worklist'], body });
+/* A LINE SAID ALOUD WHEN A SCORE COULD NOT BE READ. */
+const healthSaid_ = text => ({ type: 'group', tag: 'p', look: 'note', attrs: { role: 'alert' }, text });
 /* THE TREND (920): the last thirty full runs as one thin line in the text colour, and the commit of the worst drop. */
 function healthTrend_(t) {
   const v = (t && Array.isArray(t.last) ? t.last : []).map(Number).filter(n => isFinite(n));
-  if (v.length < 2) return '';
+  if (v.length < 2) return null;
   const lo = Math.min(...v), hi = Math.max(...v), span = hi - lo || 1;
   const pts = v.map((n, i) => (i * 100 / (v.length - 1)).toFixed(1) + ',' + (22 - (n - lo) / span * 20).toFixed(1)).join(' ');
-  const d = t.worstDrop;
-  return `<svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none" role="img" aria-label="Score over the last ${v.length} runs"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`;
+  return { type: 'drawing', node: { el: 'svg', a: { viewBox: '0 0 100 24', width: '100%', height: '24', preserveAspectRatio: 'none', role: 'img', 'aria-label': `Score over the last ${v.length} runs` },
+    kids: [{ el: 'polyline', a: { points: pts, fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5', 'vector-effect': 'non-scaling-stroke' } }] } };
 }
 /* THE FIXER'S FIRST FIVE (920): the dearest findings of tools/health.js's worklist, each where it is and what it is, in plain words. */
 const HEALTH_SAY = { 'one-off': 'A special case for one name', 'long-fn': 'A long function', 'big-file': 'A very big file',
   dup: 'A copied block', nest: 'Code nested too deep', catch: 'An error swallowed silently' };
 function healthWork_(w) {
   const top = (Array.isArray(w) ? w : []).slice(0, 5);
-  if (!top.length) return '';
-  return `<ol class="stab-top">${top.map(f => `<li><b>${esc(String(f.file))}:${esc(String(f.line))}</b> · ${esc(HEALTH_SAY[f.kind] || String(f.kind))}<br>${qtag_(`${esc(String(f.text || ''))}`)}</li>`).join('')}</ol>`;
+  if (!top.length) return null;
+  return { type: 'list', ordered: true, look: 'stab-top', items: top.map(f => [{ b: `${f.file}:${f.line}` }, ' · ' + (HEALTH_SAY[f.kind] || String(f.kind)) + ' ', { span: 'qtag', text: String(f.text || '') }]) };
 }
 on('health-all', () => { HEALTH.all = !HEALTH.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 
@@ -110,14 +114,13 @@ function logicCard_() {
       .catch(() => { LOGIC.failed = true; })
       .then(() => { try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
   }
-  const s = LOGIC.got, head = '<h3>Logic health</h3>';
-  if (!s) return card_(`<div class="logic-card">${head}${LOGIC.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/logic-health.js and push.</p>' : loading_()}</div>`);
-  const rules = (s.rules || []).filter(r => r.count > 0).sort((a, b) => b.count - a.count);
+  const s = LOGIC.got;
+  if (!s) return healthCardSpec_([LOGIC.failed ? healthSaid_('The score could not be read. Run node tools/logic-health.js and push.') : { type: 'wait', on: true }], '', 'Logic health');
   const top = (s.top || []).slice(0, LOGIC.all ? 25 : 3);
-  const line = t => `<li><b>${esc(t.where)}</b> · ${esc(t.asks || '')}<br>${qtag_(`${esc((t.why || []).join(' · '))}`)}</li>`;
-  return card_(`<div class="logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
-    <ol class="stab-top">${top.map(line).join('')}</ol>
-    ${(s.top || []).length > 3 ? tileRow_(tile_({ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top 3' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }), '', true) : ''}</div>`);
+  const line = t => [{ b: t.where }, ' · ' + (t.asks || '') + ' ', { span: 'qtag', text: (t.why || []).join(' · ') }];
+  return healthCardSpec_([{ type: 'group', tag: 'p', look: 'stab-score', text: String(s.score) + '%' },
+    { type: 'list', ordered: true, look: 'stab-top', items: top.map(line) },
+    (s.top || []).length > 3 ? { type: 'tiles', tiles: [{ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top 3' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }] } : null].filter(Boolean), '', 'Logic health');
 }
 on('logic-all', () => { LOGIC.all = !LOGIC.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 
@@ -139,7 +142,7 @@ function missingAsk_() {
 function missingRepaint_() {
   const el = document.getElementById('miss-body');
   if (!el) return;
-  const html = missingBody_();
+  const html = cardBlocks_(missingBody_());
   if (missingWaits_()) return;
   /* THE CARD'S OWN TILES JOINED INTO THE LIST'S ROW (tileRowsJoin_, 489) are kept, so The list never takes Delete away (660). */
   const kept = [...el.querySelectorAll('.tile-group')];
@@ -237,46 +240,40 @@ function missingNow_() {
 
 /* ---------- THE CARD ---------- */
 const missingPapers_ = codes => (codes.length > 1 ? 'Papers ' : 'Paper ') + codes.join(', ');
+const missingKV_ = (k, v) => [{ type: 'group', tag: 'span', look: 'k', text: k }, { type: 'group', tag: 'span', look: 'v', text: v }];
 function missingQual_(g) {
-  const k = `<span class="k">${esc(g.q.label)}</span>`;
-  if (!g.missing) {
-    return `<div class="row miss-done">${k}<span class="v">complete${g.waiting ? ' · ' + g.waiting + ' waiting' : ''}</span></div>`;
-  }
+  if (!g.missing) return { type: 'group', look: 'miss-done', blocks: [{ type: 'list', items: [{ label: g.q.label, value: 'complete' + (g.waiting ? ' · ' + g.waiting + ' waiting' : '') }] }] };
   const say = g.missing === g.want ? 'none yet' : g.missing + ' missing';
-  const lines = g.gaps.map(x => rowHtml(x.sitting, esc(missingPapers_(x.papers)))).join('');
-  const wait = g.waiting ? rowHtml('Waiting for their words', g.waiting) : '';
+  const lines = g.gaps.map(x => ({ label: x.sitting, value: missingPapers_(x.papers) }));
+  if (g.waiting) lines.push({ label: 'Waiting for their words', value: String(g.waiting) });
   const id = g.q.label;
-  return `<details class="miss-q" data-q="${esc(id)}"${MISSING_OPEN.has(id) ? ' open' : ''}>
-      <summary class="row">${k}<span class="v">${esc(say)}</span></summary>
-      <div class="miss-gaps">${lines}${wait}</div>
-    </details>`;
+  return { type: 'group', tag: 'details', look: 'miss-q', attrs: { 'data-q': id, open: MISSING_OPEN.has(id) }, blocks: [
+    { type: 'group', tag: 'summary', look: 'row', blocks: missingKV_(g.q.label, say) },
+    { type: 'group', look: 'miss-gaps', blocks: [{ type: 'list', items: lines }] }] };
 }
 /* IS THE LIST STILL COMING: asked of the waits, never of the HTML drawn for them. */
 const missingWaits_ = () => MISSING.list === null || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null);
 function missingBody_() {
   missingAsk_();
-  if (missingWaits_()) return loading_();
+  if (missingWaits_()) return [{ type: 'wait', on: true }];
   const r = missingNow_();
-  const unread = r.unread ? `<p class="note">${r.unread} ${r.unread === 1 ? 'line' : 'lines'} of expected-papers.json not understood.</p>` : '';
-  if (!r.quals.length) return '<p class="note">Nothing listed to expect yet.</p>' + unread;
+  const unread = r.unread ? { type: 'group', tag: 'p', look: 'note', text: `${r.unread} ${r.unread === 1 ? 'line' : 'lines'} of expected-papers.json not understood.` } : null;
+  if (!r.quals.length) return [{ type: 'group', tag: 'p', look: 'note', text: 'Nothing listed to expect yet.' }, unread].filter(Boolean);
   /* ONE LINE, THEN THE LIST ON A TILE (660): "needs to be smaller". The summary counts; the tile opens what it counted. */
   const papers = r.quals.reduce((n, g) => n + g.missing, 0), gaps = r.quals.filter(g => g.missing).length;
   const say = (papers ? papers + ' ' + (papers === 1 ? 'paper' : 'papers') + ' missing in ' + gaps + ' of ' + r.quals.length
     : 'All ' + r.quals.length + ' complete') + (r.waiting ? ' · ' + r.waiting + ' waiting for words' : '');
-  const tile = typeof tile_ === 'function'
-    ? `<div class="tile-row">${tile_({ icon: MISSING.all ? 'up' : 'down', label: MISSING.all ? 'Fewer' : 'The list', act: 'miss-all' })}</div>` : '';
-  return `<p class="miss-sum">${esc(say)}</p>` + (MISSING.all ? r.quals.map(missingQual_).join('') : '') + tile + unread;
+  return [{ type: 'group', tag: 'p', look: 'miss-sum', text: say }].concat(MISSING.all ? r.quals.map(missingQual_) : [],
+    [{ type: 'tiles', tiles: [{ icon: MISSING.all ? 'up' : 'down', label: MISSING.all ? 'Fewer' : 'The list', act: 'miss-all' }] }, unread]).filter(Boolean);
 }
 if (typeof on === 'function') on('miss-all', () => { MISSING.all = !MISSING.all; missingRepaint_(); });
-function healthWithMissing_(card) {
-  if (!missingFor_()) return card_(card);
-  const body = missingBody_(), waits = missingWaits_();
-  const part = `<h3 class="miss-head">What’s missing</h3><div id="miss-body"${waits ? ' aria-busy="true"' : ''}>${body}</div>`;
-  return /<\/div>\s*$/.test(card) ? card_(card.replace(/^<div class="logic-card"/, '<div class="logic-card miss-card"').replace(/<\/div>\s*$/, part + '</div>')) : card_(card) + card_(`<div class="miss-card">${part}</div>`);
+/* THE OPTIMISER'S BLOCKS WITH WHAT'S MISSING UNDER THEM (one card); `#miss-body` is what the list's arrival fills again. */
+const missingBox_ = () => { const body = missingBody_(); return { type: 'group', id: 'miss-body', attrs: { 'aria-busy': missingWaits_() ? 'true' : null }, blocks: body }; };
+const missingHead_ = look => ({ type: 'msgHead', look, text: 'What’s missing' });
+function healthWithMissing_(blocks) {
+  if (!missingFor_()) return healthCardSpec_(blocks);
+  return healthCardSpec_([].concat(blocks || [], [missingHead_('miss-head'), missingBox_()]), 'logic-card miss-card');
 }
 function missingCard_() {
-  const body = missingBody_();
-  const waits = missingWaits_();
-  return card_(`<div class="miss-card"><h3>What’s missing</h3>
-    <div id="miss-body"${waits ? ' aria-busy="true"' : ''}>${body}</div></div>`);
+  return healthCardSpec_([missingBox_()], 'miss-card', 'What’s missing');
 }
