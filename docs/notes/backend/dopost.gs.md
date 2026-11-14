@@ -1510,7 +1510,7 @@ in `doPost`
 /* ---------- THE SAME TWO DOORS AS SIGNING IN, READ THE SAME WAY --------------------------------
          No `@` is a handle, through `handleRows_` (every row, as `verifyLogin`); an `@` is an address,
          `norm` on both sides and whole — never `key`, which strips the dots and the `@` and made
-         `halex.dias@x.com` and `halexdias@xcom` one address. TWO ROWS ON ONE IS REFUSED, NOT GUESSED:
+         `a.b@x.com` and `ab@xcom` one address. TWO ROWS ON ONE IS REFUSED, NOT GUESSED:
          which of the two accounts would be sent a PIN is exactly the guess `verifyLogin` will not make. */
 ```
 
