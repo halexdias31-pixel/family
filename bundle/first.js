@@ -706,7 +706,8 @@ function cardDraw_(n) {
   if (typeof n !== 'object' || !CARD_DRAW_ELS.test(n.el)) return '';
   const a = n.a || {}, attrs = Object.keys(a).filter(k => /^[a-zA-Z][\w:-]*$/.test(k) && !/^on/i.test(k) && a[k] != null && a[k] !== '')
     .map(k => ` ${k}="${esc(String(a[k]))}"`).join('');
-  return `<${n.el}${attrs}>${n.text != null ? esc(String(n.text)) : ''}${cardDraw_(n.kids)}</${n.el}>`;
+  /* `inner`: a drawing another maker drew already (a question's diagram, the pen's ink), laid inside as it is. */
+  return `<${n.el}${attrs}>${n.text != null ? esc(String(n.text)) : ''}${n.inner || ''}${cardDraw_(n.kids)}</${n.el}>`;
 }
 /* A CARD DRAWN AGAIN WHERE IT STANDS: the new card replaces the old element whole. */
 function cardRedraw_(el, spec) {
