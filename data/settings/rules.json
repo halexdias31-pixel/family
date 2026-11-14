@@ -241,6 +241,15 @@
    "since": "2026-11-13"
   },
   {
+   "id": "2.11",
+   "principle": 2,
+   "text": "One way to the server (owner, 14 Nov, step 2): every doPost action is surveyed in `data/settings/server-actions.json` as general, special or dead; the general doors (`readItems`, then `saveItem`, `deleteItem`) read permissions.json's `item` rows (role × kind × verb, the fields a role is not sent) and never let a role do what its old door refused; the old doors still called only get fewer.",
+   "checks": [
+    "server-path"
+   ],
+   "since": "2026-11-14"
+  },
+  {
    "id": "3.1",
    "principle": 3,
    "text": "Every card, every kind, is one static centred column drawn by `findCard`: real picture if any → tags (the name is a tag) → content → one round button row; no title line, no open/closed, no 8-bit or kind icon.",

@@ -296,6 +296,7 @@ function postActionsAdmin_() {
     personDelete: postPersonDelete_,
     deleteJob: postDeleteJob_,
     libItems: postLibItems_,
+    readItems: postReadItems_,
     libExport: postLibExport_,
     libImport: postLibImport_,
     libImportList: postLibImportList_,

@@ -219,6 +219,7 @@
     "check-actions.js": "core",
     "check-shape.js": "secondary",
     "check-permissions.js": "secondary",
+    "check-server-path.js": "core",
     "check-forms.js": "secondary",
     "check-replies.js": "core",
     "check-said.js": "core",

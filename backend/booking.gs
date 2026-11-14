@@ -1368,6 +1368,7 @@ const PERMISSIONS = {
   raceBuild: ['admin'],
   raiseHand: ['member', 'child', 'admin'],
   reactPost: ['member', 'child', 'admin'],
+  readItems: ['member', 'child', 'admin'],
   readMessage: ['member', 'child', 'admin'],
   register: ['anyone', 'member', 'child', 'admin'],
   report: ['member', 'child', 'admin'],
@@ -1428,5 +1429,24 @@ function permChildDenied_(action) {
   const r = Object.prototype.hasOwnProperty.call(PERMISSIONS, action) ? PERMISSIONS[action] : null;
   if (!r) return KID_MONEY_ACTIONS.indexOf(action) !== -1;
   return r.indexOf('member') !== -1 && r.indexOf('child') === -1;
+}
+
+/* Each item kind:verb → the roles allowed, each with the fields it is not sent. Not listed → refused. */
+const ITEM_PERMISSIONS = {
+  'content:read': { member: [], child: [], admin: [] },
+  'content:save': { admin: [] },
+  'practical:read': { member: [], child: [], admin: [] },
+  'practical:save': { admin: [] },
+  'project:read': { member: [], child: [], admin: [] },
+  'project:save': { admin: [] },
+  'question:read': { member: [], child: [], admin: [] },
+  'question:save': { admin: [] },
+  'venue:read': { anyone: [], member: [], child: ['rate', 'concession', 'cost_per_hour'], admin: [] },
+};
+
+/* THE FIELDS THIS ROLE IS NOT SENT FOR kind:verb, or null when the role may not at all. */
+function itemMay_(kind, verb, role) {
+  const r = Object.prototype.hasOwnProperty.call(ITEM_PERMISSIONS, kind + ':' + verb) ? ITEM_PERMISSIONS[kind + ':' + verb] : null;
+  return r && Object.prototype.hasOwnProperty.call(r, role) ? r[role] : null;
 }
 /* ---------- END PERMISSIONS ---------- */

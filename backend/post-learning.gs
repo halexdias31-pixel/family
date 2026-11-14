@@ -343,24 +343,50 @@ function postMyAnswers_(body, action, began) {
 }
 
 /* ---------- THE LIBRARY'S WORDS AND ANSWERS (397): a few items at a time, to the token's person, a day's cap each ---------- */
-function postLibItems_(body, action, began) {
+function postLibItems_(body, action, began) { return jsonOut(libItemsReply_(body)); }
+
+/* THE LIBRARY READ ITSELF, as a reply object: libItems and readItems both answer through it, so the cap and the tally are one. */
+function libItemsReply_(body) {
   const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+  if (!me || !S(me.person_id)) return { error: 'Sign in first.' };
   const asked = Array.isArray(body.ids) ? body.ids : [];
   const ids = [];
   asked.forEach(v => { const t = S(v); if (/^(q|ct|pr|pj):[A-Za-z0-9][A-Za-z0-9 _.:#|()-]{0,159}$/.test(t) && ids.indexOf(t) === -1) ids.push(t); });
-  if (!ids.length) return jsonOut({ error: 'Which items? Nothing was asked for.' });
-  if (ids.length > LIB_PER_CALL) return jsonOut({ error: 'At most ' + LIB_PER_CALL + ' items at a time.' });
-  if (!libReady_()) return jsonOut({ error: 'The library is still being copied into the Ledger — try again in a few minutes.', why: 'lib-not-ready' });
+  if (!ids.length) return { error: 'Which items? Nothing was asked for.' };
+  if (ids.length > LIB_PER_CALL) return { error: 'At most ' + LIB_PER_CALL + ' items at a time.' };
+  if (!libReady_()) return { error: 'The library is still being copied into the Ledger — try again in a few minutes.', why: 'lib-not-ready' };
   const cap = hasRole(me, 'admin') ? Infinity : libCapOf_();
   const tally = cap === Infinity ? { allowed: ids, refused: [], left: null } : libTally_(me, ids, cap);
-  if (tally.busy) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+  if (tally.busy) return { error: 'Busy — try again in a moment.', why: 'busy' };
   if (!tally.allowed.length) {
-    return jsonOut({ error: 'That is today’s ' + cap + ' — the rest open tomorrow.', why: 'lib-cap', refused: tally.refused, left: 0 });
+    return { error: 'That is today’s ' + cap + ' — the rest open tomorrow.', why: 'lib-cap', refused: tally.refused, left: 0 };
   }
   const got = libContent_(tally.allowed);
-  return jsonOut({ success: true, items: got.items, missing: got.missing, refused: tally.refused,
-                   left: tally.left, cap: cap === Infinity ? null : cap, gen: libGen_() });
+  return { success: true, items: got.items, missing: got.missing, refused: tally.refused,
+           left: tally.left, cap: cap === Infinity ? null : cap, gen: libGen_() };
+}
+
+/* ONE WAY TO THE SERVER (step 2, slice 1): items of one kind by id, as the table allows. Beside libItems, not instead of it. */
+/* A library kind is read by libItems' own steps (signed in, the day's cap, the same tally), so it can never give more than libItems did. */
+const READ_ITEMS_LIB = { question: 'q', content: 'ct', practical: 'pr', project: 'pj' };
+function readItemsRole_(me) {
+  if (!me) return 'anyone';
+  if (hasRole(me, 'admin')) return 'admin';
+  return netViewerIsChild_() ? 'child' : 'member';
+}
+function postReadItems_(body, action, began) {
+  const kind = S(body.kind);
+  if (!Object.prototype.hasOwnProperty.call(READ_ITEMS_LIB, kind)) return jsonOut({ error: 'That kind cannot be read here yet.', why: 'kind' });
+  const me = findPerson('', S(body.personId));
+  const hide = itemMay_(kind, 'read', readItemsRole_(me));
+  if (!hide) return jsonOut({ error: 'Not authorised.', why: 'kind' });
+  const pre = READ_ITEMS_LIB[kind] + ':';
+  const asked = Array.isArray(body.ids) ? body.ids : [];
+  if (asked.some(v => S(v).indexOf(pre) !== 0)) return jsonOut({ error: 'Every id must be a ' + kind + ' (' + pre + '…).' });
+  const out = libItemsReply_({ personId: body.personId, ids: asked });
+  if (out.items && hide.length) Object.keys(out.items).forEach(id => { const it = out.items[id]; if (it && typeof it === 'object') hide.forEach(f => { delete it[f]; }); });
+  out.kind = kind;
+  return jsonOut(out);
 }
 
 /* THE TOOLS' COPY OF THE PRIVATE HALF — a page out, rows back in (tools/lib-private.js). Admin only, at the gate. */

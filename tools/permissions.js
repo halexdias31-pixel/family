@@ -43,9 +43,9 @@ function rowsFromAccess() {
   return rows;
 }
 
-/* THE ACTIONS FROM THE BACKEND, then the file's own `see` and `ui` rows unchanged. */
+/* THE ACTIONS FROM THE BACKEND, then the file's own `see`, `ui` and `item` rows unchanged. */
 function seeRows() {
-  try { return JSON.parse(fs.readFileSync(JSON_PATH, 'utf8')).filter(r => r && (r.kind === 'see' || r.kind === 'ui')); } catch (e) { return []; }
+  try { return JSON.parse(fs.readFileSync(JSON_PATH, 'utf8')).filter(r => r && (r.kind === 'see' || r.kind === 'ui' || r.kind === 'item')); } catch (e) { return []; }
 }
 const fullRows = () => rowsFromAccess().concat(seeRows());
 
@@ -71,10 +71,25 @@ function gsText(rows) {
     + '  const r = Object.prototype.hasOwnProperty.call(PERMISSIONS, action) ? PERMISSIONS[action] : null;\n'
     + "  if (!r) return KID_MONEY_ACTIONS.indexOf(action) !== -1;\n"
     + "  return r.indexOf('member') !== -1 && r.indexOf('child') === -1;\n"
+    + '}\n\n' + itemGs(rows);
+}
+
+/* THE ITEM ROWS (step 2, ONE WAY TO THE SERVER): role × kind:verb, the fields that role is not sent, and `via`, the old action it mirrors. Read by readItems. */
+const VERBS = ['read', 'save', 'delete'];
+function itemGs(rows) {
+  const by = {};
+  rows.filter(r => r && r.kind === 'item' && r.allow === true).forEach(r => { (by[r.action] = by[r.action] || {})[r.role] = (r.hide || []).slice(); });
+  return '/* Each item kind:verb → the roles allowed, each with the fields it is not sent. Not listed → refused. */\n'
+    + 'const ITEM_PERMISSIONS = {\n' + Object.keys(by).sort().map(a => "  '" + a + "': { " + ROLES.filter(r => r in by[a])
+      .map(r => r + ': [' + by[a][r].map(f => "'" + f + "'").join(', ') + ']').join(', ') + ' },').join('\n') + '\n};\n\n'
+    + '/* THE FIELDS THIS ROLE IS NOT SENT FOR kind:verb, or null when the role may not at all. */\n'
+    + 'function itemMay_(kind, verb, role) {\n'
+    + "  const r = Object.prototype.hasOwnProperty.call(ITEM_PERMISSIONS, kind + ':' + verb) ? ITEM_PERMISSIONS[kind + ':' + verb] : null;\n"
+    + '  return r && Object.prototype.hasOwnProperty.call(r, role) ? r[role] : null;\n'
     + '}\n';
 }
 
-module.exports = { ROLES, SEE_ROLES, backendRules, allowOf, rowsFromAccess, gsText, gsInto, GS_PATH };
+module.exports = { ROLES, SEE_ROLES, VERBS, backendRules, allowOf, rowsFromAccess, gsText, gsInto, GS_PATH };
 if (require.main === module) {
   const want = process.argv.includes('--from-access') || !fs.existsSync(JSON_PATH) ? jsonText(fullRows()) : fs.readFileSync(JSON_PATH, 'utf8');
   const cur = fs.readFileSync(GS_PATH, 'utf8'), gs = gsInto(cur, JSON.parse(want));

@@ -62,6 +62,7 @@ const REASONS = {
   report: 'kept for a phone loaded before 494: it is routed into the one `suggest` action (check-suggest proves it).',
   claudeNoteAdd: 'kept for a phone loaded before 494, whose admin tile was Note for Claude; Suggest a change replaced it (check-suggest).',
   claudeNoteDone: 'kept for a phone loaded before 498, whose suggest box listed notes with Done; Done is now data/notes-done.json, read on an admin open (check-suggest).',
+  readItems: 'the one general read (step 2, slice 1), added beside libItems so the live site keeps working without a redeploy; the front end moves to it in a later slice (check-server-path).',
   flagMessage: 'kept for a phone loaded before 486: a message routed into the one `suggest` action (check-posts proves it).',
 };
 

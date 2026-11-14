@@ -225,7 +225,14 @@ let done = null;
   const again = w.ask(BEN, { action: 'libItems', ids: [pr] });
   if (!again.success || !same(again.items[pr], expected.practicals[pr.slice(3)])) bad.push('a second read did not come from the cache');
   t[2][3] = keep;
-  const log = (w.b.tabs.lib_log || []);
+  /* readItems GIVES WHAT libItems GIVES, one kind at a time, and nothing to somebody signed out. */
+  asked++;
+  if (!w.b.post({ action: 'readItems', kind: 'question', ids: [q] }).error) bad.push('readItems answered somebody signed out');
+  const ri = w.ask(BEN, { action: 'readItems', kind: 'practical', ids: [pr] });
+  if (!ri.success || !same(ri.items[pr], expected.practicals[pr.slice(3)])) bad.push('readItems gave a practical different from libItems: ' + JSON.stringify(ri).slice(0, 160));
+  if (!w.ask(BEN, { action: 'readItems', kind: 'practical', ids: [q] }).error) bad.push('readItems served a question asked for as a practical');
+  if (!w.ask(BEN, { action: 'readItems', kind: 'venue', ids: ['v:1'] }).error) bad.push('readItems served a kind it has no reader for');
+  const log =(w.b.tabs.lib_log || []);
   const h = log[0] || [];
   const rows = log.slice(1).map(r => { const o = {}; h.forEach((c, i) => { o[c] = r[i]; }); return o; });
   const ada = rows.find(r => r.person_id === 'P-S1');
@@ -252,6 +259,12 @@ let done = null;
   c.b.cache.clear();
   const a5 = c.ask(ADA, { action: 'libItems', ids: qs.slice(9, 10) });
   if (a5.why !== 'lib-cap') bad.push('with the cache emptied, the cap was forgotten — lib_log is not read back: ' + JSON.stringify(a5).slice(0, 160));
+  /* readItems (step 2, slice 1) SHARES THE CAP: Ada at her five is refused there too, and Ben's read through it counts against him. */
+  asked++;
+  const r1 = c.ask(ADA, { action: 'readItems', kind: 'question', ids: qs.slice(10, 11) });
+  if (r1.why !== 'lib-cap' || r1.items) bad.push('readItems let Ada past the cap libItems holds her to: ' + JSON.stringify(r1).slice(0, 160));
+  const r2 = c.ask(BEN, { action: 'readItems', kind: 'question', ids: qs.slice(11, 15) });
+  if (!r2.success || r2.left !== 0 || r2.kind !== 'question') bad.push('readItems did not count against Ben\'s cap as libItems does: ' + JSON.stringify({ left: r2.left, kind: r2.kind }));
   void a1;
 }
 
