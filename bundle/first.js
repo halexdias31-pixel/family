@@ -505,6 +505,8 @@ function cardRuns_(v) {
   if (v.marked != null) return typeof mark === 'function' ? mark(String(v.marked)) : esc(String(v.marked));
   /* A NAMED WORD (a subject, green as a subject is everywhere): one of a fixed set, never a free class. */
   if (v.word && /^(subject|venue|level)$/.test(v.word)) return `<span class="${v.word}">${cardRuns_(v.text)}</span>`;
+  /* A NAMED PART OF A LINE (a qualification's subject, notation, mark): a span with a plain class, its text escaped; `span: ''` is a bare span. */
+  if (v.span != null && /^[a-z][\w -]*$|^$/.test(String(v.span))) return `<span${v.span ? ` class="${esc(v.span)}"` : ''}>${cardRuns_(v.text)}</span>`;
   if (v.tone) return `<span class="${esc('is-' + v.tone)}">${cardRuns_(v.text)}</span>`;
   return cardRuns_(v.text);
 }
@@ -521,7 +523,7 @@ const cardAttrs_ = d => Object.keys(d || {}).map(k => ` data-${esc(k)}="${esc(St
 /* A PICTURE: a photo (`src`), a clip (`video`), an 8-bit drawing (`pix`: 16 rows of palette letters), or a drawing a picture maker drew (`svg`). */
 function cardPic_(p) {
   if (!p) return '';
-  if (p.src) return `<img src="${esc(p.src)}" alt="${esc(p.alt || '')}" loading="lazy" decoding="async">`;
+  if (p.src) return `<img${p.look ? ` class="${esc(p.look)}"` : ''} src="${esc(p.src)}" alt="${esc(p.alt || '')}" loading="lazy" decoding="async">`;
   if (p.video) return `<video src="${esc(p.video)}" muted playsinline loop aria-label="${esc(p.alt || '')}"></video>`;
   if (Array.isArray(p.pix)) return `<figure class="person-pic">${pixSvg_(p.pix, p.alt, p.flip, p.none ? ' is-none' : '')}</figure>`;
   if (p.svg && /^\s*<(svg|figure)\b[\s\S]*<\/svg>[\s\S]*$/.test(String(p.svg))) return String(p.svg);
@@ -544,6 +546,19 @@ function pixSvg_(rows, name, flip, cls) {
     flip ? `<g transform="translate(16 0) scale(-1 1)">${paths}</g>` : paths}</svg>`;
 }
 
+/* A DRAWN PICTURE FROM DATA: shapes `{ t, ...attrs, kids }` on a round `ground`, at `size` pixels (links.js's ten pictures). */
+const ART_TAGS = /^(path|circle|ellipse|rect|g)$/;
+const artShapes_ = list => (list || []).filter(o => o && ART_TAGS.test(o.t)).map(o => `<${o.t}${Object.keys(o).filter(k => k !== 't' && k !== 'kids')
+  .map(k => ` ${esc(k)}="${esc(o[k])}"`).join('')}${o.kids ? `>${artShapes_(o.kids)}</${o.t}>` : '/>'}`).join('');
+const artSvg_ = (art, ground, size) => `<svg class="pfp-art" viewBox="0 0 48 48" width="${esc(size)}" height="${esc(size)}" aria-hidden="true">`
+  + `<circle cx="24" cy="24" r="24" fill="${esc(ground)}"/>${artShapes_(art)}</svg>`;
+/* A PERSON'S FACE FROM DATA: a photo (`src`), a drawing (`art`), or an initial (`text`), in the one class `cls`. */
+function renderFace_(f) {
+  if (f.src != null) return `<img class="${esc(f.cls)}" src="${esc(f.src)}" alt="${esc(f.alt || '')}"${f.eager ? '' : ' loading="lazy"'} decoding="async">`;
+  if (f.art) return `<span class="${esc(f.cls)} face-pic">${artSvg_(f.art, f.ground, f.size)}</span>`;
+  return `<span class="${esc(f.cls)}">${esc(f.text || '')}</span>`;
+}
+
 /* ONE TAG, ONE SIZE: `colour` is the palette's tag number (data-tag; the name 0, the rest 1 unless said), never a literal. */
 /* A `pill` is a profile's pill (`prof-tag`), coloured by its row unless it names a colour; `say` reads it aloud whole, `title` names what a "+N" hides. */
 function cardTag_(t, i) {
@@ -564,9 +579,9 @@ function cardControl_(c) {
   c = Object.assign({}, c || {});
   if (c.draft && typeof draftVal_ === 'function') { c.drafted = draftAttr_(c.draft.surface, c.draft.id, c.value); c.value = draftVal_(c.draft.surface, c.draft.id, c.value); }
   const id = c.id ? ` id="${esc(c.id)}"` : '', name = c.name ? ` name="${esc(c.name)}"` : '', act = c.act ? ` data-do="${esc(c.act)}"` : '';
-  const more = id + name + act + cardAttrs_(c.data) + (c.off ? ' disabled' : '') + (c.required ? ' required' : '') + (c.aria ? ` aria-label="${esc(c.aria)}"` : '') + (c.drafted ? ' ' + c.drafted : '');
+  const more = id + name + act + (c.look ? ` class="${esc(c.look)}"` : '') + cardAttrs_(c.data) + (c.off ? ' disabled' : '') + (c.required ? ' required' : '') + (c.aria ? ` aria-label="${esc(c.aria)}"` : '') + (c.drafted ? ' ' + c.drafted : '');
   if (c.kind === 'select') return `<select${more}>${(c.options || []).map(o => { o = typeof o === 'object' ? o : { value: o, text: o };
-    return `<option value="${esc(o.value)}"${String(o.value) === String(c.value) ? ' selected' : ''}>${esc(o.text == null ? o.value : o.text)}</option>`; }).join('')}</select>`;
+    return `<option value="${esc(o.value)}"${cardAttrs_(o.data)}${String(o.value) === String(c.value) ? ' selected' : ''}>${esc(o.text == null ? o.value : o.text)}</option>`; }).join('')}</select>`;
   if (c.kind === 'textarea') return `<textarea rows="${Number(c.rows) || 3}" placeholder="${esc(c.placeholder || '')}"${more}>${esc(c.value || '')}</textarea>`;
   if (c.kind === 'check') return `<input type="checkbox"${c.value ? ' checked' : ''}${more}>`;
   const type = /^(number|date|time|email|tel|password|search|file)$/.test(c.kind) ? c.kind : 'text';
@@ -644,20 +659,29 @@ const CARD_BLOCKS = {
     if (items.some(x => x && typeof x === 'object' && 'label' in x)) return items.map(x =>
       `<div class="row"><span class="k">${esc(x.label)}</span><span class="v${x.tone ? ' ' + esc(x.tone) : ''}">${cardRuns_(x.value)}</span></div>`).join('');
     const tag = b.ordered ? 'ol' : 'ul';
-    return items.length ? `<${tag} class="kc-list">${items.map(x => `<li>${cardRuns_(x)}</li>`).join('')}</${tag}>` : ''; },
+    return items.length ? `<${tag} class="kc-list${b.look ? ' ' + esc(b.look) : ''}">${items.map(x => `<li>${cardRuns_(x)}</li>`).join('')}</${tag}>` : ''; },
   answer: cardAnswer_,
   formRow: b => `<label class="kc-form-row"><span class="k">${cardRuns_(b.label || '')}</span>${cardControl_(b.control)}</label>`,
   embed: cardEmbed_,
   /* A HEADED SECTION: a small heading, then any blocks. */
-  section: b => `<section class="kc-sec${b.look ? ' ' + esc(b.look) : ''}">${b.head ? `<h4 class="kc-h">${cardRuns_(b.head)}</h4>` : ''}${(b.blocks || []).map(cardBlock_).join('')}</section>`,
+  section: b => `<section class="kc-sec${b.look ? ' ' + esc(b.look) : ''}"${b.live ? ' aria-live="polite"' : ''}>${b.head ? `<h4 class="kc-h${b.headLook ? ' ' + esc(b.headLook) : ''}">${cardRuns_(b.head)}</h4>` : ''}${(b.blocks || []).map(cardBlock_).join('')}</section>`,
   tree: b => cardTree_(b.nodes, !!b.fold, true),
   grid: cardGrid_,
   /* A WAIT is `loading_()` and nothing else; `look` and `data` name a region its redraw finds (`.err-body`). */
   choices: cardChoices_,
   /* A WHOLE CARD AMONG THE BLOCKS (Make an account inside Find's menu): its spec, drawn by `renderCard`. */
   card: b => (b.spec ? renderCard(b.spec) : ''),
+  /* A ROW OF TILES among the lines (`tile_` specs), its look added to `tile-row`. */
+  tiles: b => ((b.tiles || []).length ? `<div class="tile-row${b.look ? ' ' + esc(b.look) : ''}">${tile_(b.tiles)}</div>` : ''),
+  /* A PERSON ON ONE LINE: their face (`personFace_`'s who and options), name, @handle, then their tiles. */
+  who: b => `<div class="row${b.look ? ' ' + esc(b.look) : ''}">${b.face && typeof personFace_ === 'function' ? personFace_(b.face.who || {}, b.face.o || {}) : ''}<p class="${esc(b.whoLook || 'who')}"><b>${cardRuns_(b.name)}</b>${
+    b.handle ? `<span class="prof-handle">@${esc(b.handle)}</span>` : ''}</p>${(b.tiles || []).length ? `<div class="tile-row">${tile_(b.tiles)}</div>` : ''}</div>`,
+  /* ONE TICK BOX in a labelled cell (an hour on a week you tick): `control` is `cardControl_`'s. */
+  tickCell: b => `<label class="${esc(b.look || '')}"${b.label ? ` aria-label="${esc(b.label)}"` : ''}>${cardControl_(Object.assign({ kind: 'check' }, b.control || {}))}</label>`,
   wait: b => `<div class="kc-wait${b.look ? ' ' + esc(b.look) : ''}"${cardAttrs_(b.data)}${b.on ? ' aria-busy="true"' : ''}>${b.on && typeof loading_ === 'function' ? loading_() : ''}</div>`,
 };
+/* THE PADLOCK a shut card wears, first inside it. */
+const cardLockMark_ = () => `<span class="card-lock" title="Locked" aria-label="Locked">${typeof tileIcon_ === 'function' ? tileIcon_('lock') : ''}</span>`;
 /* A CARD DRAWN AGAIN WHERE IT STANDS: the new card replaces the old element whole. */
 function cardRedraw_(el, spec) {
   if (!el || typeof document === 'undefined') return;
@@ -758,7 +782,7 @@ function paperSelect_(b) {
 const paperSet_ = b => `<span class="bk-set">${esc(b.text)}</span>`;
 const paperInput_ = b => `<input class="bk-in${b.wide ? ' bk-in-l' : ''}"${b.id ? ` id="${esc(b.id)}"` : ''}${b.act ? ` data-do="${esc(b.act)}"` : ''}${b.field ? ` data-field="${esc(b.field)}"` : ''} type="${b.kind === 'number' ? 'number' : 'text'}"`
   + `${b.kind === 'number' ? ' inputmode="decimal" min="0" max="100" step="1"' : ''} value="${esc(b.value == null ? '' : b.value)}" placeholder="${esc(b.placeholder || '')}"${b.off ? ' disabled' : ''} aria-label="${esc(b.aria || '')}">`;
-const paperNote_ = b => `<p class="note${b.look ? ' ' + esc(b.look) : ''}">${cardRuns_(b.text)}</p>`;
+const paperNote_ = b => `<p class="note${b.look ? ' ' + esc(b.look) : ''}"${b.live ? ' aria-live="polite"' : ''}${b.alert ? ' role="alert"' : ''}>${cardRuns_(b.text)}</p>`;
 const paperLinks_ = b => `<p class="note policy-links">${esc(b.say || '')}${(b.links || []).map(l => `<a href="${esc(l.href)}" data-do="file-view" target="_blank" rel="noopener">${esc(l.text)}</a>`).join(' · ')}</p>`;
 const paperBox_ = b => `<div${b.id ? ` id="${esc(b.id)}"` : ''} class="${esc(b.look || '')}">${b.inner || ''}</div>`;
 Object.assign(CARD_BLOCKS, { paperRow: paperRow_, paperDoc: paperDoc_, paperRoster: paperRoster_, paperWhenCould: paperWhenCould_, paperWeek: paperWeek_,
@@ -769,11 +793,58 @@ const paperSnap_ = b => `<svg xmlns="http://www.w3.org/2000/svg" width="${Number
 /* TURNING A REQUEST DOWN asks why, in one optional line. */
 const paperWhy_ = b => `<form class="req-why" data-id="${esc(b.id)}"><label>Why not? <input name="why" maxlength="200" placeholder="optional, one line" autocomplete="off"></label>${tile_({ form: true, submit: true, label: 'Decline' })}</form>`;
 Object.assign(CARD_BLOCKS, { paperSnap: paperSnap_, paperWhy: paperWhy_ });
+/* A SETTINGS FORM'S PARTS (me-shelves): a control, a captioned field, a tick, a several-of-a-list and a plain group, all from data. */
+/* ATTRIBUTES ARE DATA: { name: value | true }, each escaped; an `on…` handler is never written. */
+const kcfAttrs_ = a => Object.keys(a || {}).filter(k => /^[a-z][\w:-]*$/i.test(k) && !/^on/i.test(k) && a[k] != null && a[k] !== false)
+  .map(k => (a[k] === true ? ` ${k}` : ` ${k}="${esc(String(a[k]))}"`)).join('');
+const kcfOpts_ = opts => (opts || []).map(o => (o && o.group != null ? `<optgroup label="${esc(o.group)}">${kcfOpts_(o.options)}</optgroup>`
+  : `<option value="${esc(o.value == null ? '' : o.value)}"${o.on ? ' selected' : ''}${o.off ? ' disabled' : ''}>${esc(o.text == null ? (o.value == null ? '' : o.value) : o.text)}</option>`)).join('');
+const kcfControl_ = b => (b.tag === 'select' ? `<select${kcfAttrs_(b.attrs)}>${kcfOpts_(b.options)}</select>` : `<input${kcfAttrs_(b.attrs)}>`);
+const kcfKids_ = b => (b.text != null ? cardRuns_(b.text) : '') + cardBlocks_(b.blocks) + (b.inner || '');
+const kcfField_ = b => `<label class="field${b.look ? ' ' + esc(b.look) : ''}"${kcfAttrs_(b.attrs)}>${
+  b.caps ? b.caps.map((c, i) => `<span class="${i ? 'q-cap-cert' : 'q-cap-std'}">${esc(c)}</span>`).join('') : b.cap != null && b.cap !== '' ? `<span>${esc(b.cap)}</span>` : ''}${kcfKids_(b)}</label>`;
+const kcfTickB_ = b => `<label class="check${b.look ? ' ' + esc(b.look) : ''}"${kcfAttrs_(b.labelAttrs)}><input${kcfAttrs_(Object.assign({ type: 'checkbox' }, b.attrs))}><span class="box"></span><span>${cardRuns_(b.text)}</span></label>`;
+const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.label)}</span>${kcfControl_(b.hidden || {})}<details class="many-d" data-many="${esc(b.key)}"${b.open ? ' open' : ''}>`
+  + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
+  + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
+/* A GROUP: a div (or a span, or a line) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
+const kcfGroup_ = b => { const tag = /^(span|p)$/.test(b.tag) ? b.tag : 'div';
+  return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
+    (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
+Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
 /* THE ONE TAG MAKER for a finder's menu (owner, 13 Nov): every answer, Doesn't matter, and the sign-in step's tags. `inner` is markup, escaped already. */
 const answerTag_ = (inner, attrs, cls) => `<div class="counted row tap${cls ? ' ' + cls : ''}" role="button" tabindex="0"${attrs || ''}><span class="k">${inner}</span></div>`;
 /* A MENU'S ROW OF TAGS, and the blank tag typed on (the sign-in name); `id` names a slot something else fills, Google's button. */
 const answersRow_ = (tags, cls, id) => `<div${id ? ` id="${id}"` : ''} class="answers${cls ? ' ' + cls : ''}">${tags || ''}</div>`;
 const answerBox_ = (attrs, cls) => `<label class="counted row${cls ? ' ' + cls : ''}"><input${attrs || ''}></label>`;
+/* THE MESSAGE BLOCKS (owner, 14 Nov: one template for everything): a conversation's chips, attachments, bubbles and composer, and Check uploads' report, drawn from data. */
+const msgAtt_ = b => ((b.items || []).length ? `<div class="msg-att">${b.items.map(a => a.kind === 'image'
+  ? `<a class="msg-pic" href="${esc(a.href)}" data-do="file-view" target="_blank" rel="noopener" aria-label="Open ${esc(a.name || 'the photo')}"><img src="${esc(a.src)}" alt="${esc(a.name || 'photo')}" loading="lazy" decoding="async"></a>`
+  : a.kind === 'video' ? `<video class="msg-vid post-vid" src="${esc(a.src)}" data-open="${esc(a.href)}" controls playsinline preload="metadata"></video>`
+  : `<a class="msg-file" href="${esc(a.href)}" data-do="file-view" target="_blank" rel="noopener"><b>${esc(a.mark)}</b><span>${esc(a.name || 'a file')}</span></a>`).join('')}</div>` : '');
+const msgLinks_ = b => (b.links || []).map(l => `<a class="msg-act" href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.text)}</a>`).join('');
+const msgChips_ = b => (b.chips || []).map(c => `<span class="msg-chip">${c.img ? `<img src="${esc(c.img)}" alt="" decoding="async">` : `<b>${esc(c.mark)}</b>`}`
+  + ` <span class="msg-chip-name">${esc(c.name)}</span> ${tile_(c.x)}</span>`).join('');
+function msgBubble_(b) {
+  const fail = b.fail ? `<p class="msg-when msg-fail"><span class="msg-fail-why">${esc(b.fail.said)}</span>${msgLinks_(b.fail)}</p>${tileRow_(tile_(b.fail.tiles), 'msg-acts')}` : '';
+  const bub = `<div class="msg-bub${b.words ? '' : ' is-bare'}">${msgAtt_({ items: b.att })}${b.words ? `<p class="msg-body-text">${cardRuns_({ marked: b.words })}</p>` : ''}</div>`;
+  return `${b.day ? `<p class="msg-day"><span>${esc(b.day)}</span></p>` : ''}<div class="msg${b.look ? ' ' + esc(b.look) : ''}">`
+    + (b.flag ? `<div class="msg-line">${bub}${tile_(b.flag)}</div>` : bub) + `${fail}</div>`;
+}
+const msgFormBlock_ = b => `<div class="msg-form" data-k="${esc(b.k)}"><div class="msg-queue">${msgChips_(b)}</div>`
+  + (b.clip ? `${tile_({ icon: 'plus', label: 'Attach a photo, video or file', act: 'msg-attach', cls: 'msg-clip' })}<input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : '')
+  + `<textarea class="msg-text" rows="${Number(b.rows) || 1}" maxlength="2000" placeholder="Message…" aria-label="Message ${esc(b.to)}"${b.drafted || ''}>${esc(b.value || '')}</textarea>`
+  + `${tile_(b.send)}<p class="note msg-said">${esc(b.note || '')}</p></div>`;
+/* A BOX ROUND PARTS THESE BLOCKS ALREADY DREW (a message's card, a claim, a section), its look and data its own. */
+const msgBox_ = b => `<div class="${esc(b.look || '')}"${cardAttrs_(b.data)}>${(b.parts || []).join('')}</div>`;
+const msgHead_ = b => { const h = b.h === 4 ? 'h4' : 'h3'; return `<${h}${b.look ? ` class="${esc(b.look)}"` : ''}>${cardRuns_(b.text)}</${h}>`; };
+const msgText_ = b => `<p class="${esc(b.look || '')}">${b.marked ? cardRuns_({ marked: b.text }) : cardRuns_(b.text)}</p>`;
+const msgPic_ = b => `<figure class="msg-fc-pic">${b.face || ''}</figure>`;
+const upReport_ = b => `<ul class="up-list">${(b.checks || []).map(c => `<li class="row up-item ${c.ok ? 'is-ok' : 'is-bad'}"><b class="up-mark" role="img" aria-label="${c.ok ? 'yes' : 'no'}">${c.ok ? '✓' : '✗'}</b>`
+  + `<span><span class="up-k">${esc(c.label)}</span> <span class="up-v">${esc(c.said)}</span></span></li>`).join('')}</ul>`
+  + `<p class="up-said ${b.ok ? 'up-good' : 'up-bad'}">${esc(b.said)}</p>${(b.steps || []).length ? `<ol class="up-steps">${b.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>` : ''}`;
+Object.assign(CARD_BLOCKS, { msgAtt: msgAtt_, msgLinks: msgLinks_, msgChips: msgChips_, msgBubble: msgBubble_, msgForm: msgFormBlock_, msgBox: msgBox_, msgHead: msgHead_,
+  msgText: msgText_, msgPic: msgPic_, upReport: upReport_ });
 
 ;
 /* ==== js/core-price.js ==== */
@@ -9142,10 +9213,11 @@ function applyKnown_() {
   return { fullName: [q.first_name, q.last_name].filter(Boolean).join(' '), email: q.email || '', phone: q.phone || '', dob };
 }
 function applyFormHtml_() {
-  const noOther = h => h.replace(`<option value="${QUAL_OTHER}">Something else…</option>`, '');
+  /* `qualPick_` returns a field block (me-shelves); here it is drawn without its Something else… option. */
+  const noOther = b => { b.blocks[0].options = b.blocks[0].options.filter(o => o.value !== QUAL_OTHER); return cardBlock_(b); };
   const rows = Array.from({ length: APP_SUBJECT_ROWS }, (_, i) => `<div class="q-row">
-      ${noOther(qualPick_(`data-app-subj="${i}"`, '', QUAL_SUBJECTS, i ? 'Another subject' : 'Subject', 'Choose'))}
-      ${noOther(qualPick_(`data-app-level="${i}"`, '', QUAL_LEVELS, 'Level', 'Choose'))}</div>`).join('');
+      ${noOther(qualPick_({ 'data-app-subj': String(i) }, '', QUAL_SUBJECTS, i ? 'Another subject' : 'Subject', 'Choose'))}
+      ${noOther(qualPick_({ 'data-app-level': String(i) }, '', QUAL_LEVELS, 'Level', 'Choose'))}</div>`).join('');
   const codes = typeof availCodes_ === 'function' ? availCodes_() : [];
   const week = codes.length ? availGrid_(codes, {}, [], false) : '';
   const known = applyKnown_();
@@ -9657,17 +9729,14 @@ function verifyFromLink_(again) {
       if (d && d.noEmail && d.parentPending) {
         /* ---------- `parentPending`: A SHEET THEY CLOSE, NOT A TOAST THAT CLOSES ITSELF § */
         const who = first || 'They';
-        openSheet('Confirmed — one more step', `
-          <p class="note">${esc(who)} can sign in now${d.handle ? ` as <b>@${esc(d.handle)}</b>` : ''} with
-            their PIN.</p>
-          <p class="note"><b>They are not on your account yet.</b> The @family. account on your email has not
-            been confirmed, so we did not put ${esc(first || 'them')} on it.</p>
-          <p class="note">Open the "Confirm your @family. account" email we sent you — or sign in and press
-            "Send the link again" — then add ${esc(first || 'them')} with "Add your child" on Students.
-            They say yes, and they are on your account.</p>
-          <p class="note">Did you never make an account here? Then somebody else did, with your email. Use
-            "Forgotten your PIN?" with your email to take it back — it signs them out.</p>
-          ${tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' })}`);
+        openSheet('Confirmed — one more step', cardBlock_({ type: 'text', look: 'note', paras: [
+          [who + ' can sign in now', d.handle ? [' as ', { b: '@' + d.handle }] : '', ' with their PIN.'],
+          [{ b: 'They are not on your account yet.' }, ' The @family. account on your email has not been confirmed, so we did not put '
+            + (first || 'them') + ' on it.'],
+          'Open the "Confirm your @family. account" email we sent you — or sign in and press "Send the link again" — then add '
+            + (first || 'them') + ' with "Add your child" on Students. They say yes, and they are on your account.',
+          'Did you never make an account here? Then somebody else did, with your email. Use "Forgotten your PIN?" with your email to take it back — it signs them out.'] })
+          + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }));
         try { if (USER) load(); } catch (e) { oops_(e, 'me:verifyFromLink_') }
       } else if (d && d.noEmail) {
         toast('Confirmed — ' + (first || 'they') + ' can sign in now'
@@ -9710,8 +9779,7 @@ function afterSignIn_(d) {
   if (d && (d.childrenHeld || d.pinCleared || d.pinLink || d.moveDropped || d.handleMoved) && d.message) {
     openSheet(d.pinCleared ? 'Your PIN has changed' : d.childrenHeld ? 'Signed in — one thing to know'
               : d.handleMoved ? 'Your handle has changed' : 'Signed in',
-      `<p class="note">${esc(d.message)}</p>
-       ${tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' })}`);
+      cardBlock_({ type: 'text', look: 'note', text: d.message }) + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }));
   }
   let waiting = '';
   try { waiting = sessionStorage.getItem('familyVerify') || ''; sessionStorage.removeItem('familyVerify'); } catch (e) { /* storage can be blocked; the app runs without it */ }
@@ -9863,11 +9931,11 @@ function msgRead_(q) {
 }
 
 function msgQueueHtml_(key) {
-  const q = MSG_QUEUE[key] || [];
-  return q.map((a, i) => `<span class="msg-chip">${
-      /^image\//.test(a.type) ? `<img src="${esc(a.url)}" alt="" decoding="async">` : `<b>${esc(msgFileMark_(a))}</b>`}
-    <span class="msg-chip-name">${esc(a.name)}</span>
-    ${tile_({ icon: 'close', label: 'Remove ' + a.name, act: 'msg-unqueue', data: { k: key, i: i }, cls: 'msg-chip-x' })}</span>`).join('');
+  return cardBlock_({ type: 'msgChips', chips: msgChipSpecs_(key) });
+}
+function msgChipSpecs_(key) {
+  return (MSG_QUEUE[key] || []).map((a, i) => ({ img: /^image\//.test(a.type) ? a.url : '', mark: msgFileMark_(a), name: a.name,
+    x: { icon: 'close', label: 'Remove ' + a.name, act: 'msg-unqueue', data: { k: key, i: i }, cls: 'msg-chip-x' } }));
 }
 function msgQueueDraw_(form) {
   const key = form && form.dataset.k;
@@ -10130,21 +10198,14 @@ function msgFileMark_(a) {
 /* ---------- WHAT WAS SENT WITH IT § */
 function msgAttachHtml_(list) {
   if (!Array.isArray(list) || !list.length) return '';
-  return `<div class="msg-att">${list.map(a => {
-    const url = String(a.url || '');
-    const kind = msgKind_(a);
-    if (kind === 'image') {
-      return `<a class="msg-pic" href="${esc(url)}" data-do="file-view" target="_blank" rel="noopener"
-        aria-label="Open ${esc(a.name || 'the photo')}">
-        <img src="${esc(pic(url))}" alt="${esc(a.name || 'photo')}" loading="lazy" decoding="async"></a>`;
-    }
-    if (kind === 'video') {
-      return `<video class="msg-vid post-vid" src="${esc(/^blob:/.test(url) ? url : postVidSrc_(url))}"
-        data-open="${esc(url)}" controls playsinline preload="metadata"></video>`;
-    }
-    return `<a class="msg-file" href="${esc(url)}" data-do="file-view" target="_blank" rel="noopener">
-      <b>${esc(msgFileMark_(a))}</b><span>${esc(a.name || 'a file')}</span></a>`;
-  }).join('')}</div>`;
+  return cardBlock_({ type: 'msgAtt', items: msgAttItems_(list) });
+}
+function msgAttItems_(list) {
+  return (Array.isArray(list) ? list : []).map(a => {
+    const url = String(a.url || ''), kind = msgKind_(a);
+    return { kind: kind === 'image' || kind === 'video' ? kind : 'file', href: url, name: a.name || '', mark: msgFileMark_(a),
+      src: kind === 'image' ? pic(url) : kind === 'video' ? (/^blob:/.test(url) ? url : postVidSrc_(url)) : '' };
+  });
 }
 
 /* ---------- AN ADMIN'S REFUSAL CARRIES THE FIX, AND THE FIX IS AN ADDRESS § */
@@ -10157,10 +10218,11 @@ function msgFixUrls_(text) {
     .slice(0, 2);
 }
 function msgFixLinks_(text) {
-  return msgFixUrls_(text).map(u => `<a class="msg-act" href="${esc(u)}" target="_blank" rel="noopener">${
-    /\?setup=1/.test(u) ? 'Open ?setup=1' : /accounts\.google\.com/.test(u) ? 'Allow it' : 'Open the link'}</a>`)
-    .join('');
+  return cardBlock_({ type: 'msgLinks', links: msgFixLinkSpecs_(text) });
 }
+const msgFixLinkSpecs_ = text => msgFixUrls_(text).map(u => ({ href: u,
+  text: /\?setup=1/.test(u) ? 'Open ?setup=1' : /accounts\.google\.com/.test(u) ? 'Allow it' : 'Open the link' }));
+
 /* AND THE SENTENCE WITHOUT THEM. § */
 function msgFailSaid_(text) {
   let t = String(text || '');
@@ -10188,24 +10250,15 @@ const messagesHtml_ = ms => {
     const runEnd = !next || !!next.mine !== mine || (nextDay && nextDay !== dayWord)
                 || !!m.tmp !== !!next.tmp;
     const words = String(m.body || '').trim();
-    const state = m.state === 'failed'
-      ? `<p class="msg-when msg-fail"><span class="msg-fail-why">Not sent — ${esc(msgFailSaid_(m.err) || 'try again')}</span>${
-           msgFixLinks_(m.err)}</p>${tileRow_(tile_([
-             { icon: 'again', label: 'Retry', act: 'msg-retry', data: { k: m.tmp }, cls: 'msg-act' },
-             m.why === 'files' && words && (m.queue || []).length
-               ? { icon: 'doc', label: 'Words only', act: 'msg-words', data: { k: m.tmp }, cls: 'msg-act' } : null,
-             { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp }, cls: 'msg-act' }]), 'msg-acts')}`
-      : '';
-    return `${newDay ? `<p class="msg-day"><span>${esc(dayWord)}</span></p>` : ''}
-      <div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
-        runEnd ? ' run-end' : ''}${!mine && (!m.read || m.fresh) ? ' unread' : ''}${
-        m.state ? ' is-' + m.state : ''}">
-      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestOpts_`, 486). */''}
-      ${!mine && m.id && !m.tmp ? '<div class="msg-line">' : ''}<div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
-        words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>${!mine && m.id && !m.tmp
-        ? tile_(suggestOpts_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag')) + '</div>' : ''}
-      ${state}
-    </div>`;
+    const flag = !mine && m.id && !m.tmp ? suggestOpts_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag') : null;
+    /* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestOpts_`, 486). */
+    return cardBlock_({ type: 'msgBubble', day: newDay ? dayWord : '', words, att: msgAttItems_(m.attachments), flag,
+      look: [mine ? 'mine' : '', runTop ? 'run-top' : '', runEnd ? 'run-end' : '', !mine && (!m.read || m.fresh) ? 'unread' : '', m.state ? 'is-' + m.state : ''].filter(Boolean).join(' '),
+      fail: m.state === 'failed' ? { said: 'Not sent — ' + (msgFailSaid_(m.err) || 'try again'), links: msgFixLinkSpecs_(m.err), tiles: [
+        { icon: 'again', label: 'Retry', act: 'msg-retry', data: { k: m.tmp }, cls: 'msg-act' },
+        m.why === 'files' && words && (m.queue || []).length
+          ? { icon: 'doc', label: 'Words only', act: 'msg-words', data: { k: m.tmp }, cls: 'msg-act' } : null,
+        { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp }, cls: 'msg-act' }] } : null });
   }).join('');
 };
 
@@ -10218,48 +10271,30 @@ function msgDraft_(k) {
 }
 function msgForm_(to, toId, note, rows) {
   const k = msgKey_(to, toId);
-  return `<div class="msg-form" data-k="${esc(k)}">
-    <div class="msg-queue">${msgQueueHtml_(k)}</div>
-    ${/* A CHILD SENDS WORDS ONLY (413) — no picker, and `sendMessage` refuses their files too. */
-      rankAtLeast_('client') ? `${tile_({ icon: 'plus', label: 'Attach a photo, video or file', act: 'msg-attach', cls: 'msg-clip' })}
-    <input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : ''}
-    <textarea class="msg-text" rows="${rows || 1}" maxlength="2000"
-      placeholder="Message…" aria-label="Message ${esc(to)}"${draftAttr_('msg', k)}>${esc(msgDraft_(k))}</textarea>
-    ${tile_({ form: true, label: 'Send', act: 'msg-send', data: { to: to, id: toId || '' }, cls: 'msg-go' })}
-    <p class="note msg-said">${esc(note || '')}</p>
-  </div>`;
+  /* A CHILD SENDS WORDS ONLY (413) — no picker, and `sendMessage` refuses their files too. */
+  return cardBlock_({ type: 'msgForm', k, chips: msgChipSpecs_(k), clip: rankAtLeast_('client'), to, rows, drafted: draftAttr_('msg', k), value: msgDraft_(k),
+    send: { form: true, label: 'Send', act: 'msg-send', data: { to: to, id: toId || '' }, cls: 'msg-go' }, note });
 }
 
 /* ---------- CHECK UPLOADS: THE ADMIN'S ANSWER TO "CAN A PHOTO BE SENT YET" § */
 let UPLOADS_SAID = null;
 
 function uploadsHtml_(d) {
-  const tile = `<div class="tile-row">${tile_({ icon: 'tick', label: 'Check uploads', note: 'nothing kept',
-    act: 'uploads-check', tone: 'admin' })}</div>`;
+  const tile = tileRow_(tile_({ icon: 'tick', label: 'Check uploads', note: 'nothing kept', act: 'uploads-check', tone: 'admin' }));
   if (!d) {
-    return tile + `<p class="note up-said">Whether a photo or a clip sent in a message can be kept:
-      the Ledger's column, the Drive folder and what this deployment may do. One test file is made,
-      shared and binned.</p>`;
+    return tile + cardBlock_({ type: 'msgText', look: 'note up-said', text: 'Whether a photo or a clip sent in a message can be kept: '
+      + 'the Ledger\'s column, the Drive folder and what this deployment may do. One test file is made, shared and binned.' });
   }
-  if (d.error) return tile + `<p class="up-said up-bad">${esc(d.error)}</p>`;
-  const rows = (d.checks || []).map(c => `<li class="row up-item ${c.ok ? 'is-ok' : 'is-bad'}">
-      <b class="up-mark" role="img" aria-label="${c.ok ? 'yes' : 'no'}">${c.ok ? '✓' : '✗'}</b>
-      <span><span class="up-k">${esc(c.label)}</span>
-      <span class="up-v">${esc(c.said)}</span></span></li>`).join('');
-  const steps = (d.steps || []).map(st => `<li>${esc(st.text)}</li>`).join('');
+  if (d.error) return tile + cardBlock_({ type: 'msgText', look: 'up-said up-bad', text: d.error });
   /* THE ADDRESSES A STEP NEEDS ARE TILES UNDER THE LIST, not links in its sentence — a link in a line of 0.78rem type is a 14px target, and a tile is 44px from the § */
   const go = (d.steps || []).map(st => {
     const href = String(st.href || (st.setup && typeof API === 'string' ? API + '?setup=1' : ''));
-    return href ? tile_({ icon: 'open', href: href, leave: true,
-      label: st.setup ? 'Open ?setup=1' : 'Allow it', note: st.setup ? 'adds the column' : 'consent' }) : '';
-  }).filter(Boolean).join('');
-  return tile + `<ul class="up-list">${rows}</ul>
-    <p class="up-said ${d.ok ? 'up-good' : 'up-bad'}">${d.ok
-      ? 'Ready — photos, videos and files can be sent in messages.'
-      : 'Not yet. In this order:'}</p>
-    ${steps ? `<ol class="up-steps">${steps}</ol>` : ''}
-    ${go ? `<div class="tile-row">${go}</div>` : ''}
-    `;
+    return href ? { icon: 'open', href: href, leave: true,
+      label: st.setup ? 'Open ?setup=1' : 'Allow it', note: st.setup ? 'adds the column' : 'consent' } : null;
+  }).filter(Boolean);
+  return tile + cardBlock_({ type: 'upReport', checks: d.checks || [], ok: !!d.ok, steps: (d.steps || []).map(st => st.text),
+    said: d.ok ? 'Ready — photos, videos and files can be sent in messages.' : 'Not yet. In this order:' })
+    + (go.length ? tileRow_(tile_(go)) : '');
 }
 
 /* EVERY `.up-box` ON THE PAGE — a class rather than the id alone, for the reason `cart-box` gives:
@@ -10295,13 +10330,9 @@ on('uploads-check', el => {
 /* ---------- ADDING A CHILD, AND ANSWERING WHEN SOMEBODY ADDS YOU § */
 /* ---------- THE ANSWER HALF HAD NO DOOR EITHER, UNTIL THE ACCOUNT COLUMN DREW IT § */
 function claimCard_(c) {
-  return card_(`<div class="">
-    <h3>${esc(c.from)} says they are your parent</h3>
-    <div class="btn-row">
-      ${tile_({ form: true, label: 'Yes', act: 'claim-yes', data: { row: c.rowIndex } })}
-      ${tile_({ form: true, label: 'No', act: 'claim-no', data: { row: c.rowIndex }, kind: 'quiet' })}
-    </div>
-  </div>`);
+  return card_(cardBlock_({ type: 'msgBox', parts: [cardBlock_({ type: 'msgHead', text: c.from + ' says they are your parent' }),
+    tileRow_(tile_([{ form: true, label: 'Yes', act: 'claim-yes', data: { row: c.rowIndex } },
+      { form: true, label: 'No', act: 'claim-no', data: { row: c.rowIndex }, kind: 'quiet' }]), 'btn-row')] }));
 }
 
 /* WHO MAY ASK — the same test the tile carried, kept in one place so the card and its handler
@@ -10314,11 +10345,9 @@ function mayAddChild_() {
 /* LINKING A CHILD WHO HAS AN ACCOUNT moved to the People column (442): search their handle, then the
    card's "Add as my child" tile. This section only points there. */
 function kidAddSec_() {
-  return `<div class="kid-sec kid-add">
-    <h4 class="kid-h">Add your child</h4>
-    <p class="note">Your child makes their own account (Make an account). Then search their handle at the top of
-      ${esc(tabLabel_('students', 'Student profile'))} and tap Add as my child on their card. They say yes before anything is linked.</p>
-  </div>`;
+  return cardBlock_({ type: 'msgBox', look: 'kid-sec kid-add', parts: [cardBlock_({ type: 'msgHead', h: 4, look: 'kid-h', text: 'Add your child' }),
+    cardBlock_({ type: 'msgText', look: 'note', text: 'Your child makes their own account (Make an account). Then search their handle at the top of '
+      + tabLabel_('students', 'Student profile') + ' and tap Add as my child on their card. They say yes before anything is linked.' })] });
 }
 
 /* ---------- MESSAGES AS FIND CARDS (owner, 8 Nov, 36a): picture, title, tags, two lines, tiles, the shape every Find card has. */
@@ -10333,13 +10362,13 @@ function msgFacePic_(t, mine) {
     else face = typeof dmFace_ === 'function' ? dmFace_(t) : '';
   } catch (e) { face = ''; }
   if (!/has-pic|<img|<svg/.test(face) && typeof personPic_ === 'function') face = personPic_(mine ? (USER || {}).personId : t.id, mine ? 'you' : t.name);
-  return `<figure class="msg-fc-pic">${face}</figure>`;
+  return cardBlock_({ type: 'msgPic', face });
 }
 /* THE SHARED TAG LINE, with what no facet says (when, unread, kind) added to its end. */
 function msgTags_(x, extra) {
   const row = typeof tagRow_ === 'function' && x ? String(tagRow_(x) || '') : '';
-  const more = extra.filter(Boolean).map(t => `${qtag_(`${esc(t.text)}`, '', `msg-tag${t.cls ? ' ' + t.cls : ''}`)}`).join('');
-  return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, more + '</div>') : `<div class="qtags qcard-tags">${more}</div>`;
+  const more = renderTags(extra.filter(Boolean).map(t => ({ text: t.text, look: 'msg-tag' + (t.cls ? ' ' + t.cls : ''), colour: false })), 'qcard-tags', true);
+  return /<\/div>$/.test(row) ? row.replace(/<\/div>$/, more.replace(/^<div[^>]*>/, '')) : more;
 }
 function msgKindWord_(m) {
   const a = (m && m.attachments) || [];
@@ -10354,14 +10383,14 @@ function msgFindCard_(x, t, draw) {
   if (!open) return head;
   try { markRead_(t.msgs); } catch (e) { oops_(e, 'msg:find-read'); }
   return head + t.msgs.map(m => msgFindOne_(t, m)).join('')
-    + card_(`<div class="fc msg-fc msg-fc-form" data-thread="${esc(t.id)}">${msgForm_(t.name, t.id)}</div>`);
+    + card_(cardBlock_({ type: 'msgBox', look: 'fc msg-fc msg-fc-form', data: { thread: t.id }, parts: [msgForm_(t.name, t.id)] }));
 }
 /* THE CLOSED CONVERSATION'S FIELDS for the one card maker; `x.row` is the thread. */
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
   msgPic: x => msgFacePic_(x.row),
-  msgWho: x => `<h3>${esc(x.row.name)}</h3>`,
+  msgWho: x => cardBlock_({ type: 'msgHead', text: x.row.name }),
   msgTags: x => { const t = x.row, last = t.last || {}; return msgTags_(x, [{ text: msgDate_(msgTime_(last)) }, t.unread ? { text: t.unread + ' unread', cls: 'is-new' } : null, { text: 'Conversation' }]); },
-  msgBody: x => { const last = x.row.last || {}; return `<p class="msg-fc-body">${esc((last.mine ? 'You: ' : '') + (String(last.body || '').trim() || msgKindWord_(last)))}</p>`; },
+  msgBody: x => { const last = x.row.last || {}; return cardBlock_({ type: 'msgText', look: 'msg-fc-body', text: (last.mine ? 'You: ' : '') + (String(last.body || '').trim() || msgKindWord_(last)) }); },
   msgTiles: x => { const t = x.row, open = !!MSG_OPEN[t.id]; return tileRow_(tile_([
     { icon: open ? 'close' : 'open', label: open ? 'Close' : 'Open', note: 'the conversation', act: 'msg-open', data: { k: t.id } },
     { icon: 'send', label: 'Reply', note: t.name, act: 'msg-reply', data: { k: t.id } }])); },
@@ -10375,12 +10404,12 @@ function msgFindOne_(t, m) {
     { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp } }]) + msgFixLinks_(m.err)
     : !mine && m.id && !m.tmp && typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('message', m.id, 'Message from ' + (m.fromName || t.name))) : '';
   const words = String(m.body || '').trim();
-  return card_(`<div class="fc msg-fc is-one${mine ? ' mine' : ''}${fresh ? ' unread' : ''}" data-thread="${esc(t.id)}">
-    ${msgTags_(null, [{ text: msgDate_(ms) + ' ' + msgClock_(ms, m.at) }, fresh ? { text: 'unread', cls: 'is-new' } : null,
-      { text: msgKindWord_(m) }, m.state === 'sending' ? { text: 'sending…' } : m.tmp && m.state !== 'failed' ? { text: 'sent' } : null])}
-    ${msgFacePic_(t, mine)}<h3>${esc(mine ? 'You' : (m.fromName || t.name))}</h3>
-    ${words ? `<p class="msg-fc-body">${mark(words)}</p>` : ''}${msgAttachHtml_(m.attachments)}
-    ${tiles ? tileRow_(tiles) : ''}</div>`);
+  return card_(cardBlock_({ type: 'msgBox', look: 'fc msg-fc is-one' + (mine ? ' mine' : '') + (fresh ? ' unread' : ''), data: { thread: t.id }, parts: [
+    msgTags_(null, [{ text: msgDate_(ms) + ' ' + msgClock_(ms, m.at) }, fresh ? { text: 'unread', cls: 'is-new' } : null,
+      { text: msgKindWord_(m) }, m.state === 'sending' ? { text: 'sending…' } : m.tmp && m.state !== 'failed' ? { text: 'sent' } : null]),
+    msgFacePic_(t, mine), cardBlock_({ type: 'msgHead', text: mine ? 'You' : (m.fromName || t.name) }),
+    words ? cardBlock_({ type: 'msgText', look: 'msg-fc-body', marked: true, text: words }) : '', msgAttachHtml_(m.attachments),
+    tiles ? tileRow_(tiles) : ''] }));
 }
 /* REDRAWN WHERE IT STANDS in Find: that conversation's cards go, its new set takes the first one's place. */
 function msgFindRedraw_(key) {
@@ -10410,13 +10439,14 @@ on('msg-reply', el => {
 /* THE SIGN-IN SLIP — the same paper wherever a handle and a PIN are handed to somebody: here, and in
    the New PIN sheet. Paper, so `--paper` and `--paper-ink`, never a literal. */
 function pinSlip_(first, handle, pin) {
-  return `<div class="pin-slip" aria-live="polite">
-    <p class="pin-slip-k">${esc(first || 'They')} signs in with</p>
-    <p class="pin-slip-v">@${esc(handle)}</p>
-    <p class="pin-slip-k">and the PIN</p>
-    <p class="pin-slip-v">${esc(pin)}</p>
-  </div>`;
+  return cardBlock_({ type: 'section', look: 'pin-slip', live: true, blocks: [
+    { type: 'text', look: 'pin-slip-k', text: (first || 'They') + ' signs in with' }, { type: 'text', look: 'pin-slip-v', text: '@' + handle },
+    { type: 'text', look: 'pin-slip-k', text: 'and the PIN' }, { type: 'text', look: 'pin-slip-v', text: String(pin) }] });
 }
+/* A SETTINGS CARD AS A SPEC (owner, 13 Nov: one template): its name the one tag, its look its old class, its body blocks. */
+const rolesSet_ = (look, name, body, more) => renderCard(Object.assign({ kind: 'setting', look: look || '', name: name || '', tags: name ? [name] : [], body: body || [] }, more || {}));
+/* MARKUP ANOTHER MAKER DREW (a hub, a form, the build line), carried as the one embed. */
+const rolesDrawn_ = (draw, look) => ({ type: 'embed', tool: 'me-form', look: look || '', args: { draw } });
 
 /* ---------- AN ADDRESS NOBODY HAS PROVED: THE MAIL IT IS NOT SENT, AND THE CHILD IT CANNOT HOLD YET § */
 function pendingAddr_() { return (whose_() && whose_().pendingEmail) ? String(whose_().pendingEmail) : ''; }
@@ -10431,8 +10461,7 @@ function mailHeldNote_() {
   const at = pendingAddr_();
   /* `overflow-wrap:anywhere` ON THE ADDRESS: it is one word with no space in it, and a long one at 320
      took the card sideways — the fault the dotted answer line paid for (check/states.js). */
-  return at ? `<p class="said mail-held">We will email you once you open the link
-    we sent to <b class="wrap-any">${esc(at)}</b>.</p>` : '';
+  return at ? cardBlock_({ type: 'text', look: 'said mail-held wrap-any', text: ['We will email you once you open the link we sent to ', { b: at }, '.'] }) : '';
 }
 
 /* ---------- A NEW ADDRESS WAITING TO BE PROVED, ON THE CARD IT WAS TYPED ON § */
@@ -10440,20 +10469,16 @@ function movingNote_(p) {
   const to = p && p.email_moving ? String(p.email_moving) : '';
   if (!to) return '';
   const was = String((p && p.email) || '');
-  return `<p class="said mail-moving">Your email changes to
-    <b class="wrap-any">${esc(to)}</b> once you open the link we sent there, on a phone where you
-    are signed in.${was ? ` Until then it is still <b class="wrap-any">${esc(was)}</b> — sign in
-    with that, or your handle. Type it back here to keep it.` : ''}</p>`;
+  return cardBlock_({ type: 'text', look: 'said mail-moving wrap-any', text: ['Your email changes to ', { b: to },
+    ' once you open the link we sent there, on a phone where you are signed in.'].concat(was ? [' Until then it is still ', { b: was },
+    ' — sign in with that, or your handle. Type it back here to keep it.'] : []) });
 }
 
 /* WHERE THE TWO FORMS WOULD BE, for a parent whose address is still PENDING. § */
 function kidHeldSec_() {
-  return `<div class="kid-sec kid-held">
-    <h4 class="kid-h">Add your child</h4>
-    <p class="note">Open the link we emailed to <b class="wrap-any">${esc(pendingAddr_())}</b>
-      first, then you can add your child.</p>
-    <div class="tile-row">${tile_(RESEND_LINK)}</div>
-  </div>`;
+  return { type: 'section', look: 'kid-sec kid-held', head: 'Add your child', headLook: 'kid-h', blocks: [
+    { type: 'text', look: 'note wrap-any', text: ['Open the link we emailed to ', { b: pendingAddr_() }, ' first, then you can add your child.'] },
+    { type: 'tiles', tiles: [RESEND_LINK] }] };
 }
 
 /* ---------- MANAGE YOUR CHILD: ONE CARD (docs/history/339) § */
@@ -10468,29 +10493,21 @@ function kidListSec_(held) {
   /* NOT "NONE" WHILE THE PAYLOAD IS COMING — the family arrives with it, and "no child is linked" over a
      list that is a moment away is the `nothingHere` fault. The one loader (`loading_`) until it lands. */
   if (!kids.length) {
-    return `<div class="kid-sec kid-list">${typeof awaiting_ === 'function' && awaiting_() ? loading_()
-      : empty_('No child linked yet.')}</div>`;
+    return { type: 'section', look: 'kid-sec kid-list', blocks: [typeof awaiting_ === 'function' && awaiting_() ? { type: 'wait', on: true }
+      : { type: 'text', look: 'empty', text: 'No child linked yet.' }] };
   }
-  return `<div class="kid-sec kid-list">${kids.map(f => {
+  return { type: 'section', look: 'kid-sec kid-list', blocks: kids.map(f => {
     /* THEIR FIRST NAME, as the server calls a child (docs/history/333), without the `(@handle)` it adds
        when two children share one — the handle is printed beside it. */
     const first = String(nameBesideHandle_(f.title, f.handle) || f.title).trim();
-    return `<div class="row kid-item">
-      ${personFace_({ pic: f.image, avatar: f.avatar, handle: f.handle, name: first, personId: f.personId },
-                    { cls: 'kid-face', none: 'prof-none', size: 36 })}
-      <p class="kid-who"><b>${esc(first)}</b>${f.handle ? `<span class="prof-handle">@${esc(f.handle)}</span>` : ''}</p>
-      ${held ? '' : `<div class="tile-row">${tile_({ icon: 'key', label: 'New PIN', note: 'to sign in with',
-          act: 'kid-pin', data: { id: f.personId, name: first.split(' ')[0] } })}</div>`}
-    </div>`;
-  }).join('')}</div>`;
+    return { type: 'who', look: 'kid-item', whoLook: 'kid-who', name: first, handle: f.handle || '',
+      face: { who: { pic: f.image, avatar: f.avatar, handle: f.handle, name: first, personId: f.personId }, o: { cls: 'kid-face', none: 'prof-none', size: 36 } },
+      tiles: held ? [] : [{ icon: 'key', label: 'New PIN', note: 'to sign in with', act: 'kid-pin', data: { id: f.personId, name: first.split(' ')[0] } }] };
+  }) };
 }
 function childManageCard_() {
   const held = !!pendingAddr_();
-  return meCard_(`<div class="kid-card kid-manage">
-    <h3>Manage your child</h3>
-    ${kidListSec_(held)}
-    ${held ? kidHeldSec_() : kidAddSec_()}
-  </div>`);
+  return rolesSet_('kid-card kid-manage', 'Manage your child', [kidListSec_(held), held ? kidHeldSec_() : rolesDrawn_(kidAddSec_)]);
 }
 
 /* A REFUSAL THAT SAYS THE ADDRESS IS WAITING corrects the phone: § */
@@ -10526,10 +10543,9 @@ on('kid-pin', el => {
   if (!id) { toast('That account has no id yet — ask us.'); return; }
   const row = el.closest('.tile-row') || el;
   document.querySelectorAll('.kid-pin-ask').forEach(x => x.remove());
-  row.insertAdjacentHTML('afterend', `<div class="kid-pin-ask">
-    <p class="note">A new PIN for ${esc(who)}: their old PIN stops working, and they are signed out everywhere. You will see the
-      new one once, to give them.</p>
-    ${tile_({ form: true, label: 'Make a new PIN', act: 'kid-pin-go', data: { id: id, name: who } })}</div>`);
+  row.insertAdjacentHTML('afterend', cardBlock_({ type: 'section', look: 'kid-pin-ask', blocks: [
+    { type: 'text', look: 'note', text: 'A new PIN for ' + who + ': their old PIN stops working, and they are signed out everywhere. You will see the new one once, to give them.' },
+    { type: 'tiles', tiles: [{ form: true, label: 'Make a new PIN', act: 'kid-pin-go', data: { id: id, name: who } }] }] }));
 });
 
 on('kid-pin-go', el => {
@@ -10540,8 +10556,7 @@ on('kid-pin-go', el => {
     .then(d => {
       const body = el.closest('.kid-pin-ask');
       if (body) body.innerHTML = pinSlip_(d.first || el.getAttribute('data-name'), d.handle, d.pin)
-        + '<p class="note">Write it down or read it to them — it is not shown again. They can change it '
-        + 'under Kids settings once they are in.</p>';
+        + cardBlock_({ type: 'text', look: 'note', text: 'Write it down or read it to them — it is not shown again. They can change it under Kids settings once they are in.' });
     })
     .catch(() => {});
 });
@@ -10602,8 +10617,7 @@ const libFieldsOf_ = groups => [].concat(...Object.keys(groups || {}).map(g => g
 /* ---------- READING ALOUD (453, 463) — no choice: the device's calmest natural voice, free; a sample is all there is to do ---------- */
 function voiceCard_() {
   if (!canSay_()) return '';
-  return meCard_(`<div class="voice-card"><h3>Reading aloud</h3>
-    <div class="tile-row">${tile_({ icon: 'speak', label: 'Hear a sample', note: 'the reading voice', act: 'voice-try' })}</div></div>`);
+  return rolesSet_('voice-card', 'Reading aloud', [{ type: 'tiles', tiles: [{ icon: 'speak', label: 'Hear a sample', note: 'the reading voice', act: 'voice-try' }] }]);
 }
 const VOICE_SAMPLE = 'Hello. This is how your questions will be read. For example: x² ÷ 4 is less than 3/4.';
 on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
@@ -10630,18 +10644,17 @@ function lockedAs_(col, draw) {
 /* SHUT: the padlock on the card, every box and tile disabled, a link made inert — what it is stays readable. */
 function lockCard_(h) {
   return String(h).replace(/^(\s*<div\b[^>]*\bclass="(?:card|own-set)\b[^"]*)"/, '$1 is-locked"')
-    .replace(/^(\s*<div\b[^>]*>)/, `$1<span class="card-lock" title="Locked" aria-label="Locked">${tileIcon_('lock')}</span>`)
+    .replace(/^(\s*<div\b[^>]*>)/, (m, open) => open + cardLockMark_())
     .replace(/<(input|select|textarea|button)\b(?![^>]*\sdisabled\b)/g, '<$1 disabled')
     .replace(/<a\b([^>]*)\shref="[^"]*"/g, '<a$1 aria-disabled="true"')
     /* NO ID OF ITS OWN — a shut copy must never be the box a real card's code finds (`pin-now`). */
     .replace(/(<[a-z]+\b[^>]*?)\sid="/g, '$1 data-lock-id="');
 }
 /* YOUR CARD'S PLACE ON A LOCKED COLUMN: its title only — a placeholder has no card to draw. */
-const lockedOwnCards_ = col => (OWN_SEC_OF_SET_[col] || []).map(k => meCard_(`<div class="own-lock" data-lay-card="own:${col}:${k}"><h3>${esc(OWN_SEC_TITLE_[k] || k)}</h3></div>`));
+const lockedOwnCards_ = col => (OWN_SEC_OF_SET_[col] || []).map(k => rolesSet_('own-lock', OWN_SEC_TITLE_[k] || k, [], { data: { 'lay-card': 'own:' + col + ':' + k } }));
 /* EACH SETTINGS COLUMN'S CARDS FOR ITS ROLE, built the same way as for a holder (`staffPages_`, `familyPages_`, `youSettingsPages_`). */
 const LOCKED_DRAW_ = {
-  staff: () => lockedOwnCards_('staff').concat([meCard_(`<div class="staff-top"><h3>Staff hub</h3>${
-    typeof window.hubBlock_ === 'function' ? window.hubBlock_() : ''}</div>`)]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
+  staff: () => lockedOwnCards_('staff').concat([rolesSet_('staff-top', 'Staff hub', [rolesDrawn_(() => (typeof window.hubBlock_ === 'function' ? window.hubBlock_() : ''))])]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
   family: () => lockedOwnCards_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family')),
   account: () => lockedOwnCards_('account').concat(youSettingsPages_()),
 };
@@ -10662,7 +10675,7 @@ screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_
 function applyCard_() {
   const open = typeof applyFormOpen_ === 'function' && applyFormOpen_();
   const body = open ? applyFormHtml_() : typeof applyOpts_ === 'function' && applyOpts_() ? tileRow_(tile_(applyOpts_()), 'apply-tiles') : '';
-  const h = body ? meCard_(`<div class="apply-card" data-yours="1"><h3>Apply to teach</h3><p class="note">Teach with us: tell us what you teach, and we will be in touch.</p>${body}</div>`) : '';
+  const h = body ? rolesSet_('apply-card', 'Apply to teach', [{ type: 'text', look: 'note', text: 'Teach with us: tell us what you teach, and we will be in touch.' }, rolesDrawn_(() => body)], { data: { yours: '1' } }) : '';
   /* AN APPLICATION IS THE ASKER'S OWN (`applyTeach`), so in the lens it is shown shut. */
   return h ? [lensOn_() ? lockCard_(h) : h] : [];
 }
@@ -10674,7 +10687,7 @@ function staffPages_() {
   if (!whoseAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
   const hub = typeof window.hubBlock_ === 'function' ? window.hubBlock_() : '';
   const warn = typeof window.hubWarn_ === 'function' ? window.hubWarn_() : '';
-  const top = hub ? [meCard_(`<div class="staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`)] : [];
+  const top = hub ? [rolesSet_('staff-top', 'Staff hub', [rolesDrawn_(() => warn + hub)])] : [];
   const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
@@ -10682,8 +10695,7 @@ screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('
 
 /* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
 function apprenticePages_() {
-  return [meCard_(`<div class="appr-set"><p class="note">${
-    esc(brand('apprentice_blurb', 'Work experience with us. Coming soon.'))}</p></div>`)];
+  return [rolesSet_('appr-set', '', [{ type: 'text', look: 'note', text: brand('apprentice_blurb', 'Work experience with us. Coming soon.') }])];
 }
 screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? cardsOf_('apprentice') : apprenticePages_()));
 
@@ -10693,17 +10705,15 @@ function webProfilePages_() {
   const name = b.name || brand('name', '@family.'), logo = brandLogo_();
   const lines = [brand('web_tagline', 'Tutoring for every age, at home and online.'), b.area ? 'Where: ' + b.area : '',
     b.phone ? 'Phone: ' + b.phone : '', b.site ? 'Online: ' + b.site : ''].filter(Boolean);
-  return [meCard_(`<div class="web-card"><h3>${esc(name)}</h3>${logo ? `<img class="web-logo" alt="" src="${esc(logo)}">` : ''}${
-    ''}</div>`)];
+  return [rolesSet_('web-card', name, logo ? [{ type: 'figure', src: logo, alt: '', look: 'web-logo' }] : [])];
 }
 screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web') : webProfilePages_()));
 
 /* ---------- APPRENTICE PROFILE (730): a card per apprentice an admin is sent (`everyone`, role Apprentice); none yet is a line from brand() ---------- */
 function apprenticeProfilePages_() {
   const all = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title && /apprentice/i.test(String(p.role || '')));
-  if (all.length) return all.map(p => meCard_(`<div class="appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="qtags">${qtag_(`@${esc(p.handle)}`, '', `prof-handle`)}</p>` : ''}</div>`));
-  return [meCard_(`<div class="appr-card people-none">${
-    empty_(brand('apprentices_none', 'No apprentices yet.'))}</div>`)];
+  if (all.length) return all.map(p => rolesSet_('appr-card', p.title, p.handle ? [{ type: 'tags', tags: [{ text: '@' + p.handle, look: 'prof-handle' }] }] : []));
+  return [rolesSet_('appr-card people-none', '', [{ type: 'text', look: 'empty', text: brand('apprentices_none', 'No apprentices yet.') }])];
 }
 screen('apprentices', () => pages('apprentices', typeof cardsOf_ === 'function' ? cardsOf_('apprentices') : apprenticeProfilePages_()));
 
@@ -10718,7 +10728,7 @@ function sitePages_() {
   return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
     .concat(typeof inboxCard_ === 'function' ? [inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
-    .concat([meCard_(`<div class=""><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`)]);
+    .concat([rolesSet_('', 'Build', [rolesDrawn_(versionSaid_, 'me-build')])]);
 }
 
 /* ---------- STABILITY (730): data/stability.json, written by tools/stability.js, read the first time the card is drawn ---------- */
@@ -10736,13 +10746,12 @@ function stabilityCard_() {
         .then(() => { try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
     } catch (e) { STAB.failed = true; }
   }
-  const s = STAB.got, head = '<h3>Stability</h3>';
-  if (!s) return meCard_(`<div class="biz stability-card">${head}${STAB.failed ? '<p class="note" role="alert">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`);
+  const s = STAB.got;
+  if (!s) return rolesSet_('biz stability-card', 'Stability', [STAB.failed ? { type: 'paperNote', alert: true, text: 'The score could not be read. Run node tools/stability.js and push.' } : { type: 'wait', on: true }]);
   const sig = (s.signals || []).filter(x => x.off > 0);
-  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} ${qtag_(`−${esc(String(x.off))}`)}</li>`;
-  return meCard_(`<div class="biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
-    <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
-    ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`);
+  return rolesSet_('biz stability-card', 'Stability', [{ type: 'text', look: 'stab-score', text: String(s.score) + '%' },
+    { type: 'list', ordered: true, look: 'stab-top', items: (STAB.all ? sig : sig.slice(0, 3)).map(x => x.label + ': ' + x.count + ' −' + x.off) },
+    sig.length > 3 ? { type: 'tiles', tiles: [{ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }] } : null]);
 }
 on('stab-all', () => { STAB.all = !STAB.all; try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
 
@@ -10770,16 +10779,11 @@ function rolesCard_() {
   const name = brand('name', '@family.');
   /* ONE ROW, THE PHONE'S OWN PICKER, and no notes under it (469: the owner, "so much filler space"). */
   const can = rolesPickable_() ? ROLE_PICKS.filter(([r]) => r !== 'tutor') : [];
-  const picks = can.length ? formLine_('You are', formSelect_('class="role-pick-in" aria-label="Your role"',
-      can.map(([r, label]) => `<option value="${r}" data-role-pick="${r}"${r === 'client' ? ' selected' : ''}>${esc(label)}</option>`).join('')), 'role-pick-row') + `
-`
-    + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'roles-save' })}</div>` : '';
+  const picks = can.length ? [{ type: 'formRow', label: 'You are', control: { kind: 'select', look: 'role-pick-in', aria: 'Your role', value: 'client',
+      options: can.map(([r, label]) => ({ value: r, text: label, data: { 'role-pick': r } })) } },
+    { type: 'tiles', tiles: [{ icon: 'save', label: 'Save', act: 'roles-save' }] }] : [];
   const said = rolesSaid_();
-  return meCard_(`<div class="roles-card">
-    <h3>Your roles</h3>
-    ${picks}
-    ${picks || said ? `<p class="note roles-said" aria-live="polite">${esc(said)}</p>` : ''}
-  </div>`);
+  return rolesSet_('roles-card', 'Your roles', picks.concat(picks.length || said ? [{ type: 'paperNote', look: 'roles-said', live: true, text: said }] : []));
 }
 /* WHAT A SAVE POSTS: the one choice, and a waiting Tutor's `tutor`, which is kept, not added (the server refuses adding it). */
 const rolesPicked_ = card => {
@@ -10835,7 +10839,7 @@ const notifyList_ = () => {
 function notifyCard_() {
   const f = (DATA && Array.isArray(DATA.features)) ? DATA.features : [];
   const n = notifyList_();
-  const said = t => `<p class="note notify-said" aria-live="polite">${esc(t)}</p>`;
+  const said = t => cardBlock_({ type: 'paperNote', look: 'notify-said', live: true, text: t });
   let inner, toggles = [], tail = '';
   /* AN EMPTY LIST BEFORE THE PAYLOAD HAS LANDED IS "NOT KNOWN YET", NOT "OLD" — `LOADED` says which. */
   if (f.indexOf('setNotify') === -1 && (f.length || LOADED)) {
@@ -10846,11 +10850,11 @@ function notifyCard_() {
     /* NO ADDRESS OF THEIR OWN — `notify` writes to the row's own address and nowhere else, so nothing at
        all is sent to them; a child's forgotten PIN goes to their grown-ups (`authGrownUps_`). */
     const kid = heldRoles(whose_()).map(roleOf).indexOf('student') !== -1;
-    inner = empty_(kid ? 'No email address, so no emails.' : 'No email address yet — add one on your Contact card.');
+    inner = cardBlock_({ type: 'text', look: 'empty', text: kid ? 'No email address, so no emails.' : 'No email address yet — add one on your Contact card.' });
   }
   /* A LIST WITH NOTHING IN IT. § */
   else if (!n.kinds.length) {
-    inner = empty_('No email choices yet.');
+    inner = cardBlock_({ type: 'text', look: 'empty', text: 'No email choices yet.' });
   } else {
     const opt = n.kinds.filter(k => !k.essential), must = n.kinds.filter(k => k.essential);
     const mine = NOTIFY_SAID.pid && NOTIFY_SAID.pid === String(whose_().personId || '') ? NOTIFY_SAID.text : '';
@@ -10858,9 +10862,8 @@ function notifyCard_() {
     inner = '';
     toggles = opt.map(k => ({ act: 'notify-pick', cls: 'notify-pick', data: { kind: k.kind }, on: k.on, label: k.label,
       note: (k.note || '') + (k.idle ? ' — ' + String(k.idle).toLowerCase() : '') }));
-    tail = `${must.length ? `<p class="notify-cap">Always sent</p>
-      <ul class="notify-always">${must.map(k => `<li title="${esc(k.note)}">${esc(k.label)}</li>`).join('')}</ul>` : ''}
-      ${said(mine)}`;
+    tail = cardBlocks_(must.length ? [{ type: 'text', look: 'notify-cap', text: 'Always sent' }, { type: 'list', look: 'notify-always', items: must.map(k => k.label) }] : [])
+      + said(mine);
   }
   /* THE ONE FORM MAKER WITHOUT A Save: each tick is saved the moment it is ticked (`notify-pick`). */
   /* PHONE NOTIFICATIONS (492, push.js) ARE PART OF THIS ONE CARD (owner, 12 Nov). */
@@ -10939,12 +10942,8 @@ function availGrid_(codes, p, readonly, mine) {
 
   if (!days.length) return '';
   /* ---------- `.me-week`, BECAUSE THIS WEEK IS READ AT LEISURE AND THE BOOKING ONE IS NOT § */
-  return `<div class="me-week" style="--hours:${days[0].hours.length}">
-    ${weekGrid_(days, (h, d) => `<label class="hr${on(h.code) ? ' on' : ''}${
-      ro(h.code) ? ' shut' : ''}" aria-label="${esc(d.label)} ${h.h}:00">
-      ${formInput_(`type="checkbox" data-me="${esc(h.code)}" ${on(h.code) ? 'checked' : ''}
-             ${ro(h.code) ? 'disabled' : ''}${keep(h.code) ? draftAttr_('set', h.code, was(h.code)) : ''}`)}
-    </label>`)}</div>`;
+  return cardBlock_({ type: 'paperBox', look: 'me-week', inner: weekGrid_(days, (h, d) => cardBlock_({ type: 'tickCell', look: 'hr' + (on(h.code) ? ' on' : '') + (ro(h.code) ? ' shut' : ''),
+    label: d.label + ' ' + h.h + ':00', control: { value: on(h.code), off: ro(h.code), data: { me: h.code }, drafted: keep(h.code) ? draftAttr_('set', h.code, was(h.code)) : '' } })) });
 }
 
 ;
@@ -11266,9 +11265,12 @@ const setDraftOk_ = name => typeof draftAttr_ === 'function'
   && !/pin/i.test(String(name)) && !/^(lib\d+_|qual_)/.test(String(name));
 /* ---------- AND A CARD DRAWN HOLDING ONE SAYS SO § */
 const SET_HELD_SAY = 'Not saved yet — what you typed here before is still in its box. Save keeps it.';
+/* AN ATTRIBUTE STRING (a caller's `extra`, a draft's `data-draft…`) AS DATA for the form blocks: `k="v"` or a bare `k`; the first of a name wins, as in HTML. */
+const meAttrs_ = (...parts) => { const a = {};
+  parts.join(' ').replace(/([\w:-]+)(?:="([^"]*)")?/g, (m, k, v) => { if (!(k in a)) a[k] = v == null ? true : meUnesc_(v); return m; }); return a; };
+const meSaid_ = text => cardBlock_({ type: 'paperNote', look: 'me-said', text });
 function setHeldSay_(html) {
-  return /\sdata-draft-held\b/.test(html)
-    ? html.replace('<p class="note me-said"></p>', '<p class="note me-said">' + esc(SET_HELD_SAY) + '</p>') : html;
+  return /\sdata-draft-held\b/.test(html) ? html.replace(meSaid_(''), meSaid_(SET_HELD_SAY)) : html;
 }
 function fieldHtml(name, value, o) {
   o = o || {};
@@ -11295,8 +11297,8 @@ function fieldHtml(name, value, o) {
   const v = keep && !FIELD_IS_BOOL.test(name) ? dv : v0;
 
   if (FIELD_IS_BOOL.test(name)) {
-    return formTick_(`${attr}="${esc(name)}" ${(keep ? dv === '1' : TRUEish_(v)) ? 'checked' : ''}
-             ${ro ? 'disabled' : ''}${da}`, `<span>${esc(label)}</span>`);
+    return cardBlock_({ type: 'tick', text: label, attrs: meAttrs_(`${attr}="${esc(name)}" ${(keep ? dv === '1' : TRUEish_(v)) ? 'checked' : ''}
+             ${ro ? 'disabled' : ''}${da}`) });
   }
 
   /* ---------- SEVERAL OF A LIST IS A LIST OF CHECKBOXES, OPENED UNDER ITS FIELD § */
@@ -11307,13 +11309,9 @@ function fieldHtml(name, value, o) {
     got.forEach(g => { if (!opts.some(x => norm(x) === norm(g))) opts.push(g); });
     const said = got.join(', ');
     const key = attr + ':' + name;
-    return `<div class="field many"><span class="many-cap">${esc(label)}</span>
-      ${formHidden_(`${attr}="${esc(name)}"`, said, da)}
-      <details class="many-d" data-many="${esc(key)}"${MANY_OPEN_ === key ? ' open' : ''}><summary class="many-sum${said ? '' : ' is-unset'}"
-        aria-label="${esc(label + ': ' + (said || 'nothing chosen'))}">${esc(said || 'Tap to choose')}</summary>
-        <div class="many-list" role="group" aria-label="${esc(label)}">${opts.map(x => formTick_(`data-many-of="${esc(name)}" value="${esc(x)}"${on(x) ? ' checked' : ''}${
-          ro ? ' disabled' : ''}`, `<span>${esc(x)}</span>`, 'many-opt')).join('')}</div>
-      </details></div>`;
+    return cardBlock_({ type: 'many', label, key, said, open: MANY_OPEN_ === key,
+      hidden: { attrs: meAttrs_(`type="hidden" ${attr}="${esc(name)}" value="${esc(said)}"${da}`) },
+      ticks: opts.map(x => ({ look: 'many-opt', text: x, attrs: { 'data-many-of': name, value: x, checked: on(x), disabled: ro } })) });
   }
 
   /* A FIXED LIST IS A SELECT. § */
@@ -11324,17 +11322,17 @@ function fieldHtml(name, value, o) {
   if (opts.length) {
     /* A PLACEHOLDER ON A SELECT IS ITS EMPTY OPTION, and the caption goes exactly as it does for a box below: § */
     const ph = o.placeholder || '';
-    return formLine_(ph ? '' : label, formSelect_(`${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}${da}`, `
-        <option value="">${ph ? esc(ph) : name === 'manager' ? esc(MANAGER_NONE) : NONE_LABEL}</option>
-        ${(v !== '' && v != null && !opts.some(x => ov(x) === String(v)) ? [String(v)] : [])
-          .concat(opts).map(x => `<option value="${esc(ov(x))}"${
-          String(v) === ov(x) ? ' selected' : ''}>${esc(ot(x))}</option>`).join('')}`));
+    return cardBlock_({ type: 'field', cap: ph ? '' : label, blocks: [{ type: 'control', tag: 'select',
+      attrs: meAttrs_(`${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}${da}`),
+      options: [{ value: '', text: ph || (name === 'manager' ? MANAGER_NONE : NONE_LABEL) }].concat(
+        (v !== '' && v != null && !opts.some(x => ov(x) === String(v)) ? [String(v)] : [])
+          .concat(opts).map(x => ({ value: ov(x), text: ot(x), on: String(v) === ov(x) }))) }] });
   }
 
   /* ---------- A DAY ON A CALENDAR IS A DATE INPUT § */
   if (FIELD_IS_DATE.test(name)) {
-    return formLine_(label, formInput_(`type="date" ${attr}="${esc(name)}" value="${esc(String(v))}"
-             ${ro ? 'disabled' : ''} ${o.extra || ''}${da}`));
+    return meBox_(label, `type="date" ${attr}="${esc(name)}" value="${esc(String(v))}"
+             ${ro ? 'disabled' : ''} ${o.extra || ''}${da}`);
   }
 
   /* A WHOLE-NUMBER FIELD (years teaching, pages, students…) takes digits only (owner, 8 Nov): a number box, never letters. */
@@ -11346,10 +11344,12 @@ function fieldHtml(name, value, o) {
   const hint = o.placeholder || '';
 
   /* EXTRA ATTRIBUTES, FOR THE CALLERS THAT NEED ONE THE NAME CANNOT IMPLY. § */
-  return formLine_(hint ? '' : label, formInput_(`${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
+  return meBox_(hint ? '' : label, `${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
            ${hint ? `placeholder="${esc(hint)}"` : ''} ${o.extra || ''}
-           ${pad ? `inputmode="${pad}"` : ''}${pad === 'numeric' && !/\btype=/.test(o.extra || '') ? ' type="number" min="0" step="1"' : ''}${da}`));
+           ${pad ? `inputmode="${pad}"` : ''}${pad === 'numeric' && !/\btype=/.test(o.extra || '') ? ' type="number" min="0" step="1"' : ''}${da}`);
 }
+/* ONE CAPTIONED BOX: the field block holding an input whose attributes are `attrs`. */
+const meBox_ = (cap, attrs, look) => cardBlock_({ type: 'field', cap, look, blocks: [{ type: 'control', attrs: meAttrs_(attrs) }] });
 
 /* ---------- WHICH SEVERAL-OF-A-LIST FIELD IS OPEN, KEPT AS STATE RATHER THAN IN THE DOM § */
 let MANY_OPEN_ = '';
@@ -11441,15 +11441,15 @@ function fieldRows_(list, one) {
     if (!row) { out.push(one(f, {})); return; }
     row.fields.forEach(x => done.add(x));
     const boxes = row.fields.map((x, i) => one(x, row.cap ? { placeholder: row.ph[i] } : {}))
-      .join(row.dash ? '<span class="f-dash" aria-hidden="true">–</span>' : '');
+      .join(row.dash ? cardBlock_({ type: 'group', tag: 'span', look: 'f-dash', attrs: { 'aria-hidden': 'true' }, text: '–' }) : '');
     out.push(row.cap ? fieldCap_(row.cap, boxes, row.dash ? ' is-range' : '', row.fields.length)
-      : `<div class="f-row" style="--n:${row.fields.length}">${boxes}</div>`);
+      : cardBlock_({ type: 'group', look: 'f-row', attrs: { 'data-n': row.fields.length }, inner: boxes }));
   });
   return out.join('');
 }
 /* THE ONE CAPTIONED SETTINGS ROW: a small caption over its boxes, for a paired row and for the phone alike. */
-const fieldCap_ = (cap, boxes, cls, n) => `<div class="f-rowwrap"><span class="dob-cap">${esc(cap)}</span>
-           <div class="f-row${cls || ''}" style="--n:${n || 1}">${boxes}</div></div>`;
+const fieldCap_ = (cap, boxes, cls, n) => cardBlock_({ type: 'group', look: 'f-rowwrap', blocks: [{ type: 'group', tag: 'span', look: 'dob-cap', text: cap },
+  { type: 'group', look: 'f-row' + (cls || ''), attrs: { 'data-n': n || 1 }, inner: boxes }] });
 
 /* A WHOLE FORM, from a group table. § */
 /* A GROUP OF HOUR CODES IS A TIMETABLE. § */
@@ -11472,14 +11472,9 @@ function dobBoxes_(value) {
     placeholder: hint,
     extra: `inputmode="numeric" maxlength="${len}" autocomplete="off" size="${len}"`,
   });
-  return `<div class="dob-row" role="group" aria-label="Date of birth">
-    <span class="dob-cap">date of birth</span>
-    <div class="dob-boxes">
-      ${box('dob_d', 'DD', 2)}
-      ${box('dob_m', 'MM', 2)}
-      ${box('dob_y', 'YYYY', 4)}
-    </div>
-  </div>`;
+  return cardBlock_({ type: 'group', look: 'dob-row', attrs: { role: 'group', 'aria-label': 'Date of birth' }, blocks: [
+    { type: 'group', tag: 'span', look: 'dob-cap', text: 'date of birth' },
+    { type: 'group', look: 'dob-boxes', inner: box('dob_d', 'DD', 2) + box('dob_m', 'MM', 2) + box('dob_y', 'YYYY', 4) }] });
 }
 const isLibrary_ = list => (list || []).some(isLibraryCard_);
 
@@ -11492,14 +11487,14 @@ function shelfSlots_(nums, filled, draw, noun) {
   return nums.map((n, i) => draw(n, i >= show)).join('') + (show < nums.length ? shelfAdd_(noun || 'another') : '');
 }
 /* ONE SETTINGS-CARD SHAPE (8 Nov): every list's "Add a …" tile and every line's bin are these two, whatever the list. */
-const shelfAdd_ = (noun, act, o, row) => `<div class="tile-row set-adds${row ? ' ' + row : ''}">${tile_(Object.assign({ icon: 'plus', label: 'Add ' + (/^an? |^another$/.test(noun) ? noun : 'a ' + noun),
-  act: act || 'shelf-more', cls: act ? '' : 'shelf-more' }, o || {}))}</div>`;
+const shelfAdd_ = (noun, act, o, row) => cardBlock_({ type: 'group', look: 'tile-row set-adds' + (row ? ' ' + row : ''), tiles: [Object.assign({ icon: 'plus', label: 'Add ' + (/^an? |^another$/.test(noun) ? noun : 'a ' + noun),
+  act: act || 'shelf-more', cls: act ? '' : 'shelf-more' }, o || {})] });
 const shelfDrop_ = (noun, act) => tile_({ icon: 'bin', label: 'Remove ' + noun, act: act || 'shelf-drop', cls: 'set-drop' });
 /* A CARD: its title and one line per field, saving as you type (owner, 8 Nov: no Save button, `autosaveHear_`). `o.save` is any other tile for the foot. */
 function setCard_(o) {
-  const save = o.save ? `<div class="tile-row set-save">${o.save}</div>` : '';
+  const save = o.save ? cardBlock_({ type: 'group', look: 'tile-row set-save', inner: o.save }) : '';
   const body = o.form == null ? (o.body || '') + save
-    : `<div class="me-form"${o.formAttrs || ''}>${o.form}${save}${o.foot == null ? '<p class="note me-said"></p>' : o.foot}</div>`;
+    : cardBlock_({ type: 'group', look: 'me-form', attrs: meAttrs_(o.formAttrs || ''), inner: o.form + save + (o.foot == null ? meSaid_('') : o.foot) });
   return renderCard({ kind: 'setting', look: 'set-shape' + (o.cls ? ' ' + o.cls : ''), name: o.title || '', tags: [o.title || ''], data: meData_(o.attrs),
     body: [{ type: 'embed', tool: 'me-form', args: { draw: () => (o.lead || '') + body + (o.after || '') } }] });
 }
@@ -11574,15 +11569,13 @@ function qualShelf_(list, value) {
   /* A SUBJECT'S COLUMN IS AS WIDE AS ITS OWN NAME, in `ch` because the face is monospaced — so its notation sits right after it, as on the profile chip, and its § */
   const wide = g => Math.min(18, Math.max(3, String(g.subject || '').length)) + 1;
   const empty = !groups.length;
-  return `<div class="q-shelf${empty ? ' is-empty' : ''}">
-    ${empty ? `<p class="q-hint">Add what you studied and the certificates you hold — the subject, then the level.</p>` : ''}
-    <div class="q-list">${groups.map(g => `<div class="q-subj" style="--q-w:${wide(g)}ch">${
-      g.slots.map((i, n) => qualSlot_(i, value, { first: n === 0, mine })).join('')}</div>`).join('')}</div>
-    <div class="q-pool" hidden>${pool.map(i => qualSlot_(i, value, { mine })).join('')}</div>
-    ${shelfAdd_('qualification', 'qual-add', { off: !pool.length, data: { unlocked: '' },
-      note: pool.length ? pool.length + ' more fit' : '10 is the most' }, 'q-adds')}
-    
-  </div>`;
+  return cardBlock_({ type: 'group', look: 'q-shelf' + (empty ? ' is-empty' : ''), blocks: [
+    empty ? { type: 'group', tag: 'p', look: 'q-hint', text: 'Add what you studied and the certificates you hold — the subject, then the level.' } : null,
+    { type: 'group', look: 'q-list', inner: groups.map(g => cardBlock_({ type: 'group', look: 'q-subj', attrs: { 'data-qw': wide(g) },
+      inner: g.slots.map((i, n) => qualSlot_(i, value, { first: n === 0, mine })).join('') })).join('') },
+    { type: 'group', look: 'q-pool', attrs: { hidden: true }, inner: pool.map(i => qualSlot_(i, value, { mine })).join('') }],
+    inner: shelfAdd_('qualification', 'qual-add', { off: !pool.length, data: { unlocked: '' },
+      note: pool.length ? pool.length + ' more fit' : '10 is the most' }, 'q-adds') });
 }
 /* ---------- ONE QUALIFICATION: ITS LINE, AND ITS EDITOR UNDER IT § */
 function qualSlot_(i, value, o) {
@@ -11596,52 +11589,44 @@ function qualSlot_(i, value, o) {
   /* ONE CONTROL THAT CYCLES (440): each tap moves Not teaching → Can teach → Teaches → Not teaching. */
   /* TEACHING IS ONE ROW WITH THE PHONE'S OWN PICKER; the line's mark (`q-mark-b`) still cycles without opening it. */
   const tv = qualTeachKey_(q);
-  const cyc = formLine_('Teaching', formSelect_('class="q-teach" data-unlocked aria-label="Teaching"',
-      QUAL_TEACH_OPTS_.map(([k, say]) => `<option value="${k}"${k === tv ? ' selected' : ''}>${say}</option>`).join('')), 'q-f q-cyc');
+  const cyc = { type: 'field', cap: 'Teaching', look: 'q-f q-cyc', blocks: [{ type: 'control', tag: 'select', attrs: { class: 'q-teach', 'data-unlocked': true, 'aria-label': 'Teaching' },
+      options: QUAL_TEACH_OPTS_.map(([k, say]) => ({ value: k, text: say, on: k === tv })) }] };
   const said = qualSay_(q);
   /* EACH CAPTION IN TWO WORDINGS, a subject's and a certificate's, and the slot's `is-cert` says which is shown — so a line that becomes a DBS by a pick changes § */
-  const cap = (std, cert) => `<span class="q-cap-std">${esc(std)}</span><span class="q-cap-cert">${esc(cert)}</span>`;
-  return `<div class="q-slot${qualIsCert_(q) ? ' is-cert' : ''}" data-slot="${esc(i)}"${q.first ? ' data-first="1"' : ''}>
-    ${formHidden_(`data-me="${esc(f('_spec'))}"`, q.spec ? 'TRUE' : 'FALSE')}
-    ${formHidden_(`data-me="${esc(f('_teach'))}"`, q.teach ? 'TRUE' : 'FALSE')}
-    ${tile_({ form: true, look: 'q-line', act: 'qual-open', data: { at: i }, attrs: 'data-unlocked aria-expanded="false"', aria: said, title: said, html: qualFace_(q) })}
-    ${tile_({ form: true, look: 'q-mark-b', act: 'qual-teach', data: { face: 1, at: i }, attrs: 'data-unlocked', aria: 'Teaching: ' + qualTeachWord_(q) + ', tap to change', html: qualTeachVal_(q) })}
-    <div class="q-ed">
-      <div class="q-row">
-        ${qualPick_(`data-me="${esc(f(''))}" class="q-name"`, q.subject, QUAL_SUBJECTS, 'Subject', 'Choose', o.mine)}
-        ${qualPick_(`data-me="${esc(f('_level'))}"`, q.level, QUAL_LEVELS, 'Level', 'Choose')}
-      </div>
-      <div class="q-row">
-        ${qualPick_(`data-me="${esc(f('_grade'))}"`, q.grade, QUAL_GRADES, 'Grade', 'None yet').replace('class="field q-f"', 'class="field q-f q-grade"')}
-        <label class="field q-f">${cap('Finished', 'Year')}
-          ${formSelect_(`data-me="${esc(f('_received'))}"`, qualYears_(q.received).map(y => `<option value="${esc(y)}"${
-            y === q.received ? ' selected' : ''}>${esc(y === 'Present' ? 'Still studying' : y)}</option>`).join('') + `
-            <option value=""${q.received ? '' : ' selected'}>Not sure</option>`)}</label>
-        <label class="field q-f q-school">${cap('School, college or uni', 'Issued by')}
-          ${formInput_(`type="text" data-me="${esc(f('_board'))}" value="${esc(q.board)}" autocomplete="off"`)}</label>
-      </div>
-      ${cyc}
-      <div class="tile-row q-tiles">${tile_({ icon: 'save', label: 'Done', act: 'qual-done', data: { unlocked: '', at: i } })}${
-        tile_({ icon: 'bin', label: 'Remove', note: [q.subject, q.level].filter(Boolean).join(' ') || 'this one', act: 'qual-drop',
-                data: { unlocked: '', at: i } })}</div>
-    </div>
-  </div>`;
+  const hide = (k, on) => ({ type: 'control', attrs: { type: 'hidden', 'data-me': f(k), value: on ? 'TRUE' : 'FALSE' } });
+  return cardBlock_({ type: 'group', look: 'q-slot' + (qualIsCert_(q) ? ' is-cert' : ''), attrs: { 'data-slot': i, 'data-first': q.first ? '1' : null }, blocks: [
+    hide('_spec', q.spec), hide('_teach', q.teach)], inner:
+    tile_({ form: true, look: 'q-line', act: 'qual-open', data: { at: i }, attrs: 'data-unlocked aria-expanded="false"', aria: said, title: said, html: qualFace_(q) })
+    + tile_({ form: true, look: 'q-mark-b', act: 'qual-teach', data: { face: 1, at: i }, attrs: 'data-unlocked', aria: 'Teaching: ' + qualTeachWord_(q) + ', tap to change', html: qualTeachVal_(q) })
+    + cardBlock_({ type: 'group', look: 'q-ed', blocks: [
+      { type: 'group', look: 'q-row', blocks: [
+        qualPick_({ 'data-me': f(''), class: 'q-name' }, q.subject, QUAL_SUBJECTS, 'Subject', 'Choose', o.mine),
+        qualPick_({ 'data-me': f('_level') }, q.level, QUAL_LEVELS, 'Level', 'Choose')] },
+      { type: 'group', look: 'q-row', blocks: [
+        qualPick_({ 'data-me': f('_grade') }, q.grade, QUAL_GRADES, 'Grade', 'None yet', null, 'q-f q-grade'),
+        { type: 'field', look: 'q-f', caps: ['Finished', 'Year'], blocks: [{ type: 'control', tag: 'select', attrs: { 'data-me': f('_received') },
+          options: qualYears_(q.received).map(y => ({ value: y, text: y === 'Present' ? 'Still studying' : y, on: y === q.received }))
+            .concat([{ value: '', text: 'Not sure', on: !q.received }]) }] },
+        { type: 'field', look: 'q-f q-school', caps: ['School, college or uni', 'Issued by'], blocks: [{ type: 'control',
+          attrs: { type: 'text', 'data-me': f('_board'), value: q.board, autocomplete: 'off' } }] }] },
+      cyc,
+      { type: 'group', look: 'tile-row q-tiles', tiles: [{ icon: 'save', label: 'Done', act: 'qual-done', data: { unlocked: '', at: i } },
+        { icon: 'bin', label: 'Remove', note: [q.subject, q.level].filter(Boolean).join(' ') || 'this one', act: 'qual-drop',
+          data: { unlocked: '', at: i } }] }] }) });
 }
 /* THE FACE OF A LINE: the subject (on a subject's first line only), the notation, the teaching mark — none on a certificate, which is held and not taught § */
 function qualFace_(q) {
   const who = q.first || q.fresh ? (q.subject || (q.fresh ? 'New qualification' : '')) : '';
   const cert = qualIsCert_(q);
-  return `<span class="q-who${q.subject ? '' : ' is-none'}">${esc(who)}</span>`
-    + `<span class="q-note">${qualIso_(q)}</span>`
-    + `<span class="q-mark">${cert ? '' : q.spec ? '<span class="q-chip">Teach</span>'
-      : q.teach ? '<span class="q-can">Can teach</span>' : ''}</span>`;
+  return cardRuns_([{ span: 'q-who' + (q.subject ? '' : ' is-none'), text: who }, { span: 'q-note', text: qualIso_(q) },
+    { span: 'q-mark', text: cert ? '' : q.spec ? { span: 'q-chip', text: 'Teach' } : q.teach ? { span: 'q-can', text: 'Can teach' } : '' }]);
 }
 /* THE TEACHING STATE IN WORDS, and drawn: gold for Teaches, plain for Can teach, faint for Not teaching. */
 const qualTeachKey_ = q => q.spec ? 'spec' : q.teach ? 'teach' : 'no';
 const QUAL_TEACH_OPTS_ = [['teach', 'Can teach'], ['spec', 'Teaches'], ['no', 'Not teaching']];
 function qualTeachWord_(q) { return q.spec ? 'Teaches' : q.teach ? 'Can teach' : 'Not teaching'; }
 function qualTeachVal_(q) {
-  return `<span class="q-cyc-v is-${q.spec ? 'spec' : q.teach ? 'teach' : 'no'}">${qualTeachWord_(q)}</span>`;
+  return cardRuns_({ span: 'q-cyc-v is-' + qualTeachKey_(q), text: qualTeachWord_(q) });
 }
 /* ---------- A CERTIFICATE IS HELD, NOT STUDIED AND NOT TAUGHT § */
 function qualIsCert_(q) {
@@ -11651,11 +11636,10 @@ function qualIsCert_(q) {
 /* ---------- THE NOTATION, BY THE PROFILE CHIP'S RULES § */
 function qualIso_(q) {
   const level = norm(q.level) === norm(q.subject) ? '' : (q.level || '');
-  const low = q.grade ? esc(q.grade) : /^present$/i.test(q.received || '') ? '<i>studying</i>' : '';
-  if (qualIsCert_(q) || !(level || low)) {
-    return `<span class="q-plain">${esc([level, q.grade].filter(Boolean).join(' '))}</span>`;
-  }
-  return `<span class="prof-iso">${level ? `<sup>${esc(level)}</sup>` : ''}${low ? `<sub>${low}</sub>` : ''}</span>`;
+  /* RUNS, not markup: qualFace_ draws them through cardRuns_. */
+  const low = q.grade ? q.grade : /^present$/i.test(q.received || '') ? { i: 'studying' } : '';
+  if (qualIsCert_(q) || !(level || low)) return { span: 'q-plain', text: [level, q.grade].filter(Boolean).join(' ') };
+  return { span: 'prof-iso', text: [level ? { sup: level } : '', low ? { sub: low } : ''] };
 }
 /* THE LINE'S NAME: the profile chip's own sentence (`profQualSay_`) and the teaching word — so a screen
    reader and a pointer get the place and the year the face leaves off. */
@@ -11666,7 +11650,7 @@ function qualSay_(q) {
 }
 /* ---------- A DROP-DOWN WITH A CAPTION, AND `Something else…` AT THE FOOT § */
 const QUAL_OTHER = '__other';
-function qualPick_(attrs, v, list, cap, none, mine) {
+function qualPick_(attrs, v, list, cap, none, mine, look) {
   v = String(v ?? '');
   const has = x => !!v && norm(x) === norm(v);
   const yours = [...new Set((mine || []).filter(Boolean))];
@@ -11675,15 +11659,13 @@ function qualPick_(attrs, v, list, cap, none, mine) {
   const opt = x => {
     const on = !chosen && has(x);
     if (on) chosen = true;
-    return `<option value="${esc(x)}"${on ? ' selected' : ''}>${esc(x)}</option>`;
+    return { value: x, on };
   };
   const body = yours.length
-    ? `<optgroup label="Your subjects">${yours.map(opt).join('')}</optgroup><optgroup label="Every subject">${opts.map(opt).join('')}</optgroup>`
-    : opts.map(opt).join('');
-  return formLine_(cap, formSelect_(attrs, `
-      <option value="">${esc(none)}</option>
-      ${body}
-      <option value="${QUAL_OTHER}">Something else…</option>`), 'q-f');
+    ? [{ group: 'Your subjects', options: yours.map(opt) }, { group: 'Every subject', options: opts.map(opt) }]
+    : opts.map(opt);
+  return { type: 'field', cap, look: look || 'q-f', blocks: [{ type: 'control', tag: 'select', attrs,
+    options: [{ value: '', text: none }].concat(body, [{ value: QUAL_OTHER, text: 'Something else…' }]) }] };
 }
 /* `Something else…` swaps the select for a box carrying the same attributes, so a save reads it exactly as it read the select — and it saves on the box's own § */
 document.addEventListener('change', e => {
@@ -14640,80 +14622,102 @@ function openSharedTutor() {
 /* A PERSON'S PICTURE — TEN OF OURS, A PHOTOGRAPH, OR THEIR INITIAL (the figure went, 9 Nov: a stored `pfp:avatar` is no choice). */
 const PFP_PREFIX = 'pfp:';
 const PFP_ART = {
-  fox: { name: 'Fox', ground: '#3c6fd1', art:
-    `<path d="M11 9l9 9-6 7z" fill="#e8742c"/><path d="M37 9l-9 9 6 7z" fill="#e8742c"/>
-     <path d="M13.5 13l4.5 5-3 3.5z" fill="#6b2f12"/><path d="M34.5 13L30 18l3 3.5z" fill="#6b2f12"/>
-     <path d="M10 20q14-8 28 0l-3 12-11 8-11-8z" fill="#e8742c"/>
-     <path d="M15 29l9 11 9-11q-9 4-18 0z" fill="#fff"/>
-     <circle cx="18.5" cy="25" r="2" fill="#1f2328"/><circle cx="29.5" cy="25" r="2" fill="#1f2328"/>
-     <circle cx="24" cy="37" r="2" fill="#1f2328"/>` },
-  owl: { name: 'Owl', ground: '#2e8b7a', art:
-    `<path d="M12 18l2-9 6 6z" fill="#8b5a2b"/><path d="M36 18l-2-9-6 6z" fill="#8b5a2b"/>
-     <ellipse cx="24" cy="27" rx="13" ry="14" fill="#8b5a2b"/>
-     <ellipse cx="24" cy="33" rx="7.5" ry="7" fill="#e3c08f"/>
-     <circle cx="18.5" cy="22" r="5.2" fill="#fff"/><circle cx="29.5" cy="22" r="5.2" fill="#fff"/>
-     <circle cx="18.5" cy="22.5" r="2.6" fill="#1f2328"/><circle cx="29.5" cy="22.5" r="2.6" fill="#1f2328"/>
-     <path d="M21.5 27h5L24 31z" fill="#f2a516"/>` },
-  cat: { name: 'Cat', ground: '#ef8fae', art:
-    `<path d="M11 22l2-13 9 6z" fill="#5b6270"/><path d="M37 22l-2-13-9 6z" fill="#5b6270"/>
-     <path d="M14 18l1-5 4 3z" fill="#f4b6c8"/><path d="M34 18l-1-5-4 3z" fill="#f4b6c8"/>
-     <ellipse cx="24" cy="27" rx="14" ry="12" fill="#5b6270"/>
-     <ellipse cx="18.5" cy="25" rx="2.2" ry="3" fill="#b6e36b"/><ellipse cx="29.5" cy="25" rx="2.2" ry="3" fill="#b6e36b"/>
-     <ellipse cx="18.5" cy="25.3" rx=".9" ry="2.3" fill="#1f2328"/><ellipse cx="29.5" cy="25.3" rx=".9" ry="2.3" fill="#1f2328"/>
-     <path d="M22 30h4l-2 2.4z" fill="#f4b6c8"/>
-     <path d="M8 30l9 1M8 34l9-1.5M40 30l-9 1M40 34l-9-1.5" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>` },
-  dino: { name: 'Dinosaur', ground: '#f5c542', art:
-    `<path d="M15 23l2-4 2 4zM20 20l2-4.5 2 4.5zM25 19.5l2-4 2 4z" fill="#2c7a3a"/>
-     <path d="M7 26q4 6 9 2" stroke="#3fa34d" stroke-width="4.5" fill="none" stroke-linecap="round"/>
-     <ellipse cx="22" cy="29" rx="11" ry="8" fill="#3fa34d"/>
-     <path d="M26 25q2-11 10-12 6 0 5.5 5.5-.5 3.5-6.5 3.5L31 29z" fill="#3fa34d"/>
-     <rect x="15" y="34" width="4.5" height="7" rx="2" fill="#2c7a3a"/><rect x="24" y="34" width="4.5" height="7" rx="2" fill="#2c7a3a"/>
-     <circle cx="36.5" cy="16.5" r="1.7" fill="#1f2328"/>
-     <path d="M37 20.5h3" stroke="#1f2328" stroke-width="1.2" stroke-linecap="round"/>` },
-  robot: { name: 'Robot', ground: '#f07f4f', art:
-    `<path d="M24 13V9" stroke="#5b6574" stroke-width="2"/><circle cx="24" cy="8" r="2.4" fill="#e5484d"/>
-     <rect x="9" y="19" width="3.5" height="9" rx="1.5" fill="#8a96a5"/><rect x="35.5" y="19" width="3.5" height="9" rx="1.5" fill="#8a96a5"/>
-     <rect x="12" y="13" width="24" height="21" rx="5" fill="#d3dbe3"/>
-     <circle cx="18.5" cy="22" r="3.6" fill="#1f2328"/><circle cx="29.5" cy="22" r="3.6" fill="#1f2328"/>
-     <circle cx="18.5" cy="22" r="2.2" fill="#3cc4f0"/><circle cx="29.5" cy="22" r="2.2" fill="#3cc4f0"/>
-     <rect x="17" y="27.5" width="14" height="3.6" rx="1.6" fill="#1f2328"/>
-     <path d="M20.5 27.5v3.6M24 27.5v3.6M27.5 27.5v3.6" stroke="#d3dbe3" stroke-width="1"/>
-     <rect x="16" y="35" width="16" height="7" rx="2" fill="#8a96a5"/>` },
-  rocket: { name: 'Rocket', ground: '#24366e', art:
-    `<circle cx="11" cy="14" r="1.2" fill="#fff"/><circle cx="37.5" cy="12" r="1" fill="#fff"/>
-     <circle cx="38" cy="33" r="1.2" fill="#fff"/><circle cx="9.5" cy="31" r="1" fill="#fff"/>
-     <path d="M19.5 33q4.5 12 9 0z" fill="#ffb020"/><path d="M21.8 33q2.2 6.5 4.4 0z" fill="#ff6b2c"/>
-     <path d="M17.5 25L11 34l6.5-1.5zM30.5 25L37 34l-6.5-1.5z" fill="#e5484d"/>
-     <path d="M24 6q7 7 7 19v8H17v-8q0-12 7-19z" fill="#eef2f5"/>
-     <path d="M24 6q5 4.5 6.3 10H17.7Q19 10.5 24 6z" fill="#e5484d"/>
-     <circle cx="24" cy="22.5" r="3.6" fill="#5ec8f2" stroke="#34495e" stroke-width="1.4"/>` },
-  planet: { name: 'Planet', ground: '#5b3d8f', art:
-    `<circle cx="10" cy="12" r="1.1" fill="#fff"/><circle cx="38" cy="38" r="1.1" fill="#fff"/><circle cx="36" cy="10" r=".9" fill="#fff"/>
-     <ellipse cx="24" cy="25" rx="17" ry="5.5" transform="rotate(-18 24 25)" fill="none" stroke="#f5c542" stroke-width="2.6"/>
-     <circle cx="24" cy="24" r="10" fill="#f08a4b"/>
-     <path d="M15 21q9 3 18-1M14.5 27q9 3 19-1" stroke="#c9602a" stroke-width="2" fill="none" stroke-linecap="round"/>
-     <path d="M7.83 30.25A17 5.5-18 0 0 40.17 19.75" fill="none" stroke="#f5c542" stroke-width="2.6"/>` },
-  football: { name: 'Football', ground: '#3a9d5d', art:
-    `<circle cx="24" cy="24" r="14" fill="#fff" stroke="#1f2328" stroke-width="1.6"/>
-     <path d="M24 18.5l5.2 3.8-2 6.1h-6.4l-2-6.1z" fill="#1f2328"/>
-     <path d="M24 18.5V11M29.2 22.3l7-2.3M27.2 28.4l4.3 6M20.8 28.4l-4.3 6M18.8 22.3l-7-2.3" stroke="#1f2328" stroke-width="1.4"/>
-     <path d="M20.5 10.6L24 11l3.5-.4L24 10z" fill="#1f2328"/>
-     <path d="M36.6 17.7l-.4 4.5 1.6 1.1q.4-3-1.2-5.6zM34.4 33.6l-2.9-.7-1.6 2.6q2.8-.3 4.5-1.9zM13.6 33.6l2.9-.7 1.6 2.6q-2.8-.3-4.5-1.9zM11.4 17.7l.4 4.5-1.6 1.1q-.4-3 1.2-5.6z" fill="#1f2328"/>` },
-  guitar: { name: 'Guitar', ground: '#d9534f', art:
-    `<g transform="rotate(35 24 24)">
-       <rect x="22.4" y="5" width="3.2" height="18" fill="#6b3f1d"/>
-       <rect x="21" y="2.5" width="6" height="5.5" rx="1.2" fill="#3d2412"/>
-       <circle cx="24" cy="23" r="6.4" fill="#f2a65a"/><circle cx="24" cy="32" r="8.2" fill="#f2a65a"/>
-       <circle cx="24" cy="26.5" r="2.6" fill="#3d2412"/>
-       <rect x="20.5" y="33.5" width="7" height="2" rx="1" fill="#3d2412"/>
-       <path d="M23.2 6v28M24.8 6v28" stroke="#fde6c4" stroke-width=".6"/>
-     </g>` },
-  palette: { name: 'Paint palette', ground: '#6cc6e6', art:
-    `<path d="M24 9c11 0 18 7 17 15-1 6-7 5-9 9-2 5-6 7-10 6C13 38 7 31 8 23 9 15 15 9 24 9z" fill="#e2b77a"/>
-     <ellipse cx="27" cy="32" rx="3" ry="2.4" fill="#6cc6e6"/>
-     <circle cx="16" cy="19.5" r="3.2" fill="#e5484d"/><circle cx="22.5" cy="14.5" r="3.2" fill="#f5c542"/>
-     <circle cx="30.5" cy="15" r="3.2" fill="#3fa34d"/><circle cx="35.5" cy="21.5" r="3.2" fill="#3b6fd8"/>
-     <circle cx="14" cy="27.5" r="3.2" fill="#8e44ad"/>` },
+  fox: { name: 'Fox', ground: '#3c6fd1', art: [
+     { t: 'path', d: 'M11 9l9 9-6 7z', fill: '#e8742c' },
+     { t: 'path', d: 'M37 9l-9 9 6 7z', fill: '#e8742c' },
+     { t: 'path', d: 'M13.5 13l4.5 5-3 3.5z', fill: '#6b2f12' },
+     { t: 'path', d: 'M34.5 13L30 18l3 3.5z', fill: '#6b2f12' },
+     { t: 'path', d: 'M10 20q14-8 28 0l-3 12-11 8-11-8z', fill: '#e8742c' },
+     { t: 'path', d: 'M15 29l9 11 9-11q-9 4-18 0z', fill: '#fff' },
+     { t: 'circle', cx: '18.5', cy: '25', r: '2', fill: '#1f2328' },
+     { t: 'circle', cx: '29.5', cy: '25', r: '2', fill: '#1f2328' },
+     { t: 'circle', cx: '24', cy: '37', r: '2', fill: '#1f2328' }] },
+  owl: { name: 'Owl', ground: '#2e8b7a', art: [
+     { t: 'path', d: 'M12 18l2-9 6 6z', fill: '#8b5a2b' },
+     { t: 'path', d: 'M36 18l-2-9-6 6z', fill: '#8b5a2b' },
+     { t: 'ellipse', cx: '24', cy: '27', rx: '13', ry: '14', fill: '#8b5a2b' },
+     { t: 'ellipse', cx: '24', cy: '33', rx: '7.5', ry: '7', fill: '#e3c08f' },
+     { t: 'circle', cx: '18.5', cy: '22', r: '5.2', fill: '#fff' },
+     { t: 'circle', cx: '29.5', cy: '22', r: '5.2', fill: '#fff' },
+     { t: 'circle', cx: '18.5', cy: '22.5', r: '2.6', fill: '#1f2328' },
+     { t: 'circle', cx: '29.5', cy: '22.5', r: '2.6', fill: '#1f2328' },
+     { t: 'path', d: 'M21.5 27h5L24 31z', fill: '#f2a516' }] },
+  cat: { name: 'Cat', ground: '#ef8fae', art: [
+     { t: 'path', d: 'M11 22l2-13 9 6z', fill: '#5b6270' },
+     { t: 'path', d: 'M37 22l-2-13-9 6z', fill: '#5b6270' },
+     { t: 'path', d: 'M14 18l1-5 4 3z', fill: '#f4b6c8' },
+     { t: 'path', d: 'M34 18l-1-5-4 3z', fill: '#f4b6c8' },
+     { t: 'ellipse', cx: '24', cy: '27', rx: '14', ry: '12', fill: '#5b6270' },
+     { t: 'ellipse', cx: '18.5', cy: '25', rx: '2.2', ry: '3', fill: '#b6e36b' },
+     { t: 'ellipse', cx: '29.5', cy: '25', rx: '2.2', ry: '3', fill: '#b6e36b' },
+     { t: 'ellipse', cx: '18.5', cy: '25.3', rx: '.9', ry: '2.3', fill: '#1f2328' },
+     { t: 'ellipse', cx: '29.5', cy: '25.3', rx: '.9', ry: '2.3', fill: '#1f2328' },
+     { t: 'path', d: 'M22 30h4l-2 2.4z', fill: '#f4b6c8' },
+     { t: 'path', d: 'M8 30l9 1M8 34l9-1.5M40 30l-9 1M40 34l-9-1.5', stroke: '#fff', 'stroke-width': '1.3', 'stroke-linecap': 'round' }] },
+  dino: { name: 'Dinosaur', ground: '#f5c542', art: [
+     { t: 'path', d: 'M15 23l2-4 2 4zM20 20l2-4.5 2 4.5zM25 19.5l2-4 2 4z', fill: '#2c7a3a' },
+     { t: 'path', d: 'M7 26q4 6 9 2', stroke: '#3fa34d', 'stroke-width': '4.5', fill: 'none', 'stroke-linecap': 'round' },
+     { t: 'ellipse', cx: '22', cy: '29', rx: '11', ry: '8', fill: '#3fa34d' },
+     { t: 'path', d: 'M26 25q2-11 10-12 6 0 5.5 5.5-.5 3.5-6.5 3.5L31 29z', fill: '#3fa34d' },
+     { t: 'rect', x: '15', y: '34', width: '4.5', height: '7', rx: '2', fill: '#2c7a3a' },
+     { t: 'rect', x: '24', y: '34', width: '4.5', height: '7', rx: '2', fill: '#2c7a3a' },
+     { t: 'circle', cx: '36.5', cy: '16.5', r: '1.7', fill: '#1f2328' },
+     { t: 'path', d: 'M37 20.5h3', stroke: '#1f2328', 'stroke-width': '1.2', 'stroke-linecap': 'round' }] },
+  robot: { name: 'Robot', ground: '#f07f4f', art: [
+     { t: 'path', d: 'M24 13V9', stroke: '#5b6574', 'stroke-width': '2' },
+     { t: 'circle', cx: '24', cy: '8', r: '2.4', fill: '#e5484d' },
+     { t: 'rect', x: '9', y: '19', width: '3.5', height: '9', rx: '1.5', fill: '#8a96a5' },
+     { t: 'rect', x: '35.5', y: '19', width: '3.5', height: '9', rx: '1.5', fill: '#8a96a5' },
+     { t: 'rect', x: '12', y: '13', width: '24', height: '21', rx: '5', fill: '#d3dbe3' },
+     { t: 'circle', cx: '18.5', cy: '22', r: '3.6', fill: '#1f2328' },
+     { t: 'circle', cx: '29.5', cy: '22', r: '3.6', fill: '#1f2328' },
+     { t: 'circle', cx: '18.5', cy: '22', r: '2.2', fill: '#3cc4f0' },
+     { t: 'circle', cx: '29.5', cy: '22', r: '2.2', fill: '#3cc4f0' },
+     { t: 'rect', x: '17', y: '27.5', width: '14', height: '3.6', rx: '1.6', fill: '#1f2328' },
+     { t: 'path', d: 'M20.5 27.5v3.6M24 27.5v3.6M27.5 27.5v3.6', stroke: '#d3dbe3', 'stroke-width': '1' },
+     { t: 'rect', x: '16', y: '35', width: '16', height: '7', rx: '2', fill: '#8a96a5' }] },
+  rocket: { name: 'Rocket', ground: '#24366e', art: [
+     { t: 'circle', cx: '11', cy: '14', r: '1.2', fill: '#fff' },
+     { t: 'circle', cx: '37.5', cy: '12', r: '1', fill: '#fff' },
+     { t: 'circle', cx: '38', cy: '33', r: '1.2', fill: '#fff' },
+     { t: 'circle', cx: '9.5', cy: '31', r: '1', fill: '#fff' },
+     { t: 'path', d: 'M19.5 33q4.5 12 9 0z', fill: '#ffb020' },
+     { t: 'path', d: 'M21.8 33q2.2 6.5 4.4 0z', fill: '#ff6b2c' },
+     { t: 'path', d: 'M17.5 25L11 34l6.5-1.5zM30.5 25L37 34l-6.5-1.5z', fill: '#e5484d' },
+     { t: 'path', d: 'M24 6q7 7 7 19v8H17v-8q0-12 7-19z', fill: '#eef2f5' },
+     { t: 'path', d: 'M24 6q5 4.5 6.3 10H17.7Q19 10.5 24 6z', fill: '#e5484d' },
+     { t: 'circle', cx: '24', cy: '22.5', r: '3.6', fill: '#5ec8f2', stroke: '#34495e', 'stroke-width': '1.4' }] },
+  planet: { name: 'Planet', ground: '#5b3d8f', art: [
+     { t: 'circle', cx: '10', cy: '12', r: '1.1', fill: '#fff' },
+     { t: 'circle', cx: '38', cy: '38', r: '1.1', fill: '#fff' },
+     { t: 'circle', cx: '36', cy: '10', r: '.9', fill: '#fff' },
+     { t: 'ellipse', cx: '24', cy: '25', rx: '17', ry: '5.5', transform: 'rotate(-18 24 25)', fill: 'none', stroke: '#f5c542', 'stroke-width': '2.6' },
+     { t: 'circle', cx: '24', cy: '24', r: '10', fill: '#f08a4b' },
+     { t: 'path', d: 'M15 21q9 3 18-1M14.5 27q9 3 19-1', stroke: '#c9602a', 'stroke-width': '2', fill: 'none', 'stroke-linecap': 'round' },
+     { t: 'path', d: 'M7.83 30.25A17 5.5-18 0 0 40.17 19.75', fill: 'none', stroke: '#f5c542', 'stroke-width': '2.6' }] },
+  football: { name: 'Football', ground: '#3a9d5d', art: [
+     { t: 'circle', cx: '24', cy: '24', r: '14', fill: '#fff', stroke: '#1f2328', 'stroke-width': '1.6' },
+     { t: 'path', d: 'M24 18.5l5.2 3.8-2 6.1h-6.4l-2-6.1z', fill: '#1f2328' },
+     { t: 'path', d: 'M24 18.5V11M29.2 22.3l7-2.3M27.2 28.4l4.3 6M20.8 28.4l-4.3 6M18.8 22.3l-7-2.3', stroke: '#1f2328', 'stroke-width': '1.4' },
+     { t: 'path', d: 'M20.5 10.6L24 11l3.5-.4L24 10z', fill: '#1f2328' },
+     { t: 'path', d: 'M36.6 17.7l-.4 4.5 1.6 1.1q.4-3-1.2-5.6zM34.4 33.6l-2.9-.7-1.6 2.6q2.8-.3 4.5-1.9zM13.6 33.6l2.9-.7 1.6 2.6q-2.8-.3-4.5-1.9zM11.4 17.7l.4 4.5-1.6 1.1q-.4-3 1.2-5.6z', fill: '#1f2328' }] },
+  guitar: { name: 'Guitar', ground: '#d9534f', art: [
+     { t: 'g', transform: 'rotate(35 24 24)', kids: [
+       { t: 'rect', x: '22.4', y: '5', width: '3.2', height: '18', fill: '#6b3f1d' },
+       { t: 'rect', x: '21', y: '2.5', width: '6', height: '5.5', rx: '1.2', fill: '#3d2412' },
+       { t: 'circle', cx: '24', cy: '23', r: '6.4', fill: '#f2a65a' },
+       { t: 'circle', cx: '24', cy: '32', r: '8.2', fill: '#f2a65a' },
+       { t: 'circle', cx: '24', cy: '26.5', r: '2.6', fill: '#3d2412' },
+       { t: 'rect', x: '20.5', y: '33.5', width: '7', height: '2', rx: '1', fill: '#3d2412' },
+       { t: 'path', d: 'M23.2 6v28M24.8 6v28', stroke: '#fde6c4', 'stroke-width': '.6' }] }] },
+  palette: { name: 'Paint palette', ground: '#6cc6e6', art: [
+     { t: 'path', d: 'M24 9c11 0 18 7 17 15-1 6-7 5-9 9-2 5-6 7-10 6C13 38 7 31 8 23 9 15 15 9 24 9z', fill: '#e2b77a' },
+     { t: 'ellipse', cx: '27', cy: '32', rx: '3', ry: '2.4', fill: '#6cc6e6' },
+     { t: 'circle', cx: '16', cy: '19.5', r: '3.2', fill: '#e5484d' },
+     { t: 'circle', cx: '22.5', cy: '14.5', r: '3.2', fill: '#f5c542' },
+     { t: 'circle', cx: '30.5', cy: '15', r: '3.2', fill: '#3fa34d' },
+     { t: 'circle', cx: '35.5', cy: '21.5', r: '3.2', fill: '#3b6fd8' },
+     { t: 'circle', cx: '14', cy: '27.5', r: '3.2', fill: '#8e44ad' }] },
 };
 
 /* THE TOKEN'S NAME, OR NOTHING: § */
@@ -14737,17 +14741,14 @@ function picKind_(v) {
 /* ONE OF THE TEN, drawn at `size` pixels. § */
 function pfpArt_(name, size) {
   const p = PFP_ART[name];
-  if (!p) return '';
-  const s = size || 40;
-  return `<svg class="pfp-art" viewBox="0 0 48 48" width="${s}" height="${s}" aria-hidden="true">
-    <circle cx="24" cy="24" r="24" fill="${p.ground}"/>${p.art}</svg>`;
+  return p ? artSvg_(p.art, p.ground, size || 40) : '';
 }
 
 /* EACH KIND OF STORED PICTURE: how it is drawn, the sentence that names it, and the art chosen (a basic picture's only). */
 const PIC_KINDS = {
-  photo: { face: (v, cls, size, o) => `<img class="${cls}" src="${esc(pic(v))}" alt="${esc(o.alt || '')}"${o.eager ? '' : ' loading="lazy"'} decoding="async">`,
+  photo: { face: (v, cls, size, o) => renderFace_({ cls, src: pic(v), alt: o.alt, eager: o.eager }),
     said: () => 'Your photo is your picture.', chosen: () => '' },
-  basic: { face: (v, cls, size) => `<span class="${cls} face-pic">${pfpArt_(pfpChoice_(v), size)}</span>`,
+  basic: { face: (v, cls, size) => renderFace_({ cls, art: PFP_ART[pfpChoice_(v)].art, ground: PFP_ART[pfpChoice_(v)].ground, size }),
     said: v => 'The ' + PFP_ART[pfpChoice_(v)].name.toLowerCase() + ' is your picture.', chosen: v => pfpChoice_(v) },
 };
 const picKindRow_ = v => (Object.prototype.hasOwnProperty.call(PIC_KINDS, picKind_(v)) ? PIC_KINDS[picKind_(v)] : null);
@@ -14763,7 +14764,7 @@ function personFace_(who, o) {
   const mine = typeof USER !== 'undefined' && USER && USER.personId && who.personId
     && String(who.personId) === String(USER.personId);
   if (Object.prototype.hasOwnProperty.call(PIC_KINDS, kind)) return PIC_KINDS[kind].face(v, cls, size, o);
-  return `<span class="${cls}${o.none ? ' ' + o.none : ''}">${esc(initial(name))}</span>`;
+  return renderFace_({ cls: cls + (o.none ? ' ' + o.none : ''), text: initial(name) });
 }
 
 /** Ten ticked topics is one level. Whole levels only — a fraction of a level is not a thing you
