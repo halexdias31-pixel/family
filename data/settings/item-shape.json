@@ -22,7 +22,7 @@
     "spec": { "source": "data/specs.json", "loader": "js/library.js -> find-history.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "chem": { "source": "data/chemistry/*.json", "loader": "js/chemistry.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "mech": { "source": "data/mechanics/*.json", "loader": "js/mechanics.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
-    "question": { "source": "data/questions.json + data-private + Ledger lib_questions", "loader": "js/data.js, js/library.js", "builder": "find-figures.js cardKind_('question')" },
+    "question": { "source": "data/questions.json + data-private + Ledger lib_questions", "loader": "js/data.js, js/library.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "subject": { "source": "payload (Ledger people/pricing)", "loader": "subjectRows() -> find-aloud.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "level": { "source": "payload (Ledger people/pricing)", "loader": "find-aloud.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "venue": { "source": "Ledger venues + rooms tabs (data/settings/venues.json)", "loader": "payload -> find-aloud.js", "sample": "check/fixture.json venues", "builder": "item map (cards-parts.js ITEM_MAPS)" },
@@ -32,5 +32,5 @@
     "product": { "source": "Ledger shop tab (data/settings/shop.json, data/shop-additions.json)", "loader": "backend get-shop.gs -> find-aloud.js", "builder": "widget cards (find-aloud.js)" },
     "post": { "source": "Ledger posts tabs", "loader": "backend get-posts.gs -> find-doors.js", "builder": "me-shelves.js / find-finder.js" }
   },
-  "migrated": ["manuscript", "writing", "event", "insert", "spec", "chem", "mech", "figure", "boxer", "fight", "practical", "project", "content", "subject", "level", "venue"]
+  "migrated": ["manuscript", "writing", "event", "insert", "spec", "chem", "mech", "figure", "boxer", "fight", "practical", "project", "content", "subject", "level", "venue", "question"]
 }
