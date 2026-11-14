@@ -500,6 +500,8 @@ function cardRuns_(v) {
   /* A LINK: an https, mailto: or tel: address, or a site path; `act` (file-view) opens it in place, the href its fallback. */
   if (v.link != null) { const h = String(v.href || ''); if (!/^(https:|mailto:|tel:|docs\/|data\/)/i.test(h)) return cardRuns_(v.link);
     return `<a href="${esc(h)}"${v.act ? ` data-do="${esc(v.act)}"` : ''}>${cardRuns_(v.link)}</a>`; }
+  /* A LINE BREAK inside one line's words (the build stamp's three lines). */
+  if (v.br) return '<br>';
   /* A LINE NUMBER in a margin, as a printed text numbers its lines: read aloud as `line n`. */
   if (v.ln != null) return `<span class="kc-ln" aria-label="line ${esc(String(v.ln))}">${esc(String(v.ln))}</span>`;
   /* MATHS AS TYPED (`x^2`, `a/b`): escaped first, then the typesetter raises and stacks it. */
@@ -692,7 +694,7 @@ const CARD_BLOCKS = {
     if (!/^(https:|data\/|docs\/)/i.test(u)) return '';
     if (b.kind === 'video') return `<video${look} src="${esc(u)}" controls playsinline preload="metadata"></video>`;
     if (b.kind === 'image') return `<img${look} src="${esc(u)}" alt="${name}">`;
-    return `<iframe${look} src="${esc(u)}" title="${name}" loading="lazy" allow="encrypted-media; picture-in-picture"></iframe>`; },
+    return `<iframe${look} src="${esc(u)}" title="${name}" loading="lazy" allow="${esc(b.allow || 'encrypted-media; picture-in-picture')}"${b.full ? ' allowfullscreen' : ''}></iframe>`; },
   /* A DRAWING AS DATA: shapes `{ el, a: { attrs }, text, kids }`, each a vector element of a fixed set, every value escaped. */
   drawing: b => cardDraw_(b.node),
   wait: b => `<div class="kc-wait${b.look ? ' ' + esc(b.look) : ''}"${cardAttrs_(b.data)}${b.on ? ' aria-busy="true"' : ''}>${b.on && typeof loading_ === 'function' ? loading_() : ''}</div>`,
@@ -825,8 +827,8 @@ Object.assign(CARD_BLOCKS, { paperSnap: paperSnap_, paperWhy: paperWhy_ });
 const kcfAttrs_ = a => Object.keys(a || {}).filter(k => /^[a-z][\w:-]*$/i.test(k) && !/^on/i.test(k) && a[k] != null && a[k] !== false)
   .map(k => (a[k] === true ? ` ${k}` : ` ${k}="${esc(String(a[k]))}"`)).join('');
 const kcfOpts_ = opts => (opts || []).map(o => (o && o.group != null ? `<optgroup label="${esc(o.group)}">${kcfOpts_(o.options)}</optgroup>`
-  : `<option value="${esc(o.value == null ? '' : o.value)}"${o.on ? ' selected' : ''}${o.off ? ' disabled' : ''}>${esc(o.text == null ? (o.value == null ? '' : o.value) : o.text)}</option>`)).join('');
-const kcfControl_ = b => (b.tag === 'select' ? `<select${kcfAttrs_(b.attrs)}>${kcfOpts_(b.options)}</select>` : `<input${kcfAttrs_(b.attrs)}>`);
+  : `<option value="${esc(o.value == null ? '' : o.value)}"${cardAttrs_(o.data)}${o.on ? ' selected' : ''}${o.off ? ' disabled' : ''}>${esc(o.text == null ? (o.value == null ? '' : o.value) : o.text)}</option>`)).join('');
+const kcfControl_ = b => (b.tag === 'select' ? `<select${kcfAttrs_(b.attrs)}>${kcfOpts_(b.options)}</select>` : b.tag === 'textarea' ? `<textarea${kcfAttrs_(b.attrs)}>${esc(b.value == null ? '' : String(b.value))}</textarea>` : `<input${kcfAttrs_(b.attrs)}>`);
 const kcfKids_ = b => (b.text != null ? cardRuns_(b.text) : '') + cardBlocks_(b.blocks) + (b.inner || '');
 const kcfField_ = b => `<label class="field${b.look ? ' ' + esc(b.look) : ''}"${kcfAttrs_(b.attrs)}>${
   b.caps ? b.caps.map((c, i) => `<span class="${i ? 'q-cap-cert' : 'q-cap-std'}">${esc(c)}</span>`).join('') : b.cap != null && b.cap !== '' ? `<span>${esc(b.cap)}</span>` : ''}${kcfKids_(b)}</label>`;
@@ -835,7 +837,7 @@ const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.la
   + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
 /* A GROUP: a div (or a span, a line, or a fold and its summary) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
-const kcfGroup_ = b => { const tag = /^(span|p|details|summary)$/.test(b.tag) ? b.tag : 'div';
+const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h4)$/.test(b.tag) ? b.tag : 'div';
   return `<${tag}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look != null ? ` class="${esc(b.look)}"` : ''}${kcfAttrs_(b.attrs)}>${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
@@ -9177,21 +9179,14 @@ function meRest_() {
 /* ---------- THE BUILD STAMPS, FOR WHEN SOMETHING HAS CHANGED AND HAS NOT § */
 /* THE BUILD CARD IS ITS LINES, so they are no grey clutter (A+): `build-said` keeps them past the rule that hides a card's grey lines. */
 function versionSaid_() {
-  return `<p class="build-said">@family. · Merton &amp; Wandsworth<br>
-      site ${esc(SITE_VERSION)} · css ${esc(cssVersion())}<br>
-      backend ${esc(dash_(DATA.version))}</p>
-      ${(() => {
-        const f = DATA.fileVersions || {};
-        const names = Object.keys(f);
-        if (names.length < 2) return '';
-        const newest = names.map(k => f[k]).sort().pop();
-        const stale = names.filter(k => f[k] !== newest);
-        return stale.length
-          ? `<p class="build-said is-warn">Not deployed: ${stale
-              .map(k => esc(k) + '.gs (' + esc(f[k]) + ')').join(', ')}. Paste ${stale.length === 1
-              ? 'that file' : 'those files'} into Apps Script.</p>`
-          : '';
-      })()}`;
+  const f = DATA.fileVersions || {};
+  const names = Object.keys(f);
+  const newest = names.map(k => f[k]).sort().pop();
+  const stale = names.length < 2 ? [] : names.filter(k => f[k] !== newest);
+  return cardBlocks_([{ type: 'group', tag: 'p', look: 'build-said', text: ['@family. · Merton & Wandsworth', { br: true },
+      'site ' + SITE_VERSION + ' · css ' + cssVersion(), { br: true }, 'backend ' + dash_(DATA.version)] },
+    stale.length ? { type: 'group', tag: 'p', look: 'build-said is-warn', text: 'Not deployed: ' + stale.map(k => k + '.gs (' + f[k] + ')').join(', ')
+      + '. Paste ' + (stale.length === 1 ? 'that file' : 'those files') + ' into Apps Script.' } : null]);
 }
 
 /* ---------- APPLY TO TEACH (400): Staff only by application and an admin's yes ----------
@@ -9239,55 +9234,61 @@ function applyKnown_() {
   const dob = Number(q.dob_y) > 1900 ? q.dob_y + '-' + pad(Number(q.dob_m) || 1) + '-' + pad(Number(q.dob_d) || 1) : '';
   return { fullName: [q.first_name, q.last_name].filter(Boolean).join(' '), email: q.email || '', phone: q.phone || '', dob };
 }
-function applyFormHtml_() {
+function applyFormHtml_() { return cardBlock_(applyFormSpec_()); }
+/* THE FORM AS ONE SPEC (owner, 14 Nov: one card maker): every box a field block, every heading an h4 group. */
+function applyFormSpec_() {
   /* `qualPick_` returns a field block (me-shelves); here it is drawn without its Something else… option. */
-  const noOther = b => { b.blocks[0].options = b.blocks[0].options.filter(o => o.value !== QUAL_OTHER); return cardBlock_(b); };
-  const rows = Array.from({ length: APP_SUBJECT_ROWS }, (_, i) => `<div class="q-row">
-      ${noOther(qualPick_({ 'data-app-subj': String(i) }, '', QUAL_SUBJECTS, i ? 'Another subject' : 'Subject', 'Choose'))}
-      ${noOther(qualPick_({ 'data-app-level': String(i) }, '', QUAL_LEVELS, 'Level', 'Choose'))}</div>`).join('');
+  const noOther = b => { b.blocks[0].options = b.blocks[0].options.filter(o => o.value !== QUAL_OTHER); return b; };
+  const rows = Array.from({ length: APP_SUBJECT_ROWS }, (_, i) => ({ type: 'group', look: 'q-row', blocks: [
+    noOther(qualPick_({ 'data-app-subj': String(i) }, '', QUAL_SUBJECTS, i ? 'Another subject' : 'Subject', 'Choose')),
+    noOther(qualPick_({ 'data-app-level': String(i) }, '', QUAL_LEVELS, 'Level', 'Choose'))] }));
   const codes = typeof availCodes_ === 'function' ? availCodes_() : [];
   const week = codes.length ? availGrid_(codes, {}, [], false) : '';
   const known = applyKnown_();
-  const box = (k, label, o) => formLine_(label, formInput_(`data-app="${k}" autocomplete="off"${(o && o.type) ? ` type="${o.type}"` : ''}${
-    (o && o.ph) ? ` placeholder="${esc(o.ph)}"` : ''}${known[k] ? ` value="${esc(known[k])}"` : ''}${(o && o.more) ? ' ' + o.more : ''}`));
-  const area = (k, label) => formLine_(label, formArea_(`data-app="${k}" rows="3"`));
+  const box = (k, cap, o) => ({ type: 'field', cap, blocks: [{ type: 'control', attrs: Object.assign({ 'data-app': k, autocomplete: 'off', type: (o && o.type) || null,
+    placeholder: (o && o.ph) || null, value: known[k] || null }, (o && o.more) || {}) }] });
+  const area = (k, cap) => ({ type: 'field', cap, blocks: [{ type: 'control', tag: 'textarea', attrs: { 'data-app': k, rows: '3' } }] });
+  const row = (...blocks) => ({ type: 'group', look: 'f-row', blocks });
+  const head = text => ({ type: 'group', tag: 'h4', look: null, text });
   /* ONE LINE PER DOCUMENT: its name, a Choose photo button, and what was picked. */
-  const doc = (k, label) => `<div class="field apply-doc" data-doc="${k}"><span>${esc(label)}</span>
-      <div class="btn-row">${tile_({ form: true, kind: 'quiet', label: APPLY_DOCS[k] ? 'Change photo' : 'Choose photo', act: 'apply-pick' })}</div>
-      <p class="note apply-doc-said">${APPLY_DOCS[k] ? 'Photo ready.' : ''}</p>${formFile_('apply-in', 'image/*')}</div>`;
-  const ref = n => `<div class="f-row">${box(`ref${n}Name`, 'name')}${box(`ref${n}Relationship`, 'relationship to you')}</div>
-    <div class="f-row">${box(`ref${n}Email`, 'email', { type: 'email' })}${box(`ref${n}Phone`, 'phone', { type: 'tel' })}</div>`;
-  return `<div class="me-form app-form">
-    <h4>You</h4>
-    ${box('fullName', 'full name')}
-    <div class="f-row">${box('phone', 'phone', { type: 'tel' })}${box('email', 'email', { type: 'email' })}</div>
-    ${area('address', 'home address')}
-    <div class="f-row">${box('postcode', 'postcode', { more: 'autocapitalize="characters"' })}${box('dob', 'date of birth', { type: 'date' })}</div>
-    <h4>Documents</h4>
-    ${doc('idDoc', 'photo ID — passport or driving licence')}
-    ${formLine_('right to work in the UK', formSelect_('data-app="rightToWork"', '<option value="">Choose</option><option value="yes">Yes</option><option value="no">No</option>'))}
-    ${doc('rtwDoc', 'right-to-work document — passport, share code or visa')}
-    <h4>What you teach</h4>${rows}
-    ${area('qualifications', 'qualifications — degrees, teaching qualifications, anything relevant')}
-    ${Array.from({ length: APPLY_QUAL_SLOTS }, (_, i) => doc('qual' + i, i ? 'another qualification certificate (optional)' : 'a qualification certificate')).join('')}
-    ${box('rate', 'hourly rate (£)', { type: 'number', more: 'min="1" step="0.5" inputmode="decimal"' })}
-    <h4>Checks</h4>
-    <div class="f-row">${box('dbsNumber', 'enhanced DBS certificate number')}${box('dbsIssued', 'issued on', { type: 'date' })}</div>
-    ${formTick_('data-app="dbsUpdate"', '<span>I consent to you checking it on the DBS Update Service</span>')}
-    ${formTick_('data-app="dbsNeeded"', '<span>I need a DBS check</span>')}
-    <h4>When and where</h4>
-    ${week ? `<div class="app-week">${week}</div>` : area('availability', 'when you can teach')}
-    ${box('area', 'area and venues you can reach')}
-    ${area('experience', 'experience')}
-    <h4>2 references</h4>
-    ${ref(1)}
-    ${ref(2)}
-    ${area('statement', 'a short statement — why you want to teach')}
-    ${box('cvLink', 'CV link (optional)', { ph: 'https://…', type: 'url' })}
-    ${formTick_('data-app="consent"', '<span>I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS.</span>')}
-    <div class="btn-row">${tile_({ form: true, label: 'Send my application', act: 'apply-send' })}</div>
-    <p class="note me-said apply-said" aria-live="polite"></p>
-  </div>`;
+  const doc = (k, label) => ({ type: 'group', look: 'field apply-doc', attrs: { 'data-doc': k }, blocks: [
+    { type: 'group', tag: 'span', look: null, text: label },
+    { type: 'group', look: 'btn-row', tiles: [{ form: true, kind: 'quiet', label: APPLY_DOCS[k] ? 'Change photo' : 'Choose photo', act: 'apply-pick' }] },
+    { type: 'group', tag: 'p', look: 'note apply-doc-said', text: APPLY_DOCS[k] ? 'Photo ready.' : '' },
+    { type: 'control', attrs: { type: 'file', class: 'apply-in', accept: 'image/*', hidden: true } }] });
+  const ref = n => [row(box(`ref${n}Name`, 'name'), box(`ref${n}Relationship`, 'relationship to you')),
+    row(box(`ref${n}Email`, 'email', { type: 'email' }), box(`ref${n}Phone`, 'phone', { type: 'tel' }))];
+  const tick = (k, text) => ({ type: 'tick', attrs: { 'data-app': k }, text });
+  return { type: 'group', look: 'me-form app-form', blocks: [
+    head('You'),
+    box('fullName', 'full name'),
+    row(box('phone', 'phone', { type: 'tel' }), box('email', 'email', { type: 'email' })),
+    area('address', 'home address'),
+    row(box('postcode', 'postcode', { more: { autocapitalize: 'characters' } }), box('dob', 'date of birth', { type: 'date' })),
+    head('Documents'),
+    doc('idDoc', 'photo ID — passport or driving licence'),
+    { type: 'field', cap: 'right to work in the UK', blocks: [{ type: 'control', tag: 'select', attrs: { 'data-app': 'rightToWork' },
+      options: [{ value: '', text: 'Choose' }, { value: 'yes', text: 'Yes' }, { value: 'no', text: 'No' }] }] },
+    doc('rtwDoc', 'right-to-work document — passport, share code or visa'),
+    head('What you teach'), ...rows,
+    area('qualifications', 'qualifications — degrees, teaching qualifications, anything relevant'),
+    ...Array.from({ length: APPLY_QUAL_SLOTS }, (_, i) => doc('qual' + i, i ? 'another qualification certificate (optional)' : 'a qualification certificate')),
+    box('rate', 'hourly rate (£)', { type: 'number', more: { min: '1', step: '0.5', inputmode: 'decimal' } }),
+    head('Checks'),
+    row(box('dbsNumber', 'enhanced DBS certificate number'), box('dbsIssued', 'issued on', { type: 'date' })),
+    tick('dbsUpdate', 'I consent to you checking it on the DBS Update Service'),
+    tick('dbsNeeded', 'I need a DBS check'),
+    head('When and where'),
+    week ? { type: 'group', look: 'app-week', inner: week } : area('availability', 'when you can teach'),
+    box('area', 'area and venues you can reach'),
+    area('experience', 'experience'),
+    head('2 references'),
+    ...ref(1), ...ref(2),
+    area('statement', 'a short statement — why you want to teach'),
+    box('cvLink', 'CV link (optional)', { ph: 'https://…', type: 'url' }),
+    tick('consent', 'I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS.'),
+    { type: 'group', look: 'btn-row', tiles: [{ form: true, label: 'Send my application', act: 'apply-send' }] },
+    { type: 'group', tag: 'p', look: 'note me-said apply-said', attrs: { 'aria-live': 'polite' } }] };
 }
 /* WHAT IS STILL MISSING, in the backend's words (`postApplyTeach_` asks the same), so the phone says it before anything is sent. */
 function applyMissing_(b) {
@@ -9628,34 +9629,28 @@ const REG_NOTE = {
 const registerSpec_ = () => ({ kind: 'panel', look: 'reg-card', name: 'Make an account', tags: ['Make an account'], body: [{ type: 'embed', tool: 'reg-form' }] });
 function registerCard_() { return renderCard(registerSpec_()); }
 /* THE FORM IS THE CARD'S ONE EMBED; its send (reg-send) is unchanged. */
+/* THE FORM AS ONE SPEC (owner, 14 Nov: one card maker). ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */
+/* THE TWO NAMES SHARE A ROW, as on "Make your child's account" — measured: § */
+/* THE NAMES AND THE ADDRESS ARE DRAFTS (data.js; docs/history/317) — the sheet closed by a tap outside, or the page reloaded, and they were gone. § */
+/* THREE LINES AT 320, MEASURED: § */
 function regFormHtml_() {
-  return `<div class="reg-form">
-    ${/* ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */''}
-    <div class="reg-who" id="reg-who" data-who="">
-      <p class="reg-cap" id="reg-who-cap">Both are free; teaching starts with "Apply to teach" once you are in.</p>
-      ${formLine_('who is the account for?', formSelect_('id="reg-who-in" data-do="reg-who" aria-describedby="reg-who-cap"', `
-        <option value="" selected disabled>Choose</option>
-        <option value="parent" data-who="parent">Client — I book and pay</option>
-        <option value="student" data-who="student">Student — I'm learning</option>`))}
-    </div>
-    <div id="reg-rest" hidden>
-      ${/* THE TWO NAMES SHARE A ROW, as on "Make your child's account" — measured: § */
-            ''}
-      ${/* THE NAMES AND THE ADDRESS ARE DRAFTS (data.js; docs/history/317) — the sheet closed by a tap outside, or the page reloaded, and they were gone. § */
-            ''}
-      <div class="f-row">
-        ${formLine_('first name', formInput_(`id="reg-first" autocomplete="off"${draftAttr_('reg', 'first')} value="${esc(draftVal_('reg', 'first'))}"`))}
-        ${formLine_('last name', formInput_(`id="reg-last" autocomplete="off"${draftAttr_('reg', 'last')} value="${esc(draftVal_('reg', 'last'))}"`))}
-      </div>
-      ${formLine_('email', formInput_(`id="reg-email" type="email" inputmode="email" autocomplete="off" autocapitalize="off"
-               spellcheck="false" placeholder="you@example.com"${draftAttr_('reg', 'email')} value="${esc(draftVal_('reg', 'email'))}"`))}
-      ${formTick_('id="reg-noemail"', "<span>It's a grown-up's email</span>", 'reg-kid', 'hidden')}
-      ${formLine_('PIN — 4 digits', formInput_('id="reg-pin" type="password" inputmode="numeric" autocomplete="one-time-code"'))}
-      ${tile_({ form: true, label: 'Make my account', act: 'reg-send' })}
-      ${/* THREE LINES AT 320, MEASURED: § */
-            ''}
-      <p class="said" id="reg-note"></p>
-    </div></div>`;
+  const kept = (id, more) => ({ type: 'control', attrs: Object.assign({ id: 'reg-' + id, autocomplete: 'off' }, more || {},
+    meAttrs_(draftAttr_('reg', id)), { value: draftVal_('reg', id) }) });
+  const field = (cap, control) => ({ type: 'field', cap, blocks: [control] });
+  return cardBlock_({ type: 'group', look: 'reg-form', blocks: [
+    { type: 'group', look: 'reg-who', id: 'reg-who', attrs: { 'data-who': '' }, blocks: [
+      { type: 'group', tag: 'p', look: 'reg-cap', id: 'reg-who-cap', text: 'Both are free; teaching starts with "Apply to teach" once you are in.' },
+      field('who is the account for?', { type: 'control', tag: 'select', attrs: { id: 'reg-who-in', 'data-do': 'reg-who', 'aria-describedby': 'reg-who-cap' }, options: [
+        { value: '', text: 'Choose', on: true, off: true },
+        { value: 'parent', text: 'Client — I book and pay', data: { who: 'parent' } },
+        { value: 'student', text: 'Student — I\'m learning', data: { who: 'student' } }] })] },
+    { type: 'group', look: null, id: 'reg-rest', attrs: { hidden: true }, blocks: [
+      { type: 'group', look: 'f-row', blocks: [field('first name', kept('first')), field('last name', kept('last'))] },
+      field('email', kept('email', { type: 'email', inputmode: 'email', autocapitalize: 'off', spellcheck: 'false', placeholder: 'you@example.com' })),
+      { type: 'tick', look: 'reg-kid', labelAttrs: { hidden: true }, attrs: { id: 'reg-noemail' }, text: 'It\'s a grown-up\'s email' },
+      field('PIN — 4 digits', { type: 'control', attrs: { id: 'reg-pin', type: 'password', inputmode: 'numeric', autocomplete: 'one-time-code' } })],
+      /* the send stands loose in the form, the note under it, as before */
+      inner: tile_({ form: true, label: 'Make my account', act: 'reg-send' }) + cardBlock_({ type: 'group', tag: 'p', look: 'said', id: 'reg-note' }) }] });
 }
 CARD_EMBEDS['reg-form'] = regFormHtml_;
 
@@ -12011,7 +12006,7 @@ function phoneField_(value) {
   const phoneNo = String(value('phone_no') || (value('phone_cc') ? '' : value('phone')) || '');
   const codes = (Array.isArray(DATA && DATA.phoneCodes) && DATA.phoneCodes.length) ? DATA.phoneCodes.slice() : ['+44'];
   if (codes.indexOf(cc) === -1) codes.unshift(cc);
-  return fieldCap_('phone', formPhone_('phone_cc', 'phone_no', codes.map(x => `<option value="${esc(x)}"${x === cc ? ' selected' : ''}>${esc(x)}</option>`).join(''),
+  return fieldCap_('phone', formPhone_('phone_cc', 'phone_no', kcfOpts_(codes.map(x => ({ value: x, on: x === cc }))),
     `placeholder="Number" value="${esc(draftVal_('set', 'phone_no', phoneNo))}"${draftAttr_('set', 'phone_no', phoneNo)}`), ' is-phone', 2);
 }
 function qualYears_(current) {
@@ -12029,21 +12024,18 @@ function libraryShelf_(list, value) {
   /* ONE CARD ONLY (489, the owner on Library cards: "change this to be only 1 card allowed") — the one already filled, else the first; no Add § */
   /* A RULE (496): `library-one-card` — Universal, every slot with Add another, like any shelf. */
   const nums = !(typeof ruleOn_ !== 'function' || ruleOn_('library-one-card')) ? all : all.length ? [all.find(has) || all[0]] : [];
-  return `<div class="lib-shelf" data-noun="library card">${shelfSlots_(nums,
-    has,
-    (i, hide) => `
-    <div class="lib-card"${hide ? ' hidden' : ''}>
-      <div class="lib-face" role="group" aria-label="Library card ${esc(i)}">
-        <span class="lib-cap" aria-hidden="true">Library card</span>
-        <div class="lib-name">${fieldHtml('lib' + i + '_name', value('lib' + i + '_name'),
-          { placeholder: 'Library name', extra: quiet + ' aria-label="Library name"' })}</div>
-        <div class="lib-pin">${fieldHtml('lib' + i + '_pin', value('lib' + i + '_pin'),
-          { label: 'PIN', extra: quiet + ' autocomplete="off" placeholder=" "' })}</div>
-        ${libBars_(value('lib' + i + '_no'))}
-        <div class="lib-no">${fieldHtml('lib' + i + '_no', value('lib' + i + '_no'),
-          { placeholder: 'Card number', extra: quiet + ' autocomplete="off" aria-label="Card number"' })}</div>
-      </div>
-    </div>`, 'library card')}</div>`;
+  /* EACH CARD IS ONE SPEC (owner, 14 Nov: one card maker); its boxes are `fieldHtml`'s, laid inside as drawn. */
+  const slot = (i, hide) => cardBlock_({ type: 'group', look: 'lib-card', attrs: { hidden: !!hide }, blocks: [
+    { type: 'group', look: 'lib-face', attrs: { role: 'group', 'aria-label': 'Library card ' + i }, blocks: [
+      { type: 'group', tag: 'span', look: 'lib-cap', attrs: { 'aria-hidden': 'true' }, text: 'Library card' },
+      { type: 'group', look: 'lib-name', inner: fieldHtml('lib' + i + '_name', value('lib' + i + '_name'),
+        { placeholder: 'Library name', extra: quiet + ' aria-label="Library name"' }) },
+      { type: 'group', look: 'lib-pin', inner: fieldHtml('lib' + i + '_pin', value('lib' + i + '_pin'),
+        { label: 'PIN', extra: quiet + ' autocomplete="off" placeholder=" "' }) },
+      libBarsSpec_(value('lib' + i + '_no')),
+      { type: 'group', look: 'lib-no', inner: fieldHtml('lib' + i + '_no', value('lib' + i + '_no'),
+        { placeholder: 'Card number', extra: quiet + ' autocomplete="off" aria-label="Card number"' }) }] }] });
+  return cardBlock_({ type: 'group', look: 'lib-shelf', attrs: { 'data-noun': 'library card' }, inner: shelfSlots_(nums, has, slot, 'library card') });
 }
 
 /* ---------- THE BARCODE IS A PICTURE OF ONE, AND NOT ONE § */
@@ -12059,14 +12051,15 @@ function libBarsOf_(no) {
   w.push(1, 1, 1);
   return w;
 }
-function libBars_(no) {
+function libBarsSpec_(no) {
   const w = libBarsOf_(no);
   let x = 0, d = '';
   w.forEach((n, i) => { if (i % 2 === 0) d += 'M' + x + ' 0h' + n + 'v1h-' + n + 'z'; x += n; });
   const blank = !String(no ?? '').trim();
-  return `<svg class="lib-bars${blank ? ' is-blank' : ''}" viewBox="0 0 ${x} 1" preserveAspectRatio="none"
-    shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path fill="currentColor" d="${d}"/></svg>`;
+  return { type: 'drawing', node: { el: 'svg', a: { class: 'lib-bars' + (blank ? ' is-blank' : ''), viewBox: '0 0 ' + x + ' 1', preserveAspectRatio: 'none',
+    'shape-rendering': 'crispEdges', 'aria-hidden': 'true', focusable: 'false' }, kids: [{ el: 'path', a: { fill: 'currentColor', d } }] } };
 }
+const libBars_ = no => cardBlock_(libBarsSpec_(no));
 /* THE BARS FOLLOW THE NUMBER as it is typed, the photograph shelf's thumbnail one rule down: § */
 document.addEventListener('input', e => {
   const t = e.target;
@@ -12102,17 +12095,17 @@ function libCardsDraw_(into) {
   if (!into) return;
   const held = into.querySelector('.me-form[data-dirty], .me-form.is-sending');
   if (held) return;
-  if (!whose_()) { into.innerHTML = `<p class="note">Sign in and your library cards are kept here.</p>`; return; }
+  const note = text => cardBlock_({ type: 'group', tag: 'p', look: 'note', text });
+  if (!whose_()) { into.innerHTML = note('Sign in and your library cards are kept here.'); return; }
   const list = libFieldsOf_(myGroups_());
   if (!list.length && typeof awaiting_ === 'function' && awaiting_()) { into.innerHTML = loading_(); return; }
   /* AN OLDER SERVER, SAID AS ONE — `OLD_SERVER_SAY_`, the card editor's sentence for the same case. § */
   if (!list.length) {
-    into.innerHTML = `<p class="note">${esc(OLD_SERVER_SAY_)}</p>`;
+    into.innerHTML = note(OLD_SERVER_SAY_);
     return;
   }
   const p = whose_().profile || {};
-  into.innerHTML = `<div class="me-form">${libraryShelf_(list, f => p[f] ?? '')}
-    <p class="note me-said"></p></div>`;
+  into.innerHTML = cardBlock_({ type: 'group', look: 'me-form', inner: libraryShelf_(list, f => p[f] ?? '') + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said' }) });
 }
 function initLibCards_() { libCardsDraw_($('lib-box')); }
 /* EVERY COPY ON THE PAGE — Tools' and, starred, Saved's — for `myProfile` landing (`profileRefresh_`): § */
@@ -12467,9 +12460,10 @@ function jobShelf_(list, value, o) {
   nums.forEach((n, i) => { if (shelfFilled_(value, ['job_' + n + '_role', 'job_' + n + '_where'])) last = i + 1; });
   const box = (n, k) => fieldHtml('job_' + n + '_' + k, String(value('job_' + n + '_' + k) || ''), { label: ' ', placeholder: JOB_PH_[k],
     draft: (o || {}).draft, extra: 'autocomplete="off" maxlength="80"' });
-  return `<div class="lib-shelf job-shelf" data-noun="job">${nums.map((n, i) => `<div class="lib-card job-slot"${i >= last ? ' hidden' : ''}>
-      ${box(n, 'role')}${box(n, 'where')}<span class="job-when">${box(n, 'from')}<span class="job-dash">–</span>${box(n, 'to')}</span>${shelfDrop_('job')}
-    </div>`).join('')}${last < nums.length ? shelfAdd_('job') : ''}</div>`;
+  const slot = (n, i) => ({ type: 'group', look: 'lib-card job-slot', attrs: { hidden: i >= last }, inner: box(n, 'role') + box(n, 'where')
+    + cardBlock_({ type: 'group', tag: 'span', look: 'job-when', inner: box(n, 'from') + cardBlock_({ type: 'group', tag: 'span', look: 'job-dash', text: '–' }) + box(n, 'to') })
+    + shelfDrop_('job') });
+  return cardBlock_({ type: 'group', look: 'lib-shelf job-shelf', attrs: { 'data-noun': 'job' }, inner: cardBlocks_(nums.map(slot)) + (last < nums.length ? shelfAdd_('job') : '') });
 }
 /* HOW MANY JOBS, for the fold's line. */
 const jobCount_ = val => [1, 2, 3, 4, 5, 6].filter(n => String(val('job_' + n + '_role') || val('job_' + n + '_where') || '').trim()).length;
@@ -12479,14 +12473,13 @@ const VIDEO_MAX_MB_ = 100, VIDEO_MAX_S_ = 75, VIDEO_PART_ = 4 * 1024 * 1024;
 const introSrc_ = id => 'https://drive.google.com/file/d/' + encodeURIComponent(String(id || '')) + '/preview';
 function videoPicker_(value, said) {
   const id = String(value('video_file') || '').trim();
-  return `<div class="vid-pick" data-file="${esc(id)}">
-    <div class="ce-line"><span class="ce-k">Intro video</span><span class="ce-v">${id ? 'uploaded' : 'none'}</span></div>
-    ${id ? `<div class="vid-frame"><iframe src="${esc(introSrc_(id))}" title="Your intro video" loading="lazy" allow="autoplay; fullscreen" allowfullscreen></iframe></div>` : ''}
-    <div class="tile-row">${tile_({ icon: 'plus', label: id ? 'Change video' : 'Upload video', note: 'about a minute', act: 'vid-pick' })}${
-      tile_({ icon: 'bin', label: 'Remove', act: 'vid-remove', off: !id })}</div>
-    <p class="note vid-said">${esc(said || (id ? 'Parents can watch this on your card.' : 'A short clip saying hello: about a minute, 100 MB at most.'))}</p>
-    ${formFile_('vid-in', 'video/*')}
-  </div>`;
+  return cardBlock_({ type: 'group', look: 'vid-pick', attrs: { 'data-file': id }, blocks: [
+    { type: 'group', look: 'ce-line', blocks: [{ type: 'group', tag: 'span', look: 'ce-k', text: 'Intro video' }, { type: 'group', tag: 'span', look: 'ce-v', text: id ? 'uploaded' : 'none' }] },
+    id ? { type: 'group', look: 'vid-frame', blocks: [{ type: 'media', src: introSrc_(id), title: 'Your intro video', allow: 'autoplay; fullscreen', full: true }] } : null,
+    { type: 'group', look: 'tile-row', tiles: [{ icon: 'plus', label: id ? 'Change video' : 'Upload video', note: 'about a minute', act: 'vid-pick' },
+      { icon: 'bin', label: 'Remove', act: 'vid-remove', off: !id }] },
+    { type: 'group', tag: 'p', look: 'note vid-said', text: said || (id ? 'Parents can watch this on your card.' : 'A short clip saying hello: about a minute, 100 MB at most.') },
+    { type: 'control', attrs: { type: 'file', class: 'vid-in', accept: 'video/*', hidden: true } }] });
 }
 const vidSay_ = (box, msg) => { const p = box && box.querySelector('.vid-said'); if (p) p.textContent = msg; };
 function vidTake_(box, id, msg) {

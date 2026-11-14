@@ -79,7 +79,7 @@ function phoneField_(value) {
   const phoneNo = String(value('phone_no') || (value('phone_cc') ? '' : value('phone')) || '');
   const codes = (Array.isArray(DATA && DATA.phoneCodes) && DATA.phoneCodes.length) ? DATA.phoneCodes.slice() : ['+44'];
   if (codes.indexOf(cc) === -1) codes.unshift(cc);
-  return fieldCap_('phone', formPhone_('phone_cc', 'phone_no', codes.map(x => `<option value="${esc(x)}"${x === cc ? ' selected' : ''}>${esc(x)}</option>`).join(''),
+  return fieldCap_('phone', formPhone_('phone_cc', 'phone_no', kcfOpts_(codes.map(x => ({ value: x, on: x === cc }))),
     `placeholder="Number" value="${esc(draftVal_('set', 'phone_no', phoneNo))}"${draftAttr_('set', 'phone_no', phoneNo)}`), ' is-phone', 2);
 }
 function qualYears_(current) {
@@ -97,21 +97,18 @@ function libraryShelf_(list, value) {
   /* ONE CARD ONLY (489, the owner on Library cards: "change this to be only 1 card allowed") — the one already filled, else the first; no Add § */
   /* A RULE (496): `library-one-card` — Universal, every slot with Add another, like any shelf. */
   const nums = !(typeof ruleOn_ !== 'function' || ruleOn_('library-one-card')) ? all : all.length ? [all.find(has) || all[0]] : [];
-  return `<div class="lib-shelf" data-noun="library card">${shelfSlots_(nums,
-    has,
-    (i, hide) => `
-    <div class="lib-card"${hide ? ' hidden' : ''}>
-      <div class="lib-face" role="group" aria-label="Library card ${esc(i)}">
-        <span class="lib-cap" aria-hidden="true">Library card</span>
-        <div class="lib-name">${fieldHtml('lib' + i + '_name', value('lib' + i + '_name'),
-          { placeholder: 'Library name', extra: quiet + ' aria-label="Library name"' })}</div>
-        <div class="lib-pin">${fieldHtml('lib' + i + '_pin', value('lib' + i + '_pin'),
-          { label: 'PIN', extra: quiet + ' autocomplete="off" placeholder=" "' })}</div>
-        ${libBars_(value('lib' + i + '_no'))}
-        <div class="lib-no">${fieldHtml('lib' + i + '_no', value('lib' + i + '_no'),
-          { placeholder: 'Card number', extra: quiet + ' autocomplete="off" aria-label="Card number"' })}</div>
-      </div>
-    </div>`, 'library card')}</div>`;
+  /* EACH CARD IS ONE SPEC (owner, 14 Nov: one card maker); its boxes are `fieldHtml`'s, laid inside as drawn. */
+  const slot = (i, hide) => cardBlock_({ type: 'group', look: 'lib-card', attrs: { hidden: !!hide }, blocks: [
+    { type: 'group', look: 'lib-face', attrs: { role: 'group', 'aria-label': 'Library card ' + i }, blocks: [
+      { type: 'group', tag: 'span', look: 'lib-cap', attrs: { 'aria-hidden': 'true' }, text: 'Library card' },
+      { type: 'group', look: 'lib-name', inner: fieldHtml('lib' + i + '_name', value('lib' + i + '_name'),
+        { placeholder: 'Library name', extra: quiet + ' aria-label="Library name"' }) },
+      { type: 'group', look: 'lib-pin', inner: fieldHtml('lib' + i + '_pin', value('lib' + i + '_pin'),
+        { label: 'PIN', extra: quiet + ' autocomplete="off" placeholder=" "' }) },
+      libBarsSpec_(value('lib' + i + '_no')),
+      { type: 'group', look: 'lib-no', inner: fieldHtml('lib' + i + '_no', value('lib' + i + '_no'),
+        { placeholder: 'Card number', extra: quiet + ' autocomplete="off" aria-label="Card number"' }) }] }] });
+  return cardBlock_({ type: 'group', look: 'lib-shelf', attrs: { 'data-noun': 'library card' }, inner: shelfSlots_(nums, has, slot, 'library card') });
 }
 
 /* ---------- THE BARCODE IS A PICTURE OF ONE, AND NOT ONE § */
@@ -127,14 +124,15 @@ function libBarsOf_(no) {
   w.push(1, 1, 1);
   return w;
 }
-function libBars_(no) {
+function libBarsSpec_(no) {
   const w = libBarsOf_(no);
   let x = 0, d = '';
   w.forEach((n, i) => { if (i % 2 === 0) d += 'M' + x + ' 0h' + n + 'v1h-' + n + 'z'; x += n; });
   const blank = !String(no ?? '').trim();
-  return `<svg class="lib-bars${blank ? ' is-blank' : ''}" viewBox="0 0 ${x} 1" preserveAspectRatio="none"
-    shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path fill="currentColor" d="${d}"/></svg>`;
+  return { type: 'drawing', node: { el: 'svg', a: { class: 'lib-bars' + (blank ? ' is-blank' : ''), viewBox: '0 0 ' + x + ' 1', preserveAspectRatio: 'none',
+    'shape-rendering': 'crispEdges', 'aria-hidden': 'true', focusable: 'false' }, kids: [{ el: 'path', a: { fill: 'currentColor', d } }] } };
 }
+const libBars_ = no => cardBlock_(libBarsSpec_(no));
 /* THE BARS FOLLOW THE NUMBER as it is typed, the photograph shelf's thumbnail one rule down: § */
 document.addEventListener('input', e => {
   const t = e.target;
@@ -170,17 +168,17 @@ function libCardsDraw_(into) {
   if (!into) return;
   const held = into.querySelector('.me-form[data-dirty], .me-form.is-sending');
   if (held) return;
-  if (!whose_()) { into.innerHTML = `<p class="note">Sign in and your library cards are kept here.</p>`; return; }
+  const note = text => cardBlock_({ type: 'group', tag: 'p', look: 'note', text });
+  if (!whose_()) { into.innerHTML = note('Sign in and your library cards are kept here.'); return; }
   const list = libFieldsOf_(myGroups_());
   if (!list.length && typeof awaiting_ === 'function' && awaiting_()) { into.innerHTML = loading_(); return; }
   /* AN OLDER SERVER, SAID AS ONE — `OLD_SERVER_SAY_`, the card editor's sentence for the same case. § */
   if (!list.length) {
-    into.innerHTML = `<p class="note">${esc(OLD_SERVER_SAY_)}</p>`;
+    into.innerHTML = note(OLD_SERVER_SAY_);
     return;
   }
   const p = whose_().profile || {};
-  into.innerHTML = `<div class="me-form">${libraryShelf_(list, f => p[f] ?? '')}
-    <p class="note me-said"></p></div>`;
+  into.innerHTML = cardBlock_({ type: 'group', look: 'me-form', inner: libraryShelf_(list, f => p[f] ?? '') + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said' }) });
 }
 function initLibCards_() { libCardsDraw_($('lib-box')); }
 /* EVERY COPY ON THE PAGE — Tools' and, starred, Saved's — for `myProfile` landing (`profileRefresh_`): § */
@@ -535,9 +533,10 @@ function jobShelf_(list, value, o) {
   nums.forEach((n, i) => { if (shelfFilled_(value, ['job_' + n + '_role', 'job_' + n + '_where'])) last = i + 1; });
   const box = (n, k) => fieldHtml('job_' + n + '_' + k, String(value('job_' + n + '_' + k) || ''), { label: ' ', placeholder: JOB_PH_[k],
     draft: (o || {}).draft, extra: 'autocomplete="off" maxlength="80"' });
-  return `<div class="lib-shelf job-shelf" data-noun="job">${nums.map((n, i) => `<div class="lib-card job-slot"${i >= last ? ' hidden' : ''}>
-      ${box(n, 'role')}${box(n, 'where')}<span class="job-when">${box(n, 'from')}<span class="job-dash">–</span>${box(n, 'to')}</span>${shelfDrop_('job')}
-    </div>`).join('')}${last < nums.length ? shelfAdd_('job') : ''}</div>`;
+  const slot = (n, i) => ({ type: 'group', look: 'lib-card job-slot', attrs: { hidden: i >= last }, inner: box(n, 'role') + box(n, 'where')
+    + cardBlock_({ type: 'group', tag: 'span', look: 'job-when', inner: box(n, 'from') + cardBlock_({ type: 'group', tag: 'span', look: 'job-dash', text: '–' }) + box(n, 'to') })
+    + shelfDrop_('job') });
+  return cardBlock_({ type: 'group', look: 'lib-shelf job-shelf', attrs: { 'data-noun': 'job' }, inner: cardBlocks_(nums.map(slot)) + (last < nums.length ? shelfAdd_('job') : '') });
 }
 /* HOW MANY JOBS, for the fold's line. */
 const jobCount_ = val => [1, 2, 3, 4, 5, 6].filter(n => String(val('job_' + n + '_role') || val('job_' + n + '_where') || '').trim()).length;
@@ -547,14 +546,13 @@ const VIDEO_MAX_MB_ = 100, VIDEO_MAX_S_ = 75, VIDEO_PART_ = 4 * 1024 * 1024;
 const introSrc_ = id => 'https://drive.google.com/file/d/' + encodeURIComponent(String(id || '')) + '/preview';
 function videoPicker_(value, said) {
   const id = String(value('video_file') || '').trim();
-  return `<div class="vid-pick" data-file="${esc(id)}">
-    <div class="ce-line"><span class="ce-k">Intro video</span><span class="ce-v">${id ? 'uploaded' : 'none'}</span></div>
-    ${id ? `<div class="vid-frame"><iframe src="${esc(introSrc_(id))}" title="Your intro video" loading="lazy" allow="autoplay; fullscreen" allowfullscreen></iframe></div>` : ''}
-    <div class="tile-row">${tile_({ icon: 'plus', label: id ? 'Change video' : 'Upload video', note: 'about a minute', act: 'vid-pick' })}${
-      tile_({ icon: 'bin', label: 'Remove', act: 'vid-remove', off: !id })}</div>
-    <p class="note vid-said">${esc(said || (id ? 'Parents can watch this on your card.' : 'A short clip saying hello: about a minute, 100 MB at most.'))}</p>
-    ${formFile_('vid-in', 'video/*')}
-  </div>`;
+  return cardBlock_({ type: 'group', look: 'vid-pick', attrs: { 'data-file': id }, blocks: [
+    { type: 'group', look: 'ce-line', blocks: [{ type: 'group', tag: 'span', look: 'ce-k', text: 'Intro video' }, { type: 'group', tag: 'span', look: 'ce-v', text: id ? 'uploaded' : 'none' }] },
+    id ? { type: 'group', look: 'vid-frame', blocks: [{ type: 'media', src: introSrc_(id), title: 'Your intro video', allow: 'autoplay; fullscreen', full: true }] } : null,
+    { type: 'group', look: 'tile-row', tiles: [{ icon: 'plus', label: id ? 'Change video' : 'Upload video', note: 'about a minute', act: 'vid-pick' },
+      { icon: 'bin', label: 'Remove', act: 'vid-remove', off: !id }] },
+    { type: 'group', tag: 'p', look: 'note vid-said', text: said || (id ? 'Parents can watch this on your card.' : 'A short clip saying hello: about a minute, 100 MB at most.') },
+    { type: 'control', attrs: { type: 'file', class: 'vid-in', accept: 'video/*', hidden: true } }] });
 }
 const vidSay_ = (box, msg) => { const p = box && box.querySelector('.vid-said'); if (p) p.textContent = msg; };
 function vidTake_(box, id, msg) {
