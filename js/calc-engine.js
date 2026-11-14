@@ -1,48 +1,63 @@
 /* @family. — the calculator's keys and engine (attic, 88a), cut from js/arcade.js; js/calc.js drew it, js/check-calc.js ran it. */
 /* ---------- THE CALCULATOR: KEYS AND ENGINE (a Casio Natural Display). Pure, no DOM; js/check-calc.js runs it. */
 /* The fx-83GT CW's face, in order: [key, label, class, legend, name]. A `top` key's legend is printed white over
-   it; any other key's is its SHIFT, in blue. Labels are fixed markup, drawn unescaped by map.js. */
+   it; any other key's is its SHIFT, in blue. Labels and legends are DATA: text runs, and line drawings as shapes. */
 /* The printed key faces as small line drawings: boxes outlined at the weight of the type, never solid blocks. */
-const MK = (w, body) => `<svg class="mk" viewBox="0 0 ${w} 20" width="${w / 20}em" height="1em" fill="none" stroke="currentColor" `
-  + `stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
-const MK_T = (x, y, t, s = 10) => `<text x="${x}" y="${y}" font-size="${s}" fill="currentColor" stroke="none" font-weight="700">${t}</text>`;
-const MK_FR = MK(14, '<rect x="3.5" y="1.5" width="7" height="6"/><path d="M1 10h12"/><rect x="3.5" y="12.5" width="7" height="6"/>');
-const MK_MIX = MK(22, '<rect x="1" y="6" width="6" height="8"/><rect x="12" y="1.5" width="6" height="5"/><path d="M10 10h10"/><rect x="12" y="13.5" width="6" height="5"/>');
-const MK_SQRT = MK(24, '<path d="M1 12l3-1.5 3.5 7.5L12 2h11"/><rect x="13.5" y="6" width="7" height="9"/>');
-const MK_CBRT = MK(26, MK_T(1, 8, '3', 8) + '<path d="M3 12l3-1.5 3.5 7.5L14 2h11"/><rect x="15.5" y="6" width="7" height="9"/>');
-const MK_POW = MK(20, '<rect x="1.5" y="7" width="9" height="11"/><rect x="13" y="1.5" width="5.5" height="5.5"/>');
-const MK_INV = MK(26, '<rect x="1.5" y="7" width="9" height="11"/>' + MK_T(12, 9, '−1', 9));
-const MK_SQ = MK(20, '<rect x="1.5" y="7" width="9" height="11"/>' + MK_T(12.5, 9, '2', 10));
-const MK_CUBE = MK(20, '<rect x="1.5" y="7" width="9" height="11"/>' + MK_T(12.5, 9, '3', 10));
-const MK_LOG = 'log' + MK(16, '<rect x="1" y="12" width="5" height="6"/><rect x="7.5" y="4" width="7.5" height="11"/>');
-const MK_E10 = '×10' + MK(8, '<rect x="1" y="1.5" width="6" height="6"/>');
+const MK = (w, kids) => ({ el: 'svg', a: { class: 'mk', viewBox: `0 0 ${w} 20`, width: `${w / 20}em`, height: '1em', fill: 'none', stroke: 'currentColor',
+  'stroke-width': '1.7', 'stroke-linejoin': 'round', 'aria-hidden': 'true' }, kids });
+const MK_T = (x, y, t, s = 10) => ({ el: 'text', a: { x, y, 'font-size': s, fill: 'currentColor', stroke: 'none', 'font-weight': '700' }, text: t });
+const MK_R = (x, y, width, height) => ({ el: 'rect', a: { x, y, width, height } });
+const MK_P = d => ({ el: 'path', a: { d } });
+const MK_FR = MK(14, [MK_R(3.5, 1.5, 7, 6), MK_P('M1 10h12'), MK_R(3.5, 12.5, 7, 6)]);
+const MK_MIX = MK(22, [MK_R(1, 6, 6, 8), MK_R(12, 1.5, 6, 5), MK_P('M10 10h10'), MK_R(12, 13.5, 6, 5)]);
+const MK_SQRT = MK(24, [MK_P('M1 12l3-1.5 3.5 7.5L12 2h11'), MK_R(13.5, 6, 7, 9)]);
+const MK_CBRT = MK(26, [MK_T(1, 8, '3', 8), MK_P('M3 12l3-1.5 3.5 7.5L14 2h11'), MK_R(15.5, 6, 7, 9)]);
+const MK_POW = MK(20, [MK_R(1.5, 7, 9, 11), MK_R(13, 1.5, 5.5, 5.5)]);
+const MK_INV = MK(26, [MK_R(1.5, 7, 9, 11), MK_T(12, 9, '−1', 9)]);
+const MK_SQ = MK(20, [MK_R(1.5, 7, 9, 11), MK_T(12.5, 9, '2', 10)]);
+const MK_CUBE = MK(20, [MK_R(1.5, 7, 9, 11), MK_T(12.5, 9, '3', 10)]);
+const MK_LOG = ['log', MK(16, [MK_R(1, 12, 5, 6), MK_R(7.5, 4, 7.5, 11)])];
+const MK_E10 = ['×10', MK(8, [MK_R(1, 1.5, 6, 6)])];
+const MK_IC = n => ({ span: 'mk-ic mk-' + n, text: '' });
 const CALC_KEYS = [
-  ['on', '', 'top', 'ON', 'clear'], ['home', '<i class="mk-ic mk-home"></i>', 'top', 'HOME', 'home'],
-  ['set', '<i class="mk-ic mk-set"></i>', 'top', 'SETTINGS', 'settings'], ['back', '↶', 'top', '', 'back'],
+  ['on', '', 'top', 'ON', 'clear'], ['home', MK_IC('home'), 'top', 'HOME', 'home'],
+  ['set', MK_IC('set'), 'top', 'SETTINGS', 'settings'], ['back', '↶', 'top', '', 'back'],
   ['up', '⌃', 'top pad', '', 'up'], ['left', '‹', 'top pad', '', 'left'], ['ok', 'OK', 'top pad', '', 'OK'],
   ['right', '›', 'top pad', '', 'right'], ['down', '⌄', 'top pad', '', 'down'],
   ['pgup', '︽', 'top pg', '', 'scroll up'], ['pgdn', '︾', 'top pg', '', 'scroll down'],
-  ['shift', '⇧', 'top sh', 'SHIFT', 'shift'], ['var', '⇄<i>x</i>', 'top lt', 'VARIABLE', 'variable'],
-  ['func', 'f(<i>x</i>)', 'top lt', 'FUNCTION', 'function'], ['cat', '<i class="mk-ic mk-book"></i>', 'top lt', 'CATALOG', 'catalog'],
-  ['tools', '<i class="mk-ic mk-dots"></i>', 'top lt', 'TOOLS', 'tools'],
-  ['x', '<i>x</i>', 'fn', 'QR', 'x'], ['frac', MK_FR, 'fn', MK_MIX, 'fraction'],
+  ['shift', '⇧', 'top sh', 'SHIFT', 'shift'], ['var', ['⇄', { i: 'x' }], 'top lt', 'VARIABLE', 'variable'],
+  ['func', ['f(', { i: 'x' }, ')'], 'top lt', 'FUNCTION', 'function'], ['cat', MK_IC('book'), 'top lt', 'CATALOG', 'catalog'],
+  ['tools', MK_IC('dots'), 'top lt', 'TOOLS', 'tools'],
+  ['x', { i: 'x' }, 'fn', 'QR', 'x'], ['frac', MK_FR, 'fn', MK_MIX, 'fraction'],
   ['sqrt', MK_SQRT, 'fn', MK_CBRT, 'square root'], ['pow', MK_POW, 'fn', MK_INV, 'power'],
   ['sq', MK_SQ, 'fn', MK_CUBE, 'squared'], ['log', MK_LOG, 'fn', 'ln', 'log'],
-  ['Ans', 'Ans', 'fn'], ['sin', 'sin', 'fn', 'sin<sup>−1</sup>'], ['cos', 'cos', 'fn', 'cos<sup>−1</sup>'],
-  ['tan', 'tan', 'fn', 'tan<sup>−1</sup>'], ['(', '(', 'fn', '', 'open bracket'], [')', ')', 'fn', ',', 'close bracket'],
-  ['7', '7', 'num', 'π'], ['8', '8', 'num', '<i>e</i>'], ['9', '9', 'num'], ['del', '<i class="mk-ic mk-del"></i>', 'num', 'INS', 'delete'],
+  ['Ans', 'Ans', 'fn'], ['sin', 'sin', 'fn', ['sin', { sup: '−1' }]], ['cos', 'cos', 'fn', ['cos', { sup: '−1' }]],
+  ['tan', 'tan', 'fn', ['tan', { sup: '−1' }]], ['(', '(', 'fn', '', 'open bracket'], [')', ')', 'fn', ',', 'close bracket'],
+  ['7', '7', 'num', 'π'], ['8', '8', 'num', { i: 'e' }], ['9', '9', 'num'], ['del', MK_IC('del'), 'num', 'INS', 'delete'],
   ['C', 'AC', 'num', 'OFF', 'all clear'],
   ['4', '4', 'num', 'A'], ['5', '5', 'num', 'B'], ['6', '6', 'num', 'C'], ['×', '×', 'num', '', 'times'], ['÷', '÷', 'num', '', 'divide'],
   ['1', '1', 'num', 'D'], ['2', '2', 'num', 'E'], ['3', '3', 'num', 'F'], ['+', '+', 'num', '°′″', 'plus'], ['−', '−', 'num', '(−)', 'minus'],
-  ['0', '0', 'num', '<i>x</i>'], ['.', '•', 'num', '<i>y</i>', 'point'], ['e10', MK_E10, 'num', '<i>z</i>', 'times 10 to the power'],
-  ['sd', '<i class="mk-fmt">FORMAT</i>', 'num', '', 'format'], ['=', 'EXE', 'num', '≈', 'execute'],
+  ['0', '0', 'num', { i: 'x' }], ['.', '•', 'num', { i: 'y' }, 'point'], ['e10', MK_E10, 'num', { i: 'z' }, 'times 10 to the power'],
+  ['sd', { span: 'mk-fmt', text: 'FORMAT' }, 'num', '', 'format'], ['=', 'EXE', 'num', '≈', 'execute'],
 ];
 /* What a key does after SHIFT where that is another key. A shifted legend with no meaning here says so rather than typing. */
 const CALC_SHIFT = { '7': 'pi', '8': 'e', sin: 'asin', cos: 'acos', tan: 'atan', sqrt: 'cbrt', sq: 'cube', pow: 'inv',
   log: 'ln', '−': 'neg', '=': 'approx', frac: 'frac', C: 'C' };
-const CALC_NOT_HERE = { var: 'VARIABLE', func: 'FUNCTION', cat: 'CATALOG', tools: 'TOOLS', set: 'SETTINGS', x: '<i>x</i>' };
+const CALC_NOT_HERE = { var: 'VARIABLE', func: 'FUNCTION', cat: 'CATALOG', tools: 'TOOLS', set: 'SETTINGS', x: 'x' };
 const CALC_AS = { ok: '=', on: 'C', home: 'C', back: 'del', pgup: 'up', pgdn: 'down' };
-const calcLegend = k => ((CALC_KEYS.find(x => x[0] === k) || [])[3] || '').replace(/<svg[\s\S]*?<\/svg>/g, '□').replace(/<[^>]+>/g, '');
+/* RUNS AS PLAIN TEXT: a drawing reads □; `sum` reads a fraction as a/b and a raised run as ^n (calcText's way). */
+function calcPlain_(v, sum) {
+  if (v == null) return '';
+  if (Array.isArray(v)) return v.map(x => calcPlain_(x, sum)).join('');
+  if (typeof v !== 'object') return String(v);
+  if (v.el) return '□';
+  if (v.sup != null) return (sum ? '^' : '') + calcPlain_(v.sup, sum);
+  if (v.i != null) return calcPlain_(v.i, sum);
+  if (v.b != null) return calcPlain_(v.b, sum);
+  if (sum && v.span === 'mc-frac') return calcPlain_(v.text[0], sum) + '/' + calcPlain_(v.text[1], sum);
+  return calcPlain_(v.text, sum);
+}
+const calcLegend = k => calcPlain_((CALC_KEYS.find(x => x[0] === k) || [])[3]);
 
 /* ---- numbers: an exact rational {n, d} of BigInts, or a plain float when no exact answer exists */
 const cQ = (n, d = 1n) => {
@@ -203,14 +218,16 @@ function calcEval(row, ans) {
 }
 
 /* ---- answers, said as the Casio says them: a fraction when exact, S⇔D for the decimal */
-const cEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+/* AN ANSWER IS RUNS (data, drawn by renderCard's runs): a fraction, a root and a raised power are named spans. */
+const cFrac_ = (a, b) => ({ span: 'mc-frac', text: [{ span: 'mc-num', text: a }, { span: 'mc-den', text: b }] });
+const cRoot_ = a => ({ span: 'mc-sqrt', text: [{ span: 'mc-rad', text: '√' }, { span: 'mc-under', text: a }] });
 function calcDec(v) {
   const x = cF(v);
   if (x === 0) return '0';
   const s = x < 0 ? '−' : '', a = Math.abs(x);
   if (a >= 1e10 || a < 1e-9) {
     const [m, e] = a.toExponential(9).split('e');
-    return s + m.replace(/\.?0+$/, '') + '×10<sup>' + e.replace('+', '').replace('-', '−') + '</sup>';
+    return [s + m.replace(/\.?0+$/, '') + '×10', { sup: e.replace('+', '').replace('-', '−') }];
   }
   return s + String(Number(a.toPrecision(10)));
 }
@@ -244,9 +261,9 @@ function cExact_(v) {                   // {k: [p, q], r} for (p/q)√r, or {k, 
 }
 function cExactHtml_(e) {
   const p = Math.abs(e.k[0]), q = e.k[1], s = e.k[0] < 0 ? '−' : '';
-  const sym = e.r === 1 ? '' : e.pi ? 'π' : '<span class="mc-sqrt"><span class="mc-rad">√</span><span class="mc-under">' + e.r + '</span></span>';
-  const top = (p === 1 && sym ? '' : p) + sym;
-  return s + (q === 1 ? top : '<span class="mc-frac"><span class="mc-num">' + top + '</span><span class="mc-den">' + q + '</span></span>');
+  const sym = e.r === 1 ? '' : e.pi ? 'π' : cRoot_(String(e.r));
+  const top = [p === 1 && sym ? '' : String(p), sym];
+  return [s, q === 1 ? top : cFrac_(top, String(q))];
 }
 /* THE FORMATS FORMAT OFFERS (fx-991CW): the ones that mean something for this answer, in the Casio's order. */
 const CALC_FMT_SAY = { std: 'Standard', dec: 'Decimal', frac: 'Fraction', mixed: 'Mixed fraction', prime: 'Prime factor', eng: 'Engineering', sexa: 'Sexagesimal' };
@@ -255,22 +272,22 @@ function calcFormats(v) {
   return ['std', 'dec'].concat(q && !whole ? ['frac'] : [], q && !whole && (v.n < 0n ? -v.n : v.n) > v.d ? ['mixed'] : [],
     whole && v.n > 1n && v.n < 10000000000n ? ['prime'] : [], ['eng'], Math.abs(cF(v)) < 1e7 ? ['sexa'] : []);
 }
-const cSup_ = e => '<sup>' + String(e).replace('-', '−') + '</sup>';
+const cSup_ = e => ({ sup: String(e).replace('-', '−') });
 function calcEng_(x) {
   if (x === 0) return '0';
   const s = x < 0 ? '−' : '', a = Math.abs(x);
   let e = Math.floor(Math.log10(a) / 3) * 3, m = Number((a / Math.pow(10, e)).toPrecision(10));
   if (m >= 1000) { m = Number((m / 1000).toPrecision(10)); e += 3; }
-  return s + String(m) + '×10' + cSup_(e);
+  return [s + String(m) + '×10', cSup_(e)];
 }
 function calcPrime_(n) {
   let out = [], x = n;
   for (let f = 2n; f * f <= x && f < 100000n; f += f === 2n ? 1n : 2n) {
     let c = 0; while (x % f === 0n) { x /= f; c++; }
-    if (c) out.push(f + (c > 1 ? cSup_(c) : ''));
+    if (c) out.push([String(f), c > 1 ? cSup_(c) : '']);
   }
   if (x > 1n) out.push(String(x));
-  return out.join('×');
+  return out.flatMap((x, i) => i ? ['×', x] : [x]);
 }
 function calcSexa_(x) {
   const s = x < 0 ? '−' : '';
@@ -287,22 +304,19 @@ function calcSay(v, f) {
   if (f === 'prime' && cIsQ(v) && v.d === 1n && v.n > 1n) return calcPrime_(v.n);
   if (f === 'mixed' && cIsQ(v) && v.d !== 1n) {
     const neg = v.n < 0n, a = neg ? -v.n : v.n, w = a / v.d, r = a % v.d;
-    return (neg ? '−' : '') + (w ? w + ' ' : '') + '<span class="mc-frac"><span class="mc-num">' + r + '</span><span class="mc-den">' + v.d + '</span></span>';
+    return [(neg ? '−' : '') + (w ? w + ' ' : ''), cFrac_(String(r), String(v.d))];
   }
   const dec = f === 'dec';
   if (cIsQ(v) && v.d !== 1n && !dec && (f === 'frac' || (v.n.toString().length + v.d.toString().length) <= 11)) {
     const neg = v.n < 0n;
-    return (neg ? '−' : '') + '<span class="mc-frac"><span class="mc-num">' + (neg ? -v.n : v.n)
-      + '</span><span class="mc-den">' + v.d + '</span></span>';
+    return [neg ? '−' : '', cFrac_(String(neg ? -v.n : v.n), String(v.d))];
   }
-  if (cIsQ(v) && v.d === 1n && v.n.toString().replace('-', '').length <= 10) return (v.n < 0n ? '−' : '') + (v.n < 0n ? -v.n : v.n);
+  if (cIsQ(v) && v.d === 1n && v.n.toString().replace('-', '').length <= 10) return (v.n < 0n ? '−' : '') + String(v.n < 0n ? -v.n : v.n);
   if (!dec) { const e = cExact_(v); if (e) return cExactHtml_(e); }
   return calcDec(v);
 }
 /* An answer as plain text (3/4, 1.5×10^12, √2/2, 1 1/2, 2^3×3), for the check and anything that wants a string. */
-const calcText = (v, dec) => calcSay(v, dec).replace(/<span class="mc-sqrt"><span class="mc-rad">√<\/span><span class="mc-under">(.*?)<\/span><\/span>/g, '√$1')
-  .replace(/<span class="mc-num">(.*?)<\/span><span class="mc-den">(.*?)<\/span>/, '$1/$2')
-  .replace(/<sup>(.*?)<\/sup>/g, '^$1').replace(/<[^>]+>/g, '');
+const calcText = (v, dec) => calcPlain_(calcSay(v, dec), true);
 
 /* ---- editing: the cursor is a row and an index between its nodes */
 function calcNew() {
@@ -386,7 +400,7 @@ function calcKey(st, k) {
   let sh = st.shift;
   st.shift = false;
   st.note = '';
-  if (CALC_NOT_HERE[k]) { st.note = CALC_NOT_HERE[k].replace(/<[^>]+>/g, '') + ' is not on this calculator'; return st; }
+  if (CALC_NOT_HERE[k]) { st.note = CALC_NOT_HERE[k] + ' is not on this calculator'; return st; }
   if (sh && CALC_SHIFT[k]) { k = CALC_SHIFT[k]; sh = false; }
   else if (sh && calcLegend(k)) { st.note = 'SHIFT ' + calcLegend(k) + ' is not on this calculator'; return st; }
   k = CALC_AS[k] || k;
@@ -455,31 +469,30 @@ function calcKey(st, k) {
   return st;
 }
 
-/* ---- drawing: textbook maths, never raw tokens */
-function calcRowHtml(st, row, top) {
-  const caret = !st.fresh && st.cur.row === row ? '<span class="mc-caret"></span>' : '';
-  if (!row.length) return top ? caret : '<span class="mc-box">' + caret + '</span>';
-  const R = r => calcRowHtml(st, r, false);
-  let h = '';
+/* ---- drawing: textbook maths, never raw tokens. The sum and the answer are RUNS; renderCard's runs draw them. */
+function calcRowRuns(st, row, top) {
+  const caret = !st.fresh && st.cur.row === row ? { span: 'mc-caret', text: '' } : '';
+  if (!row.length) return top ? caret : { span: 'mc-box', text: caret };
+  const R = r => calcRowRuns(st, r, false), out = [];
   row.forEach((n, i) => {
-    if (i === st.cur.i && caret) h += caret;
-    if (n.t === 'ch') h += n.v === 'Ans' ? '<span class="mc-word">Ans</span>' : n.v === 'e' ? '<i>e</i>' : cEsc(n.v);
-    else if (n.t === 'fn') h += '<span class="mc-word">' + CALC_FN_SAY[n.v] + '(</span>';
-    else if (n.t === 'pow') h += '<sup class="mc-sup">' + R(n.e) + '</sup>';
-    else if (n.t === 'e10') h += '×10<sup class="mc-sup">' + R(n.e) + '</sup>';
-    else if (n.t === 'sqrt' || n.t === 'root')
-      h += (n.t === 'root' ? '<sup class="mc-idx">' + R(n.n) + '</sup>' : '')
-        + '<span class="mc-sqrt"><span class="mc-rad">√</span><span class="mc-under">' + R(n.a) + '</span></span>';
-    else if (n.t === 'frac') h += '<span class="mc-frac"><span class="mc-num">' + R(n.n) + '</span><span class="mc-den">' + R(n.d) + '</span></span>';
+    if (i === st.cur.i && caret) out.push(caret);
+    if (n.t === 'ch') out.push(n.v === 'Ans' ? { span: 'mc-word', text: 'Ans' } : n.v === 'e' ? { i: 'e' } : String(n.v));
+    else if (n.t === 'fn') out.push({ span: 'mc-word', text: CALC_FN_SAY[n.v] + '(' });
+    else if (n.t === 'pow') out.push({ span: 'mc-sup', text: R(n.e) });
+    else if (n.t === 'e10') out.push('×10', { span: 'mc-sup', text: R(n.e) });
+    else if (n.t === 'sqrt' || n.t === 'root') out.push(n.t === 'root' ? { span: 'mc-idx', text: R(n.n) } : '', cRoot_(R(n.a)));
+    else if (n.t === 'frac') out.push(cFrac_(R(n.n), R(n.d)));
   });
-  if (st.cur.i === row.length && caret) h += caret;
-  return h;
+  if (st.cur.i === row.length && caret) out.push(caret);
+  return out;
 }
-const calcHtml = st => ({
-  input: calcRowHtml(st, st.root, true),
-  output: st.err ? cEsc(st.err) : st.menu ? '<span class="mc-menu">FORMAT <b>' + (st.mi + 1) + ' ' + CALC_FMT_SAY[st.menu[st.mi]] + '</b> ▾ '
-      + (st.mi + 1) + '/' + st.menu.length + '</span>'
+const calcRuns = st => ({
+  input: calcRowRuns(st, st.root, true),
+  output: st.err ? st.err : st.menu ? { span: 'mc-menu', text: ['FORMAT ', { b: (st.mi + 1) + ' ' + CALC_FMT_SAY[st.menu[st.mi]] }, ' ▾ '
+      + (st.mi + 1) + '/' + st.menu.length] }
     : st.fresh && st.val != null ? calcSay(st.val, st.dec)
-    : st.note ? '<span class="mc-note">' + cEsc(st.note) + '</span>' : '',
+    : st.note ? { span: 'mc-note', text: st.note } : '',
 });
+/* The runs drawn: renderCard's run drawer (cards-render.js) writes the markup; the engine hands over data. */
+const calcHtml = st => { const r = calcRuns(st); return { input: cardRuns_(r.input), output: cardRuns_(r.output) }; };
 /* ---------- END OF THE CALCULATOR ENGINE */
