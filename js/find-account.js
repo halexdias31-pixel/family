@@ -16,28 +16,178 @@ const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === DOOR_FIELD && norm(f.value) === want);
 function bookingPages_(o) {
   /* ---------- THE COLUMN ASKS FOR IT DIRECTLY § */
-  if (!(o && o.column) && !forIs_('booking')) return [];
-  /* ---------- THE FORM IS THE ANSWER TO `Booking`, NOT TO EVERYTHING UNDER IT § */
-  /* ---------- AND THE COLUMN IS EXEMPT FROM THIS TOO, WHICH IT WAS NOT § */
-  const narrowed = (STUFF.filters || []).some(f => f.field !== DOOR_FIELD);
-  if (!(o && o.column) && narrowed) return [];
+  if (o && o.column) {
+    if (typeof USER !== 'undefined' && USER && typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
+    return (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
+  }
+  if (!bookFindOn_()) return [];
   /* ---------- NOT BEFORE THE PAYLOAD § */
   if (typeof USER !== 'undefined' && USER && typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
-  const form = (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
-  if (o && o.column) return form;
-  /* FIND › BOOKING (owner, 7 Nov): a Book tile on top opens the form in place; the bookings are the cards under it. */
-  const top = tileRow_(tile_({ icon: BOOK_OPEN ? 'close' : 'book', label: BOOK_OPEN ? 'Close the form' : 'Book', act: 'book-open', cls: 'primary' }), 'book-top');
-  return [top + (BOOK_OPEN || !USER ? (form[0] || '') : '')].concat(form.slice(1));
+  if (typeof bookerCard !== 'function') return [];
+  bookFindStart_();
+  /* THE END OF THE STEPS IS ONE SUMMARY CARD (owner, 13 Nov); the one just sent and your sessions stay under the menu. */
+  const sum = bookFindAt_() ? '' : bookerCard();
+  return [sum + (typeof askedBlock_ === 'function' ? askedBlock_() || '' : '')].filter(Boolean)
+    .concat(USER && typeof myJobPages_ === 'function' ? myJobPages_() : []);
 }
-let BOOK_OPEN = false;
-/* THE BOOKING FORM TAG: the form itself once that tag is chosen; under plain Booking the Book tile above opens it, so this card only points there. */
-function bookFormCard_() {
-  const alone = (STUFF.filters || []).some(f => f.field !== DOOR_FIELD);
-  if (!alone) return card_(`<div class="book-form-door"><h3>Booking form</h3>${
-    tileRow_(tile_({ icon: 'book', label: 'Book', act: 'book-open', cls: 'primary' }), 'book-top')}</div>`);
-  if (typeof awaiting_ === 'function' && awaiting_()) return loading_();
-  return (typeof bookBlocks === 'function' ? bookBlocks() : [])[0] || '';
+/* THE BOOKING ITEM ONLY PUTS Booking ON THE FRONT MENU: the steps are the menu and the summary is a front page, so it draws nothing. */
+const bookFormCard_ = () => '';
+
+/* ---------- BOOKING IS A FIND BRANCH (owner, 13 Nov): after Booking, one menu of tags a step, in dependency order ---------- */
+/* `days` and `slots` are the hour grid asked as two menus; `avail` is a waiting list's week; each step reads only steps above it. */
+const BOOK_FIND_ORDER = ['how', 'client', 'joining', 'subjects', 'level', 'tutor', 'loc', 'hosting', 'interval', 'days', 'slots', 'avail', 'kids', 'n'];
+/* THE TWO THE SITE ANSWERS ITSELF (`bookPrefill_`): an instant class, a new one; each is still a chip whose × asks it. */
+const BOOK_FIND_GIVEN = ['how', 'joining'];
+/* SEVERAL ANSWERS: a tap ticks, Next moves on; the second list need at least one before it does. */
+const BOOK_FIND_MANY = ['subjects', 'interval', 'kids', 'days', 'slots', 'avail'];
+const BOOK_FIND_ONE_PLUS = ['subjects', 'days', 'slots'];
+/* Booking IS ASKED AS THE DOOR OR AS WHAT IT IS FOR (`forLabel`, the signed-out front); any other chip narrows to cards instead. */
+const BOOK_FIND_DOORS = [DOOR_FIELD, 'forLabel'];
+const bookFindOn_ = () => { const fs = STUFF.filters || [];
+  return fs.some(f => BOOK_FIND_DOORS.indexOf(f.field) !== -1 && norm(f.value) === 'booking') && fs.every(f => BOOK_FIND_DOORS.indexOf(f.field) !== -1); };
+function bookFindStart_() {
+  if (typeof bookPrefill_ === 'function') bookPrefill_();
+  /* ONCE A FORM: a chip's × on either asks it, and the next draw must not answer it again. */
+  if (!BOOK_FIND.started) {
+    BOOK_FIND.started = true;
+    if (!BOOKING.how) BOOKING.how = 'Instant class';
+    if (!BOOKING.joining) BOOKING.joining = NEW_LIST;
+  }
+  /* A CHILD THE CHOSEN CLIENT DOES NOT HAVE IS NEVER ON THE BOOKING, as the form's draw made sure. */
+  if (typeof bookKidsFor_ === 'function' && !(typeof awaiting_ === 'function' && awaiting_())) bookKidsFor_();
 }
+const bookOpenDays_ = () => slotGrid().days.filter(d => d.hours.some(h => h.open)).map(d => d.label);
+/* WHETHER THIS STEP IS ASKED NOW: on this branch, with something to choose; a class already chosen answers four. */
+function bookFindAsks_(id) {
+  if (id === 'days' || id === 'slots') return !isWaiting_() && bookOpenDays_().length > 0;
+  if (id === 'avail') return isWaiting_();
+  const st = bookStep_(id);
+  if (!st || !onlyHas_(st.only, bookOn_())) return false;
+  /* NO CHILD TO NAME (a guest, an account with none): the seats say Child, as the form's did. */
+  if (id === 'kids') return st.options().some(k => k !== UNNAMED);
+  return !stepLocked_(st);
+}
+const bookFindPassed_ = id => !!BOOK_FIND.done[id] || (BOOK_FIND_GIVEN.indexOf(id) !== -1 && !!BOOKING[id]);
+/* THE STEP BEING ASKED, or '' once every step is answered and the summary card is the answer. */
+function bookFindAt_() {
+  try { return BOOK_FIND_ORDER.find(id => bookFindAsks_(id) && !bookFindPassed_(id)) || ''; }
+  catch (e) { oops_(e, 'book:at'); return ''; }
+}
+/* A STEP'S TAGS: `act` and `data` are what a tap does; `on` is ticked or chosen; `off` is why it cannot be taken. */
+function bookFindOpts_(id) {
+  if (id === 'days') return bookOpenDays_().map(d => ({ text: day_(d), act: 'book-pick', data: { step: id, v: d }, on: BOOK_FIND.days.indexOf(d) !== -1 }));
+  if (id === 'slots') {
+    const on = BOOKING.slots || [];
+    return slotGrid().days.filter(d => BOOK_FIND.days.indexOf(d.label) !== -1).flatMap(d => d.hours.map(h => ({
+      text: day_(d.label) + ' ' + String(h.h).padStart(2, '0') + ':00', act: 'book-slot', data: { code: h.code },
+      on: on.indexOf(h.code) !== -1, off: h.open ? '' : (h.why || 'not available'), note: h.open ? h.why : '' })));
+  }
+  if (id === 'avail') {
+    const on = BOOKING.avail || [];
+    return SLOT_DAYS.flatMap(([, label]) => SLOT_BLOCKS.map(b => blockPhrase_(label, b)))
+      .map(p => ({ text: p, act: 'book-block', data: { when: p }, on: on.indexOf(p) !== -1 }));
+  }
+  const st = bookStep_(id);
+  let opts = [];
+  try { opts = (st.options() || []).filter(Boolean); } catch (e) { opts = []; }
+  const v = BOOKING[id];
+  const isOn = o => st.multi ? (v || []).some(c => norm(c) === norm(o)) : norm(v) === norm(o);
+  return opts.map(o => ({ text: String(st.label_ ? st.label_(o) : o), act: 'book-pick', data: { step: id, v: o }, on: isOn(o),
+    off: st.off ? String(st.off(o) || '') : '' }));
+}
+const BOOK_FIND_ASK = { days: 'Which days?', slots: 'What times? Each tag is one hour.' };
+/* THE MENU FOR THE STEP BEING ASKED: its question, its tags (the one tag maker), and Next on a several-answer step. */
+function bookMenu_() {
+  bookFindStart_();
+  const id = bookFindAt_();
+  if (!id) return '';
+  const many = BOOK_FIND_MANY.indexOf(id) !== -1;
+  const attrs = o => Object.keys(o.data).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
+  const tags = bookFindOpts_(id).map(o => answerTag_(esc((many && o.on ? '✓ ' : '') + o.text + (o.off ? ' · ' + o.off : o.note ? ' · ' + o.note : '')),
+    ` data-do="${o.act}"${attrs(o)}${o.on ? ' aria-pressed="true"' : ''}${o.off ? ' aria-disabled="true"' : ''}`,
+    (o.on ? 'is-on' : '') + (o.off ? ' is-off' : ''))).join('');
+  const next = many ? answerTag_('Next', ` data-do="book-next" data-step="${id}"`, 'is-skip') : '';
+  return `<p class="book-ask">${esc(BOOK_FIND_ASK[id] || (bookStep_(id) || {}).label || '')}</p>`
+    + answersRow_(tags + next, 'book-step' + (id === 'slots' || id === 'avail' ? ' is-grid' : ''));
+}
+/* WHAT A STEP'S CHIP SAYS: its answer as the summary says it; a bare number names what it counts. */
+function bookSaid_(id) {
+  if (id === 'days') return BOOK_FIND.days.map(day_).join(', ');
+  if (id === 'slots') return bookRuns().map(r => day_(r.dayName) + ' ' + hours_(r.hour, r.hour + r.hours)).join(', ');
+  if (id === 'avail') return blockSay_(BOOKING.avail);
+  const st = bookStep_(id), v = BOOKING[id];
+  const said = o => String(st.label_ ? st.label_(o) : o);
+  const text = st.multi ? (v || []).map(said).join(', ') : v ? said(v) : '';
+  return /^\d+$/.test(text) ? st.short + ' ' + text : text;
+}
+/* THE STEPS ANSWERED, AS CHIPS AFTER Booking's: tapping one (or its ×) asks that step again and every step after it. */
+function bookChips_() {
+  if (!bookFindOn_() || typeof bookStep_ !== 'function') return '';
+  try {
+    bookFindStart_();
+    return BOOK_FIND_ORDER.filter(id => bookFindAsks_(id) && bookFindPassed_(id)).map(id => {
+      const text = bookSaid_(id) || 'None', label = 'Change ' + text;
+      return qtag_(`${esc(text)}${tile_({ icon: 'close', label: label, act: 'book-back', data: { step: id }, cls: 'chip-x' })}`,
+        ` data-do="book-back" data-step="${id}" role="button" tabindex="0" aria-label="${esc(label)}"`, 'sm book-chip', 'chip');
+    }).join('');
+  } catch (e) { oops_(e, 'book:chips'); return ''; }
+}
+/* BEFORE ANY STEP IS ANSWERED, Booking's other answers (your sessions, tutors, venues) follow the first step's tags. */
+function bookFindQuestion_() {
+  if (typeof bookStep_ !== 'function') return loading_();
+  const menu = bookMenu_();
+  if (!menu || Object.keys(BOOK_FIND.done).length) return menu;
+  const items = stuffFiltered().filter(x => x.kind !== 'bookform');
+  const facet = items.length > 1 ? nextFacet(items) : null;
+  if (!facet) return menu;
+  const values = facetValues(items, facet).filter(v => spellKey_(v.value) !== spellKey_(KINDS.bookform.label));
+  return values.length ? menu + facetAnswersHtml_(facet, values, '') : menu;
+}
+/* EVERY STEP CHANGE REPAINTS FIND, and the draft is kept as the form's was (`bookKeep_`). */
+function bookFindPaint_() {
+  if (typeof bookHomeSeats_ === 'function') bookHomeSeats_();
+  if (typeof bookKeep_ === 'function') bookKeep_();
+  finderEach_(() => paintStuff(true));
+}
+/* ONE ANSWER: chosen and on to the next step; one of several: ticked or unticked, the step stays. The step's own `set` and `off` as before. */
+on('book-pick', el => {
+  const id = el.dataset.step, v = el.dataset.v;
+  if (id === 'days') {
+    const at = BOOK_FIND.days.indexOf(v);
+    if (at === -1) BOOK_FIND.days.push(v); else BOOK_FIND.days.splice(at, 1);
+    BOOK_FIND.days.sort((a, b) => SLOT_DAYS.findIndex(d => d[1] === a) - SLOT_DAYS.findIndex(d => d[1] === b));
+    return bookFindPaint_();
+  }
+  const st = bookStep_(id);
+  if (!st) return;
+  if (st.multi) { bookToggle_(st, v); return bookFindPaint_(); }
+  const no = st.off && v ? String(st.off(v) || '') : '';
+  if (no) { toast(v + ' ' + no); return; }
+  BOOKING[id] = v || '';
+  if (st.set) st.set(BOOKING[id]);
+  BOOK_FIND.done[id] = true;
+  bookFindPaint_();
+});
+on('book-next', el => {
+  const id = el.dataset.step;
+  const had = id === 'days' ? BOOK_FIND.days : (BOOKING[id] || []);
+  if (BOOK_FIND_ONE_PLUS.indexOf(id) !== -1 && !had.length) { toast('Pick at least one first.'); return; }
+  BOOK_FIND.done[id] = true;
+  bookFindPaint_();
+});
+/* BACK TO A STEP: it and every step after it are asked again, from empty. */
+function bookFindBack_(id) {
+  const at = BOOK_FIND_ORDER.indexOf(id);
+  if (at === -1) return;
+  BOOK_FIND_ORDER.slice(at).forEach(k => {
+    delete BOOK_FIND.done[k];
+    if (k === 'days') { BOOK_FIND.days = []; return; }
+    const st = bookStep_(k);
+    if (st) BOOKING[k] = (st.multi || st.grid) ? [] : '';
+  });
+  bookFindPaint_();
+}
+on('book-back', el => bookFindBack_(el.dataset.step));
 /* SET THE ROOM, A FORM ON THE RECEIPT from the start (no sheet, owner 7 Nov). */
 const jobRoomForm_ = j => `<div class="rc-form room-form">
     <label class="field"><span>the room in the venue — the family sees it</span>
@@ -58,7 +208,6 @@ on('job-room', el => {
     })
     .catch(() => { el.disabled = false; toast('Not saved'); });
 });
-on('book-open', () => { BOOK_OPEN = !BOOK_OPEN; repaint(); });
 /* ---------- THE FEED, BEHIND ITS OWN ANSWER § */
 function feedPages_() {
   /* POSTS ARE DOOR ITEMS (find-doors.js); the whole feed only stands in when those are switched off, or each post would show twice. */

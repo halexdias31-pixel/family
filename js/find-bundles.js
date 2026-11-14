@@ -486,6 +486,7 @@ function filterChips() {
       return qtag_(`${esc(show)}${tile_({ icon: 'close', label: 'Remove ' + show, act: 'filter-drop', data: { i: i }, cls: 'chip-x' })}`,
         ` data-do="filter-drop" data-i="${i}" role="button" tabindex="0" aria-label="${esc('Remove ' + show)}"${f.any ? '' : tagAttr_(f.field)}`, 'sm', 'chip');
     }).join('')}
+    ${bookChips_()}
   </div>`;
 }
 

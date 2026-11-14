@@ -266,7 +266,7 @@ function bookerCard() {
   const out = drawBooker_();
   if (!out) return '';
   /* A CARD ON THE ONE TEMPLATE (owner, 12 Nov): name as first tag, the questions and price lines as its form, its round row last. */
-  return renderCard({ kind: 'bookform', id: 'bookr', look: 'bookform', name: 'Booking form', tags: [{ text: 'Booking form' }],
+  return renderCard({ kind: 'bookform', id: 'bookr', look: 'bookform', name: 'Your booking', tags: [{ text: 'Your booking' }],
     body: [{ type: 'paperBox', look: 'bookform-paper', inner: out.html }], tiles: out.tiles });
 }
 
@@ -314,6 +314,13 @@ function drawBooker_() {
 }
 
 on('book-send', el => {
+  /* A GUEST SENDS NOTHING: the answers stay and Find's first step asks who you are again (`SIGN`, find-account.js). */
+  if (!USER) {
+    toast('Sign in to send this booking — your answers are kept.');
+    SIGN.step = ''; SIGN.pin = [];
+    finderEach_(() => paintStuff(true));
+    return;
+  }
   const said = $('book-said');
   const L = bookPrice();
   const SH = typeof bookShares_ === 'function' ? bookShares_(L) : null;

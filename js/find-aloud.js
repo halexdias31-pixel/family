@@ -588,7 +588,8 @@ function findMineItems_() {
        Everything on it is already on this device because it is yours — see the note on the `me`
        kind above for why nobody else joins it. */
     /* ---------- WHAT YOU ARE IN, WHAT YOU ARE WAITING FOR, AND WHAT IS DONE § */
-    ...(USER ? [{ kind: 'bookform', name: 'Booking form', key: 'bookform', sub: '', image: '' }] : []),
+    /* ON EVERY FRONT, A GUEST'S TOO (owner, 13 Nov): it is what puts Booking on the menu; its steps are Find's (find-account.js). */
+    { kind: 'bookform', name: 'Booking form', key: 'bookform', sub: '', image: '' },
     ...(typeof myJobs_ === 'function' ? myJobs_() : []).map(j => ({
       /* ONE KIND FOR ALL OF THEM — see the note on `receipt` above. `jobIsPast_` and `isWaitJob_`
          still decide how a card DRAWS and how the widgets split their lists; they no longer decide

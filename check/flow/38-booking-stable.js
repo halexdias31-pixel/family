@@ -13,7 +13,7 @@ const BS_JOBS_ = () => [
   { id: 'J-W', jobId: 'J-W', kind: 'waitlist', subject: 'English', level: 'GCSE', location: 'Colliers Wood Library',
     venue: 'Colliers Wood Library', maxKids: 4, currentKids: 2 },
 ];
-/* THE FORM AS THE ADMIN SEES IT, its questions answered through the real `change` listener, one at a time. */
+/* THE BOOKING AS THE ADMIN BUILDS IT ON FIND (owner, 13 Nov): each question a step of tags, answered by tapping one; `draw` is the summary card. */
 async function bsForm_() {
   const { w, sent } = boot();
   await wait(300);
@@ -27,22 +27,14 @@ async function bsForm_() {
   /* A VENUE WITH ROOMS, as the live one has: the form offers `Venue — Room`. */
   (D.venues || []).forEach(v => { if (v.title === 'Colliers Wood Library') v.rooms = [{ name: 'Small room 1', rate: 12, min: 1, max: 6 }, { name: 'Large room 1', rate: 14, min: 1, max: 10 }]; });
   w.eval('resetBooking_()');
+  /* EVERY ANSWER FROM EMPTY, as the form's journeys had it: what the site prefills (`bookPrefill_`) is left out. */
+  t.inApp('BOOK_PREFILLED = true');
+  const bf = await bookFind_(w);
   const host = d.createElement('div'); d.body.appendChild(host);
   const draw = () => { host.innerHTML = w.eval('bookerCard()'); return host; };
-  const ctl = id => draw().querySelector('#bk-ctl-' + id);
-  const pick = async (id, v) => {
-    const el = ctl(id);
-    if (!el) return 'no ' + id + ' control on the form';
-    if (el.disabled) return id + ' is greyed';
-    const has = [...(el.options || [])].some(o => o.value === v && !o.disabled);
-    if (el.tagName === 'SELECT' && !has) return id + ' does not offer ' + JSON.stringify(v) + ' (offers ' + [...el.options].map(o => o.value).join(' | ') + ')';
-    el.value = v;
-    el.dispatchEvent(new w.Event('change', { bubbles: true }));
-    await wait(30);
-    return '';
-  };
+  const pick = (id, v) => bf.pick(id, v);
   const label = j => w.eval('openClassLabel_')(j);
-  return { w, t, d, sent, host, draw, ctl, pick, label, D };
+  return { w, t, d, sent, host, draw, pick, label, D, bf, hour: bf.hour };
 }
 /* NO NaN, undefined OR BLANK WHERE A VALUE IS EXPECTED, anywhere on the drawn form. */
 function bsScan_(host, where) {
@@ -60,7 +52,7 @@ function bsScan_(host, where) {
   });
   if (!host.querySelector('.card.kc.kc-bookform')) bad.push(where + ': the form is not a card on the one template');
   const tag = host.querySelector('.kc-tags .qtag');
-  if (!tag || tag.textContent.trim() !== 'Booking form') bad.push(where + ': the first tag is not the form\'s name');
+  if (!tag || tag.textContent.trim() !== 'Your booking') bad.push(where + ': the first tag is not the summary\'s name');
   const first = host.querySelector('.kc-act .tile');
   if (!first || first.getAttribute('data-do') !== 'book-send') bad.push(where + ': the round row does not lead with Send');
   return bad;
@@ -81,9 +73,7 @@ check('Booking form: an admin CREATES a class for a client — every question an
     ['tutor', tutor], ['n', '2'], ['loc', 'Colliers Wood Library — Small room 1'], ['hosting', 'No'], ['interval', 'Rest of this half term'], ['kids', 'Kim']]) {
     const no = await f.pick(id, v); if (no) bad.push(no);
   }
-  f.t.ACTIONS['book-slot'](f.draw().querySelector('[data-do="book-slot"][data-code="m16"]'));
-  await wait(30);
-  f.t.ACTIONS['book-slot'](f.draw().querySelector('[data-do="book-slot"][data-code="m17"]'));
+  for (const c of ['m16', 'm17']) { const no = await f.hour(c); if (no) bad.push(no); }
   const disc = f.draw().querySelector('[data-do="book-disc"]');
   disc.value = '10'; disc.dispatchEvent(new f.w.Event('change', { bubbles: true }));
   const L = f.t.price();
@@ -106,7 +96,7 @@ check('Booking form: an admin JOINS a running class for a client, part way throu
   }
   const B = f.t.BOOKING;
   if (B.subjects.join() !== 'Maths' || B.level !== 'GCSE' || B.loc !== 'Colliers Wood Library — Small room 1') bad.push('joining did not answer the class\'s questions: ' + JSON.stringify({ s: B.subjects, l: B.level, loc: B.loc }));
-  if (f.ctl('subjects')) bad.push('the class\'s subject is still a control to change');
+  if ((await f.bf.offers('subjects')).length) bad.push('the class\'s subject is still a step to answer');
   bad.push(...bsScan_(f.draw(), 'join'));
   const sent = await bsSend_(f);
   const m = (sent || []).find(x => x.action === 'move');
@@ -119,8 +109,8 @@ check('Booking form: an admin STARTS a waiting-list class — Nobody yet, a plac
   for (const [id, v] of [['how', 'Waiting list class'], ['client', 'Nobody yet — just open it'], ['joining', 'Start a new one'], ['subjects', 'Maths'], ['level', 'GCSE'], ['loc', 'Mitcham library']]) {
     const no = await f.pick(id, v); if (no) bad.push(no);
   }
-  const blk = f.draw().querySelector('[data-do="book-block"]');
-  if (!blk) bad.push('no Morning/Afternoon/Evening week on a waiting list');
+  const blk = (await f.bf.tags('avail'))[0];
+  if (!blk) bad.push('no Morning/Afternoon/Evening step on a waiting list');
   else f.t.ACTIONS['book-block'](blk);
   bad.push(...bsScan_(f.draw(), 'start waitlist'));
   const sent = await bsSend_(f);
@@ -135,7 +125,7 @@ check('Booking form: an admin puts a client on a WAITING-LIST class already open
     const no = await f.pick(id, v); if (no) bad.push(no);
   }
   if (f.t.BOOKING.loc !== 'Colliers Wood Library') bad.push('the list\'s venue was not taken: ' + f.t.BOOKING.loc);
-  const blk = f.draw().querySelector('[data-do="book-block"]');
+  const blk = (await f.bf.tags('avail'))[0];
   if (blk) f.t.ACTIONS['book-block'](blk);
   bad.push(...bsScan_(f.draw(), 'join waitlist'));
   const sent = await bsSend_(f);
@@ -149,22 +139,26 @@ check('Booking form: every hour 9–21 toggles on and off on every day, and only
   for (const [id, v] of [['client', 'Pat Parent'], ['how', 'Instant class'], ['subjects', 'Maths'], ['level', 'GCSE'], ['loc', 'Colliers Wood Library — Small room 1']]) {
     const no = await f.pick(id, v); if (no) bad.push(no);
   }
-  const cells = [...f.draw().querySelectorAll('[data-do="book-slot"]')];
+  /* EVERY DAY ON THE DAYS STEP, then every hour of them on Times: 7 × 12 tags. */
+  f.t.inApp('BOOK_FIND').days = f.t.inApp('SLOT_DAYS').map(x => x[1]);
+  const tags = () => f.bf.tags('slots');
+  const cells = await tags();
   if (cells.length !== 7 * 12) bad.push('the week has ' + cells.length + ' hours, not 7 × 12 (9:00 to 21:00)');
-  const shut = cells.filter(c => c.disabled || /\bshut\b/.test(c.className)).map(c => c.dataset.code);
+  const shut = cells.filter(c => c.getAttribute('aria-disabled') === 'true').map(c => c.dataset.code);
   if (shut.length) bad.push('hours greyed with no room booked: ' + shut.slice(0, 8).join(', '));
   for (const c of cells.map(x => x.dataset.code)) {
-    f.t.ACTIONS['book-slot'](f.draw().querySelector('[data-code="' + c + '"]'));
+    await f.hour(c);
     if ((f.t.BOOKING.slots || []).indexOf(c) === -1) { bad.push(c + ' did not tick'); break; }
-    f.t.ACTIONS['book-slot'](f.draw().querySelector('[data-code="' + c + '"]'));
+    await f.hour(c);
     if ((f.t.BOOKING.slots || []).indexOf(c) !== -1) { bad.push(c + ' did not untick'); break; }
   }
   /* A BOOKED ROOM GREYS ITS HOUR, and nothing else does. */
   const room = ((f.D.venues || []).find(v => v.title === 'Colliers Wood Library') || { rooms: [] }).rooms[0];
   room.busy = { m16: true };
-  const c16 = f.draw().querySelector('[data-code="m16"]'), c17 = f.draw().querySelector('[data-code="m17"]');
-  if (!c16 || !c16.disabled) bad.push('a booked room did not grey Monday 16:00');
-  if (!c17 || c17.disabled) bad.push('a booked room greyed an hour it does not hold');
+  const now = await tags();
+  const c16 = now.find(x => x.dataset.code === 'm16'), c17 = now.find(x => x.dataset.code === 'm17');
+  if (!c16 || c16.getAttribute('aria-disabled') !== 'true') bad.push('a booked room did not grey Monday 16:00');
+  if (!c17 || c17.getAttribute('aria-disabled') === 'true') bad.push('a booked room greyed an hour it does not hold');
   delete room.busy;
   return bad;
 });
@@ -174,7 +168,7 @@ check('Booking form: discount, Rest of this half term, extra places and a space 
   for (const [id, v] of [['client', 'Pat Parent'], ['how', 'Instant class'], ['subjects', 'Maths'], ['level', 'GCSE'], ['loc', 'Mitcham library'], ['interval', 'Rest of this half term']]) {
     const no = await f.pick(id, v); if (no) bad.push(no);
   }
-  f.t.ACTIONS['book-slot'](f.draw().querySelector('[data-code="w17"]'));
+  { const no = await f.hour('w17'); if (no) bad.push(no); }
   const L0 = f.t.price();
   if (!L0 || !(L0.total > 0)) return bad.concat(['not priced: ' + JSON.stringify(L0 && L0.total)]);
   /* REST OF THIS HALF TERM: from today to the half term's end, its weeks counted. */
@@ -196,7 +190,7 @@ check('Booking form: discount, Rest of this half term, extra places and a space 
   const dRow = f.draw().querySelector('.rc-disc .bk-t');
   if (!dRow || !/^− £/.test(dRow.textContent.trim())) bad.push('the Discount line says ' + JSON.stringify(dRow && dRow.textContent));
   /* A ROOM IN THE VENUE: offered by name, chosen, and priced at the room's rate. */
-  const rooms = [...f.ctl('loc').options].map(o => o.value).filter(v => / — /.test(v));
+  const rooms = (await f.bf.offers('loc')).filter(v => / — /.test(v));
   if (!rooms.length) bad.push('no room of the venue is offered');
   else {
     const no = await f.pick('loc', rooms[0]); if (no) bad.push(no);
@@ -214,9 +208,6 @@ check('Booking form: a select, an hour ticked and a discount typed each redraw i
   const f = await bsForm_();
   const { w, t, d } = f, bad = [];
   f.host.remove();
-  try { t.go('booking', false, true); w.eval('BOOK_OPEN = true'); t.repaint(true); } catch (e) { return ['opening booking threw: ' + e.message]; }
-  await wait(200);
-  if (!d.getElementById('bookr')) return ['no booking form on Find › Booking — the scroll was NOT checked'];
   const moves = [];
   const was = Object.getOwnPropertyDescriptor(w.Element.prototype, 'scrollTop');
   Object.defineProperty(w.Element.prototype, 'scrollTop', { configurable: true, get() { return 400; },
@@ -225,37 +216,120 @@ check('Booking form: a select, an hour ticked and a discount typed each redraw i
   Object.defineProperty(w, 'scrollY', { configurable: true, get: () => 400 });
   w.scrollTo = (x, y) => { const to = x && typeof x === 'object' ? x.top : y; if (Math.abs((to || 0) - 400) > 2) moves.push('window.scrollTo ' + to); };
   w.HTMLElement.prototype.scrollIntoView = function () { moves.push(this.id + '.scrollIntoView'); };
-  const answer = async (what, el, act) => {
-    const card = d.getElementById('bookr');
-    const pages = [...d.querySelectorAll('#s-stuff > .page')];
-    moves.length = 0;
-    if (!el) { bad.push(what + ': no control to answer on the form'); return; }
-    el.focus();
-    act(el);
-    await wait(60);
-    if (d.getElementById('bookr') !== card) bad.push(what + ': the form card was rebuilt, not patched');
-    const now = [...d.querySelectorAll('#s-stuff > .page')];
-    if (now.length !== pages.length || now.some((p, i) => p !== pages[i])) bad.push(what + ': the pages round the form were rebuilt');
-    if (!el.isConnected) bad.push(what + ': the control answered was thrown away');
-    else if (d.activeElement !== el) bad.push(what + ': the focus left the control (on ' + (d.activeElement && (d.activeElement.id || d.activeElement.tagName)) + ')');
-    if (moves.length) bad.push(what + ': the page was scrolled — ' + moves.join(', '));
-  };
-  const change = v => el => { el.value = v; el.dispatchEvent(new w.Event('change', { bubbles: true })); };
-  const ctl = id => d.getElementById('bk-ctl-' + id);
-  const opt = (id, re) => { const el = ctl(id); return el ? [...el.options].map(o => o.value).filter(v => v && re.test(v)).pop() || el.value : ''; };
   try {
-    await answer('Kind', ctl('how'), change(opt('how', /new|instant/i)));
-    await answer('Venue', ctl('loc'), change(opt('loc', / — /)));
-    await answer('Extra seats', ctl('n'), change('2'));
-    await answer('Term', ctl('interval'), change(opt('interval', /./)));
-    const hour = d.querySelector('#bookr [data-do="book-slot"]:not(:disabled), #bookr [data-do="book-block"]:not(:disabled)');
-    await answer('an hour ticked', hour, el => el.click());
-    await answer('Discount', ctl('discValue'), el => { el.value = '10'; el.dispatchEvent(new w.Event('input', { bubbles: true })); el.dispatchEvent(new w.Event('change', { bubbles: true })); });
+    /* A STEP'S TAG (owner, 13 Nov: the questions are Find's menus): answered, the next menu drawn, nothing scrolled. */
+    const step = async (what, go) => { moves.length = 0; const no = await go(); if (no) bad.push(what + ': ' + no); if (moves.length) bad.push(what + ': the page was scrolled — ' + moves.join(', ')); };
+    await step('Kind', () => f.pick('how', 'Instant class'));
+    await step('Venue', async () => f.pick('loc', (await f.bf.offers('loc')).filter(v => / — /.test(v)).pop()));
+    await step('Extra seats', () => f.pick('n', '2'));
+    await step('Term', async () => f.pick('interval', (await f.bf.offers('interval'))[0]));
+    await step('an hour ticked', () => f.hour('m16'));
+    /* THE SUMMARY'S DISCOUNT BOX IS PATCHED IN PLACE: the card, the pages round it and the focused box are the nodes they were. */
+    const card = await f.bf.done();
+    if (!card) return bad.concat(['no summary card on Find › Booking — the discount was NOT checked']);
+    const pages = [...d.querySelectorAll('#s-stuff > .page')];
+    const el = d.getElementById('bk-ctl-discValue');
+    moves.length = 0;
+    if (!el) bad.push('Discount: no box on the summary');
+    else {
+      el.focus();
+      el.value = '10'; el.dispatchEvent(new w.Event('input', { bubbles: true })); el.dispatchEvent(new w.Event('change', { bubbles: true }));
+      await wait(60);
+      if (d.getElementById('bookr') !== card) bad.push('Discount: the summary card was rebuilt, not patched');
+      const now = [...d.querySelectorAll('#s-stuff > .page')];
+      if (now.length !== pages.length || now.some((p, i) => p !== pages[i])) bad.push('Discount: the pages round the summary were rebuilt');
+      if (!el.isConnected) bad.push('Discount: the box answered was thrown away');
+      else if (d.activeElement !== el) bad.push('Discount: the focus left the box');
+      if (moves.length) bad.push('Discount: the page was scrolled — ' + moves.join(', '));
+    }
     if (String(t.BOOKING.discValue) !== '10') bad.push('the discount typed did not reach BOOKING: ' + JSON.stringify(t.BOOKING.discValue));
     if (String(t.BOOKING.n) !== '2') bad.push('Extra seats did not reach BOOKING: ' + JSON.stringify(t.BOOKING.n));
   } finally {
     Object.defineProperty(w.Element.prototype, 'scrollTop', was); w.scrollTo = sTo; w.HTMLElement.prototype.scrollIntoView = sIv;
     if (sY) Object.defineProperty(w, 'scrollY', sY); else delete w.scrollY;
   }
+  return bad;
+});
+
+/* ---------- A GUEST BOOKS THROUGH FIND'S STEPS (owner, 13 Nov): Booking → Subject → … → one summary card, the calculator's price on it; Send asks them to sign in, then sends */
+check('Find › Booking as a guest: every step a menu of tags, the summary card priced by the calculator, Send asks for sign-in and books once signed in', async () => {
+  const PIN = ['1', '9', '7', '3'].join('');
+  const { w, sent } = boot({ reply: b => (b.action === 'verifyLogin' ? (b.pin === PIN ? Object.assign({ success: true }, MEMBER_) : { success: false, error: 'Wrong PIN' })
+    : b.action === 'createJob' ? { success: true, jobId: 'J-GUEST' } : { success: true, messages: [] }) });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null);
+  const D = t.DATA();
+  D.intervals = [BS_TERM_()];
+  w.eval('resetBooking_()');
+  /* GUEST, THE FIRST FIND STEP; then Booking on the front menu. */
+  t.go('stuff', false, true);
+  t.ACTIONS['sign-guest'](d.createElement('button'));
+  await wait(30);
+  const front = [...d.querySelectorAll('#s-stuff [data-do="facet-pick"]')].find(x => x.dataset.value === 'Booking');
+  if (!front) return ['a guest\'s front menu does not offer Booking'];
+  t.ACTIONS['facet-pick'](front);
+  await wait(200);
+  const f = await bookFind_(w);
+  const asked = [];
+  /* EACH STEP AS A PERSON MEETS IT: the first tag that can be taken, Next on a several-answer step; never a select. */
+  for (let i = 0; i < 20; i++) {
+    const id = f.at();
+    if (!id) break;
+    asked.push(id);
+    const m = f.menu();
+    if (!m) { bad.push('the ' + id + ' step drew no menu'); break; }
+    if (d.querySelector('#s-stuff select')) bad.push('a select is drawn on the ' + id + ' step');
+    const tag = [...m.querySelectorAll('[data-do]')].find(x => x.dataset.do !== 'book-next' && x.getAttribute('aria-disabled') !== 'true' && x.getAttribute('aria-pressed') !== 'true');
+    if (tag) { t.ACTIONS[tag.dataset.do](tag); await wait(30); }
+    if (id === 'slots') { const two = [...f.menu().querySelectorAll('[data-do="book-slot"]')].find(x => x.getAttribute('aria-pressed') !== 'true'); if (two) { t.ACTIONS['book-slot'](two); await wait(30); } }
+    const next = f.menu() && f.menu().querySelector('[data-do="book-next"]');
+    if (f.at() === id && next) { t.ACTIONS['book-next'](next); await wait(30); }
+    if (f.at() === id) { bad.push('the ' + id + ' step would not move on'); break; }
+  }
+  const want = ['subjects', 'level', 'tutor', 'loc', 'interval', 'days', 'slots', 'n'];
+  const order = want.map(id => asked.indexOf(id));
+  if (order.some(i => i === -1) || order.some((v, i) => i && v < order[i - 1])) bad.push('the steps came as ' + asked.join(' → ') + ', wanted ' + want.join(' → '));
+  /* THE CHIPS ARE THE ANSWERS; THE END IS ONE SUMMARY CARD. */
+  const chips = [...d.querySelectorAll('#s-stuff [data-do="book-back"].chip')].map(c => c.dataset.step);
+  if (want.some(id => chips.indexOf(id) === -1)) bad.push('the chips are ' + chips.join(', ') + ', not one a step');
+  await f.paint();
+  const cards = d.querySelectorAll('#s-stuff #bookr');
+  if (cards.length !== 1) return bad.concat(['the steps ended on ' + cards.length + ' summary cards, not one']);
+  const card = cards[0];
+  if (card.querySelector('select')) bad.push('the summary card still holds a dropdown');
+  const L = t.price();
+  const calc = t.inApp('priceFrom')(t.spec());
+  if (!L || !(L.total > 0)) return bad.concat(['the booking is not priced: ' + JSON.stringify(L && L.total)]);
+  if (Math.abs(calc.total - L.total) > 1e-9) bad.push('the summary\'s price ' + L.total + ' is not the calculator\'s ' + calc.total);
+  const said = t.inApp('money_')(L.total);
+  if (card.textContent.indexOf(said) === -1) bad.push('the summary card does not say the price ' + said);
+  const acts = [...card.querySelectorAll('.kc-act .tile')].map(x => x.dataset.do);
+  if (acts[0] !== 'book-send' || acts.indexOf('book-share') === -1) bad.push('the summary\'s tiles are ' + acts.join(', ') + ', wanted Send first and Share');
+  /* SEND AS A GUEST: nothing posted, the answers kept, and the sign-in step asked again. */
+  sent.length = 0;
+  t.ACTIONS['book-send'](card.querySelector('[data-do="book-send"]'));
+  await wait(60);
+  if (sent.some(b => b.action === 'createJob')) bad.push('a guest\'s Send booked without signing in');
+  if (!d.getElementById('in-name')) bad.push('Send did not offer the sign-in step');
+  const kept = JSON.stringify(t.BOOKING.slots);
+  /* SIGNED IN: the same answers, the same price, and Send books. */
+  const no = await findSign_(w, 'momember', PIN);
+  if (no) return bad.concat([no]);
+  await wait(300);
+  if (!t.whoami()) return bad.concat(['the sign-in did not land']);
+  if (JSON.stringify(t.BOOKING.slots) !== kept) bad.push('signing in lost the answers: ' + kept + ' → ' + JSON.stringify(t.BOOKING.slots));
+  /* THE SIGNED-IN PAYLOAD IS THE FIXTURE'S AGAIN, so the running term this journey priced on is put back. */
+  t.DATA().intervals = [BS_TERM_()];
+  const L2 = t.price();
+  if (!L2 || Math.abs(L2.total - L.total) > 1e-9) bad.push('signed in, the price moved: ' + L.total + ' → ' + (L2 && L2.total));
+  const host = d.createElement('div'); d.body.appendChild(host);
+  host.innerHTML = w.eval('bookerCard()');
+  sent.length = 0;
+  t.ACTIONS['book-send'](host.querySelector('[data-do="book-send"]'));
+  await wait(300);
+  const b = sent.find(x => x.action === 'createJob');
+  if (!b) bad.push('Send, signed in, posted ' + JSON.stringify(sent.map(x => x.action)));
+  else if (Math.abs(Number(b.price) - L.total) > 0.01) bad.push('createJob carried the price ' + b.price + ', not ' + L.total);
   return bad;
 });

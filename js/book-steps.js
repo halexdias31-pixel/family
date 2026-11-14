@@ -188,7 +188,8 @@ function paintBook_() {
   /* ANY OTHER HOST IS AN ORDINARY SCREEN. `redrawBooker_` puts the scroll back either way. */
   if (id && typeof paint === 'function') { paint(id); return; }
 
-  /* NOWHERE TO BE FOUND — the form is not on screen at all, so there is nothing to repaint and the state it just changed is read the next time something draws it. § */
+  /* NO SUMMARY ON SCREEN YET: the answer was a Find step (find-account.js), so Find draws its next menu. */
+  if (typeof bookFindPaint_ === 'function' && typeof bookFindOn_ === 'function' && inFinder_(FINDERS.stuff, bookFindOn_)) finderEach_(() => paintStuff(true));
 }
 
 /* `bookPages` WAS HERE — one pane per block for the Book column. `bookingPages_` in find.js does the
@@ -223,6 +224,9 @@ const BOOKING = {
   /* AN ADMIN'S DISCOUNT (docs/history/353) — not a step, because it is not a question the family is asked: § */
   discValue: '',
 };
+
+/* WHERE FIND'S BOOKING STEPS ARE (find-account.js): which steps were answered, and the Days step's pick, which only Times reads. */
+const BOOK_FIND = { done: {}, days: [], started: false };
 
 /* ---------- THE ONE YOU JUST ASKED FOR § */
 let ASKED_JOB = '';
@@ -742,6 +746,7 @@ function resetBooking_(keepDraft) {
      booking. A reset with it left set would draw the next booking's first page as a picker for a
      question nobody had pressed. */
   BOOKING.picking = '';
+  BOOK_FIND.done = {}; BOOK_FIND.days = []; BOOK_FIND.started = false;
   BOOK_PREFILLED = false;
   /* AND THE DRAFT OF IT — sent, or started again, is not a booking to bring back (`bookKeep_`). § */
   if (keepDraft) return;

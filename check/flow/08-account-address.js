@@ -60,18 +60,11 @@ check('a waiting list is asked everything an instant class is, bar the four it c
   });
 
   /* ---------- AND THE ONE LOCKED ROW SAYS WHAT IT WILL BE SUBMITTED AS § */
-  /* THROUGH THE REAL `change` LISTENER, because `book-set` is not an `on()` action — a select is answered by choosing, which fires `change` and never a click, so § */
+  /* THROUGH FIND'S Kind STEP (owner, 13 Nov): its tag tapped, the step's own `set` clearing the tutor. */
   B.how = nowLabel; B.tutor = 'Sasha Matola';
-  const sel = w.document.createElement('select');
-  sel.setAttribute('data-do', 'book-set');
-  sel.setAttribute('data-step', 'how');
-  const opt = w.document.createElement('option');
-  opt.value = waitLabel; opt.textContent = waitLabel;
-  sel.appendChild(opt); sel.value = waitLabel;
-  w.document.body.appendChild(sel);
-  try { sel.dispatchEvent(new w.Event('change', { bubbles: true })); }
-  catch (e) { bad.push('choosing the waiting kind threw: ' + e.message); }
-  sel.remove();
+  const f = await bookFind_(w);
+  const no = await f.pick('how', waitLabel);
+  if (no) bad.push(no);
   if (!/wait/i.test(String(B.how || ''))) {
     bad.push('choosing ' + JSON.stringify(waitLabel) + ' did not set the kind — not a pass');
   }
@@ -98,64 +91,38 @@ check('every several-answer question on the booking card is the same dropdown as
   const { w } = boot();
   await wait(300);
   const d = w.document;
-  if (!w.__t.control) return ['stepControl_ is not exported — NOTHING was checked'];
   w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'], children: ['Amy Parent', 'Al Parent'] });
   const D = w.__t.DATA();
   D.intervals = (D.intervals || []).concat([{ term: 'Second term', label: 'Second term', kind: 'term', startDate: '01/01/2030', endDate: '01/03/2030', weeks: 8 }]);
+  D.dropdowns = Object.assign(D.dropdowns || {}, { subjects: (D.dropdowns && D.dropdowns.subjects) || ['Maths', 'English'], levels: (D.dropdowns && D.dropdowns.levels) || ['GCSE', 'A-Level'] });
   const B = w.__t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
   B.how = 'Instant class'; B.n = '3';
-  try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
-  await wait(120);
-  /* THE FORM PREFILLS THE SOONEST TERM (1040 friction); this journey picks from an empty question. */
+  /* FIND › BOOKING (owner, 13 Nov): each question is a Find step of tags; the form prefills the soonest term, so it is emptied to pick from. */
+  const f = await bookFind_(w);
   B.interval = [];
-  try { w.__t.go('booking', false, true); } catch (e) {}
-  await wait(60);
   const bad = [];
-  const shape = html => {
-    const box = d.createElement('div'); box.innerHTML = html;
-    const s = box.querySelector('select');
-    return s ? [s.tagName, s.multiple, s.className, s.dataset.do, !!box.querySelector('button')].join('|') : 'no select: ' + html.slice(0, 60);
-  };
-  const level = (w.__t.STEPS || []).find(x => x.id === 'level');
-  const want = level ? shape(w.__t.control(level)) : '';
-  if (!/^SELECT\|false\|bk-sel\|book-set\|false$/.test(want)) return ['Level\'s control is ' + JSON.stringify(want) + ', so there is nothing to compare with — NOTHING was checked'];
-  const ids = ['subjects', 'interval', 'kids'];
-  const phone = q => ({ matches: /coarse/.test(String(q)), media: String(q), addEventListener() {}, removeEventListener() {} });
-  const wasMM = w.matchMedia;
-  ids.forEach(id => {
-    const st = (w.__t.STEPS || []).find(x => x.id === id);
-    if (!st) { bad.push('no "' + id + '" question'); return; }
-    const opts = st.options().filter(Boolean);
-    if (opts.length < 2) { bad.push('"' + id + '" offers ' + opts.length + ' answers — the pick was NOT checked'); return; }
-    /* THE SAME CONTROL AS LEVEL, on a computer and on a phone. */
-    [['a computer', wasMM], ['a phone', phone]].forEach(([on, mm]) => {
-      w.matchMedia = mm;
-      const got = shape(w.__t.control(st));
-      if (got !== want) bad.push('on ' + on + ' the "' + id + '" control is ' + JSON.stringify(got) + ', not Level\'s ' + JSON.stringify(want));
-    });
-    w.matchMedia = wasMM;
-    /* PICKED THROUGH THE REAL SELECT ON THE CARD: two picks are two answers, a third of a ticked one takes it off. */
-    const pick = v => {
-      const s = d.querySelector('#bookr select[data-step="' + id + '"]');
-      if (!s) { bad.push('the "' + id + '" row has no select on the card'); return false; }
-      s.value = v;
-      s.dispatchEvent(new w.Event('change', { bubbles: true }));
-      return true;
-    };
-    if (!pick(opts[0]) || !pick(opts[1])) return;
+  /* THE ONE TAG MAKER: a several-answer step's tag is Level's tag, its tick said by aria-pressed. */
+  const shape = el => el ? [el.tagName, el.className.replace(/\s*\bis-on\b/, '').trim(), el.getAttribute('role')].join('|') : 'none';
+  const want = shape((await f.tags('level'))[0]);
+  if (want === 'none') return ['the Level step offers nothing, so there is nothing to compare with — NOTHING was checked'];
+  for (const id of ['subjects', 'interval', 'kids']) {
+    const opts = await f.offers(id);
+    if (opts.length < 2) { bad.push('"' + id + '" offers ' + opts.length + ' answers — the pick was NOT checked'); continue; }
+    const got = shape((await f.tags(id))[0]);
+    if (got !== want) bad.push('the "' + id + '" tag is ' + JSON.stringify(got) + ', not Level\'s ' + JSON.stringify(want));
+    /* TWO TAPS ARE TWO ANSWERS, a third on a ticked one takes it off. */
+    for (const v of opts.slice(0, 2)) { const no = await f.pick(id, v); if (no) bad.push(no); }
     if ((B[id] || []).length !== 2) bad.push('two picks on "' + id + '" left ' + JSON.stringify(B[id]));
-    const s = d.querySelector('#bookr select[data-step="' + id + '"]');
-    const row = s && s.closest('.bk-row');
-    const face = ((row && row.querySelector('.bk-said')) || {}).textContent || '';
-    if (opts.slice(0, 2).some(o => face.indexOf(o) === -1)) bad.push('the "' + id + '" row reads ' + JSON.stringify(face) + ', not both answers');
-    const ticked = s ? [...s.options].filter(o => /^✓ /.test(o.textContent)).map(o => o.value) : [];
-    if (ticked.join('|') !== opts.slice(0, 2).join('|')) bad.push('the "' + id + '" list ticks ' + JSON.stringify(ticked) + ', not the two chosen');
-    if (s && s.value !== '') bad.push('the "' + id + '" select is left on an answer, so picking it again would not reach the handler');
-    pick(opts[0]);
+    const ticked = (await f.tags(id)).filter(x => x.getAttribute('aria-pressed') === 'true').map(x => x.dataset.v);
+    if (ticked.join('|') !== opts.slice(0, 2).join('|')) bad.push('the "' + id + '" menu ticks ' + JSON.stringify(ticked) + ', not the two chosen');
+    await f.pick(id, opts[0]);
     if ((B[id] || []).join('|') !== opts[1]) bad.push('picking a ticked "' + id + '" answer again left ' + JSON.stringify(B[id]) + ', wanted it taken off');
-  });
-  if (d.querySelector('#bookr [data-do="book-many"], #bookr [data-do="book-many-pick"], #bookr select[multiple], #bookr .bk-many-list')) bad.push('the card still draws the old ticked list');
+    if (!(await f.next(id))) bad.push('the "' + id + '" step has no Next');
+    const chip = d.querySelector('#s-stuff [data-do="book-back"][data-step="' + id + '"]');
+    if (!chip || chip.textContent.indexOf(opts[1]) === -1) bad.push('the "' + id + '" chip reads ' + JSON.stringify(chip && chip.textContent.trim()) + ', not its answer');
+  }
+  if (d.querySelector('#s-stuff select[data-step], #s-stuff [data-do="book-set"]')) bad.push('Find still draws the old dropdowns');
   return bad;
 });
 
@@ -206,30 +173,22 @@ check('with the client\'s house as the venue the Space row cannot be filled in, 
 check('changing the client on a booking leaves only that client\'s children on it', async () => {
   const { w } = boot();
   await wait(300);
-  const d = w.document;
   w.__t.USER({ name: 'Test Admin', personId: 'PA', role: 'admin', roles: ['admin'] });
   const D = w.__t.DATA();
   D.clients = [{ name: 'Ann Client', children: ['Amy Client', 'Abe Client'] }, { name: 'Bob Client', children: ['Ben Client'] }];
   const B = w.__t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
   B.how = 'Instant class'; B.n = '3';
-  try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
-  await wait(120);
+  const f = await bookFind_(w);
   const bad = [];
-  const set = (id, v) => {
-    const s = d.querySelector('#bookr select[data-step="' + id + '"]');
-    if (!s || ![...s.options].some(o => o.value === v)) { bad.push('the "' + id + '" list does not offer ' + JSON.stringify(v)); return false; }
-    s.value = v; s.dispatchEvent(new w.Event('change', { bubbles: true }));
-    return true;
-  };
-  if (!set('client', 'Ann Client') || !set('kids', 'Amy Client')) return bad.concat('Ann\'s child could not be picked — NOTHING was checked');
+  const set = async (id, v) => { const no = await f.pick(id, v); if (no) { bad.push(no); return false; } return true; };
+  if (!(await set('client', 'Ann Client')) || !(await set('kids', 'Amy Client'))) return bad.concat('Ann\'s child could not be picked — NOTHING was checked');
   if ((B.kids || []).join() !== 'Amy Client') return bad.concat('picking Amy left ' + JSON.stringify(B.kids) + ' — NOTHING was checked');
-  set('client', 'Bob Client');
+  await set('client', 'Bob Client');
   if ((B.kids || []).some(k => /Amy|Abe/.test(k))) bad.push('after changing the client to Bob the booking still has Ann\'s child: ' + JSON.stringify(B.kids));
-  const ks = d.querySelector('#bookr select[data-step="kids"]');
-  const row = ks && ks.closest('.bk-row');
-  if (row && /Amy|Abe/.test(row.textContent)) bad.push('the Child row still shows Ann\'s children under Bob: ' + JSON.stringify(row.textContent.replace(/\s+/g, ' ').trim()));
-  set('kids', 'Ben Client');
+  const offered = await f.offers('kids');
+  if (offered.some(k => /Amy|Abe/.test(k))) bad.push('the Child step still offers Ann\'s children under Bob: ' + JSON.stringify(offered));
+  await set('kids', 'Ben Client');
   if ((B.kids || []).join() !== 'Ben Client') bad.push('Bob\'s child is not the one on the booking: ' + JSON.stringify(B.kids));
   return bad;
 });
@@ -239,19 +198,16 @@ check('changing the client on a booking leaves only that client\'s children on i
 check('the Child list holds only the chosen client\'s children, the admin booking for themselves included', async () => {
   const { w } = boot();
   await wait(300);
-  const d = w.document;
   w.__t.USER({ name: 'Test Admin', personId: 'PA', role: 'admin', roles: ['admin'], children: ['Ann Kid', 'Bob Kid'] });
   const D = w.__t.DATA();
   D.clients = [{ name: 'Test Admin', children: ['Ann Kid'] }, { name: 'Bob Client', children: ['Bob Kid'] }];
   const B = w.__t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
   Object.assign(B, { how: 'Instant class', n: '3', client: 'Test Admin', kids: ['Ann Kid', 'Bob Kid'] });
-  try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
-  await wait(120);
+  const f = await bookFind_(w);
   const bad = [];
-  const ks = d.querySelector('#bookr select[data-step="kids"]');
-  if (!ks) return ['the booking form draws no Child list — NOTHING was checked'];
-  const offered = [...ks.options].map(o => o.value);
+  const offered = await f.offers('kids');
+  if (!offered.length) return ['Find\'s booking steps ask no Child step — NOTHING was checked'];
   if (offered.indexOf('Bob Kid') !== -1) bad.push('Bob\'s child is offered to Test Admin: ' + JSON.stringify(offered));
   if (offered.indexOf('Ann Kid') === -1) bad.push('Test Admin\'s own child is not offered: ' + JSON.stringify(offered));
   if ((B.kids || []).indexOf('Bob Kid') !== -1) bad.push('Bob\'s child stayed on Test Admin\'s booking: ' + JSON.stringify(B.kids));

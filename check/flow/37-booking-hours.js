@@ -2,7 +2,7 @@
 check('Find › Booking: an admin booking an Instant class at Client House toggles Mon 10 on and off, and the totals follow', async () => {
   const { w } = boot();
   await wait(300);
-  const t = w.__t, d = w.document, bad = [];
+  const t = w.__t, bad = [];
   t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
   /* A FRESH FORM: an old kept draft with ticked hours is not brought back (owner, 11 Nov). */
   w.eval("draftKeep_('book', 'form', JSON.stringify({ slots: ['w17', 'w18', 'su17', 'su18'] })); resetBooking_(true); bookBack_();");
@@ -14,21 +14,20 @@ check('Find › Booking: an admin booking an Instant class at Client House toggl
   const tutor = ((D.tutors || []).find(x => x.title) || {}).title || '';
   Object.assign(t.BOOKING, { client: 'Halex Dias', how: 'Instant class', joining: '', loc: 'Client House', hosting: 'No — we book the room',
     level: 'GCSE', n: '3', subjects: ['Maths'], tutor: tutor, slots: [] });
-  const host = d.createElement('div'); d.body.appendChild(host);
-  const cell = () => { host.innerHTML = t.paper(); return host.querySelector('[data-do="book-slot"][data-code="m10"]'); };
+  /* FIND'S TIMES STEP (owner, 13 Nov): Monday picked on Days, then its 10:00 tag. */
+  const f = await bookFind_(w);
+  const cell = async () => (await f.tags('slots')).find(x => x.dataset.code === 'm10');
   const hours = () => { const L = t.price(); return (L && L.hoursPerWeek) || 0; };
-  const c0 = cell();
-  if (!c0) return ['no Monday 10:00 cell on the form'];
-  if (c0.disabled || /\bshut\b/.test(c0.className)) bad.push('Monday 10:00 is shut: ' + c0.outerHTML);
+  t.inApp('BOOK_FIND').days = ['Monday'];
+  const c0 = await cell();
+  if (!c0) return ['no Monday 10:00 tag on the Times step'];
+  if (c0.getAttribute('aria-disabled') === 'true') bad.push('Monday 10:00 is shut: ' + c0.outerHTML);
   const before = hours();
-  c0.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
-  await wait(150);
+  await f.hour('m10');
   if ((t.BOOKING.slots || []).indexOf('m10') === -1) bad.push('tapping Monday 10:00 did not tick it');
   if (!(hours() > before)) bad.push('the week did not grow: ' + before + ' → ' + hours());
-  if (!/\bon\b/.test((cell() || {}).className || '')) bad.push('the ticked cell is not drawn on');
-  /* THE SECOND TAP BY ITS ACTION: a second synthetic click this soon is the dispatcher's double-tap guard, not the grid. */
-  t.ACTIONS['book-slot'](cell());
-  await wait(150);
+  if (!/\bis-on\b/.test(((await cell()) || {}).className || '')) bad.push('the ticked tag is not drawn on');
+  await f.hour('m10');
   if ((t.BOOKING.slots || []).indexOf('m10') !== -1) bad.push('tapping it again did not untick it');
   if (hours() !== before) bad.push('the week did not shrink back: ' + hours() + ' vs ' + before);
   return bad;

@@ -8077,7 +8077,7 @@ const RULES = [
   /* UNIVERSAL UNTIL SWITCHED (504): the owner, "it's open source so I don't care about it being public". `flip`: the stored mark means Exception. */
   { id: 'kjv-admin', say: 'The Bible is shown to admins only', where: 'Find (490, 504)',
     uni: 'Anyone of age sees it, like the Talmud and the Quran.', flip: true },
-  { id: 'finder-members', say: 'Signed out, Find answers only Settings, which holds Sign in and Join', where: 'Find (C+, 1040)',
+  { id: 'finder-members', say: 'Signed out, Find answers only Settings (Sign in and Join) and Booking (its steps; Send asks you to sign in)', where: 'Find (C+, 1040)',
     uni: 'Signed out, Find answers everything, as signed in.' },
   { id: 'keep-basket', say: 'The basket can never be deleted', where: 'Shop (462)',
     uni: 'Delete on it like every other widget.', lock: 'It is the one place a shop order is paid; without it nobody could pay.' },
@@ -8892,7 +8892,6 @@ on('book-with', el => {
   if (d.tutor) BOOKING.tutor = d.tutor;
   if (d.subject && !(BOOKING.subjects || []).length) { BOOKING.subjects = [d.subject]; BOOKING.done = uniq((BOOKING.done || []).concat(['subjects'])); }
   if (d.level && !BOOKING.level) BOOKING.level = d.level;
-  BOOK_OPEN = true;
   finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true });
   go('stuff');
 });

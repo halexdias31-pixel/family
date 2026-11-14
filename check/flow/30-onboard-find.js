@@ -11,10 +11,13 @@ check('Find › Booking offers a Booking form tag that draws the form, and a Pre
   k.w.stuffForget_();
   k.t.go('stuff', false, true);
   const pick = async v => { const S = k.t.STUFF(); S.filters.length = 0; S.filters.push({ field: 'kindLabel', value: 'Booking' }); if (v) S.filters.push({ field: 'kindOwn', value: v }); k.w.paintStuff(); await wait(300); };
-  await pick('Booking form');
-  const list = k.w.stuffFiltered().map(x => x.kind + ':' + x.name);
-  if (list.join() !== 'bookform:Booking form') bad.push('the Booking form tag lists ' + list.join(', '));
-  if (!k.d.querySelector('#s-stuff [data-step="tutor"]')) bad.push('the Booking form tag does not draw the form');
+  /* BOOKING ALONE IS THE FIRST BOOKING STEP (owner, 13 Nov): its tags in Find's menu, no form card; Booking's other answers follow it. */
+  await pick('');
+  if (!k.d.querySelector('#s-stuff .book-step [data-do="book-pick"]')) bad.push('Booking does not lead into the booking steps');
+  if (k.d.querySelector('#s-stuff select[data-step], #s-stuff #bookr')) bad.push('Booking still draws the old form');
+  const others = [...k.d.querySelectorAll('#s-stuff [data-do="facet-pick"][data-field="kindOwn"]')].map(x => x.dataset.value);
+  if (others.indexOf('Previous') === -1) bad.push('Booking\'s other answers do not follow the first step: ' + others.join(', '));
+  if (others.indexOf('Booking form') !== -1) bad.push('a Booking form tag is still offered');
   await pick('Previous');
   const prev = k.w.stuffFiltered().map(x => x.key);
   if (prev.join() !== 'job:J-OLD') bad.push('Previous lists ' + prev.join(', ') + ', wanted only the finished booking');

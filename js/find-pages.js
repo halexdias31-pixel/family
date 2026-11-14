@@ -547,6 +547,8 @@ function stuffQuestion() {
   /* SIGNED OUT, THE FIRST MENU IS WHO YOU ARE (`signMenu_`, find-account.js); Guest or a name lets the ordinary menus follow. */
   const sign = signMenu_();
   if (sign) return sign;
+  /* UNDER Booking ALONE, THE MENU IS THE BOOKING STEP BEING ASKED (`bookMenu_`, find-account.js), and nothing once the summary card is the answer. */
+  if (bookFindOn_()) return bookFindQuestion_();
   const pre = finderTagsAt_() || finderTagsLook_();
   if (pre) return facetAnswersHtml_(pre.facet, pre.values, '') + findPeek_();
   const items = stuffFiltered();
