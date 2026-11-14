@@ -167,9 +167,12 @@ const findSrc = require('../tools/find-src.js').findSrc();
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const verseSrc = cutFrom(findSrc, 'bibleVerse_');
+/* bibleVerse_ hands over runs; the card maker draws them, so the check draws them through it too. */
+const crSrc = require('fs').readFileSync(require('path').join(__dirname, 'cards-render.js'), 'utf8');
+const cardKit = new Function('esc', crSrc + '\nreturn { cardRuns_, cardBlock_ };')(esc);
 let bibleVerse_ = null;
 if (!verseSrc) fail.push('bibleVerse_ is not in js/find.js — the brackets were NOT checked, which is not a pass');
-else bibleVerse_ = new Function('esc', verseSrc + '\nreturn bibleVerse_;')(esc);
+else bibleVerse_ = (f => v => cardKit.cardRuns_(f(v)))(new Function('esc', verseSrc + '\nreturn bibleVerse_;')(esc));
 const unesc = s => s.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 let pairs = 0, italics = 0, paras = 0;
 if (bibleVerse_) {
@@ -204,17 +207,17 @@ if (bibleVerse_) {
 const vSrc = cutFrom(findSrc, 'bibleV_');
 let bibleV_ = null, drawnCards = 0, drawnParas = 0;
 if (!vSrc) fail.push('bibleV_ is not in js/find.js — what a verse card prints was NOT checked, which is not a pass');
-else if (verseSrc) bibleV_ = new Function('esc', verseSrc + '\n' + vSrc + '\nreturn bibleV_;')(esc);
+else if (verseSrc) bibleV_ = new Function('esc', 'cardBlock_', verseSrc + '\n' + vSrc + '\nreturn bibleV_;')(esc, cardKit.cardBlock_);
 if (bibleV_) {
-  const PARA = '<span class="bb-para" aria-hidden="true">¶</span> ';
+  const PARA = '<span class="is-bb-para">¶</span> ';
   let bad = 0;
   const firstBad = [];
   Object.keys(split).forEach(n => split[n].chapters.forEach((ch, ci) => ch.forEach((v, vi) => {
     const html = bibleV_(v);
     const para = /^#/.test(v);
-    const inner = /^<p class="bb-v">([\s\S]*)<\/p>$/.exec(html);
+    const inner = /^<p class="kc-line bb-v">([\s\S]*)<\/p>$/.exec(html);
     const body = inner ? inner[1] : '';
-    const marks = (html.match(/bb-para/g) || []).length;
+    const marks = (html.match(/is-bb-para/g) || []).length;
     const words = unesc((para && body.indexOf(PARA) === 0 ? body.slice(PARA.length) : body).replace(/<\/?i>/g, ''));
     const want = v.replace(/^#\s*/, '').replace(/[\[\]]/g, '');
     const why = !inner ? 'it is not one <p class="bb-v">'
@@ -237,7 +240,7 @@ if (listSrc.some(s => !s)) {
   fail.push('`' + LIST_NAMES.filter((n, i) => !listSrc[i]).join('`, `') + '` not found in js/find.js — the verse list was NOT checked, which is not a pass');
 } else if (index && books.length) {
   let made = null;
-  try { made = new Function('const brand = (k, or) => or;\n' + listSrc.join('\n') + '\n' + fs.readFileSync(path.join(root, 'js', 'writings.js'), 'utf8') + '\nreturn bibleVerseList_;')()(index); }
+  try { made = new Function('const brand = (k, or) => or; const CARD_EMBEDS = {};\n' + listSrc.join('\n') + '\n' + fs.readFileSync(path.join(root, 'js', 'writings.js'), 'utf8') + '\nreturn bibleVerseList_;')()(index); }
   catch (e) { fail.push('bibleVerseList_ threw on the real index: ' + e.message); }
   const list = made && Array.isArray(made.list) ? made.list : [];
   listed = list.length;

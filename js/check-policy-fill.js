@@ -13,6 +13,7 @@ const fake = { dsl: tag(), deputy: tag(), email: tag() + '@example.invalid', pho
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const ctx = { DATA: { policy: fake }, esc, policyHref_: d => 'docs/policies/' + d };
 vm.createContext(ctx);
+vm.runInContext(fs.readFileSync(path.join(root, 'js/cards-render.js'), 'utf8'), ctx);
 vm.runInContext(src.slice(a, b) + ';this.policyMd_=policyMd_;this.policyFill_=policyFill_;this.policyName_=policyName_;', ctx);
 const bad = [], dir = path.join(root, 'docs/policies');
 const docs = fs.readdirSync(dir).filter(f => f.endsWith('.md') && f !== 'README.md');
@@ -22,7 +23,7 @@ docs.forEach(f => {
   const md = fs.readFileSync(path.join(dir, f), 'utf8'), html = ctx.policyMd_(ctx.policyFill_(md));
   if (ctx.policyName_('https://x.invalid/docs/policies/' + f) !== f.replace(/\.md$/, '')) bad.push(f + ': not recognised as a policy url');
   if (PH.test(html)) bad.push(f + ': a placeholder remains — ' + PH.exec(html)[0]);
-  if (!/<h2>/.test(html)) bad.push(f + ': no heading rendered');
+  if (!/policy-h2"><h4/.test(html)) bad.push(f + ': no heading rendered');
   if (/<script|onerror=/i.test(html)) bad.push(f + ': raw html came through');
   if (/(^|\n)#{1,4} |\*\*/.test(html)) bad.push(f + ': markdown left unrendered');
   filled += Object.values(fake).filter(v => html.includes(esc(v))).length;

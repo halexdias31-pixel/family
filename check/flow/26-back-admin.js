@@ -161,7 +161,7 @@ check('a reading insert is Content in Find (no Insert tile on its question), ask
     held.splice(0).forEach(f => f());
     await wait(300);
     if (mode === 'has') {
-      const lns = sheet() ? [...sheet().querySelectorAll('.insrc-ln')].map(e => e.textContent) : [];
+      const lns = sheet() ? [...sheet().querySelectorAll('.insrc-p .kc-ln')].map(e => e.textContent) : [];
       if (lns.join() !== '1,5') bad.push('with its words: the margin line numbers are [' + lns + '], wanted [1,5]');
       if (!/Stand-in words on the first line/.test(txt()) || /\[5\]/.test(txt())) bad.push('with its words: the extract is not drawn as text with its [n] made line numbers: ' + txt().slice(0, 160));
       if (!sheet() || !sheet().querySelector('.insrc-h') || !sheet().querySelector('.insrc-note')) bad.push('with its words: the heading or the paper\'s note is not drawn as one');
