@@ -107,7 +107,7 @@ const EXEMPT = [
   { file: 'cards-render.js', fn: 'answerBox_', has: '<input${attrs || \'\'}>', why: 'the sign-in name tag on Find (owner, 13 Nov), its only caller — half a handle is not work, and none is kept after (383)' },
   { file: 'tiles.js', fn: 'searchPill_', has: 'type="search"', why: 'the one search bar (487): Reels\' videos and the People search — a word looked up, not work, retyped in a second' },
   { file: 'me.js', fn: 'regFormHtml_', has: "id: 'reg-pin'", why: PIN },
-  { file: 'form.js', fn: 'formBox_', has: 'id="${esc(b.id)}"', why: PIN + ': the Signing in boxes, forms.json\'s `signing-in`' },
+  { file: 'form.js', fn: 'formBox_', has: "attrs: Object.assign({ id: b.id", why: PIN + ': the Signing in boxes, forms.json\'s `signing-in`' },
   { file: 'me.js', fn: 'regFormHtml_', has: "id: 'reg-noemail'", why: 'reset by the who-is-it question above it, which is asked again on purpose (`REG_NOTE`)' },
   /* THE PEOPLE COLUMN'S PERSON FORM (373): another person's account, decided and saved there and then. */
   { file: 'me.js', fn: 'box', has: 'data-pf="${k}"', why: PEOPLE_FORM },
@@ -124,7 +124,7 @@ const EXEMPT = [
   { file: 'me.js', fn: 'area', has: "'data-app': k, rows", why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
   { file: 'me.js', fn: 'tick', has: "attrs: { 'data-app': k }", why: 'the application to teach (400) — its three ticks (DBS Update Service, DBS needed, consent), sent with it' },
   { file: 'push.js', fn: 'pushBody_', has: 'data-push-kind', why: 'a phone-notification tick is a `pushSet` the moment it is ticked and the card is redrawn from the server\'s answer — no Save to wait for, nothing half-made on the device (492)' },
-  { file: 'form.js', fn: 'formToggle_', has: 'data-do="${esc(t.act)}"', why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },
+  { file: 'form.js', fn: 'formToggle_', has: "type: 'control', attrs }", why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },
   { file: 'map.js', has: "id: 'dock-add'", why: 'one line, kept the moment Enter or + puts it on the docket' },
   { file: 'find.js', has: 'class="room-name"', why: 'a room name, a few words, prefilled and sent by the button under it' },
 ];

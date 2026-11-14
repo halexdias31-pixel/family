@@ -5,18 +5,19 @@ const isPhotos_ = list => (list || []).some(isPhotoField_);
 /* `o.draft` IS PASSED THROUGH TO THE BOXES — the card editor keeps its own draft (`fieldHtml`'s note). § */
 function photoShelf_(list, value, o) {
   const nums = (list || []).filter(isPhotoField_).map(f => String(f).match(/^photos_(\d+)$/)[1]);
-  return `<div class="lib-shelf ph-shelf" data-noun="photo">${shelfSlots_(nums,
+  return cardBlock_({ type: 'group', look: 'lib-shelf ph-shelf', attrs: { 'data-noun': 'photo' }, inner: shelfSlots_(nums,
     i => shelfFilled_(value, ['photos_' + i]),
     (i, hide) => {
       const v = String(value('photos_' + i) || '').trim();
-      return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
-        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : ''}</span>
-        ${fieldHtml('photos_' + i, v, { placeholder: 'Photo', draft: (o || {}).draft, extra: 'type="hidden"' })}
-        <div class="tile-row">${tile_({ icon: 'plus', label: v ? 'Change photo' : 'Choose photo', act: 'ph-pick' })}${shelfDrop_('photo')}</div>
-        <p class="note ph-said"></p>${formFile_('ph-in', 'image/*')}
-      </div>`;
-    }, 'photo')}</div>`;
+      return cardBlock_({ type: 'group', look: 'lib-card ph-slot', attrs: { hidden: !!hide },
+        inner: cardBlock_({ type: 'group', tag: 'span', look: 'ph-thumb', blocks: [v ? phThumb_(v) : null] })
+        + fieldHtml('photos_' + i, v, { placeholder: 'Photo', draft: (o || {}).draft, extra: 'type="hidden"' })
+        + cardBlock_({ type: 'group', look: 'tile-row', inner: tile_({ icon: 'plus', label: v ? 'Change photo' : 'Choose photo', act: 'ph-pick' }) + shelfDrop_('photo') })
+        + cardBlock_({ type: 'group', tag: 'p', look: 'note ph-said' }) + formFile_('ph-in', 'image/*') });
+    }, 'photo') });
 }
+/* A SLOT'S THUMBNAIL: the photo as a `media` picture block. */
+const phThumb_ = v => ({ type: 'media', kind: 'image', src: pic(v), title: '', async: true });
 /* THE PREVIEW FOLLOWS THE BOX as it is typed into, so the check above does not wait for a Save. One
    listener for the document, which is how every other input here is heard. */
 document.addEventListener('input', e => {
@@ -24,7 +25,7 @@ document.addEventListener('input', e => {
   if (!t || !t.matches || !t.matches('.ph-slot input')) return;
   const thumb = t.closest('.ph-slot').querySelector('.ph-thumb');
   const v = String(t.value || '').trim();
-  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : '';
+  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? cardBlock_(phThumb_(v)) : '';
 });
 /* ---------- AN EXTRA PHOTO IS UPLOADED, NOT LINKED (owner, 8 Nov): redrawn here at 1200px JPEG, kept in Drive by
    `photoFile`, and its link put in the slot's box so Save keeps it with the rest of the card. */
@@ -78,21 +79,19 @@ function photoPicker_(value, said, o) {
     return tile_({ label: label, act: 'pfp-choose', data: { pic: n }, on: chosen === n, pressed: chosen === n, cls: 'pfp-opt',
       face: pfpArt_(n, 40) });
   };
-  const face = `<span class="pfp-face">${pfpFace_(v)}</span>`;
+  const face = { type: 'group', tag: 'span', look: 'pfp-face', inner: pfpFace_(v) };
   const fold = !!(o && o.fold);
-  return `${fold ? `<details class="pfp ce-fold" data-fold="picture" open>
-    <summary class="ce-line"><span class="ce-k">Picture</span>${face}</summary>` : `<div class="pfp">${face}`}
-    <div class="pfp-side">
-      <div class="tile-row">
-        ${/* A CHILD CHOOSES FROM THE GRID, NEVER A FILE (413) — `savePhoto` refuses one too. */
-          uiMay_('upload-photo') ? tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' }) : ''}
-        ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
-      </div>
-    </div>
-    <div class="pfp-grid" role="group" aria-label="Or choose a picture">${Object.keys(PFP_ART).map(opt).join('')}</div>
-    <p class="note pfp-said">${esc(said || pfpSaid_(v))}</p>
-    ${uiMay_('upload-photo') ? formFile_('pfp-in', 'image/*') : ''}
-  ${fold ? '</details>' : '</div>'}`;
+  /* A CHILD CHOOSES FROM THE GRID, NEVER A FILE (413) — `savePhoto` refuses one too. */
+  const rest = [{ type: 'group', look: 'pfp-side', blocks: [{ type: 'group', look: 'tile-row', tiles: [
+      uiMay_('upload-photo') ? { icon: 'photo', label: 'Choose photo', act: 'pfp-pick' } : null,
+      { icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v }].filter(Boolean) }] },
+    { type: 'group', look: 'pfp-grid', attrs: { role: 'group', 'aria-label': 'Or choose a picture' }, inner: Object.keys(PFP_ART).map(opt).join('') },
+    { type: 'group', tag: 'p', look: 'note pfp-said', text: said || pfpSaid_(v) }];
+  const file = uiMay_('upload-photo') ? formFile_('pfp-in', 'image/*') : '';
+  return fold
+    ? cardBlock_({ type: 'group', tag: 'details', look: 'pfp ce-fold', attrs: { 'data-fold': 'picture', open: true }, blocks: [
+      { type: 'group', tag: 'summary', look: 'ce-line', blocks: [{ type: 'group', tag: 'span', look: 'ce-k', text: 'Picture' }, face] }].concat(rest), inner: file })
+    : cardBlock_({ type: 'group', look: 'pfp', blocks: [face].concat(rest), inner: file });
 }
 /* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */
 function pfpSaid_(v) {
@@ -219,7 +218,7 @@ document.addEventListener('change', e => {
     if (!data) { if (said) said.textContent = 'That file is not a picture this phone can read. Try another.'; return; }
     /* THE PREVIEW CHANGES BEFORE THE UPLOAD, so the crop is seen while it travels; if the server refuses, the line says why and the old picture comes back. § */
     const face = box.querySelector('.pfp-face');
-    if (face) face.innerHTML = `<img class="pfp-pic" src="${esc(data)}" alt="Your profile picture" decoding="async">`;
+    if (face) face.innerHTML = cardBlock_({ type: 'media', kind: 'image', look: 'pfp-pic', src: data, title: 'Your profile picture', async: true });
     pfpRing_(box, '');
     return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
                  { button: btn, where: said, saying: 'Saving…', lock: box })
@@ -279,7 +278,7 @@ function fieldsHtml(groups, o) {
       + (wantsDob ? dobBoxes_(value) : '')
       + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneField_(value) : plain(f, extra))
       + (photos ? videoPicker_(value) + photoShelf_(list, value) : '');
-    return (head ? `<${head}><span>${esc(g)}</span></${head}>` : '') + body;
+    return (head ? cardBlock_({ type: 'group', tag: head, look: null, blocks: [{ type: 'group', tag: 'span', look: null, text: g }] }) : '') + body;
   }).join('');
 }
 /* The sheet writes TRUE/FALSE as text and the payload sends real booleans; rows written by older

@@ -5,6 +5,9 @@ const KC_LOOK_DEFAULT = Object.fromEntries(Object.entries({ receipt: 'pound', sh
 const KC_PERSON_KINDS = ['tutor', 'person', 'people', 'msg'];
 const kcLook_ = kind => ((typeof DATA !== 'undefined' && DATA && DATA.cardLook) || KC_LOOK_DEFAULT)[kind] || {};
 const kcEmpty_ = () => (typeof NOTHING_YET === 'string' ? NOTHING_YET : '');
+/* THE EMPTY LINE, and THE HIDDEN ORIGINAL a late filler writes into: both blocks of the one card maker. */
+const kcEmptyLine_ = () => cardBlock_({ type: 'text', look: 'kc-empty', text: kcEmpty_() });
+const kcSrc_ = src => cardBlock_({ type: 'group', look: 'kc-src', attrs: { hidden: true }, inner: src });
 /* A FORM STAYS A FORM: its own maker draws it, whole and unclamped, as the card's open content. */
 /* A LIST OF THINGS EACH WITH ITS OWN TILES (`.kc-items` of `.kc-item`s, the checklist's) holds controls too, so it is drawn open and whole. */
 const KC_FORM_SEL = 'input:not([type="hidden"]), select, textarea, form, .kc-items';
@@ -37,7 +40,7 @@ function kcFacts_(html) {
     flush();
   };
   walk(t.content);
-  out.lines = said.length ? said.map(s => `<p class="kc-line">${esc(s)}</p>`).join('') : wait ? wait.outerHTML : '';
+  out.lines = said.length ? cardBlock_({ type: 'text', paras: said }) : wait ? wait.outerHTML : '';
   out.src = t.innerHTML;
   return out;
 }
@@ -51,7 +54,7 @@ function kcFactsWatch_() {
     t.content.querySelectorAll('[data-do]').forEach(n => { const old = card.querySelector(`:scope > .kc-act [data-do="${n.getAttribute('data-do')}"]`); if (old) old.replaceWith(n); }); };
   const redo = src => { const card = src.closest('.card.kc'), box = card && card.querySelector(':scope > .kc-lines'); if (!box) return;
     const f = kcFacts_(src.innerHTML); box.firstChild && [...box.children].filter(k => k !== src).forEach(k => k.remove());
-    box.insertAdjacentHTML('afterbegin', f.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`);
+    box.insertAdjacentHTML('afterbegin', f.lines || kcEmptyLine_());
     if (f.tiles) { src.innerHTML = f.src; sync(card, f.tiles); } };
   /* AN OLD MAKER THAT REDRAWS ITS WHOLE CARD (`[data-libimp]`) has its new insides read as facts into the parts it pushed out. */
   const rewrap = (card, gone) => { const parts = gone.filter(n => n.nodeType === 1 && /^kc-(pic|head|tags|lines|form|act)$/.test(n.className)); if (!parts.length) return;
@@ -59,7 +62,7 @@ function kcFactsWatch_() {
     /* CONTROLS THAT ARRIVE LATE (a list loaded after the first draw) take a form part, open, in place of the lines. */
     if (f.form && !form && lines) { lines.className = 'kc-form'; lines.innerHTML = f.form; }
     else if (f.form && form) form.innerHTML = f.form;
-    else if (lines) lines.innerHTML = (f.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`) + (f.src ? `<div class="kc-src" hidden>${f.src}</div>` : '');
+    else if (lines) lines.innerHTML = (f.lines || kcEmptyLine_()) + (f.src ? kcSrc_(f.src) : '');
     card.replaceChildren(...parts); if (f.tiles) sync(card, f.tiles); };
   new MutationObserver(list => { if (busy) return; busy = true; const seen = new Set();
     try {
@@ -97,7 +100,7 @@ function findCard(x, credits) {
   /* A PANEL (card_) IS DRAWN WHILE FIND'S OWN LIST IS BEING MADE, so it never reads Find's chips back (that would build the list inside itself). */
   parts.tags = it.kcPanel ? parts.tags : kcUnpicked_(parts.tags);
   /* A CARD WITH NO TAGS OF ITS OWN STILL HAS ONE: its name (owner, 9 Nov: the name is a tag). */
-  if (!parts.tags.trim() && name) parts.tags = `<div class="qtags">${qtag_(`${esc(name)}`, ` data-tag="0"`)}</div>`;
+  if (!parts.tags.trim() && name) parts.tags = cardBlock_({ type: 'tags', tags: [String(name)] });
   /* NO TITLE LINE ON ANY CARD (owner, 9 Nov): the name is a tag, put first when the tags do not already say it. */
   if (name && parts.head && !kcSays_(parts.tags, name)) parts.tags = kcTagFirst_(parts.tags, name);
   parts.head = '';
@@ -110,23 +113,26 @@ function findCard(x, credits) {
   if (kcLook_(it.kind).facts || (it.kcPanel && KC_FORMY.test(parts.lines))) {
     facts = kcFacts_(parts.lines);
     if (facts.form) { parts.lines = ''; parts.form = facts.form; kcFactsWatch_(); }
-    else { parts.lines = (facts.lines || `<p class="kc-line kc-empty">${kcEmpty_()}</p>`) + (facts.src ? `<div class="kc-src" hidden>${facts.src}</div>` : ''); kcFactsWatch_(); }
+    else { parts.lines = (facts.lines || kcEmptyLine_()) + (facts.src ? kcSrc_(facts.src) : ''); kcFactsWatch_(); }
     if (facts.tiles) parts.act = kcActRow_(one, '', hoist.tiles + facts.tiles);
     parts.tags = kcTidy_(parts.tags, '', name).tags;
   }
   if (!facts && KC_WHOLE_KINDS.indexOf(it.kind) < 0) { const tidy = kcTidy_(parts.tags, parts.lines, name); parts.tags = tidy.tags; parts.lines = tidy.lines; }
   const off = (facts ? ' kc-facts' : '') + (it.kind === 'tutor' && t.listed === false ? ' is-off' : '') + (it.cardCls ? ' ' + esc(it.cardCls) : '');
   /* `cardData` BECOMES data-* ATTRIBUTES, so a card can be found again where it stands (a post's sheet, a conversation's redraw). */
-  const data = Object.keys(it.cardData || {}).map(k => ` data-${k}="${esc(it.cardData[k])}"`).join('');
+  const attrs = {};
+  Object.keys(it.cardData || {}).forEach(k => { attrs['data-' + k] = it.cardData[k] == null ? '' : String(it.cardData[k]); });
   /* ITS OWN MAKER'S CLASSES AND ATTRIBUTES STAY ON IT, so every handler's `closest('.qcard')` or `[data-key]` still finds it. */
   const mine = it.kcOwn || {}, ownCls = String(mine.cls || '').split(/\s+/).filter(c => c && !/^(card|fc|kc)$/.test(c)).join(' ');
-  const label = /\saria-label=/.test(mine.attrs || '') ? '' : ` aria-label="${esc(name)}"`;
-  return `<div class="card fc kc kc-${esc(it.kind || 'thing')}${s.cls ? ' ' + esc(s.cls) : ''}${ownCls ? ' ' + ownCls : ''}${off}"${data}${mine.attrs || ''}${label}>${
-    (parts.form ? ['pic', 'head', 'tags', 'lines', 'form', 'act'] : KC_PARTS).map(p => `<div class="kc-${p}">${parts[p]}</div>`).join('')}</div>`;
+  const ownAttrs = cardAttrsOf_(mine.attrs || '');
+  Object.keys(ownAttrs).forEach(k => { if (!(k in attrs)) attrs[k] = ownAttrs[k]; });
+  if (!('aria-label' in ownAttrs) && !('aria-label' in attrs)) attrs['aria-label'] = String(name);
+  return cardBlock_({ type: 'group', look: `card fc kc kc-${it.kind || 'thing'}${s.cls ? ' ' + s.cls : ''}${ownCls ? ' ' + ownCls : ''}${off}`, attrs,
+    blocks: (parts.form ? ['pic', 'head', 'tags', 'lines', 'form', 'act'] : KC_PARTS).map(p => ({ type: 'group', look: 'kc-' + p, inner: parts[p] })) });
 }
 
 /* THE ONE TAG MAKER (one way only): `inner` is HTML the caller escaped, `attrs` its attributes, `cls` extra classes; `base` a tutor pill or a filter chip. */
-function qtag_(inner, attrs, cls, base) { return `<span class="${base || 'qtag'}${cls ? ' ' + cls : ''}"${attrs || ''}>${inner}</span>`; }
+function qtag_(inner, attrs, cls, base) { return cardBlock_({ type: 'group', tag: 'span', look: (base || 'qtag') + (cls ? ' ' + cls : ''), attrs: cardAttrsOf_(attrs), inner }); }
 /* EVERY OTHER CARD COMES HERE TOO (owner, 11 Nov: one template): its maker writes a plain `<div class="x">…</div>`; a form inside stays whole, the booking form's too. */
 const KC_FORMY = /<(input(?![^>]*type="hidden")|select|textarea|form)\b|\bkc-items\b/;
 function card_(html, kind, called) {
@@ -146,7 +152,7 @@ function cardFill_(el, inner, kind) {
   if (!el || typeof document === 'undefined') return;
   const cls = [...el.classList].filter(c => !/^(card|fc|kc|kc-[\w-]+)$/.test(c)).join(' ');
   const t = document.createElement('template');
-  t.innerHTML = card_(`<div class="${cls}">${inner || ''}</div>`, kind);
+  t.innerHTML = card_(cardBlock_({ type: 'group', look: cls, inner: inner || '' }), kind);
   const fresh = t.content.firstElementChild;
   if (!fresh) return;
   el.className = fresh.className;
