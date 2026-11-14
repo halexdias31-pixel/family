@@ -72,7 +72,7 @@ function padLoupe_(g) {
     el = document.createElement('div');
     el.className = 'pad-loupe';
     el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = '<div class="pad-loupe-in"></div><i class="pad-loupe-x"></i>';
+    el.innerHTML = cardBlocks_([{ type: 'group', look: 'pad-loupe-in' }, { type: 'group', tag: 'i', look: 'pad-loupe-x' }]);
     document.body.appendChild(el);
   }
   const box = g.box, inner = el.firstChild;
@@ -457,7 +457,7 @@ function padUnderRepaint_(k) {
     const g = keys.indexOf(k) >= 0 && p.querySelector('.qpad-was');
     if (!g) return;
     const ka = padAspectOf_(p);
-    g.innerHTML = [].concat(...keys.map(padRead_)).map(st => `<path vector-effect="non-scaling-stroke" d="${padPath_(st, ka)}"/>`).join('');
+    g.innerHTML = padInkPaths_([].concat(...keys.map(padRead_)).map(st => padPath_(st, ka)));
   });
 }
 /* ---------- AND EVERY OTHER COPY OF THE SAME PAD, FROM THE STORE § */
@@ -526,30 +526,30 @@ let PROT_SVG = '';
 function padProtSvg_() {
   if (PROT_SVG) return PROT_SVG;
   const R = 100, cx = 100, cy = 100, P = (r, d) => { const t = (180 - d) * Math.PI / 180; return [(cx + r * Math.cos(t)).toFixed(2), (cy - r * Math.sin(t)).toFixed(2)]; };
-  let ticks = '', nums = '';
+  let ticks = '';
+  const nums = [];
   for (let d = 0; d <= 180; d++) {
     const len = d % 10 === 0 ? 12 : d % 5 === 0 ? 8 : 4, a = P(R, d), b = P(R - len, d);
     ticks += `M${a[0]} ${a[1]}L${b[0]} ${b[1]}`;
     if (d % 10 === 0) {
       const o = P(R - 19, d), i = P(R - 31, d);
-      nums += `<text x="${o[0]}" y="${o[1]}">${d}</text><text class="qprot-in" x="${i[0]}" y="${i[1]}">${180 - d}</text>`;
+      nums.push({ el: 'text', a: { x: o[0], y: o[1] }, text: d }, { el: 'text', a: { class: 'qprot-in', x: i[0], y: i[1] }, text: 180 - d });
     }
   }
-  PROT_SVG = `<svg viewBox="-8 -26 216 134" aria-hidden="true">
-    <path class="qprot-body" d="M0 100A100 100 0 0 1 200 100Z"/>
-    <path class="qprot-ticks" d="${ticks}M${cx} ${cy}L${cx} ${cy - 40}M${cx - 6} ${cy}L${cx + 6} ${cy}"/>
-    <g class="qprot-nums">${nums}</g>
-    <circle class="qprot-pin" cx="${cx}" cy="${cy}" r="2.5"/>
-    <line class="qprot-stem" x1="${cx}" y1="0" x2="${cx}" y2="-14"/>
-    <circle class="qprot-knob" data-prot="turn" cx="${cx}" cy="-16" r="9"/>
-    <circle class="qprot-hit" data-prot="turn" cx="${cx}" cy="-16" r="22"/>
-  </svg>`;
+  PROT_SVG = cardBlock_({ type: 'drawing', node: { el: 'svg', a: { viewBox: '-8 -26 216 134', 'aria-hidden': 'true' }, kids: [
+    { el: 'path', a: { class: 'qprot-body', d: 'M0 100A100 100 0 0 1 200 100Z' } },
+    { el: 'path', a: { class: 'qprot-ticks', d: `${ticks}M${cx} ${cy}L${cx} ${cy - 40}M${cx - 6} ${cy}L${cx + 6} ${cy}` } },
+    { el: 'g', a: { class: 'qprot-nums' }, kids: nums },
+    { el: 'circle', a: { class: 'qprot-pin', cx, cy, r: '2.5' } },
+    { el: 'line', a: { class: 'qprot-stem', x1: cx, y1: '0', x2: cx, y2: '-14' } },
+    { el: 'circle', a: { class: 'qprot-knob', 'data-prot': 'turn', cx, cy: '-16', r: '9' } },
+    { el: 'circle', a: { class: 'qprot-hit', 'data-prot': 'turn', cx, cy: '-16', r: '22' } }] } });
   return PROT_SVG;
 }
 function padProtHtml_(k) {
   const st = padProtOf_(k);
-  return `<div class="qpad-prot" data-noswipe data-prot-k="${esc(k)}" role="img" aria-label="Protractor, turned ${Math.round(st.a)} degrees"
-    style="left:${st.x.toFixed(2)}%;top:${st.y.toFixed(2)}%;transform:translate(-${PROT_PX}%,-${PROT_PY.toFixed(3)}%) rotate(${st.a}deg);transform-origin:${PROT_PX}% ${PROT_PY.toFixed(3)}%">${padProtSvg_()}</div>`;
+  return cardBlock_({ type: 'group', look: 'qpad-prot', attrs: { 'data-noswipe': true, 'data-prot-k': k, role: 'img', 'aria-label': `Protractor, turned ${Math.round(st.a)} degrees`,
+    style: `left:${st.x.toFixed(2)}%;top:${st.y.toFixed(2)}%;transform:translate(-${PROT_PX}%,-${PROT_PY.toFixed(3)}%) rotate(${st.a}deg);transform-origin:${PROT_PX}% ${PROT_PY.toFixed(3)}%` }, inner: padProtSvg_() });
 }
 /* EVERY COPY OF THIS PAD ON THE PAGE, with the protractor down or up as its state says, and the tile lit to match -- in place, no repaint */
 function padProtSync_(k) {
@@ -668,7 +668,7 @@ function padRepaint_(pad, all) {
         || p.getAttribute('vector-effect') !== 'non-scaling-stroke' || p.getAttribute('d') !== want[i]) break;
     i++;
   }
-  if (!i) { g.innerHTML = want.map(d => `<path vector-effect="non-scaling-stroke" d="${d}"/>`).join(''); return; }
+  if (!i) { g.innerHTML = padInkPaths_(want); return; }
   while (have.length > i) g.removeChild(have[have.length - 1]);
   for (; i < want.length; i++) {
     const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -763,5 +763,7 @@ function padUnderParts_(x, svg) {
 }
 /* THE EARLIER MARKS AS AN INK GROUP, beside the pad's own and never inside it: `padRepaint_` rewrites
    `.qpad-g` from this part's storage, so nothing it does can reach these. */
-const usesInk_ = (all, k) => `<g class="qpad-was" vector-effect="non-scaling-stroke">${all.map(st =>
-  `<path vector-effect="non-scaling-stroke" d="${padPath_(st, k)}"/>`).join('')}</g>`;
+/* INK AS DATA: each stroke a path the drawing block writes, its width kept at any zoom. */
+const padInkNodes_ = ds => ds.map(d => ({ el: 'path', a: { 'vector-effect': 'non-scaling-stroke', d } }));
+const padInkPaths_ = ds => cardBlock_({ type: 'drawing', node: padInkNodes_(ds) });
+const usesInk_ = (all, k) => cardBlock_({ type: 'drawing', node: { el: 'g', a: { class: 'qpad-was', 'vector-effect': 'non-scaling-stroke' }, kids: padInkNodes_(all.map(st => padPath_(st, k))) } });

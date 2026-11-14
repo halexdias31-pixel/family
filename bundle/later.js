@@ -3391,8 +3391,8 @@ function typesetTerms_(k) {
     const u = t.replace(/^(?:\s|&nbsp;)+|(?:\s|&nbsp;)+$/g, '');
     return u[0] === '(' && brFwd(u, 0) === u.length - 1 ? u.slice(1, -1) : u;
   };
-  const stack = (n, d) => '<span class="frac"><span class="frac-n">' + bare(n)
-    + '</span><span class="frac-s">/</span><span class="frac-d">' + bare(d) + '</span></span>';
+  const stack = (n, d) => cardBlock_({ type: 'group', tag: 'span', look: 'frac', blocks: [{ type: 'group', tag: 'span', look: 'frac-n', inner: bare(n) },
+    { type: 'group', tag: 'span', look: 'frac-s', inner: '/' }, { type: 'group', tag: 'span', look: 'frac-d', inner: bare(d) }] });
   Object.assign(k, { termBack, termFwd, GAP, gapBack, bare, stack });
 }
 
@@ -3420,7 +3420,7 @@ function typesetPowers_(k) {
     }
     if (!exp.trim()) continue;
     /* A HYPHEN IN AN INDEX IS A MINUS SIGN, and set as one: 4<sup>−2</sup>, not 4<sup>-2</sup>. */
-    k.s = k.s.slice(0, p) + '<sup>' + exp.replace(/^-/, '&minus;') + '</sup>' + k.s.slice(end);
+    k.s = k.s.slice(0, p) + cardBlock_({ type: 'group', tag: 'sup', inner: exp.replace(/^-/, '&minus;') }) + k.s.slice(end);
     from = p;
   }
 }
@@ -3441,7 +3441,8 @@ function typesetFracs_(k) {
     if (w.deep) {
       const a = /\d+$/.exec(k.s.slice(Math.max(0, p - 12), p)), b = /^\d+/.exec(k.s.slice(q, q + 12));
       if (!a || !b) continue;
-      const ix = '<span class="frac-ix"><span class="frac-ix-n">' + a[0] + '</span>&#x2044;<span class="frac-ix-d">' + b[0] + '</span></span>';
+      const ix = cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix', inner: cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix-n', text: a[0] })
+        + '&#x2044;' + cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix-d', text: b[0] }) });
       k.s = k.s.slice(0, p - a[0].length) + ix + k.s.slice(q + b[0].length);
       from = p - a[0].length + ix.length;
       continue;
@@ -3450,7 +3451,7 @@ function typesetFracs_(k) {
     const le = gapBack(p);
     let ls = termBack(le), whole = '', num;
     if (ls === le) continue;
-    if (k.s.slice(le - 6, le) === '</sup>') {
+    if (/^<\/sup>$/.test(k.s.slice(le - 6, le))) {
       const o = openOf(le, 'sup');
       const pre = k.s.slice(ls, o), inner = k.s.slice(k.s.indexOf('>', o) + 1, le - 6);
       if (!pre) num = inner;
@@ -3479,7 +3480,7 @@ function typesetFracs_(k) {
       }
       den = k.s.slice(rs, re);
     }
-    const out = whole ? '<span class="frac-mixed">' + whole + stack(num, den) + '</span>' : stack(num, den);
+    const out = whole ? cardBlock_({ type: 'group', tag: 'span', look: 'frac-mixed', inner: whole + stack(num, den) }) : stack(num, den);
     k.s = k.s.slice(0, ls) + out + k.s.slice(re);
     /* FROM WHERE THIS ONE STARTED, not after it: a fraction inside its numerator was inside a
        <sup> a moment ago and skipped as an index, and it is in a span now and should be drawn. */
@@ -3495,8 +3496,9 @@ function answerParts_(raw) {
   const VOID = /^(?:br|img|hr|wbr|input)$/i;
   const BLOCK = /^(?:table|thead|tbody|tfoot|tr|td|th|ul|ol|li|dl|dt|dd|div|figure)$/i;
   const CODE = '(?:[BMAPC][1-5]|SC[1-5]?|cao|oe|ft|isw|awrt)';
-  const RUN = new RegExp('(?:<b>)?\\(?\\b' + CODE + '\\b\\)?(?:</b>)?(?:[\\s,]+(?:<b>)?\\(?\\b' + CODE
-    + '\\b\\)?(?:</b>)?)*', 'g');
+  /* A READER, not a maker: the pattern's pieces are regex literals. */
+  const OPEN = /(?:<b>)?\(?\b/.source, SHUT = /\b\)?(?:<\/b>)?/.source;
+  const RUN = new RegExp(OPEN + CODE + SHUT + '(?:[\\s,]+' + OPEN + CODE + SHUT + ')*', 'g');
   const seen = t => String(t).replace(/<[^>]*>/g, '').replace(/&nbsp;|&#160;/g, ' ').trim();
   let head = s, why = '', m;
   while ((m = DASH.exec(s))) {
@@ -3561,10 +3563,8 @@ function answerBlock_(x) {
   const kind = String(x.answerType || '').trim();
   /* ---------- THE ANSWER, AND NOTHING ELSE § */
   const p = answerParts_(x.answer);
-  return `<div class="qans">
-    <span class="qans-head">Answer${kind ? ` &middot; ${esc(kind)}` : ''}</span>
-    <div class="qans-body qtext">${typeset_(p.head)}</div>
-  </div>`;
+  return cardBlock_({ type: 'group', look: 'qans', blocks: [{ type: 'group', tag: 'span', look: 'qans-head', text: 'Answer' + (kind ? ' · ' + kind : '') },
+    { type: 'group', look: 'qans-body qtext', inner: typeset_(p.head) }] });
 }
 
 /* OPENING ONE SHOWS THE STEM, THE LEAD AND THE PART — in that order, because that is the order it is printed and because a part without them cannot be answered. § */
@@ -3951,7 +3951,7 @@ function libItemByKey_(k) {
 /* WHAT A WAITING CARD SAYS UNDER ITS TAGS: sign in, the dots, or why it did not come and Try again. */
 function libSay_(x) {
   if (typeof USER === 'undefined' || !USER || !USER.token) {
-    return '<p class="note lib-sign">Sign in to see this — your account is a few screens to the right.</p>';
+    return cardBlock_({ type: 'paperNote', look: 'lib-sign', text: 'Sign in to see this — your account is a few screens to the right.' });
   }
   /* A CARD NEWER THAN ITS WORDS (`lib_pending`, docs/library.md): the Ledger has not had them imported yet. */
   if (libIdsFor_(x).some(t => LIB.gone.has(t))) return empty_(x && x.row && (x.row.pending === true || libTrue(x.row.lib_pending)) ? 'Coming soon.' : 'Not in the library yet.');
@@ -3966,7 +3966,7 @@ function libWaitHtml_(x) {
   const q = isQ_(x);
   /* THE ONE ANATOMY (owner, 10 Nov): no picture yet, its tags, its name as a line (not a heading), then what it waits for. */
   return findCard({ kind: 'libwait', name: (x && x.name) || '', kcOwn: { cls: 'lib-wait' + (q ? ' qcard' : ''), attrs: ` data-lib="${esc((x && x.key) || '')}"`,
-    tags: tagRow_(x), lines: `${q ? '' : `<p class="kc-line">${esc((x && x.name) || '')}</p>`}<div class="lib-say">${libSay_(x)}</div>` } });
+    tags: tagRow_(x), lines: cardBlocks_((q ? [] : [{ type: 'group', tag: 'p', look: 'kc-line', text: (x && x.name) || '' }]).concat({ type: 'group', look: 'lib-say', inner: libSay_(x) })) } });
 }
 /* THE PAGES ARE COUNTED AGAIN ONLY WHERE THEY ARE DRAWN AGAIN — counting them anywhere else would move every page under a column already drawn. */
 function libPagesFresh_() {
@@ -7299,7 +7299,7 @@ function padLoupe_(g) {
     el = document.createElement('div');
     el.className = 'pad-loupe';
     el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = '<div class="pad-loupe-in"></div><i class="pad-loupe-x"></i>';
+    el.innerHTML = cardBlocks_([{ type: 'group', look: 'pad-loupe-in' }, { type: 'group', tag: 'i', look: 'pad-loupe-x' }]);
     document.body.appendChild(el);
   }
   const box = g.box, inner = el.firstChild;
@@ -7684,7 +7684,7 @@ function padUnderRepaint_(k) {
     const g = keys.indexOf(k) >= 0 && p.querySelector('.qpad-was');
     if (!g) return;
     const ka = padAspectOf_(p);
-    g.innerHTML = [].concat(...keys.map(padRead_)).map(st => `<path vector-effect="non-scaling-stroke" d="${padPath_(st, ka)}"/>`).join('');
+    g.innerHTML = padInkPaths_([].concat(...keys.map(padRead_)).map(st => padPath_(st, ka)));
   });
 }
 /* ---------- AND EVERY OTHER COPY OF THE SAME PAD, FROM THE STORE § */
@@ -7753,30 +7753,30 @@ let PROT_SVG = '';
 function padProtSvg_() {
   if (PROT_SVG) return PROT_SVG;
   const R = 100, cx = 100, cy = 100, P = (r, d) => { const t = (180 - d) * Math.PI / 180; return [(cx + r * Math.cos(t)).toFixed(2), (cy - r * Math.sin(t)).toFixed(2)]; };
-  let ticks = '', nums = '';
+  let ticks = '';
+  const nums = [];
   for (let d = 0; d <= 180; d++) {
     const len = d % 10 === 0 ? 12 : d % 5 === 0 ? 8 : 4, a = P(R, d), b = P(R - len, d);
     ticks += `M${a[0]} ${a[1]}L${b[0]} ${b[1]}`;
     if (d % 10 === 0) {
       const o = P(R - 19, d), i = P(R - 31, d);
-      nums += `<text x="${o[0]}" y="${o[1]}">${d}</text><text class="qprot-in" x="${i[0]}" y="${i[1]}">${180 - d}</text>`;
+      nums.push({ el: 'text', a: { x: o[0], y: o[1] }, text: d }, { el: 'text', a: { class: 'qprot-in', x: i[0], y: i[1] }, text: 180 - d });
     }
   }
-  PROT_SVG = `<svg viewBox="-8 -26 216 134" aria-hidden="true">
-    <path class="qprot-body" d="M0 100A100 100 0 0 1 200 100Z"/>
-    <path class="qprot-ticks" d="${ticks}M${cx} ${cy}L${cx} ${cy - 40}M${cx - 6} ${cy}L${cx + 6} ${cy}"/>
-    <g class="qprot-nums">${nums}</g>
-    <circle class="qprot-pin" cx="${cx}" cy="${cy}" r="2.5"/>
-    <line class="qprot-stem" x1="${cx}" y1="0" x2="${cx}" y2="-14"/>
-    <circle class="qprot-knob" data-prot="turn" cx="${cx}" cy="-16" r="9"/>
-    <circle class="qprot-hit" data-prot="turn" cx="${cx}" cy="-16" r="22"/>
-  </svg>`;
+  PROT_SVG = cardBlock_({ type: 'drawing', node: { el: 'svg', a: { viewBox: '-8 -26 216 134', 'aria-hidden': 'true' }, kids: [
+    { el: 'path', a: { class: 'qprot-body', d: 'M0 100A100 100 0 0 1 200 100Z' } },
+    { el: 'path', a: { class: 'qprot-ticks', d: `${ticks}M${cx} ${cy}L${cx} ${cy - 40}M${cx - 6} ${cy}L${cx + 6} ${cy}` } },
+    { el: 'g', a: { class: 'qprot-nums' }, kids: nums },
+    { el: 'circle', a: { class: 'qprot-pin', cx, cy, r: '2.5' } },
+    { el: 'line', a: { class: 'qprot-stem', x1: cx, y1: '0', x2: cx, y2: '-14' } },
+    { el: 'circle', a: { class: 'qprot-knob', 'data-prot': 'turn', cx, cy: '-16', r: '9' } },
+    { el: 'circle', a: { class: 'qprot-hit', 'data-prot': 'turn', cx, cy: '-16', r: '22' } }] } });
   return PROT_SVG;
 }
 function padProtHtml_(k) {
   const st = padProtOf_(k);
-  return `<div class="qpad-prot" data-noswipe data-prot-k="${esc(k)}" role="img" aria-label="Protractor, turned ${Math.round(st.a)} degrees"
-    style="left:${st.x.toFixed(2)}%;top:${st.y.toFixed(2)}%;transform:translate(-${PROT_PX}%,-${PROT_PY.toFixed(3)}%) rotate(${st.a}deg);transform-origin:${PROT_PX}% ${PROT_PY.toFixed(3)}%">${padProtSvg_()}</div>`;
+  return cardBlock_({ type: 'group', look: 'qpad-prot', attrs: { 'data-noswipe': true, 'data-prot-k': k, role: 'img', 'aria-label': `Protractor, turned ${Math.round(st.a)} degrees`,
+    style: `left:${st.x.toFixed(2)}%;top:${st.y.toFixed(2)}%;transform:translate(-${PROT_PX}%,-${PROT_PY.toFixed(3)}%) rotate(${st.a}deg);transform-origin:${PROT_PX}% ${PROT_PY.toFixed(3)}%` }, inner: padProtSvg_() });
 }
 /* EVERY COPY OF THIS PAD ON THE PAGE, with the protractor down or up as its state says, and the tile lit to match -- in place, no repaint */
 function padProtSync_(k) {
@@ -7895,7 +7895,7 @@ function padRepaint_(pad, all) {
         || p.getAttribute('vector-effect') !== 'non-scaling-stroke' || p.getAttribute('d') !== want[i]) break;
     i++;
   }
-  if (!i) { g.innerHTML = want.map(d => `<path vector-effect="non-scaling-stroke" d="${d}"/>`).join(''); return; }
+  if (!i) { g.innerHTML = padInkPaths_(want); return; }
   while (have.length > i) g.removeChild(have[have.length - 1]);
   for (; i < want.length; i++) {
     const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -7990,8 +7990,10 @@ function padUnderParts_(x, svg) {
 }
 /* THE EARLIER MARKS AS AN INK GROUP, beside the pad's own and never inside it: `padRepaint_` rewrites
    `.qpad-g` from this part's storage, so nothing it does can reach these. */
-const usesInk_ = (all, k) => `<g class="qpad-was" vector-effect="non-scaling-stroke">${all.map(st =>
-  `<path vector-effect="non-scaling-stroke" d="${padPath_(st, k)}"/>`).join('')}</g>`;
+/* INK AS DATA: each stroke a path the drawing block writes, its width kept at any zoom. */
+const padInkNodes_ = ds => ds.map(d => ({ el: 'path', a: { 'vector-effect': 'non-scaling-stroke', d } }));
+const padInkPaths_ = ds => cardBlock_({ type: 'drawing', node: padInkNodes_(ds) });
+const usesInk_ = (all, k) => cardBlock_({ type: 'drawing', node: { el: 'g', a: { class: 'qpad-was', 'vector-effect': 'non-scaling-stroke' }, kids: padInkNodes_(all.map(st => padPath_(st, k))) } });
 
 ;
 /* ==== js/find-figures.js ==== */
@@ -17576,23 +17578,22 @@ const calcOf_ = key => { if (!CALC_ST.has(key)) CALC_ST.set(key, calcNew()); ret
 
 /* THE LCD: the status row (S while SHIFT is held, D degrees, Math the natural display), the sum, the answer. Drawn by CSS, never the sum's text. */
 function calcScreen_(st) {
-  const h = calcHtml(st);
-  return '<div class="mc-stat" aria-hidden="true"><b data-i="S"' + (st.shift ? ' class="on"' : '') + '></b><b data-i="D" class="on"></b><b data-i="Math" class="on"></b>'
-    + (st.past.length ? '<b data-i="▲" class="on"></b>' : '') + '</div><div class="mc-in">' + h.input + '</div><div class="mc-out">'
-    + (h.output || (st.root.length ? '' : '0')) + '</div>';
+  const h = calcHtml(st), mark = (i, on) => ({ type: 'group', tag: 'b', look: on ? 'on' : null, attrs: { 'data-i': i } });
+  return cardBlocks_([{ type: 'group', look: 'mc-stat', attrs: { 'aria-hidden': 'true' }, blocks: [mark('S', st.shift), mark('D', true), mark('Math', true)].concat(st.past.length ? [mark('▲', true)] : []) },
+    { type: 'group', look: 'mc-in', inner: h.input }, { type: 'group', look: 'mc-out', inner: h.output || (st.root.length ? '' : '0') }]);
 }
 /* A KEY'S PRINTED FACE IS DATA (calc-engine.js): runs drawn by renderCard's runs, line drawings by its drawing block. */
 const calcFace_ = v => [].concat(v == null ? [] : v).map(x => x && x.el ? cardDraw_(x) : cardRuns_(x)).join('');
 /* THE FACE, as it was in the Calculator widget: bezel and LCD, the top keys round the pad, the function keys, the number keys */
 function calcFaceHtml_(key) {
-  const st = calcOf_(key);
-  const keys = ([[ 'top', 'calc-top', '<i class="calc-pad" aria-hidden="true"></i><i class="calc-pad calc-pad-v" aria-hidden="true"></i>'], ['fn', 'calc-fn', ''], ['num', 'calc-num', '']]).map(([part, cls, extra]) =>
-    `<div class="${cls}">${extra}${CALC_KEYS.filter(k => k[2].split(' ')[0] === part).map(([v, label, kc, legend, name]) =>
+  const st = calcOf_(key), pad = look => ({ type: 'group', tag: 'i', look, attrs: { 'aria-hidden': 'true' } });
+  const keys = ([['top', 'calc-top', [pad('calc-pad'), pad('calc-pad calc-pad-v')]], ['fn', 'calc-fn', []], ['num', 'calc-num', []]]).map(([part, cls, extra]) =>
+    ({ type: 'group', look: cls, blocks: extra, inner: CALC_KEYS.filter(k => k[2].split(' ')[0] === part).map(([v, label, kc, legend, name]) =>
       tile_({ form: true, look: 'mc-btn ' + kc + (/^\w+$/.test(v) ? ' mc-k-' + v : ''), act: 'qcalc-key', data: { mc: v }, aria: name || v,
-        html: (/pad|pg/.test(kc) ? '' : `<small class="mc-alt">${calcFace_(legend)}</small>`) + `<span class="mc-lab">${calcFace_(label)}</span>` })).join('')}</div>`).join('');
-  return `<div class="calc${st.shift ? ' mc-shifted' : ''}" data-key="${esc(key)}" role="group" aria-label="Calculator">
-    <div class="calc-bezel"><div class="mc-display" tabindex="0" aria-live="polite" aria-label="Calculator display">${calcScreen_(st)}</div>
-    <div class="calc-label">${esc(brand('name', '@family.'))}</div></div>${keys}</div>`;
+        html: cardBlocks_((/pad|pg/.test(kc) ? [] : [{ type: 'group', tag: 'small', look: 'mc-alt', inner: calcFace_(legend) }]).concat({ type: 'group', tag: 'span', look: 'mc-lab', inner: calcFace_(label) })) })).join('') }));
+  return cardBlock_({ type: 'group', look: 'calc' + (st.shift ? ' mc-shifted' : ''), attrs: { 'data-key': key, role: 'group', 'aria-label': 'Calculator' }, blocks: [
+    { type: 'group', look: 'calc-bezel', blocks: [{ type: 'group', look: 'mc-display', attrs: { tabindex: '0', 'aria-live': 'polite', 'aria-label': 'Calculator display' }, inner: calcScreen_(st) },
+      { type: 'group', look: 'calc-label', text: brand('name', '@family.') }] }].concat(keys) });
 }
 /* THE LCD DRAWN AGAIN after a key; a long sum scrolls to where you are typing */
 function calcPaint_(box) {
