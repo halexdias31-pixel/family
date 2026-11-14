@@ -38,7 +38,7 @@ const KEPT = [
   { file: 'find.js', fn: 'paintDocket', has: 'dock-tick',
     why: 'a docket tick — saved the moment it is ticked (`docketSave`), and sent as the page goes',
     proof: [['find.js', /keepDue_\('docket', sendTodo\)/]] },
-  { file: 'map.js', has: 'id="notepad"',
+  { file: 'map.js', has: "id: 'notepad'",
     why: 'the notepad — on the device at every keystroke (`familyUser`), on the account 1.4 s later or as the page goes',
     proof: [['find.js', /USER\.notepad = e\.target\.value/], ['find.js', /keepDue_\('notepad', padSend_\)/]] },
   { file: 'cards-render.js', fn: 'paperInput_', has: 'class="bk-in',
@@ -47,7 +47,7 @@ const KEPT = [
   { file: 'records.js', fn: 'profitControl_', has: 'data-pf=', count: 2,
     why: 'a term of the Profit card\'s sum (393) — slider and number box, kept as they move in `PROFIT.vals` on this device (`profitKeep_`), never sent',
     proof: [['records.js', /PROFIT\.vals\[el\.dataset\.pf\] = x;\s*profitKeep_\(\);/]] },
-  { file: 'map.js', has: 'id="sr-text"',
+  { file: 'map.js', has: "id: 'sr-text'",
     why: 'the speed reader\'s pasted text (403) — kept on the device as it is typed (`speedDraft`), never sent',
     proof: [['reader.js', /localStorage\.setItem\('speedDraft', e\.target\.value\)/]] },
   { file: 'reader.js', fn: 'speedSheet_', has: 'id="rsvp-wpm"',
@@ -127,7 +127,7 @@ const EXEMPT = [
   { file: 'me.js', fn: 'applyFormHtml_', has: 'data-app="dbsUpdate"', why: 'the application to teach (400) — the DBS Update Service tick, sent with it' },
   { file: 'push.js', fn: 'pushBody_', has: 'data-push-kind', why: 'a phone-notification tick is a `pushSet` the moment it is ticked and the card is redrawn from the server\'s answer — no Save to wait for, nothing half-made on the device (492)' },
   { file: 'form.js', fn: 'formToggle_', has: 'data-do="${esc(t.act)}"', why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },
-  { file: 'map.js', has: 'id="dock-add"', why: 'one line, kept the moment Enter or + puts it on the docket' },
+  { file: 'map.js', has: "id: 'dock-add'", why: 'one line, kept the moment Enter or + puts it on the docket' },
   { file: 'find.js', has: 'class="room-name"', why: 'a room name, a few words, prefilled and sent by the button under it' },
 ];
 [KEPT, EXEMPT].forEach(list => { for (let i = list.length - 1; i >= 0; i--) if (ATTIC_(list[i].file)) list.splice(i, 1); });
