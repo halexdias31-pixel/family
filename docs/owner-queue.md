@@ -61,6 +61,7 @@ One list, so nothing asked for gets lost. Claude ticks items off here when they 
 - [ ] Tidy the science Find menus (Chemistry, Biology, Physics). Spec topics (AQA, Edexcel and so on) must not be mixed with reference databases such as the element-per-element data (keep it). Put the databases in their own clearly separate branch, e.g. Chemistry › Reference › Elements, apart from Chemistry › <board> › <spec topic>. Re-parent branches logically: parent above child, no parent beside its own child, no umbrella duplicates. Make it a rule plus a check (spec topics vs reference data never share a menu), applied to every subject, not just science.
 
 ## New subjects (owner, 13 Nov): for each, the spec card, then topic cards in the one template, plus some past papers where available
+- University Mathematics, Statistics and Operational Research (owner, 14 Nov): the QAA Subject Benchmark Statement for MSOR (one benchmark covers maths and statistics) plus FHEQ levels 4–7. Start with probability: Bayes' theorem (conditional probability, total probability, Bayes, priors and posteriors, worked examples), then the rest of the benchmark. Spec cards first, then topic pages in the one template.
 - [ ] Biblical Hebrew: the QAA Theology and Religious Studies benchmark (Hebrew Bible strand)
 - [ ] Koine (New Testament) Greek: OCR GCSE and A-Level Classical Greek (AQA has no Greek GCSE)
 - [ ] Philosophy: AQA A-Level, plus the QAA Philosophy benchmark (university level, includes logic)
