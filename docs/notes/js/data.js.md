@@ -879,3 +879,12 @@ top level, before `uiMay_`
 /* MAY THE VIEWER HAVE THIS BUTTON: permissions.json's `ui` rows, by the action roles, so a child differs from a parent; no row, an admin's only. */
 ```
 
+### ONLY WHEN IT RAN (live, 14 Nov):
+
+in `laterFiles_`
+
+```
+/* ONLY WHEN IT RAN (live, 14 Nov): a batch the network dropped is not "in" — the columns wait, and it is asked for again
+     until it lands; then the marks the payload brought are adopted and the waiting columns drawn. check/later-gone.js. */
+```
+

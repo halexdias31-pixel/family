@@ -4,8 +4,9 @@
 /* THE CELL AND THE GLASS ARE TWO THINGS. § */
 /* ---------- THE MARKS, ADOPTED FROM THE PAYLOAD JUST LANDED § */
 function adoptMarks_() {
-  try { adoptFavourites_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
-  try { adoptSpotlight_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
+  /* LATER FILES (find-bundles, collections): not here when the second batch has not landed; `laterFiles_` adopts again once it does. */
+  try { if (typeof adoptFavourites_ === 'function') adoptFavourites_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
+  try { if (typeof adoptSpotlight_ === 'function') adoptSpotlight_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
   /* AND THE LATEST ANSWER SENT FOR EACH QUESTION, from the account — onto the cards and into the boxes — and whatever this device has waiting to send goes up. § */
   try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
   /* AND A MARK WITH AI TILE DRAWN WAITING FOR THIS PAYLOAD (`aiDecided_`, keypad.js) — let go where it stands,

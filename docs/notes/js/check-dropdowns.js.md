@@ -148,3 +148,13 @@ top level, before `say`
    ask about" print the same silence. A section that read nothing fails rather than passes. */
 ```
 
+### ---------- AND A SELECT ASKED FOR AS A CARD-MAKER SPEC — `{ type: 'control', tag: 'select' }`, `{ kind: 'select' }`.
+
+top level, before `specSelects`
+
+```
+/* ---------- AND A SELECT ASKED FOR AS A CARD-MAKER SPEC — `{ type: 'control', tag: 'select' }`, `{ kind: 'select' }`.
+   Its classes and id come from `attrs`/`look`; what it is drawn inside is every spec object around it, each drawn
+   as its `tag` (or the first element its CARD_BLOCKS renderer writes) with its `look` and the renderer's own classes. */
+```
+

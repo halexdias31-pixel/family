@@ -227,9 +227,13 @@ for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
 
 /* ---------- 68a. WHAT OPENS, OPENS IN PLACE (fileView_), inside its card ---------- */
 /* Leaving is kept only where it must be: Google's sign-in and consent pages, the backend's own page, a sheet (none of them may be framed), a boxer's source site, and links a person typed in a message. */
-const LEAVES = { 'find-boxers': 1, 'me-account': 1, 'me-messages': 1, 'shell-load': 1, tiles: 1 };
+/* The card maker (cards-render) holds 2 new-tab makers, and only 2: the link run's `out` and msgLinks. A file that asks
+   for one through a spec — `out: true` on a run, a { type: 'msgLinks' } block — is counted as opening it itself. */
+const LEAVES = { 'find-boxers': 1, 'me-account': 1, 'me-messages': 1, 'shell-load': 1, tiles: 1, 'cards-render': 2 };
 files.forEach(({ n, src }) => {
-  const k = [...stripC(src).matchAll(/<a\b[^>]*target="_blank"[^>]*>/g)].filter(m => !/data-do="file-view"/.test(m[0])).length;
+  const code = stripC(src);
+  const k = [...code.matchAll(/<a\b[^>]*target="_blank"[^>]*>/g)].filter(m => !/data-do="file-view"/.test(m[0])).length
+    + [...code.matchAll(/\bout: (true|!)|type: 'msgLinks'/g)].length;
   if (k > (LEAVES[n] || 0)) bad.push(`68a ${n}.js opens ${k} link(s) in a new tab, allowed ${LEAVES[n] || 0} — data-do="file-view" opens it inside the card`);
   for (const m of src.matchAll(/tile_\(\{[^}]*\bhref:[^}]*\}\)/g)) if (!/leave: true/.test(m[0]) && n !== 'tiles') bad.push(`68a an href tile in ${n}.js — it opens in place unless leave: true (a sign-in)`);
 });

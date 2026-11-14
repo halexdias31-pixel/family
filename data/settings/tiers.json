@@ -347,6 +347,7 @@
     "check/bootslow.js": "core",
     "check/chip-feel.js": "core",
     "check/kp-centred.js": "core",
+    "check/later-gone.js": "core",
     "check/later.js": "core",
     "check/centred.js": "core",
     "check/setting-forms.js": "core",
