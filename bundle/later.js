@@ -1542,9 +1542,8 @@ function overFacet_(items) {
 /* THE CARD. Small — a reference, the marks, and the first line of the question, because a list of ninety § */
 /* THE RECORD IS THE FACE OF IT. § */
 /* ---------- ONE BOUT (batch D): the two fighters' portraits facing each other under the tags, and nothing else § */
-cardKind_('fight', x => { const f = x.row || {};
-  return { look: 'fight', name: [f.a, f.b].filter(Boolean).join(' and '), tags: tagList_(x),
-    body: [{ type: 'figure', ...personPicSpec_(f.aId, f.a) }, { type: 'figure', ...personPicSpec_(f.bId, f.b, true) }] }; });
+/* Its card is its item map (ITEM_MAPS.fight, cards-parts.js); these portraits are its body. */
+const fightBody_ = f => [{ type: 'figure', ...personPicSpec_(f.aId, f.a) }, { type: 'figure', ...personPicSpec_(f.bId, f.b, true) }];
 
 /* WHO WON A BOUT, by id where there is one (as the card frames the face), else by the name the row gives. */
 function boutWinner_(x) {
@@ -1874,8 +1873,7 @@ function insertBody_(r) {
 }
 /* A READING INSERT'S SOURCE, drawn when its words are here; until then what it waits on (`insSay_`). */
 CARD_EMBEDS['ins-source'] = a => { const r = insertRow_(a.id); return !r ? '' : r.sourceText ? insSource_(r) : insSay_(r); };
-cardKind_('insert', x => { const r = x.row || {}; insWant_(r);
-  return { look: 'insh', name: x.name, tags: kcFacetTags_(x).concat((x.sheets || []).map(t => ({ text: t, colour: 2 }))), body: insertBody_(r) }; });
+/* ITS CARD IS ITS ITEM MAP (ITEM_MAPS.insert, cards-parts.js): these blocks are its body, its sheets tags after its facets. */
 const insertSheet_ = r => renderCard({ kind: 'insert', look: 'insh', name: r.name, tags: [{ text: r.name, colour: 0 }], body: insertBody_(r) });
 /* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies. */
 function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
@@ -1907,11 +1905,11 @@ function specNamed_(r) {
   try { (stuffItemsAll_() || []).forEach(i => { if (i && want.has(i.key)) out[i.key] = /^q:/.test(i.key) && i.sub ? i.sub + ' · ' + i.name : i.name || i.key; }); } catch (e) { /* Find not ready: the card shows its tree alone */ }
   return out;
 }
-/* THE SECTION TREE, each section folded; the official PDF holds the full wording. */
-cardKind_('spec', x => { const r = x.row || {}, named = specNamed_(r);
-  return { look: 'insh spec-sheet', name: x.name, tags: kcFacetTags_(x), body: [{ type: 'text', look: 'insh-kick', text: [r.board, r.qualification, r.subject, r.code].join(' · ') },
+/* THE SECTION TREE, each section folded; the official PDF holds the full wording. The body of its item (ITEM_MAPS.spec, cards-parts.js). */
+function specBody_(r) { const named = specNamed_(r);
+  return [{ type: 'text', look: 'insh-kick', text: [r.board, r.qualification, r.subject, r.code].join(' · ') },
     { type: 'tree', nodes: (r.sections || []).map(s => ({ label: s.title, kids: specNodes_(r, s.id, named) })) },
-    { type: 'text', look: 'insh-check', text: 'Short headings; the official specification has the full wording.' }] }; });
+    { type: 'text', look: 'insh-check', text: 'Short headings; the official specification has the full wording.' }]; }
 const specExtras_ = x => [{ icon: 'open', label: 'Official', note: /\.pdf$/i.test(x.row.url) ? 'specification PDF' : 'the framework page', act: 'file-view', data: { url: x.row.url, title: x.row.board + ' ' + x.row.code } }];
 /* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
 on('ins-print', el => {
@@ -3069,7 +3067,7 @@ window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: 
 /* A BOXER'S OR FIGURE'S PIXEL PORTRAIT AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
 /* A PERSON IN THE LIBRARY (a boxer, a figure): their 8-bit portrait, their name and facets (master template). */
 const personPicSpec_ = (id, name, flip) => { const r = personPix_(id, name); return { pix: r && Array.isArray(r.px) ? r.px : PIX_NONE, alt: name, flip, none: !r }; };
-cardKind_('people', x => ({ look: 'person lib-c', picture: personPicSpec_(x.pixId, x.name), tags: [{ text: x.name || '', colour: 0 }].concat(x.key ? tagList_(x) : []) }));
+/* Their card is their item map (ITEM_MAPS.figure and .boxer, cards-parts.js), drawn as kind `people`. */
 
 ;
 /* ==== js/find-parts.js ==== */
@@ -21848,9 +21846,8 @@ function mechScope_(x) { return !x || x.kind !== 'mech' || x.mFile === 'pc' ? ''
 const mechOwn_ = (x, file, k) => (x && x.kind === 'mech' && x.mFile === file && x.mech[k]) || '';
 
 /* A CARD IS ITS TAGS AND ITS DRAWING; a part adds one line of what it does. No title: the name is a tag. */
-function mechPic_(x) { return cardBlock_({ type: 'drawing', node: { el: 'figure', a: { class: 'mech-pic' }, inner: pixSvg_(x.mech.px, x.name, false, ' mech-px') } }); }
-cardKind_('mech', x => { const r = x.mech || {};
-  return { look: 'mech', picture: Array.isArray(r.px) ? { svg: mechPic_(x), alt: x.name } : null, tags: typeof tagList_ === 'function' && x.key ? tagList_(x) : [], body: r.does ? [{ type: 'text', text: r.does, look: 'mech-does' }] : [] }; });
+/* Its card is its item map (ITEM_MAPS.mech, cards-parts.js); this is the drawing it shows. */
+function mechPic_(px, name) { return cardBlock_({ type: 'drawing', node: { el: 'figure', a: { class: 'mech-pic' }, inner: pixSvg_(px, name, false, ' mech-px') } }); }
 /* A CAR'S PARTS ARE A FIND (650): its every part, Car part chosen and the car's make, model and engine (`CARD_EXTRAS_`). */
 function mechExtras_(x) { const r = x.mech || {}; return x.mFile === 'models' && r.code ? { icon: 'search', label: 'Parts', note: 'every part for this car', act: 'mech-parts', data: { engine: r.code } } : null; }
 window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { mech: mechExtras_ });
@@ -21911,11 +21908,12 @@ function chemItems_() {
 }
 
 /* ONE LINE PER THING (421): a fact a line, its examples, then where the facts came from (a spec, master template). */
-cardKind_('chem', x => { const r = x.chem || {}, has = v => v || v === 0;
+/* The body of its item (ITEM_MAPS.chem, cards-parts.js), which draws its card. */
+function chemBody_(r) { const has = v => v || v === 0;
   const facts = [['Symbol', r.symbol], ['Atomic number', r.number], ['Relative atomic mass', r.mass], ['Block', r.block], ['Electron configuration', r.config],
     ['Discovered', r.discovered], ['Also called', r.also], ['Formula', r.formula], ['Use', r.use], ['Hazard', r.hazard], ['Pattern', r.pattern],
     ['Conditions', r.conditions], ['Observations', r.observations]].filter(f => has(f[1])).map(([k, v]) => k + ' ' + v);
-  return { look: 'tx kc-facts', tags: kcFacetTags_(x), body: [{ type: 'text', paras: facts.concat((r.examples || []).map(e => String(e.equation || '')), r.source || '') }] }; });
+  return [{ type: 'text', paras: facts.concat((r.examples || []).map(e => String(e.equation || '')), r.source || '') }]; }
 
 ;
 /* ==== js/qr.js ==== */

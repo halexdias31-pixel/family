@@ -481,4 +481,4 @@ window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: 
 /* A BOXER'S OR FIGURE'S PIXEL PORTRAIT AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
 /* A PERSON IN THE LIBRARY (a boxer, a figure): their 8-bit portrait, their name and facets (master template). */
 const personPicSpec_ = (id, name, flip) => { const r = personPix_(id, name); return { pix: r && Array.isArray(r.px) ? r.px : PIX_NONE, alt: name, flip, none: !r }; };
-cardKind_('people', x => ({ look: 'person lib-c', picture: personPicSpec_(x.pixId, x.name), tags: [{ text: x.name || '', colour: 0 }].concat(x.key ? tagList_(x) : []) }));
+/* Their card is their item map (ITEM_MAPS.figure and .boxer, cards-parts.js), drawn as kind `people`. */

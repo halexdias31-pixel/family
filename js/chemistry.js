@@ -45,8 +45,9 @@ function chemItems_() {
 }
 
 /* ONE LINE PER THING (421): a fact a line, its examples, then where the facts came from (a spec, master template). */
-cardKind_('chem', x => { const r = x.chem || {}, has = v => v || v === 0;
+/* The body of its item (ITEM_MAPS.chem, cards-parts.js), which draws its card. */
+function chemBody_(r) { const has = v => v || v === 0;
   const facts = [['Symbol', r.symbol], ['Atomic number', r.number], ['Relative atomic mass', r.mass], ['Block', r.block], ['Electron configuration', r.config],
     ['Discovered', r.discovered], ['Also called', r.also], ['Formula', r.formula], ['Use', r.use], ['Hazard', r.hazard], ['Pattern', r.pattern],
     ['Conditions', r.conditions], ['Observations', r.observations]].filter(f => has(f[1])).map(([k, v]) => k + ' ' + v);
-  return { look: 'tx kc-facts', tags: kcFacetTags_(x), body: [{ type: 'text', paras: facts.concat((r.examples || []).map(e => String(e.equation || '')), r.source || '') }] }; });
+  return [{ type: 'text', paras: facts.concat((r.examples || []).map(e => String(e.equation || '')), r.source || '') }]; }

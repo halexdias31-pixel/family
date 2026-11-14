@@ -17,12 +17,12 @@ The schema itself is `data/settings/item-shape.json`, which also lists every kin
 
 ## How a kind joins
 
-A kind needs only a **mapping** (in `ITEM_MAPS`, `js/cards-parts.js`): which columns are its tags, which are its links, its card's look and picture. Two shared functions do the rest:
+A kind needs only a **mapping** (in `ITEM_MAPS`, `js/cards-parts.js`): which columns are its tags, which are its links, its card's look and picture. The same few options serve every kind: where its id and name come from, which card draws it (a figure and a boxer share the person card), what its body says and whether the card shows it (`lines`), and whether its card leads with its name. Two shared functions do the rest:
 
 - `item_(row, kind)` turns any stored row into the shape.
 - `cardOfItem_(item)` turns the shape into a card for the one card template.
 
 ## Where we are
 
-- Moved: **manuscripts, writings, timeline events** (the history database). Their cards look exactly as before.
+- Moved: **manuscripts, writings, timeline events** (the history database); then **exam inserts, specifications, chemistry, mechanics, historical figures, boxers and fights**. Their cards look exactly as before (a car part's card is now labelled for screen readers by its name, not by its first tag).
 - Still to move: the list in `check/item-shape-ratchet.json`. The check (`node js/check-item-shape.js`) fails if that list ever grows, or if a moved kind gets its own builder back.

@@ -8808,22 +8808,48 @@ const ITEM_MAPS = {
     picture: (it, x) => { const svg = typeof msFragSvg_ === 'function' ? msFragSvg_(it.raw, x && x.msSideIx) : ''; return svg ? { svg, alt: it.name } : null; } },
   writing: { look: 'hdb lib-c', tags: ['language', 'genre'], links: ['author_id', 'manuscripts'] },
   event: { look: 'hdb lib-c', tags: ['era', 'theatre'], links: ['figures', 'writings'] },
+  insert: { look: 'insh', id: ['id', 'insert_id'], tags: ['subject', 'boards', 'board', 'levels', 'level'], links: ['forPapers'], lines: true, entryTags: { sheets: 2 },
+    body: r => { if (typeof insWant_ === 'function') insWant_(r); return typeof insertBody_ === 'function' ? insertBody_(r) : []; } },
+  spec: { look: 'insh spec-sheet', name: r => r.code, tags: ['board', 'qualification', 'subject', 'level'], lines: true,
+    body: r => (typeof specBody_ === 'function' ? specBody_(r) : []) },
+  chem: { look: 'tx kc-facts', from: 'chem', tags: ['category', 'type', 'block', 'state'], lines: true, body: r => (typeof chemBody_ === 'function' ? chemBody_(r) : []) },
+  mech: { look: 'mech', from: 'mech', tags: ['system', 'type', 'make'], links: ['fits'], nameTag: false, lines: true,
+    picture: it => (Array.isArray(it.raw.px) && typeof mechPic_ === 'function' ? { svg: mechPic_(it.raw.px, it.name), alt: it.name } : null),
+    body: r => (r.does ? [{ type: 'text', text: r.does, look: 'mech-does' }] : []) },
+  figure: { look: 'person lib-c', card: 'people', when: x => !!x.hdb, tags: ['roles', 'eras'], links: ['writings', 'events'], picture: it => kcPersonPic_(it) },
+  boxer: { look: 'person lib-c', card: 'people', id: ['id', 'boxer_id'], tags: ['country', 'bestDivision', 'best_division', 'stance'], picture: it => kcPersonPic_(it) },
+  fight: { look: 'fight', id: ['id', 'fight_id'], name: r => [r.a || r.boxer_a, r.b || r.boxer_b].filter(Boolean).join(' and '), nameTag: false, lines: true,
+    tags: ['division'], links: ['aId', 'bId', 'boxer_a_id', 'boxer_b_id'], body: r => (typeof fightBody_ === 'function' ? fightBody_(r) : []) },
 };
+/* THE SAME OPTIONS FOR EVERY KIND (slice 2): `id` its id columns; `name` (row → name); `from` the Find entry's field holding its row (else `row`); */
+/* `card` the card kind drawing it (else its own) and `when` (entry → true) which map that card picks; `body` (row → blocks) and `lines: true` */
+/* to draw them; `nameTag: false` for a card whose tags are its facets alone; `entryTags` { entry field: colour } after the facets. */
+/* A PERSON'S 8-BIT PORTRAIT (find-boxers.js), by their id. */
+const kcPersonPic_ = it => (typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null);
 const itemList_ = v => (Array.isArray(v) ? v : String(v == null ? '' : v).split('|')).map(t => String(t).trim()).filter(Boolean);
 /* ANY ROW → THE SHAPE. `raw` is kept beside it, for what only a kind's drawing needs (a manuscript's fragment). */
 function item_(raw, kind) {
-  const r = raw || {}, M = ITEM_MAPS[kind] || {}, words = col => (M[col] || []).flatMap(c => itemList_(r[c]));
+  const r = raw || {}, M = ITEM_MAPS[kind] || {}, words = col => [...new Set((M[col] || []).flatMap(c => itemList_(r[c])))];
   const lines = typeof HIST_LINES === 'object' && HIST_LINES[kind] ? HIST_LINES[kind].map(([label, col]) => ({ label, value: String((typeof col === 'function' ? col(r) : r[col]) || '') })).filter(l => l.value.trim()) : [];
-  return { id: String(r.id || '').trim(), kind, name: String(r.title || r.name || r.title_english || r.title_original || r.id || ''),
-    tags: words('tags'), body: lines.length ? [{ type: 'list', items: lines }] : [], links: words('links'), raw: r };
+  const own = M.body ? M.body(r) : null, body = Array.isArray(own) ? own : lines.length ? [{ type: 'list', items: lines }] : [];
+  const id = (M.id || ['id']).map(c => String(r[c] == null ? '' : r[c]).trim()).find(Boolean) || '';
+  return { id, kind, name: String((M.name && M.name(r)) || r.title || r.name || r.title_english || r.title_original || id || ''),
+    tags: words('tags'), body, links: words('links'), raw: r };
 }
-/* THE SHAPE → A renderCard SPEC: its name, then Find's facets for it (`x`, the Find entry carrying it); the face shows no lines, as before. */
+/* THE SHAPE → A renderCard SPEC: its name, then Find's facets for it (`x`, the Find entry carrying it); its body drawn only where its map says `lines`. */
 function cardOfItem_(it, x) {
   const M = ITEM_MAPS[it.kind] || {}, own = x || { kind: it.kind, key: '', name: it.name };
-  return { look: M.look || '', picture: M.picture ? M.picture(it, own) : null,
-    tags: [{ text: it.name || own.name || '', colour: 0 }].concat(typeof tagList_ === 'function' && own.key ? tagList_(own) : []) };
+  const f0 = typeof tagList_ === 'function' && own.key ? tagList_(own) : [], facets = Array.isArray(f0) ? f0 : [];
+  const more = Object.keys(M.entryTags || {}).flatMap(f => (own[f] || []).map(t => ({ text: t, colour: M.entryTags[f] })));
+  /* `nameTag: false` still leads with the name when it has no facets at all: a card is never without a tag. */
+  return { look: M.look || '', name: it.name || own.name || '', picture: M.picture ? M.picture(it, own) : null, body: M.lines ? it.body : [],
+    tags: (M.nameTag === false && facets.length ? [] : [{ text: it.name || own.name || '', colour: 0 }]).concat(facets, more) };
 }
-Object.keys(ITEM_MAPS).forEach(k => cardKind_(k, x => cardOfItem_(x.shape || item_(kcRow_(x), k), x)));
+/* EACH CARD KIND DRAWN FROM MAPS: the map whose `when` the entry answers (else the first without one), its row from the entry's `from`. */
+const itemMapOf_ = x => { const ks = Object.keys(ITEM_MAPS).filter(k => (ITEM_MAPS[k].card || k) === x.kind);
+  return ks.find(k => ITEM_MAPS[k].when && ITEM_MAPS[k].when(x)) || ks.find(k => !ITEM_MAPS[k].when) || ks[0]; };
+const itemOfEntry_ = x => { const k = itemMapOf_(x); return x.shape || item_(x[ITEM_MAPS[k].from || 'row'] || {}, k); };
+[...new Set(Object.keys(ITEM_MAPS).map(k => ITEM_MAPS[k].card || k))].forEach(c => cardKind_(c, x => cardOfItem_(itemOfEntry_(x), x)));
 
 ;
 /* ==== js/cards-make.js ==== */

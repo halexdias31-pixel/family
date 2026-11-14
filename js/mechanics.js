@@ -81,9 +81,8 @@ function mechScope_(x) { return !x || x.kind !== 'mech' || x.mFile === 'pc' ? ''
 const mechOwn_ = (x, file, k) => (x && x.kind === 'mech' && x.mFile === file && x.mech[k]) || '';
 
 /* A CARD IS ITS TAGS AND ITS DRAWING; a part adds one line of what it does. No title: the name is a tag. */
-function mechPic_(x) { return cardBlock_({ type: 'drawing', node: { el: 'figure', a: { class: 'mech-pic' }, inner: pixSvg_(x.mech.px, x.name, false, ' mech-px') } }); }
-cardKind_('mech', x => { const r = x.mech || {};
-  return { look: 'mech', picture: Array.isArray(r.px) ? { svg: mechPic_(x), alt: x.name } : null, tags: typeof tagList_ === 'function' && x.key ? tagList_(x) : [], body: r.does ? [{ type: 'text', text: r.does, look: 'mech-does' }] : [] }; });
+/* Its card is its item map (ITEM_MAPS.mech, cards-parts.js); this is the drawing it shows. */
+function mechPic_(px, name) { return cardBlock_({ type: 'drawing', node: { el: 'figure', a: { class: 'mech-pic' }, inner: pixSvg_(px, name, false, ' mech-px') } }); }
 /* A CAR'S PARTS ARE A FIND (650): its every part, Car part chosen and the car's make, model and engine (`CARD_EXTRAS_`). */
 function mechExtras_(x) { const r = x.mech || {}; return x.mFile === 'models' && r.code ? { icon: 'search', label: 'Parts', note: 'every part for this car', act: 'mech-parts', data: { engine: r.code } } : null; }
 window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { mech: mechExtras_ });

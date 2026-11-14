@@ -101,8 +101,7 @@ function insertBody_(r) {
 }
 /* A READING INSERT'S SOURCE, drawn when its words are here; until then what it waits on (`insSay_`). */
 CARD_EMBEDS['ins-source'] = a => { const r = insertRow_(a.id); return !r ? '' : r.sourceText ? insSource_(r) : insSay_(r); };
-cardKind_('insert', x => { const r = x.row || {}; insWant_(r);
-  return { look: 'insh', name: x.name, tags: kcFacetTags_(x).concat((x.sheets || []).map(t => ({ text: t, colour: 2 }))), body: insertBody_(r) }; });
+/* ITS CARD IS ITS ITEM MAP (ITEM_MAPS.insert, cards-parts.js): these blocks are its body, its sheets tags after its facets. */
 const insertSheet_ = r => renderCard({ kind: 'insert', look: 'insh', name: r.name, tags: [{ text: r.name, colour: 0 }], body: insertBody_(r) });
 /* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies. */
 function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
@@ -134,11 +133,11 @@ function specNamed_(r) {
   try { (stuffItemsAll_() || []).forEach(i => { if (i && want.has(i.key)) out[i.key] = /^q:/.test(i.key) && i.sub ? i.sub + ' · ' + i.name : i.name || i.key; }); } catch (e) { /* Find not ready: the card shows its tree alone */ }
   return out;
 }
-/* THE SECTION TREE, each section folded; the official PDF holds the full wording. */
-cardKind_('spec', x => { const r = x.row || {}, named = specNamed_(r);
-  return { look: 'insh spec-sheet', name: x.name, tags: kcFacetTags_(x), body: [{ type: 'text', look: 'insh-kick', text: [r.board, r.qualification, r.subject, r.code].join(' · ') },
+/* THE SECTION TREE, each section folded; the official PDF holds the full wording. The body of its item (ITEM_MAPS.spec, cards-parts.js). */
+function specBody_(r) { const named = specNamed_(r);
+  return [{ type: 'text', look: 'insh-kick', text: [r.board, r.qualification, r.subject, r.code].join(' · ') },
     { type: 'tree', nodes: (r.sections || []).map(s => ({ label: s.title, kids: specNodes_(r, s.id, named) })) },
-    { type: 'text', look: 'insh-check', text: 'Short headings; the official specification has the full wording.' }] }; });
+    { type: 'text', look: 'insh-check', text: 'Short headings; the official specification has the full wording.' }]; }
 const specExtras_ = x => [{ icon: 'open', label: 'Official', note: /\.pdf$/i.test(x.row.url) ? 'specification PDF' : 'the framework page', act: 'file-view', data: { url: x.row.url, title: x.row.board + ' ' + x.row.code } }];
 /* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
 on('ins-print', el => {
