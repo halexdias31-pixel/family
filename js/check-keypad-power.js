@@ -15,10 +15,12 @@ if (!typeset_) { console.log('FAIL — check-keypad-power: typeset_ not found');
 
 /* THE KEYPAD'S EDITING, cut out by name and run on a stand-in box that keeps a value and a caret, as an <input> does. */
 const KP_NAMES = ['KP_HOLE', 'KP_SEL_A', 'KP_VEC_A', 'kpVecStep_', 'kpPartner_', 'kpLineStart_', 'kpLineEnd_',
-  'kpPowAt_', 'kpPowOut_', 'kpEdit_', 'kpTypeset_'];
+  'kpPowAt_', 'kpPowOut_', 'kpEdit_', 'kpDotB_', 'kpDot_', 'kpTypeset_'];
 const kpParts = KP_NAMES.map(n => [n, cutFrom(kp, n)]);
 kpParts.filter(p => !p[1]).forEach(p => bad.push('keypad: ' + p[0] + ' not found in js/keypad-*.js'));
 const ctx = { typeset_, esc: require('./check-esc.js').esc,
+  /* the one maker's empty group span, which is all `kpDot_` asks of it */
+  cardBlocks_: b => '<span class="' + b.look + '"></span>',
   vecHtml_: s => s, kpSite_: () => false, kpUndoNote_: () => {}, Event: function () {}, console };
 vm.createContext(ctx);
 vm.runInContext(kpParts.filter(p => p[1]).map(p => p[1].replace(/^const /, 'var ')).join('\n'), ctx);

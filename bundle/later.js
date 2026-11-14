@@ -12746,22 +12746,14 @@ function paintDocket() {
   const left = list.filter(l => !l.done).length;
 
   /* ---------- A ROW IS IDENTIFIED BY ITS TEXT, NOT BY WHERE IT SITS § */
-  host.innerHTML = list.map((l, i) => `
-    <label class="row dock-item${l.done ? ' done' : ''}">
-      <input type="checkbox" data-do="dock-tick" data-i="${i}" data-t="${esc(l.text)}"
-             ${l.done ? 'checked' : ''}>
-      <span class="box"></span>
-      <span class="dock-text">${mark(l.text)}</span>
-      ${/* A BUTTON, NOT A SPAN. § */
-            ''}
-      ${tile_({ icon: 'close', label: 'Remove ' + l.text, act: 'dock-drop', data: { i: i, t: l.text }, cls: 'text-drop' })}
-    </label>`).join('')
-    + `<div class="row dock-foot">
-        <span class="k">${left ? left + ' left' : 'All done'}</span>
-        ${list.length > left
-          ? '<span class="v">' + tile_({ form: true, label: 'Clear done', act: 'dock-clear', kind: 'quiet', cls: 'tiny' }) + '</span>'
-          : ''}
-      </div>`;
+  host.innerHTML = cardBlocks_(list.map((l, i) => ({ type: 'group', tag: 'label', look: 'row dock-item' + (l.done ? ' done' : ''),
+    blocks: [{ type: 'control', attrs: { type: 'checkbox', 'data-do': 'dock-tick', 'data-i': i, 'data-t': l.text, checked: !!l.done } },
+      { type: 'group', tag: 'span', look: 'box' },
+      { type: 'group', tag: 'span', look: 'dock-text', text: { marked: l.text } }],
+    /* A BUTTON, NOT A SPAN. § */
+    tiles: [{ icon: 'close', label: 'Remove ' + l.text, act: 'dock-drop', data: { i: i, t: l.text }, cls: 'text-drop' }] }))
+    .concat({ type: 'group', look: 'row dock-foot', blocks: [{ type: 'group', tag: 'span', look: 'k', text: left ? left + ' left' : 'All done' }]
+      .concat(list.length > left ? [{ type: 'group', tag: 'span', look: 'v', tiles: [{ form: true, label: 'Clear done', act: 'dock-clear', kind: 'quiet', cls: 'tiny' }] }] : []) }));
 }
 
 /* WHICH ROW THE TAP MEANT. See the note in `paintDocket`: the index is a hint, the text is the
@@ -12920,26 +12912,28 @@ function measDraw_(fig) {
   const vb = (svg.getAttribute('viewBox') || '0 0 340 340').split(/[\s,]+/).map(Number);
   const r = svg.getBoundingClientRect(), u = r.width ? vb[2] / r.width : 1;   // figure units per screen px
   const g = MEAS, R = g.R, T = 'translate(' + g.c[0].toFixed(2) + ' ' + g.c[1].toFixed(2) + ') rotate(' + g.rot.toFixed(2) + ')';
-  let body = '';
+  /* THE TOOL AS SHAPES (data), drawn by the one maker's `drawing` block. */
+  const body = [], P = (cls, d) => body.push({ el: 'path', a: { class: cls, d } }),
+    N = (cls, x, y, fs, t) => body.push({ el: 'text', a: { class: cls, x: x.toFixed(2), y: y.toFixed(2), 'font-size': fs.toFixed(2) }, text: String(t) });
   if (g.tool === 'protractor') {
-    body += `<path class="meas-body" d="M ${-R} 0 A ${R} ${R} 0 0 1 ${R} 0 Z"/>`;
+    P('meas-body', `M ${-R} 0 A ${R} ${R} 0 0 1 ${R} 0 Z`);
     for (let a = 0; a <= 180; a += 5) {
       const t = a * Math.PI / 180, c = Math.cos(t), s = -Math.sin(t), L = a % 10 ? 0.05 : a % 30 ? 0.08 : 0.12;
-      body += `<path class="meas-tick" d="M ${(R * c).toFixed(2)} ${(R * s).toFixed(2)} L ${(R * (1 - L) * c).toFixed(2)} ${(R * (1 - L) * s).toFixed(2)}"/>`;
+      P('meas-tick', `M ${(R * c).toFixed(2)} ${(R * s).toFixed(2)} L ${(R * (1 - L) * c).toFixed(2)} ${(R * (1 - L) * s).toFixed(2)}`);
       if (!(a % 30)) {
         const o = R * 0.8, i = R * 0.64;
-        body += `<text class="meas-num" x="${(o * c).toFixed(2)}" y="${(o * s).toFixed(2)}" font-size="${(R * 0.08).toFixed(2)}">${a}</text>`
-          + `<text class="meas-num meas-in" x="${(i * c).toFixed(2)}" y="${(i * s).toFixed(2)}" font-size="${(R * 0.07).toFixed(2)}">${180 - a}</text>`;
+        N('meas-num', o * c, o * s, R * 0.08, a);
+        N('meas-num meas-in', i * c, i * s, R * 0.07, 180 - a);
       }
     }
-    body += `<path class="meas-tick" d="M ${-R} 0 L ${R} 0 M 0 ${-R * 0.06} L 0 ${R * 0.06} M ${-R * 0.06} 0 L ${R * 0.06} 0"/>`;
+    P('meas-tick', `M ${-R} 0 L ${R} 0 M 0 ${-R * 0.06} L 0 ${R * 0.06} M ${-R * 0.06} 0 L ${R * 0.06} 0`);
   } else {
     const W = g.L, H = Math.max(8, 30 * u), cm = g.cm;
-    body += `<rect class="meas-body" x="0" y="0" width="${W.toFixed(2)}" height="${H.toFixed(2)}"/>`;
+    body.push({ el: 'rect', a: { class: 'meas-body', x: '0', y: '0', width: W.toFixed(2), height: H.toFixed(2) } });
     for (let mm = 0, x = 0; x <= W + 1e-6; mm++, x = mm * cm / 10) {
       const L = mm % 10 ? (mm % 5 ? 0.25 : 0.4) : 0.55;
-      body += `<path class="meas-tick" d="M ${x.toFixed(2)} 0 L ${x.toFixed(2)} ${(H * L).toFixed(2)}"/>`;
-      if (!(mm % 10)) body += `<text class="meas-num" x="${x.toFixed(2)}" y="${(H * 0.85).toFixed(2)}" font-size="${(H * 0.32).toFixed(2)}">${mm / 10}</text>`;
+      P('meas-tick', `M ${x.toFixed(2)} 0 L ${x.toFixed(2)} ${(H * L).toFixed(2)}`);
+      if (!(mm % 10)) N('meas-num', x, H * 0.85, H * 0.32, mm / 10);
     }
   }
   /* THE TURNING HANDLE, a fingertip wide wherever the figure is drawn small, at whichever end of the tool is on the glass */
@@ -12957,8 +12951,8 @@ function measDraw_(fig) {
   };
   if (!g.hold) g.h = spots.find(onGlass) || spots[spots.length - 1];
   const hx = g.h[0], hy = g.h[1];
-  body += `<circle class="meas-turn" cx="${hx.toFixed(2)}" cy="${hy.toFixed(2)}" r="${(24 * u).toFixed(2)}"/>`
-    + `<path class="meas-turn-i" d="M ${(hx - 8 * u).toFixed(2)} ${hy.toFixed(2)} A ${(8 * u).toFixed(2)} ${(8 * u).toFixed(2)} 0 1 1 ${hx.toFixed(2)} ${(hy + 8 * u).toFixed(2)}"/>`;
+  body.push({ el: 'circle', a: { class: 'meas-turn', cx: hx.toFixed(2), cy: hy.toFixed(2), r: (24 * u).toFixed(2) } });
+  P('meas-turn-i', `M ${(hx - 8 * u).toFixed(2)} ${hy.toFixed(2)} A ${(8 * u).toFixed(2)} ${(8 * u).toFixed(2)} 0 1 1 ${hx.toFixed(2)} ${(hy + 8 * u).toFixed(2)}`);
   const o = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   o.setAttribute('class', 'meas');
   o.setAttribute('viewBox', vb.join(' '));
@@ -12967,7 +12961,7 @@ function measDraw_(fig) {
   o.setAttribute('data-c', g.c.map(v => v.toFixed(2)).join(','));
   o.setAttribute('data-rot', g.rot.toFixed(2));
   o.setAttribute('aria-label', g.tool === 'protractor' ? 'Protractor: drag it, turn it with 2 fingers or the round handle' : 'Ruler: drag it, turn it with 2 fingers or the round handle');
-  o.innerHTML = `<g transform="${T}">${body}</g>`;
+  o.innerHTML = cardBlocks_({ type: 'drawing', node: { el: 'g', a: { transform: T }, kids: body } });
   fig.classList.add('meas-host');
   /* EXACTLY OVER THE PICTURE, not the figure's whole box: the same viewBox on the same rectangle is the same units */
   const hr = fig.getBoundingClientRect();
@@ -13221,13 +13215,13 @@ function kpWordsSay_(v) { const n = kpWordCount_(v); return n + (n === 1 ? ' wor
 
 /* ---------- THE KEYS § */
 /* THE POWER KEY (owner: "there's no to the power of button on keypad"): drawn as x and a raised box, named so; it writes ^() with the caret inside, as x^2 and x^(n+1) are stored */
-const KP_POW = { v: '!pow', a: 'to the power of', c: ' kp-op kp-pow', t: '<span class="kp-pw" aria-hidden="true">x<i></i></span>' };
+const KP_POW = { v: '!pow', a: 'to the power of', c: ' kp-op kp-pow', t: { type: 'group', tag: 'span', look: 'kp-pw', attrs: { 'aria-hidden': 'true' }, text: ['x', { i: '' }] } };
 const KP_KEYS = [
   { t: '7' }, { t: '8' }, { t: '9' }, { t: '\u00f7', a: 'divide' },
   { t: '(', a: 'open bracket' }, { t: ')', a: 'close bracket' },
   { t: '4' }, { t: '5' }, { t: '6' }, { t: '\u00d7', a: 'times' },
   { v: '!frac', a: 'fraction', c: ' kp-op',
-    t: '<span class="kp-fr"><i></i><b></b><i></i></span>' },
+    t: { type: 'group', tag: 'span', look: 'kp-fr', text: [{ i: '' }, { b: '' }, { i: '' }] } },
   KP_POW,
   { t: '1' }, { t: '2' }, { t: '3' }, { v: '-', a: 'minus', t: '\u2212' },
   { v: '!sqrt', a: 'square root', c: ' kp-op', t: '\u221a' }, { t: '\u03c0', a: 'pi', c: ' kp-op' },
@@ -13242,20 +13236,19 @@ const KP_KEYS = [
   { v: ' ', a: 'space', c: ' kp-mode', t: '\u2423' },
   /* ---------- ⌫ IS RED, AND ITS MARK IS DRAWN § */
   { v: '!back', a: 'delete', c: ' kp-del',
-    t: '<svg class="kp-del-i" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none"'
-     + ' stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
-     + '<path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z"/><path d="m12.5 9.5 5 5M17.5 9.5l-5 5"/></svg>' },
+    t: { type: 'drawing', node: { el: 'svg', a: { class: 'kp-del-i', viewBox: '0 0 24 24', 'aria-hidden': 'true', focusable: 'false', fill: 'none',
+      stroke: 'currentColor', 'stroke-width': '2.2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
+      kids: [{ el: 'path', a: { d: 'M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z' } }, { el: 'path', a: { d: 'm12.5 9.5 5 5M17.5 9.5l-5 5' } }] } } },
   /* ✓ IS SEND: the same paper aeroplane as the Send tile beside the box (`ansBox_`), because it is the same act -- one mark for "mark it" wherever the child is § */
   { v: '!done', a: 'done', c: ' kp-done', icon: 'send' },
 ];
 /* THE SIGNS ROW, on every box, in the structures' amber because they are the keys that make an answer
-   mathematical. `t` is drawn as markup, so `<` and `>` are written as entities there and typed as
-   themselves through `v`. */
+   mathematical. `t` is the face as text (escaped by the one maker); a face that is a drawing is a block. */
 const KP_SIGN_KEYS = [
-  { v: '<', t: '&lt;', a: 'less than', c: ' kp-op' },
+  { v: '<', t: '<', a: 'less than', c: ' kp-op' },
   { t: '\u2264', a: 'less than or equal to', c: ' kp-op' },
   { t: '\u2265', a: 'greater than or equal to', c: ' kp-op' },
-  { v: '>', t: '&gt;', a: 'greater than', c: ' kp-op' },
+  { v: '>', t: '>', a: 'greater than', c: ' kp-op' },
   { t: ':', a: 'colon, for a ratio', c: ' kp-op' },
   { t: '\u00b1', a: 'plus or minus', c: ' kp-op' },
 ];
@@ -13264,13 +13257,19 @@ const KP_SIGN_KEYS = [
 const KP_VEC_A = '\u27ee', KP_VEC_B = '\u27ef';
 /* ONE PAD TYPES ANYTHING (round 3): this row is on every box, with the units a value needs beside the vector */
 const KP_VEC_KEYS = [
-  { v: '!vec', a: 'column vector', c: ' kp-op kp-vec', t: '<span class="kp-vc" aria-hidden="true"><i></i><i></i></span>' },
+  { v: '!vec', a: 'column vector', c: ' kp-op kp-vec', t: { type: 'group', tag: 'span', look: 'kp-vc', attrs: { 'aria-hidden': 'true' }, text: [{ i: '' }, { i: '' }] } },
   { t: '%', a: 'per cent', c: ' kp-op' }, { t: '\u00a3', a: 'pounds', c: ' kp-op' },
   { t: '\u00b0', a: 'degrees', c: ' kp-op' }, { t: '\u00b2', a: 'squared, for a unit', c: ' kp-op' },
   { t: '\u00b3', a: 'cubed, for a unit', c: ' kp-op' },
 ];
 /* AN EMPTY TOP OR BOTTOM DRAWN AS A HOLE TO TAP INTO, as the fraction's are */
-const kpHoles_ = h => h.replace(/<span class="vec-(a|b)">(\u03db?)<\/span>/g, (m, w, c) => '<span class="vec-' + w + '">' + c + '<span class="kp-hole"></span></span>');
+const kpHoles_ = h => h.replace(/<span class="vec-(a|b)">(\u03db?)<\/span>/g, (m, w, c) => cardBlocks_({ type: 'group', tag: 'span', look: 'vec-' + w, text: c, blocks: [kpDotB_('kp-hole')] }));
+/* A MARK IN THE DRAWN ANSWER (a hole, the caret, a selection's end): an empty span of one class, by the one maker. */
+function kpDotB_(look) { return { type: 'group', tag: 'span', look }; }
+const kpDot_ = look => cardBlocks_(kpDotB_(look));
+/* A WORDED SELECTION, its words highlighted; `kpSelEnds_` is its open and close, for a selection that runs across a vector's parts. */
+const kpSel_ = t => cardBlocks_({ type: 'group', tag: 'mark', look: 'kp-sel', text: t });
+const kpSelEnds_ = () => kpSel_('\u0000').split('\u0000');
 function kpVecStep_(v, a) {
   const c = v.charAt(a - 1);
   if (v.slice(a - 1, a + 2) === KP_VEC_A + ',' + KP_VEC_B) return { del: true, from: a - 1, to: a + 2 };
@@ -13318,25 +13317,27 @@ const KP_SYM = [
   kpSy_('_', 'underscore, for a subscript'), kpSy_('!', 'exclamation mark, factorial'), kpSy_('x\u0304', 'a bar over the letter before', '\u0304'),
   /* THE PUNCTUATION THE LETTERS GAVE UP FOR THE WIDE SPACE BAR (562): one row of ten. */
   kpSy_(',', 'comma', ','), kpSy_('?', 'question mark', '?'), kpSy_('-', 'hyphen', '-'), kpSy_(':', 'colon', ':'), kpSy_(';', 'semicolon', ';'),
-  kpSy_('"', 'quotation mark', '"'), kpSy_('(', 'open bracket', '('), kpSy_(')', 'close bracket', ')'), kpSy_('/', 'slash', '/'), kpSy_('&amp;', 'and', '&'),
+  kpSy_('"', 'quotation mark', '"'), kpSy_('(', 'open bracket', '('), kpSy_(')', 'close bracket', ')'), kpSy_('/', 'slash', '/'), kpSy_('&', 'and', '&'),
   kpSy_('\u2124', 'the integers'), kpSy_('\u211d', 'the real numbers'), kpSy_('\u00b5', 'micro, for a unit'),
 ];
 /* ---------- AN ESSAY'S LETTERS: A RETURN KEY YOU CAN SEE § */
 const KP_RETURN = { v: '!nl', a: 'return, a new line', c: ' kp-mode kp-ret', span: 12,
-  t: '<span class="kp-ret-i" aria-hidden="true">\u21b5</span><span class="kp-ret-k">return</span>' };
+  t: [{ type: 'group', tag: 'span', look: 'kp-ret-i', attrs: { 'aria-hidden': 'true' }, text: '\u21b5' }, { type: 'group', tag: 'span', look: 'kp-ret-k', text: 'return' }] };
 
 /* ---------- EVERY OTHER BOX ON THE SITE (528): the same pad, its maths keys made plain characters, and @ . / for an address */
 const KP_MAIL_KEYS = ['@', '.', '/', '_', '-', ':'].map(c => kpCh_(c, { '@': 'at', '.': 'dot', '/': 'slash', '_': 'underscore', '-': 'hyphen', ':': 'colon' }[c], 10));
 const KP_SITE_KEYS = [
-  { t: '@', a: 'at', c: ' kp-op' }, { t: '#', a: 'hash', c: ' kp-op' }, { t: '&amp;', v: '&', a: 'and', c: ' kp-op' },
+  { t: '@', a: 'at', c: ' kp-op' }, { t: '#', a: 'hash', c: ' kp-op' }, { t: '&', v: '&', a: 'and', c: ' kp-op' },
   { t: '%', a: 'per cent', c: ' kp-op' }, { t: '\u00a3', a: 'pounds', c: ' kp-op' }, { t: '!', a: 'exclamation mark', c: ' kp-op' },
 ];
 const KP_PLAIN = { '!frac': { t: '/', a: 'slash', c: ' kp-op' }, '!pow': { t: '^', a: 'caret', c: ' kp-op' }, '!sqrt': { t: '\u221a', a: 'root sign', c: ' kp-op' } };
 const kpPlainKey_ = k => KP_PLAIN[k.v] || k;
 
+/* A KEY'S FACE: its text escaped, or its drawing (a group or drawing block, or several) drawn by the one maker. */
+const kpFace_ = t => (t != null && typeof t === 'object' ? cardBlocks_(t) : esc(String(t || '')));
 /* A KEY IS A TILE (owner's look rule: every control is a tile), drawn by `tile_` with the key's own face; `.kp-key` gives it the pad's shape. */
 const kpKey_ = k => tile_({ act: 'kp-key', cls: 'kp-key' + (k.c || ''), label: k.a || String(k.t || ''),
-  data: { v: k.v != null ? k.v : k.t }, icon: k.icon, face: k.icon ? '' : String(k.t || ''),
+  data: { v: k.v != null ? k.v : k.t }, icon: k.icon, face: k.icon ? '' : kpFace_(k.t),
   style: k.span ? 'grid-column:' + (k.at ? k.at + ' / ' : '') + 'span ' + k.span : '' });
 /* THE PAD'S KEYS FOR A LAYOUT AND A BOX. § */
 /* AND ON THE LETTERS TOO, beside the vector, so a power is never a face away: seven keys over the letters' sixty columns */
@@ -13360,13 +13361,13 @@ function kpField_(k, val, kind, signs, name, multi) {
   const essay = !!box.essay;
   const words = !!box.words;
   const v = val == null ? '' : String(val);
-  const lock = `class="qp-ans-in kp-in" ${multi ? `data-do="qp-multi" data-n="${multi.n}" data-mk="${esc(multi.k)}"` : 'data-do="qp-ans"'} data-k="${esc(k)}" data-kp="${words ? 'words' : 'maths'}"${
-    signs & 1 ? ' data-kp-signs="1"' : ''}${signs & 2 ? ' data-kp-vec="1"' : ''}${essay ? ' data-kp-essay="1"' : ''} aria-label="${esc(name || 'Your answer')}"
-        readonly inputmode="none" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="${essay ? 'enter' : 'done'}"`;
-  return `<span class="kp-field kp-${words ? 'words' : 'maths'}${essay ? ' kp-essay' + (v ? '' : ' is-blank') : ''}">
-      <span class="kp-show" aria-hidden="true">${kpDraw_(v, -1, words)}</span>
-      ${words ? `<textarea ${lock} rows="1">${esc(v)}</textarea>` : `<input ${lock} value="${esc(v)}">`}
-    </span>`;
+  const lock = { class: 'qp-ans-in kp-in', 'data-do': multi ? 'qp-multi' : 'qp-ans', 'data-n': multi ? multi.n : null, 'data-mk': multi ? multi.k : null,
+    'data-k': k, 'data-kp': words ? 'words' : 'maths', 'data-kp-signs': signs & 1 ? '1' : null, 'data-kp-vec': signs & 2 ? '1' : null, 'data-kp-essay': essay ? '1' : null,
+    'aria-label': name || 'Your answer', readonly: true, inputmode: 'none', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false',
+    enterkeyhint: essay ? 'enter' : 'done' };
+  return cardBlocks_({ type: 'group', tag: 'span', look: 'kp-field kp-' + (words ? 'words' : 'maths') + (essay ? ' kp-essay' + (v ? '' : ' is-blank') : ''), blocks: [
+    { type: 'group', tag: 'span', look: 'kp-show', attrs: { 'aria-hidden': 'true' }, inner: kpDraw_(v, -1, words) },
+    words ? { type: 'control', tag: 'textarea', attrs: Object.assign({}, lock, { rows: '1' }), value: v } : { type: 'control', attrs: Object.assign({}, lock, { value: v }) }] });
 }
 
 /* ---------- DRAWING WHAT HAS BEEN TYPED § */
@@ -13390,9 +13391,9 @@ function kpTypeset_(v, caret, end) {
     .replace(new RegExp('\u221a(\u03db?)' + END, 'g'), '\u221a' + KP_HOLE + '$1');
   /* THE SLASH AS `&frasl;` AFTER ESCAPING, which is what `typeset_` stacks — `tbMath_` in find.js does the same for the textbooks. § */
   const h = typeset_(esc(s).replace(/\//g, '&frasl;').replace(/-/g, '\u2212'));
-  return h.replace(/\u03d9/g, '<span class="kp-hole"></span>')
-          .replace(/\u03db/g, '<span class="kp-caret"></span>')
-          .replace(/\u03dd/g, '<span class="kp-sel-a"></span>').replace(/\u03df/g, '<span class="kp-sel-b"></span>');
+  return h.replace(/\u03d9/g, () => kpDot_('kp-hole'))
+          .replace(/\u03db/g, () => kpDot_('kp-caret'))
+          .replace(/\u03dd/g, () => kpDot_('kp-sel-a')).replace(/\u03df/g, () => kpDot_('kp-sel-b'));
 }
 /* THE BAND BETWEEN A MATHS SELECTION'S TWO ENDS, measured off the drawing and laid over it in the field (`.kp-field` is the positioned box). § */
 function kpSelBand_(show) {
@@ -13424,13 +13425,13 @@ function kpDraw_(v, caret, words, end) {
     /* A VECTOR IN A WORDED ANSWER: drawn stacked, the caret or the selection kept inside it by marker */
     const a0 = Math.min(caret, s.length), b0 = Math.max(a0, Math.min(end == null ? a0 : end, s.length));
     const m = s.slice(0, a0) + (b0 > a0 ? KP_SEL_A + s.slice(a0, b0) + KP_SEL_B : KP_CARET) + s.slice(b0);
-    return kpHoles_(vecHtml_(esc(m))).replace(/\u03db/g, '<span class="kp-caret"></span>')
-      .replace(/\u03dd/g, '<mark class="kp-sel">').replace(/\u03df/g, '</mark>');
+    const sel = kpSelEnds_();
+    return kpHoles_(vecHtml_(esc(m))).replace(/\u03db/g, () => kpDot_('kp-caret'))
+      .replace(/\u03dd/g, () => sel[0]).replace(/\u03df/g, () => sel[1]);
   }
   const a = Math.min(caret, s.length);
   const b = Math.max(a, Math.min(end == null ? a : end, s.length));
-  return esc(s.slice(0, a)) + (b > a ? '<mark class="kp-sel">' + esc(s.slice(a, b)) + '</mark>'
-    : '<span class="kp-caret"></span>') + esc(s.slice(b));
+  return esc(s.slice(0, a)) + (b > a ? kpSel_(s.slice(a, b)) : kpDot_('kp-caret')) + esc(s.slice(b));
 }
 
 function kpRender_(inp) {

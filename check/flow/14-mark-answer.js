@@ -174,6 +174,9 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard â
     'dataset\\.do\\s*=(?!=)\\s*' + Q + 'qp-ans' + Q,
     'class(?:Name)?\\s*=\\s*\\\\?' + Q + '[^\'"`]*\\bqp-ans-in\\b',
     'classList\\.(?:add|toggle|replace)\\([^)]*' + Q + 'qp-ans-in' + Q,
+    /* and as the one maker's data: `'data-do': 'qp-ans'`, `class: 'qp-ans-in â€¦'` in a spec's attributes */
+    Q + 'data-do' + Q + '\\s*:[^,}\\n]*' + Q + 'qp-ans' + Q,
+    '\\bclass' + Q + '?\\s*:\\s*' + Q + '[^\'"`]*\\bqp-ans-in\\b',
   ].join('|'));
   const jsDir = path.join(dir);
   let field = '';
@@ -199,7 +202,7 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard â
   if (!bind || (bind.match(/inputmode/gi) || []).length !== 1 || !/el\.setAttribute\('inputmode', 'none'\);/.test(bind) || /readonly|readOnly/.test(bind)) {
     bad.push('kpBind_ in js/keypad.js is missing, or writes something other than inputmode="none" once -- the one script allowed to touch a box\'s keyboard');
   }
-  if (!field || !/data-do="qp-ans"/.test(field) || !/qp-ans-in/.test(field)) bad.push('kpField_ was not found in js/keypad.js drawing `data-do="qp-ans"` and `.qp-ans-in` -- the rule that only it draws a box asked about nothing');
+  if (!field || !/'data-do': [^\n]*'qp-ans'/.test(field) || !/qp-ans-in/.test(field)) bad.push('kpField_ was not found in js/keypad.js drawing `data-do="qp-ans"` and `.qp-ans-in` -- the rule that only it draws a box asked about nothing');
   if (boxes < 7) bad.push('only ' + boxes + ' boxes were drawn to ask about â€” the rule was not asked of them all');
   [maths, words, shortW, pen, passage].forEach(x => { try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {} });
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
