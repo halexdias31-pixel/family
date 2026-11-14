@@ -6,22 +6,11 @@ function postPushState_(body, action, began) {
   return jsonOut(pushAction_(action, body));
 }
 
-/* THE EMAIL WIDGET (493): the owner's Gmail, read-only, admin only (gated twice), never kept — inbox.gs. */
-function postInboxList_(body, action, began) {
-  const me = findPerson('', S(body.personId));
-  if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
-  return jsonOut(inboxList_(body));
-}
-
 /* --- admin: everyone ---------------------------------------------------------------------- */
 /* THE BUSINESS RECORDS — admin only by `ACTION_ACCESS`, and read by a POST rather than sent in
    the payload, because the payload is cached and goes to every visitor. See records.gs. */
 function postListRecords_(body, action, began) {
   return jsonOut(recordsAction_(action, body));
-}
-
-function postListBizChecks_(body, action, began) {
-  return jsonOut(bizChecksAction_(action, body));
 }
 
 /* checker ticks (1050), owner's inbox (1060) */
@@ -207,18 +196,6 @@ function postListStaff_(body, action, began) {
   return jsonOut({ success: true, staff: staff });
 }
 
-/* "CHECKED TODAY" ON A TUTOR'S DBS (10 Nov): the admin ran the online check; the date restarts the 12 months. */
-function postTutorDbsChecked_(body, action, began) {
-  const t = read(TAB.people);
-  const r = t.rows.find(x => S(x.person_id) && S(x.person_id) === S(body.tutorId));
-  if (!r) return jsonOut({ error: 'No tutor with that id.' });
-  const on = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
-  if (!setCell(t, r, 'dbs_checked_on', on)) return jsonOut({ error: 'The people tab has no dbs_checked_on column yet: open the /exec address with ?setup=1 once.' });
-  setCell(t, r, 'dbs_checked', 'TRUE');
-  clearCache();
-  return jsonOut({ success: true, personId: S(r.person_id), dbsCheckedOn: on });
-}
-
 function postDecideApplication_(body, action, began) {
   const status = norm(body.status);
   if (APPLICATION_STATUSES.indexOf(status) < 0 || status === 'new') return jsonOut({ error: 'Not a decision an application can have.' });
@@ -306,37 +283,6 @@ function postLayoutSave_(body, action, began) {
   return jsonOut({ success: true, layout: clean });
 }
 
-/* ---------- THE RULES CARD (496): one rule set Exception or Universal, or the last change undone; locked rules refused ---------- */
-function postRulesSave_(body, action, began) {
-  const me = findPerson('', S(body.personId));
-  if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
-  const t = read(TAB.config);
-  if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the rules on.' });
-  const row = t.rows.find(r => norm(r.key) === RULES_KEY);
-  const now = rulesClean_(row ? row.value : '') || { set: {}, hist: [] };
-  const is = id => now.set[id] === 'universal' ? 'universal' : 'exception';
-  if (body.undo) {
-    const last = now.hist.pop();
-    if (!last) return jsonOut({ error: 'There is no rule change to undo.' });
-    if (last.was === 'universal') now.set[last.id] = 'universal'; else delete now.set[last.id];
-  } else {
-    const id = S(body.rule), to = S(body.to);
-    if (RULE_IDS.indexOf(id) === -1) return jsonOut({ error: 'There is no rule by that name.' });
-    if (RULES_LOCKED.indexOf(id) !== -1) return jsonOut({ error: 'That rule is locked.' });
-    if (to !== 'exception' && to !== 'universal') return jsonOut({ error: 'A rule is Exception or Universal.' });
-    const was = is(id);
-    if (was === to) return jsonOut({ success: true, rules: now });
-    if (to === 'universal') now.set[id] = 'universal'; else delete now.set[id];
-    now.hist.push({ id: id, was: was, to: to, at: new Date().toISOString() });
-    now.hist = now.hist.slice(-RULES_HIST_MAX);
-  }
-  const value = JSON.stringify(now);
-  if (row) setCell(t, row, 'value', value);
-  else addRow(t, { key: RULES_KEY, value: value, what_it_does: 'The Rules card (496): exceptions made universal, and the last twenty changes for Undo. Empty: every exception as the code has it.' });
-  clearCache();
-  return jsonOut({ success: true, rules: now });
-}
-
 /* ---------- EDIT WORDS IN PLACE (497): `set: {key: text}` and `reset: [key]` merged into config's one `words` row ---------- */
 function postWordsSave_(body, action, began) {
   const me = findPerson('', S(body.personId));
@@ -356,42 +302,3 @@ function postWordsSave_(body, action, began) {
   return jsonOut({ success: true, words: now });
 }
 
-/* ---------- THE WEEKLY EMAIL'S WORDS (491): the four `digest_*` config rows, blank meaning the default ---------- */
-function postDigestWordsSave_(body, action, began) {
-  const me = findPerson('', S(body.personId));
-  if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
-  const w = body.words && typeof body.words === 'object' ? body.words : {};
-  const t = read(TAB.config);
-  if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the words on.' });
-  const out = {};
-  Object.keys(DIGEST_WORDS).forEach(k => {
-    if (!(k in w)) return;
-    const v = S(w[k]).slice(0, DIGEST_WORD_MAX);
-    const row = t.rows.find(r => norm(r.key) === k);
-    if (row) setCell(t, row, 'value', v);
-    else addRow(t, { key: k, value: v, what_it_does: 'The weekly parent email (491): blank is "' + DIGEST_WORDS[k] + '". {child} {parent} {count} {span} are filled in.' });
-    out[k] = v;
-  });
-  clearCache();
-  return jsonOut({ success: true, words: out });
-}
-
-/* THE @FAMILY SHARE OF AN EXTRA SEAT (8 Nov): config B, the one value `seatShare_` prices with, 0 to 2 of the rate; admin only. */
-/* ONE BUSINESS SETTING (owner, 9 Nov): every money rule — share B, fees, discounts, rates — is a config row set from the one Business list; only these keys. */
-const BUSINESS_SETTING_KEYS = ['M', 'w', 's', 'c', 'B', 'b', 'a', 'h', 'max_students_per_job', 'max_open_requests', 'open_rate', 'open_tutor_rate',
-  'waitlist_seats', 'waitlist_extra_seat', 'travel_on_client', 'print_rate_per_page', 'print_minimum', 'postage_flat'];
-function postBusinessSettingSave_(body) {
-  const me = findPerson('', S(body.personId));
-  if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Only @family. sets its business settings. Nothing was saved.' });
-  const k = S(body.key), v = S(body.value);
-  if (BUSINESS_SETTING_KEYS.indexOf(k) < 0) return jsonOut({ error: 'That is not a business setting. Nothing was saved.' });
-  if (!/^\d*\.?\d+$/.test(v) || Number(v) > 100000) return jsonOut({ error: 'A business setting is a number, 0 or more. Nothing was saved.' });
-  if (k === 'B' && Number(v) > 2) return jsonOut({ error: "@family.'s share is a number from 0 to 2, where 0.5 is half. Nothing was saved." });
-  const t = read(TAB.config);
-  if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the setting on.' });
-  const row = t.rows.find(r => S(r.key) === k);
-  if (row) setCell(t, row, 'value', Number(v));
-  else addRow(t, { key: k, value: Number(v), what_it_does: (CONFIG_DEFAULTS.find(d => d[0] === k) || [])[2] || '' });
-  clearCache();
-  return jsonOut({ success: true, key: k, value: Number(v) });
-}

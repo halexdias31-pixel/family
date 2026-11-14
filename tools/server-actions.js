@@ -45,8 +45,8 @@ function reach(fns, start) {
   return [...seen];
 }
 
-/* THE CALLERS: a quoted name in the site or tools/, as check-actions counts them — except `old: '<action>'`. */
-/* That is the door a `readItems` read falls back to on a backend not yet redeployed (`apiItems_`): a FALLBACK, listed apart. */
+/* THE CALLERS (slice 4): a real call site — posted as `action`, or passed to a site function that posts its parameter as `action`; a feature check or a screen's name is not a call. */
+/* `old: '<action>'` is the door a general request falls back to on a backend not yet redeployed (`apiItems_`): a FALLBACK, listed apart. */
 const OLD_RE = /\bold:\s*['"](\w+)['"]/g;
 function fallbacksOf() {
   const c = {};
@@ -59,8 +59,27 @@ function siteFiles() {
 function callersOf() {
   const site = fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js') && !/^check/.test(f) && f !== '_scope.js').map(f => 'js/' + f).concat(['index.html', 'sw.js']);
   const tools = fs.readdirSync(path.join(ROOT, 'tools')).filter(f => /\.(js|py|sh)$/.test(f) && f !== 'server-actions.js').map(f => 'tools/' + f);
-  const c = {};
-  site.concat(tools).forEach(p => { for (const m of strip(read(p)).replace(OLD_RE, '').matchAll(/['"`](\w+)['"`]/g)) (c[m[1]] = c[m[1]] || new Set()).add(p); });
+  const c = {}, add = (a, p) => { if (a) (c[a] = c[a] || new Set()).add(p); };
+  const srcs = site.concat(tools).map(p => [p, strip(read(p)).replace(OLD_RE, '')]);
+  /* site functions that post a parameter as `action`: name → that parameter's position */
+  const senders = {};
+  srcs.forEach(([p, s]) => { if (!p.startsWith('js/')) return;
+    for (const m of s.matchAll(/function (\w+)\(([^)]*)\)\s*\{/g)) {
+      const params = m[2].split(',').map(x => x.trim().replace(/\s*=.*$/, '')), body = s.slice(m.index, s.indexOf('\n}', m.index));
+      params.forEach((q, i) => { if (q && new RegExp('\\{\\s*' + q + '\\s*[,}]|\\baction\\s*:\\s*' + q + '\\b').test(body)) senders[m[1]] = i; });
+    } });
+  const ACT = /["']?\baction["']?\s*[:=]\s*(?:[^,{}()\n;]*?\?\s*)?['"`](\w+)['"`](?:\s*:\s*['"`](\w+)['"`])?/g;
+  srcs.forEach(([p, s]) => {
+    for (const m of s.matchAll(ACT)) { add(m[1], p); add(m[2], p); }
+    Object.keys(senders).forEach(fn => { for (const m of s.matchAll(new RegExp('\\b' + fn + '\\(', 'g'))) {
+      let d = 0, i = m.index + m[0].length, arg = 0, start = i; const args = [];
+      for (; i < s.length; i++) { const ch = s[i];
+        if ('([{'.includes(ch)) d++; else if (')]}'.includes(ch)) { if (!d) { args.push(s.slice(start, i)); break; } d--; }
+        else if (ch === ',' && !d) { args.push(s.slice(start, i)); start = i + 1; arg++; } }
+      const lit = /^\s*['"`](\w+)['"`]\s*$/.exec(args[senders[fn]] || '');
+      if (lit) add(lit[1], p);
+    } });
+  });
   return c;
 }
 

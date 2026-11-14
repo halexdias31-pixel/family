@@ -87,7 +87,6 @@
    "file": "backend/post-learning.gs",
    "callers": [
     "js/keypad-edit.js",
-    "js/keypad-pad.js",
     "tools/ai-draw-accuracy.js"
    ],
    "fallbacks": [],
@@ -215,25 +214,6 @@
    "effects": [
     "ai",
     "outside",
-    "writes"
-   ]
-  },
-  "businessSettingSave": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postBusinessSettingSave_",
-   "file": "backend/post-admin.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "config",
-    "family",
-    "people"
-   ],
-   "effects": [
     "writes"
    ]
   },
@@ -365,38 +345,6 @@
     "writes"
    ]
   },
-  "consoleLoad": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postConsoleLoad_",
-   "file": "backend/post-learning.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [],
-   "effects": [
-    "drive",
-    "writes"
-   ]
-  },
-  "consoleSave": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postConsoleSave_",
-   "file": "backend/post-learning.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [],
-   "effects": [
-    "drive",
-    "writes"
-   ]
-  },
   "createCheckout": {
    "fate": "special",
    "into": "",
@@ -502,25 +450,6 @@
     "writes"
    ]
   },
-  "deleteComment": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postDeleteComment_",
-   "file": "backend/post-content.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "family",
-    "people",
-    "post_comments"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
   "deleteItem": {
    "fate": "general",
    "into": "deleteItem",
@@ -572,9 +501,7 @@
    "childRefused": false,
    "handler": "postDeletePost_",
    "file": "backend/post-content.gs",
-   "callers": [
-    "js/shell-load.js"
-   ],
+   "callers": [],
    "fallbacks": [],
    "tabs": [
     "family",
@@ -630,25 +557,6 @@
     "writes"
    ]
   },
-  "digestWordsSave": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postDigestWordsSave_",
-   "file": "backend/post-admin.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "config",
-    "family",
-    "people"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
   "editPost": {
    "fate": "general",
    "into": "saveItem",
@@ -657,34 +565,13 @@
    "childRefused": false,
    "handler": "postEditPost_",
    "file": "backend/post-content.gs",
-   "callers": [
-    "js/shell-load.js"
-   ],
+   "callers": [],
    "fallbacks": [],
    "tabs": [
     "family",
     "people",
     "post_votes",
     "posts"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
-  "favLinksSave": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postFavLinksSave_",
-   "file": "backend/post-learning.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "family",
-    "fav_links",
-    "people"
    ],
    "effects": [
     "writes"
@@ -698,10 +585,7 @@
    "childRefused": false,
    "handler": "postFavourite_",
    "file": "backend/post-content.gs",
-   "callers": [
-    "js/find-bundles.js",
-    "tools/complete-sats.py"
-   ],
+   "callers": [],
    "fallbacks": [
     "js/find-bundles.js"
    ],
@@ -923,36 +807,6 @@
     "writes"
    ]
   },
-  "imageData": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy. Were it to come back: special, a picture fetched for the share canvas; open to anyone, reads nothing private",
-   "access": "anyone",
-   "childRefused": false,
-   "handler": "postImageData_",
-   "file": "backend/post-content.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [],
-   "effects": [
-    "outside"
-   ]
-  },
-  "inboxList": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postInboxList_",
-   "file": "backend/post-admin.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [],
-   "effects": [
-    "outside"
-   ]
-  },
   "joinWaitlist": {
    "fate": "special",
    "into": "",
@@ -1002,25 +856,6 @@
     "people"
    ],
    "effects": [
-    "writes"
-   ]
-  },
-  "legoCount": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy. Were it to come back: special, marking or AI: each press costs a request against a per-person cap, so it stays a counted door of its own",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postLegoCount_",
-   "file": "backend/post-learning.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "config"
-   ],
-   "effects": [
-    "ai",
-    "outside",
     "writes"
    ]
   },
@@ -1177,26 +1012,6 @@
     "people"
    ],
    "effects": []
-  },
-  "listBizChecks": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postListBizChecks_",
-   "file": "backend/post-admin.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "biz_checks",
-    "family",
-    "people"
-   ],
-   "effects": [
-    "drive",
-    "writes"
-   ]
   },
   "listClientErrors": {
    "fate": "dead",
@@ -1412,10 +1227,7 @@
    "childRefused": false,
    "handler": "postMessages_",
    "file": "backend/post-content.gs",
-   "callers": [
-    "index.html",
-    "js/messages.js"
-   ],
+   "callers": [],
    "fallbacks": [
     "js/me-messages.js"
    ],
@@ -1440,13 +1252,7 @@
    "handler": "postMove_",
    "file": "backend/post-booking.gs",
    "callers": [
-    "js/keypad-pad.js",
-    "js/receipt.js",
-    "js/shell-click.js",
-    "tools/answer-primary.py",
-    "tools/complete-sats.py",
-    "tools/mxc.py",
-    "tools/refine-sats2024.py"
+    "js/receipt.js"
    ],
    "fallbacks": [],
    "tabs": [
@@ -1475,9 +1281,7 @@
    "childRefused": false,
    "handler": "postMyAnswers_",
    "file": "backend/post-learning.gs",
-   "callers": [
-    "js/answers.js"
-   ],
+   "callers": [],
    "fallbacks": [
     "js/answers.js"
    ],
@@ -1768,23 +1572,6 @@
     "writes"
    ]
   },
-  "raceBuild": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postRaceBuild_",
-   "file": "backend/post-content.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [],
-   "effects": [
-    "drive",
-    "outside",
-    "writes"
-   ]
-  },
   "raiseHand": {
    "fate": "special",
    "into": "",
@@ -1843,8 +1630,7 @@
     "js/me-card.js",
     "js/me-messages.js",
     "js/me-people.js",
-    "js/me-settings.js",
-    "js/shell-click.js"
+    "js/me-settings.js"
    ],
    "fallbacks": [],
    "tabs": [
@@ -1992,63 +1778,6 @@
     "writes"
    ]
   },
-  "rewriteCheck": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postRewriteIdeas_",
-   "file": "backend/post-learning.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "config"
-   ],
-   "effects": [
-    "ai",
-    "outside",
-    "writes"
-   ]
-  },
-  "rewriteIdeas": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postRewriteIdeas_",
-   "file": "backend/post-learning.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "config"
-   ],
-   "effects": [
-    "ai",
-    "outside",
-    "writes"
-   ]
-  },
-  "rulesSave": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postRulesSave_",
-   "file": "backend/post-admin.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "config",
-    "family",
-    "people"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
   "saveAnswers": {
    "fate": "general",
    "into": "saveItem",
@@ -2057,9 +1786,7 @@
    "childRefused": false,
    "handler": "postSaveAnswers_",
    "file": "backend/post-learning.gs",
-   "callers": [
-    "js/answers.js"
-   ],
+   "callers": [],
    "fallbacks": [
     "js/answers.js"
    ],
@@ -2069,45 +1796,6 @@
     "people"
    ],
    "effects": [
-    "writes"
-   ]
-  },
-  "saveAvatar": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postSaveAvatar_",
-   "file": "backend/post-account.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "family",
-    "people",
-    "shop"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
-  "saveBizCheck": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postListBizChecks_",
-   "file": "backend/post-admin.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "biz_checks",
-    "family",
-    "people"
-   ],
-   "effects": [
-    "drive",
     "writes"
    ]
   },
@@ -2221,24 +1909,6 @@
     "writes"
    ]
   },
-  "saveScore": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postSaveScore_",
-   "file": "backend/post-account.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "family",
-    "people"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
   "saveTimetable": {
    "fate": "dead",
    "into": "",
@@ -2269,24 +1939,6 @@
    "fallbacks": [
     "js/find-measure.js"
    ],
-   "tabs": [
-    "family",
-    "people"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
-  "saveTtHighscore": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postSaveScore_",
-   "file": "backend/post-account.gs",
-   "callers": [],
-   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2379,9 +2031,7 @@
    "childRefused": false,
    "handler": "postSetNotify_",
    "file": "backend/post-account.gs",
-   "callers": [
-    "js/me-roles.js"
-   ],
+   "callers": [],
    "fallbacks": [
     "js/me-people.js",
     "js/me-roles.js"
@@ -2466,13 +2116,7 @@
    "childRefused": false,
    "handler": "postSpotlight_",
    "file": "backend/post-content.gs",
-   "callers": [
-    "js/arcade.js",
-    "js/collections.js",
-    "js/layout.js",
-    "js/shell-boot.js",
-    "js/shell-pages.js"
-   ],
+   "callers": [],
    "fallbacks": [
     "js/collections.js"
    ],
@@ -2494,8 +2138,6 @@
    "handler": "postSubmitAnswer_",
    "file": "backend/post-learning.gs",
    "callers": [
-    "js/answers.js",
-    "js/me-account.js",
     "js/submit.js"
    ],
    "fallbacks": [],
@@ -2515,9 +2157,7 @@
    "handler": "postSuggest_",
    "file": "backend/post-content.gs",
    "callers": [
-    "js/submit-suggest.js",
-    "js/tiles.js",
-    "tools/health.js"
+    "js/submit-suggest.js"
    ],
    "fallbacks": [],
    "tabs": [
@@ -2566,24 +2206,6 @@
     "people",
     "posts",
     "reports"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
-  "tutorDbsChecked": {
-   "fate": "dead",
-   "into": "",
-   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postTutorDbsChecked_",
-   "file": "backend/post-admin.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "family",
-    "people"
    ],
    "effects": [
     "writes"

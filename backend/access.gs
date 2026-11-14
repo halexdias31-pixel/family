@@ -226,7 +226,6 @@ const ACTION_ACCESS = {
   /* `self`, so the token is resolved and the session ended belongs to whoever holds it. */
   signOut: 'self',
   /* `relogin` WAS HERE, AND IT WAS THE WAY IN. § */
-  imageData: 'anyone',          // proxies a picture for the share canvas; reads nothing private
 
   // A person acting on their own record. Each handler still checks WHOSE row it is.
   /* YOUR OWN INTRO VIDEO, in parts: the handler writes `video_file` on the row the token resolved to. */
@@ -235,17 +234,14 @@ const ACTION_ACCESS = {
   photoFile: 'self',
   updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self',
   saveTimetable: 'self',
-  saveAvatar: 'self', saveScore: 'self', saveTtHighscore: 'self',
   /* YOUR OWN PICTURE. The handler writes `photo` on the row the token resolved to and nowhere else. */
   savePhoto: 'self',
-  /* YOUR OWN CONSOLE PROGRESS (446): one Drive file per person and game, named from the token's row, never another's. */
-  consoleSave: 'self', consoleLoad: 'self',
   /* YOUR OWN ROLES — the three a person may tick, on the row the token resolved to. § */
   setMyRoles: 'self',
   /* `likePost` was here. § */
   votePoll: 'self', reactPost: 'self',
   /* SAYING SOMETHING UNDER A POST, AND TAKING IT DOWN. § */
-  addComment: 'self', deleteComment: 'self',
+  addComment: 'self',
   /* Reading the folder, to choose a photograph already in it. Admin, because it lists what has not
      been posted yet — which is a view of your Drive rather than of the site. */
   /* `orderPrints` WAS HERE and the handler priced a print from the SHEET, deliberately, because a total posted by a browser is a total the client chose. § */
@@ -258,7 +254,7 @@ const ACTION_ACCESS = {
   raiseHand: 'self', hands: 'self',
   /* All `self`: each handler checks the message is the asker's own, and the POLICY table decides
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
-  listRecords: 'admin', saveRecordsPage: 'admin', listBizChecks: 'admin', saveBizCheck: 'admin', tutorDbsChecked: 'admin', listOwnerAnswers: 'admin', saveOwnerAnswer: 'admin',
+  listRecords: 'admin', saveRecordsPage: 'admin', listOwnerAnswers: 'admin', saveOwnerAnswer: 'admin',
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
   /* WHETHER A PHOTOGRAPH IN A MESSAGE CAN BE KEPT — the column, the scope, the folder, a test file. § */
   checkUploads: 'admin',
@@ -286,8 +282,6 @@ const ACTION_ACCESS = {
   aiMark: 'self',
   /* A PHOTO OF THE WORKING (501): sent as yourself; read back by yourself, a linked parent, staff or admin (the handler checks). */
   markWorking: 'self', workingOf: 'self',
-  /* THE LEGO PIECE CHECK (owner, 12 Nov): `self`, so the cap is the token's person's; the handler lets staff and admin only. */
-  legoCount: 'self',
   /* WORK ON FILE: as yourself; the handler decides whose file (the student, a parent, a booked tutor, the admin). */
   workFileSave: 'self', workFilesOf: 'self', workFileOpen: 'self', workFileDelete: 'self',
   /* THE ASSISTANT IN MESSAGES (449): `self`, so the day's count is the token's person's. */
@@ -327,24 +321,12 @@ const ACTION_ACCESS = {
   pinShow: 'admin',
   /* THE ADMIN'S LAYOUT (462, 463): the site-wide order of widgets and which are deleted, one config row. */
   layoutSave: 'admin',
-  /* THE RULES CARD (496): one rule Exception or Universal for everybody, or Undo of the last change. */
-  rulesSave: 'admin',
   /* EDIT WORDS IN PLACE (497): the site's words over the code's, one config row. */
   wordsSave: 'admin',
-  /* THE WEEKLY EMAIL'S WORDS (491), four config rows. */
-  digestWordsSave: 'admin',
-  /* THE @FAMILY SHARE (8 Nov): config B, one share for everyone. */
-  businessSettingSave: 'admin',
   /* NOTES FOR CLAUDE (484): an admin's words on a widget or card, and marking one done. */
   claudeNoteAdd: 'admin', claudeNoteDone: 'admin',
-  /* FAVOURITE LINKS (509): your own list, written whole. */
-  favLinksSave: 'self',
-  /* THE REWRITE COACH (509): admin only for now, and the handler asks the rank again. */
-  rewriteIdeas: 'admin', rewriteCheck: 'admin',
   /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */
   filmsSync: 'admin',
-  /* The racer's Build the map tile (426): minutes of fetching from three outside services, so an admin's alone. */
-  raceBuild: 'admin',
   /* AN ADMIN ADDS, EDITS, HIDES OR DELETES A REEL OR A VIDEO (404). */
   mediaSave: 'admin', mediaUpload: 'admin', mediaHide: 'admin', mediaDelete: 'admin',
 
@@ -357,8 +339,6 @@ const ACTION_ACCESS = {
   pushState: 'self', pushSubscribe: 'self', pushUnsubscribe: 'self', pushSet: 'self',
   /* One person's sheet row, for an admin. The books, prices, rooms, invitations and people-list handlers went in 433: nothing called them. */
   getProfile: 'admin',
-  /* THE EMAIL WIDGET (493): the owner's own Gmail, read-only — inbox.gs. */
-  inboxList: 'admin',
   /* `updateResource`, `editResource` and `deleteResource` WERE HERE. § */
   /* `self` (413): an author edits their own post while it waits and deletes it any time; each handler checks whose it is. */
   editPost: 'self', deletePost: 'self',

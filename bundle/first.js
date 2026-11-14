@@ -7002,7 +7002,6 @@ function pressFree_() { PRESS_ACTING_ = null; }
 const API_DEADLINE_MS = 60000;
 /* ACTIONS THE BACKEND IS BUILT TO RUN FOR MINUTES wait for Apps Script's own six-minute ceiling instead; check-api-deadline.js finds them by their budgets. */
 const API_LONG_ = {
-  raceBuild: 6 * 60000,        /* Overpass [timeout:150], then heights until t0 + 280 s (buildRaceMap_) */
   libImportDrive: 6 * 60000,   /* starts files until LIB_DRIVE_MS, four minutes (libImportDrive_) */
 };
 /* WHAT ACTUALLY WENT WRONG, IN WORDS, WHERE THEY CAN BE READ AND COPIED. § */

@@ -226,23 +226,15 @@ function payloadFeatures_() {
   return [/* ---------- THE NEW ONES, DECLARED SO THE SITE CAN TELL YOU § */
                'openWaitlist', 'claimChild', 'answerClaim', 'joinWaitlist', 'findChild',
                'move', 'events', 'tabs', 'getProfile', 'myProfile', 'createJob',
-               'saveTodo', 'saveAvatar', 'saveItem', 'deleteItem', 'register', 'verifyEmail',
+               'saveTodo', 'saveItem', 'deleteItem', 'register', 'verifyEmail',
                /* The Timetable widget's week, kept on the account. */
                'saveTimetable',
                /* The admin's layout (462, 463): the order of widgets and which are deleted. */
                'layoutSave',
-               /* The Rules card (496). */
-               'rulesSave',
                /* Edit words in place (497). */
                'wordsSave',
-               /* The weekly email's words (491), edited on the Site column. */
-               'digestWordsSave',
-               /* Every business setting (9 Nov): share B, fees, discounts, rates — the one Business list. */
-               'businessSettingSave',
                /* Notes for Claude (484): an admin's note on a widget or card. */
                'claudeNoteAdd', 'claudeNoteDone',
-               /* Favourite links and the Rewrite coach (509). */
-               'favLinksSave', 'rewriteIdeas', 'rewriteCheck',
                /* Suggest a change (494), and an old phone's report. */
                'suggest', 'report', 'suggestUpload',
                /* The error log (O5): phones report, the Business column lists. */
@@ -257,12 +249,8 @@ function payloadFeatures_() {
                /* `attemptWords` WAS HERE — the phone sent a question's words with `markDone` and backfilled them for a backend that listed it. § */
                /* Tools → Check uploads, so a backend without it says so rather than "not recognised". */
                'checkUploads',
-               /* The Email widget (493), so an old backend says so instead of failing. */
-               'inboxList',
                /* The videos card's Sync from Drive, for an admin — the films from the Notflix folder. */
                'filmsSync',
-               /* The Colliers Wood racer's Build the map tile, for an admin (426). */
-               'raceBuild',
                /* The site checks for this to decide whether it may offer the picker. */
                /* `likePost` is deliberately absent. The site checks this list, so a stale copy
                   of it in somebody's browser cache finds out rather than failing quietly. */

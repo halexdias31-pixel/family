@@ -3,24 +3,6 @@
 
 /* ---------- THE LINK EDITOR IS GONE AND IT NEVER HAD A DOOR § */
 
-/* fetch an image so a canvas can use it ------------------------------------------------ A browser cannot draw a Drive photo onto a canvas it intends to export. § */
-function postImageData_(body, action, began) {
-  const url = S(body.url);
-  if (!/^https?:\/\//i.test(url)) return jsonOut({ error: 'Not a URL.' });
-  try {
-    const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
-    if (res.getResponseCode() !== 200) return jsonOut({ error: 'Image fetch returned ' + res.getResponseCode() });
-    const blob = res.getBlob();
-    // Guard the response size: a data URI is base64, so it's a third larger again, and a huge
-    // one would blow the execution's memory for the sake of a picture in a shared note.
-    if (blob.getBytes().length > 3 * 1024 * 1024) return jsonOut({ error: 'Image too large to share.' });
-    return jsonOut({ success: true,
-      dataUri: 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes()) });
-  } catch (err) {
-    return jsonOut({ error: 'Could not fetch that image: ' + err });
-  }
-}
-
 /* ---------- THREE RESOURCE HANDLERS WERE HERE § */
 
 /* --- a post edited: its author while it waits; once up, only an admin's pin and date (413) --- */
@@ -345,23 +327,6 @@ function postAddComment_(body, action, began) {
     pushTo_(author, 'posts', personDisplayName(me) + ' replied to your post', text, 'post:' + S(body.postId));
   }
   return jsonOut({ success: true, commentId: id });
-}
-
-/* taking one down --------------------------------------------------------------------------- A CELL, NOT A DELETED ROW, and the argument is the one `approved` § */
-function postDeleteComment_(body, action, began) {
-  const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Sign in first.' });
-
-  const t = read(TAB.post_comments);
-  const row = t.rows.find(x => S(x.comment_id) === S(body.commentId));
-  if (!row || !ON_(row.active)) return jsonOut({ error: 'That comment is gone.' });
-
-  if (S(row.person_id) !== S(me.person_id) && !isAdminPerson(S(body.name))) {
-    return jsonOut({ error: 'That is not yours to remove.' });
-  }
-  setCell(t, row, 'active', 'FALSE');
-  clearCache();
-  return jsonOut({ success: true });
 }
 
 /* voting in a poll ----------------------------------------------------------------------- One vote per person per post, and it can be changed. § */
@@ -765,15 +730,6 @@ function postFilmsSync_(body, action, began) {
   catch (err) { return jsonOut({ error: 'The films could not be synced: ' + S(err && err.message || err) }); }
   if (out.error) return jsonOut({ error: out.error, why: out.why });
   return jsonOut(Object.assign({ success: true }, out, { films: filmsFor_(me), sync: filmsSyncSays_() }));
-}
-
-/* THE RACER'S MAP (426) — the gate already refused anybody not an admin. */
-function postRaceBuild_(body, action, began) {
-  let out;
-  try { out = buildRaceMap_(''); }
-  catch (err) { return jsonOut({ error: 'The map could not be built: ' + S(err && err.message || err) }); }
-  if (out.error) return jsonOut({ error: out.error, more: !!out.more, tried: out.tried || [], notes: out.notes || [] });
-  return jsonOut(Object.assign({ success: true }, out));
 }
 
 /* ---------- AN ADMIN'S REELS AND VIDEOS (404) — the gate already refused anybody not an admin. */

@@ -31,7 +31,7 @@ Each asks the same question of the table: *may this role do this verb to this ki
 - *Open logs* (clientError, healthLog): a phone can break before sign-in; throttled per device.
 - *Admin tools* (checkUploads, libExport, libImport).
 
-**Dead — nothing calls them today (54).** Their screens were switched off (posts, staff hub, games, push, records …). They are never folded in; they go when the backend is next redeployed without them. If one comes back, its row says what it would become.
+**Dead — nothing calls them today (35).** Their screens were switched off (posts, staff hub, push, records …). They are never folded in. Slice 4 removed 19 more (below); these 35 stay because a check harness, a journey, a `?run=` job or an old phone still reaches them. If one comes back, its row says what it would become.
 
 ## The permission table
 
@@ -88,7 +88,35 @@ check-lens runs both doors on the real .gs, side by side on two backends seeded 
 
 **Redeploy needed** for the new doors to answer; until then every write falls back to its old door, so nothing breaks.
 
+## Slice 4 (14 Nov): the dead doors retired
+
+Each was checked again for a caller anywhere: the site, tools/, backend triggers and nightly jobs (digest, library press), `?run=` routes (RUNNABLE in access.gs), the check harnesses and journeys. None had one; the attic does not count (a switched-off feature comes back through readItems/saveItem). Its handler, ACTION_ACCESS entry, postActions_ key and payloadFeatures_ string went; helper code a trigger or `?run=` uses (digest.gs, inbox.gs, race.gs `buildRaceMap_`, content.gs console files) stays. backend/bizchecks.gs went whole: nothing else used it.
+
+- consoleSave — removed 14 Nov, would return as saveItem (kind console).
+- consoleLoad — removed 14 Nov, would return as readItems (kind console).
+- deleteComment — removed 14 Nov, would return as deleteItem (kind comment).
+- legoCount — removed 14 Nov, would return as special (AI, per-person cap).
+- tutorDbsChecked — removed 14 Nov, would return as saveItem (kind person, admin).
+- businessSettingSave — removed 14 Nov, would return as saveItem (kind setting, admin), as wordsSave did.
+- rulesSave — removed 14 Nov, would return as saveItem (kind rule, admin).
+- digestWordsSave — removed 14 Nov, would return as saveItem (kind setting, admin); the digest itself is untouched.
+- favLinksSave — removed 14 Nov, would return as saveItem (kind favLinks).
+- saveScore — removed 14 Nov, would return as saveItem (kind profile, a high score field).
+- saveTtHighscore — removed 14 Nov, would return as saveItem (kind profile, a high score field).
+- saveAvatar — removed 14 Nov, would return as saveItem (kind profile).
+- imageData — removed 14 Nov, would return as special (a picture for the share canvas, open to anyone).
+- rewriteIdeas — removed 14 Nov, would return as special (AI).
+- rewriteCheck — removed 14 Nov, would return as special (AI).
+- raceBuild — removed 14 Nov, would return as special (admin, minutes long); `?run=buildRaceMap` still builds the map.
+- inboxList — removed 14 Nov, would return as special (the owner's Gmail, admin); backend/inbox.gs stays.
+- listBizChecks — removed 14 Nov, would return as readItems (kind bizCheck, admin).
+- saveBizCheck — removed 14 Nov, would return as saveItem (kind bizCheck, admin).
+
+**Kept although dead**, and why: addComment, addPost, approvePost, votePoll, reactPost (check-choice, check-prefs, check-uploads and journeys 22/23/26 post them); decideApplication, listApplications, listStaff, payStatement, signAgreement (journeys 02/03, check-accounts); decideSuggestion, listSuggestions (check-suggest, journeys 25/26); digestPreview (check-digest, journey 28); listClientErrors (check-errlog); filmsSync (check-films; the payload's filmsSync stamp); mediaSave/Upload/Hide/Delete (check-media, journey 10); libImportDrive, libImportList (`?run=libImportDrive`, check-library-ledger, journey 12); tidyOldRows (check-migrate); listRecords, saveRecordsPage, saveTimetable (check-profile, journeys 12/20/26); pushState/Subscribe/Unsubscribe/Set (journey 27 posts pushSubscribe; one shared handler); makeChild, report, reportQuestion, claudeNoteAdd, claudeNoteDone, flagMessage (an old phone's request, refused or routed into `suggest`; check-signin, check-suggest).
+
+**The ratchet counts real call sites (59 → 51).** tools/server-actions.js now counts a name as called only where it is posted as `action` (or passed to a site function that posts its parameter as `action`), not wherever it is quoted. saveAnswers, setNotify, favourite, spotlight, editPost, deletePost, myAnswers and messages were counted only by a feature check, a `NEEDS` list or a screen of the same name; each goes through readItems/saveItem/deleteItem with `old:` as its fallback. The keepalive answer save is unchanged (check-server-path runs it).
+
 ## Next slices
 1. Once the backend is redeployed and old phones have gone, remove libItems, myProfile, myAnswers, messages, getProfile, personGet, lensOpen and the 16 write doors above, and the `old:` fallbacks.
 2. Per-field write rows in the table, so a kind's fields are the table's and not only the old handler's.
-3. Remove the dead doors at a redeploy.
+3. Remove the 35 dead doors still kept once their checks and journeys are retired with them.
