@@ -69,6 +69,7 @@ const SUITE = [
   { file: 'check-actions.js', what: 'every doPost action has a caller or a written reason' },
   { file: 'check-shape.js', what: 'every item in the one shape {id, kind, title, tags, text, picture, tiles} (report only, 82a)' },
   { file: 'check-permissions.js', what: 'the permissions table and ACTION_ACCESS agree for every action and role (86a)' },
+  { file: 'check-server-path.js', what: 'one way to the server (step 2): every action surveyed, the general path no wider than the old doors, old doors in use only fewer' },
   { file: 'check-forms.js', what: 'one form maker: forms.json equals form.js, Settings files keep raw boxes within budget (84a)' },
   /* AND WHO THE ACTION IS ABOUT. `check-access` asks whether an action may be performed; this asks
      whether the person it names can be found again tomorrow. */

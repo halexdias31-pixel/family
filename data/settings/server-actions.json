@@ -1,0 +1,2671 @@
+{
+ "say": "ONE WAY TO THE SERVER (owner, 14 Nov, step 2, phase 1): every doPost action and its fate: general (folds into one of generalActions), special (stays its own door, and why) or dead (no caller today, kept only until a redeploy removes it). access/childRefused are ACTION_ACCESS and KID_MONEY_ACTIONS; tabs/effects are every Ledger tab and side effect the handler can reach through backend calls, so they over-say, never under-say. Read as docs/server-path.md; refreshed by node tools/server-actions.js --write; held by js/check-server-path.js.",
+ "generalActions": {
+  "readItems": {
+   "status": "live (slice 1)",
+   "say": "Read items of one kind by id. Who may read which kind, and which fields are taken out, is permissions.json's `item` rows."
+  },
+  "saveItem": {
+   "status": "planned",
+   "say": "Save one item of one kind; the fields a role may write will be permissions.json's `item` rows."
+  },
+  "deleteItem": {
+   "status": "planned",
+   "say": "Delete one item of one kind, where the table allows it."
+  }
+ },
+ "actions": {
+  "addComment": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postAddComment_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "post_comments",
+    "posts",
+    "push_tokens"
+   ],
+   "effects": [
+    "outside",
+    "writes"
+   ]
+  },
+  "addPost": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postAddPost_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "config",
+    "family",
+    "people",
+    "posts"
+   ],
+   "effects": [
+    "drive",
+    "email",
+    "outside",
+    "writes"
+   ]
+  },
+  "adminUnlinkFamily": {
+   "fate": "special",
+   "into": "",
+   "why": "who belongs to whom (parent, child, roles): the handler checks both sides agree, which a table of kinds cannot",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postAdminUnlinkFamily_",
+   "file": "backend/post-family.gs",
+   "callers": [
+    "js/me-people.js"
+   ],
+   "tabs": [
+    "family"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "aiMark": {
+   "fate": "special",
+   "into": "",
+   "why": "marking or AI: each press costs a request against a per-person cap, so it stays a counted door of its own",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postAiMark_",
+   "file": "backend/post-learning.gs",
+   "callers": [
+    "js/keypad-edit.js",
+    "js/keypad-pad.js",
+    "tools/ai-draw-accuracy.js"
+   ],
+   "tabs": [
+    "config"
+   ],
+   "effects": [
+    "ai",
+    "outside",
+    "writes"
+   ]
+  },
+  "answerClaim": {
+   "fate": "special",
+   "into": "",
+   "why": "who belongs to whom (parent, child, roles): the handler checks both sides agree, which a table of kinds cannot",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postAnswerClaim_",
+   "file": "backend/post-family.gs",
+   "callers": [
+    "js/me-roles.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "email",
+    "writes"
+   ]
+  },
+  "answerRequest": {
+   "fate": "special",
+   "into": "",
+   "why": "money or a booking: prices are worked out on the server from the sheet, a child is refused, and the steps (checkout, refund, seats) must run in order",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postAnswerRequest_",
+   "file": "backend/post-booking.gs",
+   "callers": [
+    "js/receipt.js"
+   ],
+   "tabs": [
+    "config",
+    "events",
+    "family",
+    "jobs",
+    "options",
+    "people",
+    "push_tokens",
+    "shop"
+   ],
+   "effects": [
+    "email",
+    "log",
+    "money",
+    "outside",
+    "writes"
+   ]
+  },
+  "applyTeach": {
+   "fate": "special",
+   "into": "",
+   "why": "sends an email or a message to somebody else, so it keeps its own rules for who may write to whom",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postApplyTeach_",
+   "file": "backend/post-admin.gs",
+   "callers": [
+    "js/me-account.js"
+   ],
+   "tabs": [
+    "applications",
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "email",
+    "writes"
+   ]
+  },
+  "approvePost": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postApprovePost_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "config",
+    "family",
+    "people",
+    "posts"
+   ],
+   "effects": [
+    "email",
+    "writes"
+   ]
+  },
+  "askAssistant": {
+   "fate": "special",
+   "into": "",
+   "why": "marking or AI: each press costs a request against a per-person cap, so it stays a counted door of its own",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postAskAssistant_",
+   "file": "backend/post-learning.gs",
+   "callers": [
+    "js/messages.js"
+   ],
+   "tabs": [
+    "config"
+   ],
+   "effects": [
+    "ai",
+    "outside",
+    "writes"
+   ]
+  },
+  "businessSettingSave": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postBusinessSettingSave_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "changePin": {
+   "fate": "special",
+   "into": "",
+   "why": "signing in, PINs and sessions stay their own doors: somebody not yet signed in has no role to look up, and the PIN rules (lock, emailed PIN, hashing) live in the handler",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postChangePin_",
+   "file": "backend/post-signin.gs",
+   "callers": [
+    "js/me-settings.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "email",
+    "writes"
+   ]
+  },
+  "checkUploads": {
+   "fate": "special",
+   "into": "",
+   "why": "an admin's test of Drive and the uploads column; writes a test file",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postCheckUploads_",
+   "file": "backend/post-content.gs",
+   "callers": [
+    "js/me-messages.js"
+   ],
+   "tabs": [
+    "config",
+    "messages"
+   ],
+   "effects": [
+    "drive",
+    "outside"
+   ]
+  },
+  "claimChild": {
+   "fate": "special",
+   "into": "",
+   "why": "who belongs to whom (parent, child, roles): the handler checks both sides agree, which a table of kinds cannot",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postClaimChild_",
+   "file": "backend/post-family.gs",
+   "callers": [
+    "js/me-people.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "email",
+    "writes"
+   ]
+  },
+  "claudeNoteAdd": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postClaudeNoteAdd_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "claude_notes",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "writes"
+   ]
+  },
+  "claudeNoteDone": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postClaudeNoteAdd_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "claude_notes",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "writes"
+   ]
+  },
+  "clientError": {
+   "fate": "special",
+   "into": "",
+   "why": "an error or figures from a phone, open to anyone and throttled per device; not an item",
+   "access": "anyone",
+   "childRefused": false,
+   "handler": "postClientError_",
+   "file": "backend/post-admin.gs",
+   "callers": [
+    "js/shell-boot.js"
+   ],
+   "tabs": [
+    "claude_notes",
+    "client_errors",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "writes"
+   ]
+  },
+  "consoleLoad": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postConsoleLoad_",
+   "file": "backend/post-learning.gs",
+   "callers": [],
+   "tabs": [],
+   "effects": [
+    "drive",
+    "writes"
+   ]
+  },
+  "consoleSave": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postConsoleSave_",
+   "file": "backend/post-learning.gs",
+   "callers": [],
+   "tabs": [],
+   "effects": [
+    "drive",
+    "writes"
+   ]
+  },
+  "createCheckout": {
+   "fate": "special",
+   "into": "",
+   "why": "money or a booking: prices are worked out on the server from the sheet, a child is refused, and the steps (checkout, refund, seats) must run in order",
+   "access": "self",
+   "childRefused": true,
+   "handler": "postCreateCheckout_",
+   "file": "backend/post-booking.gs",
+   "callers": [
+    "js/receipt.js"
+   ],
+   "tabs": [
+    "config",
+    "events",
+    "family",
+    "jobs",
+    "options",
+    "people",
+    "receipts",
+    "shop"
+   ],
+   "effects": [
+    "log",
+    "money",
+    "outside",
+    "writes"
+   ]
+  },
+  "createJob": {
+   "fate": "special",
+   "into": "",
+   "why": "money or a booking: prices are worked out on the server from the sheet, a child is refused, and the steps (checkout, refund, seats) must run in order",
+   "access": "self",
+   "childRefused": true,
+   "handler": "postCreateJob_",
+   "file": "backend/post-booking.gs",
+   "callers": [
+    "js/receipt.js"
+   ],
+   "tabs": [
+    "config",
+    "events",
+    "family",
+    "jobs",
+    "options",
+    "people",
+    "promo_codes",
+    "push_tokens",
+    "receipts",
+    "rooms",
+    "shop",
+    "venues"
+   ],
+   "effects": [
+    "email",
+    "log",
+    "money",
+    "outside",
+    "writes"
+   ]
+  },
+  "decideApplication": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postDecideApplication_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "applications",
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "email",
+    "writes"
+   ]
+  },
+  "decideSuggestion": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postDecideSuggestion_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "claude_notes",
+    "family",
+    "messages",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "writes"
+   ]
+  },
+  "deleteComment": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postDeleteComment_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people",
+    "post_comments"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "deleteJob": {
+   "fate": "special",
+   "into": "",
+   "why": "money or a booking: prices are worked out on the server from the sheet, a child is refused, and the steps (checkout, refund, seats) must run in order",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postDeleteJob_",
+   "file": "backend/post-booking.gs",
+   "callers": [
+    "js/receipt.js"
+   ],
+   "tabs": [
+    "config",
+    "events",
+    "family",
+    "jobs",
+    "options",
+    "people",
+    "shop"
+   ],
+   "effects": [
+    "email",
+    "log",
+    "money",
+    "writes"
+   ]
+  },
+  "deletePost": {
+   "fate": "general",
+   "into": "deleteItem",
+   "why": "your own post (or an admin's pick): kind post",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postDeletePost_",
+   "file": "backend/post-content.gs",
+   "callers": [
+    "js/shell-load.js"
+   ],
+   "tabs": [
+    "family",
+    "people",
+    "posts"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "digestPreview": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy. Were it to come back: special, every learner's week and every parent's address in one reply; admin only and worked out, not stored",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postDigestPreview_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "config",
+    "family",
+    "people",
+    "submissions"
+   ],
+   "effects": [
+    "outside"
+   ]
+  },
+  "digestSendNow": {
+   "fate": "special",
+   "into": "",
+   "why": "sends an email or a message to somebody else, so it keeps its own rules for who may write to whom",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postDigestSendNow_",
+   "file": "backend/post-admin.gs",
+   "callers": [
+    "js/me-people.js"
+   ],
+   "tabs": [
+    "config",
+    "digest_log",
+    "family",
+    "people",
+    "submissions"
+   ],
+   "effects": [
+    "email",
+    "outside",
+    "writes"
+   ]
+  },
+  "digestWordsSave": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postDigestWordsSave_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "editPost": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "your own waiting post: kind post, yourself",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postEditPost_",
+   "file": "backend/post-content.gs",
+   "callers": [
+    "js/shell-load.js"
+   ],
+   "tabs": [
+    "family",
+    "people",
+    "post_votes",
+    "posts"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "favLinksSave": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postFavLinksSave_",
+   "file": "backend/post-learning.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "fav_links",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "favourite": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "your own star: kind favourite, yourself",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postFavourite_",
+   "file": "backend/post-content.gs",
+   "callers": [
+    "js/find-bundles.js",
+    "tools/complete-sats.py"
+   ],
+   "tabs": [
+    "favourites"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "filmsSync": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postFilmsSync_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "config",
+    "family",
+    "films",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "writes"
+   ]
+  },
+  "finalizePayment": {
+   "fate": "special",
+   "into": "",
+   "why": "money or a booking: prices are worked out on the server from the sheet, a child is refused, and the steps (checkout, refund, seats) must run in order",
+   "access": "self",
+   "childRefused": true,
+   "handler": "postFinalizePayment_",
+   "file": "backend/post-booking.gs",
+   "callers": [
+    "js/me-messages.js"
+   ],
+   "tabs": [
+    "config",
+    "events",
+    "family",
+    "jobs",
+    "options",
+    "people",
+    "shop"
+   ],
+   "effects": [
+    "email",
+    "log",
+    "money",
+    "outside",
+    "writes"
+   ]
+  },
+  "findChild": {
+   "fate": "special",
+   "into": "",
+   "why": "who belongs to whom (parent, child, roles): the handler checks both sides agree, which a table of kinds cannot; a child is found by exact handle only, and counted",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postFindChild_",
+   "file": "backend/post-family.gs",
+   "callers": [
+    "js/me-people.js"
+   ],
+   "tabs": [
+    "people"
+   ],
+   "effects": []
+  },
+  "flagMessage": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postFlagMessage_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "claude_notes",
+    "config",
+    "family",
+    "messages",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "email",
+    "writes"
+   ]
+  },
+  "forgotPin": {
+   "fate": "special",
+   "into": "",
+   "why": "signing in, PINs and sessions stay their own doors: somebody not yet signed in has no role to look up, and the PIN rules (lock, emailed PIN, hashing) live in the handler",
+   "access": "anyone",
+   "childRefused": false,
+   "handler": "postForgotPin_",
+   "file": "backend/post-signin.gs",
+   "callers": [
+    "js/me-account.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "email",
+    "writes"
+   ]
+  },
+  "getProfile": {
+   "fate": "general",
+   "into": "readItems",
+   "why": "one person's row: kind person, admin only",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postGetProfile_",
+   "file": "backend/post-account.gs",
+   "callers": [
+    "js/me-card.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "library_cards",
+    "qualifications",
+    "shop",
+    "venues"
+   ],
+   "effects": []
+  },
+  "googleLogin": {
+   "fate": "special",
+   "into": "",
+   "why": "signing in, PINs and sessions stay their own doors: somebody not yet signed in has no role to look up, and the PIN rules (lock, emailed PIN, hashing) live in the handler",
+   "access": "anyone",
+   "childRefused": false,
+   "handler": "postGoogleLogin_",
+   "file": "backend/post-signin.gs",
+   "callers": [
+    "js/me-account.js"
+   ],
+   "tabs": [
+    "answers",
+    "applications",
+    "config",
+    "events",
+    "family",
+    "favourites",
+    "jobs",
+    "library_cards",
+    "options",
+    "people",
+    "qualifications",
+    "shop",
+    "submissions",
+    "venues"
+   ],
+   "effects": [
+    "log",
+    "money",
+    "outside",
+    "writes"
+   ]
+  },
+  "hands": {
+   "fate": "special",
+   "into": "",
+   "why": "the hands up on a live session, read with raiseHand's own checks",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postRaiseHand_",
+   "file": "backend/post-family.gs",
+   "callers": [
+    "js/help.js"
+   ],
+   "tabs": [
+    "events",
+    "family",
+    "jobs"
+   ],
+   "effects": [
+    "log",
+    "money",
+    "writes"
+   ]
+  },
+  "healthLog": {
+   "fate": "special",
+   "into": "",
+   "why": "an error or figures from a phone, open to anyone and throttled per device; not an item",
+   "access": "anyone",
+   "childRefused": false,
+   "handler": "postHealthLog_",
+   "file": "backend/post-admin.gs",
+   "callers": [
+    "js/shell-boot.js"
+   ],
+   "tabs": [
+    "health_log"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "imageData": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy. Were it to come back: special, a picture fetched for the share canvas; open to anyone, reads nothing private",
+   "access": "anyone",
+   "childRefused": false,
+   "handler": "postImageData_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [],
+   "effects": [
+    "outside"
+   ]
+  },
+  "inboxList": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postInboxList_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [],
+   "effects": [
+    "outside"
+   ]
+  },
+  "joinWaitlist": {
+   "fate": "special",
+   "into": "",
+   "why": "money or a booking: prices are worked out on the server from the sheet, a child is refused, and the steps (checkout, refund, seats) must run in order",
+   "access": "self",
+   "childRefused": true,
+   "handler": "postJoinWaitlist_",
+   "file": "backend/post-booking.gs",
+   "callers": [
+    "js/receipt.js"
+   ],
+   "tabs": [
+    "config",
+    "events",
+    "family",
+    "jobs",
+    "options",
+    "people",
+    "receipts",
+    "rooms",
+    "shop",
+    "terms",
+    "venues"
+   ],
+   "effects": [
+    "log",
+    "money",
+    "writes"
+   ]
+  },
+  "layoutSave": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "the site layout: config, admin only",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postLayoutSave_",
+   "file": "backend/post-admin.gs",
+   "callers": [
+    "js/layout-moves.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "legoCount": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy. Were it to come back: special, marking or AI: each press costs a request against a per-person cap, so it stays a counted door of its own",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postLegoCount_",
+   "file": "backend/post-learning.gs",
+   "callers": [],
+   "tabs": [
+    "config"
+   ],
+   "effects": [
+    "ai",
+    "outside",
+    "writes"
+   ]
+  },
+  "lensOpen": {
+   "fate": "general",
+   "into": "readItems",
+   "why": "somebody else's settings: kind person, admin only",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postLensOpen_",
+   "file": "backend/post-account.gs",
+   "callers": [
+    "js/find-doors.js"
+   ],
+   "tabs": [
+    "applications",
+    "config",
+    "events",
+    "family",
+    "jobs",
+    "library_cards",
+    "people",
+    "qualifications",
+    "venues"
+   ],
+   "effects": [
+    "log",
+    "money"
+   ]
+  },
+  "libExport": {
+   "fate": "special",
+   "into": "",
+   "why": "the tools' copy of the private library, a page at a time; admin only",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postLibExport_",
+   "file": "backend/post-learning.gs",
+   "callers": [
+    "tools/lib-private.js"
+   ],
+   "tabs": [],
+   "effects": []
+  },
+  "libImport": {
+   "fate": "special",
+   "into": "",
+   "why": "the tools' copy back in; admin only",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postLibImport_",
+   "file": "backend/post-learning.gs",
+   "callers": [
+    "tools/lib-private.js"
+   ],
+   "tabs": [],
+   "effects": [
+    "writes"
+   ]
+  },
+  "libImportDrive": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postLibImportDrive_",
+   "file": "backend/post-learning.gs",
+   "callers": [],
+   "tabs": [
+    "libLog"
+   ],
+   "effects": [
+    "drive",
+    "log",
+    "outside",
+    "writes"
+   ]
+  },
+  "libImportList": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postLibImportList_",
+   "file": "backend/post-learning.gs",
+   "callers": [],
+   "tabs": [],
+   "effects": [
+    "drive"
+   ]
+  },
+  "libItems": {
+   "fate": "general",
+   "into": "readItems",
+   "why": "the library's words by id, signed in, a day's cap each: readItems does exactly this for kinds question, content, practical and project (slice 1)",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postLibItems_",
+   "file": "backend/post-learning.gs",
+   "callers": [
+    "js/library.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "libLog",
+    "people"
+   ],
+   "effects": [
+    "log",
+    "writes"
+   ]
+  },
+  "linkChild": {
+   "fate": "special",
+   "into": "",
+   "why": "who belongs to whom (parent, child, roles): the handler checks both sides agree, which a table of kinds cannot",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postLinkChild_",
+   "file": "backend/post-family.gs",
+   "callers": [
+    "js/me-people.js"
+   ],
+   "tabs": [
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "listApplications": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postListApplications_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "applications",
+    "people"
+   ],
+   "effects": []
+  },
+  "listBizChecks": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postListBizChecks_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "biz_checks",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "writes"
+   ]
+  },
+  "listClientErrors": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postListClientErrors_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "client_errors"
+   ],
+   "effects": []
+  },
+  "listOwnerAnswers": {
+   "fate": "general",
+   "into": "readItems",
+   "why": "the owner's answers: admin only",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postListOwnerAnswers_",
+   "file": "backend/post-admin.gs",
+   "callers": [
+    "js/one-place.js"
+   ],
+   "tabs": [
+    "family",
+    "owner_answers",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "listRecords": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postListRecords_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people",
+    "records"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "listStaff": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postListStaff_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "people"
+   ],
+   "effects": []
+  },
+  "listSuggestions": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postListSuggestions_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "claude_notes",
+    "messages"
+   ],
+   "effects": []
+  },
+  "makeChild": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postMakeChild_",
+   "file": "backend/post-family.gs",
+   "callers": [],
+   "tabs": [],
+   "effects": []
+  },
+  "markWorking": {
+   "fate": "special",
+   "into": "",
+   "why": "marking or AI: each press costs a request against a per-person cap, so it stays a counted door of its own",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postMarkWorking_",
+   "file": "backend/post-learning.gs",
+   "callers": [
+    "js/working.js"
+   ],
+   "tabs": [
+    "config",
+    "submissions"
+   ],
+   "effects": [
+    "ai",
+    "drive",
+    "outside",
+    "writes"
+   ]
+  },
+  "mediaDelete": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postMediaSave_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "config",
+    "family",
+    "media",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "writes"
+   ]
+  },
+  "mediaHide": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postMediaSave_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "config",
+    "family",
+    "media",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "writes"
+   ]
+  },
+  "mediaSave": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postMediaSave_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "config",
+    "family",
+    "media",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "writes"
+   ]
+  },
+  "mediaUpload": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postMediaSave_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "config",
+    "family",
+    "media",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "writes"
+   ]
+  },
+  "messages": {
+   "fate": "general",
+   "into": "readItems",
+   "why": "your own messages: kind message, yourself only (POLICY decides whose)",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postMessages_",
+   "file": "backend/post-content.gs",
+   "callers": [
+    "index.html",
+    "js/me-messages.js",
+    "js/messages.js"
+   ],
+   "tabs": [
+    "events",
+    "family",
+    "jobs",
+    "messages",
+    "people"
+   ],
+   "effects": [
+    "log",
+    "money"
+   ]
+  },
+  "move": {
+   "fate": "special",
+   "into": "",
+   "why": "money or a booking: prices are worked out on the server from the sheet, a child is refused, and the steps (checkout, refund, seats) must run in order",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postMove_",
+   "file": "backend/post-booking.gs",
+   "callers": [
+    "js/keypad-pad.js",
+    "js/receipt.js",
+    "js/shell-click.js",
+    "tools/answer-primary.py",
+    "tools/complete-sats.py",
+    "tools/mxc.py",
+    "tools/refine-sats2024.py"
+   ],
+   "tabs": [
+    "config",
+    "events",
+    "family",
+    "jobs",
+    "options",
+    "people",
+    "rooms",
+    "shop",
+    "venues"
+   ],
+   "effects": [
+    "email",
+    "log",
+    "money",
+    "writes"
+   ]
+  },
+  "myAnswers": {
+   "fate": "general",
+   "into": "readItems",
+   "why": "your own saved answers: kind answer, yourself only",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postMyAnswers_",
+   "file": "backend/post-learning.gs",
+   "callers": [
+    "js/answers.js"
+   ],
+   "tabs": [
+    "answers"
+   ],
+   "effects": []
+  },
+  "myProfile": {
+   "fate": "general",
+   "into": "readItems",
+   "why": "your own settings row: kind person, yourself only",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postMyProfile_",
+   "file": "backend/post-account.gs",
+   "callers": [
+    "js/me-settings.js"
+   ],
+   "tabs": [
+    "applications",
+    "config",
+    "events",
+    "family",
+    "jobs",
+    "library_cards",
+    "people",
+    "qualifications",
+    "venues"
+   ],
+   "effects": [
+    "log",
+    "money"
+   ]
+  },
+  "openWaitlist": {
+   "fate": "special",
+   "into": "",
+   "why": "money or a booking: prices are worked out on the server from the sheet, a child is refused, and the steps (checkout, refund, seats) must run in order",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postOpenWaitlist_",
+   "file": "backend/post-booking.gs",
+   "callers": [
+    "js/receipt.js"
+   ],
+   "tabs": [
+    "config",
+    "events",
+    "family",
+    "jobs",
+    "options",
+    "people",
+    "rooms",
+    "shop",
+    "terms",
+    "venues"
+   ],
+   "effects": [
+    "log",
+    "writes"
+   ]
+  },
+  "payStatement": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy. Were it to come back: special, a pay statement is money: the asker's own unless an admin",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postPayStatement_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "config",
+    "events",
+    "jobs"
+   ],
+   "effects": [
+    "log",
+    "money"
+   ]
+  },
+  "personDelete": {
+   "fate": "general",
+   "into": "deleteItem",
+   "why": "a person removed: admin only",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postPersonDelete_",
+   "file": "backend/post-family.gs",
+   "callers": [
+    "js/me-people.js"
+   ],
+   "tabs": [
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "personGet": {
+   "fate": "general",
+   "into": "readItems",
+   "why": "one person: kind person, admin only",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postPersonGet_",
+   "file": "backend/post-family.gs",
+   "callers": [
+    "js/me-people.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": []
+  },
+  "personSave": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "a person made or changed: kind person, admin only (may email a new account)",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postPersonSave_",
+   "file": "backend/post-family.gs",
+   "callers": [
+    "js/me-people.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "email",
+    "writes"
+   ]
+  },
+  "photoFile": {
+   "fate": "special",
+   "into": "",
+   "why": "an upload of a file into Drive, in parts; not a row of a kind",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postPhotoFile_",
+   "file": "backend/post-account.gs",
+   "callers": [
+    "js/me-fields.js"
+   ],
+   "tabs": [],
+   "effects": [
+    "drive",
+    "outside",
+    "writes"
+   ]
+  },
+  "pinLink": {
+   "fate": "special",
+   "into": "",
+   "why": "signing in, PINs and sessions stay their own doors: somebody not yet signed in has no role to look up, and the PIN rules (lock, emailed PIN, hashing) live in the handler",
+   "access": "anyone",
+   "childRefused": false,
+   "handler": "postPinLink_",
+   "file": "backend/post-signin.gs",
+   "callers": [
+    "js/me-messages.js"
+   ],
+   "tabs": [
+    "answers",
+    "applications",
+    "config",
+    "events",
+    "family",
+    "favourites",
+    "jobs",
+    "library_cards",
+    "options",
+    "people",
+    "qualifications",
+    "shop",
+    "submissions",
+    "venues"
+   ],
+   "effects": [
+    "log",
+    "money",
+    "writes"
+   ]
+  },
+  "pinShow": {
+   "fate": "special",
+   "into": "",
+   "why": "signing in, PINs and sessions stay their own doors: somebody not yet signed in has no role to look up, and the PIN rules (lock, emailed PIN, hashing) live in the handler; an admin reads one PIN on a tap, never in a list",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postPinShow_",
+   "file": "backend/post-admin.gs",
+   "callers": [
+    "js/me-people.js"
+   ],
+   "tabs": [],
+   "effects": []
+  },
+  "pushSet": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postPushState_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people",
+    "push_tokens"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "pushState": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postPushState_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people",
+    "push_tokens"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "pushSubscribe": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postPushState_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people",
+    "push_tokens"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "pushUnsubscribe": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postPushState_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people",
+    "push_tokens"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "raceBuild": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postRaceBuild_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [],
+   "effects": [
+    "drive",
+    "outside",
+    "writes"
+   ]
+  },
+  "raiseHand": {
+   "fate": "special",
+   "into": "",
+   "why": "a hand up on a live session: the handler checks the session and who may lower it",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postRaiseHand_",
+   "file": "backend/post-family.gs",
+   "callers": [
+    "js/help.js"
+   ],
+   "tabs": [
+    "events",
+    "family",
+    "jobs"
+   ],
+   "effects": [
+    "log",
+    "money",
+    "writes"
+   ]
+  },
+  "reactPost": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postReactPost_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people",
+    "post_reactions",
+    "posts"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "readItems": {
+   "fate": "general",
+   "into": "readItems",
+   "why": "the general read itself (slice 1); no front-end caller until a later slice",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postReadItems_",
+   "file": "backend/post-learning.gs",
+   "callers": [],
+   "tabs": [
+    "config",
+    "family",
+    "libLog",
+    "people"
+   ],
+   "effects": [
+    "log",
+    "writes"
+   ]
+  },
+  "readMessage": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "marking your own message read: kind message, yourself",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postReadMessage_",
+   "file": "backend/post-content.gs",
+   "callers": [
+    "js/me-messages.js"
+   ],
+   "tabs": [
+    "family",
+    "messages",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "register": {
+   "fate": "special",
+   "into": "",
+   "why": "signing in, PINs and sessions stay their own doors: somebody not yet signed in has no role to look up, and the PIN rules (lock, emailed PIN, hashing) live in the handler",
+   "access": "anyone",
+   "childRefused": false,
+   "handler": "postRegister_",
+   "file": "backend/post-signin.gs",
+   "callers": [
+    "js/me-account.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "email",
+    "writes"
+   ]
+  },
+  "report": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postReport_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "claude_notes",
+    "config",
+    "family",
+    "messages",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "email",
+    "writes"
+   ]
+  },
+  "reportQuestion": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postReportQuestion_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "claude_notes",
+    "config",
+    "family",
+    "messages",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "email",
+    "writes"
+   ]
+  },
+  "resendLink": {
+   "fate": "special",
+   "into": "",
+   "why": "signing in, PINs and sessions stay their own doors: somebody not yet signed in has no role to look up, and the PIN rules (lock, emailed PIN, hashing) live in the handler",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postResendLink_",
+   "file": "backend/post-signin.gs",
+   "callers": [
+    "js/me-roles.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "email",
+    "writes"
+   ]
+  },
+  "resetPin": {
+   "fate": "special",
+   "into": "",
+   "why": "signing in, PINs and sessions stay their own doors: somebody not yet signed in has no role to look up, and the PIN rules (lock, emailed PIN, hashing) live in the handler",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postResetPin_",
+   "file": "backend/post-signin.gs",
+   "callers": [
+    "js/me-roles.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "email",
+    "writes"
+   ]
+  },
+  "rewriteCheck": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postRewriteIdeas_",
+   "file": "backend/post-learning.gs",
+   "callers": [],
+   "tabs": [
+    "config"
+   ],
+   "effects": [
+    "ai",
+    "outside",
+    "writes"
+   ]
+  },
+  "rewriteIdeas": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postRewriteIdeas_",
+   "file": "backend/post-learning.gs",
+   "callers": [],
+   "tabs": [
+    "config"
+   ],
+   "effects": [
+    "ai",
+    "outside",
+    "writes"
+   ]
+  },
+  "rulesSave": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postRulesSave_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "saveAnswers": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "your own answers: kind answer, yourself",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSaveAnswers_",
+   "file": "backend/post-learning.gs",
+   "callers": [
+    "js/answers.js"
+   ],
+   "tabs": [
+    "answers",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "saveAvatar": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSaveAvatar_",
+   "file": "backend/post-account.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people",
+    "shop"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "saveBizCheck": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postListBizChecks_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "biz_checks",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "writes"
+   ]
+  },
+  "saveNotepad": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "your own notepad: a field of your person, yourself",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSaveNotepad_",
+   "file": "backend/post-account.gs",
+   "callers": [
+    "js/find-measure.js"
+   ],
+   "tabs": [
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "saveOwnerAnswer": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "an owner answer: admin only",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postListOwnerAnswers_",
+   "file": "backend/post-admin.gs",
+   "callers": [
+    "js/one-place.js"
+   ],
+   "tabs": [
+    "family",
+    "owner_answers",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "savePhoto": {
+   "fate": "special",
+   "into": "",
+   "why": "an upload of a file into Drive, in parts; not a row of a kind",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSavePhoto_",
+   "file": "backend/post-account.gs",
+   "callers": [
+    "js/me-fields.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "outside",
+    "writes"
+   ]
+  },
+  "saveRecordsPage": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postListRecords_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people",
+    "records"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "saveScore": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSaveScore_",
+   "file": "backend/post-account.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "saveTimetable": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSaveTimetable_",
+   "file": "backend/post-account.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "saveTodo": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "your own to-do: a field of your person, yourself",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSaveTodo_",
+   "file": "backend/post-account.gs",
+   "callers": [
+    "js/find-measure.js"
+   ],
+   "tabs": [
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "saveTtHighscore": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSaveScore_",
+   "file": "backend/post-account.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "sendMessage": {
+   "fate": "special",
+   "into": "",
+   "why": "sends an email or a message to somebody else, so it keeps its own rules for who may write to whom",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSendMessage_",
+   "file": "backend/post-content.gs",
+   "callers": [
+    "js/me-messages.js",
+    "js/resource.js"
+   ],
+   "tabs": [
+    "config",
+    "events",
+    "family",
+    "jobs",
+    "messages",
+    "people",
+    "push_tokens"
+   ],
+   "effects": [
+    "drive",
+    "email",
+    "log",
+    "money",
+    "outside",
+    "writes"
+   ]
+  },
+  "setListed": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "whether a person is listed: kind person, admin only",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postSetListed_",
+   "file": "backend/post-content.gs",
+   "callers": [
+    "js/cards-make.js"
+   ],
+   "tabs": [
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "setMyRoles": {
+   "fate": "special",
+   "into": "",
+   "why": "who belongs to whom (parent, child, roles): the handler checks both sides agree, which a table of kinds cannot",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSetMyRoles_",
+   "file": "backend/post-account.gs",
+   "callers": [
+    "js/me-roles.js"
+   ],
+   "tabs": [
+    "config",
+    "events",
+    "family",
+    "jobs",
+    "people"
+   ],
+   "effects": [
+    "log",
+    "money",
+    "writes"
+   ]
+  },
+  "setNotify": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "your own email choices: a field of your person, yourself",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSetNotify_",
+   "file": "backend/post-account.gs",
+   "callers": [
+    "js/me-people.js",
+    "js/me-roles.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "lens_log",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "setRoom": {
+   "fate": "special",
+   "into": "",
+   "why": "money or a booking: prices are worked out on the server from the sheet, a child is refused, and the steps (checkout, refund, seats) must run in order (the room sets the rate)",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSetRoom_",
+   "file": "backend/post-booking.gs",
+   "callers": [
+    "js/find-account.js"
+   ],
+   "tabs": [
+    "config",
+    "events",
+    "family",
+    "jobs",
+    "options",
+    "people",
+    "shop"
+   ],
+   "effects": [
+    "log",
+    "money",
+    "writes"
+   ]
+  },
+  "signAgreement": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSignAgreement_",
+   "file": "backend/post-signin.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "signOut": {
+   "fate": "special",
+   "into": "",
+   "why": "signing in, PINs and sessions stay their own doors: somebody not yet signed in has no role to look up, and the PIN rules (lock, emailed PIN, hashing) live in the handler",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSignOut_",
+   "file": "backend/post-signin.gs",
+   "callers": [
+    "js/me-account.js"
+   ],
+   "tabs": [],
+   "effects": [
+    "writes"
+   ]
+  },
+  "spotlight": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "the shop window: kind product, admin only",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postSpotlight_",
+   "file": "backend/post-content.gs",
+   "callers": [
+    "js/arcade.js",
+    "js/collections.js",
+    "js/layout.js",
+    "js/shell-boot.js",
+    "js/shell-pages.js"
+   ],
+   "tabs": [
+    "family",
+    "people",
+    "spotlight"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "submitAnswer": {
+   "fate": "special",
+   "into": "",
+   "why": "an answer and its verdict: the server marks it, so the phone never says what it scored",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSubmitAnswer_",
+   "file": "backend/post-learning.gs",
+   "callers": [
+    "js/answers.js",
+    "js/me-account.js",
+    "js/submit.js"
+   ],
+   "tabs": [
+    "submissions"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "suggest": {
+   "fate": "special",
+   "into": "",
+   "why": "sends an email or a message to somebody else, so it keeps its own rules for who may write to whom",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSuggest_",
+   "file": "backend/post-content.gs",
+   "callers": [
+    "js/submit-suggest.js",
+    "js/tiles.js",
+    "tools/health.js"
+   ],
+   "tabs": [
+    "claude_notes",
+    "config",
+    "family",
+    "messages",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "email",
+    "writes"
+   ]
+  },
+  "suggestUpload": {
+   "fate": "special",
+   "into": "",
+   "why": "an upload of a file into Drive, in parts; not a row of a kind",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postSuggestUpload_",
+   "file": "backend/post-content.gs",
+   "callers": [
+    "js/submit-suggest.js"
+   ],
+   "tabs": [],
+   "effects": [
+    "drive",
+    "outside"
+   ]
+  },
+  "tidyOldRows": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postTidyOldRows_",
+   "file": "backend/migrate.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people",
+    "posts",
+    "reports"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "tutorDbsChecked": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postTutorDbsChecked_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "updateProfile": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "your own row, the fields you may edit: kind person, yourself",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postUpdateProfile_",
+   "file": "backend/post-account.gs",
+   "callers": [
+    "js/me-card.js",
+    "js/me-people.js",
+    "js/me-settings.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "lens_log",
+    "library_cards",
+    "people",
+    "qualifications",
+    "venues"
+   ],
+   "effects": [
+    "email",
+    "writes"
+   ]
+  },
+  "verifyEmail": {
+   "fate": "special",
+   "into": "",
+   "why": "signing in, PINs and sessions stay their own doors: somebody not yet signed in has no role to look up, and the PIN rules (lock, emailed PIN, hashing) live in the handler",
+   "access": "anyone",
+   "childRefused": false,
+   "handler": "postVerifyEmail_",
+   "file": "backend/post-signin.gs",
+   "callers": [
+    "js/me-messages.js"
+   ],
+   "tabs": [
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "verifyLogin": {
+   "fate": "special",
+   "into": "",
+   "why": "signing in, PINs and sessions stay their own doors: somebody not yet signed in has no role to look up, and the PIN rules (lock, emailed PIN, hashing) live in the handler",
+   "access": "anyone",
+   "childRefused": false,
+   "handler": "postVerifyLogin_",
+   "file": "backend/post-signin.gs",
+   "callers": [
+    "js/find-account.js",
+    "tools/ai-draw-accuracy.js"
+   ],
+   "tabs": [
+    "answers",
+    "applications",
+    "config",
+    "events",
+    "family",
+    "favourites",
+    "jobs",
+    "library_cards",
+    "people",
+    "qualifications",
+    "shop",
+    "submissions",
+    "venues"
+   ],
+   "effects": [
+    "email",
+    "log",
+    "money",
+    "writes"
+   ]
+  },
+  "videoPart": {
+   "fate": "special",
+   "into": "",
+   "why": "an upload of a file into Drive, in parts; not a row of a kind",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postVideoPart_",
+   "file": "backend/post-account.gs",
+   "callers": [
+    "js/me-settings.js"
+   ],
+   "tabs": [
+    "family",
+    "people"
+   ],
+   "effects": [
+    "drive",
+    "outside",
+    "writes"
+   ]
+  },
+  "votePoll": {
+   "fate": "dead",
+   "into": "",
+   "why": "no caller in the site or tools today (check-actions REASONS); never folded, removed at a redeploy",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postVotePoll_",
+   "file": "backend/post-content.gs",
+   "callers": [],
+   "tabs": [
+    "family",
+    "people",
+    "post_votes",
+    "posts"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "wordsSave": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "the site's words: config, admin only",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postWordsSave_",
+   "file": "backend/post-admin.gs",
+   "callers": [
+    "js/words.js"
+   ],
+   "tabs": [
+    "config",
+    "family",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
+  },
+  "workFileDelete": {
+   "fate": "special",
+   "into": "",
+   "why": "a work file: the handler decides whose",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postWorkFile_",
+   "file": "backend/workfile.gs",
+   "callers": [
+    "js/work-file.js"
+   ],
+   "tabs": [
+    "events",
+    "family",
+    "jobs",
+    "people",
+    "work_files"
+   ],
+   "effects": [
+    "drive",
+    "log",
+    "money",
+    "writes"
+   ]
+  },
+  "workFileOpen": {
+   "fate": "special",
+   "into": "",
+   "why": "a work file: the handler decides whose (student, parent, booked tutor, admin)",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postWorkFile_",
+   "file": "backend/workfile.gs",
+   "callers": [
+    "js/work-file.js"
+   ],
+   "tabs": [
+    "events",
+    "family",
+    "jobs",
+    "people",
+    "work_files"
+   ],
+   "effects": [
+    "drive",
+    "log",
+    "money",
+    "writes"
+   ]
+  },
+  "workFileSave": {
+   "fate": "special",
+   "into": "",
+   "why": "an upload of a file into Drive, in parts; not a row of a kind; the handler decides whose file",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postWorkFile_",
+   "file": "backend/workfile.gs",
+   "callers": [
+    "js/work-file.js"
+   ],
+   "tabs": [
+    "events",
+    "family",
+    "jobs",
+    "people",
+    "work_files"
+   ],
+   "effects": [
+    "drive",
+    "log",
+    "money",
+    "writes"
+   ]
+  },
+  "workFilesOf": {
+   "fate": "special",
+   "into": "",
+   "why": "a work file list: the handler decides whose",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postWorkFile_",
+   "file": "backend/workfile.gs",
+   "callers": [
+    "js/work-file.js"
+   ],
+   "tabs": [
+    "events",
+    "family",
+    "jobs",
+    "people",
+    "work_files"
+   ],
+   "effects": [
+    "drive",
+    "log",
+    "money",
+    "writes"
+   ]
+  },
+  "workingOf": {
+   "fate": "special",
+   "into": "",
+   "why": "a photo of working: yours, a linked parent's, staff's or an admin's, checked by the handler",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postWorkingOf_",
+   "file": "backend/post-learning.gs",
+   "callers": [
+    "js/working.js"
+   ],
+   "tabs": [
+    "family",
+    "submissions"
+   ],
+   "effects": [
+    "drive"
+   ]
+  }
+ }
+}

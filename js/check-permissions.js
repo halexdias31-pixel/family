@@ -16,6 +16,8 @@ const see = {};
 rows.forEach(r => {
   if (r && r.kind === 'see' && P.SEE_ROLES.indexOf(r.role) !== -1 && typeof r.allow === 'boolean') { (see[r.action] = see[r.action] || {})[r.role] = r.allow; return; }
   if (r && r.kind === 'ui' && P.ROLES.indexOf(r.role) !== -1 && typeof r.allow === 'boolean') return;
+  /* `item` rows (step 2): role × kind:verb; check-server-path holds them against the old doors. */
+  if (r && r.kind === 'item' && P.ROLES.indexOf(r.role) !== -1 && typeof r.allow === 'boolean' && /^\w+:(read|save|delete)$/.test(r.action)) return;
   if (!r || r.kind !== 'action' || P.ROLES.indexOf(r.role) < 0 || typeof r.allow !== 'boolean') { bad.push('a malformed row: ' + JSON.stringify(r)); return; }
   (tbl[r.action] = tbl[r.action] || {})[r.role] = r.allow;
 });

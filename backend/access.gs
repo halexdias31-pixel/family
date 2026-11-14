@@ -310,6 +310,8 @@ const ACTION_ACCESS = {
   payStatement: 'self', listStaff: 'admin',
   /* THE LIBRARY'S WORDS AND ANSWERS (397): anybody signed in, a day's cap each; the tools' copy in and out is the admin's. */
   libItems: 'self',
+  /* ONE WAY TO THE SERVER (step 2, slice 1): the general read. `self` at the gate, as libItems; which kind a role may read is ITEM_PERMISSIONS (permissions.json `item` rows). */
+  readItems: 'self',
   libExport: 'admin', libImport: 'admin',
   /* AND UPDATES LEFT IN THE OWNER'S DRIVE BY A SESSION (407): the count and the import, the admin's alone. */
   libImportList: 'admin', libImportDrive: 'admin',
