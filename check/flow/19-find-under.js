@@ -419,8 +419,8 @@ check('the history database: a manuscript and a historical figure are each found
     if (drawn ? drawn.getAttribute('aria-label') !== x.name || !drawn.querySelector('.qtags')
               : (!h3 || h3.textContent.trim() !== x.name)) bad.push(x.name + '\'s card is not headed with its name');
     /* NO CARD TALLER THAN A PHONE (562): the lines a card does not keep are its pages after it, so the card and its pages together have them. */
-    const lines = el.querySelectorAll('.hdb-lines dl > div').length
-      + w.pageParts_(x).filter(p => /^facts\d+$/.test(String(p))).reduce((n, p) => { const e = d.createElement('div'); e.innerHTML = w.stuffPart_(x, p); return n + e.querySelectorAll('.hdb-lines dl > div').length; }, 0);
+    const lines = el.querySelectorAll('.hdb-lines .row').length
+      + w.pageParts_(x).filter(p => /^facts\d+$/.test(String(p))).reduce((n, p) => { const e = d.createElement('div'); e.innerHTML = w.stuffPart_(x, p); return n + e.querySelectorAll('.hdb-lines .row').length; }, 0);
     if (lines < 4) bad.push(x.name + '\'s card and its pages have fewer than four label/value lines');
     if (!el.querySelector('.qtag[data-f="histEra"]')) bad.push(x.name + '\'s card carries no era tag');
     if (el.querySelector('.hdb-lines dd select, .hdb-lines dd input')) bad.push(x.name + '\'s card has a control in a line');
