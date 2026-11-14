@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 84.4,
+ "score": 82.6,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -34,12 +34,12 @@
   {
    "id": "dead",
    "label": "Code nothing calls",
-   "count": 11,
+   "count": 17,
    "weight": 0.3,
    "cap": 10,
-   "off": 3.3,
+   "off": 5.1,
    "where": {
-    "check-dead": "cardRedraw_ (cards-render.js), clipsNow_ (facts.js), filterChips (find-bundles.js), facetAnswersHtml_ (find-pages.js), formSlider_ (form.js), paintBoard_ (map.js), paintTimer (overworld.js), qtRow_ (qtools-row.js), sheetHere_ (shell-click.js), shareCanvasPng_ (shell-click.js), postRow_ (tiles-jobs.js)"
+    "check-dead": "cardRedraw_ (cards-render.js), clipsNow_ (facts.js), filterChips (find-bundles.js), facetAnswersHtml_ (find-pages.js), formSlider_ (form.js), paintBoard_ (map.js), paintTimer (overworld.js), qtRow_ (qtools-row.js), sheetHere_ (shell-click.js), shareCanvasPng_ (shell-click.js), postRow_ (tiles-jobs.js), consoleSave_ (media.gs), consoleLoad_ (media.gs), favLinksIn_ (dopost.gs), rewriteIdeasAsk_ (dopost.gs), rewriteCheckAsk_ (dopost.gs), inboxList_ (inbox.gs)"
    }
   },
   {
