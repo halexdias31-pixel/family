@@ -188,7 +188,7 @@ function layArm_(el, say, rest, word) {
     face: x => {
       x.classList.add('is-armed'); tileSet_(x, { label: say });
       const k = x.querySelector('.tile-i');
-      if (word && k && !x.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', `<span class="lay-again">${esc(say)}</span>`);
+      if (word && k && !x.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', cardBlock_({ type: 'group', tag: 'span', look: 'lay-again', text: say }));
     },
     back: x => { x.classList.remove('is-armed'); tileSet_(x, { label: rest }); x.querySelector('.lay-again')?.remove(); } });
 }

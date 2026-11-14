@@ -155,9 +155,9 @@ const kpPlainKey_ = k => KP_PLAIN[k.v] || k;
 /* A KEY'S FACE: its text escaped, or its drawing (a group or drawing block, or several) drawn by the one maker. */
 const kpFace_ = t => (t != null && typeof t === 'object' ? cardBlocks_(t) : esc(String(t || '')));
 /* A KEY IS A TILE (owner's look rule: every control is a tile), drawn by `tile_` with the key's own face; `.kp-key` gives it the pad's shape. */
-const kpKey_ = k => tile_({ act: 'kp-key', cls: 'kp-key' + (k.c || ''), label: k.a || String(k.t || ''),
+const kpKey_ = k => tile_({ act: 'kp-key', label: k.a || String(k.t || ''),
   data: { v: k.v != null ? k.v : k.t }, icon: k.icon, face: k.icon ? '' : kpFace_(k.t),
-  style: k.span ? 'grid-column:' + (k.at ? k.at + ' / ' : '') + 'span ' + k.span : '' });
+  cls: 'kp-key' + (k.c || '') + (k.span ? ' kp-s' + k.span : '') + (k.at ? ' kp-at' + k.at : '') });
 /* THE PAD'S KEYS FOR A LAYOUT AND A BOX. § */
 /* AND ON THE LETTERS TOO, beside the vector, so a power is never a face away: seven keys over the letters' sixty columns */
 const KP_ABC_TOP_SPAN = [8, 9, 9, 9, 9, 8, 8];

@@ -68,20 +68,13 @@ function speedMs_(o) {
 
 /* ---------- THE OVERLAY ---------- */
 function speedSheet_() {
-  return `<div class="rsvp" id="rsvp">
-    <div class="rsvp-stage" aria-live="off">
-      <span class="rsvp-tick rsvp-tick-t" aria-hidden="true"></span>
-      <div class="rsvp-word" id="rsvp-word">${loading_()}</div>
-      <span class="rsvp-tick rsvp-tick-b" aria-hidden="true"></span>
-    </div>
-    <p class="note rsvp-at" id="rsvp-at"></p>
-    <div class="tile-row rsvp-tiles">
-      ${tile_({ icon: 'undo', label: 'Back', note: 'a sentence', act: 'speed-back' })}
-      ${tile_({ icon: 'play', label: 'Play', act: 'speed-play', cls: 'rsvp-play' })}
-    </div>
-    <label class="rsvp-speed"><span id="rsvp-wpm-say">${SPEED.wpm} words a minute</span>
-      <input type="range" id="rsvp-wpm" min="${SPEED_MIN}" max="${SPEED_MAX}" step="${SPEED_STEP}" value="${SPEED.wpm}"></label>
-  </div>`;
+  const tick = end => ({ type: 'group', tag: 'span', look: 'rsvp-tick rsvp-tick-' + end, attrs: { 'aria-hidden': 'true' } });
+  return cardBlock_({ type: 'group', look: 'rsvp', id: 'rsvp', blocks: [
+    { type: 'group', look: 'rsvp-stage', attrs: { 'aria-live': 'off' }, blocks: [tick('t'), { type: 'group', look: 'rsvp-word', id: 'rsvp-word', inner: loading_() }, tick('b')] },
+    { type: 'group', tag: 'p', look: 'note rsvp-at', id: 'rsvp-at' },
+    { type: 'tiles', look: 'rsvp-tiles', tiles: [{ icon: 'undo', label: 'Back', note: 'a sentence', act: 'speed-back' }, { icon: 'play', label: 'Play', act: 'speed-play', cls: 'rsvp-play' }] },
+    { type: 'group', tag: 'label', look: 'rsvp-speed', blocks: [{ type: 'group', tag: 'span', id: 'rsvp-wpm-say', text: SPEED.wpm + ' words a minute' },
+      { type: 'control', attrs: { type: 'range', id: 'rsvp-wpm', min: SPEED_MIN, max: SPEED_MAX, step: SPEED_STEP, value: SPEED.wpm } }] }] });
 }
 function speedOpen_(title, text, x) {
   speedStop_();
@@ -125,7 +118,7 @@ function speedShow_() {
   const el = $('rsvp-word'), o = SPEED.words[SPEED.i];
   if (!el || !o) return;
   const at = speedOrp_(o.w);
-  el.innerHTML = `<span class="rsvp-pre">${esc(o.w.slice(0, at))}</span><span class="rsvp-orp">${esc(o.w.charAt(at))}</span><span class="rsvp-post">${esc(o.w.slice(at + 1))}</span>`;
+  el.innerHTML = cardRuns_([{ span: 'rsvp-pre', text: o.w.slice(0, at) }, { span: 'rsvp-orp', text: o.w.charAt(at) }, { span: 'rsvp-post', text: o.w.slice(at + 1) }]);
   const say = $('rsvp-at');
   if (say) say.textContent = (SPEED.i + 1) + ' of ' + SPEED.words.length;
 }

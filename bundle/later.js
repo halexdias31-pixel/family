@@ -1631,13 +1631,15 @@ cardKind_('practical', x => {
 /* THE BOX IS A TOOL (the keypad's field, its Send and its verdict), so the page carries it as an embed block. */
 function guideBox_(x, slot, ask, hint) {
   const k = ansKey_(x) + '#' + slot, val = ansRead_(k);
-  const say = hint ? `<span class="gd-hint">${esc(hint)}</span>` : '';
-  const field = `<label class="qp-ans gd-box"><span class="gd-ask">${esc(ask)}</span>${say}${kpField_(k, val, 'words', false, ask)}</label>`;
+  const field = cardBlock_({ type: 'group', tag: 'label', look: 'qp-ans gd-box', blocks: [{ type: 'group', tag: 'span', look: 'gd-ask', text: ask },
+    hint ? { type: 'group', tag: 'span', look: 'gd-hint', text: hint } : ''], inner: kpField_(k, val, 'words', false, ask) });
   /* ---------- AND A SEND UNDER EACH, SIGNED IN § */
   const send = typeof whoIs_ === 'function' && whoIs_() ? tile_({ send: true, act: 'qp-send', cls: 'qp-send' }) : '';
   if (!send) return field;
   const said = subBoxSay_(k, val);
-  return `<div class="qp-mark gd-mark${said.cls ? ' ' + said.cls : ''}">${field}${send}<span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span><span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
+  return cardBlock_({ type: 'group', look: 'qp-mark gd-mark' + (said.cls ? ' ' + said.cls : ''), inner: field + send + cardBlocks_([
+    { type: 'group', tag: 'span', look: 'qp-verdict', attrs: { role: 'status', 'aria-live': 'polite' }, text: said.text },
+    { type: 'group', tag: 'span', look: 'qp-saved', attrs: { 'data-k': k }, text: ansSavedSay_(k) }]) });
 }
 CARD_EMBEDS['guide-box'] = a => (a.x ? guideBox_(a.x, a.slot, a.ask, a.hint) : '');
 
@@ -4805,9 +4807,9 @@ function choiceList_(x) {
   if (!x || !Array.isArray(x.choices) || x.choices.length < 2) return '';
   const need = Math.max(1, (x.choiceRight || []).length);
   const say = orderIs_(x) ? 'Type the letters in order, e.g. B, A, C' : need > 1 ? 'Type ' + need + ' letters, e.g. A, C' : 'Type the letter';
-  return `<ol class="qp-optlist" type="A">${x.choices.map((c, i) =>
-    `<li class="qp-optline"><b class="qp-optl">${CHOICE_LETTERS[i] || i + 1}</b> ${typeset_(c)}</li>`).join('')}</ol>
-  <span class="qp-ans-k">${esc(say)}</span>`;
+  return cardBlocks_([{ type: 'group', tag: 'ol', look: 'qp-optlist', attrs: { type: 'A' }, blocks: x.choices.map((c, i) => ({ type: 'group', tag: 'li', look: 'qp-optline',
+    blocks: [{ type: 'group', tag: 'b', look: 'qp-optl', text: CHOICE_LETTERS[i] || String(i + 1) }], inner: ' ' + typeset_(c) })) },
+    { type: 'group', tag: 'span', look: 'qp-ans-k', text: say }]);
 }
 /* WHAT WAS TYPED, AS OPTION NUMBERS (1-based): a letter, a number or an option's own words; null for nothing, [] for something that is no option. */
 function choicePicks_(x, typed) {
@@ -6513,17 +6515,18 @@ function padAid_(g) {
   const c = g.from;
   /* AND A HALO ROUND A SNAP THAT IS HOLDING (357): § */
   const h = g.hold;
-  const halo = h ? `<ellipse class="qpad-halo" vector-effect="non-scaling-stroke" cx="${h.u[0]}" cy="${h.u[1]}" rx="${30 / g.sx}" ry="${30 / g.sy}"/>` : '';
+  const line = (cls, d) => cardBlock_({ type: 'drawing', node: { el: 'path', a: { class: cls, 'vector-effect': 'non-scaling-stroke', d } } });
+  const halo = h ? cardBlock_({ type: 'drawing', node: { el: 'ellipse', a: { class: 'qpad-halo', 'vector-effect': 'non-scaling-stroke', cx: h.u[0], cy: h.u[1], rx: 30 / g.sx, ry: 30 / g.sy } } }) : '';
   if (g.tool === 'pen') {
     /* AND WHERE THE FINGER IS ABOUT TO BE (374): § */
     const n = PAD_ST ? PAD_ST.length : 0, q = g.pred;
-    const html = halo + (q && n >= 2 ? `<path class="qpad-pred" vector-effect="non-scaling-stroke" d="M${PAD_ST[n - 2]} ${PAD_ST[n - 1]}L${q[0]} ${q[1]}"/>` : '');
+    const html = halo + (q && n >= 2 ? line('qpad-pred', `M${PAD_ST[n - 2]} ${PAD_ST[n - 1]}L${q[0]} ${q[1]}`) : '');
     if (aid.innerHTML !== html) aid.innerHTML = html;
     return;
   }
-  const pin = `<path class="qpad-pin" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${c[0]} ${c[1]}"/>`;
+  const pin = line('qpad-pin', `M${c[0]} ${c[1]}L${c[0]} ${c[1]}`);
   const rad = g.tool === 'compass' && g.tip && g.r >= padMinOf_(g)
-    ? `<path class="qpad-rad" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${Math.round(g.tip[0])} ${Math.round(g.tip[1])}"/>`
+    ? line('qpad-rad', `M${c[0]} ${c[1]}L${Math.round(g.tip[0])} ${Math.round(g.tip[1])}`)
     : '';
   aid.innerHTML = pin + rad + halo;
 }
@@ -8894,7 +8897,7 @@ function figsBefore_(x) {
   const pic = (p, label, onlyMarked) => {
     const marked = p.diagram ? seen(p.diagram) : '';
     if (onlyMarked && !marked) return;
-    const html = (marked || (p.diagram ? `<figure>${p.diagram}</figure>` : '')) + pics_(figImgs_(p.images));
+    const html = (marked || (p.diagram ? cardBlock_({ type: 'drawing', node: { el: 'figure', inner: p.diagram } }) : '')) + pics_(figImgs_(p.images));
     if (html) out.push({ label: label, html: html });
   };
   /* NOT THE STEM'S PICTURE THIS PART DRAWS ON: it is under the pen on this very card (356). */
@@ -9625,8 +9628,8 @@ function msgDoorItems_() {
 /* A CONVERSATION'S CARD, around the one card maker: somebody not yet written to gets the form, a thread gets `msgFindCard_`. */
 function msgDoorCard_(x, draw) {
   const t = (typeof messageThreads_ === 'function' ? messageThreads_() : []).find(t2 => t2.id === x.thread);
-  if (!t && x.to) return card_(`<div class="dm-card"><div class="dm-head"><h3>${esc(x.name)}</h3></div>
-    ${msgForm_(x.to.name, x.to.id)}</div>`);
+  if (!t && x.to) return card_(cardBlock_({ type: 'group', look: 'dm-card', blocks: [{ type: 'group', look: 'dm-head', blocks: [{ type: 'msgHead', text: x.name }] }],
+    inner: msgForm_(x.to.name, x.to.id) }));
   if (!t) return renderCard({ kind: 'msg', tags: [{ text: x.name, colour: 0 }] });
   return msgFindCard_(x, t, draw);
 }
@@ -10450,12 +10453,12 @@ function jobPage_(j) {
   const roomOk = j && j.id && (admin || (USER && norm(j.tutor || '') === norm(USER.name)));
   const forms = roomOk ? jobRoomForm_(j) : '';
   const foot = (tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '') + forms
-    + (said ? '<p class="note rc-request" role="status">' + esc(said) + '</p>' : '');
+    + (said ? cardBlock_({ type: 'group', tag: 'p', look: 'note rc-request', attrs: { role: 'status' }, text: said }) : '');
   return typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '';
 }
 
 /* A BOOKING CLOSED (owner, 9 Nov): tags say what, who, when, the rate and whether it is paid; one line says who and how much in all. */
-const rcpTag_ = (t, cls) => (t ? `<span class="qtag${cls ? ' ' + cls : ''}">${esc(t)}</span>` : '');
+const rcpTag_ = (t, cls) => (t ? cardBlock_({ type: 'group', tag: 'span', look: 'qtag' + (cls ? ' ' + cls : ''), text: t }) : '');
 function rcpWhen_(j) {
   const days = typeof jobDays_ === 'function' ? jobDays_(j).map(i => (typeof DAY3_ !== 'undefined' ? DAY3_[i] : '')).filter(Boolean) : [];
   const t = String(j.time || j.startTime || '').trim(), e = String(j.endTime || j.end || '').trim();
@@ -10505,14 +10508,14 @@ const BUNDLE_MIN = 2;
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
   receiptTags: x => { const j = x.row || {}, paid = rcpPaid_(j);
     const rate = Number(j.rate) || (/hour/i.test(String(j.unit || '')) ? Number(j.price) : 0) || 0;
-    return `<div class="qtags">${rcpTag_('Booking')}${rcpTag_(j.subject)}${rcpTag_(j.tutor ? displayName_(j.tutor) : '')}${rcpTag_(rcpWhen_(j))}${
-      rcpTag_(rate > 0 ? perHour_(rate) : '')}${rcpTag_(paid, paid === 'Unpaid' ? 'is-new' : '')}</div>`; },
+    return cardBlock_({ type: 'group', look: 'qtags', inner: rcpTag_('Booking') + rcpTag_(j.subject) + rcpTag_(j.tutor ? displayName_(j.tutor) : '') + rcpTag_(rcpWhen_(j))
+      + rcpTag_(rate > 0 ? perHour_(rate) : '') + rcpTag_(paid, paid === 'Unpaid' ? 'is-new' : '') }); },
   receiptSum: x => { const j = x.row || {};
     const who = (j.slots || []).map(sl => sl && sl.client).filter(Boolean).map(n => displayName_(n)).join(', ') || (j.client ? displayName_(j.client) : '');
     const weeks = Number(j.weeks || (typeof jobDates_ === 'function' ? jobDates_(j).length : 0)) || 0;
     const total = j.price !== '' && j.price != null && isFinite(Number(j.price)) ? money_(Number(j.price)) + ' in all' : '';
     const said = [who, weeks ? weeks + (weeks === 1 ? ' week' : ' weeks') : '', total].filter(Boolean).join(' · ');
-    return said ? `<p class="rc-sum">${esc(said)}</p>` : ''; },
+    return said ? cardBlock_({ type: 'group', tag: 'p', look: 'rc-sum', text: said }) : ''; },
 });
 /* THE FRONT MENU'S ANSWER, read through `DOOR_FIELD` (find-finder.js) — the one name every writer and reader of it uses (1040 friction). */
 const forIs_ = want => (STUFF.filters || [])
@@ -10690,11 +10693,10 @@ function bookFindBack_(id) {
 }
 on('book-back', el => bookFindBack_(el.dataset.step));
 /* SET THE ROOM, A FORM ON THE RECEIPT from the start (no sheet, owner 7 Nov). */
-const jobRoomForm_ = j => `<div class="rc-form room-form">
-    <label class="field"><span>the room in the venue — the family sees it</span>
-      <input class="room-name" value="${esc(j.room || '')}" autocomplete="off"></label>
-    <div class="btn-row">${tile_({ form: true, label: 'Save the room', act: 'job-room', data: { id: String(j.id) } })}</div>
-    <p class="note room-said" aria-live="polite"></p></div>`;
+const jobRoomForm_ = j => cardBlock_({ type: 'group', look: 'rc-form room-form', blocks: [
+  { type: 'field', cap: 'the room in the venue — the family sees it', blocks: [{ type: 'control', attrs: { class: 'room-name', value: j.room || '', autocomplete: 'off' } }] },
+  { type: 'group', look: 'btn-row', tiles: [{ form: true, label: 'Save the room', act: 'job-room', data: { id: String(j.id) } }] },
+  { type: 'group', tag: 'p', look: 'note room-said', attrs: { 'aria-live': 'polite' } }] });
 on('job-room', el => {
   const f = el.closest('.room-form');
   const room = ((f && (f.querySelector('.room-name') || {}).value) || '').trim();
@@ -12407,17 +12409,12 @@ function finderScreen_() {
      is a fact about you and belongs beside the thing it is spent on; a button is a control and has
      earned a page of its own. */
   /* FIND IS CHIPS ONLY (owner, 8 Nov): no search box. `#stuff-clear` is the slot `paintStuff` rewrites with Clear-all. */
-  const controls = `<div id="${F.id}-controls">`
-    + `<div id="${F.id}-clear">${filterClear_()}</div>
-    ${/* THE SORT WAS HERE — a dropdown offering A–Z and, when anything had a price, cheapest first. § */
-          ''}
-    ${/* THE MENU IS A CARD (owner, 14 Nov: one template): its tags the path chosen, its body the choices (`#…-chips`, `#…-groups` are the slots a repaint fills). */
-      renderCard(findMenuSpec_(F))}
-    ${/* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */''}
-    ${/* THE FINDER ITSELF TAKES A SUGGESTION TOO (494): "should be on finder widget too". */
-      typeof suggestOpts_ === 'function' && tile_(suggestOpts_('finder', F.id, 'Find'))
-        ? `<div class="tile-row rep-row find-sg">${tile_(suggestOpts_('finder', F.id, 'Find'))}</div>` : ''}
-  </div>`;
+  /* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */
+  const controls = cardBlock_({ type: 'group', id: F.id + '-controls', blocks: [{ type: 'group', id: F.id + '-clear', inner: filterClear_() },
+    /* THE MENU IS A CARD (owner, 14 Nov: one template): its tags the path chosen, its body the choices (`#…-chips`, `#…-groups` are the slots a repaint fills). */
+    { type: 'card', spec: findMenuSpec_(F) },
+    /* THE FINDER ITSELF TAKES A SUGGESTION TOO (494): "should be on finder widget too". */
+    typeof suggestOpts_ === 'function' && tile_(suggestOpts_('finder', F.id, 'Find')) ? { type: 'tiles', look: 'rep-row find-sg', tiles: [suggestOpts_('finder', F.id, 'Find')] } : ''] });
 
   /* THE CONTROLS ARE A PAGE, and the results are the pages after it. § */
   /* Empty pages. `fillStuffPages` puts markup in the ones you can reach, after the screen exists
@@ -12454,7 +12451,7 @@ function finderScreen_() {
   }
   /* `is-res` IS "A PAGE OF RESULTS". */
   return finderLeadHtml_(lead) + pages(F.id, [controls].concat(front))
-    + '<section class="page is-res"><div class="pane"></div></section>'.repeat(Math.min(want, STUFF_WIN));
+    + cardBlock_({ type: 'group', tag: 'section', look: 'page is-res', blocks: [{ type: 'group', look: 'pane' }] }).repeat(Math.min(want, STUFF_WIN));
 }
 screen('stuff', () => inFinder_(FINDERS.stuff, finderScreen_));
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one
@@ -12684,7 +12681,7 @@ function bundleTags_(b) {
       if (now === b) document.querySelectorAll('#s-stuff .card.bundle > .kc-tags').forEach(el => { el.innerHTML = html; });
     });
   }
-  return String(tagRow_(BUNDLE_ITEM) || '<div class="qtags qcard-tags"></div>');
+  return String(tagRow_(BUNDLE_ITEM) || cardBlock_({ type: 'group', look: 'qtags qcard-tags' }));
 }
 
 ;
@@ -13332,9 +13329,9 @@ const kpPlainKey_ = k => KP_PLAIN[k.v] || k;
 /* A KEY'S FACE: its text escaped, or its drawing (a group or drawing block, or several) drawn by the one maker. */
 const kpFace_ = t => (t != null && typeof t === 'object' ? cardBlocks_(t) : esc(String(t || '')));
 /* A KEY IS A TILE (owner's look rule: every control is a tile), drawn by `tile_` with the key's own face; `.kp-key` gives it the pad's shape. */
-const kpKey_ = k => tile_({ act: 'kp-key', cls: 'kp-key' + (k.c || ''), label: k.a || String(k.t || ''),
+const kpKey_ = k => tile_({ act: 'kp-key', label: k.a || String(k.t || ''),
   data: { v: k.v != null ? k.v : k.t }, icon: k.icon, face: k.icon ? '' : kpFace_(k.t),
-  style: k.span ? 'grid-column:' + (k.at ? k.at + ' / ' : '') + 'span ' + k.span : '' });
+  cls: 'kp-key' + (k.c || '') + (k.span ? ' kp-s' + k.span : '') + (k.at ? ' kp-at' + k.at : '') });
 /* THE PAD'S KEYS FOR A LAYOUT AND A BOX. § */
 /* AND ON THE LETTERS TOO, beside the vector, so a power is never a face away: seven keys over the letters' sixty columns */
 const KP_ABC_TOP_SPAN = [8, 9, 9, 9, 9, 8, 8];
@@ -14155,7 +14152,7 @@ function kpHitMaths_(inp, show, x, y) {
     + 'px;visibility:hidden;pointer-events:none;contain:layout style paint';
   let html = '';
   for (let i = 0; i <= inp.value.length; i++) {
-    html += '<span class="kp-show">' + kpTypeset_(inp.value, i) + '</span>';
+    html += cardBlock_({ type: 'group', tag: 'span', look: 'kp-show', inner: kpTypeset_(inp.value, i) });
   }
   host.innerHTML = html;
   /* EVERY CARET'S COPY ON THE SAME SPOT, the field's width, so each caret is measured where it would stand. */
@@ -14640,7 +14637,7 @@ function aiStageStart_(box, out) {
   }
   line.className = 'qp-ai-stage';
   /* WORDS ONLY: the pressed tile's ring is the press's one wait (owner, 12 Nov: two rings at once). */
-  line.innerHTML = '<span class="qp-ai-stage-say"></span>';
+  line.innerHTML = cardBlock_({ type: 'group', tag: 'span', look: 'qp-ai-stage-say' });
   line.setAttribute('role', 'status');
   const say = line.querySelector('.qp-ai-stage-say');
   const began = Date.now();
@@ -14818,7 +14815,7 @@ function kpLoupe_(inp, x, y) {
   if (!L) { L = document.createElement('div'); L.id = 'kp-loupe'; L.className = 'kp-loupe'; L.setAttribute('aria-hidden', 'true'); document.body.appendChild(L); }
   const sr = show.getBoundingClientRect(), Z = 1.6, W = 132, H = 56;
   L.hidden = false;
-  L.innerHTML = '<div class="kp-loupe-in"></div>';
+  L.innerHTML = cardBlock_({ type: 'group', look: 'kp-loupe-in' });
   const inner = L.firstChild, copy = show.cloneNode(true);
   copy.style.cssText = 'position:absolute;margin:0;left:0;top:0;width:' + sr.width + 'px;height:' + sr.height + 'px;transform-origin:0 0;transform:scale(' + Z + ')';
   inner.appendChild(copy);
@@ -21316,20 +21313,13 @@ function speedMs_(o) {
 
 /* ---------- THE OVERLAY ---------- */
 function speedSheet_() {
-  return `<div class="rsvp" id="rsvp">
-    <div class="rsvp-stage" aria-live="off">
-      <span class="rsvp-tick rsvp-tick-t" aria-hidden="true"></span>
-      <div class="rsvp-word" id="rsvp-word">${loading_()}</div>
-      <span class="rsvp-tick rsvp-tick-b" aria-hidden="true"></span>
-    </div>
-    <p class="note rsvp-at" id="rsvp-at"></p>
-    <div class="tile-row rsvp-tiles">
-      ${tile_({ icon: 'undo', label: 'Back', note: 'a sentence', act: 'speed-back' })}
-      ${tile_({ icon: 'play', label: 'Play', act: 'speed-play', cls: 'rsvp-play' })}
-    </div>
-    <label class="rsvp-speed"><span id="rsvp-wpm-say">${SPEED.wpm} words a minute</span>
-      <input type="range" id="rsvp-wpm" min="${SPEED_MIN}" max="${SPEED_MAX}" step="${SPEED_STEP}" value="${SPEED.wpm}"></label>
-  </div>`;
+  const tick = end => ({ type: 'group', tag: 'span', look: 'rsvp-tick rsvp-tick-' + end, attrs: { 'aria-hidden': 'true' } });
+  return cardBlock_({ type: 'group', look: 'rsvp', id: 'rsvp', blocks: [
+    { type: 'group', look: 'rsvp-stage', attrs: { 'aria-live': 'off' }, blocks: [tick('t'), { type: 'group', look: 'rsvp-word', id: 'rsvp-word', inner: loading_() }, tick('b')] },
+    { type: 'group', tag: 'p', look: 'note rsvp-at', id: 'rsvp-at' },
+    { type: 'tiles', look: 'rsvp-tiles', tiles: [{ icon: 'undo', label: 'Back', note: 'a sentence', act: 'speed-back' }, { icon: 'play', label: 'Play', act: 'speed-play', cls: 'rsvp-play' }] },
+    { type: 'group', tag: 'label', look: 'rsvp-speed', blocks: [{ type: 'group', tag: 'span', id: 'rsvp-wpm-say', text: SPEED.wpm + ' words a minute' },
+      { type: 'control', attrs: { type: 'range', id: 'rsvp-wpm', min: SPEED_MIN, max: SPEED_MAX, step: SPEED_STEP, value: SPEED.wpm } }] }] });
 }
 function speedOpen_(title, text, x) {
   speedStop_();
@@ -21373,7 +21363,7 @@ function speedShow_() {
   const el = $('rsvp-word'), o = SPEED.words[SPEED.i];
   if (!el || !o) return;
   const at = speedOrp_(o.w);
-  el.innerHTML = `<span class="rsvp-pre">${esc(o.w.slice(0, at))}</span><span class="rsvp-orp">${esc(o.w.charAt(at))}</span><span class="rsvp-post">${esc(o.w.slice(at + 1))}</span>`;
+  el.innerHTML = cardRuns_([{ span: 'rsvp-pre', text: o.w.slice(0, at) }, { span: 'rsvp-orp', text: o.w.charAt(at) }, { span: 'rsvp-post', text: o.w.slice(at + 1) }]);
   const say = $('rsvp-at');
   if (say) say.textContent = (SPEED.i + 1) + ' of ' + SPEED.words.length;
 }
@@ -21930,11 +21920,10 @@ function textsBody_(x) {
   if (d) {
     const t = (TEXTS.index && TEXTS.index.texts.find(v => v.id === x.tx.t)) || {};
     const words = ((d.chapters[x.tx.p] || [])[x.tx.u]) || '';
-    const dir = x.tx.lang === 'he' ? ' dir="rtl"' : '';
-    return `<p class="wt-text" lang="${esc(x.tx.lang || 'en')}"${dir}>${esc(words)}</p>
-      <p class="wt-credit">${esc(t.source || '')} · ${esc(t.licence || '')}</p>`;
+    return cardBlocks_([{ type: 'group', tag: 'p', look: 'wt-text', attrs: { lang: x.tx.lang || 'en', dir: x.tx.lang === 'he' ? 'rtl' : null }, text: words },
+      { type: 'group', tag: 'p', look: 'wt-credit', text: (t.source || '') + ' · ' + (t.licence || '') }]);
   }
-  if (TEXTS.missed[x.tx.file] && !TEXTS.loading[x.tx.file]) return '<p class="fc-note">This text did not arrive.</p>';
+  if (TEXTS.missed[x.tx.file] && !TEXTS.loading[x.tx.file]) return cardBlock_({ type: 'group', tag: 'p', look: 'fc-note', text: 'This text did not arrive.' });
   if (!TEXTS.loading[x.tx.file]) textsLoad_(x.tx.file).then(() => textsRedraw_(x.tx.file));
   return loading_();
 }
@@ -22029,12 +22018,12 @@ function pdtextsBody_(x) {
   const d = PDTEXTS.files[x.tx.id];
   if (d) {
     const words = String(((d.cards[x.tx.i] || [])[x.tx.t]) || '');
-    const src = (d.sources || []).map(s => esc(s.text || '') + ' · ' + esc(s.licence || '')).join('<br>');
+    const src = [].concat(...(d.sources || []).map((s, i) => [i ? { br: true } : '', (s.text || '') + ' · ' + (s.licence || '')]));
     const lang = /^Latin$/.test((d.texts || [])[x.tx.t] || '') ? 'la' : 'en';
-    return `<div class="tx-text" lang="${lang}">${words.split(/\n\s*\n/).map(p => '<p>' + esc(p) + '</p>').join('')}</div>
-      <p class="wt-credit">${src}</p>`;
+    return cardBlocks_([{ type: 'group', look: 'tx-text', attrs: { lang }, blocks: words.split(/\n\s*\n/).map(p => ({ type: 'group', tag: 'p', text: p })) },
+      { type: 'group', tag: 'p', look: 'wt-credit', text: src }]);
   }
-  if (PDTEXTS.missed[x.tx.id] && !PDTEXTS.loading[x.tx.id]) return '<p class="fc-note">This text did not arrive.</p>';
+  if (PDTEXTS.missed[x.tx.id] && !PDTEXTS.loading[x.tx.id]) return cardBlock_({ type: 'group', tag: 'p', look: 'fc-note', text: 'This text did not arrive.' });
   if (!PDTEXTS.loading[x.tx.id]) pdtextsLoad_(x.tx.id, x.tx.file).then(() => pdtextsRedraw_(x.tx.id));
   return loading_();
 }
@@ -22231,7 +22220,7 @@ function mechScope_(x) { return !x || x.kind !== 'mech' || x.mFile === 'pc' ? ''
 const mechOwn_ = (x, file, k) => (x && x.kind === 'mech' && x.mFile === file && x.mech[k]) || '';
 
 /* A CARD IS ITS TAGS AND ITS DRAWING; a part adds one line of what it does. No title: the name is a tag. */
-function mechPic_(x) { return `<figure class="mech-pic">${pixSvg_(x.mech.px, x.name, false, ' mech-px')}</figure>`; }
+function mechPic_(x) { return cardBlock_({ type: 'drawing', node: { el: 'figure', a: { class: 'mech-pic' }, inner: pixSvg_(x.mech.px, x.name, false, ' mech-px') } }); }
 cardKind_('mech', x => { const r = x.mech || {};
   return { look: 'mech', picture: Array.isArray(r.px) ? { svg: mechPic_(x), alt: x.name } : null, tags: typeof tagList_ === 'function' && x.key ? tagList_(x) : [], body: r.does ? [{ type: 'text', text: r.does, look: 'mech-does' }] : [] }; });
 /* A CAR'S PARTS ARE A FIND (650): its every part, Car part chosen and the car's make, model and engine (`CARD_EXTRAS_`). */
@@ -22442,7 +22431,8 @@ function qrSvg_(text, cls) {
   if (!m) return '';
   const n = m.length, q = 4, d = [];
   m.forEach((row, r) => row.forEach((v, c) => { if (v) d.push(`M${c + q} ${r + q}h1v1h-1z`); }));
-  return `<svg class="${cls || 'qr'}" viewBox="0 0 ${n + 2 * q} ${n + 2 * q}" shape-rendering="crispEdges" role="img" aria-label="QR code"><rect width="100%" height="100%" class="qr-bg"/><path class="qr-ink" d="${d.join('')}"/></svg>`;
+  return cardBlock_({ type: 'drawing', node: { el: 'svg', a: { class: cls || 'qr', viewBox: `0 0 ${n + 2 * q} ${n + 2 * q}`, 'shape-rendering': 'crispEdges', role: 'img', 'aria-label': 'QR code' },
+    kids: [{ el: 'rect', a: { width: '100%', height: '100%', class: 'qr-bg' } }, { el: 'path', a: { class: 'qr-ink', d: d.join('') } }] } });
 }
 
 ;
@@ -23939,7 +23929,7 @@ function layArm_(el, say, rest, word) {
     face: x => {
       x.classList.add('is-armed'); tileSet_(x, { label: say });
       const k = x.querySelector('.tile-i');
-      if (word && k && !x.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', `<span class="lay-again">${esc(say)}</span>`);
+      if (word && k && !x.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', cardBlock_({ type: 'group', tag: 'span', look: 'lay-again', text: say }));
     },
     back: x => { x.classList.remove('is-armed'); tileSet_(x, { label: rest }); x.querySelector('.lay-again')?.remove(); } });
 }

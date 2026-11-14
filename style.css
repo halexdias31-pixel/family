@@ -4603,6 +4603,14 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 /* ---------- THE LETTERS: THE SAME PAD, TURNED OVER (`abc`) § */
 #kp.is-abc, #kp.is-sym { grid-template-columns: repeat(60, minmax(0, 1fr)); column-gap: 0; max-width: 640px; }
 #kp.is-abc .kp-key, #kp.is-sym .kp-key { border-inline: 2px solid transparent; background-clip: padding-box; }
+/* A KEY'S WIDTH IN THE SIXTY COLUMNS (`span` in keypad-keys.js), and where the second letter row starts (`at`). */
+.kp-key.kp-s6 { grid-column: span 6; }
+.kp-key.kp-s9 { grid-column: span 9; }
+.kp-key.kp-s10 { grid-column: span 10; }
+.kp-key.kp-s12 { grid-column: span 12; }
+.kp-key.kp-s18 { grid-column: span 18; }
+.kp-key.kp-s24 { grid-column: span 24; }
+.kp-key.kp-at4.kp-s6 { grid-column: 4 / span 6; }
 /* THE SYMBOLS FACE (round 4, `KP_SYM`): Greek letters and the signs no other key types, ten a row like the letters */
 .kp-key.kp-sy { font-size: var(--fs-title); font-weight: 500; }
 .kp-key.kp-ch { position: relative; font-weight: 500; font-size: var(--fs-title); }

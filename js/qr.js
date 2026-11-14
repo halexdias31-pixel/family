@@ -138,5 +138,6 @@ function qrSvg_(text, cls) {
   if (!m) return '';
   const n = m.length, q = 4, d = [];
   m.forEach((row, r) => row.forEach((v, c) => { if (v) d.push(`M${c + q} ${r + q}h1v1h-1z`); }));
-  return `<svg class="${cls || 'qr'}" viewBox="0 0 ${n + 2 * q} ${n + 2 * q}" shape-rendering="crispEdges" role="img" aria-label="QR code"><rect width="100%" height="100%" class="qr-bg"/><path class="qr-ink" d="${d.join('')}"/></svg>`;
+  return cardBlock_({ type: 'drawing', node: { el: 'svg', a: { class: cls || 'qr', viewBox: `0 0 ${n + 2 * q} ${n + 2 * q}`, 'shape-rendering': 'crispEdges', role: 'img', 'aria-label': 'QR code' },
+    kids: [{ el: 'rect', a: { width: '100%', height: '100%', class: 'qr-bg' } }, { el: 'path', a: { class: 'qr-ink', d: d.join('') } }] } });
 }

@@ -60,7 +60,7 @@ const PRICE_ROWS = [
     control: 'l-qty',
     /* Says WHERE the fraction came from, for an admin. § */
     value: L => String(Math.max(0, (L.n || 1) - 1))
-      + (isAdmin() && L.seatSource ? ` <span class="note">${esc(L.seatSource)}</span>` : ''),
+      + (isAdmin() && L.seatSource ? ' ' + cardBlock_({ type: 'group', tag: 'span', look: 'note', text: L.seatSource }) : ''),
     mult:  L => L.fChildrenAll,
     of:    L => rateBase(L, 'students') },
 
@@ -124,7 +124,7 @@ function priceCells(row, L, fmt) {
     const why = !L.hoursPerWeek ? 'tick some hours'
               : !L.weeksBooked  ? 'pick a time interval'
               : '';
-    return { total: (row.key === 'hoursweek' && why) ? `<span class="note">${why}</span>` : dash_() };
+    return { total: (row.key === 'hoursweek' && why) ? cardBlock_({ type: 'group', tag: 'span', look: 'note', text: why }) : dash_() };
   };
 
   /* --- a multiplier on the finished total: length, term, split, bulk, advance --------------- */

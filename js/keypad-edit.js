@@ -148,7 +148,7 @@ function kpLoupe_(inp, x, y) {
   if (!L) { L = document.createElement('div'); L.id = 'kp-loupe'; L.className = 'kp-loupe'; L.setAttribute('aria-hidden', 'true'); document.body.appendChild(L); }
   const sr = show.getBoundingClientRect(), Z = 1.6, W = 132, H = 56;
   L.hidden = false;
-  L.innerHTML = '<div class="kp-loupe-in"></div>';
+  L.innerHTML = cardBlock_({ type: 'group', look: 'kp-loupe-in' });
   const inner = L.firstChild, copy = show.cloneNode(true);
   copy.style.cssText = 'position:absolute;margin:0;left:0;top:0;width:' + sr.width + 'px;height:' + sr.height + 'px;transform-origin:0 0;transform:scale(' + Z + ')';
   inner.appendChild(copy);

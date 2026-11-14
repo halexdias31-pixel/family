@@ -60,7 +60,7 @@ function mark(text) {
   laws.forEach(law => {
     const cls = LAW_CLASS[norm(law.colour)];
     if (cls === undefined) return;                 // a colour nobody has defined: left alone
-    const wrap = m => park(`<span class="${cls}">${m}</span>`);
+    const wrap = m => park(cardBlock_({ type: 'group', tag: 'span', look: cls, inner: m }));
 
     const how = Object.prototype.hasOwnProperty.call(LAW_KINDS, law.kind) ? LAW_KINDS[law.kind] : null;
     if (how) out = how(out, law, wrap);
