@@ -131,6 +131,7 @@ const SUITE = [
   { file: 'check-one-way.js', what: 'any markup only from the renderer files (cards-render.js, tiles.js); the rest hand over data (owner, 12 Nov)' },
   { file: 'check-card-type.js', what: 'card content reads at the tag size (--fs-tag) and every figure fills to --pic-w (owner, 13 Nov)' },
   { file: 'check-card-spec.js', what: 'every card kind builder returns a spec object; renderCard escapes its text (owner, 12 Nov)' },
+  { file: 'check-item-shape.js', what: 'every migrated kind is the one item shape (id, kind, name, tags, body, links); kinds left only go down (owner, 14 Nov)' },
   { file: 'check-email-card.js', what: 'the Sunday email card is the site card: parts, lines, labels, corner, gap, sizes, tag colours (57a–62a)' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
