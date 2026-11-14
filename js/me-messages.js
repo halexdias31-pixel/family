@@ -426,7 +426,7 @@ function markRead_(msgs) {
     m.read = true;                                   /* so a redraw before the reply does not re-ask */
     /* ---------- AND WHICH ONES THEY WERE STAYS ON THE SCREEN § */
     m.fresh = true;
-    api({ action: 'readMessage', name: USER.name, personId: USER.personId, messageId: m.id })
+    api({ action: 'saveItem', item: 'message', old: 'readMessage', name: USER.name, personId: USER.personId, messageId: m.id })
       .catch(() => { m.read = false; });
   });
 }

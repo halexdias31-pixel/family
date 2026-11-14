@@ -197,7 +197,7 @@ on('person-save', el => {
   const parentIds = roles.indexOf('student') === -1 ? []
     : [...form.querySelectorAll('[data-pf-parent]')].filter(x => x.checked).map(x => x.getAttribute('data-pf-parent'))
       .concat(val('parent') ? [val('parent')] : []);
-  send_({ action: 'personSave', personId: USER.personId || '', targetId: F.id, firstName: val('first'),
+  send_({ action: 'saveItem', item: 'person', old: 'personSave', personId: USER.personId || '', targetId: F.id, firstName: val('first'),
           lastName: val('last'), roles, email: val('email'), dob: val('dob'), parentIds },
         { button: el, where: said, lock: form })
     .then(d => {
@@ -250,7 +250,7 @@ on('person-del', el => {
   const id = el.getAttribute('data-id') || '';
   if (!id) return;
   if (!sure_(el, 'Tap again to confirm')) return;
-  send_({ action: 'personDelete', personId: USER.personId || '', targetId: id }, { button: el })
+  send_({ action: 'deleteItem', item: 'person', old: 'personDelete', personId: USER.personId || '', targetId: id }, { button: el })
     .then(() => {
       peoplePut_(null, id);
       if (PEOPLE_FORM_ && PEOPLE_FORM_.id === id) PEOPLE_FORM_ = null;
@@ -298,7 +298,7 @@ on('pe-notify', el => {
   const F = PERSON_ED_, kind = String((el && el.dataset.kind) || ''), want = !!(el && el.checked);
   if (!F || !F.data || !kind || !personEdMay_()) return;
   const said = el.closest('.pe-form') && el.closest('.pe-form').querySelector('.pe-said');
-  send_({ action: 'setNotify', personId: (USER && USER.personId) || '', targetId: F.id, kind, on: want }, { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
+  send_({ action: 'saveItem', item: 'notify', old: 'setNotify', personId: (USER && USER.personId) || '', targetId: F.id, kind, on: want }, { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
     .then(d => {
       const on = d && typeof d.on === 'boolean' ? d.on : want;
       if (PERSON_ED_ === F && F.data.notify) F.data.notify = Object.assign({}, F.data.notify, { kinds: (F.data.notify.kinds || []).map(k => k.kind === kind ? Object.assign({}, k, { on }) : k) });
@@ -327,7 +327,7 @@ function peSave_(form) {
   const fields = peFields_(form), said = form.querySelector('.pe-said'), key = JSON.stringify(fields);
   if (key === F.sent) return;
   form.classList.add('is-sending');
-  send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
+  send_({ action: 'saveItem', item: 'profile', old: 'updateProfile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
     .then(d => { F.sent = key; F.moved = true; if (said) said.textContent = '✓ ' + ((d && d.said) || 'Saved'); })
     .catch(() => {})
     .then(() => form.classList.remove('is-sending'));
@@ -446,7 +446,7 @@ on('pa-save', el => {
   if (!val('first') || !val('last')) { if (said) said.textContent = 'A first name and a last name, please.'; return; }
   if (F.role !== 'student' && !val('email')) { if (said) said.textContent = 'An email, please — the PIN goes there.'; return; }
   const ids = F.picked.map(x => x.id);
-  send_({ action: 'personSave', personId: USER.personId || '', targetId: '', firstName: val('first'), lastName: val('last'),
+  send_({ action: 'saveItem', item: 'person', old: 'personSave', personId: USER.personId || '', targetId: '', firstName: val('first'), lastName: val('last'),
           roles: [F.role], email: val('email'), dob: val('dob'), parentIds: F.role === 'student' ? ids : [], invite: false },
         { button: el, where: said, lock: card })
     .then(d => {

@@ -312,6 +312,8 @@ const ACTION_ACCESS = {
   libItems: 'self',
   /* ONE WAY TO THE SERVER (step 2, slice 1): the general read. `self` at the gate, as libItems; which kind a role may read is ITEM_PERMISSIONS (permissions.json `item` rows). */
   readItems: 'self',
+  /* AND (slice 3) THE GENERAL SAVE AND DELETE: `self` at the gate; inside, the old door's own gate again, by name, and an ITEM_PERMISSIONS row. */
+  saveItem: 'self', deleteItem: 'self',
   libExport: 'admin', libImport: 'admin',
   /* AND UPDATES LEFT IN THE OWNER'S DRIVE BY A SESSION (407): the count and the import, the admin's alone. */
   libImportList: 'admin', libImportDrive: 'admin',

@@ -172,7 +172,7 @@ on('set-listed', el => {
   tileSet_(el, { label: on ? 'Listed' : 'Not listed', on,
                  note: on ? 'clients can see them' : 'clients cannot see them' });
 
-  api({ action: 'setListed',
+  api({ action: 'saveItem', item: 'listed', old: 'setListed',
     adminName: USER.name, name: USER.name,
     who: el.dataset.who, whoId: el.dataset.pid || '', on })
     .then(d => {

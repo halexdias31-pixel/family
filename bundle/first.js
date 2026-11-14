@@ -7021,22 +7021,23 @@ function why_(err) {
 
 /* `opts.keepalive` — a request the browser finishes after the page has gone, for the last answers sent as
    an iPad's cover closes (`answersPush_` in js/answers.js). Nothing else passes it. */
-/* ONE WAY TO THE SERVER (step 2): a `readItems` read names the old door it replaces in `old`. */
-/* A backend not yet redeployed answers "unknown action" or "cannot be read here yet": the old door is asked instead. */
+/* ONE WAY TO THE SERVER (step 2): a `readItems`, `saveItem` or `deleteItem` request names the old door it replaces in `old`. */
+/* A backend not yet redeployed answers "unknown action" or "cannot be read/saved/deleted here yet": the old door is asked instead, with the same request. */
 const itemsOld_ = d => !!(d && d.error && (/unknown action|not recognis/i.test(String(d.error))
-  || (d.why === 'kind' && /cannot be read here yet/i.test(String(d.error)))));
+  || (d.why === 'kind' && /cannot be (read|saved|deleted) here yet/i.test(String(d.error)))));
+const ITEMS_GENERAL_ = { readItems: 'kind', saveItem: 'item', deleteItem: 'item' };
 function apiItems_(body, opts) {
   const b = Object.assign({}, body), old = String(b.old);
   delete b.old;
-  return api(b, opts).then(d => {
-    if (!itemsOld_(d)) return d;
-    const o = Object.assign({}, b, { action: old });
-    delete o.kind;
-    return api(o, opts);
-  });
+  const o = Object.assign({}, b, { action: old });
+  delete o[ITEMS_GENERAL_[b.action]];
+  /* A KEEPALIVE FLUSH (a page closing) gets one request: the old door, unless this backend says it has the general one. */
+  const feats = typeof DATA === 'object' && DATA && Array.isArray(DATA.features) ? DATA.features : null;
+  if (opts && opts.keepalive && b.action !== 'readItems' && !(feats && feats.indexOf(b.action) !== -1)) return api(o, opts);
+  return api(b, opts).then(d => (itemsOld_(d) ? api(o, opts) : d));
 }
 function api(body, opts) {
-  if (body && body.action === 'readItems' && body.old) return apiItems_(body, opts);
+  if (body && body.old && /^(readItems|saveItem|deleteItem)$/.test(body.action)) return apiItems_(body, opts);
   /* ---------- THE TOKEN GOES ON EVERY REQUEST, FROM ONE PLACE § */
   const b = Object.assign({}, body);
   if (!b.token && typeof USER === 'object' && USER && USER.token) b.token = USER.token;
@@ -9083,7 +9084,7 @@ on('set-listed', el => {
   tileSet_(el, { label: on ? 'Listed' : 'Not listed', on,
                  note: on ? 'clients can see them' : 'clients cannot see them' });
 
-  api({ action: 'setListed',
+  api({ action: 'saveItem', item: 'listed', old: 'setListed',
     adminName: USER.name, name: USER.name,
     who: el.dataset.who, whoId: el.dataset.pid || '', on })
     .then(d => {
@@ -10295,7 +10296,7 @@ function markRead_(msgs) {
     m.read = true;                                   /* so a redraw before the reply does not re-ask */
     /* ---------- AND WHICH ONES THEY WERE STAYS ON THE SCREEN § */
     m.fresh = true;
-    api({ action: 'readMessage', name: USER.name, personId: USER.personId, messageId: m.id })
+    api({ action: 'saveItem', item: 'message', old: 'readMessage', name: USER.name, personId: USER.personId, messageId: m.id })
       .catch(() => { m.read = false; });
   });
 }
@@ -11059,7 +11060,7 @@ on('notify-pick', el => {
   /* ---------- THIS BOX'S ROW IS LOCKED, NOT THE CARD § */
   /* THE LENS'S PERSON BY `targetId`: the backend lets an admin (or a parent, for a child) choose for somebody else. */
   const W = whose_();
-  send_(Object.assign({ action: 'setNotify', name: USER.name, personId: USER.personId || '', kind: kind, on: want }, W === USER ? {} : { targetId: W.personId || '' }),
+  send_(Object.assign({ action: 'saveItem', item: 'notify', old: 'setNotify', name: USER.name, personId: USER.personId || '', kind: kind, on: want }, W === USER ? {} : { targetId: W.personId || '' }),
         { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
     .then(d => {
       /* THIS KIND'S ANSWER, MERGED INTO THE LIST WE HOLD — not the reply's whole list. § */
@@ -12334,7 +12335,7 @@ function meSave_(el, auto) {
   /* `send_`, NOT `api()`. § */
   /* YOU ASK; `whose_()` IS WHOSE ROW — yours, or the person an admin's lens is on (the backend lets only an admin name another). */
   const W = whose_();
-  send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '',
+  send_({ action: 'saveItem', item: 'profile', old: 'updateProfile', name: USER.name, personId: USER.personId || '',
           target: W.name, targetId: W.personId || '', fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said })
     .then(d => {
@@ -13695,7 +13696,7 @@ function cardSave_(el, auto) {
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === e.pid) || {};
   /* `own` IS `whose_()`'S CARD: yours, or the lens's person's, written to their row by `targetId`. */
   const W = whose_();
-  send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '',
+  send_({ action: 'saveItem', item: 'profile', old: 'updateProfile', name: USER.name, personId: USER.personId || '',
           target: e.own ? W.name : (t.title || ''), targetId: e.pid, fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said, lock: pane })
     .then(d => {
@@ -13734,7 +13735,7 @@ on('card-cancel', el => {
   if (!picBack) { cardClose_(e, pane, sec); return; }
   const form = (card || pane) && (card || pane).querySelector((card ? '' : '.card-ed ') + '.me-form');
   const said = form && form.querySelector('.me-said');
-  send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '', target: USER.name,
+  send_({ action: 'saveItem', item: 'profile', old: 'updateProfile', name: USER.name, personId: USER.personId || '', target: USER.name,
           targetId: e.pid, fields: { photo: was } },
         { button: el, where: said, lock: pane })
     .then(d => {
@@ -14014,7 +14015,7 @@ on('person-save', el => {
   const parentIds = roles.indexOf('student') === -1 ? []
     : [...form.querySelectorAll('[data-pf-parent]')].filter(x => x.checked).map(x => x.getAttribute('data-pf-parent'))
       .concat(val('parent') ? [val('parent')] : []);
-  send_({ action: 'personSave', personId: USER.personId || '', targetId: F.id, firstName: val('first'),
+  send_({ action: 'saveItem', item: 'person', old: 'personSave', personId: USER.personId || '', targetId: F.id, firstName: val('first'),
           lastName: val('last'), roles, email: val('email'), dob: val('dob'), parentIds },
         { button: el, where: said, lock: form })
     .then(d => {
@@ -14067,7 +14068,7 @@ on('person-del', el => {
   const id = el.getAttribute('data-id') || '';
   if (!id) return;
   if (!sure_(el, 'Tap again to confirm')) return;
-  send_({ action: 'personDelete', personId: USER.personId || '', targetId: id }, { button: el })
+  send_({ action: 'deleteItem', item: 'person', old: 'personDelete', personId: USER.personId || '', targetId: id }, { button: el })
     .then(() => {
       peoplePut_(null, id);
       if (PEOPLE_FORM_ && PEOPLE_FORM_.id === id) PEOPLE_FORM_ = null;
@@ -14115,7 +14116,7 @@ on('pe-notify', el => {
   const F = PERSON_ED_, kind = String((el && el.dataset.kind) || ''), want = !!(el && el.checked);
   if (!F || !F.data || !kind || !personEdMay_()) return;
   const said = el.closest('.pe-form') && el.closest('.pe-form').querySelector('.pe-said');
-  send_({ action: 'setNotify', personId: (USER && USER.personId) || '', targetId: F.id, kind, on: want }, { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
+  send_({ action: 'saveItem', item: 'notify', old: 'setNotify', personId: (USER && USER.personId) || '', targetId: F.id, kind, on: want }, { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
     .then(d => {
       const on = d && typeof d.on === 'boolean' ? d.on : want;
       if (PERSON_ED_ === F && F.data.notify) F.data.notify = Object.assign({}, F.data.notify, { kinds: (F.data.notify.kinds || []).map(k => k.kind === kind ? Object.assign({}, k, { on }) : k) });
@@ -14144,7 +14145,7 @@ function peSave_(form) {
   const fields = peFields_(form), said = form.querySelector('.pe-said'), key = JSON.stringify(fields);
   if (key === F.sent) return;
   form.classList.add('is-sending');
-  send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
+  send_({ action: 'saveItem', item: 'profile', old: 'updateProfile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
     .then(d => { F.sent = key; F.moved = true; if (said) said.textContent = '✓ ' + ((d && d.said) || 'Saved'); })
     .catch(() => {})
     .then(() => form.classList.remove('is-sending'));
@@ -14263,7 +14264,7 @@ on('pa-save', el => {
   if (!val('first') || !val('last')) { if (said) said.textContent = 'A first name and a last name, please.'; return; }
   if (F.role !== 'student' && !val('email')) { if (said) said.textContent = 'An email, please — the PIN goes there.'; return; }
   const ids = F.picked.map(x => x.id);
-  send_({ action: 'personSave', personId: USER.personId || '', targetId: '', firstName: val('first'), lastName: val('last'),
+  send_({ action: 'saveItem', item: 'person', old: 'personSave', personId: USER.personId || '', targetId: '', firstName: val('first'), lastName: val('last'),
           roles: [F.role], email: val('email'), dob: val('dob'), parentIds: F.role === 'student' ? ids : [], invite: false },
         { button: el, where: said, lock: card })
     .then(d => {

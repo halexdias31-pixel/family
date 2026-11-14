@@ -421,6 +421,35 @@ function postReadItems_(body, action, began) {
   return jsonOut(out);
 }
 
+/* ONE WAY TO THE SERVER (step 2, slice 3): saveItem and deleteItem. Each kind is answered by its OLD door's own handler, with the very same request, */
+/* so the fields, the checks, the refusals and the logging are that door's. `item` names the kind (`kind` is already some old doors' own field). */
+function saveItemsOld_() {
+  return { profile: 'updateProfile', notepad: 'saveNotepad', todo: 'saveTodo', notify: 'setNotify', answer: 'saveAnswers',
+           favourite: 'favourite', message: 'readMessage', post: 'editPost', layout: 'layoutSave', words: 'wordsSave',
+           listed: 'setListed', person: 'personSave', spotlight: 'spotlight', ownerAnswer: 'saveOwnerAnswer' };
+}
+function deleteItemsOld_() {
+  return { post: 'deletePost', person: 'personDelete' };
+}
+function itemsWrite_(verb, body, began) {
+  const item = S(body.item);
+  const map = verb === 'save' ? saveItemsOld_() : deleteItemsOld_();
+  if (!Object.prototype.hasOwnProperty.call(map, item)) return jsonOut({ error: 'That kind cannot be ' + (verb === 'save' ? 'saved' : 'deleted') + ' here yet.', why: 'kind' });
+  const old = map[item];
+  const b = Object.assign({}, body, { action: old });
+  delete b.item;
+  /* THE OLD DOOR'S OWN GATE, asked again by its name: signed in, an admin's door an admin's alone, a child's money refusal. */
+  const denied = accessDenied(old, b);
+  if (denied) return jsonOut(denied === 'Please sign in again.' ? { error: denied, why: 'signed-out' } : { error: denied });
+  const me = findPerson('', S(b.personId));
+  const role = readItemsRole_(me);
+  if (!me || !S(me.person_id) || !itemMay_(item, verb, role)) return jsonOut({ error: 'Not authorised.', why: 'refused' });
+  if (netViewerIsChild_() && permChildDenied_(old)) return jsonOut({ error: KID_ASK_PARENT, why: 'ask-a-parent' });
+  return postActions_()[old](b, old, began);
+}
+function postSaveItem_(body, action, began) { return itemsWrite_('save', body, began); }
+function postDeleteItem_(body, action, began) { return itemsWrite_('delete', body, began); }
+
 /* THE TOOLS' COPY OF THE PRIVATE HALF — a page out, rows back in (tools/lib-private.js). Admin only, at the gate. */
 function postLibExport_(body, action, began) {
   return jsonOut(libExport_(body.file, body.from, body.count));

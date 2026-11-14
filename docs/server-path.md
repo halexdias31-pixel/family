@@ -9,8 +9,8 @@ The full list, door by door, is `data/settings/server-actions.json` (refreshed b
 | Door | What it does | Status |
 |---|---|---|
 | `readItems` | Read items of one kind (questions, a person, messages …) | **Built (slices 1–2)**: the library (questions, textbook content, practicals, projects); your own profile, answers and messages; an admin's lens, person form and card |
-| `saveItem` | Save one item | Planned |
-| `deleteItem` | Delete one item | Planned |
+| `saveItem` | Save one item | **Built (slice 3)**: your settings, notepad, to-do, email choices, answers, stars, a message read, your post; an admin's layout, words, listing, people, spotlight and owner answers |
+| `deleteItem` | Delete one item | **Built (slice 3)**: your post; an admin's person |
 
 Each asks the same question of the table: *may this role do this verb to this kind, and which fields must be left out?*
 
@@ -41,11 +41,14 @@ One row per **role × kind × verb**. Roles: *anyone* (signed out), *member* (si
 |---|---|---|---|
 | question, content, practical, project | member, child, admin (via libItems: signed in, a day's cap) | admin (via libImport) | nobody |
 | venue | everybody; **a child without the price** (rate, concession, cost per hour) | not in the table yet | not in the table yet |
-| profile | your own: member, child (via myProfile); somebody else's: **admin only** (via lensOpen), logged by id in lens_log | — | — |
-| answer | your own only: member, child, admin (via myAnswers) | — | — |
-| message | your own only: member, child, admin (via messages) | — | — |
-| person (admin's edit form) | admin only (via personGet) | — | — |
+| profile | your own: member, child (via myProfile); somebody else's: **admin only** (via lensOpen), logged by id in lens_log | member, child, admin (via updateProfile: your own; somebody else's an admin's, as updateProfile decides) | — |
+| answer | your own only: member, child, admin (via myAnswers) | your own only (via saveAnswers) | — |
+| message | your own only: member, child, admin (via messages) | marking your own read (via readMessage) | — |
+| person (admin's edit form) | admin only (via personGet) | **admin only** (via personSave) | **admin only** (via personDelete) |
 | card (admin's card editor) | admin only (via getProfile) | — | — |
+| notepad, todo, notify, favourite | — | member, child, admin, your own (via saveNotepad, saveTodo, setNotify, favourite) | — |
+| post | — | member, child, admin (via editPost) | member, child, admin (via deletePost) |
+| layout, words, listed, spotlight, ownerAnswer | — | **admin only** (via layoutSave, wordsSave, setListed, spotlight, saveOwnerAnswer) | — |
 
 On top of the table, every reply to a child still has prices stripped by the server (`kidPricesOff_`), as before.
 
@@ -54,7 +57,8 @@ On top of the table, every reply to a child still has prices stripped by the ser
 `check-server-path` fails if:
 1. any door is missing from the survey, has no fate or reason, or the survey is out of date;
 2. **any role could do anything through a general door that its old door refused** (worked out from `ACTION_ACCESS`), or the general read stops using the library's own cap;
-3. the number of old doors the site still calls goes **up** (it may only go down: `check/server-path-ratchet.json`).
+3. `saveItem`/`deleteItem` (`itemsWrite_`) stop asking the old door's own gate (`accessDenied(old, b)`), the table (`itemMay_`) or the child money rule, answer by anything but the old door's own handler under its own name, or change who is asking (personId, name, token) before it runs; or a kind's map entry and its table rows name different doors; or an old door the survey folds in has no kind;
+4. the number of old doors the site still calls goes **up** (it may only go down: `check/server-path-ratchet.json`).
 
 ## Slice 1 (now)
 
@@ -64,12 +68,27 @@ On top of the table, every reply to a child still has prices stripped by the ser
 
 `readItems` also reads `profile`, `answer`, `message`, `person` and `card`. Each is answered **by the old door's own handler** (`readItemsOld_` in post-learning.gs), so the fields, the refusals and the child price strip are that door's. Your own goes through myProfile, myAnswers or messages; anybody else's is an admin's alone (lensOpen, personGet, getProfile), one id a call, and an admin's lens leaves a lens_log row of ids.
 
-The site now asks `readItems` for the library, your settings, answers and messages, the lens, the people form and the card editor. Each request names its old door as `old:` (`apiItems_`, js/shell-click.js): **a backend not yet redeployed** answers "unknown action" (or "cannot be read here yet"), and the same request goes through the old door instead. So the site works before and after the redeploy. The survey lists such names as `fallbacks`, not callers; check-server-path allows a fallback only to a door that folds into readItems.
+The site now asks `readItems` for the library, your settings, answers and messages, the lens, the people form and the card editor. Each request names its old door as `old:` (`apiItems_`, js/shell-click.js): **a backend not yet redeployed** answers "unknown action" (or "cannot be read here yet"), and the same request goes through the old door instead. So the site works before and after the redeploy. The survey lists such names as `fallbacks`, not callers; check-server-path allows a fallback only to a door that folds into a general door.
 
 The old doors stay in the backend until a later redeploy removes them (old phones).
 
+## Slice 3 (now)
+
+`saveItem` and `deleteItem` exist. The request names the kind in `item` (not `kind`: setNotify, favourite and spotlight already use `kind` for their own field) and is otherwise **the old door's own request, unchanged**. The backend (`itemsWrite_`, post-learning.gs):
+1. finds the kind's old door (`saveItemsOld_` / `deleteItemsOld_`) — a kind not listed is refused (`why: 'kind'`);
+2. asks **that door's own gate again, by its name** (`accessDenied(old, …)`): signed in, and an admin's door an admin's alone, although `saveItem` itself is `self` at the gate;
+3. asks the table (`itemMay_(item, verb, role)`) and the child money rule of the old door;
+4. runs the old door's own handler with the same request and the old door's name, so fields, validation, refusals, logging (lens_log) and the rows written are that door's. A learner's answers go through `saveAnswers` itself: the same rows, byte for byte.
+
+Folded in: updateProfile, saveNotepad, saveTodo, setNotify, saveAnswers, favourite, readMessage, editPost, layoutSave, wordsSave, setListed, personSave, spotlight, saveOwnerAnswer; deletePost, personDelete. Nothing about signing in, PINs, money or marking moves.
+
+The site sends `saveItem`/`deleteItem` with `old:` beside it, as the reads do (`apiItems_`): an old backend answers "unknown action" and the same request goes to the old door. A **keepalive** flush (answers sent as the page closes) is one request only: the old door, until the payload's `features` lists `saveItem`. editPost and deletePost have no caller (their screens are off), so nothing switched there.
+
+check-lens runs both doors on the real .gs, side by side on two backends seeded alike: every kind's tabs and reply match the old door's; signed out, a parent or a child on an admin's kind, a child or parent on somebody else's profile, email choice, message or answers — refused and nothing written.
+
+**Redeploy needed** for the new doors to answer; until then every write falls back to its old door, so nothing breaks.
+
 ## Next slices
-1. Once the backend is redeployed and old phones have gone, remove libItems, myProfile, myAnswers, messages, getProfile, personGet and lensOpen, and the `old:` fallbacks.
-2. Build `saveItem` with per-field write rows, starting with the notepad, to-do and email choices.
-3. `deleteItem` for posts and people.
-4. Remove the dead doors at a redeploy.
+1. Once the backend is redeployed and old phones have gone, remove libItems, myProfile, myAnswers, messages, getProfile, personGet, lensOpen and the 16 write doors above, and the `old:` fallbacks.
+2. Per-field write rows in the table, so a kind's fields are the table's and not only the old handler's.
+3. Remove the dead doors at a redeploy.

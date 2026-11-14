@@ -219,7 +219,7 @@ function answersPush_(now, keepalive) {
   ansDirtyKeep_(who);
   if (!items.length) { ansSavedPaint_(); return Promise.resolve(true); }
   /* `personId` AS WELL AS THE TOKEN — the gate overwrites it with the token's person, and `check-post.js` § */
-  const req = api({ action: 'saveAnswers', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
+  const req = api({ action: 'saveItem', item: 'answer', old: 'saveAnswers', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
   ANS_BUSY = Promise.resolve(req)
     .then(d => ansSavedTake_(d, sent, dirty, who))
     .catch(() => {

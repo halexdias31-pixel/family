@@ -6,12 +6,12 @@
    "say": "Read items of one kind by id. Who may read which kind, and which fields are taken out, is permissions.json's `item` rows."
   },
   "saveItem": {
-   "status": "planned",
-   "say": "Save one item of one kind; the fields a role may write will be permissions.json's `item` rows."
+   "status": "live (slice 3)",
+   "say": "Save one item of one kind (`item`), answered by the old door's own handler; who may is permissions.json's `item` rows and the old door's own gate."
   },
   "deleteItem": {
-   "status": "planned",
-   "say": "Delete one item of one kind, where the table allows it."
+   "status": "live (slice 3)",
+   "say": "Delete one item of one kind (`item`): posts and people, by the old door's own handler and gate."
   }
  },
  "actions": {
@@ -521,6 +521,21 @@
     "writes"
    ]
   },
+  "deleteItem": {
+   "fate": "general",
+   "into": "deleteItem",
+   "why": "the general delete itself (slice 3): each kind answered by its old door's own handler, behind that door's own gate and an item row",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postDeleteItem_",
+   "file": "backend/post-learning.gs",
+   "callers": [
+    "js/me-people.js"
+   ],
+   "fallbacks": [],
+   "tabs": [],
+   "effects": []
+  },
   "deleteJob": {
    "fate": "special",
    "into": "",
@@ -687,7 +702,9 @@
     "js/find-bundles.js",
     "tools/complete-sats.py"
    ],
-   "fallbacks": [],
+   "fallbacks": [
+    "js/find-bundles.js"
+   ],
    "tabs": [
     "favourites"
    ],
@@ -975,10 +992,10 @@
    "childRefused": false,
    "handler": "postLayoutSave_",
    "file": "backend/post-admin.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/layout-moves.js"
    ],
-   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -1554,10 +1571,10 @@
    "childRefused": false,
    "handler": "postPersonDelete_",
    "file": "backend/post-family.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/me-people.js"
    ],
-   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -1593,10 +1610,10 @@
    "childRefused": false,
    "handler": "postPersonSave_",
    "file": "backend/post-family.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/me-people.js"
    ],
-   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -1850,10 +1867,10 @@
    "childRefused": false,
    "handler": "postReadMessage_",
    "file": "backend/post-content.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/me-messages.js"
    ],
-   "fallbacks": [],
    "tabs": [
     "family",
     "messages",
@@ -2043,7 +2060,9 @@
    "callers": [
     "js/answers.js"
    ],
-   "fallbacks": [],
+   "fallbacks": [
+    "js/answers.js"
+   ],
    "tabs": [
     "answers",
     "family",
@@ -2092,6 +2111,33 @@
     "writes"
    ]
   },
+  "saveItem": {
+   "fate": "general",
+   "into": "saveItem",
+   "why": "the general save itself (slice 3): each kind answered by its old door's own handler, behind that door's own gate and an item row",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postSaveItem_",
+   "file": "backend/post-learning.gs",
+   "callers": [
+    "js/answers.js",
+    "js/cards-make.js",
+    "js/collections.js",
+    "js/find-bundles.js",
+    "js/find-measure.js",
+    "js/layout-moves.js",
+    "js/me-card.js",
+    "js/me-messages.js",
+    "js/me-people.js",
+    "js/me-roles.js",
+    "js/me-settings.js",
+    "js/one-place.js",
+    "js/words.js"
+   ],
+   "fallbacks": [],
+   "tabs": [],
+   "effects": []
+  },
   "saveNotepad": {
    "fate": "general",
    "into": "saveItem",
@@ -2100,10 +2146,10 @@
    "childRefused": false,
    "handler": "postSaveNotepad_",
    "file": "backend/post-account.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/find-measure.js"
    ],
-   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2120,10 +2166,10 @@
    "childRefused": false,
    "handler": "postListOwnerAnswers_",
    "file": "backend/post-admin.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/one-place.js"
    ],
-   "fallbacks": [],
    "tabs": [
     "family",
     "owner_answers",
@@ -2219,10 +2265,10 @@
    "childRefused": false,
    "handler": "postSaveTodo_",
    "file": "backend/post-account.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/find-measure.js"
    ],
-   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2288,10 +2334,10 @@
    "childRefused": false,
    "handler": "postSetListed_",
    "file": "backend/post-content.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/cards-make.js"
    ],
-   "fallbacks": [],
    "tabs": [
     "family",
     "people"
@@ -2334,10 +2380,12 @@
    "handler": "postSetNotify_",
    "file": "backend/post-account.gs",
    "callers": [
+    "js/me-roles.js"
+   ],
+   "fallbacks": [
     "js/me-people.js",
     "js/me-roles.js"
    ],
-   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -2425,7 +2473,9 @@
     "js/shell-boot.js",
     "js/shell-pages.js"
    ],
-   "fallbacks": [],
+   "fallbacks": [
+    "js/collections.js"
+   ],
    "tabs": [
     "family",
     "people",
@@ -2547,12 +2597,12 @@
    "childRefused": false,
    "handler": "postUpdateProfile_",
    "file": "backend/post-account.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/me-card.js",
     "js/me-people.js",
     "js/me-settings.js"
    ],
-   "fallbacks": [],
    "tabs": [
     "config",
     "family",
@@ -2672,10 +2722,10 @@
    "childRefused": false,
    "handler": "postWordsSave_",
    "file": "backend/post-admin.gs",
-   "callers": [
+   "callers": [],
+   "fallbacks": [
     "js/words.js"
    ],
-   "fallbacks": [],
    "tabs": [
     "config",
     "family",
