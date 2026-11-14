@@ -19,7 +19,7 @@ function adoptMarks_() {
 /* ONE TILE ROW PER THING (489): rows that stood one under another are joined (`tileRowsJoin_`, tiles.js). */
 const rowsOne_ = c => (typeof tileRowsJoin_ === 'function' ? tileRowsJoin_(c) : c);
 const pages = (id, cards) =>
-  cards.map(c => `<section class="page"><div class="pane">${rowsOne_(c)}</div></section>`).join('');
+  cards.map(c => cardBlock_({ type: 'group', tag: 'section', look: 'page', blocks: [{ type: 'group', look: 'pane', inner: rowsOne_(c) }] })).join('');
 
 /* ---------- AN EMPTY WIDGET IS ITS TITLE AND NOTHING ELSE (414) ---------- */
 /* One empty state for every list with nothing in it — Spotlight, Saved, the shop, the reels: no sentence explaining the emptiness, the owner's ask. */
@@ -31,7 +31,7 @@ const emptyCard_ = title => {
 
 /* ---------- ALL OF THEM ON ONE, WHICH IS WHAT A LIST IS § */
 const stack = (id, cards) =>
-  `<section class="page"><div class="pane">${rowsOne_(cards.join(''))}</div></section>`;
+  cardBlock_({ type: 'group', tag: 'section', look: 'page', blocks: [{ type: 'group', look: 'pane', inner: rowsOne_(cards.join('')) }] });
 
 /** The glass inside a page — where content actually goes. */
 /* THE PANE INSIDE A PAGE — AND ONE IS MADE IF THERE IS NOT ONE. § */

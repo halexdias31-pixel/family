@@ -271,12 +271,10 @@ function loadFailBanner_(err, reached) {
           + 'built cold (after clearPayloadCache) and the next ask gets the copy it kept; minutes of '
           + 'them is the script itself — open it in a tab and see how long it takes.'
         : 'Something else went wrong on the way.';
-      el.innerHTML = 'Could not reach the backend.' + (reached ? '' : ' Still trying by itself.') + '<br>'
-        + qtag_(esc(why)) + '<br>'
-        + '<a class="link" href="' + esc(API) + '" target="_blank" rel="noopener">Open it in a '
-        + 'tab</a> — the page itself will say which it is.<br>'
-        + '<span>' + esc(msg)
-        + ' · site ' + esc(SITE_VERSION) + ' · css ' + esc(cssVersion()) + '</span>';
+      el.innerHTML = cardRuns_(['Could not reach the backend.' + (reached ? '' : ' Still trying by itself.'), { br: 1 }])
+        + qtag_(esc(why))
+        + cardRuns_([{ br: 1 }, { link: 'Open it in a tab', href: API, look: 'link', out: true }, ' — the page itself will say which it is.', { br: 1 },
+          { span: '', text: msg + ' · site ' + SITE_VERSION + ' · css ' + cssVersion() }]);
     }
 }
 /* A LOAD FINISHED, whether it succeeded or failed: the loader goes and every screen is drawn. */
