@@ -1,0 +1,78 @@
+BINDING CLAIMS — CODIFIED (v1, 15 Nov 2026)
+
+THESIS
+ Compare only what each AUTHORITY binds its members to believe about checkable history.
+ One yes/no question: does academic history contradict any binding claim? (miracles excluded for both sides)
+ T := (∀c∈B_O ¬Contra(c)) ∧ (∃c∈B_S Contra(c))
+ Status: VALID GIVEN P1,P2,P3,P5,P6. P6 and P3 are judgement calls (see OPEN). Not "checkmate".
+
+VARIABLES
+ B_O = {born_of_Mary, crucified_under_Pilate, suffered, buried} (+ OT_detail iff ¬P6)
+ B_S = {4:157 "not killed, not crucified" read as no death on the cross, Haman_with_Pharaoh (28:6,38; 40:36), Mary "sister of Aaron" (19:28)}
+ Contra(c) = mainstream academic history judges c false
+ P1 academic consensus: Jesus died by crucifixion under Pilate
+ P2 Sunni consensus: denying any Qur'anic verse is kufr -> every verse binding
+ P3 binding Sunni reading of 4:157 denies Jesus died on the cross (substitution/raised alive)
+ P4 Creed items binding for Orthodox
+ P5 history does not contradict born/crucified/suffered/buried
+ P6 no ecumenical/dogmatic Orthodox act binds historical inerrancy of every Bible detail
+ P7 history contradicts some OT detail as narrated (e.g. Exodus scale)
+
+EXPRESSIONS
+ P4 -> B_O ⊇ creed items ; P5 -> ¬Contra(creed items)
+ P6 -> OT_detail∉B_O ; ¬P6 -> OT_detail∈B_O ; P7 -> Contra(OT_detail)
+ P2 -> B_S ⊇ all verses ; P1∧P3 -> Contra(4:157)
+
+CHECKS (Z3, check.py -> checks.out)
+ V0  premises ∧ ¬T                 unsat  (T follows)
+ C1  premises consistent           sat
+ C2  premises ∧ T                  sat    (non-vacuous)
+ Needed premises (drop -> ¬T sat):  P1 P2 P3 P5 P6
+ Idle premises (drop -> still unsat): P4 (adds binding only), P7 (bites only if ¬P6)
+ (a) ¬P6 ∧ P7 -> T                 unsat  (T fails if detail-inerrancy binds)
+ (f) ¬P3 -> Sunni conjunct forced? sat    (not forced; T needs P3)
+
+RED-TEAM (strong Muslim = SM, neutral philosopher = NP)
+ R1 (a) SM: "Your Church binds the whole Bible as inspired, so every historical detail."
+    Facts: Jerusalem 1672 (Dositheus) Decree 2 calls Scripture God-taught and the Church infallible; it is a local synod, later edited by Dositheus himself, not an ecumenical definition; Trullo c.2 fixes canon sources, not inerrancy; no ecumenical council defines detailed historical inerrancy.
+    Verdict: JUDGEMENT. Inspiration is binding; detail-inerrancy is not conciliarly defined, but Dositheus' language and patristic usage give SM a real foothold. If it binds (¬P6), Z3 shows T fails.
+ R2 (b) NP: "Convenient vagueness: you avoided defining so you can't be falsified."
+    Reply: the Creed's "under Pontius Pilate" is a dated, public, falsifiable anchor (a historical person, ~26-36 AD); crucifixion, death and burial are checkable and pass.
+    Verdict: PARTLY CLOSED / JUDGEMENT. The anchor is real, but the binding set is small; a small set passing is weaker evidence than a large set passing. Compare: Sunni set is larger by design. Asymmetry of exposure is acknowledged, not removed.
+ R3 (c) SM: "History excludes miracles; 4:157 is a miracle, so history can't judge it."
+    Reply: the 'made to appear' (shubbiha) is a miracle, but its checkable consequence — Jesus did not die on a Roman cross — is a historical claim; history judges the outcome, not the mechanism. Same rule applied to the Resurrection (excluded) vs. death/burial (judged).
+    Verdict: CLOSED for the death claim; SM may hold that a miracle can produce false historical appearance — that is unfalsifiable and equally available to any side, so it does not break symmetry.
+ R4 (d) SM/NP: "Sunni ijma' is not a binding body like councils."
+    Reply: P2 rests on stated consensus (Qadi Iyad, al-Shifa; Nawawi) that knowing denial of an agreed verse is kufr — the bindingness is of the Qur'an text itself, stronger than a council. For raised-alive/return, consensus is claimed (Ibn Atiyya; Ibn Hajar: mutawatir) but modern dissent exists (e.g. Ghamidi).
+    Verdict: CLOSED for 4:157 text being binding; JUDGEMENT for the consensus reading (feeds R6).
+ R5 (e) NP: "The Orthodox Church also binds liturgical/hagiographical claims."
+    Reply: liturgical texts and saints' lives are not dogmatic definitions; Orthodox writers routinely accept that synaxaria contain legend. But lex orandi carries weight, and e.g. Dormition narratives are prayed.
+    Verdict: JUDGEMENT. Dormition is miraculous (excluded); no clearly historical liturgical item is shown to be binding AND contradicted. OPEN if one is found.
+ R6 (f) SM: "4:157 can be read without denying death (Ahmadi swoon; 'they did not kill him' = did not defeat him; Todd Lawson / some modern readings)."
+    Verdict: CLOSED for Sunni mainstream (classical tafsir Tabari, Ibn Kathir: substitution, Jesus raised alive; Ahmadi reading is rejected by Sunni authorities). JUDGEMENT whether consensus on the reading equals consensus on the verse; Z3 (f) shows T needs P3.
+ R7 (g) SM: "Tu quoque — both affirm OT events (Moses, Pharaoh, Flood); if those fail, both fail."
+    Verdict: CLOSED conditionally: under P6 the Orthodox side is not bound to OT detail; the Qur'an's own versions (e.g. Pharaoh drowned with Haman, global-scale flood with Noah) are bound under P2. Symmetry is broken only through P6, so R7 reduces to R1.
+ Other Sunni items: Haman with Pharaoh = DISPUTED (anachronism vs. Esther; apologetic Egyptian 'hmn' claim contested). Mary 'sister of Aaron' = NOT CONTRADICTED (idiom of lineage; Sahih Muslim 2135 hadith gives this reading). Raised alive/return = miracle, EXCLUDED.
+
+VERIFIED (web, 15 Nov 2026)
+ - Creed text includes "crucified for us under Pontius Pilate, suffered, and was buried" (standard 381 text).
+ - Jerusalem 1672 synod: 18 decrees; Decree 2 on Scripture (God-taught) and Church infallibility; Dositheus later issued a revised edition.
+ - Consensus that knowing rejection of an agreed letter/verse of the Qur'an is kufr — attributed to Qadi Iyad (al-Shifa; Tartib al-Madarik) via secondary compilations.
+ - Claimed ijma' that Jesus is alive in heaven and will descend (Ibn Atiyya); Ibn Hajar calls the reports mutawatir; modern dissent exists.
+ - Tacitus Annals 15.44: Christus executed under Tiberius by Pontius Pilate; Ehrman: crucifixion "one of the most secure facts"; Crossan: "absolutely for granted ... crucified under Pontius Pilate".
+ NOT YET VERIFIED BY FETCH: exact Shifa wording; Josephus Ant. 18.63-64 (authentic core per majority); Paul 1 Cor 15:3-4; Dunn (Jesus Remembered).
+
+SOURCES
+ Nicene-Constantinopolitan Creed (381); Synod of Jerusalem 1672, Decree 2 (ccel.org/ccel/schaff/encyc06/htm/iii.lvi.iv.htm; biblicaltraining.org/library/synod-of-jerusalem);
+ Nahas, "Even Dositheus did not think the Confession was infallible" (notion.site); Quinisext (Trullo) canon 2;
+ Qadi Iyad, al-Shifa; livingislam.org/consq_e.html; en.tohed.com (ruling on denying the Qur'an; descent of Isa);
+ Ibn Kathir / al-Tabari on 4:157; Sahih Muslim 2135; Tacitus Annals 15.44; Josephus Ant. 18.63-64; 1 Cor 15:3-4;
+ Ehrman (Did Jesus Exist?, 2012); Crossan (Jesus: A Revolutionary Biography, 1994); Dunn (Jesus Remembered, 2003).
+
+OPEN
+ O1 P6 (R1): is Dositheus Decree 2 / patristic consensus a binding detail-inerrancy? If yes, T fails (Z3 (a)).
+ O2 P3 (R6): does ijma' bind the denial-of-death reading, or only the verse? T depends on it.
+ O3 R2: small binding set = low exposure; T is a binary result, not a measure of overall historical risk.
+ O4 R5: any binding Orthodox liturgical/hagiographical historical claim that history contradicts? None found; not exhaustively searched.
+ O5 Primary-text wording (Shifa, Dositheus Decree 2 full text) to be fetched.
+ Interlocutor referred to as M. Verdict: thesis VALID and CONSISTENT, SOUND only if P3 and P6 hold — both judgement premises.
