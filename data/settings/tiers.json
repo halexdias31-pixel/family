@@ -82,6 +82,7 @@
     "predicates": "core",
     "predicates-marks": "core",
     "predicates-fig": "core",
+    "fig-place": "core",
     "finder-tags": "core",
     "price-rows": "core",
     "facts": "secondary",

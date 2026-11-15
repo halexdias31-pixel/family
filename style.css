@@ -5991,9 +5991,10 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > :is(.kc-lines, .kc-form) figure > :is(svg:not(.pp), img) { width: min(100%, var(--pic-w)); height: auto; }
 .card.kc > :is(.kc-lines, .kc-form) { --fs-body: var(--fs-tag); --fs-small: var(--fs-tag); font-size: var(--fs-tag); }
 /* A LABEL WITH NO SIZE OF ITS OWN takes the figure's, not the card's: inherited, a 25px card text overlapped the drawing (owner, 13 Nov). */
-figure { --fs-small: var(--fig-fs); }
-figure svg text:not([font-size], [font-size] *, [style*="font"]) { font-size: var(--fs-small); }
-figure svg text:not([font-family], [font-family] *, [style*="font"]) { font-family: var(--fig-font); }
+/* AND THE PEN'S PAGE, WHICH IS THE SAME DRAWING NOT IN A <figure>: its labels read the card's text size, twice the drawing's, and sat on its lines (owner's iPad, 15 Nov). */
+:is(figure, .qpad-art) { --fs-small: var(--fig-fs); }
+:is(figure, .qpad-art) svg text:not([font-size], [font-size] *, [style*="font"]) { font-size: var(--fs-small); }
+:is(figure, .qpad-art) svg text:not([font-family], [font-family] *, [style*="font"]) { font-family: var(--fig-font); }
 /* A LIST'S BULLET IN ITS LINE: drawn outside, a rem gutter under em-sized text put the bullet past the card (owner, 13 Nov). */
 .card.kc > :is(.kc-lines, .kc-form) :is(ul, ol):not([class*="tile"]) { list-style-position: inside; padding-left: 0; }
 .card.kc > .kc-lines > * { margin: var(--s0) 0 0; }
