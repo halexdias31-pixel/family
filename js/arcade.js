@@ -623,7 +623,7 @@ function progressCountdownRows_() {
 let CD_DATES = false;
 function paintCountdowns_() {
   const rows = progressCountdownRows_();
-  const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return day_(d) + ' ' + date_(d); };
+  const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return fmtDate_(d, 'day') + ' ' + fmtDate_(d); };
   const blocks = rows.length ? rows.map(([k, n]) => progRow_(k, CD_DATES ? when(n) : progressDaysSaid_(n))).concat({ type: 'tiles',
     tiles: [{ icon: CD_DATES ? 'speed' : 'table', label: CD_DATES ? 'Days' : 'Dates', note: CD_DATES ? 'how many to go' : 'the day itself', act: 'cd-dates', pressed: CD_DATES }] })
     : [{ type: 'group', tag: 'p', look: 'note', text: 'Nothing to count down to yet.' }];
@@ -688,7 +688,7 @@ function termDatesRows_(today) {
   const i = all.findIndex(x => x.from <= t && t <= x.to);
   return all.slice(Math.max(0, i), Math.max(0, i) + (TD_MORE ? 10 : 4)).map((x, k) => Object.assign(x, { now: k === 0 && i >= 0 }));
 }
-const tdDay_ = d => day_(d) + ' ' + date_(d);
+const tdDay_ = d => fmtDate_(d, 'day') + ' ' + fmtDate_(d);
 /* A TERM SAYS ITS FIRST AND LAST DAY OF TERM; A BREAK SAYS WHEN IT STARTS AND THE FIRST DAY BACK — never "ends" on a Sunday. */
 function tdLine_(x) {
   const back = new Date(x.to.getFullYear(), x.to.getMonth(), x.to.getDate() + 1);
@@ -965,7 +965,7 @@ function progressSessions_() {
 }
 function progressSessionsCard_(ss) {
   if (!ss.ahead.length && !ss.past.length) return emptyCard_('Sessions');
-  const when = s => day_(s.d) + ' ' + date_(s.d) + (s.j.time ? ' · ' + time_(s.j.time) : '');
+  const when = s => fmtDate_(s.d, 'day') + ' ' + fmtDate_(s.d) + (s.j.time ? ' · ' + fmtDate_(s.j.time, 'time') : '');
   const row = s => progRow_(when(s), s.j.title || s.j.subject || 'Session');
   return progressCard_('prog-sessions', 'Sessions', ss.ahead.map(row).concat(ss.past.map(row)),
     { tiles: [{ icon: 'book', label: 'Sessions', note: 'on Book', act: 'prog-sessions' }] });

@@ -191,7 +191,7 @@ function restInterval_(list, today) {
   const end = parseDMY(t.closesOn);
   const dmy = String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
   return Object.assign({}, t, {
-    label: 'Rest of this ' + (norm(t.kind) === 'half-term' ? 'half term' : 'term'),
+    label: text_('rest-of-this') + (norm(t.kind) === 'half-term' ? 'half term' : 'term'),
     rest: t.label || t.term, opensOn: dmy, startDate: dmy,
     weeks: Math.max(1, Math.ceil((end - now + 864e5) / (7 * 864e5))),
   });
@@ -212,7 +212,7 @@ function waitTerm_() {
 function familiesSay_(n) {
   const k = Math.max(1, Number(n) || 1);
   /* ONE FAMILY IS NOT A SPLIT, AND "1 family" ON A ROW CALLED `Shared by` READS AS A FAULT. § */
-  if (k === 1) return 'Just you';
+  if (k === 1) return text_('just-you');
   return k + ' families';
 }
 
@@ -221,19 +221,19 @@ function waitBreakdownRows_(rows, push) {
   const w = bookPrice();
   if (!w) return rows;
   /* WHAT KIND OF THING THIS IS, FIRST. § */
-  push('Kind', 'Waiting list class', '', '', '', { free: true });
-  push('A seat', esc(BOOKING.loc || 'no venue'), '', perHour_(w.chargePerHour),
-    money_(w.perSeatSession), { end: true, step: 'loc' });
-  push('Shared by', familiesSay_(w.seats), '', '', '', { free: true });
-  push('Per session', esc(w.hours) + ' hours', '', '', '', { free: true });
+  push('Kind', text_('waiting-list-class'), '', '', '', { free: true });
+  push('A seat', esc(BOOKING.loc || 'no venue'), '', fmtMoney_(w.chargePerHour, 'hour'),
+    fmtMoney_(w.perSeatSession), { end: true, step: 'loc' });
+  push(text_('shared-by'), familiesSay_(w.seats), '', '', '', { free: true });
+  push(text_('per-session'), esc(w.hours) + ' hours', '', '', '', { free: true });
 
   const term = waitTerm_();
   if (term) {
     /* ---------- `Running`, `Weeks left` AND A `For` HOLDING THE TERM WERE ALL HERE § */
     /* ---------- AND WHAT THE TERM WOULD COME TO § */
     if (term.weeks) {
-      push('About', esc(term.weeks) + ' × ' + money_(w.perSeatSession),
-        '', '', money_(w.perSeatSession * term.weeks), { est: true });
+      push('About', esc(term.weeks) + ' × ' + fmtMoney_(w.perSeatSession),
+        '', '', fmtMoney_(w.perSeatSession * term.weeks), { est: true });
     }
   }
 
@@ -255,7 +255,7 @@ function breakdownRows(L) {
   /* READ FROM THE BOOKING, NOT FROM `L`. § */
   /* ---------- "NOBODY YET" IS AN ANSWER, NOT A NAME § */
   const forWhom = BOOKING.client === NOBODY ? '' : (BOOKING.client || (USER && USER.name) || '');
-  if (forWhom) push('For', esc(displayName_(forWhom)), '', '', '', { free: true, who: true });
+  if (forWhom) push('For', esc(fmtName_(forWhom)), '', '', '', { free: true, who: true });
 
   /* ---------- A WAITING LIST HAS A DIFFERENT BREAKDOWN, AND WAS SHOWN THE WRONG ONE § */
   if (isWaiting_()) return waitBreakdownRows_(rows, push);
@@ -265,7 +265,7 @@ function breakdownRows(L) {
 
     if (group === 'shape') {
       bookRuns().forEach(r => {
-        push(day_(r.dayName), hours_(r.hour, r.hour + r.hours), '', '', '',
+        push(fmtDate_(r.dayName, 'day'), fmtDate_(r.hour, 'hours', r.hour + r.hours), '', '', '',
           { day: true, step: 'slots', hours: r });
       });
       /* ---------- `Hours a week` WAS THE THIRD ROW TO SAY THE SAME THING § */
@@ -296,7 +296,7 @@ function breakdownRows(L) {
 
   /* ---------- AND IT IS EVERY DATE AGAIN, WHICH IS THE OWNER'S CALL AND THE SECOND TIME ROUND § */
   /* ---------- AND HOW MANY OF THEM THERE ARE GOES IN THE COLUMN THAT COUNTS § */
-  const dates = (L.sessionDates || []).map(d => date_(d));
+  const dates = (L.sessionDates || []).map(d => fmtDate_(d));
   /* NO "× sessions" HERE (owner, 7 Nov): Term's weeks × the week's hours is the one period multiplier the sum uses. */
   push('Dates', dates.length ? dates.join(', ') : dash_(), '', '', '', { free: true, dates: true });
 
@@ -311,7 +311,7 @@ function noteRow_() {
   return { n: '', k: 'Note', v: '', mul: '', rate: '', total: '', step: '',
     ctl: bkCtl_('note'),
     sel: cardBlock_({ type: 'paperInput', wide: true, id: bkCtl_('note'), act: 'book-note', value: BOOKING.note || '',
-      placeholder: 'anything else we should know', aria: 'Anything else we should know' }) };
+      placeholder: 'anything else we should know', aria: text_('anything-else-we-should-know') }) };
 }
 
 /* ---------- THE ROW'S LABEL IS THE ROW'S CONTROL'S LABEL § */
@@ -344,7 +344,7 @@ function weekRows_(days, cell, opts) {
   /* ON THE LAST TICKED DAY (owner, 8 Nov): × 4 on an empty Monday read as Monday's; it closes the week's ticks instead. */
   const last = days.reduce((at, d, i) => (Number(d.mul) > 0 ? i : at), 0);
   return days.map((d, i) => ({
-    n: '', k: day_(d.label), v: '',
+    n: '', k: fmtDate_(d.label, 'day'), v: '',
     /* ---------- HOW MANY HOURS THE WEEK IS, IN THE COLUMN THAT MULTIPLIES § */
     mul: (i === last && week) ? '\u00d7 ' + week : '', rate: '',
     total: (i === last && week && o.total) ? o.total : '',
@@ -366,7 +366,7 @@ function weekRows_(days, cell, opts) {
 /* A DAY IS ITS SHORT NAME, Mon to Sun, everywhere (owner, 8 Nov). */
 function weekGrid_(days, cell) {
   const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
-  return cardBlock_({ type: 'paperWeek', cols, days: days.map(d => ({ label: day_(d.label), cells: d.hours.map(h => cell(h, d)).join('') })) });
+  return cardBlock_({ type: 'paperWeek', cols, days: days.map(d => ({ label: fmtDate_(d.label, 'day'), cells: d.hours.map(h => cell(h, d)).join('') })) });
 }
 
 /* ---------- THE WAITING LIST'S WEEK, IN BLOCKS § */
@@ -421,7 +421,7 @@ function weekTotal_() {
   try {
     const L = bookPrice();
     if (!L || !L.hoursPerWeek || !L.chargeRate || !may_('prices')) return '';
-    return money_(runningAfter('hoursweek', L));
+    return fmtMoney_(runningAfter('hoursweek', L));
   } catch (e) { return ''; }
 }
 
@@ -456,7 +456,7 @@ function stepRows_() {
         ? blockSay_(v)
         : st.grid
         /* ---------- THE WHOLE RUN, NOT ITS START § */
-        ? bookRuns().map(r => day_(r.dayName) + ' ' + hours_(r.hour, r.hour + r.hours))
+        ? bookRuns().map(r => fmtDate_(r.dayName, 'day') + ' ' + fmtDate_(r.hour, 'hours', r.hour + r.hours))
             .join(', ')
         /* A MULTI WITH NOTHING TICKED FALLS BACK LIKE ANY OTHER STEP. § */
         : st.multi ? ((v || []).join(', ') || (st.fallback ? st.fallback() : ''))

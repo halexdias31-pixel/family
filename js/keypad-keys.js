@@ -281,7 +281,7 @@ function kpCount_(inp) {
   const out = box && box.querySelector('.qp-words');
   if (!out) return;
   const say = kpWordsSay_(inp.value);
-  if (out.textContent !== say) out.textContent = say;
+  tell_(out, 'info', say);
 }
 /* A WORDED DRAWING STOPS GROWING AT ABOUT FIVE LINES AND SCROLLS INSIDE (`.kp-words > .kp-show`) -- an essay's sheet at the room above the pad § */
 function kpCaretSeen_(show) {

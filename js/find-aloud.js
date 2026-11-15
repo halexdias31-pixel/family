@@ -441,7 +441,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 const cardByKey_ = k => (k ? stuffItemsAll_().find(i => i && i.key === k) : null), cardUrl_ = k => location.origin + location.pathname + '?card=' + encodeURIComponent(k);
 on('card-share', el => { const k = el.getAttribute('data-key') || '', url = cardUrl_(k), name = (cardByKey_(k) || {}).name || brand('name', '@family.');
   if (navigator.share) navigator.share({ title: name, text: name, url }).catch(() => {});
-  else try { navigator.clipboard.writeText(url).then(() => toast('Link copied'), () => toast(url)); } catch (e) { toast(url); } });
+  else try { navigator.clipboard.writeText(url).then(() => toast(text_('link-copied')), () => toast(url)); } catch (e) { toast(url); } });
 /* ARRIVING ON ONE, before any kept place; the link then leaves the address, so a reload keeps its own place. */
 function openSharedCard() { let x = null;
   try { x = cardByKey_(new URLSearchParams(location.search).get('card')); if (x) history.replaceState(null, '', location.pathname + location.hash); } catch (e) { oops_(e, 'find:openSharedCard'); }

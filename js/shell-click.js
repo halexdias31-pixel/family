@@ -424,7 +424,7 @@ function api(body, opts) {
           else if (rec) localStorage.setItem('familyGone', rec);
         } catch (e) { /* storage can be blocked; the app runs without it */ }
         try { if (typeof ansSavedPaint_ === 'function') ansSavedPaint_(); } catch (e) { oops_(e, 'shell:api') }
-        toast('Signed out — please sign in again');
+        toast(text_('signed-out-please-sign-in-again'));
       }
       return d || {};
     });
@@ -467,6 +467,18 @@ function send(body) {
     if (d && d.error) { const e = new Error(d.error); e.reply = d; throw e; }
     return d;
   });
+}
+
+/* ---------- ONE FEEDBACK PATH (foundation 3): every saved, error, busy or plain line goes through `tell_(el, state, words)`. § */
+/* `state`: 'busy', 'saved', 'error', 'info' or '' (clear). No `el`: a toast. A button, a tile, or words left out: the one ring. */
+/* A LINE OF TEXT takes the words and `data-tell`, which style.css colours: error red, saved green. */
+function tell_(el, state, words) {
+  const msg = words == null ? '' : String(words);
+  if (!el) { if (msg) toast(msg); return; }
+  /* NO WORDS, OR A BUTTON OR TILE: only the ring goes on or off — a control's face is never written over. */
+  if (words === undefined || (el.matches && el.matches('button, .btn, .tile'))) { el.classList.toggle('is-busy', state === 'busy'); return; }
+  if (el.textContent !== msg) el.textContent = msg;
+  if (state && msg) el.setAttribute('data-tell', state); else el.removeAttribute('data-tell');
 }
 
 /* ---------- SAYING SOMETHING BRIEFLY (537, D10) ------------------------------------------------- */
@@ -567,7 +579,7 @@ function shareCanvasPng_(canvas, filename, text) {
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(href), 60000);   // a download can start after the click returns
       const copy = url && navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(url) : Promise.reject();
-      return copy.then(() => toast('Picture saved · link copied'), () => toast('Picture saved')).then(() => 'saved');
+      return copy.then(() => toast(text_('picture-saved-link-copied')), () => toast(text_('picture-saved'))).then(() => 'saved');
     };
     if (!can) return save();
     return navigator.share({ files: [file], text: words })

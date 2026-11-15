@@ -27,7 +27,7 @@ function oops_(err, where, host, o) {
   if (host && host.nodeType === 1) { try { host.innerHTML = oopsHtml_(); host.removeAttribute('aria-busy'); } catch (e) { /* the report still goes */ } }
   else if (o.toast && Date.now() - OOPS.told > 5000 && typeof toast === 'function') {
     OOPS.told = Date.now();
-    try { toast('Something went wrong there.'); } catch (e) { /* the report still goes */ }
+    try { toast(text_('something-went-wrong-there')); } catch (e) { /* the report still goes */ }
   }
   const key = msg + '|' + where;
   if (OOPS.sent.has(key) || OOPS.n >= OOPS.max || typeof API !== 'string' || typeof fetch !== 'function') return;

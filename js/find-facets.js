@@ -491,7 +491,7 @@ function practicalBody_(p) {
   const off = p.excluded;
   /* THE STRIP SAID "lab · needs a lab" AND A SCREENSHOT IS WHAT CAUGHT IT. § */
   const kit = /with kit/i.test(p.feasible) ? 'needs kit' : '';
-  const money = p.costPerRun == null ? '' : p.costPerRun === 0 ? 'free to run' : money_(p.costPerRun) + ' a run';
+  const money = p.costPerRun == null ? '' : p.costPerRun === 0 ? 'free to run' : fmtMoney_(p.costPerRun) + ' a run';
   const strip = [p.minutes ? p.minutes + ' min' : '', p.ageMin ? p.ageMin + '+' : '', p.groupSize > 1 ? p.groupSize + ' students' : '',
     p.venue, kit, money].filter(Boolean).join(' · ');
   const lines = [off ? 'Why not ' + off + (p.reconsiderAt ? ' Worth another look at ' + p.reconsiderAt + ', in a lab.' : '') : '', p.aim,
@@ -537,7 +537,7 @@ function practicalPart_(x, part) {
   if (part === 'fig') return page('Diagram', [figPage_(p.diagram)]);
   /* The one-off cost is about the KIT, so it is on the kit's page rather than the first. */
   if (part === 'kit') return page('Equipment', [gdSec_('prac-kit', [kitList_(p.equipment)]),
-    p.setupCost ? { type: 'text', look: 'prac-cost', text: 'About ' + money_(p.setupCost) + ' of kit to set up, and it is bought once.' } : null]);
+    p.setupCost ? { type: 'text', look: 'prac-cost', text: 'About ' + fmtMoney_(p.setupCost) + ' of kit to set up, and it is bought once.' } : null]);
   if (part === 'steps') return page('Steps', [stepsList_(p.steps)]);
   /* ---------- THE WORKSHEET, AND THE CANDIDATE LISTS ARE PART OF IT § */
   if (part === 'work') return page('Worksheet', [gdSec_('fc-sec', [

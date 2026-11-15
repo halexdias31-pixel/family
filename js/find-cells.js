@@ -203,7 +203,7 @@ const cellsCardHtml_ = x => {
 /* THE ONE LINE OVER A SENTENCE OF GAPS: how many, in order, and their names where the question gives them. */
 function cellsHint_(cells) {
   const asked = cells.filter(c => c.ways), named = asked.filter(c => !/^\d+$/.test(c.label)).map(c => c.label);
-  return 'Write the ' + asked.length + ' answers in order' + (named.length === asked.length ? ': ' + named.join(', ') : '');
+  return text_('write-the') + asked.length + ' answers in order' + (named.length === asked.length ? ': ' + named.join(', ') : '');
 }
 /* EVERY GAP IN ONE BOX (owner, 13 Nov), the one answer box; a table's blanks are still filled where they stand. */
 function cellsBox_(x) {
@@ -213,7 +213,7 @@ function cellsBox_(x) {
   const val = String(ansRead_(k) || '').replace(/(?:\s*;\s*)+$/, '');
   const maths = cells.filter(c => c.ways).every(c => /^[-\d.,\s|£$%°/]+$/.test(c.ways));
   const one = inTable ? '' : fcG_('p', 'q-hint', null, '', cellsHint_(cells)) + fcG_('div', 'qp-ans-row qp-bar', null,
-    fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': 'Your answers, in order' }, kpField_(k, val, maths ? 'maths' : 'words', 3)));
+    fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answers-in-order') }, kpField_(k, val, maths ? 'maths' : 'words', 3)));
   const said = subBoxSay_(k, val);
   return fcG_('div', 'qp-mark qp-compose qp-cells-box' + (said.cls ? ' ' + said.cls : ''), { 'data-k': k },
     one + workStrip_(x) + fcVerdict_(said.text) + fcSaved_(k));
@@ -247,7 +247,7 @@ on('qp-cells-check', el => {
   });
   box.classList.remove('is-right', 'is-near');
   const notYet = partReady_('cells', m);
-  if (notYet) { out.textContent = notYet; return; }
+  if (notYet) { tell_(out, 'info', notYet); return; }
   /* ONE BOX READ BACK AS IT WAS UNDERSTOOD, "a ; b ; c" -- the stored form every saved answer already has */
   const got = inp ? cellsOneBox_(vals, cells) : vals;
   if (inp && cells.every((c, i) => !c.ways || String(got[i] || '').trim())) {
@@ -258,7 +258,7 @@ on('qp-cells-check', el => {
   }
   const all = m.right === m.of;
   box.classList.add(all ? 'is-right' : 'is-near');
-  out.textContent = all ? 'Correct — every ' + (inp ? 'answer' : 'cell') : m.right + ' of ' + m.of + (inp ? ' answers' : ' cells') + ' right';
+  tell_(out, all ? 'saved' : 'info', all ? text_('correct-every') + (inp ? 'answer' : 'cell') : m.right + ' of ' + m.of + (inp ? ' answers' : ' cells') + ' right');
   subRecord_(box.getAttribute('data-k'), vals.join(' ; '), all ? 'right' : 'wrong');
 });
 
@@ -403,13 +403,13 @@ function ansBox_(x) {
     const own = kept && (kept.fresh || !said.text) ? kept : null;
     const vcls = own ? own.cls : said.cls, vsay = own ? own.verdict : said.text;
     return fcG_('div', cls + ' qp-essay' + (vcls ? ' ' + vcls : ''), dataAt,
-      fcG_('label', 'qp-ans qp-sheet', { 'aria-label': 'Your answer' }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
+      fcG_('label', 'qp-ans qp-sheet', { 'aria-label': text_('your-answer') }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
       + ws + (note ? fcG_('p', 'qp-ai-note', null, '', note) : '') + fcVerdict_(vsay) + fcSaved_(k))
       + (isAi ? fcG_('p', 'qp-ai-why', null, '', own ? own.why : said.why || '') : '');
   }
   const many = can ? multiOf_(x) : null;
   const bar = opts + (many ? fcG_('div', 'qp-ans-row qp-bar qp-multi-bar', null, multiBoxes_(x, k, val, many, maths, 3))
-    : fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': 'Your answer' }, kpField_(k, val, maths ? 'maths' : 'words', 3))));
+    : fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answer') }, kpField_(k, val, maths ? 'maths' : 'words', 3))));
   const note = isAiMark_(m) && !ai ? aiWhyNot_(x) : '';
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
@@ -437,13 +437,13 @@ on('qp-check', (el) => {
   /* ONE PRESS, ONE VERDICT: a mark still being made is not made again */
   if (box.classList.contains('is-busy') || el.disabled) return;
   box.classList.remove('is-right', 'is-near');
-  if (partReady_('typed', inp.value)) { out.textContent = partReady_('typed', inp.value); return; }
+  if (partReady_('typed', inp.value)) { tell_(out, 'info', partReady_('typed', inp.value)); return; }
   const v = x ? markPart_(x, inp.value) : markAnswer_(inp.value, box.getAttribute('data-accept')) === null ? null : { got: markAnswer_(inp.value, box.getAttribute('data-accept')) ? 1 : 0, of: 1 };
-  if (!v) { out.textContent = partReady_('typed', ''); return; }
+  if (!v) { tell_(out, 'info', partReady_('typed', '')); return; }
   if (v.ai) { if (ACTIONS['qp-ai']) ACTIONS['qp-ai'](el); return; }
   const full = v.got >= v.of;
   box.classList.add(full ? 'is-right' : 'is-near');
-  out.textContent = v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? 'Correct (check the spelling: ' + v.typo + ')' : 'Correct') : 'Not yet — have another go';
+  tell_(out, full && !v.words ? 'saved' : 'info', v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
   /* MARKED IS A SUBMISSION, right or not yet (js/submit.js); signed out it is this visit's alone. */
   subRecord_(k, inp.value, v.words ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
 });
@@ -455,8 +455,9 @@ on('qp-send', (el) => {
   const out = box && box.querySelector('.qp-verdict');
   if (!inp || !out || el.disabled) return;
   box.classList.remove('is-right', 'is-near');
-  if (partReady_('typed', inp.value)) { out.textContent = partReady_('typed', inp.value); return; }
-  out.textContent = subRecord_(inp.getAttribute('data-k'), inp.value, 'sent') ? 'Sent' : 'Sign in to send it';
+  if (partReady_('typed', inp.value)) { tell_(out, 'info', partReady_('typed', inp.value)); return; }
+  const sent = subRecord_(inp.getAttribute('data-k'), inp.value, 'sent');
+  tell_(out, sent ? 'saved' : 'error', sent ? 'Sent' : text_('sign-in-to-send-it'));
 });
 
 /* ---------- WHO IS WORKING § */

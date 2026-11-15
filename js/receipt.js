@@ -193,7 +193,7 @@ function rcSave_(blob, name, rc) {
   /* NOT REVOKED AT ONCE. Some browsers start the download after the click returns, and a URL revoked
      under it is a zero-byte file. A minute is long enough and costs one picture's memory. */
   setTimeout(() => URL.revokeObjectURL(url), 60000);
-  toast('Saved a picture of this booking');
+  toast(text_('saved-a-picture-of-this-booking'));
 }
 
 function rcOffer_(blob, name, rc) {
@@ -203,11 +203,11 @@ function rcOffer_(blob, name, rc) {
   const can = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
   /* NO SHEET (owner, 7 Nov): the picture lands under its own receipt, outside the paper so the next picture does not hold it. */
   const at = rc || document.querySelector('.screen.on .rc') || document.querySelector('.rc');
-  if (!at) { toast('There is no booking on screen to share'); return; }
+  if (!at) { toast(text_('there-is-no-booking-on-screen')); return; }
   document.querySelectorAll('.rc-shot-box').forEach(x => x.remove());
-  at.insertAdjacentHTML('afterend', renderCard({ kind: 'shot', look: 'rc-shot-box', name: 'This booking, as a picture',
-    picture: { src: RC_SHOT.url, alt: 'This booking, as a picture' },
-    body: [{ type: 'text', look: 'note', text: can ? 'Press Share to send it.' : 'Press and hold the picture to save it.' }],
+  at.insertAdjacentHTML('afterend', renderCard({ kind: 'shot', look: 'rc-shot-box', name: text_('this-booking-as-a-picture'),
+    picture: { src: RC_SHOT.url, alt: text_('this-booking-as-a-picture') },
+    body: [{ type: 'text', look: 'note', text: can ? text_('press-share-to-send-it') : text_('press-and-hold-the-picture-to') }],
     tiles: [can ? { label: 'Share', act: 'rc-shot-share', tone: 'buy' } : null, { label: 'Save', act: 'rc-shot-save', data: { name } }].filter(Boolean) }));
 }
 
@@ -222,7 +222,7 @@ on('rc-shot-save', el => {
 on('rc-shot-share', () => {
   if (!RC_SHOT || !navigator.share) return;
   navigator.share({ files: [RC_SHOT.file], title: 'Booking' })
-    .catch(e => { if (!e || e.name !== 'AbortError') toast('Could not share it — press and hold the picture to save it'); });
+    .catch(e => { if (!e || e.name !== 'AbortError') toast(text_('could-not-share-it-press-and')); });
 });
 
 function rcHand_(blob, name, rc) {
@@ -241,13 +241,13 @@ on('book-share', el => {
      `msg-send` walking up to its nearest `.msg-form`. The form and a saved session share this handler
      without either being named. */
   const rc = el && el.closest && (el.closest('.rc') || (el.closest('.card') && el.closest('.card').querySelector('.rc')));
-  if (!rc) return toast('There is nothing to share on this card yet');
+  if (!rc) return toast(text_('there-is-nothing-to-share-on'));
   /* SAID AT ONCE, because the picture takes a moment and a press that answers nothing for half a
      second gets pressed again. */
-  toast('Making a picture of this booking…');
+  toast(text_('making-a-picture-of-this-booking'));
   rcPng_(rc)
     .then(p => rcHand_(p.blob, 'family-booking-' + stamp_() + '.png', rc))
-    .catch(e => toast('Could not make the picture: ' + why_(e)));
+    .catch(e => toast(text_('could-not-make-the-picture') + why_(e)));
 });
 
 /* THE BOOKER IS NOT A SHEET ANY MORE. § */
@@ -266,7 +266,7 @@ function bookerCard() {
   const out = drawBooker_();
   if (!out) return '';
   /* A CARD ON THE ONE TEMPLATE (owner, 12 Nov): name as first tag, the questions and price lines as its form, its round row last. */
-  return renderCard({ kind: 'bookform', id: 'bookr', look: 'bookform', name: 'Your booking', tags: [{ text: 'Your booking' }],
+  return renderCard({ kind: 'bookform', id: 'bookr', look: 'bookform', name: text_('your-booking'), tags: [{ text: text_('your-booking') }],
     body: [{ type: 'paperBox', look: 'bookform-paper', inner: out.html }], tiles: out.tiles });
 }
 
@@ -288,9 +288,9 @@ function drawBooker_() {
     && !bookStep_('kids').options().length
     && rank_() !== 'staff' && rank_() !== 'student';
   const kidsNote = noKids
-    ? cardBlock_({ type: 'paperNote', look: 'note-gap', text: ['No children are on ' + (mine ? 'your account' : forWhom + '’s account')
+    ? cardBlock_({ type: 'paperNote', look: 'note-gap', text: [text_('no-children-are-on') + (mine ? 'your account' : forWhom + '’s account')
         + ', so we cannot ask which of them this is for — the seats will just say ', { b: 'Child' }, '. '
-        + (mine ? 'Ask us to add them and the next booking will name them.' : 'Add them to that account and the next booking will name them.')] })
+        + (mine ? text_('ask-us-to-add-them-and') : text_('add-them-to-that-account-and'))] })
     : '';
 
   /* THE RUNNING BREAKDOWN. § */
@@ -307,16 +307,16 @@ function drawBooker_() {
      on it above the barcode, and what is left out here is nothing at all. */
   /* THE CARD'S ROUND ROW (owner, 12 Nov): Send leads; findCard lifts this top-level row into the card's one row. */
   const tiles = [].concat(!may_('prices') ? null : { icon: 'send', label: 'Send', tone: 'buy', act: 'book-send' },
-    { icon: 'share', label: 'Share this booking', act: 'book-share' },
+    { icon: 'share', label: text_('share-this-booking'), act: 'book-share' },
     /* REPORT OR SUGGEST A CHANGE ON THE BOOKING FORM TOO (489). */
     typeof suggestOpts_ === 'function' ? suggestOpts_('widget', 'booking', 'Booking') : null).filter(Boolean);
-  return { html: head || cardBlock_({ type: 'paperNote', text: 'Not enough answered to price it yet.' }), tiles };
+  return { html: head || cardBlock_({ type: 'paperNote', text: text_('not-enough-answered-to-price-it') }), tiles };
 }
 
 on('book-send', el => {
   /* A GUEST SENDS NOTHING: the answers stay and Find's first step asks who you are again (`SIGN`, find-account.js). */
   if (!USER) {
-    toast('Sign in to send this booking — your answers are kept.');
+    toast(text_('sign-in-to-send-this-booking'));
     SIGN.step = ''; SIGN.pin = [];
     finderEach_(() => paintStuff(true));
     return;
@@ -325,7 +325,7 @@ on('book-send', el => {
   const L = bookPrice();
   const SH = typeof bookShares_ === 'function' ? bookShares_(L) : null;
   el.disabled = true;
-  if (said) said.textContent = 'Asking…';
+  if (said) tell_(said, 'info', 'Asking…');
 
   const spec = bookSpec();
 
@@ -340,18 +340,18 @@ on('book-send', el => {
           text: 'asked to join', requestId: 'join-' + (joined.id || '') + '-' + Date.now() })
       .then(d => {
         el.disabled = false;
-        if (d && d.error) { bookSending_(false); if (said) said.textContent = d.error; return; }
+        if (d && d.error) { bookSending_(false); if (said) tell_(said, 'error', d.error); return; }
         /* THE CLASS YOU ASKED TO JOIN, kept so it comes back under the blank form — see `ASKED_JOB` in book.js. § */
         ASKED_JOB = String(joined.id || joined.jobId || '');
         resetBooking_();
-        toast('Asked — they will be in touch');
+        toast(text_('asked-they-will-be-in-touch'));
         load();
       })
       /* ---------- THE HANDLER TOOK NO ARGUMENT AND THEN USED ONE § */
       .catch(err => {
         el.disabled = false;
         bookSending_(false);
-        if (said) said.textContent = why_(err);
+        if (said) tell_(said, 'error', why_(err));
       });
     return;
   }
@@ -375,8 +375,8 @@ on('book-send', el => {
            the screen — everything else about it is now a job, and jobs are the cards underneath. */
         /* WHERE IT HAS GOT TO, because that is the whole content of a waiting list. § */
         toast(d && d.seats
-          ? 'On the list — ' + d.joined + ' of ' + d.seats + ' seats taken'
-          : 'On the list');
+          ? text_('on-the-list-2') + d.joined + ' of ' + d.seats + ' seats taken'
+          : text_('on-the-list'));
         /* BOTH WAITLIST VERBS ANSWER WITH ONE. § */
         ASKED_JOB = String((d && d.jobId) || '');
         resetBooking_();
@@ -406,7 +406,7 @@ on('book-send', el => {
     requestedTutor: spec.tutor,
     /* THE SEAT TOTAL, so the server can hold a home booking to the tutor's whole capacity. */
     n: String(spec.n || 1),
-    dates: (L && L.sessionDates || []).map(d => date_(d)).join(', '),
+    dates: (L && L.sessionDates || []).map(d => fmtDate_(d)).join(', '),
     price: SH ? String(SH.pays) : (L ? String(L.total || '') : ''),
     /* WHAT THE JOB IS WORTH TO YOU, which `priceFrom` has always worked out and nothing ever
        sent — so the sheet's profit column stayed empty on every booking made through the app. */
@@ -439,7 +439,7 @@ on('book-send', el => {
     requestId: 'R' + Date.now() + '-' + Math.floor(Math.random() * 1e6) })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
-      toast('Asked — we will come back to you');
+      toast(text_('asked-we-will-come-back-to'));
       /* WHAT WAS JUST ASKED FOR, so it is drawn again under the emptied form — see `ASKED_JOB` in
          book.js. Set before `resetBooking_()`, which is what clears the answers this receipt is
          about. */
@@ -451,7 +451,7 @@ on('book-send', el => {
     .catch(err => {
       el.disabled = false;
       bookSending_(false);
-      if (said) said.textContent = why_(err);
+      if (said) tell_(said, 'error', why_(err));
     });
 });
 
@@ -463,8 +463,8 @@ function openJob_(id, quiet) {
   const jobs = DATA.liveJobs || DATA.jobs || [];
   const want = String(id || '');
   const j = jobs.find(x => String(x.id || x.jobId || '') === want);
-  if (!j) { if (!quiet) toast('That session is not in this list any more'); return false; }
-  if (!USER) { if (!quiet) { toast('Sign in to open a session'); go('account'); } return false; }
+  if (!j) { if (!quiet) toast(text_('that-session-is-not-in-this')); return false; }
+  if (!USER) { if (!quiet) { toast(text_('sign-in-to-open-a-session')); go('account'); } return false; }
 
   OPEN_JOB = want;
   /* ---------- AND THE COLUMN HAS TO BE TOLD IT IS OUT OF DATE § */
@@ -485,7 +485,7 @@ on('job-pay', el => {
     .then(d => {
       el.disabled = false;
       if (d && d.error) { toast(d.error); return; }
-      if (!d || !d.url) { toast('Stripe did not give us a payment page.'); return; }
+      if (!d || !d.url) { toast(text_('stripe-did-not-give-us-a')); return; }
       /* THE SAME TAB. A payment opened in a new one is a payment somebody loses track of, and the
          return leg comes back to this site anyway. */
       location.href = d.url;
@@ -498,7 +498,7 @@ on('job-answer', el => {
   const yes = !!el.dataset.yes;
   /* DECLINING IS ASKED ABOUT. § */
   /* TWO PRESSES, NOT A confirm(). § */
-  if (!yes && !sure_(el, 'Turn it down?')) return;
+  if (!yes && !sure_(el, text_('turn-it-down'))) return;
   el.disabled = true;
   api({ action: 'move', jobId: el.dataset.id, role: 'client',
         name: USER.name, personId: (USER && USER.personId) || '', adminName: USER.name, asAdmin: '1',
@@ -527,7 +527,7 @@ function jobMove_(el, body, said) {
     })
     .catch(err => { el.disabled = false; toast(why_(err)); });
 }
-on('job-apply', el => jobMove_(el, { role: 'tutor', move: 'Request' }, 'Applied — the family picks'));
+on('job-apply', el => jobMove_(el, { role: 'tutor', move: 'Request' }, text_('applied-the-family-picks')));
 on('job-choose', el => jobMove_(el, { role: 'client', move: 'Accept', counterpart: el.dataset.tutor }, 'Chosen'));
 
 /* ---------- A TUTOR ANSWERING A REQUEST (488) — Accept at once; Decline opens one line for why, in place. */
@@ -540,14 +540,14 @@ on('job-request-answer', el => {
       .then(d => {
         el.disabled = false;
         if (d && d.error) { toast(d.error); return; }
-        toast(yes ? 'Accepted — the family can pay and confirm' : 'Declined — the family has been told');
+        toast(yes ? text_('accepted-the-family-can-pay-and') : text_('declined-the-family-has-been-told'));
         closeSheet();
         load();
       })
       .catch(err => { el.disabled = false; toast(why_(err)); });
   };
   if (yes) { send(''); return; }
-  if (!sure_(el, 'Turn it down?')) return;
+  if (!sure_(el, text_('turn-it-down'))) return;
   const row = el.closest('.tile-row');
   if (!row || (row.nextElementSibling && row.nextElementSibling.classList.contains('req-why'))) return;
   row.insertAdjacentHTML('afterend', cardBlock_({ type: 'paperWhy', id }));
@@ -582,8 +582,8 @@ on('job-leave', el => {
 on('job-take-seat', el => {
   const j = (DATA.liveJobs || DATA.jobs || []).find(x =>
     String(x.id || x.jobId || '') === String(el.dataset.id));
-  if (!j) { toast('That class has gone.'); return; }
-  BOOKING.how      = 'Waiting list class';
+  if (!j) { toast(text_('that-class-has-gone')); return; }
+  BOOKING.how      = text_('waiting-list-class');
   BOOKING.joining  = openClassLabel_(j);
   /* THE SAME RULE AS CHOOSING IT ON THE FORM: the class answers subject, level, place and seats (`joiningSet_`). */
   joiningSet_();
@@ -600,8 +600,8 @@ on('job-take-seat', el => {
 on('job-join', el => {
   const j = (DATA.liveJobs || DATA.jobs || []).find(x =>
     String(x.id || x.jobId || '') === String(el.dataset.id));
-  if (!j) { toast('That class has gone.'); return; }
-  BOOKING.how      = 'Instant class';
+  if (!j) { toast(text_('that-class-has-gone')); return; }
+  BOOKING.how      = text_('instant-class');
   BOOKING.joining  = openClassLabel_(j);
   /* THE SAME RULE AS CHOOSING IT ON THE FORM: the class answers subject, level, place and seats (`joiningSet_`). */
   joiningSet_();
@@ -615,13 +615,13 @@ on('job-join', el => {
 /* ---------- AN ADMIN ENDS A SESSION § */
 on('job-delete', el => {
   const id = el.dataset.id;
-  if (!sure_(el, 'End it?')) return;
+  if (!sure_(el, text_('end-it'))) return;
   el.disabled = true;
   api({ action: 'deleteJob', adminName: USER.name, name: USER.name, jobId: id })
     .then(d => {
       if (d && d.error) { el.disabled = false; toast(d.error); return; }
       closeSheet();
-      toast('Session ended');
+      toast(text_('session-ended'));
       load();
     })
     .catch(err => { el.disabled = false; toast(why_(err)); });
@@ -680,8 +680,8 @@ const FEED_BUILT = {};
 /* THE POLICIES A FAMILY OR TUTOR SIGNS UP TO (docs/policies), linked where they commit. Brand key `policies_url` is the switch: empty hides them. */
 const POLICIES_URL = 'https://halexdias31-pixel.github.io/family/docs/policies/';
 const POLICY_DOCS = {
-  family: [['family-terms', 'Terms'], ['cancellation-refunds', 'Cancellation and refunds'], ['privacy-notice', 'Privacy'], ['complaints', 'Complaints'], ['safeguarding-policy', 'Safeguarding']],
-  tutor: [['tutor-onboarding', 'Onboarding'], ['safer-recruitment', 'Safer recruitment'], ['safeguarding-policy', 'Safeguarding'], ['online-safety', 'Online safety'], ['home-visits', 'Home visits'], ['privacy-notice', 'Privacy']]
+  family: [['family-terms', 'Terms'], ['cancellation-refunds', text_('cancellation-and-refunds')], ['privacy-notice', 'Privacy'], ['complaints', 'Complaints'], ['safeguarding-policy', 'Safeguarding']],
+  tutor: [['tutor-onboarding', 'Onboarding'], ['safer-recruitment', text_('safer-recruitment')], ['safeguarding-policy', 'Safeguarding'], ['online-safety', text_('online-safety')], ['home-visits', text_('home-visits')], ['privacy-notice', 'Privacy']]
 };
 function policyHref_(doc) {
   const base = String(brand('policies_url', POLICIES_URL) || '').trim();

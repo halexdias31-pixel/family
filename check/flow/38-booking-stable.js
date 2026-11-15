@@ -302,7 +302,7 @@ check('Find › Booking as a guest: every step a menu of tags, the summary card 
   const calc = t.inApp('priceFrom')(t.spec());
   if (!L || !(L.total > 0)) return bad.concat(['the booking is not priced: ' + JSON.stringify(L && L.total)]);
   if (Math.abs(calc.total - L.total) > 1e-9) bad.push('the summary\'s price ' + L.total + ' is not the calculator\'s ' + calc.total);
-  const said = t.inApp('money_')(L.total);
+  const said = t.inApp('fmtMoney_')(L.total);
   if (card.textContent.indexOf(said) === -1) bad.push('the summary card does not say the price ' + said);
   const acts = [...card.querySelectorAll('.kc-act .tile')].map(x => x.dataset.do);
   if (acts[0] !== 'book-send' || acts.indexOf('book-share') === -1) bad.push('the summary\'s tiles are ' + acts.join(', ') + ', wanted Send first and Share');

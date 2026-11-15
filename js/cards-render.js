@@ -210,7 +210,7 @@ const CARD_BLOCKS = {
   /* A WEEK'S HOURS: one pill a day free, then the hours already taught; `say` reads every hour aloud. */
   hours: b => `<div class="prof-week prof-hours" data-avail="${esc(b.count || 0)}" aria-label="${esc(b.say || '')}">${
     (b.free || []).length ? `<p class="prof-hour-line">${b.free.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}${
-    (b.busy || []).length ? `<p class="prof-key prof-busy">${cardRuns_(b.busyLabel || 'Already teaching')} ${b.busy.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}</div>`,
+    (b.busy || []).length ? `<p class="prof-key prof-busy">${cardRuns_(b.busyLabel || text_('already-teaching'))} ${b.busy.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}</div>`,
   figure: b => { const p = cardPic_(b); return p ? `<figure class="kc-fig">${p}${b.caption ? `<figcaption>${cardRuns_(b.caption)}</figcaption>` : ''}</figure>` : ''; },
   table: b => `<table class="kc-table">${(b.head || []).length ? `<thead><tr>${b.head.map(h => `<th>${cardRuns_(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${
     (b.rows || []).map(r => `<tr>${r.map(c => `<td>${cardRuns_(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`,
@@ -301,7 +301,7 @@ function renderCard(spec) {
     + `<div class="kc-act">${row}</div></div>`;
 }
 /* SEVERAL CARDS, or a message where there are none (the one empty card). */
-const renderCards = (specs, empty) => ((specs || []).length ? specs.map(renderCard).join('') : renderCard(Object.assign({ kind: 'empty', tags: [{ text: (empty && empty.name) || 'Nothing yet' }] }, empty || {}, { empty: (empty && empty.say) || (typeof NOTHING_YET === 'string' ? NOTHING_YET : '') })));
+const renderCards = (specs, empty) => ((specs || []).length ? specs.map(renderCard).join('') : renderCard(Object.assign({ kind: 'empty', tags: [{ text: (empty && empty.name) || text_('nothing-yet') }] }, empty || {}, { empty: (empty && empty.say) || (typeof NOTHING_YET === 'string' ? NOTHING_YET : '') })));
 /* EACH CARD KIND'S BUILDER: `cardKind_('kind', x => spec)`; findCard draws a registered kind from its spec (check-card-spec runs each one). */
 const CARD_KINDS = {};
 function cardKind_(kind, build) { CARD_KINDS[kind] = build; }
@@ -398,7 +398,7 @@ const kcfField_ = b => `<label class="field${b.look ? ' ' + esc(b.look) : ''}"${
   b.caps ? b.caps.map((c, i) => `<span class="${i ? 'q-cap-cert' : 'q-cap-std'}">${esc(c)}</span>`).join('') : b.cap != null && b.cap !== '' ? `<span>${esc(b.cap)}</span>` : ''}${kcfKids_(b)}</label>`;
 const kcfTickB_ = b => `<label class="check${b.look ? ' ' + esc(b.look) : ''}"${kcfAttrs_(b.labelAttrs)}><input${kcfAttrs_(Object.assign({ type: 'checkbox' }, b.attrs))}><span class="box"></span><span>${cardRuns_(b.text)}</span></label>`;
 const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.label)}</span>${kcfControl_(b.hidden || {})}<details class="many-d" data-many="${esc(b.key)}"${b.open ? ' open' : ''}>`
-  + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
+  + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || text_('tap-to-choose'))}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
 /* A GROUP: a div (or a span, a line, a label, a heading between cards, or a fold and its summary) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
 /* `img` is void (its attrs only); an `a` or `img` whose href or src is a script is not written at all. */
@@ -429,7 +429,7 @@ function msgBubble_(b) {
     + (b.flag ? `<div class="msg-line">${bub}${tile_(b.flag)}</div>` : bub) + `${fail}</div>`;
 }
 const msgFormBlock_ = b => `<div class="msg-form" data-k="${esc(b.k)}"><div class="msg-queue">${msgChips_(b)}</div>`
-  + (b.clip ? `${tile_({ icon: 'plus', label: 'Attach a photo, video or file', act: 'msg-attach', cls: 'msg-clip' })}<input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : '')
+  + (b.clip ? `${tile_({ icon: 'plus', label: text_('attach-a-photo-video-or-file'), act: 'msg-attach', cls: 'msg-clip' })}<input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : '')
   + `<textarea class="msg-text" rows="${Number(b.rows) || 1}" maxlength="${Number(b.max) || 2000}" placeholder="Message…" aria-label="Message ${esc(b.to)}"${b.off ? ' disabled' : ''}${b.drafted || ''}>${esc(b.value || '')}</textarea>`
   + `${tile_(b.send)}<p class="note msg-said">${esc(b.note || '')}</p>${(b.also || []).map(a => `<p class="note msg-said${a.look ? ' ' + esc(a.look) : ''}">${esc(a.text || '')}</p>`).join('')}</div>`;
 /* A BOX ROUND PARTS THESE BLOCKS ALREADY DREW (a message's card, a claim, a section), its look and data its own. */

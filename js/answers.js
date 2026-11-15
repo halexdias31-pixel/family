@@ -402,7 +402,7 @@ function ansRefresh_(keys) {
         if (m.classList.contains('qp-essay') && m.classList.contains('qp-ai') && typeof aiKeptPaint_ === 'function' && aiKeptPaint_(m, el)) return;
         m.classList.remove('is-right', 'is-near');
         const out = m.querySelector('.qp-verdict');
-        if (out) out.textContent = '';
+        if (out) tell_(out, '', '');
       });
     });
     document.querySelectorAll('.qpad[data-k]').forEach(pad => {
@@ -425,7 +425,7 @@ function ansRefresh_(keys) {
 
 /* ---------- THE LINE UNDER THE BOX § */
 function ansFirstName_() {
-  try { return String((USER && (USER.name || USER.handle)) || '').trim().split(/\s+/)[0] || ''; }
+  try { return fmtName_((USER && (USER.name || USER.handle)) || '', 'first'); }
   catch (e) { return ''; }
 }
 /* ON THE ACCOUNT, AS THIS DEVICE LAST WROTE IT — so a store refusing the device's copy loses nothing that a § */
@@ -627,13 +627,13 @@ function ansSavedPaint_() {
   try {
     document.querySelectorAll('[data-kept-k]').forEach(el => {
       const say = padNoteSay_(el.getAttribute('data-kept-k'));
-      if (el.textContent !== say) el.textContent = say;
+      tell_(el, /^Saving/.test(say) ? 'busy' : /^Saved/.test(say) ? 'saved' : 'info', say);
     });
   } catch (e) { /* a page mid-change: the next paint says it */ }
   try {
     document.querySelectorAll('.qp-saved[data-k]').forEach(el => {
       const say = ansSavedSay_(el.getAttribute('data-k'));
-      if (el.textContent !== say) el.textContent = say;
+      tell_(el, /^Saving/.test(say) ? 'busy' : /^Saved/.test(say) ? 'saved' : 'info', say);
     });
   } catch (e) { /* a page mid-change: the next paint says it */ }
 }

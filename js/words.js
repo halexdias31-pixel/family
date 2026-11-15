@@ -115,7 +115,7 @@ function wordsSend_(set, reset) {
   const put = v => { try { DATA.words = v; } catch (e) {} wordsEditSet_(WORDS_EDIT); };
   put(next);
   return send({ action: 'saveItem', item: 'words', personId: (USER && USER.personId) || '', set: set, reset: reset })
-    .then(d => { if (d && d.words && typeof d.words === 'object') { try { DATA.words = d.words; } catch (e) {} } toast('Saved for everyone'); return true; })
+    .then(d => { if (d && d.words && typeof d.words === 'object') { try { DATA.words = d.words; } catch (e) {} } toast(text_('saved-for-everyone')); return true; })
     .catch(err => { put(was); toast(why_(err)); return false; });
 }
 on('words-save', el => {
@@ -131,7 +131,7 @@ on('words-save', el => {
     if (!t || t === or) { if (had && reset.indexOf(k) === -1) reset.push(k); return; }
     if (t !== (had ? W[k] : or)) set[k] = t;
   });
-  if (!Object.keys(set).length && !reset.length) { toast('Nothing changed'); return; }
+  if (!Object.keys(set).length && !reset.length) { toast(text_('nothing-changed')); return; }
   wordsSend_(set, reset);
 });
 on('words-reset', el => {

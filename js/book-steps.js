@@ -11,7 +11,7 @@
 function bookBlocks() {
   if (!USER) {
     return [renderCard({ kind: 'bookform', look: 'book-signin', name: 'Booking', tags: [{ text: 'Booking' }],
-      body: [{ type: 'text', look: 'note', text: 'Sign in to book — your account is a few screens to the right.' }] })];
+      body: [{ type: 'text', look: 'note', text: text_('sign-in-to-book-your-account') }] })];
   }
   /* ---------- THE FORM, THEN WHAT IS ALREADY BOOKED, THEN WHAT IS FINISHED § */
   /* ---------- THE FORM, AND ONLY THE FORM, AGAIN § */
@@ -97,9 +97,9 @@ function liveWidgets_() {
         id: 'live:' + id,
         kind: 'tool',
         /* UNDER TOOLS ON FIND (790): it was filed under Booking, which the funnel does not offer, and shown on the Tools column, which went into Find. */
-        label: 'Your sessions',
+        label: text_('your-sessions'),
         name: name,
-        what: 'Who is in it',
+        what: text_('who-is-in-it'),
         into: 'live-body-' + id,
         start: () => fillRoster_(id),
         html: renderCard({ kind: 'panel', look: 'live-roster', name: name, tags: [{ text: name }], body: [{ type: 'paperBox', id: 'live-body-' + id }] }),
@@ -116,7 +116,7 @@ function fillRoster_(jobId) {
   if (!j) {
     /* IT WENT WHILE THE WIDGET WAS OPEN — withdrawn, or cancelled by us. Said rather than left
        blank, because an empty roster reads as a class nobody has joined. */
-    el.innerHTML = empty_('This session is no longer yours.');
+    el.innerHTML = empty_(text_('this-session-is-no-longer-yours'));
     return;
   }
   el.innerHTML = rosterHtml({
@@ -340,7 +340,7 @@ function slotGrid() {
   /* ---------- THE DAYS THE WEEK DRAWS § */
   const days = rows;
 
-  const why = anyOpen ? '' : 'That room is booked every hour.';
+  const why = anyOpen ? '' : text_('that-room-is-booked-every-hour');
   return { rows, days, why, anyOpen };
 }
 
@@ -370,17 +370,17 @@ function bookRuns() {
    same string comparison written nine times and one of them eventually spelt differently. */
 /* ---------- WHICH BRANCH, AND WHY THE NAME CHANGED § */
 /* THE ANSWER FOR A SEAT NOBODY HAS DECIDED ABOUT. § */
-const UNNAMED = 'Someone else';
+const UNNAMED = text_('someone-else');
 
 /* THE ANSWER THAT MEANS THE LIST HAS NOBODY ON IT YET. Named once, because the option, the refusal
    on the session branch and the send that turns it into `openWaitlist` all have to mean one
    string. */
-const NOBODY = 'Nobody yet — just open it';
+const NOBODY = text_('nobody-yet-just-open-it');
 
 const isWaiting_ = () => /wait/i.test(String(BOOKING.how || ''));
 
 /* ---------- THE CLASSES ON OFFER, NAMED FOR A DROPDOWN § */
-const NEW_LIST = 'Start a new one';
+const NEW_LIST = text_('start-a-new-one');
 
 function openClassLabel_(j) {
   const left = Math.max(0, (Number(j.maxKids) || 0) - (Number(j.currentKids) || 0));
@@ -411,7 +411,7 @@ const BOOK_STEPS = [
      what makes the seat cost what it costs. */
   /* ---------- WHOSE BOOKING IT IS § */
   /* `set`: WHAT ANSWERING A STEP DOES TO THE OTHERS (book-rows.js). ANOTHER CLIENT, ANOTHER FAMILY: a child the new client does not have is not on their booking (two clients' children showed, 29 Oct). */
-  { id: 'client', label: 'Who is this for?', short: 'For', set: () => bookKidsFor_(),
+  { id: 'client', label: text_('who-is-this-for'), short: 'For', set: () => bookKidsFor_(),
     /* WHOEVER IS SIGNED IN, UNTIL SOMEBODY SAYS OTHERWISE. § */
     fallback: () => (USER && USER.name) || '',
     options: () => {
@@ -431,16 +431,16 @@ const BOOK_STEPS = [
   },
 
   /* SWITCHING THE KIND CLEARS THE TUTOR only the other kind could have given, and leaving the waiting list unchooses its class. */
-  { id: 'how', label: 'How would you like to book?', short: 'Kind', set: () => { BOOKING.tutor = ''; if (!isWaiting_()) BOOKING.joining = ''; },
+  { id: 'how', label: text_('how-would-you-like-to-book'), short: 'Kind', set: () => { BOOKING.tutor = ''; if (!isWaiting_()) BOOKING.joining = ''; },
     /* BOTH ARE "START", because both are things you set going — the difference is whether it runs now or waits for company. § */
     /* THE TWO KINDS, NAMED. § */
-    options: () => ['Instant class', 'Waiting list class'],
+    options: () => [text_('instant-class'), text_('waiting-list-class')],
   },
 
   /* ORDER BY DEPENDENCY (owner, 12 Nov): who → what → who teaches → where → how many → when; a row reads only rows above it. */
   /* ---------- WHOSE CHILDREN ARE THESE? § */
   /* THE SEATS FOLLOW THE CHILDREN (owner, 7 Nov): picking a child past the count raises it; seats beyond them stay the admin's. */
-  { id: 'kids', label: 'Which of your children is this for?', short: 'Child', multi: true, set: list => { if (list && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length); },
+  { id: 'kids', label: text_('which-of-your-children-is-this'), short: 'Child', multi: true, set: list => { if (list && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length); },
     /* EVERY CHILD IS OFFERED. § */
     /* ---------- WHOSE CHILDREN, WHICH IS NOT ALWAYS YOURS § */
     options: () => {
@@ -461,7 +461,7 @@ const BOOK_STEPS = [
 
   /* ---------- JOINING ONE, OR STARTING ONE § */
   /* CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS (`joiningSet_`). */
-  { id: 'joining', label: 'Something already going, or a new one?', short: 'Class', set: () => joiningSet_(),
+  { id: 'joining', label: text_('something-already-going-or-a-new'), short: 'Class', set: () => joiningSet_(),
     /* THE ONES OF THE KIND BEING ASKED FOR. § */
     options: () => {
       if (!BOOKING.how) return [];
@@ -478,11 +478,11 @@ const BOOK_STEPS = [
   /* ---------- AND THEN THE SENTENCE CAME OFF AGAIN § */
   /* ---------- AND A WAITING LIST IS ASKED IT TOO § */
   /* NO `format`, `practical` OR `trip` STEP (463): trips and practicals are shop items, bought in the basket. */
-  { id: 'subjects', label: 'What are we working on?', short: 'Subject', multi: true,
+  { id: 'subjects', label: text_('what-are-we-working-on'), short: 'Subject', multi: true,
     options: () => (subjectRows() || []).map(x => x.name) },
 
   /* MIXED LEVELS IN ONE BOOKING (owner, 7 Nov): one answer, the highest qualification, and the price follows it. */
-  { id: 'level', label: 'What level? (the highest among the children)', short: 'Level',
+  { id: 'level', label: text_('what-level-the-highest-among-the'), short: 'Level',
     options: () => ((DATA.dropdowns || {}).levels || []) },
 
   /* ONE SEAT EACH. The price is the room and the teaching divided by the seats, so a family
@@ -491,8 +491,8 @@ const BOOK_STEPS = [
   /* ---------- HOW MANY EXTRA, NOT HOW MANY IN TOTAL § */
   /* ---------- WHO TEACHES IT IS ASKED EARLY, NOT LAST § */
   /* ---------- AND AN UNLISTED TUTOR IS THE SERVER'S DECISION, NOT THIS LIST'S § */
-  { id: 'tutor', label: 'Anyone in particular?', short: 'Tutor',
-    options: () => isWaiting_() ? [] : ['No preference'].concat(
+  { id: 'tutor', label: text_('anyone-in-particular'), short: 'Tutor',
+    options: () => isWaiting_() ? [] : [text_('no-preference')].concat(
       (DATA.tutors || []).filter(t => t.title).map(t => t.title)),
     label_: v => {
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
@@ -500,9 +500,9 @@ const BOOK_STEPS = [
       return v + (t && t.listed === false ? ' · not listed' : '');
     },
     /* ---------- A WAITING LIST HAS NO TUTOR YET, AND THE ROW WAS SHOWING THE LAST ONE § */
-    fallback: () => isWaiting_() ? 'No preference' : '',
+    fallback: () => isWaiting_() ? text_('no-preference') : '',
     why: v => {
-      if (v === 'No preference') return '';
+      if (v === text_('no-preference')) return '';
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
       if (!t || !BOOKING.subjects.length) return '';
       const teaches = (t.teaches || []).map(x => norm(String(x).replace(/\s*\([^)]*\)/, '')));
@@ -526,7 +526,7 @@ const BOOK_STEPS = [
 
   /* "I'LL HOST" IS A CHOICE, and it was an inference — turned on only when somebody picked "At home", so a client who wanted to provide the room at a paid venue § */
   /* A CLASS IS AT A VENUE. Somebody's front room is not a place three other families are going. */
-  { id: 'hosting', label: 'Are you providing the space?', short: 'Space', only: 'wait, tutoring',
+  { id: 'hosting', label: text_('are-you-providing-the-space'), short: 'Space', only: 'wait, tutoring',
     /* AT THE CLIENT'S OWN HOUSE THE CLIENT IS THE SPACE (owner, 29 Oct: "the space field is redundant"): no options, so the row is text, `Yes`. */
     fallback: () => takesAllSeats_(BOOKING.loc) ? 'Yes' : '',
     options: () => {
@@ -539,10 +539,10 @@ const BOOK_STEPS = [
     /* The saving was spelled out here and it is already on the card: the Host row shows
        − £15.00/h against the venue's + £15.00/h, one line apart. Saying it twice made the option
        longer to read than the question. */
-    label_: v => v === 'Yes' ? 'Yes — no room hire' : 'No — we book the room' },
+    label_: v => v === 'Yes' ? text_('yes-no-room-hire') : text_('no-we-book-the-room') },
 
   /* ---------- THE NUMBER ON THE ROW IS THE EXTRA SEATS, AND THE ONE IN `BOOKING` IS THE TOTAL § */
-  { id: 'n', label: 'How many extra seats?', short: 'Extra seats',
+  { id: 'n', label: text_('how-many-extra-seats'), short: text_('extra-seats'),
     label_: v => String(Math.max(0, Number(v) - 1)),
     /* ---------- AND A WAITING LIST GETS TO ANSWER IT TOO § */
     /* ---------- AND IT STARTS AT THE FLOOR, NOT AT ONE § */
@@ -579,7 +579,7 @@ const BOOK_STEPS = [
   /* AND NO TERM, for the same reason as the day. */
   /* ---------- SEVERAL TERMS, BECAUSE A BOOKING IS RARELY ONE OF THEM § */
   /* ---------- AND ON A WAITING LIST IT ANSWERS ITSELF § */
-  { id: 'interval', label: 'Over what period?', short: 'Term', multi: true,
+  { id: 'interval', label: text_('over-what-period'), short: 'Term', multi: true,
     fallback: () => { const t = isWaiting_() ? waitTerm_() : null;
                       return t ? (t.label || t.term) : ''; },
     /* ---------- AND IT IS OFFERED ON BOTH BRANCHES NOW § */
@@ -597,7 +597,7 @@ const BOOK_STEPS = [
   /* ---------- "FREE" MEANT FREE OF CHARGE TO EVERY READER § */
   /* ---------- AND IT IS THE WEEK NOW, NOT FIVE PHRASES § */
   /* ---------- AND IT IS NOT ON AN ORDINARY BOOKING AT ALL § */
-  { id: 'avail', label: 'When could you come?', short: 'When free', multi: true,
+  { id: 'avail', label: text_('when-could-you-come'), short: text_('when-free'), multi: true,
     only: 'wait',
     grid: 'blocks', week: true, options: () => [], why: () => '' },
 
@@ -661,7 +661,7 @@ function bookSpec() {
   const hours = runs.length ? runs[0].hours : 0;
   const perWeek = runs.reduce((n, r) => n + r.hours, 0);
   const days = [...new Set(runs.map(r => r.dayName))];
-  const firstHour = runs.length ? time_(runs[0].hour + ':00') : '';
+  const firstHour = runs.length ? fmtDate_(runs[0].hour + ':00', 'time') : '';
   return Object.assign({
     subjects: BOOKING.subjects, level: BOOKING.level, n: Number(BOOKING.n) || 1,
     loc: (spaceFor(BOOKING.loc) || {}).label || BOOKING.loc,
@@ -679,17 +679,17 @@ function bookSpec() {
     runs: runs.map(r => ({ dayName: r.dayName, day: r.day, hours: r.hours })),
     /* ---------- THE SPAN, AND THE WINDOWS INSIDE IT § */
     /* THE REST NAMES ITS TERM on the record, so a booking saved mid-term still says which once the term is over. */
-    interval: ivs.map(x => x.rest ? 'Rest of ' + x.rest : (x.label || x.term)).join(', '),
+    interval: ivs.map(x => x.rest ? text_('rest-of') + x.rest : (x.label || x.term)).join(', '),
     weeks: ivs.reduce((n, x) => n + (Number(x.weeks) || 0), 0),
     startDate: first.startDate || '', endDate: last.endDate || '',
     lastSun: last.lastSun || last.endDate || '',
     windows: ivs.map(x => ({ startDate: x.startDate || '',
                              lastSun: x.lastSun || x.endDate || '' })),
-    tutor: BOOKING.tutor === 'No preference' ? '' : BOOKING.tutor,
+    tutor: BOOKING.tutor === text_('no-preference') ? '' : BOOKING.tutor,
     /* AN ADMIN'S ALONE, and asked here as well as hidden on the form: a draft carried from an admin's
        session to a family's on one device must not price their booking with the admin's discount. */
     discount: (typeof may_ === 'function' && may_('admin') && !isWaiting_() && Number(BOOKING.discValue) > 0)
-      ? { type: '%', value: BOOKING.discValue, by: 'Shared with tutor' }
+      ? { type: '%', value: BOOKING.discValue, by: text_('shared-with-tutor') }
       : null,
   });
 }

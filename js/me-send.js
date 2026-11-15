@@ -14,7 +14,7 @@ function send_(body, o) {
   /* `is-busy` IS THE SPINNER, and it goes on whether or not there is a `busy` label -- a
      button with no relabel still has to show that it is waiting. See `.btn.is-busy`. */
   /* `data-unlocked` — SEE BELOW: a control that queues its own press behind the save is left live. */
-  if (btn) { btn.disabled = !btn.hasAttribute('data-unlocked'); btn.classList.add('is-busy');
+  if (btn) { btn.disabled = !btn.hasAttribute('data-unlocked'); tell_(btn, 'busy');
              /* A TILE HAS NO WORD TO SWAP — its face is a mark, and writing text over it would lose
                 the mark for good. The ring is the whole of its busy state. */
              if (o.busy && !btn.classList.contains('tile')) { btn.dataset.was = btn.textContent; btn.textContent = o.busy; } }
@@ -45,7 +45,7 @@ function send_(body, o) {
     if (had && had.focus && document.contains(had)) { try { had.focus(); } catch (e) { /* focus and scrolling are niceties */ } }
     if (!btn) return;
     btn.disabled = false;
-    btn.classList.remove('is-busy');
+    tell_(btn, '');
     if (btn.dataset.was) { btn.textContent = btn.dataset.was; delete btn.dataset.was; }
   };
 
@@ -55,7 +55,7 @@ function send_(body, o) {
          only checked whether the request went through. */
       /* AND IT IS MARKED `refused` — THE SERVER ANSWERED, AND THE ANSWER WAS NO. A caller can then tell that from a reply that never came: § */
       if (!d || d.error) {
-        const refusal = new Error((d && d.error) || 'That did not work.');
+        const refusal = new Error((d && d.error) || text_('that-did-not-work'));
         refusal.refused = !!(d && d.error);
         /* AND THE WHOLE REPLY RIDES ON IT, as on `send`'s — a refusal is sometimes a fact for the code as well as a sentence: § */
         refusal.reply = d || null;

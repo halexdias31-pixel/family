@@ -106,7 +106,7 @@ function psFind_(el) {
     .then(() => { S.busy = false; psPaint_(col); });
 }
 on('ps-add-child', el => {
-  if (!USER || !psMayChild_()) { toast('Sign in first'); return; }
+  if (!USER || !psMayChild_()) { toast(text_('sign-in-first')); return; }
   const handle = el.getAttribute('data-handle') || '';
   if (!handle) return;
   send_({ action: 'claimChild', name: USER.name, personId: USER.personId || '', handle }, { button: el })
@@ -189,8 +189,8 @@ on('person-save', el => {
   const val = k => ((form.querySelector('[data-pf="' + k + '"]') || {}).value || '').trim();
   const roles = [...form.querySelectorAll('[data-pf-role]')].filter(x => x.checked).map(x => x.getAttribute('data-pf-role'));
   const said = form.querySelector('.pf-said');
-  if (!val('first') || !val('last')) { if (said) said.textContent = 'A first name and a last name, please.'; return; }
-  if (!roles.length) { if (said) said.textContent = 'Tick at least one role.'; return; }
+  if (!val('first') || !val('last')) { if (said) tell_(said, 'info', 'A first name and a last name, please.'); return; }
+  if (!roles.length) { if (said) tell_(said, 'info', 'Tick at least one role.'); return; }
   const parentIds = roles.indexOf('student') === -1 ? []
     : [...form.querySelectorAll('[data-pf-parent]')].filter(x => x.checked).map(x => x.getAttribute('data-pf-parent'))
       .concat(val('parent') ? [val('parent')] : []);
@@ -297,9 +297,9 @@ on('pe-notify', el => {
       const on = d && typeof d.on === 'boolean' ? d.on : want;
       if (PERSON_ED_ === F && F.data.notify) F.data.notify = Object.assign({}, F.data.notify, { kinds: (F.data.notify.kinds || []).map(k => k.kind === kind ? Object.assign({}, k, { on }) : k) });
       el.checked = on;
-      if (said) said.textContent = 'Saved.';
+      if (said) tell_(said, 'saved', 'Saved.');
     })
-    .catch(e => { el.checked = !want; if (said) said.textContent = why_(e); });
+    .catch(e => { el.checked = !want; if (said) tell_(said, 'error', why_(e)); });
 });
 /* WHAT THE BOXES SAY NOW, in `updateProfile`'s names: the phone as code and number, the birthday as three boxes. */
 function peFields_(form) {
@@ -322,7 +322,7 @@ function peSave_(form) {
   if (key === F.sent) return;
   form.classList.add('is-sending');
   send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
-    .then(d => { F.sent = key; F.moved = true; formDraftDrop_('person-edit', { draftId: F.id }); if (said) said.textContent = '✓ ' + ((d && d.said) || 'Saved'); })
+    .then(d => { F.sent = key; F.moved = true; formDraftDrop_('person-edit', { draftId: F.id }); if (said) tell_(said, 'saved', '✓ ' + ((d && d.said) || 'Saved')); })
     .catch(() => {})
     .then(() => form.classList.remove('is-sending'));
 }
@@ -376,8 +376,8 @@ document.addEventListener('input', e => {
   const out = box.closest('.fam-pick') && box.closest('.fam-pick').querySelector('.fam-hits');
   if (!out) return;
   const at = FAM_ACT_[scope] || FAM_ACT_.pe;
-  out.innerHTML = famHits_(box.value, want, at.skip()).map(p => tile_({ form: true, kind: 'quiet', label: displayName_(p) + (p.handle ? ' @' + p.handle : ''),
-    act: at.act, data: { id: p.personId, name: displayName_(p), want } })).join('');
+  out.innerHTML = famHits_(box.value, want, at.skip()).map(p => tile_({ form: true, kind: 'quiet', label: fmtName_(p) + (p.handle ? ' @' + p.handle : ''),
+    act: at.act, data: { id: p.personId, name: fmtName_(p), want } })).join('');
 });
 
 /* ---------- ADD A PERSON, A CARD IN FIND › PROFILES (add-person): the server's `personSave`, then `linkChild` for a parent's child ---------- */
@@ -434,8 +434,8 @@ on('pa-save', el => {
   if (!card || !personAddMay_()) return;
   /* WHAT WAS TYPED, or a draft a reload drew back into its box (forms.json's `person-add` keeps each as a draft until Added). */
   const val = k => String(F.v[k] || (card.querySelector('[data-pa="' + k + '"]') || {}).value || '').trim(), said = card.querySelector('.pa-said');
-  if (!val('first') || !val('last')) { if (said) said.textContent = 'A first name and a last name, please.'; return; }
-  if (F.role !== 'student' && !val('email')) { if (said) said.textContent = 'An email, please — the PIN goes there.'; return; }
+  if (!val('first') || !val('last')) { if (said) tell_(said, 'info', 'A first name and a last name, please.'); return; }
+  if (F.role !== 'student' && !val('email')) { if (said) tell_(said, 'info', 'An email, please — the PIN goes there.'); return; }
   const ids = F.picked.map(x => x.id);
   send_({ action: 'saveItem', item: 'person', personId: USER.personId || '', targetId: '', firstName: val('first'), lastName: val('last'),
           roles: [F.role], email: val('email'), dob: val('dob'), parentIds: F.role === 'student' ? ids : [], invite: false },
@@ -466,7 +466,7 @@ function peFamHtml_(F) {
   const side = (say, key, want, mine, add) => {
     const ids = (q[key] || []).filter(Boolean);
     if (!ids.length && roles.indexOf(mine) === -1) return '';
-    return pplP_('note pe-fam', say) + ids.map(id => pplG_('tile-row', [cardBlock_({ type: 'group', tag: 'span', look: 'note', text: displayName_(peNameOf_(id, F.data)) }),
+    return pplP_('note pe-fam', say) + ids.map(id => pplG_('tile-row', [cardBlock_({ type: 'group', tag: 'span', look: 'note', text: fmtName_(peNameOf_(id, F.data)) }),
       tile_({ form: true, kind: 'quiet', label: 'Remove', act: 'pe-unlink', data: { id, side: key } })])).join('') + famPick_('pe', want, add);
   };
   return pplG_('pe-fambox', [side('Linked parents', 'parentIds', 'client', 'student', 'Add a parent'), side('Linked children', 'childIds', 'student', 'client', 'Add a child')]);
@@ -479,7 +479,7 @@ function peFamSend_(el, action, side, after) {
   if (!F || !F.data || !other || !form || !personEdMay_()) return;
   const said = form.querySelector('.pe-said');
   send_(Object.assign({ action, personId: USER.personId || '' }, peWho_(F, other, side)), { button: el, where: said })
-    .then(() => { const p = F.data.person; p[side] = after(p[side] || [], other); F.moved = true; if (said) said.textContent = '✓ Saved'; peFamPaint_(form); })
+    .then(() => { const p = F.data.person; p[side] = after(p[side] || [], other); F.moved = true; if (said) tell_(said, 'info', '✓ Saved'); peFamPaint_(form); })
     .catch(() => {});
 }
 on('pe-link', el => peFamSend_(el, 'linkChild', el.getAttribute('data-want') === 'client' ? 'parentIds' : 'childIds', (l, id) => l.concat([id])));

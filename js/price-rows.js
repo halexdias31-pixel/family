@@ -112,14 +112,14 @@ function priceCells(row, L, fmt) {
   // of £0.00 that looks like a set of prices.
   const known = hours > 0;
   const signed = (x, unit) => (x === 0 ? dash_()
-    : (x > 0 ? '+ ' : '− ') + money_(Math.abs(x)) + (unit || ''));
+    : (x > 0 ? '+ ' : '− ') + fmtMoney_(Math.abs(x)) + (unit || ''));
 
   /* A rate row produces a running RATE; a shape row produces a running TOTAL. Which column a row
      writes into is decided by which of the two it actually makes, never by what fits. */
   /* Every money row reports the same thing: § */
   const isRateRow = ['base','subject','complexity','level','daytime','students','venue','host'].includes(row.key);
   const running = () => {
-    if (isRateRow || known) return { total: money_(runningAfter(row.key, L)) };
+    if (isRateRow || known) return { total: fmtMoney_(runningAfter(row.key, L)) };
     /* Nothing to total yet — say WHY, on the row that's waiting for it. § */
     const why = !L.hoursPerWeek ? 'tick some hours'
               : !L.weeksBooked  ? 'pick a time interval'
@@ -166,7 +166,7 @@ function priceCells(row, L, fmt) {
     if (row.key === 'level' && (!L.tutor || /^no preference$/i.test(L.tutor)) && L.level) {
       const at = row.of(L) * (m || 1);
       out.mul = m && m !== 1 ? '× ' + Number(m).toFixed(m % 1 ? (m * 100 % 1 ? 3 : 2) : 0) : '';
-      out.rate = perHour_(at);
+      out.rate = fmtMoney_(at, 'hour');
       Object.assign(out, running());
       return out;
     }
@@ -194,7 +194,7 @@ function priceCells(row, L, fmt) {
      multiplied. */
   /* NO "× 30" BESIDE "£30.00/h" (owner, 7 Nov): the same figure twice read as a multiplier nobody could explain. */
   out.mul   = '';
-  out.rate  = row.isBase ? perHour_(perHour) : signed(perHour, '/h');
+  out.rate  = row.isBase ? fmtMoney_(perHour, 'hour') : signed(perHour, '/h');
   Object.assign(out, running());
   return out;
 }

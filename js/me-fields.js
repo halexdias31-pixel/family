@@ -53,7 +53,7 @@ document.addEventListener('change', e => {
   const file = (inp.files || [])[0], slot = inp.closest('.ph-slot');
   inp.value = '';
   if (!file || !slot || !whose_()) return;
-  const said = slot.querySelector('.ph-said'), say = m => { if (said) said.textContent = m; };
+  const said = slot.querySelector('.ph-said'), say = m => { if (said) tell_(said, 'info', m); };
   if (!/^image\//.test(file.type || '')) { say('That is not a picture. Choose a photo from your phone.'); return; }
   say('Getting the photo ready…');
   photoShrink_(file).then(data => {
@@ -173,7 +173,7 @@ on('pfp-remove', el => {
   if (!USER || !box || !sure_(el, 'Remove?')) return;
   send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, remove: true },
         { button: el, where: box.querySelector('.pfp-said'), saying: 'Removing…', lock: box })
-    .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Removed. ' + pfpSaid_(got)); toast('Picture removed'); })
+    .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Removed. ' + pfpSaid_(got)); toast(text_('picture-removed')); })
     .catch(() => { const said = box.querySelector('.pfp-said'); if (said) said.textContent += ' ' + pfpKept_(); });
 });
 /* ---------- ONE OF THE ELEVEN, TAPPED § */
@@ -184,7 +184,7 @@ on('pfp-choose', el => {
   const choice = PFP_PREFIX + name;
   const said = box.querySelector('.pfp-said');
   const was = String((USER.profile && USER.profile.photo) || '').trim();
-  if (pfpChoice_(was) === name) { if (said) said.textContent = 'Already chosen. ' + pfpSaid_(was); return; }
+  if (pfpChoice_(was) === name) { if (said) tell_(said, 'info', 'Already chosen. ' + pfpSaid_(was)); return; }
   const face = box.querySelector('.pfp-face');
   if (face) face.innerHTML = pfpFace_(choice);
   pfpRing_(box, name);
@@ -193,12 +193,12 @@ on('pfp-choose', el => {
     .then(d => {
       const got = String((d && d.photo) || '');
       pfpTake_(box, got, (pfpChoice_(got) === name ? 'Saved. ' : 'The server kept something else. ') + pfpSaid_(got));
-      toast('Picture saved');
+      toast(text_('picture-saved'));
     })
     .catch(() => {
       if (face) face.innerHTML = pfpFace_(was);
       pfpRing_(box, pfpChoice_(was));
-      if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_(true);
+      if (said) tell_(said, 'info', String(said.textContent || '').trim() + ' ' + pfpKept_(true));
     });
 });
 /* `change`, NOT A `data-do` CLICK — a file input reports its choice by changing, the camera's
@@ -212,21 +212,21 @@ document.addEventListener('change', e => {
   if (!file || !box || !USER) return;
   const said = box.querySelector('.pfp-said');
   const btn = box.querySelector('[data-do="pfp-pick"]');
-  if (said) said.textContent = 'Getting it ready…';
+  if (said) tell_(said, 'info', 'Getting it ready…');
   pfpPrepare_(file).then(data => {
-    if (!data) { if (said) said.textContent = 'That file is not a picture this phone can read. Try another.'; return; }
+    if (!data) { if (said) tell_(said, 'info', 'That file is not a picture this phone can read. Try another.'); return; }
     /* THE PREVIEW CHANGES BEFORE THE UPLOAD, so the crop is seen while it travels; if the server refuses, the line says why and the old picture comes back. § */
     const face = box.querySelector('.pfp-face');
     if (face) face.innerHTML = cardBlock_({ type: 'media', kind: 'image', look: 'pfp-pic', src: data, title: 'Your profile picture', async: true });
     pfpRing_(box, '');
     return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
                  { button: btn, where: said, saying: 'Saving…', lock: box })
-      .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Saved. ' + pfpSaid_(got)); toast('Picture saved'); })
+      .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Saved. ' + pfpSaid_(got)); toast(text_('picture-saved')); })
       .catch(() => {
         const was = (USER.profile && USER.profile.photo) || '';
         if (face) face.innerHTML = pfpFace_(was);
         pfpRing_(box, pfpChoice_(was));
-        if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_();
+        if (said) tell_(said, 'info', String(said.textContent || '').trim() + ' ' + pfpKept_());
       });
   });
 });

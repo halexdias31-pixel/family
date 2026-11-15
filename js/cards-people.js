@@ -123,7 +123,7 @@ function profAges_(t) {
   if (a == null && b == null) return '';
   if (a != null && b != null && a > b) { const x = a; a = b; b = x; }
   if (a === Infinity) return 'Adults';
-  if (a == null) return b === Infinity ? 'All ages' : 'Ages up to ' + b;
+  if (a == null) return b === Infinity ? text_('all-ages') : text_('ages-up-to') + b;
   if (b == null || b === Infinity) return 'Ages ' + a + '+';
   return a === b ? 'Age ' + a : 'Ages ' + a + '–' + b;
 }
@@ -153,7 +153,7 @@ function profAvail_(t) {
   /* ---------- NO HOURS IS SAID, NOT LEFT BLANK § */
   if (!ticked.length) {
     return { type: 'text', look: 'prof-say prof-nohours', text: 'Hasn\u2019t set usual hours yet \u2014 ask for any hour; they accept or decline.'
-      + (typeof may_ === 'function' && may_('admin') ? ' They tick them in Settings, under their week.' : '') };
+      + (typeof may_ === 'function' && may_('admin') ? text_('they-tick-them-in-settings-under') : '') };
   }
   /* `busy` IS `{ m16: 'Ada' }` OFF `busyHours`, but the fixture once said `[]` and an older backend may say nothing; a list of § */
   const busy = {};
@@ -172,13 +172,13 @@ function profAvail_(t) {
   }).filter(d => d.hours.some(c => c.lit || c.busy));
   /* ---------- TICKED, BUT NOT AT AN HOUR THAT CAN BE BOOKED § */
   if (!days.length) {
-    return { type: 'text', look: 'prof-say prof-hid prof-nofree', text: 'No free hours this week.' + (typeof may_ === 'function' && may_('admin')
-      ? ' Every hour they have ticked is outside ' + hours_(hours[0], hours[hours.length - 1]) + ', the hours a session can be booked at.' : '') };
+    return { type: 'text', look: 'prof-say prof-hid prof-nofree', text: text_('no-free-hours-this-week-2') + (typeof may_ === 'function' && may_('admin')
+      ? text_('every-hour-they-have-ticked-is') + fmtDate_(hours[0], 'hours', hours[hours.length - 1]) + ', the hours a session can be booked at.' : '') };
   }
   /* ---------- SPANS, NOT THE RECEIPT'S DISABLED BUTTONS § */
   const hoursOn = which => days.map(d => {
-    const hs = d.hours.filter(which).map(c => hours_(c.h, c.h + 1));
-    return hs.length ? day_(d.label) + ' ' + hs.join(', ') : '';
+    const hs = d.hours.filter(which).map(c => fmtDate_(c.h, 'hours', c.h + 1));
+    return hs.length ? fmtDate_(d.label, 'day') + ' ' + hs.join(', ') : '';
   }).filter(Boolean).join('; ');
   const said = hoursOn(c => c.lit);
   /* THE TAUGHT HOURS, SAID AFTER THE FREE ONES — see the note over this function. § */
@@ -188,13 +188,13 @@ function profAvail_(t) {
     const hs = d.hours.filter(which).map(c => c.h), spans = [];
     hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
     /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; `say` reads every hour. */
-    return spans.length ? day_(d.label) + ' ' + profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '') : '';
+    return spans.length ? fmtDate_(d.label, 'day') + ' ' + profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '') : '';
   }).filter(Boolean);
   return { type: 'hours', count: ticked.length, free: line(c => c.lit), busy: line(c => c.busy),
-    say: (said ? 'Available ' + said : 'No free hours this week') + (taught ? '. Already teaching ' + taught : '') };
+    say: (said ? 'Available ' + said : text_('no-free-hours-this-week')) + (taught ? '. Already teaching ' + taught : '') };
 }
 /* AN HOUR SPAN, 24-hour (owner, 8 Nov): 16:00–19:00. */
-const profSpan_ = ([a, b]) => hours_(a, b);
+const profSpan_ = ([a, b]) => fmtDate_(a, 'hours', b);
 
 /* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS § */
 function profSeat_(t) {
@@ -207,9 +207,9 @@ function profSeat_(t) {
 function rateRange_(t) {
   const r = Number(t && t.rate);
   if (!(r > 0)) return '';
-  const say = money_;
+  const say = n => fmtMoney_(n);
   const max = Math.round(Number(t.maxStudents)) || 1, seat = profSeat_(t);
-  return max > 1 && seat > 0 ? say(r) + '–' + perHour_(r + seat * (max - 1)).slice(1) : perHour_(r);
+  return max > 1 && seat > 0 ? say(r) + '–' + fmtMoney_(r + seat * (max - 1), 'hour').slice(1) : fmtMoney_(r, 'hour');
 }
 
 /* ---------- THE TUTOR CARD AS A SPEC (master template): face, the name line's pills, subjects and facts, then its lines. */
@@ -224,10 +224,10 @@ function profFace_(x, size) {
 /* `childHides` and `adminOnly`, decided once as the item loads (`it.live`), never here. */
 const profPill_ = (text, colour, look) => ({ pill: true, text, colour, look });
 /* WHY AN UNLISTED TUTOR IS OFF THE SITE, said to an admin (the map's `adminOnly` keeps it from everyone else). */
-const profNote_ = t => (t.listed === false ? (t.pending ? 'They ticked Tutor in their settings. Until you list them they are not on the site, cannot be booked and cannot take a session — the crossed-out eye below approves them.'
-  : 'Clients cannot see them. The crossed-out eye below puts them back on the site.') : '');
+const profNote_ = t => (t.listed === false ? (t.pending ? text_('they-ticked-tutor-in-their-settings')
+  : text_('clients-cannot-see-them-the-crossed')) : '');
 /* THE NAME LINE'S PILLS: their name, role and titles, the rate where `it.live` still has it, what they are doing, and why they are off. */
-const profPills_ = (it, t) => [profPill_(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')].concat([t.role || 'Tutor'].concat(profList_(t.titles)).map(v => profPill_(v, 1)),
+const profPills_ = (it, t) => [profPill_(fmtName_(t), 0, 'prof-tag-name')].concat([t.role || 'Tutor'].concat(profList_(t.titles)).map(v => profPill_(v, 1)),
   'rate' in ((it.live || {}).money || {}) ? [profPill_(it.live.money.rate, 4, 'prof-tag-rate')] : [], t.activity ? [profPill_(t.activity, 3, 'prof-act')] : [],
   t.listed === false ? [profPill_(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off')] : []);
 /* SUBJECTS (main, then also) AND FACTS, a row each. */

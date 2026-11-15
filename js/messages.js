@@ -133,8 +133,8 @@ function dmPages_() {
   /* ---------- AND EACH ONE CAN BE ANSWERED WHERE IT IS READ § */
   /* THE NAME IS THE PERSON, and the unread count rides on it — so the header says who you are reading rather than "3 of 7", which is the same judgement § */
   return daivePages_().concat(threads.map(t => ({
-    name: displayName_(t.name) + (t.unread ? ' (' + t.unread + ')' : ''),
-    html: renderCard({ kind: 'msg', look: 'dm-page' + (t.unread ? ' unread' : ''), name: displayName_(t.name),
+    name: fmtName_(t.name) + (t.unread ? ' (' + t.unread + ')' : ''),
+    html: renderCard({ kind: 'msg', look: 'dm-page' + (t.unread ? ' unread' : ''), name: fmtName_(t.name),
       body: [{ type: 'embed', tool: 'dm-thread', args: { t } }] }),
   })));
 }
@@ -186,7 +186,7 @@ function asstMsgs_(s) {
 }
 /* A CONVERSATION'S INSIDES (head, bubbles, composer) are the card's one embed: the send path stays msgForm_'s own. */
 CARD_EMBEDS['dm-thread'] = ({ t }) => cardBlocks_([
-  { type: 'group', look: 'dm-head', inner: dmFace_(t) + cardBlock_({ type: 'msgHead', text: [displayName_(t.name)].concat(t.unread ? [' ', { span: 'dm-new', text: t.unread + ' new' }] : []) }) },
+  { type: 'group', look: 'dm-head', inner: dmFace_(t) + cardBlock_({ type: 'msgHead', text: [fmtName_(t.name)].concat(t.unread ? [' ', { span: 'dm-new', text: t.unread + ' new' }] : []) }) },
   { type: 'group', look: 'msg-body', inner: messagesHtml_(t.msgs) }]) + msgForm_(t.name, t.id);
 CARD_EMBEDS['daive'] = () => {
   const s = asstGet_(), cap = asstCap_(), out = s.left <= 0, shut = out || ASST_BUSY;
@@ -349,7 +349,7 @@ on('tutor-share', el => {
     || (USER && USER.handle === handle ? tutorPngMe_() : { handle, title: '@' + handle });
   const url = tutorLink_({ handle });
   TUTOR_PNG_BUSY = true;
-  toast('Making a picture of this profile…');
+  toast(text_('making-a-picture-of-this-profile'));
   tutorPng_(t)
     .then(blob => tutorPngHand_(blob, handle + '-profile.png', url, t.title || '@' + handle))
     /* NO CANVAS (an old browser, a test page): the link alone, as before 412. */
@@ -366,7 +366,7 @@ function tutorPngMe_() {
 
 function tutorLinkOnly_(title, url) {
   if (navigator.share) return navigator.share({ title, text: title + ' on ' + brand('name', '@family.'), url }).catch(() => {});
-  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(url).then(() => toast('Link copied')).catch(() => toast(url));
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(url).then(() => toast(text_('link-copied'))).catch(() => toast(url));
   toast(url);
 }
 
@@ -382,7 +382,7 @@ function tutorPngHand_(blob, name, url, title) {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(href), 60000);   // not at once: a download can start after the click returns
     const copy = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(url) : Promise.reject();
-    return copy.then(() => toast('Image saved · link copied'), () => toast('Image saved · ' + url));
+    return copy.then(() => toast(text_('image-saved-link-copied')), () => toast('Image saved · ' + url));
   };
   if (!can) return save();
   return navigator.share({ files: [file], title, text: url }).catch(e => { if (!e || e.name !== 'AbortError') return save(); });

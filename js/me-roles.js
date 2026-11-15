@@ -83,7 +83,7 @@ function heldBy_(err) {
 }
 
 on('resend-link', el => {
-  if (!USER) { toast('Sign in first'); return; }
+  if (!USER) { toast(text_('sign-in-first')); return; }
   send_({ action: 'resendLink', personId: USER.personId || '' }, { button: el })
     .then(d => {
       toast(d.message || 'A new link is on its way.');
@@ -103,7 +103,7 @@ on('resend-link', el => {
 /* NO SHEET (owner, 8 Nov): the ask opens under the row pressed, and the new PIN replaces it there. */
 on('kid-pin', el => {
   const id = el.getAttribute('data-id') || '', who = el.getAttribute('data-name') || 'them';
-  if (!id) { toast('That account has no id yet — ask us.'); return; }
+  if (!id) { toast(text_('that-account-has-no-id-yet')); return; }
   const row = el.closest('.tile-row') || el;
   document.querySelectorAll('.kid-pin-ask').forEach(x => x.remove());
   row.insertAdjacentHTML('afterend', cardBlock_({ type: 'section', look: 'kid-pin-ask', blocks: [
@@ -112,7 +112,7 @@ on('kid-pin', el => {
 });
 
 on('kid-pin-go', el => {
-  if (!USER) { toast('Sign in first'); return; }
+  if (!USER) { toast(text_('sign-in-first')); return; }
   const id = el.getAttribute('data-id') || '';
   send_({ action: 'resetPin', personId: USER.personId || '', targetId: id },
         { button: el, busy: 'Making it…' })
@@ -129,7 +129,7 @@ on('sheet-done', () => closeSheet());
    is two places to fix when the call changes, and the second one is always the one forgotten. */
 const answerClaim_ = (el, accept) => {
   /* THE THIRD OF THE THREE. § */
-  if (!USER) { toast('Sign in first'); return; }
+  if (!USER) { toast(text_('sign-in-first')); return; }
   const row = el.getAttribute('data-row');
   /* `send_` RATHER THAN `send`, for the same reason as every form here: it locks both buttons while the answer
      is on the wire, so a second tap cannot answer twice, and it says a refusal as a toast. */

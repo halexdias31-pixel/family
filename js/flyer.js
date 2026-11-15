@@ -43,14 +43,14 @@ function flyerSource_(who) {
     return Object.assign(common, { kind: 'web', id: 'web', handle: '', name: brand('name', '@family.'),
       tagline: brand('web_tagline', 'Tutoring for every age, at home and online.'), photo: '',
       subjects: flySubjects_(listed.some(s => s.trim()) ? listed : flyTutors_().reduce((a, t) => a.concat(t.teaches || []), [])),
-      price: brand('web_price', '') || (rates.length ? 'From ' + perHour_(Math.min(...rates)) : '') });
+      price: brand('web_price', '') || (rates.length ? 'From ' + fmtMoney_(Math.min(...rates), 'hour') : '') });
   }
   const t = flyTutors_().concat(flyMine_() || []).find(x => flyTutorId_(x) === who);
   if (!t) return null;
   const pics = Array.isArray(t.photos) ? t.photos : [];
   return Object.assign(common, { kind: 'tutor', id: flyTutorId_(t), handle: String(t.handle || ''), name: String(t.title || ''),
     tagline: String(t.subtitle || t.description || ''), photo: String(pics[0] || ''), subjects: flySubjects_(t.teaches || t.focus || []),
-    price: Number(t.rate) > 0 ? perHour_(Number(t.rate)) : '', area: (t.venues || []).join(' · ') || common.area });
+    price: Number(t.rate) > 0 ? fmtMoney_(Number(t.rate), 'hour') : '', area: (t.venues || []).join(' · ') || common.area });
 }
 /* A CAMPAIGN LAID OVER A SOURCE: its headline (a `|` is a line break), paragraph, style and blocks; a block it leaves out is not printed. */
 function flyerWith_(src, campId) {

@@ -18,17 +18,17 @@ on('qp-ai', (el) => {
   try { reads = (DATA.features || []).indexOf('aiMarkImages') !== -1; } catch (e) { reads = false; }
   /* a backend not yet pulled reads only the box: the drawing and photos are working beside it */
   const notYet = partReady_('ai', { typed: inp.value, seen, reads });
-  if (notYet) { out.textContent = notYet; return; }
-  if (typeof USER !== 'object' || !USER || !USER.token) { out.textContent = 'Sign in to have it marked'; return; }
+  if (notYet) { tell_(out, 'info', notYet); return; }
+  if (typeof USER !== 'object' || !USER || !USER.token) { tell_(out, 'error', text_('sign-in-to-have-it-marked')); return; }
   const x = x0;
-  if (!x) { out.textContent = 'Could not find this question'; return; }
+  if (!x) { tell_(out, 'error', text_('could-not-find-this-question')); return; }
   const sent = inp.value;
   /* TOO LONG IS SAID, NEVER CUT: a mark for part of an essay, shown as a mark for the essay, is the fault
      the 2,000-character cut was. */
-  if (sent.length > AI_ANSWER_MAX) { out.textContent = 'Too long to mark \u2014 ' + aiCount_(AI_ANSWER_MAX) + ' characters at most'; return; }
+  if (sent.length > AI_ANSWER_MAX) { tell_(out, 'error', text_('too-long-to-mark') + aiCount_(AI_ANSWER_MAX) + ' characters at most'); return; }
   /* AND A BACKEND THAT HAS NOT BEEN PULLED YET WOULD CUT IT -- `aiWhole_` above. */
   if (sent.length > AI_ANSWER_OLD && !aiWhole_()) {
-    out.textContent = 'The AI marker reads only the first ' + aiCount_(AI_ANSWER_OLD) + ' characters until it is updated \u2014 this is '
+    out.textContent = text_('the-ai-marker-reads-only-the') + aiCount_(AI_ANSWER_OLD) + ' characters until it is updated \u2014 this is '
       + aiCount_(sent.length) + ', so it was not sent';
     return;
   }
@@ -40,12 +40,12 @@ on('qp-ai', (el) => {
   const here = typeof markWhere_ === 'function' && markWhere_(k);
   el.disabled = true;
   /* THE TILE'S OWN RING WHILE IT WAITS (`.tile.is-busy`), on the tile as well as the row: § */
-  box.classList.add('is-busy');
-  el.classList.add('is-busy');
-  out.textContent = '';
+  tell_(box, 'busy');
+  tell_(el, 'busy');
+  tell_(out, '', '');
   const stage = aiStageStart_(box, out);
   let failed = false;
-  const done = () => { el.disabled = AI_OFF; box.classList.remove('is-busy'); el.classList.remove('is-busy'); aiStageEnd_(stage, failed); if (letGo) letGo(); };
+  const done = () => { el.disabled = AI_OFF; tell_(box, ''); tell_(el, ''); aiStageEnd_(stage, failed); if (letGo) letGo(); };
   /* `essay` ASKS FOR THE LEVELLED MARKING (`aiMarkAsk_` in dopost.gs): § */
   const essay = ansEssay_(x);
   /* THE DRAWING AS A PNG AND THE PHOTOS go with the words (`aiImages_`, qtools.js); drawing it is part of the wait the dots show. Words alone go at once. */
@@ -54,15 +54,15 @@ on('qp-ai', (el) => {
   (seen && reads ? aiImages_(x, card).then(images => api(Object.assign(body, images.length ? { images: images } : {}))) : api(body))
     .then(d => {
       /* BELIEVED ONLY IN THE SHAPE ASKED FOR: whole marks, none below 0 or above what is available */
-      if (d && d.success && !aiMarkSane_(d)) d = { success: false, message: 'Could not mark that just now' };
+      if (d && d.success && !aiMarkSane_(d)) d = { success: false, message: text_('could-not-mark-that-just-now') };
       /* NO TRY AGAIN WHERE AGAIN CANNOT HELP: switched off, or today's marks used. */
       failed = (!d || !d.success) && !(d && (d.why === 'ai-off' || d.why === 'ai-cap'));
       done();
       if (d && d.why === 'ai-off') return aiOff_(d.message);
       /* A VERDICT IS ABOUT THE ANSWER IT MARKED. § */
-      if (inp.value !== sent && !essayBox) { out.textContent = ''; return; }
+      if (inp.value !== sent && !essayBox) { tell_(out, '', ''); return; }
       if (!d || !d.success) {
-        out.textContent = (d && (d.message || d.error)) || 'Could not mark that just now';
+        tell_(out, 'error', (d && (d.message || d.error)) || text_('could-not-mark-that-just-now'));
         return;
       }
       const full = d.awarded >= d.available;
@@ -71,7 +71,7 @@ on('qp-ai', (el) => {
         aiKeep_(inp.getAttribute('data-k'), { a: sent, v: said, f: String(d.feedback || ''), c: full ? 'is-right' : 'is-near' });
       } else {
         box.classList.add(full ? 'is-right' : 'is-near');
-        out.textContent = said;
+        tell_(out, 'info', said);
         if (why) why.textContent = d.feedback || '';
       }
       /* MARKED IS A SUBMISSION — the answer and its marks, `ai:3/4`, one event on the account like a Check (js/submit.js). § */
@@ -93,7 +93,7 @@ on('qp-ai', (el) => {
       /* THE REAL REASON, not a guess at the connection: a timeout, the server's own error, or truly offline. */
       const why = String((e && e.message) || '');
       out.textContent = (typeof navigator !== 'undefined' && navigator.onLine === false) || !why || /Failed to fetch|NetworkError|Load failed/i.test(why)
-        ? 'Could not reach the marker \u2014 check the connection' : 'The marker did not answer: ' + why.replace(/^Backend:\s*/, '');
+        ? text_('could-not-reach-the-marker-check') : text_('the-marker-did-not-answer') + why.replace(/^Backend:\s*/, '');
     });
 });
 

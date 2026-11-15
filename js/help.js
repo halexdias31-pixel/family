@@ -72,7 +72,7 @@ on('help-hand', el => {
   if (typeof USER === 'object' && USER && USER.token) {
     api({ action: 'raiseHand', on: !!h, q: h ? h.q : '', label: h ? h.label : '', personId: USER.personId || '' })
       .then(d => { if (d && d.error) toast('The tutor was not told: ' + d.error); })
-      .catch(() => toast('The tutor was not told — no connection. Your card is still red.'));
+      .catch(() => toast(text_('the-tutor-was-not-told-no')));
   }
   helpPoll_();
 });
@@ -101,7 +101,7 @@ on('help-done', el => {
   helpListPaint_();
   api({ action: 'raiseHand', on: false, for: id, personId: (USER && USER.personId) || '' })
     .then(d => { if (d && d.error) toast(d.error); else if (d && d.hands) { HELP_LIST = d.hands; helpListPaint_(); } })
-    .catch(() => toast('No connection — that hand is still up.'));
+    .catch(() => toast(text_('no-connection-that-hand-is-still')));
 });
 
 /* ---------- ONE POLL FOR BOTH SIDES, every 15 s, only while it has something to look at ---------- */

@@ -169,7 +169,7 @@ on('set-listed', el => {
 
   /* SAID BEFORE IT IS TRUE. It almost always becomes true, and the round trip is the only part
      anybody would notice. */
-  tileSet_(el, { label: on ? 'Listed' : 'Not listed', on,
+  tileSet_(el, { label: on ? 'Listed' : text_('not-listed'), on,
                  note: on ? 'clients can see them' : 'clients cannot see them' });
 
   api({ action: 'saveItem', item: 'listed',
@@ -177,7 +177,7 @@ on('set-listed', el => {
     who: el.dataset.who, whoId: el.dataset.pid || '', on })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
-      toast(on ? 'Listed' : 'Hidden from clients');
+      toast(on ? 'Listed' : text_('hidden-from-clients'));
       /* BY ID WHERE THERE IS ONE, for the reason the handler on the other end now records: a
          display name is derived from up to two cells and matching it is the fallback, not the
          route. */
@@ -190,7 +190,7 @@ on('set-listed', el => {
     .catch(err => {
       /* PUT IT BACK. A switch that has not actually flipped must not keep saying it has — this is
          the one case where showing it early has a cost, and it is paid here. */
-      tileSet_(el, { label: !on ? 'Listed' : 'Not listed', on: !on,
+      tileSet_(el, { label: !on ? 'Listed' : text_('not-listed'), on: !on,
                      note: !on ? 'clients can see them' : 'clients cannot see them' });
       toast(why_(err));
     });
@@ -223,7 +223,7 @@ function bookPrefill_() {
   const done = id => { BOOKING.done = uniq((BOOKING.done || []).concat([id])); };
   const only = st => { try { return (st.options() || []).filter(Boolean); } catch (e) { return []; } };
   /* THE USUAL CASE FIRST: an instant session, a new one, at home, no extra seats. */
-  if (!BOOKING.how) BOOKING.how = 'Instant class';
+  if (!BOOKING.how) BOOKING.how = text_('instant-class');
   if (!BOOKING.joining) BOOKING.joining = NEW_LIST;
   /* AT HOME IS THE VENUE ROW MARKED `takes_all_seats` (48a), by its own label; none marked, the question stays open. */
   if (!BOOKING.loc) BOOKING.loc = ((bookableSpaces().find(x => x.takesAllSeats) || {}).label) || '';
@@ -233,7 +233,7 @@ function bookPrefill_() {
   const chip = f => ((typeof STUFF !== 'undefined' && STUFF.filters) || []).filter(x => x && x.field === f && !x.any).map(x => String(x.value))[0] || '';
   if (!(BOOKING.subjects || []).length && chip('subject')) { BOOKING.subjects = [chip('subject')]; done('subjects'); }
   if (!BOOKING.level && chip('level')) BOOKING.level = chip('level');
-  if (!BOOKING.tutor && only(bookStep_('tutor'))[0] === 'No preference') BOOKING.tutor = 'No preference';
+  if (!BOOKING.tutor && only(bookStep_('tutor'))[0] === text_('no-preference')) BOOKING.tutor = text_('no-preference');
   /* THE FIRST TERM ON OFFER (the soonest), and the child when there is only one seat-holder to name. */
   const terms = only(bookStep_('interval'));
   if (!(BOOKING.interval || []).length && terms.length) { BOOKING.interval = [terms[0]]; done('interval'); }

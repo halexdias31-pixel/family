@@ -244,18 +244,18 @@ if (!/!o\.leave && \/\^https/.test(tilesSrc)) bad.push('68a tile_ no longer open
 files.forEach(({ n, src }) => {
   if (n === 'core') return;
   const code = stripC(src);
-  const k = (code.match(/time_\([^()]*\+ ':00'\)/g) || []).length - (n === 'book-steps' ? 1 : 0);
-  if (k > 0) bad.push(`69a an hour said by hand in ${n}.js — hours_(start, end): 16:00–18:00`);
-  if (/time_\([^)]*\)\s*\+\s*'\s*[–-]\s*'\s*\+\s*time_\(/.test(code)) bad.push(`69a a span built by hand in ${n}.js — hours_(start, end)`);
+  const k = (code.match(/fmtDate_\([^()]*\+ ':00', 'time'\)/g) || []).length - (n === 'book-steps' ? 1 : 0);
+  if (k > 0) bad.push(`69a an hour said by hand in ${n}.js — fmtDate_(start, 'hours', end): 16:00–18:00`);
+  if (/fmtDate_\([^)]*'time'\)\s*\+\s*'\s*[–-]\s*'\s*\+\s*fmtDate_\(/.test(code)) bad.push(`69a a span built by hand in ${n}.js — fmtDate_(start, 'hours', end)`);
 });
-if (!/const hours_ = \(a, b\) => time_\(a \+ ':00'\) \+ '–' \+ time_\(b \+ ':00'\)/.test(coreSrc)) bad.push('69a hours_ no longer writes start–end');
+if (!/const fmtHours_ = \(a, b\) => fmtTime_\(a \+ ':00'\) \+ '–' \+ fmtTime_\(b \+ ':00'\)/.test(coreSrc)) bad.push('69a fmtDate_ hours no longer writes start–end');
 
 /* ---------- 70a. A RATE IS £12.00/h, written by perHour_ (core.js); a total stays a total ---------- */
-if (!/const perHour_ = n => money_\(n\) \+ '\/h';/.test(coreSrc)) bad.push('70a perHour_ is missing from core.js');
+if (!/style === 'hour' \? m \+ '\/h'/.test(coreSrc)) bad.push("70a fmtMoney_(n, 'hour') is missing from core.js");
 files.forEach(({ n, src }) => {
   if (n === 'core') return;
   const code = stripC(src);
-  if (/'\/hour'|' per hour'|money_\([^()]*(\([^()]*\))?[^()]*\) \+ '(\/h|\/hr| an hour| per hour| a hour)'/.test(code)) bad.push(`70a a rate written by hand in ${n}.js — perHour_(n): £12.00/h`);
+  if (/'\/hour'|' per hour'|fmtMoney_\([^()]*(\([^()]*\))?[^()]*\) \+ '(\/h|\/hr| an hour| per hour| a hour)'/.test(code)) bad.push(`70a a rate written by hand in ${n}.js — fmtMoney_(n, 'hour'): £12.00/h`);
 });
 
 /* ---------- 71a. A DIAGRAM'S LINES STAY BOLD: screen-px tiers in style.css, never below the sunlight minimum ---------- */

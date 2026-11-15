@@ -8,7 +8,7 @@ function docketSave(list) {
      to a spreadsheet cell. The last one wins and the three before it were never worth sending. */
   clearTimeout(dockTimer);
   const said = $('dock-said');
-  if (said) said.textContent = 'Saving…';
+  if (said) tell_(said, 'busy', 'Saving…');
   /* AND BOOKED TO GO AS THE PAGE GOES (`keepDue_`, data.js; 317). */
   const sendTodo = keepalive => {
     clearTimeout(dockTimer);
@@ -136,13 +136,13 @@ function initPad() {
   pad.disabled = !USER;
   padReach_(pad);
   const said = $('pad-said');
-  if (said) said.textContent = USER ? 'Saves as you type.' : 'Sign in to keep notes.';
+  if (said) tell_(said, 'info', USER ? 'Saves as you type.' : 'Sign in to keep notes.');
 }
 
 /* THE NOTEPAD'S SAFE PRESS (owner, 12 Nov): copies the notes and says so; nothing is changed or lost. */
 on('pad-copy', () => {
   const pad = $('notepad'), said = $('pad-said');
-  const say = t => { if (said) said.textContent = t; };
+  const say = t => { if (said) tell_(said, 'info', t); };
   Promise.resolve().then(() => navigator.clipboard.writeText(pad ? pad.value : '')).then(() => say('Copied.'), () => say('Copy is blocked here.'));
 });
 let padTimer = null;
@@ -153,7 +153,7 @@ document.addEventListener('input', e => {
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
   clearTimeout(padTimer);
   const said = $('pad-said');
-  if (said) said.textContent = 'Saving…';
+  if (said) tell_(said, 'busy', 'Saving…');
   /* Longer than the docket's, because this is typed continuously rather than tapped. § */
   padTimer = setTimeout(padSend_, 1400);
   keepDue_('notepad', padSend_);

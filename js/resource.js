@@ -47,13 +47,13 @@ function cartUnits_() {
 /* A KIND THAT GOES IN THE BASKET ITS OWN WAY: a bundle is papers, so it goes in as papers. */
 const CART_ADD_OWN = { bundle: el => cartAddBundle_(el) };
 on('cart-add', el => {
-  if (!USER) { toast('Sign in first'); go('account'); return; }
+  if (!USER) { toast(text_('sign-in-first')); go('account'); return; }
   /* A BUNDLE IS PAPERS, SO IT GOES IN AS PAPERS — see `cartAddBundle_` below. */
   if (Object.prototype.hasOwnProperty.call(CART_ADD_OWN, el.dataset.kind)) { CART_ADD_OWN[el.dataset.kind](el); return; }
   const key = el.dataset.key;
   const kind = ['topic', 'print', 'shop'].includes(el.dataset.kind) ? el.dataset.kind : 'shop';
   /* Keyed on BOTH, because a printed copy and a shop item can share a name and they are not the same line. § */
-  if (CART.some(c => c.key === key && c.kind === kind)) { toast('Already in your basket'); return; }
+  if (CART.some(c => c.key === key && c.kind === kind)) { toast(text_('already-in-your-basket')); return; }
 
   /* ---------- `print` AND `topic` WERE TWO OF THE THREE KINDS, AND BOTH LOOKED A DOCUMENT UP § */
   {
@@ -89,7 +89,7 @@ function cartAddBundle_(el) {
                 pages: Number(doc.pages) || 0, cost: 0, from: from });
     added++;
   });
-  if (!added && !had) { toast('Nothing in that bundle can be printed'); return; }
+  if (!added && !had) { toast(text_('nothing-in-that-bundle-can-be')); return; }
   cartSave();
   if (typeof cartPaint_ === 'function') cartPaint_();
   tileSet_(el, { label: 'In your basket', note: '', on: true, off: true });
@@ -146,16 +146,16 @@ function orderLine_(c, i, full, under) {
     if (full) {
       const p = cartPrint_(c);
       bits.push(c.pages ? c.pages + ' page' + (c.pages === 1 ? '' : 's') : 'pages not counted yet');
-      bits.push(p === null ? 'priced when sent' : money_(p));
+      bits.push(p === null ? 'priced when sent' : fmtMoney_(p));
     }
     if (c.laminate) {
       const lam = laminatePrice(c.pages);
-      bits.push('laminated' + (full && lam !== null ? ' (+' + money_(lam) + ')' : ''));
+      bits.push('laminated' + (full && lam !== null ? ' (+' + fmtMoney_(lam) + ')' : ''));
     }
   } else if (c.cost) {
     bits.push(c.cost + ' credit' + (c.cost === 1 ? '' : 's'));
   } else if (full && Number(c.money) > 0) {
-    bits.push(money_(Number(c.money)));
+    bits.push(fmtMoney_(Number(c.money)));
   }
   const name = under && c.short ? c.short : (c.name || c.key);
   /* ---------- A CHEAT SHEET CARRIES ITS PIECES, AND THE MESSAGE LISTS THEM § */
@@ -183,7 +183,7 @@ function orderText_(cart) {
   const head = 'An order from my basket, sent from the app — please print and send:';
   const foot = [];
   if (cash || tbc) {
-    foot.push('Printing: ' + (cash ? money_(cash) : 'nothing priced yet')
+    foot.push('Printing: ' + (cash ? fmtMoney_(cash) : 'nothing priced yet')
       + (tbc ? ' — ' + tbc + ' still to price when sent' : ''));
   }
   if (credits) foot.push('Credits: ' + credits);
@@ -208,16 +208,16 @@ function orderText_(cart) {
 }
 
 on('cart-send', el => {
-  if (!USER) { toast('Sign in first'); go('account'); return; }
+  if (!USER) { toast(text_('sign-in-first')); go('account'); return; }
   if (!CART.length) return;
   const to = orderTo_();
   if (!to) {
-    toast('There is nobody on the site to send this to yet — message @family. directly');
+    toast(text_('there-is-nobody-on-the-site'));
     return;
   }
   const text = orderText_();
   if (!text) {
-    toast('That is too much for one message — send some of it now and the rest after');
+    toast(text_('that-is-too-much-for-one'));
     return;
   }
   send_({ action: 'sendMessage', name: USER.name, personId: USER.personId,

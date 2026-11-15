@@ -983,6 +983,10 @@ code   { font-family: var(--mono); font-size: var(--fs-body); color: var(--ink);
   display: inline-flex; align-items: center; padding: 0 var(--s2) 0 0; background: none; border: 0; cursor: pointer; }
 #sheet-body { flex: 1 1 auto; padding: var(--s2) 0 var(--s2); }
 
+/* ONE FEEDBACK PATH (foundation 3): a line `tell_` wrote says its state in one colour each, wherever it is. */
+[data-tell][data-tell="error"] { color: var(--bad); }
+[data-tell][data-tell="saved"] { color: var(--good); }
+
 /* ---------- THE TOAST § */
 /* A STACK, NEWEST AT THE FOOT (537): each message keeps its own time; an older one is lifted by `translate` (shell.js `toastStack_`), so nothing is laid out again. */
 #toasts {

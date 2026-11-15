@@ -21,7 +21,7 @@ function qualTeachTo_(slot, el, face, v) {
 /* THE NEXT UNUSED SLOT. § */
 function qualTake_(shelf) {
   const slot = shelf && shelf.querySelector('.q-pool > .q-slot');
-  if (!slot) toast('That is the most this card holds — 10 qualifications in all.');
+  if (!slot) toast(text_('that-is-the-most-this-card'));
   return slot || null;
 }
 /* ---------- `+`: A NEW LINE AT THE FOOT, ITS SUBJECT BOX READY § */
@@ -207,7 +207,7 @@ function autosaveNow_(form) {
 /* THE SMALL TICK: under the card, beside the fading toast that already says Saved. */
 function autosaveTick_(form, word) {
   const said = form.querySelector('.me-said');
-  if (said) said.textContent = '\u2713 ' + (word || 'Saved');
+  if (said) tell_(said, 'saved', '\u2713 ' + (word || 'Saved'));
   form.classList.add('is-saved');
   if (!form.contains(document.activeElement)) delete form.dataset.dirty;
 }
@@ -222,7 +222,7 @@ function meSave_(el, auto) {
   /* A PRESS OR A SAVE IN HAND MAKES THE WAITING ONE MOOT. */
   { const f0 = el && el.closest && el.closest('.me-form'); if (f0) clearTimeout(AUTOSAVE_T.get(f0)); }
   /* SIGNED OUT (the session ended under an open card): nothing to save to, and `USER.name` would throw. */
-  if (!USER) { toast('Sign in first.'); return resolve(false); }
+  if (!USER) { toast(text_('sign-in-first-2')); return resolve(false); }
   /* AND A THIRD SURFACE, WHICH IS THE SETTINGS COLUMN. § */
   const box = el.closest('.me-form') || el.closest('#sheet-body') || el.closest('.widget-slot') || document.body;
   const said = box.querySelector('.me-said');
@@ -235,7 +235,7 @@ function meSave_(el, auto) {
   });
   /* A QUALIFICATION WITH NO SUBJECT. § */
   /* ASKED OF EACH SLOT: its `qual_N` box (the subject's select) is the name that is saved, and any visible box with an answer in it is a qualification. § */
-  if (qualNameless_(box)) { if (auto) { if (said) said.textContent = QUAL_NAMELESS_SAY_; } else toast(QUAL_NAMELESS_SAY_); return resolve(false); }
+  if (qualNameless_(box)) { if (auto) { if (said) tell_(said, 'info', QUAL_NAMELESS_SAY_); } else toast(QUAL_NAMELESS_SAY_); return resolve(false); }
   /* ---------- NOT FROM A COPY OF YOUR SETTINGS THAT CANNOT BE TRUE § */
   /* ---------- AND WHEN THE SERVER IS OLDER THAN THIS SITE § */
   if (!profileShapeOk_()) {
@@ -243,7 +243,7 @@ function meSave_(el, auto) {
     const blocked = () => { if (said) said.textContent = OLD_SERVER_SAY_
       + ' Until then this card is not sent, because its boxes may be empty and saving would wipe what the sheet holds.'; };
     if (PROFILE_SERVER_OLD) { if (packed) { blocked(); return resolve(false); } return saveNow(); }
-    if (said) said.textContent = 'Your saved details are still loading from the sheet, so nothing was sent. Try again in a moment.';
+    if (said) tell_(said, 'error', 'Your saved details are still loading from the sheet, so nothing was sent. Try again in a moment.');
     profileRefresh_(true, () => (packed ? (blocked(), resolve(false)) : saveNow()));
     /* NOT SENT YET, AND THE CALLER IS TOLD SO — a refresh that ends in `saveNow` saves the card, but an editor waiting on this would otherwise wait for § */
     resolve(false);
@@ -276,7 +276,7 @@ function meSave_(el, auto) {
       if (form && !(auto && form.contains(document.activeElement))) delete form.dataset.dirty;
       /* NOT ON THE QUALIFICATIONS CARD, WHICH SAVES ON EVERY ANSWER. § */
       const quiet = !!box.querySelector('.q-shelf');
-      if (said) said.textContent = quiet ? '' : word;
+      if (said) tell_(said, 'info', quiet ? '' : word);
       toast(word);
       if (auto && form && !quiet) autosaveTick_(form, word);
       /* WHICH COLUMN THE CARD IS ON (453): a settings column, or a people column's card editor. */
@@ -428,11 +428,11 @@ on('pin-save', el => {
   const v = id => ($(id) || {}).value || '';
   const said = $('pin-said');
   /* SIGNED OUT, OR A BLANK NEW PIN, SENDS NOTHING — a blank pair "matches" and would post an empty PIN. */
-  if (!USER) { if (said) said.textContent = 'Sign in first.'; return; }
-  if (!v('pin-now') || !v('pin-new')) { if (said) said.textContent = 'Type your PIN now and the new one.'; return; }
+  if (!USER) { if (said) tell_(said, 'error', 'Sign in first.'); return; }
+  if (!v('pin-now') || !v('pin-new')) { if (said) tell_(said, 'info', 'Type your PIN now and the new one.'); return; }
   /* Typed twice, checked here before the server sees it — a PIN you cannot see and typed once is
      a PIN you get locked out by. */
-  if (v('pin-new') !== v('pin-again')) { if (said) said.textContent = 'The 2 new PINs do not match.'; return; }
+  if (v('pin-new') !== v('pin-again')) { if (said) tell_(said, 'info', 'The 2 new PINs do not match.'); return; }
   /* ---------- THE ONE WHERE A NAME COLLISION LOCKS SOMEBODY OUT § */
   /* `send_`, SO A SECOND TAP CANNOT POST A SECOND CHANGE. § */
   const lock = $('pin-now') && $('pin-now').closest('.pin-row');
@@ -446,7 +446,7 @@ on('pin-save', el => {
         try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
       }
       ['pin-now', 'pin-new', 'pin-again'].forEach(id => { const b = $(id); if (b) b.value = ''; });
-      if (said) said.textContent = 'Changed.';
+      if (said) tell_(said, 'saved', 'Changed.');
       toast('PIN changed');
       /* ASKED OF THE DOM, LIKE `me-save` AND `msg-send`. */
       if (el.closest('#sheet-body')) closeSheet();
@@ -559,7 +559,7 @@ on('vid-remove', el => {
   const box = el.closest('.vid-pick');
   if (!USER || !box || !sure_(el, 'Remove?')) return;
   send_({ action: 'videoPart', name: USER.name, personId: USER.personId, remove: true }, { button: el, where: box.querySelector('.vid-said'), saying: 'Removing…', lock: box })
-    .then(() => { vidTake_(box, '', 'Removed.'); toast('Video removed'); }).catch(() => { /* the line says why */ });
+    .then(() => { vidTake_(box, '', 'Removed.'); toast(text_('video-removed')); }).catch(() => { /* the line says why */ });
 });
 /* HOW LONG THE CLIP RUNS, read by the browser before sending; 0 when it cannot tell, and then only the size is asked. */
 function vidLength_(file) {
@@ -614,7 +614,7 @@ document.addEventListener('change', e => {
       const id = String((d && d.videoFile) || '');
       if (!id) { vidSay_(box, 'The video went but no file came back. Try again.'); return; }
       vidTake_(box, id, 'Saved. Parents can watch this on your card.');
-      toast('Video saved');
+      toast(text_('video-saved'));
     });
   }).catch(() => { /* `send_` has said why on the line */ });
 });

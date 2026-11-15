@@ -71,7 +71,7 @@ function profileDoorItems_() {
     if (!id || seen[id]) return;
     seen[id] = 1;
     /* FIRST NAME AND AN INITIAL, WITH ITS CAPITAL (`displayName_`): "fin" is shown "Fin". */
-    out.push({ kind: 'person', name: displayName_(p) || p.handle, key: 'person:' + id, sub: '', image: p.image || '', row: p,
+    out.push({ kind: 'person', name: fmtName_(p) || p.handle, key: 'person:' + id, sub: '', image: p.image || '', row: p,
       profileType: profileTypes_(p, tutor), text: [p.title, p.name, p.handle, p.role].filter(Boolean).join(' ') });
   };
   /* Tutors are Booking's tutor items, tagged Profiles too (KIND_UNDER): never a second card here. */
