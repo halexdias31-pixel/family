@@ -741,10 +741,13 @@ const FACETS = [
   { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
   { field: 'topic',     label: 'Topic',       of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
   { field: 'examBoard', label: 'Exam board',  of: x => boardOf_(x) },
-  { field: 'tier',      label: 'Tier',        of: x => x.tier },
+  /* A "PLUS" TIER IS ITS OWN TIER'S (owner, 15 Nov): Foundation Plus is Foundation, Higher Plus is Higher. */
+  { field: 'tier',      label: 'Tier',        of: x => String(x.tier || '').replace(/\s+Plus$/i, '') },
   /* THE YEAR, THEN THE MONTH, THEN THE PAPER — like the folders they came from. */
   { field: 'examYear',  label: 'Year',        of: x => sittingOf_(x).year },
-  { field: 'examMonth', label: 'Month',       of: x => sittingMonth_(x) },
+  /* MONTH AND DAY READ ANY ITEM'S DATE (owner, 15 Nov): a sitting's month, else the item's own date (`itemDate_`) — a 5-a-day's "5 October". */
+  { field: 'examMonth', label: 'Month',       of: x => sittingMonth_(x) || itemDate_(x).month },
+  { field: 'examDay',   label: 'Day',         of: x => itemDate_(x).day },
   /* ONE TAG ON EVERY QUESTION (388; owner 10 Nov): answer checked against the scheme and type machine-marked, or not -- asked before Paper (529). */
   { field: 'verified',  label: 'Verified',    of: x => verifyTags_(x).verified },
   /* THE ID DECIDES WHO ANSWERS; its cover code is what is said (owner 8 Nov) — year, month, tier, board are their own facets, and tellApart_ adds one where two collide. */
@@ -1285,7 +1288,7 @@ function facetSplit_(items, facet) {
 
 /* KINDS UNDER KINDS (546, 610): § */
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
-const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library', spec: 'Library',
+const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Library', project: 'Library', timeline: 'Library', spec: 'Library',
   /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
   /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): § */
   tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', bookform: 'Booking', shop: 'Shop',
@@ -9796,6 +9799,21 @@ function waveFromDoc_(x) {
   return series && /^(19|20)\d{2}$/.test(yr) ? series + ' ' + yr : '';
 }
 
+/* ANY ITEM'S OWN DATE, as { month, day } (owner, 15 Nov): an ISO date (date, exam_date), else a name ending "— 5 October" (a 5-a-day). */
+/* The `Month` and `Day` questions read it, so no kind needs its own date facet. */
+const ITEM_DATE = new WeakMap();
+function itemDate_(x) {
+  if (!x || typeof x !== 'object') return {};
+  if (ITEM_DATE.has(x)) return ITEM_DATE.get(x);
+  const r = x.row || x;
+  const iso = /^\s*(?:19|20)\d{2}-(\d{2})-(\d{2})\b/.exec(String(r.date || x.date || r.exam_date || x.examDate || ''));
+  const named = /\s[\u2014\u2013]\s(\d{1,2})\s+([A-Za-z]{3,9})\s*$/.exec(String(r.name || x.name || ''));
+  const mi = iso ? Number(iso[1]) : named ? MONTH_NAMES.findIndex(n => n.slice(0, 3).toLowerCase() === named[2].slice(0, 3).toLowerCase()) + 1 : 0;
+  const day = iso ? Number(iso[2]) : named ? Number(named[1]) : 0;
+  const out = mi >= 1 && mi <= 12 && day >= 1 && day <= 31 ? { month: MONTH_NAMES[mi - 1], day: String(day) } : {};
+  ITEM_DATE.set(x, out);
+  return out;
+}
 /* ---------- THE MONTH OF A SITTING, FOR THE `Month` QUESTION § */
 const SITTING_MONTH = new WeakMap();
 function sittingMonth_(x) {
@@ -11179,7 +11197,7 @@ function chipShow_(f, i) {
 
 /* ---------- ONE COLOUR PER MENU (1030): every answer of a facet, its chip and its card words wear the facet's --hue-N. § */
 /* WRITTEN BY tools/facet-hues.js from the funnel's facet graph: two facets asked on one path never share a number. */
-const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 9, postWhen: 10, msgWith: 7, profileType: 1, settingFor: 1, vidSubject: 10, vidTopic: 11, vidChannel: 8, vidLevel: 9, vidType: 0, venueArea: 6, venueFor: 10, venueSize: 8, projectType: 11, subject: 1, shelf: 5, wReligion: 5, histKind: 4, wCollection: 4, wWork: 8, wSection: 7, wSource: 2, wLanguage: 6, wText: 11, wTradition: 2, wBook: 9, wChapter: 10, wUnit: 2, wAuthor: 10, wForm: 1, wPrimacy: 2, mScope: 8, mMake: 6, mModel: 4, mGen: 2, mEngine: 3, mKind: 3, mSystem: 9, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 5, mMarket: 3, mYears: 10, mSize: 8, mValves: 9, mBadge: 0, mFuel: 1, mPart: 7, mPrice: 6, cCategory: 11, cGroup: 2, cPeriod: 4, cState: 5, boxKind: 3, fighter: 8, boutMonth: 10, boutYear: 4, decade: 2, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 7, boutEvent: 0, histEra: 1, histMaterial: 5, histFormat: 2, histGenre: 3, histRole: 7, personName: 7, personYears: 8, personFrom: 6, histTheme: 10, histRepository: 6, histFound: 7, histDated: 9, histSide: 8, histTheatre: 9, practicalType: 10, shopKind: 3, shopHow: 1, shopPrice: 6, shopBrand: 3, shopFor: 4, shopTheme: 5, required: 11, documentType: 4, level: 3, keystage: 7, yearGroup: 3, bandValue: 5, topic: 6, examBoard: 7, tier: 9, examYear: 5, examMonth: 8, verified: 0, paperId: 8, paperSection: 1, qNumber: 9, qPart: 1, qSub: 2, marks: 11, needs: 0, myResult: 11, source: 6};
+const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 9, postWhen: 10, msgWith: 7, profileType: 1, settingFor: 1, vidSubject: 10, vidTopic: 11, vidChannel: 8, vidLevel: 9, vidType: 0, venueArea: 6, venueFor: 10, venueSize: 8, projectType: 11, subject: 1, shelf: 5, wReligion: 5, histKind: 4, wCollection: 4, wWork: 8, wSection: 7, wSource: 2, wLanguage: 6, wText: 11, wTradition: 2, wBook: 9, wChapter: 10, wUnit: 2, wAuthor: 10, wForm: 1, wPrimacy: 2, mScope: 8, mMake: 6, mModel: 4, mGen: 2, mEngine: 3, mKind: 3, mSystem: 9, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 5, mMarket: 3, mYears: 10, mSize: 8, mValves: 9, mBadge: 0, mFuel: 1, mPart: 7, mPrice: 6, cCategory: 11, cGroup: 2, cPeriod: 4, cState: 5, boxKind: 3, fighter: 8, boutMonth: 10, boutYear: 4, decade: 2, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 7, boutEvent: 0, histEra: 1, histMaterial: 5, histFormat: 2, histGenre: 3, histRole: 7, personName: 7, personYears: 8, personFrom: 6, histTheme: 10, histRepository: 6, histFound: 7, histDated: 9, histSide: 8, histTheatre: 9, practicalType: 10, shopKind: 3, shopHow: 1, shopPrice: 6, shopBrand: 3, shopFor: 4, shopTheme: 5, required: 11, documentType: 4, level: 3, keystage: 7, yearGroup: 3, bandValue: 5, topic: 6, examBoard: 7, tier: 9, examYear: 5, examMonth: 8, examDay: 8, verified: 0, paperId: 8, paperSection: 1, qNumber: 9, qPart: 1, qSub: 2, marks: 11, needs: 0, myResult: 11, source: 6};
 /* A FACET THE WALK NEVER MET (one the facets tab invented) still has a colour: the first. */
 const tagOf_ = field => 'h' + (TAG_OF[field] || 0);
 const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;

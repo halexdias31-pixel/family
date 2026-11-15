@@ -1090,8 +1090,12 @@ function underTypes_(f, items) {
     if (!kindF || f.asList_(kindF.of(x)).indexOf('Library') === -1) bad.push(x.name + ': a timeline does not answer What kind "Library" (610)');
     if (!ownF || f.asList_(ownF.of(x)).indexOf('Timeline') === -1) bad.push(x.name + ': a timeline does not answer Which "Timeline" under Library');
   });
-  /* UNDER PRACTICE (546, 610): What kind offers Practice alone for a question, practical or project; Which offers its own kind, on every page. */
-  const practice = { question: 0, practical: 0, project: 0 };
+  /* PRACTICALS ARE IN THE LIBRARY (owner, 15 Nov): What kind offers Library for a practical, never Practice. */
+  items.filter(x => x.kind === 'practical').forEach(x => {
+    if (kindF && f.asList_(kindF.of(x)).map(String).join() !== 'Library') bad.push(x.name + ': a practical answers What kind ' + JSON.stringify(f.asList_(kindF.of(x))) + ', not "Library" alone');
+  });
+  /* UNDER PRACTICE (546, 610): What kind offers Practice alone for a question or project; Which offers its own kind, on every page. */
+  const practice = { question: 0, project: 0 };
   items.forEach(x => {
     if (!(x.kind in practice) || !kindF) return;
     practice[x.kind]++;

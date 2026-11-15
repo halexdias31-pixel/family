@@ -25,6 +25,114 @@ const FORM_SPECS = {
       "save": { "icon": "save", "label": "Save", "note": "your new PIN", "act": "pin-save" },
       "said": "pin-said"
     }
+  },
+  "forms": {
+   "say": "FORMS FROM THE ITEM SHAPE (foundation 2): a form is an item kind (item-shape.json) plus this field list: which fields, their order, type (a FORM kind), caption or placeholder, and `may` (a may_() word) for who sees it; money fields also need may_('prices'). Drawn by formOf_ (js/form.js) through renderCard's field/control blocks.",
+   "person-add": {
+    "item": "person",
+    "attr": "data-pa",
+    "fields": [
+     {
+      "f": "first",
+      "type": "text",
+      "ph": "First name"
+     },
+     {
+      "f": "last",
+      "type": "text",
+      "ph": "Last name"
+     },
+     {
+      "f": "role",
+      "type": "choice",
+      "label": "Role"
+     },
+     {
+      "f": "email",
+      "type": "text",
+      "input": "email",
+      "ph": "Email",
+      "phKid": "Email (optional)"
+     },
+     {
+      "f": "dob",
+      "type": "date",
+      "label": "Date of birth (optional)"
+     }
+    ]
+   },
+   "person-form": {
+    "item": "person",
+    "attr": "data-pf",
+    "fields": [
+     {
+      "f": "first",
+      "type": "text",
+      "ph": "First name",
+      "row": "names"
+     },
+     {
+      "f": "last",
+      "type": "text",
+      "ph": "Last name",
+      "row": "names"
+     },
+     {
+      "f": "email",
+      "type": "text",
+      "input": "email",
+      "ph": "Email (optional)"
+     },
+     {
+      "f": "dob",
+      "type": "date",
+      "label": "Date of birth (optional)"
+     }
+    ]
+   },
+   "person-edit": {
+    "item": "person",
+    "attr": "data-pe",
+    "fields": [
+     {
+      "f": "first_name",
+      "type": "text"
+     },
+     {
+      "f": "last_name",
+      "type": "text"
+     },
+     {
+      "f": "handle",
+      "type": "text",
+      "label": "handle (theirs to change)",
+      "readonly": true
+     },
+     {
+      "f": "dob",
+      "type": "date",
+      "label": "date of birth"
+     },
+     {
+      "f": "email",
+      "type": "text",
+      "input": "email"
+     },
+     {
+      "f": "phone",
+      "type": "phone",
+      "input": "tel"
+     },
+     {
+      "f": "address",
+      "type": "text"
+     },
+     {
+      "f": "postcode",
+      "type": "text"
+     }
+    ]
+   }
   }
 };
 
@@ -89,4 +197,33 @@ function formSlider_(a, o) {
 function formPhone_(cc, no, ccOpts, noAttrs) {
   return formLine_('', formSelect_(`data-me="${cc}" aria-label="Country code"`, ccOpts))
     + formLine_('', formInput_(`type="tel" data-me="${no}" inputmode="tel" autocomplete="off" ${noAttrs || ''}`));
+}
+
+/* ---------- A FORM FROM THE ITEM SHAPE (foundation 2): `formOf_(id, values, o)` draws forms.json's `forms[id]` — an item kind and its field list, in order. */
+/* A field with `may` shows only if may_(may); a money field also needs may_('prices'), so a child never sees a price. o: options, kid, skip, only. */
+const formMay_ = x => (!x.may || (typeof may_ === 'function' && may_(x.may))) && (x.type !== 'money' || typeof may_ !== 'function' || may_('prices'));
+function formFieldOf_(spec, x, v, o) {
+  const a = spec.attr, val = v == null ? '' : String(v), ro = x.readonly ? ' disabled' : '';
+  if (x.type === 'choice') return formLine_(x.label || '', cardBlock_({ type: 'control', tag: 'select', attrs: { [a]: x.f },
+    options: ((o.options || {})[x.f] || []).map(c => Array.isArray(c) ? { value: c[0], text: c[1], on: c[0] === val } : c) }));
+  if (x.type === 'date') return formLine_(x.label || '', formInput_(`type="date" ${a}="${x.f}" value="${esc(val)}"${ro}`));
+  const ph = (o.kid && x.phKid) || x.ph;
+  if (ph) return formLine_('', formInput_(`${a}="${x.f}" placeholder="${esc(ph)}" autocomplete="off"${x.input ? ` type="${x.input}"` : ''} value="${esc(val)}"${ro}`));
+  return formField_(x.f, val, { attr: a, draft: false, readonly: !!x.readonly, label: x.label,
+    extra: (x.input ? `type="${x.input}" ` : '') + 'autocomplete="off"' });
+}
+function formOf_(id, values, o) {
+  o = o || {};
+  const spec = FORM_SPECS.forms[id];
+  if (!spec) return '';
+  const get = typeof values === 'function' ? values : f => (values || {})[f];
+  const list = spec.fields.filter(x => formMay_(x) && (o.skip || []).indexOf(x.f) === -1 && (!o.only || o.only.indexOf(x.f) !== -1));
+  const out = [];
+  list.forEach((x, i) => {
+    if (x.row && list[i - 1] && list[i - 1].row === x.row) return;
+    const row = x.row ? list.filter(y => y.row === x.row) : null;
+    out.push(row ? cardBlock_({ type: 'group', look: 'f-row', attrs: { style: '--n:' + row.length }, inner: row.map(y => formFieldOf_(spec, y, get(y.f), o)).join('') })
+      : formFieldOf_(spec, x, get(x.f), o));
+  });
+  return out.join('');
 }

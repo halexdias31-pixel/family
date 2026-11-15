@@ -507,10 +507,13 @@ const FACETS = [
   { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
   { field: 'topic',     label: 'Topic',       of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
   { field: 'examBoard', label: 'Exam board',  of: x => boardOf_(x) },
-  { field: 'tier',      label: 'Tier',        of: x => x.tier },
+  /* A "PLUS" TIER IS ITS OWN TIER'S (owner, 15 Nov): Foundation Plus is Foundation, Higher Plus is Higher. */
+  { field: 'tier',      label: 'Tier',        of: x => String(x.tier || '').replace(/\s+Plus$/i, '') },
   /* THE YEAR, THEN THE MONTH, THEN THE PAPER — like the folders they came from. */
   { field: 'examYear',  label: 'Year',        of: x => sittingOf_(x).year },
-  { field: 'examMonth', label: 'Month',       of: x => sittingMonth_(x) },
+  /* MONTH AND DAY READ ANY ITEM'S DATE (owner, 15 Nov): a sitting's month, else the item's own date (`itemDate_`) — a 5-a-day's "5 October". */
+  { field: 'examMonth', label: 'Month',       of: x => sittingMonth_(x) || itemDate_(x).month },
+  { field: 'examDay',   label: 'Day',         of: x => itemDate_(x).day },
   /* ONE TAG ON EVERY QUESTION (388; owner 10 Nov): answer checked against the scheme and type machine-marked, or not -- asked before Paper (529). */
   { field: 'verified',  label: 'Verified',    of: x => verifyTags_(x).verified },
   /* THE ID DECIDES WHO ANSWERS; its cover code is what is said (owner 8 Nov) — year, month, tier, board are their own facets, and tellApart_ adds one where two collide. */

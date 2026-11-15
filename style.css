@@ -5420,6 +5420,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .insh-sec li { margin: 0 0 var(--s2); break-inside: avoid; }
 .insh-sheet .tb-h { color: var(--paper-ink); border-color: var(--paper-rule); }
 .insh-rad { border-top: 1px solid currentColor; padding-top: 0; }
+.kc-over { text-decoration: overline; }
 .insh-check { margin: var(--s3) 0 0; font-size: var(--fs-small); line-height: 1.4; color: var(--paper-dim); }
 .insh-check b { color: var(--paper-ink); }
 /* ---------- A READING INSERT'S SOURCE (458): the extract as printed, a line number in the margin where the paper prints one */
