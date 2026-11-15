@@ -43,7 +43,8 @@
     "pixel": "secondary",
     "libcards": "secondary",
     "console": "secondary",
-    "wordgames": "secondary"
+    "wordgames": "secondary",
+    "boardgames": "secondary"
   },
   "kinds": {
     "question": "core",
@@ -176,6 +177,8 @@
     "layout-moves": "secondary",
     "words": "secondary",
     "games": "secondary",
+    "racer": "secondary",
+    "boardgames": "secondary",
     "pixel": "secondary",
     "missing": "secondary",
     "boot": "core"
@@ -434,11 +437,15 @@
     "find-quick",
     "find-measure",
     "games",
+    "racer",
+    "boardgames",
     "pixel"
   ],
   "lazy": [
     "one-place",
     "games",
+    "racer",
+    "boardgames",
     "pixel"
   ],
   "widgetFiles": {
@@ -448,6 +455,12 @@
     ],
     "pixel": [
       "pixel"
+    ],
+    "boardgames": [
+      "boardgames"
+    ],
+    "racer": [
+      "console"
     ]
   },
   "frozen": {
