@@ -17719,59 +17719,6 @@ function qtRedraw_(card, x) {
 
 
 
-/* THREE, AND THEN YOU — AND THE NUMBER IS MEASURED RATHER THAN CHOSEN. § */
-const SCORE_TOP = 3;
-
-function scoreRanks_(field) {
-  const people = [].concat(DATA.students || [], DATA.tutors || []);
-  const seen = {}, all = [];
-  people.forEach(p => {
-    if (!p) return;
-    const who = String(p.handle || p.name || p.title || '').trim();
-    if (!who) return;
-    /* A HANDLE IS THE KEY BECAUSE A PERSON CAN BE ON BOTH LISTS. A tutor who is also carried as a
-       student would otherwise appear twice with the same score, which reads as two people tying. */
-    const key = norm(who);
-    if (seen[key]) return;
-    seen[key] = 1;
-    const score = Number(p[field]) || 0;
-    if (score > 0) all.push({ who, score, me: mineIs_(p) });
-  });
-  /* Highest first, and ties settled by name rather than by whatever order the sheet is in — two
-     children on the same score should not swap places between one load and the next. */
-  all.sort((a, b) => b.score - a.score || cmpText(a.who, b.who));
-  /* THE SAME SCORE IS THE SAME PLACE. § */
-  all.forEach((x, i) => { x.pos = (i && all[i - 1].score === x.score) ? all[i - 1].pos : i + 1; });
-  return { people: people.length, all };
-}
-
-/* THE ROW IS THE APP'S OWN `.row`, not a thing of its own: § */
-function boardRow_(x) {
-  return { type: 'group', look: 'row' + (x.me ? ' is-me' : ''), blocks: [
-    { type: 'group', tag: 'span', look: 'k', text: x.pos + ' · ' + x.who },
-    { type: 'group', tag: 'span', look: 'v mono', text: String(x.score) }] };
-}
-
-function scoreBoard_(field) {
-  const r = scoreRanks_(field);
-  /* ---------- AND "NOT ARRIVED" WHILE THEY ARE ON THEIR WAY IS THE ONE LOADER § */
-  if (!r.people && typeof awaiting_ === 'function' && awaiting_()) return loading_();
-  const note = text => cardBlocks_({ type: 'group', tag: 'p', look: 'note', text });
-  if (!r.people) return note('Scores have not arrived yet.');
-  if (!r.all.length) return note('No scores yet. Be the first.');
-  const top = r.all.slice(0, SCORE_TOP);
-  const mine = r.all.filter(x => x.me)[0];
-  /* ASKED OF THE ROWS ON SCREEN RATHER THAN OF THE PLACE. § */
-  return cardBlocks_([{ type: 'group', tag: 'p', look: 'board-head', text: 'High scores' }]
-    .concat(top.map(boardRow_), mine && top.indexOf(mine) < 0 ? [boardRow_(mine)] : []));
-}
-
-/* Called from `initFlappy` and `initTables`, which is to say from `startScreen_` — so the board is rebuilt on every paint of the column, which is what puts the § */
-function paintBoard_(id, field) {
-  const el = $(id);
-  if (el) el.innerHTML = scoreBoard_(field);
-}
-
 /* A WIDGET'S MARKUP IS DATA (owner, 12 Nov, rule 3.11): its title, then its parts, drawn by the one card maker's blocks. */
 const mapHead_ = text => ({ type: 'msgHead', text });
 const mapBox_ = (id, look, more) => Object.assign({ type: 'group', id, look }, more || {});

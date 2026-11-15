@@ -69,7 +69,6 @@ function initTables() {
   $('tt-idle')?.classList.remove('hidden');
   $('tt-question')?.classList.add('hidden');
   $('tt-over')?.classList.add('hidden');
-  paintBoard_('tt-board', 'ttHighscore');
 }
 /* START, AGAIN AND GIVE UP: the sprint's buttons had no handler when games.js came back (12 Nov). */
 on('tt-begin', () => startTimesTables());
@@ -79,46 +78,17 @@ function endTimesTables() {
   if (!ttState) return;
   clearInterval(ttState.timer);
   const score = ttState.score;
-  const best = Math.max(Number(USER && USER.ttHighscore) || 0, score);
   ttState = null;
 
+  /* NO BOARD AND NO KEPT BEST (rule 6.2): the round says how many were right, and nothing is saved. */
   $('tt-question')?.classList.add('hidden');
   const over = $('tt-over');
   if (over) {
     over.classList.remove('hidden');
     over.innerHTML = `
       <p class="mono tt-big">${score}</p>
-      <p class="note game-said">${
-        score === 0 ? 'None. It happens — try a slower start.'
-      : score >= best && score > 0 && score > (Number(USER && USER.ttHighscore) || 0)
-        ? 'A new best.'
-      : 'Your best is ' + best + '.'}</p>
+      <p class="note game-said">${score === 0 ? 'None. It happens — try a slower start.' : score + ' right.'}</p>
       ${tile_({ form: true, look: `btn`, attrs: `data-do="tt-begin"`, html: `Again` })}`;
-  }
-
-  /* Kept only if it beats the old one, and only for somebody signed in. § */
-  if (USER && score > (Number(USER.ttHighscore) || 0)) {
-    const was = Number(USER.ttHighscore) || 0;
-    USER.ttHighscore = score;
-    api({ action: 'saveTtHighscore',
-      name: USER.name, personId: USER.personId, score })
-      .then(d => {
-        if (d && d.error) throw new Error(d.error);
-        if (typeof d.best === 'number') USER.ttHighscore = d.best;
-        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-        /* ---------- AND THE ROW THE BOARD READS, WHICH THIS NEVER TOUCHED § */
-        const meRow = (DATA.students || []).concat(DATA.tutors || []).filter(t => mineIs_(t))[0];
-        if (meRow) meRow.ttHighscore = Number(USER.ttHighscore) || 0;
-        paintBoard_('tt-board', 'ttHighscore');
-      })
-      .catch(() => {
-        /* Said quietly rather than left as a lie. A child told they set a record and finding it
-           gone next visit has nothing to explain it. */
-        USER.ttHighscore = was;
-        const over2 = $('tt-over');
-        if (over2) over2.insertAdjacentHTML('beforeend',
-          '<p class="note game-said">Not saved — no connection.</p>');
-      });
   }
 }
 
@@ -2373,7 +2343,7 @@ const WORD_GAMES = [
     <ul id="ws-words" class="ws-list"></ul>
     <p class="note game-said" id="ws-said"></p>
     ${tile_({ form: true, label: 'New puzzle', act: 'ws-again', kind: 'quiet' })}` },
-  /* THE TIMES TABLES SPRINT, MOVED IN BY THE OWNER (461): its own card before; its best is still `saveTtHighscore`'s. */
+  /* THE TIMES TABLES SPRINT, MOVED IN BY THE OWNER (461): its own card before; no board and no kept best (rule 6.2). */
   { k: 'tt', name: 'Times Tables Sprint', start: () => initTables(),
     stop: () => { if (typeof ttState !== 'undefined' && ttState) { clearInterval(ttState.timer); ttState = null; } },
     body: `<div id="tt-idle">
@@ -2388,8 +2358,7 @@ const WORD_GAMES = [
       ${rowLive('Right', '0', 'tt-score')}
       ${tile_({ form: true, look: `btn quiet`, attrs: `data-do="tt-stop"`, html: `Give up` })}
     </div>
-    <div id="tt-over" class="hidden"></div>
-    <div id="tt-board" class="board"></div>` },
+    <div id="tt-over" class="hidden"></div>` },
   { k: 'ss', name: 'Sentence Scramble', start: () => initScramble(), stop: () => {},
     body: `<p>Tap the words in order to put the sentence back together.</p>
     <label class="mat-sel ws-top"><select id="ss-level" data-do="ss-level"
@@ -3428,7 +3397,6 @@ function emuSync_(off) {
 /* ---------- A CONSOLE GAME KEEPS ITS PROGRESS (446): the battery save and a save state, per game file, on this device and on the account. */
 /* Keyed by a hash of the file's bytes; the file itself is never stored with a save nor sent. One save per game, the latest. */
 const CSV_DB = 'family-console-saves';
-const CSV_MAX = 2 * 1024 * 1024;   // the backend's CONSOLE_SAVE_MAX: an account keeps 2 MB per game once packed
 const CSV_ = { hash: '', sys: '', at: 0, where: '', said: '', sent: '', timer: 0, rom: null, took: 0 };
 /* ONE SAVE A MINUTE AT MOST (478): a DS state is megabytes, read, zipped and posted on the page's one thread, so a pause, a slide or a scroll does not each take one. Leaving always does. */
 const CSV_EVERY = 60000;
@@ -3462,34 +3430,6 @@ function csvDb_(mode, fn) {
   });
 }
 
-/* gzip, then base64, for the account; a browser with no CompressionStream keeps its saves on the device only. */
-function csvPack_(u8) {
-  if (!u8 || !u8.length) return Promise.resolve('');
-  const loop = a => { let s = ''; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); };
-  /* THE BROWSER'S OWN BASE64 off the script's thread where it can (478); the string loop where it cannot. */
-  const b64 = a => new Promise(ok => {
-    try {
-      const r = new window.FileReader();
-      r.onload = () => { const u = String(r.result || ''), i = u.indexOf(','); ok(i < 0 ? loop(a) : u.slice(i + 1)); };
-      r.onerror = () => ok(loop(a));
-      r.readAsDataURL(new window.Blob([a]));
-    } catch (e) { ok(loop(a)); }
-  });
-  try {
-    if (typeof window.CompressionStream !== 'function') return Promise.resolve('');
-    return new window.Response(new Blob([u8]).stream().pipeThrough(new window.CompressionStream('gzip'))).arrayBuffer().then(ab => b64(new Uint8Array(ab))).catch(() => '');
-  } catch (e) { return Promise.resolve(''); }
-}
-function csvUnpack_(s) {
-  if (!s) return Promise.resolve(null);
-  try {
-    if (typeof window.DecompressionStream !== 'function') return Promise.resolve(null);
-    const bin = atob(s), u8 = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-    return new window.Response(new Blob([u8]).stream().pipeThrough(new window.DecompressionStream('gzip'))).arrayBuffer().then(ab => new Uint8Array(ab)).catch(() => null);
-  } catch (e) { return Promise.resolve(null); }
-}
-
 /* THE GAME AS IT IS NOW, read at once (before a pause or an exit changes it): EmulatorJS's own state and save file, or jsnes's JSON. */
 function csvCapture_() {
   if (!CSV_.hash) return null;
@@ -3504,38 +3444,18 @@ function csvCapture_() {
   return sram || state ? { hash: CSV_.hash, sys: CSV_.sys, at: Date.now(), sram, state } : null;
 }
 
-/* AT EVERY PAUSE AND LEAVE: on this device first, then, signed in, on the account. A save the same as the last one sent is not sent again. */
+/* AT EVERY PAUSE AND LEAVE: kept on this device. The account copy (`consoleSave`/`consoleLoad`) was retired from the server in a3a28da, so a save never leaves the device. */
 function csvKeep_(force) {
   if (!force && CSV_.took && Date.now() - CSV_.took < CSV_EVERY) return;
   const rec = csvCapture_();
   if (!rec) return;
   CSV_.took = Date.now();
   csvDb_('readwrite', s => s.put(rec, rec.hash)).then(ok => { if (ok) { CSV_.at = rec.at; CSV_.where = 'device'; csvLine_(); } });
-  if (typeof USER !== 'object' || !USER || !USER.token) return;
-  Promise.all([csvPack_(rec.sram), csvPack_(rec.state)]).then(([sram, state]) => {
-    if (!sram && !state) return;
-    const sig = rec.hash + sram.length + ':' + state.length + ':' + sram.slice(-64) + state.slice(-64);
-    if (sig === CSV_.sent) { CSV_.where = 'account'; csvLine_(); return; }
-    /* OVER THE CAP: refused here, politely, before anything is sent; the device copy stands. */
-    if (Math.floor((sram.length + state.length) * 3 / 4) > CSV_MAX) { CSV_.said = 'Too big for your account (over 2 MB), so it is kept on this device only.'; csvLine_(); return; }
-    return api({ action: 'consoleSave', personId: USER.personId || '', hash: rec.hash, sys: rec.sys, at: rec.at, sram, state }).then(d => {
-      if (d && d.error) { CSV_.said = String(d.error); csvLine_(); return; }
-      CSV_.sent = sig; CSV_.said = ''; CSV_.at = rec.at; CSV_.where = 'account'; csvLine_();
-    });
-  }).catch(() => { CSV_.said = ''; csvLine_(); });
 }
 
-/* THE NEWEST OF THE DEVICE'S AND THE ACCOUNT'S, as raw bytes; nothing at all is a fresh game. */
+/* THE DEVICE'S SAVE, as raw bytes; nothing at all is a fresh game. */
 function csvFind_(hash) {
-  const mine = csvDb_('readonly', s => s.get(hash)).then(r => (r && r.hash === hash ? r : null));
-  const theirs = (typeof USER === 'object' && USER && USER.token)
-    ? api({ action: 'consoleLoad', personId: USER.personId || '', hash }).then(d => {
-      const v = d && d.save;
-      if (!v || !(v.sram || v.state)) return null;
-      return Promise.all([csvUnpack_(v.sram), csvUnpack_(v.state)]).then(([sram, state]) => ({ hash, sys: v.sys, at: Number(v.at) || 0, sram, state, account: true }));
-    }).catch(() => null)
-    : Promise.resolve(null);
-  return Promise.all([mine, theirs]).then(([a, b]) => (a && b ? (b.at > a.at ? b : a) : a || b));
+  return csvDb_('readonly', s => s.get(hash)).then(r => (r && r.hash === hash ? r : null));
 }
 
 /* A GAME STARTING: its key, then its save put back. `rom` is EmulatorJS's game name, or 'nes'; a game swapped meanwhile is left alone. */
