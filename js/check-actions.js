@@ -29,6 +29,7 @@ const REASONS = {
   listStaff: 'its front end (the staff hub) was switched off into attic/js (owner, 13 Nov); the handler stays for when it comes back.',
   payStatement: 'its front end (the staff hub) was switched off into attic/js (owner, 13 Nov); the handler stays for when it comes back.',
   signAgreement: 'its front end (the staff hub) was switched off into attic/js (owner, 13 Nov); the handler stays for when it comes back.',
+  markWorking: 'kept for a phone loaded before 15 Nov: the part\'s one Mark button sends photos with aiMark now (owner, 15 Nov, one mark button).',
   votePoll: 'its front end (posts, the Feed and the camera) was switched off into attic/js/posts.js (owner, 13 Nov); the handler stays for when it comes back.',
   saveRecordsPage: 'its front end was switched off into attic/js (games, tools, favlinks, lego, records, biz-check; owner, 13 Nov); the handler stays for when it comes back.',
   saveTimetable: 'its front end was switched off into attic/js (games, tools, favlinks, lego, records, biz-check; owner, 13 Nov); the handler stays for when it comes back.',

@@ -682,7 +682,7 @@ function bibleEnd_(items) {
 /* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: § */
 function bibleItems_() {
   if (!bibleFor_()) return [];
-  if (USER || !ruleOn_('finder-members')) bibleIndex_();
+  if (USER || !ruleOn_('finder-members') || guestLibrary_()) bibleIndex_();
   if (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) return [];
   const list = bibleVerses_();
   BIBLE.item = list[0] || null;

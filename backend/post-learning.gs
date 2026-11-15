@@ -105,7 +105,7 @@ function postMarkWorking_(body, action, began) {
         try {
           clearCache();
           const out = submissionsAppend_(pid, [{ id: id, key: k, answer: typed.trim() || WORKING_ANSWER, verdict: 'ai:' + got.awarded + '/' + avail,
-            label: S(body.label), words: S(body.words), at: body.sent, photos: links.join(' ') }], body.sent);
+            label: S(body.label), words: S(body.words), at: body.sent, photos: links.join(' '), feedback: S(got.feedback) }], body.sent);
           if (out.wrote) { try { SpreadsheetApp.flush(); } catch (err) { /* flush is an early write; Apps Script writes at the end anyway */ } submissionsTouched_(pid); }
           saved = !out.error;
         } finally { lock.releaseLock(); }
@@ -236,7 +236,9 @@ function postMyAnswers_(body, action, began) {
 
 /* THE LIBRARY READ ITSELF, as a reply object: libItems and readItems both answer through it, so the cap and the tally are one. */
 function libItemsReply_(body) {
-  const me = findPerson('', S(body.personId));
+  /* A GUEST (owner, 15 Nov) is tallied by the device she says she is, under the same day's cap; a question never reaches here for her. */
+  const guest = S(body.guest).replace(/[^A-Za-z0-9-]/g, '').slice(0, 40);
+  const me = findPerson('', S(body.personId)) || (guest ? { person_id: 'guest:' + guest, roles: '' } : null);
   if (!me || !S(me.person_id)) return { error: 'Sign in first.' };
   const asked = Array.isArray(body.ids) ? body.ids : [];
   const ids = [];
@@ -258,6 +260,8 @@ function libItemsReply_(body) {
 /* ONE WAY TO THE SERVER (step 2, slice 1): items of one kind by id, as the table allows. Beside libItems, not instead of it. */
 /* A library kind is read by libItems' own steps (signed in, the day's cap, the same tally), so it can never give more than libItems did. */
 const READ_ITEMS_LIB = { question: 'q', content: 'ct', practical: 'pr', project: 'pj' };
+/* THE TABLE'S ITEM KIND FOR EACH (owner, 15 Nov): a question is a question; everything else the library serves is ONE kind, `library`. */
+const READ_ITEMS_SHELF = { question: 'question', content: 'library', practical: 'library', project: 'library' };
 function readItemsRole_(me) {
   if (!me) return 'anyone';
   if (hasRole(me, 'admin')) return 'admin';
@@ -294,17 +298,21 @@ function readItemsOwn_(kind, how, body, began) {
   return how.other(b, 'readItems', began);
 }
 function postReadItems_(body, action, began) {
+  /* THE GATE IS `anyone` (15 Nov), so WHO ASKS IS THE TOKEN'S, never a personId the request names; a dead token is signed out, not a guest. */
+  const who = S(body.token) ? authWhoIs_(body.token) : null;
+  if (S(body.token) && !who) return jsonOut({ error: 'Please sign in again.', why: 'signed-out' });
+  body = Object.assign({}, body, { personId: who ? S(who.person_id) : '', name: who ? personDisplayName(who) : '' });
   const kind = S(body.kind);
   const own = readItemsOld_();
   if (Object.prototype.hasOwnProperty.call(own, kind)) return readItemsOwn_(kind, own[kind], body, began);
   if (!Object.prototype.hasOwnProperty.call(READ_ITEMS_LIB, kind)) return jsonOut({ error: 'That kind cannot be read here yet.', why: 'kind' });
-  const me = findPerson('', S(body.personId));
-  const hide = itemMay_(kind, 'read', readItemsRole_(me));
-  if (!hide) return jsonOut({ error: 'Not authorised.', why: 'kind' });
+  const me = who;
+  const hide = itemMay_(READ_ITEMS_SHELF[kind], 'read', readItemsRole_(me));
+  if (!hide) return jsonOut({ error: me ? 'Not authorised.' : 'Sign in first.', why: me ? 'kind' : 'signed-out' });
   const pre = READ_ITEMS_LIB[kind] + ':';
   const asked = Array.isArray(body.ids) ? body.ids : [];
   if (asked.some(v => S(v).indexOf(pre) !== 0)) return jsonOut({ error: 'Every id must be a ' + kind + ' (' + pre + '…).' });
-  const out = libItemsReply_({ personId: body.personId, ids: asked });
+  const out = libItemsReply_({ personId: body.personId, ids: asked, guest: me ? '' : S(body.device) || 'unknown' });
   if (out.items && hide.length) Object.keys(out.items).forEach(id => { const it = out.items[id]; if (it && typeof it === 'object') hide.forEach(f => { delete it[f]; }); });
   out.kind = kind;
   return jsonOut(out);

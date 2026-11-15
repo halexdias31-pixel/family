@@ -240,7 +240,15 @@ function doorItems_() {
   return [].concat(postDoorItems_(), msgDoorItems_(), profileDoorItems_(), settingDoorItems_());
 }
 /* SETTINGS AND BOOKING (owner, 13 Nov: a guest books through Find's steps and signs in to Send); no Venues on the signed-out front. */
-function findSignedOut_(x) { return kindTop_(x) === 'Settings' || x.kind === 'bookform'; }
+/* AND THE LIBRARY (owner, 15 Nov), by ONE permissions row (`item` library:read for `anyone`): never a question, its answer or Practice. */
+function findSignedOut_(x) { return kindTop_(x) === 'Settings' || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)); }
+const guestLibrary_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'library:read');
+/* A LIBRARY CARD: a Learning thing that is not practice — questions, their answers and the Practice widgets are signed in. */
+function libraryCard_(x) {
+  if (!x || x.kind === 'question' || x.kind === 'answer') return false;
+  if (asList_(kindTop_(x)).indexOf('Practice') !== -1 && x.kind !== 'practical') return false;
+  return asList_(x.groups || kindOf_(x).group).indexOf('Learning') !== -1;
+}
 
 /* ---------- VENUES: every building the booking form offers (items: stuffItemsRaw_), the facts as tags on top, as on a person card, then the picture ---------- */
 /* 8-BIT BUILDINGS, drawn by pixSvg_ (find-boxers.js): a shape per kind of building, picked off the venue's name. */

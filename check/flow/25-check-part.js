@@ -197,13 +197,13 @@ check('a part\'s tool row is the owner\'s one row with one padlock (8 Nov), the 
   /* NOTHING TO DRAW ON, NO PEN (owner, 29 Oct: "a button which opens the working paper … remove that") */
   /* THE SAME ROW ON EVERY PART (owner, 7 Nov, over 1040 r12): magnifier, Read aloud and padlock are each part's. */
   /* RULER AND PROTRACTOR ON EVERY PART, figure or not (owner, 8 Nov); Check, Message and Save first, every tile shown with no ⋯ (owner, 13 Nov) */
-  if (names.join(' | ') !== 'Check | Message | Save | Photo of working | Magnifier | Read aloud | Lock | Ruler | Protractor | Calculator | Mark my working | Show the answer | Help | Share | Top') bad.push('a part with no figure: the tool row reads ' + names.join(' | '));
+  if (names.join(' | ') !== 'Check | Message | Save | Magnifier | Read aloud | Lock | Ruler | Protractor | Calculator | Show the answer | Help | Share | Top') bad.push('a part with no figure: the tool row reads ' + names.join(' | '));
   const x3 = item('GR-3');
   host.innerHTML = x3 ? w.findCard(x3, 0) : '';
   const row3 = host.querySelector('.qt-row');
   const names3 = row3 ? [...row3.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
   /* UNDO AND CLEAR ARE THE PAD'S, IN THIS ONE ROW FROM THE START (1020): a tap never adds or moves a control. */
-  if (names3.join(' | ') !== 'Check | Message | Save | Photo of working | Magnifier | Read aloud | Lock | Ruler | Protractor | Calculator | Pen | Straight line | Compass | Undo | Clear | Mark my working | Show the answer | Help | Share | Top') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
+  if (names3.join(' | ') !== 'Check | Message | Save | Magnifier | Read aloud | Lock | Ruler | Protractor | Calculator | Pen | Straight line | Compass | Undo | Clear | Show the answer | Help | Share | Top') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
   if (d.querySelectorAll('[data-do="qt-grid"], [data-do="qt-panel"], .qcalc, .qt-table, .qt-formula').length) bad.push('a Grid, Table, Calculator or Formula sheet is still drawn on the part');
   const whole = d.createElement('div'); whole.innerHTML = x3 ? w.questionWhole_(x3, [x3], null, true) : '';
   const locks = whole.querySelectorAll('[data-do="q-lock"], [data-do="game-lock"]').length;
@@ -625,16 +625,15 @@ check('one mark per press: a rule part pressed twice is one submission and never
   return bad;
 });
 
-/* ---------- A PHOTO IS NEVER MARKED BY KEY WORDS (owner, 29 Oct): a show-that proof photographed went to the key words, which read only the typed box ---------- */
-check('a part with photos of its working: Check sends the photos to the AI marker (markWorking), never key words on the typed box', async () => {
+/* ---------- THE MARKER IS THE QUESTION'S (owner, 15 Nov): a key-word part is marked by its key words, photos or not -- never a second marker ---------- */
+check('a key-word part is marked by its key words whatever is attached: no photo tile, no markWorking, one verdict', async () => {
   const base = { active: 'True', subject: 'Maths', document_type: 'Past paper', key_stage: 'KS5', pages_checked: 'True' };
   const rows = [
     Object.assign({}, base, { row_id: 'D-PF', paper_id: 'PF', kind: 'document', name: 'Proof' }),
     Object.assign({}, base, { row_id: 'PF-1', paper_id: 'PF', kind: 'question', name: 'Proof', question: '1', marks: '3', answer_type: 'proof',
                               html: '<p>Show that (n+1)^2 - (n-1)^2 is a multiple of 4.</p>', answer: 'Expands to 4n', mark_words: '4n ; multiple' }),
   ];
-  const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined), before: signedInAs_(ANS_ADA),
-    reply: b => (b.action === 'markWorking' ? { success: true, awarded: 3, available: 3, feedback: 'Read from the photo' } : undefined) });
+  const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined), before: signedInAs_(ANS_ADA) });
   await wait(300);
   const w = one.w, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
   const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === 'PF-1');
@@ -644,25 +643,16 @@ check('a part with photos of its working: Check sends the photos to the AI marke
   host.innerHTML = w.findCard(x, 0);
   const go = (host.querySelector('.qp-mark[data-rule]') && host.querySelector('.qt-row [data-do="qp-check"]'));
   if (!go) return ['the proof row has no Check by its key words — the fixture no longer exercises the rule'];
+  if (host.querySelector('[data-do="qp-work"], [data-do="qp-work-send"]')) bad.push('a key-word part offers photos or a second marker');
   const inp = host.querySelector('.qp-ans-in'), out = host.querySelector('.qp-verdict');
   const k = inp.getAttribute('data-k');
-  inp.value = 'see photo, multiple';
   t.workPics()[k] = [{ url: 'data:image/jpeg;base64,/9j/AAAA' }];
-  w.workPaint_(k);
-  A['qp-check'](go);
-  await wait(120);
-  const went = one.sent.filter(b => b.action === 'markWorking');
-  if (went.length !== 1) bad.push('Check with a photo sent ' + went.length + ' markWorking requests — the photo was not given to the AI marker');
-  else if (!(went[0].photos || []).length || went[0].answer !== 'see photo, multiple') bad.push('markWorking went without the photo or the typed words: ' + JSON.stringify(went[0]).slice(0, 160));
-  if (/by key words/.test(out.textContent)) bad.push('a photographed part was marked by key words: ' + JSON.stringify(out.textContent));
-  const latest = typeof w.subLatest_ === 'function' ? w.subLatest_(k) : null;
-  if (latest && /^rule:/.test(String(latest.v))) bad.push('a key-word mark was recorded for a photographed part: ' + latest.v);
-  /* AND WITH NO PHOTO, THE KEY WORDS STILL MARK THE TYPED BOX */
-  t.workPics()[k] = [];
-  w.workPaint_(k);
   inp.value = 'it is 4n so a multiple of 4';
   A['qp-check'](go);
-  if (!/by key words/.test(out.textContent)) bad.push('with no photo the key words did not mark: ' + JSON.stringify(out.textContent));
+  await wait(120);
+  if (one.sent.some(b => b.action === 'markWorking' || b.action === 'aiMark')) bad.push('a key-word part was sent to the AI');
+  if (!/by key words/.test(out.textContent)) bad.push('the key words did not mark: ' + JSON.stringify(out.textContent));
+  if (host.querySelectorAll('.qp-verdict').length !== 1) bad.push('more than one verdict line');
   host.remove();
   return bad;
 });

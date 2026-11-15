@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-15-server-path-2";
+const DOPOST_VERSION = "2026-11-15-guests-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -815,6 +815,9 @@ function submissionsAppend_(pid, items, sent) {
     if (has('pressed_at')) row.pressed_at = "'" + iso;
     /* PHOTOS OF THE WORKING (501): Drive links, space-separated; only `markWorking` sends them. */
     if (has('photos') && it && it.photos) row.photos = S(it.photos).split(' ').filter(u => WORKING_LINK.test(u)).join(' ');
+    /* THE AI'S FEEDBACK (owner, 15 Nov): only beside an AI score, as text (the apostrophe: never a formula), cut to the ceiling. */
+    const fb = /^ai:/.test(verdict) && it && it.feedback !== undefined && it.feedback !== null ? String(it.feedback).trim().slice(0, SUBMISSION_FEEDBACK_MAX) : '';
+    if (has('feedback') && fb) row.feedback = "'" + fb;
     const made = addRow(t, row);
     if (!made) return;
     /* THE ROW IN MEMORY HOLDS WHAT WAS MEANT, not the apostrophes — and its id, so a second item with the

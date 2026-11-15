@@ -1,16 +1,16 @@
-/* ---------- A PHOTO OF THE WORKING (501): up to three pages; Gemini marks them (`markWorking`). Only the AI marks. § */
+/* ---------- A PHOTO OF THE WORKING (501): up to three pages; they go with the part's one AI Mark (`aiMark`). Only the AI marks. § */
 const WORK_MAX = 3, WORK_EDGE = 1600, WORK_BYTES = 500 * 1024;
 /* EACH BOX'S PHOTOS by answer key: data URLs, in memory only, never browser storage. § */
 const WORK_PICS = {};
 
-/* EVERY PART TAKES A PHOTO OF THE WORKING: its tile in the part's tool row (qtools.js), its strip under the box. § */
+/* A PART THE AI MARKS TAKES A PHOTO OF THE WORKING: its tile in the part's tool row (qtools.js), its strip under the box. § */
 function workRow_(x) {
   const r = (x && x.row) || {};
   return Object.assign({}, r, { lead: x.lead, html: x.html, answer: x.answer, answer_type: x.answerType || r.answer_type,
     accept: x.accept || '', mark_words: x.markWords || '', cells: x.cells || '', draw_answer: x.drawAnswer || '',
     choices: (x.choices || []).join('|'), choice_right: (x.choiceRight || []).join('|'), marks: x.marks, subject: x.subject || r.subject });
 }
-/* THE STRIP UNDER THE BOX: thumbnails, then Mark my working; a failed mark keeps the photos. § */
+/* THE STRIP UNDER THE BOX: thumbnails; the part's one Mark sends them, and a failed mark keeps them. */
 function workStrip_(x) {
   if (!x || !isQ_(x)) return '';
   const k = ansKey_(x);
@@ -23,19 +23,12 @@ function workStripInner_(k) {
     tiles: [{ form: true, look: 'qp-work-x', act: 'qp-work-x', data: { k: k, i: i }, aria: 'Remove page ' + (i + 1), label: '×' }] })) },
   { type: 'group', tag: 'p', look: 'qp-work-say', attrs: { role: 'status', 'aria-live': 'polite' } }]);
 }
-/* MARK MY WORKING STANDS IN THE PART'S TOOL ROW (owner, 8 Nov), once there is a photo. § */
-/* THE SAME TILE IN EVERY STATE (rule 7.4): greyed until a photo is taken. */
-function workGoOpts_(k) {
-  const has = (WORK_PICS[k] || []).length > 0;
-  return { icon: 'tick', label: 'Mark my working', note: 'AI reads the photos', act: 'qp-work-send', cls: 'qp-work-send' + (has ? ' is-submit' : ''), off: !has, data: { k } };
-}
 function workPaint_(k) {
   document.querySelectorAll('.qp-work').forEach(el => {
     if (el.getAttribute('data-k') !== k) return;
     el.innerHTML = workStripInner_(k);
     el.hidden = !(WORK_PICS[k] || []).length;
   });
-  document.querySelectorAll('.qp-work-send').forEach(el => { if (el.getAttribute('data-k') === k) el.outerHTML = tile_(workGoOpts_(k)); });
 }
 function workSay_(k, text) {
   document.querySelectorAll('.qp-work').forEach(el => {
@@ -109,39 +102,7 @@ on('qp-work-x', el => {
   workPaint_(k);
 });
 
-/* ---------- SENT: the photos, the question, the scheme and anything typed, as one `markWorking`. § */
-on('qp-work-send', el => {
-  const k = el.getAttribute('data-k');
-  const pics = WORK_PICS[k] || [];
-  if (partReady_('photo', pics) || el.disabled) return;
-  if (typeof USER !== 'object' || !USER || !USER.token) { workSay_(k, 'Sign in to send your working'); return; }
-  const x = typeof ansItem_ === 'function' ? ansItem_(k) : null;
-  if (!x) { workSay_(k, 'Could not find this question'); return; }
-  const inp = [].find.call(document.querySelectorAll('.qp-ans-in, .qp-multi-val'), i => i.getAttribute('data-k') === k);
-  el.disabled = true;
-  el.classList.add('is-busy');
-  workSay_(k, '');
-  const strip = [].find.call(document.querySelectorAll('.qp-work'), s => s.getAttribute('data-k') === k);
-  const wait = strip && strip.querySelector('.qp-work-say');
-  if (wait) wait.innerHTML = loading_();
-  api({ action: 'markWorking', personId: USER.personId || '', id: subId_(), sent: Date.now(), key: k,
-        label: typeof doneLabel_ === 'function' ? (doneLabel_(k) || '') : '',
-        question: aiQuestion_(x), scheme: aiScheme_(x), marks: Number(x.marks) || 1,
-        answer: inp ? inp.value : '', photos: pics.map(p => p.url) })
-    .then(d => {
-      el.disabled = false;
-      el.classList.remove('is-busy');
-      if (wait) loaded_(wait);
-      if (!d || !d.success) { workSay_(k, (d && (d.message || d.error)) || 'Marking isn\u2019t available right now \u2014 tap Mark my working again later'); return; }
-      const said = d.awarded + ' of ' + d.available + ' mark' + (d.available === 1 ? '' : 's') + ' · AI from your photos';
-      workSay_(k, said + (d.feedback ? ' — ' + d.feedback : ''));
-    })
-    .catch(() => {
-      el.disabled = false;
-      el.classList.remove('is-busy');
-      workSay_(k, 'Could not reach the marker — check the connection');
-    });
-});
+/* ---------- MARKED BY THE PART'S ONE MARK BUTTON (owner, 15 Nov): the photos go with the AI's mark (`aiImages_`, qtools.js); there is no second button. */
 
 /* ---------- SEEN BY WHO MAY (`workingOf`): student, accepted parent, admin; fetched on the tap. § */
 /* `workingMaySee_` (dopost.gs): a parent or Admin, never a tutor (owner, 28 Oct). § */

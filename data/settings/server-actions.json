@@ -1085,9 +1085,7 @@
    "childRefused": false,
    "handler": "postMarkWorking_",
    "file": "backend/post-learning.gs",
-   "callers": [
-    "js/working.js"
-   ],
+   "callers": [],
    "fallbacks": [],
    "tabs": [
     "config",
@@ -1454,7 +1452,7 @@
    "fate": "general",
    "into": "readItems",
    "why": "the general read itself (slice 1); no front-end caller until a later slice",
-   "access": "self",
+   "access": "anyone",
    "childRefused": false,
    "handler": "postReadItems_",
    "file": "backend/post-learning.gs",

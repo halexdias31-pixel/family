@@ -265,7 +265,6 @@ function facetSplit_(items, facet) {
   return facetTally_(items, facet).split;
 }
 
-const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet', 'End of topic test': 'Worksheet' };
 /* KINDS UNDER KINDS (546, 610): § */
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
 const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library', spec: 'Library',
@@ -283,23 +282,9 @@ function kindTopTag_(x) {
   return l.indexOf(g) >= 0 ? g : l[0];
 }
 function kindTop_(x) { return (x && x.top) || (x && x.widget && typeof FIND_WIDGET_GROUPS !== 'undefined' && FIND_WIDGET_GROUPS[x.widget.id]) || (x && KIND_UNDER[x.kind]) || ''; }
-/* ONE RULE FOR A VALUE UNDER ANOTHER (660): § */
-function underTop_(table, v) { return (v && table[v]) || v || ''; }
-/* 680: the second offers only what is BELOW the one above, never the parent's own name again; Doesn't § */
-function underOwn_(table, v) { return v && table[v] && table[v] !== v ? v : ''; }
 /* 680: a kind spelt like the kind above it is never offered twice (What kind, then Which). */
 function notTop_(x, v) { const top = asList_(kindTop_(x)).map(spellKey_); const l = [].concat(v || []).filter(k => k && top.indexOf(spellKey_(k)) === -1); return l.length > 1 ? l : (l[0] || ''); }
 
-/* ---------- A 5-A-DAY'S DATE, READ OFF ITS PAPER ID § */
-function fiveADayOf_(id) {
-  const m = /^P-CBM-5AD-[A-Z+]+-(\d{2})(\d{2})$/.exec(String(id || ''));
-  if (!m) return null;
-  const month = MONTH_NAMES[Number(m[1]) - 1];
-  return month ? { month, day: Number(m[2]) } : null;
-}
-function fiveADay_(x) {
-  return x && x.row && String(x.row.document_type || '') === '5-a-day' ? fiveADayOf_(x.row.paper_id) : null;
-}
 
 /* THE ONE RULE EVERY FACET IS ASKED BY (396), as a reason it is NOT asked, or '' when it may be: § */
 /* A NUMBERED RUN IS DRAWN AS A GRID (396): § */
@@ -308,10 +293,8 @@ const runNumber_ = v => (/^(?:([A-Za-z]+) )?(\d+)$/.exec(String(v.show || v.valu
 const numberedRun_ = values => values.length > 1 && values.every(v => runNumber_(v)[2]) && new Set(values.map(v => runNumber_(v)[1] || '')).size === 1;
 function facetWhy_(items, facet, over) {
   /* COUNTED BEFORE NAMED: § */
-  if (!over && facetTally_(items, facet).count - ((STUFF && STUFF.filters) || []).length > Math.max(FACET_MAX_GRID, Object.keys(DOC_TYPE_UNDER).length)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
+  if (!over && facetTally_(items, facet).count - ((STUFF && STUFF.filters) || []).length > FACET_MAX_GRID) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
   const all = facetValues(items, facet), vals = all.length;
-  /* 680: answers that are all BELOW an answer already chosen are asked even alone — Doesn't matter is the § */
-  if (vals > 1 && underChosen_(all)) return ''; /* owner 5 Nov: one answer is never a question, even below a chosen one */
   if (vals < 2) return (vals ? 'one answer' : 'nobody can answer it') + ' — nothing to decide';
   if (!over && vals > (vals <= FACET_MAX_GRID && numberedRun_(all) ? FACET_MAX_GRID : FACET_MAX_ANSWERS)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
   const cov = facetCoverage(items, facet);
@@ -326,11 +309,6 @@ function facetWhy_(items, facet, over) {
          + '% of the list, needs ' + Math.round(FACET_MIN_MINORITY * 100) + '%';
   }
   return '';
-}
-
-function underChosen_(values) {
-  const chosen = new Set((STUFF.filters || []).filter(f => !f.any).map(f => spellKey_(f.value)));
-  return values.every(v => DOC_TYPE_UNDER[v.value] && chosen.has(spellKey_(DOC_TYPE_UNDER[v.value])));
 }
 
 /* A QUESTION WHOSE EVERY ANSWER IS A KIND'S NAME (the kinds tab) chooses what a card IS, not how many (660): § */
@@ -429,56 +407,14 @@ function facetBits_(items, facet) {
   return Math.min(FACET_BITS_ENOUGH, Math.round(bits * 100) / 100);
 }
 
-/* THE NEXT QUESTION WORTH ASKING, or nothing (rule 7, owner 6 Nov): § */
+/* THE NEXT QUESTION, or nothing — ONE PRINCIPLE (owner, 15 Nov): the first facet in the facets tab's order that splits the list. */
+/* No ranking by how well it splits, no kind or choose question jumping the queue: the tab's `sort_order` is the order. */
 function nextFacet(items) {
   const asked = STUFF.filters.map(f => f.field);
-  const ok = [];
   for (const facet of facetList()) {
-    if (asked.indexOf(facet.field) !== -1 || facetWhy_(items, facet)) continue;
-    const vals = facetValues(items, facet);
-    /* What a card IS is asked first (660), the front's answers are FRONT_ORDER's (4 Nov), and a choose question § */
-    if (kindNamed_(vals) || facet.choose || (!asked.length && vals.every(v => FRONT_ORDER.indexOf(v.value) !== -1))) return facet;
-    ok.push({ facet, bits: facetBits_(items, facet) });
+    if (asked.indexOf(facet.field) === -1 && !facetWhy_(items, facet)) return facet;
   }
-  const pick = list => list.reduce((b, c) => (!b || c.bits > b.bits ? c : b), null);
-  let best = pick(ok);
-  /* A finer question splits more, but its coarser one comes first (the subtype rule): Subject before Topic. */
-  /* THE COARSEST HOLDING IT, BY THE TAB (1180): § */
-  const at = new Map(facetList().map((f, i) => [f, i]));
-  for (let hop = 0; best && hop < 4; hop++) {
-    const up = ok.filter(c => c !== best && at.get(c.facet) < at.get(best.facet)
-      && facetInside_(best.facet, c.facet, items) && !facetInside_(c.facet, best.facet, items))
-      .reduce((b, c) => (!b || at.get(c.facet) < at.get(b.facet) ? c : b), null);
-    if (!up) break;
-    best = up;
-  }
-  return best ? best.facet : null;
-}
-
-/* EVERY ANSWER OF F SITS INSIDE ONE ANSWER OF G, and G has two answers at least: F is G asked finer. */
-/* One walk per list and pair, kept as FACET_TALLY keeps its tallies: a tap never re-walks the library. */
-const INSIDE_MEMO_ = new WeakMap();
-function facetInside_(F, G, items) {
-  let m = INSIDE_MEMO_.get(items);
-  if (!m) INSIDE_MEMO_.set(items, m = {});
-  const key = F.field + '>' + G.field;
-  if (key in m) return m[key];
-  /* A CARD MAY HOLD TWO OF G (the Masoretic Text is Christianity and Judaism, 660): § */
-  const to = {};
-  let any = 0;
-  for (const x of items) {
-    const a = facetOwn_(F, x), b = facetOwn_(G, x);
-    if (!a.length || !b.length) continue;
-    const kb = new Set(b.map(spellKey_));
-    for (const v of a) {
-      const k = spellKey_(v);
-      to[k] = to[k] ? to[k].filter(g => kb.has(g)) : [...kb];
-      if (!to[k].length) return (m[key] = false);
-      any++;
-    }
-  }
-  /* G's two answers are the list's, not only F's cards': § */
-  return (m[key] = any > 0 && facetValues(items, G).length > 1);
+  return null;
 }
 
 /* AND WHEN NOTHING QUALIFIES, THE CLOSEST THING TO A QUESTION RATHER THAN A DEAD END: § */

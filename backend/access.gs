@@ -304,8 +304,9 @@ const ACTION_ACCESS = {
   payStatement: 'self', listStaff: 'admin',
   /* THE LIBRARY'S WORDS AND ANSWERS (397): anybody signed in, a day's cap each; the tools' copy in and out is the admin's. */
   libItems: 'self',
-  /* ONE WAY TO THE SERVER (step 2, slice 1): the general read. `self` at the gate, as libItems; which kind a role may read is ITEM_PERMISSIONS (permissions.json `item` rows). */
-  readItems: 'self',
+  /* ONE WAY TO THE SERVER (step 2, slice 1): the general read. `anyone` at the gate (owner, 15 Nov: guests use the library); */
+  /* the handler resolves the token itself, and which kind a role may read is ITEM_PERMISSIONS alone (permissions.json `item` rows). */
+  readItems: 'anyone',
   /* AND (slice 3) THE GENERAL SAVE AND DELETE: `self` at the gate; inside, the old door's own gate again, by name, and an ITEM_PERMISSIONS row. */
   saveItem: 'self', deleteItem: 'self',
   libExport: 'admin', libImport: 'admin',

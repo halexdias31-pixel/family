@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-15-server-path-2";
+const DOGET_VERSION = "2026-11-15-guests-1";
 
 
 function doGet(e) {
@@ -396,7 +396,7 @@ function submissionsTouched_(pid) {
 /* ONE READ OF THE TAB, SHAPED BOTH WAYS — this person's latest per key, and everybody's summary. § */
 function submissionsBuild_(pid, people) {
   const mine = {}, sum = {};
-  readCols_(TAB.submissions, ['person_id', 'key', 'answer', 'verdict', 'submitted_at', 'event_id', 'pressed_at']).rows.forEach(r => {
+  readCols_(TAB.submissions, ['person_id', 'key', 'answer', 'verdict', 'submitted_at', 'event_id', 'pressed_at', 'feedback']).rows.forEach(r => {
     const who = S(r.person_id), k = S(r.key);
     if (!who || !k) return;
     const came = answerAtMs_(r.submitted_at);
@@ -412,6 +412,7 @@ function submissionsBuild_(pid, people) {
     const was = mine[k];
     if (was && was.at > at) return;
     mine[k] = { answer: S(r.answer), verdict: S(r.verdict), at: at, id: S(r.event_id) };
+    if (S(r.feedback)) mine[k].feedback = S(r.feedback);
   });
   /* A KEY ON A PART ID THAT IS GONE LANDS ON THE PART IT BECAME (answer-ids): never Unattempted for work that was done. */
   let landed = mine;

@@ -132,7 +132,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-15-server-path-2";
+const BACKEND_VERSION = "2026-11-15-guests-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -519,6 +519,8 @@ const SCHEMA = {
     "event_id", "pressed_at",
     /* PHOTOS OF THE WORKING (501): Drive links, never public, read back by `workingOf` alone. */
     "photos",
+    /* THE AI'S WRITTEN FEEDBACK WITH ITS SCORE (owner, 15 Nov): read back to the same person only, like the answer. */
+    "feedback",
   ],
 
   /* ---------- REPORTS (395, 486), HISTORY SINCE 494: read once into `claude_notes` by `reports-to-notes`, each row then `migrated`.
@@ -1037,6 +1039,8 @@ const WORKING_LINK = /^https:\/\/drive\.google\.com\/file\/d\/([\w-]{10,})\/view
 /* THE ANSWER A ROW HOLDS WHEN NOTHING WAS TYPED -- the column is never blank. */
 const WORKING_ANSWER = '(photo of working)';
 /* THE WHOLE VOCABULARY OF `submissions.verdict`: § */
+/* THE AI'S FEEDBACK ON A SUBMISSION, cut to this (submit.js SUB_FEEDBACK_MAX says the same). */
+const SUBMISSION_FEEDBACK_MAX = 2000;
 const SUBMISSION_VERDICT = /^(right|wrong|sent|(?:ai|rule):\d{1,3}\/[1-9]\d{0,2})$/;
 /* AND THE PHONE'S NAME FOR A PRESS — its clock in ms, a dash, a random tail (`subId_` in js/submit.js).
    Checked for its shape so a retried send is recognised and nothing else rides in the column. */

@@ -34,7 +34,8 @@ const QT_TILE = {
   calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
   /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
   offline: (t, x) => (typeof window.offOpts_ === 'function' ? window.offOpts_(x) : null),
-  photo: (t, x) => ({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } }),
+  /* THE MARKER IS THE QUESTION'S (owner, 15 Nov): photos are read only by the AI, so only a part the AI marks takes them; a rule-marked part never does. */
+  photo: (t, x) => (isAiMark_(markerOf_(x)) ? { icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } } : null),
 };
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
 const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
@@ -67,7 +68,7 @@ function qtLight_(root, inHand) {
     tileSet_(t, { on: lit, pressed: lit });
   });
 }
-/* A PART'S TILES AS DATA, Check first (rule 3.11): its tools, the pen's Undo and Clear, Mark my working, Show the answer, Help. */
+/* A PART'S TILES AS DATA, Check first (rule 3.11): its tools, the pen's Undo and Clear, Show the answer, Help. ONE MARK BUTTON (owner, 15 Nov): no second one for photos. */
 function qtTiles_(x, ans) {
   if (!x || !x.key) return [];
   /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
@@ -75,11 +76,9 @@ function qtTiles_(x, ans) {
   /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
   const art = typeof padReady_ !== 'function' || padReady_(x);
   const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
-  const wk = typeof ansKey_ === 'function' && isQ_(x) ? ansKey_(x) : '';
   return [qtCheckOpts_(x)].concat(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x)),
     art && typeof padUndoOpts_ === 'function' ? padUndoOpts_(x) : [],
-    [wk && typeof workGoOpts_ === 'function' ? workGoOpts_(wk) : null,
-      ans && typeof qaToggleOpts_ === 'function' ? qaToggleOpts_(ansKey_(x), ansOpen_(x)) : null,
+    [ans && typeof qaToggleOpts_ === 'function' ? qaToggleOpts_(ansKey_(x), ansOpen_(x)) : null,
       typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]).filter(Boolean);
 }
 /* THE ROW ALONE (a check draws a pad with it): the card's own row maker, as `renderCard` draws it. */

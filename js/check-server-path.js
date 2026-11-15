@@ -64,15 +64,20 @@ const gsAll = fs.readdirSync(path.join(O, 'backend')).filter(f => f.endsWith('.g
 const h = (/function postReadItems_\(body, action, began\) \{[\s\S]*?\n\}\n/.exec(gsAll) || [''])[0];
 if ('readItems' in access) {
   if (!h) bad.push('readItems is in ACTION_ACCESS and postReadItems_ is not found');
-  if (!/itemMay_\(kind, 'read', /.test(h)) bad.push('postReadItems_ does not ask ITEM_PERMISSIONS (itemMay_) before reading');
+  if (!/itemMay_\(READ_ITEMS_SHELF\[kind\], 'read', /.test(h)) bad.push('postReadItems_ does not ask ITEM_PERMISSIONS (itemMay_) before reading');
+  /* THE GATE IS `anyone` (guests read the library, 15 Nov): who asks must be the token's, never a personId the request names. */
+  if (!/authWhoIs_\(body\.token\)/.test(h) || !/personId: who \? S\(who\.person_id\) : ''/.test(h)) bad.push('postReadItems_ trusts a personId the request names — it must resolve the token itself');
   if (!/libItemsReply_\(/.test(h)) bad.push('postReadItems_ does not read through libItemsReply_ — the cap and tally must be libItems\' own');
   if (!/function libItemsReply_\(body\) \{/.test(gsAll)) bad.push('libItemsReply_ is gone — the library\'s cap and tally');
-  const served = (/const READ_ITEMS_LIB = \{([^}]*)\}/.exec(gsAll) || ['', ''])[1];
-  [...served.matchAll(/(\w+):/g)].map(x => x[1]).forEach(k => P.ROLES.forEach(role => {
-    const row = rows.find(r => r && r.kind === 'item' && r.role === role && r.action === k + ':read');
-    if (!row) bad.push('readItems serves ' + k + ' and the table has no ' + role + ' row for it');
-    else if (row.allow && row.via !== 'libItems') bad.push('readItems serves ' + k + ' through libItems, and the table says ' + role + '\'s door was ' + row.via);
+  const served = (/const READ_ITEMS_SHELF = \{([^}]*)\}/.exec(gsAll) || ['', ''])[1];
+  if (!served) bad.push('READ_ITEMS_SHELF is gone — which table kind each library kind is read as');
+  [...served.matchAll(/(\w+): '(\w+)'/g)].forEach(([, k, shelf]) => P.ROLES.forEach(role => {
+    const row = rows.find(r => r && r.kind === 'item' && r.role === role && r.action === shelf + ':read');
+    if (!row) bad.push('readItems serves ' + k + ' (as ' + shelf + ') and the table has no ' + role + ' row for it');
+    else if (row.allow && !/^(libItems|readItems)$/.test(row.via)) bad.push('readItems serves ' + k + ' through libItems, and the table says ' + role + '\'s door was ' + row.via);
   }));
+  /* A QUESTION IS NEVER A GUEST'S (owner, 15 Nov): only the library is open signed out. */
+  if ((rows.find(r => r && r.kind === 'item' && r.role === 'anyone' && r.action === 'question:read') || {}).allow) bad.push('the table lets a guest read questions');
   /* SLICE 2: PEOPLE, ANSWERS, MESSAGES — each kind answered by its old door's own handler; a non-admin only through the `self` one, somebody else's only an admin's. */
   const own = (/function readItemsOld_\(\) \{([\s\S]*?)\n\}\n/.exec(gsAll) || ['', ''])[1];
   const byFn = {}; Object.keys(acts).forEach(a => { byFn[acts[a].handler] = a; }); Object.keys(retired).forEach(a => { byFn[retired[a].handler] = a; });
