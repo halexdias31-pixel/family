@@ -40,10 +40,10 @@
     "favlinks": "off",
     "rewrite": "off",
     "poster": "off",
-    "pixel": "off",
+    "pixel": "secondary",
     "libcards": "secondary",
-    "console": "off",
-    "wordgames": "off"
+    "console": "secondary",
+    "wordgames": "secondary"
   },
   "kinds": {
     "question": "core",
@@ -175,6 +175,8 @@
     "layout": "secondary",
     "layout-moves": "secondary",
     "words": "secondary",
+    "games": "secondary",
+    "pixel": "secondary",
     "missing": "secondary",
     "boot": "core"
   },
@@ -430,12 +432,24 @@
     "find-pages",
     "find-settled",
     "find-quick",
-    "find-measure"
+    "find-measure",
+    "games",
+    "pixel"
   ],
   "lazy": [
-    "one-place"
+    "one-place",
+    "games",
+    "pixel"
   ],
-  "widgetFiles": {},
+  "widgetFiles": {
+    "games": [
+      "console",
+      "wordgames"
+    ],
+    "pixel": [
+      "pixel"
+    ]
+  },
   "frozen": {
     "notes": "FROZEN (owner, 7 Nov 2026; docs/history/1090): only Find, the library, questions, settings and bookings matter for now. tools/health.js leaves these js/ file stems out of its score and worklist, beside every non-core file above. Unfreeze: take a stem off this list.",
     "files": [

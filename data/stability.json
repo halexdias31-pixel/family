@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 82,
+ "score": 82.3,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -34,12 +34,12 @@
   {
    "id": "dead",
    "label": "Code nothing calls",
-   "count": 18,
+   "count": 17,
    "weight": 0.3,
    "cap": 10,
-   "off": 5.4,
+   "off": 5.1,
    "where": {
-    "check-dead": "cardRedraw_ (cards-render.js), clipsNow_ (facts.js), filterChips (find-bundles.js), facetBits_ (find-facets.js), facetAnswersHtml_ (find-pages.js), formSlider_ (form.js), paintBoard_ (map.js), paintTimer (overworld.js), qtRow_ (qtools-row.js), sheetHere_ (shell-click.js), shareCanvasPng_ (shell-click.js), postRow_ (tiles-jobs.js), consoleSave_ (media.gs), consoleLoad_ (media.gs), favLinksIn_ (dopost.gs), rewriteIdeasAsk_ (dopost.gs), rewriteCheckAsk_ (dopost.gs), inboxList_ (inbox.gs)"
+    "check-dead": "cardRedraw_ (cards-render.js), clipsNow_ (facts.js), filterChips (find-bundles.js), facetBits_ (find-facets.js), facetAnswersHtml_ (find-pages.js), formSlider_ (form.js), paintTimer (overworld.js), qtRow_ (qtools-row.js), sheetHere_ (shell-click.js), shareCanvasPng_ (shell-click.js), postRow_ (tiles-jobs.js), consoleSave_ (media.gs), consoleLoad_ (media.gs), favLinksIn_ (dopost.gs), rewriteIdeasAsk_ (dopost.gs), rewriteCheckAsk_ (dopost.gs), inboxList_ (inbox.gs)"
    }
   },
   {
@@ -133,7 +133,7 @@
   }
  ],
  "secondary": {
-  "score": 89.5,
+  "score": 88.2,
   "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
@@ -155,6 +155,15 @@
     }
    },
    {
+    "id": "catches",
+    "label": "Empty catches (tools/catches.js)",
+    "count": 77,
+    "weight": 0.02,
+    "cap": 15,
+    "off": 1.5,
+    "where": {}
+   },
+   {
     "id": "special",
     "label": "Per-facet and per-kind special cases",
     "count": 28,
@@ -171,13 +180,15 @@
     }
    },
    {
-    "id": "catches",
-    "label": "Empty catches (tools/catches.js)",
-    "count": 35,
-    "weight": 0.02,
-    "cap": 15,
-    "off": 0.7,
-    "where": {}
+    "id": "longfiles",
+    "label": "Files over 3000 lines",
+    "count": 1,
+    "weight": 0.5,
+    "cap": 10,
+    "off": 0.5,
+    "where": {
+     "js/games.js": 3501
+    }
    },
    {
     "id": "duplicates",
@@ -204,15 +215,6 @@
     "label": "Code nothing calls",
     "count": 0,
     "weight": 0.3,
-    "cap": 10,
-    "off": 0,
-    "where": {}
-   },
-   {
-    "id": "longfiles",
-    "label": "Files over 3000 lines",
-    "count": 0,
-    "weight": 0.5,
     "cap": 10,
     "off": 0,
     "where": {}
