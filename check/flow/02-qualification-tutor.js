@@ -863,6 +863,18 @@ const siteOpen_ = async (w, sel) => {
   for (let i = 0; i < pgs.length && !inFind(); i++) { if (!pgs[i] || !pgs[i].x || pgs[i].part) continue; w.goPage('stuff', first + i, true); await wait(150); }
   return inFind();
 };
+/* PARENT SETTINGS IS FIND › SETTINGS › PARENT since 15 Nov (find-only.json): go('family') (or the door) opens it, and what it draws is each
+   Find item's card as Find draws it (settingDoorCard_), held in one detached box so a journey can ask it what it asked #s-family. */
+const famFind_ = async w => {
+  const t = w.__t, d = w.document;
+  try { t.go('family', false, true); } catch (e) { /* the door below opens it */ }
+  await wait(300);
+  if (t.AT() !== 'stuff' || !/"Settings"/.test(JSON.stringify(t.STUFF().filters))) { try { w.findSettings_('Parent'); } catch (e) {} await wait(300); }
+  const box = d.createElement('div'); box.id = 'find-family'; box.className = 'screen';
+  box.dataset.at = t.AT(); box.dataset.filters = JSON.stringify(t.STUFF().filters);
+  try { box.innerHTML = (w.stuffPages_() || []).filter(p => p && p.x && !p.part).map(p => w.settingDoorCard_(p.x)).join(''); } catch (e) { box.dataset.err = e.message; }
+  return box;
+};
 check('no Setup card anywhere (owner, 10 Nov: the health checker covers it); the setup report still reaches only an admin', async () => {
   const W = cardWorld_();
   const bad = [];

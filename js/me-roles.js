@@ -232,7 +232,7 @@ function familyPages_() {
   /* NOTHING A PARENT'S ALONE (469): your picture, name and contact are everybody's, so on Student settings. */
   return out.length ? out : [rankOffCard_(title, NOTHING_YET + ' Your details are on ' + tabLabel_('account', 'Kids settings') + '.', null, 'set-none')];
 }
-screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_('family') : familyPages_()));
+/* PARENT SETTINGS WAS A COLUMN; it is Find › Settings › Parent now (find-only.json), drawn from CARD_BUILD.family. */
 
 /* APPLY TO TEACH IS A CARD OF ITS OWN, not a line on the padlock: Find › Settings skips a padlock, and the owner onboards through Find (1150). */
 function applyCard_() {

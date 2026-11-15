@@ -318,7 +318,6 @@ const PAGER = {
   /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is a page, and a count of nothing over a page that exists is a § */
   spotlight: () => cardCount_('spotlight', () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1)),
   /* AND THE SAME AGAIN FOR SETTINGS. § */
-  family: () => cardCount_('family', () => familyPages_().length),
   staff: () => cardCount_('staff', () => staffPages_().length),
   web: () => cardCount_('web', () => webProfilePages_().length),
   tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
@@ -406,7 +405,7 @@ function applyBrandIcon_() {
    remembered between visits. */
 /* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke: § */
 const PAGE = { feed: 0, stuff: 0, account: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, family: 0, staff: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, res: 0, biz: 0 };
+               saved: 0, staff: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, res: 0, biz: 0 };
 
 /* A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES. § */
 const PAGE_KEEP = {};

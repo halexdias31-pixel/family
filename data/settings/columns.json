@@ -121,15 +121,6 @@
   "notes": "Kids settings since 730 (was Student settings): every account's own settings: signing in and out, the PIN, your roles, notifications, Reading aloud (a sample of the device voice, 463), and what was the Progress column (countdowns, answered, activity, topics to work on, grades, each series, sessions; 461), and a student's details. Signed out, the sign-in card (docs/history/461)."
  },
  {
-  "screen": "family",
-  "label": "Parent settings",
-  "icon": "🔧",
-  "active": "FALSE",
-  "sort_order": 19,
-  "cards": "TRUE",
-  "notes": "a parent's or payer's own details (contact, address). Below Client it says it is not for your account (docs/history/461)."
- },
- {
   "screen": "biz",
   "label": "Biz settings",
   "icon": "📋",

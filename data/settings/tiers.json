@@ -16,7 +16,6 @@
     "parents": "secondary",
     "staff": "secondary",
     "account": "core",
-    "family": "secondary",
     "biz": "secondary"
   },
   "widgets": {

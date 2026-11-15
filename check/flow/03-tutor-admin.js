@@ -88,17 +88,24 @@ check('486: every top-level card and widget in every column has the one Report t
   return bad;
 });
 
-check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, Student and Parent profiles, in that order and so labelled; the profiles hold a card per person by category, your own first where you belong; the settings hold that type\'s settings, a column above your rank says so; Business is an admin\'s alone; every setting is edited in exactly one place', async () => {
+check('Five columns (453, 461): Tutor, Student and Parent profiles, then Tutor and Student settings, in that order and so labelled (Parent settings is Find › Settings › Parent, 15 Nov); the profiles hold a card per person by category, your own first where you belong; the settings hold that type\'s settings, a column above your rank says so; Business is an admin\'s alone; every setting is edited in exactly one place', async () => {
   const W = hubWorld_();
   const bad = [];
-  /* THE OWNER'S ORDER SINCE 730: the profiles first, then the settings (Web settings, an admin's, is Find › Settings › Site since 15 Nov). */
-  const SIX = ['s-tutors', 's-students', 's-parents', 's-staff', 's-account', 's-family'];
-  const LABELS = ['Tutor profile', 'Student profile', 'Parent profile', 'Tutor settings', 'Kids settings', 'Parent settings'];
+  /* THE OWNER'S ORDER SINCE 730: the profiles first, then the settings (Web and Parent settings are Find › Settings › Site / Parent since 15 Nov). */
+  const SIX = ['s-tutors', 's-students', 's-parents', 's-staff', 's-account'];
+  const LABELS = ['Tutor profile', 'Student profile', 'Parent profile', 'Tutor settings', 'Kids settings'];
   for (const [who, rank, pid] of RANK_COLS_) {
     const a = await hubBoot_(W, who);
     if (a.err) { bad.push(rank + ': ' + a.err); continue; }
     const q = s => a.d.querySelector(s);
     const txt = s => String((q(s) || {}).textContent || '');
+    /* PARENT SETTINGS: no column; the old name opens Find › Settings › Parent, whose cards are asked below where #s-family was. */
+    if (a.t.TABS.some(x => x.id === 'family') || q('#s-family')) bad.push(rank + ': Parent settings is still a column');
+    const fam = await famFind_(a.w), fq = s => fam.querySelector(s);
+    if (fam.dataset.at !== 'stuff' || !/"Parent"/.test(fam.dataset.filters || '')) bad.push(rank + ': go("family") opened ' + fam.dataset.at + ' with ' + fam.dataset.filters + ', wanted Find › Settings › Parent');
+    if (fam.dataset.err) bad.push(rank + ': drawing Find › Settings › Parent threw ' + fam.dataset.err);
+    try { a.t.go('account', false, true); } catch (e) {}
+    await wait(150);
     const order = [...a.d.querySelectorAll('#screen > section.screen')].map(s => s.id).filter(id => SIX.indexOf(id) !== -1);
     SIX.forEach(id => { if (order.indexOf(id) === -1) bad.push(rank + ' has no ' + id + ' column'); });
     const tabOrder = a.t.TABS.map(x => 's-' + x.id).filter(id => SIX.indexOf(id) !== -1);
@@ -106,7 +113,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     const tabs = a.t.TABS.map(x => x.id), labs = SIX.map(id => (a.t.TABS.find(x => 's-' + x.id === id) || {}).label);
     if (labs.join('|') !== LABELS.join('|')) bad.push(rank + ': the six are labelled ' + JSON.stringify(labs));
     /* WEB SETTINGS IS NO COLUMN (Find › Settings › Site, find-only.json 15 Nov): Kids settings stands right of Tutor settings. */
-    if (rank === 'admin' && (tabs[tabs.length - 1] !== 'biz' || tabs.indexOf('site') !== -1 || tabs.indexOf('account') !== tabs.indexOf('staff') + 1)) bad.push('Biz settings is not last, Web settings is still a column, or Kids settings is not right of Tutor settings, for an admin (730)');
+    if (rank === 'admin' && (tabs[tabs.length - 1] !== 'biz' || tabs.indexOf('site') !== -1 || tabs.indexOf('family') !== -1 || tabs.indexOf('account') !== tabs.indexOf('staff') + 1 || tabs.indexOf('biz') !== tabs.indexOf('account') + 1)) bad.push('Biz settings is not last, Web or Parent settings is still a column, or Kids settings is not between Tutor and Biz settings, for an admin (730)');
     /* THE READING ALOUD VOICE IS A GENERIC SETTING: Student settings, nowhere else. */
     /* (jsdom has no speech, so `voiceCard_` may draw nothing: what is asked is that it is never anywhere else.) */
     if (a.d.querySelectorAll('.voice-card').length > 1 || (a.d.querySelector('.voice-card') && !q('#s-account .voice-card'))) bad.push(rank + ': Reading aloud is not on Student settings alone');
@@ -120,8 +127,9 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     if (q('#s-account .hub, #s-account .kid-manage, #s-account [data-do="person-add"], #s-account .col-lock')
       || q('#s-account [data-do="card-edit"]')) bad.push(rank + ': a person, a parent\'s or a tutor\'s thing is on Student settings');
     /* 469: EACH SETTING ON ONE COLUMN FOR EVERY RANK, the lowest it applies to — everybody's four on Student settings, usable by every rank. */
-    const ownIds = [...a.d.querySelectorAll('#s-account [data-lay-card^="own:"], #s-family [data-lay-card^="own:"], #s-staff [data-lay-card^="own:"]')]
-      .map(x => x.closest('.screen').id.slice(2) + '|' + x.dataset.layCard);
+    const ownIds = [...a.d.querySelectorAll('#s-account [data-lay-card^="own:"], #s-staff [data-lay-card^="own:"]')]
+      .map(x => x.closest('.screen').id.slice(2) + '|' + x.dataset.layCard)
+      .concat([...fam.querySelectorAll('[data-lay-card^="own:"]')].map(x => 'family|' + x.dataset.layCard));
     const seen = {};
     ownIds.forEach(x => { const id = x.split('|')[1]; seen[id] = (seen[id] || 0) + 1; if (x.split('|')[0] !== id.split(':')[1]) bad.push(rank + ': ' + id + ' is drawn on ' + x.split('|')[0]); });
     Object.keys(seen).forEach(id => { if (seen[id] !== 1) bad.push(rank + ': ' + id + ' is drawn ' + seen[id] + ' times across the settings columns'); });
@@ -130,14 +138,15 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
       if (!el || el.closest('.is-locked')) bad.push(rank + ': your ' + k + ' is not an open card on Student settings');
     });
     if (rank === 'staff' || rank === 'admin') ['headline', 'where'].forEach(k => { if (!q('#s-staff .card-ed[data-lay-card="own:staff:' + k + '"]')) bad.push(rank + ': ' + k + ' is not on Tutor settings'); });
-    if (q('#s-family [data-me="email"], #s-staff [data-me="email"], #s-family [data-me="postcode"]')) bad.push(rank + ': your contact is on a column above Student settings');
-    const famOff = !!q('#s-family .rank-off'), staffOff = !!q('#s-staff .rank-off');
-    /* 467: STAFF AND ADMIN WITH NO PARENT'S DETAILS see Parent settings locked too. */
-    if (famOff !== (rank === 'student')) bad.push(rank + ': Parent settings ' + (famOff ? 'says it is not for this account' : 'is drawn unlocked for a non-parent'));
+    if (q('#s-staff [data-me="email"]') || fq('[data-me="email"], [data-me="postcode"]')) bad.push(rank + ': your contact is on Tutor settings or Find › Settings › Parent as well as Student settings');
+    const staffOff = !!q('#s-staff .rank-off');
+    /* 469: NOTHING IS A PARENT'S ALONE YET, so Find › Settings › Parent holds no setting for any rank (the column's padlock or "nothing yet" line was
+       its only card; Find draws neither, settingNone_), and nothing in it can be typed into below a parent. */
+    if (fam.querySelector('.card-ed, .me-form, [data-me]')) bad.push(rank + ': Find › Settings › Parent draws a setting: ' + [...fam.querySelectorAll('[data-me], .card-ed')].map(x => x.dataset.me || x.dataset.layCard).join(', '));
     if (staffOff !== (rank === 'student' || rank === 'client')) bad.push(rank + ': Tutor settings ' + (staffOff ? 'says it is not for this account' : 'is drawn below Staff'));
     /* 467: A COLUMN FOR A ROLE YOU DO NOT HOLD IS THE PADLOCK LINE, THEN EVERY CARD OF IT LOCKED — each with its padlock, nothing pressable. */
     if (staffOff && !/are for tutors/.test(txt('#s-staff .rank-off'))) bad.push(rank + ': Tutor settings does not say plainly it is for tutors');
-    for (const [col, off] of [['staff', staffOff], ['family', famOff]]) {
+    for (const [col, off] of [['staff', staffOff]]) {
       if (!off) continue;
       const lock = q('#s-' + col + ' .rank-off');
       if (!lock.classList.contains('col-lock') || !/Locked/.test((lock.querySelector('.kc-tags .qtag') || {}).textContent || '')) bad.push(rank + ': ' + col + ' is not a padlock');
@@ -166,7 +175,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     const setCol = 'account';
     /* 468: YOUR OWN CARD IS ONLY ITS EDITING THERE, a card per section; no settings column draws it as others see it. */
     if (!q('#s-' + setCol + ' .card-ed[data-pid="' + pid + '"]')) bad.push(rank + ': ' + setCol + ' has no editing cards for your own card');
-    if (q('#s-staff .own-set, #s-account .own-set, #s-family .own-set, #s-staff .me-card, #s-account .me-card, #s-family .me-card, [data-do="card-edit"]')) bad.push(rank + ': a settings column still shows your card as others see it, or an Edit tile');
+    if (q('#s-staff .own-set, #s-account .own-set, #s-staff .me-card, #s-account .me-card, [data-do="card-edit"]') || fq('.own-set, .me-card, [data-do="card-edit"]')) bad.push(rank + ': a settings column still shows your card as others see it, or an Edit tile');
     if (rank === 'client' && !q('#s-students .kid-manage')) bad.push('a client\'s Students has no Manage your child');
     if (!q('#s-students .ps-card')) bad.push(rank + ': Students has no Find someone by handle');
     const myShare = q('#s-tutors [data-do="tutor-share"][data-handle="' + (a.t.whoami().handle || '-') + '"]');
@@ -187,18 +196,21 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
 });
 
 /* ---------- EVERYBODY SEES EVERY CARD, LOCKED WHERE IT IS NOT THEIRS, AND EACH SAYS WHAT IT IS FOR (467) ---------- */
-check('467: signed out, Parent, Tutor and Student settings show every card locked — a padlock each, every box and tile disabled, no data — and every card on the right-hand columns says what it is for in one short line', async () => {
+check('467: signed out, Tutor and Student settings show every card locked and Find › Settings › Parent offers an account — a padlock each, every box and tile disabled, no data — and every card on the right-hand columns says what it is for in one short line', async () => {
   const W = hubWorld_();
   const bad = [];
   const o = await cardOpen_(W, null);
   if (o.err) return [o.err];
-  ['family', 'staff', 'account'].forEach(col => { try { o.t.go(col, false, true); o.w.paint(col); } catch (e) { bad.push('drawing ' + col + ' threw: ' + e.message); } });
+  /* PARENT SETTINGS IS FIND › SETTINGS › PARENT (15 Nov): signed out, the old name opens Find › Settings, which offers an account (its sign-in line was the column's only card, 469). */
+  const fam = await famFind_(o.w);
+  if (fam.dataset.at !== 'stuff' || !/"Settings"/.test(fam.dataset.filters || '')) bad.push('signed out, go("family") opened ' + fam.dataset.at + ' with ' + fam.dataset.filters + ', wanted Find › Settings');
+  if (!o.w.stuffPages_().some(p => p && p.x && p.x.join)) bad.push('signed out, Find › Settings does not offer an account (Make an account)');
+  if (fam.querySelector('[data-me="email"]')) bad.push('signed out, Find › Settings › Parent draws the email box (469: it is on Student settings)');
+  ['staff', 'account'].forEach(col => { try { o.t.go(col, false, true); o.w.paint(col); } catch (e) { bad.push('drawing ' + col + ' threw: ' + e.message); } });
   await wait(250);
-  for (const col of ['family', 'staff', 'account']) {
+  for (const col of ['staff', 'account']) {
     const shut = [...o.d.querySelectorAll('#s-' + col + ' .is-locked')];
-    /* 469: NOTHING IS A PARENT'S ALONE YET, so Parent settings signed out is its padlock line with no cards under it. */
-    if (shut.length < (col === 'family' ? 0 : 2)) bad.push('signed out, ' + col + ' shows ' + shut.length + ' locked cards');
-    if (col === 'family' && !o.d.querySelector('#s-family .rank-off')) bad.push('signed out, Parent settings does not say to sign in');
+    if (shut.length < 2) bad.push('signed out, ' + col + ' shows ' + shut.length + ' locked cards');
     if (shut.some(c => !c.querySelector(':scope > .card-lock svg'))) bad.push('signed out, a locked ' + col + ' card has no padlock');
     const live = [...o.d.querySelectorAll('#s-' + col + ' .is-locked :is(input, select, textarea, button)')].filter(x => !x.disabled);
     if (live.length) bad.push('signed out, ' + live.length + ' boxes or tiles on ' + col + ' can be used');
@@ -209,15 +221,15 @@ check('467: signed out, Parent, Tutor and Student settings show every card locke
   }
   if (!o.d.querySelector('#s-account .signin-card, #s-account [data-do^="signin"], #s-account .card:not(.is-locked)')) bad.push('signed out, Student settings lost its sign-in card');
   if (!o.d.querySelector('#s-account .is-locked [data-me="email"][disabled]')) bad.push('signed out, Student settings does not show the email box, locked');
-  if (o.d.querySelector('#s-family [data-me="email"], #s-staff [data-me="email"]')) bad.push('signed out, the email box is on a column above Student settings (469)');
+  if (o.d.querySelector('#s-staff [data-me="email"]')) bad.push('signed out, the email box is on a column above Student settings (469)');
   /* EVERY CARD SAYS WHAT IT IS FOR: the admin, every right-hand column. */
   const a = await hubBoot_(W, 'admin@example.org');
   if (a.err) return bad.concat([a.err]);
-  for (const col of ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz']) {
+  for (const col of ['staff', 'account', 'tutors', 'students', 'parents', 'biz']) {
     try { a.t.go(col, false, true); a.w.paint(col); } catch (e) { bad.push('drawing ' + col + ' threw: ' + e.message); }
     await wait(150);
     const rows = [...a.d.querySelectorAll('#s-' + col + ' .card-admin[data-lay-for]')];
-    if (!rows.length && col !== 'family') bad.push('the admin sees no card rows on ' + col + ', so its lines were NOT checked');
+    if (!rows.length) bad.push('the admin sees no card rows on ' + col + ', so its lines were NOT checked');
     const seen = new Set();
     rows.forEach(r => {
       const id = r.dataset.layFor;
@@ -426,7 +438,7 @@ check('Student settings (453) hold only what is not on your card — a tutor\'s 
       .filter(f => !/^(phone|date_of_birth|photo|first_name|last_name)$/.test(f) && !/^lib\d+_/.test(f))
       .filter(f => !c.d.querySelector('#s-' + col + ' [data-me="' + f + '"]'));
     if (lost.length) bad.push(who + '\'s Settings lost ' + lost.join(', '));
-    if (c.d.querySelector('#s-family [data-me="email"]')) bad.push(who + '\'s details are on Parent settings as well as Student settings');
+    if ((await famFind_(c.w)).querySelector('[data-me="email"]')) bad.push(who + '\'s details are on Find › Settings › Parent as well as Student settings');
     if (/student/.test(who) && !c.d.querySelector('#s-account [data-me="dob_d"]')) bad.push('the student\'s Settings lost the date of birth');
     common(who, c.d);
   }

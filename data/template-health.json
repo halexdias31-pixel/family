@@ -75,7 +75,7 @@
   {
    "id": "tpl-stray",
    "label": "Rendered cards: no button or link outside the tile row or a form",
-   "ok": 821,
+   "ok": 822,
    "of": 937,
    "unit": "cards seen"
   },
@@ -203,10 +203,10 @@
    }
   },
   "level": {
-   "cards": 23,
+   "cards": 24,
    "clean": 0,
    "props": {
-    "tiles": 23
+    "tiles": 24
    }
   },
   "venue": {
@@ -360,7 +360,7 @@
    "clean": 0,
    "props": {
     "tiles": 20,
-    "stray": 12
+    "stray": 11
    }
   },
   "person": {
@@ -400,10 +400,10 @@
    "props": {}
   },
   "post": {
-   "cards": 8,
+   "cards": 7,
    "clean": 0,
    "props": {
-    "tiles": 8
+    "tiles": 7
    }
   },
   "reg-card": {
@@ -872,7 +872,7 @@
   },
   {
    "kind": "tpl-tiles",
-   "where": "check/shots/template/admin-390-lens-card-tiles.png",
+   "where": "find:Settings:setting",
    "say": "lens-card on find:Settings:setting as admin at 390: tiles — expected one row, got 2 lines of tiles (div.tile-row.kc-row)"
   },
   {
@@ -2032,11 +2032,6 @@
   },
   {
    "kind": "tpl-stray",
-   "where": "check/shots/template/pupil-390-setting-stray.png",
-   "say": "setting on find:Settings:setting as pupil at 390: stray — expected controls only in the tile row (or a form), got tile \"Sign out\" (button.tile)"
-  },
-  {
-   "kind": "tpl-stray",
    "where": "check/shots/template/pupil-390-menu-stray.png",
    "say": "menu on find:Posts:post as pupil at 390: stray — expected controls only in the tile row (or a form), got counted row tap \"Approved\" (div.counted.row)"
   },
@@ -2059,11 +2054,6 @@
    "kind": "tpl-stray",
    "where": "check/shots/template/admin-820-menu-stray.png",
    "say": "menu on find:front as admin at 820: stray — expected controls only in the tile row (or a form), got counted row tap \"Practice\" (div.counted.row)"
-  },
-  {
-   "kind": "tpl-stray",
-   "where": "check/shots/template/admin-820-menu-stray.png",
-   "say": "menu on find:Booking:level as admin at 820: stray — expected controls only in the tile row (or a form), got counted row tap \"Test Admin\" (div.counted.row)"
   },
   {
    "kind": "tpl-stray",
@@ -2154,6 +2144,11 @@
    "kind": "tpl-stray",
    "where": "check/shots/template/parent-820-setting-stray.png",
    "say": "setting on find:Settings:setting as parent at 820: stray — expected controls only in the tile row (or a form), got tile \"Save\" (button.tile)"
+  },
+  {
+   "kind": "tpl-stray",
+   "where": "check/shots/template/parent-820-menu-stray.png",
+   "say": "menu on find:Posts:post as parent at 820: stray — expected controls only in the tile row (or a form), got counted row tap \"Approved\" (div.counted.row)"
   },
   {
    "kind": "tpl-stray",
