@@ -1,9 +1,8 @@
 {
  "say": "Columns still standing outside Find (TAB_ORDER less Find). Only goes down: node js/check-find-only.js --lower",
- "total": 17,
+ "total": 16,
  "left": [
   "account",
-  "apprentice",
   "biz",
   "booking",
   "dm",

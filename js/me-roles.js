@@ -260,7 +260,7 @@ screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('
 function apprenticePages_() {
   return [rolesSet_('appr-set', '', [{ type: 'text', look: 'note', text: brand('apprentice_blurb', 'Work experience with us. Coming soon.') }])];
 }
-screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? cardsOf_('apprentice') : apprenticePages_()));
+/* APPRENTICE SETTINGS WAS A COLUMN; it is Find › Settings › Apprentice now (find-only.json), drawn from CARD_BUILD.apprentice. */
 
 /* ---------- WEB PROFILE (730): @family.'s own public card, from the brand tab, every line with its fallback ---------- */
 function webProfilePages_() {

@@ -4503,8 +4503,6 @@ const TABS = [
   { id: 'parents',  icon: '👪', label: 'Parent profile',     title: 'Parent profile', cards: true },
   { id: 'family',  icon: '🔧', label: 'Parent settings',  title: 'Parent settings', cards: true },
   { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings', cards: true },
-  /* APPRENTICE: work experience, a placeholder column beside Tutor settings until it is built (docs/history/570). */
-  { id: 'apprentice', icon: '🧑‍🔧', label: 'Apprentice settings', title: 'Apprentice settings', cards: true },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
@@ -4520,13 +4518,17 @@ const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FI
                    'spotlight', 'feed', 'reel', 'dm',                 /* social (392), below Find; Spotlight left of the posts (461) */
                    'booking', 'shop',                                 /* business */
                    'web', 'tutors', 'students', 'parents',                /* the profiles (730); Apprentice profile is Find › Profiles › Apprentice (find-only.json) */
-                   'staff', 'site', 'account', 'family', 'apprentice', 'biz']; /* the six settings, the owner's order (730); site and biz admin-only */
+                   'staff', 'site', 'account', 'family', 'biz']; /* the settings, the owner's order (730); site and biz admin-only */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
+/* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
+const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true }];
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
 const TABS_BUILT = TABS.slice();
 /* THE CARD COLUMNS (730), left to right: TAB_ORDER and each tab's `cards`, which data/settings/columns.json repeats (check-doors). */
-const CARD_COLS = TAB_ORDER.filter(id => TABS_BUILT.some(t => t.id === id && t.cards));
+const CARD_COLS = TAB_ORDER.filter(id => TABS_BUILT.some(t => t.id === id && t.cards)).concat(SETTING_GROUPS.map(g => g.id));
+/* A CARD COLUMN OR SETTINGS GROUP BY ID: its label and whether it is an admin's (layout.js, me-columns.js). */
+const settingGroupOf_ = id => TABS_BUILT.find(t => t.id === id) || SETTING_GROUPS.find(g => g.id === id) || null;
 const COLUMNS = TABS.slice();
 
 /* ---------- WHICH COLUMNS THIS VIEWER IS GIVEN — THE SMALLEST RULE THAT LEAVES ONE OUT § */
@@ -4633,6 +4635,7 @@ function screen(id, draw) { SCREENS[id] = { draw }; }
 /* ---------- WHERE YOU WERE, IF IT IS STILL A PLACE § */
 /* FIRST VISIT LANDS ON FIND — see `TAB_HOME` above. */
 let AT = TAB_HOME;
+let KEPT_GONE = '';
 /* ---------- REMEMBERED FOR A RELOAD, NOT FOR TOMORROW § */
 /* THE VIEWER'S COLUMNS FIRST — `USER` is already read out of storage (data.js), so an admin reloading on
    Business is put back on it, and anybody else's remembered `biz` is not a column and is let go. */
@@ -4642,6 +4645,8 @@ try {
   const was = kept && screenNow_(kept);
   const when = Number(localStorage.getItem('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
+  /* A REMEMBERED COLUMN THAT IS A FIND BRANCH NOW (screens-moved.json `find:`) opens that branch once the payload is in (`loadFinish_`). */
+  else if (was && when && Date.now() - when < AWAY_AGAIN) KEPT_GONE = was;
 } catch { /* a bad stored tab opens the default one */ }
 /* ---------- AND THE MOMENT IS WHEN YOU LEFT, NOT WHEN YOU ARRIVED § */
 function tabStampLeft_() {
@@ -6206,7 +6211,6 @@ const PAGER = {
   /* AND THE SAME AGAIN FOR SETTINGS. § */
   family: () => cardCount_('family', () => familyPages_().length),
   staff: () => cardCount_('staff', () => staffPages_().length),
-  apprentice: () => cardCount_('apprentice', () => apprenticePages_().length),
   web: () => cardCount_('web', () => webProfilePages_().length),
   tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
   students: () => cardCount_('students', () => peoplePages_('students').length),
@@ -8149,6 +8153,8 @@ function loadFinish_(kept) {
   bootLoaded_(true);
   /* THE ADMIN'S FRONT DOOR (489, layout.js), once the layout has come with the payload. */
   try { if (typeof frontGo_ === 'function') frontGo_(); } catch (e) { oops_(e, 'shell:loadOnce_') }
+  /* A REMEMBERED COLUMN THAT MOVED INTO FIND (shell-boot.js `KEPT_GONE`) opens its branch, once, if nothing else was opened meanwhile. */
+  try { const k = KEPT_GONE; if (k && !LOAD_FAILED && AT === TAB_HOME && typeof screenGone_ === 'function' && screenGone_(k)) KEPT_GONE = ''; } catch (e) { oops_(e, 'shell:keptGone_') }
   /* ---------- THE STALE SCREENS, CLEARED BEFORE THE REDRAW § */
   /* ---------- ONCE, NOT ON EVERY LOAD § */
   /* ---------- AND NOT EMPTIED AT ALL ANY MORE — THE GLASS IS DRAWN, THE REST IN THE QUIET AFTER IT § */
@@ -10953,7 +10959,7 @@ screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('
 function apprenticePages_() {
   return [rolesSet_('appr-set', '', [{ type: 'text', look: 'note', text: brand('apprentice_blurb', 'Work experience with us. Coming soon.') }])];
 }
-screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? cardsOf_('apprentice') : apprenticePages_()));
+/* APPRENTICE SETTINGS WAS A COLUMN; it is Find › Settings › Apprentice now (find-only.json), drawn from CARD_BUILD.apprentice. */
 
 /* ---------- WEB PROFILE (730): @family.'s own public card, from the brand tab, every line with its fallback ---------- */
 function webProfilePages_() {
@@ -11233,6 +11239,8 @@ function settingsSplit_() {
 }
 /* ONE GROUP, ONE CARD, ITS OWN SAVE — `meSave_` posts the boxes of the card it is pressed in, whichever column.
    `col` names the column, so an admin's Split (464, layout.js) can draw a group a field a card, each with its own Save. */
+/* THE LINE UNDER A SETTINGS FORM THAT SAYS WHAT WAS SAVED: one shape, here and on the library shelf (me-settings.js). */
+const ME_SAID_ = { type: 'group', tag: 'p', look: 'note me-said' };
 function settingsCards_(shown, moved, col) {
   const p = whose_().profile || {};
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
@@ -11251,7 +11259,7 @@ function settingsCards_(shown, moved, col) {
       options: fieldOptions_,
     },
     save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
-    foot: (mail(list) ? movingNote_(p) : '') + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said' }),
+    foot: (mail(list) ? movingNote_(p) : '') + cardBlock_(ME_SAID_),
     after: id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '' }));
   const out = [];
   Object.keys(shown).forEach((g, k) => {
@@ -11267,7 +11275,7 @@ function settingsCards_(shown, moved, col) {
 const settingsSplittable_ = list => (list || []).length > 1 && !list.some(isQualField_) && !isTimetable_(list);
 /* ---------- SIX COLUMNS (453): TUTORS, STUDENTS, PARENTS, THEN EACH ACCOUNT TYPE'S SETTINGS ----------
    The owner: "A user in theory could appear in each of these 3 categories" and "split account settings into 3". */
-const tabLabel_ = (id, or) => ((typeof TABS_BUILT !== 'undefined' && TABS_BUILT.find(t => t.id === id)) || {}).label || or;
+const tabLabel_ = (id, or) => ((typeof settingGroupOf_ === 'function' && settingGroupOf_(id)) || {}).label || or;
 /* THE PEOPLE COLUMN OF YOUR RANK, where your own card is shown first (453); what you edit is on Student settings for every rank (469). */
 const homeCol_ = () => rankAtLeast_('staff') ? 'tutors' : rankAtLeast_('client') ? 'parents' : 'students';
 /* DO YOU BELONG IN THIS PEOPLE COLUMN — by rank, or by a family link (a parent is a parent whatever their rank). */
@@ -12332,7 +12340,7 @@ function libCardsDraw_(into) {
     return;
   }
   const p = whose_().profile || {};
-  into.innerHTML = cardBlock_({ type: 'group', look: 'me-form', inner: libraryShelf_(list, f => p[f] ?? '') + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said' }) });
+  into.innerHTML = cardBlock_({ type: 'group', look: 'me-form', inner: libraryShelf_(list, f => p[f] ?? '') + cardBlock_(ME_SAID_) });
 }
 function initLibCards_() { libCardsDraw_($('lib-box')); }
 /* EVERY COPY ON THE PAGE — Tools' and, starred, Saved's — for `myProfile` landing (`profileRefresh_`): § */

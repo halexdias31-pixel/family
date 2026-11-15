@@ -320,7 +320,6 @@ const PAGER = {
   /* AND THE SAME AGAIN FOR SETTINGS. § */
   family: () => cardCount_('family', () => familyPages_().length),
   staff: () => cardCount_('staff', () => staffPages_().length),
-  apprentice: () => cardCount_('apprentice', () => apprenticePages_().length),
   web: () => cardCount_('web', () => webProfilePages_().length),
   tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
   students: () => cardCount_('students', () => peoplePages_('students').length),

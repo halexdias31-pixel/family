@@ -33,6 +33,8 @@ function settingsSplit_() {
 }
 /* ONE GROUP, ONE CARD, ITS OWN SAVE — `meSave_` posts the boxes of the card it is pressed in, whichever column.
    `col` names the column, so an admin's Split (464, layout.js) can draw a group a field a card, each with its own Save. */
+/* THE LINE UNDER A SETTINGS FORM THAT SAYS WHAT WAS SAVED: one shape, here and on the library shelf (me-settings.js). */
+const ME_SAID_ = { type: 'group', tag: 'p', look: 'note me-said' };
 function settingsCards_(shown, moved, col) {
   const p = whose_().profile || {};
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
@@ -51,7 +53,7 @@ function settingsCards_(shown, moved, col) {
       options: fieldOptions_,
     },
     save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
-    foot: (mail(list) ? movingNote_(p) : '') + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said' }),
+    foot: (mail(list) ? movingNote_(p) : '') + cardBlock_(ME_SAID_),
     after: id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '' }));
   const out = [];
   Object.keys(shown).forEach((g, k) => {
@@ -67,7 +69,7 @@ function settingsCards_(shown, moved, col) {
 const settingsSplittable_ = list => (list || []).length > 1 && !list.some(isQualField_) && !isTimetable_(list);
 /* ---------- SIX COLUMNS (453): TUTORS, STUDENTS, PARENTS, THEN EACH ACCOUNT TYPE'S SETTINGS ----------
    The owner: "A user in theory could appear in each of these 3 categories" and "split account settings into 3". */
-const tabLabel_ = (id, or) => ((typeof TABS_BUILT !== 'undefined' && TABS_BUILT.find(t => t.id === id)) || {}).label || or;
+const tabLabel_ = (id, or) => ((typeof settingGroupOf_ === 'function' && settingGroupOf_(id)) || {}).label || or;
 /* THE PEOPLE COLUMN OF YOUR RANK, where your own card is shown first (453); what you edit is on Student settings for every rank (469). */
 const homeCol_ = () => rankAtLeast_('staff') ? 'tutors' : rankAtLeast_('client') ? 'parents' : 'students';
 /* DO YOU BELONG IN THIS PEOPLE COLUMN — by rank, or by a family link (a parent is a parent whatever their rank). */

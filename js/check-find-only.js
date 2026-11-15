@@ -10,6 +10,8 @@ const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const SURVEY = JSON.parse(read('data/settings/find-only.json'));
 const boot = read('js/shell-boot.js'), m = /const TAB_ORDER = \[([\s\S]*?)\];/.exec(boot);
 if (!m) { console.log('FAIL — TAB_ORDER is not in js/shell-boot.js'); process.exit(1); }
+/* THE TABS TABLE ONLY: SETTING_GROUPS (shell-boot.js) names the moved settings as card groups, which is not a column. */
+const tabsSrc = (/const TABS = \[([\s\S]*?)\n\];/.exec(boot) || [, boot])[1];
 const tabs = [...m[1].replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/'([a-z0-9-]+)'/g)].map(x => x[1]);
 const columns = JSON.parse(read('data/settings/columns.json')).map(r => r.screen);
 const moved = {}; JSON.parse(read('data/settings/screens-moved.json')).forEach(r => { moved[r.screen] = r.to; });
@@ -30,7 +32,7 @@ rows.filter(r => r.status === 'moved').forEach(r => {
   if (tabs.indexOf(id) >= 0) bad.push(`${id} is moved but still in TAB_ORDER`);
   if (columns.indexOf(id) >= 0) bad.push(`${id} is moved but still in data/settings/columns.json`);
   if (html.indexOf(`id="s-${id}"`) >= 0) bad.push(`${id} is moved but index.html still has its <section id="s-${id}">`);
-  if (new RegExp(`\\bid:\\s*'${id}'`).test(boot)) bad.push(`${id} is moved but js/shell-boot.js still lists it in TABS`);
+  if (new RegExp(`\\bid:\\s*'${id}'`).test(tabsSrc)) bad.push(`${id} is moved but js/shell-boot.js still lists it in TABS`);
   js.forEach(([f, s]) => { if (new RegExp(`\\bscreen\\(\\s*['"]${id}['"]`).test(s)) bad.push(`js/${f} still registers screen('${id}')`); });
   if (!/^find:/.test(moved[id] || '')) bad.push(`${id} is moved but data/settings/screens-moved.json sends it nowhere in Find`);
   else if (r.to && r.to !== moved[id]) bad.push(`${id}: find-only.json says ${r.to}, screens-moved.json ${moved[id]}`);
