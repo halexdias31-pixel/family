@@ -32,6 +32,8 @@ function run(cmd, env) {
   return new Promise(ok => {
     const p = spawn(cmd[0], cmd.slice(1), { cwd: ROOT, env: Object.assign({}, process.env, { FORCE_COLOR: '0' }, env || {}) });
     let out = '';
+    /* DECODED AS A STREAM, so a character split across two chunks is not mangled (the ratchet then saw a "new" finding). */
+    p.stdout.setEncoding('utf8'); p.stderr.setEncoding('utf8');
     p.stdout.on('data', d => { out += d; }); p.stderr.on('data', d => { out += d; });
     p.on('close', code => ok({ code, out })); p.on('error', e => ok({ code: 1, out: String(e) }));
   });
