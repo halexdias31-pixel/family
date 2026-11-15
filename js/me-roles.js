@@ -272,13 +272,7 @@ function webProfilePages_() {
 }
 screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web') : webProfilePages_()));
 
-/* ---------- APPRENTICE PROFILE (730): a card per apprentice an admin is sent (`everyone`, role Apprentice); none yet is a line from brand() ---------- */
-function apprenticeProfilePages_() {
-  const all = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title && /apprentice/i.test(String(p.role || '')));
-  if (all.length) return all.map(p => rolesSet_('appr-card', p.title, p.handle ? [{ type: 'tags', tags: [{ text: '@' + p.handle, look: 'prof-handle' }] }] : []));
-  return [rolesSet_('appr-card people-none', '', [{ type: 'text', look: 'empty', text: brand('apprentices_none', 'No apprentices yet.') }])];
-}
-screen('apprentices', () => pages('apprentices', typeof cardsOf_ === 'function' ? cardsOf_('apprentices') : apprenticeProfilePages_()));
+/* APPRENTICE PROFILE WAS A COLUMN (730); it is Find › Profiles › Apprentice now (find-only.json, `profileTypes_`). */
 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {

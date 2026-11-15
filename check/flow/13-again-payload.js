@@ -24,8 +24,8 @@ check('a payload that timed out is asked for again at once, under a quiet line, 
   if (!b.arrived()) bad.push('the retry answered and the payload is not in DATA');
   if (b.line()) bad.push('the retry succeeded and the quiet line still says "' + b.line() + '"');
   if (b.bannerUp()) bad.push('the retry succeeded and a banner is up: ' + b.bannerText().slice(0, 120));
-  /* DRAWN, not only held: a post only the payload knows is on Feed once it is reached — Find is home (1070), so Feed is drawn on arrival there. */
-  try { b.w.__t.go('feed'); } catch (e) { bad.push('Feed could not be reached: ' + e.message); }
+  /* DRAWN, not only held: a spotlit post only the payload knows is on the Spotlight column once it is reached (the Feed's posts are switched off, attic/js/posts.js). */
+  try { b.w.__t.go('spotlight'); } catch (e) { bad.push('Spotlight could not be reached: ' + e.message); }
   await wait(300);
   const after = b.w.document.body.innerHTML.indexOf('Drawn from the payload') !== -1;
   if (before) bad.push('a post only the payload sends was on the page before it arrived — pick another witness');

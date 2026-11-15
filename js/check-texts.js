@@ -55,7 +55,7 @@ if (ix) {
 
 /* THE ITEMS, built by js/texts.js itself: one per unit, keys unique, the age rule on scripture-like texts. */
 if (ix) {
-  const ctx = { window: {}, WRITINGS_SHELF: 'Writings', SCRIPTURE_SUBJECT: () => 'Religious Studies', spellKey_: s => String(s).toLowerCase(), Array, String, Number, Object, Map, Promise };
+  const ctx = { window: {}, CARD_EMBEDS: {}, WRITINGS_SHELF: 'Writings', SCRIPTURE_SUBJECT: () => 'Religious Studies', spellKey_: s => String(s).toLowerCase(), Array, String, Number, Object, Map, Promise };
   vm.createContext(ctx);
   try {
     vm.runInContext(src('js/writings.js') + '\n' + src('js/texts.js') + '\n;this.T = TEXTS; this.items = textsItems_;', ctx);
@@ -70,9 +70,9 @@ if (ix) {
   } catch (e) { bad.push('js/texts.js does not build its items: ' + e.message); }
 }
 
-/* WIRED: loaded after works, listed by Find, asked for when a finder paints, never in the boot payload. */
-const order = (src('index.html').match(/'works', 'texts'/) || [])[0];
-if (!order) bad.push('index.html does not load texts right after works');
+/* WIRED: loaded right after writings (works.js went to attic/, switched off), listed by Find, asked for when a finder paints, never in the boot payload. */
+const order = (src('index.html').match(/'writings', 'texts'/) || [])[0];
+if (!order) bad.push('index.html does not load texts right after writings');
 const find = require('../tools/find-src.js').findSrc();
 if (!/\.\.\.\(typeof textsItems_ === 'function' \? textsItems_\(\) : \[\]\)/.test(find)) bad.push('Find does not list textsItems_() — the texts never reach Find');
 if (!/if \(typeof textsIndex_ === 'function'\) textsIndex_\(\);/.test(find)) bad.push('paintStuff does not ask for the texts index');

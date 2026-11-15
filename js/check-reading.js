@@ -20,12 +20,14 @@ if (!table) { console.log('check-reading: READING_REF not found in js/writings.j
 const kinds = [...table[1].matchAll(/^\s*(\w+):\s*\{/gm)].map(m => m[1]);
 const finder = JS.find(([f]) => f === 'find-finder.js')[1];
 /* A TEXT KIND FIND KNOWS BUT THE TABLE DOES NOT is a text drawn another way. */
-const TEXT_FILES = ['writings.js', 'quran.js', 'texts.js', 'pdtexts.js', 'hymns.js'];
+/* Only served files: quran.js and hymns.js went to attic/ switched off (not served), so they are not read. */
+const TEXT_FILES = ['writings.js', 'quran.js', 'texts.js', 'pdtexts.js', 'hymns.js'].filter(f => fs.existsSync(path.join(__dirname, f)));
 const made = new Set();
 JS.filter(([f]) => TEXT_FILES.includes(f)).forEach(([, s]) => [...s.matchAll(/kind: '(\w+)'/g)].forEach(m => made.add(m[1])));
 made.add('bible');
 made.forEach(k => { if (!kinds.includes(k)) bad.push(`kind ${k} is a Library text but has no READING_REF row`); });
-kinds.forEach(k => {
+/* A table row whose kind no served file makes belongs to a switched-off text (attic/): no live opener to check. */
+kinds.filter(k => made.has(k)).forEach(k => {
   /* THE FIND CARD IS findCard's (the card template); the reader a tap opens is the kind's entry in the opener table. */
   const m = new RegExp('\\b' + k + ': x => (\\w+)\\(x\\)').exec(finder);
   if (!m) return bad.push(`kind ${k}: no reader in find-finder.js's opener table`);
