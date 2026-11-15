@@ -742,7 +742,7 @@ function renderCard(spec) {
   /* THE KIND'S OWN TILES (read aloud, admin, the padlock, its extras off `item`) join the spec's, through the one row maker. */
   let row = '';
   /* `toolRow: { key }` (a question): every tile shown, nothing behind ⋯, the row its part's tool row (`.qt-row`). */
-  const tr = spec.toolRow ? { flat: true, look: 'qt-row', key: spec.toolRow.key || '' } : null;
+  const tr = spec.toolRow ? { look: 'qt-row', key: spec.toolRow.key || '' } : null;
   /* `cut` (a card holding a tool, cardOfItem_'s `tool`): its laid-out lines after the body, its open form (`kc-form`), its lifted tiles in the row. */
   const cut = spec.cut || {}, lines = body + (cut.lines || '');
   try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || []) + (cut.tiles || ''), tr) : `<div class="tile-row kc-row">${tile_(spec.tiles || [])}</div>`; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
@@ -2063,9 +2063,9 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,189088,26,2,4,5,10,30,6],221020,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,189088,26,2,4,5,10,31,6],221021,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[2,2,2],4,["Parent","Student","Tutor"]],
-  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,4,2],30,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
+  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,5,3],31,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
   "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]],[31850,189088,26,2,1,5,10,29,6],221016,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools"]],
@@ -8697,7 +8697,7 @@ const KC_TILE_RE = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/
 const kcAct_ = t => (/\bdata-do="([^"]*)"/.exec(t) || [])[1] || '';
 /* WHAT COUNTS AS A CARD'S MAIN ACTION when its kind names none first: a Send/Check, a buy-toned tile, Open. */
 const KC_MAIN_ACTS = ['find-open', 'book-with'];
-function kcFour_(x, rest, main, flat) {
+function kcFour_(x, rest, main) {
   const all = String(rest || '').match(KC_TILE_RE) || [];
   const spec = x && x.kind ? kcSpec_(x.kind) : KC_BARE;
   const first = String((spec.tiles || [])[0] || '').split(':')[0];
@@ -8712,15 +8712,12 @@ function kcFour_(x, rest, main, flat) {
     || tile_({ icon: 'star', label: 'Save', act: 'fav', off: true, data: { key: (x && x.key) || '', kind: (x && x.kind) || 'item' } });
   /* A CARD IS STATIC (owner, 10 Nov): with no main of its own, Share leads; the card already shows everything it holds. */
   const lead = main || pick(t => kcAct_(t) === 'card-share') || tile_({ icon: 'share', label: 'Share', act: 'card-share', off: !(x && x.key), data: { key: (x && x.key) || '' } });
-  /* EVERY OTHER ACTION IS ITS OWN VISIBLE TILE (owner, 13 Nov): no hidden menu; the fixed three lead, the rest wrap under them. */
+  /* ONE BUTTON LAW (owner, 15 Nov): every action is its own visible tile, and all of them flow like words -- fill the line, then wrap. */
   const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
-  const rest2 = all.join('') + left;
-  /* `flat` (a question): every tile in its one row; otherwise the rest wrap visibly under the fixed three. */
-  return cardBlocks_([{ type: 'group', tag: 'span', look: 'kc-four', inner: lead + msg + star + (flat ? rest2 : '') },
-    flat ? null : { type: 'group', tag: 'span', look: 'kc-more', inner: rest2 }]);
+  return cardBlock_({ type: 'group', tag: 'span', look: 'kc-four', inner: lead + msg + star + all.join('') + left });
 }
 /* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
-/* `o`: { flat, look, key } -- a question's row is its tool row (`.qt-row`, its key on it) with every tile shown. */
+/* `o`: { look, key } -- a question's row is its tool row (`.qt-row`, its key on it) with every tile shown. */
 function kcActRow_(x, html, own, o) {
   o = o || {};
   if (/class="[^"]*\bkc-four\b/.test(html)) return '';
@@ -8730,7 +8727,7 @@ function kcActRow_(x, html, own, o) {
   const real = (String(own || '').match(KC_TILE_RE) || []).map(kcAct_);
   rest = rest.replace(KC_TILE_RE, t => (/\bkc-off\b/.test(t) && real.indexOf(kcAct_(t)) >= 0 ? '' : t));
   return cardBlock_({ type: 'group', look: 'tile-row kc-row' + (o.look ? ' ' + o.look : ''), attrs: { 'data-key': o.look ? String(o.key || '') : null },
-    inner: kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main, o.flat) });
+    inner: kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main) });
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {
@@ -10970,7 +10967,25 @@ function sitePages_() {
   return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
     .concat(typeof window.inboxCard_ === 'function' ? [window.inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
+    .concat([siteTplCard_()])
     .concat([rolesSet_('', 'Build', [rolesDrawn_(versionSaid_, 'me-build')])]);
+}
+/* ---------- THE ONE CARD TEMPLATE, SHOWN (owner, 11 Nov; back on Site 15 Nov): a sample drawn by the card maker, its parts named in order, */
+/* and the fixed scale read live from :root, so the card can never disagree with style.css. Data to the maker, never markup. */
+const SITE_TPL_PARTS_ = ['Picture — only if real', 'Tags — the name first', 'Content', 'Buttons — round; hold or hover for the word'];
+const SITE_TPL_SCALE_ = [['Text', ['--fs-small', '--fs-title', '--fs-body']], ['Spacing', ['--s0', '--s1', '--s2', '--s3', '--s4', '--s5', '--s6']],
+  ['Button', ['--tile', '--tile-i', '--tap']], ['Picture', ['--pic-s', '--pic-l', '--pic-h']], ['Corners', ['--r-ui', '--r-round', '--r-box']],
+  ['Colours', ['--bg', '--raised', '--line', '--ink', '--dim', '--faint', '--gold', '--good', '--warn', '--bad', '--paper', '--paper-ink']]];
+const siteTok_ = k => { try { return dash_(getComputedStyle(document.documentElement).getPropertyValue(k).trim()); } catch (e) { return dash_(''); } };
+CARD_EMBEDS['tpl-sample'] = () => renderCard({ kind: 'panel', look: 'tpl-sample', name: 'A sample card', picture: { src: 'icon.png', alt: 'A sample picture' },
+  tags: [{ text: 'A sample card' }, { text: 'A tag' }], body: [{ type: 'text', text: 'What the thing holds, in plain words, centred.' }] });
+function siteTplCard_() {
+  return renderCard({ kind: 'panel', look: 'biz tpl-card', name: 'Card template', tags: [{ text: 'Card template' }], body: [
+    { type: 'text', look: 'note', text: 'Every card on the site is drawn by this one template: picture, tags, content, buttons, top to bottom on one centre line.' },
+    { type: 'embed', tool: 'tpl-sample' },
+    { type: 'list', ordered: true, look: 'tpl-parts', items: SITE_TPL_PARTS_ },
+    { type: 'text', look: 'note', text: 'The fixed scale, as the page has it now:' }]
+    .concat(...SITE_TPL_SCALE_.map(([name, list]) => [{ type: 'text', look: 'tpl-group', text: name }, { type: 'list', look: 'tpl-row', items: list.map(t => t + ' ' + siteTok_(t)) }])) });
 }
 
 /* ---------- STABILITY (730): data/stability.json, written by tools/stability.js, read the first time the card is drawn ---------- */
@@ -17637,9 +17652,9 @@ function tileRowsJoin_(html) {
     if (!prev || !prev.classList.contains('tile-row') || !row.parentNode || (formOwn && prev.closest('.me-form')) || prev.classList.contains('person-tiles')) return;
     group(prev, row, !coreIn_(row));
   });
-  /* A CARD'S ONE ROW IS ITS FOUR (owner, 10 Nov): a group joined after them (your own, an admin's) joins the visible wrap under them. */
-  t.content.querySelectorAll('.kc-row').forEach(r => { const more = r.querySelector(':scope > .kc-more');
-    if (more) [...r.children].filter(k => k !== more && !k.classList.contains('kc-four')).forEach(k => { more.appendChild(k); joined++; }); });
+  /* ONE BUTTON LAW (owner, 15 Nov): a group joined after a card's buttons (your own, an admin's) flows on in the same words-like row. */
+  t.content.querySelectorAll('.kc-row').forEach(r => { const more = r.querySelector(':scope > .kc-four');
+    if (more) [...r.children].filter(k => k !== more).forEach(k => { more.appendChild(k); joined++; }); });
   return joined ? t.innerHTML : h;
 }
 

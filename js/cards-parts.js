@@ -119,7 +119,7 @@ const KC_TILE_RE = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/
 const kcAct_ = t => (/\bdata-do="([^"]*)"/.exec(t) || [])[1] || '';
 /* WHAT COUNTS AS A CARD'S MAIN ACTION when its kind names none first: a Send/Check, a buy-toned tile, Open. */
 const KC_MAIN_ACTS = ['find-open', 'book-with'];
-function kcFour_(x, rest, main, flat) {
+function kcFour_(x, rest, main) {
   const all = String(rest || '').match(KC_TILE_RE) || [];
   const spec = x && x.kind ? kcSpec_(x.kind) : KC_BARE;
   const first = String((spec.tiles || [])[0] || '').split(':')[0];
@@ -134,15 +134,12 @@ function kcFour_(x, rest, main, flat) {
     || tile_({ icon: 'star', label: 'Save', act: 'fav', off: true, data: { key: (x && x.key) || '', kind: (x && x.kind) || 'item' } });
   /* A CARD IS STATIC (owner, 10 Nov): with no main of its own, Share leads; the card already shows everything it holds. */
   const lead = main || pick(t => kcAct_(t) === 'card-share') || tile_({ icon: 'share', label: 'Share', act: 'card-share', off: !(x && x.key), data: { key: (x && x.key) || '' } });
-  /* EVERY OTHER ACTION IS ITS OWN VISIBLE TILE (owner, 13 Nov): no hidden menu; the fixed three lead, the rest wrap under them. */
+  /* ONE BUTTON LAW (owner, 15 Nov): every action is its own visible tile, and all of them flow like words -- fill the line, then wrap. */
   const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
-  const rest2 = all.join('') + left;
-  /* `flat` (a question): every tile in its one row; otherwise the rest wrap visibly under the fixed three. */
-  return cardBlocks_([{ type: 'group', tag: 'span', look: 'kc-four', inner: lead + msg + star + (flat ? rest2 : '') },
-    flat ? null : { type: 'group', tag: 'span', look: 'kc-more', inner: rest2 }]);
+  return cardBlock_({ type: 'group', tag: 'span', look: 'kc-four', inner: lead + msg + star + all.join('') + left });
 }
 /* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
-/* `o`: { flat, look, key } -- a question's row is its tool row (`.qt-row`, its key on it) with every tile shown. */
+/* `o`: { look, key } -- a question's row is its tool row (`.qt-row`, its key on it) with every tile shown. */
 function kcActRow_(x, html, own, o) {
   o = o || {};
   if (/class="[^"]*\bkc-four\b/.test(html)) return '';
@@ -152,7 +149,7 @@ function kcActRow_(x, html, own, o) {
   const real = (String(own || '').match(KC_TILE_RE) || []).map(kcAct_);
   rest = rest.replace(KC_TILE_RE, t => (/\bkc-off\b/.test(t) && real.indexOf(kcAct_(t)) >= 0 ? '' : t));
   return cardBlock_({ type: 'group', look: 'tile-row kc-row' + (o.look ? ' ' + o.look : ''), attrs: { 'data-key': o.look ? String(o.key || '') : null },
-    inner: kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main, o.flat) });
+    inner: kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main) });
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {

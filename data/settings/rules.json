@@ -283,7 +283,7 @@
   {
    "id": "3.3",
    "principle": 3,
-   "text": "A thing has tiles, a form has buttons: every action is `tile_` in one `.tile-row`, round icons only, its word on hover or long press; one icon style.",
+   "text": "A thing has tiles, a form has buttons: every action is `tile_` in one `.tile-row`, and on every card (Find's too) the tiles flow like words in a paragraph — fill the line, then wrap; no fixed row on top with extras under it (owner, 15 Nov: one button law); round icons only, its word on hover or long press; one icon style.",
    "checks": [
     "makers",
     "tiles",

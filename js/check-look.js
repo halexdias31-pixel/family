@@ -119,11 +119,11 @@ if (!/tone === 'admin' && !\(typeof isAdmin === 'function' && isAdmin\(\)\)\) re
 /* ---------- 30a. ONE LOADING LOOK: THE ONE RING (owner, 12 Nov), turned only by `@keyframes loading` ---------- */
 if (noComments.replace(/@keyframes loading\s*\{[^{}]*\{[^}]*\}\s*\}/, '').match(/rotate\((360deg|1turn)\)/)) bad.push('30a a second spinner in style.css — a wait is the one ring (loading_)');
 
-/* ---------- 57a. ONE CORNER: --r-ui, or round (--r-round, 50%); a slash or four-corner value is a drawn shape ---------- */
+/* ---------- 57a. ONE CORNER: --r-ui, or round (--r-round, 50%), or a text box's --r-box (owner, 15 Nov); a slash or four-corner value is a drawn shape ---------- */
 for (const m of noComments.matchAll(/border-radius:\s*([^;}]+?)\s*(?=[;}])/g)) {
   const v = m[1];
   if (/\//.test(v) || (/\S\s+\S/.test(v) && !/^var/.test(v))) continue;
-  if (!/^(0|50%|var\(--r-ui\)|var\(--r-round\))$/.test(v)) bad.push(`57a a corner of its own: border-radius: ${v} — var(--r-ui) (or var(--r-round))`);
+  if (!/^(0|50%|var\(--r-ui\)|var\(--r-round\)|var\(--r-box\))$/.test(v)) bad.push(`57a a corner of its own: border-radius: ${v} — var(--r-ui) (or var(--r-round))`);
 }
 
 /* ---------- 58a. ONE PICTURE HEIGHT: a card's picture is var(--pic-h) tall and cropped to fill ---------- */

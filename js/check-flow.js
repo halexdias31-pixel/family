@@ -484,11 +484,13 @@ async function bookFind_(w) {
     const F = ev('BOOK_FIND'), i = order.indexOf(id);
     order.slice(0, i).forEach(k => { F.done[k] = true; });
     delete F.done[id];
+    F.more = '';
+    if (id === 'slots') F.day = '';
     if (ev('BOOK_FIND_GIVEN').indexOf(id) !== -1 && at() !== id) t.BOOKING[id] = '';
     await paint();
   };
   const menu = () => d.querySelector('#s-stuff .page.on .book-step') || d.querySelector('#s-stuff .book-step');
-  const tags = async id => { await reach(id); const m = menu(); return at() === id && m ? [...m.querySelectorAll('[data-do]')].filter(x => x.dataset.do !== 'book-next') : []; };
+  const tags = async id => { await reach(id); const m = menu(); return at() === id && m ? [...m.querySelectorAll('[data-do]')].filter(x => x.dataset.do !== 'book-next' && x.dataset.do !== 'book-and') : []; };
   const offers = async id => (await tags(id)).map(x => x.dataset.v || x.dataset.code || x.dataset.when);
   const tap = async el => { t.ACTIONS[el.dataset.do](el); await wait(30); };
   const pick = async (id, v) => {

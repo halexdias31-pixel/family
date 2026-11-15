@@ -292,15 +292,6 @@ let CREDIT_DUE = false;
 try { if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined')
   new MutationObserver(() => { if (CREDIT_DUE) return; CREDIT_DUE = true; requestAnimationFrame(() => { CREDIT_DUE = false; creditsToTags_(document); }); }).observe(document.documentElement, { childList: true, subtree: true }); } catch (e) { oops_(e, 'credits'); }
 
-/* ---------- A PART'S READING PAGES, FOR THE PAGE TAGS § */
-const qPagesOf_ = x => (isQ_(x) ? partChunks_(x).length : 0);
-function qPageAt_(x, page) {
-  if (!isQ_(x)) return 0;
-  if (page == null || page === '') return qPagesOf_(x);
-  const m = /^pre(\d+)$/.exec(String(page));
-  return m ? Number(m[1]) + 1 : 0;
-}
-
 /* A QUESTION'S BODY IS NEVER BLANK (432): no words, figure or picture in it says why — the library's reason, or that it is missing. */
 function qWordsOr_(x, html) {
   if (/<(img|svg|figure|canvas|input|table)\b/i.test(html) || String(html).replace(/<[^>]*>|&nbsp;|\s/g, '')) return html;
@@ -548,9 +539,8 @@ function partPlan_(x) {
   }
   const u = usesBlock_(x);
   if (u) seq = [u].concat(seq);
-  /* A PART THAT FITS A PAGE IS ONE CARD (500): "Work out x" on one page and "to 3 s.f." with the box on the next read as two questions. */
-  const all = seq.reduce((n, b) => n + (b.w != null ? b.w : chunkWeight_(b.h)), 0);
-  const plan = { chunks: all <= CHUNK_PAGE ? [seq] : packBlocks_(seq, CHUNK_PAGE, PART_LAST), gen: chunkGen_() };
+  /* EVERY PART IS ONE CARD YOU SCROLL (owner, 15 Nov): no reading pages, however long. */
+  const plan = { chunks: [seq], gen: chunkGen_() };
   CHUNK_MEMO.set(x, plan);
   return plan;
 }

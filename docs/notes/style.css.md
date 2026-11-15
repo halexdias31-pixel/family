@@ -2610,19 +2610,6 @@ before `@keyframes loading`
    on an empty card rather than as something on its way. */
 ```
 
-### ONLY THE CARD IN FRONT MOVES.
-
-before `.page:not(.on) .loading > span`
-
-```
-/* ONLY THE CARD IN FRONT MOVES. A column drawn beside the one you are on holds a loader on every
-   widget it has not started yet — nine on Tools — and an infinite animation runs whether or not
-   anybody can see it: measured on 9 Oct, the Imposter card's own walk through its screens took 1.3–1.5s
-   against 1.08s with nine loaders breathing on the next column, which `check/ui.js`'s 2.5s at 1920
-   then missed. A loader on a card that is not in front is three still dots; the page that comes in
-   front (`.page.on`, set by `placeGrid`) starts it. Loaders outside a page — a sheet — always move. */
-```
-
 ### A WHOLE PAGE WAITING:
 
 before `.pane:has(> .loading:only-child)`

@@ -178,7 +178,7 @@ if (Q) {
   /* ASKED BEFORE THE QUESTIONS THAT PICK ONE QUESTION (owner, 29 Oct; 529): after Paper, Question and Part one question is left, so a tag sorted after them was never asked. */
   const so = {};
   JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'settings', 'facets.json'), 'utf8')).forEach(f => { if (f.active !== false) so[f.field] = Number(f.sort_order); });
-  ['verified'].forEach(f => ['paperId', 'qNumber', 'qPart', 'qSub', 'qPage', 'marks'].forEach(g => {
+  ['verified'].forEach(f => ['paperId', 'qNumber', 'qPart', 'qSub', 'marks'].forEach(g => {
     if (!(so[f] < so[g])) broken.push('the facets tab asks ' + g + ' (' + so[g] + ') before ' + f + ' (' + so[f] + ') — by then one question is left and ' + f + ' is never offered');
   }));
   if (!src || !tru) broken.push('find.js `verifyTags_` or library.js `libTrue` not found — no tag was checked');

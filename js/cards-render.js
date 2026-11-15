@@ -263,7 +263,7 @@ function renderCard(spec) {
   /* THE KIND'S OWN TILES (read aloud, admin, the padlock, its extras off `item`) join the spec's, through the one row maker. */
   let row = '';
   /* `toolRow: { key }` (a question): every tile shown, nothing behind ⋯, the row its part's tool row (`.qt-row`). */
-  const tr = spec.toolRow ? { flat: true, look: 'qt-row', key: spec.toolRow.key || '' } : null;
+  const tr = spec.toolRow ? { look: 'qt-row', key: spec.toolRow.key || '' } : null;
   /* `cut` (a card holding a tool, cardOfItem_'s `tool`): its laid-out lines after the body, its open form (`kc-form`), its lifted tiles in the row. */
   const cut = spec.cut || {}, lines = body + (cut.lines || '');
   try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || []) + (cut.tiles || ''), tr) : `<div class="tile-row kc-row">${tile_(spec.tiles || [])}</div>`; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
