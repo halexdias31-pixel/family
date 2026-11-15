@@ -226,7 +226,7 @@ const BOOKING = {
 };
 
 /* WHERE FIND'S BOOKING STEPS ARE (find-account.js): which steps were answered, and the Days step's pick, which only Times reads. */
-const BOOK_FIND = { done: {}, days: [], started: false };
+const BOOK_FIND = { done: {}, days: [], started: false, more: '', day: '' };
 
 /* ---------- THE ONE YOU JUST ASKED FOR § */
 let ASKED_JOB = '';
@@ -746,7 +746,7 @@ function resetBooking_(keepDraft) {
      booking. A reset with it left set would draw the next booking's first page as a picker for a
      question nobody had pressed. */
   BOOKING.picking = '';
-  BOOK_FIND.done = {}; BOOK_FIND.days = []; BOOK_FIND.started = false;
+  BOOK_FIND.done = {}; BOOK_FIND.days = []; BOOK_FIND.started = false; BOOK_FIND.more = ''; BOOK_FIND.day = '';
   BOOK_PREFILLED = false;
   /* AND THE DRAFT OF IT — sent, or started again, is not a booking to bring back (`bookKeep_`). § */
   if (keepDraft) return;

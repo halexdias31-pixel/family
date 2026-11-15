@@ -682,24 +682,22 @@ const STATES = {
         }
         STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
-    /* ---------- A PART TOO LONG FOR ONE PAGE, CUT BETWEEN PARAGRAPHS § */
-    { name: 'a long part\'s first page, cut before its ask',
+    /* ---------- A LONG PART IS ONE CARD YOU SCROLL (owner, 15 Nov): no reading pages, no Page tags. */
+    { name: 'a long part, one card you scroll',
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-AQA-7408-2406-3A-035');
         if (!it) throw new Error('Q-AQA-7408-2406-3A-035 is not in the library');
-        if (pageParts_(it).indexOf('pre0') < 0) throw new Error('Q-AQA-7408-2406-3A-035 is not cut any more');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'pre0'));
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
       },
       expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .qcard.qpre');
-        return !!c && !c.querySelector('.qp-ans') && /Continued on the next page/.test(c.textContent)
-               && ((c.querySelector('.qcard-tags [data-f="qPage"]') || {}).textContent || '') === 'Page 1'
-               && /^\d+ pages$/.test((c.querySelector('.qcard-tags [data-f="qPages"]') || {}).textContent || '');
+        const c = document.querySelector('#s-stuff .page.on .qcard');
+        return !!c && !/Continued on the next page/.test(c.textContent) && partChunks_(stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-AQA-7408-2406-3A-035')).length === 1
+               && !c.querySelector('[data-f="qPage"], [data-f="qPages"]');
       },
-      wants: 'the first page of a long part: its reading, no box, tagged [Page 1] [N pages], saying it continues',
+      wants: 'a long part whole on one card you scroll: no Page 1 / N pages tags, no "continued"',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- HOW YOUR LAST ANSWER WENT, BESIDE THE STAR § */
     { name: 'a question you last got right',

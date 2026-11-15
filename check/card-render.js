@@ -87,7 +87,7 @@ function measure(per) {
       const row = card.querySelector(':scope > .kc-act .kc-four');
       if (row) { const tiles = [...card.querySelectorAll(':scope > .kc-act .kc-four > .tile')].map(t => t.getBoundingClientRect()).filter(r => r.width);
         if (tiles.length) { const l = Math.min(...tiles.map(r => r.left)), rr = Math.max(...tiles.map(r => r.right)); if (Math.abs((l + rr) / 2 - mid) > 2) say(x, 'its four buttons are ' + Math.round((l + rr) / 2 - mid) + 'px off the centre line'); } }
-      const list = card.querySelector(':scope > .kc-act .kc-more');
+      const list = card.querySelector(':scope > .kc-act .kc-four');
       /* ROUND ICONS ONLY (owner, 10 Nov late): no word under or in any tile, ⋯'s too; a long press says it. */
       if (list) { [...card.querySelectorAll(':scope > .kc-act .tile')].forEach(t => { const w = getComputedStyle(t, '::after').content;
         if ((w && w !== 'none' && w !== 'normal' && w !== '""') || t.innerText.trim()) say(x, 'round button "' + (t.getAttribute('aria-label') || '') + '" shows a word'); }); }

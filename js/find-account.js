@@ -63,17 +63,18 @@ function bookFindAt_() {
 }
 /* A STEP'S TAGS: `act` and `data` are what a tap does; `on` is ticked or chosen; `off` is why it cannot be taken. */
 function bookFindOpts_(id) {
-  if (id === 'days') return bookOpenDays_().map(d => ({ text: day_(d), act: 'book-pick', data: { step: id, v: d }, on: BOOK_FIND.days.indexOf(d) !== -1 }));
+  /* THE DAY BY ITS NAME (owner, 15 Nov): "Tuesday", then the next menu is that day's times. */
+  if (id === 'days') return bookOpenDays_().map(d => ({ text: d, act: 'book-pick', data: { step: id, v: d }, on: BOOK_FIND.days.indexOf(d) !== -1 }));
   if (id === 'slots') {
-    const on = BOOKING.slots || [];
-    return slotGrid().days.filter(d => BOOK_FIND.days.indexOf(d.label) !== -1).flatMap(d => d.hours.map(h => ({
-      text: day_(d.label) + ' ' + String(h.h).padStart(2, '0') + ':00', act: 'book-slot', data: { code: h.code },
+    const on = BOOKING.slots || [], one = BOOK_FIND.day ? [BOOK_FIND.day] : BOOK_FIND.days;
+    return slotGrid().days.filter(d => one.indexOf(d.label) !== -1).flatMap(d => d.hours.map(h => ({
+      text: (one.length > 1 ? day_(d.label) + ' ' : '') + String(h.h).padStart(2, '0') + ':00', act: 'book-pick', data: { step: id, v: h.code, code: h.code },
       on: on.indexOf(h.code) !== -1, off: h.open ? '' : (h.why || 'not available'), note: h.open ? h.why : '' })));
   }
   if (id === 'avail') {
     const on = BOOKING.avail || [];
     return SLOT_DAYS.flatMap(([, label]) => SLOT_BLOCKS.map(b => blockPhrase_(label, b)))
-      .map(p => ({ text: p, act: 'book-block', data: { when: p }, on: on.indexOf(p) !== -1 }));
+      .map(p => ({ text: p, act: 'book-pick', data: { step: id, v: p, when: p }, on: on.indexOf(p) !== -1 }));
   }
   const st = bookStep_(id);
   let opts = [];
@@ -83,16 +84,18 @@ function bookFindOpts_(id) {
   return opts.map(o => ({ text: String(st.label_ ? st.label_(o) : o), act: 'book-pick', data: { step: id, v: o }, on: isOn(o),
     off: st.off ? String(st.off(o) || '') : '' }));
 }
-const BOOK_FIND_ASK = { days: 'Which days?', slots: 'What times? Each tag is one hour.' };
-/* THE MENU FOR THE STEP BEING ASKED: its question, its tags (the one tag maker), and Next on a several-answer step. */
+const BOOK_FIND_ASK = { days: 'Which day?', slots: 'What time? Each tag is one hour.' };
+/* THE MENU FOR THE STEP BEING ASKED: its question and its tags (the one tag maker). AFTER EACH CHOICE ON A SEVERAL-ANSWER STEP (owner, 15 Nov): */
+/* a menu of exactly two tags, "and" (another of this) and "." (done, move on). */
 function bookMenu_() {
   bookFindStart_();
   const id = bookFindAt_();
   if (!id) return null;
-  const many = BOOK_FIND_MANY.indexOf(id) !== -1;
+  if (BOOK_FIND.more === id) return ({ type: 'choices', ask: bookSaid_(id) || '',
+    rows: [{ look: 'book-step book-more', options: [{ text: 'and', act: 'book-and', data: { step: id }, label: 'And another' }, { text: '.', act: 'book-next', data: { step: id }, label: 'Done, move on' }] }] });
+  const many = BOOK_FIND_MANY.indexOf(id) !== -1 && id !== 'days';
   const opts = bookFindOpts_(id).map(o => ({ text: (many && o.on ? '✓ ' : '') + o.text + (o.off ? ' · ' + o.off : o.note ? ' · ' + o.note : ''),
     act: o.act, data: o.data, pressed: !!o.on, disabled: !!o.off, look: ((o.on ? 'is-on' : '') + (o.off ? ' is-off' : '')).trim() }));
-  if (many) opts.push({ text: 'Next', act: 'book-next', data: { step: id }, look: 'is-skip' });
   return ({ type: 'choices', ask: BOOK_FIND_ASK[id] || (bookStep_(id) || {}).label || '',
     rows: [{ look: 'book-step' + (id === 'slots' || id === 'avail' ? ' is-grid' : ''), options: opts }] });
 }
@@ -138,15 +141,23 @@ function bookFindPaint_() {
 /* ONE ANSWER: chosen and on to the next step; one of several: ticked or unticked, the step stays. The step's own `set` and `off` as before. */
 on('book-pick', el => {
   const id = el.dataset.step, v = el.dataset.v;
+  /* A DAY IS ONE PICK: it is named and its times are the next menu. */
   if (id === 'days') {
-    const at = BOOK_FIND.days.indexOf(v);
-    if (at === -1) BOOK_FIND.days.push(v); else BOOK_FIND.days.splice(at, 1);
+    if (BOOK_FIND.days.indexOf(v) === -1) BOOK_FIND.days.push(v);
     BOOK_FIND.days.sort((a, b) => SLOT_DAYS.findIndex(d => d[1] === a) - SLOT_DAYS.findIndex(d => d[1] === b));
+    BOOK_FIND.day = v; BOOK_FIND.done.days = true; BOOK_FIND.more = '';
+    return bookFindPaint_();
+  }
+  /* AN HOUR OR A WAITING LIST'S BLOCK: ticked (or unticked), then "and" / ".". */
+  if (id === 'slots' || id === 'avail') {
+    const key = id === 'slots' ? 'slots' : 'avail', list = BOOKING[key] || [], at = list.indexOf(v);
+    if (at === -1) list.push(v); else list.splice(at, 1);
+    BOOKING[key] = list; BOOK_FIND.more = id;
     return bookFindPaint_();
   }
   const st = bookStep_(id);
   if (!st) return;
-  if (st.multi) { bookToggle_(st, v); return bookFindPaint_(); }
+  if (st.multi) { bookToggle_(st, v); BOOK_FIND.more = id; return bookFindPaint_(); }
   const no = st.off && v ? String(st.off(v) || '') : '';
   if (no) { toast(v + ' ' + no); return; }
   BOOKING[id] = v || '';
@@ -158,13 +169,25 @@ on('book-next', el => {
   const id = el.dataset.step;
   const had = id === 'days' ? BOOK_FIND.days : (BOOKING[id] || []);
   if (BOOK_FIND_ONE_PLUS.indexOf(id) !== -1 && !had.length) { toast('Pick at least one first.'); return; }
-  BOOK_FIND.done[id] = true;
+  BOOK_FIND.done[id] = true; BOOK_FIND.more = '';
+  /* THE WEEK DONE: the days are the ones that have an hour; no day is half-asked. */
+  if (id === 'slots') { const codes = BOOKING.slots || [];
+    BOOK_FIND.days = BOOK_FIND.days.filter(dn => { const c = (SLOT_DAYS.find(x => x[1] === dn) || [])[0]; return codes.some(k => k.indexOf(c) === 0 && /^\d+$/.test(k.slice(c.length))); });
+    BOOK_FIND.day = ''; BOOK_FIND.done.days = true; }
+  bookFindPaint_();
+});
+/* "and": the same step's tags again; after a time, "and" is another day (a day, then its times). */
+on('book-and', el => {
+  const id = el.dataset.step;
+  BOOK_FIND.more = '';
+  if (id === 'slots') { delete BOOK_FIND.done.days; BOOK_FIND.day = ''; }
   bookFindPaint_();
 });
 /* BACK TO A STEP: it and every step after it are asked again, from empty. */
 function bookFindBack_(id) {
   const at = BOOK_FIND_ORDER.indexOf(id);
   if (at === -1) return;
+  BOOK_FIND.more = ''; BOOK_FIND.day = '';
   BOOK_FIND_ORDER.slice(at).forEach(k => {
     delete BOOK_FIND.done[k];
     if (k === 'days') { BOOK_FIND.days = []; return; }

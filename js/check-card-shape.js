@@ -79,10 +79,11 @@ function fourOf(html) {
   if (rows.length < 1) return 'no four-button row';
   for (const r of rows) {
     const acts = []; r.split('</span>')[0].replace(/data-do="([^"]*)"/g, (m, a) => acts.push(a));
-    if (acts.length !== 3 || acts[1] !== 'msg-open' || acts[2] !== 'fav') return 'its row is [' + acts.join(', ') + '], not main, msg-open, fav';
+    if (acts.length < 3 || acts[1] !== 'msg-open' || acts[2] !== 'fav') return 'its row is [' + acts.join(', ') + '], not main, msg-open, fav first (the rest flow on after them, owner 15 Nov)';
     /* FOUR BUTTONS, FOUR PICTURES: a Like that is a star beside Save reads as two Saves. */
     const icons = []; r.split('</span>')[0].replace(/<button\b[^>]*>[\s\S]*?<\/button>/g, b => { icons.push((/tile-i-([\w-]+)/.exec(b) || [, b.replace(/[\s\S]*data-do="([^"]*)"[\s\S]*/, '$1')])[1]); return b; });
-    if (new Set(icons).size !== icons.length) return 'two buttons in its row share an icon: [' + icons.join(', ') + ']';
+    const named = icons.filter(i => i && i !== 'undefined');
+    if (new Set(named).size !== named.length) return 'two buttons in its row share an icon: [' + icons.join(', ') + ']';
   }
   return '';
 }

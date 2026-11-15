@@ -525,18 +525,11 @@ const FACETS = [
     nameOf: id => { const t = paperLabel_(id); return [t.replace(/\s+—\s+[^—]+$/, ''), t]; } },
   /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
   { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : paperNameSection_(x); } },
-  /* WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS: the words are the value, so the card and the button agree. */
+  /* WHICH QUESTION, WHICH PART, HOW MANY MARKS: the words are the value, so the card and the button agree. */
   { field: 'qNumber',   label: 'Question',
     of: x => isQ_(x) && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
   { field: 'qPart',     label: 'Part',        of: x => qSplitOf_(x).part },
   { field: 'qSub',      label: 'Sub-part',    of: x => qSplitOf_(x).sub },
-  { field: 'qPage',     label: 'Page',
-    of: x => { const n = qPagesOf_(x); return n > 1 ? Array.from({ length: n }, (_, i) => 'Page ' + (i + 1)) : ''; },
-    /* THE ONE PAGE THIS IS, of the pages above. */
-    tagOf: (x, page) => { const i = qPageAt_(x, page); return i && qPagesOf_(x) > 1 ? 'Page ' + i : ''; } },
-  { field: 'qPages',    label: 'Pages',
-    of: x => { const n = qPagesOf_(x); return n > 1 ? n + ' pages' : ''; },
-    tagOf: (x, page) => { const n = qPagesOf_(x); return n > 1 && qPageAt_(x, page) ? n + ' pages' : ''; } },
   { field: 'marks',     label: 'Marks',
     of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '',
     /* SAID AS THE PAPER PRINTS IT (owner 8 Nov, 28b): "[1]", while the value stays "1 mark". */

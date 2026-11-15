@@ -45,7 +45,7 @@ function measure() {
       out.cards++;
       const c = card.getBoundingClientRect();
       card.querySelectorAll('input:not([type="hidden"]):not([hidden]), select, textarea, .tile').forEach(el => {
-        if (el.closest('[hidden]') || el.closest('.kc-more') || getComputedStyle(el).display === 'none' && el.type === 'checkbox') return;
+        if (el.closest('[hidden]') || getComputedStyle(el).display === 'none' && el.type === 'checkbox') return;
         out.controls++;
         const r = el.getBoundingClientRect();
         const what = el.tagName.toLowerCase() + (el.getAttribute('data-do') ? '[' + el.getAttribute('data-do') + ']' : el.id ? '#' + el.id : '');

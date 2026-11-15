@@ -101,10 +101,12 @@ function settingTypes_() {
 }
 /* WHO MAY SEE A SETTING, A DOOR OR A TYPE IS DATA (86a): one question, `seeMay_` (data.js); absent a row, an admin's only. */
 const settingMay_ = key => typeof seeMay_ === 'function' && seeMay_(key);
-/* AN ITEM'S ACCOUNT-TYPE TAGS: setting-for.json's `under` (menu grouping, not who sees it), else its home type. */
+/* AN ITEM'S ACCOUNT-TYPE TAGS (owner, 15 Nov): always its home column's type, so every card registered to Site is under Find › Settings › Site; */
+/* setting-for.json's `under` (menu grouping, not who sees it) adds more places, never takes the home away. */
 function settingTagsOf_(id, home) {
   let row = null; try { row = ((DATA && DATA.settingFor) || {})[id] || null; } catch (e) { row = null; }
-  return row && row.under && row.under.length ? row.under.slice() : [home];
+  const under = row && row.under && row.under.length ? [].concat(row.under) : [];
+  return [home].concat(under.filter(t => t !== home));
 }
 const settingSeeRow_ = id => { try { return (((DATA && DATA.permissions) || {}).see || {})[id] || null; } catch (e) { return null; } };
 const cardTitle_ = h => (String(h).match(/<h3[^>]*>([\s\S]*?)<\/h3>/) || [])[1];

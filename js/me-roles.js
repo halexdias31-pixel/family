@@ -285,7 +285,25 @@ function sitePages_() {
   return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
     .concat(typeof window.inboxCard_ === 'function' ? [window.inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
+    .concat([siteTplCard_()])
     .concat([rolesSet_('', 'Build', [rolesDrawn_(versionSaid_, 'me-build')])]);
+}
+/* ---------- THE ONE CARD TEMPLATE, SHOWN (owner, 11 Nov; back on Site 15 Nov): a sample drawn by the card maker, its parts named in order, */
+/* and the fixed scale read live from :root, so the card can never disagree with style.css. Data to the maker, never markup. */
+const SITE_TPL_PARTS_ = ['Picture — only if real', 'Tags — the name first', 'Content', 'Buttons — round; hold or hover for the word'];
+const SITE_TPL_SCALE_ = [['Text', ['--fs-small', '--fs-title', '--fs-body']], ['Spacing', ['--s0', '--s1', '--s2', '--s3', '--s4', '--s5', '--s6']],
+  ['Button', ['--tile', '--tile-i', '--tap']], ['Picture', ['--pic-s', '--pic-l', '--pic-h']], ['Corners', ['--r-ui', '--r-round', '--r-box']],
+  ['Colours', ['--bg', '--raised', '--line', '--ink', '--dim', '--faint', '--gold', '--good', '--warn', '--bad', '--paper', '--paper-ink']]];
+const siteTok_ = k => { try { return dash_(getComputedStyle(document.documentElement).getPropertyValue(k).trim()); } catch (e) { return dash_(''); } };
+CARD_EMBEDS['tpl-sample'] = () => renderCard({ kind: 'panel', look: 'tpl-sample', name: 'A sample card', picture: { src: 'icon.png', alt: 'A sample picture' },
+  tags: [{ text: 'A sample card' }, { text: 'A tag' }], body: [{ type: 'text', text: 'What the thing holds, in plain words, centred.' }] });
+function siteTplCard_() {
+  return renderCard({ kind: 'panel', look: 'biz tpl-card', name: 'Card template', tags: [{ text: 'Card template' }], body: [
+    { type: 'text', look: 'note', text: 'Every card on the site is drawn by this one template: picture, tags, content, buttons, top to bottom on one centre line.' },
+    { type: 'embed', tool: 'tpl-sample' },
+    { type: 'list', ordered: true, look: 'tpl-parts', items: SITE_TPL_PARTS_ },
+    { type: 'text', look: 'note', text: 'The fixed scale, as the page has it now:' }]
+    .concat(...SITE_TPL_SCALE_.map(([name, list]) => [{ type: 'text', look: 'tpl-group', text: name }, { type: 'list', look: 'tpl-row', items: list.map(t => t + ' ' + siteTok_(t)) }])) });
 }
 
 /* ---------- STABILITY (730): data/stability.json, written by tools/stability.js, read the first time the card is drawn ---------- */

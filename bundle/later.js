@@ -759,18 +759,11 @@ const FACETS = [
     nameOf: id => { const t = paperLabel_(id); return [t.replace(/\s+—\s+[^—]+$/, ''), t]; } },
   /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
   { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : paperNameSection_(x); } },
-  /* WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS: the words are the value, so the card and the button agree. */
+  /* WHICH QUESTION, WHICH PART, HOW MANY MARKS: the words are the value, so the card and the button agree. */
   { field: 'qNumber',   label: 'Question',
     of: x => isQ_(x) && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
   { field: 'qPart',     label: 'Part',        of: x => qSplitOf_(x).part },
   { field: 'qSub',      label: 'Sub-part',    of: x => qSplitOf_(x).sub },
-  { field: 'qPage',     label: 'Page',
-    of: x => { const n = qPagesOf_(x); return n > 1 ? Array.from({ length: n }, (_, i) => 'Page ' + (i + 1)) : ''; },
-    /* THE ONE PAGE THIS IS, of the pages above. */
-    tagOf: (x, page) => { const i = qPageAt_(x, page); return i && qPagesOf_(x) > 1 ? 'Page ' + i : ''; } },
-  { field: 'qPages',    label: 'Pages',
-    of: x => { const n = qPagesOf_(x); return n > 1 ? n + ' pages' : ''; },
-    tagOf: (x, page) => { const n = qPagesOf_(x); return n > 1 && qPageAt_(x, page) ? n + ' pages' : ''; } },
   { field: 'marks',     label: 'Marks',
     of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '',
     /* SAID AS THE PAPER PRINTS IT (owner 8 Nov, 28b): "[1]", while the value stays "1 mark". */
@@ -8117,15 +8110,6 @@ let CREDIT_DUE = false;
 try { if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined')
   new MutationObserver(() => { if (CREDIT_DUE) return; CREDIT_DUE = true; requestAnimationFrame(() => { CREDIT_DUE = false; creditsToTags_(document); }); }).observe(document.documentElement, { childList: true, subtree: true }); } catch (e) { oops_(e, 'credits'); }
 
-/* ---------- A PART'S READING PAGES, FOR THE PAGE TAGS § */
-const qPagesOf_ = x => (isQ_(x) ? partChunks_(x).length : 0);
-function qPageAt_(x, page) {
-  if (!isQ_(x)) return 0;
-  if (page == null || page === '') return qPagesOf_(x);
-  const m = /^pre(\d+)$/.exec(String(page));
-  return m ? Number(m[1]) + 1 : 0;
-}
-
 /* A QUESTION'S BODY IS NEVER BLANK (432): no words, figure or picture in it says why — the library's reason, or that it is missing. */
 function qWordsOr_(x, html) {
   if (/<(img|svg|figure|canvas|input|table)\b/i.test(html) || String(html).replace(/<[^>]*>|&nbsp;|\s/g, '')) return html;
@@ -8373,9 +8357,8 @@ function partPlan_(x) {
   }
   const u = usesBlock_(x);
   if (u) seq = [u].concat(seq);
-  /* A PART THAT FITS A PAGE IS ONE CARD (500): "Work out x" on one page and "to 3 s.f." with the box on the next read as two questions. */
-  const all = seq.reduce((n, b) => n + (b.w != null ? b.w : chunkWeight_(b.h)), 0);
-  const plan = { chunks: all <= CHUNK_PAGE ? [seq] : packBlocks_(seq, CHUNK_PAGE, PART_LAST), gen: chunkGen_() };
+  /* EVERY PART IS ONE CARD YOU SCROLL (owner, 15 Nov): no reading pages, however long. */
+  const plan = { chunks: [seq], gen: chunkGen_() };
   CHUNK_MEMO.set(x, plan);
   return plan;
 }
@@ -9511,10 +9494,12 @@ function settingTypes_() {
 }
 /* WHO MAY SEE A SETTING, A DOOR OR A TYPE IS DATA (86a): one question, `seeMay_` (data.js); absent a row, an admin's only. */
 const settingMay_ = key => typeof seeMay_ === 'function' && seeMay_(key);
-/* AN ITEM'S ACCOUNT-TYPE TAGS: setting-for.json's `under` (menu grouping, not who sees it), else its home type. */
+/* AN ITEM'S ACCOUNT-TYPE TAGS (owner, 15 Nov): always its home column's type, so every card registered to Site is under Find › Settings › Site; */
+/* setting-for.json's `under` (menu grouping, not who sees it) adds more places, never takes the home away. */
 function settingTagsOf_(id, home) {
   let row = null; try { row = ((DATA && DATA.settingFor) || {})[id] || null; } catch (e) { row = null; }
-  return row && row.under && row.under.length ? row.under.slice() : [home];
+  const under = row && row.under && row.under.length ? [].concat(row.under) : [];
+  return [home].concat(under.filter(t => t !== home));
 }
 const settingSeeRow_ = id => { try { return (((DATA && DATA.permissions) || {}).see || {})[id] || null; } catch (e) { return null; } };
 const cardTitle_ = h => (String(h).match(/<h3[^>]*>([\s\S]*?)<\/h3>/) || [])[1];
@@ -10391,17 +10376,18 @@ function bookFindAt_() {
 }
 /* A STEP'S TAGS: `act` and `data` are what a tap does; `on` is ticked or chosen; `off` is why it cannot be taken. */
 function bookFindOpts_(id) {
-  if (id === 'days') return bookOpenDays_().map(d => ({ text: day_(d), act: 'book-pick', data: { step: id, v: d }, on: BOOK_FIND.days.indexOf(d) !== -1 }));
+  /* THE DAY BY ITS NAME (owner, 15 Nov): "Tuesday", then the next menu is that day's times. */
+  if (id === 'days') return bookOpenDays_().map(d => ({ text: d, act: 'book-pick', data: { step: id, v: d }, on: BOOK_FIND.days.indexOf(d) !== -1 }));
   if (id === 'slots') {
-    const on = BOOKING.slots || [];
-    return slotGrid().days.filter(d => BOOK_FIND.days.indexOf(d.label) !== -1).flatMap(d => d.hours.map(h => ({
-      text: day_(d.label) + ' ' + String(h.h).padStart(2, '0') + ':00', act: 'book-slot', data: { code: h.code },
+    const on = BOOKING.slots || [], one = BOOK_FIND.day ? [BOOK_FIND.day] : BOOK_FIND.days;
+    return slotGrid().days.filter(d => one.indexOf(d.label) !== -1).flatMap(d => d.hours.map(h => ({
+      text: (one.length > 1 ? day_(d.label) + ' ' : '') + String(h.h).padStart(2, '0') + ':00', act: 'book-pick', data: { step: id, v: h.code, code: h.code },
       on: on.indexOf(h.code) !== -1, off: h.open ? '' : (h.why || 'not available'), note: h.open ? h.why : '' })));
   }
   if (id === 'avail') {
     const on = BOOKING.avail || [];
     return SLOT_DAYS.flatMap(([, label]) => SLOT_BLOCKS.map(b => blockPhrase_(label, b)))
-      .map(p => ({ text: p, act: 'book-block', data: { when: p }, on: on.indexOf(p) !== -1 }));
+      .map(p => ({ text: p, act: 'book-pick', data: { step: id, v: p, when: p }, on: on.indexOf(p) !== -1 }));
   }
   const st = bookStep_(id);
   let opts = [];
@@ -10411,16 +10397,18 @@ function bookFindOpts_(id) {
   return opts.map(o => ({ text: String(st.label_ ? st.label_(o) : o), act: 'book-pick', data: { step: id, v: o }, on: isOn(o),
     off: st.off ? String(st.off(o) || '') : '' }));
 }
-const BOOK_FIND_ASK = { days: 'Which days?', slots: 'What times? Each tag is one hour.' };
-/* THE MENU FOR THE STEP BEING ASKED: its question, its tags (the one tag maker), and Next on a several-answer step. */
+const BOOK_FIND_ASK = { days: 'Which day?', slots: 'What time? Each tag is one hour.' };
+/* THE MENU FOR THE STEP BEING ASKED: its question and its tags (the one tag maker). AFTER EACH CHOICE ON A SEVERAL-ANSWER STEP (owner, 15 Nov): */
+/* a menu of exactly two tags, "and" (another of this) and "." (done, move on). */
 function bookMenu_() {
   bookFindStart_();
   const id = bookFindAt_();
   if (!id) return null;
-  const many = BOOK_FIND_MANY.indexOf(id) !== -1;
+  if (BOOK_FIND.more === id) return ({ type: 'choices', ask: bookSaid_(id) || '',
+    rows: [{ look: 'book-step book-more', options: [{ text: 'and', act: 'book-and', data: { step: id }, label: 'And another' }, { text: '.', act: 'book-next', data: { step: id }, label: 'Done, move on' }] }] });
+  const many = BOOK_FIND_MANY.indexOf(id) !== -1 && id !== 'days';
   const opts = bookFindOpts_(id).map(o => ({ text: (many && o.on ? '✓ ' : '') + o.text + (o.off ? ' · ' + o.off : o.note ? ' · ' + o.note : ''),
     act: o.act, data: o.data, pressed: !!o.on, disabled: !!o.off, look: ((o.on ? 'is-on' : '') + (o.off ? ' is-off' : '')).trim() }));
-  if (many) opts.push({ text: 'Next', act: 'book-next', data: { step: id }, look: 'is-skip' });
   return ({ type: 'choices', ask: BOOK_FIND_ASK[id] || (bookStep_(id) || {}).label || '',
     rows: [{ look: 'book-step' + (id === 'slots' || id === 'avail' ? ' is-grid' : ''), options: opts }] });
 }
@@ -10466,15 +10454,23 @@ function bookFindPaint_() {
 /* ONE ANSWER: chosen and on to the next step; one of several: ticked or unticked, the step stays. The step's own `set` and `off` as before. */
 on('book-pick', el => {
   const id = el.dataset.step, v = el.dataset.v;
+  /* A DAY IS ONE PICK: it is named and its times are the next menu. */
   if (id === 'days') {
-    const at = BOOK_FIND.days.indexOf(v);
-    if (at === -1) BOOK_FIND.days.push(v); else BOOK_FIND.days.splice(at, 1);
+    if (BOOK_FIND.days.indexOf(v) === -1) BOOK_FIND.days.push(v);
     BOOK_FIND.days.sort((a, b) => SLOT_DAYS.findIndex(d => d[1] === a) - SLOT_DAYS.findIndex(d => d[1] === b));
+    BOOK_FIND.day = v; BOOK_FIND.done.days = true; BOOK_FIND.more = '';
+    return bookFindPaint_();
+  }
+  /* AN HOUR OR A WAITING LIST'S BLOCK: ticked (or unticked), then "and" / ".". */
+  if (id === 'slots' || id === 'avail') {
+    const key = id === 'slots' ? 'slots' : 'avail', list = BOOKING[key] || [], at = list.indexOf(v);
+    if (at === -1) list.push(v); else list.splice(at, 1);
+    BOOKING[key] = list; BOOK_FIND.more = id;
     return bookFindPaint_();
   }
   const st = bookStep_(id);
   if (!st) return;
-  if (st.multi) { bookToggle_(st, v); return bookFindPaint_(); }
+  if (st.multi) { bookToggle_(st, v); BOOK_FIND.more = id; return bookFindPaint_(); }
   const no = st.off && v ? String(st.off(v) || '') : '';
   if (no) { toast(v + ' ' + no); return; }
   BOOKING[id] = v || '';
@@ -10486,13 +10482,25 @@ on('book-next', el => {
   const id = el.dataset.step;
   const had = id === 'days' ? BOOK_FIND.days : (BOOKING[id] || []);
   if (BOOK_FIND_ONE_PLUS.indexOf(id) !== -1 && !had.length) { toast('Pick at least one first.'); return; }
-  BOOK_FIND.done[id] = true;
+  BOOK_FIND.done[id] = true; BOOK_FIND.more = '';
+  /* THE WEEK DONE: the days are the ones that have an hour; no day is half-asked. */
+  if (id === 'slots') { const codes = BOOKING.slots || [];
+    BOOK_FIND.days = BOOK_FIND.days.filter(dn => { const c = (SLOT_DAYS.find(x => x[1] === dn) || [])[0]; return codes.some(k => k.indexOf(c) === 0 && /^\d+$/.test(k.slice(c.length))); });
+    BOOK_FIND.day = ''; BOOK_FIND.done.days = true; }
+  bookFindPaint_();
+});
+/* "and": the same step's tags again; after a time, "and" is another day (a day, then its times). */
+on('book-and', el => {
+  const id = el.dataset.step;
+  BOOK_FIND.more = '';
+  if (id === 'slots') { delete BOOK_FIND.done.days; BOOK_FIND.day = ''; }
   bookFindPaint_();
 });
 /* BACK TO A STEP: it and every step after it are asked again, from empty. */
 function bookFindBack_(id) {
   const at = BOOK_FIND_ORDER.indexOf(id);
   if (at === -1) return;
+  BOOK_FIND.more = ''; BOOK_FIND.day = '';
   BOOK_FIND_ORDER.slice(at).forEach(k => {
     delete BOOK_FIND.done[k];
     if (k === 'days') { BOOK_FIND.days = []; return; }
@@ -11240,7 +11248,7 @@ function chipShow_(f, i) {
 
 /* ---------- ONE COLOUR PER MENU (1030): every answer of a facet, its chip and its card words wear the facet's --hue-N. § */
 /* WRITTEN BY tools/facet-hues.js from the funnel's facet graph: two facets asked on one path never share a number. */
-const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 9, postWhen: 10, msgWith: 7, profileType: 1, settingFor: 1, vidSubject: 10, vidTopic: 11, vidChannel: 8, vidLevel: 9, vidType: 0, venueArea: 6, venueFor: 10, venueSize: 8, projectType: 11, subject: 1, shelf: 5, wReligion: 5, histKind: 4, wCollection: 4, wWork: 8, wSection: 7, wSource: 2, wLanguage: 6, wText: 11, wTradition: 2, wBook: 9, wChapter: 10, wUnit: 2, wAuthor: 10, wForm: 1, wPrimacy: 2, mScope: 8, mMake: 6, mModel: 4, mGen: 2, mEngine: 3, mKind: 3, mSystem: 9, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 5, mMarket: 3, mYears: 10, mSize: 8, mValves: 9, mBadge: 0, mFuel: 1, mPart: 7, mPrice: 6, cCategory: 11, cGroup: 2, cPeriod: 4, cState: 5, boxKind: 3, fighter: 8, boutMonth: 10, boutYear: 4, decade: 2, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 7, boutEvent: 0, histEra: 1, histMaterial: 5, histFormat: 2, histGenre: 3, histRole: 7, personName: 7, personYears: 8, personFrom: 6, histTheme: 10, histRepository: 6, histFound: 7, histDated: 9, histSide: 8, histTheatre: 9, practicalType: 10, shopKind: 3, shopHow: 1, shopPrice: 6, shopBrand: 3, shopFor: 4, shopTheme: 5, required: 11, documentType: 4, typeOwn: 7, fiveLevel: 10, fiveMonth: 11, fiveDay: 9, level: 3, keystage: 7, yearGroup: 3, bandValue: 5, topic: 6, examBoard: 7, tier: 9, examYear: 5, examMonth: 8, verified: 0, paperId: 8, paperSection: 1, qNumber: 9, qPart: 1, qSub: 2, qPage: 11, qPages: 0, marks: 11, needs: 0, myResult: 11, source: 6};
+const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 9, postWhen: 10, msgWith: 7, profileType: 1, settingFor: 1, vidSubject: 10, vidTopic: 11, vidChannel: 8, vidLevel: 9, vidType: 0, venueArea: 6, venueFor: 10, venueSize: 8, projectType: 11, subject: 1, shelf: 5, wReligion: 5, histKind: 4, wCollection: 4, wWork: 8, wSection: 7, wSource: 2, wLanguage: 6, wText: 11, wTradition: 2, wBook: 9, wChapter: 10, wUnit: 2, wAuthor: 10, wForm: 1, wPrimacy: 2, mScope: 8, mMake: 6, mModel: 4, mGen: 2, mEngine: 3, mKind: 3, mSystem: 9, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 5, mMarket: 3, mYears: 10, mSize: 8, mValves: 9, mBadge: 0, mFuel: 1, mPart: 7, mPrice: 6, cCategory: 11, cGroup: 2, cPeriod: 4, cState: 5, boxKind: 3, fighter: 8, boutMonth: 10, boutYear: 4, decade: 2, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 7, boutEvent: 0, histEra: 1, histMaterial: 5, histFormat: 2, histGenre: 3, histRole: 7, personName: 7, personYears: 8, personFrom: 6, histTheme: 10, histRepository: 6, histFound: 7, histDated: 9, histSide: 8, histTheatre: 9, practicalType: 10, shopKind: 3, shopHow: 1, shopPrice: 6, shopBrand: 3, shopFor: 4, shopTheme: 5, required: 11, documentType: 4, typeOwn: 7, fiveLevel: 10, fiveMonth: 11, fiveDay: 9, level: 3, keystage: 7, yearGroup: 3, bandValue: 5, topic: 6, examBoard: 7, tier: 9, examYear: 5, examMonth: 8, verified: 0, paperId: 8, paperSection: 1, qNumber: 9, qPart: 1, qSub: 2, marks: 11, needs: 0, myResult: 11, source: 6};
 /* A FACET THE WALK NEVER MET (one the facets tab invented) still has a colour: the first. */
 const tagOf_ = field => 'h' + (TAG_OF[field] || 0);
 const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;
@@ -17764,7 +17772,7 @@ function qtTiles_(x, ans) {
       typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]).filter(Boolean);
 }
 /* THE ROW ALONE (a check draws a pad with it): the card's own row maker, as `renderCard` draws it. */
-function qtRow_(x) { return x && x.key ? kcActRow_(x, '', tile_(qtTiles_(x)), { flat: true, look: 'qt-row', key: x.key }) : ''; }
+function qtRow_(x) { return x && x.key ? kcActRow_(x, '', tile_(qtTiles_(x)), { look: 'qt-row', key: x.key }) : ''; }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
 const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';
 /* ---------- THE CARD DRAWN AGAIN, where it stands: what a pen opened needs, its plan forgotten first. */
@@ -18258,7 +18266,7 @@ const BOOKING = {
 };
 
 /* WHERE FIND'S BOOKING STEPS ARE (find-account.js): which steps were answered, and the Days step's pick, which only Times reads. */
-const BOOK_FIND = { done: {}, days: [], started: false };
+const BOOK_FIND = { done: {}, days: [], started: false, more: '', day: '' };
 
 /* ---------- THE ONE YOU JUST ASKED FOR § */
 let ASKED_JOB = '';
@@ -18778,7 +18786,7 @@ function resetBooking_(keepDraft) {
      booking. A reset with it left set would draw the next booking's first page as a picker for a
      question nobody had pressed. */
   BOOKING.picking = '';
-  BOOK_FIND.done = {}; BOOK_FIND.days = []; BOOK_FIND.started = false;
+  BOOK_FIND.done = {}; BOOK_FIND.days = []; BOOK_FIND.started = false; BOOK_FIND.more = ''; BOOK_FIND.day = '';
   BOOK_PREFILLED = false;
   /* AND THE DRAFT OF IT — sent, or started again, is not a booking to bring back (`bookKeep_`). § */
   if (keepDraft) return;
@@ -22704,7 +22712,7 @@ const CARD_REG = [
   { id: 'biz:libimp', col: 'site', label: 'Library import', re: /^<div class="card biz libimp/, say: 'Bring new questions and their words into the library.' },
   { id: 'site:digest', col: 'site', label: 'Weekly email', re: /^<div class="card biz digest-look/, say: 'How Sunday\'s email to parents looks, live.' },
   { id: 'site:digest-words', col: 'site', label: 'Weekly email\'s words', re: /^<div class="card biz digest-words/, only: 'the weekly email\'s words', say: 'The subject, greeting, first and last lines of Sunday\'s email.' },
-  { id: 'site:template', col: 'site', label: 'Card template', re: /^<div class="card biz tpl-card/, say: 'The one template every card is drawn by, and the fixed sizes and colours.' },
+  { id: 'site:template', col: 'site', label: 'Card template', re: /^<div class="card [^"]*\btpl-card\b/, say: 'The one template every card is drawn by, and the fixed sizes and colours.' },
   { id: 'site:stability', col: 'site', label: 'Stability', re: /^<div class="card biz stability-card/, say: 'How stable the code is, scored from its exceptions, special cases and dead code.' },
   { id: 'site:inbox', col: 'site', label: 'Email', re: /^<div class="card biz inbox-card/, say: 'The admin Gmail, read-only.' },
   { id: 'biz:build', col: 'site', label: 'Build', re: /class="me-build"/, say: 'Which version of the site and backend is running.' },
