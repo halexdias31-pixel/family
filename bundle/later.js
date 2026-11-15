@@ -731,13 +731,8 @@ const FACETS = [
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => !isPractical_(x) || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
-  /* A TYPE UNDER ANOTHER (545, 660): Type offers the one above alone ("spec paper should be in past papers"); Which type, after it, its own. */
-  { field: 'documentType', label: 'Type',     of: x => underTop_(DOC_TYPE_UNDER, x.documentType) },
-  { field: 'typeOwn',      label: 'Which type', of: x => underOwn_(DOC_TYPE_UNDER, x.documentType) },
-  /* A 5-A-DAY IS FOUND BY ITS LEVEL, ITS MONTH AND ITS DAY, each read off its paper id. */
-  { field: 'fiveLevel', label: 'Level',       of: x => fiveADay_(x) ? x.tier || '' : '' },
-  { field: 'fiveMonth', label: 'Month',       of: x => { const d = fiveADay_(x); return d ? d.month : ''; } },
-  { field: 'fiveDay',   label: 'Day',         of: x => { const d = fiveADay_(x); return d ? d.day + ' ' + d.month : ''; } },
+  /* ONE TYPE QUESTION (owner, 15 Nov): a card's own type, no type under another; a 5-a-day answers the ordinary facets. */
+  { field: 'documentType', label: 'Type',     of: x => x.documentType || '' },
   { field: 'level',     label: 'Level',       of: x => levelOf_(x) },
   /* A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE; a SATs row's is read off its year when the cell is blank. */
   { field: 'keystage',  label: 'Key stage',   of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesOf_(x); } },
@@ -757,7 +752,7 @@ const FACETS = [
     showOf: id => paperTag_(id) || paperLabel_(id), tagSay: id => paperTag_(id),
     /* TWO PAPERS ONE NUMBER APART BY NOTHING ELSE (Combined Science's Paper 1 Biology, Chemistry, Physics): their titles, sitting last. */
     nameOf: id => { const t = paperLabel_(id); return [t.replace(/\s+—\s+[^—]+$/, ''), t]; } },
-  /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
+  /* THE SECTION OF A PAPER SAT IN SECTIONS (770): an ordinary facet, asked whenever it splits (owner, 15 Nov). */
   { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : paperNameSection_(x); } },
   /* WHICH QUESTION, WHICH PART, HOW MANY MARKS: the words are the value, so the card and the button agree. */
   { field: 'qNumber',   label: 'Question',
@@ -771,7 +766,7 @@ const FACETS = [
   /* A WORKSHEET'S MAKER (O3): Publisher went, being the exam board twice or this. */
   { field: 'source',    label: 'Source',      of: x => sourceOf_(x) },
   { field: 'needs',     label: 'What you need', of: x => asList_(x.needs) },
-  /* HOW YOU DID (463): the viewer's own latest press on a question; signed out it is blank everywhere, so it is never asked. */
+  /* HOW YOU DID (463): the viewer's own latest press on a question; an ordinary facet (signed out it is blank, so it cannot split). */
   { field: 'myResult',  label: 'Your result', of: x => myResultOf_(x) },
 ];
 
@@ -1288,7 +1283,6 @@ function facetSplit_(items, facet) {
   return facetTally_(items, facet).split;
 }
 
-const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet', 'End of topic test': 'Worksheet' };
 /* KINDS UNDER KINDS (546, 610): § */
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
 const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library', spec: 'Library',
@@ -1306,23 +1300,9 @@ function kindTopTag_(x) {
   return l.indexOf(g) >= 0 ? g : l[0];
 }
 function kindTop_(x) { return (x && x.top) || (x && x.widget && typeof FIND_WIDGET_GROUPS !== 'undefined' && FIND_WIDGET_GROUPS[x.widget.id]) || (x && KIND_UNDER[x.kind]) || ''; }
-/* ONE RULE FOR A VALUE UNDER ANOTHER (660): § */
-function underTop_(table, v) { return (v && table[v]) || v || ''; }
-/* 680: the second offers only what is BELOW the one above, never the parent's own name again; Doesn't § */
-function underOwn_(table, v) { return v && table[v] && table[v] !== v ? v : ''; }
 /* 680: a kind spelt like the kind above it is never offered twice (What kind, then Which). */
 function notTop_(x, v) { const top = asList_(kindTop_(x)).map(spellKey_); const l = [].concat(v || []).filter(k => k && top.indexOf(spellKey_(k)) === -1); return l.length > 1 ? l : (l[0] || ''); }
 
-/* ---------- A 5-A-DAY'S DATE, READ OFF ITS PAPER ID § */
-function fiveADayOf_(id) {
-  const m = /^P-CBM-5AD-[A-Z+]+-(\d{2})(\d{2})$/.exec(String(id || ''));
-  if (!m) return null;
-  const month = MONTH_NAMES[Number(m[1]) - 1];
-  return month ? { month, day: Number(m[2]) } : null;
-}
-function fiveADay_(x) {
-  return x && x.row && String(x.row.document_type || '') === '5-a-day' ? fiveADayOf_(x.row.paper_id) : null;
-}
 
 /* THE ONE RULE EVERY FACET IS ASKED BY (396), as a reason it is NOT asked, or '' when it may be: § */
 /* A NUMBERED RUN IS DRAWN AS A GRID (396): § */
@@ -1331,10 +1311,8 @@ const runNumber_ = v => (/^(?:([A-Za-z]+) )?(\d+)$/.exec(String(v.show || v.valu
 const numberedRun_ = values => values.length > 1 && values.every(v => runNumber_(v)[2]) && new Set(values.map(v => runNumber_(v)[1] || '')).size === 1;
 function facetWhy_(items, facet, over) {
   /* COUNTED BEFORE NAMED: § */
-  if (!over && facetTally_(items, facet).count - ((STUFF && STUFF.filters) || []).length > Math.max(FACET_MAX_GRID, Object.keys(DOC_TYPE_UNDER).length)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
+  if (!over && facetTally_(items, facet).count - ((STUFF && STUFF.filters) || []).length > FACET_MAX_GRID) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
   const all = facetValues(items, facet), vals = all.length;
-  /* 680: answers that are all BELOW an answer already chosen are asked even alone — Doesn't matter is the § */
-  if (vals > 1 && underChosen_(all)) return ''; /* owner 5 Nov: one answer is never a question, even below a chosen one */
   if (vals < 2) return (vals ? 'one answer' : 'nobody can answer it') + ' — nothing to decide';
   if (!over && vals > (vals <= FACET_MAX_GRID && numberedRun_(all) ? FACET_MAX_GRID : FACET_MAX_ANSWERS)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
   const cov = facetCoverage(items, facet);
@@ -1349,11 +1327,6 @@ function facetWhy_(items, facet, over) {
          + '% of the list, needs ' + Math.round(FACET_MIN_MINORITY * 100) + '%';
   }
   return '';
-}
-
-function underChosen_(values) {
-  const chosen = new Set((STUFF.filters || []).filter(f => !f.any).map(f => spellKey_(f.value)));
-  return values.every(v => DOC_TYPE_UNDER[v.value] && chosen.has(spellKey_(DOC_TYPE_UNDER[v.value])));
 }
 
 /* A QUESTION WHOSE EVERY ANSWER IS A KIND'S NAME (the kinds tab) chooses what a card IS, not how many (660): § */
@@ -1452,56 +1425,14 @@ function facetBits_(items, facet) {
   return Math.min(FACET_BITS_ENOUGH, Math.round(bits * 100) / 100);
 }
 
-/* THE NEXT QUESTION WORTH ASKING, or nothing (rule 7, owner 6 Nov): § */
+/* THE NEXT QUESTION, or nothing — ONE PRINCIPLE (owner, 15 Nov): the first facet in the facets tab's order that splits the list. */
+/* No ranking by how well it splits, no kind or choose question jumping the queue: the tab's `sort_order` is the order. */
 function nextFacet(items) {
   const asked = STUFF.filters.map(f => f.field);
-  const ok = [];
   for (const facet of facetList()) {
-    if (asked.indexOf(facet.field) !== -1 || facetWhy_(items, facet)) continue;
-    const vals = facetValues(items, facet);
-    /* What a card IS is asked first (660), the front's answers are FRONT_ORDER's (4 Nov), and a choose question § */
-    if (kindNamed_(vals) || facet.choose || (!asked.length && vals.every(v => FRONT_ORDER.indexOf(v.value) !== -1))) return facet;
-    ok.push({ facet, bits: facetBits_(items, facet) });
+    if (asked.indexOf(facet.field) === -1 && !facetWhy_(items, facet)) return facet;
   }
-  const pick = list => list.reduce((b, c) => (!b || c.bits > b.bits ? c : b), null);
-  let best = pick(ok);
-  /* A finer question splits more, but its coarser one comes first (the subtype rule): Subject before Topic. */
-  /* THE COARSEST HOLDING IT, BY THE TAB (1180): § */
-  const at = new Map(facetList().map((f, i) => [f, i]));
-  for (let hop = 0; best && hop < 4; hop++) {
-    const up = ok.filter(c => c !== best && at.get(c.facet) < at.get(best.facet)
-      && facetInside_(best.facet, c.facet, items) && !facetInside_(c.facet, best.facet, items))
-      .reduce((b, c) => (!b || at.get(c.facet) < at.get(b.facet) ? c : b), null);
-    if (!up) break;
-    best = up;
-  }
-  return best ? best.facet : null;
-}
-
-/* EVERY ANSWER OF F SITS INSIDE ONE ANSWER OF G, and G has two answers at least: F is G asked finer. */
-/* One walk per list and pair, kept as FACET_TALLY keeps its tallies: a tap never re-walks the library. */
-const INSIDE_MEMO_ = new WeakMap();
-function facetInside_(F, G, items) {
-  let m = INSIDE_MEMO_.get(items);
-  if (!m) INSIDE_MEMO_.set(items, m = {});
-  const key = F.field + '>' + G.field;
-  if (key in m) return m[key];
-  /* A CARD MAY HOLD TWO OF G (the Masoretic Text is Christianity and Judaism, 660): § */
-  const to = {};
-  let any = 0;
-  for (const x of items) {
-    const a = facetOwn_(F, x), b = facetOwn_(G, x);
-    if (!a.length || !b.length) continue;
-    const kb = new Set(b.map(spellKey_));
-    for (const v of a) {
-      const k = spellKey_(v);
-      to[k] = to[k] ? to[k].filter(g => kb.has(g)) : [...kb];
-      if (!to[k].length) return (m[key] = false);
-      any++;
-    }
-  }
-  /* G's two answers are the list's, not only F's cards': § */
-  return (m[key] = any > 0 && facetValues(items, G).length > 1);
+  return null;
 }
 
 /* AND WHEN NOTHING QUALIFIES, THE CLOSEST THING TO A QUESTION RATHER THAN A DEAD END: § */
@@ -2434,7 +2365,7 @@ function bibleEnd_(items) {
 /* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: § */
 function bibleItems_() {
   if (!bibleFor_()) return [];
-  if (USER || !ruleOn_('finder-members')) bibleIndex_();
+  if (USER || !ruleOn_('finder-members') || guestLibrary_()) bibleIndex_();
   if (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) return [];
   const list = bibleVerses_();
   BIBLE.item = list[0] || null;
@@ -5161,7 +5092,7 @@ function ansBox_(x) {
     return fcG_('div', cls + ' qp-essay' + (vcls ? ' ' + vcls : ''), dataAt,
       fcG_('label', 'qp-ans qp-sheet', { 'aria-label': 'Your answer' }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
       + ws + (note ? fcG_('p', 'qp-ai-note', null, '', note) : '') + fcVerdict_(vsay) + fcSaved_(k))
-      + (isAi ? fcG_('p', 'qp-ai-why', null, '', own ? own.why : '') : '');
+      + (isAi ? fcG_('p', 'qp-ai-why', null, '', own ? own.why : said.why || '') : '');
   }
   const many = can ? multiOf_(x) : null;
   const bar = opts + (many ? fcG_('div', 'qp-ans-row qp-bar qp-multi-bar', null, multiBoxes_(x, k, val, many, maths, 3))
@@ -5171,13 +5102,13 @@ function ansBox_(x) {
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
   return fcG_('div', cls + (said.cls ? ' ' + said.cls : ''), dataAt,
     bar + ws + (note ? fcG_('p', 'qp-ai-note', null, '', note) : '') + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k))
-    + (isAi ? fcG_('p', 'qp-ai-why', null, '', '') : '');
+    + (isAi ? fcG_('p', 'qp-ai-why', null, '', said.text ? said.why : '') : '');
 }
 /* WHAT A BOX'S VERDICT LINE SAYS AS IT IS DRAWN: the latest submission's verdict, if the box holds it. */
 function subBoxSay_(k, val) {
   const latest = typeof subLatest_ === 'function' ? subLatest_(k) : null;
   return latest && latest.a === String(val == null ? '' : val) && typeof subSay_ === 'function'
-    ? subSay_(latest.v) : { text: '', cls: '' };
+    ? Object.assign({ why: latest.f || '' }, subSay_(latest.v)) : { text: '', cls: '', why: '' };
 }
 
 /* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `markPart_` against the scheme; a part with no rule goes to the AI from the same button. */
@@ -5190,17 +5121,9 @@ on('qp-check', (el) => {
   if (!box || !inp || !out) return;
   const k = inp.getAttribute('data-k');
   const x = stuffItemsAll_().find(it => ansKey_(it) === k);
-  /* A PHOTO IS READ BY THE AI MARKER (owner, 29 Oct): the scheme reads only the typed box, so a part with photos goes to `markWorking` with them */
-  const send = typeof WORK_PICS !== 'undefined' && (WORK_PICS[k] || []).length
-    ? [].find.call(document.querySelectorAll('.qp-work-send'), b => b.getAttribute('data-k') === k) : null;
   /* ONE PRESS, ONE VERDICT: a mark still being made is not made again */
   if (box.classList.contains('is-busy') || el.disabled) return;
   box.classList.remove('is-right', 'is-near');
-  if (send && ACTIONS['qp-work-send']) {
-    out.textContent = 'Your photos go to the AI marker';
-    ACTIONS['qp-work-send'](send);
-    return;
-  }
   if (partReady_('typed', inp.value)) { out.textContent = partReady_('typed', inp.value); return; }
   const v = x ? markPart_(x, inp.value) : markAnswer_(inp.value, box.getAttribute('data-accept')) === null ? null : { got: markAnswer_(inp.value, box.getAttribute('data-accept')) ? 1 : 0, of: 1 };
   if (!v) { out.textContent = partReady_('typed', ''); return; }
@@ -9633,7 +9556,15 @@ function doorItems_() {
   return [].concat(postDoorItems_(), msgDoorItems_(), profileDoorItems_(), settingDoorItems_());
 }
 /* SETTINGS AND BOOKING (owner, 13 Nov: a guest books through Find's steps and signs in to Send); no Venues on the signed-out front. */
-function findSignedOut_(x) { return kindTop_(x) === 'Settings' || x.kind === 'bookform'; }
+/* AND THE LIBRARY (owner, 15 Nov), by ONE permissions row (`item` library:read for `anyone`): never a question, its answer or Practice. */
+function findSignedOut_(x) { return kindTop_(x) === 'Settings' || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)); }
+const guestLibrary_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'library:read');
+/* A LIBRARY CARD: a Learning thing that is not practice — questions, their answers and the Practice widgets are signed in. */
+function libraryCard_(x) {
+  if (!x || x.kind === 'question' || x.kind === 'answer') return false;
+  if (asList_(kindTop_(x)).indexOf('Practice') !== -1 && x.kind !== 'practical') return false;
+  return asList_(x.groups || kindOf_(x).group).indexOf('Learning') !== -1;
+}
 
 /* ---------- VENUES: every building the booking form offers (items: stuffItemsRaw_), the facts as tags on top, as on a person card, then the picture ---------- */
 /* 8-BIT BUILDINGS, drawn by pixSvg_ (find-boxers.js): a shape per kind of building, picked off the venue's name. */
@@ -11248,7 +11179,7 @@ function chipShow_(f, i) {
 
 /* ---------- ONE COLOUR PER MENU (1030): every answer of a facet, its chip and its card words wear the facet's --hue-N. § */
 /* WRITTEN BY tools/facet-hues.js from the funnel's facet graph: two facets asked on one path never share a number. */
-const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 9, postWhen: 10, msgWith: 7, profileType: 1, settingFor: 1, vidSubject: 10, vidTopic: 11, vidChannel: 8, vidLevel: 9, vidType: 0, venueArea: 6, venueFor: 10, venueSize: 8, projectType: 11, subject: 1, shelf: 5, wReligion: 5, histKind: 4, wCollection: 4, wWork: 8, wSection: 7, wSource: 2, wLanguage: 6, wText: 11, wTradition: 2, wBook: 9, wChapter: 10, wUnit: 2, wAuthor: 10, wForm: 1, wPrimacy: 2, mScope: 8, mMake: 6, mModel: 4, mGen: 2, mEngine: 3, mKind: 3, mSystem: 9, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 5, mMarket: 3, mYears: 10, mSize: 8, mValves: 9, mBadge: 0, mFuel: 1, mPart: 7, mPrice: 6, cCategory: 11, cGroup: 2, cPeriod: 4, cState: 5, boxKind: 3, fighter: 8, boutMonth: 10, boutYear: 4, decade: 2, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 7, boutEvent: 0, histEra: 1, histMaterial: 5, histFormat: 2, histGenre: 3, histRole: 7, personName: 7, personYears: 8, personFrom: 6, histTheme: 10, histRepository: 6, histFound: 7, histDated: 9, histSide: 8, histTheatre: 9, practicalType: 10, shopKind: 3, shopHow: 1, shopPrice: 6, shopBrand: 3, shopFor: 4, shopTheme: 5, required: 11, documentType: 4, typeOwn: 7, fiveLevel: 10, fiveMonth: 11, fiveDay: 9, level: 3, keystage: 7, yearGroup: 3, bandValue: 5, topic: 6, examBoard: 7, tier: 9, examYear: 5, examMonth: 8, verified: 0, paperId: 8, paperSection: 1, qNumber: 9, qPart: 1, qSub: 2, marks: 11, needs: 0, myResult: 11, source: 6};
+const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 9, postWhen: 10, msgWith: 7, profileType: 1, settingFor: 1, vidSubject: 10, vidTopic: 11, vidChannel: 8, vidLevel: 9, vidType: 0, venueArea: 6, venueFor: 10, venueSize: 8, projectType: 11, subject: 1, shelf: 5, wReligion: 5, histKind: 4, wCollection: 4, wWork: 8, wSection: 7, wSource: 2, wLanguage: 6, wText: 11, wTradition: 2, wBook: 9, wChapter: 10, wUnit: 2, wAuthor: 10, wForm: 1, wPrimacy: 2, mScope: 8, mMake: 6, mModel: 4, mGen: 2, mEngine: 3, mKind: 3, mSystem: 9, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 5, mMarket: 3, mYears: 10, mSize: 8, mValves: 9, mBadge: 0, mFuel: 1, mPart: 7, mPrice: 6, cCategory: 11, cGroup: 2, cPeriod: 4, cState: 5, boxKind: 3, fighter: 8, boutMonth: 10, boutYear: 4, decade: 2, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 7, boutEvent: 0, histEra: 1, histMaterial: 5, histFormat: 2, histGenre: 3, histRole: 7, personName: 7, personYears: 8, personFrom: 6, histTheme: 10, histRepository: 6, histFound: 7, histDated: 9, histSide: 8, histTheatre: 9, practicalType: 10, shopKind: 3, shopHow: 1, shopPrice: 6, shopBrand: 3, shopFor: 4, shopTheme: 5, required: 11, documentType: 4, level: 3, keystage: 7, yearGroup: 3, bandValue: 5, topic: 6, examBoard: 7, tier: 9, examYear: 5, examMonth: 8, verified: 0, paperId: 8, paperSection: 1, qNumber: 9, qPart: 1, qSub: 2, marks: 11, needs: 0, myResult: 11, source: 6};
 /* A FACET THE WALK NEVER MET (one the facets tab invented) still has a colour: the first. */
 const tagOf_ = field => 'h' + (TAG_OF[field] || 0);
 const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;
@@ -11418,7 +11349,7 @@ function stuffKeepPlace_(host, d) {
 
 /* EVERY LIBRARY INDEX `paintStuff` asks for, one call each. */
 function stuffIndexesAsk_() {
-  if (USER || !ruleOn_('finder-members')) {
+  if (USER || !ruleOn_('finder-members') || guestLibrary_()) {
   if (typeof window.talmudIndex_ === 'function') window.talmudIndex_();
   if (typeof window.quranIndex_ === 'function') window.quranIndex_();
   if (typeof window.hadithIndex_ === 'function') window.hadithIndex_();
@@ -11432,7 +11363,7 @@ function stuffIndexesAsk_() {
 }
 
 function paintStuff(keepPage) {
-  /* EVERY LIBRARY INDEX IS ASKED FOR WHEN A FINDER IS PAINTED (473, 490), never by a widget drawing ahead; signed out none, as Find answers only Settings (C+, 503). */
+  /* EVERY LIBRARY INDEX IS ASKED FOR WHEN A FINDER IS PAINTED (473, 490), never by a widget drawing ahead; signed out only the library's, as Find answers Settings, Booking and the library (C+, 503; owner 15 Nov). */
   stuffIndexesAsk_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
@@ -14566,7 +14497,7 @@ on('qp-ai', (el) => {
       if (typeof subRecord_ === 'function') {
         subRecord_(k, sent,
           Number.isInteger(a) && Number.isInteger(m) && a >= 0 && m >= 1 && a <= m && m < 1000 ? 'ai:' + a + '/' + m : 'sent',
-          here && markWhere_(k) ? 'late' : 'none');
+          here && markWhere_(k) ? 'late' : 'none', String(d.feedback || ''));
       }
       /* AND THEN THE ESSAY'S LINE, FROM WHAT IS KEPT — after the record, so the verdict line and the
          submission it now reads agree (`subVerdictPaint_` asks both). */
@@ -15595,7 +15526,9 @@ function subRequeue_(who) {
 }
 
 /* ---------- RECORDING A PRESS § */
-function subRecord_(k, answer, verdict, sound) {
+/* THE AI'S WRITTEN FEEDBACK (owner, 15 Nov) rides with its score on the same submission, so it is on the account, on every device. */
+const SUB_FEEDBACK_MAX = 2000;
+function subRecord_(k, answer, verdict, sound, feedback) {
   k = String(k || '');
   answer = answer === null || answer === undefined ? '' : String(answer);
   if (!/^ans:/.test(k) || !answer.trim() || !verdict) return null;
@@ -15610,6 +15543,8 @@ function subRecord_(k, answer, verdict, sound) {
   const prev = SUB_LAST.get(who + '|' + key);
   if (prev && prev.e.a === answer && prev.e.v === String(verdict) && Date.now() - prev.t < SUB_TWICE_MS) return prev.e;
   const e = { a: answer, v: String(verdict), at: Date.now(), id: subId_() };
+  const said = String(feedback == null ? '' : feedback).trim().slice(0, SUB_FEEDBACK_MAX);
+  if (said) e.f = said;
   SUB_LAST.set(who + '|' + key, { e: e, t: e.at });
   /* SIGNED IN WITH AN ID: the account's. Over the account's ceiling it stays here and says so. */
   const pid = who && typeof USER === 'object' && USER && USER.personId && who === 'u:' + String(USER.personId) ? String(USER.personId) : '';
@@ -15620,6 +15555,7 @@ function subRecord_(k, answer, verdict, sound) {
       /* `at` IS THE PRESS'S OWN MOMENT, and the server orders "latest" by it (`pressed_at`, clamped to its
          own clock) — not by when the request arrived, which the rollout's queue would scramble. */
       const ev = { id: e.id, key: key, answer: answer, verdict: e.v, at: e.at };
+      if (e.f) ev.feedback = e.f;
       try { const l = typeof doneLabel_ === 'function' ? doneLabel_(k) : ''; if (l) ev.label = l; } catch (err) { oops_(err, 'submit:subRecord_') }
       try { const w = typeof doneWords_ === 'function' ? doneWords_(k) : ''; if (w) ev.words = w; } catch (err) { oops_(err, 'submit:subRecord_') }
       const q = subQueue_(who);
@@ -15659,8 +15595,8 @@ function subApply_(who, items, d) {
     /* A LATER PRESS OF THE SAME QUESTION IS THE LATEST NOW, and is left as it is. */
     if (!cur || cur.id !== ev.id) return;
     const got = d.saved[ev.id];
-    all[ev.key] = got ? { a: cur.a, v: cur.v, at: Number(got.at) || cur.at, id: ev.id }
-                      : { a: cur.a, v: cur.v, at: cur.at, id: ev.id, far: 1 };
+    all[ev.key] = Object.assign(got ? { a: cur.a, v: cur.v, at: Number(got.at) || cur.at, id: ev.id }
+                                    : { a: cur.a, v: cur.v, at: cur.at, id: ev.id, far: 1 }, cur.f ? { f: cur.f } : {});
   });
   subAllKeep_(who, all);
   if (typeof window.offSynced_ === 'function') window.offSynced_(who);
@@ -15749,7 +15685,7 @@ function subAdopt_() {
         if (cur && cur.q && !(lost.has(key) && at > Number(cur.at))) return;
         if (cur && id && cur.id === id) return;
         if (cur && Number(cur.at) >= at) return;
-        all[key] = { a: answer, v: verdict, at: at, id: id };
+        all[key] = Object.assign({ a: answer, v: verdict, at: at, id: id }, g.feedback ? { f: String(g.feedback) } : {});
         const k = 'ans:' + who + ':' + key;
         moved.push(k);
         /* THE BOX. A finger in it is never written over; an answer typed here after this press is a
@@ -16133,10 +16069,11 @@ function subVerdictPaint_(mark, inp) {
   if (mark.classList.contains('qp-essay') && mark.classList.contains('qp-ai') && typeof aiKeptView_ === 'function') {
     const view = aiKeptView_(k, inp.value);
     if (view && (view.fresh || !say.text) && typeof aiKeptPaint_ === 'function') { aiKeptPaint_(mark, inp); return; }
-    const why = mark.nextElementSibling;
-    if (why && why.classList.contains('qp-ai-why') && why.textContent) why.textContent = '';
     mark.classList.remove('is-stale');
   }
+  /* THE AI'S FEEDBACK, FROM THE SUBMISSION (owner, 15 Nov): the same on every device, and only with the verdict it came with. */
+  const why = mark.nextElementSibling;
+  if (why && why.classList.contains('qp-ai-why')) { const f = say.text && latest && latest.f ? latest.f : ''; if (why.textContent !== f) why.textContent = f; }
   /* AI MARKING SWITCHED OFF says so on this line (`aiOff_`), and keeps saying it until there is something else to say — but ONLY WHILE THE LINE STILL SAYS IT. § */
   if (!say.text && mark.classList.contains('is-off') && out.textContent && out.textContent === mark.getAttribute('data-off-said')) return;
   mark.classList.remove('is-right', 'is-near');
@@ -16541,19 +16478,19 @@ on('rep-send', el => {
 
 ;
 /* ==== js/working.js ==== */
-/* ---------- A PHOTO OF THE WORKING (501): up to three pages; Gemini marks them (`markWorking`). Only the AI marks. § */
+/* ---------- A PHOTO OF THE WORKING (501): up to three pages; they go with the part's one AI Mark (`aiMark`). Only the AI marks. § */
 const WORK_MAX = 3, WORK_EDGE = 1600, WORK_BYTES = 500 * 1024;
 /* EACH BOX'S PHOTOS by answer key: data URLs, in memory only, never browser storage. § */
 const WORK_PICS = {};
 
-/* EVERY PART TAKES A PHOTO OF THE WORKING: its tile in the part's tool row (qtools.js), its strip under the box. § */
+/* A PART THE AI MARKS TAKES A PHOTO OF THE WORKING: its tile in the part's tool row (qtools.js), its strip under the box. § */
 function workRow_(x) {
   const r = (x && x.row) || {};
   return Object.assign({}, r, { lead: x.lead, html: x.html, answer: x.answer, answer_type: x.answerType || r.answer_type,
     accept: x.accept || '', mark_words: x.markWords || '', cells: x.cells || '', draw_answer: x.drawAnswer || '',
     choices: (x.choices || []).join('|'), choice_right: (x.choiceRight || []).join('|'), marks: x.marks, subject: x.subject || r.subject });
 }
-/* THE STRIP UNDER THE BOX: thumbnails, then Mark my working; a failed mark keeps the photos. § */
+/* THE STRIP UNDER THE BOX: thumbnails; the part's one Mark sends them, and a failed mark keeps them. */
 function workStrip_(x) {
   if (!x || !isQ_(x)) return '';
   const k = ansKey_(x);
@@ -16566,19 +16503,12 @@ function workStripInner_(k) {
     tiles: [{ form: true, look: 'qp-work-x', act: 'qp-work-x', data: { k: k, i: i }, aria: 'Remove page ' + (i + 1), label: '×' }] })) },
   { type: 'group', tag: 'p', look: 'qp-work-say', attrs: { role: 'status', 'aria-live': 'polite' } }]);
 }
-/* MARK MY WORKING STANDS IN THE PART'S TOOL ROW (owner, 8 Nov), once there is a photo. § */
-/* THE SAME TILE IN EVERY STATE (rule 7.4): greyed until a photo is taken. */
-function workGoOpts_(k) {
-  const has = (WORK_PICS[k] || []).length > 0;
-  return { icon: 'tick', label: 'Mark my working', note: 'AI reads the photos', act: 'qp-work-send', cls: 'qp-work-send' + (has ? ' is-submit' : ''), off: !has, data: { k } };
-}
 function workPaint_(k) {
   document.querySelectorAll('.qp-work').forEach(el => {
     if (el.getAttribute('data-k') !== k) return;
     el.innerHTML = workStripInner_(k);
     el.hidden = !(WORK_PICS[k] || []).length;
   });
-  document.querySelectorAll('.qp-work-send').forEach(el => { if (el.getAttribute('data-k') === k) el.outerHTML = tile_(workGoOpts_(k)); });
 }
 function workSay_(k, text) {
   document.querySelectorAll('.qp-work').forEach(el => {
@@ -16652,39 +16582,7 @@ on('qp-work-x', el => {
   workPaint_(k);
 });
 
-/* ---------- SENT: the photos, the question, the scheme and anything typed, as one `markWorking`. § */
-on('qp-work-send', el => {
-  const k = el.getAttribute('data-k');
-  const pics = WORK_PICS[k] || [];
-  if (partReady_('photo', pics) || el.disabled) return;
-  if (typeof USER !== 'object' || !USER || !USER.token) { workSay_(k, 'Sign in to send your working'); return; }
-  const x = typeof ansItem_ === 'function' ? ansItem_(k) : null;
-  if (!x) { workSay_(k, 'Could not find this question'); return; }
-  const inp = [].find.call(document.querySelectorAll('.qp-ans-in, .qp-multi-val'), i => i.getAttribute('data-k') === k);
-  el.disabled = true;
-  el.classList.add('is-busy');
-  workSay_(k, '');
-  const strip = [].find.call(document.querySelectorAll('.qp-work'), s => s.getAttribute('data-k') === k);
-  const wait = strip && strip.querySelector('.qp-work-say');
-  if (wait) wait.innerHTML = loading_();
-  api({ action: 'markWorking', personId: USER.personId || '', id: subId_(), sent: Date.now(), key: k,
-        label: typeof doneLabel_ === 'function' ? (doneLabel_(k) || '') : '',
-        question: aiQuestion_(x), scheme: aiScheme_(x), marks: Number(x.marks) || 1,
-        answer: inp ? inp.value : '', photos: pics.map(p => p.url) })
-    .then(d => {
-      el.disabled = false;
-      el.classList.remove('is-busy');
-      if (wait) loaded_(wait);
-      if (!d || !d.success) { workSay_(k, (d && (d.message || d.error)) || 'Marking isn\u2019t available right now \u2014 tap Mark my working again later'); return; }
-      const said = d.awarded + ' of ' + d.available + ' mark' + (d.available === 1 ? '' : 's') + ' · AI from your photos';
-      workSay_(k, said + (d.feedback ? ' — ' + d.feedback : ''));
-    })
-    .catch(() => {
-      el.disabled = false;
-      el.classList.remove('is-busy');
-      workSay_(k, 'Could not reach the marker — check the connection');
-    });
-});
+/* ---------- MARKED BY THE PART'S ONE MARK BUTTON (owner, 15 Nov): the photos go with the AI's mark (`aiImages_`, qtools.js); there is no second button. */
 
 /* ---------- SEEN BY WHO MAY (`workingOf`): student, accepted parent, admin; fetched on the tap. § */
 /* `workingMaySee_` (dopost.gs): a parent or Admin, never a tutor (owner, 28 Oct). § */
@@ -17723,7 +17621,8 @@ const QT_TILE = {
   calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
   /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
   offline: (t, x) => (typeof window.offOpts_ === 'function' ? window.offOpts_(x) : null),
-  photo: (t, x) => ({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } }),
+  /* THE MARKER IS THE QUESTION'S (owner, 15 Nov): photos are read only by the AI, so only a part the AI marks takes them; a rule-marked part never does. */
+  photo: (t, x) => (isAiMark_(markerOf_(x)) ? { icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } } : null),
 };
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
 const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
@@ -17756,7 +17655,7 @@ function qtLight_(root, inHand) {
     tileSet_(t, { on: lit, pressed: lit });
   });
 }
-/* A PART'S TILES AS DATA, Check first (rule 3.11): its tools, the pen's Undo and Clear, Mark my working, Show the answer, Help. */
+/* A PART'S TILES AS DATA, Check first (rule 3.11): its tools, the pen's Undo and Clear, Show the answer, Help. ONE MARK BUTTON (owner, 15 Nov): no second one for photos. */
 function qtTiles_(x, ans) {
   if (!x || !x.key) return [];
   /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
@@ -17764,11 +17663,9 @@ function qtTiles_(x, ans) {
   /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
   const art = typeof padReady_ !== 'function' || padReady_(x);
   const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
-  const wk = typeof ansKey_ === 'function' && isQ_(x) ? ansKey_(x) : '';
   return [qtCheckOpts_(x)].concat(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x)),
     art && typeof padUndoOpts_ === 'function' ? padUndoOpts_(x) : [],
-    [wk && typeof workGoOpts_ === 'function' ? workGoOpts_(wk) : null,
-      ans && typeof qaToggleOpts_ === 'function' ? qaToggleOpts_(ansKey_(x), ansOpen_(x)) : null,
+    [ans && typeof qaToggleOpts_ === 'function' ? qaToggleOpts_(ansKey_(x), ansOpen_(x)) : null,
       typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]).filter(Boolean);
 }
 /* THE ROW ALONE (a check draws a pad with it): the card's own row maker, as `renderCard` draws it. */

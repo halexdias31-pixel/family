@@ -53,7 +53,7 @@ function boot(cb) {
   const src = loadOrder_().map(n => fs.readFileSync(path.join(ROOT, 'js', n + '.js'), 'utf8')).join('\n');
   try {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
-      ' facetSplit_, facetBits_, facetInside_, kindNamed_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
+      ' facetSplit_, facetBits_, kindNamed_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
       ' filterHit, facetOwn_, STUFF, norm,' +
       ' stuffNarrow_, tagOf_, FACET_KEYS, FACET_COVERAGE, facetWhy_, facetSay_,' +
       ' answerCmp_, placeChipDead_, NEED_WORDS,' +
@@ -162,19 +162,12 @@ boot(f => {
       if (facets[i].at < facets[i - 1].at) { bad.push('the live facets are not in the tab\'s sort_order: `' + facets[i - 1].field + '` (' + facets[i - 1].at + ') before `' + facets[i].field + '` (' + facets[i].at + ')'); break; }
     }
   }
-  /* AND ASKED BY THE ONE TEST (rule 7): of the facets `facetWhy_` passes, the best split; the tab's order breaks ties; the front stays What kind. */
-  if (f.facetWhy_ && f.facetBits_ && f.facetInside_) {
-    const ok = facets.filter(x => !f.facetWhy_(items, x)), score = x => Math.round(f.facetBits_(items, x) * 100) / 100;
-    const front = (!(f.STUFF && f.STUFF.filters && f.STUFF.filters.length) && ok.find(x => x.field === 'kindLabel')) || (f.kindNamed_ && ok.find(x => f.kindNamed_(f.facetValues(items, x))));
-    const top = list => list.reduce((b, x) => (!b || score(x) > score(b) ? x : b), null);
-    let first = front || top(ok);
-    for (let hop = 0; !front && first && hop < 4; hop++) {
-      const up = top(ok.filter(x => x !== first && f.facetInside_(first, x, items) && !f.facetInside_(x, first, items)));
-      if (!up) break;
-      first = up;
-    }
+  /* AND ASKED BY THE ONE PRINCIPLE (owner, 15 Nov): the first facet in the tab's order that `facetWhy_` passes — no ranking, no jumping the queue. */
+  if (f.facetWhy_) {
+    const asked0 = new Set(((f.STUFF && f.STUFF.filters) || []).map(c => c.field));
+    const first = facets.find(x => !asked0.has(x.field) && !f.facetWhy_(items, x)) || null;
     const asked = f.nextFacet(items);
-    if ((first && first.field) !== (asked && asked.field)) bad.push('nextFacet asks `' + (asked && asked.field) + '` where the one rule picks `' + (first && first.field) + '`');
+    if ((first && first.field) !== (asked && asked.field)) bad.push('nextFacet asks `' + (asked && asked.field) + '` where the one principle picks `' + (first && first.field) + '`');
   }
   /* ---------- 1b. ONE ORDER FOR ANSWERS, BY WHAT THEY ARE; ONE WAY TO SAY THEM § */
   if (f.answerCmp_ && f.facetSay_) {
@@ -852,15 +845,8 @@ boot(f => {
                    + 'Subject answer (' + JSON.stringify(own) + ') — see tagRow_().');
         }
       });
-      const dayF = byField('fiveDay');
-      if (String(x.row.document_type || '') === '5-a-day' && dayF && f.tagOf_) {
+      if (String(x.row.document_type || '') === '5-a-day') {
         fives++;
-        const day = f.facetSay_(dayF, f.asList_(dayF.of(x))[0] || '');
-        if (!tags.some(t => t.tag === f.tagOf_('fiveDay') && t.text === day)) {
-          bad.push(pid + ': the 5-a-day card has no ' + JSON.stringify(f.tagOf_('fiveDay')) + ' tag reading '
-                   + JSON.stringify(day) + ', which is what its Day answer says — its tags are '
-                   + JSON.stringify(tags.map(t => t.tag + ':' + t.text)));
-        }
         if (tags.some(t => /5-a-day\s+\S/i.test(t.text))) {
           bad.push(pid + ': a 5-a-day card tag joins the type to the level: '
                    + JSON.stringify(tags.map(t => t.text)));
@@ -1088,28 +1074,15 @@ let WALKED = 'not walked';
 /* A TYPE THAT IS A KIND OF ANOTHER ANSWERS BOTH, AND A TIMELINE IS A Timeline (545). FUNNEL_ONLY=under runs it alone. */
 function underTypes_(f, items) {
   const byField = fl => f.facetList().find(x => x.field === fl);
-  const typeF = byField('documentType'), kindF = byField('kindLabel'), typeOwnF = byField('typeOwn');
-  const under = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet', 'End of topic test': 'Worksheet' }, seenUnder = {};
-  /* 660: Type offers the one above ALONE ("spec paper should be in past papers"), and Which type, after it, the type itself. */
+  const typeF = byField('documentType'), kindF = byField('kindLabel');
+  /* ONE TYPE QUESTION (owner, 15 Nov): a question answers Type with its own type alone, no type under another. */
   items.forEach(x => {
     const t = x.kind === 'question' && String(x.documentType || '');
-    if (!t || !under[t] || !typeF) return;
-    seenUnder[t] = (seenUnder[t] || 0) + 1;
-    const said = f.asList_(typeF.of(x)).map(String), own = typeOwnF ? f.asList_(typeOwnF.of(x)).map(String) : [];
-    if (said.join() !== under[t]) bad.push((x.row && x.row.paper_id) + ': a ' + t + ' answers Type ' + JSON.stringify(said) + ', not ' + JSON.stringify(under[t]) + ' alone');
-    if (own.join() !== t) bad.push((x.row && x.row.paper_id) + ': a ' + t + ' answers Which type ' + JSON.stringify(own) + ', not ' + JSON.stringify(t));
+    if (!t || !typeF) return;
+    const said = f.asList_(typeF.of(x)).map(String);
+    if (said.join() !== t) bad.push((x.row && x.row.paper_id) + ': a ' + t + ' answers Type ' + JSON.stringify(said) + ', not ' + JSON.stringify(t) + ' alone');
   });
-  Object.keys(under).forEach(t => { if (!seenUnder[t]) bad.push('no ' + t + ' question was read, so "' + t + ' is under ' + under[t] + '" proves nothing'); });
-  /* 680: a parent's own items answer Which type with NOTHING, so Which type never offers the parent's name again. */
-  const parents = {}; Object.keys(under).forEach(k => { parents[under[k]] = 0; });
-  items.forEach(x => {
-    const t = x.kind === 'question' && String(x.documentType || '');
-    if (!t || !(t in parents) || !typeOwnF) return;
-    parents[t]++;
-    const own = f.asList_(typeOwnF.of(x)).map(String).filter(Boolean);
-    if (own.length) bad.push((x.row && x.row.paper_id) + ': a ' + t + ' answers Which type ' + JSON.stringify(own) + ' — the parent offered twice (680)');
-  });
-  Object.keys(parents).forEach(t => { if (!parents[t]) bad.push('no plain ' + t + ' was read, so "Which type never repeats ' + t + '" proves nothing'); });
+  if (byField('typeOwn')) bad.push('a Which type facet is back: one Type question only (owner, 15 Nov)');
   /* The fixture carries no data/timeline.json, so a bare timeline item stands in beside any real one. */
   const tls = items.filter(x => x.kind === 'timeline').concat([{ kind: 'timeline', hdb: true, name: 'a bare timeline' }]);
   const ownF = byField('kindOwn');
@@ -1131,7 +1104,7 @@ function underTypes_(f, items) {
     if (own.some(o => top.indexOf(o) !== -1)) bad.push(x.name + ': Which repeats What kind ' + JSON.stringify(top) + ' (680)');
   });
   Object.keys(practice).forEach(k => { if (!practice[k]) bad.push('no ' + k + ' was read, so "a ' + k + ' is Practice" proves nothing'); });
-  console.log('  Types under another: ' + JSON.stringify(seenUnder) + '; timelines: ' + tls.length + '; under Practice: ' + JSON.stringify(practice));
+  console.log('  Types: ' + 'one Type' + '; timelines: ' + tls.length + '; under Practice: ' + JSON.stringify(practice));
 }
 
 /* THE OWNER'S PAPER PATHS (8 Nov): after a level and Past paper, Subject is asked before any paper name, and the funnel never ends while Subject still splits the list. */

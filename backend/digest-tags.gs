@@ -27,12 +27,10 @@ function digestLibrary_(site) {
 /* THE TAG FACETS A QUESTION ANSWERS, with their `TAG_OF` colour kind. The ORDER is data/settings/facets.json's (`digestFacetOrder_`, 546). */
 /* This list's own order is only the fallback when that file cannot be fetched; check-digest holds it to the file. */
 /* ONE `verified` TAG (owner 10 Nov): the email reads the ledger's `function_verified` (397), which qtypes.js worked out in the browser, beside `verified`. */
-const DIGEST_TAG_FACETS = [['forLabel', 'kind'], ['kindLabel', 'kind'], ['subject', 'subject'], ['documentType', 'type'], ['fiveLevel', 'level'],
-  ['fiveMonth', 'sitting'], ['fiveDay', 'paper'], ['level', 'level'], ['keystage', 'level'], ['yearGroup', 'level'], ['bandValue', 'level'],
+const DIGEST_TAG_FACETS = [['forLabel', 'kind'], ['kindLabel', 'kind'], ['subject', 'subject'], ['documentType', 'type'],
+  ['level', 'level'], ['keystage', 'level'], ['yearGroup', 'level'], ['bandValue', 'level'],
   ['examBoard', 'board'], ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['verified', 'check'], ['paperId', 'paper'], ['paperSection', 'other'], ['qNumber', 'paper'],
   ['qPart', 'paper'], ['qSub', 'paper'], ['marks', 'paper'], ['needs', 'needs'], ['source', 'board']];
-/* `DOC_TYPE_UNDER` (find.js, 545): a type that is a kind of another answers both, on the card and so in the email. */
-const DIGEST_DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet', 'End of topic test': 'Worksheet' };
 const DIGEST_FACETS_PATH = 'data/settings/facets.json';
 /* THE FACETS FILE THE PHONE ORDERS ITS TAGS BY (546): the site's copy first, then raw.githubusercontent.com; null when neither answers. */
 function digestFacetOrder_(site) {
@@ -236,13 +234,6 @@ function digestTagMonth_(it, T) {
     || ofDate(doc.exam_date) || ofWave(it.examWave);
   return n >= 1 && n <= 12 ? DIGEST_MONTHS[n - 1] : '';
 }
-/* A 5-A-DAY's DAY, from its id — `fiveADayOf_`. */
-function digestTagFive_(q) {
-  if (String(q.document_type || '') !== '5-a-day') return null;
-  const m = /^P-CBM-5AD-[A-Z+]+-(\d{2})(\d{2})$/.exec(String(q.paper_id || ''));
-  const month = m ? DIGEST_MONTHS[Number(m[1]) - 1] : '';
-  return month ? { month: month, day: Number(m[2]) } : null;
-}
 /* `nameForms_`: the rungs a paper's name is shortened by. */
 const DIGEST_TAG_CUT = new RegExp('\\s[\\u2014\\u2013]\\s|\\s\\u00b7\\s(?=(?:(?:19|20)\\d{2}|' + DIGEST_MONTHS.join('|') + ')$)');
 function digestTagForms_(s) {
@@ -260,9 +251,7 @@ function digestTagForms_(s) {
 const digestSay_ = v => { const t = String(v == null ? '' : v).trim(); return /^(?:[a-z]|[ivx]+)$/.test(t) ? t : t.charAt(0).toUpperCase() + t.slice(1); };
 /* THE ANSWERS OF THE FACETS ASKED BEFORE Paper that a paper's head row gives — `cardList_`'s chips, read off one row a paper. */
 function digestTagBefore_(it, T) {
-  const five = digestTagFive_(it.src);
   return { subject: digestList_(it.subject), documentType: digestList_(it.documentType),
-           fiveLevel: digestList_(five ? it.tier : ''), fiveMonth: digestList_(five ? five.month : ''), fiveDay: digestList_(five ? five.day + ' ' + five.month : ''),
            level: digestList_(digestTagLevel_(it)), keystage: digestTagKeystage_(it),
            yearGroup: digestList_(it.bandValue && it.bandType === 'year' ? 'Year ' + it.bandValue : ''),
            bandValue: digestList_(it.bandValue && it.bandType === 'grade' ? 'Grade ' + it.bandValue : ''),
@@ -333,15 +322,14 @@ function digestTagNeeds_(q, T) {
 /* EVERY TAG THE SITE'S CARD WEARS FOR THIS QUESTION ROW, in its order, each `{ kind, text }` — `tagRow_`'s walk and its one dedupe: § */
 function digestCardTags_(q, T) {
   if (!q || !T) return [];
-  const it = digestTagItem_(q), pid = S(q.paper_id), five = digestTagFive_(q);
+  const it = digestTagItem_(q), pid = S(q.paper_id);
   const lv = digestTagLevel_(it), split = digestTagSplit_(q, T);
   const marks = Number(digestLibS_(q.marks).replace(/[^0-9.-]/g, '')) || 0;
   /* EACH FACET'S ANSWERS (`facetOwn_`, `tagOf` for the card's own page), in the words the value is. */
   const of = {
     /* `KIND_UNDER` (find.js, 546): a question is Practice as well as Questions. */
     forLabel: () => 'Learning', kindLabel: () => ['Practice', 'Questions'],
-    subject: () => it.subject, documentType: () => (DIGEST_DOC_TYPE_UNDER[it.documentType] ? [DIGEST_DOC_TYPE_UNDER[it.documentType], it.documentType] : it.documentType),
-    fiveLevel: () => (five ? it.tier : ''), fiveMonth: () => (five ? five.month : ''), fiveDay: () => (five ? five.day + ' ' + five.month : ''),
+    subject: () => it.subject, documentType: () => it.documentType,
     level: () => lv, keystage: () => digestTagKeystage_(it),
     yearGroup: () => (it.bandValue && it.bandType === 'year' ? 'Year ' + it.bandValue : ''),
     bandValue: () => (it.bandValue && it.bandType === 'grade' ? 'Grade ' + it.bandValue : ''),

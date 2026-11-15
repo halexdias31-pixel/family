@@ -526,16 +526,21 @@ function libIndexOf_(list, idOf) {
   return m;
 }
 
-/* ASK FOR THESE (typed ids), a moment from now, with whatever else is asked in the same turn. Nobody signed in: nothing. */
+/* WHO MAY ASK: anybody signed in; a guest only while the permissions table lets her read the library (owner, 15 Nov). */
+const libSigned_ = () => typeof USER !== 'undefined' && !!USER && !!USER.token;
+const libMayAsk_ = () => libSigned_() || (typeof guestLibrary_ === 'function' && guestLibrary_());
+/* AND WHO ASKED, so a reply for somebody who has since signed in or out is dropped: the token, or '' for a guest. */
+const libWho_ = () => (libSigned_() ? USER.token : '');
+/* ASK FOR THESE (typed ids), a moment from now, with whatever else is asked in the same turn. Nobody who may: nothing; a guest never a question. */
 function libAsk_(ids) {
-  if (typeof USER === 'undefined' || !USER || !USER.token) return;
-  (ids || []).forEach(t => { if (t && !LIB.flying.has(t) && !LIB.gone.has(t) && !LIB.refused.has(t)) LIB.pending.add(t); });
+  if (!libMayAsk_()) return;
+  (ids || []).forEach(t => { if (t && (libSigned_() || !/^q:/.test(t)) && !LIB.flying.has(t) && !LIB.gone.has(t) && !LIB.refused.has(t)) LIB.pending.add(t); });
   if (!LIB.pending.size || LIB.timer || LIB.failed) return;
   LIB.timer = setTimeout(libPump_, 0);
 }
 function libPump_() {
   LIB.timer = 0;
-  if (typeof USER === 'undefined' || !USER || !USER.token || !LIB.pending.size) return;
+  if (!libMayAsk_() || !LIB.pending.size) return;
   /* THE DEVICE'S COPY FIRST — read once a visit; whatever it holds for this Ledger is merged now and never asked for. */
   if (!LIB.disk) {
     if (!LIB.diskP) LIB.diskP = libDiskLoad_().then(() => { if (!LIB.timer) LIB.timer = setTimeout(libPump_, 0); });
@@ -554,10 +559,11 @@ function libPump_() {
 const LIB_KIND_ = { q: 'question', ct: 'content', pr: 'practical', pj: 'project', in: 'insert' };
 function libSend_(ids) {
   ids.forEach(t => { LIB.pending.delete(t); LIB.flying.add(t); });
-  const who = USER.token;
-  send({ action: 'readItems', kind: LIB_KIND_[String(ids[0]).split(':')[0]], personId: USER.personId || '', ids: ids })
+  const who = libWho_();
+  send(Object.assign({ action: 'readItems', kind: LIB_KIND_[String(ids[0]).split(':')[0]], personId: (USER && USER.personId) || '', ids: ids },
+    who ? {} : { device: typeof oopsDevice_ === 'function' ? oopsDevice_() : '' }))
     .then(d => {
-      if (!USER || USER.token !== who) return;
+      if (libWho_() !== who) return;
       libMerge_((d && d.items) || {});
       libDiskPut_((d && d.items) || {}, d && d.gen);
       ((d && d.missing) || []).forEach(t => LIB.gone.add(t));
@@ -565,7 +571,7 @@ function libSend_(ids) {
       if (d && d.refused && d.refused.length) LIB.failed = 'That is today’s ' + (d.cap || 'share') + ' — the rest open tomorrow.';
     })
     .catch(err => {
-      if (!USER || USER.token !== who) return;
+      if (libWho_() !== who) return;
       LIB.failed = libWhyNot_(err);
       if (err && err.reply && err.reply.why === 'lib-cap') ids.forEach(t => LIB.refused.add(t));
       else ids.forEach(t => LIB.pending.add(t));

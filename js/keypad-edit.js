@@ -81,7 +81,7 @@ on('qp-ai', (el) => {
       if (typeof subRecord_ === 'function') {
         subRecord_(k, sent,
           Number.isInteger(a) && Number.isInteger(m) && a >= 0 && m >= 1 && a <= m && m < 1000 ? 'ai:' + a + '/' + m : 'sent',
-          here && markWhere_(k) ? 'late' : 'none');
+          here && markWhere_(k) ? 'late' : 'none', String(d.feedback || ''));
       }
       /* AND THEN THE ESSAY'S LINE, FROM WHAT IS KEPT — after the record, so the verdict line and the
          submission it now reads agree (`subVerdictPaint_` asks both). */

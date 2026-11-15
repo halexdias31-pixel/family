@@ -405,7 +405,7 @@ function ansBox_(x) {
     return fcG_('div', cls + ' qp-essay' + (vcls ? ' ' + vcls : ''), dataAt,
       fcG_('label', 'qp-ans qp-sheet', { 'aria-label': 'Your answer' }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
       + ws + (note ? fcG_('p', 'qp-ai-note', null, '', note) : '') + fcVerdict_(vsay) + fcSaved_(k))
-      + (isAi ? fcG_('p', 'qp-ai-why', null, '', own ? own.why : '') : '');
+      + (isAi ? fcG_('p', 'qp-ai-why', null, '', own ? own.why : said.why || '') : '');
   }
   const many = can ? multiOf_(x) : null;
   const bar = opts + (many ? fcG_('div', 'qp-ans-row qp-bar qp-multi-bar', null, multiBoxes_(x, k, val, many, maths, 3))
@@ -415,13 +415,13 @@ function ansBox_(x) {
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
   return fcG_('div', cls + (said.cls ? ' ' + said.cls : ''), dataAt,
     bar + ws + (note ? fcG_('p', 'qp-ai-note', null, '', note) : '') + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k))
-    + (isAi ? fcG_('p', 'qp-ai-why', null, '', '') : '');
+    + (isAi ? fcG_('p', 'qp-ai-why', null, '', said.text ? said.why : '') : '');
 }
 /* WHAT A BOX'S VERDICT LINE SAYS AS IT IS DRAWN: the latest submission's verdict, if the box holds it. */
 function subBoxSay_(k, val) {
   const latest = typeof subLatest_ === 'function' ? subLatest_(k) : null;
   return latest && latest.a === String(val == null ? '' : val) && typeof subSay_ === 'function'
-    ? subSay_(latest.v) : { text: '', cls: '' };
+    ? Object.assign({ why: latest.f || '' }, subSay_(latest.v)) : { text: '', cls: '', why: '' };
 }
 
 /* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `markPart_` against the scheme; a part with no rule goes to the AI from the same button. */
@@ -434,17 +434,9 @@ on('qp-check', (el) => {
   if (!box || !inp || !out) return;
   const k = inp.getAttribute('data-k');
   const x = stuffItemsAll_().find(it => ansKey_(it) === k);
-  /* A PHOTO IS READ BY THE AI MARKER (owner, 29 Oct): the scheme reads only the typed box, so a part with photos goes to `markWorking` with them */
-  const send = typeof WORK_PICS !== 'undefined' && (WORK_PICS[k] || []).length
-    ? [].find.call(document.querySelectorAll('.qp-work-send'), b => b.getAttribute('data-k') === k) : null;
   /* ONE PRESS, ONE VERDICT: a mark still being made is not made again */
   if (box.classList.contains('is-busy') || el.disabled) return;
   box.classList.remove('is-right', 'is-near');
-  if (send && ACTIONS['qp-work-send']) {
-    out.textContent = 'Your photos go to the AI marker';
-    ACTIONS['qp-work-send'](send);
-    return;
-  }
   if (partReady_('typed', inp.value)) { out.textContent = partReady_('typed', inp.value); return; }
   const v = x ? markPart_(x, inp.value) : markAnswer_(inp.value, box.getAttribute('data-accept')) === null ? null : { got: markAnswer_(inp.value, box.getAttribute('data-accept')) ? 1 : 0, of: 1 };
   if (!v) { out.textContent = partReady_('typed', ''); return; }

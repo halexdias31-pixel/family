@@ -497,13 +497,8 @@ const FACETS = [
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => !isPractical_(x) || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
-  /* A TYPE UNDER ANOTHER (545, 660): Type offers the one above alone ("spec paper should be in past papers"); Which type, after it, its own. */
-  { field: 'documentType', label: 'Type',     of: x => underTop_(DOC_TYPE_UNDER, x.documentType) },
-  { field: 'typeOwn',      label: 'Which type', of: x => underOwn_(DOC_TYPE_UNDER, x.documentType) },
-  /* A 5-A-DAY IS FOUND BY ITS LEVEL, ITS MONTH AND ITS DAY, each read off its paper id. */
-  { field: 'fiveLevel', label: 'Level',       of: x => fiveADay_(x) ? x.tier || '' : '' },
-  { field: 'fiveMonth', label: 'Month',       of: x => { const d = fiveADay_(x); return d ? d.month : ''; } },
-  { field: 'fiveDay',   label: 'Day',         of: x => { const d = fiveADay_(x); return d ? d.day + ' ' + d.month : ''; } },
+  /* ONE TYPE QUESTION (owner, 15 Nov): a card's own type, no type under another; a 5-a-day answers the ordinary facets. */
+  { field: 'documentType', label: 'Type',     of: x => x.documentType || '' },
   { field: 'level',     label: 'Level',       of: x => levelOf_(x) },
   /* A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE; a SATs row's is read off its year when the cell is blank. */
   { field: 'keystage',  label: 'Key stage',   of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesOf_(x); } },
@@ -523,7 +518,7 @@ const FACETS = [
     showOf: id => paperTag_(id) || paperLabel_(id), tagSay: id => paperTag_(id),
     /* TWO PAPERS ONE NUMBER APART BY NOTHING ELSE (Combined Science's Paper 1 Biology, Chemistry, Physics): their titles, sitting last. */
     nameOf: id => { const t = paperLabel_(id); return [t.replace(/\s+—\s+[^—]+$/, ''), t]; } },
-  /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
+  /* THE SECTION OF A PAPER SAT IN SECTIONS (770): an ordinary facet, asked whenever it splits (owner, 15 Nov). */
   { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : paperNameSection_(x); } },
   /* WHICH QUESTION, WHICH PART, HOW MANY MARKS: the words are the value, so the card and the button agree. */
   { field: 'qNumber',   label: 'Question',
@@ -537,7 +532,7 @@ const FACETS = [
   /* A WORKSHEET'S MAKER (O3): Publisher went, being the exam board twice or this. */
   { field: 'source',    label: 'Source',      of: x => sourceOf_(x) },
   { field: 'needs',     label: 'What you need', of: x => asList_(x.needs) },
-  /* HOW YOU DID (463): the viewer's own latest press on a question; signed out it is blank everywhere, so it is never asked. */
+  /* HOW YOU DID (463): the viewer's own latest press on a question; an ordinary facet (signed out it is blank, so it cannot split). */
   { field: 'myResult',  label: 'Your result', of: x => myResultOf_(x) },
 ];
 

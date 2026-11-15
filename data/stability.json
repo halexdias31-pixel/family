@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 82.6,
+ "score": 82.2,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -34,28 +34,28 @@
   {
    "id": "dead",
    "label": "Code nothing calls",
-   "count": 17,
+   "count": 18,
    "weight": 0.3,
    "cap": 10,
-   "off": 5.1,
+   "off": 5.4,
    "where": {
-    "check-dead": "cardRedraw_ (cards-render.js), clipsNow_ (facts.js), filterChips (find-bundles.js), facetAnswersHtml_ (find-pages.js), formSlider_ (form.js), paintBoard_ (map.js), paintTimer (overworld.js), qtRow_ (qtools-row.js), sheetHere_ (shell-click.js), shareCanvasPng_ (shell-click.js), postRow_ (tiles-jobs.js), consoleSave_ (media.gs), consoleLoad_ (media.gs), favLinksIn_ (dopost.gs), rewriteIdeasAsk_ (dopost.gs), rewriteCheckAsk_ (dopost.gs), inboxList_ (inbox.gs)"
+    "check-dead": "cardRedraw_ (cards-render.js), clipsNow_ (facts.js), filterChips (find-bundles.js), facetBits_ (find-facets.js), facetAnswersHtml_ (find-pages.js), formSlider_ (form.js), paintBoard_ (map.js), paintTimer (overworld.js), qtRow_ (qtools-row.js), sheetHere_ (shell-click.js), shareCanvasPng_ (shell-click.js), postRow_ (tiles-jobs.js), consoleSave_ (media.gs), consoleLoad_ (media.gs), favLinksIn_ (dopost.gs), rewriteIdeasAsk_ (dopost.gs), rewriteCheckAsk_ (dopost.gs), inboxList_ (inbox.gs)"
    }
   },
   {
    "id": "special",
    "label": "Per-facet and per-kind special cases",
-   "count": 50,
+   "count": 52,
    "weight": 0.05,
    "cap": 10,
-   "off": 2.5,
+   "off": 2.6,
    "where": {
     "js/cards-make.js": 1,
     "js/cards-parts.js": 1,
     "js/cards-people.js": 1,
     "js/cards-render.js": 10,
     "js/find-cells.js": 2,
-    "js/find-doors.js": 1,
+    "js/find-doors.js": 3,
     "js/find-finder.js": 2,
     "js/find-history.js": 2,
     "js/find-pad.js": 4,

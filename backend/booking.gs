@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-15-server-path-2";
+const BOOKING_VERSION = "2026-11-15-guests-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -1358,7 +1358,7 @@ const PERMISSIONS = {
   pushUnsubscribe: ['member', 'child', 'admin'],
   raiseHand: ['member', 'child', 'admin'],
   reactPost: ['member', 'child', 'admin'],
-  readItems: ['member', 'child', 'admin'],
+  readItems: ['anyone', 'member', 'child', 'admin'],
   readMessage: ['member', 'child', 'admin'],
   register: ['anyone', 'member', 'child', 'admin'],
   report: ['member', 'child', 'admin'],
@@ -1419,10 +1419,10 @@ const ITEM_PERMISSIONS = {
   'answer:read': { member: [], child: [], admin: [] },
   'answer:save': { member: [], child: [], admin: [] },
   'card:read': { admin: [] },
-  'content:read': { member: [], child: [], admin: [] },
   'content:save': { admin: [] },
   'favourite:save': { member: [], child: [], admin: [] },
   'layout:save': { admin: [] },
+  'library:read': { anyone: [], member: [], child: [], admin: [] },
   'listed:save': { admin: [] },
   'message:read': { member: [], child: [], admin: [] },
   'message:save': { member: [], child: [], admin: [] },
@@ -1434,11 +1434,9 @@ const ITEM_PERMISSIONS = {
   'person:save': { admin: [] },
   'post:delete': { member: [], child: [], admin: [] },
   'post:save': { member: [], child: [], admin: [] },
-  'practical:read': { member: [], child: [], admin: [] },
   'practical:save': { admin: [] },
   'profile:read': { member: [], child: [], admin: [] },
   'profile:save': { member: [], child: [], admin: [] },
-  'project:read': { member: [], child: [], admin: [] },
   'project:save': { admin: [] },
   'question:read': { member: [], child: [], admin: [] },
   'question:save': { admin: [] },

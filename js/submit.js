@@ -94,7 +94,9 @@ function subRequeue_(who) {
 }
 
 /* ---------- RECORDING A PRESS § */
-function subRecord_(k, answer, verdict, sound) {
+/* THE AI'S WRITTEN FEEDBACK (owner, 15 Nov) rides with its score on the same submission, so it is on the account, on every device. */
+const SUB_FEEDBACK_MAX = 2000;
+function subRecord_(k, answer, verdict, sound, feedback) {
   k = String(k || '');
   answer = answer === null || answer === undefined ? '' : String(answer);
   if (!/^ans:/.test(k) || !answer.trim() || !verdict) return null;
@@ -109,6 +111,8 @@ function subRecord_(k, answer, verdict, sound) {
   const prev = SUB_LAST.get(who + '|' + key);
   if (prev && prev.e.a === answer && prev.e.v === String(verdict) && Date.now() - prev.t < SUB_TWICE_MS) return prev.e;
   const e = { a: answer, v: String(verdict), at: Date.now(), id: subId_() };
+  const said = String(feedback == null ? '' : feedback).trim().slice(0, SUB_FEEDBACK_MAX);
+  if (said) e.f = said;
   SUB_LAST.set(who + '|' + key, { e: e, t: e.at });
   /* SIGNED IN WITH AN ID: the account's. Over the account's ceiling it stays here and says so. */
   const pid = who && typeof USER === 'object' && USER && USER.personId && who === 'u:' + String(USER.personId) ? String(USER.personId) : '';
@@ -119,6 +123,7 @@ function subRecord_(k, answer, verdict, sound) {
       /* `at` IS THE PRESS'S OWN MOMENT, and the server orders "latest" by it (`pressed_at`, clamped to its
          own clock) — not by when the request arrived, which the rollout's queue would scramble. */
       const ev = { id: e.id, key: key, answer: answer, verdict: e.v, at: e.at };
+      if (e.f) ev.feedback = e.f;
       try { const l = typeof doneLabel_ === 'function' ? doneLabel_(k) : ''; if (l) ev.label = l; } catch (err) { oops_(err, 'submit:subRecord_') }
       try { const w = typeof doneWords_ === 'function' ? doneWords_(k) : ''; if (w) ev.words = w; } catch (err) { oops_(err, 'submit:subRecord_') }
       const q = subQueue_(who);
@@ -158,8 +163,8 @@ function subApply_(who, items, d) {
     /* A LATER PRESS OF THE SAME QUESTION IS THE LATEST NOW, and is left as it is. */
     if (!cur || cur.id !== ev.id) return;
     const got = d.saved[ev.id];
-    all[ev.key] = got ? { a: cur.a, v: cur.v, at: Number(got.at) || cur.at, id: ev.id }
-                      : { a: cur.a, v: cur.v, at: cur.at, id: ev.id, far: 1 };
+    all[ev.key] = Object.assign(got ? { a: cur.a, v: cur.v, at: Number(got.at) || cur.at, id: ev.id }
+                                    : { a: cur.a, v: cur.v, at: cur.at, id: ev.id, far: 1 }, cur.f ? { f: cur.f } : {});
   });
   subAllKeep_(who, all);
   if (typeof window.offSynced_ === 'function') window.offSynced_(who);
@@ -248,7 +253,7 @@ function subAdopt_() {
         if (cur && cur.q && !(lost.has(key) && at > Number(cur.at))) return;
         if (cur && id && cur.id === id) return;
         if (cur && Number(cur.at) >= at) return;
-        all[key] = { a: answer, v: verdict, at: at, id: id };
+        all[key] = Object.assign({ a: answer, v: verdict, at: at, id: id }, g.feedback ? { f: String(g.feedback) } : {});
         const k = 'ans:' + who + ':' + key;
         moved.push(k);
         /* THE BOX. A finger in it is never written over; an answer typed here after this press is a
@@ -632,10 +637,11 @@ function subVerdictPaint_(mark, inp) {
   if (mark.classList.contains('qp-essay') && mark.classList.contains('qp-ai') && typeof aiKeptView_ === 'function') {
     const view = aiKeptView_(k, inp.value);
     if (view && (view.fresh || !say.text) && typeof aiKeptPaint_ === 'function') { aiKeptPaint_(mark, inp); return; }
-    const why = mark.nextElementSibling;
-    if (why && why.classList.contains('qp-ai-why') && why.textContent) why.textContent = '';
     mark.classList.remove('is-stale');
   }
+  /* THE AI'S FEEDBACK, FROM THE SUBMISSION (owner, 15 Nov): the same on every device, and only with the verdict it came with. */
+  const why = mark.nextElementSibling;
+  if (why && why.classList.contains('qp-ai-why')) { const f = say.text && latest && latest.f ? latest.f : ''; if (why.textContent !== f) why.textContent = f; }
   /* AI MARKING SWITCHED OFF says so on this line (`aiOff_`), and keeps saying it until there is something else to say — but ONLY WHILE THE LINE STILL SAYS IT. § */
   if (!say.text && mark.classList.contains('is-off') && out.textContent && out.textContent === mark.getAttribute('data-off-said')) return;
   mark.classList.remove('is-right', 'is-near');
