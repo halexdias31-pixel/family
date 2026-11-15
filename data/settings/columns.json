@@ -139,15 +139,6 @@
   "notes": "a parent's or payer's own details (contact, address). Below Client it says it is not for your account (docs/history/461)."
  },
  {
-  "screen": "apprentice",
-  "label": "Apprentice settings",
-  "icon": "🧑‍🔧",
-  "active": "FALSE",
-  "sort_order": 20,
-  "cards": "TRUE",
-  "notes": "work experience: a placeholder beside Tutor settings until it is built (docs/history/570)."
- },
- {
   "screen": "biz",
   "label": "Biz settings",
   "icon": "📋",

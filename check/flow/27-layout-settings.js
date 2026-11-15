@@ -26,6 +26,9 @@ const layPaintAll_ = async w => { for (const c of LAY_CARD_COLS_) { try { w.pain
 const layCardRow_ = (d, id) => d.querySelector(`.card-admin[data-lay-for="${id}"]`);
 const layCardTile_ = (d, id, act, dir) => layCardRow_(d, id)?.querySelector(`[data-do="${act}"]${dir ? `[data-d="${dir}"]` : ''}`);
 const laySeen_ = (w, col) => w.cardSeen_(col);
+/* THE LAST RIGHT-HAND COLUMN A PUBLIC CARD STANDS ON is Parent settings since Apprentice settings became Find › Settings › Apprentice (find-only.json, 15 Nov). */
+const LAY_LAST_PUB_ = 'family';
+const layLastPubCard_ = w => laySeen_(w, LAY_LAST_PUB_).slice(-1)[0] || '';
 const layLast_ = sent => ((sent.filter(x => x.action === 'layoutSave').pop() || {}).layout) || null;
 
 /* A CARD MOVED ACROSS IS ON A PAGE THE PAGER COUNTS (476): the count was the builder's, the column drawn `cardsOf_`'s, so a moved-in card sat past the last page. */
@@ -125,14 +128,14 @@ check('merge with the card above (480): widgets — a Find card (790) has no Mer
   return bad;
 });
 
-check('a card moved ◀ into the next column is on a page that column scrolls to — Biz settings into Apprentice settings (730), parents into students — and still after a reload (476)', async () => {
+check('a card moved ◀ into the next column is on a page that column scrolls to — Biz settings into Parent settings (the column left of it since Apprentice settings went to Find), parents into students — and still after a reload (476)', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const A = w.__t.ACTIONS, d = w.document, bad = [];
   if (!A['lay-c-col'] || typeof w.__t.pageCount !== 'function') return ['no lay-c-col or pageCount — NOT checked'];
   await layPaintAll_(w);
   const moves = [];
-  for (const [from, to] of [['biz', 'apprentice'], ['parents', 'students']]) {
+  for (const [from, to] of [['biz', LAY_LAST_PUB_], ['parents', 'students']]) {
     const seen = laySeen_(w, from).filter(x => !moves.some(m => m[1] === x)), id = from === 'biz' ? seen[0] : seen[seen.length - 1];
     const tile = id && layCardTile_(d, id, 'lay-c-col', '-1');
     if (!tile) { bad.push(from + ' has no ◀ card to move — NOT checked'); continue; }
@@ -213,8 +216,8 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
   const pgs = [...d.querySelectorAll('#s-students > .page')];
   if (!pgs.length || !pgs[pgs.length - 1].querySelector('[data-do="person-add"]')) bad.push('the last page of Student profiles is not "+ Add a student"');
   /* A BUSINESS CARD CANNOT LEAVE FOR A COLUMN… IT CAN; a settings card cannot go to Business (it would vanish for all but an admin). */
-  /* THE LAST COLUMN A NON-ADMIN CARD MAY STAND ON is Apprentice settings since 730 (Biz settings, an admin's, is right of it). */
-  const pr = layCardTile_(d, 'appr:blurb', 'lay-c-col', '1');
+  /* THE LAST COLUMN A NON-ADMIN CARD MAY STAND ON is Parent settings (LAY_LAST_PUB_; Biz settings, an admin's, is right of it). */
+  const pr = layCardTile_(d, layLastPubCard_(w), 'lay-c-col', '1');
   if (!pr || pr.disabled || pr.getAttribute('aria-label') !== 'Move to a new column') bad.push('▶ on the last right-hand column does not offer a new column (466): ' + (pr && pr.getAttribute('aria-label')));
   if (r.errs.length) bad.push('errors: ' + r.errs.join('; '));
   return bad;
@@ -376,8 +379,8 @@ check('layout engine (508): ▶ on a Biz settings card makes an admin-only colum
   await wait(150); await layPaintAll_(w);
   if (laySeen_(w, cu.id).indexOf(sid) === -1) bad.push(sid + ' is not on the new column: ' + laySeen_(w, cu.id).join());
   /* A SETTINGS CARD'S ▶ never reaches it: the last right-hand public column still offers a public new column. */
-  const pr = layCardTile_(d, 'appr:blurb', 'lay-c-col', '1');
-  if (!pr || pr.getAttribute('aria-label') !== 'Move to a new column') bad.push('▶ on Apprentice settings now says ' + (pr && pr.getAttribute('aria-label')));
+  const pr = layCardTile_(d, layLastPubCard_(w), 'lay-c-col', '1');
+  if (!pr || pr.getAttribute('aria-label') !== 'Move to a new column') bad.push('▶ on Parent settings now says ' + (pr && pr.getAttribute('aria-label')));
   /* A CLIENT reloading has no such column and no section for it. */
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const p = payload(); p.layout = layLast_(sent);
@@ -395,17 +398,17 @@ check('layout engine (466, 710): ▶ on the last right-hand column makes a new c
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   await layPaintAll_(w);
-  const id = 'appr:blurb';   /* the last column a public card stands on is Apprentice settings since 730 */
-  const right = layCardTile_(d, id, 'lay-c-col', '1');
-  if (!right || right.disabled) return ['Apprentice settings\' card has no live ▶ — NOT checked'];
+  const id = layLastPubCard_(w);   /* the last column a public card stands on is Parent settings (LAY_LAST_PUB_) */
+  const right = id && layCardTile_(d, id, 'lay-c-col', '1');
+  if (!right || right.disabled) return ['Parent settings\' last card has no live ▶ — NOT checked'];
   A['lay-c-col'](right); await wait(300);
   const L = layLast_(sent) || {};
   if (JSON.stringify(L.custom) !== JSON.stringify([{ id: 'custom-1' }]) || ((L.cards || {})['custom-1'] || []).join() !== id) bad.push('▶ past the last posted ' + JSON.stringify(L));
   const ids = t.TABS.map(x => x.id);
   if (ids.indexOf('custom-1') === -1 || ids.indexOf('custom-1') !== ids.indexOf('biz') - 1) bad.push('the new column is not just before Business: ' + ids.join());
-  try { w.paint('custom-1'); w.paint('apprentice'); } catch (e) { bad.push('painting it threw ' + e.message); }
+  try { w.paint('custom-1'); w.paint(LAY_LAST_PUB_); } catch (e) { bad.push('painting it threw ' + e.message); }
   await wait(150);
-  if (!d.querySelector('#s-custom-1 .appr-set') || d.querySelector('#s-apprentice .appr-set')) bad.push('the Apprentice settings card is not on the new column alone');
+  if (!d.querySelector(`#s-custom-1 .card-admin[data-lay-for="${id}"]`) || d.querySelector(`#s-${LAY_LAST_PUB_} .card-admin[data-lay-for="${id}"]`)) bad.push('the Parent settings card is not on the new column alone');
   /* NO NAME (710): a column is a position. */
   if (d.querySelector('#s-custom-1 .custom-head, #s-custom-1 .lay-col-name, [data-do="lay-col-rename"], [data-do="lay-col-del"]')) bad.push('the new column still has a name card, Rename or Delete column');
   if (A['lay-col-rename'] || A['lay-col-del']) bad.push('a lay-col-rename or lay-col-del handler still exists');
@@ -435,7 +438,7 @@ check('layout engine (466, 710): ▶ on the last right-hand column makes a new c
   if (B.custom || (B.cards || {})['custom-1']) bad.push('the emptied column was not removed: ' + JSON.stringify(B));
   if (t.TABS.some(x => x.id === 'custom-1') || d.getElementById('s-custom-1')) bad.push('the emptied column is still a tab or a section');
   await layPaintAll_(w);
-  if (!d.querySelector('#s-apprentice .appr-set')) bad.push('the Apprentice settings card did not come back');
+  if (!d.querySelector(`#s-${LAY_LAST_PUB_} .card-admin[data-lay-for="${id}"]`)) bad.push('the Parent settings card did not come back');
   /* ◀ FROM THE FIRST COLUMN A UNIT STANDS ON (Reels) MAKES ONE ON THE FAR LEFT (710); ▶ back empties it and it goes. */
   /* THE FIRST REELS WIDGET (790: a tool is a Find card, placed by the funnel): ◀ takes it to Spotlight, then past it. */
   t.go('reel', false, true); await wait(300);
@@ -557,17 +560,20 @@ check('layout engine (710): any unit anywhere — a settings card moves into Ree
 
 /* ---------- THE OWNER'S COLUMNS AND WHOLE-COLUMN MOVES (730) ---------- */
 const COLS730_ = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8'));
-check('columns (730): the owner\'s ten — four profiles then six settings, named as asked, in that order; Web profile is the business card; Apprentice profile is Find › Profiles › Apprentice now (find-only, 14 Nov); Web and Biz settings an admin\'s alone', async () => {
+/* WHERE A MOVED SCREEN LIVES (screens-moved.json), served as the site serves it, so go('<old name>') can find its Find branch. */
+const MOVED730_ = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'screens-moved.json'), 'utf8'));
+const MOVED_SERVE_ = u => (/(^|\/)data\/settings\/screens-moved\.json(\?|$)/.test(u) ? MOVED730_ : undefined);
+check('columns (730): the owner\'s nine — four profiles then five settings, named as asked, in that order; Web profile is the business card; Apprentice profile is Find › Profiles › Apprentice (find-only, 14 Nov) and Apprentice settings Find › Settings › Apprentice (15 Nov); Web and Biz settings an admin\'s alone', async () => {
   const want = ['Web profile', 'Tutor profile', 'Student profile', 'Parent profile', 'Tutor settings', 'Web settings',
-    'Kids settings', 'Parent settings', 'Apprentice settings', 'Biz settings'];
+    'Kids settings', 'Parent settings', 'Biz settings'];
   const bad = [];
-  const { w } = layBoot_();
+  const { w } = layBoot_({ serve: MOVED_SERVE_ });
   await wait(300);
   const t = w.__t, d = w.document;
   const labels = t.TABS.map(x => x.label), got = labels.filter(l => want.indexOf(l) !== -1);
   if (got.join('|') !== want.join('|')) bad.push('an admin\'s columns: ' + got.join(', '));
   const at = labels.indexOf('Web profile');
-  if (labels.slice(at, at + want.length).join('|') !== want.join('|')) bad.push('the ten are not side by side: ' + labels.slice(at).join(', '));
+  if (labels.slice(at, at + want.length).join('|') !== want.join('|')) bad.push('the nine are not side by side: ' + labels.slice(at).join(', '));
   const fileLabels = COLS730_.map(r => r.label).filter(l => want.indexOf(l) !== -1);
   if (fileLabels.join('|') !== want.join('|')) bad.push('columns.json says ' + fileLabels.join(', '));
   t.go('web', false, true); await wait(200); try { w.paint('web'); } catch (e) {}
@@ -579,6 +585,11 @@ check('columns (730): the owner\'s ten — four profiles then six settings, name
   t.go('apprentices', false, true); await wait(200);
   const fl = JSON.stringify(t.STUFF().filters);
   if (t.AT() !== 'stuff' || !/"Profiles"/.test(fl) || !/"Apprentice"/.test(fl)) bad.push('go("apprentices") opened ' + t.AT() + ' with ' + fl + ', wanted Find › Profiles › Apprentice');
+  /* APPRENTICE SETTINGS IS A FIND BRANCH (find-only.json): no column, and the old name opens Find › Settings › Apprentice. */
+  if (t.TABS.some(x => x.id === 'apprentice') || d.getElementById('s-apprentice')) bad.push('Apprentice settings is still a column');
+  t.go('apprentice', false, true); await wait(200);
+  const af = JSON.stringify(t.STUFF().filters);
+  if (t.AT() !== 'stuff' || !/"Settings"/.test(af) || !/"Apprentice"/.test(af)) bad.push('go("apprentice") opened ' + t.AT() + ' with ' + af + ', wanted Find › Settings › Apprentice');
   try { w.paint('site'); w.paint('biz'); } catch (e) {}
   ['site:inbox', 'biz:build'].forEach(id => { if (w.cardHome0_(id) !== 'site') bad.push(id + ' is not a Web settings card'); });
   ['biz:apps', 'biz:staff', 'biz:profit-sum'].forEach(id => { if (w.cardHome0_(id) !== 'biz') bad.push(id + ' left Biz settings'); });
@@ -586,7 +597,13 @@ check('columns (730): the owner\'s ten — four profiles then six settings, name
   await wait(300);
   const ids = s.w.__t.TABS.map(x => x.id);
   ['site', 'biz'].forEach(c => { if (ids.indexOf(c) !== -1) bad.push(c + ' is a student\'s column'); });
-  ['web', 'apprentice', 'account'].forEach(c => { if (ids.indexOf(c) === -1) bad.push(c + ' is not a student\'s column'); });
+  ['web', 'account'].forEach(c => { if (ids.indexOf(c) === -1) bad.push(c + ' is not a student\'s column'); });
+  if (ids.indexOf('apprentice') !== -1) bad.push('apprentice is a student\'s column, wanted Find › Settings › Apprentice');
+  /* A TAB REMEMBERED AS `apprentice` (a reload within minutes) opens Find › Settings › Apprentice once the payload is in (KEPT_GONE). */
+  const k = layBoot_({ serve: MOVED_SERVE_, before: win => { signedInAs_(LAY_ADMIN_)(win); try { win.localStorage.setItem('familyTab', 'apprentice'); win.localStorage.setItem('familyTabAt', String(Date.now())); } catch (e) {} } });
+  for (let n = 0; n < 30 && !(k.w.__t && k.w.__t.STUFF && /"Apprentice"/.test(JSON.stringify(k.w.__t.STUFF().filters))); n++) await wait(100);
+  const kf = k.w.__t ? JSON.stringify(k.w.__t.STUFF().filters) : '';
+  if (!k.w.__t || k.w.__t.AT() !== 'stuff' || !/"Settings"/.test(kf) || !/"Apprentice"/.test(kf)) bad.push('a remembered apprentice tab opened ' + (k.w.__t && k.w.__t.AT()) + ' with ' + kf + ', wanted Find › Settings › Apprentice');
   return bad;
 });
 

@@ -22646,7 +22646,7 @@ on('lay-join', el => splitSet_(el.getAttribute('data-card') || '', false));
 /* The owner: "I especially need them on the right-hand columns". A moved card is the same card, drawn by its own column's builder: one home still. */
 /* `CARD_COLS` IS shell.js's (730): TAB_ORDER's tabs marked `cards`, as columns.json marks them. */
 /* THE ADMIN'S CARD COLUMNS (491, 730): Biz and Web settings, the card columns marked `admin`; a card moves between them, no other onto either. */
-const ADMIN_COLS_ = CARD_COLS.filter(c => TABS_BUILT.some(t => t.id === c && t.admin));
+const ADMIN_COLS_ = CARD_COLS.filter(c => (settingGroupOf_(c) || {}).admin);
 /* AND AN ADMIN-ONLY CUSTOM COLUMN (508, `admin: true`), made by ▶ past Site: Business and Site cards move onto it, nothing else. */
 const adminCol_ = c => ADMIN_COLS_.indexOf(c) !== -1 || customAdmin_(c);
 function customAdmin_(c) {
@@ -22722,8 +22722,8 @@ function ownSecReg_() {
     jobs: ['Jobs', 'your jobs', 'Your current and past jobs, shown on your tutor card.'],
     where: ['Where you teach', 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
   const of = OWN_SEC_OF_SET_;
-  /* Each settings column's name from the one tab table (TABS_BUILT, shell-boot.js), never a copy of it. */
-  const where = c => ((typeof TABS_BUILT !== 'undefined' ? TABS_BUILT : []).find(t => t.id === c) || {}).label || c;
+  /* Each settings column's name from the one table (TABS_BUILT or SETTING_GROUPS, shell-boot.js), never a copy of it. */
+  const where = c => (settingGroupOf_(c) || {}).label || c;
   return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where(c) + ')', only: S[k][1], say: S[k][2] }))));
 }
 /* WHAT EACH CARD IS FOR, one faint line under its title (467) — the owner: "I should know what they are even if I can't edit." */
