@@ -9313,6 +9313,8 @@ function formCard_(spec) {
   const after = (s.said ? cardBlock_({ type: 'group', tag: 'p', look: 'note', id: s.said }) : '') + (s.after || '');
   const card = { title: s.title, cls: s.cls, attrs: s.attrs, lead: s.lead, save: save, after: after };
   if (s.groups) return setCard_(Object.assign(card, { form: fields, formAttrs: s.formAttrs, foot: s.foot }));
+  /* boxes with their own Save (the PIN card) are one form: the Save sits with its boxes, never as a stray tile; a div, not <form>, so Enter never submits a PIN into the URL. */
+  if (boxes && save) return setCard_(Object.assign(card, { save: '', body: (s.body || '') + cardBlock_({ type: 'group', look: 'kc-form', inner: boxes + ticks + (s.tail || '') + cardBlock_({ type: 'group', look: 'tile-row set-save', inner: save }) }) }));
   return setCard_(Object.assign(card, { body: (s.body || '') + boxes + ticks + (s.tail || '') }));
 }
 

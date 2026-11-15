@@ -40,7 +40,7 @@
   {
    "id": "tpl-tags",
    "label": "Rendered cards: a tag row of pills, the name a tag",
-   "ok": 804,
+   "ok": 803,
    "of": 937,
    "unit": "cards seen"
   },
@@ -75,7 +75,7 @@
   {
    "id": "tpl-stray",
    "label": "Rendered cards: no button or link outside the tile row or a form",
-   "ok": 822,
+   "ok": 821,
    "of": 937,
    "unit": "cards seen"
   },
@@ -194,19 +194,19 @@
    }
   },
   "menu": {
-   "cards": 45,
+   "cards": 46,
    "clean": 0,
    "props": {
-    "tags": 45,
-    "tiles": 36,
-    "stray": 45
+    "tags": 46,
+    "tiles": 37,
+    "stray": 46
    }
   },
   "level": {
-   "cards": 24,
+   "cards": 23,
    "clean": 0,
    "props": {
-    "tiles": 24
+    "tiles": 23
    }
   },
   "venue": {
@@ -2033,7 +2033,7 @@
   {
    "kind": "tpl-stray",
    "where": "check/shots/template/pupil-390-setting-stray.png",
-   "say": "setting on find:Settings:setting as pupil at 390: stray — expected controls only in the tile row (or a form), got tile \"Save · your new PIN\" (button.tile)"
+   "say": "setting on find:Settings:setting as pupil at 390: stray — expected controls only in the tile row (or a form), got tile \"Sign out\" (button.tile)"
   },
   {
    "kind": "tpl-stray",
@@ -2059,6 +2059,11 @@
    "kind": "tpl-stray",
    "where": "check/shots/template/admin-820-menu-stray.png",
    "say": "menu on find:front as admin at 820: stray — expected controls only in the tile row (or a form), got counted row tap \"Practice\" (div.counted.row)"
+  },
+  {
+   "kind": "tpl-stray",
+   "where": "check/shots/template/admin-820-menu-stray.png",
+   "say": "menu on find:Booking:level as admin at 820: stray — expected controls only in the tile row (or a form), got counted row tap \"Test Admin\" (div.counted.row)"
   },
   {
    "kind": "tpl-stray",
