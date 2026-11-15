@@ -443,7 +443,8 @@ function notifyCard_() {
   /* THE ONE FORM MAKER WITHOUT A Save: each tick is saved the moment it is ticked (`notify-pick`). */
   /* PHONE NOTIFICATIONS (492, push.js) ARE PART OF THIS ONE CARD (owner, 12 Nov). */
   if (typeof window.pushBody_ === 'function') tail += window.pushBody_();
-  return formCard_({ title: 'Notifications', cls: 'notify-card', body: inner, toggles: toggles, tail: tail, save: false });
+  /* THE TICKS ARE forms.json's `notify` form. */
+  return formCard_({ title: 'Notifications', cls: 'notify-card', body: inner + formOf_('notify', null, { options: { kinds: toggles || [] } }), tail: tail, save: false });
 }
 
 /* WHAT THE SERVER LAST SAID THIS KIND IS SET TO — the profile's list, not the box. */

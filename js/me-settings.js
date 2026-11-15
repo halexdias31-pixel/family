@@ -92,22 +92,16 @@ function qualYears_(current) {
 function libraryShelf_(list, value) {
   const all = [...new Set((list || []).filter(isLibraryCard_)
     .map(f => String(f).match(/^lib(\d+)_/)[1]))];
-  const quiet = 'spellcheck="false"';
   const has = i => shelfFilled_(value, ['lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin']);
   /* ONE CARD ONLY (489, the owner on Library cards: "change this to be only 1 card allowed") — the one already filled, else the first; no Add § */
   /* A RULE (496): `library-one-card` — Universal, every slot with Add another, like any shelf. */
   const nums = !(typeof ruleOn_ !== 'function' || ruleOn_('library-one-card')) ? all : all.length ? [all.find(has) || all[0]] : [];
-  /* EACH CARD IS ONE SPEC (owner, 14 Nov: one card maker); its boxes are `fieldHtml`'s, laid inside as drawn. */
+  /* EACH CARD IS ONE SPEC (owner, 14 Nov: one card maker); its boxes are forms.json's `library-card` form. */
   const slot = (i, hide) => cardBlock_({ type: 'group', look: 'lib-card', attrs: { hidden: !!hide }, blocks: [
-    { type: 'group', look: 'lib-face', attrs: { role: 'group', 'aria-label': 'Library card ' + i }, blocks: [
-      { type: 'group', tag: 'span', look: 'lib-cap', attrs: { 'aria-hidden': 'true' }, text: 'Library card' },
-      { type: 'group', look: 'lib-name', inner: fieldHtml('lib' + i + '_name', value('lib' + i + '_name'),
-        { placeholder: 'Library name', extra: quiet + ' aria-label="Library name"' }) },
-      { type: 'group', look: 'lib-pin', inner: fieldHtml('lib' + i + '_pin', value('lib' + i + '_pin'),
-        { label: 'PIN', extra: quiet + ' autocomplete="off" placeholder=" "' }) },
-      libBarsSpec_(value('lib' + i + '_no')),
-      { type: 'group', look: 'lib-no', inner: fieldHtml('lib' + i + '_no', value('lib' + i + '_no'),
-        { placeholder: 'Card number', extra: quiet + ' autocomplete="off" aria-label="Card number"' }) }] }] });
+    { type: 'group', look: 'lib-face', attrs: { role: 'group', 'aria-label': 'Library card ' + i }, inner:
+      cardBlock_({ type: 'group', tag: 'span', look: 'lib-cap', attrs: { 'aria-hidden': 'true' }, text: 'Library card' })
+      + formOf_('library-card', value, { vars: { n: i }, skip: ['lib{n}_no'] }) + cardBlock_(libBarsSpec_(value('lib' + i + '_no')))
+      + formOf_('library-card', value, { vars: { n: i }, only: ['lib{n}_no'] }) }] });
   return cardBlock_({ type: 'group', look: 'lib-shelf', attrs: { 'data-noun': 'library card' }, inner: shelfSlots_(nums, has, slot, 'library card') });
 }
 
@@ -526,13 +520,12 @@ const ownCardFields_ = () => [].concat(...ownCardSections_().map(s => s.list));
 /* ---------- JOBS, CURRENT AND PAST (8 Nov): one line a job — role, where, from–to or "now" — added with "Add a job" like a qualification. */
 const isJobField_ = f => /^job_\d+_(role|where|from|to)$/.test(String(f || ''));
 const isJobs_ = list => (list || []).some(isJobField_);
-const JOB_PH_ = { role: 'role', where: 'where', from: 'from', to: 'to, or now' };
 function jobShelf_(list, value, o) {
   const nums = [...new Set((list || []).filter(isJobField_).map(f => String(f).match(/^job_(\d+)_/)[1]))];
   let last = 0;
   nums.forEach((n, i) => { if (shelfFilled_(value, ['job_' + n + '_role', 'job_' + n + '_where'])) last = i + 1; });
-  const box = (n, k) => fieldHtml('job_' + n + '_' + k, String(value('job_' + n + '_' + k) || ''), { label: ' ', placeholder: JOB_PH_[k],
-    draft: (o || {}).draft, extra: 'autocomplete="off" maxlength="80"' });
+  /* EACH BOX forms.json's `job` form; the card editor keeps its own draft (`o.draft`). */
+  const box = (n, k) => formOf_('job', f => String(value(f) || ''), { vars: { n }, only: ['job_{n}_' + k], with: () => ((o || {}).draft === false ? { draft: false } : {}) });
   const slot = (n, i) => ({ type: 'group', look: 'lib-card job-slot', attrs: { hidden: i >= last }, inner: box(n, 'role') + box(n, 'where')
     + cardBlock_({ type: 'group', tag: 'span', look: 'job-when', inner: box(n, 'from') + cardBlock_({ type: 'group', tag: 'span', look: 'job-dash', text: '–' }) + box(n, 'to') })
     + shelfDrop_('job') });

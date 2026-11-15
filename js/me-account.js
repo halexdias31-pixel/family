@@ -116,60 +116,11 @@ function applyKnown_() {
   return { fullName: [q.first_name, q.last_name].filter(Boolean).join(' '), email: q.email || '', phone: q.phone || '', dob };
 }
 function applyFormHtml_() { return cardBlock_(applyFormSpec_()); }
-/* THE FORM AS ONE SPEC (owner, 14 Nov: one card maker): every box a field block, every heading an h4 group. */
+/* THE FORM IS forms.json's `apply-teach` (foundation 2): every box a draft until it is sent; the account's own details filled in. */
 function applyFormSpec_() {
-  /* `qualPick_` returns a field block (me-shelves); here it is drawn without its Something else… option. */
-  const noOther = b => { b.blocks[0].options = b.blocks[0].options.filter(o => o.value !== QUAL_OTHER); return b; };
-  const rows = Array.from({ length: APP_SUBJECT_ROWS }, (_, i) => ({ type: 'group', look: 'q-row', blocks: [
-    noOther(qualPick_({ 'data-app-subj': String(i) }, '', QUAL_SUBJECTS, i ? 'Another subject' : 'Subject', 'Choose')),
-    noOther(qualPick_({ 'data-app-level': String(i) }, '', QUAL_LEVELS, 'Level', 'Choose'))] }));
-  const codes = typeof availCodes_ === 'function' ? availCodes_() : [];
-  const week = codes.length ? availGrid_(codes, {}, [], false) : '';
-  const known = applyKnown_();
-  const box = (k, cap, o) => ({ type: 'field', cap, blocks: [{ type: 'control', attrs: Object.assign({ 'data-app': k, autocomplete: 'off', type: (o && o.type) || null,
-    placeholder: (o && o.ph) || null, value: known[k] || null }, (o && o.more) || {}) }] });
-  const area = (k, cap) => ({ type: 'field', cap, blocks: [{ type: 'control', tag: 'textarea', attrs: { 'data-app': k, rows: '3' } }] });
-  const row = (...blocks) => ({ type: 'group', look: 'f-row', blocks });
-  const head = text => ({ type: 'group', tag: 'h4', look: null, text });
-  /* ONE LINE PER DOCUMENT: its name, a Choose photo button, and what was picked. */
-  const doc = (k, label) => ({ type: 'group', look: 'field apply-doc', attrs: { 'data-doc': k }, blocks: [
-    { type: 'group', tag: 'span', look: null, text: label },
-    { type: 'group', look: 'btn-row', tiles: [{ form: true, kind: 'quiet', label: APPLY_DOCS[k] ? 'Change photo' : 'Choose photo', act: 'apply-pick' }] },
-    { type: 'group', tag: 'p', look: 'note apply-doc-said', text: APPLY_DOCS[k] ? 'Photo ready.' : '' },
-    { type: 'control', attrs: { type: 'file', class: 'apply-in', accept: 'image/*', hidden: true } }] });
-  const ref = n => [row(box(`ref${n}Name`, 'name'), box(`ref${n}Relationship`, 'relationship to you')),
-    row(box(`ref${n}Email`, 'email', { type: 'email' }), box(`ref${n}Phone`, 'phone', { type: 'tel' }))];
-  const tick = (k, text) => ({ type: 'tick', attrs: { 'data-app': k }, text });
-  return { type: 'group', look: 'me-form app-form', blocks: [
-    head('You'),
-    box('fullName', 'full name'),
-    row(box('phone', 'phone', { type: 'tel' }), box('email', 'email', { type: 'email' })),
-    area('address', 'home address'),
-    row(box('postcode', 'postcode', { more: { autocapitalize: 'characters' } }), box('dob', 'date of birth', { type: 'date' })),
-    head('Documents'),
-    doc('idDoc', 'photo ID — passport or driving licence'),
-    { type: 'field', cap: 'right to work in the UK', blocks: [{ type: 'control', tag: 'select', attrs: { 'data-app': 'rightToWork' },
-      options: [{ value: '', text: 'Choose' }, { value: 'yes', text: 'Yes' }, { value: 'no', text: 'No' }] }] },
-    doc('rtwDoc', 'right-to-work document — passport, share code or visa'),
-    head('What you teach'), ...rows,
-    area('qualifications', 'qualifications — degrees, teaching qualifications, anything relevant'),
-    ...Array.from({ length: APPLY_QUAL_SLOTS }, (_, i) => doc('qual' + i, i ? 'another qualification certificate (optional)' : 'a qualification certificate')),
-    box('rate', 'hourly rate (£)', { type: 'number', more: { min: '1', step: '0.5', inputmode: 'decimal' } }),
-    head('Checks'),
-    row(box('dbsNumber', 'enhanced DBS certificate number'), box('dbsIssued', 'issued on', { type: 'date' })),
-    tick('dbsUpdate', 'I consent to you checking it on the DBS Update Service'),
-    tick('dbsNeeded', 'I need a DBS check'),
-    head('When and where'),
-    week ? { type: 'group', look: 'app-week', inner: week } : area('availability', 'when you can teach'),
-    box('area', 'area and venues you can reach'),
-    area('experience', 'experience'),
-    head('2 references'),
-    ...ref(1), ...ref(2),
-    area('statement', 'a short statement — why you want to teach'),
-    box('cvLink', 'CV link (optional)', { ph: 'https://…', type: 'url' }),
-    tick('consent', 'I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS.'),
-    { type: 'group', look: 'btn-row', tiles: [{ form: true, label: 'Send my application', act: 'apply-send' }] },
-    { type: 'group', tag: 'p', look: 'note me-said apply-said', attrs: { 'aria-live': 'polite' } }] };
+  return { type: 'group', look: 'me-form app-form', inner: formOf_('apply-teach', applyKnown_(), { docs: APPLY_DOCS, draftId: String((whose_() && whose_().personId) || '') })
+    + cardBlock_({ type: 'group', look: 'btn-row', tiles: [{ form: true, label: 'Send my application', act: 'apply-send' }] })
+    + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said apply-said', attrs: { 'aria-live': 'polite' } }) };
 }
 /* WHAT IS STILL MISSING, in the backend's words (`postApplyTeach_` asks the same), so the phone says it before anything is sent. */
 function applyMissing_(b) {
@@ -236,6 +187,7 @@ on('apply-send', el => {
     .then(d => {
       USER.application = d.application || { status: 'new', at: Date.now() };
       Object.keys(APPLY_DOCS).forEach(k => { delete APPLY_DOCS[k]; });
+      formDraftDrop_('apply-teach', { draftId: String((whose_() && whose_().personId) || '') });
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
       toast('Application sent');
       try { paint('staff'); } catch (e) { oops_(e, 'me:applyFormHtml_') }

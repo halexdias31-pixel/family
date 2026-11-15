@@ -1,4 +1,4 @@
-/* ---------- THE SETTINGS FORM'S FIELDS: photos, the profile picture, availability and fieldsHtml (cut from me-settings.js; read with the other me-*.js by tools/piece-src.js). */
+/* ---------- THE SETTINGS FORM'S FIELDS: photos, the profile picture, availability (cut from me-settings.js; read with the other me-*.js by tools/piece-src.js). */
 /* ---------- AND A GROUP OF `photos_N` NAMES IS A SHELF OF PHOTOGRAPHS § */
 const isPhotoField_ = f => /^photos_\d+$/.test(String(f));
 const isPhotos_ = list => (list || []).some(isPhotoField_);
@@ -236,50 +236,7 @@ function availCodes_() {
   const hit = Object.keys(groups).find(g => isTimetable_(groups[g]));
   return hit ? groups[hit] : [];
 }
-/* ---------- AND WHAT A GROUP HEADING IS DEPENDS ON THE SURFACE, SO THE SURFACE SAYS § */
-function fieldsHtml(groups, o) {
-  o = o || {};
-  const head = o.head === false ? '' : o.head || 'h2';
-  const value = o.value || (() => '');
-  const plain = (f, extra) => formField_(f, value(f), Object.assign({
-    attr: o.attr,
-    label: ROW_LABEL[f],
-    options: o.options ? o.options(f) : null,
-    suggest: o.suggest ? o.suggest(f) : null,
-    readonly: (o.readonly || []).indexOf(f) !== -1,
-  }, extra));
-  return Object.keys(groups).map(g => {
-    const list = (groups[g] || []).filter(f => RETIRED_FIELDS_.indexOf(f) === -1);
-    const timetable = isTimetable_(list);
-    /* THE SHELF, THEN WHATEVER ELSE IS IN THE GROUP. § */
-    const library = !timetable && isLibrary_(list);
-    const quals = !timetable && isQuals_(list);
-    const jobs = !timetable && isJobs_(list);
-    /* ---------- AND THE THREE DATE BOXES, WHICH REPLACE ONE FIELD RATHER THAN JOINING IT § */
-    /* EITHER SHAPE. The backend's group list names COLUMNS, so today it says `date_of_birth` — and `isDob_` is asked as well so a deployment that ever sends the § */
-    const wantsDob = !timetable && (list.indexOf('date_of_birth') !== -1 || isDob_(list));
-    /* THE PHONE, AS A CODE AND A NUMBER — the birthday's arrangement: § */
-    const wantsPhone = !timetable && list.indexOf('phone') !== -1;
-    /* THE PHOTOGRAPH SHELF GOES UNDER THE REST, not over it as the library one does: the page
-       reads profile photo, video, then the others, which is the order somebody thinks of them in. */
-    const photos = !timetable && isPhotos_(list);
-    /* ---------- AND `photo` IS A PICTURE YOU CHOOSE, NOT A LINK YOU PASTE § */
-    const picture = !timetable && o.attr === 'data-me' && list.indexOf('photo') !== -1;
-    const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f)) && !(jobs && isJobField_(f))
-                              && !(photos && (isPhotoField_(f) || f === 'video')) && !(picture && f === 'photo')
-                              && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
-    const body = timetable
-      ? availGrid_(list, o.raw || {}, o.readonly || [], o.attr === 'data-me')
-      : (picture ? photoPicker_(value) : '')
-      + (library ? libraryShelf_(list, value) : '')
-      + (quals ? qualShelf_(list, value) : '')
-      + (jobs ? jobShelf_(list, value) : '')
-      + (wantsDob ? dobBoxes_(value) : '')
-      + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneField_(value) : plain(f, extra))
-      + (photos ? videoPicker_(value) + photoShelf_(list, value) : '');
-    return (head ? cardBlock_({ type: 'group', tag: head, look: null, blocks: [{ type: 'group', tag: 'span', look: null, text: g }] }) : '') + body;
-  }).join('');
-}
+/* THE SETTINGS FIELDS ARE A FORM NOW: forms.json's `settings`, drawn by formOf_ (form.js formGroupsOf_). */
 /* The sheet writes TRUE/FALSE as text and the payload sends real booleans; rows written by older
    versions send neither consistently. One reader for all three. */
 const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').trim());

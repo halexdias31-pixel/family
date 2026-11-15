@@ -21,7 +21,7 @@ const shape = JSON.parse(fs.readFileSync(path.join(O, 'data/settings/item-shape.
 Object.keys(data.forms || {}).filter(k => k !== 'say').forEach(k => { const f = data.forms[k];
   if (!shape.kinds[f.item]) bad.push('form ' + k + ': item ' + f.item + ' is not a kind in item-shape.json');
   if (!f.attr) bad.push('form ' + k + ': no attr');
-  (f.fields || []).forEach(x => { if ((data.kinds || []).indexOf(x.type) === -1) bad.push('form ' + k + ' field ' + x.f + ': no kind ' + x.type); }); });
+  (Array.isArray(f.fields) ? f.fields : []).forEach(x => { if ((data.kinds || []).indexOf(x.type) === -1) bad.push('form ' + k + ' field ' + x.f + ': no kind ' + x.type); }); });
 /* THE RATCHET: a raw box in any app file (index.html's FILES) but the maker's own over its budget fails; under it, lower the budget. */
 const left = data.leftovers || {};
 const files = require('../tools/file-lists.js').appFiles().filter(f => f !== 'form').map(f => f + '.js');

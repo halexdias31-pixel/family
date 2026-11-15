@@ -299,9 +299,9 @@ function ceAreas_() {
 function ceWhere_(L, val, box) {
   const got = profList_(val('venues_ok')), by = ceAreas_(), has = t => got.some(g => norm(g) === norm(t));
   const ro = (((typeof DATA !== 'undefined' && DATA && DATA.profileReadonly) || []).indexOf('venues_ok') !== -1);
-  const ticks = L.indexOf('venues_ok') === -1 ? '' : formHidden_('data-me="venues_ok"', got.join(', '))
-    + mcG_('div', 'many-list where-areas', { attrs: { role: 'group', 'aria-label': 'Areas you teach in' }, inner: Object.keys(by).sort().map(a => formTick_(`data-where-area="${esc(a)}"${by[a].some(has) ? ' checked' : ''}${ro ? ' disabled' : ''}`,
-      mcG_('span', null, { text: a }) + ' ' + qtag_(esc(ceCount_(by[a].length, 'venue', 'venues'))), 'many-opt')).join('') });
+  /* forms.json's `card-where`: the hidden venues_ok and an area a tick. */
+  const ticks = L.indexOf('venues_ok') === -1 ? '' : formOf_('card-where', { venues_ok: got.join(', ') }, { locked: ro,
+    options: { areas: Object.keys(by).sort().map(a => [a, { html: mcG_('span', null, { text: a }) + ' ' + qtag_(esc(ceCount_(by[a].length, 'venue', 'venues'))) }, by[a].some(has)]) } });
   return ceFold_('where', 'Areas', esc(ceCount_(got.length, 'venue', 'venues')), ticks)
     + fieldRows_(L.filter(f => f !== 'venues_ok'), box);
 }
@@ -348,9 +348,10 @@ const CARD_RATE_SECTION = { seat: { line: '.ce-seat', say: (rate, seat) => cardS
 function cardEditForm_(t, e, vals, only) {
   const val = f => (vals[f] == null ? '' : vals[f]);
   const ro = (DATA && DATA.profileReadonly) || [];
-  const box = (f, extra) => fieldHtml(f, val(f), Object.assign({ attr: 'data-me', label: ROW_LABEL[f],
-    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !may_('admin')), draft: false,
-    raw: { person_id: (t && t.personId) || (whose_() || {}).personId || '' } }, extra));
+  /* EACH BOX IS forms.json's `card-edit` form, one name at a time (its sections lay them out); a price only for may_('prices'). */
+  const box = (f, extra) => formOf_('card-edit', val, { fields: [f], options: fieldOptions_, with: () => Object.assign({ label: ROW_LABEL[f],
+    readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !may_('admin')),
+    raw: { person_id: (t && t.personId) || (whose_() || {}).personId || '' } }, extra) });
   /* YOUR OWN CARD'S SECTIONS ARE YOUR ROLE'S (`ownCardSections_`), with the figure and the handle;
      somebody else's are the tutor's card, as an admin has always edited it. */
   return (only || (e.own ? ownCardSections_() : cardSections_())).map(s => {
@@ -442,14 +443,15 @@ function cardRateHtml_(L, val, box, e) {
   const live = rate > 0;
   const own = !!(e && e.own);
   const u = live ? cardSeatUsual_(rate) : null;
-  const pound = fieldHtml('extra_seat_rate', cardSeatShown_('extra_seat_rate', rate, val('extra_seat_rate')), { attr: 'data-pound',
-    label: own ? 'yours, £/h' : 'theirs, £/h', readonly: !live, draft: false,
-    extra: `type="number" min="0" max="${live ? pounds2_(rate * STAFF_SEAT_MAX) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` });
+  /* THE POUNDS BOX AND ITS HIDDEN SHARE: forms.json's `card-seat`. */
+  const pound = formOf_('card-seat', (f, x) => x.type === 'hidden' ? val(f) : cardSeatShown_(f, rate, val(f)), { only: ['extra_seat_rate'],
+    with: () => ({ label: own ? 'yours, £/h' : 'theirs, £/h', readonly: !live,
+      extra: `type="number" min="0" max="${live ? pounds2_(rate * STAFF_SEAT_MAX) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` }) });
   const bar = own || (typeof may_ === 'function' && may_('admin'))
     ? shareBarBox_(val('extra_seat_cut'), cardShareBar_(rate, val('extra_seat_rate'), val('extra_seat_cut'))) : '';
   return box('rate_per_hour', {}) + bar
     + ceFold_('seat', 'Extra seat', mcLive_('ce-seat', cardSeatSay_(rate, val('extra_seat_rate'))),
-      pound + formHidden_('data-me="extra_seat_rate"', val('extra_seat_rate')))
+      pound)
     + fieldRows_(L.filter(f => f !== 'rate_per_hour' && f !== 'extra_seat_rate'), box);
 }
 /* ---------- @FAMILY.'S SHARE OF AN EXTRA SEAT, ITS OWN CARD (620): a box for an admin (`seatCutRefusal_`'s rule), words for anybody else ---------- */
@@ -460,9 +462,9 @@ function cardCutHtml_(L, val, box) {
   const u = live ? cardSeatUsual_(rate) : null;
   const p = cardSeatParts_(rate, '', val('extra_seat_cut'));
   const body = mayCut
-    ? fieldHtml('extra_seat_cut', cardSeatShown_('extra_seat_cut', rate, val('extra_seat_cut')), { attr: 'data-pound', label: "@family.'s, £/h",
-        readonly: !live, draft: false, extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` })
-      + formHidden_('data-me="extra_seat_cut"', val('extra_seat_cut'))
+    ? formOf_('card-seat', (f, x) => x.type === 'hidden' ? val(f) : cardSeatShown_(f, rate, val(f)), { only: ['extra_seat_cut'],
+        with: () => ({ label: "@family.'s, £/h", readonly: !live,
+          extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` }) })
     : '';
   return mcG_('span', 'ce-rate', { attrs: { hidden: true, 'data-rate': String(rate || 0) } })
     + ceFold_('cut', "@family.'s share", mcLive_('ce-cut', cardCutSay_(rate, val('extra_seat_cut'))), body)

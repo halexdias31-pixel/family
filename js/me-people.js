@@ -131,16 +131,15 @@ function personFormHtml_(F) {
   const nameOf = id => (choices.find(c => c.personId === id) || {}).name || id;
   const has = (p.parentIds || []).filter(Boolean);
   const kid = (p.roles || []).indexOf('student') !== -1;
-  const said = t => cardRuns_({ span: '', text: t });
   const pv = { first: p.firstName, last: p.lastName, email: p.email, dob: p.dob };
+  /* ALL OF IT forms.json's `person-form`: the names, the role ticks, email and birthday, then the parents' part, shown only for a child. */
+  const fo = { draftId: F.id || 'new', options: { roles: peopleRolePicks_().map(([r, label]) => [r, label, (p.roles || []).indexOf(r) !== -1]),
+    parents: has.map(id => [id, nameOf(id), true]),
+    parent: [['', 'None']].concat(choices.filter(c => has.indexOf(c.personId) === -1).map(c => [c.personId, c.name])) } };
   return pplCard_('person-form', head, [
-    formOf_('person-form', pv, { only: ['first', 'last'] }),
-    pplG_('pf-roles', peopleRolePicks_().map(([r, label]) => formTick_(`data-pf-role="${r}"${(p.roles || []).indexOf(r) !== -1 ? ' checked' : ''}`, said(label))),
-      { attrs: { role: 'group', 'aria-label': 'Role' } }),
-    formOf_('person-form', pv, { skip: ['first', 'last'] }),
-    pplG_('pf-parents', [has.map(id => formTick_(`data-pf-parent="${esc(id)}" checked`, said(nameOf(id)))).join(''),
-      formLine_(has.length ? 'Another parent' : 'Their parent (optional)', pplSelect_({ 'data-pf': 'parent' }, [{ value: '', text: 'None' }]
-        .concat(choices.filter(c => has.indexOf(c.personId) === -1).map(c => ({ value: c.personId, text: c.name })))))], { attrs: { hidden: !kid } }),
+    formOf_('person-form', pv, Object.assign({ skip: ['parents', 'parent'] }, fo)),
+    pplG_('pf-parents', formOf_('person-form', pv, Object.assign({ only: ['parents', 'parent'],
+      with: f => f === 'parent' && has.length ? { label: 'Another parent' } : {} }, fo)), { attrs: { hidden: !kid } }),
     pplP_('note pf-said', '', { attrs: { 'aria-live': 'polite' } }),
     pplG_('pf-go', [tile_({ form: true, label: F.id ? 'Save' : 'Add them', act: 'person-save' }),
       tile_({ form: true, label: 'Cancel', act: 'person-cancel', kind: 'quiet' })])], pid);
@@ -200,6 +199,7 @@ on('person-save', el => {
         { button: el, where: said, lock: form })
     .then(d => {
       peoplePut_(d.person);
+      formDraftDrop_('person-form', { draftId: F.id || 'new' });
       if (!F.id) { PEOPLE_FORM_ = { id: '', made: { first: d.first || val('first'), handle: d.handle || '', pin: d.pin || '' } }; }
       else { PEOPLE_FORM_ = null; toast('Saved.'); }
       peopleRedraw_();
@@ -276,7 +276,7 @@ function personEdHtml_(p) {
   const q = F.data.person || {};
   const tutor = (q.roles || []).indexOf('tutor') !== -1;
   const qv = f => f === 'handle' ? (q.handle ? '@' + q.handle : '') : q[(PE_BOXES_.find(b => b[0] === f) || [f, f])[1]] || '';
-  return pplG_('pe-form', [formOf_('person-edit', qv),
+  return pplG_('pe-form', [formOf_('person-edit', qv, { draftId: F.id }),
     peFamHtml_(F), peNotifyHtml_(F),
     tutor ? pplP_('note pe-fam', (q.listed === '' || TRUEish_(q.listed) ? 'Listed' : 'Not listed') + ': the eye on their tutor card changes it') : '',
     pplP_('note pe-said', '', { attrs: { 'aria-live': 'polite' } }), done], at);
@@ -285,8 +285,8 @@ function personEdHtml_(p) {
 function peNotifyHtml_(F) {
   const n = F.data && F.data.notify, opt = ((n && n.kinds) || []).filter(k => k && !k.essential);
   if (!opt.length) return '';
-  return pplG_('pe-notify', [pplP_('note pe-fam', 'Notifications they get')].concat(opt.map(k => formToggle_({ act: 'pe-notify', data: { kind: k.kind },
-    on: !!k.on, label: k.label, note: k.note || '' }))));
+  return pplG_('pe-notify', [pplP_('note pe-fam', 'Notifications they get'), formOf_('notify', null, { options: { kinds: opt.map(k => ({ act: 'pe-notify', data: { kind: k.kind },
+    on: !!k.on, label: k.label, note: k.note || '' })) } })]);
 }
 on('pe-notify', el => {
   const F = PERSON_ED_, kind = String((el && el.dataset.kind) || ''), want = !!(el && el.checked);
@@ -322,7 +322,7 @@ function peSave_(form) {
   if (key === F.sent) return;
   form.classList.add('is-sending');
   send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
-    .then(d => { F.sent = key; F.moved = true; if (said) said.textContent = '✓ ' + ((d && d.said) || 'Saved'); })
+    .then(d => { F.sent = key; F.moved = true; formDraftDrop_('person-edit', { draftId: F.id }); if (said) said.textContent = '✓ ' + ((d && d.said) || 'Saved'); })
     .catch(() => {})
     .then(() => form.classList.remove('is-sending'));
 }
@@ -367,7 +367,7 @@ function famHits_(q, want, skip) {
 const FAM_ACT_ = { pa: { act: 'pa-pick', skip: () => ((PERSON_ADD_ && PERSON_ADD_.picked) || []).map(x => x.id) },
   pe: { act: 'pe-link', skip: () => peLinked_().concat([String((PERSON_ED_ || {}).id || '')]) },
   lens: { act: 'lens-pick', skip: () => [String((USER || {}).personId || '')] } };
-const famPick_ = (scope, want, label) => pplG_('fam-pick', [formLine_(label, formInput_(`data-fam-q="${scope}" data-fam-want="${want}" type="search" autocomplete="off" placeholder="name or @handle"`)),
+const famPick_ = (scope, want, label) => pplG_('fam-pick', [formOf_('family-pick', null, { vars: { scope, want }, label }),
   pplG_('tile-row fam-hits', '', { attrs: { 'data-fam-hits': scope } })]);
 document.addEventListener('input', e => {
   const box = e.target;
@@ -401,7 +401,7 @@ function personAddCard_() {
       tile_({ form: true, label: 'Add another', act: 'pa-again', kind: 'quiet' })]);
   }
   const kid = F.role === 'student', tutor = F.role === 'tutor';
-  return pplCard_('is-prof prof-door pa-card', 'Add a person', [formOf_('person-add', Object.assign({}, F.v, { role: F.role }), { kid, options: { role: PA_ROLES_ } }),
+  return pplCard_('is-prof prof-door pa-card', 'Add a person', [formOf_('person-add', Object.assign({}, F.v, { role: F.role }), { kid, options: { role: PA_ROLES_ }, was: () => '' }),
     tutor ? '' : famPick_('pa', kid ? 'client' : 'student', kid ? 'Their parent' : 'Their child') + paPickedHtml_(F),
     pplP_('note pa-said', '', { attrs: { 'aria-live': 'polite' } }),
     pplG_('pf-go', tile_({ form: true, label: 'Add them', act: 'pa-save' }))]);
@@ -432,7 +432,8 @@ on('pa-again', () => { PERSON_ADD_ = null; paRedraw_(); });
 on('pa-save', el => {
   const F = paState_(), card = el.closest('.pa-card');
   if (!card || !personAddMay_()) return;
-  const val = k => String(F.v[k] || '').trim(), said = card.querySelector('.pa-said');
+  /* WHAT WAS TYPED, or a draft a reload drew back into its box (forms.json's `person-add` keeps each as a draft until Added). */
+  const val = k => String(F.v[k] || (card.querySelector('[data-pa="' + k + '"]') || {}).value || '').trim(), said = card.querySelector('.pa-said');
   if (!val('first') || !val('last')) { if (said) said.textContent = 'A first name and a last name, please.'; return; }
   if (F.role !== 'student' && !val('email')) { if (said) said.textContent = 'An email, please — the PIN goes there.'; return; }
   const ids = F.picked.map(x => x.id);
@@ -441,6 +442,7 @@ on('pa-save', el => {
         { button: el, where: said, lock: card })
     .then(d => {
       const pid = String((d.person && d.person.personId) || '');
+      formDraftDrop_('person-add');
       peoplePut_(d.person);
       /* A PARENT'S CHILDREN, ONE `linkChild` EACH: the account is made either way, and a link that failed says so on the slip. */
       const kids = F.role === 'client' && pid ? ids : [];
