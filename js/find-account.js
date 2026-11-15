@@ -68,7 +68,7 @@ function bookFindOpts_(id) {
   if (id === 'slots') {
     const on = BOOKING.slots || [], one = BOOK_FIND.day ? [BOOK_FIND.day] : BOOK_FIND.days;
     return slotGrid().days.filter(d => one.indexOf(d.label) !== -1).flatMap(d => d.hours.map(h => ({
-      text: (one.length > 1 ? day_(d.label) + ' ' : '') + String(h.h).padStart(2, '0') + ':00', act: 'book-pick', data: { step: id, v: h.code, code: h.code },
+      text: (one.length > 1 ? fmtDate_(d.label, 'day') + ' ' : '') + String(h.h).padStart(2, '0') + ':00', act: 'book-pick', data: { step: id, v: h.code, code: h.code },
       on: on.indexOf(h.code) !== -1, off: h.open ? '' : (h.why || 'not available'), note: h.open ? h.why : '' })));
   }
   if (id === 'avail') {
@@ -102,8 +102,8 @@ function bookMenu_() {
 /* (Both menus below are blocks for Find's menu card, drawn by `renderCard`, never markup.) */
 /* WHAT A STEP'S CHIP SAYS: its answer as the summary says it; a bare number names what it counts. */
 function bookSaid_(id) {
-  if (id === 'days') return BOOK_FIND.days.map(day_).join(', ');
-  if (id === 'slots') return bookRuns().map(r => day_(r.dayName) + ' ' + hours_(r.hour, r.hour + r.hours)).join(', ');
+  if (id === 'days') return BOOK_FIND.days.map(d => fmtDate_(d, 'day')).join(', ');
+  if (id === 'slots') return bookRuns().map(r => fmtDate_(r.dayName, 'day') + ' ' + fmtDate_(r.hour, 'hours', r.hour + r.hours)).join(', ');
   if (id === 'avail') return blockSay_(BOOKING.avail);
   const st = bookStep_(id), v = BOOKING[id];
   const said = o => String(st.label_ ? st.label_(o) : o);
@@ -168,7 +168,7 @@ on('book-pick', el => {
 on('book-next', el => {
   const id = el.dataset.step;
   const had = id === 'days' ? BOOK_FIND.days : (BOOKING[id] || []);
-  if (BOOK_FIND_ONE_PLUS.indexOf(id) !== -1 && !had.length) { toast('Pick at least one first.'); return; }
+  if (BOOK_FIND_ONE_PLUS.indexOf(id) !== -1 && !had.length) { toast(text_('pick-at-least-one-first')); return; }
   BOOK_FIND.done[id] = true; BOOK_FIND.more = '';
   /* THE WEEK DONE: the days are the ones that have an hour; no day is half-asked. */
   if (id === 'slots') { const codes = BOOKING.slots || [];
@@ -212,9 +212,9 @@ on('job-room', el => {
       if (!d || d.error) { if (said) said.textContent = (d && d.error) || 'Not saved'; el.disabled = false; return; }
       const j = (DATA.liveJobs || DATA.jobs || []).find(x => String(x.id) === String(el.dataset.id));
       if (j) j.room = room;
-      toast('Room saved'); repaint();
+      toast(text_('room-saved')); repaint();
     })
-    .catch(() => { el.disabled = false; toast('Not saved'); });
+    .catch(() => { el.disabled = false; toast(text_('not-saved')); });
 });
 /* ---------- THE FEED, BEHIND ITS OWN ANSWER § */
 function feedPages_() {
@@ -431,7 +431,7 @@ function signAfterJoin_(who) {
 }
 function signWho_(box) {
   const who = String((box && box.value) || '').trim();
-  if (!who) { toast('Type your name, @username or email first.'); return; }
+  if (!who) { toast(text_('type-your-name-username-or-email')); return; }
   SIGN.who = who; SIGN.step = 'pin'; SIGN.pin = [];
   signPaint_();
 }

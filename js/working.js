@@ -69,7 +69,7 @@ const workBytes_ = d => Math.floor((String(d).length - String(d).indexOf(',') - 
 on('qp-work', el => {
   const k = el.getAttribute('data-k');
   if (!k) return;
-  if (typeof whoIs_ === 'function' && !whoIs_()) { toast('Sign in to send your working'); return; }
+  if (typeof whoIs_ === 'function' && !whoIs_()) { toast(text_('sign-in-to-send-your-working')); return; }
   if ((WORK_PICS[k] || []).length >= WORK_MAX) { workPaint_(k); workSay_(k, WORK_MAX + ' pages at most — remove one to add another'); return; }
   const inp = document.createElement('input');
   inp.type = 'file';

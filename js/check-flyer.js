@@ -15,7 +15,7 @@ const BRAND = { name: 'Biz Name', web_tagline: 'Tagline words', area: 'Some Area
 const box = { console, URLSearchParams, TextEncoder, setTimeout: () => 0,
   DATA: { tutors: fx.tutors || [] }, USER: { name: 'Admin' }, admin: true,
   esc: s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'),
-  perHour_: n => '£' + Number(n).toFixed(2) + '/h', brandLogo_: () => 'icon.png', empty_: t => t, card_: h => h, on: () => {},
+  fmtMoney_: (n, s) => '£' + Number(n).toFixed(2) + (s === 'hour' ? '/h' : ''), _was: n => '£' + Number(n).toFixed(2) + '/h', brandLogo_: () => 'icon.png', empty_: t => t, card_: h => h, on: () => {},
   tile_: o => `<button data-do="${o.act}">${o.label}</button>`, rankAtLeast_: () => true };
 box.brand = (k, or) => (k in BRAND ? BRAND[k] : or || '');
 box.may_ = w => w === 'admin' ? box.admin : true;

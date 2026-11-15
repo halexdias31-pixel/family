@@ -74,7 +74,7 @@ function boot() {
   try {
     w.eval(src + '\n;window.__b = { STUFF, stuffFiltered, bundleOf_, paintStuff, stuffFirstResult_,' +
       ' stuffPageCount, frontPages_, pageCount, go, goPage, initCart, cartCard_, orderText_,' +
-      ' printPrice, laminatePrice, money: money_, findShow_, docById_, placeChipDead_, stuffPages_, facetBy, facetValues,' +
+      ' printPrice, laminatePrice, money: fmtMoney_, findShow_, docById_, placeChipDead_, stuffPages_, facetBy, facetValues,' +
       ' CART: () => CART, setCart: v => { CART = v; }, USER: () => USER };');
   } catch (e) {
     return { err: 'the app did not load: ' + e.message };

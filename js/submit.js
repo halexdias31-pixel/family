@@ -432,7 +432,7 @@ function subAiOf_(v) {
 }
 function subSay_(v) {
   if (v === 'right') return { text: 'Correct', cls: 'is-right' };
-  if (v === 'wrong') return { text: 'Not yet — have another go', cls: 'is-near' };
+  if (v === 'wrong') return { text: text_('not-yet-have-another-go'), cls: 'is-near' };
   if (v === 'sent') return { text: 'Sent', cls: '' };
   const ai = subAiOf_(v);
   if (ai) return { text: ai.got + ' of ' + ai.of + ' mark' + (ai.of === 1 ? '' : 's') + (ai.by === 'rule' ? ' · by key words' : ' · AI'), cls: ai.got >= ai.of ? 'is-right' : 'is-near' };
@@ -641,12 +641,12 @@ function subVerdictPaint_(mark, inp) {
   }
   /* THE AI'S FEEDBACK, FROM THE SUBMISSION (owner, 15 Nov): the same on every device, and only with the verdict it came with. */
   const why = mark.nextElementSibling;
-  if (why && why.classList.contains('qp-ai-why')) { const f = say.text && latest && latest.f ? latest.f : ''; if (why.textContent !== f) why.textContent = f; }
+  if (why && why.classList.contains('qp-ai-why')) { const f = say.text && latest && latest.f ? latest.f : ''; tell_(why, 'info', f); }
   /* AI MARKING SWITCHED OFF says so on this line (`aiOff_`), and keeps saying it until there is something else to say — but ONLY WHILE THE LINE STILL SAYS IT. § */
   if (!say.text && mark.classList.contains('is-off') && out.textContent && out.textContent === mark.getAttribute('data-off-said')) return;
   mark.classList.remove('is-right', 'is-near');
   if (say.cls) mark.classList.add(say.cls);
-  if (out.textContent !== say.text) out.textContent = say.text;
+  if (out.textContent !== say.text) tell_(out, 'info', say.text);
 }
 function subBoxPaint_(k) {
   try {

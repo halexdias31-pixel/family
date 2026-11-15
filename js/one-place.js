@@ -90,9 +90,9 @@ function checksWatchBiz_() {
 on('oq-answer', el => {
   if (!may_('admin')) return;
   const id = el.dataset.id, choice = el.dataset.choice, box = el.closest('.oq-item');
-  if (!box || !OQ.answers) { toast('The answers are still on their way — a moment.'); return; }
+  if (!box || !OQ.answers) { toast(text_('the-answers-are-still-on-their')); return; }
   const note = String((box.querySelector('[data-oq-note]') || {}).value || '').trim();
-  if (choice === 'note' && !note) { toast('Write the note first.'); return; }
+  if (choice === 'note' && !note) { toast(text_('write-the-note-first')); return; }
   send_({ action: 'saveItem', item: 'ownerAnswer', name: USER && USER.name, id, choice, note },
         { button: el, where: box.querySelector('.oq-said'), busy: 'Saving…' })
     .then(d => { OQ.answers[id] = (d && d.answer) || { id, choice, note }; checksDraw_(); })

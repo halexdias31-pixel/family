@@ -626,7 +626,7 @@ function subsLine_(pid) {
 }
 /* A submission's day, DD/MM/YY like every date (owner, 8 Nov). */
 function subDayText_(iso) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? date_(iso) : '';
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? fmtDate_(iso) : '';
 }
 
 /* THE PEOPLE COLUMNS (453); `peoplePages_` (me.js) adds the signed-out card and the empty one. Student settings is `studentSetPages_`. */

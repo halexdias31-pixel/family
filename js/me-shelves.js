@@ -622,7 +622,7 @@ function qualDone_(slot) {
   if (slot.dataset.new && !(q.subject && q.level)) {
     qualClean_(shelf);
     qualRedraw_(shelf, qualBlank_(slot));
-    if (q.subject || q.level) toast('Nothing was added — a qualification needs a subject and a level.');
+    if (q.subject || q.level) toast(text_('nothing-was-added-a-qualification-needs'));
     return;
   }
   qualCommit_(slot, () => { qualClean_(shelf); qualRedraw_(shelf); });

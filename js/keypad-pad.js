@@ -18,7 +18,7 @@ function kpMicPaint_(on) { document.querySelectorAll('.kp-mic').forEach(k => { k
 function kpMic_(inp, el) {
   if (KP_MIC_ON) { try { KP_MIC_ON.stop(); } catch (e) { /* already stopped: nothing to undo */ } return; }
   const Api = kpMicApi_();
-  if (!Api) { if (typeof toast === 'function') toast('Dictation is not available in this browser.'); return; }
+  if (!Api) { if (typeof toast === 'function') toast(text_('dictation-is-not-available-in-this')); return; }
   let r;
   try { r = new Api(); } catch (e) { return; }
   r.lang = 'en-GB'; r.interimResults = false; r.continuous = false;
@@ -631,7 +631,7 @@ function aiOff_(said) {
     (box.closest('.qcard') || box).querySelectorAll('.qp-ai-go').forEach(b => { b.disabled = true; });
     const out = box.querySelector('.qp-verdict');
     const say = said || 'AI marking isn\u2019t switched on';
-    if (out) out.textContent = say;
+    if (out) tell_(out, 'info', say);
     /* WHAT THIS LINE SAID, so `subVerdictPaint_` (js/submit.js) keeps it only while it still says it: a
        verdict that has replaced it is taken off by the next key, as on every box. */
     box.setAttribute('data-off-said', say);
@@ -672,7 +672,7 @@ function aiKeptPaint_(box, inp) {
   /* ONE OF THE THREE, and a forced `toggle` writes nothing that is already so -- this is asked on every key typed into an essay that has a kept mark. § */
   ['is-right', 'is-near', 'is-stale'].forEach(c => box.classList.toggle(c, c === view.cls));
   const out = box.querySelector('.qp-verdict');
-  if (out && out.textContent !== view.verdict) out.textContent = view.verdict;
+  if (out && out.textContent !== view.verdict) tell_(out, 'info', view.verdict);
   const why = box.nextElementSibling;
   if (why && why.classList.contains('qp-ai-why') && why.textContent !== view.why) why.textContent = view.why;
   return true;
@@ -702,7 +702,7 @@ function aiStageStart_(box, out) {
   line.setAttribute('role', 'status');
   const say = line.querySelector('.qp-ai-stage-say');
   const began = Date.now();
-  const paint = () => { const t = aiStageSay_(Date.now() - began); if (say.textContent !== t) say.textContent = t; };
+  const paint = () => { const t = aiStageSay_(Date.now() - began); tell_(say, 'info', t); };
   paint();
   const timer = setInterval(paint, AI_STAGE_TICK_MS);
   return { line: line, stop: () => clearInterval(timer) };

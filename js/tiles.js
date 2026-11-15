@@ -253,9 +253,9 @@ if (typeof document !== 'undefined' && document.addEventListener) {
 
 /* ONE EMPTY STATE (owner, 8 Nov): a short, specific sentence in ordinary text ("No bookings yet."), the same everywhere. */
 /* "NOTHING HERE" HAS ONE WORDING, and empty_() with no words says it (check-loading). */
-const NOTHING_YET = 'Nothing here yet.';
+const NOTHING_YET = text_('nothing-here-yet');
 /* AND "NOBODY TEACHES THIS" HAS ONE: a level, a subject or the business with no tutor. */
-const NO_TUTOR = 'No tutor yet';
+const NO_TUTOR = text_('no-tutor-yet');
 function empty_(text) {
   return CARD_BLOCKS.text({ text: String(text || NOTHING_YET), look: 'empty' });
 }
@@ -319,7 +319,7 @@ function favOpts_(x) {
 /* ---------- A SHOP THING § */
 function shopOpts_(x) {
   const inCart = CART.some(c => c.key === x.key && isShop_(c));
-  return { icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket', tone: 'buy', on: inCart,
+  return { icon: 'cart', label: inCart ? text_('in-your-basket') : text_('add-to-basket'), tone: 'buy', on: inCart,
     note: inCart ? '' : (x.cost ? x.cost + ' credits' : 'free'), act: 'cart-add', off: !USER || inCart, data: { key: x.key, kind: 'shop' } };
 }
 
@@ -345,13 +345,13 @@ function tutorOpts_(x) {
   const t = x.row || {};
   return [/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered. */ bookOpts_(x),
     /* THEIR INTRO VIDEO: the uploaded one plays on the card (`intro-play`); an older row's link still goes out. */
-    String(t.videoFile || '').trim() ? { icon: 'play', label: 'Watch intro', act: 'intro-play', data: { file: t.videoFile } }
-      : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? { icon: 'play', label: 'Watch intro', href: t.mediaUrl } : null,
+    String(t.videoFile || '').trim() ? { icon: 'play', label: text_('watch-intro'), act: 'intro-play', data: { file: t.videoFile } }
+      : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? { icon: 'play', label: text_('watch-intro'), href: t.mediaUrl } : null,
     /* NOT FOR A CHILD, unless they are the business (405): `MESSAGING` lets a student write to an admin only — no tile the server refuses. */
     USER && !isMe_(x) && (!!may_('prices') || /admin/i.test(String(t.role || ''))) ? { icon: 'chat', label: 'Message',
       note: 'a note to them', act: 'msg-open', data: { to: x.name, id: (x.row && x.row.personId) || '' } } : null,
     typeof cardEditOpts_ === 'function' ? cardEditOpts_(x) : null,
-    x.key ? { icon: t.listed === false ? 'hide' : 'show', label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
+    x.key ? { icon: t.listed === false ? 'hide' : 'show', label: t.listed === false ? text_('not-listed') : 'Listed', tone: 'admin',
       on: t.listed !== false, act: 'set-listed', note: t.listed === false ? 'clients cannot see them' : 'clients can see them',
       /* THE ID AS WELL AS THE NAME: `x.key` is a display name, which `findPerson` only falls back to. */
       data: { who: x.key, pid: (x.row && x.row.personId) || '' } } : null];
@@ -363,14 +363,14 @@ function tutorOpts_(x) {
 
 /* ---------- A SUBJECT § */
 function subjectOpts_(x) {
-  return { icon: 'book', label: 'Book this', act: 'book-with', data: { name: '', subject: x.name || '' } };
+  return { icon: 'book', label: text_('book-this'), act: 'book-with', data: { name: '', subject: x.name || '' } };
 }
 
 
 /* ---------- A LEVEL § */
 function levelOpts_(x) {
   const t = x.row || {};
-  return { icon: 'book', label: t.listed === false ? 'Not on the booking form' : 'Book this',
+  return { icon: 'book', label: t.listed === false ? text_('not-on-the-booking-form') : text_('book-this'),
               note: t.listed === false ? 'add it to the options tab' : '',
               off: t.listed === false,
               act: 'book-with', data: { name: '', level: x.name || '' } };
@@ -381,7 +381,7 @@ function levelOpts_(x) {
 const MSG_MAY_ = { admin: ['admin', 'staff', 'client', 'student'], staff: ['admin', 'staff', 'client'], client: ['admin', 'staff'], student: ['admin'] };
 const msgRankOf_ = role => /admin/i.test(role) ? 'admin' : /tutor|teacher|staff/i.test(role) ? 'staff' : /student|child|kid/i.test(role) ? 'student' : 'client';
 const msgMay_ = role => !!USER && (MSG_MAY_[rank_()] || []).indexOf(msgRankOf_(String(role || ''))) !== -1;
-const msgTile_ = (name, id) => tile_({ icon: 'chat', label: 'Message ' + String(name).split(' ')[0], note: 'a note to them', act: 'msg-open', data: { to: name, id: id || '' } });
+const msgTile_ = (name, id) => tile_({ icon: 'chat', label: 'Message ' + fmtName_(name, 'first'), note: 'a note to them', act: 'msg-open', data: { to: name, id: id || '' } });
 /* THE PEOPLE ON A SESSION BESIDES YOU: its families and its tutor, each with the role the server judges by (1040 friction). */
 function jobPeople_(j) {
   if (!j || !USER) return [];

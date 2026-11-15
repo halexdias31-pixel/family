@@ -124,7 +124,7 @@ on('qt-inst', el => {
 /* ---------- CHECK WITH NO MARK SCHEME: nothing is sent; the verdict line says what is missing, for a missing key too. */
 on('qp-noscheme', el => {
   const mark = qMark_(el), out = mark && mark.querySelector('.qp-verdict');
-  if (out) out.textContent = QT_NO_SCHEME;
+  if (out) tell_(out, 'info', QT_NO_SCHEME);
 });
 
 /* ---------- WHAT THE AI SEES (round 3): the pen's drawing as a PNG and the photos of the working, beside the typed answer. */

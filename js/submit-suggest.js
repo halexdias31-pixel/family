@@ -104,7 +104,7 @@ document.addEventListener('change', e => {
   /* A VIDEO FROM THE CAMERA ROLL (640) goes the admin's files route, with its frames; a picture stays the note's picture. */
   if (/^video\//.test(file.type || '') || /\.(mov|mp4|m4v|webm)$/i.test(file.name || '')) {
     if (form.querySelector('.rep-files-in')) repFilesAdd_(form, [file], false);
-    else if (said) said.textContent = 'A video cannot go from here: send a picture instead.';
+    else if (said) tell_(said, 'info', 'A video cannot go from here: send a picture instead.');
     try { i.value = ''; } catch (err) { /* a picker that will not clear only means the same file cannot be picked twice */ }
     return;
   }
@@ -113,7 +113,7 @@ document.addEventListener('change', e => {
     if (show) { show.src = data; show.hidden = false; }
     const t = form.querySelector('.rep-pic');
     if (t) tileSet_(t, { icon: 'photo', label: 'Change the picture', on: true });
-  }).catch(err => { if (said) said.textContent = why_(err); });
+  }).catch(err => { if (said) tell_(said, 'error', why_(err)); });
 });
 /* ---------- FILES AND FOLDERS FOR CLAUDE (515), the admin's alone: each file sent in parts to Drive "Claude inbox", one at a time, then the note names them. */
 /* ANY KIND OF FILE (owner, 1 Nov: "python is what I was trying to add but can't"): no `accept` list, only the size limit (547). */
@@ -196,7 +196,7 @@ function repFilesAdd_(form, files, dir) {
   });
   REP_FILES.set(form, list);
   repFilesDraw_(form);
-  if (said && big.length) said.textContent = `Too large (over ${repMb_(REP_FILE_MAX)}), left out: ${big.slice(0, 3).join(', ')}${big.length > 3 ? '…' : ''}`;
+  if (said && big.length) tell_(said, 'info', `Too large (over ${repMb_(REP_FILE_MAX)}), left out: ${big.slice(0, 3).join(', ')}${big.length > 3 ? '…' : ''}`);
 }
 on('rep-files', el => { const i = el.closest('.rep-box') && el.closest('.rep-box').querySelector('.rep-files-in'); if (i) i.click(); });
 on('rep-dir', el => { const i = el.closest('.rep-box') && el.closest('.rep-box').querySelector('.rep-dir-in'); if (i) i.click(); });
@@ -300,13 +300,13 @@ async function repFramesSend_(form, x, b, rel) {
   if (!repIsVideo_(x.file)) return;
   await Promise.resolve(x.framesJob);
   const base = rel.replace(/\.[^./]*$/, ''), said = form.querySelector('.rep-said');
-  if (!Array.isArray(x.frames)) { if (said) said.textContent = `${rel} went, but its frames could not be made (${x.framesError || 'unknown'}): Claude will have only the video.`; return; }
+  if (!Array.isArray(x.frames)) { if (said) tell_(said, 'error', `${rel} went, but its frames could not be made (${x.framesError || 'unknown'}): Claude will have only the video.`); return; }
   try {
     let ok = true;
     for (let i = 0; i < x.frames.length; i++) ok = (await repSendJpeg_(b, `${base}.frames-${i + 1}.jpg`, x.frames[i])) && ok;
     if (x.small) ok = (await repSendJpeg_(b, base + '.small.jpg', x.small)) && ok;
-    if (!ok && said) said.textContent = `${rel} went, but some of its frames did not.`;
-  } catch (e) { if (said) said.textContent = `${rel} went, but its frames did not: ${why_(e)}`; }
+    if (!ok && said) tell_(said, 'error', `${rel} went, but some of its frames did not.`);
+  } catch (e) { if (said) tell_(said, 'error', `${rel} went, but its frames did not: ${why_(e)}`); }
 }
 /* EVERY FILE NOT YET SENT, in order; resolves to the note's `files`, or null when one failed (Send again retries only those). */
 async function repFilesSend_(form) {
@@ -319,7 +319,7 @@ async function repFilesSend_(form) {
 }
 const reportBoxOf_ = (kind, id) => [...document.querySelectorAll('.rep-box')].find(b => b.dataset.rk === kind && b.dataset.ri === id) || null;
 on('rep-box', el => {
-  if (!(typeof may_ === 'function' && may_('signedIn'))) { toast('Sign in to suggest a change.'); return; }
+  if (!(typeof may_ === 'function' && may_('signedIn'))) { toast(text_('sign-in-to-suggest-a-change')); return; }
   const kind = el.getAttribute('data-rk') || '', id = el.getAttribute('data-ri') || '';
   const had = reportBoxOf_(kind, id);
   if (had) { boxOut_(had); return; }
@@ -344,13 +344,13 @@ on('rep-send', el => {
   const box = form.querySelector('.rep-note-in');
   const note = String((box && box.value) || '').trim().slice(0, SUGGEST_NOTE_MAX);
   const hasFiles = (REP_FILES.get(form) || []).length > 0;
-  if (!note && !hasFiles && !suggestPeople_(kind)) { if (said) said.textContent = 'Write what should change first.'; return; }
+  if (!note && !hasFiles && !suggestPeople_(kind)) { if (said) tell_(said, 'info', 'Write what should change first.'); return; }
   /* THE BOOKING WIDGET'S FIELDS GO WITH IT (29 Oct), so the note says what was filled in — `bookFieldsSaid_`, book.js. */
   const fields = kind === 'widget' && id === 'booking' && typeof bookFieldsSaid_ === 'function' ? bookFieldsSaid_() : '';
   form.classList.add('is-sending');
   (hasFiles ? repFilesSend_(form) : Promise.resolve(undefined)).catch(() => null).then(files => {
   form.classList.remove('is-sending');
-  if (files === null) { const bad = (REP_FILES.get(form) || []).find(x => x.state === 'failed'); if (said) said.textContent = 'A file did not go' + (bad && bad.error ? ': ' + bad.error : '') + '. Press Send to try the rest again.'; return; }
+  if (files === null) { const bad = (REP_FILES.get(form) || []).find(x => x.state === 'failed'); if (said) tell_(said, 'error', 'A file did not go' + (bad && bad.error ? ': ' + bad.error : '') + '. Press Send to try the rest again.'); return; }
   return send_({ action: 'suggest', personId: USER.personId || '', kind, itemId: id, label: form.dataset.rl || '', note: [note, fields].filter(Boolean).join('\n\n'),
           finder: form.dataset.finder || '', path: form.dataset.path || '', image: REP_PIC.get(form) || '', device: reportDevice_(), ...(files ? { files } : {}) },
         { button: el, where: said })

@@ -143,13 +143,21 @@ function nameBesideHandle_(name, handle) {
 /* NAMES (owner, 8 Nov): § */
 /* A NAME TYPED IN LOWER CASE ("fin") IS STILL SHOWN WITH ITS CAPITAL; a handle keeps its own case. */
 const capFirst_ = s => (/^@/.test(String(s || '')) ? String(s) : String(s || '').charAt(0).toUpperCase() + String(s || '').slice(1));
-function displayName_(person, viewer) {
+/* ONE FORMATTER FOR NAMES (foundation 3): `fmtName_(person, style)` — 'short' (the default) "Fin W.", 'first' "Fin",
+   'full' the whole name for an adult. A CHILD'S SURNAME IS NEVER SHOWN, whatever the style: her initial at most. */
+const nameKid_ = p => {
+  const rs = [].concat(p.roles || [], p.role || [], p.type || []).map(r => String(r).toLowerCase());
+  return p.kid === true || p.child === true || rs.some(r => r === 'kid' || r === 'child' || r === 'student');
+};
+function fmtName_(person, style) {
   const p = person && typeof person === 'object' ? person : { name: person };
   const first = String(p.first_name || p.firstName || '').trim(), last = String(p.last_name || p.lastName || '').trim();
   const full = nameBesideHandle_(String(p.name || p.title || (first + ' ' + last)).trim(), p.handle);
-  /* FIRST NAME AND AN INITIAL FOR EVERY VIEWER, admins too (owner, 9 Nov): `viewer` is kept for callers that pass one. */
-  if (first && last) return capFirst_(first) + ' ' + last.charAt(0).toUpperCase() + '.';
   const w = full.split(/\s+/).filter(Boolean);
+  if (style === 'first') return capFirst_(first || (/[@(]/.test(full) ? full : w[0] || ''));
+  if (style === 'full' && !nameKid_(p)) return capFirst_(full);
+  /* FIRST NAME AND AN INITIAL FOR EVERY VIEWER, admins too (owner, 9 Nov); a style that is not a word is a viewer, kept for old callers. */
+  if (first && last) return capFirst_(first) + ' ' + last.charAt(0).toUpperCase() + '.';
   if (w.length < 2 || /[@(]/.test(full)) return capFirst_(full);
   return capFirst_(w[0]) + ' ' + w[w.length - 1].charAt(0).toUpperCase() + '.';
 }
@@ -184,7 +192,7 @@ function keepPut_(k, v, quiet) {
   KEEP_UNKEPT.add(k);
   if (quiet !== 'record' && !KEEP_SAID && v !== null && String(v).trim()) {
     KEEP_SAID = true;
-    try { if (typeof toast === 'function') toast('This browser is not saving what you type — leaving the page would lose it.'); } catch (e) { /* no toast yet: the warning is a nicety */ }
+    try { if (typeof toast === 'function') toast(text_('this-browser-is-not-saving-what')); } catch (e) { /* no toast yet: the warning is a nicety */ }
   }
   return false;
 }

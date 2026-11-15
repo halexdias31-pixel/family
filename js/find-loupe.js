@@ -434,7 +434,7 @@ function padSave_(pad, k, all) {
   const v = JSON.stringify(all);
   if (padIsBoard_(k) && v.length > PAD_BOARD_MAX) {
     padRepaint_(pad, padRead_(k));
-    toast('The board is full. Clear it to carry on.');
+    toast(text_('the-board-is-full-clear-it'));
     return false;
   }
   ansStore_(k, v);
@@ -446,7 +446,7 @@ function padSave_(pad, k, all) {
     if (row.getAttribute('data-pad') !== k || !out) return;
     const said = subBoxSay_(row.getAttribute('data-k'), padSay_(all));
     row.classList.remove('is-right', 'is-near');
-    out.textContent = padSaid_(said.text);
+    tell_(out, 'info', padSaid_(said.text));
   });
   return true;
 }
@@ -621,7 +621,7 @@ on('pad-undo', (el) => {
     if (typeof ansPutBack_ === 'function') ansPutBack_(k, mark, put); else put();
     padRepaint_(pad, back);
     padCopies_(k, pad, back);
-    toast('Put back');
+    toast(text_('put-back'));
     return;
   }
   if (!all.length) return;

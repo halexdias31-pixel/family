@@ -66,7 +66,7 @@ function versionSaid_() {
   const stale = names.length < 2 ? [] : names.filter(k => f[k] !== newest);
   return cardBlocks_([{ type: 'group', tag: 'p', look: 'build-said', text: ['@family. · Merton & Wandsworth', { br: true },
       'site ' + SITE_VERSION + ' · css ' + cssVersion(), { br: true }, 'backend ' + dash_(DATA.version)] },
-    stale.length ? { type: 'group', tag: 'p', look: 'build-said is-warn', text: 'Not deployed: ' + stale.map(k => k + '.gs (' + f[k] + ')').join(', ')
+    stale.length ? { type: 'group', tag: 'p', look: 'build-said is-warn', text: text_('not-deployed') + stale.map(k => k + '.gs (' + f[k] + ')').join(', ')
       + '. Paste ' + (stale.length === 1 ? 'that file' : 'those files') + ' into Apps Script.' } : null]);
 }
 
@@ -74,10 +74,10 @@ function versionSaid_() {
    On You, for a signed-in adult who is not staff yet; no date of birth is underage (450), so the card asks for it. */
 const APP_SUBJECT_ROWS = 3;
 const APP_STATUS_LINE = {
-  new: 'Your application to teach is with us. We will be in touch.',
-  interview: 'We would like to talk to you about teaching — we will be in touch to arrange it.',
-  approved: 'Your application to teach was approved.',
-  declined: 'Your application to teach was not taken further this time. You can apply again.',
+  new: text_('your-application-to-teach-is-with'),
+  interview: text_('we-would-like-to-talk-to'),
+  approved: text_('your-application-to-teach-was-approved'),
+  declined: text_('your-application-to-teach-was-not'),
 };
 /* WHOLE YEARS FROM A PROFILE'S DATE OF BIRTH (or an `age` field), or null when it says neither. */
 function profileAge_(p) {
@@ -98,12 +98,12 @@ function applyAdult_() {
 function applyOpts_() {
   if (!whose_() || whoseAtLeast_('staff')) return null;
   if (profileAge_(whose_().profile) === null)
-    return { icon: 'join', label: 'Apply to teach', note: 'add your date of birth first', act: 'apply-open', off: true };
+    return { icon: 'join', label: text_('apply-to-teach'), note: 'add your date of birth first', act: 'apply-open', off: true };
   if (!applyAdult_()) return null;
   const st = whose_().application && whose_().application.status;
   if (st === 'new' || st === 'interview')
-    return { icon: 'join', label: 'Application sent', note: st === 'interview' ? 'we will arrange a talk' : 'we will be in touch', act: 'apply-open', off: true };
-  return { icon: 'join', label: st === 'declined' ? 'Apply again' : 'Apply to teach', note: st === 'approved' ? 'approved' : '', act: 'apply-open' };
+    return { icon: 'join', label: text_('application-sent'), note: st === 'interview' ? 'we will arrange a talk' : 'we will be in touch', act: 'apply-open', off: true };
+  return { icon: 'join', label: st === 'declined' ? text_('apply-again') : text_('apply-to-teach'), note: st === 'approved' ? 'approved' : '', act: 'apply-open' };
 }
 /* THE DOCUMENT PHOTOS PICKED SO FAR, as 1200px JPEG data URLs by slot (idDoc, rtwDoc, qual0…): sent with the form, kept nowhere else. */
 const APPLY_DOCS = {};
@@ -119,7 +119,7 @@ function applyFormHtml_() { return cardBlock_(applyFormSpec_()); }
 /* THE FORM IS forms.json's `apply-teach` (foundation 2): every box a draft until it is sent; the account's own details filled in. */
 function applyFormSpec_() {
   return { type: 'group', look: 'me-form app-form', inner: formOf_('apply-teach', applyKnown_(), { docs: APPLY_DOCS, draftId: String((whose_() && whose_().personId) || '') })
-    + cardBlock_({ type: 'group', look: 'btn-row', tiles: [{ form: true, label: 'Send my application', act: 'apply-send' }] })
+    + cardBlock_({ type: 'group', look: 'btn-row', tiles: [{ form: true, label: text_('send-my-application'), act: 'apply-send' }] })
     + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said apply-said', attrs: { 'aria-live': 'polite' } }) };
 }
 /* WHAT IS STILL MISSING, in the backend's words (`postApplyTeach_` asks the same), so the phone says it before anything is sent. */
@@ -153,16 +153,16 @@ document.addEventListener('change', e => {
   const file = (inp.files || [])[0], slot = inp.closest('.apply-doc');
   inp.value = '';
   if (!file || !slot) return;
-  const said = slot.querySelector('.apply-doc-said'), say = m => { if (said) said.textContent = m; };
-  if (!/^image\//.test(file.type || '')) { say('That is not a picture. Take a photo of the document.'); return; }
-  say('Getting the photo ready…');
+  const said = slot.querySelector('.apply-doc-said'), say = m => { if (said) tell_(said, 'info', m); };
+  if (!/^image\//.test(file.type || '')) { say(text_('that-is-not-a-picture-take')); return; }
+  say(text_('getting-the-photo-ready'));
   photoShrink_(file).then(data => {
-    if (!data || !/^data:image\//.test(data)) { say('The phone could not read that photo. Try another.'); return; }
+    if (!data || !/^data:image\//.test(data)) { say(text_('the-phone-could-not-read-that')); return; }
     APPLY_DOCS[slot.dataset.doc] = data;
     const b = slot.querySelector('[data-do="apply-pick"]');
-    if (b) b.textContent = 'Change photo';
-    say('Photo ready.');
-  }).catch(() => say('The phone could not read that photo. Try another.'));
+    if (b) b.textContent = text_('change-photo');
+    say(text_('photo-ready'));
+  }).catch(() => say(text_('the-phone-could-not-read-that')));
 });
 on('apply-send', el => {
   const f = el.closest('.app-form');
@@ -182,14 +182,14 @@ on('apply-send', el => {
     qualDocs: Array.from({ length: APPLY_QUAL_SLOTS }, (_, i) => APPLY_DOCS['qual' + i]).filter(Boolean),
     statement: v('statement'), cvLink: v('cvLink'), consent: v('consent') };
   const gap = applyMissing_(body);
-  if (gap.length) { const said = f.querySelector('.apply-said'); if (said) said.textContent = 'Please add ' + gap.join(', ') + '. Nothing was sent.'; return; }
+  if (gap.length) { const said = f.querySelector('.apply-said'); if (said) tell_(said, 'error', text_('please-add') + gap.join(', ') + '. Nothing was sent.'); return; }
   send_(body, { button: el, where: f.querySelector('.apply-said'), saying: 'Sending…' })
     .then(d => {
       USER.application = d.application || { status: 'new', at: Date.now() };
       Object.keys(APPLY_DOCS).forEach(k => { delete APPLY_DOCS[k]; });
       formDraftDrop_('apply-teach', { draftId: String((whose_() && whose_().personId) || '') });
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
-      toast('Application sent');
+      toast(text_('application-sent'));
       try { paint('staff'); } catch (e) { oops_(e, 'me:applyFormHtml_') }
     })
     .catch(() => {});
@@ -252,12 +252,12 @@ function googleMount() {
 /* WHAT COMES BACK IS A CLAIM AND IT IS NOT INSPECTED HERE. § */
 function googleSignedIn_(res) {
   /* THE SAME VOICE AS THE PIN DOOR, which is the point: § */
-  toast('Checking with Google…');
+  toast(text_('checking-with-google'));
   send_({ action: 'googleLogin', credential: (res && res.credential) || '' })
     .then(d => {
-      if (!d.success) { toast(d.error || 'That did not work.'); return; }
+      if (!d.success) { toast(d.error || text_('that-did-not-work')); return; }
       /* ---------- EXCEPT WHEN GOOGLE HAS JUST TAKEN AWAY THE PIN § */
-      if (d.pinCleared && !d.message) d.message = 'The PIN this account was made with no longer works. Sign in '
+      if (d.pinCleared && !d.message) d.message = text_('the-pin-this-account-was-made')
         + 'with Google, or use "Forgotten your PIN?" for a new one.';
       /* THE SAME DOOR AS THE PIN PATH — `signedIn_`, because the reply is the same reply (one function builds it on the server for exactly this reason) and both doors § */
       signedIn_(d);
@@ -270,10 +270,10 @@ function googleSignedIn_(res) {
 /* ---------- A NEW PIN, TO THE ADDRESS IN THE SHEET AND NOWHERE ELSE § */
 on('forgot-pin', el => {
   const who = ((($('in-name') || {}).value || '').trim() || (typeof SIGN !== 'undefined' ? SIGN.who : '')).trim();
-  if (!who) { toast('Type your email address or your handle first.'); return; }
+  if (!who) { toast(text_('type-your-email-address-or-your')); return; }
   send_({ action: 'forgotPin', who }, { button: el, busy: 'Sending\u2026' })
     .then(d => toast((d && d.message)
-      || 'If there is an account with that email, a new PIN is on its way.'))
+      || text_('if-there-is-an-account-with')))
     /* A REFUSAL IS A SENTENCE NOW \u2014 "we have no email for this account", "no account has that handle" \u2014 and `send_` has already toasted it. § */
     .catch(() => {});
 });
@@ -300,7 +300,7 @@ on('signout', () => {
   try { if (typeof keepFlush_ === 'function') due = keepFlush_(); } catch (err) { oops_(err, 'me:googleSignedIn_') }
   Promise.all([Promise.resolve(last).catch(() => {}), due, Promise.resolve(subs).catch(() => {})]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) { /* sign out goes on even if the server call cannot be made */ } });
   signedOut_();
-  toast('Signed out');
+  toast(text_('signed-out'));
 });
 
 /* ONE WAY IN AND ONE WAY OUT. § */
@@ -422,7 +422,7 @@ function signedIn_(d, typed) {
   /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed
      between children, "Signed in" does not say into whose account. */
   const first = String(USER.name || USER.handle || '').trim().split(/\s+/)[0];
-  toast(first ? 'Signed in as ' + first : 'Signed in');
+  toast(first ? text_('signed-in-as') + first : text_('signed-in'));
   repaint();
   /* ---------- AND BACK WHERE YOU CAME FROM § */
   try {
@@ -453,13 +453,13 @@ const REG_PIN = /^\d{4}$/;
 const REG_NOTE = {
   /* "ONCE YOU HAVE OPENED IT", not "once you are in": signing in waits on nothing, but a child waits on
      the parent's address being proved (`confirmFirst_` in people.gs), so the link comes first. */
-  parent: 'We email you a link to open. Once you have opened it, find your child\'s handle on Student profiles '
+  parent: text_('we-email-you-a-link-to')
         + 'and tap Add as my child.',
-  student: 'We email a link to open. Then sign in with your handle or email and the PIN. A parent '
+  student: text_('we-email-a-link-to-open')
          + 'can also make your account, on Students.',
 };
 /* MAKE AN ACCOUNT IS A CARD OF ITS OWN beside Sign in, its form there from the start (no sheet, owner 7 Nov). */
-const registerSpec_ = () => ({ kind: 'panel', look: 'reg-card', name: 'Make an account', tags: ['Make an account'], body: [{ type: 'embed', tool: 'reg-form' }] });
+const registerSpec_ = () => ({ kind: 'panel', look: 'reg-card', name: text_('make-an-account'), tags: [text_('make-an-account')], body: [{ type: 'embed', tool: 'reg-form' }] });
 function registerCard_() { return renderCard(registerSpec_()); }
 /* THE FORM IS THE CARD'S ONE EMBED; its send (reg-send) is unchanged. */
 /* THE FORM AS ONE SPEC (owner, 14 Nov: one card maker). ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */
@@ -475,15 +475,15 @@ function regFormHtml_() {
       { type: 'group', tag: 'p', look: 'reg-cap', id: 'reg-who-cap', text: 'Both are free; teaching starts with "Apply to teach" once you are in.' },
       field('who is the account for?', { type: 'control', tag: 'select', attrs: { id: 'reg-who-in', 'data-do': 'reg-who', 'aria-describedby': 'reg-who-cap' }, options: [
         { value: '', text: 'Choose', on: true, off: true },
-        { value: 'parent', text: 'Client — I book and pay', data: { who: 'parent' } },
-        { value: 'student', text: 'Student — I\'m learning', data: { who: 'student' } }] })] },
+        { value: 'parent', text: text_('client-i-book-and-pay'), data: { who: 'parent' } },
+        { value: 'student', text: text_('student-im-learning'), data: { who: 'student' } }] })] },
     { type: 'group', look: null, id: 'reg-rest', attrs: { hidden: true }, blocks: [
       { type: 'group', look: 'f-row', blocks: [field('first name', kept('first')), field('last name', kept('last'))] },
       field('email', kept('email', { type: 'email', inputmode: 'email', autocapitalize: 'off', spellcheck: 'false', placeholder: 'you@example.com' })),
-      { type: 'tick', look: 'reg-kid', labelAttrs: { hidden: true }, attrs: { id: 'reg-noemail' }, text: 'It\'s a grown-up\'s email' },
+      { type: 'tick', look: 'reg-kid', labelAttrs: { hidden: true }, attrs: { id: 'reg-noemail' }, text: text_('its-a-grown-ups-email') },
       field('PIN — 4 digits', { type: 'control', attrs: { id: 'reg-pin', type: 'password', inputmode: 'numeric', autocomplete: 'one-time-code' } })],
       /* the send stands loose in the form, the note under it, as before */
-      inner: tile_({ form: true, label: 'Make my account', act: 'reg-send' }) + cardBlock_({ type: 'group', tag: 'p', look: 'said', id: 'reg-note' }) }] });
+      inner: tile_({ form: true, label: text_('make-my-account'), act: 'reg-send' }) + cardBlock_({ type: 'group', tag: 'p', look: 'said', id: 'reg-note' }) }] });
 }
 CARD_EMBEDS['reg-form'] = regFormHtml_;
 
@@ -506,7 +506,7 @@ on('reg-who', el => {
   const tick = regIn_(el, 'reg-noemail'), tickRow = tick && tick.closest('.reg-kid');
   if (tickRow) tickRow.hidden = who !== 'student';
   if (tick && who !== 'student') tick.checked = false;
-  const note = regIn_(el, 'reg-note'); if (note) note.textContent = REG_NOTE[who];
+  const note = regIn_(el, 'reg-note'); if (note) tell_(note, 'info', REG_NOTE[who]);
 });
 
 on('reg-send', el => {
@@ -517,11 +517,11 @@ on('reg-send', el => {
      again rather than trusting that — a parent's address sent as `parent_email` is refused anyway. */
   const kid = who === 'student' && !!(regIn_(el, 'reg-noemail') || {}).checked;
   /* UNREACHABLE FROM THE CARD — the button is under the question until it is answered — and said anyway, for a button pressed some other way: § */
-  if (!who) { toast('Say who the account is for first — a parent or a student.'); return; }
-  if (!first || !last) { toast('Your first and last name, please.'); return; }
+  if (!who) { toast(text_('say-who-the-account-is-for')); return; }
+  if (!first || !last) { toast(text_('your-first-and-last-name-please')); return; }
   if (email.indexOf('@') < 0) {
     toast(kid ? 'A grown-up\'s email address, please — the link goes to them.'
-              : 'An email address, please — the link goes to it.');
+              : text_('an-email-address-please-the-link'));
     return;
   }
   if (!REG_PIN.test(pin)) { toast('A PIN is 4 digits.'); return; }
@@ -530,7 +530,7 @@ on('reg-send', el => {
   if (kid) body.parent_email = email; else body.email = email;
   /* A FLYER'S SOURCE TAG (`?from=flyer-…`, flyer.js) goes with it, so `came_from` says which flyer brought them. */
   const from = typeof cameFrom_ === 'function' ? cameFrom_() : ''; if (from) body.from = from;
-  send_(body, { button: el, busy: 'Making it…' })
+  send_(body, { button: el, busy: text_('making-it') })
     .then(d => {
       ['first', 'last', 'email'].forEach(f => { try { draftDrop_('reg', f); } catch (e) { oops_(e, 'me:registerCard_') } });
       const pinBox = regIn_(el, 'reg-pin'); if (pinBox) pinBox.value = '';
@@ -540,12 +540,12 @@ on('reg-send', el => {
       if (typeof signAfterJoin_ === 'function') signAfterJoin_(said);
       /* NO WAITING ON THE LINK — see the note over `verifyLogin`'s old PENDING refusal in dopost.gs.
          The account works now; the link is said as what it is, a confirmation, not a door. */
-      toast(kid ? 'Account made — sign in now as ' + (handle ? '@' + handle : 'your handle')
+      toast(kid ? text_('account-made-sign-in-now-as') + (handle ? '@' + handle : 'your handle')
                   + ' with your PIN. Your grown-up has been sent a link to confirm.'
                 : who === 'parent'
-                  ? 'Account made — sign in now with your PIN. Open the link we have emailed you before making '
+                  ? text_('account-made-sign-in-now-with-2')
                     + 'your child\'s account.'
-                  : 'Account made — sign in now with your PIN. We have also emailed you a link to confirm your address.');
+                  : text_('account-made-sign-in-now-with'));
     })
     .catch(() => {});      // `send_` has already said why
 });

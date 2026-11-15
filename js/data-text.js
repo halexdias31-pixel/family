@@ -102,7 +102,7 @@ function ago(value) {
   if (!d) return String(value ?? '');        // unparseable: show it as written, not as nothing
 
   const secs = (Date.now() - d.getTime()) / 1000;
-  if (secs < 0) return date_(d);
+  if (secs < 0) return fmtDate_(d);
   if (secs < 45) return 'just now';
 
   const mins = Math.floor(secs / 60);
@@ -119,7 +119,7 @@ function ago(value) {
   if (days < 60) return 'a month ago';
 
   /* Past two months, "nine weeks ago" is arithmetic and a date is an answer. */
-  return date_(d);
+  return fmtDate_(d);
 }
 
 /* THE LAST GOOD PAYLOAD, KEPT ON THE DEVICE (1070): the next visit draws from it at once and the network's answer replaces it silently. */

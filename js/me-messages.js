@@ -26,7 +26,7 @@ function verifyFromLink_(again) {
       }
       /* A GROWN-UP SAYING YES FOR A CHILD WITH NO EMAIL is told the child's handle, not "sign in
          with it" — the address is theirs, and it signs nobody in for the child. */
-      const first = d && d.name ? String(d.name).split(' ')[0] : '';
+      const first = d && d.name ? fmtName_(d.name, 'first') : '';
       if (d && d.noEmail && d.parentPending) {
         /* ---------- `parentPending`: A SHEET THEY CLOSE, NOT A TOAST THAT CLOSES ITSELF § */
         const who = first || 'They';
@@ -125,14 +125,14 @@ function paidFromLink_() {
       q.delete('paid'); q.delete('ref');
       const rest = q.toString();
       history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
-      if (paid !== '1' || !ref) { toast('Payment cancelled — nothing was charged. Your booking is still waiting.'); return; }
+      if (paid !== '1' || !ref) { toast(text_('payment-cancelled-nothing-was-charged-your')); return; }
       try { sessionStorage.setItem(PAID_KEY_, ref); } catch (e) { /* storage can be blocked; the app runs without it */ }
     }
   } catch (e) { /* no address bar to read: no payment came back */ }
   if (!ref) try { ref = sessionStorage.getItem(PAID_KEY_) || ''; } catch (e) { /* storage can be blocked; the app runs without it */ }
   if (!ref || PAID_ASKING_ === ref) return;
   if (!USER || !USER.token) {
-    toast('Sign in to finish your booking — your payment is safe.');
+    toast(text_('sign-in-to-finish-your-booking'));
     try { go('account'); } catch (e) { oops_(e, 'me:paidFromLink_') }
     return;
   }
@@ -261,7 +261,7 @@ document.addEventListener('change', e => {
         + (msgKind_(f) === 'video' ? ' Trim the clip to about 20 seconds and choose it again.' : ''));
       return;
     }
-    if (total + f.size > MSG_CAP_.total) { toast('That would be over 32MB in one message — send it on its own.'); return; }
+    if (total + f.size > MSG_CAP_.total) { toast(text_('that-would-be-over-32mb-in')); return; }
     q.push({ file: f, name: f.name || 'file', type: f.type || '', size: f.size,
              url: URL.createObjectURL(f) });
   });
@@ -323,7 +323,7 @@ function msgPost_(p) {
     p.state = 'sent'; p.id = (d && d.id) || '';
     /* THE SERVER HAS IT, SO THE DRAFT GOES — unless the box has been written in again since Send. */
     try { if (typeof draftSentDone_ === 'function') draftSentDone_('msg', p.withId, p.body); } catch (e) { oops_(e, 'me:msgPost_') }
-    toast(p.inSheet ? 'Sent to ' + displayName_(p.withName) : 'Sent');
+    toast(p.inSheet ? 'Sent to ' + fmtName_(p.withName) : 'Sent');
     return loadMessages().then(() => {
       if (!MSG_FAILED) {
         MSG_PENDING = MSG_PENDING.filter(x => x !== p);
@@ -365,8 +365,8 @@ on('msg-send', el => {
   const key  = msgKey_(el.dataset.to, el.dataset.id);
   const queue = (MSG_QUEUE[key] || []).slice();
   if (!text && !queue.length) { box && box.focus(); return; }
-  if (!USER) { if (said) said.textContent = 'Sign in first.'; return; }
-  if (text.length > 2000) { toast('That is longer than a message should be — 2,000 characters.'); return; }
+  if (!USER) { if (said) tell_(said, 'error', 'Sign in first.'); return; }
+  if (text.length > 2000) { toast(text_('that-is-longer-than-a-message')); return; }
 
   const p = {
     tmp: 'tmp' + (++MSG_SEQ), mine: true, read: true, state: 'sending',
@@ -378,7 +378,7 @@ on('msg-send', el => {
   MSG_PENDING.push(p);
   delete MSG_QUEUE[key];
   if (box) { box.value = ''; box.style.height = ''; }
-  if (p.inSheet) { closeSheet(); toast('Sending to ' + displayName_(p.withName) + '…'); }
+  if (p.inSheet) { closeSheet(); toast('Sending to ' + fmtName_(p.withName) + '…'); }
   dmRedraw_(p.withId);
   msgPost_(p);
 });
@@ -471,11 +471,11 @@ function msgDay_(ms) {
   const gap = Math.round((day(now) - day(d)) / 864e5);
   if (gap === 0) return 'Today';
   if (gap === 1) return 'Yesterday';
-  return day_(d) + ' ' + date_(d);
+  return fmtDate_(d, 'day') + ' ' + fmtDate_(d);
 }
 function msgClock_(ms, raw) {
   if (!ms) return String(raw || '');
-  return time_(ms);
+  return fmtDate_(ms, 'time');
 }
 
 /* ---------- PICTURE, CLIP OR FILE: THE TYPE, AND THE NAME WHEN THERE IS NO TYPE § */
@@ -551,7 +551,7 @@ const messagesHtml_ = ms => {
     const runEnd = !next || !!next.mine !== mine || (nextDay && nextDay !== dayWord)
                 || !!m.tmp !== !!next.tmp;
     const words = String(m.body || '').trim();
-    const flag = !mine && m.id && !m.tmp ? suggestOpts_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag') : null;
+    const flag = !mine && m.id && !m.tmp ? suggestOpts_('message', m.id, 'Message from ' + fmtName_(m.fromName || m.withName || 'someone'), 'msg-flag') : null;
     /* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestOpts_`, 486). */
     return cardBlock_({ type: 'msgBubble', day: newDay ? dayWord : '', words, att: msgAttItems_(m.attachments), flag,
       look: [mine ? 'mine' : '', runTop ? 'run-top' : '', runEnd ? 'run-end' : '', !mine && (!m.read || m.fresh) ? 'unread' : '', m.state ? 'is-' + m.state : ''].filter(Boolean).join(' '),
@@ -654,7 +654,7 @@ function kidAddSec_() {
 /* ---------- MESSAGES AS FIND CARDS (owner, 8 Nov, 36a): picture, title, tags, two lines, tiles, the shape every Find card has. */
 /* The closed conversation is cards.js's `findCard` (card-fields.json's `msg` row); its messages, once open, are cards of their own. */
 const MSG_OPEN = {};
-const msgDate_ = ms => (ms ? date_(ms) : '');
+const msgDate_ = ms => (ms ? fmtDate_(ms) : '');
 /* THEIR FACE, or an 8-bit stand-in so no card has an empty corner. */
 function msgFacePic_(t, mine) {
   let face = '';

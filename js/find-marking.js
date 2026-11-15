@@ -770,7 +770,7 @@ const CHOICE_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 function choiceList_(x) {
   if (!x || !Array.isArray(x.choices) || x.choices.length < 2) return '';
   const need = Math.max(1, (x.choiceRight || []).length);
-  const say = orderIs_(x) ? 'Type the letters in order, e.g. B, A, C' : need > 1 ? 'Type ' + need + ' letters, e.g. A, C' : 'Type the letter';
+  const say = orderIs_(x) ? text_('type-the-letters-in-order-e') : need > 1 ? 'Type ' + need + ' letters, e.g. A, C' : text_('type-the-letter');
   return cardBlocks_([{ type: 'group', tag: 'ol', look: 'qp-optlist', attrs: { type: 'A' }, blocks: x.choices.map((c, i) => ({ type: 'group', tag: 'li', look: 'qp-optline',
     blocks: [{ type: 'group', tag: 'b', look: 'qp-optl', text: CHOICE_LETTERS[i] || String(i + 1) }], inner: ' ' + typeset_(c) })) },
     { type: 'group', tag: 'span', look: 'qp-ans-k', text: say }]);
@@ -831,16 +831,16 @@ function markPart_(x, typed) {
 const qTrim_ = v => String(v == null ? '' : v).trim();
 const PART_READY = {
   /* typed boxes: options, order, values, fractions, words -- `markPart_` reads them all */
-  typed: { has: a => !!qTrim_(a), say: () => 'Write something first' },
+  typed: { has: a => !!qTrim_(a), say: () => text_('write-something-first') },
   /* a table's or a sort's cells: one cell the marker can read */
-  cells: { has: m => !!m && (m.each || []).some(v => v === true || v === false), say: () => 'Fill a cell first' },
+  cells: { has: m => !!m && (m.each || []).some(v => v === true || v === false), say: () => text_('fill-a-cell-first') },
   /* the pen: some ink the drawing marker can read (`padSay_`) */
-  draw: { has: said => !!said, say: () => 'Draw your answer first' },
+  draw: { has: said => !!said, say: () => text_('draw-your-answer-first') },
   /* the AI: the box, or a drawing or photos where the backend reads images */
   ai: { has: a => !!qTrim_(a.typed) || (a.seen && a.reads),
-        say: a => a.seen ? 'Write your answer in the box too \u2014 the drawing and photos are your working' : 'Write something first' },
+        say: a => a.seen ? text_('write-your-answer-in-the-box') : text_('write-something-first') },
   /* photos of working: at least one page */
-  photo: { has: pics => (pics || []).length > 0, say: () => 'Take a photo of your working first' },
+  photo: { has: pics => (pics || []).length > 0, say: () => text_('take-a-photo-of-your-working') },
 };
 /* '' WHEN READY, else what to say: the one test every Check and Send asks before it marks or sends */
 function partReady_(kind, a) {

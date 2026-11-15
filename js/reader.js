@@ -195,6 +195,6 @@ document.addEventListener('input', e => {
 on('sr-read', () => {
   const t = $('sr-text');
   const text = t ? String(t.value || '').trim() : '';
-  if (!text) { toast('Paste some text first'); return; }
+  if (!text) { toast(text_('paste-some-text-first')); return; }
   speedOpen_('Speed read', text, null);
 });

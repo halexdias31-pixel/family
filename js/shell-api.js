@@ -128,7 +128,7 @@ function pressAct_(doer, e) {
     if (got && typeof got.then === 'function' && PRESS_ACTING_ === acting) pressOut_(acting.key, doer, got);
   } catch (err) {
     oops_(err, 'act:' + doer.dataset.do);
-    toast('That did not work. Everything else still works.');
+    toast(text_('that-did-not-work-everything-else'));
   } finally { PRESS_ACTING_ = null; }
 }
 
@@ -212,7 +212,7 @@ async function bootJson_(res) {
     /* The page's text rather than its title: an Apps Script error page is titled just "Error". */
     const said = String(body.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ')
       .replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim().slice(0, 160);
-    const no = new Error('The reply was not valid JSON (HTTP ' + res.status + ')'
+    const no = new Error(text_('the-reply-was-not-valid-json') + res.status + ')'
       + (said ? ': ' + said : ': it was empty'));
     /* A WEB PAGE, as against an empty or cut-off reply. § */
     no.page = /^\s*</.test(body);

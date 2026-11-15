@@ -1,5 +1,15 @@
 /* ==== js/core.js ==== */
 /* @family. — core.js ONE FILE, SPLIT. § */
+/* WORDS:BEGIN — a copy of data/settings/words.json, written by `node tools/words.js --write`; edit the json, never this. */
+const WORDS_FILE = {"accept-request":"Accept request","accepted-by":"Accepted by ","accepted-the-family-can-pay-and":"Accepted — the family can pay and confirm","account-made-sign-in-now-as":"Account made — sign in now as ","account-made-sign-in-now-with":"Account made — sign in now with your PIN. We have also emailed you a link to confirm your address.","account-made-sign-in-now-with-2":"Account made — sign in now with your PIN. Open the link we have emailed you before making ","add-them-to-that-account-and":"Add them to that account and the next booking will name them.","add-to-basket":"Add to basket","admin-earns":"Admin earns","ages-up-to":"Ages up to ","all-ages":"All ages","already-in-your-basket":"Already in your basket","already-teaching":"Already teaching","an-email-address-please-the-link":"An email address, please — the link goes to it.","anyone-in-particular":"Anyone in particular?","anything-else-we-should-know":"Anything else we should know","application-sent":"Application sent","applied-for":"Applied for","applied-the-family-picks":"Applied — the family picks","apply-again":"Apply again","apply-to-teach":"Apply to teach","are-you-providing-the-space":"Are you providing the space?","ask-to-join":"Ask to join","ask-us-to-add-them-and":"Ask us to add them and the next booking will name them.","asked-they-will-be-in-touch":"Asked — they will be in touch","asked-we-will-come-back-to":"Asked — we will come back to you","attach-a-photo-video-or-file":"Attach a photo, video or file","book-this":"Book this","booking-form":"Booking form","can-come":"Can come","cancellation-and-refunds":"Cancellation and refunds","change-photo":"Change photo","checking-with-google":"Checking with Google…","client-i-book-and-pay":"Client — I book and pay","client-pays":"Client pays","clients-cannot-see-them-the-crossed":"Clients cannot see them. The crossed-out eye below puts them back on the site.","correct-check-the-spelling":"Correct (check the spelling: ","correct-every":"Correct — every ","could-not-find-this-question":"Could not find this question","could-not-make-the-picture":"Could not make the picture: ","could-not-mark-that-just-now":"Could not mark that just now","could-not-reach-the-marker-check":"Could not reach the marker — check the connection","could-not-reach-the-server":"Could not reach the server","could-not-share-it-press-and":"Could not share it — press and hold the picture to save it","decline-request":"Decline request","declined-by":"Declined by ","declined-the-family-has-been-told":"Declined — the family has been told","dictation-is-not-available-in-this":"Dictation is not available in this browser.","draw-your-answer-first":"Draw your answer first","each-seat-pays":"Each seat pays","end-it":"End it?","every-hour-they-have-ticked-is":" Every hour they have ticked is outside ","extra-seats":"Extra seats","extra-subj":"Extra subj.","fill-a-cell-first":"Fill a cell first","getting-the-photo-ready":"Getting the photo ready…","hidden-from-clients":"Hidden from clients","home-visits":"Home visits","how-many-extra-seats":"How many extra seats?","how-would-you-like-to-book":"How would you like to book?","if-there-is-an-account-with":"If there is an account with that email, a new PIN is on its way.","image-saved-link-copied":"Image saved · link copied","in-your-basket":"In your basket","instant-class":"Instant class","its-a-grown-ups-email":"It's a grown-up's email","just-you":"Just you","link-copied":"Link copied","make-an-account":"Make an account","make-my-account":"Make my account","making-a-picture-of-this-booking":"Making a picture of this booking…","making-a-picture-of-this-profile":"Making a picture of this profile…","making-it":"Making it…","no-children-are-on":"No children are on ","no-connection-that-hand-is-still":"No connection — that hand is still up.","no-free-hours-this-week":"No free hours this week","no-free-hours-this-week-2":"No free hours this week.","no-preference":"No preference","no-surcharge":"No surcharge","no-tutor-yet":"No tutor yet","no-we-book-the-room":"No — we book the room","nobody-yet-just-open-it":"Nobody yet — just open it","none-yet":"None yet","not-deployed":"Not deployed: ","not-enough-answered-to-price-it":"Not enough answered to price it yet.","not-listed":"Not listed","not-offered":"Not offered","not-on-the-booking-form":"Not on the booking form","not-priced-yet":"Not priced yet","not-saved":"Not saved","not-yet-have-another-go":"Not yet — have another go","nothing-changed":"Nothing changed","nothing-here-yet":"Nothing here yet.","nothing-in-that-bundle-can-be":"Nothing in that bundle can be printed","nothing-was-added-a-qualification-needs":"Nothing was added — a qualification needs a subject and a level.","nothing-yet":"Nothing yet","on-the-list":"On the list","on-the-list-2":"On the list — ","online-safety":"Online safety","open":"Open — ","over-what-period":"Over what period?","paste-some-text-first":"Paste some text first","pay-and-confirm":"Pay and confirm","payment-cancelled-nothing-was-charged-your":"Payment cancelled — nothing was charged. Your booking is still waiting.","per-session":"Per session","photo-ready":"Photo ready.","pick-at-least-one-first":"Pick at least one first.","picture-removed":"Picture removed","picture-saved":"Picture saved","picture-saved-link-copied":"Picture saved · link copied","pin-or-date":"Pin or date","please-add":"Please add ","press-and-hold-the-picture-to":"Press and hold the picture to save it.","press-share-to-send-it":"Press Share to send it.","put-back":"Put back","put-back-as-it-was-your":"Put back as it was — your picture too","rest-of":"Rest of ","rest-of-this":"Rest of this ","room-and-fees":"Room and fees","room-saved":"Room saved","safer-recruitment":"Safer recruitment","save-or-cancel-the-card-you":"Save or cancel the card you are editing first.","saved-a-picture-of-this-booking":"Saved a picture of this booking","saved-for-everyone":"Saved for everyone","say-who-the-account-is-for":"Say who the account is for first — a parent or a student.","send-my-application":"Send my application","session-ended":"Session ended","share-this-booking":"Share this booking","shared-by":"Shared by","shared-with-tutor":"Shared with tutor","sign-in-first":"Sign in first","sign-in-first-2":"Sign in first.","sign-in-to-book-your-account":"Sign in to book — your account is a few screens to the right.","sign-in-to-finish-your-booking":"Sign in to finish your booking — your payment is safe.","sign-in-to-have-it-marked":"Sign in to have it marked","sign-in-to-open-a-session":"Sign in to open a session","sign-in-to-send-it":"Sign in to send it","sign-in-to-send-this-booking":"Sign in to send this booking — your answers are kept.","sign-in-to-send-your-working":"Sign in to send your working","sign-in-to-suggest-a-change":"Sign in to suggest a change.","signed-in":"Signed in","signed-in-as":"Signed in as ","signed-out":"Signed out","signed-out-please-sign-in-again":"Signed out — please sign in again","someone-else":"Someone else","something-already-going-or-a-new":"Something already going, or a new one?","something-went-wrong-there":"Something went wrong there.","start-a-new-one":"Start a new one","stripe-did-not-give-us-a":"Stripe did not give us a payment page.","student-im-learning":"Student — I'm learning","take-a-photo-of-your-working":"Take a photo of your working first","take-a-seat":"Take a seat","tap-to-choose":"Tap to choose","that-account-has-no-id-yet":"That account has no id yet — ask us.","that-class-has-gone":"That class has gone.","that-did-not-work":"That did not work.","that-did-not-work-everything-else":"That did not work. Everything else still works.","that-is-longer-than-a-message":"That is longer than a message should be — 2,000 characters.","that-is-not-a-picture-take":"That is not a picture. Take a photo of the document.","that-is-the-most-this-card":"That is the most this card holds — 10 qualifications in all.","that-is-too-much-for-one":"That is too much for one message — send some of it now and the rest after","that-room-is-booked-every-hour":"That room is booked every hour.","that-session-is-not-in-this":"That session is not in this list any more","that-would-be-over-32mb-in":"That would be over 32MB in one message — send it on its own.","the-ai-marker-reads-only-the":"The AI marker reads only the first ","the-answers-are-still-on-their":"The answers are still on their way — a moment.","the-board-is-full-clear-it":"The board is full. Clear it to carry on.","the-marker-did-not-answer":"The marker did not answer: ","the-phone-could-not-read-that":"The phone could not read that photo. Try another.","the-pin-this-account-was-made":"The PIN this account was made with no longer works. Sign in ","the-reply-was-not-valid-json":"The reply was not valid JSON (HTTP ","the-room":"The room","the-tutor-was-not-told-no":"The tutor was not told — no connection. Your card is still red.","there-is-no-booking-on-screen":"There is no booking on screen to share","there-is-nobody-on-the-site":"There is nobody on the site to send this to yet — message @family. directly","there-is-nothing-to-share-on":"There is nothing to share on this card yet","they-tick-them-in-settings-under":" They tick them in Settings, under their week.","they-ticked-tutor-in-their-settings":"They ticked Tutor in their settings. Until you list them they are not on the site, cannot be booked and cannot take a session — the crossed-out eye below approves them.","this-booking-as-a-picture":"This booking, as a picture","this-browser-is-not-saving-what":"This browser is not saving what you type — leaving the page would lose it.","this-session-is-no-longer-yours":"This session is no longer yours.","too-long-to-mark":"Too long to mark — ","turn-it-down":"Turn it down?","tutor-earns":"Tutor earns","type-the-letter":"Type the letter","type-the-letters-in-order-e":"Type the letters in order, e.g. B, A, C","type-your-email-address-or-your":"Type your email address or your handle first.","type-your-name-username-or-email":"Type your name, @username or email first.","video-removed":"Video removed","video-saved":"Video saved","waiting-for":"Waiting for ","waiting-list-class":"Waiting list class","watch-intro":"Watch intro","we-email-a-link-to-open":"We email a link to open. Then sign in with your handle or email and the PIN. A parent ","we-email-you-a-link-to":"We email you a link to open. Once you have opened it, find your child's handle on Student profiles ","we-would-like-to-talk-to":"We would like to talk to you about teaching — we will be in touch to arrange it.","what-are-we-working-on":"What are we working on?","what-level-the-highest-among-the":"What level? (the highest among the children)","when-could-you-come":"When could you come?","when-free":"When free","which-of-your-children-is-this":"Which of your children is this for?","who-is-in-it":"Who is in it","who-is-this-for":"Who is this for?","withdraw-from-this":"Withdraw from this","write-something-first":"Write something first","write-the":"Write the ","write-the-note-first":"Write the note first.","write-your-answer-in-the-box":"Write your answer in the box too — the drawing and photos are your working","yes-no-room-hire":"Yes — no room hire","you-earn":"You earn","your-answer":"Your answer","your-answers-in-order":"Your answers, in order","your-application-to-teach-is-with":"Your application to teach is with us. We will be in touch.","your-application-to-teach-was-approved":"Your application to teach was approved.","your-application-to-teach-was-not":"Your application to teach was not taken further this time. You can apply again.","your-booking":"Your booking","your-first-and-last-name-please":"Your first and last name, please.","your-picture-is-still-saving-cancel":"Your picture is still saving — Cancel once it has.","your-seat":"Your seat","your-sessions":"Your sessions"};
+/* WORDS:END */
+/* ONE WORDS FILE (foundation 3): every label, button, message and caption is a key in data/settings/words.json.
+   `text_(key)`; `{name}` in a word is filled from `vars`. A key that is missing reads as itself, so a gap shows. */
+function text_(key, vars) {
+  const w = WORDS_FILE[key];
+  const s = typeof w === 'string' ? w : key;
+  return vars ? s.replace(/\{(\w+)\}/g, (all, k) => (vars[k] == null ? all : String(vars[k]))) : s;
+}
 
 /* THE RULES. Carried over whole. § */
 
@@ -107,7 +117,7 @@ function activePromoFactor(ctx) {
 
 
 /* FORMATS (owner, 8 Nov): one helper each, and check-format fails on a hand-formatted value. Times are 24-hour: 16:00. */
-const time_ = t => {
+const fmtTime_ = t => {
   if (t instanceof Date || typeof t === 'number') { const d = new Date(t); return isNaN(d) ? '' : String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
   const s = String(t ?? '').trim();
   if (!s) return '';
@@ -126,15 +136,19 @@ function token_(name, or) {
 }
 const dash_ = v => (v === undefined || v === null || String(v).trim() === '' ? '—' : v);
 /* A whole-hour span, 24-hour: 09:00–10:00. */
-const hours_ = (a, b) => time_(a + ':00') + '–' + time_(b + ':00');
+const fmtHours_ = (a, b) => fmtTime_(a + ':00') + '–' + fmtTime_(b + ':00');
 /* Money always with pence: £12.00, and a minus sign before the pound. */
-const money_ = n => { const v = Number(n) || 0; return (v < 0 ? '−' : '') + '£' + Math.abs(v).toFixed(2); };
-/* A RATE IS PER HOUR, £12.00/h (owner 70a, 9 Nov); a total stays a plain money_. */
-const perHour_ = n => money_(n) + '/h';
+/* ONE FORMATTER FOR MONEY (foundation 3): `fmtMoney_(n)` £12.00; `fmtMoney_(n, 'hour')` £12.00/h. A price shown at all is the caller's may_('prices'). */
+function fmtMoney_(n, style) {
+  const v = Number(n) || 0, m = (v < 0 ? '−' : '') + '£' + Math.abs(v).toFixed(2);
+  return style === 'hour' ? m + '/h' : m;
+}
 /* Days of the week, short, Monday first: Mon Tue Wed Thu Fri Sat Sun. */
 const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const day_ = v => {
+const fmtDay_ = v => {
   if (v instanceof Date) return isNaN(v) ? '' : DAYS_SHORT[(v.getDay() + 6) % 7];
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v ?? '').trim());
+  if (iso) return fmtDay_(new Date(+iso[1], +iso[2] - 1, +iso[3]));
   const s = String(v ?? '').trim().toLowerCase();
   const pre = { m: 0, tu: 1, w: 2, th: 3, f: 4, sa: 5, su: 6 };
   if (s in pre) return DAYS_SHORT[pre[s]];
@@ -197,7 +211,7 @@ function parseDMY(s) {
 
 
 /* Dates always DD/MM/YY (08/11/26), from a Date, ms, ISO or an already-British string. */
-const date_ = v => {
+const fmtDmy_ = v => {
   if (v instanceof Date || typeof v === 'number') { const d = new Date(v); return isNaN(d) ? '' : `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`; }
   const s = String(v ?? '').trim();
   if (!s) return '';
@@ -206,8 +220,16 @@ const date_ = v => {
   const m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);   // already DD/MM/YYYY
   if (m) { const y = m[3].slice(-2); return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${y}`; }
   const d = new Date(s);
-  return isNaN(d) ? s : date_(d);
+  return isNaN(d) ? s : fmtDmy_(d);
 };
+/* ONE FORMATTER FOR DATES AND TIMES (foundation 3): `fmtDate_(v)` 08/11/26; style 'time' 16:00, 'day' Mon,
+   'hours' 09:00–10:00 (v and `b` whole hours). The four pieces above are its parts, used by nothing else. */
+function fmtDate_(v, style, b) {
+  if (style === 'time') return fmtTime_(v);
+  if (style === 'day') return fmtDay_(v);
+  if (style === 'hours') return fmtHours_(v, b);
+  return fmtDmy_(v);
+}
 
 
 function num(raw) {
@@ -687,7 +709,7 @@ const CARD_BLOCKS = {
   /* A WEEK'S HOURS: one pill a day free, then the hours already taught; `say` reads every hour aloud. */
   hours: b => `<div class="prof-week prof-hours" data-avail="${esc(b.count || 0)}" aria-label="${esc(b.say || '')}">${
     (b.free || []).length ? `<p class="prof-hour-line">${b.free.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}${
-    (b.busy || []).length ? `<p class="prof-key prof-busy">${cardRuns_(b.busyLabel || 'Already teaching')} ${b.busy.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}</div>`,
+    (b.busy || []).length ? `<p class="prof-key prof-busy">${cardRuns_(b.busyLabel || text_('already-teaching'))} ${b.busy.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}</div>`,
   figure: b => { const p = cardPic_(b); return p ? `<figure class="kc-fig">${p}${b.caption ? `<figcaption>${cardRuns_(b.caption)}</figcaption>` : ''}</figure>` : ''; },
   table: b => `<table class="kc-table">${(b.head || []).length ? `<thead><tr>${b.head.map(h => `<th>${cardRuns_(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${
     (b.rows || []).map(r => `<tr>${r.map(c => `<td>${cardRuns_(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`,
@@ -778,7 +800,7 @@ function renderCard(spec) {
     + `<div class="kc-act">${row}</div></div>`;
 }
 /* SEVERAL CARDS, or a message where there are none (the one empty card). */
-const renderCards = (specs, empty) => ((specs || []).length ? specs.map(renderCard).join('') : renderCard(Object.assign({ kind: 'empty', tags: [{ text: (empty && empty.name) || 'Nothing yet' }] }, empty || {}, { empty: (empty && empty.say) || (typeof NOTHING_YET === 'string' ? NOTHING_YET : '') })));
+const renderCards = (specs, empty) => ((specs || []).length ? specs.map(renderCard).join('') : renderCard(Object.assign({ kind: 'empty', tags: [{ text: (empty && empty.name) || text_('nothing-yet') }] }, empty || {}, { empty: (empty && empty.say) || (typeof NOTHING_YET === 'string' ? NOTHING_YET : '') })));
 /* EACH CARD KIND'S BUILDER: `cardKind_('kind', x => spec)`; findCard draws a registered kind from its spec (check-card-spec runs each one). */
 const CARD_KINDS = {};
 function cardKind_(kind, build) { CARD_KINDS[kind] = build; }
@@ -875,7 +897,7 @@ const kcfField_ = b => `<label class="field${b.look ? ' ' + esc(b.look) : ''}"${
   b.caps ? b.caps.map((c, i) => `<span class="${i ? 'q-cap-cert' : 'q-cap-std'}">${esc(c)}</span>`).join('') : b.cap != null && b.cap !== '' ? `<span>${esc(b.cap)}</span>` : ''}${kcfKids_(b)}</label>`;
 const kcfTickB_ = b => `<label class="check${b.look ? ' ' + esc(b.look) : ''}"${kcfAttrs_(b.labelAttrs)}><input${kcfAttrs_(Object.assign({ type: 'checkbox' }, b.attrs))}><span class="box"></span><span>${cardRuns_(b.text)}</span></label>`;
 const kcfMany_ = b => `<div class="field many"><span class="many-cap">${esc(b.label)}</span>${kcfControl_(b.hidden || {})}<details class="many-d" data-many="${esc(b.key)}"${b.open ? ' open' : ''}>`
-  + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || 'Tap to choose')}</summary>`
+  + `<summary class="many-sum${b.said ? '' : ' is-unset'}" aria-label="${esc(b.label + ': ' + (b.said || 'nothing chosen'))}">${esc(b.said || text_('tap-to-choose'))}</summary>`
   + `<div class="many-list" role="group" aria-label="${esc(b.label)}">${(b.ticks || []).map(kcfTickB_).join('')}</div></details></div>`;
 /* A GROUP: a div (or a span, a line, a label, a heading between cards, or a fold and its summary) with its class and attributes, holding text, blocks, tiles, or parts already drawn here. */
 /* `img` is void (its attrs only); an `a` or `img` whose href or src is a script is not written at all. */
@@ -906,7 +928,7 @@ function msgBubble_(b) {
     + (b.flag ? `<div class="msg-line">${bub}${tile_(b.flag)}</div>` : bub) + `${fail}</div>`;
 }
 const msgFormBlock_ = b => `<div class="msg-form" data-k="${esc(b.k)}"><div class="msg-queue">${msgChips_(b)}</div>`
-  + (b.clip ? `${tile_({ icon: 'plus', label: 'Attach a photo, video or file', act: 'msg-attach', cls: 'msg-clip' })}<input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : '')
+  + (b.clip ? `${tile_({ icon: 'plus', label: text_('attach-a-photo-video-or-file'), act: 'msg-attach', cls: 'msg-clip' })}<input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : '')
   + `<textarea class="msg-text" rows="${Number(b.rows) || 1}" maxlength="${Number(b.max) || 2000}" placeholder="Message…" aria-label="Message ${esc(b.to)}"${b.off ? ' disabled' : ''}${b.drafted || ''}>${esc(b.value || '')}</textarea>`
   + `${tile_(b.send)}<p class="note msg-said">${esc(b.note || '')}</p>${(b.also || []).map(a => `<p class="note msg-said${a.look ? ' ' + esc(a.look) : ''}">${esc(a.text || '')}</p>`).join('')}</div>`;
 /* A BOX ROUND PARTS THESE BLOCKS ALREADY DREW (a message's card, a claim, a section), its look and data its own. */
@@ -2213,14 +2235,14 @@ function priceCells(row, L, fmt) {
   // of £0.00 that looks like a set of prices.
   const known = hours > 0;
   const signed = (x, unit) => (x === 0 ? dash_()
-    : (x > 0 ? '+ ' : '− ') + money_(Math.abs(x)) + (unit || ''));
+    : (x > 0 ? '+ ' : '− ') + fmtMoney_(Math.abs(x)) + (unit || ''));
 
   /* A rate row produces a running RATE; a shape row produces a running TOTAL. Which column a row
      writes into is decided by which of the two it actually makes, never by what fits. */
   /* Every money row reports the same thing: § */
   const isRateRow = ['base','subject','complexity','level','daytime','students','venue','host'].includes(row.key);
   const running = () => {
-    if (isRateRow || known) return { total: money_(runningAfter(row.key, L)) };
+    if (isRateRow || known) return { total: fmtMoney_(runningAfter(row.key, L)) };
     /* Nothing to total yet — say WHY, on the row that's waiting for it. § */
     const why = !L.hoursPerWeek ? 'tick some hours'
               : !L.weeksBooked  ? 'pick a time interval'
@@ -2267,7 +2289,7 @@ function priceCells(row, L, fmt) {
     if (row.key === 'level' && (!L.tutor || /^no preference$/i.test(L.tutor)) && L.level) {
       const at = row.of(L) * (m || 1);
       out.mul = m && m !== 1 ? '× ' + Number(m).toFixed(m % 1 ? (m * 100 % 1 ? 3 : 2) : 0) : '';
-      out.rate = perHour_(at);
+      out.rate = fmtMoney_(at, 'hour');
       Object.assign(out, running());
       return out;
     }
@@ -2295,7 +2317,7 @@ function priceCells(row, L, fmt) {
      multiplied. */
   /* NO "× 30" BESIDE "£30.00/h" (owner, 7 Nov): the same figure twice read as a multiplier nobody could explain. */
   out.mul   = '';
-  out.rate  = row.isBase ? perHour_(perHour) : signed(perHour, '/h');
+  out.rate  = row.isBase ? fmtMoney_(perHour, 'hour') : signed(perHour, '/h');
   Object.assign(out, running());
   return out;
 }
@@ -2572,13 +2594,21 @@ function nameBesideHandle_(name, handle) {
 /* NAMES (owner, 8 Nov): § */
 /* A NAME TYPED IN LOWER CASE ("fin") IS STILL SHOWN WITH ITS CAPITAL; a handle keeps its own case. */
 const capFirst_ = s => (/^@/.test(String(s || '')) ? String(s) : String(s || '').charAt(0).toUpperCase() + String(s || '').slice(1));
-function displayName_(person, viewer) {
+/* ONE FORMATTER FOR NAMES (foundation 3): `fmtName_(person, style)` — 'short' (the default) "Fin W.", 'first' "Fin",
+   'full' the whole name for an adult. A CHILD'S SURNAME IS NEVER SHOWN, whatever the style: her initial at most. */
+const nameKid_ = p => {
+  const rs = [].concat(p.roles || [], p.role || [], p.type || []).map(r => String(r).toLowerCase());
+  return p.kid === true || p.child === true || rs.some(r => r === 'kid' || r === 'child' || r === 'student');
+};
+function fmtName_(person, style) {
   const p = person && typeof person === 'object' ? person : { name: person };
   const first = String(p.first_name || p.firstName || '').trim(), last = String(p.last_name || p.lastName || '').trim();
   const full = nameBesideHandle_(String(p.name || p.title || (first + ' ' + last)).trim(), p.handle);
-  /* FIRST NAME AND AN INITIAL FOR EVERY VIEWER, admins too (owner, 9 Nov): `viewer` is kept for callers that pass one. */
-  if (first && last) return capFirst_(first) + ' ' + last.charAt(0).toUpperCase() + '.';
   const w = full.split(/\s+/).filter(Boolean);
+  if (style === 'first') return capFirst_(first || (/[@(]/.test(full) ? full : w[0] || ''));
+  if (style === 'full' && !nameKid_(p)) return capFirst_(full);
+  /* FIRST NAME AND AN INITIAL FOR EVERY VIEWER, admins too (owner, 9 Nov); a style that is not a word is a viewer, kept for old callers. */
+  if (first && last) return capFirst_(first) + ' ' + last.charAt(0).toUpperCase() + '.';
   if (w.length < 2 || /[@(]/.test(full)) return capFirst_(full);
   return capFirst_(w[0]) + ' ' + w[w.length - 1].charAt(0).toUpperCase() + '.';
 }
@@ -2613,7 +2643,7 @@ function keepPut_(k, v, quiet) {
   KEEP_UNKEPT.add(k);
   if (quiet !== 'record' && !KEEP_SAID && v !== null && String(v).trim()) {
     KEEP_SAID = true;
-    try { if (typeof toast === 'function') toast('This browser is not saving what you type — leaving the page would lose it.'); } catch (e) { /* no toast yet: the warning is a nicety */ }
+    try { if (typeof toast === 'function') toast(text_('this-browser-is-not-saving-what')); } catch (e) { /* no toast yet: the warning is a nicety */ }
   }
   return false;
 }
@@ -2966,7 +2996,7 @@ function ago(value) {
   if (!d) return String(value ?? '');        // unparseable: show it as written, not as nothing
 
   const secs = (Date.now() - d.getTime()) / 1000;
-  if (secs < 0) return date_(d);
+  if (secs < 0) return fmtDate_(d);
   if (secs < 45) return 'just now';
 
   const mins = Math.floor(secs / 60);
@@ -2983,7 +3013,7 @@ function ago(value) {
   if (days < 60) return 'a month ago';
 
   /* Past two months, "nine weeks ago" is arithmetic and a date is an answer. */
-  return date_(d);
+  return fmtDate_(d);
 }
 
 /* THE LAST GOOD PAYLOAD, KEPT ON THE DEVICE (1070): the next visit draws from it at once and the network's answer replaces it silently. */
@@ -4387,7 +4417,7 @@ function oops_(err, where, host, o) {
   if (host && host.nodeType === 1) { try { host.innerHTML = oopsHtml_(); host.removeAttribute('aria-busy'); } catch (e) { /* the report still goes */ } }
   else if (o.toast && Date.now() - OOPS.told > 5000 && typeof toast === 'function') {
     OOPS.told = Date.now();
-    try { toast('Something went wrong there.'); } catch (e) { /* the report still goes */ }
+    try { toast(text_('something-went-wrong-there')); } catch (e) { /* the report still goes */ }
   }
   const key = msg + '|' + where;
   if (OOPS.sent.has(key) || OOPS.n >= OOPS.max || typeof API !== 'string' || typeof fetch !== 'function') return;
@@ -7116,7 +7146,7 @@ function api(body, opts) {
           else if (rec) localStorage.setItem('familyGone', rec);
         } catch (e) { /* storage can be blocked; the app runs without it */ }
         try { if (typeof ansSavedPaint_ === 'function') ansSavedPaint_(); } catch (e) { oops_(e, 'shell:api') }
-        toast('Signed out — please sign in again');
+        toast(text_('signed-out-please-sign-in-again'));
       }
       return d || {};
     });
@@ -7159,6 +7189,18 @@ function send(body) {
     if (d && d.error) { const e = new Error(d.error); e.reply = d; throw e; }
     return d;
   });
+}
+
+/* ---------- ONE FEEDBACK PATH (foundation 3): every saved, error, busy or plain line goes through `tell_(el, state, words)`. § */
+/* `state`: 'busy', 'saved', 'error', 'info' or '' (clear). No `el`: a toast. A button, a tile, or words left out: the one ring. */
+/* A LINE OF TEXT takes the words and `data-tell`, which style.css colours: error red, saved green. */
+function tell_(el, state, words) {
+  const msg = words == null ? '' : String(words);
+  if (!el) { if (msg) toast(msg); return; }
+  /* NO WORDS, OR A BUTTON OR TILE: only the ring goes on or off — a control's face is never written over. */
+  if (words === undefined || (el.matches && el.matches('button, .btn, .tile'))) { el.classList.toggle('is-busy', state === 'busy'); return; }
+  if (el.textContent !== msg) el.textContent = msg;
+  if (state && msg) el.setAttribute('data-tell', state); else el.removeAttribute('data-tell');
 }
 
 /* ---------- SAYING SOMETHING BRIEFLY (537, D10) ------------------------------------------------- */
@@ -7259,7 +7301,7 @@ function shareCanvasPng_(canvas, filename, text) {
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(href), 60000);   // a download can start after the click returns
       const copy = url && navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(url) : Promise.reject();
-      return copy.then(() => toast('Picture saved · link copied'), () => toast('Picture saved')).then(() => 'saved');
+      return copy.then(() => toast(text_('picture-saved-link-copied')), () => toast(text_('picture-saved'))).then(() => 'saved');
     };
     if (!can) return save();
     return navigator.share({ files: [file], text: words })
@@ -7604,7 +7646,7 @@ function pressAct_(doer, e) {
     if (got && typeof got.then === 'function' && PRESS_ACTING_ === acting) pressOut_(acting.key, doer, got);
   } catch (err) {
     oops_(err, 'act:' + doer.dataset.do);
-    toast('That did not work. Everything else still works.');
+    toast(text_('that-did-not-work-everything-else'));
   } finally { PRESS_ACTING_ = null; }
 }
 
@@ -7688,7 +7730,7 @@ async function bootJson_(res) {
     /* The page's text rather than its title: an Apps Script error page is titled just "Error". */
     const said = String(body.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ')
       .replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim().slice(0, 160);
-    const no = new Error('The reply was not valid JSON (HTTP ' + res.status + ')'
+    const no = new Error(text_('the-reply-was-not-valid-json') + res.status + ')'
       + (said ? ': ' + said : ': it was empty'));
     /* A WEB PAGE, as against an empty or cut-off reply. § */
     no.page = /^\s*</.test(body);
@@ -8492,7 +8534,7 @@ function profAges_(t) {
   if (a == null && b == null) return '';
   if (a != null && b != null && a > b) { const x = a; a = b; b = x; }
   if (a === Infinity) return 'Adults';
-  if (a == null) return b === Infinity ? 'All ages' : 'Ages up to ' + b;
+  if (a == null) return b === Infinity ? text_('all-ages') : text_('ages-up-to') + b;
   if (b == null || b === Infinity) return 'Ages ' + a + '+';
   return a === b ? 'Age ' + a : 'Ages ' + a + '–' + b;
 }
@@ -8522,7 +8564,7 @@ function profAvail_(t) {
   /* ---------- NO HOURS IS SAID, NOT LEFT BLANK § */
   if (!ticked.length) {
     return { type: 'text', look: 'prof-say prof-nohours', text: 'Hasn\u2019t set usual hours yet \u2014 ask for any hour; they accept or decline.'
-      + (typeof may_ === 'function' && may_('admin') ? ' They tick them in Settings, under their week.' : '') };
+      + (typeof may_ === 'function' && may_('admin') ? text_('they-tick-them-in-settings-under') : '') };
   }
   /* `busy` IS `{ m16: 'Ada' }` OFF `busyHours`, but the fixture once said `[]` and an older backend may say nothing; a list of § */
   const busy = {};
@@ -8541,13 +8583,13 @@ function profAvail_(t) {
   }).filter(d => d.hours.some(c => c.lit || c.busy));
   /* ---------- TICKED, BUT NOT AT AN HOUR THAT CAN BE BOOKED § */
   if (!days.length) {
-    return { type: 'text', look: 'prof-say prof-hid prof-nofree', text: 'No free hours this week.' + (typeof may_ === 'function' && may_('admin')
-      ? ' Every hour they have ticked is outside ' + hours_(hours[0], hours[hours.length - 1]) + ', the hours a session can be booked at.' : '') };
+    return { type: 'text', look: 'prof-say prof-hid prof-nofree', text: text_('no-free-hours-this-week-2') + (typeof may_ === 'function' && may_('admin')
+      ? text_('every-hour-they-have-ticked-is') + fmtDate_(hours[0], 'hours', hours[hours.length - 1]) + ', the hours a session can be booked at.' : '') };
   }
   /* ---------- SPANS, NOT THE RECEIPT'S DISABLED BUTTONS § */
   const hoursOn = which => days.map(d => {
-    const hs = d.hours.filter(which).map(c => hours_(c.h, c.h + 1));
-    return hs.length ? day_(d.label) + ' ' + hs.join(', ') : '';
+    const hs = d.hours.filter(which).map(c => fmtDate_(c.h, 'hours', c.h + 1));
+    return hs.length ? fmtDate_(d.label, 'day') + ' ' + hs.join(', ') : '';
   }).filter(Boolean).join('; ');
   const said = hoursOn(c => c.lit);
   /* THE TAUGHT HOURS, SAID AFTER THE FREE ONES — see the note over this function. § */
@@ -8557,13 +8599,13 @@ function profAvail_(t) {
     const hs = d.hours.filter(which).map(c => c.h), spans = [];
     hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
     /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; `say` reads every hour. */
-    return spans.length ? day_(d.label) + ' ' + profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '') : '';
+    return spans.length ? fmtDate_(d.label, 'day') + ' ' + profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '') : '';
   }).filter(Boolean);
   return { type: 'hours', count: ticked.length, free: line(c => c.lit), busy: line(c => c.busy),
-    say: (said ? 'Available ' + said : 'No free hours this week') + (taught ? '. Already teaching ' + taught : '') };
+    say: (said ? 'Available ' + said : text_('no-free-hours-this-week')) + (taught ? '. Already teaching ' + taught : '') };
 }
 /* AN HOUR SPAN, 24-hour (owner, 8 Nov): 16:00–19:00. */
-const profSpan_ = ([a, b]) => hours_(a, b);
+const profSpan_ = ([a, b]) => fmtDate_(a, 'hours', b);
 
 /* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS § */
 function profSeat_(t) {
@@ -8576,9 +8618,9 @@ function profSeat_(t) {
 function rateRange_(t) {
   const r = Number(t && t.rate);
   if (!(r > 0)) return '';
-  const say = money_;
+  const say = n => fmtMoney_(n);
   const max = Math.round(Number(t.maxStudents)) || 1, seat = profSeat_(t);
-  return max > 1 && seat > 0 ? say(r) + '–' + perHour_(r + seat * (max - 1)).slice(1) : perHour_(r);
+  return max > 1 && seat > 0 ? say(r) + '–' + fmtMoney_(r + seat * (max - 1), 'hour').slice(1) : fmtMoney_(r, 'hour');
 }
 
 /* ---------- THE TUTOR CARD AS A SPEC (master template): face, the name line's pills, subjects and facts, then its lines. */
@@ -8593,10 +8635,10 @@ function profFace_(x, size) {
 /* `childHides` and `adminOnly`, decided once as the item loads (`it.live`), never here. */
 const profPill_ = (text, colour, look) => ({ pill: true, text, colour, look });
 /* WHY AN UNLISTED TUTOR IS OFF THE SITE, said to an admin (the map's `adminOnly` keeps it from everyone else). */
-const profNote_ = t => (t.listed === false ? (t.pending ? 'They ticked Tutor in their settings. Until you list them they are not on the site, cannot be booked and cannot take a session — the crossed-out eye below approves them.'
-  : 'Clients cannot see them. The crossed-out eye below puts them back on the site.') : '');
+const profNote_ = t => (t.listed === false ? (t.pending ? text_('they-ticked-tutor-in-their-settings')
+  : text_('clients-cannot-see-them-the-crossed')) : '');
 /* THE NAME LINE'S PILLS: their name, role and titles, the rate where `it.live` still has it, what they are doing, and why they are off. */
-const profPills_ = (it, t) => [profPill_(displayName_(t, CARD_VIEWER), 0, 'prof-tag-name')].concat([t.role || 'Tutor'].concat(profList_(t.titles)).map(v => profPill_(v, 1)),
+const profPills_ = (it, t) => [profPill_(fmtName_(t), 0, 'prof-tag-name')].concat([t.role || 'Tutor'].concat(profList_(t.titles)).map(v => profPill_(v, 1)),
   'rate' in ((it.live || {}).money || {}) ? [profPill_(it.live.money.rate, 4, 'prof-tag-rate')] : [], t.activity ? [profPill_(t.activity, 3, 'prof-act')] : [],
   t.listed === false ? [profPill_(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off')] : []);
 /* SUBJECTS (main, then also) AND FACTS, a row each. */
@@ -8837,16 +8879,16 @@ function kcPicOr_(x, html) {
 /* A REAL PICTURE: a photo, a clip, or a drawing of this very thing (a manuscript, a car part, a timeline stop); a kind sign or icon is not one. */
 const kcRealPic_ = h => /<(img|video|picture)\b|mfrclip-|class="(mech|tl)-pic"/.test(String(h || ''));
 /* ---------- THE BOOKING KINDS (subject, level, venue) ARE ITEM MAPS (slice 3): their lines read the fields the payload computed live (`live`). ---------- */
-const kcSurcharge_ = (t, kind) => { if (kind === 'level' && !t.priced) return { label: 'Surcharge', value: 'Not priced yet', tone: 'bad' };
-  return kcPct_(t.mult) || t.mult === 1 ? { label: t.mult === 1 ? 'No surcharge' : 'Surcharge', value: kcPct_(t.mult) } : null; };
+const kcSurcharge_ = (t, kind) => { if (kind === 'level' && !t.priced) return { label: 'Surcharge', value: text_('not-priced-yet'), tone: 'bad' };
+  return kcPct_(t.mult) || t.mult === 1 ? { label: t.mult === 1 ? text_('no-surcharge') : 'Surcharge', value: kcPct_(t.mult) } : null; };
 const kcSubjectBody_ = (t, L) => [{ type: 'list', items: [kcSurcharge_(t, 'subject'), L.levels.length ? { label: 'Levels', value: L.levels.join(', ') } : null,
-  L.tutors.length ? null : { label: 'Tutors', value: 'None yet', tone: 'bad' }].filter(Boolean) }];
+  L.tutors.length ? null : { label: 'Tutors', value: text_('none-yet'), tone: 'bad' }].filter(Boolean) }];
 const kcLevelBody_ = (t, L) => { const s = L.subjects, n = L.tutors.length;
-  return [{ type: 'list', items: [kcSurcharge_(t, 'level'), s.length ? { label: 'Subjects', value: s.map((v, i) => [i ? ', ' : '', { word: 'subject', text: v }]) } : { label: 'Subjects', value: 'None yet', tone: 'bad' },
-    { label: 'Tutors', value: n ? String(n) : (typeof NO_TUTOR === 'string' ? NO_TUTOR : 'None yet'), tone: n ? '' : 'bad' },
-    t.listed ? null : { label: 'Booking form', value: 'Not offered', tone: 'bad' }].filter(Boolean) }]; };
+  return [{ type: 'list', items: [kcSurcharge_(t, 'level'), s.length ? { label: 'Subjects', value: s.map((v, i) => [i ? ', ' : '', { word: 'subject', text: v }]) } : { label: 'Subjects', value: text_('none-yet'), tone: 'bad' },
+    { label: 'Tutors', value: n ? String(n) : (typeof NO_TUTOR === 'string' ? NO_TUTOR : text_('none-yet')), tone: n ? '' : 'bad' },
+    t.listed ? null : { label: text_('booking-form'), value: text_('not-offered'), tone: 'bad' }].filter(Boolean) }]; };
 /* A VENUE'S ROOMS AS FACTS: seats, and the price unless the map's `childHides` took it (a child is told the seats and not the price, 398). */
-const kcVenueBody_ = (t, L) => [{ type: 'list', items: L.rooms.map(o => { const say = [o.seats ? 'up to ' + o.seats : '', 'price' in o ? (o.price ? perHour_(o.price) : 'free') : ''].filter(Boolean).join(' · ');
+const kcVenueBody_ = (t, L) => [{ type: 'list', items: L.rooms.map(o => { const say = [o.seats ? 'up to ' + o.seats : '', 'price' in o ? (o.price ? fmtMoney_(o.price, 'hour') : 'free') : ''].filter(Boolean).join(' · ');
   return say ? { label: o.label, value: say } : null; }).filter(Boolean) }];
 const kcTutorNames_ = t => (Array.isArray(t.tutors) ? t.tutors : []).map(y => y && y.title).filter(Boolean);
 const kcListOf_ = v => (Array.isArray(v) ? v : []).filter(Boolean);
@@ -8881,7 +8923,7 @@ const ITEM_MAPS = {
     live: { subjects: r => (Array.isArray(r.subjects) ? r.subjects : []), tutors: r => (Array.isArray(r.tutors) ? r.tutors : []).map(y => y.title) } },
   venue: { look: 'venue-door', tags: ['focus', 'borough', 'city', 'tags'], lines: true, body: kcVenueBody_, childHides: ['price'],
     live: { rooms: r => (Array.isArray(r.rooms) && r.rooms.length ? r.rooms.slice(0, 4).map(o => ({ label: o.name || 'Room', seats: o.max, price: o.rate }))
-      : [{ label: 'The room', seats: r.maxCapacity, price: r.bestRate }]) },
+      : [{ label: text_('the-room'), seats: r.maxCapacity, price: r.bestRate }]) },
     /* ITS 8-BIT BUILDING (find-doors.js), picked off its name. */
     picture: (it, x) => { const pix = typeof VENUE_PIX === 'object' && typeof venueShape_ === 'function' ? VENUE_PIX[venueShape_(it.raw)] : null; return pix ? { pix, alt: x.name } : null; } },
   /* A QUESTION PART (slice 4): named "Q5b", its tags its facets alone; its picture the stems' figure, its body the sheet (words, answer box, */
@@ -8903,7 +8945,7 @@ const ITEM_MAPS = {
     pills: (it, x) => (typeof profPills_ === 'function' ? profPills_(it, kcRow_(x)) : []), tagRows: it => (typeof profTagRows_ === 'function' ? profTagRows_(it.raw) : []) },
   /* A PERSON'S DOOR (find-doors.js): face, name and facets, the handle (and the Edit form while an admin has it open); its tiles are */
   /* `peopleOpts_`, whose every button the permissions table already gates. */
-  person: { look: 'is-prof prof-door kc-facts', id: ['personId', 'id'], name: r => (typeof displayName_ === 'function' && displayName_(r)) || r.handle,
+  person: { look: 'is-prof prof-door kc-facts', id: ['personId', 'id'], name: r => (typeof fmtName_ === 'function' && fmtName_(r)) || r.handle,
     tags: ['role', 'handle'], lines: true, body: r => (typeof personDoorBody_ === 'function' ? personDoorBody_(r) : []),
     picture: (it, x) => (typeof profFace_ === 'function' ? profFace_(x, 160) : null), tiles: it => (typeof peopleOpts_ === 'function' ? peopleOpts_(it.raw) : []) },
   /* A POST: its words its name, and nothing else on the tag line (`facets: false`); its Like tile is its kind's. */
@@ -8920,11 +8962,11 @@ const ITEM_MAPS = {
   booking: { card: 'receipt', id: ['id', 'jobId', 'job_id'], name: r => [r.subject || 'Session', r.level].filter(Boolean).join(' · '), facts: true,
     tags: ['subject', 'level', 'tutor', 'venue'], childHides: ['rate', 'total'],
     live: { money: r => { const rate = Number(r.rate) || (/hour/i.test(String(r.unit || '')) ? Number(r.price) : 0) || 0;
-      return { rate: rate > 0 ? perHour_(rate) : '', total: r.price !== '' && r.price != null && isFinite(Number(r.price)) ? money_(Number(r.price)) + ' in all' : '' }; } },
+      return { rate: rate > 0 ? fmtMoney_(rate, 'hour') : '', total: r.price !== '' && r.price != null && isFinite(Number(r.price)) ? fmtMoney_(Number(r.price)) + ' in all' : '' }; } },
     pills: it => { const j = it.raw, m = it.live.money || {}, paid = typeof rcpPaid_ === 'function' ? rcpPaid_(j) : '';
-      return ['Booking', j.subject, j.tutor ? displayName_(j.tutor) : '', typeof rcpWhen_ === 'function' ? rcpWhen_(j) : '', m.rate]
+      return ['Booking', j.subject, j.tutor ? fmtName_(j.tutor) : '', typeof rcpWhen_ === 'function' ? rcpWhen_(j) : '', m.rate]
         .map(t => ({ text: t, colour: false })).concat([{ text: paid, colour: false, look: paid === 'Unpaid' ? 'is-new' : '' }]).filter(t => t.text); },
-    body: (r, L) => { const who = (r.slots || []).map(sl => sl && sl.client).filter(Boolean).map(n => displayName_(n)).join(', ') || (r.client ? displayName_(r.client) : '');
+    body: (r, L) => { const who = (r.slots || []).map(sl => sl && sl.client).filter(Boolean).map(n => fmtName_(n)).join(', ') || (r.client ? fmtName_(r.client) : '');
       const weeks = Number(r.weeks || (typeof jobDates_ === 'function' ? jobDates_(r).length : 0)) || 0;
       const said = [who, weeks ? weeks + (weeks === 1 ? ' week' : ' weeks') : '', (L.money || {}).total].filter(Boolean).join(' · ');
       return said ? [{ type: 'group', tag: 'p', look: 'rc-sum', text: said }] : []; },
@@ -8934,7 +8976,7 @@ const ITEM_MAPS = {
 const shopPriceTag_ = x => { const myLevel = Math.floor((Number(typeof USER !== 'undefined' && USER && USER.xp) || 0) / 10), free = x.cost === 0;
   const credits = typeof collCredits_ === 'function' ? collCredits_() : 0, afford = !free && !x.pence && credits >= x.cost;
   if (x.level > 0) return { text: myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level, look: 'price ' + (myLevel >= x.level ? 'can' : ''), colour: false };
-  return x.cost === undefined ? null : { text: free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits', look: 'price ' + (free ? 'free' : afford ? 'can' : ''), colour: false }; };
+  return x.cost === undefined ? null : { text: free ? 'free' : x.pence ? fmtMoney_(x.cost / 100) : x.cost + ' credits', look: 'price ' + (free ? 'free' : afford ? 'can' : ''), colour: false }; };
 /* THE SAME OPTIONS FOR EVERY KIND (slice 2): `id` its id columns; `name` (row → name); `from` the Find entry's field holding its row (else `row`); */
 /* `card` the card kind drawing it (else its own) and `when` (entry → true) which map that card picks; `body` (row → blocks) and `lines: true` */
 /* to draw them; `nameTag: false` for a card whose tags are its facets alone; `entryTags` { entry field: colour } after the facets; `off` (row → true) greys it. */
@@ -9195,7 +9237,7 @@ on('set-listed', el => {
 
   /* SAID BEFORE IT IS TRUE. It almost always becomes true, and the round trip is the only part
      anybody would notice. */
-  tileSet_(el, { label: on ? 'Listed' : 'Not listed', on,
+  tileSet_(el, { label: on ? 'Listed' : text_('not-listed'), on,
                  note: on ? 'clients can see them' : 'clients cannot see them' });
 
   api({ action: 'saveItem', item: 'listed',
@@ -9203,7 +9245,7 @@ on('set-listed', el => {
     who: el.dataset.who, whoId: el.dataset.pid || '', on })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
-      toast(on ? 'Listed' : 'Hidden from clients');
+      toast(on ? 'Listed' : text_('hidden-from-clients'));
       /* BY ID WHERE THERE IS ONE, for the reason the handler on the other end now records: a
          display name is derived from up to two cells and matching it is the fallback, not the
          route. */
@@ -9216,7 +9258,7 @@ on('set-listed', el => {
     .catch(err => {
       /* PUT IT BACK. A switch that has not actually flipped must not keep saying it has — this is
          the one case where showing it early has a cost, and it is paid here. */
-      tileSet_(el, { label: !on ? 'Listed' : 'Not listed', on: !on,
+      tileSet_(el, { label: !on ? 'Listed' : text_('not-listed'), on: !on,
                      note: !on ? 'clients can see them' : 'clients cannot see them' });
       toast(why_(err));
     });
@@ -9249,7 +9291,7 @@ function bookPrefill_() {
   const done = id => { BOOKING.done = uniq((BOOKING.done || []).concat([id])); };
   const only = st => { try { return (st.options() || []).filter(Boolean); } catch (e) { return []; } };
   /* THE USUAL CASE FIRST: an instant session, a new one, at home, no extra seats. */
-  if (!BOOKING.how) BOOKING.how = 'Instant class';
+  if (!BOOKING.how) BOOKING.how = text_('instant-class');
   if (!BOOKING.joining) BOOKING.joining = NEW_LIST;
   /* AT HOME IS THE VENUE ROW MARKED `takes_all_seats` (48a), by its own label; none marked, the question stays open. */
   if (!BOOKING.loc) BOOKING.loc = ((bookableSpaces().find(x => x.takesAllSeats) || {}).label) || '';
@@ -9259,7 +9301,7 @@ function bookPrefill_() {
   const chip = f => ((typeof STUFF !== 'undefined' && STUFF.filters) || []).filter(x => x && x.field === f && !x.any).map(x => String(x.value))[0] || '';
   if (!(BOOKING.subjects || []).length && chip('subject')) { BOOKING.subjects = [chip('subject')]; done('subjects'); }
   if (!BOOKING.level && chip('level')) BOOKING.level = chip('level');
-  if (!BOOKING.tutor && only(bookStep_('tutor'))[0] === 'No preference') BOOKING.tutor = 'No preference';
+  if (!BOOKING.tutor && only(bookStep_('tutor'))[0] === text_('no-preference')) BOOKING.tutor = text_('no-preference');
   /* THE FIRST TERM ON OFFER (the soonest), and the child when there is only one seat-holder to name. */
   const terms = only(bookStep_('interval'));
   if (!(BOOKING.interval || []).length && terms.length) { BOOKING.interval = [terms[0]]; done('interval'); }
@@ -9732,7 +9774,7 @@ function versionSaid_() {
   const stale = names.length < 2 ? [] : names.filter(k => f[k] !== newest);
   return cardBlocks_([{ type: 'group', tag: 'p', look: 'build-said', text: ['@family. · Merton & Wandsworth', { br: true },
       'site ' + SITE_VERSION + ' · css ' + cssVersion(), { br: true }, 'backend ' + dash_(DATA.version)] },
-    stale.length ? { type: 'group', tag: 'p', look: 'build-said is-warn', text: 'Not deployed: ' + stale.map(k => k + '.gs (' + f[k] + ')').join(', ')
+    stale.length ? { type: 'group', tag: 'p', look: 'build-said is-warn', text: text_('not-deployed') + stale.map(k => k + '.gs (' + f[k] + ')').join(', ')
       + '. Paste ' + (stale.length === 1 ? 'that file' : 'those files') + ' into Apps Script.' } : null]);
 }
 
@@ -9740,10 +9782,10 @@ function versionSaid_() {
    On You, for a signed-in adult who is not staff yet; no date of birth is underage (450), so the card asks for it. */
 const APP_SUBJECT_ROWS = 3;
 const APP_STATUS_LINE = {
-  new: 'Your application to teach is with us. We will be in touch.',
-  interview: 'We would like to talk to you about teaching — we will be in touch to arrange it.',
-  approved: 'Your application to teach was approved.',
-  declined: 'Your application to teach was not taken further this time. You can apply again.',
+  new: text_('your-application-to-teach-is-with'),
+  interview: text_('we-would-like-to-talk-to'),
+  approved: text_('your-application-to-teach-was-approved'),
+  declined: text_('your-application-to-teach-was-not'),
 };
 /* WHOLE YEARS FROM A PROFILE'S DATE OF BIRTH (or an `age` field), or null when it says neither. */
 function profileAge_(p) {
@@ -9764,12 +9806,12 @@ function applyAdult_() {
 function applyOpts_() {
   if (!whose_() || whoseAtLeast_('staff')) return null;
   if (profileAge_(whose_().profile) === null)
-    return { icon: 'join', label: 'Apply to teach', note: 'add your date of birth first', act: 'apply-open', off: true };
+    return { icon: 'join', label: text_('apply-to-teach'), note: 'add your date of birth first', act: 'apply-open', off: true };
   if (!applyAdult_()) return null;
   const st = whose_().application && whose_().application.status;
   if (st === 'new' || st === 'interview')
-    return { icon: 'join', label: 'Application sent', note: st === 'interview' ? 'we will arrange a talk' : 'we will be in touch', act: 'apply-open', off: true };
-  return { icon: 'join', label: st === 'declined' ? 'Apply again' : 'Apply to teach', note: st === 'approved' ? 'approved' : '', act: 'apply-open' };
+    return { icon: 'join', label: text_('application-sent'), note: st === 'interview' ? 'we will arrange a talk' : 'we will be in touch', act: 'apply-open', off: true };
+  return { icon: 'join', label: st === 'declined' ? text_('apply-again') : text_('apply-to-teach'), note: st === 'approved' ? 'approved' : '', act: 'apply-open' };
 }
 /* THE DOCUMENT PHOTOS PICKED SO FAR, as 1200px JPEG data URLs by slot (idDoc, rtwDoc, qual0…): sent with the form, kept nowhere else. */
 const APPLY_DOCS = {};
@@ -9785,7 +9827,7 @@ function applyFormHtml_() { return cardBlock_(applyFormSpec_()); }
 /* THE FORM IS forms.json's `apply-teach` (foundation 2): every box a draft until it is sent; the account's own details filled in. */
 function applyFormSpec_() {
   return { type: 'group', look: 'me-form app-form', inner: formOf_('apply-teach', applyKnown_(), { docs: APPLY_DOCS, draftId: String((whose_() && whose_().personId) || '') })
-    + cardBlock_({ type: 'group', look: 'btn-row', tiles: [{ form: true, label: 'Send my application', act: 'apply-send' }] })
+    + cardBlock_({ type: 'group', look: 'btn-row', tiles: [{ form: true, label: text_('send-my-application'), act: 'apply-send' }] })
     + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said apply-said', attrs: { 'aria-live': 'polite' } }) };
 }
 /* WHAT IS STILL MISSING, in the backend's words (`postApplyTeach_` asks the same), so the phone says it before anything is sent. */
@@ -9819,16 +9861,16 @@ document.addEventListener('change', e => {
   const file = (inp.files || [])[0], slot = inp.closest('.apply-doc');
   inp.value = '';
   if (!file || !slot) return;
-  const said = slot.querySelector('.apply-doc-said'), say = m => { if (said) said.textContent = m; };
-  if (!/^image\//.test(file.type || '')) { say('That is not a picture. Take a photo of the document.'); return; }
-  say('Getting the photo ready…');
+  const said = slot.querySelector('.apply-doc-said'), say = m => { if (said) tell_(said, 'info', m); };
+  if (!/^image\//.test(file.type || '')) { say(text_('that-is-not-a-picture-take')); return; }
+  say(text_('getting-the-photo-ready'));
   photoShrink_(file).then(data => {
-    if (!data || !/^data:image\//.test(data)) { say('The phone could not read that photo. Try another.'); return; }
+    if (!data || !/^data:image\//.test(data)) { say(text_('the-phone-could-not-read-that')); return; }
     APPLY_DOCS[slot.dataset.doc] = data;
     const b = slot.querySelector('[data-do="apply-pick"]');
-    if (b) b.textContent = 'Change photo';
-    say('Photo ready.');
-  }).catch(() => say('The phone could not read that photo. Try another.'));
+    if (b) b.textContent = text_('change-photo');
+    say(text_('photo-ready'));
+  }).catch(() => say(text_('the-phone-could-not-read-that')));
 });
 on('apply-send', el => {
   const f = el.closest('.app-form');
@@ -9848,14 +9890,14 @@ on('apply-send', el => {
     qualDocs: Array.from({ length: APPLY_QUAL_SLOTS }, (_, i) => APPLY_DOCS['qual' + i]).filter(Boolean),
     statement: v('statement'), cvLink: v('cvLink'), consent: v('consent') };
   const gap = applyMissing_(body);
-  if (gap.length) { const said = f.querySelector('.apply-said'); if (said) said.textContent = 'Please add ' + gap.join(', ') + '. Nothing was sent.'; return; }
+  if (gap.length) { const said = f.querySelector('.apply-said'); if (said) tell_(said, 'error', text_('please-add') + gap.join(', ') + '. Nothing was sent.'); return; }
   send_(body, { button: el, where: f.querySelector('.apply-said'), saying: 'Sending…' })
     .then(d => {
       USER.application = d.application || { status: 'new', at: Date.now() };
       Object.keys(APPLY_DOCS).forEach(k => { delete APPLY_DOCS[k]; });
       formDraftDrop_('apply-teach', { draftId: String((whose_() && whose_().personId) || '') });
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
-      toast('Application sent');
+      toast(text_('application-sent'));
       try { paint('staff'); } catch (e) { oops_(e, 'me:applyFormHtml_') }
     })
     .catch(() => {});
@@ -9918,12 +9960,12 @@ function googleMount() {
 /* WHAT COMES BACK IS A CLAIM AND IT IS NOT INSPECTED HERE. § */
 function googleSignedIn_(res) {
   /* THE SAME VOICE AS THE PIN DOOR, which is the point: § */
-  toast('Checking with Google…');
+  toast(text_('checking-with-google'));
   send_({ action: 'googleLogin', credential: (res && res.credential) || '' })
     .then(d => {
-      if (!d.success) { toast(d.error || 'That did not work.'); return; }
+      if (!d.success) { toast(d.error || text_('that-did-not-work')); return; }
       /* ---------- EXCEPT WHEN GOOGLE HAS JUST TAKEN AWAY THE PIN § */
-      if (d.pinCleared && !d.message) d.message = 'The PIN this account was made with no longer works. Sign in '
+      if (d.pinCleared && !d.message) d.message = text_('the-pin-this-account-was-made')
         + 'with Google, or use "Forgotten your PIN?" for a new one.';
       /* THE SAME DOOR AS THE PIN PATH — `signedIn_`, because the reply is the same reply (one function builds it on the server for exactly this reason) and both doors § */
       signedIn_(d);
@@ -9936,10 +9978,10 @@ function googleSignedIn_(res) {
 /* ---------- A NEW PIN, TO THE ADDRESS IN THE SHEET AND NOWHERE ELSE § */
 on('forgot-pin', el => {
   const who = ((($('in-name') || {}).value || '').trim() || (typeof SIGN !== 'undefined' ? SIGN.who : '')).trim();
-  if (!who) { toast('Type your email address or your handle first.'); return; }
+  if (!who) { toast(text_('type-your-email-address-or-your')); return; }
   send_({ action: 'forgotPin', who }, { button: el, busy: 'Sending\u2026' })
     .then(d => toast((d && d.message)
-      || 'If there is an account with that email, a new PIN is on its way.'))
+      || text_('if-there-is-an-account-with')))
     /* A REFUSAL IS A SENTENCE NOW \u2014 "we have no email for this account", "no account has that handle" \u2014 and `send_` has already toasted it. § */
     .catch(() => {});
 });
@@ -9966,7 +10008,7 @@ on('signout', () => {
   try { if (typeof keepFlush_ === 'function') due = keepFlush_(); } catch (err) { oops_(err, 'me:googleSignedIn_') }
   Promise.all([Promise.resolve(last).catch(() => {}), due, Promise.resolve(subs).catch(() => {})]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) { /* sign out goes on even if the server call cannot be made */ } });
   signedOut_();
-  toast('Signed out');
+  toast(text_('signed-out'));
 });
 
 /* ONE WAY IN AND ONE WAY OUT. § */
@@ -10088,7 +10130,7 @@ function signedIn_(d, typed) {
   /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed
      between children, "Signed in" does not say into whose account. */
   const first = String(USER.name || USER.handle || '').trim().split(/\s+/)[0];
-  toast(first ? 'Signed in as ' + first : 'Signed in');
+  toast(first ? text_('signed-in-as') + first : text_('signed-in'));
   repaint();
   /* ---------- AND BACK WHERE YOU CAME FROM § */
   try {
@@ -10119,13 +10161,13 @@ const REG_PIN = /^\d{4}$/;
 const REG_NOTE = {
   /* "ONCE YOU HAVE OPENED IT", not "once you are in": signing in waits on nothing, but a child waits on
      the parent's address being proved (`confirmFirst_` in people.gs), so the link comes first. */
-  parent: 'We email you a link to open. Once you have opened it, find your child\'s handle on Student profiles '
+  parent: text_('we-email-you-a-link-to')
         + 'and tap Add as my child.',
-  student: 'We email a link to open. Then sign in with your handle or email and the PIN. A parent '
+  student: text_('we-email-a-link-to-open')
          + 'can also make your account, on Students.',
 };
 /* MAKE AN ACCOUNT IS A CARD OF ITS OWN beside Sign in, its form there from the start (no sheet, owner 7 Nov). */
-const registerSpec_ = () => ({ kind: 'panel', look: 'reg-card', name: 'Make an account', tags: ['Make an account'], body: [{ type: 'embed', tool: 'reg-form' }] });
+const registerSpec_ = () => ({ kind: 'panel', look: 'reg-card', name: text_('make-an-account'), tags: [text_('make-an-account')], body: [{ type: 'embed', tool: 'reg-form' }] });
 function registerCard_() { return renderCard(registerSpec_()); }
 /* THE FORM IS THE CARD'S ONE EMBED; its send (reg-send) is unchanged. */
 /* THE FORM AS ONE SPEC (owner, 14 Nov: one card maker). ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */
@@ -10141,15 +10183,15 @@ function regFormHtml_() {
       { type: 'group', tag: 'p', look: 'reg-cap', id: 'reg-who-cap', text: 'Both are free; teaching starts with "Apply to teach" once you are in.' },
       field('who is the account for?', { type: 'control', tag: 'select', attrs: { id: 'reg-who-in', 'data-do': 'reg-who', 'aria-describedby': 'reg-who-cap' }, options: [
         { value: '', text: 'Choose', on: true, off: true },
-        { value: 'parent', text: 'Client — I book and pay', data: { who: 'parent' } },
-        { value: 'student', text: 'Student — I\'m learning', data: { who: 'student' } }] })] },
+        { value: 'parent', text: text_('client-i-book-and-pay'), data: { who: 'parent' } },
+        { value: 'student', text: text_('student-im-learning'), data: { who: 'student' } }] })] },
     { type: 'group', look: null, id: 'reg-rest', attrs: { hidden: true }, blocks: [
       { type: 'group', look: 'f-row', blocks: [field('first name', kept('first')), field('last name', kept('last'))] },
       field('email', kept('email', { type: 'email', inputmode: 'email', autocapitalize: 'off', spellcheck: 'false', placeholder: 'you@example.com' })),
-      { type: 'tick', look: 'reg-kid', labelAttrs: { hidden: true }, attrs: { id: 'reg-noemail' }, text: 'It\'s a grown-up\'s email' },
+      { type: 'tick', look: 'reg-kid', labelAttrs: { hidden: true }, attrs: { id: 'reg-noemail' }, text: text_('its-a-grown-ups-email') },
       field('PIN — 4 digits', { type: 'control', attrs: { id: 'reg-pin', type: 'password', inputmode: 'numeric', autocomplete: 'one-time-code' } })],
       /* the send stands loose in the form, the note under it, as before */
-      inner: tile_({ form: true, label: 'Make my account', act: 'reg-send' }) + cardBlock_({ type: 'group', tag: 'p', look: 'said', id: 'reg-note' }) }] });
+      inner: tile_({ form: true, label: text_('make-my-account'), act: 'reg-send' }) + cardBlock_({ type: 'group', tag: 'p', look: 'said', id: 'reg-note' }) }] });
 }
 CARD_EMBEDS['reg-form'] = regFormHtml_;
 
@@ -10172,7 +10214,7 @@ on('reg-who', el => {
   const tick = regIn_(el, 'reg-noemail'), tickRow = tick && tick.closest('.reg-kid');
   if (tickRow) tickRow.hidden = who !== 'student';
   if (tick && who !== 'student') tick.checked = false;
-  const note = regIn_(el, 'reg-note'); if (note) note.textContent = REG_NOTE[who];
+  const note = regIn_(el, 'reg-note'); if (note) tell_(note, 'info', REG_NOTE[who]);
 });
 
 on('reg-send', el => {
@@ -10183,11 +10225,11 @@ on('reg-send', el => {
      again rather than trusting that — a parent's address sent as `parent_email` is refused anyway. */
   const kid = who === 'student' && !!(regIn_(el, 'reg-noemail') || {}).checked;
   /* UNREACHABLE FROM THE CARD — the button is under the question until it is answered — and said anyway, for a button pressed some other way: § */
-  if (!who) { toast('Say who the account is for first — a parent or a student.'); return; }
-  if (!first || !last) { toast('Your first and last name, please.'); return; }
+  if (!who) { toast(text_('say-who-the-account-is-for')); return; }
+  if (!first || !last) { toast(text_('your-first-and-last-name-please')); return; }
   if (email.indexOf('@') < 0) {
     toast(kid ? 'A grown-up\'s email address, please — the link goes to them.'
-              : 'An email address, please — the link goes to it.');
+              : text_('an-email-address-please-the-link'));
     return;
   }
   if (!REG_PIN.test(pin)) { toast('A PIN is 4 digits.'); return; }
@@ -10196,7 +10238,7 @@ on('reg-send', el => {
   if (kid) body.parent_email = email; else body.email = email;
   /* A FLYER'S SOURCE TAG (`?from=flyer-…`, flyer.js) goes with it, so `came_from` says which flyer brought them. */
   const from = typeof cameFrom_ === 'function' ? cameFrom_() : ''; if (from) body.from = from;
-  send_(body, { button: el, busy: 'Making it…' })
+  send_(body, { button: el, busy: text_('making-it') })
     .then(d => {
       ['first', 'last', 'email'].forEach(f => { try { draftDrop_('reg', f); } catch (e) { oops_(e, 'me:registerCard_') } });
       const pinBox = regIn_(el, 'reg-pin'); if (pinBox) pinBox.value = '';
@@ -10206,12 +10248,12 @@ on('reg-send', el => {
       if (typeof signAfterJoin_ === 'function') signAfterJoin_(said);
       /* NO WAITING ON THE LINK — see the note over `verifyLogin`'s old PENDING refusal in dopost.gs.
          The account works now; the link is said as what it is, a confirmation, not a door. */
-      toast(kid ? 'Account made — sign in now as ' + (handle ? '@' + handle : 'your handle')
+      toast(kid ? text_('account-made-sign-in-now-as') + (handle ? '@' + handle : 'your handle')
                   + ' with your PIN. Your grown-up has been sent a link to confirm.'
                 : who === 'parent'
-                  ? 'Account made — sign in now with your PIN. Open the link we have emailed you before making '
+                  ? text_('account-made-sign-in-now-with-2')
                     + 'your child\'s account.'
-                  : 'Account made — sign in now with your PIN. We have also emailed you a link to confirm your address.');
+                  : text_('account-made-sign-in-now-with'));
     })
     .catch(() => {});      // `send_` has already said why
 });
@@ -10246,7 +10288,7 @@ function verifyFromLink_(again) {
       }
       /* A GROWN-UP SAYING YES FOR A CHILD WITH NO EMAIL is told the child's handle, not "sign in
          with it" — the address is theirs, and it signs nobody in for the child. */
-      const first = d && d.name ? String(d.name).split(' ')[0] : '';
+      const first = d && d.name ? fmtName_(d.name, 'first') : '';
       if (d && d.noEmail && d.parentPending) {
         /* ---------- `parentPending`: A SHEET THEY CLOSE, NOT A TOAST THAT CLOSES ITSELF § */
         const who = first || 'They';
@@ -10345,14 +10387,14 @@ function paidFromLink_() {
       q.delete('paid'); q.delete('ref');
       const rest = q.toString();
       history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
-      if (paid !== '1' || !ref) { toast('Payment cancelled — nothing was charged. Your booking is still waiting.'); return; }
+      if (paid !== '1' || !ref) { toast(text_('payment-cancelled-nothing-was-charged-your')); return; }
       try { sessionStorage.setItem(PAID_KEY_, ref); } catch (e) { /* storage can be blocked; the app runs without it */ }
     }
   } catch (e) { /* no address bar to read: no payment came back */ }
   if (!ref) try { ref = sessionStorage.getItem(PAID_KEY_) || ''; } catch (e) { /* storage can be blocked; the app runs without it */ }
   if (!ref || PAID_ASKING_ === ref) return;
   if (!USER || !USER.token) {
-    toast('Sign in to finish your booking — your payment is safe.');
+    toast(text_('sign-in-to-finish-your-booking'));
     try { go('account'); } catch (e) { oops_(e, 'me:paidFromLink_') }
     return;
   }
@@ -10481,7 +10523,7 @@ document.addEventListener('change', e => {
         + (msgKind_(f) === 'video' ? ' Trim the clip to about 20 seconds and choose it again.' : ''));
       return;
     }
-    if (total + f.size > MSG_CAP_.total) { toast('That would be over 32MB in one message — send it on its own.'); return; }
+    if (total + f.size > MSG_CAP_.total) { toast(text_('that-would-be-over-32mb-in')); return; }
     q.push({ file: f, name: f.name || 'file', type: f.type || '', size: f.size,
              url: URL.createObjectURL(f) });
   });
@@ -10543,7 +10585,7 @@ function msgPost_(p) {
     p.state = 'sent'; p.id = (d && d.id) || '';
     /* THE SERVER HAS IT, SO THE DRAFT GOES — unless the box has been written in again since Send. */
     try { if (typeof draftSentDone_ === 'function') draftSentDone_('msg', p.withId, p.body); } catch (e) { oops_(e, 'me:msgPost_') }
-    toast(p.inSheet ? 'Sent to ' + displayName_(p.withName) : 'Sent');
+    toast(p.inSheet ? 'Sent to ' + fmtName_(p.withName) : 'Sent');
     return loadMessages().then(() => {
       if (!MSG_FAILED) {
         MSG_PENDING = MSG_PENDING.filter(x => x !== p);
@@ -10585,8 +10627,8 @@ on('msg-send', el => {
   const key  = msgKey_(el.dataset.to, el.dataset.id);
   const queue = (MSG_QUEUE[key] || []).slice();
   if (!text && !queue.length) { box && box.focus(); return; }
-  if (!USER) { if (said) said.textContent = 'Sign in first.'; return; }
-  if (text.length > 2000) { toast('That is longer than a message should be — 2,000 characters.'); return; }
+  if (!USER) { if (said) tell_(said, 'error', 'Sign in first.'); return; }
+  if (text.length > 2000) { toast(text_('that-is-longer-than-a-message')); return; }
 
   const p = {
     tmp: 'tmp' + (++MSG_SEQ), mine: true, read: true, state: 'sending',
@@ -10598,7 +10640,7 @@ on('msg-send', el => {
   MSG_PENDING.push(p);
   delete MSG_QUEUE[key];
   if (box) { box.value = ''; box.style.height = ''; }
-  if (p.inSheet) { closeSheet(); toast('Sending to ' + displayName_(p.withName) + '…'); }
+  if (p.inSheet) { closeSheet(); toast('Sending to ' + fmtName_(p.withName) + '…'); }
   dmRedraw_(p.withId);
   msgPost_(p);
 });
@@ -10691,11 +10733,11 @@ function msgDay_(ms) {
   const gap = Math.round((day(now) - day(d)) / 864e5);
   if (gap === 0) return 'Today';
   if (gap === 1) return 'Yesterday';
-  return day_(d) + ' ' + date_(d);
+  return fmtDate_(d, 'day') + ' ' + fmtDate_(d);
 }
 function msgClock_(ms, raw) {
   if (!ms) return String(raw || '');
-  return time_(ms);
+  return fmtDate_(ms, 'time');
 }
 
 /* ---------- PICTURE, CLIP OR FILE: THE TYPE, AND THE NAME WHEN THERE IS NO TYPE § */
@@ -10771,7 +10813,7 @@ const messagesHtml_ = ms => {
     const runEnd = !next || !!next.mine !== mine || (nextDay && nextDay !== dayWord)
                 || !!m.tmp !== !!next.tmp;
     const words = String(m.body || '').trim();
-    const flag = !mine && m.id && !m.tmp ? suggestOpts_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag') : null;
+    const flag = !mine && m.id && !m.tmp ? suggestOpts_('message', m.id, 'Message from ' + fmtName_(m.fromName || m.withName || 'someone'), 'msg-flag') : null;
     /* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestOpts_`, 486). */
     return cardBlock_({ type: 'msgBubble', day: newDay ? dayWord : '', words, att: msgAttItems_(m.attachments), flag,
       look: [mine ? 'mine' : '', runTop ? 'run-top' : '', runEnd ? 'run-end' : '', !mine && (!m.read || m.fresh) ? 'unread' : '', m.state ? 'is-' + m.state : ''].filter(Boolean).join(' '),
@@ -10874,7 +10916,7 @@ function kidAddSec_() {
 /* ---------- MESSAGES AS FIND CARDS (owner, 8 Nov, 36a): picture, title, tags, two lines, tiles, the shape every Find card has. */
 /* The closed conversation is cards.js's `findCard` (card-fields.json's `msg` row); its messages, once open, are cards of their own. */
 const MSG_OPEN = {};
-const msgDate_ = ms => (ms ? date_(ms) : '');
+const msgDate_ = ms => (ms ? fmtDate_(ms) : '');
 /* THEIR FACE, or an 8-bit stand-in so no card has an empty corner. */
 function msgFacePic_(t, mine) {
   let face = '';
@@ -11041,7 +11083,7 @@ function heldBy_(err) {
 }
 
 on('resend-link', el => {
-  if (!USER) { toast('Sign in first'); return; }
+  if (!USER) { toast(text_('sign-in-first')); return; }
   send_({ action: 'resendLink', personId: USER.personId || '' }, { button: el })
     .then(d => {
       toast(d.message || 'A new link is on its way.');
@@ -11061,7 +11103,7 @@ on('resend-link', el => {
 /* NO SHEET (owner, 8 Nov): the ask opens under the row pressed, and the new PIN replaces it there. */
 on('kid-pin', el => {
   const id = el.getAttribute('data-id') || '', who = el.getAttribute('data-name') || 'them';
-  if (!id) { toast('That account has no id yet — ask us.'); return; }
+  if (!id) { toast(text_('that-account-has-no-id-yet')); return; }
   const row = el.closest('.tile-row') || el;
   document.querySelectorAll('.kid-pin-ask').forEach(x => x.remove());
   row.insertAdjacentHTML('afterend', cardBlock_({ type: 'section', look: 'kid-pin-ask', blocks: [
@@ -11070,7 +11112,7 @@ on('kid-pin', el => {
 });
 
 on('kid-pin-go', el => {
-  if (!USER) { toast('Sign in first'); return; }
+  if (!USER) { toast(text_('sign-in-first')); return; }
   const id = el.getAttribute('data-id') || '';
   send_({ action: 'resetPin', personId: USER.personId || '', targetId: id },
         { button: el, busy: 'Making it…' })
@@ -11087,7 +11129,7 @@ on('sheet-done', () => closeSheet());
    is two places to fix when the call changes, and the second one is always the one forgotten. */
 const answerClaim_ = (el, accept) => {
   /* THE THIRD OF THE THREE. § */
-  if (!USER) { toast('Sign in first'); return; }
+  if (!USER) { toast(text_('sign-in-first')); return; }
   const row = el.getAttribute('data-row');
   /* `send_` RATHER THAN `send`, for the same reason as every form here: it locks both buttons while the answer
      is on the wire, so a second tap cannot answer twice, and it says a refusal as a toast. */
@@ -11666,7 +11708,7 @@ function send_(body, o) {
   /* `is-busy` IS THE SPINNER, and it goes on whether or not there is a `busy` label -- a
      button with no relabel still has to show that it is waiting. See `.btn.is-busy`. */
   /* `data-unlocked` — SEE BELOW: a control that queues its own press behind the save is left live. */
-  if (btn) { btn.disabled = !btn.hasAttribute('data-unlocked'); btn.classList.add('is-busy');
+  if (btn) { btn.disabled = !btn.hasAttribute('data-unlocked'); tell_(btn, 'busy');
              /* A TILE HAS NO WORD TO SWAP — its face is a mark, and writing text over it would lose
                 the mark for good. The ring is the whole of its busy state. */
              if (o.busy && !btn.classList.contains('tile')) { btn.dataset.was = btn.textContent; btn.textContent = o.busy; } }
@@ -11697,7 +11739,7 @@ function send_(body, o) {
     if (had && had.focus && document.contains(had)) { try { had.focus(); } catch (e) { /* focus and scrolling are niceties */ } }
     if (!btn) return;
     btn.disabled = false;
-    btn.classList.remove('is-busy');
+    tell_(btn, '');
     if (btn.dataset.was) { btn.textContent = btn.dataset.was; delete btn.dataset.was; }
   };
 
@@ -11707,7 +11749,7 @@ function send_(body, o) {
          only checked whether the request went through. */
       /* AND IT IS MARKED `refused` — THE SERVER ANSWERED, AND THE ANSWER WAS NO. A caller can then tell that from a reply that never came: § */
       if (!d || d.error) {
-        const refusal = new Error((d && d.error) || 'That did not work.');
+        const refusal = new Error((d && d.error) || text_('that-did-not-work'));
         refusal.refused = !!(d && d.error);
         /* AND THE WHOLE REPLY RIDES ON IT, as on `send`'s — a refusal is sometimes a fact for the code as well as a sentence: § */
         refusal.reply = d || null;
@@ -12355,7 +12397,7 @@ function qualDone_(slot) {
   if (slot.dataset.new && !(q.subject && q.level)) {
     qualClean_(shelf);
     qualRedraw_(shelf, qualBlank_(slot));
-    if (q.subject || q.level) toast('Nothing was added — a qualification needs a subject and a level.');
+    if (q.subject || q.level) toast(text_('nothing-was-added-a-qualification-needs'));
     return;
   }
   qualCommit_(slot, () => { qualClean_(shelf); qualRedraw_(shelf); });
@@ -12459,7 +12501,7 @@ function qualTeachTo_(slot, el, face, v) {
 /* THE NEXT UNUSED SLOT. § */
 function qualTake_(shelf) {
   const slot = shelf && shelf.querySelector('.q-pool > .q-slot');
-  if (!slot) toast('That is the most this card holds — 10 qualifications in all.');
+  if (!slot) toast(text_('that-is-the-most-this-card'));
   return slot || null;
 }
 /* ---------- `+`: A NEW LINE AT THE FOOT, ITS SUBJECT BOX READY § */
@@ -12645,7 +12687,7 @@ function autosaveNow_(form) {
 /* THE SMALL TICK: under the card, beside the fading toast that already says Saved. */
 function autosaveTick_(form, word) {
   const said = form.querySelector('.me-said');
-  if (said) said.textContent = '\u2713 ' + (word || 'Saved');
+  if (said) tell_(said, 'saved', '\u2713 ' + (word || 'Saved'));
   form.classList.add('is-saved');
   if (!form.contains(document.activeElement)) delete form.dataset.dirty;
 }
@@ -12660,7 +12702,7 @@ function meSave_(el, auto) {
   /* A PRESS OR A SAVE IN HAND MAKES THE WAITING ONE MOOT. */
   { const f0 = el && el.closest && el.closest('.me-form'); if (f0) clearTimeout(AUTOSAVE_T.get(f0)); }
   /* SIGNED OUT (the session ended under an open card): nothing to save to, and `USER.name` would throw. */
-  if (!USER) { toast('Sign in first.'); return resolve(false); }
+  if (!USER) { toast(text_('sign-in-first-2')); return resolve(false); }
   /* AND A THIRD SURFACE, WHICH IS THE SETTINGS COLUMN. § */
   const box = el.closest('.me-form') || el.closest('#sheet-body') || el.closest('.widget-slot') || document.body;
   const said = box.querySelector('.me-said');
@@ -12673,7 +12715,7 @@ function meSave_(el, auto) {
   });
   /* A QUALIFICATION WITH NO SUBJECT. § */
   /* ASKED OF EACH SLOT: its `qual_N` box (the subject's select) is the name that is saved, and any visible box with an answer in it is a qualification. § */
-  if (qualNameless_(box)) { if (auto) { if (said) said.textContent = QUAL_NAMELESS_SAY_; } else toast(QUAL_NAMELESS_SAY_); return resolve(false); }
+  if (qualNameless_(box)) { if (auto) { if (said) tell_(said, 'info', QUAL_NAMELESS_SAY_); } else toast(QUAL_NAMELESS_SAY_); return resolve(false); }
   /* ---------- NOT FROM A COPY OF YOUR SETTINGS THAT CANNOT BE TRUE § */
   /* ---------- AND WHEN THE SERVER IS OLDER THAN THIS SITE § */
   if (!profileShapeOk_()) {
@@ -12681,7 +12723,7 @@ function meSave_(el, auto) {
     const blocked = () => { if (said) said.textContent = OLD_SERVER_SAY_
       + ' Until then this card is not sent, because its boxes may be empty and saving would wipe what the sheet holds.'; };
     if (PROFILE_SERVER_OLD) { if (packed) { blocked(); return resolve(false); } return saveNow(); }
-    if (said) said.textContent = 'Your saved details are still loading from the sheet, so nothing was sent. Try again in a moment.';
+    if (said) tell_(said, 'error', 'Your saved details are still loading from the sheet, so nothing was sent. Try again in a moment.');
     profileRefresh_(true, () => (packed ? (blocked(), resolve(false)) : saveNow()));
     /* NOT SENT YET, AND THE CALLER IS TOLD SO — a refresh that ends in `saveNow` saves the card, but an editor waiting on this would otherwise wait for § */
     resolve(false);
@@ -12714,7 +12756,7 @@ function meSave_(el, auto) {
       if (form && !(auto && form.contains(document.activeElement))) delete form.dataset.dirty;
       /* NOT ON THE QUALIFICATIONS CARD, WHICH SAVES ON EVERY ANSWER. § */
       const quiet = !!box.querySelector('.q-shelf');
-      if (said) said.textContent = quiet ? '' : word;
+      if (said) tell_(said, 'info', quiet ? '' : word);
       toast(word);
       if (auto && form && !quiet) autosaveTick_(form, word);
       /* WHICH COLUMN THE CARD IS ON (453): a settings column, or a people column's card editor. */
@@ -12866,11 +12908,11 @@ on('pin-save', el => {
   const v = id => ($(id) || {}).value || '';
   const said = $('pin-said');
   /* SIGNED OUT, OR A BLANK NEW PIN, SENDS NOTHING — a blank pair "matches" and would post an empty PIN. */
-  if (!USER) { if (said) said.textContent = 'Sign in first.'; return; }
-  if (!v('pin-now') || !v('pin-new')) { if (said) said.textContent = 'Type your PIN now and the new one.'; return; }
+  if (!USER) { if (said) tell_(said, 'error', 'Sign in first.'); return; }
+  if (!v('pin-now') || !v('pin-new')) { if (said) tell_(said, 'info', 'Type your PIN now and the new one.'); return; }
   /* Typed twice, checked here before the server sees it — a PIN you cannot see and typed once is
      a PIN you get locked out by. */
-  if (v('pin-new') !== v('pin-again')) { if (said) said.textContent = 'The 2 new PINs do not match.'; return; }
+  if (v('pin-new') !== v('pin-again')) { if (said) tell_(said, 'info', 'The 2 new PINs do not match.'); return; }
   /* ---------- THE ONE WHERE A NAME COLLISION LOCKS SOMEBODY OUT § */
   /* `send_`, SO A SECOND TAP CANNOT POST A SECOND CHANGE. § */
   const lock = $('pin-now') && $('pin-now').closest('.pin-row');
@@ -12884,7 +12926,7 @@ on('pin-save', el => {
         try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
       }
       ['pin-now', 'pin-new', 'pin-again'].forEach(id => { const b = $(id); if (b) b.value = ''; });
-      if (said) said.textContent = 'Changed.';
+      if (said) tell_(said, 'saved', 'Changed.');
       toast('PIN changed');
       /* ASKED OF THE DOM, LIKE `me-save` AND `msg-send`. */
       if (el.closest('#sheet-body')) closeSheet();
@@ -12997,7 +13039,7 @@ on('vid-remove', el => {
   const box = el.closest('.vid-pick');
   if (!USER || !box || !sure_(el, 'Remove?')) return;
   send_({ action: 'videoPart', name: USER.name, personId: USER.personId, remove: true }, { button: el, where: box.querySelector('.vid-said'), saying: 'Removing…', lock: box })
-    .then(() => { vidTake_(box, '', 'Removed.'); toast('Video removed'); }).catch(() => { /* the line says why */ });
+    .then(() => { vidTake_(box, '', 'Removed.'); toast(text_('video-removed')); }).catch(() => { /* the line says why */ });
 });
 /* HOW LONG THE CLIP RUNS, read by the browser before sending; 0 when it cannot tell, and then only the size is asked. */
 function vidLength_(file) {
@@ -13052,7 +13094,7 @@ document.addEventListener('change', e => {
       const id = String((d && d.videoFile) || '');
       if (!id) { vidSay_(box, 'The video went but no file came back. Try again.'); return; }
       vidTake_(box, id, 'Saved. Parents can watch this on your card.');
-      toast('Video saved');
+      toast(text_('video-saved'));
     });
   }).catch(() => { /* `send_` has said why on the line */ });
 });
@@ -13114,7 +13156,7 @@ document.addEventListener('change', e => {
   const file = (inp.files || [])[0], slot = inp.closest('.ph-slot');
   inp.value = '';
   if (!file || !slot || !whose_()) return;
-  const said = slot.querySelector('.ph-said'), say = m => { if (said) said.textContent = m; };
+  const said = slot.querySelector('.ph-said'), say = m => { if (said) tell_(said, 'info', m); };
   if (!/^image\//.test(file.type || '')) { say('That is not a picture. Choose a photo from your phone.'); return; }
   say('Getting the photo ready…');
   photoShrink_(file).then(data => {
@@ -13234,7 +13276,7 @@ on('pfp-remove', el => {
   if (!USER || !box || !sure_(el, 'Remove?')) return;
   send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, remove: true },
         { button: el, where: box.querySelector('.pfp-said'), saying: 'Removing…', lock: box })
-    .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Removed. ' + pfpSaid_(got)); toast('Picture removed'); })
+    .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Removed. ' + pfpSaid_(got)); toast(text_('picture-removed')); })
     .catch(() => { const said = box.querySelector('.pfp-said'); if (said) said.textContent += ' ' + pfpKept_(); });
 });
 /* ---------- ONE OF THE ELEVEN, TAPPED § */
@@ -13245,7 +13287,7 @@ on('pfp-choose', el => {
   const choice = PFP_PREFIX + name;
   const said = box.querySelector('.pfp-said');
   const was = String((USER.profile && USER.profile.photo) || '').trim();
-  if (pfpChoice_(was) === name) { if (said) said.textContent = 'Already chosen. ' + pfpSaid_(was); return; }
+  if (pfpChoice_(was) === name) { if (said) tell_(said, 'info', 'Already chosen. ' + pfpSaid_(was)); return; }
   const face = box.querySelector('.pfp-face');
   if (face) face.innerHTML = pfpFace_(choice);
   pfpRing_(box, name);
@@ -13254,12 +13296,12 @@ on('pfp-choose', el => {
     .then(d => {
       const got = String((d && d.photo) || '');
       pfpTake_(box, got, (pfpChoice_(got) === name ? 'Saved. ' : 'The server kept something else. ') + pfpSaid_(got));
-      toast('Picture saved');
+      toast(text_('picture-saved'));
     })
     .catch(() => {
       if (face) face.innerHTML = pfpFace_(was);
       pfpRing_(box, pfpChoice_(was));
-      if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_(true);
+      if (said) tell_(said, 'info', String(said.textContent || '').trim() + ' ' + pfpKept_(true));
     });
 });
 /* `change`, NOT A `data-do` CLICK — a file input reports its choice by changing, the camera's
@@ -13273,21 +13315,21 @@ document.addEventListener('change', e => {
   if (!file || !box || !USER) return;
   const said = box.querySelector('.pfp-said');
   const btn = box.querySelector('[data-do="pfp-pick"]');
-  if (said) said.textContent = 'Getting it ready…';
+  if (said) tell_(said, 'info', 'Getting it ready…');
   pfpPrepare_(file).then(data => {
-    if (!data) { if (said) said.textContent = 'That file is not a picture this phone can read. Try another.'; return; }
+    if (!data) { if (said) tell_(said, 'info', 'That file is not a picture this phone can read. Try another.'); return; }
     /* THE PREVIEW CHANGES BEFORE THE UPLOAD, so the crop is seen while it travels; if the server refuses, the line says why and the old picture comes back. § */
     const face = box.querySelector('.pfp-face');
     if (face) face.innerHTML = cardBlock_({ type: 'media', kind: 'image', look: 'pfp-pic', src: data, title: 'Your profile picture', async: true });
     pfpRing_(box, '');
     return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
                  { button: btn, where: said, saying: 'Saving…', lock: box })
-      .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Saved. ' + pfpSaid_(got)); toast('Picture saved'); })
+      .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Saved. ' + pfpSaid_(got)); toast(text_('picture-saved')); })
       .catch(() => {
         const was = (USER.profile && USER.profile.photo) || '';
         if (face) face.innerHTML = pfpFace_(was);
         pfpRing_(box, pfpChoice_(was));
-        if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_();
+        if (said) tell_(said, 'info', String(said.textContent || '').trim() + ' ' + pfpKept_());
       });
   });
 });
@@ -13698,8 +13740,8 @@ function cardSeatShare_(f, typed, rate, was) {
 const cardSeatTop_ = f => f === 'extra_seat_cut' ? 2 : STAFF_SEAT_MAX;
 const cardSeatOff_ = (f, v) => { const x = num(v); return !isNaN(x) && (x < 0 || x > cardSeatTop_(f)); };
 const cardSeatOffSay_ = (rate, f) => f === 'extra_seat_cut'
-  ? "@family.'s part is £0 to " + perHour_(pounds2_(rate * 2)) + ' — twice the rate.'
-  : 'An extra seat adds £0 to ' + perHour_(pounds2_(rate * STAFF_SEAT_MAX)) + ' — at most what the first student pays.';
+  ? "@family.'s part is ' + fmtMoney_(0) + ' to " + fmtMoney_(pounds2_(rate * 2), 'hour') + ' — twice the rate.'
+  : 'An extra seat adds ' + fmtMoney_(0) + ' to ' + fmtMoney_(pounds2_(rate * STAFF_SEAT_MAX), 'hour') + ' — at most what the first student pays.';
 /* ---------- THREE CARDS, ONE PRICE (620): n students pay x + k·x·(n−1) + g·x·(n−1) an hour — x the rate, k the tutor's share, g @family.'s ---------- */
 /* THE PARTS AS PRICED, through `seatShare_` (the booking's own reader): a blank is the config's usual. */
 function cardSeatParts_(rate, seat, cut) {
@@ -13713,7 +13755,7 @@ function cardSeatSay_(rate, seat) {
   if (!(rate > 0)) return 'An extra seat is priced from the rate — set it first.';
   if (cardSeatOff_('extra_seat_rate', seat)) return esc(cardSeatOffSay_(rate, 'extra_seat_rate'));
   const p = cardSeatParts_(rate, seat, '');
-  return mcG_('span', 'prof-seat', { text: '+' + perHour_(p.kx) }) + ' a seat' + (p.kOwn ? '' : ', usual');
+  return mcG_('span', 'prof-seat', { text: '+' + fmtMoney_(p.kx, 'hour') }) + ' a seat' + (p.kOwn ? '' : ', usual');
 }
 /* THE @FAMILY SHARE BAR (8 Nov): first seat + the tutor's extra seat + @family's block, from `cardSeatParts_`, the formula's own numbers. */
 function cardShareBar_(rate, seat, cut) {
@@ -13722,7 +13764,7 @@ function cardShareBar_(rate, seat, cut) {
   const all = blocks.reduce((t, b) => t + b[1], 0) || 1;
   /* ITS SHARE OF THE BAR is a number, so it rides as the block's own flex-grow attribute (no class can hold every number). */
   return blocks.map(([k, v, say], i) => (i ? mcG_('span', 'shb-plus', { attrs: { 'aria-hidden': 'true' }, text: '+' }) : '')
-    + mcG_('span', 'shb-blk ' + k, { attrs: { style: 'flex-grow:' + (v / all).toFixed(4) }, text: [{ b: money_(v) }, { span: 'shb-say', text: say }] })).join('');
+    + mcG_('span', 'shb-blk ' + k, { attrs: { style: 'flex-grow:' + (v / all).toFixed(4) }, text: [{ b: fmtMoney_(v) }, { span: 'shb-say', text: say }] })).join('');
 }
 /* THE BAR'S BOX, and a line read aloud as it changes. */
 const shareBarBox_ = (cut, inner) => mcG_('div', 'share-bar', { attrs: { role: 'img', 'aria-label': 'Who gets what for a second student', 'aria-live': 'polite', 'data-cut': String(cut || '') }, inner });
@@ -13732,13 +13774,13 @@ function cardCutSay_(rate, cut) {
   if (!(rate > 0)) return "@family.'s part is priced from the rate — set it first.";
   if (cardSeatOff_('extra_seat_cut', cut)) return esc(cardSeatOffSay_(rate, 'extra_seat_cut'));
   const p = cardSeatParts_(rate, '', cut);
-  return mcG_('span', 'prof-seat', { text: '+' + perHour_(p.gx) }) + ' a seat' + (p.gOwn ? '' : ', usual');
+  return mcG_('span', 'prof-seat', { text: '+' + fmtMoney_(p.gx, 'hour') }) + ' a seat' + (p.gOwn ? '' : ', usual');
 }
 /* THE CLASS SIZE CARD'S LINE: one student and a full class, by the formula. */
 function cardSizeSay_(rate, seat, cut, lo, hi) {
   if (!(rate > 0)) return 'Set a rate and the class prices show here.';
   const top = Math.max(1, Math.round(num(hi)) || 1), bottom = Math.max(1, Math.round(num(lo)) || 1);
-  const at = n => n + ': ' + money_(cardGroupTotal_(rate, seat, cut, n));
+  const at = n => n + ': ' + fmtMoney_(cardGroupTotal_(rate, seat, cut, n));
   return esc([...new Set([bottom, top])].sort((x, y) => x - y).map(at).join(' · ') + '/h');
 }
 /* ---------- THE RATE AND THE TUTOR'S EXTRA SEAT, ONE CARD (620): the seat in pounds beside the rate, kept as the share k ---------- */
@@ -13945,7 +13987,7 @@ on('card-edit', el => {
   const col = PEOPLE_COLS_.indexOf(el.dataset.col) !== -1 ? el.dataset.col : (faceOfCol_(colOfEl_(el)) || 'tutors');
   const open = document.querySelector('.card-ed .me-form[data-dirty]');
   const openAt = open && (open.closest('.card-ed').dataset.pid + '|' + faceOfCol_(colOfEl_(open)));
-  if (openAt && openAt !== pid + '|' + col) { toast('Save or cancel the card you are editing first.'); return; }
+  if (openAt && openAt !== pid + '|' + col) { toast(text_('save-or-cancel-the-card-you')); return; }
   if (CARD_EDIT && CARD_EDIT.pid === pid && (CARD_EDIT.col || cardColOf_(CARD_EDIT)) === col) return;
   CARD_EDIT = cardEditFresh_(pid);
   CARD_EDIT.col = col;
@@ -14000,12 +14042,12 @@ function cardSave_(el, auto) {
   /* ---------- NOT WHILE A SECTION THAT SAVES ITSELF IS ON THE WIRE (the review of docs/history/339) § */
   const busy = form.querySelector('.pfp.is-sending') ? 'Your picture is still saving'
     : form.querySelector('.is-sending') || form.classList.contains('is-sending') ? 'Part of your card is still saving' : '';
-  if (busy) { if (auto) { autosaveLater_(form); return; } toast(busy + ' — Save once it has.'); if (said) said.textContent = busy + ' — Save once it has.'; return; }
-  if (qualNameless_(form)) { toast(QUAL_NAMELESS_SAY_); if (said) said.textContent = QUAL_NAMELESS_SAY_; return; }
-  if (cardQualHole_(form, base)) { toast(CARD_LEVELLESS_SAY_); if (said) said.textContent = CARD_LEVELLESS_SAY_; return; }
+  if (busy) { if (auto) { autosaveLater_(form); return; } toast(busy + ' — Save once it has.'); if (said) tell_(said, 'info', busy + ' — Save once it has.'); return; }
+  if (qualNameless_(form)) { toast(QUAL_NAMELESS_SAY_); if (said) tell_(said, 'info', QUAL_NAMELESS_SAY_); return; }
+  if (cardQualHole_(form, base)) { toast(CARD_LEVELLESS_SAY_); if (said) tell_(said, 'info', CARD_LEVELLESS_SAY_); return; }
   const fields = cardChanged_(base, cardFormVals_(form));
   const seatNo = cardSeatRefusal_(form, fields);
-  if (seatNo && !Object.keys(fields).length) { toast(seatNo + ' Nothing was saved.'); if (said) said.textContent = seatNo + ' Nothing was saved.'; return; }
+  if (seatNo && !Object.keys(fields).length) { toast(seatNo + ' Nothing was saved.'); if (said) tell_(said, 'error', seatNo + ' Nothing was saved.'); return; }
   /* NOTHING TYPED — BUT A SECTION THAT SAVES ITSELF MAY HAVE BEEN (`cardSelfSaved_`): § */
   if (!Object.keys(fields).length) { if (auto) return; toast(cardSelfSay_(e) || 'Nothing had changed'); cardClose_(e, pane, sec); return; }
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === e.pid) || {};
@@ -14044,7 +14086,7 @@ on('card-cancel', el => {
   const pane = el.closest('.pane');
   const card = el.closest('.card-ed'), sec = (card && card.dataset.sec) || '';
   if (!e || (pane && pane.classList.contains('is-sending'))) return;
-  if (pane && pane.querySelector('.card-ed .pfp.is-sending')) { toast('Your picture is still saving — Cancel once it has.'); return; }
+  if (pane && pane.querySelector('.card-ed .pfp.is-sending')) { toast(text_('your-picture-is-still-saving-cancel')); return; }
   const was = typeof e.pic0 === 'string' ? e.pic0 : null;
   const picBack = !!((!sec || sec === 'picture') && e.own && was != null && USER && cardPicNow_() !== was);
   if (!picBack) { cardClose_(e, pane, sec); return; }
@@ -14058,7 +14100,7 @@ on('card-cancel', el => {
       if (d && d.profile) USER.profile = Object.assign({}, USER.profile || {}, d.profile);
       pfpTake_(null, got);
       cardClose_(e, pane, sec);
-      toast('Put back as it was — your picture too');
+      toast(text_('put-back-as-it-was-your'));
     })
     .catch(() => {
       const why = String((said && said.textContent) || '').trim();
@@ -14239,7 +14281,7 @@ function psFind_(el) {
     .then(() => { S.busy = false; psPaint_(col); });
 }
 on('ps-add-child', el => {
-  if (!USER || !psMayChild_()) { toast('Sign in first'); return; }
+  if (!USER || !psMayChild_()) { toast(text_('sign-in-first')); return; }
   const handle = el.getAttribute('data-handle') || '';
   if (!handle) return;
   send_({ action: 'claimChild', name: USER.name, personId: USER.personId || '', handle }, { button: el })
@@ -14322,8 +14364,8 @@ on('person-save', el => {
   const val = k => ((form.querySelector('[data-pf="' + k + '"]') || {}).value || '').trim();
   const roles = [...form.querySelectorAll('[data-pf-role]')].filter(x => x.checked).map(x => x.getAttribute('data-pf-role'));
   const said = form.querySelector('.pf-said');
-  if (!val('first') || !val('last')) { if (said) said.textContent = 'A first name and a last name, please.'; return; }
-  if (!roles.length) { if (said) said.textContent = 'Tick at least one role.'; return; }
+  if (!val('first') || !val('last')) { if (said) tell_(said, 'info', 'A first name and a last name, please.'); return; }
+  if (!roles.length) { if (said) tell_(said, 'info', 'Tick at least one role.'); return; }
   const parentIds = roles.indexOf('student') === -1 ? []
     : [...form.querySelectorAll('[data-pf-parent]')].filter(x => x.checked).map(x => x.getAttribute('data-pf-parent'))
       .concat(val('parent') ? [val('parent')] : []);
@@ -14430,9 +14472,9 @@ on('pe-notify', el => {
       const on = d && typeof d.on === 'boolean' ? d.on : want;
       if (PERSON_ED_ === F && F.data.notify) F.data.notify = Object.assign({}, F.data.notify, { kinds: (F.data.notify.kinds || []).map(k => k.kind === kind ? Object.assign({}, k, { on }) : k) });
       el.checked = on;
-      if (said) said.textContent = 'Saved.';
+      if (said) tell_(said, 'saved', 'Saved.');
     })
-    .catch(e => { el.checked = !want; if (said) said.textContent = why_(e); });
+    .catch(e => { el.checked = !want; if (said) tell_(said, 'error', why_(e)); });
 });
 /* WHAT THE BOXES SAY NOW, in `updateProfile`'s names: the phone as code and number, the birthday as three boxes. */
 function peFields_(form) {
@@ -14455,7 +14497,7 @@ function peSave_(form) {
   if (key === F.sent) return;
   form.classList.add('is-sending');
   send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
-    .then(d => { F.sent = key; F.moved = true; formDraftDrop_('person-edit', { draftId: F.id }); if (said) said.textContent = '✓ ' + ((d && d.said) || 'Saved'); })
+    .then(d => { F.sent = key; F.moved = true; formDraftDrop_('person-edit', { draftId: F.id }); if (said) tell_(said, 'saved', '✓ ' + ((d && d.said) || 'Saved')); })
     .catch(() => {})
     .then(() => form.classList.remove('is-sending'));
 }
@@ -14509,8 +14551,8 @@ document.addEventListener('input', e => {
   const out = box.closest('.fam-pick') && box.closest('.fam-pick').querySelector('.fam-hits');
   if (!out) return;
   const at = FAM_ACT_[scope] || FAM_ACT_.pe;
-  out.innerHTML = famHits_(box.value, want, at.skip()).map(p => tile_({ form: true, kind: 'quiet', label: displayName_(p) + (p.handle ? ' @' + p.handle : ''),
-    act: at.act, data: { id: p.personId, name: displayName_(p), want } })).join('');
+  out.innerHTML = famHits_(box.value, want, at.skip()).map(p => tile_({ form: true, kind: 'quiet', label: fmtName_(p) + (p.handle ? ' @' + p.handle : ''),
+    act: at.act, data: { id: p.personId, name: fmtName_(p), want } })).join('');
 });
 
 /* ---------- ADD A PERSON, A CARD IN FIND › PROFILES (add-person): the server's `personSave`, then `linkChild` for a parent's child ---------- */
@@ -14567,8 +14609,8 @@ on('pa-save', el => {
   if (!card || !personAddMay_()) return;
   /* WHAT WAS TYPED, or a draft a reload drew back into its box (forms.json's `person-add` keeps each as a draft until Added). */
   const val = k => String(F.v[k] || (card.querySelector('[data-pa="' + k + '"]') || {}).value || '').trim(), said = card.querySelector('.pa-said');
-  if (!val('first') || !val('last')) { if (said) said.textContent = 'A first name and a last name, please.'; return; }
-  if (F.role !== 'student' && !val('email')) { if (said) said.textContent = 'An email, please — the PIN goes there.'; return; }
+  if (!val('first') || !val('last')) { if (said) tell_(said, 'info', 'A first name and a last name, please.'); return; }
+  if (F.role !== 'student' && !val('email')) { if (said) tell_(said, 'info', 'An email, please — the PIN goes there.'); return; }
   const ids = F.picked.map(x => x.id);
   send_({ action: 'saveItem', item: 'person', personId: USER.personId || '', targetId: '', firstName: val('first'), lastName: val('last'),
           roles: [F.role], email: val('email'), dob: val('dob'), parentIds: F.role === 'student' ? ids : [], invite: false },
@@ -14599,7 +14641,7 @@ function peFamHtml_(F) {
   const side = (say, key, want, mine, add) => {
     const ids = (q[key] || []).filter(Boolean);
     if (!ids.length && roles.indexOf(mine) === -1) return '';
-    return pplP_('note pe-fam', say) + ids.map(id => pplG_('tile-row', [cardBlock_({ type: 'group', tag: 'span', look: 'note', text: displayName_(peNameOf_(id, F.data)) }),
+    return pplP_('note pe-fam', say) + ids.map(id => pplG_('tile-row', [cardBlock_({ type: 'group', tag: 'span', look: 'note', text: fmtName_(peNameOf_(id, F.data)) }),
       tile_({ form: true, kind: 'quiet', label: 'Remove', act: 'pe-unlink', data: { id, side: key } })])).join('') + famPick_('pe', want, add);
   };
   return pplG_('pe-fambox', [side('Linked parents', 'parentIds', 'client', 'student', 'Add a parent'), side('Linked children', 'childIds', 'student', 'client', 'Add a child')]);
@@ -14612,7 +14654,7 @@ function peFamSend_(el, action, side, after) {
   if (!F || !F.data || !other || !form || !personEdMay_()) return;
   const said = form.querySelector('.pe-said');
   send_(Object.assign({ action, personId: USER.personId || '' }, peWho_(F, other, side)), { button: el, where: said })
-    .then(() => { const p = F.data.person; p[side] = after(p[side] || [], other); F.moved = true; if (said) said.textContent = '✓ Saved'; peFamPaint_(form); })
+    .then(() => { const p = F.data.person; p[side] = after(p[side] || [], other); F.moved = true; if (said) tell_(said, 'info', '✓ Saved'); peFamPaint_(form); })
     .catch(() => {});
 }
 on('pe-link', el => peFamSend_(el, 'linkChild', el.getAttribute('data-want') === 'client' ? 'parentIds' : 'childIds', (l, id) => l.concat([id])));
@@ -14755,8 +14797,8 @@ function dmPages_() {
   /* ---------- AND EACH ONE CAN BE ANSWERED WHERE IT IS READ § */
   /* THE NAME IS THE PERSON, and the unread count rides on it — so the header says who you are reading rather than "3 of 7", which is the same judgement § */
   return daivePages_().concat(threads.map(t => ({
-    name: displayName_(t.name) + (t.unread ? ' (' + t.unread + ')' : ''),
-    html: renderCard({ kind: 'msg', look: 'dm-page' + (t.unread ? ' unread' : ''), name: displayName_(t.name),
+    name: fmtName_(t.name) + (t.unread ? ' (' + t.unread + ')' : ''),
+    html: renderCard({ kind: 'msg', look: 'dm-page' + (t.unread ? ' unread' : ''), name: fmtName_(t.name),
       body: [{ type: 'embed', tool: 'dm-thread', args: { t } }] }),
   })));
 }
@@ -14808,7 +14850,7 @@ function asstMsgs_(s) {
 }
 /* A CONVERSATION'S INSIDES (head, bubbles, composer) are the card's one embed: the send path stays msgForm_'s own. */
 CARD_EMBEDS['dm-thread'] = ({ t }) => cardBlocks_([
-  { type: 'group', look: 'dm-head', inner: dmFace_(t) + cardBlock_({ type: 'msgHead', text: [displayName_(t.name)].concat(t.unread ? [' ', { span: 'dm-new', text: t.unread + ' new' }] : []) }) },
+  { type: 'group', look: 'dm-head', inner: dmFace_(t) + cardBlock_({ type: 'msgHead', text: [fmtName_(t.name)].concat(t.unread ? [' ', { span: 'dm-new', text: t.unread + ' new' }] : []) }) },
   { type: 'group', look: 'msg-body', inner: messagesHtml_(t.msgs) }]) + msgForm_(t.name, t.id);
 CARD_EMBEDS['daive'] = () => {
   const s = asstGet_(), cap = asstCap_(), out = s.left <= 0, shut = out || ASST_BUSY;
@@ -14971,7 +15013,7 @@ on('tutor-share', el => {
     || (USER && USER.handle === handle ? tutorPngMe_() : { handle, title: '@' + handle });
   const url = tutorLink_({ handle });
   TUTOR_PNG_BUSY = true;
-  toast('Making a picture of this profile…');
+  toast(text_('making-a-picture-of-this-profile'));
   tutorPng_(t)
     .then(blob => tutorPngHand_(blob, handle + '-profile.png', url, t.title || '@' + handle))
     /* NO CANVAS (an old browser, a test page): the link alone, as before 412. */
@@ -14988,7 +15030,7 @@ function tutorPngMe_() {
 
 function tutorLinkOnly_(title, url) {
   if (navigator.share) return navigator.share({ title, text: title + ' on ' + brand('name', '@family.'), url }).catch(() => {});
-  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(url).then(() => toast('Link copied')).catch(() => toast(url));
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(url).then(() => toast(text_('link-copied'))).catch(() => toast(url));
   toast(url);
 }
 
@@ -15004,7 +15046,7 @@ function tutorPngHand_(blob, name, url, title) {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(href), 60000);   // not at once: a download can start after the click returns
     const copy = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(url) : Promise.reject();
-    return copy.then(() => toast('Image saved · link copied'), () => toast('Image saved · ' + url));
+    return copy.then(() => toast(text_('image-saved-link-copied')), () => toast('Image saved · ' + url));
   };
   if (!can) return save();
   return navigator.share({ files: [file], title, text: url }).catch(e => { if (!e || e.name !== 'AbortError') return save(); });
@@ -15362,13 +15404,13 @@ function cartUnits_() {
 /* A KIND THAT GOES IN THE BASKET ITS OWN WAY: a bundle is papers, so it goes in as papers. */
 const CART_ADD_OWN = { bundle: el => cartAddBundle_(el) };
 on('cart-add', el => {
-  if (!USER) { toast('Sign in first'); go('account'); return; }
+  if (!USER) { toast(text_('sign-in-first')); go('account'); return; }
   /* A BUNDLE IS PAPERS, SO IT GOES IN AS PAPERS — see `cartAddBundle_` below. */
   if (Object.prototype.hasOwnProperty.call(CART_ADD_OWN, el.dataset.kind)) { CART_ADD_OWN[el.dataset.kind](el); return; }
   const key = el.dataset.key;
   const kind = ['topic', 'print', 'shop'].includes(el.dataset.kind) ? el.dataset.kind : 'shop';
   /* Keyed on BOTH, because a printed copy and a shop item can share a name and they are not the same line. § */
-  if (CART.some(c => c.key === key && c.kind === kind)) { toast('Already in your basket'); return; }
+  if (CART.some(c => c.key === key && c.kind === kind)) { toast(text_('already-in-your-basket')); return; }
 
   /* ---------- `print` AND `topic` WERE TWO OF THE THREE KINDS, AND BOTH LOOKED A DOCUMENT UP § */
   {
@@ -15404,7 +15446,7 @@ function cartAddBundle_(el) {
                 pages: Number(doc.pages) || 0, cost: 0, from: from });
     added++;
   });
-  if (!added && !had) { toast('Nothing in that bundle can be printed'); return; }
+  if (!added && !had) { toast(text_('nothing-in-that-bundle-can-be')); return; }
   cartSave();
   if (typeof cartPaint_ === 'function') cartPaint_();
   tileSet_(el, { label: 'In your basket', note: '', on: true, off: true });
@@ -15461,16 +15503,16 @@ function orderLine_(c, i, full, under) {
     if (full) {
       const p = cartPrint_(c);
       bits.push(c.pages ? c.pages + ' page' + (c.pages === 1 ? '' : 's') : 'pages not counted yet');
-      bits.push(p === null ? 'priced when sent' : money_(p));
+      bits.push(p === null ? 'priced when sent' : fmtMoney_(p));
     }
     if (c.laminate) {
       const lam = laminatePrice(c.pages);
-      bits.push('laminated' + (full && lam !== null ? ' (+' + money_(lam) + ')' : ''));
+      bits.push('laminated' + (full && lam !== null ? ' (+' + fmtMoney_(lam) + ')' : ''));
     }
   } else if (c.cost) {
     bits.push(c.cost + ' credit' + (c.cost === 1 ? '' : 's'));
   } else if (full && Number(c.money) > 0) {
-    bits.push(money_(Number(c.money)));
+    bits.push(fmtMoney_(Number(c.money)));
   }
   const name = under && c.short ? c.short : (c.name || c.key);
   /* ---------- A CHEAT SHEET CARRIES ITS PIECES, AND THE MESSAGE LISTS THEM § */
@@ -15498,7 +15540,7 @@ function orderText_(cart) {
   const head = 'An order from my basket, sent from the app — please print and send:';
   const foot = [];
   if (cash || tbc) {
-    foot.push('Printing: ' + (cash ? money_(cash) : 'nothing priced yet')
+    foot.push('Printing: ' + (cash ? fmtMoney_(cash) : 'nothing priced yet')
       + (tbc ? ' — ' + tbc + ' still to price when sent' : ''));
   }
   if (credits) foot.push('Credits: ' + credits);
@@ -15523,16 +15565,16 @@ function orderText_(cart) {
 }
 
 on('cart-send', el => {
-  if (!USER) { toast('Sign in first'); go('account'); return; }
+  if (!USER) { toast(text_('sign-in-first')); go('account'); return; }
   if (!CART.length) return;
   const to = orderTo_();
   if (!to) {
-    toast('There is nobody on the site to send this to yet — message @family. directly');
+    toast(text_('there-is-nobody-on-the-site'));
     return;
   }
   const text = orderText_();
   if (!text) {
-    toast('That is too much for one message — send some of it now and the rest after');
+    toast(text_('that-is-too-much-for-one'));
     return;
   }
   send_({ action: 'sendMessage', name: USER.name, personId: USER.personId,
@@ -16185,7 +16227,7 @@ function progressCountdownRows_() {
 let CD_DATES = false;
 function paintCountdowns_() {
   const rows = progressCountdownRows_();
-  const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return day_(d) + ' ' + date_(d); };
+  const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return fmtDate_(d, 'day') + ' ' + fmtDate_(d); };
   const blocks = rows.length ? rows.map(([k, n]) => progRow_(k, CD_DATES ? when(n) : progressDaysSaid_(n))).concat({ type: 'tiles',
     tiles: [{ icon: CD_DATES ? 'speed' : 'table', label: CD_DATES ? 'Days' : 'Dates', note: CD_DATES ? 'how many to go' : 'the day itself', act: 'cd-dates', pressed: CD_DATES }] })
     : [{ type: 'group', tag: 'p', look: 'note', text: 'Nothing to count down to yet.' }];
@@ -16250,7 +16292,7 @@ function termDatesRows_(today) {
   const i = all.findIndex(x => x.from <= t && t <= x.to);
   return all.slice(Math.max(0, i), Math.max(0, i) + (TD_MORE ? 10 : 4)).map((x, k) => Object.assign(x, { now: k === 0 && i >= 0 }));
 }
-const tdDay_ = d => day_(d) + ' ' + date_(d);
+const tdDay_ = d => fmtDate_(d, 'day') + ' ' + fmtDate_(d);
 /* A TERM SAYS ITS FIRST AND LAST DAY OF TERM; A BREAK SAYS WHEN IT STARTS AND THE FIRST DAY BACK — never "ends" on a Sunday. */
 function tdLine_(x) {
   const back = new Date(x.to.getFullYear(), x.to.getMonth(), x.to.getDate() + 1);
@@ -16527,7 +16569,7 @@ function progressSessions_() {
 }
 function progressSessionsCard_(ss) {
   if (!ss.ahead.length && !ss.past.length) return emptyCard_('Sessions');
-  const when = s => day_(s.d) + ' ' + date_(s.d) + (s.j.time ? ' · ' + time_(s.j.time) : '');
+  const when = s => fmtDate_(s.d, 'day') + ' ' + fmtDate_(s.d) + (s.j.time ? ' · ' + fmtDate_(s.j.time, 'time') : '');
   const row = s => progRow_(when(s), s.j.title || s.j.subject || 'Session');
   return progressCard_('prog-sessions', 'Sessions', ss.ahead.map(row).concat(ss.past.map(row)),
     { tiles: [{ icon: 'book', label: 'Sessions', note: 'on Book', act: 'prog-sessions' }] });
@@ -17620,9 +17662,9 @@ if (typeof document !== 'undefined' && document.addEventListener) {
 
 /* ONE EMPTY STATE (owner, 8 Nov): a short, specific sentence in ordinary text ("No bookings yet."), the same everywhere. */
 /* "NOTHING HERE" HAS ONE WORDING, and empty_() with no words says it (check-loading). */
-const NOTHING_YET = 'Nothing here yet.';
+const NOTHING_YET = text_('nothing-here-yet');
 /* AND "NOBODY TEACHES THIS" HAS ONE: a level, a subject or the business with no tutor. */
-const NO_TUTOR = 'No tutor yet';
+const NO_TUTOR = text_('no-tutor-yet');
 function empty_(text) {
   return CARD_BLOCKS.text({ text: String(text || NOTHING_YET), look: 'empty' });
 }
@@ -17686,7 +17728,7 @@ function favOpts_(x) {
 /* ---------- A SHOP THING § */
 function shopOpts_(x) {
   const inCart = CART.some(c => c.key === x.key && isShop_(c));
-  return { icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket', tone: 'buy', on: inCart,
+  return { icon: 'cart', label: inCart ? text_('in-your-basket') : text_('add-to-basket'), tone: 'buy', on: inCart,
     note: inCart ? '' : (x.cost ? x.cost + ' credits' : 'free'), act: 'cart-add', off: !USER || inCart, data: { key: x.key, kind: 'shop' } };
 }
 
@@ -17712,13 +17754,13 @@ function tutorOpts_(x) {
   const t = x.row || {};
   return [/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered. */ bookOpts_(x),
     /* THEIR INTRO VIDEO: the uploaded one plays on the card (`intro-play`); an older row's link still goes out. */
-    String(t.videoFile || '').trim() ? { icon: 'play', label: 'Watch intro', act: 'intro-play', data: { file: t.videoFile } }
-      : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? { icon: 'play', label: 'Watch intro', href: t.mediaUrl } : null,
+    String(t.videoFile || '').trim() ? { icon: 'play', label: text_('watch-intro'), act: 'intro-play', data: { file: t.videoFile } }
+      : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? { icon: 'play', label: text_('watch-intro'), href: t.mediaUrl } : null,
     /* NOT FOR A CHILD, unless they are the business (405): `MESSAGING` lets a student write to an admin only — no tile the server refuses. */
     USER && !isMe_(x) && (!!may_('prices') || /admin/i.test(String(t.role || ''))) ? { icon: 'chat', label: 'Message',
       note: 'a note to them', act: 'msg-open', data: { to: x.name, id: (x.row && x.row.personId) || '' } } : null,
     typeof cardEditOpts_ === 'function' ? cardEditOpts_(x) : null,
-    x.key ? { icon: t.listed === false ? 'hide' : 'show', label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
+    x.key ? { icon: t.listed === false ? 'hide' : 'show', label: t.listed === false ? text_('not-listed') : 'Listed', tone: 'admin',
       on: t.listed !== false, act: 'set-listed', note: t.listed === false ? 'clients cannot see them' : 'clients can see them',
       /* THE ID AS WELL AS THE NAME: `x.key` is a display name, which `findPerson` only falls back to. */
       data: { who: x.key, pid: (x.row && x.row.personId) || '' } } : null];
@@ -17730,14 +17772,14 @@ function tutorOpts_(x) {
 
 /* ---------- A SUBJECT § */
 function subjectOpts_(x) {
-  return { icon: 'book', label: 'Book this', act: 'book-with', data: { name: '', subject: x.name || '' } };
+  return { icon: 'book', label: text_('book-this'), act: 'book-with', data: { name: '', subject: x.name || '' } };
 }
 
 
 /* ---------- A LEVEL § */
 function levelOpts_(x) {
   const t = x.row || {};
-  return { icon: 'book', label: t.listed === false ? 'Not on the booking form' : 'Book this',
+  return { icon: 'book', label: t.listed === false ? text_('not-on-the-booking-form') : text_('book-this'),
               note: t.listed === false ? 'add it to the options tab' : '',
               off: t.listed === false,
               act: 'book-with', data: { name: '', level: x.name || '' } };
@@ -17748,7 +17790,7 @@ function levelOpts_(x) {
 const MSG_MAY_ = { admin: ['admin', 'staff', 'client', 'student'], staff: ['admin', 'staff', 'client'], client: ['admin', 'staff'], student: ['admin'] };
 const msgRankOf_ = role => /admin/i.test(role) ? 'admin' : /tutor|teacher|staff/i.test(role) ? 'staff' : /student|child|kid/i.test(role) ? 'student' : 'client';
 const msgMay_ = role => !!USER && (MSG_MAY_[rank_()] || []).indexOf(msgRankOf_(String(role || ''))) !== -1;
-const msgTile_ = (name, id) => tile_({ icon: 'chat', label: 'Message ' + String(name).split(' ')[0], note: 'a note to them', act: 'msg-open', data: { to: name, id: id || '' } });
+const msgTile_ = (name, id) => tile_({ icon: 'chat', label: 'Message ' + fmtName_(name, 'first'), note: 'a note to them', act: 'msg-open', data: { to: name, id: id || '' } });
 /* THE PEOPLE ON A SESSION BESIDES YOU: its families and its tutor, each with the role the server judges by (1040 friction). */
 function jobPeople_(j) {
   if (!j || !USER) return [];
@@ -17902,8 +17944,8 @@ function jobOpts_(x) {
   /* THE ASKED TUTOR, OR AN ADMIN, ANSWERS IN PLACE (488) — Accept, or Decline with an optional line why. */
   const asked = requestAsked_(j);
   const answer = asked && (norm(asked) === norm(USER.name) || (typeof may_ === 'function' && may_('admin')))
-    ? [{ icon: 'tick', label: 'Accept request', tone: 'buy', note: 'it becomes a booking', act: 'job-request-answer', data: { id: id, yes: '1' } },
-      { icon: 'close', label: 'Decline request', note: 'a line why, if you like', act: 'job-request-answer', data: { id: id, yes: '' } }]
+    ? [{ icon: 'tick', label: text_('accept-request'), tone: 'buy', note: 'it becomes a booking', act: 'job-request-answer', data: { id: id, yes: '1' } },
+      { icon: 'close', label: text_('decline-request'), note: 'a line why, if you like', act: 'job-request-answer', data: { id: id, yes: '' } }]
     : null;
   /* A CHILD JOINS AND PAYS THROUGH A PARENT (398) — no join tile, no Pay tile, no figure. */
   if (!mine) return [answer, jobApplyOpts_(j, id), answer || !may_('prices') ? null : joinOpts_(j, id)];
@@ -17911,9 +17953,9 @@ function jobOpts_(x) {
     norm(sl.client) === norm(USER.name) && /^(paying|booked)$/i.test(String(sl.status || '')));
   const owed = typeof jobAccepted_ === 'function' && jobAccepted_(j) && !paid;
   return [jobChooseOpts_(j, id),
-    owed && !!may_('prices') ? { icon: 'pound', label: 'Pay and confirm', tone: 'buy',
-      note: typeof money_ === 'function' ? money_(j.price || 0) : '', act: 'job-pay', data: { id: id } } : null,
-    { icon: 'undo', label: 'Withdraw from this', act: 'job-leave', data: { id: id, paid: paid ? '1' : '' } }];
+    owed && !!may_('prices') ? { icon: 'pound', label: text_('pay-and-confirm'), tone: 'buy',
+      note: typeof fmtMoney_ === 'function' ? fmtMoney_(j.price || 0) : '', act: 'job-pay', data: { id: id } } : null,
+    { icon: 'undo', label: text_('withdraw-from-this'), act: 'job-leave', data: { id: id, paid: paid ? '1' : '' } }];
 }
 
 /* NO PREFERENCE (decision): tutors apply, the client picks. Apply is for an approved tutor not yet on it, while nobody is confirmed. */
@@ -17921,13 +17963,13 @@ const jobOpenToTutors_ = j => !!(j && j.stealable) && !(j.tutorSlots || []).some
 function jobApplyOpts_(j, id) {
   if (!USER || !jobOpenToTutors_(j) || !(typeof may_ === 'function' && may_('staff'))) return null;
   if ((j.tutorSlots || []).some(sl => norm(sl.name) === norm(USER.name))) return null;
-  return ({ icon: 'join', label: 'Apply to teach', tone: 'buy', note: 'the family picks', act: 'job-apply', data: { id: id } });
+  return ({ icon: 'join', label: text_('apply-to-teach'), tone: 'buy', note: 'the family picks', act: 'job-apply', data: { id: id } });
 }
 /* THE CLIENT'S PICK: one tile per tutor who applied. */
 function jobChooseOpts_(j, id) {
   if (!jobOpenToTutors_(j) || !may_('prices')) return null;
   return (j.tutorSlots || []).filter(sl => sl && sl.name && /^applied$/i.test(String(sl.status || '')))
-    .map(sl => ({ icon: 'tick', label: 'Choose ' + displayName_(sl.name), tone: 'buy', note: 'they teach it',
+    .map(sl => ({ icon: 'tick', label: 'Choose ' + fmtName_(sl.name), tone: 'buy', note: 'they teach it',
                        act: 'job-choose', data: { id: id, tutor: String(sl.name) } }));
 }
 
@@ -17942,15 +17984,15 @@ function requestAsked_(j) {
 function requestSaid_(j) {
   if (!j) return '';
   const asked = requestAsked_(j);
-  if (asked) return 'Waiting for ' + asked + ' to accept or decline.';
+  if (asked) return text_('waiting-for') + asked + ' to accept or decline.';
   const evs = j.events || [];
   const last = evs.filter(e => e.role === 'tutor' && (e.action === 'Decline' || e.action === 'Accept')).pop();
   if (!last) return '';
   if (last.action === 'Decline' && norm(last.target) === norm(last.actor) && !(j.tutorSlots || []).length) {
-    return 'Declined by ' + last.actor + (last.message && last.message !== 'declined the request' ? ': \u201c' + last.message + '\u201d' : '.');
+    return text_('declined-by') + last.actor + (last.message && last.message !== 'declined the request' ? ': \u201c' + last.message + '\u201d' : '.');
   }
   if (last.action === 'Accept' && /^accepted the request/.test(String(last.message || ''))) {
-    return 'Accepted by ' + last.actor + '.';
+    return text_('accepted-by') + last.actor + '.';
   }
   return '';
 }
@@ -17959,9 +18001,9 @@ function requestSaid_(j) {
 function joinOpts_(j, id) {
   if (!j || !j.canAsk || !id) return null;
   return norm(j.kind) === 'waitlist'
-    ? { icon: 'join', label: 'Take a seat', tone: 'buy', note: 'charged once it fills',
+    ? { icon: 'join', label: text_('take-a-seat'), tone: 'buy', note: 'charged once it fills',
               act: 'job-take-seat', data: { id: id } }
-    : ({ icon: 'join', label: 'Ask to join', tone: 'buy', note: 'the family say yes first',
+    : ({ icon: 'join', label: text_('ask-to-join'), tone: 'buy', note: 'the family say yes first',
               act: 'job-join', data: { id: id } });
 }
 
@@ -17989,7 +18031,7 @@ function postOpts_(p) {
     p.waiting && admin ? { icon: 'close', label: 'Decline', note: 'stays hidden', act: 'post-approve', data: { id: id, on: '' } } : null,
     p.waiting && p.mine && !admin ? { icon: 'edit', label: 'Edit', note: 'until it is approved', act: 'post-edit', data: { id: id } } : null,
     /* UP IS FINAL (413): nobody changes the words; an admin still pins it or fixes its date. */
-    admin && !p.waiting && !p.refused ? { icon: 'edit', label: 'Pin or date', act: 'post-edit', data: { id: id } } : null];
+    admin && !p.waiting && !p.refused ? { icon: 'edit', label: text_('pin-or-date'), act: 'post-edit', data: { id: id } } : null];
 }
 /* THE POST'S ROW: its options, the one Suggest tile (your own too, 720), then Delete for an admin or its author. */
 function postRow_(p) {

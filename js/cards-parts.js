@@ -217,16 +217,16 @@ function kcPicOr_(x, html) {
 /* A REAL PICTURE: a photo, a clip, or a drawing of this very thing (a manuscript, a car part, a timeline stop); a kind sign or icon is not one. */
 const kcRealPic_ = h => /<(img|video|picture)\b|mfrclip-|class="(mech|tl)-pic"/.test(String(h || ''));
 /* ---------- THE BOOKING KINDS (subject, level, venue) ARE ITEM MAPS (slice 3): their lines read the fields the payload computed live (`live`). ---------- */
-const kcSurcharge_ = (t, kind) => { if (kind === 'level' && !t.priced) return { label: 'Surcharge', value: 'Not priced yet', tone: 'bad' };
-  return kcPct_(t.mult) || t.mult === 1 ? { label: t.mult === 1 ? 'No surcharge' : 'Surcharge', value: kcPct_(t.mult) } : null; };
+const kcSurcharge_ = (t, kind) => { if (kind === 'level' && !t.priced) return { label: 'Surcharge', value: text_('not-priced-yet'), tone: 'bad' };
+  return kcPct_(t.mult) || t.mult === 1 ? { label: t.mult === 1 ? text_('no-surcharge') : 'Surcharge', value: kcPct_(t.mult) } : null; };
 const kcSubjectBody_ = (t, L) => [{ type: 'list', items: [kcSurcharge_(t, 'subject'), L.levels.length ? { label: 'Levels', value: L.levels.join(', ') } : null,
-  L.tutors.length ? null : { label: 'Tutors', value: 'None yet', tone: 'bad' }].filter(Boolean) }];
+  L.tutors.length ? null : { label: 'Tutors', value: text_('none-yet'), tone: 'bad' }].filter(Boolean) }];
 const kcLevelBody_ = (t, L) => { const s = L.subjects, n = L.tutors.length;
-  return [{ type: 'list', items: [kcSurcharge_(t, 'level'), s.length ? { label: 'Subjects', value: s.map((v, i) => [i ? ', ' : '', { word: 'subject', text: v }]) } : { label: 'Subjects', value: 'None yet', tone: 'bad' },
-    { label: 'Tutors', value: n ? String(n) : (typeof NO_TUTOR === 'string' ? NO_TUTOR : 'None yet'), tone: n ? '' : 'bad' },
-    t.listed ? null : { label: 'Booking form', value: 'Not offered', tone: 'bad' }].filter(Boolean) }]; };
+  return [{ type: 'list', items: [kcSurcharge_(t, 'level'), s.length ? { label: 'Subjects', value: s.map((v, i) => [i ? ', ' : '', { word: 'subject', text: v }]) } : { label: 'Subjects', value: text_('none-yet'), tone: 'bad' },
+    { label: 'Tutors', value: n ? String(n) : (typeof NO_TUTOR === 'string' ? NO_TUTOR : text_('none-yet')), tone: n ? '' : 'bad' },
+    t.listed ? null : { label: text_('booking-form'), value: text_('not-offered'), tone: 'bad' }].filter(Boolean) }]; };
 /* A VENUE'S ROOMS AS FACTS: seats, and the price unless the map's `childHides` took it (a child is told the seats and not the price, 398). */
-const kcVenueBody_ = (t, L) => [{ type: 'list', items: L.rooms.map(o => { const say = [o.seats ? 'up to ' + o.seats : '', 'price' in o ? (o.price ? perHour_(o.price) : 'free') : ''].filter(Boolean).join(' · ');
+const kcVenueBody_ = (t, L) => [{ type: 'list', items: L.rooms.map(o => { const say = [o.seats ? 'up to ' + o.seats : '', 'price' in o ? (o.price ? fmtMoney_(o.price, 'hour') : 'free') : ''].filter(Boolean).join(' · ');
   return say ? { label: o.label, value: say } : null; }).filter(Boolean) }];
 const kcTutorNames_ = t => (Array.isArray(t.tutors) ? t.tutors : []).map(y => y && y.title).filter(Boolean);
 const kcListOf_ = v => (Array.isArray(v) ? v : []).filter(Boolean);
@@ -261,7 +261,7 @@ const ITEM_MAPS = {
     live: { subjects: r => (Array.isArray(r.subjects) ? r.subjects : []), tutors: r => (Array.isArray(r.tutors) ? r.tutors : []).map(y => y.title) } },
   venue: { look: 'venue-door', tags: ['focus', 'borough', 'city', 'tags'], lines: true, body: kcVenueBody_, childHides: ['price'],
     live: { rooms: r => (Array.isArray(r.rooms) && r.rooms.length ? r.rooms.slice(0, 4).map(o => ({ label: o.name || 'Room', seats: o.max, price: o.rate }))
-      : [{ label: 'The room', seats: r.maxCapacity, price: r.bestRate }]) },
+      : [{ label: text_('the-room'), seats: r.maxCapacity, price: r.bestRate }]) },
     /* ITS 8-BIT BUILDING (find-doors.js), picked off its name. */
     picture: (it, x) => { const pix = typeof VENUE_PIX === 'object' && typeof venueShape_ === 'function' ? VENUE_PIX[venueShape_(it.raw)] : null; return pix ? { pix, alt: x.name } : null; } },
   /* A QUESTION PART (slice 4): named "Q5b", its tags its facets alone; its picture the stems' figure, its body the sheet (words, answer box, */
@@ -283,7 +283,7 @@ const ITEM_MAPS = {
     pills: (it, x) => (typeof profPills_ === 'function' ? profPills_(it, kcRow_(x)) : []), tagRows: it => (typeof profTagRows_ === 'function' ? profTagRows_(it.raw) : []) },
   /* A PERSON'S DOOR (find-doors.js): face, name and facets, the handle (and the Edit form while an admin has it open); its tiles are */
   /* `peopleOpts_`, whose every button the permissions table already gates. */
-  person: { look: 'is-prof prof-door kc-facts', id: ['personId', 'id'], name: r => (typeof displayName_ === 'function' && displayName_(r)) || r.handle,
+  person: { look: 'is-prof prof-door kc-facts', id: ['personId', 'id'], name: r => (typeof fmtName_ === 'function' && fmtName_(r)) || r.handle,
     tags: ['role', 'handle'], lines: true, body: r => (typeof personDoorBody_ === 'function' ? personDoorBody_(r) : []),
     picture: (it, x) => (typeof profFace_ === 'function' ? profFace_(x, 160) : null), tiles: it => (typeof peopleOpts_ === 'function' ? peopleOpts_(it.raw) : []) },
   /* A POST: its words its name, and nothing else on the tag line (`facets: false`); its Like tile is its kind's. */
@@ -300,11 +300,11 @@ const ITEM_MAPS = {
   booking: { card: 'receipt', id: ['id', 'jobId', 'job_id'], name: r => [r.subject || 'Session', r.level].filter(Boolean).join(' · '), facts: true,
     tags: ['subject', 'level', 'tutor', 'venue'], childHides: ['rate', 'total'],
     live: { money: r => { const rate = Number(r.rate) || (/hour/i.test(String(r.unit || '')) ? Number(r.price) : 0) || 0;
-      return { rate: rate > 0 ? perHour_(rate) : '', total: r.price !== '' && r.price != null && isFinite(Number(r.price)) ? money_(Number(r.price)) + ' in all' : '' }; } },
+      return { rate: rate > 0 ? fmtMoney_(rate, 'hour') : '', total: r.price !== '' && r.price != null && isFinite(Number(r.price)) ? fmtMoney_(Number(r.price)) + ' in all' : '' }; } },
     pills: it => { const j = it.raw, m = it.live.money || {}, paid = typeof rcpPaid_ === 'function' ? rcpPaid_(j) : '';
-      return ['Booking', j.subject, j.tutor ? displayName_(j.tutor) : '', typeof rcpWhen_ === 'function' ? rcpWhen_(j) : '', m.rate]
+      return ['Booking', j.subject, j.tutor ? fmtName_(j.tutor) : '', typeof rcpWhen_ === 'function' ? rcpWhen_(j) : '', m.rate]
         .map(t => ({ text: t, colour: false })).concat([{ text: paid, colour: false, look: paid === 'Unpaid' ? 'is-new' : '' }]).filter(t => t.text); },
-    body: (r, L) => { const who = (r.slots || []).map(sl => sl && sl.client).filter(Boolean).map(n => displayName_(n)).join(', ') || (r.client ? displayName_(r.client) : '');
+    body: (r, L) => { const who = (r.slots || []).map(sl => sl && sl.client).filter(Boolean).map(n => fmtName_(n)).join(', ') || (r.client ? fmtName_(r.client) : '');
       const weeks = Number(r.weeks || (typeof jobDates_ === 'function' ? jobDates_(r).length : 0)) || 0;
       const said = [who, weeks ? weeks + (weeks === 1 ? ' week' : ' weeks') : '', (L.money || {}).total].filter(Boolean).join(' · ');
       return said ? [{ type: 'group', tag: 'p', look: 'rc-sum', text: said }] : []; },
@@ -314,7 +314,7 @@ const ITEM_MAPS = {
 const shopPriceTag_ = x => { const myLevel = Math.floor((Number(typeof USER !== 'undefined' && USER && USER.xp) || 0) / 10), free = x.cost === 0;
   const credits = typeof collCredits_ === 'function' ? collCredits_() : 0, afford = !free && !x.pence && credits >= x.cost;
   if (x.level > 0) return { text: myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level, look: 'price ' + (myLevel >= x.level ? 'can' : ''), colour: false };
-  return x.cost === undefined ? null : { text: free ? 'free' : x.pence ? money_(x.cost / 100) : x.cost + ' credits', look: 'price ' + (free ? 'free' : afford ? 'can' : ''), colour: false }; };
+  return x.cost === undefined ? null : { text: free ? 'free' : x.pence ? fmtMoney_(x.cost / 100) : x.cost + ' credits', look: 'price ' + (free ? 'free' : afford ? 'can' : ''), colour: false }; };
 /* THE SAME OPTIONS FOR EVERY KIND (slice 2): `id` its id columns; `name` (row → name); `from` the Find entry's field holding its row (else `row`); */
 /* `card` the card kind drawing it (else its own) and `when` (entry → true) which map that card picks; `body` (row → blocks) and `lines: true` */
 /* to draw them; `nameTag: false` for a card whose tags are its facets alone; `entryTags` { entry field: colour } after the facets; `off` (row → true) greys it. */

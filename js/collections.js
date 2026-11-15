@@ -130,7 +130,7 @@ function lamControl_(c) {
   if (!c || c.kind !== 'print') return '';
   if (typeof laminateOffered_ === 'function' && !laminateOffered_()) return '';
   const p = typeof laminatePrice === 'function' ? laminatePrice(c.pages) : null;
-  const cost = p === null ? '' : ' ' + money_(p);
+  const cost = p === null ? '' : ' ' + fmtMoney_(p);
   /* ---------- ✓ LAMINATED, NOT "laminated · plain" § */
   /* A FORM'S STEP (rule 8): the form maker's one button, a word, never a raw <button>. */
   return ' ' + tile_({ form: true, kind: 'quiet', cls: 'text-action' + (c.laminate ? ' lam-on' : ''), act: 'cart-laminate',
@@ -165,7 +165,7 @@ function cartRow_(c, i, under) {
        `cart-add` writes `money` for a paper and `cost` for anything bought with credits. */
     /* `tbc`, NOT `free`, FOR A PAPER NOBODY HAS COUNTED — the `cost: 0` fault written down four times in this repository, on the one column that is a price. § */
     total: c.kind === 'print' && cartUnpriced_(c) ? 'tbc'
-         : cartMoney_(c) ? money_(cartMoney_(c)) : (c.cost ? c.cost + ' cr' : 'free'),
+         : cartMoney_(c) ? fmtMoney_(cartMoney_(c)) : (c.cost ? c.cost + ' cr' : 'free'),
     /* THE ✕ IS THE ROW'S OWN CONTROL, drawn where a receipt's line already ends. */
     end: true,
   });
@@ -216,7 +216,7 @@ function cartCard_() {
   /* ---------- "SEND ORDER", NOT "PAY" — NOTHING IS PAID HERE § */
   const paper = cash || tbc;
   const foot = tile_({ form: true, cls: 'rc-do', act: 'cart-send', off: short, label: short ? (due - credits) + ' more credits needed'
-      : 'Send order' + (cash ? ' · ' + money_(cash) + (tbc ? ' + tbc' : '') : '') })
+      : 'Send order' + (cash ? ' · ' + fmtMoney_(cash) + (tbc ? ' + tbc' : '') : '') })
     + cardBlock_({ type: 'group', tag: 'p', look: 'rc-terms', text: paper
       ? 'Printing is at cost — paper only — posted or kept for you to collect. Anything marked tbc '
         + 'is priced before you are charged for it.'
@@ -232,7 +232,7 @@ function cartCard_() {
        a Pay button under it and money genuinely about to move. */
     /* "SO FAR" WHEN ANY LINE IS STILL TO BE PRICED, because the figure beside it is then a floor rather than the bill. § */
     totalLabel: paper ? (tbc ? 'So far' : 'Total') : 'Credits',
-    total: cash ? money_(cash) : tbc ? 'tbc' : String(due),
+    total: cash ? fmtMoney_(cash) : tbc ? 'tbc' : String(due),
     foot: foot,
   });
 }

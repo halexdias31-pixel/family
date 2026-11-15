@@ -49,7 +49,7 @@ function wfList_(of) {
     tiles: [{ icon: 'open', label: 'Open', note: 'see the pages', act: 'wf-open', data: { id: r.id, title: r.title || 'Scanned work' } }]
       .concat(s.mayDelete ? [{ icon: 'bin', label: 'Delete', note: 'from your file', act: 'wf-del', data: { id: r.id, of } }] : []) })) }];
 }
-const wfDate_ = ms => { try { return ms ? date_(Number(ms)) : ''; } catch (e) { return ''; } };
+const wfDate_ = ms => { try { return ms ? fmtDate_(Number(ms)) : ''; } catch (e) { return ''; } };
 /* THE CARD IS DRAWN AGAIN WHOLE from its spec, kept as the same element so its place in the column stays. */
 function wfPaint_(of) {
   document.querySelectorAll('.workfile-card[data-of], .wf-seen[data-of]').forEach(el => {
@@ -139,7 +139,7 @@ on('wf-del', el => {
     if (!d || !d.success) { s.say = (d && (d.message || d.error)) || 'Could not delete it'; wfPaint_(of); return; }
     s.rows = (s.rows || []).filter(r => r.id !== id); s.say = 'Deleted';
     wfPaint_(of);
-  }).catch(() => toast('Could not reach the server'));
+  }).catch(() => toast(text_('could-not-reach-the-server')));
 });
 
 /* AND UNDER A STUDENT SOMEONE ELSE MAY SEE (a parent's child, the admin's list): the same card, opened in place. */
