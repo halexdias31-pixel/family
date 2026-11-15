@@ -808,7 +808,7 @@ function customTitle_(id, L) {
 function customTabsSync_() { try { void LAYOUT_EDIT; void LAYOUT_COL; void CUSTOM_TABS; } catch (e) { return; } // not run yet (1000)
   const L = layoutNow_(), want = (L || {}).custom || [];
   for (let i = COLUMNS.length - 1; i >= 0; i--) if (COLUMNS[i].custom) COLUMNS.splice(i, 1);
-  /* `first` (710) before the first column a unit stands on, `left` (600) before Parent settings, an admin-only one (508) last, the rest before Business. */
+  /* `first` (710) before the first column a unit stands on, `left` (600) right of Kids settings (where Parent settings stood until it became Find › Settings › Parent), an admin-only one (508) last, the rest before Business. */
   const before = id => { const i = COLUMNS.findIndex(t => t.id === id); return i === -1 ? COLUMNS.length : i; };
   const hosts = hostCols_(null), f0 = COLUMNS.findIndex(t => hosts.indexOf(t.id) !== -1);
   let atF = f0 === -1 ? 0 : f0;
@@ -818,7 +818,7 @@ function customTabsSync_() { try { void LAYOUT_EDIT; void LAYOUT_COL; void CUSTO
     t.admin = !!c.admin;
     if (c.admin) COLUMNS.push(t);
     else if (c.first) COLUMNS.splice(atF++, 0, t);
-    else if (c.left) COLUMNS.splice(before('family'), 0, t);
+    else if (c.left) COLUMNS.splice(before('biz'), 0, t);
     else COLUMNS.splice(before('biz'), 0, t);
     if (!SCREENS[c.id]) screen(c.id, () => pages(c.id, cardsOf_(c.id)));
     if (!PAGE_HOME[c.id]) PAGE_HOME[c.id] = () => { const n = CARD_START_AT[c.id]; return typeof n === 'number' && n >= 0 ? n : 0; };

@@ -1,6 +1,6 @@
 # THE GATE ON GITHUB (owner, 12 Nov): tools/gate.js --ci, split across runners; the `gate` job is the required status.
-# A merge to main happens only when it is green (docs/rules.md 12.2). The ratchet and the screenshot gate need the
-# full Optimiser and a base checkout, so they run locally in `node tools/gate.js` before the merge, not here.
+# A merge to main happens only when it is green (docs/rules.md 12.2). The screenshot gate needs a base checkout, so it
+# runs locally in `node tools/gate.js` before the merge, not here.
 name: Gate
 
 on:
@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        only: ['names,stamp,bundle,rules,template', 'fast-core', 'fast-secondary',
+        only: ['names,stamp,bundle,rules', 'fast-core', 'fast-secondary',
                'flow-1', 'flow-2', 'flow-3', 'flow-4', 'flow-5', 'flow-6', 'flow-7', 'flow-8']
     steps:
       - uses: actions/checkout@v4

@@ -174,8 +174,11 @@ const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
 /* TOOLS AND GAMES LEFT THE ROW FOR FIND IN 790. */
 const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'stuff', 'saved',
                     'booking', 'shop'].concat(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8')).map(r => r.screen).slice(8));  /* the owner's eleven since 730, as columns.json lists them */
+/* THE LAST COLUMN BEFORE BUSINESS, from that list rather than a name: Apprentice, then Parent settings stood there until each became a Find › Settings branch (find-only.json). */
+const LAST_PUB_ = ORDER_392_.filter(c => c !== 'biz').pop();
+const LAST_PUB_NAME_ = (JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8')).find(r => r.screen === LAST_PUB_) || {}).label || LAST_PUB_;
 
-check('business: an admin has a Business column last, straight after Parent settings (Apprentice settings is Find › Settings › Apprentice since find-only 15 Nov), holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
+check('business: an admin has a Business column last, straight after the last public column (read from columns.json; Apprentice and Parent settings are Find › Settings branches since find-only 15 Nov), holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
     before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
     reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
@@ -213,12 +216,19 @@ check('business: an admin has a Business column last, straight after Parent sett
   await wait(LEAVE_MS); await woken_();
   const af = JSON.stringify(t.STUFF().filters);
   if (t.AT() !== 'stuff' || !/"Settings"/.test(af) || !/"Apprentice"/.test(af)) bad.push('go("apprentice") opened ' + t.AT() + ' with ' + af + ', wanted Find › Settings › Apprentice');
-  /* A SWIPE OFF SETTINGS, as a trackpad sends it, lands on Business; one more stays — the last column. */
+  /* PARENT SETTINGS IS NO COLUMN (find-only.json, 15 Nov): its old name opens Find › Settings › Parent. */
   t.go('family', false, true);
   await wait(LEAVE_MS); await woken_();
-  if (t.AT() !== 'family') return bad.concat(['go("family") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
-  await bizSwipe_(w, 'family');
-  if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off Parent settings landed on ' + t.AT() + ', wanted Business']);
+  const pf = JSON.stringify(t.STUFF().filters);
+  if (t.AT() !== 'stuff' || !/"Settings"/.test(pf) || !/"Parent"/.test(pf)) bad.push('go("family") opened ' + t.AT() + ' with ' + pf + ', wanted Find › Settings › Parent');
+  /* A SWIPE OFF SETTINGS, as a trackpad sends it, lands on Business; one more stays — the last column. */
+  const lastPub = ids()[ids().indexOf('biz') - 1];
+  if (lastPub !== LAST_PUB_) bad.push('the column left of Business is ' + lastPub + ', wanted ' + LAST_PUB_NAME_);
+  t.go(lastPub, false, true);
+  await wait(LEAVE_MS); await woken_();
+  if (t.AT() !== lastPub) return bad.concat(['go("' + lastPub + '") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
+  await bizSwipe_(w, lastPub);
+  if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off ' + LAST_PUB_NAME_ + ' landed on ' + t.AT() + ', wanted Business']);
   /* BIZ SETTINGS IS LAST SINCE 730 (Web settings is Find › Settings › Site since 15 Nov): one more swipe stays. */
   await bizSwipe_(w, 'biz');
   if (t.AT() !== 'biz') bad.push('a sideways swipe past the last column moved off Biz settings, to ' + t.AT());
@@ -402,18 +412,18 @@ check('business: a student, a parent, a tutor and a visitor have no Business col
     const ids = t.TABS.map(x => x.id);
     if (!bizApplied_(t)) { bad.push(as + ': columns.json was not applied — NOT checked: ' + ids.join(', ')); continue; }
     if (ids.indexOf('biz') !== -1) bad.push(as + ': the row of columns has Business in it: ' + ids.join(', '));
-    if (ids[ids.length - 1] !== 'family') bad.push(as + ': the last column is ' + ids[ids.length - 1] + ', wanted Parent settings (Apprentice settings is Find › Settings › Apprentice, find-only.json)');
+    if (ids[ids.length - 1] !== LAST_PUB_) bad.push(as + ': the last column is ' + ids[ids.length - 1] + ', wanted ' + LAST_PUB_NAME_ + ' (Apprentice and Parent settings are Find › Settings branches, find-only.json)');
     /* A REMEMBERED `biz` (an admin's, on a shared phone) IS NOT A PLACE FOR THEM: § */
     const home = typeof t.TAB_HOME === 'function' ? t.TAB_HOME() : '';
-    if (!home || home === 'family') bad.push(as + ': TAB_HOME is ' + JSON.stringify(home) + ' — the front door cannot be told from the column left of Business, NOT checked');
-    else if (t.AT() !== home) bad.push(as + ': a remembered Business column opened them on ' + t.AT() + ', wanted ' + home + ', where a visitor with nothing remembered opens' + (t.AT() === 'family' ? ' — they were moved left off a column they should never have been put on' : ''));
+    if (!home || home === LAST_PUB_) bad.push(as + ': TAB_HOME is ' + JSON.stringify(home) + ' — the front door cannot be told from the column left of Business, NOT checked');
+    else if (t.AT() !== home) bad.push(as + ': a remembered Business column opened them on ' + t.AT() + ', wanted ' + home + ', where a visitor with nothing remembered opens' + (t.AT() === LAST_PUB_ ? ' — they were moved left off a column they should never have been put on' : ''));
     /* EVERY COLUMN ARRIVED AT, so every neighbour has been painted, and the page asked after. */
     for (const id of ids) { try { t.go(id, false, true); } catch (e) { bad.push(as + ': ' + id + ' threw: ' + e.message); } }
     await wait(LEAVE_MS); await woken_();
-    t.go('family', false, true);
+    t.go(LAST_PUB_, false, true);
     await wait(LEAVE_MS); await woken_();
-    await bizSwipe_(w, 'family');
-    if (t.AT() !== 'family') bad.push(as + ': a swipe past Parent settings, the last column, moved to ' + t.AT() + ' — wanted to stay on the last column');
+    await bizSwipe_(w, LAST_PUB_);
+    if (t.AT() !== LAST_PUB_) bad.push(as + ': a swipe past ' + LAST_PUB_NAME_ + ', the last column, moved to ' + t.AT() + ' — wanted to stay on the last column');
     t.go('biz', false, true);
     await wait(300);
     if (t.AT() === 'biz') bad.push(as + ': go("biz") reached a Business column');
