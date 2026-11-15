@@ -331,7 +331,8 @@ function ownerWork() {
   /* text-boxes: every text-box rule matches the cream answer pill (the variety family `textbox`, one finding each). */
   textboxRules(css).slice(1).forEach(t => W.push({ kind: 'text-boxes', where: t.where, say: t.say }));
   /* biz-checker (1050): the business checker's items, links and rules, and its card drawn with nothing loaded — js/check-biz.js. */
-  try { W.push(...require('../js/check-biz.js').work()); } catch (e) { W.push({ kind: 'biz-checker', where: 'js/check-biz.js', say: 'would not run: ' + e.message }); }
+  /* SWITCHED OFF: check-biz.js is in attic/ (not served), so nothing to run — and a missing-module message carries the caller's path. */
+  if (fs.existsSync(path.join(ROOT, 'js', 'check-biz.js'))) try { W.push(...require('../js/check-biz.js').work()); } catch (e) { W.push({ kind: 'biz-checker', where: 'js/check-biz.js', say: 'would not run: ' + e.message }); }
   return W;
 }
 
@@ -563,7 +564,7 @@ const knownChecks = st => [FIND_KINDS, UX_KINDS, UNIFORM_KINDS, STRUCT, EXTRA_KI
     ['font-scale', 'space-scale', 'radius-scale', 'answer-width', 'one-template', 'makers', 'one-place', 'biz-checker', 'exceptions', 'ceilings', 'markers', 'truth-facts', 'truth-lists', 'truth-labels'], ['read-bytes', 'search-bytes', 'comment-ratio', 'big-notes', 'spread', 'test-biggest', 'tombstones', 'claude-lines', 'effort']);
 /* THE BUSINESS AREA (1060): how much of the business the site runs (one-place.json), and the checker's own faults; the card goes live. */
 function business() {
-  let bad = []; try { bad = require('../js/check-biz.js').work(); } catch (e) { bad = [{ kind: 'biz-checker', where: 'js/check-biz.js', say: 'would not run: ' + e.message }]; }
+  let bad = []; if (fs.existsSync(path.join(ROOT, 'js', 'check-biz.js'))) try { bad = require('../js/check-biz.js').work(); } catch (e) { bad = [{ kind: 'biz-checker', where: 'js/check-biz.js', say: 'would not run: ' + e.message }]; }
   const items = ((jread('data/settings/biz-checklist.json') || {}).items || []);
   /* A JOB RUN "PARTLY" IS NOT YET RUN: a half would be a number chosen by hand. */
   const op = require('./rules.js').onePlace(), yes = op.filter(f => f.status === 'yes').length;
@@ -855,7 +856,7 @@ function changed() {
     ow.forEach(w => { n[w.kind] = (n[w.kind] || 0) + 1; });
     Object.keys(OWNER_KINDS).forEach(k => { if ((n[k] || 0) > (OB[k] || 0)) ow.filter(w => w.kind === k).forEach(w => bad.push(k + '\t' + w.where + '\t' + w.say)); }); }
   /* THE BUSINESS CHECKER (1050), ideal 0, every change. */
-  try { require('../js/check-biz.js').work().forEach(w => bad.push(w.kind + '\t' + w.where + '\t' + w.say)); } catch (e) { bad.push('biz-checker\tjs/check-biz.js\t' + e.message); }
+  if (fs.existsSync(path.join(ROOT, 'js', 'check-biz.js'))) try { require('../js/check-biz.js').work().forEach(w => bad.push(w.kind + '\t' + w.where + '\t' + w.say)); } catch (e) { bad.push('biz-checker\tjs/check-biz.js\t' + e.message); }
   const R = require('./structure.js').ratchet([...files]);
   bad.push(...R.bad);
   if (!R.bad.length && R.gains.length) console.log('structure budgets tightened: ' + R.gains.join('; '));
