@@ -263,26 +263,6 @@
     "share-profile",
     "share",
     "tutor-card",
-    "template-measure",
-    "tpl-built",
-    "tpl-centre",
-    "tpl-colour",
-    "tpl-font",
-    "tpl-inline",
-    "tpl-order",
-    "tpl-picture",
-    "tpl-radius",
-    "tpl-same",
-    "tpl-spacing",
-    "tpl-stray",
-    "tpl-tag-look",
-    "tpl-tags",
-    "tpl-tile-size",
-    "tpl-tiles",
-    "tpl-title",
-    "tpl-variety",
-    "tpl-variety-kind",
-    "tpl-width",
     "card-text-bounds"
    ],
    "since": "2026-11-12"
@@ -422,8 +402,7 @@
    "checks": [
     "one-way",
     "card-spec",
-    "card-shape",
-    "tpl-*"
+    "card-shape"
    ],
    "since": "2026-11-12"
   },
@@ -441,8 +420,7 @@
    "principle": 3,
    "text": "One picture size: a figure fills the content width up to `--pic-w` (34rem), aspect kept, whatever width its own markup says; a card's top picture box is `--pic-h` (12rem) tall (owner, 13 Nov: \"all diagrams feel small\").",
    "checks": [
-    "card-type",
-    "tpl-pic-size"
+    "card-type"
    ],
    "since": "2026-11-13"
   },

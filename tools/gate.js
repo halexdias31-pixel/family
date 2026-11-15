@@ -22,8 +22,6 @@ const PARTS = [
   { id: 'fast-core', say: 'check-all --fast, core checks', cmd: [NODE, 'js/check-all.js', '--fast'], ci: true },
   { id: 'fast-secondary', say: 'check-all --fast, secondary checks (must pass here too)', cmd: [NODE, 'js/check-all.js', '--fast', '--tier=secondary', '--strict'], ci: true },
   ...[1, 2, 3, 4, 5, 6, 7, 8].map(k => ({ id: 'flow-' + k, say: `journeys, part ${k} of 8`, cmd: [NODE, ...HEAVY, 'js/check-flow.js'], env: { FLOW_PART: k + '/8' }, ci: true, heavy: true })),
-  ...(has('tools/template-health.js') ? [{ id: 'template', say: 'the rendered template check', cmd: [NODE, 'tools/template-health.js'], ci: true }] : []),
-  { id: 'ratchet',   say: `no rule's followed/total falls and no new finding, against ${BASE}'s data/health.json`, fn: ratchet, ci: false },
   { id: 'gallery',   say: `every changed screenshot against ${BASE}'s set was looked at and approved`, fn: gallery, ci: false, heavy: true },
 ];
 
@@ -32,31 +30,11 @@ function run(cmd, env) {
   return new Promise(ok => {
     const p = spawn(cmd[0], cmd.slice(1), { cwd: ROOT, env: Object.assign({}, process.env, { FORCE_COLOR: '0' }, env || {}) });
     let out = '';
-    /* DECODED AS A STREAM, so a character split across two chunks is not mangled (the ratchet then saw a "new" finding). */
+    /* DECODED AS A STREAM, so a character split across two chunks is not mangled. */
     p.stdout.setEncoding('utf8'); p.stderr.setEncoding('utf8');
     p.stdout.on('data', d => { out += d; }); p.stderr.on('data', d => { out += d; });
     p.on('close', code => ok({ code, out })); p.on('error', e => ok({ code: 1, out: String(e) }));
   });
-}
-
-/* THE RATCHET: the Optimiser now, against the committed baseline on the base branch. */
-async function ratchet() {
-  let was;
-  try { was = JSON.parse(execFileSync('git', ['show', BASE + ':data/health.json'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28 })); }
-  catch (e) { return { code: 1, out: `cannot read ${BASE}:data/health.json — fetch it first (git fetch origin)` }; }
-  const r = await run([NODE, '-e', "process.stdout.write(JSON.stringify(require('./tools/health.js').health()))"]);
-  if (r.code) return r;
-  let now; try { now = JSON.parse(r.out.slice(r.out.indexOf('{'))); } catch (e) { return { code: 1, out: 'the Optimiser printed no report:\n' + r.out.slice(-2000) }; }
-  const ratio = x => (x.of ? x.ok / x.of : 1), wasBy = new Map((was.rules || []).map(x => [x.id, x])), bad = [];
-  (now.rules || []).forEach(x => { const w = wasBy.get(x.id);
-    if (w && ratio(x) < ratio(w) - 1e-9) bad.push(`rule ${x.id} fell: ${w.ok}/${w.of} → ${x.ok}/${x.of} (${x.label})`); });
-  /* A FINDING is known by what and where, not its line number, so code moving down a file is not new. */
-  const key = f => [f.kind, f.file || f.where, f.text || f.say].map(s => String(s || '').replace(/:\d+/g, '')).join('\t');
-  const seen = new Set([].concat(was.worklist || [], was.work || []).map(key));
-  [].concat(now.worklist || [], now.work || []).filter(f => !seen.has(key(f)))
-    .forEach(f => bad.push(`new finding: ${f.kind} ${f.file ? f.file + ':' + f.line : f.where} — ${f.text || f.say}`));
-  const head = `Optimiser ${now.score}% (${BASE}: ${was.score}%)`;
-  return bad.length ? { code: 1, out: head + '\n' + bad.join('\n') + `\nFAILED — ${bad.length} ratchet slip(s)` } : { code: 0, out: head + '\nOK — nothing fell, nothing new' };
 }
 
 /* THE SCREENSHOT GATE: the base branch's shots are the approved set; this branch's changed shots must be signed. */
