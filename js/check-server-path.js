@@ -82,7 +82,7 @@ if ('readItems' in access) {
   const own = (/function readItemsOld_\(\) \{([\s\S]*?)\n\}\n/.exec(gsAll) || ['', ''])[1];
   const byFn = {}; Object.keys(acts).forEach(a => { byFn[acts[a].handler] = a; }); Object.keys(retired).forEach(a => { byFn[retired[a].handler] = a; });
   const ow = (/function readItemsOwn_\(kind, how, body, began\) \{[\s\S]*?\n\}\n/.exec(gsAll) || [''])[0];
-  if (own && !/if \(!h\.other|if \(!how\.other \|\| role !== 'admin' \|\| !hasRole\(me, 'admin'\)\)/.test(ow)) bad.push('readItemsOwn_ no longer refuses somebody else\'s item to all but an admin');
+  if (own && !/if \(!h\.other|if \(!how\.other \|\| role !== 'admin' \|\| !whoMay_\(me, 'admin'\)\)/.test(ow)) bad.push('readItemsOwn_ no longer refuses somebody else\'s item to all but an admin');
   if (own && !/itemMay_\(kind, 'read', role\)/.test(ow)) bad.push('readItemsOwn_ does not ask ITEM_PERMISSIONS (itemMay_)');
   if (own && !/how\.self && \(!want \|\| want === self\)/.test(ow)) bad.push('readItemsOwn_ reaches a `self` door for somebody else\'s id');
   [...own.matchAll(/(\w+): \{([^}]*)\}/g)].forEach(m => {

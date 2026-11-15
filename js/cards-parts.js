@@ -332,7 +332,7 @@ const shopPriceTag_ = x => { const myLevel = Math.floor((Number(typeof USER !== 
 /* the one way (`itemTool_`): its classes kept, its heading dropped, its tile rows joined to the card's row, a form open and whole (`kc-form`), */
 /* else its words as lines with the original kept hidden; the card's `body` leads it. */
 const itemLive_ = (r, M) => { const v = {}; Object.keys(M.live || {}).forEach(f => { v[f] = M.live[f](r); });
-  const hide = (typeof childView_ === 'function' && childView_() ? M.childHides || [] : []).concat(typeof isAdmin === 'function' && isAdmin() ? [] : M.adminOnly || []);
+  const hide = (typeof may_ === 'function' && !may_('prices') ? M.childHides || [] : []).concat(typeof may_ === 'function' && may_('admin') ? [] : M.adminOnly || []);
   const strip = o => { if (Array.isArray(o)) o.forEach(strip); else if (o && typeof o === 'object') hide.forEach(k => { delete o[k]; }); };
   if (hide.length) Object.keys(v).forEach(f => strip(v[f]));
   return v; };

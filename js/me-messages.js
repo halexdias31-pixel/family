@@ -137,7 +137,7 @@ function paidFromLink_() {
     return;
   }
   /* A CHILD NEVER PAYS (398), so a child's phone does not ask — the parent who paid signs in and it finishes. */
-  if (childView_()) { toast('A parent paid for this — they sign in to finish the booking.'); return; }
+  if (!may_('prices')) { toast('A parent paid for this — they sign in to finish the booking.'); return; }
   PAID_ASKING_ = ref;
   const forget = () => { try { sessionStorage.removeItem(PAID_KEY_); } catch (e) { /* storage can be blocked; the app runs without it */ } };
   api({ action: 'finalizePayment', ref })
@@ -573,7 +573,7 @@ function msgDraft_(k) {
 function msgForm_(to, toId, note, rows) {
   const k = msgKey_(to, toId);
   /* A CHILD SENDS WORDS ONLY (413) — no picker, and `sendMessage` refuses their files too. */
-  return cardBlock_({ type: 'msgForm', k, chips: msgChipSpecs_(k), clip: rankAtLeast_('client'), to, rows, drafted: draftAttr_('msg', k), value: msgDraft_(k),
+  return cardBlock_({ type: 'msgForm', k, chips: msgChipSpecs_(k), clip: may_('grownUp'), to, rows, drafted: draftAttr_('msg', k), value: msgDraft_(k),
     send: { form: true, label: 'Send', act: 'msg-send', data: { to: to, id: toId || '' }, cls: 'msg-go' }, note });
 }
 
@@ -609,7 +609,7 @@ function uploadsPaint_() {
 }
 
 on('uploads-check', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   /* NOT DEPLOYED YET IS THE FIRST ANSWER, and the commonest one on the day this ships: § */
   const f = (DATA && DATA.features) || [];
   if (f.length && f.indexOf('checkUploads') < 0) {

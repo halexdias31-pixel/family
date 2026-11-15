@@ -296,7 +296,7 @@ function drawBooker_() {
   /* THE RUNNING BREAKDOWN. § */
   /* ---------- THE ACTIONS ARE PRINTED ON THE PAPER § */
   /* A CHILD ASKS A PARENT, NOT THE BUSINESS (398): no price reaches her, so the parent books it. Share stays — it is how she shows them. */
-  const foot = (childView_() ? cardBlock_({ type: 'paperNote', look: 'rc-kid', text: KID_ASK_PARENT }) : '') + policyLinks_('family');
+  const foot = (!may_('prices') ? cardBlock_({ type: 'paperNote', look: 'rc-kid', text: KID_ASK_PARENT }) : '') + policyLinks_('family');
   const money_ = bookBreakdown(L, foot);
 
   /* ---------- THE CARD IS THE FORM, FROM THE FIRST QUESTION § */
@@ -306,7 +306,7 @@ function drawBooker_() {
   /* THE PAPER IS THE WHOLE THING NOW. The note box moved into it as a row, the buttons are printed
      on it above the barcode, and what is left out here is nothing at all. */
   /* THE CARD'S ROUND ROW (owner, 12 Nov): Send leads; findCard lifts this top-level row into the card's one row. */
-  const tiles = [].concat(childView_() ? null : { icon: 'send', label: 'Send', tone: 'buy', act: 'book-send' },
+  const tiles = [].concat(!may_('prices') ? null : { icon: 'send', label: 'Send', tone: 'buy', act: 'book-send' },
     { icon: 'share', label: 'Share this booking', act: 'book-share' },
     /* REPORT OR SUGGEST A CHANGE ON THE BOOKING FORM TOO (489). */
     typeof suggestOpts_ === 'function' ? suggestOpts_('widget', 'booking', 'Booking') : null).filter(Boolean);

@@ -87,7 +87,7 @@ function cardEditOpts_(x) {
   /* YOUR OWN CARD'S EDIT IS ON YOUR SETTINGS COLUMN ALONE (464, `ownCardSetPage_`); nobody edits somebody else's (467). */
   if (own && !x.settings) return null;
   if (own ? !ownCardSections_(col).length : !isTutorsCol_(col)) return null;
-  return ({ icon: 'edit', label: 'Edit', note: own ? (isTutorsCol_(col) && rankAtLeast_('staff') ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
+  return ({ icon: 'edit', label: 'Edit', note: own ? (isTutorsCol_(col) && may_('staff') ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
                  tone: own ? '' : 'admin', data: { pid: t.personId, col } });
 }
 
@@ -349,7 +349,7 @@ function cardEditForm_(t, e, vals, only) {
   const val = f => (vals[f] == null ? '' : vals[f]);
   const ro = (DATA && DATA.profileReadonly) || [];
   const box = (f, extra) => fieldHtml(f, val(f), Object.assign({ attr: 'data-me', label: ROW_LABEL[f],
-    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !isAdmin()), draft: false,
+    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !may_('admin')), draft: false,
     raw: { person_id: (t && t.personId) || (whose_() || {}).personId || '' } }, extra));
   /* YOUR OWN CARD'S SECTIONS ARE YOUR ROLE'S (`ownCardSections_`), with the figure and the handle;
      somebody else's are the tutor's card, as an admin has always edited it. */
@@ -445,7 +445,7 @@ function cardRateHtml_(L, val, box, e) {
   const pound = fieldHtml('extra_seat_rate', cardSeatShown_('extra_seat_rate', rate, val('extra_seat_rate')), { attr: 'data-pound',
     label: own ? 'yours, £/h' : 'theirs, £/h', readonly: !live, draft: false,
     extra: `type="number" min="0" max="${live ? pounds2_(rate * STAFF_SEAT_MAX) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` });
-  const bar = own || (typeof isAdmin === 'function' && isAdmin())
+  const bar = own || (typeof may_ === 'function' && may_('admin'))
     ? shareBarBox_(val('extra_seat_cut'), cardShareBar_(rate, val('extra_seat_rate'), val('extra_seat_cut'))) : '';
   return box('rate_per_hour', {}) + bar
     + ceFold_('seat', 'Extra seat', mcLive_('ce-seat', cardSeatSay_(rate, val('extra_seat_rate'))),
@@ -456,7 +456,7 @@ function cardRateHtml_(L, val, box, e) {
 function cardCutHtml_(L, val, box) {
   if (L.indexOf('extra_seat_cut') === -1) return '';
   const rate = num(val('rate_per_hour'));
-  const live = rate > 0, mayCut = isAdmin();
+  const live = rate > 0, mayCut = may_('admin');
   const u = live ? cardSeatUsual_(rate) : null;
   const p = cardSeatParts_(rate, '', val('extra_seat_cut'));
   const body = mayCut
@@ -776,7 +776,7 @@ let PEOPLE_FORM_ = null;
 /* THE ROLES CARD'S OWN WORDS (`ROLE_PICKS`), student first, and Admin, which only an admin gives. */
 const peopleRolePicks_ = () => 'student client tutor'.split(' ').map(r => (ROLE_PICKS.find(x => x[0] === r) || [r, r]).slice(0, 2))
   .concat([['admin', 'Admin']]);
-const peopleMay_ = () => typeof isAdmin === 'function' && isAdmin() && !!USER;
+const peopleMay_ = () => typeof may_ === 'function' && may_('admin') && !!USER;
 const peopleSelf_ = p => !!(USER && p && p.personId && String(p.personId) === String(USER.personId || ''));
 
 /* DELETE, SHOW PIN AND THE DIGEST UNDER SOMEBODY ELSE'S CARD, for an admin; null for anybody else and on your own. */

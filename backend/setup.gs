@@ -262,7 +262,7 @@ function makeBrandAccount(pin) {
        the wrong role or no PIN is the failure this function is for, and it looks identical to a
        row that is fine. */
     const fixed = [];
-    if (!hasRole(existing, 'admin')) {
+    if (!whoMay_(existing, 'admin')) {
       setCell(t, existing, 'role', S(existing.role) ? S(existing.role) + ', admin' : 'admin');
       fixed.push('role');
     }
@@ -781,11 +781,11 @@ function dpAdmin_(add, deep) {
   } else if (!hasPin_(brand)) {
     add('nobody can sign in as it', ADMIN_NAME + ' has no PIN',
         'Run makeBrandAccount with one. The row exists and cannot be logged into.');
-  } else if (!hasRole(brand, 'admin')) {
+  } else if (!whoMay_(brand, 'admin')) {
     add('nobody can sign in as it', ADMIN_NAME + ' is not an admin',
         'Its role cell says "' + S(brand.role) + '". Every admin control is absent for it.');
   }
-  const admins = read(TAB.people).rows.filter(r => hasRole(r, 'admin') && hasPin_(r));
+  const admins = read(TAB.people).rows.filter(r => whoMay_(r, 'admin') && hasPin_(r));
   if (!admins.length) {
     add('locked out', 'No account with the admin role has a PIN',
         'Nothing on the site can be edited by anybody. Fix a PIN on an admin row in the sheet.');

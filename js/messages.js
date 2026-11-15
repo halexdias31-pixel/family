@@ -90,7 +90,7 @@ function dmFace_(t) {
   const famMine = !!(USER && USER.personId && DATA && DATA.familyFor && String(DATA.familyFor) === String(USER.personId));
   const rows = ((DATA && DATA.tutors) || [])
     .concat(famMine && Array.isArray(DATA.family) ? DATA.family : [])
-    .concat(typeof isAdmin === 'function' && isAdmin() && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []);
+    .concat(typeof may_ === 'function' && may_('admin') && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []);
   const id = String(t.id || '');
   /* THE SERVER'S WORD FIRST (413): `messages` sends each correspondent's chosen picture, or their figure when none is chosen — a parent or a child too, not only a tutor. */
   const sent = (t.msgs || []).map(m => m && m.withFace).filter(f => f && typeof f === 'object').pop();

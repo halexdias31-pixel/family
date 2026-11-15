@@ -18,7 +18,7 @@ function finderTagsView_() {
   if (!T || !T.views) return null;
   /* AN ADMIN SEES People and Settings: a view of its own. */
   let adm = false;
-  try { adm = typeof isAdmin === 'function' && isAdmin(); } catch (e) { adm = false; }
+  try { adm = typeof may_ === 'function' && may_('admin'); } catch (e) { adm = false; }
   const v = T.views[(adm ? 'admin+' : '') + (typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '')];
   return v ? Object.assign({}, T.same || {}, v) : null;
 }

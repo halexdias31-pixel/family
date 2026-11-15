@@ -13,8 +13,8 @@
 /* AND `signedIn`, A THIRD AUDIENCE: § */
 function widgetFor_(w) {
   if (!w) return false;
-  if (w.admin && !(typeof isAdmin === 'function' && isAdmin())) return false;
-  if (w.tutor && !(typeof isTutorRole === 'function' && isTutorRole())) return false;
+  if (w.admin && !(typeof may_ === 'function' && may_('admin'))) return false;
+  if (w.tutor && !(typeof may_ === 'function' && may_('staff'))) return false;
   if (w.signedIn && !(typeof USER !== 'undefined' && USER)) return false;
   /* WHO SEES THIS (497, words.js): an admin's narrowing, asked after the code's own gates, which always win. */
   if (typeof seenOk_ === 'function' && !seenOk_(String(w.id))) return false;
@@ -505,7 +505,7 @@ screen('spotlight', () => pages('spotlight', typeof cardsOf_ === 'function' ? ca
 /* A STUDENT'S CARD, AND THE ADMIN'S TO SEE IT — by rank (400), never the role string. */
 function mayJourney_() {
   if (typeof rank_ !== 'function') return false;
-  return rank_() === 'student' || isAdmin();
+  return rank_() === 'student' || may_('admin');
 }
 /* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_` keeps for Settings, whose About you holds the same two § */
 function progressRedraw_() {

@@ -205,7 +205,7 @@ function tile_(o) {
   /* `pressed` IS FOR A TILE THAT IS A SWITCH -- the pen's lock and its Pen / Ruler / Compass -- and is said in `aria-pressed` beside the `on` the eye reads § */
   const pressed = o.pressed != null ? ` aria-pressed="${o.pressed ? 'true' : 'false'}"` : '';
   /* ONLY AN ADMIN SEES AN ADMIN'S TILE (owner, 8 Nov, 11a), and it looks like any other tile. */
-  if (o.tone === 'admin' && !(typeof isAdmin === 'function' && isAdmin())) return '';
+  if (o.tone === 'admin' && !(typeof may_ === 'function' && may_('admin'))) return '';
   const barred = '';
   return `<button type="button" class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${pressed}${barred}${o.off ? ' disabled' : ''}
     >${body}</button>`;
@@ -338,7 +338,7 @@ function isMe_(x) {
 /* BOOK THIS TUTOR: never on your own card or a child's; the tutor card and Find › Profiles share it (1150). */
 function bookOpts_(x) {
   const t = (x && x.row) || {};
-  return !isMe_(x) && !childView_() && t.listed !== false ? { icon: 'book', label: 'Book', tone: 'buy',
+  return !isMe_(x) && !!may_('prices') && t.listed !== false ? { icon: 'book', label: 'Book', tone: 'buy',
     act: 'book-with', data: { tutor: x.name || '' } } : null;
 }
 function tutorOpts_(x) {
@@ -348,7 +348,7 @@ function tutorOpts_(x) {
     String(t.videoFile || '').trim() ? { icon: 'play', label: 'Watch intro', act: 'intro-play', data: { file: t.videoFile } }
       : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? { icon: 'play', label: 'Watch intro', href: t.mediaUrl } : null,
     /* NOT FOR A CHILD, unless they are the business (405): `MESSAGING` lets a student write to an admin only — no tile the server refuses. */
-    USER && !isMe_(x) && (!childView_() || /admin/i.test(String(t.role || ''))) ? { icon: 'chat', label: 'Message',
+    USER && !isMe_(x) && (!!may_('prices') || /admin/i.test(String(t.role || ''))) ? { icon: 'chat', label: 'Message',
       note: 'a note to them', act: 'msg-open', data: { to: x.name, id: (x.row && x.row.personId) || '' } } : null,
     typeof cardEditOpts_ === 'function' ? cardEditOpts_(x) : null,
     x.key ? { icon: t.listed === false ? 'hide' : 'show', label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',

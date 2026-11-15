@@ -198,7 +198,7 @@ function postVerifyEmail_(body, action, began) {
   if (!S(r.email) && grown && S(r.person_id)) {
     const hits = t.rows.filter(x => norm(x.email) === grown);
     const par = hits.length === 1 ? hits[0] : null;
-    const parent = par && S(par.person_id) && (hasRole(par, 'client') || hasRole(par, 'admin'));
+    const parent = par && S(par.person_id) && (hasRole(par, 'client') || whoMay_(par, 'admin'));
     held = !!parent && addressPending_(par);
     if (parent && !held) {
       const fam = read(TAB.family);
@@ -530,7 +530,7 @@ function postPinLink_(body, action, began) {
 function postSignAgreement_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
   if (!me) return jsonOut({ error: 'We could not find your account.' });
-  if (!hasRole(me, 'tutor') && !hasRole(me, 'admin'))
+  if (!hasRole(me, 'tutor') && !whoMay_(me, 'admin'))
     return jsonOut({ error: 'The tutor agreement is for tutors.' });
   const version = S(body.version).slice(0, 40);
   if (!version) return jsonOut({ error: 'Which version of the agreement was this?' });
@@ -561,14 +561,14 @@ function postResetPin_(body, action, began) {
     return jsonOut({ error: 'Your own PIN is under Settings → Signing in.' });
   }
   const mine = acceptedChildren(S(me.person_id)).some(c => S(c.person_id) === want);
-  if (!hasRole(me, 'admin') && !mine) {
+  if (!whoMay_(me, 'admin') && !mine) {
     return jsonOut({ error: 'Only their parent or an admin can give them a new PIN.' });
   }
   /* ---------- A PARENT WHOSE OWN ADDRESS NOBODY HAS PROVED GIVES NOBODY A PIN § */
-  if (!hasRole(me, 'admin') && addressPending_(me)) {
+  if (!whoMay_(me, 'admin') && addressPending_(me)) {
     return jsonOut(confirmFirst_(me, 'you can give ' + (S(kid.first_name) || 'them') + ' a new PIN'));
   }
-  if (hasRole(kid, 'admin')) return jsonOut({ error: 'An admin changes their own PIN.' });
+  if (whoMay_(kid, 'admin')) return jsonOut({ error: 'An admin changes their own PIN.' });
   if (t.headers.indexOf('pin') === -1 || t.headers.indexOf('handle') === -1) {
     return jsonOut({ error: 'The sheet has no pin or handle column. Run ?setup=1 — nothing was changed.' });
   }

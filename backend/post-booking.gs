@@ -303,7 +303,7 @@ function moveJoinRefusal_(j, jobId, role, me, before, body) {
   } else {
     /* TAKING A SESSION AS ITS TUTOR NEEDS A TUTOR. § */
     const meRow = findPerson(me, S(body.personId));
-    if (!meRow || !(hasRole(meRow, 'admin') || (hasRole(meRow, 'tutor') && !tutorPending_(meRow)))) {
+    if (!meRow || !(whoMay_(meRow, 'admin') || (hasRole(meRow, 'tutor') && !tutorPending_(meRow)))) {
       return (meRow && tutorPending_(meRow)
         ? 'You can take sessions once @family. has approved you as a tutor.'
         : 'Only a tutor can take a session.');
@@ -443,7 +443,7 @@ function postCreateJob_(body, action, began) {
      to disagree with it. */
   /* ---------- `clientName` IS AN ADMIN'S TO GIVE, AND NOBODY ELSE'S § */
   const asker = findPerson('', S(body.personId));
-  const me = (asker && hasRole(asker, 'admin') && S(body.clientName)) || S(body.name);
+  const me = (asker && whoMay_(asker, 'admin') && S(body.clientName)) || S(body.name);
   const t = read(TAB.jobs);
 
   // Without a cap one family can paper every open slot and tie up every tutor's queue.
@@ -485,7 +485,7 @@ function postCreateJob_(body, action, began) {
   /* AN ADMIN'S DISCOUNT, AND NOBODY ELSE'S — asked before anything is written, like the refusals above (`discountRefusal_`, booking.gs). § */
   const codes = S(body.discountCode) ? read(TAB.promo_codes) : null;
   const codeRow = codes ? (codes.rows.find(r => key(r.code) === key(body.discountCode)) || null) : null;
-  const noDiscount = discountRefusal_(body, !!(asker && hasRole(asker, 'admin')), codeRow, new Date());
+  const noDiscount = discountRefusal_(body, !!(asker && whoMay_(asker, 'admin')), codeRow, new Date());
   if (noDiscount) return jsonOut({ error: noDiscount });
   /* THE CLASH TESTS AND THE WRITE IN ONE HOLD (434): two phones pressing Book in the same second must not both pass. */
   const bookLock = LockService.getScriptLock();
@@ -562,7 +562,7 @@ function createJobRow_(body, ctx) {
        the cost, these are the people in the chairs. A tutor needs the second one and has never
        been told it. */
     /* A CHILD WHO IS ONLY WORDS IN THE BOOKER'S OWN `children` CELL GOES IN BY HER FIRST WORD, as `childNamesOf` offers her now (`kidsForJob_`) — a phone signed in § */
-    for_children: kidsForJob_(S(body.kids), (asker && hasRole(asker, 'admin') && S(body.clientName))
+    for_children: kidsForJob_(S(body.kids), (asker && whoMay_(asker, 'admin') && S(body.clientName))
       ? findPerson(S(body.clientName)) : asker),
     /* TRUE only where they said so. `TRUE_` reads the word; anything else — blank, absent, an
        older booking — is a no. */

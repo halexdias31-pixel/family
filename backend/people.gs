@@ -7,6 +7,14 @@ function rolesOf(row) {
   return list.length ? list : ['client'];
 }
 function hasRole(row, want) { return rolesOf(row).indexOf(norm(want)) !== -1; }
+/* WHO ARE YOU (who-1): one row, ONE QUESTION; twin of `may_` (data-who.js). No row = a guest. */
+/* `admin` admin-only; `prices` never a child (398); else PERMISSIONS (permissions.json). */
+function whoMay_(row, what) {
+  if (what === 'admin') return !!row && hasRole(row, 'admin');
+  if (what === 'prices') return !isChild_(row);
+  const role = !row ? 'anyone' : whoMay_(row, 'admin') ? 'admin' : isChild_(row) ? 'child' : 'member';
+  return Object.prototype.hasOwnProperty.call(PERMISSIONS, what) && PERMISSIONS[what].indexOf(role) !== -1;
+}
 /* Which role the site should treat as their MAIN one when it has to pick just one — the most
    privileged they hold, so an admin who is also a parent gets the admin view. */
 function mainRole(row) {
@@ -28,7 +36,7 @@ function selfRolesOf_(row) {
 /* A TUTOR WHO TICKED THE BOX AND HAS NOT BEEN SAID YES TO — see `LISTED_PENDING`. An admin is never
    pending: they are the person who says yes, so their own tick is its own approval. */
 function tutorPending_(row) {
-  return !!row && hasRole(row, 'tutor') && !hasRole(row, 'admin')
+  return !!row && hasRole(row, 'tutor') && !whoMay_(row, 'admin')
     && norm(row.listed) === norm(LISTED_PENDING);
 }
 
@@ -448,7 +456,7 @@ function managerRefusal_(me, asked) {
   if (!want || want === S(me[MANAGER_FIELD])) return '';
   if (key(want) === key(me.person_id)) return 'You cannot be your own manager. Nothing was saved.';
   const row = read(TAB.people).rows.find(r => key(r.person_id) === key(want));
-  if (!row || !(hasRole(row, 'tutor') || hasRole(row, 'admin'))) return 'Your manager has to be one of the tutors. Nothing was saved.';
+  if (!row || !(hasRole(row, 'tutor') || whoMay_(row, 'admin'))) return 'Your manager has to be one of the tutors. Nothing was saved.';
   return '';
 }
 
@@ -553,7 +561,7 @@ function ensurePersonIds_() {
 
 function isAdminPerson(name) {
   const p = findPerson(name);
-  return !!p && hasRole(p, 'admin');
+  return !!p && whoMay_(p, 'admin');
 }
 
 /* `childrenOf` read the `children` cell and nothing else. It is above, reading the family tab
@@ -717,7 +725,7 @@ function personDisplayName(r) {
 /* A CHILD IS CALLED BY THEIR FIRST NAME — TO EVERYBODY, IN EVERYTHING THE SERVER SAYS THE OWNER, 10 OCT: § */
 /* ---------- WHO THE NET IS WORKING FOR (342) § */
 function netViewerSet_(row) {
-  NET_VIEWER_ = row ? { id: key(row.person_id), admin: hasRole(row, 'admin'), child: isChild_(row) } : null;
+  NET_VIEWER_ = row ? { id: key(row.person_id), admin: whoMay_(row, 'admin'), child: isChild_(row) } : null;
   return NET_VIEWER_;
 }
 
@@ -1092,8 +1100,8 @@ function kidNamesBare_(idx) {
 /* WHOEVER IS ACTUALLY REACHABLE as an admin. § */
 function adminName_() {
   const named = findPerson(ADMIN_NAME);
-  if (named && S(named.email) && hasRole(named, 'admin')) return personDisplayName(named);
-  const other = read(TAB.people).rows.find(r => hasRole(r, 'admin') && S(r.email));
+  if (named && S(named.email) && whoMay_(named, 'admin')) return personDisplayName(named);
+  const other = read(TAB.people).rows.find(r => whoMay_(r, 'admin') && S(r.email));
   return other ? personDisplayName(other) : ADMIN_NAME;
 }
 
@@ -1242,7 +1250,7 @@ function adminDobFields_(v) {
   const m = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m ? { dob_d: m[3], dob_m: m[2], dob_y: m[1] } : null;
 }
-function adminCount_(t) { return t.rows.filter(x => hasRole(x, 'admin')).length; }
+function adminCount_(t) { return t.rows.filter(x => whoMay_(x, 'admin')).length; }
 
 /* A PERSON AS THE ADMIN'S FORM READS THEM. `lastName` is a box the child-name net leaves whole (`kidWholeOk_`). */
 function adminPersonOut_(r) {
@@ -1282,7 +1290,7 @@ function adminPersonRefusal_(t, body, r) {
   if (!dob) return 'The date of birth is not a date.';
   const dobSaid = dobRefusal_(dob);
   if (dobSaid) return dobSaid;
-  if (r && hasRole(r, 'admin') && roles.indexOf('admin') === -1 && adminCount_(t) <= 1) {
+  if (r && whoMay_(r, 'admin') && roles.indexOf('admin') === -1 && adminCount_(t) <= 1) {
     return S(r.first_name) + ' is the last admin — make somebody else an admin first.';
   }
   const want = Array.isArray(body.parentIds) ? body.parentIds.map(S).filter(Boolean) : [];
@@ -1331,7 +1339,7 @@ function ownerEmail_() {
   if (v.indexOf('@') > 0) return v;
   let rows = [];
   try { rows = read(TAB.people).rows; } catch (err) { rows = []; }
-  const a = rows.find(r => hasRole(r, 'admin') && S(r.email) && !addressPending_(r));
+  const a = rows.find(r => whoMay_(r, 'admin') && S(r.email) && !addressPending_(r));
   return a ? S(a.email) : '';
 }
 

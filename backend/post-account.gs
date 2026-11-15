@@ -421,13 +421,13 @@ function postSetNotify_(body, action, began) {
     const kid = t.rows.find(x => S(x.person_id) === want);
     if (!kid) return jsonOut({ error: 'We could not find that account.' });
     const mine = acceptedChildren(S(me.person_id)).some(c => S(c.person_id) === want);
-    if (!hasRole(me, 'admin') && !mine) {
+    if (!whoMay_(me, 'admin') && !mine) {
       return jsonOut({ error: 'Only their parent or an admin can choose what they are emailed. Nothing was changed.' });
     }
-    if (!hasRole(me, 'admin') && addressPending_(me)) {
+    if (!whoMay_(me, 'admin') && addressPending_(me)) {
       return jsonOut(confirmFirst_(me, 'you can choose what ' + (S(kid.first_name) || 'they') + ' is emailed'));
     }
-    if (hasRole(kid, 'admin')) return jsonOut({ error: 'An admin chooses their own emails. Nothing was changed.' });
+    if (whoMay_(kid, 'admin')) return jsonOut({ error: 'An admin chooses their own emails. Nothing was changed.' });
     r = kid;
   }
   /* `notifyHow_`, THE CARD'S OWN QUESTION, so the two cannot disagree. § */
@@ -487,7 +487,7 @@ function postSavePhoto_(body, action, began) {
   try {
     url = driveKeep_(folder, raw, 'photo-' + (S(r.person_id) || 'person') + '-' + new Date().getTime());
   } catch (err) {
-    return jsonOut({ error: 'Could not save the picture. ' + driveTrouble_(err, hasRole(r, 'admin')) });
+    return jsonOut({ error: 'Could not save the picture. ' + driveTrouble_(err, whoMay_(r, 'admin')) });
   }
   setCell(t, r, 'photo', url);
   return jsonOut({ success: true, photo: url });
@@ -508,7 +508,7 @@ function propFolder_(prop, name) {
 function postPhotoFile_(body, action, began) {
   const r = findPerson(S(body.name), S(body.personId));
   if (!r) return jsonOut({ error: 'Person not found.' });
-  if (!(hasRole(r, 'tutor') || hasRole(r, 'admin'))) return jsonOut({ error: 'Only a tutor has extra photos.' });
+  if (!(hasRole(r, 'tutor') || whoMay_(r, 'admin'))) return jsonOut({ error: 'Only a tutor has extra photos.' });
   const raw = S(body.data).trim();
   if (!/^data:image\/[\w.+-]+;base64,/i.test(raw)) return jsonOut({ error: 'That is not a picture. Choose a photo from your phone.' });
   if (Math.floor(raw.split(',')[1].length * 3 / 4) > PHOTO_FILE_MAX_BYTES) return jsonOut({ error: 'That picture is too big. Try a smaller one.' });
@@ -516,7 +516,7 @@ function postPhotoFile_(body, action, began) {
     const url = driveKeep_(propFolder_(PHOTO_FOLDER_PROP, PHOTO_FOLDER_NAME), raw, 'photo-' + (S(r.person_id) || 'tutor') + '-' + Date.now());
     return jsonOut({ success: true, url });
   } catch (err) {
-    return jsonOut({ error: 'Could not save the photo. ' + driveTrouble_(err, hasRole(r, 'admin')) });
+    return jsonOut({ error: 'Could not save the photo. ' + driveTrouble_(err, whoMay_(r, 'admin')) });
   }
 }
 function postVideoPart_(body, action, began) {
@@ -526,7 +526,7 @@ function postVideoPart_(body, action, began) {
   if (t.headers.indexOf('video_file') < 0) {
     return jsonOut({ error: 'The people tab has no `video_file` column. Open the site once as an admin — nothing was saved.' });
   }
-  if (!(hasRole(r, 'tutor') || hasRole(r, 'admin'))) return jsonOut({ error: 'Only a tutor has an intro video.' });
+  if (!(hasRole(r, 'tutor') || whoMay_(r, 'admin'))) return jsonOut({ error: 'Only a tutor has an intro video.' });
   const old = S(r.video_file);
   const drop = () => { if (old) { try { DriveApp.getFileById(old).setTrashed(true); } catch (err) { /* already gone */ } } };
   if (body.remove === true || norm(body.remove) === 'true') { drop(); setCell(t, r, 'video_file', ''); return jsonOut({ success: true, videoFile: '' }); }
@@ -564,7 +564,7 @@ function postVideoPart_(body, action, began) {
     setCell(t, r, 'video_file', id);
     return jsonOut({ success: true, done: true, videoFile: id });
   } catch (err) {
-    return jsonOut({ error: 'Could not save the video. ' + driveTrouble_(err, hasRole(r, 'admin')) });
+    return jsonOut({ error: 'Could not save the video. ' + driveTrouble_(err, whoMay_(r, 'admin')) });
   }
 }
 
@@ -592,7 +592,7 @@ function postSetMyRoles_(body, action, began) {
   const had = selfRolesOf_(r);
   const adding = want.filter(x => had.indexOf(x) === -1);
   const dropping = had.filter(x => want.indexOf(x) === -1);
-  const iAmAdmin = hasRole(r, 'admin');
+  const iAmAdmin = whoMay_(r, 'admin');
 
   /* THE CHILD'S ACCOUNT. Read as `actingRole_`, so a pending Tutor tick does not count as the
      adult role that would let Client through. */

@@ -149,7 +149,7 @@ function getQuestions_(payload) {
 function getJobs_(meAskedName, viewerIsAdmin, vis, cfg, venuesTab, jobsTab, payload) {
   // --- jobs ---------------------------------------------------------------------------------
   const meRow = meAskedName ? findPerson(meAskedName) : null;
-  const viewerTutor = !!meRow && (hasRole(meRow, 'admin') || (hasRole(meRow, 'tutor') && !tutorPending_(meRow)));
+  const viewerTutor = !!meRow && (whoMay_(meRow, 'admin') || (hasRole(meRow, 'tutor') && !tutorPending_(meRow)));
   jobsTab.forEach(j => {
     const jobId = S(j.job_id) || String(j._row);
     const cs = clientsIn(jobId), ts = tutorsIn(jobId);

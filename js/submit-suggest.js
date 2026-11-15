@@ -9,7 +9,7 @@ const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'functi
 const reportedNow_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA.reportedItems) || []).indexOf(kind + '|' + id) !== -1;
 /* THE ONE TILE'S OPTIONS, on every thing, drawn by `tile_`: Student rank and up; signed out, null (no tile). `check-suggest` holds every such tile to it. */
 function suggestOpts_(kind, id, label, cls) {
-  if (!kind || !id || typeof rankAtLeast_ !== 'function' || !rankAtLeast_('student')) return null;
+  if (!kind || !id || typeof may_ !== 'function' || !may_('signedIn')) return null;
   return ({ icon: 'suggest', label: suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change', note: reportedNow_(kind, id) ? 'to change' : '',
                  act: 'rep-box', cls: 'rep-tile' + (cls ? ' ' + cls : ''), data: { rk: kind, ri: id, rl: String(label || '').slice(0, 120) } });
 }
@@ -34,7 +34,7 @@ function reportDevice_() {
 }
 /* IN PLACE OF THE THING (489, `boxInPlace_`): one text area, a picture, Send and Cancel. No notes listed (498): Done is Claude's, by data/notes-done.json. */
 function reportBoxHtml_(kind, id, label, finder, path) {
-  const admin = isAdmin();
+  const admin = may_('admin');
   const dk = kind + '|' + id, people = suggestPeople_(kind), files = admin && !people;
   const fileIn = attrs => ({ type: 'control', attrs: Object.assign({ type: 'file' }, attrs, { hidden: true, 'aria-hidden': 'true', tabindex: '-1' }) });
   return cardBlock_({ type: 'group', look: 'me-form rep-form rep-box', attrs: { 'data-rk': kind, 'data-ri': id, 'data-rl': label, 'data-finder': finder || '', 'data-path': path || '' }, blocks: [
@@ -319,7 +319,7 @@ async function repFilesSend_(form) {
 }
 const reportBoxOf_ = (kind, id) => [...document.querySelectorAll('.rep-box')].find(b => b.dataset.rk === kind && b.dataset.ri === id) || null;
 on('rep-box', el => {
-  if (!(typeof rankAtLeast_ === 'function' && rankAtLeast_('student'))) { toast('Sign in to suggest a change.'); return; }
+  if (!(typeof may_ === 'function' && may_('signedIn'))) { toast('Sign in to suggest a change.'); return; }
   const kind = el.getAttribute('data-rk') || '', id = el.getAttribute('data-ri') || '';
   const had = reportBoxOf_(kind, id);
   if (had) { boxOut_(had); return; }

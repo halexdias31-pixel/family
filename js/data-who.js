@@ -1,4 +1,4 @@
-/* @family. — js/data-who.js THE PAYLOAD AND THE VIEWER (cut from data.js): DATA, USER, `$`, brand and isAdmin, which nearly every file reads; loaded just before data.js. */
+/* @family. — js/data-who.js THE PAYLOAD AND THE VIEWER (cut from data.js): DATA, USER, `$`, brand and may_, which nearly every file reads; loaded just before data.js. */
 let DATA = {};
 let USER = null;
 try { USER = JSON.parse(localStorage.getItem('familyUser') || 'null'); } catch { /* a bad stored user reads as signed out */ }
@@ -41,11 +41,22 @@ const isWearable = x => {
   const k = norm(x && (x.kind || x.kindRaw));
   return k === 'wearable' || k === 'avatar';
 };
-/* Whether the person signed in is an admin. § */
-const isAdmin = () => !!USER && rankAtLeast_('admin');
+/* ---------- WHO ARE YOU (who-1): one person, one permission role, ONE QUESTION ---------- */
+/* Every "may they" asks `may_`; the backend's twin is `whoMay_` (people.gs). Signed out = a guest, a person with no roles. */
+const roleFor_ = (u = USER) => (!u ? 'anyone' : rankAtLeast_('admin', u) ? 'admin' : rank_(u) === 'student' ? 'child' : 'member');
+/* `admin` admin-only; `prices` never a child (398); `staff` a tutor or above; `signedIn`; `grownUp` signed in and not a child; anything else a permissions.json action row. */
+const may_ = (what, u = USER) => {
+  const r = roleFor_(u);
+  if (what === 'admin') return r === 'admin';
+  if (what === 'prices') return r !== 'child';
+  if (what === 'staff') return rankAtLeast_('staff', u);
+  if (what === 'signedIn') return r !== 'anyone';
+  if (what === 'grownUp') return r === 'member' || r === 'admin';
+  return typeof can_ === 'function' ? can_(r, 'action', what) : r === 'admin';
+};
 /* WHOSE SETTINGS (the admin's lens): every settings card reads `whose_()`, never USER, so one path draws anybody's. */
 /* LENS is the person an admin picked in Find › Settings (`lensCard_`, find-doors.js); nobody else can set it, and USER stays the asker. */
 let LENS = null;
-const whose_ = () => (LENS && isAdmin() ? LENS : USER);
+const whose_ = () => (LENS && may_('admin') ? LENS : USER);
 const lensOn_ = () => !!USER && whose_() !== USER;
 const whoseAtLeast_ = want => rankAtLeast_(want, whose_());

@@ -230,7 +230,7 @@ function layoutDeletedName_(id) {
 }
 /* A CARD LIKE ANY OTHER (770: the owner, "why is this not movable"): registered, so it moves; `CARD_KEEP` takes Delete off it alone. */
 function deletedCard_() {
-  if (!isAdmin()) return '';
+  if (!may_('admin')) return '';
   const del = ((layoutNow_() || {}).deleted || []);
   const rows = del.map(id => cardBlock_({ type: 'group', look: 'lay-deleted-row', attrs: { 'data-deleted': id }, blocks: [
     { type: 'group', tag: 'p', text: [{ b: layoutDeletedName_(id) }, ' · ' + (anyWidgetOf_(id) ? 'widget' : 'card')] },
@@ -242,7 +242,7 @@ const CARD_KEEP = {
   'biz:deleted': 'the way back to every deleted widget and card; deleted, it would leave no way back',
 };
 on('lay-putback', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-del'), D = layoutDraftOf_(layoutNow_());
   if (D.deleted.indexOf(id) === -1) return;
   D.deleted = D.deleted.filter(x => x !== id);
@@ -255,7 +255,7 @@ const splitId_ = (kind, a, b) => kind + ':' + [a, b].filter(Boolean).map(x => St
 function splitOn_(id) { const L = layoutNow_(); return !!(L && L.split && L.split.indexOf(id) !== -1); }
 /* THE ADMIN'S TILE UNDER A SPLITTABLE CARD (Split) or under each of its pieces (Join); '' for anybody else. */
 function splitOpts_(id, n) {
-  if (!isAdmin() || !LAYOUT_SPLIT_ID.test(id)) return null;
+  if (!may_('admin') || !LAYOUT_SPLIT_ID.test(id)) return null;
   if (!splitOn_(id) && !(n > 1)) return null;
   return splitOn_(id)
     ? { icon: 'merge', label: 'Join', note: 'gathers every piece back into one card', act: 'lay-join', tone: 'admin', data: { card: id } }
@@ -264,7 +264,7 @@ function splitOpts_(id, n) {
 /* ITS ROW UNDER THE CARD, or '' for anybody but an admin. */
 function splitRow_(id, n) { const o = splitOpts_(id, n); return o ? cardBlock_({ type: 'tiles', look: 'wgt-admin split-tiles', tiles: [o] }) : ''; }
 function splitSet_(id, on) {
-  if (!isAdmin() || !LAYOUT_SPLIT_ID.test(id)) return;
+  if (!may_('admin') || !LAYOUT_SPLIT_ID.test(id)) return;
   const D = layoutDraftOf_(layoutNow_());
   const was = D.split || [];
   D.split = on ? (was.indexOf(id) === -1 ? was.concat([id]) : was) : was.filter(x => x !== id);
@@ -527,7 +527,7 @@ function colEntries_(col, raw) {
 /* THE COLUMN DRAWN: unchanged when there is no layout and nobody to arrange it; else arranged, an admin's row on each unit. A widget column asks here too (710). */
 function cardsOf_(col) {
   const raw = (CARD_BUILD[col] ? CARD_BUILD[col]() : []).filter(Boolean);
-  const L = layoutNow_(), admin = isAdmin(), kind = WIDGET_COL_OF_(col);
+  const L = layoutNow_(), admin = may_('admin'), kind = WIDGET_COL_OF_(col);
   delete CARD_START_AT[col];
   const strip = h => String(h).replace(/^\s*<!--card:[^>]*-->/, '').replace(/^\s*<!--person:[^>]*-->/, '');
   const guests = !!(L && ((L.cards && (L.cards[col] || []).length) || (!kind && L.widgets && (L.widgets[col] || []).length)));
@@ -596,7 +596,7 @@ function cardRowIn_(h, row) {
   return h + row;
 }
 function cardAdminRow_(id, col, mergeable) {
-  if (!LAYOUT_EDIT || !isAdmin()) return '';
+  if (!LAYOUT_EDIT || !may_('admin')) return '';
   const L = layoutNow_(), seen = mergeUnits_(CARD_SEEN[col] || [], L), i = seen.findIndex(u => u.indexOf(id) !== -1);
   const grp = mergedOf_(id, L);
   const start = cardStartOf_(col, layoutNow_());
@@ -627,7 +627,7 @@ function itemMark_(id, col, html) {
   if (!html || itemGone_(id)) return '';
   /* ITS ID ON ITS OWN BOX (489), so a Delete is read from the thing it sits on and the front door can find it. */
   const h = wordsIn_(id, String(html)).replace(/^(\s*<div)\b/, `$1 data-item="${esc(id)}"`);
-  if (!isAdmin()) return h;
+  if (!may_('admin')) return h;
   /* A RULE (496), locked: `items-no-move` — Delete and the door only, marked `no-move`. */
   const still = typeof ruleOn_ !== 'function' || ruleOn_('items-no-move');
   return cardRowIn_(h, cardBlock_({ type: 'group', look: 'tile-row wgt-admin card-admin item-admin' + (still ? ' no-move' : ''), attrs: { 'data-lay-for': id }, inner:
@@ -637,13 +637,13 @@ function itemMark_(id, col, html) {
 /* ---------- FRONT DOOR (489): `front: {col, id}`, one for the site; the door tile on every widget, card and item sets it, again clears it ---------- */
 const frontNow_ = () => { const f = (layoutNow_() || {}).front; return f && f.col && f.id ? f : null; };
 function frontOpts_(col, id) {
-  if (!isAdmin() || !col || !id) return null;
+  if (!may_('admin') || !col || !id) return null;
   const f = frontNow_(), on = !!(f && f.col === col && f.id === id);
   return ({ icon: 'door', label: on ? 'Front door (on)' : 'Front door', note: on ? 'everybody lands here' : 'land everybody here', act: 'lay-front', tone: 'admin',
     on: on, pressed: on, data: { lc: id, col: col } });
 }
 on('lay-front', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-lc'), col = el.getAttribute('data-col');
   if (!LAYOUT_ID.test(id || '') || !LAYOUT_ID.test(col || '')) return;
   const D = layoutDraftOf_(layoutNow_()), f = D.front;
@@ -744,17 +744,17 @@ function cardUnlist_(D, id) {
   if (D.cards && !Object.keys(D.cards).length) delete D.cards;
 }
 on('lay-c-move', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   layUpDown_(el.getAttribute('data-lc'), el.getAttribute('data-col'), Number(el.getAttribute('data-d')), 'c');
 });
 /* ACROSS: the same card, its one home moved with it — onto any column, a widget column too (710). */
 on('lay-c-col', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   layAcross_(el.getAttribute('data-lc'), el.getAttribute('data-col'), Number(el.getAttribute('data-d')), 'c');
 });
 /* DELETE ASKS TWICE, IN PLACE; the second step says when it is the only place a setting is edited — still one tap, never a pop-up. */
 on('lay-c-del', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-lc');
   if (!cardIs_(id) || CARD_KEEP[id]) return;
   const all = mergeAll_(id, layoutNow_()).filter(x => !CARD_KEEP[x]);
@@ -767,7 +767,7 @@ on('lay-c-del', el => {
 });
 /* START HERE: the column opens on this card (or person, or "the first person"); pressed again, the default comes back. */
 on('lay-start', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-lc'), col = el.getAttribute('data-col');
   if (!hostIs_(col) || !LAYOUT_START_ID.test(id || '')) return;
   const D = layoutDraftOf_(layoutNow_());
@@ -840,7 +840,7 @@ function colOrderApply_(L) {
 }
 /* ◀ ▶ ON A COLUMN: on its first unit's admin row, beside that unit's own; `lay-col` swaps it with the neighbouring column this admin sees. */
 function colOpts_(col, id) {
-  if (!isAdmin() || (CARD_SEEN[col] || [])[0] !== id) return [];
+  if (!may_('admin') || (CARD_SEEN[col] || [])[0] !== id) return [];
   let seq = [];
   try { seq = TABS.map(t => t.id); } catch (e) { seq = []; }
   const i = seq.indexOf(col);
@@ -943,7 +943,7 @@ function mergePrune_(D) {
   return D;
 }
 on('lay-merge', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-m'), col = el.getAttribute('data-col'), isW = el.getAttribute('data-w') === '1';
   const L = layoutNow_(), D = layoutDraftOf_(L);
   const seen = CARD_SEEN[col] || (isW ? layoutSeen_(col, D) : []);
@@ -957,7 +957,7 @@ on('lay-merge', el => {
 });
 /* SPLIT: the parts stand apart again where they are — arranging, not undoing. */
 on('lay-unmerge', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-m'), D = layoutDraftOf_(layoutNow_());
   if (!mergedOf_(id, D)) return;
   D.merged = D.merged.filter(g => g.indexOf(id) === -1);

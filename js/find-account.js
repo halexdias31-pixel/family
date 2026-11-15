@@ -280,7 +280,7 @@ function accountFamCard_(f, famLabel_, personForm_, tcard_) {
 /* FOR AN ADMIN, EVERYBODY ELSE IN THIS COLUMN, each with Message and New PIN. */
 function accountEveryone_(col, famIds, personForm_, tcard_) {
   /* ---------- AND FOR AN ADMIN, EVERYBODY ELSE AS WELL, by their main role (`doGet` sends no tutor or admin here) ---------- */
-  return (typeof isAdmin === 'function' && isAdmin() && Array.isArray(DATA.everyone) ? DATA.everyone : [])
+  return (typeof may_ === 'function' && may_('admin') && Array.isArray(DATA.everyone) ? DATA.everyone : [])
     .filter(p => p && p.title && !mineIs_(p) && !(p.personId && famIds.indexOf(String(p.personId)) !== -1))
     .filter(p => (/student/i.test(String(p.role || '')) ? 'students' : 'parents') === col)
     /* A BLANK HANDLE IS SAID, NOT FILLED WITH THE FIRST NAME. § */
@@ -308,7 +308,7 @@ function accountMine_(col, family, myRow, tcard_) {
     /* NEVER AN EDITOR HERE (464): your own card is edited on your role's settings column (`ownCardSetPage_`, me.js). */
     const face = row !== myRow ? tcard_(row) : (typeof meCard === 'function' ? meCard(row) : tcard_(row));
     /* SHARE MY PROFILE (400): their own `?tutor=` link, to send a family — on the tutor face. */
-    const share = isTutorsCol_(col) && rankAtLeast_('staff') && USER.handle
+    const share = isTutorsCol_(col) && may_('staff') && USER.handle
       ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
     /* SHARE only: Edit is on your settings column (464); Sign out and Send the link again on Student settings (453). */
     /* AND REPORT (486): everything has one, your own card too. */

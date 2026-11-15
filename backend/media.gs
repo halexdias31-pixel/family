@@ -30,7 +30,7 @@ function personAge_(r) {
 }
 /* THE OLDEST RATING THIS VIEWER MAY SEE: an admin everything; a known age that age; no date of birth, whatever the rank, underage (450). */
 function mediaAgeCap_(r) {
-  if (r && hasRole(r, 'admin')) return Infinity;
+  if (r && whoMay_(r, 'admin')) return Infinity;
   const age = personAge_(r);
   return age !== null ? age : MEDIA_AGE_UNKNOWN;
 }

@@ -39,7 +39,7 @@ function settingsCards_(shown, moved, col) {
   const p = whose_().profile || {};
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
      admin's to set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
-  const readonly = (DATA.profileReadonly || []).concat(isAdmin() ? [] : ['extra_seat_cut']);
+  const readonly = (DATA.profileReadonly || []).concat(may_('admin') ? [] : ['extra_seat_cut']);
   /* ONE SHAPE FOR EVERY CARD (8 Nov; 84a): `formCard_` — the title, one line per field, saved as you type. */
   const mail = list => (list || []).indexOf('email') !== -1;
   const one = (g, list, top, id, n, lid) => setHeldSay_(formCard_({ title: g, cls: id ? 'set-card' : '', lead: (top || '') + shareBarFor_(list, p),
@@ -71,7 +71,7 @@ const settingsSplittable_ = list => (list || []).length > 1 && !list.some(isQual
    The owner: "A user in theory could appear in each of these 3 categories" and "split account settings into 3". */
 const tabLabel_ = (id, or) => ((typeof settingGroupOf_ === 'function' && settingGroupOf_(id)) || {}).label || or;
 /* THE PEOPLE COLUMN OF YOUR RANK, where your own card is shown first (453); what you edit is on Student settings for every rank (469). */
-const homeCol_ = () => rankAtLeast_('staff') ? 'tutors' : rankAtLeast_('client') ? 'parents' : 'students';
+const homeCol_ = () => may_('staff') ? 'tutors' : may_('grownUp') ? 'parents' : 'students';
 /* DO YOU BELONG IN THIS PEOPLE COLUMN — by rank, or by a family link (a parent is a parent whatever their rank). */
 /* THE FAMILY LINK THAT PUTS YOU IN A PEOPLE COLUMN: a parent has a child; anyone else in a column has a parent. */
 const PEOPLE_COL_LINK = { parents: 'child' };

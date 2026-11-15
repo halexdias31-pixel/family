@@ -217,7 +217,7 @@ const COLUMNS = TABS.slice();
 /* ---------- WHICH COLUMNS THIS VIEWER IS GIVEN — THE SMALLEST RULE THAT LEAVES ONE OUT § */
 function columnsFor_() {
   let admin = false;
-  try { admin = typeof isAdmin === 'function' && isAdmin(); } catch (e) { admin = false; }
+  try { admin = typeof may_ === 'function' && may_('admin'); } catch (e) { admin = false; }
   /* AN ADMIN'S CUSTOM COLUMNS (466, layout.js) put into `COLUMNS` before Business, as the layout in force names them. */
   try { if (typeof customTabsSync_ === 'function') customTabsSync_(); } catch (e) { oops_(e, 'shell:columnsFor_') }
   const want = COLUMNS.filter(t => !t.admin || admin);

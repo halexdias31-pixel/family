@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-15-guests-1";
+const DOGET_VERSION = "2026-11-15-who-1";
 
 
 function doGet(e) {
@@ -88,7 +88,7 @@ function getBuild_(p, behind, migrated, askedBy_, mark) {
   const meAskedName = meAsked ? personDisplayName(meAsked) : '';
   /* `?person=` IS NO LONGER READ FOR IDENTITY ANYWHERE IN THIS FUNCTION. § */
   const meAskedId = meAsked ? S(meAsked.person_id) : '';
-  const viewerIsAdmin = !!meAsked && hasRole(meAsked, 'admin');
+  const viewerIsAdmin = !!meAsked && whoMay_(meAsked, 'admin');
   /* AND THE NET IS TOLD (342): § */
   netViewerSet_(meAsked);
   /* WHO THEY MAY SEE (386, `seesWhom_`): null for nobody or an admin; else the ids a child, parent or tutor is shown. */
@@ -145,7 +145,7 @@ function getCatchUp_(p, askedBy_) {
   const migrated = (p.run || p.setup) ? autoMigrate_() : null;
   /* AND ON AN ADMIN'S PAGE LOAD (361), so "open the site once" after a deploy is the whole of setup; a visitor never waits on it. */
   if (!p.run && !p.setup && p.token) {
-    try { const a = askedBy_(); if (a && hasRole(a, 'admin')) setupOnAdminLoad_(); } catch (err) { /* admin setup is best-effort; the page loads without it */ }
+    try { const a = askedBy_(); if (a && whoMay_(a, 'admin')) setupOnAdminLoad_(); } catch (err) { /* admin setup is best-effort; the page loads without it */ }
   }
 
   /* ---------- AND THE SHEET SAYS SO ITSELF, ONCE § */
@@ -263,11 +263,11 @@ function favouritesOf_(me) {
 
 /* ---------- THE STORED BODY, WITH THIS VIEWER'S SUBMISSIONS (AND AN ADMIN'S FILMS) LAID ON § */
 function submissionsNow_(viewer) {
-  try { return submissionsFor_(viewer, !!viewer && hasRole(viewer, 'admin')); }
+  try { return submissionsFor_(viewer, !!viewer && whoMay_(viewer, 'admin')); }
   catch (err) { return { for: '', mine: {} }; }
 }
 function freshFor_(viewer) {
-  const admin = !!viewer && hasRole(viewer, 'admin');
+  const admin = !!viewer && whoMay_(viewer, 'admin');
   const out = { submissions: submissionsNow_(viewer), films: [] };
   /* EVERY VIEWER'S OWN FILMS, fresh each load: who may see one is Drive's sharing, not the kept body (450). */
   try { out.films = filmsFor_(viewer); } catch (err) { out.films = []; }
@@ -321,7 +321,7 @@ function mediaOut_(cap) {
 function filmsFor_(viewer) {
   const out = [];
   if (!viewer || typeof viewer !== 'object') return out;
-  const admin = hasRole(viewer, 'admin');
+  const admin = whoMay_(viewer, 'admin');
   const me = S(viewer.email).trim().toLowerCase();
   if (!admin && me.indexOf('@') < 1) return out;
   const rows = read(TAB.films).rows.filter(function (r) { return ON_(r.active); });

@@ -414,7 +414,7 @@ function postSendMessage_(body, action, began) {
   /* A FILE WITH NOWHERE TO GO IS REFUSED BEFORE ANYTHING IS UPLOADED — `addRow` would drop the column with a line in the log and the message would arrive without § */
   /* `admin` DECIDES WHETHER A REFUSAL CARRIES THE FIX — the parent is told it is the site's side
      and the owner is told what to open. See `msgNoColumn_` and `driveTrouble_` in content.gs. */
-  const admin = hasRole(me, 'admin');
+  const admin = whoMay_(me, 'admin');
   if (files.length && t.headers.indexOf('attachments') < 0) return jsonOut(msgNoColumn_(admin));
   const mine = t.rows.filter(r => S(r.from_id) === S(me.person_id));
   const last = mine.reduce((newest, r) => {
@@ -724,7 +724,7 @@ function postClaudeNoteAdd_(body, action, began) {
 /* ---------- THE FILMS, FILLED FROM THE NOTFLIX FOLDER § */
 function postFilmsSync_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me || !hasRole(me, 'admin')) return jsonOut({ error: 'Only an admin can sync the films.' });
+  if (!me || !whoMay_(me, 'admin')) return jsonOut({ error: 'Only an admin can sync the films.' });
   let out;
   try { out = filmsSync_({ budgetMs: FILMS_SYNC_BUDGET_MS }); }
   catch (err) { return jsonOut({ error: 'The films could not be synced: ' + S(err && err.message || err) }); }

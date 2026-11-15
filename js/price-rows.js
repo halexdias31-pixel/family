@@ -60,7 +60,7 @@ const PRICE_ROWS = [
     control: 'l-qty',
     /* Says WHERE the fraction came from, for an admin. § */
     value: L => String(Math.max(0, (L.n || 1) - 1))
-      + (isAdmin() && L.seatSource ? ' ' + cardBlock_({ type: 'group', tag: 'span', look: 'note', text: L.seatSource }) : ''),
+      + (may_('admin') && L.seatSource ? ' ' + cardBlock_({ type: 'group', tag: 'span', look: 'note', text: L.seatSource }) : ''),
     mult:  L => L.fChildrenAll,
     of:    L => rateBase(L, 'students') },
 

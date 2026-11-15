@@ -1,7 +1,7 @@
 /* @family. — js/layout-moves.js AN ADMIN'S MOVES: the tiles that move a widget or card, the move you can see, and the save for everybody (cut from layout.js; read as one by tools/piece-src.js). */
 /* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete, as tile_'s options grouped by `widgetOnColumn_` (arcade.js) ---------- */
 function layoutOpts_(w) {
-  if (!w || !isAdmin()) return null;
+  if (!w || !may_('admin')) return null;
   /* A FIND CARD (790) IS PLACED BY THE FUNNEL, so it has no ▲ ▼ ◀ ▶: its words, who sees it and Delete, which are the widget's own. */
   if (typeof widgetInFind_ === 'function' && widgetInFind_(w)) {
     const id = String(w.id);
@@ -133,12 +133,12 @@ function layMoveShow_(kind, id, col, save, to) {
 }
 /* ---------- THE MOVES: each one a change to the whole layout, saved at once — the same two for a widget and a card (710) ---------- */
 on('lay-w-move', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
   if (w) layUpDown_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
 });
 on('lay-w-col', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
   if (w) layAcross_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
 });
@@ -194,7 +194,7 @@ function layArm_(el, say, rest, word) {
 }
 /* DELETE ASKS TWICE, IN PLACE, THEN IS FINAL (477): `deleted` only keeps it from being drawn again; there is no undo. */
 on('lay-w-del', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-w');
   const all = mergeAll_(id, layoutNow_());
   if (all.some(basketKept_)) return;
@@ -206,7 +206,7 @@ on('lay-w-del', el => {
 });
 /* ---------- SAVED FOR EVERYBODY, DRAWN AT ONCE, PUT BACK IF THE SHEET SAYS NO ---------- */
 function layoutSave_(next) {
-  if (!isAdmin() || !next) return Promise.resolve(false);
+  if (!may_('admin') || !next) return Promise.resolve(false);
   const was = layoutNow_();
   customPrune_(next); mergePrune_(next);
   const set = v => { try { DATA.layout = v; } catch (e) { /* no payload yet: the device's copy below still holds it */ } layoutKeep_(v); layoutRelayout_(); };

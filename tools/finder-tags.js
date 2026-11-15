@@ -96,7 +96,7 @@ if (require.main === module) (async () => {
         const vs = facetValues(items, f);
         return JSON.stringify([f.field, vs.map(x => x.also && x.also.length ? [x.value, x.show || x.value, x.also] : x.show && x.show !== x.value ? [x.value, x.show] : [x.value]), vs.map(x => x.n), items.length, vs.map(x => answerSay_(f, x.value))]);
       });
-      return (isAdmin() ? 'admin+' : '') + (bibleFor_() ? 'bible' : '');
+      return (may_('admin') ? 'admin+' : '') + (bibleFor_() ? 'bible' : '');
     })()`);
     /* EACH QUESTION ITS OWN CALL, so a long walk says where it is (PROGRESS=1). */
     const out = {}, t1 = Date.now();

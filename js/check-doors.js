@@ -192,7 +192,7 @@ try {
   files.forEach(({ n, src }) => { if (/\b(SCREEN_MOVED|TAB_GONE|SETTINGS_HOME|settingsGone_|bookingGone_)\b/.test(strip(src))) movedDiffer.push(n + '.js keeps its own moved-screen table'); });
 } catch (e) { movedDiffer = ['(screens-moved.json could not be read: ' + e.message + ')']; }
 
-/* ONE ADMIN CHECK: every file asks `isAdmin()`, and who sees an admin's setting is permissions.json's `see` rows (86a). */
+/* ONE ADMIN CHECK: every file asks `may_('admin')` (who-1), and who sees an admin's setting is permissions.json's `see` rows (86a). */
 const rankOff = [];
 try {
   const pr = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'permissions.json'), 'utf8'));
@@ -200,9 +200,9 @@ try {
     if (!pr.some(x => x && x.kind === 'see' && x.action === k && x.role === 'admin' && x.allow === true)) rankOff.push('permissions.json: no `see` row letting an admin open ' + k); });
   ['find-doors', 'find-aloud'].forEach(n => { const f = files.find(x => x.n === n); if (!f) return;
     strip(f.src).split('\n').forEach((l, i) => { if (/\/admin\/i\.test\((?!role\))/.test(l)) rankOff.push(n + '.js:' + (i + 1) + ' asks admin another way'); }); });
-  /* ONE ADMIN QUESTION: `isAdmin()` (data.js) everywhere; only its own line asks rankAtLeast_ for admin. */
+  /* ONE ADMIN QUESTION: `may_('admin')` (data-who.js) everywhere; only `roleFor_` asks rankAtLeast_ for admin. */
   files.forEach(({ n, src }) => strip(src).split('\n').forEach((l, i) => {
-    if (/rankAtLeast_\(\s*['"]admin['"]\s*\)|\blayoutIsAdmin_\b/.test(l) && !/^const isAdmin = /.test(l)) rankOff.push(n + '.js:' + (i + 1) + ' asks admin another way — use isAdmin()'); }));
+    if (/rankAtLeast_\(\s*['"]admin['"]\s*\)|\blayoutIsAdmin_\b/.test(l) && !/^const roleFor_ = /.test(l)) rankOff.push(n + '.js:' + (i + 1) + ' asks admin another way — use may_(\'admin\')'); }));
 } catch (e) { rankOff.push('(permissions.json could not be read: ' + e.message + ')'); }
 
 /* ONE FIND (Find 2 is gone): no find-*.js label or list asks TABS for Find's screen id. */
@@ -268,7 +268,7 @@ say('TAB_ORDER AND data/settings/columns.json PUT THE COLUMNS IN DIFFERENT ORDER
 say('A CARD COLUMN IN TABS AND NOT IN columns.json, OR THE OTHER WAY — `cards: true` and the row\'s `cards` part', cardsDiffer,
     t => cardTabs.has(t) ? 'TABS marks it cards: true, the row does not' : 'the row says cards TRUE, TABS does not');
 say('THE BACKEND\'S COPY OF THE COLUMNS IS NOT columns.json\'s', gsStale, t => '');
-say('AN ADMIN TEST THAT IS NOT isAdmin() OR permissions.json\'s see rows', rankOff, t => '');
+say('AN ADMIN TEST THAT IS NOT may_(\'admin\') OR permissions.json\'s see rows', rankOff, t => '');
 say('A FIND LABEL OR LIST THAT HANGS ON ONE SCREEN\'S ID', findById, t => '');
 say('A CARD\'S SECTIONS CHOSEN BY A CHAIN OF s.id === BRANCHES — put them in CARD_SECTION', sectionChain, t => '');
 say('WHERE A SCREEN MOVED IS SAID OUTSIDE data/settings/screens-moved.json', movedDiffer, t => '');

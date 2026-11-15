@@ -183,7 +183,7 @@ function boot(opts) {
   const src = ORDER.map(n => fs.readFileSync(path.join(dir, n + '.js'), 'utf8')).join('\n');
   try {
     w.eval(src + '\n;window.__t = {' +
-      'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS, isTutorRole,' +
+      'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS, isTutorRole: () => may_(\"staff\"),' +
       /* THE TOOLS AND GAMES ARE FIND CARDS (790): Find › Tools or Find › Games pressed as the funnel's first answer, then the first card; `findPage` counts from it. */
       /* `id`: that widget's card, not the first. */
       /* NOBODY SIGNED IN IS A MEMBER HERE: Find is for members (400), and a journey that opened Tools signed out asked about the widget, not the gate. */

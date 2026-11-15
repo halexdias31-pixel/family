@@ -18,7 +18,7 @@ const box = { console, URLSearchParams, TextEncoder, setTimeout: () => 0,
   perHour_: n => '£' + Number(n).toFixed(2) + '/h', brandLogo_: () => 'icon.png', empty_: t => t, card_: h => h, on: () => {},
   tile_: o => `<button data-do="${o.act}">${o.label}</button>`, rankAtLeast_: () => true };
 box.brand = (k, or) => (k in BRAND ? BRAND[k] : or || '');
-box.isAdmin = () => box.admin;
+box.may_ = w => w === 'admin' ? box.admin : true;
 box.passFor_ = () => (fx.tutors || [])[0] || null;
 vm.createContext(box);
 box.DATA.campaigns = [{ id: 'C001', name: 'Camp', style: 'loud', blocks: 'head say facts foot', copy: { head: [{ text: 'Line one|line two' }], say: [{ text: 'A paragraph.' }] } }];
