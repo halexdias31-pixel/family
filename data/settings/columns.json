@@ -112,15 +112,6 @@
   "notes": "a tutor's settings: the Staff hub (terms, hours, pricing) and the teaching settings with no card to live on. Below Staff it says it is not for your account and offers Apply to teach (docs/history/461)."
  },
  {
-  "screen": "site",
-  "label": "Web settings",
-  "icon": "🌐",
-  "active": "FALSE",
-  "sort_order": 17,
-  "cards": "TRUE",
-  "notes": "Web settings since 730 (was Site): the site's own settings, split from Business on 27 Oct (docs/history/491, the owner: \"one for business settings and one for site settings\"): Setup, posts waiting, reports, the library import, the weekly email's preview and words, the build. FOR AN ADMIN ONLY, like Business; last."
- },
- {
   "screen": "account",
   "label": "Kids settings",
   "icon": "⚙",

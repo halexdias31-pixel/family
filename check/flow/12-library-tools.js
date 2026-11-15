@@ -219,7 +219,7 @@ check('business: an admin has a Business column last, straight after Parent sett
   if (t.AT() !== 'family') return bad.concat(['go("family") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
   await bizSwipe_(w, 'family');
   if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off Parent settings landed on ' + t.AT() + ', wanted Business']);
-  /* BIZ SETTINGS IS LAST SINCE 730 (Web settings stands right of Tutor settings): one more swipe stays. */
+  /* BIZ SETTINGS IS LAST SINCE 730 (Web settings is Find › Settings › Site since 15 Nov): one more swipe stays. */
   await bizSwipe_(w, 'biz');
   if (t.AT() !== 'biz') bad.push('a sideways swipe past the last column moved off Biz settings, to ' + t.AT());
 
@@ -235,12 +235,12 @@ check('business: an admin has a Business column last, straight after Parent sett
   const n = allPg.map(p => !!p.querySelector('[data-biz-page]')).lastIndexOf(true) + 1;
   if (n !== 10 || t.pageCount('biz') !== allPg.length) bad.push('the business cards end on page ' + n + ' and the pager counts ' + t.pageCount('biz') + ' of ' + allPg.length + ' — wanted ten: nine since 491 (Setup, Posts, Reports and Library went to Site) and the Error log (O5) (Profit and its terms, Setup, Posts waiting (413), Applications (400), Staff (405), Reports (395), Library updates (407), five records); the verse screen moved to Tools (461)');
   /* LIBRARY UPDATES (407): two files wait, so the card glows and its tile counts them; the press posts as the admin and empties it. */
-  /* ON THE SITE COLUMN since 491. */
-  w.paint('site');
-  for (let k = 0; k < 30 && !(d.querySelector('#s-site [data-libimp].needs-you')); k++) await wait(100);
-  const lib = d.querySelector('#s-site [data-libimp]');
+  /* ON WEB SETTINGS since 491, which is Find › Settings › Site since 15 Nov (find-only.json). */
+  await siteOpen_(w, '[data-libimp]');
+  for (let k = 0; k < 30 && !(d.querySelector('#s-stuff [data-libimp].needs-you')); k++) await wait(100);
+  const lib = d.querySelector('#s-stuff [data-libimp]');
   const libTile = () => lib && lib.querySelector('.tile[data-do="lib-import"]');
-  if (!lib) bad.push('the Site column has no Library updates card');
+  if (!lib) bad.push('Find › Settings › Site has no Library updates card');
   else {
     if (!lib.classList.contains('needs-you') || !/2 files wait/.test(lib.textContent)) bad.push('two files waiting in Drive did not make the Library updates card glow "2 files wait": ' + lib.textContent.replace(/\s+/g, ' ').slice(0, 160));
     if (!libTile() || libTile().getAttribute('aria-label').indexOf('Import library updates (2)') !== 0 || libTile().disabled) bad.push('the Library updates tile is not a live "Import library updates (2)"');
@@ -251,15 +251,17 @@ check('business: an admin has a Business column last, straight after Parent sett
     await wait(300);
     const imp = sent.slice(at).find(b => b.action === 'libImportDrive');
     if (!imp || imp.personId !== 'P001') bad.push('pressing Import library updates posted ' + JSON.stringify(imp) + ' — wanted libImportDrive as the admin');
-    const lib2 = d.querySelector('#s-site [data-libimp]');
+    const lib2 = d.querySelector('#s-stuff [data-libimp]');
     if (!lib2 || lib2.classList.contains('needs-you') || !/lib-import-a\.json.*5 changed/.test(lib2.textContent) || !/Import library updates \(0\)/.test((lib2.querySelector('.tile[data-do="lib-import"]') || {}).getAttribute('aria-label') || '')) bad.push('after the import the card still glows, or does not say what each file did: ' + (lib2 ? lib2.textContent.replace(/\s+/g, ' ').slice(0, 200) : 'no card'));
   }
   if (sent.filter(b => b.action === 'libImportList').length !== 1) bad.push('the Business column asked libImportList ' + sent.filter(b => b.action === 'libImportList').length + ' time(s), wanted once');
   /* THE VERSE SCREEN IS THE E-INK WIDGET ON TOOLS (470): no link away to the install page, anywhere. */
   try { w.__t.findGroup('Tools'); } catch (e) {}
   if (d.querySelector('a[href*="epaper-verse/install.html"]')) bad.push('a tile still opens the verse screen\'s install page in another window — the owner: "Keep it in the widget" (470)');
-  { const sp = [...d.querySelectorAll('#s-site > .page')];
-    if (!sp.length || !sp[sp.length - 1].querySelector('.me-build')) bad.push('the last Site page is not the build stamps (491)'); }
+  /* THE BUILD STAMPS ARE THE LAST SITE CARD (491), the last item of Find › Settings › Site since 15 Nov. */
+  { await siteOpen_(w); const its = w.stuffPages_().filter(pg => pg && pg.x && !pg.part).map(pg => pg.x);
+    const last = its[its.length - 1];
+    if (!last || !/(^|\b)Build\b/.test(last.name || '') || !(await siteOpen_(w, '.me-build'))) bad.push('the last item of Find › Settings › Site is not the build stamps (491): ' + its.map(x => x.name).join(', ')); }
   const ins = host.querySelector('.me-form[data-biz-page="Insurance"]');
   if (!ins) return bad.concat(['there is no Insurance card on the Business column']);
   if (ins.querySelector('.loading')) bad.push('the records came back and the Insurance card is still under the loader');

@@ -4508,8 +4508,6 @@ const TABS = [
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
   /* ---------- AND THE BUSINESS'S OWN PAPERWORK, LAST, FOR AN ADMIN AND NOBODY ELSE § */
   { id: 'biz', icon: '📋', label: 'Biz settings', title: 'Biz settings', admin: true, cards: true },
-  /* ---------- AND THE SITE'S OWN SETTINGS, SPLIT FROM BUSINESS (491), FOR AN ADMIN AND NOBODY ELSE ---------- */
-  { id: 'site', icon: '🌐', label: 'Web settings', title: 'Web settings', admin: true, cards: true },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
@@ -4518,10 +4516,12 @@ const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FI
                    'spotlight', 'feed', 'reel', 'dm',                 /* social (392), below Find; Spotlight left of the posts (461) */
                    'booking', 'shop',                                 /* business */
                    'web', 'tutors', 'students', 'parents',                /* the profiles (730); Apprentice profile is Find › Profiles › Apprentice (find-only.json) */
-                   'staff', 'site', 'account', 'family', 'biz']; /* the settings, the owner's order (730); site and biz admin-only */
+                   'staff', 'account', 'family', 'biz']; /* the settings, the owner's order (730); biz admin-only; Web settings is Find › Settings › Site (find-only.json) */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 /* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
-const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true }];
+const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true },
+  /* WEB SETTINGS (491, an admin's alone): Find › Settings › Site since 15 Nov. */
+  { id: 'site', label: 'Web settings', admin: true, cards: true, group: true }];
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
 const TABS_BUILT = TABS.slice();
@@ -6220,7 +6220,6 @@ const PAGER = {
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
   /* THE BUSINESS RECORDS, COUNTED FROM `bizPages_`, the list `screen('biz')` draws — five cards for an admin. § */
   biz: () => cardCount_('biz', () => adminPages_().length, 0),
-  site: () => cardCount_('site', () => sitePages_().length, 0),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES § */
   booking: () => {
@@ -9314,6 +9313,8 @@ function formCard_(spec) {
   const after = (s.said ? cardBlock_({ type: 'group', tag: 'p', look: 'note', id: s.said }) : '') + (s.after || '');
   const card = { title: s.title, cls: s.cls, attrs: s.attrs, lead: s.lead, save: save, after: after };
   if (s.groups) return setCard_(Object.assign(card, { form: fields, formAttrs: s.formAttrs, foot: s.foot }));
+  /* boxes with their own Save (the PIN card) are one form: the Save sits with its boxes, never as a stray tile; a div, not <form>, so Enter never submits a PIN into the URL. */
+  if (boxes && save) return setCard_(Object.assign(card, { save: '', body: (s.body || '') + cardBlock_({ type: 'group', look: 'kc-form', inner: boxes + ticks + (s.tail || '') + cardBlock_({ type: 'group', look: 'tile-row set-save', inner: save }) }) }));
   return setCard_(Object.assign(card, { body: (s.body || '') + boxes + ticks + (s.tail || '') }));
 }
 
@@ -10963,7 +10964,7 @@ function adminPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return (typeof window.bizPages_ === 'function' ? window.bizPages_() : []).concat(typeof deletedCard_ === 'function' ? [deletedCard_()] : []);
 }
-/* THE SITE COLUMN (491): what runs the site rather than the business — setup, moderation, imports, the weekly email, the build. */
+/* WEB SETTINGS (491), Find › Settings › Site since 15 Nov: what runs the site rather than the business — setup, moderation, imports, the weekly email, the build. */
 function sitePages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
@@ -10984,7 +10985,7 @@ function stabilityCard_() {
         .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
         .then(j => { STAB.got = j && typeof j.score === 'number' ? j : null; STAB.failed = !STAB.got; })
         .catch(() => { STAB.failed = true; })
-        .then(() => { try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
+        .then(() => { lensRedraw_(); });
     } catch (e) { STAB.failed = true; }
   }
   const s = STAB.got;
@@ -10994,7 +10995,7 @@ function stabilityCard_() {
     { type: 'list', ordered: true, look: 'stab-top', items: (STAB.all ? sig : sig.slice(0, 3)).map(x => x.label + ': ' + x.count + ' −' + x.off) },
     sig.length > 3 ? { type: 'tiles', tiles: [{ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }] } : null]);
 }
-on('stab-all', () => { STAB.all = !STAB.all; try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
+on('stab-all', () => { STAB.all = !STAB.all; lensRedraw_(); });
 
 /* ---------- YOUR ROLE: ONE RANK (400), SO ONE CHOICE, CLIENT OR STUDENT, FOR A CLIENT ONLY (432) ----------
    Tutor comes by "Apply to teach", Admin is given, and dopost.gs refuses a student becoming a client. */

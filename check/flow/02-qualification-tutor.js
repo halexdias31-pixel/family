@@ -850,6 +850,19 @@ check('Sign out is on Student settings (453), not under a tutor\'s card while th
 
 /* ---------- SETTINGS HOLDS WHAT IS NOT ON YOUR CARD, FOR EVERYBODY (docs/history/330, 339) § */
 /* THE SETUP CARD (361): the owner's "open the site once" ends here — an admin sees what ran; nobody else sees it, or is sent it. */
+/* WEB SETTINGS IS FIND › SETTINGS › SITE (find-only.json, 15 Nov): go('site') opens that branch (where screens-moved.json is served,
+   else the branch is opened as its door does), and a card further down is opened by its page, as a person scrolls to it (flow 40).
+   Resolves to the first element in Find matching `sel` (null when none); with no `sel`, the branch is open and drawn. */
+const siteOpen_ = async (w, sel) => {
+  const t = w.__t, d = w.document, inFind = () => (sel ? d.querySelector('#s-stuff ' + sel) : null);
+  try { t.go('site', false, true); } catch (e) { /* the door below opens it */ }
+  await wait(300);
+  if (t.AT() !== 'stuff' || !/"Site"/.test(JSON.stringify(t.STUFF().filters))) { try { w.findSettings_('Site'); } catch (e) {} await wait(300); }
+  if (!sel || inFind()) return inFind();
+  const pgs = w.stuffPages_(), first = w.stuffFirstResult_();
+  for (let i = 0; i < pgs.length && !inFind(); i++) { if (!pgs[i] || !pgs[i].x || pgs[i].part) continue; w.goPage('stuff', first + i, true); await wait(150); }
+  return inFind();
+};
 check('no Setup card anywhere (owner, 10 Nov: the health checker covers it); the setup report still reaches only an admin', async () => {
   const W = cardWorld_();
   const bad = [];
@@ -858,7 +871,8 @@ check('no Setup card anywhere (owner, 10 Nov: the health checker covers it); the
   const asAdmin = W.real.get({ token: a.u && a.u.token });
   if (!asAdmin.setup || !Array.isArray(asAdmin.setup.jobs)) bad.push('doGet with the admin\'s token sent no setup report');
   if (W.real.get({}).setup) bad.push('doGet with no token sent the setup report');
-  a.t.go('site', false, true); a.w.paint('site'); await wait(300);
+  /* EVERY CARD OF FIND › SETTINGS › SITE (Web settings, find-only.json) drawn, and none is Setup. */
+  await siteOpen_(a.w, '.setup-card');
   if (a.d.querySelector('.setup-card')) bad.push('the Setup card is still drawn');
   return bad;
 });

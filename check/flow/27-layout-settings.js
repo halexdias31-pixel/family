@@ -171,7 +171,9 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
   /* A CARD THAT MOVES BUT IS KEPT (CARD_KEEP, 770: Deleted) has every tile but Delete. */
   const keep = ['biz:deleted'];
   for (let i = bad.length - 1; i >= 0; i--) if (keep.some(k => bad[i] === k + ' has no Delete')) bad.splice(i, 1);
-  ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', 'biz:build', 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
+  /* BUILD (Web settings) IS FIND › SETTINGS › SITE since 15 Nov (find-only.json): the admin column's first card stands in for it here. */
+  const bizFirst = laySeen_(w, 'biz').filter(x => keep.indexOf(x) === -1)[0] || 'a Biz settings card';
+  ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', bizFirst, 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
   /* SPLIT SITS BESIDE THEM on a card of several fields (Contact & address). */
   const split = d.querySelector('#s-account .card[data-split^="set:account:"] [data-do="lay-split"]');
   if (!split || !split.closest('.card').querySelector('.card-admin')) bad.push('a several-field settings card lacks Split beside its admin row');
@@ -204,10 +206,14 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
   const p2 = payload(); p2.layout = layLast_(sent);
   const r = layBoot_({ payload: p2 }); await wait(300); await layPaintAll_(r.w);
   if (!r.w.document.querySelector('#s-staff .notify-card') || r.w.document.querySelector('#s-account .notify-card')) bad.push('a reload did not keep Notifications on Tutor settings');
-  /* BUSINESS: Build up one place; "+ Add a student" down to the bottom of Student profiles. */
-  const b0 = laySeen_(w, 'site'), bi = b0.indexOf('biz:build');   // Build is on Site since 491
-  A['lay-c-move'](layCardTile_(d, 'biz:build', 'lay-c-move', '-1')); await wait(250); await layPaintAll_(w);
-  if (laySeen_(w, 'site').indexOf('biz:build') !== bi - 1) bad.push('Build did not move up on Site: ' + laySeen_(w, 'site').join());
+  /* BUSINESS: an admin column's card up one place; "+ Add a student" down to the bottom of Student profiles. */
+  /* Build stood on Web settings (491), which is Find › Settings › Site since 15 Nov: Biz settings' second card moves up instead. */
+  const b0 = laySeen_(w, 'biz'), bid = b0[1] || '', bi = b0.indexOf(bid);
+  if (!bid) bad.push('Biz settings has fewer than two cards to move up — NOT checked: ' + b0.join());
+  else {
+    A['lay-c-move'](layCardTile_(d, bid, 'lay-c-move', '-1')); await wait(250); await layPaintAll_(w);
+    if (laySeen_(w, 'biz').indexOf(bid) !== bi - 1) bad.push(bid + ' did not move up on Biz settings: ' + laySeen_(w, 'biz').join());
+  }
   for (let k = 0; k < 12 && !layCardTile_(d, 'ppl:students:add', 'lay-c-move', '1')?.disabled; k++) {
     A['lay-c-move'](layCardTile_(d, 'ppl:students:add', 'lay-c-move', '1')); await wait(200); await layPaintAll_(w);
   }
@@ -223,7 +229,7 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
   return bad;
 });
 
-check('layout cards (465): Delete asks twice in place and says when a card is the only place to edit a setting; a delete is final (477) — nothing lists or brings it back; Build, Needs help, Manage your child and the "+ Add" cards all delete', async () => {
+check('layout cards (465): Delete asks twice in place and says when a card is the only place to edit a setting; a delete is final (477) — nothing lists or brings it back; a Biz settings card (Build is Find › Settings › Site), Needs help, Manage your child and the "+ Add" cards all delete', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -240,9 +246,11 @@ check('layout cards (465): Delete asks twice in place and says when a card is th
   await wait(450); A['lay-c-del'](tile); await wait(250); await layPaintAll_(w);
   if (laySeen_(w, 'account').indexOf(grp) !== -1 || d.querySelector(`[data-lay-card="${grp}"], [data-split="${grp}"]`)) bad.push(grp + ' was not deleted');
   const says = {};
-  for (const id of ['biz:build', 'ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add']) says[id] = await del(id);
-  if (!/^Tap again to delete/.test(says['biz:build'] || '')) bad.push('Build\'s second step reads ' + says['biz:build']);
-  if (d.querySelector('#s-biz .me-build') || d.querySelector('.help-list') || d.querySelector('[data-do="person-add"]')) bad.push('Build, Needs help or an Add card is still drawn');
+  /* BUILD STOOD ON WEB SETTINGS, which is Find › Settings › Site since 15 Nov (find-only.json): an admin column's card is deleted in its place. */
+  const bizCard = laySeen_(w, 'biz').filter(x => x !== 'biz:deleted')[0] || 'a Biz settings card';
+  for (const id of [bizCard, 'ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add']) says[id] = await del(id);
+  if (!/^Tap again to delete/.test(says[bizCard] || '')) bad.push(bizCard + '\'s second step reads ' + says[bizCard]);
+  if (laySeen_(w, 'biz').indexOf(bizCard) !== -1 || d.querySelector(`#s-biz .card-admin[data-lay-for="${bizCard}"]`) || d.querySelector('.help-list') || d.querySelector('[data-do="person-add"]')) bad.push(bizCard + ', Needs help or an Add card is still drawn');
   /* FINAL (477): no list of deleted cards, no Add back, no Layout card. */
   if (d.querySelector('.lay-del-pick, .lay-foot, .layout-card, [data-do="lay-w-undel"], [data-do="layout-reset"]')) bad.push('a way back is still drawn');
   /* MANAGE YOUR CHILD, for a client. */
@@ -282,10 +290,15 @@ check('layout cards (465): Start here makes a card, a person or "the first perso
   const at2 = r.w.cardStartAt_(col), pg2 = [...r.w.document.querySelectorAll('#s-' + col + ' > .page')][at2];
   if (!pg2 || !pg2.querySelector(`[data-do="lay-start"][data-lc="${person}"].on`)) bad.push('after a reload ' + col + ' does not open on ' + person);
   /* A CARD'S START HERE, then pressed again clears. */
-  A['lay-start'](layCardTile_(d, 'biz:build', 'lay-start')); await wait(250); await layPaintAll_(w);
-  if ((layLast_(sent).start || {}).site !== 'biz:build') bad.push('Build\'s Start here was not stored');
-  A['lay-start'](layCardTile_(d, 'biz:build', 'lay-start')); await wait(250);
-  if ((layLast_(sent).start || {}).site) bad.push('Start here pressed again did not clear');
+  /* ON AN ADMIN COLUMN'S CARD: Build's column, Web settings, is Find › Settings › Site since 15 Nov (find-only.json). */
+  const sc = laySeen_(w, 'biz').filter(x => x !== 'biz:deleted')[0] || '';
+  if (!sc) bad.push('Biz settings has no card to start on — NOT checked');
+  else {
+    A['lay-start'](layCardTile_(d, sc, 'lay-start')); await wait(250); await layPaintAll_(w);
+    if ((layLast_(sent).start || {}).biz !== sc) bad.push(sc + '\'s Start here was not stored');
+    A['lay-start'](layCardTile_(d, sc, 'lay-start')); await wait(250);
+    if ((layLast_(sent).start || {}).biz) bad.push('Start here pressed again did not clear');
+  }
   /* A ROLE-GATED CARD MOVED: the Staff hub to Student settings stays a tutor's. */
   const g = payload(); g.layout = { v: 1, widgets: {}, deleted: [], cards: { account: ['staff:hub'], students: ['acct:pin'] } };
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
@@ -563,8 +576,8 @@ const COLS730_ = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', '
 /* WHERE A MOVED SCREEN LIVES (screens-moved.json), served as the site serves it, so go('<old name>') can find its Find branch. */
 const MOVED730_ = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'screens-moved.json'), 'utf8'));
 const MOVED_SERVE_ = u => (/(^|\/)data\/settings\/screens-moved\.json(\?|$)/.test(u) ? MOVED730_ : undefined);
-check('columns (730): the owner\'s nine — four profiles then five settings, named as asked, in that order; Web profile is the business card; Apprentice profile is Find › Profiles › Apprentice (find-only, 14 Nov) and Apprentice settings Find › Settings › Apprentice (15 Nov); Web and Biz settings an admin\'s alone', async () => {
-  const want = ['Web profile', 'Tutor profile', 'Student profile', 'Parent profile', 'Tutor settings', 'Web settings',
+check('columns (730): the owner\'s eight — four profiles then four settings, named as asked, in that order; Web profile is the business card; Apprentice profile is Find › Profiles › Apprentice (find-only, 14 Nov), Apprentice settings Find › Settings › Apprentice and Web settings Find › Settings › Site (15 Nov); Web and Biz settings an admin\'s alone', async () => {
+  const want = ['Web profile', 'Tutor profile', 'Student profile', 'Parent profile', 'Tutor settings',
     'Kids settings', 'Parent settings', 'Biz settings'];
   const bad = [];
   const { w } = layBoot_({ serve: MOVED_SERVE_ });
@@ -573,7 +586,7 @@ check('columns (730): the owner\'s nine — four profiles then five settings, na
   const labels = t.TABS.map(x => x.label), got = labels.filter(l => want.indexOf(l) !== -1);
   if (got.join('|') !== want.join('|')) bad.push('an admin\'s columns: ' + got.join(', '));
   const at = labels.indexOf('Web profile');
-  if (labels.slice(at, at + want.length).join('|') !== want.join('|')) bad.push('the nine are not side by side: ' + labels.slice(at).join(', '));
+  if (labels.slice(at, at + want.length).join('|') !== want.join('|')) bad.push('the eight are not side by side: ' + labels.slice(at).join(', '));
   const fileLabels = COLS730_.map(r => r.label).filter(l => want.indexOf(l) !== -1);
   if (fileLabels.join('|') !== want.join('|')) bad.push('columns.json says ' + fileLabels.join(', '));
   t.go('web', false, true); await wait(200); try { w.paint('web'); } catch (e) {}
@@ -590,7 +603,13 @@ check('columns (730): the owner\'s nine — four profiles then five settings, na
   t.go('apprentice', false, true); await wait(200);
   const af = JSON.stringify(t.STUFF().filters);
   if (t.AT() !== 'stuff' || !/"Settings"/.test(af) || !/"Apprentice"/.test(af)) bad.push('go("apprentice") opened ' + t.AT() + ' with ' + af + ', wanted Find › Settings › Apprentice');
-  try { w.paint('site'); w.paint('biz'); } catch (e) {}
+  /* WEB SETTINGS IS A FIND BRANCH (find-only.json, 15 Nov): no column, and the old name opens Find › Settings › Site; its cards keep their home group. */
+  if (t.TABS.some(x => x.id === 'site') || d.getElementById('s-site')) bad.push('Web settings is still a column');
+  t.go('site', false, true); await wait(200);
+  const sf = JSON.stringify(t.STUFF().filters);
+  if (t.AT() !== 'stuff' || !/"Settings"/.test(sf) || !/"Site"/.test(sf)) bad.push('go("site") opened ' + t.AT() + ' with ' + sf + ', wanted Find › Settings › Site');
+  if (!w.stuffPages_().some(pg => pg && pg.x && /Build/.test(pg.x.name || ''))) bad.push('Find › Settings › Site has no Build item: ' + w.stuffPages_().map(pg => pg && pg.x && pg.x.name).join(', '));
+  try { w.paint('biz'); } catch (e) {}
   ['site:inbox', 'biz:build'].forEach(id => { if (w.cardHome0_(id) !== 'site') bad.push(id + ' is not a Web settings card'); });
   ['biz:apps', 'biz:staff', 'biz:profit-sum'].forEach(id => { if (w.cardHome0_(id) !== 'biz') bad.push(id + ' left Biz settings'); });
   const s = boot({ before: signedInAs_({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'], handle: 'sam' }) });
@@ -688,19 +707,18 @@ check('stability (730): Web settings carries the Stability card for an admin —
   const { w } = layBoot_({ before: w0 => { signedInAs_(LAY_ADMIN_)(w0); stub(w0); } });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  try { w.paint('site'); } catch (e) { return ['could not draw Web settings: ' + e.message]; }
+  /* ON FIND › SETTINGS › SITE since Web settings moved there (find-only.json, 15 Nov); drawn twice, as the file is read on the first. */
+  try { await siteOpen_(w, '.stability-card'); } catch (e) { return ['could not open Find › Settings › Site: ' + e.message]; }
   await wait(300);
-  try { w.paint('site'); } catch (e) {}
-  await wait(150);
-  const c = d.querySelector('#s-site .stability-card');
-  if (!c) return ['Web settings has no Stability card'];
+  const c = await siteOpen_(w, '.stability-card');
+  if (!c) return ['Find › Settings › Site has no Stability card'];
   if ((c.querySelector('.stab-score')?.textContent || '') !== J.score + '%') bad.push('the score says ' + c.querySelector('.stab-score')?.textContent + ', the file ' + J.score);
   const n = J.signals.filter(x => x.off > 0).length;
   if (c.querySelectorAll('.stab-top li').length !== Math.min(3, n)) bad.push('not the top three: ' + c.querySelectorAll('.stab-top li').length);
   const all = c.querySelector('[data-do="stab-all"]');
   if (n > 3) {
     if (!all) bad.push('no Show every signal tile');
-    else { A['stab-all'](all); await wait(150); const c2 = d.querySelector('#s-site .stability-card'); if (c2.querySelectorAll('.stab-top li').length !== n) bad.push('Show every signal shows ' + c2.querySelectorAll('.stab-top li').length + ' of ' + n); }
+    else { A['stab-all'](all); await wait(150); const c2 = d.querySelector('#s-stuff .stability-card'); if (!c2) bad.push('Show every signal lost the card'); else if (c2.querySelectorAll('.stab-top li').length !== n) bad.push('Show every signal shows ' + c2.querySelectorAll('.stab-top li').length + ' of ' + n); }
   }
   if (w.cardHome0_('site:stability') !== 'site') bad.push('site:stability is not a Web settings card');
   const s = boot({ before: signedInAs_({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'], handle: 'sam' }) });

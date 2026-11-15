@@ -190,8 +190,6 @@ const TABS = [
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
   /* ---------- AND THE BUSINESS'S OWN PAPERWORK, LAST, FOR AN ADMIN AND NOBODY ELSE § */
   { id: 'biz', icon: '📋', label: 'Biz settings', title: 'Biz settings', admin: true, cards: true },
-  /* ---------- AND THE SITE'S OWN SETTINGS, SPLIT FROM BUSINESS (491), FOR AN ADMIN AND NOBODY ELSE ---------- */
-  { id: 'site', icon: '🌐', label: 'Web settings', title: 'Web settings', admin: true, cards: true },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
@@ -200,10 +198,12 @@ const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FI
                    'spotlight', 'feed', 'reel', 'dm',                 /* social (392), below Find; Spotlight left of the posts (461) */
                    'booking', 'shop',                                 /* business */
                    'web', 'tutors', 'students', 'parents',                /* the profiles (730); Apprentice profile is Find › Profiles › Apprentice (find-only.json) */
-                   'staff', 'site', 'account', 'family', 'biz']; /* the settings, the owner's order (730); site and biz admin-only */
+                   'staff', 'account', 'family', 'biz']; /* the settings, the owner's order (730); biz admin-only; Web settings is Find › Settings › Site (find-only.json) */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 /* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
-const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true }];
+const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true },
+  /* WEB SETTINGS (491, an admin's alone): Find › Settings › Site since 15 Nov. */
+  { id: 'site', label: 'Web settings', admin: true, cards: true, group: true }];
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
 const TABS_BUILT = TABS.slice();
