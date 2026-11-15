@@ -72,7 +72,20 @@ function world(o) {
     if (!d.success) bad.push('could not sign in ' + e + ' — ' + d.error);
     tok[e] = d.token;
   });
-  const ask = (who, body) => { asked++; return b.post(Object.assign({ token: tok[who] || '' }, body)); };
+  /* LIBITEMS, AS THE SITE ASKS IT (15 Nov, slice 5): the door is retired and readItems reads one kind a call, so mixed ids go one kind at a time and the answers join. */
+  const post1 = (who, body) => b.post(Object.assign({ token: tok[who] || '' }, body));
+  const ask = (who, body) => {
+    asked++;
+    const ids = body.action === 'libItems' && Array.isArray(body.ids) ? body.ids : null;
+    const kinds = ids ? [...new Set(ids.map(t => String(t).split(':')[0]))] : [];
+    if (kinds.length < 2) return post1(who, body);
+    const outs = kinds.map(k => post1(who, Object.assign({}, body, { ids: ids.filter(t => String(t).split(':')[0] === k) })));
+    const bad1 = outs.find(o => !o || !o.success);
+    if (bad1) return bad1;
+    const all = Object.assign({}, outs[outs.length - 1], { items: {}, missing: [], refused: [] });
+    outs.forEach(o => { Object.assign(all.items, o.items || {}); all.missing.push(...(o.missing || [])); all.refused.push(...(o.refused || [])); });
+    return all;
+  };
   /* A STEP WITH A CLOCK THAT TICKS ONCE PER LOOK, so `budget` ticks is a step cut short exactly where a slow sheet would cut it. */
   const step = budget => {
     let t = 0;

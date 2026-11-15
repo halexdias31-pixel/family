@@ -373,23 +373,8 @@ function why_(err) {
 
 /* `opts.keepalive` — a request the browser finishes after the page has gone, for the last answers sent as
    an iPad's cover closes (`answersPush_` in js/answers.js). Nothing else passes it. */
-/* ONE WAY TO THE SERVER (step 2): a `readItems`, `saveItem` or `deleteItem` request names the old door it replaces in `old`. */
-/* A backend not yet redeployed answers "unknown action" or "cannot be read/saved/deleted here yet": the old door is asked instead, with the same request. */
-const itemsOld_ = d => !!(d && d.error && (/unknown action|not recognis/i.test(String(d.error))
-  || (d.why === 'kind' && /cannot be (read|saved|deleted) here yet/i.test(String(d.error)))));
-const ITEMS_GENERAL_ = { readItems: 'kind', saveItem: 'item', deleteItem: 'item' };
-function apiItems_(body, opts) {
-  const b = Object.assign({}, body), old = String(b.old);
-  delete b.old;
-  const o = Object.assign({}, b, { action: old });
-  delete o[ITEMS_GENERAL_[b.action]];
-  /* A KEEPALIVE FLUSH (a page closing) gets one request: the old door, unless this backend says it has the general one. */
-  const feats = typeof DATA === 'object' && DATA && Array.isArray(DATA.features) ? DATA.features : null;
-  if (opts && opts.keepalive && b.action !== 'readItems' && !(feats && feats.indexOf(b.action) !== -1)) return api(o, opts);
-  return api(b, opts).then(d => (itemsOld_(d) ? api(o, opts) : d));
-}
+/* ONE WAY TO THE SERVER (step 2): `readItems`, `saveItem` and `deleteItem` are the only doors for what they fold in (slice 5, 15 Nov): no `old:` fallback, a keepalive flush included. */
 function api(body, opts) {
-  if (body && body.old && /^(readItems|saveItem|deleteItem)$/.test(body.action)) return apiItems_(body, opts);
   /* ---------- THE TOKEN GOES ON EVERY REQUEST, FROM ONE PLACE § */
   const b = Object.assign({}, body);
   if (!b.token && typeof USER === 'object' && USER && USER.token) b.token = USER.token;

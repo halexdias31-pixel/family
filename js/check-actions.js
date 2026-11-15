@@ -81,7 +81,9 @@ site.forEach(p => { for (const m of strip(read(p)).matchAll(/\baction\s*:\s*['"]
 const noKey = Object.keys(front).filter(a => !keys.has(a)).sort();
 
 const all = [...new Set([...handlers, ...gate])].sort();
-const noHandler = [...gate].filter(a => !handlers.has(a)).sort();
+/* A RETIRED DOOR (server-path slice 5) keeps its gate row with no handler: saveItem/readItems ask that gate by its name. */
+const RETIRED = (() => { try { return JSON.parse(fs.readFileSync(path.join(O, 'data', 'settings', 'server-actions.json'), 'utf8')).retired || {}; } catch (e) { return {}; } })();
+const noHandler = [...gate].filter(a => !handlers.has(a) && !(a in RETIRED)).sort();
 const noGate = [...handlers].filter(a => !gate.has(a)).sort();
 const uncalled = all.filter(a => handlers.has(a) && !callers[a] && !(a in REASONS));
 const kept = all.filter(a => handlers.has(a) && !callers[a] && (a in REASONS));

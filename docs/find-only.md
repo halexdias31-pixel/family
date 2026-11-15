@@ -9,14 +9,14 @@ That count can only go down.
 
 ## What is outside Find today (14 Nov)
 
-There are **18 columns** in the app: Find itself, and **17 others**. Before this slice there were 19
-columns, 18 of them outside Find. Only three are switched on (Find, DMs and Tutor profile). The rest are switched off, and most of
+There are **17 columns** in the app: Find itself, and **16 others**. Before phase 1 there were 19
+columns, 18 of them outside Find; phase 2 (15 Nov) took Apprentice settings. Only three are switched on (Find, DMs and Tutor profile). The rest are switched off, and most of
 them already have a Find branch.
 
 | Status | How many | What it means |
 |---|---|---|
-| Moved | 1 | Gone as a screen. Only a Find branch now. The old name opens the branch. |
-| Redirect | 7 | A Find branch already exists and the old name opens it, but the old column's code is still there (switched off). These are the easiest to finish next. |
+| Moved | 2 | Gone as a screen. Only a Find branch now. The old name, and a tab remembered on the phone, open the branch. |
+| Redirect | 6 | A Find branch already exists and the old name opens it, but the old column's code is still there (switched off). These are the easiest to finish next. |
 | Column | 2 | Still a column of its own, switched on. |
 | Off | 8 | Switched off. Find shows a "Coming soon" card for each. The code is still there. |
 | Flows | 10 | Not columns: pop-over sheets and links that open something outside Find. |
@@ -26,6 +26,8 @@ them already have a Find branch.
 - **Apprentice profile**: a card per apprentice. Now **Find › Profiles › Apprentice**. An admin sees it, because the
   "see everyone" permission (`find:all-people`) is the admin's. The column was switched off, so nobody could
   see it before.
+- **Apprentice settings** (15 Nov): one placeholder line. Now **Find › Settings › Apprentice**. Its card is still drawn
+  by the same code (it is a settings *group*, `SETTING_GROUPS` in `js/shell-boot.js`), but there is no column.
 
 ### Redirect: a Find branch exists, old code still to delete
 
@@ -34,7 +36,6 @@ them already have a Find branch.
 | Kids settings (Student settings) | your picture, name, contact, password, PIN, sign out | everyone | Settings › Student |
 | Parent settings | a parent's own settings | parents and payers | Settings › Parent |
 | Tutor settings | staff hub, flyers, teaching settings, Apply to teach | tutors, admin | Settings › Staff |
-| Apprentice settings | one "coming soon" line | tutors, admin | Settings › Apprentice |
 | Web settings | setup, moderation, imports, weekly email, build | admin | Settings › Site |
 | Biz settings | insurance, tax, legal, safeguarding, money | admin | Settings › Business (the Optimiser is already here) |
 | Book | sessions, seats, payment | everyone | Booking |
@@ -74,6 +75,13 @@ profile (Find › Profiles › Student / Parent already list the same people).
    phone.
 4. **One screen at a time.** For each screen: move it, delete its column code, update the journeys honestly,
    and lower the ratchet.
+
+## Why the other five settings wait (phase 2, 15 Nov)
+
+Kids, Parent, Tutor, Web and Biz settings are switched off, and Find › Settings already shows their cards. But about
+700 lines of journeys (and `check/states.js`) still draw these columns to test the cards on them: the settings forms,
+the layout engine (moving a card between columns, a new column between two), and the Business records. Each needs
+its journeys moved to Find › Settings first, one screen per slice, starting with Web settings (about 40 lines).
 
 ## Order, easiest first
 

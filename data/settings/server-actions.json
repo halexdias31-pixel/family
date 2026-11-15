@@ -14,6 +14,123 @@
    "say": "Delete one item of one kind (`item`): posts and people, by the old door's own handler and gate."
   }
  },
+ "retired": {
+  "deletePost": {
+   "into": "deleteItem",
+   "handler": "postDeletePost_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; deleteItem answers by its handler. Was: your own post (or an admin's pick): kind post"
+  },
+  "editPost": {
+   "into": "saveItem",
+   "handler": "postEditPost_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: your own waiting post: kind post, yourself"
+  },
+  "favourite": {
+   "into": "saveItem",
+   "handler": "postFavourite_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: your own star: kind favourite, yourself"
+  },
+  "getProfile": {
+   "into": "readItems",
+   "handler": "postGetProfile_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; readItems answers by its handler. Was: one person's row: kind person, admin only"
+  },
+  "layoutSave": {
+   "into": "saveItem",
+   "handler": "postLayoutSave_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: the site layout: config, admin only"
+  },
+  "lensOpen": {
+   "into": "readItems",
+   "handler": "postLensOpen_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; readItems answers by its handler. Was: somebody else's settings: kind person, admin only"
+  },
+  "libItems": {
+   "into": "readItems",
+   "handler": "postLibItems_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; readItems answers by its handler. Was: the library's words by id, signed in, a day's cap each: readItems does exactly this for kinds question, content, practical and project (slice 1)"
+  },
+  "messages": {
+   "into": "readItems",
+   "handler": "postMessages_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; readItems answers by its handler. Was: your own messages: kind message, yourself only (POLICY decides whose)"
+  },
+  "myAnswers": {
+   "into": "readItems",
+   "handler": "postMyAnswers_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; readItems answers by its handler. Was: your own saved answers: kind answer, yourself only"
+  },
+  "myProfile": {
+   "into": "readItems",
+   "handler": "postMyProfile_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; readItems answers by its handler. Was: your own settings row: kind person, yourself only"
+  },
+  "personDelete": {
+   "into": "deleteItem",
+   "handler": "postPersonDelete_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; deleteItem answers by its handler. Was: a person removed: admin only"
+  },
+  "personGet": {
+   "into": "readItems",
+   "handler": "postPersonGet_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; readItems answers by its handler. Was: one person: kind person, admin only"
+  },
+  "personSave": {
+   "into": "saveItem",
+   "handler": "postPersonSave_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: a person made or changed: kind person, admin only (may email a new account)"
+  },
+  "readMessage": {
+   "into": "saveItem",
+   "handler": "postReadMessage_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: marking your own message read: kind message, yourself"
+  },
+  "saveAnswers": {
+   "into": "saveItem",
+   "handler": "postSaveAnswers_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: your own answers: kind answer, yourself"
+  },
+  "saveNotepad": {
+   "into": "saveItem",
+   "handler": "postSaveNotepad_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: your own notepad: a field of your person, yourself"
+  },
+  "saveOwnerAnswer": {
+   "into": "saveItem",
+   "handler": "postListOwnerAnswers_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: an owner answer: admin only"
+  },
+  "saveTodo": {
+   "into": "saveItem",
+   "handler": "postSaveTodo_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: your own to-do: a field of your person, yourself"
+  },
+  "setListed": {
+   "into": "saveItem",
+   "handler": "postSetListed_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: whether a person is listed: kind person, admin only"
+  },
+  "setNotify": {
+   "into": "saveItem",
+   "handler": "postSetNotify_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: your own email choices: a field of your person, yourself"
+  },
+  "spotlight": {
+   "into": "saveItem",
+   "handler": "postSpotlight_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: the shop window: kind product, admin only"
+  },
+  "updateProfile": {
+   "into": "saveItem",
+   "handler": "postUpdateProfile_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: your own row, the fields you may edit: kind person, yourself"
+  },
+  "wordsSave": {
+   "into": "saveItem",
+   "handler": "postWordsSave_",
+   "why": "Retired 15 Nov (slice 5): no door of its own; saveItem answers by its handler. Was: the site's words: config, admin only"
+  }
+ },
  "actions": {
   "addComment": {
    "fate": "dead",
@@ -493,25 +610,6 @@
     "writes"
    ]
   },
-  "deletePost": {
-   "fate": "general",
-   "into": "deleteItem",
-   "why": "your own post (or an admin's pick): kind post",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postDeletePost_",
-   "file": "backend/post-content.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "family",
-    "people",
-    "posts"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
   "digestPreview": {
    "fate": "dead",
    "into": "",
@@ -554,45 +652,6 @@
    "effects": [
     "email",
     "outside",
-    "writes"
-   ]
-  },
-  "editPost": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "your own waiting post: kind post, yourself",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postEditPost_",
-   "file": "backend/post-content.gs",
-   "callers": [],
-   "fallbacks": [],
-   "tabs": [
-    "family",
-    "people",
-    "post_votes",
-    "posts"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
-  "favourite": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "your own star: kind favourite, yourself",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postFavourite_",
-   "file": "backend/post-content.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/find-bundles.js"
-   ],
-   "tabs": [
-    "favourites"
-   ],
-   "effects": [
     "writes"
    ]
   },
@@ -708,28 +767,6 @@
     "writes"
    ]
   },
-  "getProfile": {
-   "fate": "general",
-   "into": "readItems",
-   "why": "one person's row: kind person, admin only",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postGetProfile_",
-   "file": "backend/post-account.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/me-card.js"
-   ],
-   "tabs": [
-    "config",
-    "family",
-    "library_cards",
-    "qualifications",
-    "shop",
-    "venues"
-   ],
-   "effects": []
-  },
   "googleLogin": {
    "fate": "special",
    "into": "",
@@ -838,55 +875,6 @@
     "writes"
    ]
   },
-  "layoutSave": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "the site layout: config, admin only",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postLayoutSave_",
-   "file": "backend/post-admin.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/layout-moves.js"
-   ],
-   "tabs": [
-    "config",
-    "family",
-    "people"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
-  "lensOpen": {
-   "fate": "general",
-   "into": "readItems",
-   "why": "somebody else's settings: kind person, admin only",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postLensOpen_",
-   "file": "backend/post-account.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/find-doors.js"
-   ],
-   "tabs": [
-    "applications",
-    "config",
-    "events",
-    "family",
-    "jobs",
-    "library_cards",
-    "people",
-    "qualifications",
-    "venues"
-   ],
-   "effects": [
-    "log",
-    "money"
-   ]
-  },
   "libExport": {
    "fate": "special",
    "into": "",
@@ -952,29 +940,6 @@
    "tabs": [],
    "effects": [
     "drive"
-   ]
-  },
-  "libItems": {
-   "fate": "general",
-   "into": "readItems",
-   "why": "the library's words by id, signed in, a day's cap each: readItems does exactly this for kinds question, content, practical and project (slice 1)",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postLibItems_",
-   "file": "backend/post-learning.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/library.js"
-   ],
-   "tabs": [
-    "config",
-    "family",
-    "libLog",
-    "people"
-   ],
-   "effects": [
-    "log",
-    "writes"
    ]
   },
   "linkChild": {
@@ -1219,30 +1184,6 @@
     "writes"
    ]
   },
-  "messages": {
-   "fate": "general",
-   "into": "readItems",
-   "why": "your own messages: kind message, yourself only (POLICY decides whose)",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postMessages_",
-   "file": "backend/post-content.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/me-messages.js"
-   ],
-   "tabs": [
-    "events",
-    "family",
-    "jobs",
-    "messages",
-    "people"
-   ],
-   "effects": [
-    "log",
-    "money"
-   ]
-  },
   "move": {
    "fate": "special",
    "into": "",
@@ -1271,51 +1212,6 @@
     "log",
     "money",
     "writes"
-   ]
-  },
-  "myAnswers": {
-   "fate": "general",
-   "into": "readItems",
-   "why": "your own saved answers: kind answer, yourself only",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postMyAnswers_",
-   "file": "backend/post-learning.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/answers.js"
-   ],
-   "tabs": [
-    "answers"
-   ],
-   "effects": []
-  },
-  "myProfile": {
-   "fate": "general",
-   "into": "readItems",
-   "why": "your own settings row: kind person, yourself only",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postMyProfile_",
-   "file": "backend/post-account.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/me-settings.js"
-   ],
-   "tabs": [
-    "applications",
-    "config",
-    "events",
-    "family",
-    "jobs",
-    "library_cards",
-    "people",
-    "qualifications",
-    "venues"
-   ],
-   "effects": [
-    "log",
-    "money"
    ]
   },
   "openWaitlist": {
@@ -1365,67 +1261,6 @@
    "effects": [
     "log",
     "money"
-   ]
-  },
-  "personDelete": {
-   "fate": "general",
-   "into": "deleteItem",
-   "why": "a person removed: admin only",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postPersonDelete_",
-   "file": "backend/post-family.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/me-people.js"
-   ],
-   "tabs": [
-    "family",
-    "people"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
-  "personGet": {
-   "fate": "general",
-   "into": "readItems",
-   "why": "one person: kind person, admin only",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postPersonGet_",
-   "file": "backend/post-family.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/me-people.js"
-   ],
-   "tabs": [
-    "config",
-    "family",
-    "people"
-   ],
-   "effects": []
-  },
-  "personSave": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "a person made or changed: kind person, admin only (may email a new account)",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postPersonSave_",
-   "file": "backend/post-family.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/me-people.js"
-   ],
-   "tabs": [
-    "config",
-    "family",
-    "people"
-   ],
-   "effects": [
-    "email",
-    "writes"
    ]
   },
   "photoFile": {
@@ -1645,27 +1480,6 @@
     "writes"
    ]
   },
-  "readMessage": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "marking your own message read: kind message, yourself",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postReadMessage_",
-   "file": "backend/post-content.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/me-messages.js"
-   ],
-   "tabs": [
-    "family",
-    "messages",
-    "people"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
   "register": {
    "fate": "special",
    "into": "",
@@ -1778,27 +1592,6 @@
     "writes"
    ]
   },
-  "saveAnswers": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "your own answers: kind answer, yourself",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postSaveAnswers_",
-   "file": "backend/post-learning.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/answers.js"
-   ],
-   "tabs": [
-    "answers",
-    "family",
-    "people"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
   "saveItem": {
    "fate": "general",
    "into": "saveItem",
@@ -1825,47 +1618,6 @@
    "fallbacks": [],
    "tabs": [],
    "effects": []
-  },
-  "saveNotepad": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "your own notepad: a field of your person, yourself",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postSaveNotepad_",
-   "file": "backend/post-account.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/find-measure.js"
-   ],
-   "tabs": [
-    "family",
-    "people"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
-  "saveOwnerAnswer": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "an owner answer: admin only",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postListOwnerAnswers_",
-   "file": "backend/post-admin.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/one-place.js"
-   ],
-   "tabs": [
-    "family",
-    "owner_answers",
-    "people"
-   ],
-   "effects": [
-    "writes"
-   ]
   },
   "savePhoto": {
    "fate": "special",
@@ -1927,26 +1679,6 @@
     "writes"
    ]
   },
-  "saveTodo": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "your own to-do: a field of your person, yourself",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postSaveTodo_",
-   "file": "backend/post-account.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/find-measure.js"
-   ],
-   "tabs": [
-    "family",
-    "people"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
   "sendMessage": {
    "fate": "special",
    "into": "",
@@ -1978,26 +1710,6 @@
     "writes"
    ]
   },
-  "setListed": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "whether a person is listed: kind person, admin only",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postSetListed_",
-   "file": "backend/post-content.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/cards-make.js"
-   ],
-   "tabs": [
-    "family",
-    "people"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
   "setMyRoles": {
    "fate": "special",
    "into": "",
@@ -2020,29 +1732,6 @@
    "effects": [
     "log",
     "money",
-    "writes"
-   ]
-  },
-  "setNotify": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "your own email choices: a field of your person, yourself",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postSetNotify_",
-   "file": "backend/post-account.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/me-people.js",
-    "js/me-roles.js"
-   ],
-   "tabs": [
-    "config",
-    "family",
-    "lens_log",
-    "people"
-   ],
-   "effects": [
     "writes"
    ]
   },
@@ -2104,27 +1793,6 @@
    ],
    "fallbacks": [],
    "tabs": [],
-   "effects": [
-    "writes"
-   ]
-  },
-  "spotlight": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "the shop window: kind product, admin only",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postSpotlight_",
-   "file": "backend/post-content.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/collections.js"
-   ],
-   "tabs": [
-    "family",
-    "people",
-    "spotlight"
-   ],
    "effects": [
     "writes"
    ]
@@ -2208,34 +1876,6 @@
     "reports"
    ],
    "effects": [
-    "writes"
-   ]
-  },
-  "updateProfile": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "your own row, the fields you may edit: kind person, yourself",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postUpdateProfile_",
-   "file": "backend/post-account.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/me-card.js",
-    "js/me-people.js",
-    "js/me-settings.js"
-   ],
-   "tabs": [
-    "config",
-    "family",
-    "lens_log",
-    "library_cards",
-    "people",
-    "qualifications",
-    "venues"
-   ],
-   "effects": [
-    "email",
     "writes"
    ]
   },
@@ -2331,27 +1971,6 @@
     "people",
     "post_votes",
     "posts"
-   ],
-   "effects": [
-    "writes"
-   ]
-  },
-  "wordsSave": {
-   "fate": "general",
-   "into": "saveItem",
-   "why": "the site's words: config, admin only",
-   "access": "admin",
-   "childRefused": false,
-   "handler": "postWordsSave_",
-   "file": "backend/post-admin.gs",
-   "callers": [],
-   "fallbacks": [
-    "js/words.js"
-   ],
-   "tabs": [
-    "config",
-    "family",
-    "people"
    ],
    "effects": [
     "writes"

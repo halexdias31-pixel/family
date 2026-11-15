@@ -185,8 +185,6 @@ const TABS = [
   { id: 'parents',  icon: '👪', label: 'Parent profile',     title: 'Parent profile', cards: true },
   { id: 'family',  icon: '🔧', label: 'Parent settings',  title: 'Parent settings', cards: true },
   { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings', cards: true },
-  /* APPRENTICE: work experience, a placeholder column beside Tutor settings until it is built (docs/history/570). */
-  { id: 'apprentice', icon: '🧑‍🔧', label: 'Apprentice settings', title: 'Apprentice settings', cards: true },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
@@ -202,13 +200,17 @@ const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FI
                    'spotlight', 'feed', 'reel', 'dm',                 /* social (392), below Find; Spotlight left of the posts (461) */
                    'booking', 'shop',                                 /* business */
                    'web', 'tutors', 'students', 'parents',                /* the profiles (730); Apprentice profile is Find › Profiles › Apprentice (find-only.json) */
-                   'staff', 'site', 'account', 'family', 'apprentice', 'biz']; /* the six settings, the owner's order (730); site and biz admin-only */
+                   'staff', 'site', 'account', 'family', 'biz']; /* the settings, the owner's order (730); site and biz admin-only */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
+/* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
+const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true }];
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
 const TABS_BUILT = TABS.slice();
 /* THE CARD COLUMNS (730), left to right: TAB_ORDER and each tab's `cards`, which data/settings/columns.json repeats (check-doors). */
-const CARD_COLS = TAB_ORDER.filter(id => TABS_BUILT.some(t => t.id === id && t.cards));
+const CARD_COLS = TAB_ORDER.filter(id => TABS_BUILT.some(t => t.id === id && t.cards)).concat(SETTING_GROUPS.map(g => g.id));
+/* A CARD COLUMN OR SETTINGS GROUP BY ID: its label and whether it is an admin's (layout.js, me-columns.js). */
+const settingGroupOf_ = id => TABS_BUILT.find(t => t.id === id) || SETTING_GROUPS.find(g => g.id === id) || null;
 const COLUMNS = TABS.slice();
 
 /* ---------- WHICH COLUMNS THIS VIEWER IS GIVEN — THE SMALLEST RULE THAT LEAVES ONE OUT § */
@@ -315,6 +317,7 @@ function screen(id, draw) { SCREENS[id] = { draw }; }
 /* ---------- WHERE YOU WERE, IF IT IS STILL A PLACE § */
 /* FIRST VISIT LANDS ON FIND — see `TAB_HOME` above. */
 let AT = TAB_HOME;
+let KEPT_GONE = '';
 /* ---------- REMEMBERED FOR A RELOAD, NOT FOR TOMORROW § */
 /* THE VIEWER'S COLUMNS FIRST — `USER` is already read out of storage (data.js), so an admin reloading on
    Business is put back on it, and anybody else's remembered `biz` is not a column and is let go. */
@@ -324,6 +327,8 @@ try {
   const was = kept && screenNow_(kept);
   const when = Number(localStorage.getItem('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
+  /* A REMEMBERED COLUMN THAT IS A FIND BRANCH NOW (screens-moved.json `find:`) opens that branch once the payload is in (`loadFinish_`). */
+  else if (was && when && Date.now() - when < AWAY_AGAIN) KEPT_GONE = was;
 } catch { /* a bad stored tab opens the default one */ }
 /* ---------- AND THE MOMENT IS WHEN YOU LEFT, NOT WHEN YOU ARRIVED § */
 function tabStampLeft_() {

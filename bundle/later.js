@@ -9615,7 +9615,7 @@ on('lens-pick', el => {
   const id = (el && el.getAttribute('data-id')) || '';
   if (!isAdmin() || !id) return;
   const card = el.closest('.lens-card'), said = card && card.querySelector('.lens-said');
-  send_({ action: 'readItems', kind: 'profile', ids: [id], old: 'lensOpen', name: USER.name, personId: USER.personId || '', targetId: id }, { button: el, where: said || undefined })
+  send_({ action: 'readItems', kind: 'profile', ids: [id], name: USER.name, personId: USER.personId || '', targetId: id }, { button: el, where: said || undefined })
     .then(d => { if (!isAdmin() || !d || !d.personId) return; LENS = Object.assign({ lens: true }, d); lensRedraw_(); })
     .catch(() => {});
 });
@@ -11133,7 +11133,7 @@ function toggleFav(k, kind) {
     /* THE KEY IS NOT SPLITTABLE, so it is not split. § */
     /* ---------- AND IT WAS STILL CALLING `send` WITH TWO ARGUMENTS § */
     send({
-      action: 'saveItem', item: 'favourite', old: 'favourite',
+      action: 'saveItem', item: 'favourite',
       name: USER.name, personId: (USER && USER.personId) || '',
       kind: kind || 'item', itemId: key,
       on: FAVS.has(key) ? 'TRUE' : '',
@@ -12512,7 +12512,7 @@ function docketSave(list) {
     clearTimeout(dockTimer);
     keepDue_('docket', null);
     if (!USER) return;
-    return api({ action: 'saveItem', item: 'todo', old: 'saveTodo',
+    return api({ action: 'saveItem', item: 'todo',
       name: USER.name, personId: USER.personId, todo: USER.todo }, keepalive ? { keepalive: true } : undefined)
       .then(d => {
         if (d && d.error) throw new Error(d.error);
@@ -12660,7 +12660,7 @@ function padSend_(keepalive) {
   clearTimeout(padTimer);
   keepDue_('notepad', null);
   if (!USER) return;
-  return api({ action: 'saveItem', item: 'notepad', old: 'saveNotepad',
+  return api({ action: 'saveItem', item: 'notepad',
     name: USER.name, personId: USER.personId, notepad: USER.notepad }, keepalive ? { keepalive: true } : undefined)
     .then(d => {
       if (d && d.error) throw new Error(d.error);
@@ -14982,7 +14982,7 @@ function answersPush_(now, keepalive) {
   ansDirtyKeep_(who);
   if (!items.length) { ansSavedPaint_(); return Promise.resolve(true); }
   /* `personId` AS WELL AS THE TOKEN — the gate overwrites it with the token's person, and `check-post.js` § */
-  const req = api({ action: 'saveItem', item: 'answer', old: 'saveAnswers', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
+  const req = api({ action: 'saveItem', item: 'answer', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
   ANS_BUSY = Promise.resolve(req)
     .then(d => ansSavedTake_(d, sent, dirty, who))
     .catch(() => {
@@ -15018,7 +15018,7 @@ function answersPull_(force) {
   if (ANS_PULLING && ANS_PULLING.pid === pid) return ANS_PULLING.p;
   ANS_PULLED = pid;
   ANS_PULL_AT = Date.now();
-  const p = Promise.resolve(api({ action: 'readItems', kind: 'answer', old: 'myAnswers', personId: pid }))
+  const p = Promise.resolve(api({ action: 'readItems', kind: 'answer', personId: pid }))
     .then(d => {
       ANS_PULLING = null;
       if (!d || !d.success || !d.answers || typeof d.answers !== 'object') { ANS_PULLED = ''; return false; }
@@ -20681,7 +20681,7 @@ function toggleSpot(k, kind) {
 
   /* ---------- THIS CALLED `send` WITH TWO ARGUMENTS AND `send` TAKES ONE § */
   send({
-    action: 'saveItem', item: 'spotlight', old: 'spotlight',
+    action: 'saveItem', item: 'spotlight',
     name: USER.name,
     /* ---------- AND THE ID, BECAUSE A NAME IS A CELL SOMEBODY CAN EDIT § */
     personId: (USER && USER.personId) || '',
@@ -22646,7 +22646,7 @@ on('lay-join', el => splitSet_(el.getAttribute('data-card') || '', false));
 /* The owner: "I especially need them on the right-hand columns". A moved card is the same card, drawn by its own column's builder: one home still. */
 /* `CARD_COLS` IS shell.js's (730): TAB_ORDER's tabs marked `cards`, as columns.json marks them. */
 /* THE ADMIN'S CARD COLUMNS (491, 730): Biz and Web settings, the card columns marked `admin`; a card moves between them, no other onto either. */
-const ADMIN_COLS_ = CARD_COLS.filter(c => TABS_BUILT.some(t => t.id === c && t.admin));
+const ADMIN_COLS_ = CARD_COLS.filter(c => (settingGroupOf_(c) || {}).admin);
 /* AND AN ADMIN-ONLY CUSTOM COLUMN (508, `admin: true`), made by ▶ past Site: Business and Site cards move onto it, nothing else. */
 const adminCol_ = c => ADMIN_COLS_.indexOf(c) !== -1 || customAdmin_(c);
 function customAdmin_(c) {
@@ -22722,8 +22722,8 @@ function ownSecReg_() {
     jobs: ['Jobs', 'your jobs', 'Your current and past jobs, shown on your tutor card.'],
     where: ['Where you teach', 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
   const of = OWN_SEC_OF_SET_;
-  /* Each settings column's name from the one tab table (TABS_BUILT, shell-boot.js), never a copy of it. */
-  const where = c => ((typeof TABS_BUILT !== 'undefined' ? TABS_BUILT : []).find(t => t.id === c) || {}).label || c;
+  /* Each settings column's name from the one table (TABS_BUILT or SETTING_GROUPS, shell-boot.js), never a copy of it. */
+  const where = c => (settingGroupOf_(c) || {}).label || c;
   return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where(c) + ')', only: S[k][1], say: S[k][2] }))));
 }
 /* WHAT EACH CARD IS FOR, one faint line under its title (467) — the owner: "I should know what they are even if I can't edit." */
@@ -23551,7 +23551,7 @@ function layoutSave_(next) {
   const set = v => { try { DATA.layout = v; } catch (e) { /* no payload yet: the device's copy below still holds it */ } layoutKeep_(v); layoutRelayout_(); };
   const val = layoutSane_(next);
   set(val);
-  return send({ action: 'saveItem', item: 'layout', old: 'layoutSave', personId: (USER && USER.personId) || '', layout: val })
+  return send({ action: 'saveItem', item: 'layout', personId: (USER && USER.personId) || '', layout: val })
     .then(() => true)
     .catch(err => { set(was); toast(why_(err)); return false; });
 }
@@ -23674,7 +23674,7 @@ function wordsSend_(set, reset) {
   reset.forEach(k => { delete next[k]; });
   const put = v => { try { DATA.words = v; } catch (e) {} wordsEditSet_(WORDS_EDIT); };
   put(next);
-  return send({ action: 'saveItem', item: 'words', old: 'wordsSave', personId: (USER && USER.personId) || '', set: set, reset: reset })
+  return send({ action: 'saveItem', item: 'words', personId: (USER && USER.personId) || '', set: set, reset: reset })
     .then(d => { if (d && d.words && typeof d.words === 'object') { try { DATA.words = d.words; } catch (e) {} } toast('Saved for everyone'); return true; })
     .catch(err => { put(was); toast(why_(err)); return false; });
 }

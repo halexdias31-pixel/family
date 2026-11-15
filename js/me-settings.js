@@ -178,7 +178,7 @@ function libCardsDraw_(into) {
     return;
   }
   const p = whose_().profile || {};
-  into.innerHTML = cardBlock_({ type: 'group', look: 'me-form', inner: libraryShelf_(list, f => p[f] ?? '') + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said' }) });
+  into.innerHTML = cardBlock_({ type: 'group', look: 'me-form', inner: libraryShelf_(list, f => p[f] ?? '') + cardBlock_(ME_SAID_) });
 }
 function initLibCards_() { libCardsDraw_($('lib-box')); }
 /* EVERY COPY ON THE PAGE — Tools' and, starred, Saved's — for `myProfile` landing (`profileRefresh_`): § */
@@ -260,7 +260,7 @@ function meSave_(el, auto) {
   /* `send_`, NOT `api()`. § */
   /* YOU ASK; `whose_()` IS WHOSE ROW — yours, or the person an admin's lens is on (the backend lets only an admin name another). */
   const W = whose_();
-  send_({ action: 'saveItem', item: 'profile', old: 'updateProfile', name: USER.name, personId: USER.personId || '',
+  send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '',
           target: W.name, targetId: W.personId || '', fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said })
     .then(d => {
@@ -366,7 +366,7 @@ function profileRefresh_(loud, onOld) {
   PROFILE_ASKING = true;
   const askedAt = Date.now();
   /* RETURNED, so a caller waiting on a copy it can trust (the card editor, `cardFetch_`) knows when the question has been answered either way — every § */
-  return api({ action: 'readItems', kind: 'profile', old: 'myProfile', name: USER.name, personId: USER.personId || '' })
+  return api({ action: 'readItems', kind: 'profile', name: USER.name, personId: USER.personId || '' })
     .then(d => {
       PROFILE_ASKING = false;
       /* ---------- AN ANSWER OLDER THAN WHAT THE PHONE NOW KNOWS IS NOT PAINTED § */

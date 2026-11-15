@@ -70,7 +70,7 @@ else {
   if (!ad.success) bad.push('an admin could not write the parent\'s row: ' + (ad.error || ''));
   const log = (real.tabs.lens_log || []).slice(1);
   const h = (real.tabs.lens_log || [[]])[0];
-  const row = log.map(r => ({ by: r[h.indexOf('by_id')], for: r[h.indexOf('for_id')], f: r[h.indexOf('fields')] })).find(r => r.for === 'P-C1');
+  const row = log.map(r => ({ by: r[h.indexOf('by_id')], for: r[h.indexOf('for_id')], f: r[h.indexOf('fields')] })).find(r => r.for === 'P-C1' && r.f !== '(opened)');
   if (!row || row.by !== 'P-A1' || !/city/.test(String(row.f))) bad.push('the admin\'s change to P-C1 left no lens_log row naming P-A1 and city: ' + JSON.stringify(log));
   if (log.some(r => String(r).indexOf('Leeds') !== -1)) bad.push('lens_log holds a value, not only the field name');
 }

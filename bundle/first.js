@@ -3582,12 +3582,12 @@ function libPump_() {
     libSend_(all.filter(t => String(t).indexOf(pre) === 0).slice(0, LIB_PER_ASK));
   }
 }
-/* THE KIND EACH WIRE ID IS, for `readItems`: READ_ITEMS_LIB the other way round; one it does not serve yet (an insert) falls back to libItems. */
+/* THE KIND EACH WIRE ID IS, for `readItems`: READ_ITEMS_LIB the other way round; one it does not serve (an insert) is refused, as libItems refused it. */
 const LIB_KIND_ = { q: 'question', ct: 'content', pr: 'practical', pj: 'project', in: 'insert' };
 function libSend_(ids) {
   ids.forEach(t => { LIB.pending.delete(t); LIB.flying.add(t); });
   const who = USER.token;
-  send({ action: 'readItems', kind: LIB_KIND_[String(ids[0]).split(':')[0]], old: 'libItems', personId: USER.personId || '', ids: ids })
+  send({ action: 'readItems', kind: LIB_KIND_[String(ids[0]).split(':')[0]], personId: USER.personId || '', ids: ids })
     .then(d => {
       if (!USER || USER.token !== who) return;
       libMerge_((d && d.items) || {});
@@ -4503,8 +4503,6 @@ const TABS = [
   { id: 'parents',  icon: '👪', label: 'Parent profile',     title: 'Parent profile', cards: true },
   { id: 'family',  icon: '🔧', label: 'Parent settings',  title: 'Parent settings', cards: true },
   { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings', cards: true },
-  /* APPRENTICE: work experience, a placeholder column beside Tutor settings until it is built (docs/history/570). */
-  { id: 'apprentice', icon: '🧑‍🔧', label: 'Apprentice settings', title: 'Apprentice settings', cards: true },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
@@ -4520,13 +4518,17 @@ const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FI
                    'spotlight', 'feed', 'reel', 'dm',                 /* social (392), below Find; Spotlight left of the posts (461) */
                    'booking', 'shop',                                 /* business */
                    'web', 'tutors', 'students', 'parents',                /* the profiles (730); Apprentice profile is Find › Profiles › Apprentice (find-only.json) */
-                   'staff', 'site', 'account', 'family', 'apprentice', 'biz']; /* the six settings, the owner's order (730); site and biz admin-only */
+                   'staff', 'site', 'account', 'family', 'biz']; /* the settings, the owner's order (730); site and biz admin-only */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
+/* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
+const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true }];
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
 const TABS_BUILT = TABS.slice();
 /* THE CARD COLUMNS (730), left to right: TAB_ORDER and each tab's `cards`, which data/settings/columns.json repeats (check-doors). */
-const CARD_COLS = TAB_ORDER.filter(id => TABS_BUILT.some(t => t.id === id && t.cards));
+const CARD_COLS = TAB_ORDER.filter(id => TABS_BUILT.some(t => t.id === id && t.cards)).concat(SETTING_GROUPS.map(g => g.id));
+/* A CARD COLUMN OR SETTINGS GROUP BY ID: its label and whether it is an admin's (layout.js, me-columns.js). */
+const settingGroupOf_ = id => TABS_BUILT.find(t => t.id === id) || SETTING_GROUPS.find(g => g.id === id) || null;
 const COLUMNS = TABS.slice();
 
 /* ---------- WHICH COLUMNS THIS VIEWER IS GIVEN — THE SMALLEST RULE THAT LEAVES ONE OUT § */
@@ -4633,6 +4635,7 @@ function screen(id, draw) { SCREENS[id] = { draw }; }
 /* ---------- WHERE YOU WERE, IF IT IS STILL A PLACE § */
 /* FIRST VISIT LANDS ON FIND — see `TAB_HOME` above. */
 let AT = TAB_HOME;
+let KEPT_GONE = '';
 /* ---------- REMEMBERED FOR A RELOAD, NOT FOR TOMORROW § */
 /* THE VIEWER'S COLUMNS FIRST — `USER` is already read out of storage (data.js), so an admin reloading on
    Business is put back on it, and anybody else's remembered `biz` is not a column and is let go. */
@@ -4642,6 +4645,8 @@ try {
   const was = kept && screenNow_(kept);
   const when = Number(localStorage.getItem('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
+  /* A REMEMBERED COLUMN THAT IS A FIND BRANCH NOW (screens-moved.json `find:`) opens that branch once the payload is in (`loadFinish_`). */
+  else if (was && when && Date.now() - when < AWAY_AGAIN) KEPT_GONE = was;
 } catch { /* a bad stored tab opens the default one */ }
 /* ---------- AND THE MOMENT IS WHEN YOU LEFT, NOT WHEN YOU ARRIVED § */
 function tabStampLeft_() {
@@ -6206,7 +6211,6 @@ const PAGER = {
   /* AND THE SAME AGAIN FOR SETTINGS. § */
   family: () => cardCount_('family', () => familyPages_().length),
   staff: () => cardCount_('staff', () => staffPages_().length),
-  apprentice: () => cardCount_('apprentice', () => apprenticePages_().length),
   web: () => cardCount_('web', () => webProfilePages_().length),
   tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
   students: () => cardCount_('students', () => peoplePages_('students').length),
@@ -7020,23 +7024,8 @@ function why_(err) {
 
 /* `opts.keepalive` — a request the browser finishes after the page has gone, for the last answers sent as
    an iPad's cover closes (`answersPush_` in js/answers.js). Nothing else passes it. */
-/* ONE WAY TO THE SERVER (step 2): a `readItems`, `saveItem` or `deleteItem` request names the old door it replaces in `old`. */
-/* A backend not yet redeployed answers "unknown action" or "cannot be read/saved/deleted here yet": the old door is asked instead, with the same request. */
-const itemsOld_ = d => !!(d && d.error && (/unknown action|not recognis/i.test(String(d.error))
-  || (d.why === 'kind' && /cannot be (read|saved|deleted) here yet/i.test(String(d.error)))));
-const ITEMS_GENERAL_ = { readItems: 'kind', saveItem: 'item', deleteItem: 'item' };
-function apiItems_(body, opts) {
-  const b = Object.assign({}, body), old = String(b.old);
-  delete b.old;
-  const o = Object.assign({}, b, { action: old });
-  delete o[ITEMS_GENERAL_[b.action]];
-  /* A KEEPALIVE FLUSH (a page closing) gets one request: the old door, unless this backend says it has the general one. */
-  const feats = typeof DATA === 'object' && DATA && Array.isArray(DATA.features) ? DATA.features : null;
-  if (opts && opts.keepalive && b.action !== 'readItems' && !(feats && feats.indexOf(b.action) !== -1)) return api(o, opts);
-  return api(b, opts).then(d => (itemsOld_(d) ? api(o, opts) : d));
-}
+/* ONE WAY TO THE SERVER (step 2): `readItems`, `saveItem` and `deleteItem` are the only doors for what they fold in (slice 5, 15 Nov): no `old:` fallback, a keepalive flush included. */
 function api(body, opts) {
-  if (body && body.old && /^(readItems|saveItem|deleteItem)$/.test(body.action)) return apiItems_(body, opts);
   /* ---------- THE TOKEN GOES ON EVERY REQUEST, FROM ONE PLACE § */
   const b = Object.assign({}, body);
   if (!b.token && typeof USER === 'object' && USER && USER.token) b.token = USER.token;
@@ -8149,6 +8138,8 @@ function loadFinish_(kept) {
   bootLoaded_(true);
   /* THE ADMIN'S FRONT DOOR (489, layout.js), once the layout has come with the payload. */
   try { if (typeof frontGo_ === 'function') frontGo_(); } catch (e) { oops_(e, 'shell:loadOnce_') }
+  /* A REMEMBERED COLUMN THAT MOVED INTO FIND (shell-boot.js `KEPT_GONE`) opens its branch, once, if nothing else was opened meanwhile. */
+  try { const k = KEPT_GONE; if (k && !LOAD_FAILED && AT === TAB_HOME && typeof screenGone_ === 'function' && screenGone_(k)) KEPT_GONE = ''; } catch (e) { oops_(e, 'shell:keptGone_') }
   /* ---------- THE STALE SCREENS, CLEARED BEFORE THE REDRAW § */
   /* ---------- ONCE, NOT ON EVERY LOAD § */
   /* ---------- AND NOT EMPTIED AT ALL ANY MORE — THE GLASS IS DRAWN, THE REST IN THE QUIET AFTER IT § */
@@ -9169,7 +9160,7 @@ on('set-listed', el => {
   tileSet_(el, { label: on ? 'Listed' : 'Not listed', on,
                  note: on ? 'clients can see them' : 'clients cannot see them' });
 
-  api({ action: 'saveItem', item: 'listed', old: 'setListed',
+  api({ action: 'saveItem', item: 'listed',
     adminName: USER.name, name: USER.name,
     who: el.dataset.who, whoId: el.dataset.pid || '', on })
     .then(d => {
@@ -10131,7 +10122,7 @@ function loadMessages() {
   const still = () => !!USER && String(USER.personId || USER.name || '') === who;
   /* `send` FOR THE SAME REASON, and the comment below was written as though it already did. § */
   const asking = { who: who, p: null };
-  asking.p = send({ action: 'readItems', kind: 'message', old: 'messages', name: USER.name, personId: USER.personId })
+  asking.p = send({ action: 'readItems', kind: 'message', name: USER.name, personId: USER.personId })
     .then(d => {
       if (!still()) return [];
       MSG_FAILED = false;
@@ -10381,7 +10372,7 @@ function markRead_(msgs) {
     m.read = true;                                   /* so a redraw before the reply does not re-ask */
     /* ---------- AND WHICH ONES THEY WERE STAYS ON THE SCREEN § */
     m.fresh = true;
-    api({ action: 'saveItem', item: 'message', old: 'readMessage', name: USER.name, personId: USER.personId, messageId: m.id })
+    api({ action: 'saveItem', item: 'message', name: USER.name, personId: USER.personId, messageId: m.id })
       .catch(() => { m.read = false; });
   });
 }
@@ -10953,7 +10944,7 @@ screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('
 function apprenticePages_() {
   return [rolesSet_('appr-set', '', [{ type: 'text', look: 'note', text: brand('apprentice_blurb', 'Work experience with us. Coming soon.') }])];
 }
-screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? cardsOf_('apprentice') : apprenticePages_()));
+/* APPRENTICE SETTINGS WAS A COLUMN; it is Find › Settings › Apprentice now (find-only.json), drawn from CARD_BUILD.apprentice. */
 
 /* ---------- WEB PROFILE (730): @family.'s own public card, from the brand tab, every line with its fallback ---------- */
 function webProfilePages_() {
@@ -11139,7 +11130,7 @@ on('notify-pick', el => {
   /* ---------- THIS BOX'S ROW IS LOCKED, NOT THE CARD § */
   /* THE LENS'S PERSON BY `targetId`: the backend lets an admin (or a parent, for a child) choose for somebody else. */
   const W = whose_();
-  send_(Object.assign({ action: 'saveItem', item: 'notify', old: 'setNotify', name: USER.name, personId: USER.personId || '', kind: kind, on: want }, W === USER ? {} : { targetId: W.personId || '' }),
+  send_(Object.assign({ action: 'saveItem', item: 'notify', name: USER.name, personId: USER.personId || '', kind: kind, on: want }, W === USER ? {} : { targetId: W.personId || '' }),
         { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
     .then(d => {
       /* THIS KIND'S ANSWER, MERGED INTO THE LIST WE HOLD — not the reply's whole list. § */
@@ -11233,6 +11224,8 @@ function settingsSplit_() {
 }
 /* ONE GROUP, ONE CARD, ITS OWN SAVE — `meSave_` posts the boxes of the card it is pressed in, whichever column.
    `col` names the column, so an admin's Split (464, layout.js) can draw a group a field a card, each with its own Save. */
+/* THE LINE UNDER A SETTINGS FORM THAT SAYS WHAT WAS SAVED: one shape, here and on the library shelf (me-settings.js). */
+const ME_SAID_ = { type: 'group', tag: 'p', look: 'note me-said' };
 function settingsCards_(shown, moved, col) {
   const p = whose_().profile || {};
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
@@ -11251,7 +11244,7 @@ function settingsCards_(shown, moved, col) {
       options: fieldOptions_,
     },
     save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
-    foot: (mail(list) ? movingNote_(p) : '') + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said' }),
+    foot: (mail(list) ? movingNote_(p) : '') + cardBlock_(ME_SAID_),
     after: id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '' }));
   const out = [];
   Object.keys(shown).forEach((g, k) => {
@@ -11267,7 +11260,7 @@ function settingsCards_(shown, moved, col) {
 const settingsSplittable_ = list => (list || []).length > 1 && !list.some(isQualField_) && !isTimetable_(list);
 /* ---------- SIX COLUMNS (453): TUTORS, STUDENTS, PARENTS, THEN EACH ACCOUNT TYPE'S SETTINGS ----------
    The owner: "A user in theory could appear in each of these 3 categories" and "split account settings into 3". */
-const tabLabel_ = (id, or) => ((typeof TABS_BUILT !== 'undefined' && TABS_BUILT.find(t => t.id === id)) || {}).label || or;
+const tabLabel_ = (id, or) => ((typeof settingGroupOf_ === 'function' && settingGroupOf_(id)) || {}).label || or;
 /* THE PEOPLE COLUMN OF YOUR RANK, where your own card is shown first (453); what you edit is on Student settings for every rank (469). */
 const homeCol_ = () => rankAtLeast_('staff') ? 'tutors' : rankAtLeast_('client') ? 'parents' : 'students';
 /* DO YOU BELONG IN THIS PEOPLE COLUMN — by rank, or by a family link (a parent is a parent whatever their rank). */
@@ -12332,7 +12325,7 @@ function libCardsDraw_(into) {
     return;
   }
   const p = whose_().profile || {};
-  into.innerHTML = cardBlock_({ type: 'group', look: 'me-form', inner: libraryShelf_(list, f => p[f] ?? '') + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said' }) });
+  into.innerHTML = cardBlock_({ type: 'group', look: 'me-form', inner: libraryShelf_(list, f => p[f] ?? '') + cardBlock_(ME_SAID_) });
 }
 function initLibCards_() { libCardsDraw_($('lib-box')); }
 /* EVERY COPY ON THE PAGE — Tools' and, starred, Saved's — for `myProfile` landing (`profileRefresh_`): § */
@@ -12414,7 +12407,7 @@ function meSave_(el, auto) {
   /* `send_`, NOT `api()`. § */
   /* YOU ASK; `whose_()` IS WHOSE ROW — yours, or the person an admin's lens is on (the backend lets only an admin name another). */
   const W = whose_();
-  send_({ action: 'saveItem', item: 'profile', old: 'updateProfile', name: USER.name, personId: USER.personId || '',
+  send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '',
           target: W.name, targetId: W.personId || '', fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said })
     .then(d => {
@@ -12520,7 +12513,7 @@ function profileRefresh_(loud, onOld) {
   PROFILE_ASKING = true;
   const askedAt = Date.now();
   /* RETURNED, so a caller waiting on a copy it can trust (the card editor, `cardFetch_`) knows when the question has been answered either way — every § */
-  return api({ action: 'readItems', kind: 'profile', old: 'myProfile', name: USER.name, personId: USER.personId || '' })
+  return api({ action: 'readItems', kind: 'profile', name: USER.name, personId: USER.personId || '' })
     .then(d => {
       PROFILE_ASKING = false;
       /* ---------- AN ANSWER OLDER THAN WHAT THE PHONE NOW KNOWS IS NOT PAINTED § */
@@ -13262,7 +13255,7 @@ function cardFetch_(e) {
     return;
   }
   e.asking = true;
-  api({ action: 'readItems', kind: 'card', ids: [e.pid], old: 'getProfile', name: USER.name, personId: USER.personId || '', target: e.pid })
+  api({ action: 'readItems', kind: 'card', ids: [e.pid], name: USER.name, personId: USER.personId || '', target: e.pid })
     .then(d => {
       e.asking = false;
       if (CARD_EDIT !== e) return;
@@ -13775,7 +13768,7 @@ function cardSave_(el, auto) {
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === e.pid) || {};
   /* `own` IS `whose_()`'S CARD: yours, or the lens's person's, written to their row by `targetId`. */
   const W = whose_();
-  send_({ action: 'saveItem', item: 'profile', old: 'updateProfile', name: USER.name, personId: USER.personId || '',
+  send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '',
           target: e.own ? W.name : (t.title || ''), targetId: e.pid, fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said, lock: pane })
     .then(d => {
@@ -13814,7 +13807,7 @@ on('card-cancel', el => {
   if (!picBack) { cardClose_(e, pane, sec); return; }
   const form = (card || pane) && (card || pane).querySelector((card ? '' : '.card-ed ') + '.me-form');
   const said = form && form.querySelector('.me-said');
-  send_({ action: 'saveItem', item: 'profile', old: 'updateProfile', name: USER.name, personId: USER.personId || '', target: USER.name,
+  send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '', target: USER.name,
           targetId: e.pid, fields: { photo: was } },
         { button: el, where: said, lock: pane })
     .then(d => {
@@ -14050,7 +14043,7 @@ function peopleRedraw_() {
   PEOPLE_COLS_.forEach(c => { if (typeof AT !== 'undefined' && AT === c) repaint(true); else markStale_(c); });
 }
 function personFetch_(F) {
-  send_({ action: 'readItems', kind: 'person', ids: F.id ? [F.id] : [], old: 'personGet', personId: (USER && USER.personId) || '', targetId: F.id })
+  send_({ action: 'readItems', kind: 'person', ids: F.id ? [F.id] : [], personId: (USER && USER.personId) || '', targetId: F.id })
     .then(d => { if (PEOPLE_FORM_ !== F) return; F.data = { person: d.person || null, parents: d.parents || [] }; peopleRedraw_(); })
     .catch(e => { if (PEOPLE_FORM_ !== F) return; F.err = (e && e.message) || 'That could not be opened.'; peopleRedraw_(); });
 }
@@ -14094,7 +14087,7 @@ on('person-save', el => {
   const parentIds = roles.indexOf('student') === -1 ? []
     : [...form.querySelectorAll('[data-pf-parent]')].filter(x => x.checked).map(x => x.getAttribute('data-pf-parent'))
       .concat(val('parent') ? [val('parent')] : []);
-  send_({ action: 'saveItem', item: 'person', old: 'personSave', personId: USER.personId || '', targetId: F.id, firstName: val('first'),
+  send_({ action: 'saveItem', item: 'person', personId: USER.personId || '', targetId: F.id, firstName: val('first'),
           lastName: val('last'), roles, email: val('email'), dob: val('dob'), parentIds },
         { button: el, where: said, lock: form })
     .then(d => {
@@ -14147,7 +14140,7 @@ on('person-del', el => {
   const id = el.getAttribute('data-id') || '';
   if (!id) return;
   if (!sure_(el, 'Tap again to confirm')) return;
-  send_({ action: 'deleteItem', item: 'person', old: 'personDelete', personId: USER.personId || '', targetId: id }, { button: el })
+  send_({ action: 'deleteItem', item: 'person', personId: USER.personId || '', targetId: id }, { button: el })
     .then(() => {
       peoplePut_(null, id);
       if (PEOPLE_FORM_ && PEOPLE_FORM_.id === id) PEOPLE_FORM_ = null;
@@ -14195,7 +14188,7 @@ on('pe-notify', el => {
   const F = PERSON_ED_, kind = String((el && el.dataset.kind) || ''), want = !!(el && el.checked);
   if (!F || !F.data || !kind || !personEdMay_()) return;
   const said = el.closest('.pe-form') && el.closest('.pe-form').querySelector('.pe-said');
-  send_({ action: 'saveItem', item: 'notify', old: 'setNotify', personId: (USER && USER.personId) || '', targetId: F.id, kind, on: want }, { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
+  send_({ action: 'saveItem', item: 'notify', personId: (USER && USER.personId) || '', targetId: F.id, kind, on: want }, { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
     .then(d => {
       const on = d && typeof d.on === 'boolean' ? d.on : want;
       if (PERSON_ED_ === F && F.data.notify) F.data.notify = Object.assign({}, F.data.notify, { kinds: (F.data.notify.kinds || []).map(k => k.kind === kind ? Object.assign({}, k, { on }) : k) });
@@ -14224,7 +14217,7 @@ function peSave_(form) {
   const fields = peFields_(form), said = form.querySelector('.pe-said'), key = JSON.stringify(fields);
   if (key === F.sent) return;
   form.classList.add('is-sending');
-  send_({ action: 'saveItem', item: 'profile', old: 'updateProfile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
+  send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
     .then(d => { F.sent = key; F.moved = true; if (said) said.textContent = '✓ ' + ((d && d.said) || 'Saved'); })
     .catch(() => {})
     .then(() => form.classList.remove('is-sending'));
@@ -14244,7 +14237,7 @@ on('person-edit', el => {
   if (!id) return;
   const F = PERSON_ED_ = { id, name: el.getAttribute('data-name') || '', data: null };
   peRedraw_();
-  send_({ action: 'readItems', kind: 'person', ids: [id], old: 'personGet', personId: USER.personId || '', targetId: id })
+  send_({ action: 'readItems', kind: 'person', ids: [id], personId: USER.personId || '', targetId: id })
     .then(d => { if (PERSON_ED_ !== F) return; F.data = { person: d.person || {}, parents: d.parents || [], notify: d.notify || null }; peRedraw_(); })
     .catch(e => { if (PERSON_ED_ !== F) return; F.err = (e && e.message) || 'Their details could not be opened.'; peRedraw_(); });
 });
@@ -14343,7 +14336,7 @@ on('pa-save', el => {
   if (!val('first') || !val('last')) { if (said) said.textContent = 'A first name and a last name, please.'; return; }
   if (F.role !== 'student' && !val('email')) { if (said) said.textContent = 'An email, please — the PIN goes there.'; return; }
   const ids = F.picked.map(x => x.id);
-  send_({ action: 'saveItem', item: 'person', old: 'personSave', personId: USER.personId || '', targetId: '', firstName: val('first'), lastName: val('last'),
+  send_({ action: 'saveItem', item: 'person', personId: USER.personId || '', targetId: '', firstName: val('first'), lastName: val('last'),
           roles: [F.role], email: val('email'), dob: val('dob'), parentIds: F.role === 'student' ? ids : [], invite: false },
         { button: el, where: said, lock: card })
     .then(d => {

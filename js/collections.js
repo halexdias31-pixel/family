@@ -43,7 +43,7 @@ function toggleSpot(k, kind) {
 
   /* ---------- THIS CALLED `send` WITH TWO ARGUMENTS AND `send` TAKES ONE § */
   send({
-    action: 'saveItem', item: 'spotlight', old: 'spotlight',
+    action: 'saveItem', item: 'spotlight',
     name: USER.name,
     /* ---------- AND THE ID, BECAUSE A NAME IS A CELL SOMEBODY CAN EDIT § */
     personId: (USER && USER.personId) || '',

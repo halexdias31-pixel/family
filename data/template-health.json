@@ -1,8 +1,8 @@
 {
  "generated": "tools/template-health.js",
- "cards": 937,
+ "cards": 940,
  "kinds": 34,
- "shapes": 12,
+ "shapes": 13,
  "modes": {
   "390": {
    "tagFs": "23.1192",
@@ -19,120 +19,120 @@
   {
    "id": "tpl-built",
    "label": "Rendered cards: drawn by the template (findCard/card_)",
-   "ok": 865,
-   "of": 937,
+   "ok": 868,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-order",
    "label": "Rendered cards: parts in order: picture, tags, content, tile row last",
-   "ok": 865,
-   "of": 937,
+   "ok": 868,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-picture",
    "label": "Rendered cards: a picture only when real",
-   "ok": 937,
-   "of": 937,
+   "ok": 940,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-tags",
    "label": "Rendered cards: a tag row of pills, the name a tag",
-   "ok": 804,
-   "of": 937,
+   "ok": 805,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-tag-look",
    "label": "Rendered cards: every tag the one pill (size, ends, border)",
-   "ok": 913,
-   "of": 937,
+   "ok": 916,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-title",
    "label": "Rendered cards: no title line outside the tags",
-   "ok": 919,
-   "of": 937,
+   "ok": 922,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-tiles",
    "label": "Rendered cards: one row of tiles at the bottom",
    "ok": 19,
-   "of": 937,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-tile-size",
    "label": "Rendered cards: every tile the one round icon size",
-   "ok": 937,
-   "of": 937,
+   "ok": 940,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-stray",
    "label": "Rendered cards: no button or link outside the tile row or a form",
-   "ok": 821,
-   "of": 937,
+   "ok": 824,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-width",
    "label": "Rendered cards: no wider than the measure",
-   "ok": 937,
-   "of": 937,
+   "ok": 940,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-centre",
    "label": "Rendered cards: centred: card, text and tile row",
-   "ok": 865,
-   "of": 937,
+   "ok": 868,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-font",
    "label": "Rendered cards: font sizes from --fs",
-   "ok": 919,
-   "of": 937,
+   "ok": 922,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-colour",
    "label": "Rendered cards: text colours from the palette",
-   "ok": 937,
-   "of": 937,
+   "ok": 940,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-radius",
    "label": "Rendered cards: corners from the radius tokens",
-   "ok": 937,
-   "of": 937,
+   "ok": 940,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-inline",
    "label": "Rendered cards: no inline style",
-   "ok": 937,
-   "of": 937,
+   "ok": 940,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-spacing",
    "label": "Rendered cards: padding and gaps from the --s scale",
-   "ok": 937,
-   "of": 937,
+   "ok": 940,
+   "of": 940,
    "unit": "cards seen"
   },
   {
    "id": "tpl-same",
    "label": "Rendered cards with the same tag, tile and padding sizes as the rest",
-   "ok": 817,
-   "of": 937,
+   "ok": 820,
+   "of": 940,
    "unit": "cards seen"
   },
   {
@@ -153,7 +153,7 @@
    "id": "tpl-variety",
    "label": "Card shapes across all kinds (ideal: 1 + owner exceptions)",
    "ok": 2,
-   "of": 12,
+   "of": 13,
    "unit": "distinct shapes",
    "variety": true
   }
@@ -194,11 +194,11 @@
    }
   },
   "menu": {
-   "cards": 45,
+   "cards": 47,
    "clean": 0,
    "props": {
-    "tags": 45,
-    "tiles": 36,
+    "tags": 47,
+    "tiles": 38,
     "stray": 45
    }
   },
@@ -388,10 +388,10 @@
    }
   },
   "shop": {
-   "cards": 23,
+   "cards": 24,
    "clean": 0,
    "props": {
-    "tiles": 23
+    "tiles": 24
    }
   },
   "rank": {
@@ -872,7 +872,7 @@
   },
   {
    "kind": "tpl-tiles",
-   "where": "find:Settings:setting",
+   "where": "check/shots/template/admin-390-lens-card-tiles.png",
    "say": "lens-card on find:Settings:setting as admin at 390: tiles — expected one row, got 2 lines of tiles (div.tile-row.kc-row)"
   },
   {
@@ -2323,7 +2323,7 @@
   {
    "kind": "tpl-variety-kind",
    "where": "data/template-health.json",
-   "say": "menu: 2 shapes — tags>lines>act|stray,tags,tiles ; tags>lines>act|stray,tags"
+   "say": "menu: 3 shapes — tags>lines>act|stray,tags,tiles ; tags>lines>act|tags,tiles ; tags>lines>act|stray,tags"
   },
   {
    "kind": "tpl-variety-kind",

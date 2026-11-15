@@ -93,7 +93,7 @@ on('oq-answer', el => {
   if (!box || !OQ.answers) { toast('The answers are still on their way — a moment.'); return; }
   const note = String((box.querySelector('[data-oq-note]') || {}).value || '').trim();
   if (choice === 'note' && !note) { toast('Write the note first.'); return; }
-  send_({ action: 'saveItem', item: 'ownerAnswer', old: 'saveOwnerAnswer', name: USER && USER.name, id, choice, note },
+  send_({ action: 'saveItem', item: 'ownerAnswer', name: USER && USER.name, id, choice, note },
         { button: el, where: box.querySelector('.oq-said'), busy: 'Saving…' })
     .then(d => { OQ.answers[id] = (d && d.answer) || { id, choice, note }; checksDraw_(); })
     .catch(() => { /* send_ already said why in the line */ });

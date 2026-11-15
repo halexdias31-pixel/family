@@ -284,6 +284,8 @@ function loadFinish_(kept) {
   bootLoaded_(true);
   /* THE ADMIN'S FRONT DOOR (489, layout.js), once the layout has come with the payload. */
   try { if (typeof frontGo_ === 'function') frontGo_(); } catch (e) { oops_(e, 'shell:loadOnce_') }
+  /* A REMEMBERED COLUMN THAT MOVED INTO FIND (shell-boot.js `KEPT_GONE`) opens its branch, once, if nothing else was opened meanwhile. */
+  try { const k = KEPT_GONE; if (k && !LOAD_FAILED && AT === TAB_HOME && typeof screenGone_ === 'function' && screenGone_(k)) KEPT_GONE = ''; } catch (e) { oops_(e, 'shell:keptGone_') }
   /* ---------- THE STALE SCREENS, CLEARED BEFORE THE REDRAW § */
   /* ---------- ONCE, NOT ON EVERY LOAD § */
   /* ---------- AND NOT EMPTIED AT ALL ANY MORE — THE GLASS IS DRAWN, THE REST IN THE QUIET AFTER IT § */

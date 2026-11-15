@@ -550,12 +550,12 @@ function libPump_() {
     libSend_(all.filter(t => String(t).indexOf(pre) === 0).slice(0, LIB_PER_ASK));
   }
 }
-/* THE KIND EACH WIRE ID IS, for `readItems`: READ_ITEMS_LIB the other way round; one it does not serve yet (an insert) falls back to libItems. */
+/* THE KIND EACH WIRE ID IS, for `readItems`: READ_ITEMS_LIB the other way round; one it does not serve (an insert) is refused, as libItems refused it. */
 const LIB_KIND_ = { q: 'question', ct: 'content', pr: 'practical', pj: 'project', in: 'insert' };
 function libSend_(ids) {
   ids.forEach(t => { LIB.pending.delete(t); LIB.flying.add(t); });
   const who = USER.token;
-  send({ action: 'readItems', kind: LIB_KIND_[String(ids[0]).split(':')[0]], old: 'libItems', personId: USER.personId || '', ids: ids })
+  send({ action: 'readItems', kind: LIB_KIND_[String(ids[0]).split(':')[0]], personId: USER.personId || '', ids: ids })
     .then(d => {
       if (!USER || USER.token !== who) return;
       libMerge_((d && d.items) || {});

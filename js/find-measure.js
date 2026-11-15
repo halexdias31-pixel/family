@@ -14,7 +14,7 @@ function docketSave(list) {
     clearTimeout(dockTimer);
     keepDue_('docket', null);
     if (!USER) return;
-    return api({ action: 'saveItem', item: 'todo', old: 'saveTodo',
+    return api({ action: 'saveItem', item: 'todo',
       name: USER.name, personId: USER.personId, todo: USER.todo }, keepalive ? { keepalive: true } : undefined)
       .then(d => {
         if (d && d.error) throw new Error(d.error);
@@ -162,7 +162,7 @@ function padSend_(keepalive) {
   clearTimeout(padTimer);
   keepDue_('notepad', null);
   if (!USER) return;
-  return api({ action: 'saveItem', item: 'notepad', old: 'saveNotepad',
+  return api({ action: 'saveItem', item: 'notepad',
     name: USER.name, personId: USER.personId, notepad: USER.notepad }, keepalive ? { keepalive: true } : undefined)
     .then(d => {
       if (d && d.error) throw new Error(d.error);

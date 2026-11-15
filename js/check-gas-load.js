@@ -170,6 +170,7 @@ function backend(extra) {
       const o = {}; h.forEach((c, i) => { o[c] = r[i]; }); return o;
     },
     post(body) {
+      body = retiredAs_(body);
       ev('clearCache()'); out = null; const w = log.writes;
       const res = ev('doPost(' + JSON.stringify({ postData: { contents: JSON.stringify(body) } }) + ')');
       const d = JSON.parse(out !== null ? out : res.getContent());
@@ -184,6 +185,29 @@ function backend(extra) {
       return JSON.parse(out !== null ? out : res.getContent());
     },
   };
+}
+
+
+/* ONE WAY TO THE SERVER (slice 5, 15 Nov): the old per-kind doors are gone from doPost. */
+/* A check posting one asks what the site now asks: readItems/saveItem/deleteItem, answered by that door's own handler. */
+const RETIRED_WRITE_ = { updateProfile: 'profile', saveNotepad: 'notepad', saveTodo: 'todo', setNotify: 'notify', saveAnswers: 'answer',
+  favourite: 'favourite', readMessage: 'message', editPost: 'post', layoutSave: 'layout', wordsSave: 'words', setListed: 'listed',
+  personSave: 'person', spotlight: 'spotlight', saveOwnerAnswer: 'ownerAnswer' };
+const RETIRED_DELETE_ = { deletePost: 'post', personDelete: 'person' };
+const LIB_PRE_ = { q: 'question', ct: 'content', pr: 'practical', pj: 'project' };
+function retiredAs_(body) {
+  const b = body || {}, a = b.action, o = Object.assign({}, b);
+  if (RETIRED_WRITE_[a]) return Object.assign(o, { action: 'saveItem', item: RETIRED_WRITE_[a] });
+  if (RETIRED_DELETE_[a]) return Object.assign(o, { action: 'deleteItem', item: RETIRED_DELETE_[a] });
+  const t = b.targetId || b.target || '';
+  if (a === 'myProfile') return Object.assign(o, { action: 'readItems', kind: 'profile' });
+  if (a === 'lensOpen') return Object.assign(o, { action: 'readItems', kind: 'profile', ids: t ? [t] : [] });
+  if (a === 'getProfile') return Object.assign(o, { action: 'readItems', kind: 'card', ids: t ? [t] : [] });
+  if (a === 'personGet') return Object.assign(o, { action: 'readItems', kind: 'person', ids: t ? [t] : [] });
+  if (a === 'myAnswers') return Object.assign(o, { action: 'readItems', kind: 'answer' });
+  if (a === 'messages') return Object.assign(o, { action: 'readItems', kind: 'message' });
+  if (a === 'libItems') return Object.assign(o, { action: 'readItems', kind: LIB_PRE_[String((b.ids || [])[0] || '').split(':')[0]] || 'question' });
+  return b;
 }
 
 
