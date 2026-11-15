@@ -1,12 +1,15 @@
-BINDING CLAIMS — CODIFIED (v2, 15 Nov 2026)
+BINDING CLAIMS — CODIFIED (v3, 15 Nov 2026)
 
 THESIS
- Compare only what each AUTHORITY binds its members to believe about checkable history (miracles excluded for both).
- T := (∀c∈B_O ¬Contra(c)) ∧ (∃c∈B_S Contra(c))
- Status: VALID given P1, P2|P3a, P3b, P5, P6. Z3: 0 surprises (check_v2.py -> checks_v2.out).
- Change from v1: P3 split into P3a (the verse binds) and P3b (the reader stays inside Sunnism).
+ On neutral ground, every binding historical claim of the Orthodox Church fits the historical record; Sunni Islam's
+ binding denial of the crucifixion does not, and can be kept only by an undetectable miracle known only from the Qur'an
+ itself (circular / faith over evidence), by leaving Sunnism (Ahmadi or other readings), or by a double standard
+ against the record.
+ T := (∀c∈B_O ¬Contra(c)) ∧ (∃c∈B_S Contra(c))      T3 := Sunni ∧ Neutral ∧ ¬SP ∧ ¬Circ ⊢ E1
+ Status: VALID. Z3 (binding-claims-checks.py): Part A (v2) + Part B (v3) — ALL AS EXPECTED, 0 surprises.
+ Interlocutor: M (Sunni).
 
-PREMISES
+PREMISES (v2, Part A)
  P1 academic consensus: Jesus died by crucifixion under Pilate
  P2 Sunni consensus: denying any Qur'anic verse is kufr -> every verse binding
  P3a 4:157 itself is binding text (follows from P2; listed separately)
@@ -57,8 +60,62 @@ OPEN (remaining)
  O3 small Orthodox binding set = low exposure; T is binary, not a risk measure.
  O4 no binding Orthodox liturgical/hagiographical item found that history contradicts; not exhaustive.
  O5 primary-text checks still pending: Shaltut al-Fatawa Arabic; Rida al-Manar on 3:55; Ware page reference; Qadi Iyad Shifa.
- Verdict: thesis VALID and SOUND given P1 and P5 (academic) and P6 (now sourced). M's only exits are leaving Sunnism
+ Verdict (v2): thesis VALID and SOUND given P1 and P5 (academic) and P6 (now sourced). M's only exits are leaving Sunnism
  (Ayoub/Ahmadi readings) or arguing an inferential detail-inerrancy from Dositheus.
+
+PART B (v3) — 4:157 "wa-lakin shubbiha lahum" (it was made to appear so to them)
+
+VARIABLES
+ Seen      witnesses saw Jesus crucified (attested)          Rec     record: Jesus died on a Roman cross
+ AccRec    M accepts Rec                                      Kil     Jesus was killed on the cross
+ Bind      Sunni binding claim ¬Kil (4:157; P2,P3a)           Swap    undetectable divine substitution
+ Undet     Undetect(Swap)                                     SrcQ    SrcSwap = Qur'an only (the authority under test)
+ ContraS   Sunni binding claim contradicted by Rec            Even    an even-handed reason to reject Rec
+ Neutral   neutral-ground rule in force                       Circ    circular   Faith  overrides record   SP  special pleading
+ Beyond(x) x adds to the record    Against(x) x cancels a recorded fact    Res  Resurrection
+ OAg       some Orthodox binding claim needs an Against-override
+
+NEUTRAL GROUND (rule N)
+ In this test only shared evidence counts. A reason that presupposes the authority under test (the Qur'an's own claims,
+ its i'jaz/inimitability, its self-attestation) is Circ.   N: Neutral ∧ Swap ∧ SrcQ → Circ
+
+PREMISES (v3)
+ Q1 Seen → Rec                                        Q2 AccRec ∧ Rec ∧ ¬Swap → Kil;  Swap → ¬Kil
+ Q3 Sunni → Bind                                      Q4 ContraS ↔ Bind ∧ AccRec ∧ Rec ∧ ¬Swap
+ Q5 Swap → Undet ∧ SrcQ                               Q6 Against(Swap) ↔ Swap;  Against(Swap) ∧ Undet → Faith
+ Q7 ¬AccRec ∧ ¬Even → SP                              P8 ¬Even (crucifixion meets the standard M uses for any
+                                                         ancient fact; rejecting it would also sink his own sources)
+ Q8 no source records ¬Res:  Against(Res) ↔ ⊥,  Beyond(Res) ↔ ⊤
+ Q9 ¬OAg (P5: crucified under Pilate, died, buried — fit Rec, no override needed)
+ Q10 E5 → ¬P6;  P6 (v2 O1)                            Seen
+
+EXITS (for M; defined)
+ E1 Sunni ∧ ContraS     concede a binding claim of his authority is contradicted by the record
+ E2 Swap                invoke undetectable substitution → Faith ∧ Circ (leaves neutral ground)
+ E3 ¬Sunni              Ahmadi (survived the cross) or non-Sunni reading (Ayoub, Shi'i)
+ E4 ¬AccRec             deny P1/Rec → needs an even reason, else SP; an even reason also undercuts his own history
+ E5 ¬P6                 Orthodoxy binds detail-inerrancy (Dositheus inference) — text says "as the Church hath
+                        interpreted"; no council defines it (v2 O1)
+
+CHECKS (Z3, Part B)
+ B-C1, B-C2  axioms consistent; + Sunni ∧ Neutral consistent                         sat
+ B1   Sunni ∧ AccRec ∧ ¬Swap ⊢ ContraS        (¬Kil fits Rec only if Swap)            unsat  [non-vacuous: sat]
+ B2   Neutral ∧ Swap ⊢ Circ ∧ Faith                                                   unsat  [non-vacuous: sat]
+ B3   r ∧ (r ∧ ¬ov → ¬q) ∧ ov ∧ q  sat for ANY q; without ov unsat → undetectable override rescues any claim
+      from any evidence = unfalsifiable
+ B4   ⊢ Beyond(Res) ∧ ¬Against(Res)                                                    unsat
+ B4b  Orthodox + Res on neutral ground with ¬Circ ∧ ¬Faith ∧ ¬OAg                      sat
+ B5   ⊢ E1 ∨ E2 ∨ E3 ∨ E4 ∨ E5  (exhaustive)                                           unsat
+ B6   Sunni ∧ Neutral ∧ ¬SP ∧ ¬Circ ⊢ E1                                               unsat  [non-vacuous: sat]
+ B7   E2 ∧ Neutral ⊢ Circ    B8 E4 ⊢ SP    B9 E3 ⊢ ¬Sunni    B10 E5 ⊥ given P6         unsat each
+ E1..E4 each reachable                                                                 sat
+ red team (b) drop Neutral: Sunni ∧ ¬SP ∧ ¬E1 possible via Swap                        sat  (N is load-bearing)
+ red team (c) drop P8: E4 without SP possible                                          sat  (P8 is load-bearing)
+
+VERDICT (v3)
+ Asymmetry: Orthodox binding claims need no override; Res is Beyond the record, not Against it. Sunni ¬Kil is Against Rec.
+ On neutral ground without fallacy M's only exit is E1. E2 = Faith/Circ; E3 = leaves Sunnism; E4 = SP (given P8);
+ E5 = fails on the text (P6).
 
 SOURCES
  Confession of Dositheus, Decree 2 (Robertson 1899, crivoice.org/creeddositheus.html; Leith, Creeds of the Churches 1982);
@@ -66,4 +123,5 @@ SOURCES
  Shaltut, al-Fatawa (al-Azhar) pp.52-58 [quoted via Lahore Ahmadiyya compilation muslim.org/islam/deathj-5.htm - partisan];
  Ayoub, "Towards an Islamic Christology II: The Death of Jesus, Reality or Delusion", Muslim World 70 (1980) 91-121, p.106;
  Lawson, The Crucifixion and the Qur'an (Oneworld 2009); Reynolds, "The Muslim Jesus: Dead or Alive?", BSOAS 72 (2009) 237-58;
- Tabari, Ibn Kathir on 4:157; Tacitus Ann. 15.44; Ehrman 2012; Crossan 1994.
+ Tabari, Ibn Kathir on 4:157; Tacitus Ann. 15.44; Josephus Ant. 18.63-64; 1 Cor 15:3-4; Mk 15; Ehrman 2012; Crossan 1994;
+ Qur'an 4:157-158; Lawson 2009 and Reynolds 2009 (shubbiha lahum readings); Sanders, The Historical Figure of Jesus (1993).
