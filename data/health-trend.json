@@ -1267,5 +1267,32 @@
    "bigNotes": 0,
    "spread": 12
   }
+ },
+ {
+  "date": "2026-11-15",
+  "commit": "d1735a1",
+  "score": 86.4,
+  "parts": {
+   "code": 92.2,
+   "logic": 86,
+   "ui": 89.2,
+   "cost": 63.7,
+   "business": 15.4,
+   "content": 99
+  },
+  "topKind": "biz-checker",
+  "effort": {
+   "commits": 30,
+   "medianLines": 210,
+   "worstLines": 3099,
+   "medianFiles": 10,
+   "worstFiles": 54,
+   "testBytes": 5595940,
+   "testBiggest": 373162,
+   "historyBytes": 4608885,
+   "historyBiggest": 38859,
+   "bigNotes": 0,
+   "spread": 12
+  }
  }
 ]

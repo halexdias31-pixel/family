@@ -219,7 +219,8 @@ const ev = (key, answer, verdict, more) => Object.assign({ id: ID(), key: key, a
   asked++;
   if (!hal.people || !hal.people['P-S1'] || hal.people['P-S1'].n !== 3 || !/^\d{4}-\d{2}-\d{2}$/.test(hal.people['P-S1'].last)) bad.push('the admin’s summary for Ada is ' + JSON.stringify(hal.people && hal.people['P-S1']) + ' — wanted n 3 (five presses on three questions: a question sent twice is one, and a worksheet’s boxes are one) and the day of her last');
   if (!hal.people || !hal.people['P-S2'] || hal.people['P-S2'].n !== 1) bad.push('the admin is not sent Ben’s summary: ' + JSON.stringify(hal.people));
-  if (/15|because|temperature|Ben’s answer/.test(JSON.stringify(hal.people || {})) || Object.keys(hal.mine || {}).length) bad.push('the admin is sent somebody’s answers — a summary is counts and a day: ' + JSON.stringify(hal).slice(0, 200));
+  /* THE DAY IS STRIPPED FIRST: on the 15th of a month `last` itself holds 15, the answer this looks for. */
+  if (/15|because|temperature|Ben’s answer/.test(JSON.stringify(hal.people || {}).replace(/"last":"\d{4}-\d{2}-\d{2}"/g, '')) || Object.keys(hal.mine || {}).length) bad.push('the admin is sent somebody’s answers — a summary is counts and a day: ' + JSON.stringify(hal).slice(0, 200));
   asked++;
   [['a visitor with no token', anon], ['a visitor NAMING Ada in the URL', spoof]].forEach(([who, a]) => {
     if (!a || a.for !== '' || Object.keys(a.mine || {}).length || a.people) bad.push(who + ' was sent submissions: ' + JSON.stringify(a));

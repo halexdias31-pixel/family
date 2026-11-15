@@ -1,7 +1,7 @@
 {
- "score": 74.3,
- "questions": 202,
- "healthy": 150,
+ "score": 75.5,
+ "questions": 196,
+ "healthy": 148,
  "walked": {
   "nodes": 300,
   "maxNodes": 300,
@@ -28,12 +28,12 @@
   {
    "id": "subtype",
    "label": "a finer question asked before its coarser one",
-   "count": 29
+   "count": 28
   },
   {
    "id": "siblings",
    "label": "sibling branches ask their next question in different orders",
-   "count": 7
+   "count": 5
   },
   {
    "id": "echo",
@@ -81,6 +81,15 @@
    ]
   },
   {
+   "where": "Find › Library › Maths › GCSE",
+   "asks": "Exam board",
+   "cards": 46,
+   "why": [
+    "two answers that keep exactly the same cards: AQA = OCR",
+    "an umbrella answer, a parent beside its child, or one label twice in a menu (overlap across subjects is fine): parent \"Edexcel\" (26) beside its child \"AQA\" (15)"
+   ]
+  },
+  {
    "where": "Find › Library › Physical Education › Fights › February",
    "asks": "Fighter",
    "cards": 10,
@@ -92,47 +101,23 @@
   {
    "where": "Find",
    "asks": "What kind",
-   "cards": 283432,
+   "cards": 221020,
    "why": [
     "a finer question asked before its coarser one: What kind before What for"
    ]
   },
   {
-   "where": "Find › Library › Religious Studies",
-   "asks": "Religion",
-   "cards": 240857,
-   "why": [
-    "sibling branches ask their next question in different orders: Christianity asks Work, Islam asks Collection; Christianity asks Work, Judaism asks Collection"
-   ]
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity",
-   "asks": "Work",
-   "cards": 170845,
-   "why": [
-    "a finer question asked before its coarser one: Work before Primary or secondary source"
-   ]
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Bible",
-   "asks": "Collection",
-   "cards": 156723,
-   "why": [
-    "an umbrella answer, a parent beside its child, or one label twice in a menu (overlap across subjects is fine): parent \"Old Testament\" (116363) beside its child \"Psalter\" (5054)"
-   ]
-  },
-  {
    "where": "Find › Practice",
    "asks": "Which",
-   "cards": 31613,
+   "cards": 31850,
    "why": [
-    "an umbrella answer, a parent beside its child, or one label twice in a menu (overlap across subjects is fine): parent \"Questions\" (31531) beside its child \"Answers\" (30343)"
+    "an umbrella answer, a parent beside its child, or one label twice in a menu (overlap across subjects is fine): parent \"Questions\" (31768) beside its child \"Answers\" (30580)"
    ]
   },
   {
    "where": "Find › Practice › Questions",
    "asks": "Subject",
-   "cards": 31531,
+   "cards": 31768,
    "why": [
     "sibling branches ask their next question in different orders: English Literature asks Exam board, Geography asks Level; English Literature asks Exam board, Psychology asks Level"
    ]
@@ -140,7 +125,7 @@
   {
    "where": "Find › Practice › Answers",
    "asks": "Subject",
-   "cards": 30343,
+   "cards": 30580,
    "why": [
     "sibling branches ask their next question in different orders: Biology asks Type, Maths asks Level; Chemistry asks Type, Maths asks Level"
    ]
@@ -154,14 +139,6 @@
    ]
   },
   {
-   "where": "Find › Library › Religious Studies › Judaism › Second Temple",
-   "asks": "Work",
-   "cards": 5455,
-   "why": [
-    "a finer question asked before its coarser one: Work before Translation"
-   ]
-  },
-  {
    "where": "Find › Library › English Literature",
    "asks": "Translation",
    "cards": 5216,
@@ -170,11 +147,11 @@
    ]
   },
   {
-   "where": "Find › Library › History",
-   "asks": "Manuscripts, people, writings, events or timelines",
-   "cards": 3619,
+   "where": "Find › Library › Religious Studies › Judaism › Second Temple",
+   "asks": "Work",
+   "cards": 5133,
    "why": [
-    "sibling branches ask their next question in different orders: Events asks Theatre, Timelines asks Era; Timelines asks Era, Events asks Theatre"
+    "a finer question asked before its coarser one: Work before Translation"
    ]
   },
   {
@@ -204,7 +181,7 @@
   {
    "where": "Find › Library › Physics",
    "asks": "Topic",
-   "cards": 151,
+   "cards": 259,
    "why": [
     "an answer that repeats the answer above it: Physics › Astrophysics; Physics › Nuclear Physics; Physics › Space Physics"
    ]
@@ -226,27 +203,19 @@
    ]
   },
   {
+   "where": "Find › Library › Maths › A-Level › KS5",
+   "asks": "Topic",
+   "cards": 51,
+   "why": [
+    "two answers that keep exactly the same cards: Tree Diagrams = Venn Diagrams & Set Notation"
+   ]
+  },
+  {
    "where": "Find › Library › English Language › SATs",
    "asks": "Topic",
    "cards": 49,
    "why": [
     "two answers that keep exactly the same cards: Adjectives = Adverbs; Antonyms = Synonyms; Brackets = Dashes"
-   ]
-  },
-  {
-   "where": "Find › Settings",
-   "asks": "Account type",
-   "cards": 44,
-   "why": [
-    "an umbrella answer, a parent beside its child, or one label twice in a menu (overlap across subjects is fine): parent \"Student\" (17) beside its child \"Parent\" (7); parent \"Staff\" (16) beside its child \"Parent\" (7); parent \"Apprentice\" (8) beside its child \"Parent\" (7)"
-   ]
-  },
-  {
-   "where": "Find › Library › Maths › A-Level",
-   "asks": "Topic",
-   "cards": 36,
-   "why": [
-    "two answers that keep exactly the same cards: Tree Diagrams = Venn Diagrams & Set Notation"
    ]
   },
   {
@@ -256,40 +225,80 @@
    "why": [
     "a finer question asked before its coarser one: Fighter before Division"
    ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Fighters › 2010s",
+   "asks": "Fighter",
+   "cards": 34,
+   "why": [
+    "a finer question asked before its coarser one: Fighter before Division"
+   ]
+  },
+  {
+   "where": "Find › Practice › Practicals › Chemistry",
+   "asks": "Topic",
+   "cards": 31,
+   "why": [
+    "an answer that repeats the answer above it: Chemistry › Organic Chemistry; Chemistry › Quantitative Chemistry"
+   ]
+  },
+  {
+   "where": "Find › Library › English Literature › Anthology › Unseen poetry",
+   "asks": "Chapter",
+   "cards": 30,
+   "why": [
+    "a finer question asked before its coarser one: Chapter before Unit"
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Fights › June",
+   "asks": "Year",
+   "cards": 30,
+   "why": [
+    "a finer question asked before its coarser one: Year before Decade"
+   ]
   }
  ],
  "menuRule": [
   {
    "where": "Find › Library",
    "asks": "subject",
-   "bits": 0.35,
-   "best": "wLanguage",
-   "bestBits": 1.93,
-   "cards": 251724
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity",
-   "asks": "wWork",
-   "bits": 0.74,
-   "best": "wCollection",
-   "bestBits": 1.85,
-   "cards": 170845
+   "bits": 0.45,
+   "best": "wSection",
+   "bestBits": 2,
+   "cards": 189088
   },
   {
    "where": "Find › Library › Religious Studies",
    "asks": "wReligion",
-   "bits": 1.29,
+   "bits": 0.75,
    "best": "wCollection",
    "bestBits": 2,
-   "cards": 240857
+   "cards": 177991
   },
   {
-   "where": "Find › Library › Religious Studies › Christianity › Bible",
+   "where": "Find › Library › Religious Studies › Christianity",
    "asks": "wCollection",
-   "bits": 1.26,
+   "bits": 1.23,
+   "best": "wText",
+   "bestBits": 2,
+   "cards": 160276
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Deuterocanon / Apocrypha / Anagignoskomena",
+   "asks": "wLanguage",
+   "bits": 0.93,
+   "best": "wBook",
+   "bestBits": 2,
+   "cards": 16488
+  },
+  {
+   "where": "Find › Library › Religious Studies › Judaism",
+   "asks": "wCollection",
+   "bits": 1.66,
    "best": "wSection",
    "bestBits": 2,
-   "cards": 156723
+   "cards": 40856
   },
   {
    "where": "Find › Practice › Questions › Maths",
@@ -300,20 +309,12 @@
    "cards": 10719
   },
   {
-   "where": "Find › Library › Religious Studies › Judaism › Rabbinic",
-   "asks": "wWork",
-   "bits": 1,
-   "best": "wSection",
-   "bestBits": 2,
-   "cards": 10106
-  },
-  {
    "where": "Find › Practice › Questions › Biology",
    "asks": "documentType",
    "bits": 0.64,
    "best": "qPart",
    "bestBits": 2,
-   "cards": 4656
+   "cards": 4658
   },
   {
    "where": "Find › Practice › Answers › Biology",
@@ -321,23 +322,15 @@
    "bits": 0.64,
    "best": "qPart",
    "bestBits": 2,
-   "cards": 4656
+   "cards": 4658
   },
   {
    "where": "Find › Library › History",
    "asks": "histKind",
-   "bits": 0.42,
+   "bits": 0.41,
    "best": "wWork",
    "bestBits": 2,
-   "cards": 3619
-  },
-  {
-   "where": "Find › Library › Religious Studies › Judaism › Second Temple",
-   "asks": "wWork",
-   "bits": 1.75,
-   "best": "wUnit",
-   "bestBits": 2,
-   "cards": 5455
+   "cards": 3613
   },
   {
    "where": "Find › Practice › Answers › Physics",
@@ -388,6 +381,14 @@
    "cards": 270
   },
   {
+   "where": "Find › Library › Religious Studies › Christianity › Church Fathers",
+   "asks": "wWork",
+   "bits": 1,
+   "best": "wBook",
+   "bestBits": 1.24,
+   "cards": 566
+  },
+  {
    "where": "Find › Library › Mechanics",
    "asks": "mScope",
    "bits": 0.44,
@@ -426,33 +427,31 @@
    "best": "topic",
    "bestBits": 2,
    "cards": 10
-  },
-  {
-   "where": "Find › Library › History › Timelines",
-   "asks": "histEra",
-   "bits": 1.85,
-   "best": "histTheatre",
-   "bestBits": 2,
-   "cards": 6
   }
  ],
  "tagAsked": [
   {
    "field": "forLabel",
    "label": "What for",
-   "cards": 283432,
+   "cards": 221020,
    "why": "lopsided — pressing its commonest answer would leave 0% of the list, needs 2%"
+  },
+  {
+   "field": "wPrimacy",
+   "label": "Primary or secondary source",
+   "cards": 186471,
+   "why": "one answer — nothing to decide"
   },
   {
    "field": "qNumber",
    "label": "Question",
-   "cards": 31531,
+   "cards": 31768,
    "why": "counts within each Type — asked once one Type is left"
   },
   {
    "field": "myResult",
    "label": "Your result",
-   "cards": 31531,
+   "cards": 31768,
    "why": "one answer — nothing to decide"
   },
   {
@@ -611,101 +610,6 @@
    "where": "Find › Library › English Literature › First edition (1898)",
    "kind": "spelling",
    "say": "Chapter: Chapter 1 ~ Chapter 12"
-  },
-  {
-   "where": "Find › Library › Maths › A-Level",
-   "kind": "answer-words",
-   "say": "Topic: menu \"Coordinate Geometry\", chip \"Coordinate Geometry\", tag \"Coordinate Geometry (A-Level)\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Summa Theologiae",
-   "kind": "mangled-text",
-   "say": "Book: menu \"Second Part of the… (part 3)\" vs source \"Second Part of the Second Part (II-II) (part 3)\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Summa Theologiae",
-   "kind": "mangled-text",
-   "say": "Book: chip \"Second Part of the… (part 3)\" vs source \"Second Part of the Second Part (II-II) (part 3)\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Summa Theologiae",
-   "kind": "mangled-text",
-   "say": "Book: tag \"Second Part of the… (part 3)\" vs source \"Second Part of the Second Part (II-II) (part 3)\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Eusebius, Church History",
-   "kind": "spelling",
-   "say": "Chapter: Book 1, Chapter 1, Section 1 ~ Book 1, Chapter 10, Section 1"
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Eusebius, Church History",
-   "kind": "spelling",
-   "say": "Chapter: Book 1, Chapter 1, Section 1 ~ Book 1, Chapter 11, Section 1"
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Eusebius, Church History",
-   "kind": "spelling",
-   "say": "Chapter: Book 1, Chapter 1, Section 1 ~ Book 1, Chapter 12, Section 1"
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Institutes of the Christian Religion",
-   "kind": "spelling",
-   "say": "Book: Book I ~ Book II"
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Institutes of the Christian Religion",
-   "kind": "spelling",
-   "say": "Book: Book I ~ Book IV"
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Institutes of the Christian Religion",
-   "kind": "spelling",
-   "say": "Book: Book II ~ Book III"
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
-   "kind": "spelling",
-   "say": "Chapter: Ascension to the… part 1 ~ Ascension to the… part 10"
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
-   "kind": "spelling",
-   "say": "Chapter: Ascension to the… part 1 ~ Ascension to the… part 11"
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
-   "kind": "spelling",
-   "say": "Chapter: Ascension to the… part 1 ~ Ascension to the… part 12"
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
-   "kind": "mangled-text",
-   "say": "Chapter: menu \"Ascension to the… part 1\" vs source \"Ascension to the Dormition, part 1\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
-   "kind": "mangled-text",
-   "say": "Chapter: chip \"Ascension to the… part 1\" vs source \"Ascension to the Dormition, part 1\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic Church",
-   "kind": "mangled-text",
-   "say": "Chapter: tag \"Ascension to the… part 1\" vs source \"Ascension to the Dormition, part 1\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › John Chrysostom, Homilies on the Statues",
-   "kind": "spelling",
-   "say": "Chapter: Homily I, Section 1 ~ Homily I, Section 10"
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › John Chrysostom, Homilies on the Statues",
-   "kind": "spelling",
-   "say": "Chapter: Homily I, Section 1 ~ Homily I, Section 11"
-  },
-  {
-   "where": "Find › Library › Religious Studies › Christianity › John Chrysostom, Homilies on the Statues",
-   "kind": "spelling",
-   "say": "Chapter: Homily I, Section 1 ~ Homily I, Section 12"
   },
   {
    "where": "Find › Library › Religious Studies › Ancient Egyptian religion › Isis and Osiris",
@@ -906,24 +810,29 @@
    "where": "Find › Library › History › Manuscripts › Hebrew",
    "kind": "answer-words",
    "say": "Material: menu \"Parchment\", chip \"Parchment\", tag \"Parchment (leather)\""
+  },
+  {
+   "where": "Find › Library › Maths › A-Level › KS5",
+   "kind": "answer-words",
+   "say": "Topic: menu \"Coordinate Geometry\", chip \"Coordinate Geometry\", tag \"Coordinate Geometry (A-Level)\""
   }
  ],
  "twinPaths": [
   {
    "where": "Find › Practice",
-   "say": "parent \"Questions\" (31531) beside its child \"Answers\" (30343)"
+   "say": "parent \"Questions\" (31768) beside its child \"Answers\" (30580)"
   },
   {
    "where": "Find › Settings",
-   "say": "parent \"Student\" (17) beside its child \"Parent\" (7)"
+   "say": "parent \"Student\" (18) beside its child \"Parent\" (8)"
   },
   {
    "where": "Find › Settings",
-   "say": "parent \"Staff\" (16) beside its child \"Parent\" (7)"
+   "say": "parent \"Staff\" (16) beside its child \"Parent\" (8)"
   },
   {
    "where": "Find › Settings",
-   "say": "parent \"Apprentice\" (8) beside its child \"Parent\" (7)"
+   "say": "parent \"Apprentice\" (9) beside its child \"Parent\" (8)"
   },
   {
    "where": "Find › Library › Physical Education › Fighters",
@@ -935,7 +844,7 @@
   },
   {
    "where": "Find › Library › Maths › GCSE",
-   "say": "parent \"KS4\" (32) beside its child \"KS3\" (7)"
+   "say": "parent \"Edexcel\" (26) beside its child \"AQA\" (15)"
   },
   {
    "where": "Find › Library › Mechanics › Car part",
@@ -946,8 +855,8 @@
    "say": "parent \"GCSE\" (5131) beside its child \"KS3\" (1027)"
   },
   {
-   "where": "Find › Library › Religious Studies › Christianity › Bible",
-   "say": "parent \"Old Testament\" (116363) beside its child \"Psalter\" (5054)"
+   "where": "Find › Library › Maths › GCSE › Edexcel",
+   "say": "parent \"Higher\" (16) beside its child \"Foundation\" (11)"
   }
  ]
 }
