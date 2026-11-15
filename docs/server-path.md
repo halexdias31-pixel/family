@@ -116,7 +116,20 @@ Each was checked again for a caller anywhere: the site, tools/, backend triggers
 
 **The ratchet counts real call sites (59 → 51).** tools/server-actions.js now counts a name as called only where it is posted as `action` (or passed to a site function that posts its parameter as `action`), not wherever it is quoted. saveAnswers, setNotify, favourite, spotlight, editPost, deletePost, myAnswers and messages were counted only by a feature check, a `NEEDS` list or a screen of the same name; each goes through readItems/saveItem/deleteItem with `old:` as its fallback. The keepalive answer save is unchanged (check-server-path runs it).
 
+## Slice 5 (15 Nov): the folded doors retired
+
+The owner redeployed 2026-11-14-server-path-1 (its `features` list saveItem and deleteItem), so the general doors answer live. 23 old doors are **gone from doPost** (postActions_): libItems, myProfile, myAnswers, messages, getProfile, personGet, lensOpen; updateProfile, saveNotepad, saveTodo, setNotify, saveAnswers, favourite, readMessage, editPost, layoutSave, wordsSave, setListed, personSave, spotlight, saveOwnerAnswer; deletePost, personDelete. A request naming one is an unknown action.
+
+- Their **handlers stay**, reached only through the general door: readItemsOld_ (reads) and `itemsDoors_` (writes, post-learning.gs), under the old door's own name. Their **ACTION_ACCESS rows stay**: itemsWrite_ asks that gate by name. libItems' handler went; readItems reads the library through libItemsReply_ itself.
+- `data/settings/server-actions.json` lists them under `retired` (into, handler, why); check-server-path fails if one comes back into doPost, loses its gate row, or itemsDoors_ runs another handler for it.
+- The site's `old:` fallbacks and `apiItems_` are gone (js/shell-click.js): one request, the general door, a keepalive answer flush included.
+- **Kept**: listOwnerAnswers (js/one-place.js reads the owner's answers with it; readItems serves no such kind). The `features` strings (saveAnswers, myAnswers, setNotify, editPost …) stay as names of what a deploy can do; the site still asks them.
+- The check harnesses' posts of a retired door go through the general door (`retiredAs_`, js/check-gas-load.js), as the site's do; journeys already did (check-flow's `readItemsAs_`).
+- Ratchet unchanged at 51: the retired doors had fallbacks, not callers.
+
+**Redeploy** (2026-11-15-server-path-2) removes them live. Until then the live backend still has them; nothing on the site calls them.
+
 ## Next slices
-1. Once the backend is redeployed and old phones have gone, remove libItems, myProfile, myAnswers, messages, getProfile, personGet, lensOpen and the 16 write doors above, and the `old:` fallbacks.
+1. Done in slice 5.
 2. Per-field write rows in the table, so a kind's fields are the table's and not only the old handler's.
 3. Remove the 35 dead doors still kept once their checks and journeys are retired with them.

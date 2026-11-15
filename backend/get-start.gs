@@ -226,7 +226,9 @@ function payloadFeatures_() {
   return [/* ---------- THE NEW ONES, DECLARED SO THE SITE CAN TELL YOU § */
                'openWaitlist', 'claimChild', 'answerClaim', 'joinWaitlist', 'findChild',
                'move', 'events', 'tabs', 'getProfile', 'myProfile', 'createJob',
-               'saveTodo', 'saveItem', 'deleteItem', 'register', 'verifyEmail',
+               'saveTodo', 'readItems', 'saveItem', 'deleteItem', 'register', 'verifyEmail',
+               /* Since 15 Nov (server-path slice 5) a folded door's name here says what this deploy can do, */
+               /* through readItems/saveItem/deleteItem; it is no longer a door of its own. */
                /* The Timetable widget's week, kept on the account. */
                'saveTimetable',
                /* The admin's layout (462, 463): the order of widgets and which are deleted. */

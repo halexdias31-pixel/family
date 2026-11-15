@@ -219,7 +219,7 @@ function answersPush_(now, keepalive) {
   ansDirtyKeep_(who);
   if (!items.length) { ansSavedPaint_(); return Promise.resolve(true); }
   /* `personId` AS WELL AS THE TOKEN — the gate overwrites it with the token's person, and `check-post.js` § */
-  const req = api({ action: 'saveItem', item: 'answer', old: 'saveAnswers', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
+  const req = api({ action: 'saveItem', item: 'answer', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
   ANS_BUSY = Promise.resolve(req)
     .then(d => ansSavedTake_(d, sent, dirty, who))
     .catch(() => {
@@ -255,7 +255,7 @@ function answersPull_(force) {
   if (ANS_PULLING && ANS_PULLING.pid === pid) return ANS_PULLING.p;
   ANS_PULLED = pid;
   ANS_PULL_AT = Date.now();
-  const p = Promise.resolve(api({ action: 'readItems', kind: 'answer', old: 'myAnswers', personId: pid }))
+  const p = Promise.resolve(api({ action: 'readItems', kind: 'answer', personId: pid }))
     .then(d => {
       ANS_PULLING = null;
       if (!d || !d.success || !d.answers || typeof d.answers !== 'object') { ANS_PULLED = ''; return false; }

@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-14-server-path-1";
+const DOPOST_VERSION = "2026-11-15-server-path-2";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -164,14 +164,9 @@ function postActionsAccount_() {
     googleLogin: postGoogleLogin_,
     signOut: postSignOut_,
     verifyLogin: postVerifyLogin_,
-    myProfile: postMyProfile_,
-    lensOpen: postLensOpen_,
-    getProfile: postGetProfile_,
     listRecords: postListRecords_,
     saveRecordsPage: postListRecords_,
     listOwnerAnswers: postListOwnerAnswers_,
-    saveOwnerAnswer: postListOwnerAnswers_,
-    updateProfile: postUpdateProfile_,
     videoPart: postVideoPart_,
     photoFile: postPhotoFile_,
   };
@@ -180,12 +175,8 @@ function postActionsAccount_() {
 /* Handlers for posts, messages, children and the viewer's own saves. */
 function postActionsPosts_() {
   return {
-    editPost: postEditPost_,
     approvePost: postApprovePost_,
-    deletePost: postDeletePost_,
-    saveNotepad: postSaveNotepad_,
     addPost: postAddPost_,
-    setListed: postSetListed_,
     forgotPin: postForgotPin_,
     pinLink: postPinLink_,
     reactPost: postReactPost_,
@@ -193,8 +184,6 @@ function postActionsPosts_() {
     votePoll: postVotePoll_,
     sendMessage: postSendMessage_,
     checkUploads: postCheckUploads_,
-    messages: postMessages_,
-    readMessage: postReadMessage_,
     flagMessage: postFlagMessage_,
     claimChild: postClaimChild_,
     findChild: postFindChild_,
@@ -205,9 +194,7 @@ function postActionsPosts_() {
     makeChild: postMakeChild_,
     resetPin: postResetPin_,
     changePin: postChangePin_,
-    saveTodo: postSaveTodo_,
     saveTimetable: postSaveTimetable_,
-    setNotify: postSetNotify_,
     savePhoto: postSavePhoto_,
     setMyRoles: postSetMyRoles_,
   };
@@ -230,11 +217,7 @@ function postActionsWork_() {
     move: postMove_,
     answerRequest: postAnswerRequest_,
     createJob: postCreateJob_,
-    spotlight: postSpotlight_,
-    favourite: postFavourite_,
-    submitAnswer: postSubmitAnswer_,
-    saveAnswers: postSaveAnswers_,
-    myAnswers: postMyAnswers_
+    submitAnswer: postSubmitAnswer_
   };
 }
 
@@ -259,8 +242,6 @@ function postActionsAdmin_() {
     digestPreview: postDigestPreview_,
     digestSendNow: postDigestSendNow_,
     pinShow: postPinShow_,
-    layoutSave: postLayoutSave_,
-    wordsSave: postWordsSave_,
     claudeNoteAdd: postClaudeNoteAdd_,
     claudeNoteDone: postClaudeNoteAdd_,
     filmsSync: postFilmsSync_,
@@ -272,11 +253,7 @@ function postActionsAdmin_() {
     joinWaitlist: postJoinWaitlist_,
     linkChild: postLinkChild_,
     adminUnlinkFamily: postAdminUnlinkFamily_,
-    personGet: postPersonGet_,
-    personSave: postPersonSave_,
-    personDelete: postPersonDelete_,
     deleteJob: postDeleteJob_,
-    libItems: postLibItems_,
     readItems: postReadItems_,
     saveItem: postSaveItem_,
     deleteItem: postDeleteItem_,

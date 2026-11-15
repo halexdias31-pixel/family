@@ -232,7 +232,7 @@ function postMyAnswers_(body, action, began) {
 }
 
 /* ---------- THE LIBRARY'S WORDS AND ANSWERS (397): a few items at a time, to the token's person, a day's cap each ---------- */
-function postLibItems_(body, action, began) { return jsonOut(libItemsReply_(body)); }
+/* `libItems` WAS ITS OWN DOOR until 15 Nov (server-path slice 5): readItems reads the library through libItemsReply_ alone. */
 
 /* THE LIBRARY READ ITSELF, as a reply object: libItems and readItems both answer through it, so the cap and the tally are one. */
 function libItemsReply_(body) {
@@ -320,6 +320,14 @@ function saveItemsOld_() {
 function deleteItemsOld_() {
   return { post: 'deletePost', person: 'personDelete' };
 }
+/* THE OLD DOORS' HANDLERS (slice 5, 15 Nov): no longer doors of their own — a request naming one is an unknown action. */
+/* Reached only through saveItem/deleteItem, behind that door's own gate (ACTION_ACCESS keeps its row), under its own name. */
+function itemsDoors_() {
+  return { updateProfile: postUpdateProfile_, saveNotepad: postSaveNotepad_, saveTodo: postSaveTodo_, setNotify: postSetNotify_,
+           saveAnswers: postSaveAnswers_, favourite: postFavourite_, readMessage: postReadMessage_, editPost: postEditPost_,
+           layoutSave: postLayoutSave_, wordsSave: postWordsSave_, setListed: postSetListed_, personSave: postPersonSave_,
+           spotlight: postSpotlight_, saveOwnerAnswer: postListOwnerAnswers_, deletePost: postDeletePost_, personDelete: postPersonDelete_ };
+}
 function itemsWrite_(verb, body, began) {
   const item = S(body.item);
   const map = verb === 'save' ? saveItemsOld_() : deleteItemsOld_();
@@ -334,7 +342,7 @@ function itemsWrite_(verb, body, began) {
   const role = readItemsRole_(me);
   if (!me || !S(me.person_id) || !itemMay_(item, verb, role)) return jsonOut({ error: 'Not authorised.', why: 'refused' });
   if (netViewerIsChild_() && permChildDenied_(old)) return jsonOut({ error: KID_ASK_PARENT, why: 'ask-a-parent' });
-  return postActions_()[old](b, old, began);
+  return itemsDoors_()[old](b, old, began);
 }
 function postSaveItem_(body, action, began) { return itemsWrite_('save', body, began); }
 function postDeleteItem_(body, action, began) { return itemsWrite_('delete', body, began); }

@@ -176,7 +176,7 @@ function loadMessages() {
   const still = () => !!USER && String(USER.personId || USER.name || '') === who;
   /* `send` FOR THE SAME REASON, and the comment below was written as though it already did. § */
   const asking = { who: who, p: null };
-  asking.p = send({ action: 'readItems', kind: 'message', old: 'messages', name: USER.name, personId: USER.personId })
+  asking.p = send({ action: 'readItems', kind: 'message', name: USER.name, personId: USER.personId })
     .then(d => {
       if (!still()) return [];
       MSG_FAILED = false;
@@ -426,7 +426,7 @@ function markRead_(msgs) {
     m.read = true;                                   /* so a redraw before the reply does not re-ask */
     /* ---------- AND WHICH ONES THEY WERE STAYS ON THE SCREEN § */
     m.fresh = true;
-    api({ action: 'saveItem', item: 'message', old: 'readMessage', name: USER.name, personId: USER.personId, messageId: m.id })
+    api({ action: 'saveItem', item: 'message', name: USER.name, personId: USER.personId, messageId: m.id })
       .catch(() => { m.read = false; });
   });
 }

@@ -132,7 +132,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-14-server-path-1";
+const BACKEND_VERSION = "2026-11-15-server-path-2";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

@@ -120,7 +120,7 @@ function fresh() {
     const h = (cur.actions || {})[a] || {};
     actions[a] = Object.assign({ fate: h.fate || '', into: h.into || '', why: h.why || '' }, c[a]);
   });
-  return { say: cur.say || '', generalActions: cur.generalActions || {}, actions };
+  return { say: cur.say || '', generalActions: cur.generalActions || {}, retired: cur.retired || {}, actions };
 }
 const text = j => JSON.stringify(j, null, 1) + '\n';
 

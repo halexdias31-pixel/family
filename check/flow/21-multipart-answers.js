@@ -612,7 +612,7 @@ check('answers: typed, picked and drawn go to the account a moment later, and th
   c.ta().blur();
   await wait(60);
   if (saves().length !== n1 + 1) bad.push('leaving the box did not send the answer at once (' + (saves().length - n1) + ' request(s) within 60 ms)');
-  /* AND THE APP GOING AWAY — with keepalive, so a closed iPad cover does not take the last answer. */
+  /* AND THE APP GOING AWAY — with keepalive, so a closed iPad cover does not take the last answer; always saveItem now (server-path slice 5). */
   const kept = [];
   const was = w.fetch;
   w.fetch = (u, o) => { if (o && o.keepalive) kept.push(JSON.parse(o.body)); return was(u, o); };
@@ -620,7 +620,7 @@ check('answers: typed, picked and drawn go to the account a moment later, and th
   w.dispatchEvent(new w.Event('pagehide'));
   await wait(60);
   w.fetch = was;
-  if (!kept.some(b => b.action === 'saveAnswers')) bad.push('pagehide sent nothing with keepalive — closing the app loses the last answer');
+  if (!kept.some(b => b.action === 'saveItem' && b.item === 'answer')) bad.push('pagehide sent nothing with keepalive — closing the app loses the last answer');
 
   /* SIGNED OUT: the device only, and it says so. */
   w.__t.USER(null);
