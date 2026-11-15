@@ -10,12 +10,18 @@ const m = src.match(/const FORM_SPECS = (\{[\s\S]*?\n\});/);
 let code = null;
 try { code = m && JSON.parse(m[1]); } catch (e) { bad.push('FORM_SPECS in js/form.js is not plain JSON: ' + e.message); }
 if (!code) bad.push('FORM_SPECS not found in js/form.js');
-else ['kinds', 'rules', 'cards'].forEach(k => {
+else ['kinds', 'rules', 'cards', 'forms'].forEach(k => {
   if (JSON.stringify(code[k]) !== JSON.stringify(data[k])) bad.push('FORM_SPECS.' + k + ' differs from data/settings/forms.json — copy the file into form.js');
 });
 /* EVERY RULE NAMES A KIND, AND THE LAST CATCHES EVERYTHING. */
 (data.rules || []).forEach(r => { if ((data.kinds || []).indexOf(r.kind) === -1) bad.push('rule ' + r.match + ': no kind ' + r.kind); });
 if (!data.rules || data.rules[data.rules.length - 1].match !== '') bad.push('the last rule must match everything ("")');
+/* EVERY FORM IS AN ITEM KIND'S FIELD LIST: its kind is in item-shape.json, each field's type a form kind, each may a may_() word. */
+const shape = JSON.parse(fs.readFileSync(path.join(O, 'data/settings/item-shape.json'), 'utf8'));
+Object.keys(data.forms || {}).filter(k => k !== 'say').forEach(k => { const f = data.forms[k];
+  if (!shape.kinds[f.item]) bad.push('form ' + k + ': item ' + f.item + ' is not a kind in item-shape.json');
+  if (!f.attr) bad.push('form ' + k + ': no attr');
+  (f.fields || []).forEach(x => { if ((data.kinds || []).indexOf(x.type) === -1) bad.push('form ' + k + ' field ' + x.f + ': no kind ' + x.type); }); });
 /* THE RATCHET: a raw box in any app file (index.html's FILES) but the maker's own over its budget fails; under it, lower the budget. */
 const left = data.leftovers || {};
 const files = require('../tools/file-lists.js').appFiles().filter(f => f !== 'form').map(f => f + '.js');

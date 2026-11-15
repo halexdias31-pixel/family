@@ -26,6 +26,7 @@ function cardRuns_(v) {
   /* A LINE NUMBER in a margin, as a printed text numbers its lines: read aloud as `line n`. */
   if (v.ln != null) return `<span class="kc-ln" aria-label="line ${esc(String(v.ln))}">${esc(String(v.ln))}</span>`;
   /* MATHS AS TYPED (`x^2`, `a/b`): escaped first, then the typesetter raises and stacks it. */
+  if (v.typeset != null && !v.frac && cardHasMarkup_(v.typeset)) return `<span class="kc-math">${cardRuns_(cardMarkupRuns_(v.typeset))}</span>`;
   if (v.typeset != null) return `<span class="kc-math">${v.frac ? cardFrac_(String(v.typeset)) : typeof typeset_ === 'function' ? typeset_(esc(String(v.typeset))) : esc(String(v.typeset))}</span>`;
   /* A SMALL MARK BESIDE A WORD (Higher tier's `H`, `only Foundation`): text, one fixed class. */
   if (v.badge != null) return `<span class="kc-badge"${v.hint ? ` title="${esc(v.hint)}"` : ''}>${esc(String(v.badge))}</span>`;
@@ -37,6 +38,31 @@ function cardRuns_(v) {
   if (v.span != null && /^[a-z][\w -]*$|^$/.test(String(v.span))) return `<span${v.span ? ` class="${esc(v.span)}"` : ''}>${cardRuns_(v.text)}</span>`;
   if (v.tone) return `<span class="${esc('is-' + v.tone)}">${cardRuns_(v.text)}</span>`;
   return cardRuns_(v.text);
+}
+/* PRINTED MATHS AS DATA (owner, 15 Nov: the Cosine rule showed its <i>/<sup> as text): an insert's few tags and named characters, read into runs. */
+/* So cardRuns_ escapes every word and no markup passes through; plain typed maths (`x^2`) still goes to the typesetter. */
+const CARD_ENT = { frasl: '\u2044', times: '\u00d7', pi: '\u03c0', minus: '\u2212', ne: '\u2260', nbsp: '\u00a0', plusmn: '\u00b1', radic: '\u221a',
+  rho: '\u03c1', theta: '\u03b8', lambda: '\u03bb', infin: '\u221e', lt: '<', gt: '>', amp: '&', hellip: '\u2026', rarr: '\u2192', prime: '\u2032',
+  int: '\u222b', asymp: '\u2248', cup: '\u222a', cap: '\u2229', mu: '\u03bc', sigma: '\u03c3', epsilon: '\u03b5', alpha: '\u03b1', phi: '\u03c6',
+  omega: '\u03c9', tau: '\u03c4', ndash: '\u2013', le: '\u2264', ge: '\u2265', deg: '\u00b0', frac12: '\u00bd', divide: '\u00f7', quot: '"' };
+const cardHasMarkup_ = s => /<\/?(i|b|sup|sub|span)\b[^>]*>|&[a-z]+;|&#\d+;/i.test(String(s || ''));
+function cardMarkupRuns_(s) {
+  const top = [], stack = [{ runs: top }];
+  const put = r => stack[stack.length - 1].runs.push(r);
+  const txt = t => t && put(t.replace(/&([a-z]+);|&#(\d+);/gi, (m, n, d) => d ? String.fromCharCode(Number(d)) : (CARD_ENT[n.toLowerCase()] != null ? CARD_ENT[n.toLowerCase()] : m)));
+  String(s || '').split(/(<\/?[a-z]+\b[^>]*>)/i).forEach(part => {
+    const t = /^<(\/?)([a-z]+)\b([^>]*)>$/i.exec(part);
+    if (!t) return txt(part);
+    const tag = t[2].toLowerCase();
+    if (!t[1]) { const cls = /insh-rad/.test(t[3]) ? 'insh-rad' : /overline/.test(t[3]) ? 'kc-over' : '';
+      return stack.push({ tag, cls, runs: [] }); }
+    if (stack.length < 2) return;
+    const o = stack.pop(), inner = o.runs;
+    put(o.tag === 'i' ? { i: inner } : o.tag === 'b' ? { b: inner } : o.tag === 'sup' ? { sup: inner } : o.tag === 'sub' ? { sub: inner }
+      : o.cls ? { span: o.cls, text: inner } : inner);
+  });
+  while (stack.length > 1) { const o = stack.pop(); put(o.runs); }
+  return top;
 }
 /* A FORMULA (`frac`, a textbook's): its slashes stacked as fractions, and a Unicode subscript drawn as a real one. */
 const CARD_SUB = '₀₁₂₃₄₅₆₇₈₉ₐₑₒₓₙₛₜ', CARD_SUB_AS = '0123456789aeoxnst';

@@ -185,6 +185,21 @@ function waveFromDoc_(x) {
   return series && /^(19|20)\d{2}$/.test(yr) ? series + ' ' + yr : '';
 }
 
+/* ANY ITEM'S OWN DATE, as { month, day } (owner, 15 Nov): an ISO date (date, exam_date), else a name ending "— 5 October" (a 5-a-day). */
+/* The `Month` and `Day` questions read it, so no kind needs its own date facet. */
+const ITEM_DATE = new WeakMap();
+function itemDate_(x) {
+  if (!x || typeof x !== 'object') return {};
+  if (ITEM_DATE.has(x)) return ITEM_DATE.get(x);
+  const r = x.row || x;
+  const iso = /^\s*(?:19|20)\d{2}-(\d{2})-(\d{2})\b/.exec(String(r.date || x.date || r.exam_date || x.examDate || ''));
+  const named = /\s[\u2014\u2013]\s(\d{1,2})\s+([A-Za-z]{3,9})\s*$/.exec(String(r.name || x.name || ''));
+  const mi = iso ? Number(iso[1]) : named ? MONTH_NAMES.findIndex(n => n.slice(0, 3).toLowerCase() === named[2].slice(0, 3).toLowerCase()) + 1 : 0;
+  const day = iso ? Number(iso[2]) : named ? Number(named[1]) : 0;
+  const out = mi >= 1 && mi <= 12 && day >= 1 && day <= 31 ? { month: MONTH_NAMES[mi - 1], day: String(day) } : {};
+  ITEM_DATE.set(x, out);
+  return out;
+}
 /* ---------- THE MONTH OF A SITTING, FOR THE `Month` QUESTION § */
 const SITTING_MONTH = new WeakMap();
 function sittingMonth_(x) {

@@ -110,15 +110,13 @@ const EXEMPT = [
   { file: 'form.js', fn: 'formBox_', has: "attrs: Object.assign({ id: b.id", why: PIN + ': the Signing in boxes, forms.json\'s `signing-in`' },
   { file: 'me.js', fn: 'regFormHtml_', has: "id: 'reg-noemail'", why: 'reset by the who-is-it question above it, which is asked again on purpose (`REG_NOTE`)' },
   /* THE PEOPLE COLUMN'S PERSON FORM (373): another person's account, decided and saved there and then. */
-  { file: 'me.js', fn: 'box', has: 'data-pf="${k}"', why: PEOPLE_FORM },
-  { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf="dob"', why: PEOPLE_FORM },
+  /* FORMS FROM THE ITEM SHAPE (forms.json `forms`, foundation 2): today the three people forms — another person's account, saved there and then (edit-person within a second of typing). */
+  { file: 'form.js', fn: 'formFieldOf_', has: 'type="date" ${a}=', why: PEOPLE_FORM },
+  { file: 'form.js', fn: 'formFieldOf_', has: 'placeholder="${esc(ph)}"', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-role', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-parent', why: PEOPLE_FORM },
   /* ADD A PERSON IN FIND (add-person): like the people column's form, another person's account made there and then; the picker is a name looked up. */
-  { file: 'me.js', fn: 'box', has: 'data-pa="${k}"', why: PEOPLE_FORM },
-  { file: 'me.js', fn: 'personAddCard_', has: 'data-pa="dob"', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'famPick_', has: 'data-fam-q', why: 'a family picker: a name looked up, not work, retyped in a second' },
-  { file: 'me.js', fn: 'personEdHtml_', has: 'data-pe="dob"', why: 'saved to their row within a second of typing (edit-person): the server holds it, not a draft' },
   /* APPLY TO TEACH (400): one sheet filled and sent in a sitting; a reload starts the application again. */
   { file: 'me.js', fn: 'box', has: "'data-app': k, autocomplete", why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
   { file: 'me.js', fn: 'area', has: "'data-app': k, rows", why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },

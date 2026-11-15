@@ -100,5 +100,113 @@
   "tiles.js": {
    "n": 1
   }
+ },
+ "forms": {
+  "say": "FORMS FROM THE ITEM SHAPE (foundation 2): a form is an item kind (item-shape.json) plus this field list: which fields, their order, type (a FORM kind), caption or placeholder, and `may` (a may_() word) for who sees it; money fields also need may_('prices'). Drawn by formOf_ (js/form.js) through renderCard's field/control blocks.",
+  "person-add": {
+   "item": "person",
+   "attr": "data-pa",
+   "fields": [
+    {
+     "f": "first",
+     "type": "text",
+     "ph": "First name"
+    },
+    {
+     "f": "last",
+     "type": "text",
+     "ph": "Last name"
+    },
+    {
+     "f": "role",
+     "type": "choice",
+     "label": "Role"
+    },
+    {
+     "f": "email",
+     "type": "text",
+     "input": "email",
+     "ph": "Email",
+     "phKid": "Email (optional)"
+    },
+    {
+     "f": "dob",
+     "type": "date",
+     "label": "Date of birth (optional)"
+    }
+   ]
+  },
+  "person-form": {
+   "item": "person",
+   "attr": "data-pf",
+   "fields": [
+    {
+     "f": "first",
+     "type": "text",
+     "ph": "First name",
+     "row": "names"
+    },
+    {
+     "f": "last",
+     "type": "text",
+     "ph": "Last name",
+     "row": "names"
+    },
+    {
+     "f": "email",
+     "type": "text",
+     "input": "email",
+     "ph": "Email (optional)"
+    },
+    {
+     "f": "dob",
+     "type": "date",
+     "label": "Date of birth (optional)"
+    }
+   ]
+  },
+  "person-edit": {
+   "item": "person",
+   "attr": "data-pe",
+   "fields": [
+    {
+     "f": "first_name",
+     "type": "text"
+    },
+    {
+     "f": "last_name",
+     "type": "text"
+    },
+    {
+     "f": "handle",
+     "type": "text",
+     "label": "handle (theirs to change)",
+     "readonly": true
+    },
+    {
+     "f": "dob",
+     "type": "date",
+     "label": "date of birth"
+    },
+    {
+     "f": "email",
+     "type": "text",
+     "input": "email"
+    },
+    {
+     "f": "phone",
+     "type": "phone",
+     "input": "tel"
+    },
+    {
+     "f": "address",
+     "type": "text"
+    },
+    {
+     "f": "postcode",
+     "type": "text"
+    }
+   ]
+  }
  }
 }

@@ -131,15 +131,13 @@ function personFormHtml_(F) {
   const nameOf = id => (choices.find(c => c.personId === id) || {}).name || id;
   const has = (p.parentIds || []).filter(Boolean);
   const kid = (p.roles || []).indexOf('student') !== -1;
-  const box = (k, ph, v, type) => formLine_('', formInput_(`data-pf="${k}" placeholder="${esc(ph)}"
-    autocomplete="off"${type ? ` type="${type}"` : ''} value="${esc(v || '')}"`));
   const said = t => cardRuns_({ span: '', text: t });
+  const pv = { first: p.firstName, last: p.lastName, email: p.email, dob: p.dob };
   return pplCard_('person-form', head, [
-    pplG_('f-row', [box('first', 'First name', p.firstName), box('last', 'Last name', p.lastName)], { attrs: { style: '--n:2' } }),
+    formOf_('person-form', pv, { only: ['first', 'last'] }),
     pplG_('pf-roles', peopleRolePicks_().map(([r, label]) => formTick_(`data-pf-role="${r}"${(p.roles || []).indexOf(r) !== -1 ? ' checked' : ''}`, said(label))),
       { attrs: { role: 'group', 'aria-label': 'Role' } }),
-    box('email', 'Email (optional)', p.email, 'email'),
-    formLine_('Date of birth (optional)', formInput_(`type="date" data-pf="dob" value="${esc(p.dob || '')}"`)),
+    formOf_('person-form', pv, { skip: ['first', 'last'] }),
     pplG_('pf-parents', [has.map(id => formTick_(`data-pf-parent="${esc(id)}" checked`, said(nameOf(id)))).join(''),
       formLine_(has.length ? 'Another parent' : 'Their parent (optional)', pplSelect_({ 'data-pf': 'parent' }, [{ value: '', text: 'None' }]
         .concat(choices.filter(c => has.indexOf(c.personId) === -1).map(c => ({ value: c.personId, text: c.name })))))], { attrs: { hidden: !kid } }),
@@ -276,13 +274,9 @@ function personEdHtml_(p) {
   const at = { attrs: { 'data-pid': F.id } };
   if (!F.data) return pplG_('pe-form', F.err ? [pplP_('note pe-said', F.err), done] : loading_(), at);
   const q = F.data.person || {};
-  const box = (f, k) => formField_(f, q[k] || '', { attr: 'data-pe', draft: false,
-    extra: f === 'email' ? 'type="email" autocomplete="off"' : f === 'phone' ? 'type="tel"' : 'autocomplete="off"' });
   const tutor = (q.roles || []).indexOf('tutor') !== -1;
-  return pplG_('pe-form', [PE_BOXES_.slice(0, 2).map(([f, k]) => box(f, k)).join(''),
-    formField_('handle', q.handle ? '@' + q.handle : '', { attr: 'data-pe', draft: false, readonly: true, label: 'handle (theirs to change)' }),
-    formLine_('date of birth', formInput_(`type="date" data-pe="dob" value="${esc(q.dob || '')}"`)),
-    PE_BOXES_.slice(2).map(([f, k]) => box(f, k)).join(''),
+  const qv = f => f === 'handle' ? (q.handle ? '@' + q.handle : '') : q[(PE_BOXES_.find(b => b[0] === f) || [f, f])[1]] || '';
+  return pplG_('pe-form', [formOf_('person-edit', qv),
     peFamHtml_(F), peNotifyHtml_(F),
     tutor ? pplP_('note pe-fam', (q.listed === '' || TRUEish_(q.listed) ? 'Listed' : 'Not listed') + ': the eye on their tutor card changes it') : '',
     pplP_('note pe-said', '', { attrs: { 'aria-live': 'polite' } }), done], at);
@@ -398,7 +392,7 @@ function paPickedHtml_(F) {
 }
 function personAddCard_() {
   if (!personAddMay_()) return '';
-  const F = paState_(), v = k => esc(F.v[k] || '');
+  const F = paState_();
   if (F.made) {
     return pplCard_('is-prof prof-door pa-card', F.made.first + ' is added', [
       F.made.pin ? pinSlip_(F.made.first, F.made.handle, F.made.pin) + pplP_('note', 'Write it down or read it to them — the PIN is not shown again.')
@@ -407,11 +401,7 @@ function personAddCard_() {
       tile_({ form: true, label: 'Add another', act: 'pa-again', kind: 'quiet' })]);
   }
   const kid = F.role === 'student', tutor = F.role === 'tutor';
-  const box = (k, ph, type) => formLine_('', formInput_(`data-pa="${k}" placeholder="${esc(ph)}" autocomplete="off"${type ? ` type="${type}"` : ''} value="${v(k)}"`));
-  return pplCard_('is-prof prof-door pa-card', 'Add a person', [box('first', 'First name'), box('last', 'Last name'),
-    formLine_('Role', pplSelect_({ 'data-pa': 'role' }, PA_ROLES_.map(([r, l]) => ({ value: r, text: l, on: r === F.role })))),
-    box('email', kid ? 'Email (optional)' : 'Email', 'email'),
-    formLine_('Date of birth (optional)', formInput_(`type="date" data-pa="dob" value="${v('dob')}"`)),
+  return pplCard_('is-prof prof-door pa-card', 'Add a person', [formOf_('person-add', Object.assign({}, F.v, { role: F.role }), { kid, options: { role: PA_ROLES_ } }),
     tutor ? '' : famPick_('pa', kid ? 'client' : 'student', kid ? 'Their parent' : 'Their child') + paPickedHtml_(F),
     pplP_('note pa-said', '', { attrs: { 'aria-live': 'polite' } }),
     pplG_('pf-go', tile_({ form: true, label: 'Add them', act: 'pa-save' }))]);
