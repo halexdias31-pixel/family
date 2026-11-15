@@ -91,7 +91,7 @@ check('486: every top-level card and widget in every column has the one Report t
 check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, Student and Parent profiles, in that order and so labelled; the profiles hold a card per person by category, your own first where you belong; the settings hold that type\'s settings, a column above your rank says so; Business is an admin\'s alone; every setting is edited in exactly one place', async () => {
   const W = hubWorld_();
   const bad = [];
-  /* THE OWNER'S ORDER SINCE 730: the profiles first, then the settings (Web settings, an admin's, between Tutor and Kids). */
+  /* THE OWNER'S ORDER SINCE 730: the profiles first, then the settings (Web settings, an admin's, is Find › Settings › Site since 15 Nov). */
   const SIX = ['s-tutors', 's-students', 's-parents', 's-staff', 's-account', 's-family'];
   const LABELS = ['Tutor profile', 'Student profile', 'Parent profile', 'Tutor settings', 'Kids settings', 'Parent settings'];
   for (const [who, rank, pid] of RANK_COLS_) {
@@ -105,7 +105,8 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     if (tabOrder.join() !== SIX.join()) bad.push(rank + ': the six read ' + tabOrder.join(' ') + ', wanted ' + SIX.join(' '));
     const tabs = a.t.TABS.map(x => x.id), labs = SIX.map(id => (a.t.TABS.find(x => 's-' + x.id === id) || {}).label);
     if (labs.join('|') !== LABELS.join('|')) bad.push(rank + ': the six are labelled ' + JSON.stringify(labs));
-    if (rank === 'admin' && (tabs[tabs.length - 1] !== 'biz' || tabs.indexOf('site') !== tabs.indexOf('staff') + 1)) bad.push('Biz settings is not last, or Web settings not right of Tutor settings, for an admin (730)');
+    /* WEB SETTINGS IS NO COLUMN (Find › Settings › Site, find-only.json 15 Nov): Kids settings stands right of Tutor settings. */
+    if (rank === 'admin' && (tabs[tabs.length - 1] !== 'biz' || tabs.indexOf('site') !== -1 || tabs.indexOf('account') !== tabs.indexOf('staff') + 1)) bad.push('Biz settings is not last, Web settings is still a column, or Kids settings is not right of Tutor settings, for an admin (730)');
     /* THE READING ALOUD VOICE IS A GENERIC SETTING: Student settings, nowhere else. */
     /* (jsdom has no speech, so `voiceCard_` may draw nothing: what is asked is that it is never anywhere else.) */
     if (a.d.querySelectorAll('.voice-card').length > 1 || (a.d.querySelector('.voice-card') && !q('#s-account .voice-card'))) bad.push(rank + ': Reading aloud is not on Student settings alone');
@@ -171,7 +172,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     const myShare = q('#s-tutors [data-do="tutor-share"][data-handle="' + (a.t.whoami().handle || '-') + '"]');
     if (!myShare !== (rank !== 'staff' && rank !== 'admin')) bad.push(rank + ': Share my profile ' + (rank === 'staff' ? 'is missing from Tutors' : 'is offered below Staff'));
     if ((rank === 'admin') !== !!(q('#s-tutors [data-do="person-add"]') && q('#s-students [data-do="person-add"]') && q('#s-parents [data-do="person-add"]'))) bad.push(rank + ': + Add a person is ' + (rank === 'admin' ? 'not on every people column' : 'offered'));
-    if (rank === 'admin' && (q('#s-biz [data-do="person-add"]') || !q('#s-site .me-build'))) bad.push('Business still has + Add a person, or Site lost the build stamps');
+    if (rank === 'admin' && (q('#s-biz [data-do="person-add"]') || !(await siteOpen_(a.w, '.me-build')))) bad.push('Business still has + Add a person, or Find › Settings › Site lost the build stamps');
     /* ONE PLACE EACH: the columns, your own card open for editing in each column it has an Edit, and the hub's Hours and Pricing. */
     const ed = editorsOf_(a.d, {});
     editorsOf_(a.d, ed);

@@ -387,9 +387,9 @@ check('a waiting post (413): dotted with "Waiting for approval" for its author a
   if (!ht.includes('post-approve:1') || !ht.includes('post-approve:')) bad.push('the admin has no Approve and Decline tiles on the waiting post: ' + ht.join(','));
   if (ht.includes('post-edit')) bad.push('the admin is offered Edit on somebody\'s waiting post: ' + ht.join(','));
   /* BUSINESS GLOWS: the posts card needs you, and the dot counts it. */
-  try { hal.t.go('site', false, true); hal.w.paint('site'); } catch (e) { bad.push('drawing Business threw: ' + e.message); }
-  await wait(300);
-  const card = hal.d.querySelector('#s-site [data-need="posts"]');
+  /* ON FIND › SETTINGS › SITE since Web settings moved there (find-only.json, 15 Nov). */
+  try { await siteOpen_(hal.w, '[data-need="posts"]'); } catch (e) { bad.push('opening Find › Settings › Site threw: ' + e.message); }
+  const card = hal.d.querySelector('#s-stuff [data-need="posts"]');
   if (!card || !card.classList.contains('needs-you')) bad.push('the Business posts card does not glow with a post waiting');
   const dot = hal.d.getElementById('biz-dot');
   if (!dot || !/\d/.test(dot.textContent)) bad.push('no red dot counts what Business needs');
@@ -582,17 +582,17 @@ check('a child sends on a message she was sent (413, 494): the one Tell the admi
   if (String(W.sheet('S((read(TAB.claude_notes).rows.find(r => r.item_id === "message|M-IN1") || {}).status)')) !== 'pending') bad.push('it is not a waiting row of claude_notes');
   const hal = await postOpen_(W, 'admin@example.org');
   if (hal.err) return bad.concat([hal.err]);
-  try { hal.t.go('site', false, true); hal.w.paint('site'); } catch (e) {}
-  for (let k = 0; k < 40 && !hal.d.querySelector('#s-site .rep-item'); k++) await wait(100);
+  try { await siteOpen_(hal.w, '.rep-item'); } catch (e) {}
+  for (let k = 0; k < 40 && !hal.d.querySelector('#s-stuff .rep-item'); k++) await wait(100);
   await wait(300);   // the glow is painted just after the column (`bizNeedsPaint_`)
-  const item = [...hal.d.querySelectorAll('#s-site .rep-item')].find(n => /Homework is due Friday/.test(n.textContent));
+  const item = [...hal.d.querySelectorAll('#s-stuff .rep-item')].find(n => /Homework is due Friday/.test(n.textContent));
   if (!item || !/scary/.test(item.textContent)) bad.push('the Suggestions card does not show the message and the words');
-  const card = hal.d.querySelector('#s-site [data-need="reports"]');
+  const card = hal.d.querySelector('#s-stuff [data-need="reports"]');
   if (!card || !card.classList.contains('needs-you')) bad.push('the Suggestions card does not glow with a message waiting');
   const done = item && item.querySelector('[data-do="rep-status"][data-decision="dismiss"]');
   if (!done) bad.push('no Dismiss tile on the reported message');
   else { hal.A('rep-status', done); await wait(400); }
-  if ([...hal.d.querySelectorAll('#s-site .rep-item')].some(n => /Homework is due Friday/.test(n.textContent))) bad.push('Dismiss left the message on the card');
+  if ([...hal.d.querySelectorAll('#s-stuff .rep-item')].some(n => /Homework is due Friday/.test(n.textContent))) bad.push('Dismiss left the message on the card');
   if (String(W.sheet('S((read(TAB.claude_notes).rows.find(r => r.item_id === "message|M-IN1") || {}).status)')) !== 'dismissed') bad.push('Dismiss did not write dismissed on the sheet');
   [kid, hal].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join(' | ')); });
   return bad;

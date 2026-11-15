@@ -329,7 +329,6 @@ const PAGER = {
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
   /* THE BUSINESS RECORDS, COUNTED FROM `bizPages_`, the list `screen('biz')` draws — five cards for an admin. § */
   biz: () => cardCount_('biz', () => adminPages_().length, 0),
-  site: () => cardCount_('site', () => sitePages_().length, 0),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES § */
   booking: () => {

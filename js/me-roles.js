@@ -279,7 +279,7 @@ function adminPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return (typeof window.bizPages_ === 'function' ? window.bizPages_() : []).concat(typeof deletedCard_ === 'function' ? [deletedCard_()] : []);
 }
-/* THE SITE COLUMN (491): what runs the site rather than the business — setup, moderation, imports, the weekly email, the build. */
+/* WEB SETTINGS (491), Find › Settings › Site since 15 Nov: what runs the site rather than the business — setup, moderation, imports, the weekly email, the build. */
 function sitePages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
@@ -300,7 +300,7 @@ function stabilityCard_() {
         .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
         .then(j => { STAB.got = j && typeof j.score === 'number' ? j : null; STAB.failed = !STAB.got; })
         .catch(() => { STAB.failed = true; })
-        .then(() => { try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
+        .then(() => { lensRedraw_(); });
     } catch (e) { STAB.failed = true; }
   }
   const s = STAB.got;
@@ -310,7 +310,7 @@ function stabilityCard_() {
     { type: 'list', ordered: true, look: 'stab-top', items: (STAB.all ? sig : sig.slice(0, 3)).map(x => x.label + ': ' + x.count + ' −' + x.off) },
     sig.length > 3 ? { type: 'tiles', tiles: [{ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }] } : null]);
 }
-on('stab-all', () => { STAB.all = !STAB.all; try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
+on('stab-all', () => { STAB.all = !STAB.all; lensRedraw_(); });
 
 /* ---------- YOUR ROLE: ONE RANK (400), SO ONE CHOICE, CLIENT OR STUDENT, FOR A CLIENT ONLY (432) ----------
    Tutor comes by "Apply to teach", Admin is given, and dopost.gs refuses a student becoming a client. */

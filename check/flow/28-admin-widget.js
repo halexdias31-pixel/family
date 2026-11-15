@@ -285,17 +285,18 @@ check('the Weekly email card (547) shows the very HTML the backend sends, in a s
   const reply = b => (b.action === 'digestPreview' ? W.real.post(b) : W.reply(b));
   const a = await cardOpen_(W, 'admin@example.org', { reply });
   if (a.err) return [a.err];
-  a.t.go('site', false, true); a.w.paint('site');
+  /* ON FIND › SETTINGS › SITE since Web settings moved there (find-only.json, 15 Nov). */
+  await siteOpen_(a.w, '.digest-look');
   let fr = null;
-  for (let i = 0; i < 60 && !(fr = a.d.querySelector('#s-site .digest-look iframe.dw-frame')); i++) await wait(100);
-  if (!fr) return ['the Weekly email card drew no frame: ' + ((a.d.querySelector('#s-site .digest-look') || {}).textContent || '(no card)').replace(/\s+/g, ' ').slice(0, 200)];
+  for (let i = 0; i < 60 && !(fr = a.d.querySelector('#s-stuff .digest-look iframe.dw-frame')); i++) await wait(100);
+  if (!fr) return ['the Weekly email card drew no frame: ' + ((a.d.querySelector('#s-stuff .digest-look') || {}).textContent || '(no card)').replace(/\s+/g, ' ').slice(0, 200)];
   const want = W.real.post({ action: 'digestPreview', personId: a.u.personId, token: a.u.token });
   if (!want || !want.shown || fr.getAttribute('srcdoc') !== want.shown.html) bad.push('the frame does not hold the backend\'s shown email byte for byte');
   if (fr.getAttribute('sandbox') !== '') bad.push('the frame is not fully sandboxed: sandbox="' + fr.getAttribute('sandbox') + '"');
-  if (a.d.querySelector('#s-site .digest-look .dp-q, #s-site .digest-look .dp-body')) bad.push('a hand-drawn imitation of the email is still on the card');
-  const subj = a.d.querySelector('#s-site .digest-look .dp-subj');
+  if (a.d.querySelector('#s-stuff .digest-look .dp-q, #s-stuff .digest-look .dp-body')) bad.push('a hand-drawn imitation of the email is still on the card');
+  const subj = a.d.querySelector('#s-stuff .digest-look .dp-subj');
   if (!subj || subj.textContent.indexOf(want.shown.subject) < 0) bad.push('the subject line is not the backend\'s: ' + (subj && subj.textContent));
-  const box = a.d.querySelector('#s-site .digest-words [data-dw="digest_subject"]');
+  const box = a.d.querySelector('#s-stuff .digest-words [data-dw="digest_subject"]');
   if (!box) return bad.concat(['no Subject box on the words card']);
   box.value = 'Typed for {child}';
   box.dispatchEvent(new a.w.Event('input', { bubbles: true }));
@@ -303,16 +304,16 @@ check('the Weekly email card (547) shows the very HTML the backend sends, in a s
   for (let i = 0; i < 40 && !(asked = a.sent.filter(x => x.action === 'digestPreview' && x.words).pop()); i++) await wait(100);
   if (!asked || asked.words.digest_subject !== 'Typed for {child}') bad.push('typing the subject did not ask the backend\'s renderer with it: ' + JSON.stringify(asked && asked.words));
   await wait(400);
-  const subj2 = a.d.querySelector('#s-site .digest-look .dp-subj');
+  const subj2 = a.d.querySelector('#s-stuff .digest-look .dp-subj');
   if (!subj2 || !/Typed for \S/.test(subj2.textContent)) bad.push('after typing, the subject shown is "' + (subj2 && subj2.textContent) + '"');
   return bad;
 });
 
-check('no Rules card on Site (owner, 10 Nov: "delete this")', async () => {
+check('no Rules card on Find › Settings › Site (owner, 10 Nov: "delete this")', async () => {
   const W = cardWorld_();
   const a = await cardOpen_(W, 'admin@example.org');
   if (a.err) return [a.err];
-  a.t.go('site', false, true); a.w.paint('site'); await wait(300);
+  await siteOpen_(a.w, '.rules-card');
   return a.d.querySelector('.rules-card') ? ['the Rules card is still drawn'] : [];
 });
 
