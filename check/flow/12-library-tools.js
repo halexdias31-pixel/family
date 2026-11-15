@@ -971,8 +971,8 @@ check('a backend that never answers does not hang the app for ever', async () =>
 });
 
 /* ---------- A PAYLOAD THAT DID NOT ARRIVE IS ASKED FOR AGAIN, QUIETLY § */
-/* ONE POST, the witness that the payload was drawn (the festive card was, until 506). */
-const RC_PAYLOAD_ = () => Object.assign(payload(), { features: ['editPost', 'deletePost'],
+/* ONE POST, the witness that the payload was drawn (the festive card was, until 506), spotlit so the Spotlight column draws it — the Feed's posts went to attic/ with posts.js. */
+const RC_PAYLOAD_ = () => Object.assign(payload(), { features: ['editPost', 'deletePost'], spotlight: ['post:PO-RC'],
   posts: [{ id: 'PO-RC', author: '@family.', handle: '@family.', avatar: '', image: '', media: [], caption: 'Drawn from the payload', body: '', location: '',
     when: '01/09/2026', at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
     reactions: { emoji: [], counts: [], total: 0, yours: '', by: [] }, comments: { total: 0, list: [] } }] });
