@@ -82,7 +82,6 @@ const KEPT = [
     proof: [['pixel.js', /pxeSet === 'colour'[\s\S]{0,80}?PXE\.colour = [\s\S]{0,60}?pxeKeep_\(\);/]] },
 ];
 const PIN = 'a PIN — never written to the device, by a draft or anything else';
-const PEOPLE_FORM = 'an admin making or changing somebody else\'s account — a decision made and saved there and then, not left half-made on a device';
 const EXEMPT = [
   { file: 'cards-render.js', fn: 'cardControl_', count: 3, why: 'the master template\'s one control (owner, 12 Nov): a spec asks for a draft with `draft: { surface, id }` (draftAttr_ and draftVal_ in it); one without is its builder\'s own, said there' },
   { file: 'spotify.js', fn: 'spCard_', has: 'id="sp-q"', why: 'a Spotify search (510) — a few words, run at once and shown as results; a reload starts a new search' },
@@ -90,7 +89,6 @@ const EXEMPT = [
   { file: 'favlinks.js', fn: 'favDraw_', has: 'data-fav="url"', why: 'a favourite link\'s address (509) — pasted and Added in one press; a redraw keeps it, a reload draws the saved list' },
   { file: 'games.js', has: 'id="tt-answer"', why: 'a times-tables round — a reload is a new round, with a new question' },
   { file: 'tools.js', fn: 'ktPaint_', has: 'kt-in', why: 'touch typing — the line being typed IS the drill; the progress is kept (`kt`)' },
-  { file: 'me.js', fn: 'ceWhere_', has: 'data-where-area', why: 'an area tick on Where you teach (owner, 8 Nov) only rewrites the hidden venues_ok box, saved by the card\'s Save; a reload draws the saved areas' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="expires_on"', why: 'a renewal\'s new expiry (10 Nov), picked and saved with Renewed in one press; a reload draws the saved expiry' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="done_on"', why: 'the Business checker\'s done-on date (1050) — picked and Marked done in one press; a reload draws the saved tick\'s date' },
   { file: 'one-place.js', fn: 'oqItem_', has: 'data-oq-note', why: 'the owner\'s "Something else" (1060) — typed and sent at once; a reload draws the saved note from owner_answers' },
@@ -109,18 +107,8 @@ const EXEMPT = [
   { file: 'me.js', fn: 'regFormHtml_', has: "id: 'reg-pin'", why: PIN },
   { file: 'form.js', fn: 'formBox_', has: "attrs: Object.assign({ id: b.id", why: PIN + ': the Signing in boxes, forms.json\'s `signing-in`' },
   { file: 'me.js', fn: 'regFormHtml_', has: "id: 'reg-noemail'", why: 'reset by the who-is-it question above it, which is asked again on purpose (`REG_NOTE`)' },
-  /* THE PEOPLE COLUMN'S PERSON FORM (373): another person's account, decided and saved there and then. */
-  /* FORMS FROM THE ITEM SHAPE (forms.json `forms`, foundation 2): today the three people forms — another person's account, saved there and then (edit-person within a second of typing). */
-  { file: 'form.js', fn: 'formFieldOf_', has: 'type="date" ${a}=', why: PEOPLE_FORM },
-  { file: 'form.js', fn: 'formFieldOf_', has: 'placeholder="${esc(ph)}"', why: PEOPLE_FORM },
-  { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-role', why: PEOPLE_FORM },
-  { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-parent', why: PEOPLE_FORM },
-  /* ADD A PERSON IN FIND (add-person): like the people column's form, another person's account made there and then; the picker is a name looked up. */
-  { file: 'me.js', fn: 'famPick_', has: 'data-fam-q', why: 'a family picker: a name looked up, not work, retyped in a second' },
-  /* APPLY TO TEACH (400): one sheet filled and sent in a sitting; a reload starts the application again. */
-  { file: 'me.js', fn: 'box', has: "'data-app': k, autocomplete", why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
-  { file: 'me.js', fn: 'area', has: "'data-app': k, rows", why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
-  { file: 'me.js', fn: 'tick', has: "attrs: { 'data-app': k }", why: 'the application to teach (400) — its three ticks (DBS Update Service, DBS needed, consent), sent with it' },
+  /* FORMS FROM THE ITEM SHAPE (forms.json `forms`, foundation 2): a form whose `draft` is "form" keeps every box a draft (formFieldOf_, formTicksOf_, formTickOf_); these are the ones that keep none. */
+  { file: 'form.js', fn: '(top)', has: 'data-fam-want=', why: 'a family picker (forms.json `family-pick`): a name looked up, not work, retyped in a second' },
   { file: 'form.js', fn: 'formToggle_', has: "type: 'control', attrs }", why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },
   { file: 'map.js', has: "id: 'dock-add'", why: 'one line, kept the moment Enter or + puts it on the docket' },
   { file: 'find.js', has: "class: 'room-name'", why: 'a room name, a few words, prefilled and sent by the button under it' },
@@ -212,7 +200,8 @@ for (const f of FILES) {
     }
     /* A GENERIC BLOCK'S SPEC, AT ITS CALLER: the object's own source is the tag's text (a `many`'s, its ticks'). */
     if (n.type === 'ObjectExpression' && f !== 'cards-render.js' && !isMaker_(f, name)) {
-      const tp = n.properties.find(p => p.key && (p.key.name || p.key.value) === 'type' && p.value && p.value.type === 'Literal');
+      /* an unquoted `type:` only — a quoted "type" is data (forms.json's copy in form.js), not a block drawn here */
+      const tp = n.properties.find(p => p.key && p.key.type === 'Identifier' && p.key.name === 'type' && p.value && p.value.type === 'Literal');
       const g = tp && GENERIC_[tp.value.value];
       if (g) {
         let o = src.slice(n.start, n.end);

@@ -270,13 +270,11 @@ const isDob_ = list => (list || []).some(isDobBox_);
 
 function dobBoxes_(value) {
   /* NO SAVED BIRTHDAY OFFERED (383) — no field suggests; `maxlength` stops a third digit in a two-digit box. */
-  const box = (f, hint, len) => fieldHtml(f, value(f), {
-    placeholder: hint,
-    extra: `inputmode="numeric" maxlength="${len}" autocomplete="off" size="${len}"`,
-  });
+  /* THE THREE BOXES ARE forms.json's `dob` form. */
+  const box = f => formOf_('dob', value, { only: [f] });
   return cardBlock_({ type: 'group', look: 'dob-row', attrs: { role: 'group', 'aria-label': 'Date of birth' }, blocks: [
     { type: 'group', tag: 'span', look: 'dob-cap', text: 'date of birth' },
-    { type: 'group', look: 'dob-boxes', inner: box('dob_d', 'DD', 2) + box('dob_m', 'MM', 2) + box('dob_y', 'YYYY', 4) }] });
+    { type: 'group', look: 'dob-boxes', inner: box('dob_d') + box('dob_m') + box('dob_y') }] });
 }
 const isLibrary_ = list => (list || []).some(isLibraryCard_);
 

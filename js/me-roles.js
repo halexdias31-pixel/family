@@ -200,7 +200,7 @@ const LOCK_AS_ = { staff: { rank: 'staff', role: 'Tutor', roles: ['tutor'] }, fa
 function lockedAs_(col, draw) {
   const real = USER;
   let out = [];
-  USER = Object.assign({ name: '', handle: '', personId: '', email: '', profile: {}, lockedPreview: true }, LOCK_AS_[col] || {});
+  USER = Object.assign({ name: '', handle: '', personId: '', email: '', profile: {}, lockedPreview: true, realViewer: real }, LOCK_AS_[col] || {});
   try { out = (draw() || []).filter(Boolean); } catch (e) { out = []; } finally { USER = real; }
   return out.map(lockCard_);
 }
@@ -443,7 +443,8 @@ function notifyCard_() {
   /* THE ONE FORM MAKER WITHOUT A Save: each tick is saved the moment it is ticked (`notify-pick`). */
   /* PHONE NOTIFICATIONS (492, push.js) ARE PART OF THIS ONE CARD (owner, 12 Nov). */
   if (typeof window.pushBody_ === 'function') tail += window.pushBody_();
-  return formCard_({ title: 'Notifications', cls: 'notify-card', body: inner, toggles: toggles, tail: tail, save: false });
+  /* THE TICKS ARE forms.json's `notify` form. */
+  return formCard_({ title: 'Notifications', cls: 'notify-card', body: inner + formOf_('notify', null, { options: { kinds: toggles || [] } }), tail: tail, save: false });
 }
 
 /* WHAT THE SERVER LAST SAID THIS KIND IS SET TO — the profile's list, not the box. */
