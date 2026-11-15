@@ -5,7 +5,12 @@ THESIS
  binding denial of the crucifixion does not, and can be kept only by an undetectable miracle known only from the Qur'an
  itself (circular / faith over evidence), by leaving Sunnism (Ahmadi or other readings), or by a double standard
  against the record.
- T := (∀c∈B_O ¬Contra(c)) ∧ (∃c∈B_S Contra(c))      T3 := Sunni ∧ Neutral ∧ ¬SP ∧ ¬Circ ⊢ E1
+ PREDICTED REPLIES (E1–E5, exhaustive by B5): M has exactly two non-fallacious options —
+   (1) FAITH: hold 4:157 over the record because he already accepts the Qur'an (E1 conceded + E2; not neutral ground);
+   (2) LEAVE SUNNISM: Ahmadi (survived the cross) or a non-Sunni reading (E3).
+   Every other reply is a fallacy: circular (Swap from the Qur'an alone, B7) or special pleading (deny the record, B8),
+   or rests on a false premise (Orthodoxy binds every Bible detail, B10).
+ T :=(∀c∈B_O ¬Contra(c)) ∧ (∃c∈B_S Contra(c))      T3 := Sunni ∧ Neutral ∧ ¬SP ∧ ¬Circ ⊢ E1
  Status: VALID. Z3 (binding-claims-checks.py): Part A (v2) + Part B (v3) — ALL AS EXPECTED, 0 surprises.
  Interlocutor: M (Sunni).
 
