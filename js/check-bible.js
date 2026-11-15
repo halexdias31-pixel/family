@@ -297,12 +297,12 @@ if (listSrc.some(s => !s)) {
 const kindM = /\n\s*bible:\s*\{\s*group:\s*'([^']*)',\s*label:\s*'([^']*)'/.exec(findSrc);
 if (!kindM) fail.push('js/find.js has no `bible:` entry in KINDS — Find cannot offer the Bible');
 else if (kindM[1] !== 'Learning' || kindM[2] !== 'Library') fail.push('the bible kind is ' + kindM[1] + ' · ' + kindM[2] + ', not Learning · Library — Resources went at the owner\'s word (445)');
-/* THE GATE IS ONE LINE AND IT IS `isAdmin()`. A tutor check, a role list, or nothing at all here is
+/* THE GATE IS ONE LINE AND IT IS `may_('admin')`. A tutor check, a role list, or nothing at all here is
    the Bible shown to somebody the owner did not name. */
 const gateM = /const bibleFor_ = \(\) => ([^;]+);/.exec(findSrc);
 if (!gateM) fail.push('`bibleFor_` is not in js/find.js — there is no one place deciding who sees the Bible');
 /* OR THE RULES CARD'S `kjv-admin` made universal (496): the owner's own switch; no age gate (1040). */
-else if (gateM[1].replace(/\s+/g, ' ').trim() !== "(typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin'))") {
+else if (gateM[1].replace(/\s+/g, ' ').trim() !== "(typeof may_ === 'function' && may_('admin')) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin'))") {
   fail.push('`bibleFor_` is `' + gateM[1].trim() + '` — an admin, or anyone while `kjv-admin` is Universal (504)');
 }
 /* PUBLIC BY DEFAULT (504): "it's open source so I don't care about it being public" — `kjv-admin` is a `flip` rule, Universal until switched. */
@@ -422,4 +422,4 @@ if (fail.length) {
 console.log('\nOK — every verse of the archive is in the split, in order and unchanged; every book is in the group\n'
   + '     decided for it and every chapter counted; every [word] is drawn in italics and every verse card\n'
   + '     prints its own words under its own pilcrow; every verse is a card named for its own place; and\n'
-  + '     only isAdmin() is shown it, opens it or fetches it.');
+  + '     only may_(\'admin\') is shown it, opens it or fetches it.');

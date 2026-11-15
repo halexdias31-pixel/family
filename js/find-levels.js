@@ -566,7 +566,7 @@ const S_ = v => String(v == null ? '' : v);
 function jobPage_(j) {
   const stage = typeof jobStage_ === 'function' ? jobStage_(j) : '';
   const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
-  const admin = typeof isAdmin === 'function' && isAdmin();
+  const admin = typeof may_ === 'function' && may_('admin');
   const own = typeof jobOpts_ === 'function' ? tile_(jobOpts_({ row: j })) : '';
   /* ONE CART TILE (owner, 7 Nov): an admin on their own booking already has Pay and confirm, so no Mark as paid beside it. */
   const pays = own.indexOf('job-pay') !== -1;

@@ -35,7 +35,7 @@ function spotSet_(key, on) {
 }
 
 function toggleSpot(k, kind) {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const key = String(k);
   const want = !SPOT.has(key);
   /* AT ONCE, BEFORE THE SERVER HAS SAID ANYTHING. § */
@@ -273,8 +273,8 @@ function shopFor_(r) {
      which must mean "on", or every shop on an old backend would empty itself. */
   if (r.inStock === false) return false;
   const who = String(r.audience || 'all').trim().toLowerCase();
-  if (who === 'admin') return typeof isAdmin === 'function' && isAdmin();
-  if (who === 'tutor') return typeof isTutorRole === 'function' && isTutorRole();
+  if (who === 'admin') return typeof may_ === 'function' && may_('admin');
+  if (who === 'tutor') return typeof may_ === 'function' && may_('staff');
   return true;
 }
 

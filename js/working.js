@@ -107,7 +107,7 @@ on('qp-work-x', el => {
 /* ---------- SEEN BY WHO MAY (`workingOf`): student, accepted parent, admin; fetched on the tap. § */
 /* `workingMaySee_` (dopost.gs): a parent or Admin, never a tutor (owner, 28 Oct). § */
 function workSeeOpts_(pid, asParent) {
-  if (!pid || !(asParent === true || isAdmin())) return null;
+  if (!pid || !(asParent === true || may_('admin'))) return null;
   return ({ icon: 'photo', label: 'Working photos', note: 'with the AI’s mark', act: 'work-see', data: { id: pid } });
 }
 on('work-see', el => {

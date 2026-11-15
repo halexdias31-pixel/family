@@ -72,7 +72,7 @@ function checksInner_() {
 }
 /* THE ONE CARD, then the detail it sums (the Optimiser's code worklist with What's missing, and the business checker's ticks), nothing lost. */
 function checksCard_() {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return '';
+  if (!(typeof may_ === 'function' && may_('admin'))) return '';
   let more = '';
   try { more = (typeof healthWithMissing_ === 'function' ? healthWithMissing_(siteHealthCard_(true)) : '') + (typeof window.bizCheckCard_ === 'function' ? window.bizCheckCard_() : ''); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'checks detail'); }
   if (!checksBizLive_()) setTimeout(checksWatchBiz_, 0);
@@ -88,7 +88,7 @@ function checksWatchBiz_() {
 }
 
 on('oq-answer', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.dataset.id, choice = el.dataset.choice, box = el.closest('.oq-item');
   if (!box || !OQ.answers) { toast('The answers are still on their way — a moment.'); return; }
   const note = String((box.querySelector('[data-oq-note]') || {}).value || '').trim();

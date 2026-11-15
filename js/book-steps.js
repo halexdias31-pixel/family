@@ -415,7 +415,7 @@ const BOOK_STEPS = [
     /* WHOEVER IS SIGNED IN, UNTIL SOMEBODY SAYS OTHERWISE. § */
     fallback: () => (USER && USER.name) || '',
     options: () => {
-      if (!isAdmin()) return [];
+      if (!may_('admin')) return [];
       const me = (USER && USER.name) || '';
       /* `DATA.people` AND `hasRole_` BOTH NEVER EXISTED — I wrote them from memory of what a codebase like this usually has. § */
       const names = (DATA.clients || []).map(p => p.name).filter(Boolean);
@@ -688,7 +688,7 @@ function bookSpec() {
     tutor: BOOKING.tutor === 'No preference' ? '' : BOOKING.tutor,
     /* AN ADMIN'S ALONE, and asked here as well as hidden on the form: a draft carried from an admin's
        session to a family's on one device must not price their booking with the admin's discount. */
-    discount: (typeof isAdmin === 'function' && isAdmin() && !isWaiting_() && Number(BOOKING.discValue) > 0)
+    discount: (typeof may_ === 'function' && may_('admin') && !isWaiting_() && Number(BOOKING.discValue) > 0)
       ? { type: '%', value: BOOKING.discValue, by: 'Shared with tutor' }
       : null,
   });

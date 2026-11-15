@@ -147,7 +147,7 @@ function settingDoorItems_() {
     byName[norm(name)] = it; out.push(it); return it;
   };
   /* THE LENS LEADS (`first`): drawn open, above every type, and sorted ahead by `sortKey_`. */
-  if (isAdmin()) Object.assign(add(lensOn_() ? 'Viewing ' + (whose_().name || 'somebody') : 'View as', 'lens', { lens: true }, 'Student', true),
+  if (may_('admin')) Object.assign(add(lensOn_() ? 'Viewing ' + (whose_().name || 'somebody') : 'View as', 'lens', { lens: true }, 'Student', true),
     { rank: -1, open: true, first: true, settingFor: settingTypes_().map(t => t.type) });
   settingTypes_().forEach(({ type, col, peek }) => {
     /* IN THE LENS, ONLY THE PERSON'S OWN COLUMNS: Business and Site are the business's, not theirs. */
@@ -192,7 +192,7 @@ CARD_EMBEDS['lens-tag'] = () => {
     ` data-do="lens-off" role="button" tabindex="0" aria-label="${esc(label)}"`, 'sm lens-tag', 'chip');
 };
 function lensCard_() {
-  if (!isAdmin()) return '';
+  if (!may_('admin')) return '';
   const on = lensOn_();
   return renderCard({ kind: 'panel', look: 'lens-card' + (on ? ' is-lens' : ''), tags: [{ text: on ? 'Viewing as' : 'View as', colour: 0 }],
     body: on ? [{ type: 'embed', tool: 'lens-tag' }] : [{ type: 'embed', tool: 'lens-pick' }, { type: 'text', text: ' ', look: 'lens-said' }] });
@@ -205,10 +205,10 @@ function lensRedraw_() {
 /* THEIR SETTINGS, ASKED FOR: `lensOpen` is an admin's alone (permissions.json); nobody else's tap gets this far. */
 on('lens-pick', el => {
   const id = (el && el.getAttribute('data-id')) || '';
-  if (!isAdmin() || !id) return;
+  if (!may_('admin') || !id) return;
   const card = el.closest('.lens-card'), said = card && card.querySelector('.lens-said');
   send_({ action: 'readItems', kind: 'profile', ids: [id], name: USER.name, personId: USER.personId || '', targetId: id }, { button: el, where: said || undefined })
-    .then(d => { if (!isAdmin() || !d || !d.personId) return; LENS = Object.assign({ lens: true }, d); lensRedraw_(); })
+    .then(d => { if (!may_('admin') || !d || !d.personId) return; LENS = Object.assign({ lens: true }, d); lensRedraw_(); })
     .catch(() => {});
 });
 on('lens-off', () => { LENS = null; lensRedraw_(); });

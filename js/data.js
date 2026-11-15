@@ -401,7 +401,7 @@ window.addEventListener('storage', e => {
   } catch (err) { /* a form mid-change keeps what it shows */ }
 });
 /* THE VIEWER'S ROLE IN THE PERMISSIONS TABLE (86a): anyone, member, child or admin. */
-const myRole_ = () => (!USER ? 'anyone' : isAdmin() ? 'admin' : (typeof childView_ === 'function' && childView_()) ? 'child' : 'member');
+const myRole_ = () => roleFor_();
 /* MAY THIS ROLE DO IT: § */
 const can_ = (role, kind, action) => {
   try {

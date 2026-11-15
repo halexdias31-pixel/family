@@ -443,7 +443,7 @@ const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}
 
 /* ---------- WHO IS SHOWN IT § */
 /* A RULE (496, 504): `kjv-admin` — Universal by default, everyone like the Talmud and the Quran; Exception, an admin only. check-bible reads this line. */
-const bibleFor_ = () => (typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin'));
+const bibleFor_ = () => (typeof may_ === 'function' && may_('admin')) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin'));
 /* SCRIPTURE IS RELIGIOUS STUDIES, ON THE BOOKS SHELF (494): "quran and talmud should be in religious studies and in books"; `libBook` says which book. */
 const SCRIPTURE_SUBJECT = () => brand('scripture_subject', 'Religious Studies');
 

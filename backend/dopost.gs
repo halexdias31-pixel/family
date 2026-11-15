@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-15-guests-1";
+const DOPOST_VERSION = "2026-11-15-who-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -761,7 +761,7 @@ function loginReplyFor_(r, token, extra) {
   const meId = S(r.person_id);
   /* ---------- `out.profile = {}` WAS HERE, AND IT THREW AWAY `profileOf_` TEN LINES AFTER USING IT § */
   /* ---------- AND WHAT THE PAYLOAD WOULD HAVE BROUGHT FIFTEEN SECONDS LATER § */
-  try { out.submissions = submissionsFor_(r, hasRole(r, 'admin')); } catch (err) { /* one missing section must not lose the rest of the reply */ }
+  try { out.submissions = submissionsFor_(r, whoMay_(r, 'admin')); } catch (err) { /* one missing section must not lose the rest of the reply */ }
   try { out.favourites = favouritesOf_(r); } catch (err) { /* one missing section must not lose the rest of the reply */ }
   try { const fam = familyOf_(r); out.family = fam.family; out.familyFor = fam.familyFor; } catch (err) { /* one missing section must not lose the rest of the reply */ }
   try { out.answers = answersFor_(meId); } catch (err) { /* one missing section must not lose the rest of the reply */ }

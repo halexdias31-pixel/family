@@ -28,7 +28,7 @@ const PSEARCH_ = psState_('students');
 const psFold_ = v => String(v || '').trim().replace(/^@/, '').toLowerCase();
 /* EVERY CARD THE COLUMN ALREADY SHOWS THIS PERSON — public, so a prefix may find them. Never a child's. */
 function psPublic_() {
-  const pool = [].concat(DATA.tutors || [], (typeof isAdmin === 'function' && isAdmin() && Array.isArray(DATA.everyone)) ? DATA.everyone : [],
+  const pool = [].concat(DATA.tutors || [], (typeof may_ === 'function' && may_('admin') && Array.isArray(DATA.everyone)) ? DATA.everyone : [],
     Array.isArray(DATA.family) ? DATA.family : []);
   const seen = {};
   return pool.filter(p => p && p.handle && p.title && !seen[psFold_(p.handle)] && (seen[psFold_(p.handle)] = 1));
@@ -41,7 +41,7 @@ function psCard_(who, tiles) {
     tiles ? pplG_('tile-row', tiles) : '']);
 }
 /* WHO MAY LOOK UP A CHILD — Client and up (400); the server asks the same. Only on Students: the lookup's one use is Add as my child. */
-const psMayChild_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('client');
+const psMayChild_ = () => typeof may_ === 'function' && may_('grownUp');
 const psChildCol_ = col => isStudentsCol_(col) && psMayChild_();
 function psResults_(col) {
   const S = psState_(col || 'students'), q = psFold_(S.q);

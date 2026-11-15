@@ -17,8 +17,8 @@ function getRun_(p, migrated) {
     return jsonOut({ error: 'Too many wrong PINs. Try again in ' + runWait
                           + (runWait === 1 ? ' minute.' : ' minutes.') });
   }
-  if (!who || !hasRole(who, 'admin') || !authCheckPin_(tRun, who, S(p.pin))) {
-    if (who && hasRole(who, 'admin')) authWrong_(tRun, who);
+  if (!who || !whoMay_(who, 'admin') || !authCheckPin_(tRun, who, S(p.pin))) {
+    if (who && whoMay_(who, 'admin')) authWrong_(tRun, who);
     return jsonOut({ error: 'Name or PIN not recognised, or that person is not an admin.',
                      hint: 'Add &name=Your%20Name&pin=0000 to the URL.' });
   }

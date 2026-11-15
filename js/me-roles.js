@@ -276,12 +276,12 @@ screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web'
 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return [];
+  if (!(typeof may_ === 'function' && may_('admin'))) return [];
   return (typeof window.bizPages_ === 'function' ? window.bizPages_() : []).concat(typeof deletedCard_ === 'function' ? [deletedCard_()] : []);
 }
 /* WEB SETTINGS (491), Find › Settings › Site since 15 Nov: what runs the site rather than the business — setup, moderation, imports, the weekly email, the build. */
 function sitePages_() {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return [];
+  if (!(typeof may_ === 'function' && may_('admin'))) return [];
   return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
     .concat(typeof window.inboxCard_ === 'function' ? [window.inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])

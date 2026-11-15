@@ -154,7 +154,7 @@ function formRows_(L) {
   /* ---------- ONE LIST, AND IT IS THE FORM § */
   const steps = stepRows_();
   /* A CHILD'S FORM HAS THE QUESTIONS AND NO FIGURES (398) — no priced rows, no figure columns, no total. */
-  const kid = childView_();
+  const kid = !may_('prices');
   const priced = L && !kid ? breakdownRows(L) : [];
 
   /* ---------- WHICH PRICED LINES BELONG TO A QUESTION § */
@@ -222,7 +222,7 @@ function formRows_(L) {
 /* ONE RENDERER, BOTH DOCUMENTS (owner, 8 Nov): the form is `bookingDoc_(null, foot)`, a saved booking `bookingDoc_(j, foot)` — same rows, filled and read-only. */
 function bookingDoc_(j, foot, price) {
   const L = j ? null : (price !== undefined ? price : bookPrice());
-  const kid = !j && childView_();
+  const kid = !j && !may_('prices');
   const rows = j ? jobRows(j) : formRows_(L);
   /* ONE SEQUENCE OF LINE NUMBERS, counted after the spine has put the rows in order. */
   let seq = 0;
@@ -351,7 +351,7 @@ function jobRows(j) {
     /* `Running` AND `Weeks left` WERE TWO PUSHES HERE and went with the form's — see the note by the waiting-list branch above. § */
     /* AND ONLY WHERE THERE IS A PRICE. `doGet` withholds it from a tutor who is not also paying —
        see `jobMoney_` — and "6 × £0.00" would print the hole as a figure. */
-    if (iv && iv.weeks && j.price && !childView_()) {
+    if (iv && iv.weeks && j.price && !!may_('prices')) {
       /* "ABOUT", because the weeks are what is LEFT and nothing runs until the seats fill. A
          precise total here would be a promise the list cannot keep. */
       push('About', iv.weeks + ' × ' + money_(j.price || 0), money_((j.price || 0) * iv.weeks));
@@ -449,7 +449,7 @@ function jobAccepted_(j) {
 function jobMoney_(j) {
   const has = v => v !== '' && v != null && isFinite(Number(v));
   const say = v => has(v) ? money_(Number(v)) : dash_();
-  if (typeof isAdmin === 'function' && isAdmin()) {
+  if (typeof may_ === 'function' && may_('admin')) {
     /* A WAITING LIST'S `price` IS ONE SEAT, NOT A TOTAL — `doGet` says so beside it — so "Client pays" over it would name the per-seat figure as everything the § */
     const seat = norm(j.kind) === 'waitlist';
     /* ADMIN EARNS IS WHAT IS LEFT, so the three lines always add up; a stored figure counted before the discount once said tutor £600 on a £302.40 booking. */
@@ -461,7 +461,7 @@ function jobMoney_(j) {
                .concat([{ k: 'Admin earns', t: seat ? say(j.adminKeeps) : say(left) }]) };
   }
   /* A CHILD'S SESSION HAS NO FIGURE ON IT (398) — `jobReceipt` draws no total row. */
-  if (childView_()) return { label: null, total: '', more: [], none: true };
+  if (!may_('prices')) return { label: null, total: '', more: [], none: true };
   const me = USER ? norm(USER.name) : '';
   const teaches = !!me && (norm(j.tutor) === me
     || (j.tutorSlots || []).some(t => norm(t.name) === me));
@@ -492,7 +492,7 @@ function bookMoneySend_(L) {
 function discountRow_(L) {
   if (isWaiting_()) return '';
   /* ONLY AN ADMIN SETS A DISCOUNT (owner, 7 Nov): everybody sees the line, greyed for the rest; the server refuses theirs (`discountRefusal_`). */
-  const admin = typeof isAdmin === 'function' && isAdmin();
+  const admin = typeof may_ === 'function' && may_('admin');
   const e = (L && L.earn) || { discount: 0 };
   return receiptRow({ n: '', k: 'Discount', v: '', mul: '', cls: 'rc-disc', ctl: bkCtl_('discValue'),
     rate: '',
@@ -508,14 +508,14 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="book-disc"]');
-  if (!el || el.dataset.field !== 'discValue' || !(typeof isAdmin === 'function' && isAdmin())) return;
+  if (!el || el.dataset.field !== 'discValue' || !(typeof may_ === 'function' && may_('admin'))) return;
   BOOKING.discValue = String(el.value || '').trim();
   drawBooker();
 });
 
 /* ---------- WHAT THE CLIENT PAYS, A LINE LIKE THE ONES ABOVE IT § */
 function formMoney_(L) {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return { label: null, more: [] };
+  if (!(typeof may_ === 'function' && may_('admin'))) return { label: null, more: [] };
   /* THE SAME THREE FIGURES THE BOOKING ROW KEEPS (`bookShares_`): after the discount, so pays = tutor + admin + fees to the penny. */
   const sh = typeof bookShares_ === 'function' ? bookShares_(L) : null;
   const dash = dash_();
@@ -560,7 +560,7 @@ function bookFieldsSaid_() {
         : (st.label_ && v ? st.label_(v) : (v || fb(st)));
       return st.short + ': ' + dash_(String(said || '').trim());
     });
-    const admin = typeof isAdmin === 'function' && isAdmin();
+    const admin = typeof may_ === 'function' && may_('admin');
     if (admin && !isWaiting_()) out.push('Discount: ' + (Number(BOOKING.discValue) > 0 ? BOOKING.discValue + '%' : dash_()));
     const L = bookPrice();
     if (L && L.total > 0) out.push((admin && !isWaiting_() ? 'Client pays' : 'Cost') + ': ' + money_(L.total));

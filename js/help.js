@@ -80,7 +80,7 @@ on('help-hand', el => {
 /* ---------- THE TUTOR'S LIST: who, which question, oldest first, a Done each ---------- */
 const helpAgo_ = at => { const m = Math.max(0, Math.round((Date.now() - Number(at)) / 60000)); return m < 1 ? 'just now' : m + ' min'; };
 function helpListCard_() {
-  if (!(typeof rankAtLeast_ === 'function' && rankAtLeast_('staff'))) return '';
+  if (!(typeof rankAtLeast_ === 'function' && may_('staff'))) return '';
   helpPoll_();
   const list = HELP_LIST;
   const rows = list === null ? loading_()
@@ -108,7 +108,7 @@ on('help-done', el => {
 function helpPollWanted_() {
   const signed = typeof USER === 'object' && USER && USER.token;
   if (!signed) return false;
-  const tutor = typeof rankAtLeast_ === 'function' && rankAtLeast_('staff') && typeof AT !== 'undefined' && AT === HELP_COL;
+  const tutor = typeof rankAtLeast_ === 'function' && may_('staff') && typeof AT !== 'undefined' && AT === HELP_COL;
   return !!(tutor || helpOn_());
 }
 /* ONE LOOK: lowers the child's card if the tutor said Done, refreshes the tutor's list, books the next. */
@@ -126,5 +126,5 @@ function helpTick_() {
 }
 function helpPoll_() {
   if (HELP_TIMER || !helpPollWanted_()) return;
-  HELP_TIMER = setTimeout(helpTick_, HELP_LIST === null && rankAtLeast_('staff') ? 0 : HELP_POLL_MS);
+  HELP_TIMER = setTimeout(helpTick_, HELP_LIST === null && may_('staff') ? 0 : HELP_POLL_MS);
 }

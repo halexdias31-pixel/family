@@ -114,7 +114,7 @@ files.forEach(({ n, src }) => {
 for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
   if (/admin/.test(m[1]) && /var\(--(admin|gold|warn)\)/.test(m[2]) && !/^\s*:root/.test(m[1])) bad.push(`11a an admin marker in colour: "${m[1].trim().slice(0, 60)}"`);
 }
-if (!/tone === 'admin' && !\(typeof isAdmin === 'function' && isAdmin\(\)\)\) return ''/.test(tilesSrc)) bad.push('11a tile_ draws an admin tile for someone who is not an admin');
+if (!/tone === 'admin' && !\(typeof may_ === 'function' && may_\('admin'\)\)\) return ''/.test(tilesSrc)) bad.push('11a tile_ draws an admin tile for someone who is not an admin');
 
 /* ---------- 30a. ONE LOADING LOOK: THE ONE RING (owner, 12 Nov), turned only by `@keyframes loading` ---------- */
 if (noComments.replace(/@keyframes loading\s*\{[^{}]*\{[^}]*\}\s*\}/, '').match(/rotate\((360deg|1turn)\)/)) bad.push('30a a second spinner in style.css — a wait is the one ring (loading_)');

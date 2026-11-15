@@ -669,7 +669,7 @@ function libDiskClear_() {
 function libWhyNot_(err) {
   const why = String((err && err.message) || err || '');
   if (/does not have `\w+`|unknown action/i.test(why)) {
-    return (isAdmin())
+    return (may_('admin'))
       ? 'The library needs the latest backend — deploy it.' : 'The library is being updated — try again later.';
   }
   return why || 'the library did not answer';

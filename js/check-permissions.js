@@ -53,7 +53,7 @@ rows.forEach(r => { if (r && r.kind === 'ui') (ui[r.action] = ui[r.action] || {}
   ['find:all-people', 'find:all-posts', 'find:admin-tags'].forEach(k => { if (sees(k) !== at('admin')) bad.push(who + ': ' + k + ' differs from rank admin'); });
 });
 const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$/gm, '$1');
-const ROLE_ASK = /\brankAtLeast_\(|\bisAdmin\(\)|\bhasRole\(|\bmyRole_\(\)|\.rank\s*===|\.role\s*===/;
+const ROLE_ASK = /\brankAtLeast_\(|\bmay_\('admin'\)|\bhasRole\(|\bmyRole_\(\)|\.rank\s*===|\.role\s*===/;
 const ALLOW = {};
 [['find-doors', /SETTINGS BY ACCOUNT TYPE[\s\S]*?\nfunction settingPart_/], ['find-aloud', /settingMay_\('door:checks'\)[^\n]*/], ['me-settings', /[\s\S]*/]].forEach(([n, re]) => {
   let src = '';

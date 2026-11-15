@@ -93,7 +93,7 @@ function peopleClaims_(r, meRow, payload) {
 }
 
 function peopleEveryone_(r, viewerIsAdmin, payload) {
-  if (viewerIsAdmin && !hasRole(r, 'tutor') && !hasRole(r, 'admin')) {
+  if (viewerIsAdmin && !hasRole(r, 'tutor') && !whoMay_(r, 'admin')) {
     payload.everyone.push({
       /* THE HANDLE OR NOTHING, as on `tutors` — and an admin's card says "no handle yet" for a
          blank one, so a hand-typed child is seen to need one ("New PIN" gives it them). */
@@ -134,7 +134,7 @@ function getPeople_(meAsked, viewerIsAdmin, vis, people, venuesTab, payload) {
     /* An admin sees the unlisted ones too, marked. Without that a tutor switched off vanishes
        from the site and can only be switched back on in the spreadsheet — which would make the
        control worse than not having one. */
-    if ((listed || viewerIsAdmin) && (hasRole(r, 'tutor') || hasRole(r, 'admin'))) {
+    if ((listed || viewerIsAdmin) && (hasRole(r, 'tutor') || whoMay_(r, 'admin'))) {
       /* READ ONCE, SENT TWICE — `quals` and `qualsParts` below are one list in two spellings. */
       const qp = qualsParts_(r);
       payload.tutors.push(tutorOut_(r, i, name, listed, qp, venuesTab));

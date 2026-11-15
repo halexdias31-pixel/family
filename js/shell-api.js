@@ -247,7 +247,7 @@ const RECONNECT_FLICK = 5000;
 
 function reconnectAdmin_() {
   try {
-    return (typeof isAdmin === 'function' && isAdmin())
+    return (typeof may_ === 'function' && may_('admin'))
       || (typeof hasRole === 'function' && hasRole('admin'));
   } catch (e) { return false; }
 }

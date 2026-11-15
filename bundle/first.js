@@ -244,7 +244,7 @@ function isHome(loc) {
   const name = String(loc || '');
   if (takesAllSeats_(name)) return true;
   /* A CHILD IS SENT NO RATES (398), so "no rate" is not "a home" to her phone. */
-  if (childView_()) return false;
+  if (!may_('prices')) return false;
   const sp = (typeof spaceFor === 'function') ? spaceFor(name) : null;
   if (sp) return !(Number(sp.rate) > 0);
   const v = (DATA.venues || []).find(x => norm(x.title) === norm(name));
@@ -313,11 +313,9 @@ const rank_ = (u = USER) => {
 };
 /* AT LEAST THIS RANK; nobody signed in holds none. `u` as `heldRoles`. */
 const rankAtLeast_ = (want, u = USER) => !!u && RANKS.indexOf(rank_(u)) >= RANKS.indexOf(want);
-const isTutorRole = () => rankAtLeast_('staff');
 
 /* ---------- A CHILD IS SHOWN NO PRICE (398) — the owner: "Kids' profiles shouldn't be able to see tutors' prices." */
-/* Rank Student (400), the phone's half of `isChild_` (people.gs). */
-const childView_ = () => rank_() === 'student';
+/* Asked as `!may_('prices')` (data-who.js), the phone's half of `whoMay_(row, 'prices')` (people.gs). */
 /* WHAT SHE IS TOLD WHERE A PRICE OR A PAY BUTTON WOULD BE — the backend's `KID_ASK_PARENT` says the same. */
 const KID_ASK_PARENT = 'A parent books and pays for sessions — ask yours to book this one.';
 
@@ -2142,7 +2140,7 @@ const PRICE_ROWS = [
     control: 'l-qty',
     /* Says WHERE the fraction came from, for an admin. § */
     value: L => String(Math.max(0, (L.n || 1) - 1))
-      + (isAdmin() && L.seatSource ? ' ' + cardBlock_({ type: 'group', tag: 'span', look: 'note', text: L.seatSource }) : ''),
+      + (may_('admin') && L.seatSource ? ' ' + cardBlock_({ type: 'group', tag: 'span', look: 'note', text: L.seatSource }) : ''),
     mult:  L => L.fChildrenAll,
     of:    L => rateBase(L, 'students') },
 
@@ -2342,7 +2340,7 @@ function levelRows() {
 
 ;
 /* ==== js/data-who.js ==== */
-/* @family. — js/data-who.js THE PAYLOAD AND THE VIEWER (cut from data.js): DATA, USER, `$`, brand and isAdmin, which nearly every file reads; loaded just before data.js. */
+/* @family. — js/data-who.js THE PAYLOAD AND THE VIEWER (cut from data.js): DATA, USER, `$`, brand and may_, which nearly every file reads; loaded just before data.js. */
 let DATA = {};
 let USER = null;
 try { USER = JSON.parse(localStorage.getItem('familyUser') || 'null'); } catch { /* a bad stored user reads as signed out */ }
@@ -2385,12 +2383,23 @@ const isWearable = x => {
   const k = norm(x && (x.kind || x.kindRaw));
   return k === 'wearable' || k === 'avatar';
 };
-/* Whether the person signed in is an admin. § */
-const isAdmin = () => !!USER && rankAtLeast_('admin');
+/* ---------- WHO ARE YOU (who-1): one person, one permission role, ONE QUESTION ---------- */
+/* Every "may they" asks `may_`; the backend's twin is `whoMay_` (people.gs). Signed out = a guest, a person with no roles. */
+const roleFor_ = (u = USER) => (!u ? 'anyone' : rankAtLeast_('admin', u) ? 'admin' : rank_(u) === 'student' ? 'child' : 'member');
+/* `admin` admin-only; `prices` never a child (398); `staff` a tutor or above; `signedIn`; `grownUp` signed in and not a child; anything else a permissions.json action row. */
+const may_ = (what, u = USER) => {
+  const r = roleFor_(u);
+  if (what === 'admin') return r === 'admin';
+  if (what === 'prices') return r !== 'child';
+  if (what === 'staff') return rankAtLeast_('staff', u);
+  if (what === 'signedIn') return r !== 'anyone';
+  if (what === 'grownUp') return r === 'member' || r === 'admin';
+  return typeof can_ === 'function' ? can_(r, 'action', what) : r === 'admin';
+};
 /* WHOSE SETTINGS (the admin's lens): every settings card reads `whose_()`, never USER, so one path draws anybody's. */
 /* LENS is the person an admin picked in Find › Settings (`lensCard_`, find-doors.js); nobody else can set it, and USER stays the asker. */
 let LENS = null;
-const whose_ = () => (LENS && isAdmin() ? LENS : USER);
+const whose_ = () => (LENS && may_('admin') ? LENS : USER);
 const lensOn_ = () => !!USER && whose_() !== USER;
 const whoseAtLeast_ = want => rankAtLeast_(want, whose_());
 
@@ -2799,7 +2808,7 @@ window.addEventListener('storage', e => {
   } catch (err) { /* a form mid-change keeps what it shows */ }
 });
 /* THE VIEWER'S ROLE IN THE PERMISSIONS TABLE (86a): anyone, member, child or admin. */
-const myRole_ = () => (!USER ? 'anyone' : isAdmin() ? 'admin' : (typeof childView_ === 'function' && childView_()) ? 'child' : 'member');
+const myRole_ = () => roleFor_();
 /* MAY THIS ROLE DO IT: § */
 const can_ = (role, kind, action) => {
   try {
@@ -3706,7 +3715,7 @@ function libDiskClear_() {
 function libWhyNot_(err) {
   const why = String((err && err.message) || err || '');
   if (/does not have `\w+`|unknown action/i.test(why)) {
-    return (isAdmin())
+    return (may_('admin'))
       ? 'The library needs the latest backend — deploy it.' : 'The library is being updated — try again later.';
   }
   return why || 'the library did not answer';
@@ -4546,7 +4555,7 @@ const COLUMNS = TABS.slice();
 /* ---------- WHICH COLUMNS THIS VIEWER IS GIVEN — THE SMALLEST RULE THAT LEAVES ONE OUT § */
 function columnsFor_() {
   let admin = false;
-  try { admin = typeof isAdmin === 'function' && isAdmin(); } catch (e) { admin = false; }
+  try { admin = typeof may_ === 'function' && may_('admin'); } catch (e) { admin = false; }
   /* AN ADMIN'S CUSTOM COLUMNS (466, layout.js) put into `COLUMNS` before Business, as the layout in force names them. */
   try { if (typeof customTabsSync_ === 'function') customTabsSync_(); } catch (e) { oops_(e, 'shell:columnsFor_') }
   const want = COLUMNS.filter(t => !t.admin || admin);
@@ -7692,7 +7701,7 @@ const RECONNECT_FLICK = 5000;
 
 function reconnectAdmin_() {
   try {
-    return (typeof isAdmin === 'function' && isAdmin())
+    return (typeof may_ === 'function' && may_('admin'))
       || (typeof hasRole === 'function' && hasRole('admin'));
   } catch (e) { return false; }
 }
@@ -8491,7 +8500,7 @@ function profAvail_(t) {
   /* ---------- NO HOURS IS SAID, NOT LEFT BLANK § */
   if (!ticked.length) {
     return { type: 'text', look: 'prof-say prof-nohours', text: 'Hasn\u2019t set usual hours yet \u2014 ask for any hour; they accept or decline.'
-      + (typeof isAdmin === 'function' && isAdmin() ? ' They tick them in Settings, under their week.' : '') };
+      + (typeof may_ === 'function' && may_('admin') ? ' They tick them in Settings, under their week.' : '') };
   }
   /* `busy` IS `{ m16: 'Ada' }` OFF `busyHours`, but the fixture once said `[]` and an older backend may say nothing; a list of § */
   const busy = {};
@@ -8510,7 +8519,7 @@ function profAvail_(t) {
   }).filter(d => d.hours.some(c => c.lit || c.busy));
   /* ---------- TICKED, BUT NOT AT AN HOUR THAT CAN BE BOOKED § */
   if (!days.length) {
-    return { type: 'text', look: 'prof-say prof-hid prof-nofree', text: 'No free hours this week.' + (typeof isAdmin === 'function' && isAdmin()
+    return { type: 'text', look: 'prof-say prof-hid prof-nofree', text: 'No free hours this week.' + (typeof may_ === 'function' && may_('admin')
       ? ' Every hour they have ticked is outside ' + hours_(hours[0], hours[hours.length - 1]) + ', the hours a session can be booked at.' : '') };
   }
   /* ---------- SPANS, NOT THE RECEIPT'S DISABLED BUTTONS § */
@@ -8921,7 +8930,7 @@ const shopPriceTag_ = x => { const myLevel = Math.floor((Number(typeof USER !== 
 /* the one way (`itemTool_`): its classes kept, its heading dropped, its tile rows joined to the card's row, a form open and whole (`kc-form`), */
 /* else its words as lines with the original kept hidden; the card's `body` leads it. */
 const itemLive_ = (r, M) => { const v = {}; Object.keys(M.live || {}).forEach(f => { v[f] = M.live[f](r); });
-  const hide = (typeof childView_ === 'function' && childView_() ? M.childHides || [] : []).concat(typeof isAdmin === 'function' && isAdmin() ? [] : M.adminOnly || []);
+  const hide = (typeof may_ === 'function' && !may_('prices') ? M.childHides || [] : []).concat(typeof may_ === 'function' && may_('admin') ? [] : M.adminOnly || []);
   const strip = o => { if (Array.isArray(o)) o.forEach(strip); else if (o && typeof o === 'object') hide.forEach(k => { delete o[k]; }); };
   if (hide.length) Object.keys(v).forEach(f => strip(v[f]));
   return v; };
@@ -9710,7 +9719,7 @@ function signedOut_(opts) {
   /* WHO IS LEAVING, AND WHETHER THEY WERE AN ADMIN — read before they are forgotten, for `ended` below. */
   const was = USER;
   let wasAdmin = false;
-  try { wasAdmin = (typeof isAdmin === 'function' && isAdmin()) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) { oops_(e, 'me:signedOut_') }
+  try { wasAdmin = (typeof may_ === 'function' && may_('admin')) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) { oops_(e, 'me:signedOut_') }
   USER = null; LENS = null;   /* and the lens: the next admin opens their own settings */
   try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ }
   payloadForget_();   /* the device's copy of their payload goes with them (1070) */
@@ -10092,7 +10101,7 @@ function paidFromLink_() {
     return;
   }
   /* A CHILD NEVER PAYS (398), so a child's phone does not ask — the parent who paid signs in and it finishes. */
-  if (childView_()) { toast('A parent paid for this — they sign in to finish the booking.'); return; }
+  if (!may_('prices')) { toast('A parent paid for this — they sign in to finish the booking.'); return; }
   PAID_ASKING_ = ref;
   const forget = () => { try { sessionStorage.removeItem(PAID_KEY_); } catch (e) { /* storage can be blocked; the app runs without it */ } };
   api({ action: 'finalizePayment', ref })
@@ -10528,7 +10537,7 @@ function msgDraft_(k) {
 function msgForm_(to, toId, note, rows) {
   const k = msgKey_(to, toId);
   /* A CHILD SENDS WORDS ONLY (413) — no picker, and `sendMessage` refuses their files too. */
-  return cardBlock_({ type: 'msgForm', k, chips: msgChipSpecs_(k), clip: rankAtLeast_('client'), to, rows, drafted: draftAttr_('msg', k), value: msgDraft_(k),
+  return cardBlock_({ type: 'msgForm', k, chips: msgChipSpecs_(k), clip: may_('grownUp'), to, rows, drafted: draftAttr_('msg', k), value: msgDraft_(k),
     send: { form: true, label: 'Send', act: 'msg-send', data: { to: to, id: toId || '' }, cls: 'msg-go' }, note });
 }
 
@@ -10564,7 +10573,7 @@ function uploadsPaint_() {
 }
 
 on('uploads-check', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   /* NOT DEPLOYED YET IS THE FIRST ANSWER, and the commonest one on the day this ships: § */
   const f = (DATA && DATA.features) || [];
   if (f.length && f.indexOf('checkUploads') < 0) {
@@ -10969,12 +10978,12 @@ screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web'
 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return [];
+  if (!(typeof may_ === 'function' && may_('admin'))) return [];
   return (typeof window.bizPages_ === 'function' ? window.bizPages_() : []).concat(typeof deletedCard_ === 'function' ? [deletedCard_()] : []);
 }
 /* WEB SETTINGS (491), Find › Settings › Site since 15 Nov: what runs the site rather than the business — setup, moderation, imports, the weekly email, the build. */
 function sitePages_() {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return [];
+  if (!(typeof may_ === 'function' && may_('admin'))) return [];
   return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
     .concat(typeof window.inboxCard_ === 'function' ? [window.inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
@@ -11257,7 +11266,7 @@ function settingsCards_(shown, moved, col) {
   const p = whose_().profile || {};
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
      admin's to set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
-  const readonly = (DATA.profileReadonly || []).concat(isAdmin() ? [] : ['extra_seat_cut']);
+  const readonly = (DATA.profileReadonly || []).concat(may_('admin') ? [] : ['extra_seat_cut']);
   /* ONE SHAPE FOR EVERY CARD (8 Nov; 84a): `formCard_` — the title, one line per field, saved as you type. */
   const mail = list => (list || []).indexOf('email') !== -1;
   const one = (g, list, top, id, n, lid) => setHeldSay_(formCard_({ title: g, cls: id ? 'set-card' : '', lead: (top || '') + shareBarFor_(list, p),
@@ -11289,7 +11298,7 @@ const settingsSplittable_ = list => (list || []).length > 1 && !list.some(isQual
    The owner: "A user in theory could appear in each of these 3 categories" and "split account settings into 3". */
 const tabLabel_ = (id, or) => ((typeof settingGroupOf_ === 'function' && settingGroupOf_(id)) || {}).label || or;
 /* THE PEOPLE COLUMN OF YOUR RANK, where your own card is shown first (453); what you edit is on Student settings for every rank (469). */
-const homeCol_ = () => rankAtLeast_('staff') ? 'tutors' : rankAtLeast_('client') ? 'parents' : 'students';
+const homeCol_ = () => may_('staff') ? 'tutors' : may_('grownUp') ? 'parents' : 'students';
 /* DO YOU BELONG IN THIS PEOPLE COLUMN — by rank, or by a family link (a parent is a parent whatever their rank). */
 /* THE FAMILY LINK THAT PUTS YOU IN A PEOPLE COLUMN: a parent has a child; anyone else in a column has a parent. */
 const PEOPLE_COL_LINK = { parents: 'child' };
@@ -13179,7 +13188,7 @@ function cardEditOpts_(x) {
   /* YOUR OWN CARD'S EDIT IS ON YOUR SETTINGS COLUMN ALONE (464, `ownCardSetPage_`); nobody edits somebody else's (467). */
   if (own && !x.settings) return null;
   if (own ? !ownCardSections_(col).length : !isTutorsCol_(col)) return null;
-  return ({ icon: 'edit', label: 'Edit', note: own ? (isTutorsCol_(col) && rankAtLeast_('staff') ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
+  return ({ icon: 'edit', label: 'Edit', note: own ? (isTutorsCol_(col) && may_('staff') ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
                  tone: own ? '' : 'admin', data: { pid: t.personId, col } });
 }
 
@@ -13441,7 +13450,7 @@ function cardEditForm_(t, e, vals, only) {
   const val = f => (vals[f] == null ? '' : vals[f]);
   const ro = (DATA && DATA.profileReadonly) || [];
   const box = (f, extra) => fieldHtml(f, val(f), Object.assign({ attr: 'data-me', label: ROW_LABEL[f],
-    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !isAdmin()), draft: false,
+    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !may_('admin')), draft: false,
     raw: { person_id: (t && t.personId) || (whose_() || {}).personId || '' } }, extra));
   /* YOUR OWN CARD'S SECTIONS ARE YOUR ROLE'S (`ownCardSections_`), with the figure and the handle;
      somebody else's are the tutor's card, as an admin has always edited it. */
@@ -13537,7 +13546,7 @@ function cardRateHtml_(L, val, box, e) {
   const pound = fieldHtml('extra_seat_rate', cardSeatShown_('extra_seat_rate', rate, val('extra_seat_rate')), { attr: 'data-pound',
     label: own ? 'yours, £/h' : 'theirs, £/h', readonly: !live, draft: false,
     extra: `type="number" min="0" max="${live ? pounds2_(rate * STAFF_SEAT_MAX) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` });
-  const bar = own || (typeof isAdmin === 'function' && isAdmin())
+  const bar = own || (typeof may_ === 'function' && may_('admin'))
     ? shareBarBox_(val('extra_seat_cut'), cardShareBar_(rate, val('extra_seat_rate'), val('extra_seat_cut'))) : '';
   return box('rate_per_hour', {}) + bar
     + ceFold_('seat', 'Extra seat', mcLive_('ce-seat', cardSeatSay_(rate, val('extra_seat_rate'))),
@@ -13548,7 +13557,7 @@ function cardRateHtml_(L, val, box, e) {
 function cardCutHtml_(L, val, box) {
   if (L.indexOf('extra_seat_cut') === -1) return '';
   const rate = num(val('rate_per_hour'));
-  const live = rate > 0, mayCut = isAdmin();
+  const live = rate > 0, mayCut = may_('admin');
   const u = live ? cardSeatUsual_(rate) : null;
   const p = cardSeatParts_(rate, '', val('extra_seat_cut'));
   const body = mayCut
@@ -13868,7 +13877,7 @@ let PEOPLE_FORM_ = null;
 /* THE ROLES CARD'S OWN WORDS (`ROLE_PICKS`), student first, and Admin, which only an admin gives. */
 const peopleRolePicks_ = () => 'student client tutor'.split(' ').map(r => (ROLE_PICKS.find(x => x[0] === r) || [r, r]).slice(0, 2))
   .concat([['admin', 'Admin']]);
-const peopleMay_ = () => typeof isAdmin === 'function' && isAdmin() && !!USER;
+const peopleMay_ = () => typeof may_ === 'function' && may_('admin') && !!USER;
 const peopleSelf_ = p => !!(USER && p && p.personId && String(p.personId) === String(USER.personId || ''));
 
 /* DELETE, SHOW PIN AND THE DIGEST UNDER SOMEBODY ELSE'S CARD, for an admin; null for anybody else and on your own. */
@@ -13945,7 +13954,7 @@ const PSEARCH_ = psState_('students');
 const psFold_ = v => String(v || '').trim().replace(/^@/, '').toLowerCase();
 /* EVERY CARD THE COLUMN ALREADY SHOWS THIS PERSON — public, so a prefix may find them. Never a child's. */
 function psPublic_() {
-  const pool = [].concat(DATA.tutors || [], (typeof isAdmin === 'function' && isAdmin() && Array.isArray(DATA.everyone)) ? DATA.everyone : [],
+  const pool = [].concat(DATA.tutors || [], (typeof may_ === 'function' && may_('admin') && Array.isArray(DATA.everyone)) ? DATA.everyone : [],
     Array.isArray(DATA.family) ? DATA.family : []);
   const seen = {};
   return pool.filter(p => p && p.handle && p.title && !seen[psFold_(p.handle)] && (seen[psFold_(p.handle)] = 1));
@@ -13958,7 +13967,7 @@ function psCard_(who, tiles) {
     tiles ? pplG_('tile-row', tiles) : '']);
 }
 /* WHO MAY LOOK UP A CHILD — Client and up (400); the server asks the same. Only on Students: the lookup's one use is Add as my child. */
-const psMayChild_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('client');
+const psMayChild_ = () => typeof may_ === 'function' && may_('grownUp');
 const psChildCol_ = col => isStudentsCol_(col) && psMayChild_();
 function psResults_(col) {
   const S = psState_(col || 'students'), q = psFold_(S.q);
@@ -14504,7 +14513,7 @@ function dmFace_(t) {
   const famMine = !!(USER && USER.personId && DATA && DATA.familyFor && String(DATA.familyFor) === String(USER.personId));
   const rows = ((DATA && DATA.tutors) || [])
     .concat(famMine && Array.isArray(DATA.family) ? DATA.family : [])
-    .concat(typeof isAdmin === 'function' && isAdmin() && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []);
+    .concat(typeof may_ === 'function' && may_('admin') && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []);
   const id = String(t.id || '');
   /* THE SERVER'S WORD FIRST (413): `messages` sends each correspondent's chosen picture, or their figure when none is chosen — a parent or a child too, not only a tutor. */
   const sent = (t.msgs || []).map(m => m && m.withFace).filter(f => f && typeof f === 'object').pop();
@@ -15367,8 +15376,8 @@ on('cart-send', el => {
 /* AND `signedIn`, A THIRD AUDIENCE: § */
 function widgetFor_(w) {
   if (!w) return false;
-  if (w.admin && !(typeof isAdmin === 'function' && isAdmin())) return false;
-  if (w.tutor && !(typeof isTutorRole === 'function' && isTutorRole())) return false;
+  if (w.admin && !(typeof may_ === 'function' && may_('admin'))) return false;
+  if (w.tutor && !(typeof may_ === 'function' && may_('staff'))) return false;
   if (w.signedIn && !(typeof USER !== 'undefined' && USER)) return false;
   /* WHO SEES THIS (497, words.js): an admin's narrowing, asked after the code's own gates, which always win. */
   if (typeof seenOk_ === 'function' && !seenOk_(String(w.id))) return false;
@@ -15859,7 +15868,7 @@ screen('spotlight', () => pages('spotlight', typeof cardsOf_ === 'function' ? ca
 /* A STUDENT'S CARD, AND THE ADMIN'S TO SEE IT — by rank (400), never the role string. */
 function mayJourney_() {
   if (typeof rank_ !== 'function') return false;
-  return rank_() === 'student' || isAdmin();
+  return rank_() === 'student' || may_('admin');
 }
 /* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_` keeps for Settings, whose About you holds the same two § */
 function progressRedraw_() {
@@ -17364,7 +17373,7 @@ function tile_(o) {
   /* `pressed` IS FOR A TILE THAT IS A SWITCH -- the pen's lock and its Pen / Ruler / Compass -- and is said in `aria-pressed` beside the `on` the eye reads § */
   const pressed = o.pressed != null ? ` aria-pressed="${o.pressed ? 'true' : 'false'}"` : '';
   /* ONLY AN ADMIN SEES AN ADMIN'S TILE (owner, 8 Nov, 11a), and it looks like any other tile. */
-  if (o.tone === 'admin' && !(typeof isAdmin === 'function' && isAdmin())) return '';
+  if (o.tone === 'admin' && !(typeof may_ === 'function' && may_('admin'))) return '';
   const barred = '';
   return `<button type="button" class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${pressed}${barred}${o.off ? ' disabled' : ''}
     >${body}</button>`;
@@ -17497,7 +17506,7 @@ function isMe_(x) {
 /* BOOK THIS TUTOR: never on your own card or a child's; the tutor card and Find › Profiles share it (1150). */
 function bookOpts_(x) {
   const t = (x && x.row) || {};
-  return !isMe_(x) && !childView_() && t.listed !== false ? { icon: 'book', label: 'Book', tone: 'buy',
+  return !isMe_(x) && !!may_('prices') && t.listed !== false ? { icon: 'book', label: 'Book', tone: 'buy',
     act: 'book-with', data: { tutor: x.name || '' } } : null;
 }
 function tutorOpts_(x) {
@@ -17507,7 +17516,7 @@ function tutorOpts_(x) {
     String(t.videoFile || '').trim() ? { icon: 'play', label: 'Watch intro', act: 'intro-play', data: { file: t.videoFile } }
       : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? { icon: 'play', label: 'Watch intro', href: t.mediaUrl } : null,
     /* NOT FOR A CHILD, unless they are the business (405): `MESSAGING` lets a student write to an admin only — no tile the server refuses. */
-    USER && !isMe_(x) && (!childView_() || /admin/i.test(String(t.role || ''))) ? { icon: 'chat', label: 'Message',
+    USER && !isMe_(x) && (!!may_('prices') || /admin/i.test(String(t.role || ''))) ? { icon: 'chat', label: 'Message',
       note: 'a note to them', act: 'msg-open', data: { to: x.name, id: (x.row && x.row.personId) || '' } } : null,
     typeof cardEditOpts_ === 'function' ? cardEditOpts_(x) : null,
     x.key ? { icon: t.listed === false ? 'hide' : 'show', label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
@@ -17693,17 +17702,17 @@ function jobOpts_(x) {
   const mine = (j.slots || []).some(sl => norm(sl.client) === norm(USER.name));
   /* THE ASKED TUTOR, OR AN ADMIN, ANSWERS IN PLACE (488) — Accept, or Decline with an optional line why. */
   const asked = requestAsked_(j);
-  const answer = asked && (norm(asked) === norm(USER.name) || (typeof isAdmin === 'function' && isAdmin()))
+  const answer = asked && (norm(asked) === norm(USER.name) || (typeof may_ === 'function' && may_('admin')))
     ? [{ icon: 'tick', label: 'Accept request', tone: 'buy', note: 'it becomes a booking', act: 'job-request-answer', data: { id: id, yes: '1' } },
       { icon: 'close', label: 'Decline request', note: 'a line why, if you like', act: 'job-request-answer', data: { id: id, yes: '' } }]
     : null;
   /* A CHILD JOINS AND PAYS THROUGH A PARENT (398) — no join tile, no Pay tile, no figure. */
-  if (!mine) return [answer, jobApplyOpts_(j, id), answer || childView_() ? null : joinOpts_(j, id)];
+  if (!mine) return [answer, jobApplyOpts_(j, id), answer || !may_('prices') ? null : joinOpts_(j, id)];
   const paid = (j.slots || []).some(sl =>
     norm(sl.client) === norm(USER.name) && /^(paying|booked)$/i.test(String(sl.status || '')));
   const owed = typeof jobAccepted_ === 'function' && jobAccepted_(j) && !paid;
   return [jobChooseOpts_(j, id),
-    owed && !childView_() ? { icon: 'pound', label: 'Pay and confirm', tone: 'buy',
+    owed && !!may_('prices') ? { icon: 'pound', label: 'Pay and confirm', tone: 'buy',
       note: typeof money_ === 'function' ? money_(j.price || 0) : '', act: 'job-pay', data: { id: id } } : null,
     { icon: 'undo', label: 'Withdraw from this', act: 'job-leave', data: { id: id, paid: paid ? '1' : '' } }];
 }
@@ -17711,13 +17720,13 @@ function jobOpts_(x) {
 /* NO PREFERENCE (decision): tutors apply, the client picks. Apply is for an approved tutor not yet on it, while nobody is confirmed. */
 const jobOpenToTutors_ = j => !!(j && j.stealable) && !(j.tutorSlots || []).some(sl => /^confirmed$/i.test(String(sl.status || '')));
 function jobApplyOpts_(j, id) {
-  if (!USER || !jobOpenToTutors_(j) || !(typeof isTutorRole === 'function' && isTutorRole())) return null;
+  if (!USER || !jobOpenToTutors_(j) || !(typeof may_ === 'function' && may_('staff'))) return null;
   if ((j.tutorSlots || []).some(sl => norm(sl.name) === norm(USER.name))) return null;
   return ({ icon: 'join', label: 'Apply to teach', tone: 'buy', note: 'the family picks', act: 'job-apply', data: { id: id } });
 }
 /* THE CLIENT'S PICK: one tile per tutor who applied. */
 function jobChooseOpts_(j, id) {
-  if (!jobOpenToTutors_(j) || childView_()) return null;
+  if (!jobOpenToTutors_(j) || !may_('prices')) return null;
   return (j.tutorSlots || []).filter(sl => sl && sl.name && /^applied$/i.test(String(sl.status || '')))
     .map(sl => ({ icon: 'tick', label: 'Choose ' + displayName_(sl.name), tone: 'buy', note: 'they teach it',
                        act: 'job-choose', data: { id: id, tutor: String(sl.name) } }));
@@ -17773,7 +17782,7 @@ function jobAdminOpts_(j, stage, accepted) {
 function postOpts_(p) {
   const id = String((p && p.id) || '');
   if (!id) return null;
-  const admin = typeof isAdmin === 'function' && isAdmin();
+  const admin = typeof may_ === 'function' && may_('admin');
   const approve = { icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it', act: 'post-approve', data: { id: id, on: '1' } };
   return [{ icon: 'share', label: 'Share', note: 'as a picture', act: 'share', data: { id: id } },
     /* WAITING (413): the admin decides on the post itself; ALREADY DECLINED: only the way back. */
@@ -17787,7 +17796,7 @@ function postOpts_(p) {
 function postRow_(p) {
   const id = String((p && p.id) || '');
   if (!id) return '';
-  const del = typeof isAdmin === 'function' && isAdmin() || p.mine ? { icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } } : null;
+  const del = typeof may_ === 'function' && may_('admin') || p.mine ? { icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } } : null;
   return tileRow_(tile_(postOpts_(p)) + (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('post', id, String(p.title || p.body || '').slice(0, 80))) : '') + tile_(del));
 }
 
@@ -17819,7 +17828,7 @@ document.addEventListener('toggle', e => {
 
 /* AN ITEM (487, layout.js `itemMark_`): Delete and Note for an admin, no move and no door — Find's own code places it. */
 const MISSING_ID = 'item:stuff:missing-papers';
-const missingFor_ = () => isAdmin() && !(typeof itemGone_ === 'function' && itemGone_(MISSING_ID));
+const missingFor_ = () => may_('admin') && !(typeof itemGone_ === 'function' && itemGone_(MISSING_ID));
 /* THE PAGE ABOVE FIND'S QUESTION (`FINDERS.stuff.lead`, find.js): an admin's only. */
 /* AND SUGGEST A CHANGE (486), as on Daive's card: one row with the item's tiles (`suggestRowIn_`, submit.js). */
 /* IN FIND, NOT ABOVE IT (owner, 4 Nov): the two cards are Find cards under the Optimiser (find.js `health`); the lead page is empty. */
@@ -17896,7 +17905,7 @@ on('health-all', () => { HEALTH.all = !HEALTH.all; try { markStale_(['stuff']); 
 /* ---------- LOGIC HEALTH (770), ABOVE WHAT'S MISSING: data/logic-health.json, measured by tools/logic-health.js — mechanical, never AI ---------- */
 const LOGIC_ID = 'item:stuff:logic-health';
 const LOGIC = { got: null, failed: false, asked: false, all: false };
-const logicFor_ = () => isAdmin() && !(typeof itemGone_ === 'function' && itemGone_(LOGIC_ID));
+const logicFor_ = () => may_('admin') && !(typeof itemGone_ === 'function' && itemGone_(LOGIC_ID));
 function logicLead_() {
   if (!LOGIC_SHOWN || !logicFor_()) return [];
   const h = typeof itemMark_ === 'function' ? itemMark_(LOGIC_ID, '', logicCard_()) : logicCard_();

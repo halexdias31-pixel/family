@@ -2126,7 +2126,7 @@ const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}
 
 /* ---------- WHO IS SHOWN IT § */
 /* A RULE (496, 504): `kjv-admin` — Universal by default, everyone like the Talmud and the Quran; Exception, an admin only. check-bible reads this line. */
-const bibleFor_ = () => (typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin'));
+const bibleFor_ = () => (typeof may_ === 'function' && may_('admin')) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin'));
 /* SCRIPTURE IS RELIGIOUS STUDIES, ON THE BOOKS SHELF (494): "quran and talmud should be in religious studies and in books"; `libBook` says which book. */
 const SCRIPTURE_SUBJECT = () => brand('scripture_subject', 'Religious Studies');
 
@@ -9463,7 +9463,7 @@ function settingDoorItems_() {
     byName[norm(name)] = it; out.push(it); return it;
   };
   /* THE LENS LEADS (`first`): drawn open, above every type, and sorted ahead by `sortKey_`. */
-  if (isAdmin()) Object.assign(add(lensOn_() ? 'Viewing ' + (whose_().name || 'somebody') : 'View as', 'lens', { lens: true }, 'Student', true),
+  if (may_('admin')) Object.assign(add(lensOn_() ? 'Viewing ' + (whose_().name || 'somebody') : 'View as', 'lens', { lens: true }, 'Student', true),
     { rank: -1, open: true, first: true, settingFor: settingTypes_().map(t => t.type) });
   settingTypes_().forEach(({ type, col, peek }) => {
     /* IN THE LENS, ONLY THE PERSON'S OWN COLUMNS: Business and Site are the business's, not theirs. */
@@ -9508,7 +9508,7 @@ CARD_EMBEDS['lens-tag'] = () => {
     ` data-do="lens-off" role="button" tabindex="0" aria-label="${esc(label)}"`, 'sm lens-tag', 'chip');
 };
 function lensCard_() {
-  if (!isAdmin()) return '';
+  if (!may_('admin')) return '';
   const on = lensOn_();
   return renderCard({ kind: 'panel', look: 'lens-card' + (on ? ' is-lens' : ''), tags: [{ text: on ? 'Viewing as' : 'View as', colour: 0 }],
     body: on ? [{ type: 'embed', tool: 'lens-tag' }] : [{ type: 'embed', tool: 'lens-pick' }, { type: 'text', text: ' ', look: 'lens-said' }] });
@@ -9521,10 +9521,10 @@ function lensRedraw_() {
 /* THEIR SETTINGS, ASKED FOR: `lensOpen` is an admin's alone (permissions.json); nobody else's tap gets this far. */
 on('lens-pick', el => {
   const id = (el && el.getAttribute('data-id')) || '';
-  if (!isAdmin() || !id) return;
+  if (!may_('admin') || !id) return;
   const card = el.closest('.lens-card'), said = card && card.querySelector('.lens-said');
   send_({ action: 'readItems', kind: 'profile', ids: [id], name: USER.name, personId: USER.personId || '', targetId: id }, { button: el, where: said || undefined })
-    .then(d => { if (!isAdmin() || !d || !d.personId) return; LENS = Object.assign({ lens: true }, d); lensRedraw_(); })
+    .then(d => { if (!may_('admin') || !d || !d.personId) return; LENS = Object.assign({ lens: true }, d); lensRedraw_(); })
     .catch(() => {});
 });
 on('lens-off', () => { LENS = null; lensRedraw_(); });
@@ -10177,7 +10177,7 @@ const S_ = v => String(v == null ? '' : v);
 function jobPage_(j) {
   const stage = typeof jobStage_ === 'function' ? jobStage_(j) : '';
   const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
-  const admin = typeof isAdmin === 'function' && isAdmin();
+  const admin = typeof may_ === 'function' && may_('admin');
   const own = typeof jobOpts_ === 'function' ? tile_(jobOpts_({ row: j })) : '';
   /* ONE CART TILE (owner, 7 Nov): an admin on their own booking already has Pay and confirm, so no Mark as paid beside it. */
   const pays = own.indexOf('job-pay') !== -1;
@@ -10524,7 +10524,7 @@ function accountFamCard_(f, famLabel_, personForm_, tcard_) {
 /* FOR AN ADMIN, EVERYBODY ELSE IN THIS COLUMN, each with Message and New PIN. */
 function accountEveryone_(col, famIds, personForm_, tcard_) {
   /* ---------- AND FOR AN ADMIN, EVERYBODY ELSE AS WELL, by their main role (`doGet` sends no tutor or admin here) ---------- */
-  return (typeof isAdmin === 'function' && isAdmin() && Array.isArray(DATA.everyone) ? DATA.everyone : [])
+  return (typeof may_ === 'function' && may_('admin') && Array.isArray(DATA.everyone) ? DATA.everyone : [])
     .filter(p => p && p.title && !mineIs_(p) && !(p.personId && famIds.indexOf(String(p.personId)) !== -1))
     .filter(p => (/student/i.test(String(p.role || '')) ? 'students' : 'parents') === col)
     /* A BLANK HANDLE IS SAID, NOT FILLED WITH THE FIRST NAME. § */
@@ -10552,7 +10552,7 @@ function accountMine_(col, family, myRow, tcard_) {
     /* NEVER AN EDITOR HERE (464): your own card is edited on your role's settings column (`ownCardSetPage_`, me.js). */
     const face = row !== myRow ? tcard_(row) : (typeof meCard === 'function' ? meCard(row) : tcard_(row));
     /* SHARE MY PROFILE (400): their own `?tutor=` link, to send a family — on the tutor face. */
-    const share = isTutorsCol_(col) && rankAtLeast_('staff') && USER.handle
+    const share = isTutorsCol_(col) && may_('staff') && USER.handle
       ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
     /* SHARE only: Edit is on your settings column (464); Sign out and Send the link again on Student settings (453). */
     /* AND REPORT (486): everything has one, your own card too. */
@@ -12260,7 +12260,7 @@ function finderTagsView_() {
   if (!T || !T.views) return null;
   /* AN ADMIN SEES People and Settings: a view of its own. */
   let adm = false;
-  try { adm = typeof isAdmin === 'function' && isAdmin(); } catch (e) { adm = false; }
+  try { adm = typeof may_ === 'function' && may_('admin'); } catch (e) { adm = false; }
   const v = T.views[(adm ? 'admin+' : '') + (typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '')];
   return v ? Object.assign({}, T.same || {}, v) : null;
 }
@@ -16116,7 +16116,7 @@ const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'functi
 const reportedNow_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA.reportedItems) || []).indexOf(kind + '|' + id) !== -1;
 /* THE ONE TILE'S OPTIONS, on every thing, drawn by `tile_`: Student rank and up; signed out, null (no tile). `check-suggest` holds every such tile to it. */
 function suggestOpts_(kind, id, label, cls) {
-  if (!kind || !id || typeof rankAtLeast_ !== 'function' || !rankAtLeast_('student')) return null;
+  if (!kind || !id || typeof may_ !== 'function' || !may_('signedIn')) return null;
   return ({ icon: 'suggest', label: suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change', note: reportedNow_(kind, id) ? 'to change' : '',
                  act: 'rep-box', cls: 'rep-tile' + (cls ? ' ' + cls : ''), data: { rk: kind, ri: id, rl: String(label || '').slice(0, 120) } });
 }
@@ -16141,7 +16141,7 @@ function reportDevice_() {
 }
 /* IN PLACE OF THE THING (489, `boxInPlace_`): one text area, a picture, Send and Cancel. No notes listed (498): Done is Claude's, by data/notes-done.json. */
 function reportBoxHtml_(kind, id, label, finder, path) {
-  const admin = isAdmin();
+  const admin = may_('admin');
   const dk = kind + '|' + id, people = suggestPeople_(kind), files = admin && !people;
   const fileIn = attrs => ({ type: 'control', attrs: Object.assign({ type: 'file' }, attrs, { hidden: true, 'aria-hidden': 'true', tabindex: '-1' }) });
   return cardBlock_({ type: 'group', look: 'me-form rep-form rep-box', attrs: { 'data-rk': kind, 'data-ri': id, 'data-rl': label, 'data-finder': finder || '', 'data-path': path || '' }, blocks: [
@@ -16426,7 +16426,7 @@ async function repFilesSend_(form) {
 }
 const reportBoxOf_ = (kind, id) => [...document.querySelectorAll('.rep-box')].find(b => b.dataset.rk === kind && b.dataset.ri === id) || null;
 on('rep-box', el => {
-  if (!(typeof rankAtLeast_ === 'function' && rankAtLeast_('student'))) { toast('Sign in to suggest a change.'); return; }
+  if (!(typeof may_ === 'function' && may_('signedIn'))) { toast('Sign in to suggest a change.'); return; }
   const kind = el.getAttribute('data-rk') || '', id = el.getAttribute('data-ri') || '';
   const had = reportBoxOf_(kind, id);
   if (had) { boxOut_(had); return; }
@@ -16587,7 +16587,7 @@ on('qp-work-x', el => {
 /* ---------- SEEN BY WHO MAY (`workingOf`): student, accepted parent, admin; fetched on the tap. § */
 /* `workingMaySee_` (dopost.gs): a parent or Admin, never a tutor (owner, 28 Oct). § */
 function workSeeOpts_(pid, asParent) {
-  if (!pid || !(asParent === true || isAdmin())) return null;
+  if (!pid || !(asParent === true || may_('admin'))) return null;
   return ({ icon: 'photo', label: 'Working photos', note: 'with the AI’s mark', act: 'work-see', data: { id: pid } });
 }
 on('work-see', el => {
@@ -18352,7 +18352,7 @@ const BOOK_STEPS = [
     /* WHOEVER IS SIGNED IN, UNTIL SOMEBODY SAYS OTHERWISE. § */
     fallback: () => (USER && USER.name) || '',
     options: () => {
-      if (!isAdmin()) return [];
+      if (!may_('admin')) return [];
       const me = (USER && USER.name) || '';
       /* `DATA.people` AND `hasRole_` BOTH NEVER EXISTED — I wrote them from memory of what a codebase like this usually has. § */
       const names = (DATA.clients || []).map(p => p.name).filter(Boolean);
@@ -18625,7 +18625,7 @@ function bookSpec() {
     tutor: BOOKING.tutor === 'No preference' ? '' : BOOKING.tutor,
     /* AN ADMIN'S ALONE, and asked here as well as hidden on the form: a draft carried from an admin's
        session to a family's on one device must not price their booking with the admin's discount. */
-    discount: (typeof isAdmin === 'function' && isAdmin() && !isWaiting_() && Number(BOOKING.discValue) > 0)
+    discount: (typeof may_ === 'function' && may_('admin') && !isWaiting_() && Number(BOOKING.discValue) > 0)
       ? { type: '%', value: BOOKING.discValue, by: 'Shared with tutor' }
       : null,
   });
@@ -19115,7 +19115,7 @@ function stepWeekRows_(st) {
 function weekTotal_() {
   try {
     const L = bookPrice();
-    if (!L || !L.hoursPerWeek || !L.chargeRate || childView_()) return '';
+    if (!L || !L.hoursPerWeek || !L.chargeRate || !may_('prices')) return '';
     return money_(runningAfter('hoursweek', L));
   } catch (e) { return ''; }
 }
@@ -19341,7 +19341,7 @@ function formRows_(L) {
   /* ---------- ONE LIST, AND IT IS THE FORM § */
   const steps = stepRows_();
   /* A CHILD'S FORM HAS THE QUESTIONS AND NO FIGURES (398) — no priced rows, no figure columns, no total. */
-  const kid = childView_();
+  const kid = !may_('prices');
   const priced = L && !kid ? breakdownRows(L) : [];
 
   /* ---------- WHICH PRICED LINES BELONG TO A QUESTION § */
@@ -19409,7 +19409,7 @@ function formRows_(L) {
 /* ONE RENDERER, BOTH DOCUMENTS (owner, 8 Nov): the form is `bookingDoc_(null, foot)`, a saved booking `bookingDoc_(j, foot)` — same rows, filled and read-only. */
 function bookingDoc_(j, foot, price) {
   const L = j ? null : (price !== undefined ? price : bookPrice());
-  const kid = !j && childView_();
+  const kid = !j && !may_('prices');
   const rows = j ? jobRows(j) : formRows_(L);
   /* ONE SEQUENCE OF LINE NUMBERS, counted after the spine has put the rows in order. */
   let seq = 0;
@@ -19538,7 +19538,7 @@ function jobRows(j) {
     /* `Running` AND `Weeks left` WERE TWO PUSHES HERE and went with the form's — see the note by the waiting-list branch above. § */
     /* AND ONLY WHERE THERE IS A PRICE. `doGet` withholds it from a tutor who is not also paying —
        see `jobMoney_` — and "6 × £0.00" would print the hole as a figure. */
-    if (iv && iv.weeks && j.price && !childView_()) {
+    if (iv && iv.weeks && j.price && !!may_('prices')) {
       /* "ABOUT", because the weeks are what is LEFT and nothing runs until the seats fill. A
          precise total here would be a promise the list cannot keep. */
       push('About', iv.weeks + ' × ' + money_(j.price || 0), money_((j.price || 0) * iv.weeks));
@@ -19636,7 +19636,7 @@ function jobAccepted_(j) {
 function jobMoney_(j) {
   const has = v => v !== '' && v != null && isFinite(Number(v));
   const say = v => has(v) ? money_(Number(v)) : dash_();
-  if (typeof isAdmin === 'function' && isAdmin()) {
+  if (typeof may_ === 'function' && may_('admin')) {
     /* A WAITING LIST'S `price` IS ONE SEAT, NOT A TOTAL — `doGet` says so beside it — so "Client pays" over it would name the per-seat figure as everything the § */
     const seat = norm(j.kind) === 'waitlist';
     /* ADMIN EARNS IS WHAT IS LEFT, so the three lines always add up; a stored figure counted before the discount once said tutor £600 on a £302.40 booking. */
@@ -19648,7 +19648,7 @@ function jobMoney_(j) {
                .concat([{ k: 'Admin earns', t: seat ? say(j.adminKeeps) : say(left) }]) };
   }
   /* A CHILD'S SESSION HAS NO FIGURE ON IT (398) — `jobReceipt` draws no total row. */
-  if (childView_()) return { label: null, total: '', more: [], none: true };
+  if (!may_('prices')) return { label: null, total: '', more: [], none: true };
   const me = USER ? norm(USER.name) : '';
   const teaches = !!me && (norm(j.tutor) === me
     || (j.tutorSlots || []).some(t => norm(t.name) === me));
@@ -19679,7 +19679,7 @@ function bookMoneySend_(L) {
 function discountRow_(L) {
   if (isWaiting_()) return '';
   /* ONLY AN ADMIN SETS A DISCOUNT (owner, 7 Nov): everybody sees the line, greyed for the rest; the server refuses theirs (`discountRefusal_`). */
-  const admin = typeof isAdmin === 'function' && isAdmin();
+  const admin = typeof may_ === 'function' && may_('admin');
   const e = (L && L.earn) || { discount: 0 };
   return receiptRow({ n: '', k: 'Discount', v: '', mul: '', cls: 'rc-disc', ctl: bkCtl_('discValue'),
     rate: '',
@@ -19695,14 +19695,14 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="book-disc"]');
-  if (!el || el.dataset.field !== 'discValue' || !(typeof isAdmin === 'function' && isAdmin())) return;
+  if (!el || el.dataset.field !== 'discValue' || !(typeof may_ === 'function' && may_('admin'))) return;
   BOOKING.discValue = String(el.value || '').trim();
   drawBooker();
 });
 
 /* ---------- WHAT THE CLIENT PAYS, A LINE LIKE THE ONES ABOVE IT § */
 function formMoney_(L) {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return { label: null, more: [] };
+  if (!(typeof may_ === 'function' && may_('admin'))) return { label: null, more: [] };
   /* THE SAME THREE FIGURES THE BOOKING ROW KEEPS (`bookShares_`): after the discount, so pays = tutor + admin + fees to the penny. */
   const sh = typeof bookShares_ === 'function' ? bookShares_(L) : null;
   const dash = dash_();
@@ -19747,7 +19747,7 @@ function bookFieldsSaid_() {
         : (st.label_ && v ? st.label_(v) : (v || fb(st)));
       return st.short + ': ' + dash_(String(said || '').trim());
     });
-    const admin = typeof isAdmin === 'function' && isAdmin();
+    const admin = typeof may_ === 'function' && may_('admin');
     if (admin && !isWaiting_()) out.push('Discount: ' + (Number(BOOKING.discValue) > 0 ? BOOKING.discValue + '%' : dash_()));
     const L = bookPrice();
     if (L && L.total > 0) out.push((admin && !isWaiting_() ? 'Client pays' : 'Cost') + ': ' + money_(L.total));
@@ -20141,7 +20141,7 @@ function drawBooker_() {
   /* THE RUNNING BREAKDOWN. § */
   /* ---------- THE ACTIONS ARE PRINTED ON THE PAPER § */
   /* A CHILD ASKS A PARENT, NOT THE BUSINESS (398): no price reaches her, so the parent books it. Share stays — it is how she shows them. */
-  const foot = (childView_() ? cardBlock_({ type: 'paperNote', look: 'rc-kid', text: KID_ASK_PARENT }) : '') + policyLinks_('family');
+  const foot = (!may_('prices') ? cardBlock_({ type: 'paperNote', look: 'rc-kid', text: KID_ASK_PARENT }) : '') + policyLinks_('family');
   const money_ = bookBreakdown(L, foot);
 
   /* ---------- THE CARD IS THE FORM, FROM THE FIRST QUESTION § */
@@ -20151,7 +20151,7 @@ function drawBooker_() {
   /* THE PAPER IS THE WHOLE THING NOW. The note box moved into it as a row, the buttons are printed
      on it above the barcode, and what is left out here is nothing at all. */
   /* THE CARD'S ROUND ROW (owner, 12 Nov): Send leads; findCard lifts this top-level row into the card's one row. */
-  const tiles = [].concat(childView_() ? null : { icon: 'send', label: 'Send', tone: 'buy', act: 'book-send' },
+  const tiles = [].concat(!may_('prices') ? null : { icon: 'send', label: 'Send', tone: 'buy', act: 'book-send' },
     { icon: 'share', label: 'Share this booking', act: 'book-share' },
     /* REPORT OR SUGGEST A CHANGE ON THE BOOKING FORM TOO (489). */
     typeof suggestOpts_ === 'function' ? suggestOpts_('widget', 'booking', 'Booking') : null).filter(Boolean);
@@ -20578,7 +20578,7 @@ function spotSet_(key, on) {
 }
 
 function toggleSpot(k, kind) {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const key = String(k);
   const want = !SPOT.has(key);
   /* AT ONCE, BEFORE THE SERVER HAS SAID ANYTHING. § */
@@ -20816,8 +20816,8 @@ function shopFor_(r) {
      which must mean "on", or every shop on an old backend would empty itself. */
   if (r.inStock === false) return false;
   const who = String(r.audience || 'all').trim().toLowerCase();
-  if (who === 'admin') return typeof isAdmin === 'function' && isAdmin();
-  if (who === 'tutor') return typeof isTutorRole === 'function' && isTutorRole();
+  if (who === 'admin') return typeof may_ === 'function' && may_('admin');
+  if (who === 'tutor') return typeof may_ === 'function' && may_('staff');
   return true;
 }
 
@@ -21968,7 +21968,7 @@ const flyTutors_ = () => ((typeof DATA !== 'undefined' && DATA && DATA.tutors) |
 const flyMine_ = () => (typeof passFor_ === 'function' && USER ? passFor_(USER.name) : null);
 /* WHO THIS VIEWER MAY MAKE A FLYER FOR: an admin, the business and every listed tutor; a tutor, their own card only. */
 function flyWhoList_() {
-  if (typeof isAdmin === 'function' && isAdmin()) return [{ id: 'web', label: brand('name', '@family.') }].concat(flyTutors_().map(t => ({ id: flyTutorId_(t), label: t.title })));
+  if (typeof may_ === 'function' && may_('admin')) return [{ id: 'web', label: brand('name', '@family.') }].concat(flyTutors_().map(t => ({ id: flyTutorId_(t), label: t.title })));
   const me = flyMine_();
   return me ? [{ id: flyTutorId_(me), label: me.title }] : [];
 }
@@ -22067,7 +22067,7 @@ function flyerBody_() {
 /* THE CARD'S SPEC: its name the tag, the maker its one body block; `fl-maker` is how a redraw finds every copy. */
 const flyerCardSpec_ = () => ({ kind: 'panel', look: 'fl-maker', name: 'Flyer maker', tags: ['Flyer maker'], data: { 'lay-card': 'staff:flyer' }, body: [flyerBody_()] });
 function flyerCards_() {
-  if (!USER || !rankAtLeast_('staff')) return [];
+  if (!USER || !may_('staff')) return [];
   /* FITTED ONCE IT IS ON THE PAGE: a card is drawn as a string before it has a width. */
   try { setTimeout(flyerFit_, 0); setTimeout(flyerFit_, 400); } catch (e) { /* drawn unfitted */ }
   return [renderCard(flyerCardSpec_())];
@@ -22212,7 +22212,7 @@ on('help-hand', el => {
 /* ---------- THE TUTOR'S LIST: who, which question, oldest first, a Done each ---------- */
 const helpAgo_ = at => { const m = Math.max(0, Math.round((Date.now() - Number(at)) / 60000)); return m < 1 ? 'just now' : m + ' min'; };
 function helpListCard_() {
-  if (!(typeof rankAtLeast_ === 'function' && rankAtLeast_('staff'))) return '';
+  if (!(typeof rankAtLeast_ === 'function' && may_('staff'))) return '';
   helpPoll_();
   const list = HELP_LIST;
   const rows = list === null ? loading_()
@@ -22240,7 +22240,7 @@ on('help-done', el => {
 function helpPollWanted_() {
   const signed = typeof USER === 'object' && USER && USER.token;
   if (!signed) return false;
-  const tutor = typeof rankAtLeast_ === 'function' && rankAtLeast_('staff') && typeof AT !== 'undefined' && AT === HELP_COL;
+  const tutor = typeof rankAtLeast_ === 'function' && may_('staff') && typeof AT !== 'undefined' && AT === HELP_COL;
   return !!(tutor || helpOn_());
 }
 /* ONE LOOK: lowers the child's card if the tutor said Done, refreshes the tutor's list, books the next. */
@@ -22258,7 +22258,7 @@ function helpTick_() {
 }
 function helpPoll_() {
   if (HELP_TIMER || !helpPollWanted_()) return;
-  HELP_TIMER = setTimeout(helpTick_, HELP_LIST === null && rankAtLeast_('staff') ? 0 : HELP_POLL_MS);
+  HELP_TIMER = setTimeout(helpTick_, HELP_LIST === null && may_('staff') ? 0 : HELP_POLL_MS);
 }
 
 ;
@@ -22495,7 +22495,7 @@ function layoutDeletedName_(id) {
 }
 /* A CARD LIKE ANY OTHER (770: the owner, "why is this not movable"): registered, so it moves; `CARD_KEEP` takes Delete off it alone. */
 function deletedCard_() {
-  if (!isAdmin()) return '';
+  if (!may_('admin')) return '';
   const del = ((layoutNow_() || {}).deleted || []);
   const rows = del.map(id => cardBlock_({ type: 'group', look: 'lay-deleted-row', attrs: { 'data-deleted': id }, blocks: [
     { type: 'group', tag: 'p', text: [{ b: layoutDeletedName_(id) }, ' · ' + (anyWidgetOf_(id) ? 'widget' : 'card')] },
@@ -22507,7 +22507,7 @@ const CARD_KEEP = {
   'biz:deleted': 'the way back to every deleted widget and card; deleted, it would leave no way back',
 };
 on('lay-putback', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-del'), D = layoutDraftOf_(layoutNow_());
   if (D.deleted.indexOf(id) === -1) return;
   D.deleted = D.deleted.filter(x => x !== id);
@@ -22520,7 +22520,7 @@ const splitId_ = (kind, a, b) => kind + ':' + [a, b].filter(Boolean).map(x => St
 function splitOn_(id) { const L = layoutNow_(); return !!(L && L.split && L.split.indexOf(id) !== -1); }
 /* THE ADMIN'S TILE UNDER A SPLITTABLE CARD (Split) or under each of its pieces (Join); '' for anybody else. */
 function splitOpts_(id, n) {
-  if (!isAdmin() || !LAYOUT_SPLIT_ID.test(id)) return null;
+  if (!may_('admin') || !LAYOUT_SPLIT_ID.test(id)) return null;
   if (!splitOn_(id) && !(n > 1)) return null;
   return splitOn_(id)
     ? { icon: 'merge', label: 'Join', note: 'gathers every piece back into one card', act: 'lay-join', tone: 'admin', data: { card: id } }
@@ -22529,7 +22529,7 @@ function splitOpts_(id, n) {
 /* ITS ROW UNDER THE CARD, or '' for anybody but an admin. */
 function splitRow_(id, n) { const o = splitOpts_(id, n); return o ? cardBlock_({ type: 'tiles', look: 'wgt-admin split-tiles', tiles: [o] }) : ''; }
 function splitSet_(id, on) {
-  if (!isAdmin() || !LAYOUT_SPLIT_ID.test(id)) return;
+  if (!may_('admin') || !LAYOUT_SPLIT_ID.test(id)) return;
   const D = layoutDraftOf_(layoutNow_());
   const was = D.split || [];
   D.split = on ? (was.indexOf(id) === -1 ? was.concat([id]) : was) : was.filter(x => x !== id);
@@ -22792,7 +22792,7 @@ function colEntries_(col, raw) {
 /* THE COLUMN DRAWN: unchanged when there is no layout and nobody to arrange it; else arranged, an admin's row on each unit. A widget column asks here too (710). */
 function cardsOf_(col) {
   const raw = (CARD_BUILD[col] ? CARD_BUILD[col]() : []).filter(Boolean);
-  const L = layoutNow_(), admin = isAdmin(), kind = WIDGET_COL_OF_(col);
+  const L = layoutNow_(), admin = may_('admin'), kind = WIDGET_COL_OF_(col);
   delete CARD_START_AT[col];
   const strip = h => String(h).replace(/^\s*<!--card:[^>]*-->/, '').replace(/^\s*<!--person:[^>]*-->/, '');
   const guests = !!(L && ((L.cards && (L.cards[col] || []).length) || (!kind && L.widgets && (L.widgets[col] || []).length)));
@@ -22861,7 +22861,7 @@ function cardRowIn_(h, row) {
   return h + row;
 }
 function cardAdminRow_(id, col, mergeable) {
-  if (!LAYOUT_EDIT || !isAdmin()) return '';
+  if (!LAYOUT_EDIT || !may_('admin')) return '';
   const L = layoutNow_(), seen = mergeUnits_(CARD_SEEN[col] || [], L), i = seen.findIndex(u => u.indexOf(id) !== -1);
   const grp = mergedOf_(id, L);
   const start = cardStartOf_(col, layoutNow_());
@@ -22892,7 +22892,7 @@ function itemMark_(id, col, html) {
   if (!html || itemGone_(id)) return '';
   /* ITS ID ON ITS OWN BOX (489), so a Delete is read from the thing it sits on and the front door can find it. */
   const h = wordsIn_(id, String(html)).replace(/^(\s*<div)\b/, `$1 data-item="${esc(id)}"`);
-  if (!isAdmin()) return h;
+  if (!may_('admin')) return h;
   /* A RULE (496), locked: `items-no-move` — Delete and the door only, marked `no-move`. */
   const still = typeof ruleOn_ !== 'function' || ruleOn_('items-no-move');
   return cardRowIn_(h, cardBlock_({ type: 'group', look: 'tile-row wgt-admin card-admin item-admin' + (still ? ' no-move' : ''), attrs: { 'data-lay-for': id }, inner:
@@ -22902,13 +22902,13 @@ function itemMark_(id, col, html) {
 /* ---------- FRONT DOOR (489): `front: {col, id}`, one for the site; the door tile on every widget, card and item sets it, again clears it ---------- */
 const frontNow_ = () => { const f = (layoutNow_() || {}).front; return f && f.col && f.id ? f : null; };
 function frontOpts_(col, id) {
-  if (!isAdmin() || !col || !id) return null;
+  if (!may_('admin') || !col || !id) return null;
   const f = frontNow_(), on = !!(f && f.col === col && f.id === id);
   return ({ icon: 'door', label: on ? 'Front door (on)' : 'Front door', note: on ? 'everybody lands here' : 'land everybody here', act: 'lay-front', tone: 'admin',
     on: on, pressed: on, data: { lc: id, col: col } });
 }
 on('lay-front', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-lc'), col = el.getAttribute('data-col');
   if (!LAYOUT_ID.test(id || '') || !LAYOUT_ID.test(col || '')) return;
   const D = layoutDraftOf_(layoutNow_()), f = D.front;
@@ -23009,17 +23009,17 @@ function cardUnlist_(D, id) {
   if (D.cards && !Object.keys(D.cards).length) delete D.cards;
 }
 on('lay-c-move', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   layUpDown_(el.getAttribute('data-lc'), el.getAttribute('data-col'), Number(el.getAttribute('data-d')), 'c');
 });
 /* ACROSS: the same card, its one home moved with it — onto any column, a widget column too (710). */
 on('lay-c-col', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   layAcross_(el.getAttribute('data-lc'), el.getAttribute('data-col'), Number(el.getAttribute('data-d')), 'c');
 });
 /* DELETE ASKS TWICE, IN PLACE; the second step says when it is the only place a setting is edited — still one tap, never a pop-up. */
 on('lay-c-del', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-lc');
   if (!cardIs_(id) || CARD_KEEP[id]) return;
   const all = mergeAll_(id, layoutNow_()).filter(x => !CARD_KEEP[x]);
@@ -23032,7 +23032,7 @@ on('lay-c-del', el => {
 });
 /* START HERE: the column opens on this card (or person, or "the first person"); pressed again, the default comes back. */
 on('lay-start', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-lc'), col = el.getAttribute('data-col');
   if (!hostIs_(col) || !LAYOUT_START_ID.test(id || '')) return;
   const D = layoutDraftOf_(layoutNow_());
@@ -23105,7 +23105,7 @@ function colOrderApply_(L) {
 }
 /* ◀ ▶ ON A COLUMN: on its first unit's admin row, beside that unit's own; `lay-col` swaps it with the neighbouring column this admin sees. */
 function colOpts_(col, id) {
-  if (!isAdmin() || (CARD_SEEN[col] || [])[0] !== id) return [];
+  if (!may_('admin') || (CARD_SEEN[col] || [])[0] !== id) return [];
   let seq = [];
   try { seq = TABS.map(t => t.id); } catch (e) { seq = []; }
   const i = seq.indexOf(col);
@@ -23208,7 +23208,7 @@ function mergePrune_(D) {
   return D;
 }
 on('lay-merge', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-m'), col = el.getAttribute('data-col'), isW = el.getAttribute('data-w') === '1';
   const L = layoutNow_(), D = layoutDraftOf_(L);
   const seen = CARD_SEEN[col] || (isW ? layoutSeen_(col, D) : []);
@@ -23222,7 +23222,7 @@ on('lay-merge', el => {
 });
 /* SPLIT: the parts stand apart again where they are — arranging, not undoing. */
 on('lay-unmerge', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-m'), D = layoutDraftOf_(layoutNow_());
   if (!mergedOf_(id, D)) return;
   D.merged = D.merged.filter(g => g.indexOf(id) === -1);
@@ -23245,7 +23245,7 @@ function seenGate_(id) {
 /* @family. — js/layout-moves.js AN ADMIN'S MOVES: the tiles that move a widget or card, the move you can see, and the save for everybody (cut from layout.js; read as one by tools/piece-src.js). */
 /* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete, as tile_'s options grouped by `widgetOnColumn_` (arcade.js) ---------- */
 function layoutOpts_(w) {
-  if (!w || !isAdmin()) return null;
+  if (!w || !may_('admin')) return null;
   /* A FIND CARD (790) IS PLACED BY THE FUNNEL, so it has no ▲ ▼ ◀ ▶: its words, who sees it and Delete, which are the widget's own. */
   if (typeof widgetInFind_ === 'function' && widgetInFind_(w)) {
     const id = String(w.id);
@@ -23377,12 +23377,12 @@ function layMoveShow_(kind, id, col, save, to) {
 }
 /* ---------- THE MOVES: each one a change to the whole layout, saved at once — the same two for a widget and a card (710) ---------- */
 on('lay-w-move', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
   if (w) layUpDown_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
 });
 on('lay-w-col', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
   if (w) layAcross_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
 });
@@ -23438,7 +23438,7 @@ function layArm_(el, say, rest, word) {
 }
 /* DELETE ASKS TWICE, IN PLACE, THEN IS FINAL (477): `deleted` only keeps it from being drawn again; there is no undo. */
 on('lay-w-del', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-w');
   const all = mergeAll_(id, layoutNow_());
   if (all.some(basketKept_)) return;
@@ -23450,7 +23450,7 @@ on('lay-w-del', el => {
 });
 /* ---------- SAVED FOR EVERYBODY, DRAWN AT ONCE, PUT BACK IF THE SHEET SAYS NO ---------- */
 function layoutSave_(next) {
-  if (!isAdmin() || !next) return Promise.resolve(false);
+  if (!may_('admin') || !next) return Promise.resolve(false);
   const was = layoutNow_();
   customPrune_(next); mergePrune_(next);
   const set = v => { try { DATA.layout = v; } catch (e) { /* no payload yet: the device's copy below still holds it */ } layoutKeep_(v); layoutRelayout_(); };
@@ -23522,7 +23522,7 @@ function wordsIn_(scope, html) {
 
 /* ---------- THE ADMIN'S TWO TILES on every widget, card and item, in the layout group: Edit words, Who sees this ---------- */
 function wordsOpts_(scope, id) {
-  if (!isAdmin()) return null;
+  if (!may_('admin')) return null;
   const s = seenOf_(id);
   return [{ icon: 'edit', label: 'Edit words', note: 'type over this card\'s words, for everyone', act: 'words-edit', tone: 'admin', data: { ws: scope } },
     { icon: 'show', label: 'Who sees this', note: s ? SEEN_SAY[s] : 'Everyone', act: 'seen-open', tone: 'admin', on: !!s, data: { lc: id } }];
@@ -23566,7 +23566,7 @@ function wordsBarOn_(scope, tries) {
   else if (!root && tries > 0) setTimeout(() => wordsBarOn_(scope, tries - 1), 30);
 }
 on('words-edit', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const scope = el.getAttribute('data-ws') || '';
   wordsEditSet_(WORDS_EDIT === scope ? '' : scope);
 });
@@ -23584,7 +23584,7 @@ function wordsSend_(set, reset) {
     .catch(err => { put(was); toast(why_(err)); return false; });
 }
 on('words-save', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const root = el.closest('.wk-editing');
   if (!root) return;
   const W = wordsNow_(), set = {}, reset = [];
@@ -23600,7 +23600,7 @@ on('words-save', el => {
   wordsSend_(set, reset);
 });
 on('words-reset', el => {
-  if (!isAdmin() || !sure_(el, 'Reset?')) return;
+  if (!may_('admin') || !sure_(el, 'Reset?')) return;
   const k = el.getAttribute('data-wk');
   if (WORDS_KEY_RE.test(k || '')) wordsSend_({}, [k]);
 });
@@ -23620,7 +23620,7 @@ function seenOf_(id) { const s = (((layoutNow_() || {}).seen) || {})[id]; return
 /* AN ADMIN STILL SEES EVERYTHING, or a thing narrowed away from them could never be widened again. */
 function seenOk_(id) {
   const s = seenOf_(id);
-  if (!s || isAdmin()) return true;
+  if (!s || may_('admin')) return true;
   const signed = typeof USER !== 'undefined' && !!USER;
   if (s === 'out') return !signed;
   if (s === 'in') return signed;
@@ -23638,7 +23638,7 @@ function seenBox_(id) {
     { type: 'tiles', tiles: [{ icon: 'close', label: 'Close', act: 'seen-close', tone: 'admin' }] }] });
 }
 on('seen-open', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-lc'), row = el.closest('.tile-row');
   if (!row || !LAYOUT_ID.test(id || '')) return;
   const open = row.parentElement && [...row.parentElement.querySelectorAll(':scope > .seen-box')].find(b => b.getAttribute('data-seen-for') === id);
@@ -23647,7 +23647,7 @@ on('seen-open', el => {
 });
 on('seen-close', el => { el.closest('.seen-box')?.remove(); });
 on('seen-set', el => {
-  if (!isAdmin()) return;
+  if (!may_('admin')) return;
   const id = el.getAttribute('data-lc'), v = String(el.value || '');
   if (!LAYOUT_ID.test(id || '') || (v && SEEN_ORDER.indexOf(v) === -1) || (seenWider_(v, seenGate_(id)) && v !== '')) return;
   const D = layoutDraftOf_(layoutNow_());

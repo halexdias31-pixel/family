@@ -243,7 +243,7 @@ function isHome(loc) {
   const name = String(loc || '');
   if (takesAllSeats_(name)) return true;
   /* A CHILD IS SENT NO RATES (398), so "no rate" is not "a home" to her phone. */
-  if (childView_()) return false;
+  if (!may_('prices')) return false;
   const sp = (typeof spaceFor === 'function') ? spaceFor(name) : null;
   if (sp) return !(Number(sp.rate) > 0);
   const v = (DATA.venues || []).find(x => norm(x.title) === norm(name));
@@ -312,11 +312,9 @@ const rank_ = (u = USER) => {
 };
 /* AT LEAST THIS RANK; nobody signed in holds none. `u` as `heldRoles`. */
 const rankAtLeast_ = (want, u = USER) => !!u && RANKS.indexOf(rank_(u)) >= RANKS.indexOf(want);
-const isTutorRole = () => rankAtLeast_('staff');
 
 /* ---------- A CHILD IS SHOWN NO PRICE (398) — the owner: "Kids' profiles shouldn't be able to see tutors' prices." */
-/* Rank Student (400), the phone's half of `isChild_` (people.gs). */
-const childView_ = () => rank_() === 'student';
+/* Asked as `!may_('prices')` (data-who.js), the phone's half of `whoMay_(row, 'prices')` (people.gs). */
 /* WHAT SHE IS TOLD WHERE A PRICE OR A PAY BUTTON WOULD BE — the backend's `KID_ASK_PARENT` says the same. */
 const KID_ASK_PARENT = 'A parent books and pays for sessions — ask yours to book this one.';
 

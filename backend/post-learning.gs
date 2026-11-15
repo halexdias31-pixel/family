@@ -246,7 +246,7 @@ function libItemsReply_(body) {
   if (!ids.length) return { error: 'Which items? Nothing was asked for.' };
   if (ids.length > LIB_PER_CALL) return { error: 'At most ' + LIB_PER_CALL + ' items at a time.' };
   if (!libReady_()) return { error: 'The library is still being copied into the Ledger — try again in a few minutes.', why: 'lib-not-ready' };
-  const cap = hasRole(me, 'admin') ? Infinity : libCapOf_();
+  const cap = whoMay_(me, 'admin') ? Infinity : libCapOf_();
   const tally = cap === Infinity ? { allowed: ids, refused: [], left: null } : libTally_(me, ids, cap);
   if (tally.busy) return { error: 'Busy — try again in a moment.', why: 'busy' };
   if (!tally.allowed.length) {
@@ -264,7 +264,7 @@ const READ_ITEMS_LIB = { question: 'q', content: 'ct', practical: 'pr', project:
 const READ_ITEMS_SHELF = { question: 'question', content: 'library', practical: 'library', project: 'library' };
 function readItemsRole_(me) {
   if (!me) return 'anyone';
-  if (hasRole(me, 'admin')) return 'admin';
+  if (whoMay_(me, 'admin')) return 'admin';
   return netViewerIsChild_() ? 'child' : 'member';
 }
 /* ONE WAY TO THE SERVER (step 2, slice 2): people, answers and messages, each answered by its old door's own handler, so the fields and refusals are that door's. */
@@ -288,7 +288,7 @@ function readItemsOwn_(kind, how, body, began) {
   const b = { token: body.token, name: personDisplayName(me), personId: self };
   if (how.self && (!want || want === self)) return how.self(b, 'readItems', began);
   /* SOMEBODY ELSE'S: an admin's alone, asked of the row the token resolved to — as the gate asked it of lensOpen, personGet and getProfile. */
-  if (!how.other || role !== 'admin' || !hasRole(me, 'admin')) return jsonOut({ error: 'Only your own.', why: 'refused' });
+  if (!how.other || role !== 'admin' || !whoMay_(me, 'admin')) return jsonOut({ error: 'Only your own.', why: 'refused' });
   if (!want && !how.blank) return jsonOut({ error: 'Whose? Nobody was asked for.' });
   b.targetId = want; b.target = want;
   if (how.logged && want !== self) {

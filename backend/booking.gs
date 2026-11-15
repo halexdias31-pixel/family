@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-15-guests-1";
+const BOOKING_VERSION = "2026-11-15-who-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -410,7 +410,7 @@ function accessDenied(action, body) {
     body.name = personDisplayName(who);
     body.personId = S(who.person_id);
     /* ADMIN IS ASKED OF THE ROW THE TOKEN RESOLVED TO, not of its display name looked up again. § */
-    if (need === 'admin' && !hasRole(who, 'admin')) return 'Not authorised.';
+    if (need === 'admin' && !whoMay_(who, 'admin')) return 'Not authorised.';
     /* NAMING SOMEBODY ELSE AS THE ADMIN IS OVER. Anything reading `adminName` gets the signed-in
        person, so the two can no longer disagree. */
     if (S(body.adminName)) body.adminName = body.name;

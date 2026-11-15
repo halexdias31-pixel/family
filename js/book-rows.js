@@ -420,7 +420,7 @@ function stepWeekRows_(st) {
 function weekTotal_() {
   try {
     const L = bookPrice();
-    if (!L || !L.hoursPerWeek || !L.chargeRate || childView_()) return '';
+    if (!L || !L.hoursPerWeek || !L.chargeRate || !may_('prices')) return '';
     return money_(runningAfter('hoursweek', L));
   } catch (e) { return ''; }
 }

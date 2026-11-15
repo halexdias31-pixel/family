@@ -6,7 +6,7 @@ function postClaimChild_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
   if (!me) return jsonOut({ error: 'Not signed in.' });
   /* HELD, NOT MAIN. The card is drawn for anybody who HOLDS client or admin (`mayAddChild_` reads `heldRoles`), and this asked for the MAIN role — so a person who § */
-  if (!hasRole(me, 'client') && !hasRole(me, 'admin')) {
+  if (!hasRole(me, 'client') && !whoMay_(me, 'admin')) {
     return jsonOut({ error: 'Only a parent can add a child.' });
   }
   /* NOT FROM AN ADDRESS NOBODY HAS PROVED — see `addressPending_`. § */
@@ -231,7 +231,7 @@ function postPersonGet_(body, action, began) {
   if (want && !r) return jsonOut({ error: 'We could not find that person.' });
   /* THEIR NOTIFICATIONS, AS THEIR OWN CARD DRAWS THEM: an admin ticks them on the Edit form through `setNotify` with targetId. */
   let notify = null;
-  try { notify = r && !hasRole(r, 'admin') ? notifyOf_(r) : null; } catch (err) { notify = null; }
+  try { notify = r && !whoMay_(r, 'admin') ? notifyOf_(r) : null; } catch (err) { notify = null; }
   return jsonOut({ success: true, person: r ? adminPersonOut_(r) : null, parents: adminParentChoices_(), notify: notify });
 }
 
@@ -297,7 +297,7 @@ function postPersonDelete_(body, action, began) {
   const r = t.rows.find(x => S(x.person_id) === S(body.targetId));
   if (!r) return jsonOut({ error: 'We could not find that person — nothing was deleted.' });
   if (S(r.person_id) === S(body.personId)) return jsonOut({ error: 'You cannot delete yourself.' });
-  if (hasRole(r, 'admin') && adminCount_(t) <= 1) return jsonOut({ error: 'That is the last admin — nothing was deleted.' });
+  if (whoMay_(r, 'admin') && adminCount_(t) <= 1) return jsonOut({ error: 'That is the last admin — nothing was deleted.' });
   if (!adminPersonDelete_(t, r)) return jsonOut({ error: 'The people tab could not be changed — nothing was deleted.' });
   clearCache();
   return jsonOut({ success: true, deleted: S(body.targetId) });

@@ -175,12 +175,12 @@ function postPayStatement_(body, action, began) {
   clearCache();
   const me = findPerson('', S(body.personId));
   if (!me) return jsonOut({ error: 'Please sign in again.' });
-  const admin = hasRole(me, 'admin');
+  const admin = whoMay_(me, 'admin');
   const want = S(body.tutorId);
   if (!admin && !rankAtLeast_(me, 'staff')) return jsonOut({ error: 'Statements are for tutors.', why: 'staff' });
   if (!admin && want && want !== S(me.person_id)) return jsonOut({ error: 'You can see only your own statement.', why: 'own' });
   const who = want && admin ? findPerson('', want) : me;
-  if (!who || !(hasRole(who, 'tutor') || hasRole(who, 'admin'))) return jsonOut({ error: 'No tutor with that id.' });
+  if (!who || !(hasRole(who, 'tutor') || whoMay_(who, 'admin'))) return jsonOut({ error: 'No tutor with that id.' });
   const st = payStatement_(who, S(body.month));
   if (!st) return jsonOut({ error: 'Which month? Send it as 2026-10.' });
   return jsonOut(Object.assign({ success: true }, st));

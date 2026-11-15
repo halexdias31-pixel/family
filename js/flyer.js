@@ -26,7 +26,7 @@ const flyTutors_ = () => ((typeof DATA !== 'undefined' && DATA && DATA.tutors) |
 const flyMine_ = () => (typeof passFor_ === 'function' && USER ? passFor_(USER.name) : null);
 /* WHO THIS VIEWER MAY MAKE A FLYER FOR: an admin, the business and every listed tutor; a tutor, their own card only. */
 function flyWhoList_() {
-  if (typeof isAdmin === 'function' && isAdmin()) return [{ id: 'web', label: brand('name', '@family.') }].concat(flyTutors_().map(t => ({ id: flyTutorId_(t), label: t.title })));
+  if (typeof may_ === 'function' && may_('admin')) return [{ id: 'web', label: brand('name', '@family.') }].concat(flyTutors_().map(t => ({ id: flyTutorId_(t), label: t.title })));
   const me = flyMine_();
   return me ? [{ id: flyTutorId_(me), label: me.title }] : [];
 }
@@ -125,7 +125,7 @@ function flyerBody_() {
 /* THE CARD'S SPEC: its name the tag, the maker its one body block; `fl-maker` is how a redraw finds every copy. */
 const flyerCardSpec_ = () => ({ kind: 'panel', look: 'fl-maker', name: 'Flyer maker', tags: ['Flyer maker'], data: { 'lay-card': 'staff:flyer' }, body: [flyerBody_()] });
 function flyerCards_() {
-  if (!USER || !rankAtLeast_('staff')) return [];
+  if (!USER || !may_('staff')) return [];
   /* FITTED ONCE IT IS ON THE PAGE: a card is drawn as a string before it has a width. */
   try { setTimeout(flyerFit_, 0); setTimeout(flyerFit_, 400); } catch (e) { /* drawn unfitted */ }
   return [renderCard(flyerCardSpec_())];
