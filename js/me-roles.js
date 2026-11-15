@@ -200,7 +200,7 @@ const LOCK_AS_ = { staff: { rank: 'staff', role: 'Tutor', roles: ['tutor'] }, fa
 function lockedAs_(col, draw) {
   const real = USER;
   let out = [];
-  USER = Object.assign({ name: '', handle: '', personId: '', email: '', profile: {}, lockedPreview: true }, LOCK_AS_[col] || {});
+  USER = Object.assign({ name: '', handle: '', personId: '', email: '', profile: {}, lockedPreview: true, realViewer: real }, LOCK_AS_[col] || {});
   try { out = (draw() || []).filter(Boolean); } catch (e) { out = []; } finally { USER = real; }
   return out.map(lockCard_);
 }

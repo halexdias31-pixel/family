@@ -9,7 +9,7 @@ const FORM_SPECS = {
     {"kind":"toggle","match":"^(dbs|active|listed|is_|has_|allow|paid|trackable|stealable)"},
     {"kind":"date","match":"_date$|^date_of_birth$|^dob_[dmy]$"},
     {"kind":"time","match":"^(m|tu|w|th|f|sa|su)\\d\\d$"},
-    {"kind":"money","match":"rate|price|cost|fee"},
+    {"kind":"money","match":"rate|price|cost|fee|seat_cut"},
     {"kind":"number","match":"hours|km|fraction|pages|year|students|days|weeks|count|level_required|age_|_cut$"},
     {"kind":"choice","match":"^(borough|city|town|focus|favourite_colour)$"},
     {"kind":"text","match":""}

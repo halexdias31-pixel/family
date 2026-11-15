@@ -2411,7 +2411,8 @@ const roleFor_ = (u = USER) => (!u ? 'anyone' : rankAtLeast_('admin', u) ? 'admi
 const may_ = (what, u = USER) => {
   const r = roleFor_(u);
   if (what === 'admin') return r === 'admin';
-  if (what === 'prices') return r !== 'child';
+  /* A locked card's stand-in (`lockedAs_`) is not who is looking: money is the REAL viewer's call, so a child never sees a price box. */
+  if (what === 'prices') return u && u.lockedPreview ? may_('prices', u.realViewer) : r !== 'child';
   if (what === 'staff') return rankAtLeast_('staff', u);
   if (what === 'signedIn') return r !== 'anyone';
   if (what === 'grownUp') return r === 'member' || r === 'admin';
@@ -9297,7 +9298,7 @@ const FORM_SPECS = {
     {"kind":"toggle","match":"^(dbs|active|listed|is_|has_|allow|paid|trackable|stealable)"},
     {"kind":"date","match":"_date$|^date_of_birth$|^dob_[dmy]$"},
     {"kind":"time","match":"^(m|tu|w|th|f|sa|su)\\d\\d$"},
-    {"kind":"money","match":"rate|price|cost|fee"},
+    {"kind":"money","match":"rate|price|cost|fee|seat_cut"},
     {"kind":"number","match":"hours|km|fraction|pages|year|students|days|weeks|count|level_required|age_|_cut$"},
     {"kind":"choice","match":"^(borough|city|town|focus|favourite_colour)$"},
     {"kind":"text","match":""}
@@ -11157,7 +11158,7 @@ const LOCK_AS_ = { staff: { rank: 'staff', role: 'Tutor', roles: ['tutor'] }, fa
 function lockedAs_(col, draw) {
   const real = USER;
   let out = [];
-  USER = Object.assign({ name: '', handle: '', personId: '', email: '', profile: {}, lockedPreview: true }, LOCK_AS_[col] || {});
+  USER = Object.assign({ name: '', handle: '', personId: '', email: '', profile: {}, lockedPreview: true, realViewer: real }, LOCK_AS_[col] || {});
   try { out = (draw() || []).filter(Boolean); } catch (e) { out = []; } finally { USER = real; }
   return out.map(lockCard_);
 }

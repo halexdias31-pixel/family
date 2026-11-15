@@ -48,7 +48,8 @@ const roleFor_ = (u = USER) => (!u ? 'anyone' : rankAtLeast_('admin', u) ? 'admi
 const may_ = (what, u = USER) => {
   const r = roleFor_(u);
   if (what === 'admin') return r === 'admin';
-  if (what === 'prices') return r !== 'child';
+  /* A locked card's stand-in (`lockedAs_`) is not who is looking: money is the REAL viewer's call, so a child never sees a price box. */
+  if (what === 'prices') return u && u.lockedPreview ? may_('prices', u.realViewer) : r !== 'child';
   if (what === 'staff') return rankAtLeast_('staff', u);
   if (what === 'signedIn') return r !== 'anyone';
   if (what === 'grownUp') return r === 'member' || r === 'admin';

@@ -51,7 +51,7 @@
   },
   {
    "kind": "money",
-   "match": "rate|price|cost|fee"
+   "match": "rate|price|cost|fee|seat_cut"
   },
   {
    "kind": "number",
