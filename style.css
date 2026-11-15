@@ -5315,13 +5315,17 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .prof-week .prof-key .hr { flex: 0 0 1.6rem; }
 
 /* A TABLE'S BLANKS ARE CELLS TO TYPE IN (find.js, `cellsTable_`); a fingertip is px, so the cell is at least 44px. */
-.qp-cell { box-sizing: border-box; width: 100%; min-width: var(--tap); min-height: var(--tap); padding: 0 var(--s1);
+/* ONE WIDTH FOR EVERY COLUMN (N-20261115-tb1): an answer cell is the size of the given cell beside it, at every width. */
+.qtext table[data-cells], .card.kc .qtext .q-tscroll > table[data-cells] { table-layout: fixed; width: 100%; max-width: 40rem; }
+.qp-cell { box-sizing: border-box; width: 100%; min-width: 0; min-height: var(--tap); padding: 0 var(--s1);
   border: 1px solid var(--line); border-radius: var(--r-ui); background: transparent; color: inherit;
   font: 600 var(--fs-body)/1 var(--font); text-align: center; }
 .qp-cell:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
 .qp-cell.is-right { box-shadow: 0 0 0 3px var(--good); }
 .qp-cell.is-near { box-shadow: 0 0 0 3px var(--warn); }
 td.qp-cell-at, th.qp-cell-at { padding: 2px; }
+/* centred over the left the question card gives its other boxes */
+.qcard :is(td, th).qp-cell-at > .qp-cell { text-align: center; }
 /* EVERY GAP IN ONE BOX (owner, 13 Nov): the one line over it says to write the answers in order. */
 .qp-compose > .q-hint { font-size: var(--fs-body); line-height: 1.3; text-align: center; }
 

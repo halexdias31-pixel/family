@@ -163,8 +163,9 @@ function cellInput_(k, c, i, v) {
   if (!c.ways) return '';
   /* a cell holding a list (`24, 68`) needs the comma, which a phone's number pad does not have */
   const num = /^[-\d.,\s|£$%°/]+$/.test(c.ways) && !/,\s/.test(c.ways);
-  return cardBlock_({ type: 'control', attrs: { class: 'qp-cell', 'data-k': k, 'data-n': String(i), 'aria-label': 'Blank ' + c.label, autocomplete: 'off',
-    inputmode: num ? 'decimal' : 'text', value: v || '' } });
+  /* ON THE @family. PAD, like every answer box (N-20261115-tb1: an iPad opened its own keyboard): `kp-in`, locked, its face from `data-kp` */
+  return cardBlock_({ type: 'control', attrs: { class: 'qp-cell kp-in', 'data-k': k, 'data-n': String(i), 'aria-label': 'Blank ' + c.label, autocomplete: 'off',
+    'data-kp': num ? 'maths' : 'words', readonly: true, inputmode: 'none', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'done', value: v || '' } });
 }
 /* A PART OF AN ANSWER BOX, drawn by renderCard's group block: its tag, class, attributes, then markup already drawn and/or text. */
 const fcG_ = (tag, look, attrs, inner, text) => cardBlock_({ type: 'group', tag, look, attrs, inner, text });

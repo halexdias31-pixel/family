@@ -265,6 +265,7 @@ const SUITE = [
   { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503), never over content and gone once content paints (owner, 13 Nov)', slow: true },
   { file: 'check/chip-feel.js', what: 'at 4x CPU a tapped Find answer is lit in a frame before the funnel redraws, and three taps in a row are three answers (720)', slow: true },
   { file: 'check/kp-centred.js', what: 'Find centred above the @family. keypad, the box still as you type, centred again when it goes (720)', slow: true },
+  { file: 'check/table-cells.js', what: 'a fill-in table: every column one width, each answer cell its column\'s size, on the @family. pad (N-20261115-tb1)', slow: true },
   { file: 'check/later-gone.js', what: 'a second batch the network drops throws nothing: no LATER name read, asked again, marks adopted once it lands (live, 14 Nov)', slow: true },
   { file: 'check/later.js', what: 'every column gone to and started while the LATER files are away reads none of their names; they arrive in one task (720)', slow: true },
   { file: 'check/fluid.js',   what: 'any shape of screen: seven phone, tablet and desktop sizes scroll no wider than the window and leave no blank side', slow: true },

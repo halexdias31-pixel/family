@@ -1,0 +1,44 @@
+/* ADD A STUDENT AS ADMIN (owner, 15 Nov: "Add a person did not work"): Find › Profiles' card, Student, a name and a date of birth, Add them — a row is made and the PIN slip shows. */
+check('an admin adds student Sam Example from Find › Profiles and sees the PIN slip', async () => {
+  const W = cardWorld_({ people: [] });
+  const reply = b => b.via === 'saveItem' ? W.real.post(Object.assign({}, b, { action: 'saveItem', item: 'person', via: undefined })) : (['personGet', 'linkChild'].indexOf(b.action) !== -1 ? W.real.post(b) : { success: true, messages: [] });
+  const a = await cardOpen_(W, 'admin@example.org', { reply });
+  if (a.err) return [a.err];
+  a.t.go('stuff', false, true);
+  const KS = a.t.STUFF(); KS.filters.length = 0; KS.filters.push({ field: 'kindLabel', value: 'Profiles' }, { field: 'profileType', value: 'Student' }); a.w.paintStuff(); await wait(300);
+  const card = () => a.d.querySelector('#s-stuff .pa-card');
+  if (!card()) return ['no Add a person card for the admin'];
+  const bad = [];
+  if ((card().querySelector('[data-pa="role"]') || {}).value !== 'student') bad.push('the role does not start at Student');
+  [['first', 'Sam'], ['last', 'Example'], ['dob', '2015-03-04']].forEach(([k, v]) => { const el = card().querySelector('[data-pa="' + k + '"]'); if (!el) bad.push('no ' + k + ' box'); else a.type(el, v); });
+  a.A('pa-save', card().querySelector('[data-do="pa-save"]')); await wait(1200);
+  const save = a.sent.find(b => b.action === 'personSave' || (b.action === 'saveItem' && b.item === 'person'));
+  if (!save) return bad.concat(['Add them posted nothing; the card says: ' + (card() || {}).textContent]);
+  if (JSON.stringify(save.roles) !== '["student"]') bad.push('posted roles ' + JSON.stringify(save.roles));
+  const sam = W.sheet("(read(TAB.people).rows.find(r => r.first_name === 'Sam' && r.last_name === 'Example') || {}).person_id");
+  if (!sam) bad.push('no Sam Example row was made; the card says: ' + (card() || {}).textContent);
+  if (!/is added/.test(String((card() || {}).textContent)) || !/PIN/.test(String((card() || {}).textContent))) bad.push('the card does not say Sam is added with a PIN: ' + (card() || {}).textContent);
+  return bad;
+});
+check('an admin adds student Nia Newby from the Students column "+" against the real backend', async () => {
+  const W = cardWorld_({ people: [] });
+  const reply = b => b.via === 'saveItem' ? W.real.post(Object.assign({}, b, { action: 'saveItem', item: 'person', via: undefined })) : (['personGet', 'linkChild'].indexOf(b.action) !== -1 ? W.real.post(b) : { success: true, messages: [] });
+  const a = await cardOpen_(W, 'admin@example.org', { reply });
+  if (a.err) return [a.err];
+  a.t.go('students', false, true); await wait(300);
+  const col = () => a.d.querySelector('#s-students');
+  const plus = col() && col().querySelector('[data-do="person-add"]');
+  if (!plus) return ['no "+" on Students for the admin'];
+  a.A('person-add', plus); await wait(800);
+  const form = () => col().querySelector('.person-form');
+  if (!form() || !form().querySelector('[data-pf="first"]')) return ['pressing + drew no new-person form: ' + (form() ? form().textContent : col().textContent.slice(0, 300))];
+  const bad = [];
+  a.type(form().querySelector('[data-pf="first"]'), 'Nia'); a.type(form().querySelector('[data-pf="last"]'), 'Newby');
+  a.A('person-save', form().querySelector('[data-do="person-save"]')); await wait(1200);
+  const save = a.sent.find(b => b.action === 'personSave' || (b.action === 'saveItem' && b.item === 'person'));
+  if (!save) return ['Add them posted nothing; the form says: ' + (form() || col()).textContent.slice(0, 300)];
+  if (JSON.stringify(save.roles) !== '["student"]') bad.push('posted roles ' + JSON.stringify(save.roles));
+  if (!W.sheet("(read(TAB.people).rows.find(r => r.first_name === 'Nia') || {}).person_id")) bad.push('no Nia row: ' + col().textContent.slice(0, 300));
+  if (!col().querySelector('.person-made .pin-slip')) bad.push('no PIN slip after adding');
+  return bad;
+});

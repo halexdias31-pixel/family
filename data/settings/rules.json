@@ -306,6 +306,7 @@
     "bootslow",
     "answer-width",
     "keyboard",
+    "table-cells",
     "dropdowns",
     "surfaces",
     "surface-nesting"
